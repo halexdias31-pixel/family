@@ -263,6 +263,8 @@ function boot(opts) {
       /* THE REAL TAB LIST, so a journey asking "does every tab draw" cannot be asking about tabs
          that no longer exist. It has been wrong twice from being written out by hand. */
       'TABS, wgChosen: () => wgChosen_(),' +
+      /* WHAT THE LINE UNDER YOUR HANDLE SAYS (`HANDLE_SAID`, me.js) — a `let`, so a function (342). */
+      'handleSaid: () => HANDLE_SAID,' +
       /* THE PAPER AS DRAWN, so a journey can ask what is actually on it rather than what the
          functions behind it were supposed to produce. */
       'paper: () => (typeof bookBreakdown === "function" ? bookBreakdown(bookPrice()) : ""),' +
@@ -9603,8 +9605,9 @@ check('a post\'s faces: a tap adds yours, the same tap takes it back, the total 
       caption: 'A Tuesday at the library', body: '', location: '', when: '01/09/2026',
       at: Date.UTC(2026, 8, 1), pinned: false, active: true, waiting: false, refused: false,
       reactions: { emoji: FACES.slice(), counts: [2, 1, 0, 0, 0, 0], total: 3, yours: '',
-        by: [{ name: 'Ada Tutor', emoji: '👍' }, { name: 'Priya Parent', emoji: '👍' },
-             { name: 'Carl Everyclient', emoji: '❤️' }] },
+        /* A PARENT BY HER FIRST NAME, as `doGet` sends one to anybody but herself and an admin (342). */
+        by: [{ name: 'Ada Tutor', emoji: '👍' }, { name: 'Priya', emoji: '👍' },
+             { name: 'Carl', emoji: '❤️' }] },
       comments: { total: 0, list: [] } }];
     return p;
   };
@@ -23909,7 +23912,7 @@ check('sign out, then the next child signs in: none of the last child’s messag
 
 check('a wrong PIN empties the PIN box, focuses it and marks it, with one toast and the banner unchanged', async () => {
   const { w } = boot({ reply: b => (b.action === 'verifyLogin'
-    ? (/^@?nobody/.test(String(b.email)) ? { success: false, why: 'not-an-email', error: 'Sign in with the email on your account — or your handle (like halex_kind42).' }
+    ? (/^@?nobody/.test(String(b.email)) ? { success: false, why: 'not-an-email', error: 'Sign in with the email on your account — or your handle, as it is on your card.' }
                                         : { success: false, why: 'wrong-pin', error: 'Wrong PIN for that handle.' })
     : { success: true }) });
   await wait(300);
@@ -24823,15 +24826,33 @@ function surnameWorld_() {
     const t3 = as('P-PEN', { action: 'addComment', postId: 'PO-1', body: 'great volcano' });
     if (!(t1 && t1.tutorPending) || !(t2 && t2.success) || !(t3 && t3.success)) tk.junoFailed = JSON.stringify([t1, t2, t3]).slice(0, 300);
   }
+  /* AND OLA, ANOTHER PARENT, SAYS A WORD UNDER IT (docs/history/342) — so a grown-up's whole name is in a
+     comment every visitor's feed draws, beside Pip's in the events of the session she booked for Wren. */
+  if (tk['P-OTH']) {
+    const o1 = as('P-OTH', { action: 'addComment', postId: 'PO-1', body: 'lovely' });
+    if (!(o1 && o1.success)) tk.olaFailed = JSON.stringify(o1).slice(0, 300);
+  }
   return { b, tk };
 }
-check('a child is her first name on every screen: no surname drawn for a visitor, her tutor, another parent, an admin, or herself outside her own Settings boxes', async () => {
+/* AND A PARENT'S SURNAME, SINCE 11 OCT (docs/history/342): *"don't show surname as some kids have different
+   surnames and gets a bit awkward"*. Pip's and Ola's surnames are hunted on every screen of every visitor
+   but themselves and the admin — who must still see Pip's, or a rule that took every name out would pass.
+   Pip is a visitor here too, so her own whole name is drawn for her and Ola's is not.
+   AND WREN SEES HER OWN PARENT'S (342, round 2): a child is shown the whole name of a grown-up on her own
+   family row (`netKin_`) — the claim card is where she decides whether somebody is her parent, and her
+   parent's whole name is what she tells the next claim apart by. So Pip's surname is not hunted for Wren, and
+   must be drawn for her somewhere, or that half would be unseen; Ola's still is. */
+const GROWN_ = { 'P-PAR': 'Ashdown', 'P-OTH': 'Brisk' };
+const KIN_ = { 'P-KID': ['P-PAR'] };
+check('a child is her first name on every screen, and a parent is hers to everybody but herself, an admin and her own child: no surname drawn for a visitor, her tutor, another parent, her parent, an admin, or herself outside her own Settings boxes', async () => {
   let world;
   try { world = surnameWorld_(); } catch (e) { return ['the real backend could not be built, so NOTHING was drawn — ' + e.message]; }
   const { b, tk } = world;
   if (tk.junoFailed) return ['Juno could not tick Tutor, book and comment, so a pending tick was NOT asked — ' + tk.junoFailed];
+  if (tk.olaFailed) return ['Ola could not comment, so a grown-up\'s name under a post was NOT asked — ' + tk.olaFailed];
   if (Object.keys(tk).length < 7) return ['only ' + Object.keys(tk).join(', ') + ' could sign in, so most screens were NOT drawn — not a pass'];
-  const VIEW = [['a visitor', null], ['her tutor', 'P-TUT'], ['another parent', 'P-OTH'], ['an admin', 'P-ADM'], ['herself', 'P-KID']];
+  const VIEW = [['a visitor', null], ['her tutor', 'P-TUT'], ['another parent', 'P-OTH'], ['an admin', 'P-ADM'], ['herself', 'P-KID'],
+                ['her parent', 'P-PAR']];
   const bad = [];
   for (const [who, pid] of VIEW) {
     /* WHAT `familyUser` HOLDS: the real sign-in reply — and for her, that reply as a phone signed in
@@ -24847,14 +24868,17 @@ check('a child is her first name on every screen: no surname drawn for a visitor
     await wait(600); await woken_();
     if (!!pid !== !!t.whoami()) { bad.push(who + ': the app reads this visitor as signed ' + (t.whoami() ? 'in' : 'out') + ' — NOT asked about'); continue; }
     const seen = [];
-    let sawJuno = false;
+    let sawJuno = false, sawWhole = false;
+    /* A GROWN-UP'S SURNAME IS HUNTED FOR EVERYBODY BUT THEMSELVES AND THE ADMIN; A CHILD'S FOR EVERYBODY. */
+    const hunt = SURS_.concat(pid === 'P-ADM' ? [] : Object.keys(GROWN_).filter(g => g !== pid && (KIN_[pid] || []).indexOf(g) === -1).map(g => GROWN_[g]));
     const look = (where) => {
       const root = w.document.documentElement.cloneNode(true);
       /* HER OWN SETTINGS BOXES, AND NOTHING ELSE, are where her surname belongs. */
       if (pid === 'P-KID') root.querySelectorAll('#s-settings input, #s-settings textarea').forEach(el => el.remove());
       const html = root.outerHTML;
-      const m = html.match(new RegExp('.{0,70}(?:' + SURS_.join('|') + ').{0,40}', 'i'));
+      const m = html.match(new RegExp('.{0,70}(?:' + hunt.join('|') + ').{0,40}', 'i'));
       if (/Juno/.test(html)) sawJuno = true;
+      if (/Pip Ashdown/.test(html)) sawWhole = true;
       if (m) seen.push(where + ': …' + m[0].replace(/\s+/g, ' ') + '…');
     };
     let pages = 0;
@@ -24871,7 +24895,10 @@ check('a child is her first name on every screen: no surname drawn for a visitor
       }
     }
     if (pages < 12) bad.push(who + ': only ' + pages + ' pages were drawn — the walk did not reach the screens');
-    [...new Set(seen)].slice(0, 4).forEach(x => bad.push(who + ' is shown her surname on ' + x));
+    [...new Set(seen)].slice(0, 4).forEach(x => bad.push(who + ' is shown a surname that is not theirs to see on ' + x));
+    /* AND THE ADMIN IS SHOWN PIP'S WHOLE NAME — the rule is "to everybody but herself and an admin", not "to nobody". */
+    if (pid === 'P-ADM' && !sawWhole) bad.push('an admin: "Pip Ashdown" is nowhere on any screen, so the admin\'s exemption was NOT seen — or the net took her surname from the admin too');
+    if (pid === 'P-KID' && !sawWhole) bad.push('herself: her own parent is not "Pip Ashdown" on any screen — a child sees the whole name of a grown-up on her own family row (342, round 2)');
     /* AND HER FIRST NAME IS THERE, where a screen names her — a rule that drew nobody would pass the above. */
     const all = w.document.documentElement.outerHTML;
     if (pid !== 'P-TUT' && !/Wren/.test(all)) bad.push(who + ': "Wren" is nowhere on any screen, so the screens that name her were NOT drawn — not a pass');
@@ -24882,6 +24909,294 @@ check('a child is her first name on every screen: no surname drawn for a visitor
     }
     if (errs.length) bad.push(who + ': errors: ' + errs.slice(0, 3).join(' | '));
   }
+  return bad;
+});
+
+/* ---------- A CHILD WHOSE HANDLE WAS MOVED STILL GETS IN, AND IS TOLD WHAT IT IS NOW (docs/history/342) -------
+   The owner, 11 Oct: *"Change usernames to be more abstract to hide the names of kids. Just use initials…"*
+   `?run=kidHandles` moves every child's handle to their initials and four digits — and seven in eight of
+   them have no email and sign in with the handle written on a slip. THE REAL BACKEND, a child whose
+   handle has moved (`handle_was` holds the old one): typed into the real sign-in box, the old one signs
+   her in, and the sheet she closes says the new one. */
+function movedWorld_() {
+  const { backend } = require('./check-gas-load.js');
+  const b = backend({ MailApp: { sendEmail() {}, getRemainingDailyQuota: () => 100 } });
+  const base = { pin: '0000', verified: 'TRUE', listed: true, city: 'London', xp: 0, credits: 0, email: '' };
+  b.seed('people', [
+    Object.assign({ person_id: 'P-EJ', role: 'student', first_name: 'Ella', last_name: 'Jones', handle: 'ej2345',
+                    handle_was: 'ella_kind42', friends: 'ab3456' }, base),
+    Object.assign({ person_id: 'P-AB', role: 'student', first_name: 'Abe', last_name: 'Bell', handle: 'ab3456' }, base),
+  ]);
+  return b;
+}
+check('a child whose handle was moved signs in with the old one on her slip, and a sheet she closes says the new one', async () => {
+  let b;
+  try { b = movedWorld_(); } catch (e) { return ['the real backend could not be built, so NOTHING was signed into — ' + e.message]; }
+  const { w } = boot({ payload: b.get({}), reply: body => b.post(body) });
+  for (let k = 0; k < 80 && !w.__t; k++) await wait(100);
+  const t = w.__t, d = w.document, bad = [];
+  if (!t) return ['the app did not finish loading'];
+  await wait(300);
+  t.go('account', false, true);
+  await wait(120);
+  const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
+  if (!name || !pin) return ['there is no sign-in card to sign in on, so the old handle was NOT typed'];
+  name.value = 'ella_kind42'; pin.value = '0000';
+  t.ACTIONS['do-signin'](d.querySelector('#s-account [data-do="do-signin"]'));
+  for (let k = 0; k < 40 && !t.whoami(); k++) await wait(100);
+  await wait(200);
+  const u = t.whoami();
+  if (!u || u.personId !== 'P-EJ') return ['the old handle on her slip did not sign her in — ' + JSON.stringify(u && u.personId)];
+  if (u.handle !== 'ej2345') bad.push('the phone calls her @' + u.handle + ' after signing in, not @ej2345');
+  const title = String((d.getElementById('sheet-title') || {}).textContent || '');
+  const body = String((d.getElementById('sheet-body') || {}).textContent || '');
+  const open = !d.getElementById('sheet').classList.contains('hidden');
+  if (!open || title !== 'Your handle has changed' || body.indexOf('@ej2345') === -1)
+    bad.push('no sheet she has to close said her new handle — ' + JSON.stringify({ open, title, body: body.slice(0, 160) }));
+  /* AND HER NEW ONE SAYS NOTHING — the sheet is for the old one, every time it is used, and only then. */
+  const again = b.post({ action: 'verifyLogin', email: 'ej2345', name: 'ej2345', pin: '0000' });
+  if (!again.success || again.handleMoved) bad.push('signing in with her new handle says something moved — ' + JSON.stringify(again).slice(0, 200));
+  return bad;
+});
+
+/* ---------- AND A PHONE SIGNED IN BEFORE THE MOVE LEARNS IT ON ITS NEXT OPEN, ONCE ------------------------
+   `familyUser` holds the handle and the friends list the sign-in reply carried, for the thirty days a
+   session lasts — so a child whose handle the business moved while she was signed in was shown her old
+   one, and her friends list named handles that no longer exist (the next "Add a friend" would post them
+   back). `myProfile`, asked on every open, carries both now: the phone takes them, says the new handle
+   once (a toast, and "You were @…" under it, `HANDLE_SAID`), and the open after that says nothing. */
+check('a phone signed in before her handle moved takes the new one from myProfile and says so once', async () => {
+  let b;
+  try { b = movedWorld_(); } catch (e) { return ['the real backend could not be built — ' + e.message]; }
+  const signed = b.post({ action: 'verifyLogin', email: 'ej2345', name: 'ej2345', pin: '0000' });
+  if (!signed.success) return ['she could not sign in on the real backend, so NOTHING was asked — ' + JSON.stringify(signed).slice(0, 200)];
+  const stale = Object.assign(JSON.parse(JSON.stringify(signed)), { handle: 'ella_kind42', friends: 'ab_kind11' });
+  const bad = [];
+  const toastsIn = win => { const said = []; const obs = new win.MutationObserver(() => {
+    const el = win.document.getElementById('toast'); if (el && el.textContent) said.push(el.textContent); });
+    obs.observe(win.document.body, { childList: true, subtree: true, characterData: true }); return said; };
+  const first = boot({ payload: b.get({ token: signed.token }), reply: body => b.post(body),
+    before: win => win.localStorage.setItem('familyUser', JSON.stringify(stale)) });
+  const said1 = toastsIn(first.w);
+  for (let k = 0; k < 80 && !first.w.__t; k++) await wait(100);
+  const t = first.w.__t;
+  if (!t) return ['the app did not finish loading'];
+  for (let k = 0; k < 40 && (t.whoami() || {}).handle !== 'ej2345'; k++) await wait(100);
+  const u = t.whoami() || {};
+  if (u.handle !== 'ej2345') bad.push('the phone still calls her @' + u.handle + ' after myProfile — a moved handle stays stale for thirty days');
+  if (u.friends !== 'ab3456') bad.push('the phone kept the old friends list ' + JSON.stringify(u.friends) + ' — its next save would post names nobody has');
+  let said = {};
+  try { said = t.handleSaid(); } catch (e) {}
+  if (!said || said.text !== 'You were @ella_kind42.' || said.pid !== 'P-EJ') bad.push('the line under her handle does not say who she was — ' + JSON.stringify(said));
+  if (!said1.some(m => /Your handle is @ej2345 now/.test(m))) bad.push('nothing told her the new handle — toasts: ' + JSON.stringify(said1));
+  /* THE NEXT OPEN, from what that one stored: nothing more to say. */
+  let kept = '';
+  try { kept = first.w.localStorage.getItem('familyUser'); } catch (e) {}
+  const second = boot({ payload: b.get({ token: signed.token }), reply: body => b.post(body),
+    before: win => { if (kept) win.localStorage.setItem('familyUser', kept); } });
+  const said2 = toastsIn(second.w);
+  for (let k = 0; k < 80 && !second.w.__t; k++) await wait(100);
+  await wait(1200);
+  if (said2.some(m => /Your handle is/.test(m))) bad.push('the next open said the new handle again — it is said once');
+  if (first.errs.length || second.errs.length) bad.push('errors: ' + first.errs.concat(second.errs).slice(0, 3).join(' | '));
+  return bad;
+});
+
+/* ---------- AFTER REVIEW, ROUND 1 (docs/history/342): the device's chips, and the two races ----------------
+   THE FAMILY IPAD KEPT THE OLD CHIP. Signing in by a moved handle, or learning it from `myProfile`, added
+   the new handle's chip and left `@ella_kind42` — her first name, on the shared device — beside it; and the
+   one-tap way in was the old one, so "Your handle has changed" came back on every sign-in. The old chip
+   becomes the new one in its place (`handleRename_`, me.js).
+   AND NO JOURNEY PRESSED RANDOMISE OR ADDED A FRIEND, so the two guards against a `myProfile` asked before
+   the press and answered after it were held by nothing: the review took each away and every check stayed
+   green. Randomise's was a text test that knew only the LAST press — two presses under one slow reply put
+   the first handle back. Both are `ACCOUNT_AT_` now (`accountChanged_`), and these hold them. The tile is
+   drawn here rather than found on a screen, because which screen it lives on is moving (fix-card-settings)
+   and what is asked is what a press does, not where it is. */
+function movedWorld3_() {
+  const b = movedWorld_();
+  b.seed('people', [{ person_id: 'P-CD', role: 'student', first_name: 'Cy', last_name: 'Dunn', handle: 'cd4567',
+    pin: '0000', verified: 'TRUE', listed: true, city: 'London', xp: 0, credits: 0, email: '' }]);
+  return b;
+}
+/* SIGNED IN AS ELLA, THE APP OPEN, AND THE `myProfile` IT ASKED AT OPEN HELD until `release()`. */
+async function heldProfileOpen_(b, chips) {
+  const signed = b.post({ action: 'verifyLogin', email: 'ej2345', name: 'ej2345', pin: '0000' });
+  if (!signed.success) throw new Error('she could not sign in on the real backend');
+  let release, held = null;
+  const gate = new Promise(r => { release = r; });
+  const reply = body => {
+    if (body.action === 'myProfile' && !held) { held = b.post(body); return gate.then(() => held); }
+    return b.post(body);
+  };
+  const { w, errs } = boot({ payload: b.get({ token: signed.token }), reply,
+    before: win => { win.localStorage.setItem('familyUser', JSON.stringify(signed));
+                     if (chips) win.localStorage.setItem('familyHandles', JSON.stringify(chips)); } });
+  for (let k = 0; k < 80 && !w.__t; k++) await wait(100);
+  if (!w.__t) throw new Error('the app did not finish loading');
+  for (let k = 0; k < 60 && !held; k++) await wait(100);
+  if (!held) throw new Error('myProfile was never asked at open, so the race was NOT set up');
+  return { w, t: w.__t, d: w.document, errs, release: () => release() };
+}
+function shuffleTile_(d) {
+  const card = d.createElement('div'); card.className = 'card';
+  card.innerHTML = '<span class="handle-shown"></span><button data-do="handle-shuffle"></button><p class="handle-said"></p>';
+  d.body.appendChild(card);
+  return card.querySelector('button');
+}
+const serverCell_ = (b, pid, col) => JSON.parse(b.ev('JSON.stringify(String(read(TAB.people).rows.find(r => r.person_id === '
+  + JSON.stringify(pid) + ').' + col + ' || ""))'));
+async function pressShuffle_(t, tile, n) {
+  for (let i = 0; i < n; i++) {
+    const before = String((t.whoami() || {}).handle);
+    t.ACTIONS['handle-shuffle'](tile);
+    for (let k = 0; k < 60 && String((t.whoami() || {}).handle) === before; k++) await wait(100);
+    await wait(300);
+  }
+}
+const chipsOf_ = w => { try { return JSON.parse(w.localStorage.getItem('familyHandles') || '[]'); } catch (e) { return ['(unreadable)']; } };
+
+check('a child who signs in on the family iPad with her moved handle: its chip becomes the new one, so the next tap says nothing', async () => {
+  let b;
+  try { b = movedWorld3_(); } catch (e) { return ['the real backend could not be built — ' + e.message]; }
+  const { w } = boot({ payload: b.get({}), reply: body => b.post(body),
+    before: win => win.localStorage.setItem('familyHandles', JSON.stringify(['ab3456', 'ella_kind42'])) });
+  for (let k = 0; k < 80 && !w.__t; k++) await wait(100);
+  const t = w.__t, d = w.document;
+  if (!t) return ['the app did not finish loading'];
+  await wait(300);
+  t.go('account', false, true); await wait(150);
+  const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
+  if (!name || !pin) return ['there is no sign-in card, so the old chip was NOT asked about'];
+  name.value = 'ella_kind42'; pin.value = '0000';
+  t.ACTIONS['do-signin'](d.querySelector('#s-account [data-do="do-signin"]'));
+  for (let k = 0; k < 40 && !t.whoami(); k++) await wait(100);
+  await wait(400);
+  const u = t.whoami() || {};
+  if (u.personId !== 'P-EJ') return ['the old handle did not sign her in, so the chip was NOT asked about — ' + JSON.stringify(u.personId)];
+  const chips = chipsOf_(w);
+  return chips.indexOf('ella_kind42') !== -1 || chips.indexOf('ej2345') === -1 || chips.indexOf('ab3456') === -1
+    ? ['after signing in by her old handle the device offers ' + JSON.stringify(chips) + ' — the name-bearing chip stays on the shared iPad, and tapping it says "Your handle has changed" every time'] : [];
+});
+check('a phone that learns a moved handle from myProfile swaps the old chip for the new one in its place', async () => {
+  let b;
+  try { b = movedWorld3_(); } catch (e) { return ['the real backend could not be built — ' + e.message]; }
+  const signed = b.post({ action: 'verifyLogin', email: 'ej2345', name: 'ej2345', pin: '0000' });
+  if (!signed.success) return ['she could not sign in on the real backend — ' + JSON.stringify(signed).slice(0, 160)];
+  const stale = Object.assign(JSON.parse(JSON.stringify(signed)), { handle: 'ella_kind42' });
+  const { w } = boot({ payload: b.get({ token: signed.token }), reply: body => b.post(body),
+    before: win => { win.localStorage.setItem('familyUser', JSON.stringify(stale));
+                     win.localStorage.setItem('familyHandles', JSON.stringify(['cd4567', 'ella_kind42', 'ab3456'])); } });
+  for (let k = 0; k < 80 && !w.__t; k++) await wait(100);
+  const t = w.__t;
+  if (!t) return ['the app did not finish loading'];
+  for (let k = 0; k < 40 && (t.whoami() || {}).handle !== 'ej2345'; k++) await wait(100);
+  if ((t.whoami() || {}).handle !== 'ej2345') return ['the phone never took the moved handle from myProfile, so the chip was NOT asked about'];
+  const chips = chipsOf_(w);
+  return JSON.stringify(chips) !== JSON.stringify(['cd4567', 'ej2345', 'ab3456'])
+    ? ['the phone calls her @ej2345 but the device\'s chips are ' + JSON.stringify(chips) + ' — wanted the old one replaced where it was'] : [];
+});
+check('a myProfile asked at open and answered after TWO Randomise presses keeps the handle the server has', async () => {
+  let b, o;
+  try { b = movedWorld3_(); o = await heldProfileOpen_(b, ['ej2345']); } catch (e) { return [e.message]; }
+  const tile = shuffleTile_(o.d);
+  const seen = [String(o.t.whoami().handle)];
+  await pressShuffle_(o.t, tile, 1); seen.push(String(o.t.whoami().handle));
+  await pressShuffle_(o.t, tile, 1); seen.push(String(o.t.whoami().handle));
+  const server = serverCell_(b, 'P-EJ', 'handle');
+  if (seen[2] !== server || seen[1] === seen[0]) return ['the two presses did not land as asked, so the race was NOT set up — ' + JSON.stringify(seen) + ' / server ' + server];
+  o.release(); await wait(1500);
+  const u = o.t.whoami() || {}, bad = [];
+  if (String(u.handle) !== server) bad.push('the presses gave ' + JSON.stringify(seen) + '; the myProfile asked at open landed after them and the phone says @' + u.handle + ' while the server has @' + server);
+  const chips = chipsOf_(o.w);
+  if (JSON.stringify(chips) !== JSON.stringify([server])) bad.push('the device\'s chip did not follow Randomise — ' + JSON.stringify(chips) + ', the server has @' + server);
+  if (o.errs.length) bad.push('errors: ' + o.errs.slice(0, 3).join(' | '));
+  return bad;
+});
+check('a myProfile asked at open and answered after one Randomise press keeps the new handle', async () => {
+  let b, o;
+  try { b = movedWorld3_(); o = await heldProfileOpen_(b); } catch (e) { return [e.message]; }
+  const tile = shuffleTile_(o.d);
+  const was = String(o.t.whoami().handle);
+  await pressShuffle_(o.t, tile, 1);
+  const server = serverCell_(b, 'P-EJ', 'handle');
+  if (server === was) return ['Randomise never landed, so the race was NOT set up'];
+  o.release(); await wait(1500);
+  const u = o.t.whoami() || {};
+  return String(u.handle) !== server ? ['after one press the phone says @' + u.handle + ', the server @' + server + ' — the reply asked before the press put the old handle back'] : [];
+});
+check('a myProfile asked at open and answered after a friend is added keeps the new friend', async () => {
+  let b, o;
+  try { b = movedWorld3_(); o = await heldProfileOpen_(b); } catch (e) { return [e.message]; }
+  o.t.ACTIONS['friend-add-open']();
+  await wait(100);
+  const box = o.d.getElementById('fr-add');
+  if (!box) return ['there is no Add a friend box, so the race was NOT set up'];
+  box.value = 'cd4567';
+  o.t.ACTIONS['friend-add']();
+  for (let k = 0; k < 30 && serverCell_(b, 'P-EJ', 'friends').indexOf('cd4567') === -1; k++) await wait(100);
+  const server = serverCell_(b, 'P-EJ', 'friends');
+  if (server.indexOf('cd4567') === -1) return ['the friend was never saved on the server, so the race was NOT set up: ' + server];
+  o.release(); await wait(1500);
+  const u = o.t.whoami() || {};
+  return String(u.friends) !== server ? ['the server has friends ' + JSON.stringify(server) + ' but after the reply asked at open landed the phone has ' + JSON.stringify(u.friends)] : [];
+});
+
+/* ---------- AFTER REVIEW, ROUND 2 (docs/history/342): A FIGURE NOBODY DRESSED KEEPS ITS FACE -------------------
+   A blank look is drawn from the handle (`avatarConfig`: skin and hair colour from `hashOf(handle)`), so a moved
+   handle was a different figure — a different skin tone — on the child's own card and wardrobe. The server now
+   writes the old handle's look into a blank cell whenever it moves a handle (`handleFaceKept_`); these hold the
+   phone's half: Randomise's answer carries that look and the phone takes it, and a phone signed in before
+   `?run=kidHandles` takes it from `myProfile` with the new handle — or it would draw the new handle's colours
+   from its own blank copy until the next sign-in. The face is compared through the phone's own `avatarConfig`. */
+check('a figure nobody dressed keeps its face when her handle moves: Randomise, and a phone that learns the move from myProfile', async () => {
+  const bad = [];
+  const faceIn = (w, packed, handle) => { const c = w.avatarConfig(packed, handle); return [c.skin, c.hairColour, c.hair, c.legs].join('/'); };
+  /* THE MOVE, AS `?run=kidHandles` LEAVES IT: the old handle's look written into her blank cell. */
+  let b;
+  try { b = movedWorld3_(); } catch (e) { return ['the real backend could not be built — ' + e.message]; }
+  const kept = JSON.parse(b.ev('JSON.stringify(handleFaceKept_(read(TAB.people), { avatar: "" }, "ella_kind42").avatar || "")'));
+  if (!kept) return ['the server keeps no look for a blank cell, so the phone\'s half was NOT asked'];
+  b.ev('(function () { const t = read(TAB.people); const r = t.rows.find(x => S(x.person_id) === "P-EJ"); setCell(t, r, "avatar", '
+    + JSON.stringify(kept) + '); clearCache(); })()');
+  const signed = b.post({ action: 'verifyLogin', email: 'ej2345', name: 'ej2345', pin: '0000' });
+  if (!signed.success) return ['she could not sign in on the real backend — ' + JSON.stringify(signed).slice(0, 160)];
+  const stale = Object.assign(JSON.parse(JSON.stringify(signed)), { handle: 'ella_kind42', avatar: '' });
+  const one = boot({ payload: b.get({ token: signed.token }), reply: body => b.post(body),
+    before: win => win.localStorage.setItem('familyUser', JSON.stringify(stale)) });
+  for (let k = 0; k < 80 && !one.w.__t; k++) await wait(100);
+  if (!one.w.__t) return ['the app did not finish loading'];
+  for (let k = 0; k < 40 && (one.w.__t.whoami() || {}).handle !== 'ej2345'; k++) await wait(100);
+  const u1 = one.w.__t.whoami() || {};
+  if (u1.handle !== 'ej2345') bad.push('the phone never took the moved handle from myProfile, so the face was NOT asked');
+  else if (faceIn(one.w, u1.avatar, u1.handle) !== faceIn(one.w, '', 'ella_kind42')) {
+    bad.push('after myProfile moved her handle the phone draws her with ' + JSON.stringify(u1.avatar || '(a blank look)') + ' on @' + u1.handle
+      + ' — a different figure from the one @ella_kind42 drew; the server kept ' + JSON.stringify(kept));
+  }
+  /* RANDOMISE, ON A BLANK LOOK. */
+  let b2;
+  try { b2 = movedWorld3_(); } catch (e) { return bad.concat(['the real backend could not be built — ' + e.message]); }
+  const s2 = b2.post({ action: 'verifyLogin', email: 'ej2345', name: 'ej2345', pin: '0000' });
+  const two = boot({ payload: b2.get({ token: s2.token }), reply: body => b2.post(body),
+    before: win => win.localStorage.setItem('familyUser', JSON.stringify(s2)) });
+  for (let k = 0; k < 80 && !two.w.__t; k++) await wait(100);
+  if (!two.w.__t) return bad.concat(['the app did not finish loading for Randomise']);
+  await wait(800);
+  const face0 = faceIn(two.w, '', 'ej2345');
+  await pressShuffle_(two.w.__t, shuffleTile_(two.w.document), 1);
+  const u2 = two.w.__t.whoami() || {};
+  const cell = serverCell_(b2, 'P-EJ', 'avatar');
+  if (String(u2.handle) === 'ej2345') bad.push('Randomise never landed, so its face was NOT asked');
+  else {
+    if (!cell || faceIn(two.w, cell, String(u2.handle)) !== face0) bad.push('Randomise left the server drawing a different figure: ' + JSON.stringify(cell));
+    /* THE FACE, NOT THE STRING: after the merge with `fix-card-settings` its `avatarKeep_` may write the same look
+       in its own packing order. Blank is the fault — the new handle's colours. */
+    if (!String(u2.avatar || '').trim() || faceIn(two.w, u2.avatar, u2.handle) !== face0) {
+      bad.push('after Randomise the phone draws her with ' + JSON.stringify(u2.avatar || '(a blank look)') + ' on @' + u2.handle
+        + ' — the server kept ' + JSON.stringify(cell) + ', the face @ej2345 drew');
+    }
+  }
+  if (one.errs.length || two.errs.length) bad.push('errors: ' + one.errs.concat(two.errs).slice(0, 3).join(' | '));
   return bad;
 });
 

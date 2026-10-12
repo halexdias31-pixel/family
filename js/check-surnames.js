@@ -31,6 +31,14 @@
    With them, a grown-up who is learning (the score board says a first name for everybody, as it always
    did), and what comes BACK: text the net shortened, saved again, must not be written over the sheet's.
 
+   AND SINCE 11 OCT, A GROWN-UP WHO IS NOT ON A PUBLIC CARD (section 7, docs/history/342). The owner:
+   *"don't show surname as some kids have different surnames and gets a bit awkward"* — so a parent's
+   or a client's surname goes to nobody but themselves, an admin and a child on their own family row (round
+   2, section 9: the claim card is where a child decides who her parent is), while a tutor's whole name stays
+   on every card. That half depends on WHO IS ASKING, so it is asked of every viewer separately: each
+   grown-up's surname absent from what everybody else is sent, present in their own sign-in reply and
+   payload, present for an admin; and every email read for the person it went to.
+
    Invented people, example.org addresses, and no PIN but the 0000 placeholder.
 ================================================================================================== */
 'use strict';
@@ -317,6 +325,9 @@ const made = as('P-PAR', { action: 'makeChild', firstName: 'Moss', lastName: SUR
 rule(made && made.success, 'her parent could not make her brother\'s account, so that email and reply were not asked — ' + JSON.stringify(made));
 none(made, 'the make-child reply');
 rule(made && made.name === 'Moss', 'the make-child reply does not name the new child "Moss" — ' + JSON.stringify(made && made.name));
+/* AND HIS HANDLE CARRIES NEITHER NAME (342): his initials and four digits, the surname's first letter and
+   nothing more of it — a handle is on every screen the child is. */
+rule(made && /^mq[2-9]{4}$/.test(S(made.handle)), 'the child his parent made was not given his initials and four digits — ' + JSON.stringify(made && made.handle));
 /* AND THE WEEKLY EMAIL'S DOOR, `digestMail_`, with her whole name in the HTML it is handed. */
 const m3 = MAIL.length;
 b.ev('digestMail_([{ to: "pip@example.org", subject: "This week", text: "Wren Quorrington did 3", html: "<p>Wren Quorrington did 3</p>",'
@@ -433,8 +444,330 @@ if (own && own.success) {
     'a tutor declining "Wren (@wren_kind43)" — the name they were shown — did not reach her seat — ' + JSON.stringify(say) + ' ' + JSON.stringify(after));
 }
 
+/* ==================================================================================================
+   7. A GROWN-UP WHO IS NOT ON A PUBLIC CARD — by first name to everybody but themselves and an admin
+
+   THE GROWN-UPS ABOVE ARE ALREADY WHERE A WHOLE NAME IS STORED: Pip booked for Wren and Tess for Sol
+   (an event's actor, a roster's seat), Ola asked to claim Wren. Here Pip also says a word under the post
+   and reacts to it, and Ola writes to the tutor (an inbox, and the email that tells him). Gus is a parent
+   who is also learning — a grown-up, and private. Tam is a tutor and Hal an admin: their whole names stay
+   on every card, for everybody, because a family books a tutor by name.
+   ================================================================================================== */
+const GROWN = { 'P-PAR': 'Ashdown', 'P-OTH': 'Brisk', 'P-TYP': 'Lowe', 'P-GUS': 'Hartwell' };
+const growRe = sur => new RegExp('\\b' + sur + '\\b');
+/* A CHILD SEES THE WHOLE NAME OF A GROWN-UP ON HER OWN FAMILY ROW, asked or accepted (`netKin_`, 342 round 2):
+   Pip is Wren's parent. Ola ASKED to be, and Wren said no in section 5 — so Ola's surname is hunted in
+   everything Wren is sent from then on, and allowed only in the one email that asked her (below). */
+const KIN = { 'P-KID': ['P-PAR'] };
+const CLAIM_MAIL = 'Someone has added you to their account';
+/* TESS TICKS TUTOR AND IS LEFT WAITING (after review, round 1) — a Tutor tick nobody has said yes to is not
+   a public card (`namePrivate_` asks `actingRole_`, not the role cell), so her surname is hunted below while
+   it waits. No fixture had a grown-up in that state, and reading the role cell instead stayed green. */
+const tessTick = as('P-TYP', { action: 'setMyRoles', roles: ['client', 'tutor'] });
+rule(tessTick && tessTick.success && tessTick.tutorPending === true && S(b.row('P-TYP').listed) === 'PENDING',
+  'Tess could not tick Tutor and be left waiting, so a grown-up with a pending tick was NOT asked — ' + JSON.stringify(tessTick));
+b.ev('clearCache(); clearPayloadCache()');
+const said2 = as('P-PAR', { action: 'addComment', postId: 'PO-1', body: 'what a volcano' });
+rule(said2 && said2.success, 'Pip could not comment, so a grown-up\'s comment was not asked — ' + JSON.stringify(said2));
+b.seed('post_reactions', [{ reaction_id: 'R3', post_id: 'PO-1', person_id: 'P-PAR', emoji: '👍', reacted_on: dmy(day(-1)) }]);
+const m4 = MAIL.length;
+const olaWrote = as('P-OTH', { action: 'sendMessage', to: 'Tam Tutor', toId: 'P-TUT', body: 'Is Saturday still on?' });
+rule(olaWrote && olaWrote.success, 'Ola could not write to the tutor, so a grown-up in an inbox was not asked — ' + JSON.stringify(olaWrote));
+rule(MAIL.slice(m4).some(m => m.to === 'tutor@example.org'), 'no email told the tutor about Ola\'s message, so its wording was not asked');
+/* OLA'S NOTEPAD NAMES PIP WHOLE — and comes back through the net as Ola sees it, and is saved a line longer. */
+b.ev('(function () { const t = read(TAB.people); const r = t.rows.find(x => S(x.person_id) === "P-OTH"); '
+  + 'setCell(t, r, "notepad", "Pip Ashdown: lift on Friday"); clearPayloadCache(); })()');
+const olaIn = b.post({ action: 'verifyLogin', email: 'ola@example.org', pin: '0000' });
+if (olaIn && olaIn.success) tk['P-OTH'] = olaIn;
+/* WREN AGAIN, WITH THE PIN HER PARENT GAVE HER IN SECTION 5 — that New PIN ended every session she had, so
+   without this her "payload" below would be a stranger's. */
+const wrenIn = b.post({ action: 'verifyLogin', email: 'wren_kind43', pin: S(pin && pin.pin) });
+rule(wrenIn && wrenIn.success, 'Wren could not sign in again with her new PIN, so a child\'s view of the grown-ups was not asked — ' + JSON.stringify(wrenIn && wrenIn.error));
+if (wrenIn && wrenIn.success) tk['P-KID'] = wrenIn;
+const growWho = { 'a stranger (signed out)': null, 'another student': 'P-STU', 'a child (Wren)': 'P-KID', 'another parent (Ola)': 'P-OTH',
+                  'a parent (Pip)': 'P-PAR', 'the tutor': 'P-TUT', 'an admin': 'P-ADM', 'Tess': 'P-TYP', 'Gus': 'P-GUS' };
+let grownAsked = 0;
+const grownNone = (v, viewer, label, also) => {
+  const text = typeof v === 'string' ? v : JSON.stringify(v);
+  Object.keys(GROWN).forEach(pid => {
+    if (pid === viewer || viewer === 'P-ADM') return;
+    if ((KIN[viewer] || []).concat(also || []).indexOf(pid) !== -1) return;
+    grownAsked++;
+    rule(!growRe(GROWN[pid]).test(text), label + ' carries ' + pid + '\'s surname (' + GROWN[pid] + ') — a grown-up\'s surname goes only to '
+      + 'themselves and an admin: ' + (text.match(new RegExp('.{0,60}\\b' + GROWN[pid] + '\\b.{0,20}')) || [''])[0]);
+  });
+};
+Object.keys(growWho).forEach(label => {
+  const pid = growWho[label];
+  grownNone(get(pid), pid, 'the payload for ' + label);
+  grownNone(get(pid), pid, 'the KEPT payload for ' + label);
+  if (!pid) return;
+  grownNone(tk[pid], pid, 'the sign-in reply for ' + label);
+  grownNone(as(pid, { action: 'myProfile' }), pid, 'myProfile for ' + label);
+  grownNone(as(pid, { action: 'messages' }), pid, 'the inbox of ' + label);
+});
+/* EVERY EMAIL, FOR THE PERSON IT WENT TO — a grown-up's own mail may name them, an admin's may name anybody. */
+const byMail = {};
+b.tabs.people.slice(1).forEach(r => { const h = b.tabs.people[0]; byMail[S(r[h.indexOf('email')]).toLowerCase()] = S(r[h.indexOf('person_id')]); });
+/* THE CLAIM EMAIL TO THE CHILD names whoever asked, whole — she is deciding whether they are her parent. */
+MAIL.forEach((m, i) => grownNone({ subject: m.subject, body: m.body, htmlBody: m.htmlBody }, byMail[S(m.to).toLowerCase()] || null,
+  'email ' + (i + 1) + ' to ' + m.to + ' ("' + S(m.subject).slice(0, 50) + '")',
+  S(m.subject) === CLAIM_MAIL && m.to === 'wren@example.org' ? ['P-OTH'] : []));
+rule(grownAsked > 150, 'only ' + grownAsked + ' grown-up surnames were looked for, so the viewers were hardly asked');
+
+/* AND IT IS THEIR FIRST NAME THAT GOES, NOT A BLANK — and their whole name to themselves and an admin. */
+const tutP = get('P-TUT');
+const tutSeats7 = [].concat(...(tutP.clientClasses || []).map(j => (j.slots || []).map(x => S(x.client))));
+rule(tutSeats7.indexOf('Pip') !== -1 && tutSeats7.indexOf('Tess') !== -1,
+  'the tutor\'s roster does not name the parents who booked by their first names — ' + JSON.stringify(tutSeats7));
+const tamInbox = (as('P-TUT', { action: 'messages' }).messages || []).map(m => m.withName);
+rule(tamInbox.indexOf('Ola') !== -1, 'the tutor\'s inbox does not call Ola "Ola" — ' + JSON.stringify(tamInbox));
+/* UNDER THE POST BY HER FIRST NAME FOR A CHILD WHO IS NOT HERS (Ned) — and whole for her own child, Wren, as
+   every other place Wren is sent her (round 2: one rule for a child's own family, not one per screen). */
+const kidPost = ((get('P-STU').posts || []).find(p => p.id === 'PO-1') || {});
+rule(JSON.stringify(kidPost.comments || []).indexOf('"Pip"') !== -1 && ((kidPost.reactions || {}).by || []).some(x => x.name === 'Pip'),
+  'Pip\'s comment and reaction are not under the post by her first name for another family\'s child — ' + JSON.stringify([kidPost.comments, (kidPost.reactions || {}).by]).slice(0, 300));
+const wrenPost = ((get('P-KID').posts || []).find(p => p.id === 'PO-1') || {});
+rule(JSON.stringify(wrenPost.comments || []).indexOf('"Pip Ashdown"') !== -1,
+  'Pip\'s comment is not under the post by her whole name for her own child — ' + JSON.stringify(wrenPost.comments || []).slice(0, 300));
+const wrenFam = (get('P-KID').family || []).find(x => x.personId === 'P-PAR') || {};
+rule(wrenFam.title === 'Pip Ashdown', 'Wren\'s family card for her own parent is not "Pip Ashdown" — a child sees the whole name of a '
+  + 'grown-up on her own family row (342, round 2): ' + JSON.stringify(wrenFam));
+rule(S(tk['P-PAR'].name) === 'Pip Ashdown' && S(as('P-PAR', { action: 'myProfile' }).name) === 'Pip Ashdown',
+  'Pip\'s own sign-in reply or myProfile does not carry her whole name — the phone asks "is this mine?" against it');
+const pipOwn = (get('P-PAR').posts || []).find(p => p.id === 'PO-1') || {};
+rule(JSON.stringify(pipOwn.comments || []).indexOf('Pip Ashdown') !== -1, 'Pip\'s own payload does not carry her own comment under her whole name');
+const admP = get('P-ADM');
+const admEvery = (admP.everyone || []).find(x => x.personId === 'P-PAR') || {};
+rule(admEvery.title === 'Pip Ashdown', 'the admin\'s people column does not carry Pip\'s whole name — ' + JSON.stringify(admEvery));
+const admSeats = [].concat(...(admP.clientClasses || admP.jobs || []).map(j => (j.slots || []).map(x => S(x.client))));
+rule(admSeats.indexOf('Tess Lowe') !== -1 || JSON.stringify(admP).indexOf('Tess Lowe') !== -1, 'the admin\'s payload does not carry Tess\'s whole name anywhere');
+const stranger = get(null);
+rule(JSON.stringify(stranger.tutors || []).indexOf('Tam Tutor') !== -1, 'a tutor\'s whole name is gone from the public tutors list — families book a tutor by name');
+const olaPad = S(tk['P-OTH'] && tk['P-OTH'].notepad);
+rule(olaPad === 'Pip: lift on Friday', 'Ola\'s notepad does not come back with Pip by her first name — ' + JSON.stringify(olaPad));
+const olaS = as('P-OTH', { action: 'saveNotepad', notepad: olaPad + '\nand milk' });
+rule(olaS && olaS.success && S(b.row('P-OTH').notepad) === 'Pip Ashdown: lift on Friday\nand milk',
+  'a line added to Ola\'s notepad wrote Pip\'s shortened name over the sheet\'s — ' + JSON.stringify(b.row('P-OTH').notepad));
+/* TWO PRIVATE PEOPLE WITH ONE FIRST NAME are told apart by handle, as two children are. */
+b.seed('people', [P('P-PI2', 'client', 'Pip', 'Ollerton', 'pip2@example.org', 'pip_bold55')]);
+b.ev('clearCache(); clearPayloadCache()');
+const seats2 = [].concat(...(get('P-TUT').clientClasses || []).map(j => (j.slots || []).map(x => S(x.client))));
+rule(seats2.indexOf('Pip (@pip_kind42)') !== -1, 'with a second Pip on the sheet, the tutor\'s roster does not tell this one apart by handle — ' + JSON.stringify(seats2));
+/* AND A TUTOR ANSWERING HER SEAT NAMES HER AS THEY WERE SHOWN HER. */
+const pipJob = (get('P-TUT').clientClasses || []).find(j => (j.slots || []).some(x => S(x.client) === 'Pip (@pip_kind42)'));
+if (pipJob) {
+  const dec = as('P-TUT', { action: 'move', jobId: pipJob.id || pipJob.jobId, role: 'tutor', move: 'Decline', counterpart: 'Pip (@pip_kind42)', requestId: 'dec-pip' });
+  const decd = b.tabs.events.slice(1).filter(r => S(r[evH.indexOf('action')]) === 'Decline' && S(r[evH.indexOf('target')]) === 'Pip Ashdown');
+  rule(dec && dec.success && decd.length, 'a tutor declining "Pip (@pip_kind42)" — the name they were shown — did not reach her seat — ' + JSON.stringify(dec));
+} else rule(false, 'Pip\'s booking is not on the tutor\'s roster, so answering her seat by the name shown was not asked');
+
+/* ==================================================================================================
+   8. AFTER REVIEW, ROUND 1 (docs/history/342, "After review") — the doors section 7 did not walk
+
+   Each was found by a reviewer who changed one line and watched every check stay green — so each is
+   asked here by the reply or the payload it would have changed:
+     · `mailOut_` puts back whoever the request was for after each email (`finally`). Without it a reply
+       built after a notification is built for the email's recipient — an admin who teaches the class,
+       and each parent's `move` reply then names the other parent whole.
+     · an OPEN action's viewer comes from the token, never from `personId` off the request: a stranger
+       claiming the admin's id must get what any stranger gets.
+     · a referral code is cut from the name as OTHERS have it, since a code is handed round.
+     · a festive join's typed list of children reached every signed-out visitor, word for word, in the
+       events of an open job — and the events named every family three lines below the slots that blank
+       them. A typed surname is cut on the way in; the log goes only to the people on the job.
+     · `register` confirmed a guessed whole name to anybody, writing nothing; `makeChild` to any parent.
+   ================================================================================================== */
+let revAsked = 0;
+const revRule = (ok, what) => { revAsked++; return rule(ok, what); };
+
+/* ---- AN OPEN ACTION, SIGNED OUT, CLAIMING TO BE THE ADMIN: the stranger's answer, not the admin's ---- */
+{
+  const jid = tessB && (tessB.jobId || tessB.id);
+  const sent = as('P-TYP', { action: 'sendInvites', jobId: jid, emails: ['stranger@example.org'] });
+  const ih = b.tabs.invites[0];
+  const irow = b.tabs.invites.slice(1).reverse().find(r => S(r[ih.indexOf('to_email')]) === 'stranger@example.org');
+  const itok = irow ? S(irow[ih.indexOf('token')]) : '';
+  revRule(sent && sent.success && itok, 'Tess could not invite a stranger, so an open action\'s viewer was NOT asked — ' + JSON.stringify(sent));
+  if (itok) {
+    const plain = b.post({ action: 'openInvite', token: itok });
+    const forged = b.post({ action: 'openInvite', token: itok, personId: 'P-ADM', name: 'Hal Admin' });
+    revRule(S(plain.from) === 'Tess' && S(forged.from) === 'Tess',
+      'an invitation opened by a stranger names the inviter by more than her first name when the request claims the admin\'s id — the viewer came off the request: '
+      + JSON.stringify([plain.from, forged.from]));
+  }
+}
+
+/* ---- A REFERRAL CODE CARRIES NO SURNAME: a parent's, and a child's ---- */
+{
+  const pipRef = as('P-PAR', { action: 'myReferral' });
+  revRule(pipRef && /^[A-Z]+\d+$/.test(S(pipRef.code)) && !/ASH/.test(S(pipRef.code)),
+    'Pip\'s referral code carries the start of her surname — a code is handed round: ' + JSON.stringify(pipRef && pipRef.code));
+  const kidRef = as('P-KID', { action: 'myReferral' });
+  revRule(kidRef && /^[A-Z]+\d+$/.test(S(kidRef.code)) && !/QUO/.test(S(kidRef.code)),
+    'Wren\'s referral code carries the start of her surname: ' + JSON.stringify(kidRef && kidRef.code));
+}
+
+/* ---- A FESTIVE JOIN: the typed surname cut on the way in, and the log only to the people on the job ---- */
+{
+  b.seed('holidays', [{ holiday_id: 'H1', name: 'Half term', date: dmy(day(7)), active: 'TRUE', venue: 'Library',
+                        price_per_child: 10, event_name: 'Craft morning' }]);
+  b.ev('clearCache(); clearPayloadCache()');
+  const mf = MAIL.length;
+  const join = as('P-PAR', { action: 'joinFestive', holidayId: 'H1', kids: 'Wren ' + SUR + ' and Bo Kettleworth', requestId: 'fest-1' });
+  revRule(join && join.success, 'Pip could not join the festive event, so a typed list of children was NOT asked — ' + JSON.stringify(join));
+  const fj = d => [].concat(d.liveJobs || []).find(j => /^F-/.test(S(j.id || j.jobId)) || /Craft/.test(S(j.subject))) || null;
+  const strangerJob = fj(get(null)), nedJob = fj(get('P-STU')), pipJob = fj(get('P-PAR'));
+  revRule(strangerJob && nedJob && pipJob, 'the festive event is not in every payload, so who it names was NOT asked — '
+    + JSON.stringify([!!strangerJob, !!nedJob, !!pipJob]));
+  if (strangerJob && nedJob && pipJob) {
+    revRule(!(strangerJob.events || []).length && !(nedJob.events || []).length,
+      'an open job\'s events — every family\'s name and what they typed — go to somebody not on it: '
+      + JSON.stringify((strangerJob.events || []).concat(nedJob.events || [])).slice(0, 200));
+    const msg = JSON.stringify(pipJob.events || []);
+    revRule(/bringing: Wren and Bo\b/.test(msg) && !/Kettleworth/.test(msg),
+      'the festive join keeps the typed surname of a child who is no row ("Bo Kettleworth") where the other families read it: ' + msg.slice(0, 200));
+    const stranger = JSON.stringify(get(null));
+    revRule(!/Kettleworth/.test(stranger), 'a typed child\'s surname reached a signed-out visitor');
+  }
+  /* THE ADMIN'S EMAIL KEEPS WHAT WAS TYPED — an admin sees everybody's whole name. */
+  const adm = MAIL.slice(mf).find(m => m.to === 'admin@example.org');
+  revRule(adm && /Kettleworth/.test(S(adm.body)), 'the admin was not told the names as Pip typed them — ' + JSON.stringify(adm && adm.body));
+}
+
+/* ---- THE MAIL'S VIEWER IS PUT BACK: two parents in one open class taught by an admin, each move's reply theirs ---- */
+{
+  const jid = tessB && (tessB.jobId || tessB.id);
+  b.ev('(function () { const t = read(TAB.people); const r = t.rows.find(x => S(x.person_id) === "P-TUT"); '
+    + 'setCell(t, r, "role", "admin, tutor"); clearCache(); clearPayloadCache(); })()');
+  const m0 = MAIL.length;
+  const req = as('P-PAR', { action: 'move', jobId: jid, role: 'client', move: 'Request', requestId: 'rv-req' });
+  const say = as('P-TYP', { action: 'move', jobId: jid, role: 'client', move: 'Say', text: 'see you there', requestId: 'rv-say' });
+  revRule(req && req.success && say && say.success && MAIL.slice(m0).some(m => m.to === 'tutor@example.org'),
+    'the two parents could not move on the admin-taught class, or nothing mailed its tutor, so a reply built after an email was NOT asked — '
+    + JSON.stringify([req, say]).slice(0, 200));
+  revRule(!/\bLowe\b/.test(JSON.stringify(req)) && /Pip Ashdown/.test(JSON.stringify(req)),
+    'Pip\'s reply, built after the tutor-admin was emailed, names Tess whole or Pip not whole — it was built for the email\'s recipient: '
+    + JSON.stringify(req).slice(0, 240));
+  revRule(!/\bAshdown\b/.test(JSON.stringify(say)) && /Tess Lowe/.test(JSON.stringify(say)),
+    'Tess\'s reply, built after the tutor-admin was emailed, names Pip whole or Tess not whole: ' + JSON.stringify(say).slice(0, 240));
+  b.ev('(function () { const t = read(TAB.people); const r = t.rows.find(x => S(x.person_id) === "P-TUT"); '
+    + 'setCell(t, r, "role", "tutor"); clearCache(); clearPayloadCache(); })()');
+}
+
+/* ---- REGISTER AND MAKE-CHILD DO NOT CONFIRM A GUESSED WHOLE NAME ---- */
+{
+  const peopleNow = () => JSON.stringify(b.tabs.people);
+  /* A PIN `pinWeak_` LETS THROUGH, put together rather than written — `check-secrets.js` holds this public
+     repository to the 0000 placeholder, and `register` refuses that one (check-signin's `ZERO` does the same). */
+  const NEW_PIN = ['4', '8', '2', '6'].join('');
+  const reg = (first, last, email) => b.post({ action: 'register', who: 'parent', first_name: first, last_name: last, email: email, pin: NEW_PIN });
+  /* AN ADDRESS ALREADY ON A ROW: one answer whatever the name, and nothing written. */
+  const p0 = peopleNow();
+  const hit = reg('Wren', SUR, 'pip@example.org'), miss = reg('Wren', 'Quinn', 'pip@example.org');
+  revRule(S(hit.error) && S(hit.error) === S(miss.error) && peopleNow() === p0,
+    'register with an address already on a row answers a guessed real whole name differently from a wrong one — it confirms the surname: '
+    + JSON.stringify([hit.error, miss.error]));
+  /* A FRESH ADDRESS AND A NAME THAT IS AN ACCOUNT: refused, without saying it is the name. */
+  const clash = reg('Pip', 'Ashdown', 'guess1@example.org');
+  revRule(clash.error && !/name|called|Ashdown/i.test(S(clash.error)) && peopleNow() === p0,
+    'register refused a whole name that is an account by saying so: ' + JSON.stringify(clash.error));
+  const pipMade = as('P-PAR', { action: 'makeChild', firstName: 'Ned', lastName: 'Pell', pin: NEW_PIN });
+  revRule(pipMade.error && !/called|Ned Pell/i.test(S(pipMade.error)) && peopleNow() === p0,
+    'make-child refused a whole name that is an account by naming it: ' + JSON.stringify(pipMade.error));
+  /* THE CHILD'S DOOR, WITH ONE GROWN-UP'S ADDRESS FOR EVERY GUESS (round 2) — `parent_email` is somewhere to
+     write, not a sign-in address, so nothing asks it first. A guessed real name is refused in the sentence a
+     clash always gets, naming nothing, and writes and mails nothing; a wrong one makes a PENDING row and mails
+     that address. That difference is the "one of these is taken" note 342 says is left. */
+  const regKid = (first, last) => b.post({ action: 'register', who: 'student', first_name: first, last_name: last,
+                                           parent_email: 'pip@example.org', pin: NEW_PIN });
+  const pk0 = peopleNow(), mk0 = MAIL.length;
+  const kidHit = regKid('Wren', SUR);
+  revRule(S(kidHit.error) === S(clash.error) && peopleNow() === pk0 && MAIL.length === mk0 && !new RegExp(SUR + '|Wren|called', 'i').test(S(kidHit.error)),
+    'the child\'s door, with a guessed real name and a grown-up\'s address already on the sheet, answers other than any clash does, names the name, or writes or mails something: '
+    + JSON.stringify(kidHit));
+  /* NOTHING ONE CALLER DOES PAUSES ANYBODY ELSE (round 2). Round 1 counted clashes with private names and
+     refused EVERY new account after five in a day — and one signed-out caller could fill that count from a
+     row of their own. A repeated own name, and repeated real ones, then an innocent family and a parent. */
+  const own = regKid('Zed', 'Stranger');
+  revRule(own.success, 'a child could not register through a grown-up\'s address, so a caller\'s own row was NOT asked — ' + JSON.stringify(own));
+  for (let i = 0; i < 6; i++) regKid('Zed', 'Stranger');
+  for (let i = 0; i < 6; i++) reg('Ola', 'Brisk', 'g' + i + '@example.org');
+  const innocent = reg('Ivy', 'Newcomer', 'ivy@example.org');
+  revRule(innocent.success, 'after one caller repeated their own name and guessed real ones, an innocent family could not sign up — sign-up was switched off for everybody: '
+    + JSON.stringify(innocent));
+  const pipKid = as('P-PAR', { action: 'makeChild', firstName: 'Bo', lastName: 'Ashdown', pin: NEW_PIN });
+  revRule(pipKid.success, 'after the same, a confirmed parent could not make her child\'s account: ' + JSON.stringify(pipKid));
+  revRule(!Object.keys(b.props).some(k => /CLASH/i.test(k)), 'something still counts name clashes in the script properties — a count every caller shares is one any caller can fill: '
+    + JSON.stringify(Object.keys(b.props).filter(k => /CLASH/i.test(k))));
+}
+rule(revAsked >= 15, 'only ' + revAsked + ' after-review rules were asked');
+
+/* ==================================================================================================
+   9. AFTER REVIEW, ROUND 2 — A CHILD DECIDING WHETHER A GROWN-UP IS HER PARENT SEES WHO IT IS
+
+   The claim card ("<from> says they are your parent", Yes / No) is the one place a child vets a grown-up,
+   and a yes hands that account her bookings, her progress and a new PIN of their choosing. 342 cut its
+   name to the first one, so a second Pip — any stranger who registers as "Pip <anything>", the name every
+   roster shows other families — sent a card reading `Pip (@pip_bold55)` beside her own parent's
+   `Pip (@pip_kind42)`. Now: the child on the row sees the claimant's WHOLE name while it is asked (and
+   her own parent's, accepted), in the card, the payload and the email that tells her; nobody else is
+   sent it; and once she says no it is gone from what she is sent too.
+   ================================================================================================== */
+let kinAsked = 0;
+const kinRule = (ok, what) => { kinAsked++; return rule(ok, what); };
+{
+  const pi2 = b.post({ action: 'verifyLogin', email: 'pip2@example.org', pin: '0000' });
+  kinRule(pi2 && pi2.success, 'the second Pip could not sign in, so a stranger with Wren\'s parent\'s first name was NOT asked — ' + JSON.stringify(pi2 && pi2.error));
+  if (pi2 && pi2.success) {
+    tk['P-PI2'] = pi2;
+    /* A WORD UNDER HER POST FIRST — so his name is somewhere Wren is sent whatever the card says, and "after she
+       says no, nobody she is sent names him whole" asks something (with no comment, a refused claim has nowhere
+       left to name him, and counting `refused` as family stayed green — measured). */
+    const piSaid = as('P-PI2', { action: 'addComment', postId: 'PO-1', body: 'hello from a namesake' });
+    kinRule(piSaid && piSaid.success, 'the second Pip could not comment, so his name was NOT anywhere Wren is sent — ' + JSON.stringify(piSaid));
+    const mk = MAIL.length;
+    const asked2 = as('P-PI2', { action: 'claimChild', firstName: 'Wren', lastName: SUR });
+    kinRule(asked2 && asked2.success, 'the second Pip could not ask to add Wren, so the claim card was NOT asked — ' + JSON.stringify(asked2));
+    const wIn = b.post({ action: 'verifyLogin', email: 'wren_kind43', pin: S(pin && pin.pin) });
+    if (wIn && wIn.success) tk['P-KID'] = wIn;
+    const fromOf = d => (Array.isArray(d && d.claims) ? d.claims : []).map(c => S(c.from));
+    const seen = { 'her sign-in reply': tk['P-KID'], 'her payload': get('P-KID'), 'her kept payload': get('P-KID'), 'her myProfile': as('P-KID', { action: 'myProfile' }) };
+    Object.keys(seen).forEach(where => {
+      kinRule(fromOf(seen[where]).indexOf('Pip Ollerton') !== -1,
+        where + ' does not name the grown-up asking to be her parent whole — ' + JSON.stringify(fromOf(seen[where])) + ' — the card reads like her own parent\'s');
+    });
+    kinRule((tk['P-KID'].parents || []).indexOf('Pip Ashdown') !== -1,
+      'her sign-in reply does not name her own parent whole, so the claim cannot be told from her — ' + JSON.stringify(tk['P-KID'].parents));
+    const toHer = MAIL.slice(mk).find(m => m.to === 'wren@example.org' && S(m.subject) === CLAIM_MAIL);
+    kinRule(toHer && /Pip Ollerton says/.test(S(toHer.body)), 'the email telling her somebody asked does not name them whole — ' + JSON.stringify(toHer && toHer.body));
+    /* NOBODY ELSE: a stranger, another student, the other Wren, her own parent, another parent, the tutor. */
+    const notHers = { 'a stranger': null, 'another student': 'P-STU', 'the other Wren': 'P-KD2', 'her own parent': 'P-PAR',
+                      'another parent': 'P-OTH', 'the tutor': 'P-TUT' };
+    Object.keys(notHers).forEach(label => {
+      const pid = notHers[label];
+      const look = [get(pid)].concat(pid ? [as(pid, { action: 'myProfile' })] : []);
+      kinRule(!/Ollerton/.test(JSON.stringify(look)), 'the claimant\'s surname reached ' + label + ' — it is the claimed child\'s to see, and nobody else\'s');
+    });
+    kinRule(!MAIL.slice(mk).some(m => m.to !== 'wren@example.org' && m.to !== 'pip2@example.org' && m.to !== 'admin@example.org' && /Ollerton/.test(S(m.body) + S(m.subject))),
+      'an email naming the claimant whole went to somebody other than the child, the claimant or an admin');
+    /* AND SHE SAYS NO: the name goes with the card. */
+    const row = ((get('P-KID').claims || []).find(c => S(c.from) === 'Pip Ollerton') || {}).rowIndex;
+    const no2 = row ? as('P-KID', { action: 'answerClaim', rowIndex: row, accept: false }) : null;
+    kinRule(no2 && no2.success, 'Wren could not say no to the second Pip — ' + JSON.stringify(no2));
+    const wrenAfter = get('P-KID');
+    kinRule(!/Ollerton/.test(JSON.stringify([wrenAfter, as('P-KID', { action: 'myProfile' })])),
+      'after Wren said no, what she is sent still names the second Pip whole — a refused row is nobody\'s family');
+    const piCom = (((wrenAfter.posts || []).find(p => p.id === 'PO-1') || {}).comments || {});
+    kinRule(/"Pip \(@pip_bold55\)"/.test(JSON.stringify(piCom)), 'his comment is not under her post as "Pip (@pip_bold55)" for Wren once she said no, so the rule above asked nothing — '
+      + JSON.stringify(piCom).slice(0, 200));
+  }
+}
+rule(kinAsked >= 16, 'only ' + kinAsked + ' claim-card rules were asked');
+
 console.log('');
-console.log('  ' + asked + ' things asked of the real backend; ' + MAIL.length + ' emails caught; ' + FILES.length + ' backend files read');
+console.log('  ' + asked + ' things asked of the real backend; ' + MAIL.length + ' emails caught; ' + FILES.length + ' backend files read; '
+  + grownAsked + ' grown-up surnames looked for, viewer by viewer');
 if (bad.length) {
   console.log('');
   console.log('A CHILD\'S SURNAME LEFT THE SERVER, OR HER FIRST NAME DID NOT  (' + bad.length + ')');
@@ -446,4 +779,5 @@ if (bad.length) {
 console.log('');
 console.log('OK — no payload, reply or email carries a child\'s surname, for a stranger, another student, another parent, her own parent, '
   + 'her tutor or an admin; she is her first name everywhere, with her handle where another child shares it; her own Settings still has it; '
-  + 'and the sheet still has every one.');
+  + 'and the sheet still has every one. A parent\'s surname goes only to themselves, an admin and a child on their own family row; '
+  + 'a tutor\'s whole name to everybody; and nothing one caller does pauses anybody else\'s sign-up.');

@@ -282,8 +282,8 @@
     "yours": "",
     "by": [
      {"name": "Ada Tutor", "emoji": "👍"},
-     {"name": "Priya Parent", "emoji": "👍"},
-     {"name": "Carl Everyclient-Longername", "emoji": "👍"},
+     {"name": "Priya", "emoji": "👍"},
+     {"name": "Carl Everyteacher-Longername", "emoji": "👍"},
      {"name": "Evie", "emoji": "❤️"}
     ]
    },
@@ -308,7 +308,7 @@
      },
      {
       "id": "CM3",
-      "name": "Priya Parent",
+      "name": "Priya",
       "body": "Well done! Is the Saturday group still running in October, or does it stop at half term?",
       "at": "15/09/26 19:02",
       "mine": false,

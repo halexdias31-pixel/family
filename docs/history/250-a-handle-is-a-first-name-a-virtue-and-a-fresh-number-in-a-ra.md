@@ -58,3 +58,5 @@ tail-strip put back in `renameHandles`; no number at all (also `check-profile`);
 and Randomise written back as a `.btn` (`check/ui.js --screen=settings`, red at all four widths).
 
 Stamps not bumped here — the merger bumps all four together.
+
+**Since 11 Oct (342), this note's "existing handles are not regenerated" no longer holds for children:** `?run=kidHandles` moves every child to their initials and four digits (a preview first, then `&arg=apply`), old handles onto `handle_was`, where they still sign the child in. `renameHandles` leaves children to it. See [342](342-a-child-s-handle-carries-no-name.md).

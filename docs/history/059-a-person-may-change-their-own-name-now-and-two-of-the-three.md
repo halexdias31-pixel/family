@@ -83,3 +83,5 @@ properties: reasoning about behaviour instead of asking for it. It is `startsWit
 lookalike, the reserved names, the leet spellings, the innocent words, a clash against each of the
 four columns `findPerson` answers to, your own handle not clashing with yourself, and the month
 holding at five days and releasing at two hundred. Plus three that an admin must NOT be exempt from.
+
+**Since 11 Oct (342):** the clash `handleTrouble_` asks now includes every handle on ANOTHER row's `handle_was`, because an old handle still signs its owner in. See [342](342-a-child-s-handle-carries-no-name.md).

@@ -23,13 +23,15 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-10-11-m-merged";
+const DOPOST_VERSION = "2026-10-11-n-kid-handles";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
    handle door so the two cannot drift: no PIN set, the lock, the PIN, the unconfirmed address, the
    session. See `verifyLogin`. */
-function signInRow_(t0, r, body, by) {
+/* `was` IS AN OLD HANDLE THAT LET THEM IN (`handleWasRows_`, 342) — the reply then says what they are
+   called now, once, in the sheet the phone already opens for a sentence it must not lose. */
+function signInRow_(t0, r, body, by, was) {
   /* A PIN SENT BY "Forgotten your PIN?" IS A PIN THIS ROW HAS, for as long as it lasts — see
      `authResetUse_`. A row typed in with no PIN whose parent asked for one is exactly who it is for. */
   /* ONE WHOSE TYPED HALF HAS BEEN RETIRED BY WRONG TRIES IS NOT ONE TO TYPE — its link still works
@@ -116,8 +118,20 @@ function signInRow_(t0, r, body, by) {
   /* AND A CHANGE OF ADDRESS IT CANCELLED (`authResetTake_`) is said beside it — one message, one sheet. */
   const heldSaid = [authHeldSaid_(took ? N(took.childrenHeld) : 0), authMoveSaid_(took ? took.moveDropped : '')]
     .filter(Boolean).join(' ');
-  try { return loginReplyFor_(r, authNewSession_(t0, r), heldSaid ? { childrenHeld: took ? N(took.childrenHeld) : 0,
-    moveDropped: took ? S(took.moveDropped) : '', message: heldSaid } : null); }
+  const extra = heldSaid ? { childrenHeld: took ? N(took.childrenHeld) : 0,
+    moveDropped: took ? S(took.moveDropped) : '', message: heldSaid } : {};
+  /* ---------- SIGNED IN BY A HANDLE THAT HAS MOVED ON (342) ---------------------------------------------
+     A child whose handle `?run=kidHandles` (or their own Randomise on another phone) moved typed the old
+     one. It let them in — locking a child out of their own account over a name nobody asked them about
+     would be the worst way to tell them — and this says what it is now, every time the old one is used,
+     because every time is a child who has not learned the new one yet. */
+  const wasSaid = S(was) && S(r.handle) && key(was) !== key(r.handle) ? S(was) : '';
+  if (wasSaid) {
+    extra.handleMoved = { was: wasSaid, now: S(r.handle) };
+    extra.message = [extra.message, 'Your handle is @' + S(r.handle) + ' now. @' + wasSaid
+      + ' still signs you in, but use @' + S(r.handle) + ' from now on.'].filter(Boolean).join(' ');
+  }
+  try { return loginReplyFor_(r, authNewSession_(t0, r), Object.keys(extra).length ? extra : null); }
   catch (err) {
     return jsonOut({ success: false, why: 'server',
       error: 'Your details are right, but signing in failed on our side: '
@@ -170,6 +184,8 @@ function doPost(e) {
        that reads an inbox, which meant opening that widget threw the payload cache away. `setCell`
        and `addRow` set it now, so it says what it means: the sheet changed. See core.gs. */
     POST_WROTE = false;
+    /* NOBODY YET — the last request's viewer is not this one's (`NET_VIEWER_`, constants.gs). */
+    NET_VIEWER_ = null;
     const body = JSON.parse(e.postData.contents);
     const action = S(body.action);
 
@@ -183,6 +199,16 @@ function doPost(e) {
        that still shows somebody signed in. */
     if (denied) return jsonOut(denied === 'Please sign in again.'
       ? { error: denied, why: 'signed-out' } : { error: denied });
+    /* ---------- WHO THE REPLY IS FOR (342) -------------------------------------------------------------
+       The row the gate resolved the token to, for an action that needs one — `body.personId` is the
+       gate's by now, never the request's; for an open action, whoever the token says if it carries one,
+       and nobody otherwise. Never a name or an id off the request: a claim to be an admin would be a way
+       to every grown-up's surname. Read by `nameFor_` and the net (`kidNamesSpans_`), on the way out and
+       on the way back in. */
+    {
+      const need = ACTION_ACCESS[action];
+      netViewerSet_(need === 'self' || need === 'admin' ? findPerson('', S(body.personId)) : authWhoIs_(body.token));
+    }
 
     /* --- invitations --------------------------------------------------------------------------
        Sending: the split emails already on a booking become actual invitations.
@@ -372,11 +398,17 @@ function doPost(e) {
       if (grownUp && t.headers.indexOf('parent_email') === -1) {
         return jsonOut({ error: 'The sheet has no column for: parent_email. Run ?setup=1 — nothing was saved.' });
       }
-      if (findPerson(full)) {
-        return jsonOut({ error: 'There is already an account in that name. Try logging in, or ask us to help.' });
-      }
+      /* ---------- THE ADDRESS FIRST, AND A NAME CLASH THAT DOES NOT SAY IT IS ONE (342, the review) -------
+         The name was asked first and answered "There is already an account in that name" — so an address
+         already on a row, passed with a guessed whole name, told anybody whether that child or parent
+         existed and wrote nothing either way. The address is the person's own to ask about; the name is
+         not. What a refusal still says, and why nothing pauses (it did, for a day of round 1, and one
+         signed-out caller could switch sign-up off for everybody): the note over `isChild_` in people.gs. */
       if (email && t.rows.some(r => S(r.email) && norm(r.email) === norm(email))) {
         return jsonOut({ error: 'That email is already registered. Try logging in.' });
+      }
+      if (findPerson(full)) {
+        return jsonOut({ error: 'We could not make that account. If you have one already, sign in — or ask us to help.' });
       }
 
       /* PENDING until they click the link. Deliberately a third state rather than a blank:
@@ -395,19 +427,22 @@ function doPost(e) {
         if (owner) inviter = S(owner.person_id) || personDisplayName(owner);
       }
 
-      /* BEFORE THE ROW EXISTS, so `handleMake_` is passed no row: there is nothing of this
-         person's for a clash to exclude yet. */
-      const regHandle = handleMake_(null, first);
+      /* BEFORE THE ROW EXISTS, so `handleMake_` is passed no row of the tab's: there is nothing of this
+         person's for a clash to exclude yet. A STUDENT'S IS PASSED AS A DRAFT of the row about to be
+         written — the role and both names — because a child's handle is their initials (342) and the
+         draft is what `isChild_` and the initials are read from. A parent's is a grown-up's. */
+      const regHandle = handleMake_(asParent ? null : { role: 'student', first_name: first, last_name: last }, first);
       /* WITH NO ADDRESS THE HANDLE IS THE ONLY WAY IN, so an account the generator could not name
          would be an account nobody can sign in to. Said now, with nothing written. */
       if (!email && !regHandle) {
         return jsonOut({ error: 'No free handle could be made just now. Nothing was saved — try again.' });
       }
+      const regId = 'P' + Date.now();
       addRow(t, Object.assign({
         /* THE ROLE THEY CHOSE — see the note over this action. It said "Students by default. A parent
            booking for a child is the account an admin sets up", and that is the sentence the walk
            found a parent stuck behind: the admin was the only way to Client, and nobody was told. */
-        person_id: 'P' + Date.now(), role: asParent ? 'client' : 'student',
+        person_id: regId, role: asParent ? 'client' : 'student',
         first_name: first, last_name: last,
         /* ---------- THE HANDLE IS GENERATED — first name, virtue, number — see `handleMake_` --------
            It goes through `handleTrouble_`, so the shape, the reserved list, the blocklist and the
@@ -467,6 +502,9 @@ function doPost(e) {
       }
       /* `role` IN THE APP'S WORD, as the sign-in reply says it, so the phone can tell a parent what
          comes next without guessing from what it posted. */
+      /* THE REPLY IS THE REGISTRANT'S OWN (342): they typed the name, so a grown-up's whole name stays in
+         it; a child's is still her first name, to herself as to everybody. */
+      netViewerSet_({ person_id: regId });
       return jsonOut({ success: true, name: full, pending: true, handle: regHandle || '',
                        confirmBy: email ? 'self' : 'grown-up',
                        role: toAppRole(asParent ? 'client' : 'student') });
@@ -508,6 +546,8 @@ function doPost(e) {
            `updateProfile` keeps for a corrected PENDING address. */
         authResetDrop_(mover);
         clearCache();
+        /* THE ACCOUNT, SIGNED IN AND HOLDING THE NEW INBOX, IS WHO THIS IS FOR (342). */
+        netViewerSet_(mover);
         return jsonOut({ success: true, moved: true, email: S(hit.move.to), name: nameFor_(mover),
                          handle: S(mover.handle), noEmail: false, linkedTo: '', parentPending: false });
       }
@@ -516,6 +556,14 @@ function doPost(e) {
       if (!r) return jsonOut({ error: 'That confirmation link has already been used, or has expired.' });
       setCell(t, r, 'verified', 'TRUE');
       setCell(t, r, 'verify_token', '');
+      /* WHOEVER HOLDS THIS LINK OWNS THE INBOX IT WENT TO (342) — the account's own, or the grown-up's a
+         no-email child named — so the reply is theirs, and the grown-up it names (`linkedTo`) is very
+         often them: their whole name stays in it for them, as their own payload has it. */
+      {
+        const inbox = norm(S(r.email) || r.parent_email);
+        const owners = inbox ? t.rows.filter(x => norm(x.email) === inbox) : [];
+        netViewerSet_(owners.length === 1 ? owners[0] : null);
+      }
       /* ---------- A GROWN-UP SAYING YES TO A CHILD'S ACCOUNT ALSO PUTS THE CHILD ON THEIRS --------------
          The child named this address (`register` with `parent_email`) and whoever holds it has just
          opened the link — both halves of what `claimChild` and `answerClaim` ask for, in the other
@@ -813,15 +861,23 @@ function doPost(e) {
          `signInRow_`, unchanged; its wrong-PIN sentence names the half that was typed. */
       /* THROUGH `handleRows_`, the one reader `forgotPin` uses too — which also lets a long first
          name be spelled out where the handle keeps nine letters of it. */
+      /* AND A HANDLE SOMEBODY HAD BEFORE (342), asked only when nobody has it NOW — a current handle
+         always wins, so an old one can never sign in a different person who holds it today. */
       if (mail.indexOf('@') === -1) {
-        const byHandle = handleRows_(t0.rows, body.email || body.name);
-        if (byHandle.length === 1) return signInRow_(t0, byHandle[0], body, 'handle');
+        let byHandle = handleRows_(t0.rows, body.email || body.name);
+        const old = byHandle.length ? [] : handleWasRows_(t0.rows, body.email || body.name);
+        if (old.length) byHandle = old;
+        if (byHandle.length === 1) return signInRow_(t0, byHandle[0], body, 'handle',
+          old.length ? handleWasEntry_(byHandle[0], body.email || body.name) : '');
         if (byHandle.length > 1) {
           return jsonOut({ success: false,
             error: 'That handle is on more than one account — ask us to sort it out.' });
         }
         return jsonOut({ success: false, why: 'not-an-email',
-          error: 'Sign in with the email on your account — or your handle (like halex_kind42).' });
+          /* NO EXAMPLE HANDLE (342): it showed one in the grown-ups' shape, a first name, a word and a
+             number — and a child's handle is their initials and four digits now, so a child who mistyped
+             was shown a shape that is not theirs. The card shows the real one. */
+          error: 'Sign in with the email on your account — or your handle, as it is on your card.' });
       }
       const hits = t0.rows.filter(x => norm(x.email) === mail);
       if (hits.length > 1) {
@@ -861,7 +917,13 @@ function doPost(e) {
          signed in before 10 Oct kept a child's whole name in `familyUser` (its own, or its children's
          for the booking form) for the thirty days a session lasts; this is asked on every open, so the
          first open after the deploy puts the first names over them (`profileRefresh_`, me.js). */
+      /* AND THE HANDLE, AND THE FRIENDS LIST THAT NAMES OTHERS BY THEIRS (342). Both went stale exactly
+         as the names did: `?run=kidHandles` moves a child's handle and every list it was on while their
+         phone is signed in, and the phone said the old one — on their card, and in the friends list its
+         next Save would post back. The phone adopts both and says the new handle once
+         (`profileRefresh_`, me.js). */
       return jsonOut(Object.assign({ success: true, personId: S(me.person_id), name: nameFor_(me),
+                       handle: S(me.handle), friends: S(me.friends),
                        profile: profileOf_(me),
                        agreementSignedAt: S(me.agreement_signed_at),
                        agreementVersion: S(me.agreement_version),
@@ -1920,8 +1982,11 @@ function doPost(e) {
          `halex.dias@x.com` and `halexdias@xcom` one address. TWO ROWS ON ONE IS REFUSED, NOT GUESSED:
          which of the two accounts would be sent a PIN is exactly the guess `verifyLogin` will not make. */
       const byHandle = asked.indexOf('@') === -1;
-      const hits = byHandle ? handleRows_(tPeople.rows, body.who)
-                            : tPeople.rows.filter(x => norm(x.email) === asked);
+      let hits = byHandle ? handleRows_(tPeople.rows, body.who)
+                          : tPeople.rows.filter(x => norm(x.email) === asked);
+      /* AN OLD HANDLE TOO, AND ONLY WHEN NOBODY HAS IT NOW (342) — `verifyLogin`'s rule, for the child who
+         typed the handle on their slip. */
+      if (byHandle && !hits.length) hits = handleWasRows_(tPeople.rows, body.who);
       if (!hits.length) {
         return jsonOut(byHandle
           ? { error: 'No account has that handle. It is on your card once you are in — ask a parent or your tutor for it.', why: 'not-an-email' }
@@ -2691,15 +2756,35 @@ function doPost(e) {
       const r = want ? t.rows.find(x => key(x.person_id) === want) : null;
       if (!r) return jsonOut({ error: 'We could not find your account.' });
       const was = S(r.handle);
+      /* A FULL HISTORY STOPS THE PRESS, IT DOES NOT LOSE ITS OLDEST (342, the review). Every old handle
+         still signs its person in and is never given to anybody else, so trimming the cell — it kept the
+         newest ten — retired the handle on a child's slip at the eleventh press and freed it for the next
+         person with that first name. `HANDLE_WAS_MAX` presses is a child who will be told to ask. */
+      const hist = S(r.handle_was).split(',').map(x => x.trim()).filter(Boolean);
+      if (hist.length >= HANDLE_WAS_MAX) {
+        return jsonOut({ error: 'You have had ' + hist.length + ' handles — ask us if you want another. '
+                              + 'Nothing was changed.' });
+      }
       const made = handleMake_(r, r.first_name, was);
       if (!made) return jsonOut({ error: 'No free handle could be found just now. Nothing was changed '
                                        + '— try again.' });
-      /* `handle_was` IS A HISTORY, newest first and capped — see `handleWasWith_`. It was one cell
-         overwritten by each change, which answered "who was @foo" only about the most recent name. */
-      setCells(t, r, { handle: made, handle_was: handleWasWith_(r.handle_was, was),
-                       handle_changed_at: new Date() });
+      /* `handle_was` IS A HISTORY, newest first and kept whole — see `handleWasWith_`. It was one cell
+         overwritten by each change, which answered "who was @foo" only about the most recent name.
+         WRITTEN FIRST, IN ITS OWN WRITE (342, the review): `setCells` writes one run of adjacent columns
+         at a time, so on a tab where `handle_was` is not beside `handle` a failure between the two left
+         a new handle with nothing to say what the old one was — and the old one, on the slip, no longer
+         signing anybody in. This way round a failure leaves an extra history entry and the old handle. */
+      /* AND THE FACE THE OLD HANDLE DREW, in the same write, when nobody ever chose a look (`handleFaceKept_`,
+         342 round 2) — a blank look is drawn from the handle, so every press changed the skin and the hair
+         colour. Sent back as `avatar`, so the phone draws the same face before its next sign-in. */
+      setCells(t, r, Object.assign({ handle_was: handleWasWith_(r.handle_was, was) }, handleFaceKept_(t, r, was)));
+      setCells(t, r, { handle: made, handle_changed_at: new Date() });
+      /* AND EVERY FRIENDS LIST THAT NAMED THE OLD ONE (342) — it was left naming nobody, so a press of
+         this took the person off every friend's list without a word. */
+      if (was) handleFriendsMove_(t, { [key(was)]: made });
+      const avatar = S(r.avatar);
       clearCache();
-      return jsonOut({ success: true, handle: made, was: was });
+      return jsonOut({ success: true, handle: made, was: was, avatar: avatar });
     }
 
     /* ---------- A PARENT MAKES THEIR CHILD'S ACCOUNT -------------------------------------------------
@@ -2760,11 +2845,15 @@ function doPost(e) {
       if (lacking.length) {
         return jsonOut({ error: 'The sheet has no column for: ' + lacking.join(', ') + '. Run ?setup=1 — nothing was saved.' });
       }
+      /* NOT "THERE IS ALREADY AN ACCOUNT CALLED …" (342, the review) — that confirmed a guessed whole name
+         to any confirmed parent. `register`'s rule: the same sentence as any refusal of its kind. */
       if (findPerson(full)) {
-        return jsonOut({ error: 'There is already an account called ' + full + '. If it is your child\'s, '
-                              + 'use "Add your child" to ask them to link it.' });
+        return jsonOut({ error: 'We could not make that account. If your child has one already, use "Add your '
+                              + 'child" to ask them to link it — or ask us to help.' });
       }
-      const handle = handleMake_(null, first);
+      /* A DRAFT OF THE ROW ABOUT TO BE WRITTEN, a student with both names — so it is a child's handle,
+         their initials and a tail (342), never their first name. */
+      const handle = handleMake_({ role: 'student', first_name: first, last_name: last }, first);
       if (!handle) return jsonOut({ error: 'No free handle could be made just now. Nothing was saved — try again.' });
       const kidId = 'P' + Date.now() + '-k';
       const kid = addRow(t, {
@@ -3111,7 +3200,9 @@ function doPost(e) {
            whenever the first name is short — `IVYKIN` — and a referral code is made to be handed round
            (the owner, 10 Oct: *"dont show children's last name"*). A code already in the cell is kept:
            it may be on a flyer, and it is the sheet's. */
-        const base = nameFor_(r, true).replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 6) || 'FAMILY';
+        /* `nameToOthers_`, NOT `nameFor_` (342): the code is the person's own, so the viewer is them and
+           `nameFor_` would be their whole name — and the code is handed round, to people who are not. */
+        const base = nameToOthers_(r, true).replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 6) || 'FAMILY';
         code = base + String(Math.floor(Math.random() * 90) + 10);
         setCell(t, r, 'referral_code', code);
         clearCache();
@@ -4659,8 +4750,11 @@ function doPost(e) {
          waitlist keeps availability, and for the same reason: it is per family and the job is one
          row. A party needs a headcount and a family with three children is three chairs. */
       const kids = S(body.kids);
+      /* EACH NAME BY ITS FIRST WORD ON THE EVENT (342, the review) — every family on it reads the event,
+         and a name typed here is very often a child who is no row the net knows (`typedFirstWords_`). The
+         admin's email below keeps the words as typed: an admin sees everybody's whole name. */
       logEvent({ jobId, actor: personDisplayName(me), role: 'client', action: ACT.REQUEST,
-                 message: 'coming to ' + offer.name + (kids ? ' — bringing: ' + kids : ''),
+                 message: 'coming to ' + offer.name + (kids ? ' — bringing: ' + typedFirstWords_(kids) : ''),
                  requestId: S(body.requestId) });
       clearCache();
 
@@ -5131,6 +5225,10 @@ function familyNamesOf_(r) {
    (`googleLogin`). Laid over the reply, so the phone reads one shape whichever door it came through. */
 function loginReplyFor_(r, token, extra) {
 // 'parent'/'kid' are what the frontend calls client/student.
+  /* THE REPLY IS FOR THE PERSON SIGNING IN (342): their own whole name stays in it if they are a
+     grown-up, and everybody else's is as anybody else's phone has it. Every door in ends here, and the
+     request carried no token to say so. */
+  netViewerSet_(r);
   const appRole = toAppRole(mainRole(r));
   const appRoles = rolesOf(r).map(toAppRole);
   /* `nameFor_`, EVEN FOR THEMSELVES — a child is called by their first name on their own screen too
