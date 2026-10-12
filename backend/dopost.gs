@@ -3422,6 +3422,13 @@ function doPost(e) {
         message: 'That is too long to mark — ' + String(AI_ANSWER_MAX).replace(/\B(?=(\d{3})+$)/g, ',') + ' characters at most.' });
       if (!scheme) return jsonOut({ success: false, message: 'This question has no mark scheme to mark against.' });
       const took = aiMarkCount_(who, cap);
+      /* A LOCK NOT HAD IS NOT A CAP REACHED. Until the review of 12 Oct both came back as null, so a press
+         made while something else held the script lock for more than this one's five seconds -- the lock
+         every save, sync and migration on the site shares -- told the pupil "That is today's 20 AI marks
+         used — they come back tomorrow" with marks left, sending them away for the day over a few
+         seconds. It is busy, in the busy sentence, with the `why` every other lock-busy refusal in this
+         file carries. */
+      if (took && took.busy) return jsonOut({ success: false, why: 'busy', message: AI_BUSY });
       if (!took) return jsonOut({ success: false, why: 'ai-cap',
         message: cap ? 'That is today’s ' + cap + ' AI marks used — they come back tomorrow.' : 'AI marking is paused.' });
       /* A PRESS THAT ENDS WITHOUT A MARK GIVES ITS COUNT BACK -- a 503, a refusal, a reply with no mark
@@ -4873,7 +4880,8 @@ function doPost(e) {
    one property read and one write, a press in flight holds its place so a concurrent one at the cap is
    refused, and the worst a failure does is make a pupil at their nineteenth wait for the twentieth to
    be given back. The cap still means marks GIVEN, which since 11 Oct is all it counts.
-   Returns `{ used, day }` -- the day so the give-back finds the tally it was taken from. */
+   Returns `{ used, day }` -- the day so the give-back finds the tally it was taken from -- null at the
+   cap, and `{ busy: true }` when the lock could not be had, which the caller must not read as either. */
 function aiMarkCount_(who, cap) {
   if (cap <= 0) return null;
   return aiMarkTally_(tally => {
@@ -4881,27 +4889,33 @@ function aiMarkCount_(who, cap) {
     if (used > cap) return null;
     tally.n[who] = used;
     return { used: used, day: tally.day };
-  });
+  }, { busy: true });
 }
 /* THE ONE TAKEN, BACK -- but only into the day it was taken from. A press at 23:59:50 that fails at
    00:00:05 was taken from a tally that midnight has already emptied, and taking one off the new day
    would hand that pupil twenty-one. A give-back that cannot have the lock leaves the mark spent and
-   says so in the log: one mark lost is the failure the cap is allowed, a cap got round is not. */
+   says so in the log, with which of the two it was: one mark lost is the failure the cap is allowed,
+   a cap got round is not. */
 function aiMarkGiveBack_(who, day) {
   const back = aiMarkTally_(tally => {
     const n = Number(tally.n[who]) || 0;
     if (tally.day !== day || n < 1) return null;
     if (n === 1) delete tally.n[who]; else tally.n[who] = n - 1;
     return true;
-  });
-  if (!back) console.log('aiMark: a mark that was never given could not be given back to ' + who + ' for ' + day);
-  return !!back;
+  }, 'busy');
+  if (back !== true) console.log('aiMark: a mark that was never given could not be given back to ' + who + ' for ' + day
+    + (back === 'busy' ? ' -- the script lock was busy for 5 s' : ' -- that day\'s tally has gone (midnight came first, or it was cleared)'));
+  return back === true;
 }
-/* THE TALLY, READ AND WRITTEN UNDER THE LOCK, FOR BOTH OF THEM. `change` edits it and says whether to
-   keep the edit: null leaves the property as it was. */
-function aiMarkTally_(change) {
+/* THE TALLY, READ AND WRITTEN UNDER THE LOCK, FOR BOTH OF THEM, AND IN ONE HOLD: a lock let go between
+   the read and the write is two presses reading 19 again. `change` edits it and says whether to keep the
+   edit: null leaves the property as it was. `busy` is what to answer when the lock cannot be had --
+   each caller says, because "no lock" is neither "at the cap" nor "nothing to give back", and a caller
+   that says nothing gets undefined, which refuses. `check-aimark.js` records every read and write of
+   AI_MARKS with the lock hold it was made in, and fails on one made outside it or across two. */
+function aiMarkTally_(change, busy) {
   const lock = LockService.getScriptLock();
-  if (!lock.tryLock(5000)) return null;
+  if (!lock.tryLock(5000)) return busy;
   try {
     const props = PropertiesService.getScriptProperties();
     const day = Utilities.formatDate(new Date(), 'Europe/London', 'yyyy-MM-dd');

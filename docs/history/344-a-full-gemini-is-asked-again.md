@@ -90,7 +90,10 @@ same name as the first, is one model.
 **A press takes one of the day's marks under the script lock before Gemini is asked, and gives it back
 under the lock if it ends without a mark** — a 503 storm, a 400 or 403, a double 404, a reply with no
 mark in it, or a throw (`finally`, not a line after the call). Given back only into the London day it
-was taken from: a press at 23:59:50 that fails at 00:00:05 was taken from a tally midnight emptied.
+was taken from: a press at 23:59:50 that fails at 00:00:05 was taken from a tally midnight emptied. The
+tally's read and write are one hold of the lock each time. A take that cannot have the lock in 5 s is
+refused as **busy** — not counted, Gemini not asked; a give-back that cannot have it leaves the mark spent
+and logs why *(both since the second review, below)*.
 
 **Why not count after a mark arrives:** the check and the count would then sit either side of a call of
 up to 20 s. Two presses at 19 both read "one left", both are marked, both count — 21. Closing that would
@@ -218,6 +221,81 @@ handoff (1); `aiAgain_` back to 429/500/503 (3); the code number back in the pup
 last model alone deciding the sentence (4); no reseed (5); `temperature: 0` back (7); RetryInfo ignored
 (8); the asked name as `model` (9) — and the brief's own five again: no retry, retry on 400, no fallback,
 the count not given back, a code number in the child's message.
+
+### After review, round 2 (12 Oct)
+
+The second review (of 0549348 and 46531de) raised one finding, should-fix: **nothing proved that the
+day's tally is changed under the script lock.** The brief asked for proof that "concurrent presses near
+the cap never over-spend (LockService)". The concurrency case proved two things: the count is taken before
+the asking, and the lock is let go during it. It never proved the lock **is** held while `AI_MARKS` is read
+and written. With LockService taken out of `aiMarkTally_`, or with `aiMarkGiveBack_` writing the property
+itself, all 291 requests stayed green. In Apps Script that is two presses a second apart both reading 19
+and both writing 20.
+
+Reproduced first, on a copy of 46531de. Both of the reviewer's mutations stayed green. So did five more
+that this round added: the lock let go between the read and the write, a refused lock ignored, a give-back
+into any day (midnight), no give-back on a throw, and a failed give-back not logged. The reviewer's own
+run had already shown the midnight and throw mutations surviving, without raising them.
+
+**Now `check-aimark.js` watches `AI_MARKS`.** Script Properties are still the harness's own store
+(`b.props`), but wrapped: every `getProperty`, `setProperty` and `deleteProperty` of `AI_MARKS` is recorded
+with the lock **hold** it was made in. The stub lock numbers each time it is taken from free, and a hold
+of 0 means nobody has it. `tallyHeld` fails on three things:
+
+- a read or write made with no hold;
+- a write made in a different hold from the read it was worked out from (a lock let go between them is no
+  lock);
+- the wrong number of writes. A mark makes one. A press that ends without a mark makes two, the take and
+  the give-back, in two holds, because the lock is let go during the asking.
+
+It runs on a mark, a 503 storm, both concurrency cases, and these new cases:
+
+- **The lock refused at the take.** `gem.refuse` makes the stub's tryLock answer false, as a real one
+  does after its wait. The press is refused, Gemini is not asked, and `AI_MARKS` is not touched.
+- **The lock refused at the give-back.** The mark stays spent: losing one mark is the failure the cap
+  allows, and a tally written without the lock is not. The log says whose mark and why, and the cap counts
+  it.
+- **Midnight during a press.** A mark is taken from the 11th. While it waits, a press on the 12th is
+  marked, then the first press fails. Its give-back leaves the 12th's tally alone, so the 12th's cap still
+  holds.
+- **A throw on the way.** Here the wait between asks throws, because it is the one call in the asking that
+  has no try of its own. The count is given back, which is why the give-back is a `finally`.
+
+**One behaviour change came with it.** The refused-take case needed a decision about what the pupil
+reads, and the code was wrong there. `aiMarkTally_` returned null both at the cap and when the lock could
+not be had. So a press made while something else held the script lock for more than five seconds (it is
+the lock every save, sync and migration on the site shares) was told *"That is today's 20 AI marks used — they come back
+tomorrow"*, even with marks left. That bug is older than this branch. **Now each caller tells
+`aiMarkTally_` what a lock not had means:**
+
+- The take answers `{ busy: true }`. The pupil reads `AI_BUSY` with `why: 'busy'`, the code every other
+  lock-busy refusal in dopost.gs carries. The phone acts only on `ai-off`.
+- The give-back logs either `-- the script lock was busy for 5 s` or `-- that day's tally has gone
+  (midnight came first, or it was cleared)`.
+- A caller that says nothing gets undefined, which refuses.
+
+**One more hole, from the reviewer's mutation log** (its M11, also not raised as a finding): the sentence
+*"Could not reach Gemini just now (-1) — …"* stayed green. The no-digit loop asked every status code but
+never a fetch that threw. It asks that too now.
+
+**Mutated, each red, the real files green after** (each on a scratch copy, with the original bytes put
+back):
+
+- the take without the lock;
+- the give-back without the lock;
+- the lock let go between the read and the write;
+- a refused lock ignored;
+- a refused lock read as the cap (the old sentence);
+- a give-back into any day;
+- no give-back on a throw;
+- a failed give-back not logged;
+- a digit in the could-not-reach sentence.
+
+The reviewer's 28 mutations and round 1's 19 were run again, and all are red except one. That one is
+equivalent, not a hole: a "wait before the fallback" that reads `AI_WAITS[-1]`, gets NaN and so never
+sleeps. The reviewer's real version of it is red. The reviewer's anchor for "take without the lock" no
+longer matches, because `return null` is now `return busy`; the first mutation in the list above is the
+same edit.
 
 ### Sources
 

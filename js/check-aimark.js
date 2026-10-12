@@ -27,6 +27,10 @@
        fallback behind a busy first model is "busy"; a 429 that says when is believed; the reply's
        `model` is the one Google says answered; no sampling setting is sent; and a config row still
        exactly as it was seeded with the alias is brought up to date.
+     · AND WHAT THE SECOND REVIEW (12 Oct) FOUND: nothing showed the day's tally is read and written
+       UNDER the script lock, in one hold. Every read and write of AI_MARKS is now recorded with its
+       hold; a lock that cannot be had is "busy", never "today's marks used"; a give-back that cannot
+       have it leaves the mark spent and logs why; and midnight and a throw during a press are cases.
 
    THROUGH THE REAL `doPost`, gate and all, over `check-gas-load.js` — the harness `check-profile.js`
    wrote. Gemini is a stub that records what it was sent and answers what each case needs; nothing
@@ -49,7 +53,8 @@ let asked = 0;
    `clock.per` may be a function of the URL, for a model that is slow and one that is not.
    A reply may carry `version` (the response's `modelVersion`, the model Google says answered) and
    `details` (the error's, where a 429's `RetryInfo` says when to come back). */
-const gem = { reply: null, queue: [], sent: [], slept: [], during: null, clock: null, log: [], answer: null };
+const gem = { reply: null, queue: [], sent: [], slept: [], during: null, clock: null, log: [], answer: null,
+              tally: [], refuse: null, day: null, sleepThrows: false };
 /* WHAT GOOGLE SAYS WITH EACH REFUSAL, as near its real words as a stub needs: the 400's names the key,
    which is why none of it may reach a pupil. */
 const GOOGLE_SAID = {
@@ -62,7 +67,7 @@ const GOOGLE_SAID = {
   503: 'The model is overloaded. Please try again later.',
   504: 'Deadline exceeded.',
 };
-let lockDepth = 0;
+let lockDepth = 0, hold = 0, holds = 0, tries = 0;
 const fetchStub = (url, opts) => {
   gem.sent.push({ url: url, opts: opts, locked: lockDepth > 0, at: gem.clock ? gem.clock.now : 0 });
   if (gem.during) { const f = gem.during; gem.during = null; gem.inside = true; try { f(); } finally { gem.inside = false; } }
@@ -77,14 +82,23 @@ const fetchStub = (url, opts) => {
                                             r.details ? { details: r.details } : {}) });
   return { getResponseCode: () => r.code, getContentText: () => text };
 };
-/* THE SCRIPT LOCK, COUNTED. It always grants, as the harness's always did -- what it adds is whether it
-   was HELD when Gemini was asked, because a lock held across the asking is every saved answer on the
-   site waiting behind one pupil's essay. */
+/* THE SCRIPT LOCK, COUNTED. It grants, as the harness's always did -- what it adds is whether it was
+   HELD when Gemini was asked, because a lock held across the asking is every saved answer on the site
+   waiting behind one pupil's essay. And, since the review of 12 Oct, WHICH HOLD: `hold` numbers each time
+   it is taken from free (0 while nobody has it), so the tally's read and the write worked out from it can
+   be asked to be one hold -- a lock let go between them is no lock. `gem.refuse(n)`, when set, makes the
+   n-th tryLock of a press answer false, as a real one does when somebody else kept it past the wait. */
 const lockStub = { getScriptLock: () => {
   let mine = false;
-  const take = () => { if (!mine) { mine = true; lockDepth++; } return true; };
-  return { tryLock: take, waitLock: take, hasLock: () => mine,
-           releaseLock: () => { if (mine) { mine = false; lockDepth = Math.max(0, lockDepth - 1); } } };
+  const take = () => {
+    tries++;
+    if (gem.refuse && gem.refuse(tries)) return false;
+    if (!mine) { mine = true; if (lockDepth++ === 0) hold = ++holds; }
+    return true;
+  };
+  return { tryLock: take, hasLock: () => mine,
+           waitLock: () => { if (!take()) throw new Error('Lock timeout: another process was holding the lock for too long.'); },
+           releaseLock: () => { if (mine) { mine = false; lockDepth = Math.max(0, lockDepth - 1); if (!lockDepth) hold = 0; } } };
 } };
 
 function world(config) {
@@ -95,7 +109,28 @@ function world(config) {
                       console: { log: said, warn: said, error: said, info: said } });
   /* `Utilities.sleep` RECORDED, NOT SLEPT: the waits are asserted, and a check that really waited seven
      seconds a case would be a check nobody runs. With a `clock`, a wait moves it as a real one would. */
-  b.ev('Utilities').sleep = ms => { gem.slept.push(ms); if (gem.clock) gem.clock.now += ms; };
+  b.ev('Utilities').sleep = ms => {
+    gem.slept.push(ms); if (gem.clock) gem.clock.now += ms;
+    if (gem.sleepThrows) throw new Error('Service error: Utilities');
+  };
+  /* THE DAY, WHEN A CASE SAYS SO: `gem.day` is London's `yyyy-MM-dd` for the tally, so a case can let
+     midnight come while a press is with Gemini. Everything else is the harness's. */
+  const U = b.ev('Utilities'), fmt = U.formatDate;
+  U.formatDate = (d, tz, f) => (f === 'yyyy-MM-dd' && gem.day ? gem.day : fmt(d, tz, f));
+  /* AI_MARKS, WATCHED (the review of 12 Oct). Every read and write of the day's tally is recorded with the
+     lock hold it was made in, over the harness's own store -- so `b.props` is still Script Properties.
+     Nothing here showed the tally was changed under the lock: the lock could be taken out of the take or
+     the give-back and every case above stayed green, and in Apps Script that is two presses a second
+     apart both reading 19 and both writing 20. */
+  const P = b.ev('PropertiesService'), store = P.getScriptProperties;
+  P.getScriptProperties = () => {
+    const s = store();
+    return Object.assign({}, s, {
+      getProperty: k => { if (k === 'AI_MARKS') gem.tally.push({ op: 'read', hold: hold }); return s.getProperty(k); },
+      setProperty: (k, v) => { if (k === 'AI_MARKS') gem.tally.push({ op: 'write', hold: hold }); return s.setProperty(k, v); },
+      deleteProperty: k => { if (k === 'AI_MARKS') gem.tally.push({ op: 'write', hold: hold }); return s.deleteProperty(k); },
+    });
+  };
   const base = { pin: '0000', verified: 'TRUE', role: 'student', city: 'London' };
   b.seed('people', [
     Object.assign({ person_id: 'P-S1', first_name: 'Sam', last_name: 'Student', handle: 'samstudent', email: 's1@example.org' }, base),
@@ -110,13 +145,32 @@ function world(config) {
   });
   const ask = (who, extra) => {
     asked++;
-    if (!gem.inside) lockDepth = 0;
+    if (!gem.inside) { lockDepth = 0; hold = 0; tries = 0; }
     return b.post(Object.assign({ action: 'aiMark', token: tok[who], personId: 'P-S1',
       question: 'Explain why the rate of reaction increases with temperature.',
       scheme: 'particles move faster (1); more frequent successful collisions (1); more have the activation energy (1)',
       answer: 'The particles have more energy so they collide more often and harder.', marks: 3 }, extra || {}));
   };
   return { b, ask };
+}
+
+/* EVERY READ AND WRITE OF THE DAY'S TALLY UNDER THE SCRIPT LOCK, AND EACH WRITE IN THE SAME HOLD AS THE READ
+   IT WAS WORKED OUT FROM. `writes`, when given, is how many writes there should have been since the case
+   emptied `gem.tally`: one for a mark (the take), two for a press that ended without one (the take and the
+   give-back). */
+function tallyHeld(what, writes) {
+  const ops = gem.tally;
+  const loose = ops.filter(x => !x.hold);
+  if (loose.length) bad.push(what + ': ' + loose.length + ' of ' + ops.length + ' reads and writes of AI_MARKS were made without the script lock ('
+    + loose.map(x => x.op).join(', ') + ') — two presses a second apart both read 19, both write 20, and the cap is one wider than it says');
+  ops.forEach((x, i) => {
+    if (x.op !== 'write' || !x.hold) return;
+    const read = ops.slice(0, i).reverse().find(y => y.op === 'read');
+    if (!read || read.hold !== x.hold) bad.push(what + ': AI_MARKS was written in hold ' + x.hold + ' of the lock and read in hold ' + (read ? read.hold : 'none')
+      + ' — a lock let go between the read and the write is no lock');
+  });
+  const n = ops.filter(x => x.op === 'write').length;
+  if (writes != null && n !== writes) bad.push(what + ': AI_MARKS was written ' + n + ' time(s) — wanted ' + writes);
 }
 
 /* ---------- NO KEY ------------------------------------------------------------------------------ */
@@ -529,7 +583,7 @@ function world(config) {
      mark would let both through; a lock held across the asking shows up in `locked`. */
   const { b, ask } = world({ ai_marks_per_day: 2 });
   b.props.GEMINI_API_KEY = KEY;
-  gem.reply = null; gem.queue.length = 0; gem.sent.length = 0;
+  gem.reply = null; gem.queue.length = 0; gem.sent.length = 0; gem.tally.length = 0;
   ask('s1@example.org');                                                  // one of two
   let second = null;
   gem.during = () => { second = ask('s1@example.org'); };
@@ -540,10 +594,13 @@ function world(config) {
   if (third.why !== 'ai-cap') bad.push('two marks given and another press answered ' + JSON.stringify(third).slice(0, 160));
   if (gem.sent.length !== 2) bad.push('a cap of 2 sent ' + gem.sent.length + ' requests to Gemini — more than two marks were paid for');
   if (gem.sent.some(x => x.locked)) bad.push('the script lock was held while Gemini was asked — every saved answer on the site waits behind it');
+  /* AND THE OTHER HALF (the review of 12 Oct): let go during the asking, but HELD while the tally changes.
+     Two takes written; the press inside and the one after read it at the cap and write nothing. */
+  tallyHeld('two presses at the cap and one inside them', 2);
   /* AND WHEN THE PRESS HOLDING THE LAST MARK FAILS, IT IS GIVEN BACK FOR THE NEXT ONE. */
   const w2 = world({ ai_marks_per_day: 2 });
   w2.b.props.GEMINI_API_KEY = KEY;
-  gem.reply = null; gem.sent.length = 0;
+  gem.reply = null; gem.sent.length = 0; gem.tally.length = 0;
   w2.ask('s1@example.org');
   gem.reply = { code: 503 };
   let during = null;
@@ -554,6 +611,8 @@ function world(config) {
   const over = w2.ask('s1@example.org');
   if (failed.success !== false || !during || during.why !== 'ai-cap' || !after.success || after.left !== 0 || over.why !== 'ai-cap') bad.push('a failed press holding the last mark, a press during it, one after and one more answered '
     + JSON.stringify([failed.message, during && (during.why || during.success), after.success && after.left, over.why]) + ' — wanted busy, the cap, a mark with 0 left, the cap');
+  /* Four writes: a take, the failed press's take and give-back, the take after it. */
+  tallyHeld('a failed press holding the last mark, with a press inside it', 4);
 }
 
 /* ---------- AFTER REVIEW (11 Oct, note 344): WHAT THE FIRST BUILD STILL GOT WRONG ---------------------
@@ -627,9 +686,11 @@ function world(config) {
   r = ask('s1@example.org');
   if (r.message !== BUSY || urls() !== 'first,first,first,back') bad.push('a busy first model and a retired fallback asked ' + urls() + ' and answered ' + JSON.stringify(r.message) + ' — wanted "' + BUSY + '"');
   if (!gem.log.some(x => x.indexOf(BACK) >= 0 && /404/.test(x) && /gemini_model_fallback/.test(x) && /config tab/.test(x))) bad.push('a retired fallback was not logged as a name to change in gemini_model_fallback on the config tab: ' + JSON.stringify(gem.log.slice(-2)));
-  [400, 403, 404, 401, 502, 503, 504, 429].forEach(code => {
+  /* ...and a fetch that threw every time, whose "code" is -1 inside `aiGemini_` -- the one sentence of the
+     three this loop did not ask, so "(-1)" in it stayed green until the second review of 12 Oct. */
+  [400, 403, 404, 401, 502, 503, 504, 429, 'threw'].forEach(code => {
     fresh();
-    gem.reply = { code: code };
+    gem.reply = code === 'threw' ? { threw: true } : { code: code };
     const x = ask('s1@example.org');
     if (/\d/.test(String(x.message))) bad.push('a ' + code + ' from everything told the pupil "' + x.message + '" — a status code is the owner\'s, in the log');
   });
@@ -690,6 +751,108 @@ function world(config) {
   if (mine.value !== 'gemini-flash-latest' || mine.note !== 'I chose this.') bad.push('ensureSchema rewrote a row the owner had changed: ' + JSON.stringify([mine.value, mine.note]));
   const typed = seeded('gemini-test-model', OLD_NOTE);
   if (typed.value !== 'gemini-test-model') bad.push('ensureSchema rewrote a model name the owner typed: ' + JSON.stringify(typed.value));
+}
+
+/* ---------- AFTER REVIEW, ROUND 2 (12 Oct, note 344): THE TALLY IS CHANGED UNDER THE LOCK -------------------
+   The brief asked for proof that presses near the cap never over-spend under LockService. The cases above
+   proved the count is taken before the asking and the lock let go during it -- never that the lock IS held
+   while the tally changes: with LockService taken out of `aiMarkTally_`, or the give-back writing the
+   property itself, every one of them stayed green. Each case here was red against one of those, or
+   against what came with them: a lock that cannot be had read as the day's marks used, a give-back that
+   cannot have it, midnight during a press, and a throw. */
+{
+  const { b, ask } = world({ ai_marks_per_day: 3 });
+  b.props.GEMINI_API_KEY = KEY;
+  const BUSY = b.ev('AI_BUSY');
+  const fresh = () => { gem.sent.length = 0; gem.slept.length = 0; gem.queue.length = 0; gem.reply = null; gem.answer = null;
+                        gem.log.length = 0; gem.tally.length = 0; gem.refuse = null; };
+  const spent = () => { try { return (JSON.parse(b.props.AI_MARKS || '{}').n || {})['P-S1'] || 0; } catch (e) { return NaN; } };
+
+  /* 1. A MARK: the tally read once and written once, in one hold of the lock. */
+  fresh();
+  let d = ask('s1@example.org');
+  if (!d.success) bad.push('the first mark of three was refused — ' + JSON.stringify(d).slice(0, 160));
+  tallyHeld('a mark', 1);
+
+  /* 2. A PRESS THAT ENDS WITHOUT A MARK: the take and the give-back, each its own read and write in its own
+     hold -- two holds, because the lock is not kept across the asking. */
+  fresh();
+  gem.reply = { code: 503 };
+  d = ask('s1@example.org');
+  tallyHeld('everything 503', 2);
+  if (new Set(gem.tally.map(x => x.hold)).size !== 2) bad.push('everything 503 changed the tally in ' + new Set(gem.tally.map(x => x.hold)).size + ' hold(s) of the lock — wanted two: the take and the give-back, and the lock let go between them');
+  if (spent() !== 1) bad.push('a mark and a storm and the tally says ' + spent() + ' — wanted 1');
+
+  /* 3. THE LOCK CANNOT BE HAD AT THE TAKE: refused, without Gemini, without touching the tally -- and told
+     it is busy, not that the day's marks are used. Until 12 Oct it was "That is today's 3 AI marks used —
+     they come back tomorrow" with two left. */
+  fresh();
+  gem.refuse = n => n === 1;
+  d = ask('s1@example.org');
+  if (d.success !== false || d.why !== 'busy' || d.message !== BUSY) bad.push('a press that could not have the lock answered ' + JSON.stringify(d).slice(0, 160)
+    + ' — wanted why: "busy" and "' + BUSY + '": somebody else holding the lock for five seconds is not the day\'s marks used');
+  if (gem.sent.length) bad.push('a press that could not have the lock still asked Gemini — a mark nobody counted');
+  if (gem.tally.length) bad.push('a press that could not have the lock read or wrote AI_MARKS ' + gem.tally.length + ' time(s) — without the lock it must not touch it');
+  if (spent() !== 1) bad.push('a press refused at the lock and the tally says ' + spent() + ' — wanted 1, unchanged');
+
+  /* 4. THE LOCK CANNOT BE HAD AT THE GIVE-BACK: the mark stays spent, and the log says which pupil's and why.
+     One mark lost is the failure the cap is allowed; a tally written without the lock is not. */
+  fresh();
+  gem.reply = { code: 503 };
+  gem.refuse = n => n === 2;
+  d = ask('s1@example.org');
+  if (d.message !== BUSY) bad.push('a storm whose give-back could not have the lock answered ' + JSON.stringify(d.message) + ' — wanted "' + BUSY + '"');
+  tallyHeld('a give-back that could not have the lock', 1);
+  if (spent() !== 2) bad.push('a give-back refused the lock and the tally says ' + spent() + ' — wanted 2: left spent, never written without the lock');
+  if (!gem.log.some(x => /could not be given back to P-S1 for /.test(x) && /lock was busy/.test(x))) bad.push('a mark that could not be given back was not logged with whose it was and why: ' + JSON.stringify(gem.log.slice(-1)));
+  /* ...and the cap counts it: one given, one lost, one left of three. */
+  fresh();
+  d = ask('s1@example.org');
+  const over = ask('s1@example.org');
+  if (!d.success || d.left !== 0 || over.why !== 'ai-cap') bad.push('one mark given and one lost of three, then two presses answered '
+    + JSON.stringify([d.success && d.left, over.why]) + ' — wanted a mark with 0 left, then the cap');
+}
+{
+  /* 5. MIDNIGHT WHILE A PRESS IS WITH GEMINI. Taken from the 11th; while it waits the 12th begins and a
+     press on the 12th is marked; then it fails. Its give-back finds the 12th's tally and must leave it
+     alone -- taking it off the 12th's would make that day's cap one wider. */
+  const { b, ask } = world({ ai_marks_per_day: 2 });
+  b.props.GEMINI_API_KEY = KEY;
+  const BUSY = b.ev('AI_BUSY');
+  gem.sent.length = 0; gem.queue.length = 0; gem.log.length = 0; gem.tally.length = 0; gem.refuse = null;
+  gem.day = '2026-10-11';
+  try {
+    gem.queue.push({ code: 200, body: { awarded: 1, feedback: 'Fine.' } });     // the press on the 12th
+    gem.reply = { code: 503 };                                                 // everything else
+    let inner = null;
+    gem.during = () => { gem.day = '2026-10-12'; inner = ask('s1@example.org'); };
+    const outer = ask('s1@example.org');
+    if (!inner || !inner.success) bad.push('a press just after midnight, made while one from before it waited, was not marked — ' + JSON.stringify(inner).slice(0, 160));
+    if (outer.message !== BUSY) bad.push('the press from before midnight answered ' + JSON.stringify(outer.message) + ' — wanted "' + BUSY + '"');
+    if (!gem.log.some(x => /could not be given back to P-S1 for 2026-10-11/.test(x) && /midnight/.test(x))) bad.push('a mark taken before midnight and failed after it was not logged as one that could not be given back: ' + JSON.stringify(gem.log.slice(-1)));
+    tallyHeld('a press across midnight, with one inside it', 2);
+    gem.reply = null;
+    const next = ask('s1@example.org');
+    const more = ask('s1@example.org');
+    if (!next.success || next.left !== 0 || more.why !== 'ai-cap') bad.push('on the 12th, one mark given and a give-back from the 11th, then two presses answered '
+      + JSON.stringify([next.success && next.left, more.why]) + ' — wanted a mark with 0 left, then the cap: the 11th\'s give-back must not come off the 12th');
+  } finally { gem.day = null; gem.reply = null; gem.during = null; }
+}
+{
+  /* 6. A THROW ON THE WAY GIVES THE COUNT BACK TOO -- which is why the give-back is a `finally` and not a
+     line after the call. Here the wait between two asks throws: the one call in the asking that is not
+     inside a try of its own. */
+  const { b, ask } = world({ ai_marks_per_day: 2 });
+  b.props.GEMINI_API_KEY = KEY;
+  gem.sent.length = 0; gem.slept.length = 0; gem.queue.length = 0; gem.log.length = 0; gem.tally.length = 0; gem.refuse = null;
+  gem.reply = { code: 503 };
+  gem.sleepThrows = true;
+  let d;
+  try { d = ask('s1@example.org'); } finally { gem.sleepThrows = false; gem.reply = null; }
+  if (d.success || !gem.slept.length) bad.push('a wait that threw answered ' + JSON.stringify(d).slice(0, 160) + ' after ' + gem.slept.length + ' wait(s) — the case did not throw where it meant to');
+  tallyHeld('a press that threw', 2);
+  const next = ask('s1@example.org');
+  if (!next.success || next.left !== 1) bad.push('a press that threw on the way, then a mark, left ' + next.left + ' of 2 — wanted 1: the throw gives its count back');
 }
 
 console.log('');
