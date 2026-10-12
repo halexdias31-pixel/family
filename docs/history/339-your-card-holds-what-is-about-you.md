@@ -493,3 +493,12 @@ skin 1 hair 2 → skin 0 hair 0), and Pat's Save said the figure. The read put b
 instead (`cardRemember_` not keeping `hd`): red the same three ways; put back, green. A collision is possible — a new
 handle can draw the same colours — but not three at once, and on the real files the journey passes either way.
 Nothing in `me.js` changed this round; only the journey.
+
+**The runs, on this tree, at a load average of 13 to 38** (only `check-flow.js` and this note differ from round 1's
+tree, so every browser check measured the same app): the 54 fast checks of `check-all` pass (`check-dead` the same
+8 + 5 names as the base commit). `check-flow`, now 339 journeys in four parts: all pass. `check/ui.js` settings (150
+combinations), account (155), tools (110) and saved (25): nothing new. `cascade.js` and `swipe.js` pass. `press.js`
+saved passes; settings, account and tools first ran at a load of about 38 and each missed only swipe and press-mark
+timings in other columns (a games flick, a tap on a question's picture, the feed's react mark). Run again alone,
+settings and tools pass; account missed one different timing each time (the feed's react mark, then the reel's sound
+mark), and **the base commit's `press.js --screen=account`, run alone beside it, missed a games flick the same way**.
