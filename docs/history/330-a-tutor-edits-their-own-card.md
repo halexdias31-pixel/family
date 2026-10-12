@@ -1,5 +1,7 @@
 ## A tutor edits their own card, on the card: Edit turns it into its form, one Save, and five Settings pages go
 
+**Since 11 Oct everybody edits their own card**, not only a tutor with a public card — a parent, a student and an admin each get Edit, with the picture and the name, and on everybody's own card the figure and the handle ([339](339-your-card-holds-what-is-about-you.md)).
+
 **The owner, 10 Oct, with two screenshots** (the Settings card "About you" — first and last name, headline,
 years teaching, favourite colour, the ages they teach, three words, a tick — and their own card on the You
 column — picture, name, handle, rate and seat rate, headline, an extra photograph, three words, At a

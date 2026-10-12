@@ -335,7 +335,7 @@ const NOTIFY_KINDS = {
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-10-11-m-merged";
+const BACKEND_VERSION = "2026-10-12-p-merged";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -425,7 +425,8 @@ const SCHEMA = {
      types into. `ensureSchema` only ever ADDS, so a column dropped here is never deleted from a live
      sheet by code — the new tab is pasted in whole, from the CSV that goes with this commit.
 
-     `handle_was` IS A SAFEGUARDING COLUMN — the last ten handles, newest first — and
+     `handle_was` IS A SAFEGUARDING COLUMN — every earlier handle, newest first, none dropped since
+     each still signs its person in (342, `HANDLE_WAS_MAX`) — and
      `handle_changed_at` is when the newest one began: most of the people here are children, and "who
      was @foo last week" is asked exactly once, about the one account it matters for. Neither is a
      cooldown any more; that went with the typed handle box (see `handleTrouble_`).
@@ -1584,6 +1585,76 @@ const SCHEMA = {
   ],
 };
 
+/* ---------- WHICH GEMINI MARKS, AND WHAT "MARK WITH AI" DOES WHEN GOOGLE IS FULL ---------------------
+   `aiGemini_` in dopost.gs reads all of these, and `gemini_model` / `gemini_model_fallback` in
+   CONFIG_DEFAULTS name the first two as their defaults -- WHICH IS WHY THEY ARE UP HERE and not beside
+   `AI_ANSWER_MAX`: the backend is one scope, and a `const` read above its own line throws "Cannot access
+   before initialization" as the script loads, which takes every request down with it, not just this one.
+
+   THE OWNER, 11 Oct: *"Ai marking is not working right now Gemini said 503."* -- a pupil's press on a
+   2024 June Foundation maths question, asked of Gemini ONCE. A 503 is UNAVAILABLE, "the model is
+   overloaded": Google's capacity for that one model, not the key and not the quota, and gone again in
+   seconds as often as not. Google's troubleshooting page gives both answers used here -- retry with a
+   growing wait, or move to another model -- and a pupil got neither. AND THE PRESS COST THEM ONE OF THE
+   DAY'S MARKS, because the count was taken before Gemini was asked; see `aiMarkCount_`.
+
+   THE MODELS, checked against Google's own pages on 11 Oct 2026 (sources in docs/history/344):
+     AI_MODEL           gemini-3.8-flash       stable (GA 2 Sep 2026), no shutdown date announced
+     AI_MODEL_FALLBACK  gemini-3.5-flash-lite  stable (GA 21 Jul 2026), the newest Flash-Lite, no shutdown date
+   PINNED NAMES, NEVER A `-latest` ALIAS. Google's models page keeps the alias for "exploratory testing
+   apps and prototypes" because it may point at a preview -- and on 21 Jan 2026 `gemini-flash-latest`
+   did, at `gemini-3-flash-preview`, which is the kind of build that is full first. A pinned name is
+   still retired one day, and a retired name answers 404 -- so a 404 from the first model is handed to
+   the second, where a 400 or a 403 (the key, the account) is not. Google has also begun retiring a name
+   by ROUTING it to a newer model (8 Oct: 3.7 Flash to 3.8 Flash), which answers 200, so the reply's
+   `model` is the response's own `modelVersion` -- the model that marked it, not the name that was asked.
+   THE FALLBACK THINKS LESS. 3.5 Flash-Lite defaults to Google's MINIMAL thinking level, meant for
+   classification and extraction; 3.8 Flash thinks more by default. A forty-mark essay marked by the
+   fallback is a lighter read than one marked by the first model. Nothing sets the level, deliberately: a
+   level a model refuses is a 400, and a 400 does not fall back.
+   AND ON A FREE-TIER KEY THE FIRST MODEL'S QUOTA IS SMALL. Google no longer publishes free-tier numbers;
+   third-party measurements put 3.5-and-newer Flash at about 20 requests a DAY for the whole key and
+   3.5 Flash-Lite at about 500 -- so on a free key most of a day's marks may come from the fallback. The
+   real numbers are on AI Studio's rate-limit page; billing on the key lifts them.
+
+   THE WAITS. Up to AI_TRIES asks of each model; between them AI_WAITS -- about 0.8 s, then about 2 s --
+   each moved up to AI_JITTER (30%) either way, so a hundred phones refused in the same second do not
+   all come back in the same second too. The second model is asked at once: its capacity is its own.
+   So six asks at most and at most 7.28 s of waiting in all.
+   TWO CLOCKS, BOTH FROM THE FIRST ASK. No ask at all is started once AI_BUDGET_MS (20 s) has gone; and
+   the first model is not asked AGAIN once AI_HANDOFF_MS (10 s) has gone, so the fallback's first ask
+   still has room. The first build had only the budget and RETURNED at it: a first model refusing in 9 s
+   an ask was asked twice and the fallback never, and at 7 s an ask its three asks used the whole budget
+   on their own (the review of 11 Oct).
+   WHAT THAT BOUNDS, HONESTLY. The clocks decide when an ask STARTS. An ask that has started runs as long
+   as Gemini takes -- a whole essay is marked in seconds to tens of seconds -- and `UrlFetchApp` has no
+   timeout to set; it gives up by itself at about a minute (not documented by Google). So a storm of quick
+   503s answers in about 8-12 s, and the worst a press can take is the budget plus one ask: about 80 s if
+   an ask started at 19.9 s hangs until UrlFetchApp gives up, against about 60 s when there was one ask.
+   A pupil watching three dots is told "busy" in seconds in the ordinary case, which is the case that
+   happened.
+
+   WHAT IS ASKED AGAIN IS WHAT IS GOOGLE'S (`aiAgain_` in dopost.gs): 429, any 5xx -- 500 (its own fault),
+   502 (a gateway), 503 (full), 504 (its deadline, which the faster fallback may meet) -- and a fetch that
+   threw. A 400, 401 or 403 is the key, the request or the account, and asking again is asking to be told
+   again. A 429 on the Gemini API is that model's quota, a minute's or a day's: when its RetryInfo says
+   the model is not back before the next ask would be, it is not asked again and the fallback, whose
+   quota is its own, is asked at once.
+   NO STATUS CODE REACHES A PUPIL. AI_BUSY when anything asked was merely busy -- including a first model
+   that was full and a fallback that is broken, because the first will be back; "Could not reach Gemini"
+   when nothing answered at all; and "AI marking is not working right now." when every model asked
+   refused for a reason that is the owner's to mend. The number, the model and Google's own words go to
+   the log, with the config cell to change when it is a model name. */
+const AI_MODEL = 'gemini-3.8-flash';
+const AI_MODEL_FALLBACK = 'gemini-3.5-flash-lite';
+const AI_MODEL_OLD_SEED = 'gemini-flash-latest';
+const AI_TRIES = 3;
+const AI_WAITS = [800, 2000];
+const AI_JITTER = 0.3;
+const AI_BUDGET_MS = 20000;
+const AI_HANDOFF_MS = 10000;
+const AI_BUSY = 'Marking is busy right now — try again in a minute.';
+
 /* Every tunable, with a plain-English note and a starting value. ensureSchema() adds any that
    are missing to the `config` tab and never touches one that's already there — so a value you've
    changed is safe, and a NEW knob arrives documented instead of as a bare key you have to guess
@@ -1629,8 +1700,21 @@ const CONFIG_DEFAULTS = [
      different string, this app has never needed one, and it must never be put in this sheet. */
   /* ---------- AI MARKING ---------------------------------------------------------------------------
      THE KEY IS NOT HERE AND MUST NEVER BE: this tab goes to every phone. It is `GEMINI_API_KEY` in
-     Project Settings → Script Properties. These two are the parts that are safe to show. */
-  ['gemini_model', 'gemini-flash-latest', 'the Gemini model that marks worded answers. Blank = gemini-flash-latest. The API KEY never goes here: it is GEMINI_API_KEY in Script Properties'],
+     Project Settings → Script Properties. These three are the parts that are safe to show.
+
+     TWO MODELS, BECAUSE ONE WAS A 503 (11 Oct): the first asked up to three times, then the second, on
+     capacity of its own -- the note over `AI_MODEL` above, and docs/history/344.
+
+     A CELL STILL HOLDING THE OLD SEED IS READ AS BLANK. `seedConfig` never rewrites a value, so every
+     sheet seeded before 11 Oct holds `gemini-flash-latest` as though somebody had chosen it -- and a
+     default that moved would have moved nowhere. `aiModels_` reads that one string as "the default",
+     from the first request, with nothing for anybody to do; any other name typed here is used as typed.
+     THE ALIAS IS NOT OFFERED: typed on purpose it is still the default, because Google keeps it for
+     prototypes. AND THE SHEET IS TOLD, at the next `ensureSchema`: a row whose value AND note are both
+     still the old seed's is a row nobody set, and `CONFIG_RESEEDED` below brings it up to date, so the
+     config tab says which model marks instead of a note that stopped being true on 11 Oct. */
+  ['gemini_model', AI_MODEL, 'the Gemini model that marks worded answers. Blank (or the old gemini-flash-latest) = ' + AI_MODEL + '. The API KEY never goes here: it is GEMINI_API_KEY in Script Properties'],
+  ['gemini_model_fallback', AI_MODEL_FALLBACK, 'the model asked when the first one is full, out of reach or retired (Gemini 429, 5xx or 404). Blank = ' + AI_MODEL_FALLBACK + '. none = no second model'],
   ['ai_marks_per_day', 20, 'how many answers one person may have marked by AI in a day. Blank = 20. 0 switches AI marking off'],
   ['google_client_id', '', 'Google Sign-In client ID (the PUBLIC one, ending .apps.googleusercontent.com). Blank switches Google sign-in off. Never put the client SECRET here'],
   ['pages_recheck_days', 30, 'how old a resource page count may get before the nightly job re-reads the file'],
@@ -1720,6 +1804,17 @@ const CONFIG_DEFAULTS = [
      maths, in cells nothing reads, which had to be edited every time the maths changed — and by
      the end described a version of the formula that hadn't run for weeks. The pricing card shows
      the live formula, derived from the code that actually prices, so it can't fall behind. */
+];
+
+/* ---------- A SEED THAT MOVED: `[key, the old value, the old note]` -----------------------------------
+   `seedConfig` NEVER REWRITES A VALUE SOMEBODY SET, and that stays the rule. But a row whose value and
+   note are BOTH exactly what an old seed wrote is a row nobody set, and leaving it says something that
+   is no longer true: on 11 Oct `gemini_model` stopped defaulting to the `-latest` alias, and every sheet
+   seeded before that still read "gemini-flash-latest ... Blank = gemini-flash-latest" (the review of
+   11 Oct). Such a row is given the current default and note from CONFIG_DEFAULTS. Change either cell
+   and it is yours, and left alone. */
+const CONFIG_RESEEDED = [
+  ['gemini_model', AI_MODEL_OLD_SEED, 'the Gemini model that marks worded answers. Blank = gemini-flash-latest. The API KEY never goes here: it is GEMINI_API_KEY in Script Properties'],
 ];
 
 /* ---------- THE CONFIG KEYS NO PHONE IS SENT ------------------------------------------------------
@@ -1898,7 +1993,20 @@ const _cache = {};
    by any write to that tab (`kidMemoDrop_`) — a reply is built after its writes, and a child renamed
    by this very request must be recognised under the name the reply is about to carry. */
 let KID_MEMO_ = null;
-/* HOW MANY EARLIER WHOLE NAMES `name_was` KEEPS — `HANDLE_WAS_KEEP`'s number, for its reason. */
+/* ---------- AND WHO THE NET IS WORKING FOR, THIS REQUEST ------------------------------------------------
+   `{ id, admin }` of the person a reply or an email is going to, or null for nobody known (a stranger, a
+   typed address, a reply before anybody signed in). Set by `netViewerSet_` (people.gs) in `doGet` from
+   the token, in `doPost` after the gate, in `loginReplyFor_` to the row signing in, and per email in
+   `mailOut_`. It decides one thing: whether a GROWN-UP'S surname (a parent, a client — not a tutor or an
+   admin) may go to this viewer, which is only themselves, an admin, and a child on their own family row
+   (`netKin_`, docs/history/342). A child's surname goes to nobody whoever is asking, so the 333 half of
+   the net never reads it. RESET AT THE TOP
+   OF `doGet` AND `doPost`, because Apps Script keeps an instance between requests and the last
+   request's viewer must never be the next one's. */
+let NET_VIEWER_ = null;
+/* HOW MANY EARLIER WHOLE NAMES `name_was` KEEPS. It was "`HANDLE_WAS_KEEP`'s number, for its reason",
+   and that cap went in 342: an old HANDLE is a credential, never trimmed. An old NAME is only what the
+   net recognises in text stored under it — a person renamed eleven times is not a person — so ten stays. */
 const NAME_WAS_KEEP = 10;
 
 /* ---------- A WRITE THAT GOES NOWHERE -------------------------------------------------------------
@@ -3027,6 +3135,15 @@ const RUNNABLE = {
      virtue and number, or the 1 October `<first>_<virtue>` — is left alone, so a second run changes
      nothing and nobody who signs in with their handle is moved by it. */
   renameHandles:     () => renameHandles(),
+  /* ---------- AND EVERY CHILD'S HANDLE INTO INITIALS AND FOUR DIGITS, PREVIEWED FIRST (342) -------------
+     The owner, 11 Oct: *"Change usernames to be more abstract to hide the names of kids. Just use
+     initials..."* `?run=kidHandles&name=…&pin=…` WRITES NOTHING: it counts the children, says which
+     would move and what each would become (`ej····`, the initials — the digits are drawn when it is
+     run for real). `&arg=apply` moves them: every old handle onto `handle_was`, where it goes on signing
+     its child in (`handleWasRows_`), and every `friends` list that named it moved with it. A second run
+     moves nothing — a handle already in the shape is left alone. `previewFromGitHub`'s rule: look,
+     then do. Children only; a grown-up's handle is `renameHandles`'. */
+  kidHandles:        a => kidHandles(a),
   /* `seedPastPapers`, `seedALevelPapers`, `dropOldALevelPapers` and `ensureResourceIds` WERE HERE.
      All four wrote rows into the `questions` tab, and there is no such tab — the papers are
      `data/questions.json` in this repository, and CLAUDE.md has said "do not seed that tab" since

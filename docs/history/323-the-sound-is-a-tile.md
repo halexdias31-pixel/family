@@ -1,5 +1,7 @@
 ## The reels' Sound is a tile, and so is Imposter's Read aloud: a speaker that says the state it is in
 
+**Imposter's Read aloud since [343](343-imposter-has-a-picture-on-every-card-and-says-only-the-word.md), 11 Oct:** the tile is unchanged, but what it switches on now says only the word, or "Imposter", on Listen — nothing on a hand-over, the play screen or the reveal.
+
 **The owner, 10 Oct:** *"the sound on or off should be a tile like everything else."*
 
 ### What it was

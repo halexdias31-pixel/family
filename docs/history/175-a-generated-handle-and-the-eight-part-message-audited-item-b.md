@@ -160,3 +160,5 @@ SHOULD HAVE, with "randomly generated" attaching to the identifiers.** The other
 anonymising real people, which is irreversible, so it is not done and is named here instead: if that
 is what was meant, it is one more job beside `fillHandles` and the rows it would rewrite are the ones
 that job already reports.
+
+**Since 11 Oct (342):** a CHILD's handle is generated from their initials and four random digits (2–9), never their name or birthday; existing children are moved by `?run=kidHandles` (previewed first), and every old handle still signs its child in. See [342](342-a-child-s-handle-carries-no-name.md).

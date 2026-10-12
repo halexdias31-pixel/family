@@ -263,6 +263,8 @@ function boot(opts) {
       /* THE REAL TAB LIST, so a journey asking "does every tab draw" cannot be asking about tabs
          that no longer exist. It has been wrong twice from being written out by hand. */
       'TABS, wgChosen: () => wgChosen_(),' +
+      /* WHAT THE LINE UNDER YOUR HANDLE SAYS (`HANDLE_SAID`, me.js) — a `let`, so a function (342). */
+      'handleSaid: () => HANDLE_SAID,' +
       /* THE PAPER AS DRAWN, so a journey can ask what is actually on it rather than what the
          functions behind it were supposed to produce. */
       'paper: () => (typeof bookBreakdown === "function" ? bookBreakdown(bookPrice()) : ""),' +
@@ -299,10 +301,14 @@ function boot(opts) {
       'PARTY: () => (typeof PARTY !== "undefined" ? PARTY : null),' +
       /* IMPOSTER'S ROUND, AS A GETTER FOR THE SAME REASON — `impDeal_` replaces the object — so a
          journey can hold each screen up against what was actually dealt rather than against what an
-         earlier screen said. AND A CARD ON TOP OF ITS PILE, put there the way `impDraw_` would find
-         it, so the read-aloud journey knows the word it is listening for: a random deal can be `ear`,
-         which is in the pass screen's own sentence ("Hold the phone to your ear"). */
+         earlier screen said. AND A CARD ON TOP OF ITS PILE (`impStack`, below), put there the way
+         `impDraw_` would find it — the whole card, picture and all, out of the app's own `impCards_`
+         — so a journey knows the word it is listening for and the picture it is looking for. AND THE
+         DECK ITSELF, read through `impCards_` as the game reads it, and its category pictures. */
       'IMP: () => (typeof IMP !== "undefined" ? IMP : null),' +
+      'impCards: () => (typeof impCards_ === "function" ? impCards_() : []),' +
+      'impCatSym: c => (typeof IMP_DECK !== "undefined" && IMP_DECK[c] ? IMP_DECK[c].sym : undefined),' +
+      'impCats: () => (typeof IMP_DECK !== "undefined" ? Object.keys(IMP_DECK) : []),' +
       /* THE VIDEOS CARD'S FAILED PICTURES, a `const` Set — a Drive film's address in it is the film's
          file id, so a journey asks whether signing out empties it. A copy, not the Set. */
       'vidBroken: () => (typeof VID_BROKEN !== "undefined" ? [...VID_BROKEN] : null),' +
@@ -311,7 +317,7 @@ function boot(opts) {
       /* AND WHICH COLUMN IS IN FRONT — a `let` in shell.js, so a second eval cannot read it; the videos
          journey asks that an arrow key did not turn it under a full-screen film. */
       'screenAt: () => AT,' +
-      'impStack: (c, wd) => { IMP_PILE.push([c, wd]); },' +
+      'impStack: (c, wd) => { IMP_PILE.push(impCards_().find(x => x[0] === c && x[1] === wd) || [c, wd, ""]); },' +
       /* THE ACCOUNT COLUMN'S PAGES, so a journey can ask who is drawn on it. */
       'accountPages: () => accountPages_(),' +
       /* THE TEN PICTURES' NAMES, IN THE GRID'S ORDER — a `const`, so only a getter reaches it. */
@@ -1712,15 +1718,17 @@ check('a settings save still works against a server older than the site', async 
   const d = w.document;
   const cardWith = f => [...d.querySelectorAll('#s-settings .me-form')]
     .find(form => form.querySelector('[data-me="' + f + '"]'));
-  const plain = cardWith('first_name'), packed = cardWith('phone_no') || cardWith('dob_d');
-  if (!plain || !packed) return ['the settings column has no About you card or no Contact card to press'];
+  /* A CARD OF PLAIN FIELDS THAT IS STILL ON SETTINGS — the name went to your own card's Edit (docs/history/339),
+     so the old server's About you is gone from here, and Where (the borough and the city) is the plain one. */
+  const plain = cardWith('borough') || cardWith('headline'), packed = cardWith('phone_no') || cardWith('dob_d');
+  if (!plain || !packed) return ['the settings column has no card of plain fields or no Contact card to press'];
   const bad = [];
   const press = form => t.ACTIONS['me-save'](form.querySelector('[data-do="me-save"]'));
   sent.length = 0;
   press(plain);
   await wait(300);
   if (!sent.some(b => b.action === 'updateProfile')) {
-    bad.push('the About you card posted ' + JSON.stringify(sent.map(b => b.action))
+    bad.push('the card of plain fields posted ' + JSON.stringify(sent.map(b => b.action))
              + ' and no updateProfile — an older server stops every save');
   }
   sent.length = 0;
@@ -2242,7 +2250,9 @@ const CARD_ADA_ = { headline: 'Maths, mostly', rate_per_hour: 20, extra_seat_rat
   /* A PHOTOGRAPH LINK FOR A FACE — the one kind of picture `savePhoto` cannot write back, so Cancel putting
      it back is a real test of the door it uses (`card-cancel`, me.js). */
   photo: 'https://example.org/ada.jpg' };
-const cardWorld_ = () => {
+/* `more.people`: extra rows on the people tab, made by the same `P` — the review of 339 seats a parent who shares
+   a listed tutor's name beside her. */
+const cardWorld_ = (more) => {
   const real = require('./check-gas-load.js').backend();
   const base = { pin: '0000', verified: 'TRUE', listed: true, city: 'London' };
   const P = (id, first, last, role, email, more) => Object.assign({ person_id: id, first_name: first, last_name: last,
@@ -2255,7 +2265,7 @@ const cardWorld_ = () => {
     P('P-T2', 'Ben', 'Teacher', 'tutor', 'ben@example.org', { headline: 'Physics, mostly', rate_per_hour: 22, availability: 'sa10', photo: 'pfp:fox' }),
     P('P-C1', 'Pat', 'Parent', 'client', 'parent@example.org'),
     P('P-S1', 'Sam', 'Student', 'student', 'student@example.org'),
-  ]);
+  ].concat(((more && more.people) || []).map(a => P.apply(null, a))));
   real.seed('venues', [
     { name: 'Colliers Wood Library', postcode: 'SW19 2HR', lat: 51.418, lng: -0.178, tutors_happy_here: 'P-T1' },
     { name: 'Mitcham Library', postcode: 'CR4 2YR', lat: 51.402, lng: -0.166 },
@@ -2266,8 +2276,10 @@ const cardWorld_ = () => {
   ]);
   const user = who => {
     const d = real.post({ action: 'verifyLogin', email: who, pin: '0000' });
+    /* AND THE LOOK, as the sign-in reply carries it and the phone keeps it: your own card's Edit holds the
+       wardrobe now (docs/history/339), which draws from `avatar`, `avatarItems`, `xp` and `credits`. */
     return d && d.success ? { name: d.name, personId: d.personId, role: d.role, roles: d.roles, token: d.token,
-      handle: d.handle, profile: d.profile } : null;
+      handle: d.handle, profile: d.profile, avatar: d.avatar, avatarItems: d.avatarItems, xp: d.xp, credits: d.credits } : null;
   };
   /* THE THREE PROFILE ACTIONS GO TO THE REAL `doPost`, AND `savePhoto` — a tap in the picture grid is a
      token and needs no Drive, so the real door answers it; the app's other polls are answered plainly. */
@@ -2295,7 +2307,7 @@ const cardOpen_ = async (W, who, more) => {
   more = more || {};
   const u = who ? W.user(who) : null;
   if (who && !u) return { err: who + ' could not sign in to the real backend' };
-  const b = boot({ payload: W.GET(), reply: W.reply, serve: W.serve, before: more.before || (u ? signedInAs_(u) : undefined) });
+  const b = boot({ payload: W.GET(), reply: more.reply || W.reply, serve: W.serve, before: more.before || (u ? signedInAs_(u) : undefined) });
   for (let k = 0; k < 80 && !b.w.__t; k++) await wait(100);
   if (!b.w.__t) return { err: 'the app did not finish loading' };
   await wait(600);
@@ -2323,7 +2335,10 @@ const cardOpen_ = async (W, who, more) => {
   };
   return c;
 };
-const CARD_ORDER_ = ['picture', 'name', 'rate', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'];
+/* YOUR FIGURE STRAIGHT AFTER THE PICTURE AND YOUR HANDLE STRAIGHT AFTER THE NAME, on your own card only
+   (docs/history/339) — the owner, 11 Oct: *"the random name generator should be one of the editable things in
+   the profile settings of the profile card. your figure should also be in your profile card editing."* */
+const CARD_ORDER_ = ['picture', 'figure', 'name', 'handle', 'rate', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'];
 /* WHAT THE CARD'S FIVE SECTIONS ARE CHANGED TO, one field or more in each, and the qualification's grade. */
 const cardEditEverything_ = async c => {
   const f = c.form();
@@ -2669,14 +2684,15 @@ check('Sign out stays under a tutor\'s card while they edit it, keeps the typing
   await wait(100);
   if (c.card()) bad.push('the form is still drawn after Sign out');
   if (!c.drafts().length) bad.push('Sign out threw away what Ada typed on her card');
-  /* SOMEBODY ELSE ON THE SAME PHONE: no form, no Edit on Ada's card. */
+  /* SOMEBODY ELSE ON THE SAME PHONE: no form, no Edit on Ada's card — Edit on Pat's own card only, which is
+     everybody's since docs/history/339. */
   const pat = W.real.post({ action: 'verifyLogin', email: 'parent@example.org', pin: '0000' });
   try { c.w.signedIn_(pat, 'parent@example.org'); } catch (e) { return bad.concat(['signing Pat in threw: ' + e.message]); }
   await wait(300);
   try { c.t.go('account', false, true); c.w.paint('account'); } catch (e) {}
   await wait(150);
   if (c.card()) bad.push('Pat, signed in on the same phone, sees Ada\'s card open for editing');
-  if (c.edits().length) bad.push('Pat is offered Edit on ' + JSON.stringify(c.edits()));
+  if (JSON.stringify(c.edits()) !== '["P-C1"]') bad.push('Pat is offered Edit on ' + JSON.stringify(c.edits()) + ', wanted her own card alone');
   c.A('signout', c.d.createElement('button'));
   await wait(300);
   /* ADA BACK, SAME TAB: her card open, what she typed in its box, said as not saved. */
@@ -2693,7 +2709,15 @@ check('Sign out stays under a tutor\'s card while they edit it, keeps the typing
   return bad;
 });
 
-check('a tutor\'s Settings has no About you, Photos, rate, Qualifications or week — Contact & address, Library cards and Notifications stay — and a parent\'s and a student\'s are what they were', async () => {
+/* ---------- SETTINGS HOLDS WHAT IS NOT ON YOUR CARD, FOR EVERYBODY (docs/history/330, 339) -----------------------
+   330 took a tutor's card pages off Settings; on 11 Oct the owner asked for the rest — *"move library card widget
+   to the tools column … the random name generator should be one of the editable things in the profile settings
+   of the profile card. your figure should also be in your profile card editing."* — so for EVERY role Settings
+   no longer draws the name, the picture, the handle, the figure or the library cards, and still draws every
+   other field that role may write, the PIN, the roles and Notifications. A parent's About you held only the
+   picture and the name and goes whole; a student's keeps the date of birth and the two exams; the line at the
+   top says where the rest went. Against the real backend's groups, as before. */
+check('Settings holds only what is not on your card — a tutor\'s and an admin\'s lose the card\'s pages, a parent\'s About you goes, a student\'s keeps their dates — and nobody\'s draws the library cards, the handle or the figure', async () => {
   const W = cardWorld_();
   const bad = [];
   const titles = d => [...d.querySelectorAll('#s-settings .card > h3, #s-settings .me-form > h3')].map(h => h.textContent.trim());
@@ -2704,39 +2728,54 @@ check('a tutor\'s Settings has no About you, Photos, rate, Qualifications or wee
     await wait(300);
     return c;
   };
+  /* WHAT NO ROLE'S SETTINGS DRAWS NOW, AND WHAT EVERY ROLE'S STILL DOES. */
+  const common = (who, d) => {
+    const on = ['first_name', 'last_name', 'photo', 'lib1_name', 'lib1_no', 'lib1_pin'].filter(f => d.querySelector('#s-settings [data-me="' + f + '"]'));
+    if (on.length) bad.push(who + '\'s Settings still has boxes their card or Tools now holds: ' + on.join(', '));
+    const moved = ['.pfp', '.handle-shown', '[data-do="handle-shuffle"]', '.av-card', '[data-do="av-pick"]', '.lib-face', '[data-do="shelf-more"]']
+      .filter(q => d.querySelector('#s-settings ' + q));
+    if (moved.length) bad.push(who + '\'s Settings still draws ' + moved.join(', ') + ' — the picture, the handle, the figure or a library card');
+    if (!d.querySelector('#s-settings #pin-now') || !d.querySelector('#s-settings [data-do="pin-save"]')) bad.push(who + '\'s Settings lost the PIN form');
+    if (!d.querySelector('#s-settings .roles-card') || !d.querySelector('#s-settings .notify-card')) bad.push(who + '\'s Settings lost Your roles or Notifications');
+    const line = String((d.querySelector('#s-settings .ce-moved') || {}).textContent || '');
+    if (!/handle and figure.* are on your card now/.test(line) || !/library cards are on Tools/.test(line)) bad.push(who + '\'s Settings does not say where the card\'s fields and the library cards went: ' + JSON.stringify(line));
+    const first = d.querySelector('#s-settings > .page');
+    if (!first || !first.querySelector('.ce-moved')) bad.push(who + '\'s Settings says where things went somewhere other than its first page');
+  };
   for (const who of ['tutor@example.org', 'admin@example.org']) {
     const c = await settingsOf(who);
     if (c.err) { bad.push(who + ': ' + c.err); continue; }
     const t = titles(c.d);
-    const gone = ['About you', 'Photos', 'Your rate and group size', 'Qualifications', 'Availability'].filter(x => t.indexOf(x) !== -1);
+    const gone = ['About you', 'Photos', 'Your rate and group size', 'Qualifications', 'Availability', 'Library cards'].filter(x => t.indexOf(x) !== -1);
     if (gone.length) bad.push(who + '\'s Settings still draws ' + gone.join(', '));
-    ['Contact & address', 'Library cards'].forEach(x => { if (t.indexOf(x) === -1) bad.push(who + '\'s Settings lost ' + x + ' (pages: ' + JSON.stringify(t) + ')'); });
-    if (!c.d.querySelector('#s-settings .notify-card')) bad.push(who + '\'s Settings lost its Notifications card');
-    const on = ['headline', 'rate_per_hour', 'photos_1', 'qual_1', 'm09', 'venues_ok', 'travel_km', 'first_name', 'adjective_1'].filter(f => c.d.querySelector('#s-settings [data-me="' + f + '"]'));
+    if (t.indexOf('Contact & address') === -1) bad.push(who + '\'s Settings lost Contact & address (pages: ' + JSON.stringify(t) + ')');
+    const on = ['headline', 'rate_per_hour', 'photos_1', 'qual_1', 'm09', 'venues_ok', 'travel_km', 'adjective_1'].filter(f => c.d.querySelector('#s-settings [data-me="' + f + '"]'));
     if (on.length) bad.push(who + '\'s Settings still has boxes the card edits: ' + on.join(', '));
-    if (!c.d.querySelector('#s-settings [data-me="email"]') || !c.d.querySelector('#s-settings [data-me="lib1_name"]')) bad.push(who + '\'s Settings lost the email or the library boxes');
-    if (!/on your card now/.test(String((c.d.querySelector('#s-settings .ce-moved') || {}).textContent || ''))) bad.push(who + '\'s Settings does not say where the pages went');
+    if (!c.d.querySelector('#s-settings [data-me="email"]')) bad.push(who + '\'s Settings lost the email box');
+    if (!/rate, photographs, qualifications, venues and hours/.test(String((c.d.querySelector('#s-settings .ce-moved') || {}).textContent || ''))) bad.push(who + '\'s Settings does not say their card holds the tutor\'s pages too');
+    common(who, c.d);
   }
-  /* A PARENT AND A STUDENT: their own groups, every page, every box, and no word about a card. */
-  for (const [who, key] of [['parent@example.org', 'clientFields'], ['student@example.org', 'studentFields']]) {
+  /* A PARENT AND A STUDENT: their own groups less the card's two and the library cards — every other box. */
+  for (const [who, key, want] of [['parent@example.org', 'clientFields', ['Contact & address', 'Manage your child', 'Signing in', 'Your roles']],
+                                  ['student@example.org', 'studentFields', ['About you', 'Contact & address', 'Signing in', 'Your roles']]]) {
     const c = await settingsOf(who);
     if (c.err) { bad.push(who + ': ' + c.err); continue; }
     const groups = c.t.DATA()[key] || {};
     const t = titles(c.d);
-    const want = Object.keys(groups);
-    if (!want.length) { bad.push(who + ': the payload sent no ' + key + ', so their Settings was NOT checked'); continue; }
+    if (!Object.keys(groups).length) { bad.push(who + ': the payload sent no ' + key + ', so their Settings was NOT checked'); continue; }
     if (JSON.stringify(t.slice(0, want.length)) !== JSON.stringify(want)) bad.push(who + '\'s Settings pages are ' + JSON.stringify(t) + ', wanted ' + JSON.stringify(want) + ' first');
-    const lost = [].concat(...want.map(g => groups[g])).filter(f => !/^(phone|date_of_birth|photo)$/.test(f) && !/^lib\d+_/.test(f))
+    const lost = [].concat(...Object.keys(groups).map(g => groups[g]))
+      .filter(f => !/^(phone|date_of_birth|photo|first_name|last_name)$/.test(f) && !/^lib\d+_/.test(f))
       .filter(f => !c.d.querySelector('#s-settings [data-me="' + f + '"]'));
     if (lost.length) bad.push(who + '\'s Settings lost ' + lost.join(', '));
-    if (!c.d.querySelector('#s-settings .pfp')) bad.push(who + '\'s Settings lost the picture chooser');
-    if (c.d.querySelector('#s-settings .ce-moved')) bad.push(who + '\'s Settings says pages moved to a card they do not have');
-    if (c.edits().length) bad.push(who + ' is offered Edit on ' + JSON.stringify(c.edits()));
+    if (/student/.test(who) && !c.d.querySelector('#s-settings [data-me="dob_d"]')) bad.push('the student\'s Settings lost the date of birth');
+    if (/rate, photographs/.test(String((c.d.querySelector('#s-settings .ce-moved') || {}).textContent || ''))) bad.push(who + '\'s Settings says a tutor\'s pages moved to a card that has none of them');
+    common(who, c.d);
   }
   return bad;
 });
 
-check('an admin edits another tutor\'s card the same way — filled from getProfile, no picture chooser, one updateProfile to their row — and nobody else sees Edit on somebody else\'s card', async () => {
+check('an admin edits another tutor\'s card the same way — filled from getProfile, no picture chooser, no figure or handle, one updateProfile to their row — and nobody else sees Edit on somebody else\'s card', async () => {
   const W = cardWorld_();
   const bad = [];
   const c = await cardOpen_(W, 'admin@example.org');
@@ -2755,6 +2794,9 @@ check('an admin edits another tutor\'s card the same way — filled from getProf
   if (!c.form() || c.card().dataset.pid !== 'P-T2') return bad.concat(['Edit on Ben\'s card did not open Ben\'s card as a form']);
   if (c.box('headline').value !== 'Physics, mostly') bad.push('Ben\'s form opened with the headline ' + JSON.stringify(c.box('headline').value));
   if (c.form().querySelector('.pfp, [data-do="pfp-pick"]')) bad.push('Ben\'s form offers the picture chooser, which would change the admin\'s own picture');
+  /* NOR THE ADMIN'S OWN FIGURE OR HANDLE — `saveAvatar` and `randomiseHandle` write the row the token resolves to,
+     so on Ben's card they would dress and rename the admin (docs/history/339). */
+  if (c.form().querySelector('.av-card, [data-do="av-pick"], .handle-shown, [data-do="handle-shuffle"]')) bad.push('Ben\'s form offers a figure or a handle, which would change the admin\'s own');
   if (!/Only Ben can change this picture/.test(c.form().textContent)) bad.push('Ben\'s form does not say why his picture is not offered');
   /* HIS FACE AS THE CARD DRAWS IT — `pfp:fox` is a token, and anything but `personFace_` draws it as a broken
      `<img src="pfp:fox">` (the review of 330, on the tree with fix-dp merged). */
@@ -2783,16 +2825,575 @@ check('an admin edits another tutor\'s card the same way — filled from getProf
   if (String(rowB.headline) !== 'Physics and chemistry' || String(rowB.availability) !== 'sa10,sa11') bad.push('Ben\'s row holds headline ' + JSON.stringify(rowB.headline) + ' and week ' + JSON.stringify(rowB.availability));
   if (String(rowA.headline) !== 'Runs the place') bad.push('the admin\'s own row changed: headline ' + JSON.stringify(rowA.headline));
   if (c.card()) bad.push('after the admin\'s Save Ben\'s card is still a form');
-  /* NOBODY ELSE: a tutor has Edit on their own card only; a parent and a student on nothing. */
-  const ada = await cardOpen_(W, 'tutor@example.org');
-  if (ada.err) bad.push(ada.err);
-  else if (JSON.stringify(ada.edits()) !== '["P-T1"]') bad.push('Ada is offered Edit on ' + JSON.stringify(ada.edits()) + ', wanted her own card alone');
-  for (const who of ['parent@example.org', 'student@example.org']) {
+  /* NOBODY ELSE ON SOMEBODY ELSE'S: a tutor, a parent and a student each have Edit on their own card and on no
+     other — their own is everybody's since docs/history/339, somebody else's is still an admin's alone. */
+  for (const [who, pid] of [['tutor@example.org', 'P-T1'], ['parent@example.org', 'P-C1'], ['student@example.org', 'P-S1']]) {
     const o = await cardOpen_(W, who);
     if (o.err) { bad.push(o.err); continue; }
-    if (o.edits().length) bad.push(who + ' is offered Edit on ' + JSON.stringify(o.edits()));
+    if (JSON.stringify(o.edits()) !== JSON.stringify([pid])) bad.push(who + ' is offered Edit on ' + JSON.stringify(o.edits()) + ', wanted their own card alone');
     if (!o.d.querySelector('#s-account .card.is-prof')) bad.push(who + ' sees no card on the You column, so Edit was NOT checked');
   }
+  return bad;
+});
+
+/* ---------- EVERYBODY EDITS THEIR OWN CARD (docs/history/339) ----------------------------------------------------
+   THE OWNER, 11 Oct: *"the random name generator should be one of the editable things in the profile settings of
+   the profile card. your figure should also be in your profile card editing."* — the handle and the figure belong
+   to everyone, so EDIT ON YOUR OWN CARD IS EVERYBODY'S NOW, not only a listed tutor's. Asked of the real backend's
+   payload and groups for a tutor, a listed admin, a parent and a student, and of the lab's own admin, who has no
+   public card: each has Edit on their own card (their own gold tile, not the admin's silver), and the form holds
+   the sections their card prints in the card's order — the picture, then the figure, the name, then the handle,
+   and for a public card everything 330 put there — with the wardrobe in the figure section and the handle shown
+   with one Randomise tile and nothing to type. And the one Save is the same Save: a parent's new first name goes
+   to her own row through `updateProfile` and her card says it. */
+check('every role\'s own card has Edit, with the sections their card prints: a tutor and a listed admin the whole card, a parent, a student and an admin with no public card their picture, figure, name and handle', async () => {
+  const W = cardWorld_();
+  const bad = [];
+  const bare = ['picture', 'figure', 'name', 'handle'];
+  for (const [who, pid, order] of [['tutor@example.org', 'P-T1', CARD_ORDER_], ['admin@example.org', 'P-A1', CARD_ORDER_],
+                                   ['parent@example.org', 'P-C1', bare], ['student@example.org', 'P-S1', bare]]) {
+    const c = await cardOpen_(W, who);
+    if (c.err) { bad.push(who + ': ' + c.err); continue; }
+    const e = c.edit(pid);
+    if (!e) { bad.push(who + ' has no Edit on their own card — offered ' + JSON.stringify(c.edits())); continue; }
+    if (!e.classList.contains('tile') || e.classList.contains('is-admin')) bad.push(who + '\'s Edit on their own card is not their own tile (' + e.className + ')');
+    c.A('card-edit', e);
+    for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
+    if (!c.form()) { bad.push(who + '\'s Edit drew no form'); continue; }
+    const secs = [...c.form().querySelectorAll('.ce-sec')].map(x => x.dataset.sec);
+    if (JSON.stringify(secs) !== JSON.stringify(order)) bad.push(who + '\'s own card offers ' + JSON.stringify(secs) + ', wanted ' + JSON.stringify(order));
+    const fig = c.form().querySelector('.ce-sec[data-sec="figure"]');
+    if (!fig || fig.querySelectorAll('.av-card .av-figure').length !== 1 || !fig.querySelector('[data-do="av-colour"]') || !fig.querySelector('[data-do="av-pick"]'))
+      bad.push(who + '\'s figure section is not the wardrobe — one figure, the colours and the slots');
+    const h = c.form().querySelector('.ce-sec[data-sec="handle"]');
+    if (!h || (h.querySelector('.handle-shown') || {}).textContent !== c.t.whoami().handle
+        || h.querySelectorAll('.tile-row > .tile[data-do="handle-shuffle"]').length !== 1 || h.querySelector('input, .btn'))
+      bad.push(who + '\'s handle section is not their handle shown with one Randomise tile and nothing to type');
+    if (h && !/Cancel does not put the old one back/.test(h.textContent)) bad.push(who + '\'s handle section does not say a Randomise is saved at once and Cancel does not undo it');
+    if (!c.form().querySelector('.ce-sec[data-sec="picture"] .pfp [data-do="pfp-pick"]')) bad.push(who + ' is not offered the picture chooser on their own card');
+    if (!c.box('first_name') || !c.box('last_name')) bad.push(who + ' cannot change their name on their own card');
+    if (order === bare && c.form().querySelector('[data-me="date_of_birth"], [data-me="dob_d"], [data-me="email"], [data-me^="lib"]')) bad.push(who + '\'s card offers a box their card does not print');
+    if (who === 'parent@example.org') {
+      c.type(c.box('first_name'), 'Patricia');
+      c.sent.length = 0;
+      c.A('card-save', c.tile('card-save'));
+      await wait(500);
+      const p = c.posts();
+      if (p.length !== 1 || JSON.stringify(Object.keys(p[0].fields || {})) !== '["first_name"]' || p[0].targetId !== 'P-C1')
+        bad.push('Pat\'s Save posted ' + JSON.stringify(p.map(x => [x.targetId, Object.keys(x.fields || {})])) + ', wanted one updateProfile of her first name to her own row');
+      if (String(W.real.row('P-C1').first_name) !== 'Patricia') bad.push('Pat\'s row says ' + JSON.stringify(W.real.row('P-C1').first_name) + ' after her card\'s Save');
+      if (c.card()) bad.push('Pat\'s card is still a form after Save');
+      const pg = c.pageOf('P-C1');
+      if (!pg || !/Patricia Parent/.test(pg.textContent)) bad.push('Pat\'s own card does not say Patricia Parent after her Save');
+    }
+  }
+  /* THE LAB'S ADMIN: no row in `DATA.tutors`, so the card is a face and a name, and every other field of theirs
+     is on Settings where it was — the headline here, and the video without a picture box beside it. */
+  const { w } = boot({ payload: Object.assign(payload(), { profileFields: {
+    'About you': ['first_name', 'last_name', 'headline'], 'Photos': ['photo', 'video'], 'Library cards': LIB_FIELDS_ } }) });
+  await wait(300);
+  const t = w.__t, d = w.document;
+  t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk', handle: 'testadmin',
+           profile: { first_name: 'Test', last_name: 'Admin', headline: 'Runs the place', phone_cc: '+44' } });
+  try { t.go('account', false, true); w.paint('account'); } catch (e) { return bad.concat(['drawing the lab admin\'s You column threw: ' + e.message]); }
+  await wait(200);
+  const le = d.querySelector('#s-account [data-do="card-edit"][data-pid="P001"]');
+  if (!le) return bad.concat(['an admin with no public card has no Edit on their own card']);
+  t.ACTIONS['card-edit'](le);
+  await wait(300);
+  const ls = [...d.querySelectorAll('#s-account .card-ed .ce-sec')].map(x => x.dataset.sec);
+  if (JSON.stringify(ls) !== JSON.stringify(bare)) bad.push('an admin with no public card is offered ' + JSON.stringify(ls) + ', wanted ' + JSON.stringify(bare));
+  try { w.paint('settings'); } catch (e) {}
+  if (!d.querySelector('#s-settings [data-me="headline"]') || !d.querySelector('#s-settings [data-me="video"]')) bad.push('the lab admin\'s headline or video left Settings with nowhere to go');
+  if (d.querySelector('#s-settings [data-me="first_name"], #s-settings .pfp')) bad.push('the lab admin\'s Settings still draws the name or the picture their card edits');
+  return bad;
+});
+
+/* ---------- THE HANDLE'S RANDOMISE, ON YOUR OWN CARD ---------------------------------------------------------------
+   The "random name generator" of the owner's message is Randomise (`handle-shuffle`), which was on Settings' Signing
+   in card and is the `handle` section of your own card's Edit now. IT SAVES THE MOMENT IT IS PRESSED: the server
+   writes the row as it answers and has no way to offer a handle without writing it, or to put an old one back
+   (`handle` is not in `PROFILE_EDITABLE`, and must not be), so it is kept as the picture is kept, and CANCEL DOES
+   NOT TAKE IT BACK — which the line under the tile says before the press. Through the real `doPost`: one
+   `randomiseHandle`, the row holds the new handle, the form shows it, the line says the old one, the toast the new;
+   Cancel closes the form with the new handle on the card at once (the payload held), on the phone and on the sheet;
+   and a tutor's row in the payload carries it before the payload lands. */
+check('Randomise on your own card\'s Edit saves a new handle at once, shows it and the old one, and Cancel leaves it — saved, as the line says', async () => {
+  const W = cardWorld_();
+  const reply = b => (b.action === 'randomiseHandle' ? W.real.post(b) : W.reply(b));
+  const bad = [];
+  for (const [who, pid] of [['parent@example.org', 'P-C1'], ['tutor@example.org', 'P-T1']]) {
+    const c = await cardOpen_(W, who, { reply });
+    if (c.err) { bad.push(who + ': ' + c.err); continue; }
+    const was = c.t.whoami().handle;
+    const e = c.edit(pid);
+    if (!e) { bad.push(who + ' has no Edit on their own card'); continue; }
+    c.A('card-edit', e);
+    for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
+    const sec = c.form() && c.form().querySelector('.ce-sec[data-sec="handle"]');
+    const tile = sec && sec.querySelector('[data-do="handle-shuffle"]');
+    if (!tile) { bad.push(who + '\'s card has no Randomise'); continue; }
+    c.sent.length = 0;
+    W.holding = true;
+    c.A('handle-shuffle', tile);
+    await wait(400);
+    const asks = c.sent.filter(x => x.action === 'randomiseHandle');
+    const now = String(W.real.row(pid).handle || '');
+    if (asks.length !== 1) bad.push(who + '\'s Randomise posted ' + JSON.stringify(c.sent.map(x => x.action)) + ', wanted one randomiseHandle');
+    if (!now || now === was) bad.push(who + '\'s row still holds ' + JSON.stringify(now) + ' after Randomise');
+    if (c.t.whoami().handle !== now) bad.push(who + '\'s phone says @' + c.t.whoami().handle + ', the sheet @' + now);
+    const sec2 = c.form() && c.form().querySelector('.ce-sec[data-sec="handle"]');
+    if (!sec2 || (sec2.querySelector('.handle-shown') || {}).textContent !== now) bad.push(who + '\'s card form does not show the new handle @' + now);
+    if (!sec2 || !(new RegExp('You were @' + was)).test((sec2.querySelector('.handle-said') || {}).textContent || '')) bad.push(who + '\'s line under Randomise does not say the old handle @' + was);
+    if (!(new RegExp('@' + now)).test(c.toast())) bad.push(who + '\'s toast says ' + JSON.stringify(c.toast()) + ', not the new handle');
+    if (pid === 'P-T1') {
+      const row = (c.t.DATA().tutors || []).find(r => r.personId === 'P-T1');
+      if (!row || row.handle !== now) bad.push('Ada\'s row in the payload still says @' + (row && row.handle) + ' before the payload lands');
+    }
+    /* CANCEL: the form closes and the handle is the new one, on the card, the phone and the sheet. */
+    c.sent.length = 0;
+    c.A('card-cancel', c.tile('card-cancel'));
+    await wait(300);
+    if (c.card()) bad.push(who + '\'s Cancel did not close the form');
+    if (c.sent.some(x => x.action === 'randomiseHandle' || x.action === 'updateProfile')) bad.push(who + '\'s Cancel sent ' + JSON.stringify(c.sent.map(x => x.action)) + ' — there is nothing to put back');
+    if (c.t.whoami().handle !== now || String(W.real.row(pid).handle) !== now) bad.push(who + '\'s Cancel changed the handle back');
+    const pg = c.pageOf(pid);
+    if (!pg || !(new RegExp('@' + now)).test(pg.textContent) || (new RegExp('@' + was + '\\b')).test((pg.querySelector('.prof-handle') || {}).textContent || '')) bad.push(who + '\'s own card does not print @' + now + ' straight after Cancel');
+    W.holding = false;
+    W.release();
+    await wait(200);
+  }
+  return bad;
+});
+
+/* ---------- YOUR FIGURE, DRESSED ON YOUR OWN CARD, IS THE FIGURE YOUR PICTURE DRAWS ----------------------------------
+   The wardrobe was the last page of Settings; it is the `figure` section of your own card's Edit now, straight under
+   the picture — and the figure must still be what the picture's "your figure" option draws (docs/history/324). So,
+   through the real `doPost`: a shirt picked in the section is `saveAvatar`, written to the row; the picker's "your
+   figure" one section up wears it at once; chosen as the picture (`savePhoto`, `pfp:avatar`), and the form shut,
+   the card's face is that figure in that shirt. And CANCEL PUTS THE LOOK BACK, as it puts the picture back: a shirt
+   picked and then Cancel sends the look the card was opened with through `saveAvatar`, and the row and the phone
+   hold it again. */
+check('your figure dressed on your own card\'s Edit is the figure your picture draws, saved as picked — and Cancel puts the look back', async () => {
+  const W = cardWorld_();
+  const reply = b => (b.action === 'saveAvatar' ? W.real.post(b) : W.reply(b));
+  const c = await cardOpen_(W, 'student@example.org', { reply });
+  if (c.err) return [c.err];
+  const bad = [];
+  const shirtOf = s => Number((/shirt:(\d)/.exec(String(s || '')) || [])[1]);
+  const open = async () => { const e = c.edit('P-S1'); if (e) c.A('card-edit', e); for (let k = 0; k < 30 && !c.form(); k++) await wait(100); return !!c.form(); };
+  if (!(await open())) return ['Sam\'s own card has no Edit, or it drew no form'];
+  const pick = async n => {
+    const sw = c.form().querySelector('.ce-sec[data-sec="figure"] [data-do="av-colour"][data-field="shirt"][data-value="' + n + '"]');
+    if (!sw) { bad.push('the figure section has no shirt ' + n); return; }
+    c.A('av-colour', sw);
+    await wait(300);
+  };
+  c.sent.length = 0;
+  await pick(2);
+  const av = c.sent.filter(x => x.action === 'saveAvatar');
+  if (av.length !== 1 || Number(av[0].avatar && av[0].avatar.shirt) !== 2) bad.push('picking shirt 2 posted ' + JSON.stringify(av.map(x => x.avatar)) + ', wanted one saveAvatar in shirt 2');
+  if (shirtOf(W.real.row('P-S1').avatar) !== 2 || shirtOf(c.t.whoami().avatar) !== 2) bad.push('after shirt 2 the row holds ' + JSON.stringify(W.real.row('P-S1').avatar) + ' and the phone ' + JSON.stringify(c.t.whoami().avatar));
+  const shirt2 = AV_SHIRT_T[2];
+  const opt = c.form().querySelector('.ce-sec[data-sec="picture"] .pfp-opt[data-pic="avatar"]');
+  if (!opt || opt.innerHTML.indexOf(shirt2) === -1) bad.push('the picture\'s "your figure" is not wearing the shirt just picked in the figure section');
+  const ringed = c.form().querySelector('.ce-sec[data-sec="figure"] .av-sw.on[data-field="shirt"]');
+  if (!ringed || ringed.dataset.value !== '2') bad.push('the ring in the figure section is not on shirt 2');
+  /* CHOSEN AS THE PICTURE, AND THE FORM SHUT: the card's face is the figure, in shirt 2. */
+  c.sent.length = 0;
+  c.A('pfp-choose', opt);
+  await wait(300);
+  if (!c.sent.some(x => x.action === 'savePhoto' && x.choice === 'pfp:avatar')) bad.push('choosing your figure as the picture posted ' + JSON.stringify(c.sent.map(x => x.action)));
+  c.A('card-save', c.tile('card-save'));
+  await wait(400);
+  if (c.card()) bad.push('Save did not close the form');
+  const face = c.pageOf('P-S1') && c.pageOf('P-S1').querySelector('.prof-pic');
+  if (!face || !face.querySelector('svg.avatar.is-bust') || face.innerHTML.indexOf(shirt2) === -1) bad.push('Sam\'s card\'s face is not the figure in shirt 2: ' + (face ? face.outerHTML.slice(0, 120) : 'none'));
+  /* CANCEL PUTS THE LOOK BACK. */
+  if (!(await open())) return bad.concat(['Edit did not open the form a second time']);
+  await pick(4);
+  if (shirtOf(c.t.whoami().avatar) !== 4) bad.push('shirt 4 was not picked');
+  c.sent.length = 0;
+  c.A('card-cancel', c.tile('card-cancel'));
+  await wait(500);
+  const back = c.sent.filter(x => x.action === 'saveAvatar');
+  if (back.length !== 1 || Number(back[0].avatar && back[0].avatar.shirt) !== 2) bad.push('Cancel posted ' + JSON.stringify(back.map(x => x.avatar)) + ', wanted one saveAvatar putting shirt 2 back');
+  if (shirtOf(W.real.row('P-S1').avatar) !== 2 || shirtOf(c.t.whoami().avatar) !== 2) bad.push('after Cancel the row holds ' + JSON.stringify(W.real.row('P-S1').avatar) + ' and the phone ' + JSON.stringify(c.t.whoami().avatar));
+  if (c.card()) bad.push('Cancel did not close the form');
+  if (!/figure too/.test(c.toast())) bad.push('Cancel said ' + JSON.stringify(c.toast()) + ', not that the figure was put back');
+  return bad;
+});
+
+/* ---------- THE REVIEW OF docs/history/339: WHAT ONE FORM FOR THE HANDLE, THE FIGURE AND THE BOXES COST ------------------
+   Randomise, the wardrobe and the typed boxes were on three different Settings pages; on your own card's Edit they are
+   one form under one Save and one Cancel, and the review found five ways they trod on each other. Each journey below
+   was red on the build the review read, through the real `doPost` (check-gas-load.js), and each says what it found. */
+
+/* SAVE WHILE RANDOMISE IS OUT. `send_` locked the nearest `.me-form` — the whole card — and Save, under the form and
+   live, read it through `cardFormVals_`, which skips a disabled box: "Nothing had changed", the card shut, its draft
+   dropped, and the typed field never sent. Measured for a parent (her surname; her first name is the next journey's)
+   and a tutor (the headline). Randomise locks its own section now, and Save waits for it in words. */
+check('review 339: Save pressed while Randomise is on the wire waits in words and keeps the typing, and once it lands Save posts what was typed', async () => {
+  const bad = [];
+  for (const [who, pid, f, v] of [['parent@example.org', 'P-C1', 'last_name', 'Parenti'], ['tutor@example.org', 'P-T1', 'headline', 'Algebra, mostly']]) {
+    const W = cardWorld_();
+    let release = null;
+    const reply = b => (b.action === 'randomiseHandle' ? new Promise(ok => { release = () => ok(W.real.post(b)); }) : W.reply(b));
+    const c = await cardOpen_(W, who, { reply });
+    if (c.err) { bad.push(who + ': ' + c.err); continue; }
+    const e = c.edit(pid);
+    if (!e) { bad.push(who + ' has no Edit on their own card — NOT checked'); continue; }
+    c.A('card-edit', e);
+    for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
+    if (!c.box(f)) { bad.push(who + '\'s card form has no ' + f + ' box — NOT checked'); continue; }
+    c.type(c.box(f), v);
+    c.sent.length = 0;
+    c.A('handle-shuffle', c.form().querySelector('[data-do="handle-shuffle"]'));
+    await wait(150);
+    if (!release) { bad.push(who + '\'s Randomise sent ' + JSON.stringify(c.sent.map(x => x.action)) + ' — NOT checked'); continue; }
+    if (c.box(f).disabled) bad.push(who + '\'s ' + f + ' box is locked while Randomise is out — only the handle section should be');
+    c.A('card-save', c.tile('card-save'));
+    await wait(300);
+    if (!c.form()) bad.push(who + '\'s Save shut the card while Randomise was out (toast ' + JSON.stringify(c.toast()) + ')');
+    if (c.posts().length) bad.push(who + '\'s Save posted while Randomise was out: ' + JSON.stringify(c.posts().map(x => x.fields)));
+    if (!/handle is still changing/.test(c.toast())) bad.push(who + '\'s Save said ' + JSON.stringify(c.toast()) + ', not that the handle is still changing');
+    if (!c.drafts().length) bad.push(who + '\'s card draft was dropped by a Save that saved nothing');
+    release();
+    for (let k = 0; k < 30 && String(W.real.row(pid).handle) === String(c.u.handle); k++) await wait(100);
+    await wait(200);
+    if (!c.form() || !c.box(f) || c.box(f).value !== v) { bad.push(who + '\'s typed ' + f + ' is not on the card after Randomise landed (' + JSON.stringify(c.box(f) && c.box(f).value) + ')'); continue; }
+    c.sent.length = 0;
+    c.A('card-save', c.tile('card-save'));
+    for (let k = 0; k < 30 && c.card(); k++) await wait(100);
+    const posts = c.posts();
+    if (posts.length !== 1 || JSON.stringify(posts[0].fields) !== JSON.stringify({ [f]: v })) bad.push(who + '\'s Save after Randomise posted ' + JSON.stringify(posts.map(x => x.fields)) + ', wanted one updateProfile with ' + f + ' alone');
+    if (String(W.real.row(pid)[f]) !== v) bad.push(who + '\'s sheet holds ' + f + ' ' + JSON.stringify(String(W.real.row(pid)[f])) + ', typed ' + JSON.stringify(v));
+  }
+  return bad;
+});
+
+/* RANDOMISE WITH A FIRST NAME TYPED AND NOT SAVED. The server makes the handle from the name on the sheet, so the new
+   handle was the OLD name's — `pat_humble98` for somebody now called Quinn. Refused before it is sent, on the line under
+   the tile; saved first, the next press is made from the new name. */
+check('review 339: Randomise waits for a first name typed and not saved, says why, and after Save makes the handle from the new name', async () => {
+  const W = cardWorld_();
+  const reply = b => (b.action === 'randomiseHandle' ? W.real.post(b) : W.reply(b));
+  const c = await cardOpen_(W, 'parent@example.org', { reply });
+  if (c.err) return [c.err];
+  const bad = [];
+  c.A('card-edit', c.edit('P-C1'));
+  for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
+  if (!c.box('first_name')) return ['Pat\'s card has no first name box — NOT checked'];
+  c.type(c.box('first_name'), 'Quinn');
+  c.sent.length = 0;
+  const tile = () => c.form().querySelector('[data-do="handle-shuffle"]');
+  c.A('handle-shuffle', tile());
+  await wait(300);
+  if (c.sent.some(x => x.action === 'randomiseHandle')) bad.push('Randomise posted with "Quinn" typed and Pat on the sheet — the handle would be made from the old name');
+  const line = String((c.form().querySelector('.handle-said') || {}).textContent || '');
+  if (!/Save your new first name first/.test(line)) bad.push('the line under Randomise says ' + JSON.stringify(line) + ', not to save the new name first');
+  if (c.box('first_name').value !== 'Quinn') bad.push('the typed first name went: ' + JSON.stringify(c.box('first_name').value));
+  /* SAVED, AND EDIT AGAIN: now Randomise posts, and the handle starts with the new name. */
+  c.A('card-save', c.tile('card-save'));
+  for (let k = 0; k < 30 && c.card(); k++) await wait(100);
+  if (String(W.real.row('P-C1').first_name) !== 'Quinn') return bad.concat(['Save did not write Quinn (' + JSON.stringify(W.real.row('P-C1').first_name) + ') — the second half was NOT checked']);
+  c.A('card-edit', c.edit('P-C1'));
+  for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
+  c.sent.length = 0;
+  c.A('handle-shuffle', tile());
+  for (let k = 0; k < 30 && !/quinn/.test(String(W.real.row('P-C1').handle)); k++) await wait(100);
+  if (!/quinn/.test(String(W.real.row('P-C1').handle))) bad.push('after the name was saved, Randomise made ' + JSON.stringify(W.real.row('P-C1').handle) + ', not a handle from Quinn');
+  return bad;
+});
+
+/* A FIGURE NOBODY DRESSED IS DRAWN FROM THE HANDLE, so Randomise changed its skin and hair colour (it did on the
+   base commit too, on another page); and Cancel after a Randomise and a pick rebuilt the blank opening look under the
+   NEW handle — another face, under "Put back as it was". Asked of what is DRAWN (`avatarConfig` of the cell under
+   the handle), on the phone and on the sheet, because other phones draw this person from the sheet. And asked again
+   across a reload (`reloaded`, below), because the handle the card opened under is kept on the device and read back. */
+check('review 339: Randomise keeps the face of a figure nobody dressed, and Cancel after Randomise and a pick puts back the face the card opened with — after a reload too', async () => {
+  const bad = [];
+  /* EACH HALF ON A FRESH SHEET, so each opens on a look nobody chose — after the first half's Randomise the look is
+     written out, and a Cancel that put a blank look back under the wrong handle would no longer show. */
+  const half = async (who, pid, pick) => {
+    const W = cardWorld_();
+    const reply = b => (['randomiseHandle', 'saveAvatar'].indexOf(b.action) !== -1 ? W.real.post(b) : W.reply(b));
+    const c = await cardOpen_(W, who, { reply });
+    if (c.err) { bad.push(who + ': ' + c.err); return; }
+    if (String(W.real.row(pid).avatar || '')) { bad.push(who + ' starts with a look of their own — NOT the case asked about'); return; }
+    const drawn = (cell, handle) => JSON.stringify(c.w.avatarConfig(cell, handle));
+    const me = () => c.t.whoami();
+    const face0 = drawn(me().avatar, me().handle || me().name);
+    const sheetFace = () => drawn(W.real.row(pid).avatar, W.real.row(pid).handle);
+    c.A('card-edit', c.edit(pid));
+    for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
+    const was = String(W.real.row(pid).handle);
+    c.A('handle-shuffle', c.form().querySelector('[data-do="handle-shuffle"]'));
+    for (let k = 0; k < 30 && String(W.real.row(pid).handle) === was; k++) await wait(100);
+    await wait(400);
+    if (String(W.real.row(pid).handle) === was) { bad.push(who + '\'s Randomise wrote nothing — NOT checked'); return; }
+    if (!pick) {
+      if (drawn(me().avatar, me().handle) !== face0) bad.push(who + '\'s face on the phone changed with the handle: ' + face0 + ' → ' + drawn(me().avatar, me().handle));
+      if (sheetFace() !== face0) bad.push(who + '\'s face on the sheet changed with the handle (what everybody else draws): ' + face0 + ' → ' + sheetFace());
+    } else {
+      const sw = c.form() && c.form().querySelector('.ce-sec[data-sec="figure"] [data-do="av-colour"][data-field="shirt"][data-value="3"]');
+      if (!sw) { bad.push(who + '\'s figure section has no shirt 3 — NOT checked'); return; }
+      c.A('av-colour', sw);
+      await wait(400);
+    }
+    /* CANCEL: after a Randomise alone, nothing to put back and nothing sent; after a pick, the face it opened with. */
+    c.sent.length = 0;
+    c.A('card-cancel', c.tile('card-cancel'));
+    for (let k = 0; k < 30 && c.card(); k++) await wait(100);
+    await wait(300);
+    if (!pick && c.sent.some(x => x.action === 'saveAvatar')) bad.push(who + '\'s Cancel after a Randomise alone sent a saveAvatar — the face had not changed');
+    if (drawn(me().avatar, me().handle) !== face0) bad.push(who + '\'s Cancel' + (pick ? ' after Randomise and a pick' : '') + ' left the phone drawing ' + drawn(me().avatar, me().handle) + ', opened with ' + face0);
+    if (sheetFace() !== face0) bad.push(who + '\'s Cancel' + (pick ? ' after Randomise and a pick' : '') + ' left the sheet drawing ' + sheetFace() + ', opened with ' + face0);
+    if (pick && !/figure too/.test(c.toast())) bad.push(who + '\'s Cancel said ' + JSON.stringify(c.toast()));
+  };
+  /* AND ACROSS A RELOAD (round 2 of the fixes for 339). What makes the blank opening look the face it was is the
+     handle it was drawn under, and that is kept beside which card is open (`hd` in `familyCardEdit`) and read back by
+     `cardEditNow_`. Nothing held the read: the review took the line out and all 13 of 339's journeys passed, while in
+     a browser a reload between Randomise and Cancel had Cancel fall back to the NEW handle, rebuild the blank look
+     under it and send it — skin 0 hair 0 opened, skin 0 hair 6 on the phone and the sheet after "Put back as it was".
+     The same lost handle made Save with nothing typed say the FIGURE had been saved. So each end is pressed after a
+     second boot from exactly the storage the first left, on a fresh sheet: Cancel sends no look and the face is the
+     one the card opened with; Save says the handle, and only the handle, was saved. */
+  const reloaded = async (who, pid, end) => {
+    const W = cardWorld_();
+    const reply = b => (['randomiseHandle', 'saveAvatar'].indexOf(b.action) !== -1 ? W.real.post(b) : W.reply(b));
+    const c = await cardOpen_(W, who, { reply });
+    if (c.err) { bad.push(who + ' (reload, ' + end + '): ' + c.err); return; }
+    if (String(W.real.row(pid).avatar || '')) { bad.push(who + ' starts with a look of their own — NOT the case asked about'); return; }
+    const me = c.t.whoami();
+    const face0 = JSON.stringify(c.w.avatarConfig(me.avatar, me.handle || me.name));
+    const sheetFace = () => JSON.stringify(c.w.avatarConfig(W.real.row(pid).avatar, W.real.row(pid).handle));
+    c.A('card-edit', c.edit(pid));
+    for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
+    const was = String(W.real.row(pid).handle);
+    c.A('handle-shuffle', c.form().querySelector('[data-do="handle-shuffle"]'));
+    /* THE KEEP ANSWERED AND KEPT ON THE PHONE — the new handle and the written-out face both in `familyUser`, which is
+       what the reload starts from — not merely the handle written on the sheet. */
+    const kept = () => { try { return JSON.parse(c.w.localStorage.getItem('familyUser')) || {}; } catch (e) { return {}; } };
+    const landed = () => String(W.real.row(pid).handle) !== was && String(W.real.row(pid).avatar || '')
+      && String(kept().handle) === String(W.real.row(pid).handle) && String(kept().avatar || '') === String(W.real.row(pid).avatar);
+    for (let k = 0; k < 50 && !landed(); k++) await wait(100);
+    await wait(300);
+    if (!landed()) { bad.push(who + '\'s Randomise and its keep did not both land on the sheet and the phone (handle ' + JSON.stringify(W.real.row(pid).handle) + ', look ' + JSON.stringify(W.real.row(pid).avatar) + ') — NOT checked'); return; }
+    c.w.dispatchEvent(new c.w.Event('pagehide'));
+    const two = await cardOpen_(W, null, { before: fromStore_(keptStore_(c.w)), reply });
+    if (two.err) { bad.push(who + ' after the reload: ' + two.err); return; }
+    for (let k = 0; k < 30 && !two.form(); k++) await wait(100);
+    if (!two.form() || !two.tile('card-' + end)) { bad.push('after the reload ' + who + '\'s card is not open for editing — NOT checked'); return; }
+    two.sent.length = 0;
+    two.A('card-' + end, two.tile('card-' + end));
+    for (let k = 0; k < 30 && two.card(); k++) await wait(100);
+    await wait(300);
+    const me2 = two.t.whoami();
+    const phone = JSON.stringify(two.w.avatarConfig(me2.avatar, me2.handle || me2.name));
+    const looks = two.sent.filter(x => x.action === 'saveAvatar');
+    if (looks.length) bad.push(who + '\'s ' + end + ' after Randomise and a reload sent ' + looks.length + ' saveAvatar (' + JSON.stringify(looks.map(x => x.avatar)) + ') — the face had not changed');
+    if (phone !== face0) bad.push(who + '\'s ' + end + ' after Randomise and a reload left the phone drawing ' + phone + ', opened with ' + face0);
+    if (sheetFace() !== face0) bad.push(who + '\'s ' + end + ' after Randomise and a reload left the sheet drawing ' + sheetFace() + ', opened with ' + face0);
+    if (end === 'save' && two.toast() !== 'Your handle was saved as you chose it.') bad.push(who + '\'s Save with nothing typed after Randomise and a reload said ' + JSON.stringify(two.toast()) + ' — wanted the handle, and only the handle');
+  };
+  for (const [who, pid] of [['parent@example.org', 'P-C1'], ['tutor@example.org', 'P-T1']]) {
+    await half(who, pid, false);
+    await half(who, pid, true);
+    await reloaded(who, pid, 'cancel');
+  }
+  await reloaded('parent@example.org', 'P-C1', 'save');
+  return bad;
+});
+
+/* CANCEL WHILE A PICK IS OUT. `saveAvatar` takes no lock, so the pick and Cancel's put-back were two writes of one cell
+   and the last to finish won: held so the pick finished last, the sheet wore the shirt Cancel said it took off. The
+   picture's guard, for the figure: Cancel waits, in words, and once the pick has landed puts the look back. */
+check('review 339: Cancel pressed while a wardrobe pick is on the wire waits for it in words, and then puts the look back', async () => {
+  const W = cardWorld_();
+  let release = null, n = 0;
+  const reply = b => (b.action === 'saveAvatar' ? (n++ === 0 ? new Promise(ok => { release = () => ok(W.real.post(b)); }) : W.real.post(b)) : W.reply(b));
+  const c = await cardOpen_(W, 'student@example.org', { reply });
+  if (c.err) return [c.err];
+  const bad = [];
+  const drawn = (cell, handle) => JSON.stringify(c.w.avatarConfig(cell, handle));
+  const open = drawn(c.t.whoami().avatar, c.t.whoami().handle);
+  c.A('card-edit', c.edit('P-S1'));
+  for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
+  const sw = c.form() && c.form().querySelector('.ce-sec[data-sec="figure"] [data-do="av-colour"][data-field="shirt"][data-value="4"]');
+  if (!sw) return ['Sam\'s figure section has no shirt 4 — NOT checked'];
+  c.A('av-colour', sw);
+  await wait(100);
+  if (!release) return ['the pick sent no saveAvatar — NOT checked'];
+  c.sent.length = 0;
+  c.A('card-cancel', c.tile('card-cancel'));
+  await wait(300);
+  if (c.sent.some(x => x.action === 'saveAvatar')) bad.push('Cancel sent its put-back beside the pick still on the wire: ' + JSON.stringify(c.sent.filter(x => x.action === 'saveAvatar').map(x => x.avatar && x.avatar.shirt)));
+  if (!c.card()) bad.push('Cancel shut the card with a pick still on the wire');
+  if (!/figure is still saving/.test(c.toast())) bad.push('Cancel said ' + JSON.stringify(c.toast()) + ', not that the figure is still saving');
+  /* THE PICK FINISHES LAST, as it did in the review — and then Cancel, if the card is still open to press it on. */
+  release();
+  await wait(400);
+  if (c.tile('card-cancel')) {
+    c.sent.length = 0;
+    c.A('card-cancel', c.tile('card-cancel'));
+    for (let k = 0; k < 30 && c.card(); k++) await wait(100);
+    await wait(200);
+    const back = c.sent.filter(x => x.action === 'saveAvatar');
+    if (back.length !== 1 || Number(back[0].avatar && back[0].avatar.shirt) !== 0) bad.push('Cancel after the pick landed sent ' + JSON.stringify(back.map(x => x.avatar)) + ', wanted one put-back in shirt 0');
+  }
+  const sheet = drawn(W.real.row('P-S1').avatar, W.real.row('P-S1').handle);
+  if (sheet !== open) bad.push('after Cancel the sheet draws ' + sheet + ', opened with ' + open);
+  if (drawn(c.t.whoami().avatar, c.t.whoami().handle) !== open) bad.push('after Cancel the phone draws ' + drawn(c.t.whoami().avatar, c.t.whoami().handle));
+  return bad;
+});
+
+/* A PICK WHILE THE FACE IS STILL BEING KEPT. The review's fix for a Randomise that changed the face (`avatarKeep_`)
+   sends a `saveAvatar` of its own the moment the new handle lands — so a colour tapped straight after Randomise was a
+   SECOND look on the wire beside it, and `saveAvatar` takes no lock: whichever the server finished last won. Held so
+   the keep finished last, the sheet wore the kept face in shirt 0 while the phone wore shirt 3 — Save then shut the
+   card over a figure everybody else draws in other clothes. Found in round 1 of the fixes for 339, by reading what the
+   fix added. The looks go to the server one after another now (`AV_LINE`), in the order they were chosen. */
+check('review 339: a colour picked while Randomise is still keeping the face is the look the sheet ends with', async () => {
+  const W = cardWorld_();
+  let release = null, n = 0;
+  const reply = b => (b.action === 'randomiseHandle' ? W.real.post(b)
+    : b.action === 'saveAvatar' ? (n++ === 0 ? new Promise(ok => { release = () => ok(W.real.post(b)); }) : W.real.post(b))
+    : W.reply(b));
+  const c = await cardOpen_(W, 'parent@example.org', { reply });
+  if (c.err) return [c.err];
+  const bad = [];
+  if (String(W.real.row('P-C1').avatar || '')) return ['Pat starts with a look of her own — NOT the case asked about'];
+  const drawn = (cell, handle) => c.w.avatarConfig(cell, handle);
+  const face0 = drawn(c.t.whoami().avatar, c.t.whoami().handle);
+  c.A('card-edit', c.edit('P-C1'));
+  for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
+  const was = String(W.real.row('P-C1').handle);
+  c.A('handle-shuffle', c.form().querySelector('[data-do="handle-shuffle"]'));
+  for (let k = 0; k < 30 && !release; k++) await wait(100);
+  if (!release) return ['Randomise sent no keep of the face (' + JSON.stringify(c.sent.map(x => x.action)) + ') — NOT checked'];
+  if (String(W.real.row('P-C1').handle) === was) return ['Randomise wrote no new handle — NOT checked'];
+  await wait(200);
+  const sw = c.form() && c.form().querySelector('.ce-sec[data-sec="figure"] [data-do="av-colour"][data-field="shirt"][data-value="3"]');
+  if (!sw) return ['Pat\'s figure section has no shirt 3 — NOT checked'];
+  c.A('av-colour', sw);
+  await wait(400);
+  /* THE KEEP FINISHES LAST, if the pick went beside it. */
+  release();
+  for (let k = 0; k < 30 && !/shirt:3/.test(String(W.real.row('P-C1').avatar)); k++) await wait(100);
+  await wait(300);
+  const sheet = drawn(W.real.row('P-C1').avatar, W.real.row('P-C1').handle);
+  const phone = drawn(c.t.whoami().avatar, c.t.whoami().handle);
+  if (Number(sheet.shirt) !== 3) bad.push('the sheet ends in shirt ' + sheet.shirt + ' (' + JSON.stringify(W.real.row('P-C1').avatar) + ') — the keep, finishing last, put the shirt picked after it back');
+  if (Number(phone.shirt) !== 3) bad.push('the phone ends in shirt ' + phone.shirt + ', picked 3');
+  if (sheet.skin !== face0.skin || sheet.hairColour !== face0.hairColour) bad.push('the sheet\'s face is not the face the card opened with: skin ' + sheet.skin + ' hair ' + sheet.hairColour + ', opened skin ' + face0.skin + ' hair ' + face0.hairColour);
+  const order = c.sent.filter(x => x.action === 'saveAvatar').map(x => Number(x.avatar && x.avatar.shirt));
+  if (JSON.stringify(order) !== '[0,3]') bad.push('the looks went to the server as ' + JSON.stringify(order) + ', wanted the keep (shirt 0) and then the pick (shirt 3)');
+  return bad;
+});
+
+/* SAVE WITH NOTHING TYPED, AFTER A SECTION SAVED ITSELF. "Nothing had changed" after a Randomise, a pick or a picture
+   read as if the press had been thrown away — and for a parent three of her four sections are those. */
+check('review 339: Save with nothing typed after a Randomise, a pick or a picture says what was saved, not "Nothing had changed"', async () => {
+  const W = cardWorld_();
+  const reply = b => (['randomiseHandle', 'saveAvatar', 'savePhoto'].indexOf(b.action) !== -1 ? W.real.post(b) : W.reply(b));
+  const c = await cardOpen_(W, 'parent@example.org', { reply });
+  if (c.err) return [c.err];
+  const bad = [];
+  const open = async () => { c.A('card-edit', c.edit('P-C1')); for (let k = 0; k < 30 && !c.form(); k++) await wait(100); return !!c.form(); };
+  const save = async () => { c.A('card-save', c.tile('card-save')); for (let k = 0; k < 30 && c.card(); k++) await wait(100); return c.toast(); };
+  if (!(await open())) return ['Pat\'s card did not open — NOT checked'];
+  const was = String(W.real.row('P-C1').handle);
+  c.A('handle-shuffle', c.form().querySelector('[data-do="handle-shuffle"]'));
+  for (let k = 0; k < 30 && String(W.real.row('P-C1').handle) === was; k++) await wait(100);
+  await wait(300);
+  let said = await save();
+  if (/Nothing had changed/.test(said) || !/handle was saved/.test(said)) bad.push('Save after a Randomise said ' + JSON.stringify(said));
+  if (!(await open())) return bad.concat(['Pat\'s card did not open again — NOT checked']);
+  const sw = c.form().querySelector('.ce-sec[data-sec="figure"] [data-do="av-colour"][data-field="shirt"][data-value="5"]');
+  const fox = c.form().querySelector('.pfp [data-do="pfp-choose"][data-pic="fox"]');
+  if (!sw || !fox) return bad.concat(['no shirt 5 or no fox on Pat\'s form — NOT checked']);
+  c.A('av-colour', sw);
+  c.A('pfp-choose', fox);
+  for (let k = 0; k < 30 && String(W.real.row('P-C1').photo) !== 'pfp:fox'; k++) await wait(100);
+  await wait(300);
+  said = await save();
+  if (!/picture and figure were saved/.test(said)) bad.push('Save after a pick and a picture said ' + JSON.stringify(said));
+  if (!(await open())) return bad.concat(['Pat\'s card did not open a third time — NOT checked']);
+  said = await save();
+  if (!/Nothing had changed/.test(said)) bad.push('Save with nothing done at all said ' + JSON.stringify(said));
+  return bad;
+});
+
+/* THE LOOK AND THE CREDITS THE CARD OPENED WITH SURVIVE A RELOAD. The look did (`fig`), and no journey asked it: the
+   write or the read of it could go and the suite stayed green. The credits did not: a reload mid-edit lost the line
+   that says something bought is still yours. Played here as a phone that kept fewer credits than the card opened
+   with — what a purchase leaves — and a shirt to put back. */
+check('review 339: after a reload mid-edit, Cancel still puts the opening look back, and still says that anything bought is yours', async () => {
+  const W = cardWorld_();
+  const reply = b => (b.action === 'saveAvatar' ? W.real.post(b) : W.reply(b));
+  const c = await cardOpen_(W, 'student@example.org', { reply });
+  if (c.err) return [c.err];
+  const bad = [];
+  const drawn = (cell, handle) => JSON.stringify(c.w.avatarConfig(cell, handle));
+  c.t.whoami().credits = 50;
+  const open = drawn(c.t.whoami().avatar, c.t.whoami().handle);
+  c.A('card-edit', c.edit('P-S1'));
+  for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
+  const sw = c.form() && c.form().querySelector('.ce-sec[data-sec="figure"] [data-do="av-colour"][data-field="shirt"][data-value="4"]');
+  if (!sw) return ['Sam\'s figure section has no shirt 4 — NOT checked'];
+  c.A('av-colour', sw);
+  /* THE PICK ANSWERED AND KEPT ON THE PHONE — what a reload starts from — not merely written on the sheet. */
+  const keptLook = () => { try { return String(JSON.parse(c.w.localStorage.getItem('familyUser')).avatar || ''); } catch (e) { return ''; } };
+  for (let k = 0; k < 50 && !(/shirt:4/.test(String(W.real.row('P-S1').avatar)) && /shirt:4/.test(keptLook())); k++) await wait(100);
+  if (!/shirt:4/.test(keptLook())) return ['the pick did not reach the sheet and the phone\'s kept copy — NOT checked'];
+  c.w.dispatchEvent(new c.w.Event('pagehide'));
+  const kept = keptStore_(c.w);
+  /* WHAT A PURCHASE LEAVES ON THE PHONE: fewer credits than the card was opened with. */
+  try { const u = JSON.parse(kept.familyUser); u.credits = 30; kept.familyUser = JSON.stringify(u); } catch (e) { return ['the kept sign-in could not be read — NOT checked']; }
+  const two = await cardOpen_(W, null, { before: fromStore_(kept), reply });
+  if (two.err) return bad.concat(['after the reload: ' + two.err]);
+  for (let k = 0; k < 30 && !two.form(); k++) await wait(100);
+  if (!two.form() || !two.tile('card-cancel')) return ['after the reload Sam\'s card is not open — NOT checked'];
+  two.sent.length = 0;
+  two.A('card-cancel', two.tile('card-cancel'));
+  for (let k = 0; k < 30 && two.card(); k++) await wait(100);
+  await wait(200);
+  const back = two.sent.filter(x => x.action === 'saveAvatar');
+  if (back.length !== 1) bad.push('Cancel after a reload sent ' + back.length + ' saveAvatar, wanted one putting the look back');
+  if (drawn(W.real.row('P-S1').avatar, W.real.row('P-S1').handle) !== open) bad.push('after Cancel the sheet draws ' + drawn(W.real.row('P-S1').avatar, W.real.row('P-S1').handle) + ', opened with ' + open);
+  if (!/figure too/.test(two.toast()) || !/Anything you bought is still yours/.test(two.toast())) bad.push('Cancel after a reload said ' + JSON.stringify(two.toast()) + ' — wanted the figure put back and the bought line');
+  return bad;
+});
+
+/* A PARENT WHO SHARES A LISTED TUTOR'S NAME. `mineIs_` matched by name when both rows carried ids, so she was handed
+   the tutor's row as her own card: no Edit (not her id), and Settings — asking the same question — took her name and
+   picture off its pages as well, and told her the tutor's rate and photographs were "on your card now". */
+check('review 339: a parent who shares a listed tutor\'s name has her own card with Edit, her own sections, and the tutor\'s card is still the tutor\'s', async () => {
+  const W = cardWorld_({ people: [['P-C9', 'Ada', 'Tutor', 'client', 'ada.parent@example.org', { handle: 'adaparent' }]] });
+  const c = await cardOpen_(W, 'ada.parent@example.org');
+  if (c.err) return [c.err];
+  const bad = [];
+  if (c.t.whoami().personId !== 'P-C9') return ['signed in as ' + c.t.whoami().personId + ', not the parent — NOT checked'];
+  if (JSON.stringify(c.edits()) !== JSON.stringify(['P-C9'])) bad.push('the You column offers Edit on ' + JSON.stringify(c.edits()) + ', wanted her own card (P-C9) alone');
+  const own = c.pageOf('P-C9');
+  if (own && /Maths, mostly/.test(own.textContent)) bad.push('her own card is the tutor Ada Tutor\'s — the headline "Maths, mostly" is on it');
+  if (![...c.d.querySelectorAll('#s-account .page')].some(pg => pg !== own && /Maths, mostly/.test(pg.textContent))) bad.push('the tutor Ada Tutor is not on the parent\'s You column as somebody else');
+  const e = c.edit('P-C9');
+  if (e) {
+    c.A('card-edit', e);
+    for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
+    const secs = c.form() ? [...c.form().querySelectorAll('.ce-sec')].map(x => x.dataset.sec) : [];
+    if (JSON.stringify(secs) !== JSON.stringify(['picture', 'figure', 'name', 'handle'])) bad.push('her own card offers ' + JSON.stringify(secs) + ', wanted picture, figure, name and handle');
+    if (c.box('first_name') && c.box('first_name').value !== 'Ada') bad.push('her own card\'s name box holds ' + JSON.stringify(c.box('first_name').value));
+    c.A('card-cancel', c.tile('card-cancel'));
+    await wait(200);
+  }
+  try { c.t.go('settings', false, true); c.w.paint('settings'); } catch (x) { bad.push('drawing Settings threw: ' + x.message); }
+  await wait(200);
+  const moved = String((c.d.querySelector('#s-settings .ce-moved') || {}).textContent || '');
+  if (/rate, photographs/.test(moved)) bad.push('her Settings tells her the tutor\'s pages moved to her card: ' + JSON.stringify(moved));
+  if (c.d.querySelector('#s-settings [data-me="rate_per_hour"], #s-settings [data-me="headline"]')) bad.push('her Settings draws a tutor\'s box');
   return bad;
 });
 
@@ -2808,10 +3409,16 @@ check('an admin edits another tutor\'s card the same way — filled from getProf
    "info over load on the reading parts like reading theme and word extra". A player with the word
    is not told its category; the imposter is told nothing else; the table sees it on the play screen.
 
-   AND A SCREEN SAYS FOUR WORDS, counted, so the sentences cannot creep back one at a time — the way
-   they came: "Player 2 of 4", then "Hand the phone to", then "Nobody else looks" under it. A word is
-   a run of letters; the dealt word and its category are taken out first, because "Pets and farm
-   animals" is the hint and not the app talking, and a player's number is a name and not reading. */
+   AND EVERY SCREEN SAYS EXACTLY ITS WORDS, NOT "AT MOST FOUR". The owner, 11 Oct: "THERE IS TOO MUCH
+   FLUFF with talking and all sorts. Even written." A budget of four let "Pass to" and "Hint:" stay
+   and would have let any four-word sentence back in, so each screen's whole text is now written out
+   here and compared as it is — the hand-over is "Player 2 Show", a card is its picture, its word and
+   "Hide", and so on — over the whole game, not just the card, because the sentences that went first
+   lived in the note line UNDER it (the review of 8 October) and the last one in the line OVER it. A
+   word on any screen that is not in this list is a failure, with the screen's text in the message.
+
+   AND EVERY CARD SHOWS ITS PICTURE, the 11 Oct note's first half: the word's on a player's card, the
+   category's on the imposter's and on the play screen, read out of `.imp-sym` against what was dealt. */
 check('the imposter game tells everybody the word but one, and hides it between players', async () => {
   const { w } = boot();
   await wait(300);
@@ -2846,82 +3453,92 @@ check('the imposter game tells everybody the word but one, and hides it between 
      a substring test would call that a leak and fail one deal in eight hundred. */
   const lit = p => String(p).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const has = (txt, p) => !!p && new RegExp('(^|[^A-Za-z])' + lit(p) + '($|[^A-Za-z])', 'i').test(txt);
-  /* THE BUDGET IS COUNTED OVER THE WHOLE GAME, not the card: everything Imposter draws in the widget
-     but its one `.sub` line. It read `#imp-card` alone, and three of the four sentences that went had
-     lived in the note line UNDER the card — put `#imp-said` back with "Nobody else looks." in it and
-     every check stayed green (the review of 8 October). */
+  /* THE WHOLE GAME'S TEXT — the card, the row under it, and anything else the slot holds. */
   const game = () => card().closest('.wg-game') || card().parentElement;
-  const said = () => {
-    const c = game().cloneNode(true);
-    c.querySelectorAll('.sub').forEach(x => x.remove());
-    return String(c.textContent || '').replace(/\s+/g, ' ').trim();
+  const said = () => String(game().textContent || '').replace(/\s+/g, ' ').trim();
+  const exactly = (where, want) => {
+    if (said() !== want) bad.push(where + ' reads "' + said() + '", wanted exactly "' + want + '"');
   };
-  const BUDGET = 4;
-  const budget = (where, drop) => {
-    const left = drop.filter(Boolean).reduce((x, p) => x.replace(new RegExp(lit(p), 'gi'), ' '), said());
-    const n = (left.match(/[A-Za-z’']+/g) || []).length;
-    if (n > BUDGET) bad.push(where + ' says ' + n + ' words, wanted ' + BUDGET + ' at most: "' + said() + '"');
-  };
-  /* AND THE WIDGET'S OWN LINE IS THE DECIDED ONE, with no note line under the card to write a sentence
-     into — the old "Three or more, one phone…" could come back as quietly as `#imp-said` could. */
-  const SUB = 'Everyone gets the word but one. Find the imposter.';
-  const sub = game().querySelector('.sub');
-  if (!sub || String(sub.textContent).replace(/\s+/g, ' ').trim() !== SUB) {
-    bad.push('the line over the card is not "' + SUB + '": "' + (sub ? sub.textContent.trim() : '(none)') + '"');
-  }
-  if (game().querySelector('#imp-said, .note')) bad.push('the imposter game has a note line again (#imp-said or .note), where the sentences used to live');
+  const sym = () => String((card().querySelector('.imp-sym') || {}).textContent || '').trim();
+  /* EVERY PICTURE `aria-hidden`, wherever it is drawn: a screen reader reads 🍕 as "slice of pizza"
+     before the word it is a picture of (impFrame_, note 343). Taking it off passed every journey. */
+  const hidden = where => [...card().querySelectorAll('.imp-sym')].forEach(el => {
+    if (el.getAttribute('aria-hidden') !== 'true') bad.push(where + ': a picture is not aria-hidden, so a screen reader reads it out');
+  });
+  /* THE "?" IS THE IMPOSTER'S AND NOBODY ELSE'S — the mark a child who cannot read "Imposter" knows
+     the card by (impFrame_, note 343). On another card it would be a lie; on the play screen, a
+     tell. */
+  const marked = () => !!card().querySelector('.imp-sym.is-imp');
+  /* NO LINE OVER THE CARD AND NO NOTE UNDER IT: the old "Everyone gets the word but one. Find the
+     imposter." could come back as quietly as `#imp-said` could. */
+  if (game().querySelector('.sub, #imp-said, .note')) bad.push('the imposter game has a sentence line again (.sub, #imp-said or .note): "' + said() + '"');
   const N = 5;
+  /* THE WHOLE RANGE, 3 TO 12, BOTH ENDS — the brief's "3–12 players". The top was never pressed
+     (twelve down and two up), so `IMP_MAX = 20` passed every journey (the review of 11 October). */
+  const step = (d) => card().querySelector('.imp-step[data-d="' + d + '"]');
+  for (let i = 0; i < 13; i++) press('imp-count', { 'data-d': '1' });
+  exactly('the setup screen at the most players', 'Players − 12 + Deal');
+  if (!step('1') || !step('1').disabled) bad.push('at 12 players + is not disabled');
   for (let i = 0; i < 12; i++) press('imp-count', { 'data-d': '-1' });
+  exactly('the setup screen at the fewest players', 'Players − 3 + Deal');
+  if (!step('-1') || !step('-1').disabled) bad.push('at 3 players − is not disabled');
   for (let i = 0; i < N - 3; i++) press('imp-count', { 'data-d': '1' });
-  if (!/\b5\b/.test(text())) bad.push('two presses up from three players does not read 5: "' + text() + '"');
+  /* THE SETUP: how many, and Deal. Read aloud is a tile with no word on it (jsdom has no voice, so it
+     is not drawn here at all — the read-aloud journey has it). */
+  exactly('the setup screen', 'Players − ' + N + ' + Deal');
   press('imp-start');
   const S = t.IMP();
   if (!S || S.phase !== 'deal' || !S.word || !S.cat) return bad.concat(['Deal did not deal a round: ' + JSON.stringify(S)]);
   const word = S.word, cat = S.cat;
-  /* NOTHING ON THE HAND-OVER IS ANYBODY'S: not the word, not the hint, not the word "imposter" — read
-     off `visible()`, so a `title` or an `aria-label` counts as much as the words do. */
+  const mine = t.impCards().find(x => x[0] === cat && x[1] === word);
+  const pic = mine ? mine[2] : undefined, catPic = t.impCatSym(cat);
+  if (!pic) bad.push('the dealt card ' + JSON.stringify([cat, word]) + ' has no picture in the deck');
+  if (!catPic) bad.push('the dealt category ' + JSON.stringify(cat) + ' has no picture in the deck');
+  /* NOTHING ON THE HAND-OVER IS ANYBODY'S: not the word, not the hint, not the word "imposter", not a
+     picture — read off `visible()`, so a `title` or an `aria-label` counts as much as the words do. */
   const secret = (where, h) => {
     if (has(h, word)) bad.push(where + ' has the word "' + word + '" on it');
     if (has(h, cat)) bad.push(where + ' has the category "' + cat + '" on it');
     if (/imposter/i.test(h)) bad.push(where + ' says "imposter"');
+    if ((pic && h.indexOf(pic) !== -1) || (catPic && h.indexOf(catPic) !== -1)) bad.push(where + ' has a picture of the round on it');
   };
   const seen = [];
   let pass0 = null;
   for (let i = 0; i < N; i++) {
-    const before = text();
-    if (!has(before, 'Player ' + (i + 1)) || !/^Pass to\b/.test(before)) {
-      bad.push('before player ' + (i + 1) + ' presses anything the card reads "' + before + '"');
-    }
+    exactly('the hand-over to player ' + (i + 1), 'Player ' + (i + 1) + ' Show');
     secret('the screen handed to player ' + (i + 1), visible());
     /* AND IT IS THE SAME SCREEN FOR EVERYBODY bar the number, the imposter's included — a hand-over
        that differed for one player would be the tell. */
     const shape = html().replace(/Player \d+/g, 'Player #');
     if (pass0 === null) pass0 = shape;
     else if (shape !== pass0) bad.push('the screen handed to player ' + (i + 1) + ' is not the one handed to player 1');
-    budget('the hand-over to player ' + (i + 1), []);
     press('imp-show');
-    const shown = text();
     const big = String((card().querySelector('.imp-big') || {}).textContent || '').trim();
-    const imposter = /imposter/i.test(shown);
+    const imposter = /imposter/i.test(text());
     seen.push({ imposter: imposter, word: imposter ? '' : big });
     if (i === S.imp) {
       if (has(visible(), word)) bad.push('the imposter, player ' + (i + 1) + ', was shown the word');
-      if (!/\bHint\b/.test(shown) || !has(shown, cat)) bad.push('the imposter was not given the category as a hint: "' + shown + '"');
-      budget("the imposter's card", [cat]);
+      if (pic && visible().indexOf(pic) !== -1) bad.push('the imposter, player ' + (i + 1) + ', was shown the word\'s picture');
+      exactly("the imposter's card", catPic + ' Imposter ' + cat + ' Hide');
+      if (sym() !== catPic) bad.push("the imposter's picture is \"" + sym() + '", not the category\'s ' + catPic);
+      if (!marked()) bad.push("the imposter's picture has no \"?\" (.is-imp), so a child who cannot read \"Imposter\" takes the category's picture for their word");
     } else {
       if (big !== word) bad.push('player ' + (i + 1) + "'s big line is \"" + big + '", not the word dealt');
       if (has(visible(), cat)) bad.push('player ' + (i + 1) + ' was shown the category "' + cat + '" as well as the word');
       if (/imposter/i.test(visible())) bad.push('player ' + (i + 1) + ' has the word and was told "imposter" too');
-      budget('player ' + (i + 1) + "'s card", [word]);
+      exactly('player ' + (i + 1) + "'s card", pic + ' ' + word + ' Hide');
+      if (sym() !== pic) bad.push('player ' + (i + 1) + "'s picture is \"" + sym() + '", not ' + pic + ' for ' + word);
+      if (marked()) bad.push('player ' + (i + 1) + ', who has the word, has the imposter\'s "?" on their picture');
     }
+    hidden('player ' + (i + 1) + "'s card");
     if (i === 1) {
       /* LEAVING THE COLUMN HIDES A WORD LEFT UP, and keeps whose turn it was. */
       const wd = t.allWidgets().find(x => x.id === 'wordgames');
       if (!wd || !wd.stop) bad.push('the imposter widget has no stop, so a word left up stays up');
       else wd.stop();
       t.go('games', false, true);
-      if (!/^Pass to Player 2\b/.test(text())) {
-        bad.push('leaving the column with a word up does not hide it: the card reads "' + text() + '"');
+      if (said() !== 'Player 2 Show') {
+        bad.push('leaving the column with a word up does not hide it: the game reads "' + said() + '"');
       }
       secret('the card after leaving the column', visible());
       press('imp-show');
@@ -2935,32 +3552,117 @@ check('the imposter game tells everybody the word but one, and hides it between 
   if (words.size !== 1 || [...words][0] !== word) {
     bad.push('the others were not all shown the one word dealt: ' + [...words].join(' / '));
   }
-  /* THE PLAY SCREEN: the hint for everybody now, who starts, and still not the word. */
-  const play = text();
-  if (has(visible(), word)) bad.push('the word is on the screen once everybody has looked');
-  if (!has(play, cat)) bad.push('the play screen does not show the category: "' + play + '"');
-  if (!has(play, 'Player ' + (S.first + 1) + ' starts')) bad.push('the play screen does not say who starts: "' + play + '"');
-  budget('the play screen', [cat]);
+  /* THE PLAY SCREEN: the hint and its picture for everybody now, who starts, and still not the word. */
+  if (has(visible(), word) || (pic && visible().indexOf(pic) !== -1)) bad.push('the word or its picture is on the screen once everybody has looked');
+  exactly('the play screen', catPic + ' Player ' + (S.first + 1) + ' starts ' + cat + ' Reveal');
+  if (marked()) bad.push('the play screen has the imposter\'s "?" on the category\'s picture — the whole table sees it');
+  hidden('the play screen');
   press('imp-reveal');
-  const rev = text();
-  if (!has(rev, 'Player ' + (S.imp + 1))) bad.push('the reveal does not name player ' + (S.imp + 1) + ': "' + rev + '"');
-  if (!has(rev, word)) bad.push('the reveal does not say the word');
+  exactly('the reveal', 'Imposter Player ' + (S.imp + 1) + ' ' + pic + ' ' + word + ' Deal Players');
+  hidden('the reveal');
+  if (!card().querySelector('.imp-sym')) bad.push('the reveal draws no picture to hold aria-hidden');
+  press('imp-players');
+  exactly('the setup screen after Players', 'Players − ' + N + ' + Deal');
+  return bad;
+});
+
+/* ---------- IMPOSTER'S DECK: EVERY CARD HAS ITS PICTURE, AND EVERY CARD DRAWS IT ---------------------
+   The owner, 11 Oct: "Add symbols to imposter." `check-widgets.js` reads the deck out of the file and
+   holds its shape — a picture on every card, none twice, none newer than Emoji 12.0. This is the other
+   half: the deck AS THE GAME READS IT (`impCards_`, through `__t`), and every one of its 750 cards
+   actually dealt and shown through the app's own handlers, so a card whose picture the reader drops,
+   or a frame that draws the word and loses the picture, fails here by name. Thirty to a category,
+   exactly — the pile is every card, so a category's share of the rounds is its share of the deck —
+   and no word twice, folded as `check-widgets.js` folds it (case, apostrophes, hyphens, a trailing s).
+   And every category's picture on the imposter's card for that category. */
+check('imposter: every card in the deck has a picture, thirty to a category, none twice, and each is drawn with it', async () => {
+  const { w } = boot({ before: w => { try { w.localStorage.setItem('wg-game', 'imp'); } catch (e) {} } });
+  await wait(300);
+  const t = w.__t;
+  try { t.go('games', false, true); } catch (e) { return ['go("games") threw: ' + e.message]; }
+  await wait(700);
+  const d = w.document;
+  const card = () => d.getElementById('imp-card');
+  for (let n = 0; n < 150 && !card(); n++) await wait(100);
+  if (!card()) return ['the imposter game did not draw on the Games column'];
+  if (typeof t.impCards !== 'function') return ['the journey cannot read the deck (no impCards on __t)'];
+  const bad = [];
+  const press = act => t.ACTIONS[act](d.createElement('button'));
+  const cards = t.impCards();
+  const cats = t.impCats();
+  if (cards.length !== cats.length * 30) bad.push('the deck holds ' + cards.length + ' cards in ' + cats.length + ' categories, not thirty to each');
+  const per = new Map(), words = new Map(), pics = new Map();
+  const fold = x => String(x).toLowerCase().replace(/[’']/g, '').split(/[\s-]+/).filter(Boolean).map(s => s.replace(/s$/, '')).join('');
+  cats.forEach(c => {
+    const p = t.impCatSym(c);
+    if (!p) bad.push('the category ' + c + ' has no picture');
+    else pics.set(p, 'the category ' + c);
+  });
+  cards.forEach(([c, wd, p]) => {
+    per.set(c, (per.get(c) || 0) + 1);
+    if (!p) bad.push(c + ' "' + wd + '" has no picture');
+    else if (pics.has(p)) bad.push(c + ' "' + wd + '" has ' + p + ', which is already ' + pics.get(p) + "'s");
+    else pics.set(p, c + ' "' + wd + '"');
+    const k = fold(wd);
+    if (words.has(k)) bad.push(c + ' "' + wd + '" is ' + words.get(k) + ' again');
+    else words.set(k, c + ' "' + wd + '"');
+  });
+  cats.forEach(c => { if (per.get(c) !== 30) bad.push(c + ' holds ' + (per.get(c) || 0) + ' cards, not 30'); });
+  /* EVERY CARD DEALT, SHOWN AND READ. Player 1 is never the imposter here, so their card is the word's. */
+  const sym = () => String((card().querySelector('.imp-sym') || {}).textContent || '').trim();
+  const big = () => String((card().querySelector('.imp-big') || {}).textContent || '').trim();
+  const shown = () => String(card().textContent || '').replace(/\s+/g, ' ').trim();
+  let drawn = 0;
+  const wrong = [];
+  cards.forEach(([c, wd, p]) => {
+    t.impStack(c, wd);
+    press('imp-players');
+    press('imp-start');
+    const S = t.IMP();
+    if (!S || S.word !== wd || S.cat !== c) { wrong.push('dealing ' + c + ' "' + wd + '" dealt ' + JSON.stringify(S && [S.cat, S.word])); return; }
+    S.imp = 1;
+    press('imp-show');
+    if (sym() !== p || big() !== wd || shown() !== p + ' ' + wd + ' Hide') {
+      wrong.push(c + ' "' + wd + '" drew "' + shown() + '" (picture "' + sym() + '"), wanted "' + p + ' ' + wd + ' Hide"');
+    } else drawn++;
+  });
+  if (wrong.length) bad.push(wrong.length + ' cards did not draw their picture and word, the first: ' + wrong.slice(0, 3).join(' · '));
+  if (drawn !== cards.length) bad.push('drew ' + drawn + ' of ' + cards.length + ' cards with their picture');
+  /* AND EVERY CATEGORY'S PICTURE ON ITS IMPOSTER'S CARD. */
+  cats.forEach(c => {
+    const first = cards.find(x => x[0] === c);
+    if (!first) return;
+    t.impStack(c, first[1]);
+    press('imp-players');
+    press('imp-start');
+    t.IMP().imp = 0;
+    press('imp-show');
+    const p = t.impCatSym(c);
+    if (sym() !== p || shown() !== p + ' Imposter ' + c + ' Hide') bad.push("the imposter's card for " + c + ' reads "' + shown() + '", wanted "' + p + ' Imposter ' + c + ' Hide"');
+  });
   press('imp-players');
   return bad;
 });
 
-/* ---------- IMPOSTER READ ALOUD: SAID TO THE ONE HOLDING THE PHONE, AND ONLY WHEN THEY ASK -----------
+/* ---------- IMPOSTER READ ALOUD: THE WORD, OR "IMPOSTER", TO THE ONE WHO PRESSES LISTEN, AND NOTHING ELSE
    The owner, 8 Oct: "For the imposter game can you have have it so young ones who can’t read can play.
-   Like it will read it out for them." A VOICE IS THE ONE OUTPUT THE WHOLE TABLE GETS, so every way
-   this can go wrong is a secret told to the room — and nothing about it is drawn, so nothing else
-   here would notice: the word said as the card comes up, a word still being said when the phone is
-   handed on, the pass screen naming the word, a repaint that talks.
+   Like it will read it out for them." And 11 Oct: "make the voice ONLY say the word. THERE IS TOO MUCH
+   FLUFF with talking and all sorts." A VOICE IS THE ONE OUTPUT THE WHOLE TABLE GETS, so every way this
+   can go wrong is a secret told to the room or a sentence nobody asked for — and nothing about it is
+   drawn, so nothing else here would notice: the word said as the card comes up, a word still being
+   said when the phone is handed on, a hand-over that talks, a repaint that talks.
 
    SO THE BROWSER'S VOICE IS STOOD IN FOR, before the first line of the app runs, by one that writes
    down what it was asked to say and when it was told to stop — and the journey writes down its own
    presses in the same list, so "the first thing after Hide was a stop" is a question about one list.
-   jsdom has no `speechSynthesis`, which is the third half: with none, nothing about it is drawn. */
-check('imposter read aloud says whose turn it is, and the word only to the one who presses Listen', async () => {
+   jsdom has no `speechSynthesis`, which is the third half: with none, nothing about it is drawn.
+
+   THE WHOLE GAME'S UTTERANCES ARE COUNTED AT THE END: two rounds of four, every Listen pressed twice,
+   and the list of everything said must be exactly those sixteen — each player's word, or "Imposter",
+   nothing before it, after it or round it. The hand-over's "Press Show, then the speaker…", the play
+   screen's "… starts", the reveal's "The imposter was…" and Listen's own "Your word is…" were each
+   a line here once; any one of them back is a line too many. */
+check('imposter read aloud says only the word, or "Imposter", and only to the one who presses Listen', async () => {
   const said = [];
   const voiced = w => {
     w.SpeechSynthesisUtterance = function (txt) {
@@ -2989,15 +3691,22 @@ check('imposter read aloud says whose turn it is, and the word only to the one w
   const mark = (what, note) => said.push(Object.assign({ press: what }, note || {}));
   const press = (act, note) => { mark(act, note); t.ACTIONS[act](d.createElement('button')); };
   const text = () => String(card().textContent || '').replace(/\s+/g, ' ').trim();
-  const lit = p => String(p).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const has = (txt, p) => !!p && new RegExp('(^|[^A-Za-z])' + lit(p) + '($|[^A-Za-z])', 'i').test(txt);
   /* WHAT CAME AFTER THE LAST MARK: everything said and stopped since the journey's last press. */
   const since = () => { let i = said.length - 1; while (i >= 0 && !said[i].press) i--; return said.slice(i + 1); };
   const says = list => list.filter(x => x.say !== undefined);
+  const quiet = where => { const s = says(since()); if (s.length) bad.push(where + ' said ' + JSON.stringify(s.map(x => x.say))); };
   const sw = () => card().querySelector('[data-do="imp-aloud"]');
   const listen = () => card().querySelector('[data-do="imp-listen"]');
   /* `imp-count` reads `data-d`, so the presses that move it carry one. */
   const step = dd => { const b = d.createElement('button'); b.setAttribute('data-d', String(dd)); t.ACTIONS['imp-count'](b); };
+  /* EVERY SCREEN'S WHOLE TEXT WITH READ ALOUD ON, held to the screen journey's exact words. That
+     journey runs with no voice, so Listen and the switch are never drawn there — and a sentence put
+     beside Listen ("Hold the phone to your ear"), under the switch, or on the play screen with Read
+     aloud on passed all four journeys (the review of 11 October). Listen and the switch carry no
+     words, so the words wanted are the same ones. */
+  const game = () => card().closest('.wg-game') || card().parentElement;
+  const shown = () => String(game().textContent || '').replace(/\s+/g, ' ').trim();
+  const exactly = (where, want) => { if (shown() !== want) bad.push(where + ', with Read aloud on, reads "' + shown() + '", wanted exactly "' + want + '"'); };
   for (let i = 0; i < 12; i++) step(-1);
   step(1);
   const N = 4;
@@ -3026,56 +3735,47 @@ check('imposter read aloud says whose turn it is, and the word only to the one w
   if (!sw() || sw().getAttribute('aria-pressed') !== 'true') bad.push('pressing Read aloud did not turn it on');
   if (kept !== '1') bad.push('Read aloud is not remembered on the device (imp-aloud is ' + JSON.stringify(kept) + ')');
   readAloudSays_(sw(), true, 'the setup screen once pressed').forEach(x => bad.push(x));
+  quiet('turning Read aloud on');
+  /* THE PLAYER COUNT, PRESSED WITH THE SWITCH ON — it was only ever pressed before, so "4 players"
+     said on every press passed (the review of 11 October). Marked, so `quiet` asks about each one. */
+  mark('imp-count -1'); step(-1); quiet('one player fewer');
+  mark('imp-count +1'); step(1); quiet('one player more');
+  exactly('the setup screen', 'Players − ' + N + ' + Deal');
   t.repaint(true);
   await wait(50);
   if (!sw() || sw().getAttribute('aria-pressed') !== 'true') bad.push('a repaint turned Read aloud off');
   readAloudSays_(sw(), true, 'the setup screen after a repaint').forEach(x => bad.push(x));
 
   /* ---- A ROUND WITH THE SWITCH ON, two of them, with known words on top of the pile ---- */
-  const passes = [];
-  const passSaid = (who, list) => {
-    const s = says(list);
-    const line = s.find(x => /Player \d+/.test(x.say));
-    if (!line) { bad.push('nothing said ' + who + ' (heard: ' + JSON.stringify(s.map(x => x.say)) + ')'); return; }
-    passes.push(line.say);
-    /* SHOW, THEN THE SPEAKER, THEN THE EAR — the order the presses go. It said "Hold the phone to your
-       ear, then press Show", and Show makes no sound: a child who did exactly that heard nothing, and
-       the gold button under their thumb was Hide (the review of 8 October). */
-    if (!/press Show, then the speaker\b.*\bear\b/i.test(line.say)) bad.push('the pass screen did not say Show, then the speaker, then the ear: "' + line.say + '"');
-  };
-  /* HOW LONG EACH LISTEN TALKED, per round. The table cannot make out a word said at 0.6 into an ear
-     and can hear how long a phone talks: "Pizza." against "You’re the imposter. The hint is food." was
-     five times longer for the imposter, and in one round every other player's line is the same length,
-     so the odd one out WAS the answer. Characters for duration — near enough for a rule whose old
-     failure was a factor of five. */
-  const LONGER = 1.5;
+  const start = said.length;
   const round = (cat, word) => {
     const S = t.IMP();
-    const lens = { me: 0, them: 0 };
     if (!S || S.word !== word || S.cat !== cat) { bad.push('the round did not deal the card put on the pile: ' + JSON.stringify(S && [S.cat, S.word])); return null; }
-    passSaid('to player 1 when the round was dealt', since());
+    const pic = (t.impCards().find(x => x[0] === cat && x[1] === word) || [])[2], catPic = t.impCatSym(cat);
+    quiet('dealing, with the hand-over to player 1 up,');
     for (let i = 0; i < N; i++) {
       const me = i === S.imp;
+      exactly('the hand-over to player ' + (i + 1), 'Player ' + (i + 1) + ' Show');
       if (i === 2) {
         /* A REPAINT IS NOBODY'S PRESS, so it says nothing — and keeps the round. */
         mark('repaint');
         t.repaint(true);
-        if (says(since()).length) bad.push('a repaint said: ' + says(since()).map(x => '"' + x.say + '"').join(', '));
-        if (!/^Pass to Player 3\b/.test(text())) bad.push('a repaint lost the round: "' + text() + '"');
+        quiet('a repaint');
+        if (text() !== 'Player 3 Show') bad.push('a repaint lost the round: "' + text() + '"');
       }
       press('imp-show', { i: i, me: me });
-      if (says(since()).length) bad.push("player " + (i + 1) + "'s card said something by itself: " + JSON.stringify(says(since()).map(x => x.say)));
+      quiet('player ' + (i + 1) + "'s card coming up, by itself,");
+      exactly(me ? "the imposter's card" : 'player ' + (i + 1) + "'s card", me ? catPic + ' Imposter ' + cat + ' Hide' : pic + ' ' + word + ' Hide');
       if (!listen()) bad.push('with Read aloud on, player ' + (i + 1) + "'s card has no Listen");
       press('imp-listen', { i: i, me: me });
       const heard = says(since());
-      if (heard.length !== 1) bad.push('Listen for player ' + (i + 1) + ' said ' + heard.length + ' things');
+      const want = me ? 'Imposter' : word;
+      if (heard.length !== 1) bad.push('Listen for player ' + (i + 1) + ' said ' + heard.length + ' things: ' + JSON.stringify(heard.map(x => x.say)));
       else {
         const h = heard[0];
-        lens[me ? 'me' : 'them'] = String(h.say).length;
-        if (me) {
-          if (!/imposter/i.test(h.say) || !has(h.say, cat)) bad.push("the imposter's Listen did not say imposter and the hint: \"" + h.say + '"');
-          if (has(h.say, word)) bad.push("the imposter's Listen said the word: \"" + h.say + '"');
-        } else if (!has(h.say, word)) bad.push('player ' + (i + 1) + "'s Listen did not say the word: \"" + h.say + '"');
+        /* EXACTLY THE WORD, OR EXACTLY "Imposter" — not "Your word is …", not the word twice, not the
+           hint, and never the picture, which a voice reads out by its Unicode name. */
+        if (h.say !== want) bad.push('Listen for player ' + (i + 1) + (me ? ', the imposter,' : '') + ' said "' + h.say + '", wanted exactly "' + want + '"');
         if (!(h.volume <= 0.7)) bad.push('Listen was said at volume ' + h.volume + ', not quietly');
         if (!(h.rate >= 0.8 && h.rate < 1)) bad.push('Listen was said at rate ' + h.rate + ', not a little slower');
         if (h.lang !== 'en-GB' && h.voice !== 'en-GB') bad.push('Listen asked for no British voice (' + h.lang + ' / ' + h.voice + ')');
@@ -3094,41 +3794,45 @@ check('imposter read aloud says whose turn it is, and the word only to the one w
         if (!first || !first.cancel) bad.push('leaving the column did not stop the voice first (next: ' + JSON.stringify(first) + ')');
         mark('go');
         t.go('games', false, true);
-        if (says(since()).length) bad.push('coming back to the column said: ' + JSON.stringify(says(since()).map(x => x.say)));
+        quiet('coming back to the column');
         press('imp-show', { i: i, me: me });
+        quiet('player 2\'s card coming up again');
       }
       press('imp-hide', { i: i });
       const after = since();
       if (!after.length || !after[0].cancel) bad.push('Hide for player ' + (i + 1) + ' did not stop the voice before anything else (next: ' + JSON.stringify(after[0]) + ')');
-      if (i < N - 1) passSaid('to player ' + (i + 2) + ' when player ' + (i + 1) + ' pressed Hide', after);
-      else {
-        const p = says(after).map(x => x.say).join(' | ');
-        if (!has(p, cat) || !has(p, 'Player ' + (S.first + 1) + ' starts')) bad.push('the play screen did not say the hint and who starts: "' + p + '"');
-        if (has(p, word)) bad.push('the play screen said the word: "' + p + '"');
-      }
+      quiet(i < N - 1 ? 'the hand-over to player ' + (i + 2) : 'the play screen');
     }
-    if (!lens.me || !lens.them) bad.push('a round with no Listen heard from the imposter and from a player: ' + JSON.stringify(lens));
-    else if (Math.max(lens.me, lens.them) / Math.min(lens.me, lens.them) > LONGER) {
-      bad.push('the imposter\'s Listen and a player\'s are ' + lens.me + ' and ' + lens.them + ' characters, more than '
-               + LONGER + ' times apart — the table can hear which phone talked longer');
-    }
+    exactly('the play screen', catPic + ' Player ' + (S.first + 1) + ' starts ' + cat + ' Reveal');
     press('imp-reveal');
-    const r = says(since()).map(x => x.say).join(' | ');
-    if (!/imposter was/i.test(r) || !has(r, 'Player ' + (S.imp + 1)) || !has(r, word)) bad.push('the reveal did not say who it was and the word: "' + r + '"');
+    quiet('the reveal');
+    exactly('the reveal', 'Imposter Player ' + (S.imp + 1) + ' ' + pic + ' ' + word + ' Deal Players');
     return S;
   };
-  t.impStack('Sea life', 'octopus');
+  t.impStack('At the seaside', 'octopus');
   press('imp-start');
-  round('Sea life', 'octopus');
-  t.impStack('Music', 'tambourine');
+  round('At the seaside', 'octopus');
+  t.impStack('Music', 'trumpet');
   press('imp-again');
   const again = since();
-  if (!again.length || !again[0].cancel) bad.push('Play again did not stop the voice before anything else (next: ' + JSON.stringify(again[0]) + ')');
-  round('Music', 'tambourine');
+  if (!again.length || !again[0].cancel) bad.push('the reveal\'s Deal did not stop the voice before anything else (next: ' + JSON.stringify(again[0]) + ')');
+  round('Music', 'trumpet');
   press('imp-players');
   const back = since();
   if (!back.length || !back[0].cancel) bad.push('Players did not stop the voice (next: ' + JSON.stringify(back[0]) + ')');
-  if (says(back).length) bad.push('Players said: ' + JSON.stringify(says(back).map(x => x.say)));
+  quiet('Players');
+  exactly('the setup screen after Players', 'Players − ' + N + ' + Deal');
+
+  /* THE WHOLE GAME, SAID: two rounds of four, each Listen pressed twice — sixteen lines, every one the
+     round's word or "Imposter", two of them "Imposter" in each round and the rest the word. */
+  const lines = says(said.slice(start)).map(x => x.say);
+  const heardOf = wd => lines.filter(x => x === wd).length;
+  if (lines.length !== 2 * N * 2) bad.push('a whole game with Read aloud on said ' + lines.length + ' lines, wanted ' + (2 * N * 2) + ' (each Listen, twice): ' + JSON.stringify(lines));
+  const stray = lines.filter(x => x !== 'octopus' && x !== 'trumpet' && x !== 'Imposter');
+  if (stray.length) bad.push('a whole game said ' + stray.length + ' lines that are neither a word nor "Imposter": ' + JSON.stringify(stray));
+  if (heardOf('Imposter') !== 4 || heardOf('octopus') !== 2 * (N - 1) || heardOf('trumpet') !== 2 * (N - 1)) {
+    bad.push('a whole game said "Imposter" ' + heardOf('Imposter') + ' times, "octopus" ' + heardOf('octopus') + ' and "trumpet" ' + heardOf('trumpet') + ' — wanted 4, ' + 2 * (N - 1) + ' and ' + 2 * (N - 1));
+  }
 
   /* ---- AND OFF AGAIN, BY A FINGER ON THE TILE'S MARK — the real dispatcher, as the reels' journey
      presses its Sound tile — so the pair is seen both ways and the device forgets it. ---- */
@@ -3143,38 +3847,33 @@ check('imposter read aloud says whose turn it is, and the word only to the one w
     readAloudSays_(sw(), false, 'the setup screen turned off by a press on the tile').forEach(x => bad.push(x));
     if (sw() && (sw().querySelector('svg.tile-i') || {}).innerHTML === drawnOn)
       bad.push('turning Read aloud off left the same picture on its tile');
-    if (says(since()).length) bad.push('turning Read aloud off said: ' + JSON.stringify(says(since()).map(x => x.say)));
+    quiet('turning Read aloud off');
   }
 
-  /* THE PASS SCREEN SAYS THE SAME SENTENCE TO EVERYBODY, bar the number, in both rounds — which is
-     the proof that nothing dealt is in it, the imposter's own hand-over included. */
-  const shapes = new Set(passes.map(p => p.replace(/Player \d+/, 'Player #')));
-  if (passes.length !== 2 * N || shapes.size !== 1) bad.push('the pass screen did not say one sentence to everybody: ' + JSON.stringify([...shapes]));
-  /* AND THE WORD WAS SAID ONLY TO A PLAYER WHO HAD IT AND PRESSED LISTEN: the press nearest before
-     every line that holds it is a Listen by somebody who is not the imposter — or Reveal, which says
-     it to the whole table once the round is over. */
+  /* AND THE WORD WAS SAID ONLY TO A PLAYER WHO HAD IT AND PRESSED LISTEN, and "Imposter" only to the
+     imposter: the press nearest before every line is a Listen by the right player. */
   let lastPress = null;
   said.forEach(x => {
     if (x.press) { lastPress = x; return; }
     if (x.say === undefined) return;
-    const words = ['octopus', 'tambourine'].filter(wd => has(x.say, wd));
-    if (!words.length || (lastPress && lastPress.press === 'imp-reveal')) return;
-    if (!lastPress || lastPress.press !== 'imp-listen' || lastPress.me) {
-      bad.push('"' + x.say + '" was said after ' + JSON.stringify(lastPress) + ', not after a player with the word pressed Listen');
+    if (!lastPress || lastPress.press !== 'imp-listen') {
+      bad.push('"' + x.say + '" was said after ' + JSON.stringify(lastPress) + ', not after a Listen');
+      return;
     }
+    if ((x.say === 'Imposter') !== !!lastPress.me) bad.push('"' + x.say + '" was said to player ' + (lastPress.i + 1) + (lastPress.me ? ', the imposter' : ', who has the word'));
   });
 
   /* ---- AND ON A PHONE WITH NO VOICE, NONE OF IT IS DRAWN, even with the switch remembered on. ---- */
-  const quiet = boot({ before: w2 => { try { w2.localStorage.setItem('imp-aloud', '1'); w2.localStorage.setItem('wg-game', 'imp'); } catch (e) {} } });
+  const mute = boot({ before: w2 => { try { w2.localStorage.setItem('imp-aloud', '1'); w2.localStorage.setItem('wg-game', 'imp'); } catch (e) {} } });
   await wait(300);
-  const t2 = quiet.w.__t;
+  const t2 = mute.w.__t;
   try { t2.go('games', false, true); } catch (e) { return bad.concat(['go("games") threw with no voice: ' + e.message]); }
   await wait(700);
-  const card2 = quiet.w.document.getElementById('imp-card');
+  const card2 = mute.w.document.getElementById('imp-card');
   if (!card2) return bad.concat(['with no voice the imposter game did not draw']);
   if (card2.querySelector('[data-do="imp-aloud"]')) bad.push('with no speechSynthesis the Read aloud switch is still drawn');
-  t2.ACTIONS['imp-start'](quiet.w.document.createElement('button'));
-  t2.ACTIONS['imp-show'](quiet.w.document.createElement('button'));
+  t2.ACTIONS['imp-start'](mute.w.document.createElement('button'));
+  t2.ACTIONS['imp-show'](mute.w.document.createElement('button'));
   if (card2.querySelector('[data-do="imp-listen"]')) bad.push('with no speechSynthesis a card still has Listen on it');
   if (!/Hide/.test(card2.textContent || '')) bad.push('with no speechSynthesis the card did not come up: "' + card2.textContent + '"');
   return bad;
@@ -3193,7 +3892,7 @@ check('imposter read aloud says whose turn it is, and the word only to the one w
    fired IN THE SAME TICK as the first, which is sooner than any double tap and cannot be made late
    by a loaded machine; and each deliberate press waits past the gap first, which a loaded machine
    can only make longer. Neither half depends on how fast this runs. */
-check('imposter takes a double tap on Show, Hide or Reveal as one press', async () => {
+check('imposter takes a double tap on Show, Hide, Reveal or the reveal\'s buttons as one press', async () => {
   const { w } = boot({ before: w => { try { w.localStorage.setItem('wg-game', 'imp'); } catch (e) {} } });
   await wait(300);
   const t = w.__t;
@@ -3234,12 +3933,22 @@ check('imposter takes a double tap on Show, Hide or Reveal as one press', async 
   await wait(PAST);
   tap('imp-reveal');
   if (t.IMP().phase !== 'reveal') bad.push('Reveal pressed on its own did not reveal: "' + now() + '"');
-
-  /* PLAY AGAIN AND DEAL OVERLAP SHOW'S BOX TOO, so a second tap on either is a card shown to whoever
-     dealt. */
+  /* AND THE SECOND TAP OF A DOUBLE TAP ON REVEAL LANDS ON THE REVEAL'S OWN BUTTONS — Players, at 390
+     and 320, by the browser's touch adjustment (the review of 11 October, note 343): the table went
+     back to the setup screen without ever seeing who it was. Either of them, straight after Reveal,
+     is that second tap. */
+  tap('imp-players');
+  if (t.IMP().phase !== 'reveal') bad.push('a second tap straight after Reveal pressed Players, and the reveal was gone before anybody saw it ("' + now() + '")');
   tap('imp-again');
+  if (t.IMP().phase !== 'reveal') bad.push('a second tap straight after Reveal pressed the reveal\'s Deal, and the reveal was gone before anybody saw it ("' + now() + '")');
+
+  /* THE REVEAL'S DEAL AND THE SETUP'S DEAL OVERLAP SHOW'S BOX TOO, so a second tap on either is a card
+     shown to whoever dealt. (The reveal's was "Play again" until the 11 Oct trim, note 343.) */
+  await wait(PAST);
+  tap('imp-again');
+  if (t.IMP().phase !== 'deal') bad.push('the reveal\'s Deal pressed on its own did not deal: "' + now() + '"');
   tap('imp-show');
-  want('deal 1', 'a second tap straight after Play again pressed Show');
+  want('deal 1', "a second tap straight after the reveal's Deal pressed Show");
 
   /* AND A CARD THAT ARRIVED WITHOUT A PRESS TAKES THE FIRST TAP ON IT. The guard first timed the card
      being DRAWN, and a card is drawn by a repaint or a return to the column too: `check/press.js`
@@ -3250,6 +3959,16 @@ check('imposter takes a double tap on Show, Hide or Reveal as one press', async 
   press('imp-start');
   tap('imp-show');
   want('deal 1 shown', 'a card drawn without a press refused the first tap on it — the guard timed the draw, not the last press');
+
+  /* AND PLAYERS, TAPPED ON ITS OWN ON THE REVEAL, STILL GOES BACK TO THE SETUP SCREEN — the guard that
+     swallows a second tap must not swallow the first. Walked to the reveal without a finger, then
+     tapped past the gap. */
+  press('imp-hide');
+  while (t.IMP().phase === 'deal') { press('imp-show'); press('imp-hide'); }
+  press('imp-reveal');
+  await wait(PAST);
+  tap('imp-players');
+  if (t.IMP().phase !== 'idle') bad.push('Players tapped on its own on the reveal did not go back to the setup screen: "' + now() + '"');
   return bad;
 });
 /* ---------- SENTENCE SCRAMBLE: TAPPED IN ORDER IS RIGHT, AND EVERY STATED ORDER IS RIGHT ------------
@@ -3481,7 +4200,7 @@ check('the contest placeholder comes straight after One more thing on the Games 
    IT ASKED FOR "THE LAST TOOL" WHILE IT WAS ONE, and the whiteboard was appended after it (310) --
    which is the same rule kept, not broken: what `PAGE.tools` needs is that nothing goes in ABOVE an
    existing tool. So this asks that it still sits straight after the calendar it was appended to, and
-   the whiteboard's journey asks that the newest tool is the last. */
+   the whiteboard's journey asks what was appended after that (the library cards last, docs/history/339). */
 check('the LEGO trade-in placeholder comes straight after the calendar on the Tools column, says so, and has nothing to press', async () => {
   const { w } = boot();
   await wait(300);
@@ -3505,7 +4224,7 @@ check('the LEGO trade-in placeholder comes straight after the calendar on the To
    question pages' pen on a blank sheet (`WB_ITEM` in find.js), so this walks it through the pen's own
    listeners and handlers on the Tools column, the way a finger does, and asks what is stored and what
    is drawn after each step:
-     * the newest tool is LAST, after `uploads` in the roster -- `PAGE.tools` keeps a page by its index
+     * it is after `uploads` in the roster, and only the library cards (339) after it -- `PAGE.tools` keeps a page by its index
      * the bar is the padlock, Undo and Clear, and nothing else -- bare bones, no tool tiles
      * unlocked, a drag draws nothing and the grid may have the gesture (`axisFree`); locked, the ink
        is `data-noswipe` and a drag is ONE stroke under the board's key, drawn as one path
@@ -3524,7 +4243,8 @@ check('the whiteboard locks, draws, undoes, survives a repaint and clears — an
     return ['initWhiteboard, the pad-draw / pad-undo / pad-clear handlers, answersAdopt_ or axisFree are not reachable — the whiteboard was NOT checked'];
   }
   const tools = t.allWidgets().filter(x => x.kind === 'tool').map(x => String(x.id));
-  if (tools.slice(-2).join(' ') !== 'uploads whiteboard') bad.push('the whiteboard is not appended last, after uploads: ' + tools.join(', '));
+  /* THE LIBRARY CARDS ARE APPENDED AFTER IT (docs/history/339, its review) — the same rule kept: nothing above. */
+  if (tools.slice(-3).join(' ') !== 'uploads whiteboard libcards') bad.push('the whiteboard is not appended after uploads, with only the library cards after it: ' + tools.join(', '));
   const wb = t.allWidgets().find(x => x.id === 'whiteboard');
   if (!wb || !wb.solid || wb.name !== 'Whiteboard') bad.push('the whiteboard is not a solid tool called Whiteboard');
 
@@ -3532,7 +4252,7 @@ check('the whiteboard locks, draws, undoes, survives a repaint and clears — an
   const kit = { name: 'Kit Other', personId: 'P8', role: 'student', roles: ['student'] };
   t.USER(sam);
   const roster = t.widgetsOf('tool').map(x => String(x.id));
-  if (roster[roster.length - 1] !== 'whiteboard') bad.push('the whiteboard is not the last page of a student\'s Tools column: ' + roster.join(', '));
+  if (roster.slice(-2).join(' ') !== 'whiteboard libcards') bad.push('the whiteboard is not the last page but the library cards of a student\'s Tools column: ' + roster.join(', '));
   t.go('tools', false, true);
   await wait(LEAVE_MS); await woken_();
   t.goPage('tools', roster.indexOf('whiteboard'), true);
@@ -7269,11 +7989,13 @@ check('a parent whose address is unconfirmed is told their mail is held, and can
     if (!/on its way/.test(text(d.getElementById('toast')))) bad.push('pressing it said ' + JSON.stringify(text(d.getElementById('toast'))) + ', not the server\'s answer');
   }
 
-  /* SETTINGS: one card where the two child forms would be, with the address and the same tile. */
+  /* SETTINGS: "Manage your child", one card, saying in place of its two forms which address to open the link
+     from, with the same tile (docs/history/339 — it was a card of its own drawn instead of two). */
   t.go('settings', false, true);
   await wait(250);
-  const held = d.querySelector('#s-settings .kid-held');
-  if (!held) bad.push('a PENDING parent\'s Settings has no "open the link first" card where "Make your child\'s account" would be');
+  const held = d.querySelector('#s-settings .kid-manage .kid-held');
+  if (d.querySelectorAll('#s-settings .kid-manage').length !== 1) bad.push('a PENDING parent\'s Settings draws ' + d.querySelectorAll('#s-settings .kid-manage').length + ' "Manage your child" cards, wanted one');
+  if (!held) bad.push('a PENDING parent\'s "Manage your child" does not say to open the link first where "Make your child\'s account" would be');
   else {
     if (!/jsmith1@example\.org/.test(text(held)) || !/link/i.test(text(held))) bad.push('the held card does not say which address to open the link from: ' + JSON.stringify(text(held)));
     if (!held.querySelector('[data-do="resend-link"]')) bad.push('the held card has no "Send the link again"');
@@ -7290,8 +8012,8 @@ check('a parent whose address is unconfirmed is told their mail is held, and can
   if ((t2.whoami() || {}).pendingEmail) bad.push('myProfile said the address is proved and the phone kept it waiting: ' + JSON.stringify(t2.whoami().pendingEmail));
   t2.go('settings', false, true);
   await wait(250);
-  if (d2.querySelector('#s-settings .kid-held') || !d2.querySelector('#s-settings .kid-make [data-kid-new]'))
-    bad.push('once the address was proved, Settings still holds the child back, or has no "Make your child\'s account" form');
+  if (d2.querySelector('#s-settings .kid-held') || !d2.querySelector('#s-settings .kid-manage .kid-make [data-kid-new]'))
+    bad.push('once the address was proved, Settings still holds the child back, or "Manage your child" has no "Make your child\'s account" form');
   t2.go('account', false, true);
   await wait(250);
   if (d2.querySelector('#s-account .mail-held, #s-account [data-do="resend-link"]')) bad.push('once the address was proved, the You column still says the mail is held');
@@ -7300,7 +8022,7 @@ check('a parent whose address is unconfirmed is told their mail is held, and can
 
 /* A STALE PHONE DRAWS THE FORM; THE SERVER'S REFUSAL TURNS IT INTO THE HELD CARD — not a toast over a
    form that will be refused again on every press. */
-check('a refused make-child for an unconfirmed address turns the form into the held card', async () => {
+check('a refused make-child for an unconfirmed address turns the forms of "Manage your child" into its held sentence', async () => {
   const pat = { name: 'Pat Parent', personId: 'P-PAT', role: 'parent', roles: ['parent'], token: 'tk-pat', handle: 'pat_kind20',
                 profile: { first_name: 'Pat', last_name: 'Parent' } };
   const reply = b => b.action === 'makeChild'
@@ -7322,8 +8044,8 @@ check('a refused make-child for an unconfirmed address turns the form into the h
   await wait(400);
   if (!/Open the link we emailed to pat@example\.org/.test(String((d.getElementById('toast') || {}).textContent || '')))
     bad.push('the server\'s sentence was not said');
-  if (!d.querySelector('#s-settings .kid-held') || d.querySelector('#s-settings [data-kid-new]'))
-    bad.push('the refusal left the form standing instead of the held card');
+  if (!d.querySelector('#s-settings .kid-manage .kid-held') || d.querySelector('#s-settings [data-kid-new]'))
+    bad.push('the refusal left the form standing instead of the held sentence');
   if (((t.whoami() || {}).pendingEmail || '') !== 'pat@example.org') bad.push('the phone did not keep the address the server said is waiting');
   return bad;
 });
@@ -7709,7 +8431,11 @@ check('a role changed in the sheet reaches the screen on the next open, with no 
   return bad;
 });
 
-check('a parent makes their child\'s account in Settings and is shown the handle and the PIN on a slip', async () => {
+/* ---------- MANAGE YOUR CHILD IS ONE CARD (docs/history/339) ----------------------------------------------------
+   The owner, 11 Oct: *"chagne the add/make you child widget into one widget which is manage you child."* So the
+   make form and the add form are two sections of one card on one page, making first — most children here have
+   none — and this journey asks that of the card before it makes an account through it. */
+check('a parent makes their child\'s account on "Manage your child" and is shown the handle and the PIN on a slip', async () => {
   const { w, sent } = boot({ reply: b => b.action === 'makeChild'
     ? { success: true, name: 'Ivy Parent', handle: 'ivy_kind42', personId: 'P-IVY' } : { success: true } });
   await wait(300);
@@ -7718,12 +8444,15 @@ check('a parent makes their child\'s account in Settings and is shown the handle
            profile: { first_name: 'Pat', last_name: 'Parent' } });
   try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
   await wait(300);
-  const card = () => d.querySelector('#s-settings .kid-make');
-  if (!card()) return ['a parent\'s Settings has no "Make your child\'s account" card'];
-  const pages = [...d.querySelectorAll('#s-settings .page')];
-  const at = sel => pages.findIndex(p => p.querySelector(sel));
-  const add = pages.findIndex(p => /Add your child/.test(p.textContent));
-  if (add !== -1 && at('.kid-make') > add) bad.push('making a child\'s account comes after linking one — most children here have none');
+  const card = () => d.querySelector('#s-settings .kid-manage .kid-make');
+  if (!card()) return ['a parent\'s "Manage your child" has no "Make your child\'s account" form'];
+  const manage = d.querySelectorAll('#s-settings .kid-manage');
+  if (manage.length !== 1) bad.push('a parent\'s Settings draws ' + manage.length + ' "Manage your child" cards, wanted one');
+  if (!/^Manage your child$/.test(String((manage[0].querySelector(':scope > h3') || {}).textContent || '').trim())) bad.push('the card is not titled "Manage your child"');
+  const secs = [...manage[0].querySelectorAll('.kid-sec')].map(x => x.classList.contains('kid-make') ? 'make' : x.classList.contains('kid-add') ? 'add' : x.classList.contains('kid-list') ? 'list' : '?');
+  if (JSON.stringify(secs) !== '["list","make","add"]') bad.push('"Manage your child" holds ' + JSON.stringify(secs) + ', wanted the children, then making an account, then linking one');
+  if (!/Make your child's account/.test(card().textContent) || !/Add your child/.test(manage[0].textContent)) bad.push('the two forms lost the captions the server\'s emails and refusals name');
+  if ([...d.querySelectorAll('#s-settings > .page')].filter(p => p.querySelector('[data-kid-new], [data-kid]')).length !== 1) bad.push('the two forms are on more than one page');
   const box = k => card().querySelector('[data-kid-new="' + k + '"]');
   if (!box('first') || !box('last') || !box('pin')) return bad.concat(['the make card is missing one of first, last, PIN']);
   if (box('last').value !== 'Parent') bad.push('the last name box is not filled with the parent\'s own (' + JSON.stringify(box('last').value) + ')');
@@ -7768,7 +8497,140 @@ check('a parent makes their child\'s account in Settings and is shown the handle
   return bad;
 });
 
-check('New PIN is on a parent\'s child and on an admin\'s people, asks first, and shows the slip once', async () => {
+/* ---------- MANAGE YOUR CHILD: THE CHILDREN ON IT, NEW PIN BESIDE EACH, LINKING ONE, AND THE HELD STATE -----------------
+   One card (docs/history/339): the children already linked to you, from `DATA.family` and only when it is stamped as
+   yours (`familyFor`); "New PIN" beside each, the one power a parent holds over a linked child's account
+   (`resetPin`), asked first in its sheet as on the child's own card; linking a child who has an account
+   (`claimChild`, the add section's boxes and only those); "No child is linked" when there are none and the payload
+   has landed; and while the parent's own address waits, the forms are the held sentence and the children are
+   listed with no New PIN, because `resetPin` refuses a pending parent. A student is drawn no such card. */
+check('"Manage your child" lists the children linked to you with New PIN beside each, links one who has an account, says when there are none, and holds both forms while your address waits', async () => {
+  const FRESH = ['5', '1', '7', '3', '9', '2'].join('');
+  const { w, sent } = boot({ reply: b => b.action === 'resetPin' ? { success: true, first: 'Wren', handle: 'wren_kind43', pin: FRESH }
+    : b.action === 'claimChild' ? { success: true } : { success: true } });
+  await wait(300);
+  /* `DATA` IS ASKED FOR EACH TIME — `load()` (which a link asked for calls) replaces it whole. */
+  const t = w.__t, d = w.document, bad = [];
+  t.USER({ name: 'Pat Parent', personId: 'P-C1', role: 'client', roles: ['client'], token: 'tk', profile: { first_name: 'Pat', last_name: 'Parent' } });
+  t.DATA().familyFor = 'P-C1';
+  t.DATA().family = [
+    { personId: 'P-K1', title: 'Wren', relation: 'child', handle: 'wren_kind43', image: 'pfp:fox' },
+    { personId: 'P-K2', title: 'Maximilian', relation: 'child', handle: 'maximilian_steady42', image: '' },
+    { personId: 'P-PP', title: 'Gran Parent', relation: 'parent', handle: 'gran_kind11', image: '' },
+  ];
+  const draw = () => { try { t.go('settings', false, true); w.paint('settings'); } catch (e) { bad.push('drawing settings threw: ' + e.message); } };
+  draw();
+  await wait(200);
+  const card = () => d.querySelector('#s-settings .kid-manage');
+  if (!card()) return bad.concat(['a parent\'s Settings has no "Manage your child"']);
+  const rows = () => [...card().querySelectorAll('.kid-list .kid-row')];
+  const names = rows().map(r => (r.querySelector('.kid-who b') || {}).textContent + ' ' + (r.querySelector('.prof-handle') || {}).textContent);
+  if (JSON.stringify(names) !== JSON.stringify(['Wren @wren_kind43', 'Maximilian @maximilian_steady42'])) bad.push('"Manage your child" lists ' + JSON.stringify(names) + ', wanted the two children and not the parent\'s own parent');
+  const pins = rows().map(r => r.querySelector('.tile[data-do="kid-pin"]'));
+  if (pins.some(x => !x) || pins.map(x => x.dataset.id).join(',') !== 'P-K1,P-K2') bad.push('not every child on the card has a New PIN tile naming them');
+  if (rows()[0] && !rows()[0].querySelector('.kid-face svg.pfp-art')) bad.push('Wren\'s face on the list is not her fox');
+  /* NEW PIN, FROM THE CARD: asks first, then `resetPin` for that child, then the slip. */
+  if (pins[0]) {
+    sent.length = 0;
+    t.ACTIONS['kid-pin'](pins[0]);
+    await wait(80);
+    if (sent.some(b => b.action === 'resetPin')) bad.push('New PIN on the card reset the PIN before asking');
+    const yes = d.querySelector('#sheet-body [data-do="kid-pin-go"]');
+    if (!yes) bad.push('New PIN on the card opened no sheet to say yes in');
+    else {
+      t.ACTIONS['kid-pin-go'](yes);
+      await wait(300);
+      const post = sent.find(b => b.action === 'resetPin');
+      if (!post || post.targetId !== 'P-K1') bad.push('saying yes posted ' + JSON.stringify(post) + ', wanted resetPin for Wren');
+      if (!d.querySelector('#sheet-body .pin-slip') || d.querySelector('#sheet-body .pin-slip').textContent.indexOf(FRESH) === -1) bad.push('the new PIN was not shown on the slip');
+      const done = d.querySelector('#sheet-body [data-do="sheet-done"]');
+      if (done) t.ACTIONS['sheet-done'](done);
+    }
+  }
+  /* LINKING ONE WHO HAS AN ACCOUNT: the add section's two boxes, and nothing from the make form beside them. */
+  const add = card().querySelector('.kid-add');
+  const mk = card().querySelector('.kid-make');
+  if (!add || !mk) bad.push('"Manage your child" is missing the make or the add section');
+  else {
+    mk.querySelector('[data-kid-new="first"]').value = 'Not this one';
+    add.querySelector('[data-kid="first"]').value = 'Ola';
+    add.querySelector('[data-kid="last"]').value = 'Parent';
+    sent.length = 0;
+    t.ACTIONS['add-child-go'](add.querySelector('[data-do="add-child-go"]'));
+    await wait(300);
+    const ask = sent.find(b => b.action === 'claimChild');
+    if (!ask || ask.firstName !== 'Ola' || ask.lastName !== 'Parent' || ask.personId !== 'P-C1') bad.push('Ask them posted ' + JSON.stringify(ask) + ', wanted claimChild for Ola Parent from Pat');
+    if (!/Asked/.test(toastOf_(d))) bad.push('linking said ' + JSON.stringify(toastOf_(d)));
+  }
+  /* NONE LINKED, THE PAYLOAD IN: one line saying so, and both forms. */
+  await wait(300);
+  t.DATA().familyFor = 'P-C1';
+  t.DATA().family = [];
+  draw();
+  await wait(150);
+  if (!card() || !/No child is linked to you yet/.test(card().textContent) || card().querySelectorAll('.kid-row').length) bad.push('with no child linked the card does not say so');
+  if (!card() || !card().querySelector('.kid-make [data-kid-new="pin"]') || !card().querySelector('.kid-add [data-kid="first"]')) bad.push('with no child linked the card lost a form');
+  /* HELD: your address waiting — the held sentence where the forms were, and Wren listed with no New PIN. */
+  t.DATA().family = [{ personId: 'P-K1', title: 'Wren', relation: 'child', handle: 'wren_kind43', image: '' }];
+  t.whoami().pendingEmail = 'pat@example.org';
+  draw();
+  await wait(150);
+  if (!card() || !card().querySelector('.kid-held') || card().querySelector('[data-kid-new], [data-kid]')) bad.push('with the address waiting the card still offers a form, or does not say to open the link');
+  if (!card() || card().querySelectorAll('.kid-row').length !== 1 || card().querySelector('[data-do="kid-pin"]')) bad.push('with the address waiting the card does not list Wren, or offers a New PIN the server refuses');
+  if (d.querySelectorAll('#s-settings .kid-manage').length !== 1) bad.push('the held state is not the same one card');
+  /* A LIST STAMPED FOR SOMEBODY ELSE IS NOBODY'S. */
+  t.whoami().pendingEmail = '';
+  t.DATA().familyFor = 'P-OTHER';
+  draw();
+  await wait(150);
+  if (card() && card().querySelectorAll('.kid-row').length) bad.push('a family list stamped for somebody else was drawn as Pat\'s children');
+  /* A STUDENT HAS NOBODY TO MANAGE. */
+  t.USER({ name: 'Sam Student', personId: 'P-S1', role: 'student', roles: ['student'], token: 'tk2' });
+  try { t.repaint(true); } catch (e) {}
+  draw();
+  await wait(150);
+  if (card()) bad.push('a student is drawn "Manage your child"');
+  return bad;
+});
+
+/* ---------- SETTINGS NO LONGER DRAWS WHAT MOVED, AND A RETURNING VISITOR LANDS ON A REAL PAGE ----------------------------
+   The wardrobe, one of the two child cards, the library cards and (for a parent) About you have left the column,
+   so it is shorter by up to four pages. `PAGE.settings` is remembered for the visit and not across a reload, and
+   `paintPager` clamps it to the pages there are: somebody who was on the old last page — Notifications, the
+   fourteenth of an admin's seventeen — is put on a real page, the last one, and never on nothing. */
+check('Settings no longer draws the figure, the handle, the library cards or two child cards, and a visitor whose page was further down lands on a real page', async () => {
+  const { w } = boot({ payload: Object.assign(payload(), { profileFields: { 'About you': ['first_name', 'last_name', 'headline', 'photo'],
+    'Library cards': LIB_FIELDS_ } }) });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk', handle: 'testadmin',
+           profile: { first_name: 'Test', last_name: 'Admin', headline: 'Runs the place', phone_cc: '+44' } });
+  try { t.go('settings', false, true); t.repaint(true); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  await wait(200);
+  const pages = [...d.querySelectorAll('#s-settings > .page')];
+  const heads = pages.map(p => String((p.querySelector('h3') || {}).textContent || '').trim());
+  ['Your figure', 'Library cards', 'Make your child\'s account', 'Add your child'].forEach(h => { if (heads.indexOf(h) !== -1) bad.push('Settings still has a "' + h + '" page'); });
+  if (heads.filter(h => h === 'Manage your child').length !== 1) bad.push('Settings has ' + heads.filter(h => h === 'Manage your child').length + ' "Manage your child" pages, wanted one');
+  if (d.querySelector('#s-settings .av-card, #s-settings .handle-shown, #s-settings .lib-face, #s-settings .pfp')) bad.push('Settings still draws the figure, the handle, a library card or the picture');
+  const n = t.pageCount('settings');
+  if (n !== pages.length) bad.push('the pager counts ' + n + ' Settings pages and the column draws ' + pages.length);
+  /* THE OLD LAST INDEX, AND A REPAINT. `PAGE` reaches a journey as a getter (the `__t` hook). */
+  const P = typeof t.PAGE === 'function' ? t.PAGE() : t.PAGE;
+  P.settings = 16;
+  try { t.repaint(true); } catch (e) { bad.push('repainting threw: ' + e.message); }
+  await wait(200);
+  const at = P.settings;
+  const on = d.querySelector('#s-settings > .page.on');
+  if (!(at >= 0 && at < t.pageCount('settings'))) bad.push('PAGE.settings is ' + at + ' of ' + t.pageCount('settings') + ' pages — a visitor would land on nothing');
+  if (!on || !on.querySelector('.notify-card')) bad.push('a visitor who was on the old last page is not on the last page there is (Notifications)');
+  return bad;
+});
+
+/* A PARENT'S NEW PIN IS ON "MANAGE YOUR CHILD" AND NOWHERE ELSE (the review of docs/history/339): it was on the child's
+   card on the You column as well — two widgets for one job, and the two disagreed for a parent whose address was
+   unproved. The press itself, asked first and answered with the slip, is the Manage journey's; this one asks where
+   the tile is, and an admin's, which is on everybody else's card on their column as before. */
+check('New PIN is on a parent\'s "Manage your child" and not on the child\'s card on the You column, and on an admin\'s people; it asks first and shows the slip once', async () => {
   const FRESH = ['4', '8', '2', '9', '1', '3'].join('');
   const { w, sent } = boot({ reply: b => b.action === 'resetPin'
     ? { success: true, name: 'Kit Parent', first: 'Kit', handle: 'kit_kind41', pin: FRESH } : { success: true } });
@@ -7781,12 +8643,13 @@ check('New PIN is on a parent\'s child and on an admin\'s people, asks first, an
   D.family = [{ personId: 'P-K', title: 'Kit Parent', relation: 'child', handle: 'kit_kind41', image: '' }];
   D.familyFor = 'P-P';
   const kit = pageOf('Kit Parent');
-  if (!/data-do="kid-pin"[^>]*data-id="P-K"|data-id="P-K"[^>]*data-do="kid-pin"/.test(kit.replace(/\s+/g, ' ')))
-    bad.push('a parent\'s child card has no New PIN tile for that child');
-  try { t.go('account', false, true); w.paint('account'); } catch (e) { bad.push('drawing the account column threw: ' + e.message); }
+  if (!kit) bad.push('a parent\'s child is not on the You column');
+  if (/data-do="kid-pin"/.test(kit)) bad.push('a parent\'s child card on the You column still carries New PIN — it is "Manage your child"\'s');
+  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { bad.push('drawing Settings threw: ' + e.message); }
   await wait(150);
-  const tile = d.querySelector('#s-account [data-do="kid-pin"][data-id="P-K"]');
-  if (!tile) return bad.concat(['no New PIN tile on the screen to press']);
+  if (d.querySelector('#s-account [data-do="kid-pin"]')) bad.push('the You column draws a New PIN tile for a parent');
+  const tile = d.querySelector('#s-settings .kid-manage [data-do="kid-pin"][data-id="P-K"]');
+  if (!tile) return bad.concat(['no New PIN tile for Kit on "Manage your child" to press']);
   if (!tile.classList.contains('tile')) bad.push('New PIN is not a tile — a THING has tiles');
   sent.length = 0;
   t.ACTIONS['kid-pin'](tile);
@@ -9603,8 +10466,9 @@ check('a post\'s faces: a tap adds yours, the same tap takes it back, the total 
       caption: 'A Tuesday at the library', body: '', location: '', when: '01/09/2026',
       at: Date.UTC(2026, 8, 1), pinned: false, active: true, waiting: false, refused: false,
       reactions: { emoji: FACES.slice(), counts: [2, 1, 0, 0, 0, 0], total: 3, yours: '',
-        by: [{ name: 'Ada Tutor', emoji: '👍' }, { name: 'Priya Parent', emoji: '👍' },
-             { name: 'Carl Everyclient', emoji: '❤️' }] },
+        /* A PARENT BY HER FIRST NAME, as `doGet` sends one to anybody but herself and an admin (342). */
+        by: [{ name: 'Ada Tutor', emoji: '👍' }, { name: 'Priya', emoji: '👍' },
+             { name: 'Carl', emoji: '❤️' }] },
       comments: { total: 0, list: [] } }];
     return p;
   };
@@ -10850,35 +11714,54 @@ check('a qualification is written like an isotope: the level raised, the grade l
   return bad;
 });
 
+/* ---------- THE LIBRARY CARDS ARE ON TOOLS NOW (docs/history/339) --------------------------------------------------
+   THE OWNER, 11 Oct: *"move library card widget to the tools column."* Every journey below draws them where they
+   are now — the `libcards` widget on Tools (`initLibCards_` in me.js) — and asks of them what it asked of the
+   Settings page: the same shelf, the same boxes, the same fifteen fields through the same `updateProfile`, no
+   drafts. `libOpen_` signs in, turns to Tools and repaints it, which starts every widget on it at once (an
+   arrival starts the ones near the page in front first), and hands back the widget's form. */
+const libOpen_ = async (w, who) => {
+  const t = w.__t;
+  if (who) t.USER(who);
+  try { t.go('tools', false, true); t.repaint(true); } catch (e) { return null; }
+  for (let k = 0; k < 30; k++) {
+    const f = w.document.querySelector('#s-tools #wgt-libcards #lib-box .me-form');
+    if (f) return f;
+    await wait(100);
+  }
+  return null;
+};
+
 /* ---------- AND THE LIBRARY CARDS CARRY NO NOTE, WHATEVER THE BACKEND SAYS ------------------------
    *"for the library card widget, there doesnt need to be a add note to it."* The current backend no
    longer lists `library_note`; the deployed one does, so this plays that older server and wants the
-   shelf drawn and the note box not — on the page, not merely absent from the code. */
-check('the library cards draw no note box, even from a backend that still lists one', async () => {
+   shelf drawn and the note box not — on the page, not merely absent from the code. And Settings, which the
+   cards left, does not keep a Library cards page holding nothing but that note (`notLibrary_`). */
+check('the library cards draw no note box, even from a backend that still lists one — on Tools, and on Settings no page is left for it', async () => {
   const libs = [];
   for (let i = 1; i <= 5; i++) ['_name', '_no', '_pin'].forEach(k => libs.push('lib' + i + k));
   const { w } = boot({ payload: Object.assign(payload(), { profileFields: { 'Library cards': libs.concat(['library_note']) } }) });
   await wait(300);
-  const t = w.__t;
-  t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk',
+  const form = await libOpen_(w, { name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk',
            profile: { first_name: 'Test', last_name: 'Admin', lib1_name: 'Merton', library_note: 'old note' } });
-  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
-  await wait(300);
-  const d = w.document;
-  const form = [...d.querySelectorAll('#s-settings .me-form')].find(f => f.querySelector('[data-me="lib1_name"]'));
-  if (!form) return ['the settings column drew no library shelf, so the note box was NOT checked'];
+  if (!form) return ['the Tools column drew no library cards widget, so the note box was NOT checked'];
   const bad = [];
-  if (form.querySelector('[data-me="library_note"]')) bad.push('the library card page still draws a library_note box');
+  if (form.querySelector('[data-me="library_note"]')) bad.push('the library cards widget draws a library_note box');
   const stray = [...form.querySelectorAll('[data-me]')].map(e => e.getAttribute('data-me')).filter(f => !/^lib\d+_(name|no|pin)$/.test(f));
-  if (stray.length) bad.push('the library card page draws boxes that are not a card: ' + stray.join(', '));
-  if (/note/i.test(form.textContent)) bad.push('the library card page still says "note" somewhere');
+  if (stray.length) bad.push('the library cards widget draws boxes that are not a card: ' + stray.join(', '));
+  if (/note/i.test(form.textContent)) bad.push('the library cards widget still says "note" somewhere');
+  try { w.paint('settings'); } catch (e) {}
+  const d = w.document;
+  if (d.querySelector('#s-settings [data-me="library_note"], #s-settings [data-me^="lib1_"]')) bad.push('Settings still draws a library card box or the note');
+  if ([...d.querySelectorAll('#s-settings h3')].some(h => /library/i.test(h.textContent))) bad.push('Settings still has a Library cards page');
   return bad;
 });
 
 /* ---------- EACH LIBRARY CARD IS DRAWN AS A CARD, AND ITS BARS ARE ITS NUMBER'S (docs/history/332) ---------
    THE OWNER, 10 Oct, with a screenshot of this page: *"make each look like a card. with fake barcode."* So a
    slot is a card face holding its own three boxes, with an `aria-hidden` barcode worked out from the number
-   (`libBars_` in me.js), and nothing about what it saves changed. Three journeys, each a question the
+   (`libBars_` in me.js), and nothing about what it saves changed. On Tools since docs/history/339 (`libOpen_`,
+   above). Three journeys, each a question the
    change could have broken: is each entry one card with its boxes ON it; do the bars follow the number
    and only the number; and does the page still save the fifteen fields, reveal the next card, and treat a
    reload as it did — every other box on the column kept as a draft, no box of a library card ever one,
@@ -10899,19 +11782,14 @@ const libBoot_ = (more) => {
   }, more || {}));
   return Object.assign(b, { posts: sent });
 };
-const libDraw_ = async w => {
-  w.__t.USER(LIB_USER_());
-  try { w.__t.go('settings', false, true); w.paint('settings'); } catch (e) { return null; }
-  await wait(300);
-  return [...w.document.querySelectorAll('#s-settings .me-form')].find(f => f.querySelector('[data-me="lib1_name"]')) || null;
-};
+const libDraw_ = w => libOpen_(w, LIB_USER_());
 const libD_ = face => { const p = face && face.querySelector('svg.lib-bars path'); return p ? p.getAttribute('d') : null; };
 
 check('each library card is drawn as a card: one face per entry, its three boxes on it, a name for each, the bars decoration', async () => {
   const { w } = libBoot_();
   await wait(300);
   const form = await libDraw_(w);
-  if (!form) return ['the settings column drew no library cards page — nothing was checked'];
+  if (!form) return ['the Tools column drew no library cards widget — nothing was checked'];
   const bad = [];
   const slots = [...form.querySelectorAll('.lib-shelf > .lib-card')];
   if (slots.length !== 5) bad.push('the shelf holds ' + slots.length + ' slots, wanted five (`LIBRARY_CARDS`), each drawn whether shown or not');
@@ -10957,7 +11835,7 @@ check('typing a library card number redraws its bars; the same number always dra
   const { w } = libBoot_();
   await wait(300);
   const form = await libDraw_(w);
-  if (!form) return ['the settings column drew no library cards page — nothing was checked'];
+  if (!form) return ['the Tools column drew no library cards widget — nothing was checked'];
   if (typeof w.libBarsOf_ !== 'function') return ['libBarsOf_ is not reachable — the bars were NOT checked'];
   const bad = [];
   const face = n => form.querySelector('[data-me="lib' + n + '_no"]').closest('.lib-face');
@@ -10984,12 +11862,14 @@ check('typing a library card number redraws its bars; the same number always dra
   return bad;
 });
 
-check('the library cards still save the fifteen fields they always did, Add another reveals the next card, and a reload keeps drafts but never a library card\'s', async () => {
+check('the library cards on Tools still save the fifteen fields they always did, Add another reveals the next card, and a reload keeps Settings\' drafts but never a library card\'s', async () => {
   const one = libBoot_();
   await wait(300);
   const form1 = await libDraw_(one.w);
-  if (!form1) return ['the settings column drew no library cards page — nothing was checked'];
+  if (!form1) return ['the Tools column drew no library cards widget — nothing was checked'];
   const bad = [];
+  /* SETTINGS' OWN DRAFTS STILL KEEP — the headline is on Settings for an admin with no public card. */
+  try { one.w.paint('settings'); } catch (e) {}
   const head = one.w.document.querySelector('#s-settings [data-me="headline"]');
   if (!head) return ['no headline box on the settings column — the reload was NOT checked'];
   draftType_(one.w, head, 'Typed, never saved');
@@ -11004,8 +11884,9 @@ check('the library cards still save the fifteen fields they always did, Add anot
   const two = libBoot_({ before: fromStore_(kept) });
   await wait(300);
   const form = await libDraw_(two.w);
-  if (!form) return bad.concat(['after the reload the settings column drew no library cards page']);
+  if (!form) return bad.concat(['after the reload the Tools column drew no library cards widget']);
   const t = two.w.__t, d = two.w.document;
+  try { two.w.paint('settings'); } catch (e) {}
   const head2 = d.querySelector('#s-settings [data-me="headline"]');
   if (!head2 || head2.value !== 'Typed, never saved') bad.push('after a reload the headline box holds ' + JSON.stringify(head2 && head2.value) + ' — the column\'s drafts were lost');
   const lib2 = form.querySelector('[data-me="lib2_name"]');
@@ -11032,6 +11913,179 @@ check('the library cards still save the fifteen fields they always did, Add anot
   const want = { lib1_name: 'Merton Park', lib1_no: '2000000000000', lib1_pin: '0000', lib2_name: 'Sutton Central',
                  lib3_name: 'Wandsworth Town and Putney', lib4_name: 'Mitcham', lib4_no: '2000000000003', lib4_pin: '0000', lib5_name: '', lib5_no: '' };
   Object.keys(want).forEach(k => { if ((post.fields || {})[k] !== want[k]) bad.push('Save posted ' + k + ' as ' + JSON.stringify((post.fields || {})[k]) + ', wanted ' + JSON.stringify(want[k])); });
+  if (post.targetId !== 'P001' || post.personId !== 'P001') bad.push('the Tools card saved to ' + JSON.stringify(post.targetId) + ', not the person signed in');
+  return bad;
+});
+
+/* ---------- THE LIBRARY CARDS ARE A TOOL FOR EVERYBODY SIGNED IN, AND HOLD WHAT IS TYPED (docs/history/339) -----------
+   THE OWNER, 11 Oct: *"move library card widget to the tools column."* Who saw the Settings page is who sees the
+   widget — everybody signed in (every role's map carries the group), nobody signed out — and it is the last tool,
+   appended (it sat after the hours until the review of 339 found it moving pages on sign-in). A card is not
+   drafted (its PIN is on it), so what
+   keeps typing is the hold: a form with typing in it is not redrawn by the payload landing on Tools, nor by the
+   widget being started again, and `myProfile` landing redraws a clean one from the sheet's copy. */
+check('the library cards are on Tools for a parent, a student, a tutor and an admin and for nobody signed out, last, held while typed into without restarting the column, and redrawn when myProfile lands unless a box has the caret', async () => {
+  const libs = LIB_FIELDS_;
+  let mine = Object.assign({ phone_cc: '+44' }, LIB_PROFILE_);
+  const { w } = boot({
+    payload: Object.assign(payload(), { profileFields: { 'Library cards': libs }, clientFields: { 'Library cards': libs },
+                                        studentFields: { 'Library cards': libs } }),
+    reply: b => b.action === 'myProfile' ? { success: true, personId: 'P001', profile: mine } : { success: true } });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  const ids = () => (typeof w.widgetsOf_ === 'function' ? w.widgetsOf_('tool') : []).map(x => x.id);
+  t.USER(null);
+  try { t.go('tools', false, true); t.repaint(true); } catch (e) {}
+  await wait(200);
+  if (ids().indexOf('libcards') !== -1 || d.querySelector('#s-tools #wgt-libcards')) bad.push('a visitor signed out is shown the library cards on Tools');
+  for (const [role, roles] of [['client', ['client']], ['student', ['student']], ['tutor', ['tutor']], ['admin', ['admin']]]) {
+    const form = await libOpen_(w, { name: 'Lee Reader', personId: 'P-L' + role, role, roles, token: 'tk',
+                                     profile: Object.assign({ phone_cc: '+44' }, LIB_PROFILE_) });
+    const list = ids();
+    if (!form) { bad.push('a ' + role + ' has no library cards on Tools (' + JSON.stringify(list) + ')'); continue; }
+    /* LAST — appended, for `legotrade`'s reason (map.js): its gate is signing in, and above another tool it moved
+       that tool's page under somebody on Tools when they signed in (the review of 339). */
+    if (list[list.length - 1] !== 'libcards') bad.push('a ' + role + '\'s library cards are tool ' + list.indexOf('libcards') + ' of ' + JSON.stringify(list) + ', wanted the last');
+    if (form.querySelectorAll('.lib-card:not([hidden]) .lib-face').length !== 3) bad.push('a ' + role + '\'s library cards widget draws ' + form.querySelectorAll('.lib-card:not([hidden]) .lib-face').length + ' cards for three saved');
+    try { w.paint('settings'); } catch (e) {}
+    if (d.querySelector('#s-settings .lib-face, #s-settings [data-me^="lib1_"]')) bad.push('a ' + role + '\'s Settings still draws a library card');
+  }
+  /* TYPING HELD: the payload landing repaints the column in front, and the box is the same box with the same words. */
+  const form = await libOpen_(w, { name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk',
+                                   profile: Object.assign({ phone_cc: '+44' }, LIB_PROFILE_) });
+  if (!form) return bad.concat(['the admin has no library cards on Tools, so the hold was NOT checked']);
+  const box = form.querySelector('[data-me="lib1_name"]');
+  draftType_(w, box, 'Merton, typed');
+  /* AND THE REST OF THE COLUMN IS NOT RESTARTED OVER ITS OWN MARKUP (`startScreen_`'s hold, shell.js) — a repaint
+     `paint` declined, so what runs on Tools is still running; a restart is a second `start` over the same markup,
+     the notepad's caret moved and every widget stopped and started in one task. Counted on the calculator, whose
+     `start` is looked up by name when it runs (the review of 339: no check could see this hold). */
+  const calc = w.initMiniCalc;
+  let restarts = 0;
+  w.initMiniCalc = function () { restarts++; return calc.apply(this, arguments); };
+  try { t.repaint(true); } catch (e) { bad.push('the repaint threw: ' + e.message); }
+  await wait(200);
+  w.initMiniCalc = calc;
+  if (restarts) bad.push('a repaint held for a library card\'s typing restarted the rest of Tools (the calculator started ' + restarts + ' time(s))');
+  const now = d.querySelector('#s-tools #wgt-libcards [data-me="lib1_name"]');
+  if (now !== box || !now || now.value !== 'Merton, typed') bad.push('a repaint of Tools threw away what was typed on a library card (' + JSON.stringify(now && now.value) + ')');
+  try { w.initLibCards_(); } catch (e) {}
+  if ((d.querySelector('#s-tools #wgt-libcards [data-me="lib1_name"]') || {}).value !== 'Merton, typed') bad.push('starting the widget again drew over a card with typing in it');
+  /* AND A CLEAN ONE TAKES THE SHEET'S COPY WHEN `myProfile` LANDS. */
+  delete form.dataset.dirty;
+  mine = Object.assign({}, mine, { lib1_name: 'Merton from the sheet' });
+  try { w.profileRefresh_(); } catch (e) { bad.push('profileRefresh_ threw: ' + e.message); }
+  await wait(400);
+  if ((d.querySelector('#s-tools #wgt-libcards [data-me="lib1_name"]') || {}).value !== 'Merton from the sheet') bad.push('myProfile landed and the library cards on Tools still show ' + JSON.stringify((d.querySelector('#s-tools #wgt-libcards [data-me="lib1_name"]') || {}).value));
+  /* BUT NOT UNDER THE CARET — a box focused and not yet typed into is not dirty, and redrawing it takes the caret
+     away (`libCardsRedraw_`). It keeps its element; it is drawn from the sheet the next time it starts. */
+  const focused = d.querySelector('#s-tools #wgt-libcards [data-me="lib2_name"]');
+  if (!focused) return bad.concat(['no second library card box to focus — the caret was NOT checked']);
+  focused.focus();
+  if (d.activeElement !== focused) return bad.concat(['the box could not be focused here — the caret was NOT checked']);
+  mine = Object.assign({}, mine, { lib2_name: 'Sutton from the sheet' });
+  try { w.profileRefresh_(); } catch (e) { bad.push('profileRefresh_ threw: ' + e.message); }
+  await wait(400);
+  if (d.querySelector('#s-tools #wgt-libcards [data-me="lib2_name"]') !== focused) bad.push('myProfile landed and redrew the library card a box of which had the caret');
+  return bad;
+});
+
+/* ---------- THE REVIEW OF docs/history/339: WHERE THE LIBRARY CARDS SIT, AND WHAT THEY SAY WITH NOTHING TO DRAW --------
+   `PAGE.tools` remembers a page by its index (the note over `legotrade` in map.js), so nothing may go in ABOVE an
+   existing tool — and the library cards went in straight after the hours with a gate that opens on signing in, so
+   somebody on the calendar who signed in was turned to Practice, and back on signing out. They are appended last;
+   this asks it the way a person meets it: on a tool, through the app's own sign-in and Sign out. */
+check('review 339: somebody on a Tools page keeps that tool when they sign in and when they sign out — the library cards come last', async () => {
+  const { w } = boot({ payload: Object.assign(payload(), { clientFields: { 'Library cards': LIB_FIELDS_ } }), reply: () => ({ success: true }) });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  if (typeof w.signedIn_ !== 'function') return ['signedIn_ is not reachable — NOT checked'];
+  const front = () => { const p = d.querySelector('#s-tools > .page.on [id^="wgt-"]'); return p ? p.id : null; };
+  t.go('tools', false, true); t.repaint(true);
+  await wait(300);
+  const tools = t.allWidgets().filter(x => x.kind === 'tool').map(x => String(x.id));
+  if (tools[tools.length - 1] !== 'libcards') bad.push('the library cards are not the last tool: ' + tools.join(', '));
+  for (const id of ['calendar', 'whiteboard']) {
+    t.USER(null);
+    t.go('tools', false, true); t.repaint(true);
+    await wait(300);
+    const at = [...d.querySelectorAll('#s-tools > .page')].findIndex(p => p.querySelector('#wgt-' + id));
+    if (at < 0) { bad.push('no ' + id + ' on a visitor\'s Tools column — NOT checked'); continue; }
+    w.goPage('tools', at, true);
+    await wait(200);
+    if (front() !== 'wgt-' + id) { bad.push('could not stand on the ' + id + ' (' + front() + ') — NOT checked'); continue; }
+    try { w.signedIn_({ success: true, name: 'Pat Parent', personId: 'P-C1', role: 'client', roles: ['client'], token: 'tk', handle: 'pat_kind20',
+                        profile: { first_name: 'Pat', last_name: 'Parent', phone_cc: '+44' } }, 'parent@example.org'); } catch (e) { bad.push('signedIn_ threw ' + e.message); }
+    await wait(400);
+    t.go('tools', false, true);
+    await wait(400);
+    if (front() !== 'wgt-' + id) bad.push('on the ' + id + ', signing in turned Tools to ' + front());
+    if (!d.querySelector('#s-tools #wgt-libcards')) bad.push('signed in, Tools has no library cards');
+    try { t.ACTIONS['signout'](d.createElement('button')); } catch (e) { bad.push('Sign out threw ' + e.message); }
+    await wait(400);
+    t.go('tools', false, true);
+    await wait(400);
+    if (front() !== 'wgt-' + id) bad.push('on the ' + id + ', signing out turned Tools to ' + front());
+  }
+  return bad;
+});
+
+/* A PAYLOAD WHOSE ROLE MAP HAS NO LIBRARY GROUP — an older server, or `GROUPS_OLD_` with no `profileFields` at all —
+   said "The library cards have not arrived from the server yet." under a payload that had arrived and never would
+   carry them. It says the older-server sentence the card editor says for the same case. */
+check('review 339: a server that sends no library group is said to be older, not "not arrived yet"', async () => {
+  const bad = [];
+  for (const [label, fields] of [['a role map with no Library cards', { 'About you': ['first_name', 'last_name', 'photo'], 'Where': ['borough', 'city'] }],
+                                 ['no profileFields at all', {}]]) {
+    const { w } = boot({ payload: Object.assign(payload(), { profileFields: fields }) });
+    await wait(300);
+    const t = w.__t, d = w.document;
+    t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk', handle: 'testadmin',
+             profile: { first_name: 'Test', last_name: 'Admin', phone_cc: '+44' } });
+    try { t.go('tools', false, true); t.repaint(true); } catch (e) {}
+    let said = '';
+    for (let k = 0; k < 30; k++) {
+      said = String((d.querySelector('#s-tools #wgt-libcards #lib-box') || {}).textContent || '').replace(/\s+/g, ' ').trim();
+      if (said) break;
+      await wait(100);
+    }
+    if (!said) { bad.push(label + ': the library cards widget drew nothing — NOT checked'); continue; }
+    if (/yet/.test(said) || !/older than this site/.test(said)) bad.push(label + ': the library cards widget says ' + JSON.stringify(said));
+  }
+  return bad;
+});
+
+/* THREE SMALL BRANCHES NOTHING ASKED. "Manage your child" with the payload still coming draws the loader, not "No child
+   is linked" over a list a moment away; a parent whose role map leaves no group on Settings is told where things went
+   on Signing in, the next card there is. */
+check('review 339: "Manage your child" waits with the loader while the payload comes, and the moved line falls to Signing in when no group is left', async () => {
+  const W = cardWorld_();
+  W.holding = true;
+  const c = await cardOpen_(W, 'parent@example.org');
+  if (c.err) return [c.err];
+  const bad = [];
+  const card = () => c.d.querySelector('#s-settings .kid-manage');
+  try { c.t.go('settings', false, true); c.w.paint('settings'); } catch (e) { bad.push('drawing Settings threw: ' + e.message); }
+  await wait(200);
+  if (!(typeof c.w.awaiting_ === 'function' && c.w.awaiting_())) bad.push('the payload is not being waited for — the first half was NOT checked');
+  else if (!card() || /No child is linked/.test(card().textContent) || !card().querySelector('.kid-list [aria-busy="true"], .kid-list .loading')) {
+    bad.push('with the payload still coming "Manage your child" says ' + JSON.stringify(card() ? (card().querySelector('.kid-list') || {}).textContent : null) + ', not the loader');
+  }
+  W.holding = false;
+  W.release();
+  for (let k = 0; k < 30 && card() && !/No child is linked/.test(card().textContent); k++) { await wait(100); try { c.w.paint('settings'); } catch (e) {} }
+  if (!card() || !/No child is linked/.test(card().textContent)) bad.push('the payload landed and "Manage your child" does not say no child is linked');
+  /* A ROLE MAP WITH NOTHING LEFT FOR SETTINGS. */
+  const { w } = boot({ payload: Object.assign(payload(), { clientFields: { 'About you': ['first_name', 'last_name', 'photo'], 'Library cards': LIB_FIELDS_ } }) });
+  await wait(300);
+  w.__t.USER({ name: 'Pat Parent', personId: 'P-C1', role: 'client', roles: ['client'], token: 'tk', handle: 'pat_kind20',
+               profile: { first_name: 'Pat', last_name: 'Parent', phone_cc: '+44' } });
+  try { w.__t.go('settings', false, true); w.paint('settings'); } catch (e) { bad.push('drawing Settings threw: ' + e.message); }
+  await wait(200);
+  const line = w.document.querySelector('#s-settings .ce-moved');
+  const home = line && line.closest('.card');
+  if (!line) bad.push('with no group left, Settings does not say where the name, picture and library cards went');
+  else if (!home || String((home.querySelector('h3') || {}).textContent).trim() !== 'Signing in') bad.push('with no group left, the moved line is on ' + JSON.stringify(home && (home.querySelector('h3') || {}).textContent) + ', not Signing in');
   return bad;
 });
 
@@ -16485,6 +17539,691 @@ check('submission: after AI marking switches off, the plain Send says Sent, and 
   return bad;
 });
 
+/* ==================================================================================================
+   THE VERDICT, HEARD (docs/history/340).
+
+   THE OWNER, 11 OCT: *"Make it make a nice noise when they get a question right and a buzzer when
+   wrong."* A chime for right and a buzzer for wrong, from ONE player (`markPlay_`, js/submit.js) called
+   from ONE place (`subRecord_`, the press). What has to be true, and what a page that looks perfect
+   can still get wrong, because nothing about a sound is drawn:
+     - one sound per press, of the right kind, for every press that marks -- typed, the keypad's ✓ and a
+       laptop's Enter, a pick, an ordering, Mark with AI's marks;
+     - none for a press nothing marks (`sent`, an empty box, a row with a gap, a part mark), and NONE for
+       anything that only draws a verdict: a repaint, a restore, the account's copy (`answersPull_`), a
+       payload landing, another tab, a box typed back to its answer, a second copy of the card, Show, a
+       reload -- the risk the map named first: a sound hung on a drawing is a chime per copy per repaint;
+     - an iPad's rule: sound starts only from a tap. So the fake below is an iPad's AudioContext: it is
+       born suspended, `resume()` inside a tap wakes it, and outside one it refuses -- which is exactly
+       what makes a context first made after Mark with AI's network wait silent for ever;
+     - the switch: off is silence everywhere and no context at all, it is remembered on the device, and it
+       is the reels' and Read aloud's sound tile (`switchTileSays_`).
+   `FLOW_ONLY='mark sound'` runs them alone. jsdom has no Web Audio; the sounds themselves -- their
+   length, their level, and that they start and end at zero -- are rendered in Chromium by
+   `check/sounds.js`. */
+/* A RECORDING AUDIOCONTEXT WITH AN IPAD'S RULES. `rec.inPress` is set by the journey around every press
+   (`earTap_`), so "inside a tap" is the journey's word, as it is the browser's. Every node remembers where
+   it is connected; a SOUND is a node connected to the destination, and what it is made of is every
+   oscillator whose path reaches it. */
+const earFake_ = (w, rec) => {
+  Object.assign(rec, { made: [], resumed: [], suspended: [], oscs: [], outs: [], acs: [], inPress: false, slow: 0, frozen: null });
+  const param = v => {
+    const p = { value: v, ev: [] };
+    const put = kind => (x, t) => { p.ev.push([kind, x, t]); if (kind === 'set') p.value = x; return p; };
+    p.setValueAtTime = put('set'); p.linearRampToValueAtTime = put('lin'); p.exponentialRampToValueAtTime = put('exp');
+    p.setTargetAtTime = put('target'); p.cancelScheduledValues = t => { p.ev.push(['cancel', null, t]); return p; };
+    return p;
+  };
+  function AC() {
+    this.state = 'suspended';
+    this.born = Date.now();
+    this.destination = { kind: 'destination', to: [] };
+    rec.made.push({ inPress: rec.inPress });
+    rec.acs.push(this);
+  }
+  /* `rec.frozen` STOPS THE CLOCK, for a step that asks whether a sound still playing was cut: on a loaded
+     machine the 30ms between two presses can be half a second, and a sound that has ended is not cut. */
+  Object.defineProperty(AC.prototype, 'currentTime', { get() { return this.state !== 'running' ? 0 : rec.frozen !== null ? rec.frozen : (Date.now() - this.born) / 1000; } });
+  /* `rec.slow` IS A WAKE THAT TAKES THAT MANY MILLISECONDS -- an iPad's first `resume()` after a while can
+     take a beat, and a sound that starts too long after its press is about nothing (`MARK_LATE_MS`). */
+  AC.prototype.resume = function () {
+    rec.resumed.push({ inPress: rec.inPress, was: this.state });
+    if (!rec.inPress) return Promise.reject(new Error('not inside a tap'));
+    const ms = rec.slow;
+    return (ms ? new Promise(r => setTimeout(r, ms)) : Promise.resolve()).then(() => { this.state = 'running'; });
+  };
+  /* EVERY `suspend()` WRITTEN DOWN, so a journey can ask that the context rests when nothing is playing. */
+  AC.prototype.suspend = function () { rec.suspended.push({ at: Date.now(), was: this.state }); this.state = 'suspended'; return Promise.resolve(); };
+  const node = (ac, kind) => ({ kind, to: [],
+    connect(n) { this.to.push(n); if (n === ac.destination) rec.outs.push(this); return n; },
+    disconnect() { this.cut = true; } });
+  AC.prototype.createGain = function () { const n = node(this, 'gain'); n.gain = param(1); return n; };
+  AC.prototype.createBiquadFilter = function () { const n = node(this, 'filter'); n.type = 'lowpass'; n.frequency = param(350); n.Q = param(1); return n; };
+  AC.prototype.createOscillator = function () {
+    const n = node(this, 'osc');
+    n.type = 'sine'; n.frequency = param(440);
+    n.start = t => { n.at = t; rec.oscs.push(n); };
+    n.stop = t => { n.end = t; };
+    return n;
+  };
+  w.AudioContext = AC;
+};
+/* WHAT WAS HEARD, IN ORDER: `chime` (sines, every one at 500 Hz or over), `buzzer` (a sawtooth or a square,
+   every one under 300 Hz), or what it was if neither -- read off the oscillators, not off a name the app
+   gave them, so a buzzer built where a chime should be is called a buzzer. */
+const earHeard_ = rec => rec.outs.map(out => {
+  const reach = n => n === out || (n.to || []).some(reach);
+  const oscs = rec.oscs.filter(reach);
+  const hz = oscs.map(o => { const s = o.frequency.ev.find(e => e[0] === 'set'); return s ? s[1] : o.frequency.value; });
+  if (!oscs.length) return 'silence';
+  if (oscs.every(o => o.type === 'sine') && hz.every(f => f >= 500)) return 'chime';
+  if (oscs.some(o => /^(sawtooth|square)$/.test(o.type)) && hz.every(f => f < 300)) return 'buzzer';
+  return oscs.map((o, i) => o.type + '@' + hz[i]).join('+');
+});
+/* A PRESS, AS A FINGER MAKES ONE: through the real dispatcher (`click()`), inside a tap. */
+const earTap_ = (rec, el) => { rec.inPress = true; try { el.click(); } finally { rec.inPress = false; } };
+const earIn_ = (rec, fn) => { rec.inPress = true; try { fn(); } finally { rec.inPress = false; } };
+/* AT REST: every context the app made is suspended -- asked again every 100ms for up to `ms`, because a
+   timer only ever fires late on a loaded machine, never early. */
+const earRests_ = async (rec, ms) => {
+  for (let t = 0; t <= ms; t += 100) { if (rec.acs.length && rec.acs.every(a => a.state === 'suspended')) return true; await wait(100); }
+  return false;
+};
+/* OUT OF SIGHT, AND BACK: `visibilityState` as the browser reports it, with or without the event. */
+const earHide_ = (w, hidden, tell) => {
+  if (hidden) Object.defineProperty(w.document, 'visibilityState', { value: 'hidden', configurable: true });
+  else delete w.document.visibilityState;
+  if (tell) w.document.dispatchEvent(new w.Event('visibilitychange'));
+};
+/* A SOUND CUT SHORT (`markHush_`): its output's gain cancelled and ramped to 0. */
+const earCut_ = out => {
+  const i = out ? out.gain.ev.findIndex(e => e[0] === 'cancel') : -1;
+  return i >= 0 && out.gain.ev.slice(i).some(e => e[0] === 'lin' && e[1] === 0);
+};
+/* THE SOUND SWITCH, said the way the reels' Sound and Read aloud are said. */
+const markSoundSays_ = (el, on, where) => switchTileSays_(el, on, where, {
+  what: 'marking Sound', kind: 'a tile', act: 'mark-sound', names: ['Sound off', 'Sound on'],
+  cls: ['tile', 'mark-sound'], lit: true });
+const EAR_BASE_ = { kind: 'question', marks: 1, subject: 'Maths', sub: 'Sounds', row: { paper_id: 'P-EAR', subject: 'Maths', name: 'Sounds' } };
+const earQ_ = (id, more) => Object.assign({}, EAR_BASE_, { key: 'q:' + id, name: 'Q' + id.slice(-1), row: Object.assign({}, EAR_BASE_.row, { row_id: id }) }, more);
+
+check('mark sound: a right answer chimes once and a wrong one buzzes once, for every kind a press marks — and nothing that only draws a verdict makes a sound', async () => {
+  const rec = {}, rows = [], server = {};
+  const TYPED = earQ_('Q-EAR-1', { html: '<p>Work out 3 &times; 5.</p>', answer: '<b>15</b>', accept: '15' });
+  const PICK = earQ_('Q-EAR-2', { html: '<p>Which is 4?</p>', choices: ['3', '4', '5'], choiceRight: [2], answer: '<b>4</b>' });
+  const PICK2 = earQ_('Q-EAR-3', { html: '<p>Which is 4?</p>', choices: ['3', '4', '5'], choiceRight: [2], answer: '<b>4</b>' });
+  const TWO = earQ_('Q-EAR-4', { html: '<p>Choose the two evens.</p>', choices: ['2', '3', '4'], choiceRight: [1, 3], answer: '<b>2 and 4</b>' });
+  const OPEN = earQ_('Q-EAR-5', { html: '<p>Pick one.</p>', choices: ['a', 'b'], answer: 'either' });
+  const ORD = earQ_('Q-EAR-6', { answerType: 'order', html: '<p>Smallest first.</p>', choices: ['3', '1', '2'], choiceRight: [2, 3, 1],
+    choiceWays: [[2, 3, 1]], orderEnds: ['smallest', 'largest'], answer: '<b>1, 2, 3</b>' });
+  const FREE = earQ_('Q-EAR-7', { answerType: 'calculation', accept: '', html: '<p>Work out the area.</p>', answer: '<b>42</b>' });
+  const KEYS = earQ_('Q-EAR-8', { html: '<p>Work out 2 &times; 6.</p>', answer: '<b>12</b>', accept: '12' });
+  const LAID = earQ_('Q-EAR-16', { html: '<p>Which is 4?</p>', choices: ['3', '4', '5'], choiceRight: [2], answer: '<b>4</b>' });
+  const ALL = [TYPED, PICK, PICK2, TWO, OPEN, ORD, FREE, KEYS, LAID];
+  const { w, errs } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES }),
+    reply: ansBackend_(server, subBackend_(rows)), before: win => earFake_(win, rec) });
+  await wait(300);
+  const d = w.document, A = w.__t.ACTIONS, bad = [];
+  if (typeof w.markPlay_ !== 'function' || typeof w.subRecord_ !== 'function') return ['markPlay_ or subRecord_ is not reachable — renamed? Nothing was listened to'];
+  /* NEVER ON PAGE LOAD: no context made, nothing heard, before anybody has pressed anything. */
+  if (rec.made.length || rec.outs.length) bad.push('the app made ' + rec.made.length + ' AudioContext(s) and ' + rec.outs.length + ' sound(s) at load, before any press');
+  const held = w.stuffItemsAll_;
+  w.stuffItemsAll_ = () => (held() || []).concat(ALL);
+  const heard = () => earHeard_(rec);
+  let was = 0;
+  /* WHAT THE LAST STEP ADDED, and asked of it: exactly `want` (a list), or nothing. */
+  const expect = (want, what) => {
+    const now = heard().slice(was);
+    was = heard().length;
+    if (now.join(',') !== want.join(',')) bad.push(what + ' was heard as [' + now.join(', ') + '], wanted [' + want.join(', ') + ']');
+  };
+  const type = (card, v) => ansType_(w, card.querySelector('.qp-ans-in'), v);
+
+  /* ---- SIGNED OUT: marked, and heard (a signed-out child is marked too). ---- */
+  w.__t.USER(null);
+  const anon = subDraw_(w, TYPED);
+  earTap_(rec, anon.querySelector('.qp-check'));
+  await wait(30);
+  expect([], 'signed out, Check on an empty box ("Write something first")');
+  type(anon, '16'); earTap_(rec, anon.querySelector('.qp-check')); await wait(30);
+  expect(['buzzer'], 'signed out, a wrong Check');
+  type(anon, '15'); earTap_(rec, anon.querySelector('.qp-check')); await wait(30);
+  expect(['chime'], 'signed out, a right Check');
+  if (!rec.made.length || !rec.made.every(m => m.inPress)) bad.push('the AudioContext was made ' + (rec.made.length ? 'outside a tap' : 'never') + ' — an iPad keeps one made outside a tap silent');
+  if (!rec.resumed.some(r => r.inPress)) bad.push('the AudioContext was never resumed inside a tap — an iPad\'s starts suspended');
+
+  /* ---- SIGNED IN, and a second copy of the card on the page (Saved beside Find). ---- */
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  const card = subDraw_(w, TYPED), copy = subDraw_(w, TYPED);
+  type(card, '16'); earTap_(rec, card.querySelector('.qp-check')); await wait(30);
+  expect(['buzzer'], 'signed in, a wrong Check with a second copy of the card on the page');
+  type(card, '15'); earTap_(rec, card.querySelector('.qp-check')); await wait(30);
+  expect(['chime'], 'signed in, a right Check with a second copy of the card on the page');
+  if (subSlotOf_(copy).textContent !== 'Correct') bad.push('the second copy\'s slot says ' + JSON.stringify(subSlotOf_(copy).textContent) + ' — it was not a copy of the card pressed, so "one per copy" was not asked');
+
+  /* ---- THE SESSION GONE WITH THE CARD STILL IN FRONT: the box keeps its person's key (Find is held while
+     a child writes), Check still draws "Correct", and nothing can be recorded for somebody who is not
+     here. THE SOUND IS THE PRESS'S, so it says what the press drew -- not silence under a "Correct". ---- */
+  w.__t.USER(null);
+  const subsBefore = JSON.stringify(w.subAll_('u:P7'));
+  type(card, '15'); earTap_(rec, card.querySelector('.qp-check')); await wait(30);
+  expect(['chime'], 'Check on a card still keyed to a person whose session has ended, drawn "Correct"');
+  if ((card.querySelector('.qp-verdict') || {}).textContent !== 'Correct') bad.push('the held card said ' + JSON.stringify((card.querySelector('.qp-verdict') || {}).textContent) + ' — not the "Correct" the sound was meant to agree with');
+  if (JSON.stringify(w.subAll_('u:P7')) !== subsBefore) bad.push('a press on a card keyed to a person who is not signed in was recorded for them');
+  w.__t.USER(Object.assign({}, ANS_ADA));
+
+  /* ---- TWO PRESSES AT ONCE: two sounds, and the first is cut, never under the second. ---- */
+  type(card, '16'); earTap_(rec, card.querySelector('.qp-check'));
+  type(card, '15'); earTap_(rec, card.querySelector('.qp-check'));
+  await wait(120);
+  expect(['buzzer', 'chime'], 'a wrong Check and a right one straight after');
+  const first = rec.outs[rec.outs.length - 2];
+  const cut = first && first.gain.ev.findIndex(e => e[0] === 'cancel');
+  if (!first || cut < 0 || !first.gain.ev.slice(cut).some(e => e[0] === 'lin' && e[1] === 0) || !first.cut) {
+    bad.push('the second press did not cut the first sound (its gain cancelled and ramped to 0, then disconnected): ' + JSON.stringify(first && first.gain.ev));
+  }
+
+  /* ---- A PICK: the one that completes the answer is the press. ---- */
+  const pick = subDraw_(w, PICK);
+  earTap_(rec, pick.querySelector('.qp-opt[data-n="1"]')); await wait(30);
+  expect(['buzzer'], 'a wrong pick');
+  earTap_(rec, pick.querySelector('.qp-opt[data-n="2"]')); await wait(30);
+  expect([], 'a tap on a settled pick (ignored)');
+  const pick2 = subDraw_(w, PICK2);
+  earTap_(rec, pick2.querySelector('.qp-opt[data-n="2"]')); await wait(30);
+  expect(['chime'], 'a right pick');
+  const two = subDraw_(w, TWO);
+  earTap_(rec, two.querySelector('.qp-opt[data-n="1"]')); await wait(30);
+  expect([], 'the first of two picks (not an answer yet)');
+  earTap_(rec, two.querySelector('.qp-opt[data-n="3"]')); await wait(30);
+  expect(['chime'], 'the pick that completes a right "choose two"');
+  const open = subDraw_(w, OPEN);
+  earTap_(rec, open.querySelector('.qp-opt[data-n="1"]')); await wait(30);
+  expect([], 'a pick nothing can mark (sent)');
+
+  /* ---- AN ORDERING: a gap is not an answer; Send on a full row is. ---- */
+  const ord = subDraw_(w, ORD);
+  const obox = () => ord.parentNode.querySelector('.qp-order');
+  [2, 3].forEach(n => earTap_(rec, obox().querySelector('.qp-item[data-n="' + n + '"]')));
+  earTap_(rec, obox().querySelector('.qp-order-send')); await wait(30);
+  expect([], 'placing two items, and Send on a row with a place still empty');
+  earTap_(rec, obox().querySelector('.qp-item[data-n="1"]'));
+  earTap_(rec, obox().querySelector('.qp-order-send')); await wait(30);
+  expect(['chime'], 'Send on the right order');
+  earTap_(rec, obox().querySelector('.qp-slot.is-full[data-n="1"]'));
+  earTap_(rec, obox().querySelector('.qp-item[data-n="1"]'));
+  await wait(30);
+  expect([], 'an item taken out of the ordering and put back, so "Correct" is drawn again (placing is not a press)');
+  [2, 3, 1].forEach(n => earTap_(rec, obox().querySelector('.qp-slot.is-full[data-n="' + n + '"]')));
+  [3, 2, 1].forEach(n => earTap_(rec, obox().querySelector('.qp-item[data-n="' + n + '"]')));
+  earTap_(rec, obox().querySelector('.qp-order-send')); await wait(30);
+  expect(['buzzer'], 'Send on a wrong order (' + w.ansRead_(w.__t.ansKey(ORD)) + ')');
+
+  /* ---- A BOX NOTHING MARKS: Sent, and silent. ---- */
+  const free = subDraw_(w, FREE);
+  type(free, '42'); earTap_(rec, free.querySelector('.qp-send')); await wait(30);
+  expect([], 'the plain Send on a box with no scheme (sent)');
+
+  /* ---- THE KEYPAD'S ✓ AND A LAPTOP'S ENTER: the box's own Check, called with no click. ---- */
+  const keys = subDraw_(w, KEYS);
+  const ki = keys.querySelector('.kp-in');
+  const pad = () => d.getElementById('kp');
+  const key = v => { const b = pad() && pad().querySelector('.kp-key[data-v="' + v + '"]'); if (b) earIn_(rec, () => A['kp-key'](b)); else bad.push('no key ' + v + ' on the pad'); };
+  if (!ki) bad.push('the keypad card drew no pad box — ✓ was NOT pressed');
+  else {
+    ki.focus(); key('1'); key('3'); key('!done'); await wait(30);
+    expect(['buzzer'], '✓ on the keypad with a wrong answer');
+    ki.focus();
+    earIn_(rec, () => { ki.value = '12'; ki.dispatchEvent(new w.Event('input', { bubbles: true })); });
+    earIn_(rec, () => ki.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })));
+    await wait(30);
+    expect(['chime'], 'Enter on a laptop with the right answer');
+  }
+
+  /* ---- NOTHING THAT ONLY DRAWS A VERDICT. ---- */
+  /* WITH THE CONTEXT AWAKE before each of these, as it is in the second after a press: the app puts it to
+     rest a second after a sound (`markRest_`), and the fake refuses to wake it outside a tap as an iPad
+     does -- so a sound asked for here could be kept silent by the fake rather than by the app. Awake, a
+     stray sound is heard and named. */
+  const awake = () => { if (typeof w.markRest_ === 'function') w.markRest_(-1); rec.acs.forEach(a => { a.state = 'running'; }); };
+  awake();
+  was = heard().length;
+  const k = w.__t.ansKey(TYPED);
+  w.subPaintAll_(); w.subBoxPaint_(k); w.subPaint_(k);
+  if (typeof w.ansRefresh_ === 'function') w.ansRefresh_([k, w.__t.ansKey(PICK), w.__t.ansKey(ORD)]);
+  w.choiceRedraw_(pick.querySelector('.qp-choices'));
+  w.orderRedraw_(obox(), '');
+  await wait(30);
+  expect([], 'the slots and the boxes painted again (subPaintAll_, subBoxPaint_, ansRefresh_, choiceRedraw_, orderRedraw_)');
+  awake();
+  type(card, '17'); type(card, '15'); await wait(30);
+  expect([], 'a box typed away from its answer and back, so "Correct" is drawn again');
+  if ((card.querySelector('.qp-verdict') || {}).textContent !== 'Correct') bad.push('typed back to its answer, the box says ' + JSON.stringify((card.querySelector('.qp-verdict') || {}).textContent) + ' — the verdict was not drawn again, so its silence proves nothing');
+  awake();
+  w.__t.repaint(); await wait(60);
+  expect([], 'the column repainted');
+  /* THE ACCOUNT'S COPY: a press from another device, newer, laid on by the payload and by the pull. */
+  rows.push({ pid: 'P7', id: '1760000000201-ear001', key: 'q:Q-EAR-1', answer: '15', verdict: 'right', at: Date.now() + 5000 });
+  rows.push({ pid: 'P7', id: '1760000000202-ear002', key: 'q:Q-EAR-3', answer: '1', verdict: 'wrong', at: Date.now() + 5000 });
+  w.__t.DATA().submissions = subMine_(rows, 'P7');
+  awake();
+  w.adoptMarks_(); await wait(60);
+  expect([], 'a payload landing with the account\'s presses (adoptMarks_)');
+  /* THE PULL, LAYING A PICK ON: a card this device never answered, given the account's '2' (right) by
+     `answersPull_` and drawn. ON A BACKEND WITHOUT `submitAnswer` -- with it `answersAdopt_` skips every
+     `ans:` key by design (the box opens on the latest SENT), and a pull that lays nothing on is silent
+     about nothing. */
+  const laid = subDraw_(w, LAID);
+  awake();
+  const lk = w.__t.ansKey(LAID), feats = w.__t.DATA().features;
+  const laidWas = laid.parentNode.innerHTML;
+  w.__t.DATA().features = feats.filter(f => f !== 'submitAnswer');
+  server['ans:q:Q-EAR-16'] = { v: '2', at: Date.now() + 9000 };
+  if (typeof w.answersPull_ === 'function') { await w.answersPull_(true); await wait(60); }
+  else bad.push('answersPull_ is not reachable — the account pull was NOT listened to');
+  w.__t.DATA().features = feats;
+  expect([], 'the account pulled (answersPull_), laying a right pick on a card');
+  if (w.ansRead_(lk) !== '2' || laid.parentNode.innerHTML === laidWas) bad.push('the pull laid nothing on (the box reads ' + JSON.stringify(w.ansRead_(lk)) + (laid.parentNode.innerHTML === laidWas ? ', the card unchanged' : '') + ') — so its silence proves nothing');
+  awake();
+  w.dispatchEvent(new w.StorageEvent('storage', { key: k, newValue: '16' }));
+  w.dispatchEvent(new w.StorageEvent('storage', { key: k, newValue: '15' }));
+  await wait(30);
+  expect([], 'another tab writing the answer');
+  /* SHOW THE ANSWER: a reveal, not a verdict. */
+  awake();
+  const ah = d.createElement('div');
+  d.body.appendChild(ah);
+  ah.innerHTML = w.questionAnsCard_(TYPED);
+  const show = ah.querySelector('[data-do="qa-show"]');
+  if (!show) bad.push('the answer page has no Show — the reveal was NOT listened to');
+  else { earTap_(rec, show); await wait(30); expect([], 'Show the answer'); }
+  w.stuffItemsAll_ = held;
+  w.__t.USER(null);
+
+  /* ---- AND A RELOAD: the same account, a fresh window, every verdict drawn — and nothing heard. ---- */
+  const rec2 = {};
+  const b2 = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES, submissions: subMine_(rows, 'P7') }),
+    reply: ansBackend_(server, subBackend_(rows)),
+    before: win => { earFake_(win, rec2); win.localStorage.setItem('familyUser', JSON.stringify(ANS_ADA)); } });
+  await wait(500);
+  b2.w.stuffItemsAll_ = () => ALL;
+  const again = subDraw_(b2.w, TYPED);
+  subDraw_(b2.w, PICK2);
+  await wait(60);
+  if (subSlotOf_(again).textContent !== 'Correct') bad.push('reloaded, the card says ' + JSON.stringify(subSlotOf_(again).textContent) + ' — its verdict was not drawn, so its silence proves nothing');
+  if (rec2.made.length || rec2.outs.length) bad.push('a reload drawing the account\'s verdicts made ' + rec2.made.length + ' AudioContext(s) and was heard as [' + earHeard_(rec2).join(', ') + '] — never on page load');
+  if (errs.length) bad.push('errors: ' + errs.join(' | '));
+  return bad;
+});
+
+check('mark sound: Mark with AI wakes the sound at the press, and its marks are heard when they land — full a chime, none the buzzer, a part mark and a child who has moved on nothing', async () => {
+  const rec = {}, rows = [];
+  let land = null;
+  const AIQ = earQ_('Q-EAR-9', { marks: 3, subject: 'Science', answerType: 'explain', accept: '',
+    html: '<p>Explain why the rate increases.</p>', answer: 'Particles move faster &mdash; more frequent collisions.' });
+  /* ANOTHER QUESTION: what takes the AI card's page when the list under it changes, and a Check pressed
+     beside it while it marks. */
+  const NEXT = earQ_('Q-EAR-10', { html: '<p>Work out 3 &times; 5.</p>', answer: '<b>15</b>', accept: '15' });
+  const { w, sent, errs } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES.concat(['aiMark']), aiMarking: true }),
+    reply: ansBackend_({}, subBackend_(rows, b => (b.action === 'aiMark' ? new Promise(r => { land = r; }) : undefined))),
+    before: win => earFake_(win, rec) });
+  await wait(300);
+  const d = w.document, bad = [];
+  const held = w.stuffItemsAll_;
+  w.stuffItemsAll_ = () => (held() || []).concat([AIQ, NEXT]);
+  /* SIGNED OUT, NO SWITCH ON A CARD ONLY MARK WITH AI CAN MARK: its one press answers "Sign in to have it
+     marked" before anything wakes, so the switch would be one for a noise it cannot make (`markCan_`). */
+  w.__t.USER(null);
+  const anonAi = subDraw_(w, AIQ);
+  if (anonAi.parentNode.querySelector('.tile-row .mark-sound')) bad.push('signed out, a card only Mark with AI can mark carries a sound switch — its one press says "Sign in to have it marked" and can never sound');
+  anonAi.parentNode.remove();
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  /* THE CARD IN FRONT, IN A COLUMN WITH PAGES TO TURN -- Tools' pages, holding the card as Find and Saved
+     do. "Is the child still there" is asked of the page in front (`markWhere_`), so a card drawn loose in
+     the document would be in front of nobody. */
+  const COL = 'tools';
+  w.__t.go(COL, false, true);
+  await wait(60);
+  const pageAt = n => d.querySelectorAll('#s-' + COL + ' > .page')[n];
+  const front = () => [...d.querySelectorAll('#s-' + COL + ' > .page')].findIndex(p => p.classList.contains('on'));
+  /* A PAGE'S CARDS, DRAWN AFRESH -- new markup, as the funnel's redraws make it. */
+  const put = (n, xs) => {
+    const pg = pageAt(n), pane = pg.querySelector(':scope > .pane') || pg;
+    pane.innerHTML = xs.map(x => '<div>' + w.questionCard_(x, 0) + '<div class="tile-row">' + w.questionTiles_(x) + '</div></div>').join('');
+    return [...pane.querySelectorAll('.qcard')];
+  };
+  let [card] = put(0, [AIQ]);
+  if (front() !== 0) bad.push('setup: page ' + front() + ' of ' + COL + ' is in front, not the first');
+  const go = c => c.querySelector('.qp-ai-go[data-do="qp-ai"]');
+  const slot = c => (subSlotOf_(c) || {}).textContent;
+  if (!go(card)) return ['the worded card drew no Mark with AI — nothing was pressed'];
+  if (!card.parentNode.querySelector('.tile-row .mark-sound')) bad.push('signed in, a card Mark with AI can mark has no sound switch in its row');
+  let asked = 0;
+  /* ONE PRESS AND ITS LANDING. `move` runs while it marks and may hand back the copy of the card that is
+     drawn now; what was heard from the press to the landing is returned with it. */
+  const ask = async (c, text, marks, move) => {
+    ansType_(w, c.querySelector('.qp-ans-in'), text);
+    land = null;
+    /* ASLEEP BEFORE EVERY PRESS, as an iPad leaves it after a phone call or the app going away: so each
+       press must wake it inside the tap, or the marks that land after the network are silent. */
+    rec.acs.forEach(a => { a.state = 'suspended'; });
+    const n = rec.outs.length;
+    earTap_(rec, go(c));
+    await wait(30);
+    if (!land) { bad.push('"' + text + '": the press sent no aiMark'); return { heard: [], c }; }
+    asked++;
+    if (rec.outs.length !== n) bad.push('"' + text + '": a sound was heard before the marks arrived');
+    const now = move ? await move() : null;
+    land({ success: true, awarded: marks[0], available: marks[1], feedback: 'A sentence about it.' });
+    await wait(80);
+    return { heard: earHeard_(rec).slice(n), c: now || c };
+  };
+  let r = await ask(card, 'The particles move faster so they collide more often with enough energy.', [3, 3]);
+  if (r.heard.join(',') !== 'chime') bad.push('3 of 3 marks from the AI was heard as [' + r.heard.join(', ') + '], wanted [chime]');
+  r = await ask(card, 'Because.', [0, 3]);
+  if (r.heard.join(',') !== 'buzzer') bad.push('0 of 3 marks from the AI was heard as [' + r.heard.join(', ') + '], wanted [buzzer]');
+  r = await ask(card, 'The particles move faster.', [2, 3]);
+  if (r.heard.length) bad.push('2 of 3 marks — a part mark, neither right nor wrong — was heard as [' + r.heard.join(', ') + ']');
+  if (slot(card) !== '2/3') bad.push('the part mark was not drawn in the slot: ' + JSON.stringify(slot(card)));
+
+  /* ---- MOVED ON WHILE IT MARKED: drawn in the slot, not heard over whatever is in front now. ---- */
+  const away = (w.__t.TABS.find(t => t.id !== COL) || {}).id;
+  r = await ask(card, 'The particles move faster and collide more often.', [3, 3], async () => { w.__t.go(away, false, true); await wait(30); });
+  if (r.heard.length) bad.push('marks that landed after the child had gone to another column were heard as [' + r.heard.join(', ') + ']');
+  if (slot(card) !== '3/3') bad.push('marks that landed after the child had gone were not drawn in the slot for when they come back: ' + JSON.stringify(slot(card)));
+  w.__t.go(COL, false, true);
+  await wait(60);
+  /* THE NEXT PAGE OF THE SAME COLUMN -- the commonest way on: one swipe, the next question. */
+  r = await ask(card, 'Particles collide more often.', [0, 3], async () => {
+    w.__t.goPage(COL, 1, true); await wait(30);
+    if (front() !== 1) bad.push('setup: a swipe to the next page left page ' + front() + ' in front');
+  });
+  if (r.heard.length) bad.push('marks that landed after the child had swiped to the next page of the same column were heard as [' + r.heard.join(', ') + '] — a buzzer over the next question');
+  w.__t.goPage(COL, 0, true);
+  await wait(30);
+  /* ANOTHER CARD ON THE SAME PAGE NUMBER -- the list under the page changed while it marked (a star taken
+     off on Saved, one more row in front on Find): the same column, the same page number, and a different
+     question in front. A page number is not a card (`stuffBackTo_`'s note in find.js). */
+  r = await ask(card, 'Faster particles, more collisions.', [0, 3], async () => { put(0, [NEXT]); await wait(10); });
+  if (r.heard.length) bad.push('marks that landed with a different question now on the same page number were heard as [' + r.heard.join(', ') + '] — over a question nobody asked it about');
+  /* AND THE SAME CARD ON A NEW PAGE NUMBER -- the app followed it there (`stuffBackTo_`): the child never
+     left it, so it is heard. */
+  [card] = put(0, [AIQ]);
+  r = await ask(card, 'The particles gain energy and collide more often.', [3, 3], async () => {
+    put(0, [NEXT]);
+    const [moved] = put(1, [AIQ]);
+    w.__t.goPage(COL, 1, true); await wait(30);
+    return moved;
+  });
+  if (r.heard.join(',') !== 'chime') bad.push('marks that landed on the same card, followed to a new page number while it marked, were heard as [' + r.heard.join(', ') + '], wanted [chime] — the child never left it');
+  if (slot(r.c) !== '3/3') bad.push('the card followed to a new page did not draw its 3/3: ' + JSON.stringify(slot(r.c)));
+  card = r.c;
+  /* OUT OF SIGHT AS IT LANDS -- asked of `visibilityState` alone, with no event, so the suspend the event
+     makes cannot be what silences it. */
+  r = await ask(card, 'More energy, more collisions.', [0, 3], async () => { earHide_(w, true, false); });
+  earHide_(w, false, false);
+  if (r.heard.length) bad.push('marks that landed while the app was out of sight were heard as [' + r.heard.join(', ') + ']');
+
+  /* ---- A CHECK BESIDE IT WHILE IT MARKS, and longer than the context's rest before the marks land: the
+     context is held awake for the marks, because one asleep when they land wakes only from a tap. ---- */
+  const [aiC, chk] = put(1, [AIQ, NEXT]);
+  r = await ask(aiC, 'The particles move faster so they collide more often.', [3, 3], async () => {
+    ansType_(w, chk.querySelector('.qp-ans-in'), '16');
+    earTap_(rec, chk.querySelector('.qp-check'));
+    await wait(2500);
+    if (rec.acs.some(a => a.state !== 'running')) bad.push('the context went to rest while Mark with AI was still marking — its marks land on a context only a tap can wake');
+  });
+  if (r.heard.join(',') !== 'buzzer,chime') bad.push('a wrong Check while Mark with AI marked, and then 3 of 3, were heard as [' + r.heard.join(', ') + '], wanted [buzzer, chime]');
+  /* AND AT REST AFTERWARDS: nothing playing, nothing waiting. */
+  if (!(await earRests_(rec, 4000))) bad.push('four seconds after the last sound, with nothing waiting, the context is ' + rec.acs.map(a => a.state).join(', ') + ' — left running it holds a phone\'s audio awake');
+  card = aiC;
+
+  /* ---- THE SWITCH TURNED OFF AFTER A SOUND HAS PLAYED: the context is there and the press wakes nothing,
+     so the marks landing late are silenced by the switch alone. ---- */
+  earTap_(rec, card.parentNode.querySelector('.tile-row .mark-sound'));
+  await wait(30);
+  /* AWAKE AS THE MARKS LAND -- as it is in the second after any other sound -- so what keeps them silent is
+     the switch, and not the fake refusing to wake a context outside a tap. */
+  r = await ask(card, 'The particles move faster and collide with more energy.', [3, 3], async () => { rec.acs.forEach(a => { a.state = 'running'; }); });
+  if (r.heard.length) bad.push('with the switch off, Mark with AI landing 3 of 3 was heard as [' + r.heard.join(', ') + ']');
+  if (slot(card) !== '3/3') bad.push('with the switch off the marks were not drawn: ' + JSON.stringify(slot(card)));
+  if (rec.made.some(m => !m.inPress)) bad.push('an AudioContext was made outside a tap');
+  if (rec.made.length > 1) bad.push(rec.made.length + ' AudioContexts were made — one for the visit, woken each press');
+  const ai = sent.filter(b => b.action === 'aiMark').length;
+  if (ai !== asked) bad.push(ai + ' aiMark requests went, wanted ' + asked + ' — the journey did not press what it says');
+  w.stuffItemsAll_ = held;
+  w.__t.USER(null);
+
+  /* ---- A DEVICE LEFT OFF: Mark with AI pressed and landing, and no AudioContext at all. ---- */
+  const rec2 = {};
+  let land2 = null;
+  const b2 = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES.concat(['aiMark']), aiMarking: true }),
+    reply: ansBackend_({}, subBackend_([], b => (b.action === 'aiMark' ? new Promise(res => { land2 = res; }) : undefined))),
+    before: win => { earFake_(win, rec2); win.localStorage.setItem('mark-sound', '0'); } });
+  await wait(300);
+  b2.w.__t.USER(Object.assign({}, ANS_ADA));
+  b2.w.stuffItemsAll_ = () => [AIQ];
+  const off = subDraw_(b2.w, AIQ);
+  ansType_(b2.w, off.querySelector('.qp-ans-in'), 'The particles move faster so they collide more often.');
+  earTap_(rec2, go(off));
+  await wait(30);
+  if (!land2) bad.push('a device left off: the press sent no aiMark — nothing was asked');
+  else {
+    land2({ success: true, awarded: 0, available: 3, feedback: 'x' });
+    await wait(80);
+    if (rec2.made.length || rec2.outs.length) bad.push('a device left off pressed Mark with AI: ' + rec2.made.length + ' AudioContext(s) made, heard [' + earHeard_(rec2).join(', ') + '] — none at all while it is off');
+  }
+  b2.w.__t.USER(null);
+  if (errs.length || b2.errs.length) bad.push('errors: ' + errs.concat(b2.errs).join(' | '));
+  return bad;
+});
+
+check('mark sound: the switch is the sound tile on a card that can be marked, off is silence everywhere with no AudioContext at all, and it is remembered on the device', async () => {
+  const rec = {};
+  const TYPED = earQ_('Q-EAR-11', { html: '<p>Work out 3 &times; 5.</p>', answer: '<b>15</b>', accept: '15' });
+  const PICK = earQ_('Q-EAR-12', { html: '<p>Which is 4?</p>', choices: ['3', '4', '5'], choiceRight: [2], answer: '<b>4</b>' });
+  const ORD = earQ_('Q-EAR-13', { answerType: 'order', html: '<p>Smallest first.</p>', choices: ['3', '1', '2'], choiceRight: [2, 3, 1],
+    choiceWays: [[2, 3, 1]], orderEnds: ['smallest', 'largest'], answer: '<b>1, 2, 3</b>' });
+  const FREE = earQ_('Q-EAR-14', { answerType: 'calculation', accept: '', html: '<p>Work out the area.</p>', answer: '<b>42</b>' });
+  const OPEN = earQ_('Q-EAR-15', { html: '<p>Pick one.</p>', choices: ['a', 'b'], answer: 'either' });
+  const ALL = [TYPED, PICK, ORD, FREE, OPEN];
+  const { w, errs } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES }), before: win => earFake_(win, rec) });
+  await wait(300);
+  const bad = [];
+  if (typeof w.markSoundTile_ !== 'function') return ['markSoundTile_ is not reachable — renamed? The switch was NOT checked'];
+  w.stuffItemsAll_ = () => ALL;
+  const tileOf = card => card.parentNode.querySelector('.tile-row .mark-sound');
+  /* SIGNED IN: on the three cards a press can mark, before the slot; not on the two it cannot. */
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  const cards = ALL.map(x => subDraw_(w, x));
+  cards.forEach((c, i) => {
+    const t = tileOf(c), x = ALL[i];
+    const can = i < 3;
+    if (can && !t) bad.push(x.row.row_id + ' can be marked and its row has no sound switch');
+    if (!can && t) bad.push(x.row.row_id + ' cannot be marked (its press is `sent`) and its row still has a sound switch — a switch for a noise it never makes');
+    if (t) {
+      markSoundSays_(t, true, x.row.row_id + ' as first drawn').forEach(m => bad.push(m));
+      if (!t.nextElementSibling || !t.nextElementSibling.classList.contains('qcard-verdict')) bad.push('the sound switch on ' + x.row.row_id + ' is not just before the verdict slot — a verdict landing in front of it would move it under the finger');
+    }
+  });
+  /* SIGNED OUT: still there (a signed-out child is marked and hears it), with no slot after it. */
+  w.__t.USER(null);
+  const anon = subDraw_(w, TYPED);
+  if (!tileOf(anon)) bad.push('signed out, a card that can be marked has no sound switch');
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  /* NO WEB AUDIO, NO SWITCH: a tile that can do nothing is not drawn. */
+  const b0 = boot();
+  await wait(300);
+  const h0 = subDraw_(b0.w, TYPED);
+  if (tileOf(h0)) bad.push('a browser with no Web Audio drew the sound switch — a control that can do nothing');
+
+  /* OFF, BEFORE ANYTHING HAS EVER SOUNDED: every copy says so, the device remembers, and turning off is silent. */
+  const tCard = cards[0];
+  earTap_(rec, tileOf(tCard));
+  await wait(30);
+  [tCard, anon].forEach((c, i) => markSoundSays_(tileOf(c), false, (i ? 'the other copy' : 'the card pressed') + ' after Sound off').forEach(m => bad.push(m)));
+  let stored = null;
+  try { stored = w.localStorage.getItem('mark-sound'); } catch (e) {}
+  if (stored !== '0') bad.push('Sound off was not kept on the device: mark-sound is ' + JSON.stringify(stored));
+  ansType_(w, tCard.querySelector('.qp-ans-in'), '16'); earTap_(rec, tCard.querySelector('.qp-check'));
+  ansType_(w, tCard.querySelector('.qp-ans-in'), '15'); earTap_(rec, tCard.querySelector('.qp-check'));
+  earTap_(rec, cards[1].querySelector('.qp-opt[data-n="2"]'));
+  await wait(60);
+  if (rec.outs.length) bad.push('with the switch off, presses were heard as [' + earHeard_(rec).join(', ') + ']');
+  if (rec.made.length) bad.push('with the switch off, ' + rec.made.length + ' AudioContext(s) were made — none at all while it is off');
+  if ((tCard.querySelector('.qp-verdict') || {}).textContent !== 'Correct') bad.push('with the switch off the verdict was not drawn: ' + JSON.stringify((tCard.querySelector('.qp-verdict') || {}).textContent) + ' — the sound is only ever extra');
+
+  /* ON AGAIN: the chime once, so whoever turned it on hears that it works; then a wrong answer buzzes. */
+  earTap_(rec, tileOf(tCard));
+  await wait(30);
+  markSoundSays_(tileOf(tCard), true, 'the card after Sound on').forEach(m => bad.push(m));
+  try { stored = w.localStorage.getItem('mark-sound'); } catch (e) {}
+  if (stored !== '1') bad.push('Sound on was not kept on the device: mark-sound is ' + JSON.stringify(stored));
+  if (earHeard_(rec).join(',') !== 'chime') bad.push('turning the switch on was heard as [' + earHeard_(rec).join(', ') + '], wanted the chime once');
+  rec.frozen = 5;
+  ansType_(w, tCard.querySelector('.qp-ans-in'), '16'); earTap_(rec, tCard.querySelector('.qp-check'));
+  await wait(30);
+  if (earHeard_(rec).join(',') !== 'chime,buzzer') bad.push('a wrong Check after Sound on was heard as [' + earHeard_(rec).slice(1).join(', ') + '], wanted [buzzer]');
+
+  /* OFF WHILE THE BUZZER IS STILL SOUNDING: it stops (cut and ramped to 0, `markHush_`), the context goes
+     to rest at once, and the toast says what the picture is for -- a speaker with no word under it is
+     also Imposter's Read aloud, and a child who pressed it hoping to hear the question has learnt why
+     nothing was read. */
+  const toastSays = () => ((w.document.getElementById('toast') || {}).textContent || '');
+  const buzzing = rec.outs[rec.outs.length - 1];
+  /* THE BUZZER'S OWN REST, a second after it ends, CANCELLED FIRST: so a rest that comes now is the
+     switch's, and how loaded the machine is cannot make the one pass for the other. */
+  w.markRest_(-1);
+  const restsWere = rec.suspended.length;
+  earTap_(rec, tileOf(tCard));
+  await wait(30);
+  if (!earCut_(buzzing)) bad.push('Sound off pressed while the buzzer played did not stop it (its gain cancelled and ramped to 0): ' + JSON.stringify(buzzing && buzzing.gain.ev));
+  rec.frozen = null;
+  if (!/right and wrong/i.test(toastSays()) || !/\boff\b/i.test(toastSays())) bad.push('Sound off said ' + JSON.stringify(toastSays()) + ' — the toast should say it is the sound for right and wrong answers, and that it is off');
+  /* A NEW `suspend()`, waited for: the context may already be at rest from the buzzer on a loaded machine,
+     and the switch's own rest is 0.1s away. */
+  let restedNow = false;
+  for (let t = 0; t < 30 && !restedNow; t++) { restedNow = rec.suspended.length > restsWere; if (!restedNow) await wait(100); }
+  if (!restedNow || rec.acs.some(a => a.state !== 'suspended')) bad.push('Sound off did not put the context to rest (' + rec.acs.map(a => a.state).join(', ') + ') — nothing can play, so it should rest straight after the fade');
+  earTap_(rec, tileOf(tCard));
+  await wait(30);
+  if (!/right and wrong/i.test(toastSays()) || !/\bon\b/i.test(toastSays())) bad.push('Sound on said ' + JSON.stringify(toastSays()) + ' — the toast should say it is the sound for right and wrong answers, and that it is on');
+  if (earHeard_(rec).join(',') !== 'chime,buzzer,chime') bad.push('Sound on again was heard as [' + earHeard_(rec).slice(2).join(', ') + '], wanted the chime once');
+
+  /* ANOTHER TAB FLIPS THE ONE SWITCH (one per device): this tab's tiles say so at once, a sound playing
+     here stops, and its presses follow it -- off and then on again. Nothing is heard for the other tab's
+     press; it played its own chime. */
+  let heardNow = earHeard_(rec).length;
+  rec.frozen = 9;
+  ansType_(w, tCard.querySelector('.qp-ans-in'), '16'); earTap_(rec, tCard.querySelector('.qp-check'));
+  await wait(30);
+  const playing = rec.outs[rec.outs.length - 1];
+  const otherTab = v => {
+    try { w.localStorage.setItem('mark-sound', v); } catch (e) {}
+    w.dispatchEvent(new w.StorageEvent('storage', { key: 'mark-sound', oldValue: v === '0' ? '1' : '0', newValue: v }));
+  };
+  otherTab('0');
+  await wait(30);
+  [tCard, anon].forEach((c, i) => markSoundSays_(tileOf(c), false, (i ? 'the other copy' : 'the card') + ' after another tab turned the sound off').forEach(m => bad.push(m)));
+  rec.frozen = null;
+  if (!earCut_(playing)) bad.push('another tab turned the sound off and the buzzer playing here went on: ' + JSON.stringify(playing && playing.gain.ev));
+  ansType_(w, tCard.querySelector('.qp-ans-in'), '16'); earTap_(rec, tCard.querySelector('.qp-check'));
+  await wait(30);
+  otherTab('1');
+  await wait(30);
+  markSoundSays_(tileOf(tCard), true, 'the card after another tab turned the sound on').forEach(m => bad.push(m));
+  ansType_(w, tCard.querySelector('.qp-ans-in'), '16'); earTap_(rec, tCard.querySelector('.qp-check'));
+  await wait(30);
+  const tabs = earHeard_(rec).slice(heardNow);
+  if (tabs.join(',') !== 'buzzer,buzzer') bad.push('a wrong Check, another tab turning the sound off, a wrong Check, the other tab turning it on, a wrong Check: heard as [' + tabs.join(', ') + '], wanted [buzzer, buzzer] — the middle one silent');
+
+  /* REMEMBERED: a fresh window on a device left off draws the switch off and makes no sound and no context. */
+  const rec3 = {};
+  const b3 = boot({ before: win => { earFake_(win, rec3); win.localStorage.setItem('mark-sound', '0'); } });
+  await wait(300);
+  b3.w.stuffItemsAll_ = () => ALL;
+  const c3 = subDraw_(b3.w, TYPED);
+  markSoundSays_(tileOf(c3), false, 'a fresh window on a device left off').forEach(m => bad.push(m));
+  ansType_(b3.w, c3.querySelector('.qp-ans-in'), '16'); earTap_(rec3, c3.querySelector('.qp-check'));
+  await wait(30);
+  if (rec3.outs.length || rec3.made.length) bad.push('a device left off, reloaded, made ' + rec3.made.length + ' AudioContext(s) and was heard as [' + earHeard_(rec3).join(', ') + ']');
+
+  /* A STORE THAT REFUSES EVERY WRITE -- a full one: drawings and answers held fill it (`padSave_`, rule 317)
+     -- on a device already holding '1', and then one holding '0'. Pressed, the tile says the opposite of
+     what was kept, AND the presses do what it says: the visit's own choice is asked before the store. */
+  for (const kept of ['1', '0']) {
+    const r4 = {};
+    const b4 = boot({ before: win => { earFake_(win, r4); win.localStorage.setItem('mark-sound', kept); } });
+    await wait(300);
+    b4.w.stuffItemsAll_ = () => ALL;
+    const c4 = subDraw_(b4.w, TYPED);
+    const S = b4.w.Storage.prototype, putItem = S.setItem;
+    S.setItem = function () { throw new b4.w.DOMException('The quota has been exceeded.', 'QuotaExceededError'); };
+    try {
+      earTap_(r4, tileOf(c4));
+      await wait(30);
+      const nowOn = kept === '0';
+      markSoundSays_(tileOf(c4), nowOn, 'a full store holding "' + kept + '", the tile pressed').forEach(m => bad.push(m));
+      const n4 = r4.outs.length;
+      ansType_(b4.w, c4.querySelector('.qp-ans-in'), '16'); earTap_(r4, c4.querySelector('.qp-check'));
+      await wait(40);
+      const h4 = earHeard_(r4).slice(n4);
+      if (h4.join(',') !== (nowOn ? 'buzzer' : '')) bad.push('a full store holding "' + kept + '": the tile pressed to Sound ' + (nowOn ? 'on' : 'off') + ', and a wrong Check was heard as [' + h4.join(', ') + '] — the tile says one thing and the device does another');
+    } finally { S.setItem = putItem; }
+    if (b4.errs.length) bad.push('errors (a full store): ' + b4.errs.join(' | '));
+  }
+  w.__t.USER(null);
+  if (errs.length) bad.push('errors: ' + errs.join(' | '));
+  return bad;
+});
+
+check('mark sound: the context rests when nothing is playing — a second after a sound ends and when the app goes out of sight — the next press wakes it, and a sound that cannot start in time is dropped', async () => {
+  const rec = {};
+  const TYPED = earQ_('Q-EAR-17', { html: '<p>Work out 3 &times; 5.</p>', answer: '<b>15</b>', accept: '15' });
+  const { w, errs } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES }), before: win => earFake_(win, rec) });
+  await wait(300);
+  const bad = [];
+  w.stuffItemsAll_ = () => [TYPED];
+  const c = subDraw_(w, TYPED);
+  const press = async v => { ansType_(w, c.querySelector('.qp-ans-in'), v); earTap_(rec, c.querySelector('.qp-check')); await wait(40); };
+  const pressedAt = Date.now();
+  await press('16');
+  if (earHeard_(rec).join(',') !== 'buzzer') return ['setup: a wrong Check was heard as [' + earHeard_(rec).join(', ') + '], wanted [buzzer] — nothing else was asked'];
+  /* NOT WHILE IT PLAYS, nor the moment it ends: no rest stamped within a second of the press (the buzzer is
+     0.42s). Asked of the rest's own time, not of how long a wait took -- on a loaded machine a 0.6s wait
+     has measured 3.3s, and the rest that came in it was the right one. */
+  await wait(560);
+  const early = rec.suspended.filter(x => x.at - pressedAt < 1000);
+  if (early.length) bad.push('the context was put to rest ' + (early[0].at - pressedAt) + 'ms after the press — while the buzzer was still sounding, or straight after it');
+  /* AND A SECOND AFTER IT ENDS: a running context with nothing to play holds a phone's audio output awake. */
+  if (!(await earRests_(rec, 4000))) bad.push('four seconds after the buzzer ended the context is still ' + rec.acs.map(a => a.state).join(', ') + ' — left running with nothing to play');
+  /* THE NEXT PRESS WAKES IT INSIDE ITS TAP, and is heard. */
+  const r0 = rec.resumed.length;
+  await press('15');
+  if (earHeard_(rec).join(',') !== 'buzzer,chime') bad.push('the press after the context rested was heard as [' + earHeard_(rec).slice(1).join(', ') + '], wanted [chime]');
+  if (!rec.resumed.slice(r0).some(x => x.inPress)) bad.push('the press after the context rested did not wake it inside its tap');
+  /* OUT OF SIGHT: suspended at once, with or without a sound playing. */
+  const s0 = rec.suspended.length;
+  earHide_(w, true, true);
+  await wait(30);
+  if (rec.suspended.length === s0 || rec.acs.some(a => a.state !== 'suspended')) bad.push('the app went out of sight and the context was left ' + rec.acs.map(a => a.state).join(', '));
+  earHide_(w, false, true);
+  await wait(30);
+  /* A WAKE SLOWER THAN `MARK_LATE_MS`: the moment has gone, and a buzzer most of a second after the press
+     would be about nothing on the screen. The next press, woken quickly, is heard. */
+  w.markRest_(-1);
+  rec.acs.forEach(a => { a.state = 'suspended'; });
+  rec.slow = 800;
+  await press('16');
+  await wait(900);
+  rec.slow = 0;
+  const slowHeard = earHeard_(rec).slice(2);
+  if (slowHeard.length) bad.push('a context that took 800ms to wake still played [' + slowHeard.join(', ') + '] — over half a second after the press');
+  await press('16');
+  if (earHeard_(rec).slice(2).join(',') !== 'buzzer') bad.push('the press after the slow wake was heard as [' + earHeard_(rec).slice(2).join(', ') + '], wanted [buzzer]');
+  if (errs.length) bad.push('errors: ' + errs.join(' | '));
+  return bad;
+});
+
 /* ---------- THE WEEKLY PARENT EMAIL'S CARD -----------------------------------------------------------
    ASKED FOR AS THE INFRASTRUCTURE FOR *"something which triggers every sunday"* and emails parents —
    built and switched off (backend/digest.gs). The card is how an admin sees which: it says the mode the
@@ -16802,28 +18541,38 @@ check('the booking week shows all seven days with no tutor, and only the chosen 
   return bad;
 });
 
-/* ---------- YOUR PICTURE, CHOSEN IN SETTINGS -------------------------------------------------------
-   ASKED FOR AS *"everyone should have a profile picture selector widget in account settings"*. The
+/* ---------- YOUR PICTURE, CHOSEN ON YOUR OWN CARD'S EDIT -------------------------------------------------
+   ASKED FOR AS *"everyone should have a profile picture selector widget in account settings"* — and on 11 Oct
+   everything about your card moved to your card's own Edit, for everybody (docs/history/339), so the picker is
+   the picture section of that form now and Settings draws none. The
    page's own change listener and tiles, end to end: a file chosen on the hidden input is posted as
    `savePhoto` with a JPEG `data:` URL and your own id, the server's address comes back into the
    preview and into `USER.profile`, and `Remove` posts `remove` and puts the initial back. The crop
    itself is a canvas, which jsdom has not got — so `pfpPrepare_` is stood in for, and the real one
    is driven in a browser with a real file (see the history note). And the old link box must be gone,
    because a hidden `photo` field would be posted by the card's Save and write the old picture back. */
-check('a picture chosen in Settings posts savePhoto and the preview shows it', async () => {
+check('a picture chosen on your own card\'s Edit posts savePhoto and the preview shows it, and Settings draws no picker', async () => {
   const URL_ = 'https://drive.google.com/file/d/FILEabcdefghijklmnopqrstuv/view';
   const { w, sent } = boot({ reply: b => b.action === 'savePhoto'
     ? { success: true, photo: b.remove ? '' : URL_ } : { success: true } });
   await wait(300);
   const t = w.__t, d = w.document;
   t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk',
-           profile: { first_name: 'Test', last_name: 'Admin', photo: '' } });
+           profile: { first_name: 'Test', last_name: 'Admin', photo: '', phone_cc: '+44' } });
   try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
   await wait(300);
   const bad = [];
-  if (d.querySelector('#s-settings [data-me="photo"]')) bad.push('Settings still draws a box for a photo link beside the picker');
-  const box = () => d.querySelector('#s-settings .pfp');
-  if (!box()) return bad.concat(['Settings has no picture picker on any card']);
+  if (d.querySelector('#s-settings [data-me="photo"]')) bad.push('Settings still draws a box for a photo link');
+  if (d.querySelector('#s-settings .pfp')) bad.push('Settings still draws the picture picker, which is on your own card\'s Edit now');
+  try { t.go('account', false, true); w.paint('account'); } catch (e) { return bad.concat(['drawing the You column threw: ' + e.message]); }
+  await wait(200);
+  const edit = d.querySelector('#s-account [data-do="card-edit"][data-pid="P001"]');
+  if (!edit) return bad.concat(['an admin with no public card has no Edit on their own card']);
+  t.ACTIONS['card-edit'](edit);
+  await wait(300);
+  const box = () => d.querySelector('#s-account .card-ed .pfp');
+  if (!box()) return bad.concat(['your own card\'s Edit has no picture picker']);
+  if (d.querySelector('#s-account .card-ed [data-me="photo"]')) bad.push('the card\'s Edit draws a box for a photo link beside the picker');
   const inp = box().querySelector('input.pfp-in[type="file"]');
   if (!inp || !/image\/\*/.test(inp.getAttribute('accept') || '')) bad.push('the picker has no hidden file input taking images');
   if (!box().querySelector('[data-do="pfp-pick"]')) bad.push('the picker has no Choose photo tile');
@@ -16870,7 +18619,13 @@ check('a picture chosen in Settings posts savePhoto and the preview shows it', a
    row `doGet` sends them (`faceFig_`: the figure beside the face only when the face is the figure;
    `check-profile.js` proves the server half): your parent's column for a student, your child's message
    head for a parent, a visitor's people column for a tutor, the feed for an admin.
-   YOUR FIGURE IS LIVE: dressed differently after it was chosen, your own card wears the new shirt. */
+   YOUR FIGURE IS LIVE: dressed differently after it was chosen, your own card wears the new shirt.
+   ON YOUR OWN CARD'S EDIT SINCE docs/history/339, for every role: the picker is its picture section and the
+   wardrobe its figure section, so each choice is made in the form (Edit), and the card is read once the form is
+   closed (Save — the picture saved itself, so Save has nothing more to send and closes it). And the figure is
+   dressed in the SAME form now: a shirt picked in the wardrobe section is the shirt the picker's "your figure"
+   wears at once, and the shirt your card wears once the form is shut — the owner, 11 Oct: *"your figure should
+   also be in your profile card editing."* */
 const PFP_ROLES = {
   student: { name: 'Sam Pupil', personId: 'P-S9', role: 'kid', roles: ['student'], handle: 'sam_glad09',
              avatar: 'skin:3|shirt:5|hair:curls', basic: 'fox', other: 'family' },
@@ -16895,6 +18650,7 @@ async function pfpRoleJourney(key) {
     ? (b.remove ? { success: true, photo: '' }
       : b.choice ? Object.assign({ success: true, photo: b.choice }, b.choice === 'pfp:avatar' ? { avatar: P.avatar } : {})
       : { success: true, photo: URL_ })
+    : b.action === 'saveAvatar' ? { success: true, avatar: Object.keys(b.avatar || {}).map(k => k + ':' + b.avatar[k]).join('|') }
     : { success: true } });
   for (let k = 0; k < 80 && !w.__t; k++) await wait(100);
   await wait(200);
@@ -16902,12 +18658,32 @@ async function pfpRoleJourney(key) {
   if (!t) return ['the app did not finish loading'];
   const first = P.name.split(' ')[0];
   t.USER({ name: P.name, personId: P.personId, role: P.role, roles: P.roles, token: 'tk', handle: P.handle,
-           avatar: P.avatar, photo: '', profile: { first_name: first, last_name: P.name.split(' ')[1], photo: '' } });
-  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+           avatar: P.avatar, photo: '', profile: { first_name: first, last_name: P.name.split(' ')[1], photo: '', phone_cc: '+44' } });
+  try { t.go('account', false, true); w.paint('account'); } catch (e) { return ['drawing the You column threw: ' + e.message]; }
   await wait(300);
   const bad = [];
-  const box = () => d.querySelector('#s-settings .pfp');
-  if (!box()) return ['a ' + key + '\'s Settings has no picture picker'];
+  /* EDIT ON YOUR OWN CARD, AND THE FORM IT TURNS INTO. */
+  const editing = () => d.querySelector('#s-account .card-ed[data-pid="' + P.personId + '"] .me-form');
+  const openEdit = async () => {
+    if (editing()) return true;
+    /* DRAWN AGAIN AS YOU FIRST — `asOther` below draws the column as somebody else and puts you back without
+       a paint, so the column on the page can be theirs. */
+    try { w.paint('account'); } catch (e) {}
+    const e = d.querySelector('#s-account [data-do="card-edit"][data-pid="' + P.personId + '"]');
+    if (!e) return false;
+    t.ACTIONS['card-edit'](e);
+    for (let k = 0; k < 20 && !editing(); k++) await wait(50);
+    return !!editing();
+  };
+  const shut = async () => {
+    const save = d.querySelector('#s-account [data-do="card-save"][data-pid="' + P.personId + '"]');
+    if (save) t.ACTIONS['card-save'](save);
+    for (let k = 0; k < 20 && editing(); k++) await wait(50);
+  };
+  if (!(await openEdit())) return ['a ' + key + '\'s own card has no Edit, or Edit drew no form'];
+  if (d.querySelector('#s-settings .pfp')) bad.push('a ' + key + '\'s Settings still draws a picture picker');
+  const box = () => d.querySelector('#s-account .card-ed .pfp');
+  if (!box()) return ['a ' + key + '\'s own card\'s Edit has no picture picker'];
   const opts = () => [...box().querySelectorAll('.pfp-grid button.pfp-opt[data-do="pfp-choose"]')];
   const names = opts().map(b => b.dataset.pic);
   const ten = t.pfpNames();
@@ -16982,6 +18758,7 @@ async function pfpRoleJourney(key) {
   /* THE ROW `doGet` SENDS: the figure only when the face is the figure (`faceFig_`, core.gs). */
   const picFig = (stored, figure) => stored === 'pfp:avatar' ? { avatar: figure } : {};
   const step = async (label, press, wantSent, want) => {
+    if (!(await openEdit())) { bad.push(label + ': Edit did not open the form again'); return; }
     sent.length = 0;
     await press();
     await wait(300);
@@ -17000,6 +18777,9 @@ async function pfpRoleJourney(key) {
     if (!want.said.test(said)) bad.push(label + ': the line under the grid says "' + said + '"');
     const prev = faceIs(box().querySelector('.pfp-face > *'), Object.assign({ letter: first[0] }, want));
     if (prev) bad.push(label + ': the preview is ' + prev);
+    /* THE FORM SHUT — the picture saved itself, so Save sends nothing more and closes it — and the card read. */
+    await shut();
+    if (editing()) bad.push(label + ': Save did not close the form');
     const mine = myCard();
     if (!mine) bad.push(label + ': your own card is not on the You column');
     else { const why = faceIs(mine.querySelector('.prof-pic'), Object.assign({ letter: P.name[0] }, want)); if (why) bad.push(label + ': your own card shows ' + why); }
@@ -17010,15 +18790,34 @@ async function pfpRoleJourney(key) {
   try {
     await step('your figure', choose('avatar'), { choice: 'pfp:avatar' },
       { kind: 'avatar', fig: P.avatar, stored: 'pfp:avatar', said: /Saved\. Your figure is your picture/ });
-    /* LIVE: dressed in another shirt after it was chosen, your own card follows without a save of the picture. */
+    /* LIVE, AND DRESSED ON THE SAME FORM: shirt 2 picked in the wardrobe section is posted as `saveAvatar`, the
+       picker's "your figure" one section up wears it at once, and so does your own card once the form is shut —
+       without a save of the picture. Then dressed back the same way, through the same section. */
+    const dress = async n => {
+      await openEdit();
+      const sw = d.querySelector('#s-account .card-ed .av-card [data-do="av-colour"][data-field="shirt"][data-value="' + n + '"]');
+      if (!sw) { bad.push('your own card\'s Edit has no wardrobe with shirt ' + n + ' in it'); return false; }
+      sent.length = 0;
+      t.ACTIONS['av-colour'](sw);
+      await wait(250);
+      if (!sent.some(b => b.action === 'saveAvatar' && b.avatar && Number(b.avatar.shirt) === n)) bad.push('picking shirt ' + n + ' on your card posted ' + JSON.stringify(sent.map(b => b.action)) + ', not saveAvatar with that shirt');
+      return true;
+    };
     const was = t.whoami().avatar;
-    t.whoami().avatar = was.replace(/shirt:\d/, 'shirt:2');
-    w.paint('account');
-    const live = faceIs(myCard() && myCard().querySelector('.prof-pic'), { kind: 'avatar', fig: t.whoami().avatar });
-    if (live) bad.push('your figure is not live on your own card after a change of shirt: ' + live);
-    t.whoami().avatar = was;
-    w.paint('account');
+    if (await dress(2)) {
+      const opt = box() && box().querySelector('.pfp-opt[data-pic="avatar"]');
+      const inPicker = faceIs(opt, { kind: 'avatar', fig: t.whoami().avatar });
+      if (!/shirt:2/.test(t.whoami().avatar)) bad.push('after shirt 2 was picked your look is ' + JSON.stringify(t.whoami().avatar));
+      if (inPicker) bad.push('the picker\'s "your figure" is not the figure the wardrobe just dressed: ' + inPicker);
+      const pv = faceIs(box() && box().querySelector('.pfp-face > *'), { kind: 'avatar', fig: t.whoami().avatar });
+      if (pv) bad.push('with your figure as your picture, the preview is not the figure the wardrobe just dressed: ' + pv);
+      await shut();
+      const live = faceIs(myCard() && myCard().querySelector('.prof-pic'), { kind: 'avatar', fig: t.whoami().avatar });
+      if (live) bad.push('your figure is not live on your own card after a change of shirt: ' + live);
+      await dress(Number(/shirt:(\d)/.exec(was)[1]));
+    }
     /* A TAP ON THE ONE ALREADY IN USE SENDS NOTHING. */
+    await openEdit();
     sent.length = 0;
     choose('avatar')();
     await wait(100);
@@ -17058,12 +18857,16 @@ check('before the backend is pulled, tapping a picture says the server\'s refusa
   await wait(200);
   const t = w.__t, d = w.document;
   t.USER({ name: 'Pat Mum', personId: 'P-C9', role: 'parent', roles: ['parent'], token: 'tk', handle: 'pat_kind09',
-           avatar: '', photo: URL_, profile: { first_name: 'Pat', last_name: 'Mum', photo: URL_ } });
-  t.go('settings', false, true); w.paint('settings');
+           avatar: '', photo: URL_, profile: { first_name: 'Pat', last_name: 'Mum', photo: URL_, phone_cc: '+44' } });
+  /* ON PAT'S OWN CARD'S EDIT, where the picker is since docs/history/339. */
+  t.go('account', false, true); w.paint('account');
+  await wait(200);
+  const edit = d.querySelector('#s-account [data-do="card-edit"][data-pid="P-C9"]');
+  if (edit) t.ACTIONS['card-edit'](edit);
   await wait(300);
   const bad = [];
-  const box = () => d.querySelector('#s-settings .pfp');
-  if (!box()) return ['no picture picker'];
+  const box = () => d.querySelector('#s-account .card-ed .pfp');
+  if (!box()) return ['no picture picker on Pat\'s own card\'s Edit'];
   const fox = box().querySelector('.pfp-opt[data-pic="fox"]');
   sent.length = 0;
   t.ACTIONS['pfp-choose'](fox);
@@ -23224,7 +25027,7 @@ check('sign out, then the next child signs in: none of the last child’s messag
 
 check('a wrong PIN empties the PIN box, focuses it and marks it, with one toast and the banner unchanged', async () => {
   const { w } = boot({ reply: b => (b.action === 'verifyLogin'
-    ? (/^@?nobody/.test(String(b.email)) ? { success: false, why: 'not-an-email', error: 'Sign in with the email on your account — or your handle (like halex_kind42).' }
+    ? (/^@?nobody/.test(String(b.email)) ? { success: false, why: 'not-an-email', error: 'Sign in with the email on your account — or your handle, as it is on your card.' }
                                         : { success: false, why: 'wrong-pin', error: 'Wrong PIN for that handle.' })
     : { success: true }) });
   await wait(300);
@@ -24138,15 +25941,33 @@ function surnameWorld_() {
     const t3 = as('P-PEN', { action: 'addComment', postId: 'PO-1', body: 'great volcano' });
     if (!(t1 && t1.tutorPending) || !(t2 && t2.success) || !(t3 && t3.success)) tk.junoFailed = JSON.stringify([t1, t2, t3]).slice(0, 300);
   }
+  /* AND OLA, ANOTHER PARENT, SAYS A WORD UNDER IT (docs/history/342) — so a grown-up's whole name is in a
+     comment every visitor's feed draws, beside Pip's in the events of the session she booked for Wren. */
+  if (tk['P-OTH']) {
+    const o1 = as('P-OTH', { action: 'addComment', postId: 'PO-1', body: 'lovely' });
+    if (!(o1 && o1.success)) tk.olaFailed = JSON.stringify(o1).slice(0, 300);
+  }
   return { b, tk };
 }
-check('a child is her first name on every screen: no surname drawn for a visitor, her tutor, another parent, an admin, or herself outside her own Settings boxes', async () => {
+/* AND A PARENT'S SURNAME, SINCE 11 OCT (docs/history/342): *"don't show surname as some kids have different
+   surnames and gets a bit awkward"*. Pip's and Ola's surnames are hunted on every screen of every visitor
+   but themselves and the admin — who must still see Pip's, or a rule that took every name out would pass.
+   Pip is a visitor here too, so her own whole name is drawn for her and Ola's is not.
+   AND WREN SEES HER OWN PARENT'S (342, round 2): a child is shown the whole name of a grown-up on her own
+   family row (`netKin_`) — the claim card is where she decides whether somebody is her parent, and her
+   parent's whole name is what she tells the next claim apart by. So Pip's surname is not hunted for Wren, and
+   must be drawn for her somewhere, or that half would be unseen; Ola's still is. */
+const GROWN_ = { 'P-PAR': 'Ashdown', 'P-OTH': 'Brisk' };
+const KIN_ = { 'P-KID': ['P-PAR'] };
+check('a child is her first name on every screen, and a parent is hers to everybody but herself, an admin and her own child: no surname drawn for a visitor, her tutor, another parent, her parent, an admin, or herself outside her own boxes on Settings and her own card\'s Edit', async () => {
   let world;
   try { world = surnameWorld_(); } catch (e) { return ['the real backend could not be built, so NOTHING was drawn — ' + e.message]; }
   const { b, tk } = world;
   if (tk.junoFailed) return ['Juno could not tick Tutor, book and comment, so a pending tick was NOT asked — ' + tk.junoFailed];
+  if (tk.olaFailed) return ['Ola could not comment, so a grown-up\'s name under a post was NOT asked — ' + tk.olaFailed];
   if (Object.keys(tk).length < 7) return ['only ' + Object.keys(tk).join(', ') + ' could sign in, so most screens were NOT drawn — not a pass'];
-  const VIEW = [['a visitor', null], ['her tutor', 'P-TUT'], ['another parent', 'P-OTH'], ['an admin', 'P-ADM'], ['herself', 'P-KID']];
+  const VIEW = [['a visitor', null], ['her tutor', 'P-TUT'], ['another parent', 'P-OTH'], ['an admin', 'P-ADM'], ['herself', 'P-KID'],
+                ['her parent', 'P-PAR']];
   const bad = [];
   for (const [who, pid] of VIEW) {
     /* WHAT `familyUser` HOLDS: the real sign-in reply — and for her, that reply as a phone signed in
@@ -24162,14 +25983,19 @@ check('a child is her first name on every screen: no surname drawn for a visitor
     await wait(600); await woken_();
     if (!!pid !== !!t.whoami()) { bad.push(who + ': the app reads this visitor as signed ' + (t.whoami() ? 'in' : 'out') + ' — NOT asked about'); continue; }
     const seen = [];
-    let sawJuno = false;
+    let sawJuno = false, sawWhole = false;
+    /* A GROWN-UP'S SURNAME IS HUNTED FOR EVERYBODY BUT THEMSELVES AND THE ADMIN; A CHILD'S FOR EVERYBODY. */
+    const hunt = SURS_.concat(pid === 'P-ADM' ? [] : Object.keys(GROWN_).filter(g => g !== pid && (KIN_[pid] || []).indexOf(g) === -1).map(g => GROWN_[g]));
     const look = (where) => {
       const root = w.document.documentElement.cloneNode(true);
-      /* HER OWN SETTINGS BOXES, AND NOTHING ELSE, are where her surname belongs. */
-      if (pid === 'P-KID') root.querySelectorAll('#s-settings input, #s-settings textarea').forEach(el => el.remove());
+      /* HER OWN BOXES, AND NOTHING ELSE, are where her surname belongs — on Settings, and on her own card's Edit,
+         where her name is edited since docs/history/339 (its review: the walk never opened it, so a surname in the
+         editor's heading, its handle line or anywhere but the box itself would have passed). */
+      if (pid === 'P-KID') root.querySelectorAll('#s-settings input, #s-settings textarea, #s-account .card-ed[data-pid="P-KID"] input').forEach(el => el.remove());
       const html = root.outerHTML;
-      const m = html.match(new RegExp('.{0,70}(?:' + SURS_.join('|') + ').{0,40}', 'i'));
+      const m = html.match(new RegExp('.{0,70}(?:' + hunt.join('|') + ').{0,40}', 'i'));
       if (/Juno/.test(html)) sawJuno = true;
+      if (/Pip Ashdown/.test(html)) sawWhole = true;
       if (m) seen.push(where + ': …' + m[0].replace(/\s+/g, ' ') + '…');
     };
     let pages = 0;
@@ -24177,6 +26003,21 @@ check('a child is her first name on every screen: no surname drawn for a visitor
       try { t.go(id, false, true); } catch (e) { bad.push(who + ': ' + id + ' threw on go(): ' + e.message); continue; }
       await wait(120); await woken_();
       look(id);
+      /* HER OWN CARD, BEING EDITED — the one screen where her surname is in a box of her own, and so the one where
+         it could leak just beside the box. Opened, looked at, and put back as a card. */
+      if (pid === 'P-KID' && id === 'account') {
+        const ed = w.document.querySelector('#s-account [data-do="card-edit"][data-pid="P-KID"]');
+        if (!ed) bad.push('herself: there is no Edit on her own card, so her card\'s editor was NOT looked at');
+        else {
+          t.ACTIONS['card-edit'](ed);
+          for (let k = 0; k < 40 && !w.document.querySelector('#s-account .card-ed .me-form'); k++) await wait(100);
+          const box = w.document.querySelector('#s-account .card-ed [data-me="last_name"]');
+          if (!box) bad.push('herself: her card\'s editor drew no surname box, so the walk past it was NOT a test');
+          look('account, her own card being edited');
+          const cancel = w.document.querySelector('#s-account [data-do="card-cancel"]');
+          if (cancel) { t.ACTIONS['card-cancel'](cancel); await wait(300); }
+        }
+      }
       /* A WINDOWED SCREEN HOLDS A FEW PAGES AT A TIME, so it is walked page by page. */
       let n = 0;
       try { n = t.pageCount(id) || 0; } catch (e) { n = 0; }
@@ -24186,7 +26027,10 @@ check('a child is her first name on every screen: no surname drawn for a visitor
       }
     }
     if (pages < 12) bad.push(who + ': only ' + pages + ' pages were drawn — the walk did not reach the screens');
-    [...new Set(seen)].slice(0, 4).forEach(x => bad.push(who + ' is shown her surname on ' + x));
+    [...new Set(seen)].slice(0, 4).forEach(x => bad.push(who + ' is shown a surname that is not theirs to see on ' + x));
+    /* AND THE ADMIN IS SHOWN PIP'S WHOLE NAME — the rule is "to everybody but herself and an admin", not "to nobody". */
+    if (pid === 'P-ADM' && !sawWhole) bad.push('an admin: "Pip Ashdown" is nowhere on any screen, so the admin\'s exemption was NOT seen — or the net took her surname from the admin too');
+    if (pid === 'P-KID' && !sawWhole) bad.push('herself: her own parent is not "Pip Ashdown" on any screen — a child sees the whole name of a grown-up on her own family row (342, round 2)');
     /* AND HER FIRST NAME IS THERE, where a screen names her — a rule that drew nobody would pass the above. */
     const all = w.document.documentElement.outerHTML;
     if (pid !== 'P-TUT' && !/Wren/.test(all)) bad.push(who + ': "Wren" is nowhere on any screen, so the screens that name her were NOT drawn — not a pass');
@@ -24197,6 +26041,294 @@ check('a child is her first name on every screen: no surname drawn for a visitor
     }
     if (errs.length) bad.push(who + ': errors: ' + errs.slice(0, 3).join(' | '));
   }
+  return bad;
+});
+
+/* ---------- A CHILD WHOSE HANDLE WAS MOVED STILL GETS IN, AND IS TOLD WHAT IT IS NOW (docs/history/342) -------
+   The owner, 11 Oct: *"Change usernames to be more abstract to hide the names of kids. Just use initials…"*
+   `?run=kidHandles` moves every child's handle to their initials and four digits — and seven in eight of
+   them have no email and sign in with the handle written on a slip. THE REAL BACKEND, a child whose
+   handle has moved (`handle_was` holds the old one): typed into the real sign-in box, the old one signs
+   her in, and the sheet she closes says the new one. */
+function movedWorld_() {
+  const { backend } = require('./check-gas-load.js');
+  const b = backend({ MailApp: { sendEmail() {}, getRemainingDailyQuota: () => 100 } });
+  const base = { pin: '0000', verified: 'TRUE', listed: true, city: 'London', xp: 0, credits: 0, email: '' };
+  b.seed('people', [
+    Object.assign({ person_id: 'P-EJ', role: 'student', first_name: 'Ella', last_name: 'Jones', handle: 'ej2345',
+                    handle_was: 'ella_kind42', friends: 'ab3456' }, base),
+    Object.assign({ person_id: 'P-AB', role: 'student', first_name: 'Abe', last_name: 'Bell', handle: 'ab3456' }, base),
+  ]);
+  return b;
+}
+check('a child whose handle was moved signs in with the old one on her slip, and a sheet she closes says the new one', async () => {
+  let b;
+  try { b = movedWorld_(); } catch (e) { return ['the real backend could not be built, so NOTHING was signed into — ' + e.message]; }
+  const { w } = boot({ payload: b.get({}), reply: body => b.post(body) });
+  for (let k = 0; k < 80 && !w.__t; k++) await wait(100);
+  const t = w.__t, d = w.document, bad = [];
+  if (!t) return ['the app did not finish loading'];
+  await wait(300);
+  t.go('account', false, true);
+  await wait(120);
+  const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
+  if (!name || !pin) return ['there is no sign-in card to sign in on, so the old handle was NOT typed'];
+  name.value = 'ella_kind42'; pin.value = '0000';
+  t.ACTIONS['do-signin'](d.querySelector('#s-account [data-do="do-signin"]'));
+  for (let k = 0; k < 40 && !t.whoami(); k++) await wait(100);
+  await wait(200);
+  const u = t.whoami();
+  if (!u || u.personId !== 'P-EJ') return ['the old handle on her slip did not sign her in — ' + JSON.stringify(u && u.personId)];
+  if (u.handle !== 'ej2345') bad.push('the phone calls her @' + u.handle + ' after signing in, not @ej2345');
+  const title = String((d.getElementById('sheet-title') || {}).textContent || '');
+  const body = String((d.getElementById('sheet-body') || {}).textContent || '');
+  const open = !d.getElementById('sheet').classList.contains('hidden');
+  if (!open || title !== 'Your handle has changed' || body.indexOf('@ej2345') === -1)
+    bad.push('no sheet she has to close said her new handle — ' + JSON.stringify({ open, title, body: body.slice(0, 160) }));
+  /* AND HER NEW ONE SAYS NOTHING — the sheet is for the old one, every time it is used, and only then. */
+  const again = b.post({ action: 'verifyLogin', email: 'ej2345', name: 'ej2345', pin: '0000' });
+  if (!again.success || again.handleMoved) bad.push('signing in with her new handle says something moved — ' + JSON.stringify(again).slice(0, 200));
+  return bad;
+});
+
+/* ---------- AND A PHONE SIGNED IN BEFORE THE MOVE LEARNS IT ON ITS NEXT OPEN, ONCE ------------------------
+   `familyUser` holds the handle and the friends list the sign-in reply carried, for the thirty days a
+   session lasts — so a child whose handle the business moved while she was signed in was shown her old
+   one, and her friends list named handles that no longer exist (the next "Add a friend" would post them
+   back). `myProfile`, asked on every open, carries both now: the phone takes them, says the new handle
+   once (a toast, and "You were @…" under it, `HANDLE_SAID`), and the open after that says nothing. */
+check('a phone signed in before her handle moved takes the new one from myProfile and says so once', async () => {
+  let b;
+  try { b = movedWorld_(); } catch (e) { return ['the real backend could not be built — ' + e.message]; }
+  const signed = b.post({ action: 'verifyLogin', email: 'ej2345', name: 'ej2345', pin: '0000' });
+  if (!signed.success) return ['she could not sign in on the real backend, so NOTHING was asked — ' + JSON.stringify(signed).slice(0, 200)];
+  const stale = Object.assign(JSON.parse(JSON.stringify(signed)), { handle: 'ella_kind42', friends: 'ab_kind11' });
+  const bad = [];
+  const toastsIn = win => { const said = []; const obs = new win.MutationObserver(() => {
+    const el = win.document.getElementById('toast'); if (el && el.textContent) said.push(el.textContent); });
+    obs.observe(win.document.body, { childList: true, subtree: true, characterData: true }); return said; };
+  const first = boot({ payload: b.get({ token: signed.token }), reply: body => b.post(body),
+    before: win => win.localStorage.setItem('familyUser', JSON.stringify(stale)) });
+  const said1 = toastsIn(first.w);
+  for (let k = 0; k < 80 && !first.w.__t; k++) await wait(100);
+  const t = first.w.__t;
+  if (!t) return ['the app did not finish loading'];
+  for (let k = 0; k < 40 && (t.whoami() || {}).handle !== 'ej2345'; k++) await wait(100);
+  const u = t.whoami() || {};
+  if (u.handle !== 'ej2345') bad.push('the phone still calls her @' + u.handle + ' after myProfile — a moved handle stays stale for thirty days');
+  if (u.friends !== 'ab3456') bad.push('the phone kept the old friends list ' + JSON.stringify(u.friends) + ' — its next save would post names nobody has');
+  let said = {};
+  try { said = t.handleSaid(); } catch (e) {}
+  if (!said || said.text !== 'You were @ella_kind42.' || said.pid !== 'P-EJ') bad.push('the line under her handle does not say who she was — ' + JSON.stringify(said));
+  if (!said1.some(m => /Your handle is @ej2345 now/.test(m))) bad.push('nothing told her the new handle — toasts: ' + JSON.stringify(said1));
+  /* THE NEXT OPEN, from what that one stored: nothing more to say. */
+  let kept = '';
+  try { kept = first.w.localStorage.getItem('familyUser'); } catch (e) {}
+  const second = boot({ payload: b.get({ token: signed.token }), reply: body => b.post(body),
+    before: win => { if (kept) win.localStorage.setItem('familyUser', kept); } });
+  const said2 = toastsIn(second.w);
+  for (let k = 0; k < 80 && !second.w.__t; k++) await wait(100);
+  await wait(1200);
+  if (said2.some(m => /Your handle is/.test(m))) bad.push('the next open said the new handle again — it is said once');
+  if (first.errs.length || second.errs.length) bad.push('errors: ' + first.errs.concat(second.errs).slice(0, 3).join(' | '));
+  return bad;
+});
+
+/* ---------- AFTER REVIEW, ROUND 1 (docs/history/342): the device's chips, and the two races ----------------
+   THE FAMILY IPAD KEPT THE OLD CHIP. Signing in by a moved handle, or learning it from `myProfile`, added
+   the new handle's chip and left `@ella_kind42` — her first name, on the shared device — beside it; and the
+   one-tap way in was the old one, so "Your handle has changed" came back on every sign-in. The old chip
+   becomes the new one in its place (`handleRename_`, me.js).
+   AND NO JOURNEY PRESSED RANDOMISE OR ADDED A FRIEND, so the two guards against a `myProfile` asked before
+   the press and answered after it were held by nothing: the review took each away and every check stayed
+   green. Randomise's was a text test that knew only the LAST press — two presses under one slow reply put
+   the first handle back. Both are `ACCOUNT_AT_` now (`accountChanged_`), and these hold them. The tile is
+   drawn here rather than found on a screen, because which screen it lives on is moving (fix-card-settings)
+   and what is asked is what a press does, not where it is. */
+function movedWorld3_() {
+  const b = movedWorld_();
+  b.seed('people', [{ person_id: 'P-CD', role: 'student', first_name: 'Cy', last_name: 'Dunn', handle: 'cd4567',
+    pin: '0000', verified: 'TRUE', listed: true, city: 'London', xp: 0, credits: 0, email: '' }]);
+  return b;
+}
+/* SIGNED IN AS ELLA, THE APP OPEN, AND THE `myProfile` IT ASKED AT OPEN HELD until `release()`. */
+async function heldProfileOpen_(b, chips) {
+  const signed = b.post({ action: 'verifyLogin', email: 'ej2345', name: 'ej2345', pin: '0000' });
+  if (!signed.success) throw new Error('she could not sign in on the real backend');
+  let release, held = null;
+  const gate = new Promise(r => { release = r; });
+  const reply = body => {
+    if (body.action === 'myProfile' && !held) { held = b.post(body); return gate.then(() => held); }
+    return b.post(body);
+  };
+  const { w, errs } = boot({ payload: b.get({ token: signed.token }), reply,
+    before: win => { win.localStorage.setItem('familyUser', JSON.stringify(signed));
+                     if (chips) win.localStorage.setItem('familyHandles', JSON.stringify(chips)); } });
+  for (let k = 0; k < 80 && !w.__t; k++) await wait(100);
+  if (!w.__t) throw new Error('the app did not finish loading');
+  for (let k = 0; k < 60 && !held; k++) await wait(100);
+  if (!held) throw new Error('myProfile was never asked at open, so the race was NOT set up');
+  return { w, t: w.__t, d: w.document, errs, release: () => release() };
+}
+function shuffleTile_(d) {
+  const card = d.createElement('div'); card.className = 'card';
+  card.innerHTML = '<span class="handle-shown"></span><button data-do="handle-shuffle"></button><p class="handle-said"></p>';
+  d.body.appendChild(card);
+  return card.querySelector('button');
+}
+const serverCell_ = (b, pid, col) => JSON.parse(b.ev('JSON.stringify(String(read(TAB.people).rows.find(r => r.person_id === '
+  + JSON.stringify(pid) + ').' + col + ' || ""))'));
+async function pressShuffle_(t, tile, n) {
+  for (let i = 0; i < n; i++) {
+    const before = String((t.whoami() || {}).handle);
+    t.ACTIONS['handle-shuffle'](tile);
+    for (let k = 0; k < 60 && String((t.whoami() || {}).handle) === before; k++) await wait(100);
+    await wait(300);
+  }
+}
+const chipsOf_ = w => { try { return JSON.parse(w.localStorage.getItem('familyHandles') || '[]'); } catch (e) { return ['(unreadable)']; } };
+
+check('a child who signs in on the family iPad with her moved handle: its chip becomes the new one, so the next tap says nothing', async () => {
+  let b;
+  try { b = movedWorld3_(); } catch (e) { return ['the real backend could not be built — ' + e.message]; }
+  const { w } = boot({ payload: b.get({}), reply: body => b.post(body),
+    before: win => win.localStorage.setItem('familyHandles', JSON.stringify(['ab3456', 'ella_kind42'])) });
+  for (let k = 0; k < 80 && !w.__t; k++) await wait(100);
+  const t = w.__t, d = w.document;
+  if (!t) return ['the app did not finish loading'];
+  await wait(300);
+  t.go('account', false, true); await wait(150);
+  const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
+  if (!name || !pin) return ['there is no sign-in card, so the old chip was NOT asked about'];
+  name.value = 'ella_kind42'; pin.value = '0000';
+  t.ACTIONS['do-signin'](d.querySelector('#s-account [data-do="do-signin"]'));
+  for (let k = 0; k < 40 && !t.whoami(); k++) await wait(100);
+  await wait(400);
+  const u = t.whoami() || {};
+  if (u.personId !== 'P-EJ') return ['the old handle did not sign her in, so the chip was NOT asked about — ' + JSON.stringify(u.personId)];
+  const chips = chipsOf_(w);
+  return chips.indexOf('ella_kind42') !== -1 || chips.indexOf('ej2345') === -1 || chips.indexOf('ab3456') === -1
+    ? ['after signing in by her old handle the device offers ' + JSON.stringify(chips) + ' — the name-bearing chip stays on the shared iPad, and tapping it says "Your handle has changed" every time'] : [];
+});
+check('a phone that learns a moved handle from myProfile swaps the old chip for the new one in its place', async () => {
+  let b;
+  try { b = movedWorld3_(); } catch (e) { return ['the real backend could not be built — ' + e.message]; }
+  const signed = b.post({ action: 'verifyLogin', email: 'ej2345', name: 'ej2345', pin: '0000' });
+  if (!signed.success) return ['she could not sign in on the real backend — ' + JSON.stringify(signed).slice(0, 160)];
+  const stale = Object.assign(JSON.parse(JSON.stringify(signed)), { handle: 'ella_kind42' });
+  const { w } = boot({ payload: b.get({ token: signed.token }), reply: body => b.post(body),
+    before: win => { win.localStorage.setItem('familyUser', JSON.stringify(stale));
+                     win.localStorage.setItem('familyHandles', JSON.stringify(['cd4567', 'ella_kind42', 'ab3456'])); } });
+  for (let k = 0; k < 80 && !w.__t; k++) await wait(100);
+  const t = w.__t;
+  if (!t) return ['the app did not finish loading'];
+  for (let k = 0; k < 40 && (t.whoami() || {}).handle !== 'ej2345'; k++) await wait(100);
+  if ((t.whoami() || {}).handle !== 'ej2345') return ['the phone never took the moved handle from myProfile, so the chip was NOT asked about'];
+  const chips = chipsOf_(w);
+  return JSON.stringify(chips) !== JSON.stringify(['cd4567', 'ej2345', 'ab3456'])
+    ? ['the phone calls her @ej2345 but the device\'s chips are ' + JSON.stringify(chips) + ' — wanted the old one replaced where it was'] : [];
+});
+check('a myProfile asked at open and answered after TWO Randomise presses keeps the handle the server has', async () => {
+  let b, o;
+  try { b = movedWorld3_(); o = await heldProfileOpen_(b, ['ej2345']); } catch (e) { return [e.message]; }
+  const tile = shuffleTile_(o.d);
+  const seen = [String(o.t.whoami().handle)];
+  await pressShuffle_(o.t, tile, 1); seen.push(String(o.t.whoami().handle));
+  await pressShuffle_(o.t, tile, 1); seen.push(String(o.t.whoami().handle));
+  const server = serverCell_(b, 'P-EJ', 'handle');
+  if (seen[2] !== server || seen[1] === seen[0]) return ['the two presses did not land as asked, so the race was NOT set up — ' + JSON.stringify(seen) + ' / server ' + server];
+  o.release(); await wait(1500);
+  const u = o.t.whoami() || {}, bad = [];
+  if (String(u.handle) !== server) bad.push('the presses gave ' + JSON.stringify(seen) + '; the myProfile asked at open landed after them and the phone says @' + u.handle + ' while the server has @' + server);
+  const chips = chipsOf_(o.w);
+  if (JSON.stringify(chips) !== JSON.stringify([server])) bad.push('the device\'s chip did not follow Randomise — ' + JSON.stringify(chips) + ', the server has @' + server);
+  if (o.errs.length) bad.push('errors: ' + o.errs.slice(0, 3).join(' | '));
+  return bad;
+});
+check('a myProfile asked at open and answered after one Randomise press keeps the new handle', async () => {
+  let b, o;
+  try { b = movedWorld3_(); o = await heldProfileOpen_(b); } catch (e) { return [e.message]; }
+  const tile = shuffleTile_(o.d);
+  const was = String(o.t.whoami().handle);
+  await pressShuffle_(o.t, tile, 1);
+  const server = serverCell_(b, 'P-EJ', 'handle');
+  if (server === was) return ['Randomise never landed, so the race was NOT set up'];
+  o.release(); await wait(1500);
+  const u = o.t.whoami() || {};
+  return String(u.handle) !== server ? ['after one press the phone says @' + u.handle + ', the server @' + server + ' — the reply asked before the press put the old handle back'] : [];
+});
+check('a myProfile asked at open and answered after a friend is added keeps the new friend', async () => {
+  let b, o;
+  try { b = movedWorld3_(); o = await heldProfileOpen_(b); } catch (e) { return [e.message]; }
+  o.t.ACTIONS['friend-add-open']();
+  await wait(100);
+  const box = o.d.getElementById('fr-add');
+  if (!box) return ['there is no Add a friend box, so the race was NOT set up'];
+  box.value = 'cd4567';
+  o.t.ACTIONS['friend-add']();
+  for (let k = 0; k < 30 && serverCell_(b, 'P-EJ', 'friends').indexOf('cd4567') === -1; k++) await wait(100);
+  const server = serverCell_(b, 'P-EJ', 'friends');
+  if (server.indexOf('cd4567') === -1) return ['the friend was never saved on the server, so the race was NOT set up: ' + server];
+  o.release(); await wait(1500);
+  const u = o.t.whoami() || {};
+  return String(u.friends) !== server ? ['the server has friends ' + JSON.stringify(server) + ' but after the reply asked at open landed the phone has ' + JSON.stringify(u.friends)] : [];
+});
+
+/* ---------- AFTER REVIEW, ROUND 2 (docs/history/342): A FIGURE NOBODY DRESSED KEEPS ITS FACE -------------------
+   A blank look is drawn from the handle (`avatarConfig`: skin and hair colour from `hashOf(handle)`), so a moved
+   handle was a different figure — a different skin tone — on the child's own card and wardrobe. The server now
+   writes the old handle's look into a blank cell whenever it moves a handle (`handleFaceKept_`); these hold the
+   phone's half: Randomise's answer carries that look and the phone takes it, and a phone signed in before
+   `?run=kidHandles` takes it from `myProfile` with the new handle — or it would draw the new handle's colours
+   from its own blank copy until the next sign-in. The face is compared through the phone's own `avatarConfig`. */
+check('a figure nobody dressed keeps its face when her handle moves: Randomise, and a phone that learns the move from myProfile', async () => {
+  const bad = [];
+  const faceIn = (w, packed, handle) => { const c = w.avatarConfig(packed, handle); return [c.skin, c.hairColour, c.hair, c.legs].join('/'); };
+  /* THE MOVE, AS `?run=kidHandles` LEAVES IT: the old handle's look written into her blank cell. */
+  let b;
+  try { b = movedWorld3_(); } catch (e) { return ['the real backend could not be built — ' + e.message]; }
+  const kept = JSON.parse(b.ev('JSON.stringify(handleFaceKept_(read(TAB.people), { avatar: "" }, "ella_kind42").avatar || "")'));
+  if (!kept) return ['the server keeps no look for a blank cell, so the phone\'s half was NOT asked'];
+  b.ev('(function () { const t = read(TAB.people); const r = t.rows.find(x => S(x.person_id) === "P-EJ"); setCell(t, r, "avatar", '
+    + JSON.stringify(kept) + '); clearCache(); })()');
+  const signed = b.post({ action: 'verifyLogin', email: 'ej2345', name: 'ej2345', pin: '0000' });
+  if (!signed.success) return ['she could not sign in on the real backend — ' + JSON.stringify(signed).slice(0, 160)];
+  const stale = Object.assign(JSON.parse(JSON.stringify(signed)), { handle: 'ella_kind42', avatar: '' });
+  const one = boot({ payload: b.get({ token: signed.token }), reply: body => b.post(body),
+    before: win => win.localStorage.setItem('familyUser', JSON.stringify(stale)) });
+  for (let k = 0; k < 80 && !one.w.__t; k++) await wait(100);
+  if (!one.w.__t) return ['the app did not finish loading'];
+  for (let k = 0; k < 40 && (one.w.__t.whoami() || {}).handle !== 'ej2345'; k++) await wait(100);
+  const u1 = one.w.__t.whoami() || {};
+  if (u1.handle !== 'ej2345') bad.push('the phone never took the moved handle from myProfile, so the face was NOT asked');
+  else if (faceIn(one.w, u1.avatar, u1.handle) !== faceIn(one.w, '', 'ella_kind42')) {
+    bad.push('after myProfile moved her handle the phone draws her with ' + JSON.stringify(u1.avatar || '(a blank look)') + ' on @' + u1.handle
+      + ' — a different figure from the one @ella_kind42 drew; the server kept ' + JSON.stringify(kept));
+  }
+  /* RANDOMISE, ON A BLANK LOOK. */
+  let b2;
+  try { b2 = movedWorld3_(); } catch (e) { return bad.concat(['the real backend could not be built — ' + e.message]); }
+  const s2 = b2.post({ action: 'verifyLogin', email: 'ej2345', name: 'ej2345', pin: '0000' });
+  const two = boot({ payload: b2.get({ token: s2.token }), reply: body => b2.post(body),
+    before: win => win.localStorage.setItem('familyUser', JSON.stringify(s2)) });
+  for (let k = 0; k < 80 && !two.w.__t; k++) await wait(100);
+  if (!two.w.__t) return bad.concat(['the app did not finish loading for Randomise']);
+  await wait(800);
+  const face0 = faceIn(two.w, '', 'ej2345');
+  await pressShuffle_(two.w.__t, shuffleTile_(two.w.document), 1);
+  const u2 = two.w.__t.whoami() || {};
+  const cell = serverCell_(b2, 'P-EJ', 'avatar');
+  if (String(u2.handle) === 'ej2345') bad.push('Randomise never landed, so its face was NOT asked');
+  else {
+    if (!cell || faceIn(two.w, cell, String(u2.handle)) !== face0) bad.push('Randomise left the server drawing a different figure: ' + JSON.stringify(cell));
+    /* THE FACE, NOT THE STRING: after the merge with `fix-card-settings` its `avatarKeep_` may write the same look
+       in its own packing order. Blank is the fault — the new handle's colours. */
+    if (!String(u2.avatar || '').trim() || faceIn(two.w, u2.avatar, u2.handle) !== face0) {
+      bad.push('after Randomise the phone draws her with ' + JSON.stringify(u2.avatar || '(a blank look)') + ' on @' + u2.handle
+        + ' — the server kept ' + JSON.stringify(cell) + ', the face @ej2345 drew');
+    }
+  }
+  if (one.errs.length || two.errs.length) bad.push('errors: ' + one.errs.concat(two.errs).slice(0, 3).join(' | '));
   return bad;
 });
 

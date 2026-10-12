@@ -251,13 +251,16 @@ PEOPLE.forEach(p => {
    the asker's first name, a virtue and a fresh two-digit number in a random order, never led by the
    digits (*"their first name, a virtuous adjective and random numbers and maybe an underscore. but
    all random order"*, 2 October — it was `ada_<virtue>` with no number until then), never the
-   handle they already had, the old one at the FRONT of `handle_was` with the history capped at
-   `HANDLE_WAS_KEEP`, what the next sign-in hands back, the asker's own row whatever id is posted, a
+   handle they already had, the old one at the FRONT of `handle_was` with EVERY earlier one kept (342: an
+   old handle still signs its person in, so none is trimmed) and Randomise refused, writing nothing, once
+   the history holds `HANDLE_WAS_MAX`, what the next sign-in hands back, the asker's own row whatever id is posted, a
    refusal that writes nothing for somebody signed out — and `changeHandle`, the typed box it
    replaced, no longer an action at all. `check-handles.js` holds the generator's own rules. */
 {
   const t = tokens['P-T1'];
-  const VIRTUES = b.ev('HANDLE_ADJ'), KEEP = b.ev('HANDLE_WAS_KEEP');
+  const VIRTUES = b.ev('HANDLE_ADJ'), MAX = b.ev('HANDLE_WAS_MAX'), PRESSES = 14;
+  const histOf = () => String(b.row('P-T1').handle_was || '').split(',').map(x => x.trim()).filter(Boolean);
+  const hist0 = histOf().length;
   const shuffle = body => { shuffles++; return b.post(Object.assign({ action: 'randomiseHandle' }, body)); };
   const before = b.row('P-T1').handle;
   const d = shuffle({ token: t.token, name: t.name, personId: 'P-T1' });
@@ -283,10 +286,10 @@ PEOPLE.forEach(p => {
     tokens['P-T1'] = back;
     if (back.handle !== d.handle) bad.push('the next sign-in handed back "' + back.handle + '", not the randomised "' + d.handle + '"');
   }
-  /* PRESSED AGAIN AND AGAIN: never the handle you have, and the history newest first and capped. */
+  /* PRESSED AGAIN AND AGAIN: never the handle you have, and the history newest first and WHOLE. */
   let prev = b.row('P-T1').handle, same = 0;
   const orders = [];
-  for (let i = 0; i < KEEP + 4; i++) {
+  for (let i = 0; i < PRESSES; i++) {
     const tk = tokens['P-T1'];
     const e = shuffle({ token: tk.token, name: tk.name, personId: 'P-T1' });
     if (!e.success) { bad.push('randomiseHandle press ' + (i + 2) + ' was refused — ' + e.error); break; }
@@ -303,9 +306,11 @@ PEOPLE.forEach(p => {
      reads. One order in fourteen presses is a fixed order, one chance in sixty million. */
   if (orders.filter(Boolean).length < 2) bad.push('fourteen Randomise presses all laid the parts out '
     + 'in one order — the owner asked for a random one');
-  const hist = String(b.row('P-T1').handle_was).split(', ');
-  if (hist.length !== KEEP) bad.push('after ' + (KEEP + 5) + ' presses handle_was holds ' + hist.length
-    + ' handle(s), wanted the last ' + KEEP);
+  /* EVERY ONE KEPT — it was "the last ten", and the eleventh press retired the handle on a child's slip,
+     which since 342 still signs her in and is reserved for her (the review). */
+  const hist = histOf();
+  if (hist.length !== hist0 + PRESSES + 1) bad.push('after ' + (PRESSES + 1) + ' presses handle_was holds ' + hist.length
+    + ' handle(s), wanted all ' + (hist0 + PRESSES + 1) + ' — an old handle is a credential, never trimmed');
 
   /* SOMEBODY ELSE'S ID POSTED: the gate writes `personId` from the token, so the asker's own changes. */
   const parentWas = b.row('P-C1').handle, mineWas = b.row('P-T1').handle;
@@ -318,6 +323,19 @@ PEOPLE.forEach(p => {
   const out = shuffle({ name: 'Ada Tutor', personId: 'P-T1' });
   if (out.success) bad.push('randomiseHandle with no token was allowed');
   else if (out.writes) bad.push('a refused randomiseHandle had already written ' + out.writes + ' cell(s)');
+
+  /* AND A FULL HISTORY STOPS THE PRESS, WRITING NOTHING, rather than losing its oldest. */
+  {
+    const full = Array.from({ length: MAX }, (_, i) => 'ada_kind' + (i % 90 + 10) + '_' + i).join(', ');
+    b.ev('(function () { const t = read(TAB.people); const r = t.rows.find(x => S(x.person_id) === "P-T1"); '
+      + 'setCell(t, r, "handle_was", ' + JSON.stringify(full) + '); clearCache(); })()');
+    const hBefore = b.row('P-T1').handle, w0 = b.log.writes;
+    const tk = tokens['P-T1'];
+    const capped = shuffle({ token: tk.token, name: tk.name, personId: 'P-T1' });
+    if (capped.success || b.row('P-T1').handle !== hBefore || histOf().length !== MAX || b.log.writes !== w0)
+      bad.push('with ' + MAX + ' handles in its history Randomise was not refused with nothing written — '
+        + JSON.stringify({ capped, handle: b.row('P-T1').handle, kept: histOf().length, writes: b.log.writes - w0 }));
+  }
 
   /* AND THE TYPED BOX IS GONE FROM THE SERVER TOO, not only from the phone. */
   const typed = b.post({ action: 'changeHandle', token: tokens['P-T1'].token, name: tokens['P-T1'].name,
@@ -489,6 +507,11 @@ PEOPLE.forEach(p => {
      P-SA in the URL has none. This is also the payload that used to be an error — see `claims`. */
   const claimsOf = d => (Array.isArray(d.claims) ? d.claims : []).map(c => c.from).sort().join(',');
   const sb = tok('P-SB');
+  /* BY HER WHOLE NAME (docs/history/342, round 2). 342 first cut it to "Bea" — a parent's surname goes to
+     nobody but herself and an admin — and the claim card is the one place a child VETS a grown-up: a yes
+     hands them her account. A stranger registering as "Bea <anything>" sent a card that read like her own
+     parent's. The child on the row sees the whole name while it is asked (and once it is accepted);
+     `check-surnames.js` holds that nobody else does. */
   if (sa.token) want('the claims sent to P-SA', claimsOf(f.get({ token: sa.token })), 'Bea Parent');
   if (sb.token) want('the claims sent to P-SB', claimsOf(f.get({ token: sb.token })), '');
   /* A CHILD OF ANOTHER FAMILY, AND AN ASKED LINK: Ben shares no ACCEPTED parent with Abe or Cal. */
@@ -1085,7 +1108,9 @@ let cardRules = 0;
   try { acorn = require(path.join(__dirname, '..', 'node_modules', 'acorn')); } catch (e) {}
   const meSrc = fs.readFileSync(path.join(__dirname, 'me.js'), 'utf8');
   const want = ['RETIRED_FIELDS_', 'CARD_SECTIONS', 'cardSent_', 'cardSections_', 'cardFields_', 'cardSettingsGroups_',
-                'CARD_BOOL_', 'TRUEish_', 'cardSame_', 'CARD_HOUR_', 'CARD_WHOLE_', 'cardChanged_'];
+                'CARD_BOOL_', 'TRUEish_', 'cardSame_', 'CARD_HOUR_', 'CARD_WHOLE_', 'cardChanged_',
+                /* docs/history/339: the library cards' fields, which Settings takes off and Tools draws. */
+                'isLibraryCard_', 'notLibrary_', 'libFieldsOf_'];
   const got = {};
   if (acorn) {
     acorn.parse(meSrc, { ecmaVersion: 'latest' }).body.forEach(n => {
@@ -1101,7 +1126,7 @@ let cardRules = 0;
     const groups = JSON.parse(JSON.stringify(b.ev('PROFILE_GROUPS')));
     const editable = JSON.parse(JSON.stringify(b.ev('PROFILE_EDITABLE')));
     const phone = vm.createContext({ DATA: { profileFields: groups } });
-    vm.runInContext(want.map(k => got[k]).join('\n') + '\nthis.__card = { CARD_SECTIONS, cardFields_, cardSettingsGroups_, cardChanged_ };', phone);
+    vm.runInContext(want.map(k => got[k]).join('\n') + '\nthis.__card = { CARD_SECTIONS, cardFields_, cardSettingsGroups_, cardChanged_, cardSections_, notLibrary_, libFieldsOf_ };', phone);
     const card = phone.__card;
     const rule = (ok, said) => { if (ok) cardRules++; else bad.push('the card: ' + said); };
     const onCard = card.cardFields_();
@@ -1126,6 +1151,44 @@ let cardRules = 0;
     rule(JSON.stringify(Object.keys(left)) === JSON.stringify(['Contact & address', 'Library cards'])
          && left['Contact & address'].indexOf('venues_ok') === -1 && left['Contact & address'].indexOf('email') !== -1,
       'the pages Settings still draws are ' + JSON.stringify(left));
+
+    /* ---------- EVERYBODY'S OWN CARD, SETTINGS AND THE TOOLS COLUMN: EVERY FIELD IN EXACTLY ONE PLACE (docs/history/339) ----------
+       The owner, 11 Oct: *"move library card widget to the tools column … the random name generator should be one
+       of the editable things in the profile settings of the profile card. your figure should also be in your
+       profile card editing."* So for each of the three real maps, and for a tutor with a public card as well as
+       for somebody without one, the phone's own code is asked where each field is drawn now: on the card's Edit
+       (`cardSections_` as `ownCardSections_` calls it), on a Settings page (what `settingsPages_` keeps:
+       `notLibrary_(cardSettingsGroups_(groups, onCard))`), or on Tools (`libFieldsOf_`, what `initLibCards_`
+       draws). Every field the map lets that person write is in one of the three, none in two; the library
+       fields are exactly the server's `LIBRARY_FIELDS` and none is on Settings; the card offers your figure and
+       your handle, and to somebody with no public card only those, the picture and the name. */
+    const libs = JSON.parse(JSON.stringify(b.ev('LIBRARY_FIELDS'))).slice().sort();
+    const flat = g => Object.keys(g).reduce((a, k) => a.concat(g[k]), []).filter(f => f !== 'library_note');
+    const notLibrary_flat = g => Object.keys(g).reduce((a, k) => a.concat(g[k]), []);
+    const maps = { tutor: groups, client: JSON.parse(JSON.stringify(b.ev('CLIENT_GROUPS'))),
+                   student: JSON.parse(JSON.stringify(b.ev('STUDENT_GROUPS'))) };
+    const whose = [['tutor', false], ['tutor', true], ['client', true], ['student', true]];
+    whose.forEach(([role, bare]) => {
+      const G = maps[role], all = flat(G);
+      const who = role + (role === 'tutor' ? (bare ? ' with no public card' : ' with a public card') : '');
+      const secs = card.cardSections_({ own: true, sent: all, bare });
+      const onCardOwn = [].concat(...secs.map(x => x.list));
+      const kept = notLibrary_flat(card.notLibrary_(card.cardSettingsGroups_(G, onCardOwn)));
+      const tools = card.libFieldsOf_(G);
+      const nowhere = all.filter(f => onCardOwn.indexOf(f) === -1 && kept.indexOf(f) === -1 && tools.indexOf(f) === -1);
+      rule(!nowhere.length, 'a ' + who + ': ' + nowhere.join(', ') + ' is on neither their card, Settings nor Tools');
+      const twice = all.filter(f => [onCardOwn, kept, tools].filter(l => l.indexOf(f) !== -1).length > 1);
+      rule(!twice.length, 'a ' + who + ': ' + twice.join(', ') + ' is drawn in two places');
+      rule(JSON.stringify(tools.slice().sort()) === JSON.stringify(libs) && !kept.some(f => /^lib\d+_/.test(f)),
+        'a ' + who + '\'s library cards are ' + JSON.stringify(tools) + ' on Tools and ' + JSON.stringify(kept.filter(f => /^lib\d+_/.test(f))) + ' on Settings — wanted the server\'s fifteen on Tools and none on Settings');
+      rule(onCardOwn.every(f => editable.indexOf(f) !== -1), 'a ' + who + '\'s card offers ' + onCardOwn.filter(f => editable.indexOf(f) === -1).join(', ') + ', which updateProfile lets nobody write');
+      const ids = secs.map(x => x.id);
+      rule(ids.indexOf('figure') === ids.indexOf('picture') + 1 && ids.indexOf('handle') === ids.indexOf('name') + 1 && ids[0] === 'picture',
+        'a ' + who + '\'s card offers the sections ' + JSON.stringify(ids) + ' — wanted the figure straight after the picture and the handle straight after the name');
+      if (bare) rule(JSON.stringify(ids) === '["picture","figure","name","handle"]', 'a ' + who + '\'s card, which prints only a face and a name, offers ' + JSON.stringify(ids));
+    });
+    /* SOMEBODY ELSE'S CARD — an admin on a tutor's — offers neither your figure nor your handle. */
+    rule(!card.cardSections_().some(x => x.id === 'figure' || x.id === 'handle'), 'a card edited by somebody else offers the figure or the handle');
 
     /* THE TUTOR'S OWN CARD, THROUGH THE REAL `doPost`. Not the rate: the tutor moved it on a Settings page
        above, so the month's clock is running — which is the point of `cardChanged_` sending only what moved. */

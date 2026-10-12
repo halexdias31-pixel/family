@@ -1,5 +1,7 @@
 ## A handle is a first name, a virtue and a fresh number, in a random order
 
+**Since 11 Oct Randomise is on your own card**, not Settings' Signing in card — the `handle` section of its Edit; it still saves itself, and Cancel does not take it back ([339](339-your-card-holds-what-is-about-you.md)).
+
 **Asked for as "nobosy can actually change their handle specifically, they can just hit randomise.
 but it will always be like their first name, a virtuous adjective and random numbers and maybe an
 underscore. but all random order."** The first half was already true (222: no box, a Randomise
@@ -58,3 +60,5 @@ tail-strip put back in `renameHandles`; no number at all (also `check-profile`);
 and Randomise written back as a `.btn` (`check/ui.js --screen=settings`, red at all four widths).
 
 Stamps not bumped here — the merger bumps all four together.
+
+**Since 11 Oct (342), this note's "existing handles are not regenerated" no longer holds for children:** `?run=kidHandles` moves every child to their initials and four digits (a preview first, then `&arg=apply`), old handles onto `handle_was`, where they still sign the child in. `renameHandles` leaves children to it. See [342](342-a-child-s-handle-carries-no-name.md).

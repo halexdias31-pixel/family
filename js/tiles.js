@@ -53,8 +53,8 @@
    `aria-hidden`, for the same reason. The word is already the accessible name, and a screen reader
    announcing "graphic, play" before it would be the second explanation all over again. */
 /* ---------- ONE SPEAKER, DRAWN ONCE, FOR THE THREE MARKS THAT HAVE ONE -----------------------------
-   Imposter's Listen (`speak`) and the two sound switches (`sound` and `mute`: the reels' Sound and
-   Imposter's Read aloud) are the same cone, and a
+   Imposter's Listen (`speak`) and the sound switches (`sound` and `mute`: the reels' Sound, Imposter's
+   Read aloud, and the question card's Sound for its chime and buzzer, note 340) are the same cone, and a
    cone written out three times is three chances for one of them to sit a pixel lower than the others
    -- the drift `.tile.is-lead` records for a colour, one layer down. The waves are shared for the
    same reason: the mark on a reel playing aloud and the mark on Listen are the same picture of the
@@ -230,7 +230,8 @@ const TILE_ICONS = {
      the two read as two unrelated pictures and the switch has to be learnt twice.
 
      AND EVERY SOUND SWITCH WEARS THE PAIR. Imposter's Read aloud was the other one, a pill with a knob,
-     and is the same tile now (`impAloudTile_`, games.js): a sound switch is learnt once in this app.
+     and is the same tile now (`impAloudTile_`, games.js): a sound switch is learnt once in this app. The
+     question card's switch for its marking sounds is the third (`markSoundTile_`, submit.js, note 340).
      THE PICTURE IS THE STATE, since a tile has no word on it, so check-flow reads the DRAWING and not
      only the class name: a `mute` drawn as `sound` is two names for one picture and passed every
      check until review tried it (note 323).
@@ -687,8 +688,9 @@ on('widget-open', el => {
    tile too."* Every one of the four was a DOOR to the Settings column — `edit-me` and `wardrobe`
    were literally `go('settings')` — and the column is one swipe from this card, so each tile was a
    second route to a place the swipe already reaches. The things themselves moved there: the child
-   request is a card on that column (`childCard_` in me.js), the figure is its last card, and the
-   build stamps sit under the admin's own Signing-in card.
+   request is "Manage your child" on that column (`childManageCard_` in me.js), and the build stamps sit
+   under the admin's own Signing-in card. The figure was that column's last card and is a section of
+   this card's own Edit now (docs/history/339) — Edit is the door, not a tile of its own.
 
    `kind: 'me'` STAYS ON YOUR OWN ITEM and routes to nothing below, which is deliberate: the kind is
    what stops `tutorTiles_` drawing a Message tile addressed to yourself — the reason it was built —
@@ -768,12 +770,14 @@ function cardActions_(x) {
   /* AND "SEND THE LINK AGAIN" BESIDE IT while your own address is unproved — the paragraph under the
      row says why (`mailHeldNote_` in me.js, drawn by `accountPages_`). A thing about your account, so a
      tile in this row and not a button of its own. */
-  /* AND EDIT FIRST, on a tutor's own card — the owner, 10 Oct: *"all of this stuff should be editable
-     directly on the tutors card"*. A pencil, and the card becomes its own form (`cardEditTile_`, me.js,
-     which draws nothing on a card that is not a tutor's row). That is not the `Your settings` tile the
-     note over `fightTiles_` records the owner asking to go (*"remove edit tile as they can already edit
-     their profile on the column to the right"*): that was a door to another column; this edits the card
-     in place, and the Settings pages it would have led to are gone (docs/history/330). */
+  /* AND EDIT FIRST, on your own card — the owner, 10 Oct: *"all of this stuff should be editable
+     directly on the tutors card"*, and 11 Oct, for everybody: *"the random name generator should be one
+     of the editable things in the profile settings of the profile card. your figure should also be in your
+     profile card editing."* A pencil, and the card becomes its own form (`cardEditTile_`, me.js) — on a
+     parent's, a student's and an admin's own card as on a tutor's (docs/history/339). That is not the `Your
+     settings` tile the note over `fightTiles_` records the owner asking to go (*"remove edit tile as they
+     can already edit their profile on the column to the right"*): that was a door to another column; this
+     edits the card in place, and the Settings pages it would have led to are gone (docs/history/330). */
   if (x.kind === 'me') return (typeof cardEditTile_ === 'function' ? cardEditTile_(x) : '')
     + tile_({ icon: 'out', label: 'Sign out', act: 'signout' })
     + (typeof pendingAddr_ === 'function' && pendingAddr_() && typeof resendTile_ === 'function' ? resendTile_() : '');

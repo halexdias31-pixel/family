@@ -23,12 +23,14 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-10-11-m-merged";
+const DOGET_VERSION = "2026-10-12-p-merged";
 
 
 function doGet(e) {
   try {
     WRITE_MISSES = [];
+    /* NOBODY YET — the last request's viewer is not this one's (`NET_VIEWER_`, constants.gs; 342). */
+    NET_VIEWER_ = null;
     /* Read once, at the top, so every exit from this function is wrapped the same way — including
        the early returns and the error at the bottom. A reply that comes back as bare JSON when the
        page asked for a script is a reply the page cannot see at all. */
@@ -169,6 +171,9 @@ function doGet(e) {
         return jsonOut({ error: 'Name or PIN not recognised, or that person is not an admin.',
                          hint: 'Add &name=Your%20Name&pin=0000 to the URL.' });
       }
+      /* THE ADMIN WHO PROVED THEIR PIN IS WHO THE ANSWER IS FOR (342) — an admin sees grown-ups' whole
+         names, and a job's report is read by them alone. */
+      netViewerSet_(who);
       try {
         return jsonOut({ version: BACKEND_VERSION, ran: S(p.run), by: personDisplayName(who),
                          migrated: migrated, result: job(S(p.arg)) });
@@ -228,6 +233,8 @@ function doGet(e) {
          `receipts=` occurs nowhere in the front end — so it is a door with no handle that was open. */
       const who = askedBy_();
       if (!who) return jsonOut({ error: 'Please sign in again.' });
+      /* THEIR OWN, SO THEIR OWN NAME STAYS WHOLE IN THEM (342). */
+      netViewerSet_(who);
       const mine = read(TAB.receipts).rows.filter(r =>
         (S(r.person_id) && S(r.person_id) === S(who.person_id))
         || key(S(r.person_name)) === key(personDisplayName(who)));
@@ -280,6 +287,9 @@ function doGet(e) {
        decide which copy comes back. */
     const cacheViewer = askedBy_();
     const cacheKey = payloadKey_(p, cacheViewer ? S(cacheViewer.person_id) : '');
+    /* THE NET IS TOLD HERE TOO (342), because a hit returns from just below with a fresh half
+       (`freshFor_`) the net has to say for this same person. */
+    netViewerSet_(cacheViewer);
     /* ---------- `?warm=1` BUILDS AND STORES WITHOUT READING ---------------------------------------
        THE SCHEDULED REFRESH ASKS FOR THIS. A warmer that made an ordinary request would be handed
        the copy already in the cache and would refresh nothing; one that cleared the cache first
@@ -381,6 +391,10 @@ function doGet(e) {
        and somebody else's comment controls, each for the cost of a `person_id` in a URL. */
     const meAskedId = meAsked ? S(meAsked.person_id) : '';
     const viewerIsAdmin = !!meAsked && hasRole(meAsked, 'admin');
+    /* AND THE NET IS TOLD (342): a grown-up's whole name in this payload only if it is theirs, or the
+       viewer is an admin. The stored copy is keyed on this same person (`payloadKey_`), so a body built
+       for one viewer is never handed to another. */
+    netViewerSet_(meAsked);
 
     const cfg = config(), opts = allOptions(), sur = surcharges();
     mark('config');
@@ -2131,7 +2145,14 @@ function doGet(e) {
                                         status: t.status === BM.AGREED || t.status === BM.BOOKED
                                           ? 'Confirmed' : 'Applied', chats: {} })),
         offerTurn: '',
-        events: eventsForJob(jobId),
+        /* ---------- THE LOG, TO THE PEOPLE ON IT (342, the review) ---------------------------------------
+           IT WENT TO EVERYBODY THE JOB WAS SENT TO, an open class's strangers included — so every
+           family's name was in `actor` and in the messages, three lines below the `slots` that blank
+           them ("NO NAMES TO SOMEBODY WHO IS NOT IN IT"), and a festive join's typed list of children
+           with them. `iAmIn`, the slots' own test: the people on the job and an admin. The phone reads
+           it only for the dates beside a booking's stage ticks (`evAt_`, book.js), which is a document
+           only somebody on the booking is shown. */
+        events: iAmIn ? eventsForJob(jobId) : [],
         // Looked up now rather than copied onto the job when it was booked: a tutor who changes
         // their photo should change it on every class they teach, not just future ones.
         image: (venuesTab.find(v => key(v.name) === key(j.venue)) || {}).photo || '',

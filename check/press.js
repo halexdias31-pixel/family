@@ -204,6 +204,16 @@ const ACCEPTED_QUIET = {
      still shows here; check-flow proves Show alone opens the card and a second tap does not. */
   'imp-show': { only: 'imposter setup', why: 'pressed within 600ms of Deal on the same pixels: a double tap, '
                      + 'ignored by design (`impTooSoon_`); check-flow proves Show alone opens the card.' },
+  /* AND SO ARE THE REVEAL'S DEAL AND PLAYERS, PRESSED STRAIGHT AFTER REVEAL, since the review of 11
+     October: a double tap on Reveal put its second tap on Players and threw the reveal away before
+     the table had seen it, so those two take the same guard now (games.js, `imp-again`). On the play
+     state this presses Reveal and then the two buttons it has just drawn, inside `IMP_GAP`. Scoped to
+     that state; check-flow proves each pressed on its own deals or goes back to setup, and that a
+     second tap straight after Reveal does neither. */
+  'imp-again': { only: 'imposter play', why: 'pressed within 600ms of Reveal, which drew it: a double tap, '
+                     + 'ignored by design (`impTooSoon_`); check-flow proves the reveal\'s Deal alone deals.' },
+  'imp-players': { only: 'imposter play', why: 'pressed within 600ms of Reveal, which drew it: a double tap, '
+                     + 'ignored by design (`impTooSoon_`); check-flow proves Players alone goes back to setup.' },
 
   /* ---------- AND ONE THAT IS THE FIXTURE RATHER THAN THE APP -------------------------------------- */
   'cmt-del': { only: 'signed out', why:
@@ -2197,16 +2207,37 @@ for (const who of VISITORS) {
            under the sheet's BODY rather than its backdrop. So the select is the favourite colour when
            the backdrop is over it, and otherwise the first select on the page in front that the
            backdrop does cover — and none at all is a failure to reach, not a pass. */
-        const spot = await tp.evaluate(f => {
+        const under = f => tp.evaluate(f => {
           const back = el => !!el && el.id === 'sheet-back';
-          if (back(document.elementFromPoint(f.x, f.y))) return { x: f.x, y: f.y, name: 'favourite colour' };
+          if (f && back(document.elementFromPoint(f.x, f.y))) return { x: f.x, y: f.y, name: 'favourite colour' };
           for (const s of document.querySelectorAll('#s-settings .page.on select')) {
             const r = s.getBoundingClientRect();
             const x = Math.round(r.left + r.width / 2), y = Math.round(r.top + r.height / 2);
             if (back(document.elementFromPoint(x, y))) return { x, y, name: s.getAttribute('data-me') || s.name || 'a select' };
           }
           return null;
-        }, fav);
+        }, f);
+        let spot = await under(fav);
+        /* ---------- AND IF THIS PAGE'S SELECTS ARE ALL UNDER THE SHEET'S BODY, THE NEXT PAGE THAT HAS ONE ----------
+           THE SHEET IS A CENTRED DIALOG, so which selects it leaves to the backdrop depends on how tall the card
+           in front is. On 11 Oct the name went from About you to your own card's Edit (docs/history/339), the
+           card came up two rows shorter, and all three of its selects sat under the sheet's body at 390x844 — the
+           question was not reached, though nothing about a backdrop had changed. So the other Settings pages that
+           hold a select are asked in turn, the sheet opened again on each, until one leaves a select to the
+           backdrop; none on any page is still a failure to reach. */
+        if (!spot) {
+          const others = await tp.evaluate(() => [...document.querySelectorAll('#s-settings > .page')]
+            .map((p, i) => (p.querySelector('select') && !p.classList.contains('on') ? i : -1)).filter(i => i >= 0));
+          for (const i of others) {
+            await reset();
+            await tp.evaluate(i => goPage('settings', typeof logIndex_ === 'function' ? logIndex_('settings', i) : i, true), i);
+            await tp.waitForTimeout(900);
+            await tp.evaluate(() => openSheet('Test', '<p>A short sheet.</p>'));
+            await tp.waitForTimeout(700);
+            spot = await under(null);
+            if (spot) break;
+          }
+        }
         if (!spot) {
           want('settings · a select under a sheet\'s backdrop', false, 'every select on the page in front is under the sheet itself',
                'one select the backdrop covers, to tap');

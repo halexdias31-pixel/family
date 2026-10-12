@@ -643,6 +643,12 @@ function startScreen_(id, arriving) {
      restart stops and starts every widget on the column in one task -- most of a second on Tools --
      and a finger drawing through that gets a straight line where it moved. */
   if (typeof padHold_ === 'function' && padHold_(id)) return;
+  /* NOR A WIDGET COLUMN `paint` HELD FOR A FORM WITH TYPING IN IT (`settingsKeep_`, me.js) — the library
+     cards on Tools, and their starred copy on Saved (docs/history/339). A REPAINT ONLY: its markup was not
+     replaced, so what runs in it is still running, and a restart is a second `start` over the same markup.
+     An ARRIVAL still wakes the column as it always has — it keeps what is running and starts the rest —
+     and the cards' own `start` leaves a form with typing in it alone (`libCardsDraw_`). */
+  if (!arriving && (id === 'tools' || id === 'saved') && typeof settingsKeep_ === 'function' && settingsKeep_(id)) return;
   /* THE SAVED COLUMN HOLDS WIDGETS TOO, so it starts them — from its own list rather than from a
      kind, because what is on it is whatever was starred. */
   if (id === 'saved' && typeof savedStart_ === 'function') { savedStart_(arriving); }

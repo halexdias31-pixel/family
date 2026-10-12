@@ -1640,6 +1640,27 @@ const WIDGETS = [
     into: 'wb-box', what: 'The whiteboard',
     html: `<h3>Whiteboard</h3>
     <div id="wb-box" class="wb-box"></div>` },
+
+  /* ---------- YOUR LIBRARY CARDS (docs/history/339) ---------------------------------------------------
+     THE OWNER, 11 Oct: *"move library card widget to the tools column."* They were the `Library cards`
+     page of Settings; they are this card now, drawn by `initLibCards_` (me.js) with every behaviour 332
+     gave them and saved exactly as they were — `me-save`, `updateProfile`, the fifteen `libN_*` cells.
+     `signedIn: true` is the flyer's `admin: true` for a wider audience: everybody signed in saw the page
+     (every role's map carries the group), and nobody signed out did.
+     APPENDED LAST, after the whiteboard, for `legotrade`'s reason above — and it was not, at first. It went in
+     straight after the hours, so a parent found it second; but its gate is SIGNING IN, which comes and goes
+     inside a visit, and a widget above ten others that appears when you sign in moves every one of them a
+     page: measured in the review of 339, somebody on the calendar who signed in was put on Practice, and
+     signing out put them back. Last, signing in or out lengthens only the end of the column, which is the
+     rule `uploads` keeps for an admin. Found by its name, as every widget is: the name carries the word
+     somebody would type. */
+  { id: 'libcards', kind: 'tool', name: 'Library cards', solid: true, signedIn: true,
+    start: () => initLibCards_?.(),
+    into: 'lib-box', what: 'Your library cards',
+    html: `<div class="card">
+    <h3>Library cards</h3>
+    <div id="lib-box"></div>
+  </div>` },
 ];
 
 

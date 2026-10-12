@@ -2955,7 +2955,7 @@ on('rg-again', el => {
 
    THE PHONE IS THE ONLY THING THAT KNOWS WHO THE IMPOSTER IS, so it is dealt like the Scrabble rack:
    passed round, one player at a time, and nothing secret is on the screen between two of them.
-   "Pass to Player 3" is what the next player sees, and the word only comes up when THEY press for
+   "Player 3" is what the next player sees, and the word only comes up when THEY press for
    it. A card that showed the word and then said "pass it on" would put it in front of whoever takes
    the phone.
 
@@ -2976,23 +2976,47 @@ on('rg-again', el => {
    word. `initImposter` redraws what is in progress. What `stop` does instead is HIDE a word left on
    the screen, because a column swiped away and back is exactly how the next person sees it.
 
-   ---------- A SMALL LINE, A BIG LINE AND ONE BUTTON ----------------------------------------------
-   REPORTED AS "Can you make the imposter game more simple and intuitive while adding more categories
-   and words. It’s info over load on the reading parts like reading theme and word extra" (8 Oct).
-   Every screen carried a sentence: "Player 2 of 4" over "Hand the phone to Player 2" over "Nobody
-   else looks"; "Nobody else knows. Blend in."; "goes first. One word each, round the circle — then
-   vote."; "Caught? The imposter still wins by guessing the word." Each was true and none was needed
-   past the first round, and every one of them was a paragraph somebody had to read out to a child
-   with the phone in their hand — which, on the card, is reading the secret out loud. So a screen is
-   a small line, a big line and one button, and `check-flow.js` counts: no more than four words on
-   the pass, the card and the play screens, the dealt word and its category aside.
+   ---------- A PICTURE, A BIG LINE, A SMALL LINE AND ONE BUTTON ------------------------------------
+   TRIMMED TWICE. 8 Oct: "Can you make the imposter game more simple and intuitive while adding more
+   categories and words. It’s info over load on the reading parts like reading theme and word extra."
+   Every screen then carried a sentence — "Hand the phone to Player 2" over "Nobody else looks";
+   "Nobody else knows. Blend in."; "goes first. One word each, round the circle — then vote." — and
+   each became a small line, a big line and one button: "Pass to / Player 2 / Show", "Food / Player 3
+   starts / Reveal", "Imposter / Hint: Food". 11 Oct: "Add symbols to imposter. Also make the voice
+   ONLY say the word. THERE IS TOO MUCH FLUFF with talking and all sorts. Even written." So what was
+   left of the reading went as well — "Pass to", "Hint:", "Word", the line over the card ("Everyone
+   gets the word but one. Find the imposter.") — and a screen now holds only what the game is played
+   with: a name, the word, "Imposter", the category, and a button of one word.
 
-   THE CATEGORY WENT FROM A PLAYER'S CARD, which was the "reading theme and word" half: somebody who
-   has been told "pizza" does not need telling it is a food. It is the imposter's hint and nobody
-   else's, and the whole table sees it on the play screen once everybody has looked.
+     setup      Players  − 4 +   [Read aloud]   Deal
+     pass       Player 2                                   Show
+     a card     🍕  pizza                                  Hide  [Listen]
+     imposter   😋  Imposter  FOOD                         Hide  [Listen]
+     play       😋  Player 3 starts  FOOD                  Reveal
+     reveal     IMPOSTER  Player 2  🍕  pizza              Deal  Players
 
-   THE BIG LINE AND THE BUTTON DO NOT MOVE from the first "Pass to" to "Reveal". Every one of those
-   screens draws the same slots — small line, big line, small line, button, and with Read aloud on the
+   "PLAYER 3 STARTS" KEEPS ITS VERB, the one word on these screens that is not a name: on the screen
+   after the last Hide, "Player 3" alone reads as one more hand-over. `check-flow.js` holds every
+   screen to its exact set of words, so a sentence cannot creep back one word at a time — which is how
+   the first lot arrived ("Player 2 of 4", then "Hand the phone to", then "Nobody else looks").
+
+   EVERY CARD HAS A PICTURE, BIG, OVER ITS WORD — the first half of the 11 Oct note, and the half that
+   lets a child who cannot read play with the voice off. Which picture, and why some words had to go
+   for want of one, is the note over `IMP_DECK`. THE IMPOSTER'S CARD HAS ONE TOO, THE CATEGORY'S, in
+   the same place at the same size: across a table the word cannot be read but a big coloured picture
+   can be seen, so a card WITHOUT one would be the imposter's, told to everybody. The category's is
+   also the honest picture to give them — it is their hint, and no word's picture in the deck is a
+   category's, nor a picture of one of its cards (`check-widgets.js`). AND IT CARRIES A "?", because
+   a child who cannot read "Imposter" otherwise takes the category's picture for their word (see
+   `impFrame_`). The play screen shows the picture again, without the "?", because by then it is
+   everybody's.
+
+   THE CATEGORY IS THE IMPOSTER'S HINT AND NOBODY ELSE'S, which was the "reading theme and word" half
+   of the 8 Oct note: somebody who has been told "pizza" does not need telling it is a food. The whole
+   table sees it on the play screen once everybody has looked.
+
+   THE BIG LINE AND THE BUTTON DO NOT MOVE from the first pass screen to Reveal. Every one of those
+   screens draws the same slots — picture, big line, small line, button, and with Read aloud on the
    speaker's room under the button — empty or not, so the card is one height on all of them. The
    phone goes to children who cannot read the button yet, and "the gold one under the big word" has to
    be the same place every time. Show, Hide and Listen carry the app's own marks (`TILE_ICONS`): an open eye, a
@@ -3007,211 +3031,291 @@ on('rg-again', el => {
 ================================================================================================== */
 const IMP_MIN = 3, IMP_MAX = 12;
 
-/* THE WORDS ARE THINGS, NOT IDEAS. Articulate's deck can hold `stage fright`, because it is
-   described one sentence at a time; this one is talked about ONE WORD at a time, round a circle,
-   so a card has to be something everybody can say three different true words about — and
-   something a child in the room has heard of.
+/* A CARD IS WHAT ITS PICTURE SHOWS — A THING, A FACE, A GESTURE OR A SIGN — AND NEVER AN IDEA.
+   Articulate's deck can hold `stage fright`, because it is described one sentence at a time; this
+   one is talked about ONE WORD at a time, round a circle, so a card has to be something everybody
+   can say three different true words about — and something a child in the room has heard of.
+   Until 11 Oct that was written "things, not ideas", and every card was an object. The pictures
+   moved the line rather than broke it: a face crying, a hand waving and a red octagon are as plain
+   to point at as a pizza, and as easy to say three words about — `crying` (tears, sad, baby),
+   `waving` (hello, bye, hand), `stop` (red, car, wait). So Feelings, Actions and Signs and symbols
+   came in, from pictures no other category needed (see "twenty-five categories" below). What stays
+   out is the idea with no picture — `brave`, `fair`, `Tuesday` — whose only honest picture is none,
+   and a picture only an adult could put a name to.
 
-   TWENTY-SEVEN CATEGORIES OF THIRTY, 810 cards, where there were eleven of twenty-two (242) — "while
-   adding more categories and words", in the same note as the simpler screens. SPLIT FINER AS WELL AS
-   GROWN, because the category is the imposter's whole hint: "Animals" over a shark, a bee and a
-   hamster told them almost nothing, and "Sea life" tells them enough to say "salty" and sound right.
-   THIRTY IN EVERY ONE, because the pile below is every (category, word) pair, so a category's share
-   of the rounds is its share of the cards — a category of forty beside one of twenty would come up
-   twice as often for no reason anybody chose. `check-widgets.js` holds the shape: at least 25
-   categories, at least 30 words in each, no word twice anywhere (`hairdresser` in Jobs and
-   `hairdresser’s` in Places were the same card in the old deck), and no word that says its own
-   category, which is the hint handing the imposter half the answer (`school bus` and `school trip`
-   were in School).
+   AND EVERY THING HAS ITS PICTURE. The owner, 11 Oct: "Add symbols to imposter." AN EMOJI, because
+   750 pictures cannot be drawn by hand and every phone and iPad at the table already carries a font
+   of them. A CARD IS WRITTEN AS IT IS DRAWN — its picture, one space, its word: '🍕 pizza' — and
+   split at the first space (`impCards_`), which no emoji holds: a joiner, a variation selector, a
+   keycap's ring and a flag's tag letters are all invisible, and none of them is U+0020. COPY A
+   PICTURE, NEVER RETYPE ONE: `☀️` without its invisible U+FE0F is a small black sun on some phones.
+
+   A PICTURE MUST BE HONEST — the one a child would name with the card's word. 🍕 is pizza; a dinner
+   plate is not shepherd's pie. A word with no honest picture was REPLACED by a word of the same
+   category that has one, never given a near miss (`biscuit` became `cookie`, because 🍪 is a
+   chocolate-chip cookie and that is what a child calls it), and a word was renamed to what is drawn
+   (`Big Bad Wolf` to `wolf`, `teeth` to `tooth`, `skyscraper` to `city` — 🏙️ is a skyline — and
+   `Mrs Christmas` to `Mrs Claus`). AND A PICTURE OF SOMETHING ELSE WITH THE SAME NAME IS A NEAR MISS
+   TOO: `triangle` in Music was 🔺, the red shape, never the instrument, and is a shape in Signs and
+   symbols now. docs/history/343 lists every one.
+
+   NO EMOJI NEWER THAN 12.0 (iOS 13.2, 2019 — every iPad still in use). A newer one is an empty box on
+   an older phone: a card with no picture, in one player's hand, which looks like a fault and is a
+   tell. So the jobs are the Emoji 4.0 woman and man forms, alternating (`👩‍🏫 teacher`,
+   `👨‍⚕️ doctor`), because the person-neutral `🧑‍🏫` is 12.1; and `bear` is 🐻 where the polar bear
+   (🐻‍❄️, 13.0) would be a bear and a snowflake side by side on an older iPad. `check-widgets.js`
+   holds the line.
+
+   TWENTY-FIVE CATEGORIES OF THIRTY, 750 cards, because there are only so many honest pictures. It
+   was twenty-seven of thirty (810) from 8 Oct ("while adding more categories and words"), and ten of
+   those could not find thirty pictures at 12.0 — Sea life, Minibeasts and Sweets and treats had
+   thirteen each, Famous places seven. So the deck follows the pictures: Sweets and treats folded into
+   Food, Sea life into At the seaside, In the garden and Minibeasts into Nature; Space took in the
+   weather; Jobs became People (the jobs that have a person drawn, and grandma, the baby and the
+   rest); Famous places went; and Feelings, Actions and Signs and symbols came in, from the faces,
+   gestures and signs no other category needed. SPLIT FINE because the category is the imposter's
+   whole hint: "Animals" over a shark, a bee and a hamster told them almost nothing. THIRTY IN EVERY
+   ONE, because the pile below is every (category, word) pair, so a category's share of the rounds is
+   its share of the cards — a category of forty beside one of twenty would come up twice as often for
+   no reason anybody chose. `check-widgets.js` holds the shape: at least 25 categories, at least 30
+   words in each and the same number in every one, no word twice anywhere (`hairdresser` in Jobs and `hairdresser’s` in Places were the
+   same card in the old deck), no word that says its own category (the hint handing the imposter half
+   the answer: `school bus` and `school trip` were in School), and no picture twice.
+
+   A CATEGORY HAS A PICTURE TOO, `sym`: the imposter's card shows it over "Imposter", and the play
+   screen shows it to the table. NONE IS A CARD'S PICTURE, OR A PICTURE OF ONE OF ITS OWN CARDS, or
+   the imposter would be holding the word. The first half was all that was held, by "no picture
+   twice", and the review of 11 October found eight categories breaking the second: 🐯 over
+   `tiger` 🐅, 🐶 over `dog`, 🏖️ over `parasol`, 🏅 over `gold medal`, 🎶 over `musical note`, 📚
+   over `book`, 👚 over `T-shirt`, 🎉 over `confetti` and `party`. So the card went where the
+   category's picture is the better hint (tiger, parasol, gold medal, musical note, T-shirt), and
+   the picture changed where the card is the better word (Pets 🐾, School 🎒, Celebrations 🎈 —
+   and At the seaside 🌊, so that `beach` could be a card). `check-widgets.js` holds it twice:
+   by picture (`LOOKALIKE`, families a child would call one thing) and by word (`SYM_SAYS`, what a
+   child calls each category's picture, which every new one has to be given).
+   Two more got past both (the second review, 12 Oct): 🥘 over `frying pan` 🍳, a pan of food seen
+   from above twice, and 🌌 over `shooting star` 🌠 and `star` ⭐, a night sky of stars over a star.
+   The kitchen kept its picture — the pan is the kitchen — and the pan went to Food as `fried egg`,
+   which is what 🍳 draws, with `bacon` coming the other way. Space and weather is 🔭 now, and 🌌 is
+   its card `Milky Way` where the telescope was. 👨‍🍳 was the obvious kitchen picture and is not
+   used: it is 👨 joined to 🍳, and Noto draws the cook holding that pan. The pairs that are near
+   and stay — 🥗 over `lettuce`, 🎭 over `happy` and `sad`, 🏞️ over `mountain` — are in `KEPT` in
+   check-widgets.js, each with why nothing else could take its place.
+
+   THE PICTURE IS NEVER SPOKEN. `speechSynthesis` reads an emoji out by its Unicode name — "slice of
+   pizza", "man health worker" — which is exactly the fluff the 11 Oct note was about. Only the word
+   goes to the voice (`imp-listen`).
 
    ABOUT HALF OF THESE ARE ALSO IN ARTICULATE OR CHARADES, AND THAT IS ALLOWED. `check-widgets.js`
    refuses one word in both of those two, because a word described and then mimed is a word the
    room already knows the answer to. Nothing like that can happen here: the word is dealt at random
-   from 810, only one person is trying to work it out, and a card from an hour ago tells them
+   from 750, only one person is trying to work it out, and a card from an hour ago tells them
    nothing about which one came up. Keeping ordinary words out to satisfy a rule written for a
    different game would leave the imposter a deck of words nobody can talk about. */
 const IMP_DECK = {
-  Food: [
-    'pizza', 'burger', 'sandwich', 'spaghetti', 'fish and chips', 'fish fingers', 'hot dog', 'soup',
-    'cereal', 'porridge', 'beans on toast', 'jacket potato', 'roast dinner', 'sausage roll',
-    'curry', 'lasagne', 'omelette', 'boiled egg', 'macaroni cheese', 'shepherd’s pie', 'meatballs',
-    'crumpet', 'bangers and mash', 'fried rice', 'sushi', 'tacos', 'nachos', 'fry-up',
-    'spring rolls', 'dumplings',
-  ],
-  'Fruit and veg': [
-    'apple', 'banana', 'orange', 'strawberry', 'grapes', 'carrot', 'watermelon', 'pineapple',
-    'tomato', 'cucumber', 'pear', 'lemon', 'cherry', 'peas', 'broccoli', 'sweetcorn', 'blueberry',
-    'mango', 'peach', 'plum', 'kiwi', 'coconut', 'lettuce', 'onion', 'pumpkin', 'sprouts', 'pepper',
-    'avocado', 'celery', 'mushroom',
-  ],
-  'Sweets and treats': [
-    'chocolate', 'ice cream', 'lollipop', 'biscuit', 'cupcake', 'doughnut', 'popcorn', 'crisps',
-    'candyfloss', 'jelly', 'marshmallow', 'milkshake', 'brownie', 'sprinkles', 'bubblegum',
-    'waffle', 'candy cane', 'pick and mix', 'slushie', 'fudge', 'crumble', 'trifle', 'cheesecake',
-    'jam tart', 'flapjack', 'scone', 'hot cross bun', 'mince pie', 'Swiss roll', 'rocky road',
-  ],
-  'In the kitchen': [
-    'fridge', 'kettle', 'toaster', 'microwave', 'oven', 'sink', 'plate', 'bowl', 'fork', 'mug',
-    'frying pan', 'dishwasher', 'saucepan', 'teapot', 'wooden spoon', 'rolling pin', 'whisk',
-    'tea towel', 'apron', 'chopping board', 'blender', 'baking tray', 'washing-up liquid', 'grater',
-    'sieve', 'peeler', 'tin opener', 'measuring jug', 'ladle', 'spatula',
-  ],
-  'At home': [
-    'bed', 'sofa', 'bath', 'television', 'stairs', 'toothbrush', 'window', 'key', 'mirror', 'lamp',
-    'soap', 'curtains', 'wardrobe', 'carpet', 'bin', 'doorbell', 'remote control', 'duvet',
-    'washing machine', 'vacuum cleaner', 'alarm clock', 'hairdryer', 'letterbox', 'radiator',
-    'bookcase', 'chimney', 'attic', 'iron', 'mop', 'hot-water bottle',
-  ],
-  'In the garden': [
-    'swing', 'trampoline', 'sunflower', 'paddling pool', 'watering can', 'shed', 'pond', 'barbecue',
-    'sandpit', 'tree house', 'lawnmower', 'wheelbarrow', 'spade', 'rose', 'fence', 'gate',
-    'bird feeder', 'greenhouse', 'hosepipe', 'rake', 'flowerpot', 'scarecrow', 'gnome', 'tulip',
-    'seeds', 'weeds', 'washing line', 'hammock', 'vegetable patch', 'compost heap',
-  ],
-  Toolbox: [
-    'hammer', 'screwdriver', 'ladder', 'saw', 'torch', 'drill', 'nail', 'batteries', 'sticky tape',
-    'tape measure', 'brick', 'light bulb', 'padlock', 'paint roller', 'paint pot', 'spanner',
-    'hard hat', 'wallpaper', 'magnifying glass', 'superglue', 'chain', 'plank', 'safety goggles',
-    'plunger', 'nuts and bolts', 'pliers', 'scaffolding', 'sandpaper', 'workbench', 'crane',
-  ],
-  Clothes: [
-    'socks', 'jumper', 'T-shirt', 'jeans', 'pyjamas', 'shorts', 'wellies', 'trainers', 'skirt',
-    'raincoat', 'hoodie', 'scarf', 'gloves', 'woolly hat', 'sunglasses', 'slippers',
-    'dressing gown', 'swimming costume', 'flip-flops', 'cap', 'leggings', 'tracksuit', 'helmet',
-    'tie', 'belt', 'dungarees', 'nappy', 'kilt', 'high heels', 'earmuffs',
-  ],
-  'The body': [
-    'nose', 'eye', 'ear', 'mouth', 'hand', 'foot', 'hair', 'teeth', 'arm', 'leg', 'tummy', 'knee',
-    'toes', 'thumb', 'tongue', 'elbow', 'neck', 'shoulder', 'chin', 'heart', 'brain', 'skeleton',
-    'beard', 'skin', 'forehead', 'wrist', 'ankle', 'muscles', 'freckles', 'fingerprint',
-  ],
-  'Wild animals': [
-    'elephant', 'lion', 'monkey', 'giraffe', 'tiger', 'zebra', 'panda', 'kangaroo', 'crocodile',
-    'polar bear', 'hippo', 'rhino', 'koala', 'camel', 'fox', 'owl', 'squirrel', 'hedgehog', 'frog',
-    'bat', 'badger', 'eagle', 'flamingo', 'ostrich', 'peacock', 'toucan', 'sloth', 'meerkat',
-    'otter', 'chameleon',
-  ],
-  'Pets and farm animals': [
-    'dog', 'cat', 'rabbit', 'hamster', 'guinea pig', 'goldfish', 'horse', 'cow', 'pig', 'sheep',
-    'chicken', 'duck', 'mouse', 'tortoise', 'pony', 'donkey', 'goat', 'budgie', 'parrot', 'rat',
-    'goose', 'turkey', 'bull', 'cockerel', 'llama', 'ferret', 'lizard', 'reindeer', 'gerbil',
-    'pigeon',
-  ],
-  'Sea life': [
-    'shark', 'dolphin', 'whale', 'octopus', 'jellyfish', 'crab', 'starfish', 'penguin', 'seal',
-    'turtle', 'seahorse', 'lobster', 'clownfish', 'orca', 'seaweed', 'squid', 'stingray', 'walrus',
-    'pufferfish', 'coral', 'puffin', 'eel', 'prawn', 'narwhal', 'swordfish', 'tuna', 'oyster',
-    'salmon', 'sea urchin', 'barnacle',
-  ],
-  Minibeasts: [
-    'spider', 'bee', 'ladybird', 'butterfly', 'ant', 'snail', 'worm', 'caterpillar', 'slug',
-    'beetle', 'wasp', 'fly', 'grasshopper', 'dragonfly', 'moth', 'centipede', 'woodlouse',
-    'tadpole', 'stick insect', 'cobweb', 'beehive', 'daddy-long-legs', 'earwig', 'mosquito', 'flea',
-    'maggot', 'chrysalis', 'praying mantis', 'pond skater', 'water boatman',
-  ],
-  Nature: [
-    'rainbow', 'volcano', 'waterfall', 'tornado', 'snowflake', 'puddle', 'lightning', 'mountain',
-    'river', 'forest', 'cave', 'island', 'desert', 'jungle', 'icicle', 'cloud', 'iceberg', 'lake',
-    'conker', 'acorn', 'pine cone', 'cactus', 'palm tree', 'dandelion', 'hailstones',
-    'stinging nettle', 'bluebell', 'daisy', 'nest', 'autumn leaves',
-  ],
-  Space: [
-    'moon', 'sun', 'star', 'rocket', 'astronaut', 'alien', 'Earth', 'Mars', 'Saturn', 'Jupiter',
-    'shooting star', 'telescope', 'flying saucer', 'black hole', 'satellite', 'crater', 'asteroid',
-    'comet', 'solar system', 'galaxy', 'eclipse', 'Northern Lights', 'Pluto', 'Venus', 'Neptune',
-    'Mercury', 'countdown', 'launch pad', 'mission control', 'constellation',
-  ],
-  'At the seaside': [
-    'sandcastle', 'bucket and spade', 'shell', 'seagull', 'waves', 'rock pool', 'beach ball',
-    'pier', 'lighthouse', 'suncream', 'deckchair', 'beach hut', 'rubber ring', 'pebbles',
-    'stick of rock', 'snorkel', 'flippers', 'donkey ride', 'fishing net', 'lifeboat', 'cliff',
-    'windbreak', 'parasol', 'cool box', 'helter-skelter', 'pedalo', 'postcard', 'bodyboard',
-    'wetsuit', 'anchor',
-  ],
-  'Fairy tales': [
-    'castle', 'dragon', 'witch', 'giant', 'unicorn', 'mermaid', 'princess', 'king', 'knight',
-    'magic wand', 'Cinderella', 'Goldilocks', 'Three Little Pigs', 'Snow White', 'Red Riding Hood',
-    'Big Bad Wolf', 'Gingerbread Man', 'Peter Pan', 'genie', 'troll', 'beanstalk',
-    'Sleeping Beauty', 'Rapunzel', 'Pinocchio', 'Hansel and Gretel', 'wishing well', 'throne',
-    'potion', 'Ugly Duckling', 'Puss in Boots',
-  ],
-  Countries: [
-    'England', 'Scotland', 'Wales', 'France', 'Spain', 'Ireland', 'America', 'Australia', 'Italy',
-    'China', 'Japan', 'India', 'Egypt', 'Germany', 'Canada', 'Jamaica', 'Mexico', 'Greece',
-    'Brazil', 'Switzerland', 'Holland', 'New Zealand', 'Poland', 'South Africa', 'Kenya',
-    'Portugal', 'Pakistan', 'Nigeria', 'Thailand', 'Peru',
-  ],
-  'Around town': [
-    'playground', 'supermarket', 'zoo', 'swimming pool', 'cinema', 'library', 'hospital', 'café',
-    'airport', 'theme park', 'museum', 'soft play', 'church', 'shopping centre', 'traffic lights',
-    'zebra crossing', 'bowling alley', 'aquarium', 'hotel', 'campsite', 'petrol station', 'theatre',
-    'stadium', 'fountain', 'skate park', 'chemist’s', 'nursery', 'phone box', 'mosque',
-    'skyscraper',
-  ],
-  'Famous places': [
-    'Big Ben', 'Eiffel Tower', 'London Eye', 'Buckingham Palace', 'Pyramids', 'Statue of Liberty',
-    'North Pole', 'Tower Bridge', 'Stonehenge', 'Mount Everest', 'Great Wall', 'Leaning Tower',
-    'Loch Ness', 'Sydney Opera House', 'Wembley', 'Antarctica', 'Sahara', 'Tower of London',
-    'Niagara Falls', 'Grand Canyon', 'Taj Mahal', 'Colosseum', 'Venice', 'Great Barrier Reef',
-    'Sphinx', 'Wimbledon', 'Hollywood', 'Hadrian’s Wall', 'Jurassic Coast', 'Land’s End',
-  ],
-  Jobs: [
-    'teacher', 'doctor', 'firefighter', 'police officer', 'nurse', 'farmer', 'chef', 'vet', 'pilot',
-    'builder', 'dentist', 'postman', 'hairdresser', 'baker', 'lifeguard', 'scientist', 'artist',
-    'shopkeeper', 'dinner lady', 'lollipop lady', 'magician', 'waiter', 'plumber', 'mechanic',
-    'detective', 'paramedic', 'actor', 'butcher', 'photographer', 'window cleaner',
-  ],
-  Sport: [
-    'football', 'tennis', 'cricket', 'rugby', 'basketball', 'netball', 'golf', 'gymnastics',
-    'skiing', 'ice skating', 'karate', 'hockey', 'rounders', 'surfing', 'badminton', 'horse riding',
-    'dodgeball', 'skateboarding', 'diving', 'sack race', 'trophy', 'referee', 'climbing', 'sailing',
-    'volleyball', 'rowing', 'high jump', 'hurdles', 'marathon', 'weightlifting',
-  ],
-  School: [
-    'ruler', 'scissors', 'pencil case', 'homework', 'lunchbox', 'uniform', 'crayons', 'rubber',
-    'playtime', 'desk', 'glue stick', 'whiteboard', 'paintbrush', 'book bag', 'PE kit',
-    'sports day', 'spelling test', 'assembly', 'gold star', 'calculator', 'exercise book',
-    'sharpener', 'glitter', 'globe', 'magnet', 'microscope', 'nativity play', 'show and tell',
-    'coat peg', 'lost property',
-  ],
-  Transport: [
-    'car', 'bicycle', 'aeroplane', 'train', 'double-decker bus', 'scooter', 'helicopter',
-    'fire engine', 'ambulance', 'tractor', 'taxi', 'lorry', 'digger', 'motorbike', 'submarine',
-    'hot-air balloon', 'ice-cream van', 'pushchair', 'caravan', 'sledge', 'canoe', 'speedboat',
-    'go-kart', 'ferry', 'cruise ship', 'tram', 'cable car', 'monster truck', 'cement mixer', 'raft',
-  ],
-  Celebrations: [
-    'birthday party', 'Christmas', 'Halloween', 'Easter egg', 'wedding', 'Bonfire Night',
-    'presents', 'balloons', 'sleepover', 'fancy dress', 'picnic', 'disco', 'Valentine’s Day',
-    'Mother’s Day', 'Pancake Day', 'April Fools’ Day', 'New Year’s Eve', 'Chinese New Year',
-    'Diwali', 'Eid', 'Hanukkah', 'Holi', 'advent calendar', 'cracker', 'piñata', 'bunting',
-    'carnival', 'World Book Day', 'harvest festival', 'pantomime',
-  ],
-  'Toys and games': [
-    'teddy bear', 'doll', 'kite', 'bubbles', 'hide and seek', 'jigsaw', 'robot', 'puppet', 'yo-yo',
-    'skipping rope', 'building blocks', 'slime', 'dice', 'marbles', 'snakes and ladders',
-    'bouncy castle', 'hopscotch', 'pass the parcel', 'stickers', 'hula hoop', 'playing cards',
-    'dominoes', 'chess', 'noughts and crosses', 'treasure hunt', 'Simon says', 'roller skates',
-    'spinning top', 'pogo stick', 'jack-in-the-box',
-  ],
-  Music: [
-    'guitar', 'drums', 'piano', 'violin', 'trumpet', 'recorder', 'microphone', 'headphones',
-    'triangle', 'tambourine', 'maracas', 'xylophone', 'radio', 'harp', 'cymbals', 'choir',
-    'karaoke', 'pop star', 'concert', 'ballet', 'talent show', 'lullaby', 'orchestra', 'saxophone',
-    'bagpipes', 'harmonica', 'trombone', 'tuba', 'castanets', 'accordion',
-  ],
+  Food: { sym: '😋', cards: [
+    '🍕 pizza', '🍔 burger', '🍟 chips', '🥪 sandwich', '🍝 spaghetti', '🌭 hot dog', '🍲 soup',
+    '🍛 curry', '🍣 sushi', '🌮 tacos', '🍜 noodles', '🍚 rice', '🥟 dumplings', '🥧 pie',
+    '🍗 chicken leg', '🍳 fried egg', '🌯 burrito', '🥙 kebab', '🥩 steak', '🍫 chocolate', '🍬 sweets',
+    '🍭 lollipop', '🍪 cookie', '🧁 cupcake', '🍩 doughnut', '🍿 popcorn', '🍰 cake', '🧇 waffle',
+    '🥞 pancakes', '🧆 falafel',
+  ] },
+  'Fruit and veg': { sym: '🥗', cards: [
+    '🍎 apple', '🍌 banana', '🍊 orange', '🍓 strawberry', '🍇 grapes', '🥕 carrot',
+    '🍉 watermelon', '🍍 pineapple', '🍅 tomato', '🥒 cucumber', '🍐 pear', '🍋 lemon', '🍒 cherry',
+    '🥦 broccoli', '🌽 sweetcorn', '🥔 potato', '🥭 mango', '🍑 peach', '🥝 kiwi', '🥥 coconut',
+    '🥬 lettuce', '🧅 onion', '🍄 mushroom', '🥑 avocado', '🌶️ chilli', '🍈 melon', '🧄 garlic',
+    '🥜 peanuts', '🍠 sweet potato', '🍆 aubergine',
+  ] },
+  'In the kitchen': { sym: '🥘', cards: [
+    '🍽️ plate', '🥣 bowl', '🥄 spoon', '🍴 cutlery', '🔪 knife', '🥢 chopsticks',
+    '🥓 bacon', '☕ cup', '🥛 milk', '🥚 egg', '🧀 cheese', '🍞 bread', '🧈 butter', '🧂 salt',
+    '🥫 tin', '🍯 honey', '🧊 ice cube', '🧃 juice box', '🍼 baby bottle', '🧽 sponge', '🚰 tap',
+    '⏲️ timer', '🧯 fire extinguisher', '🥤 fizzy drink', '🥡 takeaway', '🥐 croissant', '🥯 bagel',
+    '🥖 baguette', '🥨 pretzel', '🗑️ bin',
+  ] },
+  'At home': { sym: '🏠', cards: [
+    '🛏️ bed', '🛋️ sofa', '🛁 bath', '📺 television', '🚪 door', '🪑 chair', '🚽 toilet', '🔑 key',
+    '🧼 soap', '🧶 wool', '⏰ alarm clock', '🚿 shower', '🧻 toilet roll', '☎️ telephone',
+    '⌨️ keyboard', '💻 laptop', '🖼️ picture', '✉️ letter', '📰 newspaper', '🧳 suitcase',
+    '🪒 razor', '🕰️ clock', '💳 credit card', '🖨️ printer', '📦 parcel', '📱 mobile phone',
+    '🧺 basket', '🖥️ computer', '📷 camera', '👪 family',
+  ] },
+  Toolbox: { sym: '🧰', cards: [
+    '🔨 hammer', '🔧 spanner', '🔦 torch', '🔋 batteries', '💡 light bulb', '🔒 padlock',
+    '🧱 brick', '🪓 axe', '🔍 magnifying glass', '⛓️ chain', '🔩 nuts and bolts', '⛏️ pickaxe',
+    '🏗️ crane', '🥽 safety goggles', '🦺 hi-vis vest', '🚧 roadworks', '⚙️ cog', '🗜️ clamp',
+    '🛢️ barrel', '🧲 magnet', '🔌 plug', '📌 drawing pin', '🧷 safety pin', '⚖️ scales',
+    '⛑️ helmet', '📏 ruler', '✂️ scissors', '🖌️ paintbrush', '⏱️ stopwatch', '🧭 compass',
+  ] },
+  Clothes: { sym: '👚', cards: [
+    '🧦 socks', '🧕 headscarf', '👖 jeans', '👗 dress', '🩳 shorts', '🧥 coat', '👢 boots',
+    '👟 trainers', '👞 shoes', '🧣 scarf', '🧤 gloves', '🧢 cap', '🕶️ sunglasses', '👓 glasses',
+    '🩱 swimming costume', '🩲 pants', '👔 tie', '👠 high heels', '⌚ watch', '💍 ring',
+    '👜 handbag', '👛 purse', '🎩 top hat', '👘 kimono', '🥻 sari', '👳 turban', '🥾 walking boots',
+    '🎽 vest', '🥼 lab coat', '🎀 bow',
+  ] },
+  'The body': { sym: '🧍', cards: [
+    '👃 nose', '👁️ eye', '👂 ear', '👄 mouth', '👅 tongue', '🦷 tooth', '🧠 brain', '🦴 bone',
+    '💀 skull', '🦵 leg', '🦶 foot', '👣 footprints', '✋ hand', '😷 face mask', '☝️ finger', '✊ fist',
+    '💪 muscles', '💅 nails', '❤️ heart', '🩸 blood', '🧔 beard', '👩‍🦱 curly hair',
+    '👩‍🦰 red hair', '👨‍🦲 bald head', '🩹 plaster', '💉 injection', '🦠 germs', '💊 medicine',
+    '🩺 stethoscope', '🦻 hearing aid',
+  ] },
+  Feelings: { sym: '🎭', cards: [
+    '😀 happy', '😢 sad', '😭 crying', '😂 laughing', '😠 angry', '😨 scared', '😱 screaming',
+    '😮 surprised', '😴 asleep', '🤢 sick', '🤒 poorly', '🤕 hurt', '🥵 hot', '🥶 cold', '😵 dizzy',
+    '😍 in love', '😎 cool', '🤪 silly', '🤔 thinking', '😟 worried', '😳 embarrassed',
+    '🤩 excited', '😒 grumpy', '😑 bored', '😬 nervous', '😜 cheeky', '🤧 sneezing', '🥱 yawning',
+    '🤫 quiet', '🤨 suspicious',
+  ] },
+  Actions: { sym: '🚶', cards: [
+    '🏃 running', '🛌 sleeping', '🛀 having a bath', '👋 waving', '✍️ writing',
+    '🤳 taking a selfie', '🤗 hugging', '🤷 shrugging', '🤦 facepalm', '🙇 bowing', '🧎 kneeling',
+    '👉 pointing', '👊 fist bump', '🙌 cheering', '🤞 fingers crossed', '👌 OK sign',
+    '✌️ peace sign', '👎 thumbs down', '🗣️ talking', '💆 massage', '🙏 praying',
+    '😘 blowing a kiss', '🧘 yoga', '🤝 shaking hands', '🙅 saying no', '💇 getting a haircut',
+    '👍 thumbs up', '⛹️ bouncing a ball', '😉 winking', '👏 clapping',
+  ] },
+  People: { sym: '👥', cards: [
+    '👩‍🏫 teacher', '👨‍⚕️ doctor', '👩‍🚒 firefighter', '👮 police officer', '👨‍🌾 farmer',
+    '👩‍🍳 chef', '👨‍✈️ pilot', '👷 builder', '👩‍🔬 scientist', '👨‍🎨 artist', '👩‍🔧 mechanic',
+    '🕵️ detective', '👨‍⚖️ judge', '👨‍💼 office worker', '👩‍💻 computer programmer', '👩‍🏭 welder',
+    '💂 soldier', '🤡 clown', '🤠 cowboy', '🤹 juggler', '🏇 jockey', '👨 man', '👨‍🎤 rock star',
+    '👶 baby', '👦 boy', '👧 girl', '👵 grandma', '👴 grandad', '👩‍🎓 student', '🤰 pregnant woman',
+  ] },
+  'Wild animals': { sym: '🐯', cards: [
+    '🐘 elephant', '🦁 lion', '🐒 monkey', '🦒 giraffe', '🦧 orangutan', '🦓 zebra', '🐼 panda',
+    '🦘 kangaroo', '🐊 crocodile', '🐻 bear', '🦛 hippo', '🦏 rhino', '🐨 koala', '🐪 camel',
+    '🦊 fox', '🦉 owl', '🐿️ squirrel', '🐗 boar', '🦇 bat', '🦡 badger', '🦅 eagle',
+    '🦩 flamingo', '🦍 gorilla', '🐃 buffalo', '🦢 swan', '🦥 sloth', '🦨 skunk', '🦦 otter',
+    '🦝 raccoon', '🐆 leopard',
+  ] },
+  'Pets and farm animals': { sym: '🐾', cards: [
+    '🐕 dog', '🐈 cat', '🐇 rabbit', '🐹 hamster', '🐟 fish', '🐎 horse', '🐄 cow', '🐖 pig',
+    '🐑 sheep', '🐔 chicken', '🦆 duck', '🐁 mouse', '🐤 chick', '🐐 goat', '🐦 bird', '🦜 parrot',
+    '🐀 rat', '🦃 turkey', '🐂 bull', '🐓 cockerel', '🦙 llama', '🐏 ram', '🦎 lizard', '🐍 snake',
+    '🕊️ dove', '🦮 guide dog', '🐩 poodle', '🦚 peacock', '🐢 tortoise', '🐣 hatching chick',
+  ] },
+  'At the seaside': { sym: '🌊', cards: [
+    '🦈 shark', '🐬 dolphin', '🐳 whale', '🐙 octopus', '🦀 crab', '🦞 lobster', '🦐 prawn',
+    '🦑 squid', '🐡 pufferfish', '🐠 tropical fish', '🦪 oyster', '🐚 shell', '🐧 penguin',
+    '🏖️ beach', '🏝️ island', '🌅 sunset', '🤿 snorkel', '🎢 roller coaster', '⚓ anchor', '🎣 fishing rod',
+    '⛵ sailing boat', '🛥️ motor boat', '🎡 big wheel', '🎠 merry-go-round', '🏊 swimming', '🏄 surfing',
+    '🍦 ice cream', '👙 bikini', '👒 sun hat', '👡 sandals',
+  ] },
+  Nature: { sym: '🏞️', cards: [
+    '🌋 volcano', '⛰️ mountain', '🏜️ desert', '🌳 tree', '🌲 pine tree', '🌴 palm tree',
+    '🌵 cactus', '🌸 blossom', '🌻 sunflower', '🌹 rose', '🌷 tulip', '🌼 flower', '🦂 scorpion',
+    '🌾 wheat', '🍂 autumn leaves', '🦔 hedgehog', '🍀 four-leaf clover', '🌰 conker', '🌱 seedling',
+    '🔥 fire', '🐝 bee', '🐞 ladybird', '🦋 butterfly', '🐜 ant', '🐌 snail', '🐛 caterpillar',
+    '🦗 grasshopper', '🕷️ spider', '🕸️ cobweb', '🦟 mosquito',
+  ] },
+  'Space and weather': { sym: '🔭', cards: [
+    '☀️ sun', '🌙 moon', '🌕 full moon', '☂️ umbrella', '⭐ star', '🌠 shooting star', '☄️ comet',
+    '🪐 Saturn', '🌍 Earth', '🚀 rocket', '🛸 flying saucer', '🛰️ satellite', '👩‍🚀 astronaut',
+    '👽 alien', '🌌 Milky Way', '📡 satellite dish', '🌈 rainbow', '☁️ cloud', '🌧️ rain', '🌨️ snow',
+    '❄️ snowflake', '⚡ lightning', '⛈️ thunderstorm', '🌪️ tornado', '🌬️ wind', '🌫️ fog',
+    '🌡️ thermometer', '☃️ snowman', '🌄 sunrise', '💧 raindrop',
+  ] },
+  'Fairy tales': { sym: '🧚', cards: [
+    '🏰 castle', '🐉 dragon', '🧙‍♀️ witch', '🧙‍♂️ wizard', '👻 ghost', '🦄 unicorn', '🧜‍♀️ mermaid',
+    '👸 princess', '🤴 prince', '👑 crown', '⚔️ sword', '🛡️ shield', '🏹 bow and arrow', '🐺 wolf',
+    '🧞 genie', '🧝 elf', '🧛 vampire', '🧟 zombie', '🤥 Pinocchio', '🧹 broomstick',
+    '🔮 crystal ball', '🗡️ dagger', '💎 diamond', '🗝️ old key', '📜 scroll', '🏴‍☠️ pirate flag',
+    '🐸 frog', '💰 money bag', '⚰️ coffin', '👹 monster',
+  ] },
+  Countries: { sym: '🌐', cards: [
+    '🏴󠁧󠁢󠁥󠁮󠁧󠁿 England', '🏴󠁧󠁢󠁳󠁣󠁴󠁿 Scotland', '🏴󠁧󠁢󠁷󠁬󠁳󠁿 Wales', '🇫🇷 France', '🇪🇸 Spain', '🇮🇪 Ireland',
+    '🇺🇸 America', '🇦🇺 Australia', '🇮🇹 Italy', '🇨🇳 China', '🇯🇵 Japan', '🇮🇳 India',
+    '🇪🇬 Egypt', '🇩🇪 Germany', '🇨🇦 Canada', '🇯🇲 Jamaica', '🇲🇽 Mexico', '🇬🇷 Greece',
+    '🇧🇷 Brazil', '🇨🇭 Switzerland', '🇳🇱 Holland', '🇳🇿 New Zealand', '🇵🇱 Poland',
+    '🇿🇦 South Africa', '🇰🇪 Kenya', '🇵🇹 Portugal', '🇵🇰 Pakistan', '🇳🇬 Nigeria',
+    '🇹🇭 Thailand', '🇵🇪 Peru',
+  ] },
+  'Around town': { sym: '🏘️', cards: [
+    '🏥 hospital', '🛒 supermarket', '🏫 school', '⛪ church', '🚏 bus stop', '🏨 hotel',
+    '🏤 post office', '🎪 circus', '📮 postbox', '🛍️ shopping bags', '🚦 traffic lights', '🏦 bank',
+    '🏛️ museum', '🏪 corner shop', '🏕️ campsite', '⛽ petrol station', '🚉 train station',
+    '🏟️ stadium', '⛲ fountain', '🅿️ car park', '🏭 factory', '🕌 mosque', '🕍 synagogue',
+    '🛕 temple', '🏧 cash machine', '🚻 public toilets', '🏙️ city', '🏢 office block',
+    '🌉 bridge', '💈 barber’s',
+  ] },
+  Sport: { sym: '🏅', cards: [
+    '⚽ football', '🎾 tennis', '🏏 cricket', '🏉 rugby', '🏀 basketball', '🥊 boxing', '⛳ golf',
+    '🥋 karate', '🏑 hockey', '🏒 ice hockey', '🏸 badminton', '⚾ baseball',
+    '🏈 American football', '🏐 volleyball', '🏆 trophy', '🤸 gymnastics', '🥍 lacrosse',
+    '⛸️ ice skating', '⛷️ skiing', '🏂 snowboarding', '🥌 curling', '🤺 fencing',
+    '🏋️ weightlifting', '🚣 rowing', '🚴 cycling', '🧗 climbing', '🤼 wrestling',
+    '🚵 mountain biking', '🤾 handball', '🤽 water polo',
+  ] },
+  School: { sym: '🎒', cards: [
+    '✏️ pencil', '🖊️ pen', '🖋️ fountain pen', '🖍️ crayons', '🎨 paints', '📖 book', '📓 notebook',
+    '⚛️ atom', '📝 notepad', '💯 hundred', '🌟 gold star', '🔤 alphabet', '🔢 numbers',
+    '🙋 hands up', '🔬 microscope', '🧪 test tube', '🧬 DNA', '🗺️ map', '📎 paper clip',
+    '📋 clipboard', '📅 calendar', '🔖 bookmark', '🧮 abacus', '📐 set square', '📊 bar chart',
+    '📈 graph', '📁 folder', '🍱 lunchbox', '🧫 petri dish', '🏷️ label',
+  ] },
+  Transport: { sym: '🚥', cards: [
+    '🚗 car', '🚕 taxi', '🚓 police car', '🏎️ racing car', '🚌 bus', '🚐 minibus', '🚛 lorry',
+    '🚨 siren', '🚜 tractor', '🚒 fire engine', '🚑 ambulance', '🚲 bicycle', '🏍️ motorbike',
+    '🛵 moped', '🛺 tuk-tuk', '🚂 train', '🚅 bullet train', '🚇 underground', '🚝 monorail',
+    '🚋 tram', '🛤️ train track', '✈️ aeroplane', '🚁 helicopter', '🚡 cable car', '🛶 canoe',
+    '🚤 speedboat', '⛴️ ferry', '🛳️ cruise ship', '🚢 ship', '🦽 wheelchair',
+  ] },
+  Celebrations: { sym: '🎈', cards: [
+    '🎂 birthday cake', '🎁 presents', '🐰 Easter bunny', '🥳 party', '🎊 confetti', '🎄 Christmas',
+    '🎅 Father Christmas', '🤶 Mrs Claus', '👼 angel', '🎃 Halloween', '💌 love letter',
+    '💒 wedding', '👰 bride', '🤵 groom', '💐 bouquet', '🎆 fireworks', '🎇 sparkler',
+    '🧨 firecracker', '🪔 Diwali', '🕎 Hanukkah', '🏮 lantern', '🕺 disco', '🎓 graduation',
+    '🦌 reindeer', '✨ sparkles', '💘 Valentine’s Day', '💏 kiss', '🎖️ medal', '🕯️ candle',
+    '💑 couple',
+  ] },
+  'Toys and games': { sym: '🎲', cards: [
+    '🧸 teddy bear', '🎎 dolls', '🤖 robot', '🦕 dinosaur', '🦖 T-Rex', '🦸 superhero', '🪁 kite',
+    '🪀 yo-yo', '🥎 ball', '🥏 frisbee', '🔫 water pistol', '🛷 sledge', '🪂 parachute',
+    '🧩 jigsaw', '♟️ chess', '🃏 playing cards', '🎮 controller', '🕹️ joystick', '🎱 pool',
+    '🛹 skateboard', '🛴 scooter', '🎳 skittles', '🏓 table tennis', '🎯 dartboard', '🦹 villain',
+    '👾 space invader', '♠️ spades', '♣️ clubs', '⛺ tent', '🥅 goal',
+  ] },
+  Music: { sym: '🎶', cards: [
+    '🎸 guitar', '🥁 drums', '🎹 piano', '🎻 violin', '🎺 trumpet', '🎷 saxophone', '🪕 banjo',
+    '📯 horn', '🔔 bell', '🔁 repeat', '🎤 microphone', '🎧 headphones', '📻 radio', '💿 CD',
+    '🔊 speaker', '📣 megaphone', '⏩ fast forward', '💃 dancer', '🎼 treble clef',
+    '👩‍🎤 pop star', '🩰 ballet', '🎫 ticket', '▶️ play button', '⏸️ pause button', '🔇 mute',
+    '⏹️ stop button', '🤘 rock on', '⏪ rewind', '🔀 shuffle', '⏺️ record button',
+  ] },
+  'Signs and symbols': { sym: '🔣', cards: [
+    '🛑 stop', '⛔ no entry', '⚠️ warning', '♻️ recycling', '#️⃣ hashtag', '🚼 baby changing',
+    '🚭 no smoking', '📵 no phones', '🚳 no bikes', '🚸 children crossing', '✅ tick', '❌ cross',
+    '❓ question mark', '❗ exclamation mark', '➕ plus', '➖ minus', '🟥 square', '➗ divide',
+    '⭕ circle', '🆘 SOS', '🆕 new', '🏁 chequered flag', '🏳️ white flag', 'ℹ️ information',
+    '⬆️ arrow', '🔺 triangle', '♾️ infinity', '☢️ radioactive', '🚮 litter', '📶 signal',
+  ] },
 };
+
+/* EVERY CARD AS `[category, word, picture]`, read out of '🍕 pizza' at its first space — see "a card
+   is written as it is drawn" over `IMP_DECK`. A card written with no picture comes out as its whole
+   self and an empty picture, so the game still deals it, word and all, and `check-widgets.js` is
+   what says it has none. A LETTER IN FRONT OF THE FIRST SPACE MEANS NO PICTURE, so `'hot dog'` with
+   its 🌭 left off is the word "hot dog" rather than "dog" drawn under a picture called "hot". ONE
+   READER, so the pile, `check/states.js` and the journeys cannot each split a card a different way. */
+function impCards_() {
+  const all = [];
+  Object.keys(IMP_DECK).forEach(c => ((IMP_DECK[c] || {}).cards || []).forEach(s => {
+    const str = String(s), sp = str.indexOf(' ');
+    const sym = sp > 0 ? str.slice(0, sp) : '';
+    all.push(sym && !/[A-Za-z]/.test(sym) ? [c, str.slice(sp + 1), sym] : [c, str, '']);
+  }));
+  return all;
+}
 
 /* ONE PILE OF EVERY (category, word) PAIR, shuffled once and dealt from the top, so no word comes
    round twice until the whole deck has — which is the same promise `roundNext_` makes, one level
    up, because here the category changes every round too. */
 let IMP_PILE = [];
 function impDraw_() {
-  if (!IMP_PILE.length) {
-    const all = [];
-    Object.keys(IMP_DECK).forEach(c => IMP_DECK[c].forEach(w => all.push([c, w])));
-    IMP_PILE = herdShuffle_(all);
-  }
+  if (!IMP_PILE.length) IMP_PILE = herdShuffle_(impCards_());
   return IMP_PILE.pop();
 }
 
@@ -3242,21 +3346,28 @@ function impCount_(n) {
 
    THE SECRET IS NEVER SAID BY ITSELF. A phone that read the word out as the card came up would tell
    the whole table — the one thing this game cannot survive. So the card has LISTEN, pressed by the
-   person holding it, said at a little over half volume, and pressable again for "say it again". The
-   pass screen is what tells them how, and it TELLS them, out loud, because a child who cannot read
-   the card cannot read that sentence either.
+   person holding it, said at a little over half volume, and pressable again for "say it again".
 
-   AND IT TELLS THEM IN THE ORDER THE PRESSES GO. It said "Hold the phone to your ear, then press
-   Show" — but Show makes no sound, so a child who did exactly that heard nothing, and the gold button
-   now under their thumb was Hide: the obvious next press, and it passed their turn on without them
-   ever hearing the word (the review of 8 October). So it names the speaker, and puts the ear last.
+   AND LISTEN SAYS THE WORD AND NOTHING ELSE — "pizza" — or, on the imposter's card, "Imposter". The
+   owner, 11 Oct: "make the voice ONLY say the word. THERE IS TOO MUCH FLUFF with talking and all
+   sorts." Everything else the phone used to say went with that note, each line true and each one
+   more talking than the game needs:
+     - the hand-over, "Player 2. Press Show, then the speaker, and hold the phone to your ear." (it
+       was "Hold the phone to your ear, then press Show" until the review of 8 October found that
+       Show makes no sound, so the order was the whole of that sentence's job);
+     - the play screen, "Food. Player 3 starts.";
+     - the reveal, "The imposter was Player 2. The word was pizza.";
+     - and on Listen itself, "Your word is pizza. Your word is pizza." and "You’re the imposter. Your
+       hint is food." — see `imp-listen` for why those were long and why they are short now.
+   So `impAnnounce_`, which said the first three on the press that brought each screen up, is gone,
+   and nothing speaks but `imp-listen`. How to hold the phone is for the grown-up who deals to show a
+   child once, which is how every other game at the table is taught.
 
-   WHAT EVERYBODY MAY HEAR IS SAID BY ITSELF — whose turn it is, who starts, who it was — and only on
-   the press that brings that screen up. A browser lets a page talk in answer to a tap (Safari refuses
-   a first `speak()` outside one), and a press is also the only moment somebody is listening for it.
-   So `impPaint` has no voice: a repaint, a payload landing, a column swiped back to, all say nothing.
+   AND STILL ONLY ON A PRESS. A browser lets a page talk in answer to a tap (Safari refuses a first
+   `speak()` outside one), so `impPaint` has no voice: a repaint, a payload landing, a column swiped
+   back to, all say nothing.
 
-   AND WHAT IS STILL BEING SAID IS CUT OFF FIRST. Hide, Play again, Players and leaving the column
+   AND WHAT IS STILL BEING SAID IS CUT OFF FIRST. Hide, Deal, Players and leaving the column
    each start with `impHush_`, before anything else they do — a word half-spoken when the phone is
    handed on finishes in the next player's ear otherwise, and `speak()` queues rather than replaces. */
 function impCanSay_() {
@@ -3276,8 +3387,10 @@ function impHush_() {
 }
 /* `lang` AS WELL AS `voice`, because Chrome hands back no voices at all until its list has loaded —
    the first round of the day would get whatever the phone defaults to. `lang` is a request any
-   engine honours with the list empty; `voice` is the exact one when there is a list to pick from. */
-function impSay_(text, quiet) {
+   engine honours with the list empty; `voice` is the exact one when there is a list to pick from.
+   ALWAYS QUIET, 0.6: the one thing said now is the secret, into one ear. The full volume this kept
+   for the lines the whole table was meant to hear went with those lines. */
+function impSay_(text) {
   if (!impAloud_()) return;
   try {
     const ss = window.speechSynthesis;
@@ -3287,23 +3400,17 @@ function impSay_(text, quiet) {
       .find(v => /^en[-_]GB/i.test(String(v.lang || '')));
     if (gb) u.voice = gb;
     u.rate = 0.9;
-    u.volume = quiet ? 0.6 : 1;
+    u.volume = 0.6;
     ss.speak(u);
   } catch (e) {}
-}
-/* WHAT A SCREEN SAYS WHEN A PRESS BRINGS IT UP — only the ones nothing secret is on. The card says
-   nothing until Listen, which is `imp-listen` below and not here. */
-function impAnnounce_() {
-  const s = IMP, player = i => 'Player ' + (i + 1);
-  if (s.phase === 'deal' && !s.shown) impSay_(player(s.at) + '. Press Show, then the speaker, and hold the phone to your ear.');
-  else if (s.phase === 'play') impSay_(s.cat + '. ' + player(s.first) + ' starts.');
-  else if (s.phase === 'reveal') impSay_('The imposter was ' + player(s.imp) + '. The word was ' + s.word + '.');
 }
 
 /* `phase` IS ONE OF idle · deal · play · reveal, and `at` is whose turn it is to look while dealing.
    `shown` is whether that player's card is up — the one piece of state that must never outlive the
-   person holding the phone, which is what `impHide_` is for. */
-const IMP_IDLE = () => ({ phase: 'idle', n: 0, at: 0, shown: false, imp: 0, first: 0, cat: '', word: '' });
+   person holding the phone, which is what `impHide_` is for. `sym` is the word's picture and `catSym`
+   the category's, kept with the round so a repaint draws the pictures it dealt. */
+const IMP_IDLE = () => ({ phase: 'idle', n: 0, at: 0, shown: false, imp: 0, first: 0, cat: '', word: '',
+                          sym: '', catSym: '' });
 let IMP = IMP_IDLE();
 
 /* ---------- A SECOND TAP IS NOT A SECOND PRESS -------------------------------------------------
@@ -3311,9 +3418,11 @@ let IMP = IMP_IDLE();
    most common thing a five-year-old does to a button, then presses two screens in one go. Measured
    in Chromium with two touch taps 120ms apart: Show then Hide (the card flashed and the turn moved
    on unseen), Hide then the next player's Show (Player 1 holding Player 2's card), the last Hide then
-   Reveal (the imposter named before anybody had played). Deal and Play again overlap Show's box too.
+   Reveal (the imposter named before anybody had played). Deal, on the setup screen and on the
+   reveal, overlaps Show's box too.
 
-   SO THOSE THREE IGNORE A PRESS WITHIN `IMP_GAP` OF THE LAST PRESS. Every deliberate press
+   SO THOSE THREE — AND THE REVEAL'S DEAL AND PLAYERS, drawn where Reveal was (see `imp-again`) —
+   IGNORE A PRESS WITHIN `IMP_GAP` OF THE LAST PRESS. Every deliberate press
    here is further apart than that by a mile — a word is read, a phone is handed across a table, a
    round is played — so the only press it can cost is a second tap, and a child whose press was
    swallowed simply presses again. 600ms rather than a phone's own double-tap window (300–500ms),
@@ -3331,9 +3440,9 @@ let IMP = IMP_IDLE();
    more than a press: a repaint when a payload lands, a return to the column. `check/press.js` found
    it (8 Oct) — it arrives on a card and presses inside 600ms of the draw, and Show, Hide and Reveal
    did nothing, which is exactly what a child gets who presses the moment the column slides back. A
-   double tap is two PRESSES close together, so that is what is measured: Deal, Show, Hide, Reveal
-   and Play again each stamp the time they acted (`impPressed_`), and only a press that close behind
-   one of them is the second tap. */
+   double tap is two PRESSES close together, so that is what is measured: both Deals, Show, Hide,
+   Reveal and Players each stamp the time they acted (`impPressed_`), and only a press that close
+   behind one of them is the second tap. */
 const IMP_GAP = 600;
 let IMP_PRESSED = -Infinity;
 function impTooSoon_(e) {
@@ -3346,15 +3455,34 @@ function impPressed_(e) {
 }
 
 function impDeal_(n) {
-  const [cat, word] = impDraw_();
+  const [cat, word, sym] = impDraw_();
   IMP = { phase: 'deal', n: n, at: 0, shown: false,
           imp: Math.floor(Math.random() * n), first: Math.floor(Math.random() * n),
-          cat: cat, word: word };
+          cat: cat, word: word, sym: sym || '', catSym: (IMP_DECK[cat] || {}).sym || '' };
 }
 
-/* THE SLOTS EVERY SCREEN FROM "Pass to" TO "Reveal" IS DRAWN IN — see "the big line and the button
-   do not move" above. An empty slot is drawn empty rather than left out, which is the whole trick: the
-   stylesheet gives it its height either way.
+/* THE SLOTS EVERY SCREEN FROM THE FIRST HAND-OVER TO "Reveal" IS DRAWN IN — see "the big line and the
+   button do not move" above: the picture, the big line, the small line, the button and the speaker's
+   room. An empty slot is drawn empty rather than left out, which is the whole trick: the stylesheet
+   gives it its height either way. The hand-over has no picture and keeps the picture's room, so its
+   name sits where the word will.
+
+   THE PICTURE IS `aria-hidden`: a screen reader would read 🍕 as "slice of pizza" right before the
+   word it is a picture of, which is the fluff the 11 Oct note was about, said by somebody else.
+
+   AND THE IMPOSTER'S PICTURE CARRIES A "?" (`imp` → `.is-imp`, drawn by style.css), because a
+   picture over a word is the whole card to a child who cannot read the word — and the imposter's
+   card was a picture over a word too. With Read aloud off (how it arrives), a five-year-old dealt
+   the imposter would see 🐯 over a word they could not read, take the tiger for their word, and
+   play the round as somebody who had it (the review of 11 October, from the screenshots). "Imposter" is the one word on that card
+   they needed, and the only one they could not read. So it is said in the one way a non-reader
+   learns once — a gold "?" on the picture, "you don't know the word" — at the picture's own place
+   and inside its slot, so the card is still a big picture over a line of text from across a
+   table, and still one height. NOT ON THE PLAY SCREEN, where the same picture is everybody's.
+
+   THE SMALL LINE WAS TWO, ONE OVER THE BIG LINE AND ONE UNDER IT, while there was "Pass to" to put
+   over a name. With that gone the category is the only small line left — the imposter's hint, and
+   the table's on the play screen — and it sits under the big line on both, in the same place.
 
    AND THE SPEAKER'S ROOM IS KEPT ON THE SCREENS WITHOUT ONE. The first version only hung the card from
    its top, so that Listen under the button pushed nothing up inside the card — and the screenshots at
@@ -3363,10 +3491,10 @@ function impDeal_(n) {
    has to be the same, and `foot` is Listen on a card and an empty 64px (with Listen's 20px over it)
    on the pass and play screens while Read aloud is on; with it off there is no speaker anywhere and
    nothing to keep room for. */
-function impFrame_(over, big, under, button, foot) {
-  return `<p class="art-cat-of imp-lab">${esc(over)}</p>
+function impFrame_(sym, big, small, button, foot, imp) {
+  return `<p class="imp-sym${imp ? ' is-imp' : ''}" aria-hidden="true">${esc(sym)}</p>
     <p class="art-word imp-big">${esc(big)}</p>
-    <p class="art-cat-of imp-lab">${esc(under)}</p>
+    <p class="art-cat-of imp-lab">${esc(small)}</p>
     ${button}${foot || ''}`;
 }
 /* THE MARK BESIDE THE WORD, NOT INSTEAD OF IT — `tile_`'s own rule turned round, because a gold button
@@ -3426,25 +3554,31 @@ function impPaint() {
   const aloud = impAloud_();
   const room = aloud ? '<span class="imp-foot" aria-hidden="true"></span>' : '';
   if (s.phase === 'deal' && !s.shown) {
-    card.innerHTML = impFrame_('Pass to', player(s.at), '', impShow_(), room);
+    card.innerHTML = impFrame_('', player(s.at), '', impShow_(), room);
     return;
   }
+  /* THE IMPOSTER'S CARD CARRIES THE CATEGORY'S PICTURE where everybody else's carries the word's — see
+     "every card has a picture" above: a card with no picture would be the imposter's from across the
+     table — and the "?" on it, for the child who cannot read "Imposter" (see `impFrame_`). */
   if (s.phase === 'deal') {
     const me = s.at === s.imp;
-    card.innerHTML = impFrame_('', me ? 'Imposter' : s.word, me ? 'Hint: ' + s.cat : '', impHideBtn_(),
-      aloud ? tile_({ icon: 'speak', label: 'Listen', act: 'imp-listen', tone: 'listen' }) : '');
+    card.innerHTML = impFrame_(me ? s.catSym : s.sym, me ? 'Imposter' : s.word, me ? s.cat : '', impHideBtn_(),
+      aloud ? tile_({ icon: 'speak', label: 'Listen', act: 'imp-listen', tone: 'listen' }) : '', me);
     return;
   }
   if (s.phase === 'play') {
-    card.innerHTML = impFrame_(s.cat, player(s.first) + ' starts', '', impReveal_(), room);
+    card.innerHTML = impFrame_(s.catSym, player(s.first) + ' starts', s.cat, impReveal_(), room);
     return;
   }
+  /* THE REVEAL: who, and the word with its picture. "Word" over the word went in the 11 Oct trim — the
+     picture and the word under "Imposter / Player 2" say what they are. "Play again" became "Deal",
+     the setup screen's own word for the same press, so a button of one word means one thing. */
   card.innerHTML = `<p class="art-over">Imposter</p>
     <p class="art-score">${esc(player(s.imp))}</p>
-    <p class="art-over">Word</p>
+    <p class="imp-sym" aria-hidden="true">${esc(s.sym)}</p>
     <p class="art-word">${esc(s.word)}</p>`;
   if (acts) {
-    acts.innerHTML = `<button class="btn" data-do="imp-again">Play again</button>
+    acts.innerHTML = `<button class="btn" data-do="imp-again">Deal</button>
       <button class="btn quiet" data-do="imp-players">Players</button>`;
   }
 }
@@ -3470,8 +3604,9 @@ on('imp-count', el => {
   impPaint();
 });
 on('imp-aloud', () => { impAloud_(!impAloud_()); impPaint(); });
-on('imp-start', (el, e) => { impHush_(); impPressed_(e); impDeal_(impCount_()); impPaint(); impAnnounce_(); });
-/* SHOW, HIDE AND REVEAL TAKE `(el, e)` FOR `impTooSoon_` — see "a second tap is not a second press". */
+on('imp-start', (el, e) => { impHush_(); impPressed_(e); impDeal_(impCount_()); impPaint(); });
+/* SHOW, HIDE AND REVEAL TAKE `(el, e)` FOR `impTooSoon_` — see "a second tap is not a second press" —
+   and so do the reveal's Deal and Players, below. */
 on('imp-show', (el, e) => {
   if (IMP.phase !== 'deal' || IMP.shown) return;
   if (impTooSoon_(e)) return;
@@ -3479,16 +3614,21 @@ on('imp-show', (el, e) => {
   IMP.shown = true;
   impPaint();
 });
-/* THE ONLY PLACE THE SECRET IS SPOKEN, and only with the card up — so only by the person who pressed
+/* THE ONLY PLACE ANYTHING IS SPOKEN, and only with the card up — so only by the person who pressed
    Show. Hushed first so a second press says it again rather than queueing a second copy behind it.
 
-   THE TWO LINES ARE THE SAME SHAPE AND ABOUT THE SAME LENGTH, because the table can hear HOW LONG a
-   phone talks even where it cannot make out a word. It was "Pizza." (about 0.6s) against "You’re the
-   imposter. The hint is food." (about 3s), so whichever phone talked five times longer was the
-   imposter's — and in one round every player's line is the same length, so the odd one out stood
-   out. Counted in syllables over all 810 cards: 2 against 11 on average before; 10.6 against 10.6
-   now, and within two syllables of each other for 72% of cards. The word said TWICE is the other
-   half of it: the first is said while the phone is still going up, the second at the ear.
+   THE WORD, ONCE, AND NOTHING ELSE — or "Imposter", and nothing else. The owner, 11 Oct: "make the
+   voice ONLY say the word." Never the picture: an emoji goes to the voice as its Unicode name.
+
+   IT WAS LONGER ON PURPOSE, AND THE REASON IS WORTH KNOWING. The review of 8 October found that the
+   table can hear HOW LONG a phone talks where it cannot make out a word: "Pizza." (about 0.6s)
+   against "You’re the imposter. The hint is food." (about 3s) put the odd one out five times longer.
+   So both lines were padded to one shape — "Your word is pizza. Your word is pizza." and "You’re the
+   imposter. Your hint is food." — and that padding is the fluff the owner heard. Now it is two single
+   words: "Imposter" is three syllables, a word is 2.1 on average (counted over all 750 cards), and
+   72% of them are within one syllable of it — under a second either way, into one ear at 0.6. The
+   tell the padding was for was 2.4 seconds; what is left is a fraction of one. The word said TWICE,
+   so the second one landed at the ear, went with the rest: a child presses again to hear it again.
 
    STARTED ON THE TAP AND NOT AFTER A PAUSE, though the review offered one (1.2–1.5s, so the phone is
    at the ear first). Safari will only start speech in answer to a tap until something has spoken,
@@ -3497,10 +3637,7 @@ on('imp-show', (el, e) => {
 on('imp-listen', () => {
   if (IMP.phase !== 'deal' || !IMP.shown) return;
   impHush_();
-  const w = String(IMP.word);
-  impSay_(IMP.at === IMP.imp
-    ? 'You’re the imposter. Your hint is ' + String(IMP.cat).toLowerCase() + '.'
-    : 'Your word is ' + w + '. Your word is ' + w + '.', true);
+  impSay_(IMP.at === IMP.imp ? 'Imposter' : String(IMP.word));
 });
 /* HUSHED BEFORE THE GUARD, so a second tap that is ignored still stops the voice — which is never
    wrong when the phone may be on its way to somebody else. */
@@ -3513,10 +3650,11 @@ on('imp-hide', (el, e) => {
   if (IMP.at < IMP.n - 1) IMP.at++;
   else IMP.phase = 'play';
   impPaint();
-  impAnnounce_();
 });
-/* GUARDED BEFORE THE HUSH, the other way round from Hide: a second tap of the last Hide lands here,
-   and the line it would cut off is "Food. Player 3 starts." — which the table is meant to hear. */
+/* GUARDED BEFORE THE HUSH, the other way round from Hide. That order was for "Food. Player 3
+   starts.", the line the play screen used to say and a second tap of the last Hide would have cut
+   off. Nothing is said on the play screen since 11 Oct, so the hush here is only the house rule that
+   a screen changing stops the voice — the order is kept because it costs nothing and is still right. */
 on('imp-reveal', (el, e) => {
   if (IMP.phase !== 'play') return;
   if (impTooSoon_(e)) return;
@@ -3524,10 +3662,31 @@ on('imp-reveal', (el, e) => {
   impHush_();
   IMP.phase = 'reveal';
   impPaint();
-  impAnnounce_();
 });
-on('imp-again', (el, e) => { impHush_(); impPressed_(e); impDeal_(IMP.n || impCount_()); impPaint(); impAnnounce_(); });
-on('imp-players', () => { impHush_(); IMP = IMP_IDLE(); impPaint(); });
+/* `imp-again` IS THE REVEAL'S "Deal" — it was "Play again" until the 11 Oct trim — and deals for the
+   same number of players without going back through the setup screen.
+
+   BOTH OF THE REVEAL'S BUTTONS TAKE `(el, e)` FOR `impTooSoon_` TOO, because Reveal is drawn where
+   they are. The guard covered Show, Hide and Reveal and stopped there, and the review of 11 October
+   double-tapped Reveal in Chromium at 390 and at 320: the second tap went to Players — Reveal's
+   centre is x=195, Deal ends at 191 and Players starts at 198, and the browser's touch adjustment
+   sends a tap in that gap to the nearer button — and the round went play → reveal → setup in one
+   gesture, so the table never saw who the imposter was. It was so before the pictures went in,
+   too. HUSHED BEFORE THE GUARD, as Hide is: a tap that is ignored still stops the voice. */
+on('imp-again', (el, e) => {
+  impHush_();
+  if (impTooSoon_(e)) return;
+  impPressed_(e);
+  impDeal_(IMP.n || impCount_());
+  impPaint();
+});
+on('imp-players', (el, e) => {
+  impHush_();
+  if (impTooSoon_(e)) return;
+  impPressed_(e);
+  IMP = IMP_IDLE();
+  impPaint();
+});
 
 /* ==================================================================================================
    FOUR CLASSROOM GAMES — Just a Minute, Taboo, Hot Seat and 20 Questions.
@@ -5081,10 +5240,15 @@ const WORD_GAMES = [
     body: `<p class="sub">Twenty yes-or-no questions to find a person, a place or a thing.</p>` },
   { k: 'imp', name: 'Imposter', start: () => initImposter(), stop: () => impHide_(),
     /* NO NOTE LINE UNDER THE CARD. `#imp-said` was here and said a sentence on every screen — see
-       "a small line, a big line and one button" over `IMP_MIN`. With nothing left to write to it, an
-       empty paragraph would only be a margin. */
-    body: `<p class="sub">Everyone gets the word but one. Find the imposter.</p>
-    <div id="imp-card" class="art"></div>
+       "a picture, a big line, a small line and one button" over `IMP_MIN`. With nothing left to write
+       to it, an empty paragraph would only be a margin.
+
+       AND NO LINE OVER IT, the one game in this list without its sentence. It was "Everyone gets the
+       word but one. Find the imposter.", on every screen of every round, and the owner, 11 Oct: "THERE
+       IS TOO MUCH FLUFF with talking and all sorts. Even written." The dropdown over the card already
+       says "Imposter"; the rules are the ones everybody at the table plays by. The other seven keep
+       theirs — a clock, a forbidden list or a hot seat is a rule somebody new has to be told. */
+    body: `<div id="imp-card" class="art"></div>
     <div id="imp-acts" class="art-row"></div>` },
   /* HERD MENTALITY, MOVED IN BY THE OWNER — "heard mentality is a word game so should go there." It
      was left out of the merge on the builder's reasoning (a question everybody answers at once is

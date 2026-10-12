@@ -26,3 +26,5 @@ backend deploys**, because every generated handle so far is the old `BrightOtter
 a long name, an empty one, another script), that the longest kept name plus the longest adjective
 fits twenty, every adjective against a spread of names through the gate, the blocked-name fallback,
 and the rename job both ways. Proved by mutation five ways. Stamps are `2026-09-30-f-handles`.
+
+**Since 11 Oct (342):** for a child, `<first>_<adjective>NN` is replaced by their initials and four digits from 2 to 9 (`handleKid_`); a grown-up's handle is this note's rule as 250 left it. See [342](342-a-child-s-handle-carries-no-name.md).

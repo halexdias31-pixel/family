@@ -78,3 +78,5 @@ so a payload already cached under the old code (up to six hours) is served witho
 the next write retires it. `payload.students` still goes to every student and parent for the
 friend search, with `siblings` on each row — wider than one family, pre-existing, and the friend
 search depends on it.
+
+**Since 11 Oct (342, round 2):** the claim card names the grown-up asking by their WHOLE name, and so does a child's own parent's card — to that child only. 342 had cut every parent's surname to "first name only, to anybody but themselves and an admin", and the claim card is the one place a child vets a grown-up: a stranger registering as "<Mum's first name> <anything>" sent a card that read like Mum's. See [342](342-a-child-s-handle-carries-no-name.md).

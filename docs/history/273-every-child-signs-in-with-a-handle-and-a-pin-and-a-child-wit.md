@@ -1,5 +1,7 @@
 ## Every child signs in with a handle and a PIN — and a child with no email can get an account at all
 
+**Since 11 Oct making a child's account and adding a child are one card, "Manage your child"**, with the children already linked listed on it and New PIN beside each ([339](339-your-card-holds-what-is-about-you.md)).
+
 The owner, 5 October: *"audit the registration process and so on so all kids can login easily with
 their handle and pin."*
 
@@ -103,3 +105,5 @@ front-end ways and 3 state ways**, each red for its own reason and green on rest
 320 and 390 of the sign-in card, the register sheet (ticked and not), the make-child slip, the admin
 card with no handle yet and the New PIN slip — looked at; the first register note ran under the fold
 at 320 and was cut to three lines.
+
+**Since 11 Oct (342):** a child's handle is their initials and four digits, made the same way by `makeChild`, `register`, `resetPin`'s fill and `fillHandles`; the one on an older slip still signs them in — spelled out in full too, however many times they press Randomise after — and the sign-in sheet tells them the new one, and the family iPad's chip for the old one becomes the new one. See [342](342-a-child-s-handle-carries-no-name.md).

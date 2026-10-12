@@ -1,5 +1,7 @@
 ## Each library card looks like one: a bank card's shape on paper, a fake barcode worked out from its number, and its three boxes still on it
 
+**Since 11 Oct the library cards are a widget on Tools** (`libcards`), straight after the hours, for everybody signed in — the same shelf, the same tick and the same fifteen fields ([339](339-your-card-holds-what-is-about-you.md)).
+
 **The owner, 10 Oct**, with a screenshot of Settings → Library cards (three entries, each a library name
 box with a four-digit PIN box beside it and a card number box under them, then "Add another" and the
 tick): *"make each look like a card. with fake barcode."*

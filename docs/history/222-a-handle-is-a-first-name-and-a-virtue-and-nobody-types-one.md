@@ -1,5 +1,7 @@
 ## A handle is a first name and a virtue, and nobody types one
 
+**Since 11 Oct the handle and its Randomise are on your own card** — the `handle` section of its Edit on the You column, saved the moment it is pressed, and Cancel does not take it back ([339](339-your-card-holds-what-is-about-you.md)).
+
 **Asked for as "handles should be there name and a virtuas describing word. they can randomise it
 but it will follow that general name."** `handleMake_` in people.gs builds `halex_kind`: the first
 name, an underscore, and one word off `HANDLE_ADJ`, which is thirty virtues and nothing else (kind,
@@ -47,3 +49,5 @@ on every one of 15 presses, the history capped at ten, another person's id poste
 own handle changes), signed out (refused and nothing written), and `changeHandle` no longer an action.
 `check/states.js` has `settings · your handle`, which fails at all four widths if a box comes back
 beside the button.
+
+**Since 11 Oct (342):** a child's handle is no longer a first name — it is their initials and four digits; Randomise keeps the initials and draws a new tail. A grown-up's is unchanged. See [342](342-a-child-s-handle-carries-no-name.md). **And `handle_was` is no longer "the last `HANDLE_WAS_KEEP` (10)"** (342, after review): an old handle still signs its person in and is never reissued, so none is dropped; Randomise stops at `HANDLE_WAS_MAX` (200) instead. **And Randomise keeps the face** (342, round 2): a figure nobody dressed is drawn from the handle, so every press changed its skin and hair colour; the server now writes the old handle's look into a blank cell first (`handleFaceKept_`) and sends it back as `avatar`.

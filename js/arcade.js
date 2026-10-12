@@ -141,10 +141,14 @@ const mapPlaces = () => (DATA.venues || []).filter(v => {
    `MESSAGING` records one file along; four would have been the same thing waiting to happen twice.
    ON THE PHONE, because that is where the flyer maker lives: it never talks to the backend, so
    there is no server rule for this to be a second copy of. */
+/* AND `signedIn`, A THIRD AUDIENCE: everybody with an account and nobody without one — the library cards
+   (docs/history/339), which hold your own cards and their PINs and were a Settings page, which a visitor
+   signed out never had. On the phone for the flyer's reason; the server asks the token on every save. */
 function widgetFor_(w) {
   if (!w) return false;
   if (w.admin && !(typeof isAdmin === 'function' && isAdmin())) return false;
   if (w.tutor && !(typeof isTutorRole === 'function' && isTutorRole())) return false;
+  if (w.signedIn && !(typeof USER !== 'undefined' && USER)) return false;
   return true;
 }
 

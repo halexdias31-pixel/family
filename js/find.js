@@ -11037,7 +11037,10 @@ function questionTiles_(x) {
      the answer's two faces (`ansArea_`) -- on a made-up surface since 327, on the paper's own figure or a
      stem's since 337. For everybody, signed in or not -- the drawing was a page anybody could swipe to. */
   /* NO WAY TO THE ANSWER IN THIS ROW ANY MORE -- see where `To the answer` was, above. */
-  return drawTile_(x) + fig + (whoIs_() ? subSlot_(x) : '');
+  /* AND THE SOUND SWITCH, JUST BEFORE THE SLOT, on a card that can be marked -- signed in or out, since a
+     signed-out child is marked and hears it too (`markSoundTile_`, js/submit.js, note 340). Before the
+     slot so the first verdict, landing in it, pushes no tile along under the finger. */
+  return drawTile_(x) + fig + (typeof markSoundTile_ === 'function' ? markSoundTile_(x) : '') + (whoIs_() ? subSlot_(x) : '');
 }
 
 /* ==================================================================================================
@@ -11492,7 +11495,7 @@ function stuffItems() {
    become just learning stuff."* The same move as Booking above and the same care: the forty shop
    Things had ONE way onto a screen, this door, so it came out in the commit that built the Shop
    column (`shopCards_` in collections.js) and not before. The wearables, which are `Shop` too, have
-   the wardrobe on Settings. A STARRED shop thing stays on Saved — `collItems_` reads
+   the wardrobe in your own card's Edit (docs/history/339). A STARRED shop thing stays on Saved — `collItems_` reads
    `stuffItemsAll_`, which this does not touch.
 
    A LIST NOW, AND THE TEST IS "EVERY GROUP IT IS IN IS ONE OF THESE". A kind in `Shop` and in
@@ -13142,11 +13145,58 @@ function mineIs_(t) {
      every width. Found by the lab and not by looking: `check/ui.js` reported the state as not
      reached, which is precisely what that assertion is for. */
   if (typeof USER === 'undefined' || !USER) return false;
+  /* ---------- AN ID ON BOTH SIDES DECIDES, AND THE NAME IS ONLY FOR A ROW WITHOUT ONE ----------------------
+     THE NAME RUNGS ANSWERED YES FOR A STRANGER. A parent called Ada Tutor, signed in, was handed the listed
+     tutor Ada Tutor's row as her own card — by `title`, though both rows carried a `personId` and the two
+     were different people (the review of docs/history/339). Before that note it drew the wrong face; after
+     it, the row's id was not hers, so she was offered no Edit on her own card, while Settings — asking the
+     same rungs whether she had a public card — took her name and picture off its pages too: nowhere left to
+     edit either. So when the row and the session BOTH carry an id, the ids are the whole answer; the handle
+     and the name rungs are for a row that came without one (an older payload, a score board's row). */
+  if (t && USER.personId && t.personId) return String(t.personId) === String(USER.personId);
   return !!t && (
-    (USER.personId && t.personId && String(t.personId) === String(USER.personId)) ||
     (USER.handle && t.handle && norm(t.handle) === norm(USER.handle)) ||
     (USER.name && t.title && norm(t.title) === norm(USER.name)) ||
     (USER.name && t.name && norm(t.name) === norm(USER.name)));
+}
+
+/* ---------- YOUR OWN ROW, WHEREVER IT COMES FROM ------------------------------------------------------
+   Your row in `DATA.tutors` when you are listed staff — `mineIs_` — and otherwise one built from what
+   signing in returned. LIFTED OUT OF `accountPages_` (docs/history/339) because a second thing asks for it:
+   Edit on your own card is everybody's now, and `card-edit` (me.js) must open the very row the card it was
+   pressed under was drawn from — a parent's, a student's and an unlisted admin's have no tutor row. One
+   builder, so the card and its editor can never be two different people. */
+function myCardRow_() {
+  return (DATA.tutors || []).filter(mineIs_)[0] || {
+    /* ---------- THE HANDLE IS PRINTED UNDER THE NAME, SO IT IS NOT SAID IN IT TOO --------------------
+       A child is called by her first name (the owner, 10 Oct: *"dont show children's last name"*), and
+       when another child shares it the server says `Wren (@wren_kind43)` (`nameFor_`) — which is right
+       for a roster and wrong here, where `@wren_kind43` is the next line. Measured: the card read
+       "Wren (@wren_kind43) / @wren_kind43". `nameBesideHandle_` (data.js) takes only that suffix, and only
+       when it is this card's own handle; `USER.name` itself is untouched — it is what "is this mine?"
+       compares. */
+    title: nameBesideHandle_(USER.name, USER.handle) || 'Signed in',
+    role:  roleOf(USER.role || 'student'),
+    handle: USER.handle,
+    /* YOUR PICTURE AS THE PICKER LAST KEPT IT (`USER.profile.photo`, written by `pfpTake_`), else the
+       sign-in reply's. With your figure beside it, so `personFace_` can draw `pfp:avatar` — though on
+       your own row it draws `USER.avatar` live anyway. */
+    image: (USER.profile && typeof USER.profile.photo === 'string') ? USER.profile.photo : (USER.image || USER.photo || ''),
+    avatar: USER.avatar || '',
+    rate:  USER.rate,
+    teaches: [],
+    personId: USER.personId,
+    /* ---------- `dbs` IS DELIBERATELY ABSENT HERE, AND ABSENT IS NOT `false` --------------------
+       THE STAMP IS A REAL CLAIM. A tutor row's `dbs` comes from `TRUE_(r.dbs_checked)`, so it is
+       always answered — true or false — and the note on the pass defends the negative outright:
+       "a pass without one is visibly a pass without one, which is exactly the right amount of
+       alarming". That is right for somebody a parent is checking.
+
+       IT IS NOT A CLAIM ANYBODY HAS MADE ABOUT A ROW BUILT HERE. A parent looking at their own
+       account has no `dbs_checked` cell anywhere, and printing NO DBS ON FILE across it would be
+       the `cost: 0` shape one more time: a missing fact rendered as a negative one. Omitting the
+       key is what tells the two apart — see `findCard`. */
+  };
 }
 
 function accountPages_() {
@@ -13188,36 +13238,7 @@ function accountPages_() {
      AND IF YOU ARE NOT STAFF THERE IS NO ROW, so one is built from what signing in already
      returned. That is not a second renderer: it is a second SOURCE for the same renderer, which is
      the distinction the note above is about. */
-  const myRow = (DATA.tutors || []).filter(mineIs_)[0] || {
-    /* ---------- THE HANDLE IS PRINTED UNDER THE NAME, SO IT IS NOT SAID IN IT TOO --------------------
-       A child is called by her first name (the owner, 10 Oct: *"dont show children's last name"*), and
-       when another child shares it the server says `Wren (@wren_kind43)` (`nameFor_`) — which is right
-       for a roster and wrong here, where `@wren_kind43` is the next line. Measured: the card read
-       "Wren (@wren_kind43) / @wren_kind43". `nameBesideHandle_` (data.js) takes only that suffix, and only
-       when it is this card's own handle; `USER.name` itself is untouched — it is what "is this mine?"
-       compares. */
-    title: nameBesideHandle_(USER.name, USER.handle) || 'Signed in',
-    role:  roleOf(USER.role || 'student'),
-    handle: USER.handle,
-    /* YOUR PICTURE AS THE PICKER LAST KEPT IT (`USER.profile.photo`, written by `pfpTake_`), else the
-       sign-in reply's. With your figure beside it, so `personFace_` can draw `pfp:avatar` — though on
-       your own row it draws `USER.avatar` live anyway. */
-    image: (USER.profile && typeof USER.profile.photo === 'string') ? USER.profile.photo : (USER.image || USER.photo || ''),
-    avatar: USER.avatar || '',
-    rate:  USER.rate,
-    teaches: [],
-    personId: USER.personId,
-    /* ---------- `dbs` IS DELIBERATELY ABSENT HERE, AND ABSENT IS NOT `false` --------------------
-       THE STAMP IS A REAL CLAIM. A tutor row's `dbs` comes from `TRUE_(r.dbs_checked)`, so it is
-       always answered — true or false — and the note on the pass defends the negative outright:
-       "a pass without one is visibly a pass without one, which is exactly the right amount of
-       alarming". That is right for somebody a parent is checking.
-
-       IT IS NOT A CLAIM ANYBODY HAS MADE ABOUT A ROW BUILT HERE. A parent looking at their own
-       account has no `dbs_checked` cell anywhere, and printing NO DBS ON FILE across it would be
-       the `cost: 0` shape one more time: a missing fact rendered as a negative one. Omitting the
-       key is what tells the two apart — see `findCard`. */
-  };
+  const myRow = myCardRow_();
 
   /* ---------- AN ITEM, NOT A ROW, AND THAT IS WHY THE MESSAGE TILE WAS MISSING -------------------
      REPORTED FOR THE SECOND TIME: "I don't see a message tile on tutors." The first time the tile
@@ -13254,7 +13275,8 @@ function accountPages_() {
 
      OTHERS ARE UNCHANGED: `withTiles_` asks for no kind and gets `tutor`, which is what they are. */
   /* `account: true` IS WHERE A CARD CAN BE EDITED — this column, and nowhere else the same tutor is drawn
-     (a star puts them on Saved too). `cardEditTile_` (me.js) draws Edit only for an item carrying it. */
+     (a star puts them on Saved too). `cardEditTile_` (me.js) draws Edit only for an item carrying it —
+     on your own card whoever you are, and on a tutor's for an admin (docs/history/339). */
   const asItem_ = (t, kind) => ({
     kind: kind || 'tutor', name: t.title, key: t.title, sub: t.subtitle || '', image: t.image,
     cost: priced_(t.rate), off: t.listed === false, row: t, account: true,
@@ -13377,17 +13399,15 @@ function accountPages_() {
       avatar: f.image ? f.avatar : (asTutor || {}).avatar,
       role: famLabel_[f.relation] + (asTutor ? ' · ' + (asTutor.role || 'Tutor') : ''),
     });
-    /* ---------- YOUR CHILD'S CARD CARRIES "NEW PIN" ----------------------------------------------
-       A CHILD WITH NO EMAIL WHO FORGETS THEIR PIN HAS ONE PERSON TO ASK, and this is where that
-       person is: their card on the parent's column. A tile, because the PIN is about the child; the
-       press asks first, in a sheet (`kid-pin` in me.js). `resetPin` in dopost.gs holds the rule — a
-       parent the child ACCEPTED — and `DATA.family` holds only accepted links, so the tile is drawn
-       for exactly the people the server will say yes to. */
-    const pinTile = f.relation === 'child' && typeof tile_ === 'function'
-      ? `<div class="tile-row">${tile_({ icon: 'key', label: 'New PIN', note: 'to sign in with',
-          act: 'kid-pin', data: { id: f.personId, name: String(f.title || '').split(' ')[0] } })}</div>` : '';
-    return (asTutor ? withTiles_(row) : (typeof findCard === 'function' ? findCard({ kind: 'tutor', row }) : ''))
-      + pinTile;
+    /* ---------- "NEW PIN" WAS HERE, ON YOUR CHILD'S CARD ----------------------------------------------
+       A CHILD WITH NO EMAIL WHO FORGETS THEIR PIN HAS ONE PERSON TO ASK, and the tile for it was on their
+       card on the parent's column. It is on "Manage your child" on Settings now, beside the child's name
+       (`kidListSec_` in me.js), and only there — the review of docs/history/339: the owner asked for *"one
+       widget which is manage you child"*, and with the tile in both places a parent at 1280 saw two widgets
+       doing one job side by side; and the two disagreed, because Manage hides it from a parent whose own
+       address is unproved (`resetPin` refuses them, `confirmFirst_`) and this one did not. The child's card
+       here is the child — their face, their name, their tutors' tiles if they teach. */
+    return asTutor ? withTiles_(row) : (typeof findCard === 'function' ? findCard({ kind: 'tutor', row }) : '');
   });
 
   const others = (DATA.tutors || [])
@@ -15162,7 +15182,13 @@ function paneReach_(panes) {
        floor it is still 1502 and 1570 — it scrolls either way — so drawing it smaller buys no fit and
        costs every box, tick and tile on it 30% of its size, under a thumb that is there to press them.
        The tick list's answer above, for the tick list's reason: full size, and the pane scrolls. */
-    const forms = list.map(p => !!p.querySelector('.card-ed .me-form'));
+    /* ---------- NOR "MANAGE YOUR CHILD" (`childManageCard_`, me.js; the review of docs/history/339) ----------------
+       It is the two child forms that were two Settings pages at full size, now one card under the list of your
+       children, and at 320x568 this drew it at 70-97% — every box, button and New PIN tile under 44px (31px with
+       three children and the slip), where the two cards it replaced had none. Two forms are not a card a little
+       too tall, which is what the zoom is for; they are boxes there to be typed into and buttons to be pressed,
+       the card editor's case above. Full size, and the pane scrolls from its first pixel over. */
+    const forms = list.map(p => !!p.querySelector('.card-ed .me-form, .kid-manage'));
     const want = list.map((p, i) => {
       const room = p.clientHeight - pad(p);
       const used = p.scrollHeight - pad(p);
@@ -15236,7 +15262,8 @@ function paneReach_(panes) {
     /* AN OPEN LIST SCROLLS FROM ITS FIRST PIXEL OVER, not from `PANE_REACH`'s 24: drawn at full size
        instead of fitted, the little it is over is the card's own foot — the Send tile — and 24px of that
        clipped with no scroll is a tile half there. */
-    /* A CARD BEING EDITED THE SAME: its Save and Cancel are its foot, and the pane has to reach them. */
+    /* A CARD BEING EDITED THE SAME: its Save and Cancel are its foot, and the pane has to reach them — and
+       "Manage your child", whose foot is Ask them. */
     const over = list.map((p, i) => (want[i] <= PANE_ZOOM_MIN || ((essay[i] || ticks[i] || forms[i] || drawn[i]) && want[i] === 1))
       && p.scrollHeight - p.clientHeight > (ticks[i] || forms[i] || drawn[i] ? 2 : PANE_REACH));
     /* WRITTEN ONLY WHERE IT CHANGES, which is what stops `paneWatch_` below feeding itself: on a
