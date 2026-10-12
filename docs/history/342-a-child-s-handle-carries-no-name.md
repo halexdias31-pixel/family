@@ -560,3 +560,44 @@ helper and its two constants are in its list now.
 
 The layout fixture "your family, a card each" (check/states.js) draws a claim from a whole name; since R1 that
 is what `doGet` sends a child, so it is left as it is.
+
+**Merging with `fix-card-settings`, round 2** (a trial `git merge-tree` of `4f0daff` against that branch at
+`f101887`): the same four files conflict as before round 2 — `js/me.js`, `js/check-flow.js`,
+`docs/history/README.md` and `style.css` (the last not this branch's) — and nothing new conflicts. What round 2
+adds inside them:
+- `js/me.js`, the Randomise handler: round 2's line `if (d.avatar && !String(USER.avatar || '').trim())
+  USER.avatar = String(d.avatar);` merges by itself but lands AFTER their `avatarKeep_(seed)` line. When
+  resolving the handler's conflict, put it with round 1's two lines, right after `HANDLE_ASKING = false;` and
+  BEFORE `avatarKeep_(seed)` (and drop the later copy): then `avatarKeep_` finds the look already set and
+  does nothing against this backend, and still keeps the face against one not yet pulled. Left where it
+  lands, both run and write the same look twice — harmless, and `check-flow`'s face journey compares faces,
+  not strings, so it passes either way.
+- `profileRefresh_`: one line more in the moved-handle block (`profile.avatar` into a blank look); merges by
+  itself beside their hunk.
+- `js/check-flow.js`: the surname journey's title conflicts as before; this branch's side now ends "…to
+  everybody but herself, an admin and her own child…" — join it with theirs ("…her own boxes on Settings and
+  her own card's Edit"), and keep this side's `GROWN_`/`KIN_` block. The face journey is new and merges by
+  itself; it draws its own tile, like the round 1 journeys, so where Randomise lives does not matter to it.
+- Their `HANDLE_NAME_FIRST_` guard still compares only `first_name`; a child's handle is the last name's
+  initial too (round 1's note stands).
+- Notes 222 and 237 merge by themselves.
+
+**Round 2's run, on the final files** (`4f0daff`, and the face journey's comparison made face-for-face after
+it; a machine load of 13 to 40 throughout, shared with other builders):
+- `check-flow.js`, all 333 journeys in four parts (round 1's 332 and the face journey): 330 at the first pass.
+  The three that failed were Games clocks in part 1 ("just a minute keeps its round…", "taboo shows a word…",
+  "a round left for the Saved column…"), timed against a wall clock at a load of 33; all three pass alone, and
+  nothing in this branch touches Games.
+- The fast suite, every `js/check-*.js` but `check-flow` and the harness files (55): all green but
+  `check-dead`, whose list is `cafb838`'s less `handleIsShaped_`, as in round 1. `check-funnel` was stopped at
+  the 590-second limit in the suite's pass and was green alone, in 236 seconds.
+- `check/ui.js`: account (110 combinations), settings (185) and dm (40), nothing new; account's "not
+  reachable" list is round 1's. Feed (81): the first run reported one new thing, on "the camera still
+  starting" at 320 signed in — the camera's answer held and let go, and the first frame measured against a
+  three-second clock (it moved the card 64.9px; the rerun: it never landed in 3s). A third run was clean, and
+  round 1's head (`954177c`) was clean twice beside it; nothing in this round touches the camera.
+- `check/press.js --no-swipe` for the same four: every press answered (30, 21, 23 and 6 actions).
+- `check-handles`, `check-signin`, `check-surnames`, `check-profile`, `check`, `check-const`, `check-backend`,
+  `check-post`, `check-payload`, `check-rows`, `check-tabs`, `check-columns`, `check-replies`, `check-doors`,
+  `check-manifest`, `check-secrets`: green. No added line carries any value from the private Ledger (scanned in
+  place, positions only: none).

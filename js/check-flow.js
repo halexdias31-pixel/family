@@ -24504,7 +24504,9 @@ check('a figure nobody dressed keeps its face when her handle moves: Randomise, 
   if (String(u2.handle) === 'ej2345') bad.push('Randomise never landed, so its face was NOT asked');
   else {
     if (!cell || faceIn(two.w, cell, String(u2.handle)) !== face0) bad.push('Randomise left the server drawing a different figure: ' + JSON.stringify(cell));
-    if (String(u2.avatar || '') !== cell || faceIn(two.w, u2.avatar, u2.handle) !== face0) {
+    /* THE FACE, NOT THE STRING: after the merge with `fix-card-settings` its `avatarKeep_` may write the same look
+       in its own packing order. Blank is the fault — the new handle's colours. */
+    if (!String(u2.avatar || '').trim() || faceIn(two.w, u2.avatar, u2.handle) !== face0) {
       bad.push('after Randomise the phone draws her with ' + JSON.stringify(u2.avatar || '(a blank look)') + ' on @' + u2.handle
         + ' — the server kept ' + JSON.stringify(cell) + ', the face @ej2345 drew');
     }
