@@ -15674,6 +15674,54 @@ function stuffAheadCentre_(F, ask) {
 }
 AHEAD_KINDS.push(stuffAheadJobs_);
 
+/* ---------- A FINDER DRAWN FROM NOTHING IS WARMED IN FOUR SLICES BEFORE ITS PAINT (`warm`) -----------------------
+   FOUND IN THE SECOND LOOK AT THE FIRST THIRTY SECONDS (review round 1, 12 Oct). The builder draws Find and
+   Resources in the quiet after the first screen, and Find's first draw from a payload was ONE slice of
+   285–470ms at 4x on a quiet machine — the longest the builder runs for a student, and the one a touch
+   landed in: a flick on the Feed every 0.9–1.7s waited 433ms behind `paint:stuff 453`. Profiled, almost
+   none of it is the draw: `stuffQuestion` was 368ms of 374, and inside it the library listed for this
+   finder (`stuffItems`, 48ms), each item's sort key (`sortKey_`, 100), the sort and the filter (60) and
+   the first question's tally (`facetTally_`, 157). EVERY ONE OF THOSE IS A MEMO that checks itself — on
+   the payload's identity, the list's identity (`SORTED_ITEMS`, `FACET_TALLY`), the person — so asking it
+   early is never wrong: if anything moves before the paint, the memo misses and the paint does the work it
+   always did. The second draw of the same payload was 23ms.
+   So before a stale finder is painted, the builder asks those four things one slice each, nearest the
+   paint and before it (`d` a hair under the paint's), inside the finder's own binding (329), with the
+   question captured and asked again. The longest is the tally, about a third of the slice it was cut from;
+   the paint left is the markup, its placing and its panes. A step is not repeated for the same payload,
+   person and question (`STUFF_WARM`); a new one of any of them starts again from the first, which is a
+   memo hit wherever nothing changed. NOT the finder in front, which `go` and `repaint` draw at once. */
+const STUFF_WARM = {};
+const STUFF_WARM_STEPS = [
+  () => stuffItems(),
+  () => stuffItems().forEach(x => { if (!x._sk) x._sk = sortKey_(x); }),
+  () => stuffFiltered(),
+  () => stuffQuestion(),
+];
+function stuffWarmJobs_() {
+  const out = [];
+  Object.keys(FINDERS).forEach(fid => {
+    if (fid === AT || !STALE[fid] || !TABS.some(t => t.id === fid) || !$('s-' + fid)) return;
+    const F = FINDERS[fid];
+    inFinder_(F, () => {
+      const ask = stuffAsk_(), who = itemMemoKey_();
+      const w = STUFF_WARM[fid];
+      const step = w && w.data === DATA && w.ask === ask && w.who === who ? w.step : 0;
+      if (step >= STUFF_WARM_STEPS.length) return;
+      out.push({ key: 'warm:' + fid + ':' + step, kind: 'paint', d: aheadDist_(fid, null) - 0.01, run: () => stuffWarm_(F, ask, step) });
+    });
+  });
+  return out;
+}
+function stuffWarm_(F, ask, step) {
+  return inFinder_(F, () => {
+    if (stuffAsk_() !== ask) return false;
+    STUFF_WARM_STEPS[step]();
+    STUFF_WARM[F.id] = { data: DATA, ask: ask, who: itemMemoKey_(), step: step + 1 };
+  });
+}
+AHEAD_KINDS.push(stuffWarmJobs_);
+
 /* ---------- AN EMPTIED PAGE KEEPS ITS HEIGHT -------------------------------------------------------
    PART OF THE OWNER'S *"if i scroll down quickly it does glitch out or clip fast or idk"* (8 Oct, a
    pupil's iPad). A page is emptied when you are more than `STUFF_NEAR` past it, and an empty pane is

@@ -24847,7 +24847,7 @@ check('a window drawn afresh in front is filled as far as the glass shows, both 
   return bad;
 });
 
-check('the builder waits for the hand: no slice within 400ms of a key or a pointer, none while a box has the focus, a slide or a settle runs, or the page is hidden — and it carries on after each', async () => {
+check('the builder waits for the hand: no slice within 400ms of a key or a pointer, none while a box has the focus, a slide or a settle runs, the page is hidden or an input is already waiting — and it carries on after each', async () => {
   /* REVIEW, 12 Oct: every one of these gates could be taken out with every check green — jsdom sends no
      pointer, wheel or key, J1's quiet assertion could never fail, and nothing focused a box or hid the page. */
   const { w } = await aheadBoot_();
@@ -24910,6 +24910,22 @@ check('the builder waits for the hand: no slice within 400ms of a key or a point
     hidden = false;
     w.document.dispatchEvent(new w.Event('visibilitychange'));
     if (!(await aheadQuiet_(t, 60000)) || stale().length) bad.push('after the page was shown again the builder did not finish: ' + stale().join(', '));
+  }
+  /* 5. AN INPUT THE BROWSER HOLDS AND THE PAGE HAS NOT HEARD YET (review round 1: a third of the slow touches in
+        the first thirty seconds waited behind slices that started after they were sent). Chromium's
+        `isInputPending` is stood in for — jsdom has none — saying yes for 1.5s, then no. */
+  {
+    let pending = true;
+    try { Object.defineProperty(w.navigator, 'scheduling', { value: { isInputPending: () => pending }, configurable: true }); }
+    catch (e) { bad.push('navigator.scheduling could not be stood in for, so the waiting-input gate was NOT asked'); }
+    const a = work();
+    await wait(1500);
+    const under = ran(a, w.performance.now());
+    if (under.length) bad.push(under.length + ' slice(s) ran while an input was waiting: ' + under.slice(0, 3).map(x => x.key).join(', '));
+    if (!stale().length) bad.push('nothing was left stale while an input waited, so its going asked nothing');
+    pending = false;
+    if (!(await aheadQuiet_(t, 60000)) || stale().length) bad.push('after the input was handled the builder did not finish: ' + stale().join(', '));
+    try { delete w.navigator.scheduling; } catch (e) {}
   }
   t.USER(null);
   return bad;
@@ -24980,6 +24996,45 @@ check('a finder drawn for nobody is filled inside the builder\'s slices: no card
   if (!t.aheadLog().some(x => x.key === 'paint:stuff')) bad.push('the builder never drew Find, so this asked nothing');
   if (outside) bad.push(outside + ' card(s) of a finder nobody is looking at were built outside a builder slice — after it, unmeasured');
   if (!inside) bad.push('no card of a finder off the glass was built by the builder, so this asked nothing');
+  return bad;
+});
+
+check('a finder drawn for nobody after a landing is warmed a step a slice before its paint, each step in its own binding, and its paint builds no list', async () => {
+  /* REVIEW ROUND 1, 12 Oct (the first thirty seconds, measured again): Find's first draw from a payload was one
+     slice of 285–470ms at 4x, and almost none of it was the draw — the list, its sort keys, the sort and the first
+     question's tally, every one a memo. The builder asks those first, one slice each (`stuffWarmJobs_`, find.js),
+     so the paint left is the markup. Asked here: after a landing that brings a NEW payload (a real `load()`), each
+     finder off the glass is warmed — every step, in order, before its paint — each step inside that finder's own
+     binding (329), and the paint itself builds no list: the list is built in the warm. */
+  const P = paper2F_();
+  const { w } = await aheadBoot_({ serve: P.serve });
+  const t = w.__t, bad = [];
+  if (!t || typeof t.finder !== 'function' || typeof w.load !== 'function') return ['the finders or load() are not reachable — NOT checked'];
+  t.go('feed', false, true);
+  await aheadQuiet_(t);
+  const builds = [];
+  const b0 = w.stuffItemsBuild_;
+  w.stuffItemsBuild_ = function () { builds.push({ key: String(t.aheadRunning() || ''), finder: t.finder() }); return b0.apply(this, arguments); };
+  const D0 = t.DATA();
+  const a = w.performance.now();
+  w.load();
+  for (let i = 0; i < 400 && t.DATA() === D0; i++) await wait(25);
+  if (t.DATA() === D0) { w.stuffItemsBuild_ = b0; return ['load() brought no new payload, so nothing was asked — NOT checked']; }
+  await aheadQuiet_(t);
+  w.stuffItemsBuild_ = b0;
+  const log = t.aheadLog().filter(x => x.t >= a);
+  ['stuff', 'res'].forEach(fid => {
+    if (!t.TABS.some(x => x.id === fid)) return;
+    const paintAt = log.findIndex(x => x.key === 'paint:' + fid);
+    if (paintAt < 0) { bad.push('the builder never drew ' + fid + ' after the landing, so nothing was asked of it'); return; }
+    const steps = log.slice(0, paintAt).filter(x => x.key.indexOf('warm:' + fid + ':') === 0).map(x => +x.key.split(':')[2]);
+    if (steps.join() !== '0,1,2,3') bad.push(fid + ' was painted after warm steps [' + steps.join(',') + '] — every step, in order, comes before the paint');
+    const inPaint = builds.filter(x => x.key === 'paint:' + fid).length;
+    if (inPaint) bad.push(fid + '\'s paint built its list ' + inPaint + ' time(s) — the warm had not built it');
+  });
+  const wrong = builds.filter(x => /^warm:/.test(x.key) && x.key.split(':')[1] !== x.finder);
+  if (wrong.length) bad.push('a warm step ran outside its own finder\'s binding: ' + wrong.slice(0, 3).map(x => x.key + ' bound to ' + x.finder).join(', '));
+  if (!builds.some(x => /^warm:/.test(x.key))) bad.push('no warm step built a list, so the warm did nothing');
   return bad;
 });
 

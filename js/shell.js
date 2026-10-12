@@ -3594,7 +3594,22 @@ function aheadGate_() {
   const a = document.activeElement;
   if (a && a.matches && a.matches(TYPING_)) return -1;
   if (typeof PAD_GO !== 'undefined' && PAD_GO) return -1;
+  /* AN INPUT ALREADY WAITING FOR THE PAGE — `inputWaiting_`, below. */
+  if (inputWaiting_()) return 50;
   return 0;
+}
+/* ---------- AND NOT WHILE AN INPUT IS ALREADY WAITING FOR THE PAGE -------------------------------------------------
+   FOUND MEASURING THE FIRST THIRTY SECONDS AGAIN (review round 1, 12 Oct). The quiet is counted from the last
+   pointer, wheel or key the PAGE has heard — and a touch the browser has received but not yet handed to the page
+   has not been heard. Read touch by touch (a flick down the Feed every 0.9–1.7s from the first screen, 4x CPU): of
+   the touches that waited over 100ms, a third waited behind slices that STARTED after the touch had been sent — one
+   behind four in a row, 247ms. Chromium says whether input is queued (`navigator.scheduling.isInputPending`, a
+   moving finger included), and asked at every look the builder steps aside and the touch goes first: those touches
+   went from 23 of 65 to 2 of 20. Safari has no such call, so on an iPad this is nothing and the quiet is all there
+   is; anywhere else it is one call per look. */
+function inputWaiting_() {
+  try { return !!(navigator.scheduling && navigator.scheduling.isInputPending && navigator.scheduling.isInputPending({ includeContinuous: true })); }
+  catch (e) { return false; }
 }
 
 /* LOOK AGAIN IN `ms` — once; a look already booked is the one that happens. */
