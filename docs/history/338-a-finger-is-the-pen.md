@@ -126,7 +126,11 @@ screen); TWO (`PAD_TWO`: no stroke, nothing drawn until every member has lifted)
   where it was then) to go 10px decides: the other moved 5px → **TWO**; the owner first → **resume**, the
   preview redrawn from every kept sample; the candidate first, kind b, on the armed ink and landed after the
   owner → **swap**: it takes the stroke from its own first point with every sample it gave while held, and the
-  palm that landed first is a rest; the candidate first, off the ink or down first → resume; kind a → TWO. A
+  palm that landed first is a rest; the candidate first, off the ink or down first → resume; kind a → TWO.
+  *(After review.)* **Not with the ruler or the compass when the owner had been down more than 200ms** before
+  the candidate came — a pin held on a point is not a palm (round 1, 3) — and then the owner resumed must move
+  10px before its line or radius counts (round 2): a pin that rolls or a palm that drifts marks nothing. By
+  movement a palm resting that long is a pin too, so it takes the finger's tool line with it (§4). A
   third contact → TWO. One of a held pair lifting is forgotten (the owner's samples with it); the other, if
   it is on the ink and came later, is held alone — it becomes the stroke if it goes on to move 10px, and
   nothing if it lifts still. So a two-finger tap stores nothing whichever finger lifts first.
@@ -211,7 +215,17 @@ increment 2 waits for.
   lines, now only the first). A higher half would let the spec's pinch with one finger off a small figure draw (its
   off-figure finger moves 0.56 of the other). Only size can tell a palm sliding from a finger panning (increment 2).
 - *(After review.)* **A two-finger compass or ruler stores nothing** (a pin held on the centre and a second
-  finger swinging), as before 338: neither finger is handed the stroke. A two-finger tool is a revisit.
+  finger swinging), as before 338: neither finger is handed the stroke. A two-finger tool is a revisit. *(Round
+  2: nor when the pin rolls 4–9px as the other swings — it marks only once it has moved 10px.)*
+- *(After review, round 2.)* **A palm resting on the picture more than 200ms before the finger takes the
+  finger's ruler line or compass arc with it — and every tool line after, for as long as that palm stays
+  down.** Nothing is left at the palm. By movement a resting palm and a pin held on a point are the same
+  thing (an old, still owner and a later contact moving alone); the pin rule refuses the swap to both, and the
+  pen always swaps. Chosen over handing tools the swap back, which would put the swung finger's wrong arc back
+  for every two-finger compass and store a palm's settle as a line when it lands beside a finger that is
+  aiming — **a mark lost rather than a stray one left**, this section's first line. A palm down within 200ms
+  of the finger still hands the tool over, and the pen hands it over at any age. Only size can tell a palm
+  from a pin (increment 2); lifting the palm and drawing again draws.
 
 ### 5. Every sample, and the live path (increment 1)
 
@@ -333,7 +347,8 @@ grid lattice waits for zoom**: at 1x the largest card square is 18.8px, under an
 | curves with no minimum chord (B) | every dense stroke's `d` about 3x longer for nothing visible | — |
 | edge-start rejection | no pad reaches an edge (`check/pen.js` asks: 16px) | that invariant fails |
 | haptics | iOS has no vibration API | — |
-| a two-finger compass or ruler: the still finger the pin, the moving one the pencil *(after review)* | two fingers do nothing through all three increments; it is a new gesture to design, teach and prove | a device session shows children reaching for a pin finger (until then the pin's stroke stores nothing, as before 338) |
+| a two-finger compass or ruler: the still finger the pin, the moving one the pencil *(after review)* | two fingers do nothing through all three increments; it is a new gesture to design, teach and prove | a device session shows children reaching for a pin finger (until then the pin's stroke stores nothing, as before 338, and nothing for a roll under 10px — round 2) |
+| the palm-first swap for the ruler and the compass when the palm had rested more than 200ms *(after review, round 2)* | by movement a resting palm is a pin; the swap stores the two-finger compass's wrong arc and a palm's settle beside an aiming finger | the size rules (increment 2) can tell a palm from a fingertip — then a palm is a rest by size and the pin rule is asked only of fingertips |
 
 ### 10. What only a device can settle
 
@@ -811,3 +826,118 @@ Ports 19883–19888 only.
 
 **Not run as one: `npm run check`.** Its browser members take fixed or OS-chosen ports outside this build's range;
 every member that touches the pen, the swipe engine or the stylesheet was run above, alone.
+
+### After review, round 2 (12 Oct)
+
+A verification of round 1, with real touch through CDP (Chromium 1194, 4x CPU, November 2019 1H Q4 armed with a
+real tap and each tool chosen with a real tap on its tile, at 390x844 and 820x1180), found one should-fix — in round
+1's fix 3 — and nothing else. It was reproduced first on a4d0ccf with the verifier's own script, at a load average of
+18–27, and then held by checks that are red there.
+
+**The finding: a refused swap made the still owner the stroke again, with 4px to go.** When the later contact moves
+alone and the pin rule refuses it the stroke (ruler or compass, the owner down more than 200ms before it), `padAlone_`
+resumed the owner — and `PAD_DRAW.ruler.end` and `compass.end` asked only `PAD_MIN_PX`, 4px. Two things followed, and
+§4 listed neither:
+
+1. **A pin that rolled stored its own mark.** Finger 1 trembling ±0.4px on the centre for 300ms, then drifting 6px
+   over 300ms while finger 2 swings 270° round it at 0.28 x the picture (or slides 40px, the ruler): a4d0ccf stored
+   `[[153,170,160,170]]` for the ruler and a 10–11-point ring of radius about 8 units round the pin for the compass,
+   at 390 and at 820. With no drift, `[]`. The brief's stray blob, where §4 said nothing is stored.
+2. **A palm resting on the picture first took the finger's tool line, and left its own.** A palm (radius 25) at
+   (0.85, 0.85) of the picture, still for 400ms; then the finger lands at (0.25, 0.4) and draws a 120px ruler line,
+   or opens 60px and swings the compass, while the palm drifts 6px in the first 120ms: a4d0ccf stored the palm's
+   `[[289,289,296,289]]`, or a 10-point ring at the palm, and the finger's line was lost (with no drift, `[]`).
+   2a7a7f3 drew the finger's line every time; 4955c7c stored the palm's marks. The pen drew the finger's line in every
+   case, and so did every tool when the palm came only 120ms before the finger.
+
+**Fixed: a ruler's or compass's still owner made the stroke again after a refused swap marks nothing until it has moved
+10px.** In `padAlone_`, when the other moved alone and may not take the stroke, a tool stroke gets `g.min =
+PAD_STILL_PX`, and the tool's end (and the compass's radius line in the aid, so it does not show a radius that will not
+count) asks `padMinOf_(g)` in place of `PAD_MIN_PX`. 10px is the app's own "has moved" (§3). A 4–9px roll of a pin or
+drift of a palm marks nothing; a finger that was aiming when a palm landed and settled is made the stroke again, and its
+line is far past 10px. The pen is untouched: a pen's resumed owner is the finger (the pen hands a palm's stroke over at
+any age). Nothing stored changes shape.
+
+**Decided: the tools keep the pin rule, so a palm resting more than 200ms before the finger takes the finger's ruler
+line or compass arc with it — and each one after, while it stays down** (§4 and §9 say so now). The review left the
+choice to whoever decides; it is decided here on this note's own rule, with every alternative written down and
+measured, so that it can be changed knowingly. By movement a resting palm and a pin are the same thing — an old, still
+owner and a later contact moving alone — and with no size to go on, every answer loses something:
+
+| after a refused swap | a pin, and a second finger swinging round it | a palm resting 400ms, then the finger | a finger aiming 300ms, then a palm lands and settles 12px |
+|---|---|---|---|
+| **made the stroke again, 10px to mark (chosen)** | nothing | nothing: the finger's line lost, and the next while the palm stays | the finger's line |
+| the swap handed back to tools (2a7a7f3; the spec's T4) | an arc round where the swinging finger landed; a ruler line along its slide | both of the finger's lines | the palm's settle stored, `[[320,320,308,320]]`, and the finger's line lost |
+| the stroke withdrawn, the owner a rest | nothing (a second swing with the pin left down: an arc round the wrong centre) | the first line lost, the second drawn | nothing: the finger's line lost |
+| the swap only when the two landed more than `PAD_TOGETHER_PX` apart (a palm heel is 60mm+ from the fingertip) | nothing within 200px; a wider span, or two hands, the wrong arc | the finger's line beyond 200px, lost within it | beyond 200px, the palm's settle stored |
+
+The first three rows are measured in jsdom (the journey's own cases, each alternative as a one-line mutation); the last
+is reasoned from the first two and was not built — and would not have saved the review's own case: its palm and finger
+are about 190px apart on Q4's picture at 390 and about 200px at 820 (measured from the pictures), because a card's
+picture is at most 320px wide and a palm resting ON it is never far from the finger. **Only the chosen row never leaves a mark that was not meant** —
+§4's first line, "a mark lost rather than a stray one left", and the brief's *"accidental stray ink blobs"*. Its cost
+is a palm resting on a construction card; lifting it, or putting it down with the finger, draws. Increment 2's size
+rule is the real answer: a palm is a rest by its size, and then the pin rule need only ever be asked of fingertips.
+
+**Checked.** check-flow's review journey, on the 340x170 question pad with a construction question's tiles:
+
+| case | a4d0ccf | now |
+|---|---|---|
+| a pin on the compass's centre rolling 6px while a second finger swings | an 11-point ring round the pin | `[]` |
+| a pin on the ruler's end rolling 6px while a second finger slides | `[[170,170,176,170]]` | `[]` |
+| a palm 400ms before the ruler finger, drifting 6px, then a second line with the palm still down | `[[320,320,314,320]]` | `[]` |
+| the same with the compass | an 11-point ring at the palm | `[]` |
+| *guard:* a ruler finger aiming 300ms, a palm landing and settling 12px before it moves | the finger's line | the finger's line |
+| *guard:* a palm 120ms before the ruler finger, drifting 6px | the finger's line | the finger's line |
+| *guard:* a palm 400ms before the pen finger, drifting 6px | the finger's line | the finger's line |
+
+`check/pen.js` 'pin' now runs at 390 and 820, each tool with and without a 6px roll, and the new 'palmtool' (the review's
+palm, 400 and 120ms before the pen, the ruler and the compass, drifting 6px): never a mark at the palm, never a mark that
+is not the finger's, the finger's line wherever the palm came within 200ms or the tool is the pen, and the pen let go
+after. On a4d0ccf, with this check laid over it: 12 findings — the rolled pin's ruler line and ring at both sizes, the
+palm's line and ring at both sizes (each "at the palm" and "not the finger's"). Now: OK, at both sizes; the ruler and
+compass with the palm 400ms before store `[]`, printed as the cost.
+
+**Mutations, each one line in its own copy, each red, the real files green after** (each copy differs from the worktree
+in `js/find.js` by its one line and nothing else):
+
+- the 10px rule removed → check-flow: the two rolled pins and the two resting palms; `check/pen.js`: the same 12 as
+  a4d0ccf.
+- the pin rule asked of the pen too → check-flow: the pen 400ms guard (the palm's drift stored as a pen stroke, the
+  finger's line lost); `check/pen.js` 'palmtool': the pen at 400ms, both sizes.
+- the pin rule at any gap (`> 0`) → check-flow: the ruler 120ms guard, and round 1's palm-first compass at 40ms;
+  `check/pen.js`: the ruler and the compass at 120ms, both sizes.
+- withdrawn outright in place of made the stroke again → check-flow: the aiming finger's line lost (and the resting
+  palms' second lines drawn — the table's third row).
+- the pin rule removed (round 1's own mutation, run again for the table) → check-flow: both held pins, both rolled pins,
+  both resting palms (the finger's lines) and the aiming finger (`[[320,320,308,320]]`).
+
+#### The suite, round 2
+
+Run on the files as committed, ports 19883–19888, at a load average of 11–44 from other builds on four cores.
+
+- `check.js`, `check-const`, `check-css`, `check-doors` (233 handlers, 232 doors), `check-loading`, `check-scope`,
+  `check-strings`, `check-drafts`, `check-widgets`, `check-library`, `check-funnel`: green. `check-dead` (soft)
+  prints, byte for byte, what a4d0ccf prints.
+- **check-flow in four parts: 82 + 83 + 83 + 83 = 331 journeys, all green** (455, 206, 254 and 547s, load 13–27); the
+  journeys that draw, run together alone: 19 of 19.
+- **`check/pen.js` in full: OK in 301s** (load 17–27): 'samples' kept 1,201 of 1,201 at 390 and 820, at most 2 live
+  writes in a frame, 0 forced layouts in 240 and 246 traced events, the path painted in the first frame for 100%;
+  'phase' 0 of 8 at both sizes. With `PEN_QUERY=pen=sizes`, 'samples': OK, 0 forced in 245 and 239. 'pin' and
+  'palmtool' alone: OK at both sizes, three times. The pictures read: November 2019 1H Q4 at 390 and 820, armed, the
+  Compass chosen, nothing on the picture after a two-finger compass.
+- **`check/swipe.js` in full: OK** (112 gestures, 321s). **`check/cascade.js`: OK** in 2,428s — its first run was
+  stopped by this build's own 1,500s limit (exit 124, "target closed"), not by a finding; round 1 measured it at
+  990s at a lower load. **`check/cards.js`:** the first run, at a load of 25–37, said "the app has no practical items,
+  so this check saw nothing" (the payload had not arrived), exit 1; run again alone at 19–23: OK.
+- **`check/ui.js`** `--screen=tools`, `--screen=saved`, `--screen=stuff`: exit 0, nothing new; the "not reachable"
+  lists word for word round 1's.
+- **`check/press.js`** `--screen=tools`: 4 swipes elsewhere at a load of 29–38 (a Feed press mark, two Games flick
+  chains, "tap Draw" on Q-1CM-transformations-of-graphs-8 at 844x390); run again, at 19–27: OK, exit 0; a4d0ccf under
+  the same load missed 1 (a Games flick chain). `--screen=stuff`: 1 ("tap Draw" at 568x320), then 2 (Games flick
+  chains), and a4d0ccf, run between them, 2 (press marks on Reels and Tools). Every one is a timed tap or flick that
+  arms no pad, so none reaches the pen; nothing threw and nothing was silently inert in any of the six runs. Load, and
+  the same on a4d0ccf.
+
+**Not run as one: `npm run check`**, for the same reason as round 1: its browser members take ports outside this
+build's range. Every member that touches the pen, the swipe engine or the stylesheet was run above, alone.

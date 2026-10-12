@@ -9029,6 +9029,9 @@ function padToolNow_(pad) {
    turned back into units. The picture's shape is the drawing's, the same at 320px and on a laptop,
    so a ring stored that way is round wherever it is drawn again. */
 const PAD_MIN_PX = 4;                     // shorter than this a line or a radius is a slip, not a mark
+/* AND LONGER FOR ONE STROKE: a ruler's or a compass's owner that was a pin or a palm -- it stayed still while another
+   contact moved, and was made the stroke again (`padAlone_`) -- marks nothing until it has really moved: `g.min`. */
+const padMinOf_ = g => (g && g.min) || PAD_MIN_PX;
 const PAD_SWING_PX = 16;                  // nearer the point than this, its angle is noise
 const PAD_ARC_MIN = Math.PI / 6;          // a swing of 30 degrees or more is an arc rather than a circle
 
@@ -9104,11 +9107,11 @@ const PAD_DRAW = {
   ruler: {
     move: (g, at) => [g.from[0], g.from[1], at[0], at[1]],
     end: (g, st) => (st.length === 4
-      && Math.hypot((st[2] - st[0]) * g.sx, (st[3] - st[1]) * g.sy) >= PAD_MIN_PX ? st : null),
+      && Math.hypot((st[2] - st[0]) * g.sx, (st[3] - st[1]) * g.sy) >= padMinOf_(g) ? st : null),
   },
   compass: {
     move: (g, at) => padSwing_(g, at),
-    end: (g, st) => (g.r >= PAD_MIN_PX && st.length >= 4 ? st : null),
+    end: (g, st) => (g.r >= padMinOf_(g) && st.length >= 4 ? st : null),
   },
 };
 
@@ -9122,7 +9125,7 @@ function padAid_(g) {
   if (!aid) return;
   const c = g.from;
   const pin = `<path class="qpad-pin" vector-effect="non-scaling-stroke" d="M${c[0]} ${c[1]}L${c[0]} ${c[1]}"/>`;
-  const rad = g.tool === 'compass' && g.tip && g.r >= PAD_MIN_PX
+  const rad = g.tool === 'compass' && g.tip && g.r >= padMinOf_(g)
     ? `<path class="qpad-rad" vector-effect="non-scaling-stroke" d="M${c[0]} ${c[1]}L${Math.round(g.tip[0])} ${Math.round(g.tip[1])}"/>`
     : '';
   aid.innerHTML = pin + rad;
@@ -9549,6 +9552,14 @@ function padAlone_(x) {
   if (h.kind === 'a') { padTwo_(); return; }
   if (padTakes_(cand)) { padSwap_(cand, false); return; }
   cand.role = 'rest'; cand.pts = null;
+  /* REFUSED, SO THE STILL ONE IS THE STROKE AGAIN -- and a ruler's or a compass's still owner is a PIN or a PALM until it
+     shows otherwise (second review, 12 Oct). Its end needed only `PAD_MIN_PX`, so a pin that rolled 6px while the other
+     finger swung stored its own 7-unit ruler line, or a ring of radius 8 round itself, and a palm resting on the picture
+     that drifted 6px while the finger drew stored a line or a ring at the PALM: the brief's stray blob, where note 338
+     said nothing is stored. So from here its line or its radius counts only at `PAD_STILL_PX`, the app's own
+     "has moved": a finger that was aiming and then draws still gets its line, and a 4-9px roll or drift gets nothing.
+     Not the pen: its still owner resumed is the finger after a tap or a brush -- the pen hands a palm's stroke over. */
+  if (PAD_GO.tool !== 'pen') PAD_GO.min = PAD_STILL_PX;
   padResume_();
 }
 /* WHETHER THE OTHER MAY TAKE THE STROKE: it came later, onto this pad's ink, and its samples were kept -- the finger
@@ -9557,8 +9568,14 @@ function padAlone_(x) {
    review drove a real compass's way with two fingers (one on the centre, the other swinging round it) and the pen
    handed the stroke to the swinging finger: an arc centred where IT landed, 52 units off the centre, and a ruler line
    from its start to its end. Neither finger meant either. It is kept as the pen before 338 kept it: the pin's, which
-   stores nothing. (A two-finger compass -- pin and pencil -- is a revisit, 338.) The pen keeps the swap: a finger held
-   still and another drawing is a hand resting and a finger drawing. */
+   stores nothing -- nothing at all once it must move `PAD_STILL_PX` to mark (`padAlone_`). (A two-finger compass -- pin
+   and pencil -- is a revisit, 338.) The pen keeps the swap: a finger held still and another drawing is a hand resting
+   and a finger drawing.
+   THE COST, CHOSEN (second review, 12 Oct; 338 section 4): by movement a PALM resting on the picture is a pin, so a palm
+   down more than `PAD_TOGETHER_MS` before the finger takes the finger's ruler line or compass arc with it -- and every
+   one after, while that palm stays down, since each new finger is held against it and refused the same way. Nothing is
+   left at the palm. A palm down within `PAD_TOGETHER_MS` of the finger still hands it over; the pen always does. Only a
+   contact's SIZE tells a palm from a pin (increment 2). */
 function padTakes_(c) {
   if (!c || !c.late || !c.onInk || c.k !== PAD_ON || !c.pts) return false;
   const g = PAD_GO;

@@ -4481,6 +4481,88 @@ check('the finger pen after review: a hand left down after two fingers, a thumb 
       fire('pointerup', 2, 330, 135, 1920); fire('pointerup', 1, 270, 135, 1925);
       clean('a pin held on the ' + name + '\'s centre and a second finger moving', []);
     }
+    /* AND A PIN THAT ROLLS (second review, 12 Oct): the same pin, but once finger 2 has landed it drifts 6px over 300ms, as a
+       fingertip held on a point rolls. Refused the swap, the pin was made the stroke again with only `PAD_MIN_PX` (4px) to
+       go -- the ruler stored its own `[[170,170,176,170]]` and the compass a ring of radius 6 round itself. Nothing. */
+    for (const name of ['compass', 'ruler']) {
+      fresh();
+      A['pad-tool'](tool(name));
+      ink().getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
+      fire('pointerdown', 1, 270, 135, 1000, { prim: true });
+      for (let i = 1; i <= 30; i++) fire('pointermove', 1, 270 + (i % 2 ? 0.4 : -0.4), 135, 1000 + 10 * i);
+      fire('pointerdown', 2, 330, 135, 1302);
+      for (let i = 1; i <= 60; i++) {
+        const a = 1.5 * Math.PI * i / 60;
+        if (name === 'compass') fire('pointermove', 2, 270 + 60 * Math.cos(a), 135 + 60 * Math.sin(a), 1302 + 10 * i);
+        else if (i <= 20) fire('pointermove', 2, 330 + 2 * i, 135, 1302 + 10 * i);
+        fire('pointermove', 1, 270 + 6 * Math.min(1, i / 30), 135, 1305 + 10 * i);
+        if (!(i % 4)) await wait(1);
+      }
+      fire('pointerup', 2, 330, 135, 1920); fire('pointerup', 1, 276, 135, 1925);
+      clean('a pin held on the ' + name + '\'s centre that rolled 6px while a second finger moved', []);
+    }
+    /* A PALM RESTING ON THE PICTURE FIRST, 400ms BEFORE THE FINGER, then drifting 6px as the finger uses the tool (second
+       review). By movement the palm is a pin: the finger is refused the stroke and the palm made it again -- which stored the
+       PALM's 6px ruler line or its ring of radius 6, at the corner of the picture, and lost the finger's. Now nothing is left
+       at the palm. The finger's line goes with it -- the cost chosen in 338 section 4 (a mark lost rather than a stray one
+       left): only a contact's size tells a resting palm from a pin -- and so does a second line while the palm stays down.
+       If tools are ever given the palm-first swap back, these want the finger's lines. */
+    for (const name of ['ruler', 'compass']) {
+      fresh();
+      A['pad-tool'](tool(name));
+      ink().getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
+      fire('pointerdown', 1, 420, 210, 1000, { prim: true, size: 50 });
+      for (let i = 1; i <= 40; i++) fire('pointermove', 1, 420 + (i % 2 ? 0.4 : -0.4), 210, 1000 + 10 * i, { size: 50 });
+      for (const t0 of [1400, 2200]) {
+        fire('pointerdown', 2, 130, 85, t0);
+        for (let i = 1; i <= 30; i++) {
+          if (name === 'compass') fire('pointermove', 2, 130 + 5 * Math.min(i, 12), 85, t0 + 10 * i);
+          else fire('pointermove', 2, 130 + 4 * i, 85 + i, t0 + 10 * i);
+          if (t0 === 1400 && i <= 12) fire('pointermove', 1, 420 - 0.5 * i, 210, t0 + 10 * i + 3, { size: 50 });
+          if (!(i % 4)) await wait(1);
+        }
+        fire('pointerup', 2, name === 'compass' ? 190 : 250, name === 'compass' ? 85 : 115, t0 + 320);
+      }
+      fire('pointerup', 1, 414, 210, 2700, { size: 50 });
+      clean('a palm resting on the picture 400ms before the ' + name + ' finger, drifting 6px, and a second line while it stayed', []);
+    }
+    /* AND A FINGER THAT WAS AIMING STILL GETS ITS LINE: the ruler finger held 300ms on its point, a palm lands on the picture
+       and settles 12px in 80ms before the finger moves -- refused the swap, the finger is the stroke again, and its 120px
+       line is well past the 10px it must now go. (Withdrawn outright instead, the palm's settle would cost this line.) */
+    fresh();
+    A['pad-tool'](tool('ruler'));
+    ink().getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
+    fire('pointerdown', 2, 130, 85, 1000, { prim: true });
+    for (let i = 1; i <= 30; i++) fire('pointermove', 2, 130 + (i % 2 ? 0.4 : -0.4), 85, 1000 + 10 * i);
+    fire('pointerdown', 1, 420, 210, 1302, { size: 50 });
+    for (let i = 1; i <= 8; i++) { fire('pointermove', 1, 420 - 1.5 * i, 210, 1302 + 10 * i, { size: 50 }); fire('pointermove', 2, 130 + (i % 2 ? 0.4 : -0.4), 85, 1305 + 10 * i); }
+    await wait(5);
+    for (let i = 1; i <= 30; i++) { fire('pointermove', 2, 130 + 4 * i, 85 + i, 1500 + 10 * i); if (!(i % 4)) await wait(1); }
+    fire('pointerup', 2, 250, 115, 1820);
+    fire('pointerup', 1, 408, 210, 1900, { size: 50 });
+    clean('a ruler finger aiming 300ms, a palm landing and settling 12px before it moved', [[30, 70, 150, 130]]);
+    /* WITHIN `PAD_TOGETHER_MS` THE PALM STILL HANDS THE TOOL OVER (round 1 kept it; checked so the pin rule cannot widen
+       unseen): a palm 120ms before the ruler finger, drifting 6px -- the finger's line. And the PEN always hands it over: a
+       palm 400ms before, drifting 6px -- the finger's line, from its own first point. */
+    for (const [name, gap] of [['ruler', 120], ['pen', 400]]) {
+      fresh();
+      if (!tool(name)) { bad.push('setup: the construction question has no ' + name + ' tile — the palm ' + gap + 'ms before was NOT checked'); continue; }
+      A['pad-tool'](tool(name));
+      ink().getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
+      fire('pointerdown', 1, 420, 210, 1000, { prim: true, size: 50 });
+      for (let i = 1; i <= gap / 10; i++) fire('pointermove', 1, 420 + (i % 2 ? 0.4 : -0.4), 210, 1000 + 10 * i, { size: 50 });
+      const t0 = 1000 + gap, fin = [[130, 85]];
+      fire('pointerdown', 2, 130, 85, t0);
+      for (let i = 1; i <= 30; i++) {
+        fin.push([130 + 4 * i, 85 + i]);
+        fire('pointermove', 2, 130 + 4 * i, 85 + i, t0 + 10 * i);
+        if (i <= 12) fire('pointermove', 1, 420 - 0.5 * i, 210, t0 + 10 * i + 3, { size: 50 });
+        if (!(i % 4)) await wait(1);
+      }
+      fire('pointerup', 2, 250, 115, t0 + 320);
+      fire('pointerup', 1, 414, 210, t0 + 400, { size: 50 });
+      clean('a palm ' + gap + 'ms before the ' + name + ' finger, drifting 6px', [name === 'pen' ? units(fin) : [30, 70, 150, 130]]);
+    }
     /* AND A PALM FIRST, THEN THE COMPASS FINGER 40ms LATER: the finger's circle, about where IT went down. */
     fresh();
     A['pad-tool'](tool('compass'));

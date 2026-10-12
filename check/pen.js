@@ -32,7 +32,12 @@
      types    a stylus draws and a palm lands as the primary TOUCH; a finger draws and a mouse clicks beside the
               board: the stylus's line and the finger's line -- "primary" is per kind of pointer (after review)
      pin      on November 2019 1H Q4, a pin held on the compass's centre (and a ruler's end) and a second finger
-              swinging round it: nothing stored, as before 338 -- a pin is not a palm (after review)
+              swinging round it: nothing stored, as before 338 -- a pin is not a palm (after review) -- and nothing
+              either when the pin rolls 6px as the other swings (second review)
+     palmtool on the same card, a palm (radius 25) resting on the picture, then a finger uses the pen, the ruler or
+              the compass while the palm drifts 6px: never a mark at the palm. The palm down 120ms before: the
+              finger's line, every tool; 400ms before: the pen's line, and the ruler's and compass's are the cost
+              338 section 4 chose -- by movement a resting palm is a pin (second review)
      hold     a finger held 1.1s on the armed card: nothing selected, and the callout rule in style.css
      inv      the geometry the rules rest on: no zoomed ancestor, the ink's box is the picture's, 16px from the edges
      samples  a 1,200-sample zigzag at 8ms, 4x CPU: at least 95% of the distinct samples kept (about a third
@@ -961,9 +966,10 @@ const unmoved = (sec, where, r, b) => {
     await env.ctx.close();
   }
 
-  /* ==================== A PIN HELD ON THE CENTRE: November 2019 1H Q4, AT 390 ==================== */
-  if (want('pin')) {
-    const W = 390, H = 844, at = `${W}x${H}`;
+  /* ==================== A PIN HELD ON THE CENTRE, AND A PALM ON THE PICTURE: November 2019 1H Q4 ==================== */
+  /* AT 390 AND 820 (second review: the pin's roll and the palm's drift stored a mark at both). */
+  if (want('pin') || want('palmtool')) for (const [W, H] of [[390, 844], [820, 1180]]) {
+    const at = `${W}x${H}`;
     const env = await boot(browser, W, H, port);
     await env.page.waitForFunction(r => typeof stuffItemsAll_ === 'function' && stuffItemsAll_().some(x => x.row && x.row.row_id === r), COMPASS_Q, { timeout: 90000 }).catch(() => {});
     const k = await card(env, COMPASS_Q);
@@ -971,36 +977,80 @@ const unmoved = (sec, where, r, b) => {
       const pad = [...document.querySelectorAll('#s-stuff .page.on .qpad')].find(p => p.getAttribute('data-k') === window.__k);
       const box = el => { if (!el) return null; const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
       return pad ? { compass: box(pad.querySelector('.qpad-tool[data-tool="compass"]')), ruler: box(pad.querySelector('.qpad-tool[data-tool="ruler"]')),
-                     tool: PAD_TOOL.get(window.__k) || 'pen' } : null;
+                     pen: box(pad.querySelector('.qpad-tool[data-tool="pen"]')), tool: PAD_TOOL.get(window.__k) || 'pen' } : null;
     });
     let c = k ? await cardBox(env) : null;
     if (c) c = await arm(env, c, cardBox);
     const tb = c ? await toolBox() : null;
-    if (!c || !tb || !tb.compass || !tb.ruler) fail('REACH', at + ' pin', 'November 2019 1H Q4\'s pad, armed, with a Compass and a Ruler tile, is not on the screen — the held pin was NOT checked');
+    if (!c || !tb || !tb.compass || !tb.ruler || !tb.pen) fail('REACH', at + ' pin', 'November 2019 1H Q4\'s pad, armed, with a Pen, a Compass and a Ruler tile, is not on the screen — the held pin and the palm were NOT checked');
     else {
       reached++;
       await reset(env, k);
       await env.cdp.send('Emulation.setCPUThrottlingRate', { rate: RATE });
-      for (const name of ['compass', 'ruler']) {
-        /* THE TOOL CHOSEN WITH A REAL TAP ON ITS TILE. */
+      /* THE TOOL CHOSEN WITH A REAL TAP ON ITS TILE; false if the tap did not choose it. */
+      const choose = async (sec, name) => {
         begin(env);
         const tile = (await toolBox())[name];
         await T(env, 'touchStart', [pt(tile.x, tile.y, 9)], 0); await sleep(40); await T(env, 'touchEnd', [], 40);
         await sleep(600);
-        if ((await toolBox()).tool !== name) { fail('pin', at + ' ' + name, `a tap on the ${name} tile did not choose it — NOT checked`); continue; }
+        if ((await toolBox()).tool !== name) { fail(sec, at + ' ' + name, `a tap on the ${name} tile did not choose it — NOT checked`); return false; }
         c = (await cardBox(env)) || c;
+        return true;
+      };
+      if (want('pin')) for (const name of ['compass', 'ruler']) for (const drift of [0, 6]) {
+        if (!(await choose('pin', name))) continue;
         /* FINGER 1 ON THE CENTRE, HELD, TREMBLING UNDER A PIXEL; FINGER 2 LANDS 300ms LATER AT THE RADIUS AND SWINGS 270 DEGREES
-           ROUND IT IN 60 MOVES 10ms APART (the compass), or slides 40px (the ruler). Nothing stored, as before 338. */
+           ROUND IT IN 60 MOVES 10ms APART (the compass), or slides 40px (the ruler). Nothing stored, as before 338. AND THE
+           PIN THAT ROLLS (second review): from the moment finger 2 lands it drifts `drift` px over 300ms, as a fingertip held
+           on a point does. Refused the swap, the pin was made the stroke again with 4px to go: a ruler line or a ring of
+           radius 8 round itself, at 390 and 820. */
         const cx = c.ink.l + c.ink.w * 0.45, cy = c.ink.t + c.ink.h * 0.5, R0 = 0.28 * Math.min(c.ink.w, c.ink.h);
         const pin = [];
-        for (let t = 0; t <= 920; t += 10) pin.push({ t, p: [cx + (t % 20 ? 0.4 : -0.4), cy, 1, 8] });
+        for (let t = 0; t <= 920; t += 10) pin.push({ t, p: [cx + (t < 300 || !drift ? (t % 20 ? 0.4 : -0.4) : drift * Math.min(1, (t - 300) / 300)), cy, 1, 8] });
         const f2 = name === 'compass' ? track(2, 8, 300, 900, 10, u => { const g = 1.5 * Math.PI * u / 600; return [cx + R0 * Math.cos(g), cy + R0 * Math.sin(g)]; })
           : track(2, 8, 300, 500, 10, u => [cx + R0 + 2 * u / 10, cy]);
         const r = await gesture(env, k, CARD, () => play(env, plan(pin, f2)));
-        if (r.stored.length) fail('pin', at + ' ' + name, `a pin held on the ${name}'s centre and a second finger moving stored ${JSON.stringify(r.stored).slice(0, 100)} — wanted nothing`);
+        const what = drift ? `a pin held on the ${name}'s centre that rolled ${drift}px while a second finger moved` : `a pin held on the ${name}'s centre and a second finger moving`;
+        if (r.stored.length) fail('pin', at + ' ' + name, `${what} stored ${JSON.stringify(r.stored).slice(0, 100)} — wanted nothing`);
         if (r.live || r.busy || r.touch) fail('pin', at + ' ' + name, 'the pen did not let go after both fingers lifted');
-        say(`pin ${at} ${name} ${JSON.stringify(r.stored).slice(0, 80)}`);
-        if (name === 'compass') await shot(env.page, `${at}-pin-compass`);
+        say(`pin ${at} ${name} drift ${drift} ${JSON.stringify(r.stored).slice(0, 80)}`);
+        if (name === 'compass' && !drift) await shot(env.page, `${at}-pin-compass`);
+        await reset(env, k);
+      }
+      /* A PALM (radius 25) RESTING ON THE PICTURE AT (0.85, 0.85), trembling under a pixel for `gap` ms; then a fingertip lands
+         at (0.25, 0.4) and draws a 120px ruler line or a pen line, or opens the compass 60px and swings it, while the palm
+         drifts 6px in its first 120ms. Never a mark at the palm (the review: the palm's own 7-unit line and a ring of 10
+         points round it, the finger's lost). The finger's line at 120ms, every tool, and with the pen at 400ms; with the
+         ruler and the compass at 400ms nothing at all -- the cost chosen in 338 section 4, printed and not failed, so that
+         a later decision to give tools the palm-first swap back changes only the note and this comment. */
+      if (want('palmtool')) for (const name of ['pen', 'ruler', 'compass']) for (const gap of [400, 120]) {
+        if (!(await choose('palmtool', name))) continue;
+        const pm = [c.ink.l + c.ink.w * 0.85, c.ink.t + c.ink.h * 0.85], f0 = [c.ink.l + c.ink.w * 0.25, c.ink.t + c.ink.h * 0.4];
+        const palm = [];
+        for (let t = 0; t <= gap; t += 10) palm.push({ t, p: [pm[0] + (t % 20 ? 0.4 : -0.4), pm[1], 1, 25] });
+        for (let i = 1; i <= 12; i++) palm.push({ t: gap + 10 * i, p: [pm[0] + 6 * i / 12, pm[1], 1, 25] });
+        palm.push({ t: gap + 500, p: [pm[0] + 6, pm[1], 1, 25] });
+        const fin = name === 'compass'
+          ? track(2, 8, gap, gap + 400, 10, u => { const g = Math.PI * u / 400; return u < 100 ? [f0[0] + 0.6 * u, f0[1]] : [f0[0] + 60 * Math.cos(g - Math.PI / 4), f0[1] + 60 * Math.sin(g - Math.PI / 4)]; })
+          : track(2, 8, gap, gap + 300, 10, u => [f0[0] + 0.4 * u, f0[1] + 0.1 * u]);
+        const r = await gesture(env, k, CARD, () => play(env, plan(palm, fin)));
+        const toU = q => [(q[0] - c.ink.l) / c.ink.w * 340, (q[1] - c.ink.t) / c.ink.h * 340];
+        const pu = toU(pm), fu = toU(f0);
+        const near = (st, q, d) => { for (let i = 0; i + 1 < st.length; i += 2) if (Math.hypot(st[i] - q[0], st[i + 1] - q[1]) < d) return true; return false; };
+        const where = `${at} ${name} palm ${gap}ms before`;
+        if (r.stored.some(st => near(st, pu, 25))) fail('palmtool', where, `a mark at the PALM: ${JSON.stringify(r.stored).slice(0, 100)} — wanted nothing there`);
+        /* THE FINGER'S LINE STARTS WHERE THE FINGER WENT DOWN; the compass's arc is centred there, every point 60px off it. */
+        const sx = c.ink.w / 340, sy = c.ink.h / 340;
+        const atFinger = st => {
+          if (name !== 'compass') return st.length >= 2 && Math.hypot(st[0] - fu[0], st[1] - fu[1]) < 4;
+          for (let i = 0; i + 1 < st.length; i += 2) if (Math.abs(Math.hypot((st[i] - fu[0]) * sx, (st[i + 1] - fu[1]) * sy) - 60) > 6) return false;
+          return st.length >= 8;
+        };
+        if (r.stored.some(st => !atFinger(st))) fail('palmtool', where, `a mark that is not the finger's: ${JSON.stringify(r.stored).slice(0, 100)}`);
+        const lost = name !== 'pen' && gap > 200;
+        if (!lost && (r.stored.length !== 1 || !atFinger(r.stored[0]))) fail('palmtool', where, `stored ${JSON.stringify(r.stored).slice(0, 100)} — wanted the finger's ${name} line`);
+        if (r.live || r.busy || r.touch) fail('palmtool', where, 'the pen did not let go after both lifted');
+        say(`palmtool ${where} ${lost && !r.stored.length ? '(the cost: the finger\'s line lost) ' : ''}${JSON.stringify(r.stored).slice(0, 80)}`);
         await reset(env, k);
       }
       await env.cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
