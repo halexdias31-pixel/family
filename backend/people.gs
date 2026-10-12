@@ -1625,14 +1625,28 @@ function mailOut_(o) {
   /* FOR THE PERSON IT GOES TO (342): a grown-up's whole name stays in their own mail and an admin's, and
      goes from everybody else's — `mailViewer_` reads the address. Whoever the request was for is put
      back after, because a reply is built after the mail it sends. */
+  /* `firstNamesOnly`: A WHOLE NAME BECOMES THE FIRST NAME ALONE, NEVER "First (@handle)". The net names
+     a child by first name and adds the handle where two children share it, which is right on a screen
+     where the handle is how one is told from the other — and wrong in the parents' Sunday email, which
+     the owner said carries no usernames (*"they dont need to see usernames or whatever"*, 12 Oct): a
+     question whose words held a child's whole name would have put the handle in a parent's inbox. Taken
+     off the message here, so MailApp is never handed it. */
+  const bare = !!(o && o.firstNamesOnly);
+  if (o) delete o.firstNamesOnly;
   const was = NET_VIEWER_;
   try {
     netViewerSet_(mailViewer_(o && o.to));
-    const idx = kidNamesIndex_();
+    const idx = bare ? kidNamesBare_(kidNamesIndex_()) : kidNamesIndex_();
     ['subject', 'body', 'htmlBody'].forEach(k => { if (typeof o[k] === 'string') o[k] = kidNamesOff_(o[k], idx); });
   } catch (err) { /* a broken people tab names no child, so there is nothing to take out */ }
   finally { NET_VIEWER_ = was; }
   return MailApp.sendEmail(o);
+}
+/* THE NET'S INDEX WITH EVERY " (@handle)" TAKEN OFF WHAT A NAME BECOMES — `mailOut_`'s `firstNamesOnly`.
+   A copy: the index is memoised for the request, and the screens' replies still want the handle. */
+function kidNamesBare_(idx) {
+  const off = m => { const o = {}; Object.keys(m || {}).forEach(k => { o[k] = S(m[k]).replace(/\s*\(@[^)]*\)\s*$/, ''); }); return o; };
+  return Object.assign({}, idx, { said: off(idx.said), whole: off(idx.whole) });
 }
 
 /**
