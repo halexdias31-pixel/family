@@ -364,7 +364,12 @@ function widgetWho_() {
    the same under two payloads and two people), so it cannot drift. `who`: A CHANGE OF PERSON — then every
    drawn slot whose drawing was somebody else's goes, pure or not (the shared iPad: the last child's notepad
    must not sit drawn on a column a sign-out marked stale). A slot a widget is running in is left to 331's
-   rules, which stop and start it. docs/history/341. */
+   rules, which stop and start it. docs/history/341.
+   AND A DRAWING MADE FROM THE PERSON'S OWN DEVICE COPY, NOT FROM THE FACTS (`slot.OWN`, which only the
+   whiteboard's `wbPaint_` stamps), is kept when only the facts change: `signedOut_` and `signedIn_` draw
+   the board for the person arriving and then repaint, and the repaint's own mark put that board straight
+   back under its loader — found by the whiteboard journey on the final run. A change of person still
+   takes it (`who`), unless it was drawn for whoever is here now. */
 function widgetsReveil_(col, who) {
   if (WIDGET_COLS.indexOf(col) === -1 || typeof loading_ !== 'function') return;
   const me = widgetWho_();
@@ -373,12 +378,13 @@ function widgetsReveil_(col, who) {
     const slot = slotOn_(col, String(w.id));
     if (!slot || slot.getAttribute('aria-busy')) return;
     if (TOOLS_ON.some(e => e.slot === slot)) return;
-    if (who ? slot.WHO === me : w.pure) return;
+    if (who ? slot.WHO === me : (w.pure || (slot.OWN !== undefined && slot.OWN === me))) return;
     slot.innerHTML = w.html + loading_();
     slot.setAttribute('aria-busy', 'true');
     delete slot.AHEAD;
     delete slot.WHO;
     delete slot.LENT;
+    delete slot.OWN;
   });
 }
 

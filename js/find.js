@@ -9422,7 +9422,9 @@ function wbPaint_() {
     if (PAD_ST && PAD_GO && el.contains(PAD_GO.ink)) return;
     el.innerHTML = html;
     const slot = el.closest('.widget-slot');
-    if (slot) slot.WHO = who;
+    /* `OWN` AS WELL: the board is drawn from this person's strokes on this device and from no fact, so a
+       landing or a repaint for the same person leaves it drawn (`widgetsReveil_`). */
+    if (slot) { slot.WHO = who; slot.OWN = who; }
   });
 }
 function initWhiteboard() { wbPaint_(); }
@@ -15515,7 +15517,10 @@ function stuffFillOne_(i, ctx) {
    aimed at, widened by a glass height either way, measured in pixels. So the fill a turn makes before its
    slide is asked in the same units, or the band would uncover a page this left empty: from the page being
    turned to, in the direction of the turn, every unfilled page until the far edge of that page's glass plus
-   one glass height — and never fewer than `glassRows_()` pages, the count this was before. POSITIONS ARE
+   one glass height — and never fewer than `glassRows_() + 3` pages: check/swipe.js's BUILT AHEAD asks that
+   many filled past the card in front at every landing of a run, when the builder has had no quiet moment,
+   and on the 76-question paper at 820 a glass height and a half reached only five of the six (the cards are
+   tall; the final run, 12 Oct). POSITIONS ARE
    READ BEFORE THE FIRST FILL, while the layout is the one the last frame drew, so a turn that finds
    everything filled (which, after any rest, the builder has made every turn) forces no layout at all.
    BOUNDED AT `glassRows_() + 3` FILLS IN ONE RELEASE: the band past the glass is the builder's to have
@@ -15539,7 +15544,7 @@ function stuffEdgeFill_(n, dir) {
     const i = n + dir * k;
     const el = pages[domIndex_(id, i)];
     if (!el || !el.classList.contains('is-res')) break;
-    if (k > rows && (dir > 0 ? y >= reach : y <= reach)) break;
+    if (k > rows + 3 && (dir > 0 ? y >= reach : y <= reach)) break;
     if (el.dataset.filled !== '1' && stuffFillOne_(i)) filled++;
     y += dir * el.offsetHeight;
     if (filled >= rows + 3) break;

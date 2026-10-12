@@ -879,7 +879,9 @@ function paint(id, fresh, o) {
      the widgets on it that read facts are put back under their loader, to be drawn again from the new facts
      (`widgetsReveil_`, arcade.js). Never for a column drawn `fresh`, one still holding the boot's markup,
      the column in front, or a finder, which keep their own fills. THE RESIDUAL RULE: code that edits a
-     column's markup in place outside `paint` and outside an action calls `paintDirty_(id)`. */
+     column's markup in place outside `paint` and outside an action sets that section's `DRAWN` to null, so
+     the next landing draws it rather than keeps it. Nothing does today; a helper with no caller was taken
+     out again for `check-dead.js`'s reason. */
   if (mark === 'maybe' && !fresh && html !== null && id !== AT && !PRE_PAYLOAD.has(id)
       && !(typeof finderOf_ === 'function' && finderOf_(id))
       && el.DRAWN && el.DRAWN.html === html && el.DRAWN.epoch === ACT_EPOCH && el.firstElementChild) {
@@ -927,13 +929,6 @@ function paint(id, fresh, o) {
   if (typeof afterSlide_ === 'function' && typeof paneWatch_ === 'function' && !(o && o.ahead)) {
     afterSlide_(() => paneWatch_($('s-' + id)), 'panes:' + id);
   }
-}
-
-/* A COLUMN'S MARKUP WAS EDITED IN PLACE, outside `paint` and outside an action — so what it holds is no
-   longer what it was drawn with, and the next landing must draw it rather than keep it. See `paint`. */
-function paintDirty_(id) {
-  const el = document.getElementById('s-' + id);
-  if (el) el.DRAWN = null;
 }
 
 /**
@@ -2385,8 +2380,18 @@ function placeGrid(instant, drag) {
        the glass anywhere over the swept span (`onGlass`) or one step short of it. */
     const onGlass = c.onGlass;
     const lit = WIDE && c.acrossT * stepX < glass + stepX;
-    host.style.opacity = across === 0 ? '1' : WIDE ? (lit ? '1' : '0')
+    const op = across === 0 ? '1' : WIDE ? (lit ? '1' : '0')
       : c.acrossT <= 3 ? '.92' : '0';
+    /* ---------- AND A COLUMN COMING BACK FROM NOUGHT IS DRAWN AT ONCE, NOT FADED IN ------------------------
+       The `.22s` fade begins at the style pass after this write, and behind a long task that is later than
+       the row's slide, which is already running: with three columns of lead, check/reach.js still read a
+       column at nought on an 820 glass twice in a sweep under the heaviest load (the final run, 12 Oct). A
+       column only rises from nought when it comes into the band, which is off the glass unless the band is
+       late — and then the fade is exactly the thing in the way. Going down, the fade stays; the shade
+       between .92 and 1 still eases. */
+    const was = +host.style.opacity || 0;
+    if (!instant && was <= 0.05 && +op > 0.05) colTransition_(host, null, null, { d: '0s', tf: 'linear', delay: '0s' });
+    host.style.opacity = op;
     /* AND SIDEWAYS, THE SAME. This was 1 — one tab either side — so with four tabs the far one was
        hidden until the swipe reached it, and a quick flick across two showed a blank in between.
        Held to the same 3 as the column, for the same reason and at the same cost: a handful of
@@ -2552,7 +2557,7 @@ const TRAIL_CAP = 8;
 function trailY_(host, shift, glassH, now, drag, instant, dur) {
   const tTop = -shift, tBot = -shift + glassH;
   const T = host.TRAIL;
-  const run = !!(T && now < T.until);
+  const run = !!(T && (now < T.until || (!drag && !instant && slideRunning_(host, colProp_('y')))));
   let top = tTop, bot = tBot;
   if (run) { top = Math.min(top, T.top); bot = Math.max(bot, T.bot); }
   else if (!drag && !instant) {
@@ -2563,21 +2568,48 @@ function trailY_(host, shift, glassH, now, drag, instant, dur) {
   bot = Math.min(bot, tBot + TRAIL_CAP * glassH);
   const band = { top: top, bot: bot, until: drag || instant ? (run ? T.until : 0) : now + dur + 50 };
   if (!drag) host.TRAIL = band;
+  if (!drag && !instant) trailFrom_(band, dur);
   return band;
+}
+/* ---------- A SLIDE ENDS `dur` AFTER THE FRAME IT STARTS IN, NOT AFTER THE WRITE THAT ASKED FOR IT -----------
+   The transform is written now and the transition starts at the next style pass — which, behind a long
+   task, is up to a second later on a 2019 iPad's main thread. Timed from the write, the trail ran out while
+   the slide had not even begun: the next flick started a new union from the last TARGET, the pages between
+   it and where the column really was went hidden, and check/reach.js read a hole ten pages behind the card
+   in front on the Feed at 820, and columns at nought in a sweep (the final run, 12 Oct). So the end is
+   moved to the frame: an animation-frame callback runs at the start of the frame whose style pass starts
+   the transition. Only ever later, never earlier. */
+function trailFrom_(band, dur) {
+  try { requestAnimationFrame(() => { band.until = Math.max(band.until, performance.now() + dur + 50); }); } catch (e) {}
+}
+/* ---------- AND A SLIDE STILL RUNNING IS STILL A SLIDE, WHATEVER THE CLOCK SAYS ------------------------------
+   Timed from its frame, a slide can still outlast `dur`: another write re-aims it from where it is drawn
+   (`holdColumn_`, a window moved, the next release), and under the heaviest load check/reach.js caught the
+   Feed at 820 drawn 6,000px short of its target with the trail 173ms past its end — so the next flick began
+   a new union at the last TARGET and every page between it and the column as drawn went hidden. The
+   browser knows whether the transition is still running; asked in the reading pass, where the style is
+   already clean, it costs no recalc. */
+function slideRunning_(host, prop) {
+  try {
+    return !!(host && host.getAnimations && host.getAnimations().some(a => a.playState === 'running'
+      && (prop ? a.transitionProperty === prop : a.transitionProperty === 'transform' || a.transitionProperty === 'translate')));
+  } catch (e) { return false; }
 }
 /* AND ACROSS THE ROW: the column indices the row has swept while its sideways slide still runs, the index
    it is leaving and the one it is going to. `at` is the index this placement was for. */
 let TRAIL_X = { lo: 0, hi: 0, at: null, until: 0 };
 function trailX_(ti, now, instant, settle) {
   const T = TRAIL_X;
-  const run = now < T.until;
+  const run = now < T.until || (!instant && T.at != null && slideRunning_($('s-' + ((TABS[T.at] || {}).id)), colProp_('x')));
   let lo = ti, hi = ti;
   if (run) { lo = Math.min(lo, T.lo); hi = Math.max(hi, T.hi); }
   else if (!instant && T.at != null) { lo = Math.min(lo, T.at); hi = Math.max(hi, T.at); }
   const moved = T.at !== ti;
   const dur = settle && settle.axis === 'x' ? settle.dur : 300;
-  return { lo: lo, hi: hi, at: ti,
+  const out = { lo: lo, hi: hi, at: ti,
     until: instant ? (run ? T.until : 0) : moved || run ? now + dur + 50 : T.until };
+  if (!instant && (moved || run)) trailFrom_(out, dur);
+  return out;
 }
 /* ONCE THE SLIDES HAVE ENDED, THE BAND GOES BACK TO THE GLASS. Booked by any placement that left a column
    wider than its glass (`afterSlide_`, which waits out the settle and a finger), and asked again until
@@ -2590,6 +2622,8 @@ function trailEnd_() {
   let until = TRAIL_X.until;
   TABS.forEach(t => { const h = $('s-' + t.id); if (h && h.TRAIL) until = Math.max(until, h.TRAIL.until); });
   if (until > now) { setTimeout(() => afterSlide_(trailEnd_, 'trail'), Math.ceil(until - now)); return; }
+  /* NOR WHILE A SLIDE IS STILL RUNNING past its clock (`slideRunning_`, above). */
+  if (TABS.some(t => slideRunning_($('s-' + t.id)))) { setTimeout(() => afterSlide_(trailEnd_, 'trail'), 100); return; }
   const wide = TRAIL_X.lo < TRAIL_X.hi || TABS.some(t => {
     const h = $('s-' + t.id);
     const was = h && h.TRAIL && colPlaced_(h);
@@ -3719,6 +3753,9 @@ function goPage(id, to, instant) {
      page turns away, booked under its own name for the reason `reelsWatch_` is: a run of quick
      flicks is one decision at the end rather than a camera started and stopped per swipe. */
   if (id === 'feed' && typeof feedCamWatch_ === 'function') afterSlide_(feedCamWatch_);
+  /* AND A TURN OFF THE CAMERA'S PAGE PUTS ITS VIEWFINDER AT REST NOW, not after the slide: the slide is what
+     carries the page across the glass, loader and all (`camRest_`, posts.js; docs/history/341). */
+  if (id === 'feed' && n !== 0 && typeof camRest_ === 'function') camRest_();
   paintPager(id);
 }
 

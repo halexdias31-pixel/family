@@ -137,8 +137,6 @@ function picsAhead_(id) {
     }
   } catch (e) { /* a picture fetched on arrival is still a picture */ }
 }
-/* THE OLD NAME, for whatever still asks for the Feed's alone — the same rule, one column. */
-function postsAhead_(id) { picsAhead_(id); }
 
 /* ---------- AND IN THE QUIET: THE NEXT TWO DECODED, THE COLUMNS BESIDE, THEN EVERY OTHER COLUMN -----------
    One builder job per column with work left (`ahead_`, shell.js), nearest column first:
@@ -214,7 +212,7 @@ function postMediaHtml_(list, i) {
        is on its way, the file's own proportions once it has landed. `width`/`height` say the same 4:5
        to anything that reads the attributes before the stylesheet — a browser maps them to exactly
        that `auto` ratio. What the fixed box bought is kept by two things that cost no black:
-       `postsAhead_`, which asks for the pictures before their page is in front of anybody, so the
+       `picsAhead_`, which asks for the pictures before their page is in front of anybody, so the
        change normally happens off-screen; and `holdColumn_` in shell.js for the case it does not.
        A page is NOT a fixed cell — it is `height: auto` in an ordinary CSS column — so a picture
        landing on a card ABOVE the one being read moves that one, by however much the 4:5 it
@@ -988,7 +986,7 @@ async function camStart_() {
   /* THE COLUMN MAY HAVE LEFT WHILE THE PROMPT WAS UP. `camStop_` ran with CAM_STREAM still null, so
      it stopped nothing, and this stream would have stayed live behind a screen nobody is looking at
      — a recording light on for nothing, which is the exact thing camStop_ exists to prevent. */
-  if (!feedCamHere_()) { camStop_(true); return; }
+  if (!feedCamHere_()) { camStop_(true); camRest_(); return; }
 
   /* ---------- AND THE CARD MAY HAVE BEEN DRAWN AGAIN WHILE IT WAS UP --------------------------------
      `v`, `said` and `retry` were found before the prompt, and a repaint in the meantime replaced all
@@ -2589,6 +2587,18 @@ function feedCamWatch_() {
      asking for the camera — see `CAM_FAILED`. */
   CAM_FAILED = null;
   if (CAM_STREAM || (CAM_REC && CAM_REC.state === 'recording')) camStop_(true);
+  camRest_();
+}
+/* ---------- OFF ITS PAGE THE VIEWFINDER IS AT REST, WHATEVER THE ASK IS DOING (docs/history/341) -----------
+   `camStop_(true)` lets the hardware go and keeps the card as it is — and a card turned away from mid-ask
+   kept the loader `camStart_` had drawn, on the page beside the one in front, for as long as the prompt
+   stayed up; an answer arriving after the page was left was stopped the same way and left it there for
+   good. check/reach.js read it at 390 and 820: up to fifteen frames of loader on the Feed's first page with
+   its second in front. Nothing is coming to that card any more — the answer is let go the moment it lands
+   (below) — so it goes back to the dark stage. A refusal's words are not a wait and are left. */
+function camRest_() {
+  const off = $('cam-off');
+  if (off && off.querySelector(':scope > .loading')) off.innerHTML = '';
 }
 
 
