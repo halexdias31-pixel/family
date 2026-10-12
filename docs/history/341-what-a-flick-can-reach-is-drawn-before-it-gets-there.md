@@ -198,6 +198,10 @@ frame.
   above it (check/anims.js, the chapters' drawings, 770px). The vertical property is now taken out of the
   transition list for that one write. The corrections are also measured to the fraction of a pixel
   (`stuffTop_`): `offsetTop` is rounded, a card's height is not.
+- **A stand-in's dashed box lost its bottom edge on its own page** — `.qstem .qsheet-stem` and
+  `.qsheet-stem.is-standin`, one specificity, file order deciding. Old, and never seen by check/cascade.js
+  because Find held five cards either side; with the whole window drawn it held one. The stand-in keeps its
+  box (`.qstem .qsheet-stem.is-standin`, style.css).
 - **The release's fill floor is `glassRows_() + 3` pages, not `glassRows_()`**: on the 76-question paper at
   820 a glass height and a half reached five of the six pages BUILT AHEAD asks for during a run, when the
   builder has had no quiet moment.
@@ -280,6 +284,14 @@ frame.
   had left uncalled (`postsAhead_`'s alias, a `paintDirty_` nothing called) are gone, and the residual rule
   says what to do in their place: code that edits a column in place outside `paint` and outside an action
   sets that section's `DRAWN` to null.
+
+**On the final tree, at a load average of 15–47:** the fast checks 53 of 54 (check-dead reports, as on
+base, and names nothing new); check-flow 334 of 336 in one run of four parts, the two being the taboo deal
+(green alone three times) and the install offer (fixed in the journey, above); swipe.js, reach.js, anims.js,
+cards, deploy, videos, diagrams, share and the funnel green; ui.js's three parts green once the reels rule
+and the bust were fixed (part 1 took 47 minutes, so it is run in parts); cascade.js green screen by screen,
+its single run outlasting forty minutes on the shared machine (base took 122s on the Feed, this branch
+101s); press.js green but for one chained flick at 400ms that base also misses at the same load.
 
 ### Measured: base against this branch, alternated
 

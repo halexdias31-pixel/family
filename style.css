@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-12-reach-3";
+  --css-version: "2026-10-12-reach-4";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -8449,6 +8449,11 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    card that also held the part. A stem is its own page now, in front of its parts (`questionStemCard_`
    in find.js), so there is no part below it to defer to: full ink, and no rule leading to nothing. */
 .qstem .qsheet-stem { opacity: 1; border-bottom: 0; padding-bottom: 0; margin-bottom: 0; }
+/* BUT A STAND-IN'S DASHED EDGE IS ITS BOX, NOT THAT RULE (`.qsheet-stem.is-standin` above: "the dashed edge
+   all the way round"), so on its own page it keeps the bottom of it. Two rules of one specificity decided by
+   file order alone: check/cascade.js found it once Find's window held a stand-in's card at the moment it
+   looked (docs/history/341 — the whole window is drawn now, not five either side). */
+.qstem .qsheet-stem.is-standin { border-bottom: 1px dashed var(--line); padding-bottom: .7rem; }
 /* WHICH SPAN OF THE SOURCE A PART COVERS — "Lines 10–19". A label rather than prose, so it reads
    as an index into the insert instead of as the first sentence of it: the gold is `.qsheet-pn`'s,
    which already marks a question number, and this is the same job one level out. Only drawn when
