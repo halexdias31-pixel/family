@@ -122,3 +122,5 @@ width at 320, 83% at 375), and that is a visible change to how every photograph 
 prints; the only thing that wins those eleven pixels back is the card, which is the app's main form.
 
 **Changed by [341](341-what-a-flick-can-reach-is-drawn-before-it-gets-there.md)** — `paintNeighbours` still draws a column with no markup, but the first payload no longer empties the columns: it draws the one in front and the glass, and every other column keeps the boot's loader until the builder draws it in the quiet (`ahead_`, shell.js). A column marked `STALE` is drawn in the quiet too, not on arrival.
+
+**Changed again by [341](341-what-a-flick-can-reach-is-drawn-before-it-gets-there.md), after its review** — `go` draws, before it places anything, every column its landing will show that still holds the boot's markup (`bootGlass_`): the glass on a wide window, the peek either side on a phone.

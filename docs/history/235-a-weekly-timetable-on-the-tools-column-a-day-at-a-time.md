@@ -53,3 +53,5 @@ keystroke is already stored and the lesson comes back open, but the keyboard clo
 widget starred onto Saved, typing into one copy updates the other only on its next draw.
 
 `check/states.js` has `tools · a timetable` (weekend on, one lesson open). `check/press.js` reads `PRESS_PORT` now.
+
+**Changed by [341](341-what-a-flick-can-reach-is-drawn-before-it-gets-there.md), after its review** — the timetable is not `pure`: it draws the sessions booked here, which are facts, so a landing puts its drawing back under the loader and the builder draws it again. Drawn ahead it saves nothing — a week from before the colours existed is given them for the drawing and saved at the next start somebody is looking at.

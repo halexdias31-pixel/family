@@ -31,3 +31,5 @@ inbox nobody managed to read. **This repository's oldest fault, on the one scree
 telling you somebody wrote to you.** `MSG_FAILED` is the fact `MESSAGES` cannot carry, and it is why
 the retry button now sits on the failure and nowhere else: a genuinely empty inbox is being re-asked
 every twenty seconds and needs no button.
+
+**Changed by [341](341-what-a-flick-can-reach-is-drawn-before-it-gets-there.md), after its review** — the Messages column is drawn by the builder in the quiet now, and drawn ahead it asks nothing (`dmAsk_`, posts.js): the inbox the payload fetched is its first answer. The poll and the arrival ask exactly as above.

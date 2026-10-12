@@ -70,7 +70,7 @@ Rejected, each for a reason:
 | Pictures, column in front | Feed only, k−1..k+2 | **every column, k−2..k+6** in the direction of travel, off the glass at `fetchpriority="low"`; the next two decoded in the quiet | a request must leave a second before arrival: six pages at five flicks a second |
 | Pictures elsewhere | — | neighbours P−1..P+2 (their front page decoded on a wide window), every other column P−1..P+4, in the quiet | the next sideways flick, the next sweep |
 | Reels | 3 first, 2 ahead, 3 more, topped up after the slide | **7 / 6 / 6**; a release appends one when fewer than six are ahead; the quiet tops up to 12 | flicks under 300ms apart starved the after-slide top-up |
-| The Bible | a book fetched when its first verse card was drawn | fetched when its chip is chosen, and by the builder if still not here | cards filled ahead otherwise sat on the loader |
+| The Bible | a book fetched when its first verse card was drawn | fetched by the builder if chosen and still not here (the chip's own fetch went after review: see below) | cards filled ahead otherwise sat on the loader |
 
 ### What was built
 
@@ -131,8 +131,8 @@ a slot nothing is using: not on the column in front (`$` resolves to that copy),
 on a column already drawn. Kept out of `TOOLS_ON`; stamped with whom and under which clocks it was drawn.
 **Adopted on arrival, with no `start`,** when the same person, no action, no landing and no start of the
 same widget elsewhere have happened since; otherwise started behind its drawing after the slide. **In a
-release only a slot still under its loader is started.** `pure: true` (twelve widgets — the calculator, the
-timer, the timetable, touch typing and eight games) says the drawing reads no facts: carried through a
+release only a slot still under its loader is started.** `pure: true` (eleven widgets — the calculator, the
+timer, touch typing and eight games; the timetable was a twelfth until review found it draws the bookings) says the drawing reads no facts: carried through a
 paint. Every other drawing goes back under its loader **at the mark** — when the repaint or landing
 happens, not when the column is next drawn — and is drawn again from the new facts. **A change of person**
 re-veils every drawing that was somebody else's on every column before `repaint` returns. The whiteboard,
@@ -151,7 +151,7 @@ back before it stands for another card (`stuffBlank_`).
 
 **6. Pictures, reels, the Bible, the camera** (posts.js). `picsAhead_` replaces `postsAhead_`; every `<img>`
 the app writes says `decoding="async"` (WebKit decodes on the main thread without it); reels 7/6/6 with a
-one-slide append in the release; the chosen book fetched on its chip. **The camera card at rest is the dark
+one-slide append in the release; the chosen book fetched on its chip (taken out after review, below). **The camera card at rest is the dark
 viewfinder, not the loader** — off its page nothing is coming, and it was 1.0–1.2s of loader on the glass
 per Feed sweep on an iPad; `camStart_` draws the loader for exactly the time between the ask and the first
 frame.
@@ -213,7 +213,8 @@ frame.
 2. Every fact change goes through `repaint` or `landRepaint_`, which mark first; the picker reads `STALE`
    every slice, and nothing is queued that could outlive a mark.
 3. The identical-markup skip: byte-identical html, drawn after the last action, a landing's `'maybe'` only
-   — never a `repaint()`'s 1, never `fresh`, the boot's markup, the column in front or a finder.
+   — never a `repaint()`'s 1, never `fresh`, the boot's markup or a finder; and, since the review, the column in
+   front too — on arrival, and at a landing for a column with no widgets (below).
 4. Widgets: pure carried (proved, below); every other drawing veiled at the mark and drawn again, except one
    made from the person's own device copy (`OWN`, the whiteboard); adoption needs the same person and
    unmoved clocks; a change of person re-veils everybody else's drawing at once.
@@ -286,7 +287,8 @@ frame.
   sets that section's `DRAWN` to null.
 
 **On the final tree, at a load average of 15–47:** the fast checks 53 of 54 (check-dead reports, as on
-base, and names nothing new); check-flow 334 of 336 in one run of four parts, the two being the taboo deal
+base, and names nothing new); check-flow 334 of 336 in one run of four parts (the last full run before review;
+it was not run whole again after Reach 10 and 11 — see "After review"), the two being the taboo deal
 (green alone three times) and the install offer (fixed in the journey, above); swipe.js, reach.js, anims.js,
 cards, deploy, videos, diagrams, share and the funnel green; ui.js's three parts green once the reels rule
 and the bust were fixed (part 1 took 47 minutes, so it is run in parts); cascade.js green screen by screen,
@@ -419,4 +421,159 @@ Every real file was green again after each (the runs above are on copies).
   was so before this branch, and making it whole means a second start of one widget, which 331 forbids.
 - **Three journeys flaked in the earlier full runs** at a load average near 40 and passed alone — "a round
   left for the Saved column…" (which base failed three times in three at the same load), "a session that ends
-  while a child types…" and the taboo deal. The last full run, on the final tree, was green: 336 of 336.
+  while a child types…" and the taboo deal. (This line said the last full run on the final tree was 336 of 336;
+  the review found it contradicted the paragraph above and the builder's own report — the whole flow had not been
+  run again after Reach 10 and 11. What was run after review is under "After review".)
+
+### After review
+
+Three reviewers read this branch at 9118807 against cafb838 — one asking whether it feels right, one what it
+costs and whether anything drawn early goes stale, one whether the checks would notice it breaking — on the
+same shared machine (load average 22–55 on four cores; their in-page calibration loop ran 92–1,967ms for the
+same work). They reported only outcomes that repeated and probes that are deterministic, and so does this. Every
+finding below was reproduced on 9118807 first, and each fix has a check that is red there — or red on a copy of
+this tree with the fix taken out, where 9118807 already passed it — and green on the real files.
+
+**What they found, and what was done** (`9118807` → this tree; the check that holds it):
+
+| Finding | Seen on 9118807 | Fix | Held by |
+|---|---|---|---|
+| **Reels dealt twice.** The identical-markup skip kept a reel column the builder had appended to; the reel draw had already counted from nought, so the next top-up dealt reels 7–12 again — six repeats per landing, without end, and from page 13 the clip started was a slide six pages off the glass | reels `0..12,7..12` after one landing; 3 slides and no repeat on base | an append says the column has left its drawing: `reelMore_` and `reelAhead_` set `DRAWN` to null — the residual rule written over the skip, which had said nothing edited a column in place | check-flow "a landing never deals a reel twice" |
+| **An inbox asked for nobody.** The Messages draw asks the backend (`dmSync_`), and the builder drew it after every repaint and landing | 3 repaints, 3 `messages` POSTs; cafb838 none | drawn ahead it asks nothing (`dmAsk_`, posts.js): the inbox the payload fetched is its first answer; `DM_LAST` is left, so the first arrival asks as before | "nothing drawn ahead asks the network" — also: no slice may ask anything (the Bible's job apart, an admin's) |
+| **A sign-out missed the next person's missing widgets.** The person re-veil walked `widgetsOn_(col)`, the NEW person's list — signed out, Saved's stars and an admin's tools are on nobody's list | 14 of an admin's slots drawn after `signedOut_()`; 8–15s at 4x until redrawn | it walks every slot on the column (`widgetsReveilAll_`, arcade.js) | "signing out puts away every drawing … including the ones the next person has no slot for" |
+| **`pure` proved by nobody.** No person in check-widgets had a week, so the timetable — which draws its person's week AND the sessions booked here — passed as pure | — | the timetable is not `pure`; check-widgets' second student has a week of her own. Giving her one found a draw ahead that runs something: a week from before the colours existed was saved (a POST 900ms later) from the builder's draw. Drawn ahead (`AHEAD.running`, which the sandbox now holds for the draw as `aheadSlice_` does), it saves nothing | check-widgets (purity, network) |
+| **Six marks that never kicked.** A star, a spotlight, the Bible's index, a child's account, a claim answered, a session opened from a receipt marked `STALE` themselves; the builder runs nothing periodic | a star by keyboard: 13 columns stale 43s later, every wait for quiet timed out | one call, `markStale_` (shell.js), which kicks. No re-veil: none of the six changes a fact a widget's drawing reads (a star is the tile beside a card, outside its slot) | "a column marked stale by a press with no finger lifted … is drawn in the quiet" |
+| **The boot's loader beside the landing.** The first payload draws the front and the glass and leaves the rest to the builder, whose quiet a moving hand never gives; a sideways landing in the first seconds showed columns still on the boot's loader (Reels as dots, Find as "Search…" over dots at 1280; 2–11s per run, base none) | reach.js BOOT LOADER at 390 (the peek) and 820, landing 1 | `go` draws, before it places anything, every column the landing will show that still holds the boot's markup: on a wide window those within `GLASS.reach` (the same sum `glassNow_` uses, worked out per window), on a phone the one either side (`bootGlass_`). Only the boot's markup: a column that is merely stale shows what it showed before and is the builder's. Paid in the first seconds only, once per column — what base paid for every column before the splash lifted | check-flow "a sideways landing in the first seconds …" (phone and wide); reach.js `bootglass` (BOOT LOADER), held |
+| **Empty shells above Find on an iPad.** A repaint draws Find in front from nothing and filled three cards; the release fill goes only the way of the turn; stubs of 29–46px put three empty card shells on a tall glass for 1–2.5s | reach.js `findland` at 820: EMPTY in 94 of 385 frames (Find and Resources beside it); 390 clean | a window drawn afresh where it can be seen — in front, or beside it on a wide window — is filled in the same task as far as the band shows, both ways, before it is placed (`stuffBandFill_`, find.js): on the repaint's and an arrival's draw, a new question in front, and the builder's paint of a finder on the glass. Up to six a side on an iPad against base's ten; a phone rarely past the three | jsdom "a window drawn afresh in front is filled … both ways"; reach.js `findland` (EMPTY) at 390 and 820 |
+| **A landing redrew the column in front, and an arrival after one wrote its column.** The skip was "never the column in front" | reach.js `feedland`: PICTURE GONE in 2 and 3 frames (a picture on the card in front not drawn during a landing that changed nothing) | the skip is taken by `go`'s arrival paint, and by a landing's own paint of the column in front (`o.land` from `repaint`) for a column with no widgets and no window — Feed, Booking, Reels, Messages, You, Settings, Spotlight, Progress, the business records. A column of widgets in front is still drawn and restarted, 331's rule; `'kept'` means nothing that runs in it is started again | "a landing that changes nothing keeps the column in front …"; reach.js `feedland` |
+| **The first thirty seconds clunkier than base.** `AHEAD.input` started at 0, so the first slices needed no quiet; `AHEAD_SLOW` started empty, so every heavy first draw ran after 400ms; and the finder's draw queued its own fill as a microtask that ran outside the slice and its timing (2.7s of one idle callback against 1.6s logged) | median first-touch delay 55→170ms at 390 (review) | the quiet starts when the builder opens; a column's first draw from a payload (`PRE_PAYLOAD`) is slow until timed — a second of quiet; the slow bit is kept on the device (`familyAheadSlow`, column paints and widget draws only); a finder drawn ahead is filled by the builder — in the same slice when it is on the glass, one card per slice when not — never by a microtask after it | "the first slices after the screen is up …", "a finder drawn for nobody is filled inside the builder's slices" |
+| **Widget loaders in reach of the builder.** A slot was as far as its column plus its pages, so Games' slots eight pages down came after whole paints three and four columns away — and the band draws those pages as a slide carries them | Games pages 8–10 on the glass as loaders, target 4 | a slot is as far as its column; its page only orders it within the column (`/16`) | "a column's widget slots are drawn before any column further out is painted" |
+| **Mechanisms no check could see.** The skip's own comparison; the gates (input, typing, settle and tapped slide, hidden page); the picture reach; reels 7/6/6; the Bible prefetch; the window's re-centring; "every tab draws something" loosened for every tab | each removable with the whole suite green | a journey or rule for each (below). The Bible chip's own prefetch could not be told from the first verse card's — the page in front is filled in the chip's task and its first card asks first — so it was taken out rather than tested; the builder's `bible` job stays, for Resources drawn for nobody with its question in front, and is tested | "a landing that brings a fact draws it", "the builder waits for the hand", reach.js NOT ASKED AHEAD, "the reels are kept six ahead …", "a chosen book of the Bible is fetched by the builder …", "the quiet puts a finder's window where a run needs it", "every tab draws something" (a loader counts only on Messages, while its ask is out) |
+| **This note contradicted itself** (334 of 336 at line 289, 336 of 336 at line 422) and left out the cold load | — | corrected where they stand; the cold load is below | — |
+
+**Decisions, and what they were chosen over.**
+
+- **The reels: null the drawing, not exclude the column.** Excluding `reel` from the skip would have been one word;
+  nulling the drawing on an append keeps the skip for a reel column nobody topped up (a landing straight after a
+  draw), and it is the rule the skip already stated for anything edited in place.
+- **Messages: no ask at all when drawn ahead**, not "ask only the first time". The first ask is the payload's inbox,
+  which lands with a `landRepaint_` of its own that marks this column — so the builder draws it again from the
+  answer. A signed-in person whose inbox failed sees the loader until they arrive, as on base, where the arrival
+  asks.
+- **The column in front: arrival always, a landing only without widgets or a window.** A landing in front over a
+  column of widgets is "the facts changing under the column you are on" (331) — a running calendar must be drawn
+  from them, and restarting only the fact-reading ones is a second widget model. Finders have their own window.
+- **The boot's loader: drawn on the landing, not ranked first in the builder.** The builder needs a quiet a moving
+  hand never gives; the landing is the one moment the columns it shows are known. Bounded: the boot's markup only,
+  so it is paid once per column in the first seconds and never again.
+- **The finder: the band both ways at a fresh window, not five either side.** Five either side is base's number
+  and fills four cards a phone cannot see; the band is the same rule the release fill and the placement already
+  use, in the same units.
+- **Not done:** a shorter quiet for jobs under 50ms (the feel review's suggestion). The settle already shuts the
+  builder for the 260–420ms after a release, so a shorter quiet would only move the first slice a few frames
+  earlier, and a second learned bit is the cost model this design refused. And splitting a finder's cold paint
+  into its shell and its fills is now what happens for a finder off the glass — the paint draws the shell, and
+  the fills are the builder's one card per slice.
+
+**The checks added** (all in this round): fifteen new check-flow journeys and one changed — the reels landed on three times; no slice
+asks the network; the sign-out over every slot; the keyboard star; the boot's loader on a phone and a wide window;
+the column in front kept and an arrival kept (a press, and a column of widgets, still written); a fact that lands
+is drawn; the band fill both ways; the builder's gates (a key every 100ms, a focused box, a tapped slide, a settle,
+a hidden page — and that it finishes after each); the first slices' quiet, the cold first draws and the kept slow
+bit; a finder off the glass filled only inside slices; the reels six ahead in a turn and twelve after the quiet; the
+window re-centred thirteen or fourteen behind; widget slots drawn before further columns; the Bible job; and "every
+tab draws something" counting a loader only on Messages, and asking it again once its ask has answered. In
+check/reach.js: three runs — `findland` (Find repainted and turned, then landed on and turned back), `feedland` (the
+Feed landed on three times at rest; PICTURE GONE), `bootglass` (a fresh load, the builder held, four sideways
+landings; BOOT LOADER) — and NOT ASKED AHEAD at rest after the Feed and Boxing runs' setup. check-widgets: a
+person with a week, and the draw made inside a slice.
+
+**Mutations** — each on a copy of this tree, the named check run on it; every real file green after:
+
+| | Taken out | Red |
+|---|---|---|
+| R1 | the reels' `DRAWN = null` | "never deals a reel twice" |
+| R2 | `dmAsk_` (the draw asks again) | "nothing drawn ahead asks the network" |
+| R3 | the walk over every slot (the new person's list again) | "including the ones the next person has no slot for" |
+| R4 | `markStale_`'s kick | "a star from the keyboard" |
+| R5 | `bootGlass_` | "a sideways landing in the first seconds" (and reach.js BOOT LOADER, as on 9118807) |
+| R6 | the skip for the column in front (`id !== AT` back) | "keeps the column in front" |
+| R7 | the skip's markup comparison | "a landing that brings a fact draws it" |
+| R8 | `stuffBandFill_` | "a window drawn afresh in front is filled … both ways" (and reach.js EMPTY at 820, as on 9118807) |
+| R9a–d | the 400ms quiet; the typing gate; the hidden gate; the settle and tapped-slide gates | "the builder waits for the hand", each |
+| R10a–d | the quiet from the opening; the cold first draw; reading the kept bit; writing it back | "the first slices after the screen is up", each (a: green until it asked the first slice's quiet itself — `afterSlide_`'s own jobs had delayed the first slice past 400ms anyway) |
+| R11 | the finder's microtask fill when drawn ahead | "a finder drawn for nobody is filled inside the builder's slices" |
+| R12 | reels 3/2/3, the append and the top-up | "the reels are kept six ahead …" |
+| R13 | the `centre` job | "the quiet puts a finder's window where a run needs it" |
+| R14 | the `bible` job | "a chosen book of the Bible is fetched by the builder" |
+| R15 | Progress drawn as the loader alone | "every tab draws something" |
+| R16a, b | the timetable `pure` again; its save drawn ahead | check-widgets purity; check-widgets "runs something" |
+| R17 | `picsAhead_` and the `pics` job | reach.js NOT ASKED AHEAD, Feed and Boxing at 390 and 820 |
+| R18 | the widget rank by pages again | "a column's widget slots are drawn before any column further out" |
+
+**Measured after review** — (this tree against 9118807 unless said; alternated pairs on the shared machine at a load average of 4–20,
+the in-page calibration loop 110–520ms at 4x — a near-fivefold spread, so long-task totals, frame gaps and "drawn
+per flick" are noise here, and only counts that go to nought, and the deterministic probes, are findings):
+
+| Measured | 9118807 | This tree |
+|---|---|---|
+| The reviewers' probes, one run a side: `go` four right with a hand moving, the glass 1.5s later, 1280 / 1920 | Reels, Find (and Resources at 1920) on the boot's loader | nothing on the boot's markup |
+| Find at 820: repaint, one turn, the glass 1s and 2.5s later | three empty shells above the card in front at 1s | none at either |
+| A landing, then the Feed arrived at 300ms later with a hand moving (390, 4x, three runs) | written inside the release 3 of 3; 0 of 96 pictures kept; `go` 106–172ms | nothing written; 96 of 96 kept; `go` 8–19ms |
+| Three landings with the Feed in front at page 5 (390, 4x) | the card in front replaced each time, its two pictures undecoded right after; 147–253ms each | the same element, both pictures decoded throughout; 22–48ms each |
+| check/reach.js's new runs, 390 and 820 at 4x | BOOT LOADER at both (landing 1); EMPTY in 94 of 385 frames at 820; PICTURE GONE in 2 and 3 frames | nothing, 16 runs |
+| Boot gestures, 2x CPU (the feel review's lane), loader on the glass, ms, two pairs: 1280 boot-h / boot-mix / boot-pause | 2717, 3033 / 3433, 3950 / 4433, 3367 | 117, 1617 / 200, 267 / 1283, 467 |
+| the same against cafb838 (two pairs) | cafb838: 283, 183 / 0, 883 / 3516, 350 | 217, 283 / 150, 0 / 400, 1067 |
+| 820 boot-h / boot-pause against cafb838 | cafb838: 6700, 5250 / 2583, 1600 (and 0.8–1.6s of see-through columns in boot-h) | 3100, 3383 / 567, 517 |
+| Reading-pace flicks down Find after a repaint (pause-v), empty-card frames, 820 student / 1024 admin | 18, 10 / 8, 15 | 0, 0 / 0, 0 |
+| The Feed flicked through a `load()` and a landing (land-feed), late picture on the card in front, 820 / 1024 admin | 2483, 867ms / 0, 2233ms | 0, 0 / 0, 0 |
+| The flick harness at 4x (390, 820, student, two pairs): Find, the Boxing shelf, Tools and Games after a landing | holes, black glass, empty cards, see-through columns: 0 | 0 |
+| — the Feed through a landing, bad% | 5, 4 | 2, 0 |
+| — the sweep, loader frames | 28 (390), 31 (820) | 11, 34 |
+| Elements at rest after a landing that changed nothing (390 student / admin) | +84 each landing (6,045→6,129; 9,546→9,630) — the reels dealt twice | +0 (6,045; 9,549) |
+
+The iPadOS path (no `requestIdleCallback`, the builder on its 60ms timer), 820 at 4x, one run: Find, the Boxing
+shelf, the Feed through a landing and Tools after one — no hole, empty card, loader or late picture; the sweep as
+below.
+
+The sweep's loaders, on both trees, are widget slots the builder had not reached: the sweep is the first gesture
+after the boot. At rest nothing is veiled, and a walk across the whole row at 820 left nothing veiled either.
+
+**The builder's work** after a repaint, at rest with no hand, 4x (one run a side, noise): quiet after 5.2–8.5s on
+9118807 and 5.8–9.3s here; 29–34 slices, 1.2–2.7s of them in all; after a landing that changed nothing, quiet after
+3.3–4.5s, 0.5–1.1s of slices, on both. The longest slices are single column paints: Shop, Saved, Booking and Reels at
+0.31–0.43s here (Saved at 0.40–0.76s on 9118807), and Find's draw from nothing. That is how long the loaders the feel review found on widget
+columns "within the builder's window" last, now that a column's slots come before the next column out.
+
+**The first thirty seconds** (the cost review's harness: a real touch flick on the Feed every 0.9–1.7s from the first
+screen, two trees booted together; touch delay p50 / p95 / max, ms):
+
+| | 9118807 (3 pairs) | this tree | cafb838 (2 pairs) | this tree |
+|---|---|---|---|---|
+| 390 student | 83 / 584 / 1,324 | 72 / 382 / 544 | 29 / 94 / 185 | 72 / 316 / 460 |
+| 390 admin | 67 / 970 / 1,960 | 115 / 554 / 778 | 33 / 146 / 362 | 75 / 405 / 460 |
+| 820 student | 87 / 710 / 1,721 | 69 / 353 / 413 | 28 / 93 / 288 | 63 / 248 / 424 |
+| longest task after the first screen | 976–2,034 | 375–620 | 382–1,187 | 401–827 |
+| first screen | | | 7.1–10.5s | 4.2–6.5s |
+
+Against the reviewed tree the worst of it is a third of what the review found and no touch waits a second. **Against
+cafb838 it is still worse, and T12 is not met**: the median touch waits about 40ms more and the p95 150–260ms more.
+That is the work cafb838 did before its first screen — which came 3–6s later — done after it, in 48–52 slices of
+2.5–3.6s in all at 4x; and a touch that lands inside one of the long ones (Find's draw from nothing, 0.45–0.8s here;
+Shop; an admin's Settings) waits for it. Not hidden by tuning: a slow job's quiet raised past this harness's cadence
+would make the numbers here go away and put Find's cold draw inside the release of the arrival that beats it, which
+is the stall this note exists to remove. The fix that would reach it is a cheaper first draw of a finder (its funnel
+over the whole library is computed then), which is a change to the funnel, not to reach.
+
+**The checks on this tree:** run after the last code change, at a load average of 2–20:
+
+- the fast checks, 53 of 54 — check-dead reports, and its output is byte for byte 9118807's;
+- check-flow, 351 journeys in four parts, 350 green; the one red, "a round left for the Saved column … pauses like
+  any other leave", passed alone twice on this tree and twice on 9118807 — the load flake the builder recorded on
+  base too;
+- check-widgets; swipe.js (114 gestures); reach.js (16 runs at 390 and 820, 4x); anims.js; cards; diagrams; deploy;
+  videos; share; the funnel; ui.js in its three parts ("nothing NEW to report" in each); cascade.js whole, in 882s;
+- press.js: 332 presses, 109 swipes and 14 dropdowns right, and one press read as changing nothing — `rg-next` on
+  Games, a round game's Got it, which a `--screen=games` run straight after passed (102 presses, 104 swipes); the
+  same run on 9118807 at the same moment missed three chained flicks and a Draw tap, which is the load;
+- every mutation above red, and the real files green after (the mutants were copies; nothing was changed back).
