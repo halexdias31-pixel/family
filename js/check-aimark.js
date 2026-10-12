@@ -31,6 +31,14 @@
        UNDER the script lock, in one hold. Every read and write of AI_MARKS is now recorded with its
        hold; a lock that cannot be had is "busy", never "today's marks used"; a give-back that cannot
        have it leaves the mark spent and logs why; and midnight and a throw during a press are cases.
+     · AND WHAT 12 OCT ADDED (note 350): *"ok the ai marking works but it takes so long. like 30 seconds or
+       whatever"*. Each model is sent the thinking level that is its lowest for a short answer and LOW for
+       an essay, from the two config cells over the defaults, and never `thinkingBudget`; a 400 to a
+       request that carried a level is asked once more at once without it, inside both clocks, and the
+       cell to change is logged; a 429 that says "later" -- a day's quota until midnight in Los Angeles,
+       a minute's for as long as it says -- is remembered between presses, so the next press goes straight
+       to the fallback, and the last model is always asked; and every press writes one timing line, with
+       no answer, name or id in it.
 
    THROUGH THE REAL `doPost`, gate and all, over `check-gas-load.js` — the harness `check-profile.js`
    wrote. Gemini is a stub that records what it was sent and answers what each case needs; nothing
@@ -54,7 +62,7 @@ let asked = 0;
    A reply may carry `version` (the response's `modelVersion`, the model Google says answered) and
    `details` (the error's, where a 429's `RetryInfo` says when to come back). */
 const gem = { reply: null, queue: [], sent: [], slept: [], during: null, clock: null, log: [], answer: null,
-              tally: [], refuse: null, day: null, sleepThrows: false };
+              tally: [], refuse: null, day: null, sleepThrows: false, puts: [], wrong: [] };
 /* WHAT GOOGLE SAYS WITH EACH REFUSAL, as near its real words as a stub needs: the 400's names the key,
    which is why none of it may reach a pupil. */
 const GOOGLE_SAID = {
@@ -70,6 +78,16 @@ const GOOGLE_SAID = {
 let lockDepth = 0, hold = 0, holds = 0, tries = 0;
 const fetchStub = (url, opts) => {
   gem.sent.push({ url: url, opts: opts, locked: lockDepth > 0, at: gem.clock ? gem.clock.now : 0 });
+  /* EVERY REQUEST, IN EVERY CASE, IS ASKED THIS (12 Oct): never `thinkingBudget`, and a `thinkingConfig`
+     that is exactly one `thinkingLevel` from Google's vocabulary -- a budget beside a level is a
+     documented 400, and 3.5 Flash-Lite answers 400 to a budget of 0 (docs/history/350). */
+  {
+    let g = {};
+    try { g = JSON.parse(opts.payload).generationConfig || {}; } catch (e) { g = {}; }
+    const tc = g.thinkingConfig;
+    if (/thinkingBudget|thinking_budget/.test(String(opts.payload))) gem.wrong.push('a request carried thinkingBudget');
+    if (tc && (Object.keys(tc).join() !== 'thinkingLevel' || !/^(minimal|low|medium|high)$/.test(tc.thinkingLevel))) gem.wrong.push('a request carried thinkingConfig ' + JSON.stringify(tc));
+  }
   if (gem.during) { const f = gem.during; gem.during = null; gem.inside = true; try { f(); } finally { gem.inside = false; } }
   const r = gem.answer ? gem.answer(url)
     : gem.queue.length ? gem.queue.shift() : (gem.reply || { code: 200, body: { awarded: 1, feedback: 'Fine.' } });
@@ -78,7 +96,7 @@ const fetchStub = (url, opts) => {
   const text = r.code === 200
     ? JSON.stringify(Object.assign({ candidates: [{ content: { parts: [{ text: JSON.stringify(r.body) }] } }] },
                                    r.version ? { modelVersion: r.version } : {}))
-    : JSON.stringify({ error: Object.assign({ code: r.code, message: GOOGLE_SAID[r.code] || GOOGLE_SAID[400] },
+    : JSON.stringify({ error: Object.assign({ code: r.code, message: r.message || GOOGLE_SAID[r.code] || GOOGLE_SAID[400] },
                                             r.details ? { details: r.details } : {}) });
   return { getResponseCode: () => r.code, getContentText: () => text };
 };
@@ -116,7 +134,18 @@ function world(config) {
   /* THE DAY, WHEN A CASE SAYS SO: `gem.day` is London's `yyyy-MM-dd` for the tally, so a case can let
      midnight come while a press is with Gemini. Everything else is the harness's. */
   const U = b.ev('Utilities'), fmt = U.formatDate;
-  U.formatDate = (d, tz, f) => (f === 'yyyy-MM-dd' && gem.day ? gem.day : fmt(d, tz, f));
+  /* AND THE TIME OF DAY IN A ZONE, AS APPS SCRIPT GIVES IT (12 Oct): `aiPacificMidnight_` asks
+     America/Los_Angeles for `HH:mm:ss` to find when a day's Gemini quota comes back. The harness's own
+     formatDate answers every other pattern with an ISO stamp in UTC, which would test nothing. */
+  const hms = (d, tz) => new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).format(new Date(d));
+  U.formatDate = (d, tz, f) => (f === 'yyyy-MM-dd' && gem.day ? gem.day : f === 'HH:mm:ss' ? hms(d, tz) : fmt(d, tz, f));
+  /* THE SCRIPT CACHE'S PUTS, RECORDED WITH THEIR EXPIRY (12 Oct): the harness's cache keeps what it is given
+     and ignores the seconds, so `gem.puts` is how a case asks what a remembered 429 was told to last. */
+  const C = b.ev('CacheService'), cacheOf = C.getScriptCache;
+  C.getScriptCache = () => {
+    const c = cacheOf();
+    return Object.assign({}, c, { put: (k, v, ttl) => { gem.puts.push({ k: k, v: v, ttl: ttl }); return c.put(k, v, ttl); } });
+  };
   /* AI_MARKS, WATCHED (the review of 12 Oct). Every read and write of the day's tally is recorded with the
      lock hold it was made in, over the harness's own store -- so `b.props` is still Script Properties.
      Nothing here showed the tally was changed under the lock: the lock could be taken out of the take or
@@ -470,14 +499,21 @@ function tallyHeld(what, writes) {
   if (d.success !== false || d.why !== 'ai-cap') bad.push('six marks given and a seventh press answered ' + JSON.stringify(d).slice(0, 160) + ' — wanted the cap');
 }
 {
-  /* A BAD KEY OR A BAD REQUEST IS NOT ASKED AGAIN, AND COSTS NOTHING. */
+  /* A BAD KEY OR A BAD REQUEST IS NOT ASKED AGAIN, AND COSTS NOTHING. SINCE 12 OCT one exception, and only
+     for a 400: a request that carried a thinking level is asked ONCE more, at once, of the same model
+     without it -- the level may be what was refused (docs/history/350) -- and a second 400 stops as
+     before. A 403 is the account, and no level is the matter with it. */
   const { b, ask } = world({ ai_marks_per_day: 2 });
   b.props.GEMINI_API_KEY = KEY;
   [400, 403].forEach(code => {
     gem.sent.length = 0; gem.slept.length = 0; gem.queue.length = 0;
     gem.reply = { code: code };
     const r = ask('s1@example.org');
-    if (gem.sent.length !== 1 || gem.slept.length) bad.push('a ' + code + ' was asked ' + gem.sent.length + ' times, with waits ' + JSON.stringify(gem.slept) + ' — a bad key or a bad request is asked once, and never of the fallback');
+    const levels = gem.sent.map(x => { try { return ((JSON.parse(x.opts.payload).generationConfig || {}).thinkingConfig || {}).thinkingLevel || 'none'; } catch (e) { return '?'; } });
+    const want = code === 400 ? 'low,none' : 'low';
+    if (levels.join() !== want || gem.slept.length || gem.sent.some(x => !x.url.includes('/models/' + b.ev('AI_MODEL') + ':'))) bad.push('a ' + code + ' was asked ' + gem.sent.length + ' times at levels ' + levels.join(', ') + ', with waits ' + JSON.stringify(gem.slept)
+      + ' — wanted ' + (code === 400 ? 'the first model at its level, then once more at once without it' : 'one ask') + ', and never the fallback');
+    if (gem.log.some(x => /REFUSED THINKING LEVEL/.test(x))) bad.push('a ' + code + ' from both asks was logged as a refused thinking level — the second ask had none, so it was the key or the request');
     if (r.success !== false || r.message !== 'AI marking is not working right now.') bad.push('a ' + code + ' answered ' + JSON.stringify(r).slice(0, 160) + ' — wanted "AI marking is not working right now.", the code in the log and not in the pupil\'s sentence');
     if (JSON.stringify(r).includes(KEY) || /API key not valid|Permission denied/.test(JSON.stringify(r))) bad.push('Google’s own words for a ' + code + ' reached the pupil');
     /* AND THE OWNER'S LOG HAS ALL OF IT: the code, the model, and Google's own words. */
@@ -487,6 +523,14 @@ function tallyHeld(what, writes) {
   gem.reply = null;
   const r = ask('s1@example.org');
   if (!r.success || r.left !== 1) bad.push('after a 400 and a 403 the first real mark left ' + r.left + ' of 2 — wanted 1: neither refusal spent one');
+  /* A MODEL SENT NO LEVEL -- one this file does not know, with the cells blank -- is asked once, as ever. */
+  const w = world({ gemini_model: 'gemini-test-model', gemini_model_fallback: 'none' });
+  w.b.props.GEMINI_API_KEY = KEY;
+  gem.sent.length = 0; gem.slept.length = 0; gem.queue.length = 0;
+  gem.reply = { code: 400 };
+  w.ask('s1@example.org');
+  if (gem.sent.length !== 1) bad.push('a 400 to a request with no thinking level was asked ' + gem.sent.length + ' times — wanted once: there was no level to take out');
+  gem.reply = null;
 }
 {
   /* A RETIRED OR MISSPELT FIRST MODEL (404) GOES STRAIGHT TO THE FALLBACK -- not asked again, no wait;
@@ -626,7 +670,9 @@ function tallyHeld(what, writes) {
   const HANDOFF = b.ev('typeof AI_HANDOFF_MS === "number" ? AI_HANDOFF_MS : null');
   const to = m => 'https://generativelanguage.googleapis.com/v1beta/models/' + m + ':generateContent';
   const MARK = { code: 200, body: { awarded: 2, feedback: 'You named the faster particles.' } };
-  const fresh = () => { gem.sent.length = 0; gem.slept.length = 0; gem.queue.length = 0; gem.reply = null; gem.answer = null; gem.log.length = 0; };
+  /* THE SCRIPT CACHE EMPTIED BETWEEN CASES (12 Oct): a 429 that says "later" is remembered there for the
+     presses after it, and each case here asks about one press from a standing start. */
+  const fresh = () => { gem.sent.length = 0; gem.slept.length = 0; gem.queue.length = 0; gem.reply = null; gem.answer = null; gem.log.length = 0; b.cache.clear(); };
   const urls = () => gem.sent.map(x => x.url === to(FIRST) ? 'first' : x.url === to(BACK) ? 'back' : x.url).join();
   const real = Date.now, base = real();
   const timed = (per, answer) => {
@@ -699,8 +745,10 @@ function tallyHeld(what, writes) {
      day's -- and its RetryInfo says when it comes back; a model that will not be back before its next ask
      is not asked again, and the fallback, whose quota is its own, is asked at once. A 429 that says
      nothing, or says sooner than the next ask, is asked again as before. */
-  const quota = d => ({ code: 429, details: [
-    { '@type': 'type.googleapis.com/google.rpc.QuotaFailure', violations: [{ quotaId: 'GenerateRequestsPerDayPerProjectPerModel-FreeTier' }] },
+  /* A MINUTE'S QUOTA unless a case says otherwise: since 12 Oct a DAY's is never asked again in the press,
+     whatever its RetryInfo says, and has its own cases below. */
+  const quota = (d, id) => ({ code: 429, details: [
+    { '@type': 'type.googleapis.com/google.rpc.QuotaFailure', violations: [{ quotaId: id || 'GenerateRequestsPerMinutePerProjectPerModel-FreeTier' }] },
     { '@type': 'type.googleapis.com/google.rpc.RetryInfo', retryDelay: d }] });
   fresh();
   gem.answer = url => url === to(BACK) ? MARK : quota('39s');
@@ -854,6 +902,302 @@ function tallyHeld(what, writes) {
   const next = ask('s1@example.org');
   if (!next.success || next.left !== 1) bad.push('a press that threw on the way, then a mark, left ' + next.left + ' of 2 — wanted 1: the throw gives its count back');
 }
+
+/* ---------- 12 OCT: AN ANSWER IN SECONDS (docs/history/350) --------------------------------------------------
+   THE OWNER, the day the 503 fix went live: *"ok the ai marking works but it takes so long. like 30 seconds
+   or whatever"*. Sent no thinking level, 3.8 Flash thinks at its own MEDIUM on every press. Three changes,
+   each held here: the level each model is sent, by kind of answer, with a level refused asked again at once
+   without it; a 429 that says "later" remembered between presses, so the next press goes straight to the
+   fallback until Google's day turns over; and one timing line per press, with no learner data in it. */
+const levelOf = x => { try { const tc = (JSON.parse(x.opts.payload).generationConfig || {}).thinkingConfig; return tc ? tc.thinkingLevel : 'none'; } catch (e) { return '?'; } };
+const toModel = m => 'https://generativelanguage.googleapis.com/v1beta/models/' + m + ':generateContent';
+const SHORT_MARK = { code: 200, body: { awarded: 2, feedback: 'You named the faster particles.' } };
+const ESSAY_MARK = { code: 200, body: { parts: [{ name: 'Content', level: 'Level 3', awarded: 20, available: 40 }], awarded: 20, points: ['Vary how your sentences begin.'] } };
+const ESSAY = 'The bus lurched forward and the rain drew long silver threads across the glass. NOBODY-ELSE-WROTE-THIS.';
+const essayPress = { answer: ESSAY, marks: 40, essay: true };
+const fresh12 = b => { gem.sent.length = 0; gem.slept.length = 0; gem.queue.length = 0; gem.reply = null; gem.answer = null;
+                       gem.log.length = 0; gem.puts.length = 0; gem.tally.length = 0; gem.refuse = null; if (b) b.cache.clear(); };
+{
+  /* 1. THE LEVEL EACH MODEL IS SENT. The first model is a 404 in every case here, so the fallback is asked at
+     once and both levels are seen: [the cells, essay?, the first model's level, the fallback's, what]. */
+  const cases = [
+    [{}, false, 'low', 'minimal', 'blank cells, a short answer — the lowest each model offers'],
+    [{}, true, 'low', 'low', 'blank cells, an essay — low on both'],
+    [{ ai_thinking: 'medium' }, false, 'medium', 'medium', 'ai_thinking medium'],
+    [{ ai_thinking: ' Minimal ' }, false, 'low', 'minimal', 'ai_thinking minimal, which 3.8 Flash does not offer — the next one up'],
+    [{ ai_thinking: 'none' }, false, 'none', 'none', 'ai_thinking none — each model’s own default'],
+    [{ ai_thinking: 'lo' }, false, 'low', 'minimal', 'a typo in ai_thinking — read as blank'],
+    [{ gemini_model: 'gemini-test-model', ai_thinking: 'lo' }, false, 'none', 'minimal', 'a typo in ai_thinking, on a model this file does not know — read as blank, so no level'],
+    [{ ai_thinking_essay: 'high' }, true, 'high', 'high', 'ai_thinking_essay high'],
+    [{ ai_thinking_essay: 'high' }, false, 'low', 'minimal', 'ai_thinking_essay high, on a short answer'],
+    [{ ai_thinking: 'high' }, true, 'low', 'low', 'ai_thinking high, on an essay'],
+    [{ ai_thinking_essay: 'none' }, true, 'none', 'none', 'ai_thinking_essay none'],
+    [{ gemini_model: 'gemini-test-model' }, false, 'none', 'minimal', 'a first model this file does not know, the cells blank'],
+    [{ gemini_model: 'gemini-test-model', ai_thinking: 'low' }, false, 'low', 'low', 'a model this file does not know, with a level typed'],
+    [{ gemini_model: 'gemini-3.8-flash-001', ai_thinking: 'minimal' }, false, 'low', 'minimal', 'a numbered version of 3.8 Flash, minimal typed'],
+  ];
+  let pair = null;
+  cases.forEach(([cfg, essay, one, two, what]) => {
+    const { b, ask } = world(Object.assign({ ai_marks_per_day: 50 }, cfg));
+    b.props.GEMINI_API_KEY = KEY;
+    const BACK = b.ev('AI_MODEL_FALLBACK');
+    fresh12(b);
+    gem.answer = url => (url === toModel(BACK) ? (essay ? ESSAY_MARK : SHORT_MARK) : { code: 404 });
+    const d = ask('s1@example.org', essay ? essayPress : {});
+    const got = gem.sent.map(levelOf);
+    if (!d.success || d.model !== BACK || got.join() !== one + ',' + two) bad.push(what + ': the first model was sent ' + got[0] + ' and the fallback ' + got[1]
+      + (d.success ? '' : ' and the press answered ' + JSON.stringify(d.message)) + ' — wanted ' + one + ' and ' + two);
+    if (cfg.ai_thinking === 'lo' && !gem.log.some(x => /ai_thinking on the config tab says "lo"/.test(x) && /read as blank/.test(x))) bad.push('a typo in ai_thinking was not logged as read as blank');
+    if (!cfg.gemini_model && !essay && !cfg.ai_thinking && !cfg.ai_thinking_essay) pair = gem.sent.slice();
+  });
+  /* THE LEVEL IS ADDED TO THE REQUEST, AND NOTHING ELSE IN IT CHANGES: the request with a level, less its
+     thinkingConfig, is the request as it was before 12 Oct. */
+  if (pair && pair.length === 2) {
+    const strip = x => { const o = JSON.parse(x.opts.payload); delete o.generationConfig.thinkingConfig; return JSON.stringify(o); };
+    const g = JSON.parse(pair[0].opts.payload).generationConfig || {};
+    if (strip(pair[0]) !== strip(pair[1]) || !g.responseSchema || g.responseMimeType !== 'application/json') bad.push('the request with a thinking level lost or changed something else — the schema, the MIME type, or the words sent');
+  }
+  /* AND ensureSchema PUTS BOTH ROWS ON THE CONFIG TAB, BLANK, WITH A NOTE THAT SAYS WHAT BLANK IS. */
+  const { b } = world();
+  b.ev('ensureSchema()');
+  const C = b.tabs.config, k = C[0].indexOf('key'), v = C[0].indexOf('value'), w = C[0].indexOf('what_it_does');
+  [['ai_thinking', /Blank = the lowest each model offers \(low on gemini-3\.8-flash, minimal on gemini-3\.5-flash-lite\)/],
+   ['ai_thinking_essay', /Blank = low\. medium = deeper and slower/]].forEach(([n, note]) => {
+    const row = C.find((r, i) => i > 0 && r[k] === n);
+    if (!row || row[v] !== '' || !note.test(String(row[w]))) bad.push('ensureSchema seeded ' + n + ' as ' + JSON.stringify(row ? [row[v], String(row[w]).slice(0, 90)] : null) + ' — wanted a blank value and a note saying what blank means');
+  });
+}
+{
+  /* 2. A LEVEL REFUSED DOES NOT STOP MARKING. Until 12 Oct no level was sent BECAUSE a 400 is neither asked
+     again nor handed to the fallback. Now a 400 to a request that carried one is asked once more, at once, of
+     the same model without it: not one of AI_TRIES, no wait, inside both clocks -- and the log names the cell. */
+  const { b, ask } = world({ ai_marks_per_day: 50 });
+  b.props.GEMINI_API_KEY = KEY;
+  const FIRST = b.ev('AI_MODEL'), BACK = b.ev('AI_MODEL_FALLBACK'), HANDOFF = b.ev('AI_HANDOFF_MS');
+  const urls = () => gem.sent.map(x => x.url === toModel(FIRST) ? 'first' : x.url === toModel(BACK) ? 'back' : x.url).join();
+  const levels = () => gem.sent.map(levelOf).join();
+  const SAID = 'Thinking level LOW is not supported for this model. Please retry with other thinking level.';
+  const REFUSED = { code: 400, message: SAID };
+
+  /* a. the 400 names the level, then a mark: the first model's, at once, the second ask without a level. */
+  fresh12(b);
+  gem.queue.push(REFUSED, SHORT_MARK);
+  let d = ask('s1@example.org');
+  if (!d.success || d.model !== FIRST || urls() !== 'first,first' || levels() !== 'low,none' || gem.slept.length) bad.push('a 400 refusing the level, then a 200, asked ' + urls() + ' at ' + levels() + ' with waits ' + JSON.stringify(gem.slept)
+    + ' and answered ' + JSON.stringify(d.message || d.model) + ' — wanted the first model again AT ONCE without the level, and its mark');
+  if (!gem.log.some(x => x.indexOf('aiMark: ' + FIRST + ' REFUSED THINKING LEVEL low') === 0 && /\bai_thinking on the config tab/.test(x))) bad.push('a refused level that then marked was not logged with the model, the level and the cell ai_thinking: ' + JSON.stringify(gem.log.slice(0, 3)));
+  if (!gem.log.some(x => x.indexOf(SAID) >= 0)) bad.push('Google’s words for the refused level are not in the log');
+  if (d.left !== 49) bad.push('one mark after a refused level left ' + d.left + ' of 50 — wanted 49');
+
+  /* b. an essay's refused level names the essay's cell. */
+  fresh12(b);
+  gem.queue.push(REFUSED, ESSAY_MARK);
+  d = ask('s1@example.org', essayPress);
+  if (!d.success || !gem.log.some(x => /REFUSED THINKING LEVEL low/.test(x) && /ai_thinking_essay on the config tab/.test(x))) bad.push('an essay whose level was refused answered ' + JSON.stringify(d.message || d.model) + ' and logged ' + JSON.stringify(gem.log.filter(x => /REFUSED/.test(x))) + ' — wanted a mark and the cell ai_thinking_essay');
+
+  /* c. THE RE-ASK IS NOT ONE OF AI_TRIES: a refused level and then two 503s still leaves the third try. */
+  fresh12(b);
+  gem.queue.push(REFUSED, { code: 503 }, { code: 503 }, SHORT_MARK);
+  d = ask('s1@example.org');
+  if (!d.success || d.model !== FIRST || urls() !== 'first,first,first,first' || levels() !== 'low,none,none,none' || gem.slept.length !== 2) bad.push('a refused level, two 503s and a 200 asked ' + urls() + ' at ' + levels() + ' with ' + gem.slept.length + ' wait(s) and answered ' + JSON.stringify(d.message || d.model)
+    + ' — wanted four asks of the first model, the level only on the first, two waits: the re-ask without a level is not one of the three tries');
+
+  /* c2. A LEVEL REFUSED ON A RETRY -- a 503 first -- is asked again at once too: the wait was the 503's. */
+  fresh12(b);
+  gem.queue.push({ code: 503 }, REFUSED, SHORT_MARK);
+  d = ask('s1@example.org');
+  if (!d.success || urls() !== 'first,first,first' || levels() !== 'low,low,none' || gem.slept.length !== 1) bad.push('a 503, a refused level and a 200 asked ' + urls() + ' at ' + levels() + ' with ' + gem.slept.length + ' wait(s) — wanted one wait, after the 503, and the ask without a level at once');
+
+  /* d. THE FALLBACK'S LEVEL REFUSED: the same, on the fallback. */
+  fresh12(b);
+  gem.answer = (() => { let n = 0; return url => (url === toModel(FIRST) ? { code: 404 } : n++ ? SHORT_MARK : REFUSED); })();
+  d = ask('s1@example.org');
+  if (!d.success || d.model !== BACK || urls() !== 'first,back,back' || levels() !== 'low,minimal,none') bad.push('a retired first model and a fallback refusing its level asked ' + urls() + ' at ' + levels() + ' and answered ' + JSON.stringify(d.message || d.model) + ' — wanted the fallback again without its level, and its mark');
+
+  /* e. THE HANDOFF STILL HOLDS: a refusal that arrives after AI_HANDOFF_MS is not asked again of the first
+     model -- the fallback is asked instead, with its own level, and marks. */
+  const real = Date.now, base = real();
+  fresh12(b);
+  gem.answer = url => (url === toModel(BACK) ? SHORT_MARK : REFUSED);
+  gem.clock = { now: 0, per: url => (url === toModel(FIRST) ? HANDOFF + 1000 : 1500) };
+  Date.now = () => base + gem.clock.now;
+  try { d = ask('s1@example.org'); } finally { Date.now = real; gem.clock = null; }
+  if (!d.success || d.model !== BACK || urls() !== 'first,back' || levels() !== 'low,minimal') bad.push('a first model refusing its level after ' + (HANDOFF + 1000) + ' ms asked ' + urls() + ' at ' + levels() + ' and answered ' + JSON.stringify(d.message || d.model)
+    + ' — wanted the first model not asked again past AI_HANDOFF_MS, and the fallback’s mark');
+  gem.answer = null;
+}
+{
+  /* 3. A 429 THAT SAYS "LATER" IS REMEMBERED BETWEEN PRESSES. On a free key the first model's day is about
+     twenty requests, and every press after it asked the spent model first and was refused; a day's 429
+     whose RetryInfo said "1s" was asked twice more, with waits. The clock starts at 13:39:04 UTC on
+     12 Oct 2026 -- the owner's own message -- which is 06:39:04 in Los Angeles, so the day's quota is back
+     at 07:00:00 UTC on the 13th. */
+  const { b, ask } = world({ ai_marks_per_day: 1000 });
+  b.props.GEMINI_API_KEY = KEY;
+  const FIRST = b.ev('AI_MODEL'), BACK = b.ev('AI_MODEL_FALLBACK'), BUSY = b.ev('AI_BUSY'), MAX_S = b.ev('AI_SPENT_MAX_S');
+  const urls = () => gem.sent.map(x => x.url === toModel(FIRST) ? 'first' : x.url === toModel(BACK) ? 'back' : x.url).join();
+  const q429 = (d, id) => ({ code: 429, details: [
+    { '@type': 'type.googleapis.com/google.rpc.QuotaFailure', violations: [{ quotaId: id }] },
+    { '@type': 'type.googleapis.com/google.rpc.RetryInfo', retryDelay: d }] });
+  const DAY = 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', MINUTE = 'GenerateRequestsPerMinutePerProjectPerModel-FreeTier';
+  const T0 = Date.UTC(2026, 9, 12, 13, 39, 4), BACK_AT = Date.UTC(2026, 9, 13, 7, 0, 0);
+  const real = Date.now;
+  gem.clock = { now: 0, per: 0 };
+  Date.now = () => T0 + gem.clock.now;
+  const at = t => { gem.clock.now = t - T0; };
+  const timingOf = () => gem.log.filter(x => /^aiMark: timing -- /.test(x)).pop() || '';
+  try {
+    /* a. A DAY'S QUOTA, RetryInfo "0.4s" (third parties have seen "1s" on one): the first model once, no
+       wait, the fallback at once -- and kept. A RetryInfo believed would have asked it twice more. */
+    fresh12(b);
+    gem.answer = url => (url === toModel(BACK) ? SHORT_MARK : q429('0.4s', DAY));
+    let d = ask('s1@example.org');
+    if (!d.success || d.model !== BACK || urls() !== 'first,back' || gem.slept.length) bad.push('a day’s quota spent (RetryInfo "0.4s") asked ' + urls() + ' with waits ' + JSON.stringify(gem.slept) + ' — wanted the first model once and the fallback at once: a day’s quota is not back in 0.8 s, whatever RetryInfo says');
+    const put = gem.puts.filter(p => p.k === 'AI_SPENT:' + FIRST).pop();
+    if (!put || Number(put.v) !== BACK_AT || !(put.ttl >= 1 && put.ttl <= MAX_S)) bad.push('a day’s quota spent was kept as ' + JSON.stringify(put) + ' — wanted until ' + new Date(BACK_AT).toISOString() + ' (midnight in Los Angeles), for at most ' + MAX_S + ' s, the cache’s ceiling');
+    /* b. THE NEXT PRESS GOES STRAIGHT TO THE FALLBACK, and the timing line says why. */
+    fresh12(); gem.answer = () => SHORT_MARK;
+    at(T0 + 60000);
+    d = ask('s1@example.org');
+    if (!d.success || d.model !== BACK || urls() !== 'back') bad.push('the press after a day’s quota was spent asked ' + urls() + ' — wanted the fallback alone: the first model is not back until midnight in Los Angeles');
+    if (!/ not asked \(a 429 said it is out of quota until 2026-10-13 07:00 UTC\)/.test(timingOf())) bad.push('the timing line of a press that passed over a spent model does not say so: ' + JSON.stringify(timingOf()));
+    /* c. A SECOND BEFORE GOOGLE'S MIDNIGHT, STILL PASSED OVER; A SECOND AFTER, ASKED AGAIN. */
+    fresh12(); gem.answer = () => SHORT_MARK;
+    at(BACK_AT - 1000);
+    ask('s1@example.org');
+    if (urls() !== 'back') bad.push('at 06:59:59 UTC the spent first model was ' + (urls() === 'back' ? '' : 'asked: ' + urls()) + ' — wanted it passed over until 07:00 UTC');
+    fresh12(); gem.answer = () => SHORT_MARK;
+    at(BACK_AT + 1000);
+    d = ask('s1@example.org');
+    if (!d.success || d.model !== FIRST || urls() !== 'first') bad.push('after midnight in Los Angeles the first model was not asked again: ' + urls() + ' — a day’s quota spent is remembered until it comes back, and no longer');
+
+    /* d. A MINUTE'S QUOTA, RetryInfo "39s": kept for 39 s, not for the day. */
+    fresh12(b);
+    at(T0);
+    gem.answer = url => (url === toModel(BACK) ? SHORT_MARK : q429('39s', MINUTE));
+    ask('s1@example.org');
+    const put2 = gem.puts.filter(p => p.k === 'AI_SPENT:' + FIRST).pop();
+    if (!put2 || Number(put2.v) !== T0 + 39000 || put2.ttl !== 39) bad.push('a minute’s quota with RetryInfo "39s" was kept as ' + JSON.stringify(put2) + ' — wanted 39 s');
+    fresh12(); gem.answer = () => SHORT_MARK;
+    at(T0 + 10000);
+    ask('s1@example.org');
+    const mid = urls();
+    fresh12(); gem.answer = () => SHORT_MARK;
+    at(T0 + 40000);
+    ask('s1@example.org');
+    if (mid !== 'back' || urls() !== 'first') bad.push('after a 429 saying "39s", a press 10 s later asked ' + mid + ' and one 40 s later ' + urls() + ' — wanted the fallback, then the first model again');
+
+    /* e. A 429 THAT SAYS NOTHING IS NOT KEPT: asked again in the press as before, and the next press asks it. */
+    fresh12(b);
+    at(T0);
+    gem.queue.push({ code: 429 }, SHORT_MARK);
+    ask('s1@example.org');
+    const one = urls();
+    fresh12();
+    ask('s1@example.org');
+    if (one !== 'first,first' || urls() !== 'first' || gem.puts.some(p => /^AI_SPENT:/.test(p.k))) bad.push('a 429 with no RetryInfo asked ' + one + ', then the next press ' + urls() + ' — wanted it asked again in its press and not remembered');
+
+    /* f. FIRST REMEMBERED, FALLBACK FULL: "busy", and the first model is not asked. */
+    fresh12(b);
+    gem.answer = url => (url === toModel(BACK) ? SHORT_MARK : q429('1s', DAY));
+    ask('s1@example.org');
+    fresh12(); gem.reply = { code: 503 };
+    d = ask('s1@example.org');
+    if (d.message !== BUSY || urls() !== 'back,back,back') bad.push('a spent first model and a full fallback asked ' + urls() + ' and answered ' + JSON.stringify(d.message) + ' — wanted three asks of the fallback and "' + BUSY + '"');
+    /* ...and a fallback that is BROKEN behind a first model passed over is "busy" too, as note 344 has it for
+       one that was asked: the first model will be back at midnight, and the press counts it as the 429 it was. */
+    fresh12(); gem.reply = { code: 404 };
+    d = ask('s1@example.org');
+    if (d.message !== BUSY || urls() !== 'back') bad.push('a spent first model, passed over, and a retired fallback asked ' + urls() + ' and answered ' + JSON.stringify(d.message) + ' — wanted "' + BUSY + '": the first model will be back');
+
+    /* g. A CACHE THAT THROWS IS A PRESS THAT STILL MARKS: forgetting costs one refusal, nothing more. */
+    fresh12(b);
+    const Cs = b.ev('CacheService'), was = Cs.getScriptCache;
+    Cs.getScriptCache = () => { throw new Error('Service error: Cache'); };
+    try {
+      gem.answer = url => (url === toModel(BACK) ? SHORT_MARK : q429('1s', DAY));
+      d = ask('s1@example.org');
+    } finally { Cs.getScriptCache = was; }
+    if (!d.success || d.model !== BACK) bad.push('with the script cache throwing, a spent first model and a ready fallback answered ' + JSON.stringify(d.message || d.model) + ' — the memory is a saving, never a reason not to mark');
+  } finally { Date.now = real; gem.clock = null; gem.answer = null; gem.reply = null; }
+
+  /* h. THE LAST MODEL IS ALWAYS ASKED, remembered or not: passing it over would be giving up without asking. */
+  const w = world({ ai_marks_per_day: 1000, gemini_model_fallback: 'none' });
+  w.b.props.GEMINI_API_KEY = KEY;
+  fresh12(w.b);
+  gem.reply = q429('1s', DAY);
+  w.ask('s1@example.org');
+  fresh12();
+  gem.reply = q429('1s', DAY);
+  const d2 = w.ask('s1@example.org');
+  if (gem.sent.length !== 1 || d2.message !== BUSY) bad.push('one model, its day spent and remembered, was asked ' + gem.sent.length + ' time(s) and answered ' + JSON.stringify(d2.message) + ' — wanted it asked once (it is the only chance) and "' + BUSY + '"');
+  gem.reply = null;
+}
+{
+  /* 4. ONE TIMING LINE PER PRESS, MARKED OR NOT, AND NOTHING OF THE PUPIL'S IN IT. Nothing logged a press that
+     worked, so where the thirty seconds went could only be guessed. With the clock: Gemini takes 2 s an ask. */
+  const { b, ask } = world({ ai_marks_per_day: 3 });
+  b.props.GEMINI_API_KEY = KEY;
+  const FIRST = b.ev('AI_MODEL'), BACK = b.ev('AI_MODEL_FALLBACK'), BUSY = b.ev('AI_BUSY');
+  const lines = () => gem.log.filter(x => /^aiMark: timing -- /.test(x));
+  const all = [];
+  const real = Date.now, base = real();
+
+  /* a. A 503, A WAIT AND A MARK: each ask's model, level, code and length, the wait, the total, who marked. */
+  fresh12(b);
+  gem.queue.push({ code: 503 }, SHORT_MARK);
+  gem.clock = { now: 0, per: 2000 };
+  Date.now = () => base + gem.clock.now;
+  let d;
+  try { d = ask('s1@example.org'); } finally { Date.now = real; gem.clock = null; }
+  let L = lines();
+  all.push(...L);
+  const w = gem.slept[0];
+  const want = 'aiMark: timing -- short answer, ' + (4000 + w) + ' ms in all; 0 ms before the first ask (the take 0 ms); '
+    + FIRST + ' at low 503 in 2000 ms, wait ' + w + ' ms, ' + FIRST + ' at low 200 in 2000 ms; marked by ' + FIRST;
+  if (!d.success || L.length !== 1 || L[0] !== want) bad.push('a 503 then a mark logged ' + JSON.stringify(L) + ' — wanted exactly ' + JSON.stringify(want));
+
+  /* b. AN ESSAY THAT ENDS WITHOUT A MARK: one line, and which of the pupil's sentences it ended on. */
+  fresh12(b);
+  gem.reply = { code: 503 };
+  ask('s1@example.org', essayPress);
+  L = lines(); all.push(...L);
+  if (L.length !== 1 || !/^aiMark: timing -- essay, \d+ ms in all; /.test(L[0]) || L[0].split(' 503 in ').length !== 7 || L[0].indexOf('no mark -- ' + BUSY) < 0) bad.push('an essay that was all 503 logged ' + JSON.stringify(L) + ' — wanted one essay line with six asks and "no mark -- ' + BUSY + '"');
+
+  /* c. THE LOCK NOT HAD AT THE TAKE: one line, Gemini never asked. */
+  fresh12(b);
+  gem.refuse = n => n === 1;
+  ask('s1@example.org');
+  L = lines(); all.push(...L);
+  if (L.length !== 1 || !/the take \d+ ms; Gemini not asked; no mark -- the script lock was busy$/.test(L[0])) bad.push('a press refused at the lock logged ' + JSON.stringify(L) + ' — wanted one line saying Gemini was not asked and why');
+
+  /* d. A THROW ON THE WAY: still one line. */
+  fresh12(b);
+  gem.reply = { code: 503 };
+  gem.sleepThrows = true;
+  try { ask('s1@example.org'); } finally { gem.sleepThrows = false; }
+  L = lines(); all.push(...L);
+  if (L.length !== 1 || !/no mark -- it threw$/.test(L[0])) bad.push('a press that threw on the way logged ' + JSON.stringify(L) + ' — wanted one line ending "no mark -- it threw"');
+
+  /* e. AN ESSAY MARKED, A SHORT ANSWER MARKED, AND THE CAP: a line each. One mark was given in (a), so these
+     are the second and third of three, and the fourth press is the cap. */
+  fresh12(b);
+  gem.queue.push(ESSAY_MARK, SHORT_MARK);
+  ask('s1@example.org', essayPress);
+  ask('s1@example.org');
+  ask('s1@example.org');
+  L = lines(); all.push(...L);
+  if (L.length !== 3 || !/^aiMark: timing -- essay, .* at low 200 in \d+ ms; marked by /.test(L[0]) || !/no mark -- at the cap$/.test(L[2])) bad.push('an essay, a short answer and a press at the cap logged ' + JSON.stringify(L) + ' — wanted a line each, the essay marked at low, the last "no mark -- at the cap"');
+
+  /* f. NO LEARNER DATA IN ANY OF THEM: not the answer, the question, the scheme, the essay, the key, the
+     person's id, name or address -- the models, levels, codes and times only. */
+  /* ...nor what Gemini said about the answer, which may quote it. */
+  const theirs = ['collide more often', 'rate of reaction', 'activation energy', 'NOBODY-ELSE-WROTE-THIS', 'silver threads', KEY, 'P-S1', 'Sam', 'Student', 'example.org',
+                  'named the faster particles', 'Vary how your sentences'];
+  all.forEach(x => theirs.forEach(t => { if (x.indexOf(t) >= 0) bad.push('a timing line holds "' + t + '": ' + x.slice(0, 160)); }));
+  if (all.length !== 7) bad.push('seven presses here wrote ' + all.length + ' timing lines — wanted one each');
+}
+if (gem.wrong.length) bad.push(gem.wrong.length + ' request(s) to Gemini carried a thinking setting it must not: ' + Array.from(new Set(gem.wrong)).join('; '));
 
 console.log('');
 console.log('AI MARKING, THROUGH THE REAL doPost  (' + bad.length + ')');
