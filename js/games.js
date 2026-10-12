@@ -3006,7 +3006,10 @@ on('rg-again', el => {
    the same place at the same size: across a table the word cannot be read but a big coloured picture
    can be seen, so a card WITHOUT one would be the imposter's, told to everybody. The category's is
    also the honest picture to give them — it is their hint, and no word's picture in the deck is a
-   category's (`check-widgets.js`). The play screen shows it again, because by then it is everybody's.
+   category's, nor a picture of one of its cards (`check-widgets.js`). AND IT CARRIES A "?", because
+   a child who cannot read "Imposter" otherwise takes the category's picture for their word (see
+   `impFrame_`). The play screen shows the picture again, without the "?", because by then it is
+   everybody's.
 
    THE CATEGORY IS THE IMPOSTER'S HINT AND NOBODY ELSE'S, which was the "reading theme and word" half
    of the 8 Oct note: somebody who has been told "pizza" does not need telling it is a food. The whole
@@ -3028,10 +3031,17 @@ on('rg-again', el => {
 ================================================================================================== */
 const IMP_MIN = 3, IMP_MAX = 12;
 
-/* THE WORDS ARE THINGS, NOT IDEAS. Articulate's deck can hold `stage fright`, because it is
-   described one sentence at a time; this one is talked about ONE WORD at a time, round a circle,
-   so a card has to be something everybody can say three different true words about — and
-   something a child in the room has heard of.
+/* A CARD IS WHAT ITS PICTURE SHOWS — A THING, A FACE, A GESTURE OR A SIGN — AND NEVER AN IDEA.
+   Articulate's deck can hold `stage fright`, because it is described one sentence at a time; this
+   one is talked about ONE WORD at a time, round a circle, so a card has to be something everybody
+   can say three different true words about — and something a child in the room has heard of.
+   Until 11 Oct that was written "things, not ideas", and every card was an object. The pictures
+   moved the line rather than broke it: a face crying, a hand waving and a red octagon are as plain
+   to point at as a pizza, and as easy to say three words about — `crying` (tears, sad, baby),
+   `waving` (hello, bye, hand), `stop` (red, car, wait). So Feelings, Actions and Signs and symbols
+   came in, from pictures no other category needed (see "twenty-five categories" below). What stays
+   out is the idea with no picture — `brave`, `fair`, `Tuesday` — whose only honest picture is none,
+   and a picture only an adult could put a name to.
 
    AND EVERY THING HAS ITS PICTURE. The owner, 11 Oct: "Add symbols to imposter." AN EMOJI, because
    750 pictures cannot be drawn by hand and every phone and iPad at the table already carries a font
@@ -3044,7 +3054,10 @@ const IMP_MIN = 3, IMP_MAX = 12;
    plate is not shepherd's pie. A word with no honest picture was REPLACED by a word of the same
    category that has one, never given a near miss (`biscuit` became `cookie`, because 🍪 is a
    chocolate-chip cookie and that is what a child calls it), and a word was renamed to what is drawn
-   (`Big Bad Wolf` to `wolf`, `teeth` to `tooth`). docs/history/343 lists every one.
+   (`Big Bad Wolf` to `wolf`, `teeth` to `tooth`, `skyscraper` to `city` — 🏙️ is a skyline — and
+   `Mrs Christmas` to `Mrs Claus`). AND A PICTURE OF SOMETHING ELSE WITH THE SAME NAME IS A NEAR MISS
+   TOO: `triangle` in Music was 🔺, the red shape, never the instrument, and is a shape in Signs and
+   symbols now. docs/history/343 lists every one.
 
    NO EMOJI NEWER THAN 12.0 (iOS 13.2, 2019 — every iPad still in use). A newer one is an empty box on
    an older phone: a card with no picture, in one player's hand, which looks like a fault and is a
@@ -3070,7 +3083,16 @@ const IMP_MIN = 3, IMP_MAX = 12;
    the answer: `school bus` and `school trip` were in School), and no picture twice.
 
    A CATEGORY HAS A PICTURE TOO, `sym`: the imposter's card shows it over "Imposter", and the play
-   screen shows it to the table. NONE IS A CARD'S PICTURE, or the imposter would be holding a word.
+   screen shows it to the table. NONE IS A CARD'S PICTURE, OR A PICTURE OF ONE OF ITS OWN CARDS, or
+   the imposter would be holding the word. The first half was all that was held, by "no picture
+   twice", and the review of 11 October found eight categories breaking the second: 🐯 over
+   `tiger` 🐅, 🐶 over `dog`, 🏖️ over `parasol`, 🏅 over `gold medal`, 🎶 over `musical note`, 📚
+   over `book`, 👚 over `T-shirt`, 🎉 over `confetti` and `party`. So the card went where the
+   category's picture is the better hint (tiger, parasol, gold medal, musical note, T-shirt), and
+   the picture changed where the card is the better word (Pets 🐾, School 🎒, Celebrations 🎈 —
+   and At the seaside 🌊, so that `beach` could be a card). `check-widgets.js` holds it twice:
+   by picture (`LOOKALIKE`, families a child would call one thing) and by word (`SYM_SAYS`, what a
+   child calls each category's picture, which every new one has to be given).
 
    THE PICTURE IS NEVER SPOKEN. `speechSynthesis` reads an emoji out by its Unicode name — "slice of
    pizza", "man health worker" — which is exactly the fluff the 11 Oct note was about. Only the word
@@ -3088,27 +3110,27 @@ const IMP_DECK = {
     '🍛 curry', '🍣 sushi', '🌮 tacos', '🍜 noodles', '🍚 rice', '🥟 dumplings', '🥧 pie',
     '🍗 chicken leg', '🥓 bacon', '🌯 burrito', '🥙 kebab', '🥩 steak', '🍫 chocolate', '🍬 sweets',
     '🍭 lollipop', '🍪 cookie', '🧁 cupcake', '🍩 doughnut', '🍿 popcorn', '🍰 cake', '🧇 waffle',
-    '🥞 pancakes', '🍨 sundae',
+    '🥞 pancakes', '🧆 falafel',
   ] },
   'Fruit and veg': { sym: '🥗', cards: [
     '🍎 apple', '🍌 banana', '🍊 orange', '🍓 strawberry', '🍇 grapes', '🥕 carrot',
     '🍉 watermelon', '🍍 pineapple', '🍅 tomato', '🥒 cucumber', '🍐 pear', '🍋 lemon', '🍒 cherry',
     '🥦 broccoli', '🌽 sweetcorn', '🥔 potato', '🥭 mango', '🍑 peach', '🥝 kiwi', '🥥 coconut',
     '🥬 lettuce', '🧅 onion', '🍄 mushroom', '🥑 avocado', '🌶️ chilli', '🍈 melon', '🧄 garlic',
-    '🍏 green apple', '🍠 sweet potato', '🍆 aubergine',
+    '🥜 peanuts', '🍠 sweet potato', '🍆 aubergine',
   ] },
   'In the kitchen': { sym: '🥘', cards: [
-    '🍽️ plate', '🥣 bowl', '🥄 spoon', '🍴 knife and fork', '🔪 knife', '🥢 chopsticks',
+    '🍽️ plate', '🥣 bowl', '🥄 spoon', '🍴 cutlery', '🔪 knife', '🥢 chopsticks',
     '🍳 frying pan', '☕ cup', '🥛 milk', '🥚 egg', '🧀 cheese', '🍞 bread', '🧈 butter', '🧂 salt',
     '🥫 tin', '🍯 honey', '🧊 ice cube', '🧃 juice box', '🍼 baby bottle', '🧽 sponge', '🚰 tap',
     '⏲️ timer', '🧯 fire extinguisher', '🥤 fizzy drink', '🥡 takeaway', '🥐 croissant', '🥯 bagel',
-    '🥖 baguette', '🥨 pretzel', '🥜 peanuts',
+    '🥖 baguette', '🥨 pretzel', '🗑️ bin',
   ] },
   'At home': { sym: '🏠', cards: [
     '🛏️ bed', '🛋️ sofa', '🛁 bath', '📺 television', '🚪 door', '🪑 chair', '🚽 toilet', '🔑 key',
-    '🧼 soap', '🗑️ bin', '⏰ alarm clock', '🚿 shower', '🧻 toilet roll', '☎️ telephone',
+    '🧼 soap', '🧶 wool', '⏰ alarm clock', '🚿 shower', '🧻 toilet roll', '☎️ telephone',
     '⌨️ keyboard', '💻 laptop', '🖼️ picture', '✉️ letter', '📰 newspaper', '🧳 suitcase',
-    '🪒 razor', '🕰️ clock', '☂️ umbrella', '🖨️ printer', '📦 parcel', '📱 mobile phone',
+    '🪒 razor', '🕰️ clock', '💳 credit card', '🖨️ printer', '📦 parcel', '📱 mobile phone',
     '🧺 basket', '🖥️ computer', '📷 camera', '👪 family',
   ] },
   Toolbox: { sym: '🧰', cards: [
@@ -3119,7 +3141,7 @@ const IMP_DECK = {
     '⛑️ helmet', '📏 ruler', '✂️ scissors', '🖌️ paintbrush', '⏱️ stopwatch', '🧭 compass',
   ] },
   Clothes: { sym: '👚', cards: [
-    '🧦 socks', '👕 T-shirt', '👖 jeans', '👗 dress', '🩳 shorts', '🧥 coat', '👢 boots',
+    '🧦 socks', '🧕 headscarf', '👖 jeans', '👗 dress', '🩳 shorts', '🧥 coat', '👢 boots',
     '👟 trainers', '👞 shoes', '🧣 scarf', '🧤 gloves', '🧢 cap', '🕶️ sunglasses', '👓 glasses',
     '🩱 swimming costume', '🩲 pants', '👔 tie', '👠 high heels', '⌚ watch', '💍 ring',
     '👜 handbag', '👛 purse', '🎩 top hat', '👘 kimono', '🥻 sari', '👳 turban', '🥾 walking boots',
@@ -3127,7 +3149,7 @@ const IMP_DECK = {
   ] },
   'The body': { sym: '🧍', cards: [
     '👃 nose', '👁️ eye', '👂 ear', '👄 mouth', '👅 tongue', '🦷 tooth', '🧠 brain', '🦴 bone',
-    '💀 skull', '🦵 leg', '🦶 foot', '👣 footprints', '✋ hand', '👍 thumb', '☝️ finger', '✊ fist',
+    '💀 skull', '🦵 leg', '🦶 foot', '👣 footprints', '✋ hand', '😷 face mask', '☝️ finger', '✊ fist',
     '💪 muscles', '💅 nails', '❤️ heart', '🩸 blood', '🧔 beard', '👩‍🦱 curly hair',
     '👩‍🦰 red hair', '👨‍🦲 bald head', '🩹 plaster', '💉 injection', '🦠 germs', '💊 medicine',
     '🩺 stethoscope', '🦻 hearing aid',
@@ -3137,7 +3159,7 @@ const IMP_DECK = {
     '😮 surprised', '😴 asleep', '🤢 sick', '🤒 poorly', '🤕 hurt', '🥵 hot', '🥶 cold', '😵 dizzy',
     '😍 in love', '😎 cool', '🤪 silly', '🤔 thinking', '😟 worried', '😳 embarrassed',
     '🤩 excited', '😒 grumpy', '😑 bored', '😬 nervous', '😜 cheeky', '🤧 sneezing', '🥱 yawning',
-    '🤫 quiet', '😡 furious',
+    '🤫 quiet', '🤨 suspicious',
   ] },
   Actions: { sym: '🚶', cards: [
     '🏃 running', '🛌 sleeping', '🛀 having a bath', '👋 waving', '✍️ writing',
@@ -3145,44 +3167,44 @@ const IMP_DECK = {
     '👉 pointing', '👊 fist bump', '🙌 cheering', '🤞 fingers crossed', '👌 OK sign',
     '✌️ peace sign', '👎 thumbs down', '🗣️ talking', '💆 massage', '🙏 praying',
     '😘 blowing a kiss', '🧘 yoga', '🤝 shaking hands', '🙅 saying no', '💇 getting a haircut',
-    '🤸 cartwheel', '⛹️ bouncing a ball', '😉 winking', '👏 clapping',
+    '👍 thumbs up', '⛹️ bouncing a ball', '😉 winking', '👏 clapping',
   ] },
   People: { sym: '👥', cards: [
     '👩‍🏫 teacher', '👨‍⚕️ doctor', '👩‍🚒 firefighter', '👮 police officer', '👨‍🌾 farmer',
     '👩‍🍳 chef', '👨‍✈️ pilot', '👷 builder', '👩‍🔬 scientist', '👨‍🎨 artist', '👩‍🔧 mechanic',
     '🕵️ detective', '👨‍⚖️ judge', '👨‍💼 office worker', '👩‍💻 computer programmer', '👩‍🏭 welder',
-    '💂 soldier', '🤡 clown', '🤠 cowboy', '🤹 juggler', '🏇 jockey', '💃 dancer', '👨‍🎤 rock star',
+    '💂 soldier', '🤡 clown', '🤠 cowboy', '🤹 juggler', '🏇 jockey', '👨 man', '👨‍🎤 rock star',
     '👶 baby', '👦 boy', '👧 girl', '👵 grandma', '👴 grandad', '👩‍🎓 student', '🤰 pregnant woman',
   ] },
   'Wild animals': { sym: '🐯', cards: [
-    '🐘 elephant', '🦁 lion', '🐒 monkey', '🦒 giraffe', '🐅 tiger', '🦓 zebra', '🐼 panda',
+    '🐘 elephant', '🦁 lion', '🐒 monkey', '🦒 giraffe', '🦧 orangutan', '🦓 zebra', '🐼 panda',
     '🦘 kangaroo', '🐊 crocodile', '🐻 bear', '🦛 hippo', '🦏 rhino', '🐨 koala', '🐪 camel',
-    '🦊 fox', '🦉 owl', '🐿️ squirrel', '🦔 hedgehog', '🦇 bat', '🦡 badger', '🦅 eagle',
-    '🦩 flamingo', '🦍 gorilla', '🦚 peacock', '🦢 swan', '🦥 sloth', '🦨 skunk', '🦦 otter',
+    '🦊 fox', '🦉 owl', '🐿️ squirrel', '🐗 boar', '🦇 bat', '🦡 badger', '🦅 eagle',
+    '🦩 flamingo', '🦍 gorilla', '🐃 buffalo', '🦢 swan', '🦥 sloth', '🦨 skunk', '🦦 otter',
     '🦝 raccoon', '🐆 leopard',
   ] },
-  'Pets and farm animals': { sym: '🐶', cards: [
+  'Pets and farm animals': { sym: '🐾', cards: [
     '🐕 dog', '🐈 cat', '🐇 rabbit', '🐹 hamster', '🐟 fish', '🐎 horse', '🐄 cow', '🐖 pig',
     '🐑 sheep', '🐔 chicken', '🦆 duck', '🐁 mouse', '🐤 chick', '🐐 goat', '🐦 bird', '🦜 parrot',
     '🐀 rat', '🦃 turkey', '🐂 bull', '🐓 cockerel', '🦙 llama', '🐏 ram', '🦎 lizard', '🐍 snake',
-    '🕊️ dove', '🦮 guide dog', '🐩 poodle', '🐾 paw prints', '🐢 tortoise', '🐣 hatching chick',
+    '🕊️ dove', '🦮 guide dog', '🐩 poodle', '🦚 peacock', '🐢 tortoise', '🐣 hatching chick',
   ] },
-  'At the seaside': { sym: '🏖️', cards: [
+  'At the seaside': { sym: '🌊', cards: [
     '🦈 shark', '🐬 dolphin', '🐳 whale', '🐙 octopus', '🦀 crab', '🦞 lobster', '🦐 prawn',
     '🦑 squid', '🐡 pufferfish', '🐠 tropical fish', '🦪 oyster', '🐚 shell', '🐧 penguin',
-    '🌊 waves', '🏝️ island', '🌅 sunset', '🤿 snorkel', '⛱️ parasol', '⚓ anchor', '🎣 fishing rod',
-    '⛵ sailing boat', '🛥️ boat', '🎡 big wheel', '🎠 merry-go-round', '🏊 swimming', '🏄 surfing',
+    '🏖️ beach', '🏝️ island', '🌅 sunset', '🤿 snorkel', '🎢 roller coaster', '⚓ anchor', '🎣 fishing rod',
+    '⛵ sailing boat', '🛥️ motor boat', '🎡 big wheel', '🎠 merry-go-round', '🏊 swimming', '🏄 surfing',
     '🍦 ice cream', '👙 bikini', '👒 sun hat', '👡 sandals',
   ] },
   Nature: { sym: '🏞️', cards: [
     '🌋 volcano', '⛰️ mountain', '🏜️ desert', '🌳 tree', '🌲 pine tree', '🌴 palm tree',
-    '🌵 cactus', '🌸 blossom', '🌻 sunflower', '🌹 rose', '🌷 tulip', '🌼 flower', '🥀 dead flower',
-    '🌾 wheat', '🍂 autumn leaves', '🍃 leaves', '🍀 four-leaf clover', '🌰 conker', '🌱 seedling',
+    '🌵 cactus', '🌸 blossom', '🌻 sunflower', '🌹 rose', '🌷 tulip', '🌼 flower', '🦂 scorpion',
+    '🌾 wheat', '🍂 autumn leaves', '🦔 hedgehog', '🍀 four-leaf clover', '🌰 conker', '🌱 seedling',
     '🔥 fire', '🐝 bee', '🐞 ladybird', '🦋 butterfly', '🐜 ant', '🐌 snail', '🐛 caterpillar',
     '🦗 grasshopper', '🕷️ spider', '🕸️ cobweb', '🦟 mosquito',
   ] },
   'Space and weather': { sym: '🌌', cards: [
-    '☀️ sun', '🌙 moon', '🌕 full moon', '🌓 half moon', '⭐ star', '🌠 shooting star', '☄️ comet',
+    '☀️ sun', '🌙 moon', '🌕 full moon', '☂️ umbrella', '⭐ star', '🌠 shooting star', '☄️ comet',
     '🪐 Saturn', '🌍 Earth', '🚀 rocket', '🛸 flying saucer', '🛰️ satellite', '👩‍🚀 astronaut',
     '👽 alien', '🔭 telescope', '📡 satellite dish', '🌈 rainbow', '☁️ cloud', '🌧️ rain', '🌨️ snow',
     '❄️ snowflake', '⚡ lightning', '⛈️ thunderstorm', '🌪️ tornado', '🌬️ wind', '🌫️ fog',
@@ -3193,7 +3215,7 @@ const IMP_DECK = {
     '👸 princess', '🤴 prince', '👑 crown', '⚔️ sword', '🛡️ shield', '🏹 bow and arrow', '🐺 wolf',
     '🧞 genie', '🧝 elf', '🧛 vampire', '🧟 zombie', '🤥 Pinocchio', '🧹 broomstick',
     '🔮 crystal ball', '🗡️ dagger', '💎 diamond', '🗝️ old key', '📜 scroll', '🏴‍☠️ pirate flag',
-    '🐸 frog', '💰 money bag', '🏚️ haunted house', '👹 monster',
+    '🐸 frog', '💰 money bag', '⚰️ coffin', '👹 monster',
   ] },
   Countries: { sym: '🌐', cards: [
     '🏴󠁧󠁢󠁥󠁮󠁧󠁿 England', '🏴󠁧󠁢󠁳󠁣󠁴󠁿 Scotland', '🏴󠁧󠁢󠁷󠁬󠁳󠁿 Wales', '🇫🇷 France', '🇪🇸 Spain', '🇮🇪 Ireland',
@@ -3205,37 +3227,37 @@ const IMP_DECK = {
   ] },
   'Around town': { sym: '🏘️', cards: [
     '🏥 hospital', '🛒 supermarket', '🏫 school', '⛪ church', '🚏 bus stop', '🏨 hotel',
-    '🎬 cinema', '🎪 circus', '📮 postbox', '🎢 theme park', '🚦 traffic lights', '🏦 bank',
+    '🏤 post office', '🎪 circus', '📮 postbox', '🛍️ shopping bags', '🚦 traffic lights', '🏦 bank',
     '🏛️ museum', '🏪 corner shop', '🏕️ campsite', '⛽ petrol station', '🚉 train station',
     '🏟️ stadium', '⛲ fountain', '🅿️ car park', '🏭 factory', '🕌 mosque', '🕍 synagogue',
-    '🛕 temple', '🏧 cash machine', '🚻 public toilets', '🏙️ skyscraper', '🏢 office block',
+    '🛕 temple', '🏧 cash machine', '🚻 public toilets', '🏙️ city', '🏢 office block',
     '🌉 bridge', '💈 barber’s',
   ] },
   Sport: { sym: '🏅', cards: [
     '⚽ football', '🎾 tennis', '🏏 cricket', '🏉 rugby', '🏀 basketball', '🥊 boxing', '⛳ golf',
     '🥋 karate', '🏑 hockey', '🏒 ice hockey', '🏸 badminton', '⚾ baseball',
-    '🏈 American football', '🏐 volleyball', '🏆 trophy', '🥇 gold medal', '🥍 lacrosse',
+    '🏈 American football', '🏐 volleyball', '🏆 trophy', '🤸 gymnastics', '🥍 lacrosse',
     '⛸️ ice skating', '⛷️ skiing', '🏂 snowboarding', '🥌 curling', '🤺 fencing',
     '🏋️ weightlifting', '🚣 rowing', '🚴 cycling', '🧗 climbing', '🤼 wrestling',
     '🚵 mountain biking', '🤾 handball', '🤽 water polo',
   ] },
-  School: { sym: '📚', cards: [
+  School: { sym: '🎒', cards: [
     '✏️ pencil', '🖊️ pen', '🖋️ fountain pen', '🖍️ crayons', '🎨 paints', '📖 book', '📓 notebook',
-    '📒 exercise book', '📝 notepad', '🎒 backpack', '🌟 gold star', '🔤 alphabet', '🔢 numbers',
+    '⚛️ atom', '📝 notepad', '💯 hundred', '🌟 gold star', '🔤 alphabet', '🔢 numbers',
     '🙋 hands up', '🔬 microscope', '🧪 test tube', '🧬 DNA', '🗺️ map', '📎 paper clip',
     '📋 clipboard', '📅 calendar', '🔖 bookmark', '🧮 abacus', '📐 set square', '📊 bar chart',
     '📈 graph', '📁 folder', '🍱 lunchbox', '🧫 petri dish', '🏷️ label',
   ] },
-  Transport: { sym: '🛣️', cards: [
+  Transport: { sym: '🚥', cards: [
     '🚗 car', '🚕 taxi', '🚓 police car', '🏎️ racing car', '🚌 bus', '🚐 minibus', '🚛 lorry',
-    '🚚 truck', '🚜 tractor', '🚒 fire engine', '🚑 ambulance', '🚲 bicycle', '🏍️ motorbike',
+    '🚨 siren', '🚜 tractor', '🚒 fire engine', '🚑 ambulance', '🚲 bicycle', '🏍️ motorbike',
     '🛵 moped', '🛺 tuk-tuk', '🚂 train', '🚅 bullet train', '🚇 underground', '🚝 monorail',
     '🚋 tram', '🛤️ train track', '✈️ aeroplane', '🚁 helicopter', '🚡 cable car', '🛶 canoe',
     '🚤 speedboat', '⛴️ ferry', '🛳️ cruise ship', '🚢 ship', '🦽 wheelchair',
   ] },
-  Celebrations: { sym: '🎉', cards: [
-    '🎂 birthday cake', '🎁 presents', '🎈 balloon', '🥳 party', '🎊 confetti', '🎄 Christmas',
-    '🎅 Father Christmas', '🤶 Mrs Christmas', '👼 angel', '🎃 Halloween', '💌 love letter',
+  Celebrations: { sym: '🎈', cards: [
+    '🎂 birthday cake', '🎁 presents', '🐰 Easter bunny', '🥳 party', '🎊 confetti', '🎄 Christmas',
+    '🎅 Father Christmas', '🤶 Mrs Claus', '👼 angel', '🎃 Halloween', '💌 love letter',
     '💒 wedding', '👰 bride', '🤵 groom', '💐 bouquet', '🎆 fireworks', '🎇 sparkler',
     '🧨 firecracker', '🪔 Diwali', '🕎 Hanukkah', '🏮 lantern', '🕺 disco', '🎓 graduation',
     '🦌 reindeer', '✨ sparkles', '💘 Valentine’s Day', '💏 kiss', '🎖️ medal', '🕯️ candle',
@@ -3250,17 +3272,17 @@ const IMP_DECK = {
   ] },
   Music: { sym: '🎶', cards: [
     '🎸 guitar', '🥁 drums', '🎹 piano', '🎻 violin', '🎺 trumpet', '🎷 saxophone', '🪕 banjo',
-    '📯 horn', '🔔 bell', '🔺 triangle', '🎤 microphone', '🎧 headphones', '📻 radio', '💿 CD',
-    '🔊 speaker', '📣 megaphone', '📢 loudspeaker', '🎵 musical note', '🎼 treble clef',
+    '📯 horn', '🔔 bell', '🔁 repeat', '🎤 microphone', '🎧 headphones', '📻 radio', '💿 CD',
+    '🔊 speaker', '📣 megaphone', '⏩ fast forward', '💃 dancer', '🎼 treble clef',
     '👩‍🎤 pop star', '🩰 ballet', '🎫 ticket', '▶️ play button', '⏸️ pause button', '🔇 mute',
-    '🎐 wind chime', '🤘 rock on', '📀 DVD', '🔀 shuffle', '⏺️ record button',
+    '⏹️ stop button', '🤘 rock on', '⏪ rewind', '🔀 shuffle', '⏺️ record button',
   ] },
   'Signs and symbols': { sym: '🔣', cards: [
     '🛑 stop', '⛔ no entry', '⚠️ warning', '♻️ recycling', '#️⃣ hashtag', '🚼 baby changing',
     '🚭 no smoking', '📵 no phones', '🚳 no bikes', '🚸 children crossing', '✅ tick', '❌ cross',
-    '❓ question mark', '❗ exclamation mark', '➕ plus', '➖ minus', '✖️ times', '➗ divide',
-    '💯 hundred', '🆘 SOS', '🆕 new', '🏁 chequered flag', '🏳️ white flag', '⏩ fast forward',
-    '⏪ rewind', '🔁 repeat', '♾️ infinity', '☢️ radioactive', '🚮 litter', '📶 signal',
+    '❓ question mark', '❗ exclamation mark', '➕ plus', '➖ minus', '🟥 square', '➗ divide',
+    '⭕ circle', '🆘 SOS', '🆕 new', '🏁 chequered flag', '🏳️ white flag', 'ℹ️ information',
+    '⬆️ arrow', '🔺 triangle', '♾️ infinity', '☢️ radioactive', '🚮 litter', '📶 signal',
   ] },
 };
 
@@ -3391,7 +3413,8 @@ let IMP = IMP_IDLE();
    Reveal (the imposter named before anybody had played). Deal, on the setup screen and on the
    reveal, overlaps Show's box too.
 
-   SO THOSE THREE IGNORE A PRESS WITHIN `IMP_GAP` OF THE LAST PRESS. Every deliberate press
+   SO THOSE THREE — AND THE REVEAL'S DEAL AND PLAYERS, drawn where Reveal was (see `imp-again`) —
+   IGNORE A PRESS WITHIN `IMP_GAP` OF THE LAST PRESS. Every deliberate press
    here is further apart than that by a mile — a word is read, a phone is handed across a table, a
    round is played — so the only press it can cost is a second tap, and a child whose press was
    swallowed simply presses again. 600ms rather than a phone's own double-tap window (300–500ms),
@@ -3409,9 +3432,9 @@ let IMP = IMP_IDLE();
    more than a press: a repaint when a payload lands, a return to the column. `check/press.js` found
    it (8 Oct) — it arrives on a card and presses inside 600ms of the draw, and Show, Hide and Reveal
    did nothing, which is exactly what a child gets who presses the moment the column slides back. A
-   double tap is two PRESSES close together, so that is what is measured: both Deals, Show, Hide
-   and Reveal each stamp the time they acted (`impPressed_`), and only a press that close behind
-   one of them is the second tap. */
+   double tap is two PRESSES close together, so that is what is measured: both Deals, Show, Hide,
+   Reveal and Players each stamp the time they acted (`impPressed_`), and only a press that close
+   behind one of them is the second tap. */
 const IMP_GAP = 600;
 let IMP_PRESSED = -Infinity;
 function impTooSoon_(e) {
@@ -3439,6 +3462,16 @@ function impDeal_(n) {
    THE PICTURE IS `aria-hidden`: a screen reader would read 🍕 as "slice of pizza" right before the
    word it is a picture of, which is the fluff the 11 Oct note was about, said by somebody else.
 
+   AND THE IMPOSTER'S PICTURE CARRIES A "?" (`imp` → `.is-imp`, drawn by style.css), because a
+   picture over a word is the whole card to a child who cannot read the word — and the imposter's
+   card was a picture over a word too. With Read aloud off (how it arrives), a five-year-old dealt
+   the imposter would see 🐯 over a word they could not read, take the tiger for their word, and
+   play the round as somebody who had it (the review of 11 October, from the screenshots). "Imposter" is the one word on that card
+   they needed, and the only one they could not read. So it is said in the one way a non-reader
+   learns once — a gold "?" on the picture, "you don't know the word" — at the picture's own place
+   and inside its slot, so the card is still a big picture over a line of text from across a
+   table, and still one height. NOT ON THE PLAY SCREEN, where the same picture is everybody's.
+
    THE SMALL LINE WAS TWO, ONE OVER THE BIG LINE AND ONE UNDER IT, while there was "Pass to" to put
    over a name. With that gone the category is the only small line left — the imposter's hint, and
    the table's on the play screen — and it sits under the big line on both, in the same place.
@@ -3450,8 +3483,8 @@ function impDeal_(n) {
    has to be the same, and `foot` is Listen on a card and an empty 64px (with Listen's 20px over it)
    on the pass and play screens while Read aloud is on; with it off there is no speaker anywhere and
    nothing to keep room for. */
-function impFrame_(sym, big, small, button, foot) {
-  return `<p class="imp-sym" aria-hidden="true">${esc(sym)}</p>
+function impFrame_(sym, big, small, button, foot, imp) {
+  return `<p class="imp-sym${imp ? ' is-imp' : ''}" aria-hidden="true">${esc(sym)}</p>
     <p class="art-word imp-big">${esc(big)}</p>
     <p class="art-cat-of imp-lab">${esc(small)}</p>
     ${button}${foot || ''}`;
@@ -3518,11 +3551,11 @@ function impPaint() {
   }
   /* THE IMPOSTER'S CARD CARRIES THE CATEGORY'S PICTURE where everybody else's carries the word's — see
      "every card has a picture" above: a card with no picture would be the imposter's from across the
-     table. */
+     table — and the "?" on it, for the child who cannot read "Imposter" (see `impFrame_`). */
   if (s.phase === 'deal') {
     const me = s.at === s.imp;
     card.innerHTML = impFrame_(me ? s.catSym : s.sym, me ? 'Imposter' : s.word, me ? s.cat : '', impHideBtn_(),
-      aloud ? tile_({ icon: 'speak', label: 'Listen', act: 'imp-listen', tone: 'listen' }) : '');
+      aloud ? tile_({ icon: 'speak', label: 'Listen', act: 'imp-listen', tone: 'listen' }) : '', me);
     return;
   }
   if (s.phase === 'play') {
@@ -3564,7 +3597,8 @@ on('imp-count', el => {
 });
 on('imp-aloud', () => { impAloud_(!impAloud_()); impPaint(); });
 on('imp-start', (el, e) => { impHush_(); impPressed_(e); impDeal_(impCount_()); impPaint(); });
-/* SHOW, HIDE AND REVEAL TAKE `(el, e)` FOR `impTooSoon_` — see "a second tap is not a second press". */
+/* SHOW, HIDE AND REVEAL TAKE `(el, e)` FOR `impTooSoon_` — see "a second tap is not a second press" —
+   and so do the reveal's Deal and Players, below. */
 on('imp-show', (el, e) => {
   if (IMP.phase !== 'deal' || IMP.shown) return;
   if (impTooSoon_(e)) return;
@@ -3622,9 +3656,29 @@ on('imp-reveal', (el, e) => {
   impPaint();
 });
 /* `imp-again` IS THE REVEAL'S "Deal" — it was "Play again" until the 11 Oct trim — and deals for the
-   same number of players without going back through the setup screen. */
-on('imp-again', (el, e) => { impHush_(); impPressed_(e); impDeal_(IMP.n || impCount_()); impPaint(); });
-on('imp-players', () => { impHush_(); IMP = IMP_IDLE(); impPaint(); });
+   same number of players without going back through the setup screen.
+
+   BOTH OF THE REVEAL'S BUTTONS TAKE `(el, e)` FOR `impTooSoon_` TOO, because Reveal is drawn where
+   they are. The guard covered Show, Hide and Reveal and stopped there, and the review of 11 October
+   double-tapped Reveal in Chromium at 390 and at 320: the second tap went to Players — Reveal's
+   centre is x=195, Deal ends at 191 and Players starts at 198, and the browser's touch adjustment
+   sends a tap in that gap to the nearer button — and the round went play → reveal → setup in one
+   gesture, so the table never saw who the imposter was. It was so before the pictures went in,
+   too. HUSHED BEFORE THE GUARD, as Hide is: a tap that is ignored still stops the voice. */
+on('imp-again', (el, e) => {
+  impHush_();
+  if (impTooSoon_(e)) return;
+  impPressed_(e);
+  impDeal_(IMP.n || impCount_());
+  impPaint();
+});
+on('imp-players', (el, e) => {
+  impHush_();
+  if (impTooSoon_(e)) return;
+  impPressed_(e);
+  IMP = IMP_IDLE();
+  impPaint();
+});
 
 /* ==================================================================================================
    FOUR CLASSROOM GAMES — Just a Minute, Taboo, Hot Seat and 20 Questions.

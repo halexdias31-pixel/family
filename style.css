@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-11-imp-sym";
+  --css-version: "2026-10-12-imp-review";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -12188,8 +12188,36 @@ button.scr-sq { cursor: pointer; }
    with the type it stands over. THE FONTS NAMED, emoji first: the app's own face is monospace, and a
    monospace font that carries a plain ♠ or ✖ would win over the coloured one for the cards whose
    picture is one of those older symbols — a black outline where everybody else's card has colour. */
+/* AND A HAIRLINE OF `--ink` ROUND EVERY PICTURE, because some of them are drawn in black and this card
+   is nearly black. Measured in Chromium with Noto on the card at 390 (the review of 11 October), as
+   the share of a picture's drawn pixels reaching 3:1 against the card: ♠️ 0%, ♣️ 0%, 🕸️ 0%, 🕶️ 3%,
+   ➖ ➕ 4%, ➗ ✖️ 🧥 8% — a dark shape on a dark card, for the child the picture is for. Apple's font,
+   on the family's iPads, draws ♠ ♣ ➕ ➖ ➗ and the music notes in solid black. TWO `drop-shadow`s
+   of the token, each a fiftieth of the picture, rather than a disc of paper behind it: a disc is a
+   second shape on the card and paper is the other palette; an outline only shows where the picture
+   would have vanished into the card, and is a sticker's edge on the ones that never did. NOT
+   `color-mix()` for a softer glow: an iPad on iOS 15 drops the whole declaration over it. */
 .imp-sym { margin: 0; height: 1.2em; display: flex; align-items: center; justify-content: center;
-  font: 400 3.6rem/1 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif; }
+  position: relative;
+  font: 400 3.6rem/1 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+  filter: drop-shadow(0 0 .02em var(--ink)) drop-shadow(0 0 .02em var(--ink)); }
+/* THE IMPOSTER'S "?" — see `impFrame_`: the one word on the imposter's card a child who cannot read
+   needs, said as a mark learnt once. Gold on the app's black, the colour of the one action; set on
+   the picture's lower right, INSIDE the picture's slot, so the card keeps its height and is still a
+   big picture over a line of text from across the table. In `rem` — it is not pressed, and it
+   should grow with the picture it sits on.
+
+   SET FROM THE PICTURE'S OWN RIGHT EDGE, INSIDE ROOM MADE FOR IT, not from its middle. `.art` centres
+   its children, so this box is exactly as wide as the emoji, and the first version (`left: 50% +
+   1rem`) hung the mark 5px past it: `check/ui.js` reported the picture scrolling sideways at 320 and
+   390. Padding on both sides, so the emoji stays in the middle of the card. */
+.imp-sym.is-imp { padding: 0 1.3rem; }
+.imp-sym.is-imp::after {
+  content: '?'; position: absolute; right: .3rem; top: 2.2rem;
+  width: 1.6rem; height: 1.6rem; border-radius: 50%;
+  background: var(--gold); color: var(--bg);
+  font: 700 1.15rem/1.6rem var(--font); text-align: center;
+}
 /* SHOW AND HIDE CARRY A MARK, an open eye and a shut one from `TILE_ICONS`, for the children who
    know the button by picture. A floor on the width so the two are the same gold shape in the same
    place, and a target that is a thumb whatever word is in it. */

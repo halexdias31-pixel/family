@@ -2863,11 +2863,28 @@ check('the imposter game tells everybody the word but one, and hides it between 
     if (said() !== want) bad.push(where + ' reads "' + said() + '", wanted exactly "' + want + '"');
   };
   const sym = () => String((card().querySelector('.imp-sym') || {}).textContent || '').trim();
+  /* EVERY PICTURE `aria-hidden`, wherever it is drawn: a screen reader reads 🍕 as "slice of pizza"
+     before the word it is a picture of (impFrame_, note 343). Taking it off passed every journey. */
+  const hidden = where => [...card().querySelectorAll('.imp-sym')].forEach(el => {
+    if (el.getAttribute('aria-hidden') !== 'true') bad.push(where + ': a picture is not aria-hidden, so a screen reader reads it out');
+  });
+  /* THE "?" IS THE IMPOSTER'S AND NOBODY ELSE'S — the mark a child who cannot read "Imposter" knows
+     the card by (impFrame_, note 343). On another card it would be a lie; on the play screen, a
+     tell. */
+  const marked = () => !!card().querySelector('.imp-sym.is-imp');
   /* NO LINE OVER THE CARD AND NO NOTE UNDER IT: the old "Everyone gets the word but one. Find the
      imposter." could come back as quietly as `#imp-said` could. */
   if (game().querySelector('.sub, #imp-said, .note')) bad.push('the imposter game has a sentence line again (.sub, #imp-said or .note): "' + said() + '"');
   const N = 5;
+  /* THE WHOLE RANGE, 3 TO 12, BOTH ENDS — the brief's "3–12 players". The top was never pressed
+     (twelve down and two up), so `IMP_MAX = 20` passed every journey (the review of 11 October). */
+  const step = (d) => card().querySelector('.imp-step[data-d="' + d + '"]');
+  for (let i = 0; i < 13; i++) press('imp-count', { 'data-d': '1' });
+  exactly('the setup screen at the most players', 'Players − 12 + Deal');
+  if (!step('1') || !step('1').disabled) bad.push('at 12 players + is not disabled');
   for (let i = 0; i < 12; i++) press('imp-count', { 'data-d': '-1' });
+  exactly('the setup screen at the fewest players', 'Players − 3 + Deal');
+  if (!step('-1') || !step('-1').disabled) bad.push('at 3 players − is not disabled');
   for (let i = 0; i < N - 3; i++) press('imp-count', { 'data-d': '1' });
   /* THE SETUP: how many, and Deal. Read aloud is a tile with no word on it (jsdom has no voice, so it
      is not drawn here at all — the read-aloud journey has it). */
@@ -2907,13 +2924,16 @@ check('the imposter game tells everybody the word but one, and hides it between 
       if (pic && visible().indexOf(pic) !== -1) bad.push('the imposter, player ' + (i + 1) + ', was shown the word\'s picture');
       exactly("the imposter's card", catPic + ' Imposter ' + cat + ' Hide');
       if (sym() !== catPic) bad.push("the imposter's picture is \"" + sym() + '", not the category\'s ' + catPic);
+      if (!marked()) bad.push("the imposter's picture has no \"?\" (.is-imp), so a child who cannot read \"Imposter\" takes the category's picture for their word");
     } else {
       if (big !== word) bad.push('player ' + (i + 1) + "'s big line is \"" + big + '", not the word dealt');
       if (has(visible(), cat)) bad.push('player ' + (i + 1) + ' was shown the category "' + cat + '" as well as the word');
       if (/imposter/i.test(visible())) bad.push('player ' + (i + 1) + ' has the word and was told "imposter" too');
       exactly('player ' + (i + 1) + "'s card", pic + ' ' + word + ' Hide');
       if (sym() !== pic) bad.push('player ' + (i + 1) + "'s picture is \"" + sym() + '", not ' + pic + ' for ' + word);
+      if (marked()) bad.push('player ' + (i + 1) + ', who has the word, has the imposter\'s "?" on their picture');
     }
+    hidden('player ' + (i + 1) + "'s card");
     if (i === 1) {
       /* LEAVING THE COLUMN HIDES A WORD LEFT UP, and keeps whose turn it was. */
       const wd = t.allWidgets().find(x => x.id === 'wordgames');
@@ -2938,8 +2958,12 @@ check('the imposter game tells everybody the word but one, and hides it between 
   /* THE PLAY SCREEN: the hint and its picture for everybody now, who starts, and still not the word. */
   if (has(visible(), word) || (pic && visible().indexOf(pic) !== -1)) bad.push('the word or its picture is on the screen once everybody has looked');
   exactly('the play screen', catPic + ' Player ' + (S.first + 1) + ' starts ' + cat + ' Reveal');
+  if (marked()) bad.push('the play screen has the imposter\'s "?" on the category\'s picture — the whole table sees it');
+  hidden('the play screen');
   press('imp-reveal');
   exactly('the reveal', 'Imposter Player ' + (S.imp + 1) + ' ' + pic + ' ' + word + ' Deal Players');
+  hidden('the reveal');
+  if (!card().querySelector('.imp-sym')) bad.push('the reveal draws no picture to hold aria-hidden');
   press('imp-players');
   exactly('the setup screen after Players', 'Players − ' + N + ' + Deal');
   return bad;
@@ -3078,6 +3102,14 @@ check('imposter read aloud says only the word, or "Imposter", and only to the on
   const listen = () => card().querySelector('[data-do="imp-listen"]');
   /* `imp-count` reads `data-d`, so the presses that move it carry one. */
   const step = dd => { const b = d.createElement('button'); b.setAttribute('data-d', String(dd)); t.ACTIONS['imp-count'](b); };
+  /* EVERY SCREEN'S WHOLE TEXT WITH READ ALOUD ON, held to the screen journey's exact words. That
+     journey runs with no voice, so Listen and the switch are never drawn there — and a sentence put
+     beside Listen ("Hold the phone to your ear"), under the switch, or on the play screen with Read
+     aloud on passed all four journeys (the review of 11 October). Listen and the switch carry no
+     words, so the words wanted are the same ones. */
+  const game = () => card().closest('.wg-game') || card().parentElement;
+  const shown = () => String(game().textContent || '').replace(/\s+/g, ' ').trim();
+  const exactly = (where, want) => { if (shown() !== want) bad.push(where + ', with Read aloud on, reads "' + shown() + '", wanted exactly "' + want + '"'); };
   for (let i = 0; i < 12; i++) step(-1);
   step(1);
   const N = 4;
@@ -3107,6 +3139,11 @@ check('imposter read aloud says only the word, or "Imposter", and only to the on
   if (kept !== '1') bad.push('Read aloud is not remembered on the device (imp-aloud is ' + JSON.stringify(kept) + ')');
   readAloudSays_(sw(), true, 'the setup screen once pressed').forEach(x => bad.push(x));
   quiet('turning Read aloud on');
+  /* THE PLAYER COUNT, PRESSED WITH THE SWITCH ON — it was only ever pressed before, so "4 players"
+     said on every press passed (the review of 11 October). Marked, so `quiet` asks about each one. */
+  mark('imp-count -1'); step(-1); quiet('one player fewer');
+  mark('imp-count +1'); step(1); quiet('one player more');
+  exactly('the setup screen', 'Players − ' + N + ' + Deal');
   t.repaint(true);
   await wait(50);
   if (!sw() || sw().getAttribute('aria-pressed') !== 'true') bad.push('a repaint turned Read aloud off');
@@ -3117,9 +3154,11 @@ check('imposter read aloud says only the word, or "Imposter", and only to the on
   const round = (cat, word) => {
     const S = t.IMP();
     if (!S || S.word !== word || S.cat !== cat) { bad.push('the round did not deal the card put on the pile: ' + JSON.stringify(S && [S.cat, S.word])); return null; }
+    const pic = (t.impCards().find(x => x[0] === cat && x[1] === word) || [])[2], catPic = t.impCatSym(cat);
     quiet('dealing, with the hand-over to player 1 up,');
     for (let i = 0; i < N; i++) {
       const me = i === S.imp;
+      exactly('the hand-over to player ' + (i + 1), 'Player ' + (i + 1) + ' Show');
       if (i === 2) {
         /* A REPAINT IS NOBODY'S PRESS, so it says nothing — and keeps the round. */
         mark('repaint');
@@ -3129,6 +3168,7 @@ check('imposter read aloud says only the word, or "Imposter", and only to the on
       }
       press('imp-show', { i: i, me: me });
       quiet('player ' + (i + 1) + "'s card coming up, by itself,");
+      exactly(me ? "the imposter's card" : 'player ' + (i + 1) + "'s card", me ? catPic + ' Imposter ' + cat + ' Hide' : pic + ' ' + word + ' Hide');
       if (!listen()) bad.push('with Read aloud on, player ' + (i + 1) + "'s card has no Listen");
       press('imp-listen', { i: i, me: me });
       const heard = says(since());
@@ -3166,8 +3206,10 @@ check('imposter read aloud says only the word, or "Imposter", and only to the on
       if (!after.length || !after[0].cancel) bad.push('Hide for player ' + (i + 1) + ' did not stop the voice before anything else (next: ' + JSON.stringify(after[0]) + ')');
       quiet(i < N - 1 ? 'the hand-over to player ' + (i + 2) : 'the play screen');
     }
+    exactly('the play screen', catPic + ' Player ' + (S.first + 1) + ' starts ' + cat + ' Reveal');
     press('imp-reveal');
     quiet('the reveal');
+    exactly('the reveal', 'Imposter Player ' + (S.imp + 1) + ' ' + pic + ' ' + word + ' Deal Players');
     return S;
   };
   t.impStack('At the seaside', 'octopus');
@@ -3182,6 +3224,7 @@ check('imposter read aloud says only the word, or "Imposter", and only to the on
   const back = since();
   if (!back.length || !back[0].cancel) bad.push('Players did not stop the voice (next: ' + JSON.stringify(back[0]) + ')');
   quiet('Players');
+  exactly('the setup screen after Players', 'Players − ' + N + ' + Deal');
 
   /* THE WHOLE GAME, SAID: two rounds of four, each Listen pressed twice — sixteen lines, every one the
      round's word or "Imposter", two of them "Imposter" in each round and the rest the word. */
@@ -3252,7 +3295,7 @@ check('imposter read aloud says only the word, or "Imposter", and only to the on
    fired IN THE SAME TICK as the first, which is sooner than any double tap and cannot be made late
    by a loaded machine; and each deliberate press waits past the gap first, which a loaded machine
    can only make longer. Neither half depends on how fast this runs. */
-check('imposter takes a double tap on Show, Hide or Reveal as one press', async () => {
+check('imposter takes a double tap on Show, Hide, Reveal or the reveal\'s buttons as one press', async () => {
   const { w } = boot({ before: w => { try { w.localStorage.setItem('wg-game', 'imp'); } catch (e) {} } });
   await wait(300);
   const t = w.__t;
@@ -3293,10 +3336,20 @@ check('imposter takes a double tap on Show, Hide or Reveal as one press', async 
   await wait(PAST);
   tap('imp-reveal');
   if (t.IMP().phase !== 'reveal') bad.push('Reveal pressed on its own did not reveal: "' + now() + '"');
+  /* AND THE SECOND TAP OF A DOUBLE TAP ON REVEAL LANDS ON THE REVEAL'S OWN BUTTONS — Players, at 390
+     and 320, by the browser's touch adjustment (the review of 11 October, note 343): the table went
+     back to the setup screen without ever seeing who it was. Either of them, straight after Reveal,
+     is that second tap. */
+  tap('imp-players');
+  if (t.IMP().phase !== 'reveal') bad.push('a second tap straight after Reveal pressed Players, and the reveal was gone before anybody saw it ("' + now() + '")');
+  tap('imp-again');
+  if (t.IMP().phase !== 'reveal') bad.push('a second tap straight after Reveal pressed the reveal\'s Deal, and the reveal was gone before anybody saw it ("' + now() + '")');
 
   /* THE REVEAL'S DEAL AND THE SETUP'S DEAL OVERLAP SHOW'S BOX TOO, so a second tap on either is a card
      shown to whoever dealt. (The reveal's was "Play again" until the 11 Oct trim, note 343.) */
+  await wait(PAST);
   tap('imp-again');
+  if (t.IMP().phase !== 'deal') bad.push('the reveal\'s Deal pressed on its own did not deal: "' + now() + '"');
   tap('imp-show');
   want('deal 1', "a second tap straight after the reveal's Deal pressed Show");
 
@@ -3309,6 +3362,16 @@ check('imposter takes a double tap on Show, Hide or Reveal as one press', async 
   press('imp-start');
   tap('imp-show');
   want('deal 1 shown', 'a card drawn without a press refused the first tap on it — the guard timed the draw, not the last press');
+
+  /* AND PLAYERS, TAPPED ON ITS OWN ON THE REVEAL, STILL GOES BACK TO THE SETUP SCREEN — the guard that
+     swallows a second tap must not swallow the first. Walked to the reveal without a finger, then
+     tapped past the gap. */
+  press('imp-hide');
+  while (t.IMP().phase === 'deal') { press('imp-show'); press('imp-hide'); }
+  press('imp-reveal');
+  await wait(PAST);
+  tap('imp-players');
+  if (t.IMP().phase !== 'idle') bad.push('Players tapped on its own on the reveal did not go back to the setup screen: "' + now() + '"');
   return bad;
 });
 /* ---------- SENTENCE SCRAMBLE: TAPPED IN ORDER IS RIGHT, AND EVERY STATED ORDER IS RIGHT ------------

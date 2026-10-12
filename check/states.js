@@ -6103,11 +6103,16 @@ const STATES = {
         IMP.imp = 1; IMP.cat = c; IMP.word = w; IMP.sym = p;
         ACTIONS['imp-show'](document.createElement('button'));
       },
+      /* AND THE PICTURE HAS ITS HAIRLINE AND NO "?": the outline is what keeps ♠ and 🕸️ from vanishing
+         into a nearly black card (style.css, `.imp-sym`), and the "?" is the imposter's alone. Asked of
+         the real stylesheet, because jsdom draws neither. */
       expect: () => !!document.querySelector('#s-games #imp-card [data-do="imp-listen"]')
                  && !!document.querySelector('#s-games #imp-card [data-do="imp-hide"] .tile-i')
                  && (document.querySelector('#s-games #imp-card .imp-big') || {}).textContent === IMP.word
-                 && !!IMP.sym && (document.querySelector('#s-games #imp-card .imp-sym') || {}).textContent === IMP.sym,
-      wants: 'the longest word in the deck under its picture, Hide with its shut eye, and the Listen speaker',
+                 && !!IMP.sym && (document.querySelector('#s-games #imp-card .imp-sym') || {}).textContent === IMP.sym
+                 && /drop-shadow/.test(getComputedStyle(document.querySelector('#s-games #imp-card .imp-sym')).filter)
+                 && getComputedStyle(document.querySelector('#s-games #imp-card .imp-sym'), '::after').content === 'none',
+      wants: 'the longest word in the deck under its outlined picture, no "?", Hide with its shut eye, and the Listen speaker',
       leave: () => { impAloud_(false); ACTIONS['imp-players'](document.createElement('button')); } },
     { name: 'imposter the imposters card',
       enter: () => {
@@ -6120,11 +6125,15 @@ const STATES = {
         IMP.catSym = IMP_DECK[IMP.cat].sym;
         ACTIONS['imp-show'](document.createElement('button'));
       },
+      /* AND THE "?" DRAWN ON IT — the mark a child who cannot read "Imposter" knows this card by
+         (impFrame_, note 343). The class is the journey's to see; whether the stylesheet draws
+         anything for it only a real browser can say. */
       expect: () => (document.querySelector('#s-games #imp-card .imp-big') || {}).textContent === 'Imposter'
                  && (document.querySelector('#s-games #imp-card .imp-lab') || {}).textContent === IMP.cat
                  && !!IMP.catSym && (document.querySelector('#s-games #imp-card .imp-sym') || {}).textContent === IMP.catSym
-                 && !!document.querySelector('#s-games #imp-card [data-do="imp-listen"]'),
-      wants: 'the category\'s picture, Imposter, the longest category as the hint, Hide and Listen',
+                 && !!document.querySelector('#s-games #imp-card [data-do="imp-listen"]')
+                 && getComputedStyle(document.querySelector('#s-games #imp-card .imp-sym'), '::after').content === '"?"',
+      wants: 'the category\'s picture with the imposter\'s "?" on it, Imposter, the longest category as the hint, Hide and Listen',
       leave: () => { impAloud_(false); ACTIONS['imp-players'](document.createElement('button')); } },
     { name: 'imposter play',
       enter: () => {
