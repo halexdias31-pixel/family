@@ -9543,8 +9543,38 @@ function padJudge_(force) {
     const kept = moving.filter(p => p.d >= PAD_WITH * far.d);
     if (kept.length > 1) { padTwo_(kept.map(p => p.c)); return; }
   }
+  /* A LATER CONTACT IS HANDED THE STROKE ONLY ONCE IT HAS GONE `PAD_KEEPUP_PX` (fourth review, 12 Oct). 10px alone was
+     enough, and a palm that lands beside a finger held still to aim -- at any age with the pen, within `PAD_TOGETHER_MS`
+     with the ruler or the compass -- settles 6-12px as it flattens (round 1), and 16 is not rare: it was handed the
+     stroke, its settle was shown and stored, and the finger, a rest from then on, drew a 120px line that was lost.
+     Measured with real touch on the board and on June 2024 1F Q7: 16 of 16 at a 12 or 16px settle, where 4955c7c, the
+     first finger always the stroke, kept the line every time. A finger drawing after a palm goes 30px in 100ms; a settle
+     stops short of it. Until then the hold goes on, every sample kept -- and if the still one moves, the half rule above
+     tells a settle from a second finger and the still one's line comes back.
+     AND A LIFT HANDS NOTHING OVER. The review's rule let a lift decide from 10px, and the same palm then still marked
+     whenever something lifted first: a palm that settled 12px and lifted (a hand brushing the picture) was handed the
+     stroke at its lift -- its settle stored, and the aiming finger's line after it lost; a finger that tapped still
+     beside a settling palm handed it the stroke at the finger's lift. So the 30px holds at a lift too, and for the one
+     left holding the stroke when the first lifts (`padSwap_`, held): it is that contact's only once it has gone 30px.
+     The simpler rule, chosen over keeping the exception for a lift (338, round 4). The cost, section 4: a palm-first
+     finger's line shows from 30px, not 10, and the first strokes after a palm lands, if shorter than 30px, are lost for
+     as long as it stays down and still.
+     AND THE FIRST, LEFT ALONE, THE SAME. With a lift handing nothing over, a palm-first tick left the PALM holding the
+     stroke with nobody beside it, and at its 10px it was handed it back: the hand moving on, the palm sliding 15px, drew
+     its slide -- and every finger after it was a rest beside an established stroke, its line lost until the palm lifted
+     (jsdom, this round; after a finger's TAP 2a89387 did the same). Once the other has lifted there is nothing left to
+     compare it with, and a finger after a brush and a palm after a tick move alike: whichever is left alone in a held
+     stroke is handed it only at 30px, as a later contact is. The cost, section 4: a short stroke by the aiming finger
+     after a palm has brushed the picture is lost too. */
+  if (padOwed_(far.c) && far.d < PAD_KEEPUP_PX) { if (!force) PAD_DUE = { at: tc }; return; }
   padAlone_(far.c);
 }
+/* THE ONE TO BE HANDED THE STROKE, NOT YET HAVING SHOWN IT IS DRAWING -- it waits for `PAD_KEEPUP_PX`: the held candidate the
+   stroke may go to (`padTakes_`); the one it went to when the first lifted, still held (`padSwap_` -- `late`); and the
+   owner left alone when its candidate lifted. NOT an owner with its candidate still down: moving alone beside a contact
+   that stays still is the evidence (round 1's P7 -- its line back within a frame at 10px). Kind `b` only: a later
+   contact that has gone 30px is never held as `b` again (that needs a still owner). */
+const padOwed_ = c => !!PAD_HUSH && PAD_HUSH.kind === 'b' && (c === PAD_HUSH.cand ? padTakes_(c) : c === PAD_GO.c && (c.late || !PAD_HUSH.cand));
 /* ONE OF THEM MOVED, ALONE. The owner: it was the finger -- anything watched is a rest and a held stroke comes back. A
    watched contact: a rest; it was down first, so it can never take the stroke. The candidate: kind a (the owner had
    already moved when it came) is two fingers, as 338's T4 says; otherwise it takes the stroke if it may (`padTakes_`)
@@ -9575,34 +9605,51 @@ function padAlone_(x) {
      is decided by what they do next (`padRace_`), and until then the still one can mark nothing and shows nothing.
      `PAD_STILL_PX` stays the least it can mark once it is the one: kept for a refusal off the picture as well. */
   if (PAD_GO.tool !== 'pen') PAD_GO.min = Math.max(PAD_GO.min || 0, PAD_STILL_PX);
-  if (pinned) (PAD_GO.refused || (PAD_GO.refused = [])).push(cand);
+  if (pinned) {
+    (PAD_GO.refused || (PAD_GO.refused = [])).push(cand);
+    /* THE RACE STARTS WHERE THE STILL ONE WAS WHEN THE FIRST REFUSED ONE LANDED (fourth review), by the samples' clock: what
+       it moved before that is not a race with anything. Counted from its own down, a palm that settled 9px as it was put
+       down -- still a dot, so it never marked -- had only 2-4px more to drift while a slow-starting finger was at 10-12px,
+       and its own ruler line or ring was shown and stored (2a89387, real touch: 3-4 of 8 such ruler runs and 1-3 of 6 compass
+       runs here, more in the review's). */
+    if (PAD_GO.raceAt === undefined) { PAD_GO.raceAt = cand.t0; PAD_GO.raceFrom = padPos_(PAD_GO.c, cand.t0).slice(1); }
+  }
   padResume_();
   padRace_(PAD_GO, false);
 }
-/* WHICH OF THE TWO IS DRAWING, after the pin rule refused the later one: the first to show it. THE REFUSED ONE GOING
-   `PAD_KEEPUP_PX` -- past any roll or settle (round 1: 6-12px in 50-80ms, and then still) -- is the finger drawing: the
-   still one is a pin or a palm, and NEVER marks in this stroke, however far it then drifts, slides or creeps (a palm
-   slid along the card after the finger lifts is a hand moving, not a line). THE STILL ONE GOING FURTHER THAN THE REFUSED
-   ONE HAS, and at least `PAD_STILL_PX`, is a finger that was aiming when a palm landed and settled: its line counts from
-   then on, and is shown, even if that palm then slides along with the hand -- which is why it is a race and not a
-   threshold on the refused one alone (the review's prototype, "30px and the still one never marks", lost that line).
-   Kept on the stroke, not the contact: a refused one that lifts still counts by how far it went.
-   FIRST BY THE SAMPLES' OWN CLOCK, and decided at a frame, for the reason `padJudge_` is: under load one event carries
-   a finger's last 100ms, and the other's event for the same moments can be dispatched before or after it. So each side's
-   moment is the sample it crossed at (`tk`, kept by `padTrack_`; the still one's from its history), and a side is beaten
-   only once the other has reported that far in time -- or has been silent `PAD_LAG_MS`, or lifted: it did not move.
+/* WHICH OF THE TWO IS DRAWING, after the pin rule refused the later one: THE FIRST TO GO `PAD_KEEPUP_PX` -- past any roll
+   or settle (round 1: 6-12px in 50-80ms, and then still). The refused one first: it is the finger drawing, the still one
+   is a pin or a palm, and it NEVER marks in this stroke, however far it then drifts, slides or creeps (a palm slid along
+   the card after the finger lifts is a hand moving, not a line). The still one first: it is a finger that was aiming
+   when a palm landed and settled, and its line counts from then on, and is shown -- even if that palm then slides along
+   with the hand, which is why it is a race and not a threshold on the refused one alone (the review's prototype, "30px
+   and the still one never marks", lost that line). Neither by the owner's lift: nothing.
+   THE STILL ONE WON AT 10px, AND "FURTHER THAN THE OTHER", UNTIL THE FOURTH REVIEW -- and every repair to that left a
+   stray mark. Counted from its own down, a palm that settled 9px as it was put down (a dot, so it never marked) needed
+   2-4px more to beat a finger that started slowly. Counted from where it was when the other landed (`raceAt`, `raceFrom`,
+   kept by `padAlone_`), and "further" asked at each sample's own time rather than at the frame that asks (a frame 100-230ms
+   late found a settled palm already past the finger's sample that had beaten it), a ruler's PIN that rolled 12px in
+   200ms beat a finger starting slowly beside it every time, real touch, at 390 and 820: the pin's line stored -- where
+   2a89387 had only missed it by luck of when its frames ran. 10px is inside what a pin rolls and a palm settles; 30px is
+   not. So both sides need 30, the rule `padJudge_` and a hand-over already use, and nothing is compared but two moments.
+   The cost, 338 section 4: an aiming finger's line shorter than 30px, beside a palm that landed on the picture over
+   `PAD_TOGETHER_MS` later and settled 10px, is lost.
+   BY THE SAMPLES' OWN CLOCK, and decided at a frame, for the reason `padJudge_` is: under load one event carries a
+   finger's last 100ms, and the other's event for the same moments can be dispatched before or after it. So each side's
+   moment is the sample it crossed at (`tk`, kept by `padTrack_`; the still one's from its history, from `raceAt`), and a
+   side is beaten only once the other has reported that far in time -- or has been silent `PAD_LAG_MS`, or lifted: it did
+   not move. Kept on the stroke, not the contact: a refused one that lifts still counts by how far it went.
    `force` is the owner's lift or the page going: decided from what has come. */
 function padRace_(g, force) {
   if (!g || !g.refused || g.mine || g.never || g !== PAD_GO) return;
   const o = g.c;
-  let far = 0, tk = Infinity, latest = o.ts;
-  g.refused.forEach(c => { if (c.far > far) far = c.far; if (c.tk < tk) tk = c.tk; if (c.ts > latest) latest = c.ts; });
+  let tk = Infinity, latest = o.ts;
+  g.refused.forEach(c => { if (c.tk < tk) tk = c.tk; if (c.ts > latest) latest = c.ts; });
   let tl = Infinity;
-  if (o.far >= PAD_STILL_PX && o.far > far) {
-    for (const h of o.hist) {
-      const d = Math.hypot(h[1] - o.p0[0], h[2] - o.p0[1]);
-      if (d >= PAD_STILL_PX && d > far) { tl = h[0]; break; }
-    }
+  for (const h of o.hist) {
+    if (h[0] < g.raceAt) continue;
+    if (h[0] >= tk) break;
+    if (Math.hypot(h[1] - g.raceFrom[0], h[2] - g.raceFrom[1]) >= PAD_KEEPUP_PX) { tl = h[0]; break; }
   }
   const told = (c, t) => force || c.ts >= t || latest - c.ts > PAD_LAG_MS || PAD_TOUCH.get(c.id) !== c;
   if (tl < tk) {
@@ -9629,8 +9676,9 @@ const padShown_ = g => !g.refused || !!g.mine;
    one after, while that palm stays down, since each new finger is held against it and refused the same way. A palm down
    within `PAD_TOGETHER_MS` of the finger still hands it over; the pen always does. Only a contact's SIZE tells a palm
    from a pin (increment 2). "Nothing is left at the palm" was written here in the second review and was not yet true: a
-   palm that drifted 10px or more marked. It is true once the finger has drawn `PAD_KEEPUP_PX` (`padRace_`); 338 says
-   what is left below that. */
+   palm that drifted 10px or more marked; the third review made it true once the finger had drawn `PAD_KEEPUP_PX`, and
+   the fourth found a palm or pin that beat a slow-starting finger to 10px still marked. Since then the still one marks
+   only by going 30px before the finger does (`padRace_`): a palm or a pin drifting less than that never marks. */
 function padTakes_(c) {
   if (!c || !c.late || !c.onInk || c.k !== PAD_ON || !c.pts) return false;
   return !padPinned_(c);
@@ -9746,9 +9794,12 @@ function padLand_(e, ink, k) {
 /* ---------- A CONTACT GOES -----------------------------------------------------------------------------
    `how` is up, cancel, or lost (a lift that never came). THE OWNER LIFTING ends the stroke as it always
    did (T6), unless it was held -- then whatever it drew goes, and the other, if it came later and is on
-   the ink, is held alone: it becomes the stroke if it goes on to move 10px, and nothing if it lifts still.
-   So a two-finger tap stores nothing whichever finger lifts first, and a finger that slides on after the
-   other lifts is a deliberate stroke.
+   the ink, is held alone: it becomes the stroke if it goes on to move 30px from where it was held (`padOwed_`;
+   10px until the fourth review, when a palm that settled 12px beside a finger's tap was handed the stroke this
+   way), and nothing if it lifts short of that. THE OTHER LIFTING leaves the owner held alone, on the same terms
+   (fourth review: a palm left holding a stroke after a finger's short tick drew its slide at 10px). So a two-finger
+   tap stores nothing whichever finger lifts first, and a finger that slides on 30px after the other lifts is a
+   deliberate stroke.
    A CANCEL (T7) WITHDRAWS A TENTATIVE STROKE AND KEEPS AN ESTABLISHED ONE. The cancels that are not ink
    arrive early -- the platform's own palm rejection, a system edge gesture -- and one after 200ms and
    10px of a real line is an interruption; dropping it would lose a mark the child saw. It was always

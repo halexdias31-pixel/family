@@ -33,15 +33,27 @@
               board: the stylus's line and the finger's line -- "primary" is per kind of pointer (after review)
      pin      on November 2019 1H Q4, a pin held on the compass's centre (and a ruler's end) and a second finger
               swinging round it: nothing stored, as before 338 -- a pin is not a palm (after review) -- and nothing
-              either when the pin rolls 6px as the other swings (second review), or 12, 16 or 24px (third review); and
-              from the second finger's landing nothing on the picture in any frame: a mark that cannot be kept is not shown
+              either when the pin rolls 6px as the other swings (second review), or 12, 16 or 24px (third review), or
+              settles 8-9px as it is put down and rolls 3-5 more, or rolls 12px in 200ms, beside a finger that starts
+              slowly (fourth review); and from the second finger's landing nothing on the picture in any frame: a mark
+              that cannot be kept is not shown
      palmtool on the same card, a palm (radius 25) resting on the picture, then a finger uses the pen, the ruler or
               the compass while the palm drifts 6px: never a mark at the palm. The palm down 120ms before: the
               finger's line, every tool; 400ms before: the pen's line, and the ruler's and compass's are the cost
               338 section 4 chose -- by movement a resting palm is a pin (second review). And (third review) the palm
               drifting 12, 16 or 24px over the line, or sliding 12px once the finger has lifted: never a mark, and
               nothing shown from the finger's landing; a ruler finger aiming while a palm lands, settles 12px and then
-              slides 40px along with the line: the finger's line, shown as it is drawn
+              slides 40px along with the line: the finger's line, shown as it is drawn. And (fourth review) a palm
+              landing 120ms after a ruler or compass finger and settling 12px: the finger's line; the same palm lifting
+              before the finger moves: the finger's line; the finger lifting still beside it: nothing; a palm 400ms
+              first that settled 9px and drifts 2-4 more under a slow-starting finger, or 22 more while the refused
+              finger pauses: never a mark, nothing shown; a palm first, a finger's 20px tick, then the palm sliding 15px
+              -- with the pen and a 120px line after it, the line; else nothing, and nothing shown
+     palmafter on the board and on Q7, at 390 and 820, the pen: a finger held still to aim, a palm landing after it (300ms
+              or 1.5s) and settling 9, 12 or 16px, then the finger draws: never a mark at the palm, and the finger's
+              line (at 16, the line or nothing -- section 4's cost); the palm settling and lifting first: the finger's
+              line; the finger lifting still beside it: nothing, and nothing shown; and a finger landing after that tap
+              while the palm drifts 12px more: the finger's line (fourth review)
      hold     a finger held 1.1s on the armed card: nothing selected, and the callout rule in style.css
      inv      the geometry the rules rest on: no zoomed ancestor, the ink's box is the picture's, 16px from the edges
      samples  a 1,200-sample zigzag at 8ms, 4x CPU: at least 95% of the distinct samples kept (about a third
@@ -231,6 +243,9 @@ async function traceEnd(env) {
    point down), a point gone goes up (`touchEnd` lists the ones that go -- CDP releases the points it lists), the rest
    move. As `stream`, it does not wait for each to be delivered. */
 const track = (id, r, from, to, dt, at) => { const o = []; for (let u = 0; from + u <= to + 1e-9; u += dt) o.push({ t: Math.round(from + u), p: [...at(u), id, r] }); return o; };
+/* A HAND'S STROKE STARTS SLOWLY AND ENDS SLOWLY: the minimum-jerk profile, 0 to 1 over `u` 0 to 1 (fourth review -- a finger
+   that starts slowly is what let a settled palm's last few px beat it). */
+const mj = u => { u = Math.max(0, Math.min(1, u)); return 10 * u ** 3 - 15 * u ** 4 + 6 * u ** 5; };
 function plan(...tracks) {
   tracks = tracks.filter(tr => tr.length);
   const times = [...new Set([].concat(...tracks.map(tr => tr.map(f => f.t).concat([tr[tr.length - 1].t + 8]))))].sort((a, b) => a - b);
@@ -1001,6 +1016,86 @@ const unmoved = (sec, where, r, b) => {
     await env.ctx.close();
   }
 
+  /* ==================== A PALM LANDING AFTER AN AIMING FINGER: the board and Q7, at a phone and an iPad ====================
+     THE FOURTH REVIEW'S MUST-FIX (12 Oct). The pen hands a palm-first stroke to the finger that lands after it, at any age --
+     and so, until this, to a PALM that landed after a finger held still to aim, once the palm's centre had moved 10px:
+     its settle was shown in 28-48 frames and stored (`[[272,289,257,289]]` on the board, a 91-point squiggle on Q7), and
+     the finger, a rest from then on, drew a line that was lost -- 16 of 16 at a 12 or 16px settle, where 4955c7c kept the
+     line every time. A later contact is handed the stroke at 30px now, a lift hands nothing over, and the half rule tells
+     the palm's settle from a second finger once the finger moves.
+       aim    the finger on (0.2, 0.35) of the ink, trembling; the palm (radius 25) lands on (0.8, 0.85) `gap` ms later and
+              settles S px in 80ms, then trembles; the finger draws half the ink's width over 400ms from `wait` ms after
+              the palm landed: the finger's line at S 9 and 12, at 300ms and at 1.5s, and with the palm on the card off
+              the ink; at 16 never a mark at the palm, and the line or nothing -- a settle over 15px moving with the
+              finger is section 4's cost, printed and not failed
+       brush  the same, the palm settling 12px and LIFTING before the finger moves: the finger's line
+       tap    the finger LIFTS still while the settled palm stays: nothing at all, and nothing shown
+       retap  the same tap -- the palm is left holding the stroke -- then a finger lands at +400, and the palm drifts 12px
+              more before it moves 200ms later: the new finger's line, never a mark at the palm (an owner that came later
+              is handed the stroke back only at 30px, even with a new finger beside it) */
+  if (want('palmafter')) for (const [W, H] of [[390, 844], [820, 1180]]) for (const surf of ['board', 'q7']) {
+    const at = `${W}x${H} ${surf}`;
+    const env = await boot(browser, W, H, port);
+    let get, sel, k, b;
+    if (surf === 'board') {
+      get = board; sel = BOARD;
+      b = await board(env);
+      if (b) { k = b.k; await reset(env, k); b = await arm(env, b, board); }
+    } else {
+      get = cardBox; sel = CARD;
+      await env.page.waitForFunction(r => typeof stuffItemsAll_ === 'function' && stuffItemsAll_().some(x => x.row && x.row.row_id === r), Q7, { timeout: 90000 }).catch(() => {});
+      k = await card(env, Q7);
+      b = k ? await cardBox(env) : null;
+      if (b) b = await arm(env, b, cardBox);
+      if (b) { await reset(env, k); b = (await cardBox(env)) || b; }
+    }
+    if (!b) { fail('REACH', at + ' palmafter', 'the pad is not on the screen armed — a palm after an aiming finger was NOT checked'); await env.ctx.close(); continue; }
+    reached++;
+    await env.cdp.send('Emulation.setCPUThrottlingRate', { rate: RATE });
+    const near = (st, q, d) => { for (let i = 0; i + 1 < st.length; i += 2) if (Math.hypot(st[i] - q[0], st[i + 1] - q[1]) < d) return true; return false; };
+    const cases = [];
+    for (const [gap, S, wait] of [[300, 9, 400], [300, 12, 400], [300, 12, 150], [300, 16, 400], [1500, 12, 400]]) cases.push({ how: 'aim', gap, S, wait });
+    cases.push({ how: 'aim', gap: 300, S: 12, wait: 400, card: true }, { how: 'brush', gap: 300, S: 12, wait: 400 }, { how: 'tap', gap: 300, S: 12, wait: 400 }, { how: 'retap', gap: 300, S: 12, wait: 400 });
+    for (const { how, gap, S, wait, card: off } of cases) {
+      const ink = b.ink;
+      const pm = off ? [ink.l + ink.w * 0.7, Math.min(ink.b + 40, H - 30)] : [ink.l + ink.w * 0.8, ink.t + ink.h * 0.85];
+      const f0 = [ink.l + ink.w * 0.2, ink.t + ink.h * 0.35];
+      const go = gap + wait, end = go + 400;
+      const q = t => (t % 20 ? 0.3 : -0.3);
+      const fin = how === 'tap' || how === 'retap' ? track(2, 8, 0, gap + 250, 10, u => [f0[0] + q(u), f0[1]])
+        : track(2, 8, 0, end, 10, u => u < go ? [f0[0] + q(u), f0[1]] : [f0[0] + 0.5 * ink.w * (u - go) / 400, f0[1] + 20 * (u - go) / 400]);
+      const fin3 = how === 'retap' ? track(3, 8, gap + 400, gap + 1000, 10, u => u < 200 ? [f0[0] + q(u), f0[1]] : [f0[0] + 0.5 * ink.w * (u - 200) / 400, f0[1] + 20 * (u - 200) / 400]) : [];
+      const palm = [];
+      for (let t = gap; t <= (how === 'brush' ? gap + 250 : how === 'retap' ? gap + 1100 : end + 100); t += 10) palm.push({ t, p: [pm[0] - S * Math.min(1, (t - gap) / 80) - (how === 'retap' ? 12 * Math.max(0, Math.min(1, (t - gap - 410) / 100)) : 0) + q(t), pm[1], 1, 25] });
+      await shownWatch(env);
+      const r = await gesture(env, k, sel, () => play(env, plan(palm, fin, fin3)));
+      const sh = await shownRead(env);
+      const toU = p => [(p[0] - ink.l) / ink.w * 340, (p[1] - ink.t) / ink.h * 340];
+      const pu = toU(pm), fu = toU(f0);
+      const where = `${at} ${how} palm ${gap}ms after${off ? ', on the card' : ''}, settling ${S}px${how === 'aim' ? `, the finger drawing ${wait}ms after it landed` : how === 'retap' ? ', then a finger landing and the palm drifting 12px more' : ''}`;
+      if (r.stored.some(st => near(st, pu, 25))) fail('palmafter', where, `a mark at the PALM: ${JSON.stringify(r.stored).slice(0, 100)} — the finger was the one drawing`);
+      const line = st => st.length >= 4 && Math.hypot(st[0] - fu[0], st[1] - fu[1]) < 6;
+      if (how === 'tap') {
+        if (r.stored.length) fail('palmafter', where, `stored ${JSON.stringify(r.stored).slice(0, 100)} — wanted nothing (the tap's dot is section 4's cost, and the palm never marks)`);
+        if (sh.frames < 3) fail('palmafter', where, `only ${sh.frames} frame(s) were watched after the palm landed — what was shown was NOT checked`);
+        else if (sh.shown) fail('palmafter', where, `${sh.what} on the picture in ${sh.shown} of ${sh.frames} frames after the palm landed — for a mark that cannot be kept`);
+      } else {
+        const cost = how === 'aim' && S > 15 && !r.stored.length;
+        if (!cost && (r.stored.length !== 1 || !line(r.stored[0]))) fail('palmafter', where, `stored ${JSON.stringify(r.stored).slice(0, 100)} — wanted the finger's line`);
+        if (!cost && !sh.shown) fail('palmafter', where, `the finger's line was not shown in any of ${sh.frames} frames as it was drawn`);
+        if (cost) say(`palmafter ${where} (section 4's cost: a settle over 15px read as moving with the finger) nothing stored`);
+      }
+      if (r.live || r.busy || r.touch) fail('palmafter', where, 'the pen did not let go after both lifted');
+      say(`palmafter ${where} ${JSON.stringify(r.stored).slice(0, 80)} shown ${sh.shown}/${sh.frames}`);
+      if (r.stored.some(st => near(st, pu, 25))) await shot(env.page, `${W}x${H}-${surf}-palmafter-${how}-${gap}-${S}`);
+      await reset(env, k);
+      b = (await get(env)) || b;
+    }
+    await env.cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+    if (env.errs.length) fail('ERRORS', at + ' palmafter', env.errs.slice(0, 3).join(' | '));
+    await env.ctx.close();
+  }
+
   /* ==================== A PIN HELD ON THE CENTRE, AND A PALM ON THE PICTURE: November 2019 1H Q4 ==================== */
   /* AT 390 AND 820 (second review: the pin's roll and the palm's drift stored a mark at both). */
   if (want('pin') || want('palmtool')) for (const [W, H] of [[390, 844], [820, 1180]]) {
@@ -1061,6 +1156,31 @@ const unmoved = (sec, where, r, b) => {
         if (name === 'compass' && !drift) await shot(env.page, `${at}-pin-compass`);
         await reset(env, k);
       }
+      /* AND A PIN THAT SETTLED AS IT WAS PUT DOWN (fourth review): 8 or 9px in its first 80ms -- under 10, still a dot --
+         then rolling 3 or 5 more over 200ms once the second finger lands, which starts slowly (a hand's stroke: minimum
+         jerk). The race counted the pin from its own down, so it was at 12 while the slow finger was at 10-12, and 2a89387
+         stored the pin's ruler line `[[153,170,166,170]]` at 820. Counted from where it was when the other landed, it has
+         moved 3-5px: nothing, and nothing shown. And a pin that rolls 12px in those 200ms: it is at 10 before the slow
+         finger, and with the race still at 10px and "further", asked by the samples' clock, it stored its own ruler line
+         `[[153,170,167,170]]` at 390 and 820 every time (2a89387 missed it only by when its frames ran). The race is to 30px:
+         nothing. */
+      if (want('pin')) for (const name of ['ruler', 'compass']) for (const [pre, more] of [[9, 3], [8, 5], [0, 12]]) {
+        if (!(await choose('pin', name))) continue;
+        const cx = c.ink.l + c.ink.w * 0.45, cy = c.ink.t + c.ink.h * 0.5, R0 = 0.28 * Math.min(c.ink.w, c.ink.h);
+        const pin = [];
+        for (let t = 0; t <= 920; t += 10) pin.push({ t, p: [cx + pre * Math.min(1, t / 80) + more * Math.max(0, Math.min(1, (t - 300) / 200)) + (t % 20 ? 0.3 : -0.3), cy, 1, 8] });
+        const f2 = name === 'compass' ? track(2, 8, 300, 900, 10, u => { const g = 1.5 * Math.PI * mj(u / 600); return [cx + R0 * Math.cos(g), cy + R0 * Math.sin(g)]; })
+          : track(2, 8, 300, 900, 10, u => [cx + R0 + 60 * mj(u / 600), cy]);
+        await shownWatch(env);
+        const r = await gesture(env, k, CARD, () => play(env, plan(pin, f2)));
+        const sh = await shownRead(env);
+        const what = `a pin on the ${name}'s ${name === 'ruler' ? 'end' : 'centre'} that settled ${pre}px as it was put down, then rolled ${more}px while a slow second finger moved`;
+        if (r.stored.length) fail('pin', at + ' ' + name, `${what} stored ${JSON.stringify(r.stored).slice(0, 100)} — wanted nothing`);
+        if (r.live || r.busy || r.touch) fail('pin', at + ' ' + name, 'the pen did not let go after both fingers lifted');
+        unseen('pin', `${at} ${name} settled ${pre} rolled ${more}`, sh);
+        say(`pin ${at} ${name} settled ${pre} rolled ${more} ${JSON.stringify(r.stored).slice(0, 80)} shown ${sh.shown}/${sh.frames}`);
+        await reset(env, k);
+      }
       /* A PALM (radius 25) RESTING ON THE PICTURE AT (0.85, 0.85), trembling under a pixel for `gap` ms; then a fingertip lands
          at (0.25, 0.4) and draws a 120px ruler line or a pen line, or opens the compass 60px and swings it. `how` is what the
          palm does meanwhile:
@@ -1070,7 +1190,24 @@ const unmoved = (sec, where, r, b) => {
                    ring at 12, 16 and 24px)
            after   still while the finger draws, then slides 12px over 600ms once it has lifted (third review: the same)
            aim     the FINGER first, aiming 300ms; the palm lands, settles 12px in 80ms, and slides 40px along with the line:
-                   the finger is the one drawing, and its line is kept and shown (the review's prototype lost it)
+                   the finger is the one drawing, and its line is kept and shown (the review's prototype lost it). And
+                   (fourth review) the palm landing 120ms after a ruler or compass finger and settling 12px, then still:
+                   within `PAD_TOGETHER_MS` the tools hand a later contact the stroke, and 2a89387 handed it to the palm at
+                   its 10px -- its ruler line `[[289,289,274,289]]` or a ring round it; the finger's line now
+           brush   the same palm, 120ms after, settling 12px and LIFTING before the finger moves: the finger's line (a lift
+                   handed the palm the stroke, fourth review)
+           tap     the same palm, and the FINGER lifts still while it stays: nothing at all, and nothing shown
+           headstart  the palm 400ms first settles 9px in 80ms (still a dot), then drifts 2-4px more over the first 200ms of a
+                   finger that starts slowly (fourth review: the race counted the palm from its own down, and 2a89387 stored
+                   its line or ring in 4 of 8 ruler and 3 of 6 compass runs in one pass, 3 of 8 and 1 of 6 in another)
+           pause   the palm 400ms first settles 9px; the finger goes 12px in 40ms -- refused, the race begins -- and
+                   pauses 400ms while the palm drifts 22px more, then draws on: 31px from the palm's own down, 22 from
+                   where it was when the finger landed -- never a mark (counted from its down, the palm's line or ring)
+           alone   the palm first (the pen 400ms, the ruler 100ms); a finger ticks 20px and lifts -- not handed the stroke,
+                   338 section 4's cost -- and the palm, left alone holding it, slides 15px as the hand moves on; with the
+                   pen, a finger then draws 120px: its line, and never a mark at the palm; without it, or with the ruler,
+                   nothing at all and nothing shown (fourth round: the palm left alone was handed the stroke back at 10px --
+                   its slide drawn and stored, and the 120px line after it lost)
          Never a mark at the palm, never a mark that is not the finger's. The finger's line at 120ms, every tool, and with the
          pen at 400ms; with the ruler and the compass at 400ms nothing at all -- the cost chosen in 338 section 4, printed
          and not failed, so that a later decision to give tools the palm-first swap back changes only the note and this
@@ -1080,14 +1217,58 @@ const unmoved = (sec, where, r, b) => {
         for (const name of ['pen', 'ruler', 'compass']) for (const gap of [400, 120]) cases.push({ name, gap, drift: 6, how: 'first' });
         for (const name of ['ruler', 'compass']) for (const drift of [12, 16, 24]) cases.push({ name, gap: 400, drift, how: 'spread' });
         for (const name of ['ruler', 'compass']) cases.push({ name, gap: 400, drift: 12, how: 'after' });
-        cases.push({ name: 'ruler', gap: 300, drift: 12, how: 'aim' });
+        cases.push({ name: 'ruler', gap: 300, drift: 12, how: 'aim', along: 40 });
+        for (const name of ['ruler', 'compass']) {
+          cases.push({ name, gap: 120, drift: 12, how: 'aim', along: 0 }, { name, gap: 120, drift: 12, how: 'brush' }, { name, gap: 120, drift: 12, how: 'tap' });
+          for (const more of [2, 3, 4]) cases.push({ name, gap: 400, drift: 9, more, how: 'headstart' });
+          cases.push({ name, gap: 400, drift: 9, more: 22, how: 'pause' });
+        }
+        cases.push({ name: 'pen', gap: 400, drift: 15, how: 'alone', then: true }, { name: 'pen', gap: 400, drift: 15, how: 'alone' }, { name: 'ruler', gap: 100, drift: 15, how: 'alone' });
       }
-      for (const { name, gap, drift, how } of cases) {
+      for (const { name, gap, drift, how, along, more, then } of cases) {
         if (!(await choose('palmtool', name))) continue;
         const pm = [c.ink.l + c.ink.w * 0.85, c.ink.t + c.ink.h * 0.85], f0 = [c.ink.l + c.ink.w * 0.25, c.ink.t + c.ink.h * 0.4];
         const line = name === 'compass' ? 400 : 300, palm = [];
-        let fin;
-        if (how === 'aim') {
+        let fin, fin2 = [];
+        const q = t => (t % 20 ? 0.4 : -0.4);
+        if (how === 'brush' || how === 'tap' || (how === 'aim' && !along)) {
+          /* THE FINGER FIRST, held on its point; the palm at `gap` settling `drift` px in 80ms, then trembling; the finger
+             draws its 120px over 400ms (the compass: opens 60px in 160ms and swings half a turn) from 400ms after the palm
+             landed. `brush`: the palm lifts at +250, before the finger moves. `tap`: the finger lifts still at +250. */
+          const go = gap + 400, end = go + 400;
+          fin = how === 'tap' ? track(2, 8, 0, gap + 250, 10, u => [f0[0] + q(u), f0[1]])
+            : track(2, 8, 0, end, 10, u => u < go ? [f0[0] + q(u), f0[1]]
+              : name === 'compass' ? (u - go < 160 ? [f0[0] + 60 * (u - go) / 160, f0[1]] : [f0[0] + 60 * Math.cos(Math.PI * (u - go - 160) / 240), f0[1] + 60 * Math.sin(Math.PI * (u - go - 160) / 240)])
+              : [f0[0] + 120 * (u - go) / 400, f0[1] + 20 * (u - go) / 400]);
+          for (let t = gap; t <= (how === 'brush' ? gap + 250 : end + 100); t += 10) palm.push({ t, p: [pm[0] - drift * Math.min(1, (t - gap) / 80) + q(t), pm[1], 1, 25] });
+        } else if (how === 'pause') {
+          /* THE PALM FIRST, settling `drift` px in 80ms and trembling; the finger at `gap` goes 12px in 40ms and pauses until
+             +440, the palm drifting `more` px from +250 to +400 -- long after the frame that refused the finger, even under
+             load -- then the finger draws on: a 120px ruler line, or the compass opened to 60 and swung half a turn. */
+          for (let t = 0; t <= 80; t += 10) palm.push({ t, p: [pm[0] + drift * t / 80, pm[1], 1, 25] });
+          for (let t = 90; t <= gap + 1000; t += 10) palm.push({ t, p: [pm[0] + drift + more * Math.max(0, Math.min(1, (t - gap - 250) / 150)) + q(t), pm[1], 1, 25] });
+          fin = track(2, 8, gap, gap + 840, 10, u => u <= 40 ? [f0[0] + 12 * u / 40, f0[1]] : u <= 440 ? [f0[0] + 12 + q(u), f0[1]]
+            : name === 'compass' ? (u <= 560 ? [f0[0] + 12 + 48 * (u - 440) / 120, f0[1]] : [f0[0] + 60 * Math.cos(Math.PI * (u - 560) / 280), f0[1] + 60 * Math.sin(Math.PI * (u - 560) / 280)])
+            : [f0[0] + 12 + 108 * (u - 440) / 400, f0[1] + 20 * (u - 440) / 400]);
+        } else if (how === 'headstart') {
+          /* THE PALM FIRST, settling `drift` px in its first 80ms and trembling; the finger at `gap`, starting slowly: a 120px
+             ruler line over 600ms, or the compass opened 60px over 480ms and swung; the palm drifts `more` px over the
+             finger's first 200ms. */
+          for (let t = 0; t <= 80; t += 10) palm.push({ t, p: [pm[0] + drift * t / 80, pm[1], 1, 25] });
+          for (let t = 90; t < gap; t += 10) palm.push({ t, p: [pm[0] + drift + q(t), pm[1], 1, 25] });
+          for (let t = gap; t <= gap + 700; t += 10) palm.push({ t, p: [pm[0] + drift + more * Math.min(1, (t - gap) / 200) + q(t), pm[1], 1, 25] });
+          fin = name === 'compass'
+            ? track(2, 8, gap, gap + 600, 10, u => { const tau = u / 600; if (tau < 0.8) return [f0[0] + 60 * mj(tau / 0.8), f0[1]]; const g = Math.PI * (tau - 0.8) / 0.2; return [f0[0] + 60 * Math.cos(g), f0[1] + 60 * Math.sin(g)]; })
+            : track(2, 8, gap, gap + 600, 10, u => [f0[0] + 120 * mj(u / 600), f0[1] + 20 * mj(u / 600)]);
+        } else if (how === 'alone') {
+          /* THE PALM FIRST, trembling; at `gap` a finger 0.25 of the picture below the line's start ticks 20px in 100ms and
+             lifts; the palm slides `drift` px from +250 to +400 and trembles; `then`, a second finger draws 120px from +600
+             over 400ms, and the palm lifts at +1100 (else at +600). */
+          const ft = [f0[0], f0[1] + 0.25 * c.ink.h], end = then ? gap + 1100 : gap + 600;
+          for (let t = 0; t <= end; t += 10) palm.push({ t, p: [pm[0] - drift * Math.max(0, Math.min(1, (t - gap - 250) / 150)) + q(t), pm[1], 1, 25] });
+          fin = track(2, 8, gap, gap + 100, 10, u => [ft[0] + 0.2 * u, ft[1]]);
+          if (then) fin2 = track(3, 8, gap + 600, gap + 1000, 10, u => [f0[0] + 0.3 * u, f0[1] + 0.05 * u]);
+        } else if (how === 'aim') {
           /* THE FINGER FIRST, held on its point; the palm at `gap`, settling, still; then the finger draws its 120px over
              600ms while the palm slides 40px along. The finger waits 600ms after the palm lands: the settle has to be
              told apart from the finger first (338 T4) -- the review's frame trace at 4x CPU under load had frames 100-230ms
@@ -1109,12 +1290,17 @@ const unmoved = (sec, where, r, b) => {
             : track(2, 8, gap, gap + 300, 10, u => [f0[0] + 0.4 * u, f0[1] + 0.1 * u]);
         }
         await shownWatch(env);
-        const r = await gesture(env, k, CARD, () => play(env, plan(palm, fin)));
+        const r = await gesture(env, k, CARD, () => play(env, plan(palm, fin, fin2)));
         const sh = await shownRead(env);
         const toU = q => [(q[0] - c.ink.l) / c.ink.w * 340, (q[1] - c.ink.t) / c.ink.h * 340];
         const pu = toU(pm), fu = toU(f0);
         const near = (st, q, d) => { for (let i = 0; i + 1 < st.length; i += 2) if (Math.hypot(st[i] - q[0], st[i + 1] - q[1]) < d) return true; return false; };
-        const where = how === 'aim' ? `${at} ${name} finger aiming, a palm ${gap}ms after settling ${drift}px and sliding 40px along`
+        const where = how === 'aim' ? `${at} ${name} finger aiming, a palm ${gap}ms after settling ${drift}px` + (along ? ` and sliding ${along}px along` : '')
+          : how === 'brush' ? `${at} ${name} finger aiming, a palm ${gap}ms after settling ${drift}px and lifting, then the finger drew`
+          : how === 'tap' ? `${at} ${name} finger tapping still, a palm ${gap}ms after settling ${drift}px`
+          : how === 'headstart' ? `${at} ${name} palm ${gap}ms before, settled ${drift}px, drifting ${more}px under a slow-starting finger`
+          : how === 'pause' ? `${at} ${name} palm ${gap}ms before, settled ${drift}px, drifting ${more}px while the refused finger paused`
+          : how === 'alone' ? `${at} ${name} palm ${gap}ms before, a 20px tick, the palm sliding ${drift}px` + (then ? ', then a 120px line' : ' and lifting')
           : `${at} ${name} palm ${gap}ms before, ` + (how === 'after' ? `sliding ${drift}px after the finger lifted` : `drifting ${drift}px ${how === 'first' ? 'in 120ms' : 'over the line'}`);
         if (r.stored.some(st => near(st, pu, 25))) fail('palmtool', where, `a mark at the PALM: ${JSON.stringify(r.stored).slice(0, 100)} — wanted nothing there`);
         /* THE FINGER'S LINE STARTS WHERE THE FINGER WENT DOWN; the compass's arc is centred there, every point 60px off it. */
@@ -1126,9 +1312,14 @@ const unmoved = (sec, where, r, b) => {
         };
         if (r.stored.some(st => !atFinger(st))) fail('palmtool', where, `a mark that is not the finger's: ${JSON.stringify(r.stored).slice(0, 100)}`);
         const lost = how !== 'aim' && name !== 'pen' && gap > 200;
-        if (!lost && (r.stored.length !== 1 || !atFinger(r.stored[0]))) fail('palmtool', where, `stored ${JSON.stringify(r.stored).slice(0, 100)} — wanted the finger's ${name} line`);
-        if (lost) unseen('palmtool', where, sh);
-        if (how === 'aim' && !sh.shown) fail('palmtool', where, `the finger's line was not shown in any of ${sh.frames} frames as it was drawn`);
+        if (how === 'tap' || (how === 'alone' && !then)) {
+          if (r.stored.length) fail('palmtool', where, `stored ${JSON.stringify(r.stored).slice(0, 100)} — wanted nothing`);
+          unseen('palmtool', where, sh);
+        } else {
+          if (!lost && (r.stored.length !== 1 || !atFinger(r.stored[0]))) fail('palmtool', where, `stored ${JSON.stringify(r.stored).slice(0, 100)} — wanted the finger's ${name} line`);
+          if (lost) unseen('palmtool', where, sh);
+          if ((how === 'aim' || how === 'brush') && !sh.shown) fail('palmtool', where, `the finger's line was not shown in any of ${sh.frames} frames as it was drawn`);
+        }
         if (r.live || r.busy || r.touch) fail('palmtool', where, 'the pen did not let go after both lifted');
         say(`palmtool ${where} ${lost && !r.stored.length ? '(the cost: the finger\'s line lost) ' : ''}${JSON.stringify(r.stored).slice(0, 80)} shown ${sh.shown}/${sh.frames}`);
         await reset(env, k);

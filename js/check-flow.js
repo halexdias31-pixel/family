@@ -4590,27 +4590,30 @@ check('the finger pen after review: a hand left down after two fingers, a thumb 
       fire('pointerup', 1, 398, 210, 3410, { size: 50 });
       clean(what, []);
     }
-    /* A FINGER'S SHORT RULER TICK, REFUSED, AND THE PALM THEN DRIFTING 15px (third review's rule): the palm went less far than
-       the finger did, so it was never the one drawing -- nothing. At 10px, as round 2 had it, the palm's 15px line was
-       stored. (A palm that drifts FURTHER than a refused finger's line shorter than `PAD_KEEPUP_PX` still marks: 338
-       section 4, the one stray mark left.) */
-    tfresh('ruler');
-    fire('pointerdown', 1, 420, 210, 1000, { prim: true, size: 50 });
-    for (let i = 1; i <= 40; i++) fire('pointermove', 1, 420 + (i % 2 ? 0.4 : -0.4), 210, 1000 + 10 * i, { size: 50 });
-    fire('pointerdown', 2, 130, 85, 1400);
-    for (let i = 1; i <= 5; i++) { fire('pointermove', 2, 130 + 4 * i, 85 + i, 1400 + 10 * i); if (!(i % 4)) await wait(1); }
-    await wait(5);
-    fire('pointerup', 2, 150, 90, 1470);
-    for (let i = 1; i <= 30; i++) { fire('pointermove', 1, 420 - 0.5 * i, 210, 1500 + 10 * i, { size: 50 }); if (!(i % 4)) await wait(1); }
-    unseen('a palm drifting 15px after a finger\'s 20px ruler tick was refused');
-    fire('pointerup', 1, 405, 210, 1820, { size: 50 });
-    clean('a palm drifting 15px after a finger\'s 20px ruler tick was refused', []);
+    /* A FINGER'S SHORT RULER TICK, REFUSED, AND THE PALM THEN DRIFTING 15px, and 28px (third review's rule, and the fourth's):
+       at 10px, as round 2 had it, the palm's 15px line was stored; round 3 stored the palm's line once it had gone further
+       than the tick (the 28px drift); since the fourth review the still one marks only by going 30px first -- nothing.
+       (A palm that slides 30px or more after a refused tick shorter than that still marks: 338 section 4.) */
+    for (const drift of [15, 28]) {
+      tfresh('ruler');
+      fire('pointerdown', 1, 420, 210, 1000, { prim: true, size: 50 });
+      for (let i = 1; i <= 40; i++) fire('pointermove', 1, 420 + (i % 2 ? 0.4 : -0.4), 210, 1000 + 10 * i, { size: 50 });
+      fire('pointerdown', 2, 130, 85, 1400);
+      for (let i = 1; i <= 5; i++) { fire('pointermove', 2, 130 + 4 * i, 85 + i, 1400 + 10 * i); if (!(i % 4)) await wait(1); }
+      await wait(5);
+      fire('pointerup', 2, 150, 90, 1470);
+      for (let i = 1; i <= 30; i++) { fire('pointermove', 1, 420 - drift * i / 30, 210, 1500 + 10 * i, { size: 50 }); if (!(i % 4)) await wait(1); }
+      const what = 'a palm drifting ' + drift + 'px after a finger\'s 20px ruler tick was refused';
+      unseen(what);
+      fire('pointerup', 1, 420 - drift, 210, 1820, { size: 50 });
+      clean(what, []);
+    }
     /* AND A FINGER THAT WAS AIMING STILL GETS ITS LINE: the ruler finger held 300ms on its point, a palm lands on the picture
        and settles 12px in 80ms before the finger moves -- refused the swap, the finger is the stroke again, and its 120px
-       line goes further than the palm did. (Withdrawn outright instead, the palm's settle would cost this line.) And the
-       same with the palm then SLIDING ALONG with the hand, 40px, as the finger draws: the finger went further first, so it
+       line goes 30px before the palm does. (Withdrawn outright instead, the palm's settle would cost this line.) And the
+       same with the palm then SLIDING ALONG with the hand, 40px, as the finger draws: the finger went 30px first, so it
        is the one drawing (third review -- the review's prototype, "once the refused one has gone 30px the still one never
-       marks", lost this line). Its line is SHOWN as it is drawn, from the moment it has gone further than the palm. */
+       marks", lost this line). Its line is SHOWN as it is drawn, from the moment it has gone 30px. */
     for (const along of [0, 40]) {
       tfresh('ruler');
       fire('pointerdown', 2, 130, 85, 1000, { prim: true });
@@ -4723,6 +4726,312 @@ check('the finger pen after review: a hand left down after two fingers, a thumb 
     const xs = rg.filter((v, i) => !(i % 2)), ys = rg.filter((v, i) => i % 2);
     if (s.length !== 1 || rg.length < 40 || Math.abs((Math.max(...xs) + Math.min(...xs)) / 2 - 170) > 1 || Math.abs((Math.max(...ys) + Math.min(...ys)) / 2 - 170) > 1) {
       bad.push('a palm first and then the compass finger stored ' + JSON.stringify(s).slice(0, 80) + ' — wanted one ring about where the finger went down, (170, 170)');
+    }
+
+    /* ==================== FOURTH REVIEW (12 Oct): A PALM THAT LANDS AFTER AN AIMING FINGER ====================
+       The palm lands on the picture at (420, 210) -- units (320, 320) -- with a finger already held on its point at (130, 85),
+       units (30, 70). Nothing may ever be stored near the palm, and the finger's line is the one meant. */
+    const nearPalm = s => s.some(st => { for (let i = 0; i + 1 < st.length; i += 2) if (Math.hypot(st[i] - 320, st[i + 1] - 320) < 30) return true; return false; });
+    /* THE COMPASS'S ARC, centred where the finger went down: every point 60px off it (a unit is 1px across, 0.5px down). */
+    const arcAt = (st, cx, cy) => {
+      if (st.length < 16) return false;
+      for (let i = 0; i + 1 < st.length; i += 2) if (Math.abs(Math.hypot((st[i] - cx) * W / 340, (st[i + 1] - cy) * H / 340) - 60) > 3) return false;
+      return true;
+    };
+    const quiver = i => (i % 2 ? 0.3 : -0.3);
+    /* THE FINGER'S STROKE FROM `t0`: 40 moves 10ms apart -- a 120px pen or ruler line, or the compass opened 60px and swung
+       half a turn. Each move is handed to `also(i, t)` for the other hand. Returns the points, for the pen's `units`. */
+    const draw = async (name, t0, also, what) => {
+      const pts = [[130, 85]];
+      for (let i = 1; i <= 40; i++) {
+        const t = t0 + 10 * i;
+        let p;
+        if (name === 'compass') { const g = Math.PI * Math.max(0, i - 16) / 24; p = i <= 16 ? [130 + 60 * i / 16, 85] : [130 + 60 * Math.cos(g), 85 + 60 * Math.sin(g)]; }
+        else p = [130 + 3 * i, 85 + 0.5 * i];
+        pts.push(p);
+        fire('pointermove', 2, p[0], p[1], t);
+        if (also) also(i, t);
+        if (!(i % 4)) await wait(1);
+        if (what && i === 32 && !host.querySelector('[data-live]')) bad.push(what + ': the finger\'s line was not shown as it was drawn');
+      }
+      fire('pointerup', 2, pts[40][0], pts[40][1], t0 + 405);
+      return pts;
+    };
+    const fingers = (name, pts) => name === 'pen' ? [units(pts)] : name === 'ruler' ? [[30, 70, 150, 110]] : null;
+    const theFinger = (what, name, pts) => {
+      const s = stored();
+      if (nearPalm(s)) bad.push(what + ': a mark at the PALM was stored: ' + JSON.stringify(s).slice(0, 120));
+      if (name === 'compass') {
+        if (s.length !== 1 || !arcAt(s[0], 30, 70)) bad.push(what + ': stored ' + JSON.stringify(s).slice(0, 120) + ' — wanted one arc about where the finger went down, (30, 70)');
+        clean(what, s.length === 1 && arcAt(s[0], 30, 70) ? s : [['the finger\'s arc']]);
+      } else clean(what, fingers(name, pts));
+    };
+    /* THE FINGER HELD ON ITS POINT FROM 1000; THE PALM LANDS `gap` LATER AND SETTLES `S` px IN 80ms (8 moves), then rests,
+       trembling, both of them, for 400ms from its landing -- unless `lift` names one of them that goes at +210. */
+    const aimAndSettle = async (name, gap, S, lift) => {
+      tfresh(name);
+      const g0 = 1000 + gap;
+      fire('pointerdown', 2, 130, 85, 1000, { prim: true });
+      for (let t = 1010; t < g0; t += 10) fire('pointermove', 2, 130 + quiver(t / 10), 85, t);
+      fire('pointerdown', 1, 420, 210, g0, { size: 50 });
+      for (let i = 1; i <= 40; i++) {
+        if (lift !== 'palm' || i <= 20) fire('pointermove', 1, 420 - S * Math.min(1, i / 8) + (i > 8 ? quiver(i) : 0), 210, g0 + 10 * i, { size: 50 });
+        if (lift !== 'finger' || i <= 20) fire('pointermove', 2, 130 + quiver(i), 85, g0 + 10 * i + 2);
+        if (i === 21 && lift === 'palm') fire('pointerup', 1, 420 - S, 210, g0 + 205, { size: 50 });
+        if (i === 21 && lift === 'finger') fire('pointerup', 2, 130, 85, g0 + 205);
+        if (!(i % 4)) await wait(1);
+        /* HELD, AND SO NOTHING ON THE PICTURE: the review watched the palm's settle drawn in 28-48 frames. */
+        if (i === 12) unseen('a palm landing ' + gap + 'ms after a ' + name + ' finger and settling ' + S + 'px');
+      }
+      return g0 + 400;
+    };
+    /* THE MUST-FIX: THE FINGER HELD STILL TO AIM, A PALM LANDING AFTER IT AND SETTLING 9, 12 OR 16px -- the pen at 300ms and
+       at 1.5s (it hands a palm-first stroke over at any age), the ruler and the compass at 120ms (within `PAD_TOGETHER_MS`,
+       where they hand it over too) -- and then the finger draws. 2a89387 handed the palm the stroke at its 10px: at 12 and
+       16 the palm's settle was stored, `[[320,320,308,320]]` or a ring round it, and the finger's line was lost. Now the palm
+       would have to go 30px; it stops at 16, the finger moves, and the half rule says the palm settled: the finger's line,
+       shown as it is drawn. */
+    for (const [name, gap] of [['pen', 300], ['pen', 1500], ['ruler', 120], ['compass', 120]]) for (const S of [9, 12, 16]) {
+      const what = 'a ' + name + ' finger aiming, a palm landing ' + gap + 'ms after it and settling ' + S + 'px, then the finger drew';
+      const go = await aimAndSettle(name, gap, S);
+      const pts = await draw(name, go, (i, t) => fire('pointermove', 1, 420 - S + quiver(i), 210, t + 3, { size: 50 }), what);
+      fire('pointerup', 1, 420 - S, 210, go + 500, { size: 50 });
+      theFinger(what, name, pts);
+    }
+    /* AND A LIFT HANDS NOTHING OVER (decided while fixing the above -- 338 section 4). The same palm, settling 12 or 16px:
+       - it LIFTS before the finger moves (a hand brushing the picture): the review's rule let the lift hand it the stroke,
+         so its settle was stored at its lift and the finger's line after it was lost -- the finger's line, now;
+       - the FINGER lifts still (a tap) while the palm stays: the lift handed the palm the stroke and its settle was stored
+         -- nothing, now (the tap's dot is the cost in section 4's first line). */
+    for (const [name, gap] of [['pen', 300], ['ruler', 120], ['compass', 120]]) for (const S of [12, 16]) {
+      let what = 'a ' + name + ' finger aiming, a palm landing ' + gap + 'ms after it, settling ' + S + 'px and lifting, then the finger drew';
+      const go = await aimAndSettle(name, gap, S, 'palm');
+      theFinger(what, name, await draw(name, go, null, what));
+      what = 'a ' + name + ' finger tapping still while a palm landed ' + gap + 'ms after it and settled ' + S + 'px';
+      const end = await aimAndSettle(name, gap, S, 'finger');
+      for (let i = 1; i <= 20; i++) { fire('pointermove', 1, 420 - S + quiver(i), 210, end + 10 * i, { size: 50 }); if (!(i % 4)) await wait(1); }
+      unseen(what);
+      fire('pointerup', 1, 420 - S, 210, end + 210, { size: 50 });
+      if (nearPalm(stored())) bad.push(what + ': a mark at the PALM was stored: ' + JSON.stringify(stored()).slice(0, 120));
+      clean(what, []);
+    }
+    /* THE COST OF THAT, CHECKED SO IT CANNOT GROW UNSEEN: a palm resting first, the pen's first strokes after it are a later
+       contact's, and one shorter than 30px is not handed over -- two 20px ticks are lost while the palm stays down and
+       still. A 60px line is handed over (from its own first point, every sample); from then on the palm is a watched rest,
+       and the next 20px tick is drawn. The ruler, the palm 100ms first: its 20px tick is lost the same way. */
+    {
+      tfresh('pen');
+      fire('pointerdown', 1, 420, 210, 1000, { prim: true, size: 50 });
+      const rest = (a, b) => { for (let t = a; t < b; t += 10) fire('pointermove', 1, 420 + quiver(t / 10), 210, t + 3, { size: 50 }); };
+      rest(1010, 1400);
+      const kept = [];
+      for (const [t0, len, y] of [[1400, 20, 85], [1700, 20, 105], [2000, 60, 125], [2400, 20, 145]]) {
+        const pts = [[130, y]];
+        fire('pointerdown', 2, 130, y, t0);
+        for (let i = 1; i <= len / 2; i++) { pts.push([130 + 2 * i, y]); fire('pointermove', 2, 130 + 2 * i, y, t0 + 10 * i); fire('pointermove', 1, 420 + quiver(i), 210, t0 + 10 * i + 3, { size: 50 }); if (!(i % 4)) await wait(1); }
+        await wait(2);
+        fire('pointerup', 2, 130 + len, y, t0 + 5 * len + 5);
+        rest(t0 + 5 * len + 10, t0 + 300);
+        if (len === 60 || t0 === 2400) kept.push(units(pts));
+      }
+      fire('pointerup', 1, 420, 210, 2800, { size: 50 });
+      clean('a palm resting first, then the pen: two 20px ticks, a 60px line and a 20px tick', kept);
+      tfresh('ruler');
+      fire('pointerdown', 1, 420, 210, 1000, { prim: true, size: 50 });
+      rest(1010, 1100);
+      fire('pointerdown', 2, 130, 85, 1100);
+      for (let i = 1; i <= 10; i++) { fire('pointermove', 2, 130 + 2 * i, 85, 1100 + 10 * i); fire('pointermove', 1, 420 + quiver(i), 210, 1100 + 10 * i + 3, { size: 50 }); if (!(i % 4)) await wait(1); }
+      await wait(2);
+      fire('pointerup', 2, 150, 85, 1205);
+      fire('pointerup', 1, 420, 210, 1400, { size: 50 });
+      clean('a palm resting 100ms first, then a 20px ruler tick', []);
+    }
+    /* AND THE ONE LEFT ALONE IN A HELD STROKE IS HANDED IT ONLY AT 30px, WHICHEVER CAME FIRST (decision 4, again). A lift
+       hands nothing over, so after a palm-first tick the PALM is the one left holding the stroke -- and it was handed it
+       back at its 10px: the hand moving on, the palm sliding 15px, drew its slide, and every finger stroke after it was
+       a rest beside an established stroke, lost until the palm lifted (and so it was after a finger's TAP on 2a89387).
+       - the pen: a palm resting first, a 20px tick (the cost above), the palm slides 15px, then a finger draws 60px: the
+         line, and nothing at the palm, and nothing on the picture while the palm slides;
+       - the same palm sliding 15px and lifting: nothing;
+       - the ruler, the palm 100ms first: a 20px tick, the palm slides 15px and lifts: nothing.
+       And the price, so it cannot grow unseen: a finger aiming, a palm landing 300ms after it, settling 12px and lifting
+       (a brush) -- the finger then draws 20px: nothing (it was handed it back at 10px before); 40px: its line. */
+    {
+      const slide = (a, dx) => { for (let i = 1; i <= 15; i++) fire('pointermove', 1, 420 - dx * i / 15, 210, a + 10 * i, { size: 50 }); };
+      for (const [name, gap, line] of [['pen', 400, true], ['pen', 400, false], ['ruler', 100, false]]) {
+        tfresh(name);
+        fire('pointerdown', 1, 420, 210, 1000, { prim: true, size: 50 });
+        for (let t = 1010; t < 1000 + gap; t += 10) fire('pointermove', 1, 420 + quiver(t / 10), 210, t + 3, { size: 50 });
+        const t0 = 1000 + gap;
+        fire('pointerdown', 2, 130, 85, t0);
+        for (let i = 1; i <= 10; i++) { fire('pointermove', 2, 130 + 2 * i, 85, t0 + 10 * i); fire('pointermove', 1, 420 + quiver(i), 210, t0 + 10 * i + 3, { size: 50 }); if (!(i % 4)) await wait(1); }
+        await wait(2);
+        fire('pointerup', 2, 150, 85, t0 + 105);
+        await wait(2);
+        slide(t0 + 200, 15);
+        await wait(5);
+        const what = 'a palm resting first, a ' + name + ' finger\'s 20px tick, then the palm sliding 15px' + (line ? ' and a finger drawing 60px' : ' and lifting');
+        unseen(what);
+        const kept = [];
+        if (line) {
+          const pts = [[130, 125]];
+          fire('pointerdown', 2, 130, 125, t0 + 500);
+          for (let i = 1; i <= 30; i++) { pts.push([130 + 2 * i, 125]); fire('pointermove', 2, 130 + 2 * i, 125, t0 + 500 + 10 * i); fire('pointermove', 1, 405 + quiver(i), 210, t0 + 500 + 10 * i + 3, { size: 50 }); if (!(i % 4)) await wait(1); }
+          await wait(2);
+          fire('pointerup', 2, 190, 125, t0 + 805);
+          kept.push(units(pts));
+        }
+        fire('pointerup', 1, 405, 210, t0 + 900, { size: 50 });
+        if (nearPalm(stored())) bad.push(what + ': a mark at the PALM was stored: ' + JSON.stringify(stored()).slice(0, 120));
+        clean(what, kept);
+      }
+      for (const len of [20, 40]) {
+        const go = await aimAndSettle('pen', 300, 12, 'palm');
+        const pts = [[130, 85]];
+        for (let i = 1; i <= len / 2; i++) { pts.push([130 + 2 * i, 85]); fire('pointermove', 2, 130 + 2 * i, 85, go + 10 * i); if (!(i % 4)) await wait(1); }
+        await wait(2);
+        fire('pointerup', 2, 130 + len, 85, go + 5 * len + 5);
+        clean('a pen finger aiming, a palm brushing the picture 300ms after it (settling 12px and lifting), then a ' + len + 'px line', len < 30 ? [] : [units(pts)]);
+      }
+    }
+    /* AND THE ONE IT WENT TO AT A LIFT STAYS OWED WITH A NEW FINGER BESIDE IT: a finger taps still beside a palm that landed
+       300ms after it and settled 12px -- the palm is held as the stroke's (the tap's cost) -- then a finger lands, and the
+       palm drifts 12px more before it moves. An owner with a candidate beside it is handed the stroke back at 10px (P7),
+       but this owner came later and never showed it was drawing: it waits for 30, and the finger's 60px line is drawn. */
+    {
+      const end = await aimAndSettle('pen', 300, 12, 'finger');
+      const pts = [[130, 125]];
+      fire('pointerdown', 3, 130, 125, end + 10);
+      for (let i = 1; i <= 10; i++) { fire('pointermove', 1, 408 - 1.2 * i + quiver(i), 210, end + 10 + 10 * i, { size: 50 }); fire('pointermove', 3, 130 + quiver(i), 125, end + 12 + 10 * i); if (!(i % 4)) await wait(1); }
+      await wait(5);
+      unseen('a palm handed a tap\'s stroke, then a finger landing beside it while it drifted 12px');
+      for (let i = 1; i <= 30; i++) { pts.push([130 + 2 * i, 125]); fire('pointermove', 3, 130 + 2 * i, 125, end + 120 + 10 * i); fire('pointermove', 1, 396 + quiver(i), 210, end + 123 + 10 * i, { size: 50 }); if (!(i % 4)) await wait(1); }
+      await wait(2);
+      fire('pointerup', 3, 190, 125, end + 425);
+      fire('pointerup', 1, 396, 210, end + 500, { size: 50 });
+      const what = 'a palm handed a tap\'s stroke, a finger landing while it drifted 12px, then drawing 60px';
+      if (nearPalm(stored())) bad.push(what + ': a mark at the PALM was stored: ' + JSON.stringify(stored()).slice(0, 120));
+      clean(what, [units(pts)]);
+    }
+    /* THE SHOULD-FIX: THE RACE COUNTED THE STILL ONE FROM ITS OWN DOWN. A palm 400ms first that settled 8 or 9px as it was put
+       down -- under 10, still a dot -- then drifts 2-4px more over the first 200ms of a finger that starts slowly (a hand's
+       stroke: minimum jerk), drawing a 120px ruler line or opening the compass 60px and swinging. The finger is refused (the
+       pin rule) and the two race; counted from its down the palm was at 11-13px while the finger was at 10-12, and 2a89387
+       showed and stored the palm's ruler line `[[320,320,308,320]]` or a ring round it (real touch, timing-dependent: the
+       review's 6 of 12 ruler runs and 4 of 4 compass runs at 9+3 and 9+4; 3 of 8 and 1 of 6 in round 4's last pass).
+       Counted from where it was when the finger landed it
+       has moved 4px: nothing, and nothing shown -- the finger's line is the cost section 4 chose for a palm down over 200ms.
+       (With the race to 30px, below, a 2-4px drift cannot win from either point: the next case is the one that tells them
+       apart.)
+       And a PIN that settled 8 or 9px as it was put down, then rolls 3 or 5: the same. And one that rolls 12px in 200ms
+       beside a finger starting slowly: it reaches 10px first, and with the race at 10px and "further", asked by the
+       samples' clock, it won every time -- its own ruler line, or a ring round itself (real touch too, 390 and 820). The
+       race is to 30px now: nothing. */
+    {
+      const mj = u => { u = Math.max(0, Math.min(1, u)); return 10 * u ** 3 - 15 * u ** 4 + 6 * u ** 5; };
+      const slow = (name, i, t, id, cx, cy) => {
+        const u = i / 60;
+        if (name === 'compass') { if (u < 0.8) fire('pointermove', id, cx + 60 * mj(u / 0.8), cy, t); else { const g = Math.PI * (u - 0.8) / 0.2; fire('pointermove', id, cx + 60 * Math.cos(g), cy + 60 * Math.sin(g), t); } }
+        else fire('pointermove', id, cx + 120 * mj(u), cy + 20 * mj(u), t);
+      };
+      for (const name of ['ruler', 'compass']) for (const [pre, more] of [[9, 2], [9, 3], [9, 4], [8, 4], [9, 0], [0, 12]]) {
+        tfresh(name);
+        fire('pointerdown', 1, 420, 210, 1000, { prim: true, size: 50 });
+        for (let i = 1; i <= 8; i++) fire('pointermove', 1, 420 - pre * i / 8, 210, 1000 + 10 * i, { size: 50 });
+        for (let i = 9; i <= 40; i++) fire('pointermove', 1, 420 - pre + quiver(i), 210, 1000 + 10 * i, { size: 50 });
+        fire('pointerdown', 2, 130, 85, 1400);
+        for (let i = 1; i <= 60; i++) {
+          slow(name, i, 1400 + 10 * i, 2, 130, 85);
+          fire('pointermove', 1, 420 - pre - more * Math.min(1, i / 20) + quiver(i), 210, 1400 + 10 * i + 3, { size: 50 });
+          if (!(i % 2)) await wait(1);
+        }
+        const what = 'a palm 400ms first that settled ' + pre + 'px, then drifting ' + more + 'px while a slow-starting ' + name + ' finger drew';
+        unseen(what);
+        fire('pointerup', 2, 250, 105, 2010);
+        fire('pointerup', 1, 420 - pre - more, 210, 2100, { size: 50 });
+        clean(what, []);
+      }
+      /* AND RACED FROM WHERE IT WAS WHEN THE FINGER LANDED: the palm settled 9px as it was put down; the finger goes 12px
+         quickly -- refused, the race begins -- and pauses 200ms, the palm drifting 22px meanwhile, 31 from its own down and
+         22 from where it was when the finger landed; then the finger draws on. Counted from its own down the palm went 30px
+         first, and its line or ring was shown and stored; counted from where it was, it never did: nothing. */
+      for (const name of ['ruler', 'compass']) {
+        tfresh(name);
+        fire('pointerdown', 1, 420, 210, 1000, { prim: true, size: 50 });
+        for (let i = 1; i <= 8; i++) fire('pointermove', 1, 420 - 9 * i / 8, 210, 1000 + 10 * i, { size: 50 });
+        for (let i = 9; i <= 40; i++) fire('pointermove', 1, 411 + quiver(i), 210, 1000 + 10 * i, { size: 50 });
+        fire('pointerdown', 2, 130, 85, 1400);
+        for (let i = 1; i <= 4; i++) { fire('pointermove', 2, 130 + 3 * i, 85, 1400 + 10 * i); fire('pointermove', 1, 411 + quiver(i), 210, 1403 + 10 * i, { size: 50 }); }
+        await wait(2);
+        for (let i = 1; i <= 20; i++) {
+          fire('pointermove', 2, 142 + quiver(i), 85, 1440 + 10 * i);
+          fire('pointermove', 1, 411 - 22 * Math.min(1, i / 15) + quiver(i), 210, 1443 + 10 * i, { size: 50 });
+          if (!(i % 4)) await wait(1);
+        }
+        for (let i = 1; i <= 30; i++) {
+          if (name === 'compass') { if (i <= 12) fire('pointermove', 2, 142 + 4 * i, 85, 1640 + 10 * i); else { const g = Math.PI * (i - 12) / 18; fire('pointermove', 2, 130 + 60 * Math.cos(g), 85 + 60 * Math.sin(g), 1640 + 10 * i); } }
+          else fire('pointermove', 2, 142 + 4 * i, 85 + i, 1640 + 10 * i);
+          if (!(i % 4)) await wait(1);
+        }
+        const what = 'a palm 400ms first that settled 9px, a ' + name + ' finger refused at 12px and pausing while the palm drifted 22px more';
+        unseen(what);
+        fire('pointerup', 2, 262, 115, 1950);
+        fire('pointerup', 1, 389, 210, 2000, { size: 50 });
+        clean(what, []);
+      }
+      for (const name of ['ruler', 'compass']) for (const [pre, more] of [[9, 3], [8, 5], [0, 12]]) {
+        tfresh(name);
+        fire('pointerdown', 1, 270, 135, 1000, { prim: true });
+        for (let i = 1; i <= 8; i++) fire('pointermove', 1, 270 + pre * i / 8, 135, 1000 + 10 * i);
+        for (let i = 9; i <= 30; i++) fire('pointermove', 1, 270 + pre + quiver(i), 135, 1000 + 10 * i);
+        fire('pointerdown', 2, 330, 135, 1302);
+        for (let i = 1; i <= 60; i++) {
+          const u = i / 60;
+          if (name === 'compass') { const g = 1.5 * Math.PI * mj(u); fire('pointermove', 2, 270 + 60 * Math.cos(g), 135 + 60 * Math.sin(g), 1302 + 10 * i); }
+          else fire('pointermove', 2, 330 + 60 * mj(u), 135, 1302 + 10 * i);
+          fire('pointermove', 1, 270 + pre + more * Math.min(1, i / 20) + quiver(i), 135, 1305 + 10 * i);
+          if (!(i % 2)) await wait(1);
+        }
+        const what = 'a pin on the ' + name + (name === 'ruler' ? '\'s end' : '\'s centre') + ' that settled ' + pre + 'px as it was put down, then rolled ' + more;
+        unseen(what);
+        fire('pointerup', 2, 330, 135, 1920); fire('pointerup', 1, 270 + pre + more, 135, 1925);
+        clean(what, []);
+      }
+    }
+    /* THE NIT: THE RACE WAS JUDGED AGAINST HOW FAR THE PALM HAD GONE BY THE FRAME, not by the finger's samples. The ruler
+       finger aiming 300ms, a palm landing and settling 12px -- a frame: refused, the race begins. Then, with no frame
+       between (a busy main thread), the finger goes 32px in 80ms, and only then the palm slides 30px in 50ms -- 42 by the
+       frame. By the samples the finger went 30px first: its line. 2a89387 asked for a finger sample further than the palm's
+       42 at the frame, found one only after the palm had passed 30, and lost the line. */
+    {
+      tfresh('ruler');
+      fire('pointerdown', 2, 130, 85, 1000, { prim: true });
+      for (let i = 1; i <= 30; i++) fire('pointermove', 2, 130 + quiver(i), 85, 1000 + 10 * i);
+      fire('pointerdown', 1, 420, 210, 1302, { size: 50 });
+      for (let i = 1; i <= 8; i++) { fire('pointermove', 1, 420 - 1.5 * i, 210, 1302 + 10 * i, { size: 50 }); fire('pointermove', 2, 130 + quiver(i), 85, 1305 + 10 * i); }
+      await wait(5);
+      for (let i = 1; i <= 8; i++) fire('pointermove', 2, 130 + 4 * i, 85, 1500 + 10 * i);
+      for (let i = 1; i <= 5; i++) { fire('pointermove', 1, 408 - 6 * i, 210, 1580 + 10 * i, { size: 50 }); fire('pointermove', 2, 162 + 4 * i, 85, 1582 + 10 * i); }
+      await wait(5);
+      for (let i = 1; i <= 16; i++) { fire('pointermove', 2, 182 + 4 * i, 85 + i, 1640 + 10 * i); if (!(i % 4)) await wait(1); }
+      fire('pointerup', 2, 246, 101, 1810);
+      fire('pointerup', 1, 378, 210, 1850, { size: 50 });
+      clean('a ruler finger aiming, a settled palm, the finger 30px by its samples before the palm, one frame for all', [[30, 70, 146, 102]]);
+    }
+    /* THE COST OF THE 30px RACE (338 section 4): the same aiming ruler finger and settled palm, and the finger then draws only
+       20px -- shorter than 30, it never shows it was the one drawing: nothing. At 40px: its line. */
+    for (const len of [20, 40]) {
+      tfresh('ruler');
+      fire('pointerdown', 2, 130, 85, 1000, { prim: true });
+      for (let i = 1; i <= 30; i++) fire('pointermove', 2, 130 + quiver(i), 85, 1000 + 10 * i);
+      fire('pointerdown', 1, 420, 210, 1302, { size: 50 });
+      for (let i = 1; i <= 8; i++) { fire('pointermove', 1, 420 - 1.5 * i, 210, 1302 + 10 * i, { size: 50 }); fire('pointermove', 2, 130 + quiver(i), 85, 1305 + 10 * i); }
+      await wait(5);
+      for (let i = 1; i <= len / 4; i++) { fire('pointermove', 2, 130 + 4 * i, 85, 1500 + 10 * i); fire('pointermove', 1, 408 + quiver(i), 210, 1503 + 10 * i, { size: 50 }); if (!(i % 4)) await wait(1); }
+      await wait(2);
+      fire('pointerup', 2, 130 + len, 85, 1500 + 10 * len / 4 + 5);
+      fire('pointerup', 1, 408, 210, 1700, { size: 50 });
+      clean('a ruler finger aiming, a palm settling 12px 300ms after it, then a ' + len + 'px line', len < 30 ? [] : [[30, 70, 30 + len, 70]]);
     }
   }
 
