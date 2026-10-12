@@ -9029,9 +9029,12 @@ function padToolNow_(pad) {
    turned back into units. The picture's shape is the drawing's, the same at 320px and on a laptop,
    so a ring stored that way is round wherever it is drawn again. */
 const PAD_MIN_PX = 4;                     // shorter than this a line or a radius is a slip, not a mark
-/* AND LONGER FOR ONE STROKE: a ruler's or a compass's owner that was a pin or a palm -- it stayed still while another
-   contact moved, and was made the stroke again (`padAlone_`) -- marks nothing until it has really moved: `g.min`. */
-const padMinOf_ = g => (g && g.min) || PAD_MIN_PX;
+/* AND LONGER FOR ONE STROKE: a ruler's or a compass's owner that stayed still while another contact moved, and was made
+   the stroke again (`padAlone_`), marks nothing until it has really moved: `g.min`. AND NOTHING AT ALL once the pin rule
+   has refused a contact ON THE PICTURE, unless the still one has since shown it is the one drawing (`g.refused` without
+   `g.mine`, `padRace_`): a pin or a palm is put down and then only drifts, and the second review's 10px was inside the
+   drift a real palm makes. */
+const padMinOf_ = g => (!g ? PAD_MIN_PX : g.refused && !g.mine ? Infinity : g.min || PAD_MIN_PX);
 const PAD_SWING_PX = 16;                  // nearer the point than this, its angle is noise
 const PAD_ARC_MIN = Math.PI / 6;          // a swing of 30 degrees or more is an arc rather than a circle
 
@@ -9278,6 +9281,8 @@ function padTrack_(c, x, y, ts) {
   c.p = [x, y];
   const d = padDist_(c.p0, c.p);
   if (d > c.far) c.far = d;
+  /* AND WHEN IT FIRST WENT `PAD_KEEPUP_PX`, by this sample's clock -- the moment `padRace_` compares. */
+  if (c.tk === undefined && d >= PAD_KEEPUP_PX) c.tk = ts;
   if (padDist_(c.pm, c.p) >= PAD_ALSO_PX) { c.pm = c.p.slice(); c.tm = ts; }
   /* AND WHEN, BY THE SAMPLE'S OWN CLOCK. The review found a pan's second finger whose event was stamped after the
      first had gone 10px while it carried only a sample from 16ms before -- judged by the event, it read as still and
@@ -9400,8 +9405,11 @@ function padLiveShow_() {
   const g = PAD_GO;
   if (!g) return;
   padLiveOff_(g);
-  g.live = [padLivePath_(g, '')];
   g.start = 0;
+  /* NOR WHAT CANNOT BE KEPT: a pin's or a palm's ruler line or ring while it is not known to be the one drawing (`padRace_`)
+     -- the third review watched a palm's line and ring follow it round the picture and vanish at the lift. */
+  if (!padShown_(g)) { g.dirty = false; return; }
+  g.live = [padLivePath_(g, '')];
   if (g.tool === 'pen') padChunks_(g);
   else { g.live[0].setAttribute('d', padPath_(PAD_ST, g.k, true)); g.dirty = false; padAid_(g); }
 }
@@ -9411,6 +9419,7 @@ function padLive_() {
   if (!g || PAD_HUSH || !g.dirty) return;
   if (g.tool === 'pen') { padFrameWant_(); return; }
   g.dirty = false;
+  if (!padShown_(g)) return;
   const live = g.live[0];
   if (live) live.setAttribute('d', padPath_(PAD_ST, g.k, true));
   padAid_(g);
@@ -9551,36 +9560,88 @@ function padAlone_(x) {
   if (!h || x !== cand) return;
   if (h.kind === 'a') { padTwo_(); return; }
   if (padTakes_(cand)) { padSwap_(cand, false); return; }
+  const pinned = padPinned_(cand);
   cand.role = 'rest'; cand.pts = null;
   /* REFUSED, SO THE STILL ONE IS THE STROKE AGAIN -- and a ruler's or a compass's still owner is a PIN or a PALM until it
-     shows otherwise (second review, 12 Oct). Its end needed only `PAD_MIN_PX`, so a pin that rolled 6px while the other
-     finger swung stored its own 7-unit ruler line, or a ring of radius 8 round itself, and a palm resting on the picture
-     that drifted 6px while the finger drew stored a line or a ring at the PALM: the brief's stray blob, where note 338
-     said nothing is stored. So from here its line or its radius counts only at `PAD_STILL_PX`, the app's own
-     "has moved": a finger that was aiming and then draws still gets its line, and a 4-9px roll or drift gets nothing.
-     Not the pen: its still owner resumed is the finger after a tap or a brush -- the pen hands a palm's stroke over. */
-  if (PAD_GO.tool !== 'pen') PAD_GO.min = PAD_STILL_PX;
+     shows otherwise. Its end needed only `PAD_MIN_PX` (4px), so a pin that rolled 6px while the other finger swung stored
+     its own 7-unit ruler line, or a ring of radius 8 round itself, and a palm resting on the picture that drifted 6px while
+     the finger drew stored a line or a ring at the PALM (second review, 12 Oct). Not the pen: its still owner resumed is the
+     finger after a tap or a brush -- the pen hands a palm's stroke over.
+     THE SECOND REVIEW'S ANSWER WAS A THRESHOLD, and the third review found it only moved the stray mark: its line or radius
+     counted from `PAD_STILL_PX`, 10px, and a resting palm that drifted 12px while the finger drew stored its own ruler line
+     or a ring round itself -- so did one that slid 12px after the finger lifted, one that crept 22px through three tries,
+     and a pin that rolled 12px. 6-12px is what round 1 measured a thumb roll and a palm settle at; 10px is inside it, and
+     so is any number a drift can reach. So when the pin rule refused a contact ON THE PICTURE, which of the two is drawing
+     is decided by what they do next (`padRace_`), and until then the still one can mark nothing and shows nothing.
+     `PAD_STILL_PX` stays the least it can mark once it is the one: kept for a refusal off the picture as well. */
+  if (PAD_GO.tool !== 'pen') PAD_GO.min = Math.max(PAD_GO.min || 0, PAD_STILL_PX);
+  if (pinned) (PAD_GO.refused || (PAD_GO.refused = [])).push(cand);
   padResume_();
+  padRace_(PAD_GO, false);
 }
+/* WHICH OF THE TWO IS DRAWING, after the pin rule refused the later one: the first to show it. THE REFUSED ONE GOING
+   `PAD_KEEPUP_PX` -- past any roll or settle (round 1: 6-12px in 50-80ms, and then still) -- is the finger drawing: the
+   still one is a pin or a palm, and NEVER marks in this stroke, however far it then drifts, slides or creeps (a palm
+   slid along the card after the finger lifts is a hand moving, not a line). THE STILL ONE GOING FURTHER THAN THE REFUSED
+   ONE HAS, and at least `PAD_STILL_PX`, is a finger that was aiming when a palm landed and settled: its line counts from
+   then on, and is shown, even if that palm then slides along with the hand -- which is why it is a race and not a
+   threshold on the refused one alone (the review's prototype, "30px and the still one never marks", lost that line).
+   Kept on the stroke, not the contact: a refused one that lifts still counts by how far it went.
+   FIRST BY THE SAMPLES' OWN CLOCK, and decided at a frame, for the reason `padJudge_` is: under load one event carries
+   a finger's last 100ms, and the other's event for the same moments can be dispatched before or after it. So each side's
+   moment is the sample it crossed at (`tk`, kept by `padTrack_`; the still one's from its history), and a side is beaten
+   only once the other has reported that far in time -- or has been silent `PAD_LAG_MS`, or lifted: it did not move.
+   `force` is the owner's lift or the page going: decided from what has come. */
+function padRace_(g, force) {
+  if (!g || !g.refused || g.mine || g.never || g !== PAD_GO) return;
+  const o = g.c;
+  let far = 0, tk = Infinity, latest = o.ts;
+  g.refused.forEach(c => { if (c.far > far) far = c.far; if (c.tk < tk) tk = c.tk; if (c.ts > latest) latest = c.ts; });
+  let tl = Infinity;
+  if (o.far >= PAD_STILL_PX && o.far > far) {
+    for (const h of o.hist) {
+      const d = Math.hypot(h[1] - o.p0[0], h[2] - o.p0[1]);
+      if (d >= PAD_STILL_PX && d > far) { tl = h[0]; break; }
+    }
+  }
+  const told = (c, t) => force || c.ts >= t || latest - c.ts > PAD_LAG_MS || PAD_TOUCH.get(c.id) !== c;
+  if (tl < tk) {
+    if (!g.refused.every(c => told(c, tl))) return;
+    g.mine = true;
+    if (!PAD_HUSH) padLiveShow_();
+    return;
+  }
+  if (tk < Infinity && told(o, tk)) g.never = true;
+}
+/* WHETHER ANY OF A STROKE IS SHOWN: all of it, unless the still one may not mark yet (`padRace_`). */
+const padShown_ = g => !g.refused || !!g.mine;
 /* WHETHER THE OTHER MAY TAKE THE STROKE: it came later, onto this pad's ink, and its samples were kept -- the finger
    after a palm. NOT a second finger beside a PIN: with the ruler or the compass, an owner that had been held still on its
    point for longer than `PAD_TOGETHER_MS` before the other came was put there on purpose -- the centre, an end. The
    review drove a real compass's way with two fingers (one on the centre, the other swinging round it) and the pen
    handed the stroke to the swinging finger: an arc centred where IT landed, 52 units off the centre, and a ruler line
    from its start to its end. Neither finger meant either. It is kept as the pen before 338 kept it: the pin's, which
-   stores nothing -- nothing at all once it must move `PAD_STILL_PX` to mark (`padAlone_`). (A two-finger compass -- pin
-   and pencil -- is a revisit, 338.) The pen keeps the swap: a finger held still and another drawing is a hand resting
-   and a finger drawing.
+   stores nothing -- and, since the third review, a pin's that marks nothing however it rolls, once the other has gone on
+   to draw (`padRace_`). (A two-finger compass -- pin and pencil -- is a revisit, 338.) The pen keeps the swap: a finger
+   held still and another drawing is a hand resting and a finger drawing.
    THE COST, CHOSEN (second review, 12 Oct; 338 section 4): by movement a PALM resting on the picture is a pin, so a palm
    down more than `PAD_TOGETHER_MS` before the finger takes the finger's ruler line or compass arc with it -- and every
-   one after, while that palm stays down, since each new finger is held against it and refused the same way. Nothing is
-   left at the palm. A palm down within `PAD_TOGETHER_MS` of the finger still hands it over; the pen always does. Only a
-   contact's SIZE tells a palm from a pin (increment 2). */
+   one after, while that palm stays down, since each new finger is held against it and refused the same way. A palm down
+   within `PAD_TOGETHER_MS` of the finger still hands it over; the pen always does. Only a contact's SIZE tells a palm
+   from a pin (increment 2). "Nothing is left at the palm" was written here in the second review and was not yet true: a
+   palm that drifted 10px or more marked. It is true once the finger has drawn `PAD_KEEPUP_PX` (`padRace_`); 338 says
+   what is left below that. */
 function padTakes_(c) {
   if (!c || !c.late || !c.onInk || c.k !== PAD_ON || !c.pts) return false;
+  return !padPinned_(c);
+}
+/* THE PIN RULE ITSELF, apart from the other reasons a contact may not take the stroke: it came later, onto this pad's
+   picture, with the ruler or the compass, more than `PAD_TOGETHER_MS` after a still owner. Only these go into the race
+   (`padRace_`) -- a contact refused because it was down FIRST, or is off the picture, says nothing about the owner: the
+   owner is the later finger, or the other is a thumb on the card, and either way the owner is the one drawing. */
+function padPinned_(c) {
   const g = PAD_GO;
-  if (g && g.tool !== 'pen' && c.t0 - g.t0 > PAD_TOGETHER_MS) return false;
-  return true;
+  return !!c && !!g && c.late && c.onInk && c.k === PAD_ON && !!c.pts && g.tool !== 'pen' && c.t0 - g.t0 > PAD_TOGETHER_MS;
 }
 /* EVERY MOVE OF ONE OF THEM, AFTER ITS SAMPLES: once one has gone 10px by its own latest, the question is asked at the
    next frame (`padFrame_`). A frame is asked for only then, so a held stroke whose fingers are still costs nothing. */
@@ -9603,6 +9664,7 @@ function padFrameWant_() {
 function padFrame_() {
   PAD_FRAME = 0;
   if (PAD_DUE) padJudge_(false);
+  if (PAD_GO && PAD_GO.refused) padRace_(PAD_GO, false);
   const g = PAD_GO;
   if (g && g.dirty && !PAD_HUSH && g.tool === 'pen') padChunks_(g);
 }
@@ -9705,6 +9767,8 @@ function padGone_(c, now, how) {
       else if (cand) { cand.role = 'rest'; cand.pts = null; }
       return;
     }
+    /* A PIN-RULE PAIR NOT YET TOLD APART: decided now, from what has come (`padRace_`). */
+    if (g.refused) padRace_(g, true);
     /* THE LOCK PRESSED OFF BY ANOTHER HAND mid-stroke: an established stroke is kept, as it always was. */
     if ((how === 'cancel' || PAD_ON !== c.k) && padTentative_(now)) { padWithdraw_(); return; }
     padCommit_();
@@ -9761,6 +9825,7 @@ function padDrop_() {
    -- their lifts will not come here. */
 function padAway_(e) {
   if (PAD_DUE) padJudge_(true);
+  if (PAD_GO && PAD_GO.refused) padRace_(PAD_GO, true);
   if (PAD_ST && PAD_GO) {
     const now = e && typeof e.timeStamp === 'number' ? e.timeStamp : PAD_GO.t0;
     if (padTentative_(now)) padWithdraw_(); else padCommit_();
@@ -9829,6 +9894,9 @@ document.addEventListener('pointermove', e => {
     if (!at) return;
     if (feed) padStep_(g, at); else padKeep_(c.pts, at);
   });
+  /* WHICH OF A PIN-RULE PAIR IS DRAWING, asked at the frame after any move while it is not known (`padRace_`) -- the
+     refused one's moves too, though it is only a rest now: how far it goes is the evidence. */
+  if (PAD_GO && PAD_GO.refused && !PAD_GO.mine && !PAD_GO.never) padFrameWant_();
   padRules_(c);
   if (feed && PAD_GO === g) padLive_();
 });
