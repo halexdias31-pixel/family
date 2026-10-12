@@ -587,7 +587,11 @@ function profAvail_(t) {
 
 /* WHAT ONE EXTRA SEAT ADDS TO THE HOURLY RATE — ASKED FOR AS *"a smaller rate to the side so
    clients can know extra cost for the extra seat"*. `seatShare_` is the reader `priceFrom` uses,
-   so the card and the booking agree: a seat is `(cUsed + bUsed)` of the rate. Nought draws nothing. */
+   so the card and the booking agree: a seat is `(cUsed + bUsed)` of the rate. Nought draws nothing.
+   `bUsed` IS THIS TUTOR'S OWN CUT when an admin has set one (`extraSeatCut`, docs/history/345), the config
+   default when it is blank — the number the owner pointed at, *"that small number to the right of their
+   normal rate"*. And the card editor's live preview is this function over the typed row, so the form and
+   the card cannot print two different seats. */
 function profSeat_(t) {
   if (!(Number(t.rate) > 0) || typeof seatShare_ !== 'function') return 0;
   const s = seatShare_(t);

@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-12-merge-cardset";
+  --css-version: "2026-10-12-seatcut";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -6471,6 +6471,12 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 /* SOMEBODY ELSE'S PICTURE, ON AN ADMIN'S EDIT: the card's own circle, and why it is not offered. */
 .ce-pic { display: flex; gap: .7rem; align-items: center; }
 .ce-pic .ce-note { margin: 0; }
+/* WHAT AN EXTRA SEAT ADDS, UNDER ITS TWO PARTS — `cardRateHtml_` in me.js (docs/history/345). The seat as the card
+   will print it, in the card's own `.prof-seat` type, so the form's answer and the card's number look like one
+   thing; the line under it pulled up to it, because the two are one sentence about one seat. */
+.ce-seat { margin: -.35rem 0 0; font: 400 .7rem/1.35 var(--mono); color: var(--dim); }
+.ce-seat .prof-seat { font-size: inherit; line-height: inherit; }
+.ce-seat + .ce-seat-note { margin: .2rem 0 .75rem; }
 /* THE MAP UNDER THE VENUES, redrawn from the ticks; nothing ticked is no map and no gap. */
 .ce-heat:empty { display: none; }
 /* WHERE THE PAGES WENT, once, at the top of Settings — for everybody since docs/history/339. */
@@ -12334,8 +12340,9 @@ button.scr-sq { cursor: pointer; }
 .rc-shot { display: block; width: 100%; height: auto; margin: 0 0 .6rem;
            border: 1px solid var(--line); border-radius: var(--r); }
 
-/* ---------- THE TUTOR AGREEMENT (DRAFT) and THE ADMIN'S CUT -------------------------------------
-   Two Settings cards (see `agreementCard_` and `cutCard_` in me.js). The draft mark is its own
+/* ---------- THE TUTOR AGREEMENT (DRAFT) ---------------------------------------------------------
+   A Settings card (see `agreementCard_` in me.js). The admin's cut card that sat beside it went to each
+   tutor's own card in docs/history/345, and its one rule with it. The draft mark is its own
    class rather than `.chip`, which is the funnel's 44px filter with a ✕ on it. The list is small
    type because it is ten sentences on one pane; a locked box recedes so it reads as done rather
    than as a control waiting for a tap. */
@@ -12348,7 +12355,6 @@ button.scr-sq { cursor: pointer; }
 .agree-list li + li { margin-top: .25rem; }
 .agree .check input:disabled ~ span:last-child { color: var(--dim); }
 .agree .check:has(input:disabled) { cursor: default; }
-.cut-say b { color: var(--gold); }
 
 
 /* ---------- BUSINESS RECORDS: ADMIN PAGES OF THE SETTINGS COLUMN — see js/records.js ------------

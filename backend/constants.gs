@@ -335,7 +335,7 @@ const NOTIFY_KINDS = {
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-10-12-p-merged";
+const BACKEND_VERSION = "2026-10-12-q-seatcut";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -461,7 +461,14 @@ const SCHEMA = {
     /* where they are */
     "address", "town", "city", "borough", "postcode", "travel_km",
     /* what they charge, and when they can teach */
-    "rate_per_hour", "extra_seat_rate", "min_students", "max_students", "min_hours", "max_hours",
+    "rate_per_hour", "extra_seat_rate",
+    /* THE BUSINESS'S CUT OF AN EXTRA SEAT, PER TUTOR (docs/history/345) — a fraction of THIS tutor's rate,
+       beside their own share. BLANK IS THE CONFIG TAB'S `B`, which is how every tutor was priced before the
+       column existed, so a sheet that has never typed into it prices exactly as it did; NOUGHT IS NOUGHT, no
+       cut at all. Written only by an admin (`seatCutRefusal_`, people.gs). Added at the END of a live sheet
+       by `ensureSchema`, like every new column. */
+    "extra_seat_cut",
+    "min_students", "max_students", "min_hours", "max_hours",
     "pricing_changed_at", "availability", "agreement_signed_at", "agreement_version",
     /* a family's and a student's own */
     "children", "favourite_colour", "exam_small_date", "exam_big_date",
@@ -1666,7 +1673,10 @@ const CONFIG_DEFAULTS = [
   // meant two places claiming to decide the same price.
   ['s', 0, 'each extra subject adds this FRACTION of the base rate. 0.15 = +15%'],
   ['c', 0, "each extra seat adds this fraction — the tutor's share of it. 0.15 = +15%"],
-  ['B', 0, 'each extra seat adds this fraction — your share of it. 0.25 = +25%'],
+  /* B IS THE DEFAULT NOW, NOT THE CUT (docs/history/345): a tutor's own `extra_seat_cut` wins, and this is
+     what a blank one means. `ensureSchema` never rewrites a note already on the sheet, so a live config tab
+     keeps the old wording until somebody edits it by hand. */
+  ['B', 0, "each extra seat adds this fraction — your share of it, for every tutor whose own extra_seat_cut is blank. 0.25 = +25%"],
   ['b', 0, 'bulk discount taken off per session AFTER THE FIRST. 0.01 is about 9% off a 10-session term. 0 = off'],
 
   ['a', 0, 'advance discount taken off per week ahead AFTER THE FIRST. 0 = off'],
@@ -2632,6 +2642,18 @@ const AVATAR_ITEMS = [
    costs, what a second seat is worth, then the range of class sizes it applies to. */
 const PRICING_FIELDS = ['rate_per_hour', 'extra_seat_rate', 'max_students', 'min_students'];
 
+/* ---------- AND THE BUSINESS'S CUT OF AN EXTRA SEAT, WHICH IS ON THE RATE PAGE AND NOT THE FIFTH OF THEM -----
+   THE OWNER, 12 Oct: *"Your cut off extra child for tutors should be editable on thir card. Like they can edit
+   that small number to the right of their normal rate"* — so the cut that was one config number for everybody
+   is a cell on each tutor's row (docs/history/345), drawn on their card's rate section beside their own share.
+   ON THE PAGE, so `PROFILE_GROUPS` (the layout AND the write allow-list) carries it and the card can draw it.
+   NOT IN `PRICING_FIELDS`, for three reasons each of which would be a bug: `pricingMoved_` compares with `N()`,
+   which reads blank and nought as the same number, and those are two different answers here (the default, and
+   no cut); an admin setting it would stamp `pricing_changed_at` and lock the TUTOR out of their own rate for a
+   month over a number they cannot touch; and the tutor is not the one who moves it. Its own rule is
+   `seatCutRefusal_` in people.gs: an admin's alone, blank, nought, or a share from above 0 to 2. */
+const SEAT_CUT_FIELD = 'extra_seat_cut';
+
 /* ---------- THE AGES A TUTOR MAY SAY THEY TEACH, AS ONE LIST THE FORM AND THE RULE BOTH READ ------
    FOUR TO EIGHTEEN, THEN `Adults`. Four is Reception, eighteen is the end of sixth form, and the word
    is everyone past it — "18" and "Adults" are two answers because a tutor who stops at Year 13 and one
@@ -2714,7 +2736,10 @@ const PROFILE_GROUPS = {
      you, because nobody browses their card. */
   'Photos': ['photo','video'].concat(PHOTO_FIELDS),
   /* THE QUOTE, THEN HOW LONG A SESSION IS — `SESSION_FIELDS`' note says why they share a page and not a clock. */
-  'Your rate and group size': PRICING_FIELDS.concat(SESSION_FIELDS),
+  /* AND THE BUSINESS'S CUT OF AN EXTRA SEAT straight after the tutor's own share, as the card reads them — an
+     admin's to write, which `seatCutRefusal_` decides, not this list (`SEAT_CUT_FIELD` above says why). */
+  'Your rate and group size': PRICING_FIELDS.reduce((a, f) => a.concat(f === 'extra_seat_rate' ? [f, SEAT_CUT_FIELD] : [f]), [])
+                                .concat(SESSION_FIELDS),
   /* WHAT YOU TEACH, WHAT YOU ARE STUDYING AND ANYTHING ELSE — one page, because they are the
      three answers to "what do you know". `Qualifications` beside it is the graded list. */
   /* ---------- WHAT YOU SPECIALISE IN, THEN WHAT ELSE YOU TEACH -------------------------------

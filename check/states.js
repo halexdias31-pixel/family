@@ -3991,6 +3991,8 @@ const STATES = {
         CARD_EDIT = cardEditFresh_(ada.personId);
         CARD_EDIT.base = { phone_cc: '+44', first_name: 'Ada', last_name: 'Tutor',
           headline: 'Ten years of GCSE and A-Level maths.', rate_per_hour: '30', extra_seat_rate: '0.5',
+          /* A CUT OF THEIR OWN (docs/history/345), so the business's pound box is measured filled, beside theirs. */
+          extra_seat_cut: '0.1',
           min_students: '1', max_students: '3', adjective_1: 'Patient', adjective_2: 'Clear', adjective_3: 'Encouraging',
           years_experience: '10', favourite_colour: 'Blue', age_min: '11', age_max: '18',
           qual_1: 'Maths', qual_1_level: 'A-Level', qual_1_grade: 'A*', qual_1_received: '2014', qual_1_teach: 'TRUE', qual_1_spec: 'TRUE',
@@ -4014,9 +4016,14 @@ const STATES = {
           && /Only Ada can change this picture/.test(form.textContent)
           && (form.querySelector('[data-me="headline"]') || {}).value === 'Ten years of GCSE and A-Level maths.'
           && form.querySelectorAll('.me-week .slot-row:not(.slot-head)').length === 7
+          /* THE TWO PARTS OF A SEAT IN POUNDS BESIDE THE RATE, THE CUT THE ADMIN'S TO SET, AND THE SEAT AS THE CARD
+             WILL PRINT IT (docs/history/345): £15.00 theirs and £3.00 the business's of a £30 rate. */
+          && (form.querySelector('[data-pound="extra_seat_rate"]') || {}).value === '15.00'
+          && (form.querySelector('[data-pound="extra_seat_cut"]') || {}).value === '3.00'
+          && /\+£18\.00\/h a seat/.test((form.querySelector('.ce-seat') || {}).textContent || '')
           && pg.querySelectorAll('.ce-tiles .tile[data-do="card-save"], .ce-tiles .tile[data-do="card-cancel"]').length === 2 ? 1 : 0;
       },
-      wants: 'the fixture tutor\'s card as a form for the admin: their headline in its box, their picture shown and not offered, the whole week, Save and Cancel' },
+      wants: 'the fixture tutor\'s card as a form for the admin: their headline in its box, their picture shown and not offered, the two parts of a seat in pounds with the seat they make, the whole week, Save and Cancel' },
     /* ---------- EVERYBODY'S OWN CARD, BEING EDITED — THE FIGURE AND THE HANDLE ON IT (docs/history/339) ---------------
        THE OWNER, 11 Oct: *"the random name generator should be one of the editable things in the profile settings of
        the profile card. your figure should also be in your profile card editing."* Edit on your own card is
@@ -4541,17 +4548,20 @@ const STATES = {
         if (at < 0) throw new Error('no pricing page on the settings column');
         goPage('settings', at, true);
       },
-      /* EXACTLY SIX, NOT MERELY SOME. `expect` is read as a truthy value, so a page holding two
+      /* EXACTLY SEVEN, NOT MERELY SOME. `expect` is read as a truthy value, so a page holding two
          boxes would pass a bare count — and two is precisely what splitting the group back into
          `Group size` and `Your rate` produces. The whole point is that they are on ONE page, so the
          number is the assertion. SIX SINCE docs/history/330: the four pricing boxes and the session
          length (`SESSION_FIELDS`, constants.gs — on this page, not under its clock), which a tutor
-         with a card edits on the card and a tutor not yet listed edits here. Two ranges, four boxes. */
-      expect: () => (document.querySelectorAll('#s-settings .page.on [data-me]').length === 6
+         with a card edits on the card and a tutor not yet listed edits here. Two ranges, four boxes.
+         SEVEN SINCE docs/history/345: the business's cut of an extra seat (`extra_seat_cut`), beside the
+         tutor's own share — a box for the lab's admin, who sets it, and enabled for them. */
+      expect: () => (document.querySelectorAll('#s-settings .page.on [data-me]').length === 7
                      && document.querySelectorAll('#s-settings .page.on .f-row.is-range [data-me]').length === 4
                      && !!document.querySelector('#s-settings .page.on .f-row.is-range [data-me="min_hours"]')
-                     ? 6 : 0),
-      wants: 'all four pricing boxes and the session length on one page, the students and the hours each one min – max row' },
+                     && !!document.querySelector('#s-settings .page.on [data-me="extra_seat_cut"]:not([disabled])')
+                     ? 7 : 0),
+      wants: 'all four pricing boxes, the business\'s cut of a seat (the admin\'s to set) and the session length on one page, the students and the hours each one min – max row' },
 
     /* ---------- YOUR JOURNEY, THE PLACEHOLDER ----------------------------------------------------
        For a student and an admin; the lab signs in as an admin. Found by asking the DOM, as the
@@ -4680,21 +4690,6 @@ const STATES = {
           && !!c.querySelector('.tile[data-do="roles-save"]') ? 1 : 0;
       },
       wants: 'three role ticks, Tutor and Client ticked, no Admin tick, the waiting line and a Save tile' },
-
-    /* THE ADMIN'S CUT OF AN EXTRA CHILD: a box holding the current figure and a sentence saying it
-       in money. The fixture carries no `boss_rate`, so this is the "none set" state, which is the
-       one a new sheet is in. */
-    { name: "the admin's cut of an extra child",
-      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
-      enter: () => {
-        const at = [...document.querySelectorAll('#s-settings .page')]
-          .findIndex(pg => pg.querySelector('#cut-val'));
-        if (at < 0) throw new Error('no cut card on the settings column');
-        goPage('settings', at, true);
-      },
-      expect: () => document.querySelector('#s-settings .page.on #cut-val')
-        && /extra child adds/.test((document.querySelector('#s-settings .page.on .cut-say') || {}).textContent || ''),
-      wants: 'the share box and its worked example' },
 
     /* ---------- THE WEEKLY PARENT EMAIL: ITS CARD, AND WHAT PREVIEW OPENS ----------------------------
        The infrastructure for *"something which triggers every sunday"* and emails parents — built and

@@ -150,6 +150,13 @@ const SRC = [
   grab(consts, /const PRICING_FIELDS[^;]*;/, 'PRICING_FIELDS'),
   grab(people, /function pricingMoved_\([\s\S]*?\n\}/, 'pricingMoved_'),
   grab(people, /function pricingRefusal_\([\s\S]*?\n\}/, 'pricingRefusal_'),
+  /* ---------- AND THE BUSINESS'S CUT OF AN EXTRA SEAT, PER TUTOR (docs/history/345) ----------------------
+     Beside the four and NOT one of them — its own rule, an admin's alone, and its own idea of "moved" that
+     knows a blank (the config default) from a nought (no cut). Its constant read out of constants.gs, as
+     `PRICING_FIELDS` is, so the rule here is the one the server runs. */
+  grab(consts, /const SEAT_CUT_FIELD[^;]*;/, 'SEAT_CUT_FIELD'),
+  grab(people, /function seatCutRefusal_\([\s\S]*?\n\}/, 'seatCutRefusal_'),
+  grab(people, /function seatCutOut_\([\s\S]*?\n\}/, 'seatCutOut_'),
 ].join('\n\n');
 
 /* The eight Apps Script helpers those two reach for, and nothing else. If one of them ever changes
@@ -197,6 +204,7 @@ const box = {};
 new Function('box', PRELUDE + SRC + '\nbox.trouble = handleTrouble_; box.fold = handleFold_;'
            + ' box.setRows = setRows; box.price = pricingRefusal_;'
            + ' box.moved = pricingMoved_; box.fields = PRICING_FIELDS;'
+           + ' box.cut = seatCutRefusal_; box.cutOut = seatCutOut_; box.CUT_FIELD = SEAT_CUT_FIELD;'
            + ' box.find = findPerson; box.mail = emailRefusal_;'
            + ' box.make = handleMake_; box.ADJ = HANDLE_ADJ;'
            + ' box.FIRST_MAX = HANDLE_FIRST_MAX; box.FALLBACK = HANDLE_FALLBACK;'
@@ -1176,6 +1184,49 @@ function run() {
       said: JSON.stringify(box.fields) });
   });
 
+  /* ---------- THE BUSINESS'S CUT OF AN EXTRA SEAT: AN ADMIN'S, AND BLANK IS NOT NOUGHT (docs/history/345) -----
+     The owner, 12 Oct: *"Your cut off extra child for tutors should be editable on thir card."* The cut moved
+     from one config number to `extra_seat_cut` on each tutor's row, and it is the business's margin, so the
+     one thing this rule must never do is let a tutor set it — while still letting the tutor's own Save of the
+     page it sits on through, which posts every box whether touched or not. And blank and nought are two
+     answers (the usual share; none at all), which the four's `N()` compare cannot tell apart — so a blank
+     made nought must count as a change, and '0.10' over 0.1 must not. */
+  const CUT0 = { person_id: 'P002', rate_per_hour: 30, extra_seat_rate: 0.5, extra_seat_cut: '' };
+  const CUTOWN = Object.assign({}, CUT0, { extra_seat_cut: 0.1 });
+  const CUTNONE = Object.assign({}, CUT0, { extra_seat_cut: 0 });
+  const CUTS = [
+    ['yes', CUT0,   {}, false, 'a page that sends no cut is not a change'],
+    ['yes', CUT0,   { extra_seat_cut: '' }, false, 'a tutor\'s no-change Save posts the blank it was drawn with'],
+    ['yes', CUTOWN, { extra_seat_cut: '0.10' }, false, 'and "0.10" over 0.1 is the same share written twice'],
+    ['yes', CUTNONE, { extra_seat_cut: '0' }, false, 'and "0" over nought is nought'],
+    ['no',  CUT0,   { extra_seat_cut: '0.2' }, false, 'a TUTOR setting the business\'s cut — their margin is not theirs to move'],
+    ['no',  CUT0,   { extra_seat_cut: '0' }, false, 'nor taking it to nothing, blank to nought'],
+    ['no',  CUTOWN, { extra_seat_cut: '' }, false, 'nor putting it back to the usual'],
+    ['yes', CUT0,   { extra_seat_cut: '0.2' }, true, 'an admin sets it'],
+    ['yes', CUT0,   { extra_seat_cut: '0' }, true, 'an admin takes it to nought — no cut for this tutor'],
+    ['yes', CUTOWN, { extra_seat_cut: '' }, true, 'an admin puts it back to the usual share'],
+    ['yes', CUT0,   { extra_seat_cut: '2' }, true, 'two is the top of the range'],
+    ['no',  CUT0,   { extra_seat_cut: '15' }, true, '15 is pounds typed into a fraction, refused for an admin too'],
+    ['no',  CUT0,   { extra_seat_cut: '-0.1' }, true, 'and a share below nothing'],
+    ['no',  CUT0,   { extra_seat_cut: 'ten percent' }, true, 'and words'],
+  ];
+  CUTS.forEach(([want, me, f, isAdmin, why]) => {
+    const said = box.cut(me, f, isAdmin);
+    const got = said ? 'no' : 'yes';
+    if (got !== want) bad.push({ handle: 'cut \u2192 ' + JSON.stringify(f)
+      + (isAdmin ? ' (admin)' : ''), want, why, said: said || '(allowed)' });
+  });
+  /* WHAT `doGet` SENDS FOR IT: '' for blank (the default), nought for nought, the share for a share — and a cell
+     that is not a number is the default, never a nought that takes the margin away. */
+  [['', ''], [null, ''], [0, 0], ['0', 0], [0.1, 0.1], ['0.25', 0.25], ['abc', '']].forEach(([cell, want]) => {
+    const got = box.cutOut(cell);
+    if (got !== want) bad.push({ handle: 'seatCutOut_(' + JSON.stringify(cell) + ')', want: JSON.stringify(want),
+      why: 'blank is the usual cut and nought is none — doGet must keep them apart', said: JSON.stringify(got) });
+  });
+  /* AND IT IS NOT UNDER THE TUTOR'S MONTH: a fifth of the four would stamp `pricing_changed_at` on an admin's edit. */
+  if (box.fields.indexOf(box.CUT_FIELD) !== -1) bad.push({ handle: 'PRICING_FIELDS', want: 'no ' + box.CUT_FIELD,
+    why: 'the business\'s cut is an admin\'s and must not start the tutor\'s month', said: JSON.stringify(box.fields) });
+
   /* ---------- `SIGNIN` — AN E-MAIL ADDRESS AND A PIN, AND NOTHING ELSE ---------------------------
      ASKED FOR AS *"i want people to be able to sign in only with their email and their pin now. no
      case sensitive stuff."* `verifyLogin` reads the `email` column alone, and the three rules that
@@ -1372,6 +1423,7 @@ function run() {
     + '  ·  e-mail clashes checked: ' + MAILCASES.length
     + '  ·  pricing changes checked: ' + PRICES.length
     + ' over ' + box.fields.length + ' fields'
+    + '  ·  seat-cut changes checked: ' + CUTS.length
     + '  ·  words on the block list: ' + (SRC.match(/const HANDLE_BLOCKED[\s\S]*?\];/)[0]
         .match(/'/g).length / 2)
     + '  ·  innocent words allowed back: '

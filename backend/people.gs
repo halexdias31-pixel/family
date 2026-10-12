@@ -835,6 +835,53 @@ function pricingRefusal_(me, fields, isAdmin) {
 }
 
 /* ==================================================================================================
+   THE BUSINESS'S CUT OF AN EXTRA SEAT, PER TUTOR — AN ADMIN'S TO SET, AND ONE READER FOR WHAT IS SENT.
+
+   THE OWNER, 12 Oct: *"Your cut off extra child for tutors should be editable on thir card. Like they can
+   edit that small number to the right of their normal rate"* (docs/history/345). The number to the right of
+   the rate is `+£X/h a seat`, which is the rate times the tutor's share plus the business's — and the
+   business's was ONE config number (`B`, Settings' "Your cut of an extra child") for every tutor. It is
+   `extra_seat_cut` on each tutor's row now, edited on their card, and the config `B` is what a BLANK cell
+   means, so a sheet nobody has typed into prices exactly as it did.
+
+   `seatCutOut_` IS WHAT `doGet` SENDS: '' for a blank cell — "use the default" — and the number otherwise.
+   NOT `N()` alone, which turns a blank into nought, and nought here is a different answer: no cut at all,
+   the tutor keeps the whole of the seat. A cell holding something that is not a number states no decision,
+   so it is sent as blank too: a typo in the sheet must not quietly take the business's margin to nothing.
+
+   `seatCutRefusal_` IS ASKED BEFORE ANYTHING IS WRITTEN, beside `pricingRefusal_` and in its shape (the row,
+   the wanted-only fields, whether the TOKEN's row is an admin), so a check can cut it out by name. Three
+   answers, and only when the value MOVED — the rate page and the card post every box on a no-change Save, and
+   a rule firing on a value being present would refuse a tutor's headline over a number they never touched:
+     · moved by anybody but an admin — refused. A tutor deciding the business's margin is the one thing this
+       column must not allow; the card does not offer them the box, and the server does not trust the card.
+     · a value `seatShare_` (js/core.js) would not read as a share — refused, an admin included. Above 2 is
+       pounds typed into a fraction, which the price would silently read as nothing.
+     · blank, nought, or a share above 0 up to 2 — allowed.
+   "MOVED" KNOWS BLANK FROM NOUGHT, which `pricingMoved_`'s `N()` does not: blank → 0 takes the cut away and is
+   a change; '0.10' → 0.1 is the same number written twice and is not. And it starts no month's clock: that
+   clock is the TUTOR's, on what THEY charge, and this is not theirs to move (`SEAT_CUT_FIELD`, constants.gs).
+================================================================================================== */
+function seatCutOut_(v) {
+  const s = S(v);
+  if (s === '' || isNaN(Number(s.replace(/[£$,\s]/g, '')))) return '';
+  return N(s);
+}
+
+function seatCutRefusal_(me, asked, isAdmin) {
+  if (!me || !asked || !Object.prototype.hasOwnProperty.call(asked, SEAT_CUT_FIELD)) return '';
+  const want = S(asked[SEAT_CUT_FIELD]), was = S(me[SEAT_CUT_FIELD]);
+  const moved = (want === '') !== (was === '') || (want !== '' && Number(want) !== Number(was));
+  if (!moved) return '';
+  if (!isAdmin) return 'Only @family. sets its share of an extra seat. Nothing was saved.';
+  if (want !== '' && (isNaN(Number(want)) || Number(want) < 0 || Number(want) > 2)) {
+    return "@family.'s share of an extra seat is a share of the tutor's hourly rate, from 0 to 2 — 0.1 is a tenth "
+         + 'of it, and blank is the usual share. Nothing was saved.';
+  }
+  return '';
+}
+
+/* ==================================================================================================
    THE AGES A TUTOR TEACHES — ONE READER, AND A REFUSAL ASKED BEFORE ANYTHING IS WRITTEN.
 
    `ageRank_` TURNS A CELL INTO SOMETHING THAT CAN BE COMPARED: a whole number, `Infinity` for an adult
