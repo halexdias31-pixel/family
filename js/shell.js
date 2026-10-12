@@ -3480,21 +3480,31 @@ function afterSlide_(fn, key) {
     const wait = SETTLE_ON && now < SETTLE_ON.until ? Math.ceil(SETTLE_ON.until - now) + 50
                : down && now - AFTER_SLIDE_HELD < 1500 ? 100 : 0;
     if (wait) { AFTER_SLIDE = setTimeout(run, wait); return; }
-    AFTER_SLIDE = null;
     AFTER_SLIDE_HELD = 0;
     const jobs = [...AFTER_SLIDE_JOBS.values()];
     AFTER_SLIDE_JOBS.clear();
+    /* ---------- AND STILL "BOOKED" UNTIL THE LAST OF THEM HAS RUN (`AFTER_SLIDE` is this run's mark) ----------
+       It was set to null HERE, before the first job ran, while the rest waited one task each — so for the
+       length of the chain everything that asks "is anything booked after the slide?" was told no: the
+       builder's gate (`aheadGate_`, "work for the glass goes first"), and every check that waits for quiet.
+       Found by review round 1 (12 Oct) through the word-game journeys, which failed under a load average of
+       15–23 — on cafb838 too — and failed every time with each timer held back up to 300ms: the harness
+       said "quiet" while the job that stops a round left behind (`widgetsSettle_`) was still four tasks
+       away. A new booking made while the chain runs replaces the mark with its own timer, and the chain
+       then leaves it alone. */
+    const mark = {};
+    AFTER_SLIDE = mark;
     /* ONE JOB THAT THROWS MUST NOT TAKE THE REST WITH IT. They are unrelated — an observer, a
        widget's `start`, a page fill — and before there was a list there was nothing to protect.
        AND ONE PER TASK, so a finger that lands between them is answered between them rather than
        after all of them. */
     const next = () => {
       const f = jobs.shift();
-      if (!f) return;
-      try { f(); } catch (e) {}
-      if (jobs.length) setTimeout(next, 0);
+      if (f) { try { f(); } catch (e) {} }
+      if (jobs.length) { setTimeout(next, 0); return; }
+      if (AFTER_SLIDE === mark) AFTER_SLIDE = null;
       /* AND THEN THE BUILDER, which waits for exactly this list to be empty — see `ahead_` below. */
-      else if (typeof aheadKick_ === 'function') aheadKick_();
+      if (typeof aheadKick_ === 'function') aheadKick_();
     };
     next();
   }, 300);

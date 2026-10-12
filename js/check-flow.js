@@ -264,8 +264,14 @@ function boot(opts) {
     w.eval(src + '\n;window.__t = {' +
       'go, USER: v => { USER = v; }, whoami: () => USER, ACTIONS, BOOKING, STEPS: BOOK_STEPS, isTutorRole,' +
       /* WHETHER EVERYTHING BOOKED FOR AFTER A SLIDE HAS RUN, the widget queue included — `woken_`
-         below. A function, because a `let` inside this eval is not reachable from a second one. */
-      'quiet: () => !AFTER_SLIDE && !AFTER_SLIDE_JOBS.size && !(typeof TOOLS_WAIT !== "undefined" && TOOLS_WAIT.length)' +
+         below. A function, because a `let` inside this eval is not reachable from a second one.
+         AND NO PLACEMENT STILL WAITING FOR ITS FRAME (`PLACE_FRAME`): it is the placement that books the
+         after-slide jobs, so until its frame has come there is nothing booked to wait for and this said
+         "quiet" with the leave not yet seen. Under a load average of 15–23 the word-game journeys failed so
+         ("the clock went on running behind the Saved column"), on cafb838 too, every one green alone; with
+         every animation frame held back 900ms the Saved round failed every time, and with this it passes at
+         1.5s (docs/history/341, after review). */
+      'quiet: () => !PLACE_FRAME && !AFTER_SLIDE && !AFTER_SLIDE_JOBS.size && !(typeof TOOLS_WAIT !== "undefined" && TOOLS_WAIT.length)' +
       '  && !(typeof aheadBusy_ === "function" && aheadBusy_()),' +
       /* THE BUILDER'S OWN STATE, for the journeys about it (docs/history/341): what is still marked, what a
          landing drew, the log of what it ran, and the two landings — a reply (`landRepaint_`) and a change
@@ -25069,6 +25075,34 @@ check('a card the builder fills ahead of the card in front asks for its pictures
   if (back.length !== ahead.length) return ['the builder did not fill the emptied cards again, so nothing was asked — NOT checked'];
   const lazy = back.filter(pg => pg.querySelector('img[loading="lazy"]')).map(pg => pages().indexOf(pg) - k);
   if (lazy.length) bad.push('at rest, the cards ' + lazy.map(d => '+' + d).join(', ') + ' from the one in front, filled by the builder after the last placement, still hold a lazy picture');
+  return bad;
+});
+
+check('everything booked after a slide counts as booked until the last of it has run, and no builder slice runs between its jobs', async () => {
+  /* REVIEW ROUND 1, 12 Oct: `afterSlide_` runs its jobs one per task and said "nothing booked" from before the
+     first of them — so the builder's gate ("work for the glass goes first") and every check's quiet were told
+     the slide's work was done while it was still running. Found through the word-game journeys under load
+     (the job that stops a round left behind was four tasks away when the check looked). Five jobs of 60ms
+     each, booked after a repaint with the builder on: each must see the chain as still booked, and no slice
+     may start between the first and the last. */
+  const { w } = await aheadBoot_();
+  const t = w.__t, bad = [];
+  if (!t || typeof t.afterIdle !== 'function' || typeof w.afterSlide_ !== 'function') return ['the after-slide list is not reachable — NOT checked'];
+  t.USER(SAM_); t.go('feed', false, true); t.repaint();
+  await aheadQuiet_(t);
+  t.repaint();
+  const seen = [];
+  const busy = ms => { const e = w.performance.now() + ms; while (w.performance.now() < e) { /* the job's own work */ } };
+  for (let i = 0; i < 5; i++) w.afterSlide_(() => { seen.push({ i, t: w.performance.now(), idle: t.afterIdle() }); busy(60); }, 'chain-' + i);
+  for (let k = 0; k < 200 && seen.length < 5; k++) await wait(25);
+  if (seen.length < 5) return ['only ' + seen.length + ' of the five jobs ran — NOT checked'];
+  const early = seen.filter(x => x.idle).map(x => x.i);
+  if (early.length) bad.push('job(s) ' + early.join(', ') + ' of five ran with the list already saying nothing was booked');
+  const a = seen[0].t, b = seen[4].t;
+  const between = t.aheadLog().filter(x => x.t > a && x.t < b);
+  if (between.length) bad.push(between.length + ' builder slice(s) ran between the jobs of one slide: ' + between.slice(0, 3).map(x => x.key).join(', '));
+  if (!(await aheadQuiet_(t, 60000))) bad.push('the builder did not finish after the chain');
+  t.USER(null);
   return bad;
 });
 
