@@ -148,7 +148,8 @@ categories follow the pictures:
 - **Category pictures:** Countries changed to 🌐 (School's map card is 🗺️), and School to 📚
   (🏫 is Around town's school card; after review School is 🎒, because 📚 is a picture of its own
   `book` card). Each new category has its own picture: Nature 🏞️, Space and
-  weather 🌌, People 👥, Feelings 🎭, Actions 🚶, Signs and symbols 🔣.
+  weather 🌌 (🔭 after the second review, because 🌌 is a sky of stars over its own `star` and
+  `shooting star`), People 👥, Feelings 🎭, Actions 🚶, Signs and symbols 🔣.
 - **Moved:**
   - magnet, ruler, scissors and paintbrush from School to Toolbox
   - helmet from Clothes to Toolbox
@@ -176,7 +177,7 @@ categories follow the pictures:
 **Replaced: 327 cards**, listed as *old → new* in the category the new card is in. Many are just
 the card that took the old one's place, not a synonym:
 
-- **Food** (14): fish and chips → chips 🍟, spring rolls → noodles 🍜, fried rice → rice 🍚, shepherd’s pie → pie 🥧, roast dinner → chicken leg 🍗, fry-up → bacon 🥓, nachos → burrito 🌯, sausage roll → kebab 🥙, bangers and mash → steak 🥩, pick and mix → sweets 🍬, biscuit → cookie 🍪, cheesecake → cake 🍰, crumpet → pancakes 🥞, trifle → sundae 🍨.
+- **Food** (14): fish and chips → chips 🍟, spring rolls → noodles 🍜, fried rice → rice 🍚, shepherd’s pie → pie 🥧, roast dinner → chicken leg 🍗, fry-up → bacon 🥓 (In the kitchen's after the second review, and Food has `fried egg` 🍳 in its place), nachos → burrito 🌯, sausage roll → kebab 🥙, bangers and mash → steak 🥩, pick and mix → sweets 🍬, biscuit → cookie 🍪, cheesecake → cake 🍰, crumpet → pancakes 🥞, trifle → sundae 🍨.
 - **Fruit and veg** (7): peas → potato 🥔, pepper → chilli 🌶️, blueberry → melon 🍈, sprouts → garlic 🧄, plum → green apple 🍏, pumpkin → sweet potato 🍠, celery → aubergine 🍆.
 - **In the kitchen** (27): wooden spoon → spoon 🥄, fork → knife and fork 🍴, chopping board → knife 🔪, dishwasher → chopsticks 🥢, mug → cup ☕, teapot → milk 🥛, saucepan → egg 🥚, rolling pin → cheese 🧀, baking tray → bread 🍞, toaster → butter 🧈, grater → salt 🧂, tin opener → tin 🥫, ladle → honey 🍯, fridge → ice cube 🧊, blender → juice box 🧃, kettle → baby bottle 🍼, washing-up liquid → sponge 🧽, sink → tap 🚰, microwave → timer ⏲️, oven → fire extinguisher 🧯, whisk → fizzy drink 🥤, tea towel → takeaway 🥡, apron → croissant 🥐, sieve → bagel 🥯, peeler → baguette 🥖, measuring jug → pretzel 🥨, spatula → peanuts 🥜.
 - **At home** (22): window → door 🚪, wardrobe → chair 🪑, stairs → toilet 🚽, curtains → shower 🚿, duvet → toilet roll 🧻, doorbell → telephone ☎️, lamp → keyboard ⌨️, remote control → laptop 💻, mirror → picture 🖼️, letterbox → letter ✉️, bookcase → newspaper 📰, attic → suitcase 🧳, toothbrush → razor 🪒, chimney → clock 🕰️, radiator → umbrella ☂️, iron → printer 🖨️, carpet → parcel 📦, hairdryer → mobile phone 📱, washing machine → basket 🧺, vacuum cleaner → computer 🖥️, mop → camera 📷, hot-water bottle → family 👪.
@@ -534,15 +535,19 @@ error.
 
 #### Every card that changed after review
 
-41 cards and 5 category pictures. Every category is still 30 cards, and the deck is 750 cards and
-775 pictures. None is used twice, and none is newer than Emoji 12.0.
+41 cards and 5 category pictures after the first review, and 3 cards and 1 category picture after
+the second (marked, and told in full under "After the second review"). Every category is still 30
+cards, and the deck is 750 cards and 775 pictures. None is used twice, and none is newer than Emoji
+12.0.
 
 | Category | Was | Now | Why |
 |---|---|---|---|
 | Food | sundae 🍨 | falafel 🧆 | 🍨 is an ice cream, the seaside's card |
+| Food | bacon 🥓 | fried egg 🍳 (from In the kitchen) | **second review:** what 🍳 draws, and no longer a kitchen card |
 | Fruit and veg | green apple 🍏 | peanuts 🥜 (from In the kitchen) | `apple` again |
 | In the kitchen | peanuts 🥜 | bin 🗑️ (from At home) | peanuts moved |
 | In the kitchen | knife and fork 🍴 | cutlery 🍴 | `knife` again |
+| In the kitchen | frying pan 🍳 | bacon 🥓 (from Food) | **second review:** the category's picture 🥘 is a pan of food from above too |
 | At home | bin 🗑️ | wool 🧶 | bin moved |
 | At home | umbrella ☂️ | credit card 💳 | umbrella moved |
 | Clothes | T-shirt 👕 | headscarf 🧕 | the category's picture 👚 was a top |
@@ -560,6 +565,7 @@ error.
 | Nature | dead flower 🥀 | scorpion 🦂 | `flower` again |
 | Nature | leaves 🍃 | hedgehog 🦔 (from Wild animals) | `autumn leaves` held `leaves` |
 | Space and weather | half moon 🌓 | umbrella ☂️ (from At home) | `moon` again |
+| Space and weather | telescope 🔭 | Milky Way 🌌 | **second review:** 🔭 is the category's picture now, and 🌌 was |
 | Fairy tales | haunted house 🏚️ | coffin ⚰️ | nothing haunted is drawn |
 | Around town | cinema 🎬 | post office 🏤 | 🎬 is a clapperboard |
 | Around town | theme park 🎢 | shopping bags 🛍️ | 🎢 moved, as `roller coaster` |
@@ -582,7 +588,7 @@ error.
 | Signs and symbols | rewind ⏪ | arrow ⬆️ | rewind moved |
 
 Category pictures: Pets and farm animals 🐶 → 🐾, At the seaside 🏖️ → 🌊, School 📚 → 🎒, Transport
-🛣️ → 🚥, Celebrations 🎉 → 🎈.
+🛣️ → 🚥, Celebrations 🎉 → 🎈, and after the second review Space and weather 🌌 → 🔭.
 
 Alcohol was kept out. 🍾 and 🥂 were the obvious Celebrations cards, and the deck has never held a
 drink a child cannot have.
@@ -709,3 +715,148 @@ was byte for byte the branch again, and green.
   here.
 - **Accepted near-pairs are a judgement.** Each is written down with its reason in `NEAR_OK`, so a
   later deck can take any of them out.
+
+### After the second review (12 October)
+
+One finding, reproduced on the reviewed commit (368a5a5) first: **two category pictures still
+showed a card of their own category**, while `check-widgets.js` printed "no category's picture one
+of its own cards" over them. That was the rule the first review's fix said it now held.
+
+#### A pan of food and a sky of stars
+
+- **In the kitchen 🥘 over `frying pan` 🍳.** Both are a pan with food in it, seen from above, in
+  Noto and in Apple's drawing alike. `SYM_SAYS` had already written down that a child calls 🥘
+  "pan", and passed `frying pan` anyway, because it compared the whole word.
+- **Space and weather 🌌 over `shooting star` 🌠 and `star` ⭐.** 🌌 and 🌠 are both a dark square
+  of night sky with stars in it, in both sets, and a child looking at 🌌 says "stars".
+
+In the real app, with the round's card chosen and the imposter set to player 2: player 1 saw
+"🍳 frying pan Hide" and the imposter "🥘 Imposter IN THE KITCHEN Hide"; player 1 saw "🌠 shooting
+star Hide" and the imposter "🌌 Imposter SPACE AND WEATHER Hide". Each pair is one round in 750.
+
+| Category | Was | Now | Why |
+|---|---|---|---|
+| In the kitchen | the card `frying pan` 🍳 | `bacon` 🥓, from Food | the category keeps 🥘, because a pan of food on the hob is the kitchen; the frying pan was its double |
+| Food | the card `bacon` 🥓 | `fried egg` 🍳, from In the kitchen | what 🍳 draws: an egg in a pan. Food's 😋 is a face, and nothing like a pan |
+| Space and weather | the picture 🌌 | 🔭 | a telescope, which no card is or draws |
+| Space and weather | the card `telescope` 🔭 | `Milky Way` 🌌 | 🔭 is the category's picture now, and 🌌 is a picture of the Milky Way: its own Unicode name |
+
+Still 25 categories of 30, 750 cards and 775 pictures, none twice, none newer than Emoji 12.0 (🔭
+is Emoji 1.0 and 🌌 is 0.6).
+
+**The review's suggestion for the kitchen, 👨‍🍳, was not taken.** Noto draws the cook holding a
+frying pan with a fried egg in it, which is the card again. And 👨‍🍳 is 👨, a joiner and 🍳, so a
+phone that cannot join them draws a man and a frying pan side by side. Apple's cook holds a wooden
+spoon, but Noto is what every Android phone and the checks' Chromium draw. The kitchen's other
+pictures are all its own cards, or newer than 12.0: 🍽️ is a plate with cutlery, 🥣 is a bowl with a
+spoon, 🔪 🥄 🧂 are cards, and 🫖 and 🧑‍🍳 are 13.0 and 12.1. So the card moved and the picture
+stayed.
+
+**Space and weather's picture changed, and not just `shooting star`**, because a child calls 🌌
+"stars", which is `star` as well. Both are among the first words anybody thinks of for space.
+Every other picture of the sky at 12.0 is a card here or a double of one: ☀️ 🌙 ⭐ ☁️ 🌈, the moon
+in every phase, and 🌦️ ⛅ 🌩️, which are clouds with sun, rain or lightning. The telescope is the
+one that points at the whole category without being any of it. Like 🌌 before it, it says space
+and not weather, and SPACE AND WEATHER is written under it.
+
+#### The check now looks by picture, by word and by parts
+
+- **`LOOKALIKE`** gains `['🥘🍳', 'a pan with food in it, seen from above']` and
+  `['⭐🌟🌠🌌🌃', 'stars']`, and 🌃 joins the moon family too. A picture can be in more than one
+  family now, and every family it is in is asked. Before, only the first one found was asked.
+- **`SYM_SAYS` matches the end of a card's word**, in whole words, folded. The last word of an
+  English name is what the thing is. A frying pan is a pan, so `frying pan` meets "pan". A top hat
+  is not a top, so `top hat` under Clothes does not meet 👚's "top". Equality is the case where the
+  name is the whole word, so nothing the old rule caught is let go.
+- **A joined picture is its parts.** A category picture joined from one of its own cards'
+  pictures fails, and so does a card joined from the category's. That is the 👨‍🍳 case above, held.
+- **`KEPT`** writes down the pairs that were looked at and kept, with a reason each. They are
+  printed every run, the `NEAR_OK` way. An entry the deck no longer holds is an error, so the list
+  cannot outlive its cards.
+
+#### Looked at and kept
+
+The review raised three more pairs as borderline: 🎶 and `treble clef`, 🌊 and `surfing`, and 🎭 and
+`happy` and `sad`. After that, every category's picture was laid beside its thirty cards in Apple's
+drawings and in Noto's. The Apple images came from the `emoji-datasource-apple` 15.1.2 package,
+which holds the pictures Apple's font draws. That turned up five more, and the telescope was checked
+against its neighbour. None of them is the same thing drawn twice, which is what 🥘/🍳 and 🌌/🌠
+were. Each one is either a scene with several cards in it, or the same kind of drawing as a card.
+Each is kept because no honest picture is left to take its place:
+
+| Category's picture | Its cards | Kept because |
+|---|---|---|
+| Fruit and veg 🥗 | lettuce, tomato, cucumber | a salad is three cards in one bowl, so it points at all three and at none, and every fruit and vegetable at 12.0 is a card already |
+| Clothes 👚 | vest 🎽 | a blouse with sleeves and a collar beside a sleeveless running vest. A child calls them "top" and "vest", and every Clothes picture is a garment laid flat |
+| Feelings 🎭 | happy, sad | two faces at once, so they point at both and at neither, and FEELINGS gives those two as the first guesses anyway. Every face at 12.0 is a card, a heart is `in love`, and a thought bubble is `thinking` |
+| Actions 🚶 | running 🏃 | the same person mid-stride, upright against leaning in both sets, and no card is walking. Any picture of a person doing something is beside one of the thirty |
+| At the seaside 🌊 | surfing 🏄 | Apple's surfer has no wave at all, and Noto's wave is behind him. A wave is the sea every seaside card is in or beside |
+| Nature 🏞️ | mountain, tree, pine tree | a landscape is several Nature cards at once. **The nearest to failing**: in Apple's drawing a mountain is the biggest thing in it. Every other landscape at 12.0 is a mountain again, a card, or another category's card, and every plant left doubles one |
+| Space and weather 🔭 | satellite dish 📡 | both point at the sky, but one is a tube on legs and the other a dish on a house |
+| Music 🎶 | treble clef 🎼 | neither set draws a note on 🎼, and a child names it by its clef. The one name the two share is "music", which is the category's own name |
+| Signs and symbols 🔣 | hashtag #️⃣ | both sets draw every keycap as the same blue key (ℹ️ and 🆕 too), and a child calls 🔣 "symbols", never "hashtag" |
+
+**Not listed:** Sport 🏅 beside `trophy` 🏆, a medal and a cup that both sets draw nothing alike, and
+Pets 🐾 beside `dog` and `cat`, because paw prints are not the animal. The body 🧍 is a whole person
+over the parts, which is the category's own idea.
+
+#### Every screen, after the second review
+
+The words on every screen are unchanged. Only pictures and three cards moved:
+
+| Screen | Before | After |
+|---|---|---|
+| The imposter's card, Space and weather | 🌌 with a "?" / Imposter / SPACE AND WEATHER / Hide | 🔭 with a "?" / Imposter / SPACE AND WEATHER / Hide |
+| Play, Space and weather | 🌌 / Player 3 starts / SPACE AND WEATHER / Reveal | 🔭 / Player 3 starts / SPACE AND WEATHER / Reveal |
+| The imposter's card, In the kitchen | 🥘 with a "?", over a deck with a frying pan in it | the same card, over a deck with no pan in it |
+| A player's card, the cards that moved | 🍳 frying pan, 🥓 bacon, 🔭 telescope | 🥓 bacon, 🍳 fried egg, 🌌 Milky Way |
+
+The voice is unchanged: Listen says the word ("bacon", "fried egg", "Milky Way") or "Imposter", and
+nothing else speaks.
+
+**Screenshots looked at**, before and after, at 320x568, 390x844 and 1280x800: the imposter's card
+and a player's card for each card that moved, in the real app, plus the sheets of every category in
+Apple's and Noto's drawings. The picture is centred over its word, nothing is cut off, the "?" stays
+inside the picture's slot, and no card scrolls sideways (216, 270 and 340 wide at the three sizes,
+as before).
+
+#### Checks, after the second review
+
+| Check | Result |
+|---|---|
+| `check-widgets.js` | passes: "… 775 pictures, each one emoji, none twice, none newer than Emoji 12.0, no category's picture one of its own cards", the 22 `NEAR_OK` pairs and the 9 `KEPT` entries listed. On the reviewed commit's deck it fails 7 ways: the pan by family and by the end of its word, the star and the shooting star, and three lines saying the lists are written for the new deck (🌌 has no `SYM_SAYS` entry, and 🔭 has one and a `KEPT` one) |
+| the 4 Imposter journeys | all pass, the deck journey dealing and showing all 750 cards |
+| `check-flow.js`, whole | all 326 journeys pass, in four parts (81, 82, 81, 82) |
+| every other `js/check-*.js` | pass, except `check-dead`, whose output is byte for byte the reviewed commit's |
+| `check/ui.js --screen=games` | 250 combinations, nothing new. The first run, at a load of 44 from other sessions, left one state unmeasured at 768 and 1920 ("the big line and the button stay put", which walks a whole round with Read aloud on and off, a rest after every press); run again at a load of 14 it measured all 250 |
+| `check/press.js --screen=games` | passes: 102 presses, 107 swipes all landed where they should, and the reveal's buttons straight after Reveal listed as known quiet |
+| `check/cascade.js` | passes: "nothing is decided by file order alone" |
+
+#### Proved by mutation, after the second review
+
+Each made alone on a copy of the branch, `check-widgets.js` run there. Afterwards the copy was
+byte for byte the branch again, and green.
+
+| Mutation | Red |
+|---|---|
+| `frying pan` back in the kitchen, with `SYM_SAYS` back to the whole word | `are both a pan with food in it, seen from above` (the family alone) |
+| `frying pan` back in the kitchen, with the 🥘🍳 family taken out | `"pan" is what a "frying pan" is` (the end of the word alone) |
+| `frying pan` back in the kitchen | both of the above |
+| Space and weather back to 🌌 with `telescope`, and 🌌's old `SYM_SAYS` entry | 🌌 and ⭐ `star`, 🌌 and 🌠 `shooting star`: `are both stars` |
+| Space and weather's picture 🌃 | five: `moon` and `full moon` as the moon, `star`, `shooting star` and `Milky Way` as stars |
+| the same, asking only the first family found (as before) | only the two moons: the stars were not asked |
+| Food's picture 👨‍🍳, over its `fried egg` 🍳 | `the category's picture is joined from the card's` |
+| the same, with the joined-picture rule taken out | green, which is why the rule is there |
+| the review's suggestion: In the kitchen 👨‍🍳 over `frying pan` | `the category's picture is joined from the card's` |
+| `surfing` renamed `surfer` | `KEPT has "At the seaside\|🌊\|surfing", which the deck no longer holds` |
+| `cucumber` renamed `cucumbers` | `KEPT has "Fruit and veg\|🥗\|lettuce,tomato,cucumber" … no card "cucumber"` |
+| `tiger` back in Wild animals (the first review's proof, under the new rule) | `both a tiger`, and `is what a child calls "tiger"` |
+| a card called `balloon` in Celebrations (the whole-word case, under the new rule) | `is what a child calls "balloon"` |
+
+#### Not done here
+
+- **Apple's drawings were looked at as Apple's own images** (`emoji-datasource-apple` 15.1.2,
+  what iOS 17 draws), not on an iPad. An iPad on iOS 13 to 16 draws some of them differently.
+- **`KEPT` is a judgement, and Nature is the one to look at first.** 🏞️ over `mountain` is the
+  nearest of the nine to the two that failed. It stays only because nothing at 12.0 can take
+  either place. If the deck ever goes past 12.0, that is the first entry to undo.

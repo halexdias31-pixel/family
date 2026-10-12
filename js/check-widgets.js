@@ -463,6 +463,25 @@ if (acceptedEngine.length) {
        `ZWJ_OK` rule again — and the only way a picture nobody listed in a family is ever looked at.
    The 🐯/🐅 swap (the tiger's picture for the category's, and the other way) is how this is proved.
 
+   AND BOTH HALVES LEFT TWO THROUGH, printing "no category's picture one of its own cards" over them
+   (the second review, 12 October): In the kitchen 🥘 over `frying pan` 🍳 — a pan of food seen from
+   above, twice, in Noto and in Apple's drawing alike — and Space and weather 🌌 over `shooting star`
+   🌠 and `star` ⭐, a square of night sky with stars in it beside another. SYM_SAYS had written down
+   that 🥘 is "pan", and passed `frying pan`, because it asked for the WHOLE word. So:
+     - a SYM_SAYS name now matches the END of a card's word, whole words, folded: the last word of an
+       English name is what the thing is (a frying pan is a pan; a top hat is not a top, and Clothes'
+       👚 is "top"), so `frying pan` meets "pan" and `top hat` does not meet "top". Equality is the
+       case where the name is the whole word, so nothing the old rule caught is let go;
+     - a picture may be in more than one family (🌃 has stars and a moon), and every one is asked;
+     - A JOINED PICTURE IS ITS PARTS: 👨‍🍳 is 👨, a joiner and 🍳, and Noto draws the cook holding
+       that frying pan, egg and all — so a category picture joined from one of its own cards'
+       pictures, or a card joined from the category's, is a failure. It was the review's own
+       suggestion for the kitchen, and the drawing is why it was not taken.
+   `KEPT` is the other half of a judgement: a category's picture beside its own cards that it draws
+   or is drawn like — raised by the review, or found by laying Apple's drawings of all twenty-five
+   beside their thirty — looked at in Noto and in Apple's drawing, and kept, each with its reason,
+   printed every run the `NEAR_OK` way, and an error once the deck no longer holds it.
+
    ---------- NOT THE SAME CARD TWICE UNDER TWO NAMES ----------------------------------------------
    "NO WORD TWICE" FOLDS AND COMPARES, so `apple` and `green apple`, `chick` and `hatching chick`,
    `moon` and `half moon` all passed it — 31 such pairs inside one category when the pictures came
@@ -498,7 +517,8 @@ if (acceptedEngine.length) {
     };
     /* PICTURES A CHILD WOULD CALL ONE THING. Compared without U+FE0F, which changes how a picture is
        drawn and not what it is of. A family need not be in the deck whole — 🐱 and 🥈 are here so
-       that a category picture changed to one of them is still caught. */
+       that a category picture changed to one of them is still caught, and 🥘 and 🌌 so that the two
+       the second review found cannot come back. 🎼 is NOT with the music notes: see `KEPT`. */
     const LOOKALIKE = [
       ['🐯🐅', 'a tiger'], ['🐶🐕🦮🐩🐕‍🦺', 'a dog'], ['🐱🐈', 'a cat'], ['🐮🐄', 'a cow'], ['🐷🐖🐽', 'a pig'],
       ['🐴🐎', 'a horse'], ['🐭🐁', 'a mouse'], ['🐰🐇', 'a rabbit'], ['🐵🐒', 'a monkey'], ['🐤🐥🐣', 'a chick'],
@@ -506,11 +526,11 @@ if (acceptedEngine.length) {
       ['🏅🥇🥈🥉🎖️', 'a medal'], ['📚📖📕📗📘📙📓📒📔', 'a book'], ['🎶🎵', 'music notes'], ['👚👕', 'a top'],
       ['🎉🎊🥳', 'confetti and a party'], ['🏖️⛱️', 'a beach umbrella'], ['🛣️🛤️', 'a road or a railway, drawn the same way'],
       ['💿📀', 'a disc'], ['📣📢', 'a megaphone'], ['☂️☔🌂', 'an umbrella'], ['☀️🌞', 'the sun'],
-      ['🌙🌛🌜🌒🌓🌔🌕🌖🌗🌘🌝🌑🌚', 'the moon'], ['🌅🌄🌇', 'the sun on the horizon'], ['🏘️🏡🏠', 'a house'],
+      ['🌙🌛🌜🌒🌓🌔🌕🌖🌗🌘🌝🌑🌚🌃', 'the moon'], ['🌅🌄🌇', 'the sun on the horizon'], ['🏘️🏡🏠', 'a house'],
       ['🎤🎙️', 'a microphone'], ['🔊🔉🔈', 'a speaker'], ['🔔🛎️🔕', 'a bell'], ['🍦🍨', 'an ice cream'],
       ['🍗🍖', 'meat on a bone'], ['😠😡', 'an angry face'], ['❌✖️❎', 'a cross'], ['✔️☑️✅', 'a tick'],
       ['🌐🌍🌎🌏', 'a globe'], ['🧚🧚‍♀️🧚‍♂️', 'a fairy'], ['🚥🚦', 'traffic lights'],
-      ['🛍️🛒', 'shopping'],
+      ['🛍️🛒', 'shopping'], ['🥘🍳', 'a pan with food in it, seen from above'], ['⭐🌟🌠🌌🌃', 'stars'],
     ].map(([s, what]) => ({ what: what, pics: [...new Intl.Segmenter('en', { granularity: 'grapheme' }).segment(s)].map(x => x.segment.replace(/\uFE0F/g, '')) }));
     /* WHAT A CHILD CALLS EACH CATEGORY'S PICTURE, by the picture — see "a category's picture is never
        one of its own cards" above. Not every name it could have: the names a child at the table would
@@ -521,7 +541,7 @@ if (acceptedEngine.length) {
       '🧍': ['person', 'standing', 'body'], '🎭': ['mask', 'masks', 'theatre', 'drama'],
       '🚶': ['walking', 'walk', 'person walking'], '👥': ['people', 'person', 'shadow'], '🐯': ['tiger'],
       '🐾': ['paw prints', 'paws', 'paw'], '🌊': ['wave', 'waves', 'sea'], '🏞️': ['park', 'countryside', 'river', 'lake'],
-      '🌌': ['space', 'galaxy', 'milky way', 'night sky'], '🧚': ['fairy'], '🌐': ['globe', 'world'],
+      '🔭': ['telescope'], '🧚': ['fairy'], '🌐': ['globe', 'world'],
       '🏘️': ['houses', 'street', 'town', 'village'], '🏅': ['medal', 'gold medal'],
       '🎒': ['backpack', 'school bag', 'bag', 'rucksack'], '🚥': ['traffic lights', 'traffic light'],
       '🎈': ['balloon'], '🎲': ['dice'], '🎶': ['music', 'notes', 'music notes', 'musical notes', 'musical note', 'music note'],
@@ -551,6 +571,26 @@ if (acceptedEngine.length) {
       'Pets and farm animals|dog|guide dog': 'the dog that helps a blind person, in its harness (🦮): its talk is the job, not the dog',
       'Pets and farm animals|chick|hatching chick': 'a chick still breaking out of its egg (🐣) — kept because the pets and farm animals at 12.0 are all in the deck',
     };
+    /* LOOKED AT AND KEPT — a category's picture beside cards of its own that it draws, or is drawn
+       like, and is not: 'category|picture|card,card' to the reason. Raised by the second review
+       (🎶 🌊 🎭) and by laying Apple's drawing of every category's picture beside its thirty
+       (emoji-datasource-apple 15.1) and Noto's beside them. No rule above fails these, so this
+       list lets nothing through: it is the judgement written where the next person to raise the
+       pair will look, printed every run, and an entry the deck no longer holds is an error. Most
+       say why nothing else could take the place — the same "no honest picture left at 12.0" that
+       NEAR_OK gives — and that is the part to look at again if the deck ever goes past 12.0. */
+    const KEPT = {
+      'Fruit and veg|🥗|lettuce,tomato,cucumber': 'a salad is three cards in one bowl, so it points at all three and at none — and every fruit and vegetable drawn at 12.0 is a card already (🍏 went as `apple` again), so there is no other picture to give it',
+      'Clothes|👚|vest': 'two tops laid flat, but a blouse with sleeves and a collar against a sleeveless running vest with a sash — a child calls them "top" and "vest" — and every Clothes picture is a garment laid flat',
+      'Feelings|🎭|happy,sad': 'the masks are two faces at once, one happy and one sad, so they point at both and at neither — and FEELINGS under them gives every imposter those two as the first guesses anyway. No picture of a feeling at 12.0 is not one of the thirty: every face is a card, a heart is `in love`, a thought bubble is `thinking`',
+      'Actions|🚶|running': 'the same person in a stride, walking against running — upright and leaning in both drawings — and no card is walking. Every Actions card is a person doing something, so any picture of one is beside one of them',
+      'At the seaside|🌊|surfing': 'Apple\'s 🏄 is a surfer on a board with no wave at all, and Noto\'s wave is behind him. A wave is the sea every seaside card is in or beside — swimming, sailing boat, beach — and a child names 🌊 "wave", never "surfing"',
+      'Nature|🏞️|mountain,tree,pine tree': 'a landscape is several Nature cards at once, and in Apple\'s drawing a mountain is the biggest thing in it — the nearest of these to the pairs the second review failed. Kept because nothing is left to put in either place: every other landscape at 12.0 is a mountain again (🏔️ 🗻), a Nature card already (🏜️ 🌋) or another category\'s (🌄 🏕️), and every plant left is a double of one (🌿 of 🌱, 🍁 of 🍂)',
+      'Space and weather|🔭|satellite dish': 'both point at the sky, but one is a tube on legs you look through and the other a dish on the side of a house; a child names them apart in both drawings',
+      'Music|🎶|treble clef': '🎼 is a clef on a stave, and neither Noto nor Apple draws a note on it — a child names it by the clef. The one name it shares with 🎶 is "music", the category\'s own name, printed under the picture for every imposter anyway',
+      'Signs and symbols|🔣|hashtag': 'a key of four symbols against a key of one, but the blue key is how both sets draw every keycap — ℹ️ and 🆕 are the same key — so the key points at none of them, and a child calls 🔣 "symbols", never "hashtag"',
+    };
+    const keptOk = [];
     const catOk = [];
     const fold = w => String(w).toLowerCase().replace(/[’']/g, '').split(/[\s-]+/).filter(Boolean)
       .map(t => t.replace(/s$/, '')).join(' ');
@@ -637,24 +677,47 @@ if (acceptedEngine.length) {
       });
       /* THE CATEGORY'S PICTURE AGAINST ITS OWN CARDS, by picture and by word — see "a category's
          picture is never one of its own cards". The same picture exactly is `picOnce`'s, above. */
-      const fam = LOOKALIKE.find(f => f.pics.indexOf(bare(cat.sym)) !== -1);
-      if (fam) {
+      /* EVERY FAMILY THE PICTURE IS IN, not the first: 🌃 is stars and a moon. */
+      LOOKALIKE.filter(f => f.pics.indexOf(bare(cat.sym)) !== -1).forEach(fam => {
         got.forEach(([w, p]) => {
           if (p && bare(p) !== bare(cat.sym) && fam.pics.indexOf(bare(p)) !== -1) {
             impBad.push('the category ' + c + '\'s picture ' + cat.sym + ' and its card ' + p + ' ' + JSON.stringify(w) + ' are both ' + fam.what + ' — the imposter would be holding the word');
           }
         });
-      }
+      });
+      /* A JOINED PICTURE IS ITS PARTS — 👨‍🍳 is 👨 and 🍳, and is drawn holding the pan. Either way
+         round: the category's picture built from a card's, or a card's built from the category's. */
+      const parts = x => bare(x).split('\u200d').filter(Boolean);
+      got.forEach(([w, p]) => {
+        if (!p || bare(p) === bare(cat.sym)) return;
+        const inCat = parts(cat.sym).length > 1 && parts(cat.sym).indexOf(bare(p)) !== -1;
+        const inCard = parts(p).length > 1 && parts(p).indexOf(bare(cat.sym)) !== -1;
+        if (inCat || inCard) {
+          impBad.push('the category ' + c + '\'s picture ' + cat.sym + ' and its card ' + p + ' ' + JSON.stringify(w) + ' — ' + (inCat ? 'the category\'s picture is joined from the card\'s' : 'the card\'s picture is joined from the category\'s') + ', drawn as the one holding the other, and side by side where the join is not drawn');
+        }
+      });
       const says = SAYS.get(bare(cat.sym));
       if (!says) {
         impBad.push('the category ' + c + '\'s picture ' + cat.sym + ' is not in SYM_SAYS — write down what a child calls it, so it can be held against ' + c + '\'s cards');
       } else {
         saysUsed.add(bare(cat.sym));
-        const names = new Set(says.map(fold));
+        /* THE END OF THE CARD'S WORD, whole words — a frying pan is a pan, a top hat is not a top. */
+        const names = says.map(n => fold(n).split(' '));
         got.forEach(([w]) => {
-          if (names.has(fold(w))) impBad.push('the category ' + c + '\'s picture ' + cat.sym + ' is what a child calls ' + JSON.stringify(w) + ', one of its own cards — the imposter would be holding the word');
+          const tw = fold(w).split(' ');
+          const hit = names.find(tn => tn.length <= tw.length && tn.every((t, x) => tw[tw.length - tn.length + x] === t));
+          if (hit) impBad.push('the category ' + c + '\'s picture ' + cat.sym + ' is what a child calls ' + JSON.stringify(w) + (hit.length < tw.length ? ' ("' + hit.join(' ') + '" is what a ' + JSON.stringify(w) + ' is)' : '') + ', one of its own cards — the imposter would be holding the word');
         });
       }
+      /* LOOKED AT AND KEPT — see `KEPT`. */
+      Object.keys(KEPT).forEach(key => {
+        const [kc, kp, kws] = key.split('|');
+        if (kc !== c) return;
+        const cards = kws.split(',').map(kw => [kw, got.find(([w]) => w === kw)]);
+        const gone = cards.filter(([, card]) => !card).map(([kw]) => JSON.stringify(kw));
+        if (bare(kp) !== bare(cat.sym) || gone.length) impBad.push('KEPT has ' + JSON.stringify(key) + ', which the deck no longer holds — ' + c + '\'s picture is ' + cat.sym + (gone.length ? ' and it has no card ' + gone.join(', ') : ''));
+        else keptOk.push(c + ' ' + cat.sym + ' beside ' + cards.map(([kw, card]) => card[1] + ' ' + JSON.stringify(kw)).join(', ') + ' — ' + KEPT[key]);
+      });
       /* NOT THE SAME CARD TWICE UNDER TWO NAMES — see the note above `NEAR_OK`. */
       got.forEach(([wa]) => got.forEach(([wb]) => {
         const ta = fold(wa).split(' '), tb = fold(wb).split(' ');
@@ -670,6 +733,9 @@ if (acceptedEngine.length) {
     });
     Object.keys(SYM_SAYS).forEach(k => {
       if (!saysUsed.has(bare(k))) impBad.push('SYM_SAYS names ' + k + ', which no category has for its picture any more');
+    });
+    Object.keys(KEPT).forEach(k => {
+      if (!D[k.split('|')[0]]) impBad.push('KEPT has ' + JSON.stringify(k) + ', and the deck has no category ' + k.split('|')[0]);
     });
     Object.keys(NEAR_OK).forEach(k => {
       if (!nearSeen.has(k)) impBad.push('NEAR_OK lets through ' + JSON.stringify(k) + ', which is not a pair in the deck any more');
@@ -696,6 +762,8 @@ if (acceptedEngine.length) {
       catOk.forEach(x => console.log('    ' + x));
       console.log('  imposter: ' + nearOk.length + ' cards inside another card\'s name in the same category, each let through in NEAR_OK:');
       nearOk.forEach(x => console.log('    ' + x));
+      console.log('  imposter: ' + keptOk.length + ' category pictures beside cards of their own that they draw or are drawn like, looked at and kept (KEPT):');
+      keptOk.forEach(x => console.log('    ' + x));
     }
   }
   if (impBad.length) {

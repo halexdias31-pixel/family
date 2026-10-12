@@ -3093,6 +3093,14 @@ const IMP_MIN = 3, IMP_MAX = 12;
    and At the seaside 🌊, so that `beach` could be a card). `check-widgets.js` holds it twice:
    by picture (`LOOKALIKE`, families a child would call one thing) and by word (`SYM_SAYS`, what a
    child calls each category's picture, which every new one has to be given).
+   Two more got past both (the second review, 12 Oct): 🥘 over `frying pan` 🍳, a pan of food seen
+   from above twice, and 🌌 over `shooting star` 🌠 and `star` ⭐, a night sky of stars over a star.
+   The kitchen kept its picture — the pan is the kitchen — and the pan went to Food as `fried egg`,
+   which is what 🍳 draws, with `bacon` coming the other way. Space and weather is 🔭 now, and 🌌 is
+   its card `Milky Way` where the telescope was. 👨‍🍳 was the obvious kitchen picture and is not
+   used: it is 👨 joined to 🍳, and Noto draws the cook holding that pan. The pairs that are near
+   and stay — 🥗 over `lettuce`, 🎭 over `happy` and `sad`, 🏞️ over `mountain` — are in `KEPT` in
+   check-widgets.js, each with why nothing else could take its place.
 
    THE PICTURE IS NEVER SPOKEN. `speechSynthesis` reads an emoji out by its Unicode name — "slice of
    pizza", "man health worker" — which is exactly the fluff the 11 Oct note was about. Only the word
@@ -3108,7 +3116,7 @@ const IMP_DECK = {
   Food: { sym: '😋', cards: [
     '🍕 pizza', '🍔 burger', '🍟 chips', '🥪 sandwich', '🍝 spaghetti', '🌭 hot dog', '🍲 soup',
     '🍛 curry', '🍣 sushi', '🌮 tacos', '🍜 noodles', '🍚 rice', '🥟 dumplings', '🥧 pie',
-    '🍗 chicken leg', '🥓 bacon', '🌯 burrito', '🥙 kebab', '🥩 steak', '🍫 chocolate', '🍬 sweets',
+    '🍗 chicken leg', '🍳 fried egg', '🌯 burrito', '🥙 kebab', '🥩 steak', '🍫 chocolate', '🍬 sweets',
     '🍭 lollipop', '🍪 cookie', '🧁 cupcake', '🍩 doughnut', '🍿 popcorn', '🍰 cake', '🧇 waffle',
     '🥞 pancakes', '🧆 falafel',
   ] },
@@ -3121,7 +3129,7 @@ const IMP_DECK = {
   ] },
   'In the kitchen': { sym: '🥘', cards: [
     '🍽️ plate', '🥣 bowl', '🥄 spoon', '🍴 cutlery', '🔪 knife', '🥢 chopsticks',
-    '🍳 frying pan', '☕ cup', '🥛 milk', '🥚 egg', '🧀 cheese', '🍞 bread', '🧈 butter', '🧂 salt',
+    '🥓 bacon', '☕ cup', '🥛 milk', '🥚 egg', '🧀 cheese', '🍞 bread', '🧈 butter', '🧂 salt',
     '🥫 tin', '🍯 honey', '🧊 ice cube', '🧃 juice box', '🍼 baby bottle', '🧽 sponge', '🚰 tap',
     '⏲️ timer', '🧯 fire extinguisher', '🥤 fizzy drink', '🥡 takeaway', '🥐 croissant', '🥯 bagel',
     '🥖 baguette', '🥨 pretzel', '🗑️ bin',
@@ -3203,10 +3211,10 @@ const IMP_DECK = {
     '🔥 fire', '🐝 bee', '🐞 ladybird', '🦋 butterfly', '🐜 ant', '🐌 snail', '🐛 caterpillar',
     '🦗 grasshopper', '🕷️ spider', '🕸️ cobweb', '🦟 mosquito',
   ] },
-  'Space and weather': { sym: '🌌', cards: [
+  'Space and weather': { sym: '🔭', cards: [
     '☀️ sun', '🌙 moon', '🌕 full moon', '☂️ umbrella', '⭐ star', '🌠 shooting star', '☄️ comet',
     '🪐 Saturn', '🌍 Earth', '🚀 rocket', '🛸 flying saucer', '🛰️ satellite', '👩‍🚀 astronaut',
-    '👽 alien', '🔭 telescope', '📡 satellite dish', '🌈 rainbow', '☁️ cloud', '🌧️ rain', '🌨️ snow',
+    '👽 alien', '🌌 Milky Way', '📡 satellite dish', '🌈 rainbow', '☁️ cloud', '🌧️ rain', '🌨️ snow',
     '❄️ snowflake', '⚡ lightning', '⛈️ thunderstorm', '🌪️ tornado', '🌬️ wind', '🌫️ fog',
     '🌡️ thermometer', '☃️ snowman', '🌄 sunrise', '💧 raindrop',
   ] },
