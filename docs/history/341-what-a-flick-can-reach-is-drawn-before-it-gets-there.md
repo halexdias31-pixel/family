@@ -267,7 +267,13 @@ frame.
   not the gesture: it waits for the column, and a 240px flick across an 820 glass that a starved thread read
   too slowly is followed by one more than half the glass long. `REACH_DEBUG=1` prints, for each hole, the
   page's box, the column's trail and where the column is drawn against where it was sent.
-- check/states.js walks past the window to reach an emptied card; press.js and ui.js wait for the builder.
+- check/states.js walks past the window to reach an emptied card; press.js, ui.js and anims.js wait for the
+  builder (anims.js only after it had caught the eased correction above — what is left while the builder
+  works is a half-pixel shimmer from the next placement's rounding, which the eye does not see and an exact
+  frame comparison does).
+- check/ui.js's Sound-tile rule skips a reel whose whole page the band leaves undrawn (it read "the Sound
+  tile is not drawn" on every reel from the fourth, now that six are kept ahead); the install-offer journey
+  waits for the slide's band to be put back (`trailEnd_`'s one late placement) before calling the page still.
 - check-uploads waits up to 45s, not 15, for the thirteenth widget on an admin's Tools: started one per task
   behind the slide, it took 4–13s in jsdom on a shared machine, base and branch alike. check-dead keeps
   `aheadBusy_` (asked by the checks through the page, by nothing in the app); the two helpers this branch

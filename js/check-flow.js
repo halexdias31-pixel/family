@@ -272,6 +272,10 @@ function boot(opts) {
          of facts (`repaint`). */
       'STALE: () => STALE, paints: () => Object.assign({}, PAINT_N), aheadLog: () => window.__aheadLog.slice(),' +
       'aheadBusy: () => aheadBusy_(), landRepaint: d => landRepaint_(d), epochs: () => ({ act: ACT_EPOCH, draw: DRAW_EPOCH }),' +
+      /* WHETHER A SLIDE'S BAND IS STILL WIDER THAN THE GLASS — `trailEnd_` has one placement left to make, the one
+         that puts it back (docs/history/341). A page is not still until it has. */
+      'trailWide: () => TRAIL_X.lo < TRAIL_X.hi || TABS.some(x => { const h = document.getElementById("s-" + x.id); const was = h && h.TRAIL && colPlaced_(h);' +
+      '  return !!(was && (h.TRAIL.top < -was[1] - 1 || h.TRAIL.bot > -was[1] + (h.clientHeight || innerHeight) + 1)); }),' +
       'TOOLS_ON: () => TOOLS_ON, PRE_PAYLOAD: () => [...PRE_PAYLOAD], GLASS: () => GLASS,' +
       /* AND WHAT THE BUILDER'S JOURNEYS ASK OF IT: a column drawn as `paint` draws it, a screen's own drawing
          (twice, for the determinism journey), the running state of the widgets with a `stop` — `let`s, so
@@ -10230,7 +10234,10 @@ check('nothing offers to install, and the browser is not left to offer it either
     /* THIRTY SECONDS, NOT TEN. Ten held alone and failed for every copy when eleven ran at once on four
        cores (the round-3 review): the boot of four apps together simply had not finished. A slow page
        is not an offer; only a page that NEVER settles is "not checked". */
-    while (!quiet && Date.now() - from < 30000) { moved = 0; await wait(500); quiet = !moved; }
+    /* AND THE APP'S OWN DEFERRED WORK DONE: since docs/history/341 a slide leaves its band wider than the glass
+       until `trailEnd_` puts it back with one more placement, which can land after half a second of nothing —
+       and then inside the three and a half seconds below, read as a page that moved for the offer. */
+    while (!quiet && Date.now() - from < 30000) { moved = 0; await wait(500); quiet = !moved && !t.trailWide() && t.quiet(); }
     settle.disconnect();
     if (!quiet) {
       bad.push(who + ': the page never stayed still for half a second in thirty, so a redraw for the offer '
