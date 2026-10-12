@@ -149,6 +149,13 @@ function picsAhead_(id) {
      · every other column: P−1 to P+4, asked for, for the next sweep.
    Attributes and a decode only: nothing is redrawn for a picture. No clip is touched (`preload` stays) and a
    YouTube poster keeps 319's one-player rule, so no video byte is added. */
+/* ---------- AND A CARD FILLED AFTER THE PLACEMENT IS ASKED FOR AS IF THE PLACEMENT HAD SEEN IT --------------------
+   FOUND BY REVIEW ROUND 1 (12 Oct), re-running check/reach.js: "res page 7 (in front 1) is still lazy" on the
+   Boxing shelf at 390. The reach above is applied IN THE PLACEMENT, and a finder's window is filled after it — the
+   band in the same task, every card past the band by the builder, one per slice — so a card filled six ahead
+   kept `lazy` until something placed the column again, which at rest is nothing. So for the column in front this
+   job wants the placement's own pages, two behind to six ahead, and runs the placement's own function on them
+   (`picsAhead_`): one rule, whichever of the fill and the placement comes last. */
 const PICS_ASKED = new WeakSet();
 function picsWant_(id) {
   const host = $('s-' + id);
@@ -164,6 +171,7 @@ function picsWant_(id) {
   const eager = [], decode = [];
   if (id === AT) {
     const dir = (typeof AHEAD !== 'undefined' && AHEAD.dir.y[id]) || 1;
+    for (let j = -PICS_BACK; j <= PICS_AHEAD; j++) if (pages[k + dir * j]) eager.push(pages[k + dir * j]);
     for (let j = 1; j <= PICS_DECODE; j++) if (pages[k + dir * j]) decode.push(pages[k + dir * j]);
   } else {
     const hi = beside ? 2 : 4;
@@ -179,7 +187,8 @@ function picsTodo_(w) {
 function picsRun_(id) {
   const w = picsWant_(id);
   if (!w) return;
-  w.eager.forEach(pg => pg.querySelectorAll('img[loading="lazy"]').forEach(img => { img.loading = 'eager'; }));
+  if (id === AT) picsAhead_(id);
+  else w.eager.forEach(pg => pg.querySelectorAll('img[loading="lazy"]').forEach(img => { img.loading = 'eager'; }));
   w.decode.forEach(pg => pg.querySelectorAll('img').forEach(img => {
     if (PICS_ASKED.has(img) || (img.complete && img.naturalWidth)) return;
     PICS_ASKED.add(img);

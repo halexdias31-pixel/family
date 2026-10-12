@@ -25038,6 +25038,40 @@ check('a finder drawn for nobody after a landing is warmed a step a slice before
   return bad;
 });
 
+check('a card the builder fills ahead of the card in front asks for its pictures as one the placement saw: nothing lazy from two behind to six ahead, at rest', async () => {
+  /* REVIEW ROUND 1, 12 Oct, found re-running check/reach.js: "res page 7 (in front 1) is still lazy" on the Boxing
+     shelf at 390. The column in front asks for its pictures six pages ahead IN THE PLACEMENT (`picsAhead_`), and
+     a card the builder fills after that placement — every card past the band on a fresh window — kept `lazy`
+     until something placed the column again. jsdom lays nothing out, so the band is its floor of one either side
+     and every card past it is the builder's: exactly that case, every time. AND jsdom HAS NO `img.loading`, so it
+     is stood in for as the attribute it reflects — without it nothing the app writes there is ever seen. */
+  const p = await resPayload_();
+  if (!p) return ['the resources payload could not be made — NOT checked'];
+  const reflect = x => { try { Object.defineProperty(x.HTMLImageElement.prototype, 'loading', { configurable: true,
+    get() { return this.getAttribute('loading') || 'auto'; }, set(v) { this.setAttribute('loading', String(v)); } }); } catch (e) {} };
+  const { w } = await aheadBoot_({ payload: p, before: reflect });
+  const t = w.__t, bad = [];
+  if (!t || typeof t.domIndex !== 'function') return ['the builder is not reachable — NOT checked'];
+  if (!resAsk_(w)) return ['the Resources column has no boxing shelf to fill — NOT checked'];
+  t.go('res', false, true);
+  await aheadQuiet_(t);
+  /* THE CARDS FOUR TO SIX AHEAD EMPTIED AND LEFT TO THE BUILDER — filled again in the quiet with nothing placing
+     the column after, which is the case: jsdom places the column often enough on the way in (the trail's end,
+     the window's centring) that a first fill alone did not show it. */
+  const pages = () => [...w.document.querySelectorAll('#s-res > .page')];
+  const k = t.domIndex('res', t.PAGE().res || 0);
+  const ahead = [4, 5, 6].map(d => pages()[k + d]).filter(pg => pg && pg.dataset.filled === '1' && pg.querySelector('img'));
+  if (!ahead.length) return ['no filled card with a picture four to six ahead of the card in front, so nothing was asked — NOT checked'];
+  ahead.forEach(pg => w.stuffBlank_(pg));
+  t.aheadKick();
+  await aheadQuiet_(t);
+  const back = ahead.filter(pg => pg.dataset.filled === '1');
+  if (back.length !== ahead.length) return ['the builder did not fill the emptied cards again, so nothing was asked — NOT checked'];
+  const lazy = back.filter(pg => pg.querySelector('img[loading="lazy"]')).map(pg => pages().indexOf(pg) - k);
+  if (lazy.length) bad.push('at rest, the cards ' + lazy.map(d => '+' + d).join(', ') + ' from the one in front, filled by the builder after the last placement, still hold a lazy picture');
+  return bad;
+});
+
 check('the reels are kept six ahead at every turn and twelve ahead after the quiet', async () => {
   /* REVIEW, 12 Oct: 7/6/6, the one-slide append in a turn and the builder's top-up could all be reverted with
      every check green. */
