@@ -384,14 +384,21 @@ if (acceptedEngine.length) {
 }
 
 /* ---------- IMPOSTER'S DECK, WHICH IS LEFT OUT OF THE COMPARISON ABOVE AND NOT OUT OF EVERYTHING -------
-   ASKED FOR AS "more categories and words" (8 Oct), and it went from eleven categories of twenty-two to
-   twenty-seven of thirty. The note over `IMP_DECK` is the argument; this holds its shape, because every
-   fault in a deck draws perfectly — a word dealt twice is a card that comes round twice as often, and
-   nobody playing would ever say so.
+   ASKED FOR AS "more categories and words" (8 Oct), when it went from eleven categories of twenty-two
+   to twenty-seven of thirty; and "Add symbols to imposter" (11 Oct), when every card got its picture
+   and the deck became twenty-five of thirty, because only so many words have an honest one. The notes
+   over `IMP_DECK` are the argument; this holds its shape, because every fault in a deck draws
+   perfectly — a word dealt twice is a card that comes round twice as often, a picture that is a box
+   on an older iPad is one player's card looking broken, and nobody playing would ever say so.
 
-   AT LEAST 25 CATEGORIES AND 30 WORDS IN EACH. Below that the owner's "more" quietly shrinks again; and
-   the pile is every (category, word) pair, so a short category is a hint that comes up less for no
-   reason anybody chose.
+   READ THE WAY THE GAME READS IT. A category is `{ sym, cards }` and a card is '🍕 pizza', its picture,
+   one space, its word — split here as `impCards_` splits it in games.js. A deck in any other shape is
+   not a deck this game can deal, and is said, never skipped.
+
+   AT LEAST 25 CATEGORIES, AT LEAST 30 WORDS IN EACH, AND THE SAME NUMBER IN EVERY ONE. Below that the
+   owner's "more" quietly shrinks again; and the pile is every (category, word) pair, so a category's
+   share of the rounds is its share of the cards — one of thirty-one beside twenty-four of thirty is a
+   hint that comes up more for no reason anybody chose.
 
    NO WORD TWICE ANYWHERE, folded harder than the rule above: case, apostrophes, hyphens and a trailing
    s all go, so `hairdresser` and `hairdresser’s`, `fry-up` and `fry up`, `seed` and `seeds` meet. The
@@ -401,14 +408,88 @@ if (acceptedEngine.length) {
    School — the old deck had it, and `school trip` beside it — hands the imposter half of the answer.
 
    ANY WORD OF THE CATEGORY, NOT THE WHOLE OF IT. This tested for the whole phrase inside the card, and
-   15 of the 27 categories are more than one word: `kitchen sink` under In the kitchen, `garden gnome`
+   15 of the 27 categories were more than one word: `kitchen sink` under In the kitchen, `garden gnome`
    under In the garden and `toy box` under Toys and games were each put in and passed, with the line
    "none naming its category" printed under them (the review of 8 October). So each word of the
    category that carries meaning — not the, and, in, at or of — is held against each word of the card,
    folded the same way. Whole words still, so `seahorse` is not `sea`.
 
-   `CAT_WORD_OK` IS THE ONE CARD LET THROUGH, with its reason, printed every run like the check's other
-   lists: a new one is a failure, not a line added to a list nobody reads. */
+   `CAT_WORD_OK` IS A CARD LET THROUGH, with its reason, printed every run like the check's other
+   lists: a new one is a failure, not a line added to a list nobody reads. It is EMPTY since 11 Oct:
+   its one entry was `sea urchin` in Sea life, and both went — Sea life into At the seaside, the urchin
+   for want of a picture. An entry the deck no longer holds is an error, which is how that was found.
+
+   EVERY CARD HAS A PICTURE, AND NO PICTURE IS ON TWO CARDS — a category's counted with them, because
+   the imposter is shown their category's picture, and a word's picture in that place would be a word.
+   A PICTURE IS EMOJI AND NOTHING ELSE: no letter, no space. AND A PICTURE THAT IS AN OLD SYMBOL CARRIES
+   ITS U+FE0F — ☀ ✂ ♠ and the rest are drawn as plain black text without it on some phones, beside
+   everybody else's colour; the selector is invisible, so a retyped picture loses it and nobody sees.
+
+   NOTHING NEWER THAN EMOJI 12.0 (iOS 13.2, 2019): a newer picture is an empty box on an older iPad.
+   `NEWER` is every single code point Unicode added to emoji after 12.0, from its own data up to Emoji
+   17.0 (unicode-emoji-json, emojibase-data and emoji-datasource agree on every one), and anything past
+   U+1FAFF, which is where the next ones will go. A JOINED PICTURE — 👩‍🏫, two emoji and a joiner —
+   is newer than either of its halves can say (🧑‍🏫 is 12.1, made of two 5.0 and 0.6 pictures), so
+   those are let through BY NAME in `ZWJ_OK`, each with the version Unicode's emoji-zwj-sequences
+   gives it: a new one is a failure until somebody has looked it up. AND THE VERSION WRITTEN THERE IS
+   READ: a lookup that came back 13.0 and was written down passed until the review of 11 October,
+   with "none newer than Emoji 12.0" printed under it (🐻‍❄️ with `'13.0'` beside it went green).
+
+   AND EACH PICTURE IS ONE EMOJI — Unicode's own list of them, `\p{RGI_Emoji}`, which only a regex
+   with the `v` flag can ask for (Node 20 and later; CI is 22). The classes above test code points
+   one at a time, so `🐟🍟` (two pictures on one card), `🇺🇰` (two letters that are no flag — a
+   flag is an ISO code, and the UK's is GB) and `🔺🔺` all passed them. A Node that cannot ask is
+   said, never passed. NO SKIN TONE either: a tone is a choice the deck does not make — every person
+   on a card is the default yellow — and a modifier joined to an old hand can be newer than both
+   halves (`🤝🏽` is 14.0, from a 3.0 handshake and a 1.0 tone), which no code-point range can see.
+
+   ---------- A CATEGORY'S PICTURE IS NEVER ONE OF ITS OWN CARDS -------------------------------------
+   THE IMPOSTER HOLDS THE CATEGORY'S PICTURE where everybody else holds the word's, so a category
+   picture that shows one of its cards hands the imposter the word, big, in colour, on that one
+   card in thirty. The rule was written over `IMP_DECK` from the start and held only by "no picture
+   twice" — which compares code points, and 🐯 is not 🐅. The review of 11 October found eight that
+   way, every check green: Wild animals 🐯 over `tiger` 🐅, Pets 🐶 over `dog` 🐕 (and `guide dog`,
+   `poodle`), At the seaside 🏖️ over `parasol` ⛱️, Sport 🏅 over `gold medal` 🥇, Music 🎶 over
+   `musical note` 🎵, School 📚 over `book` 📖, Clothes 👚 over `T-shirt` 👕, Celebrations 🎉 over
+   `confetti` 🎊 and `party` 🥳. So it is held twice, by picture and by word:
+     - `LOOKALIKE`: families of pictures a child would call one thing — two drawings of a tiger,
+       four of a dog, a sports medal and a gold one. A category's picture and a card of the SAME
+       category in one family is a failure. Another category's card may look like it: that round's
+       word is never theirs.
+     - `SYM_SAYS`: what a child calls each category picture, written down by hand. A card of that
+       category whose word IS one of those names is a failure (🎉 is "party", so `party` under
+       Celebrations is the imposter told the word). EVERY CATEGORY PICTURE NEEDS AN ENTRY: a new or
+       changed one is a failure until somebody has looked at it and said what it is, which is the
+       `ZWJ_OK` rule again — and the only way a picture nobody listed in a family is ever looked at.
+   The 🐯/🐅 swap (the tiger's picture for the category's, and the other way) is how this is proved.
+
+   AND BOTH HALVES LEFT TWO THROUGH, printing "no category's picture one of its own cards" over them
+   (the second review, 12 October): In the kitchen 🥘 over `frying pan` 🍳 — a pan of food seen from
+   above, twice, in Noto and in Apple's drawing alike — and Space and weather 🌌 over `shooting star`
+   🌠 and `star` ⭐, a square of night sky with stars in it beside another. SYM_SAYS had written down
+   that 🥘 is "pan", and passed `frying pan`, because it asked for the WHOLE word. So:
+     - a SYM_SAYS name now matches the END of a card's word, whole words, folded: the last word of an
+       English name is what the thing is (a frying pan is a pan; a top hat is not a top, and Clothes'
+       👚 is "top"), so `frying pan` meets "pan" and `top hat` does not meet "top". Equality is the
+       case where the name is the whole word, so nothing the old rule caught is let go;
+     - a picture may be in more than one family (🌃 has stars and a moon), and every one is asked;
+     - A JOINED PICTURE IS ITS PARTS: 👨‍🍳 is 👨, a joiner and 🍳, and Noto draws the cook holding
+       that frying pan, egg and all — so a category picture joined from one of its own cards'
+       pictures, or a card joined from the category's, is a failure. It was the review's own
+       suggestion for the kitchen, and the drawing is why it was not taken.
+   `KEPT` is the other half of a judgement: a category's picture beside its own cards that it draws
+   or is drawn like — raised by the review, or found by laying Apple's drawings of all twenty-five
+   beside their thirty — looked at in Noto and in Apple's drawing, and kept, each with its reason,
+   printed every run the `NEAR_OK` way, and an error once the deck no longer holds it.
+
+   ---------- NOT THE SAME CARD TWICE UNDER TWO NAMES ----------------------------------------------
+   "NO WORD TWICE" FOLDS AND COMPARES, so `apple` and `green apple`, `chick` and `hatching chick`,
+   `moon` and `half moon` all passed it — 31 such pairs inside one category when the pictures came
+   in (the review of 11 October). In this game the word is talked about ONE WORD AT A TIME, and the
+   imposter's best clue for `green apple` is the one for `apple`; a pair like that is a card that
+   comes up twice as often. So within a category, a card whose whole folded word sits inside
+   another's (`moon` in `full moon`) is a failure unless `NEAR_OK` lets it through with a reason —
+   printed every run, the `CAT_WORD_OK` way, and an entry the deck no longer holds is an error. */
 {
   const gsrc = fs.readFileSync(path.join(jsDir, 'games.js'), 'utf8');
   const i = gsrc.indexOf('const IMP_DECK =');
@@ -421,24 +502,166 @@ if (acceptedEngine.length) {
   } else {
     const CATS = 25, PER = 30;
     const CAT_STOP = new Set(['the', 'and', 'in', 'at', 'of']);
-    const CAT_WORD_OK = {
-      'Sea life|sea urchin': 'it is the animal\'s name, and `urchin` alone is a word no six-year-old knows; '
-        + 'every card in Sea life lives in the sea, which the hint has already said, and `seahorse` and '
-        + '`seaweed` beside it carry the same three letters run together.',
+    const CAT_WORD_OK = {};
+    const NEWER = [[0x26a7, 0x26a7], [0x1f6d6, 0x1f6d8], [0x1f6dc, 0x1f6df], [0x1f6fb, 0x1f6fc], [0x1f7f0, 0x1f7f0],
+      [0x1f90c, 0x1f90c], [0x1f972, 0x1f972], [0x1f977, 0x1f979], [0x1f9a3, 0x1f9a4], [0x1f9ab, 0x1f9ad],
+      [0x1f9cb, 0x1f9cc], [0x1fa74, 0x1fa77], [0x1fa7b, 0x1fa7c], [0x1fa83, 0x1fa8a], [0x1fa8e, 0x1fa8f],
+      [0x1fa96, 0x1fac6], [0x1fac8, 0x1fac8], [0x1facd, 0x1fadc], [0x1fadf, 0x1faea], [0x1faef, 0x1faf8],
+      [0x1fb00, 0xdffff]];
+    const ZWJ_OK = {
+      '👩‍🏫': '4.0', '👨‍⚕️': '4.0', '👩‍🚒': '4.0', '👨‍🌾': '4.0', '👩‍🍳': '4.0', '👨‍✈️': '4.0',
+      '👩‍🔬': '4.0', '👨‍🎨': '4.0', '👩‍🔧': '4.0', '👨‍⚖️': '4.0', '👨‍💼': '4.0', '👩‍💻': '4.0',
+      '👩‍🏭': '4.0', '👨‍🎤': '4.0', '👩‍🎤': '4.0', '👩‍🎓': '4.0', '👩‍🚀': '4.0',
+      '🧙‍♀️': '5.0', '🧙‍♂️': '5.0', '🧜‍♀️': '5.0',
+      '👩‍🦱': '11.0', '👩‍🦰': '11.0', '👨‍🦲': '11.0', '🏴‍☠️': '11.0',
     };
+    /* PICTURES A CHILD WOULD CALL ONE THING. Compared without U+FE0F, which changes how a picture is
+       drawn and not what it is of. A family need not be in the deck whole — 🐱 and 🥈 are here so
+       that a category picture changed to one of them is still caught, and 🥘 and 🌌 so that the two
+       the second review found cannot come back. 🎼 is NOT with the music notes: see `KEPT`. */
+    const LOOKALIKE = [
+      ['🐯🐅', 'a tiger'], ['🐶🐕🦮🐩🐕‍🦺', 'a dog'], ['🐱🐈', 'a cat'], ['🐮🐄', 'a cow'], ['🐷🐖🐽', 'a pig'],
+      ['🐴🐎', 'a horse'], ['🐭🐁', 'a mouse'], ['🐰🐇', 'a rabbit'], ['🐵🐒', 'a monkey'], ['🐤🐥🐣', 'a chick'],
+      ['🐲🐉', 'a dragon'], ['🐳🐋', 'a whale'], ['🐪🐫', 'a camel'],
+      ['🏅🥇🥈🥉🎖️', 'a medal'], ['📚📖📕📗📘📙📓📒📔', 'a book'], ['🎶🎵', 'music notes'], ['👚👕', 'a top'],
+      ['🎉🎊🥳', 'confetti and a party'], ['🏖️⛱️', 'a beach umbrella'], ['🛣️🛤️', 'a road or a railway, drawn the same way'],
+      ['💿📀', 'a disc'], ['📣📢', 'a megaphone'], ['☂️☔🌂', 'an umbrella'], ['☀️🌞', 'the sun'],
+      ['🌙🌛🌜🌒🌓🌔🌕🌖🌗🌘🌝🌑🌚🌃', 'the moon'], ['🌅🌄🌇', 'the sun on the horizon'], ['🏘️🏡🏠', 'a house'],
+      ['🎤🎙️', 'a microphone'], ['🔊🔉🔈', 'a speaker'], ['🔔🛎️🔕', 'a bell'], ['🍦🍨', 'an ice cream'],
+      ['🍗🍖', 'meat on a bone'], ['😠😡', 'an angry face'], ['❌✖️❎', 'a cross'], ['✔️☑️✅', 'a tick'],
+      ['🌐🌍🌎🌏', 'a globe'], ['🧚🧚‍♀️🧚‍♂️', 'a fairy'], ['🚥🚦', 'traffic lights'],
+      ['🛍️🛒', 'shopping'], ['🥘🍳', 'a pan with food in it, seen from above'], ['⭐🌟🌠🌌🌃', 'stars'],
+    ].map(([s, what]) => ({ what: what, pics: [...new Intl.Segmenter('en', { granularity: 'grapheme' }).segment(s)].map(x => x.segment.replace(/\uFE0F/g, '')) }));
+    /* WHAT A CHILD CALLS EACH CATEGORY'S PICTURE, by the picture — see "a category's picture is never
+       one of its own cards" above. Not every name it could have: the names a child at the table would
+       say first, looking at it. */
+    const SYM_SAYS = {
+      '😋': ['yum', 'yummy', 'tasty', 'hungry'], '🥗': ['salad'], '🥘': ['paella', 'stew', 'pan', 'pan of food'],
+      '🏠': ['house', 'home'], '🧰': ['toolbox', 'tool box', 'tools'], '👚': ['top', 'blouse', 'shirt', 't-shirt'],
+      '🧍': ['person', 'standing', 'body'], '🎭': ['mask', 'masks', 'theatre', 'drama'],
+      '🚶': ['walking', 'walk', 'person walking'], '👥': ['people', 'person', 'shadow'], '🐯': ['tiger'],
+      '🐾': ['paw prints', 'paws', 'paw'], '🌊': ['wave', 'waves', 'sea'], '🏞️': ['park', 'countryside', 'river', 'lake'],
+      '🔭': ['telescope'], '🧚': ['fairy'], '🌐': ['globe', 'world'],
+      '🏘️': ['houses', 'street', 'town', 'village'], '🏅': ['medal', 'gold medal'],
+      '🎒': ['backpack', 'school bag', 'bag', 'rucksack'], '🚥': ['traffic lights', 'traffic light'],
+      '🎈': ['balloon'], '🎲': ['dice'], '🎶': ['music', 'notes', 'music notes', 'musical notes', 'musical note', 'music note'],
+      '🔣': ['symbols'],
+    };
+    const NEAR_OK = {
+      'Fruit and veg|potato|sweet potato': 'a different vegetable: orange inside, and roasted, where 🥔 is mashed and chipped',
+      'At home|clock|alarm clock': 'the one with bells that wakes you up: 🕰️ is the mantelpiece clock, and "ring", "morning" are not clues for it',
+      'At home|toilet|toilet roll': 'a roll of paper and a toilet are two things, drawn nothing alike',
+      'Clothes|boots|walking boots': 'a hiking boot (🥾, laces and mud) against a tall heeled boot (👢)',
+      'Clothes|coat|lab coat': 'what a scientist wears, white, in a lab — 🥼 against a winter 🧥',
+      'Space and weather|star|shooting star': 'a streak across the sky that you wish on, not a point of light',
+      'Space and weather|moon|full moon': 'the round bright one werewolves wait for, where 🌙 is the crescent a child draws — kept because Space and weather has no other honest picture left at 12.0, and `half moon` went',
+      'Space and weather|satellite|satellite dish': 'one is in space and one is on the side of a house: 🛰️ against 📡',
+      'Nature|tree|pine tree': 'the needles-and-cones tree, drawn green and pointed (🌲), against the round 🌳',
+      'Nature|tree|palm tree': 'the beach tree with coconuts — its own talk: sand, hot, island',
+      'Celebrations|Christmas|Father Christmas': 'the day (a tree, 🎄) against the man (🎅) — "presents" fits both, "beard" and "sleigh" only him',
+      'Sport|football|American football': 'two games: 🏈 is egg-shaped, thrown and padded, and in Britain "football" is the other one',
+      'Sport|hockey|ice hockey': 'two games on two surfaces, 🏑 grass and 🏒 ice, drawn with two different sticks',
+      'School|pen|fountain pen': 'the one with a nib and ink, drawn as its nib (🖋️), against a biro (🖊️)',
+      'Transport|train|bullet train': 'the Japanese one, white and pointed (🚅), against a steam train (🚂)',
+      'Transport|train|train track': 'what a train runs on, not a train: rails and sleepers, drawn with no train on them',
+      'Transport|car|police car': 'a police car is talked about as police — siren, blue lights, robbers — not as a car',
+      'Transport|car|racing car': 'a Formula 1 car, drawn low and open (🏎️): fast, track, helmet',
+      'Transport|car|cable car': 'not a car at all: a box hanging from a wire up a mountain',
+      'Transport|ship|cruise ship': 'a holiday on a floating hotel (🛳️) against an old liner (🚢) — kept, with the ferry, because Transport has no other honest vehicle left at 12.0; `truck` went, being `lorry` again',
+      'Pets and farm animals|dog|guide dog': 'the dog that helps a blind person, in its harness (🦮): its talk is the job, not the dog',
+      'Pets and farm animals|chick|hatching chick': 'a chick still breaking out of its egg (🐣) — kept because the pets and farm animals at 12.0 are all in the deck',
+    };
+    /* LOOKED AT AND KEPT — a category's picture beside cards of its own that it draws, or is drawn
+       like, and is not: 'category|picture|card,card' to the reason. Raised by the second review
+       (🎶 🌊 🎭) and by laying Apple's drawing of every category's picture beside its thirty
+       (emoji-datasource-apple 15.1) and Noto's beside them. No rule above fails these, so this
+       list lets nothing through: it is the judgement written where the next person to raise the
+       pair will look, printed every run, and an entry the deck no longer holds is an error. Most
+       say why nothing else could take the place — the same "no honest picture left at 12.0" that
+       NEAR_OK gives — and that is the part to look at again if the deck ever goes past 12.0. */
+    const KEPT = {
+      'Fruit and veg|🥗|lettuce,tomato,cucumber': 'a salad is three cards in one bowl, so it points at all three and at none — and every fruit and vegetable drawn at 12.0 is a card already (🍏 went as `apple` again), so there is no other picture to give it',
+      'Clothes|👚|vest': 'two tops laid flat, but a blouse with sleeves and a collar against a sleeveless running vest with a sash — a child calls them "top" and "vest" — and every Clothes picture is a garment laid flat',
+      'Feelings|🎭|happy,sad': 'the masks are two faces at once, one happy and one sad, so they point at both and at neither — and FEELINGS under them gives every imposter those two as the first guesses anyway. No picture of a feeling at 12.0 is not one of the thirty: every face is a card, a heart is `in love`, a thought bubble is `thinking`',
+      'Actions|🚶|running': 'the same person in a stride, walking against running — upright and leaning in both drawings — and no card is walking. Every Actions card is a person doing something, so any picture of one is beside one of them',
+      'At the seaside|🌊|surfing': 'Apple\'s 🏄 is a surfer on a board with no wave at all, and Noto\'s wave is behind him. A wave is the sea every seaside card is in or beside — swimming, sailing boat, beach — and a child names 🌊 "wave", never "surfing"',
+      'Nature|🏞️|mountain,tree,pine tree': 'a landscape is several Nature cards at once, and in Apple\'s drawing a mountain is the biggest thing in it — the nearest of these to the pairs the second review failed. Kept because nothing is left to put in either place: every other landscape at 12.0 is a mountain again (🏔️ 🗻), a Nature card already (🏜️ 🌋) or another category\'s (🌄 🏕️), and every plant left is a double of one (🌿 of 🌱, 🍁 of 🍂)',
+      'Space and weather|🔭|satellite dish': 'both point at the sky, but one is a tube on legs you look through and the other a dish on the side of a house; a child names them apart in both drawings',
+      'Music|🎶|treble clef': '🎼 is a clef on a stave, and neither Noto nor Apple draws a note on it — a child names it by the clef. The one name it shares with 🎶 is "music", the category\'s own name, printed under the picture for every imposter anyway',
+      'Signs and symbols|🔣|hashtag': 'a key of four symbols against a key of one, but the blue key is how both sets draw every keycap — ℹ️ and 🆕 are the same key — so the key points at none of them, and a child calls 🔣 "symbols", never "hashtag"',
+    };
+    const keptOk = [];
     const catOk = [];
     const fold = w => String(w).toLowerCase().replace(/[’']/g, '').split(/[\s-]+/).filter(Boolean)
       .map(t => t.replace(/s$/, '')).join(' ');
+    const hex = s => [...String(s)].map(c => 'U+' + c.codePointAt(0).toString(16).toUpperCase()).join(' ');
+    /* ONE EMOJI, ASKED OF UNICODE'S OWN LIST — see "each picture is one emoji" above. Built here and
+       not written as a literal, because a `v`-flag literal is a SyntaxError on an older Node, and that
+       would stop the whole of this file rather than say this one thing cannot be checked. */
+    let RGI = null;
+    try { RGI = new RegExp('^\\p{RGI_Emoji}$', 'v'); } catch (e) { RGI = null; }
+    if (!RGI) impBad.push('this Node cannot ask for \\p{RGI_Emoji} (it needs the v flag, Node 20 or later), so no picture was checked to be one emoji — not a pass');
+    /* WHAT IS WRONG WITH ONE PICTURE, or '' — the rules above, in the order a fault is likeliest. */
+    const pictureFault = p => {
+      const cps = [...String(p)].map(c => c.codePointAt(0));
+      if (!cps.length) return 'has no picture';
+      if (/[A-Za-z\s]/.test(p)) return 'has a picture with a letter or a space in it (' + JSON.stringify(p) + ')';
+      if (!cps.every(c => /[\p{Extended_Pictographic}\p{Emoji_Component}\p{Emoji_Presentation}]/u.test(String.fromCodePoint(c)))) {
+        return 'has a picture that is not emoji (' + hex(p) + ')';
+      }
+      const late = cps.find(c => NEWER.some(([a, b]) => c >= a && c <= b));
+      if (late !== undefined) return 'has ' + p + ', newer than Emoji 12.0 (U+' + late.toString(16).toUpperCase() + ') — an empty box on an older iPad';
+      if (cps.indexOf(0x200d) !== -1 && !ZWJ_OK[p]) return 'has ' + p + ' (' + hex(p) + '), a joined picture nobody has looked up — find its version in Unicode\'s emoji-zwj-sequences and add it to ZWJ_OK if it is 12.0 or older';
+      if (ZWJ_OK[p] && !(parseFloat(ZWJ_OK[p]) <= 12)) return 'has ' + p + ', a joined picture of Emoji ' + ZWJ_OK[p] + ' by ZWJ_OK\'s own entry — newer than 12.0, an empty box or two pictures on an older iPad';
+      const tone = cps.find(c => c >= 0x1f3fb && c <= 0x1f3ff);
+      if (tone !== undefined) return 'has ' + p + ' with a skin tone (U+' + tone.toString(16).toUpperCase() + ') — every person in the deck is the default, and a toned picture can be newer than its parts';
+      for (let k = 0; k < cps.length; k++) {
+        const ch = String.fromCodePoint(cps[k]);
+        const textFirst = /\p{Extended_Pictographic}/u.test(ch) && !/\p{Emoji_Presentation}/u.test(ch);
+        if (textFirst && cps[k + 1] !== 0xfe0f) return 'has ' + p + ' without its U+FE0F after ' + hex(ch) + ' — plain black text on some phones';
+        if (cps[k] === 0x20e3 && cps[k - 1] !== 0xfe0f) return 'has the keycap ' + p + ' without its U+FE0F';
+      }
+      /* LAST, so the faults above keep their own words: `☀` with no U+FE0F is not RGI either, and
+         "without its U+FE0F" says what to do about it where "not one emoji" does not. */
+      if (RGI && !RGI.test(p)) return 'has ' + p + ' (' + hex(p) + '), which is not one emoji — two pictures, a flag that is no country, or a sequence Unicode does not list';
+      return '';
+    };
     const cats = Object.keys(D);
     if (cats.length < CATS) impBad.push('IMP_DECK has ' + cats.length + ' categories — fewer than ' + CATS);
     const where = new Map();
+    const pics = new Map();
+    const sizes = new Map();
     let total = 0;
+    const bare = x => String(x || '').replace(/\uFE0F/g, '');
+    const SAYS = new Map(Object.keys(SYM_SAYS).map(k => [bare(k), SYM_SAYS[k]]));
+    const saysUsed = new Set(), nearSeen = new Set(), nearOk = [];
+    const picOnce = (p, who) => {
+      if (!p) return;
+      if (pics.has(p)) impBad.push(who + ' has ' + p + ', the picture of ' + pics.get(p));
+      else pics.set(p, who);
+    };
     cats.forEach(c => {
-      const list = Array.isArray(D[c]) ? D[c] : [];
+      const cat = D[c] || {};
+      if (!Array.isArray(cat.cards)) { impBad.push(c + ' is not { sym, cards: [...] }, so none of its cards could be read'); return; }
+      const cf = pictureFault(cat.sym);
+      if (cf) impBad.push('the category ' + c + ' ' + cf);
+      picOnce(cat.sym, 'the category ' + c);
+      const list = cat.cards;
       total += list.length;
+      sizes.set(list.length, (sizes.get(list.length) || []).concat([c]));
       if (list.length < PER) impBad.push(c + ' holds ' + list.length + ' words — fewer than ' + PER);
       const cw = fold(c).split(' ').filter(t => t && !CAT_STOP.has(t));
-      list.forEach(w => {
+      const got = [];
+      list.forEach(s => {
+        /* SPLIT AS `impCards_` SPLITS IT: a letter before the first space means there is no picture. */
+        const str = String(s), sp = str.indexOf(' ');
+        const p = sp > 0 && !/[A-Za-z]/.test(str.slice(0, sp)) ? str.slice(0, sp) : '';
+        const w = p ? str.slice(sp + 1) : str;
+        if (!w.trim()) { impBad.push(c + ' ' + JSON.stringify(str) + ' has a picture and no word'); return; }
+        const pf = pictureFault(p);
+        if (pf) impBad.push(c + ' ' + JSON.stringify(w) + ' ' + pf);
+        picOnce(p, c + ' ' + JSON.stringify(w));
+        got.push([w, p]);
         const k = fold(w);
         /* WHOLE WORDS, so `Sport` is not found in `transport` — but is in `sports day`. */
         const toks = k.split(' ');
@@ -452,17 +675,95 @@ if (acceptedEngine.length) {
         if (twin) impBad.push(c + ' ' + JSON.stringify(w) + '  is  ' + twin);
         else where.set(k.replace(/ /g, ''), c + ' ' + JSON.stringify(w));
       });
+      /* THE CATEGORY'S PICTURE AGAINST ITS OWN CARDS, by picture and by word — see "a category's
+         picture is never one of its own cards". The same picture exactly is `picOnce`'s, above. */
+      /* EVERY FAMILY THE PICTURE IS IN, not the first: 🌃 is stars and a moon. */
+      LOOKALIKE.filter(f => f.pics.indexOf(bare(cat.sym)) !== -1).forEach(fam => {
+        got.forEach(([w, p]) => {
+          if (p && bare(p) !== bare(cat.sym) && fam.pics.indexOf(bare(p)) !== -1) {
+            impBad.push('the category ' + c + '\'s picture ' + cat.sym + ' and its card ' + p + ' ' + JSON.stringify(w) + ' are both ' + fam.what + ' — the imposter would be holding the word');
+          }
+        });
+      });
+      /* A JOINED PICTURE IS ITS PARTS — 👨‍🍳 is 👨 and 🍳, and is drawn holding the pan. Either way
+         round: the category's picture built from a card's, or a card's built from the category's. */
+      const parts = x => bare(x).split('\u200d').filter(Boolean);
+      got.forEach(([w, p]) => {
+        if (!p || bare(p) === bare(cat.sym)) return;
+        const inCat = parts(cat.sym).length > 1 && parts(cat.sym).indexOf(bare(p)) !== -1;
+        const inCard = parts(p).length > 1 && parts(p).indexOf(bare(cat.sym)) !== -1;
+        if (inCat || inCard) {
+          impBad.push('the category ' + c + '\'s picture ' + cat.sym + ' and its card ' + p + ' ' + JSON.stringify(w) + ' — ' + (inCat ? 'the category\'s picture is joined from the card\'s' : 'the card\'s picture is joined from the category\'s') + ', drawn as the one holding the other, and side by side where the join is not drawn');
+        }
+      });
+      const says = SAYS.get(bare(cat.sym));
+      if (!says) {
+        impBad.push('the category ' + c + '\'s picture ' + cat.sym + ' is not in SYM_SAYS — write down what a child calls it, so it can be held against ' + c + '\'s cards');
+      } else {
+        saysUsed.add(bare(cat.sym));
+        /* THE END OF THE CARD'S WORD, whole words — a frying pan is a pan, a top hat is not a top. */
+        const names = says.map(n => fold(n).split(' '));
+        got.forEach(([w]) => {
+          const tw = fold(w).split(' ');
+          const hit = names.find(tn => tn.length <= tw.length && tn.every((t, x) => tw[tw.length - tn.length + x] === t));
+          if (hit) impBad.push('the category ' + c + '\'s picture ' + cat.sym + ' is what a child calls ' + JSON.stringify(w) + (hit.length < tw.length ? ' ("' + hit.join(' ') + '" is what a ' + JSON.stringify(w) + ' is)' : '') + ', one of its own cards — the imposter would be holding the word');
+        });
+      }
+      /* LOOKED AT AND KEPT — see `KEPT`. */
+      Object.keys(KEPT).forEach(key => {
+        const [kc, kp, kws] = key.split('|');
+        if (kc !== c) return;
+        const cards = kws.split(',').map(kw => [kw, got.find(([w]) => w === kw)]);
+        const gone = cards.filter(([, card]) => !card).map(([kw]) => JSON.stringify(kw));
+        if (bare(kp) !== bare(cat.sym) || gone.length) impBad.push('KEPT has ' + JSON.stringify(key) + ', which the deck no longer holds — ' + c + '\'s picture is ' + cat.sym + (gone.length ? ' and it has no card ' + gone.join(', ') : ''));
+        else keptOk.push(c + ' ' + cat.sym + ' beside ' + cards.map(([kw, card]) => card[1] + ' ' + JSON.stringify(kw)).join(', ') + ' — ' + KEPT[key]);
+      });
+      /* NOT THE SAME CARD TWICE UNDER TWO NAMES — see the note above `NEAR_OK`. */
+      got.forEach(([wa]) => got.forEach(([wb]) => {
+        const ta = fold(wa).split(' '), tb = fold(wb).split(' ');
+        if (ta.length >= tb.length) return;
+        let inside = false;
+        for (let k = 0; k + ta.length <= tb.length && !inside; k++) inside = ta.every((t, x) => tb[k + x] === t);
+        if (!inside) return;
+        const key = c + '|' + wa + '|' + wb;
+        nearSeen.add(key);
+        if (NEAR_OK[key]) nearOk.push(c + ' ' + JSON.stringify(wa) + ' and ' + JSON.stringify(wb) + ' — ' + NEAR_OK[key]);
+        else impBad.push(c + ' ' + JSON.stringify(wb) + ' is ' + JSON.stringify(wa) + ' again under a longer name — swap one for a different card, or let it through in NEAR_OK with its reason');
+      }));
     });
+    Object.keys(SYM_SAYS).forEach(k => {
+      if (!saysUsed.has(bare(k))) impBad.push('SYM_SAYS names ' + k + ', which no category has for its picture any more');
+    });
+    Object.keys(KEPT).forEach(k => {
+      if (!D[k.split('|')[0]]) impBad.push('KEPT has ' + JSON.stringify(k) + ', and the deck has no category ' + k.split('|')[0]);
+    });
+    Object.keys(NEAR_OK).forEach(k => {
+      if (!nearSeen.has(k)) impBad.push('NEAR_OK lets through ' + JSON.stringify(k) + ', which is not a pair in the deck any more');
+    });
+    if (sizes.size > 1) {
+      impBad.push('the categories are not all one size, so some come up more often than others: '
+        + [...sizes].map(([n, cs]) => n + ' in ' + cs.join(', ')).join('; '));
+    }
     /* AN ACCEPTED ENTRY THE DECK NO LONGER HOLDS IS SAID, so the list cannot outlive its cards. */
     Object.keys(CAT_WORD_OK).forEach(key => {
       const [c, w] = key.split('|');
-      if (!(D[c] || []).includes(w)) impBad.push('CAT_WORD_OK lets through ' + JSON.stringify(key) + ', which the deck no longer holds');
+      const has = ((D[c] || {}).cards || []).some(s => String(s) === w || String(s).endsWith(' ' + w));
+      if (!has) impBad.push('CAT_WORD_OK lets through ' + JSON.stringify(key) + ', which the deck no longer holds');
+    });
+    Object.keys(ZWJ_OK).forEach(p => {
+      if (!pics.has(p)) impBad.push('ZWJ_OK lets through ' + p + ', which no card or category in the deck has any more');
     });
     if (!impBad.length) {
       console.log('');
-      console.log('  imposter: ' + cats.length + ' categories, ' + total + ' words, none twice, none naming its category'
+      console.log('  imposter: ' + cats.length + ' categories, ' + total + ' words, none twice, none naming its category, '
+                  + pics.size + ' pictures, each one emoji, none twice, none newer than Emoji 12.0, '
+                  + 'no category\'s picture one of its own cards'
                   + (catOk.length ? ' but ' + catOk.length + ' let through:' : ''));
       catOk.forEach(x => console.log('    ' + x));
+      console.log('  imposter: ' + nearOk.length + ' cards inside another card\'s name in the same category, each let through in NEAR_OK:');
+      nearOk.forEach(x => console.log('    ' + x));
+      console.log('  imposter: ' + keptOk.length + ' category pictures beside cards of their own that they draw or are drawn like, looked at and kept (KEPT):');
+      keptOk.forEach(x => console.log('    ' + x));
     }
   }
   if (impBad.length) {

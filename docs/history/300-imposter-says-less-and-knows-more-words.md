@@ -1,5 +1,7 @@
 ## Imposter says four words a screen, reads aloud for the ones who cannot read yet, and deals from 810 cards
 
+**Changed again by [343](343-imposter-has-a-picture-on-every-card-and-says-only-the-word.md), 11 Oct** (*"Add symbols to imposter. Also make the voice ONLY say the word. THERE IS TOO MUCH FLUFF with talking and all sorts. Even written."*): every card has a picture over its word; "Pass to", "Hint:", "Word" and the line over the card are gone; Listen says only the word or "Imposter" and nothing else speaks; the four-word budget became each screen's exact text; and the deck is 25 categories of 30. What follows is the 8 Oct state, kept as the record of why it was shaped that way.
+
 The owner, 8 Oct, two notes about the same game:
 
 - *"Can you make the imposter game more simple and intuitive while adding more categories and words.

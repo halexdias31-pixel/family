@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-11-fig-draw-2";
+  --css-version: "2026-10-12-imp-review";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -12146,7 +12146,8 @@ button.scr-sq { cursor: pointer; }
 
 /* ---------- IMPOSTER -------------------------------------------------------------------------------
    THE ARTICULATE CARD, BECAUSE IT IS THE SAME OBJECT: one thing read across a table, with a gold
-   button under it. What is new is the player count, the Read aloud switch and the speaker.
+   button under it. What is new is the player count, the Read aloud switch, the speaker, and — since
+   the owner's 11 Oct *"Add symbols to imposter"* — a picture over every word.
 
    THE STEPPERS ARE 44px IN px, the one measurement here that does not scale, and a real circle so
    `−` and `+` read as controls rather than as the maths symbols they also are. */
@@ -12164,19 +12165,59 @@ button.scr-sq { cursor: pointer; }
    Questions' hand-over still borrow the rule, so it stays, under the name it was born with. */
 .imp-pass { margin: 0; font: 400 1rem/1.35 var(--font); color: var(--ink); max-width: 18rem; }
 /* ---------- THE BIG LINE AND THE BUTTON STAY WHERE THEY ARE ------------------------------------
-   PASS, CARD, IMPOSTER AND PLAY ARE ONE FRAME — small line, big line, small line, button and, with
+   PASS, CARD, IMPOSTER AND PLAY ARE ONE FRAME — picture, big line, small line, button and, with
    Read aloud on, the speaker's room, drawn by `impFrame_` with a slot left empty rather than left
    out — and these rules are what make an empty slot keep its height. It is the CARD'S height that
    has to hold, not just the order inside it: the column centres the whole widget in the pane, so a
    card 72px taller puts its button 36px higher on the glass. The first version hung the card from its
    top instead, and the screenshots at 320 and 390 showed Hide 36px above where Show had been.
 
-   THE BIG LINE HOLDS TWO LINES' ROOM, centred in it, because "noughts and crosses" wraps on a 320px
+   THE BIG LINE HOLDS TWO LINES' ROOM, centred in it, because "computer programmer" wraps on a 320px
    phone and "pizza" does not — and a big line that grew with its word would move the button under
    it between one player and the next. `em`, so it is two lines of whatever `.art-word`'s clamp made.
-   (The small lines are `.art-cat-of`, `.7rem/1`, so an empty one is held at exactly a full one.) */
+   (The small line is `.art-cat-of`, `.7rem/1`, so an empty one is held at exactly a full one.) */
 .imp-lab { min-height: .7rem; }
 .imp-big { min-height: 2.3em; display: flex; align-items: center; justify-content: center; }
+/* THE PICTURE OVER THE WORD — an emoji, big enough to be the card for a child who cannot read the
+   word under it, and drawn on the reveal over the word as well. A FIXED HEIGHT, in `em` of its own
+   size, and NOT a floor: the hand-over draws this slot empty, and the card has to be one height with
+   a picture or without (see above). A height rather than a line-height alone because a colour-emoji
+   font's ascent and descent are its own, and Noto's and Apple's are not the same box.
+
+   `rem`, NOT `px`, because it is not a tap target: nobody presses the picture, and it should grow
+   with the type it stands over. THE FONTS NAMED, emoji first: the app's own face is monospace, and a
+   monospace font that carries a plain ♠ or ✖ would win over the coloured one for the cards whose
+   picture is one of those older symbols — a black outline where everybody else's card has colour. */
+/* AND A HAIRLINE OF `--ink` ROUND EVERY PICTURE, because some of them are drawn in black and this card
+   is nearly black. Measured in Chromium with Noto on the card at 390 (the review of 11 October), as
+   the share of a picture's drawn pixels reaching 3:1 against the card: ♠️ 0%, ♣️ 0%, 🕸️ 0%, 🕶️ 3%,
+   ➖ ➕ 4%, ➗ ✖️ 🧥 8% — a dark shape on a dark card, for the child the picture is for. Apple's font,
+   on the family's iPads, draws ♠ ♣ ➕ ➖ ➗ and the music notes in solid black. TWO `drop-shadow`s
+   of the token, each a fiftieth of the picture, rather than a disc of paper behind it: a disc is a
+   second shape on the card and paper is the other palette; an outline only shows where the picture
+   would have vanished into the card, and is a sticker's edge on the ones that never did. NOT
+   `color-mix()` for a softer glow: an iPad on iOS 15 drops the whole declaration over it. */
+.imp-sym { margin: 0; height: 1.2em; display: flex; align-items: center; justify-content: center;
+  position: relative;
+  font: 400 3.6rem/1 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+  filter: drop-shadow(0 0 .02em var(--ink)) drop-shadow(0 0 .02em var(--ink)); }
+/* THE IMPOSTER'S "?" — see `impFrame_`: the one word on the imposter's card a child who cannot read
+   needs, said as a mark learnt once. Gold on the app's black, the colour of the one action; set on
+   the picture's lower right, INSIDE the picture's slot, so the card keeps its height and is still a
+   big picture over a line of text from across the table. In `rem` — it is not pressed, and it
+   should grow with the picture it sits on.
+
+   SET FROM THE PICTURE'S OWN RIGHT EDGE, INSIDE ROOM MADE FOR IT, not from its middle. `.art` centres
+   its children, so this box is exactly as wide as the emoji, and the first version (`left: 50% +
+   1rem`) hung the mark 5px past it: `check/ui.js` reported the picture scrolling sideways at 320 and
+   390. Padding on both sides, so the emoji stays in the middle of the card. */
+.imp-sym.is-imp { padding: 0 1.3rem; }
+.imp-sym.is-imp::after {
+  content: '?'; position: absolute; right: .3rem; top: 2.2rem;
+  width: 1.6rem; height: 1.6rem; border-radius: 50%;
+  background: var(--gold); color: var(--bg);
+  font: 700 1.15rem/1.6rem var(--font); text-align: center;
+}
 /* SHOW AND HIDE CARRY A MARK, an open eye and a shut one from `TILE_ICONS`, for the children who
    know the button by picture. A floor on the width so the two are the same gold shape in the same
    place, and a target that is a thumb whatever word is in it. */

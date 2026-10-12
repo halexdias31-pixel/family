@@ -204,6 +204,16 @@ const ACCEPTED_QUIET = {
      still shows here; check-flow proves Show alone opens the card and a second tap does not. */
   'imp-show': { only: 'imposter setup', why: 'pressed within 600ms of Deal on the same pixels: a double tap, '
                      + 'ignored by design (`impTooSoon_`); check-flow proves Show alone opens the card.' },
+  /* AND SO ARE THE REVEAL'S DEAL AND PLAYERS, PRESSED STRAIGHT AFTER REVEAL, since the review of 11
+     October: a double tap on Reveal put its second tap on Players and threw the reveal away before
+     the table had seen it, so those two take the same guard now (games.js, `imp-again`). On the play
+     state this presses Reveal and then the two buttons it has just drawn, inside `IMP_GAP`. Scoped to
+     that state; check-flow proves each pressed on its own deals or goes back to setup, and that a
+     second tap straight after Reveal does neither. */
+  'imp-again': { only: 'imposter play', why: 'pressed within 600ms of Reveal, which drew it: a double tap, '
+                     + 'ignored by design (`impTooSoon_`); check-flow proves the reveal\'s Deal alone deals.' },
+  'imp-players': { only: 'imposter play', why: 'pressed within 600ms of Reveal, which drew it: a double tap, '
+                     + 'ignored by design (`impTooSoon_`); check-flow proves Players alone goes back to setup.' },
 
   /* ---------- AND ONE THAT IS THE FIXTURE RATHER THAN THE APP -------------------------------------- */
   'cmt-del': { only: 'signed out', why:
