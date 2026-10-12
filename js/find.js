@@ -11037,7 +11037,10 @@ function questionTiles_(x) {
      the answer's two faces (`ansArea_`) -- on a made-up surface since 327, on the paper's own figure or a
      stem's since 337. For everybody, signed in or not -- the drawing was a page anybody could swipe to. */
   /* NO WAY TO THE ANSWER IN THIS ROW ANY MORE -- see where `To the answer` was, above. */
-  return drawTile_(x) + fig + (whoIs_() ? subSlot_(x) : '');
+  /* AND THE SOUND SWITCH, JUST BEFORE THE SLOT, on a card that can be marked -- signed in or out, since a
+     signed-out child is marked and hears it too (`markSoundTile_`, js/submit.js, note 340). Before the
+     slot so the first verdict, landing in it, pushes no tile along under the finger. */
+  return drawTile_(x) + fig + (typeof markSoundTile_ === 'function' ? markSoundTile_(x) : '') + (whoIs_() ? subSlot_(x) : '');
 }
 
 /* ==================================================================================================

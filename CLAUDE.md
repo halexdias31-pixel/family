@@ -221,6 +221,7 @@ node js/check-loading.js         # every wait is `loading_()`: no phrase, class 
 node check/deploy.js             # after a push, does a browser that has the site run the new code
 node check/anims.js              # every textbook animation in its card at 320 and 390, still when asked
 node check/videos.js             # the videos card: the bar held as you type, one player, full screen on its side
+node check/sounds.js             # the marking chime and buzzer: short, quiet, as loud as each other to an ear, no click, one tap one sound
 node check/ui.js                 # 9 screens x 5 widths x 2 visitors. Exits 1 on anything new.
 node check/ui.js --screen=tools  # one screen
 node check/ui.js --shots         # also writes PNGs to check/shots/ for a human to look at

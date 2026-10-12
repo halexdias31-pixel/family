@@ -40,6 +40,9 @@
                  or something was typed here AFTER it, which stays on this device, with no verdict,
                  until it is sent.
      SAYING SO   the line under the box (`ansSavedSay_`, answers.js) and the card's slot (`subPaint_`).
+                 And ONCE, OUT LOUD, as the press is made: a chime for right, a buzzer for wrong
+                 (`markPlay_`, "the verdict, heard", note 340) -- the only part of this that is not
+                 drawn again on a repaint, because a sound is the press's and not the question's.
 
    ITS OWN FILE, after answers.js: one idea with one vocabulary, beside the file that keeps drawings.
    Everything it calls in find.js, keypad.js and answers.js is called at run time, never while loading.
@@ -184,13 +187,27 @@ function subRequeue_(who) {
    or null when there was nothing to record (an empty answer, a key for somebody not signed in).
 
    THE NAME AND THE WORDS GO WITH IT, found the way `doneMark_` found them for the `attempts` tab it
-   replaced: the weekly email reads them, and the backend cannot look a key up. */
-function subRecord_(k, answer, verdict) {
+   replaced: the weekly email reads them, and the backend cannot look a key up.
+
+   AND IT IS HEARD HERE, AND NOWHERE ELSE (`markPlay_`, below; note 340). This is the one line every
+   press that asks for a verdict reaches exactly once -- the ✓ key and a laptop's Enter included, which
+   call the handler without a click -- and nothing that only DRAWS a verdict reaches it: a repaint, a
+   restore, the account's copy arriving, a second copy of the card on Saved. `sound` is how: left out, the
+   press is happening now, inside the tap; `'late'`, a verdict that landed after a wait (Mark with AI),
+   played only through the sound its press unlocked; `'none'`, not at all. */
+function subRecord_(k, answer, verdict, sound) {
   k = String(k || '');
   answer = answer === null || answer === undefined ? '' : String(answer);
   if (!/^ans:/.test(k) || !answer.trim() || !verdict) return null;
   const who = ansWhoOf_(k);
-  if (who && !(typeof whoIs_ === 'function' && whoIs_() === who)) return null;
+  /* NOBODY TO RECORD IT FOR -- a card still keyed to a person whose session has ended (Find is held while a
+     child writes, so the box keeps its key). The press still drew its verdict, so it is still HEARD: the
+     sound is the press's, and silence under a "Correct" would say the opposite of the screen (review of
+     11 Oct). */
+  if (who && !(typeof whoIs_ === 'function' && whoIs_() === who)) {
+    if (sound !== 'none') markPlay_(String(verdict), sound === 'late');
+    return null;
+  }
   const key = subKeyOf_(k);
   const e = { a: answer, v: String(verdict), at: Date.now(), id: subId_() };
   /* SIGNED IN WITH AN ID: the account's. Over the account's ceiling it stays here and says so. */
@@ -214,6 +231,8 @@ function subRecord_(k, answer, verdict) {
   subAllKeep_(who, all);
   subPaint_(k);
   if (e.q) subPush_(true);
+  /* LAST, AFTER EVERYTHING ELSE THE PRESS DOES, so a sound that cannot play costs nothing it was for. */
+  if (sound !== 'none') markPlay_(e.v, sound === 'late');
   return e;
 }
 
@@ -622,6 +641,365 @@ function subMark_(v) {
   if (ai) return { text: ai.got + '/' + ai.of, cls: ai.got >= ai.of ? ' is-right' : ' is-near' };
   return { text: '', cls: '' };
 }
+
+/* ---------- THE VERDICT, HEARD ------------------------------------------------------------------------------
+   THE OWNER, 11 OCT: *"Make it make a nice noise when they get a question right and a buzzer when wrong."*
+
+   ONE PLAYER, `markPlay_`, AND ONE CALLER, `subRecord_` (above): the press, never the drawing. Every
+   function that draws a verdict -- `choiceBox_`, `orderBox_`, `ansBox_`, the slot, `subPaint_`,
+   `subVerdictPaint_`, `aiKeptPaint_` -- runs on a repaint, a restore, a payload landing, the account's copy
+   arriving (`answersPull_`), another tab writing, a box typed back to the answer last sent, and once per
+   COPY of the card (Find and Saved can both hold it). A sound hung on any of them is a chime per copy and a
+   buzzer every time the column repaints. A document-level click listener would miss the ✓ key and Enter,
+   which call the handler directly (`kpDone_`). So: at the end of the record, once per press.
+
+   WHICH VERDICT SOUNDS (`markKind_`): `right` a chime, `wrong` the buzzer, `sent` nothing (nothing marked
+   it). The AI's marks: all of them a chime, none of them the buzzer, and A PART MARK NOTHING. 31 of 40 is
+   neither right nor wrong, which are the two things asked for, and a buzzer on a part mark would sound on
+   nearly every essay ever marked -- teaching a child that the buzzer means "good, mostly". The screen still
+   draws a part mark amber, as it always did; the sound is only ever extra.
+
+   BUILT, NOT FETCHED -- the Timer's reason (games.js): a file is a request that can fail silently. Web Audio,
+   ONE CONTEXT for the visit (`MARK_AC`), made or woken INSIDE THE PRESS (`markHear_`), because Safari on an
+   iPad lets a page start sound only from a tap. The presses that answer at once -- Check, a pick, an
+   ordering's Send, the ✓ key, Enter -- are inside their tap already; Mark with AI's verdict lands after a network wait, so its press wakes the context before the
+   request goes and the verdict plays through it (`'late'`) -- a context first made after an `await` is one
+   an iPad keeps silent for ever, and so is a context the Timer makes inside a `setInterval`. No context at
+   load, and none at all while the switch is off. The iPad's silent switch mutes Web Audio and that is left
+   alone (`navigator.audioSession` would stop a child's music to make a chime).
+
+   NEVER THROWS. No Web Audio (an old browser; jsdom), a context the browser refuses, a `resume()` that
+   rejects or returns nothing: silence, and the verdict on the screen exactly as it was. */
+const MARK_SOUND_KEY = 'mark-sound';
+/* ---------- THE SWITCH: ONE PER DEVICE, ON UNTIL SOMEBODY TURNS IT OFF -----------------------------------
+   ON BY DEFAULT because the owner asked for the noise. PER DEVICE, NOT PER PERSON: siblings sharing an
+   iPad and a tutor at the kitchen table are one room, and a switch that came back on when the next child
+   signed in would be turned off again every time. `'0'` is off; nothing, or `'1'`, is on.
+
+   WHAT THIS VISIT CHOSE IS ASKED FIRST (`MARK_SOUND_HERE`), THE STORE SECOND. It was the other way round,
+   and the review of 11 Oct filled the store: a device already holding '1' (any off-then-on), a store that
+   refuses every write (a full one -- drawings and held answers fill it, `padSave_`, rule 317 -- or Safari
+   private browsing), and Sound off pressed. The write failed, the tile drew "Sound off" from the value it
+   was handed, and every later read found '1' and buzzed: a switch saying one thing and doing another.
+   ANOTHER TAB'S CHOICE still reaches this one: its write fires `storage` here, which sets this visit's
+   choice to it (the listener under the tile, below). */
+let MARK_SOUND_HERE = null;
+function markSoundOn_(on) {
+  if (on !== undefined) {
+    MARK_SOUND_HERE = !!on;
+    try { localStorage.setItem(MARK_SOUND_KEY, on ? '1' : '0'); } catch (e) { /* this visit only */ }
+    return !!on;
+  }
+  if (MARK_SOUND_HERE !== null) return MARK_SOUND_HERE;
+  let v = null;
+  try { v = localStorage.getItem(MARK_SOUND_KEY); } catch (e) { v = null; }
+  return v !== '0';
+}
+/* WHETHER THIS DEVICE CAN MAKE A SOUND AT ALL. Without Web Audio there is no switch to draw: a tile that
+   can do nothing is the control that sometimes does nothing (`ansBox_`'s rule), and Read aloud is not
+   drawn without a voice for the same reason. */
+function markCanSound_() {
+  try { return !!(window.AudioContext || window.webkitAudioContext); } catch (e) { return false; }
+}
+function markKind_(v) {
+  if (v === 'right') return 'right';
+  if (v === 'wrong') return 'wrong';
+  const ai = subAiOf_(v);
+  if (!ai || ai.of < 1) return '';
+  return ai.got >= ai.of ? 'right' : ai.got === 0 ? 'wrong' : '';
+}
+
+/* ---------- THE TWO SOUNDS, AS NOTES ON A CLOCK ----------------------------------------------------------
+   `markTone_(ac, t0, kind, out)` builds one sound into `out`, starting at `t0` on `ac`'s clock, and says
+   when it ends. A FUNCTION OF ITS CONTEXT so a browser check can render it into an OfflineAudioContext and
+   measure it -- its length, its loudest sample, how loud it is to an ear, and that it starts and ends at 0.
+
+   EVERY NOTE STARTS AND ENDS AT ZERO GAIN. An oscillator switched on or off at any other level is a click,
+   which is what the Timer's flat 0.08 beep does at both ends. So each one rises from 0 over a few
+   milliseconds, falls away, and is ramped to exactly 0 before its oscillator stops.
+
+   THE CHIME, ~0.32s: G5 (783.99 Hz) and then C6 (1046.50 Hz) 0.09s later -- a rising fourth, the cadence a
+   tune ends on, which is what "right" means. Each note a sine with a quiet sine an octave up (a third of its
+   level) for a bell's warmth rather than a whistle; up in 12ms, down exponentially to a thousandth, to 0 at
+   its end. Each note's envelope peaks at 0.03.
+
+   THE BUZZER, 0.40s: a sawtooth at 164.81 Hz (E3) and a square a semitone up (174.61 Hz, F3), through a
+   low-pass at 1600 Hz. The semitone beats against itself about ten times a second and their third
+   harmonics grind at about 29 Hz, which is the "buzz" of a game show's buzzer; the low-pass takes off the
+   upper harmonics that make one harsh (a third of a percent of its energy is above 2 kHz, against the
+   chime's six). Up in 25ms, held, down to 0 over the last 90ms -- a buzzer, not a slap. Its envelope
+   peaks at 0.06 (two half-level oscillators).
+
+   HOW LOUD, TO AN EAR AND NOT TO A METER. It was A2 (110 Hz) through 800 Hz at 0.045, with the chime at
+   0.04, and this comment said that held for 0.4s the buzzer was "the louder of the two". That was true of
+   plain RMS and false to anybody listening: nine tenths of its energy sat under 500 Hz, where the ear is
+   least sensitive and a phone's speaker plays almost nothing. Measured by the review of 11 Oct as the
+   loudest 85ms, A-weighted, it was 8.4 dB under the chime -- half as loud -- and 10.9 dB under it through
+   a phone's speaker: the one sound a child must not miss was the one they would barely hear. So the buzzer
+   went up an octave and a half, its filter doubled and its level a third, and the chime came down a
+   quarter. Now (`check/sounds.js`, 48 kHz): the chime -36.3 dB(A) and the buzzer -36.9, within a decibel
+   to the ear and 2.5 dB through a phone's (a 700 Hz high-pass); both 11 dB under the Timer's beep, which is
+   the one sound here meant to cross a room. Loudest samples 0.040 and 0.067, under its 0.08.
+   MEASURED in Chromium, both rendered into an OfflineAudioContext (note 340): silent until `t0`, nothing over
+   a twentieth of its peak between two samples in the first or last 2ms. */
+const MARK_CHIME = [{ f: 783.99, at: 0, len: 0.16 }, { f: 1046.5, at: 0.09, len: 0.23 }];
+const MARK_CHIME_PEAK = 0.03, MARK_BUZZ_PEAK = 0.06, MARK_BUZZ_LEN = 0.4;
+const MARK_BUZZ = [['sawtooth', 164.81], ['square', 174.61]], MARK_BUZZ_LP = 1600;
+function markTone_(ac, t0, kind, out) {
+  if (kind === 'right') {
+    let end = t0;
+    MARK_CHIME.forEach(n => {
+      const a = t0 + n.at, z = a + n.len;
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0, a);
+      g.gain.linearRampToValueAtTime(MARK_CHIME_PEAK, a + 0.012);
+      g.gain.exponentialRampToValueAtTime(MARK_CHIME_PEAK / 1000, z - 0.01);
+      g.gain.linearRampToValueAtTime(0, z);
+      g.connect(out);
+      [[n.f, 1], [n.f * 2, 1 / 3]].forEach(([f, lvl]) => {
+        const o = ac.createOscillator();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(f, a);
+        let to = g;
+        if (lvl !== 1) { to = ac.createGain(); to.gain.setValueAtTime(lvl, a); to.connect(g); }
+        o.connect(to);
+        o.start(a);
+        o.stop(z + 0.02);
+      });
+      end = Math.max(end, z);
+    });
+    return end;
+  }
+  const z = t0 + MARK_BUZZ_LEN;
+  const lp = ac.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.setValueAtTime(MARK_BUZZ_LP, t0);
+  lp.Q.setValueAtTime(0.7, t0);
+  const g = ac.createGain();
+  g.gain.setValueAtTime(0, t0);
+  g.gain.linearRampToValueAtTime(MARK_BUZZ_PEAK, t0 + 0.025);
+  g.gain.setValueAtTime(MARK_BUZZ_PEAK, z - 0.09);
+  g.gain.linearRampToValueAtTime(0, z);
+  lp.connect(g);
+  g.connect(out);
+  MARK_BUZZ.forEach(([type, f]) => {
+    const o = ac.createOscillator();
+    o.type = type;
+    o.frequency.setValueAtTime(f, t0);
+    const half = ac.createGain();
+    half.gain.setValueAtTime(0.5, t0);
+    o.connect(half);
+    half.connect(lp);
+    o.start(t0);
+    o.stop(z + 0.02);
+  });
+  return z;
+}
+
+/* ---------- THE CONTEXT, WOKEN AT THE PRESS ---------------------------------------------------------------
+   MADE ON THE FIRST PRESS WITH THE SWITCH ON, never at load: a context made before a tap is one Safari
+   keeps suspended, and Chrome prints a warning for it. `resume()` too, every press, because an iPad
+   suspends it for a phone call ("interrupted") and this file puts it to rest when nothing is playing
+   (below). `resume()` returns a promise in every browser that has one and nothing in old WebKit's --
+   either way its failure is caught here and is silence. */
+let MARK_AC = null;
+function markHear_() {
+  if (!markSoundOn_() || !markCanSound_()) return null;
+  try {
+    if (!MARK_AC) MARK_AC = new (window.AudioContext || window.webkitAudioContext)();
+    markRest_(-1);
+    if (MARK_AC.state !== 'running') {
+      const p = MARK_AC.resume();
+      if (p && typeof p.catch === 'function') p.catch(() => {});
+    }
+    return MARK_AC;
+  } catch (e) { return null; }
+}
+/* ---------- AND PUT TO REST WHEN NOTHING IS PLAYING -------------------------------------------------------
+   A RUNNING CONTEXT WITH NOTHING TO PLAY STILL HOLDS A PHONE'S AUDIO OUTPUT AWAKE and keeps the audio
+   thread rendering silence. Measured by the review of 11 Oct: after the first sound `MARK_AC` stayed
+   `running` for the rest of the visit, `currentTime` counting on through seconds of nothing, and went on
+   running after the switch was turned off, when nothing could ever play again -- only the app going out of
+   sight suspended it. So `markRest_(ms)` suspends it `ms` from now: a second after each sound ends
+   (`MARK_REST_MS` -- a child who presses Check again straight away does not wait on a wake, and the output
+   is let go before the next question), 0.1s after the switch goes off (the 15ms fade, then rest), at once
+   when the app is hidden. `-1` cancels, and `markHear_` cancels at every press, so a press always wakes
+   it inside its own tap.
+
+   NOT WHILE MARK WITH AI IS MARKING (`MARK_HOLD`, `markWait_` below). Its marks land after the network,
+   outside any tap; a context put to rest by a Check pressed during the wait could only be woken again by a
+   tap, and the marks would land on it in silence. So the press that waits holds it awake, and lets go when
+   its reply lands or fails (fetch always settles: it has the browser's own timeout). */
+const MARK_REST_MS = 1000;
+let MARK_REST = 0, MARK_HOLD = 0;
+function markRest_(ms) {
+  clearTimeout(MARK_REST);
+  MARK_REST = 0;
+  if (ms < 0 || !MARK_AC) return;
+  const rest = () => {
+    MARK_REST = 0;
+    if (MARK_HOLD > 0 || !MARK_AC) return;
+    try { const p = MARK_AC.suspend(); if (p && typeof p.catch === 'function') p.catch(() => {}); } catch (e) {}
+  };
+  if (ms === 0) rest(); else MARK_REST = setTimeout(rest, ms);
+}
+/* MARK WITH AI'S PRESS: the context woken now, inside the tap, and held awake until the reply. Returns
+   what lets it go -- once, however often it is called -- or a no-op when nothing woke (the switch off, no
+   Web Audio), which holds nothing. */
+function markWait_() {
+  if (!markHear_()) return () => {};
+  MARK_HOLD++;
+  let held = true;
+  return () => {
+    if (!held) return;
+    held = false;
+    MARK_HOLD = Math.max(0, MARK_HOLD - 1);
+    markRest_(MARK_REST_MS);
+  };
+}
+/* ---------- WHETHER THE CHILD IS STILL AT THE CARD, SO A LATE VERDICT KNOWS WHETHER TO BE HEARD -------------
+   Mark with AI takes seconds; a child who has moved on by then would hear a buzzer that seems to be about
+   the question in front of them. So a verdict is heard only if the box it marked (`k`, its answer key) is
+   on the page in front of the column in front, with the app in sight -- asked at the press and again as it
+   lands. Otherwise it makes no sound; it is drawn in the card's slot for when they come back.
+
+   THE CARD, NOT THE PAGE NUMBER. This compared the column and its page number (`AT + '/' + PAGE[AT]`), and
+   a page number is not a card -- the fault `stuffBackTo_`'s note in find.js records for Find. The review of
+   11 Oct starred two questions, pressed Mark with AI on the first in Saved and un-starred it while it marked:
+   Saved redrew, its page 1 was the second question, the number matched and the first one's buzzer sounded
+   over the second. And the other way: Find following the same card to a new page number when the list in
+   front of it grows left the child where they were and the verdict silent. A key on the page in front is
+   both answers -- and it is the same key on every copy of the card, so the copy on Saved is still "here".
+   Asked by the key, not the element: the funnel redraws a column in new markup, and the page in front is
+   still the page in front. */
+function markWhere_(k) {
+  try {
+    if (!k || document.visibilityState === 'hidden') return false;
+    const host = document.getElementById('s-' + AT);
+    const pg = host && host.querySelector(':scope > .page.on');
+    return !!pg && [...pg.querySelectorAll('.qp-ans-in[data-k]')].some(el => el.getAttribute('data-k') === k);
+  } catch (e) { return false; }
+}
+
+/* ---------- AND PLAYED ------------------------------------------------------------------------------------
+   `late`: a verdict that arrived after a wait -- only through a context its press already woke, because
+   one made now would be made outside a tap. Otherwise the press is happening now and wakes it itself.
+
+   A SECOND PRESS CUTS THE FIRST SOUND (`markHush_`): two Sends in quick succession are two submissions and
+   two sounds, never two at once. Scheduled 20ms ahead so the first milliseconds are not clipped while the
+   audio thread catches up. A context still waking (`resume()` pending inside the tap) plays when it is
+   awake -- unless that took longer than `MARK_LATE_MS`, when the moment has gone. Every sound puts the
+   context to rest a second after it ends (`markRest_`). */
+const MARK_LATE_MS = 600;
+let MARK_NOW = null;
+function markHush_() {
+  const n = MARK_NOW;
+  MARK_NOW = null;
+  if (!n) return;
+  try {
+    const t = n.ac.currentTime;
+    if (t < n.end) {
+      n.out.gain.cancelScheduledValues(t);
+      n.out.gain.setValueAtTime(1, t);
+      n.out.gain.linearRampToValueAtTime(0, t + 0.015);
+    }
+    setTimeout(() => { try { n.out.disconnect(); } catch (e) {} }, 60);
+  } catch (e) {}
+}
+function markPlay_(v, late) {
+  const kind = markKind_(v);
+  if (!kind || !markSoundOn_()) return;
+  const ac = late ? MARK_AC : markHear_();
+  if (!ac) return;
+  const asked = Date.now();
+  const go = () => {
+    try {
+      if (ac.state !== 'running' || Date.now() - asked > MARK_LATE_MS) return;
+      markHush_();
+      const out = ac.createGain();
+      out.gain.setValueAtTime(1, ac.currentTime);
+      out.connect(ac.destination);
+      const end = markTone_(ac, ac.currentTime + 0.02, kind, out);
+      MARK_NOW = { ac: ac, out: out, end: end };
+      markRest_(Math.max(0, end - ac.currentTime) * 1000 + MARK_REST_MS);
+    } catch (e) {}
+  };
+  if (ac.state === 'running') { go(); return; }
+  try {
+    const p = ac.resume();
+    if (p && typeof p.then === 'function') p.then(go, () => {});
+  } catch (e) {}
+}
+/* AN APP OUT OF SIGHT KEEPS NO AUDIO RUNNING, a wait for Mark with AI or not: the next press wakes it
+   (`markHear_`), and a verdict landing while hidden is not heard anyway (`markWhere_`). */
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'hidden' || !MARK_AC) return;
+  markRest_(-1);
+  try { const p = MARK_AC.suspend(); if (p && typeof p.catch === 'function') p.catch(() => {}); } catch (e) {}
+});
+
+/* ---------- THE TILE ----------------------------------------------------------------------------------------
+   ON THE QUESTION CARD, IN ITS ROW, JUST BEFORE THE VERDICT SLOT (`questionTiles_`, find.js). The sound
+   happens on the card, so whoever hears it -- the child, or the tutor beside them -- finds the switch on the
+   card in front of them, signed in or out. Settings would be a column away, and shows a signed-out child
+   only "Sign in". BEFORE the slot and not after it, because the slot fills with "Not yet" on the first
+   press and a tile after it would move under the finger (261: marking moves nothing).
+
+   ONLY ON A CARD THAT CAN SOUND (`markCan_`): a scheme to check, a right option, a right order, or Mark
+   with AI offered TO SOMEBODY SIGNED IN. A card whose every press is `sent` would carry a switch for a
+   noise it never makes -- and so does a card only Mark with AI can mark, signed out: its one press answers
+   "Sign in to have it marked" before anything wakes (the `qp-ai` handler asks `USER.token`; found by the
+   review of 11 Oct). Signing in repaints the row, and the switch arrives with the star and the slot.
+
+   SIGNED OUT, IT IS OFTEN THE ROW'S ONE TILE, and the row costs a card its height: measured at 320, the
+   signed-out cards that had no row before are drawn smaller to fit (`paneReach_`), the ordering one at 92%.
+   Kept, because that is the row a signed-in child has always had on the same card, at the same size, and
+   the other choice is a sound a signed-out child cannot turn off (note 340, "After review").
+
+   THE SOUND SWITCH THIS APP ALREADY HAS, learnt once (note 323): the `sound` / `mute` pair saying the state
+   it is IN, `.on` for the eye and `aria-pressed` for a screen reader, Read aloud's arrangement exactly. ONE
+   FACE OBJECT (`markSoundFace_`) for `tile_` to draw and `tileSet_` to rewrite, so the two cannot drift. */
+function markSoundFace_(on) {
+  return { icon: on ? 'sound' : 'mute', label: on ? 'Sound on' : 'Sound off', on: !!on, pressed: !!on };
+}
+function markCan_(x) {
+  if (!x || x.kind !== 'question') return false;
+  if (Array.isArray(x.choices) && x.choices.length >= 2) {
+    return typeof orderIs_ === 'function' && orderIs_(x) ? orderWays_(x).length > 0 : (x.choiceRight || []).length > 0;
+  }
+  if (String(x.accept || '').trim()) return true;
+  return typeof aiTile_ === 'function' && !!aiTile_(x) && typeof USER === 'object' && !!USER && !!USER.token;
+}
+function markSoundTile_(x) {
+  if (!markCanSound_() || !markCan_(x)) return '';
+  return tile_(Object.assign({ act: 'mark-sound', cls: 'mark-sound' }, markSoundFace_(markSoundOn_())));
+}
+/* EVERY COPY OF THE TILE AT ONCE -- Find and Saved can both be holding the card, as the star's do -- and,
+   turned off, a sound still playing stops and the context goes to rest. */
+function markSoundShow_(on) {
+  try { document.querySelectorAll('.mark-sound').forEach(el => tileSet_(el, markSoundFace_(on))); } catch (e) {}
+  if (!on) { markHush_(); markRest_(100); }
+}
+/* TURNED ON, IT PLAYS THE CHIME ONCE: the one way to hear that it works, and the way a tutor finds out that
+   the iPad's silent switch is on. AND IT SAYS WHAT IT IS FOR, in a toast, as the pen's Undo and Clear do
+   (find.js): a speaker with no word under it is also Imposter's Read aloud, and a child who pressed it
+   hoping to hear the question read has turned the marking sounds off with only the picture changing to
+   say so (review of 11 Oct). */
+on('mark-sound', () => {
+  const on = markSoundOn_(!markSoundOn_());
+  markSoundShow_(on);
+  toast(on ? 'Sounds for right and wrong answers on' : 'Sounds for right and wrong answers off');
+  if (on) markPlay_('right');
+});
+/* ANOTHER TAB OF THE SITE FLIPPED IT -- the switch is one per device, and its tiles here would otherwise go
+   on saying "Sound on" over presses that make no sound (or the reverse) until somebody pressed one. The
+   other tab played its own chime; this one only follows. `key` null is the whole store cleared: the
+   switch is back to its default, on. */
+window.addEventListener('storage', e => {
+  if (!e || (e.key !== MARK_SOUND_KEY && e.key !== null)) return;
+  MARK_SOUND_HERE = e.key === null || e.newValue === null ? null : e.newValue !== '0';
+  markSoundShow_(markSoundOn_());
+});
 
 /* ---------- PAINTED WHERE IT STANDS --------------------------------------------------------------------
    THE CARD'S SLOT, by its answer key, on every column that holds the card (Find and Saved), and the line
