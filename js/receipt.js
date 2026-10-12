@@ -813,7 +813,7 @@ on('job', el => {
      MEASURED, AND THIS WAS WRONG FIRST: with `OPEN_JOB` set and `jobPageAt_` answering 1, the
      column still held what it had drawn at boot. The pieces were all correct and the screen was
      the one nobody had told. */
-  STALE.booking = 1;
+  markStale_('booking');
   /* ---------- THE PAGE IS SET BEFORE THE SCREEN IS REACHED, NOT AFTER ------------------------------
      `goPage` OPENS WITH `if (!PAGER[id]) return;` and the pager for a column is built when that
      column is painted — so calling it straight after `go('booking')` asked for a page of a pager

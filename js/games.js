@@ -4906,7 +4906,12 @@ function tmtBooked_(s) {
 
 function tmtHtml_() {
   const t = tmtRead_();
-  if (tmtColours_(t)) tmtSave_(t);
+  /* NOT SAVED WHEN DRAWN AHEAD (`AHEAD.running`, shell.js; docs/history/341). A week from before the colours
+     existed is given them here and saved — a POST, 900ms later — and the builder draws this card for nobody
+     in the quiet, where "nothing runs for nobody" is the rule. Found when `check-widgets.js` was given a person
+     with a week of her own (review, 12 Oct): her draw ahead asked the backend. The colours are worked out for
+     the drawing either way; the save waits for a start somebody is looking at. */
+  if (tmtColours_(t) && !(typeof AHEAD !== 'undefined' && AHEAD.running)) tmtSave_(t);
   /* THIS WEEK'S BOOKED SESSIONS, one entry per day each runs — see `weekSessions_`. Signed out there
      are none, and nothing about the written week depends on them. */
   const booked = (typeof USER !== 'undefined' && USER && typeof weekSessions_ === 'function')

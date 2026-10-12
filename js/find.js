@@ -4359,7 +4359,7 @@ function bibleIndex_() {
         if ($(F.id + '-controls')) paintStuff(true);
       });
       /* A STARRED VERSE IS NAMED FROM THE INDEX, so Saved could not draw one until now. */
-      if (AT === 'saved') repaint(true); else STALE.saved = 1;
+      if (AT === 'saved') repaint(true); else markStale_('saved');
       return BIBLE.index;
     });
   }
@@ -4458,10 +4458,12 @@ function bibleLoad_(n) {
 }
 
 /* ---------- THE CHOSEN BOOK, ASKED FOR BEFORE ITS VERSES ARE DRAWN (docs/history/341) ---------------------
-   The verse card's own fetch (`bibleCard_`) stays as the floor; this asks as soon as the book chip is
-   chosen, and the builder asks again (the `bible` job) if the book is chosen and still not here — the
-   chip answered before the index had arrived, say. The cards waiting for it are drawn again when it
-   comes, whichever asked first (`bibleRedraw_`). Admin only, as every Bible fetch is (`bibleFor_`). */
+   The verse card's own fetch (`bibleCard_`) stays as the floor, and the builder asks (the `bible` job) if the
+   book is chosen and still not here — Resources drawn in the quiet for nobody, its question in front, where no
+   verse card would be drawn until the fill reached it. The chip asked too, until the review of 12 Oct found
+   nothing could tell: the page in front is filled in the chip's own task and its first verse asks first (the
+   note in `on('facet-pick')`). The cards waiting for it are drawn again when it comes, whichever asked first
+   (`bibleRedraw_`). Admin only, as every Bible fetch is (`bibleFor_`). */
 function bibleChosen_() {
   const st = typeof RES_ST !== 'undefined' ? RES_ST : STUFF;
   const f = (st.filters || []).find(x => x.field === 'bibleBook' && x.value != null);
@@ -14327,7 +14329,7 @@ on('fav', el => {
      `receipt.js` already does for the booking column. Redrawing Tools from here would be worse than
      the bug: `paint` replaces the markup, `startScreen_` restarts what was in it, and unstarring a
      timer would put it back to 25:00. */
-  TABS.forEach(t => { if (t.id !== AT) STALE[t.id] = 1; });
+  markStale_(TABS.map(t => t.id).filter(id => id !== AT));
   if (AT === 'saved') { repaint(true); return; }
   /* EITHER FINDER, whichever is in front — a star on a boxer is pressed in the second one. */
   const F = finderOf_(AT);
@@ -14557,9 +14559,12 @@ on('facet-pick', el => inFinder_(finderAt_(el), () => {
   if (el.dataset.bucket) f.bucket = true;
   STUFF.filters.push(f);
   paintStuff();
-  /* A BOOK OF THE BIBLE CHOSEN IS FETCHED NOW, not when its first verse card is drawn (docs/history/341):
-     the cards the window fills ahead would otherwise each sit on the loader until the book arrived. */
-  if (f.field === 'bibleBook') bibleAhead_();
+  /* A BOOK OF THE BIBLE CHOSEN WAS FETCHED HERE TOO (docs/history/341), and the review of 12 Oct found nothing
+     could tell: the finder is in front when its chip is pressed, `paintStuff` fills the page in front and the
+     band round it in this same task, and the first verse card drawn asks for its book (`bibleLoad_`) before
+     this line was reached. A second door to the same fetch that no check can see is the shape this repository
+     keeps deleting. The builder's `bible` job stays — Resources drawn for nobody, its question in front, is
+     the one case where no card would ask first — and a journey asks it. */
 }));
 /* ---------- AND NOT ANSWERING IT IS ALSO AN ANSWER ----------------------------------------------
    Same push, same repaint, no value. See the `any` note in `stuffFind` for what that entry does and
@@ -14961,6 +14966,9 @@ function paintStuff(keepPage) {
   stuffWindow_();
 
   fillStuffPages();
+  /* AND A NEW WINDOW IN FRONT IS FILLED AS FAR AS THE GLASS SHOWS — the question's own page is the one in front,
+     and an iPad shows four or five results under it (`stuffBandFill_`). */
+  if (stuffOnGlass_(FINDER.id) && stuffBandFill_()) settle_(true);
   paintPager(FINDER.id, true);
   /* A NEW QUESTION IS A NEW WINDOW TO FILL — the builder is asked to look (`ahead_`, shell.js; 341). It runs
      nothing periodic, so whatever makes work says so. */
@@ -15533,13 +15541,16 @@ function stuffFillOne_(i, ctx) {
    filled, and a release that fills a dozen cards because the builder has not had a quiet moment is the
    stall this whole change exists to remove. The glass itself is always covered: a phone shows at most
    five cards on it, an iPad six. */
-function stuffEdgeFill_(n, dir) {
+/* `least`: THE FLOOR, in pages — `glassRows_() + 3` for a turn (above); 1 for `stuffBandFill_`, which asks for
+   the band and no more. */
+function stuffEdgeFill_(n, dir, least) {
   const id = FINDER.id, host = $('s-' + id);
   if (!host) return 0;
   const pages = host.querySelectorAll(':scope > .page');
   const cur = pages[domIndex_(id, n)];
   if (!cur) return 0;
   const rows = typeof glassRows_ === 'function' ? glassRows_() : 2;
+  const floor = least == null ? rows + 3 : least;
   const glassH = host.clientHeight || innerHeight;
   const top = cur.offsetTop, h = cur.offsetHeight;
   const gTop = top - Math.max(0, (glassH - h) / 2);
@@ -15550,12 +15561,37 @@ function stuffEdgeFill_(n, dir) {
     const i = n + dir * k;
     const el = pages[domIndex_(id, i)];
     if (!el || !el.classList.contains('is-res')) break;
-    if (k > rows + 3 && (dir > 0 ? y >= reach : y <= reach)) break;
+    if (k > floor && (dir > 0 ? y >= reach : y <= reach)) break;
     if (el.dataset.filled !== '1' && stuffFillOne_(i)) filled++;
     y += dir * el.offsetHeight;
     if (filled >= rows + 3) break;
   }
   return filled;
+}
+
+/* ---------- A WINDOW DRAWN AFRESH ON THE GLASS IS FILLED AS FAR AS THE GLASS SHOWS, BOTH WAYS ------------------
+   FOUND BY REVIEW, 12 Oct, on an iPad and a desktop: a star, a save, a sign-in or the inbox landing two seconds
+   after every signed-in open repaints Find in front from nothing (`paint(AT, true)`), and the draw filled the
+   card in front and one either side (`STUFF_SOON`). The rest of the window was the builder's — behind thirteen
+   other columns' paints — and the release's fill (`stuffEdgeFill_`) fills only the way a turn goes. On a phone
+   one card is taller than the glass and nothing showed; at 820 and 1024 the unfilled pages above the card in
+   front, 29–46px stubs, sat on the glass as three empty card shells for 1–2.5s (137–186 frames of a real drag).
+   Base filled five either side at every paint, and showed none. So when a window is drawn afresh where it can
+   be seen — the column in front, or one beside it on a wide window — every page the band can show (`placeGrid`,
+   shell.js: the glass and a glass height either side, in pixels) is filled in the same task, both ways, before
+   the column is placed: `stuffEdgeFill_` with no floor, from the page in front. Up to six cards each way on an
+   iPad, against base's ten; on a phone usually none past the three. A window drawn for nobody (the builder,
+   off the glass) is filled by the builder one card per slice, as before. */
+function stuffBandFill_() {
+  const at = PAGE[FINDER.id] || 0;
+  let n = stuffFillOne_(at) ? 1 : 0;
+  n += stuffEdgeFill_(at, 1, 1);
+  n += stuffEdgeFill_(at, -1, 1);
+  return n;
+}
+/* WHETHER THIS FINDER'S COLUMN IS ONE THE GLASS SHOWS — in front, or beside it on a wide window. */
+function stuffOnGlass_(id) {
+  return id === AT || (typeof GLASS !== 'undefined' && GLASS.at === AT && GLASS.cols.indexOf(id) !== -1);
 }
 
 /* ---------- THE BUILDER'S FINDER JOBS: THE WHOLE WINDOW FILLED, AND RE-CENTRED, IN THE QUIET --------------
@@ -16257,8 +16293,19 @@ function finderScreen_() {
      it runs before the browser draws, so the page you are on is never seen empty — and
      `fillStuffPages` settles the column itself once the cards have their heights. */
   /* `F` CAPTURED: the microtask runs after this binding has ended (`inFinder_`). */
-  if (typeof queueMicrotask === 'function') {
-    queueMicrotask(() => { try { inFinder_(F, () => { if ($(F.id + '-controls')) fillStuffPages(); }); } catch (e) {} });
+  /* NOT WHEN THE BUILDER DRAWS IT (`AHEAD.running`, shell.js; docs/history/341). This fill ran after the
+     builder's slice had ended and outside the time it measured — one idle callback took 2.7s by the browser's
+     own frame timing against 1.6s logged for the slice (review, 12 Oct) — so the one slow rule never saw it, and
+     a flick that began then waited for both. Drawn ahead, the window is filled by the builder: in the same slice
+     if the column is on the glass (`aheadPaint_`), one card per slice if it is not. AND AS FAR AS THE GLASS
+     SHOWS, both ways, when it is on the glass (`stuffBandFill_`, above). */
+  const ahead = typeof AHEAD !== 'undefined' && !!AHEAD.running;
+  if (typeof queueMicrotask === 'function' && !ahead) {
+    queueMicrotask(() => { try { inFinder_(F, () => {
+      if (!$(F.id + '-controls')) return;
+      fillStuffPages();
+      if (stuffOnGlass_(F.id) && stuffBandFill_()) settle_(true);
+    }); } catch (e) {} });
   }
   /* `is-res` IS "A PAGE OF RESULTS", as it always was — older than the second finder's `res` id, and
      nothing to do with it: `#s-res .page.is-res` is a result page of the Resources column. */

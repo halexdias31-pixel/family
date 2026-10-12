@@ -2943,10 +2943,20 @@ function clipsStop_(root) {
    appended reel is indistinguishable from one that was there at the start — and `paintPager` is
    what tells the dial there are more of them. Without it the column would hold pages the pager
    refuses to move to, which is the You-column failure the note on `reelPages_` names. */
+/* ---------- AND THE COLUMN IS NO LONGER WHAT IT WAS DRAWN WITH (`DRAWN = null`) -------------------------------
+   `paint`'s identical-markup skip (shell.js, docs/history/341) keeps a column whose new markup is byte for
+   byte what it was drawn with — and asks the draw to find out, and THIS column's draw starts again from reel
+   nought (`REEL_SHOWN = 0`, `screen('reel')`). Appended to in place, the column held thirteen slides while
+   the draw counted seven, the skip kept the thirteen, and the next top-up dealt reels seven to twelve a
+   second time: found by review on 12 Oct, six repeats per landing without end, and from page thirteen the
+   clip started was a slide six pages off the glass while the one in front never played. So an append says
+   the column has left its drawing, and the next landing draws it whole — the residual rule written over
+   that skip, kept here where the column is edited. */
 function reelMore_(host, n) {
   const cards = reelCards_(n || REEL_MORE);
   if (!cards.length) return;
   host.insertAdjacentHTML('beforeend', pages('reel', cards));
+  host.DRAWN = null;
   paintPager('reel', true);
 }
 /* IN THE RELEASE: ONE SLIDE, when fewer than `REEL_AHEAD` are left past the page being turned to — markup,
@@ -2956,7 +2966,7 @@ function reelAhead_(n) {
   const host = $('s-reel');
   if (!host || !LOADED || n < REEL_SHOWN - REEL_AHEAD) return;
   const cards = reelCards_(1);
-  if (cards.length) host.insertAdjacentHTML('beforeend', pages('reel', cards));
+  if (cards.length) { host.insertAdjacentHTML('beforeend', pages('reel', cards)); host.DRAWN = null; }
 }
 /* AND IN THE QUIET, UP TO TWELVE AHEAD — the builder's `reels` job. */
 function reelJobs_() {
@@ -3429,7 +3439,23 @@ on('reel-sound', (el) => {
    THE ASK MOVED OUT OF THE BUILDER, and that is what makes the pager safe. `PAGER.dm` has to count
    the same list the screen draws — the rule every entry in that table states — and a builder that
    starts a network request cannot be called twice. So the draw asks and `dmPages_` only reports. */
-screen('dm', () => { dmSync_(); return pages('dm', dmPages_().map(p => p.html)); });
+/* ---------- BUT A COLUMN DRAWN AHEAD ASKS NOBODY (`dmAsk_`) -------------------------------------------------
+   Since docs/history/341 the builder draws this column in the quiet after every repaint and landing, for
+   nobody looking — and through this draw that was a `messages` POST each time (found by review on 12 Oct:
+   three repaints, three asks; base, none). "Nothing runs for nobody" is the builder's rule, and an ask is a
+   round trip on a phone's signal and a slice of the backend's quota. So drawn ahead it asks nothing: if the
+   inbox the payload fetched (`loadMessages`, shell.js) has answered for whoever is here, that answer IS the
+   first answer, and the column is drawn from it; if it has not, the loader stays until it lands (its own
+   landing marks this column again) or until an arrival, which asks as it always did — `DM_LAST` is left
+   alone, so the first arrival still asks for what came in since. */
+function dmAsk_() {
+  if (typeof AHEAD !== 'undefined' && AHEAD.running) {
+    if (!DM_DONE && USER && MESSAGES) { DM_ASKED = true; DM_DONE = true; }
+    return;
+  }
+  dmSync_();
+}
+screen('dm', () => { dmAsk_(); return pages('dm', dmPages_().map(p => p.html)); });
 
 /* ---------- THIS SCREEN READ A KEY THAT HAS NEVER EXISTED ----------------------------------------
    IT SAID "No messages." TO EVERYBODY, FOR EVER, AND IT WAS NOT A BUG IN THE BACKEND. It took

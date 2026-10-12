@@ -663,7 +663,11 @@ async function drawAheadRuntime_() {
   const SCEN = [
     { key: 'signed out', user: null, data: fixture },
     { key: 'student', user: P('P9', 'student'), data: fixture },
-    { key: 'student 2, changed facts', user: P('P8', 'student'), data: changed },
+    /* WITH A WEEK OF HER OWN: a drawing that reads the person (the timetable's `USER.timetable`) differs
+       between two people here, so `pure` can only be said of one that reads nobody. Without it every
+       scenario's person had an empty week and the timetable passed as pure (review, 12 Oct). */
+    { key: 'student 2, changed facts', user: P('P8', 'student', { timetable: JSON.stringify({ weekend: true,
+        days: [0, 1, 2, 3, 4, 5, 6].map(i => [{ id: 'L' + i, at: '09:0' + i, subject: 'Maths' }]) }) }), data: changed },
     { key: 'admin', user: P('P001', 'admin'), data: fixture },
     { key: 'tutor, changed facts', user: P('P002', 'tutor', { name: 'Ada Tutor' }), data: changed },
   ];
@@ -762,7 +766,7 @@ async function drawAheadRuntime_() {
     w.__aheadHold = true;
     w.eval(appSrc + '\n;window.__wt = { paint, widgetsOn: c => widgetsOn_(c), slotOn: (c, i) => slotOn_(c, i),'
       + ' HOME: WIDGET_HOME, loading: () => loading_(), STALE: () => STALE, loaded: () => LOADED, user: () => USER,'
-      + ' send: typeof send_ === "function" ? send_ : null };');
+      + ' send: typeof send_ === "function" ? send_ : null, ahead: v => { AHEAD.running = v; } };');
     if (typeof w.send_ === 'function') { const s0 = w.send_; w.send_ = function () { hit('send_'); return s0.apply(this, arguments); }; }
     for (let i = 0; i < 100 && !w.__wt.loaded(); i++) await sleep(50);
     if (!w.__wt.loaded()) throw new Error('the payload never landed');
@@ -836,9 +840,11 @@ async function drawAheadRuntime_() {
     const had = Object.prototype.hasOwnProperty.call(t.HOME, slot.id) ? t.HOME[slot.id] : undefined;
     t.HOME[slot.id] = col;
     sb.hits = []; sb.on = true;
-    try { wrap(() => draw())(); }
+    /* AS THE BUILDER DRAWS IT — inside a slice (`AHEAD.running`, which `aheadSlice_` holds for the job), so a
+       draw that asks whether it is being drawn ahead is asked the question the app asks it. */
+    try { t.ahead('widget:' + col + ':' + id); wrap(() => draw())(); }
     catch (e) { fails.push('threw: ' + e.message); }
-    finally { if (had === undefined) delete t.HOME[slot.id]; else t.HOME[slot.id] = had; }
+    finally { t.ahead(false); if (had === undefined) delete t.HOME[slot.id]; else t.HOME[slot.id] = had; }
     const htmlNow = slot.innerHTML;
     /* WHAT IT LEFT FOR LATER, given its 400ms — with the dice still held, so a timer's own redraw is as still
        as the first. */

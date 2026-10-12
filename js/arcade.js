@@ -370,12 +370,28 @@ function widgetWho_() {
    the board for the person arriving and then repaint, and the repaint's own mark put that board straight
    back under its loader — found by the whiteboard journey on the final run. A change of person still
    takes it (`who`), unless it was drawn for whoever is here now. */
+/* ---------- AT A CHANGE OF PERSON, EVERY SLOT ON THE COLUMN — NOT THE NEW PERSON'S LIST --------------------------
+   `widgetsOn_(col)` is the list for whoever is signed in NOW, and a change of person is exactly when it differs
+   from what the column holds: signed out, Saved's stars are gone and an admin's flyer maker, availability and
+   uploads are not anybody's tools. Walked by that list, all fourteen of an admin's drawn slots — Tools' three
+   admin tools and the whiteboard, ten starred on Saved — kept the admin's drawing after a sign-out until the
+   builder drew those columns again, 8–15s at 4x (review, 12 Oct), where a drag towards the column could show
+   them. So `who` walks every slot the column holds and finds each one's widget by its id. */
+function widgetsReveilAll_(col) {
+  const host = document.getElementById('s-' + col);
+  if (!host) return [];
+  const all = typeof allWidgets === 'function' ? allWidgets() : [];
+  return [...host.querySelectorAll('.widget-slot[id^="wgt-"]')].map(slot => {
+    const id = slot.id.slice(4);
+    const w = all.find(x => String(x.id) === id);
+    return w ? { w, slot } : null;
+  }).filter(Boolean);
+}
 function widgetsReveil_(col, who) {
   if (WIDGET_COLS.indexOf(col) === -1 || typeof loading_ !== 'function') return;
   const me = widgetWho_();
-  widgetsOn_(col).forEach(w => {
+  (who ? widgetsReveilAll_(col) : widgetsOn_(col).map(w => ({ w, slot: slotOn_(col, String(w.id)) }))).forEach(({ w, slot }) => {
     if (typeof w.start !== 'function' && typeof w.draw !== 'function') return;
-    const slot = slotOn_(col, String(w.id));
     if (!slot || slot.getAttribute('aria-busy')) return;
     if (TOOLS_ON.some(e => e.slot === slot)) return;
     if (who ? slot.WHO === me : (w.pure || (slot.OWN !== undefined && slot.OWN === me))) return;
@@ -864,7 +880,12 @@ function aheadDrawWidget_(w, col) {
   /* AND ITS COLUMN PLACED AGAIN, NOW: a widget grows its card as it draws (`widgetsLater_`'s reason). */
   if (typeof placeOne_ === 'function') placeOne_(col);
 }
-/* THE BUILDER'S WIDGET JOBS — every slot `aheadDrawWidget_` may draw, with how far it is (`aheadDist_`). */
+/* THE BUILDER'S WIDGET JOBS — every slot `aheadDrawWidget_` may draw, with how far it is.
+   A SLOT IS AS FAR AS ITS COLUMN, and its page only orders it within that column (`/16`). It was the moves to
+   reach it, columns plus pages, so Games' slots eight pages down the column beside you came after whole paints
+   of columns three and four away — and the band draws those pages as a slide carries them across the glass:
+   review, 12 Oct, Games pages 8–10 on the glass as the loader with the target page 4, 3.9s of it per run at
+   390. A column's widgets are drawn before the next column out is painted. */
 function aheadWidgetJobs_() {
   const out = [];
   const front = new Set(WIDGET_COLS.indexOf(AT) !== -1 ? widgetsOn_(AT).map(w => String(w.id)) : []);
@@ -882,7 +903,8 @@ function aheadWidgetJobs_() {
       if (!slot || !slot.getAttribute('aria-busy') || slot.NOAHEAD) return;
       if (!pages) pages = [...host.querySelectorAll(':scope > .page')];
       const pos = pages.indexOf(slot.closest('.page'));
-      out.push({ key: 'widget:' + col + ':' + id, kind: 'widget', d: aheadDist_(col, pos < 0 ? null : logIndex_(col, pos)),
+      const dp = pos < 0 ? 0 : Math.abs(logIndex_(col, pos) - (PAGE[col] || 0));
+      out.push({ key: 'widget:' + col + ':' + id, kind: 'widget', d: aheadDist_(col, null) + Math.min(15, dp) / 16,
         run: () => aheadDrawWidget_(w, col) });
     });
   });

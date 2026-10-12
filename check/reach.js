@@ -28,11 +28,22 @@
      TRANSPARENT       a column across the glass at opacity .05 or less, with pages on it
      RUNNING OFF GLASS a widget running (`TOOLS_ON`) beside the column in front with no slot on the glass,
                        asked once each run has come to rest — drawn ahead is not started
+   and three more, from the review of 12 Oct (docs/history/341, "After review"):
+     BOOT LOADER       a column on the glass (or, on a phone, the one either side — the peek) still holding
+                       the boot's markup after a sideways landing, the builder held so only the landing draws
+     PICTURE GONE      a picture on the card in front, drawn before a landing that changed nothing, not drawn
+                       during it — the landing wrote the column in front again (the Feed, at rest)
+     NOT ASKED AHEAD   at rest after a placement on the Feed or the Boxing shelf: a picture still `lazy` on the
+                       pages k−2…k+6 in front, or P−1…P+2 beside it, or one of the next two neither drawn nor
+                       being decoded (`picsAhead_`, posts.js)
 
    THE RUNS, each from rest (the builder done — `aheadBusy_()` false): Find down a 76-question paper and
    back (15 flicks each way); the Resources column's Boxing shelf, with photographs; the Feed from its
    top; the whole row swept in bursts of four flicks, both ways; and Tools ARRIVED AT after a landing
    (`landRepaint_`, what the payload and the inbox do) and the quiet after it, then flicked down and back.
+   After review: Find REPAINTED with the card in front three into the paper, then turned once (an iPad
+   showed the pages above as empty shells); the Feed LANDED ON three times at rest; and, on a fresh load
+   with the builder held, the row flicked sideways four times — each landing must draw what it shows.
 
    IT ASSERTS OUTCOMES, NEVER TIMINGS. A frame that took 400ms on this shared machine is noise; a frame
    that showed a black hole is a fact whatever the machine. Late pictures are not asserted (a picture
@@ -43,7 +54,7 @@
    viewfinder, and a loader there fails. A run that could not reach its subject fails, saying so.
 
      node check/reach.js                    both sizes, every run
-     node check/reach.js --only=find,sweep  some of them: find res feed sweep tools
+     node check/reach.js --only=find,sweep  some of them: find res feed feedland findland sweep tools bootglass
      node check/reach.js --width=820 --verbose
    REACH_PORT pins the port; unset, the OS picks a free one, so parallel runs cannot collide.
 ================================================================================================== */
@@ -111,7 +122,12 @@ function serve() {
 
 /* ---------- IN THE PAGE, BEFORE ANY APP SCRIPT: WHAT EVERY PAINTED FRAME SHOWS ---------------------------- */
 function READER() {
-  const R = window.__rc = { on: false, seg: '', bad: [], frames: 0, reels: 0, cam: 0 };
+  const R = window.__rc = { on: false, seg: '', bad: [], frames: 0, reels: 0, cam: 0, picsWatch: false };
+  /* WHICH PICTURES WERE ASKED TO DECODE — `picsAhead_`'s builder job calls `decode()` on the next two. */
+  try {
+    const d0 = HTMLImageElement.prototype.decode;
+    if (d0) HTMLImageElement.prototype.decode = function () { this.__dec = true; return d0.apply(this, arguments); };
+  } catch (e) {}
   const vis = (r, W, H) => r.width > 0 && r.bottom > 0 && r.top < H && r.right > 0 && r.left < W;
   function scan() {
     const W = innerWidth, H = innerHeight;
@@ -147,6 +163,14 @@ function READER() {
         }
         const pane = el.querySelector(':scope > .pane') || el;
         if (!pane.firstElementChild && !pane.textContent.trim()) { out.push(['EMPTY', id, log]); continue; }
+        /* A PICTURE ON THE CARD IN FRONT NOT DRAWN, while a run asks it (the Feed landed on at rest): it was
+           drawn when the run began, so one not drawn now is one a landing replaced. */
+        if (R.picsWatch && id === AT && el.classList.contains('on')) {
+          for (const img of pane.querySelectorAll('img')) {
+            const ir = img.getBoundingClientRect();
+            if (vis(ir, W, H) && ir.height > 8 && !(img.complete && img.naturalWidth)) { out.push(['PICTURE GONE', id, log]); break; }
+          }
+        }
         for (const l of pane.querySelectorAll('.loading')) {
           const lr = l.getBoundingClientRect();
           if (!vis(lr, W, H) || getComputedStyle(l).visibility === 'hidden') continue;
@@ -214,6 +238,43 @@ function READER() {
     }
     return null;
   };
+  /* A COLUMN STILL HOLDING THE BOOT'S MARKUP WHERE THE LANDING SHOWS IT — on the glass, or on a phone the column
+     either side (the peek, and the first thing a drag reveals). `PRE_PAYLOAD` is the app's own list of them. */
+  R.bootGlass = () => {
+    const out = [];
+    try {
+      const W = innerWidth, ti = TABS.findIndex(t => t.id === AT);
+      TABS.forEach((t, i) => {
+        if (t.id === AT || !PRE_PAYLOAD.has(t.id)) return;
+        const host = document.getElementById('s-' + t.id);
+        const r = host && host.getBoundingClientRect();
+        const on = r && Math.min(r.right, W) - Math.max(r.left, 0) > 8;
+        if (on || (!WIDE && Math.abs(i - ti) === 1)) out.push(t.id);
+      });
+    } catch (e) { out.push('could not read: ' + e.message); }
+    return out;
+  };
+  /* THE PICTURES A PLACEMENT ASKS FOR AHEAD, asked at rest (`picsAhead_` and the builder's `pics` job). */
+  R.pics = () => {
+    const out = [];
+    try {
+      const lazy = pg => !!(pg && pg.querySelector('img[loading="lazy"]'));
+      const pagesOf = id => [...document.querySelectorAll('#s-' + id + ' > .page')];
+      const id = AT, pages = pagesOf(id), k = domIndex_(id, PAGE[id] || 0), dir = AHEAD.dir.y[id] || 1;
+      for (let j = -2; j <= 6; j++) if (lazy(pages[k + dir * j])) out.push(id + ' page ' + logIndex_(id, k + dir * j) + ' (in front ' + (PAGE[id] || 0) + ') is still lazy');
+      const ti = TABS.findIndex(t => t.id === AT);
+      const nb = WIDE ? GLASS.cols.filter(c => c !== AT) : [TABS[ti - 1], TABS[ti + 1]].filter(Boolean).map(t => t.id);
+      nb.forEach(c => {
+        const ps = pagesOf(c), kk = domIndex_(c, PAGE[c] || 0);
+        for (let j = -1; j <= 2; j++) if (lazy(ps[kk + j])) out.push(c + ' page ' + logIndex_(c, kk + j) + ', beside the column in front, is still lazy');
+      });
+      for (let j = 1; j <= 2; j++) {
+        const pg = pages[k + dir * j];
+        if (pg) pg.querySelectorAll('img').forEach(img => { if (!(img.complete && img.naturalWidth) && !img.__dec) out.push(id + ' page ' + logIndex_(id, k + dir * j) + ': a picture neither drawn nor asked to decode'); });
+      }
+    } catch (e) { out.push('could not read: ' + e.message); }
+    return out;
+  };
   /* A WIDGET RUNNING BESIDE THE COLUMN IN FRONT WITH NO SLOT ON THE GLASS — check/ui.js's rule, asked at rest. */
   R.offGlass = () => {
     const sc = document.getElementById('screen');
@@ -261,7 +322,7 @@ const found = [];
 const fail = (rule, where, msg) => found.push({ rule, where, msg });
 const note = s => { if (VERBOSE) console.log('  ' + s); };
 
-async function boot(browser, W, H, body) {
+async function boot(browser, W, H, body, hold) {
   const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, serviceWorkers: 'block' });
   const page = await ctx.newPage();
   const cdp = await ctx.newCDPSession(page);
@@ -272,6 +333,8 @@ async function boot(browser, W, H, body) {
   await page.addInitScript(() => { window.confirm = () => true; window.alert = () => {}; window.prompt = () => ''; window.open = () => null; });
   if (process.env.REACH_DEBUG) await page.addInitScript(() => { window.__rcDebug = true; });
   await page.addInitScript(READER);
+  /* HELD: the builder never runs, so what is on the glass is what the landings drew (the boot-loader run). */
+  if (hold) await page.addInitScript(() => { window.__aheadHold = true; });
   const JPG = fs.readFileSync(path.join(ROOT, 'data/reels/archetest.jpg'));
   await ctx.route(/^https?:\/\/(?!localhost|127\.0\.0\.1)/, async r => {
     const u = r.request().url();
@@ -290,11 +353,15 @@ async function boot(browser, W, H, body) {
 
 /* ONE RUN: set up and come to rest, the reading on, the flicks, a moment for what they leave behind, the
    reading off, and at rest again the widgets asked. */
-async function run(env, where, setup, flicks) {
+async function run(env, where, setup, flicks, o) {
   const { page } = env;
   const ok = await page.evaluate(setup);
   if (!ok || ok.err) { fail('REACH', where, (ok && ok.err) || 'the run could not be set up, so nothing was measured'); return null; }
   await page.evaluate(() => window.__rc.still(60000));
+  if (o && o.pics) {
+    const p = await page.evaluate(() => window.__rc.pics());
+    if (p.length) fail('NOT ASKED AHEAD', where, p.slice(0, 4).join('; ') + (p.length > 4 ? ` (${p.length} in all)` : ''));
+  }
   await page.evaluate(seg => window.__rc.start(seg), where);
   await flicks();
   await sleep(1500);
@@ -351,9 +418,9 @@ let PORT = 0;
       await sleep(1000);
       for (let k = 0; k < FLICKS; k++) await paced(() => finger(cdp, S2.x, S2.y, 0, dy));
     };
-    const go_ = async (where, setup, flicks, min) => {
+    const go_ = async (where, setup, flicks, min, o) => {
       runs++;
-      try { judge(where, await run(env, where, setup, flicks || vflicks), min || 20); }
+      try { judge(where, await run(env, where, setup, flicks || vflicks, o), min || 20); }
       catch (e) { fail('REACH', where, 'the run threw: ' + String(e && e.message || e).slice(0, 160)); }
     };
     if (want('find')) await go_(`${at} find`, async () => {
@@ -380,12 +447,49 @@ let PORT = 0;
         const n = AXES.y.count('res') - first;
         return n >= 16 ? { n } : { err: `the boxing shelf is ${n} page(s) — the run needs 16` };
       });
-    });
+    }, null, 20, { pics: true });
     if (want('feed')) await go_(`${at} feed`, async () => {
       await window.__rc.place('feed', 0);
       const n = AXES.y.count('feed');
       return n >= 30 ? { n } : { err: `the feed is ${n} page(s) — the run needs 30` };
-    });
+    }, null, 20, { pics: true });
+    /* THE FEED LANDED ON, AT REST — three landings that change nothing, as the inbox's does two seconds after every
+       signed-in open. The card in front keeps its pictures (review, 12 Oct: the landing drew the column in front
+       from nothing, and its pictures went for 120ms and more each time). */
+    if (want('feedland')) await go_(`${at} feed landed on`, async () => {
+      await window.__rc.place('feed', 3);
+      const front = document.querySelector('#s-feed > .page.on');
+      const imgs = front ? [...front.querySelectorAll('img')] : [];
+      for (let k = 0; k < 40 && imgs.some(i => !(i.complete && i.naturalWidth)); k++) await new Promise(r => setTimeout(r, 100));
+      if (!imgs.length) return { err: 'the Feed\'s page 3 has no picture, so a landing has nothing to drop' };
+      if (imgs.some(i => !(i.complete && i.naturalWidth))) return { err: 'the Feed\'s page 3 never drew its pictures, so nothing was asked' };
+      window.__rc.picsWatch = true;
+      return { pics: imgs.length };
+    }, async () => {
+      for (let k = 0; k < 3; k++) { await page.evaluate(() => landRepaint_()); await sleep(400); }
+      await page.evaluate(() => { window.__rc.picsWatch = false; });
+    }, 8);
+    /* FIND REPAINTED WITH THE CARD IN FRONT THREE INTO THE PAPER, then turned once — a star, a save or a landing
+       draws the window again from nothing; on an iPad the pages above the card in front sat on the glass as
+       empty shells until the builder reached them (review, 12 Oct). Then the same after a landing. */
+    if (want('findland')) await go_(`${at} find repainted`, async () => {
+      await window.__rc.place('stuff', 0);
+      STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: 'P-AQA-8461-2406-2F' }];
+      paintStuff();
+      goPage('stuff', stuffFirstResult_() + 3, true);
+      const n = AXES.y.count('stuff') - stuffFirstResult_();
+      return n >= 30 ? { n } : { err: `the 2F paper is ${n} page(s) on Find — the run needs 30` };
+    }, async () => {
+      const S = await page.evaluate(() => window.__rc.safe('left', 0.62));
+      if (!S) throw new Error('no spot at the edge the grid would take');
+      const dy = Math.min(240, Math.round(H * 0.28));
+      await page.evaluate(() => repaint());
+      await paced(() => finger(cdp, S.x, S.y, 0, -dy));
+      await sleep(1500);
+      await page.evaluate(() => window.__rc.still(60000));
+      await page.evaluate(() => landRepaint_());
+      await paced(() => finger(cdp, S.x, S.y, 0, dy));
+    }, 10);
     if (want('sweep')) await go_(`${at} sweep`, async () => {
       await window.__rc.place(TABS[0].id);
       return { n: TABS.length };
@@ -430,6 +534,32 @@ let PORT = 0;
     });
     if (env.errs.length) fail('PAGE ERROR', at, env.errs.slice(0, 3).join(' | '));
     await env.ctx.close();
+    /* A FRESH LOAD, THE BUILDER HELD, THE ROW FLICKED SIDEWAYS FOUR TIMES: every landing draws the columns it shows
+       (`bootGlass_`, shell.js). The builder would have drawn them in a quiet moment; a hand that keeps moving gives
+       it none, and the hold is that hand (review, 12 Oct: Reels and Find on the boot's loader at 1280). */
+    if (want('bootglass')) {
+      runs++;
+      const where = `${at} sideways after a load, the builder held`;
+      let held;
+      try {
+        held = await boot(browser, W, H, body, true);
+        const hp = held.page;
+        const Rr = await hp.evaluate(() => window.__rc.safe('right', 0.5));
+        if (!Rr) throw new Error('no spot at the edge the grid would take');
+        const left0 = await hp.evaluate(() => [...PRE_PAYLOAD]);
+        if (!left0.length) throw new Error('no column was left on the boot\'s markup after the load, so nothing was asked');
+        for (let k = 0; k < 4; k++) {
+          await paced(() => finger(held.cdp, Rr.x, Rr.y, -Math.min(240, Math.round(W * 0.55)), 0));
+          await hp.evaluate(() => window.__rc.still(20000));
+          const left = await hp.evaluate(() => window.__rc.bootGlass());
+          const at2 = await hp.evaluate(() => AT);
+          note(`${where}: landing ${k + 1} on ${at2}; boot's markup shown: ${left.join(', ') || 'none'}`);
+          if (left.length) { fail('BOOT LOADER', where, `landing ${k + 1} on ${at2} shows ${left.join(', ')} still on the boot's loader`); break; }
+        }
+        if (held.errs.length) fail('PAGE ERROR', where, held.errs.slice(0, 3).join(' | '));
+      } catch (e) { fail('REACH', where, 'the run threw: ' + String(e && e.message || e).slice(0, 160)); }
+      if (held) await held.ctx.close();
+    }
   }
   await browser.close();
   server.close();

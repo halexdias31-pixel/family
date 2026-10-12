@@ -1525,8 +1525,11 @@ const WIDGETS = [
 
      `.tmt-box` IS A CLASS AS WELL AS AN ID, the basket's reason: the Saved column draws this markup
      again and `tmtPaint_` writes every copy. */
+  /* NOT `pure`, though it was until the review of 12 Oct: it draws the person's own week (`USER.timetable`)
+     AND the sessions booked here, locked into it — a booking is a fact, and a landing that brings one must
+     not leave the week drawn without it. It passed `check-widgets.js` only because nobody in that check had
+     a week or a booking; one there has a week now, and the check says what this says. */
   { id: 'timetable', kind: 'tool', name: 'Timetable', solid: true, start: () => initTimetable?.(),
-    pure: true,
     into: 'tmt-box', what: 'Your timetable',
     /* NO `.card` OF ITS OWN. `widgetOnColumn_` already draws the card, and the inner one only added
        .85rem above and below and a hairline — height a full Monday on a 320x568 phone does not have.

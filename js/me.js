@@ -2558,7 +2558,7 @@ on('kid-make', el => {
       ['first', 'last'].forEach(f => { try { draftDrop_('kid-new', f); } catch (e) {} });
       toast(first + '\'s account is made — they sign in as @' + KID_MADE.handle + '.');
       /* `repaint(true)`: the card grows by a slip, so the column is placed again — see `answerClaim_`. */
-      if (typeof AT !== 'undefined' && AT === 'settings') repaint(true); else STALE.settings = 1;
+      if (typeof AT !== 'undefined' && AT === 'settings') repaint(true); else markStale_('settings');
       load();
     })
     /* `send_` HAS SAID WHY; `heldBy_` turns a stale phone's form into the held card when the why is
@@ -2620,7 +2620,7 @@ const answerClaim_ = (el, accept) => {
     if (Array.isArray(DATA.claims)) DATA.claims = DATA.claims.filter(c => String(c.rowIndex) !== String(row));
     /* `repaint(true)`, NOT `paint`: a page has left the column, so it must be placed and its
        position clamped again — the Saved column's unstar records what a bare `paint` leaves. */
-    if (typeof AT !== 'undefined' && AT === 'account') repaint(true); else STALE.account = 1;
+    if (typeof AT !== 'undefined' && AT === 'account') repaint(true); else markStale_('account');
     load();
   }).catch(() => {});
 };
