@@ -3039,12 +3039,22 @@ function settingsPages_() {
      `signAgreement` is `hasRole(me, 'tutor')`, which a pending tutor passes. */
   if (tutorHeld_() || isAdmin()) pages.push(agreementCard_());
   if (isAdmin()) pages.push(cutCard_());
-  if (mayJourney_()) pages.push(journeyCard_());
-  /* THE BUSINESS'S OWN PAPERWORK WAS HERE — five cards for an admin, between the journey card and the
-     weekly email — and is a column of its own now, the last one (`screen('biz')` in js/records.js;
-     *"the business checklist stuff should go in their own column at the end"*, 10 Oct). */
-  /* AND THE WEEKLY PARENT EMAIL, FOR AN ADMIN — see js/digest.js. Appended, for the rule above. */
-  if (typeof digestPages_ === 'function') pages.push(...digestPages_());
+  /* ---------- YOUR JOURNEY AND THE WEEKLY PARENT EMAIL WERE HERE, AND NEITHER IS A SETTING ----------------
+     The owner, 12 Oct, with a screenshot of an admin's Settings ending on the two of them: *"This should
+     be moved to appropriate column. Also the other widget regarding seeing weekly kids work or whatever
+     sounds dumb delete that widget."* So "Your journey" — a student's progress, and nothing on it a setting —
+     is the Progress column's card now (`journeyCard_` in js/arcade.js, beside the column that draws it),
+     and the admin's "Weekly parent email: Off" card is gone with its Preview and its file, js/digest.js.
+     THE SUNDAY EMAIL ITSELF STAYS ON THE SERVER, switched off as it was (backend/digest.gs) — the owner
+     asked for that infrastructure and called only the card dumb. docs/history/346.
+     TWO PAGES OUT FROM IN FRONT OF NOTIFICATIONS, for an admin (one for a student), so the one index
+     behind them moves, once, with the build — and a new build arrives by a reload, which `PAGE` does not
+     survive (only the column is remembered, `familyTab`). And whoever is on a page past the end of a
+     column that got shorter comes back on its last page, Notifications, never on nothing (`paintPager`'s
+     clamp, asked by check-flow's business journey with `PAGE.settings` at 999).
+     THE BUSINESS'S OWN PAPERWORK WAS HERE TOO — five cards for an admin, between those two — and is a
+     column of its own now, the last one (`screen('biz')` in js/records.js; *"the business checklist stuff
+     should go in their own column at the end"*, 10 Oct). */
   /* AND WHICH EMAILS YOU WANT, LAST OF ALL AND FOR EVERYBODY SIGNED IN — see `notifyCard_`. Appended,
      for the rule above. */
   pages.push(notifyCard_());
@@ -3298,38 +3308,9 @@ on('notify-pick', el => {
     });
 });
 
-/* ---------- YOUR JOURNEY — A PLACEHOLDER ----------------------------------------------------------
-   ASKED FOR AS *"make a journey widget to go in account settings. its for student to track and
-   organise their progess. fo know you can just make it as a place holder."* So this is the card's
-   place and its outline, and nothing on it pretends to work: no button that does nothing, which is
-   the fault `check/press.js` exists to report. The one live line is the countdown to the two exam
-   dates a student already keeps on this column, because that is progress the app already knows.
-   For a student, and for an admin so the owner can see it; appended for the wardrobe's reason. */
-function mayJourney_() {
-  const held = typeof heldRoles === 'function' ? heldRoles() : [];
-  return held.indexOf('student') !== -1 || held.indexOf('admin') !== -1;
-}
-function journeyCard_() {
-  const prof = (USER && USER.profile) || {};
-  const days = iso => {
-    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''));
-    if (!m) return null;
-    const t = new Date(+m[1], +m[2] - 1, +m[3]), now = new Date();
-    return Math.ceil((t - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 864e5);
-  };
-  const exams = [['Small exam', prof.exam_small_date], ['Big exam', prof.exam_big_date]]
-    .map(([k, v]) => [k, days(v)]).filter(([, d]) => d !== null && d >= 0)
-    .map(([k, d]) => `<div class="row"><span class="k">${esc(k)}</span><span>${d === 0 ? 'today'
-      : d + (d === 1 ? ' day' : ' days') + ' to go'}</span></div>`).join('');
-  return `<div class="card journey">
-    <h3>Your journey</h3>
-    <p class="sub">Where you are, where you are going, and what you have done on the way. Coming soon.</p>
-    ${exams}
-    <div class="row"><span class="k">Goals</span><span class="faint">what you are aiming for</span></div>
-    <div class="row"><span class="k">Milestones</span><span class="faint">the steps on the way</span></div>
-    <div class="row"><span class="k">Worked through</span><span class="faint">papers and topics you have done</span></div>
-  </div>`;
-}
+/* ---------- YOUR JOURNEY WAS HERE, AND IS THE PROGRESS COLUMN'S CARD NOW -----------------------------
+   `mayJourney_` and `journeyCard_` are in js/arcade.js, beside `progressCards_`, the list the Progress
+   column draws: *"This should be moved to appropriate column"* (the owner, 12 Oct). docs/history/346. */
 
 /* ---------- THE TUTOR AGREEMENT (DRAFT), AND A TICK THAT CANNOT BE TAKEN BACK ----------------------
    ASKED FOR AS *"a draft widget for tutors, just do a draft small contract with tick to agree. cant
@@ -5554,6 +5535,10 @@ function meSave_(el) {
          ticks, a birthday normalised — so the next Save starts from the sheet. An older backend sends
          no profile, and the typed fields are merged as they always were. */
       USER.profile = (d && d.profile) ? d.profile : Object.assign({}, USER.profile || {}, fields);
+      /* AND THE PROGRESS COLUMN, whose journey card counts down to the two exam dates on About you
+         (`progressRedraw_`, js/arcade.js) — not left to the payload this Save asks for, which can be
+         half a minute away while the student swipes over to see the new count. */
+      if (typeof progressRedraw_ === 'function') progressRedraw_();
       /* ON THE SHEET NOW, SO EACH FIELD SENT IS NO LONGER A DRAFT (`fieldHtml`; 317). */
       Object.keys(fields).forEach(f => { try { draftDrop_('set', f); } catch (e) {} });
       if (d && d.name) USER.name = d.name;
@@ -5787,6 +5772,9 @@ function profileRefresh_(loud, onOld) {
       if (typeof screenHasMarkup_ === 'function' && screenHasMarkup_('settings')) {
         try { land(() => { paint('settings'); placeCells('y', true, 0, 'settings'); }); } catch (e) {}
       }
+      /* AND THE PROGRESS COLUMN, the same rule: its journey card counts down to the exam dates in this
+         copy, which a Save on another phone may have moved (`progressRedraw_`, js/arcade.js). */
+      if (typeof progressRedraw_ === 'function') { try { land(() => progressRedraw_()); } catch (e) {} }
       /* AND THE LIBRARY CARDS ON TOOLS, which are drawn from this copy and are a widget now, not a page this
          column repaints (docs/history/339). `libCardsDraw_` leaves a copy with typing in it alone. */
       try { land(() => libCardsRedraw_()); } catch (e) {}
@@ -6585,6 +6573,8 @@ on('card-save', el => {
         USER.profile = (d && d.profile) ? d.profile : Object.assign({}, USER.profile || {}, fields);
         if (d && d.name) USER.name = d.name;
         try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (x) {}
+        /* YOUR OWN COPY CHANGED, and the Progress column's journey card is drawn from it — see `meSave_`. */
+        if (typeof progressRedraw_ === 'function') progressRedraw_();
       }
       cardPatchRow_(e.pid, Object.assign({}, base, fields), fields);
       toast((d && d.said) || 'Saved');

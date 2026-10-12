@@ -155,7 +155,9 @@ const TABS = [
      you were looking for, and a child opens the app to look at it with no errand at all. So it is a
      column, and not a kind in `data/settings/kinds.json`.
 
-     A PLACEHOLDER, AND IT SAYS SO — `progressCards_` in arcade.js, on `drill`'s rule from map.js.
+     A PLACEHOLDER, AND IT SAYS SO — `progressCards_` in arcade.js, on `drill`'s rule from map.js —
+     FOR EVERYBODY BUT A STUDENT AND AN ADMIN, whose card here is "Your journey", moved off Settings on
+     12 Oct (*"This should be moved to appropriate column"*; docs/history/346).
 
      APPENDED, because this table is append-only: `AT` is remembered by id and the X axis clamps by
      index. `TAB_ORDER` and the last row of `data/settings/columns.json` are what put it last, which
@@ -2600,8 +2602,9 @@ const PAGER = {
      is always page 0, and with nothing for sale the shop says so in a page of its own. */
   shop: () => (typeof shopCards_ === 'function' ? shopCards_().length : 1),
   /* PROGRESS, COUNTED FROM `progressCards_`, the list `screen('progress')` draws. One card today —
-     the placeholder — and counted anyway rather than written as 1: the day it is built it will be
-     a page per something, and a count kept here by hand is the fault every entry above records. */
+     the placeholder, or a student's journey card in its place — and counted anyway rather than written
+     as 1: the day it is built it will be a page per something, and a count kept here by hand is the
+     fault every entry above records. */
   progress: () => (typeof progressCards_ === 'function' ? progressCards_().length : 1),
   /* THE BUSINESS RECORDS, COUNTED FROM `bizPages_`, the list `screen('biz')` draws — five cards for an
      admin. Nought for anybody else, and that is not the "column you cannot be on" the entries above
