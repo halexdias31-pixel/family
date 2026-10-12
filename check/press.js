@@ -601,9 +601,12 @@ for (const who of VISITORS) {
        the after-slide jobs to run dry — the app's own idea of "arrived" — bounded at 6s. */
     await page.evaluate(async () => {
       const t0 = performance.now();
+      /* AND THE BUILDER (`aheadBusy_`, docs/history/341), which draws stale columns and widget slots in the
+         quiet: a widget it is drawing is drawing that could still be going on under a press. */
       const busy = () => (typeof TOOLS_WAIT !== 'undefined' && TOOLS_WAIT.length > 0)
         || (typeof AFTER_SLIDE_JOBS !== 'undefined' && AFTER_SLIDE_JOBS.size > 0)
-        || (typeof AFTER_SLIDE !== 'undefined' && !!AFTER_SLIDE);
+        || (typeof AFTER_SLIDE !== 'undefined' && !!AFTER_SLIDE)
+        || (typeof aheadBusy_ === 'function' && aheadBusy_());
       while (busy() && performance.now() - t0 < 6000) await new Promise(r => setTimeout(r, 50));
     });
     const queue = await page.evaluate(sid => {
@@ -1479,7 +1482,8 @@ for (const who of VISITORS) {
           for (let i = 0; i < 80; i++) {
             const busy = (typeof TOOLS_WAIT !== 'undefined' && TOOLS_WAIT.length)
               || (typeof AFTER_SLIDE !== 'undefined' && AFTER_SLIDE)
-              || (typeof SETTLE_ON !== 'undefined' && SETTLE_ON && performance.now() < SETTLE_ON.until);
+              || (typeof SETTLE_ON !== 'undefined' && SETTLE_ON && performance.now() < SETTLE_ON.until)
+              || (typeof aheadBusy_ === 'function' && aheadBusy_());
             if (!busy && i >= 4) break;
             await new Promise(r => setTimeout(r, 100));
           }
@@ -1564,7 +1568,8 @@ for (const who of VISITORS) {
         for (let i = 0; i < 80; i++) {
           const busy = (typeof TOOLS_WAIT !== 'undefined' && TOOLS_WAIT.length)
             || (typeof AFTER_SLIDE !== 'undefined' && AFTER_SLIDE)
-            || (typeof SETTLE_ON !== 'undefined' && SETTLE_ON && performance.now() < SETTLE_ON.until);
+            || (typeof SETTLE_ON !== 'undefined' && SETTLE_ON && performance.now() < SETTLE_ON.until)
+            || (typeof aheadBusy_ === 'function' && aheadBusy_());
           if (!busy && i >= 4 && document.querySelector('#s-tools #wgt-whiteboard .qpad')) break;
           await new Promise(r => setTimeout(r, 100));
         }

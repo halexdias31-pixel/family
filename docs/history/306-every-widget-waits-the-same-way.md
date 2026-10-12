@@ -310,3 +310,5 @@ Run after these fixes, on four shared cores: `check.js`, `check-const`, `check-c
 `check-doors`, `check-loading` green; **`check-flow` 246 of 246** (the two new journeys among them);
 **`check/ui.js`** 1400 combinations, nothing new, 25 loaders measured and 15 held and let go, and 8
 whole pages measured on a held payload; **`check/press.js`** green.
+
+**Changed by [341](341-what-a-flick-can-reach-is-drawn-before-it-gets-there.md)** — the camera card's viewfinder at rest is the dark stage, not the loader; `camStart_` draws the one loader only between the ask and the first frame, which is the rule this note made: a wait is drawn only where something is coming.

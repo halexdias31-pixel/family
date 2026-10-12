@@ -242,3 +242,5 @@ Two reviewers, ten findings. Each was reproduced against the reviewed commit bef
   within seconds. It was so before this change, and only while the question file is still on its way.
 - **The other repaints are not held for a box being typed in.** Only a landing payload's are; a press
   that repaints is the person asking for it.
+
+**Changed by [341](341-what-a-flick-can-reach-is-drawn-before-it-gets-there.md)** — the first good payload no longer empties the columns: the landing task draws the one in front (and the glass on a wide window), the rest keep the boot's loader and are drawn in the quiet after the screen is up; a column still holding the boot's markup is drawn `fresh` by whoever draws it (`PRE_PAYLOAD`), so a widget started on it starts again in the payload's.

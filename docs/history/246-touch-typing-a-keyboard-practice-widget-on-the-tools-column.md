@@ -95,3 +95,5 @@ built for it, and that is in the questions for the owner.
 - `npm run check`: "OK — nothing is broken". The first full run went red on press.js (the line
   above) and on ui.js under load; `node check/ui.js` alone exited 0 with nothing new, and the
   second full run was green throughout.
+
+**Changed by [341](341-what-a-flick-can-reach-is-drawn-before-it-gets-there.md)** — "a `stop` is the test" holds for drawing AHEAD too: a widget with no `stop` is drawn by its `start` before anybody arrives, and one with a `stop` declares a `draw` that runs none of it (`initTables`, `flappyStill_`, `wgPaint_`, `vidPaint_`, `feedPaint_`); `check-widgets.js` runs every draw ahead in a sandbox.

@@ -273,6 +273,14 @@ function boot(opts) {
       'STALE: () => STALE, paints: () => Object.assign({}, PAINT_N), aheadLog: () => window.__aheadLog.slice(),' +
       'aheadBusy: () => aheadBusy_(), landRepaint: d => landRepaint_(d), epochs: () => ({ act: ACT_EPOCH, draw: DRAW_EPOCH }),' +
       'TOOLS_ON: () => TOOLS_ON, PRE_PAYLOAD: () => [...PRE_PAYLOAD], GLASS: () => GLASS,' +
+      /* AND WHAT THE BUILDER'S JOURNEYS ASK OF IT: a column drawn as `paint` draws it, a screen's own drawing
+         (twice, for the determinism journey), the running state of the widgets with a `stop` — `let`s, so
+         only this evaluation reaches them — a kick, and a widget's slot on one column. */
+      'paint: (id, f) => paint(id, f), screenDraw: id => (SCREENS[id] ? SCREENS[id].draw() : null),' +
+      'widgetState: () => ({ tt: typeof ttState !== "undefined" ? ttState : null, flappy: typeof flappyState !== "undefined" ? flappyState : null,' +
+      '  vid: typeof VID !== "undefined" ? VID.at : null, party: typeof PARTY !== "undefined" ? PARTY : null }),' +
+      'aheadKick: () => aheadKick_(), slotOn: (c, i) => slotOn_(c, i), reelMore: n => reelMore_(document.getElementById("s-reel"), n),' +
+      'pageLo: () => PAGE_LO, swipeLive: v => { SWIPE.live = !!v; },' +
       /* THE REAL TAB LIST, so a journey asking "does every tab draw" cannot be asking about tabs
          that no longer exist. It has been wrong twice from being written out by hand. */
       'TABS, wgChosen: () => wgChosen_(),' +
@@ -6220,7 +6228,10 @@ check('every tab draws something', async () => {
     try { w.__t.go(id, false, true); } catch (e) { bad.push(id + ' threw: ' + e.message); return; }
     const el = w.document.getElementById('s-' + id);
     if (!el) { bad.push(id + ': no screen element'); return; }
-    if (!el.textContent.trim()) bad.push(id + ': drew nothing at all');
+    /* THE ONE LOADER IS SOMETHING DRAWN. Since docs/history/341 the first payload draws only the column in
+       front, and a column first drawn on arrival for somebody whose own data is still on its way (Messages,
+       for a parent signed in after the payload landed) is the loader and no words — a wait, not a blank. */
+    if (!el.textContent.trim() && !el.querySelector('.loading')) bad.push(id + ': drew nothing at all');
   });
   if (errs.length) bad.push('errors: ' + errs.join(' | '));
   return bad;
@@ -24214,6 +24225,362 @@ check('a child is her first name on every screen: no surname drawn for a visitor
     }
     if (errs.length) bad.push(who + ': errors: ' + errs.slice(0, 3).join(' | '));
   }
+  return bad;
+});
+
+/* ==================================================================================================
+   WHAT A FLICK CAN REACH IS DRAWN BEFORE IT GETS THERE — THE BUILDER'S OWN JOURNEYS (docs/history/341)
+
+   The owner, 11 Oct: *"Increase loading scope. Make it more massive so it's never really an issue."* One
+   builder (`ahead_`, shell.js) now draws in the quiet every column a repaint or a landing marked, every
+   widget slot, and both finders' whole windows. Every journey above boots with it HELD and asks what an
+   arrival does — the floor. These boot with it on and ask what it promises: that it finishes, that it never
+   runs under a finger or a settle, that a refused paint waits for its reason to go, that a drawing made
+   ahead is adopted only when nothing has moved since, that nothing drawn from old facts or for somebody
+   else is ever shown, that a finder's job stays in its finder, and that a landing which changes nothing
+   writes nothing. jsdom has no `requestIdleCallback`, so this is the timer path iPadOS Safari takes. */
+/* AT REST: the builder's list empty and everything booked for after a slide run — or the cap, and then the
+   journey says it never came. Longer than `woken_`'s eight seconds: from a repaint the builder draws every
+   column and both windows of forty-one cards, one per slice, and a slice is a 60ms timer here. */
+/* FOUR MINUTES, NOT ONE AND A HALF: under a load average of forty a jsdom fill of one boxing card took up to
+   970ms, and forty-one of them is the Resources window alone. A builder that never finishes still fails. */
+const aheadQuiet_ = async (t, cap) => {
+  const t0 = Date.now();
+  await wait(500);
+  while (Date.now() - t0 < (cap || 240000)) {
+    let q = false;
+    try { q = t.quiet() && !t.aheadBusy(); } catch (e) { q = true; }
+    if (q) { await wait(150); try { if (t.quiet() && !t.aheadBusy()) return true; } catch (e) { return true; } }
+    await wait(150);
+  }
+  return false;
+};
+const aheadBoot_ = async (opts) => {
+  const b = boot(Object.assign({ ahead: true }, opts || {}));
+  for (let i = 0; i < 80 && !b.w.__t; i++) await wait(25);
+  await wait(400);
+  return b;
+};
+const SAM_ = { name: 'Sam Student', personId: 'P9', person_id: 'P9', role: 'student', roles: ['student'], token: 't-sam' };
+/* A QUESTION ANSWERED ON THE RESOURCES COLUMN — the boxing shelf — so it has a window of results to fill;
+   with nothing asked a finder is its question alone. */
+const resAsk_ = w => {
+  const R = resView_(w), S = w.__t.RES();
+  const x = R.stuffItemsAll_().find(it => it.kind === 'boxer');
+  if (!x) return false;
+  S.q = ''; S.filters.length = 0; S.filters.push({ field: 'shelf', value: x.shelf });
+  w.paintFinder_('res');
+  return w.document.querySelectorAll('#s-res > .page.is-res').length > 0;
+};
+const veiled_ = (w, col) => [...w.document.querySelectorAll('#s-' + col + ' .widget-slot[aria-busy]')]
+  .filter(sl => sl.querySelector(':scope > .loading')).map(sl => sl.id);
+
+check('the builder draws every stale column and every widget slot in the quiet, and never under a finger, a settle or a booked slide', async () => {
+  /* THE RESOURCES IN THE PAYLOAD, so the second finder has a window to fill. */
+  const p = await resPayload_();
+  if (!p) return ['the resources payload could not be made — NOT checked'];
+  const { w } = await aheadBoot_({ payload: p });
+  const t = w.__t, bad = [];
+  if (!t || typeof t.aheadBusy !== 'function' || typeof t.aheadLog !== 'function') return ['the builder is not reachable — NOT checked'];
+  if (!resAsk_(w)) return ['the Resources column has no boxing shelf to fill — NOT checked'];
+  const r0 = w.performance.now();
+  t.USER(SAM_); t.repaint();
+  /* A FINGER DOWN FOR A SECOND AND A HALF, once the builder is under way: nothing is built under it. jsdom has
+     no touch, so the finger is the state the engine keeps (`SWIPE.live`). NOT straight after the repaint:
+     `afterSlide_` waits out a finger too, and with its jobs still booked the builder is shut by them — the
+     finger's own rule would never be asked (the mutation that took it out stayed green that way). */
+  for (let k = 0; k < 600 && t.aheadLog().filter(x => x.t >= r0).length < 3; k++) await wait(50);
+  if (t.aheadLog().filter(x => x.t >= r0).length < 3) bad.push('the builder never got under way after the repaint, so the finger was not asked about');
+  const f0 = w.performance.now();
+  t.swipeLive(true);
+  await wait(1500);
+  t.swipeLive(false);
+  const f1 = w.performance.now();
+  const under = t.aheadLog().filter(x => x.t >= f0 && x.t <= f1);
+  if (under.length) bad.push(under.length + ' slice(s) ran while a finger was down: ' + under.slice(0, 3).map(x => x.key).join(', '));
+  if (!(await aheadQuiet_(t))) bad.push('the builder never finished: ' + JSON.stringify(t.aheadLog().slice(-3)));
+  const stale = t.TABS.map(x => x.id).filter(id => t.stale(id));
+  if (stale.length) bad.push('still STALE after the quiet: ' + stale.join(', '));
+  ['tools', 'games', 'shop'].forEach(col => {
+    const left = veiled_(w, col).filter(id => id !== 'wgt-reels' && id !== 'wgt-flabby');
+    if (left.length) bad.push(col + ' still has widget slots under the loader after the quiet: ' + left.join(', '));
+  });
+  const log = t.aheadLog();
+  if (log.length < 5) bad.push('the builder ran ' + log.length + ' slice(s) — it did not draw anything, so nothing was checked');
+  const wrong = log.filter(x => x.live || x.settle || x.after || x.quiet < 400);
+  if (wrong.length) bad.push(wrong.length + ' slice(s) ran under a finger, a settle, a booked slide or within 400ms of input: ' + JSON.stringify(wrong.slice(0, 2)));
+  if (!log.some(x => /^widget:/.test(x.key))) bad.push('no widget slot was drawn by the builder');
+  if (!log.some(x => /^fill:/.test(x.key))) bad.push('no finder page was filled by the builder');
+  t.USER(null);
+  return bad;
+});
+
+check('a paint the builder is refused (a Settings form being edited) stays stale and waits, and is drawn once a box lets go', async () => {
+  const admin = { name: 'Test Admin', personId: 'P001', person_id: 'P001', role: 'admin', roles: ['admin'], token: 't-adm' };
+  const { w } = await aheadBoot_();
+  const t = w.__t, bad = [];
+  if (!t || typeof t.aheadLog !== 'function') return ['the builder is not reachable — NOT checked'];
+  t.USER(admin); t.go('feed', false, true); t.repaint();
+  await aheadQuiet_(t);
+  const form = w.document.querySelector('#s-settings .me-form');
+  if (!form) { t.USER(null); return ['no Settings form drawn for an admin — NOT checked']; }
+  form.setAttribute('data-dirty', '1');
+  t.repaint();
+  await aheadQuiet_(t, 20000);
+  if (!t.stale('settings')) bad.push('Settings was drawn again while a form on it was being edited — the typing would be lost');
+  const tries = t.aheadLog().filter(x => x.key === 'paint:settings').length;
+  if (tries > 3) bad.push('the refused paint was tried ' + tries + ' times — it should wait for its reason to change, not loop');
+  if (t.stale('tools')) bad.push('Tools was left stale too — one refused column held up the rest');
+  const f2 = w.document.querySelector('#s-settings .me-form[data-dirty]');
+  if (f2) f2.removeAttribute('data-dirty');
+  w.document.dispatchEvent(new w.Event('focusout'));
+  await aheadQuiet_(t, 20000);
+  if (t.stale('settings')) bad.push('Settings stayed stale after the box let go — the builder was never asked again');
+  t.USER(null);
+  return bad;
+});
+
+check('a widget drawn ahead with nothing changed is adopted on arrival without starting; after a press, a carried drawing, a change of person or a start on another copy it is started', async () => {
+  const { w } = await aheadBoot_();
+  const t = w.__t, bad = [];
+  if (!t || typeof t.widgetsOf !== 'function') return ['the widgets are not reachable — NOT checked'];
+  t.USER(SAM_); t.go('feed', false, true); t.repaint();
+  await aheadQuiet_(t);
+  const tools = t.widgetsOf('tool');
+  const calc = tools.find(x => String(x.id) === 'calculator'), cal = tools.find(x => String(x.id) === 'calendar');
+  if (!calc || !cal) { t.USER(null); return ['no calculator or calendar on Tools — NOT checked']; }
+  const n = { calculator: 0, calendar: 0 };
+  [calc, cal].forEach(x => { const real = x.start; x.start = function () { n[x.id]++; return real.apply(this, arguments); }; });
+  const arrive = async () => { n.calculator = 0; n.calendar = 0; t.go('tools', false, true); await wait(LEAVE_MS); await woken_(); };
+  const leave = async () => { t.go('feed', false, true); await wait(LEAVE_MS); await woken_(); };
+  const slot = id => t.slotOn('tools', id);
+  /* 1. NOTHING MOVED: adopted. */
+  if (!slot('calculator') || slot('calculator').getAttribute('aria-busy')) bad.push('the calculator was not drawn ahead on Tools');
+  await arrive();
+  if (n.calculator || n.calendar) bad.push('arriving at drawn, unchanged widgets started them again (' + JSON.stringify(n) + ') — they should be adopted');
+  if (!t.running().some(e => e.id === 'calculator' && e.col === 'tools')) bad.push('the adopted calculator is not entered as running');
+  /* 2. A PRESS: the next drawing ahead, then an action, then the arrival — started. */
+  await leave(); t.repaint(); await aheadQuiet_(t);
+  try { t.ACTIONS['filter-clear'](w.document.createElement('button')); } catch (e) {}
+  await arrive();
+  if (!n.calendar) bad.push('after a press the calendar drawn before it was adopted, not started');
+  /* 3. A DRAWING CARRIED THROUGH A PAINT (pure, the calculator) keeps its old clocks: started behind it. */
+  await leave(); t.repaint(); await aheadQuiet_(t);
+  const before = slot('calculator');
+  t.repaint(); await aheadQuiet_(t);
+  if (slot('calculator') !== before) bad.push('the pure calculator was not carried through the paint — its drawing was thrown away');
+  await arrive();
+  if (!n.calculator) bad.push('a calculator drawn before a repaint and carried through it was adopted rather than started');
+  /* 4. A CHANGE OF PERSON, with the builder held so nothing is drawn again: started, never adopted. */
+  await leave(); t.repaint(); await aheadQuiet_(t);
+  w.__aheadHold = true;
+  t.USER(Object.assign({}, SAM_, { name: 'Ada Other', personId: 'P8', person_id: 'P8' }));
+  await arrive();
+  if (!n.calculator && !slot('calculator').getAttribute('aria-busy')) bad.push('a drawing made for Sam was adopted for somebody else');
+  w.__aheadHold = false;
+  t.USER(null);
+  return bad;
+});
+
+check('every widget with a stop is drawn ahead by its draw and runs nothing: no sprint, no frame loop, no classroom round, no film', async () => {
+  const { w } = await aheadBoot_();
+  const t = w.__t, bad = [];
+  if (!t || typeof t.widgetState !== 'function') return ['the widgets\' state is not reachable — NOT checked'];
+  t.USER(SAM_); t.go('feed', false, true); t.repaint();
+  await aheadQuiet_(t);
+  const st = t.widgetState();
+  if (st.tt) bad.push('the times-tables sprint is running after being drawn ahead');
+  if (st.flappy && st.flappy.raf) bad.push('Flabby Pird\'s frame loop is running after being drawn ahead');
+  const P = st.party || {};
+  Object.keys(P).forEach(k => { if (P[k] && (P[k].ends || P[k].run)) bad.push('a classroom round (' + k + ') is running after being drawn ahead'); });
+  if (st.vid) bad.push('a film is playing in the videos card after being drawn ahead (' + st.vid + ')');
+  if (t.running().length) bad.push('drawn-ahead widgets are entered as running: ' + t.running().map(e => e.id).join(', '));
+  /* DRAWN: each slot with a stop is out from under its loader — but Flabby Pird, whose still drawing needs a
+     box and jsdom has none, and the reels card when its fact is a clip (`feedPaint_`). */
+  ['tables', 'wordgames', 'videos'].forEach(id => {
+    const sl = t.slotOn('games', id);
+    if (!sl) bad.push('no ' + id + ' slot on Games');
+    else if (sl.getAttribute('aria-busy')) bad.push(id + ' is still under its loader after the quiet — its draw did not draw it');
+  });
+  t.USER(null);
+  return bad;
+});
+
+check('the first payload draws the column in front (and the glass), and every other column keeps the boot\'s loader until it is drawn — never empty', async () => {
+  const { w } = boot();
+  for (let i = 0; i < 80 && !w.__t; i++) await wait(25);
+  await wait(600);
+  const t = w.__t, bad = [];
+  if (!t || typeof t.paints !== 'function') return ['the paint counter is not reachable — NOT checked'];
+  const P = t.paints(), at = t.AT(), glass = t.glass().cols;
+  const again = Object.keys(P).filter(id => P[id] > 1 && id !== at && glass.indexOf(id) === -1);
+  if (again.length) bad.push('the landing drew columns that are neither in front nor on the glass: ' + again.join(', '));
+  if (!(P[at] > 1)) bad.push('the column in front was not drawn by the payload (' + at + ': ' + P[at] + ')');
+  const empty = t.TABS.map(x => x.id).filter(id => { const el = w.document.getElementById('s-' + id); return el && !el.firstElementChild; });
+  if (empty.length) bad.push('columns left empty after the first payload: ' + empty.join(', '));
+  const held = t.TABS.map(x => x.id).filter(id => id !== at && glass.indexOf(id) === -1 && !t.stale(id));
+  if (held.length) bad.push('columns neither drawn nor marked stale after the first payload: ' + held.join(', '));
+  return bad;
+});
+
+check('a landing never leaves a drawing made from old facts on the glass: a widget that reads facts is veiled at once and drawn again; a pure one is the same element throughout', async () => {
+  const { w } = await aheadBoot_();
+  const t = w.__t, bad = [];
+  if (!t || typeof t.landRepaint !== 'function') return ['landRepaint_ is not reachable — NOT checked'];
+  t.USER(SAM_); t.go('feed', false, true); t.repaint();
+  await aheadQuiet_(t);
+  const cal0 = t.slotOn('tools', 'calendar'), calc0 = t.slotOn('tools', 'calculator');
+  if (!cal0 || cal0.getAttribute('aria-busy') || !calc0) { t.USER(null); return ['the calendar was not drawn ahead on Tools — NOT checked']; }
+  w.__aheadHold = true;
+  const d = new Date();
+  const dd = String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+  const D = t.DATA();
+  D.exams = (D.exams || []).concat([{ date: dd, kind: 'exam', subject: 'Maths', label: 'Paper 1' }]);
+  t.landRepaint();
+  const cal1 = t.slotOn('tools', 'calendar');
+  if (!cal1 || !cal1.getAttribute('aria-busy')) bad.push('the calendar drawn from the old facts is still showing after the landing');
+  if (t.slotOn('tools', 'calculator') !== calc0) bad.push('the pure calculator was replaced by the landing');
+  w.__aheadHold = false; t.aheadKick();
+  await aheadQuiet_(t);
+  const cal2 = t.slotOn('tools', 'calendar');
+  if (!cal2 || cal2.getAttribute('aria-busy')) bad.push('the calendar was not drawn again from the new facts in the quiet');
+  else if (!cal2.querySelector('.cal-d.has .dot.exam')) bad.push('the calendar drawn again does not show the exam the landing brought');
+  if (t.slotOn('tools', 'calculator') !== calc0) bad.push('the pure calculator was replaced while the builder drew the rest');
+  t.USER(null);
+  return bad;
+});
+
+check('signing out puts away what was drawn for the last person, before the repaint returns — no idle moment in between', async () => {
+  const { w } = await aheadBoot_();
+  const t = w.__t, bad = [];
+  if (!t || typeof w.signedOut_ !== 'function') return ['signedOut_ is not reachable — NOT checked'];
+  t.USER(SAM_); t.go('feed', false, true); t.repaint();
+  await aheadQuiet_(t);
+  /* THE NOTEPAD READS FACTS AND IS VEILED BY ANY MARK; THE TIMETABLE IS `pure` — it reads no facts, only the
+     person's own week, kept on the device — so only the change of person puts it away. Both asked. */
+  const ids = ['notepad', 'timetable'];
+  const drawn = ids.filter(id => { const sl = t.slotOn('tools', id); return sl && !sl.getAttribute('aria-busy'); });
+  if (drawn.length < 2) { t.USER(null); return ['the notepad and the timetable were not both drawn ahead for Sam (' + drawn.join(', ') + ') — NOT checked']; }
+  w.signedOut_();
+  ids.forEach(id => {
+    const now = t.slotOn('tools', id);
+    if (now && !now.getAttribute('aria-busy') && now.WHO === 'P9') bad.push('the ' + id + ' drawn for Sam is still drawn after signing out');
+  });
+  return bad;
+});
+
+check('the builder fills the Resources window inside its own binding: Find\'s words, chips and window are untouched', async () => {
+  const p = await resPayload_();
+  if (!p) return ['the resources payload could not be made — NOT checked'];
+  const { w } = await aheadBoot_({ payload: p });
+  const t = w.__t, bad = [];
+  if (!t || typeof t.STUFF !== 'function' || typeof t.RES !== 'function') return ['the finders are not reachable — NOT checked'];
+  await aheadQuiet_(t);
+  const S = t.STUFF();
+  S.q = ''; S.filters = [{ field: 'kindLabel', value: 'Practical' }];
+  w.paintFinder_('stuff');
+  await aheadQuiet_(t);
+  const lo = t.pageLo().stuff || 0;
+  const marks = () => [...w.document.querySelectorAll('#s-stuff > .page.is-res')].map(el => (el.dataset.filled || '-') + (el.FIND_AT ? el.FIND_AT.ask : ''));
+  const before = JSON.stringify(marks());
+  /* BY TIME, NOT BY POSITION: the log is a ring of the last two hundred slices. */
+  const t0 = w.performance.now();
+  if (!resAsk_(w)) return ['the Resources column has no boxing shelf to fill — NOT checked'];
+  await aheadQuiet_(t);
+  const resFills = t.aheadLog().filter(x => x.t >= t0 && /^fill:res:/.test(x.key)).length;
+  if (!resFills) bad.push('the builder filled nothing in the Resources window, so the binding was NOT exercised');
+  /* AND WHAT IT CLAIMED IS DRAWN: a slice is logged whether or not its fill wrote anything, so a fill run
+     outside the binding (reading Find's ask, finding it changed, and returning) was logged as a fill and
+     passed (M14, docs/history/341). Every Resources page in its window is drawn, once it is quiet. */
+  const resPages = [...w.document.querySelectorAll('#s-res > .page.is-res')];
+  const unfilled = resPages.filter(el => el.dataset.filled !== '1').length;
+  if (!resPages.length) bad.push('the Resources column holds no result pages, so nothing was asked');
+  else if (unfilled) bad.push(unfilled + ' of the ' + resPages.length + ' Resources pages in its window are still empty once the builder is quiet');
+  if (t.STUFF() !== S) bad.push('Find\'s state object was replaced while the Resources window filled');
+  if (JSON.stringify(t.STUFF().filters) !== JSON.stringify([{ field: 'kindLabel', value: 'Practical' }])) bad.push('Find\'s chips changed while the Resources window filled: ' + JSON.stringify(t.STUFF().filters));
+  if ((t.pageLo().stuff || 0) !== lo) bad.push('Find\'s window moved while the Resources window filled');
+  if (JSON.stringify(marks()) !== before) bad.push('Find\'s pages changed while the Resources window filled');
+  return bad;
+});
+
+check('every screen draws the same markup twice from the same facts — a landing can only skip a column if that is true', async () => {
+  const { w } = boot();
+  for (let i = 0; i < 80 && !w.__t; i++) await wait(25);
+  await wait(600);
+  const t = w.__t, bad = [];
+  if (!t || typeof t.screenDraw !== 'function') return ['the screens are not reachable — NOT checked'];
+  for (const who of [null, SAM_]) {
+    t.USER(who);
+    t.TABS.forEach(x => {
+      let a, b;
+      try { a = t.screenDraw(x.id); b = t.screenDraw(x.id); } catch (e) { bad.push(x.id + ' threw: ' + e.message); return; }
+      if (a !== b) {
+        let i = 0; while (i < a.length && a[i] === b[i]) i++;
+        bad.push((who ? 'signed in' : 'signed out') + ', ' + x.id + ' drew different markup twice, first at ' + i + ': ' + JSON.stringify(String(a).slice(Math.max(0, i - 30), i + 40)));
+      }
+    });
+  }
+  t.USER(null);
+  return bad;
+});
+
+check('a landing that changes nothing writes nothing — every element of a column off the glass is the one it was, and its mark is cleared; after a press the next landing writes it', async () => {
+  const { w } = boot();
+  for (let i = 0; i < 80 && !w.__t; i++) await wait(25);
+  await wait(600);
+  const t = w.__t, bad = [];
+  if (!t || typeof t.paint !== 'function') return ['paint is not reachable — NOT checked'];
+  t.go('feed', false, true); await wait(LEAVE_MS); await woken_();
+  const cols = ['tools', 'account', 'spotlight'].filter(id => w.document.getElementById('s-' + id) && id !== t.AT() && t.glass().cols.indexOf(id) === -1);
+  if (!cols.length) return ['no column off the glass to ask about — NOT checked'];
+  cols.forEach(id => t.paint(id));
+  const kids = id => [...w.document.querySelectorAll('#s-' + id + ' *')];
+  const was = {}; cols.forEach(id => { was[id] = kids(id); });
+  /* THE LANDING MARKS, AND THE COLUMN IS DRAWN AS THE BUILDER OR AN ARRIVAL WOULD DRAW IT — `paint`, not fresh. */
+  t.landRepaint();
+  cols.forEach(id => {
+    if (!t.stale(id)) bad.push(id + ' was not marked by the landing at all, so this asked nothing');
+    t.paint(id);
+    if (t.stale(id)) bad.push(id + ' is still marked after it was drawn (it should be answered by writing nothing)');
+    const now = kids(id);
+    if (now.length !== was[id].length || now.some((el, i) => el !== was[id][i])) bad.push(id + ' was written by a landing that changed nothing');
+  });
+  /* BUT A `repaint()`'S MARK OF 1 ALWAYS WRITES, with nothing pressed and nothing changed. The skip is a
+     landing's (`'maybe'`); `repaint()` is asked for by code that means "draw it again" — and the journey
+     at "a repaint and then an arrival" could not tell the two apart, because the column it arrives at
+     still holds the boot's markup and so is never skipped (M13, docs/history/341, was green there). */
+  const r = cols[cols.length - 1];
+  const rWas = kids(r);
+  t.repaint();
+  if (!t.stale(r)) bad.push(r + ' was not marked by a repaint at all, so this asked nothing');
+  t.paint(r);
+  if (kids(r)[0] === rWas[0]) bad.push('a repaint\'s mark of 1 kept ' + r + ' as it was — the identical-markup skip is a landing\'s, never a repaint\'s');
+  /* AND AFTER A PRESS, THE NEXT LANDING WRITES: a press can have edited the column in place. */
+  try { t.ACTIONS['filter-clear'](w.document.createElement('button')); } catch (e) {}
+  t.landRepaint();
+  const id = cols[0];
+  t.paint(id);
+  if (kids(id)[0] === was[id][0]) bad.push('after a press the next landing kept ' + id + ' as it was — a press can have edited it in place');
+  return bad;
+});
+
+check('a column\'s page count follows its pages: a reel appended and a paint are both counted', async () => {
+  const { w } = boot();
+  for (let i = 0; i < 80 && !w.__t; i++) await wait(25);
+  await wait(600);
+  const t = w.__t, bad = [];
+  if (!t || typeof t.reelMore !== 'function') return ['the reels are not reachable — NOT checked'];
+  t.go('reel', false, true); await wait(LEAVE_MS); await woken_();
+  const count = () => w.document.querySelectorAll('#s-reel > .page').length;
+  const a = t.pageCount('reel');
+  if (a !== count()) bad.push('the count says ' + a + ' and the column holds ' + count() + ' pages');
+  t.reelMore(2);
+  const b = t.pageCount('reel');
+  if (b !== count()) bad.push('after two reels appended the count says ' + b + ' and the column holds ' + count());
+  if (b === a && count() !== a) bad.push('the count did not move when reels were appended');
+  t.paint('reel');
+  const c = t.pageCount('reel');
+  if (c !== count()) bad.push('after a paint the count says ' + c + ' and the column holds ' + count());
   return bad;
 });
 

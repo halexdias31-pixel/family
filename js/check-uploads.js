@@ -585,7 +585,11 @@ async function screens() {
   if (tools.indexOf('uploads') < 0) fail('the tool', 'an admin\'s Tools column has no Check uploads');
   if (T.u.widgetsOf_('tool').some(x => x.id === 'uploads')) fail('the tool', 'a tutor\'s Tools column offers Check uploads');
   A.u.go('tools');
-  await until(() => A.d.querySelector('#s-tools .up-box [data-do="uploads-check"]'), 15000);
+  /* FORTY-FIVE SECONDS, AS THE LOAD ABOVE: Check uploads is the thirteenth widget on an admin's Tools, and the
+     queue starts them one per task behind the slide (`widgetsLater_`). On a machine shared with other
+     builders that took 4–13s in jsdom on 12 Oct, base and branch alike, and a cap of fifteen failed a
+     drawn tile as a missing one (docs/history/341). It is a wait, not a measurement. */
+  await until(() => A.d.querySelector('#s-tools .up-box [data-do="uploads-check"]'), 45000);
   const tile = A.d.querySelector('#s-tools .up-box [data-do="uploads-check"]');
   if (!tile) fail('the tool', 'the Tools column drew no Check uploads tile for an admin');
   else {

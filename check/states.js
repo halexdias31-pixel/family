@@ -2633,8 +2633,12 @@ const STATES = {
        kit and steps are drawn into the DOM while you are reading its card. Measured on the card:
        its title and its foot, relative to its pane, before and after turning two pages on and
        back. THREE PAGES WAS NOT ENOUGH and the first version measured nothing: with `STUFF_NEAR` at 5
-       every page it passed was already drawn. `STUFF_NEAR + 3` on is far enough that the card's OWN
-       page is emptied, so coming back draws it again from nothing — the moment a card loads. */
+       every page it passed was already drawn. `STUFF_NEAR + 3` on was far enough that the card's OWN
+       page was emptied, so coming back drew it again from nothing — the moment a card loads.
+       SINCE docs/history/341 NOTHING INSIDE THE WINDOW IS EMPTIED (`STUFF_NEAR` is gone, and the window is
+       forty-one pages, all filled): only a recycle releases a card. So the walk goes past the whole window,
+       `STUFF_WIN + 3` on, which moves it off the card's page; coming back draws the card again from nothing,
+       as before. `fillStuffPages(true)` is the whole window, now. */
     { name: "a practical's pages filled, its card still",
       enter: () => {
         const x = stuffItemsAll_().find(it => it.kind === 'practical' && !it.row.excluded && it.row.diagram);
@@ -2671,7 +2675,7 @@ const STATES = {
         fillStuffPages(true);
         const a = at();
         const was = page() && page().querySelector('.card.fc .fc-head h3');
-        goPage('stuff', first + STUFF_NEAR + 3, true); fillStuffPages(true);
+        goPage('stuff', first + STUFF_WIN + 3, true); fillStuffPages(true);
         goPage('stuff', first, true); fillStuffPages(true);
         const now = page() && page().querySelector('.card.fc .fc-head h3');
         window.__cardStill = { a, b: at(), redrawn: !!now && now !== was };

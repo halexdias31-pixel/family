@@ -131,3 +131,5 @@ width.
   need`, `Any goes on`. None of them is on a route a pupil takes today. If they matter, give those
   facets a skip wording in the `facets` tab.
 - `check/swipe.js` flicks only down the paper. Going back up was measured with a probe, not a rule.
+
+**Changed by [341](341-what-a-flick-can-reach-is-drawn-before-it-gets-there.md)** — the release's fill is now in the band's own units (`stuffEdgeFill_`: every unfilled page to the far edge of the turn's glass plus a glass height, at most `glassRows_() + 3` fills), `STUFF_NEAR`'s emptying is gone, and the late pass of eight cards in one task is gone — the builder fills the window one card per idle slice.

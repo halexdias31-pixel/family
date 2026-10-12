@@ -364,6 +364,14 @@ const SUITE = [
      320 and 390, and the cards beside it out of focus. No port to collide on: unset, `SWIPE_PORT`
      is 0 and the OS picks a free one. */
   { file: 'check/swipe.js',   what: 'a swipe lands one card away or back, centred, the rest out of focus', slow: true },
+  /* ---------- AND WHAT A RUN OF FAST FLICKS REACHES IS ALREADY DRAWN WHEN IT GETS THERE ----------------
+     THE OWNER, 11 Oct: *"If I scrol fast left right up or down it's still clunky … Increase loading scope.
+     Make it more massive so it's never really an issue."* (docs/history/341). The real app at four times
+     slower CPU, a phone and an iPad, five flicks a second down Find, the Resources boxing shelf, the Feed,
+     across the whole row, and into Tools after a landing: any frame with a hole, an empty card, a loader or
+     a see-through column on the glass, or a widget running off it, fails. Outcomes, never timings. No port
+     to collide on: unset, `REACH_PORT` is 0 and the OS picks a free one. */
+  { file: 'check/reach.js',   what: 'what a run of fast flicks reaches is drawn before it gets there, at 4x CPU', slow: true },
   /* ---------- AND THE VIDEOS CARD UNDER A FINGER, A KEYBOARD AND A PHONE TURNED SIDEWAYS ---------------
      *"at first all you see is a search bare ... you can click fullscreen to make it fullscreen"* (note
      321). The review of 10 Oct found four faults between jsdom (no layout, no top layer) and `ui.js`

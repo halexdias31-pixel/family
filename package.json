@@ -16,6 +16,8 @@
     "press": "node check/press.js",
     "swipe": "node check/swipe.js",
     "swipe:verbose": "node check/swipe.js --verbose",
+    "reach": "node check/reach.js",
+    "reach:verbose": "node check/reach.js --verbose",
     "videos": "node check/videos.js",
     "cascade": "node check/cascade.js",
     "cascade:all": "node check/cascade.js --all",

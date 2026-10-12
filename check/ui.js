@@ -579,7 +579,10 @@ async function settled(page) {
       for (;;) {
         const moving = [...document.querySelectorAll('#screen > .screen, .screen')].some(c =>
           typeof c.getAnimations === 'function' && c.getAnimations().some(a => a.playState === 'running'));
-        const booked = typeof PLACE_FRAME !== 'undefined' && !!PLACE_FRAME;
+        /* AND THE BUILDER DONE (`aheadBusy_`, docs/history/341): a column or a widget slot it is still drawing
+           in the quiet is a screen still changing under the measurement. Bounded by the same four seconds. */
+        const booked = (typeof PLACE_FRAME !== 'undefined' && !!PLACE_FRAME)
+          || (typeof aheadBusy_ === 'function' && aheadBusy_());
         if ((!moving && !booked) || performance.now() - t0 > 4000) break;
         await new Promise(r => setTimeout(r, 50));
       }
