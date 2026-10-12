@@ -482,6 +482,17 @@ function seedConfig() {
     addRow(t, { key: k, value: v, what_it_does: note });
     added.push(k);
   });
+  /* A ROW STILL EXACTLY AS AN OLD SEED WROTE IT -- value and note both -- is a row nobody set, and is given
+     today's default and note (`CONFIG_RESEEDED` in constants.gs). Either cell changed and it is left. */
+  CONFIG_RESEEDED.forEach(([k, was, wasNote]) => {
+    const now = CONFIG_DEFAULTS.filter(d => norm(d[0]) === norm(k))[0];
+    if (!now) return;
+    t.rows.forEach(r => {
+      if (norm(r.key) !== norm(k) || S(r.value) !== was || S(r.what_it_does) !== wasNote) return;
+      setCells(t, r, { value: now[1], what_it_does: now[2] });
+      added.push(k + ' (was the old seed ' + was + ', now ' + now[1] + ')');
+    });
+  });
   return added;
 }
 

@@ -227,7 +227,7 @@ const SUITE = [
   { file: 'check-surnames.js', what: 'a child is her first name: no surname in any payload, reply or email, for anybody' },
   /* "MARK WITH AI", THROUGH THE SAME BACKEND. The one action that holds a key and spends money per
      press: no key is a sentence, the key goes in a header, the mark is clamped, the cap holds. */
-  { file: 'check-aimark.js', what: 'AI marking: the key, the clamp and the daily cap, through the real doPost' },
+  { file: 'check-aimark.js', what: 'AI marking: the key, the clamp, the daily cap, and a full Gemini asked again then the fallback, through the real doPost' },
   /* A FACE AND A POLL VOTE ARE SET, NOT TOGGLED. A toggle per tap, each refused one undone on its own,
      left the server holding a reaction the page had taken back (docs/history/335). `want` sent twice
      is one row, a race's copies are cleared, the lock is taken, an old phone still toggles. */

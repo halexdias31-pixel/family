@@ -214,3 +214,9 @@ predates this change.
   printed as **PANE LIFTED OVER THE PAD (known)** — and only when the pad is up, the hold carries a
   lift, and the focused box's field and the row kept clear for it are wholly on the glass above the pad.
   A lift that took the box itself off the top is still PANE OFF THE SCREEN.
+
+> **And when Gemini is full — note 344 (11 Oct).** The asking is `aiGemini_` now: a 429, any 5xx or a
+> fetch that threw is asked again and then of a fallback model, nothing is started past 20 s, the pupil
+> reads "Marking is busy right now — try again in a minute.", and a press that ends without a mark —
+> including the essay's "did not give a mark" — gives the day's count back. The fallback, 3.5 Flash-Lite,
+> thinks less by default than the first model, so an essay it marks is a lighter read (344, "After review").
