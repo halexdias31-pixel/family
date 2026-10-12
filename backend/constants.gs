@@ -1904,8 +1904,9 @@ let KID_MEMO_ = null;
    typed address, a reply before anybody signed in). Set by `netViewerSet_` (people.gs) in `doGet` from
    the token, in `doPost` after the gate, in `loginReplyFor_` to the row signing in, and per email in
    `mailOut_`. It decides one thing: whether a GROWN-UP'S surname (a parent, a client — not a tutor or an
-   admin) may go to this viewer, which is only themselves and an admin (docs/history/342). A child's
-   surname goes to nobody whoever is asking, so the 333 half of the net never reads it. RESET AT THE TOP
+   admin) may go to this viewer, which is only themselves, an admin, and a child on their own family row
+   (`netKin_`, docs/history/342). A child's surname goes to nobody whoever is asking, so the 333 half of
+   the net never reads it. RESET AT THE TOP
    OF `doGet` AND `doPost`, because Apps Script keeps an instance between requests and the last
    request's viewer must never be the next one's. */
 let NET_VIEWER_ = null;

@@ -24152,9 +24152,14 @@ function surnameWorld_() {
 /* AND A PARENT'S SURNAME, SINCE 11 OCT (docs/history/342): *"don't show surname as some kids have different
    surnames and gets a bit awkward"*. Pip's and Ola's surnames are hunted on every screen of every visitor
    but themselves and the admin — who must still see Pip's, or a rule that took every name out would pass.
-   Pip is a visitor here too, so her own whole name is drawn for her and Ola's is not. */
+   Pip is a visitor here too, so her own whole name is drawn for her and Ola's is not.
+   AND WREN SEES HER OWN PARENT'S (342, round 2): a child is shown the whole name of a grown-up on her own
+   family row (`netKin_`) — the claim card is where she decides whether somebody is her parent, and her
+   parent's whole name is what she tells the next claim apart by. So Pip's surname is not hunted for Wren, and
+   must be drawn for her somewhere, or that half would be unseen; Ola's still is. */
 const GROWN_ = { 'P-PAR': 'Ashdown', 'P-OTH': 'Brisk' };
-check('a child is her first name on every screen, and a parent is hers to everybody but herself and an admin: no surname drawn for a visitor, her tutor, another parent, her parent, an admin, or herself outside her own Settings boxes', async () => {
+const KIN_ = { 'P-KID': ['P-PAR'] };
+check('a child is her first name on every screen, and a parent is hers to everybody but herself, an admin and her own child: no surname drawn for a visitor, her tutor, another parent, her parent, an admin, or herself outside her own Settings boxes', async () => {
   let world;
   try { world = surnameWorld_(); } catch (e) { return ['the real backend could not be built, so NOTHING was drawn — ' + e.message]; }
   const { b, tk } = world;
@@ -24180,7 +24185,7 @@ check('a child is her first name on every screen, and a parent is hers to everyb
     const seen = [];
     let sawJuno = false, sawWhole = false;
     /* A GROWN-UP'S SURNAME IS HUNTED FOR EVERYBODY BUT THEMSELVES AND THE ADMIN; A CHILD'S FOR EVERYBODY. */
-    const hunt = SURS_.concat(pid === 'P-ADM' ? [] : Object.keys(GROWN_).filter(g => g !== pid).map(g => GROWN_[g]));
+    const hunt = SURS_.concat(pid === 'P-ADM' ? [] : Object.keys(GROWN_).filter(g => g !== pid && (KIN_[pid] || []).indexOf(g) === -1).map(g => GROWN_[g]));
     const look = (where) => {
       const root = w.document.documentElement.cloneNode(true);
       /* HER OWN SETTINGS BOXES, AND NOTHING ELSE, are where her surname belongs. */
@@ -24208,6 +24213,7 @@ check('a child is her first name on every screen, and a parent is hers to everyb
     [...new Set(seen)].slice(0, 4).forEach(x => bad.push(who + ' is shown a surname that is not theirs to see on ' + x));
     /* AND THE ADMIN IS SHOWN PIP'S WHOLE NAME — the rule is "to everybody but herself and an admin", not "to nobody". */
     if (pid === 'P-ADM' && !sawWhole) bad.push('an admin: "Pip Ashdown" is nowhere on any screen, so the admin\'s exemption was NOT seen — or the net took her surname from the admin too');
+    if (pid === 'P-KID' && !sawWhole) bad.push('herself: her own parent is not "Pip Ashdown" on any screen — a child sees the whole name of a grown-up on her own family row (342, round 2)');
     /* AND HER FIRST NAME IS THERE, where a screen names her — a rule that drew nobody would pass the above. */
     const all = w.document.documentElement.outerHTML;
     if (pid !== 'P-TUT' && !/Wren/.test(all)) bad.push(who + ': "Wren" is nowhere on any screen, so the screens that name her were NOT drawn — not a pass');
@@ -24449,6 +24455,62 @@ check('a myProfile asked at open and answered after a friend is added keeps the 
   o.release(); await wait(1500);
   const u = o.t.whoami() || {};
   return String(u.friends) !== server ? ['the server has friends ' + JSON.stringify(server) + ' but after the reply asked at open landed the phone has ' + JSON.stringify(u.friends)] : [];
+});
+
+/* ---------- AFTER REVIEW, ROUND 2 (docs/history/342): A FIGURE NOBODY DRESSED KEEPS ITS FACE -------------------
+   A blank look is drawn from the handle (`avatarConfig`: skin and hair colour from `hashOf(handle)`), so a moved
+   handle was a different figure — a different skin tone — on the child's own card and wardrobe. The server now
+   writes the old handle's look into a blank cell whenever it moves a handle (`handleFaceKept_`); these hold the
+   phone's half: Randomise's answer carries that look and the phone takes it, and a phone signed in before
+   `?run=kidHandles` takes it from `myProfile` with the new handle — or it would draw the new handle's colours
+   from its own blank copy until the next sign-in. The face is compared through the phone's own `avatarConfig`. */
+check('a figure nobody dressed keeps its face when her handle moves: Randomise, and a phone that learns the move from myProfile', async () => {
+  const bad = [];
+  const faceIn = (w, packed, handle) => { const c = w.avatarConfig(packed, handle); return [c.skin, c.hairColour, c.hair, c.legs].join('/'); };
+  /* THE MOVE, AS `?run=kidHandles` LEAVES IT: the old handle's look written into her blank cell. */
+  let b;
+  try { b = movedWorld3_(); } catch (e) { return ['the real backend could not be built — ' + e.message]; }
+  const kept = JSON.parse(b.ev('JSON.stringify(handleFaceKept_(read(TAB.people), { avatar: "" }, "ella_kind42").avatar || "")'));
+  if (!kept) return ['the server keeps no look for a blank cell, so the phone\'s half was NOT asked'];
+  b.ev('(function () { const t = read(TAB.people); const r = t.rows.find(x => S(x.person_id) === "P-EJ"); setCell(t, r, "avatar", '
+    + JSON.stringify(kept) + '); clearCache(); })()');
+  const signed = b.post({ action: 'verifyLogin', email: 'ej2345', name: 'ej2345', pin: '0000' });
+  if (!signed.success) return ['she could not sign in on the real backend — ' + JSON.stringify(signed).slice(0, 160)];
+  const stale = Object.assign(JSON.parse(JSON.stringify(signed)), { handle: 'ella_kind42', avatar: '' });
+  const one = boot({ payload: b.get({ token: signed.token }), reply: body => b.post(body),
+    before: win => win.localStorage.setItem('familyUser', JSON.stringify(stale)) });
+  for (let k = 0; k < 80 && !one.w.__t; k++) await wait(100);
+  if (!one.w.__t) return ['the app did not finish loading'];
+  for (let k = 0; k < 40 && (one.w.__t.whoami() || {}).handle !== 'ej2345'; k++) await wait(100);
+  const u1 = one.w.__t.whoami() || {};
+  if (u1.handle !== 'ej2345') bad.push('the phone never took the moved handle from myProfile, so the face was NOT asked');
+  else if (faceIn(one.w, u1.avatar, u1.handle) !== faceIn(one.w, '', 'ella_kind42')) {
+    bad.push('after myProfile moved her handle the phone draws her with ' + JSON.stringify(u1.avatar || '(a blank look)') + ' on @' + u1.handle
+      + ' — a different figure from the one @ella_kind42 drew; the server kept ' + JSON.stringify(kept));
+  }
+  /* RANDOMISE, ON A BLANK LOOK. */
+  let b2;
+  try { b2 = movedWorld3_(); } catch (e) { return bad.concat(['the real backend could not be built — ' + e.message]); }
+  const s2 = b2.post({ action: 'verifyLogin', email: 'ej2345', name: 'ej2345', pin: '0000' });
+  const two = boot({ payload: b2.get({ token: s2.token }), reply: body => b2.post(body),
+    before: win => win.localStorage.setItem('familyUser', JSON.stringify(s2)) });
+  for (let k = 0; k < 80 && !two.w.__t; k++) await wait(100);
+  if (!two.w.__t) return bad.concat(['the app did not finish loading for Randomise']);
+  await wait(800);
+  const face0 = faceIn(two.w, '', 'ej2345');
+  await pressShuffle_(two.w.__t, shuffleTile_(two.w.document), 1);
+  const u2 = two.w.__t.whoami() || {};
+  const cell = serverCell_(b2, 'P-EJ', 'avatar');
+  if (String(u2.handle) === 'ej2345') bad.push('Randomise never landed, so its face was NOT asked');
+  else {
+    if (!cell || faceIn(two.w, cell, String(u2.handle)) !== face0) bad.push('Randomise left the server drawing a different figure: ' + JSON.stringify(cell));
+    if (String(u2.avatar || '') !== cell || faceIn(two.w, u2.avatar, u2.handle) !== face0) {
+      bad.push('after Randomise the phone draws her with ' + JSON.stringify(u2.avatar || '(a blank look)') + ' on @' + u2.handle
+        + ' — the server kept ' + JSON.stringify(cell) + ', the face @ej2345 drew');
+    }
+  }
+  if (one.errs.length || two.errs.length) bad.push('errors: ' + one.errs.concat(two.errs).slice(0, 3).join(' | '));
+  return bad;
 });
 
 /* ---------- RUN THEM ---------------------------------------------------------------------------- */

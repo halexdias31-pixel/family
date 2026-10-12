@@ -507,9 +507,12 @@ PEOPLE.forEach(p => {
      P-SA in the URL has none. This is also the payload that used to be an error — see `claims`. */
   const claimsOf = d => (Array.isArray(d.claims) ? d.claims : []).map(c => c.from).sort().join(',');
   const sb = tok('P-SB');
-  /* BY HER FIRST NAME (docs/history/342): a parent's surname goes to nobody but herself and an admin, and
-     the child she is asking about is somebody else. */
-  if (sa.token) want('the claims sent to P-SA', claimsOf(f.get({ token: sa.token })), 'Bea');
+  /* BY HER WHOLE NAME (docs/history/342, round 2). 342 first cut it to "Bea" — a parent's surname goes to
+     nobody but herself and an admin — and the claim card is the one place a child VETS a grown-up: a yes
+     hands them her account. A stranger registering as "Bea <anything>" sent a card that read like her own
+     parent's. The child on the row sees the whole name while it is asked (and once it is accepted);
+     `check-surnames.js` holds that nobody else does. */
+  if (sa.token) want('the claims sent to P-SA', claimsOf(f.get({ token: sa.token })), 'Bea Parent');
   if (sb.token) want('the claims sent to P-SB', claimsOf(f.get({ token: sb.token })), '');
   /* A CHILD OF ANOTHER FAMILY, AND AN ASKED LINK: Ben shares no ACCEPTED parent with Abe or Cal. */
   if (sb.token) want('the student P-SB (only an asked and a refused link to the other family)',

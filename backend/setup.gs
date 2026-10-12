@@ -306,6 +306,8 @@ function renameHandles() {
        sign-in name nobody can recover. */
     const cells = {};
     if (keepWas && has) cells.handle_was = handleWasWith_(r.handle_was, has);
+    /* AND THE FACE THE OLD HANDLE DREW, before the handle, when nobody chose a look (`handleFaceKept_`). */
+    Object.assign(cells, handleFaceKept_(t, r, has));
     cells.handle = made;
     if (keepAt) cells.handle_changed_at = new Date();
     Object.keys(cells).forEach(c => setCell(t, r, c, cells[c]));
@@ -385,7 +387,7 @@ function kidHandles(arg) {
                   + '— nothing was changed.' };
   }
   const out = { mode: apply ? 'apply' : 'preview', children: 0, toMove: 0, leftAlone: 0,
-                signInByHandle: 0, couldNotGenerate: [], rows: [],
+                signInByHandle: 0, figuresKept: 0, couldNotGenerate: [], rows: [],
                 inAnotherHistory: [], grownUpsSurnameInHandle: handleSurnameIn_(t.rows) };
   const inOthers = (r, h) => !!key(h)
     && t.rows.some(x => x !== r && S(x.handle_was).split(',').some(w => key(w) === key(h)));
@@ -400,15 +402,20 @@ function kidHandles(arg) {
       if (!S(r.email)) out.signInByHandle++;
       if (inOthers(r, has)) out.inAnotherHistory.push(who);
       if (!apply) {
+        if (handleFaceKept_(t, r, has).avatar) out.figuresKept++;
         out.rows.push({ id: who, from: has,
                         to: (handleInitials_(r.first_name, r.last_name) || HANDLE_FALLBACK) + '····' });
         return;
       }
       const made = handleMake_(r, undefined, has);
       if (!made) { out.couldNotGenerate.push(who); return; }
-      /* THE HISTORY FIRST, IN ITS OWN WRITE — see above. */
-      setCells(t, r, { handle_was: handleWasWith_(r.handle_was, has) });
+      /* THE HISTORY FIRST, IN ITS OWN WRITE — see above. AND THE FACE THE OLD HANDLE DREW, in the same write,
+         when nobody ever chose a look (`handleFaceKept_`, round 2): a blank look is drawn from the handle, so
+         the move gave every such child a different skin and hair colour. */
+      const kept = handleFaceKept_(t, r, has);
+      setCells(t, r, Object.assign({ handle_was: handleWasWith_(r.handle_was, has) }, kept));
       setCells(t, r, { handle: made, handle_changed_at: new Date() });
+      if (kept.avatar) out.figuresKept++;
       out.rows.push({ id: who, from: has, to: made });
     });
     if (apply) {
@@ -438,6 +445,9 @@ function kidHandles(arg) {
       + ' children moved to their initials and four digits (drawn when it runs), ' + out.signInByHandle
       + ' of them signing in with the handle — their old one keeps working and they are told the new one '
       + 'when they use it.')
+    /* THE FIGURE (round 2) — a blank look is drawn from the handle, so the move writes the old one's down. */
+    + ' ' + out.figuresKept + ' child(ren) had never chosen a look (figuresKept): the figure their old handle drew '
+    + (apply ? 'was' : 'will be') + ' written into their avatar cell, so moving the handle changes nobody\'s face.'
     + (out.inAnotherHistory.length ? ' ' + out.inAnotherHistory.length + ' child(ren) in inAnotherHistory hold a '
       + 'handle that is also on somebody else\'s handle_was — after the move typing it would be refused as two '
       + 'accounts\', so take it off the other row\'s handle_was first.' : '')

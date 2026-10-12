@@ -126,6 +126,11 @@ const SRC = [
   grab(people, /function handleMake_\([\s\S]*?\n\}/, 'handleMake_'),
   grab(people, /function handleDraw_\([\s\S]*?\n\}/, 'handleDraw_'),
   grab(people, /function handleWasWith_\([\s\S]*?\n\}/, 'handleWasWith_'),
+  /* AND THE FACE A MOVED HANDLE KEEPS (342, round 2) — `renameHandles` writes it before the handle.
+     `check-signin.js` holds the face itself, drawn by the phone's own code. */
+  grab(people, /const FACE_SKINS[^;]*;/, 'FACE_SKINS'),
+  grab(people, /const FACE_HAIRS[^;]*;/, 'FACE_HAIRS'),
+  grab(people, /function handleFaceKept_\([\s\S]*?\n\}/, 'handleFaceKept_'),
   /* ---------- AND THE REPAIR JOB, WHICH IS THE ONE THING HERE THAT WRITES -----------------------
      `fillHandles` FILLS A BLANK HANDLE ON EVERY EXISTING ROW, and the fault it must never have is
      overwriting one: a handle is what somebody signs in with and what `findPerson` resolves them

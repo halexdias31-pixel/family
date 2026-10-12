@@ -96,12 +96,13 @@ An admin's one-off, the `previewFromGitHub` rule: **look, then do.**
 ```
 (your own name and PIN, not these.) The preview answers with `children`, `toMove`, `leftAlone`,
 `signInByHandle` (the ones with no email — the ones to tell), `inAnotherHistory` and
-`grownUpsSurnameInHandle` (after review, by id) and each child by `person_id` with the
+`grownUpsSurnameInHandle` (after review, by id), `figuresKept` (round 2) and each child by `person_id` with the
 handle they have and the initials they would get (`ej····`: the digits are drawn when it runs for real,
 so a preview showing them would show handles nobody gets). `apply` moves every child whose handle is not
 already their initials and a tail, puts the old one at the FRONT of `handle_was` (`handleWasWith_`),
-stamps `handle_changed_at`, moves the friends lists, and answers with the real before and after. A
-second run moves nobody. Grown-ups are never touched; `renameHandles` now leaves every child to this job.
+stamps `handle_changed_at`, moves the friends lists, writes the look the old handle drew into a blank
+`avatar` cell (round 2 — a blank look is drawn from the handle, so the move changed faces), and answers with
+the real before and after. A second run moves nobody. Grown-ups are never touched; `renameHandles` now leaves every child to this job.
 
 **Why an admin's job, not the next sign-in (b) or `autoMigrate` (c).** It is visible and reversible
 (the old handle keeps working), and it reaches every child — one who never signs in would otherwise
@@ -113,7 +114,8 @@ also move five grown-ups whose handles are not the generated shape.
 
 **The private Ledger snapshot of 10 Oct** (read in place; counts only): 17 people with a name, **8
 children, all 8 would move**, **7 of them sign in by handle** (no email), 8 distinct pairs of initials
-(no two children share a pair), and 6 private grown-ups (§5). No child has any `handle_was` yet.
+(no two children share a pair), and 6 private grown-ups (§5). No child has any `handle_was` yet. All 8 have a
+blank look, so all 8 figures are kept by the move (round 2).
 
 ### 5. Surnames
 
@@ -131,7 +133,8 @@ the two surnames differ.
   tick still waiting. 6 on the live sheet.
 - **Who keeps a whole name — approved tutors and admins**, on every card, to everybody: families book a
   tutor by name, and an admin is the business.
-- **Who still sees a private grown-up's whole name — themselves and any admin.** Unlike a child's. So it
+- **Who still sees a private grown-up's whole name — themselves, any admin, and a child on their own family
+  row** (that last one after review, round 2 — the claim card; see below). Unlike a child's. So it
   is a VIEWER-AWARE half of the same net, not a second net: `NET_VIEWER_` (constants.gs) says who a reply
   or an email is for; `nameFor_` and `kidNamesSpans_` ask `netSeesWhole_`. A grown-up's own payload,
   sign-in reply and mail keep their whole name — which is what keeps the fourteen places the phone asks
@@ -161,10 +164,11 @@ the two surnames differ.
   knows who asked them from the session itself.
 - **"Confirmed on every exit" depends on the doors that answer a NAME** (after review): `register` and
   `makeChild` no longer say "there is already an account in that name", and a festive join's typed list
-  is cut to first names before other families read it. See *After review*, P2 and P3.
+  is cut to first names before other families read it — but a refusal still means "one of these is taken",
+  and nothing limits how often it can be asked. See *After review*, P2 and P3, and round 2's R3.
 
-**This narrows 333's "a grown-up's is their whole name"** to tutors and admins, and to the person and an
-admin for everybody else.
+**This narrows 333's "a grown-up's is their whole name"** to tutors and admins, and to the person, an
+admin and a child on their own family row for everybody else.
 
 ### Front end (kept small — `fix-card-settings` moves this card)
 
@@ -178,6 +182,8 @@ admin for everybody else.
   asked before either is asked again rather than putting the old handle or the old list back. (The first
   version tested Randomise's race by `HANDLE_SAID`'s text, which knew only the last press — see *After
   review*, C2.) And the device's chip for a moved handle becomes the new one (`handleRename_`).
+- Round 2: Randomise takes the look its answer carries (`avatar`) and `profileRefresh_` takes `profile.avatar`
+  with a moved handle — each only into a blank look on the phone — so a figure nobody dressed keeps its face.
 - No CSS changed, so `--css-version` stays.
 
 ### Checked
@@ -277,11 +283,13 @@ contradicted something this note claimed.
   nothing either way: four guesses, zero writes, the review measured. `makeChild` named the clash to any
   confirmed parent. Now the address is asked first; a name clash is "We could not make that account. If you
   have one already, sign in — or ask us to help." (and the make-child form's equivalent), naming nothing; and
-  each clash with a PRIVATE whole name (`namePrivate_`; a tutor's is public) is counted, and five in a day
-  pause EVERY new account, hit or miss, until the day has passed (`nameClashNoted_`, `NAME_CLASH_MAX`).
-  **What is left, said honestly:** a refusal still means "one of these is taken". Finding that out now costs
-  a fresh address per guess, writes a PENDING row and mails that address on every miss (which an admin sees),
-  and stops after five hits a day. Two accounts with one whole name would close it entirely and is not done:
+  ~~each clash with a PRIVATE whole name (`namePrivate_`; a tutor's is public) is counted, and five in a day
+  pause EVERY new account, hit or miss, until the day has passed (`nameClashNoted_`, `NAME_CLASH_MAX`)~~ —
+  **removed in round 2 (R3): one signed-out caller could trip it from a row of their own.**
+  **What is left, said honestly:** a refusal still means "one of these is taken". ~~Finding that out now costs
+  a fresh address per guess~~ — **wrong, round 2:** on the child's door (`parent_email`) one grown-up's address
+  serves every guess; a miss writes a PENDING row and mails that address (which an admin sees), a hit writes
+  nothing. Two accounts with one whole name would close it entirely and is not done:
   `findPerson` and everything that resolves a person by name would have two answers. §5's "confirmed on
   every exit" depends on this, and says so.
 - **P4 — a private grown-up's hand-typed handle can carry their surname** (nit). The net takes it out of
@@ -380,7 +388,7 @@ and compared with the real files after each** (25):
 | a festive join's typed names kept whole (P2) | `check-surnames` ("Bo Kettleworth" where the other families read it) |
 | an open job's events to everybody (P2) | `check-surnames` (every family's name to a stranger and a student not on it) |
 | `register` asks the name before the address (P3) | `check-surnames` (a guessed real name answered differently from a wrong one) |
-| no pause after five clashes (P3) | `check-surnames` |
+| no pause after five clashes (P3) — the pause itself was removed in round 2 (R3) | `check-surnames` |
 | `makeChild` names the clash (P3) | `check-surnames` |
 | `handleSurnameIn_` reports nobody (P4) | `check-handles`, `check-signin` |
 | "Forgotten your PIN?" asks the old handle first (C4) | `check-signin` (the PIN went to the grown-up of the child who used to have it) |
@@ -415,3 +423,140 @@ P3, P4, C1, C2) were also run on `18278c5`'s own files: 12 of `check-signin`'s n
   "not reachable" lists are the builder's). Feed's first run lost a state to "the half second after the tap
   never finished" and dm's to a screenshot timeout waiting for fonts; both reran clean.
 - `check/press.js --no-swipe` for the same four: every press answered.
+
+### After review (round 2)
+
+A verifier read `3b8c032` and `954177c` and found three should-fixes, each reproduced on that head first with
+its own probe (invented people only) before anything changed. Each fix has rules that were red on the head's
+own backend and are green now; the mutation table below is the rest of the proof.
+
+**R1 — a child deciding whether a grown-up is her parent saw only their first name** (introduced by this
+branch). The claim card ("<from> says they are your parent", Yes / No) is the one place a child vets a
+grown-up, and a yes gives that account her bookings, her progress and `resetPin` over her — they choose her
+next PIN and can sign in as her. §5 cut every private grown-up's surname to "first name, to anybody but
+themselves and an admin", so a stranger who registered as "Pip <anything>" (the first name every roster
+shows other families) sent a card reading `Pip (@pip_brave77)` beside her own parent's `Pip (@pip_kind42)`
+— at cafb838 it said `Pip Strangeways`, and `register` refuses a whole name that is already an account, so
+the real parent's could not be borrowed. With her parent not on the sheet it read just `Pip`.
+- **Decided: a child sees the WHOLE name of every grown-up on a family row that names her as the child,
+  while it is `asked` or `accepted`** (`netKin_`, beside `netSeesWhole_` in people.gs). Asked, because that
+  is the card she is deciding on; accepted, because her own parent is not the awkwardness the owner
+  described (that is a child called by her first name beside a parent called by his whole one, in front of
+  OTHER people) and is the name she tells the next claim apart by. Not `refused` (a no is the end of it) or
+  `held` (an admin is still settling it). Not the other way round — a child's surname is nobody's, her own
+  parent's included (333). Not a sibling or a co-parent, whom the family tab joins only through her. A
+  family row is only ever written by the grown-up's own action (`claimChild`, `makeChild`, their inbox
+  opening the link) or an admin (`linkChild`), so no child can put a stranger's name in front of herself.
+- **One rule, every exit:** it is in `netSeesWhole_`, which `nameFor_` and the net (`kidNamesSpans_`)
+  both ask, so the card, the payload, the kept payload, the sign-in reply, `myProfile`, the "Someone has
+  added you" email (judged by its recipient, `mailViewer_`) and every other place the child is sent that
+  grown-up agree. One pass over the family tab per viewer, dropped by a write to it (`kidMemoDrop_`).
+- So §5's "who still sees a private grown-up's whole name" is now **themselves, any admin, and a child on
+  their own family row**, and §5 and note 333 say so.
+- **Ledger snapshot** (counts only): 10 family rows, all accepted, each with a private grown-up on it; 7
+  children now see a parent's whole name on their own screens; 0 claims waiting.
+
+**R2 — `?run=kidHandles` gave every child who never chose a look a different figure** (introduced by this
+branch, and Randomise's since Randomise existed). A blank `avatar` is drawn by `avatarConfig` (js/links.js)
+with its skin and hair colour picked by `hashOf(handle)` — on the child's own card and wardrobe always, and
+to everybody else once their picture is the figure. A new handle was a new skin tone, and the preview said
+nothing. The Ledger snapshot: 8 children, all 8 with a blank look and no photo.
+- **Decided: every handle the server moves writes the look the old one drew into a blank cell, in the write
+  before the handle** — `kidHandles`, `randomiseHandle` and `renameHandles` all through one helper,
+  `handleFaceKept_` (people.gs), in `saveAvatar`'s packed shape: every slot at its free default, the two
+  colours the old handle hashed to, shirt 0. The face changes when somebody changes it in the wardrobe, never
+  because a handle moved. A look somebody chose is left alone; a row with no handle was drawn from its NAME,
+  which is a different string to every viewer, so there is no one face to keep and nothing is written.
+- **The server carries a copy of the phone's hash and palette lengths** (`FACE_SKINS = 6`, `FACE_HAIRS = 7`,
+  FNV-1a as `hashOf`), because it cannot read js/. Two copies of a rule is what this repository usually
+  refuses; `check-signin.js` holds them together by drawing every face with the phone's OWN `avatarConfig`
+  and `hashOf` cut out of js/ — twenty handles, each the same face before and after.
+- **The preview says it**: `figuresKept`, and a sentence in `means`. Apply reports it too.
+- **Randomise sends the kept look back** as `avatar`, and the phone takes it into a blank look; a phone
+  signed in before the move takes `profile.avatar` from `myProfile` along with the moved handle (only into a
+  blank look, so a wardrobe save in flight is not undone). A sign-in by the old handle already carries the
+  row's `avatar`.
+- **And `fix-card-settings`' `avatarKeep_`** (note 339 §2), which keeps the face on the phone for Randomise:
+  after the merge it finds the look already set from the answer and does nothing; against a backend not yet
+  pulled it still does its job. See "Merging" below.
+- **Ledger snapshot** (counts only): the preview says `figuresKept` 8; an in-memory apply wrote 8 kept looks
+  and moved 8 handles; 0 children had chosen a look.
+
+**R3 — the name-clash pause was an off switch any signed-out caller could flip** (introduced in round 1).
+Five clashes a day with a private whole name refused EVERY new account and every `makeChild` for 24 hours,
+and the verifier supplied all five from one row of their own: register a child through the `parent_email`
+door, then send the same name five more times — that door has no address of its own for the address check
+to ask. Nothing showed an admin the counter or cleared it. And round 1's note overstated the fix: "a fresh
+address per guess" is wrong on the child's door, where one grown-up's address serves every guess; and 333's
+"no longer do" — the doors still confirm a name, by refusing.
+- **Decided: (a), the pause is gone** — `nameClashNoted_`, `nameClashPaused_`, `NAME_CLASH_MAX` and the
+  `NAME_CLASHES` property. Why not (b), a pause one caller cannot trip: any counter every caller shares can
+  be filled by one caller. Counting each row once, only confirmed rows, only rows older than the window,
+  still leaves it trippable by somebody who made five accounts the day before — five clicks on their own
+  inbox — and the price is a counter, a window rule and an admin job to clear it. And it never bounded the
+  guessing: `claimChild` answers "No student called …" to any confirmed parent and writes nothing on a miss.
+  An off switch for every family's sign-up is worse than the oracle it slowed.
+- **Why not the rest of (a), "answer a clash the way a miss answers"**: a miss writes a PENDING row, and a
+  PENDING row signs in (6 Oct) — so the caller tells a made-up success from a real one by signing in with
+  what they typed, one request later. And a real family whose name clashes would be handed a handle that does
+  not exist. So a clash keeps its refusal, in the one sentence any clash gets, naming nothing.
+- **What is left, said honestly** (P3 and 333 now say it): a refusal means "one of these is taken" — at
+  `register` for anybody, at `makeChild` and `claimChild` for a confirmed parent. On the child's door a hit
+  writes and mails nothing, a miss writes a PENDING row and mails the grown-up's address (which an admin
+  sees). Closing it would need two accounts to share a whole name, not done: `findPerson` and `notify`
+  resolve people by name.
+
+**Checks added, each red on `954177c`'s backend and green now:**
+- `check-surnames.js` section 9 (the claim card): a second Pip says a word under Wren's post and claims her — her sign-in reply, payload,
+  kept payload and `myProfile` name him `Pip Ollerton`, and her own parent `Pip Ashdown`; the email that
+  tells her names him whole; a stranger, another student, the other Wren, her own parent, another parent
+  and the tutor are sent no `Ollerton`, and no email but hers, his and an admin's carries it; after she says
+  no, nothing she is sent names him whole — his comment is `Pip (@pip_bold55)` to her again. (The comment is
+  what makes that last rule ask something: without it a refused claimant had nowhere left to be named, and
+  counting `refused` as family stayed green — measured, then fixed.) Section 7 now exempts the viewer's own family row from the hunt (Pip
+  for Wren; the one claim email for Ola, whom she refused) and asks that Wren's card for Pip and Pip's
+  comment, to Wren, are whole — and that to another family's child the comment is "Pip".
+- `check-surnames.js` section 8: the child's door with a grown-up's address already on the sheet and a
+  guessed real name gets the sentence any clash gets, writes nothing, mails nothing; one caller repeating
+  their own name six times and guessing real ones six times pauses nobody — an innocent family registers
+  and a parent makes her child's account after it; nothing counts clashes in the script properties.
+- `check-profile.js`: the claim a child is sent names the parent whole (it was `Bea`, now `Bea Parent`).
+- `check-signin.js` section 12 (the face): twenty children and a chosen look, a child with no handle and a
+  grown-up — the preview counts 20 and writes nothing; apply keeps 20 faces (drawn by the phone's own code),
+  leaves the chosen look and writes nothing for the child with no handle; a sign-in by the old handle and
+  `myProfile` carry the kept look; Randomise on a blank look keeps the face and sends it back, and a second
+  press keeps it; `renameHandles` keeps a grown-up's.
+- `check-flow.js`: "a figure nobody dressed keeps its face when her handle moves" — Randomise, and a phone
+  that learns the move from `myProfile`, each drawn with the face the old handle drew; the surname journey
+  now asks that Wren is shown "Pip Ashdown" and hunts only Ola's surname for her.
+
+**Mutations, each alone in a scratch copy, the copy's file put back byte for byte and compared with the
+real one after each** (18; the real files green after):
+
+| mutation | red in |
+|---|---|
+| no child sees a grown-up on her family row whole (R1) | `check-surnames` (Wren's card for Pip, Pip's comment to Wren, the claim card, its email), `check-profile` (`Bea`), `check-flow` (the surname journey: "her own parent is not Pip Ashdown") |
+| a `refused` row counts as family (R1) | `check-surnames` — green at first: a refused claimant had nowhere left to be named, so his comment was added and it is red now (re-run by hand, the real files green after) |
+| every child sees every family row's grown-up (R1) | `check-surnames` ("Pip Ashdown" in who reacted, for another student, fresh and kept) |
+| only `asked` counts, not `accepted` (R1) | `check-surnames`, `check-flow` |
+| the kin memo not dropped by a family write (R1) | nothing — **equivalent**: no request builds names for a viewer after writing that viewer's family rows (`answerClaim` answers `{ success }`; `claimChild`'s and `verifyEmail`'s viewers are the grown-ups). Kept, as round 1 kept the viewer resets, for the route written next |
+| `handleFaceKept_` keeps nothing (R2) | `check-signin` (the preview's count, apply's, the sign-in reply's face, Randomise's), `check-flow` (the face journey) |
+| `FACE_SKINS` 5, the palette drifted (R2) | `check-signin` (the faces the phone draws differ) |
+| the move does not write the kept look (R2) | `check-signin` |
+| Randomise does not (R2) | `check-signin`, `check-flow` |
+| `renameHandles` does not (R2) | `check-signin` (Gus's face) |
+| a chosen look overwritten (R2) | `check-signin` |
+| the preview does not count `figuresKept` (R2) | `check-signin` |
+| Randomise does not send `avatar` back (R2) | `check-signin`, `check-flow` |
+| the phone ignores Randomise's `avatar` (R2) | `check-flow` |
+| the phone ignores `profile.avatar` with a moved handle (R2) | `check-flow` |
+| a clash counted in the script properties (R3) | `check-surnames` |
+| a shared counter that pauses sign-up after five clashes (R3) | `check-surnames` (the innocent family refused) |
+| the child's door names the clash (R3) | `check-surnames` |
+
+`check-handles.js` went red on the real files once, which is worth saying: it cuts `renameHandles` out of
+setup.gs and runs it on its own, and the call to `handleFaceKept_` reached a name its cut did not have. The
+helper and its two constants are in its list now.
+
+The layout fixture "your family, a card each" (check/states.js) draws a claim from a whole name; since R1 that
+is what `doGet` sends a child, so it is left as it is.

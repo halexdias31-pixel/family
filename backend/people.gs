@@ -728,6 +728,40 @@ function handleWasWith_(cell, was) {
   return list.join(', ');
 }
 
+/* ---------- A HANDLE THE SERVER MOVES KEEPS THE FACE IT DREW (342, after review round 2) -------------------------
+   A FIGURE NOBODY DRESSED IS WORKED OUT FROM THE HANDLE. A blank `avatar` cell is drawn by `avatarConfig`
+   (js/links.js) with its skin and hair colour picked by `hashOf(handle)` — *"Seeded by their handle, so it is
+   theirs and never changes on its own"* — on the person's own You card and wardrobe always, and to everybody
+   else once their picture is the figure (`faceFig_`). So `?run=kidHandles` gave every child who never chose a
+   look a different figure — a different SKIN TONE, and nothing in the preview said so. On the Ledger snapshot
+   that was all eight children (the review, round 2: a dark face with dark purple hair came out pale, with
+   brown). Randomise did it to anybody with a blank look, as long as Randomise has existed; `fix-card-settings`
+   (note 339) met it there and keeps the face on the phone (`avatarKeep_`), which reaches neither this job nor
+   a phone that learns its handle from a sign-in or from `myProfile`.
+   SO EVERY HANDLE THE SERVER MOVES WRITES THE LOOK THE OLD ONE DREW into the blank cell, in the write before the
+   handle (`kidHandles`, `randomiseHandle`, `renameHandles`): the face changes when somebody changes it in the
+   wardrobe, never because a handle moved. In `saveAvatar`'s packed shape — every slot at its default (the free
+   items `avatarConfig` starts from), the two colours the old handle hashed to, shirt 0 — so the wardrobe opens
+   on exactly the figure that was there. A look somebody chose names its own colours and is left alone; a row
+   with no handle was drawn from its NAME, which is a different string to every viewer, so there is no one face
+   to keep and nothing is written.
+   `FACE_SKINS` AND `FACE_HAIRS` ARE THE LENGTHS OF `AV_SKIN` AND `AV_HAIR` in js/links.js, and the hash is
+   core.js's `hashOf` (FNV-1a) line for line. Two copies of one rule is what this repository usually refuses;
+   it is here because the server cannot read the phone's files, and `check-signin.js` holds the two together:
+   it draws the kept look with the phone's own `avatarConfig` and the old handle with it too, and they must be
+   one face. */
+const FACE_SKINS = 6;
+const FACE_HAIRS = 7;
+function handleFaceKept_(t, r, was) {
+  const w = S(was);
+  if (!t || !t.headers || t.headers.indexOf('avatar') === -1 || !r || S(r.avatar) || !w) return {};
+  let h = 2166136261;
+  for (let i = 0; i < w.length; i++) { h ^= w.charCodeAt(i); h = Math.imul(h, 16777619); }
+  h = h >>> 0;
+  return { avatar: 'hair:crop|headwear:none|faceware:none|shoulders:none|handheld:none|legs:plain'
+                 + '|skin:' + (h % FACE_SKINS) + '|hairColour:' + ((h >>> 5) % FACE_HAIRS) + '|shirt:0' };
+}
+
 /* ==================================================================================================
    AND WHAT A TUTOR CHARGES MOVES ONCE A MONTH, ALL FOUR FIELDS TOGETHER.
 
@@ -1186,7 +1220,8 @@ function personDisplayName(r) {
    is not a child and not ACTING as a tutor or an admin (`namePrivate_` — a client, a parent who is also
    learning, somebody whose only role is a Tutor tick still waiting). Approved tutors and admins keep
    their whole names on every card: families book a tutor by name, and an admin is the business.
-   UNLIKE A CHILD'S, TWO PEOPLE STILL SEE IT: the grown-up themselves and any admin. That is why it is a
+   UNLIKE A CHILD'S, SOME PEOPLE STILL SEE IT: the grown-up themselves, any admin, and a child that
+   grown-up has asked to be, or is, the parent of (`netKin_`, round 2 — the claim card). That is why it is a
    VIEWER-AWARE half of the same net rather than a second net — `NET_VIEWER_` (constants.gs) says who
    a reply or an email is for, `nameFor_` and `kidNamesSpans_` ask `netSeesWhole_`, and a grown-up's own
    payload, sign-in reply and mail keep their whole name, so the fourteen places the phone asks "is
@@ -1205,12 +1240,48 @@ function netViewerSet_(row) {
   NET_VIEWER_ = row ? { id: key(row.person_id), admin: hasRole(row, 'admin') } : null;
   return NET_VIEWER_;
 }
-/* MAY THIS VIEWER SEE THIS GROWN-UP'S WHOLE NAME — themselves, or an admin. Nobody known is nobody. */
+/* MAY THIS VIEWER SEE THIS GROWN-UP'S WHOLE NAME — themselves, an admin, or a CHILD THIS GROWN-UP IS ON
+   THE FAMILY TAB WITH (`netKin_`). Nobody known is nobody. */
 function netSeesWhole_(pid) {
   const v = NET_VIEWER_;
   if (!v) return false;
   if (v.admin) return true;
-  return !!v.id && v.id === key(pid);
+  if (!v.id) return false;
+  const p = key(pid);
+  if (v.id === p) return true;
+  return !!p && netKin_(v)[p] === true;
+}
+/* ---------- THE GROWN-UPS ON A CHILD'S OWN FAMILY ROWS SEE HER — SHE SEES THEIR WHOLE NAMES (342, round 2) ----
+   THE CLAIM CARD WAS THE ONE PLACE A CHILD VETS A GROWN-UP, AND 342 TOOK THE SURNAME OFF IT. "Pip says they
+   are your parent" — Yes / No — and a yes gives that account her bookings, her progress and `resetPin` over
+   her: they choose her next PIN and can sign in as her. Before 342 the card said `Pip Strangeways`, and since
+   `register` refuses a whole name that is already an account, a stranger could not borrow Mum's. After it,
+   anybody registering as "Pip <anything>" — the first name every roster shows other families — sent a card
+   that read like Mum's but for a handle (the review, round 2, measured it: `Pip (@pip_brave77)` beside her
+   accepted `Pip (@pip_kind42)`; with Mum not on the sheet, just `Pip`).
+   So a child sees the WHOLE name of every grown-up on a family row naming her as the child, while it is
+   `asked` (the card she is deciding on) or `accepted` (her own parent — and the name she compares the next
+   claim with). Not the awkwardness the owner described: that is a child called by her first name beside a
+   parent called by his whole one, in front of OTHER people. Her own parent's surname, to her, says nothing she
+   does not know, and a claimant chose to put their name in front of her when they asked.
+   NOT `refused` or `held` — a no is the end of it, and `held` is a link an admin is still settling. NOT the
+   other way round: a child's surname is nobody's, her own parent's included (333). NOT a sibling, a
+   co-parent or anybody else the family tab connects only through her. A row is only ever written by the
+   grown-up's own action (`claimChild`, `makeChild`, their inbox opening the link) or an admin (`linkChild`),
+   so no child can put a stranger's name in front of herself.
+   One pass over the family tab per viewer, kept on the viewer and dropped by a write to that tab
+   (`kidMemoDrop_`) — `answerClaim` turns `asked` into `refused` in the middle of a request. */
+const NET_KIN_STATES = ['asked', 'accepted'];
+function netKin_(v) {
+  let rows = [];
+  try { rows = read(TAB.family).rows; } catch (err) { return {}; }
+  if (v.kin && v.kin.rows === rows && v.kin.n === rows.length) return v.kin.ids;
+  const ids = {};
+  rows.forEach(f => {
+    if (key(f.child_id) === v.id && NET_KIN_STATES.indexOf(norm(f.state)) !== -1 && key(f.parent_id)) ids[key(f.parent_id)] = true;
+  });
+  v.kin = { rows: rows, n: rows.length, ids: ids };
+  return ids;
 }
 /* WHO IS CALLED BY THEIR FIRST NAME TO SOMEBODY ELSE: a child (to everybody, 333), and a grown-up who
    is neither acting as a tutor nor an admin (342) — `actingRole_`, so a Tutor tick nobody has said yes
@@ -1238,33 +1309,22 @@ function mailViewer_(to) {
    registered (a miss then wrote nothing either) and confirm, guess by guess, the whole name of any child
    or any parent: 333's rule and 342's undone by a form. The review measured four guesses, zero writes.
    `makeChild` answered the same thing, by name, to any confirmed parent.
-   NOW: the address is asked first, so a registered one is that answer whatever the name; a clash is the
-   same sentence as any other refusal of its kind and does not say which half; and each clash with a
-   PRIVATE whole name (a child's, a parent's — `namePrivate_`; a tutor's is on a public card and tells
-   nobody anything) is counted here, `NAME_CLASH_MAX` a day across every caller, after which both doors
-   refuse EVERY new account until the day has passed — every one, so a refusal during the pause says
-   nothing about the name either. What is left is honest and said in note 342: a refusal still means
-   "one of these is taken", but finding that out now costs a fresh address per guess, writes a PENDING
-   row and mails that address on every miss (which an admin sees), and stops after five hits a day.
-   Allowing two accounts with one whole name would close it entirely, and is not done: `findPerson` and
-   everything that resolves a person by name would then have two answers. */
-const NAME_CLASH_MAX = 5;
-const NAME_CLASH_WINDOW_MS = 24 * 60 * 60 * 1000;
-function nameClashTimes_() {
-  try {
-    const v = JSON.parse(authProps_().getProperty('NAME_CLASHES') || '[]');
-    const since = Date.now() - NAME_CLASH_WINDOW_MS;
-    return Array.isArray(v) ? v.map(Number).filter(t => t > since) : [];
-  } catch (err) { return []; }
-}
-function nameClashPaused_() { return nameClashTimes_().length >= NAME_CLASH_MAX; }
-const NAME_CLASH_PAUSED_SAY = 'New accounts are paused for today — please try again tomorrow, or ask us to help. '
-  + 'Nothing was saved.';
-function nameClashNoted_(hit) {
-  if (!hit || !namePrivate_(hit)) return;
-  try { authProps_().setProperty('NAME_CLASHES', JSON.stringify(nameClashTimes_().concat([Date.now()]))); }
-  catch (err) { /* uncounted is the old behaviour, not a new fault */ }
-}
+   NOW the address is asked first, so a registered OWN address is that answer whatever the name, and a clash
+   is the same sentence as any other refusal of its kind and does not say which half. Nothing more is done,
+   and what is left is said honestly in note 342: a refusal still means "one of these is taken". On the
+   child's door (`parent_email`, which is somewhere to write, not a sign-in address) the same grown-up's
+   address serves every guess — a hit is refused and writes nothing, a miss writes a PENDING row and mails
+   that address.
+   THERE WAS A PAUSE HERE, AND IT WENT IN ROUND 2. Five clashes a day with private whole names refused EVERY
+   new account and every `makeChild` for a day — and the review tripped it signed out, from one row of its own:
+   register a child once, send the same name five more times (the child's door has no address of its own to
+   check), and no family could sign up until tomorrow, with nothing to show an admin why. Any counter every
+   caller shares can be filled by one caller; counting each row once, and only confirmed rows older than a day,
+   would only raise the price to five accounts made the day before. And it never bounded the guessing anyway:
+   `claimChild` answers "No student called …" to any confirmed parent and writes nothing on a miss. An off
+   switch for every family's sign-up is worse than the oracle it slowed. Closing the oracle for good would
+   need two accounts to share a whole name, which is not done — `findPerson` and `notify` resolve a person by
+   name, and would then have two answers. */
 
 function isChild_(r) {
   if (!r) return false;
@@ -1310,6 +1370,8 @@ function kidMemo_() {
 /* A WRITE TO THE PEOPLE TAB — any table with a first and a last name — retires what was worked out. */
 function kidMemoDrop_(t) {
   if (KID_MEMO_ && t && t.headers && t.headers.indexOf('first_name') !== -1 && t.headers.indexOf('last_name') !== -1) KID_MEMO_ = null;
+  /* AND A WRITE TO THE FAMILY TAB retires which grown-ups this viewer sees whole (`netKin_`). */
+  if (NET_VIEWER_ && t && t.headers && t.headers.indexOf('child_id') !== -1 && t.headers.indexOf('parent_id') !== -1) NET_VIEWER_.kin = null;
 }
 
 /* HOW MANY CHILDREN ANSWER TO THIS FIRST NAME — two or more and the handle goes beside it. */
@@ -1320,8 +1382,9 @@ function kidFirstShared_(r) {
 }
 
 /** A person's name as it may leave the server, TO THIS REQUEST'S VIEWER (`NET_VIEWER_`).
-    `cardHasHandle`: the card prints the handle anyway. A grown-up's whole name to themselves and to an
-    admin; to anybody else what `nameToOthers_` says. A child's is never whole, to anybody. */
+    `cardHasHandle`: the card prints the handle anyway. A grown-up's whole name to themselves, to an
+    admin and to a child on their own family row (`netSeesWhole_`); to anybody else what `nameToOthers_`
+    says. A child's is never whole, to anybody. */
 function nameFor_(r, cardHasHandle) {
   if (!r) return '';
   if (!isChild_(r) && netSeesWhole_(r.person_id)) return personDisplayName(r);

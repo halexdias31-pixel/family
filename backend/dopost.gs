@@ -402,15 +402,12 @@ function doPost(e) {
          The name was asked first and answered "There is already an account in that name" — so an address
          already on a row, passed with a guessed whole name, told anybody whether that child or parent
          existed and wrote nothing either way. The address is the person's own to ask about; the name is
-         not. A clash with a private name is counted, and five a day pause new accounts (`nameClashNoted_`,
-         people.gs). */
+         not. What a refusal still says, and why nothing pauses (it did, for a day of round 1, and one
+         signed-out caller could switch sign-up off for everybody): the note over `isChild_` in people.gs. */
       if (email && t.rows.some(r => S(r.email) && norm(r.email) === norm(email))) {
         return jsonOut({ error: 'That email is already registered. Try logging in.' });
       }
-      if (nameClashPaused_()) return jsonOut({ error: NAME_CLASH_PAUSED_SAY });
-      const clashed = findPerson(full);
-      if (clashed) {
-        nameClashNoted_(clashed);
+      if (findPerson(full)) {
         return jsonOut({ error: 'We could not make that account. If you have one already, sign in — or ask us to help.' });
       }
 
@@ -2777,13 +2774,17 @@ function doPost(e) {
          at a time, so on a tab where `handle_was` is not beside `handle` a failure between the two left
          a new handle with nothing to say what the old one was — and the old one, on the slip, no longer
          signing anybody in. This way round a failure leaves an extra history entry and the old handle. */
-      setCells(t, r, { handle_was: handleWasWith_(r.handle_was, was) });
+      /* AND THE FACE THE OLD HANDLE DREW, in the same write, when nobody ever chose a look (`handleFaceKept_`,
+         342 round 2) — a blank look is drawn from the handle, so every press changed the skin and the hair
+         colour. Sent back as `avatar`, so the phone draws the same face before its next sign-in. */
+      setCells(t, r, Object.assign({ handle_was: handleWasWith_(r.handle_was, was) }, handleFaceKept_(t, r, was)));
       setCells(t, r, { handle: made, handle_changed_at: new Date() });
       /* AND EVERY FRIENDS LIST THAT NAMED THE OLD ONE (342) — it was left naming nobody, so a press of
          this took the person off every friend's list without a word. */
       if (was) handleFriendsMove_(t, { [key(was)]: made });
+      const avatar = S(r.avatar);
       clearCache();
-      return jsonOut({ success: true, handle: made, was: was });
+      return jsonOut({ success: true, handle: made, was: was, avatar: avatar });
     }
 
     /* ---------- A PARENT MAKES THEIR CHILD'S ACCOUNT -------------------------------------------------
@@ -2845,11 +2846,8 @@ function doPost(e) {
         return jsonOut({ error: 'The sheet has no column for: ' + lacking.join(', ') + '. Run ?setup=1 — nothing was saved.' });
       }
       /* NOT "THERE IS ALREADY AN ACCOUNT CALLED …" (342, the review) — that confirmed a guessed whole name
-         to any confirmed parent. `register`'s rule: the same sentence as any refusal, counted, paused. */
-      if (nameClashPaused_()) return jsonOut({ error: NAME_CLASH_PAUSED_SAY });
-      const clashed = findPerson(full);
-      if (clashed) {
-        nameClashNoted_(clashed);
+         to any confirmed parent. `register`'s rule: the same sentence as any refusal of its kind. */
+      if (findPerson(full)) {
         return jsonOut({ error: 'We could not make that account. If your child has one already, use "Add your '
                               + 'child" to ask them to link it — or ask us to help.' });
       }

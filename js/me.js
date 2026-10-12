@@ -5539,6 +5539,9 @@ function profileRefresh_(loud, onOld) {
         HANDLE_SAID = { pid: String(USER.personId || ''), text: 'You were @' + USER.handle + '.' };
         handleRename_(USER.handle, d.handle);
         try { toast('Your handle is @' + d.handle + ' now'); } catch (e) {}
+        /* AND THE FACE THE OLD ONE DREW (round 2): the move wrote it into a blank look on the server
+           (`handleFaceKept_`), and this phone's blank copy would draw the new handle's colours instead. */
+        if (!String(USER.avatar || '').trim() && d.profile && d.profile.avatar) USER.avatar = String(d.profile.avatar);
       }
       if (d.handle) USER.handle = String(d.handle);
       if (typeof d.friends === 'string' && d.friends !== String(USER.friends || '')) {
@@ -5598,6 +5601,9 @@ on('handle-shuffle', el => {
       accountChanged_();
       handleRename_(d.was, d.handle);
       USER.handle = d.handle;
+      /* AND THE FACE THE OLD HANDLE DREW, which the server wrote into a blank look (`handleFaceKept_`, 342
+         round 2) — a blank look is drawn from the handle, so without it this phone changed the face. */
+      if (d.avatar && !String(USER.avatar || '').trim()) USER.avatar = String(d.avatar);
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
       const shown = card && card.querySelector('.handle-shown');
       if (shown) shown.textContent = d.handle;

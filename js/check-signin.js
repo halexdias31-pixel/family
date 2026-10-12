@@ -1566,6 +1566,91 @@ const withDice = fn => { const real = Math.random; Math.random = dice(); try { r
 }
 revRule(revRules >= 17, 'only ' + revRules + ' of the after-review rules were asked');
 
+/* ==================================================================================================
+   12. AFTER REVIEW, ROUND 2 — A HANDLE MOVED BY THE SERVER KEEPS THE FACE A BLANK LOOK DREW
+
+   A figure nobody dressed is drawn from the HANDLE (`avatarConfig` in js/links.js: skin and hair colour
+   from `hashOf(handle)`), so `?run=kidHandles` gave every child who never chose a look a different figure
+   — a different skin tone — and the preview said nothing (the review: all eight children on the Ledger
+   snapshot). Every handle the server moves now writes the old handle's look into a blank cell first
+   (`handleFaceKept_`). THE FACE IS DRAWN HERE BY THE PHONE'S OWN CODE — `hashOf` out of js/core.js and
+   `avatarConfig` out of js/links.js — because the server's copy of the hash and of the two palette lengths
+   is exactly the thing that could drift: twenty handles, and every one must come out the same face.
+   ================================================================================================== */
+let faceRules = 0;
+const faceRule = (ok, what, got) => { faceRules++; if (!ok) no(what, got); return !!ok; };
+const PHONE_ = (() => {
+  const ROOT = path.join(__dirname, '..');
+  const core = fs.readFileSync(path.join(ROOT, 'js', 'core.js'), 'utf8');
+  const links = fs.readFileSync(path.join(ROOT, 'js', 'links.js'), 'utf8');
+  const cut = (src, re, what) => { const m = src.match(re); if (!m) { console.log('FAILED — could not find ' + what + ' in js/ to draw a face with.'); process.exit(1); } return m[0]; };
+  const src = [cut(core, /const hashOf = str => \{[\s\S]*?\n\};/, 'hashOf'),
+               cut(links, /const AV_SKIN\s*=\s*\[[^\]]*\];/, 'AV_SKIN'),
+               cut(links, /const AV_HAIR\s*=\s*\[[^\]]*\];/, 'AV_HAIR'),
+               cut(links, /function avatarConfig\([\s\S]*?\n\}\n/, 'avatarConfig')].join('\n');
+  return new Function(src + '\nreturn { avatarConfig, AV_SKIN, AV_HAIR };')();
+})();
+/* WHAT SOMEBODY SEES: the two colours a look resolves to, through the phone's own palette. */
+const faceOf = (packed, handle) => {
+  const c = PHONE_.avatarConfig(packed, handle);
+  return PHONE_.AV_SKIN[c.skin % PHONE_.AV_SKIN.length] + '/' + PHONE_.AV_HAIR[c.hairColour % PHONE_.AV_HAIR.length]
+    + '/' + [c.hair, c.headwear, c.faceware, c.shoulders, c.handheld, c.legs, c.shirt].join(',');
+};
+{
+  const b = fresh();
+  const firsts = ['Ada', 'Bo', 'Cy', 'Di', 'Ed', 'Flo', 'Gil', 'Hal', 'Ida', 'Jo', 'Kai', 'Lu', 'Mo', 'Nell', 'Oz', 'Pia', 'Quin', 'Ray', 'Sue', 'Ty'];
+  const kids = firsts.map((f, i) => person('P-F' + i, 'student', f, 'Fenn', { handle: f.toLowerCase() + '_kind' + (20 + i), avatar: '' }));
+  /* ONE WHO CHOSE A LOOK, one with no handle at all, and a grown-up whose typed handle `renameHandles` moves. */
+  const CHOSEN = 'hair:bun|headwear:none|faceware:none|shoulders:none|handheld:none|legs:plain|skin:4|hairColour:2|shirt:3';
+  kids.push(person('P-FC', 'student', 'Una', 'Fenn', { handle: 'una_kind50', avatar: CHOSEN }));
+  kids.push(person('P-FN', 'student', 'Vi', 'Fenn', { handle: '', avatar: '' }));
+  b.seed('people', [halRow()].concat(kids, [person('P-GT', 'client', 'Gus', 'Grown', { email: 'gus@example.org', handle: 'GusTyped', avatar: '' })]));
+  const before = {};
+  kids.forEach(k => { before[k.person_id] = faceOf(k.avatar, k.handle); });
+  kidRun(b);
+  const snap = JSON.stringify(b.tabs.people);
+  const pv = kidRun(b);
+  faceRule(pv.figuresKept === 20 && JSON.stringify(b.tabs.people) === snap,
+    'the preview does not say how many children never chose a look (20 here), or it wrote one', { figuresKept: pv.figuresKept });
+  faceRule(/figuresKept/.test(S(pv.means)), 'the preview\'s sentence does not say the faces are kept', pv.means);
+  const ap = kidRun(b, 'apply');
+  faceRule(ap.figuresKept === 20, 'apply does not report the 20 faces it kept', ap.figuresKept);
+  const changed = kids.filter(k => k.handle).map(k => {
+    const r = byId(b, k.person_id);
+    return { id: k.person_id, moved: S(r.handle) !== k.handle, before: before[k.person_id], after: faceOf(S(r.avatar), S(r.handle)) };
+  });
+  faceRule(changed.filter(x => x.moved).length === 21, 'the move did not move the 21 children with a handle, so their faces were NOT asked', changed.filter(x => !x.moved));
+  const diff = changed.filter(x => x.before !== x.after);
+  faceRule(!diff.length, diff.length + ' of 21 children were drawn with a different figure after ?run=kidHandles — a blank look follows the handle, and the move did not write the old one down', diff.slice(0, 3));
+  faceRule(S(byId(b, 'P-FC').avatar) === CHOSEN, 'the move wrote over a look somebody chose', byId(b, 'P-FC').avatar);
+  faceRule(S(byId(b, 'P-FN').avatar) === '', 'a child with no handle was given a look — her figure was drawn from her name, and there is no one face to keep', byId(b, 'P-FN').avatar);
+  /* SIGNING IN WITH THE OLD HANDLE, AND `myProfile`, carry the kept look — the phone draws from them. */
+  const viaOld = signIn(b, 'ada_kind20', PLACE);
+  faceRule(viaOld.success && faceOf(S(viaOld.avatar), S(viaOld.handle)) === before['P-F0'],
+    'the sign-in reply by the old handle draws a different face from the one she had', { avatar: viaOld.avatar, handle: viaOld.handle });
+  if (viaOld.token) {
+    const me = post(b, { action: 'myProfile', token: viaOld.token });
+    faceRule(me.success && S((me.profile || {}).avatar) === S(byId(b, 'P-F0').avatar), 'myProfile does not carry the kept look, so a signed-in phone draws the new handle\'s colours', me.profile && me.profile.avatar);
+    /* RANDOMISE: the face it had, sent back as `avatar`, and the look it wrote is the one it keeps. */
+    const ada = byId(b, 'P-F0');
+    b.ev('(function () { const t = read(TAB.people); const r = t.rows.find(x => S(x.person_id) === "P-F0"); setCell(t, r, "avatar", ""); clearCache(); })()');
+    const faceNow = faceOf('', S(ada.handle));
+    const rnd = post(b, { action: 'randomiseHandle', token: viaOld.token });
+    const after = byId(b, 'P-F0');
+    faceRule(rnd.success && S(rnd.avatar) === S(after.avatar) && faceOf(S(after.avatar), S(after.handle)) === faceNow,
+      'Randomise on a blank look changed the face, or did not send the kept look back for the phone', { rnd, avatar: after.avatar });
+    const rnd2 = post(b, { action: 'randomiseHandle', token: viaOld.token });
+    faceRule(rnd2.success && S(byId(b, 'P-F0').avatar) === S(after.avatar), 'a second Randomise wrote over the look the first one kept — it is a chosen look now', byId(b, 'P-F0').avatar);
+  }
+  /* AND `renameHandles` ON A GROWN-UP. */
+  const gusFace = faceOf('', 'GusTyped');
+  b.get({ run: 'renameHandles', name: 'Hal Admin', pin: PLACE });
+  const gus = byId(b, 'P-GT');
+  faceRule(S(gus.handle) !== 'GusTyped' && faceOf(S(gus.avatar), S(gus.handle)) === gusFace,
+    'renameHandles moved a grown-up\'s handle and changed the face his blank look drew', { handle: gus.handle, avatar: gus.avatar });
+}
+faceRule(faceRules >= 12, 'only ' + faceRules + ' of the face rules were asked');
+
 const PROOF_RULES = 81;
 if (proofRules !== PROOF_RULES && !bad.length) no('only ' + proofRules + ' of ' + PROOF_RULES + ' unproved-address rules were asked');
 
@@ -1574,7 +1659,7 @@ if (!bad.length) console.log('  none');
 bad.forEach(x => console.log('  ' + x));
 console.log('\nrequests made: ' + asked + '   emails caught: ' + MAIL.length + '   who-the-account-is-for rules held: ' + whoRules + ' of ' + WHO_RULES
           + '   unproved-address rules held: ' + proofRules + ' of ' + PROOF_RULES
-          + '   children\'s-handle rules asked: ' + kidRules + '   after-review rules asked: ' + revRules);
+          + '   children\'s-handle rules asked: ' + kidRules + '   after-review rules asked: ' + revRules + '   face rules asked: ' + faceRules);
 if (bad.length) {
   console.log('FAILED — a child who cannot get in, or a classmate who can keep them out, is the whole of what the '
             + 'owner asked to be sure of: "all kids can login easily with their handle and pin".');
