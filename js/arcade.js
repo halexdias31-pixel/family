@@ -378,12 +378,15 @@ function widgetsReveil_(col, who) {
     slot.setAttribute('aria-busy', 'true');
     delete slot.AHEAD;
     delete slot.WHO;
+    delete slot.LENT;
   });
 }
 
-function widgetsHeld_(col) {
+/* `pre`: THE COLUMN STILL HOLDS THE BOOT'S MARKUP (`PRE_PAYLOAD`, shell.js) — then only a slot started after the
+   payload landed is carried; one started before it drew without the payload and is started again (331). */
+function widgetsHeld_(col, pre) {
   const who = widgetWho_();
-  const run = TOOLS_ON.filter(e => e.col === col && e.slot && e.slot.isConnected && e.who === who);
+  const run = TOOLS_ON.filter(e => e.col === col && e.slot && e.slot.isConnected && e.who === who && (!pre || e.slot.UP_PAID));
   /* AND EVERY SLOT DRAWN AHEAD FOR THIS PERSON BY A WIDGET THAT READS NO FACTS (`pure`) — its drawing cannot
      be stale, so it crosses the paint as it is, and keeps the clocks it was drawn under: on arrival it is
      started again behind its own drawing rather than adopted, because the paint has moved them (341). A
@@ -504,14 +507,15 @@ function widgetUp_(w, col) {
   if (slot && col) WIDGET_HOME[slot.id] = col;
   /* WHOM ITS DRAWING IS FOR, kept on the slot after the widget stops — see `widgetsReveil_`. And ANY other
      copy drawn ahead is no longer what this widget's state would draw (`WIDGET_UPS`). */
-  if (slot) { slot.WHO = widgetWho_(); delete slot.AHEAD; }
+  /* AND NOT LENT ANY MORE (`LENT`, below): this copy is the one running now. */
+  if (slot) { slot.WHO = widgetWho_(); delete slot.AHEAD; delete slot.LENT; slot.UP_PAID = typeof FIRST_PAINT_DONE !== 'undefined' && !!FIRST_PAINT_DONE; }
   WIDGET_UPS[id] = (WIDGET_UPS[id] || 0) + 1;
   try { if (!adopt && w.start) w.start(); }
   catch (e) { console.warn('[widget]', w.id, e); }
   finally {
     if (typeof loaded_ === 'function') {
       loaded_(slot);
-      widgetCopies_(id).forEach(el => { if (el !== slot && widgetLit_(el)) loaded_(el); });
+      widgetCopies_(id).forEach(el => { if (el !== slot && widgetLit_(el)) { loaded_(el); el.LENT = true; } });
     }
   }
 }
@@ -553,7 +557,7 @@ function widgetsWake_(list, col, arriving) {
      that is the floor, for an arrival that beat the builder. A drawn slot that cannot be adopted is NOT
      started here; it is queued, and the queue starts it one per task behind the slide — its drawing is on
      the glass meanwhile, so a 291ms start (chess) is never a stall the next flick waits behind (341). */
-  const veiled = w => { const sl = slotOn_(col, String(w.id)); return !sl || !!sl.getAttribute('aria-busy'); };
+  const veiled = w => { const sl = slotOn_(col, String(w.id)); return !sl || !!sl.getAttribute('aria-busy') || !!sl.LENT; };
   const adopt = up.filter(w => widgetAdoptable_(w, slotOn_(col, String(w.id))));
   adopt.forEach(w => widgetUp_(w, col));
   const rest = up.filter(w => adopt.indexOf(w) === -1);
@@ -650,7 +654,7 @@ function widgetsNear_(col) {
   const now = TOOLS_WAIT.filter(q => {
     if (q.col !== col || widgetDistance_(q.w, col) > 1) return false;
     const sl = slotOn_(q.col, String(q.w.id));
-    return !sl || !!sl.getAttribute('aria-busy') || widgetAdoptable_(q.w, sl);
+    return !sl || !!sl.getAttribute('aria-busy') || !!sl.LENT || widgetAdoptable_(q.w, sl);
   });
   if (!now.length) return;
   TOOLS_WAIT = TOOLS_WAIT.filter(q => now.indexOf(q) === -1);
@@ -785,9 +789,23 @@ function widgetsGlass_(settled) {
      anybody looking, and the copy on the glass keeps the loader until the settle has stopped that one
      and the queue has started this. */
   beside.forEach((copies, id) => {
-    if (front.has(id)) return;
+    /* ---------- AND A COPY OF A WIDGET RUNNING IN FRONT, DRAWN AGAIN BY THE BUILDER, IS NOT LEFT VEILED --------
+       `widgetUp_` takes the veil off every copy of a widget on the glass when it starts (one widget, one
+       start) — once. Since docs/history/341 the builder draws a stale column beside the one in front in the
+       quiet, AFTER that widget started, so the copy on it (chess starred into Saved, beside Games on an iPad)
+       came back under its veil and stayed there for as long as Games was in front: measured, up to 91 frames
+       of loader beside a running game. So it is said again at every placement, for the widgets the column in
+       front is running. `LENT`: unveiled for a run in another copy, not drawn by itself — an arrival starts
+       such a copy at once, as one still under its loader (`widgetsWake_`, `widgetsNear_`). */
+    if (front.has(id)) {
+      if (TOOLS_ON.some(e => String(e.w.id) === id && e.col === AT)) copies.forEach(c => {
+        const sl = slotOn_(c.col, id);
+        if (sl && sl.getAttribute('aria-busy') && typeof loaded_ === 'function') { loaded_(sl); sl.LENT = true; }
+      });
+      return;
+    }
     if (TOOLS_ON.some(e => String(e.w.id) === id && keep(e))) {
-      copies.forEach(c => { const sl = slotOn_(c.col, id); if (sl && sl.getAttribute('aria-busy') && typeof loaded_ === 'function') loaded_(sl); });
+      copies.forEach(c => { const sl = slotOn_(c.col, id); if (sl && sl.getAttribute('aria-busy') && typeof loaded_ === 'function') { loaded_(sl); sl.LENT = true; } });
       return;
     }
     if (TOOLS_WAIT.some(q => String(q.w.id) === id)) return;
@@ -834,6 +852,7 @@ function aheadDrawWidget_(w, col) {
   finally { if (had === undefined) delete WIDGET_HOME[slot.id]; else WIDGET_HOME[slot.id] = had; }
   if (!drawn) { slot.NOAHEAD = true; return; }
   if (typeof loaded_ === 'function') loaded_(slot);
+  delete slot.LENT;
   slot.AHEAD = { who: widgetWho_(), act: ACT_EPOCH, draw: DRAW_EPOCH, ups: WIDGET_UPS[id] || 0, pure: !!w.pure };
   slot.WHO = widgetWho_();
   /* AND ITS COLUMN PLACED AGAIN, NOW: a widget grows its card as it draws (`widgetsLater_`'s reason). */

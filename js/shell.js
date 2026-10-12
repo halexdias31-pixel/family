@@ -818,11 +818,15 @@ function paint(id, fresh, o) {
      a landing's `'maybe'` may be answered by writing nothing (below). */
   const mark = STALE[id];
   delete STALE[id];
-  /* A COLUMN STILL HOLDING THE BOOT'S MARKUP IS DRAWN FROM NOTHING, whoever draws it — an arrival (`go`), the
-     builder or anything else — so a widget started on the boot's markup starts again in the payload's (331's
-     "flyer maker beside You"). The first payload used to empty these columns, which made every first paint
-     fresh by accident; it keeps their loader now (docs/history/341), so the rule is said here, once. */
-  if (PRE_PAYLOAD.has(id)) fresh = true;
+  /* A COLUMN STILL HOLDING THE BOOT'S MARKUP: a widget started on it BEFORE the payload landed is started
+     again in the payload's markup (331's "flyer maker beside You": it drew the one loader over the part that
+     waited for the payload), whoever draws the column — an arrival (`go`), the builder, anything. The first
+     payload used to empty these columns, which made every first paint fresh by accident; it keeps their
+     loader now (docs/history/341), so the rule is said here, once. A widget started on the boot's markup
+     AFTER the payload landed — the calculator a wide window starts beside Settings while the builder has not
+     yet drawn Tools — drew from the payload and is carried like any running slot: throwing it away lost the
+     sum typed into it (check-flow, "a repaint and then an arrival keep the widget running"). */
+  const pre = PRE_PAYLOAD.has(id);
   /* A PAGED SCREEN HAS NO PADDING OF ITS OWN — each page supplies it, because a page is positioned
      against the screen's padding box and would otherwise be inset by it and then pad itself again.
      Marked here rather than in the markup so the two lists of paged screens cannot disagree:
@@ -882,7 +886,7 @@ function paint(id, fresh, o) {
     if (typeof widgetsReveil_ === 'function') widgetsReveil_(id, false);
     return;
   }
-  const held = !fresh && typeof widgetsHeld_ === 'function' ? widgetsHeld_(id) : [];
+  const held = !fresh && typeof widgetsHeld_ === 'function' ? widgetsHeld_(id, pre) : [];
   el.innerHTML = html !== null
     ? html
     : '<p class="empty">Nothing here yet.</p>';
@@ -3573,7 +3577,7 @@ AHEAD_KINDS.push(() => TABS.filter(t => t.id !== AT && STALE[t.id] && $('s-' + t
 function aheadPaint_(id) {
   const host = $('s-' + id);
   if (!host || id === AT) return;
-  paint(id, PRE_PAYLOAD.has(id), { ahead: true });
+  paint(id, false, { ahead: true });
   if (STALE[id]) return false;
   PRE_PAYLOAD.delete(id);
   if (PAGER[id] && host.querySelector(':scope > .page')) {
@@ -5515,7 +5519,7 @@ async function loadOnce_(again, n) {
     PRE_PAYLOAD.forEach(id => { if (STALE[id]) STALE[id] = 1; });
     GLASS.cols.forEach(id => {
       if (id === AT || !STALE[id]) return;
-      paint(id, PRE_PAYLOAD.has(id));
+      paint(id);
       if (!STALE[id]) { PRE_PAYLOAD.delete(id); if (PAGER[id]) paintPager(id, true); }
     });
     aheadOpen_();

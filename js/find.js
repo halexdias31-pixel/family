@@ -14647,9 +14647,15 @@ function stuffBehind_() { return STUFF_LAG + (typeof glassRows_ === 'function' ?
 /* A PAGE THAT NOW STANDS FOR A DIFFERENT RESULT MUST NOT KEEP THE OLD ONE'S MARKUP. The `filled`
    mark is what `fillStuffPages` reads, so taking it off is what asks for the redraw.
    AND IT KEEPS ITS HEIGHT, as a page emptied in `fillStuffPages` does — see `stuffPin_`. */
+/* AND ITS SCROLL PUT BACK, which the emptying beyond `STUFF_NEAR` used to do: since docs/history/341 nothing
+   inside the window is emptied, so a recycle is the one moment a page stops standing for its card — and a
+   pane a reader had scrolled down would hand the next card to somebody half way through it. Only a pane
+   `paneReach_` made scrollable can have been scrolled, and asking any other for its `scrollTop` would be a
+   forced layout per page recycled (the note that was over the old emptying). */
 function stuffBlank_(el) {
   if (!el) return;
   const pane = el.querySelector(':scope > .pane');
+  if (pane && pane.style.overflowY) { pane.scrollTop = 0; pane.style.overflowY = ''; }
   if (el.dataset.filled === '1') stuffPin_(el, pane);
   delete el.dataset.filled;
   if (pane) pane.innerHTML = '';
