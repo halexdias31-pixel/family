@@ -24972,6 +24972,32 @@ check('the first slices after the screen is up need their quiet too, a column\'s
   return bad;
 });
 
+check('a column\'s first draw from a payload waits a whole second of quiet even when nothing else is in its way', async () => {
+  /* REVIEW ROUND 1, 12 Oct: the journey above asks this of the first slices after the screen comes up — and once
+     `afterSlide_` counted its own jobs as booked until the last had run, those jobs alone kept the builder shut
+     past a second, so taking the cold rule out (`j.cold`) left it green. Here nothing else is in the way: the
+     builder held through the landing, every column but the one in front still on the boot's markup, then a key
+     and the hold let go. The first of those columns drawn must have waited a second since the key. */
+  const b = boot({ ahead: true, before: x => { x.__aheadHold = true; } });
+  const w = b.w;
+  for (let i = 0; i < 400 && !w.__t; i++) await wait(5);
+  const t = w.__t, bad = [];
+  if (!t || typeof t.PRE_PAYLOAD !== 'function') return ['the builder is not reachable — NOT checked'];
+  for (let i = 0; i < 200 && !t.afterIdle(); i++) await wait(25);
+  await wait(300);
+  const cold = t.PRE_PAYLOAD().filter(id => t.stale(id) && id !== t.AT());
+  if (!cold.length) return ['no column was left on the boot\'s markup, so nothing was asked — NOT checked'];
+  w.document.dispatchEvent(new w.KeyboardEvent('keydown', { bubbles: true, key: 'Shift' }));
+  const k = w.performance.now();
+  w.__aheadHold = false;
+  t.aheadKick();
+  for (let i = 0; i < 200 && !t.aheadLog().some(x => x.t >= k && /^paint:/.test(x.key) && cold.indexOf(x.key.slice(6)) !== -1); i++) await wait(25);
+  const first = t.aheadLog().find(x => x.t >= k && /^paint:/.test(x.key) && cold.indexOf(x.key.slice(6)) !== -1);
+  if (!first) return ['the builder drew none of the columns on the boot\'s markup — NOT checked'];
+  if (first.t - k < 990) bad.push(first.key + ', a first draw from the payload, ran ' + Math.round(first.t - k) + 'ms after a key — it waits a second');
+  return bad;
+});
+
 check('a finder drawn for nobody is filled inside the builder\'s slices: no card of it is built outside one', async () => {
   /* REVIEW, 12 Oct: the finder's draw queued its own fill as a microtask, which ran after the builder's slice had
      ended and outside the time it measured — 2.7s of one idle callback against 1.6s logged. Drawn ahead, it is
