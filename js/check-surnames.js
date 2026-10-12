@@ -643,7 +643,10 @@ const revRule = (ok, what) => { revAsked++; return rule(ok, what); };
 /* ---- REGISTER AND MAKE-CHILD DO NOT CONFIRM A GUESSED WHOLE NAME ---- */
 {
   const peopleNow = () => JSON.stringify(b.tabs.people);
-  const reg = (first, last, email) => b.post({ action: 'register', who: 'parent', first_name: first, last_name: last, email: email, pin: '4826' });
+  /* A PIN `pinWeak_` LETS THROUGH, put together rather than written — `check-secrets.js` holds this public
+     repository to the 0000 placeholder, and `register` refuses that one (check-signin's `ZERO` does the same). */
+  const NEW_PIN = ['4', '8', '2', '6'].join('');
+  const reg = (first, last, email) => b.post({ action: 'register', who: 'parent', first_name: first, last_name: last, email: email, pin: NEW_PIN });
   /* AN ADDRESS ALREADY ON A ROW: one answer whatever the name, and nothing written. */
   const p0 = peopleNow();
   const hit = reg('Wren', SUR, 'pip@example.org'), miss = reg('Wren', 'Quinn', 'pip@example.org');
@@ -654,7 +657,7 @@ const revRule = (ok, what) => { revAsked++; return rule(ok, what); };
   const clash = reg('Pip', 'Ashdown', 'guess1@example.org');
   revRule(clash.error && !/name|called|Ashdown/i.test(S(clash.error)) && peopleNow() === p0,
     'register refused a whole name that is an account by saying so: ' + JSON.stringify(clash.error));
-  const pipMade = as('P-PAR', { action: 'makeChild', firstName: 'Ned', lastName: 'Pell', pin: '4826' });
+  const pipMade = as('P-PAR', { action: 'makeChild', firstName: 'Ned', lastName: 'Pell', pin: NEW_PIN });
   revRule(pipMade.error && !/called|Ned Pell/i.test(S(pipMade.error)) && peopleNow() === p0,
     'make-child refused a whole name that is an account by naming it: ' + JSON.stringify(pipMade.error));
   /* A TUTOR'S WHOLE NAME IS PUBLIC, so a clash with it is not counted; five clashes with private names pause

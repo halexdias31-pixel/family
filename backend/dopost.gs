@@ -877,9 +877,9 @@ function doPost(e) {
             error: 'That handle is on more than one account — ask us to sort it out.' });
         }
         return jsonOut({ success: false, why: 'not-an-email',
-          /* NO EXAMPLE HANDLE (342): it said "(like halex_kind42)", a first name and a word — and a
-             child's handle is their initials and four digits now, so a child who mistyped was shown a
-             shape that is not theirs. The card shows the real one. */
+          /* NO EXAMPLE HANDLE (342): it showed one in the grown-ups' shape, a first name, a word and a
+             number — and a child's handle is their initials and four digits now, so a child who mistyped
+             was shown a shape that is not theirs. The card shows the real one. */
           error: 'Sign in with the email on your account — or your handle, as it is on your card.' });
       }
       const hits = t0.rows.filter(x => norm(x.email) === mail);

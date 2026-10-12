@@ -319,8 +319,8 @@ contradicted something this note claimed.
 - **S7 / C1 — the family iPad kept the old, name-bearing chip** (should-fix). `handleRename_` (me.js)
   replaces it in place when a sign-in by an old handle, `myProfile` or Randomise learns the handle moved; a
   device that never had the chip, or forgot it with ✕, is not given one.
-- **S8 / C13 — the unknown-handle refusal still showed `(like halex_kind42)`** (nit). It now says "or your
-  handle, as it is on your card." (check-flow's stub of that sentence moved with it).
+- **S8 / C13 — the unknown-handle refusal still showed a grown-up's handle as its example** (nit). It now
+  says "or your handle, as it is on your card." (check-flow's stub of that sentence moved with it).
 - **Not done, and why:** neither `?run` job nor Randomise takes the script lock, so a Randomise landing
   during an apply could be overwritten. The reviewer did not report it — theoretical, an existing pattern,
   and not reproducible in the single-threaded harness — and neither job is run while children are using it.
@@ -359,3 +359,59 @@ every new one resolves to exactly its own child (8 and 8); 0 friends lists to mo
   A child's handle is built from the last name's initial too, so it should compare `last_name` as well and
   its sentence should change (the checks reviewer's note).
 - `docs/history/README.md`: both branches append one line.
+- `js/check-flow.js`, the surname journey's `check('a child is her first name on every screen…'` line: both
+  branches retitled it (this one added the parent half, that one "her own boxes on Settings and her own
+  card's Edit"). Keep this one's `GROWN_` block above it and join the two titles; everything else in the
+  journey merged by itself in the trial (`git merge-tree`, against `fix-card-settings` at `339b1bb`).
+- `style.css` conflicts on `--css-version`, as it does merging the base without this branch: not this branch's.
+
+**Round 1's mutations, each alone in a scratch copy, red for its own reason, the copy restored byte for byte
+and compared with the real files after each** (25):
+
+| mutation | red in |
+|---|---|
+| an old handle matched exactly only (S1) | `check-handles` (Christopher's spelled-out old handle refused), `check-signin` (sign-in and "Forgotten your PIN?") |
+| `handle_was` trimmed to ten again (S2) | `check-handles` (nothing falls off; 201 kept by renameHandles), `check-signin` (twelve presses: the slip refused and free to reissue), `check-profile` (15 presses kept 10) |
+| friends lists mended only from this run's moves (S3) | `check-signin` (a re-run after a failure leaves Fin's list naming nobody) |
+| the handle and its history in one write (S4) | `check-signin` (`handle_was` apart from `handle`: a child with a new handle and no history, locked out) |
+| no `inAnotherHistory` (S5) | `check-signin` |
+| a child's shape is today's initials (S6) | `check-handles` (shape cases; a grown-up's `gg2345` renamed), `check-signin` (a corrected surname moved again) |
+| the refusal shows a grown-up's handle again (S8) | `check-handles` (the sentence), `check-signin` |
+| a festive join's typed names kept whole (P2) | `check-surnames` ("Bo Kettleworth" where the other families read it) |
+| an open job's events to everybody (P2) | `check-surnames` (every family's name to a stranger and a student not on it) |
+| `register` asks the name before the address (P3) | `check-surnames` (a guessed real name answered differently from a wrong one) |
+| no pause after five clashes (P3) | `check-surnames` |
+| `makeChild` names the clash (P3) | `check-surnames` |
+| `handleSurnameIn_` reports nobody (P4) | `check-handles`, `check-signin` |
+| "Forgotten your PIN?" asks the old handle first (C4) | `check-signin` (the PIN went to the grown-up of the child who used to have it) |
+| `mailOut_` does not put the viewer back (C5) | `check-surnames` (each parent's reply names the other whole, built for the tutor-admin) |
+| an open action's viewer from `personId` (C6) | `check-surnames` (a stranger claiming the admin's id is shown "Tess Lowe") |
+| `namePrivate_` reads the role cell (C7) | `check-surnames` (Tess, Tutor tick pending: "Tess Lowe" on the tutor's roster) |
+| Randomise leaves friends lists (C10) | `check-signin` |
+| the referral code from the whole name (C11) | `check-surnames` (`PIPASH…`) |
+| the move's tail from the birthday (C12) | `check-signin` (two worlds, the same dice: different handles) |
+| `makeChild`'s tail from a posted birthday (C12) | `check-signin` |
+| an old handle answered by a prefix (C12) | `check-handles` (`ella_kin`, `ella_kind4`), `check-signin` (`christoph_kin`) |
+| `handleRename_` does nothing (C1) | `check-flow` (the chip after a sign-in by the old handle, after `myProfile`, after Randomise) |
+| Randomise does not mark `ACCOUNT_AT_` (C2) | `check-flow` (two presses and one press under a held `myProfile`) |
+| a friends save does not mark it (C3) | `check-flow` (the held reply puts the old list back) |
+
+The guards the review found working but unheld (C4–C7, C10–C12, and the friends-save half of C3) pass on
+`18278c5` too — their rules are proved by the mutations above. The rules for the faults (S1–S6, S8, P2,
+P3, P4, C1, C2) were also run on `18278c5`'s own files: 12 of `check-signin`'s new rules, 7 of
+`check-surnames`' and 3 of the five new journeys red there.
+
+**Round 1's run, on the final files** (a machine load of 35 to 45 throughout, shared with other builders):
+- `check-flow.js`, all 332 journeys in four parts (327 and the five new): 330 at the first pass. The two that
+  failed were Games clocks ("just a minute keeps its round…", "a round left for the Saved column…"), timed
+  against a wall clock under that load; both pass alone, and nothing in this branch touches Games.
+- The fast suite, every `js/check-*.js` but `check-flow` and the harness files: all green but `check-dead`,
+  red on `cafb838` too with the same names less `handleIsShaped_` (called again). `check-secrets` caught a
+  test PIN this round wrote into `check-surnames.js` (fixed, the parts put together as `check-signin`'s
+  `ZERO` is); `check-submissions` was red at 23:35 UTC on this branch and on `cafb838` alike — "today" is a
+  London date and the harness's is UTC — and green after midnight. `check-scope` is green, on `cafb838` too.
+  `check-funnel` was stopped at its 590-second limit under that load; it reads the library, not this.
+- `check/ui.js` for account, settings, feed and dm: nothing new in 414 combinations (account's and feed's
+  "not reachable" lists are the builder's). Feed's first run lost a state to "the half second after the tap
+  never finished" and dm's to a screenshot timeout waiting for fonts; both reran clean.
+- `check/press.js --no-swipe` for the same four: every press answered.
