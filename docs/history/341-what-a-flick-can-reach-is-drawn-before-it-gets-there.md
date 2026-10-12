@@ -115,8 +115,10 @@ a slice is booked only when there is a job, and the builder is kicked by what ma
 - **A landing that changes nothing writes nothing.** A landing marks `'maybe'` (a `repaint()` still marks
   1); a column marked `'maybe'` whose new markup is byte-identical to what it holds, with no action
   dispatched since it was drawn, is left as it is. The bust avatar's numbered `clipPath` (`AV_CLIP`) was the
-  only thing that made the same facts draw different markup: it is gone (`border-radius` on the svg), and
-  the shots at 320 and 390 were read — the same circle. **Two clocks:** `ACT_EPOCH` counts actions and
+  only thing that made the same facts draw different markup: every bust now points at one `#av-clip`
+  defined once in index.html, the same circle in each drawing's own units. (Rounding the svg's own box was
+  tried first; check/ui.js's drawn-picture rule read that box clip cutting the circle — a box clip snaps to
+  the pixel grid — and it went.) **Two clocks:** `ACT_EPOCH` counts actions and
   changes of person; `DRAW_EPOCH` counts repaints and landings. With one clock the inbox's own landing would
   always have moved it, and the skip could never be taken on the one landing it was built for.
 
@@ -189,6 +191,13 @@ frame.
   transition is still running (`slideRunning_`, asked in the reading pass where the style is already clean),
   and `trailEnd_` waits for the same. A column rising from nought is drawn at once rather than faded in: the
   `.22s` fade started at a style pass that came after the row's slide.
+- **With less movement asked for, a correction of the column was eased, and the card flashed.** style.css
+  holds every transition at `.01ms !important` then, which an inline `0s` cannot beat, so `colShiftNow_`'s
+  move became a transition whose first frame drew the column where it had been over a layout that had
+  already moved: the card in front a whole card's height down for a frame, each time the builder drew a card
+  above it (check/anims.js, the chapters' drawings, 770px). The vertical property is now taken out of the
+  transition list for that one write. The corrections are also measured to the fraction of a pixel
+  (`stuffTop_`): `offsetTop` is rounded, a card's height is not.
 - **The release's fill floor is `glassRows_() + 3` pages, not `glassRows_()`**: on the 76-question paper at
   820 a glass height and a half reached five of the six pages BUILT AHEAD asks for during a run, when the
   builder has had no quiet moment.

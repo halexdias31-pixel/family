@@ -14727,7 +14727,7 @@ function stuffWindow_(mode) {
   /* THE FIRST PAGE THAT STAYS, and where it sat — see `stuffKeepPlace_` below. Read before anything
      moves, when the layout is the one the last frame already drew. */
   const ref = k > 0 ? res[k] : res[0];
-  const top0 = ref ? ref.offsetTop : 0;
+  const top0 = ref ? stuffTop_(ref) : 0;
   if (k > 0) {
     for (let i = 0; i < k; i++) { stuffBlank_(res[i]); host.appendChild(res[i]); }
   } else {
@@ -14739,7 +14739,7 @@ function stuffWindow_(mode) {
       host.insertBefore(el, host.children[keep] || null);
     }
   }
-  if (ref) stuffKeepPlace_(host, top0 - ref.offsetTop);
+  if (ref) stuffKeepPlace_(host, top0 - stuffTop_(ref));
 }
 
 /* ---------- THE WINDOW MOVES, AND THE CARDS ON THE GLASS DO NOT ---------------------------------------
@@ -14759,6 +14759,12 @@ function stuffWindow_(mode) {
    it a frame later — `colShiftNow_` in shell.js, which `holdColumn_` uses for a card above that
    changes height mid-slide. Nothing is drawn in between: this runs in the handler that turned the
    page, and the frame after it is the slide. */
+/* WHERE A PAGE SITS, TO THE FRACTION OF A PIXEL. `offsetTop` is rounded, and a card's height is not: with the
+   builder filling the window round the card you are reading (docs/history/341), each card drawn above it
+   moved it by up to half a pixel the correction never saw, and a drawing meant to be still with less
+   movement asked for shimmered on its own edges (check/anims.js). The box is read twice in one task, so the
+   column's own transform — even mid-slide — is the same in both and cancels. */
+function stuffTop_(el) { return el.getBoundingClientRect().top; }
 function stuffKeepPlace_(host, d) {
   try { colShiftNow_(host, d); } catch (e) { /* the column left as it was is the jump this exists to stop, and nothing worse */ }
 }
@@ -15617,10 +15623,10 @@ function stuffAheadFill_(F, i, ask) {
     if (el.dataset.filled === '1') stuffBlank_(el);
     const at = PAGE[id] || 0;
     const ref = i < at ? pages[domIndex_(id, at)] : null;
-    const top0 = ref ? ref.offsetTop : 0;
+    const top0 = ref ? stuffTop_(ref) : 0;
     if (!stuffFillOne_(i)) return false;
     if (typeof paneWatch_ === 'function') paneWatch_(host);
-    if (ref) stuffKeepPlace_(host, top0 - ref.offsetTop);
+    if (ref) stuffKeepPlace_(host, top0 - stuffTop_(ref));
   });
 }
 function stuffAheadCentre_(F, ask) {

@@ -546,6 +546,11 @@
      otherwise, which is what cache-busting is supposed to mean. -->
 </head>
 <body>
+<!-- THE FIGURE'S CIRCLE, ONCE FOR THE WHOLE PAGE (`avatarFor`'s bust, links.js; docs/history/341). Every bust
+     clips to this one shape: the same circle in each drawing's own units, so one definition serves them all,
+     and no drawing needs an id of its own — a numbered one per drawing made the same facts draw different
+     markup every time. Here, in the page and never redrawn, so it is always there to be pointed at. -->
+<svg class="av-defs" width="0" height="0" aria-hidden="true" focusable="false"><clipPath id="av-clip"><circle cx="24" cy="24" r="20"/></clipPath></svg>
 
 <!-- ==================================================================================================
      THE SHELL.

@@ -167,13 +167,15 @@ function avatarConfig(packed, handle) {
    clipped so a cape or a raised hand stays inside the circle. ONE DRAWING, TWO CROPS: a second
    renderer for the figure-as-picture would be a figure that stops matching the wardrobe the day a
    hat is added, and the owner's point is that it is the avatar.
-   THE CIRCLE IS THE SVG'S OWN BOX, NOT A CLIP PATH. It was a `<clipPath>` with an id, and an id must be
-   unique on the page — the same person can be on three cards at once — so each drawing took the next
-   number (`av-clip-1`, `-2`, …). That made every column holding a face draw DIFFERENT markup each time it
-   was drawn from the same facts, and so a landing could never tell that a column had not changed: the
-   identical-markup skip in `paint` (shell.js, docs/history/341) found four of fifteen columns differing
-   by that number alone. The bust's circle fills its 40x40 viewBox exactly, so `border-radius: 50%` and
-   `overflow: hidden` on the svg (`svg.avatar.is-bust`, style.css) draw the same circle with no id at all.
+   ONE CLIP FOR EVERY BUST, IN THE PAGE (`#av-clip`, index.html). It was a `<clipPath>` inside each drawing,
+   and an id must be unique on the page — the same person can be on three cards at once — so each drawing
+   took the next number (`av-clip-1`, `-2`, …). That made every column holding a face draw DIFFERENT markup
+   each time it was drawn from the same facts, and so a landing could never tell that a column had not
+   changed: the identical-markup skip in `paint` (shell.js, docs/history/341) found four of fifteen columns
+   differing by that number alone. The circle is the same in every drawing's own units, so one definition,
+   drawn once by the page and never redrawn, serves them all. NOT THE SVG'S OWN BOX: rounding the box and
+   hiding its overflow was tried first, and check/ui.js's drawn-picture rule read the box's clip cutting the
+   circle — a box clip snaps to the pixel grid, a clip path does not (the reason that rule exists).
    The ground is the figure's own colour, not a token: it belongs to this drawing and to nothing else on
    the screen. */
 const AV_BUST_GROUND = '#a9cfe9';
@@ -192,7 +194,7 @@ function avatarFor(handle, size, packed, o) {
 
   return `<svg class="avatar${bust ? ' is-bust' : ''}" viewBox="${bust ? '4 4 40 40' : '0 0 48 60'}"
       width="${s}" height="${bust ? s : Math.round(s * 60 / 48)}" aria-hidden="true">
-    ${bust ? `<g><circle cx="24" cy="24" r="20" fill="${AV_BUST_GROUND}"/>` : ''}
+    ${bust ? `<g clip-path="url(#av-clip)"><circle cx="24" cy="24" r="20" fill="${AV_BUST_GROUND}"/>` : ''}
     ${art('shoulders', shirt)}
     <rect x="14" y="12" width="20" height="20" rx="6" fill="${skin}"/>
     ${hairShape}

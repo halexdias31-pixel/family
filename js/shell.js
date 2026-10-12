@@ -1814,14 +1814,25 @@ function colWrite_(host, x, y) {
    begin from the old number in the new layout, which is the jump. Sideways is left as placed, so a
    column still arriving from a neighbour keeps arriving (one transform on an old browser: its drawn
    x is kept instead). */
+/* AND WITH NO TRANSITION AT ALL, NOT A SHORT ONE. With less movement asked for, style.css holds every
+   `transition-duration` at `.01ms !important`, which an inline `0s` cannot beat — so the shift became a
+   transition, and its first frame drew the column where it was over the layout that had already moved: the
+   card in front a whole card's height out of place for a frame. Since docs/history/341 the builder fills a
+   page above the card you are reading, at rest, and check/anims.js caught the chapter's drawing flashing
+   770px down and back while it was meant to be still. So the vertical property is taken out of the
+   transition list for the one write, read back, and put back: a value that is not transitioned when it
+   changes cannot be eased, whatever the duration says. */
 function colShiftNow_(host, d) {
   if (!host || !(Math.abs(d) >= 0.5)) return;
   const at = colPlaced_(host);
   if (!at) return;
   const now = colNow_(host);
   colTransition_(host, null, SLIDE_NONE);
+  const list = host.style.transitionProperty;
+  host.style.transitionProperty = SPLIT_AXES ? 'transform, opacity' : 'opacity';
   colWrite_(host, SPLIT_AXES ? at[0] : now[0], now[1] + d);
   void getComputedStyle(host).getPropertyValue(colProp_('y'));
+  host.style.transitionProperty = list;
 }
 
 /* WHERE THE LAST PLACEMENT PUT IT — the inline values, which are where it is going, not where it is
@@ -3721,10 +3732,10 @@ function goPage(id, to, instant) {
      Asked only when something CAN land above, so a turn down the paper forces no layout here. */
   const above = !!F && (bare || (edge && n < was));
   const ref = above && $('s-' + id) ? $('s-' + id).querySelectorAll(':scope > .page')[domIndex_(id, n)] : null;
-  const top0 = ref ? ref.offsetTop : 0;
+  const top0 = ref ? (typeof stuffTop_ === 'function' ? stuffTop_(ref) : ref.offsetTop) : 0;
   if (bare) fillStuffPages();
   if (edge) { try { stuffEdgeFill_(n, n > was ? 1 : -1); } catch (e) {} }
-  if (ref && typeof stuffKeepPlace_ === 'function') stuffKeepPlace_($('s-' + id), top0 - ref.offsetTop);
+  if (ref && typeof stuffKeepPlace_ === 'function') stuffKeepPlace_($('s-' + id), top0 - (typeof stuffTop_ === 'function' ? stuffTop_(ref) : ref.offsetTop));
   /* A WIDGET STILL WAITING ITS TURN to start is started now if this is its page — see `widgetsNear_`
      in arcade.js. Before the placement, for the reason the fill above is: a card that grows after
      the column was placed is a card the placement never saw. */

@@ -314,4 +314,4 @@ ring sits round the chosen picture without covering it.
 The front end works on its own: every face draws through `personFace_`, and a tap fails honestly. The
 pictures can only be **kept** once `backend/` is pulled, with all four stamps at `2026-10-10-h-pictures`.
 
-**Changed by [341](341-what-a-flick-can-reach-is-drawn-before-it-gets-there.md)** — the bust's numbered `clipPath` (`AV_CLIP`) is gone: `svg.avatar.is-bust` is rounded by its own box (`border-radius: 50%; overflow: hidden`), so the same facts draw the same markup and a landing can tell a column that has not changed.
+**Changed by [341](341-what-a-flick-can-reach-is-drawn-before-it-gets-there.md)** — the bust's numbered `clipPath` (`AV_CLIP`) is gone: every bust points at one `#av-clip` defined once in index.html, so the same facts draw the same markup and a landing can tell a column that has not changed. Rounding the svg's own box was tried first and this note's own rule (the drawn-picture shots in check/ui.js) caught the box clip cutting the circle.
