@@ -3103,8 +3103,9 @@ check('review 339: Randomise waits for a first name typed and not saved, says wh
 /* A FIGURE NOBODY DRESSED IS DRAWN FROM THE HANDLE, so Randomise changed its skin and hair colour (it did on the
    base commit too, on another page); and Cancel after a Randomise and a pick rebuilt the blank opening look under the
    NEW handle — another face, under "Put back as it was". Asked of what is DRAWN (`avatarConfig` of the cell under
-   the handle), on the phone and on the sheet, because other phones draw this person from the sheet. */
-check('review 339: Randomise keeps the face of a figure nobody dressed, and Cancel after Randomise and a pick puts back the face the card opened with', async () => {
+   the handle), on the phone and on the sheet, because other phones draw this person from the sheet. And asked again
+   across a reload (`reloaded`, below), because the handle the card opened under is kept on the device and read back. */
+check('review 339: Randomise keeps the face of a figure nobody dressed, and Cancel after Randomise and a pick puts back the face the card opened with — after a reload too', async () => {
   const bad = [];
   /* EACH HALF ON A FRESH SHEET, so each opens on a look nobody chose — after the first half's Randomise the look is
      written out, and a Cancel that put a blank look back under the wrong handle would no longer show. */
@@ -3144,10 +3145,58 @@ check('review 339: Randomise keeps the face of a figure nobody dressed, and Canc
     if (sheetFace() !== face0) bad.push(who + '\'s Cancel' + (pick ? ' after Randomise and a pick' : '') + ' left the sheet drawing ' + sheetFace() + ', opened with ' + face0);
     if (pick && !/figure too/.test(c.toast())) bad.push(who + '\'s Cancel said ' + JSON.stringify(c.toast()));
   };
+  /* AND ACROSS A RELOAD (round 2 of the fixes for 339). What makes the blank opening look the face it was is the
+     handle it was drawn under, and that is kept beside which card is open (`hd` in `familyCardEdit`) and read back by
+     `cardEditNow_`. Nothing held the read: the review took the line out and all 13 of 339's journeys passed, while in
+     a browser a reload between Randomise and Cancel had Cancel fall back to the NEW handle, rebuild the blank look
+     under it and send it — skin 0 hair 0 opened, skin 0 hair 6 on the phone and the sheet after "Put back as it was".
+     The same lost handle made Save with nothing typed say the FIGURE had been saved. So each end is pressed after a
+     second boot from exactly the storage the first left, on a fresh sheet: Cancel sends no look and the face is the
+     one the card opened with; Save says the handle, and only the handle, was saved. */
+  const reloaded = async (who, pid, end) => {
+    const W = cardWorld_();
+    const reply = b => (['randomiseHandle', 'saveAvatar'].indexOf(b.action) !== -1 ? W.real.post(b) : W.reply(b));
+    const c = await cardOpen_(W, who, { reply });
+    if (c.err) { bad.push(who + ' (reload, ' + end + '): ' + c.err); return; }
+    if (String(W.real.row(pid).avatar || '')) { bad.push(who + ' starts with a look of their own — NOT the case asked about'); return; }
+    const me = c.t.whoami();
+    const face0 = JSON.stringify(c.w.avatarConfig(me.avatar, me.handle || me.name));
+    const sheetFace = () => JSON.stringify(c.w.avatarConfig(W.real.row(pid).avatar, W.real.row(pid).handle));
+    c.A('card-edit', c.edit(pid));
+    for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
+    const was = String(W.real.row(pid).handle);
+    c.A('handle-shuffle', c.form().querySelector('[data-do="handle-shuffle"]'));
+    /* THE KEEP ANSWERED AND KEPT ON THE PHONE — the new handle and the written-out face both in `familyUser`, which is
+       what the reload starts from — not merely the handle written on the sheet. */
+    const kept = () => { try { return JSON.parse(c.w.localStorage.getItem('familyUser')) || {}; } catch (e) { return {}; } };
+    const landed = () => String(W.real.row(pid).handle) !== was && String(W.real.row(pid).avatar || '')
+      && String(kept().handle) === String(W.real.row(pid).handle) && String(kept().avatar || '') === String(W.real.row(pid).avatar);
+    for (let k = 0; k < 50 && !landed(); k++) await wait(100);
+    await wait(300);
+    if (!landed()) { bad.push(who + '\'s Randomise and its keep did not both land on the sheet and the phone (handle ' + JSON.stringify(W.real.row(pid).handle) + ', look ' + JSON.stringify(W.real.row(pid).avatar) + ') — NOT checked'); return; }
+    c.w.dispatchEvent(new c.w.Event('pagehide'));
+    const two = await cardOpen_(W, null, { before: fromStore_(keptStore_(c.w)), reply });
+    if (two.err) { bad.push(who + ' after the reload: ' + two.err); return; }
+    for (let k = 0; k < 30 && !two.form(); k++) await wait(100);
+    if (!two.form() || !two.tile('card-' + end)) { bad.push('after the reload ' + who + '\'s card is not open for editing — NOT checked'); return; }
+    two.sent.length = 0;
+    two.A('card-' + end, two.tile('card-' + end));
+    for (let k = 0; k < 30 && two.card(); k++) await wait(100);
+    await wait(300);
+    const me2 = two.t.whoami();
+    const phone = JSON.stringify(two.w.avatarConfig(me2.avatar, me2.handle || me2.name));
+    const looks = two.sent.filter(x => x.action === 'saveAvatar');
+    if (looks.length) bad.push(who + '\'s ' + end + ' after Randomise and a reload sent ' + looks.length + ' saveAvatar (' + JSON.stringify(looks.map(x => x.avatar)) + ') — the face had not changed');
+    if (phone !== face0) bad.push(who + '\'s ' + end + ' after Randomise and a reload left the phone drawing ' + phone + ', opened with ' + face0);
+    if (sheetFace() !== face0) bad.push(who + '\'s ' + end + ' after Randomise and a reload left the sheet drawing ' + sheetFace() + ', opened with ' + face0);
+    if (end === 'save' && two.toast() !== 'Your handle was saved as you chose it.') bad.push(who + '\'s Save with nothing typed after Randomise and a reload said ' + JSON.stringify(two.toast()) + ' — wanted the handle, and only the handle');
+  };
   for (const [who, pid] of [['parent@example.org', 'P-C1'], ['tutor@example.org', 'P-T1']]) {
     await half(who, pid, false);
     await half(who, pid, true);
+    await reloaded(who, pid, 'cancel');
   }
+  await reloaded('parent@example.org', 'P-C1', 'save');
   return bad;
 });
 

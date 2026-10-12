@@ -460,3 +460,36 @@ different one to three REACH findings each time (wide-window mouse and keyboard 
 count), and red on the reviewed commit run beside it with two of the same; nothing it measures was touched here.
 `check-submissions.js` went red after 23:00 UTC — "last 2026-10-11, wanted 2026-10-12" — and is red the same way on
 the base commit: London's midnight comes an hour before the server clock's, a check fault of its own, not this note's.
+
+### After review, round 2 (12 Oct): the reload half of fix 3, held
+
+One finding, from the coverage reader: **nothing held the line that brings the opening handle back after a reload.**
+Fix 3 above keeps the handle the card opened under beside which card is open (`hd` in `familyCardEdit`, written by
+`cardRemember_`), and `cardEditNow_` reads it back into `h0` after a reload. This note and round 1's report both say a
+reload keeps it — and the review deleted the read and all 13 of this note's journeys still passed. In a browser
+against the real `doGet`/`doPost`, with the line gone: Pat, who never chose a look, pressed Edit, Randomise, reloaded,
+Cancel — the card fell back to the NEW handle, rebuilt her blank opening look under it and sent it, so she opened
+skin 0 hair 0 and ended skin 0 hair 6 on the phone **and the sheet**, under "Put back as it was": fault 3, back
+through a reload. The code was right; the check did not exist.
+
+**Held now by the journey that holds fix 3**, renamed *Randomise keeps the face of a figure nobody dressed, and
+Cancel after Randomise and a pick puts back the face the card opened with — after a reload too*. Beside its four
+halves it opens Edit as somebody with a blank look, on a fresh sheet; presses Randomise; waits until the new handle
+AND the kept face are both on the sheet and in the phone's `familyUser` (what a reload starts from); `pagehide`; and
+boots a second time from exactly the storage the first left (`fromStore_(keptStore_(…))`, as the look's own reload
+journey does). Then:
+
+- **Cancel** (Pat, and Ada the tutor): no `saveAvatar` sent, and the face on the phone and on the sheet is the face
+  the card opened with — compared as drawn (`avatarConfig` of the cell under its handle), not as cells.
+- **Save with nothing typed** (Pat): the toast is exactly *"Your handle was saved as you chose it."* — the review's
+  optional step, taken: the same lost handle made it say *"Your figure was saved as you chose it."*, because
+  `cardSelfSaved_` reads the same `h0`.
+
+**The proof.** On this tree, before the journey was extended, the read taken out (`me.js`, `cardEditNow_`): the 13
+journeys the review ran (`FLOW_RE='review 339|Randomise on your own card|your figure dressed'`) all passed — the gap,
+reproduced. With the journey extended and the read still out: red, all three ends — Pat's and Ada's Cancel each sent
+one `saveAvatar` and left phone and sheet in another face (Pat opened skin 2 hair 4 and ended skin 2 hair 2; Ada
+skin 1 hair 2 → skin 0 hair 0), and Pat's Save said the figure. The read put back: green. And the WRITE taken out
+instead (`cardRemember_` not keeping `hd`): red the same three ways; put back, green. A collision is possible — a new
+handle can draw the same colours — but not three at once, and on the real files the journey passes either way.
+Nothing in `me.js` changed this round; only the journey.
