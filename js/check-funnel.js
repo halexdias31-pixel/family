@@ -197,15 +197,15 @@ boot(f => {
   /* AND EVERYTHING ELSE. *"Return to that origional finder having everything and now there is just an
      identical second finder"* — the owner, 12 Oct (docs/history/347), taking back the 10 Oct split that
      moved the resources to a second column (329). So Find holds every kind the whole list holds except
-     what the funnel was never for (`FUNNEL_NOT_FOR`: Booking and Shop) — the textbooks, the boxers and
-     the fights among them — and Find 2 holds the same list (the pass at the end). */
+     what the funnel was never for (`FUNNEL_NOT_FOR`: Booking and Shop) — the content cards (the textbooks'
+     chapters since 347 part 2), the boxers and the fights among them — and Find 2 holds the same list (the pass at the end). */
   if (f.kindOf_ && f.stuffItemsAll_) {
     const notFor = x => { const g = [].concat(x.groups || f.kindOf_(x).group || []).filter(Boolean);
                           return g.length && g.every(k => k === 'Booking' || k === 'Shop'); };
     const wholeKinds = [...new Set(f.stuffItemsAll_().filter(x => !notFor(x)).map(x => x.kind))];
     const missing = wholeKinds.filter(k => !kindsHeld[k]);
     if (missing.length) bad.push('Find\'s list holds no ' + missing.join(', ') + ' — the whole list does, and Find carries everything the funnel is for (347)');
-    ['textbook', 'boxer', 'fight'].forEach(k => { if (!kindsHeld[k]) bad.push('Find holds no ' + k + ' — the resources are Find\'s again (347)'); });
+    ['content', 'boxer', 'fight'].forEach(k => { if (!kindsHeld[k]) bad.push('Find holds no ' + k + ' — the content cards and the resources are Find\'s too (347)'); });
   } else bad.push('`kindOf_` or `stuffItemsAll_` is not exported, so Find holding everything was NOT checked');
 
   facets.forEach(facet => {

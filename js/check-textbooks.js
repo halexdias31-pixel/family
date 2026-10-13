@@ -19,10 +19,14 @@
      · the Higher mark — `[H] ` exactly, and never inside a chapter whose `tier` is already Higher
      · the join — every topic a label, alias or id in data/topics.json, the practicals' stricter
        standard (named, not contained)
-     · FIND — `textbook` is a kind in Learning wearing `Resources`, `Resources` is placed in
-       `KIND_BUCKET`, the subject and level are placed in their tables, `LIB_EXTRA` fetches the
-       file, the `Shelf` door exists and is a door, and the textbook mapper puts the book on the
-       `@family. textbooks` shelf. All read out of the source rather than copied.
+     · THE TAGS, SINCE THE CHAPTERS BECAME CONTENT CARDS (12 Oct, docs/history/347 part 2): every topic
+       is a label the question library (data/questions.json) or the tree (data/topics.json) uses,
+       SPELLED EXACTLY, and every maths card — Maths or Statistics, its own cell or its cover's — has
+       at least one. A board and a spec go together; a key stage is a list of KS1 … KS5.
+     · FIND — `content` is a kind in Learning wearing `Content`, placed in `KIND_BUCKET`, the subject
+       and level are placed in their tables, `LIB_EXTRA` fetches the file, the `Shelf` door still
+       exists for the boxing and the Bible, and the content mapper puts a card on no shelf at all
+       (`@family. textbooks` went). All read out of the source rather than copied.
 
    AND IT COUNTS, because a silence is not a count: chapters, Higher items, formulas, and how many
    GCSE questions in the library already share each chapter's topics — the join's other end. The
@@ -57,6 +61,9 @@ function readLines(rel) {
 
 const rows = readLines('data/textbooks.json');
 const tree = readLines('data/topics.json');
+/* THE QUESTION LIBRARY, read once: the join's other end below, and the content cards' spellings. */
+let lib = [];
+try { lib = readLines('data/questions.json'); } catch (e) { lib = []; }
 
 const key = s => String(s == null ? '' : s).toLowerCase().replace(/[^a-z0-9]/g, '');
 const known = new Set();
@@ -109,26 +116,29 @@ function unset(html) {
 }
 
 /* ---------- FIND, READ OUT OF THE FILES THAT DO IT -------------------------------------------- */
-const kindM = /\n\s*textbook:\s*\{\s*group:\s*'([^']*)',\s*label:\s*'([^']*)'/.exec(findSrc);
+const kindM = /\n\s*content:\s*\{\s*group:\s*'([^']*)',\s*label:\s*'([^']*)'/.exec(findSrc);
 if (!kindM) {
-  fail.push('js/find.js has no `textbook:` entry in KINDS — Find cannot offer a textbook');
+  fail.push('js/find.js has no `content:` entry in KINDS — Find cannot offer a content card');
 } else {
-  if (kindM[1] !== 'Learning') fail.push('the textbook kind is in group "' + kindM[1] + '", not Learning');
-  if (kindM[2] !== 'Resources') fail.push('the textbook kind is labelled "' + kindM[2] + '" — the owner asked for it in "Resources"');
+  if (kindM[1] !== 'Learning') fail.push('the content kind is in group "' + kindM[1] + '", not Learning');
+  /* THE CODE'S OWN LABEL, so an empty `kinds` tab still says it — the owner's word, "content card". */
+  if (kindM[2] !== 'Content') fail.push('the content kind is labelled "' + kindM[2] + '" — it is its own answer, `Content`, under What kind');
   if (KINDS_PLACED && !KINDS_PLACED.has(kindM[2])) {
     fail.push('"' + kindM[2] + '" is not in KIND_BUCKET — one unplaced kind stands `What kind` down to the alphabet');
   }
 }
-/* THE DOOR. Without `always` the balance rule refuses a 1-against-260 split, and the book is
-   reachable by search alone — the state this door was built to end. */
+/* THE DOOR, which the Bible still needs against the boxing: without `always` the balance rule refuses
+   a 1-against-260 split. The textbooks' shelf on it went with the books. */
 const shelfM = /\{\s*field:\s*'shelf',[^}]*\}/.exec(findSrc);
-if (!shelfM) fail.push('FACETS has no `shelf` entry — Resources has no third rung, so the book is under 260 rows of boxing');
+if (!shelfM) fail.push('FACETS has no `shelf` entry — Resources has no third rung, so the Bible is under 260 rows of boxing');
 else if (!/always:\s*true/.test(shelfM[0])) {
-  fail.push('the `shelf` facet is not `always` — FACET_MIN_MINORITY will refuse one book against the boxing, and the door never opens');
+  fail.push('the `shelf` facet is not `always` — FACET_MIN_MINORITY will refuse one Bible against the boxing, and the door never opens');
 }
-if (!/kind:\s*'textbook'[\s\S]{0,400}?shelf:\s*'@family\. textbooks'/.test(findSrc)) {
-  fail.push("the textbook mapper does not put the book on the '@family. textbooks' shelf");
-}
+/* A CONTENT CARD IS ON NO SHELF. A shelf only the cards carried would be the old textbooks' door back,
+   asked over a list of questions and cards where it says nothing about the questions. */
+const itemM = /function contentItem_\([^)]*\)\s*\{([\s\S]*?)\n\}/.exec(findSrc);
+if (!itemM) fail.push('js/find.js has no `contentItem_` — nothing makes a content card of a chapter');
+else if (/\bshelf\s*:/.test(itemM[1])) fail.push('`contentItem_` puts a content card on a shelf — the textbooks\' shelf went (347, part 2)');
 ['Boxers', 'Fights'].forEach(k => {
   if (!new RegExp("boxKind: '" + k + "', shelf: 'Boxing'").test(findSrc)) {
     fail.push(k + " are not on the 'Boxing' shelf — a shelf only the book carries fails the coverage rule and is never asked");
@@ -145,6 +155,7 @@ const POINTS_MIN = 3, POINTS_MAX = 5, POINT_LEN = 200, WORDS_MIN = 3;
 const NUMBERED = /^(word|formula|point|topic)s?_\d+$/;
 const books = new Map();
 const unknownTopics = new Map();
+const chapterRows = [];
 let higherItems = 0, formulas = 0, words = 0, points = 0, live = 0;
 
 /* ---------- AN ANIMATION IS A ROW TOO, AND IT IS NOT A CHAPTER ---------------------------------------
@@ -217,19 +228,12 @@ rows.forEach((r, line) => {
   if (n === 0) {
     if (b.title) fail.push(id + ' has two title pages (chapter 0)');
     b.title = r;
-    /* A BOARD AND A SPEC NAME AN EXAM'S SPECIFICATION, and a book for a key stage that ends in no
-       board's exam has neither. KS2 Maths (docs/history/349) is written to the primary curriculum, not
-       to a board: `Edexcel` or `1MA1` on it would be a wrong fact, and a filled-in guess is the fault
-       this file records under `cost: 0`. So below GCSE the two may be blank — and if one is filled,
-       both are, because a board with no spec (or a spec with no board) is half a citation. */
-    const keyStage = /^KS[1-3]$/i.test(String(r.level || '').trim());
-    ['title', 'summary', 'subject', 'level', 'board', 'spec'].forEach(col => {
-      if (keyStage && (col === 'board' || col === 'spec')) return;
+    /* NOT THE BOARD. The cover's cells are the defaults its chapters inherit, and a board on every
+       chapter of a GCSE Maths book is a chip that hides every board's words from another board's
+       student — so a board is on the chapters whose content is one board's, and nowhere else. */
+    ['title', 'summary', 'subject', 'level'].forEach(col => {
       if (!String(r[col] || '').trim()) fail.push(id + "'s title page has no " + col);
     });
-    if (keyStage && !String(r.board || '').trim() !== !String(r.spec || '').trim()) {
-      fail.push(id + "'s title page names a " + (String(r.board || '').trim() ? 'board and no spec' : 'spec and no board') + ' — both, or neither for a key stage that sits no board\'s exam');
-    }
     const subj = String(r.subject || '').trim(), lvl = String(r.level || '').trim();
     if (subj && SUBJECTS && !SUBJECTS.has(subj)) fail.push(id + ' has subject "' + subj + '", which SUBJECT_BUCKET does not place — one unplaced subject stands the whole Subject grouping down');
     if (lvl && LEVELS && !LEVELS.has(lvl)) fail.push(id + ' has level "' + lvl + '", which LEVEL_BUCKET does not place');
@@ -244,6 +248,7 @@ rows.forEach((r, line) => {
 
   const tier = String(r.tier || '').trim();
   if (tier && tier !== 'Higher') fail.push(where + ' has tier "' + tier + '" — blank (both tiers) or Higher');
+  chapterRows.push({ id: id, n: n, r: r, where: where });
   const wholeHigher = tier === 'Higher';
 
   /* ONE LIST, ITS ITEMS AS THE MAPPER READS THEM. */
@@ -312,7 +317,13 @@ rows.forEach((r, line) => {
   });
 });
 
+/* A TOPIC THE LIBRARY SPELLS IS JOINED TOO: since the chapters became content cards a maths card carries
+   every library topic it teaches, and `difference of two squares` is a label 2 GCSE questions carry and
+   no branch of the tree has. It reaches those questions, which is what a join is for. */
+const libKeys = new Set();
+lib.forEach(q => String(q.topics || '').split(',').forEach(t => { if (t.trim()) libKeys.add(key(t)); }));
 unknownTopics.forEach((ids, t) => {
+  if (libKeys.has(key(t))) return;
   fail.push('topic "' + t + '" (on ' + ids.join(', ') + ') is not a label, alias or id in data/topics.json — the join reaches nothing');
 });
 
@@ -338,8 +349,6 @@ if (!live && rows.length) fail.push('every textbook row is switched off — Find
    A COUNT, NOT A RULE. The library is exported, not written here, and a chapter about the
    enquiry cycle has no past-paper question to point at. Printed so the owner can see which
    chapters already have questions behind them. */
-let lib = [];
-try { lib = readLines('data/questions.json'); } catch (e) { lib = []; }
 const libTopics = new Map();
 let stats1st0 = 0, alevelStats = 0;
 lib.forEach(q => {
@@ -349,6 +358,44 @@ lib.forEach(q => {
     String(q.topics || '').split(',').map(t => key(t)).filter(Boolean).forEach(t => libTopics.set(t, (libTopics.get(t) || 0) + 1));
   }
 });
+
+/* ---------- THE CONTENT CARDS' TAGS: THE LIBRARY'S OWN SPELLINGS, AND A TOPIC ON EVERY MATHS CARD -------
+   THE OWNER, 12 Oct: *"for maths text book begin adding topic tags so students can immediately find what
+   they need … It can share same tags as questions."* A tag shares only if it is THE SAME WORD: Topic folds
+   spellings by `spellKey_`, but the search, a person reading two cards side by side and the next import
+   all see the letters, so `Pythagoras' Theorem` on a card is the library's and `Pythagoras Theorem` is a
+   third spelling. So a topic is EXACTLY a label a question carries or a label of the tree — an alias or
+   an id is not enough here, though the join above accepts one. And a maths card with no topic is the
+   card the owner asked to be findable that cannot be. The cover's cells are each chapter's defaults,
+   read the way `libraryExtras_` reads them. */
+const libSpelled = new Set();
+lib.forEach(q => String(q.topics || '').split(',').map(t => t.trim()).filter(Boolean).forEach(t => libSpelled.add(t)));
+const treeLabels = new Set(tree.filter(t => t && t.label).map(t => String(t.label)));
+if (!libSpelled.size) fail.push('data/questions.json gave no topics — the content cards\' spellings were NOT checked, which is not a pass');
+const MATHS_SUBJECTS = new Set(['Maths', 'Statistics']);
+const KS = /^KS[1-5]$/;
+let mathsCards = 0, mathsTags = 0;
+chapterRows.forEach(({ id, n, r, where }) => {
+  const cover = (books.get(id) || {}).title || {};
+  const cell = k => String(r[k] || '').trim() || String(cover[k] || '').trim();
+  const topics = String(r.topics || '').split(',').map(t => t.trim()).filter(Boolean);
+  topics.forEach(t => {
+    if (!libSpelled.has(t) && !treeLabels.has(t)) {
+      fail.push(where + ' topic "' + t + '" is not spelled as the question library or data/topics.json spells any label — '
+        + 'a content card shares a question\'s tag only in the question\'s own word');
+    }
+  });
+  if (MATHS_SUBJECTS.has(cell('subject'))) {
+    mathsCards++; mathsTags += topics.length;
+    if (!topics.length) fail.push(where + ' is a maths content card with no topic — nobody can reach it by the topic they came for');
+  }
+  if (!!cell('board') !== !!cell('spec')) fail.push(where + ' has a board without a spec, or a spec without a board — they are one fact');
+  String(cell('keystage')).split(',').map(k => k.trim()).filter(Boolean).forEach(k => {
+    if (!KS.test(k)) fail.push(where + ' has key stage "' + k + '" — a comma list of KS1 … KS5, as a worksheet\'s');
+  });
+});
+console.log('\nTHE CONTENT CARDS\' TAGS  —  ' + chapterRows.length + ' cards, ' + mathsCards + ' maths cards carrying '
+  + mathsTags + ' topics, every one spelled as the library or the tree spells it');
 
 console.log('\nTHE TEXTBOOKS  —  ' + books.size + ' book(s)');
 books.forEach((b, id) => {
@@ -375,4 +422,5 @@ if (fail.length) {
 }
 console.log('\nOK — every book has a title page and chapters 1 to N in order; every chapter has key words,\n'
   + '     3 to 5 short worked lines and formulas that typeset_ draws; topics name real branches of\n'
-  + '     the tree; and Find offers the books under Resources, on the "@family. textbooks" shelf.');
+  + '     the tree, spelled as the library spells them, and on every maths card; and Find offers each\n'
+  + '     chapter as a content card under What kind · Content.');

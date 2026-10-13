@@ -8981,7 +8981,13 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
    `.fc-say` is the card's own "You end up with", which is untouched. */
 .fc-say b { color: var(--gold); font-weight: 600; }
 
-/* ---------- THE @family. TEXTBOOK — WHAT A BOOK HAS THAT A PROJECT DOES NOT -----------------------
+/* A CONTENT CARD'S TAG ROW, UNDER ITS TITLE (347, part 2). A question's row is the first thing on its card;
+   here it follows the head, and with no gap the first line of pills sat on the title's descenders —
+   measured on Indices, surds and standard form at 390. Half a line apart, and the same again before the
+   key words, so the row reads as the card's label and not as the first line of its content. */
+.ct > .qtags { margin: .45rem 0 .6rem; }
+
+/* ---------- THE @family. TEXTBOOK — WHAT A BOOK HAS THAT A PROJECT DOES NOT (each chapter is a content card now) -----------------
    "the @family textbook should be bare bones for now". Everything else on its pages is `.prac` and
    the guide's `.fc-sec`, so these are the only three things it adds: the Higher mark, a key word's
    own term, and a formula drawn on a line of its own.

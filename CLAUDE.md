@@ -39,7 +39,7 @@ any name used but never declared. Run it after every change.
 
 Fifteen screens are registered (fourteen for anybody but an admin), in `TAB_ORDER` (js/shell.js):
 `feed`, `booking`, `shop` (things for sale and the basket — Find no longer has a Shop door), `reel`, `dm`, `stuff` (Find, the funnel —
-questions, answers, practicals, projects, bundles, the textbooks, the boxers and their fights, the
+questions, answers, practicals, projects, bundles, the content cards, the boxers and their fights, the
 Bible for an admin — and the root), `res` (**Find 2**: the same finder again, immediately right of Find,
 with a state of its own; the id is `res` from the two days it held the resources), `account`, `tools`,
 `games`, `saved`, `spotlight`, `settings`, `progress` (for a student — and an admin — the "Your journey" card
@@ -50,7 +50,7 @@ makes its `<section>` for an admin and takes it away again — so it has none in
 in or out adds or removes it without a reload.
 
 **One finder, twice** (docs/history/329, 347). `stuff` and `res` carry the **same list** and ask the
-same funnel — *"an identical second finder"*, so a student can keep a chapter up in one while answering
+same funnel — *"an identical second finder"*, so a student can keep a content card up in one while answering
 questions in the other — and what makes them two is their **state**: words, chips, page and kept place
 (`find:place`, `res:place`). One funnel bound to two states: `inFinder_(F, fn)` in find.js parks one
 finder's `STUFF` and memos and puts the other's in their place, so the engine reads `STUFF` as it always
@@ -81,9 +81,18 @@ almost never writes to it directly.
 - **`config` tab** — key/value numbers and switches, reaching the site as `DATA.constants.vars`.
 - **`facets` / `kinds` tabs** — what the funnel asks and what the answers are called. These moved out
   of `find.js` deliberately: editorial, changes often, changing it should not be a deploy.
+- **There are no textbooks on screen: each chapter row of `data/textbooks.json` is a CONTENT CARD**
+  (kind `content`, `What kind · Content`; docs/history/347, part 2). *"Forget the whole concept of it
+  being a text book. It's just a "content card""* — the owner, 12 Oct. A card wears the question
+  library's tags — Subject, Level, Tier, Topic, a board only where its content is one board's — and
+  its topics are spelled EXACTLY as data/questions.json or data/topics.json spells them
+  (`check-textbooks.js`); every maths card has at least one. The cover row (`chapter: 0`) is only the
+  defaults its chapters inherit; a chapter's own cell wins. **The file keeps its name, its row shape
+  and `DATA.textbooks`**, because `tools/anim_row.py`, `splashSync_` and `check-anims.js` are written
+  against them; internal `tb*` names stay too. Nothing a person sees says textbook, book or chapter.
 - **The teaching animations are rows of `data/textbooks.json`** — Pythagoras, the sieve, Bayes, the
-  solar system, how many 3s fit into 4 and 24 more, each directly under the chapter it teaches (`anim`, `title`, `about`,
-  `html`, `css`). The chapter plays it on a page of its own, in whichever finder it is opened; the loading screen draws a copy the
+  solar system, how many 3s fit into 4 and 24 more, each directly under the chapter row it teaches (`anim`, `title`, `about`,
+  `html`, `css`). Its content card plays it on a page of its own, in whichever finder it is opened; the loading screen draws a copy the
   device kept from the last load (`splashSync_` in shell.js, read by the picker in index.html — one
   load behind). *"The source for the animations should be in text books"* — the owner, 8 Oct.
   **Each one has ONE source, and which it is depends on the drawing.** Fourteen are written by a
@@ -222,12 +231,13 @@ node js/check-post.js            # an action that names a person by a cell they 
 node js/check-library.js         # data/questions.json: ids, 80 marks, the closed facet vocabulary
 node js/check-marking.js         # a right answer marked right, a wrong one wrong
 node js/check-practicals.js      # the 41 practicals, and whether their topics join to anything
-node js/check-anims.js           # the textbooks' animations: rows, anchoring, and the splash's copy
+node js/check-anims.js           # the content cards' animations: rows, anchoring, and the splash's copy
+node js/check-textbooks.js       # data/textbooks.json: the bones, and every content topic spelled as the library spells it
 node js/check-funnel.js          # the real funnel over the real library: can each question narrow?
 node js/check-const.js           # nothing declared `const` is assigned to. Two seconds.
 node js/check-loading.js         # every wait is `loading_()`: no phrase, class or keyframe of its own
 node check/deploy.js             # after a push, does a browser that has the site run the new code
-node check/anims.js              # every textbook animation in its card at 320 and 390, still when asked
+node check/anims.js              # every content card's animation at 320 and 390, still when asked
 node check/videos.js             # the videos card: the bar held as you type, one player, full screen on its side
 node check/sounds.js             # the marking chime and buzzer: short, quiet, as loud as each other to an ear, no click, one tap one sound
 node check/ui.js                 # 9 screens x 5 widths x 2 visitors. Exits 1 on anything new.
