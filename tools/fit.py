@@ -309,7 +309,7 @@ css = '''.an-fit { --fit-u: #6fa8dc; }
 .fit-bf { color: var(--bg); }
 .fit-gh { fill: none; stroke: var(--fit-u); stroke-opacity: .9; stroke-width: 1.2; stroke-dasharray: 3 2; }
 .fit-svg .fit-n, .fit-svg .fit-n text { fill: var(--gold); }
-.fit-svg .fit-n text, .fit-svg .fit-tf, .fit-svg .fit-lf text { font-size: 11px; }
+.fit-svg .fit-n text, .fit-svg .fit-tf { font-size: 11px; }
 .fit-svg .fit-tf { fill: var(--coral); }
 .fit-fl { stroke: currentColor; stroke-width: 1.2; }
 .fit-n { color: var(--gold); }
