@@ -259,10 +259,20 @@ function outcome(pos) {
    first clip row there becomes the WHOLE clip list and the two mp4 reels above stop being dealt. Moving
    all three is a choice about the sheet; adding one beside its two siblings is not. And this list is
    the one `check-reels.js` reads. */
+/* ---------- A SHORT GOES IN ONLY WHEN ITS ADDRESS NAMES ONE VIDEO THAT IS THERE -------------------
+   THE OWNER, 12 OCT, sent four more as a table of title, channel, category and link. Two of the links
+   were `youtube.com/shorts/<channel name>` — a channel's word where the eleven-character video id goes,
+   which `clipPlayable_` refuses and which would only ever be a dark slide. A third id could not be found
+   anywhere outside the table. ONE went in: `eW8ZNkuLhZw`, which a public episode list names as Mark
+   Rober's "How To Fool Your Brain!" (a one-minute Short, 27 Jun 2025). This container cannot reach
+   YouTube, so a link nobody here could see play is checked against something that names it before
+   it is dealt — the column's fallback for a dead one is a poster and a "Watch on YouTube" door, which
+   is the right failure, not a thing to ship on purpose. */
 const FEED_FACTS = [
   ['@family.', '', '', '', 'data/reels/archetest.mp4'],
   ['@family.', '', '', '', 'data/reels/v24044gl0000d88i15nog65im2kilnbg.mp4'],
   ['@family.', '', '', '', 'https://youtube.com/shorts/jD2Yy_wCBLE'],
+  ['@family.', '', '', '', 'https://youtube.com/shorts/eW8ZNkuLhZw'],
   ['Space', 'You are seeing the sun as it was eight minutes ago',
    'Light takes 8 minutes 20 seconds to cross 150 million km. If it went out you would carry on reading in bright daylight for the length of a song.', 'sun solar corona'],
   ['Space', 'There is a planet where it rains glass, sideways',
