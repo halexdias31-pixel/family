@@ -2685,60 +2685,59 @@ const STATES = {
   ================================================================================================ */
   res: [
     { name: 'the question' },
-    /* ---------- A TEXTBOOK CHAPTER, REACHED BY ITS SHELF -----------------------------------------
-       "the @family textbook should be bare bones for now and the textbooks will be in the resources
-       tag in the finder." The owner's route as chips — Resources, then the `@family. textbooks`
-       shelf — and then the Measures of spread chapter, because it is the one with everything a
-       chapter can carry: key words, Higher lines, and the standard deviation formulas, whose
-       stacked fractions under a root are the widest thing on any page of the book. The chapters
-       either side are in the DOM beside it, so they are measured too, for a tap target, a contrast
-       ratio and a sideways scroll. */
-    { name: 'a textbook chapter',
+    /* ---------- A CONTENT CARD, REACHED BY WHAT KIND · CONTENT AND ITS SUBJECT ---------------------
+       It was `a textbook chapter`, reached by the `@family. textbooks` shelf and the book's own chip; each
+       chapter is a content card since 12 Oct (docs/history/347, part 2), so it is reached the way a
+       student reaches one: What kind · Content, then the subject. Measures of spread, because it is the
+       card with everything a card can carry: the tag row, key words, Higher lines, and the standard
+       deviation formulas, whose stacked fractions under a root are the widest thing on any card. The
+       cards either side are in the DOM beside it, so they are measured too, for a tap target, a
+       contrast ratio and a sideways scroll. */
+    { name: 'a content card',
       enter: () => inFinder_(finderOf_('res'), () => {
-        /* GCSE STATISTICS BY NAME, and its own `Book` chip: the shelf holds a book for every GCSE now,
-           and the first one on it, or a chapter numbered like this one in another book, is not the
-           page this state was written about. */
-        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Statistics');
-        if (!x) throw new Error('no GCSE Statistics textbook in the list — data/textbooks.json did not load');
-        const c = (x.row.chapters || []).find(ch => /spread/i.test(ch.title)) || x.row.chapters[0];
-        STUFF.filters = [{ field: 'shelf', value: x.shelf },
-                         { field: 'book', value: x.name }];
+        /* BY ITS KEY, under What kind · Content and its own subject — written out in each state because
+           a state's `enter` runs in the page as its own text, where a helper here does not exist. */
+        const K = 'ct:TB-GCSE-STATS-9', x = stuffItemsAll_().find(it => it.key === K);
+        if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Content' }, { field: 'subject', value: x.subject }];
         paintStuff();
-        const at = typeof stuffPages_ === 'function'
-          ? Math.max(0, stuffPages_().findIndex(pg => pg.part === 'ch' + c.n)) : 0;
-        goPage('res', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + at);
+        const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && !pg.part);
+        if (at < 0) throw new Error(K + ' has no ' + 'card' + ' page under Content · ' + x.subject);
+        goPage('res', stuffFirstResult_() + at);
       }),
       expect: () => {
-        /* THE CHAPTER AND ITS NEIGHBOURS, NOT THE CONTENTS CARD: the pager keeps `STUFF_WIN` pages
-           either side of this one, and the card is nine pages back. The card has a journey of its
-           own in check-flow; this state is about the widest page. */
-        const ch = [...document.querySelectorAll('#s-res .card.tb.prac-part')]
+        const ch = [...document.querySelectorAll('#s-res .card.ct')]
           .find(el => /spread/i.test((el.querySelector('h3') || {}).textContent || ''));
-        return !!ch && !!ch.querySelector('.tb-words li b')
+        return !!ch && !!ch.querySelector('.fc-head .fc-flag')
+               && !!ch.querySelector('.qtags .qtag[data-tag="topic"]')
+               && !!ch.querySelector('.tb-words li b')
                && !!ch.querySelector('.tb-math .frac .frac-d')
                && !!ch.querySelector('.tb-points li')
                && !!ch.querySelector('li .tb-h')
-               /* NOTHING BUT THE BOOK ON THIS SHELF — a boxer here would mean the chip did not hold. */
+               /* NOTHING BUT CONTENT HERE — a boxer would mean the chip did not hold. */
                && !document.querySelector('#s-res .card:not(.tb) .boxer-rec');
       },
-      wants: 'a textbook chapter page — key words, stacked formulas, worked lines and the Higher mark',
+      wants: 'a content card — its head and tag row, key words, stacked formulas, worked lines and the Higher mark',
       leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
-    /* ---------- A TEXTBOOK ANIMATION, ON ITS PAGE AFTER ITS CHAPTER ---------------------------------
+    /* ---------- A CONTENT CARD'S ANIMATION, ON ITS PAGE AFTER ITS CARD -------------------------------
        "Add the animations from loading to respective subject text books." — the owner, 8 Oct. Three of
        the twenty-seven, chosen for what they stress in a card: Pythagoras is the TALLEST drawing,
        Bayes the WIDEST (a 20rem root that came out at 288px in a 244px card at 320 before its size
        stopped at the box), and standard form the one that SCROLLED SIDEWAYS — its point hops past the
-       row of digits it stands on. Each is reached the owner's way, by the book's chips, and turned to
-       by its page; the pages either side are in the DOM beside it and are measured too. */
-    { name: 'a textbook animation: Pythagoras',
+       row of digits it stands on. Each is reached by What kind · Content and its subject, and turned
+       to by its page; the pages either side are in the DOM beside it and are measured too. */
+    { name: 'a content card animation: Pythagoras',
       enter: () => inFinder_(finderOf_('res'), () => {
-        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Maths');
-        if (!x) throw new Error('no GCSE Maths textbook in the list — data/textbooks.json did not load');
-        STUFF.filters = [{ field: 'shelf', value: x.shelf },
-                         { field: 'book', value: x.name }];
+        /* BY ITS KEY, under What kind · Content and its own subject — written out in each state because
+           a state's `enter` runs in the page as its own text, where a helper here does not exist. */
+        const K = 'ct:TB-GCSE-MATHS-17', P = 'an17-pyth', x = stuffItemsAll_().find(it => it.key === K);
+        if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Content' }, { field: 'subject', value: x.subject }];
         paintStuff();
-        const at = stuffPages_().findIndex(pg => pg.part === 'an17-pyth');
-        if (at < 0) throw new Error('GCSE Maths has no an17-pyth page — the pyth row is not under its chapter');
+        const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && pg.part === P);
+        if (at < 0) throw new Error(K + ' has no ' + P + ' page under Content · ' + x.subject);
         goPage('res', stuffFirstResult_() + at);
       }),
       expect: () => {
@@ -2749,17 +2748,19 @@ const STATES = {
                && !!card.querySelector('.tb-about li')
                && !!document.head.querySelector('style[data-anim="pyth"]');
       },
-      wants: 'Pythagoras after Maths chapter 17: the drawing from its row, Play again, and the chapter\'s own lines about it',
+      wants: 'Pythagoras after the Pythagoras and trigonometry card: the drawing from its row, Play again, and the card\'s own lines about it',
       leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
-    { name: 'a textbook animation: Bayes',
+    { name: 'a content card animation: Bayes',
       enter: () => inFinder_(finderOf_('res'), () => {
-        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Statistics');
-        if (!x) throw new Error('no GCSE Statistics textbook in the list — data/textbooks.json did not load');
-        STUFF.filters = [{ field: 'shelf', value: x.shelf },
-                         { field: 'book', value: x.name }];
+        /* BY ITS KEY, under What kind · Content and its own subject — written out in each state because
+           a state's `enter` runs in the page as its own text, where a helper here does not exist. */
+        const K = 'ct:TB-GCSE-STATS-15', P = 'an15-bayes', x = stuffItemsAll_().find(it => it.key === K);
+        if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Content' }, { field: 'subject', value: x.subject }];
         paintStuff();
-        const at = stuffPages_().findIndex(pg => pg.part === 'an15-bayes');
-        if (at < 0) throw new Error('GCSE Statistics has no an15-bayes page — the bayes row is not under its chapter');
+        const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && pg.part === P);
+        if (at < 0) throw new Error(K + ' has no ' + P + ' page under Content · ' + x.subject);
         goPage('res', stuffFirstResult_() + at);
       }),
       expect: () => {
@@ -2770,17 +2771,19 @@ const STATES = {
                && !!card.querySelector('.tb-about li')
                && !!document.head.querySelector('style[data-anim="bayes"]');
       },
-      wants: 'Bayes after Statistics chapter 15: the drawing from its row, Play again, and the chapter\'s own lines about it',
+      wants: 'Bayes after the Probability card: the drawing from its row, Play again, and the card\'s own lines about it',
       leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
-    { name: 'a textbook animation: standard form',
+    { name: 'a content card animation: standard form',
       enter: () => inFinder_(finderOf_('res'), () => {
-        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Maths');
-        if (!x) throw new Error('no GCSE Maths textbook in the list — data/textbooks.json did not load');
-        STUFF.filters = [{ field: 'shelf', value: x.shelf },
-                         { field: 'book', value: x.name }];
+        /* BY ITS KEY, under What kind · Content and its own subject — written out in each state because
+           a state's `enter` runs in the page as its own text, where a helper here does not exist. */
+        const K = 'ct:TB-GCSE-MATHS-2', P = 'an2-sf', x = stuffItemsAll_().find(it => it.key === K);
+        if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Content' }, { field: 'subject', value: x.subject }];
         paintStuff();
-        const at = stuffPages_().findIndex(pg => pg.part === 'an2-sf');
-        if (at < 0) throw new Error('GCSE Maths has no an2-sf page — the sf row is not under its chapter');
+        const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && pg.part === P);
+        if (at < 0) throw new Error(K + ' has no ' + P + ' page under Content · ' + x.subject);
         goPage('res', stuffFirstResult_() + at);
       }),
       expect: () => {
@@ -2791,7 +2794,7 @@ const STATES = {
                && !!card.querySelector('.tb-about li')
                && !!document.head.querySelector('style[data-anim="sf"]');
       },
-      wants: 'Standard form after Maths chapter 2: the drawing from its row, Play again, and the chapter\'s own lines about it',
+      wants: 'Standard form after the Indices, surds and standard form card: the drawing from its row, Play again, and the card\'s own lines about it',
       leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
     /* ---------- THE BIBLE, WHICH ONLY THE ADMIN VISITOR IS SHOWN ----------------------------------
        "i want to add the bible to resources as a book. but only admin can see the bible." `only`, for
@@ -3252,38 +3255,33 @@ const STATES = {
       },
       wants: 'every skin, hair colour, trunks colour, the silhouette and the unrecorded trunks at 2:1 or more against the stage, a black beard 2:1 on every skin, Tyson\'s own hair and trunks too, and the unrecorded trunks 50 or more from every trunks word',
       leave: () => inFinder_(finderOf_('res'), () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
-    /* ---------- THE TEXTBOOK'S CONTENTS, AND `10.` INSIDE THE CARD ---------------------------------
-       `a textbook chapter` lands nine pages past the contents card, so the card itself was in the
-       DOM only as a neighbour and never the page measured. Its list has sixteen numbers, and with a
-       bullet's 1.1rem indent `10.` to `16.` hung out past the card's padding at 320px — a marker is
-       not a box, so no overflow rule could see it. So this asks the arithmetic directly: the list's
-       indent against the width of its widest number, set in the list's own font. */
-    { name: "the textbook's contents, every number inside the card",
+    /* ---------- THE LONGEST TAG ROW, EVERY TAG INSIDE THE CARD -----------------------------------------
+       IT WAS "the textbook's contents, every number inside the card" — sixteen chapter numbers whose
+       `10.` hung past the padding at 320px. The contents card went with the books (347, part 2); what
+       is widest on a content card now is its tag row, and the widest of those is Data and statistics:
+       thirteen topics on a GCSE Maths card, `Scatter Graphs & Correlation` the longest pill. A pill
+       is a box, so this asks that every one of them sits inside the card it is on. */
+    { name: "a content card's tag row, every tag inside the card",
       enter: () => inFinder_(finderOf_('res'), () => {
-        /* THE SIXTEEN-CHAPTER BOOK BY NAME — the widest list of numbers on the shelf, `10.` to `16.` —
-           and its own `Book` chip, so the card measured is that one and not whichever book is first. */
-        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Statistics');
-        if (!x) throw new Error('no GCSE Statistics textbook in the list — data/textbooks.json did not load');
+        /* BY ITS KEY, under What kind · Content and its own subject — written out in each state because
+           a state's `enter` runs in the page as its own text, where a helper here does not exist. */
+        const K = 'ct:TB-GCSE-MATHS-20', x = stuffItemsAll_().find(it => it.key === K);
+        if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
         STUFF.q = '';
-        STUFF.filters = [{ field: 'shelf', value: x.shelf },
-                         { field: 'book', value: x.name }];
+        STUFF.filters = [{ field: 'kindLabel', value: 'Content' }, { field: 'subject', value: x.subject }];
         paintStuff();
-        goPage('res', stuffFirstResult_(), true);
+        const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && !pg.part);
+        if (at < 0) throw new Error(K + ' has no ' + 'card' + ' page under Content · ' + x.subject);
+        goPage('res', stuffFirstResult_() + at);
       }),
       expect: () => {
-        const c = document.querySelector('#s-res .card.tb:not(.prac-part)');
-        const ol = c && c.querySelector('.tb-toc ol.fc-list');
-        const li = ol && ol.children;
-        if (!li || li.length < 10) return false;
-        const probe = document.createElement('span');
-        probe.textContent = li.length + '. ';
-        probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre';
-        li[li.length - 1].appendChild(probe);
-        const need = probe.getBoundingClientRect().width;
-        probe.remove();
-        return parseFloat(getComputedStyle(ol).paddingLeft) >= need;
+        const c = [...document.querySelectorAll('#s-res .card.ct')].find(el => /Data and statistics/.test((el.querySelector('h3') || {}).textContent || ''));
+        const tags = c ? [...c.querySelectorAll('.qtags .qtag')] : [];
+        if (tags.length < 10) return false;
+        const box = c.getBoundingClientRect();
+        return tags.every(t => { const r = t.getBoundingClientRect(); return r.left >= box.left - 0.5 && r.right <= box.right + 0.5; });
       },
-      wants: "the textbook's contents card, its list indented at least as wide as its widest number",
+      wants: "the Data and statistics card's thirteen topic tags, every one inside the card",
       leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
   ],
 

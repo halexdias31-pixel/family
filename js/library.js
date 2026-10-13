@@ -219,7 +219,15 @@ async function libraryRows_() {
 /* `textbooks` IS THE SEVENTH — "the @family textbook should be bare bones for now and the textbooks
    will be in the resources tag in the finder." ONE FILE FOR EVERY BOOK, not one file per book, because
    a file is a name in this list and a name here is a deploy: the second book should be rows, not code.
-   One row per chapter; see the mapper below and `check-textbooks.js`. */
+   One row per chapter; see the mapper below and `check-textbooks.js`.
+   ---------- THERE ARE NO TEXTBOOKS ON SCREEN ANY MORE, AND THE FILE KEEPS ITS NAME ---------------
+   Since 12 Oct every chapter row is one CONTENT CARD (*"Forget the whole concept of it being a text
+   book"* — the owner; docs/history/347, part 2), and the cover row is only the defaults its chapters
+   inherit. `data/textbooks.json`, `DATA.textbooks` and the row shape STAY, because three things are
+   written against them and none of them is on screen: `tools/anim_row.py` rewrites fourteen animation
+   rows in place by their `anim` id, `splashSync_` (shell.js) keeps the loading screen's copy of
+   `DATA.textbooks[].chapters[].animations`, and `check-anims.js` anchors each animation directly under
+   its chapter row. A rename would be churn in all three for a word nobody reads. */
 const LIB_EXTRA = ['boxers', 'fights', 'cheatsheet', 'practicals', 'projects', 'textbooks'];
 let LIBRARY_EXTRA = null;
 
@@ -531,12 +539,21 @@ function libraryExtras_(d, extra) {
       if (libS(r.anim).trim()) { anims.push(r); return; }
       if (!books[id]) { books[id] = { id: id, chapters: [] }; order.push(id); }
       const b = books[id], n = libN(r.chapter);
+      /* ---------- THE COVER IS THE CHAPTERS' DEFAULTS, AND NOT A CARD ANY MORE ------------------
+         *"Forget the whole concept of it being a text book. It's just a "content card" or whatever.
+         It can share same tags as questions e.g. gcse, ks2, maths."* — the owner, 12 Oct. Each
+         chapter is one content card on Find (`contentItem_` in find.js) and wears the question
+         library's tags, so it has to KNOW its subject, level, key stage, board and spec. They are
+         written once, on the row with `chapter: 0`, and a chapter's own cell wins — the shape the
+         file already had for `tier`, where a whole-Higher chapter says so on itself. Filled in
+         below, once every row is read, because the cover is found by number and not by line. */
+      const own = { subject: libS(r.subject).trim(), level: libS(r.level).trim(),
+                    keystage: libS(r.keystage).trim(), board: libS(r.board).trim(), spec: libS(r.spec).trim() };
       if (n === 0) {
-        Object.assign(b, { name: libS(r.title), summary: libS(r.summary), subject: libS(r.subject),
-                           level: libS(r.level), board: libS(r.board), spec: libS(r.spec) });
+        Object.assign(b, own, { name: libS(r.title), summary: libS(r.summary) });
         return;
       }
-      b.chapters.push({ n: n, title: libS(r.title), higher: /^higher$/i.test(libS(r.tier).trim()),
+      b.chapters.push({ n: n, title: libS(r.title), higher: /^higher$/i.test(libS(r.tier).trim()), own: own,
                         topics: libS(r.topics), words: list(r.words), formulas: list(r.formulas),
                         points: list(r.points).map(p => ({ text: (p.name ? p.name + ' — ' : '') + p.text,
                                                            higher: p.higher })),
@@ -557,7 +574,13 @@ function libraryExtras_(d, extra) {
     /* A BOOK WITH NO TITLE PAGE IS NOT A BOOK: it has no name to be found by, so it is left out
        rather than drawn as a blank card. The check refuses the file first. */
     d.textbooks = order.map(id => books[id]).filter(b => b.name)
-      .map(b => Object.assign(b, { chapters: b.chapters.sort((p, q) => p.n - q.n) }));
+      .map(b => Object.assign(b, { chapters: b.chapters.sort((p, q) => p.n - q.n).map(c => {
+        /* A CHAPTER'S OWN CELL WINS, a blank one takes the cover's. `own` goes once it is read. */
+        ['subject', 'level', 'keystage', 'board', 'spec'].forEach(k => { c[k] = c.own[k] || b[k] || ''; });
+        c.bookId = b.id;
+        delete c.own;
+        return c;
+      }) }));
   }
 
   /* --- the boxers ------------------------------------------------------------------------------

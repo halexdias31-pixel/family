@@ -15982,7 +15982,7 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in front
    student, a tutor, an admin -- and compared as markup: a stem with words both sides of its figure, a
    part with a lead, a figure and a box, its answer page hidden and then shown, a tapped question, a
    worded one with Mark with AI beside it, a drawing question on a squared grid, a passage to ring words
-   in; and a real practical, project and textbook through the real mapper.
+   in; and a real practical, project and content card (with its animation's page) through the real mapper.
 
    WHAT IS ALLOWED TO DIFFER IS WHAT IS A PERSON'S, NOT A ROLE'S, and it is taken out before comparing:
    the answer box's key and the done date's (`ans:u:<id>:`, whose drawer this is), the name over the box
@@ -15993,7 +15993,7 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in front
    the line under a box and the pen's note say "on this device", or which account (js/answers.js) —
    which is whether somebody is signed in, never which role they hold.
    Anything else that differs is a role showing through, and the first difference is printed. */
-check('Find and Find 2 draw the same question family, practical, project and textbook for a tutor, an admin, a student and nobody', async () => {
+check('Find and Find 2 draw the same question family, practical, project and content card for a tutor, an admin, a student and nobody', async () => {
   const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
   const one = boot();
   await wait(300);
@@ -16024,11 +16024,13 @@ check('Find and Find 2 draw the same question family, practical, project and tex
     { kind: 'question', name: 'Q12', qNumber: '12', marks: 1, key: 'q:Q-SAME-12', row: row('Q-SAME-12'), stems: [],
       answerType: 'annotate', surface: 'text', html: '<p>Circle the adjective.</p><p>The tall tree swayed.</p>', answer: '<b>tall</b>' },
   ];
-  /* THE PRACTICAL AND THE PROJECT FROM FIND, THE TEXTBOOK FROM FIND 2 — either finder carries all three
-     (docs/history/347); taking one from each keeps both lists asked. */
+  /* THE PRACTICAL AND THE PROJECT FROM FIND, THE CONTENT CARD FROM FIND 2 — either finder carries all
+     three (docs/history/347); taking one from each keeps both lists asked. A card WITH an animation, so
+     its page is compared too. */
   const R = resView_(w);
-  const real = [['practical', w], ['project', w], ['textbook', R]].map(([k, V]) => V.stuffItems().find(x => x.kind === k));
-  real.forEach((x, i) => { if (!x) bad.push('no ' + ['practical', 'project', 'textbook'][i] + ' reached ' + (i === 2 ? 'Find 2' : 'Find') + ', so it was NOT compared'); });
+  const real = [['practical', w], ['project', w], ['content', R]].map(([k, V]) => V.stuffItems()
+    .find(x => x.kind === k && (k !== 'content' || ((x.row && x.row.animations) || []).length)));
+  real.forEach((x, i) => { if (!x) bad.push('no ' + ['practical', 'project', 'content card with an animation'][i] + ' reached ' + (i === 2 ? 'Find 2' : 'Find') + ', so it was NOT compared'); });
   const items = fam.concat(real.filter(Boolean));
   /* A PERSON'S, NOT A ROLE'S -- see the note above. */
   const norm = html => {
@@ -19631,35 +19633,31 @@ check('Coursework is a type of project: Projects asks Project or coursework, whi
   return bad;
 });
 
-/* ---------- THE @family. TEXTBOOK, REACHED THE WAY THE OWNER SAID --------------------------------
-   ASKED FOR AS "the @family textbook should be bare bones for now and the textbooks will be in the
-   resources tag in the finder. first one can be gcse statistics." So the route is the claim:
-   Learning → Resources → @family. textbooks → GCSE Statistics, pressed on the REAL answer buttons
-   the funnel draws, over the real file through the real mapper — with the real boxers and bouts
-   beside it, because they are what the book has to be found among, and a Resources holding only
-   the book would never ask the Shelf question at all.
+/* ---------- A CONTENT CARD, REACHED THE WAY A QUESTION IS ----------------------------------------
+   IT WAS THE @family. TEXTBOOK, reached Learning → Resources → @family. textbooks → GCSE Statistics, a
+   contents card and a page per chapter. THE OWNER, 12 Oct: *"Forget the whole concept of it being a text
+   book. It's just a "content card" or whatever. It can share same tags as questions e.g. gcse, ks2,
+   maths."* So the route is the claim again, on the REAL answer buttons over the real file through the
+   real mapper, with the real boxers and bouts and projects beside it: Learning → Content → Statistics.
 
-   Then: the list is the book; it is a contents card and one page per chapter in chapter order; a
-   chapter page has its key words, its formulas STACKED by `typeset_`, its worked lines and the
-   Higher mark; typing a word that is only inside a chapter finds it; and the star keeps it on
-   Saved. */
-/* ON FIND 2, WHICH CARRIES WHAT FIND CARRIES (docs/history/347): the route is Find's own route, run in the
-   second column — `What kind` is a real question there again (Projects beside Resources), so it is
-   PRESSED, not skipped as it was while the column held the resources alone (329). Both finders hold the
-   book, and the search finds it on both. */
-check('the @family. textbook, on Find 2 and on Find: @family. textbooks, GCSE Statistics — contents, chapters, search, star', async () => {
+   Then: the list is the Statistics cards, one a chapter; a card is whole — its title, the questions'
+   tag row, its key words, its formulas STACKED by `typeset_`, its worked lines and the Higher mark — and
+   its animations are pages after it; nothing anybody can see says textbook or chapter; the textbooks'
+   shelf is never offered; typing a word that is only inside a card finds it on both finders; the star
+   keeps it on Saved; and a star on a BOOK, kept from before, draws nothing at all. */
+/* ON FIND 2, WHICH CARRIES WHAT FIND CARRIES (docs/history/347): the route is Find's own, run in the
+   second column. */
+check('a content card, on Find 2 and on Find: What kind · Content, Statistics — the card whole, its animations, its tags, search, star, and a book\'s old star dropped', async () => {
   const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
   const one = boot();
   await wait(300);
-  if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so the textbooks were NOT checked — not a pass'];
+  if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so the content cards were NOT checked — not a pass'];
   const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({},
     { textbooks: read('textbooks'), boxers: read('boxers'), fights: read('fights'), projects: read('projects') })));
   const books = made.textbooks || [];
-  if (!books.length) return ['the mapper made no book of data/textbooks.json'];
-  if (!(made.boxers || []).length) return ['the mapper made no boxers, so the shelf the book sits beside is empty — NOT a pass'];
+  if (!books.length) return ['the mapper made nothing of data/textbooks.json'];
+  if (!(made.boxers || []).length) return ['the mapper made no boxers, so the cards were not found among anything — NOT a pass'];
   const p = payload();
-  /* THE PROJECTS TOO, so `What kind` has a second answer and the Resources press is a real press —
-     the fixture has no library, and with Resources the only kind the question would not be asked. */
   Object.assign(p, { textbooks: books, boxers: made.boxers, fights: made.fights || [], projects: made.projects || [] });
   const { w } = boot({ payload: p });
   await wait(300);
@@ -19667,41 +19665,29 @@ check('the @family. textbook, on Find 2 and on Find: @family. textbooks, GCSE St
   if (!t.RES || !t.RES()) return ['Find 2\'s state is not exported to the journey'];
   const R = resView_(w);
   const bad = [];
-  const book = books.find(b => b.name === 'GCSE Statistics');
-  if (!book) return ['data/textbooks.json has no book called GCSE Statistics — names: ' + books.map(b => b.name).join(', ')];
+  const stats = books.find(b => b.id === 'TB-GCSE-STATS');
+  if (!stats) return ['data/textbooks.json has no TB-GCSE-STATS — ids: ' + books.map(b => b.id).join(', ')];
 
-  /* THE ROUTE, ONE PRESS AT A TIME, on whatever the question page draws. A grouped question may
-     draw the BUCKET first (`Read or watch it`), and pressing it is the same route one tap longer,
-     so a bucket that holds the next word on the route is pressed and the question asked again. */
   t.go('res');
   t.RES().filters.length = 0; t.RES().q = '';
   w.paintFinder_('res');
-  /* AND FIND HOLDS IT TOO — the same list in both columns. */
-  if (!w.stuffItems().some(i => i.kind === 'textbook')) bad.push('Find does not hold the textbooks — both finders carry everything');
-  /* AND `Subject` AFTER THE SHELF, now that the shelf holds a book for every GCSE: the book is found
-     by its subject's group and then its subject — Maths, then Statistics — before `Book`, which is
-     only asked if two books are left. With one book on the shelf the rung has one answer and is
-     skipped by the rule below, so this route is the claim either way. */
-  /* AND IN THE CODE'S OWN ORDER, which is the order whenever `data/settings/facets.json` is not read — as
-     in every journey here — Subject before Book. It was Book first, under the shelf, and only the sheet
-     put it right. */
-  const order = t.DATA().facets ? [] : w.facetList().map(f => f.field);
-  if (!(order.indexOf('subject') !== -1 && order.indexOf('subject') < order.indexOf('book'))) bad.push('facetList() with no DATA.facets asks ' + (order.length ? order.filter(f => f === 'subject' || f === 'book').join(' before ') : 'nothing — DATA.facets was set, so NOT checked') + ' — wanted subject before book');
-  const route = ['Learning', 'Resources', '@family. textbooks', 'Statistics'];
-  const rungs = ['forLabel', 'kindLabel', 'shelf', 'subject'];
-  const pressed = [];
+  /* AND FIND HOLDS THEM TOO — the same list in both columns, one card a chapter. */
+  const chapters = books.reduce((n, b) => n + b.chapters.length, 0);
+  const cards = w.stuffItems().filter(i => i.kind === 'content');
+  if (cards.length !== chapters) bad.push('Find holds ' + cards.length + ' content cards for ' + chapters + ' chapters — one card a chapter');
+  if (w.stuffItems().some(i => i.kind === 'textbook')) bad.push('a textbook is still an item on Find');
+  /* THE BOOK QUESTION IS RETIRED, and is not in the code's own order any more. */
+  if (w.facetList().some(f => f.field === 'book')) bad.push('`book` is still a question in facetList() — nothing answers it');
+  const route = ['Learning', 'Content', 'Statistics'];
+  const rungs = ['forLabel', 'kindLabel', 'subject'];
+  const pressed = [], offered = [];
   for (let guard = 0; route.length && guard < 10; guard++) {
     const btns = [...w.document.querySelectorAll('#s-res [data-do="facet-pick"]')];
+    btns.forEach(b => offered.push(b.dataset.field + ':' + b.dataset.value));
     let el = btns.find(b => b.dataset.value === route[0]);
-    /* A RUNG EVERYTHING LEFT ALREADY ANSWERS IS SKIPPED BY THE ONE-ANSWER RULE, and that is the
-       route working rather than failing: the fixture has nothing under `What for` but Learning. The
-       question is only allowed to be absent when its one answer IS the next word on the route. */
     const rung = w.facetList().find(f => f.field === rungs[rungs.length - route.length]);
     const only = rung ? R.facetValues(R.stuffFiltered(), rung).map(v => String(v.value)) : [];
-    if (!el && only.length === 1 && only[0] === route[0]) {
-      pressed.push('(' + route.shift() + ')');
-      continue;
-    }
+    if (!el && only.length === 1 && only[0] === route[0]) { pressed.push('(' + route.shift() + ')'); continue; }
     if (!el) {
       const grp = (() => { try { return rung.bucketOf(route[0]); } catch (e) { return ''; } })();
       el = grp && btns.find(b => b.dataset.value === grp && b.dataset.bucket);
@@ -19716,74 +19702,92 @@ check('the @family. textbook, on Find 2 and on Find: @family. textbooks, GCSE St
     await wait(20);
   }
   if (route.length) return bad;
-  /* THE SHELF HAS TO HAVE BEEN PRESSED, not skipped: one answer there would mean the boxing was
-     not beside it, and the door this journey is about was never on screen. Same for Resources. */
-  if (pressed.indexOf('@family. textbooks') < 0) bad.push('the shelf was never a question — ' + pressed.join(' → '));
-  /* AND `What kind` IS A QUESTION HERE, AS ON FIND: Projects and Resources are both on the column. */
-  if (pressed.indexOf('Resources') < 0) bad.push('What kind was not asked on Find 2 — it holds the projects beside the resources, as Find does: ' + pressed.join(' → '));
-  /* THE SHELF QUESTION OFFERED BOXING BESIDE IT, or it was not a door — it was the only answer. */
+  /* `Content` IS ITS OWN ANSWER UNDER WHAT KIND, pressed — not a shelf of Resources. */
+  if (pressed.indexOf('Content') < 0) bad.push('What kind did not offer Content on Find 2: ' + pressed.join(' → '));
+  if (offered.some(o => /^shelf:@family\. textbooks$/.test(o))) bad.push('the @family. textbooks shelf was offered — it went with the books');
   const left = R.stuffFiltered();
-  if (left.length !== 1 || left[0].kind !== 'textbook' || left[0].name !== 'GCSE Statistics') {
+  if (left.length !== stats.chapters.length || left.some(i => i.kind !== 'content' || i.subject !== 'Statistics')) {
     bad.push('after ' + pressed.join(' → ') + ' the list is ' + left.length + ' item(s): '
-      + left.slice(0, 4).map(x => x.kind + ' ' + x.name).join(', ') + ' — not the book');
+      + left.slice(0, 4).map(x => x.kind + ' ' + x.name).join(', ') + ' — not the ' + stats.chapters.length + ' Statistics cards');
   }
-  /* AND NOTHING ELSE ON RESOURCES FELL OFF THE SHELVES. Pressing `Boxing` keeps only what says
-     Boxing, so a boxer with no shelf would vanish from the route that used to reach him — the door
-     would have cost the boxing what it gave the book. */
+  /* AND NOTHING ON RESOURCES FELL OFF THE SHELVES: the boxing and the Bible keep their door. */
   const shelfFacet = w.facetList().find(f => f.field === 'shelf');
   const resources = R.stuffItems().filter(i => w.kindOf_(i).label === 'Resources');
   const unshelved = resources.filter(i => !R.facetValues([i], shelfFacet).length);
-  if (unshelved.length) {
-    bad.push(unshelved.length + ' of ' + resources.length + ' Resources are on no shelf ('
-      + [...new Set(unshelved.map(i => i.kind))].join(', ') + ') — pressing a shelf hides them');
-  }
-  const x = left.find(i => i.kind === 'textbook') || R.stuffItems().find(i => i.kind === 'textbook');
-  if (!x) return bad.concat(['Resources offers no textbook at all']);
+  if (unshelved.length) bad.push(unshelved.length + ' of ' + resources.length + ' Resources are on no shelf — pressing a shelf hides them');
+  if (cards.some(i => R.facetValues([i], shelfFacet).length)) bad.push('a content card is on a shelf — the textbooks\' shelf went');
 
-  /* CARD, THEN A PAGE PER CHAPTER IN ORDER — AND AFTER EACH CHAPTER ITS ANIMATIONS. "Add the animations
-     from loading to respective subject text books" (the owner, 8 Oct): Statistics teaches the mean, Bayes,
-     Pascal and the Galton board, each a page straight after its chapter. */
+  /* THE CARD, THEN A PAGE PER ANIMATION, in the file's order. "Averages" teaches the mean. */
+  const x = left.find(i => i.name === 'Averages') || cards.find(i => i.key === 'ct:TB-GCSE-STATS-8');
+  if (!x) return bad.concat(['no Averages card among the Statistics cards']);
   const parts = w.pageParts_(x);
-  const want = [null].concat(...book.chapters.map(c => ['ch' + c.n].concat((c.animations || []).map(a => 'an' + c.n + '-' + a.id))));
-  if (JSON.stringify(parts) !== JSON.stringify(want)) bad.push('the book is pages ' + JSON.stringify(parts).slice(0, 80) + ', not the card and ' + book.chapters.length + ' chapters in order, each with its animations after it');
-  ['an8-mean', 'an15-bayes', 'an16-pas', 'an16-gal'].forEach(a => { if (parts.indexOf(a) < 0) bad.push('GCSE Statistics has no ' + a + ' page — data/textbooks.json put it under that chapter'); });
+  const want = [null].concat((x.row.animations || []).map(a => 'an' + x.row.n + '-' + a.id));
+  if (JSON.stringify(parts) !== JSON.stringify(want) || parts.indexOf('an8-mean') < 0) bad.push('the Averages card is pages ' + JSON.stringify(parts) + ', not the card and the mean\'s animation');
   const box = html => { const d = w.document.createElement('div'); d.innerHTML = html; return d; };
   const card = box(w.stuffCard(x));
-  if (!card.querySelector('.card.tb')) bad.push('the book card is not drawn as a textbook');
-  else {
-    if (card.querySelector('.fc-flag').textContent.trim() !== 'Textbook') bad.push('the card is not flagged Textbook');
-    const toc = [...card.querySelectorAll('.tb-toc ol > li')].map(li => li.textContent.replace(/H$/, '').trim());
-    if (toc.join('|') !== book.chapters.map(c => c.title).join('|')) bad.push('the contents do not list the chapters in order: ' + toc.slice(0, 3).join(', '));
-    if (card.querySelector('.tb-words, .tb-math')) bad.push('the card carries a chapter — chapters are pages of their own');
+  if (!card.querySelector('.card.ct')) bad.push('the card is not drawn as a content card');
+  if (!card.querySelector('.tb-an-stage') && !box(w.stuffPart_(x, 'an8-mean')).querySelector('.tb-an-stage')) bad.push('the mean\'s animation has no stage on its page');
+  /* WHAT IT IS, IN THE HEAD EVERY FIND KIND OPENS ON: `Content`. Then THE QUESTIONS' TAGS — the Level
+     answer, the subject and the topics — and NO board, because the words of a GCSE Statistics card are
+     every board's. */
+  const flag = card.querySelector('.fc-head .fc-flag');
+  if (!flag || flag.textContent.trim() !== 'Content') bad.push('the card is not flagged Content: ' + (flag ? flag.textContent : 'no flag'));
+  const tags = [...card.querySelectorAll('.qtags .qtag')].map(e => e.textContent.trim());
+  ['GCSE', 'Statistics', 'Mean', 'Median'].forEach(v => { if (tags.indexOf(v) < 0) bad.push('the Averages card has no "' + v + '" tag: ' + tags.join(' | ')); });
+  if (tags.some(v => /^(Edexcel|AQA|OCR)$/.test(v))) bad.push('the Averages card names a board — its words are every board\'s: ' + tags.join(' | '));
+  /* A SET TEXT IS ONE BOARD'S, and says so. */
+  const mac = cards.find(i => i.name === 'Macbeth');
+  if (!mac || [...box(w.stuffCard(mac)).querySelectorAll('.qtag')].map(e => e.textContent).indexOf('AQA') < 0) bad.push('the Macbeth card does not say AQA — a set text is the board\'s');
+  /* A CARD WITH FORMULAS, WHOLE, AND THE ONE THAT IS HIGHER ALL THROUGH. */
+  const withMath = cards.find(i => i.row.formulas.some(f => /\//.test(f.text)));
+  const pg = box(w.stuffCard(withMath));
+  const c = withMath.row;
+  if (pg.querySelectorAll('.tb-words li').length !== c.words.length) bad.push(withMath.name + ' does not list every key word');
+  if (pg.querySelectorAll('.tb-math li').length !== c.formulas.length) bad.push(withMath.name + ' does not list every formula');
+  if (!pg.querySelector('.tb-math .frac .frac-n') || !pg.querySelector('.tb-math .frac .frac-d')) bad.push(withMath.name + '\'s fractions are not stacked — typeset_ was not run over the formulas');
+  if (pg.querySelectorAll('.tb-points li').length !== c.points.length) bad.push(withMath.name + ' does not list every worked line');
+  const hItems = c.words.concat(c.formulas, c.points).filter(i => i.higher).length;
+  if (pg.querySelectorAll('li .tb-h').length !== hItems) bad.push(withMath.name + ' marks ' + pg.querySelectorAll('li .tb-h').length + ' lines Higher, the file says ' + hItems);
+  const hc = cards.find(i => i.row.higher);
+  if (hc) {
+    const hb = box(w.stuffCard(hc));
+    if (!hb.querySelector('h3 .tb-h')) bad.push(hc.name + ' is Higher all through and its heading does not say so');
+    if ([...hb.querySelectorAll('.qtag')].map(e => e.textContent).indexOf('Higher') < 0) bad.push(hc.name + ' is Higher all through and has no Higher tag');
   }
-  /* A CHAPTER WITH FORMULAS, AND THE ONE THAT IS HIGHER ALL THROUGH. */
-  const withMath = book.chapters.find(c => c.formulas.some(f => /\//.test(f.text)));
-  const pg = box(w.stuffPart_(x, 'ch' + withMath.n));
-  if (pg.querySelectorAll('.tb-words li').length !== withMath.words.length) bad.push('chapter ' + withMath.n + ' does not list every key word');
-  if (pg.querySelectorAll('.tb-math li').length !== withMath.formulas.length) bad.push('chapter ' + withMath.n + ' does not list every formula');
-  if (!pg.querySelector('.tb-math .frac .frac-n') || !pg.querySelector('.tb-math .frac .frac-d')) bad.push('chapter ' + withMath.n + '\'s fractions are not stacked — typeset_ was not run over the formulas');
-  if (/&frasl;|\//.test([...pg.querySelectorAll('.tb-fm')].map(e => e.innerHTML.replace(/<span class="frac-s">\/<\/span>/g, '').replace(/<[^>]*>/g, '')).join(''))) bad.push('a slash is left standing in a formula on chapter ' + withMath.n);
-  if (pg.querySelectorAll('.tb-points li').length !== withMath.points.length) bad.push('chapter ' + withMath.n + ' does not list every worked line');
-  const hItems = withMath.words.concat(withMath.formulas, withMath.points).filter(i => i.higher).length;
-  if (pg.querySelectorAll('li .tb-h').length !== hItems) bad.push('chapter ' + withMath.n + ' marks ' + pg.querySelectorAll('li .tb-h').length + ' lines Higher, the file says ' + hItems);
-  const hc = book.chapters.find(c => c.higher);
-  if (hc && !box(w.stuffPart_(x, 'ch' + hc.n)).querySelector('h3 .tb-h')) bad.push('chapter ' + hc.n + ' is Higher all through and its heading does not say so');
+  /* NOTHING THE APP SAYS IS TEXTBOOK OR CHAPTER — every card and every animation page, all of them. The
+     card's own words are left out of the reading: a Jekyll and Hyde quotation cites "(Chapter 10)" of the
+     novel, which is the content talking, not the app calling the card a chapter. */
+  const said = [];
+  cards.forEach(i => w.pageParts_(i).forEach(part => {
+    const d = box(part ? w.stuffPart_(i, part) : w.stuffCard(i));
+    d.querySelectorAll('.fc-sec').forEach(n => n.remove());
+    const txt = d.textContent;
+    if (/text ?book|\bchapter\b/i.test(txt)) said.push(i.name + (part ? ' #' + part : ''));
+  }));
+  if (said.length) bad.push(said.length + ' content page(s) say textbook or chapter: ' + said.slice(0, 4).join(', '));
 
-  /* SEARCHABLE BY ITS WORDS — one that is only inside a chapter, never in the title — ON BOTH FINDERS. */
+  /* SEARCHABLE BY ITS WORDS — one that is only inside a card, never in its title — ON BOTH FINDERS. */
   t.RES().filters.length = 0; t.RES().q = 'frequency density';
-  if (!R.stuffFiltered().some(i => i.kind === 'textbook')) bad.push('typing "frequency density" on Find 2 does not find the book — the chapters are not in its haystack');
+  if (!R.stuffFiltered().some(i => i.kind === 'content')) bad.push('typing "frequency density" on Find 2 does not find a content card — the words are not in its haystack');
   t.RES().q = '';
   t.STUFF().filters.length = 0; t.STUFF().q = 'frequency density';
-  if (!w.stuffFiltered().some(i => i.kind === 'textbook')) bad.push('typing "frequency density" on Find does not find the book — both finders carry it');
+  if (!w.stuffFiltered().some(i => i.kind === 'content')) bad.push('typing "frequency density" on Find does not find a content card — both finders carry them');
   t.STUFF().q = '';
 
   /* STARRABLE, by the card's own Save tile, and kept on Saved. */
   t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   const fav = box(w.stuffCard(x)).querySelector('[data-do="fav"]');
-  if (!fav) bad.push('the book card has no Save tile');
+  if (!fav) bad.push('the content card has no Save tile');
   else {
     t.ACTIONS.fav(fav);
-    if (!t.savedPages().join('').includes('tb-toc')) bad.push('the book was starred and is not on the Saved column');
+    const kept = t.savedPages().join('');
+    if (!/class="card fc prac tb ct/.test(kept)) bad.push('the card was starred and is not on the Saved column');
+    /* A BOOK STARRED BEFORE THIS (`tb:<id>`) NAMES NO ITEM NOW: Saved draws nothing for it — no card,
+       no blank, no "undefined" — and the content card beside it is drawn exactly as before. */
+    w.toggleFav('tb:TB-GCSE-STATS', 'textbook');
+    const after = t.savedPages().join('');
+    if (after !== kept) bad.push('a star on a book from before drew something on Saved — it names no item and must be dropped quietly');
+    if (/undefined|GCSE Statistics/.test(after)) bad.push('Saved draws the old book (or an undefined) for a star that names nothing');
   }
   return bad;
 });
@@ -19918,9 +19922,9 @@ check('both finders carry the same items — the same keys, the same count, ever
   const onlyF = fk.filter(k => !rs.has(k)), onlyR = rk.filter(k => !fs_.has(k));
   if (onlyF.length) bad.push(onlyF.length + ' item(s) on Find and not on Find 2, first ' + onlyF.slice(0, 3).join(', '));
   if (onlyR.length) bad.push(onlyR.length + ' item(s) on Find 2 and not on Find, first ' + onlyR.slice(0, 3).join(', '));
-  /* EVERYTHING THE WHOLE LIST OFFERS, on each — the textbooks, the boxers, the fights AND the projects —
-     less only what the funnel offers nobody (`FUNNEL_NOT_FOR`: Booking and Shop). */
-  ['textbook', 'boxer', 'fight', 'project'].forEach(k => {
+  /* EVERYTHING THE WHOLE LIST OFFERS, on each — the content cards, the boxers, the fights AND the
+     projects — less only what the funnel offers nobody (`FUNNEL_NOT_FOR`: Booking and Shop). */
+  ['content', 'boxer', 'fight', 'project'].forEach(k => {
     if (!find.some(x => x.kind === k)) bad.push('Find holds no ' + k);
     if (!res.some(x => x.kind === k)) bad.push('Find 2 holds no ' + k);
   });
@@ -19935,15 +19939,15 @@ check('both finders carry the same items — the same keys, the same count, ever
   const fSaid = said(find), rSaid = inRes_(w, () => said(res));
   if (fSaid !== rSaid) bad.push('What kind on Find offers ' + fSaid + ' and on Find 2 ' + rSaid);
   if (!/\bResources\b/.test(fSaid) || !/\bProjects\b/.test(fSaid)) bad.push('What kind does not offer both Projects and Resources: ' + fSaid);
-  /* SEARCH: a word that is only inside a textbook's chapters finds the book on both. */
+  /* SEARCH: a word that is only inside a content card's words finds the card on both. */
   t.STUFF().filters.length = 0; t.STUFF().q = 'frequency density';
   const fHits = w.stuffFiltered();
   t.STUFF().q = '';
   t.RES().filters.length = 0; t.RES().q = 'frequency density';
   const rHits = inRes_(w, () => w.stuffFiltered());
   t.RES().q = '';
-  if (!fHits.some(x => x.kind === 'textbook')) bad.push('typing "frequency density" on Find does not find the textbook');
-  if (!rHits.some(x => x.kind === 'textbook')) bad.push('typing "frequency density" on Find 2 does not find the textbook');
+  if (!fHits.some(x => x.kind === 'content')) bad.push('typing "frequency density" on Find does not find the content card');
+  if (!rHits.some(x => x.kind === 'content')) bad.push('typing "frequency density" on Find 2 does not find the content card');
   if (keys(fHits).join('|') !== keys(rHits).join('|')) bad.push('"frequency density" finds ' + fHits.length + ' on Find and ' + rHits.length + ' on Find 2');
   /* ONE LIST, COUNTED ONCE: with no chips and no words both finders' first question is asked of the same
      array (`FUNNEL_MEMO`, find.js), so its tallies — keyed on the array — are counted once. Two copies cost
@@ -20034,7 +20038,7 @@ check('two finders, no shared state: a chip, a search word or a page turned in o
   return bad;
 });
 
-check('Find 2 keeps its own place across a reload — the column, its chips and the chapter in front — and Find keeps its own; a kept chip nothing will answer comes back dropped, one nothing answers yet comes back kept', async () => {
+check('Find 2 keeps its own place across a reload — the column, its chips and the animation in front — and Find keeps its own; a kept chip nothing will answer comes back dropped, one nothing answers yet comes back kept', async () => {
   const ADA = ANS_ADA;
   const one = await resBoot_({ before: signedInAs_(ADA) });
   if (!one) return ['the app or libraryExtras_ did not load — NOT checked'];
@@ -20042,12 +20046,13 @@ check('Find 2 keeps its own place across a reload — the column, its chips and 
   /* REMEMBERED, as a finger's swipe is (`familyTab`): the column is half of where you were. */
   T.go('res');
   await wait(80);
-  const chips = [{ field: 'shelf', value: '@family. textbooks' }, { field: 'subject', value: 'Statistics' }];
+  /* A CONTENT CARD'S ANIMATION, a page past its card: the mean's, under Averages. */
+  const chips = [{ field: 'kindLabel', value: 'Content' }, { field: 'subject', value: 'Statistics' }];
   T.RES().filters = chips.map(f => Object.assign({}, f));
   W.paintFinder_('res');
   const pages = inRes_(W, () => W.stuffPages_());
-  const at = pages.findIndex(pg => pg.x && pg.x.kind === 'textbook' && pg.part === 'ch3');
-  if (at < 0) return ['Shelf · @family. textbooks, Subject · Statistics has no chapter 3 page — nothing was reloaded'];
+  const at = pages.findIndex(pg => pg.x && pg.x.kind === 'content' && pg.part === 'an8-mean');
+  if (at < 0) return ['What kind · Content, Subject · Statistics has no page for the mean\'s animation — nothing was reloaded'];
   T.goPage('res', inRes_(W, () => W.stuffFirstResult_()) + at, true);
   await wait(150);
   const want = pg_(T).res;
@@ -20059,7 +20064,7 @@ check('Find 2 keeps its own place across a reload — the column, its chips and 
   const kept = keptStore_(W);
   const resKey = Object.keys(kept).find(k => /^draft:u:P7:res:place$/.test(k));
   if (!resKey) return bad.concat(['nothing was kept under draft:u:P7:res:place: ' + Object.keys(kept).filter(k => /place/.test(k)).join(', ')]);
-  if (Object.keys(kept).some(k => /:find:place$/.test(k) && /textbooks/.test(kept[k]))) bad.push('Find 2\'s chips were kept under Find\'s place');
+  if (Object.keys(kept).some(k => /:find:place$/.test(k) && /Statistics/.test(kept[k]))) bad.push('Find 2\'s chips were kept under Find\'s place');
   const two = await resBoot_({ before: fromStore_(kept) });
   if (!two) return bad.concat(['the reload did not load — NOT checked']);
   const w = two.w, t = w.__t;
@@ -20067,9 +20072,9 @@ check('Find 2 keeps its own place across a reload — the column, its chips and 
   await wait(200);
   if (t.AT() !== 'res') bad.push('the reload opened on ' + t.AT() + ', not Find 2');
   if (JSON.stringify(t.RES().filters) !== JSON.stringify(chips)) bad.push('the reload brought Find 2 back with the chips ' + JSON.stringify(t.RES().filters));
-  if (pg_(t).res !== want) bad.push('the reload put Find 2 on page ' + pg_(t).res + ', not chapter 3\'s ' + want);
-  const shown = w.document.querySelector('#s-res .card.is-ch3');
-  if (!shown) bad.push('after the reload no chapter 3 card is drawn on Find 2');
+  if (pg_(t).res !== want) bad.push('the reload put Find 2 on page ' + pg_(t).res + ', not the mean animation\'s ' + want);
+  const shown = w.document.querySelector('#s-res .card.is-an8-mean');
+  if (!shown) bad.push('after the reload the mean\'s animation is not drawn on Find 2');
   if ((t.STUFF().filters || []).length) bad.push('the reload put Find 2\'s place on Find: ' + JSON.stringify(t.STUFF().filters));
   /* AND FIND'S OWN, FROM FIND: kept under its own name and brought back to Find, Find 2 untouched. */
   const t2 = two.w;
@@ -20090,7 +20095,8 @@ check('Find 2 keeps its own place across a reload — the column, its chips and 
   /* A PLACE KEPT BEFORE THIS CHANGE, AND CHIPS NOTHING WILL ANSWER (`placeChipDead_`). Find's own,
      holding: `Shelf · Boxing`, which the split dropped from Find (329) and both finders answer now, so
      it is KEPT; the Bible's chips, and `Shelf · Books`, kept by somebody the Bible is not for (P7 is no
-     admin), DROPPED; a question the funnel has retired (`examWave`), DROPPED; a paper nothing answers YET
+     admin), DROPPED; a question the funnel has retired (`examWave`), DROPPED; the textbooks' shelf and a
+     `Book` chip from before the chapters became content cards (347, part 2), DROPPED; a paper nothing answers YET
      — the library lands after this runs, which is 329's "early" half — KEPT, or a reload before the
      library arrived would lose the place it exists to keep. */
   const stale = Object.assign({}, kept2);
@@ -20099,7 +20105,8 @@ check('Find 2 keeps its own place across a reload — the column, its chips and 
     const dd = JSON.parse(stale[k]); const p = JSON.parse(dd.v);
     p.f = [{ field: 'kindLabel', value: 'Projects' }, { field: 'shelf', value: 'Boxing' }, { field: 'shelf', value: 'Books' },
            { field: 'bibleTranslation', value: 'KJV' }, { field: 'bibleBook', value: 'Genesis' },
-           { field: 'examWave', value: 'Summer 2018' }, early];
+           { field: 'examWave', value: 'Summer 2018' }, { field: 'shelf', value: '@family. textbooks' },
+           { field: 'book', value: 'GCSE Statistics' }, early];
     dd.v = JSON.stringify(p); stale[k] = JSON.stringify(dd);
   });
   const four = await resBoot_({ before: fromStore_(stale) });
@@ -20107,7 +20114,7 @@ check('Find 2 keeps its own place across a reload — the column, its chips and 
   const t4 = four.w.__t;
   for (let i = 0; i < 100 && !(t4.STUFF().filters || []).length; i++) await wait(50);
   const want4 = [{ field: 'kindLabel', value: 'Projects' }, { field: 'shelf', value: 'Boxing' }, early];
-  if (JSON.stringify(t4.STUFF().filters) !== JSON.stringify(want4)) bad.push('a kept place holding Shelf · Boxing, the Books shelf, Bible chips, a retired question and a paper not here yet came back to Find as ' + JSON.stringify(t4.STUFF().filters) + ' — wanted ' + JSON.stringify(want4));
+  if (JSON.stringify(t4.STUFF().filters) !== JSON.stringify(want4)) bad.push('a kept place holding Shelf · Boxing, the Books shelf, Bible chips, a retired question and a paper not here yet came back to Find as ' + JSON.stringify(t4.STUFF().filters) + ' (the textbooks\' shelf and a Book chip among them)' + ' — wanted ' + JSON.stringify(want4));
   /* AND A CHIP ON A FIELD NO FACET ASKS, once the facets have arrived — it is a chip that does nothing
      (`filterHit` reads a facetless chip as matching everything). Before they arrive a sheet-only
      question is merely not here yet, so it is kept. Asked of the rule itself, in both finders. */
@@ -20134,14 +20141,15 @@ check('Find 2 across a sign-in: kept from signed out, kept for the child whose s
     const { w } = b, t = w.__t;
     if (t.whoami()) return ['the app opened signed in — signing in from signed OUT was NOT checked'];
     t.go('res', false, true); await wait(100);
-    /* WHAT KIND · RESOURCES — Find's own first question, which Find 2 asks too (347). */
-    const btn = resPick_(w, 'res', 'Resources');
-    if (!btn) return ['Find 2 does not offer What kind · Resources — NOT checked: ' + resAnswers_(w, 'res').join(' | ')];
+    /* WHAT KIND · CONTENT — Find's own first question, which Find 2 asks too (347). It was Resources while
+       the textbooks were on that shelf; the probability pages are content cards now (347, part 2). */
+    const btn = resPick_(w, 'res', 'Content');
+    if (!btn) return ['Find 2 does not offer What kind · Content — NOT checked: ' + resAnswers_(w, 'res').join(' | ')];
     t.ACTIONS['facet-pick'](btn);
     resType_(w, 'res', 'probability');
     await wait(260);
     const n = inRes_(w, () => w.stuffPages_().length);
-    if (n < 3) return ['the resources searched for "probability" left ' + n + ' page(s) — the page was NOT checked'];
+    if (n < 3) return ['the content cards searched for "probability" left ' + n + ' page(s) — the page was NOT checked'];
     t.goPage('res', inRes_(w, () => w.stuffFirstResult_()) + 2, true);
     await wait(80);
     const before = where(t);
@@ -20191,18 +20199,19 @@ check('Find 2 across a sign-in: kept from signed out, kept for the child whose s
 /* ---------- A KEPT CARD SAVED CANNOT DRAW WHOLE OPENS IN FIND ----------------------------------------
    It was "Open in Resources" under a resource kept on Saved, and on a resource drawn on Find (329). Both
    finders hold everything now (347), so the line is between a card Saved draws whole — a question, a
-   fight — and one it does not — a textbook's chapters, a boxer's fights, a project's steps are a swipe
+   fight — and one it does not — a content card's animations, a boxer's fights, a project's steps are a swipe
    up in a finder and not on Saved. Under the second kind, `Open · in Find`; inside a finder, nothing. */
-check('a kept card Saved cannot draw whole opens in Find: Saved\'s Open under a kept textbook, boxer and project lands on its card in Find; a kept fight and question get none, and no card in a finder does', async () => {
+check('a kept card Saved cannot draw whole opens in Find: Saved\'s Open under a kept content card, boxer and project lands on its card in Find; a kept fight and question get none, and no card in a finder does', async () => {
   const b = await resBoot_({ before: signedInAs_(ANS_ADA) });
   if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
   const { w } = b, t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
   const all = w.stuffItemsAll_();
-  const book = all.find(x => x.kind === 'textbook' && x.name === 'GCSE Statistics');
+  /* A CONTENT CARD WITH AN ANIMATION: its words are on the card, the drawing is a page after it. */
+  const book = all.find(x => x.kind === 'content' && x.key === 'ct:TB-GCSE-STATS-8');
   const boxer = all.find(x => x.kind === 'boxer' && w.pageParts_(x).length > 1);
   const fight = all.find(x => x.kind === 'fight');
   const proj = all.find(x => x.kind === 'project');
-  if (!book || !boxer || !fight || !proj) return ['no GCSE Statistics, boxer with fights, fight or project in the whole list — NOT checked'];
+  if (!book || !boxer || !fight || !proj) return ['no Averages content card, boxer with fights, fight or project in the whole list — NOT checked'];
   const onCard = (x, when, next) => {
     if (t.AT() !== 'stuff') bad.push(when + ': the column in front is ' + t.AT() + ', not Find');
     const pg = w.stuffPages_()[pg_(t).stuff - w.stuffFirstResult_()];
@@ -20231,12 +20240,12 @@ check('a kept card Saved cannot draw whole opens in Find: Saved\'s Open under a 
               html: '<p>Work out PR.</p>', answer: '<b>5 cm</b>', accept: '5' };
   if (tileIn(w.keptPages_([q], 0).join(''))) bad.push('a question kept on Saved has an Open tile — Saved draws it whole');
   const forBook = openOn(book), forBoxer = openOn(boxer), forProj = openOn(proj);
-  if (!forBook) return bad.concat(['the textbook kept on Saved has no Open tile — its chapters cannot be reached from there']);
+  if (!forBook) return bad.concat(['the content card kept on Saved has no Open tile — its animation cannot be reached from there']);
   if (!/\bin Find\b/.test(forBook.getAttribute('aria-label') || forBook.textContent || '')) bad.push('the Open tile does not say it goes to Find: ' + JSON.stringify(forBook.getAttribute('aria-label') || forBook.textContent));
   if (/Find 2|Resources/.test(forBook.getAttribute('aria-label') || '')) bad.push('the Open tile names the wrong column: ' + JSON.stringify(forBook.getAttribute('aria-label')));
   A['find-open'](forBook);
   await wait(150);
-  onCard(book, 'a textbook opened from Saved', 'ch1');
+  onCard(book, 'a content card opened from Saved', 'an8-mean');
   if (JSON.stringify([t.RES().filters, t.RES().q]) !== r0) bad.push('opening from Saved changed Find 2\'s place: ' + JSON.stringify([t.RES().filters, t.RES().q]));
   for (const [x, tile, next] of [[boxer, forBoxer, w.pageParts_(boxer)[1]], [proj, forProj, w.pageParts_(proj)[1]]]) {
     if (!tile) { bad.push('the ' + x.kind + ' kept on Saved has no Open tile'); continue; }
@@ -20520,8 +20529,8 @@ check('a retired splash stays retired: the file\'s list reaches the device, and 
    when the page turns; its stylesheet is in the page once and is the row's; the drawing is the row's
    markup with its ids made its own; no id inside any drawing on the page is shared; the chapter's
    formula under it is typeset; the book's search words hold no markup; and Play again starts it over. */
-/* ON THE RESOURCES COLUMN, where the textbooks are (docs/history/329). */
-check('a chapter plays its animation on Find 2: Pythagoras after GCSE Maths chapter 17, drawn from its row', async () => {
+/* ON FIND 2 (docs/history/329), a page after the Pythagoras content card (347, part 2). */
+check('a content card plays its animation on Find 2: Pythagoras after the Pythagoras and trigonometry card, drawn from its row', async () => {
   const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
   const one = boot();
   await wait(300);
@@ -20540,12 +20549,12 @@ check('a chapter plays its animation on Find 2: Pythagoras after GCSE Maths chap
   t.go('res');
   const S = t.RES();
   S.q = ''; S.filters.length = 0;
-  S.filters.push({ field: 'shelf', value: '@family. textbooks' }, { field: 'book', value: 'GCSE Maths' });
+  S.filters.push({ field: 'kindLabel', value: 'Content' }, { field: 'subject', value: 'Maths' });
   w.paintFinder_('res');
   const pages = R.stuffPages_();
   const at = pages.findIndex(pg => pg.part === 'an17-pyth');
-  if (at < 0) return ['GCSE Maths has no an17-pyth page: ' + pages.map(pg => pg.part || 'card').slice(0, 30).join(' ')];
-  if (!pages[at - 1] || pages[at - 1].part !== 'ch17') bad.push('Pythagoras is not the page straight after chapter 17 (it follows ' + (pages[at - 1] && pages[at - 1].part) + ')');
+  if (at < 0) return ['Content · Maths has no an17-pyth page: ' + pages.map(pg => pg.part || 'card').slice(0, 30).join(' ')];
+  if (!pages[at - 1] || pages[at - 1].part || !pages[at - 1].x || pages[at - 1].x.key !== 'ct:TB-GCSE-MATHS-17') bad.push('Pythagoras is not the page straight after the Pythagoras and trigonometry card (it follows ' + (pages[at - 1] && ((pages[at - 1].x || {}).name + ':' + (pages[at - 1].part || 'card'))) + ')');
   const first = R.stuffFirstResult_();
   t.goPage('res', first + at);
   await wait(450); await woken_();
@@ -20575,27 +20584,27 @@ check('a chapter plays its animation on Find 2: Pythagoras after GCSE Maths chap
   if (!ids.length) bad.push('no drawing near the page has an id, so the id rule was NOT exercised (the Venn two pages on has four)');
   /* WHAT IT IS ABOUT, IN THE CHAPTER'S WORDS AND TYPESET. */
   const card = here.querySelector('.card.tb-an');
-  if (!card) bad.push('the page is not drawn as a textbook animation card');
+  if (!card) bad.push('the page is not drawn as a content card\'s animation');
   else {
     if (!/Pythagoras/.test(card.querySelector('h3').textContent)) bad.push('the page is not headed Pythagoras');
-    if (!/chapter 17/.test(card.querySelector('.fc-kick').textContent)) bad.push('the kicker does not say chapter 17');
+    /* THE KICKER NAMES THE SUBJECT AND THE CARD, AND NEVER A CHAPTER (347, part 2). */
+    const kick = card.querySelector('.fc-kick').textContent;
+    if (!/Maths · Pythagoras and trigonometry/.test(kick) || /chapter|book/i.test(kick)) bad.push('the kicker is "' + kick + '" — wanted the subject and the card, and no chapter');
     const fm = card.querySelector('.tb-about .tb-math .tb-fm');
     if (!fm || !fm.querySelector('sup')) bad.push('the Pythagoras formula under the drawing is not typeset (no raised power)');
     if (card.querySelectorAll('.tb-about li').length > 4) bad.push('the page lists ' + card.querySelectorAll('.tb-about li').length + ' lines — only what it is about, not the whole chapter');
     if (/@family\./.test(card.querySelector('.tb-an-stage').textContent)) bad.push('the drawing in the chapter signs itself');
   }
-  /* THE BOOK IS FOUND BY THE ANIMATION'S TITLE, AND ITS WORDS HOLD NO MARKUP. */
-  const bk = (made.textbooks || []).find(b => b.name === 'GCSE Maths');
-  const words = w.textbookText_(bk);
+  /* THE CARD IS FOUND BY THE ANIMATION'S TITLE, AND ITS WORDS HOLD NO MARKUP. */
+  const ch = (id, n) => (((made.textbooks || []).find(b => b.id === id) || {}).chapters || []).find(c => c.n === n);
+  const words = w.contentText_(ch('TB-GCSE-MATHS', 17));
   /* NOT `<` ITSELF: the chapters' own words have inequalities in them. The drawing's tags and rules. */
-  if (/class=|<svg|<div|@keyframes|py-cell|an-pyth/.test(words)) bad.push('the book\'s search words hold markup — the drawing\'s html or css went into the haystack');
+  if (/class=|<svg|<div|@keyframes|py-cell|an-pyth/.test(words)) bad.push('the card\'s search words hold markup — the drawing\'s html or css went into the haystack');
   /* AND NOT ITS WORDS EITHER: the haystack strips tags, so markup put into it arrives as the drawing's
      own captions. Bayes's "people take a test" is on the drawing and nowhere in the chapter. */
-  const statsBook = (made.textbooks || []).find(b => b.name === 'GCSE Statistics');
-  if (w.textbookText_(statsBook).indexOf('people take a test') !== -1) bad.push('GCSE Statistics is found by "people take a test", which is Bayes\'s drawing, not its chapter — the drawing went into the haystack');
-  if (words.indexOf('Galton') !== -1) bad.push('GCSE Maths\'s words hold Galton, which is a Statistics animation');
-  const stats = (made.textbooks || []).find(b => b.name === 'GCSE Statistics');
-  if (w.textbookText_(stats).indexOf('Galton board') < 0) bad.push('"Galton board" does not find GCSE Statistics');
+  if (w.contentText_(ch('TB-GCSE-STATS', 15)).indexOf('people take a test') !== -1) bad.push('the Probability card is found by "people take a test", which is Bayes\'s drawing, not its words — the drawing went into the haystack');
+  if (words.indexOf('Galton') !== -1) bad.push('the Pythagoras card\'s words hold Galton, which is a Statistics animation');
+  if (w.contentText_(ch('TB-GCSE-STATS', 16)).indexOf('Galton board') < 0) bad.push('"Galton board" does not find the Probability distributions card');
   /* PLAY AGAIN PUTS THE MARKUP BACK, which starts it over. */
   const tile = card && card.querySelector('[data-do="tb-an-again"]');
   if (!tile || typeof t.ACTIONS['tb-an-again'] !== 'function') bad.push('no Play again tile, or no handler for it');
@@ -20609,6 +20618,58 @@ check('a chapter plays its animation on Find 2: Pythagoras after GCSE Maths chap
   t.goPage('res', first + at + 1);
   await wait(450); await woken_();
   if (stage.isConnected && stage.classList.contains('is-on')) bad.push('turned to the next page, and Pythagoras is still `.is-on` — playing out of sight');
+  return bad;
+});
+
+/* ---------- THE OWNER'S TEST: A TOPIC FINDS THE CONTENT CARD BESIDE THE QUESTIONS, ON EITHER FINDER ------
+   *"for maths text book begin adding topic tags so students can immediately find what they need … It can
+   share same tags as questions"* — the owner, 12 Oct. So, over the REAL question rows on five topics and
+   the real content cards through the real mapper, on Find AND on Find 2:
+     · Maths · GCSE · Topic <T> holds the card that teaches <T> — the Topic chip's answer is the library's
+       own spelling, so the card is reached by the word the questions carry;
+     · typing <T> under Maths · GCSE holds that card AND questions tagged <T> — the search is where the
+       questions answer a topic (a question's topic is not a Topic answer, the owner's call of 6 Oct,
+       `topicShown_`), so this is the half that puts the card beside them, and it is asked of the card's
+       place too: on the first page of hits, not 300 results down.
+   Five topics: Surds, Pythagoras' Theorem (with the apostrophe, as the library spells it), Standard Form,
+   Simultaneous Equations and Histograms. */
+check('the owner\'s test, on Find and Find 2: Maths · GCSE · Topic Surds, Pythagoras\' Theorem, Standard Form, Simultaneous Equations, Histograms holds the content card, and typing the topic finds it beside the questions', async () => {
+  const p = await resPayload_();
+  if (!p) return ['libraryExtras_ is not reachable — the owner\'s test was NOT run'];
+  const TOPICS = ['Surds', 'Pythagoras\' Theorem', 'Standard Form', 'Simultaneous Equations', 'Histograms'];
+  const key = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const lib = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const tops = r => String(r.topics || '').split(',').map(key);
+  const rows = lib.filter(r => r.subject === 'Maths' && /^gcse$/i.test(String(r.level || '')) && TOPICS.some(T => tops(r).indexOf(key(T)) !== -1));
+  const missing = TOPICS.filter(T => !rows.some(r => tops(r).indexOf(key(T)) !== -1));
+  if (missing.length) return ['data/questions.json has no GCSE maths question on ' + missing.join(', ') + ' — the test has nothing to put the card beside'];
+  const { w } = boot({ payload: p, serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
+  for (let i = 0; i < 120 && !(typeof w.stuffItemsAll_ === 'function' && w.stuffItemsAll_().some(x => x.kind === 'question')); i++) await wait(50);
+  const t = w.__t, R = resView_(w), bad = [];
+  if (!w.stuffItemsAll_().some(x => x.kind === 'question')) return ['the served questions never reached Find — the test was NOT run'];
+  const finders = [['Find', w, () => t.STUFF()], ['Find 2', R, () => t.RES()]];
+  TOPICS.forEach(T => {
+    const cards = w.stuffItemsAll_().filter(x => x.kind === 'content' && x.subject === 'Maths' && w.topicOf_(x).indexOf(T) !== -1);
+    if (!cards.length) { bad.push('no GCSE Maths content card is tagged "' + T + '" — spelled as the library spells it'); return; }
+    finders.forEach(([name, V, S]) => {
+      const st = S();
+      st.q = '';
+      st.filters.length = 0;
+      st.filters.push({ field: 'subject', value: 'Maths' }, { field: 'level', value: 'GCSE' }, { field: 'topic', value: T });
+      const byChip = V.stuffFiltered();
+      cards.forEach(c => { if (!byChip.some(x => x.key === c.key)) bad.push(name + ': Maths · GCSE · Topic ' + T + ' does not hold "' + c.name + '"'); });
+      st.filters.length = 0;
+      st.filters.push({ field: 'subject', value: 'Maths' }, { field: 'level', value: 'GCSE' });
+      st.q = T.toLowerCase();
+      const hits = V.stuffFiltered();
+      const at = hits.findIndex(x => x.kind === 'content' && cards.some(c => c.key === x.key));
+      const qs = hits.filter(x => x.kind === 'question' && tops(x.row || {}).indexOf(key(T)) !== -1).length;
+      if (at < 0) bad.push(name + ': typing "' + T.toLowerCase() + '" under Maths · GCSE does not find the ' + T + ' card');
+      else if (at >= 10) bad.push(name + ': typing "' + T.toLowerCase() + '" puts the ' + T + ' card at hit ' + (at + 1) + ' of ' + hits.length + ' — not beside the questions, 10 down at most');
+      if (!qs) bad.push(name + ': typing "' + T.toLowerCase() + '" under Maths · GCSE finds no question tagged ' + T + ' — the card is not beside anything');
+      st.q = ''; st.filters.length = 0;
+    });
+  });
   return bad;
 });
 
@@ -20652,7 +20713,7 @@ check('the splash is drawn from the textbooks\' copy: a load keeps it, the next 
   const made = w.libraryExtras_({}, { textbooks: books });
   const maths = made.textbooks.find(b => b.name === 'GCSE Maths');
   const page = w.document.createElement('div');
-  page.innerHTML = w.textbookAnimPart_({ name: maths.name, row: maths, kind: 'textbook' }, 'an17-pyth');
+  page.innerHTML = w.textbookAnimPart_({ name: 'Pythagoras and trigonometry', row: maths.chapters.find(c => c.n === 17), kind: 'content' }, 'an17-pyth');
   const stage = page.querySelector('.tb-an-stage');
   const splashCopy = root.cloneNode(true); splashCopy.querySelector('.sp-sig').remove();
   const unsuffix = h => h.replace(/(id="|url\(#|href="#)([\w-]+?)-t\d+/g, '$1$2');
@@ -21495,7 +21556,7 @@ check('every Find kind that is not a question is made of the shared parts: head,
   const onCard = el => !el.closest('svg, figure, .tb-an-stage');
   const strayFilms = all.filter(x => x.kind === 'film' || p.films.some(f => f.title === x.name));
   if (strayFilms.length) bad.push(strayFilms.length + ' of the payload\'s films reached Find (' + strayFilms.map(x => x.name).join(', ') + ') — films are found in Games → Videos, not in Find');
-  const KINDS_HERE =['practical', 'project', 'textbook', 'boxer', 'fight'];
+  const KINDS_HERE =['practical', 'project', 'content', 'boxer', 'fight'];
   KINDS_HERE.forEach(kind => {
     const xs = all.filter(x => x.kind === kind);
     if (!xs.length) { bad.push('no ' + kind + ' reached Find, so its card was NOT checked'); return; }

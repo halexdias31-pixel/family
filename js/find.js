@@ -445,16 +445,19 @@ const KINDS = {
   /* THE BOUTS. `boxers` is who; this is what happened. 157 of them sat in the sheet unread,
      because nothing in the app had ever been told the tab existed. */
   fight: { group: 'Learning', label: 'Resources', card: x => fightCard_(x) },
-  /* ---------- THE @family. TEXTBOOK IS A RESOURCE, AND THE OWNER SAID WHERE ----------------------
-     ASKED FOR AS "the @family textbook should be bare bones for now and the textbooks will be in the
-     resources tag in the finder. first one can be gcse statistics." So it wears `Resources` beside
-     the boxers and the bouts, and the `Shelf` door below is what keeps one book from being lost
-     under 260 rows of boxing — see `shelf` in FACETS.
-
-     ONE RESULT, ONE PAGE PER CHAPTER, the way a project is one result and four pages: the card is
-     the contents, and `pageParts_` adds a page for each chapter after it. Starring the card keeps
-     the book; a chapter is a page of it, not a thing of its own. */
-  textbook: { group: 'Learning', label: 'Resources', card: x => textbookCard_(x) },
+  /* ---------- `textbook` WAS HERE, AND EACH OF ITS CHAPTERS IS A CONTENT CARD NOW -----------------
+     IT WAS ONE RESULT A BOOK, labelled `Resources` on the `@family. textbooks` shelf, with a contents
+     card and a page per chapter. THE OWNER, 12 Oct: *"for maths text book begin adding topic tags so
+     students can immediately find what they need. Forget the whole concept of it being a text book.
+     It's just a "content card" or whatever. It can share same tags as questions e.g. gcse, ks2,
+     maths."* So a chapter is ONE THING you find, the way a question is: `content`, its own answer
+     under What kind beside Questions and Practicals, carrying the question library's Subject, Level,
+     Tier and Topic in the library's own spellings (`contentItem_`), so "surds" finds the surds card
+     beside the surds questions. The shelf and the `Book` question went with the book; a kept chip on
+     either is dropped (`placeChipDead_`), and a star on a book names no item and is skipped by
+     Saved (`collItems_`). `Content` IS THE CODE'S OWN LABEL, so an empty `kinds` tab still says it.
+     See docs/history/347, part 2. */
+  content: { group: 'Learning', label: 'Content', card: x => contentCard_(x) },
   /* ---------- THE BIBLE, AND THE ONE KIND THE PHONE ITSELF KEEPS FROM ALL BUT AN ADMIN -----------
      ASKED FOR AS "i want to add the bible to resources as a book. but only admin can see the bible."
      So it wears `Resources` like the textbook beside it, on a shelf of its own (`Books`), and its
@@ -1036,7 +1039,9 @@ function bucketTable_(pairs) {
 const KIND_BUCKET = bucketTable_([
   ['Work through it',  ['Questions', 'Answers', 'Practicals', 'Projects']],
   ['Order it',         ['Bundles']],
-  ['Read or watch it', ['Resources']],
+  /* `Content` FIRST, then the boxing and the Bible: a chapter is read, and it is the one a student
+     reaches for beside a question, so it stands next to the work and ahead of the shelves. */
+  ['Read or watch it', ['Content', 'Resources']],
 ]);
 
 /* THE FOUR SCIENCES ARE ONE ANSWER UNTIL SOMEBODY WANTS ONE OF THEM. Maths and English are not
@@ -1289,14 +1294,9 @@ const FACETS = [
      `RETIRED_FACETS`, which stops a sheet row reading the column back off whatever else has one. */
   { field: 'subject',
     bucketOf: SUBJECT_BUCKET, bucketOrder: SUBJECT_BUCKET.order,   label: 'Subject',     of: x => x.subject },
-  /* AND WHICH BOOK, once the shelf is chosen. With one book this has one answer and is not asked,
-     which is right — the list IS the book. The second book makes it a question with no deploy.
-     ASKED AFTER `Subject` SINCE THE SHELF HOLDS A BOOK FOR EVERY GCSE, so the shelf asks Maths /
-     English / Science … first and a subject with one book ends the funnel on it. Twenty-four book
-     titles in one list would be the reading the cap exists to spare. HERE AND IN THE SHEET: its row in
-     `data/settings/facets.json` is below Subject's too, and this list is the order whenever that file
-     is not read — the app's own journeys boot without it, and asked Book first. */
-  { field: 'book',      label: 'Book',        of: x => x.kind === 'textbook' ? x.name : '' },
+  /* `book` WAS HERE — `Book`, which @family. textbook, asked after Subject on the textbooks' shelf.
+     There are no books on screen since 12 Oct (see `content` in KINDS), so nothing answered it; it is
+     in `RETIRED_FACETS`, which keeps the sheet's row from asking it and a kept chip from coming back. */
   /* ---------- THE QUESTION THE FUNNEL HAD NEVER ASKED --------------------------------------------
      STRAIGHT AFTER `Subject`, because "Maths, and it is about fractions" is how somebody says what
      they are looking for — and because `nextFacet` walks this list IN ORDER, so anything below the
@@ -1873,6 +1873,9 @@ const RETIRED_FACETS = {
   topicArea: 'the owner: "why is there a topic area menu? ... im fin with names of pdfs which are the '
            + 'names of the topics themselves". A sheet\'s topic is its PDF\'s name, which `Paper` asks; '
            + 'the strands above it were a grouping over a list that did not need one.',
+  book: 'which @family. textbook -- and there are no textbooks on screen since 12 Oct: every chapter is '
+      + 'a content card of its own (docs/history/347, part 2), so nothing answers it. A sheet row naming '
+      + '`book` would read a field no item has; a kept `Book` chip would hold an empty list.',
 };
 
 function facetList() {
@@ -4048,38 +4051,46 @@ const tbSub_ = html => String(html).replace(/[₀-₉ₐₑₒₓₙₛₜ]+/g,
    in a photocopy too; `title` says it in full for anybody who does not know the convention. */
 const tbHigher_ = on => on ? '<span class="tb-h" title="Higher tier only">H</span>' : '';
 
-function textbookCard_(x) {
-  const b = x.row;
-  const higher = (b.chapters || []).some(c => c.higher || c.words.concat(c.formulas, c.points).some(i => i.higher));
-  return `<div class="card fc prac tb">
+/* ---------- A CONTENT CARD: ONE CHAPTER, WHOLE, WITH THE QUESTIONS' TAGS ON IT -------------------
+   IT WAS A CONTENTS CARD AND A PAGE PER CHAPTER (`textbookCard_`, `textbookPart_`). The owner, 12 Oct:
+   *"Forget the whole concept of it being a text book. It's just a "content card"."* So the chapter IS
+   the card: the head every Find kind opens on (`.fc-head` — its title, and the `Content` flag where a
+   practical says `Practical`), the tag row a question wears (`contentTags_`), then its key words,
+   formulas and worked lines (`tbSections_`, unchanged). Nothing on it says book or chapter — the number
+   a chapter has in the file is its order there, not a fact about it. Its animations stay pages of their
+   own after it (`pageParts_`), played in whichever finder it is open in (`tbAnimWatch_`). */
+function contentCard_(x) {
+  const c = x.row;
+  return `<div class="card fc prac tb ct">
     <div class="fc-head">
-      <h3>${esc(x.name)}</h3>
-      <span class="fc-flags"><span class="fc-flag is-type">Textbook</span></span>
+      <h3>${esc(x.name)}${tbHigher_(c.higher)}</h3>
+      <span class="fc-flags"><span class="fc-flag is-type">Content</span></span>
     </div>
-    <p class="sub">${esc(['@family.', b.board, b.spec].filter(Boolean).join(' · '))}</p>
-    ${b.summary ? `<p class="fc-lede">${esc(b.summary)}</p>` : ''}
-    <p class="fc-meta">${esc((b.chapters || []).length + ' chapters')}${higher
-      ? ` · ${tbHigher_(true)} = Higher tier only` : ''}</p>
-    <section class="fc-sec tb-toc"><h4>Contents</h4>
-      <ol class="fc-list">${(b.chapters || []).map(c => `<li>${esc(c.title)}${tbHigher_(c.higher)}</li>`).join('')}</ol>
-    </section>
+    ${contentTags_(x)}
+    ${tbSections_(c)}
   </div>`;
 }
-
-/* ONE CHAPTER. `part` is `ch` and the chapter's number — `ch7` — because it also lands in a class
-   name, `is-ch7`, and a colon there would need escaping in every selector that reads it. */
-/* AND ONE ANIMATION. `an7-mean` is the mean's page after chapter 7 — see `textbookAnimPart_`. */
-function textbookPart_(x, part) {
-  if (/^an\d+-/.test(String(part || ''))) return textbookAnimPart_(x, part);
-  const b = x.row, n = Number(String(part || '').slice(2));
-  const c = (b.chapters || []).find(ch => ch.n === n);
-  if (!c) return '';
-  return `<div class="card fc prac prac-part tb is-${esc(part)}">
-    <p class="fc-kick">${esc(x.name)} · chapter ${c.n}</p>
-    <h3>${esc(c.title)}${tbHigher_(c.higher)}</h3>
-    ${tbSections_(c)}
-    ${c.topics ? `<p class="fc-note"><b>Topics</b> ${esc(c.topics)}</p>` : ''}
-  </div>`;
+/* ---------- THE QUESTION CARD'S ROW, ASKED OF THE SAME FACETS -------------------------------------
+   *"It can share same tags as questions e.g. gcse, ks2, maths."* So these are `qTags_`'s readers —
+   `qTagOf_` over Level and Key stage, Exam board, Subject, Tier — and the Topic answers, each in the
+   colour its funnel chip wears (`tagOf_`). Through the facets and not off the row, for `qTags_`'s
+   reason: a tag can then never say a word the chip above it would not, so `GCSE` here is the Level
+   answer a question says, and Key stage is said only inside SATs, as on a question. WHAT THE PAGE IS
+   — `Question` at the front of a question's row — is the head's `Content` flag here, as on every other
+   Find kind, so the row does not say it twice. NO TAG IS A CONTROL. */
+function contentTags_(x) {
+  const tags = [];
+  const add = (tag, v) => {
+    const t = String(v || '').trim();
+    if (t && !tags.some(o => norm(o.text) === norm(t))) tags.push({ tag: tag, text: t });
+  };
+  qTagOf_('level', x).concat(qTagOf_('keystage', x)).forEach(v => add(tagOf_('level'), v));
+  qTagOf_('examBoard', x).forEach(v => add('board', v));
+  qTagOf_('subject', x).forEach(v => add('subject', v));
+  qTagOf_('tier', x).forEach(v => add('tier', v));
+  qTagOf_('topic', x).forEach(v => add(tagOf_('topic'), v));
+  return `<div class="qtags qcard-tags">${tags.map(t =>
+    `<span class="qtag"${t.tag ? ` data-tag="${t.tag}"` : ''}>${esc(t.text)}</span>`).join('')}</div>`;
 }
 
 /* ---------- A CHAPTER'S KEY WORDS, FORMULAS AND WORKED LINES — ALL OF THEM, OR THE ONES ASKED FOR ---------
@@ -4087,7 +4098,8 @@ function textbookPart_(x, part) {
    is ABOUT (`keep`, the row's `about`): a key word or a formula by its name, a worked line by how it
    opens. Two copies of this markup would be two places for a Higher mark or a fraction to be drawn
    differently, which is the shape `typeset_` exists to end. With no `keep` this is, byte for byte, what
-   `textbookPart_` drew before it moved here — proved over every chapter of every book when it moved. */
+   `textbookPart_` drew before it moved here — proved over every chapter of every book when it moved.
+   The content card draws it whole now (`contentCard_`), where the chapter's own page used to. */
 function tbSections_(c, keep) {
   const line = (i, body) => `<li>${body}${tbHigher_(i.higher)}</li>`;
   const named = i => !keep || keep.indexOf(i.name) !== -1;
@@ -4123,15 +4135,18 @@ function tbSections_(c, keep) {
 
    A THING HAS TILES (CLAUDE.md), and an animation is a thing: Play again is a tile, not a button. */
 let TB_AN_SEQ = 0;
+/* THE PART IS STILL `an17-pyth` — the chapter's number in the file, then the drawing's id — because
+   the number is what tells two cards' drawings apart in a class name and a kept page. It is never
+   SAID: the kicker names the subject and the card, which is what a student reaching this page from
+   the card above it already knows it by. */
 function textbookAnimPart_(x, part) {
   const m = /^an(\d+)-([a-z0-9]+)$/.exec(String(part || ''));
-  const b = x && x.row;
-  const c = m && b && (b.chapters || []).find(ch => ch.n === Number(m[1]));
-  const a = c && (c.animations || []).find(y => y.id === m[2]);
+  const c = x && x.row;
+  const a = m && c && c.n === Number(m[1]) && (c.animations || []).find(y => y.id === m[2]);
   if (!a) return '';
   animStyle_(a);
   return `<div class="card fc prac prac-part tb tb-an is-${esc(part)}">
-    <p class="fc-kick">${esc(x.name)} · chapter ${c.n} · ${esc(c.title)}${tbHigher_(c.higher)}</p>
+    <p class="fc-kick">${esc([c.subject, c.title].filter(Boolean).join(' · '))}${tbHigher_(c.higher)}</p>
     <h3>${esc(a.title)}</h3>
     <div class="tb-an-stage" data-anim="${esc(a.id)}">${animIds_(a.html, ++TB_AN_SEQ)}</div>
     <div class="tile-row">${tile_({ icon: 'undo', label: 'Play again', note: 'from the start', act: 'tb-an-again' })}</div>
@@ -4212,18 +4227,39 @@ on('tb-an-again', el => {
   if (st) st.innerHTML = st.innerHTML;
 });
 
-/* `textbookText_` — `projectText_`'s move for a book: `frequency density` and `stratified` are what
-   somebody types, and they are only ever inside a chapter. The formulas go in as typed, so `IQR`
-   finds the chapter that defines it. */
-/* AN ANIMATION IS FOUND BY ITS TITLE — "Galton board" finds the statistics book — and never by its
+/* ---------- ONE CHAPTER, AS AN ITEM THE FUNNEL ASKS THE QUESTIONS' QUESTIONS OF ----------------------
+   THE QUESTION LIBRARY'S FIELDS, IN ITS SPELLINGS, so one chip holds both: `subject` and `level` as
+   the cover or the chapter says them (`libraryExtras_` fills a chapter's blank cell from the cover),
+   `keystage` as a comma list like a worksheet's, `tier` only where the chapter is Higher all through,
+   and `examBoard` ONLY where the chapter's own content is one board's — a set text, an anthology, a
+   language's themes, an exam's question numbers. Blank everywhere else, because the words of a GCSE
+   Maths chapter are every board's, and a `Edexcel` chip that hid them from an AQA student would be
+   the judgement-drawn-as-a-fact the owner refused for question topics (`topicShown_`). TOPICS ARE THE
+   LIBRARY'S LABELS, SPELLED EXACTLY — `check-textbooks.js` refuses one that is not — so the search
+   reaches the card and the questions with one word, and Topic folds them into one answer.
+   THE KEY IS THE BOOK'S ID AND THE CHAPTER'S NUMBER (`ct:TB-GCSE-MATHS-2`). A star on a book (`tb:`)
+   names nothing now, and `collItems_` skips a key that names nothing, so Saved drops it quietly. */
+function contentItem_(b, c) {
+  return {
+    kind: 'content', name: c.title, key: 'ct:' + b.id + '-' + c.n,
+    sub: [c.subject, c.level].filter(Boolean).join(' · '),
+    image: '',
+    subject: c.subject, level: c.level, keystage: c.keystage, topics: c.topics,
+    examBoard: c.board || '', tier: c.higher ? 'Higher' : '',
+    text: contentText_(c) + ' ' + topicAtoms_(c.topics).join(' '),
+    row: c,
+  };
+}
+
+/* `contentText_` — `projectText_`'s move for one content card: `frequency density` and `stratified` are
+   what somebody types, and they are only ever inside the card's words. The formulas go in as typed, so
+   `IQR` finds the card that defines it. It was `textbookText_`, the same lines over a whole book. */
+/* AN ANIMATION IS FOUND BY ITS TITLE — "Galton board" finds the card it is under — and never by its
    markup or its CSS, which are not words anybody types. */
-function textbookText_(b) {
-  const parts = [b.summary, b.board, b.spec];
-  (b.chapters || []).forEach(c => {
-    parts.push(c.title);
-    c.words.concat(c.formulas, c.points).forEach(i => parts.push(i.name, i.text));
-    (c.animations || []).forEach(a => parts.push(a.title));
-  });
+function contentText_(c) {
+  const parts = [c.title, c.subject, c.level, c.board, c.spec];
+  c.words.concat(c.formulas, c.points).forEach(i => parts.push(i.name, i.text));
+  (c.animations || []).forEach(a => parts.push(a.title));
   return plainText_(parts.filter(Boolean).join(' '));
 }
 
@@ -5013,17 +5049,11 @@ function pageParts_(x, prev) {
     out.push('share');
     return out;
   }
-  /* A TEXTBOOK IS ITS CONTENTS CARD AND A PAGE PER CHAPTER, in the chapters' own order — the
-     mapper sorted them by number, so this is the book read front to back. AND A PAGE PER ANIMATION,
-     straight after the chapter it teaches: `an17-pyth` after `ch17`. Saved and Spotlight keep the
-     cover only (`cardPages_` takes none of these). */
-  if (x && x.kind === 'textbook' && x.row) {
-    const out = [null];
-    (x.row.chapters || []).forEach(c => {
-      out.push('ch' + c.n);
-      (c.animations || []).forEach(a => out.push('an' + c.n + '-' + a.id));
-    });
-    return out;
+  /* A CONTENT CARD IS ITSELF AND A PAGE PER ANIMATION, in the file's order: `an17-pyth` after the
+     Pythagoras card. Its words are on the card, so there is no chapter page any more. Saved and
+     Spotlight keep the card only (`cardPages_` takes none of these), and give it Open. */
+  if (x && x.kind === 'content' && x.row) {
+    return [null].concat((x.row.animations || []).map(a => 'an' + x.row.n + '-' + a.id));
   }
   /* THE BIBLE HAS NO BRANCH HERE ANY MORE. Its cover and each of its verses are one page, the
      default below; the cover's three lists of books and the open book's pages went with the reader
@@ -5091,7 +5121,7 @@ function keptPages_(items, credits) {
 }
 function stuffPart_(x, part) {
   if (x && x.kind === 'project') return projectPart_(x, part);
-  if (x && x.kind === 'textbook') return textbookPart_(x, part);
+  if (x && x.kind === 'content') return textbookAnimPart_(x, part);
   if (x && x.kind === 'boxer') return boxerPart_(x, part);
   if (x && x.kind === 'question' && part === 'ans') return questionAnsCard_(x);
   if (x && x.kind === 'question' && part === 'use') return questionUsesCard_(x);
@@ -5866,7 +5896,7 @@ function boxerCard_(x) {
     esc(b.country)}</span>` : '') + (b.bestDivision ? `<span class="boxer-weight">${esc(b.bestDivision)}</span>` : '');
   const st = boxerStatus_(b);
   /* `.boxer-rec` IS STILL THE RECORD'S NAME, on the whole record box now rather than on one gold
-     line. `check/states.js` looks for it on the textbook's shelf to prove no boxer leaked in, so the
+     line. `check/states.js` looks for it under What kind · Content to prove no boxer leaked in, so the
      name has to go on meaning "a boxer's record is drawn here". */
   return `<div class="card fc boxer">
     <div class="fc-head">
@@ -11422,10 +11452,16 @@ function findPlaceBack_(F) {
      · A chip on a field no facet asks is dead once the facets have arrived (`DATA.facets` has rows —
        before then a sheet-only question like `projectType` is merely not here yet). `filterHit` reads a
        facetless chip as matching everything, so it would have hung on as a chip that does nothing. */
+const RETIRED_SHELVES = ['@family. textbooks'];
 function placeChipDead_(f) {
   if (!f || typeof f.field !== 'string') return true;
   if (BIBLE_FIELDS[f.field] || (f.field === 'shelf' && f.value === BIBLE_SHELF)) return !bibleFor_();
   if (RETIRED_FACETS[f.field]) return true;
+  /* A SHELF THAT WENT. `@family. textbooks` held the books, and each chapter is a content card now
+     with no shelf at all — so a kept place standing on it would come back to an empty list, on a chip
+     that is a perfectly good question (`shelf` still sorts boxing from the Bible). By what the chip
+     IS, like the two rules above: the shelf is gone for everybody, early or late. */
+  if (f.field === 'shelf' && RETIRED_SHELVES.indexOf(f.value) !== -1) return true;
   return !facetBy(f.field) && Array.isArray(DATA.facets) && DATA.facets.length > 0;
 }
 
@@ -11814,22 +11850,11 @@ function stuffItemsRaw_() {
       row: p,
     })),
 
-    /* ---------- THE @family. TEXTBOOKS ------------------------------------------------------
-       ONE ITEM PER BOOK, and the chapters are its pages — `pageParts_`. The topics of every
-       chapter are the book's topics, so the Topic join and the search both reach it from
-       `Histograms` the way they reach a practical. Every word of every chapter is in the
-       haystack: somebody types `frequency density`, not `GCSE Statistics`. */
-    ...(DATA.textbooks || []).map(b => {
-      const topics = (b.chapters || []).map(c => c.topics).filter(Boolean).join(', ');
-      return {
-        kind: 'textbook', name: b.name, key: 'tb:' + b.id,
-        sub: [b.board, b.spec, (b.chapters || []).length + ' chapters'].filter(Boolean).join(' · '),
-        image: '', shelf: '@family. textbooks',
-        subject: b.subject, level: b.level, topics: topics,
-        text: textbookText_(b) + ' ' + topicAtoms_(topics).join(' '),
-        row: b,
-      };
-    }),
+    /* ---------- THE CONTENT CARDS: ONE ITEM PER CHAPTER OF data/textbooks.json -----------------------
+       IT WAS ONE ITEM PER BOOK on the `@family. textbooks` shelf, and the chapters were its pages —
+       see `content` in KINDS for the owner's words that ended it. Now a chapter is found on its own,
+       by the tags a question is found by. */
+    ...[].concat(...(DATA.textbooks || []).map(b => (b.chapters || []).map(c => contentItem_(b, c)))),
 
     /* ---------- THE BIBLE, FOR AN ADMIN AND NOBODY ELSE ---------------------------------------
        ONE ITEM ON THE `Books` SHELF, or none. The single place on this list where code on the phone
@@ -12553,7 +12578,16 @@ function stuffSorted_(items) {
    there), because "ix" sorted before "v" and part 10 before part 2 on letters, and the obvious fix --
    numerals by value everywhere -- puts h, i, j out of order. Anything that is not a question has no
    key and falls through to the letters, as it always did. */
+/* ---------- A CONTENT CARD COMES FIRST, AND THE CARDS IN THE ORDER THEY TEACH -----------------------
+   *"begin adding topic tags so students can immediately find what they need"* — the owner, 12 Oct. The
+   order here is the alphabet of a paper's name, and a card's `Maths · GCSE` filed it among the papers:
+   typing `histograms` put the Histograms card at hit 32 of 47, under thirty past-paper parts. So a
+   content card leads any list it is in — the reading, then the questions on it — and the cards keep the
+   file's own order among themselves (the book's id, then the number), which is the order they teach in;
+   their names' alphabet would have put Averages before The statistical enquiry cycle. Every other
+   item's key gains the same leading `1`, so their order among themselves is exactly what it was. */
 const sortKey_ = x => [
+  x.kind === 'content' ? '0' + String((x.row && x.row.bookId) || '') + '\u0000' + padNums_(String((x.row && x.row.n) || 0)) : '1',
   padNums_(String(x.sub || x.name || '').toLowerCase()),
   x.kind === 'question' ? String(paperIdOf_(x.row) || '').toLowerCase() : '',
   padNums_(String(x.qNumber == null ? '' : x.qNumber)),
