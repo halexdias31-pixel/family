@@ -1643,10 +1643,21 @@ function mailOut_(o) {
   return MailApp.sendEmail(o);
 }
 /* THE NET'S INDEX WITH EVERY " (@handle)" TAKEN OFF WHAT A NAME BECOMES — `mailOut_`'s `firstNamesOnly`.
-   A copy: the index is memoised for the request, and the screens' replies still want the handle. */
+   A copy: the index is memoised for the request, and the screens' replies still want the handle.
+   AND A NAME THAT WOULD BECOME A BARE "@handle" IS NOT REPLACED AT ALL (the review of 12 Oct). A child with
+   no first name is named by their handle (`kidFirst_`), and stripping " (@…)" leaves that untouched: a
+   question this week whose words held the phrase — "Describe how Van Dyke painted…", over a child whose
+   surname is Van Dyke — went to a parent as "Describe how @vd_hidden_99 painted…". Such an entry is dropped
+   from the copy, so the words go as they were written: in the parents' email the only words are the
+   question's own, and the email names its child by the first name it already checked (`digestPlan_`). */
 function kidNamesBare_(idx) {
-  const off = m => { const o = {}; Object.keys(m || {}).forEach(k => { o[k] = S(m[k]).replace(/\s*\(@[^)]*\)\s*$/, ''); }); return o; };
-  return Object.assign({}, idx, { said: off(idx.said), whole: off(idx.whole) });
+  const off = m => {
+    const o = {};
+    Object.keys(m || {}).forEach(k => { const v = S(m[k]).replace(/\s*\(@[^)]*\)\s*$/, ''); if (v && v.charAt(0) !== '@') o[k] = v; });
+    return o;
+  };
+  const whole = off(idx.whole);
+  return Object.assign({}, idx, { said: off(idx.said), whole: whole, wholeAny: Object.keys(whole).length > 0 });
 }
 
 /**

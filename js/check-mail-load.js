@@ -12,7 +12,8 @@
        saying `sending`, under a well-formed key, at the moment of sending, is recorded in
        `mail.unreceipted`; a send while the lock is held, in `mail.locked`.
      · THE TRIGGER STUB KNOWS `everyHours`, so a check can book the kind of hourly trigger
-       `installWeeklyDigest` must take away (`DIGEST_RETIRED_RUNS`).
+       `installWeeklyDigest` must take away (`DIGEST_RETIRED_RUNS`); and `after`, with an id per trigger,
+       for the marking pass's run-up, which books a one-off and deletes it by its id.
      · `formatDate` ANSWERS `yyyy-MM-dd HH:mm` IN THE ZONE NAMED, as well as `yyyy-MM-dd`, so a London
        clock is never quietly a UTC one — the whole of the summer question.
 
@@ -74,6 +75,9 @@ function world(opts) {
     getRemainingDailyQuota: () => mail.quota,
   };
   const trig = [];
+  /* AND EACH TRIGGER HAS ITS ID, as a real one does (`getUniqueId`): the marking pass's run-up books a
+     one-off and the next pass deletes it BY that id (`digestMarkAgainDone_`). */
+  let uid = 0;
   const ScriptApp = {
     getScriptId: () => 'local', getOAuthToken: () => '', getService: () => ({ getUrl: () => '' }),
     getAuthorizationInfo: () => ({ getAuthorizationStatus: () => 'NOT_REQUIRED' }), AuthMode: { FULL: 'FULL' },
@@ -83,7 +87,7 @@ function world(opts) {
     deleteTrigger: t => { const i = trig.indexOf(t); if (i >= 0) trig.splice(i, 1); },
     newTrigger(fn) {
       const spec = { fn: fn };
-      const make = () => { const t = { spec: spec, getHandlerFunction: () => spec.fn }; trig.push(t); return t; };
+      const make = () => { const id = 'trig-' + (++uid); const t = { spec: spec, getHandlerFunction: () => spec.fn, getUniqueId: () => id }; trig.push(t); return t; };
       const clock = {
         onWeekDay: d => { spec.weekDay = d; return clock; }, atHour: h => { spec.hour = h; return clock; },
         nearMinute: m => { spec.minute = m; return clock; }, inTimezone: z => { spec.tz = z; return clock; },

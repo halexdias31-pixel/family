@@ -216,6 +216,47 @@ its emails to the world's MailApp.
 
 The four version stamps move together to `2026-10-12-t-sunday`.
 
+### After the review of 12 Oct: the marks have to reach a weekend's work
+
+The review's four blocking findings, all of one kind — the email went with marks it could have had:
+
+1. **One pass between Saturday 02:00 and the email.** Four minutes at ~16 s an answer (Gemini's ~4 s and the
+   12 s gap) is about sixteen; the live sheet's answers all came on a Saturday and a Sunday. Now the pass
+   booked an hour before the email is a **run-up** (`DIGEST_MARK_RUNUP_MS`, 90 min): while work is left it
+   books itself again a minute on (`digestMarkAgain_`, a one-off on the same handler, deleted by the pass it
+   starts; its id in `DIGEST_MARK_AGAIN`), and no ask starts within `DIGEST_MARK_CLEAR_MS` (17 min) of the
+   email. Sixty answers sent on the Sunday morning, Gemini at 4 s: all sixty marked, in four passes, where it
+   was 16 marked and 44 "not marked". `DIGEST_MARK_MAX` now counts answers, not asks a busy Gemini refused.
+2. **Gemini busy on the first answer gave up for good.** Busy or out of reach is now waited out —
+   `DIGEST_MARK_BUSY_MS` (30 s), then the same answer again, through `aiMarkAsk_`'s own retry and fallback —
+   and the pass stops only when a wait would carry it past its deadline. Refused still stops and throws.
+3. **Answers after the pre-email pass went out unmarked.** `weeklyDigestRun` now runs a last pass first
+   (`{ final: true }`, `DIGEST_MARK_FINAL_MS`, two minutes, so the mailing keeps the rest of the six), under
+   the same claim, and its failure never stops the email. The email's trigger has `nearMinute(0)` too, and the
+   email says "up to" the run's own London minute (`digestLook_`), not the hour it was booked for.
+4. **`check-digest.js` typed the version stamp.** It reads `BACKEND_VERSION` now, so a correct bump of the
+   four stamps is green.
+
+And the minor ones: `checkSundayEmail` reads the hour the triggers were booked at (`DIGEST_BOOKED`, set by
+`installWeeklyDigest`) and says when the config cell has moved since; names each child with a parent to email
+and no answer yet (`digestReach_`, lifted out of `digestPlan_` unchanged); and estimates the room the passes
+have before the email instead of saying "can mark N". The dry run marks on the triggers' schedule, each pass
+seeing only the answers that had arrived by its time, and says how many go out "not marked" for want of
+room. Its repository guard compares real paths, so `..sunday` inside the tree is inside. And
+`weekly_digest_marking` is on only for blank, on, yes, y, true, 1 or ✓ — `weekly_digest`'s own rule, so
+"disabled" or "none" is off rather than quietly on.
+
+**Checked:** `check-digest.js` 140 → 150 rules: twelve 503s waited out and both marked; a whole pass of 503s
+waits, leaves both, and does not throw; the Sunday burst of sixty all marked, no ask within 17 min of the
+email, one one-off at a time, none left, none counted by the setup check; Saturday's nightly pass does not
+book a run-up; an answer at 17:50 goes out "2 of 3 marks" and "up to 6:02pm"; the email's own pass keeps to
+two minutes and the email still goes; the setup check's new lines; the guard's `..` folder. **Mutations, each
+red, the real files green after:** the run-up never booking again (16 of 60 marked); busy giving up at once
+(both busy rules red); no last pass in the email's run (the 17:50 answer "not marked").
+
+The four version stamps move together to `2026-10-13-t-sunday-runup`. **If `installWeeklyDigest` was already
+run, run it again** after deploying: it adds the email's `nearMinute(0)` and records the hour it booked.
+
 ### For the owner to do — one Apps Script sitting, before Sunday 18 Oct
 
 1. **Deploy the backend** with the GitHub Assistant extension (CLAUDE.md's route 1: Repository ▾ / Branch ▾
@@ -226,7 +267,7 @@ The four version stamps move together to `2026-10-12-t-sunday`.
 3. On the config tab set **`weekly_digest`** to **`send`**. (Check GEMINI_API_KEY is in Project Settings →
    Script Properties; it is if Mark with AI works.)
 4. Run **`installWeeklyDigest`** from the function list. It books the email (Sundays about 18:00) and the two
-   marking passes (nightly about 02:00, Sundays about 17:00), and says so in the log.
+   marking passes (nightly about 02:00, Sundays about 17:00, carrying on until about 17:43), and says so in the log.
 5. Run **`checkSundayEmail`**. Every line should read as ready: the email ON, the triggers installed, the key
    set, Gemini answering the test, the library fetched, and a list of any learner who will not be reached and
    why — the live sheet has six parents with links and one email address among them, so most learners will

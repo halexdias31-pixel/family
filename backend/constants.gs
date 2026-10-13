@@ -335,7 +335,7 @@ const NOTIFY_KINDS = {
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-10-12-t-sunday";
+const BACKEND_VERSION = "2026-10-13-t-sunday-runup";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1802,13 +1802,17 @@ const CONFIG_DEFAULTS = [
      THE OWNER, 12 OCT: *"i want them to see if they got it right too. for this i need th ai marking to be
      working too."* A worded answer sent while AI marking was off, or a maths answer the phone had nothing to
      Check against, is `sent` — and Sunday's email would have said "not marked" beside it for ever. So a
-     pass marks those with Gemini, nightly and an hour before the email, and this row is its own switch.
+     pass marks those with Gemini, nightly and in the hour before the email, and this row is its own switch.
      ON BY DEFAULT, AND THAT IS THE SAFE ANSWER HERE, because it is the second switch and not the first:
      nothing runs while `weekly_digest` is `off` (its default) or while GEMINI_API_KEY is missing from
      Script Properties, and `ai_marks_per_day` at 0 stops it too, as that note has always promised for all
      AI marking. It spends the KEY's Gemini quota, never a child's `ai_marks_per_day` (that cap is about
-     presses). `off` (or no, 0, false) stops only this pass; the email still goes, saying "not marked". */
-  ['weekly_digest_marking', 'on', 'whether answers nothing could mark are marked by AI overnight and an hour before the Sunday email: on or off. Blank = on. Runs only while weekly_digest is preview or send and GEMINI_API_KEY is set; spends the key’s Gemini quota, not anybody’s ai_marks_per_day. ai_marks_per_day 0 stops it too'],
+     presses). Off stops only this pass; the email still goes, saying "not marked".
+     ON IS SPELLED, OFF IS EVERYTHING ELSE (the review of 12 Oct): blank, on, yes, true, 1 or ✓ is on. It
+     read only off, no, 0 and false as off, so "disabled", "none" or "n" — words an owner types to mean off —
+     left a pass spending the key's quota every night; and the row above reads anything it does not know
+     as off, so one row meant the opposite of its neighbour. */
+  ['weekly_digest_marking', 'on', 'whether answers nothing could mark are marked by AI overnight and in the hour before the Sunday email: on (blank, on, yes, true or 1) or off (anything else). Runs only while weekly_digest is preview or send and GEMINI_API_KEY is set; spends the key’s Gemini quota, not anybody’s ai_marks_per_day. ai_marks_per_day 0 stops it too'],
 
   ['print_rate_per_page', 0.02, 'what a printed page costs. 0.02 = 2p. Set to 0 and no paper copies are offered at all'],
   ['print_minimum', 0, 'the least a print job can cost, whatever the page count. 0 = no minimum'],
@@ -2494,7 +2498,8 @@ const DIGEST_RETIRED_RUNS = ['sessionRecapRun'];
 /* ---------- THE MARKING PASS — `digestMarkRun` / `digestMarkPass_` in digest.gs (docs/history/348) ----------
    THE HANDLER BY NAME, written once for `DIGEST_RUN`'s reason: a trigger is found and deleted by that string.
    Two bookings of it, both by `installWeeklyDigest`: nightly at `DIGEST_MARK_NIGHT` (02:00 London), so a
-   child sees the marks next morning, and on Sunday an hour before the email, so the email has them.
+   child sees the marks next morning, and on Sunday an hour before the email, so the email has them — that
+   one carrying on until the email is close (the run-up, below), and the email's own run asking once more.
    02:00 AND NOT LATER IN THE MORNING ON PURPOSE: Gemini's daily quota is counted on California's day, which
    starts at 08:00 here, so a pass at 02:00 spends what the children's presses left of yesterday and not
    what they will want today (constants above AI_MODEL: the first model's free quota is about twenty a day).
@@ -2504,7 +2509,8 @@ const DIGEST_RETIRED_RUNS = ['sessionRecapRun'];
    once `DIGEST_MARK_BUDGET_MS` (4 min) has gone, and what is left waits for the next pass — which works out
    what is left from the sheet, so nothing is kept between passes but a tally of replies that had no mark.
    `DIGEST_MARK_GAP_MS` between asks keeps it under the free tier's few requests a minute, and
-   `DIGEST_MARK_MAX` asks a pass keeps a week's backlog from spending the key's whole day in one night.
+   `DIGEST_MARK_MAX` answers a pass keeps a week's backlog from spending the key's whole day in one night
+   (an ask Gemini was too busy to answer spends nothing, and is not counted).
    `DIGEST_MARK_TRIES`: an answer Gemini twice gave no mark for is left "not marked" rather than asked every
    night — without it, twenty such answers at the front of the queue would hold back everything behind them.
    `DIGEST_MARK_CLAIM_MS`: a pass's claim on the work, longer than any run can be, so the nightly pass, the
@@ -2521,6 +2527,35 @@ const DIGEST_MARK_CLAIM_MS = 420000;
 const DIGEST_MARK_LOCK_MS = 10000;
 const DIGEST_MARK_CLAIM = 'DIGEST_MARKING';
 const DIGEST_MARK_TRIED = 'DIGEST_MARK_TRIED';
+/* ---------- THE RUN-UP TO THE EMAIL, AND THE LAST PASS AS IT GOES (the review of 12 Oct) -------------------
+   ONE PASS AN HOUR BEFORE WAS NOT ENOUGH. Four minutes at an answer every ~16 s (Gemini's ~4 s and the 12 s
+   gap) is about SIXTEEN answers — and the live sheet's 62 rows all came on a Saturday and a Sunday. Measured
+   over the real backend with Gemini stubbed at 4 s: 60 answers sent on the Sunday morning went out 16 marked
+   and 44 "not marked", with Gemini answering every ask and the email still an hour away. So:
+     `DIGEST_MARK_RUNUP_MS`  a pass this close to the email (90 min: the Sunday pass is booked an hour before,
+                             near the hour, and Google may start it fifteen minutes early) is in its RUN-UP:
+                             while work is left it books itself again, once, `DIGEST_MARK_AGAIN_MS` later
+                             (a one-off trigger on the same handler, whose id is kept in `DIGEST_MARK_AGAIN`
+                             so the next pass deletes it and the setup check does not count it as booked);
+     `DIGEST_MARK_CLEAR_MS`  and no ask is started closer to the email than this: the email is booked near
+                             the hour too, so it may begin fifteen minutes early, and an ask once started can
+                             take ~80 s. 17 min keeps every run-up pass out of the email's way;
+     `DIGEST_MARK_FINAL_MS`  the email's own run marks what came in since, for this long, before it plans —
+                             two minutes, because the mailing has to fit in the same six;
+     `DIGEST_MARK_BUSY_MS`   Gemini busy or out of reach is waited out, not given up on: the pass waits this
+                             long and asks the same answer again while its time allows. It gave up at the
+                             first busy, and a 20-second 503 storm at 16:55 left the whole Sunday "not marked"
+                             with 3.6 of its 4 minutes unspent.
+   `DIGEST_BOOKED`: the hour `installWeeklyDigest` booked the email at, kept in Script Properties. Apps Script
+   cannot read a trigger's hour back, and `weekly_digest_hour` changed after installing moved nothing but the
+   words: the setup check said "installed at 20:00" over a trigger still firing at 18:00. */
+const DIGEST_MARK_RUNUP_MS = 90 * 60000;
+const DIGEST_MARK_CLEAR_MS = 17 * 60000;
+const DIGEST_MARK_AGAIN_MS = 60000;
+const DIGEST_MARK_AGAIN = 'DIGEST_MARK_AGAIN';
+const DIGEST_MARK_FINAL_MS = 120000;
+const DIGEST_MARK_BUSY_MS = 30000;
+const DIGEST_BOOKED = 'DIGEST_BOOKED_HOUR';
 /* ---------- WHERE THE PASS FINDS A QUESTION AND ITS SCHEME: THE SITE'S OWN COPY OF THE LIBRARY ----------
    The backend has no library — `data/questions.json` is in git, served by GitHub Pages, and the phone
    sends the question and the scheme with each Mark with AI press. A pass with no phone fetches the same

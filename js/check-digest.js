@@ -48,7 +48,9 @@
          answer's own arrival and pressed 1 ms after it, the child's card and the email showing it (a);
          never twice, never over a press made meanwhile, one pass at a time (b); no ask started past its
          four minutes, the rest finished by the next pass, 20 a pass (c); the fallback model after a 503,
-         "not marked" after a total failure, a throw only for what the owner must mend (d); never the
+         a busy Gemini waited out and asked again, "not marked" only when it stays busy, a throw only for
+         what the owner must mend (d); the run-up before the email booking itself again until a Sunday
+         burst is marked, and the email's own last pass marking what came after it (9f); never the
          child's `ai_marks_per_day`, and off when any of its three switches or the key says so (e).
          THE EMAIL (10, f), as MailApp is handed it: no handle, surname, id, PIN, `sent`, link or key —
          and each question's words with ✓, ✗, "N of M marks" or "not marked".
@@ -178,7 +180,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
 {
   const { b } = seeded();
   asked++;
-  const plan = JSON.parse(JSON.stringify(b.ev('digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')))')));
+  const plan = JSON.parse(JSON.stringify(b.ev('digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')), new Date(' + at(SUN) + '))')));
   const L = id => plan.learners.find(x => x.id === id);
   const ada = L('P-S1');
   const keys = list => (list || []).map(q => q.key).sort().join(', ');
@@ -261,7 +263,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
     S('P-S5', 'q:EVE-LATE', '2026-10-04', 'Maths · Late · Q2', 'right', '', 23),
   ]);
   asked++;
-  const plan = JSON.parse(JSON.stringify(b.ev('digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')))')));
+  const plan = JSON.parse(JSON.stringify(b.ev('digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')), new Date(' + at(SUN) + '))')));
   const eve = plan.learners.find(x => x.id === 'P-S5');
   const got = eve ? [].concat(eve.fresh || [], eve.again || []).map(q => q.key).sort().join(', ') : '';
   if (got !== 'q:EVE-EARLY') bad.push('Eve’s week is [' + got + '] — wanted q:EVE-EARLY alone: 00:00 on Monday 28 Sep in London is this week, and 00:00 on Monday 5 Oct is next week, whatever UTC says');
@@ -294,7 +296,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
     S('P-S5', 'q:EVE-PTIE', '2026-10-02', 'Maths · Ties · Q4', 'right', '', 12, P("'2026-09-29T09:00:00.000Z")),
   ]);
   asked++;
-  const plan = JSON.parse(JSON.stringify(b.ev('digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')))')));
+  const plan = JSON.parse(JSON.stringify(b.ev('digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')), new Date(' + at(SUN) + '))')));
   const eve = plan.learners.find(x => x.id === 'P-S5');
   const items = eve ? [].concat(eve.fresh || [], eve.again || []) : [];
   const v = k => { const q = items.find(x => x.key === k); return q ? q.verdict : '(not in the plan)'; };
@@ -325,7 +327,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
    arrival, the first email after the update said "Ada worked on 4 questions" with three from September.
    Eve's week here, every row arriving on the Thursday:
      q:EVE-CARRIED   carried over (pressed 22 Sep), nothing since   → not in the email at all
-     q:EVE-BOTH      carried over (pressed 23 Sep), pressed again this week → "(again)", this week's mark
+     q:EVE-BOTH      carried over (pressed 23 Sep), pressed again this week → in the list, this week's mark
      q:EVE-NEW       pressed this week only                          → new */
 {
   const { b } = seeded();
@@ -338,7 +340,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
     S('P-S5', 'q:EVE-NEW', '2026-10-01', 'Maths · Carried · Q3', 'right', '', 14),
   ]);
   asked++;
-  const plan = JSON.parse(JSON.stringify(b.ev('clearCache(); digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')))')));
+  const plan = JSON.parse(JSON.stringify(b.ev('clearCache(); digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')), new Date(' + at(SUN) + '))')));
   const eve = plan.learners.find(x => x.id === 'P-S5');
   const keys = list => (list || []).map(q => q.key).sort().join(', ');
   if (!eve) bad.push('Eve pressed two questions this week and is not in the plan');
@@ -390,7 +392,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
     /* A QUESTION NOT PRINTED AT ALL — no name, a key that is a sentence — carries no words to print. */
     A('Tutor says hello', '', 'Work out 7 × 8.'),
   ]);
-  const planOf = () => JSON.parse(JSON.stringify(b.ev('clearCache(); digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')))')));
+  const planOf = () => JSON.parse(JSON.stringify(b.ev('clearCache(); digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')), new Date(' + at(SUN) + '))')));
   asked++;
   const plan = planOf();
   const ben = plan.learners.find(x => x.id === 'P-S2') || {};
@@ -486,7 +488,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   const A = (q, label, words) => S('P-S2', q, '2026-10-01', label, 'right', words);
   b.seed('submissions', [A('q:BEN-K1', 'Maths · Tables · Q1', 'Work out 7 × 8.'), A('Homework from Sam', 'Maths · Tables · Q2', 'Work out 6 × 9.')]);
   asked++;
-  const plan = JSON.parse(JSON.stringify(b.ev('clearCache(); digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')))')));
+  const plan = JSON.parse(JSON.stringify(b.ev('clearCache(); digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')), new Date(' + at(SUN) + '))')));
   const items = [].concat(...plan.learners.filter(x => x.id === 'P-S2').map(x => (x.fresh || []).concat(x.again || [])));
   const lib = items.find(q => q.key === 'q:BEN-K1'), typed = items.find(q => q.key === 'Homework from Sam');
   if (!lib || lib.words !== 'Work out 7 × 8.') bad.push('a question under a library key does not carry its words: ' + JSON.stringify(lib) + ' — so the key-shape ask below proves nothing');
@@ -536,10 +538,11 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   }
 }
 
-/* ---------- 2d. THE WEEK'S LIST: ONE STEM, "(again)", ESCAPED, AT MOST 80, AND UNDER GMAIL'S CLIP ----------------
+/* ---------- 2d. THE WEEK'S LIST: ONE STEM, ONE LIST, ESCAPED, AT MOST 80, AND UNDER GMAIL'S CLIP -----------------
    `digestQuestions_` (backend/digest.gs) is the list, and these are its rules asked of the email a parent
    opens. A question's parts share a scene, printed ONCE above them, so Q5a, Q5b and Q5c read as the paper
-   prints them rather than as one scene three times. A question first done before the week says "(again)".
+   prints them rather than as one scene three times. A question first done before the week is in the same
+   list with this week's mark, and says nothing of when it was first done (no "(again)" since 12 Oct).
    What came off a phone is escaped in the HTML and printed as written in the text. A week is up to seven
    days of this, so the list stops at `DIGEST_WEEK_LIST_MAX` (80) with "…and N more." — which counts the
    questions past the cap and the ones with no name alike — and 80 of the longest a question can be still
@@ -559,7 +562,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
     A('q:BEN-P7-9', 'Maths · Paper 7 · Q9', 'Expand (x + 2)(x - 3).', 'wrong', '2026-09-14'),
     A('q:BEN-P7-9', 'Maths · Paper 7 · Q9', 'Expand (x + 2)(x - 3).', 'right'),
   ]);
-  const plan = JSON.parse(JSON.stringify(b.ev('clearCache(); digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')))')));
+  const plan = JSON.parse(JSON.stringify(b.ev('clearCache(); digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')), new Date(' + at(SUN) + '))')));
   const m = plan.emails.find(e => e.to === 'bo@example.org') || { text: '', html: '', subject: '' };
   asked++;
   if (m.text.indexOf('\nMaths · Paper 7\nQ3 ✓: Solve x > 3 and x < 7 & "y" for whole numbers x.\n' + STEM + '\nQ5a ✗: Find P(red).\nQ5b not marked: Find P(blue).\nQ5c 2 of 3 marks: Two beads are taken. Find P(both red).\n') === -1)
@@ -595,7 +598,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   rows.push(S('P-S5', 'q:EVE-NONAME-1', '2026-10-02', '', 'right', 'Work out 99 × 7.'));
   rows.push(S('P-S5', 'Somebody typed this', '2026-10-02', '', 'right', ''));
   b.seed('submissions', rows);
-  const plan = JSON.parse(JSON.stringify(b.ev('clearCache(); digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')))')));
+  const plan = JSON.parse(JSON.stringify(b.ev('clearCache(); digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')), new Date(' + at(SUN) + '))')));
   const m = plan.emails.find(e => e.to === 'yes@example.org') || { text: '', html: '', subject: '' };
   const listed = m.text.split('\n').filter(x => /^Q\d+ ✓: Work out/.test(x));
   asked++;
@@ -693,7 +696,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
     A('P-S2', 'q:BEN-3', 'write to office.family@example.org'),
   ]);
   asked++;
-  const plan = JSON.parse(JSON.stringify(b.ev('digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')))')));
+  const plan = JSON.parse(JSON.stringify(b.ev('digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')), new Date(' + at(SUN) + '))')));
   if (plan.emails.some(m => m.to === 'quin.tpyo@example.org')) bad.push('a parent whose address was never confirmed (verified=PENDING) is emailed — a typo’d address is a stranger’s inbox');
   const ada = plan.learners.find(x => x.id === 'P-S1') || {};
   if (!(ada.skipped || []).some(p => p.id === 'P-C8' && /not confirmed/.test(p.why))) bad.push('the unconfirmed parent is not listed as skipped with the reason: ' + JSON.stringify(ada.skipped));
@@ -725,7 +728,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   const g = b.tabs.people, h = g[0];
   g.find((r, i) => i > 0 && r[h.indexOf('person_id')] === 'P-S2')[h.indexOf('first_name')] = 'Pay now at www.pay.example';
   b.ev('clearCache()');
-  const plan2 = JSON.parse(JSON.stringify(b.ev('digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')))')));
+  const plan2 = JSON.parse(JSON.stringify(b.ev('digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')), new Date(' + at(SUN) + '))')));
   const bo2 = plan2.emails.find(m => m.to === 'bo@example.org') || {};
   if (/pay\.example|Pay now/.test(String(bo2.subject) + bo2.text + bo2.html)) bad.push('a first name that is a link went out in the email: "' + bo2.subject + '"');
   if (bo2.subject && !/^Your child’s week/.test(bo2.subject)) bad.push('a first name not fit to print did not fall back to "Your child": "' + bo2.subject + '"');
@@ -916,7 +919,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   left.b.tabs.submissions.splice(1);
   left.b.tabs.attempts = [['person_id', 'question_key', 'first_done', 'last_done', 'times', 'label', 'words'],
     ['P-S1', 'q:OLD-1', new Date(2026, 9, 1), new Date(2026, 9, 1), 1, 'Maths · Old · Q1', 'From the old tab.']];
-  const lp = JSON.parse(JSON.stringify(left.b.ev('clearCache(); digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')))')));
+  const lp = JSON.parse(JSON.stringify(left.b.ev('clearCache(); digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')), new Date(' + at(SUN) + '))')));
   if (lp.learners.length || /From the old tab|Old · Q1/.test(JSON.stringify(lp))) bad.push('the plan read the old attempts tab: ' + JSON.stringify(lp.learners).slice(0, 160));
 }
 /* ---------- 6. BOOKING THE SUNDAY ---------------------------------------------------------------------------- */
@@ -1025,7 +1028,16 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   const nt = [...dg.matchAll(/newTrigger\s*\(/g)];
   const inst = dg.indexOf('function installWeeklyDigest');
   const instEnd = dg.indexOf('\nfunction ', inst + 1);
-  if (nt.length !== 1 || nt[0].index < inst || nt[0].index > instEnd) bad.push('digest.gs books a trigger outside installWeeklyDigest');
+  /* TWO, AND THE SECOND IS THE RUN-UP'S ONE-OFF (the review of 12 Oct): `digestMarkAgain_` may book the marking
+     pass's own handler a minute on, and nothing else — no email, nothing recurring. Held to the letter, so a
+     second argument, another handler or a clock that repeats is red here before it is a trigger on Sunday. */
+  const ag = dg.indexOf('function digestMarkAgain_');
+  const agEnd = dg.indexOf('\nfunction ', ag + 1);
+  const inside = (n, a, z) => n.index > a && n.index < z;
+  if (nt.length !== 2 || nt.filter(n => inside(n, inst, instEnd)).length !== 1 || nt.filter(n => inside(n, ag, agEnd)).length !== 1)
+    bad.push('digest.gs books a trigger outside installWeeklyDigest and the run-up’s digestMarkAgain_ (' + nt.length + ' newTrigger calls)');
+  if (ag < 0 || dg.slice(ag, agEnd).indexOf('ScriptApp.newTrigger(DIGEST_MARK_RUN).timeBased().after(DIGEST_MARK_AGAIN_MS).create()') === -1)
+    bad.push('the run-up’s digestMarkAgain_ books something other than a one-off of the marking pass, DIGEST_MARK_AGAIN_MS on');
   const rn = b => b.ev('Object.keys(typeof RUNNABLE === "object" ? RUNNABLE : {}).join(",")');
   const { b } = world();
   if (/digest|Digest/.test(rn(b))) bad.push('RUNNABLE names a digest function — `?run=` would be a way to start it from a URL');
@@ -1168,7 +1180,7 @@ const pass = w => JSON.parse(JSON.stringify(w.b.ev('clearCache(); digestMarkPass
 const subsOf = w => rowsOf(w.b, 'submissions');
 const marksOf = w => subsOf(w).filter(r => /^\d{10,16}-ai[a-z0-9]{10}$/.test(String(r.event_id)));
 const latest = (w, pid) => JSON.parse(JSON.stringify(w.b.ev('clearCache(); submissionsBuild_(' + JSON.stringify(pid) + ', false)'))).mine || {};
-const planOf18 = w => JSON.parse(JSON.stringify(w.b.ev('clearCache(); digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN18) + ')))')));
+const planOf18 = w => JSON.parse(JSON.stringify(w.b.ev('clearCache(); digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN18) + ')), new Date(' + at(SUN18) + '))')));
 
 /* ---------- 9a. A `sent` ANSWER OF THE WEEK IS MARKED, AND THE EMAIL SHOWS ITS MARK --------------------------- */
 {
@@ -1333,17 +1345,29 @@ const planOf18 = w => JSON.parse(JSON.stringify(w.b.ev('clearCache(); digestPlan
   const models = net.asks.map(a => a.model);
   if (r.marked !== 1 || r.model !== back || models.join() !== [first, first, first, back].join() || (marksOf(w)[0] || {}).verdict !== 'ai:3/3')
     bad.push('a 503 from the first model did not fall back as Mark with AI does: asked ' + JSON.stringify(models) + ', reported ' + JSON.stringify(r));
+  /* GEMINI BUSY FOR A MOMENT IS WAITED OUT (the review of 12 Oct). Twelve 503s — both models full for one
+     ask and then some — and the pass gave up for good, which on a Sunday meant after the email: a short
+     storm sent a whole week "not marked". Now it waits DIGEST_MARK_BUSY_MS and asks the same answer again. */
+  asked++;
+  const two = () => [MS('P-K1', 'q:TST-1', 'sent', 'Biology · Paper X · Q1', 'Explain why the rate increases at 30°C.', 'heat'),
+                     MS('P-K1', 'q:TST-3', 'sent', 'Maths · Paper X · Q3', 'Work out 3² + 7.', '16')];
+  const w5 = markWorld();
+  w5.b.seed('submissions', two());
+  for (let i = 0; i < 12; i++) w5.net.queue.push({ code: 503 });
+  const g = pass(w5);
+  if (g.marked !== 2 || !(g.waited >= 1) || g.left || marksOf(w5).length !== 2)
+    bad.push('Gemini busy for a moment was not waited out — the pass reported ' + JSON.stringify(g) + '; wanted both marked after a wait');
+  /* AND BUSY FOR THE WHOLE PASS: nothing written, both left, no failure email — and "not marked" in the email. */
   asked++;
   const w2 = markWorld();
-  w2.b.seed('submissions', [MS('P-K1', 'q:TST-1', 'sent', 'Biology · Paper X · Q1', 'Explain why the rate increases at 30°C.', 'heat'),
-                            MS('P-K1', 'q:TST-3', 'sent', 'Maths · Paper X · Q3', 'Work out 3² + 7.', '16')]);
-  for (let i = 0; i < 12; i++) w2.net.queue.push({ code: 503 });
+  w2.b.seed('submissions', two());
+  for (let i = 0; i < 2000; i++) w2.net.queue.push({ code: 503 });
   const f = pass(w2);
   let threw = '';
   try { w2.b.ev('clearCache(); digestMarkRun({})'); } catch (e) { threw = String(e && e.message || e); }
   const pat = planOf18(w2).emails.find(e => e.to === 'pat@example.org') || { text: '' };
-  if (f.marked || f.stopped !== 'busy' || f.left !== 2 || marksOf(w2).length || threw)
-    bad.push('with Gemini full on both models the pass reported ' + JSON.stringify(f) + (threw ? ' and the trigger threw "' + threw + '"' : '') + ' — wanted nothing written, both left for the next pass, and no failure email for a busy Gemini');
+  if (f.marked || f.stopped !== 'busy' || f.left !== 2 || !(f.waited >= 1) || marksOf(w2).length || threw)
+    bad.push('with Gemini full on both models all pass long the pass reported ' + JSON.stringify(f) + (threw ? ' and the trigger threw "' + threw + '"' : '') + ' — wanted it to wait, then nothing written, both left, and no failure email for a busy Gemini');
   if (pat.text.indexOf('Q1 not marked: Explain why') === -1 || pat.text.indexOf('Q3 not marked: Work out') === -1)
     bad.push('after a total failure the email does not say "not marked": ' + pat.text.split('\n').filter(l => /^Q/.test(l)).join(' / '));
   /* REFUSED — the key or the account — is the owner's: the trigger throws, so Google emails them. */
@@ -1408,6 +1432,71 @@ const planOf18 = w => JSON.parse(JSON.stringify(w.b.ev('clearCache(); digestPlan
   }
 }
 
+/* ---------- 9f. THE RUN-UP WORKS THROUGH A SUNDAY BURST, AND THE EMAIL MARKS WHAT CAME AFTER IT -------------------
+   The review of 12 Oct: one pass between Saturday 02:00 and the email, sixteen-odd answers in its four minutes,
+   and the live sheet's answers all came at the weekend — sixty sent on a Sunday morning went out 44 "not
+   marked" with Gemini answering every ask. Now the pass before the email books itself again a minute on
+   while work is left, never asking within DIGEST_MARK_CLEAR_MS of the email; and the email's own run marks
+   what was sent after that, for DIGEST_MARK_FINAL_MS, before it plans. Gemini here takes 4 s an answer. */
+{
+  const w = markWorld({ clock: '2026-10-18T15:50:00Z' });              // 16:50 in London: the run-up's pass
+  const { b, net, trig } = w;
+  net.per = 4000;
+  const burst = [];
+  ['P-K1', 'P-K2'].forEach(pid => { for (let i = 1; i <= 30; i++) burst.push(MS(pid, 'q:TST-B' + i, 'sent', 'Biology · Paper Y · Q' + i, 'Name part ' + i + '.', 'part ' + i, '2026-10-18', 8)); });
+  b.seed('submissions', burst);
+  b.ev('installWeeklyDigest()');
+  const oneOffs = () => trig.filter(t => t.spec.after);
+  const clear = at('2026-10-18T17:00:00Z') - b.ev('DIGEST_MARK_CLEAR_MS');
+  const runs = [pass(w)];
+  let most = oneOffs().length, counted = true;
+  while (oneOffs().length && runs.length < 30) {
+    if (b.ev('digestScheduled_(DIGEST_MARK_RUN)') !== 2) counted = false;
+    w.tick(oneOffs()[0].spec.after);
+    runs.push(pass(w));
+    most = Math.max(most, oneOffs().length);
+  }
+  asked++;
+  if (marksOf(w).length !== 60 || runs.length < 3 || !runs[0].again)
+    bad.push('a Sunday burst of 60 answers was not worked through before the email: ' + marksOf(w).length + ' marked in ' + runs.length + ' pass(es) — '
+      + JSON.stringify(runs.map(r => [r.marked, r.left, r.stopped, r.again])));
+  asked++;
+  if (net.asks.some(a => a.at >= clear)) bad.push('the run-up asked Gemini within DIGEST_MARK_CLEAR_MS of the email: ' + new Date(net.asks[net.asks.length - 1].at).toISOString());
+  asked++;
+  if (most > 1 || oneOffs().length || 'DIGEST_MARK_AGAIN' in b.props || !counted || trig.length !== 3)
+    bad.push('the run-up’s one-offs were not one at a time, deleted by the pass they started, and left out of the setup check’s count: most ' + most
+      + ', left ' + oneOffs().length + ', triggers ' + trig.length + ', counted ' + counted);
+  /* NOT OUTSIDE THE RUN-UP: Saturday's nightly pass stops at its cap and leaves the rest for the next. */
+  asked++;
+  const sat = markWorld({ clock: '2026-10-17T01:00:00Z' });
+  sat.b.seed('submissions', burst.slice(0, 25).map(r => Object.assign({}, r, { submitted_at: new Date('2026-10-16T08:00:00Z') })));
+  const sr = pass(sat);
+  if (sr.again || sat.trig.some(t => t.spec.after) || sr.stopped !== 'max') bad.push('a nightly pass a day before the email booked the run-up: ' + JSON.stringify(sr));
+
+  /* AN ANSWER SENT AFTER THE RUN-UP STOPPED (17:50) IS MARKED BY THE EMAIL'S OWN RUN, and the email says when
+     its list was made up to — the run's own minute, not the hour it was booked for. */
+  asked++;
+  const e = markWorld({ clock: '2026-10-18T17:02:00Z' });              // 18:02 in London: the email's run
+  e.b.seed('submissions', [MS('P-K1', 'q:TST-1', 'sent', 'Biology · Paper X · Q1', 'Explain why the rate increases at 30°C.', 'heat', '2026-10-18', 16,
+    { submitted_at: new Date('2026-10-18T16:50:00Z') })]);
+  let threw = '';
+  try { e.b.ev('clearCache(); weeklyDigestRun({})'); } catch (x) { threw = String(x && x.message || x); }
+  const got = e.mail.sent.find(m => m.to === 'pat@example.org') || { body: '' };
+  if (threw || got.body.indexOf('Q1 2 of 3 marks: Explain why') === -1 || got.body.indexOf('up to 6:02pm on Sunday') === -1 || e.trig.some(t => t.spec.after))
+    bad.push('an answer sent at 17:50 did not go out marked by the email’s own run (or the email booked a run-up, or said the wrong time): '
+      + (threw || got.body.split('\n').filter(l => /^Q|worked on/.test(l)).join(' / ')));
+  /* AND THAT PASS KEEPS TO ITS TWO MINUTES, so the mailing has the rest of the six. */
+  asked++;
+  const big = markWorld({ clock: '2026-10-18T17:02:00Z' });
+  big.net.per = 4000;
+  big.b.seed('submissions', burst.slice(0, 30).map(r => Object.assign({}, r, { submitted_at: new Date('2026-10-18T16:50:00Z') })));
+  const t0 = big.now();
+  try { big.b.ev('clearCache(); weeklyDigestRun({})'); } catch (x) { /* counted below */ }
+  const lastAsk = big.net.asks.length ? big.net.asks[big.net.asks.length - 1].at : t0;
+  if (!big.net.asks.length || lastAsk - t0 > big.b.ev('DIGEST_MARK_FINAL_MS') || big.mail.sent.length !== 1)
+    bad.push('the email’s own pass did not keep to DIGEST_MARK_FINAL_MS and then send: ' + big.net.asks.length + ' asks, the last ' + Math.round((lastAsk - t0) / 1000) + ' s in, ' + big.mail.sent.length + ' email(s)');
+}
+
 /* ---------- 10. (f) THE EMAIL HOLDS ONLY WHAT A PARENT NEEDS — through the real send ---------------------------------
    The owner: *"they dont need to see usernames or whatever, all they need to see are the questions their kids
    have done this week ... i want them to see if they got it right too."* The message MailApp is handed —
@@ -1456,6 +1545,12 @@ const planOf18 = w => JSON.parse(JSON.stringify(w.b.ev('clearCache(); digestPlan
     MS('P-K1', 'q:TST-4', 'sent', 'Maths · Paper X · Q4', 'Draw the graph.', 'a line', '2026-10-13'),
     MS('P-S9', 'q:TST-7', 'right', 'Maths · Paper X · Q7', 'Work out 4 × 4.', '16', '2026-10-14'),
   ]);
+  /* AND A CHILD WITH A PARENT TO EMAIL AND NOTHING SENT YET — the other Kit, linked to Pat here. */
+  b.seed('family', [
+    { link_id: 'M1', parent_id: 'P-P1', child_id: 'P-K1', child_typed: '', state: 'accepted' },
+    { link_id: 'M2', parent_id: 'P-P2', child_id: 'P-S9', child_typed: '', state: 'accepted' },
+    { link_id: 'M3', parent_id: 'P-P1', child_id: 'P-K2', child_typed: '', state: 'accepted' },
+  ]);
   b.ev('installWeeklyDigest()');
   const snap = () => JSON.stringify({ tabs: b.tabs, props: b.props, trig: trig.map(t => t.spec), sent: mail.sent.length });
   const before = snap(), w0 = b.log.writes;
@@ -1465,7 +1560,9 @@ const planOf18 = w => JSON.parse(JSON.stringify(w.b.ev('clearCache(); digestPlan
   if (snap() !== before || b.log.writes !== w0) bad.push('checkSundayEmail changed something — a cell, a Script Property, a trigger or an email: it must only read');
   if (net.logs.join('\n').indexOf(text) === -1) bad.push('checkSundayEmail did not put its lines in the execution log (Logger.log)');
   if (/test-key-not-a-real-one/.test(text + net.logs.join('\n'))) bad.push('checkSundayEmail printed GEMINI_API_KEY');
-  [[/^Backend 2026-10-12-t-sunday/m, 'the backend’s version'],
+  /* THE STAMP AS THE BACKEND HAS IT, never typed here: a literal turned every correct bump of the four
+     stamps red (the review of 12 Oct). */
+  [[new RegExp('^Backend ' + String(b.ev('BACKEND_VERSION')).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ' ', 'm'), 'the backend’s version'],
    [/THE EMAIL: ON — it emails parents \(weekly_digest is "send"\)\. It goes on Sundays at about 18:00, London time\./, 'the mode and the hour'],
    [/THE TRIGGERS: the Sunday email is installed; the AI marking passes are installed \(every night at about 2:00, and on Sunday at about 17:00\)\./, 'the triggers, installed'],
    [/AI MARKING: on\. GEMINI_API_KEY is set in Script Properties\. Marking asks \S+, then \S+/, 'the switch, the key and the models'],
@@ -1475,6 +1572,8 @@ const planOf18 = w => JSON.parse(JSON.stringify(w.b.ev('clearCache(); digestPlan
    [/THIS WEEK \(12 Oct – 18 Oct, so far\): 2 learners sent answers; 1 of them will have a parent emailed \(1 email\)\./, 'this week’s reach'],
    [/NOT REACHED — Sam: parent Quinn has no email address\./, 'who will not be reached, and why'],
    [/NOT MARKED YET \(sent since 2026-10-05\): 2 answers\. The marking pass can mark 1; it cannot mark 1 \(a drawing\) — the email says "not marked" beside those\./, 'what is still unmarked'],
+   [/  NO ANSWERS YET — Kit: a parent can be emailed, but no email goes unless they answer a question by about 18:00 on Sunday\./, 'the reachable child with no work yet'],
+   [/ROOM BEFORE THE EMAIL: about \d+ answers — 3 nightly passes .*a run-up of about \d+ passes/, 'the room the triggers have, not what is markable'],
    [/Nothing was changed: no row written, no email sent, no trigger booked\./, 'that nothing changed']].forEach(([re, what]) => {
     asked++;
     if (!re.test(text)) bad.push('checkSundayEmail does not say ' + what + ' — it said:\n      ' + text.split('\n').join('\n      '));
@@ -1530,10 +1629,16 @@ const planOf18 = w => JSON.parse(JSON.stringify(w.b.ev('clearCache(); digestPlan
     const inside = go(path.join(REPO, 'check', 'dry-out-should-not-exist'));
     if (inside.status === 0 || fs.existsSync(path.join(REPO, 'check', 'dry-out-should-not-exist')) || !/refusing/.test(inside.stderr))
       bad.push('check/digest-dry.js wrote inside the repository — the emails carry real addresses, and this repository is public');
+    /* A FOLDER IN THE REPOSITORY WHOSE NAME STARTS WITH TWO DOTS is still inside it (it was let through). */
+    asked++;
+    const dots = go(path.join(REPO, '..dry-out-should-not-exist'));
+    if (dots.status === 0 || fs.existsSync(path.join(REPO, '..dry-out-should-not-exist')) || !/refusing/.test(dots.stderr))
+      bad.push('check/digest-dry.js wrote into a folder inside the repository named "..dry-out-should-not-exist"');
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
     /* AND WHAT A BROKEN TOOL WROTE WHERE IT MUST NOT, so a red run leaves no invented emails in the tree. */
     fs.rmSync(path.join(REPO, 'check', 'dry-out-should-not-exist'), { recursive: true, force: true });
+    fs.rmSync(path.join(REPO, '..dry-out-should-not-exist'), { recursive: true, force: true });
   }
 }
 
@@ -1544,4 +1649,4 @@ if (bad.length) {
   process.exit(1);
 }
 console.log('OK — a London week, only that week, only accepted parents; each question with its own words and how it went (✓, ✗, the AI’s marks, "not marked"), never a key, a handle or a surname, at most 80 and under Gmail’s clip; off nothing, preview the log, send once each;\n'
-  + '     every unmarked worded answer marked by the server before it goes — once, in its time, never over a press, never from a child’s cap; one Sunday trigger and its two marking passes, booked by nobody but the owner; a setup check that changes nothing; the dry run sends nothing; the preview an admin’s.');
+  + '     every unmarked worded answer marked by the server before it goes — once, in its time, never over a press, never from a child’s cap; one Sunday trigger and its two marking passes, booked by nobody but the owner, the run-up working a burst through and the email marking what came after it; a setup check that changes nothing; the dry run sends nothing; the preview an admin’s.');
