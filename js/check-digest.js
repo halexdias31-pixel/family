@@ -1377,7 +1377,10 @@ const planOf18 = w => JSON.parse(JSON.stringify(w.b.ev('clearCache(); digestPlan
   asked++;
   const w3 = markWorld();
   w3.b.seed('submissions', [MS('P-K1', 'q:TST-1', 'sent', 'Biology · Paper X · Q1', 'Explain why the rate increases at 30°C.', 'heat')]);
-  w3.net.queue = [{ code: 400 }];
+  /* EVERY ASK A 400, not one: since 12 Oct a 400 is asked once more without the thinking level (note 350) —
+     a model that refused the level is not a model that refused the request — so a queue of one 400 left the
+     second ask to the stub's default reply, which marked it, and this rule read a refusal as a mark. */
+  w3.net.queue = Array.from({ length: 6 }, () => ({ code: 400 }));
   let why = '';
   try { w3.b.ev('clearCache(); digestMarkRun({})'); } catch (e) { why = String(e && e.message || e); }
   if (!/Gemini refused to mark/.test(why) || !/checkSundayEmail/.test(why) || marksOf(w3).length) bad.push('a 400 from Gemini did not make the marking trigger throw for the owner: "' + why + '"');
