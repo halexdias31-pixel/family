@@ -58,14 +58,21 @@
    for the life of the page — only which finder's object the name stands for. */
 let STUFF = { q: '', filters: [], whose: '' };
 
-/* ---------- TWO FINDERS, ONE ENGINE ---------------------------------------------------------------
-   THE OWNER, 10 Oct: *"i want to move everything which is in "resources" tag. i want to create a new
-   column to the right of the current finder. this new column is "finder 2". it carries resources.
-   like text books, boxing stuff books. ect."* So there are two finders: Find (`stuff`) and the second
-   finder (`res`, called Resources wherever a column is named), immediately right of it. The second
-   one is a finder like the first in every way a finger can tell — the search box, the questions as
-   chips, the cards and their pages, the swipe, the loader, the star — and it carries only the kinds
-   whose label is Resources: the textbooks, the boxers and their fights, the Bible.
+/* ---------- ONE FINDER, TWICE ---------------------------------------------------------------------
+   THE OWNER, 12 Oct: *"Also forget what I said about the finders regarding one having content and
+   other have exercises. Return to that origional finder having everything and now there is just an
+   identical second finder. Smart students will know to use this second finder to have the content up
+   while they do questions on the origional finder."* So there are two finders, Find (`stuff`) and
+   Find 2 (`res`), immediately right of it, and they are the SAME finder: both carry every item the
+   funnel offers and ask the same questions of it. What the second one is for is its own STATE — its
+   own words, chips, page and kept place — so a chapter can stay up in one column while the questions
+   on it are answered in the other.
+   IT WAS A SPLIT FOR TWO DAYS (10 to 12 Oct, docs/history/329): the second column carried only the
+   kinds whose label is Resources and Find the rest, a kinds-table rule (`resKind_`) on each finder's
+   list, links routed "to the finder that holds it" (`finderOfItem_`), an empty search that offered
+   the other column, and a kept place that dropped the other finder's chips. All of that is gone
+   (docs/history/347); the binding below is what was kept, because it is the half the owner's use
+   depends on.
 
    ONE ENGINE, NOT A COPY. The funnel is this file, and it reads `STUFF` and its memos by name at
    about a hundred places. A copy is two engines that drift; a scope threaded through every function
@@ -80,23 +87,27 @@ let STUFF = { q: '', filters: [], whose: '' };
    receipt.js and cards.js, sign-out in me.js — means Find and gets Find, and so does every check that
    pokes `STUFF` from outside. Only find.js binds, at the places a finder is drawn, pressed, filled or
    typed into: the screen draw, the funnel's handlers, the fill and the search box. So the two finders'
-   chips, words, page and place cannot reach each other.
+   chips, words, page and place cannot reach each other — which is now the only thing that makes the
+   second one worth having.
 
    WORK THAT RUNS LATER RUNS OUTSIDE THE BINDING, which is the one rule this adds. A timer, a
    microtask, an `afterSlide_` job or a promise captures its F and binds again — the late fill
    (`STUFF_LATE`), the draw's microtask, the search box's debounce, the `fill:` keys in shell.js and the
    Bible's index landing are all written that way. `afterSlide_` dedupes by key, and by function when
    there is none, so a finder's fill is booked under `'fill:' + id` or two finders' fills become one.
-
-   WHICH KIND IS A RESOURCE is the kinds table's answer, the live sheet first (`kindOf_` merges
-   `DATA.kinds`), so a kind relabelled in the sheet changes column with no deploy. See docs/history/329. */
+   AND SOMETHING THAT FORGETS "THE FOUND LIST" FORGETS EVERY FINDER'S (`finderEach_`,
+   `finderForgetFound_`): a `FIND_MEMO.key = null` written outside a binding reaches Find's alone, and
+   with both finders holding the friends, the Bible and every question, the other would go on
+   answering from the list before the change. */
 const RES_ST = { q: '', filters: [], whose: '' };
-function resKind_(x) { return !!x && (x.kindLabel || kindOf_(x).label) === 'Resources'; }
-/* A FINDER'S RECORD: who it is, what it carries, and — while it is not the bound one — its parked
-   state. `place` is the surface its kept place is filed under (`draftKeep_`); `widgets` is whether the
-   Tools tail of the fill runs (Find's alone — the second finder holds no widget to start or stop);
-   `front` the pages between the question and the results (the booking form, the posts, the bundles:
-   all Find's); `empty` what an empty database says. */
+/* A FINDER'S RECORD: who it is and — while it is not the bound one — its parked state. `place` is the
+   surface its kept place is filed under (`draftKeep_`); `widgets` is whether the Tools tail of the fill
+   runs (Find's alone — one widget started and stopped by two columns would be started twice);
+   `front` the pages between the question and the results — the booking form, the posts, the bundles —
+   FIND'S ALONE, because they are not search results: the booking form is one draft of one booking
+   (`BOOKING` is one global state), and a second copy of it one swipe along would be a second form
+   writing the same booking; `empty` what an empty database says, the same sentence in both. There is
+   no `has` any more: both finders carry everything (347). */
 const finder_ = o => Object.assign({
   items: { key: null, from: null, items: null },
   found: { key: null, from: null, items: null, total: 0 },
@@ -104,15 +115,14 @@ const finder_ = o => Object.assign({
   chips: { key: null, from: null, out: {} },
   late: 0, typing: null, tried: false,
 }, o);
+const FINDER_EMPTY = 'Nothing in the shop or the library yet.';
 const FINDERS = {
   stuff: finder_({ id: 'stuff', st: STUFF, place: 'find', widgets: true,
-                   has: x => !resKind_(x),
                    front: () => [].concat(bookingPages_(), feedPages_(), bundlePages_()),
-                   empty: 'Nothing in the shop or the library yet.' }),
+                   empty: FINDER_EMPTY }),
   res:   finder_({ id: 'res', st: RES_ST, place: 'res', widgets: false,
-                   has: resKind_,
                    front: () => [],
-                   empty: 'No resources yet.' }),
+                   empty: FINDER_EMPTY }),
 };
 let FINDER = FINDERS.stuff;
 function finderPark_(F) {
@@ -130,19 +140,21 @@ function inFinder_(F, fn) {
   try { return fn(); }
   finally { finderPark_(F); finderUnpark_(was); FINDER = was; }
 }
-/* By screen id; by the screen an element is drawn in, falling back to the column in front and then
-   Find — a handler pressed from a detached button (the checks do that) still acts on a finder; and by
-   the item, for a link into a resource from anywhere else. */
+/* By screen id; and by the screen an element is drawn in, falling back to the column in front and
+   then Find — a handler pressed from a detached button (the checks do that) still acts on a finder,
+   and a press from Saved or the Spotlight, which are no finder, acts on Find.
+   `finderOfItem_` WAS HERE — "the finder that holds this item" — and went with the split (347). With
+   both finders holding everything it could only ever answer Find, which would have hidden a decision
+   in a function's name; each of its callers now says which finder it means. */
 function finderOf_(id) { return Object.prototype.hasOwnProperty.call(FINDERS, id) ? FINDERS[id] : null; }
 function finderAt_(el) {
   const s = el && el.closest ? el.closest('.screen') : null;
   return (s && finderOf_(String(s.id).replace(/^s-/, ''))) || finderOf_(typeof AT === 'string' ? AT : '') || FINDERS.stuff;
 }
-function finderOfItem_(x) {
-  const id = Object.keys(FINDERS).find(k => FINDERS[k].has(x));
-  return id ? FINDERS[id] : FINDERS.stuff;
-}
 function finderEach_(fn) { Object.keys(FINDERS).forEach(id => inFinder_(FINDERS[id], () => fn(FINDERS[id]))); }
+/* FORGET WHAT EVERY FINDER FOUND, for a change to something both of them list — the friends (me.js),
+   whose memo `FIND_MEMO.key = null` from outside a binding cleared on Find alone. */
+function finderForgetFound_() { finderEach_(() => { FIND_MEMO.key = null; }); }
 /* A finder's state from outside, for the files that load before this one (me.js) and the checks. */
 function finderStates_() { return Object.keys(FINDERS).map(id => FINDERS[id].st); }
 function paintFinder_(id, keep) { const F = finderOf_(id); if (F) inFinder_(F, () => paintStuff(keep)); }
@@ -4171,9 +4183,10 @@ function animIds_(html, n) {
    by `.tb-an-stage:not(.is-on)` in style.css. Off the Find screen, nothing plays.
    BOOKED BY NAME through `afterSlide_` from `goPage`, so a run of quick flicks is one decision at the
    end, and called when a screen arrives and at the end of a fill.
-   EVERY FINDER'S COLUMN, not a parameter: the chapters moved to the second finder with the textbooks
-   (docs/history/329), and asking each column costs two `querySelectorAll`s — far less than remembering
-   to pass the right one from four callers, one of which (`startScreen_`) knows no finder at all. */
+   EVERY FINDER'S COLUMN, not a parameter: both finders carry the textbooks (docs/history/347), so a
+   chapter's drawing can be open in either column — the one a student keeps the reading up in — and
+   asking each column costs two `querySelectorAll`s, far less than remembering to pass the right one
+   from four callers, one of which (`startScreen_`) knows no finder at all. */
 function tbAnimWatch_() {
   Object.keys(FINDERS).forEach(id => {
     const host = $('s-' + id);
@@ -4347,15 +4360,16 @@ function bibleIndex_() {
          list): a `psalms` typed while the index was on its way would otherwise go on answering from
          the list that did not have it, and the Books shelf would go on showing its loader over a
          question it can now ask.
-         IN THE FINDER THAT HOLDS THE BIBLE, which is the second one (docs/history/329) — and bound
-         again by hand, because a promise lands outside whatever binding asked for it. */
-      const F = finderOfItem_(BIBLE.item || { kind: 'bible' });
-      inFinder_(F, () => {
+         IN EVERY FINDER, because both hold the Bible for an admin (docs/history/347) — a `psalms`
+         typed into either while the index was on its way would otherwise go on answering from the
+         stale memo — and bound again by hand, because a promise lands outside whatever binding asked
+         for it. The cards are redrawn once, first: `bibleRedraw_` is the whole document's. */
+      bibleRedraw_();
+      finderEach_(F => {
         if (ok) {
           FIND_MEMO.key = null;
           STUFF_PAGES = { from: null, pages: [] };
         }
-        bibleRedraw_();
         if ($(F.id + '-controls')) paintStuff(true);
       });
       /* A STARRED VERSE IS NAMED FROM THE INDEX, so Saved could not draw one until now. */
@@ -4809,16 +4823,20 @@ function bibleRedraw_(n) {
    chapter is the strip, so the verses either side are a swipe away), or on the question for the cover.
    From Saved this is how a kept verse is read in its chapter; from Find it is how a verse found by a
    search or a Verse answer is. The search box is cleared, because words would narrow the chapter. */
-/* INTO THE SECOND FINDER NOW, wherever the tap was — Find, Saved, the Spotlight — because the Bible is
-   a resource and the resources moved (docs/history/329). `What for` and `What kind` are no longer
-   chips it sets: over the second finder's list each has one answer, so the funnel skips both and a
-   chip for them would be a chip nobody could have pressed. */
+/* INTO THE FINDER THE TAP WAS IN — a verse's Chapter or the cover's Open pressed in Find 2 stays in
+   Find 2, where the student is reading — and into Find from Saved or the Spotlight, which are no
+   finder (`finderAt_`). Both finders hold the Bible (docs/history/347), so either can open it; the
+   one being read in is the one not to take somebody out of. It was "the finder that holds the Bible"
+   while the second one held the resources alone (329).
+   `What for` and `What kind` are not chips it sets: under `Shelf · Books` the list is the Bible, each
+   of the two has one answer over it, so the funnel skips both and a chip for them would be a chip
+   nobody could have pressed. */
 on('bible-go', el => {
   if (!bibleFor_() || !BIBLE.index || !BIBLE.item) return;
   const k = el && el.getAttribute('data-key');
   const x = k ? bibleByKey_(k) : null;
   if (k && !x) return;
-  const F = finderOfItem_(BIBLE.item);
+  const F = finderAt_(el);
   const f = [{ field: 'shelf', value: BIBLE_SHELF }, { field: 'bibleTranslation', value: BIBLE.index.translation }];
   if (x) {
     f.push({ field: 'bibleTestament', value: x.bb.testament }, { field: 'bibleGroup', value: x.bb.group },
@@ -4842,15 +4860,23 @@ on('bible-retry', el => {
   BIBLE.failed = false;
   bibleIndex_();
   bibleRedraw_();
-  const F = finderOfItem_(BIBLE.item || { kind: 'bible' });
-  inFinder_(F, () => { if ($(F.id + '-controls')) paintStuff(true); });
+  /* EVERY FINDER WHOSE QUESTION IS DRAWN — both hold the Bible's shelf now. */
+  finderEach_(F => { if ($(F.id + '-controls')) paintStuff(true); });
 });
 
-/* ---------- A RESOURCE MET ANYWHERE ELSE OPENS IN THE SECOND FINDER ---------------------------------
-   THE RESOURCES LIVE IN THEIR OWN COLUMN NOW (docs/history/329), so a textbook, a boxer or a fight met
-   anywhere else — kept on Saved, put in the Spotlight — is opened THERE, on its own card, with the rest
-   of it a swipe up. Saved draws the card alone (`cardPages_` keeps only a question's parts), so before
-   this a kept book listed its fourteen chapters and nothing on the column could open one.
+/* ---------- A KEPT CARD SAVED CANNOT DRAW WHOLE OPENS IN FIND ---------------------------------------
+   SAVED AND THE SPOTLIGHT DRAW A KEPT THING AS ITS CARD (`cardPages_`): a question whole — its opening,
+   figure, words and answer — but a practical without its kit, method and worksheet, a project without
+   its steps and Share, a textbook without its chapters, a boxer without his fights. So under a kept
+   card that is not whole there, `Open` takes it to Find, on its own card, with the rest of it a swipe
+   up. It was "Open in Resources" under a resource only (329), because the resources lived in one
+   column; with both finders holding everything (347) the line is drawn where it always belonged —
+   between a card that is all of itself on the column and one that is not — which also gives the kept
+   practicals and projects a way to their method pages that they never had.
+   INTO FIND, NOT FIND 2. Saved and the Spotlight are no finder, so neither is "the one the tap was in",
+   and Find is the front door of the two. The cost is said in docs/history/347: opening replaces Find's
+   chips and words with the walk below — the one place this file puts a finder's place over without a
+   press inside that finder.
    THE CHIPS A FINGER WOULD HAVE PRESSED, found by walking the funnel for it: the engine's own next
    question each time (`nextFacet`), answered with this item's own answer, or "Doesn't matter" where
    it has none — until the list is down to it or there is nothing left to ask. Never a chip that would
@@ -4871,8 +4897,10 @@ function finderWalk_(x) {
   }
   return out;
 }
-function finderOpen_(x, part) {
-  const F = finderOfItem_(x);
+/* `F` IS WHICH FINDER, said by the caller — Find when nobody says (`find-open` passes the finder the
+   press was in, which from Saved and the Spotlight is Find). */
+function finderOpen_(x, part, F) {
+  F = F || FINDERS.stuff;
   inFinder_(F, () => {
     STUFF.q = '';
     const box = $(F.id + '-q');
@@ -4884,105 +4912,52 @@ function finderOpen_(x, part) {
     goPage(F.id, i >= 0 ? stuffFirstResult_() + i : stuffQuestionPage_());
   });
 }
-/* THE TILE, under a resource's card wherever it is drawn outside its own finder — which is exactly
-   when the bound finder (Find, outside every binding: Saved, the Spotlight) does not carry it. Inside
-   the second finder the card is already open, and no tile is drawn. The Bible has its own way in
-   (`bibleTiles_`'s Open). `Open` and the column's name, from `TABS` so a renamed column says so. */
+/* WHICH OF A THING'S PAGES A KEPT LIST DRAWS: the card, and a question's own parts — its opening, its
+   figure, its earlier part's picture, its answer. One predicate, read by `cardPages_` to draw them and
+   by `finderOpenTile_` to ask whether the card is whole without them, so "what Saved draws" and "is
+   there more than Saved draws" cannot disagree. */
+const keptPart_ = p => !p || p === 'fig' || p === 'nofig' || p === 'use' || p === 'ans'
+  || /^(stem\d+(-\d+)?|sfig\d+|pre\d+)$/.test(p);
+/* SET WHILE A KEPT LIST IS BEING DRAWN (`keptPages_`, for Saved and the Spotlight), in the way
+   `SPOT_TILES` is: a card is drawn by the same `stuffCard` → `cardTiles_` in Find's fill and on Saved,
+   both outside any binding, so nothing else tells the two apart. */
+let KEPT_DRAW = false;
+/* THE TILE: under a kept card that is not whole on the column, `Open · in Find` — the column's name
+   from `TABS`, so a renamed column says so. Never in a finder (the card is already open there, its
+   pages a swipe up), never under a question (whole), and never under the Bible's cover, which has
+   its own Open (`bibleTiles_`). */
 function finderOpenTile_(x) {
-  if (!x || !x.key || x.kind === 'bible' || FINDER.has(x)) return '';
-  const F = finderOfItem_(x);
-  const t = (typeof TABS !== 'undefined' ? TABS : []).find(r => r.id === F.id);
-  return tile_({ icon: 'open', label: 'Open', note: 'in ' + (t ? t.label : F.id), act: 'find-open', data: { key: x.key } });
+  if (!KEPT_DRAW || !x || !x.key || x.kind === 'bible') return '';
+  let parts;
+  try { parts = pageParts_(x); } catch (e) { return ''; }
+  if (parts.every(keptPart_)) return '';
+  const t = (typeof TABS !== 'undefined' ? TABS : []).find(r => r.id === 'stuff');
+  return tile_({ icon: 'open', label: 'Open', note: 'in ' + (t ? t.label : 'Find'), act: 'find-open', data: { key: x.key } });
 }
 on('find-open', el => {
   const k = el && el.getAttribute('data-key');
   const x = k ? stuffItemsAll_().find(i => i && i.key === k) : null;
-  if (x) finderOpen_(x);
+  if (x) finderOpen_(x, null, finderAt_(el));
 });
 
-/* ---------- A SEARCH ONE COLUMN SHORT SAYS WHERE THE THING IS --------------------------------------------
-   THE REVIEW OF 329, FINDING 1. Find's search stopped carrying the resources, which is the owner's
-   split — and its empty answer went on saying "Try fewer words." for a boxer one swipe away. Measured
-   at 390 as an admin: "Olivares" on Find drew "Nothing matches. / Try fewer words."; on the commit
-   before the move the same words found Ruben Olivares's card. Typing a name into Find WAS the way to a
-   boxer, a book of the Bible or a textbook's chapter, and the owner's list of links into a resource
-   names "a search hit". Fewer words would never have found him: the advice was wrong, not just weak.
-   SO AN EMPTY SEARCH ASKS THE OTHER FINDER the same words, in that finder's own binding and through
-   its own `stuffFiltered` — so its kinds, its role rules and the Bible's `holds` all answer as they
-   would there — and when anything answers, says how many and where (the column's name from `TABS`),
-   with one Open tile that carries the words across. Both ways: Resources points to Find. A word
-   nobody has keeps "Try fewer words.", and no tile.
-   UNDER THE OTHER FINDER'S OWN CHIPS FIRST, because those are what it will show; if they hide every
-   hit, under none, and the tile takes them off (`clear`) — landing on "Nothing matches" over there,
-   under a shelf somebody chose an hour ago, would be the same dead end one column further on.
-   THE OTHER FINDER IS LEFT AS IT WAS: its words, chips and memo are put back in a `finally`, so asking
-   costs it nothing it had, and a throw cannot leave it holding these words. */
-function finderWordsCount_(q) {
-  const was = { q: STUFF.q, filters: STUFF.filters, memo: FIND_MEMO };
-  try {
-    STUFF.q = q;
-    let n = stuffFiltered().length;
-    if (n || !(was.filters || []).length) return { n: n, clear: false };
-    STUFF.filters = [];
-    FIND_MEMO = { key: null, from: null, items: null, total: 0 };
-    n = stuffFiltered().length;
-    return { n: n, clear: n > 0 };
-  } catch (e) {
-    return { n: 0, clear: false };
-  } finally {
-    STUFF.q = was.q; STUFF.filters = was.filters; FIND_MEMO = was.memo;
-  }
-}
-function finderElsewhere_() {
-  const q = String(STUFF.q || '');
-  if (!q.trim()) return null;
-  const here = FINDER;
-  for (const id of Object.keys(FINDERS)) {
-    const G = FINDERS[id];
-    if (G === here) continue;
-    const got = inFinder_(G, () => finderWordsCount_(q));
-    if (got.n) return { id: G.id, n: got.n, clear: got.clear };
-  }
-  return null;
-}
+/* `finderElsewhere_`, `finderWordsCount_` AND THE `finder-words` TILE WERE HERE: an empty search asked
+   the other finder the same words and offered "N in Resources" with an Open tile that carried them
+   across (329's review, finding 1), because a boxer's name typed into Find found nothing while he was
+   one column along. GONE WITH THE SPLIT (347). Both finders hold the same list, so with no chips the
+   other one finds exactly what this one did not — nothing — and under chips the tile would carry the
+   words into the column a student keeps a chapter up in AND CLEAR ITS CHIPS: the very place the second
+   finder exists to hold. The right advice when chips hide every hit is the sentence below, "take a
+   filter off". */
 /* THE ONE EMPTY ANSWER, for the question page and a results page alike — they were two copies of the
-   same three sentences, and the tile would otherwise have been one more thing for them to disagree on. */
+   same three sentences. */
 function stuffNoneHtml_() {
   if (!FIND_MEMO.total) return nothingHere(FINDER.empty, true);
-  const there = STUFF.q ? finderElsewhere_() : null;
-  if (there) {
-    const t = (typeof TABS !== 'undefined' ? TABS : []).find(r => r.id === there.id);
-    const name = t ? t.label : there.id;
-    return `<p class="empty">Nothing matches.<br><span class="faint">${esc(there.n.toLocaleString('en-GB') + ' in ' + name)}.</span></p>`
-      + `<div class="tile-row is-elsewhere">${tile_({ icon: 'open', label: 'Open', note: 'in ' + name, act: 'finder-words',
-                                         data: { to: there.id, q: STUFF.q } })}</div>`;
-  }
   const why = STUFF.q && STUFF.filters.length ? 'Try fewer words, or take a filter off.'
             : STUFF.q                          ? 'Try fewer words.'
             : STUFF.filters.length             ? 'Nothing matches all of those together.'
             : '';
   return `<p class="empty">Nothing matches.${why ? `<br><span class="faint">${esc(why)}</span>` : ''}</p>`;
 }
-/* THE WORDS, CARRIED ACROSS — into the other finder's own words and its own box, so they are seen
-   narrowing where they now narrow — and on to the card when the words found one thing, as Find's own
-   "Swipe up for the one" would have; on the question when they found several, for the funnel to ask.
-   The finder the tile was pressed in keeps its words: going back finds it as it was left. */
-on('finder-words', el => {
-  const G = finderOf_(el && el.getAttribute('data-to'));
-  const q = String((el && el.getAttribute('data-q')) || '');
-  if (!G || !q.trim()) return;
-  inFinder_(G, () => {
-    const c = finderWordsCount_(q);
-    STUFF.q = q;
-    if (c.clear) STUFF.filters = [];
-    const box = $(G.id + '-q');
-    if (box) box.value = q;
-    paintStuff();
-    if (AT !== G.id) go(G.id);
-    const one = stuffFiltered().length === 1 && stuffPages_().length;
-    goPage(G.id, one ? stuffFirstResult_() : stuffQuestionPage_());
-  });
-});
 
 /* ---------- WHICH PAGES A PRACTICAL TAKES, OFF WHAT THE ROW ACTUALLY HAS ------------------------
    The card, then a page per section that has something in it. A REFUSED experiment is its card
@@ -5106,7 +5081,7 @@ function pageParts_(x, prev) {
    kept here once, because the cover was a card with no other way into the book. */
 /* `prev` IS THE KEPT THING IN FRONT, as on Find -- see `keptPages_`. */
 function cardPages_(x, credits, prev) {
-  return pageParts_(x, prev).filter(p => !p || p === 'fig' || p === 'nofig' || p === 'use' || p === 'ans' || /^(stem\d+(-\d+)?|sfig\d+|pre\d+)$/.test(p))
+  return pageParts_(x, prev).filter(keptPart_)
     .map(p => (p ? stuffPart_(x, p) : stuffCard(x, credits)));
 }
 
@@ -5133,7 +5108,12 @@ function keptPages_(items, credits) {
     done[k] = true;
     by[k].slice().sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0)).forEach(p => seq.push(p));
   });
-  return [].concat(...seq.map((x, i) => cardPages_(x, credits, seq[i - 1])));
+  /* `KEPT_DRAW` FOR THE DRAW, so a card that is not whole here is given its way to Find — see
+     `finderOpenTile_`. In a `finally`, so a throw cannot leave Find's own cards carrying it. */
+  const was = KEPT_DRAW;
+  KEPT_DRAW = true;
+  try { return [].concat(...seq.map((x, i) => cardPages_(x, credits, seq[i - 1]))); }
+  finally { KEPT_DRAW = was; }
 }
 function stuffPart_(x, part) {
   if (x && x.kind === 'project') return projectPart_(x, part);
@@ -12310,8 +12290,9 @@ function stuffItemsAll_() {
    (`signedOut_` in me.js) still needs it — it empties the stars and the per-person keys in place. */
 function stuffForget_() {
   ALL_MEMO = { key: null, from: null, items: null };
-  /* EVERY FINDER'S, not the bound one's: a sign-out that forgot Find's list and left the second
-     finder's would hand the next child the last one's Books shelf. */
+  FUNNEL_MEMO = { key: null, from: null, items: null };
+  /* EVERY FINDER'S, not the bound one's: a sign-out that forgot Find's list and left Find 2's would
+     hand the next child the last one's Books shelf — which is on both finders' lists (347). */
   finderEach_(() => {
     ITEM_MEMO = { key: null, from: null, items: null };
     FIND_MEMO = { key: null, from: null, items: null, total: 0 };
@@ -12369,7 +12350,7 @@ function findPlaceBack_(F) {
       if (AT !== F.id || (STUFF.filters || []).length || STUFF.q) return;
       STUFF.filters = (Array.isArray(p.f) ? p.f : [])
         .filter(f => f && typeof f === 'object' && typeof f.field === 'string')
-        .filter(f => !finderForeign_(f));
+        .filter(f => !placeChipDead_(f));
       STUFF.q = typeof p.q === 'string' ? p.q : '';
       const box = $(F.id + '-q');
       if (box) box.value = STUFF.q;
@@ -12381,41 +12362,57 @@ function findPlaceBack_(F) {
     } catch (e) {}
   });
 }
-/* ---------- A CHIP THAT BELONGS TO THE OTHER FINDER ---------------------------------------------------
-   A PLACE KEPT BEFORE THE RESOURCES MOVED can hold their chips — `Resources`, `Shelf · Boxing`, a
-   Bible book — and restoring those on Find would put it on "Nothing matches" under chips nobody set.
-   So a chip is dropped when something outside the bound finder answers it and nothing inside does.
-   Both halves, because before the library lands nothing answers a paper's chip anywhere, and a chip
-   that matches nothing yet is not foreign — it is early, and dropping it would lose the place it
-   exists to keep. Written for the move and for whatever kind changes column next.
-   EXCEPT THE BIBLE'S OWN CHIPS, which no list answers (the review of 329, finding 3). A Book, a
-   Chapter, a Verse — and the Testament and Group above them — are answered only by the verses, and
-   the verses are a list of their own (`bibleVerses_`), not items. So `Genesis` was never "answered
-   outside": it read as early, stayed on Find, and Find came back from a reload INSIDE the Bible, an
-   admin's, saying "Nothing matches" under a Book chip on a column that has no Bible. A Bible chip
-   belongs to whichever finder holds the Bible (`finderOfItem_`, the kinds table's answer) and is
-   foreign everywhere else, whether or not anything on the list answers it yet. */
-function finderForeign_(f) {
-  if (f && BIBLE_FIELDS[f.field]) return finderOfItem_({ kind: 'bible' }) !== FINDER;
-  const facet = facetBy(f.field);
-  if (!facet) return false;
-  const hit = f.any
-    ? x => { try { return facetOwn_(facet, x).length > 0; } catch (e) { return false; } }
-    : x => { try { return filterHit(x, f); } catch (e) { return false; } };
-  let inside = false, outside = false;
-  stuffItemsAll_().forEach(x => {
-    if (inside || !hit(x)) return;
-    if (FINDER.has(x)) inside = true; else outside = true;
-  });
-  return outside && !inside;
+/* ---------- A KEPT CHIP NOTHING WILL EVER ANSWER --------------------------------------------------------
+   `finderForeign_` WAS HERE (329): a chip was dropped from a kept place when something outside the bound
+   finder answered it and nothing inside did — a Find place from before the resources moved came back
+   without `Shelf · Boxing`. Both finders hold everything now (347), so nothing is outside either, and
+   that test could never fire. What is left of its job is a chip NOTHING answers any more, which would
+   put the column back on "Nothing matches" under a chip nobody can see the point of — and a chip that
+   nothing answers YET is not that: the library lands after the first payload, which is when this runs
+   (`findPlaceBack_` from shell.js), so at that moment no paper's chip is answered by anything, and
+   dropping it would lose the place it exists to keep (329's "early" half, kept). So it is decided by
+   what the chip IS, never by what answers it at this moment:
+     · A BIBLE CHIP (Book, Chapter, Verse and the doors above them, and `Shelf · Books`, which holds
+       the Bible and nothing else) is dead for anybody the Bible is not for (`bibleFor_`). The kept
+       place is the signed-in person's own, so an admin's place inside the Bible comes back inside the
+       Bible, on either finder; the same place kept by somebody who is no longer an admin comes back
+       without it.
+     · A chip on a question the funnel has RETIRED (`RETIRED_FACETS`) is dead: the sheet cannot bring
+       that question back, so nothing will answer it.
+     · A chip on a field no facet asks is dead once the facets have arrived (`DATA.facets` has rows —
+       before then a sheet-only question like `projectType` is merely not here yet). `filterHit` reads a
+       facetless chip as matching everything, so it would have hung on as a chip that does nothing. */
+function placeChipDead_(f) {
+  if (!f || typeof f.field !== 'string') return true;
+  if (BIBLE_FIELDS[f.field] || (f.field === 'shelf' && f.value === BIBLE_SHELF)) return !bibleFor_();
+  if (RETIRED_FACETS[f.field]) return true;
+  return !facetBy(f.field) && Array.isArray(DATA.facets) && DATA.facets.length > 0;
 }
 
+/* ---------- ONE LIST FOR BOTH FINDERS, COUNTED ONCE --------------------------------------------------
+   BOTH FINDERS CARRY THE SAME LIST (347), and each memoised its own copy of it — the same 8,381 items in
+   two arrays. That cost more than the build: every count the funnel makes (`facetTally_`, the sort in
+   `stuffSorted_`) is held in a WeakMap KEYED ON THE ARRAY, so Find 2's first question tallied the whole
+   library again, item by item, to arrive at the answers Find had just drawn — measured at 299 ms in
+   jsdom on the first load, where every column is painted (`paintNeighbours`). So the list is built
+   once (`FUNNEL_MEMO`) and each finder's memo holds that same array. The first question then costs Find
+   2 nothing (measured 0 ms): with no chips and no words `stuffFind` hands back `stuffSorted_`'s copy of
+   that one array, the same array in both finders, so its tallies are counted once. NOTHING SORTS OR
+   SPLICES EITHER IN PLACE: every reader that orders the list orders a copy (`stuffSorted_`), and a
+   narrowing is a `filter`.
+   AND NOTHING IN `stuffItemsBuild_` MAY ASK WHICH FINDER IS BOUND: what it returns is both finders'
+   list, built by whichever asked first, so a rule written there for one finder would reach both or
+   neither, at random — the split's `FINDER.has`, put back there, was measured doing nothing at all.
+   A finder that ever needs a list of its own needs its own memo here, not a test in the build. */
+let FUNNEL_MEMO = { key: null, from: null, items: null };
 function stuffItems() {
   const key = itemMemoKey_();
   if (ITEM_MEMO.from === DATA && ITEM_MEMO.key === key) return ITEM_MEMO.items;
-  const built = stuffItemsBuild_();
-  ITEM_MEMO = { key: key, from: DATA, items: built };
-  return built;
+  if (!(FUNNEL_MEMO.from === DATA && FUNNEL_MEMO.key === key)) {
+    FUNNEL_MEMO = { key: key, from: DATA, items: stuffItemsBuild_() };
+  }
+  ITEM_MEMO = { key: key, from: DATA, items: FUNNEL_MEMO.items };
+  return ITEM_MEMO.items;
 }
 
 /* ---------- BOOKING IS NOT IN THE FUNNEL, AND THIS IS THE TOOLS AND GAMES DECISION AGAIN -------
@@ -12477,11 +12474,10 @@ function stuffItemsBuild_() {
        would silently drop a kind from a group it belongs in. */
     const g = asList_(x.groups || kindOf_(x).group);
     if (g.length && g.every(k => FUNNEL_NOT_FOR.indexOf(k) >= 0)) return false;
-    /* AND ONLY WHAT THIS FINDER CARRIES — Find everything but the resources, the second finder the
-       resources (`FINDERS`). Filtered here and not in the mappers: `stuffItemsAll_` still holds every
-       kind for Saved, the Spotlight and the answer lookups, and check-bible.js requires the Bible's
-       spread to stay in `stuffItemsRaw_`. Each finder's list is memoised on its own record. */
-    return FINDER.has(x);
+    /* AND NOTHING ELSE: BOTH FINDERS CARRY EVERYTHING (347). For two days this went on to keep only
+       what the bound finder carried — Find everything but the resources, the second finder the
+       resources (329, `FINDER.has`) — and that was the split the owner took back. */
+    return true;
   });
 }
 
@@ -14480,8 +14476,11 @@ screen('account', () => pages('account',
 /* THE BUNDLE IS THE LAST OF THEM — see `bundlePages_`. It is asked here and nowhere else, so
    `PAGER.stuff`, `stuffFirstResult_`, `paintStuff` and `screen('stuff')` all count it by asking the
    one function that draws it, which is the rule every one of those already follows. */
-/* THE BOUND FINDER'S, since there are two (`FINDERS`): Find's are the three above, and the second
-   finder has none — no booking form, no posts and no paper to bundle is a resource. */
+/* THE BOUND FINDER'S, since there are two (`FINDERS`): Find's are the three above, and Find 2 has
+   none. Not because it carries less — both carry every item (347) — but because these are not search
+   results: the booking form is one draft of one booking (`BOOKING` is one global state), and a second
+   copy of it one swipe along would be two forms writing the same booking; the posts and the bundles
+   are the front door's, and twice them is the same pages to swipe past twice. */
 function frontPages_() {
   return FINDER.front();
 }
@@ -16759,8 +16758,9 @@ function fillStuffPages(all) {
      Started again on every fill rather than once. They are idempotent — a board redraws from the
      position it already holds, a clock from the time it already has — and remembering which have
      been started is a second thing to keep true.
-     FIND'S ALONE (`widgets`): the second finder holds no widget, so its fill leaves `WIDGET_ON` to
-     Find, whose own fills start and stop it as they always did. */
+     FIND'S ALONE (`widgets`): Find 2's fill leaves `WIDGET_ON` to Find, whose own fills start and stop
+     it as they always did — one widget started and stopped from two columns' fills would be one clock
+     reset by whichever filled last. */
   if (!FINDER.widgets) { settle_(changed); return; }
   if (!showingWidgets()) { stopWidget_(); settle_(changed); return; }
   const wgt = items[at - first] && items[at - first].row;
@@ -17165,9 +17165,9 @@ function stuffQuestion() {
 
 /* ---------- ONE DRAW FOR BOTH FINDERS -----------------------------------------------------------------
    `screen('stuff')` WAS THIS FUNCTION, and it is now the draw of whichever finder is bound — Find's
-   and the second finder's are registered under it, below, each in its own binding. The ids are the
-   finder's (`stuff-q`, `res-q` …) so a press finds its own column; everything else on this page is
-   the same page in both, which is the point (docs/history/329). */
+   and Find 2's are registered under it, below, each in its own binding. The ids are the finder's
+   (`stuff-q`, `res-q` …) so a press finds its own column; everything else on this page is the same
+   page in both, which is the point (docs/history/329, 347). */
 function finderScreen_() {
   const F = FINDER;
   const credits = USER ? (USER.credits || 0) : 0;
@@ -17305,13 +17305,14 @@ function finderScreen_() {
       if (stuffOnGlass_(F.id) && stuffBandFill_()) settle_(true);
     }); } catch (e) {} });
   }
-  /* `is-res` IS "A PAGE OF RESULTS", as it always was — older than the second finder's `res` id, and
-     nothing to do with it: `#s-res .page.is-res` is a result page of the Resources column. */
+  /* `is-res` IS "A PAGE OF RESULTS", as it always was — older than Find 2's `res` id, and nothing to
+     do with it: `#s-res .page.is-res` is a result page of Find 2. */
   return pages(F.id, [controls].concat(front))
     + '<section class="page is-res"><div class="pane"></div></section>'.repeat(Math.min(want, STUFF_WIN));
 }
 screen('stuff', () => inFinder_(FINDERS.stuff, finderScreen_));
-/* THE SECOND FINDER — the owner's *"finder 2"*, the column right of Find, carrying the resources. */
+/* FIND 2 — the owner's *"finder 2"*, the column right of Find: *"an identical second finder"* (12 Oct),
+   the same list and the same questions with a state of its own. */
 screen('res', () => inFinder_(FINDERS.res, finderScreen_));
 /* THE `basket ‧ 2` LINK WENT WITH THE SHEET IT OPENED. The basket is the page in front of this one
    — one swipe, and the pager names it — so a control that jumps there is a shortcut to somewhere

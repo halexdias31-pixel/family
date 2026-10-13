@@ -9794,11 +9794,8 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   flex-wrap: wrap;
 }
 
-/* ---------- THE WAY TO THE OTHER FINDER, UNDER AN EMPTY SEARCH -------------------------------------
-   `stuffNoneHtml_` (find.js): "Nothing matches. / 1 in Resources." and one Open tile. Left-aligned it
-   stood alone in the bottom corner of the card, a long way from the words it answers; centred under
-   them, and drawn up into the empty paragraph's own bottom padding, it reads as that sentence's door. */
-.tile-row.is-elsewhere { justify-content: center; margin-top: -1.6rem; }
+/* `.tile-row.is-elsewhere` WAS HERE — the Open tile under an empty search that pointed to the other
+   finder ("1 in Resources"). It went with the tile: both finders hold the same list (docs/history/347). */
 
 /* ---------- THE ADMIN MARKS SIT AT THE FAR END ----------------------------------------------------
    THIS IS WHAT REPLACES THE SECOND ROW, and it does the job the second row was there for: keeping a

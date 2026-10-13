@@ -389,9 +389,10 @@ for (const who of VISITORS) {
   }
 
   /* `--screen=stuff,res` PRESSES SEVERAL IN ONE PAGE, IN THAT ORDER — which is what a press that
-     leaks from one column into the next needs to be seen: the second finder's review found Find's
-     Open tile carrying words into Resources and every `res` state after it failing, and neither
-     screen pressed alone could show it. */
+     leaks from one column into the next needs to be seen: the second finder's review (329) found Find's
+     Open tile carrying words into the second column and every `res` state after it failing, and neither
+     screen pressed alone could show it. That tile is gone (347); the two finders sharing nothing is
+     still the thing a list of screens is for. */
   const screens = ONLY ? ONLY.split(',').filter(Boolean)
     : await page.evaluate(() => (typeof TABS !== 'undefined' ? TABS.map(t => t.id) : []));
   if (!screens.length) {

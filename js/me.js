@@ -729,11 +729,10 @@ function signedOut_(opts) {
      can name a shelf only an admin is shown, which is the reason above.
      ONE DECIDER PER DOOR: `signedIn_` passes `keepFind`, `api()` passes `ended`; Sign out and a switch from
      one person to another pass neither and clear Find.
-     ---------- AND THE SECOND FINDER, ON THE SAME RULE ------------------------------------------------------
-     THE RESOURCES ARE A COLUMN OF THEIR OWN NOW (docs/history/329) and the Books shelf went with them, so
-     the shelf the admin rule above was written about is in the second finder, not Find. Every finder's
-     state is kept, marked or cleared together, through `finderStates_` (find.js) — `typeof`, for the
-     reason `STUFF` is. */
+     ---------- AND FIND 2, ON THE SAME RULE ------------------------------------------------------------------
+     THERE ARE TWO FINDERS (docs/history/329) and both carry everything, the Books shelf too (347), so the
+     shelf the admin rule above was written about can be in either. Every finder's state is kept, marked
+     or cleared together, through `finderStates_` (find.js) — `typeof`, for the reason `STUFF` is. */
   try {
     const states = typeof finderStates_ === 'function' ? finderStates_()
                  : (typeof STUFF !== 'undefined' ? [STUFF] : []);
@@ -1663,6 +1662,14 @@ on('friend-drop', el => friendsSave(
 /* Adding one from the Find browse page, where the list is. */
 on('friend-add-open', () => friendsSheet());
 
+/* EVERY FINDER'S FOUND LIST FORGOTTEN, AND THE FINDER IN FRONT DRAWN — `typeof`, because find.js loads
+   after this file. */
+function friendsForget_() {
+  if (typeof finderForgetFound_ === 'function') finderForgetFound_(); else FIND_MEMO.key = null;
+  if (typeof finderOf_ === 'function' ? finderOf_(AT) : AT === 'stuff') {
+    if (typeof paintFinder_ === 'function') paintFinder_(AT); else paintStuff();
+  }
+}
 /* Written on the phone first, then sent — and the sheet redrawn either way, so removing somebody
    is visible before the round trip and put back if it fails. */
 function friendsSave(list, said) {
@@ -1675,15 +1682,15 @@ function friendsSave(list, said) {
   USER.friends = list.join(', ');
   try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
   /* The list lives on Find now, so that is what has to be redrawn — and the memo has to be told,
-     or it serves the list from before the change. */
-  FIND_MEMO.key = null;
-  if (AT === 'stuff') paintStuff();
+     or it serves the list from before the change. ON BOTH FINDERS, which list the friends alike
+     (docs/history/347): `FIND_MEMO` from out here is Find's alone, so `friendsForget_` asks every
+     finder's, and the one in front is drawn. */
+  friendsForget_();
   api({ action: 'saveFriends', name: USER.name, personId: USER.personId, friends: USER.friends })
     .then(d => { if (d && d.error) throw new Error(d.error); accountChanged_(); })
     .catch(err => {
       USER.friends = before;
-      FIND_MEMO.key = null;
-      if (AT === 'stuff') paintStuff();
+      friendsForget_();
       const el = $('fr-said');
       if (el) el.textContent = String(err.message || 'Not saved — no connection.');
     });
@@ -5708,8 +5715,9 @@ function profileRefresh_(loud, onOld) {
       if (d.handle) USER.handle = String(d.handle);
       if (typeof d.friends === 'string' && d.friends !== String(USER.friends || '')) {
         USER.friends = d.friends;
-        /* THE FRIENDS LIST ON FIND IS MEMOISED — told, as `friendsSave` tells it. */
-        try { FIND_MEMO.key = null; } catch (e) {}
+        /* THE FRIENDS LIST ON BOTH FINDERS IS MEMOISED — told, as `friendsSave` tells it. Not drawn
+           here: the `landRepaint_` below draws the column in front. */
+        try { if (typeof finderForgetFound_ === 'function') finderForgetFound_(); else FIND_MEMO.key = null; } catch (e) {}
       }
       const roleMoved = JSON.stringify([USER.role, USER.roles, !!USER.tutorPending, String(USER.pendingEmail || ''),
         String(USER.name || ''), USER.children, USER.kids, String(USER.handle || ''), String(USER.friends || '')]) !== roleWas;

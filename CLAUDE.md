@@ -39,8 +39,9 @@ any name used but never declared. Run it after every change.
 
 Fifteen screens are registered (fourteen for anybody but an admin), in `TAB_ORDER` (js/shell.js):
 `feed`, `booking`, `shop` (things for sale and the basket — Find no longer has a Shop door), `reel`, `dm`, `stuff` (Find, the funnel —
-questions, answers, practicals, projects, bundles — and the root), `res` (Resources, the second finder,
-immediately right of Find: the textbooks, the boxers and their fights, the Bible), `account`, `tools`,
+questions, answers, practicals, projects, bundles, the textbooks, the boxers and their fights, the
+Bible for an admin — and the root), `res` (**Find 2**: the same finder again, immediately right of Find,
+with a state of its own; the id is `res` from the two days it held the resources), `account`, `tools`,
 `games`, `saved`, `spotlight`, `settings`, `progress` (for a student — and an admin — the "Your journey" card
 that was on Settings until 12 Oct; for anybody else a placeholder saying it is not built), and last, **for an admin only**,
 `biz` — the business records (insurance, tax, legal and data, safeguarding, money and company). A tab
@@ -48,12 +49,18 @@ marked `admin: true` is left out of `TABS` for anybody else by `columnsFor_` in 
 makes its `<section>` for an admin and takes it away again — so it has none in index.html, and signing
 in or out adds or removes it without a reload.
 
-**Two finders, one engine** (docs/history/329). `stuff` and `res` are one funnel bound to two states:
-`inFinder_(F, fn)` in find.js parks one finder's `STUFF` and memos and puts the other's in their place,
-so the engine reads `STUFF` as it always did. **Outside a binding `STUFF` is Find's** — every other file
-and every check that writes it means Find. A timer, microtask, promise or `afterSlide_` job runs outside
-the binding and must capture its finder and bind again. Which kinds a finder carries is the kinds
-table's label (`Resources` → the second finder), so a kind relabelled in the sheet moves column.
+**One finder, twice** (docs/history/329, 347). `stuff` and `res` carry the **same list** and ask the
+same funnel — *"an identical second finder"*, so a student can keep a chapter up in one while answering
+questions in the other — and what makes them two is their **state**: words, chips, page and kept place
+(`find:place`, `res:place`). One funnel bound to two states: `inFinder_(F, fn)` in find.js parks one
+finder's `STUFF` and memos and puts the other's in their place, so the engine reads `STUFF` as it always
+did. **Outside a binding `STUFF` is Find's** — every other file and every check that writes it means
+Find. A timer, microtask, promise or `afterSlide_` job runs outside the binding and must capture its
+finder and bind again; anything that forgets "the found list" forgets every finder's
+(`finderForgetFound_`). Find's front pages (the booking form, posts, bundles) and the Tools tail of the
+fill stay Find's alone. A kept card Saved cannot draw whole has `Open · in Find`. The 10–12 Oct split
+(Find without the resources, the second column with only them) is gone; don't bring back a membership
+rule per finder.
 
 ### Layout, and why the checks are shaped the way they are
 
@@ -76,7 +83,7 @@ almost never writes to it directly.
   of `find.js` deliberately: editorial, changes often, changing it should not be a deploy.
 - **The teaching animations are rows of `data/textbooks.json`** — Pythagoras, the sieve, Bayes, the
   solar system and 24 more, each directly under the chapter it teaches (`anim`, `title`, `about`,
-  `html`, `css`). The chapter plays it on a page of its own, in the Resources column; the loading screen draws a copy the
+  `html`, `css`). The chapter plays it on a page of its own, in whichever finder it is opened; the loading screen draws a copy the
   device kept from the last load (`splashSync_` in shell.js, read by the picker in index.html — one
   load behind). *"The source for the animations should be in text books"* — the owner, 8 Oct.
   **Each one has ONE source, and which it is depends on the drawing.** Thirteen are written by a
