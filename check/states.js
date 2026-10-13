@@ -2502,10 +2502,11 @@ const STATES = {
        whole list, and nothing a film's title finds in Find's search, is a film. A film is measured where
        it is found — "the films in the videos card, an admin’s", on Games.
        NOT `Learning`'s What kind ANY MORE, which is what the films branch asked for: the second finder
-       took the textbooks to the Resources column (docs/history/329), and over the fixture Learning in Find
-       then holds one kind, so What kind is skipped and the page drew Year. A state that wants a second
-       What kind answer on Find cannot arrive, whatever the films do — so this asks What kind's answers of
-       the facet over the whole list instead, which is the same question without the funnel's skip. */
+       took the textbooks to its own column for two days (docs/history/329; Find holds them again since
+       347), and over the fixture Learning in Find then held one kind, so What kind was skipped and the page
+       drew Year. A state that wants a second What kind answer on Find depends on what the fixture happens
+       to hold — so this asks What kind's answers of the facet over the whole list instead, which is the
+       same question without the funnel's skip. */
     { name: 'no films in Find, an admin’s',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => {
@@ -2539,33 +2540,19 @@ const STATES = {
       expect: () => /Nothing matches/.test((document.querySelector('#stuff-groups .empty') || {}).textContent || ''),
       wants: 'the funnel saying Nothing matches',
       leave: () => { STUFF.q = ''; paintStuff(); goPage('stuff', 0); } },
-    /* AND A SEARCH THAT MATCHES NOTHING HERE BUT SOMETHING ONE COLUMN OVER — the review of the second
-       finder, finding 1 (docs/history/329): a boxer's name typed into Find said "Try fewer words." with
-       him one swipe away in Resources. It says how many and where now, with an Open tile under it, and a
-       tile is a tap target and a line of faint words is a contrast ratio, which only a browser measures. */
-    { name: 'a search only Resources answers',
-      enter: () => { STUFF.filters = []; STUFF.q = 'Olivares'; paintStuff(); goPage('stuff', stuffQuestionPage_(), true); },
+    /* AND A SEARCH A CHIP HIDES. It was "a search only Resources answers" — a boxer's name typed into Find
+       while the boxers were one column over, which drew "1 in Resources" and an Open tile that carried the
+       words across (329's review, finding 1). Both finders hold the boxers now (347) and the tile is gone:
+       what is left to measure is the sentence a chip leaves — faint words, which is a contrast ratio, and
+       which only a browser measures — and that no tile to the other column is drawn under it. */
+    { name: 'a search a chip hides',
+      enter: () => { STUFF.filters = [{ field: 'kindLabel', value: 'Projects' }]; STUFF.q = 'Olivares'; paintStuff(); goPage('stuff', stuffQuestionPage_(), true); },
       expect: () => {
         const g = document.querySelector('#stuff-groups');
-        const t = g && g.querySelector('.tile-row [data-do="finder-words"][data-to="res"]');
-        return !!t && /\bin Resources\b/.test(g.textContent) && !/Try fewer words/.test(g.textContent);
+        return !!g && /take a filter off/.test(g.textContent) && !g.querySelector('[data-do="finder-words"]');
       },
-      wants: 'Find\'s empty search saying how many are in Resources, with an Open tile under it',
-      /* AND RESOURCES PUT BACK TOO. `check/press.js` presses the Open tile, which is the point of it:
-         it carries "Olivares" into Resources' words and box and turns that column to his card. Left
-         there, every `res` state after it — which set chips and not words — entered a column searching
-         for a boxer, and the textbook chapter and the three animations "did not arrive". */
-      leave: () => {
-        STUFF.q = ''; paintStuff(); goPage('stuff', 0);
-        inFinder_(finderOf_('res'), () => {
-          STUFF.q = ''; STUFF.filters = [];
-          const box = document.getElementById('res-q');
-          if (box) box.value = '';
-          paintStuff(); goPage('res', 0);
-        });
-        /* AND FIND IN FRONT AGAIN — the tile went to Resources, and the states after this one are Find's. */
-        if (AT !== 'stuff') go('stuff', false, true);
-      } },
+      wants: 'Find\'s empty search under a chip saying "Try fewer words, or take a filter off." and offering no other column',
+      leave: () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     { name: 'nothing left to narrow',
       /* ANSWERED BY THE FUNNEL'S OWN ROWS until it stops asking, over the projects — eight things,
          so it runs out of questions in two or three answers whatever the data says next week. */
@@ -2684,16 +2671,17 @@ const STATES = {
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
   ],
   /* ================================================================================================
-     THE SECOND FINDER: RESOURCES, RIGHT OF FIND (docs/history/329)
+     FIND 2, RIGHT OF FIND (docs/history/329, 347)
 
-     THE OWNER, 10 Oct: *"i want to move everything which is in "resources" tag. i want to create a new
-     column to the right of the current finder. this new column is "finder 2". it carries resources."*
-     The textbooks, the Bible, the boxers and the fights left Find for this column, and every state that
-     measured them moved with them, word for word, but for three things: each runs in the second
-     finder's binding (`inFinder_`, find.js — inside it `STUFF` IS this column's state, so the code reads
-     as it did), each turns `goPage('res', …)` and looks in `#s-res`, and none sets a `What for` or
-     `What kind` chip, because over the resources both have one answer and the funnel skips them — a
-     chip nobody could have pressed is not a state anybody is in.
+     THE OWNER, 10 Oct, built this column for the resources; on 12 Oct: *"Return to that origional finder
+     having everything and now there is just an identical second finder."* The textbook, Bible, boxer and
+     fight states moved here with the resources (329) and STAY here now that both finders hold them,
+     because they are what proves the second column draws as Find does — the column a student keeps the
+     reading up in. Each runs in the second finder's binding (`inFinder_`, find.js — inside it `STUFF` IS
+     this column's state, so the code reads as it did), turns `goPage('res', …)` and looks in `#s-res`.
+     They set the shelf's chip without `What for · Learning` and `What kind · Resources` in front of it:
+     the shelf narrows to the same list a finger reaches through those two doors, so the page drawn is the
+     page a finger reaches.
   ================================================================================================ */
   res: [
     { name: 'the question' },

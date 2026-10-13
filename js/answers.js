@@ -1121,11 +1121,20 @@ window.addEventListener('storage', e => {
    can outlast a sign-out, and a Find column held stale across a change of person is one whose boxes are
    still keyed to the last child. The pen's state is redrawn from `PAD_ON` anyway, and every stroke is
    stored the moment it ends. A verdict is only held back from the moment-after redraw below, which is
-   the one that would wipe "Correct" a heartbeat after Check put it there. */
+   the one that would wipe "Correct" a heartbeat after Check put it there.
+   ---------- AND FIND 2, ON THE SAME TERMS ----------------------------------------------------------------
+   BOTH FINDERS HOLD EVERY QUESTION NOW (docs/history/347), and the owner's own use is a child answering
+   in one column with a chapter up in the other — so either column can hold the box being typed in. This
+   was Find's alone while the second finder held only the resources, which have no answer box; left that
+   way, a payload landing under a child typing in Find 2 rebuilt the column under her, the diag-signin
+   bug above on the other column. Any finder (`finderOf_`, find.js — `typeof`, because this file loads
+   first). The keypad and the stroke are held for both columns, as they always held Find whichever column
+   the box was on: a column marked stale is only drawn on arrival, which costs nothing. */
+const findIs_ = id => (typeof finderOf_ === 'function' ? !!finderOf_(id) : id === 'stuff');
 function findKeep_(id) {
-  if (id !== 'stuff') return false;
+  if (!findIs_(id)) return false;
   try {
-    const host = document.getElementById('s-stuff');
+    const host = document.getElementById('s-' + id);
     if (!host) return false;
     const a = document.activeElement;
     if (a && host.contains(a) && a.matches && a.matches('[data-do="qp-ans"], .kp-in, textarea, input')) return true;
@@ -1136,10 +1145,11 @@ function findKeep_(id) {
 /* A VERDICT ON THE SCREEN. It lived in the DOM only until 9 Oct — Check wrote it there and nothing stored
    it — and a redraw a moment after leaving the box wiped "Correct" a heartbeat after it appeared. It is
    drawn from the latest submission now (js/submit.js) and a redraw draws it again; the redraw is still
-   held over one, which costs nothing and keeps the card still under a child reading it. */
-function findVerdictShown_() {
+   held over one, which costs nothing and keeps the card still under a child reading it. Of the finder
+   asked about, Find when none is named. */
+function findVerdictShown_(id) {
   try {
-    const host = document.getElementById('s-stuff');
+    const host = document.getElementById('s-' + (id && findIs_(id) ? id : 'stuff'));
     return !!host && [].some.call(host.querySelectorAll('.qp-mark[data-accept] .qp-verdict, .qp-ai .qp-verdict'),
       el => !!String(el.textContent || '').trim());
   } catch (e) { return false; }
@@ -1153,7 +1163,7 @@ document.addEventListener('focusout', () => {
   clearTimeout(FIND_KEPT_TIMER);
   FIND_KEPT_TIMER = setTimeout(() => {
     try {
-      if (AT === 'stuff' && STALE && STALE.stuff && !findKeep_('stuff') && !findVerdictShown_()) repaint();
+      if (findIs_(AT) && STALE && STALE[AT] && !findKeep_(AT) && !findVerdictShown_(AT)) repaint();
     } catch (e) {}
   }, 400);
 });

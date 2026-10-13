@@ -169,19 +169,26 @@ const TABS = [
      `<nav id="tabs">` in index.html), so like every icon here it is carried for `applyColumns_`
      and for whatever names a column next. */
   { id: 'progress', icon: '📈', label: 'Progress', title: 'Progress' },
-  /* ---------- THE SECOND FINDER: RESOURCES, RIGHT OF FIND --------------------------------------------
-     THE OWNER, 10 Oct: *"i want to move everything which is in "resources" tag. i want to create a new
-     column to the right of the current finder. this new column is "finder 2". it carries resources.
-     like text books, boxing stuff books. ect."* The textbooks, the boxers, the fights and the Bible
-     were answers to Find's `What kind` question; they are a column of their own now, with the same
-     funnel, cards and swipe, in `screen('res')` (find.js, `FINDERS`). Called Resources wherever a
-     column is named — the word the funnel already used for them — and "the second finder" in code.
+  /* ---------- FIND 2: THE SAME FINDER AGAIN, RIGHT OF FIND ------------------------------------------
+     THE OWNER, 10 Oct, built it as a column of its own for the resources: *"this new column is
+     "finder 2". it carries resources."* — and on 12 Oct took the split back: *"Return to that
+     origional finder having everything and now there is just an identical second finder. Smart
+     students will know to use this second finder to have the content up while they do questions on
+     the origional finder."* So it is Find again — the same list, the same questions — with its own
+     words, chips, page and kept place (`FINDERS` in find.js, docs/history/347).
+     CALLED `Find 2`, WITH FIND'S OWN 🔎. "Resources" said it held different things, which it no longer
+     does; the owner's own words for it were "finder 2" and "an identical second finder", and a name
+     that says what a column is beats one that suggests what is in it. The same icon because it is
+     the same finder (nothing draws the icons today — see `progress` above).
+     THE ID STAYS `res`, an accident of the two days it held the resources, and on purpose: the id is
+     in a remembered column (`familyTab`), the kept place's storage name (`res:place`), `TAB_ORDER`,
+     `PAGE`/`PAGE_KEEP`/`PAGE_LO`/`PAGER`, every DOM id the column draws (`res-q`, `res-chips` …),
+     `<section id="s-res">` in index.html and dozens of checks. Renaming it is churn nobody sees, and
+     a remembered `res` would land on no column for everybody who had it open.
 
      APPENDED, because this table is append-only (see `progress` above); `TAB_ORDER` and the row in
-     `data/settings/columns.json` are what put it immediately right of Find. 📚 rather than a plain
-     shape, as 📈 was: no plain shape means a shelf of books, and 📚 is Unicode 6.0, in every emoji
-     font this app is opened in. */
-  { id: 'res',     icon: '📚', label: 'Resources', title: 'Resources' },
+     `data/settings/columns.json` are what put it immediately right of Find. */
+  { id: 'res',     icon: '🔎', label: 'Find 2', title: 'Find 2' },
   /* ---------- AND THE BUSINESS'S OWN PAPERWORK, LAST, FOR AN ADMIN AND NOBODY ELSE -------------------
      ASKED FOR AS "the business checklist stuff should go in their own column at the end." (10 Oct)
      They were five pages at the foot of an admin's Settings (docs/history/207) — insurance, tax, legal
@@ -777,10 +784,11 @@ function paint(id, fresh) {
      me.js, beside the forms it asks about; signed out it always answers no, so signing out clears
      the column as it always did. */
   if (typeof settingsKeep_ === 'function' && settingsKeep_(id)) { STALE[id] = 1; return; }
-  /* ---------- AND FIND IS NOT REDRAWN UNDER A CHILD WHO IS WRITING ------------------------------------
+  /* ---------- AND NEITHER FINDER IS REDRAWN UNDER A CHILD WHO IS WRITING --------------------------------
      The same rule for the answer box: a payload landing fifteen seconds after "Signed in" rebuilt the
      column with the keypad up, and the box it was typing into was gone (diag-signin, A). `findKeep_`
-     (js/answers.js) says when, and draws it again a moment after the box is left. */
+     (js/answers.js) says when, of Find and Find 2 alike — both hold the questions (docs/history/347) —
+     and draws it again a moment after the box is left. */
   if (typeof findKeep_ === 'function' && findKeep_(id)) { STALE[id] = 1; return; }
   /* AND NO COLUMN IS REBUILT BY A PAYLOAD LANDING UNDER SOMEBODY TYPING IN IT — see `landRepaint_`. */
   if (typeof reconnectKeep_ === 'function' && reconnectKeep_(id)) { STALE[id] = 1; return; }
@@ -4371,9 +4379,11 @@ function loadStale_(n, who) {
    holding the focused box alone: marked STALE, and NOT RESTARTED either (`startScreen_`), because a
    widget's `start` writes its box's value back, which on its own moves the caret to the end. It is
    drawn a moment after the box is left, or on arriving at it. Only those: the flag is up for the
-   length of the call, so a press that repaints (Send under a message) is never held. Find is not this
-   rule's — `findKeep_` holds it on its own, stricter terms, and redraws it itself; Settings' unsaved
-   cards are `settingsKeep_`'s and still are. */
+   length of the call, so a press that repaints (Send under a message) is never held. The two finders
+   are not this rule's — `findKeep_` holds them on its own, stricter terms, and redraws them itself;
+   Settings' unsaved cards are `settingsKeep_`'s and still are. FIND 2 WAS THIS RULE'S while it held
+   only the resources, which have no answer box, so only its search box could be held (329); it holds
+   every question now (347), so it is `findKeep_`'s, as Find is. */
 /* ---------- AND NOT THE SELECT WHOSE LIST IS OPEN EITHER ---------------------------------------------
    FOUND BY REVIEW, 390x844 with real touch, on 9 October: tap the booking form's Kind, so the phone's
    own list is up over it, and let a payload land behind it. The column was rebuilt, the select the
@@ -4390,8 +4400,9 @@ const TYPING_ = 'textarea, input[type="text"], input[type="search"], input[type=
 function typingBox_() {
   const a = document.activeElement;
   if (!a || !a.matches || !a.matches(TYPING_)) return null;
-  const stuff = document.getElementById('s-stuff');
-  return stuff && stuff.contains(a) ? null : a;
+  const s = a.closest ? a.closest('.screen') : null;
+  const id = s ? String(s.id).replace(/^s-/, '') : '';
+  return (typeof finderOf_ === 'function' ? finderOf_(id) : id === 'stuff') ? null : a;
 }
 /* `draw` IS ANY OTHER REPAINT THAT A LANDING REPLY MAKES — `profileRefresh_` (me.js) drawing your own
    settings once per app open is the other one, and it rebuilt the column under an open list exactly as

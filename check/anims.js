@@ -9,7 +9,7 @@
    and the solar system since — are drawn in a second: a card, narrower than the phone by its padding,
    with words above and below.
    `check-anims.js` proves the rows are one source, kept and drawn as written; this asks what only a
-   browser can answer about each one, on the page the Resources column turns to after its chapter, at 320 and 390:
+   browser can answer about each one, on the page Find 2 turns to after its chapter, at 320 and 390:
 
      · THE DRAWING IS THERE: the stage holds its root, with a size;
      · NOTHING OF IT LEAVES THE CARD: every part of it, sampled at six moments of its loop (a hop, a
@@ -107,9 +107,9 @@ async function boot(ctx) {
   await page.waitForTimeout(600);
   return page;
 }
-/* TO THE ANIMATION'S PAGE, THE WAY A READER GETS THERE: the book's chips, then its page — on the
-   Resources column, where the textbooks and so their chapters are (docs/history/329). The chips are set
-   in that finder's binding (`inFinder_`), inside which `STUFF` is the column's own state. */
+/* TO THE ANIMATION'S PAGE, THE WAY A READER GETS THERE: the book's chips, then its page — on Find 2,
+   the column a student keeps the reading up in (both finders hold the textbooks, docs/history/347). The
+   chips are set in that finder's binding (`inFinder_`), inside which `STUFF` is the column's own state. */
 async function turnTo(page, r) {
   const part = 'an' + r.chapter + '-' + r.anim;
   return page.evaluate(async ([book, part]) => {

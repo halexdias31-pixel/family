@@ -1,3 +1,5 @@
+> **Reversed on 12 Oct, see [347](347-one-finder-twice-and-content-cards.md)**: both finders carry everything now; the binding (one engine, two states) is what was kept.
+
 ## The second finder carries the resources: a Resources column right of Find, one engine, two states
 
 **The owner, 10 Oct:** *"i want to move everything which is in "resources" tag. i want to create a new
