@@ -1159,11 +1159,14 @@ function dataProblems(deep) {
             'Their bookings will price at the open rate.');
       }
       /* THEIR OWN CUT OF AN EXTRA SEAT (docs/history/345), typed into the sheet by hand where the card's
-         refusal cannot reach: above 2 is pounds in a fraction, which the price reads as no cut at all. */
+         refusal cannot reach. ASKED OF `seatCutOut_`, the one reading, because this said "priced as no cut"
+         over a cell the price read otherwise — "£0.10" was 0.1 to the price and "no cut" here (the review
+         of 345). Anything it does not read as a cut is priced at the config B, which is what this says. */
       const cut = S(r.extra_seat_cut);
-      if (cut !== '' && !(Number(cut) >= 0 && Number(cut) <= 2)) {
+      if (cut !== '' && seatCutOut_(cut) === '') {
         add('pricing looks wrong', personDisplayName(r) + "'s extra_seat_cut is " + cut,
-            'It is a FRACTION of their rate, 0 to 2 — 0.1 is a tenth. Anything else is priced as no cut; blank is the config B.');
+            'It is a FRACTION of their rate, written as a plain number from 0 to 2 — 0.1 is a tenth. '
+            + 'Anything else is priced at the usual cut, the config B, as a blank is.');
       }
     }
     /* Email is how everybody finds out anything. Without one, every notification this system

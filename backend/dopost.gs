@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-10-12-q-seatcut";
+const DOPOST_VERSION = "2026-10-13-q-seatcut-one-reading";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -1333,9 +1333,10 @@ function doPost(e) {
 
        A KEY THAT IS NOT THERE MAY BE ADDED, BUT ONLY FROM A SHORT LIST. `priceFrom` reads `B`,
        `boss rate` or `boss_rate`, and a config tab that has never carried any of them prices every
-       extra child with no cut at all; refusing to create the row would leave the card unable to set
-       the one thing it exists for. A list rather than any key, because an admin's typo would
-       otherwise become a config row nothing reads.
+       extra child of a tutor with no cut of their own at no cut at all; refusing to create the row
+       would leave an old-build phone's Save in the deploy gap unable to set the one thing it posts.
+       A list rather than any key, because an admin's typo would otherwise become a config row
+       nothing reads.
 
        A NUMBER STAYS A NUMBER. A fraction is what this key means (`asFraction` in core.js takes
        0 to 2 and ignores anything bigger as a leftover pound figure), so it is checked here too —
@@ -1351,8 +1352,8 @@ function doPost(e) {
       }
       const t = read(TAB.config);
       /* EXACT CASE FIRST. `config()` keys its variables case-sensitively and the pricing reads `B`
-         (your cut) and `b` (the bulk discount) as two different numbers — so a case-folded match let
-         row order decide which of the two a Save on the cut card changed. */
+         (the default cut) and `b` (the bulk discount) as two different numbers — so a case-folded match
+         let row order decide which of the two a post of the cut changed. */
       let r = t.rows.find(x => S(x.key) === want) || t.rows.find(x => norm(x.key) === norm(want));
       if (!r && CONFIG_ADDABLE[norm(want)]) {
         r = addRow(t, { key: norm(want), value: Number(body.value), what_it_does: CONFIG_ADDABLE[norm(want)] });

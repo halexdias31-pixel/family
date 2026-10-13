@@ -510,23 +510,42 @@ function levelPriced(name) {
    *"Your cut off extra child for tutors should be editable on thir card. Like they can edit that small
    number to the right of their normal rate"*. So `B` — one config number for everybody, Settings' old
    "Your cut of an extra child" — is the DEFAULT, and `extraSeatCut` on the tutor's row (`extra_seat_cut`,
-   set by an admin on the tutor's card) wins over it. `num` tells the two answers apart that matter: a
-   blank cell, or a backend too old to send the key, is NaN — the default, so every tutor is priced exactly
-   as before until somebody sets theirs — and a nought is 0, which is no cut at all: the tutor keeps the
-   whole of the seat. ONE READER, so the card's `+£X/h a seat`, the quote, the receipt's split and the
+   set by an admin on the tutor's card) wins over it. `seatCutOf_` (below) tells the two answers apart that
+   matter: a blank cell, or a backend too old to send the key, is NaN — the default, so every tutor is priced
+   exactly as before until somebody sets theirs — and a nought is 0, which is no cut at all: the tutor keeps
+   the whole of the seat. ONE READER, so the card's `+£X/h a seat`, the quote, the receipt's split and the
    editor's live preview cannot disagree about which cut applies. `bRaw` and `cutOwn` say which won, for the
-   admin's line in the breakdown (`seatSource`). */
+   admin's line in the breakdown (`seatSource`); `seatOwn` says the same of the tutor's own part, for the
+   card editor, whose pound boxes draw a part only where this function would use it (`cardSeatShown_`) —
+   it drew a stored nought as "0.00" while this priced it at the config `c`, two boxes that did not add up
+   to the seat printed under them (the review of docs/history/345). */
 function seatShare_(tutorRow, c, B) {
   const v = ((typeof DATA !== 'undefined' && DATA && DATA.constants) || {}).vars || {};
   const cv = (...keys) => { for (const key of keys) { const x = num(v[key]); if (!isNaN(x)) return x; } return 0; };
   if (c === undefined) c = cv('c', 'extra child rate', 'extra_child_rate');
   if (B === undefined) B = cv('B', 'boss rate', 'boss_rate');
   const asFraction = (x, fallback) => (x > 0 && x <= 2) ? x : fallback;
-  const cRaw = (tutorRow && Number(tutorRow.extraSeat) > 0) ? Number(tutorRow.extraSeat) : c;
-  const own = tutorRow ? num(tutorRow.extraSeatCut) : NaN;
+  const seatOwn = !!tutorRow && Number(tutorRow.extraSeat) > 0;
+  const cRaw = seatOwn ? Number(tutorRow.extraSeat) : c;
+  const own = tutorRow ? seatCutOf_(tutorRow.extraSeatCut) : NaN;
   const cutOwn = !isNaN(own);
   const bRaw = cutOwn ? own : B;
-  return { cRaw, bRaw, cutOwn, cUsed: asFraction(cRaw, 0), bUsed: asFraction(bRaw, 0) };
+  return { cRaw, bRaw, seatOwn, cutOwn, cUsed: asFraction(cRaw, 0), bUsed: asFraction(bRaw, 0) };
+}
+/* ---------- A TUTOR'S OWN CUT, READ THE ONE WAY THE SERVER SENDS IT (`seatCutOut_`, people.gs) ----------
+   A PLAIN DECIMAL FROM 0 TO 2, OR NOTHING — NaN, the default. It was `num`, which reads "10%" as 0.1, "1/10"
+   as 0.1 and "0x1" as nought, while the server tested with `Number()` and sent with `parseFloat`: a tutor's
+   crafted "0x1" over a cut of 1 passed the server's "has it moved?" as 1 and went to every phone as 0, no cut
+   (the review of docs/history/345). One spelling on both sides now, the same pattern and the same bounds, so
+   the cell the phone previews, the cell the server lets through and the number `doGet` sends are one answer.
+   Out of range is the default too, never "no cut": "10" typed by hand meaning ten per cent must not take the
+   business's margin to nothing. The phone's own copy because the phone also reads the RAW cell — the card
+   editor's hidden box and `cardPatchRow_` — before any `doGet` has shaped it. */
+function seatCutOf_(v) {
+  const s = typeof v === 'number' ? String(v) : String(v == null ? '' : v).trim();
+  if (!/^\d*\.?\d+$/.test(s)) return NaN;
+  const x = Number(s);
+  return x <= 2 ? x : NaN;
 }
 
 function priceFrom(spec) {

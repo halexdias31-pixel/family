@@ -1194,6 +1194,7 @@ function run() {
   const CUT0 = { person_id: 'P002', rate_per_hour: 30, extra_seat_rate: 0.5, extra_seat_cut: '' };
   const CUTOWN = Object.assign({}, CUT0, { extra_seat_cut: 0.1 });
   const CUTNONE = Object.assign({}, CUT0, { extra_seat_cut: 0 });
+  const CUTONE = Object.assign({}, CUT0, { extra_seat_cut: 1 }), CUTTWO = Object.assign({}, CUT0, { extra_seat_cut: 2 });
   const CUTS = [
     ['yes', CUT0,   {}, false, 'a page that sends no cut is not a change'],
     ['yes', CUT0,   { extra_seat_cut: '' }, false, 'a tutor\'s no-change Save posts the blank it was drawn with'],
@@ -1209,6 +1210,15 @@ function run() {
     ['no',  CUT0,   { extra_seat_cut: '15' }, true, '15 is pounds typed into a fraction, refused for an admin too'],
     ['no',  CUT0,   { extra_seat_cut: '-0.1' }, true, 'and a share below nothing'],
     ['no',  CUT0,   { extra_seat_cut: 'ten percent' }, true, 'and words'],
+    /* ONE PARSER, THE PATTERN (the review of 345): the refusal asked `Number()` and `doGet` sent `parseFloat`, which
+       disagree on "0x1" (1 and 0) — so a tutor's "0x1" over an admin's cut of 1 looked unchanged, was written, and
+       went out as no cut. Anything that is not a plain decimal is a change, and no admin's to make either. */
+    ['no',  CUTONE, { extra_seat_cut: '0x1' }, false, 'a TUTOR writing "0x1" over a cut of 1 — Number() reads 1, parseFloat 0'],
+    ['no',  CUTTWO, { extra_seat_cut: '0b10' }, false, 'nor "0b10" over a cut of 2'],
+    ['no',  CUTONE, { extra_seat_cut: '1e0' }, false, 'nor another spelling of the same 1 — the cell is not theirs to rewrite'],
+    ['yes', CUTONE, { extra_seat_cut: '1.0' }, false, 'but "1.0" over 1 is the same cut written twice'],
+    ['no',  CUT0,   { extra_seat_cut: '0x1' }, true, 'and "0x1" from an admin, which would be sent as nought'],
+    ['no',  CUT0,   { extra_seat_cut: '£0.10' }, true, 'and "£0.10" — a cut is a plain share, never pounds'],
   ];
   CUTS.forEach(([want, me, f, isAdmin, why]) => {
     const said = box.cut(me, f, isAdmin);
@@ -1217,8 +1227,11 @@ function run() {
       + (isAdmin ? ' (admin)' : ''), want, why, said: said || '(allowed)' });
   });
   /* WHAT `doGet` SENDS FOR IT: '' for blank (the default), nought for nought, the share for a share — and a cell
-     that is not a number is the default, never a nought that takes the margin away. */
-  [['', ''], [null, ''], [0, 0], ['0', 0], [0.1, 0.1], ['0.25', 0.25], ['abc', '']].forEach(([cell, want]) => {
+     that is not a plain share from 0 to 2 is the default, never a nought that takes the margin away: words, "0x1"
+     (`parseFloat` read it as nought), "10" meant as ten per cent and "-0.1" (both went out as the number, which the
+     price read as no cut), and "£0.10" (priced as 0.1 while the health card and an admin's write said otherwise). */
+  [['', ''], [null, ''], [0, 0], ['0', 0], [0.1, 0.1], ['0.25', 0.25], [2, 2], ['abc', ''],
+   ['0x1', ''], ['0b10', ''], ['10', ''], [15, ''], ['-0.1', ''], [-0.1, ''], ['£0.10', ''], ['10%', '']].forEach(([cell, want]) => {
     const got = box.cutOut(cell);
     if (got !== want) bad.push({ handle: 'seatCutOut_(' + JSON.stringify(cell) + ')', want: JSON.stringify(want),
       why: 'blank is the usual cut and nought is none — doGet must keep them apart', said: JSON.stringify(got) });

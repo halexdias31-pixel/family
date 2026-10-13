@@ -812,8 +812,9 @@ function pricingRefusal_(me, fields, isAdmin) {
   const got = f => Object.prototype.hasOwnProperty.call(fields, f) ? fields[f] : me[f];
   const seat = S(got('extra_seat_rate'));
   if (seat !== '' && !(N(seat) >= 0 && N(seat) <= 2 && !isNaN(Number(seat)))) {
-    return 'The extra-seat rate is a share of your hourly rate, from 0 to 2 — 0.5 means half your rate '
-         + 'for each extra student. Nothing was saved.';
+    /* "THE" RATE, NOT "YOUR" RATE: an admin on somebody else's row is told this too (the review of 345). */
+    return 'The extra-seat rate is at most twice the hourly rate — as a share, 0 to 2, where 0.5 is half the '
+         + 'rate for each extra student. Nothing was saved.';
   }
   const lo = S(got('min_students')), hi = S(got('max_students'));
   if (lo !== '' && hi !== '' && N(lo) > N(hi)) {
@@ -846,8 +847,18 @@ function pricingRefusal_(me, fields, isAdmin) {
 
    `seatCutOut_` IS WHAT `doGet` SENDS: '' for a blank cell — "use the default" — and the number otherwise.
    NOT `N()` alone, which turns a blank into nought, and nought here is a different answer: no cut at all,
-   the tutor keeps the whole of the seat. A cell holding something that is not a number states no decision,
-   so it is sent as blank too: a typo in the sheet must not quietly take the business's margin to nothing.
+   the tutor keeps the whole of the seat. ONLY A PLAIN DECIMAL FROM 0 TO 2 IS A CUT; anything else states no
+   decision the price can use, so it is sent as blank, the default: a typo in the sheet must not quietly take
+   the business's margin to nothing. That held only for words until the review of 345 — "10" typed by hand
+   meaning ten per cent, or "-0.1", went out as the number and `seatShare_` priced it as NO cut; and "£0.10"
+   was priced as 0.1 by this while the health card called it "no cut" and an admin's own write of it was
+   refused. One reading now, and the health card (`dataProblems`, setup.gs) asks this function too.
+   AND THE PATTERN IS THE PARSER, `Number()` OVER A STRING THAT PASSED IT. This tested with `Number()` and sent
+   with `N()`'s `parseFloat`, and the two disagree on exactly the strings a person would craft: `Number('0x1')`
+   is 1 and `parseFloat('0x1')` is 0, likewise "0b10" and "0o2". So a tutor's post of "0x1" over an admin's
+   cut of 1 looked unchanged to the refusal below, was written, and went to every phone as 0 — no cut, for
+   that tutor, by that tutor (measured through the real `doPost`). A string the pattern refuses is no cut of
+   anybody's, and the phone reads it the same way (`seatCutOf_`, js/core.js).
 
    `seatCutRefusal_` IS ASKED BEFORE ANYTHING IS WRITTEN, beside `pricingRefusal_` and in its shape (the row,
    the wanted-only fields, whether the TOKEN's row is an admin), so a check can cut it out by name. Three
@@ -858,25 +869,31 @@ function pricingRefusal_(me, fields, isAdmin) {
      · a value `seatShare_` (js/core.js) would not read as a share — refused, an admin included. Above 2 is
        pounds typed into a fraction, which the price would silently read as nothing.
      · blank, nought, or a share above 0 up to 2 — allowed.
-   "MOVED" KNOWS BLANK FROM NOUGHT, which `pricingMoved_`'s `N()` does not: blank → 0 takes the cut away and is
-   a change; '0.10' → 0.1 is the same number written twice and is not. And it starts no month's clock: that
-   clock is the TUTOR's, on what THEY charge, and this is not theirs to move (`SEAT_CUT_FIELD`, constants.gs).
+   "MOVED" IS THE CELL ITSELF, OR THE SAME CUT WRITTEN TWO WAYS — and the second is asked of `seatCutOut_`, the
+   one reading, never of a second parser. Blank → 0 takes the cut away and is a change; '0.10' → 0.1 is the same
+   cut written twice and is not; anything `seatCutOut_` does not read as a cut is a change unless it is the very
+   cell that is there, so a tutor can neither write "0x1" over a 1 nor tidy an admin's cell into another
+   spelling. And it starts no month's clock: that clock is the TUTOR's, on what THEY charge, and this is not
+   theirs to move (`SEAT_CUT_FIELD`, constants.gs).
 ================================================================================================== */
 function seatCutOut_(v) {
   const s = S(v);
-  if (s === '' || isNaN(Number(s.replace(/[£$,\s]/g, '')))) return '';
-  return N(s);
+  if (!/^\d*\.?\d+$/.test(s)) return '';
+  const x = Number(s);
+  return x <= 2 ? x : '';
 }
 
 function seatCutRefusal_(me, asked, isAdmin) {
   if (!me || !asked || !Object.prototype.hasOwnProperty.call(asked, SEAT_CUT_FIELD)) return '';
   const want = S(asked[SEAT_CUT_FIELD]), was = S(me[SEAT_CUT_FIELD]);
-  const moved = (want === '') !== (was === '') || (want !== '' && Number(want) !== Number(was));
-  if (!moved) return '';
+  const cut = seatCutOut_(want);
+  if (want === was || (cut !== '' && cut === seatCutOut_(was))) return '';
   if (!isAdmin) return 'Only @family. sets its share of an extra seat. Nothing was saved.';
-  if (want !== '' && (isNaN(Number(want)) || Number(want) < 0 || Number(want) > 2)) {
-    return "@family.'s share of an extra seat is a share of the tutor's hourly rate, from 0 to 2 — 0.1 is a tenth "
-         + 'of it, and blank is the usual share. Nothing was saved.';
+  /* WORDED FOR EITHER BOX: Settings draws the cut as a share and the card in pounds (the card refuses a part past
+     twice the rate itself, in pounds, before it posts — `cardSeatRefusal_`, me.js). */
+  if (want !== '' && cut === '') {
+    return "@family.'s share of an extra seat is at most twice the tutor's hourly rate — as a share, 0 to 2, where "
+         + '0.1 is a tenth of the rate; blank is the usual share. Nothing was saved.';
   }
   return '';
 }

@@ -20,7 +20,10 @@ to the right of their normal rate"*
 ### What it is now
 
 **A column per tutor: `extra_seat_cut`** on the people tab, beside `extra_seat_rate`, in `SCHEMA.people`.
-`ensureSchema` adds it at the end of a live sheet, and the version bump is what makes `doGet` run that.
+`ensureSchema` adds it at the end of a live sheet — but **`doGet` does not run `ensureSchema`** (only
+`?setup=1` or `?run=ensureSchema` does, doget.gs), so **the owner must run it once** after the sync. This
+said the version bump made `doGet` run it; it does not, and until it is run every Save of the cut is refused
+with "no column for: extra_seat_cut" (below).
 `doGet` sends it on each tutor row as `extraSeatCut`.
 
 | cell | means | sent as |
@@ -119,3 +122,26 @@ four would have been wrong three ways:
   `PRICING_FIELDS`.
 - **check/states.js:** the rate page on Settings has 7 boxes now (the cut is one), and the admin's edit
   of a tutor's card is measured with the two pound boxes filled.
+
+### The review, and what it changed
+
+- **One parser for the cut, the pattern.** `seatCutRefusal_` decided "moved" with `Number()` and `seatCutOut_`
+  sent with `N()`'s `parseFloat`; they disagree on `"0x1"` (1 and 0), `"0b10"` and `"0o2"`. A tutor's crafted
+  post of `"0x1"` over an admin's cut of 1 looked unchanged, was written, and went to every phone as nought —
+  no cut, for that tutor, by that tutor. Now only a plain decimal from 0 to 2 (`/^\d*\.?\d+$/`) is a cut, in
+  `seatCutOut_` and in its phone copy `seatCutOf_` (core.js); anything else is the default, and "moved" is
+  either the very cell or the same cut by that one reading. The health card (`dataProblems`) asks it too, so
+  `"£0.10"`, `"10"` meaning ten per cent and `"-0.1"` are flagged and priced at `B`, never as no cut.
+- **The editor draws what `seatShare_` uses.** The tutor's part was drawn `share × rate`, so a stored nought
+  read "0.00" while the price used the config `c`: on Ada at £20, boxes of £0 and £2 under a seat of +£8.00.
+  `cardSeatShown_` now asks `seatShare_` (`seatOwn`, `cutOwn`) and draws a part only where the price uses it as
+  the tutor's own; otherwise the box is blank, "usual", and the line under the boxes names both usual amounts
+  in pounds: *"Theirs: blank or £0 is the usual £6.00. @family.'s: blank is the usual £2.00, £0 is no cut."*
+  £0 typed into the tutor's part is the usual share (what the price always did with it), put back to empty
+  when the box is left; £0 to the business is no cut.
+- **The pounds typed are kept when the rate moves after them** (they had saved a different seat by the order
+  things were typed in), and a part past twice the rate is refused by the card in pounds before anything is
+  sent, rather than by the server in the Settings box's fractions.
+- The read-only cut on Settings says who sets it; stale `updateConfig` comments about the deleted card fixed.
+- Checks: check-handles' cut cases grew `"0x1"`, `"0b10"`, `"1e0"`, `"£0.10"` and the `seatCutOut_` table; two
+  check-flow journeys — a stored nought in a tutor's own part, and an admin's edit where the parts add up.

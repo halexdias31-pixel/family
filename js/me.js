@@ -3758,9 +3758,12 @@ function fieldHtml(name, value, o) {
      and the same bounds (`seatCutRefusal_`), and it says what a blank is, because blank and 0 are two answers here:
      the usual share (the config tab's `B`) and none at all. Drawn as a fraction only where the rate page is still
      on Settings — a tutor or an admin with no public card; on a card it is in pounds (`cardRateHtml_`). A tutor
-     sees it and cannot change it (`settingsPages_` makes it read-only), and the server refuses it from them. */
+     sees it and cannot change it (`settingsPages_` makes it read-only), and the server refuses it from them.
+     READ-ONLY, IT SAYS WHO SETS IT, as the card's line does: a dimmed box under the admin's caption said nothing
+     about why it would not take a figure (the review of 345). */
   if (name === 'extra_seat_cut' && !o.label && !o.placeholder) {
-    o = Object.assign({}, o, { label: "@family.'s share of an extra seat, 0–2 (blank = the usual)",
+    o = Object.assign({}, o, { label: o.readonly ? "@family.'s share of an extra seat — set by @family. (blank = the usual)"
+      : "@family.'s share of an extra seat, 0–2 (blank = the usual)",
       extra: (o.extra || '') + ' type="number" min="0" max="2" step="0.01" inputmode="decimal"' });
   }
   const attr = o.attr || 'data-me';
@@ -6355,30 +6358,66 @@ function cardSeatUsual_(rate) {
   return { extra_seat_rate: pounds2_(rate * u.cUsed), extra_seat_cut: pounds2_(rate * u.bUsed) };
 }
 /* A BLANK BOX SAYS "usual" AND NO MORE — "usual £3.00" was cut off in a box half a 390px card wide (measured);
-   the amount is in the line under the boxes, which has the room. Nothing without a rate: the line says why. */
+   the amounts are in the line under the boxes, which has the room. Nothing without a rate: the line says why. */
 const cardSeatPh_ = rate => rate > 0 ? 'usual' : '';
-function cardSeatShown_(rate, frac) {
-  const x = num(frac);
-  return rate > 0 && !isNaN(x) ? pounds2_(x * rate).toFixed(2) : '';
+/* ---------- A PART IS DRAWN ONLY WHERE THE PRICE USES IT AS THE TUTOR'S OWN, AND ASKED OF `seatShare_` ----------
+   THIS WAS `share × rate`, A SECOND FORMULA, and it disagreed with the one reader exactly where the two answers
+   differ (the review of docs/history/345): a stored nought for the tutor's part was drawn "0.00", while
+   `seatShare_` prices a nought there as the config `c` — so on Ada at £20 the boxes read £0 and £2 under a seat
+   of +£8.00, and beside the business's box, where £0 means NO cut, the same £0 meant the opposite. So each box
+   shows a figure only when `seatShare_` would use the cell as this tutor's own (`seatOwn`, `cutOwn`), and is
+   blank — "usual", with the usual amount in the line under it — when the price falls back to the config.
+   THE TWO £0s ARE STILL TWO ANSWERS, because they always were in the price and the brief keeps the stored
+   meaning: £0 to the business is no cut; £0 for the tutor's part is the usual share, as a blank is, so that box
+   never shows "0.00" and a nought typed into it is put back to empty once it is left (`cardSeatSync_`). The
+   line under the boxes says both, in pounds. */
+function cardSeatShown_(f, rate, frac) {
+  if (!(rate > 0) || typeof seatShare_ !== 'function') return '';
+  const s = seatShare_({ extraSeat: frac, extraSeatCut: frac });
+  if (f === 'extra_seat_cut') return s.cutOwn ? pounds2_(s.bRaw * rate).toFixed(2) : '';
+  return s.seatOwn ? pounds2_(s.cRaw * rate).toFixed(2) : '';
 }
+/* POUNDS TYPED INTO A PART → THE SHARE THE HIDDEN BOX HOLDS. To SIX PLACES: the error is under half a millionth
+   of the rate, so it comes back to the same penny for any rate under £10,000 an hour. And pounds that DRAW THE
+   SAME as the cell the card was opened with, at this rate, put back THE STORED CELL ITSELF rather than a
+   recomputed one — 0.333333 is not 0.3333333333 to `cardChanged_`, and a retyped seat must not start the tutor's
+   month. Asked through `cardSeatShown_`, so "the same" is the reader's same: a nought or a blank typed into the
+   tutor's part over a stored nought is the usual over the usual, and nothing is sent. A blank, or a nought in the
+   tutor's part, that is NOT what was stored is '' — the usual. */
+function cardSeatShare_(f, typed, rate, was) {
+  const s = String(typed == null ? '' : typed).trim(), P = num(s);
+  const cell = String(was == null ? '' : was).trim();
+  const usual = s === '' || isNaN(P) || (f === 'extra_seat_rate' && P === 0);
+  if (cardSeatShown_(f, rate, cell) === (usual ? '' : pounds2_(P).toFixed(2))) return cell;
+  return usual ? '' : String(Math.round(P / rate * 1e6) / 1e6);
+}
+/* A PART OUTSIDE 0 TO 2 OF THE RATE — what the server refuses for either part. Read as the typed share. */
+const cardSeatOff_ = vals => vals.some(v => { const x = num(v); return !isNaN(x) && (x < 0 || x > 2); });
+const cardSeatOffSay_ = rate => 'Each part is £0 to ' + money(pounds2_(rate * 2)) + '/h — twice the rate.';
 /* THE SEAT AS THE CARD WILL PRINT IT — `profSeat_` over the typed row, the card's own function. Outside 0 to 2 a
    share is read as nothing (`asFraction`), so a figure past twice the rate says so instead of printing a seat the
    server is about to refuse. */
 function cardSeatSay_(rate, seat, cut) {
   if (!(rate > 0)) return 'An extra seat is priced from the rate — set it first.';
-  const off = [seat, cut].some(v => { const x = num(v); return !isNaN(x) && (x < 0 || x > 2); });
-  if (off) return 'Each part is £0 to ' + esc(money(pounds2_(rate * 2))) + '/h — twice the rate.';
+  if (cardSeatOff_([seat, cut])) return esc(cardSeatOffSay_(rate));
   const x = typeof profSeat_ === 'function' ? profSeat_({ rate, extraSeat: seat, extraSeatCut: cut }) : 0;
   return x > 0 ? `<span class="prof-seat">+${esc(money(x))}/h a seat</span>` : 'An extra seat adds nothing.';
 }
-/* THE LINE UNDER IT: for whoever sets the cut, what a blank and a nought are — two answers here; for a tutor on
-   their own card, what the cut is and who sets it, in a few words. */
-function cardSeatNote_(rate, cut, mayCut) {
-  if (mayCut) return 'Blank is the usual share' + (rate > 0 ? ' (' + money(cardSeatUsual_(rate).extra_seat_cut) + ' to @family.)' : '')
-    + '. £0 to @family. is no cut.';
-  if (!(rate > 0)) return "@family.'s part of a seat is set by @family.";
+/* ---------- THE LINE UNDER IT: WHAT A BLANK AND A NOUGHT ARE, IN POUNDS, FOR BOTH PARTS ----------------------
+   It named the usual amount for the business's part only, so nothing told a tutor what their own blank part was
+   worth except subtracting it from the seat (the review of 345). Both now, in the order of the boxes: the tutor's
+   part (blank or £0 is the usual), then the business's — for whoever sets it, what a blank and a nought are (the
+   usual; no cut); for a tutor on their own card, what it is and who sets it, in a few words. With no rate there
+   are no amounts, only the words. A backend too old to send the cut gets the first sentence alone. */
+function cardSeatNote_(rate, cut, o) {
+  const u = rate > 0 ? cardSeatUsual_(rate) : null;
+  const at = k => u ? ' ' + money(u[k]) : '';
+  const mine = (o.own ? 'Yours' : 'Theirs') + ': blank or £0 is the usual' + at('extra_seat_rate') + '.';
+  if (!o.hasCut) return mine;
+  if (o.mayCut) return mine + " @family.'s: blank is the usual" + at('extra_seat_cut') + ', £0 is no cut.';
+  if (!u) return mine + " @family.'s part is set by @family.";
   const s = typeof seatShare_ === 'function' ? seatShare_({ extraSeatCut: cut }) : { bUsed: 0, cutOwn: false };
-  return money(pounds2_(rate * s.bUsed)) + "/h of a seat is @family.'s" + (s.cutOwn ? '' : ', the usual')
+  return mine + ' ' + money(pounds2_(rate * s.bUsed)) + "/h of a seat is @family.'s" + (s.cutOwn ? '' : ', the usual')
     + ' — only @family. sets that.';
 }
 function cardRateHtml_(L, val, box, e) {
@@ -6387,55 +6426,76 @@ function cardRateHtml_(L, val, box, e) {
   const rate = num(val('rate_per_hour'));
   const live = rate > 0;
   const mayCut = has('extra_seat_cut') && isAdmin();
-  const pound = (f, label) => fieldHtml(f, cardSeatShown_(rate, val(f)), { attr: 'data-pound', label, readonly: !live,
+  const pound = (f, label) => fieldHtml(f, cardSeatShown_(f, rate, val(f)), { attr: 'data-pound', label, readonly: !live,
     draft: false, extra: `type="number" min="0" max="${live ? pounds2_(rate * 2) : 0}" step="0.01"${
       f === 'extra_seat_cut' ? ' inputmode="decimal"' : ''} placeholder="${esc(cardSeatPh_(rate))}"` });
   const hidden = f => has(f) ? `<input type="hidden" data-me="${f}" value="${esc(String(val(f)))}"${
     f === 'extra_seat_cut' && !mayCut ? ' disabled' : ''}>` : '';
-  const boxes = [pound('extra_seat_rate', e && e.own ? 'yours' : 'theirs')]
+  const own = !!(e && e.own);
+  const boxes = [pound('extra_seat_rate', own ? 'yours' : 'theirs')]
     .concat(mayCut ? [pound('extra_seat_cut', "@family.'s")] : []);
   return box('rate_per_hour', {})
     + `<div class="f-rowwrap"><span class="dob-cap">an extra seat adds, £ an hour</span>
          <div class="f-row" style="--n:${boxes.length}">${boxes.join('')}</div></div>
        ${hidden('extra_seat_rate')}${hidden('extra_seat_cut')}
        <p class="ce-seat" aria-live="polite">${cardSeatSay_(rate, val('extra_seat_rate'), val('extra_seat_cut'))}</p>
-       ${has('extra_seat_cut') ? `<p class="faint ce-note ce-seat-note">${esc(cardSeatNote_(rate, val('extra_seat_cut'), mayCut))}</p>` : ''}`
+       <p class="faint ce-note ce-seat-note" data-own="${own ? '1' : ''}">${esc(cardSeatNote_(rate, val('extra_seat_cut'),
+         { own, mayCut, hasCut: has('extra_seat_cut') }))}</p>`
     + fieldRows_(L.filter(f => ['rate_per_hour', 'extra_seat_rate', 'extra_seat_cut'].indexOf(f) === -1), box);
 }
-/* ---------- AND AS IT IS TYPED: POUNDS INTO THE HIDDEN SHARE, THE RATE INTO THE POUNDS, THE SEAT REDRAWN --------
+/* ---------- AND AS IT IS TYPED: POUNDS INTO THE HIDDEN SHARE, THE SEAT REDRAWN ----------------------------------
    Run by the card's own listener before `cardKeep_`, so the draft holds the share that will be sent.
-   POUNDS TYPED → the share is pounds ÷ rate, to SIX PLACES: the error is under half a millionth of the rate, so it
-   comes back to the same penny for any rate under £10,000 an hour. And pounds that come to the share the card
-   was drawn from, at this rate, put back THE STORED CELL ITSELF rather than a recomputed one — 0.333333 is not
-   0.3333333333 to `cardChanged_`, and a retyped seat must not start the tutor's month. Blank is blank: the usual.
-   THE RATE TYPED → the shares stay, as they always have when a rate moved, and the pounds follow them. */
-function cardSeatSync_(form, t) {
+   POUNDS TYPED → the share, by `cardSeatShare_`. The box is marked as typed in this edit.
+   THE RATE TYPED → a part TYPED IN THIS EDIT keeps its pounds and its share follows them; a part left alone keeps
+   its share and its pounds follow. It moved every part's pounds, typed or not, so the same figures saved two
+   different seats by the order they were typed in: £5 and £2 typed at £20 and the rate then corrected to £30
+   saved £7.50 and £3.00 (the review of 345). What somebody typed is what they meant; a part they did not touch
+   moves with the rate, as a stored share always has.
+   A NOUGHT LEFT IN THE TUTOR'S PART is put back to empty on `change` (when the box is left, never while typing:
+   "0.5" starts with a nought), so the box reads as it will when the card is opened again — "usual". */
+function cardSeatSync_(form, t, ev) {
   const sec = form.querySelector('.ce-sec[data-sec="rate"]');
   if (!sec || !t || !sec.contains(t) || !sec.querySelector('.ce-seat')) return;
   const rateBox = sec.querySelector('[data-me="rate_per_hour"]');
   const rate = num(rateBox ? rateBox.value : '');
   const hid = f => sec.querySelector('input[type="hidden"][data-me="' + f + '"]');
   const base = CARD_DRAWN.get(form.dataset.draw || '') || {};
-  const f = t.dataset ? t.dataset.pound : '';
-  if (f && hid(f) && !hid(f).disabled && rate > 0) {
-    const typed = String(t.value || '').trim(), P = num(typed), was = num(base[f]);
-    hid(f).value = typed === '' || isNaN(P) ? ''
-      : (!isNaN(was) && Math.round(was * rate * 100) === Math.round(P * 100)) ? String(base[f] == null ? '' : base[f]).trim()
-      : String(Math.round(P / rate * 1e6) / 1e6);
+  const share = b => {
+    const f = b.dataset.pound, h = hid(f);
+    if (h && !h.disabled && rate > 0) h.value = cardSeatShare_(f, b.value, rate, base[f]);
+  };
+  if (t.dataset && t.dataset.pound) {
+    t.dataset.typed = '1';
+    share(t);
+    if (ev === 'change' && t.dataset.pound === 'extra_seat_rate' && String(t.value).trim() !== '' && num(t.value) === 0) t.value = '';
   }
   if (t === rateBox) {
     sec.querySelectorAll('[data-pound]').forEach(b => {
-      const h = hid(b.dataset.pound);
       b.disabled = !(rate > 0);
-      b.value = cardSeatShown_(rate, h ? h.value : '');
       b.max = String(rate > 0 ? pounds2_(rate * 2) : 0);
       b.placeholder = cardSeatPh_(rate);
+      if (b.dataset.typed) { share(b); return; }
+      const h = hid(b.dataset.pound);
+      b.value = cardSeatShown_(b.dataset.pound, rate, h ? h.value : '');
     });
   }
   const seat = hid('extra_seat_rate'), cut = hid('extra_seat_cut');
   sec.querySelector('.ce-seat').innerHTML = cardSeatSay_(rate, seat ? seat.value : '', cut ? cut.value : '');
   const note = sec.querySelector('.ce-seat-note');
-  if (note) note.textContent = cardSeatNote_(rate, cut ? cut.value : '', !!sec.querySelector('[data-pound="extra_seat_cut"]'));
+  if (note) note.textContent = cardSeatNote_(rate, cut ? cut.value : '', { own: note.dataset.own === '1',
+    mayCut: !!sec.querySelector('[data-pound="extra_seat_cut"]'), hasCut: !!cut });
+}
+/* ---------- AND SAVE REFUSES A PART PAST TWICE THE RATE ITSELF, IN POUNDS ---------------------------------------
+   The preview already said so, and the server refuses it — but in the words of the Settings box, which is a share
+   ("from 0 to 2 — 0.1 is a tenth"), under a form where somebody typed £99 (the review of 345). So the card says it
+   in the card's unit and posts nothing. Only a part that moved: a stored figure nobody touched is not this Save's. */
+function cardSeatRefusal_(form, fields) {
+  const sec = form.querySelector('.ce-sec[data-sec="rate"]');
+  if (!sec || !sec.querySelector('.ce-seat')) return '';
+  const rate = num((sec.querySelector('[data-me="rate_per_hour"]') || {}).value);
+  const moved = ['extra_seat_rate', 'extra_seat_cut'].filter(f => Object.prototype.hasOwnProperty.call(fields, f));
+  if (!(rate > 0) || !cardSeatOff_(moved.map(f => fields[f]))) return '';
+  return cardSeatOffSay_(rate) + ' Nothing was saved.';
 }
 /* ---------- YOUR HANDLE, ON YOUR CARD, UNDER YOUR NAME (docs/history/339) ----------------------------------
    The owner, 11 Oct: *"the random name generator should be one of the editable things in the profile settings
@@ -6497,9 +6557,9 @@ function cardPatchRow_(pid, all, sent) {
   if (has('headline')) row.description = txt(all.headline) ? '"' + txt(all.headline) + '"' : '';
   if (has('rate_per_hour')) row.rate = Number(all.rate_per_hour) || 0;
   if (has('extra_seat_rate')) row.extraSeat = Number(all.extra_seat_rate) || 0;
-  /* `doGet`'s shape (`seatCutOut_`): '' is the usual cut and nought is none, so not `Number(...) || 0`. */
-  if (has('extra_seat_cut')) row.extraSeatCut = txt(all.extra_seat_cut) === '' || isNaN(Number(txt(all.extra_seat_cut)))
-    ? '' : Number(txt(all.extra_seat_cut));
+  /* `doGet`'s shape (`seatCutOut_`): '' is the usual cut and nought is none, so not `Number(...) || 0` — read by
+     `seatCutOf_`, the phone's copy of that one reading, so this guess and the payload that replaces it agree. */
+  if (has('extra_seat_cut')) { const x = seatCutOf_(all.extra_seat_cut); row.extraSeatCut = isNaN(x) ? '' : x; }
   if (has('min_students')) row.minStudents = Number(all.min_students) || 1;
   if (has('max_students')) row.maxStudents = Number(all.max_students) || 0;
   if (has('years_experience')) row.yrsExp = txt(all.years_experience);
@@ -6636,6 +6696,8 @@ on('card-save', el => {
   if (qualNameless_(form)) { toast(QUAL_NAMELESS_SAY_); if (said) said.textContent = QUAL_NAMELESS_SAY_; return; }
   if (cardQualHole_(form, base)) { toast(CARD_LEVELLESS_SAY_); if (said) said.textContent = CARD_LEVELLESS_SAY_; return; }
   const fields = cardChanged_(base, cardFormVals_(form));
+  const seatNo = cardSeatRefusal_(form, fields);
+  if (seatNo) { toast(seatNo); if (said) said.textContent = seatNo; return; }
   /* NOTHING TYPED — BUT A SECTION THAT SAVES ITSELF MAY HAVE BEEN (`cardSelfSaved_`): "Nothing had changed" after
      a Randomise, a pick in the wardrobe or a new picture read as if the press had been thrown away, and for a
      parent or a student three of the four sections are those. */
@@ -6759,7 +6821,7 @@ on('card-cancel', el => {
   const form = t && t.closest && t.closest('.card-ed .me-form');
   if (!form) return;
   form.dataset.dirty = '1';
-  cardSeatSync_(form, t);
+  cardSeatSync_(form, t, ev);
   cardKeep_(form);
   if (t.matches && t.matches('[data-many-of="venues_ok"]')) {
     const box = form.querySelector('[data-me="venues_ok"]'), heat = form.querySelector('.ce-heat');

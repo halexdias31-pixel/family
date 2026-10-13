@@ -2869,7 +2869,7 @@ check('an admin sets a tutor\'s cut of an extra seat in pounds on their card: th
   if (pound('extra_seat_cut').value !== '' || pound('extra_seat_cut').placeholder !== 'usual') bad.push('a blank cut shows "' + pound('extra_seat_cut').value + '" under "' + pound('extra_seat_cut').placeholder + '", wanted nothing under "usual"');
   if (c.box('extra_seat_cut').disabled) bad.push('the admin\'s hidden cut box is disabled, so their Save could never carry it');
   if (seatSaid_(c) !== '+£12.00/h a seat') bad.push('the preview reads "' + seatSaid_(c) + '", wanted +£12.00/h a seat (20 × (0.5 + 0.1))');
-  if (!/Blank is the usual share \(£2\.00 to @family\.\)\. £0 to @family\. is no cut/.test(sec.textContent)) bad.push('the section does not say that blank is the usual £2.00 and £0 is no cut: ' + sec.textContent.replace(/\s+/g, ' ').slice(0, 300));
+  if (!/Theirs: blank or £0 is the usual £6\.00\. @family\.'s: blank is the usual £2\.00, £0 is no cut\./.test(sec.textContent.replace(/\s+/g, ' '))) bad.push('the section does not say what blank and £0 are for each part — the usual £6.00 theirs, the usual £2.00 and no cut for @family.: ' + sec.textContent.replace(/\s+/g, ' ').slice(0, 300));
   /* THE RATE TYPED: the pounds follow the shares, and blank disables them with a reason. */
   c.type(c.box('rate_per_hour'), '');
   if (!pound('extra_seat_rate').disabled || !/set it first/.test(seatSaid_(c))) bad.push('with no rate the pound boxes are not disabled, or the preview does not say why: "' + seatSaid_(c) + '"');
@@ -2962,6 +2962,126 @@ check('a tutor sees the business\'s cut of a seat on their own card and cannot c
   if (!forced.length || (forced[0].fields || {}).extra_seat_cut !== '0') bad.push('the forced cut was never sent, so the server\'s refusal was NOT checked');
   if (!c.form() || !/Only @family\. sets its share of an extra seat/.test(c.said())) bad.push('a forced cut did not keep the form open with the server\'s refusal under it: "' + c.said() + '"');
   if (Number(W.real.row('P-T1').extra_seat_cut) !== 0.15) bad.push('a tutor\'s forced cut reached the sheet: ' + W.real.row('P-T1').extra_seat_cut);
+  return bad;
+});
+
+/* ---------- THE PARTS OF A SEAT ADD UP TO THE SEAT, AND A NOUGHT IN THE TUTOR'S PART IS THE USUAL (the review of 345) --
+   `seatShare_` prices a tutor's own share of nought — stored or typed — as the config `c`, and the editor drew it as
+   "0.00": on Ada at £20 the boxes read £0 and £2 over a seat of +£8.00, beside a business's box where £0 means NO cut.
+   So this asks what a person reads: each part drawn, or, where it is blank, the usual amount the line under the boxes
+   names, add up to the seat printed under them. Ada's own share is a stored nought here, and her card is opened by
+   herself: her box is empty under "usual", never "0.00"; the line names her usual £6.00 and the business's £2.00; a
+   nought typed into her box and left is put back to empty and to the stored cell, so a Save sends nothing. */
+const seatParts_ = (c, f) => { const b = c.form() && c.form().querySelector('[data-pound="' + f + '"]'); return b ? String(b.value).trim() : null; };
+const seatNote_ = c => String(((c.form() && c.form().querySelector('.ce-seat-note')) || {}).textContent || '').replace(/\s+/g, ' ').trim();
+const seatSum_ = s => { const m = /\+£(\d+\.\d\d)\/h a seat/.exec(s); return m ? Number(m[1]) : NaN; };
+check('a nought in a tutor\'s own part of a seat is the usual share, drawn empty and never 0.00, and the line names what both usual parts are worth so the parts add up to the seat', async () => {
+  const W = cardWorld_({ vars: CUT_VARS_ });
+  const h = W.real.tabs.people[0], ri = W.real.tabs.people.findIndex((x, i) => i > 0 && x[h.indexOf('person_id')] === 'P-T1');
+  if (h.indexOf('extra_seat_rate') < 0 || ri < 0) return ['the people tab has no extra_seat_rate column or no Ada, so a stored nought was NOT checked'];
+  W.real.tabs.people[ri][h.indexOf('extra_seat_rate')] = 0;
+  const c = await cardOpen_(W, 'tutor@example.org');
+  if (c.err) return [c.err];
+  const bad = [];
+  if (!c.edit('P-T1')) return ['Ada\'s own card has no Edit'];
+  c.A('card-edit', c.edit('P-T1'));
+  await wait(400);
+  if (!c.form()) return ['Ada\'s own card did not open for editing'];
+  const yours = () => c.form().querySelector('[data-pound="extra_seat_rate"]');
+  if (!yours()) return ['Ada\'s own part has no pound box'];
+  if (yours().value !== '' || yours().placeholder !== 'usual') bad.push('a stored nought for Ada\'s own part is drawn "' + yours().value + '" under "' + yours().placeholder + '", wanted nothing under "usual" — the price reads it as the usual share');
+  if (seatSaid_(c) !== '+£8.00/h a seat') bad.push('the preview reads "' + seatSaid_(c) + '", wanted +£8.00/h a seat (20 × (0.3 + 0.1))');
+  const want = "Yours: blank or £0 is the usual £6.00. £2.00/h of a seat is @family.'s, the usual — only @family. sets that.";
+  if (seatNote_(c) !== want) bad.push('the line under the boxes reads "' + seatNote_(c) + '", wanted "' + want + '"');
+  /* WHAT IS ON THE SCREEN ADDS UP: her part as drawn, or the usual the line names when it is blank, and the business's. */
+  const m = /usual £(\d+\.\d\d)\. £(\d+\.\d\d)\/h of a seat/.exec(seatNote_(c));
+  const mine = seatParts_(c, 'extra_seat_rate') || (m ? m[1] : 'NaN');
+  if (!m || Math.abs(Number(mine) + Number(m[2]) - seatSum_(seatSaid_(c))) > 0.005) bad.push('the parts on the screen (' + mine + ' and ' + (m ? m[2] : '?') + ') do not add up to the seat "' + seatSaid_(c) + '"');
+  /* A NOUGHT TYPED AND LEFT: the usual over the usual — the stored cell back, the box empty again, nothing sent. */
+  c.type(yours(), '0');
+  if (c.box('extra_seat_rate').value !== '0') bad.push('£0 typed over a stored nought is held as ' + JSON.stringify(c.box('extra_seat_rate').value) + ', not the stored "0" — a Save would send a share nobody changed');
+  if (yours().value !== '') bad.push('a nought typed into Ada\'s own part and left still reads "' + yours().value + '" — it is the usual, and is drawn empty');
+  if (seatSaid_(c) !== '+£8.00/h a seat') bad.push('after £0 in her own part the preview reads "' + seatSaid_(c) + '", wanted +£8.00/h a seat');
+  c.sent.length = 0;
+  c.A('card-save', c.tile('card-save'));
+  await wait(500);
+  if (c.posts().length) bad.push('a Save after £0 over a stored nought sent ' + JSON.stringify(c.posts().map(x => x.fields)) + ', wanted nothing');
+  /* AND WHERE THE RATE PAGE IS STILL ON SETTINGS (a tutor with no public card), the cut a tutor cannot change says who
+     sets it, as the card's line does — a dimmed box under the admin's caption said nothing about why. Drawn by the
+     same `fieldHtml` call `settingsPages_` makes, read-only. */
+  if (typeof c.w.fieldHtml === 'function') {
+    const ro = c.d.createElement('div'); ro.innerHTML = c.w.fieldHtml('extra_seat_cut', '0.2', { readonly: true });
+    const box = ro.querySelector('[data-me="extra_seat_cut"]');
+    if (!box || !box.disabled || !/set by @family\./.test(ro.textContent)) bad.push('the read-only cut on Settings does not say who sets it, or can be typed into: "' + ro.textContent.replace(/\s+/g, ' ').trim() + '"');
+  } else bad.push('fieldHtml is not reachable, so the read-only cut on Settings was NOT checked');
+  return bad;
+});
+
+/* ---------- AND ON AN ADMIN'S EDIT: £0 IN THE TUTOR'S PART IS THE USUAL, £0 TO THE BUSINESS IS NO CUT, THE POUNDS TYPED
+   STAY WHEN THE RATE IS CORRECTED AFTER THEM, AND A PART PAST TWICE THE RATE IS REFUSED IN POUNDS BEFORE IT IS SENT ------
+   Ada at £20 with her own 0.5 and no cut of her own. Typing the rate moved every part's pounds, typed or not, so £5 and £2
+   typed at £20 and the rate then corrected to £30 saved £7.50 and £3.00; the order things were typed in decided the seat.
+   And £99 past twice the rate went to the server, which answered in the Settings box's unit ("0.1 is a tenth"). */
+check('on an admin\'s edit of a tutor\'s card the parts of a seat add up to the seat, £0 means the usual for the tutor and no cut for the business, the pounds typed are kept when the rate moves after them, and a part past twice the rate is refused in pounds with nothing sent', async () => {
+  const W = cardWorld_({ vars: CUT_VARS_ });
+  const c = await cardOpen_(W, 'admin@example.org');
+  if (c.err) return [c.err];
+  const bad = [];
+  if (!c.edit('P-T1')) return ['the admin is offered no Edit on Ada\'s card'];
+  c.A('card-edit', c.edit('P-T1'));
+  await wait(500);
+  if (!c.form() || c.card().dataset.pid !== 'P-T1') return ['Edit on Ada\'s card did not open it as a form'];
+  const pound = f => c.form().querySelector('[data-pound="' + f + '"]');
+  if (!pound('extra_seat_rate') || !pound('extra_seat_cut')) return ['the admin\'s edit has no pound boxes for the two parts'];
+  const want = "Theirs: blank or £0 is the usual £6.00. @family.'s: blank is the usual £2.00, £0 is no cut.";
+  if (seatNote_(c) !== want) bad.push('the line under the boxes reads "' + seatNote_(c) + '", wanted "' + want + '"');
+  /* WHAT IS ON THE SCREEN ADDS UP: each part as drawn, or the usual the line names when it is blank. */
+  const adds = when => {
+    const m = /usual £(\d+\.\d\d)\..*usual £(\d+\.\d\d),/.exec(seatNote_(c));
+    if (!m) { bad.push(when + ': the line names no usual amounts: "' + seatNote_(c) + '"'); return; }
+    const a = seatParts_(c, 'extra_seat_rate') || m[1], b = seatParts_(c, 'extra_seat_cut') || m[2];
+    if (Math.abs(Number(a) + Number(b) - seatSum_(seatSaid_(c))) > 0.005) bad.push(when + ': the parts on the screen (' + a + ' and ' + b + ') do not add up to the seat "' + seatSaid_(c) + '"');
+  };
+  adds('opened');
+  /* £0 IN THE TUTOR'S PART is the usual: the share goes blank, the box is empty once left, and the seat is the usual one. */
+  c.type(pound('extra_seat_rate'), '0');
+  if (c.box('extra_seat_rate').value !== '') bad.push('£0 in the tutor\'s part over a stored 0.5 is held as ' + JSON.stringify(c.box('extra_seat_rate').value) + ', wanted "" — the usual');
+  if (pound('extra_seat_rate').value !== '') bad.push('£0 typed into the tutor\'s part and left still reads "' + pound('extra_seat_rate').value + '"');
+  if (seatSaid_(c) !== '+£8.00/h a seat') bad.push('with the tutor\'s part at the usual the preview reads "' + seatSaid_(c) + '", wanted +£8.00/h a seat');
+  adds('£0 in the tutor\'s part');
+  /* £0 TO THE BUSINESS is no cut: held as nought, drawn as typed, and the seat loses the business's part. */
+  c.type(pound('extra_seat_cut'), '0');
+  if (c.box('extra_seat_cut').value !== '0' || pound('extra_seat_cut').value !== '0') bad.push('£0 to @family. is held as ' + JSON.stringify(c.box('extra_seat_cut').value) + ' and drawn "' + pound('extra_seat_cut').value + '", wanted 0 and 0');
+  if (seatSaid_(c) !== '+£6.00/h a seat') bad.push('with no cut the preview reads "' + seatSaid_(c) + '", wanted +£6.00/h a seat');
+  adds('£0 to @family.');
+  /* THE PARTS TYPED, THEN THE RATE CORRECTED: the pounds stay as typed and the shares follow them. */
+  c.type(pound('extra_seat_rate'), '5');
+  c.type(pound('extra_seat_cut'), '2');
+  c.type(c.box('rate_per_hour'), '3');
+  c.type(c.box('rate_per_hour'), '30');
+  if (pound('extra_seat_rate').value !== '5' || pound('extra_seat_cut').value !== '2') bad.push('the rate typed after the parts moved them to ' + pound('extra_seat_rate').value + ' and ' + pound('extra_seat_cut').value + ', wanted the 5 and 2 typed');
+  if (c.box('extra_seat_rate').value !== '0.166667' || c.box('extra_seat_cut').value !== '0.066667') bad.push('£5 and £2 at £30 are held as ' + c.box('extra_seat_rate').value + ' and ' + c.box('extra_seat_cut').value + ', wanted 0.166667 and 0.066667');
+  if (seatSaid_(c) !== '+£7.00/h a seat') bad.push('£5 and £2 at £30 preview "' + seatSaid_(c) + '", wanted +£7.00/h a seat');
+  adds('the rate typed after the parts');
+  /* PAST TWICE THE RATE: said in pounds under the form, nothing sent, the form still open. */
+  c.type(pound('extra_seat_cut'), '99');
+  c.sent.length = 0;
+  c.A('card-save', c.tile('card-save'));
+  await wait(400);
+  if (c.posts().length) bad.push('a part of £99 at £30 was sent: ' + JSON.stringify(c.posts().map(x => x.fields)));
+  if (!c.form() || !/Each part is £0 to £60\.00\/h — twice the rate\. Nothing was saved\./.test(c.said())) bad.push('a part past twice the rate is not refused in pounds under the open form: "' + c.said() + '"');
+  c.type(pound('extra_seat_cut'), '2');
+  c.sent.length = 0;
+  c.A('card-save', c.tile('card-save'));
+  await wait(600);
+  const p = c.posts();
+  const f = (p[0] || {}).fields || {};
+  if (p.length !== 1 || JSON.stringify(f) !== JSON.stringify({ rate_per_hour: '30', extra_seat_rate: '0.166667', extra_seat_cut: '0.066667' })) bad.push('the Save sent ' + JSON.stringify(p.map(x => x.fields)) + ', wanted the rate 30 and the two shares of £5 and £2');
+  const sent = (W.real.get({}).tutors || []).find(x => x.personId === 'P-T1') || {};
+  if (sent.extraSeatCut !== 0.066667) bad.push('doGet sends Ada\'s cut as ' + JSON.stringify(sent.extraSeatCut));
+  const pg = c.pageOf('P-T1');
+  const onCard = (((pg && pg.querySelector('.prof-seat')) || {}).textContent || '').trim();
+  if (onCard !== '+£7.00/h a seat') bad.push('Ada\'s card says "' + onCard + '" after the Save, wanted +£7.00/h a seat');
   return bad;
 });
 
