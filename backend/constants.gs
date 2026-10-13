@@ -1701,9 +1701,17 @@ const AI_THINKING_LEVELS = {
   'gemini-3.8-flash': ['low', 'medium', 'high'],
   'gemini-3.5-flash-lite': ['minimal', 'low', 'medium', 'high'],
 };
-/* WHAT A BLANK CELL MEANS: a short answer at the lowest a model offers, an essay at LOW -- the note above. */
+/* WHAT A BLANK CELL MEANS: a short answer at the lowest a model offers, an essay at LOW -- the note above.
+   NEVER ABOVE THE MODEL'S OWN DEFAULT, which is what a blank cell asked for before 12 Oct: 3.5 Flash-Lite
+   defaults to MINIMAL, so an essay it marks stays at minimal rather than being asked to think more -- the
+   review of 12 Oct found LOW there made the fallback's essays SLOWER than before, which is the one thing
+   this change exists not to do. A level TYPED on the config tab is not held to the default. */
 const AI_THINKING_SHORT = 'minimal';
 const AI_THINKING_ESSAY = 'low';
+const AI_THINKING_DEFAULT = {
+  'gemini-3.8-flash': 'medium',
+  'gemini-3.5-flash-lite': 'minimal',
+};
 /* A DAY'S GEMINI QUOTA ENDS AT MIDNIGHT PACIFIC -- Google's rate-limits page: "Requests per day (RPD)
    quotas reset at midnight Pacific time" -- not London's. And the longest the script cache keeps
    anything, six hours, Google's own ceiling for `CacheService`. */
@@ -1779,7 +1787,7 @@ const CONFIG_DEFAULTS = [
      word that is not a level is read as blank and logged; a level a model refuses is asked again
      without it and logged, never a press with no mark. */
   ['ai_thinking', '', 'how hard Gemini thinks before marking a SHORT answer: minimal, low, medium or high (each slower and deeper than the last), or none for the model\'s own default. A model that does not offer a level gets the next one up. Blank = the lowest each model offers ('
-    + [AI_MODEL, AI_MODEL_FALLBACK].map(m => AI_THINKING_LEVELS[m][0] + ' on ' + m).join(', ') + ') -- the fastest'],
+    + [AI_MODEL, AI_MODEL_FALLBACK].map(m => (AI_THINKING_LEVELS[m] || ["its own default"])[0] + ' on ' + m).join(', ') + ') -- the fastest'],
   ['ai_thinking_essay', '', 'the same for an ESSAY (six marks or more, marked on its levels). Blank = ' + AI_THINKING_ESSAY
     + '. medium = deeper and slower: how ' + AI_MODEL + ' marked essays before 12 Oct 2026'],
   ['google_client_id', '', 'Google Sign-In client ID (the PUBLIC one, ending .apps.googleusercontent.com). Blank switches Google sign-in off. Never put the client SECRET here'],

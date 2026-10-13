@@ -5178,7 +5178,11 @@ function aiThinking_(models, essay) {
     const offers = known(m) || known(S(m).replace(/-\d+$/, ''));
     const want = typed || (offers ? (essay ? AI_THINKING_ESSAY : AI_THINKING_SHORT) : '');
     if (!want) return;
-    level[m] = offers ? (offers.filter(l => rank(l) >= rank(want))[0] || offers[offers.length - 1]) : want;
+    let got = offers ? (offers.filter(l => rank(l) >= rank(want))[0] || offers[offers.length - 1]) : want;
+    /* A BLANK CELL NEVER ASKS A MODEL TO THINK MORE THAN IT WOULD UNASKED -- the note on AI_THINKING_DEFAULT. */
+    const own = AI_THINKING_DEFAULT[m] || AI_THINKING_DEFAULT[S(m).replace(/-\d+$/, '')];
+    if (!typed && own && rank(got) > rank(own)) got = own;
+    level[m] = got;
   });
   return { cell: cell, level: level };
 }

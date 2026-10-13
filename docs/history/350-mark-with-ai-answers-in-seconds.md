@@ -217,3 +217,13 @@ fetched from the machine this was built on (as note 344 found). Google's GitHub 
 - python-genai, `ThinkingLevel` and `ThinkingConfig`: https://github.com/googleapis/python-genai/blob/main/google/genai/types.py
 - gemini-cli, a day's quota is terminal (`PerDay` / `Daily` in the QuotaFailure's quota id): https://github.com/google-gemini/gemini-cli/blob/main/packages/core/src/utils/googleQuotaErrors.ts
 - Third-party, not Google: the refused level's 400 and its words (https://github.com/earendil-works/pi/issues/9455); 3.5 Flash-Lite's 400 to a budget of 0 (https://github.com/NousResearch/hermes-agent/issues/136456); a free tier measured at about 20 requests a day (a dev.to measurement, Sep 2026, as note 344 cites it); a short RetryInfo on a day's quota (https://github.com/UKGovernmentBEIS/inspect_ai/issues/5526, https://discuss.ai.google.dev/t/429-errors-despite-waiting-after-retrydelay/96899).
+
+### After the review: a blank cell never asks a model to think more than it would unasked
+
+The review of 12 Oct found that an essay marked by the fallback, 3.5 Flash-Lite, was now asked at `low` where
+before it had thought at its own default, `minimal` — so the path a free key takes most often for an essay
+became slower, which is the one thing this change exists not to do. `AI_THINKING_DEFAULT` names each pinned
+model's own default (3.8 Flash `medium`, 3.5 Flash-Lite `minimal`), and a level chosen by a blank cell is
+held at or under it. A level typed on the config tab is not held: that is the owner choosing. And the
+`ai_thinking` row's note no longer reads `AI_THINKING_LEVELS[m][0]` bare, so a pinned name renamed to a model
+the table does not list cannot make constants.gs throw as the script loads.

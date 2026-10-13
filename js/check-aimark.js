@@ -922,7 +922,7 @@ const fresh12 = b => { gem.sent.length = 0; gem.slept.length = 0; gem.queue.leng
      once and both levels are seen: [the cells, essay?, the first model's level, the fallback's, what]. */
   const cases = [
     [{}, false, 'low', 'minimal', 'blank cells, a short answer — the lowest each model offers'],
-    [{}, true, 'low', 'low', 'blank cells, an essay — low on both'],
+    [{}, true, 'low', 'minimal', 'blank cells, an essay — low on 3.8 Flash; minimal on 3.5 Flash-Lite, which is its own default and no slower than before (AI_THINKING_DEFAULT)'],
     [{ ai_thinking: 'medium' }, false, 'medium', 'medium', 'ai_thinking medium'],
     [{ ai_thinking: ' Minimal ' }, false, 'low', 'minimal', 'ai_thinking minimal, which 3.8 Flash does not offer — the next one up'],
     [{ ai_thinking: 'none' }, false, 'none', 'none', 'ai_thinking none — each model’s own default'],
@@ -930,7 +930,7 @@ const fresh12 = b => { gem.sent.length = 0; gem.slept.length = 0; gem.queue.leng
     [{ gemini_model: 'gemini-test-model', ai_thinking: 'lo' }, false, 'none', 'minimal', 'a typo in ai_thinking, on a model this file does not know — read as blank, so no level'],
     [{ ai_thinking_essay: 'high' }, true, 'high', 'high', 'ai_thinking_essay high'],
     [{ ai_thinking_essay: 'high' }, false, 'low', 'minimal', 'ai_thinking_essay high, on a short answer'],
-    [{ ai_thinking: 'high' }, true, 'low', 'low', 'ai_thinking high, on an essay'],
+    [{ ai_thinking: 'high' }, true, 'low', 'minimal', 'ai_thinking high, on an essay — the essay cell is blank, so each model is held to its own default'],
     [{ ai_thinking_essay: 'none' }, true, 'none', 'none', 'ai_thinking_essay none'],
     [{ gemini_model: 'gemini-test-model' }, false, 'none', 'minimal', 'a first model this file does not know, the cells blank'],
     [{ gemini_model: 'gemini-test-model', ai_thinking: 'low' }, false, 'low', 'low', 'a model this file does not know, with a level typed'],
