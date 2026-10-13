@@ -83,11 +83,25 @@ admin's page answers with this week's emails. And reading what a Sunday would se
 never needed the card: `weekly_digest` = `preview` writes it to `digest_log` and emails nobody, which is
 step 4 of the owner's steps in note 280.
 
-**No backend file changed**, so the four version stamps stand. Three backend comments still describe the
-card as the caller — over `digestPreviewOut_` in digest.gs ("for the card on the Settings column
-(js/digest.js)"), over the `digestPreview` branch in dopost.gs and in the `features` list in doget.gs.
+**No backend file changed**, so the four version stamps stand. Backend comments still describe the card
+as the caller, and they are all of them:
+
+| file | where | what it still says |
+|---|---|---|
+| backend/digest.gs | over `digestScheduled_` | "How many are booked, for the admin's card" |
+| backend/digest.gs | over `digestPreviewOut_` | "for the card on the Settings column (js/digest.js)" |
+| backend/digest.gs | in `digestPreviewOut_`, over `warning` and over `words: true` | "the card says the reason", "the card says to make a new version (js/digest.js)" |
+| backend/dopost.gs | over the `digestPreview` branch | "for the admin's card on the Settings column" |
+| backend/doget.gs | `'digestPreview'` in the payload's `features` | "the card asks before it posts" — nothing on the phone reads that entry now |
+
 They were left rather than bump all four stamps for a comment and have the You screen read "Not deployed"
-until a sync; **whoever next changes backend/ should correct them** to point here.
+until a sync; **whoever next changes backend/ should correct them** — point them here and say
+`digestPreview` has no caller on the phone, and that `features` entry is weight a reader no longer wants.
+
+**js/check-digest.js is not backend and was corrected here.** Its preview section asked for `words: true`
+"because the card tells an older deployed version apart by it", and its failure said "the card would tell
+this backend it lists names only". The assertion stays — it is the action's contract, whoever asks — and
+its comment and message now say so without a card.
 
 ### Settings' page indexes
 
