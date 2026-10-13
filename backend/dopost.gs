@@ -3494,7 +3494,13 @@ function doPost(e) {
 
        IT WRITES NOTHING TO THE SHEET. The verdict is advice on practice work, shown once on the
        phone; it is not a mark anybody records, and the reply says which model gave it -- the one that
-       actually did, which since the 503 of 11 Oct may be the second (`aiGemini_`, docs/history/344). */
+       actually did, which since the 503 of 11 Oct may be the second (`aiGemini_`, docs/history/344).
+       (The phone records the marks as a press of its own, `ai:N/M`, through `submitAnswer`.)
+
+       AND SINCE 12 OCT THE SERVER ASKS THE SAME MARKER WITH NO PRESS AT ALL: `digestMarkPass_` in
+       digest.gs marks a `sent` answer overnight and before the Sunday email, through `aiMarkAsk_` with
+       the same clamps as below — and never through `aiMarkCount_`, because that cap is a child's presses,
+       and a pass spending it would leave a child "today's 20 AI marks used" for work they never pressed. */
     if (action === 'aiMark') {
       const key = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY') || '';
       if (!key) return jsonOut({ success: false, why: 'ai-off', message: 'AI marking isn’t switched on.' });
@@ -5489,9 +5495,12 @@ function aiGaveUp_(ends) {
       + ') -- the key in Script Properties, the request, or the account; Google’s words are in the line above');
   });
   console.log('aiMark: gave up -- ' + (ends.map(e => e.model + ' ' + (e.code < 0 ? 'threw' : e.code)).join(', ') || 'nothing asked'));
-  if (ends.some(e => aiAgain_(e.code))) return { error: AI_BUSY };
-  if (ends.some(e => e.code < 0)) return { error: 'Could not reach Gemini just now — try again in a moment.' };
-  return { error: 'AI marking is not working right now.' };
+  /* AND A `why` BESIDE THE SENTENCE, for a caller that is not a pupil: the Sunday marking pass
+     (`digestMarkPass_`) stops on `busy` and `unreachable` and tries tomorrow, and on `refused` tells the
+     owner — reading which by the wording would break the day the sentence is reworded. */
+  if (ends.some(e => aiAgain_(e.code))) return { error: AI_BUSY, why: 'busy' };
+  if (ends.some(e => e.code < 0)) return { error: 'Could not reach Gemini just now — try again in a moment.', why: 'unreachable' };
+  return { error: 'AI marking is not working right now.', why: 'refused' };
 }
 
 /* ---------- THE REPLY A SIGNED-IN PERSON GETS ------------------------------------------------------

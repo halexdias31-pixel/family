@@ -228,6 +228,7 @@ node check/ui.js --screen=tools  # one screen
 node check/ui.js --shots         # also writes PNGs to check/shots/ for a human to look at
 node check/live.js --sheets s.json --out /tmp/p.json   # the REAL doGet over the REAL spreadsheets
 node check/ui.js --payload=/tmp/p.json                 # and the real app rendered against it
+node check/digest-dry.js --sheets s.json --week 2026-10-18 --out /tmp/sunday   # Sunday's emails over the REAL sheet, marking stubbed, nothing sent
 ```
 
 ## House style
