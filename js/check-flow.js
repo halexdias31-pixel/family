@@ -11187,9 +11187,12 @@ check('each column opens on the page worth reading', async () => {
    gesture rather than `go('progress')`, which would reach the column whether or not anything sat
    next to it. And one more past the end stays put: the last column is an end, not a wrap.
 
-   THE SAME CARD FOR EVERYBODY until it is built — signed out, a student, a parent, a tutor, an
-   admin — so all five are asked, and a card that grew a role's control would fail here. */
-check('progress is the last column, one card that says it is not built yet with nothing to press, and a swipe off Spotlight lands on it', async () => {
+   THE SAME CARD FOR EVERYBODY until it was built — UNTIL 12 OCT, when "Your journey" came here off
+   Settings for a student and an admin (docs/history/346). So all five are still asked, each for
+   their own card: the placeholder, whole, for signed out, a parent and a tutor; the journey card for
+   a student and an admin, one page, headed Your journey, not saying "Not built yet" beside it, and
+   nothing on the column to press. A card that grew a role's control fails here either way. */
+check('progress is the last column, one card with nothing to press — the placeholder, or a student\'s journey — and a swipe off Spotlight lands on it', async () => {
   const cols = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'columns.json'), 'utf8'));
   const { w } = boot({ serve: u => (/(^|\/)data\/settings\/columns\.json(\?|$)/.test(u) ? cols : undefined) });
   await wait(600);
@@ -11219,13 +11222,13 @@ check('progress is the last column, one card that says it is not built yet with 
     if (t.AT() !== 'progress') bad.push('a sideways swipe past the last column moved off Progress, to ' + t.AT());
   }
 
-  /* THE CARD, FOR EVERY VISITOR. */
-  const who = [['signed out', null],
-    ['a student', { name: 'Test Student', personId: 'P9', role: 'student', roles: ['student'], token: 'tk' }],
-    ['a parent', { name: 'Test Parent', personId: 'P8', role: 'parent', roles: ['parent'], token: 'tk' }],
-    ['a tutor', { name: 'Test Tutor', personId: 'P7', role: 'tutor', roles: ['tutor'], token: 'tk' }],
-    ['an admin', { name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk' }]];
-  for (const [as, u] of who) {
+  /* THE CARD, FOR EVERY VISITOR — the third field is whether it is theirs to see their journey. */
+  const who = [['signed out', null, false],
+    ['a student', { name: 'Test Student', personId: 'P9', role: 'student', roles: ['student'], token: 'tk' }, true],
+    ['a parent', { name: 'Test Parent', personId: 'P8', role: 'parent', roles: ['parent'], token: 'tk' }, false],
+    ['a tutor', { name: 'Test Tutor', personId: 'P7', role: 'tutor', roles: ['tutor'], token: 'tk' }, false],
+    ['an admin', { name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk' }, true]];
+  for (const [as, u, journey] of who) {
     t.USER(u);
     w.paint('progress');
     const host = d.getElementById('s-progress');
@@ -11234,6 +11237,19 @@ check('progress is the last column, one card that says it is not built yet with 
     if (n !== 1) bad.push(as + ': the column draws ' + n + ' pages, wanted the one card');
     if (t.pageCount('progress') !== n) bad.push(as + ': the pager counts ' + t.pageCount('progress') + ' pages over ' + n + ' drawn');
     const h = host.querySelector('h3');
+    /* A STUDENT'S AND AN ADMIN'S CARD IS THEIR JOURNEY: headed so, the one card on the column, and not
+       the placeholder beside it — two "coming soon" cards about one thing would say it twice. Its
+       rows and its countdown are not `drill`'s markup, so `placeholderFaults_` is not asked of it;
+       nothing on the column to press is. */
+    if (journey) {
+      if (!host.querySelector('.card.journey')) bad.push(as + ': Progress has no journey card');
+      if (!h || h.textContent.trim() !== 'Your journey') bad.push(as + ': the card is headed ' + JSON.stringify(h && h.textContent.trim()) + ', wanted Your journey');
+      if (/Not built yet/.test(host.textContent)) bad.push(as + ': the placeholder is drawn as well as the journey card');
+      const live = [...host.querySelectorAll(PLACEHOLDER_KEYS_)];
+      if (live.length) bad.push(as + ': the journey card has ' + live.length + ' control(s) on it: ' + live.map(e => e.outerHTML.slice(0, 60)).join(' | '));
+      continue;
+    }
+    if (host.querySelector('.card.journey')) bad.push(as + ': is shown a journey card — it is a student\'s, and an admin\'s to see');
     if (!h || h.textContent.trim() !== 'Progress') bad.push(as + ': the card is not headed Progress');
     if (!/Not built yet/.test(host.textContent)) bad.push(as + ': the card does not say it is not built yet');
     /* THE PANE, NOT THE COLUMN: `#s-progress` holds the page and pane `pages()` wraps every card in,
@@ -11247,6 +11263,189 @@ check('progress is the last column, one card that says it is not built yet with 
     if (outside.length) bad.push(as + ': the column has ' + outside.length + ' control(s) outside its card: ' + outside.map(e => e.outerHTML.slice(0, 60)).join(' | '));
   }
   t.USER(null);
+  return bad;
+});
+
+/* ---------- YOUR JOURNEY IS PROGRESS'S CARD, IT FOLLOWS WHOEVER SIGNS IN, AND THE WEEKLY EMAIL'S CARD IS GONE ----
+   THE OWNER, 12 Oct, with a screenshot of an admin's Settings ending on "Your journey" and "Weekly parent
+   email: Off": *"This should be moved to appropriate column. Also the other widget regarding seeing weekly
+   kids work or whatever sounds dumb delete that widget."* (docs/history/346).
+
+   THE JOURNEY ABOVE SETS `USER` BY HAND AND PAINTS THE COLUMN BY HAND, which asks what each visitor's card
+   is and nothing about whether the column is ever drawn again. It is now the one column whose card depends
+   on who is signed in and is not on the column they sign in on, so the fault it can have is the last
+   person's card — a parent shown the child's journey on the family iPad, or a student signing in to the
+   placeholder until a reload. So this one goes the way a phone goes: the sign-in card, Sign out, the roles
+   card's Save and About you's Save, and the column is left to draw itself.
+     · signed out: the placeholder;
+     · a student signs in: their journey, counting down to their big exam — and none on Settings;
+     · they switch their role to Client on the roles card: the placeholder;
+     · Sign out from Spotlight, a parent signs in: the placeholder, and no journey anywhere in the page;
+     · the parent signs out ON Progress — the column in front, redrawn there and then — and the student
+       signs in again: the journey, on the same document, with no reload;
+     · the student moves their big exam on About you and presses Save: Progress, which is not in front,
+       already counts to the new date;
+     · an admin: the journey on Progress and not on Settings, and — every column drawn — no weekly parent
+       email card, no Preview tile, no `digest-preview` handler, and nothing in the page naming either.
+   EVERY PAYLOAD AFTER THE FIRST IS HELD, as in the business journey — the GET a sign-in, a role and a Save
+   each ask for never answers — so whatever redraws Progress is the sign-in, the sign-out, the role or the
+   Save itself, never a payload landing fifteen seconds later and redrawing everything. */
+const JOURNEY_DAY_ = n => { const t = new Date(Date.now() + n * 864e5);
+  return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); };
+check('your journey: on Progress for a student and not on Settings, the placeholder for a parent, drawn again by a sign-in, a sign-out, a role and a saved exam date without a reload — and no weekly parent email card anywhere', async () => {
+  const cols = BIZ_COLS_();
+  /* `phone_cc` IS WHAT `profileShapeOk_` asks for before a Save is sent from a copy of your details. */
+  const STUDENT = { name: 'Sam Student', personId: 'P-S9', role: 'student', roles: ['student'], token: 'tk-s9', handle: 'samstudent',
+                    profile: { phone_cc: '+44', exam_small_date: '', exam_big_date: JOURNEY_DAY_(14), date_of_birth: '' } };
+  const PARENT = { name: 'Pip Parent', personId: 'P-C8', role: 'client', roles: ['client'], token: 'tk-c8', handle: 'pipparent',
+                   profile: { phone_cc: '+44' } };
+  const ADMIN = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk-admin', handle: 'annadmin',
+                  profile: { phone_cc: '+44' } };
+  let next = null, hold = false;
+  const p = payload();
+  /* A STUDENT'S ABOUT YOU, as `doGet` sends `studentFields`: the birthday and the two exams stay on Settings. */
+  p.studentFields = { 'About you': ['date_of_birth', 'exam_small_date', 'exam_big_date'] };
+  const { w, sent } = boot({ payload: p,
+    serve: u => (hold && /script\.google\.com/.test(u) ? new Promise(() => {}) : BIZ_SERVE_(cols)(u)),
+    reply: b => (b.action === 'verifyLogin' ? Object.assign({ success: true }, JSON.parse(JSON.stringify(next)))
+      : b.action === 'setMyRoles' ? { success: true, changed: 1, role: b.roles[0], roles: b.roles }
+      : b.action === 'updateProfile' ? { success: true, changed: 1, profile: Object.assign({}, (w.__t.whoami() || {}).profile, b.fields) }
+      : undefined) });
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  await wait(600);
+  const t = w.__t, d = w.document;
+  if (!t) return ['the app did not finish loading'];
+  if (t.whoami()) return ['the journey meant to start signed out and somebody is signed in — NOT checked'];
+  if (!bizApplied_(t.TABS.map(x => x.id))) return ['columns.json was not applied — NOT checked: ' + t.TABS.map(x => x.id).join(', ')];
+  const doc = d.documentElement;
+  hold = true;
+  const bad = [];
+  const settle = async () => { await wait(LEAVE_MS); await woken_(); };
+  const go = async id => { t.go(id, false, true); await settle(); };
+  const prog = () => d.getElementById('s-progress');
+  /* WHAT PROGRESS SHOWS, read off the column as drawn — never off `progressCards_()`, which would be asking
+     the function the column is drawn from rather than whether it was drawn again. */
+  const seen = () => {
+    const h = prog(), j = h && h.querySelector('.card.journey');
+    return { journey: !!j, held: !!(h && /Not built yet/.test(h.textContent)),
+             count: j ? ((j.textContent.match(/(\d+) days? to go/) || [])[1] || '') : '',
+             pages: h ? h.querySelectorAll(':scope > .page').length : 0 };
+  };
+  const signIn = async (u, as) => {
+    next = u;
+    await go('account');
+    const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
+    const btn = d.querySelector('[data-do="do-signin"]');
+    if (!name || !pin || !btn) return as + ': the sign-in card is not on the account column — NOT checked';
+    name.value = u.handle; pin.value = '0000';
+    try { t.ACTIONS['do-signin'](btn); } catch (e) { return as + ': do-signin threw: ' + e.message; }
+    for (let n = 0; n < 50 && !(t.whoami() && t.whoami().personId === u.personId); n++) await wait(100);
+    await settle();
+    return t.whoami() && t.whoami().personId === u.personId ? '' : as + ' did not sign in — NOT checked';
+  };
+  const signOut = async () => {
+    try { t.ACTIONS['signout'](d.createElement('button')); } catch (e) { return 'signout threw: ' + e.message; }
+    await settle();
+    return t.whoami() ? 'Sign out did not sign anybody out — NOT checked' : '';
+  };
+
+  /* 1. SIGNED OUT. */
+  await go('progress');
+  let s1 = seen();
+  if (s1.journey || !s1.held) bad.push('signed out, Progress is ' + JSON.stringify(s1) + ' — wanted the placeholder');
+
+  /* 2. A STUDENT SIGNS IN: their journey on Progress, and none on Settings. */
+  let no = await signIn(STUDENT, 'the student');
+  if (no) return bad.concat([no]);
+  await go('progress');
+  s1 = seen();
+  if (!s1.journey || s1.held) bad.push('a student signed in, and Progress is ' + JSON.stringify(s1) + ' — wanted their journey, without a reload');
+  if (s1.count !== '14') bad.push('the student\'s journey counts "' + s1.count + '" days to their big exam, wanted 14');
+  if (s1.pages !== 1 || t.pageCount('progress') !== 1) bad.push('a student\'s Progress draws ' + s1.pages + ' page(s) and its pager counts ' + t.pageCount('progress') + ' — wanted the one card');
+  if (prog().querySelector(PLACEHOLDER_KEYS_)) bad.push('the student\'s journey card has a control on it: ' + prog().querySelector(PLACEHOLDER_KEYS_).outerHTML.slice(0, 80));
+  await go('settings');
+  if (d.querySelector('#s-settings .card.journey')) bad.push('a student\'s Settings still holds the journey card — it is Progress\'s now');
+  if (/card journey/.test(w.settingsPages_().join(''))) bad.push('`settingsPages_` still builds the journey card');
+
+  /* 3. THE STUDENT'S ROLE BECOMES CLIENT, on the roles card: the placeholder. */
+  const roles = d.querySelector('#s-settings .roles-card');
+  if (!roles) bad.push('the student\'s Settings has no roles card — the change of role was NOT checked');
+  else {
+    roles.querySelectorAll('[data-role-pick]').forEach(b => { b.checked = b.dataset.rolePick === 'client'; });
+    try { t.ACTIONS['roles-save'](roles.querySelector('[data-do="roles-save"]')); } catch (e) { bad.push('roles-save threw: ' + e.message); }
+    for (let n = 0; n < 30 && !(t.whoami() && t.whoami().role === 'client'); n++) await wait(100);
+    await settle();
+    if (!t.whoami() || t.whoami().role !== 'client') bad.push('the roles card\'s Save did not make the student a client — NOT checked');
+    else {
+      await go('progress');
+      s1 = seen();
+      if (s1.journey || !s1.held) bad.push('the student made themselves a client, and Progress is ' + JSON.stringify(s1) + ' — wanted the placeholder');
+    }
+  }
+
+  /* 4. OUT FROM SPOTLIGHT, AND A PARENT IN: the placeholder, and no journey anywhere. */
+  await go('spotlight');
+  if ((no = await signOut())) return bad.concat([no]);
+  await go('progress');
+  s1 = seen();
+  if (s1.journey || !s1.held) bad.push('signed out from Spotlight, Progress is ' + JSON.stringify(s1) + ' — wanted the placeholder');
+  if ((no = await signIn(PARENT, 'the parent'))) return bad.concat([no]);
+  for (const id of t.TABS.map(x => x.id)) { try { t.go(id, false, true); } catch (e) { bad.push('the parent: ' + id + ' threw: ' + e.message); } }
+  await go('progress');
+  s1 = seen();
+  if (s1.journey || !s1.held) bad.push('a parent signed in, and Progress is ' + JSON.stringify(s1) + ' — wanted the placeholder');
+  if (d.querySelector('.card.journey')) bad.push('a parent has a journey card somewhere in the page');
+
+  /* 5. THE PARENT SIGNS OUT ON PROGRESS, THE STUDENT IN AGAIN: the journey, on the same document. */
+  if ((no = await signOut())) return bad.concat([no]);
+  s1 = seen();
+  if (s1.journey || !s1.held) bad.push('the parent signed out on Progress, and it shows ' + JSON.stringify(s1) + ' — wanted the placeholder there and then');
+  if ((no = await signIn(STUDENT, 'the student, again'))) return bad.concat([no]);
+  await go('progress');
+  s1 = seen();
+  if (!s1.journey || s1.held || s1.count !== '14') bad.push('the student signed in again after a sign-out, and Progress is ' + JSON.stringify(s1) + ' — wanted their journey at 14 days, without a reload');
+
+  /* 6. THE BIG EXAM MOVED ON ABOUT YOU: Progress counts to the new date before anybody goes there. */
+  await go('settings');
+  const exam = d.querySelector('#s-settings [data-me="exam_big_date"]');
+  const form = exam && exam.closest('.me-form');
+  const save = form && form.querySelector('[data-do="me-save"]');
+  if (!exam || !save) bad.push('the student\'s Settings has no big-exam box with a Save — the saved date was NOT checked');
+  else {
+    exam.value = JOURNEY_DAY_(30);
+    exam.dispatchEvent(new w.Event('input', { bubbles: true }));
+    const before = sent.length;
+    try { t.ACTIONS['me-save'](save); } catch (e) { bad.push('me-save threw: ' + e.message); }
+    for (let n = 0; n < 30 && (t.whoami().profile || {}).exam_big_date !== JOURNEY_DAY_(30); n++) await wait(100);
+    await wait(300);
+    if (!sent.slice(before).some(b => b.action === 'updateProfile' && b.fields && b.fields.exam_big_date === JOURNEY_DAY_(30))) bad.push('Save on About you did not post the new big-exam date — NOT checked');
+    else if (t.screenAt() !== 'settings') bad.push('the Save moved the student off Settings, to ' + t.screenAt() + ' — the column beside was NOT checked');
+    else {
+      s1 = seen();
+      if (s1.count !== '30') bad.push('the student saved their big exam 30 days out, and Progress (not in front, the payload held) still counts "' + s1.count + '"');
+      await go('progress');
+      s1 = seen();
+      if (s1.count !== '30') bad.push('the student saved their big exam 30 days out and went to Progress, which counts "' + s1.count + '"');
+    }
+  }
+
+  /* 7. AN ADMIN: the journey on Progress and not on Settings, and the weekly email's card nowhere. */
+  if ((no = await signOut())) return bad.concat([no]);
+  if ((no = await signIn(ADMIN, 'the admin'))) return bad.concat([no]);
+  for (const id of t.TABS.map(x => x.id)) { try { t.go(id, false, true); } catch (e) { bad.push('the admin: ' + id + ' threw: ' + e.message); } await wait(50); }
+  await go('settings');
+  w.paint('settings');
+  if (d.querySelector('#s-settings .card.journey')) bad.push('an admin\'s Settings still holds the journey card');
+  await go('progress');
+  s1 = seen();
+  if (!s1.journey || s1.held) bad.push('an admin signed in, and Progress is ' + JSON.stringify(s1) + ' — wanted the journey, so the owner can see it');
+  const gone = d.querySelectorAll('.card.digest, [data-do="digest-preview"], .digest-mode, .digest-said');
+  if (gone.length) bad.push('the weekly parent email card is still drawn for an admin: ' + [...gone].map(e => e.outerHTML.slice(0, 60)).join(' | '));
+  if (/digest-preview|Weekly parent email/.test(d.documentElement.outerHTML)) bad.push('the page still names the weekly parent email card or its Preview');
+  if (Object.prototype.hasOwnProperty.call(t.ACTIONS, 'digest-preview')) bad.push('a `digest-preview` handler is still wired — for a tile nothing draws');
+  if (/digest/i.test(w.settingsPages_().join(''))) bad.push('`settingsPages_` still builds something of the weekly email\'s card');
+  if (sent.some(b => b.action === 'digestPreview')) bad.push('something on the phone still asks the server for digestPreview');
+  if (d.documentElement !== doc) bad.push('the page was reloaded');
   return bad;
 });
 
@@ -11369,7 +11568,9 @@ check('business: an admin has a Business column last, straight after Progress, h
   if (!set || !set.querySelector('.page')) return bad.concat(['Settings did not draw for an admin — it was NOT checked for records']);
   if (set.querySelector('[data-biz-page], [data-biz], .card.biz')) bad.push('an admin\'s Settings still holds a business-records card');
   if (/data-biz/.test(w.settingsPages_().join(''))) bad.push('`settingsPages_` still builds a business-records card');
-  if (!set.querySelector('.card.digest')) bad.push('the weekly parent email card is gone from an admin\'s Settings — it was to stay');
+  /* AND THE TWO CARDS THAT WERE BEHIND THE RECORDS ARE GONE FROM IT TOO (docs/history/346): the journey to
+     Progress, the weekly parent email altogether — so the page past the end below is past a shorter column. */
+  if (set.querySelector('.card.digest, .card.journey, [data-do="digest-preview"]')) bad.push('an admin\'s Settings still holds the journey card or the weekly parent email card — the first is Progress\'s, the second is gone');
   t.PAGE().settings = 999;
   t.go('feed', false, true); await wait(200);
   t.go('settings', false, true);
@@ -18227,112 +18428,6 @@ check('mark sound: the context rests when nothing is playing — a second after 
   await press('16');
   if (earHeard_(rec).slice(2).join(',') !== 'buzzer') bad.push('the press after the slow wake was heard as [' + earHeard_(rec).slice(2).join(', ') + '], wanted [buzzer]');
   if (errs.length) bad.push('errors: ' + errs.join(' | '));
-  return bad;
-});
-
-/* ---------- THE WEEKLY PARENT EMAIL'S CARD -----------------------------------------------------------
-   ASKED FOR AS THE INFRASTRUCTURE FOR *"something which triggers every sunday"* and emails parents —
-   built and switched off (backend/digest.gs). The card is how an admin sees which: it says the mode the
-   config row says (anything but preview or send is Off, as on the server), it is an admin's alone, and
-   its one tile asks `digestPreview` — a read — and opens what would be sent, the plain body escaped.
-   It posts nothing else, and a backend without the action is told so rather than asked.
-
-   AND SINCE 8 OCT THE EMAIL LISTS EACH QUESTION WITH ITS OWN WORDS (`digestQuestions_`): the card says
-   so, the sheet prints the body as the server wrote it — a paper's heading, the stem once, "Q1a: …" —
-   and a reply without `words: true`, which is a deployed web-app version from before (the Preview is
-   answered by the deployed version, the Sunday trigger runs the code as saved), is told to make a new
-   version rather than read as the new email. The fixture is the body `digestRender_` writes. */
-check('the weekly parent email card is an admin\'s, says the switch and the words, and Preview opens the emails without sending one', async () => {
-  const preview = { success: true, mode: 'preview', hour: 18, scheduled: 0, words: true, submissions: true,
-    week: { start: '2026-09-28', end: '2026-10-04', span: '28 Sep – 4 Oct' },
-    emails: [{ learner: 'Ada Pupil', parent: 'Pat Parent', to: 'pat@example.org', subject: 'Ada’s week: 2 questions',
-               text: 'Hello Pat,\n\nThis week (28 Sep – 4 Oct, up to 6pm on Sunday) Ada worked on 2 questions.\n\n'
-                 + 'Maths · Paper 1\nA bag holds 3 red and 5 blue beads.\nQ1a: Find P(red), and is <b>Maths</b> x < 7?\nQ1b (again): Find P(blue).\n\n'
-                 + 'Ada can see them on the site: https://halexdias31-pixel.github.io/family/\n\n'
-                 + 'You get this because you are Ada’s parent on @family. To stop these emails, reply to this one and say so.',
-               html: '<p>Hello Pat,</p>', count: 2 }],
-    unreachable: [{ id: 'P-S3', name: 'Cal Alone', count: 1, why: 'no parent has accepted a link to them' }] };
-  const p = payload();
-  p.features = ['digestPreview'];
-  p.constants.vars.weekly_digest = 'off';
-  const { w, sent } = boot({ payload: p, reply: b => (b.action === 'digestPreview' ? preview : { success: true }) });
-  await wait(300);
-  const t = w.__t, d = w.document;
-  const bad = [];
-  const card = () => d.querySelector('#s-settings .card.digest');
-  const said = () => (card().querySelector('.digest-mode') || {}).textContent || '';
-  t.USER({ name: 'Pat Parent', personId: 'P-C1', role: 'parent', roles: ['parent'], token: 'tk', profile: {} });
-  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
-  await wait(200);
-  if (card()) bad.push('a parent is shown the weekly parent email card — it is an admin’s');
-  t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk', profile: {} });
-  w.paint('settings');
-  await wait(200);
-  if (!card()) return bad.concat(['an admin has no Weekly parent email card on the Settings column']);
-  if (!/Weekly parent email:\s*Off/.test(said())) bad.push('with weekly_digest off the card reads "' + said() + '"');
-  /* WHAT IT SENDS, IN THE CARD'S OWN WORDS: every question of the week, each with what it asked. */
-  const sub = ((card().querySelector('.sub') || {}).textContent || '').replace(/\s+/g, ' ');
-  if (!/every question that child worked on that week, each with its own words/.test(sub)) bad.push('the card does not say the email lists every question with its own words: "' + sub + '"');
-  /* AND ONE CARD: the daily email's went with it (docs/history/295). */
-  if (/Daily email to parents/.test(d.getElementById('s-settings').textContent)) bad.push('the removed daily email still has a card on the Settings column');
-  [['Preview', 'Preview'], ['send', 'Send'], ['yes', 'Off'], ['', 'Off']].forEach(([cell, word]) => {
-    t.DATA().constants.vars.weekly_digest = cell;
-    w.paint('settings');
-    if (!new RegExp('Weekly parent email:\\s*' + word).test(said())) bad.push('weekly_digest "' + cell + '" reads "' + said() + '" — wanted ' + word + ', as the server reads it');
-  });
-  t.DATA().constants.vars.weekly_digest = 'off';
-  w.paint('settings');
-  const tile = card().querySelector('.tile-row .tile[data-do="digest-preview"]');
-  if (!tile) return bad.concat(['the card has no Preview tile in a tile row']);
-  if (card().querySelector('button:not(.tile)')) bad.push('the card has a plain button — a thing has tiles');
-  sent.length = 0;
-  t.ACTIONS['digest-preview'](tile);
-  await wait(300);
-  const asks = sent.filter(b => b.action === 'digestPreview');
-  if (asks.length !== 1) bad.push('Preview posted ' + JSON.stringify(sent.map(b => b.action)) + ' — wanted one digestPreview');
-  if (sent.some(b => b.action !== 'digestPreview')) bad.push('Preview posted something besides the read: ' + JSON.stringify(sent.map(b => b.action)));
-  const sheet = d.getElementById('sheet'), body = d.getElementById('sheet-body');
-  if (!sheet || sheet.classList.contains('hidden')) bad.push('Preview did not open the sheet');
-  const text = body ? body.textContent.replace(/\s+/g, ' ') : '';
-  ['28 Sep – 4 Oct', 'To Pat Parent · pat@example.org', 'Ada’s week: 2 questions', 'Hello Pat,', 'Maths · Paper 1',
-   'A bag holds 3 red and 5 blue beads.', 'Q1b (again): Find P(blue).',
-   'Cal Alone — no parent has accepted a link to them', 'This preview sent nothing', 'no Sunday booked yet',
-   'On Sunday this email would be written to the digest_log tab, and none sent'].forEach(s => {
-    if (text.indexOf(s) === -1) bad.push('the preview sheet does not say "' + s + '"');
-  });
-  if (text.indexOf('<b>Maths</b> x < 7?') === -1 || (body && [...body.querySelectorAll('b')].some(b => b.textContent === 'Maths'))) bad.push('a question’s words were drawn as markup in the preview — they came off a phone and must be printed as text');
-  /* A REPLY WITH `words` IS THE NEW BACKEND, AND IS NOT TOLD IT IS OLD. */
-  if (body && body.querySelector('.digest-old')) bad.push('a preview reply with words: true is told the live web app lists names only');
-  if (!/Weekly parent email:\s*Preview/.test(said())) bad.push('after the preview the card still reads "' + said() + '" — wanted the mode the server just answered with');
-  /* A BACKEND FROM BEFORE digest.gs: told, not asked. */
-  try { t.ACTIONS['close-sheet'] && t.ACTIONS['close-sheet'](); } catch (e) {}
-  t.DATA().features = [];
-  sent.length = 0;
-  t.ACTIONS['digest-preview'](card().querySelector('[data-do="digest-preview"]'));
-  await wait(100);
-  if (sent.some(b => b.action === 'digestPreview')) bad.push('a backend that does not list digestPreview was sent it: ' + JSON.stringify(sent.map(b => b.action)));
-  if (!/sync backend/i.test((card().querySelector('.digest-said') || {}).textContent || '')) bad.push('a backend without the weekly email is not said to need a sync');
-  /* A DEPLOYED VERSION FROM BEFORE THE WORDS: its reply has no `words`, and its emails are names. Said
-     first and in bold, so the old list is not read as what Sunday will send. */
-  const oldSheet = w.digestSheet_(Object.assign({}, preview, { words: undefined }));
-  const oldDoc = new w.DOMParser().parseFromString('<div>' + oldSheet + '</div>', 'text/html').body.firstChild;
-  const first = oldDoc && oldDoc.firstElementChild;
-  if (!first || !first.classList.contains('digest-old') || !first.querySelector('b') || !/new version/.test(first.textContent)) bad.push('a preview reply with no `words` (a web-app version from before the words) is not told first, in bold, to make a new version: ' + JSON.stringify(first && first.outerHTML));
-  /* AND THE WEEKLY SHEET, WITH NO submissions TAB: the reason, not "nobody has done a question". */
-  const weekly = w.digestSheet_({ success: true, mode: 'off', hour: 18, scheduled: 0, submissions: false, words: true,
-    warning: 'The Ledger has no submissions tab, so nothing says what anybody sent.', week: { span: '28 Sep – 4 Oct' }, emails: [], unreachable: [] });
-  if (!/<b>The Ledger has no submissions tab/.test(weekly) || /Nobody has done a question/.test(weekly)) bad.push('the weekly preview with no submissions tab does not say so in bold, or still says nobody has done a question');
-  if (!/Nobody has done a question/.test(w.digestSheet_({ success: true, mode: 'off', submissions: true, words: true, warning: '', week: {}, emails: [], unreachable: [] }))) bad.push('the weekly preview with the tab and no work no longer says nobody has done a question');
-  /* AND A DEPLOYED VERSION FROM BEFORE THE SUBMISSIONS (review of 9 Oct): it answers `words: true` and
-     `attempts:`, never `submissions:`, and plans from a tab nothing writes since the phones took the new
-     code. Its empty week is not a quiet week, and the sheet says which, first and in bold. */
-  const pre = w.digestSheet_({ success: true, mode: 'off', hour: 18, scheduled: 0, words: true, attempts: true, warning: '',
-    week: { span: '28 Sep – 4 Oct' }, emails: [], unreachable: [] });
-  const preDoc = new w.DOMParser().parseFromString('<div>' + pre + '</div>', 'text/html').body.firstChild;
-  const preFirst = preDoc && preDoc.firstElementChild;
-  if (!preFirst || !preFirst.classList.contains('digest-old') || !preFirst.querySelector('b') || !/attempts/.test(preFirst.textContent) || !/new version/.test(preFirst.textContent)) bad.push('a preview reply from a backend before the submissions (words, attempts, no submissions) is not told first, in bold, that the live web app still reads the attempts tab: ' + JSON.stringify(preFirst && preFirst.outerHTML));
-  if (/digest-old/.test(w.digestSheet_(Object.assign({}, preview)))) bad.push('the new backend’s reply (words and submissions) is told it is old');
-  t.USER(null);
   return bad;
 });
 

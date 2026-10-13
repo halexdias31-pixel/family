@@ -41,7 +41,8 @@ Fifteen screens are registered (fourteen for anybody but an admin), in `TAB_ORDE
 `feed`, `booking`, `shop` (things for sale and the basket — Find no longer has a Shop door), `reel`, `dm`, `stuff` (Find, the funnel —
 questions, answers, practicals, projects, bundles — and the root), `res` (Resources, the second finder,
 immediately right of Find: the textbooks, the boxers and their fights, the Bible), `account`, `tools`,
-`games`, `saved`, `spotlight`, `settings`, `progress` (a placeholder), and last, **for an admin only**,
+`games`, `saved`, `spotlight`, `settings`, `progress` (for a student — and an admin — the "Your journey" card
+that was on Settings until 12 Oct; for anybody else a placeholder saying it is not built), and last, **for an admin only**,
 `biz` — the business records (insurance, tax, legal and data, safeguarding, money and company). A tab
 marked `admin: true` is left out of `TABS` for anybody else by `columnsFor_` in shell.js, which also
 makes its `<section>` for an admin and takes it away again — so it has none in index.html, and signing

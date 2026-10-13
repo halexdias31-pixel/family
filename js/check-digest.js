@@ -998,8 +998,11 @@ function S(pid, key, day, label, verdict, words, hh, more) {
     if (!(pv.emails || []).every(m => m.text && m.html)) bad.push('the preview does not carry each email’s bodies');
     if ((pv.unreachable || []).map(u => u.id).sort().join() !== 'P-S3,P-S4') bad.push('the preview’s unreachable list is ' + JSON.stringify(pv.unreachable));
     if (pv.scheduled !== 0) bad.push('the preview says ' + pv.scheduled + ' Sunday trigger(s) are booked — none is');
-    /* AND THAT IT IS THE BACKEND THAT PRINTS THE WORDS — the card tells an older deployed version apart by it. */
-    if (pv.words !== true) bad.push('the preview does not answer words: true, so the card would tell this backend it lists names only');
+    /* AND `words: true`, THE DEPLOYED VERSION'S OWN WORD THAT IT PRINTS EACH QUESTION'S WORDS — a version
+       older than that answers without it, and that is the whole of the contract, whoever asks. This said
+       "the card tells an older version apart by it" until 12 Oct, when the Settings card that read it was
+       deleted (docs/history/346); the action and its answer stayed, so the rule is the server's now. */
+    if (pv.words !== true) bad.push('the preview does not answer words: true, so whoever asks would read this backend as one that lists names only');
   }
   if (pv.writes || mail.sent.length || trig.length || rowsOf(b, 'digest_log').length !== logBefore) bad.push('digestPreview wrote ' + pv.writes + ' cell(s), sent ' + mail.sent.length + ', booked ' + trig.length + ' trigger(s) — it must do none of them');
   [['a student', tok['s1@example.org']], ['a parent', tok['pat@example.org']], ['nobody signed in', '']].forEach(([who, t]) => {

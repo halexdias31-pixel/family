@@ -4553,26 +4553,8 @@ const STATES = {
                      ? 6 : 0),
       wants: 'all four pricing boxes and the session length on one page, the students and the hours each one min – max row' },
 
-    /* ---------- YOUR JOURNEY, THE PLACEHOLDER ----------------------------------------------------
-       For a student and an admin; the lab signs in as an admin. Found by asking the DOM, as the
-       pricing state does, and seeded with an exam date a fortnight out so the one live line draws. */
-    { name: 'your journey',
-      only: () => typeof USER !== 'undefined' && !!USER,
-      enter: () => {
-        const t = new Date(Date.now() + 14 * 864e5);
-        USER.profile = Object.assign({}, USER.profile || {},
-          { exam_big_date: t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0') });
-        paint('settings');
-        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.card.journey'));
-        if (at < 0) throw new Error('no journey card on the settings column');
-        goPage('settings', at, true);
-      },
-      expect: () => {
-        const c = document.querySelector('#s-settings .card.journey');
-        return !!c && /days? to go/.test(c.textContent) && !c.querySelector('button, [data-do]');
-      },
-      wants: 'the journey card, with the exam countdown and no control that does nothing',
-      leave: () => { if (USER && USER.profile) delete USER.profile.exam_big_date; paint('settings'); } },
+    /* ---------- YOUR JOURNEY WAS HERE, AND IS PROGRESS'S STATE NOW ---------------------------------
+       The card went to the Progress column on 12 Oct (docs/history/346); its state went with it, below. */
     /* ---------- THE AGES A TUTOR TEACHES, ON ABOUT YOU AND NOT ON THE PAGE ABOVE ------------------
        ONE `[youngest] – [oldest]` ROW OF TWO SELECTS, and the assertion is that shape rather than the
        presence of two fields: two plain boxes would mean `validations` never carried `AGE_OPTIONS`, and
@@ -4696,57 +4678,10 @@ const STATES = {
         && /extra child adds/.test((document.querySelector('#s-settings .page.on .cut-say') || {}).textContent || ''),
       wants: 'the share box and its worked example' },
 
-    /* ---------- THE WEEKLY PARENT EMAIL: ITS CARD, AND WHAT PREVIEW OPENS ----------------------------
-       The infrastructure for *"something which triggers every sunday"* and emails parents — built and
-       switched off (backend/digest.gs, js/digest.js). The card is the last page of an admin's Settings.
-       The preview is drawn from a reply shaped the way `digestPreviewOut_` answers, with an address
-       long enough that it has to wrap at 320, rather than by posting: the fixture is one payload and
-       has no `digestPreview` to answer with. */
-    { name: 'the weekly parent email card',
-      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
-      enter: () => {
-        paint('settings');
-        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.card.digest'));
-        if (at < 0) throw new Error('no weekly parent email card on the settings column');
-        goPage('settings', at, true);
-      },
-      expect: () => {
-        const pg = document.querySelector('#s-settings .page.on');
-        return !!pg && /Weekly parent email:\s*(Off|Preview|Send)/.test((pg.querySelector('.digest-mode') || {}).textContent || '')
-          && !!pg.querySelector('.tile-row [data-do="digest-preview"]');
-      },
-      wants: 'the mode in its title and one Preview tile' },
-    { name: 'the weekly parent email, previewed',
-      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
-      enter: () => {
-        paint('settings');
-        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.card.digest'));
-        if (at < 0) throw new Error('no weekly parent email card on the settings column');
-        goPage('settings', at, true);
-        /* THE BODY AS `digestRender_` WRITES IT SINCE 8 OCT: a paper's heading, the scene its parts share
-           once (cut to DIGEST_STEM_SHOWN), each part with its own ask — the longest lines the sheet is
-           ever handed — and a paper with no words as its line of numbers. */
-        const body = 'Hello Pat,\n\nThis week (28 Sep – 4 Oct, up to 6pm on Sunday) Ada worked on 4 questions — 3 new and 1 gone back to.\n\n'
-          + 'Maths · Paper 1 (Calculator) — June 2024\nQ1, Q7 (again)\n\n'
-          + 'Maths · Paper 3 (Calculator) — November 2023 (Higher)\n'
-          + 'Here is some information about the 120 students in Year 11 at a school, who were each asked which of three after-school clubs they go to; 47 go to the chess club, 38 go to the drama club and the rest go to the football club, and no student goes to more than one club…\n'
-          + 'Q14a: A student is chosen at random from the 120. Work out the probability that the student goes to the drama club, giving your answer as a fraction in its simplest form.\n'
-          + 'Q14b: Two students are chosen at random without replacement. Work out the probability that both go to the chess club. (picture on the site)\n\n'
-          + 'Ada can see them on the site: https://halexdias31-pixel.github.io/family/\n\n'
-          + 'You get this because you are Ada’s parent on @family. To stop these emails, reply to this one and say so.';
-        openSheet('Weekly parent email', digestSheet_({ success: true, mode: 'preview', hour: 18, scheduled: 0, words: true,
-          week: { start: '2026-09-28', end: '2026-10-04', span: '28 Sep – 4 Oct' },
-          emails: [{ learner: 'Ada Pupil', parent: 'Pat Parent', to: 'pat.parent.with.a.long.address@example.org',
-                     subject: 'Ada’s week: 4 questions', text: body, html: '', count: 4 }],
-          unreachable: [{ id: 'P-S3', name: 'Cal Alone', count: 1, why: 'no parent has accepted a link to them' }] }));
-      },
-      leave: () => { if (typeof closeSheet === 'function') closeSheet(); },
-      expect: () => {
-        const t = (document.getElementById('sheet-body') || {}).textContent || '';
-        return /To Pat Parent/.test(t) && /Ada’s week: 4 questions/.test(t) && /Q14a: A student is chosen at random/.test(t)
-          && /Nobody to tell/.test(t);
-      },
-      wants: 'each email under its address, its plain body with each question’s words, and who nobody can tell' },
+    /* ---------- THE WEEKLY PARENT EMAIL'S CARD AND ITS PREVIEW WERE TWO STATES HERE --------------------
+       The card is gone from the phone (the owner, 12 Oct: *"sounds dumb delete that widget"*), with its
+       Preview sheet and its file, js/digest.js; the Sunday email stays on the server, switched off
+       (docs/history/346). Progress's journey state asks that no card of it is drawn anywhere. */
 
     /* ---------- THE QUALIFICATIONS: ONE LINE A QUALIFICATION, AND IT FITS ---------------------------
        ASKED FOR AS *"can you make the qualifications widget more efficient, elegant, intuitive and take
@@ -5407,33 +5342,65 @@ const STATES = {
 
   ],
 
-  /* ---------- PROGRESS, WHICH HAS ONE STATE UNTIL IT IS BUILT, AND IT IS ASSERTED ------------------
+  /* ---------- PROGRESS: THE PLACEHOLDER, OR A STUDENT'S JOURNEY — EITHER WAY ASSERTED ------------------
      NOT LEFT TO THE DEFAULT. A column with no entry here is measured in the state it opens in with
      nothing asked of it, and "nothing to press" printed by `check/press.js` is the same silence
-     whether the column drew its card or drew nothing. So the one state says what it must be looking
-     at — the card, "Not built yet.", and not a control on it — for both visitors, which is the
-     placeholder rule (`drill` in map.js) measured in a real browser rather than read off markup.
-     The day the column is built this entry is where its states go.
+     whether the column drew its card or drew nothing. So the unnamed state says what it must be looking
+     at, for each visitor: signed out, the placeholder — "Not built yet." and not a control on it, which
+     is the placeholder rule (`drill` in map.js) measured in a real browser rather than read off markup;
+     signed in as this lab's admin, "Your journey", which came here off Settings on 12 Oct for a student
+     and an admin (*"This should be moved to appropriate column"*, docs/history/346) — one card, headed
+     so, no placeholder beside it, and nothing on the column to press.
 
-     BOTH HALVES OF THE RULE, the three questions `placeholderFaults_` asks in check-flow.js — written
-     out again here because `expect` is sent to the page as a string and can reach nothing of this
-     file. The first version asked only "is there a control", with a selector that did not name a
+     BOTH HALVES OF THE PLACEHOLDER RULE, the three questions `placeholderFaults_` asks in check-flow.js —
+     written out again here because `expect` is sent to the page as a string and can reach nothing of
+     this file. The first version asked only "is there a control", with a selector that did not name a
      `<summary>`: a card given "Streak: 0 days · 0% of the course done", a bar at nought per cent and
      a `<details>` was measured as this state, and `check/ui.js` went red on it only because the
      summary was too small to tap (review, 9 October). So: nothing pressable anywhere in the column,
-     by tag or by attribute; nothing in the pane but `drill`'s markup; and no digit. */
+     by tag or by attribute; nothing in the pane but `drill`'s markup; and no digit. The journey card is
+     not `drill`'s markup — it has rows, and a countdown — so only the first question is asked of it. */
   progress: [
     { name: '',
       expect: () => {
         const h = document.getElementById('s-progress');
         const pane = h && h.querySelector(':scope > .page > .pane');
-        if (!pane || !pane.querySelector('.card h3') || !/Not built yet/.test(pane.textContent)) return false;
+        if (!pane || !pane.querySelector('.card h3')) return false;
         if (h.querySelector('button, [data-do], input, select, textarea, a[href], summary, details, label, '
           + '[tabindex], [onclick], [role], [contenteditable]')) return false;
+        if (typeof mayJourney_ === 'function' && mayJourney_()) {
+          return h.querySelectorAll(':scope > .page').length === 1 && !!pane.querySelector('.card.journey')
+            && pane.querySelector('h3').textContent.trim() === 'Your journey' && !/Not built yet/.test(pane.textContent);
+        }
+        if (pane.querySelector('.card.journey') || !/Not built yet/.test(pane.textContent)) return false;
         if ([...pane.querySelectorAll('*')].some(e => !e.matches('div.card, h3, p.sub, p.empty, br, span.faint'))) return false;
         return !/\d/.test(pane.textContent);
       },
-      wants: 'Progress card saying it is not built yet: drill\'s markup only, no number, nothing on it to press' },
+      wants: 'signed out, the Progress placeholder (drill\'s markup only, no number, nothing to press); a student or an admin, Your journey and nothing to press' },
+    /* ---------- YOUR JOURNEY, WITH THE ONE LIVE LINE DRAWN ----------------------------------------
+       For a student and an admin; the lab signs in as an admin. Seeded with a big exam a fortnight out
+       so the countdown draws — the one line on the card whose length depends on the person — and the
+       column drawn again for it, as `progressRedraw_` does when About you is saved. AND NOTHING OF THE
+       WEEKLY PARENT EMAIL'S CARD ANYWHERE IN THE PAGE: it went from Settings the same day this card
+       came here, and an admin is the one person it was ever drawn for. */
+    { name: 'your journey',
+      only: () => typeof USER !== 'undefined' && !!USER && typeof mayJourney_ === 'function' && mayJourney_(),
+      enter: () => {
+        const t = new Date(Date.now() + 14 * 864e5);
+        USER.profile = Object.assign({}, USER.profile || {},
+          { exam_big_date: t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0') });
+        progressRedraw_();
+        if (!document.querySelector('#s-progress .card.journey')) throw new Error('no journey card on the progress column');
+        goPage('progress', 0, true);
+      },
+      expect: () => {
+        const c = document.querySelector('#s-progress .page.on .card.journey');
+        return !!c && /days? to go/.test(c.textContent) && !document.querySelector('#s-progress button, #s-progress [data-do]')
+          && !document.querySelector('#s-settings .card.journey')
+          && !document.querySelector('.card.digest, [data-do="digest-preview"]');
+      },
+      wants: 'the journey card on Progress, with the exam countdown and no control that does nothing — none on Settings, and no weekly parent email card anywhere',
+      leave: () => { if (USER && USER.profile) delete USER.profile.exam_big_date; progressRedraw_(); } },
   ],
 
   /* ---------- THE SHOP ------------------------------------------------------------------------

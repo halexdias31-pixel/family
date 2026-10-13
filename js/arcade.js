@@ -765,9 +765,11 @@ screen('spotlight', () => pages('spotlight', spotlightCards_()));
    tile, no `data-do`, nothing `check/press.js` could find that does nothing — and no number.
    `placeholderFaults_` in check-flow.js asks both halves of that of every placeholder.
 
-   THE SAME CARD FOR EVERYBODY, signed out included. Who sees whose progress — a student their own,
-   a parent their children's, a tutor their students', an admin anybody's — is the first decision
-   of building it, and deciding it now would be deciding it for a card with nothing on it to show.
+   THE SAME CARD FOR EVERYBODY, signed out included — UNTIL 12 OCT, AND NOW FOR EVERYBODY BUT A
+   STUDENT AND AN ADMIN, who get "Your journey" in its place (below). Who sees whose progress — a
+   student their own, a parent their children's, a tutor their students', an admin anybody's — is
+   still the first decision of building it; what is settled is only that a student's own column holds
+   their own journey card, which was already theirs, on Settings.
 
    WHAT IT WILL DRAW FROM, written here because it is the first thing whoever builds it needs: what
    the app already keeps about each person's work. EVERY ANSWER SENT is a row of the `submissions`
@@ -781,7 +783,74 @@ screen('spotlight', () => pages('spotlight', spotlightCards_()));
    replaced these since.
 
    NOTHING STARTS OR STOPS, Spotlight's reason above: nothing on this column runs. */
+/* ---------- YOUR JOURNEY, MOVED HERE FROM THE SETTINGS COLUMN ------------------------------------------
+   ASKED FOR AS *"make a journey widget to go in account settings. its for student to track and
+   organise their progess. fo know you can just make it as a place holder."* So this is the card's
+   place and its outline, and nothing on it pretends to work: no button that does nothing, which is
+   the fault `check/press.js` exists to report. The one live line is the countdown to the two exam
+   dates a student keeps on About you, on the Settings column, because that is progress the app
+   already knows. For a student, and for an admin so the owner can see it.
+
+   MOVED, 12 OCT. The owner, with a screenshot of an admin's Settings ending on this card and the weekly
+   email's: *"This should be moved to appropriate column."* It was the one card on Settings that is not
+   a setting — tracking a student's progress is what this column was made for (9 Oct, above) — and two
+   "coming soon" cards about one thing in one column would say it twice. So for whom it is drawn it IS
+   the column's card, in place of the generic placeholder, and the placeholder stays for everybody
+   else: signed out, a parent, a tutor. docs/history/346.
+
+   THE COLUMN NOW DEPENDS ON WHO IS SIGNED IN, which it did not before, and it follows them the way
+   every other column does: `repaint` — which every sign-in, sign-out and saved role ends in — marks it
+   `STALE`, and `go` draws it again on the way in. The exam dates are the one fact on it that changes
+   without a change of person, so a Save on About you, your own card's Save and a `myProfile` landing
+   draw it again as well (`progressRedraw_`, below, called from `meSave_`, `card-save` and
+   `profileRefresh_` in me.js).
+   check-flow's journey for this card signs a student in and out and in again and asks each time.
+
+   `hasRole`, NOT A RAW `indexOf`: the role cell is matched through `ROLE_ALIASES` everywhere else, so
+   a learner whose cell says `pupil` is a student to every other card and was not one to this. */
+function mayJourney_() {
+  if (typeof hasRole !== 'function') return false;
+  return hasRole('student') || hasRole('admin');
+}
+function journeyCard_() {
+  const prof = (USER && USER.profile) || {};
+  /* `Math.round`, NOT `Math.ceil`: both ends are local midnights, so the gap is a whole number of days
+     give or take the hour the clocks move — and across the last Sunday of October in London it is
+     fourteen days and an hour, which `ceil` counted as fifteen. Found moving the card (12 Oct, thirteen
+     days before the clocks go back), measured with TZ=Europe/London. */
+  const days = iso => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''));
+    if (!m) return null;
+    const t = new Date(+m[1], +m[2] - 1, +m[3]), now = new Date();
+    return Math.round((t - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 864e5);
+  };
+  const exams = [['Small exam', prof.exam_small_date], ['Big exam', prof.exam_big_date]]
+    .map(([k, v]) => [k, days(v)]).filter(([, d]) => d !== null && d >= 0)
+    .map(([k, d]) => `<div class="row"><span class="k">${esc(k)}</span><span>${d === 0 ? 'today'
+      : d + (d === 1 ? ' day' : ' days') + ' to go'}</span></div>`).join('');
+  return `<div class="card journey">
+    <h3>Your journey</h3>
+    <p class="sub">Where you are, where you are going, and what you have done on the way. Coming soon.</p>
+    ${exams}
+    <div class="row"><span class="k">Goals</span><span class="faint">what you are aiming for</span></div>
+    <div class="row"><span class="k">Milestones</span><span class="faint">the steps on the way</span></div>
+    <div class="row"><span class="k">Worked through</span><span class="faint">papers and topics you have done</span></div>
+  </div>`;
+}
+/* THE EXAM DATES CHANGED UNDER THE COLUMN, so it is REDRAWN IF IT IS DRAWN — the rule `profileRefresh_`
+   keeps for Settings, whose About you holds the same two dates. Drawn whether or not it is in front,
+   because on a wide window it can be beside the column you are on and in sight; `paintNeighbours`'
+   pair — the markup, then the pager, which puts the new page where the old one was — and nothing
+   started or stopped, because nothing on this column runs. A column never drawn is drawn on arrival. */
+function progressRedraw_() {
+  try {
+    if (typeof screenHasMarkup_ === 'function' && !screenHasMarkup_('progress')) return;
+    paint('progress');
+    paintPager('progress', true);
+  } catch (e) {}
+}
 function progressCards_() {
+  if (mayJourney_()) return [journeyCard_()];
   return [`<div class="card">
     <h3>Progress</h3>
     <p class="sub">Coming soon: everything you have done in one place — the questions you have
