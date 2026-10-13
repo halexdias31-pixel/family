@@ -335,7 +335,7 @@ const NOTIFY_KINDS = {
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-10-12-p-merged";
+const BACKEND_VERSION = "2026-10-12-u-aispeed";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1608,19 +1608,54 @@ const SCHEMA = {
    the second, where a 400 or a 403 (the key, the account) is not. Google has also begun retiring a name
    by ROUTING it to a newer model (8 Oct: 3.7 Flash to 3.8 Flash), which answers 200, so the reply's
    `model` is the response's own `modelVersion` -- the model that marked it, not the name that was asked.
-   THE FALLBACK THINKS LESS. 3.5 Flash-Lite defaults to Google's MINIMAL thinking level, meant for
-   classification and extraction; 3.8 Flash thinks more by default. A forty-mark essay marked by the
-   fallback is a lighter read than one marked by the first model. Nothing sets the level, deliberately: a
-   level a model refuses is a 400, and a 400 does not fall back.
+   HOW HARD EACH MODEL THINKS IS SET, SINCE 12 OCT -- and until then it was not. THE OWNER, the day the 503
+   fix went live: *"ok the ai marking works but it takes so long. like 30 seconds or whatever"*. Sent no
+   level, 3.8 Flash thinks at its own default, MEDIUM, on every press -- a one-mark maths answer included --
+   and the call is not streamed, so the pupil waits for the whole think before the first byte comes back.
+   That is the likeliest home of the thirty seconds: the server's own work was measured at under 0.2 s a
+   press, and Gemini's own time could not be measured from here (docs/history/350). So
+   `generationConfig.thinkingConfig.thinkingLevel` is sent, per model and per kind of answer --
+   AI_THINKING_LEVELS below, with the config rows `ai_thinking` and `ai_thinking_essay` over it:
+     a short answer   the lowest level the model offers: LOW on 3.8 Flash, which refuses MINIMAL with an
+                      error, and MINIMAL on 3.5 Flash-Lite, its own default, so nothing changes there
+     an essay         LOW on both -- one step under 3.8 Flash's own MEDIUM, one over Flash-Lite's MINIMAL --
+                      so the two models read an essay to the same depth, and an essay the fallback marks is
+                      no longer the lighter read it was (note 344, the tenth finding of its review)
+     any other model  no level at all, the request as it always was: its levels are not known here, and
+                      a level a model does not offer is a 400
+   Google's own words: LOW "minimizes latency and cost"; MEDIUM is "best quality for most tasks". A
+   forty-mark essay at LOW trades some depth for speed, and it is the one choice here the owner may want
+   back: `medium` in `ai_thinking_essay` is how essays were marked before 12 Oct, with no deploy.
+   NEVER `thinkingBudget`, alone or beside a level: Google calls it legacy on 3.x, the two together are a
+   documented 400, and 3.5 Flash-Lite was seen (third-party) answering 400 to a budget of 0.
+   A LEVEL REFUSED DOES NOT STOP MARKING -- which is why nothing set one before: a 400 is not asked again
+   and not handed to the fallback, and `minimal` on the first model is exactly such a 400. Now a 400 to a
+   request that CARRIED a level is asked once more, at once, of the same model without it -- its own
+   default, the request that always worked -- and the log names the cell to change. MATCHED ON "A 400 AND
+   A LEVEL WAS SENT", NOT ON GOOGLE'S WORDS: Google documents no message for it (third parties saw
+   "Thinking level MINIMAL is not supported for this model"), so a refusal worded some other way would
+   otherwise stop all marking; a bad key, which is a 400 too, costs one more quick refusal and ends as it
+   always did. That re-ask is not one of AI_TRIES, waits for nothing, and starts only inside both clocks.
    AND ON A FREE-TIER KEY THE FIRST MODEL'S QUOTA IS SMALL. Google no longer publishes free-tier numbers;
    third-party measurements put 3.5-and-newer Flash at about 20 requests a DAY for the whole key and
    3.5 Flash-Lite at about 500 -- so on a free key most of a day's marks may come from the fallback. The
    real numbers are on AI Studio's rate-limit page; billing on the key lifts them.
+   A DAY'S QUOTA SPENT IS REMEMBERED, SINCE 12 OCT. Every press after the twentieth asked the spent model
+   first again and was refused, about half a second each for nothing -- and a 429 whose RetryInfo said
+   "1s" (third parties have seen it on a day's quota) was asked twice more, with waits. Now a 429 whose
+   QuotaFailure names a DAY's quota (`PerDay`, `Daily` -- how Google's own gemini-cli tells it) is not
+   asked again this press, whatever its RetryInfo says, and is kept in the script cache (`aiSpend_` in
+   dopost.gs) until midnight in AI_QUOTA_TZ, when Google resets a day's requests -- or for AI_SPENT_MAX_S,
+   the cache's own ceiling, whichever comes first. A 429 whose RetryInfo says later than the next ask is
+   kept for as long as it says. While it is kept, a model with another behind it is not asked at all and
+   the next model is asked at once; the LAST model is always asked, because it is the press's only chance.
+   Forgetting costs one refusal: the cache may drop a key whenever it likes, and that is all it costs.
 
    THE WAITS. Up to AI_TRIES asks of each model; between them AI_WAITS -- about 0.8 s, then about 2 s --
    each moved up to AI_JITTER (30%) either way, so a hundred phones refused in the same second do not
    all come back in the same second too. The second model is asked at once: its capacity is its own.
-   So six asks at most and at most 7.28 s of waiting in all.
+   So six asks at most and at most 7.28 s of waiting in all -- and one more ask, with no wait, for each
+   model that refused the thinking level it was sent.
    TWO CLOCKS, BOTH FROM THE FIRST ASK. No ask at all is started once AI_BUDGET_MS (20 s) has gone; and
    the first model is not asked AGAIN once AI_HANDOFF_MS (10 s) has gone, so the fallback's first ask
    still has room. The first build had only the budget and RETURNED at it: a first model refusing in 9 s
@@ -1654,6 +1689,34 @@ const AI_JITTER = 0.3;
 const AI_BUDGET_MS = 20000;
 const AI_HANDOFF_MS = 10000;
 const AI_BUSY = 'Marking is busy right now — try again in a minute.';
+/* THE THINKING LEVELS EACH PINNED MODEL OFFERS, LOWEST FIRST, as Google's thinking guide lists them (12 Oct
+   2026: "gemini-3.8-flash | On (medium) | low, medium, high"; "gemini-3.5-flash-lite | On (minimal) |
+   minimal, low, medium, high"). A level asked of a model that does not offer it becomes the next one up
+   that it does (`minimal` on 3.8 Flash is `low`), so a level typed on the config tab never earns a 400 from
+   a model named here. A model NOT named here is sent no level unless the config tab names one -- its
+   levels are not known, and Gemini 2.5 refuses `thinkingLevel` outright. `AI_THINKING_SCALE` is the order
+   "next one up" means, and the whole vocabulary of the two config cells besides `none`. */
+const AI_THINKING_SCALE = ['minimal', 'low', 'medium', 'high'];
+const AI_THINKING_LEVELS = {
+  'gemini-3.8-flash': ['low', 'medium', 'high'],
+  'gemini-3.5-flash-lite': ['minimal', 'low', 'medium', 'high'],
+};
+/* WHAT A BLANK CELL MEANS: a short answer at the lowest a model offers, an essay at LOW -- the note above.
+   NEVER ABOVE THE MODEL'S OWN DEFAULT, which is what a blank cell asked for before 12 Oct: 3.5 Flash-Lite
+   defaults to MINIMAL, so an essay it marks stays at minimal rather than being asked to think more -- the
+   review of 12 Oct found LOW there made the fallback's essays SLOWER than before, which is the one thing
+   this change exists not to do. A level TYPED on the config tab is not held to the default. */
+const AI_THINKING_SHORT = 'minimal';
+const AI_THINKING_ESSAY = 'low';
+const AI_THINKING_DEFAULT = {
+  'gemini-3.8-flash': 'medium',
+  'gemini-3.5-flash-lite': 'minimal',
+};
+/* A DAY'S GEMINI QUOTA ENDS AT MIDNIGHT PACIFIC -- Google's rate-limits page: "Requests per day (RPD)
+   quotas reset at midnight Pacific time" -- not London's. And the longest the script cache keeps
+   anything, six hours, Google's own ceiling for `CacheService`. */
+const AI_QUOTA_TZ = 'America/Los_Angeles';
+const AI_SPENT_MAX_S = 21600;
 
 /* Every tunable, with a plain-English note and a starting value. ensureSchema() adds any that
    are missing to the `config` tab and never touches one that's already there — so a value you've
@@ -1700,7 +1763,7 @@ const CONFIG_DEFAULTS = [
      different string, this app has never needed one, and it must never be put in this sheet. */
   /* ---------- AI MARKING ---------------------------------------------------------------------------
      THE KEY IS NOT HERE AND MUST NEVER BE: this tab goes to every phone. It is `GEMINI_API_KEY` in
-     Project Settings → Script Properties. These three are the parts that are safe to show.
+     Project Settings → Script Properties. These five are the parts that are safe to show.
 
      TWO MODELS, BECAUSE ONE WAS A 503 (11 Oct): the first asked up to three times, then the second, on
      capacity of its own -- the note over `AI_MODEL` above, and docs/history/344.
@@ -1716,6 +1779,17 @@ const CONFIG_DEFAULTS = [
   ['gemini_model', AI_MODEL, 'the Gemini model that marks worded answers. Blank (or the old gemini-flash-latest) = ' + AI_MODEL + '. The API KEY never goes here: it is GEMINI_API_KEY in Script Properties'],
   ['gemini_model_fallback', AI_MODEL_FALLBACK, 'the model asked when the first one is full, out of reach or retired (Gemini 429, 5xx or 404). Blank = ' + AI_MODEL_FALLBACK + '. none = no second model'],
   ['ai_marks_per_day', 20, 'how many answers one person may have marked by AI in a day. Blank = 20. 0 switches AI marking off'],
+  /* HOW HARD GEMINI THINKS BEFORE IT MARKS, ONE CELL FOR EACH KIND OF ANSWER (12 Oct) -- the note over
+     `AI_THINKING_LEVELS` above, and docs/history/350. SEEDED BLANK, because blank is "the code's default"
+     and a default that moves then moves for everybody; a word typed here is the owner's and stays. The
+     owner's reason for them: *"it takes so long. like 30 seconds or whatever"* -- a deeper level is a
+     slower mark, and which of the two matters more for an essay is theirs to decide without a deploy. A
+     word that is not a level is read as blank and logged; a level a model refuses is asked again
+     without it and logged, never a press with no mark. */
+  ['ai_thinking', '', 'how hard Gemini thinks before marking a SHORT answer: minimal, low, medium or high (each slower and deeper than the last), or none for the model\'s own default. A model that does not offer a level gets the next one up. Blank = the lowest each model offers ('
+    + [AI_MODEL, AI_MODEL_FALLBACK].map(m => (AI_THINKING_LEVELS[m] || ["its own default"])[0] + ' on ' + m).join(', ') + ') -- the fastest'],
+  ['ai_thinking_essay', '', 'the same for an ESSAY (six marks or more, marked on its levels). Blank = ' + AI_THINKING_ESSAY
+    + '. medium = deeper and slower: how ' + AI_MODEL + ' marked essays before 12 Oct 2026'],
   ['google_client_id', '', 'Google Sign-In client ID (the PUBLIC one, ending .apps.googleusercontent.com). Blank switches Google sign-in off. Never put the client SECRET here'],
   ['pages_recheck_days', 30, 'how old a resource page count may get before the nightly job re-reads the file'],
 
