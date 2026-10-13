@@ -775,6 +775,12 @@ check('a YouTube Short is a reel: poster first, one muted nocookie player when r
   const t = w.__t;
   if (!t) return ['the app did not finish loading'];
   const d = w.document;
+  /* ONE SHORT IN THE DEAL. With a second Short (12 Oct) the two are often dealt side by side, and the page
+     next to the one asked about rightly keeps a player of its own — so "one give-up clock", "one player"
+     counted the neighbour's too, and the journey passed or failed on the shuffle. Each Short is the same
+     code; this asks about one, alone, by taking the others out of the deal before the column is drawn. */
+  const dealt = w.clipsNow_;
+  if (typeof dealt === 'function') w.clipsNow_ = () => dealt().filter(f => !/youtu/i.test(String(f.clip)) || /jD2Yy_wCBLE/.test(String(f.clip)));
   const bad = [];
   const at = () => ((typeof t.PAGE === 'function' ? t.PAGE() : t.PAGE) || {}).reel || 0;
   const turn = async n => { t.goPage('reel', n, true); await wait(LEAVE_MS); await woken_(); };
@@ -960,6 +966,12 @@ check('a YouTube Short that never answers ends at its door even held or a page a
   const t = w.__t;
   if (!t) return ['the app did not finish loading'];
   const d = w.document;
+  /* ONE SHORT IN THE DEAL. With a second Short (12 Oct) the two are often dealt side by side, and the page
+     next to the one asked about rightly keeps a player of its own — so "one give-up clock", "one player"
+     counted the neighbour's too, and the journey passed or failed on the shuffle. Each Short is the same
+     code; this asks about one, alone, by taking the others out of the deal before the column is drawn. */
+  const dealt = w.clipsNow_;
+  if (typeof dealt === 'function') w.clipsNow_ = () => dealt().filter(f => !/youtu/i.test(String(f.clip)) || /jD2Yy_wCBLE/.test(String(f.clip)));
   const bad = [];
   const live = kind => clocks.filter(c => c.kind === kind && !c.off);
   const ring = kind => { const l = live(kind); l.forEach(c => { c.off = true; c.fn(); }); return l.length; };
