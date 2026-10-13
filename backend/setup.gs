@@ -1158,6 +1158,16 @@ function dataProblems(deep) {
         add('stops bookings', personDisplayName(r) + ' has no hourly rate',
             'Their bookings will price at the open rate.');
       }
+      /* THEIR OWN CUT OF AN EXTRA SEAT (docs/history/345), typed into the sheet by hand where the card's
+         refusal cannot reach. ASKED OF `seatCutOut_`, the one reading, because this said "priced as no cut"
+         over a cell the price read otherwise — "£0.10" was 0.1 to the price and "no cut" here (the review
+         of 345). Anything it does not read as a cut is priced at the config B, which is what this says. */
+      const cut = S(r.extra_seat_cut);
+      if (cut !== '' && seatCutOut_(cut) === '') {
+        add('pricing looks wrong', personDisplayName(r) + "'s extra_seat_cut is " + cut,
+            'It is a FRACTION of their rate, written as a plain number from 0 to 2 — 0.1 is a tenth. '
+            + 'Anything else is priced at the usual cut, the config B, as a blank is.');
+      }
     }
     /* Email is how everybody finds out anything. Without one, every notification this system
        sends to that person is thrown away silently. */
@@ -1185,9 +1195,11 @@ function dataProblems(deep) {
         'These are FRACTIONS of the rate — 0.25 means +25%. A value above 1 is usually a pound '
         + 'figure left over from an older formula.');
   }
+  /* B IS THE DEFAULT CUT since docs/history/345 — a tutor's own `extra_seat_cut` wins over it — so a nought
+     here is nothing earned on every tutor whose own cell is blank, not on every tutor. */
   if (!B) {
-    add('you earn nothing', 'B is 0 — you take no share of an extra seat',
-        'Every hour another tutor teaches earns you £0. That is a directory, not an agency.');
+    add('you earn nothing', 'B is 0 — you take no share of an extra seat from a tutor with no cut of their own',
+        'Every hour such a tutor teaches earns you £0. That is a directory, not an agency.');
   }
 
   /* ---------- THE LAW-COLOUR CHECK WENT WITH THE TAB ---------------------------------------------

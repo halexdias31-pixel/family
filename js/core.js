@@ -504,15 +504,48 @@ function levelPriced(name) {
    it again from the same three cells would be the second reader this repository keeps finding, and
    the two would disagree the first time `asFraction`'s bounds moved.
    `c` and `B` are passed in by `priceFrom`, which has already read them; the card asks with neither
-   and they are read here the same way. */
+   and they are read here the same way.
+
+   AND THE BUSINESS'S CUT IS THE TUTOR'S OWN NOW, WHEN THEY HAVE ONE (docs/history/345). The owner, 12 Oct:
+   *"Your cut off extra child for tutors should be editable on thir card. Like they can edit that small
+   number to the right of their normal rate"*. So `B` — one config number for everybody, Settings' old
+   "Your cut of an extra child" — is the DEFAULT, and `extraSeatCut` on the tutor's row (`extra_seat_cut`,
+   set by an admin on the tutor's card) wins over it. `seatCutOf_` (below) tells the two answers apart that
+   matter: a blank cell, or a backend too old to send the key, is NaN — the default, so every tutor is priced
+   exactly as before until somebody sets theirs — and a nought is 0, which is no cut at all: the tutor keeps
+   the whole of the seat. ONE READER, so the card's `+£X/h a seat`, the quote, the receipt's split and the
+   editor's live preview cannot disagree about which cut applies. `bRaw` and `cutOwn` say which won, for the
+   admin's line in the breakdown (`seatSource`); `seatOwn` says the same of the tutor's own part, for the
+   card editor, whose pound boxes draw a part only where this function would use it (`cardSeatShown_`) —
+   it drew a stored nought as "0.00" while this priced it at the config `c`, two boxes that did not add up
+   to the seat printed under them (the review of docs/history/345). */
 function seatShare_(tutorRow, c, B) {
   const v = ((typeof DATA !== 'undefined' && DATA && DATA.constants) || {}).vars || {};
   const cv = (...keys) => { for (const key of keys) { const x = num(v[key]); if (!isNaN(x)) return x; } return 0; };
   if (c === undefined) c = cv('c', 'extra child rate', 'extra_child_rate');
   if (B === undefined) B = cv('B', 'boss rate', 'boss_rate');
   const asFraction = (x, fallback) => (x > 0 && x <= 2) ? x : fallback;
-  const cRaw = (tutorRow && Number(tutorRow.extraSeat) > 0) ? Number(tutorRow.extraSeat) : c;
-  return { cRaw, cUsed: asFraction(cRaw, 0), bUsed: asFraction(B, 0) };
+  const seatOwn = !!tutorRow && Number(tutorRow.extraSeat) > 0;
+  const cRaw = seatOwn ? Number(tutorRow.extraSeat) : c;
+  const own = tutorRow ? seatCutOf_(tutorRow.extraSeatCut) : NaN;
+  const cutOwn = !isNaN(own);
+  const bRaw = cutOwn ? own : B;
+  return { cRaw, bRaw, seatOwn, cutOwn, cUsed: asFraction(cRaw, 0), bUsed: asFraction(bRaw, 0) };
+}
+/* ---------- A TUTOR'S OWN CUT, READ THE ONE WAY THE SERVER SENDS IT (`seatCutOut_`, people.gs) ----------
+   A PLAIN DECIMAL FROM 0 TO 2, OR NOTHING — NaN, the default. It was `num`, which reads "10%" as 0.1, "1/10"
+   as 0.1 and "0x1" as nought, while the server tested with `Number()` and sent with `parseFloat`: a tutor's
+   crafted "0x1" over a cut of 1 passed the server's "has it moved?" as 1 and went to every phone as 0, no cut
+   (the review of docs/history/345). One spelling on both sides now, the same pattern and the same bounds, so
+   the cell the phone previews, the cell the server lets through and the number `doGet` sends are one answer.
+   Out of range is the default too, never "no cut": "10" typed by hand meaning ten per cent must not take the
+   business's margin to nothing. The phone's own copy because the phone also reads the RAW cell — the card
+   editor's hidden box and `cardPatchRow_` — before any `doGet` has shaped it. */
+function seatCutOf_(v) {
+  const s = typeof v === 'number' ? String(v) : String(v == null ? '' : v).trim();
+  if (!/^\d*\.?\d+$/.test(s)) return NaN;
+  const x = Number(s);
+  return x <= 2 ? x : NaN;
 }
 
 function priceFrom(spec) {
@@ -570,7 +603,8 @@ function priceFrom(spec) {
   /* ================== THE PRICING FORMULA ==================
      P = ( [ rate x (Σ Sᵢ)/k x L x D x T ]     ← £/hour/child, all MULTIPLIED
            · [ 1 + s(k−1) ]                     ← subject-count
-           · [ 1 + (c+B)(n−1) ]                 ← extra children (c = tutor's, B = yours)
+           · [ 1 + (c+B)(n−1) ]                 ← extra children (c = tutor's, B = yours: the tutor's
+                                                   own extra_seat_cut when set, else the config default)
            · [ 1 − b(W−1) ]                     ← bulk discount
            · [ 1 − a(A−1) ]                     ← advance-booking discount
          + V ) · h · W                          ← venue is £/hour (not per child)
@@ -633,7 +667,7 @@ function priceFrom(spec) {
   // --- Rates (0 switches the effect off) ---
   const s = cv('s', 'subject count rate', 'subject_count_rate');  // 1 + s(k−1)
   const c = cv('c', 'extra child rate', 'extra_child_rate');      // tutor's share of each extra child
-  const B = cv('B', 'boss rate', 'boss_rate');                    // YOUR cut per extra child
+  const B = cv('B', 'boss rate', 'boss_rate');                    // the DEFAULT cut, for a tutor whose own is blank
   const b = cv('b', 'bulk discount rate', 'bulk_discount_rate');  // 1 − b(W−1)
   const a = cv('a', 'advance booking rate', 'early booking rate');// 1 − a(A−1)
 
@@ -705,23 +739,26 @@ function priceFrom(spec) {
   const baseHourly = chargeRate * avgSubject * L * D * T;
   const fSubjects  = 1 + s * (k - 1);                     // each extra subject adds a fraction
   /* The tutor's own extra-seat fraction when they've set one, the config default otherwise. Only
-     THEIR share is replaced: B stays yours, so a tutor deciding a second student is worth 20% more
-     of their time can't move your margin while doing it. */
+     THEIR share is theirs: B stays yours, so a tutor deciding a second student is worth 20% more
+     of their time can't move your margin while doing it. B IS PER TUTOR NOW (docs/history/345) — their
+     own `extraSeatCut` when an admin has set one, the config B when it is blank — and still not the
+     tutor's to move: only an admin may write it (`seatCutRefusal_`, people.gs). */
   /* A per-seat share is a FRACTION of the rate: 0.3 means a second student adds 30%, and 1 means
      it adds the full rate again. 1 is a real setting, so it's honoured — the old guard rejected
      anything at or above 1 as a leftover pound figure and threw away a deliberate choice without
      saying so.
      What's still rejected is a value large enough to be unmistakably an amount rather than a
      fraction: nobody means "a second student costs five times the first". */
-  const { cRaw, cUsed, bUsed } = seatShare_(tutorRow, c, B);
+  const { cRaw, bRaw, cutOwn, cUsed, bUsed } = seatShare_(tutorRow, c, B);
   // Which one won, for the admin view. A silent fallback and a read value look the same on a card.
+  // The cut is named by where it came from too: the tutor's own, or the config default.
   const ignored = [];
   if (cRaw > 2) ignored.push(`c ${cRaw}`);
-  if (B > 2) ignored.push(`B ${B}`);
+  if (bRaw > 2 || bRaw < 0) ignored.push(cutOwn ? `their cut ${bRaw}` : `B ${bRaw}`);
   const seatSource = ignored.length
     ? `ignoring ${ignored.join(' and ')} — not fractions`
-    : ((tutorRow && Number(tutorRow.extraSeat) > 0) ? `tutor ${cUsed} + B ${bUsed}`
-                                                    : `config ${cUsed} + B ${bUsed}`);
+    : ((tutorRow && Number(tutorRow.extraSeat) > 0) ? `tutor ${cUsed}` : `config ${cUsed}`)
+      + (cutOwn ? ` + their cut ${bUsed}` : ` + B ${bUsed}`);
   const fSeats     = 1 + (cUsed + bUsed) * (n - 1);
   /* Both discounts count units BEYOND the first: the first session and the first week earn
      nothing. That count cannot go below zero — booking for this week is not a reason to charge
@@ -803,8 +840,8 @@ function priceFrom(spec) {
   const cbTotal = (cUsed + bUsed) || 1;                            // no divide-by-zero when both are 0
   /* The tutor is paid their own rate, with every surcharge that belongs to teaching — subject,
      level, day, time. All of it is their work, so all of it is theirs.
-     Your share is B alone: what an extra seat is worth to you, which is the one part of the price
-     that isn't hours taught. Both carry the same multipliers, so the two still add to exactly what
+     Your share is B alone — this tutor's own cut, or the default (`seatShare_`): what an extra seat
+     is worth to you, which is the one part of the price that isn't hours taught. Both carry the same multipliers, so the two still add to exactly what
      the client pays. */
   const tutorBase = (chargeRate * avgSubject * L * D * T) * fSubjects * discountFactor * promoAdj;
   const yourBase  = 0;

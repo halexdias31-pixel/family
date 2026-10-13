@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-10-12-u-aispeed";
+const DOPOST_VERSION = "2026-10-13-v-merged";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -1132,6 +1132,13 @@ function doPost(e) {
       }
       const priceNo = pricingRefusal_(r, priceAsked, iAmAdmin);
       if (priceNo) return jsonOut({ error: priceNo });
+      /* ---------- AND THE BUSINESS'S CUT OF AN EXTRA SEAT, WHICH IS AN ADMIN'S (docs/history/345) -----------
+         On the same page and the same card as the four, and allowed by the same list, so who may write it is
+         asked here rather than by the allow-list: `seatCutRefusal_` in people.gs. `iAmAdmin` — the TOKEN's row —
+         and not `adminEditing`, which only says "another person's row": an admin who also tutors sets their own
+         cut too. Nothing here touches `pricing_changed_at`; that clock is the tutor's (`SEAT_CUT_FIELD`). */
+      const cutNo = seatCutRefusal_(r, priceAsked, iAmAdmin);
+      if (cutNo) return jsonOut({ error: cutNo });
       /* ---------- AND THE AGE RANGE, WHICH IS NOT THE QUOTE AND HAS NO CLOCK ----------------------
          Asked of the same wanted-only object for the same reason, and before any write for the
          reason this whole section exists. A youngest older than the oldest is a range nobody falls
@@ -1316,18 +1323,23 @@ function doPost(e) {
        Every number in the formula lives in `config`; this is how the site writes one back.
        Restricted to keys that already exist, so a typo can't invent a variable that looks like a
        setting and is read by nothing. --- */
-    /* ---------- IT HAS A CALLER NOW: the admin's "your cut of an extra child" card ------------
-       Dead for as long as it existed — see the note under `saveRoom` below. The Settings column's
-       admin card posts `boss_rate` here, which is the `B` `priceFrom` reads as the business's
-       share of each extra child. `setCell` and `addRow` both set `POST_WROTE`, so the six-hour
-       payload is retired on the way out and the new figure is on the next load rather than
-       tomorrow — which is the whole difference between a control and a suggestion.
+    /* ---------- NO CARD CALLS IT NOW (docs/history/345), AND IT STAYS ------------------------------
+       It had one caller, the admin's "Your cut of an extra child" card on Settings, which posted
+       `boss_rate` — the `B` `priceFrom` read as the business's share of every extra child. The owner
+       asked for that cut on each tutor's card instead (*"Your cut off extra child for tutors should be
+       editable on thir card"*), so it is `extra_seat_cut` on the tutor's row, written by
+       `updateProfile`, and the card is gone. `B` is still read: it is what a BLANK cut means, the
+       default, set in the config tab of the spreadsheet. KEPT because a phone still on the old build
+       posts here during the minute after a deploy, and refusing it would say "Not saved" over a
+       figure that still means something. `setCell` and `addRow` both set `POST_WROTE`, so the
+       six-hour payload is retired on the way out and a new figure is on the next load.
 
        A KEY THAT IS NOT THERE MAY BE ADDED, BUT ONLY FROM A SHORT LIST. `priceFrom` reads `B`,
        `boss rate` or `boss_rate`, and a config tab that has never carried any of them prices every
-       extra child with no cut at all; refusing to create the row would leave the card unable to set
-       the one thing it exists for. A list rather than any key, because an admin's typo would
-       otherwise become a config row nothing reads.
+       extra child of a tutor with no cut of their own at no cut at all; refusing to create the row
+       would leave an old-build phone's Save in the deploy gap unable to set the one thing it posts.
+       A list rather than any key, because an admin's typo would otherwise become a config row
+       nothing reads.
 
        A NUMBER STAYS A NUMBER. A fraction is what this key means (`asFraction` in core.js takes
        0 to 2 and ignores anything bigger as a leftover pound figure), so it is checked here too —
@@ -1343,8 +1355,8 @@ function doPost(e) {
       }
       const t = read(TAB.config);
       /* EXACT CASE FIRST. `config()` keys its variables case-sensitively and the pricing reads `B`
-         (your cut) and `b` (the bulk discount) as two different numbers — so a case-folded match let
-         row order decide which of the two a Save on the cut card changed. */
+         (the default cut) and `b` (the bulk discount) as two different numbers — so a case-folded match
+         let row order decide which of the two a post of the cut changed. */
       let r = t.rows.find(x => S(x.key) === want) || t.rows.find(x => norm(x.key) === norm(want));
       if (!r && CONFIG_ADDABLE[norm(want)]) {
         r = addRow(t, { key: norm(want), value: Number(body.value), what_it_does: CONFIG_ADDABLE[norm(want)] });

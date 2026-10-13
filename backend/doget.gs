@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-10-12-u-aispeed";
+const DOGET_VERSION = "2026-10-13-v-merged";
 
 
 function doGet(e) {
@@ -761,6 +761,11 @@ function doGet(e) {
              the one reader; the card turns the pair into "Ages 8–16". */
           ageMin: ageOut_(r.age_min), ageMax: ageOut_(r.age_max),
           extraSeat: N(r.extra_seat_rate),
+          /* AND THE BUSINESS'S CUT OF THAT SEAT, THIS TUTOR'S OWN (docs/history/345) — '' for a blank cell, which
+             is the config tab's `B`, and nought for nought, which is no cut: `seatCutOut_`, because `N()` would
+             make the two one. Public as `B` already is (`constants.vars`), and no more than the card's
+             `+£X/h a seat` minus the tutor's share already says. `seatShare_` (js/core.js) reads it. */
+          extraSeatCut: seatCutOut_(r.extra_seat_cut),
           /* THE VENUES THEY ARE HAPPY AT, off `venues.tutors_happy_here` — `venuesFor_` is the one
              reader, and the Settings page is the one writer. Names, in the tab's order. */
           venues: venuesFor_(r, venuesTab),
