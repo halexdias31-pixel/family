@@ -698,7 +698,7 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
    A REGISTRY RATHER THAN EVERY SPLASH, because 23 of the 39 still animate something else and most
    of them are fine (055 again). A splash joins this list when it is rebuilt as a loop. */
 {
-  /* ALL THREE ARE IN THE TEXTBOOKS — the coin, the sieve and Bayes are rows of data/textbooks.json,
+  /* ALL FOUR ARE IN THE TEXTBOOKS — the coin, the sieve, Bayes and How many fit? are rows of data/textbooks.json,
      read through check-anims.js's one reader, and a row's own CSS is its rules. The blocks were the
      fourth and the last one in index.html; they taught nothing and went on 10 Oct with the other
      inline splashes (docs/history/322), so there is no markup left here to cut a splash out of. */
@@ -708,7 +708,7 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
      keyframe. Brace-matched, because a regex to the first `}` stops at the end of the first stop —
      the fault the brace check at the top of this file was written for. */
   const frames = {};
-  const rowBare = Object.keys({ coin: 1, sieve: 1, bayes: 1 }).map(id => animRow(id)).filter(Boolean)
+  const rowBare = Object.keys({ coin: 1, sieve: 1, bayes: 1, fit: 1 }).map(id => animRow(id)).filter(Boolean)
     .map(r => r.css.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))).join('\n');
   for (const m of (bare + '\n' + rowBare).matchAll(/@keyframes\s+([\w-]+)\s*\{/g)) {
     const bare_ = bare + '\n' + rowBare;
@@ -837,6 +837,58 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
         if (!got) { bad.push(what + ' is not written — the check looks for ' + re); return; }
         if (got.slice(1).map(Number).join() !== want.join()) bad.push(what + ' says ' + got[0] + ', and the dots make it '
           + want.join(', ') + ' — P(has it | +) = ' + TP + ' / (' + TP + ' + ' + FP + ') = ' + pc + '%; re-run tools/bayes.py');
+      });
+      return bad;
+    },
+    /* HOW MANY FIT IS RIGHT, READ BACK FROM ITS OWN WORDS — and the owner's example is the still. BUILT
+       TO THIS STANDARD AND HELD TO IT HERE (docs/history/349): transform and opacity, one clock, every
+       animation infinite, as the three above. tools/fit.py writes four examples, each a question ("How
+       many 3s fit into 4?"), a gold count over every whole copy, the end of the bar, a sentence and a
+       sum. A number changed in one place and not the others would still animate perfectly and teach a
+       ten-year-old a wrong sum, so each example is read back and must be ONE division, done right: the
+       question, the bar's last number, the sentence and the sum name the same two numbers; the sum is
+       right; the sentence says its answer in words; and the count runs 1, 2, 3 ... to the sum's whole
+       part. And the FIRST example is 4 ÷ 3 — "how many 3s fit into 4" is the sentence it was asked for
+       with, and the first example is the one reduced motion shows. */
+    fit: (m, R) => {
+      const bad = [];
+      const WORD = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
+      const UNIT = { halves: [1, 2], thirds: [1, 3], quarters: [1, 4] };
+      const PART = { half: 2, third: 3, quarter: 4 };
+      const plain = h => h.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+      const gcd = (a, b) => b ? gcd(b, a % b) : a;
+      const q = (n, d) => { const g = gcd(n, d) || 1; return (n / g) + '/' + (d / g); };
+      const scenes = m.split('<g class="fit-s"').slice(1);
+      if (scenes.length < 4) bad.push(scenes.length + ' examples — the owner\'s 4 and 3, one that fits exactly, one with a half and the fractions case');
+      scenes.forEach((s, k) => {
+        const at = 'example ' + (k + 1);
+        const ask = /^How many (\d+)s fit into (\d+)\?$/.exec(plain((/<text class="fit-q"[^>]*>([\s\S]*?)<\/text>/.exec(s) || [])[1] || ''))
+          || /^How many (halves|thirds|quarters) fit into (\d+)\?$/.exec(plain((/<text class="fit-q"[^>]*>([\s\S]*?)<\/text>/.exec(s) || [])[1] || ''));
+        if (!ask) { bad.push(at + ' asks no "How many …s fit into …?" this check can read'); return; }
+        const div = UNIT[ask[1]] || [+ask[1], 1], n = +ask[2], word = UNIT[ask[1]] ? ask[1] : ask[1] + 's';
+        const end = /<text class="fit-end"[^>]*>(\d+)<\/text>/.exec(s);
+        if (!end || +end[1] !== n) bad.push(at + ' asks about ' + n + ' and its bar ends at ' + (end ? end[1] : 'nothing'));
+        const sumAt = s.indexOf('<g class="fit-sum');
+        const toks = [...s.slice(sumAt < 0 ? s.length : sumAt).matchAll(/<g class="[^"]*"><text[^>]*>(\d+)<\/text><path[^>]*\/><text[^>]*>(\d+)<\/text><\/g>|<text[^>]*>([^<]+)<\/text>/g)]
+          .map(t => t[3] != null ? t[3] : [+t[1], +t[2]]);
+        const num = t => Array.isArray(t) ? t : /^\d+$/.test(t) ? [+t, 1] : null;
+        if (toks.length < 5 || toks[1] !== '÷' || toks[3] !== '=' || !num(toks[0]) || !num(toks[2]) || !num(toks[4])) { bad.push(at + "'s sum reads " + JSON.stringify(toks) + ' — not a ÷ b = c'); return; }
+        const A = num(toks[0]), B = num(toks[2]), Wh = num(toks[4]), F = toks[5] ? num(toks[5]) : [0, 1];
+        if (q(A[0], A[1]) !== q(n, 1) || q(B[0], B[1]) !== q(div[0], div[1])) bad.push(at + ' asks how many ' + word + ' fit into ' + n + ' and its sum is ' + q(A[0], A[1]) + ' ÷ ' + q(B[0], B[1]));
+        const want = q(A[0] * B[1], A[1] * B[0]), got = q(Wh[0] * F[1] + F[0] * Wh[1], Wh[1] * F[1]);
+        if (want !== got) bad.push(at + "'s sum says " + q(A[0], A[1]) + ' ÷ ' + q(B[0], B[1]) + ' = ' + got + ', and it is ' + want + ' — re-run tools/fit.py');
+        const say = /^(Exactly )?(\w+)(?: and a (half|third|quarter))? (\S+) fit into (\d+)$/i.exec(plain((/<text class="fit-say[^"]*"[^>]*>([\s\S]*?)<\/text>/.exec(s) || [])[1] || ''));
+        if (!say) bad.push(at + "'s sentence is not \"… fit into …\" in words");
+        else {
+          const whole = WORD.indexOf(say[2].toLowerCase()), part = say[3] ? [1, PART[say[3]]] : [0, 1];
+          if (whole < 0 || q(whole * part[1] + part[0], part[1]) !== want) bad.push(at + ' says "' + say[0] + '" and the sum makes it ' + want);
+          if (say[4] !== word || +say[5] !== n) bad.push(at + ' asks how many ' + word + ' fit into ' + n + ' and says ' + say[4] + ' fit into ' + say[5]);
+          if (!!say[1] !== !say[3]) bad.push(at + ' says "' + say[0] + '" — "Exactly" is for a fit with nothing over, and only then');
+        }
+        const counts = [...s.matchAll(/<text class="fit-n fit-pp"[^>]*>(\d+)<\/text>/g)].map(c => +c[1]);
+        const w = Wh[0] / Wh[1];
+        if (counts.join() !== Array.from({ length: w }, (_, i) => i + 1).join()) bad.push(at + ' counts ' + (counts.join(', ') || 'nothing') + ' over its copies, and ' + w + ' whole ones fit');
+        if (k === 0 && (n !== 4 || q(div[0], div[1]) !== '3/1')) bad.push('the first example is how many ' + word + ' fit into ' + n + ' — it is the owner\'s own, how many 3s fit into 4, and it is what less movement shows');
       });
       return bad;
     },

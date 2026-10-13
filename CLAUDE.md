@@ -82,12 +82,12 @@ almost never writes to it directly.
 - **`facets` / `kinds` tabs** — what the funnel asks and what the answers are called. These moved out
   of `find.js` deliberately: editorial, changes often, changing it should not be a deploy.
 - **The teaching animations are rows of `data/textbooks.json`** — Pythagoras, the sieve, Bayes, the
-  solar system and 24 more, each directly under the chapter it teaches (`anim`, `title`, `about`,
+  solar system, how many 3s fit into 4 and 24 more, each directly under the chapter it teaches (`anim`, `title`, `about`,
   `html`, `css`). The chapter plays it on a page of its own, in whichever finder it is opened; the loading screen draws a copy the
   device kept from the last load (`splashSync_` in shell.js, read by the picker in index.html — one
   load behind). *"The source for the animations should be in text books"* — the owner, 8 Oct.
-  **Each one has ONE source, and which it is depends on the drawing.** Thirteen are written by a
-  script — `area bayes cent coin fib gal index mxc orbit pyth sieve sine venn` (`gal` is
+  **Each one has ONE source, and which it is depends on the drawing.** Fourteen are written by a
+  script — `area bayes cent coin fib fit gal index mxc orbit pyth sieve sine venn` (`gal` is
   `tools/galton.py`, `orbit` is `tools/solar.py`, the rest `tools/<id>.py`, all through
   `tools/anim_row.py`): for those **the script is the source** — change it and re-run it, and never
   edit the row by hand, because the next run puts back everything the script writes and nothing
