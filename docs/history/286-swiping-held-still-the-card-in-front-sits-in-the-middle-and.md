@@ -229,3 +229,5 @@ the ringed passage's `expect` false: 2 states not reached).
 
 **`check-funnel.js` timed out at the roster's 180s in both full runs** under a load average of 13–18;
 alone it passes in 82s. Not this branch's, and its budget is left alone.
+
+**Changed by [341](341-what-a-flick-can-reach-is-drawn-before-it-gets-there.md)** — what this note left "not done" — the first visit to a column after the payload lands being a repaint on arrival — is now done in the quiet: the builder draws every column a repaint or a landing marked `STALE`, nearest first, and `go`'s own paint is the floor for an arrival that beats it.

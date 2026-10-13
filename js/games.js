@@ -5065,7 +5065,12 @@ function tmtBooked_(s) {
 
 function tmtHtml_() {
   const t = tmtRead_();
-  if (tmtColours_(t)) tmtSave_(t);
+  /* NOT SAVED WHEN DRAWN AHEAD (`AHEAD.running`, shell.js; docs/history/341). A week from before the colours
+     existed is given them here and saved — a POST, 900ms later — and the builder draws this card for nobody
+     in the quiet, where "nothing runs for nobody" is the rule. Found when `check-widgets.js` was given a person
+     with a week of her own (review, 12 Oct): her draw ahead asked the backend. The colours are worked out for
+     the drawing either way; the save waits for a start somebody is looking at. */
+  if (tmtColours_(t) && !(typeof AHEAD !== 'undefined' && AHEAD.running)) tmtSave_(t);
   /* THIS WEEK'S BOOKED SESSIONS, one entry per day each runs — see `weekSessions_`. Signed out there
      are none, and nothing about the written week depends on them. */
   const booked = (typeof USER !== 'undefined' && USER && typeof weekSessions_ === 'function')
@@ -5303,9 +5308,12 @@ function wgSlot_() {
   return `<div data-g="${esc(g.k)}" class="wg-game">${wgBody_(g)}</div>`;
 }
 
-function initWordGames() {
+/* THE PICKER AND THE CHOSEN GAME'S CARD, AND NOTHING THAT RUNS — the widget's declared `draw`, which the
+   builder uses to draw it before anybody arrives (docs/history/341). Its start drives `PARTY`, the round
+   shared by the classroom games, and that must happen only for somebody looking. */
+function wgPaint_() {
   const slot = $('wg-slot'), sel = $('wg-pick');
-  if (!slot) return;
+  if (!slot) return false;
   const g = wgGame_(wgChosen_());
   if (sel && sel.value !== g.k) sel.innerHTML = wgOptions_();
   /* REBUILT ONLY WHEN THE GAME CHANGED. A repaint runs `start` on markup `paint` has just replaced,
@@ -5313,6 +5321,11 @@ function initWordGames() {
      second start without a repaint) leaves it alone, which is what keeps a button under a finger. */
   const now = slot.firstElementChild;
   if (!now || now.getAttribute('data-g') !== g.k) slot.innerHTML = wgSlot_();
+  return g;
+}
+function initWordGames() {
+  const g = wgPaint_();
+  if (!g) return;
   if (g.party) partyStart_(g.k);
   else g.start();
 }

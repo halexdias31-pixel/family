@@ -270,3 +270,5 @@ after), and the "fetched again" next to it is the loop's range request under `no
 
 With everything put back: all 275 journeys pass, `ui.js --screen=feed` exits 0 with nothing new, and
 `press.js --screen=feed`, `swipe.js`, `cascade.js` and the static and backend checks are green.
+
+**Changed by [341](341-what-a-flick-can-reach-is-drawn-before-it-gets-there.md), after its review** — "redraw only what changed" reaches the column in front at a landing: a landing whose markup is byte-identical, with nothing pressed since, writes nothing to the column you are on (a column with no widgets and no finder window; one with widgets is redrawn and restarted, as 331 says), and an arrival after such a landing writes nothing to the column it arrives at.

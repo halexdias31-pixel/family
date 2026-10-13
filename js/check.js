@@ -114,6 +114,10 @@ const GLOBALS=new Set(('window document navigator localStorage sessionStorage co
 /* NodeFilter — the keypad walks a worded answer's drawing for its text nodes (`kpHitWords_`) to put
    the caret where a finger landed. A browser global beside `Node`. */
 'NodeFilter '+
+/* requestIdleCallback — the builder that draws ahead of a flick (`ahead_`, shell.js) asks for idle time
+   with it, and is written for its absence: iPadOS Safari has none, and the builder falls back to a timer
+   there (docs/history/341). A browser global, not assumed to exist. */
+'requestIdleCallback '+
 /* GOOGLE IDENTITY SERVICES. `google.accounts.id` is put on the window by the script me.js appends
    at sign-in time, so it is a global that arrives late rather than a name anybody forgot to
    declare — and me.js already guards it with `if (!window.google)`, which is the right check for

@@ -85,7 +85,7 @@ function postItem_(u, cls, eager) {
     return `<video class="${cls} post-vid" src="${esc(postVidSrc_(u))}"
       data-open="${esc(String(u).replace(/#video$/i, ''))}" controls playsinline preload="metadata"></video>`;
   }
-  return `<img class="${cls}" src="${esc(pic(u))}" alt="" loading="${eager ? 'eager' : 'lazy'}">`;
+  return `<img class="${cls}" src="${esc(pic(u))}" alt="" loading="${eager ? 'eager' : 'lazy'}" decoding="async">`;
 }
 /* ---------- SEVERAL OF THEM, IN A GRID RATHER THAN A STRIP --------------------------------------
    NOT A SIDEWAYS CAROUSEL, and the app is why: every screen here is reached by a sideways swipe, so a
@@ -102,20 +102,111 @@ function postItem_(u, cls, eager) {
    So every placement of the feed turns the pages one behind and two ahead to `eager`, which starts
    the request and nothing else; the element, its box and its `src` are untouched, so a repaint
    draws exactly what it drew. A clip is not touched — `preload="metadata"` is a decision about
-   somebody's data allowance and stays one. Called from `placeNow_` in shell.js. */
-function postsAhead_(id) {
+   somebody's data allowance and stays one. Called from `placeNow_` in shell.js.
+   ---------- EVERY COLUMN NOW, SIX PAGES AHEAD, AND THE REST IN THE QUIET (`picsAhead_`, docs/history/341) -----
+   Measured on 11 Oct at 4x CPU with pictures 300ms away: of 53 pictures late on the card in front, 42 had
+   been ASKED FOR after their card was already in front (median 565ms after) — the request, not the
+   network, was what was late, and only the Feed asked ahead at all. A run of flicks comes at five a
+   second, so a request has to leave about a second before its card arrives: six pages. So the column in
+   front, in every placement that is not a finger's: its pages two behind to six ahead in the direction
+   it was last turned (mirrored going up) are asked for now, those off the glass at `fetchpriority="low"`
+   so the card on the glass is never queued behind them. Attributes only, at most nine pages. Everything
+   further — decoding the next two pages, the columns beside it, every other column — is the builder's,
+   in the quiet (`picsJobs_` below). Boxers, figures, the shop, faces, profile shots, DM pictures and
+   video thumbnails are all reached, because it asks every `img[loading="lazy"]` in a page, whatever it is. */
+const PICS_BACK = 2, PICS_AHEAD = 6, PICS_DECODE = 2;
+function picsAhead_(id) {
   try {
     const host = $('s-' + id);
-    if (!host || !host.querySelector('img[loading="lazy"]')) return;
-    const pages = host.querySelectorAll(':scope .page');
+    if (!host) return;
+    const pages = host.querySelectorAll(':scope > .page');
+    if (!pages.length) return;
     const at = PAGE[id] || 0;
     const k = typeof domIndex_ === 'function' ? domIndex_(id, at) : at;
-    for (let n = k - 1; n <= k + 2; n++) {
-      const pg = pages[n];
-      if (pg) pg.querySelectorAll('img[loading="lazy"]').forEach(img => { img.loading = 'eager'; });
+    const dir = (typeof AHEAD !== 'undefined' && AHEAD.dir.y[id]) || 1;
+    const lit = new Set(typeof GLASS !== 'undefined' && GLASS.at === AT ? GLASS.pages : []);
+    for (let j = -PICS_BACK; j <= PICS_AHEAD; j++) {
+      const pg = pages[k + dir * j];
+      if (!pg) continue;
+      const low = !lit.has(pg);
+      pg.querySelectorAll('img').forEach(img => {
+        if (img.loading === 'lazy') img.loading = 'eager';
+        if (low) { if (img.getAttribute('fetchpriority') !== 'low' && !img.complete) img.setAttribute('fetchpriority', 'low'); }
+        else if (img.getAttribute('fetchpriority') === 'low') img.removeAttribute('fetchpriority');
+      });
     }
   } catch (e) { /* a picture fetched on arrival is still a picture */ }
 }
+
+/* ---------- AND IN THE QUIET: THE NEXT TWO DECODED, THE COLUMNS BESIDE, THEN EVERY OTHER COLUMN -----------
+   One builder job per column with work left (`ahead_`, shell.js), nearest column first:
+     · the column in front: `img.decode()` on the next `PICS_DECODE` pages in the direction of travel, so the
+       picture a flick lands on is not decoded in the frame it arrives — WebKit decodes on the main thread —
+       and only two, because each photograph is about 7MB decoded and the browser may throw them away;
+     · the columns beside it (one either side on a phone, `GLASS.cols` on a wide window): their page in
+       front, one behind and two ahead, asked for — a sideways flick lands on P — and on a wide window the
+       front page of each column on the glass decoded too;
+     · every other column: P−1 to P+4, asked for, for the next sweep.
+   Attributes and a decode only: nothing is redrawn for a picture. No clip is touched (`preload` stays) and a
+   YouTube poster keeps 319's one-player rule, so no video byte is added. */
+/* ---------- AND A CARD FILLED AFTER THE PLACEMENT IS ASKED FOR AS IF THE PLACEMENT HAD SEEN IT --------------------
+   FOUND BY REVIEW ROUND 1 (12 Oct), re-running check/reach.js: "res page 7 (in front 1) is still lazy" on the
+   Boxing shelf at 390. The reach above is applied IN THE PLACEMENT, and a finder's window is filled after it — the
+   band in the same task, every card past the band by the builder, one per slice — so a card filled six ahead
+   kept `lazy` until something placed the column again, which at rest is nothing. So for the column in front this
+   job wants the placement's own pages, two behind to six ahead, and runs the placement's own function on them
+   (`picsAhead_`): one rule, whichever of the fill and the placement comes last. */
+const PICS_ASKED = new WeakSet();
+function picsWant_(id) {
+  const host = $('s-' + id);
+  if (!host) return null;
+  const pages = host.querySelectorAll(':scope > .page');
+  if (!pages.length) return null;
+  const ti = TABS.findIndex(t => t.id === AT), ci = TABS.findIndex(t => t.id === id);
+  if (ci < 0) return null;
+  const at = PAGE[id] || 0;
+  const k = typeof domIndex_ === 'function' ? domIndex_(id, at) : at;
+  const wide = typeof WIDE !== 'undefined' && WIDE;
+  const beside = id !== AT && (wide ? (typeof GLASS !== 'undefined' && GLASS.cols.indexOf(id) !== -1) : Math.abs(ci - ti) === 1);
+  const eager = [], decode = [];
+  if (id === AT) {
+    const dir = (typeof AHEAD !== 'undefined' && AHEAD.dir.y[id]) || 1;
+    for (let j = -PICS_BACK; j <= PICS_AHEAD; j++) if (pages[k + dir * j]) eager.push(pages[k + dir * j]);
+    for (let j = 1; j <= PICS_DECODE; j++) if (pages[k + dir * j]) decode.push(pages[k + dir * j]);
+  } else {
+    const hi = beside ? 2 : 4;
+    for (let j = -1; j <= hi; j++) if (pages[k + j]) eager.push(pages[k + j]);
+    if (beside && wide && pages[k]) decode.push(pages[k]);
+  }
+  return { eager, decode };
+}
+function picsTodo_(w) {
+  return !!w && (w.eager.some(pg => pg.querySelector('img[loading="lazy"]'))
+    || w.decode.some(pg => [...pg.querySelectorAll('img')].some(img => !PICS_ASKED.has(img) && !(img.complete && img.naturalWidth))));
+}
+function picsRun_(id) {
+  const w = picsWant_(id);
+  if (!w) return;
+  if (id === AT) picsAhead_(id);
+  else w.eager.forEach(pg => pg.querySelectorAll('img[loading="lazy"]').forEach(img => { img.loading = 'eager'; }));
+  w.decode.forEach(pg => pg.querySelectorAll('img').forEach(img => {
+    if (PICS_ASKED.has(img) || (img.complete && img.naturalWidth)) return;
+    PICS_ASKED.add(img);
+    if (img.loading === 'lazy') img.loading = 'eager';
+    try { if (img.decode) img.decode().catch(() => {}); } catch (e) {}
+  }));
+}
+function picsJobs_() {
+  if (typeof AHEAD_KINDS === 'undefined') return [];
+  const out = [];
+  TABS.forEach(t => {
+    if (STALE[t.id]) return;
+    const w = picsWant_(t.id);
+    if (picsTodo_(w)) out.push({ key: 'pics:' + t.id, kind: 'pics', d: aheadDist_(t.id, null), run: () => picsRun_(t.id) });
+  });
+  return out;
+}
+if (typeof AHEAD_KINDS !== 'undefined') AHEAD_KINDS.push(picsJobs_);
 function postMediaHtml_(list, i) {
   if (!list.length) return '';
   if (list.length === 1) {
@@ -130,7 +221,7 @@ function postMediaHtml_(list, i) {
        is on its way, the file's own proportions once it has landed. `width`/`height` say the same 4:5
        to anything that reads the attributes before the stylesheet — a browser maps them to exactly
        that `auto` ratio. What the fixed box bought is kept by two things that cost no black:
-       `postsAhead_`, which asks for the pictures before their page is in front of anybody, so the
+       `picsAhead_`, which asks for the pictures before their page is in front of anybody, so the
        change normally happens off-screen; and `holdColumn_` in shell.js for the case it does not.
        A page is NOT a fixed cell — it is `height: auto` in an ordinary CSS column — so a picture
        landing on a card ABOVE the one being read moves that one, by however much the 4:5 it
@@ -642,7 +733,15 @@ function cameraCard() {
             should all have a simplistic simple loading thing"*. It sits in the middle of the
             viewfinder, where the picture will be; a camera that did NOT start is a fact, not a wait,
             and keeps its words (`camFailed_`). */''}
-      <div class="cam-off" id="cam-off">${loading_()}</div>
+      ${/* ---------- AND AT REST IT IS A VIEWFINDER THAT IS OFF, NOT A WAIT (docs/history/341) ----------------
+            The loader was drawn here for "the moment between the column arriving and the first frame" —
+            and the card is drawn long before that moment, on the Feed's first page, which an iPad shows at
+            both ends of every sweep across the row: measured on 11 Oct, 1.0–1.2s of the loader on the glass
+            per run, for a camera nobody had asked for. Off its page nothing is coming, and a wait is drawn
+            only where something is (`loading_`'s rule, check-loading.js). So the panel is the dark stage on
+            its own until `camStart_` asks for the camera, which puts the loader in it for exactly the time
+            between the ask and the first frame; a camera that did not start keeps its words (`camFailed_`). */''}
+      <div class="cam-off" id="cam-off"></div>
     </div>
     ${/* ---------- FOUR CONTROLS, WHICH IS WHAT A CAMERA HAS ------------------------------------
           ASKED FOR ON THE WHITEBOARD BY SHAPE AND COLOUR: "white circle for take pic, Red for
@@ -896,7 +995,7 @@ async function camStart_() {
   /* THE COLUMN MAY HAVE LEFT WHILE THE PROMPT WAS UP. `camStop_` ran with CAM_STREAM still null, so
      it stopped nothing, and this stream would have stayed live behind a screen nobody is looking at
      — a recording light on for nothing, which is the exact thing camStop_ exists to prevent. */
-  if (!feedCamHere_()) { camStop_(true); return; }
+  if (!feedCamHere_()) { camStop_(true); camRest_(); return; }
 
   /* ---------- AND THE CARD MAY HAVE BEEN DRAWN AGAIN WHILE IT WAS UP --------------------------------
      `v`, `said` and `retry` were found before the prompt, and a repaint in the meantime replaced all
@@ -1190,7 +1289,7 @@ function camHold_() {
     `<button class="cam-thumb" data-do="cam-drop" data-i="${k}"
        aria-label="Take this one out of the post" title="Take this one out">${x.kind === 'video'
       ? '<span class="cam-thumb-vid">\u25b6</span>'
-      : `<img src="${esc(x.data)}" alt="">`}</button>`).join('')}</div>` : '';
+      : `<img src="${esc(x.data)}" alt="" decoding="async">`}</button>`).join('')}</div>` : '';
 }
 on('cam-more', () => {
   camKeep_();
@@ -1484,8 +1583,9 @@ function camStop_(keepShown) {
 
   if (v) v.hidden = false;
   const c = $('cam-still'); if (c) c.hidden = true;
+  /* BACK TO THE VIEWFINDER AT REST — the dark stage, no loader: nothing is being asked for now (`cameraCard`). */
   const off = $('cam-off');
-  if (off) { off.hidden = false; off.innerHTML = loading_(); }
+  if (off) { off.hidden = false; off.innerHTML = ''; }
   $('cam-on')    && ($('cam-on').hidden = true, $('cam-on').disabled = false);
   /* LEAVING THE COLUMN LETS THE POST GO TOO, the tray with it — the same thing it has always done to
      a single held picture. */
@@ -2105,7 +2205,7 @@ on('new-post', () => {
         <div class="pickers">${d.files.map(f => `
           <button class="picker" data-do="post-pick" data-id="${esc(f.id)}"
                   data-caption="${esc(f.caption)}" title="${esc(f.name)}">
-            <img src="${esc(pic('https://drive.google.com/file/d/' + f.id + '/view'))}" alt=""
+            <img src="${esc(pic('https://drive.google.com/file/d/' + f.id + '/view'))}" decoding="async" alt=""
                  loading="lazy">
             <span>${esc(f.caption)}</span>
           </button>`).join('')}</div>`;
@@ -2252,7 +2352,7 @@ on('post-edit', el => {
   const voted = !!(p.poll && p.poll.total);
 
   openSheet('Edit post', `
-    ${p.image ? `<img src="${esc(pic(p.image))}" alt=""
+    ${p.image ? `<img src="${esc(pic(p.image))}" decoding="async" alt=""
          style="width:100%;margin-bottom:.7rem">` : ''}
     ${/* EACH BOX A DRAFT OF THE EDIT (data.js; 317), drawn from the saved post when there is none and
           dropped on Save — so a reload mid-edit reopens the sheet holding the edit, not the post. */''}
@@ -2496,6 +2596,18 @@ function feedCamWatch_() {
      asking for the camera — see `CAM_FAILED`. */
   CAM_FAILED = null;
   if (CAM_STREAM || (CAM_REC && CAM_REC.state === 'recording')) camStop_(true);
+  camRest_();
+}
+/* ---------- OFF ITS PAGE THE VIEWFINDER IS AT REST, WHATEVER THE ASK IS DOING (docs/history/341) -----------
+   `camStop_(true)` lets the hardware go and keeps the card as it is — and a card turned away from mid-ask
+   kept the loader `camStart_` had drawn, on the page beside the one in front, for as long as the prompt
+   stayed up; an answer arriving after the page was left was stopped the same way and left it there for
+   good. check/reach.js read it at 390 and 820: up to fifteen frames of loader on the Feed's first page with
+   its second in front. Nothing is coming to that card any more — the answer is let go the moment it lands
+   (below) — so it goes back to the dark stage. A refusal's words are not a wait and are left. */
+function camRest_() {
+  const off = $('cam-off');
+  if (off && off.querySelector(':scope > .loading')) off.innerHTML = '';
 }
 
 
@@ -2638,9 +2750,16 @@ screen('reel', () => {
    decoded `<video>` with a `src` on it, so a column that appended for ever would be a megabyte a
    flick with nothing ever released. `REEL_MAX` is the stated ceiling — thirty laps of two clips,
    further than anybody scrolls — rather than a leak nobody measures until a phone gets hot. */
-const REEL_FIRST = 3;      // on the first paint. One is on screen; the rest are the next flick.
-const REEL_MORE  = 3;      // appended when the last one is two slides away.
-const REEL_AHEAD = 2;      // how far ahead of you the column is kept — the top-up and the redraw
+/* ---------- SEVEN, SIX AND SIX SINCE 11 OCT (docs/history/341) --------------------------------------------
+   Three, two and three were set for a thumb that stops on each reel. A run of flicks under 300ms apart
+   starves the top-up behind `afterSlide_` (`reelTurn_`), so the column reached the end of what was built
+   and the pager clamped the flick back. Six kept ahead is about a second of flicks at five a second; the
+   release now appends one slide when fewer than six are left (`reelAhead_`, from `goPage`), and the
+   builder tops up to twelve ahead in the quiet. Markup only: a clip's `src` is still set only in front
+   (`reelPlay_`), so no video byte is added, and `REEL_MAX` still bounds the column. */
+const REEL_FIRST = 7;      // on the first paint. One is on screen; the rest are the next flicks.
+const REEL_MORE  = 6;      // appended at a time when fewer than REEL_AHEAD are ahead.
+const REEL_AHEAD = 6;      // how far ahead of you the column is kept — the top-up and the redraw
                            // read the same number, or one of them builds a page short of the other.
 const REEL_MAX   = 60;     // the ceiling, in slides. See above.
 let REEL_SHOWN = 0;
@@ -2833,12 +2952,39 @@ function clipsStop_(root) {
    appended reel is indistinguishable from one that was there at the start — and `paintPager` is
    what tells the dial there are more of them. Without it the column would hold pages the pager
    refuses to move to, which is the You-column failure the note on `reelPages_` names. */
-function reelMore_(host) {
-  const cards = reelCards_(REEL_MORE);
+/* ---------- AND THE COLUMN IS NO LONGER WHAT IT WAS DRAWN WITH (`DRAWN = null`) -------------------------------
+   `paint`'s identical-markup skip (shell.js, docs/history/341) keeps a column whose new markup is byte for
+   byte what it was drawn with — and asks the draw to find out, and THIS column's draw starts again from reel
+   nought (`REEL_SHOWN = 0`, `screen('reel')`). Appended to in place, the column held thirteen slides while
+   the draw counted seven, the skip kept the thirteen, and the next top-up dealt reels seven to twelve a
+   second time: found by review on 12 Oct, six repeats per landing without end, and from page thirteen the
+   clip started was a slide six pages off the glass while the one in front never played. So an append says
+   the column has left its drawing, and the next landing draws it whole — the residual rule written over
+   that skip, kept here where the column is edited. */
+function reelMore_(host, n) {
+  const cards = reelCards_(n || REEL_MORE);
   if (!cards.length) return;
   host.insertAdjacentHTML('beforeend', pages('reel', cards));
+  host.DRAWN = null;
   paintPager('reel', true);
 }
+/* IN THE RELEASE: ONE SLIDE, when fewer than `REEL_AHEAD` are left past the page being turned to — markup,
+   amortised as Find's window is, so a run of flicks never reaches the end of what is built. `goPage` calls
+   it before the column moves; its own `paintPager` tells the dial. */
+function reelAhead_(n) {
+  const host = $('s-reel');
+  if (!host || !LOADED || n < REEL_SHOWN - REEL_AHEAD) return;
+  const cards = reelCards_(1);
+  if (cards.length) { host.insertAdjacentHTML('beforeend', pages('reel', cards)); host.DRAWN = null; }
+}
+/* AND IN THE QUIET, UP TO TWELVE AHEAD — the builder's `reels` job. */
+function reelJobs_() {
+  if (!LOADED || STALE.reel || !$('s-reel') || !$('s-reel').firstElementChild) return [];
+  const want = (PAGE.reel || 0) + 1 + REEL_AHEAD + REEL_MORE;
+  if (REEL_SHOWN >= want || REEL_SHOWN >= REEL_MAX || !reelItem_(REEL_SHOWN)) return [];
+  return [{ key: 'reels', kind: 'reels', d: aheadDist_('reel', null), run: () => reelMore_($('s-reel'), want - REEL_SHOWN) }];
+}
+if (typeof AHEAD_KINDS !== 'undefined') AHEAD_KINDS.push(reelJobs_);
 
 /* ---------- A CLIP, AND NOTHING BEHIND IT IF IT WILL NOT PLAY ------------------------------------
    THE `src` IS SET HERE AND NOT IN THE MARKUP, so a clip five slides down is not being downloaded
@@ -3302,7 +3448,23 @@ on('reel-sound', (el) => {
    THE ASK MOVED OUT OF THE BUILDER, and that is what makes the pager safe. `PAGER.dm` has to count
    the same list the screen draws — the rule every entry in that table states — and a builder that
    starts a network request cannot be called twice. So the draw asks and `dmPages_` only reports. */
-screen('dm', () => { dmSync_(); return pages('dm', dmPages_().map(p => p.html)); });
+/* ---------- BUT A COLUMN DRAWN AHEAD ASKS NOBODY (`dmAsk_`) -------------------------------------------------
+   Since docs/history/341 the builder draws this column in the quiet after every repaint and landing, for
+   nobody looking — and through this draw that was a `messages` POST each time (found by review on 12 Oct:
+   three repaints, three asks; base, none). "Nothing runs for nobody" is the builder's rule, and an ask is a
+   round trip on a phone's signal and a slice of the backend's quota. So drawn ahead it asks nothing: if the
+   inbox the payload fetched (`loadMessages`, shell.js) has answered for whoever is here, that answer IS the
+   first answer, and the column is drawn from it; if it has not, the loader stays until it lands (its own
+   landing marks this column again) or until an arrival, which asks as it always did — `DM_LAST` is left
+   alone, so the first arrival still asks for what came in since. */
+function dmAsk_() {
+  if (typeof AHEAD !== 'undefined' && AHEAD.running) {
+    if (!DM_DONE && USER && MESSAGES) { DM_ASKED = true; DM_DONE = true; }
+    return;
+  }
+  dmSync_();
+}
+screen('dm', () => { dmAsk_(); return pages('dm', dmPages_().map(p => p.html)); });
 
 /* ---------- THIS SCREEN READ A KEY THAT HAS NEVER EXISTED ----------------------------------------
    IT SAID "No messages." TO EVERYBODY, FOR EVER, AND IT WAS NOT A BUG IN THE BACKEND. It took

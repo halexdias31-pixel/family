@@ -21,3 +21,5 @@
 **The review found one thing.** The builder wrote three different figures for one effect: 82px in posts.js and style.css, 447px in shell.js, and 223px in the commit message. All three are true of different shapes above the reader. posts.js and style.css now give the arithmetic and point at `holdColumn_`'s own note, so the measurements are in one place.
 
 **And the lab still cannot see this.** `check/fixture.json` has no single-photo post (PO1 is a grid), so no check here draws the box this section is about.
+
+**Changed by [341](341-what-a-flick-can-reach-is-drawn-before-it-gets-there.md)** — `postsAhead_` is `picsAhead_` (posts.js): every column in front, two pages behind to six ahead in the direction of travel, those off the glass at `fetchpriority="low"`; the builder decodes the next two pages and asks for the neighbours' and every other column's pictures in the quiet. Every `<img>` the app writes says `decoding="async"`. Clips keep `preload="metadata"`.

@@ -101,7 +101,7 @@ function spotSet_(key, on) {
   document.querySelectorAll('[data-do="spot"]').forEach(el => {
     if (el.getAttribute('data-key') === key) tileSet_(el, { label: label, on: on });
   });
-  TABS.forEach(t => { if (t.id !== AT) STALE[t.id] = 1; });
+  markStale_(TABS.map(t => t.id).filter(id => id !== AT));
   if (AT === 'spotlight') repaint(true);
 }
 

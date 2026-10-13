@@ -340,3 +340,7 @@ drawn 2.6s later. 390x844 on Settings: the same in all three trees.
   whole this time (112 gestures and measurements, 255s, all green); `check/press.js --screen=games` 100
   presses and 94 swipes, every one landed, nothing threw or was silently inert; `check/cascade.js` nothing
   decided by file order alone.
+
+**Changed by [341](341-what-a-flick-can-reach-is-drawn-before-it-gets-there.md)** — every widget slot is now drawn in the quiet before it is needed and kept out of `TOOLS_ON`; on arrival it is adopted without a `start` when nothing has moved since (person, actions, landings, a start of it elsewhere), otherwise started behind its drawing after the slide. A `pure` drawing is carried through a paint; every other drawing goes back under its loader at the mark, and a change of person re-veils everybody else's drawings before `repaint` returns. "A widget off the glass started" still counts `TOOLS_ON`.
+
+**Changed again by [341](341-what-a-flick-can-reach-is-drawn-before-it-gets-there.md), after its review** — a change of person re-veils every slot on a column, not the slots of the new person's widgets (a sign-out had left an admin's tools and her starred widgets drawn), and the timetable is not `pure`.

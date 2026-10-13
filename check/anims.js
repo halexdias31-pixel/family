@@ -129,7 +129,19 @@ async function turnTo(page, r) {
     for (let i = 0; i < 60; i++) {
       await new Promise(d => setTimeout(d, 100));
       const st = document.querySelector('#s-res .card.is-' + part + ' .tb-an-stage');
-      if (st && st.classList.contains('is-on')) return '';
+      if (st && st.classList.contains('is-on')) {
+        /* AND THE BUILDER DONE (`aheadBusy_`, docs/history/341), as press.js and ui.js wait for it. A new
+           question kicks it, and it fills the window round the chapter one card per quiet slice; each card
+           drawn above this one moves the column back by what it grew. That correction is exact to the
+           fraction of a pixel it can read, and the column's next placement rounds — so frames taken
+           meanwhile differed by a half-pixel shimmer that is not the drawing. Before this wait the same rule
+           caught a real fault: with less movement asked for, the correction was eased over `.01ms` and the
+           chapter flashed a card's height down and back (`colShiftNow_`, shell.js). Bounded at thirty
+           seconds. */
+        for (let k = 0; k < 300 && typeof aheadBusy_ === 'function' && aheadBusy_(); k++) await new Promise(d => setTimeout(d, 100));
+        await new Promise(d => requestAnimationFrame(() => requestAnimationFrame(d)));
+        return '';
+      }
     }
     return 'the stage never came on';
   }, [bookOf(r), part]);

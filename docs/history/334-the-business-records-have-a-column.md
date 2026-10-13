@@ -207,3 +207,5 @@ decided by file order alone, `deploy.js` OK.
   do) changes `USER.role` without a repaint, so the row keeps Business for the length of the state.
   `bizPages_` still asks `isAdmin()` and draws nothing for a parent, so nothing of an admin's is shown;
   the column is simply there and empty until the next repaint.
+
+**Changed by [341](341-what-a-flick-can-reach-is-drawn-before-it-gets-there.md)** — the admin's column is built like any other by the builder, which reads `TABS` again on every slice: drawn in the quiet when it appears, never asked about once it has gone.

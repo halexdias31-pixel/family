@@ -149,3 +149,5 @@ answering nothing: `https://drive.google.com…` → `about:blank` on leaving �
 **Nothing regressed**, which is the other half of trusting it: the seven states of the pause and its
 mark are unchanged, the column is still 3 widgets on arrival topping up to 9, and `check/ui.js`
 reports nothing new across 100 combinations.
+
+**Changed by [341](341-what-a-flick-can-reach-is-drawn-before-it-gets-there.md)** — the reel numbers here are now seven on arrival, six kept ahead, six appended at a time; a release appends one slide when fewer than six are left (`reelAhead_`), and the builder tops the column up to twelve ahead in the quiet. `REEL_MAX` and the rule that a clip's `src` is set only in front are unchanged.

@@ -588,7 +588,10 @@ async function settled(page) {
       for (;;) {
         const moving = [...document.querySelectorAll('#screen > .screen, .screen')].some(c =>
           typeof c.getAnimations === 'function' && c.getAnimations().some(a => a.playState === 'running'));
-        const booked = typeof PLACE_FRAME !== 'undefined' && !!PLACE_FRAME;
+        /* AND THE BUILDER DONE (`aheadBusy_`, docs/history/341): a column or a widget slot it is still drawing
+           in the quiet is a screen still changing under the measurement. Bounded by the same four seconds. */
+        const booked = (typeof PLACE_FRAME !== 'undefined' && !!PLACE_FRAME)
+          || (typeof aheadBusy_ === 'function' && aheadBusy_());
         if ((!moving && !booked) || performance.now() - t0 > 4000) break;
         await new Promise(r => setTimeout(r, 50));
       }
@@ -2001,6 +2004,12 @@ function inspect(opts) {
             const ar = (art || reel).getBoundingClientRect();
             if (!ar.width || !ar.height) return;
             const at = 'reel ' + reel.dataset.reel;
+            /* A SLIDE WHOSE WHOLE PAGE IS UNDRAWN IS NOT ASKED. Since docs/history/341 the column holds six
+               reels ahead and the band draws the pages a slide can carry onto the glass; the rest are hidden
+               whole (`.far`), tile and all — which is the page, not the tile, and read here as "the Sound tile
+               is not drawn on a clip that can play" for every reel from the fourth on. */
+            const slidePage = reel.closest('.page');
+            if (slidePage && getComputedStyle(slidePage).visibility === 'hidden') return;
             const el = reel.querySelector('[data-do="reel-sound"]');
             const dead = !!(art && art.classList.contains('is-dead'));
             if (!el) { out.push(`${at} has no Sound control`); return; }

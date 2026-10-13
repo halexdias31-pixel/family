@@ -172,3 +172,5 @@ back. Five mutations, each red then green on the real files: the clock acting on
 clock wound only at build, a lap hiding at once, the lap never giving up, the dead Short keeping its
 hold. `check-reels.js`: a mobile Instagram row in `FEED_FACTS`, and the app's regex put back to `www.`
 only — both red.
+
+**Changed by [341](341-what-a-flick-can-reach-is-drawn-before-it-gets-there.md)** — the reel column's reach is seven, six and six (see 047's pointer); the one-player-in-front rule for a Short, ±1 paused and the rest taken down, is unchanged, and no poster or clip is fetched further ahead than it was.

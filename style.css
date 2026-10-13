@@ -553,10 +553,18 @@ html.wide body { max-width: none; box-shadow: none; }
 }
 
 .page {
-  /* Quicker than the movement on purpose: a fade that outlasts the slide is still resolving after
-     the card has arrived, which is what makes a transition feel slack. Stated ONCE — there was a
-     second `.page` rule further down saying `.26s`, and the later one silently won. */
-  transition: opacity .2s ease;
+  /* NO FADE ANY MORE. It was `transition: opacity .2s ease` — quicker than the movement on purpose, so a
+     fade that outlasted the slide could not leave the card resolving after it arrived. On 11 Oct the
+     owner wrote *"If I scrol fast left right up or down it's still clunky … Make it more massive so it's
+     never really an issue"*, and measured at 4x CPU the fade was half of what he saw: a card already
+     built was carried across the glass at opacity 0 for the first 200ms of every page it newly came
+     into reach of, so a run of flicks showed black where the cards were (the holes needed both this and
+     the reach gone: 4 of 7 left with the reach widened alone, 0 with both). It also cost a layer per
+     fading page on every Feed turn (20 became 26) and 300–630ms of main thread per turn at 4x. The reach
+     now makes a page visible a whole glass height before it can arrive (`placeGrid`, shell.js), so there
+     is nothing left on the glass for a fade to soften: a neighbour's .9 / .75 shade steps at the release
+     instead of easing in over a fifth of a second. The column's own `.22s` stays — columns are composited
+     already — and so does the reduced-motion `none` below. See docs/history/341. */
   /* Containment belongs HERE, where it is still true: a page cannot affect anything outside
      itself, so a post loading its picture cannot cost a relayout of the pages around it. `layout`
      and `style` only — `paint` would clip a card to its own box for no gain. */
@@ -5326,6 +5334,9 @@ label.bk-k { cursor: pointer; }
 .av-wrap { display: flex; align-items: center; justify-content: center; padding: .3rem 0; }
 /* `.av-big` WAS HERE, the figure's padding when the wardrobe opened in a sheet; nothing draws it. */
 .avatar, .av-item { display: block; }
+/* THE PAGE'S ONE DEFINITION OF THE FIGURE'S CIRCLE (`#av-clip`, index.html; `avatarFor`, links.js) takes
+   no room and is never seen. Not `display: none`, under which a browser may refuse to use what is inside. */
+.av-defs { position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; }
 /* On a card, the figure sits in the same square a photograph would — so a row with a picture and
    a row with a figure line up rather than one of them being taller. */
 .thing-pic.art { display: flex; align-items: center; justify-content: center;
@@ -8461,6 +8472,11 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    card that also held the part. A stem is its own page now, in front of its parts (`questionStemCard_`
    in find.js), so there is no part below it to defer to: full ink, and no rule leading to nothing. */
 .qstem .qsheet-stem { opacity: 1; border-bottom: 0; padding-bottom: 0; margin-bottom: 0; }
+/* BUT A STAND-IN'S DASHED EDGE IS ITS BOX, NOT THAT RULE (`.qsheet-stem.is-standin` above: "the dashed edge
+   all the way round"), so on its own page it keeps the bottom of it. Two rules of one specificity decided by
+   file order alone: check/cascade.js found it once Find's window held a stand-in's card at the moment it
+   looked (docs/history/341 — the whole window is drawn now, not five either side). */
+.qstem .qsheet-stem.is-standin { border-bottom: 1px dashed var(--line); padding-bottom: .7rem; }
 /* WHICH SPAN OF THE SOURCE A PART COVERS — "Lines 10–19". A label rather than prose, so it reads
    as an index into the insert instead of as the first sentence of it: the gold is `.qsheet-pn`'s,
    which already marks a question number, and this is the same job one level out. Only drawn when

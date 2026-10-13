@@ -252,14 +252,51 @@ function boot(opts) {
      the payload's arrival makes, for somebody signed in from the moment the page opened — a path no
      journey here could stand on. So a journey may hand the window over first, the way `check/ui.js`
      uses `addInitScript`: seed storage, or stand in for a browser API jsdom does not have. */
+  /* ---------- THE BUILDER IS HELD, UNLESS A JOURNEY ASKS FOR IT ---------------------------------------
+     `ahead_` (shell.js, docs/history/341) draws every stale column, every widget slot and both finders'
+     windows in the quiet after a landing. Every journey written before it asks what an ARRIVAL does —
+     a column drawn on the way in, a widget started when its column comes in front — so they boot with it
+     held and go on testing that floor; the journeys about the builder itself pass `ahead: true`. */
+  w.__aheadHold = !opts.ahead;
   if (typeof opts.before === 'function') opts.before(w);
   const src = ORDER.map(n => fs.readFileSync(path.join(dir, n + '.js'), 'utf8')).join('\n');
   try {
     w.eval(src + '\n;window.__t = {' +
       'go, USER: v => { USER = v; }, whoami: () => USER, ACTIONS, BOOKING, STEPS: BOOK_STEPS, isTutorRole,' +
       /* WHETHER EVERYTHING BOOKED FOR AFTER A SLIDE HAS RUN, the widget queue included — `woken_`
-         below. A function, because a `let` inside this eval is not reachable from a second one. */
-      'quiet: () => !AFTER_SLIDE && !AFTER_SLIDE_JOBS.size && !(typeof TOOLS_WAIT !== "undefined" && TOOLS_WAIT.length),' +
+         below. A function, because a `let` inside this eval is not reachable from a second one.
+         AND NO PLACEMENT STILL WAITING FOR ITS FRAME (`PLACE_FRAME`): it is the placement that books the
+         after-slide jobs, so until its frame has come there is nothing booked to wait for and this said
+         "quiet" with the leave not yet seen. Under a load average of 15–23 the word-game journeys failed so
+         ("the clock went on running behind the Saved column"), on cafb838 too, every one green alone; with
+         every animation frame held back 900ms the Saved round failed every time, and with this it passes at
+         1.5s (docs/history/341, after review). */
+      'quiet: () => !PLACE_FRAME && !AFTER_SLIDE && !AFTER_SLIDE_JOBS.size && !(typeof TOOLS_WAIT !== "undefined" && TOOLS_WAIT.length)' +
+      '  && !(typeof aheadBusy_ === "function" && aheadBusy_()),' +
+      /* THE BUILDER'S OWN STATE, for the journeys about it (docs/history/341): what is still marked, what a
+         landing drew, the log of what it ran, and the two landings — a reply (`landRepaint_`) and a change
+         of facts (`repaint`). */
+      'STALE: () => STALE, paints: () => Object.assign({}, PAINT_N), aheadLog: () => window.__aheadLog.slice(),' +
+      'aheadBusy: () => aheadBusy_(), landRepaint: d => landRepaint_(d), epochs: () => ({ act: ACT_EPOCH, draw: DRAW_EPOCH }),' +
+      /* WHETHER A SLIDE'S BAND IS STILL WIDER THAN THE GLASS — `trailEnd_` has one placement left to make, the one
+         that puts it back (docs/history/341). A page is not still until it has. */
+      'trailWide: () => TRAIL_X.lo < TRAIL_X.hi || TABS.some(x => { const h = document.getElementById("s-" + x.id); const was = h && h.TRAIL && colPlaced_(h);' +
+      '  return !!(was && (h.TRAIL.top < -was[1] - 1 || h.TRAIL.bot > -was[1] + (h.clientHeight || innerHeight) + 1)); }),' +
+      'TOOLS_ON: () => TOOLS_ON, PRE_PAYLOAD: () => [...PRE_PAYLOAD], GLASS: () => GLASS,' +
+      /* AND WHAT THE BUILDER'S JOURNEYS ASK OF IT: a column drawn as `paint` draws it, a screen's own drawing
+         (twice, for the determinism journey), the running state of the widgets with a `stop` — `let`s, so
+         only this evaluation reaches them — a kick, and a widget's slot on one column. */
+      'paint: (id, f) => paint(id, f), screenDraw: id => (SCREENS[id] ? SCREENS[id].draw() : null),' +
+      'widgetState: () => ({ tt: typeof ttState !== "undefined" ? ttState : null, flappy: typeof flappyState !== "undefined" ? flappyState : null,' +
+      '  vid: typeof VID !== "undefined" ? VID.at : null, party: typeof PARTY !== "undefined" ? PARTY : null }),' +
+      'aheadKick: () => aheadKick_(), slotOn: (c, i) => slotOn_(c, i), reelMore: n => reelMore_(document.getElementById("s-reel"), n),' +
+      'pageLo: () => PAGE_LO, swipeLive: v => { SWIPE.live = !!v; },' +
+      /* AND WHAT THE REVIEW OF 12 OCT ASKED THE BUILDER (docs/history/341, "After review"): which job a slice is
+         running, when it opened, the gates a journey closes by hand (a booked slide, a settle), the message
+         poll's clock, how far behind the finder's window keeps the card in front, and which finder is bound. */
+      'aheadRunning: () => AHEAD.running, aheadOpened: () => AHEAD.opened, slideUntil: v => { SLIDE_UNTIL = v; },' +
+      'settleOn: v => { SETTLE_ON = v; }, dmLast0: () => { DM_LAST = 0; }, stuffBehind: () => stuffBehind_(),' +
+      'aheadSlow: () => [...AHEAD_SLOW], finder: () => FINDER.id, domIndex: (id, i) => domIndex_(id, i), afterIdle: () => !AFTER_SLIDE && !AFTER_SLIDE_JOBS.size && !(typeof TOOLS_WAIT !== "undefined" && TOOLS_WAIT.length),' +
       /* THE REAL TAB LIST, so a journey asking "does every tab draw" cannot be asking about tabs
          that no longer exist. It has been wrong twice from being written out by hand. */
       'TABS, wgChosen: () => wgChosen_(),' +
@@ -8470,8 +8507,16 @@ check('every tab draws something', async () => {
     try { w.__t.go(id, false, true); } catch (e) { bad.push(id + ' threw: ' + e.message); return; }
     const el = w.document.getElementById('s-' + id);
     if (!el) { bad.push(id + ': no screen element'); return; }
-    if (!el.textContent.trim()) bad.push(id + ': drew nothing at all');
+    /* THE ONE LOADER IS SOMETHING DRAWN ON MESSAGES ALONE, and only while its ask is out: a parent signed in
+       after the payload landed has no inbox yet, and the column is the loader and no words until it answers.
+       Every other column drew words before docs/history/341 and must still — the review of 12 Oct found this
+       had been loosened for every tab, so a column stuck on the loader for good passed here. */
+    if (!el.textContent.trim() && !(id === 'dm' && el.querySelector('.loading'))) bad.push(id + ': drew nothing at all');
   });
+  /* AND MESSAGES ONCE ITS ASK HAS ANSWERED: words, not the loader for ever. */
+  await wait(300);
+  const dm = w.document.getElementById('s-dm');
+  if (dm && !dm.textContent.trim()) bad.push('dm: still drew nothing but the loader after its ask answered');
   if (errs.length) bad.push('errors: ' + errs.join(' | '));
   return bad;
 });
@@ -12613,7 +12658,10 @@ check('nothing offers to install, and the browser is not left to offer it either
     /* THIRTY SECONDS, NOT TEN. Ten held alone and failed for every copy when eleven ran at once on four
        cores (the round-3 review): the boot of four apps together simply had not finished. A slow page
        is not an offer; only a page that NEVER settles is "not checked". */
-    while (!quiet && Date.now() - from < 30000) { moved = 0; await wait(500); quiet = !moved; }
+    /* AND THE APP'S OWN DEFERRED WORK DONE: since docs/history/341 a slide leaves its band wider than the glass
+       until `trailEnd_` puts it back with one more placement, which can land after half a second of nothing —
+       and then inside the three and a half seconds below, read as a page that moved for the offer. */
+    while (!quiet && Date.now() - from < 30000) { moved = 0; await wait(500); quiet = !moved && !t.trailWide() && t.quiet(); }
     settle.disconnect();
     if (!quiet) {
       bad.push(who + ': the page never stayed still for half a second in thirty, so a redraw for the offer '
@@ -22126,6 +22174,10 @@ check('a chapter plays its animation on the Resources column: Pythagoras after G
   const first = R.stuffFirstResult_();
   t.goPage('res', first + at);
   await wait(450); await woken_();
+  /* THE WINDOW FILLED AS THE BUILDER WOULD FILL IT IN THE QUIET — the builder is held here (it is the arrival
+     this asks about), and since docs/history/341 a turn fills only the page in front, one either side and
+     what the glass shows; the drawings two pages on are the builder's. `all` is the whole window, now. */
+  R.fillStuffPages(true);
   const host = w.document.getElementById('s-res');
   /* THE PAGE IN FRONT, AS THE FINDER MARKS IT — `.on` on the page the column is placed at. */
   const cardEl = host.querySelector('.card.is-an17-pyth');
@@ -27967,6 +28019,1000 @@ check('a figure nobody dressed keeps its face when her handle moves: Randomise, 
     }
   }
   if (one.errs.length || two.errs.length) bad.push('errors: ' + one.errs.concat(two.errs).slice(0, 3).join(' | '));
+  return bad;
+});
+
+/* ==================================================================================================
+   WHAT A FLICK CAN REACH IS DRAWN BEFORE IT GETS THERE — THE BUILDER'S OWN JOURNEYS (docs/history/341)
+
+   The owner, 11 Oct: *"Increase loading scope. Make it more massive so it's never really an issue."* One
+   builder (`ahead_`, shell.js) now draws in the quiet every column a repaint or a landing marked, every
+   widget slot, and both finders' whole windows. Every journey above boots with it HELD and asks what an
+   arrival does — the floor. These boot with it on and ask what it promises: that it finishes, that it never
+   runs under a finger or a settle, that a refused paint waits for its reason to go, that a drawing made
+   ahead is adopted only when nothing has moved since, that nothing drawn from old facts or for somebody
+   else is ever shown, that a finder's job stays in its finder, and that a landing which changes nothing
+   writes nothing. jsdom has no `requestIdleCallback`, so this is the timer path iPadOS Safari takes. */
+/* AT REST: the builder's list empty and everything booked for after a slide run — or the cap, and then the
+   journey says it never came. Longer than `woken_`'s eight seconds: from a repaint the builder draws every
+   column and both windows of forty-one cards, one per slice, and a slice is a 60ms timer here. */
+/* FOUR MINUTES, NOT ONE AND A HALF: under a load average of forty a jsdom fill of one boxing card took up to
+   970ms, and forty-one of them is the Resources window alone. A builder that never finishes still fails. */
+const aheadQuiet_ = async (t, cap) => {
+  const t0 = Date.now();
+  await wait(500);
+  while (Date.now() - t0 < (cap || 240000)) {
+    let q = false;
+    try { q = t.quiet() && !t.aheadBusy(); } catch (e) { q = true; }
+    if (q) { await wait(150); try { if (t.quiet() && !t.aheadBusy()) return true; } catch (e) { return true; } }
+    await wait(150);
+  }
+  return false;
+};
+const aheadBoot_ = async (opts) => {
+  const b = boot(Object.assign({ ahead: true }, opts || {}));
+  for (let i = 0; i < 80 && !b.w.__t; i++) await wait(25);
+  await wait(400);
+  return b;
+};
+const SAM_ = { name: 'Sam Student', personId: 'P9', person_id: 'P9', role: 'student', roles: ['student'], token: 't-sam' };
+/* A QUESTION ANSWERED ON THE RESOURCES COLUMN — the boxing shelf — so it has a window of results to fill;
+   with nothing asked a finder is its question alone. */
+const resAsk_ = w => {
+  const R = resView_(w), S = w.__t.RES();
+  const x = R.stuffItemsAll_().find(it => it.kind === 'boxer');
+  if (!x) return false;
+  S.q = ''; S.filters.length = 0; S.filters.push({ field: 'shelf', value: x.shelf });
+  w.paintFinder_('res');
+  return w.document.querySelectorAll('#s-res > .page.is-res').length > 0;
+};
+const veiled_ = (w, col) => [...w.document.querySelectorAll('#s-' + col + ' .widget-slot[aria-busy]')]
+  .filter(sl => sl.querySelector(':scope > .loading')).map(sl => sl.id);
+
+check('the builder draws every stale column and every widget slot in the quiet, and never under a finger, a settle or a booked slide', async () => {
+  /* THE RESOURCES IN THE PAYLOAD, so the second finder has a window to fill. */
+  const p = await resPayload_();
+  if (!p) return ['the resources payload could not be made — NOT checked'];
+  const { w } = await aheadBoot_({ payload: p });
+  const t = w.__t, bad = [];
+  if (!t || typeof t.aheadBusy !== 'function' || typeof t.aheadLog !== 'function') return ['the builder is not reachable — NOT checked'];
+  if (!resAsk_(w)) return ['the Resources column has no boxing shelf to fill — NOT checked'];
+  const r0 = w.performance.now();
+  t.USER(SAM_); t.repaint();
+  /* A FINGER DOWN FOR A SECOND AND A HALF, once the builder is under way: nothing is built under it. jsdom has
+     no touch, so the finger is the state the engine keeps (`SWIPE.live`). NOT straight after the repaint:
+     `afterSlide_` waits out a finger too, and with its jobs still booked the builder is shut by them — the
+     finger's own rule would never be asked (the mutation that took it out stayed green that way). */
+  for (let k = 0; k < 600 && t.aheadLog().filter(x => x.t >= r0).length < 3; k++) await wait(50);
+  if (t.aheadLog().filter(x => x.t >= r0).length < 3) bad.push('the builder never got under way after the repaint, so the finger was not asked about');
+  const f0 = w.performance.now();
+  t.swipeLive(true);
+  await wait(1500);
+  t.swipeLive(false);
+  const f1 = w.performance.now();
+  const under = t.aheadLog().filter(x => x.t >= f0 && x.t <= f1);
+  if (under.length) bad.push(under.length + ' slice(s) ran while a finger was down: ' + under.slice(0, 3).map(x => x.key).join(', '));
+  if (!(await aheadQuiet_(t))) bad.push('the builder never finished: ' + JSON.stringify(t.aheadLog().slice(-3)));
+  const stale = t.TABS.map(x => x.id).filter(id => t.stale(id));
+  if (stale.length) bad.push('still STALE after the quiet: ' + stale.join(', '));
+  ['tools', 'games', 'shop'].forEach(col => {
+    const left = veiled_(w, col).filter(id => id !== 'wgt-reels' && id !== 'wgt-flabby');
+    if (left.length) bad.push(col + ' still has widget slots under the loader after the quiet: ' + left.join(', '));
+  });
+  const log = t.aheadLog();
+  if (log.length < 5) bad.push('the builder ran ' + log.length + ' slice(s) — it did not draw anything, so nothing was checked');
+  const wrong = log.filter(x => x.live || x.settle || x.after || x.quiet < 400);
+  if (wrong.length) bad.push(wrong.length + ' slice(s) ran under a finger, a settle, a booked slide or within 400ms of input: ' + JSON.stringify(wrong.slice(0, 2)));
+  if (!log.some(x => /^widget:/.test(x.key))) bad.push('no widget slot was drawn by the builder');
+  if (!log.some(x => /^fill:/.test(x.key))) bad.push('no finder page was filled by the builder');
+  t.USER(null);
+  return bad;
+});
+
+check('a paint the builder is refused (a Settings form being edited) stays stale and waits, and is drawn once a box lets go', async () => {
+  const admin = { name: 'Test Admin', personId: 'P001', person_id: 'P001', role: 'admin', roles: ['admin'], token: 't-adm' };
+  const { w } = await aheadBoot_();
+  const t = w.__t, bad = [];
+  if (!t || typeof t.aheadLog !== 'function') return ['the builder is not reachable — NOT checked'];
+  t.USER(admin); t.go('feed', false, true); t.repaint();
+  await aheadQuiet_(t);
+  const form = w.document.querySelector('#s-settings .me-form');
+  if (!form) { t.USER(null); return ['no Settings form drawn for an admin — NOT checked']; }
+  form.setAttribute('data-dirty', '1');
+  t.repaint();
+  await aheadQuiet_(t, 20000);
+  if (!t.stale('settings')) bad.push('Settings was drawn again while a form on it was being edited — the typing would be lost');
+  const tries = t.aheadLog().filter(x => x.key === 'paint:settings').length;
+  if (tries > 3) bad.push('the refused paint was tried ' + tries + ' times — it should wait for its reason to change, not loop');
+  if (t.stale('tools')) bad.push('Tools was left stale too — one refused column held up the rest');
+  const f2 = w.document.querySelector('#s-settings .me-form[data-dirty]');
+  if (f2) f2.removeAttribute('data-dirty');
+  w.document.dispatchEvent(new w.Event('focusout'));
+  await aheadQuiet_(t, 20000);
+  if (t.stale('settings')) bad.push('Settings stayed stale after the box let go — the builder was never asked again');
+  t.USER(null);
+  return bad;
+});
+
+check('a widget drawn ahead with nothing changed is adopted on arrival without starting; after a press, a carried drawing, a change of person or a start on another copy it is started', async () => {
+  const { w } = await aheadBoot_();
+  const t = w.__t, bad = [];
+  if (!t || typeof t.widgetsOf !== 'function') return ['the widgets are not reachable — NOT checked'];
+  t.USER(SAM_); t.go('feed', false, true); t.repaint();
+  await aheadQuiet_(t);
+  const tools = t.widgetsOf('tool');
+  const calc = tools.find(x => String(x.id) === 'calculator'), cal = tools.find(x => String(x.id) === 'calendar');
+  if (!calc || !cal) { t.USER(null); return ['no calculator or calendar on Tools — NOT checked']; }
+  const n = { calculator: 0, calendar: 0 };
+  [calc, cal].forEach(x => { const real = x.start; x.start = function () { n[x.id]++; return real.apply(this, arguments); }; });
+  const arrive = async () => { n.calculator = 0; n.calendar = 0; t.go('tools', false, true); await wait(LEAVE_MS); await woken_(); };
+  const leave = async () => { t.go('feed', false, true); await wait(LEAVE_MS); await woken_(); };
+  const slot = id => t.slotOn('tools', id);
+  /* 1. NOTHING MOVED: adopted. */
+  if (!slot('calculator') || slot('calculator').getAttribute('aria-busy')) bad.push('the calculator was not drawn ahead on Tools');
+  await arrive();
+  if (n.calculator || n.calendar) bad.push('arriving at drawn, unchanged widgets started them again (' + JSON.stringify(n) + ') — they should be adopted');
+  if (!t.running().some(e => e.id === 'calculator' && e.col === 'tools')) bad.push('the adopted calculator is not entered as running');
+  /* 2. A PRESS: the next drawing ahead, then an action, then the arrival — started. */
+  await leave(); t.repaint(); await aheadQuiet_(t);
+  try { t.ACTIONS['filter-clear'](w.document.createElement('button')); } catch (e) {}
+  await arrive();
+  if (!n.calendar) bad.push('after a press the calendar drawn before it was adopted, not started');
+  /* 3. A DRAWING CARRIED THROUGH A PAINT (pure, the calculator) keeps its old clocks: started behind it. */
+  await leave(); t.repaint(); await aheadQuiet_(t);
+  const before = slot('calculator');
+  t.repaint(); await aheadQuiet_(t);
+  if (slot('calculator') !== before) bad.push('the pure calculator was not carried through the paint — its drawing was thrown away');
+  await arrive();
+  if (!n.calculator) bad.push('a calculator drawn before a repaint and carried through it was adopted rather than started');
+  /* 4. A CHANGE OF PERSON, with the builder held so nothing is drawn again: started, never adopted. */
+  await leave(); t.repaint(); await aheadQuiet_(t);
+  w.__aheadHold = true;
+  t.USER(Object.assign({}, SAM_, { name: 'Ada Other', personId: 'P8', person_id: 'P8' }));
+  await arrive();
+  if (!n.calculator && !slot('calculator').getAttribute('aria-busy')) bad.push('a drawing made for Sam was adopted for somebody else');
+  w.__aheadHold = false;
+  t.USER(null);
+  return bad;
+});
+
+check('every widget with a stop is drawn ahead by its draw and runs nothing: no sprint, no frame loop, no classroom round, no film', async () => {
+  const { w } = await aheadBoot_();
+  const t = w.__t, bad = [];
+  if (!t || typeof t.widgetState !== 'function') return ['the widgets\' state is not reachable — NOT checked'];
+  t.USER(SAM_); t.go('feed', false, true); t.repaint();
+  await aheadQuiet_(t);
+  const st = t.widgetState();
+  if (st.tt) bad.push('the times-tables sprint is running after being drawn ahead');
+  if (st.flappy && st.flappy.raf) bad.push('Flabby Pird\'s frame loop is running after being drawn ahead');
+  const P = st.party || {};
+  Object.keys(P).forEach(k => { if (P[k] && (P[k].ends || P[k].run)) bad.push('a classroom round (' + k + ') is running after being drawn ahead'); });
+  if (st.vid) bad.push('a film is playing in the videos card after being drawn ahead (' + st.vid + ')');
+  if (t.running().length) bad.push('drawn-ahead widgets are entered as running: ' + t.running().map(e => e.id).join(', '));
+  /* DRAWN: each slot with a stop is out from under its loader — but Flabby Pird, whose still drawing needs a
+     box and jsdom has none, and the reels card when its fact is a clip (`feedPaint_`). */
+  ['tables', 'wordgames', 'videos'].forEach(id => {
+    const sl = t.slotOn('games', id);
+    if (!sl) bad.push('no ' + id + ' slot on Games');
+    else if (sl.getAttribute('aria-busy')) bad.push(id + ' is still under its loader after the quiet — its draw did not draw it');
+  });
+  t.USER(null);
+  return bad;
+});
+
+check('the first payload draws the column in front (and the glass), and every other column keeps the boot\'s loader until it is drawn — never empty', async () => {
+  const { w } = boot();
+  for (let i = 0; i < 80 && !w.__t; i++) await wait(25);
+  await wait(600);
+  const t = w.__t, bad = [];
+  if (!t || typeof t.paints !== 'function') return ['the paint counter is not reachable — NOT checked'];
+  const P = t.paints(), at = t.AT(), glass = t.glass().cols;
+  const again = Object.keys(P).filter(id => P[id] > 1 && id !== at && glass.indexOf(id) === -1);
+  if (again.length) bad.push('the landing drew columns that are neither in front nor on the glass: ' + again.join(', '));
+  if (!(P[at] > 1)) bad.push('the column in front was not drawn by the payload (' + at + ': ' + P[at] + ')');
+  const empty = t.TABS.map(x => x.id).filter(id => { const el = w.document.getElementById('s-' + id); return el && !el.firstElementChild; });
+  if (empty.length) bad.push('columns left empty after the first payload: ' + empty.join(', '));
+  const held = t.TABS.map(x => x.id).filter(id => id !== at && glass.indexOf(id) === -1 && !t.stale(id));
+  if (held.length) bad.push('columns neither drawn nor marked stale after the first payload: ' + held.join(', '));
+  return bad;
+});
+
+check('a landing never leaves a drawing made from old facts on the glass: a widget that reads facts is veiled at once and drawn again; a pure one is the same element throughout', async () => {
+  const { w } = await aheadBoot_();
+  const t = w.__t, bad = [];
+  if (!t || typeof t.landRepaint !== 'function') return ['landRepaint_ is not reachable — NOT checked'];
+  t.USER(SAM_); t.go('feed', false, true); t.repaint();
+  await aheadQuiet_(t);
+  const cal0 = t.slotOn('tools', 'calendar'), calc0 = t.slotOn('tools', 'calculator');
+  if (!cal0 || cal0.getAttribute('aria-busy') || !calc0) { t.USER(null); return ['the calendar was not drawn ahead on Tools — NOT checked']; }
+  w.__aheadHold = true;
+  const d = new Date();
+  const dd = String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+  const D = t.DATA();
+  D.exams = (D.exams || []).concat([{ date: dd, kind: 'exam', subject: 'Maths', label: 'Paper 1' }]);
+  t.landRepaint();
+  const cal1 = t.slotOn('tools', 'calendar');
+  if (!cal1 || !cal1.getAttribute('aria-busy')) bad.push('the calendar drawn from the old facts is still showing after the landing');
+  if (t.slotOn('tools', 'calculator') !== calc0) bad.push('the pure calculator was replaced by the landing');
+  w.__aheadHold = false; t.aheadKick();
+  await aheadQuiet_(t);
+  const cal2 = t.slotOn('tools', 'calendar');
+  if (!cal2 || cal2.getAttribute('aria-busy')) bad.push('the calendar was not drawn again from the new facts in the quiet');
+  else if (!cal2.querySelector('.cal-d.has .dot.exam')) bad.push('the calendar drawn again does not show the exam the landing brought');
+  if (t.slotOn('tools', 'calculator') !== calc0) bad.push('the pure calculator was replaced while the builder drew the rest');
+  t.USER(null);
+  return bad;
+});
+
+check('signing out puts away what was drawn for the last person, before the repaint returns — no idle moment in between', async () => {
+  const { w } = await aheadBoot_();
+  const t = w.__t, bad = [];
+  if (!t || typeof w.signedOut_ !== 'function') return ['signedOut_ is not reachable — NOT checked'];
+  t.USER(SAM_); t.go('feed', false, true); t.repaint();
+  await aheadQuiet_(t);
+  /* THE NOTEPAD AND THE TIMETABLE, both asked: each draws what is somebody's own — the notepad's words, the week
+     and its bookings — and a sign-out must put them away before the repaint returns. (The timetable was `pure`
+     until the review of 12 Oct found it draws the bookings; the journey below asks the slots the next person has
+     no widget for.) */
+  const ids = ['notepad', 'timetable'];
+  const drawn = ids.filter(id => { const sl = t.slotOn('tools', id); return sl && !sl.getAttribute('aria-busy'); });
+  if (drawn.length < 2) { t.USER(null); return ['the notepad and the timetable were not both drawn ahead for Sam (' + drawn.join(', ') + ') — NOT checked']; }
+  w.signedOut_();
+  ids.forEach(id => {
+    const now = t.slotOn('tools', id);
+    if (now && !now.getAttribute('aria-busy') && now.WHO === 'P9') bad.push('the ' + id + ' drawn for Sam is still drawn after signing out');
+  });
+  return bad;
+});
+
+check('the builder fills the Resources window inside its own binding: Find\'s words, chips and window are untouched', async () => {
+  const p = await resPayload_();
+  if (!p) return ['the resources payload could not be made — NOT checked'];
+  const { w } = await aheadBoot_({ payload: p });
+  const t = w.__t, bad = [];
+  if (!t || typeof t.STUFF !== 'function' || typeof t.RES !== 'function') return ['the finders are not reachable — NOT checked'];
+  await aheadQuiet_(t);
+  const S = t.STUFF();
+  S.q = ''; S.filters = [{ field: 'kindLabel', value: 'Practical' }];
+  w.paintFinder_('stuff');
+  await aheadQuiet_(t);
+  const lo = t.pageLo().stuff || 0;
+  const marks = () => [...w.document.querySelectorAll('#s-stuff > .page.is-res')].map(el => (el.dataset.filled || '-') + (el.FIND_AT ? el.FIND_AT.ask : ''));
+  const before = JSON.stringify(marks());
+  /* BY TIME, NOT BY POSITION: the log is a ring of the last two hundred slices. */
+  const t0 = w.performance.now();
+  if (!resAsk_(w)) return ['the Resources column has no boxing shelf to fill — NOT checked'];
+  await aheadQuiet_(t);
+  const resFills = t.aheadLog().filter(x => x.t >= t0 && /^fill:res:/.test(x.key)).length;
+  if (!resFills) bad.push('the builder filled nothing in the Resources window, so the binding was NOT exercised');
+  /* AND WHAT IT CLAIMED IS DRAWN: a slice is logged whether or not its fill wrote anything, so a fill run
+     outside the binding (reading Find's ask, finding it changed, and returning) was logged as a fill and
+     passed (M14, docs/history/341). Every Resources page in its window is drawn, once it is quiet. */
+  const resPages = [...w.document.querySelectorAll('#s-res > .page.is-res')];
+  const unfilled = resPages.filter(el => el.dataset.filled !== '1').length;
+  if (!resPages.length) bad.push('the Resources column holds no result pages, so nothing was asked');
+  else if (unfilled) bad.push(unfilled + ' of the ' + resPages.length + ' Resources pages in its window are still empty once the builder is quiet');
+  if (t.STUFF() !== S) bad.push('Find\'s state object was replaced while the Resources window filled');
+  if (JSON.stringify(t.STUFF().filters) !== JSON.stringify([{ field: 'kindLabel', value: 'Practical' }])) bad.push('Find\'s chips changed while the Resources window filled: ' + JSON.stringify(t.STUFF().filters));
+  if ((t.pageLo().stuff || 0) !== lo) bad.push('Find\'s window moved while the Resources window filled');
+  if (JSON.stringify(marks()) !== before) bad.push('Find\'s pages changed while the Resources window filled');
+  return bad;
+});
+
+check('every screen draws the same markup twice from the same facts — a landing can only skip a column if that is true', async () => {
+  const { w } = boot();
+  for (let i = 0; i < 80 && !w.__t; i++) await wait(25);
+  await wait(600);
+  const t = w.__t, bad = [];
+  if (!t || typeof t.screenDraw !== 'function') return ['the screens are not reachable — NOT checked'];
+  for (const who of [null, SAM_]) {
+    t.USER(who);
+    t.TABS.forEach(x => {
+      let a, b;
+      try { a = t.screenDraw(x.id); b = t.screenDraw(x.id); } catch (e) { bad.push(x.id + ' threw: ' + e.message); return; }
+      if (a !== b) {
+        let i = 0; while (i < a.length && a[i] === b[i]) i++;
+        bad.push((who ? 'signed in' : 'signed out') + ', ' + x.id + ' drew different markup twice, first at ' + i + ': ' + JSON.stringify(String(a).slice(Math.max(0, i - 30), i + 40)));
+      }
+    });
+  }
+  t.USER(null);
+  return bad;
+});
+
+check('a landing that changes nothing writes nothing — every element of a column off the glass is the one it was, and its mark is cleared; after a press the next landing writes it', async () => {
+  const { w } = boot();
+  for (let i = 0; i < 80 && !w.__t; i++) await wait(25);
+  await wait(600);
+  const t = w.__t, bad = [];
+  if (!t || typeof t.paint !== 'function') return ['paint is not reachable — NOT checked'];
+  t.go('feed', false, true); await wait(LEAVE_MS); await woken_();
+  const cols = ['tools', 'account', 'spotlight'].filter(id => w.document.getElementById('s-' + id) && id !== t.AT() && t.glass().cols.indexOf(id) === -1);
+  if (!cols.length) return ['no column off the glass to ask about — NOT checked'];
+  cols.forEach(id => t.paint(id));
+  const kids = id => [...w.document.querySelectorAll('#s-' + id + ' *')];
+  const was = {}; cols.forEach(id => { was[id] = kids(id); });
+  /* THE LANDING MARKS, AND THE COLUMN IS DRAWN AS THE BUILDER OR AN ARRIVAL WOULD DRAW IT — `paint`, not fresh. */
+  t.landRepaint();
+  cols.forEach(id => {
+    if (!t.stale(id)) bad.push(id + ' was not marked by the landing at all, so this asked nothing');
+    t.paint(id);
+    if (t.stale(id)) bad.push(id + ' is still marked after it was drawn (it should be answered by writing nothing)');
+    const now = kids(id);
+    if (now.length !== was[id].length || now.some((el, i) => el !== was[id][i])) bad.push(id + ' was written by a landing that changed nothing');
+  });
+  /* BUT A `repaint()`'S MARK OF 1 ALWAYS WRITES, with nothing pressed and nothing changed. The skip is a
+     landing's (`'maybe'`); `repaint()` is asked for by code that means "draw it again" — and the journey
+     at "a repaint and then an arrival" could not tell the two apart, because the column it arrives at
+     still holds the boot's markup and so is never skipped (M13, docs/history/341, was green there). */
+  const r = cols[cols.length - 1];
+  const rWas = kids(r);
+  t.repaint();
+  if (!t.stale(r)) bad.push(r + ' was not marked by a repaint at all, so this asked nothing');
+  t.paint(r);
+  if (kids(r)[0] === rWas[0]) bad.push('a repaint\'s mark of 1 kept ' + r + ' as it was — the identical-markup skip is a landing\'s, never a repaint\'s');
+  /* AND AFTER A PRESS, THE NEXT LANDING WRITES: a press can have edited the column in place. */
+  try { t.ACTIONS['filter-clear'](w.document.createElement('button')); } catch (e) {}
+  t.landRepaint();
+  const id = cols[0];
+  t.paint(id);
+  if (kids(id)[0] === was[id][0]) bad.push('after a press the next landing kept ' + id + ' as it was — a press can have edited it in place');
+  return bad;
+});
+
+check('a column\'s page count follows its pages: a reel appended and a paint are both counted', async () => {
+  const { w } = boot();
+  for (let i = 0; i < 80 && !w.__t; i++) await wait(25);
+  await wait(600);
+  const t = w.__t, bad = [];
+  if (!t || typeof t.reelMore !== 'function') return ['the reels are not reachable — NOT checked'];
+  t.go('reel', false, true); await wait(LEAVE_MS); await woken_();
+  const count = () => w.document.querySelectorAll('#s-reel > .page').length;
+  const a = t.pageCount('reel');
+  if (a !== count()) bad.push('the count says ' + a + ' and the column holds ' + count() + ' pages');
+  t.reelMore(2);
+  const b = t.pageCount('reel');
+  if (b !== count()) bad.push('after two reels appended the count says ' + b + ' and the column holds ' + count());
+  if (b === a && count() !== a) bad.push('the count did not move when reels were appended');
+  t.paint('reel');
+  const c = t.pageCount('reel');
+  if (c !== count()) bad.push('after a paint the count says ' + c + ' and the column holds ' + count());
+  return bad;
+});
+
+/* ==================================================================================================
+   AFTER THE REVIEW OF 12 OCT (docs/history/341, "After review"): what three reviewers found the builder's
+   journeys above could not see. Each was red on the reviewed tree, or is red when its mechanism is taken
+   out, and each says which.
+================================================================================================== */
+/* THE 76-QUESTION PAPER the swipe checks run Find down (check/swipe.js), served as the library — a window of
+   results long enough to have pages either side of the one in front, past the window's edge. */
+const paper2F_ = () => {
+  const lib = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const rows = lib.filter(r => r.paper_id === 'P-AQA-8461-2406-2F');
+  return { rows, serve: url => (/data\/questions\.json/.test(url) ? rows : undefined), ask: [{ field: 'paperId', value: 'P-AQA-8461-2406-2F' }] };
+};
+/* EVERY SLICE THAT ASKS THE NETWORK, by the job it was running — `fetch` is the window's, so a wrapper put
+   there after boot sees every ask the app makes from then on. */
+const aheadNet_ = (w, t) => {
+  const out = [];
+  const f0 = w.fetch;
+  w.fetch = function (url, o) {
+    const k = t.aheadRunning();
+    if (k) {
+      let what = String(url);
+      try { if (o && o.body) what = JSON.parse(o.body).action || what; } catch (e) {}
+      out.push({ key: String(k), what });
+    }
+    return f0.apply(this, arguments);
+  };
+  return out;
+};
+
+check('a landing never deals a reel twice: the reels topped up in the quiet and landed on three times are each there once, and the count is the column', async () => {
+  /* REVIEW, 12 Oct: the identical-markup skip kept a reel column the builder had appended to, after the reel
+     draw had counted its reels from nought — every landing added six repeats, without end, and from page
+     thirteen the clip started was off the glass. An append nulls the column's drawing (`reelMore_`). */
+  const { w } = await aheadBoot_();
+  const t = w.__t, bad = [];
+  if (!t || typeof t.landRepaint !== 'function') return ['landRepaint_ is not reachable — NOT checked'];
+  t.USER(SAM_); t.go('feed', false, true); t.repaint();
+  await aheadQuiet_(t);
+  const reels = () => [...w.document.querySelectorAll('#s-reel > .page .reel[data-reel]')].map(el => Number(el.dataset.reel));
+  const n0 = reels().length;
+  if (n0 < 13) bad.push('the quiet left ' + n0 + ' reels in the column — it keeps twelve past the one in front (so the top-up this asks about never ran)');
+  for (let k = 0; k < 3; k++) {
+    t.landRepaint();
+    await aheadQuiet_(t);
+    const got = reels();
+    const dup = got.filter((v, i) => got.indexOf(v) !== i);
+    if (dup.length) { bad.push('after landing ' + (k + 1) + ' the column deals reel(s) ' + [...new Set(dup)].join(', ') + ' twice: ' + got.join(',')); break; }
+    if (got.some((v, i) => v !== i)) { bad.push('after landing ' + (k + 1) + ' the reels run ' + got.join(',') + ' — not one after another from nought'); break; }
+    const pages = w.document.querySelectorAll('#s-reel > .page').length;
+    if (t.pageCount('reel') !== pages) { bad.push('after landing ' + (k + 1) + ' the count says ' + t.pageCount('reel') + ' and the column holds ' + pages + ' pages'); break; }
+  }
+  t.USER(null);
+  return bad;
+});
+
+check('nothing drawn ahead asks the network: three repaints with the builder on send no messages ask, and no slice sends anything', async () => {
+  /* REVIEW, 12 Oct: the Messages column's draw asks for the inbox (`dmSync_`), and the builder drew it after
+     every repaint and landing for nobody — one POST each, where base asked none. Drawn ahead it asks nothing
+     now (`dmAsk_`, posts.js), and the inbox the payload fetched is its first answer. AND NO SLICE ASKS
+     ANYTHING: the one job that is meant to (the chosen book of the Bible) is an admin's, and nobody here is. */
+  const { w, sent } = await aheadBoot_({ before: x => { try { x.localStorage.setItem('familyUser', JSON.stringify(SAM_)); } catch (e) {} } });
+  const t = w.__t, bad = [];
+  if (!t || typeof t.aheadRunning !== 'function') return ['the builder\'s running job is not reachable — NOT checked'];
+  if (!(t.whoami() && t.whoami().personId === 'P9')) return ['Sam was not signed in at boot — NOT checked'];
+  await aheadQuiet_(t);
+  const asks = () => sent.filter(b => b && b.action === 'messages').length;
+  if (!asks()) bad.push('the payload\'s own inbox ask was never made, so the count below proves nothing');
+  const n0 = asks();
+  const net = aheadNet_(w, t);
+  for (let k = 0; k < 3; k++) {
+    t.dmLast0();
+    t.repaint();
+    await aheadQuiet_(t);
+  }
+  if (asks() > n0) bad.push('three repaints sent ' + (asks() - n0) + ' messages ask(s) with nobody on Messages — the builder\'s draw asked');
+  if (net.length) bad.push(net.length + ' ask(s) from inside a builder slice: ' + net.slice(0, 4).map(x => x.key + ' → ' + x.what).join(', '));
+  if (!t.aheadLog().some(x => x.key === 'paint:dm')) bad.push('the builder never drew Messages, so this asked nothing');
+  const dm = w.document.getElementById('s-dm');
+  if (dm && !dm.textContent.trim() && dm.querySelector('.loading')) bad.push('Messages is still the loader after the quiet, with the inbox answered');
+  t.USER(null);
+  return bad;
+});
+
+check('signing out puts away every drawing the last person had, including the ones the next person has no slot for: an admin\'s tools and her stars', async () => {
+  /* REVIEW, 12 Oct: the re-veil at a change of person walked the NEW person's widgets, so the admin's flyer
+     maker, availability and uploads on Tools, and every star on Saved (which a sign-out clears), kept her
+     drawing for 8–15s at 4x. It walks every slot on the column now (`widgetsReveil_`). */
+  const admin = { name: 'Test Admin', personId: 'P001', person_id: 'P001', role: 'admin', roles: ['admin'], token: 't-adm' };
+  const { w } = await aheadBoot_({ before: x => { try {
+    x.localStorage.setItem('familyUser', JSON.stringify(admin));
+    x.localStorage.setItem('favs', JSON.stringify(['w:calculator', 'w:notepad']));
+  } catch (e) {} } });
+  const t = w.__t, bad = [];
+  if (!t || typeof w.signedOut_ !== 'function') return ['signedOut_ is not reachable — NOT checked'];
+  t.go('feed', false, true); t.repaint();
+  await aheadQuiet_(t);
+  const ask = [['tools', 'flyers'], ['saved', 'calculator'], ['saved', 'notepad']];
+  const drawn = ask.filter(([c, id]) => { const sl = t.slotOn(c, id); return sl && !sl.getAttribute('aria-busy') && sl.WHO === 'P001'; });
+  if (drawn.length < ask.length) { return ['not every slot was drawn ahead for the admin (' + drawn.map(x => x.join(':')).join(', ') + ') — NOT checked']; }
+  w.signedOut_();
+  ask.forEach(([c, id]) => {
+    const sl = t.slotOn(c, id);
+    if (sl && !sl.getAttribute('aria-busy') && sl.WHO === 'P001') bad.push('the ' + id + ' drawn for the admin on ' + c + ' is still drawn after signing out');
+  });
+  return bad;
+});
+
+check('a column marked stale by a press with no finger lifted — a star from the keyboard — is drawn in the quiet all the same', async () => {
+  /* REVIEW, 12 Oct: six places marked `STALE` themselves, and the builder runs nothing periodic — so a star
+     pressed without a `pointerup` left thirteen columns stale for good, and every wait for quiet timed out.
+     They mark through `markStale_` now, which kicks. */
+  const { w } = await aheadBoot_();
+  const t = w.__t, bad = [];
+  if (!t || typeof t.aheadKick !== 'function') return ['the builder is not reachable — NOT checked'];
+  t.USER(SAM_); t.go('tools', false, true); t.repaint();
+  await aheadQuiet_(t);
+  const star = w.document.createElement('button');
+  star.setAttribute('data-key', 'w:timer'); star.setAttribute('data-kind', 'widget');
+  t.ACTIONS.fav(star);
+  if (!t.TABS.some(x => x.id !== t.AT() && t.stale(x.id))) bad.push('the star marked nothing stale, so this asked nothing');
+  if (!(await aheadQuiet_(t, 60000))) bad.push('the builder never went quiet after the star — nothing kicked it');
+  const stale = t.TABS.map(x => x.id).filter(id => t.stale(id));
+  if (stale.length) bad.push('still stale after the star and the quiet: ' + stale.join(', '));
+  t.USER(null);
+  return bad;
+});
+
+check('a sideways landing in the first seconds after a load draws every column it shows: none is left on the boot\'s loader, on a phone or a wide window', async () => {
+  /* REVIEW, 12 Oct: the first payload draws the column in front and the glass, and leaves the rest on the
+     boot's loader for the builder — which a hand that keeps moving never lets run. A sideways landing then
+     showed columns still on that loader (Reels and Find at 1280, 2–11s of it). `go` draws them now
+     (`bootGlass_`). Held, so this asks the arrival and nothing else. */
+  const bad = [];
+  for (const wide of [false, true]) {
+    const { w } = boot(wide ? { before: x => { x.matchMedia = q => ({ matches: /min-width/.test(String(q)), addEventListener() {}, removeEventListener() {} }); } } : {});
+    for (let i = 0; i < 80 && !w.__t; i++) await wait(25);
+    await wait(600);
+    const t = w.__t;
+    const say = wide ? 'wide' : 'phone';
+    if (!t || typeof t.PRE_PAYLOAD !== 'function') { bad.push(say + ': the boot\'s columns are not reachable — NOT checked'); continue; }
+    if (!t.PRE_PAYLOAD().length) { bad.push(say + ': no column was left on the boot\'s markup, so nothing was asked'); continue; }
+    const ids = t.TABS.map(x => x.id);
+    const to = ids[Math.min(ids.length - 2, ids.indexOf(t.AT()) + 4)];
+    t.go(to, false);
+    await wait(LEAVE_MS);
+    const ti = ids.indexOf(t.AT());
+    const shown = wide ? t.glass().cols : [ids[ti - 1], ids[ti + 1]].filter(Boolean);
+    if (wide && shown.length < 2) bad.push(say + ': the glass shows ' + shown.length + ' column(s) at ' + to + ', so nothing beside it was asked');
+    const left = shown.filter(id => id !== t.AT() && t.PRE_PAYLOAD().indexOf(id) !== -1);
+    if (left.length) bad.push(say + ': landed on ' + t.AT() + ' and ' + left.join(', ') + ' — on the glass' + (wide ? '' : ', the peek') + ' — still hold the boot\'s loader');
+  }
+  return bad;
+});
+
+check('a landing that changes nothing keeps the column in front, and an arrival after it keeps the column it arrives at; after a press, or with widgets in front, it is drawn again', async () => {
+  /* REVIEW, 12 Oct: the identical-markup skip was never for the column in front, so a landing redrew the Feed
+     from nothing (its pictures gone for 120ms and more) and an arrival that beat the builder wrote the whole
+     column inside the release. Both take the skip now, for a column with no widgets (`paint`, `repaint`). */
+  const { w } = boot();
+  for (let i = 0; i < 80 && !w.__t; i++) await wait(25);
+  await wait(600);
+  const t = w.__t, bad = [];
+  if (!t || typeof t.landRepaint !== 'function') return ['landRepaint_ is not reachable — NOT checked'];
+  const kids = id => [...w.document.querySelectorAll('#s-' + id + ' *')];
+  const same = (a, b) => a.length === b.length && a.every((el, i) => el === b[i]);
+  t.go('feed', false, true); await wait(LEAVE_MS); await woken_();
+  /* 1. THE COLUMN IN FRONT, A LANDING WITH NOTHING NEW: kept. */
+  const f0 = kids('feed'), p0 = t.paints().feed || 0;
+  t.landRepaint();
+  if ((t.paints().feed || 0) !== p0 || !same(kids('feed'), f0)) bad.push('a landing that changed nothing wrote the Feed in front again');
+  /* 2. AFTER A PRESS: written. */
+  try { t.ACTIONS['filter-clear'](w.document.createElement('button')); } catch (e) {}
+  t.landRepaint();
+  if ((t.paints().feed || 0) === p0) bad.push('after a press the next landing kept the Feed in front — a press can have edited it in place');
+  /* 3. AN ARRIVAL AFTER A LANDING THAT CHANGED NOTHING: the column arrived at is kept. */
+  t.paint('account');
+  const a0 = kids('account'), q0 = t.paints().account || 0;
+  t.landRepaint();
+  if (!t.stale('account')) bad.push('Account was not marked by the landing, so the arrival asked nothing');
+  t.go('account', false, true); await wait(LEAVE_MS); await woken_();
+  if ((t.paints().account || 0) !== q0 || !same(kids('account'), a0)) bad.push('arriving at Account after a landing that changed nothing wrote it again');
+  /* 4. A COLUMN OF WIDGETS IN FRONT IS STILL DRAWN AGAIN AT A LANDING — 331's restart. */
+  t.go('tools', false, true); await wait(LEAVE_MS); await woken_();
+  const r0 = t.paints().tools || 0;
+  t.landRepaint();
+  if ((t.paints().tools || 0) === r0) bad.push('a landing kept Tools in front — a column of widgets in front is drawn again and restarted, as it always was');
+  return bad;
+});
+
+check('a landing that brings a fact draws it: a new post is in the Feed once the column is drawn as the builder draws it', async () => {
+  /* REVIEW, 12 Oct: the identical-markup skip's own comparison (`el.DRAWN.html === html`) could be taken out
+     with every journey green — the skip would keep a column whatever the facts said. */
+  const p = payload();
+  p.posts = [1, 2].map(i => ({ id: 'PO' + i, author: '@family.', handle: '@family.', avatar: '',
+    image: '', media: [], caption: 'Post ' + i, body: '', location: '', when: '0' + i + '/09/2026',
+    at: Date.UTC(2026, 8, i), pinned: false, active: true, waiting: false, refused: false,
+    reactions: NO_REACTIONS_(), comments: { total: 0, list: [] } }));
+  const { w } = boot({ payload: p });
+  for (let i = 0; i < 80 && !w.__t; i++) await wait(25);
+  await wait(600);
+  const t = w.__t, bad = [];
+  if (!t || typeof t.landRepaint !== 'function') return ['landRepaint_ is not reachable — NOT checked'];
+  t.go('tools', false, true); await wait(LEAVE_MS); await woken_();
+  t.paint('feed');
+  if (!/Post 1/.test(w.document.getElementById('s-feed').textContent)) return ['the Feed does not show its first post, so a new one proves nothing — NOT checked'];
+  const D = t.DATA();
+  D.posts.unshift(Object.assign({}, D.posts[0], { id: 'PZ', caption: 'ZZ-new-post-landed', at: Date.UTC(2026, 8, 9), when: '09/09/2026' }));
+  t.landRepaint();
+  t.paint('feed');
+  if (!/ZZ-new-post-landed/.test(w.document.getElementById('s-feed').textContent)) bad.push('the landing brought a post and the Feed, drawn after it, does not show it — the skip kept old markup');
+  return bad;
+});
+
+check('a window drawn afresh in front is filled as far as the glass shows, both ways — not only the card in front and one either side', async () => {
+  /* REVIEW, 12 Oct: a repaint drew Find in front from nothing and filled three cards; on an iPad the pages
+     above the card in front sat on the glass as empty shells until the builder reached them. `stuffBandFill_`
+     (find.js) fills the band in the same task. jsdom lays nothing out, so the band is its floor here — what is
+     asked is that it goes both ways, at once. */
+  const P = paper2F_();
+  const { w } = boot({ serve: P.serve });
+  for (let i = 0; i < 80 && !w.__t; i++) await wait(25);
+  await wait(600);
+  const t = w.__t, bad = [];
+  if (!t || typeof t.STUFF !== 'function') return ['Find is not reachable — NOT checked'];
+  t.go('stuff', false, true); await wait(LEAVE_MS); await woken_();
+  const S = t.STUFF();
+  S.q = ''; S.filters = P.ask.slice();
+  w.paintFinder_('stuff');
+  const first = w.inFinder_(w.finderOf_('stuff'), () => w.stuffFirstResult_());
+  t.goPage('stuff', first + 6, true);
+  await wait(LEAVE_MS); await woken_();
+  t.repaint();
+  await wait(0);
+  const at = t.PAGE().stuff;
+  const host = w.document.getElementById('s-stuff');
+  const filled = i => { const el = host.querySelectorAll(':scope > .page')[t.domIndex('stuff', i)]; return !!(el && el.dataset.filled === '1'); };
+  const want = [-3, -2, 2, 3].map(d => at + d).filter(i => i >= first);
+  if (want.length < 4 || !(at > first)) return ['Find is on page ' + at + ' with its first result at ' + first + ' — the band either side was NOT asked'];
+  const empty = want.filter(i => !filled(i));
+  if (empty.length) bad.push('straight after a repaint with Find in front at page ' + at + ', pages ' + empty.join(', ') + ' are not filled — only the card in front and one either side were');
+  return bad;
+});
+
+check('the builder waits for the hand: no slice within 400ms of a key or a pointer, none while a box has the focus, a slide or a settle runs, the page is hidden or an input is already waiting — and it carries on after each', async () => {
+  /* REVIEW, 12 Oct: every one of these gates could be taken out with every check green — jsdom sends no
+     pointer, wheel or key, J1's quiet assertion could never fail, and nothing focused a box or hid the page. */
+  const { w } = await aheadBoot_();
+  const t = w.__t, bad = [];
+  if (!t || typeof t.slideUntil !== 'function') return ['the builder\'s gates are not reachable — NOT checked'];
+  t.USER(SAM_); t.go('feed', false, true); t.repaint();
+  await aheadQuiet_(t);
+  const ran = (a, b) => t.aheadLog().filter(x => x.t >= a && x.t <= b);
+  const stale = () => t.TABS.map(x => x.id).filter(id => t.stale(id));
+  const work = () => { t.repaint(); return w.performance.now(); };
+  /* 1. A KEY EVERY 100ms FOR 1.5s, the work made a moment into it. */
+  {
+    const key = () => w.document.dispatchEvent(new w.KeyboardEvent('keydown', { bubbles: true, key: 'Shift' }));
+    key();
+    const a = w.performance.now();
+    work();
+    let last = a;
+    while (w.performance.now() - a < 1500) { key(); last = w.performance.now(); await wait(100); }
+    const under = ran(a, last + 380);
+    if (under.length) bad.push(under.length + ' slice(s) ran within 400ms of a key: ' + under.slice(0, 3).map(x => x.key + ' (quiet ' + x.quiet + 'ms)').join(', '));
+    if (!(await aheadQuiet_(t, 60000)) || stale().length) bad.push('after the keys stopped the builder did not finish: ' + stale().join(', '));
+  }
+  /* 2. A BOX WITH THE FOCUS. */
+  {
+    const box = w.document.createElement('input');
+    box.type = 'text';
+    w.document.getElementById('s-tools').appendChild(box);
+    box.focus();
+    if (w.document.activeElement !== box) bad.push('the box would not take the focus, so the typing gate was NOT asked');
+    const a = work();
+    await wait(1500);
+    const under = ran(a, w.performance.now());
+    if (under.length) bad.push(under.length + ' slice(s) ran while a box had the focus: ' + under.slice(0, 3).map(x => x.key).join(', '));
+    box.blur(); box.remove();
+    w.document.dispatchEvent(new w.Event('focusout'));
+    if (!(await aheadQuiet_(t, 60000)) || stale().length) bad.push('after the box let go the builder did not finish: ' + stale().join(', '));
+  }
+  /* 3. A TAPPED SLIDE STILL GLIDING, THEN A SETTLE. */
+  for (const [what, shut] of [['a tapped slide', u => t.slideUntil(u)], ['a settle', u => t.settleOn({ until: u })]]) {
+    const a = w.performance.now();
+    shut(a + 1500);
+    work();
+    await wait(1400);
+    const under = ran(a, a + 1500);
+    if (under.length) bad.push(under.length + ' slice(s) ran inside ' + what + ': ' + under.slice(0, 3).map(x => x.key).join(', '));
+    if (!(await aheadQuiet_(t, 60000)) || stale().length) bad.push('after ' + what + ' the builder did not finish: ' + stale().join(', '));
+    shut(0);
+  }
+  /* 4. THE PAGE HIDDEN, THEN SHOWN. */
+  {
+    let hidden = true;
+    try { Object.defineProperty(w.document, 'hidden', { get: () => hidden, configurable: true }); }
+    catch (e) { bad.push('document.hidden could not be stood in for, so the hidden gate was NOT asked'); }
+    w.document.dispatchEvent(new w.Event('visibilitychange'));
+    const a = work();
+    await wait(1500);
+    const under = ran(a, w.performance.now());
+    if (under.length) bad.push(under.length + ' slice(s) ran while the page was hidden: ' + under.slice(0, 3).map(x => x.key).join(', '));
+    if (!stale().length) bad.push('nothing was left stale while hidden, so showing the page again asked nothing');
+    hidden = false;
+    w.document.dispatchEvent(new w.Event('visibilitychange'));
+    if (!(await aheadQuiet_(t, 60000)) || stale().length) bad.push('after the page was shown again the builder did not finish: ' + stale().join(', '));
+  }
+  /* 5. AN INPUT THE BROWSER HOLDS AND THE PAGE HAS NOT HEARD YET (review round 1: a third of the slow touches in
+        the first thirty seconds waited behind slices that started after they were sent). Chromium's
+        `isInputPending` is stood in for — jsdom has none — saying yes for 1.5s, then no. */
+  {
+    let pending = true;
+    try { Object.defineProperty(w.navigator, 'scheduling', { value: { isInputPending: () => pending }, configurable: true }); }
+    catch (e) { bad.push('navigator.scheduling could not be stood in for, so the waiting-input gate was NOT asked'); }
+    const a = work();
+    await wait(1500);
+    const under = ran(a, w.performance.now());
+    if (under.length) bad.push(under.length + ' slice(s) ran while an input was waiting: ' + under.slice(0, 3).map(x => x.key).join(', '));
+    if (!stale().length) bad.push('nothing was left stale while an input waited, so its going asked nothing');
+    pending = false;
+    if (!(await aheadQuiet_(t, 60000)) || stale().length) bad.push('after the input was handled the builder did not finish: ' + stale().join(', '));
+    try { delete w.navigator.scheduling; } catch (e) {}
+  }
+  t.USER(null);
+  return bad;
+});
+
+check('the first slices after the screen is up need their quiet too, a column\'s first draw from a payload waits a whole second of it, and the device remembers what was slow', async () => {
+  /* REVIEW, 12 Oct: the quiet was measured from nothing (`AHEAD.input` 0), so the first slices after the splash
+     ran at once; and `AHEAD_SLOW` started empty, so every heavy first draw ran after 400ms. The quiet starts
+     when the builder opens, a column's first draw from a payload is slow until timed, and the slow bit is kept
+     on the device (`familyAheadSlow`). */
+  const b = boot({ ahead: true, before: x => { try { x.localStorage.setItem('familyAheadSlow', JSON.stringify(['paint:account'])); } catch (e) {} } });
+  const w = b.w;
+  for (let i = 0; i < 400 && !w.__t; i++) await wait(5);
+  const t = w.__t, bad = [];
+  if (!t || typeof t.aheadOpened !== 'function') return ['the builder\'s opening is not reachable — NOT checked'];
+  const kept = t.aheadSlow();
+  await aheadQuiet_(t);
+  const opened = t.aheadOpened();
+  const log = t.aheadLog().filter(x => x.t >= opened);
+  if (!opened || !log.length) return ['the builder never opened or never ran — NOT checked'];
+  if (log[0].t - opened < 390) bad.push('the first slice ran ' + Math.round(log[0].t - opened) + 'ms after the builder opened — it needs 400ms of quiet like any other');
+  /* AND THE QUIET IT COUNTED STARTS NO EARLIER THAN THE OPENING: jsdom sends no input, so a quiet counted from
+     nothing is the whole time since the page began (and `afterSlide_`'s own jobs delay the first slice enough
+     that the line above alone cannot tell — the mutation that took the opening's clock out stayed green on it). */
+  if (log[0].quiet > log[0].t - opened + 50) bad.push('the first slice counted ' + log[0].quiet + 'ms of quiet ' + Math.round(log[0].t - opened) + 'ms after the builder opened — the quiet was counted from before the screen was up');
+  const firstPaints = {};
+  log.forEach(x => { if (/^paint:/.test(x.key) && !firstPaints[x.key]) firstPaints[x.key] = x; });
+  const hurried = Object.values(firstPaints).filter(x => x.quiet < 990);
+  if (!Object.keys(firstPaints).length) bad.push('no column was drawn by the builder after the first payload, so nothing was asked');
+  if (hurried.length) bad.push('a column\'s first draw from the payload ran after less than a second of quiet: ' + hurried.slice(0, 4).map(x => x.key + ' ' + x.quiet + 'ms').join(', '));
+  /* AND WHAT THE DEVICE KEPT: read in before any slice (`kept`, at boot), and written back as it was learned —
+     Account, slow last visit, was timed again on this one and the device holds what it found. */
+  if (kept.indexOf('paint:account') === -1) bad.push('the slow bit kept on the device (paint:account) was not read in at boot: ' + JSON.stringify(kept));
+  const mem = t.aheadSlow().filter(k => /^(paint|widget):/.test(k)).sort();
+  let disk = null;
+  try { disk = JSON.parse(w.localStorage.getItem('familyAheadSlow') || 'null'); } catch (e) {}
+  if (!Array.isArray(disk) || JSON.stringify(disk.slice().sort()) !== JSON.stringify(mem)) bad.push('the device keeps ' + JSON.stringify(disk) + ' and the builder learned ' + JSON.stringify(mem) + ' — what was learned was not written back');
+  return bad;
+});
+
+check('a column\'s first draw from a payload waits a whole second of quiet even when nothing else is in its way', async () => {
+  /* REVIEW ROUND 1, 12 Oct: the journey above asks this of the first slices after the screen comes up — and once
+     `afterSlide_` counted its own jobs as booked until the last had run, those jobs alone kept the builder shut
+     past a second, so taking the cold rule out (`j.cold`) left it green. Here nothing else is in the way: the
+     builder held through the landing, every column but the one in front still on the boot's markup, then a key
+     and the hold let go. The first of those columns drawn must have waited a second since the key. */
+  const b = boot({ ahead: true, before: x => { x.__aheadHold = true; } });
+  const w = b.w;
+  for (let i = 0; i < 400 && !w.__t; i++) await wait(5);
+  const t = w.__t, bad = [];
+  if (!t || typeof t.PRE_PAYLOAD !== 'function') return ['the builder is not reachable — NOT checked'];
+  for (let i = 0; i < 200 && !t.afterIdle(); i++) await wait(25);
+  await wait(300);
+  const cold = t.PRE_PAYLOAD().filter(id => t.stale(id) && id !== t.AT());
+  if (!cold.length) return ['no column was left on the boot\'s markup, so nothing was asked — NOT checked'];
+  w.document.dispatchEvent(new w.KeyboardEvent('keydown', { bubbles: true, key: 'Shift' }));
+  const k = w.performance.now();
+  w.__aheadHold = false;
+  t.aheadKick();
+  for (let i = 0; i < 200 && !t.aheadLog().some(x => x.t >= k && /^paint:/.test(x.key) && cold.indexOf(x.key.slice(6)) !== -1); i++) await wait(25);
+  const first = t.aheadLog().find(x => x.t >= k && /^paint:/.test(x.key) && cold.indexOf(x.key.slice(6)) !== -1);
+  if (!first) return ['the builder drew none of the columns on the boot\'s markup — NOT checked'];
+  if (first.t - k < 990) bad.push(first.key + ', a first draw from the payload, ran ' + Math.round(first.t - k) + 'ms after a key — it waits a second');
+  return bad;
+});
+
+check('a finder drawn for nobody is filled inside the builder\'s slices: no card of it is built outside one', async () => {
+  /* REVIEW, 12 Oct: the finder's draw queued its own fill as a microtask, which ran after the builder's slice had
+     ended and outside the time it measured — 2.7s of one idle callback against 1.6s logged. Drawn ahead, it is
+     filled by the builder. */
+  const P = paper2F_();
+  const { w } = await aheadBoot_({ serve: P.serve });
+  const t = w.__t, bad = [];
+  if (!t || typeof t.finder !== 'function') return ['the finders are not reachable — NOT checked'];
+  t.go('feed', false, true);
+  await aheadQuiet_(t);
+  /* AN ASK, so Find has a window of results to fill — with nothing asked a finder is its question alone. Made once
+     the builder has drawn Find from the payload, so it lands on Find's own question and not the boot's loader. */
+  const S = t.STUFF();
+  S.q = ''; S.filters = P.ask.slice();
+  w.paintFinder_('stuff');
+  await aheadQuiet_(t);
+  if (!w.document.querySelectorAll('#s-stuff > .page.is-res').length) return ['Find holds no result pages for the paper, so nothing was asked — NOT checked'];
+  let outside = 0, inside = 0;
+  const f0 = w.stuffFillOne_;
+  w.stuffFillOne_ = function () {
+    const r = f0.apply(this, arguments);
+    if (r && t.finder() !== t.AT() && t.glass().cols.indexOf(t.finder()) === -1) { if (t.aheadRunning()) inside++; else outside++; }
+    return r;
+  };
+  t.repaint();
+  await aheadQuiet_(t);
+  w.stuffFillOne_ = f0;
+  if (!t.aheadLog().some(x => x.key === 'paint:stuff')) bad.push('the builder never drew Find, so this asked nothing');
+  if (outside) bad.push(outside + ' card(s) of a finder nobody is looking at were built outside a builder slice — after it, unmeasured');
+  if (!inside) bad.push('no card of a finder off the glass was built by the builder, so this asked nothing');
+  return bad;
+});
+
+check('a finder drawn for nobody after a landing is warmed a step a slice before its paint, each step in its own binding, and its paint builds no list', async () => {
+  /* REVIEW ROUND 1, 12 Oct (the first thirty seconds, measured again): Find's first draw from a payload was one
+     slice of 285–470ms at 4x, and almost none of it was the draw — the list, its sort keys, the sort and the first
+     question's tally, every one a memo. The builder asks those first, one slice each (`stuffWarmJobs_`, find.js),
+     so the paint left is the markup. Asked here: after a landing that brings a NEW payload (a real `load()`), each
+     finder off the glass is warmed — every step, in order, before its paint — each step inside that finder's own
+     binding (329), and the paint itself builds no list: the list is built in the warm. */
+  const P = paper2F_();
+  const { w } = await aheadBoot_({ serve: P.serve });
+  const t = w.__t, bad = [];
+  if (!t || typeof t.finder !== 'function' || typeof w.load !== 'function') return ['the finders or load() are not reachable — NOT checked'];
+  t.go('feed', false, true);
+  await aheadQuiet_(t);
+  const builds = [];
+  const b0 = w.stuffItemsBuild_;
+  w.stuffItemsBuild_ = function () { builds.push({ key: String(t.aheadRunning() || ''), finder: t.finder() }); return b0.apply(this, arguments); };
+  const D0 = t.DATA();
+  const a = w.performance.now();
+  w.load();
+  for (let i = 0; i < 400 && t.DATA() === D0; i++) await wait(25);
+  if (t.DATA() === D0) { w.stuffItemsBuild_ = b0; return ['load() brought no new payload, so nothing was asked — NOT checked']; }
+  await aheadQuiet_(t);
+  w.stuffItemsBuild_ = b0;
+  const log = t.aheadLog().filter(x => x.t >= a);
+  ['stuff', 'res'].forEach(fid => {
+    if (!t.TABS.some(x => x.id === fid)) return;
+    const paintAt = log.findIndex(x => x.key === 'paint:' + fid);
+    if (paintAt < 0) { bad.push('the builder never drew ' + fid + ' after the landing, so nothing was asked of it'); return; }
+    const steps = log.slice(0, paintAt).filter(x => x.key.indexOf('warm:' + fid + ':') === 0).map(x => +x.key.split(':')[2]);
+    if (steps.join() !== '0,1,2,3') bad.push(fid + ' was painted after warm steps [' + steps.join(',') + '] — every step, in order, comes before the paint');
+    const inPaint = builds.filter(x => x.key === 'paint:' + fid).length;
+    if (inPaint) bad.push(fid + '\'s paint built its list ' + inPaint + ' time(s) — the warm had not built it');
+  });
+  const wrong = builds.filter(x => /^warm:/.test(x.key) && x.key.split(':')[1] !== x.finder);
+  if (wrong.length) bad.push('a warm step ran outside its own finder\'s binding: ' + wrong.slice(0, 3).map(x => x.key + ' bound to ' + x.finder).join(', '));
+  if (!builds.some(x => /^warm:/.test(x.key))) bad.push('no warm step built a list, so the warm did nothing');
+  return bad;
+});
+
+check('a card the builder fills ahead of the card in front asks for its pictures as one the placement saw: nothing lazy from two behind to six ahead, at rest', async () => {
+  /* REVIEW ROUND 1, 12 Oct, found re-running check/reach.js: "res page 7 (in front 1) is still lazy" on the Boxing
+     shelf at 390. The column in front asks for its pictures six pages ahead IN THE PLACEMENT (`picsAhead_`), and
+     a card the builder fills after that placement — every card past the band on a fresh window — kept `lazy`
+     until something placed the column again. jsdom lays nothing out, so the band is its floor of one either side
+     and every card past it is the builder's: exactly that case, every time. AND jsdom HAS NO `img.loading`, so it
+     is stood in for as the attribute it reflects — without it nothing the app writes there is ever seen. */
+  const p = await resPayload_();
+  if (!p) return ['the resources payload could not be made — NOT checked'];
+  const reflect = x => { try { Object.defineProperty(x.HTMLImageElement.prototype, 'loading', { configurable: true,
+    get() { return this.getAttribute('loading') || 'auto'; }, set(v) { this.setAttribute('loading', String(v)); } }); } catch (e) {} };
+  const { w } = await aheadBoot_({ payload: p, before: reflect });
+  const t = w.__t, bad = [];
+  if (!t || typeof t.domIndex !== 'function') return ['the builder is not reachable — NOT checked'];
+  if (!resAsk_(w)) return ['the Resources column has no boxing shelf to fill — NOT checked'];
+  t.go('res', false, true);
+  await aheadQuiet_(t);
+  /* THE CARDS FOUR TO SIX AHEAD EMPTIED AND LEFT TO THE BUILDER — filled again in the quiet with nothing placing
+     the column after, which is the case: jsdom places the column often enough on the way in (the trail's end,
+     the window's centring) that a first fill alone did not show it. */
+  const pages = () => [...w.document.querySelectorAll('#s-res > .page')];
+  const k = t.domIndex('res', t.PAGE().res || 0);
+  const ahead = [4, 5, 6].map(d => pages()[k + d]).filter(pg => pg && pg.dataset.filled === '1' && pg.querySelector('img'));
+  if (!ahead.length) return ['no filled card with a picture four to six ahead of the card in front, so nothing was asked — NOT checked'];
+  ahead.forEach(pg => w.stuffBlank_(pg));
+  t.aheadKick();
+  await aheadQuiet_(t);
+  const back = ahead.filter(pg => pg.dataset.filled === '1');
+  if (back.length !== ahead.length) return ['the builder did not fill the emptied cards again, so nothing was asked — NOT checked'];
+  const lazy = back.filter(pg => pg.querySelector('img[loading="lazy"]')).map(pg => pages().indexOf(pg) - k);
+  if (lazy.length) bad.push('at rest, the cards ' + lazy.map(d => '+' + d).join(', ') + ' from the one in front, filled by the builder after the last placement, still hold a lazy picture');
+  return bad;
+});
+
+check('everything booked after a slide counts as booked until the last of it has run, and no builder slice runs between its jobs', async () => {
+  /* REVIEW ROUND 1, 12 Oct: `afterSlide_` runs its jobs one per task and said "nothing booked" from before the
+     first of them — so the builder's gate ("work for the glass goes first") and every check's quiet were told
+     the slide's work was done while it was still running. Found through the word-game journeys under load
+     (the job that stops a round left behind was four tasks away when the check looked). Five jobs of 60ms
+     each, booked after a repaint with the builder on: each must see the chain as still booked, and no slice
+     may start between the first and the last. */
+  const { w } = await aheadBoot_();
+  const t = w.__t, bad = [];
+  if (!t || typeof t.afterIdle !== 'function' || typeof w.afterSlide_ !== 'function') return ['the after-slide list is not reachable — NOT checked'];
+  t.USER(SAM_); t.go('feed', false, true); t.repaint();
+  await aheadQuiet_(t);
+  t.repaint();
+  const seen = [];
+  const busy = ms => { const e = w.performance.now() + ms; while (w.performance.now() < e) { /* the job's own work */ } };
+  for (let i = 0; i < 5; i++) w.afterSlide_(() => { seen.push({ i, t: w.performance.now(), idle: t.afterIdle() }); busy(60); }, 'chain-' + i);
+  for (let k = 0; k < 200 && seen.length < 5; k++) await wait(25);
+  if (seen.length < 5) return ['only ' + seen.length + ' of the five jobs ran — NOT checked'];
+  const early = seen.filter(x => x.idle).map(x => x.i);
+  if (early.length) bad.push('job(s) ' + early.join(', ') + ' of five ran with the list already saying nothing was booked');
+  const a = seen[0].t, b = seen[4].t;
+  const between = t.aheadLog().filter(x => x.t > a && x.t < b);
+  if (between.length) bad.push(between.length + ' builder slice(s) ran between the jobs of one slide: ' + between.slice(0, 3).map(x => x.key).join(', '));
+  if (!(await aheadQuiet_(t, 60000))) bad.push('the builder did not finish after the chain');
+  t.USER(null);
+  return bad;
+});
+
+check('the reels are kept six ahead at every turn and twelve ahead after the quiet', async () => {
+  /* REVIEW, 12 Oct: 7/6/6, the one-slide append in a turn and the builder's top-up could all be reverted with
+     every check green. */
+  const { w } = await aheadBoot_();
+  const t = w.__t, bad = [];
+  if (!t || typeof t.pageCount !== 'function') return ['the reels are not reachable — NOT checked'];
+  t.go('reel', false, true);
+  await aheadQuiet_(t);
+  const pages = () => w.document.querySelectorAll('#s-reel > .page').length;
+  const at = () => t.PAGE().reel || 0;
+  if (pages() - 1 - at() < 12) bad.push('after the quiet the reels hold ' + (pages() - 1 - at()) + ' past the one in front — twelve are kept');
+  w.__aheadHold = true;
+  for (let k = 0; k < 14; k++) {
+    t.goPage('reel', at() + 1);
+    if (pages() - 1 - at() < 6) { bad.push('after turning to reel ' + at() + ' only ' + (pages() - 1 - at()) + ' are ahead — six are kept in a turn'); break; }
+  }
+  w.__aheadHold = false;
+  return bad;
+});
+
+check('the quiet puts a finder\'s window where a run needs it: the card in front thirteen or fourteen from the end it is leaving', async () => {
+  /* REVIEW, 12 Oct: the builder's `centre` job could be dropped with every check green — the release's slide by
+     six kept BUILT AHEAD satisfied. After a run of single turns the window has been slid, not centred; the
+     quiet centres it. */
+  const lib = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const rows = lib.filter(r => r.paper_id === 'P-AQA-8461-2406-2F');
+  const { w } = await aheadBoot_({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
+  const t = w.__t, bad = [];
+  if (!t || typeof t.stuffBehind !== 'function') return ['the window is not reachable — NOT checked'];
+  t.go('stuff', false, true);
+  const S = t.STUFF();
+  S.q = ''; S.filters = [{ field: 'paperId', value: 'P-AQA-8461-2406-2F' }];
+  w.paintFinder_('stuff');
+  await aheadQuiet_(t);
+  const first = w.inFinder_(w.finderOf_('stuff'), () => w.stuffFirstResult_());
+  const n = w.inFinder_(w.finderOf_('stuff'), () => w.stuffPages_().length);
+  if (n < 60) return ['the 2F paper is ' + n + ' page(s) on Find — this needs sixty, so it was NOT checked'];
+  w.__aheadHold = true;
+  t.goPage('stuff', first, true);
+  for (let k = 0; k < 40; k++) t.goPage('stuff', t.PAGE().stuff + 1);
+  const slid = t.pageLo().stuff || 0;
+  w.__aheadHold = false; t.aheadKick();
+  await aheadQuiet_(t);
+  const r = t.PAGE().stuff - first;
+  const want = Math.max(0, Math.min(n - t.STUFF_WIN, r - t.stuffBehind()));
+  const lo = t.pageLo().stuff || 0;
+  if (lo !== want) bad.push('after a run to result ' + r + ' and the quiet the window starts at ' + lo + ' (slid to ' + slid + ') — the quiet puts it at ' + want + ', ' + t.stuffBehind() + ' behind');
+  if (slid === want) bad.push('the run itself left the window where the quiet would, so the centring was NOT asked');
+  return bad;
+});
+
+check('a column\'s widget slots are drawn before any column further out is painted — the one beside you first, every page of it', async () => {
+  /* REVIEW, 12 Oct (a nit, and the loaders it left): a slot was as far as its column plus its pages, so Games' slots
+     eight pages down came after whole paints of columns three and four away — and the band draws those pages as a
+     slide carries them across the glass. A slot is as far as its column now (`aheadWidgetJobs_`, arcade.js). */
+  const { w } = await aheadBoot_();
+  const t = w.__t, bad = [];
+  if (!t || typeof t.aheadLog !== 'function') return ['the builder is not reachable — NOT checked'];
+  t.USER(SAM_); t.go('saved', false, true); t.go('tools', false, true);
+  await aheadQuiet_(t);
+  const a = w.performance.now();
+  t.repaint();
+  await aheadQuiet_(t);
+  const ids = t.TABS.map(x => x.id), ti = ids.indexOf('tools');
+  const log = t.aheadLog().filter(x => x.t >= a);
+  const lastGames = log.map(x => x.key).lastIndexOf(log.filter(x => /^widget:games:/.test(x.key)).map(x => x.key).pop());
+  if (lastGames < 0) return ['no widget on Games was drawn by the builder after the repaint — NOT checked'];
+  const far = log.findIndex(x => /^paint:/.test(x.key) && Math.abs(ids.indexOf(x.key.slice(6)) - ti) >= 3);
+  if (far >= 0 && far < lastGames) bad.push('the builder painted ' + log[far].key.slice(6) + ', three or more columns from Tools, before it had drawn every widget on Games beside it (' + log[lastGames].key + ' came after)');
+  t.USER(null);
+  return bad;
+});
+
+check('a chosen book of the Bible is fetched by the builder before any card of it is drawn, on a Resources column nobody is looking at', async () => {
+  /* REVIEW, 12 Oct: the builder's Bible job could be taken out with every check green. Resources marked and
+     drawn by the builder off the glass, with a book chosen and its question in front: the book is asked for by
+     the `bible` job, a slice before the first verse card is filled (which would ask for it too). The chip's
+     own prefetch was taken out — the page in front is filled in the same task as the chip, and its first verse
+     card asks (docs/history/341, "After review"). */
+  const admin = { name: 'Test Admin', personId: 'P001', person_id: 'P001', role: 'admin', roles: ['admin'], token: 't-adm' };
+  const bibleDir = path.join(dir, '..', 'data', 'bible');
+  const serve = url => {
+    const m = /(?:^|\/)data\/bible\/([a-z0-9-]+\.json)(?:\?|$)/.exec(url);
+    if (!m) return undefined;
+    const p = path.join(bibleDir, m[1]);
+    return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : null;
+  };
+  const { w } = await aheadBoot_({ serve, before: x => { try { x.localStorage.setItem('familyUser', JSON.stringify(admin)); } catch (e) {} } });
+  const t = w.__t, bad = [];
+  if (!t || typeof t.BIBLE !== 'function' || typeof w.bibleIndex_ !== 'function') return ['the Bible is not reachable — NOT checked'];
+  t.go('feed', false, true);
+  await aheadQuiet_(t);
+  try { w.bibleIndex_(); } catch (e) {}
+  for (let k = 0; k < 100 && !(t.BIBLE() && t.BIBLE().index); k++) await wait(50);
+  if (!(t.BIBLE() && t.BIBLE().index)) return ['the Bible\'s index never landed — NOT checked'];
+  t.RES().q = '';
+  t.RES().filters = [{ field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+    { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Torah' }, { field: 'bibleBook', value: 'Leviticus' }];
+  t.PAGE().res = 0;
+  /* WHO ASKED, at the moment of asking: `bibleLoad_` is where a book is asked for, and its fetch itself waits a
+     microtask (`bibleGet_`), which runs after the slice has ended. */
+  const net = [];
+  const l0 = w.bibleLoad_;
+  w.bibleLoad_ = function (n) { net.push({ n: Number(n), key: String(t.aheadRunning() || '') }); return l0.apply(this, arguments); };
+  t.repaint();
+  await aheadQuiet_(t);
+  w.bibleLoad_ = l0;
+  const lev = net.filter(x => x.n === 3);
+  if (!t.aheadLog().some(x => x.key === 'paint:res')) bad.push('the builder never drew Resources, so this asked nothing');
+  if (!lev.length) bad.push('Leviticus was never fetched after the builder drew Resources with it chosen');
+  else if (!/^bible:/.test(lev[0].key)) bad.push('Leviticus was first asked for by ' + (lev[0].key || 'nothing in a slice') + ' — the builder\'s Bible job should ask before a card of it is drawn');
   return bad;
 });
 

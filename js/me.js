@@ -1846,7 +1846,7 @@ function msgRead_(q) {
 function msgQueueHtml_(key) {
   const q = MSG_QUEUE[key] || [];
   return q.map((a, i) => `<span class="msg-chip">${
-      /^image\//.test(a.type) ? `<img src="${esc(a.url)}" alt="">` : `<b>${esc(msgFileMark_(a))}</b>`}
+      /^image\//.test(a.type) ? `<img src="${esc(a.url)}" alt="" decoding="async">` : `<b>${esc(msgFileMark_(a))}</b>`}
     <span class="msg-chip-name">${esc(a.name)}</span>
     <button class="msg-chip-x" data-do="msg-unqueue" data-k="${esc(key)}" data-i="${i}"
       aria-label="Remove ${esc(a.name)}">×</button></span>`).join('');
@@ -2212,7 +2212,7 @@ function msgAttachHtml_(list) {
     if (kind === 'image') {
       return `<a class="msg-pic" href="${esc(url)}" target="_blank" rel="noopener"
         aria-label="Open ${esc(a.name || 'the photo')}">
-        <img src="${esc(pic(url))}" alt="${esc(a.name || 'photo')}" loading="lazy"></a>`;
+        <img src="${esc(pic(url))}" alt="${esc(a.name || 'photo')}" loading="lazy" decoding="async"></a>`;
     }
     if (kind === 'video') {
       return `<video class="msg-vid post-vid" src="${esc(/^blob:/.test(url) ? url : postVidSrc_(url))}"
@@ -2754,7 +2754,7 @@ on('kid-make', el => {
       ['first', 'last'].forEach(f => { try { draftDrop_('kid-new', f); } catch (e) {} });
       toast(first + '\'s account is made — they sign in as @' + KID_MADE.handle + '.');
       /* `repaint(true)`: the card grows by a slip, so the column is placed again — see `answerClaim_`. */
-      if (typeof AT !== 'undefined' && AT === 'settings') repaint(true); else STALE.settings = 1;
+      if (typeof AT !== 'undefined' && AT === 'settings') repaint(true); else markStale_('settings');
       load();
     })
     /* `send_` HAS SAID WHY; `heldBy_` turns a stale phone's form into the held card when the why is
@@ -2817,7 +2817,7 @@ const answerClaim_ = (el, accept) => {
     if (Array.isArray(DATA.claims)) DATA.claims = DATA.claims.filter(c => String(c.rowIndex) !== String(row));
     /* `repaint(true)`, NOT `paint`: a page has left the column, so it must be placed and its
        position clamped again — the Saved column's unstar records what a bare `paint` leaves. */
-    if (typeof AT !== 'undefined' && AT === 'account') repaint(true); else STALE.account = 1;
+    if (typeof AT !== 'undefined' && AT === 'account') repaint(true); else markStale_('account');
     load();
   }).catch(() => {});
 };
@@ -4990,7 +4990,7 @@ function photoShelf_(list, value, o) {
     (i, hide) => {
       const v = String(value('photos_' + i) || '').trim();
       return `<div class="lib-card ph-slot"${hide ? ' hidden' : ''}>
-        <span class="ph-thumb">${v ? `<img src="${esc(pic(v))}" alt="">` : ''}</span>
+        <span class="ph-thumb">${v ? `<img src="${esc(pic(v))}" alt="" decoding="async">` : ''}</span>
         ${fieldHtml('photos_' + i, v, { placeholder: 'Another photo link', draft: (o || {}).draft,
           extra: 'type="url" inputmode="url" autocomplete="off" spellcheck="false"' })}
       </div>`;
@@ -5003,7 +5003,7 @@ document.addEventListener('input', e => {
   if (!t || !t.matches || !t.matches('.ph-slot input')) return;
   const thumb = t.closest('.ph-slot').querySelector('.ph-thumb');
   const v = String(t.value || '').trim();
-  if (thumb) thumb.innerHTML = /^https?:\/\/\S+$/i.test(v) ? `<img src="${esc(pic(v))}" alt="">` : '';
+  if (thumb) thumb.innerHTML = /^https?:\/\/\S+$/i.test(v) ? `<img src="${esc(pic(v))}" alt="" decoding="async">` : '';
 });
 
 /* ---------- YOUR PICTURE, CHOSEN RATHER THAN LINKED ---------------------------------------------
@@ -5228,7 +5228,7 @@ document.addEventListener('change', e => {
        refuses, the line says why and the old picture comes back. The ring comes off the grid for the
        same moment — a photograph is none of the eleven. */
     const face = box.querySelector('.pfp-face');
-    if (face) face.innerHTML = `<img class="pfp-pic" src="${esc(data)}" alt="Your profile picture">`;
+    if (face) face.innerHTML = `<img class="pfp-pic" src="${esc(data)}" alt="Your profile picture" decoding="async">`;
     pfpRing_(box, '');
     return send_({ action: 'savePhoto', name: USER.name, personId: USER.personId, data },
                  { button: btn, where: said, saying: 'Saving…', lock: box })

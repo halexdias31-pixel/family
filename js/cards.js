@@ -729,7 +729,7 @@ function findCard(x) {
             card is spans (`profAvail_`): a cell that is not a control is not marked up as one. */''}
       ${Array.isArray(t.photos) && t.photos.length
         ? `<div class="prof-photos">${t.photos.slice(0, 8).map(u =>
-             `<span class="prof-shot"><img src="${esc(pic(u))}" alt="" loading="lazy"></span>`).join('')}</div>`
+             `<span class="prof-shot"><img src="${esc(pic(u))}" alt="" loading="lazy" decoding="async"></span>`).join('')}</div>`
         : ''}
       ${/* THE THREE ADJECTIVES OFF THE SHEET, AS BOLD WORDS AND NOT CHIPS. Asked for as "the
             adjectives for tutors shouldnt be like google chips. they should be like just bold words to
