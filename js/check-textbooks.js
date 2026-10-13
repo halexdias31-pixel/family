@@ -217,9 +217,19 @@ rows.forEach((r, line) => {
   if (n === 0) {
     if (b.title) fail.push(id + ' has two title pages (chapter 0)');
     b.title = r;
+    /* A BOARD AND A SPEC NAME AN EXAM'S SPECIFICATION, and a book for a key stage that ends in no
+       board's exam has neither. KS2 Maths (docs/history/349) is written to the primary curriculum, not
+       to a board: `Edexcel` or `1MA1` on it would be a wrong fact, and a filled-in guess is the fault
+       this file records under `cost: 0`. So below GCSE the two may be blank — and if one is filled,
+       both are, because a board with no spec (or a spec with no board) is half a citation. */
+    const keyStage = /^KS[1-3]$/i.test(String(r.level || '').trim());
     ['title', 'summary', 'subject', 'level', 'board', 'spec'].forEach(col => {
+      if (keyStage && (col === 'board' || col === 'spec')) return;
       if (!String(r[col] || '').trim()) fail.push(id + "'s title page has no " + col);
     });
+    if (keyStage && !String(r.board || '').trim() !== !String(r.spec || '').trim()) {
+      fail.push(id + "'s title page names a " + (String(r.board || '').trim() ? 'board and no spec' : 'spec and no board') + ' — both, or neither for a key stage that sits no board\'s exam');
+    }
     const subj = String(r.subject || '').trim(), lvl = String(r.level || '').trim();
     if (subj && SUBJECTS && !SUBJECTS.has(subj)) fail.push(id + ' has subject "' + subj + '", which SUBJECT_BUCKET does not place — one unplaced subject stands the whole Subject grouping down');
     if (lvl && LEVELS && !LEVELS.has(lvl)) fail.push(id + ' has level "' + lvl + '", which LEVEL_BUCKET does not place');
