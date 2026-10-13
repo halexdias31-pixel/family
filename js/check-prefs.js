@@ -122,7 +122,7 @@ const DIRECT = {
   'doPost:forgotPin':  { essential: 'access', why: 'a new PIN, or a child\'s, to the proved grown-ups' },
   'doPost:makeChild':  { essential: 'access', why: 'the only written copy of the child\'s sign-in handle' },
   sendInvite:          { asks: 'bookings', in: 'sendInvite', why: 'an invitation typed for an address that is already a member' },
-  digestMail_:         { asks: 'weekly', in: 'digestPlan_', why: 'the Sunday email: `digestPlan_` drops a parent who said no before anything is rendered' },
+  digestMail_:         { asks: 'weekly', in: 'digestReach_', why: 'the Sunday email: `digestReach_`, which `digestPlan_` asks for every learner (and `checkSundayEmail` too, since 12 Oct), drops a parent who said no before anything is rendered' },
 };
 /* ---------- AND EVERY `notify(` CALL, PINNED TO THE KIND IT WAS DECIDED TO BE ----------------------------
    READ FOR MEMBERSHIP ONLY, the kind was "some kind in the table", and only one real sender per optional
