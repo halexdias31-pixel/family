@@ -13414,6 +13414,16 @@ function stuffFind(items, credits) {
      THEY ARE WRITTEN AGAIN ANYWAY, because the key below needs them stated rather than implied: it
      is built from the fields, and a key that leans on a number happening to be inside a name is a
      key that breaks the day a name changes. This is an intent made explicit, not a bug fixed. */
+  /* THE CARDS A SEARCH NAMES, FIRST — see the note over `sortKey_`. Their own order kept, and the rest's. */
+  const words = stuffWords_(STUFF.q);
+  if (words.length) {
+    const named = x => x.kind === 'content' && (() => {
+      const hay = norm([x.name, (x.row && x.row.topics) || x.topics].filter(Boolean).join(" "));
+      return words.every(w => hay.indexOf(w) !== -1);
+    })();
+    const lead = out.filter(named);
+    if (lead.length) out = lead.concat(out.filter(x => !named(x)));
+  }
   return out;
 }
 /* THE NARROWING ITSELF, split out of `stuffFind` so `stuffFiltered` can run it over the list it
@@ -13538,16 +13548,21 @@ function stuffSorted_(items) {
    there), because "ix" sorted before "v" and part 10 before part 2 on letters, and the obvious fix --
    numerals by value everywhere -- puts h, i, j out of order. Anything that is not a question has no
    key and falls through to the letters, as it always did. */
-/* ---------- A CONTENT CARD COMES FIRST, AND THE CARDS IN THE ORDER THEY TEACH -----------------------
+/* ---------- CONTENT CARDS AFTER THE REST, IN THE ORDER THEY TEACH — AND FIRST ONLY WHEN THEY ARE ASKED FOR
    *"begin adding topic tags so students can immediately find what they need"* — the owner, 12 Oct. The
    order here is the alphabet of a paper's name, and a card's `Maths · GCSE` filed it among the papers:
-   typing `histograms` put the Histograms card at hit 32 of 47, under thirty past-paper parts. So a
-   content card leads any list it is in — the reading, then the questions on it — and the cards keep the
-   file's own order among themselves (the book's id, then the number), which is the order they teach in;
-   their names' alphabet would have put Averages before The statistical enquiry cycle. Every other
+   typing `histograms` put the Histograms card at hit 32 of 47, under thirty past-paper parts.
+   THE FIRST ANSWER WAS "A CONTENT CARD LEADS ANY LIST IT IS IN", and Find is where the questions are
+   done: Maths · GCSE then opened on thirty-six cards of reading before its first question, and a search
+   for `work out` — words in every worked example — put a page of cards over every question it found
+   (check/press.js's results state, 13 Oct). So in a list a card comes AFTER everything else, in the
+   file's own order among themselves (the book's id, then the number — the order they teach in; their
+   names' alphabet would put Averages before The statistical enquiry cycle), and `stuffFind` lifts to the
+   front only the cards a typed search NAMES: every word in the card's title or its topics, so
+   `histograms` and `surds` lead with their card and `work out` leads with the questions. Every other
    item's key gains the same leading `1`, so their order among themselves is exactly what it was. */
 const sortKey_ = x => [
-  x.kind === 'content' ? '0' + String((x.row && x.row.bookId) || '') + '\u0000' + padNums_(String((x.row && x.row.n) || 0)) : '1',
+  x.kind === 'content' ? '2' + String((x.row && x.row.bookId) || '') + '\u0000' + padNums_(String((x.row && x.row.n) || 0)) : '1',
   padNums_(String(x.sub || x.name || '').toLowerCase()),
   x.kind === 'question' ? String(paperIdOf_(x.row) || '').toLowerCase() : '',
   padNums_(String(x.qNumber == null ? '' : x.qNumber)),

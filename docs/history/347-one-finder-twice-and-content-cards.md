@@ -308,3 +308,14 @@ and `check-anims.js` anchors each animation directly under its chapter row. `che
 - **And one that stayed green**: `topics` taken off the item. `topicOf_` reads the row's cell first and the
   item's only as a fallback, so the item's copy is the shape every mapper writes (practicals and projects
   too) and not what the Topic answer reads; the mutation that proves the tags is the data one above.
+
+### After the checks of 13 Oct: Find opens on a question; a card leads only when a search names it
+
+Part 2 put every content card at the head of any list it was in. On Find — where the questions are done —
+Maths · GCSE then opened on thirty-six cards of reading before its first question, and check/press.js's
+"results" state (a search for `work out`) found no question card on the first page, because those words are
+in every worked example. So a card now sorts AFTER everything else, in teaching order among the cards, and
+`stuffFind` lifts to the front only the cards a typed search names — every word in the card's title or its
+topics. `histograms`, `surds` and `pythagoras' theorem` still lead with their card (the owner's test, both
+finders); a browse and `work out` lead with a question. The owner's-test journey asks both, and each half
+went red when its rule was taken out (content first again: 10 failures; no lift: 8), green after.
