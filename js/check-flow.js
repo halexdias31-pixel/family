@@ -20667,6 +20667,14 @@ check('the owner\'s test, on Find and Find 2: Maths · GCSE · Topic Surds, Pyth
       if (at < 0) bad.push(name + ': typing "' + T.toLowerCase() + '" under Maths · GCSE does not find the ' + T + ' card');
       else if (at >= 10) bad.push(name + ': typing "' + T.toLowerCase() + '" puts the ' + T + ' card at hit ' + (at + 1) + ' of ' + hits.length + ' — not beside the questions, 10 down at most');
       if (!qs) bad.push(name + ': typing "' + T.toLowerCase() + '" under Maths · GCSE finds no question tagged ' + T + ' — the card is not beside anything');
+      /* AND FIND STAYS A PLACE TO DO QUESTIONS: a browse, or words in every worked example, opens on a
+         question, not on a page of reading (13 Oct — the note over `sortKey_`). */
+      st.q = '';
+      const browse = V.stuffFiltered();
+      if (browse.length && browse[0].kind === 'content') bad.push(name + ': Maths · GCSE with no words opens on a content card, "' + browse[0].name + '", not a question');
+      st.q = 'work out';
+      const worked = V.stuffFiltered();
+      if (worked.length && worked[0].kind === 'content') bad.push(name + ': typing "work out" under Maths · GCSE leads with a content card, "' + worked[0].name + '" — words in its worked lines, not its title or topics');
       st.q = ''; st.filters.length = 0;
     });
   });
