@@ -611,39 +611,9 @@ function ansRefresh_(keys) {
       const k = pad.getAttribute('data-k');
       if (has(k) && typeof padRepaint_ === 'function') padRepaint_(pad, padRead_(k));
     });
-    /* ---------- AND A CARD WITH TWO FACES, ASKED AGAIN WHICH ONE IT SHOWS (docs/history/337, after review) -----
-       THE LOOP ABOVE REPAINTS A PEN THAT IS ON THE SCREEN, and a card on its BOX has none. Since every pen
-       moved onto its card (11 Oct) that is how most cards are, so a drawing pulled from the account under a
-       card on its box -- made on the tutor's iPad, `answersPull_` on coming back to the app -- was shown
-       nowhere, and its tile went on saying "Draw · on the figure" over it: the empty box over the child's
-       work that 327's note exists to prevent. Before, the figure page's pen was a swipe away and was
-       repainted by the loop above at once. (327's 62 surfaces had the same hole from the day they moved.)
-       So every card on the screen with a Draw tile whose drawing or typed answer is among these keys is
-       asked `padFace_` again -- a drawing and nothing typed opens on the drawing; a `Type` chosen over an
-       older drawing gives way to a newer one -- and a face that changed is turned where it stands, every
-       copy, no repaint (`padFaceRedraw_`); one that did not has its tile say again what the face you cannot
-       see holds. NEVER UNDER THE KEYPAD: a box being typed into is not taken away from the finger typing in
-       it; its tile still says "has a drawing".
-       NOR FROM UNDER THE PEN, and that one is not decided here: a pen switched on over the card's drawing
-       holds the drawing in `padFace_` itself (find.js), so this asks it, finds "draw" where "draw" is shown,
-       and only says the tile again -- "Type · has an answer". The second review of 337 found this block
-       turning such a card to its box from under the pen; a guard here alone left the next repaint to do
-       the same, and the rule is the face's, which every repaint asks. */
-    if (typeof padFace_ === 'function' && typeof stuffItemsAll_ === 'function') {
-      const on = new Set();
-      document.querySelectorAll('.q-drawt[data-key]').forEach(b => on.add(b.getAttribute('data-key')));
-      if (on.size) stuffItemsAll_().forEach(x => {
-        if (!x || !on.has(x.key)) return;
-        on.delete(x.key);
-        if (!has(padKey_(x)) && !has(ansKey_(x))) return;
-        const area = [].find.call(document.querySelectorAll('.qp-area'), a => a.getAttribute('data-q') === x.key);
-        const shown = area && area.classList.contains('is-draw') ? 'draw' : 'type';
-        const typing = typeof KP_AT !== 'undefined' && KP_AT && KP_AT.getAttribute('data-k') === ansKey_(x);
-        if (area && !typing && padFace_(x) !== shown) { padFaceRedraw_(x); return; }
-        const face = padFaceTile_(x, shown);
-        document.querySelectorAll('.q-drawt').forEach(b => { if (b.getAttribute('data-key') === x.key) tileSet_(b, face); });
-      });
-    }
+    /* `padFace_` WAS ASKED AGAIN HERE for every card with a `Draw` tile (337): a drawing pulled under a card
+       on its box was shown nowhere. There is no box face now -- a question answered by drawing is drawn on
+       its card (356) -- so the loop above, which repaints every pen on the screen, is every drawing. */
     document.querySelectorAll('[data-circ]').forEach(h => {
       const k = h.getAttribute('data-circ');
       if (!has(k) || typeof circRead_ !== 'function') return;

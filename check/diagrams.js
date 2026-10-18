@@ -204,11 +204,12 @@ function serve() {
 const faceCss = () => (FACE ? '<style>figure svg text, figure svg tspan { font-family: '
   + JSON.stringify(FACE) + ' !important; }</style>' : '');
 /* THE CARD A FIGURE IS DRAWN ON, with the classes the app gives it, so the stylesheet under test is
-   the one deciding how wide the drawing is and what size its labels are. */
+   the one deciding how wide the drawing is and what size its labels are. A question's figure is in its
+   question's card, inside `.qsheet-pb` among the words (`figHtml_`; docs/history/356) -- no `.qfig` page. */
 function cardHtml(d, i) {
   return d.wrap === 'gd'
     ? `<div class="card fc prac prac-part is-fig" data-i="${i}"><div class="gd"><figure>${d.svg}</figure></div></div>`
-    : `<div class="qcard qfig" data-i="${i}"><div class="qsheet"><figure>${d.svg}</figure></div></div>`;
+    : `<div class="qcard" data-i="${i}"><div class="qsheet"><div class="qsheet-part"><div class="qsheet-pb"><figure>${d.svg}</figure></div></div></div></div>`;
 }
 
 /* ==================================================================================================

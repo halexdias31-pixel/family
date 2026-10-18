@@ -1930,12 +1930,10 @@ console.log(`papers saying whether a calculator is allowed: ${saysCalc} of ${doc
    tutoring from it -- so a drawing question with no picture gets a SURFACE under the pen (squared
    paper, axes, a blank space) or, for "circle the words in the passage", its own passage to tap
    (`padSurface_` in find.js, cut out below by name so this count is the app's rule and not a copy of
-   it). The surface says under it -- on the card, as the answer box's other face since 327 -- that it is
-   not the paper's figure, which is the answer to the
-   old objection that a grid with no triangle T dresses one question up as another. (The paper's own
-   figure under a pen is the card's other face too since 337, credited as the paper's; its figure page
-   is a picture to look at.) The count below says how many stand on each, so the backlog of real
-   figures is still a number. */
+   it). The surface stands where the box would on the card, and the paper's own figure under a pen
+   stands among the question's words (docs/history/356) -- one answer, drawn, with no switch to a box
+   (a box beside it only where `accept` has a value to mark). The count below says how many stand on
+   each, so the backlog of real figures is still a number. */
 const preDiag_ = {};
 rows.forEach(r => {
   if (!r || r.kind !== 'preamble' || !r.diagram) return;
@@ -2104,7 +2102,7 @@ rows.forEach(r => {
 });
 const notDrawn = rows.filter(r => {
   if (!r || r.kind !== 'question') return false;
-  /* A `uses` PART'S FIGURE IS THE CHILD'S OWN DRAWING, shown on its `use` page -- `figMissing_` says
+  /* A `uses` PART'S FIGURE IS THE CHILD'S OWN DRAWING, shown in its card (`usesBlock_`) -- `figMissing_` says
      the same, and a ledger that counted it would be a backlog nobody can ever draw down. */
   if (r.uses !== undefined && r.uses !== null && String(r.uses).trim() !== '') return false;
   if (padSurface_({ answerType: String(r.answer_type || '').trim().toLowerCase(), surface: r.surface, figure: r.figure, row: r })) return false;
@@ -2112,7 +2110,7 @@ const notDrawn = rows.filter(r => {
     || (r.section && picAt_['s|' + r.paper_id + '|' + r.section]) || picAt_['p|' + r.paper_id];
   return figWanted_(String(r.lead || '') + ' ' + String(r.html || ''), !!figured);
 });
-console.log(`parts naming a figure nobody has drawn yet (a "not drawn yet" page each): ${notDrawn.length}`
+console.log(`parts naming a figure nobody has drawn yet ("Figure not drawn yet." in the first card of each run): ${notDrawn.length}`
   + `   (ceiling ${NOT_DRAWN_MAX})`);
 if (notDrawn.length > NOT_DRAWN_MAX) {
   const why = `${notDrawn.length - NOT_DRAWN_MAX} more part(s) name a figure nobody has drawn than the ${NOT_DRAWN_MAX} `

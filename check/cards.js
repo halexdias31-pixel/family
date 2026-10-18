@@ -115,36 +115,28 @@ function cardHtml(r, stems) {
                r.section ? at('section', r.paper_id + '|' + r.section) : null,
                (r.question !== undefined && r.question !== null && r.question !== '')
                  ? at('question', r.paper_id + '|' + r.question) : null].filter(Boolean);
-  /* ---------- AND THE FIGURE ON A CARD OF ITS OWN, AFTER IT -------------------------------------
-     "Across the board of all resources the diagrams should be its own widgets" — so the question card
-     carries the words and the answer, and every picture it hangs from is the next page, which is
-     `questionFigCard_` in find.js. The same split here, or this measures a card nobody draws. */
+  /* ---------- AND THE FIGURE IN ITS CARD (docs/history/356) ------------------------------------------
+     A figure is drawn in the card of the question that uses it, among its words -- `partPlan_` and
+     `figHtml_` in find.js -- and a stem's on the stem's page. The same here, or this measures a card
+     nobody draws. Where among the words does not change a width, so it stands in front of them. */
   const pics = v => (Array.isArray(v) ? v : String(v || '').split(',').map(x => x.trim()).filter(Boolean))
     .map(src => `<figure class="qpic"><img src="${src}" alt=""></figure>`).join('');
-  /* AND IN THE PAPER'S ORDER NOW -- each stem its own card, its figure the card after it, then the
-     part and the part's own figure (`pageParts_` in find.js). A figure's header is its name, never a
-     question number. */
+  /* AND IN THE PAPER'S ORDER -- each stem its own card with its figure, then the part with its own. */
   const figs = fig(r.diagram) + pics(r.images);
   /* ---------- THE ROW, FROM THE APP: `tagRow_`'s own markup for this row (see `TAGROWS`). ---------- */
   const head = which => (TAGROWS[r.row_id] || {})[which] || '<div class="qtags qcard-tags"></div>';
   const stemCards = pre.map(p => (p.html ? `<div class="qcard qstem" data-row="${p.row_id}#stem">
     ${head('other')}
     <div class="qsheet"><div class="qsheet-stem${String(p.placeholder) === 'True' ? ' is-standin' : ''}"
-        >${typeset_(p.html)}</div></div>
-  </div>` : '') + ((p.diagram || p.images) ? `<div class="qcard qfig" data-row="${p.row_id}#sfig">
-    ${head('other')}
-    <div class="qsheet">${fig(p.diagram) + pics(p.images)}</div>
+        >${typeset_(p.html)}${fig(p.diagram) + pics(p.images)}</div></div>
   </div>` : '')).join('');
   return `${stemCards}<div class="qcard" data-row="${r.row_id}">
     ${head('card')}
     <div class="qsheet">
       ${r.lead ? `<div class="qsheet-lead">${typeset_(r.lead)}</div>` : ''}
-      <div class="qsheet-part"><div class="qsheet-pb">${typeset_(r.html)}</div></div>
+      <div class="qsheet-part"><div class="qsheet-pb">${figs}${typeset_(r.html)}</div></div>
     </div>
-  </div>${figs ? `<div class="qcard qfig" data-row="${r.row_id}#fig">
-    ${head('other')}
-    <div class="qsheet">${figs}</div>
-  </div>` : ''}`;
+  </div>`;
 }
 
 /* ---------- ONE SET OF RULES, ASKED OF TWO SETS OF CARDS ------------------------------------------
@@ -278,7 +270,7 @@ function outside(svg, row) {
   TAGROWS = await pracPage.evaluate(() => {
     if (typeof stuffItems !== 'function' || typeof tagRow_ !== 'function') return null;
     const out = {};
-    stuffItems().forEach(x => { if (x.kind === 'question' && x.row) out[x.row.row_id] = { card: tagRow_(x), other: tagRow_(x, 'fig') }; });
+    stuffItems().forEach(x => { if (x.kind === 'question' && x.row) out[x.row.row_id] = { card: tagRow_(x), other: tagRow_(x, 'stem0') }; });
     return out;
   });
   if (!TAGROWS || !Object.keys(TAGROWS).length) {
@@ -495,10 +487,11 @@ function outside(svg, row) {
       document.body.appendChild(host);
       const cap = parseFloat(getComputedStyle(host.querySelector('.pane')).maxHeight);
       const tall = [], kinds = {};
-      /* ---------- NO PICTURE ON A QUESTION CARD, AND EVERY PICTURE ON A FIGURE PAGE ----------------
-         "Across the board of all resources the diagrams should be its own widgets." Asked of the
-         app's own builders, because a figure left inline measures perfectly. And *"diagram widgets
-         shouldn't have a question number on them"*: a figure page's header is asked for one. */
+      /* ---------- EVERY PICTURE IN ITS QUESTION'S CARD, AND NO FIGURE PAGE (docs/history/356) ------------
+         The rule FLIPPED on the owner's 18 Oct word (*"there's also like a graph widget below"*): it was
+         "no picture on a question card, every picture on a figure page" (204). Asked of the app's own
+         builders: no page of the strip is a figure page, none says "Figure on the next page", and a
+         question with a figure has it in one of its own pages. */
       const inline = [];
       const pages = [];
       items.forEach((x, i) => {
@@ -512,7 +505,9 @@ function outside(svg, row) {
            the question card" the day Check got its tick. The marks come out first, by the class
            `tileIcon_` gives every one; any other drawing on the card is still a picture. */
         const qPic = q.replace(/<svg class="tile-i[\s\S]*?<\/svg>/g, '');
-        if (/<svg|class="qpad["\s]|class="qpic/.test(qPic)) inline.push(x.row.row_id + ' draws a picture on the question card');
+        const own = x.diagram && !(typeof padSource_ === 'function' && padSource_(x) && padSource_(x).from === 'surface');
+        if (own && !/<svg/.test(qPic) && !pageParts_(x, items[i - 1]).some(p => p && /<svg/.test(stuffPart_(x, p)))) inline.push(x.row.row_id + ' has a figure and none of its pages draws it');
+        if (/on the next page/.test(q) && /Figure on the next page/.test(q)) inline.push(x.row.row_id + ' points at a figure on another page');
         if (/class="qsheet-stem/.test(q)) inline.push(x.row.row_id + ' prints its stem on the part\'s card');
         if (/class="qans|qans-body/.test(q)) inline.push(x.row.row_id + ' draws its answer on the question card');
         if (typeof questionHasAns_ === 'function' && questionHasAns_(x)
@@ -539,12 +534,7 @@ function outside(svg, row) {
           const k = el.dataset.kind;
           kinds[k] = kinds[k] || { n: 0, tall: 0 };
           kinds[k].n++;
-          if ((k === 'fig' || k === 'sfig') && !el.querySelector('svg, .qpic, img')) {
-            inline.push(el.dataset.row + ' is a figure page that draws no picture');
-          }
-          /* A FIGURE PAGE WEARS ITS PART'S OWN ROW since 18 Oct (355) -- [Q3] included -- so its number is
-             no fault; that it HAS a row is still asked. */
-          if ((k === 'fig' || k === 'sfig') && !el.querySelector('.qcard-tags')) inline.push(el.dataset.row + ' is a figure page with no tag row');
+          if (/^(fig|sfig|use|nofig)$/.test(k)) inline.push(el.dataset.row + ' is a figure page -- a figure is in its card');
           const h = el.getBoundingClientRect().height;
           if (h > cap) { kinds[k].tall++; tall.push({ row: el.dataset.row, kind: k, px: Math.round(h - cap) }); }
         });
@@ -768,7 +758,7 @@ function outside(svg, row) {
   const inline = (qtall === -1 ? ['questionCard_ could not be reached, so where the pictures are was NOT checked']
                                : qtall.inline);
   if (inline.length) {
-    console.log('\nA PICTURE NOT ON ITS OWN FIGURE PAGE  (' + inline.length + ')');
+    console.log('\nA PICTURE NOT IN ITS QUESTION\'S CARD, OR A FIGURE PAGE  (' + inline.length + ')');
     inline.slice(0, 10).forEach(l => console.log('  ' + l));
     if (inline.length > 10) console.log('  … and ' + (inline.length - 10) + ' more');
   }
@@ -780,7 +770,7 @@ function outside(svg, row) {
     console.log('\nOK — every question, every practical and every guide fits the WIDTH of the\n'
               + '     narrowest phone, and every label in every drawing is inside the drawing.'
               + '\n     The picture of a practical comes before the things it is made of, once each,'
-              + '\n     and every question\'s picture is on its own figure page, none on the card.'
+              + '\n     and every question\'s picture is in one of its own cards, with no figure page.'
               + '\n     Every card is measured with the app\'s own tag row (tagRow_), on '
               + Object.keys(TAGROWS).length + ' questions.'
               /* IT SAID "every practical card fits the pane it is drawn in" AND 77 OF 82 DO NOT.

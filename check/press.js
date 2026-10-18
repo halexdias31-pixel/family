@@ -1292,10 +1292,8 @@ for (const who of VISITORS) {
       const PEN_PAPER = 'RS1786302107764-481';         // May 2017 Foundation, Q6(i): annotate a scale
       const PEN_ROW = 'Q-1MA1-1706-1F-6i';
       /* ---------- ITS CARD, AND THE SCALE THROUGH THE CARD'S OWN `Draw`, TOUCHED -------------------------
-         THIS TURNED TO THE FIGURE PAGE, where the pen was. Since 11 Oct the pen is the card's other face for
-         the paper's own figures too (docs/history/337) and the figure page is a picture with no pen, so the
-         card is opened on its box and its `Draw` tile is touched as a finger touches it -- a real tap, for
-         `PRESS_MOVED`'s reason below -- and the five gestures are asked of the face that comes up. */
+         THE PEN IS IN THE CARD, over the figure among its words (docs/history/356): no face to turn to, so the
+         card is opened and the five gestures are asked of the pad on it. */
       const draw = await page.evaluate(async a => {
         if (typeof stuffFiltered !== 'function') return null;
         go('stuff', false, true);
@@ -1304,17 +1302,12 @@ for (const who of VISITORS) {
         await new Promise(r => setTimeout(r, 500));
         const hit = stuffFiltered().find(x => x.row && x.row.row_id === a.row);
         if (!hit) return null;
-        padFaceSet_(padKey_(hit), 'type');
         goPage('stuff', stuffPageOf_(hit) + stuffFirstResult_(), true);
-        window.__penSel = '#s-stuff .qp-area.is-draw .qpad[data-k="' + padKey_(hit) + '"]';
+        window.__penSel = '#s-stuff .qcard .qpad[data-k="' + padKey_(hit) + '"]';
         window.__penKey = hit.key;
         await new Promise(r => setTimeout(r, 650));
-        const t = [...document.querySelectorAll('#s-stuff .page.on .q-drawt')].find(b => b.getAttribute('data-key') === hit.key);
-        if (!t) return null;
-        const r = t.getBoundingClientRect();
-        return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
+        return document.querySelector(window.__penSel) ? { on: true } : null;
       }, { paper: PEN_PAPER, row: PEN_ROW });
-      if (draw) { await touch(draw.x, draw.y, 0, 0); await page.waitForTimeout(450); }
       const box = !draw ? null : await page.evaluate(async () => {
         /* ---------- `.qpad-lock`, BECAUSE THE PICTURE CARRIES THE SAME ACTION NOW ------------
            THIS WAS `[data-do="pad-draw"]` AND IT STOPPED BEING UNAMBIGUOUS. `padWrap_` puts the
@@ -1429,7 +1422,7 @@ for (const who of VISITORS) {
         }
       }
       /* THE CARD BACK ON ITS BOX FOR WHATEVER IS PRESSED NEXT, and nothing of this one left on the device. */
-      await page.evaluate(() => { try { padFaceForget_(); } catch (e) {} go('stuff', false, true); });
+      await page.evaluate(() => { go('stuff', false, true); });
     }
 
     /* ==================================================================================================
@@ -1671,78 +1664,44 @@ for (const who of VISITORS) {
         await tp.waitForTimeout(520);
       };
       for (const id of ['Q-1CM-transformations-of-graphs-8', 'Q-1MA1-2406-1F-7', 'Q-1MA1-2406-1F-11c']) {
-        const W_ = 'stuff · ' + id + ' switched to its drawing at ' + sw + 'x' + sh;
-        /* ITS CARD, ON ITS BOX, AND ITS `Draw` WHERE A FINGER CAN SEE IT -- a box face too tall for a short pane
-           scrolls, and a child scrolls to the tile before pressing it. */
-        const t = await tp.evaluate(async id => {
+        const W_ = 'stuff · ' + id + ' on its card at ' + sw + 'x' + sh;
+        /* ITS CARD, WITH THE PEN ON IT (356): no Draw to touch, the pad is the answer. */
+        const m = await tp.evaluate(async id => {
           const it = stuffItemsAll_().find(x => x.row && x.row.row_id === id);
           if (!it || !padSource_(it)) return { err: 'not in the library, or no pen' };
-          window.__side = it;
           go('stuff', false, true);
-          padFaceSet_(padKey_(it), 'type');
           STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: FACETS.find(f => f.field === 'paperId').of(it) }];
           paintStuff(true);
           goPage('stuff', stuffFirstResult_() + stuffPageOf_(it), true);
-          let tile = null;
-          for (let i = 0; i < 60 && !tile; i++) {
+          let pad = null;
+          for (let i = 0; i < 60 && !pad; i++) {
             await new Promise(r => setTimeout(r, 100));
-            tile = [...document.querySelectorAll('#s-stuff .page.on .q-drawt')].find(b => b.getAttribute('data-key') === it.key) || null;
+            pad = [...document.querySelectorAll('#s-stuff .page.on .qcard .qpad')].find(p => p.getAttribute('data-k') === padKey_(it)) || null;
           }
-          if (!tile) return { err: 'no Draw tile on its card' };
+          if (!pad) return { err: 'no pen on its card' };
           await new Promise(r => setTimeout(r, 400));
-          const pane = tile.closest('.pane');
-          const below = tile.getBoundingClientRect().bottom - pane.getBoundingClientRect().bottom;
-          if (below > 0) { pane.scrollTop += below + 8; await new Promise(r => setTimeout(r, 120)); }
-          const r = tile.getBoundingClientRect();
-          return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
-        }, id);
-        if (t.err) { swipes.push({ from: W_, dir: 'tap Draw', ok: false, got: t.err, want: 'its card with a Draw tile' }); continue; }
-        await tap(t.x, t.y);
-        await tp.waitForTimeout(300);
-        const m = await tp.evaluate(() => {
-          const it = window.__side;
-          const area = [...document.querySelectorAll('#s-stuff .page.on .qp-area')].find(a => a.getAttribute('data-q') === it.key);
-          if (!area || !area.classList.contains('is-draw')) return { err: 'touching Draw did not turn the card' };
-          const pane = area.closest('.pane');
-          const art = area.querySelector('.qpad-art > svg:first-child');
-          const tile = [...area.closest('.page').querySelectorAll('.q-drawt')].find(b => b.getAttribute('data-key') === it.key);
+          const pane = pad.closest('.pane');
+          const art = pad.querySelector('.qpad-art > svg:first-child');
           const was = art.style.width; art.style.width = '';
           const nat = art.getBoundingClientRect().width; art.style.width = was;
           const side = e => { const r = e.getBoundingClientRect(); return Math.min(r.width, r.height); };
-          const taps = [...area.querySelectorAll('.qpad-bar [data-do]')].concat(tile ? [tile] : []);
+          const taps = [...pad.querySelectorAll('.qpad-bar [data-do]')];
           const pr = pane.getBoundingClientRect(), fr = art.getBoundingClientRect();
-          const ir = area.querySelector('.qpad-ink').getBoundingClientRect();
-          const out = { w: Math.round(fr.width), nat: Math.round(nat), small: Math.round(Math.min(...taps.map(side)) * 10) / 10,
-                        inkOff: Math.round(Math.max(Math.abs(ir.left - fr.left), Math.abs(ir.top - fr.top), Math.abs(ir.width - fr.width), Math.abs(ir.height - fr.height))),
-                        whole: [...pane.children].some(k => !!k.style.zoom), top: Math.round(fr.top - pr.top),
-                        topIn: fr.top >= pr.top - 0.5 && fr.top < pr.bottom,
-                        over: pane.scrollHeight - pane.clientHeight, scrolls: getComputedStyle(pane).overflowY === 'auto' };
-          /* AND THE FOOT: `Type` reached by scrolling, as a finger beside the picture would. */
-          pane.scrollTop = pane.scrollHeight;
-          const tr = tile ? tile.getBoundingClientRect() : null, pr2 = pane.getBoundingClientRect();
-          const hit = tr && document.elementFromPoint(tr.left + tr.width / 2, tr.top + tr.height / 2);
-          out.typeIn = !!tr && tr.top >= pr2.top - 0.5 && tr.bottom <= pr2.bottom + 0.5 && !!hit && tile.contains(hit);
-          if (tr) { out.tx = Math.round(tr.left + tr.width / 2); out.ty = Math.round(tr.top + tr.height / 2); }
-          return out;
-        });
-        if (m.err) { swipes.push({ from: W_, dir: 'tap Draw', ok: false, got: m.err, want: 'the card on its drawing' }); continue; }
-        let back = false;
-        if (m.typeIn) {
-          await tap(m.tx, m.ty);
-          back = await tp.evaluate(() => {
-            const a = [...document.querySelectorAll('#s-stuff .page.on .qp-area')].find(e => e.getAttribute('data-q') === window.__side.key);
-            return !!a && !a.classList.contains('is-draw') && !!a.querySelector('.qp-ans');
-          });
-        }
+          const ir = pad.querySelector('.qpad-ink').getBoundingClientRect();
+          return { w: Math.round(fr.width), nat: Math.round(nat), small: Math.round(Math.min(...taps.map(side)) * 10) / 10,
+                   inkOff: Math.round(Math.max(Math.abs(ir.left - fr.left), Math.abs(ir.top - fr.top), Math.abs(ir.width - fr.width), Math.abs(ir.height - fr.height))),
+                   whole: [...pane.children].some(k => !!k.style.zoom), top: Math.round(fr.top - pr.top),
+                   topIn: fr.top >= pr.top - 0.5 && fr.top < pr.bottom,
+                   over: pane.scrollHeight - pane.clientHeight, scrolls: getComputedStyle(pane).overflowY === 'auto' };
+        }, id);
+        if (m.err) { swipes.push({ from: W_, dir: 'open', ok: false, got: m.err, want: 'its card with the pen on it' }); continue; }
         const floor = Math.min(180, m.nat);
-        swipes.push({ from: W_, dir: 'tap Draw, then Type', ok: m.w >= floor - 0.5 && m.inkOff <= 1 && m.small >= 43.5 && !m.whole && m.topIn
-                        && (m.over <= 2 || m.scrolls) && m.typeIn && back,
+        swipes.push({ from: W_, dir: 'open', ok: m.w >= floor - 0.5 && m.inkOff <= 1 && m.small >= 43.5 && !m.whole && m.topIn && (m.over <= 2 || m.scrolls),
                       got: 'the picture ' + m.w + 'px wide (its own ' + m.nat + 'px)' + (m.inkOff > 1 ? ', the ink ' + m.inkOff + 'px off it' : ', the ink over it') + ', the smallest tile ' + m.small + 'px'
                            + (m.whole ? ', the card drawn smaller whole' : '') + ', its top ' + m.top + 'px into the pane'
-                           + (m.over > 2 ? ', the card ' + m.over + 'px over and ' + (m.scrolls ? 'scrolling' : 'NOT scrolling') : '')
-                           + (m.typeIn ? (back ? ', Type at the foot brought the box back' : ', Type at the foot did not bring the box back') : ', Type not reachable at the foot'),
-                      want: 'the picture at least ' + floor + 'px wide with the ink over it, every tile 44px, its top in the pane as it opens, and Type at the foot bringing the box back' });
-        await tp.evaluate(() => { try { padFaceForget_(); } catch (e) {} STUFF.filters = []; paintStuff(true); });
+                           + (m.over > 2 ? ', the card ' + m.over + 'px over and ' + (m.scrolls ? 'scrolling' : 'NOT scrolling') : ''),
+                      want: 'the picture at least ' + floor + 'px wide with the ink over it, every tile 44px, nothing drawn smaller whole, its top in the pane, and the card scrolling if it does not fit' });
+        await tp.evaluate(() => { STUFF.filters = []; paintStuff(true); });
       }
       await ctx.close();
     }
@@ -1919,20 +1878,21 @@ for (const who of VISITORS) {
           };
           for (let i = 0; i < pages.length; i++) look(i);
           for (let i = pages.length - 1; i >= 0; i--) look(i);
-          const items = pages, figs = pages.filter(pg => pg.part === 'fig' || /^sfig/.test(pg.part || '')).length;
+          /* NO FIGURE PAGE (356): a figure is in its question's card, so the count of them is 0. */
+          const items = pages, figs = pages.filter(pg => /^(fig|sfig\d+|use|nofig)$/.test(pg.part || '')).length;
           const stems = pages.filter(pg => /^stem/.test(pg.part || '')).length;
           const answers = pages.filter(pg => pg.part === 'ans').length;
           return { n: items.length, figs: figs, answers: answers, stems: stems, bad: out.slice(0, 4), count: out.length,
                    held: document.querySelectorAll('#s-stuff > .page').length };
         });
-        walk.push({ from: 'stuff, ' + bad.n + ' pages (' + bad.figs + ' of them figures, ' + bad.stems
+        walk.push({ from: 'stuff, ' + bad.n + ' pages (' + bad.figs + ' of them figure pages, ' + bad.stems
                           + ' stems, ' + bad.answers + ' answers) over ' + bad.held + ' elements',
-                    dir: 'walk', ok: bad.count === 0 && bad.figs > 0 && bad.answers > 0 && bad.stems > 0,
+                    dir: 'walk', ok: bad.count === 0 && bad.figs === 0 && bad.answers > 0 && bad.stems > 0,
                     got: bad.count ? bad.count + ' wrong, first ' + JSON.stringify(bad.bad[0])
-                         : !bad.figs ? 'no figure page on a paper that has pictures'
+                         : bad.figs ? bad.figs + ' figure page(s) -- a figure is in its card'
                          : !bad.stems ? 'no stem page on a paper whose questions share stems'
                          : !bad.answers ? 'no answer page on a paper that has answers'
-                         : 'every page its own question, figure or answer',
+                         : 'every page its own question, stem or answer',
                     want: 'every page its own question, each figure beside its own words and each answer straight after its question' });
       }
     }

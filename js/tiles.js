@@ -247,13 +247,6 @@ const TILE_ICONS = {
   /* A PULSE, FOR A PAPER'S HEALTH (`healthTiles_` in find.js): a flat line with one beat in it, open
      paths at the row's stroke — the list of what is wrong with the paper is behind it. */
   pulse: '<path d="M1.5 9h4l1.75-4.5 3 8.5 2-4h4.25"/>',
-  /* THE KEYS, FOR `Type` -- the face a question answered by drawing turns back to its box with (`q-draw`
-     in find.js; the owner, 10 Oct: *"just leave it as an answer box like before but theres an option to
-     switch to drawing box"* -- a made-up surface then, and the paper's own figures too since 11 Oct). `pen` is the other face, so this had to say "type" in the same
-     outline: a keyboard, its frame, a row of keys and the space bar, open strokes at the set's 1.4 --
-     the mark for the site's own keypad, which is how a box is typed into here. */
-  type:  '<rect x="1.5" y="4" width="15" height="9.5" rx="1.5"/><path d="M4.5 7h1M8.5 7h1M12.5 7h1"/>'
-       + '<path d="M5.5 10.5h7"/>',
 };
 
 function tileIcon_(name) {
@@ -795,8 +788,8 @@ function cardActions_(x) {
      `ansBox_`, `padWrap_` and `choiceBox_` in find.js. */
   /* AND, WHERE THE QUESTION HAS A FIGURE BEHIND THIS PART AND IT IS ANSWERED BY TAPPING AN OPTION,
      `Figure` -- which opens it over the card. A typed box carries it at its own end instead (`ansBox_`).
-     AND `Draw` / `Type` WHERE IT IS ANSWERED ON A MADE-UP SURFACE -- the box and the drawing are one
-     answer's two faces on the card, and this tile swaps them (`ansArea_` in find.js, docs/history/327). */
+     NO `Draw` / `Type`: a question answered by drawing is drawn on its card, with nothing to switch
+     (`ansArea_` in find.js, docs/history/356). */
   if (x.kind === 'question') return typeof questionTiles_ === 'function' ? questionTiles_(x) : '';
   /* THE `group` TILE WAS HERE — "Open", on a card standing for a whole paper. Collections are gone
      from the funnel (see the note where `collectionAxes_` used to be in find.js): a paper is an

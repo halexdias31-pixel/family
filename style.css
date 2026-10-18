@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-18-z-tags";
+  --css-version: "2026-10-18-z-drawn";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -8429,14 +8429,14 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    a card that was a button. Neither has anything to do: the card is not tappable, because there is
    nothing left to open. */
 .qcard .qsheet { margin-top: .75rem; }
-/* ---------- THE PICTURE IS ON THE NEXT PAGE, AND THE QUESTION NOW SAYS SO ---------------------------
-   "Write down the mathematical name for the type of angle marked y", with no angle anywhere on the
-   card, reads as a question that failed to load. The figure moved to its own card (history 204) and
-   the words it left behind still point at it, so one quiet line says where it went. A label, not a
-   control -- the page turns the way every page does -- and `--faint`, because it is a pointer and not
-   a fact about the question; the facts are the tags at the top. */
-.qsheet-figref { margin: .6rem 0 0; font: 500 .66rem/1.3 var(--font); color: var(--faint);
-                 letter-spacing: .04em; }
+/* ---------- WORDS THAT GO ON OVER THE PAGE SAY SO ---------------------------------------------------
+   A long part or stem is cut between paragraphs (`packBlocks_`), and "Continued on the next page" is one
+   quiet line at the foot of each page but the last: a label, not a control -- the page turns the way every
+   page does -- and `--faint`, because it is a pointer and not a fact about the question. It was
+   `.qsheet-figref`, which said "Figure on the next page" as well until the figure moved into its card
+   (356): a pointer to a picture that is not on the page is the "graph widget below" the owner objected to. */
+.qsheet-more { margin: .6rem 0 0; font: 500 .66rem/1.3 var(--font); color: var(--faint);
+               letter-spacing: .04em; }
 
 /* ---------- THE TYPESETTING, AND IT HAS MOVED TWICE --------------------------------------------
    IT WAS `.qsheet …`, then `.qpaper …`, and it is `.qsheet …` again. Worth writing down, because
@@ -11876,11 +11876,11 @@ button.scr-sq { cursor: pointer; }
    the sheet holds more than one, small and quiet above it -- a caption, not a heading. */
 .qfig-sheet-k { margin: .9rem 0 0; font-size: .85rem; color: var(--dim); }
 .qfig-sheet-k:first-child { margin-top: 0; }
-/* A FIGURE NOBODY HAS DRAWN YET (`questionNoFigCard_`): the space the picture would take, marked out
-   in a dashed rule and saying so -- an outline of the gap rather than a blank page, so it reads as a
-   known hole and not as a figure that failed to load. Screen palette: this is a page of the app, not
-   a stand-in for paper. */
-.qfig-missing { margin: 1rem 0; padding: 2.4rem 1rem; text-align: center; color: var(--dim);
+/* A FIGURE NOBODY HAS DRAWN YET (`figHtml_`): one line in the card where the picture would stand, in a
+   dashed outline -- a known hole, not a figure that failed to load. It was a whole page (`nofig`) until
+   figures moved into their cards (356), so it is a line's height now. Screen palette: this is the app
+   saying something, not a stand-in for paper. */
+.qfig-missing { margin: .75rem 0; padding: .6rem 1rem; text-align: center; color: var(--dim);
   border: 1px dashed var(--line); border-radius: .5rem; }
 .qans-wait-k { margin-left: .5rem; font: 500 .8rem/1.45 var(--font); color: var(--dim); }
 
@@ -11904,48 +11904,33 @@ button.scr-sq { cursor: pointer; }
 .qpad { margin: 1rem 0; }
 .qpad-art { position: relative; display: inline-block; max-width: 100%; line-height: 0; }
 .qpad-art > svg:first-child { width: min(100%, 20rem); height: auto; display: block; }
-/* ---------- WHATEVER THE PEN IS ON, ON THE CARD, IN THE ANSWER BOX'S PLACE ---------------------------------
-   THE OWNER, 10 Oct: *"just leave it as an answer box like before but theres an option to switch to
-   drawing box."* -- and 11 Oct, of the paper's own figures: *"simplest and most uniform"*. `.qp-area` holds
-   one face of the answer -- the box, or the picture under the pen -- and `Draw` in the row under the card
-   swaps them in place (`ansArea_`; docs/history/327, 337). The drawing takes the box's own margins.
-   A MADE-UP SURFACE IS HELD SHORTER THAN ON ITS OLD PAGE: there it had the page to itself; here it shares
-   the screen with the ask, the pen's bar and the row with `Type` in it, and a grid that pushed `Type`
-   under the fold of a 568px phone is a switch you can turn on and then not see to turn off. `svh`, the
-   smallest the screen is, because the bar a browser hides on scroll comes back exactly when a finger is
-   reaching for the row. A square has nothing to read in it, so a cap on its width is a cap on its height.
-   THE PAPER'S OWN FIGURE IS NOT (`svg.qsurf` only): it keeps the figure page's own size, `min(100%,
-   20rem)` above, because it carries labels and grid lines at the paper's scale, and its shape is anything
-   from a 35-unit number line to a graph nearly twice as tall as it is wide -- a width cap in `svh` would
-   shrink a tall one below what anyone reads and leave a flat one exactly where it was, and a `max-height`
-   would letterbox the picture inside its box and put every mark beside the point it was drawn on (the ink
-   is stretched to the box, `padWrap_`). What a card too tall gives up, and in what order, is
-   `padFaceFit_`'s (find.js), with the drawing's own shape. */
-.qp-area.is-draw > .qpad { margin: .9rem 0 .2rem; }
-.qp-area.is-draw .qpad-art > svg.qsurf:first-child { width: min(100%, 20rem, 44svh); }
+/* ---------- A PEN ON A QUESTION'S CARD ------------------------------------------------------------------
+   A QUESTION ANSWERED BY DRAWING IS DRAWN ON ITS CARD (356): its figure under the pen among its words, or a
+   made-up surface where the box would be (`.qp-area`, `ansArea_`). The owner, 18 Oct: *"why would there be
+   an option for text answer in the first place?"* -- so there is no face to switch, and these rules apply to
+   every pen on a card rather than to a face of one. 327's and 337's `.qp-area.is-draw` rules were these
+   under another selector.
+   A MADE-UP SURFACE IS HELD SHORTER THAN THE PAPER'S FIGURES: it shares the screen with the ask and the
+   pen's bar, and a square has nothing to read in it, so a cap on its width is a cap on its height. `svh`,
+   the smallest the screen is, because the bar a browser hides on scroll comes back exactly when a finger
+   is reaching for the row. THE PAPER'S OWN FIGURE IS NOT CAPPED SO (`svg.qsurf` only): it carries labels
+   and grid lines at the paper's scale, and its shape is anything from a 35-unit number line to a graph
+   nearly twice as tall as it is wide -- a `max-height` would letterbox it and put every mark beside the
+   point it was drawn on (the ink is stretched to the box, `padWrap_`). What a card too tall gives up, and
+   in what order, is `cardFigFit_`'s (find.js). */
+.qcard .qpad { margin: .9rem 0 .2rem; font: 400 .62rem/1.4 var(--font); }
+.qp-area .qpad-art > svg.qsurf:first-child { width: min(100%, 20rem, 44svh); }
 /* AND THE PICTURE'S BOX HELD TO IT TOO, OR THE INK IS NOT OVER THE GRID. `.qpad-art` is an inline-block sized by
    what is in it, and a picture whose width is a percentage gives a shrink-to-fit box its default 300px; the
-   ink layer stretches to that box (`padWrap_`). Wherever the `44svh` cap binds -- only where 44% of the
-   screen's height is less than the column's width, a phone on its side -- the grid was drawn 141px wide in a
-   293px box at 568x320: the ink
-   152px wider than the squares, so a mark made sideways was stored against the wrong box and moved when the
-   phone was turned upright. Found by the sweep of 337's review over every pen at 568x320; 327's surfaces
-   had it from the day they moved. Upright the cap never binds and this changes nothing. */
-.qp-area.is-draw .qpad-art:has(> svg.qsurf:first-child) { max-width: min(100%, 20rem, 44svh); }
-/* ONE LINE OF SMALL PRINT UNDER THE BAR. "Saved to Ada's account" is the pad's only footnote now -- the
-   credit that ran on before it went on 18 Oct (355) -- set inline at its own size, so it takes one line of
-   a 568px phone and not a body-line's height; `ansSavedPaint_` still rewrites it to "Not saved" in place.
-   The bar keeps the gap the note's margin used to give. Everything else in `.qpad` sizes itself -- the
-   tiles in px, the picture at `line-height: 0`. */
-.qp-area.is-draw > .qpad { font: 400 .62rem/1.4 var(--font); }
-.qp-area.is-draw .qpad-bar { margin-bottom: .35rem; }
-.qp-area.is-draw .qpad > .qpad-note { display: inline; margin: 0; }
-/* AND "FIGURE ON THE NEXT PAGE" GOES WHILE THE FIGURE IS HERE. A question whose row prints its figure after
-   its words keeps that figure's page after the card, and the line says so -- true on the box. On the
-   drawing the same figure is under the pen right below the line, and the first screenshot (a dot and
-   cross diagram, 320x568) read "Figure on the next page ->" over the figure itself (337). The line is the
-   card's words and is not redrawn by `Draw`, so it is hidden by the face it would contradict. */
-.qcard:has(> .qp-area.is-draw) .qsheet-figref { display: none; }
+   ink layer stretches to that box (`padWrap_`). Wherever the `44svh` cap binds -- a phone on its side -- the
+   grid was drawn 141px wide in a 293px box at 568x320, the ink 152px wider than the squares (337's review).
+   Upright the cap never binds and this changes nothing. */
+.qp-area .qpad-art:has(> svg.qsurf:first-child) { max-width: min(100%, 20rem, 44svh); }
+/* ONE LINE OF SMALL PRINT UNDER THE BAR. "Saved to Ada's account" is the pad's only footnote -- the credit
+   that ran on before it went on 18 Oct (355) -- set inline at its own size, so it takes one line of a 568px
+   phone and not a body-line's height; `ansSavedPaint_` still rewrites it to "Not saved" in place. */
+.qcard .qpad-bar { margin-bottom: .35rem; }
+.qcard .qpad > .qpad-note { display: inline; margin: 0; }
 .qpad-ink {
   position: absolute; inset: 0; width: 100%; height: 100%;
   pointer-events: none; touch-action: auto; overflow: visible;

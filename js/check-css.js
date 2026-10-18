@@ -951,15 +951,16 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
   say('A SPLASH BUILT AS ONE LOOP THAT IS NOT ONE — ' + Object.keys(LOOPED).join(', '), loopBad);
 }
 
-/* ---------- A FIGURE'S INK THAT THE CARD'S DRAWING FACE DOES NOT GET ------------------------------------
-   THE PEN'S PICTURE IS DRAWN ON THE CARD NOW, outside the sheet, for every question answered by drawing
-   (`ansArea_`; docs/history/327, 337) -- and a figure is inked by classes (`.lbl`, `.num`, `.grid`...)
-   whose rules were written as `.qsheet .lbl`. 327's first screenshot of a made-up grid on the card was
-   an empty card: three of those rules had no way to reach it. The paper's own figures use all nine, so
-   a rule that names the sheet and not the answer area is a figure drawn on the card with its labels in
-   the pen note's coding font and its grid unstroked -- which nothing else here can see, because the
-   markup is right and the rule is right, only not for that container. So every rule that inks a figure
-   inside `.qsheet` must name `.qp-area` too. Read off the selectors, comments out. */
+/* ---------- A FIGURE'S INK THAT A MADE-UP SURFACE ON THE CARD DOES NOT GET ------------------------------
+   A QUESTION ANSWERED BY DRAWING IS DRAWN ON ITS CARD (docs/history/356): the paper's own figure under the
+   pen INSIDE `.qsheet`, among the words, and a made-up surface (squared paper, axes, a blank space) where
+   the box would be, in `.qp-area`, OUTSIDE the sheet (`ansArea_`). A figure is inked by classes (`.lbl`,
+   `.num`, `.grid`...) whose rules were written as `.qsheet .lbl`, and 327's first screenshot of a made-up
+   grid on the card was an empty card: three of those rules had no way to reach it. So a rule that names
+   the sheet and not the answer area is a surface drawn with its numbers in the pen note's coding font and
+   its grid unstroked -- which nothing else here can see, because the markup is right and the rule is
+   right, only not for that container. Every rule that inks a figure inside `.qsheet` must name `.qp-area`
+   too. Read off the selectors, comments out. */
 {
   const INK = ['lbl', 'num', 'ax', 'axis', 'grid', 'pt', 'coin', 'tag', 'cap'];
   const inkBad = [];
@@ -970,11 +971,11 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
       if (!parts.includes('.qsheet .' + k)) return;
       seen.add(k);
       if (!parts.includes('.qp-area .' + k)) inkBad.push('line ' + r.line + '  ' + r.sel + '  →  inks `.' + k
-        + '` in a figure page\'s sheet and not on the card\'s drawing face (`.qp-area .' + k + '`)');
+        + '` in the card\'s sheet and not on a made-up surface beside it (`.qp-area .' + k + '`)');
     });
   });
-  INK.filter(k => !seen.has(k)).forEach(k => inkBad.push('no rule inks `.qsheet .' + k + '` at all -- renamed? whether the card\'s drawing face gets it was NOT checked'));
-  say('A FIGURE\'S INK THE CARD\'S DRAWING FACE DOES NOT GET -- every pen is on the card (337)', inkBad);
+  INK.filter(k => !seen.has(k)).forEach(k => inkBad.push('no rule inks `.qsheet .' + k + '` at all -- renamed? whether a made-up surface gets it was NOT checked'));
+  say('A FIGURE\'S INK A MADE-UP SURFACE ON THE CARD DOES NOT GET (356)', inkBad);
 }
 
 /* ---------- NO TAG IS STYLED AS A KIND OF ITS OWN (docs/history/355) -------------------------------------

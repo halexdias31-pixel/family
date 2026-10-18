@@ -354,7 +354,8 @@ const shownRead = env => env.page.evaluate(() => {
   return { frames: S.frames || 0, shown: S.shown || 0, what: S.what || '' };
 });
 
-/* THE QUESTION CARD, its face turned to the drawing -- the way `qcard.js` in note 338's map opened it. */
+/* THE QUESTION CARD, its pen on it -- a question answered by drawing is drawn on its card, with no face to
+   turn to (docs/history/356). */
 async function card(env, row) {
   const k = await env.page.evaluate(async r => {
     go('stuff', false, true);
@@ -364,7 +365,6 @@ async function card(env, row) {
     paintStuff(true);
     await new Promise(z => setTimeout(z, 600));
     const h2 = stuffFiltered().find(x => x.row && x.row.row_id === r) || hit;
-    padFaceSet_(padKey_(h2), 'draw');
     goPage('stuff', stuffPageOf_(h2) + stuffFirstResult_(), true);
     await new Promise(z => setTimeout(z, 1400));
     window.__k = padKey_(h2);
