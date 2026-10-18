@@ -251,6 +251,10 @@ const SUITE = [
      checked: the first real run is a Sunday with families on the other end, and every rule it has
      fails by emailing — the wrong parent, twice, or at all while it was meant to be off. */
   { file: 'check-digest.js', what: 'the weekly parent email: a London week, accepted parents only, off/preview/send, sent once' },
+  /* AND THE PICTURES IN IT (18 Oct): *"So each question As is on site."* Gmail shows no SVG, so the email links
+     each drawing's PNG twin in data/diagrams/, written by tools/diagram_png.js — a drawing changed without
+     running it is a broken picture in a parent's inbox, and a twin of no drawing is weight for nobody. */
+  { file: 'check-diagram-png.js', what: 'every drawing in the library has its PNG twin for the email, named as the backend names it, none orphaned' },
   /* WHAT EVERYBODY HAS CHOSEN TO BE EMAILED. *"Also let parents select their communication preferences
      like notification. And kids and tutors too I guess"* — every sender names its kind and asks
      `wants_`, through the real doPost: off is held and logged, on is sent, the essentials always go. */

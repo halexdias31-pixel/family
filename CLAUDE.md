@@ -108,6 +108,11 @@ almost never writes to it directly.
   that copy to `loading_()` byte for byte, `check-css.js` keeps an inline splash out (what `#splash`
   holds is a closed list), and `check-anims.js` fails on a teaching one left there. See
   docs/history/304, 322.
+- **Every drawing in `data/questions.json` (`diagram`) has a PNG twin** in `data/diagrams/<first 12 hex of
+  the SHA-256 of the drawing>.png`, for the Sunday email (Gmail shows no SVG; *"No jpgs"* — linked in the
+  body, never attached). **Written by `tools/diagram_png.js`** (the site's CSS, paper palette, 2x) — re-run
+  it after changing any drawing, never draw one by hand; `check-diagram-png.js` fails on a drawing with no
+  twin, a twin with no drawing, and a backend that names one differently. See docs/history/351.
 - Everything else — people, venues, jobs, pricing, posts, links, laws, landmarks, holidays — is a
   tab, listed in `TAB` in `backend/constants.gs` with the column list in `SCHEMA` beside it and the
   file it lives in in `WHERE`. **All three have to name it.** `TAB` without `WHERE` is a tab nothing
@@ -232,6 +237,7 @@ node js/check-library.js         # data/questions.json: ids, 80 marks, the close
 node js/check-marking.js         # a right answer marked right, a wrong one wrong
 node js/check-practicals.js      # the 41 practicals, and whether their topics join to anything
 node js/check-anims.js           # the content cards' animations: rows, anchoring, and the splash's copy
+node js/check-diagram-png.js     # every library drawing has its PNG twin for the Sunday email, none orphaned
 node js/check-textbooks.js       # data/textbooks.json: the bones, and every content topic spelled as the library spells it
 node js/check-funnel.js          # the real funnel over the real library: can each question narrow?
 node js/check-const.js           # nothing declared `const` is assigned to. Two seconds.

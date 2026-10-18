@@ -335,7 +335,7 @@ const NOTIFY_KINDS = {
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-10-13-v-merged";
+const BACKEND_VERSION = "2026-10-18-w-asonsite";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1875,12 +1875,15 @@ const CONFIG_DEFAULTS = [
      else typed here is `off`, because a typo must never be the thing that emails forty families.
 
      THE HOUR IS LONDON'S, read by `installWeeklyDigest` when it books the trigger — so changing it
-     here means running that again. 18 is after the weekend's work and before Monday; a question done
-     at 20:00 on Sunday is in nobody's email (next week starts on Monday), which is the trade an
-     earlier hour makes. THE RESERVE is mail quota left for everything else the site emails — a new
-     PIN at 21:00 on a Sunday must not find the day's quota spent on summaries. */
+     here means running that again (`checkSundayEmail` says so when this cell and the hour it booked,
+     `DIGEST_BOOKED`, disagree). 21 SINCE 18 OCT, the owner: *"On Sunday @9pm"* — after the weekend's
+     work, Sunday evening's homework included, and before Monday. It was 18, and a question done at
+     20:00 on a Sunday was in nobody's email (next week starts on Monday): the trade an earlier hour
+     makes. Everything else follows this number — the run-up pass an hour before (20:00), the email's
+     "up to 9pm on Sunday", the setup check's lines. THE RESERVE is mail quota left for everything else
+     the site emails — a new PIN at 21:00 on a Sunday must not find the day's quota spent on summaries. */
   ['weekly_digest', 'off', 'the Sunday email to parents: off (nothing), preview (written to the digest_log tab, nothing sent) or send. Anything else = off'],
-  ['weekly_digest_hour', 18, 'the hour on Sunday, London time, the weekly parent email goes. 0-23, blank = 18. Run installWeeklyDigest again after changing it'],
+  ['weekly_digest_hour', 21, 'the hour on Sunday, London time, the weekly parent email goes. 0-23, blank = 21 (9pm). Run installWeeklyDigest again after changing it'],
   ['weekly_digest_reserve', 10, 'emails a day kept back from the weekly parent email for PIN resets and notices. Blank = 10'],
   /* ---------- AND THE MARKS IN IT — `digestMarkPass_` in digest.gs (docs/history/348) ----------------------
      THE OWNER, 12 OCT: *"i want them to see if they got it right too. for this i need th ai marking to be
@@ -2705,9 +2708,28 @@ const DIGEST_WORDS_REFUSE = [
 /* HOW MUCH OF A QUESTION'S WORDS THE WEEKLY EMAIL PRINTS — its own ask, and the stem it shares with its
    other parts, printed once above them (`digestQuestions_`). Enough for 95% of the library whole; the
    rest end in "…" and the link to the site, where the question is drawn with its picture. Written for
-   the daily email under its own prefix, and renamed when that email was removed. */
+   the daily email under its own prefix, and renamed when that email was removed. SINCE 18 OCT ONLY FOR A
+   QUESTION THE LIBRARY DOES NOT HAVE (a practical's box, a question it dropped): one it has is printed
+   whole, from its row, as the site draws it (`digestPartOut_`). */
 const DIGEST_WORDS_SHOWN = 400;
 const DIGEST_STEM_SHOWN = 300;
+/* ---------- EACH QUESTION AS IT IS ON THE SITE, AND ITS PICTURE (18 Oct, docs/history/351) ------------------
+   The owner: *"So each question As is on site."* — and *"No jpgs."*: pictures in the body, never attached.
+   `DIGEST_PNG_DIR` holds the PNG twin of every drawing in the library (`diagram`), written by
+   `tools/diagram_png.js` and named by the first `DIGEST_PNG_HEX` hex digits of the SHA-256 of the drawing's
+   text, so a changed drawing is a new file and an email already sent keeps its picture; `check-diagram-png.js`
+   holds every drawing to its twin and every twin to a drawing. The email shows one from the site
+   (`site_url`), at the drawing's own width — the viewBox's, `DIGEST_PNG_WIDTH` when it states none — and
+   never wider than the message. Gmail and Yahoo Mail show no SVG, which is why there is a twin at all.
+   `DIGEST_CLIP_BYTES`: Gmail clips a message past about 102 KB of HTML and hides the rest, the footer that
+   says how to stop with it; whole words for a week of whole papers can pass that, so `digestRender_` keeps
+   every question and says the longest shared source texts, then the longest parts, as "on the site" until
+   the HTML is under this — a few KB short of the clip, for what MailApp wraps round it. A picture is a link
+   and weighs nothing. */
+const DIGEST_PNG_DIR = 'data/diagrams/';
+const DIGEST_PNG_HEX = 12;
+const DIGEST_PNG_WIDTH = 340;
+const DIGEST_CLIP_BYTES = 95000;
 
 /* ---------- WHAT THE BUSINESS IS CALLED, ON THE SERVER --------------------------------------------
    `brandName()` READ THE `brand` TAB AND THAT TAB IS `data/settings/brand.json` NOW, which the

@@ -18,8 +18,10 @@
         its note; blank is on without it;
      3. `weekly_digest` on the config tab to `send` (`off` until somebody types otherwise, CONFIG_DEFAULTS;
         `preview` writes the `digest_log` tab and emails nobody);
-     4. `installWeeklyDigest` run once: the Sunday email, and the two AI marking passes beside it. Nothing
-        in this project calls it, and `check-digest.js` fails if anything starts to;
+     4. `installWeeklyDigest` run once: the Sunday email, and the two AI marking passes beside it — and run
+        AGAIN whenever `weekly_digest_hour` changes (21, 9pm, since 18 Oct: *"On Sunday @9pm"*), because a
+        booked trigger keeps its hour. Nothing in this project calls it, and `check-digest.js` fails if
+        anything starts to;
      5. `checkSundayEmail` run, which changes nothing and says, in words, whether all of it is ready.
 
    WHAT THE EMAIL SAYS — NOTHING BUT WHAT A PARENT NEEDS (12 Oct). The child's FIRST name, the week, and
@@ -28,6 +30,12 @@
    net in `mailOut_` is told to leave a whole name as the first name alone (`firstNamesOnly`), so not even
    a question that names a child can put a handle in it. "New this week" against "gone back to", the
    link to the site and the word `sent` (the server's word for an answer nothing marked) were cut.
+   AND EACH QUESTION AS IT IS ON THE SITE (18 Oct, docs/history/351): *"So each question As is on site."* A
+   question the library has is printed from its row, as the question card draws it — the preamble its
+   parts share once, each part's number and marks over ALL of its words, then the child's mark — and its
+   picture is the drawing's PNG twin on the site (`data/diagrams/`, written by tools/diagram_png.js),
+   shown in the body and never attached (*"No jpgs."*). A question the library has not got goes as the
+   words its submission carried, as before. `digestPartOut_` and `digestDiagram_`, below.
    It is the only parent email since 8 Oct: the one after each session, then every day of work
    (docs/history/291, 294), was deleted, and what it had that parents should get is here — every
    question with its words (`digestQuestions_`), and the words plumbing (`words`, `digestWordsSafe_`).
@@ -63,7 +71,7 @@
 
 /* ---------- THE SWITCH, AND THE TWO NUMBERS BESIDE IT ------------------------------------------------
    EACH WITH A FALLBACK, and each fallback is the safe answer: a blank, a typo or a missing config tab
-   is `off`, 18:00 and a reserve of 10. `send` has to be spelled exactly, because it is the only one
+   is `off`, 21:00 (the owner, 18 Oct: *"On Sunday @9pm"*) and a reserve of 10. `send` has to be spelled exactly, because it is the only one
    of the three that reaches somebody's inbox. */
 function digestMode_(cfg) {
   const m = norm(cfg && cfg.weekly_digest);
@@ -71,7 +79,7 @@ function digestMode_(cfg) {
 }
 function digestHour_(cfg) {
   const c = S(cfg && cfg.weekly_digest_hour);
-  return /^\d{1,2}$/.test(c) && Number(c) <= 23 ? Number(c) : 18;
+  return /^\d{1,2}$/.test(c) && Number(c) <= 23 ? Number(c) : 21;
 }
 function digestReserve_(cfg) {
   const c = S(cfg && cfg.weekly_digest_reserve);
@@ -349,34 +357,57 @@ function digestRender_(L, P, week, look) {
   /* THE WEEK'S QUESTIONS, AT MOST `DIGEST_WEEK_LIST_MAX`, THEN "…and N more." A question with no name
      `digestPlan_` would print — hidden, or only its own key — is counted in `n` and never listed, so it
      is part of the "more". */
-  const Q = digestQuestions_(items, DIGEST_WEEK_LIST_MAX);
-  /* THE KEY IS SAID FOR THE MARKS THE LIST PRINTS — not every item of the week. It was built from all of
-     them, and a week whose questions all had no printable name got "Beside each one is how it went: ✓
-     right or ✗ wrong." over no list at all (the review of 12 Oct). AND A LIST WITH NOTHING IN IT SAYS SO:
-     the count stays true, and the parent is told why there is nothing under it. */
-  const legend = [];
-  if (Q.marks.indexOf('✓') !== -1) legend.push('✓ right');
-  if (Q.marks.indexOf('✗') !== -1) legend.push('✗ wrong');
-  if (Q.marks.some(m => / of \d+ marks?$/.test(m))) legend.push('the marks an AI marker gave a written answer');
-  const said = legend.length < 2 ? legend.join('')
-    : legend.slice(0, -1).join(', ') + (legend.length > 2 ? ',' : '') + ' or ' + legend[legend.length - 1];
-  const unnamed = n && !Q.printed
-    ? (n === 1 ? ' It could not be named here, so it is not listed.' : ' They could not be named here, so they are not listed.')
-    : '';
-  const lead = kid + ' worked on ' + qs(n) + ' this week (' + digestSpan_(week) + upTo + ').'
-    + (said ? ' Beside each one is how it went: ' + said + '.' : '') + unnamed;
+  /* EACH QUESTION AS IT IS ON THE SITE when the library has it (`look.lib`, 18 Oct) — see `digestPartOut_`. */
+  const opts = { lib: look && look.lib, site: S(look && look.site) || SITE_URL, kid: kid, cut: {} };
   /* THE BUSINESS'S NAME ENDS IN A FULL STOP, so it is the last word of its sentence and never followed by
      more punctuation — "on @family.." is what it reads as anywhere else. THE SWITCH IS ON THE SITE (9 Oct),
      so the footer names it first — a reply still works, and is what somebody who never signs in will do. */
   const foot = 'You get this because you are ' + (S(L.first) ? kid + '’s parent' : 'a parent') + ' on ' + brand + (/[.!?]$/.test(brand) ? '' : '.')
     + ' To stop these emails, untick Weekly progress email in Settings → Notifications on the site, or reply to this one and say so.';
   const subject = kid + '’s week: ' + qs(n);
-
-  const text = ['Hello,', '', lead, ''].concat(Q.lines, [foot]).join('\n');
-  const html = '<div style="font-family:Georgia,serif;font-size:16px;line-height:1.5;color:#222;max-width:560px">'
-    + '<p>Hello,</p><p>' + digestEsc_(lead) + '</p>' + Q.html
-    + '<p style="color:#666;font-size:13px">' + digestEsc_(foot) + '</p></div>';
-  return { subject: subject, text: text, html: html };
+  const make = Q => {
+    /* THE KEY IS SAID FOR THE MARKS THE LIST PRINTS — not every item of the week. It was built from all of
+       them, and a week whose questions all had no printable name got "Beside each one is how it went: ✓
+       right or ✗ wrong." over no list at all (the review of 12 Oct). AND A LIST WITH NOTHING IN IT SAYS SO:
+       the count stays true, and the parent is told why there is nothing under it. */
+    const legend = [];
+    if (Q.marks.indexOf('✓') !== -1) legend.push('✓ right');
+    if (Q.marks.indexOf('✗') !== -1) legend.push('✗ wrong');
+    if (Q.marks.some(m => / of \d+ marks?$/.test(m))) legend.push('the marks an AI marker gave a written answer');
+    const said = legend.length < 2 ? legend.join('')
+      : legend.slice(0, -1).join(', ') + (legend.length > 2 ? ',' : '') + ' or ' + legend[legend.length - 1];
+    const unnamed = n && !Q.printed
+      ? (n === 1 ? ' It could not be named here, so it is not listed.' : ' They could not be named here, so they are not listed.')
+      : '';
+    /* "BESIDE" WHILE EVERY MARK IS BESIDE ITS NUMBER; a question printed from the library has its words first
+       and the child's mark under them, so a list with one says where without saying either. */
+    const lead = kid + ' worked on ' + qs(n) + ' this week (' + digestSpan_(week) + upTo + ').'
+      + (said ? (Q.fromLib ? ' How each one went: ' : ' Beside each one is how it went: ') + said + '.' : '') + unnamed;
+    return {
+      text: ['Hello,', '', lead, ''].concat(Q.lines, [foot]).join('\n'),
+      html: '<div style="font-family:Georgia,serif;font-size:16px;line-height:1.5;color:#222;max-width:560px">'
+        + '<p>Hello,</p><p>' + digestEsc_(lead) + '</p>' + Q.html
+        + '<p style="color:#666;font-size:13px">' + digestEsc_(foot) + '</p></div>',
+    };
+  };
+  let Q = digestQuestions_(items, DIGEST_WEEK_LIST_MAX, opts), m = make(Q);
+  /* ---------- AND UNDER GMAIL'S CLIP, EVERY QUESTION KEPT ------------------------------------------------------
+     Past about 102 KB of HTML Gmail shows "[Message clipped]", and what is behind it — the end of the list and
+     the footer that says how to stop — nobody reads. Whole words for a week of whole papers can pass it, so the
+     longest SHARED SOURCE TEXTS go first, said as "(the source text is on the site)", then, only if that is not
+     enough, the longest parts' words, as "(the question’s words are on the site)" — each question still listed
+     with its number, its picture and its mark. A picture is a link and weighs nothing here. Cut a few at a time,
+     by what they weigh against what is over, so it is a render or two and not one per question. */
+  for (let turn = 0; turn < 12 && digestBytes_(m.html) > DIGEST_CLIP_BYTES; turn++) {
+    let over = digestBytes_(m.html) - DIGEST_CLIP_BYTES;
+    const next = Q.sizes.filter(z => z.bytes && !opts.cut[z.id])
+      .sort((a, b) => (a.kind === b.kind ? b.bytes - a.bytes : a.kind === 'stem' ? -1 : 1));
+    if (!next.length) break;
+    for (let k = 0; k < next.length && over > 0; k++) { opts.cut[next[k].id] = 1; over -= next[k].bytes - 80; }
+    Q = digestQuestions_(items, DIGEST_WEEK_LIST_MAX, opts);
+    m = make(Q);
+  }
+  return { subject: subject, text: m.text, html: m.html };
 }
 
 /* ---------- THE QUESTIONS, EACH WITH ITS OWN WORDS ----------------------------------------------------------
@@ -396,6 +427,10 @@ function digestRender_(L, P, week, look) {
    A PAPER WITH NO WORDS FOR ANY OF ITS QUESTIONS — rows marked before the phone sent them — is a line of
    numbers, `Q3 ✓, Q7 not marked`.
 
+   AND SINCE 18 OCT A QUESTION THE LIBRARY HAS IS NOT CUT AT ALL: `o.lib` (`digestEmailLibrary_`) holds its
+   row, and it is printed whole, as the site's card draws it (`digestPartOut_`) — `Q5a · 2 marks`, its words,
+   its picture, then `Kit: ✓`. The cuts above, and the words cell, are for a question it has not got.
+
    A RAW KEY NEVER GOES IN THE EMAIL. A question with no printable name — no label, an unsafe one
    (`digestPlan_` blanks it), or one that is only its own key — is counted and not listed: it is in
    "…and N more", which is printed only under a list that named something.
@@ -403,17 +438,27 @@ function digestRender_(L, P, week, look) {
    WRITTEN FOR THE DAILY EMAIL (docs/history/294) and LIFTED OUT UNCHANGED when the owner made the weekly
    one the email parents get (295).
 
-   PURE. `items` are `digestPlan_`'s (`key`, `label`, `words`, `hidden`, `verdict`). Returns
+   PURE. `items` are `digestPlan_`'s (`key`, `label`, `words`, `hidden`, `verdict`); `o` is `{ lib, site, kid,
+   cut }` — the library's rows, the site's address, the child's first name and what the clip said as "on the
+   site" (`digestRender_`). Returns
      lines    the plain body's lines for the list — per paper its heading, its questions and a blank
               line, then "…and N more." and a blank line when something was left out of a list that
               named anything
      html     the same list, every value through `digestEsc_`
      printed  how many questions it names (a one-segment name with no words names its one question)
      marks    the mark of each one it names — what the lead's key is built from
-     more     how many it does not: hidden, only a key, or past `max` */
-function digestQuestions_(items, max) {
+     more     how many it does not: hidden, only a key, or past `max`
+     fromLib  how many it printed from the library, as the site draws them
+     sizes    what the clip may say as "on the site" instead — each stem and part printed whole, and its bytes */
+function digestQuestions_(items, max, o) {
   items = items || [];
+  o = o || {};
   const n = items.length;
+  /* THE LIBRARY'S ROWS FOR THE WEEK (`digestEmailLibrary_`), and what the clip has asked to be said as "on
+     the site" (`digestRender_`): `stem:<row_id>` and `part:<key>`. No library — a run that could not fetch
+     it, the admin's Preview, a check — is every question by its words cell, as before 18 Oct. */
+  const lib = o.lib && o.lib.rows ? o.lib : null, pre = lib && lib.pre ? lib.pre : [];
+  const said = o.cut || {}, kid = S(o.kid) || 'Your child', site = S(o.site) || SITE_URL;
   const cut = (t, most) => { const x = S(t).replace(/\s*\n+\s*/g, ' ').trim(); return x.length > most ? x.slice(0, most - 1).replace(/\s+\S*$/, '') + '…' : x; };
   const heads = {};
   items.forEach(q => {
@@ -425,7 +470,7 @@ function digestQuestions_(items, max) {
     /* THE STEM AND THE ASK, either side of a `---` line — which may be the last line, when a part's own
        ask is only its picture and the cell was trimmed. */
     const w = S(q && q.words), cutAt = /\n---(?:\n|$)/.exec(w);
-    (heads[head] || (heads[head] = [])).push({ mark: digestMark_(q && q.verdict),
+    (heads[head] || (heads[head] = [])).push({ mark: digestMark_(q && q.verdict), key: S(q && q.key), row: digestLibRow_(lib, q && q.key),
       num: num, stem: cutAt ? w.slice(0, cutAt.index) : '', ask: cutAt ? w.slice(cutAt.index + cutAt[0].length) : w });
   });
   /* A CAP THAT IS NOT A NUMBER IS THE WEEK'S, never "all of them": `slice(0, undefined)` is the whole
@@ -437,7 +482,7 @@ function digestQuestions_(items, max) {
     const list = heads[h].slice().sort((a, b) => a.num.localeCompare(b.num, undefined, { numeric: true }));
     const take = list.slice(0, room);
     room -= take.length; printed += take.length;
-    shown.push({ head: h, items: take, worded: take.some(it => S(it.ask)) });
+    shown.push({ head: h, items: take, worded: take.some(it => S(it.ask) || it.row) });
   });
   const more = n - printed;
   /* A NAME OF ONE SEGMENT HAS NO NUMBER, so no number in its tag: its mark alone, and its words after —
@@ -453,6 +498,9 @@ function digestQuestions_(items, max) {
 
   const lines = [];
   const parts = [];
+  /* WHAT THE CLIP MAY SAY AS "ON THE SITE" INSTEAD, with what its words weigh — `digestRender_` picks from it. */
+  const sizes = [];
+  let fromLib = 0;
   shown.forEach(h => {
     if (!h.worded) {
       /* A NAME OF ONE SEGMENT WITH NO WORDS IS ITS HEADING AND NOTHING ELSE, so its mark goes on the heading
@@ -472,24 +520,279 @@ function digestQuestions_(items, max) {
     lines.push(h.head);
     let html = '<p style="margin:20px 0 4px"><b>' + digestEsc_(h.head) + '</b></p>';
     let stem = '';
+    const done = {};
     h.items.forEach(it => {
+      /* ---------- AS IT IS ON THE SITE (18 Oct): the row the card draws, from the library ---------- */
+      const P = it.row ? digestPartOut_(it, pre, done, said, site) : null;
+      if (P) {
+        fromLib++;
+        P.stems.forEach(st => { lines.push.apply(lines, st.lines); html += st.html; sizes.push({ id: st.id, kind: 'stem', bytes: st.bytes }); });
+        if (P.bytes) sizes.push({ id: 'part:' + it.key, kind: 'part', bytes: P.bytes });
+        const head = [it.num, P.marks].filter(Boolean).join(' · ');
+        if (head) lines.push(head);
+        lines.push.apply(lines, P.lines);
+        lines.push(kid + ': ' + it.mark, '');
+        html += (head ? '<p style="margin:18px 0 4px">' + (it.num ? '<b>' + digestEsc_(it.num) + '</b>' : '')
+                 + (it.num && P.marks ? ' · ' : '') + digestEsc_(P.marks) + '</p>' : '')
+          + P.html + '<p style="margin:4px 0 0">' + digestEsc_(kid) + ': <span style="' + tone(it.mark) + '">' + digestEsc_(it.mark) + '</span></p>';
+        stem = '';
+        return;
+      }
       if (it.stem && it.stem !== stem) {
         lines.push(cut(it.stem, DIGEST_STEM_SHOWN));
         html += '<p style="margin:0 0 8px;color:#555"><i>' + digestEsc_(cut(it.stem, DIGEST_STEM_SHOWN)) + '</i></p>';
       }
       stem = it.stem;
-      const said = cut(it.ask, DIGEST_WORDS_SHOWN);
-      lines.push(said ? tag(it) + ': ' + said : tag(it));
-      html += '<p style="margin:0 0 8px">' + tagHtml(it) + (said ? ' — ' + digestEsc_(said) : '') + '</p>';
+      const said1 = cut(it.ask, DIGEST_WORDS_SHOWN);
+      lines.push(said1 ? tag(it) + ': ' + said1 : tag(it));
+      html += '<p style="margin:0 0 8px">' + tagHtml(it) + (said1 ? ' — ' + digestEsc_(said1) : '') + '</p>';
     });
-    lines.push('');
+    if (lines[lines.length - 1] !== '') lines.push('');
     parts.push(html);
   });
   if (printed && more > 0) lines.push('…and ' + more + ' more.', '');
   const marks = [];
   shown.forEach(h => h.items.forEach(it => marks.push(it.mark)));
   return { lines: lines, html: parts.join('') + (printed && more > 0 ? '<p>…and ' + more + ' more.</p>' : ''),
-           printed: printed, marks: marks, more: more };
+           printed: printed, marks: marks, more: more, fromLib: fromLib, sizes: sizes };
+}
+
+/* ---------- ONE QUESTION AS THE SITE'S CARD DRAWS IT (18 Oct) ---------------------------------------------------
+   The owner, 18 Oct: *"So each question As is on site."* — and, of the version before it, *"No jpgs."*: the
+   pictures in the body of the email, never attached. So a question in the library is printed from its row,
+   the way the question card draws it (js/find.js): every preamble it sits under, outermost first, ONCE in a
+   paper however many of its parts the child did (`questionStemCard_` — `done` is the paper's list), each
+   with its own picture after its words unless the row marks where the picture stands; then the part — its
+   number and its marks over its words, as the card's tags are, then its lead, its picture and its words in
+   the order `partPlan_` lays them out (a `<!--fig-->` marker where the row has one; after a lead; else in
+   front of the words) — ALL of its words, never cut and never "…". The markup goes through `digestHtml_`'s
+   allow-list; a picture is `digestDiagram_`'s PNG twin of the drawing, a link and never an attachment.
+
+   NULL WHEN THE ROW CANNOT BE PRINTED SO — its words hold what `DIGEST_WORDS_REFUSE` turns away (a link, an
+   address, a number shaped like an account), which in a parent's inbox is a link a tutor sent — and the
+   question goes as its words cell, as before. A STEM SO REFUSED, or one the clip took (`said`), is "(the
+   source text is on the site)": the parts still read in order, and the picture, a link, still shows. */
+function digestPartOut_(it, pre, done, said, site) {
+  const q = it.row;
+  const refused = t => DIGEST_WORDS_REFUSE.some(re => re.test(t));
+  /* EACH PIECE ON ITS OWN — the lead is a block of its own on the card (`.qsheet-lead`), and run together with
+     the words "…of the source." and "Read again…" read as "source.Read", which is a domain to the refusal. */
+  if ([q.lead, q.html].some(h => refused(digestText_(h)))) return null;
+  const fig = digestDiagram_(q.diagram, site);
+  /* WHERE THE PICTURE STANDS AMONG THE WORDS — `figBlocks_` / `partPlan_` in js/find.js: after the words before
+     a `<!--fig-->` marker; else after the lead; else in front of the words. */
+  const mark = /<!--\s*fig\s*-->/i, html = S(q.html), at = html.search(mark);
+  const lead = S(q.lead).replace(/<!--\s*fig\s*-->/gi, '');
+  const before = at >= 0 ? html.slice(0, at) : '', after = at >= 0 ? html.slice(at).replace(mark, '') : html;
+  const cutOut = !!said['part:' + it.key];
+  const piece = h => (S(h).replace(/<!--[\s\S]*?-->/g, '').trim() ? '<div style="margin:0 0 6px">' + digestHtml_(h) + '</div>' : '');
+  const out = { stems: [], lines: [], html: '', bytes: 0,
+                marks: Number(q.marks) > 0 ? Number(q.marks) + ' mark' + (Number(q.marks) === 1 ? '' : 's') : '' };
+  digestStemRows_(q, pre).forEach(p => {
+    const id = 'stem:' + (S(p.row_id) || S(p.html).slice(0, 80));
+    if (done[id]) return;
+    done[id] = 1;
+    const pf = digestDiagram_(p.diagram, site);
+    const ph = S(p.html), pat = ph.search(mark), text = digestText_(ph);
+    const gone = !!said[id] || refused(text);
+    /* A STAND-IN FOR A SOURCE THE PAPER PRINTS IN A SEPARATE BOOKLET is in a dashed box, as on the site
+       (`.qsheet-stem.is-standin`), so nobody takes it for the exam's own words. */
+    const box = TRUE_(p.placeholder) ? 'border:1px dashed #999;padding:6px 8px;' : '';
+    const before = pat >= 0 ? ph.slice(0, pat) : ph, after = pat >= 0 ? ph.slice(pat).replace(mark, '') : '';
+    const l = S(p.lines) ? [S(p.lines)] : [];
+    let h = S(p.lines) ? '<p style="margin:0 0 4px"><i>' + digestEsc_(p.lines) + '</i></p>' : '';
+    if (gone) {
+      h += (text ? '<p style="margin:0 0 6px"><i>(the source text is on the site)</i></p>' : '') + (pf ? pf.html : '');
+      if (text) l.push('(the source text is on the site)');
+      if (pf) l.push(pf.text);
+    } else {
+      h += piece(before) + (pf ? pf.html : '') + piece(after);
+      l.push.apply(l, digestLines_(before));
+      if (pf) l.push(pf.text);
+      l.push.apply(l, digestLines_(after));
+    }
+    h = '<div style="margin:0 0 8px;color:#555;' + box + '">' + h + '</div>';
+    out.stems.push({ id: id, html: h, lines: l, bytes: gone ? 0 : digestBytes_(h) });
+  });
+  if (cutOut) {
+    out.html = '<p style="margin:0 0 6px"><i>(the question’s words are on the site)</i></p>' + (fig ? fig.html : '');
+    out.lines = ['(the question’s words are on the site)'].concat(fig ? [fig.text] : []);
+    return out;
+  }
+  const figFirst = at < 0 && !lead;
+  out.html = (figFirst && fig ? fig.html : '') + piece(lead) + piece(before) + (!figFirst && fig ? fig.html : '') + piece(after);
+  out.lines = (figFirst && fig ? [fig.text] : []).concat(digestLines_(lead), digestLines_(before), !figFirst && fig ? [fig.text] : [], digestLines_(after));
+  out.bytes = digestBytes_(out.html);
+  return out;
+}
+/* THE ROW A KEY NAMES, WHEN THE CARD WOULD DRAW IT: a question, live, with something to show. A practical's
+   box (`pr:`), a key typed into the sheet, a question the library has dropped or retired — null, and its words
+   cell prints it, as it did before 18 Oct. */
+function digestLibRow_(lib, key) {
+  const k = S(key);
+  if (!lib || !lib.rows || !/^q:/.test(k)) return null;
+  const q = lib.rows[k.slice(2)];
+  return q && q.kind === 'question' && ON_(q.active) && (S(q.html) || S(q.lead) || S(q.diagram)) ? q : null;
+}
+
+/* ---------- THE LIBRARY'S MARKUP, AS AN EMAIL MAY CARRY IT ---------------------------------------------------
+   A STRICT ALLOW-LIST, because a mail client is not the site: p, br, b, strong, i, em, sup, sub, ul, ol, li,
+   table, thead, tbody, tr, th, td, span, div — and NO ATTRIBUTE BUT colspan AND rowspan, so no class, id,
+   link, handler or style of the row's own reaches an inbox. What email needs to look right is a style
+   written HERE, inline (a mail client drops a stylesheet): a table's rules, a paragraph's gap. The rest of
+   the library's vocabulary is turned into those, not dropped: a heading is a bold paragraph, a quotation an
+   indented block, underline and strike-through a span saying so, the site's stacked fraction
+   (`span.frac`) a superscript over a subscript, a recurring decimal's dot a combining dot above its digit,
+   and an overline kept. Any other tag goes and its words stay; a `<script>`, `<style>`, `<svg>` or `<math>`
+   goes with its contents. Every tag left open is closed, a closing tag with no opening one is dropped, and
+   text is escaped — "x < 7" is maths, not a tag (`attemptWords_`'s rule). A named entity the library uses
+   is written as its character (`DIGEST_ENTITIES`), so no mail client is asked to know `&frasl;`. */
+function digestHtml_(html) {
+  const src = digestPrep_(html);
+  const KEEP = /^(p|br|b|strong|i|em|sup|sub|ul|ol|li|table|thead|tbody|tr|th|td|span|div)$/;
+  const SAY = { p: 'margin:0 0 8px', ul: 'margin:0 0 8px;padding-left:24px', ol: 'margin:0 0 8px;padding-left:24px',
+                table: 'border-collapse:collapse;margin:4px 0 10px', th: 'border:1px solid #999;padding:3px 6px;text-align:left',
+                td: 'border:1px solid #999;padding:3px 6px' };
+  const AS = { blockquote: ['<div style="margin:0 0 8px 12px;padding-left:10px;border-left:3px solid #ccc">', '</div>'],
+               u: ['<span style="text-decoration:underline">', '</span>'], s: ['<span style="text-decoration:line-through">', '</span>'] };
+  const VOID = /^(img|hr|input|wbr|col|area|source|meta|link|base|embed|param|track)$/;
+  const text = t => t
+    .replace(/&(?!(?:#x[0-9a-f]+|#\d+|[a-z][a-z0-9]*);)/gi, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/&([a-z][a-z0-9]*);/gi, (m, e) => (!/^(amp|lt|gt|quot|nbsp)$/.test(e) && Object.prototype.hasOwnProperty.call(DIGEST_ENTITIES, e) ? DIGEST_ENTITIES[e] : m))
+    .replace(/\^\(([^()<>]{1,40})\)/g, '<sup>$1</sup>').replace(/\^(-?[0-9A-Za-z.]{1,12})/g, '<sup>$1</sup>');
+  const out = [], open = [];
+  const re = /<(\/?)([a-zA-Z][a-zA-Z0-9]*)\b([^<>]*)>/g;
+  let from = 0, m;
+  while ((m = re.exec(src))) {
+    out.push(text(src.slice(from, m.index)));
+    from = re.lastIndex;
+    const name = m[2].toLowerCase(), attrs = m[3] || '';
+    if (m[1]) {
+      let k = open.length - 1;
+      while (k >= 0 && open[k].name !== name) k--;
+      while (k >= 0 && open.length > k) out.push(open.pop().close);
+      continue;
+    }
+    if (name === 'br') { out.push('<br>'); continue; }
+    if (VOID.test(name) || /\/\s*$/.test(attrs)) continue;
+    let start = '', close = '';
+    if (/^h[1-6]$/.test(name)) { start = '<p style="margin:0 0 8px"><b>'; close = '</b></p>'; }
+    else if (AS[name]) { start = AS[name][0]; close = AS[name][1]; }
+    else if (KEEP.test(name)) {
+      let extra = '';
+      if (name === 'td' || name === 'th') {
+        const cs = /\bcolspan\s*=\s*["']?(\d{1,2})\b/i.exec(attrs), rs = /\browspan\s*=\s*["']?(\d{1,2})\b/i.exec(attrs);
+        if (cs) extra += ' colspan="' + cs[1] + '"';
+        if (rs) extra += ' rowspan="' + rs[1] + '"';
+      }
+      const style = name === 'span' && /text-decoration\s*:\s*overline/i.test(attrs) ? 'text-decoration:overline' : (SAY[name] || '');
+      start = '<' + name + extra + (style ? ' style="' + style + '"' : '') + '>';
+      close = '</' + name + '>';
+    }
+    out.push(start);
+    open.push({ name: name, close: close });
+  }
+  out.push(text(src.slice(from)));
+  while (open.length) out.push(open.pop().close);
+  return out.join('');
+}
+/* WHAT BOTH THE HTML AND THE PLAIN BODY START FROM: what cannot be words gone with its contents, comments
+   gone, and the two drawings the site makes with classes written as what they are — the stacked fraction
+   as `<sup>a</sup>&frasl;<sub>b</sub>` (the library's own other spelling of it) and the recurring decimal's
+   dot as U+0307 over the digit before it. */
+function digestPrep_(html) {
+  return S(html)
+    .replace(/<(script|style|svg|math)\b[\s\S]*?<\/\1\s*>/gi, '')
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<span class="frac">\s*<span class="frac-n">([\s\S]*?)<\/span>\s*<span class="frac-d">([\s\S]*?)<\/span>\s*<\/span>/g, '<sup>$1</sup>&frasl;<sub>$2</sub>')
+    .replace(/<span aria-hidden="true"[^>]*>\s*(?:&bull;|•|&middot;|·)\s*<\/span>/g, '&#775;');
+}
+/* AND AS TEXT, for the plain body: `digestPlain_` (Gemini's reading of it, unchanged) over the same start,
+   with a table's cells kept apart and a block's end a line's end. */
+function digestText_(html) {
+  /* A FRACTION AND A POWER AS A PARENT WRITES THEM — `5/x`, `x^2`, brackets only round more than one term —
+     where `digestPlain_` brackets every one for Gemini, and a tag inside them (`<i>x</i>`) is no reason to
+     lose the fraction. */
+  const bare = t => t.replace(/<[^<>]*>/g, '');
+  const term = t => (/^[\w.\u00b2\u00b3\u03b1-\u03c9\u221a]+$/.test(t) ? t : '(' + t + ')');
+  return digestPlain_(digestPrep_(html)
+    .replace(/<sup>((?:(?!<\/?sup\b)[\s\S])*?)<\/sup>\s*(?:&frasl;|\u2044|&#8260;)\s*<sub>((?:(?!<\/?sub\b)[\s\S])*?)<\/sub>/g,
+      (m, a, b) => term(bare(a).trim()) + '/' + term(bare(b).trim()))
+    .replace(/<sup>((?:(?!<\/?sup\b)[\s\S])*?)<\/sup>/g, (m, a) => (/^[*†‡§]+$/.test(bare(a).trim()) ? bare(a).trim() : '^' + term(bare(a).trim())))
+    .replace(/<\/t[dh]>\s*(?=<t[dh]\b)/gi, ' | ').replace(/<\/(h[1-6]|blockquote|ul|ol|table)>/gi, '$&<br>'));
+}
+function digestLines_(html) {
+  return digestText_(html).split('\n').map(x => x.trim()).filter(Boolean);
+}
+/* WHAT A STRING WEIGHS IN UTF-8 — what Gmail's clip counts. */
+function digestBytes_(s) {
+  const t = S(s);
+  let n = 0;
+  for (let i = 0; i < t.length; i++) {
+    const c = t.charCodeAt(i);
+    if (c >= 0xd800 && c <= 0xdbff) { n += 4; i++; } else n += c < 0x80 ? 1 : c < 0x800 ? 2 : 3;
+  }
+  return n;
+}
+
+/* ---------- A DRAWING, AS AN EMAIL CAN SHOW IT -------------------------------------------------------------------
+   A QUESTION'S PICTURE IS AN INLINE SVG (the library's `diagram`), inked in `currentColor` by the site's CSS —
+   and Gmail and Yahoo Mail show no SVG at all. So each one has a PNG twin in the repository, drawn ONCE by
+   `tools/diagram_png.js` with the site's own figure rules on the PAPER palette, at twice its size, and named
+   by the first 12 hex digits of the SHA-256 of the drawing's text: `data/diagrams/<hash>.png`. A drawing that
+   changes is a new file, so an email already sent keeps the picture it was sent with; `check-diagram-png.js`
+   fails on a drawing with no twin and on a twin with no drawing. The email shows it from the site the backend
+   already knows (`look.site`), at the drawing's own width and never wider than the message, with the
+   drawing's own description (`aria-label`) as its alt text — and the plain body says that description.
+   A LINK, NEVER AN ATTACHMENT (*"No jpgs."*), and so nothing it weighs counts towards Gmail's clip. */
+function digestDiagram_(svg, site) {
+  const s = S(svg);
+  if (!/^\s*<svg\b/i.test(s)) return null;
+  /* EVERY <svg> IN THE CELL — one holds two (Figures 4 and 5 of one question), drawn one above the other in
+     one twin: its alt text says both, and it is as wide as the wider. */
+  const labels = [];
+  let width = 0;
+  (s.match(/<svg\b[^>]*>/gi) || []).forEach(open => {
+    const label = /\baria-label="([^"]*)"/i.exec(open);
+    if (label && digestPlain_(label[1]).trim()) labels.push(digestPlain_(label[1]).replace(/\s+/g, ' ').trim());
+    const vb = /\bviewBox="\s*-?[\d.]+[\s,]+-?[\d.]+[\s,]+([\d.]+)[\s,]+([\d.]+)\s*"/i.exec(open);
+    const wide = /\bwidth="([\d.]+)(?:px)?"/i.exec(open);
+    width = Math.max(width, Math.round(Number(wide ? wide[1] : vb ? vb[1] : DIGEST_PNG_WIDTH)) || DIGEST_PNG_WIDTH);
+  });
+  const alt = labels.join(' / ') || 'A diagram';
+  width = width || DIGEST_PNG_WIDTH;
+  let hash = '';
+  try {
+    /* Signed bytes, as Java hands them over; `map.call` so an array-like answer is read the same. */
+    hash = Array.prototype.map.call(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, s, Utilities.Charset.UTF_8),
+      b => ((b + 256) % 256).toString(16).padStart(2, '0')).join('').slice(0, DIGEST_PNG_HEX);
+  } catch (err) { hash = ''; }
+  if (hash.length !== DIGEST_PNG_HEX) return { html: '', text: '[Picture: ' + alt + ']', alt: alt, width: width, src: '' };
+  const src = S(site || SITE_URL).replace(/\/*$/, '/') + DIGEST_PNG_DIR + hash + '.png';
+  return { src: src, alt: alt, width: width, hash: hash, text: '[Picture: ' + alt + ']',
+           html: '<div style="margin:8px 0"><img src="' + digestEsc_(src) + '" width="' + width + '" alt="' + digestEsc_(alt)
+                 + '" style="max-width:100%;height:auto"></div>' };
+}
+
+/* ---------- THE ROWS THE WEEK'S EMAIL PRINTS, FETCHED ONCE FOR THE WHOLE RUN ------------------------------------------
+   The marking pass's own fetch and line scan (`digestLibrary_`, `digestLibraryFind_`) for every library key
+   with a press in the week. A fetch that fails is said in the run's log and costs nothing else: each question
+   then goes as its words cell, as it did before 18 Oct. */
+function digestEmailLibrary_(week, subRows, cfg) {
+  const ids = {};
+  (subRows || []).forEach(r => {
+    const k = S(r && r.key).split('#')[0];
+    if (!/^q:/.test(k) || !DIGEST_KEY_SHAPE.test(k)) return;
+    const came = answerAtMs_(r.submitted_at);
+    if (!came) return;
+    const day = digestDay_(new Date(came));
+    if (day >= week.start && day <= week.end) ids[k.slice(2)] = 1;
+  });
+  const want = Object.keys(ids);
+  if (!want.length) return { rows: {}, pre: [] };
+  const got = digestLibrary_(S(cfg && cfg.site_url) || SITE_URL);
+  if (got.error) return { rows: {}, pre: [], error: got.error };
+  return digestLibraryFind_(got.text, want);
 }
 
 /* A VERDICT AS THE EMAIL MARKS IT — ✓ right, ✗ wrong (the site says "Not yet"; in a list of numbers a
@@ -558,16 +861,27 @@ function digestLook_(now, week) {
 
 /* THE PLAN FOR A WEEK, OFF THE SHEET AS IT IS. The only impure step: three reads and the real
    `acceptedParents`. `now` is the moment the list is made up to (`digestLook_`); the clock when none. */
-function digestPlanNow_(week, now) {
-  return digestPlan_(week, read(TAB.submissions).rows, read(TAB.people).rows, acceptedParents, digestLook_(now, week));
+function digestPlanNow_(week, now, lib) {
+  const look = digestLook_(now, week);
+  /* AND THE LIBRARY'S ROWS, when the caller fetched them (`digestEmailLibrary_`): each question as it is on
+     the site. Without them each goes as its words cell — the check's plans, and a run whose fetch failed. */
+  if (lib && lib.rows) look.lib = lib;
+  return digestPlan_(week, read(TAB.submissions).rows, read(TAB.people).rows, acceptedParents, look);
 }
 
 /* THE HOUR THE EMAIL IS BOOKED FOR — what `installWeeklyDigest` booked (`DIGEST_BOOKED`), because Apps
    Script cannot read a trigger's hour back; the config cell's when nothing was booked by this backend. */
 function digestBookedHour_(cfg) {
+  const booked = digestBooked_();
+  return booked >= 0 ? booked : digestHour_(cfg);
+}
+/* THE HOUR `installWeeklyDigest` RECORDED, and -1 when there is none: never installed, or installed by a
+   backend from before the record (13 Oct) — which `checkSundayEmail` must tell apart from "booked at the
+   cell's hour", because on 18 Oct the owner moved the cell from 18 to 21 over triggers booked at 18. */
+function digestBooked_() {
   let booked = '';
   try { booked = S(PropertiesService.getScriptProperties().getProperty(DIGEST_BOOKED)); } catch (err) { booked = ''; }
-  return /^\d{1,2}$/.test(booked) && Number(booked) <= 23 ? Number(booked) : digestHour_(cfg);
+  return /^\d{1,2}$/.test(booked) && Number(booked) <= 23 ? Number(booked) : -1;
 }
 
 /* ---------- WHEN THIS WEEK'S EMAIL GOES, AS AN INSTANT — 0 WHEN THAT IS NOT STILL TO COME --------------------
@@ -616,6 +930,7 @@ function weeklyDigestRun(e) {
   if (marks && !marks.did) console.log('weeklyDigestRun: the last marks before the email — ' + JSON.stringify(marks));
   const out = digestRun_(new Date());
   if (out) out.marking = marks;
+  if (out && /^NOT fetched/.test(S(out.library))) console.log('weeklyDigestRun: the question library was ' + out.library);
   if (out && (out.error || out.held || out.failed || out.busy)) {
     throw new Error('The weekly parent email did not finish: '
       + (out.error ? out.error : 'sent ' + out.sent + ', held ' + out.held + ' (mail quota), failed '
@@ -664,10 +979,16 @@ function digestRun_(now) {
   /* THE PLAN IS MADE WITHOUT THE LOCK. It reads `submissions` and `people` and writes nothing; what it
      decides is checked against the log, fresh, under the lock, one email at a time. */
   const week = digestWeekToSend_(now);
-  const plan = digestPlanNow_(week, now);
+  /* EACH QUESTION AS IT IS ON THE SITE (18 Oct): the library's rows for the week's questions, fetched once.
+     A fetch that fails stops nothing — the run says so in its log and the questions go as their words. */
+  let lib = null;
+  try { lib = digestEmailLibrary_(week, read(TAB.submissions).rows, cfg); }
+  catch (err) { lib = { rows: {}, pre: [], error: S(err && err.message || err) }; }
+  const plan = digestPlanNow_(week, now, lib);
   const out = { mode: mode, week: { start: week.start, end: week.end }, learners: plan.learners.length,
                 emails: plan.emails.length, previewed: 0, sent: 0, already: 0, held: 0, failed: 0, busy: 0,
-                unreachable: plan.unreachable.length, skipped: 0 };
+                unreachable: plan.unreachable.length, skipped: 0,
+                library: lib && lib.error ? 'NOT fetched, so each question went as its words cell — ' + lib.error : 'each question as it is on the site' };
   const mailed = digestMail_(plan.emails, {
     mode: mode, reserve: digestReserve_(cfg), readLog: digestLog_, brand: plan.look.brand,
     find: (log, m) => digestLogFind_(log, week.start, m.learner_id, m.parent_id),
@@ -899,7 +1220,10 @@ function digestPreviewOut_(now) {
   let cfg = {};
   try { cfg = config(); } catch (err) { cfg = {}; }
   const week = digestWeek_(now);
-  const plan = digestPlanNow_(week, now);
+  /* THE SAME LIBRARY AS THE RUN'S, so the Preview is the email as it will go (18 Oct). */
+  let lib = null;
+  try { lib = digestEmailLibrary_(week, read(TAB.submissions).rows, cfg); } catch (err) { lib = null; }
+  const plan = digestPlanNow_(week, now, lib);
   /* AND WHETHER THERE IS ANYTHING TO READ: with no `submissions` tab the plan is empty for a reason, and
      the card says the reason rather than "nobody has done a question". */
   const warning = digestNoSubmissions_();
@@ -1305,6 +1629,11 @@ function digestMarkable_(q, pre, answer) {
    one question: the paper's, the section's, the question's, then its letter's ("(d)" for d(ii)), each
    scope in `sort_order`. */
 function digestStems_(q, pre) {
+  return digestStemRows_(q, pre).filter(one => S(one.html)).map(one => one.html);
+}
+/* THE PREAMBLE ROWS THEMSELVES, for the email (18 Oct): one with a picture and no words is a stem the card
+   draws too (`preamble_`: `x.html || x.diagram`); Gemini is given only the words (`digestStems_`). */
+function digestStemRows_(q, pre) {
   const bare = v => S(v).toLowerCase().replace(/[()\s]/g, '');
   const pidOf = one => S(one && (one.paper_id || one.paper));
   const scopeOf = one => {
@@ -1328,7 +1657,7 @@ function digestStems_(q, pre) {
   const out = [];
   want.forEach(w => (pre || []).filter(one => pidOf(one) === pid && scopeOf(one) === w)
     .sort((a, b) => (N(a.sort_order) || 0) - (N(b.sort_order) || 0))
-    .forEach(one => { if (S(one.html)) out.push(one.html); }));
+    .forEach(one => { if (S(one.html) || S(one.diagram)) out.push(one); }));
   return out;
 }
 /* THE LIBRARY'S MARKUP AS TEXT — `aiPlain_` (js/keypad.js) without a DOMParser, which Apps Script has not
@@ -1471,19 +1800,37 @@ function checkSundayEmail() {
   const mode = digestMode_(cfg), hour = digestBookedHour_(cfg), cellHour = digestHour_(cfg), reserve = digestReserve_(cfg);
   say('Backend ' + BACKEND_VERSION + ' — the code these triggers run, as saved in this editor.');
 
+  const sun = digestScheduled_(DIGEST_RUN), mk = digestScheduled_(DIGEST_MARK_RUN), booked = digestBooked_();
+  /* AN HOUR NOBODY RECORDED IS NOT THE CELL'S HOUR: triggers booked by a backend from before the record fire at
+     whatever the cell said then, and this said "about 21:00" over a trigger firing at 18:00. */
+  const unknownHour = booked < 0 && !!sun;
   say('THE EMAIL: ' + (mode === 'send' ? 'ON — it emails parents'
       : mode === 'preview' ? 'PREVIEW — it writes the digest_log tab and emails nobody'
-      : 'OFF — nothing is sent') + ' (weekly_digest is "' + S(cfg.weekly_digest) + '"). It goes on Sundays at about '
-    + hour + ':00, London time.' + (mode === 'send' ? '' : ' Set weekly_digest to send on the config tab to email parents.')
-    + (hour !== cellHour ? ' BUT weekly_digest_hour on the config tab says ' + cellHour + ' — run installWeeklyDigest again to move it there.' : ''));
+      : 'OFF — nothing is sent') + ' (weekly_digest is "' + S(cfg.weekly_digest) + '"). '
+    + (unknownHour ? 'The hour it goes at on Sundays was not recorded — see THE HOUR BOOKED below.'
+       : 'It goes on Sundays at about ' + hour + ':00, London time.')
+    + (mode === 'send' ? '' : ' Set weekly_digest to send on the config tab to email parents.'));
 
-  const sun = digestScheduled_(DIGEST_RUN), mk = digestScheduled_(DIGEST_MARK_RUN);
   say('THE TRIGGERS: the Sunday email is ' + (sun === null ? 'unknown (the triggers could not be listed)'
       : sun === 1 ? 'installed' : sun ? 'installed ' + sun + ' times (run installWeeklyDigest to leave one)'
       : 'NOT installed (run installWeeklyDigest)') + '; the AI marking passes are '
     + (mk === null ? 'unknown' : mk === 2 ? 'installed (every night at about ' + DIGEST_MARK_NIGHT + ':00, and '
         + (hour ? 'on Sunday at about ' + (hour - 1) : 'on Saturday at about 23') + ':00)'
       : mk ? plural(mk, 'trigger') + ', wanted 2 (run installWeeklyDigest)' : 'NOT installed (run installWeeklyDigest)') + '.');
+
+  /* THE HOUR BOOKED, ON A LINE OF ITS OWN (18 Oct). Apps Script cannot read the hour a trigger fires at, so
+     `installWeeklyDigest` writes down the hour it booked (`DIGEST_BOOKED`) and this prints it — and WARNS, in
+     words, when the config cell says another hour now: the owner moved `weekly_digest_hour` from 18 to 21 on
+     the day, and a cell changed after installing moves nothing until the triggers are booked again. */
+  say('THE HOUR BOOKED: ' + (booked >= 0
+      ? 'installWeeklyDigest booked the email for about ' + booked + ':00 on Sundays, London time (recorded in Script Properties as '
+        + DIGEST_BOOKED + ').' + (booked !== cellHour
+          ? ' WARNING: weekly_digest_hour on the config tab now says ' + cellHour + ', but the email still goes at about ' + booked
+            + ':00 — run installWeeklyDigest again to move it to ' + cellHour + ':00.'
+          : ' The config tab says the same.')
+      : unknownHour ? 'NOT recorded — the triggers were booked by an older backend, and Apps Script cannot read a trigger’s hour back. '
+        + 'WARNING: run installWeeklyDigest again, so the email is booked at ' + cellHour + ':00 (weekly_digest_hour) and the hour is recorded.'
+      : 'nothing is booked yet; installWeeklyDigest will book ' + cellHour + ':00 (weekly_digest_hour on the config tab).'));
 
   const off = digestMarkOff_(cfg);
   let apiKey = '';

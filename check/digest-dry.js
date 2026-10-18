@@ -249,7 +249,10 @@ onePass('as the email goes', sendAt, true);
    The answers as they stood when the run planned; less any email the sheet's own `digest_log` says went. */
 setNow(sendAt);
 showUpTo(now);
-const plan = b.ev('clearCache(); digestPlanNow_(digestWeekToSend_(new Date()), new Date())');
+/* AND EACH QUESTION AS IT IS ON THE SITE (18 Oct) — the library's rows fetched as the run fetches them
+   (`digestEmailLibrary_`, from the local file here), so the emails written are the ones the run would send. */
+const plan = b.ev('clearCache(); (() => { const week = digestWeekToSend_(new Date()); let cfg = {}; try { cfg = config(); } catch (e) { cfg = {}; }'
+  + ' return digestPlanNow_(week, new Date(), digestEmailLibrary_(week, read(TAB.submissions).rows, cfg)); })()');
 G.__lib = libText;
 const unreached = b.ev('(() => { const today = digestDay_(new Date()), from = digestWeekToSend_(new Date()).start;'
   + ' const waiting = digestMarkWaiting_(read(TAB.submissions).rows, from, today);'
