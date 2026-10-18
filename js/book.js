@@ -535,6 +535,10 @@ const BOOKING = {
   /* WHICH QUESTION'S LIST IS OPEN, or '' for the form. Here rather than in the DOM for the reason
      `note` is: a redraw rebuilds the page, and state kept in the markup is state a redraw loses. */
   picking: '',
+  /* AN ADMIN'S DISCOUNT (docs/history/353) — not a step, because it is not a question the family is asked:
+     one line above COST that only an admin is drawn (`discountRow_`). `%` or `£`, how much, the code or
+     the reason, and who absorbs it. Cleared with the rest by `resetBooking_`. */
+  discType: '', discValue: '', discCode: '', discBy: '',
 };
 
 /* ---------- THE ONE YOU JUST ASKED FOR ------------------------------------------------------------
@@ -1788,6 +1792,11 @@ function bookSpec() {
        trip's tickets off these; a trip's `loc` and `hosting` are overwritten below, because the venue
        question is not asked on a trip and an answer left from before must not hire a room. */
     format: bookFormat_(BOOKING.format), practical: BOOKING.practical || '', trip: BOOKING.trip || '',
+    /* AN ADMIN'S ALONE, and asked here as well as hidden on the form: a draft carried from an admin's
+       session to a family's on one device must not price their booking with the admin's discount. */
+    discount: (typeof isAdmin === 'function' && isAdmin() && !isWaiting_() && BOOKING.discType)
+      ? { type: BOOKING.discType, value: BOOKING.discValue, code: BOOKING.discCode, by: BOOKING.discBy || 'Business' }
+      : null,
   }, bookFormat_(BOOKING.format) === 'Trip' ? { loc: '', hosting: false } : {});
 }
 
@@ -1867,6 +1876,7 @@ function resetBooking_(keepDraft) {
      note over the deleted `book-edit`. */
   BOOKING.done = [];
   BOOKING.note = '';
+  BOOKING.discType = BOOKING.discValue = BOOKING.discCode = BOOKING.discBy = '';
   /* AND WHICH LIST IS OPEN, for the same reason: it is about the form rather than about the
      booking. A reset with it left set would draw the next booking's first page as a picker for a
      question nobody had pressed. */
@@ -4256,7 +4266,9 @@ function bookBreakdown(L, foot) {
        The card said COST £0.00 as soon as a subject was picked, because a total with no seats and no
        hours in it multiplies out to nothing. A zero on a receipt means FREE, and that is a promise
        this form is in no position to make. A dash means not yet, which is the truth. */
-    total: (L && L.total > 0) ? money(L.total) : '—',
+    total: (L && L.total > 0) ? costSay_(L) : '—',
+    /* AN ADMIN'S DISCOUNT LINE, DIRECTLY ABOVE COST — `discountRow_`; nothing for anybody else. */
+    before: discountRow_(L),
     /* AN ADMIN'S TWO MORE ROWS, AND THE TOTAL'S LABEL SAYING WHOSE FIGURE IT IS — `formMoney_`. */
     totalLabel: formMoney_(L).label || undefined,
     more: formMoney_(L).more,
@@ -4543,7 +4555,7 @@ function receiptHtml(r) {
          the admin's are the same row again under it, a label in `Q` and a figure in `+`, so the
          three money lines read down one column. Only the caller decides who is given any — this
          function draws whatever it is handed and asks nobody's role. */''}
-    <div class="bk">${spineHead_(r)}${(r.rows || []).join('')}<div class="bk-row rc-total">
+    <div class="bk">${spineHead_(r)}${(r.rows || []).join('')}${r.before || ''}<div class="bk-row rc-total">
       <span class="bk-n"></span>
       <span class="bk-k">${esc(r.totalLabel || 'Cost')}</span>
       <span class="bk-v"></span>
@@ -5199,6 +5211,71 @@ function bookMoneySend_(L) {
   }
   return out;
 }
+
+/* ---------- COST, WITH THE DISCOUNT SHOWN AS A SUM -------------------------------------------------------
+   "£102.00 − £10.00 = £92.00" when there is one, so the family's figure and the admin's discount are one
+   line somebody can check; the plain figure otherwise, exactly as before. One family's share, like COST. */
+function costSay_(L) {
+  const e = L && L.earn;
+  if (!e || !(e.discount > 0)) return money(L.total);
+  const k = L.splitShares || 1;
+  return money((e.charged + e.discount) / k) + ' − ' + money(e.discount / k) + ' = ' + money(L.total);
+}
+/* ---------- THE DISCOUNT LINE: AN ADMIN'S FORM, SO IT HAS CONTROLS, NOT TILES (docs/history/353) ----------
+   ONE LINE ABOVE COST, drawn for an admin on an instant booking and for nobody else — `bookSpec` asks the
+   same, and the server refuses the fields from anybody else (`discountRefusal_`), which is the half that
+   matters. A form's controls belong to the form: two dropdowns and two boxes, tap targets in px.
+   THE CODE BOX TAKES A CODE OR A REASON. Picking one of the promo_codes rows fills its type, value and
+   who absorbs it (`book-disc`); typing anything else is a reason, recorded as written. A code that is
+   switched off, expired or used up is listed with why, and the server would refuse it anyway. */
+function discountRow_(L) {
+  if (!(typeof isAdmin === 'function' && isAdmin()) || isWaiting_() || !L || !L.earn) return '';
+  const e = L.earn;
+  const opt = (v, label, on) => `<option value="${esc(v)}"${on ? ' selected' : ''}>${esc(label)}</option>`;
+  const at = f => `class="rc-disc-in" data-do="book-disc" data-field="${f}"`;
+  return `<div class="bk-row rc-total rc-more rc-money rc-disc">
+      <span class="bk-n"></span>
+      <span class="bk-k">Discount</span>
+      <span class="bk-v"></span>
+      <span class="bk-m"></span>
+      <span class="bk-r"></span>
+      <span class="bk-t">${e.discount > 0 ? '− ' + esc(money(e.discount / (L.splitShares || 1))) : '—'}</span>
+    </div>
+    <div class="rc-disc-ctl">
+      <select ${at('discType')} aria-label="Discount in">${opt('', 'No discount', !BOOKING.discType)}${
+        opt('%', '% off teaching', BOOKING.discType === '%')}${opt('£', '£ off total', BOOKING.discType === '£')}</select>
+      <input ${at('discValue')} type="number" inputmode="decimal" min="0" step="0.01"
+        value="${esc(BOOKING.discValue)}" placeholder="How much" aria-label="How much">
+      <input ${at('discCode')} type="text" list="bk-disc-codes"
+        value="${esc(BOOKING.discCode)}" placeholder="Code or reason" aria-label="Code or reason">
+      <datalist id="bk-disc-codes">${(DATA.promoCodes || []).map(c => opt(c.code,
+        (c.type === '%' ? c.value + '%' : money(c.value)) + (c.off ? ' · ' + c.off : ''), false)).join('')}</datalist>
+      <select ${at('discBy')} aria-label="Who absorbs it">${
+        opt('Business', 'Business absorbs', BOOKING.discBy !== 'Shared with tutor')}${
+        opt('Shared with tutor', 'Shared with tutor', BOOKING.discBy === 'Shared with tutor')}</select>
+    </div>`;
+}
+/* KEPT AS IT IS TYPED, REDRAWN ON A CHANGE. Each keystroke goes into `BOOKING` and the draft (`bookKeep_`), so
+   a reload half-way through "12.5" loses nothing — the booking note's rule — but the form is redrawn only on
+   `change`: redrawing under somebody typing would take the box away from them at the "1". */
+document.addEventListener('input', e => {
+  const el = e.target && e.target.closest && e.target.closest('input[data-do="book-disc"]');
+  if (!el || ['discValue', 'discCode'].indexOf(el.dataset.field) === -1) return;
+  BOOKING[el.dataset.field] = String(el.value || ''); bookKeep_();
+});
+/* A CODE FROM THE TAB BRINGS ITS OWN TERMS. */
+document.addEventListener('change', e => {
+  const el = e.target && e.target.closest && e.target.closest('[data-do="book-disc"]');
+  if (!el || !(typeof isAdmin === 'function' && isAdmin())) return;
+  const f = el.dataset.field;
+  if (['discType', 'discValue', 'discCode', 'discBy'].indexOf(f) === -1) return;
+  BOOKING[f] = String(el.value || '').trim();
+  if (f === 'discCode') {
+    const c = (DATA.promoCodes || []).find(x => norm(x.code) === norm(BOOKING.discCode));
+    if (c) Object.assign(BOOKING, { discCode: c.code, discType: c.type, discValue: String(c.value), discBy: c.absorbedBy });
+  }
+  drawBooker();
+});
 
 function formMoney_(L) {
   if (!(typeof isAdmin === 'function' && isAdmin())) return { label: null, more: [] };
