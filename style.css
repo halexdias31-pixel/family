@@ -4240,6 +4240,16 @@ button.text-drop { color: var(--bad); }
    three ways. Named through `.rc-total` so it out-specifies the base rule rather than out-sitting
    it — the `.price.faint` race this stylesheet has lost twelve times. */
 .rc-total.rc-more { margin-top: 0; padding-top: 0; border-top: 0; }
+/* ---------- THE MONEY BLOCK: AN ADMIN'S SUM, READ AS A SUM (docs/history/353) ------------------------
+   EIGHT ROWS IN THE TOTAL'S CAPITALS WOULD SHOUT EIGHT TIMES, and the block is a subtraction to follow
+   down the `+` column, not eight headlines — so its terms are in the answers' own case and weight, and
+   only `Net profit`, the line the sum is for, is heavy. Red on a negative net: `--bad` is what this
+   sheet already means by money going the wrong way, and the sentence under it says by how much. */
+.rc-total.rc-money .bk-k { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--dim); }
+.rc-total.rc-money .bk-t { font-weight: 400; color: var(--dim); }
+.rc-total.rc-money.rc-net .bk-k, .rc-total.rc-money.rc-net .bk-t { font-weight: 700; color: var(--ink); }
+.rc-total.rc-money.rc-net.is-bad .bk-k, .rc-total.rc-money.rc-net.is-bad .bk-t { color: var(--bad); }
+.bk > .bk-say.rc-money-say { color: var(--bad); text-align: right; }
 /* ---------- A TOTAL'S LABEL RUNS ACROSS THE ROW, SO IT CANNOT WIDEN THE QUESTION COLUMN ------------
    THE LABEL TRACK IS `minmax(6.2em, max-content)` AND IT IS SHARED BY EVERY ROW ON THE CARD — so
    the widest label anywhere decides where every answer starts. `COST` fitted inside the floor;

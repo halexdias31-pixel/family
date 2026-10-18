@@ -4188,6 +4188,8 @@ function bookBreakdown(L, foot) {
     /* AN ADMIN'S TWO MORE ROWS, AND THE TOTAL'S LABEL SAYING WHOSE FIGURE IT IS — `formMoney_`. */
     totalLabel: formMoney_(L).label || undefined,
     more: formMoney_(L).more,
+    /* THE ONE SENTENCE UNDER A NEGATIVE NET — an admin's, from the same `formMoney_`. */
+    moreSay: formMoney_(L).say || '',
     /* PASSED STRAIGHT THROUGH. The actions are built where the rest of the booking's wording is —
        see `drawBooker_` — and printed where a receipt's footer goes. */
     foot: foot || '',
@@ -4476,14 +4478,14 @@ function receiptHtml(r) {
       <span class="bk-m"></span>
       <span class="bk-r"></span>
       <span class="bk-t">${esc(r.total || '')}</span>
-    </div>${(r.more || []).map(m => `<div class="bk-row rc-total rc-more">
+    </div>${(r.more || []).map(m => `<div class="bk-row rc-total rc-more${m.cls ? ' ' + esc(m.cls) : ''}">
       <span class="bk-n"></span>
       <span class="bk-k">${esc(m.k)}</span>
       <span class="bk-v"></span>
       <span class="bk-m"></span>
       <span class="bk-r"></span>
       <span class="bk-t">${esc(m.t)}</span>
-    </div>`).join('')}</div>
+    </div>`).join('')}${r.moreSay ? `<p class="bk-say rc-money-say">${esc(r.moreSay)}</p>` : ''}</div>
     ${/* THE ROSTER SLOT IS STILL HERE and nothing fills it — see the notes above. Kept rather than
           cut out, because `rosterHtml` is what `Your sessions` draws and this is the one line that
           would put chairs back on a document if that ever turns out to be right. Removing it would
@@ -5088,12 +5090,72 @@ function jobMoney_(j) {
    out a seat and nothing about who keeps what, so it carries no rows rather than two dashes: the
    form changes shape as it is answered, and a pair of rows that can never fill would be furniture.
    Everybody else reads the form exactly as before — the figure on it is the quote for the family. */
+/* ---------- AND THE MONEY BLOCK, WHICH IS THOSE TWO ROWS GROWN UP (docs/history/353) -------------------
+   "Tutor earns" and "Admin earns" told an admin the split of the teaching and nothing about what the
+   booking COSTS — kit, tickets, travel, card fees, a discount — so "Admin earns £12" sat over a practical
+   whose kit had eaten £9 of it. The rows are now the whole sum `bookMoney_` (core.js) does, top to
+   bottom in the order money moves: what is charged (the discount already off it, which is the line
+   under it), what goes out, what is left.
+   A row appears where its format or its figure makes it a fact — Materials on a practical, Tickets &
+   travel on a trip, Discount when there is one — and Charged, Tutor payout, Card fees and Net always,
+   because those four are the sum and a missing term reads as a nought nobody can check.
+   WHOLE-BOOKING FIGURES, even when the cost is split: the tutor and the venue are paid for the whole
+   session, so "Client pays" (one family's share) and "Charged" (all of them) can differ, and say so.
+   A NEGATIVE NET GETS ONE SENTENCE, in plain words — the owner reads a figure in red faster than a
+   minus sign, and "this booking costs you £X" is the decision in front of them. */
+/* ---------- WHAT THE JOB ROW KEEPS OF THE MONEY BLOCK -------------------------------------------------
+   WHOLE-BOOKING FIGURES, ROUNDED TO THE PENNY — a sheet column is summed by a person with a formula, and
+   12.000000000000002 in a money cell is the kind of thing that makes them distrust every other one.
+   `gross` IS WHAT THE CLIENT IS CHARGED, the discount already off, so the row's own sum reads
+   net = gross − tutor_payout − venue_cost − materials_cost − tickets_cost − card_fees with no discount
+   term in it: `discount_*` says what was given, and the subtraction has already been done once. */
+function bookMoneySend_(L) {
+  const e = L && L.earn;
+  if (!e) return {};
+  const p2 = x => String(Math.round((Number(x) || 0) * 100) / 100);
+  const pr = L.format === 'Practical' ? bookPractical_(BOOKING.practical) : null;
+  const tr = L.format === 'Trip' ? bookTrip_(BOOKING.trip) : null;
+  const out = {
+    format: L.format || 'Tutoring', practicalId: pr ? pr.id : '', tripId: tr ? (tr.tripId || '') : '',
+    gross: p2(e.charged), tutorPayout: p2(e.tutorPayout), venueCost: p2(e.venue),
+    materialsCharge: p2(e.materialsCharge), materialsCost: p2(e.materialsCost),
+    ticketsCost: p2(e.ticketsCost), cardFees: p2(e.cardFees), netProfit: p2(e.net),
+  };
+  if (e.discount > 0) {
+    Object.assign(out, { discountType: e.discountType, discountValue: String(e.discountValue),
+      discountCode: e.discountCode, discountAbsorbedBy: e.absorbedBy });
+  }
+  return out;
+}
+
 function formMoney_(L) {
   if (!(typeof isAdmin === 'function' && isAdmin())) return { label: null, more: [] };
   if (!L || !(L.total > 0) || !isFinite(Number(L.tutorPay))) return { label: null, more: [] };
-  return { label: 'Client pays',
-           more: [{ k: 'Tutor earns', t: money(Number(L.tutorPay) || 0) },
-                  { k: 'Admin earns', t: money(Number(L.profitTotal) || 0) }] };
+  const e = L.earn;
+  if (!e) return { label: 'Client pays', more: [] };
+  const more = [{ k: 'Charged', t: money(e.charged), cls: 'rc-money' }];
+  if (e.discount > 0) {
+    /* NO MINUS: `Charged` above is already the figure after it, so this says what was given and who
+       gave it rather than being taken off a second time. */
+    more.push({ k: 'Discount', t: money(e.discount) + ' off · '
+                  + (e.absorbedBy === 'Shared with tutor' ? 'shared' : 'business'), cls: 'rc-money' });
+  }
+  if (L.format === 'Practical') {
+    more.push({ k: 'Materials', t: e.uncosted ? 'not costed'
+                  : money(e.materialsCharge) + ' / ' + money(e.materialsCost), cls: 'rc-money' });
+  }
+  if (e.venue > 0) more.push({ k: 'Venue', t: '\u2212 ' + money(e.venue), cls: 'rc-money' });
+  if (L.format === 'Trip') more.push({ k: 'Tickets & travel', t: '\u2212 ' + money(e.ticketsCost), cls: 'rc-money' });
+  more.push({ k: 'Tutor payout', t: '\u2212 ' + money(e.tutorPayout), cls: 'rc-money' });
+  more.push({ k: 'Card fees', t: e.cardFees > 0 ? '\u2212 ' + money(e.cardFees) : money(0), cls: 'rc-money' });
+  /* ROUNDED TO THE PENNY BEFORE THE SIGN IS ASKED, so a net of −0.000000001 (floating point on a one-child
+     session) is £0.00 in ink rather than "−£0.00" in red with a sentence saying it costs you nothing. */
+  const net = Math.round(e.net * 100) / 100;
+  const pct = e.charged > 0 ? Math.round(net / e.charged * 1000) / 10 : 0;
+  more.push({ k: 'Net profit', t: (net < 0 ? '\u2212 ' : '') + money(Math.abs(net)) + ' · ' + pct + '%',
+              cls: 'rc-money rc-net' + (net < 0 ? ' is-bad' : '') });
+  return { label: 'Client pays', more,
+           say: net < 0 ? 'This booking costs you ' + money(-net) + '.' : '' };
 }
 
 function jobReceipt(j, foot) {

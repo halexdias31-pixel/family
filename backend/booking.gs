@@ -356,6 +356,76 @@ function participantsOf(jobId) {
 function clientsIn(jobId) { return participantsOf(jobId).filter(p => p.role === 'client'); }
 function tutorsIn(jobId)  { return participantsOf(jobId).filter(p => p.role === 'tutor'); }
 
+/* ==================================================================================================
+   WHAT A BOOKING EARNS, FROZEN WHEN IT IS AGREED (docs/history/353)
+
+   THE PHONE PRICES, THE SERVER KEEPS. `createJob` records the Money block's figures as sent — the same
+   rule as `tutor_pay` and `admin_profit`: this backend prices nothing from the seat share, and a second
+   copy of `priceFrom` here would be the formula in two languages. What the server DOES own is the
+   moment: when everybody on a job has agreed, `jobMoneyFreeze_` works the card fees out from the config
+   of that moment, writes the net, and stamps `priced_at`. After that the row is never written again by
+   this, so a card fee or a markup changed next month leaves every agreed booking saying what it earned
+   on the day it was agreed.
+
+   PURE, so `check-booking.js` runs it: the row and the config in, the cells to write out — or null when
+   there is nothing to do (already frozen, or a job from before these columns with no gross to freeze).
+   `gross` is what the client is charged, the discount already off; the net is the row's own subtraction,
+   not the phone's figure, so a hand-edited cost on the sheet before the agreement is honoured.
+================================================================================================== */
+function jobMoneyFreeze_(row, cfg, now) {
+  if (!row || S(row.priced_at) !== '' || S(row.gross) === '') return null;
+  const r2 = x => Math.round(x * 100) / 100;
+  const gross = N(row.gross);
+  const pct = Math.max(0, N((cfg || {}).card_fee_pct)), fixed = Math.max(0, N((cfg || {}).card_fee_fixed));
+  const fees = gross > 0 ? r2(gross * pct / 100 + fixed) : 0;
+  const net = r2(gross - N(row.tutor_payout) - N(row.venue_cost) - N(row.materials_cost)
+                 - N(row.tickets_cost) - fees);
+  return { card_fees: fees, net_profit: net, priced_at: now || new Date() };
+}
+/* AGREED IS EVERYBODY AT AGREED OR PAST IT, AND AT LEAST ONE FAMILY. The phone's `jobAccepted_` asks the
+   same of the receipt; this is the server's reading of the same fold, so the freeze happens on the move
+   that settles the last seat — whoever pressed it, an admin answering for the business included. */
+function jobAgreed_(jobId) {
+  const ps = participantsOf(jobId);
+  const ok = [BM.AGREED, BM.PAYING, BM.BOOKED];
+  return ps.some(p => p.role === 'client') && ps.every(p => ok.indexOf(p.status) !== -1);
+}
+/* ---------- A DISCOUNT IS AN ADMIN'S, AND A CODE IS ITS OWN ROW'S ----------------------------------
+   THE SAME SHAPE AS `seatCutRefusal_` (people.gs): the phone hides the line from everybody but an admin,
+   and this is the half a hand-built request cannot walk past. A family typing `discountValue: 50` into a
+   request is refused outright rather than having the field quietly dropped — a booking priced with a
+   discount the server then ignores would be a price nobody agreed to.
+   A CODE IS CHECKED AGAINST ITS ROW, on the server, every time: `active`, `expires` and `max_uses`
+   against `used`. Its type and value are the row's — a request naming SPRING10 with 50% is refused,
+   not honoured. Returns '' when the request may go ahead. `codeRow` is the promo_codes row the code
+   found, or null; `today` is a Date, passed in so the check can be run. */
+function discountRefusal_(body, isAdmin, codeRow, today) {
+  const f = ['discountType', 'discountValue', 'discountCode', 'discountAbsorbedBy'];
+  if (!f.some(k => S((body || {})[k]) !== '')) return '';
+  if (!isAdmin) return 'Only @family. gives a discount. Nothing was sent.';
+  const type = S(body.discountType);
+  if (type !== '%' && type !== '£') return 'A discount is a % or £. Nothing was sent.';
+  const value = N(body.discountValue);
+  if (!(value > 0) || (type === '%' && value > 100)) return 'That discount is not a number this can take. Nothing was sent.';
+  const by = S(body.discountAbsorbedBy);
+  if (by && by !== 'Business' && by !== 'Shared with tutor') return 'A discount is absorbed by the business or shared with the tutor. Nothing was sent.';
+  const code = S(body.discountCode);
+  if (!code || !codeRow) return '';
+  if (!ON_(codeRow.active)) return 'The code ' + code + ' is switched off. Nothing was sent.';
+  const ends = S(codeRow.expires) ? sheetDate(codeRow.expires) : null;
+  if (ends && today && ends.getTime() < new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()) {
+    return 'The code ' + code + ' has expired. Nothing was sent.';
+  }
+  if (N(codeRow.max_uses) > 0 && N(codeRow.used) >= N(codeRow.max_uses)) {
+    return 'The code ' + code + ' has been used all ' + N(codeRow.max_uses) + ' times. Nothing was sent.';
+  }
+  if (S(codeRow.type) && (S(codeRow.type) !== type || N(codeRow.value) !== value)) {
+    return 'The code ' + code + ' is ' + (S(codeRow.type) === '%' ? N(codeRow.value) + '%' : '£' + N(codeRow.value))
+         + ', not what was sent. Nothing was sent.';
+  }
+  return '';
+}
+
 /** Derived. A tutor is Confirmed once a client has accepted them. */
 function tutorStatusOf(jobId) {
   const ts = tutorsIn(jobId);

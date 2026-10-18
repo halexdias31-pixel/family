@@ -11927,17 +11927,32 @@ check('each person sees their own figure on a session, and its tiles are on the 
   const owed = doc(w.__t.jobPage(Object.assign({}, job, { slots: [{ n: 1, client: 'Pat Parent', status: 'Agreed' }] })));
   if (!owed.querySelector('.rc .rc-tiles [data-do="job-pay"]')) bad.push('an accepted, unpaid session has no Pay on its paper');
 
-  /* AND THE FORM: an admin pricing a booking sees the two more rows; nobody else does. */
-  if (typeof w.__t.formMoney === 'function') {
-    const L = { total: 300, tutorPay: 150, profitTotal: 40 };
+  /* AND THE FORM: an admin pricing a booking sees the Money block (docs/history/353); nobody else does.
+     The figures are `bookMoney_`'s own, over the owner's practical — 2 children, 2h, £30, kit £2 a child
+     + £5 setup, markup 1.25 — so the rows are read off the real sum rather than a hand-made object. */
+  if (typeof w.__t.formMoney === 'function' && typeof w.bookMoney_ === 'function') {
+    const earn = w.bookMoney_({ sessions: 1, n: 2, tutorPay: 90, profit: 12, venue: 0, markup: 1.25,
+      practical: { costPerRun: 2, setupCost: 5 } });
+    const L = { total: earn.charged, tutorPay: 90, profitTotal: 12, format: 'Practical', earn };
     w.__t.USER({ name: 'Halex Dias', personId: 'PA', role: 'admin', roles: ['admin'] });
     const fa = w.__t.formMoney(L);
-    if (fa.more.length !== 2 || !/150\.00/.test(fa.more[0].t) || !/40\.00/.test(fa.more[1].t)) {
-      bad.push('an admin pricing the form is not shown what the tutor and the business take');
+    const said = fa.more.map(m => m.k + ' ' + m.t).join(' | ');
+    const wantRows = [/^Charged £113\.25/, /^Materials £11\.25 \/ £9\.00/, /^Tutor payout − £90\.00/,
+                      /^Card fees £0\.00/, /^Net profit £14\.25 · 12\.6%/];
+    if (wantRows.some(re => !fa.more.some(m => re.test(m.k + ' ' + m.t)))) {
+      bad.push('an admin pricing a practical is not shown the Money block as summed: ' + said);
+    }
+    /* A NEGATIVE NET IS RED AND SAYS SO: a £20 business-absorbed discount on the same booking. */
+    const lossEarn = w.bookMoney_({ sessions: 1, n: 1, tutorPay: 60, profit: 0, discount: { type: '£', value: 20 } });
+    const loss = w.__t.formMoney({ total: lossEarn.charged, tutorPay: 60, profitTotal: 0, format: 'Tutoring', earn: lossEarn });
+    const netRow = loss.more.find(m => m.k === 'Net profit') || {};
+    if (!/is-bad/.test(netRow.cls || '') || loss.say !== 'This booking costs you £20.00.') {
+      bad.push('a booking that loses money does not say so in red: ' + JSON.stringify([netRow, loss.say]));
     }
     w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
-    if (w.__t.formMoney(L).more.length) bad.push('a client pricing the form is shown the split');
-  }
+    const fp = w.__t.formMoney(L);
+    if (fp.more.length || fp.say) bad.push('a client pricing the form is shown the Money block');
+  } else bad.push('formMoney_ or bookMoney_ is not reachable, so the Money block was not checked');
   return bad;
 });
 

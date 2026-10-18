@@ -214,6 +214,9 @@ const WHERE = {
   venues:         { file: 'ledger' },
   rooms:          { file: 'ledger' },
   trips:          { file: 'ledger' },
+  /* AN ADMIN'S DISCOUNT CODES (docs/history/353) — the ledger, beside `jobs`, because `used` is counted up
+     by `createJob` as a code is spent and the job that spent it is in the same file. */
+  promo_codes:    { file: 'ledger' },
   holidays:       { file: 'ledger' },
   landmarks:      { file: 'ledger' },
   landmark_parts: { file: 'ledger' },
@@ -345,6 +348,7 @@ const TAB = {
      inside them are one table, and that table is `data/questions.json` in this repository now. */
   shop: 'shop', pricing: 'pricing',
   config: 'config', options: 'options', trips: 'trips', rooms: 'rooms', invites: 'invites',
+  promo_codes: 'promo_codes',
   exams: 'exams', orders: 'orders', messages: 'messages', widgets: 'widgets',
   records: 'records',
   herd: 'herd',
@@ -820,7 +824,19 @@ const SCHEMA = {
        filled in, so one column answers the question AND decides whether to ask it.
        A booking a parent made and one an admin made on their behalf were identical rows before
        this, and that is the fact you want on the day somebody says they never booked it. */
-    "booked_by"
+    "booked_by",
+    /* ---------- WHAT THE BOOKING EARNS, KEPT AS IT WAS AGREED (docs/history/353) ------------------------
+       THE MONEY BLOCK'S FIGURES, whole-booking, as the phone priced them at the ask, and FROZEN when the
+       job is accepted: `jobMoneyFreeze_` (booking.gs) works the card fees out from the config of THAT
+       moment, writes the net and stamps `priced_at` — and a row with `priced_at` is never written again,
+       so a fee or a markup changed next month cannot rewrite what an old booking earned.
+       `gross` is what the client is charged, the discount already off; `net_profit` = gross − tutor_payout
+       − venue_cost − materials_cost − tickets_cost − card_fees. `price_total`, `tutor_pay` and
+       `admin_profit` above are unchanged and still what the receipt and checkout read.
+       `format` is Tutoring, Practical or Trip — blank is Tutoring, every row before this column. */
+    "gross", "tutor_payout", "venue_cost", "materials_charge", "materials_cost", "tickets_cost",
+    "card_fees", "discount_type", "discount_value", "discount_code", "discount_absorbed_by",
+    "net_profit", "priced_at", "format", "practical_id", "trip_id"
   ],
   events: [
     "event_id", "at", "job_id", "actor",
@@ -1593,8 +1609,25 @@ const SCHEMA = {
     "photo", "link", "provider", "price_per_child",
     "hours", "min_children", "max_children", "venue",
     "address", "date", "notice_days", "active",
-    "notes"
+    "notes",
+    /* ---------- WHAT A TRIP COSTS TO TAKE, FOR THE BOOKING FORM (docs/history/353) -----------------------
+       The tab is empty today and the form says so. `ticket_child` and `ticket_adult` are the gate price —
+       the tutor goes in on an adult ticket, which the booking pays for; `travel_per_child` is the fare
+       there and back. All at cost: the business's share of a trip is the seat cut on the teaching, as on
+       any session. `max_children` above caps the seats. `place` is where it is, said for a person; the
+       older `venue` cell is still read where `place` is blank. `ratio` is children per adult, kept for the
+       day somebody staffs a big trip — nothing enforces it yet. `trip_id` is what a job's `trip_id`
+       joins on; a blank one is the row number, which is what `doGet` always sent as `id`. */
+    "trip_id", "place", "ticket_child", "ticket_adult", "travel_per_child", "ratio"
   ],
+  /* ---------- AN ADMIN'S DISCOUNT CODES (docs/history/353) -----------------------------------------------
+     ONE ROW A CODE, CHECKED ON THE SERVER EVERY TIME IT IS USED (`discountRefusal_`, booking.gs).
+     `type` is `%` or `£` and `value` how much; `absorbed_by` is `Business` (blank) or `Shared with tutor`,
+     the form's default for that code. `max_uses` blank is unlimited; `used` is counted up by `createJob`
+     and is the sheet's to reset. `expires` is the last day it works. `active` blank is on, as on every
+     tab here — a row just typed in is one you meant. Only an admin is ever sent this tab. Separate from
+     the `promotions` the pricing tab already runs, which still work exactly as they did. */
+  promo_codes: ["code", "type", "value", "absorbed_by", "max_uses", "used", "expires", "active", "notes"],
 };
 
 /* ---------- WHICH GEMINI MARKS, AND WHAT "MARK WITH AI" DOES WHEN GOOGLE IS FULL ---------------------
@@ -1860,6 +1893,14 @@ const CONFIG_DEFAULTS = [
      its own line, which is the honest way to charge for it — a fee folded invisibly into an hourly
      rate is the thing people find later and mind about. */
   ['travel_on_client', 0, 'set to 1 to add the venue travel cost to what the client pays, as its own line on the receipt. 0 = you absorb it'],
+  /* ---------- WHAT A BOOKING COSTS BEYOND THE TUTOR AND THE ROOM (docs/history/353) ----------------------
+     BLANK IS NOUGHT, AND A MARKUP OF BLANK IS ONE — at cost. The owner has chosen neither a card provider's
+     rate nor a margin on kit, so the sheet arrives saying so and the admin's Money block prices exactly as
+     before until somebody types a number. Read on the phone (`priceFrom`) for the block, and by the server
+     once, when a job is accepted, for the frozen `card_fees` (`jobMoneyFreeze_`). */
+  ['card_fee_pct', '', 'card fee as a PERCENT of what the client is charged: 1.5 means 1.5%. Blank = 0. Only the admin Money block and the frozen job row use it; nobody is charged it'],
+  ['card_fee_fixed', '', 'card fee in pounds per booking, on top of card_fee_pct: 0.2 means 20p. Blank = 0'],
+  ['materials_markup', '', 'a practical\'s kit is charged at cost x this: 1.25 = +25%. Blank = 1, at cost'],
 
   /* ---------- THE WEEKLY PARENT EMAIL — see backend/digest.gs ----------------------------------------
      ASKED FOR AS *"something which triggers every sunday. it checks what the student has done that

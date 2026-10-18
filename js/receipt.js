@@ -713,6 +713,12 @@ on('book-send', el => {
     /* AND WHAT THE TUTOR EARNS, from the same ledger — the backend wrote `tutor_pay` blank on every
        job because nothing sent it, so a tutor's receipt had no figure to show them. */
     tutorPay: L && isFinite(Number(L.tutorPay)) ? String(Math.round(L.tutorPay * 100) / 100) : '',
+    /* THE MONEY BLOCK'S FIGURES, AND WHAT KIND OF SESSION THEY PRICED (docs/history/353). Recorded on the
+       job as sent, like `tutorPay` and `profit` above — and FROZEN by the server when the job is accepted
+       (`jobMoneyFreeze_`, booking.gs), so a config change next month cannot rewrite what this booking was
+       agreed to earn. The discount fields go only when an admin set them, and the server refuses them from
+       anybody else (`discountRefusal_`). */
+    ...bookMoneySend_(L),
     /* THE PRINTED LINES, sent with the request so the backend can keep the receipt AS DRAWN.
        Regenerating it later from the job would produce a different document the day a rate moves —
        and a receipt that changes after it is issued is not a receipt. */
