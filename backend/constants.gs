@@ -335,7 +335,7 @@ const NOTIFY_KINDS = {
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-10-18-w-asonsite";
+const BACKEND_VERSION = "2026-10-18-x-onetrigger";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1388,15 +1388,11 @@ const SCHEMA = {
      the scheme never settled) and `ai:N/M` (Mark with AI gave N of M marks) — `SUBMISSION_VERDICT`.
      THE PHONE MARKS IT: the library and its schemes are on the phone, not here, so a right or wrong is
      what the phone said. Nothing is paid or ranked on it; it is a child's own practice.
-     AND SINCE 12 OCT THE SERVER MARKS WHAT THE PHONE COULD NOT. A `sent` answer that is the latest press
-     of its question is marked overnight, and an hour before the Sunday email, by the same Gemini marker
-     Mark with AI uses (`digestMarkPass_` in digest.gs, which fetches the library from the site for the
-     scheme) — *"i want them to see if they got it right too"*. ITS MARK IS ONE MORE ROW, appended like a
-     press, never a cell changed: the same person, key, answer, label and words, verdict `ai:N/M`, the
-     SAME `submitted_at` (so it stays in the week it was sent, and the admin's "last" does not move), a
-     `pressed_at` one millisecond after the answer it marks (so it is the latest, and any later press of
-     the child's still wins), and an id in `SUBMISSION_MARKED`'s shape, made from the answer's own — so
-     a second pass finds it and never marks one answer twice. See docs/history/348.
+     NOTHING MARKS IT AGAIN LATER (18 Oct, docs/history/352). From 12 to 18 Oct a server pass marked a `sent`
+     answer with Gemini overnight and before the Sunday email, appending its mark as a row (`ai:N/M`, an
+     id ending `-ai` and ten letters). The owner: *"The marking is already done on each question."* So a
+     row's verdict is the one the phone recorded when the child sent it, and the Sunday email prints
+     exactly that — `sent` as "not marked". The rows that pass appended stay on the sheet as presses.
 
      `submitted_at` IS THE SERVER'S CLOCK, a date-time — never the phone's, which is wrong on enough
      iPads to put a Sunday's work in the wrong week. It says WHICH WEEK a press is in (the parent email)
@@ -1879,27 +1875,15 @@ const CONFIG_DEFAULTS = [
      `DIGEST_BOOKED`, disagree). 21 SINCE 18 OCT, the owner: *"On Sunday @9pm"* — after the weekend's
      work, Sunday evening's homework included, and before Monday. It was 18, and a question done at
      20:00 on a Sunday was in nobody's email (next week starts on Monday): the trade an earlier hour
-     makes. Everything else follows this number — the run-up pass an hour before (20:00), the email's
+     makes. Everything else follows this number — the email's
      "up to 9pm on Sunday", the setup check's lines. THE RESERVE is mail quota left for everything else
      the site emails — a new PIN at 21:00 on a Sunday must not find the day's quota spent on summaries. */
   ['weekly_digest', 'off', 'the Sunday email to parents: off (nothing), preview (written to the digest_log tab, nothing sent) or send. Anything else = off'],
   ['weekly_digest_hour', 21, 'the hour on Sunday, London time, the weekly parent email goes. 0-23, blank = 21 (9pm). Run installWeeklyDigest again after changing it'],
   ['weekly_digest_reserve', 10, 'emails a day kept back from the weekly parent email for PIN resets and notices. Blank = 10'],
-  /* ---------- AND THE MARKS IN IT — `digestMarkPass_` in digest.gs (docs/history/348) ----------------------
-     THE OWNER, 12 OCT: *"i want them to see if they got it right too. for this i need th ai marking to be
-     working too."* A worded answer sent while AI marking was off, or a maths answer the phone had nothing to
-     Check against, is `sent` — and Sunday's email would have said "not marked" beside it for ever. So a
-     pass marks those with Gemini, nightly and in the hour before the email, and this row is its own switch.
-     ON BY DEFAULT, AND THAT IS THE SAFE ANSWER HERE, because it is the second switch and not the first:
-     nothing runs while `weekly_digest` is `off` (its default) or while GEMINI_API_KEY is missing from
-     Script Properties, and `ai_marks_per_day` at 0 stops it too, as that note has always promised for all
-     AI marking. It spends the KEY's Gemini quota, never a child's `ai_marks_per_day` (that cap is about
-     presses). Off stops only this pass; the email still goes, saying "not marked".
-     ON IS SPELLED, OFF IS EVERYTHING ELSE (the review of 12 Oct): blank, on, yes, true, 1 or ✓ is on. It
-     read only off, no, 0 and false as off, so "disabled", "none" or "n" — words an owner types to mean off —
-     left a pass spending the key's quota every night; and the row above reads anything it does not know
-     as off, so one row meant the opposite of its neighbour. */
-  ['weekly_digest_marking', 'on', 'whether answers nothing could mark are marked by AI overnight and in the hour before the Sunday email: on (blank, on, yes, true or 1) or off (anything else). Runs only while weekly_digest is preview or send and GEMINI_API_KEY is set; spends the key’s Gemini quota, not anybody’s ai_marks_per_day. ai_marks_per_day 0 stops it too'],
+  /* `weekly_digest_marking` WAS HERE, 12–18 Oct: the switch of the server's AI marking pass, which is gone —
+     the owner: *"The marking is already done on each question."* (docs/history/352). A cell left on a live
+     config tab is read by nothing. */
 
   ['print_rate_per_page', 0.02, 'what a printed page costs. 0.02 = 2p. Set to 0 and no paper copies are offered at all'],
   ['print_minimum', 0, 'the least a print job can cost, whatever the page count. 0 = no minimum'],
@@ -2521,12 +2505,6 @@ const SUBMISSION_ID = /^\d{10,16}-[a-z0-9]{3,16}$/;
    week, and the summary dates it by when it was pressed. No phone's own press has this shape (`subId_`
    ends in six letters). */
 const SUBMISSION_CARRIED = /^\d{10,16}-m[a-z0-9]{14}$/;
-/* ---------- AND THE NAME OF A MARK THE SERVER GAVE (`digestMarkPass_`, docs/history/348) -----------------
-   The answer's own time, a dash, `ai` and ten letters made from the answer's id — so the same answer always
-   gets the same name, and a second pass, or two passes at once, find the first one's row and write none.
-   It is still a `SUBMISSION_ID`, and it can be neither of the others: a phone's tail is six letters
-   (`subId_`) and a carried press's is `m` and fourteen. */
-const SUBMISSION_MARKED = /^\d{10,16}-ai[a-z0-9]{10}$/;
 /* AND HOW LONG A QUESTION'S NAME MAY BE. A paper's name and a question number are fifty-odd
    characters; this is room for the longest the library has with a margin, and a ceiling on what one
    request can put in a cell a parent's email prints. See SCHEMA.submissions. The name says ATTEMPT
@@ -2576,77 +2554,27 @@ const AI_SCHEME_MAX = 8000;
 const DIGEST_MODES = ['off', 'preview', 'send'];
 const DIGEST_TZ = 'Europe/London';
 const DIGEST_RUN = 'weeklyDigestRun';
-/* THE HOURLY CHECK OF THE EMAIL AFTER EACH SESSION, BY ITS HANDLER'S NAME — that email was removed on
-   8 Oct (*"delete daily email stuff"*), and a trigger the owner booked for it from the editor would go
-   on firing every hour into a function that no longer exists, failing, and emailing the owner the
-   failure. `installWeeklyDigest` deletes any project trigger with this handler, and says so. The one
-   place the old name is still written, because a trigger is found by that string and nothing else. */
-const DIGEST_RETIRED_RUNS = ['sessionRecapRun'];
-/* ---------- THE MARKING PASS — `digestMarkRun` / `digestMarkPass_` in digest.gs (docs/history/348) ----------
-   THE HANDLER BY NAME, written once for `DIGEST_RUN`'s reason: a trigger is found and deleted by that string.
-   Two bookings of it, both by `installWeeklyDigest`: nightly at `DIGEST_MARK_NIGHT` (02:00 London), so a
-   child sees the marks next morning, and on Sunday an hour before the email, so the email has them — that
-   one carrying on until the email is close (the run-up, below), and the email's own run asking once more.
-   02:00 AND NOT LATER IN THE MORNING ON PURPOSE: Gemini's daily quota is counted on California's day, which
-   starts at 08:00 here, so a pass at 02:00 spends what the children's presses left of yesterday and not
-   what they will want today (constants above AI_MODEL: the first model's free quota is about twenty a day).
-
-   ITS CLOCK. Apps Script stops a run at six minutes, and one Gemini ask can take up to about 80 s once it
-   has started (`AI_BUDGET_MS` bounds when asks START, not how long the last one runs). So no ask is started
-   once `DIGEST_MARK_BUDGET_MS` (4 min) has gone, and what is left waits for the next pass — which works out
-   what is left from the sheet, so nothing is kept between passes but a tally of replies that had no mark.
-   `DIGEST_MARK_GAP_MS` between asks keeps it under the free tier's few requests a minute, and
-   `DIGEST_MARK_MAX` answers a pass keeps a week's backlog from spending the key's whole day in one night
-   (an ask Gemini was too busy to answer spends nothing, and is not counted).
-   `DIGEST_MARK_TRIES`: an answer Gemini twice gave no mark for is left "not marked" rather than asked every
-   night — without it, twenty such answers at the front of the queue would hold back everything behind them.
-   `DIGEST_MARK_CLAIM_MS`: a pass's claim on the work, longer than any run can be, so the nightly pass, the
-   Sunday one and a run from the editor never ask Gemini twice for one answer.
-   `DIGEST_MARK_LOCK_MS`: how long the pass waits for the script lock to write one mark — never held while
-   Gemini is asked, because every child's saved answer waits on that lock. */
-const DIGEST_MARK_RUN = 'digestMarkRun';
-const DIGEST_MARK_NIGHT = 2;
-const DIGEST_MARK_BUDGET_MS = 240000;
-const DIGEST_MARK_GAP_MS = 12000;
-const DIGEST_MARK_MAX = 20;
-const DIGEST_MARK_TRIES = 2;
-const DIGEST_MARK_CLAIM_MS = 420000;
-const DIGEST_MARK_LOCK_MS = 10000;
-const DIGEST_MARK_CLAIM = 'DIGEST_MARKING';
-const DIGEST_MARK_TRIED = 'DIGEST_MARK_TRIED';
-/* ---------- THE RUN-UP TO THE EMAIL, AND THE LAST PASS AS IT GOES (the review of 12 Oct) -------------------
-   ONE PASS AN HOUR BEFORE WAS NOT ENOUGH. Four minutes at an answer every ~16 s (Gemini's ~4 s and the 12 s
-   gap) is about SIXTEEN answers — and the live sheet's 62 rows all came on a Saturday and a Sunday. Measured
-   over the real backend with Gemini stubbed at 4 s: 60 answers sent on the Sunday morning went out 16 marked
-   and 44 "not marked", with Gemini answering every ask and the email still an hour away. So:
-     `DIGEST_MARK_RUNUP_MS`  a pass this close to the email (90 min: the Sunday pass is booked an hour before,
-                             near the hour, and Google may start it fifteen minutes early) is in its RUN-UP:
-                             while work is left it books itself again, once, `DIGEST_MARK_AGAIN_MS` later
-                             (a one-off trigger on the same handler, whose id is kept in `DIGEST_MARK_AGAIN`
-                             so the next pass deletes it and the setup check does not count it as booked);
-     `DIGEST_MARK_CLEAR_MS`  and no ask is started closer to the email than this: the email is booked near
-                             the hour too, so it may begin fifteen minutes early, and an ask once started can
-                             take ~80 s. 17 min keeps every run-up pass out of the email's way;
-     `DIGEST_MARK_FINAL_MS`  the email's own run marks what came in since, for this long, before it plans —
-                             two minutes, because the mailing has to fit in the same six;
-     `DIGEST_MARK_BUSY_MS`   Gemini busy or out of reach is waited out, not given up on: the pass waits this
-                             long and asks the same answer again while its time allows. It gave up at the
-                             first busy, and a 20-second 503 storm at 16:55 left the whole Sunday "not marked"
-                             with 3.6 of its 4 minutes unspent.
-   `DIGEST_BOOKED`: the hour `installWeeklyDigest` booked the email at, kept in Script Properties. Apps Script
+/* THE HANDLERS OF TRIGGERS NOTHING RUNS ANY MORE, BY NAME — the one place each old name is still written,
+   because a trigger is found by that string and nothing else. `removeWeeklyDigest` (and so
+   `installWeeklyDigest`) deletes every project trigger with one of these handlers, and says how many:
+     `sessionRecapRun`  the hourly check of the email after each session, removed 8 Oct (*"delete daily
+                        email stuff"*), which the owner booked from the editor;
+     `digestMarkRun`    the server's AI marking pass, removed 18 Oct (docs/history/352) — booked nightly at
+                        02:00, on Sunday an hour before the email, and as one-offs in that run-up. The
+                        owner: *"9pm on Sunday should be the only time trigger."*
+   Left booked, each fires into a function that no longer exists, fails, and Google emails the owner the
+   failure. `DIGEST_RETIRED_PROPS` are the Script Properties that marking pass kept (its claim, its tally of
+   replies with no mark, the id of its run-up's one-off), deleted with them. */
+const DIGEST_RETIRED_RUNS = ['sessionRecapRun', 'digestMarkRun'];
+const DIGEST_RETIRED_PROPS = ['DIGEST_MARKING', 'DIGEST_MARK_TRIED', 'DIGEST_MARK_AGAIN'];
+/* `DIGEST_BOOKED`: the hour `installWeeklyDigest` booked the email at, kept in Script Properties. Apps Script
    cannot read a trigger's hour back, and `weekly_digest_hour` changed after installing moved nothing but the
    words: the setup check said "installed at 20:00" over a trigger still firing at 18:00. */
-const DIGEST_MARK_RUNUP_MS = 90 * 60000;
-const DIGEST_MARK_CLEAR_MS = 17 * 60000;
-const DIGEST_MARK_AGAIN_MS = 60000;
-const DIGEST_MARK_AGAIN = 'DIGEST_MARK_AGAIN';
-const DIGEST_MARK_FINAL_MS = 120000;
-const DIGEST_MARK_BUSY_MS = 30000;
 const DIGEST_BOOKED = 'DIGEST_BOOKED_HOUR';
-/* ---------- WHERE THE PASS FINDS A QUESTION AND ITS SCHEME: THE SITE'S OWN COPY OF THE LIBRARY ----------
+/* ---------- WHERE THE EMAIL FINDS EACH QUESTION: THE SITE'S OWN COPY OF THE LIBRARY ---------------------
    The backend has no library — `data/questions.json` is in git, served by GitHub Pages, and the phone
-   sends the question and the scheme with each Mark with AI press. A pass with no phone fetches the same
-   file: `site_url` (or `SITE_URL`) + this path, and raw.githubusercontent.com (`RAW`, sync.gs) when the
+   sends the question and the scheme with each Mark with AI press. The Sunday run, with no phone, fetches
+   the same file: `site_url` (or `SITE_URL`) + this path, and raw.githubusercontent.com (`RAW`, sync.gs) when the
    site does not answer. 14.1 MB, one row per line (`check-library.js` holds that layout), so a row is
    found by its `"row_id":"…"` and that one line is parsed — never the whole file, which in Node is a
    quarter of a second and 20 MB more heap, and Apps Script's memory ceiling is not published. */

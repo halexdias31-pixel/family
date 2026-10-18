@@ -13,7 +13,7 @@
        `mail.unreceipted`; a send while the lock is held, in `mail.locked`.
      · THE TRIGGER STUB KNOWS `everyHours`, so a check can book the kind of hourly trigger
        `installWeeklyDigest` must take away (`DIGEST_RETIRED_RUNS`); and `after`, with an id per trigger,
-       for the marking pass's run-up, which books a one-off and deletes it by its id.
+       so a check can book the one-offs the old marking pass's run-up left (gone since 18 Oct).
      · `formatDate` ANSWERS `yyyy-MM-dd HH:mm` IN THE ZONE NAMED, as well as `yyyy-MM-dd`, so a London
        clock is never quietly a UTC one — the whole of the summer question.
 
@@ -75,8 +75,8 @@ function world(opts) {
     getRemainingDailyQuota: () => mail.quota,
   };
   const trig = [];
-  /* AND EACH TRIGGER HAS ITS ID, as a real one does (`getUniqueId`): the marking pass's run-up books a
-     one-off and the next pass deletes it BY that id (`digestMarkAgainDone_`). */
+  /* AND EACH TRIGGER HAS ITS ID, as a real one does (`getUniqueId`) — written for the old marking pass's
+     run-up (gone since 18 Oct), which deleted its one-off BY that id. */
   let uid = 0;
   const ScriptApp = {
     getScriptId: () => 'local', getOAuthToken: () => '', getService: () => ({ getUrl: () => '' }),
