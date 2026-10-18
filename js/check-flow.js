@@ -8946,11 +8946,16 @@ check('the paper keeps the same rows whatever is answered', async () => {
     bad.push('choosing a waiting list changed which rows exist:\n            was  ' + blank
       + '\n            now  ' + klass);
   }
+  /* `only:` IS A LIST OF WORDS NOW (docs/history/353): the branch, and on an instant class the format too —
+     `bookOn_` reads `book, tutoring` with no format chosen, which is this journey's form. A step is owed to a
+     branch when any of its words is one the branch says, and to no other. */
+  const SAYS = { book: ['book', 'tutoring'], wait: ['wait'] };
+  const owed = (only, on) => String(only).split(',').map(x => x.trim()).some(x => SAYS[on].indexOf(x) !== -1);
   [['book', bookOnly], ['wait', waitOnly]].forEach(([on, list]) => {
     list.forEach(([k, only, there]) => {
-      if (only === on && !there) bad.push('"' + k + '" is declared only: ' + only
+      if (owed(only, on) && !there) bad.push('"' + k + '" is declared only: ' + only
         + ' and is not on that branch\'s paper');
-      if (only !== on && there) bad.push('"' + k + '" is declared only: ' + only
+      if (!owed(only, on) && there) bad.push('"' + k + '" is declared only: ' + only
         + ' and is drawn on the ' + on + ' branch as well, so the flag does nothing');
     });
   });
@@ -11937,7 +11942,7 @@ check('each person sees their own figure on a session, and its tiles are on the 
     w.__t.USER({ name: 'Halex Dias', personId: 'PA', role: 'admin', roles: ['admin'] });
     const fa = w.__t.formMoney(L);
     const said = fa.more.map(m => m.k + ' ' + m.t).join(' | ');
-    const wantRows = [/^Charged £113\.25/, /^Materials £11\.25 \/ £9\.00/, /^Tutor payout − £90\.00/,
+    const wantRows = [/^Charged £113\.25/, /^Materials · charged £11\.25 − £9\.00/, /^Tutor payout − £90\.00/,
                       /^Card fees £0\.00/, /^Net profit £14\.25 · 12\.6%/];
     if (wantRows.some(re => !fa.more.some(m => re.test(m.k + ' ' + m.t)))) {
       bad.push('an admin pricing a practical is not shown the Money block as summed: ' + said);
@@ -11953,6 +11958,80 @@ check('each person sees their own figure on a session, and its tiles are on the 
     const fp = w.__t.formMoney(L);
     if (fp.more.length || fp.say) bad.push('a client pricing the form is shown the Money block');
   } else bad.push('formMoney_ or bookMoney_ is not reachable, so the Money block was not checked');
+  return bad;
+});
+
+check('the booking form shows an admin what a booking earns, and a parent nothing of it', async () => {
+  /* ---------- THE MONEY BLOCK, THE DISCOUNT LINE AND THE FORMAT, ON THE REAL FORM (docs/history/353) ------
+     check-booking.js proves the sums with the owner's numbers; this proves who is SHOWN them. An admin
+     pricing a practical with a £5 discount sees the discount line above COST, COST as a subtraction, the
+     Materials row and the Money block; a parent with the very same answers — a draft carried across on
+     one device included — sees none of it, is charged without the discount, and sends no discount
+     field. And a trip draws no Venue row, and says there are no trips yet rather than a dash. */
+  const { w, sent } = boot();
+  await wait(300);
+  if (!w.__t.paper || !w.__t.DATA) return ['bookBreakdown or DATA is not exported — cannot check the form'];
+  const bad = [];
+  w.__t.DATA().practicals = [{ id: 'PR-T', name: 'Kit test', costPerRun: 2, setupCost: 5 }];
+  w.__t.DATA().trips = [];
+  const ddmmyy = d => [d.getDate(), d.getMonth() + 1, d.getFullYear()].map(x => String(x).padStart(2, '0')).join('/');
+  const from = new Date(Date.now() + 7 * 864e5), to = new Date(Date.now() + 28 * 864e5);
+  w.__t.DATA().intervals = (w.__t.DATA().intervals || []).concat([{ label: 'Money test term', term: 'Money test term',
+    startDate: ddmmyy(from), endDate: ddmmyy(to), lastSun: ddmmyy(to), weeks: 3 }]);
+  const seed = extra => {
+    const B = w.__t.BOOKING;
+    Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
+    Object.assign(B, { how: 'Instant class', level: 'GCSE', loc: 'Colliers Wood Library', subjects: ['Maths'],
+      n: '2', hosting: 'No', slots: ['m16', 'm17'], format: 'Practical',
+      /* A TERM OF ITS OWN, a week from today for three weeks: the fixture's ends on a fixed date, and a term
+         that has ended has no Mondays left to price, so a journey run next month would price nothing. */
+      interval: ['Money test term'],
+      practical: 'Kit test', discType: '£', discValue: '5', discBy: 'Business' }, extra || {});
+  };
+  const doc = h => { const d = w.document.createElement('div'); d.innerHTML = h; return d; };
+
+  w.__t.USER({ name: 'Test Admin', personId: 'PA', role: 'admin', roles: ['admin'] });
+  seed();
+  const a = doc(w.__t.paper());
+  const keys = [...a.querySelectorAll('.bk-row .bk-k')].map(x => x.textContent.trim());
+  if (!a.querySelector('.rc-disc-ctl select[data-field="discType"]')) bad.push('an admin is not given the discount line');
+  const disc = a.querySelector('.rc-disc'), cost = disc && disc.nextElementSibling && disc.nextElementSibling.nextElementSibling;
+  if (!cost || !cost.classList.contains('rc-total') || cost.classList.contains('rc-more')) bad.push('the discount line is not directly above COST');
+  const costSays = cost ? cost.querySelector('.bk-k').textContent + ' ' + cost.querySelector('.bk-t').textContent : '';
+  if (!/£[\d.]+ − £5\.00 = £[\d.]+$/.test(costSays)) bad.push('COST does not read £X − £5.00 = £Y: ' + JSON.stringify(costSays));
+  ['Materials', 'Charged', 'Discount', 'Tutor payout', 'Card fees', 'Net profit'].forEach(k => {
+    if (!keys.some(x => x === k || x.indexOf(k + ' · ') === 0)) bad.push('an admin pricing a practical has no "' + k + '" row: ' + keys.join(', '));
+  });
+  if (keys.indexOf('Format') === -1) bad.push('the form has no Format row');
+
+  /* THE PARENT, WITH THE ADMIN'S DISCOUNT STILL IN THE DRAFT. */
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
+  seed();
+  const p = doc(w.__t.paper());
+  if (p.querySelector('.rc-money, .rc-disc, .rc-disc-ctl, .rc-money-say')) bad.push('a parent is shown the Money block or the discount line');
+  const pCost = [...p.querySelectorAll('.rc-total .bk-t')].map(x => x.textContent);
+  if (pCost.some(t => /−/.test(t))) bad.push('a parent\'s COST carries the admin\'s discount: ' + pCost.join(' | '));
+  if (!/Materials/.test(p.textContent)) bad.push('a parent booking a practical is not shown its materials line');
+  try { w.__t.ACTIONS['book-send']({ disabled: false, dataset: {} }); } catch (e) { bad.push('sending threw: ' + e.message); }
+  await wait(250);
+  const job = sent.find(x => x.action === 'createJob');
+  if (!job) bad.push('the parent\'s practical was never sent');
+  else {
+    if (job.discountType || job.discountValue) bad.push('a parent\'s booking sent discount fields: ' + job.discountType + ' ' + job.discountValue);
+    if (job.format !== 'Practical' || job.practicalId !== 'PR-T') bad.push('the job does not say it is practical PR-T: ' + job.format + ' ' + job.practicalId);
+    if (!(Number(job.materialsCost) > 0) || job.materialsCharge !== job.materialsCost) {
+      bad.push('the job does not carry its kit at cost (no markup set): charge ' + job.materialsCharge + ', cost ' + job.materialsCost);
+    }
+  }
+
+  /* A TRIP: no Venue, no Space, and the picker says there are none. */
+  w.__t.USER({ name: 'Test Admin', personId: 'PA', role: 'admin', roles: ['admin'] });
+  seed({ format: 'Trip', practical: '', discType: '' });
+  const t = doc(w.__t.paper());
+  const tKeys = [...t.querySelectorAll('.bk-row .bk-k')].map(x => x.textContent.trim());
+  if (tKeys.indexOf('Venue') !== -1 || tKeys.indexOf('Space') !== -1) bad.push('a trip still asks Venue or Space: ' + tKeys.join(', '));
+  const tripRow = [...t.querySelectorAll('.bk-row')].find(r => (r.querySelector('.bk-k') || {}).textContent === 'Trip');
+  if (!tripRow || !/None yet/.test(tripRow.textContent)) bad.push('with no trips the Trip row does not say "None yet"');
   return bad;
 });
 

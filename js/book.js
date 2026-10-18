@@ -2539,7 +2539,9 @@ function breakdownRows(L) {
      ONE FAMILY'S SHARE, like COST under them: the chain above divides by the split last, and these are
      added after it, so a whole-booking figure here would not add up to the total it sits over.
      Each says its own arithmetic in the value column — children × per child, plus the one-off — so the
-     figure is a sum somebody can redo, which is the whole card's promise. */
+     figure is a sum somebody can redo, which is the whole card's promise. NO `step`: a priced row with one
+     merges onto its question's row, and the trip's two lines would land on one row and lose a figure —
+     these are rows of their own, pinned under their question by `SPINE_EXTRA`. */
   const e = L.earn || {}, share = x => money(x / (L.splitShares || 1));
   const kids = Math.max(1, Number(L.n) || 1);
   if (L.format === 'Practical') {
@@ -2548,15 +2550,15 @@ function breakdownRows(L) {
       push('Materials', kids + ' × ' + money(pr.costPerRun) + (pr.setupCost ? ' + ' + money(pr.setupCost) + ' set-up' : ''),
         e.materialsCost && e.materialsCharge !== e.materialsCost
           ? '× ' + Math.round(e.materialsCharge / e.materialsCost * 100) / 100 : '',
-        '', share(e.materialsCharge), { step: 'practical' });
+        '', share(e.materialsCharge));
     } else if (pr) push('Materials', 'not costed yet', '', '', '', { free: true });
   }
   if (L.format === 'Trip') {
     const tr = bookTrip_(BOOKING.trip);
     if (tr) {
       push('Tickets', kids + ' × ' + money(tr.ticketChild) + ' + ' + money(tr.ticketAdult) + ' adult',
-        '', '', share(e.tickets), { step: 'trip' });
-      push('Travel', kids + ' × ' + money(tr.travelPerChild), '', '', share(e.travel), { step: 'trip' });
+        '', '', share(e.tickets));
+      push('Travel', kids + ' × ' + money(tr.travelPerChild), '', '', share(e.travel));
     }
   }
   push('Shared by', familiesSay_(L.splitShares), '', '', '', { free: true });
@@ -4266,11 +4268,11 @@ function bookBreakdown(L, foot) {
        The card said COST £0.00 as soon as a subject was picked, because a total with no seats and no
        hours in it multiplies out to nothing. A zero on a receipt means FREE, and that is a promise
        this form is in no position to make. A dash means not yet, which is the truth. */
-    total: (L && L.total > 0) ? costSay_(L) : '—',
+    total: (L && L.total > 0) ? money(L.total) : '—',
     /* AN ADMIN'S DISCOUNT LINE, DIRECTLY ABOVE COST — `discountRow_`; nothing for anybody else. */
     before: discountRow_(L),
     /* AN ADMIN'S TWO MORE ROWS, AND THE TOTAL'S LABEL SAYING WHOSE FIGURE IT IS — `formMoney_`. */
-    totalLabel: formMoney_(L).label || undefined,
+    totalLabel: costLabel_(L) || undefined,
     more: formMoney_(L).more,
     /* THE ONE SENTENCE UNDER A NEGATIVE NET — an admin's, from the same `formMoney_`. */
     moreSay: formMoney_(L).say || '',
@@ -5213,13 +5215,17 @@ function bookMoneySend_(L) {
 }
 
 /* ---------- COST, WITH THE DISCOUNT SHOWN AS A SUM -------------------------------------------------------
-   "£102.00 − £10.00 = £92.00" when there is one, so the family's figure and the admin's discount are one
-   line somebody can check; the plain figure otherwise, exactly as before. One family's share, like COST. */
-function costSay_(L) {
+   "COST · £102.00 − £10.00 =" and £92.00 in the figure's place, so the row reads £X − £D = £Y across and the
+   family's figure and the admin's discount are one line somebody can check. THE SUM GOES IN THE LABEL,
+   which spans every track but the last: in the figure's own column at 390 it pushed the card 60px past its
+   edge and cut the answer off — the screenshot of 18 Oct. No discount, and the label is exactly what it
+   was: `formMoney_`'s for an admin, COST for everybody else. One family's share, like the figure. */
+function costLabel_(L) {
+  const base = formMoney_(L).label;
   const e = L && L.earn;
-  if (!e || !(e.discount > 0)) return money(L.total);
+  if (!e || !(e.discount > 0) || !(L.total > 0)) return base;
   const k = L.splitShares || 1;
-  return money((e.charged + e.discount) / k) + ' − ' + money(e.discount / k) + ' = ' + money(L.total);
+  return (base || 'Cost') + ' · ' + money((e.charged + e.discount) / k) + ' \u2212 ' + money(e.discount / k) + ' =';
 }
 /* ---------- THE DISCOUNT LINE: AN ADMIN'S FORM, SO IT HAS CONTROLS, NOT TILES (docs/history/353) ----------
    ONE LINE ABOVE COST, drawn for an admin on an instant booking and for nobody else — `bookSpec` asks the
@@ -5286,12 +5292,14 @@ function formMoney_(L) {
   if (e.discount > 0) {
     /* NO MINUS: `Charged` above is already the figure after it, so this says what was given and who
        gave it rather than being taken off a second time. */
-    more.push({ k: 'Discount', t: money(e.discount) + ' off · '
-                  + (e.absorbedBy === 'Shared with tutor' ? 'shared' : 'business'), cls: 'rc-money' });
+    more.push({ k: 'Discount · ' + (e.absorbedBy === 'Shared with tutor' ? 'shared with tutor' : 'business'),
+                t: money(e.discount), cls: 'rc-money' });
   }
   if (L.format === 'Practical') {
-    more.push({ k: 'Materials', t: e.uncosted ? 'not costed'
-                  : money(e.materialsCharge) + ' / ' + money(e.materialsCost), cls: 'rc-money' });
+    /* CHARGED IN THE LABEL, COST IN THE FIGURE: the figure column is the subtraction, and the kit's cost is
+       what goes out — the charge is already inside `Charged` above. */
+    more.push(e.uncosted ? { k: 'Materials', t: 'not costed', cls: 'rc-money' }
+      : { k: 'Materials · charged ' + money(e.materialsCharge), t: '\u2212 ' + money(e.materialsCost), cls: 'rc-money' });
   }
   if (e.venue > 0) more.push({ k: 'Venue', t: '\u2212 ' + money(e.venue), cls: 'rc-money' });
   if (L.format === 'Trip') more.push({ k: 'Tickets & travel', t: '\u2212 ' + money(e.ticketsCost), cls: 'rc-money' });
