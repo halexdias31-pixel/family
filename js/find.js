@@ -1706,6 +1706,21 @@ const FACETS = [
     of: x => x.cost == null ? ''
            : x.cost === 0 ? 'Free'
            : x.cost <= (USER ? USER.credits || 0 : 0) ? 'Can afford' : '' },
+  /* ---------- HOW READY A PAPER IS, AS AN ANSWER YOU CAN PICK --------------------------------------
+     *"Can you add a health check to worksheets or past papers so we can know when we are doing
+     something whether it's low accuracy or buggy or missing shit or anything."* — the owner, 18 Oct.
+     The score is `paperHealth_` in library.js, the one function `check-health.js` prints too; this is
+     its band, so a card wearing `Ready · 99%` wears an answer this question offers (the owner's rule:
+     every tag on a card is something you can pick).
+
+     `tagOnly`, SO THE FUNNEL NEVER ASKS IT ON THE WAY TO A PAPER. Every list of questions would split
+     on it, and asking it would put a fourth tap in front of every folder for a fact most people do not
+     filter by. It is offered instead as its own row under whatever question is being asked
+     (`healthDoor_`), which a tap can ignore. FOR EVERYBODY: *"No, everyone can see the scores"* — the
+     owner, overruling a tutors-only first draft the same day. */
+  { field: 'health',    label: 'Health', tagOnly: true,
+    orderOf: v => HEALTH_BANDS.findIndex(b => b[0] === v),
+    of: x => { const h = healthOf_(x); return h ? h.band : ''; } },
 ];
 
 /* ---------- THE FENCE: A CLOSED KIND'S QUESTIONS, AND ONLY ITS QUESTIONS --------------------------------
@@ -11340,6 +11355,11 @@ function qPage_(x, kind, num, marks) {
   if (num) tags.push({ tag: 'number', text: String(num) });
   if (marks && marksSay_(x)) tags.push({ tag: 'marks', text: marksSay_(x) });
   qTags_(x).forEach(t => { if (!tags.some(o => norm(o.text) === norm(t.text))) tags.push(t); });
+  /* AND HOW READY ITS PAPER IS — `Ready · 99%`, last, because it is about the transcription and every
+     tag in front of it is about the paper. Here rather than in `qTags_`, which `check-funnel.js` reads
+     as the paper's own facts. */
+  const hp = healthOf_(x);
+  if (hp) tags.push({ tag: 'health', text: hp.band + ' · ' + hp.pct + '%' });
   return `<div class="qtags qcard-tags">${tags.map(t =>
     `<span class="qtag"${t.tag ? ` data-tag="${t.tag}"` : ''}>${esc(t.text)}</span>`).join('')}</div>`;
 }
@@ -13704,6 +13724,85 @@ function questionsView_() {
 
    AND A SEARCH IS NOT "THE PAPER, IN ORDER". Inside a paper, "q23" is one question of it: the line names
    it -- "Swipe up for Q23" -- rather than claiming the whole paper is below. */
+/* ==================================================================================================
+   A PAPER'S HEALTH, READ BY THE FINDER — the tag, the optional row of answers, and the list.
+   The score is `paperHealth_` in library.js; everything here only reads it (docs/history/354).
+
+   MEMOISED ON `LIBRARY_ROWS` ITSELF: the rows are held for the life of the page and replaced whole
+   when the library is fetched again, so the identity test is the whole cache rule — the `TOPICS_MEMO`
+   shape. Walked once, ~10,000 rows, on the first card that asks.
+
+   ON `paper_id` AND NOT `paperIdOf_`, which falls back to the `paper` column — `1`, which paper of the
+   set — and would hand every Paper 1 the health of whichever paper is filed under the id `1`. */
+let HEALTH_MEMO = { from: null, by: {} };
+function healthBy_() {
+  const rows = typeof LIBRARY_ROWS !== 'undefined' ? LIBRARY_ROWS : null;
+  if (!Array.isArray(rows)) return {};
+  if (HEALTH_MEMO.from !== rows) {
+    let by = {};
+    try { by = paperHealth_(rows); } catch (e) { by = {}; }
+    HEALTH_MEMO = { from: rows, by: by };
+  }
+  return HEALTH_MEMO.by;
+}
+function healthOf_(x) {
+  const pid = x && x.row && x.row.paper_id;
+  return pid ? healthBy_()[String(pid)] || null : null;
+}
+
+/* ---------- THE OPTIONAL ROW: `Health`, AND ITS THREE ANSWERS ---------------------------------------
+   `health` IS `tagOnly`, so `nextFacet` never asks it. This row is how it is picked: under the
+   question the funnel IS asking, smaller, labelled, and ignorable — the same `facet-pick` press as
+   any answer, so its chip, its ✕ and `filterHit` are the ones every other answer uses. Drawn only
+   while it can split the list (two answers or more) and only until it is answered: a row whose every
+   tap leaves the list as it was is the "Doesn't matter" with a count that `stuffQuestion` refuses. */
+function healthDoor_(items) {
+  if ((STUFF.filters || []).some(f => f && f.field === 'health')) return '';
+  const facet = facetBy('health');
+  if (!facet) return '';
+  let vals = [];
+  try { vals = facetValues(items, facet); } catch (e) { vals = []; }
+  if (vals.length < 2) return '';
+  /* `.health-answers`, NOT `.answers`: that class is read across the checks as THE question on the
+     page, and check/states.js's year folder found `Health` among its Year answers and stopped
+     measuring. Styled as one rule with it in style.css. */
+  return `<div class="health-door"><p class="health-door-k">Health</p><div class="health-answers">${vals.map(v =>
+    `<div class="counted row tap" data-do="facet-pick"${tagAttr_('health')} data-field="health"
+      data-value="${esc(v.value)}"><span class="k">${esc(v.show || v.value)}</span></div>`).join('')}</div></div>`;
+}
+
+/* ---------- WHAT IS WRONG, ONE TAP AWAY ------------------------------------------------------------
+   A TILE UNDER A CHOSEN PAPER (a THING has tiles), opening the list `paperHealth_` wrote: one line per
+   fault, by question, in the words the owner fixes from — "Q4b — no answer", "Q7 — needs a picture,
+   none drawn", "Paper — marks add to 76 of 80". The number is in the tile's name, so a screen reader
+   hears the score before it opens anything. */
+function healthTiles_(items) {
+  const x = (items || []).find(i => healthOf_(i));
+  const h = x ? healthOf_(x) : null;
+  if (!h) return '';
+  return `<div class="tile-row health-tiles">${tile_({ icon: 'pulse', label: 'Health',
+    note: h.band + ' ' + h.pct + '%', act: 'paper-health', data: { pid: x.row.paper_id } })}</div>`;
+}
+function healthListHtml_(h, pid) {
+  const head = `<p class="health-sum"><span class="qtag" data-tag="health">${esc(h.band + ' · ' + h.pct + '%')}</span>
+    ${h.questions} question${h.questions === 1 ? '' : 's'}${h.total != null ? ', ' + h.marks + ' of ' + h.total + ' marks' : ''}</p>`;
+  if (!h.fails.length) return head + '<p class="health-none">Nothing wrong found.</p>';
+  /* IN THE CARD'S OWN WORDS FOR THE QUESTION. `paperHealth_` can only join the row's two cells, which
+     for AQA is `Q21i` where the card says `Q2.1i`; the item's `name` is what the card's number tag
+     prints (`qNumSay_`), so a line here names the card somebody will go and find. */
+  const said = {};
+  try {
+    stuffItemsAll_().forEach(i => { if (i && i.row && i.row.paper_id === pid && i.name) said[i.row.row_id] = i.name; });
+  } catch (e) { /* the row's own reference stands */ }
+  return head + `<ul class="health-list">${h.fails.map(f =>
+    `<li><b class="health-ref">${esc((f.row && said[f.row]) || f.ref)}</b> — ${esc(f.why)}</li>`).join('')}</ul>`;
+}
+on('paper-health', el => {
+  const h = healthBy_()[String(el.getAttribute('data-pid') || '')];
+  if (!h) return;
+  openSheet('Health · ' + (h.name || 'this paper'), healthListHtml_(h, String(el.getAttribute('data-pid') || '')));
+});
+
 function paperEnd_(items) {
   const seq = wholeQuestions_(items);
   const qs = new Set(seq.map(x => qId_(x) || x)).size;
@@ -13711,15 +13810,15 @@ function paperEnd_(items) {
   if (answersView_()) {
     const a = stuffPages_().length;
     return `<p class="find-end">${searched ? 'The answers it found.' : 'The paper&rsquo;s answers, in order.'}
-        <b>Swipe up for ${a === 1 ? 'the one answer' : 'its ' + a + ' answers'}.</b></p>`;
+        <b>Swipe up for ${a === 1 ? 'the one answer' : 'its ' + a + ' answers'}.</b></p>` + healthTiles_(items);
   }
   const first = seq.find(x => qId_(x));
   if (searched) {
     return `<p class="find-end">In this paper:
-        <b>swipe up for ${qs === 1 && first ? esc(qNum_(first)) : 'its ' + qs + ' questions'}.</b></p>`;
+        <b>swipe up for ${qs === 1 && first ? esc(qNum_(first)) : 'its ' + qs + ' questions'}.</b></p>` + healthTiles_(items);
   }
   return `<p class="find-end">That is the paper, in order.
-        <b>Swipe up for ${qs === 1 ? 'its one question' : 'its ' + qs + ' questions'}.</b></p>`;
+        <b>Swipe up for ${qs === 1 ? 'its one question' : 'its ' + qs + ' questions'}.</b></p>` + healthTiles_(items);
 }
 
 /* ---------- A SEARCH HIT ON ONE PART BRINGS THE REST OF ITS QUESTION, IN ORDER ---------------------
@@ -15446,6 +15545,9 @@ const TAG_OF = {
      that build it wear that tag's colour. No new token, because no new kind. */
   bibleTranslation: 'board', bibleTestament: 'level', bibleGroup: 'topic',
   bibleBook: 'number', bibleChapter: 'number', bibleVerse: 'number',
+  /* A PAPER'S HEALTH IS NOT ANY OTHER KIND — it is about the transcription, not the paper — so it has
+     a token of its own, `--tag-health`. */
+  health: 'health',
 };
 const tagOf_ = field => TAG_OF[field] || '';
 const tagAttr_ = field => tagOf_(field) ? ` data-tag="${tagOf_(field)}"` : '';
@@ -17080,7 +17182,7 @@ function stuffQuestion() {
     if (be) return be + adding;
     if (funnelEnded_()) return paperEnd_(items) + adding;
     return `<p class="find-end">Nothing left to narrow.
-      <b>Swipe up for the ${n}.</b></p>` + adding;
+      <b>Swipe up for the ${n}.</b></p>` + healthDoor_(items) + adding;
   }
 
   /* THE FRONT DOOR TO THE BOOKING FORM WAS HERE — a line above the funnel's answers, on the first
@@ -17176,7 +17278,7 @@ function stuffQuestion() {
         data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${v.bucket ? ' data-bucket="1"' : ''}${
         grid ? ` aria-label="${esc(facet.label + ' ' + (v.show || v.value))}"` : ''}>
         <span class="k">${mark(v.show || v.value)}</span>
-      </div>`).join('') + skip + '</div>' + more;
+      </div>`).join('') + skip + '</div>' + healthDoor_(items) + more;
 }
 
 /* `stuff-jump` went with the group list. It added a filter and turned to the results in one tap,
