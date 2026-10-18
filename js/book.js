@@ -535,6 +535,10 @@ const BOOKING = {
   /* WHICH QUESTION'S LIST IS OPEN, or '' for the form. Here rather than in the DOM for the reason
      `note` is: a redraw rebuilds the page, and state kept in the markup is state a redraw loses. */
   picking: '',
+  /* AN ADMIN'S DISCOUNT (docs/history/353) — not a step, because it is not a question the family is asked:
+     one line above COST that only an admin is drawn (`discountRow_`). `%` or `£`, how much, the code or
+     the reason, and who absorbs it. Cleared with the rest by `resetBooking_`. */
+  discType: '', discValue: '', discCode: '', discBy: '',
 };
 
 /* ---------- THE ONE YOU JUST ASKED FOR ------------------------------------------------------------
@@ -1132,6 +1136,31 @@ const BOOK_STEPS = [
      doesnt let choosing a subject even though im trying to start a NEW waitlist"*, which is the
      one case the old rule had nothing to say about: there is no class yet, so there is nobody whose
      decision this already is. */
+  /* ---------- WHAT KIND OF SESSION: TUTORING, A PRACTICAL OR A TRIP (docs/history/353) ----------------
+     A NEW QUESTION, NOT "Kind" RENAMED. `Kind` two rows up is instant class against waiting list — when
+     it runs — and this is what it IS; the two are independent, so one field could not hold both.
+     `Subject` stays the subject: a practical is still Chemistry, a trip is still History.
+     THE FORMAT DECIDES THE ROWS, through `bookOn_`: a practical asks which one and prices its kit, a
+     trip asks which one, prices its tickets and travel, and has no Venue or Space to ask about. The
+     teaching is priced exactly as it always was in all three.
+     TUTORING UNLESS SOMEBODY SAYS OTHERWISE — the fallback, so a family who only wants a lesson is
+     never stopped by a question about practicals. Instant classes only: a waiting list is Maths and
+     English in a room, which is a tutoring session by definition. */
+  { id: 'format', label: 'What kind of session?', short: 'Format', only: 'book',
+    fallback: () => 'Tutoring',
+    options: () => BOOK_FORMATS.slice() },
+  /* THE PRACTICALS ARE `data/practicals.json`, by name, in the order a person looks one up. 65 of the 82
+     have no cost yet; they are offered all the same — a lab practical is still worth booking — and the
+     admin's Money block says "not costed" rather than pricing the kit at nothing. */
+  { id: 'practical', label: 'Which practical?', short: 'Practical', only: 'practical',
+    options: () => uniq((DATA.practicals || []).map(p => p.name))
+      .sort((a, b) => a.localeCompare(b)) },
+  /* THE TRIPS TAB IS EMPTY TODAY, and the row says so rather than drawing a dash a person reads as a
+     dropdown that failed to load. A trip with no row still prices its teaching; it just has no tickets. */
+  { id: 'trip', label: 'Which trip?', short: 'Trip', only: 'trip',
+    fallback: () => (DATA.trips || []).length ? '' : 'None yet',
+    options: () => uniq((DATA.trips || []).map(t => t.name)) },
+
   { id: 'subjects', label: 'What are we working on?', short: 'Subject', multi: true,
     options: () => (subjectRows() || []).map(x => x.name) },
 
@@ -1266,7 +1295,10 @@ const BOOK_STEPS = [
       const out = [];
       const top = Math.max(lim.min, Math.min(lim.min + 3, lim.max));
       for (let i = lim.min; i <= top; i++) out.push(String(i));
-      return out;
+      /* A TRIP TAKES AS MANY CHILDREN AS ITS ROW SAYS, `max_children`, and not one more — the ticket
+         office and the risk assessment were both written for that number. */
+      const cap = tripCap_();
+      return cap ? out.filter(x => Number(x) <= cap) : out;
     },
     /* THE REFUSALS ONLY: a number outside what the room and the tutor allow. The note that used to
        sit beside this — what each number means, one sentence per option — is gone with the other
@@ -1278,6 +1310,7 @@ const BOOK_STEPS = [
     why: v => {
       const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_(), BOOKING.loc);
       if (Number(v) > lim.max) return 'more than ' + (lim.why.max || 'the limit') + ' allows';
+      if (tripCap_() && Number(v) > tripCap_()) return 'more than this trip takes (' + tripCap_() + ' children)';
       /* ---------- IN THE ROW'S OWN UNITS, WHICH THIS PRINTED THE OTHER ONE OF --------------------
          `lim.min` IS A TOTAL and this row draws EXTRAS — `label_` above subtracts your own chair, and
          this sentence did not. So the one rule that makes the minimum reachable in practice would
@@ -1293,7 +1326,8 @@ const BOOK_STEPS = [
       return '';
     } },
 
-  { id: 'loc', label: 'Where?', short: 'Venue',
+  /* NOT ON A TRIP (docs/history/353): the place is the trip's, and its cost is the tickets. */
+  { id: 'loc', label: 'Where?', short: 'Venue', only: 'wait, tutoring, practical',
     options: () => ['At home'].concat(bookableSpaces().map(x => x.label)),
     /* THE ANSWER WRAPS. A room is "Venue — Room", and the three rooms of one building are the same
        answer until its last word — see the note at the foot of `stepSelect_`. */
@@ -1317,7 +1351,7 @@ const BOOK_STEPS = [
      only "Yes", so it is filled in and never asked. Nothing special is needed for the lock; it
      falls out of the rule that a question with one answer is not a question. */
   /* A CLASS IS AT A VENUE. Somebody's front room is not a place three other families are going. */
-  { id: 'hosting', label: 'Are you providing the space?', short: 'Space',
+  { id: 'hosting', label: 'Are you providing the space?', short: 'Space', only: 'wait, tutoring, practical',
     options: () => {
       if (isWaiting_()) return [];
       const rate = venueRate_();
@@ -1642,7 +1676,7 @@ function nextBookStep() {
        branch-only step added tomorrow WITH a list would otherwise be dropped from the card by
        `stepRows_` and then asked by the funnel, which is the worst of both — a question on screen
        that the document it belongs to does not have a row for. */
-    if (step.only && step.only !== on) continue;
+    if (!onlyHas_(step.only, on)) continue;
     if (bookAnswered_(step)) continue;
     const opts = step.options().filter(Boolean);
     if (!opts.length) continue;                    // nothing to offer: leave it unanswered
@@ -1719,7 +1753,7 @@ function bookSpec() {
   const perWeek = runs.reduce((n, r) => n + r.hours, 0);
   const days = [...new Set(runs.map(r => r.dayName))];
   const firstHour = runs.length ? String(runs[0].hour).padStart(2, '0') + ':00' : '';
-  return {
+  return Object.assign({
     subjects: BOOKING.subjects, level: BOOKING.level, n: Number(BOOKING.n) || 1,
     loc: BOOKING.loc === 'At home' ? '' : BOOKING.loc,
     /* The answer, or the rule when it has not been given: a venue that charges nothing is hosted
@@ -1754,7 +1788,16 @@ function bookSpec() {
     windows: ivs.map(x => ({ startDate: x.startDate || '',
                              lastSun: x.lastSun || x.endDate || '' })),
     tutor: BOOKING.tutor === 'No preference' ? '' : BOOKING.tutor,
-  };
+    /* THE FORMAT AND WHAT IT NAMES (docs/history/353). `priceFrom` reads the practical's kit and the
+       trip's tickets off these; a trip's `loc` and `hosting` are overwritten below, because the venue
+       question is not asked on a trip and an answer left from before must not hire a room. */
+    format: bookFormat_(BOOKING.format), practical: BOOKING.practical || '', trip: BOOKING.trip || '',
+    /* AN ADMIN'S ALONE, and asked here as well as hidden on the form: a draft carried from an admin's
+       session to a family's on one device must not price their booking with the admin's discount. */
+    discount: (typeof isAdmin === 'function' && isAdmin() && !isWaiting_() && BOOKING.discType)
+      ? { type: BOOKING.discType, value: BOOKING.discValue, code: BOOKING.discCode, by: BOOKING.discBy || 'Business' }
+      : null,
+  }, bookFormat_(BOOKING.format) === 'Trip' ? { loc: '', hosting: false } : {});
 }
 
 /* The price so far, or nothing. Shown from the moment it can be worked out rather than at the end
@@ -1833,6 +1876,7 @@ function resetBooking_(keepDraft) {
      note over the deleted `book-edit`. */
   BOOKING.done = [];
   BOOKING.note = '';
+  BOOKING.discType = BOOKING.discValue = BOOKING.discCode = BOOKING.discBy = '';
   /* AND WHICH LIST IS OPEN, for the same reason: it is about the form rather than about the
      booking. A reset with it left set would draw the next booking's first page as a picker for a
      question nobody had pressed. */
@@ -2491,6 +2535,32 @@ function breakdownRows(L) {
      — the length, on the row that decides it, in the place somebody reads it — and a second line
      restating it is the fault this file records where the roster's `name` printed an `<h3>` over
      every widget's own heading. */
+  /* ---------- WHAT THE FORMAT ADDS, AT ITS OWN ROWS (docs/history/353) --------------------------------
+     ONE FAMILY'S SHARE, like COST under them: the chain above divides by the split last, and these are
+     added after it, so a whole-booking figure here would not add up to the total it sits over.
+     Each says its own arithmetic in the value column — children × per child, plus the one-off — so the
+     figure is a sum somebody can redo, which is the whole card's promise. NO `step`: a priced row with one
+     merges onto its question's row, and the trip's two lines would land on one row and lose a figure —
+     these are rows of their own, pinned under their question by `SPINE_EXTRA`. */
+  const e = L.earn || {}, share = x => money(x / (L.splitShares || 1));
+  const kids = Math.max(1, Number(L.n) || 1);
+  if (L.format === 'Practical') {
+    const pr = bookPractical_(BOOKING.practical);
+    if (pr && !e.uncosted) {
+      push('Materials', kids + ' × ' + money(pr.costPerRun) + (pr.setupCost ? ' + ' + money(pr.setupCost) + ' set-up' : ''),
+        e.materialsCost && e.materialsCharge !== e.materialsCost
+          ? '× ' + Math.round(e.materialsCharge / e.materialsCost * 100) / 100 : '',
+        '', share(e.materialsCharge));
+    } else if (pr) push('Materials', 'not costed yet', '', '', '', { free: true });
+  }
+  if (L.format === 'Trip') {
+    const tr = bookTrip_(BOOKING.trip);
+    if (tr) {
+      push('Tickets', kids + ' × ' + money(tr.ticketChild) + ' + ' + money(tr.ticketAdult) + ' adult',
+        '', '', share(e.tickets));
+      push('Travel', kids + ' × ' + money(tr.travelPerChild), '', '', share(e.travel));
+    }
+  }
   push('Shared by', familiesSay_(L.splitShares), '', '', '', { free: true });
 
   /* ---------- AND IT IS EVERY DATE AGAIN, WHICH IS THE OWNER'S CALL AND THE SECOND TIME ROUND -----
@@ -3351,7 +3421,16 @@ function stepControl_(st) {
    questions and `bookBreakdown` tells `spineRows_` not to invent them as dashes — two readings of
    one fact, and a second `isWaiting_() ? 'wait' : 'book'` written out is the second reader this
    file keeps finding. The words are the ones `SPINE_EXTRA`'s `only:` already uses. */
-function bookOn_() { return isWaiting_() ? 'wait' : 'book'; }
+/* AND THE FORMAT, ON AN INSTANT CLASS (docs/history/353): `book, practical` — so `only: 'practical'` on a
+   step, or `only: 'wait, tutoring, practical'` on the venue, is the same one rule a branch already was,
+   rather than a second way of hiding a row. `onlyHas_` asks whether ANY word here is in `only`. */
+function bookOn_() { return isWaiting_() ? 'wait' : 'book, ' + norm(bookFormat_(BOOKING.format)); }
+/* THE TRIP'S SEAT CAP, or nought for none — `n` offers no more and refuses more. */
+function tripCap_() {
+  if (isWaiting_() || bookFormat_(BOOKING.format) !== 'Trip') return 0;
+  const t = bookTrip_(BOOKING.trip);
+  return t && Number(t.maxChildren) > 0 ? Number(t.maxChildren) : 0;
+}
 
 function stepRows_() {
   let line = 0;
@@ -3755,6 +3834,10 @@ function stageRows_(j) {
 }
 
 const SPINE_EXTRA = [
+  /* THE FORMAT'S PRICE LINES, on the question that caused them (docs/history/353). */
+  { after: 'Practical', row: 'Materials', only: 'practical' },
+  { after: 'Trip',      row: 'Tickets',   only: 'trip' },
+  { after: 'Trip',      row: 'Travel',    only: 'trip' },
   { after: 'Subject', row: 'Extra subj.' },
   { after: 'When',    row: 'Per session', only: 'wait' },
   /* `Sharing` IS PUSHED BY `jobRows` AND BY NOTHING ELSE — measured, one push in this file. The
@@ -3876,7 +3959,8 @@ const SPINE_ALIAS = { Students: 'Extra seats', Host: 'Space', Total: '',
    shape `topics`, `keystage` and `needs` already have in the data. */
 function onlyHas_(only, on) {
   if (!only || !on) return true;
-  return String(only).split(',').map(x => x.trim()).filter(Boolean).indexOf(on) !== -1;
+  const want = String(only).split(',').map(x => x.trim()).filter(Boolean);
+  return String(on).split(',').map(x => x.trim()).some(o => want.indexOf(o) !== -1);
 }
 
 const ONLY_ON = (() => {
@@ -4185,9 +4269,13 @@ function bookBreakdown(L, foot) {
        hours in it multiplies out to nothing. A zero on a receipt means FREE, and that is a promise
        this form is in no position to make. A dash means not yet, which is the truth. */
     total: (L && L.total > 0) ? money(L.total) : '—',
+    /* AN ADMIN'S DISCOUNT LINE, DIRECTLY ABOVE COST — `discountRow_`; nothing for anybody else. */
+    before: discountRow_(L),
     /* AN ADMIN'S TWO MORE ROWS, AND THE TOTAL'S LABEL SAYING WHOSE FIGURE IT IS — `formMoney_`. */
-    totalLabel: formMoney_(L).label || undefined,
+    totalLabel: costLabel_(L) || undefined,
     more: formMoney_(L).more,
+    /* THE ONE SENTENCE UNDER A NEGATIVE NET — an admin's, from the same `formMoney_`. */
+    moreSay: formMoney_(L).say || '',
     /* PASSED STRAIGHT THROUGH. The actions are built where the rest of the booking's wording is —
        see `drawBooker_` — and printed where a receipt's footer goes. */
     foot: foot || '',
@@ -4469,21 +4557,21 @@ function receiptHtml(r) {
          the admin's are the same row again under it, a label in `Q` and a figure in `+`, so the
          three money lines read down one column. Only the caller decides who is given any — this
          function draws whatever it is handed and asks nobody's role. */''}
-    <div class="bk">${spineHead_(r)}${(r.rows || []).join('')}<div class="bk-row rc-total">
+    <div class="bk">${spineHead_(r)}${(r.rows || []).join('')}${r.before || ''}<div class="bk-row rc-total">
       <span class="bk-n"></span>
       <span class="bk-k">${esc(r.totalLabel || 'Cost')}</span>
       <span class="bk-v"></span>
       <span class="bk-m"></span>
       <span class="bk-r"></span>
       <span class="bk-t">${esc(r.total || '')}</span>
-    </div>${(r.more || []).map(m => `<div class="bk-row rc-total rc-more">
+    </div>${(r.more || []).map(m => `<div class="bk-row rc-total rc-more${m.cls ? ' ' + esc(m.cls) : ''}">
       <span class="bk-n"></span>
       <span class="bk-k">${esc(m.k)}</span>
       <span class="bk-v"></span>
       <span class="bk-m"></span>
       <span class="bk-r"></span>
       <span class="bk-t">${esc(m.t)}</span>
-    </div>`).join('')}</div>
+    </div>`).join('')}${r.moreSay ? `<p class="bk-say rc-money-say">${esc(r.moreSay)}</p>` : ''}</div>
     ${/* THE ROSTER SLOT IS STILL HERE and nothing fills it — see the notes above. Kept rather than
           cut out, because `rosterHtml` is what `Your sessions` draws and this is the one line that
           would put chairs back on a document if that ever turns out to be right. Removing it would
@@ -5088,12 +5176,143 @@ function jobMoney_(j) {
    out a seat and nothing about who keeps what, so it carries no rows rather than two dashes: the
    form changes shape as it is answered, and a pair of rows that can never fill would be furniture.
    Everybody else reads the form exactly as before — the figure on it is the quote for the family. */
+/* ---------- AND THE MONEY BLOCK, WHICH IS THOSE TWO ROWS GROWN UP (docs/history/353) -------------------
+   "Tutor earns" and "Admin earns" told an admin the split of the teaching and nothing about what the
+   booking COSTS — kit, tickets, travel, card fees, a discount — so "Admin earns £12" sat over a practical
+   whose kit had eaten £9 of it. The rows are now the whole sum `bookMoney_` (core.js) does, top to
+   bottom in the order money moves: what is charged (the discount already off it, which is the line
+   under it), what goes out, what is left.
+   A row appears where its format or its figure makes it a fact — Materials on a practical, Tickets &
+   travel on a trip, Discount when there is one — and Charged, Tutor payout, Card fees and Net always,
+   because those four are the sum and a missing term reads as a nought nobody can check.
+   WHOLE-BOOKING FIGURES, even when the cost is split: the tutor and the venue are paid for the whole
+   session, so "Client pays" (one family's share) and "Charged" (all of them) can differ, and say so.
+   A NEGATIVE NET GETS ONE SENTENCE, in plain words — the owner reads a figure in red faster than a
+   minus sign, and "this booking costs you £X" is the decision in front of them. */
+/* ---------- WHAT THE JOB ROW KEEPS OF THE MONEY BLOCK -------------------------------------------------
+   WHOLE-BOOKING FIGURES, ROUNDED TO THE PENNY — a sheet column is summed by a person with a formula, and
+   12.000000000000002 in a money cell is the kind of thing that makes them distrust every other one.
+   `gross` IS WHAT THE CLIENT IS CHARGED, the discount already off, so the row's own sum reads
+   net = gross − tutor_payout − venue_cost − materials_cost − tickets_cost − card_fees with no discount
+   term in it: `discount_*` says what was given, and the subtraction has already been done once. */
+function bookMoneySend_(L) {
+  const e = L && L.earn;
+  if (!e) return {};
+  const p2 = x => String(Math.round((Number(x) || 0) * 100) / 100);
+  const pr = L.format === 'Practical' ? bookPractical_(BOOKING.practical) : null;
+  const tr = L.format === 'Trip' ? bookTrip_(BOOKING.trip) : null;
+  const out = {
+    format: L.format || 'Tutoring', practicalId: pr ? pr.id : '', tripId: tr ? (tr.tripId || '') : '',
+    gross: p2(e.charged), tutorPayout: p2(e.tutorPayout), venueCost: p2(e.venue),
+    materialsCharge: p2(e.materialsCharge), materialsCost: p2(e.materialsCost),
+    ticketsCost: p2(e.ticketsCost), cardFees: p2(e.cardFees), netProfit: p2(e.net),
+  };
+  if (e.discount > 0) {
+    Object.assign(out, { discountType: e.discountType, discountValue: String(e.discountValue),
+      discountCode: e.discountCode, discountAbsorbedBy: e.absorbedBy });
+  }
+  return out;
+}
+
+/* ---------- COST, WITH THE DISCOUNT SHOWN AS A SUM -------------------------------------------------------
+   "COST · £102.00 − £10.00 =" and £92.00 in the figure's place, so the row reads £X − £D = £Y across and the
+   family's figure and the admin's discount are one line somebody can check. THE SUM GOES IN THE LABEL,
+   which spans every track but the last: in the figure's own column at 390 it pushed the card 60px past its
+   edge and cut the answer off — the screenshot of 18 Oct. No discount, and the label is exactly what it
+   was: `formMoney_`'s for an admin, COST for everybody else. One family's share, like the figure. */
+function costLabel_(L) {
+  const base = formMoney_(L).label;
+  const e = L && L.earn;
+  if (!e || !(e.discount > 0) || !(L.total > 0)) return base;
+  const k = L.splitShares || 1;
+  return (base || 'Cost') + ' · ' + money((e.charged + e.discount) / k) + ' \u2212 ' + money(e.discount / k) + ' =';
+}
+/* ---------- THE DISCOUNT LINE: AN ADMIN'S FORM, SO IT HAS CONTROLS, NOT TILES (docs/history/353) ----------
+   ONE LINE ABOVE COST, drawn for an admin on an instant booking and for nobody else — `bookSpec` asks the
+   same, and the server refuses the fields from anybody else (`discountRefusal_`), which is the half that
+   matters. A form's controls belong to the form: two dropdowns and two boxes, tap targets in px.
+   THE CODE BOX TAKES A CODE OR A REASON. Picking one of the promo_codes rows fills its type, value and
+   who absorbs it (`book-disc`); typing anything else is a reason, recorded as written. A code that is
+   switched off, expired or used up is listed with why, and the server would refuse it anyway. */
+function discountRow_(L) {
+  if (!(typeof isAdmin === 'function' && isAdmin()) || isWaiting_() || !L || !L.earn) return '';
+  const e = L.earn;
+  const opt = (v, label, on) => `<option value="${esc(v)}"${on ? ' selected' : ''}>${esc(label)}</option>`;
+  const at = f => `class="rc-disc-in" data-do="book-disc" data-field="${f}"`;
+  return `<div class="bk-row rc-total rc-more rc-money rc-disc">
+      <span class="bk-n"></span>
+      <span class="bk-k">Discount</span>
+      <span class="bk-v"></span>
+      <span class="bk-m"></span>
+      <span class="bk-r"></span>
+      <span class="bk-t">${e.discount > 0 ? '− ' + esc(money(e.discount / (L.splitShares || 1))) : '—'}</span>
+    </div>
+    <div class="rc-disc-ctl">
+      <select ${at('discType')} aria-label="Discount in">${opt('', 'No discount', !BOOKING.discType)}${
+        opt('%', '% off teaching', BOOKING.discType === '%')}${opt('£', '£ off total', BOOKING.discType === '£')}</select>
+      <input ${at('discValue')} type="number" inputmode="decimal" min="0" step="0.01"
+        value="${esc(BOOKING.discValue)}" placeholder="How much" aria-label="How much">
+      <input ${at('discCode')} type="text" list="bk-disc-codes"
+        value="${esc(BOOKING.discCode)}" placeholder="Code or reason" aria-label="Code or reason">
+      <datalist id="bk-disc-codes">${(DATA.promoCodes || []).map(c => opt(c.code,
+        (c.type === '%' ? c.value + '%' : money(c.value)) + (c.off ? ' · ' + c.off : ''), false)).join('')}</datalist>
+      <select ${at('discBy')} aria-label="Who absorbs it">${
+        opt('Business', 'Business absorbs', BOOKING.discBy !== 'Shared with tutor')}${
+        opt('Shared with tutor', 'Shared with tutor', BOOKING.discBy === 'Shared with tutor')}</select>
+    </div>`;
+}
+/* KEPT AS IT IS TYPED, REDRAWN ON A CHANGE. Each keystroke goes into `BOOKING` and the draft (`bookKeep_`), so
+   a reload half-way through "12.5" loses nothing — the booking note's rule — but the form is redrawn only on
+   `change`: redrawing under somebody typing would take the box away from them at the "1". */
+document.addEventListener('input', e => {
+  const el = e.target && e.target.closest && e.target.closest('input[data-do="book-disc"]');
+  if (!el || ['discValue', 'discCode'].indexOf(el.dataset.field) === -1) return;
+  BOOKING[el.dataset.field] = String(el.value || ''); bookKeep_();
+});
+/* A CODE FROM THE TAB BRINGS ITS OWN TERMS. */
+document.addEventListener('change', e => {
+  const el = e.target && e.target.closest && e.target.closest('[data-do="book-disc"]');
+  if (!el || !(typeof isAdmin === 'function' && isAdmin())) return;
+  const f = el.dataset.field;
+  if (['discType', 'discValue', 'discCode', 'discBy'].indexOf(f) === -1) return;
+  BOOKING[f] = String(el.value || '').trim();
+  if (f === 'discCode') {
+    const c = (DATA.promoCodes || []).find(x => norm(x.code) === norm(BOOKING.discCode));
+    if (c) Object.assign(BOOKING, { discCode: c.code, discType: c.type, discValue: String(c.value), discBy: c.absorbedBy });
+  }
+  drawBooker();
+});
+
 function formMoney_(L) {
   if (!(typeof isAdmin === 'function' && isAdmin())) return { label: null, more: [] };
   if (!L || !(L.total > 0) || !isFinite(Number(L.tutorPay))) return { label: null, more: [] };
-  return { label: 'Client pays',
-           more: [{ k: 'Tutor earns', t: money(Number(L.tutorPay) || 0) },
-                  { k: 'Admin earns', t: money(Number(L.profitTotal) || 0) }] };
+  const e = L.earn;
+  if (!e) return { label: 'Client pays', more: [] };
+  const more = [{ k: 'Charged', t: money(e.charged), cls: 'rc-money' }];
+  if (e.discount > 0) {
+    /* NO MINUS: `Charged` above is already the figure after it, so this says what was given and who
+       gave it rather than being taken off a second time. */
+    more.push({ k: 'Discount · ' + (e.absorbedBy === 'Shared with tutor' ? 'shared with tutor' : 'business'),
+                t: money(e.discount), cls: 'rc-money' });
+  }
+  if (L.format === 'Practical') {
+    /* CHARGED IN THE LABEL, COST IN THE FIGURE: the figure column is the subtraction, and the kit's cost is
+       what goes out — the charge is already inside `Charged` above. */
+    more.push(e.uncosted ? { k: 'Materials', t: 'not costed', cls: 'rc-money' }
+      : { k: 'Materials · charged ' + money(e.materialsCharge), t: '\u2212 ' + money(e.materialsCost), cls: 'rc-money' });
+  }
+  if (e.venue > 0) more.push({ k: 'Venue', t: '\u2212 ' + money(e.venue), cls: 'rc-money' });
+  if (L.format === 'Trip') more.push({ k: 'Tickets & travel', t: '\u2212 ' + money(e.ticketsCost), cls: 'rc-money' });
+  more.push({ k: 'Tutor payout', t: '\u2212 ' + money(e.tutorPayout), cls: 'rc-money' });
+  more.push({ k: 'Card fees', t: e.cardFees > 0 ? '\u2212 ' + money(e.cardFees) : money(0), cls: 'rc-money' });
+  /* ROUNDED TO THE PENNY BEFORE THE SIGN IS ASKED, so a net of −0.000000001 (floating point on a one-child
+     session) is £0.00 in ink rather than "−£0.00" in red with a sentence saying it costs you nothing. */
+  const net = Math.round(e.net * 100) / 100;
+  const pct = e.charged > 0 ? Math.round(net / e.charged * 1000) / 10 : 0;
+  more.push({ k: 'Net profit', t: (net < 0 ? '\u2212 ' : '') + money(Math.abs(net)) + ' · ' + pct + '%',
+              cls: 'rc-money rc-net' + (net < 0 ? ' is-bad' : '') });
+  return { label: 'Client pays', more,
+           say: net < 0 ? 'This booking costs you ' + money(-net) + '.' : '' };
 }
 
 function jobReceipt(j, foot) {

@@ -8946,11 +8946,16 @@ check('the paper keeps the same rows whatever is answered', async () => {
     bad.push('choosing a waiting list changed which rows exist:\n            was  ' + blank
       + '\n            now  ' + klass);
   }
+  /* `only:` IS A LIST OF WORDS NOW (docs/history/353): the branch, and on an instant class the format too —
+     `bookOn_` reads `book, tutoring` with no format chosen, which is this journey's form. A step is owed to a
+     branch when any of its words is one the branch says, and to no other. */
+  const SAYS = { book: ['book', 'tutoring'], wait: ['wait'] };
+  const owed = (only, on) => String(only).split(',').map(x => x.trim()).some(x => SAYS[on].indexOf(x) !== -1);
   [['book', bookOnly], ['wait', waitOnly]].forEach(([on, list]) => {
     list.forEach(([k, only, there]) => {
-      if (only === on && !there) bad.push('"' + k + '" is declared only: ' + only
+      if (owed(only, on) && !there) bad.push('"' + k + '" is declared only: ' + only
         + ' and is not on that branch\'s paper');
-      if (only !== on && there) bad.push('"' + k + '" is declared only: ' + only
+      if (!owed(only, on) && there) bad.push('"' + k + '" is declared only: ' + only
         + ' and is drawn on the ' + on + ' branch as well, so the flag does nothing');
     });
   });
@@ -11927,17 +11932,106 @@ check('each person sees their own figure on a session, and its tiles are on the 
   const owed = doc(w.__t.jobPage(Object.assign({}, job, { slots: [{ n: 1, client: 'Pat Parent', status: 'Agreed' }] })));
   if (!owed.querySelector('.rc .rc-tiles [data-do="job-pay"]')) bad.push('an accepted, unpaid session has no Pay on its paper');
 
-  /* AND THE FORM: an admin pricing a booking sees the two more rows; nobody else does. */
-  if (typeof w.__t.formMoney === 'function') {
-    const L = { total: 300, tutorPay: 150, profitTotal: 40 };
+  /* AND THE FORM: an admin pricing a booking sees the Money block (docs/history/353); nobody else does.
+     The figures are `bookMoney_`'s own, over the owner's practical — 2 children, 2h, £30, kit £2 a child
+     + £5 setup, markup 1.25 — so the rows are read off the real sum rather than a hand-made object. */
+  if (typeof w.__t.formMoney === 'function' && typeof w.bookMoney_ === 'function') {
+    const earn = w.bookMoney_({ sessions: 1, n: 2, tutorPay: 90, profit: 12, venue: 0, markup: 1.25,
+      practical: { costPerRun: 2, setupCost: 5 } });
+    const L = { total: earn.charged, tutorPay: 90, profitTotal: 12, format: 'Practical', earn };
     w.__t.USER({ name: 'Halex Dias', personId: 'PA', role: 'admin', roles: ['admin'] });
     const fa = w.__t.formMoney(L);
-    if (fa.more.length !== 2 || !/150\.00/.test(fa.more[0].t) || !/40\.00/.test(fa.more[1].t)) {
-      bad.push('an admin pricing the form is not shown what the tutor and the business take');
+    const said = fa.more.map(m => m.k + ' ' + m.t).join(' | ');
+    const wantRows = [/^Charged £113\.25/, /^Materials · charged £11\.25 − £9\.00/, /^Tutor payout − £90\.00/,
+                      /^Card fees £0\.00/, /^Net profit £14\.25 · 12\.6%/];
+    if (wantRows.some(re => !fa.more.some(m => re.test(m.k + ' ' + m.t)))) {
+      bad.push('an admin pricing a practical is not shown the Money block as summed: ' + said);
+    }
+    /* A NEGATIVE NET IS RED AND SAYS SO: a £20 business-absorbed discount on the same booking. */
+    const lossEarn = w.bookMoney_({ sessions: 1, n: 1, tutorPay: 60, profit: 0, discount: { type: '£', value: 20 } });
+    const loss = w.__t.formMoney({ total: lossEarn.charged, tutorPay: 60, profitTotal: 0, format: 'Tutoring', earn: lossEarn });
+    const netRow = loss.more.find(m => m.k === 'Net profit') || {};
+    if (!/is-bad/.test(netRow.cls || '') || loss.say !== 'This booking costs you £20.00.') {
+      bad.push('a booking that loses money does not say so in red: ' + JSON.stringify([netRow, loss.say]));
     }
     w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
-    if (w.__t.formMoney(L).more.length) bad.push('a client pricing the form is shown the split');
+    const fp = w.__t.formMoney(L);
+    if (fp.more.length || fp.say) bad.push('a client pricing the form is shown the Money block');
+  } else bad.push('formMoney_ or bookMoney_ is not reachable, so the Money block was not checked');
+  return bad;
+});
+
+check('the booking form shows an admin what a booking earns, and a parent nothing of it', async () => {
+  /* ---------- THE MONEY BLOCK, THE DISCOUNT LINE AND THE FORMAT, ON THE REAL FORM (docs/history/353) ------
+     check-booking.js proves the sums with the owner's numbers; this proves who is SHOWN them. An admin
+     pricing a practical with a £5 discount sees the discount line above COST, COST as a subtraction, the
+     Materials row and the Money block; a parent with the very same answers — a draft carried across on
+     one device included — sees none of it, is charged without the discount, and sends no discount
+     field. And a trip draws no Venue row, and says there are no trips yet rather than a dash. */
+  const { w, sent } = boot();
+  await wait(300);
+  if (!w.__t.paper || !w.__t.DATA) return ['bookBreakdown or DATA is not exported — cannot check the form'];
+  const bad = [];
+  w.__t.DATA().practicals = [{ id: 'PR-T', name: 'Kit test', costPerRun: 2, setupCost: 5 }];
+  w.__t.DATA().trips = [];
+  const ddmmyy = d => [d.getDate(), d.getMonth() + 1, d.getFullYear()].map(x => String(x).padStart(2, '0')).join('/');
+  const from = new Date(Date.now() + 7 * 864e5), to = new Date(Date.now() + 28 * 864e5);
+  w.__t.DATA().intervals = (w.__t.DATA().intervals || []).concat([{ label: 'Money test term', term: 'Money test term',
+    startDate: ddmmyy(from), endDate: ddmmyy(to), lastSun: ddmmyy(to), weeks: 3 }]);
+  const seed = extra => {
+    const B = w.__t.BOOKING;
+    Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
+    Object.assign(B, { how: 'Instant class', level: 'GCSE', loc: 'Colliers Wood Library', subjects: ['Maths'],
+      n: '2', hosting: 'No', slots: ['m16', 'm17'], format: 'Practical',
+      /* A TERM OF ITS OWN, a week from today for three weeks: the fixture's ends on a fixed date, and a term
+         that has ended has no Mondays left to price, so a journey run next month would price nothing. */
+      interval: ['Money test term'],
+      practical: 'Kit test', discType: '£', discValue: '5', discBy: 'Business' }, extra || {});
+  };
+  const doc = h => { const d = w.document.createElement('div'); d.innerHTML = h; return d; };
+
+  w.__t.USER({ name: 'Test Admin', personId: 'PA', role: 'admin', roles: ['admin'] });
+  seed();
+  const a = doc(w.__t.paper());
+  const keys = [...a.querySelectorAll('.bk-row .bk-k')].map(x => x.textContent.trim());
+  if (!a.querySelector('.rc-disc-ctl select[data-field="discType"]')) bad.push('an admin is not given the discount line');
+  const disc = a.querySelector('.rc-disc'), cost = disc && disc.nextElementSibling && disc.nextElementSibling.nextElementSibling;
+  if (!cost || !cost.classList.contains('rc-total') || cost.classList.contains('rc-more')) bad.push('the discount line is not directly above COST');
+  const costSays = cost ? cost.querySelector('.bk-k').textContent + ' ' + cost.querySelector('.bk-t').textContent : '';
+  if (!/£[\d.]+ − £5\.00 = £[\d.]+$/.test(costSays)) bad.push('COST does not read £X − £5.00 = £Y: ' + JSON.stringify(costSays));
+  ['Materials', 'Charged', 'Discount', 'Tutor payout', 'Card fees', 'Net profit'].forEach(k => {
+    if (!keys.some(x => x === k || x.indexOf(k + ' · ') === 0)) bad.push('an admin pricing a practical has no "' + k + '" row: ' + keys.join(', '));
+  });
+  if (keys.indexOf('Format') === -1) bad.push('the form has no Format row');
+
+  /* THE PARENT, WITH THE ADMIN'S DISCOUNT STILL IN THE DRAFT. */
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
+  seed();
+  const p = doc(w.__t.paper());
+  if (p.querySelector('.rc-money, .rc-disc, .rc-disc-ctl, .rc-money-say')) bad.push('a parent is shown the Money block or the discount line');
+  const pCost = [...p.querySelectorAll('.rc-total .bk-t')].map(x => x.textContent);
+  if (pCost.some(t => /−/.test(t))) bad.push('a parent\'s COST carries the admin\'s discount: ' + pCost.join(' | '));
+  if (!/Materials/.test(p.textContent)) bad.push('a parent booking a practical is not shown its materials line');
+  try { w.__t.ACTIONS['book-send']({ disabled: false, dataset: {} }); } catch (e) { bad.push('sending threw: ' + e.message); }
+  await wait(250);
+  const job = sent.find(x => x.action === 'createJob');
+  if (!job) bad.push('the parent\'s practical was never sent');
+  else {
+    if (job.discountType || job.discountValue) bad.push('a parent\'s booking sent discount fields: ' + job.discountType + ' ' + job.discountValue);
+    if (job.format !== 'Practical' || job.practicalId !== 'PR-T') bad.push('the job does not say it is practical PR-T: ' + job.format + ' ' + job.practicalId);
+    if (!(Number(job.materialsCost) > 0) || job.materialsCharge !== job.materialsCost) {
+      bad.push('the job does not carry its kit at cost (no markup set): charge ' + job.materialsCharge + ', cost ' + job.materialsCost);
+    }
   }
+
+  /* A TRIP: no Venue, no Space, and the picker says there are none. */
+  w.__t.USER({ name: 'Test Admin', personId: 'PA', role: 'admin', roles: ['admin'] });
+  seed({ format: 'Trip', practical: '', discType: '' });
+  const t = doc(w.__t.paper());
+  const tKeys = [...t.querySelectorAll('.bk-row .bk-k')].map(x => x.textContent.trim());
+  if (tKeys.indexOf('Venue') !== -1 || tKeys.indexOf('Space') !== -1) bad.push('a trip still asks Venue or Space: ' + tKeys.join(', '));
+  const tripRow = [...t.querySelectorAll('.bk-row')].find(r => (r.querySelector('.bk-k') || {}).textContent === 'Trip');
+  if (!tripRow || !/None yet/.test(tripRow.textContent)) bad.push('with no trips the Trip row does not say "None yet"');
   return bad;
 });
 
@@ -29532,6 +29626,97 @@ check('a chosen book of the Bible is fetched by the builder before any card of i
   if (!t.aheadLog().some(x => x.key === 'paint:res')) bad.push('the builder never drew Resources, so this asked nothing');
   if (!lev.length) bad.push('Leviticus was never fetched after the builder drew Resources with it chosen');
   else if (!/^bible:/.test(lev[0].key)) bad.push('Leviticus was first asked for by ' + (lev[0].key || 'nothing in a slice') + ' — the builder\'s Bible job should ask before a card of it is drawn');
+  return bad;
+});
+
+/* ---------- EVERY PAPER HAS A HEALTH SCORE, AND EVERYBODY SEES IT (docs/history/354) ---------------------
+   *"Can you add a health check to worksheets or past papers ... Like 99% would be it's practically perfect
+   and ready to do. This is for work in the finder."* Then, over a tutors-only first draft: *"No, everyone can
+   see the scores"* — the owner, 18 Oct. So the journey is asked as FOUR people — nobody signed in, a student,
+   a parent and a tutor — and each must see the same three things: the card's `Ready · 99%`-shaped tag, the
+   Health row under the funnel's question, and the Health tile under a chosen paper with the list behind it.
+   Over TWO FIXTURE PAPERS through the real loader: `HX` with exactly three faults (Q2 has no answer, Q3 says
+   "the triangle shown" over no drawing, the marks add to 76 of the stated 80), `HY` with none. The score is
+   `paperHealth_`'s; what is asked here is that the finder reads it — and that picking `Health · Ready`
+   leaves only Ready papers, so the tag on a card is an answer that can be picked. */
+check('every paper has a health score: its cards wear it, Health · Ready narrows to Ready papers, and its tile lists what is wrong — for everybody', async () => {
+  const base = { active: 'True', subject: 'Maths', document_type: 'Past paper', key_stage: 'KS4', level: 'GCSE',
+                 pages_checked: 'True', company: 'Edexcel', exam_board: 'Edexcel' };
+  const R_ = o => Object.assign({}, base, o);
+  const rows = [
+    R_({ row_id: 'D-HX', paper_id: 'HX', kind: 'document', name: 'Paper 1 — June 2031', total_marks: '80' }),
+    R_({ row_id: 'HX-1', paper_id: 'HX', kind: 'question', name: 'Paper 1 — June 2031', question: '1', marks: '40', html: '<p>Work out 3 + 4.</p>', answer: '7', accept: '7', answer_type: 'calculation' }),
+    R_({ row_id: 'HX-2', paper_id: 'HX', kind: 'question', name: 'Paper 1 — June 2031', question: '2', marks: '30', html: '<p>Work out 6 × 7.</p>', answer_type: 'calculation' }),
+    R_({ row_id: 'HX-3', paper_id: 'HX', kind: 'question', name: 'Paper 1 — June 2031', question: '3', marks: '6', html: '<p>Find the angle x in the triangle shown.</p>', answer: '40', accept: '40', answer_type: 'calculation' }),
+    R_({ row_id: 'D-HY', paper_id: 'HY', kind: 'document', name: 'Paper 2 — June 2031', total_marks: '5' }),
+    R_({ row_id: 'HY-1', paper_id: 'HY', kind: 'question', name: 'Paper 2 — June 2031', question: '1', marks: '2', html: '<p>Work out 3 + 4.</p>', answer: '7', accept: '7', answer_type: 'calculation' }),
+    R_({ row_id: 'HY-2', paper_id: 'HY', kind: 'question', name: 'Paper 2 — June 2031', question: '2', marks: '3', html: '<p>Work out 5 + 4.</p>', answer: '9', accept: '9', answer_type: 'calculation' }),
+  ];
+  const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
+  await wait(300);
+  const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  const need = ['paperHealth_', 'healthOf_', 'healthDoor_', 'paperEnd_', 'questionCard_', 'stuffItemsAll_', 'stuffQuestion', 'stuffFiltered']
+    .filter(n => typeof w[n] !== 'function');
+  if (need.length || !A['facet-pick'] || !A['paper-health']) return [need.join(', ') + ' or the facet-pick / paper-health handlers not reachable — no health was checked'];
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  const PEOPLE = [
+    ['nobody signed in', null],
+    ['a student', { name: 'Sam Student', personId: 'P-S1', token: 'tok-1', role: 'student', roles: ['student'] }],
+    ['a parent', { name: 'Pat Parent', personId: 'P1', token: 'tok-2', role: 'parent', roles: ['parent'] }],
+    ['a tutor', { name: 'Tia Tutor', personId: 'T1', token: 'tok-3', role: 'tutor', roles: ['tutor'] }],
+  ];
+  for (const [who, u] of PEOPLE) {
+    t.USER(u);
+    t.STUFF().filters = [];
+    t.STUFF().q = '';
+    const all = w.stuffItemsAll_();
+    const hx = all.find(x => x.row && x.row.row_id === 'HX-2');
+    const hy = all.find(x => x.row && x.row.row_id === 'HY-1');
+    if (!hx || !hy) { bad.push(who + ': the fixture papers did not come through the loader into Find'); continue; }
+    /* ---------- THE TAG, ON THE CARD ---------- */
+    host.innerHTML = w.questionCard_(hx, 0);
+    const tag = host.querySelector('.qcard-tags .qtag[data-tag="health"]');
+    const hxh = w.healthOf_(hx);
+    if (!hxh || hxh.band !== 'Rough') bad.push(who + ': HX scores ' + (hxh ? hxh.pct + '% ' + hxh.band : 'nothing') + ' — three faults on 76 marks must be below Ready');
+    if (!tag) bad.push(who + ' sees no health tag on a card of HX');
+    else if (!hxh || tag.textContent !== hxh.band + ' · ' + hxh.pct + '%') bad.push(who + ': the card\'s health tag says ' + JSON.stringify(tag.textContent));
+    host.innerHTML = w.questionCard_(hy, 0);
+    const tagY = host.querySelector('.qcard-tags .qtag[data-tag="health"]');
+    if (!tagY || tagY.textContent !== 'Ready · 100%') bad.push(who + ': a card of the clean paper HY wears ' + JSON.stringify(tagY ? tagY.textContent : '(no tag)') + ', wanted "Ready · 100%"');
+    /* ---------- THE ROW UNDER THE QUESTION, AND NOT A QUESTION OF ITS OWN ---------- */
+    /* WALKED TO THE END over the two papers alone, every question passed with "Doesn't matter": Health
+       splits that list two ways at full coverage, so if the funnel would ever ask it, it asks it here. */
+    const fixture = all.filter(x => x.row && /^H[XY]-/.test(String(x.row.row_id || '')));
+    const walked = [];
+    for (let i = 0; i < 40; i++) {
+      const f = w.nextFacet(fixture);
+      if (!f) break;
+      walked.push(f.field);
+      t.STUFF().filters.push({ field: f.field, any: true });
+    }
+    if (walked.indexOf('health') !== -1) bad.push(who + ': the funnel ASKS Health (' + walked.join(' → ') + ') — it must only be offered, never put in front of a folder');
+    t.STUFF().filters = [];
+    host.innerHTML = w.stuffQuestion();
+    const door = host.querySelector('.health-door');
+    const ready = door && door.querySelector('[data-do="facet-pick"][data-field="health"][data-value="Ready"]');
+    if (!door || !ready || !door.querySelector('[data-value="Rough"]')) { bad.push(who + ' is not offered Health · Ready and Health · Rough under the question'); continue; }
+    A['facet-pick'](ready);
+    const left = w.stuffFiltered();
+    const papers = new Set(left.map(x => x.row && x.row.paper_id).filter(Boolean));
+    if (!left.length || !left.every(x => (w.healthOf_(x) || {}).band === 'Ready')) bad.push(who + ': Health · Ready left ' + left.length + ' item(s), not all Ready: ' + [...papers].join(', '));
+    if (papers.has('HX')) bad.push(who + ': Health · Ready still holds the Rough paper HX');
+    /* ---------- THE TILE UNDER A CHOSEN PAPER, AND THE LIST BEHIND IT ---------- */
+    t.STUFF().filters = [{ field: 'paperId', value: 'HX' }];
+    host.innerHTML = w.paperEnd_(w.stuffFiltered());
+    const tile = host.querySelector('.tile-row > .tile[data-do="paper-health"][data-pid="HX"]');
+    if (!tile) { bad.push(who + ' sees no Health tile under the chosen paper HX'); continue; }
+    A['paper-health'](tile);
+    const lines = [...d.querySelectorAll('#sheet-body .health-list li')].map(li => li.textContent.replace(/\s+/g, ' ').trim());
+    const want = ['Q2 — no answer', 'Q3 — needs a picture, none drawn', 'Paper — marks add to 76 of 80'];
+    if (lines.join(' | ') !== want.join(' | ')) bad.push(who + ': HX\'s Health list says ' + JSON.stringify(lines) + ', wanted exactly ' + JSON.stringify(want));
+    t.STUFF().filters = [];
+  }
   return bad;
 });
 

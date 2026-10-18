@@ -548,6 +548,86 @@ function seatCutOf_(v) {
   return x <= 2 ? x : NaN;
 }
 
+/* ---------- WHAT KIND OF SESSION, AND WHAT IT BRINGS WITH IT (docs/history/353) ----------------------
+   THREE FORMATS, ONE TEACHING PRICE. "Tutoring" is what every booking was; a "Practical" adds the kit
+   from `data/practicals.json`, a "Trip" adds tickets and travel from the trips tab and has no room to
+   hire. Anything else — blank, an older draft, a typo — is Tutoring, because that is the format every
+   row before this one was, and reading silence as a practical would bill somebody for kit. */
+const BOOK_FORMATS = ['Tutoring', 'Practical', 'Trip'];
+function bookFormat_(v) {
+  const k = norm(v);
+  return BOOK_FORMATS.find(f => norm(f) === k) || 'Tutoring';
+}
+/* BY ID OR BY NAME, because the form's dropdown holds the name a person reads and the job keeps the id
+   a sheet can join on. The first row that answers wins; nothing found is null, never a made-up row. */
+function bookPractical_(v) {
+  const k = norm(v);
+  if (!k) return null;
+  return ((typeof DATA !== 'undefined' && DATA && DATA.practicals) || [])
+    .find(p => norm(p.id) === k || norm(p.name) === k) || null;
+}
+function bookTrip_(v) {
+  const k = norm(v);
+  if (!k) return null;
+  return ((typeof DATA !== 'undefined' && DATA && DATA.trips) || [])
+    .find(t => norm(t.tripId) === k || norm(t.name) === k) || null;
+}
+/* ---------- THE ONE SUM FROM CHARGED TO NET ----------------------------------------------------------
+   PURE: numbers in, numbers out, no DATA and no DOM, so `check-booking.js` runs the real thing over the
+   owner's own examples. Whole-booking figures throughout; `priceFrom` divides by the split afterwards.
+     materials  (kit per child per run × children × runs + setup once) × markup — at cost when the
+                markup is blank, because the owner has not chosen one, and the difference is the
+                business's margin on the kit
+     tickets    child ticket × children + the tutor's own adult ticket, per run, at cost
+     travel     per child per run, at cost
+     discount   an admin's alone (the server refuses it from anybody else — `discountRefusal_`).
+                A PERCENT comes off the teaching and never off kit, tickets or travel, which are money
+                passed straight through; POUNDS come off the total. "Business" (the default) leaves
+                the tutor's payout whole, so it comes out of the seat cut and the kit margin first and
+                past them takes the net below nought — said in so many words on the Money block.
+                "Shared with tutor" scales the tutor's payout and the business's teaching share by
+                the same fraction, so each gives up their own proportion of it.
+     card fees  `card_fee_pct` of what is charged plus `card_fee_fixed`, both blank = nought, so a
+                sheet that has never heard of them prices exactly as before.
+   A NEGATIVE NET IS AN ANSWER, NOT A FAULT. Nothing here clamps it: a booking that costs the business
+   money must say so, which is the point of working it out. */
+function bookMoney_(m) {
+  m = m || {};
+  const pos = x => { const v = Number(x); return isFinite(v) && v > 0 ? v : 0; };
+  const runs = pos(m.sessions), n = Math.max(1, pos(m.n) || 1);
+  const markup = pos(m.markup) || 1;
+  const pr = m.practical || null, tr = m.trip || null;
+  const materialsCost = pr && runs ? pos(pr.costPerRun) * n * runs + pos(pr.setupCost) : 0;
+  const materialsCharge = materialsCost * markup;
+  const tickets = tr && runs ? (pos(tr.ticketChild) * n + pos(tr.ticketAdult)) * runs : 0;
+  const travel = tr && runs ? pos(tr.travelPerChild) * n * runs : 0;
+  const teaching = pos(m.tutorPay) + pos(m.profit);
+  const venue = pos(m.venue);
+  const gross = teaching + venue + materialsCharge + tickets + travel;
+  const d = m.discount || {};
+  const discountType = d.type === '%' ? '%' : (d.type === '£' ? '£' : '');
+  const discountValue = discountType ? pos(d.value) : 0;
+  const discount = !discountValue ? 0
+    : discountType === '%' ? teaching * Math.min(discountValue, 100) / 100
+    : Math.min(discountValue, gross);
+  const shared = /^shared/i.test(String(d.by || ''));
+  const scale = shared && teaching > 0 ? 1 - Math.min(discount, teaching) / teaching : 1;
+  const tutorPayout = pos(m.tutorPay) * scale;
+  const charged = gross - discount;
+  const cardFees = charged > 0 ? charged * pos(m.feePct) / 100 + pos(m.feeFixed) : 0;
+  const ticketsCost = tickets + travel;
+  const net = charged - tutorPayout - venue - materialsCost - ticketsCost - cardFees;
+  return {
+    gross, discount, discountType, discountValue, discountCode: String(d.code || ''),
+    absorbedBy: discount ? (shared ? 'Shared with tutor' : 'Business') : '',
+    charged, teaching, tutorPayout, venue, materialsCharge, materialsCost,
+    tickets, travel, ticketsCost, cardFees, net, margin: charged > 0 ? net / charged : 0,
+    /* A PRACTICAL NOBODY HAS COSTED is not free kit: 65 of the 82 rows have no cost_per_run_gbp, and
+       the Money block says "not costed" rather than printing £0.00 as though it were a price. */
+    uncosted: !!pr && (pr.costPerRun == null || pr.costPerRun === ''),
+  };
+}
+
 function priceFrom(spec) {
   spec = spec || {};
   const m = DATA.multipliers || {};
@@ -598,7 +678,12 @@ function priceFrom(spec) {
   // different prices, and the venue's single figure could only ever be right for one of them.
   const space = spaceFor(loc);
   const venueRate = space ? space.rate : (venue ? (parseFloat(venue.bestRate) || 0) : 0);
-  const V = hosting ? 0 : venueRate;
+  /* A TRIP HAS NO ROOM TO HIRE (docs/history/353): the children are at the museum, and what the place
+     costs is its tickets, priced below beside the teaching. So V is nought on a trip whatever `loc`
+     still holds from before the format changed — the form hides Venue and Space on a trip, and this is
+     the half that makes a hidden answer cost nothing rather than trusting it was cleared. */
+  const format = bookFormat_(spec.format);
+  const V = (hosting || format === 'Trip') ? 0 : venueRate;
 
   /* ================== THE PRICING FORMULA ==================
      P = ( [ rate x (Σ Sᵢ)/k x L x D x T ]     ← £/hour/child, all MULTIPLIED
@@ -829,7 +914,7 @@ function priceFrom(spec) {
      Both the rate and the total are per person now, which is who the card is addressed to. */
   const splitShares = splitOthers + 1;
   const chargePerHour = (R * fSeats * discountFactor * promoAdj + V) / splitShares;
-  const total = hoursTotal ? chargePerHour * hoursTotal : null;
+  const teachTotal = hoursTotal ? chargePerHour * hoursTotal : null;
 
   // The three shares. They must add up to exactly what the client pays, so each is derived from
   // the same numbers rather than computed independently:
@@ -858,7 +943,29 @@ function priceFrom(spec) {
 
   // The whole booking, before it's divided — what the tutor and the venue are actually paid,
   // which is a different question from what one family hands over.
-  const wholeTotal = total === null ? null : total * splitShares;
+  /* ---------- WHAT THE BOOKING EARNS, AFTER EVERYTHING IT COSTS (docs/history/353) ----------------------
+     `tutorPay + venueTotal` was all this knew about cost, so an admin saw "Admin earns £12" on a
+     practical whose kit cost £9 and on a trip whose tickets cost £34 — a margin that was the seat cut
+     and nothing else. `bookMoney_` is the one sum: what the client is charged (teaching and venue as
+     before, plus materials, tickets and travel), less any admin discount, less every outgoing — tutor,
+     venue, materials at cost, tickets and travel at cost, card fees. Teaching itself is priced exactly
+     as it was above; nothing here touches a rate.
+     THE OWNER KNOWS A ONE-CHILD SESSION EARNS NOTHING — *"I am aware of no profit for me when only 1
+     kid"*, 18 Oct — so there is no markup here to make it earn: the business's share stays the seat cut
+     (B, or the tutor's own) plus the materials margin, and a net of £0.00 on one child is the answer. */
+  const mo = bookMoney_({
+    hours: hoursTotal, sessions: hoursTotal ? Math.max(1, slots || 0) : 0, n, format,
+    practical: format === 'Practical' ? bookPractical_(spec.practical) : null,
+    trip: format === 'Trip' ? bookTrip_(spec.trip) : null,
+    tutorPay, profit: profitTotal, venue: venueTotal,
+    discount: spec.discount || null,
+    markup: cvD('materials_markup', 1), feePct: cvD('card_fee_pct', 0), feeFixed: cvD('card_fee_fixed', 0),
+  });
+  /* THE TOTAL IS THE CHARGED FIGURE NOW, still per family. Tutoring with no discount comes out exactly
+     where `teachTotal` did — `mo.charged` is that whole figure plus nothing — so every booking that
+     was priced yesterday is priced the same today. */
+  const total = teachTotal === null ? null : mo.charged / splitShares;
+  const wholeTotal = total === null ? null : mo.charged;
   const shareAmount = total;
   return {
     i, total, weeks, slots, n, V, loc, day, time, level, subjects, tutor, interval, endDate, startDate, lastSun,
@@ -887,6 +994,8 @@ function priceFrom(spec) {
     discountFactor, discountFloored, F, R,
     chargePerHour, hoursTotal, tutorPay, venueTotal, cost, tutorHourly, belowMinWage,
     promoAdj, splitOthers, splitShares, shareAmount, profitTotal, wholeTotal,
+    // THE MONEY BLOCK'S FIGURES, whole-booking — see `bookMoney_`. Only an admin's screen draws them.
+    format, earn: mo,
     summary: { service: (typeof document !== 'undefined' ? val('c-service') : ''), level,
                subject: subjects.join(', '), location: loc, day, time, students: n,
                interval, weeks, requestedTutor: tutor }

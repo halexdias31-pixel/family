@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-10-18-x-onetrigger";
+const DOGET_VERSION = "2026-10-18-y-money";
 
 
 function doGet(e) {
@@ -639,6 +639,8 @@ function doGet(e) {
       /* THE CLOSED DAYS INSIDE A TERM — filled below by `closures()`. */
       closures: [],
       trips: [], exams: [], birthdays: [], orders: [], widgets: [], posts: [], laws: [],
+      /* AN ADMIN'S DISCOUNT CODES (docs/history/353) — filled below for an admin and nobody else. */
+      promoCodes: [],
       facts: [],
       questions: [], boxers: [], fights: [], herd: [],
       /* ---------- EMPTY FOR EVERYBODY, AND FILLED FOR ONE PERSON ---------------------------------
@@ -1595,10 +1597,35 @@ function doGet(e) {
         minChildren: N(r.min_children), maxChildren: N(r.max_children),
         venue: S(r.venue), address: S(r.address),
         date: fmtDate(r.date), noticeDays: N(r.notice_days),
+        /* WHAT THE BOOKING FORM PRICES A TRIP FROM (docs/history/353) — `bookMoney_` in core.js. At cost, so
+           a figure here is what the business pays out and the Money block subtracts it again. `tripId` is
+           the row number where the cell is blank, the same number `id` has always been. */
+        tripId: S(r.trip_id) || String(r._row), place: S(r.place) || S(r.venue),
+        ticketChild: N(r.ticket_child), ticketAdult: N(r.ticket_adult),
+        travelPerChild: N(r.travel_per_child), ratio: N(r.ratio),
         notes: S(r.notes),
         fields: TRIP_EDITABLE.reduce((a, f) => { a[f] = S(r[f]); return a; }, {})
       });
     });
+
+    /* ---------- THE DISCOUNT CODES, TO AN ADMIN ALONE (docs/history/353) ------------------------------------
+       THE GATE IS HERE, for `films`' reason: a list the phone has to be trusted not to show is a list already
+       sent. A code a family can read is a code a family can type. Expired, switched off and spent codes are
+       sent too, marked, so the admin's dropdown can say why one cannot be used rather than losing it —
+       `discountRefusal_` (booking.gs) is what actually refuses one, whatever the phone offered. */
+    if (viewerIsAdmin) {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      read(TAB.promo_codes).rows.forEach(r => {
+        if (!S(r.code)) return;
+        const ends = S(r.expires) ? sheetDate(r.expires) : null;
+        const spent = N(r.max_uses) > 0 && N(r.used) >= N(r.max_uses);
+        payload.promoCodes.push({
+          code: S(r.code), type: S(r.type) === '%' ? '%' : '£', value: N(r.value),
+          absorbedBy: /^shared/i.test(S(r.absorbed_by)) ? 'Shared with tutor' : 'Business',
+          off: !ON_(r.active) ? 'switched off' : (ends && ends < today) ? 'expired' : spent ? 'used up' : '',
+        });
+      });
+    }
 
     /* THE FESTIVE EVENTS, if the date says so. Sent to everybody: that is the point of them. */
     /* ---------- WHAT A WAITING-LIST SEAT COSTS, WORKED OUT HERE --------------------------------

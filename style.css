@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-13-integrate";
+  --css-version: "2026-10-18-health";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -138,6 +138,11 @@
   --tag-number:  var(--tag-paper);
   --tag-marks:   var(--ink);
   --tag-needs:   #f0f08a;
+  /* A PAPER'S HEALTH (`Ready · 99%`, docs/history/354) is about the transcription, not the paper, so it
+     takes no paper kind's hue. A muted SAND: the wheel is full, and every saturated step left sat beside
+     a kind already on the card (lime by the type, teal by the board, coral by the paper). Desaturated
+     enough to read as a note about the card rather than one more fact on it. */
+  --tag-health:  #cdb69c;
 
   /* Everything below is in rem, so it all scales together from the one root above. */
   /* Square, near enough. A terminal has no rounded corners, and this is the single value that
@@ -3155,6 +3160,7 @@ button.text-drop { color: var(--bad); }
 [data-tag="kind"]    { --tag: var(--tag-kind); }
 [data-tag="number"]  { --tag: var(--tag-number); }
 [data-tag="marks"]   { --tag: var(--tag-marks); }
+[data-tag="health"]  { --tag: var(--tag-health); }
 .chips { display: flex; flex-wrap: wrap; gap: .3rem; margin: 0 0 .45rem; }
 /* ---------- WHAT YOU CHOSE, A RULE, THEN WHAT IS ASKED NEXT -------------------------------------------
    SIX ANSWERS IN, THE TWO WERE ONE CLOUD: the chosen chips are tag-coloured pills and so are the
@@ -3169,6 +3175,18 @@ button.text-drop { color: var(--bad); }
    `style="margin:.6rem 0 0"` in `--faint`. Its own class now: dim, with the instruction in ink. */
 .find-end { margin: .3rem 0 0; font-size: .8rem; line-height: 1.5; color: var(--dim); }
 .find-end b { color: var(--ink); font-weight: 600; }
+/* ---------- A PAPER'S HEALTH: THE OPTIONAL ROW, THE TILE, THE LIST (docs/history/354) ---------------
+   THE ROW IS NOT THE QUESTION. `Health` is never asked (`tagOnly`); its answers sit under the question
+   that is, after a hairline and a small label, so the eye reads them as an aside. The chips are the
+   funnel's own `.counted.row.tap` — the 44px target is theirs, not set again here. */
+.health-door { margin: .6rem 0 0; padding: .45rem 0 0; border-top: 1px solid var(--line-soft); }
+.health-door-k { margin: 0 0 .3rem; font-size: .75rem; color: var(--dim); }
+.health-tiles { margin: .5rem 0 0; }
+.health-sum { margin: 0 0 .6rem; font-size: .85rem; color: var(--dim); display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+.health-list { margin: 0; padding: 0; list-style: none; font-size: .85rem; line-height: 1.5; }
+.health-list li { padding: .3rem 0; border-bottom: 1px solid var(--line-soft); }
+.health-ref { color: var(--tag-health); font-weight: 600; }
+.health-none { margin: 0; font-size: .85rem; color: var(--ink); }
 .chip {
   display: flex; align-items: center; gap: .25rem;
   /* ---------- 44px, AND THIS IS THE FOURTH CONVICTION OF THE SAME RULE ---------------------------
@@ -4240,6 +4258,24 @@ button.text-drop { color: var(--bad); }
    three ways. Named through `.rc-total` so it out-specifies the base rule rather than out-sitting
    it — the `.price.faint` race this stylesheet has lost twelve times. */
 .rc-total.rc-more { margin-top: 0; padding-top: 0; border-top: 0; }
+/* ---------- THE MONEY BLOCK: AN ADMIN'S SUM, READ AS A SUM (docs/history/353) ------------------------
+   EIGHT ROWS IN THE TOTAL'S CAPITALS WOULD SHOUT EIGHT TIMES, and the block is a subtraction to follow
+   down the `+` column, not eight headlines — so its terms are in the answers' own case and weight, and
+   only `Net profit`, the line the sum is for, is heavy. Red on a negative net: `--bad` is what this
+   sheet already means by money going the wrong way, and the sentence under it says by how much. */
+.rc-total.rc-money .bk-k { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--dim); }
+.rc-total.rc-money .bk-t { font-weight: 400; color: var(--dim); }
+.rc-total.rc-money.rc-net .bk-k, .rc-total.rc-money.rc-net .bk-t { font-weight: 700; color: var(--ink); }
+.rc-total.rc-money.rc-net.is-bad .bk-k, .rc-total.rc-money.rc-net.is-bad .bk-t { color: var(--bad); }
+.bk > .bk-say.rc-money-say { color: var(--bad); text-align: right; }
+/* THE DISCOUNT LINE'S CONTROLS, under its row and the width of the card: four in a 390px column will not
+   sit beside a label, so they wrap two by two. A tap target is a fingertip, so 44px whatever the root. */
+.bk > .rc-disc-ctl { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; margin: .2rem 0 .1rem; }
+.rc-disc-in {
+  flex: 1 1 40%; min-width: 0; min-height: 44px; padding: 0 8px;
+  font: inherit; font-size: .8rem; color: var(--ink);
+  background: var(--sunk); border: 1px solid var(--line); border-radius: 8px;
+}
 /* ---------- A TOTAL'S LABEL RUNS ACROSS THE ROW, SO IT CANNOT WIDEN THE QUESTION COLUMN ------------
    THE LABEL TRACK IS `minmax(6.2em, max-content)` AND IT IS SHARED BY EVERY ROW ON THE CARD — so
    the widest label anywhere decides where every answer starts. `COST` fitted inside the floor;
@@ -10267,8 +10303,10 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
    A POST'S REACTIONS ARE THE FOURTH, and the sheet's heading pill for each face with them: the faces
    are pills in this family's shape since the owner's *"Looks abit scuffed"* (9 Oct), and the outline
    that made a chip visible on black is the one their old `--line-soft` boxes were missing. */
-.answers, .chips, .qtags, .reacts, .rx-head { --chip-line: #3d3d3d; }
-.answers { display: flex; flex-wrap: wrap; gap: .4rem .35rem; align-items: center; }
+.answers, .health-answers, .chips, .qtags, .reacts, .rx-head { --chip-line: #3d3d3d; }
+/* `.health-answers` IS `.answers` UNDER ANOTHER NAME ON PURPOSE: thirty checks read `.answers` as "the
+   question being asked", and the Health row is not that question (docs/history/354). */
+.answers, .health-answers { display: flex; flex-wrap: wrap; gap: .4rem .35rem; align-items: center; }
 /* THE ANSWER IS THE HEADLINE. It was .88rem — the size of a fact on a receipt — for the one word
    on the screen somebody is here to choose. */
 /* ---------- AND IT IS THE ONLY THING ON THE ROW NOW, SO IT MAY USE THE ROW -----------------------

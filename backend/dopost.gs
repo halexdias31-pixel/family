@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-10-18-x-onetrigger";
+const DOPOST_VERSION = "2026-10-18-y-money";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -4003,6 +4003,12 @@ function doPost(e) {
       // The job's status, from who is left. Written for readability in the sheet; nothing reads it.
       const status = jobStatusOf(jobId);
       setCell(t, j, 'status', status);
+      /* THE MOVE THAT SETTLES THE LAST SEAT FREEZES WHAT THE BOOKING EARNS (docs/history/353) — card fees
+         from today's config, the net, `priced_at`. Once stamped, `jobMoneyFreeze_` answers null for ever. */
+      if (act === ACT.ACCEPT && jobAgreed_(jobId)) {
+        const frozen = jobMoneyFreeze_(j, config(), new Date());
+        if (frozen) Object.keys(frozen).forEach(f => setCell(t, j, f, frozen[f]));
+      }
       if (status === 'cancelled') {
         setCell(t, j, 'stealable', 'FALSE');
         // Tell any tutor still attached: a cancelled job is invisible, so they'd otherwise hold a
@@ -4139,6 +4145,15 @@ function doPost(e) {
          before anything is written, like the two refusals above it. */
       const outside = namedRow ? tutorHoursRefusal_(namedRow, body) : '';
       if (outside) return jsonOut({ error: outside });
+      /* AN ADMIN'S DISCOUNT, AND NOBODY ELSE'S — asked before anything is written, like the refusals above
+         (`discountRefusal_`, booking.gs). `asker` is the token's own row, so the test is of who is signed
+         in, never of a name the request carries. The code's row is found once and its `used` counted up
+         only after the job is written: a refused booking must not spend a use. */
+      const codes = S(body.discountCode) ? read(TAB.promo_codes) : null;
+      const codeRow = codes ? (codes.rows.find(r => key(r.code) === key(body.discountCode)) || null) : null;
+      const noDiscount = discountRefusal_(body, !!(asker && hasRole(asker, 'admin')), codeRow, new Date());
+      if (noDiscount) return jsonOut({ error: noDiscount });
+      const cash = v => S(v) !== '' ? Math.round(N(v) * 100) / 100 : '';
       addRow(t, {
         job_id: jobId, status: 'unconfirmed',
         subject: S(body.subject), level: S(body.level), service: S(body.service),
@@ -4205,7 +4220,18 @@ function doPost(e) {
            Compared with `key` like every other name in this file, so punctuation cannot turn one
            person into two and write a `booked_by` on a booking somebody made themselves. */
         booked_by: key(S(body.name)) === key(me) ? '' : S(body.name),
+        /* THE MONEY BLOCK, AS THE PHONE PRICED IT (docs/history/353) — blank from an older phone, never a
+           nought, for `tutor_pay`'s reason. `priced_at` stays blank: the figures are frozen when the job
+           is agreed (`jobMoneyFreeze_`), not when it is asked for. */
+        gross: cash(body.gross), tutor_payout: cash(body.tutorPayout), venue_cost: cash(body.venueCost),
+        materials_charge: cash(body.materialsCharge), materials_cost: cash(body.materialsCost),
+        tickets_cost: cash(body.ticketsCost), card_fees: cash(body.cardFees), net_profit: cash(body.netProfit),
+        discount_type: S(body.discountType), discount_value: cash(body.discountValue),
+        discount_code: S(body.discountCode),
+        discount_absorbed_by: S(body.discountType) ? (S(body.discountAbsorbedBy) || 'Business') : '',
+        format: S(body.format), practical_id: S(body.practicalId), trip_id: S(body.tripId),
       });
+      if (codeRow) setCell(codes, codeRow, 'used', N(codeRow.used) + 1);
 
       // Who is in it comes from here, not from cells on the row above.
       logEvent({ jobId, actor: me, role: 'client', action: ACT.REQUEST,
