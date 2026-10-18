@@ -57,6 +57,17 @@
          THE TRIGGERS (6, g): the email and its two marking passes, once each, and the way back.
          `checkSundayEmail` (11, h): every line it promises, and nothing changed.
          `check/digest-dry.js` (12): an invented week written to a folder, nothing sent, never in the repo.
+     · SINCE 18 OCT (docs/history/351) — *"On Sunday @9pm"* and *"So each question As is on site."*:
+         9PM (6, 9f, 11): 21 the code's default and the config row's, the run-up booked at 20:00 and working a
+         burst from 19:50, the email's own run "up to 9:02pm"; `checkSundayEmail` printing the hour
+         `installWeeklyDigest` recorded, WARNING while the config cell says another, and calling triggers with
+         no recorded hour unknown.
+         AS ON THE SITE (13): a library question printed whole from its row — the shared stem once, its
+         picture after it, each part's number and marks over all its words, then "Kit: ✓" — through the
+         allow-list; each picture the PNG twin by SHA-256 on the site, with its alt text, and the alt text in
+         the plain body; a key the library has not got as its words line; no address but the pictures'; a
+         real question's picture a file that is in data/diagrams/; and 80 whole papers under Gmail's clip
+         with every question kept.
 
    THROUGH THE REAL BACKEND on `check-gas-load.js`, with MailApp, ScriptApp and the clock stubbed so
    that nothing here can reach a mailbox, a project or the time of day. The people are invented and
@@ -86,6 +97,10 @@ const SUN = '2026-10-04T17:00:00Z';
 function seeded(opts) {
   const w = world(opts);
   const { b } = w;
+  /* THE RUN'S OWN LOG LINES — "the question library was NOT fetched", in a world with no network — kept, not
+     printed: what a check says is its list of what went wrong. */
+  w.logs = [];
+  w.G.console = { log: x => w.logs.push(String(x)), warn: x => w.logs.push(String(x)), error: x => w.logs.push(String(x)), info: () => {} };
   const base = { pin: '0000', verified: 'TRUE', city: 'London' };
   const P = (id, first, last, role, email, extra) => Object.assign({ person_id: id, first_name: first, last_name: last,
     handle: (first + last).toLowerCase(), email: email || '', role: role }, base, extra || {});
@@ -930,7 +945,13 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   asked++;
   b.ev('installWeeklyDigest()');
   let t = mine();
-  if (t.length !== 1 || t[0].spec.weekDay !== 'SUNDAY' || t[0].spec.hour !== 18 || t[0].spec.tz !== 'Europe/London') bad.push('installWeeklyDigest with no hour set booked ' + JSON.stringify(t.map(x => x.spec)) + ' — wanted one Sunday trigger at 18, Europe/London');
+  /* 21 SINCE 18 OCT — the owner: *"On Sunday @9pm"* — the code's default, the config row's and its note's, and
+     the hour `installWeeklyDigest` writes down for `checkSundayEmail` (Apps Script cannot read it back). */
+  if (t.length !== 1 || t[0].spec.weekDay !== 'SUNDAY' || t[0].spec.hour !== 21 || t[0].spec.tz !== 'Europe/London') bad.push('installWeeklyDigest with no hour set booked ' + JSON.stringify(t.map(x => x.spec)) + ' — wanted one Sunday trigger at 21 (9pm), Europe/London');
+  asked++;
+  const row = JSON.parse(JSON.stringify(b.ev('CONFIG_DEFAULTS.find(r => r[0] === "weekly_digest_hour")')));
+  if (!row || row[1] !== 21 || !/blank = 21\b/.test(String(row[2]))) bad.push('CONFIG_DEFAULTS has weekly_digest_hour as ' + JSON.stringify(row) + ' — wanted 21, and a note saying blank = 21');
+  if (String(b.props[b.ev('DIGEST_BOOKED')]) !== '21') bad.push('installWeeklyDigest did not record the hour it booked (' + JSON.stringify(b.props[b.ev('DIGEST_BOOKED')]) + ') — wanted "21" in Script Properties');
   cfgSet(b, 'weekly_digest_hour', '7');
   b.ev('installWeeklyDigest()');
   b.ev('installWeeklyDigest()');
@@ -939,7 +960,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   ['25', 'six', '-1'].forEach(v => {
     cfgSet(b, 'weekly_digest_hour', v);
     b.ev('installWeeklyDigest()');
-    if (mine().length !== 1 || mine()[0].spec.hour !== 18) bad.push('weekly_digest_hour "' + v + '" booked ' + JSON.stringify(mine().map(x => x.spec.hour)) + ' — wanted the fallback, 18');
+    if (mine().length !== 1 || mine()[0].spec.hour !== 21) bad.push('weekly_digest_hour "' + v + '" booked ' + JSON.stringify(mine().map(x => x.spec.hour)) + ' — wanted the fallback, 21');
   });
   if (!trig.some(x => x.spec.fn === 'closeFinishedJobs')) bad.push('installWeeklyDigest deleted somebody else’s trigger');
   const gone = b.ev('removeWeeklyDigest()');
@@ -959,13 +980,13 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   asked++;
   const out = JSON.parse(JSON.stringify(b.ev('installWeeklyDigest()')));
   let m = marks();
-  if (m.length !== 2 || nightly(m).length !== 1 || before(m, 'SUNDAY', 17).length !== 1)
-    bad.push('installWeeklyDigest booked the marking as ' + say(m) + ' — wanted one every day at 2:00 near the hour and one on Sunday at 17:00 near the hour, London');
-  if (!/every night at about 2:00 and on Sunday at about 17:00/.test(String(out.marking))) bad.push('installWeeklyDigest does not say when the marking runs: ' + JSON.stringify(out.marking));
+  if (m.length !== 2 || nightly(m).length !== 1 || before(m, 'SUNDAY', 20).length !== 1)
+    bad.push('installWeeklyDigest booked the marking as ' + say(m) + ' — wanted one every day at 2:00 near the hour and one on Sunday at 20:00 near the hour (the run-up, an hour before the 9pm email), London');
+  if (!/every night at about 2:00 and on Sunday at about 20:00/.test(String(out.marking))) bad.push('installWeeklyDigest does not say when the marking runs: ' + JSON.stringify(out.marking));
   asked++;
   b.ev('installWeeklyDigest()'); b.ev('installWeeklyDigest()');
   m = marks();
-  if (m.length !== 2 || nightly(m).length !== 1 || before(m, 'SUNDAY', 17).length !== 1 || trig.filter(t => t.spec.fn === 'weeklyDigestRun').length !== 1)
+  if (m.length !== 2 || nightly(m).length !== 1 || before(m, 'SUNDAY', 20).length !== 1 || trig.filter(t => t.spec.fn === 'weeklyDigestRun').length !== 1)
     bad.push('installWeeklyDigest run three times left ' + say(m) + ' and ' + trig.filter(t => t.spec.fn === 'weeklyDigestRun').length + ' Sunday email trigger(s) — wanted exactly one of each');
   asked++;
   cfgSet(b, 'weekly_digest_hour', '0');
@@ -1445,7 +1466,8 @@ const planOf18 = w => JSON.parse(JSON.stringify(w.b.ev('clearCache(); digestPlan
    while work is left, never asking within DIGEST_MARK_CLEAR_MS of the email; and the email's own run marks
    what was sent after that, for DIGEST_MARK_FINAL_MS, before it plans. Gemini here takes 4 s an answer. */
 {
-  const w = markWorld({ clock: '2026-10-18T15:50:00Z' });              // 16:50 in London: the run-up's pass
+  /* THE EMAIL AT 9PM SINCE 18 OCT (*"On Sunday @9pm"*), so the run-up is from 19:30 and its first pass at 19:50. */
+  const w = markWorld({ clock: '2026-10-18T18:50:00Z' });              // 19:50 in London: the run-up's pass
   const { b, net, trig } = w;
   net.per = 4000;
   const burst = [];
@@ -1453,7 +1475,7 @@ const planOf18 = w => JSON.parse(JSON.stringify(w.b.ev('clearCache(); digestPlan
   b.seed('submissions', burst);
   b.ev('installWeeklyDigest()');
   const oneOffs = () => trig.filter(t => t.spec.after);
-  const clear = at('2026-10-18T17:00:00Z') - b.ev('DIGEST_MARK_CLEAR_MS');
+  const clear = at('2026-10-18T20:00:00Z') - b.ev('DIGEST_MARK_CLEAR_MS');
   const runs = [pass(w)];
   let most = oneOffs().length, counted = true;
   while (oneOffs().length && runs.length < 30) {
@@ -1479,23 +1501,23 @@ const planOf18 = w => JSON.parse(JSON.stringify(w.b.ev('clearCache(); digestPlan
   const sr = pass(sat);
   if (sr.again || sat.trig.some(t => t.spec.after) || sr.stopped !== 'max') bad.push('a nightly pass a day before the email booked the run-up: ' + JSON.stringify(sr));
 
-  /* AN ANSWER SENT AFTER THE RUN-UP STOPPED (17:50) IS MARKED BY THE EMAIL'S OWN RUN, and the email says when
+  /* AN ANSWER SENT AFTER THE RUN-UP STOPPED (20:50) IS MARKED BY THE EMAIL'S OWN RUN, and the email says when
      its list was made up to — the run's own minute, not the hour it was booked for. */
   asked++;
-  const e = markWorld({ clock: '2026-10-18T17:02:00Z' });              // 18:02 in London: the email's run
-  e.b.seed('submissions', [MS('P-K1', 'q:TST-1', 'sent', 'Biology · Paper X · Q1', 'Explain why the rate increases at 30°C.', 'heat', '2026-10-18', 16,
-    { submitted_at: new Date('2026-10-18T16:50:00Z') })]);
+  const e = markWorld({ clock: '2026-10-18T20:02:00Z' });              // 21:02 in London: the email's run
+  e.b.seed('submissions', [MS('P-K1', 'q:TST-1', 'sent', 'Biology · Paper X · Q1', 'Explain why the rate increases at 30°C.', 'heat', '2026-10-18', 19,
+    { submitted_at: new Date('2026-10-18T19:50:00Z') })]);
   let threw = '';
   try { e.b.ev('clearCache(); weeklyDigestRun({})'); } catch (x) { threw = String(x && x.message || x); }
   const got = e.mail.sent.find(m => m.to === 'pat@example.org') || { body: '' };
-  if (threw || got.body.indexOf('Q1 2 of 3 marks: Explain why') === -1 || got.body.indexOf('up to 6:02pm on Sunday') === -1 || e.trig.some(t => t.spec.after))
-    bad.push('an answer sent at 17:50 did not go out marked by the email’s own run (or the email booked a run-up, or said the wrong time): '
-      + (threw || got.body.split('\n').filter(l => /^Q|worked on/.test(l)).join(' / ')));
+  if (threw || got.body.indexOf('Q1 · 3 marks\nExplain why the rate increases at 30°C.\nKit: 2 of 3 marks') === -1 || got.body.indexOf('up to 9:02pm on Sunday') === -1 || e.trig.some(t => t.spec.after))
+    bad.push('an answer sent at 20:50 did not go out marked by the email’s own run (or the email booked a run-up, or said the wrong time): '
+      + (threw || got.body.split('\n').filter(l => /^Q|^Kit|worked on/.test(l)).join(' / ')));
   /* AND THAT PASS KEEPS TO ITS TWO MINUTES, so the mailing has the rest of the six. */
   asked++;
-  const big = markWorld({ clock: '2026-10-18T17:02:00Z' });
+  const big = markWorld({ clock: '2026-10-18T20:02:00Z' });
   big.net.per = 4000;
-  big.b.seed('submissions', burst.slice(0, 30).map(r => Object.assign({}, r, { submitted_at: new Date('2026-10-18T16:50:00Z') })));
+  big.b.seed('submissions', burst.slice(0, 30).map(r => Object.assign({}, r, { submitted_at: new Date('2026-10-18T19:50:00Z') })));
   const t0 = big.now();
   try { big.b.ev('clearCache(); weeklyDigestRun({})'); } catch (x) { /* counted below */ }
   const lastAsk = big.net.asks.length ? big.net.asks[big.net.asks.length - 1].at : t0;
@@ -1533,11 +1555,13 @@ const planOf18 = w => JSON.parse(JSON.stringify(w.b.ev('clearCache(); digestPlan
       if (re.test(all)) bad.push('the email Pat is sent carries ' + what + ': ' + JSON.stringify((all.match(new RegExp('.{0,40}' + re.source + '.{0,40}', re.flags.replace('g', ''))) || [''])[0]));
     });
     asked++;
-    ['Kit’s week: 4 questions', 'Q7 ✓: Work out 4 × 4.', 'Q9 ✗: Kit buys 3 pens at 40p each. How much does he pay?', 'Q11 2 of 3 marks: Explain the trend.',
-     'Q6 not marked: Say anything.', 'Kit worked on 4 questions this week (12 Oct – 18 Oct, up to 6pm on Sunday).'].forEach(x => {
+    /* SINCE 18 OCT A QUESTION THE LIBRARY HAS IS PRINTED AS THE SITE DRAWS IT — its number and marks, its words,
+       then how the child did; Q9 is not in the library and goes as its words cell, as before. */
+    ['Kit’s week: 4 questions', 'Q7 · 1 mark\nWork out 4 × 4.\nKit: ✓', 'Q9 ✗: Kit buys 3 pens at 40p each. How much does he pay?', 'Q11 · 3 marks\nExplain the trend.\nKit: 2 of 3 marks',
+     'Q6 · 1 mark\nSay anything.\nKit: not marked', 'Kit worked on 4 questions this week (12 Oct – 18 Oct, up to 6pm on Sunday).'].forEach(x => {
       if ((sent.subject + '\n' + sent.body).indexOf(x) === -1) bad.push('the email Pat is sent does not say "' + x + '": ' + sent.body.split('\n').slice(0, 12).join(' / '));
     });
-    if (unstyled(sent.htmlBody).indexOf('<b>Q9</b> ✗ — Kit buys 3 pens') === -1 || unstyled(sent.htmlBody).indexOf('<b>Q6</b> not marked — Say anything.') === -1)
+    if (unstyled(sent.htmlBody).indexOf('<b>Q9</b> ✗ — Kit buys 3 pens') === -1 || unstyled(sent.htmlBody).indexOf('<p><b>Q6</b> · 1 mark</p><div><p>Say anything.</p></div><p>Kit: not marked</p>') === -1)
       bad.push('the HTML Pat is sent does not carry each question with its mark: ' + unstyled(sent.htmlBody).slice(0, 300));
   }
 }
@@ -1569,8 +1593,9 @@ const planOf18 = w => JSON.parse(JSON.stringify(w.b.ev('clearCache(); digestPlan
   /* THE STAMP AS THE BACKEND HAS IT, never typed here: a literal turned every correct bump of the four
      stamps red (the review of 12 Oct). */
   [[new RegExp('^Backend ' + String(b.ev('BACKEND_VERSION')).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ' ', 'm'), 'the backend’s version'],
-   [/THE EMAIL: ON — it emails parents \(weekly_digest is "send"\)\. It goes on Sundays at about 18:00, London time\./, 'the mode and the hour'],
-   [/THE TRIGGERS: the Sunday email is installed; the AI marking passes are installed \(every night at about 2:00, and on Sunday at about 17:00\)\./, 'the triggers, installed'],
+   [/THE EMAIL: ON — it emails parents \(weekly_digest is "send"\)\. It goes on Sundays at about 21:00, London time\./, 'the mode and the hour'],
+   [/THE TRIGGERS: the Sunday email is installed; the AI marking passes are installed \(every night at about 2:00, and on Sunday at about 20:00\)\./, 'the triggers, installed'],
+   [/THE HOUR BOOKED: installWeeklyDigest booked the email for about 21:00 on Sundays, London time \(recorded in Script Properties as DIGEST_BOOKED_HOUR\)\. The config tab says the same\./, 'the hour installWeeklyDigest booked'],
    [/AI MARKING: on\. GEMINI_API_KEY is set in Script Properties\. Marking asks \S+, then \S+/, 'the switch, the key and the models'],
    [/LIVE TEST OF THE MARKER \(a made-up question, "Work out 2 \+ 3\.", answered "5"\): Gemini answered — 2 of 1 mark|LIVE TEST OF THE MARKER .*: Gemini answered — 1 of 1 mark/, 'the live ask of the marker'],
    [/MAIL: 100 emails left in today’s quota; the Sunday run keeps 10 back/, 'the mail quota'],
@@ -1578,7 +1603,7 @@ const planOf18 = w => JSON.parse(JSON.stringify(w.b.ev('clearCache(); digestPlan
    [/THIS WEEK \(12 Oct – 18 Oct, so far\): 2 learners sent answers; 1 of them will have a parent emailed \(1 email\)\./, 'this week’s reach'],
    [/NOT REACHED — Sam: parent Quinn has no email address\./, 'who will not be reached, and why'],
    [/NOT MARKED YET \(sent since 2026-10-05\): 2 answers\. The marking pass can mark 1; it cannot mark 1 \(a drawing\) — the email says "not marked" beside those\./, 'what is still unmarked'],
-   [/  NO ANSWERS YET — Kit: a parent can be emailed, but no email goes unless they answer a question by about 18:00 on Sunday\./, 'the reachable child with no work yet'],
+   [/  NO ANSWERS YET — Kit: a parent can be emailed, but no email goes unless they answer a question by about 21:00 on Sunday\./, 'the reachable child with no work yet'],
    [/ROOM BEFORE THE EMAIL: about \d+ answers — 3 nightly passes .*a run-up of about \d+ passes/, 'the room the triggers have, not what is markable'],
    [/Nothing was changed: no row written, no email sent, no trigger booked\./, 'that nothing changed']].forEach(([re, what]) => {
     asked++;
@@ -1597,6 +1622,167 @@ const planOf18 = w => JSON.parse(JSON.stringify(w.b.ev('clearCache(); digestPlan
     if (!re.test(t2)) bad.push('checkSundayEmail with nothing set up does not say ' + re + ':\n      ' + t2.split('\n').join('\n      '));
   });
   if (bare0.net.asks.length) bad.push('checkSundayEmail asked Gemini with no key');
+  /* THE HOUR BOOKED AND THE CELL APART (18 Oct): the owner moved weekly_digest_hour from 18 to 21 on the day,
+     over triggers booked at 18. Apps Script cannot read a trigger's hour, so the setup check prints the hour
+     installWeeklyDigest wrote down, and WARNS in words while the cell says another; run again, it agrees. And
+     triggers booked by a backend from before the record (no hour written down) are said to be unknown, never
+     taken for the cell's. Changes nothing, as ever. */
+  asked++;
+  const moved = markWorld({ clock: '2026-10-18T09:00:00Z' });
+  cfgSet(moved.b, 'weekly_digest_hour', '18');
+  moved.b.ev('installWeeklyDigest()');
+  cfgSet(moved.b, 'weekly_digest_hour', '21');
+  const t3 = (JSON.parse(JSON.stringify(moved.b.ev('clearCache(); checkSundayEmail()'))).lines || []).join('\n');
+  if (!/THE HOUR BOOKED: installWeeklyDigest booked the email for about 18:00 on Sundays, London time \(recorded in Script Properties as DIGEST_BOOKED_HOUR\)\. WARNING: weekly_digest_hour on the config tab now says 21, but the email still goes at about 18:00 — run installWeeklyDigest again to move it to 21:00\./.test(t3)
+      || !/It goes on Sundays at about 18:00, London time\./.test(t3))
+    bad.push('with the cell moved from 18 to 21 after installing, checkSundayEmail does not print the booked 18:00 and WARN to run installWeeklyDigest again:\n      ' + t3.split('\n').slice(0, 5).join('\n      '));
+  asked++;
+  moved.b.ev('installWeeklyDigest()');
+  const t4 = (JSON.parse(JSON.stringify(moved.b.ev('clearCache(); checkSundayEmail()'))).lines || []).join('\n');
+  if (!/THE HOUR BOOKED: installWeeklyDigest booked the email for about 21:00 on Sundays.*The config tab says the same\./.test(t4) || /WARNING/.test(t4))
+    bad.push('installWeeklyDigest run again at 21 did not leave the setup check agreeing, with no warning:\n      ' + t4.split('\n').slice(0, 5).join('\n      '));
+  asked++;
+  delete moved.b.props[moved.b.ev('DIGEST_BOOKED')];
+  const t5 = (JSON.parse(JSON.stringify(moved.b.ev('clearCache(); checkSundayEmail()'))).lines || []).join('\n');
+  if (!/THE HOUR BOOKED: NOT recorded — the triggers were booked by an older backend.*WARNING: run installWeeklyDigest again, so the email is booked at 21:00/.test(t5)
+      || /It goes on Sundays at about/.test(t5))
+    bad.push('triggers with no recorded hour are not said to be unknown, with the warning to run installWeeklyDigest again:\n      ' + t5.split('\n').slice(0, 5).join('\n      '));
+}
+
+/* ---------- 13. EACH QUESTION AS IT IS ON THE SITE, WITH ITS PICTURE (18 Oct, docs/history/351) -------------------
+   The owner, 18 Oct: *"So each question As is on site."* — and *"No jpgs."* A question the library has is printed
+   from its row through the real send, as the card draws it: the preamble its parts share ONCE in the paper, its
+   picture where the row says, each part's number and marks over ALL of its words — never cut, never "…" — then
+   how the child did. The row's markup through the allow-list: no attribute but colspan and rowspan, no link, no
+   script, no image of its own. A picture is the PNG twin on the site, named by the SHA-256 of the drawing
+   (tools/diagram_png.js), at the drawing's width with its aria-label as alt — and the plain body says the alt.
+   A key the library does not have goes as its words cell, as before. And a week of whole papers stays under
+   Gmail's clip with every question in it, the longest source texts said as "on the site". */
+{
+  const crypto = require('crypto');
+  const hashOf = s => crypto.createHash('sha256').update(s, 'utf8').digest('hex').slice(0, 12);
+  const SITE = 'https://halexdias31-pixel.github.io/family/data/diagrams/';
+  const STEM_SVG = '<svg viewBox="0 0 300 120" role="img" aria-label="A ladder leaning on a wall &amp; a 2 m gap"><line x1="0" y1="0" x2="10" y2="10" stroke="currentColor"/></svg>';
+  const PART_SVG = '<svg viewBox="0 0 340 200" role="img" aria-label="Triangle ABC with the angle at B marked x"><text x="5" y="5" class="lbl">B</text></svg>';
+  const longStem = 'A ladder of length 6 m leans against a vertical wall. ' + Array.from({ length: 14 }, (_, i) => 'Sentence ' + (i + 1) + ' of the scene says more about the wall.').join(' ') + ' THE STEM ENDS HERE.';
+  const longAsk = 'Work out how far up the wall the ladder reaches. ' + Array.from({ length: 16 }, (_, i) => 'Clause ' + (i + 1) + ' of the ask adds a condition.').join(' ') + ' THE ASK ENDS HERE.';
+  const ROWS = [
+    { row_id: 'TSA-PRE3', paper_id: 'PX-A', kind: 'preamble', question: '3', html: '<p>' + longStem + '</p>', diagram: STEM_SVG, active: 'True' },
+    { row_id: 'TSA-3a', paper_id: 'PX-A', kind: 'question', question: '3', part: 'a', marks: '2', answer_type: 'calculation', accept: '5', active: 'True',
+      html: '<p class="faint" style="color:red" onclick="steal()">' + longAsk + '</p>'
+        + '<table class="num"><tr><th colspan="2" scope="col">Length</th></tr><tr><td>6 m</td><td>2 m</td></tr></table>'
+        + '<p>Give <span class="frac"><span class="frac-n">3</span><span class="frac-d">4</span></span> of it, x &lt; 7 &amp; y &gt; 2, '
+        + '<a href="https://evil.example/pay" target="_blank">read more</a><img src="x" onerror="steal()"><script>steal()</script>.</p>' },
+    { row_id: 'TSA-3b', paper_id: 'PX-A', kind: 'question', question: '3', part: 'b', marks: '3', answer_type: 'explain', active: 'True',
+      lead: '<p>Here is the triangle.</p>', html: '<p>Look at the figure.</p><!--fig--><p>Explain why angle <i>x</i> is 40&deg;.</p>', diagram: PART_SVG },
+  ];
+  const lib = '[\n' + LIB_ROWS.concat(ROWS).map(r => JSON.stringify(r)).join(',\n') + '\n]\n';
+  const w = markWorld({ site: lib });
+  const { b, mail } = w;
+  b.seed('submissions', [
+    MS('P-K1', 'q:TSA-3a', 'right', 'Maths · Paper A · Q3a', 'A cut-down copy of the stem\n---\nWork out how far up the wall…', '5'),
+    MS('P-K1', 'q:TSA-3b', 'ai:2/3', 'Maths · Paper A · Q3b', 'A cut-down copy\n---\nExplain why angle x is 40°.', 'Angles in a triangle.'),
+    MS('P-K1', 'q:TSA-GONE-4', 'right', 'Maths · Paper A · Q4', 'Work out 12 × 3.', '36'),
+    MS('P-K1', 'pr:PR-X1#iv', 'sent', 'Biology · Required practical · Worksheet', 'What is the independent variable?', 'temperature'),
+  ]);
+  w.setClock(at('2026-10-18T20:00:00Z'));
+  const r = run(b, '2026-10-18T20:00:00Z');
+  const sent = mail.sent.find(m => m.to === 'pat@example.org') || { body: '', htmlBody: '', subject: '' };
+  const text = sent.body, html = sent.htmlBody, flat = unstyled(html);
+  asked++;
+  if (r.sent !== 1 || !/as it is on the site/.test(String(r.library))) bad.push('the run did not send Kit’s week with the library fetched: ' + JSON.stringify(r).slice(0, 300));
+  /* FULL WORDS, NO TRUNCATION — the stem past DIGEST_STEM_SHOWN and the ask past DIGEST_WORDS_SHOWN, whole. */
+  asked++;
+  if (text.indexOf(longStem) === -1 || text.indexOf(longAsk) === -1 || flat.indexOf(longStem) === -1 || flat.indexOf(longAsk) === -1
+      || /…/.test(text.split('Q4 ✓')[0]) || /cut-down copy/.test(text + html))
+    bad.push('a question in the library is not printed whole from its row — the stem and the ask past the old cuts, with no "…" and nothing of the words cell: '
+      + JSON.stringify(text.slice(text.indexOf('Maths'), text.indexOf('Maths') + 260)));
+  /* AS THE CARD: the shared stem once in the paper, its picture after it; each part's number and marks, its
+     words, then the child's mark; the part's picture where `<!--fig-->` stands, after its lead. */
+  asked++;
+  const stemAt = text.indexOf(longStem), times = text.split(longStem).length - 1;
+  const want3a = 'Q3a · 2 marks\n' + longAsk, want3b = 'Q3b · 3 marks\nHere is the triangle.\nLook at the figure.\n[Picture: Triangle ABC with the angle at B marked x]\nExplain why angle x is 40°.\nKit: 2 of 3 marks';
+  if (times !== 1 || flat.split(longStem).length !== 2 || text.indexOf('[Picture: A ladder leaning on a wall & a 2 m gap]') < stemAt
+      || text.indexOf(want3a) < stemAt || text.indexOf(want3b) === -1 || !/Length \| \n?|Length/.test(text) || text.indexOf('6 m | 2 m') === -1
+      || text.indexOf('Give 3/4 of it, x < 7 & y > 2, read more.\nKit: ✓') === -1)
+    bad.push('the paper is not drawn as the card draws it — the stem once with its picture, then "Q3a · 2 marks", its words and "Kit: ✓", then Q3b with its picture after its lead: '
+      + JSON.stringify(text.slice(stemAt + longStem.length, stemAt + longStem.length + 900)));
+  /* THE PICTURE: the PNG twin by hash, the drawing's width, its aria-label as alt; never an attachment. */
+  asked++;
+  const img = (svg, wd, alt) => '<img src="' + SITE + hashOf(svg) + '.png" width="' + wd + '" alt="' + alt + '" style="max-width:100%;height:auto">';
+  if (html.indexOf(img(STEM_SVG, 300, 'A ladder leaning on a wall &amp; a 2 m gap')) === -1 || html.indexOf(img(PART_SVG, 340, 'Triangle ABC with the angle at B marked x')) === -1
+      || /<svg/i.test(html) || sent.attachments || sent.inlineImages)
+    bad.push('a question’s picture is not its PNG twin on the site — <img src=".../data/diagrams/<12 hex of its SHA-256>.png" width alt>, no SVG, nothing attached: '
+      + JSON.stringify((html.match(/<img[^>]*>/g) || []).concat(sent.attachments ? ['attachments'] : [])));
+  /* THE ALLOW-LIST: what the row's markup may bring into an inbox. */
+  asked++;
+  const tags = (html.match(/<\/?([a-z0-9]+)/gi) || []).map(t => t.replace(/<\/?/, '').toLowerCase());
+  const odd = tags.filter(t => !/^(p|br|b|strong|i|em|sup|sub|ul|ol|li|table|thead|tbody|tr|th|td|span|div|img)$/.test(t));
+  const attrs = (html.match(/\s([a-z-]+)=/gi) || []).map(a => a.trim().slice(0, -1).toLowerCase()).filter(a => !/^(style|colspan|rowspan|src|width|alt)$/.test(a));
+  if (odd.length || attrs.length || /evil\.example|onerror|onclick|steal|scope=|class=|target=/.test(html) || html.indexOf('<th colspan="2" style=') === -1
+      || flat.indexOf('<sup>3</sup>/<sub>4</sub>') === -1 || flat.indexOf('x &lt; 7 &amp; y &gt; 2') === -1)
+    bad.push('the row’s markup reached the email past the allow-list — tags ' + JSON.stringify([...new Set(odd)]) + ', attributes ' + JSON.stringify([...new Set(attrs)])
+      + ' (wanted only p, br, b, strong, i, em, sup, sub, ul, ol, li, table, thead, tbody, tr, th, td, span, div; no attribute but colspan/rowspan and its own styles)');
+  /* A KEY THE LIBRARY DOES NOT HAVE — a question it dropped, a practical's box — goes as its words cell, as before. */
+  asked++;
+  if (text.indexOf('\nQ4 ✓: Work out 12 × 3.\n') === -1 || flat.indexOf('<b>Q4</b> ✓ — Work out 12 × 3.') === -1
+      || text.indexOf('Worksheet not marked: What is the independent variable?') === -1)
+    bad.push('a key missing from the library does not fall back to its words line ("Q4 ✓: <its words>"): ' + JSON.stringify(text.split('\n').filter(l => /Q4|Worksheet/.test(l))));
+  /* AND STILL NO LINK A PARENT COULD PRESS: the only address in it is each picture's, on the site's own folder. */
+  asked++;
+  const links = (html + '\n' + text).match(/https?:\/\/[^\s"<>]+/g) || [];
+  if (links.some(u => u.indexOf(SITE) !== 0 || !/^[0-9a-f]{12}\.png$/.test(u.slice(SITE.length))) || /<a\b/i.test(html) || /https?:\/\//.test(text))
+    bad.push('the email carries an address other than its pictures’ on the site: ' + JSON.stringify(links.filter(u => u.indexOf(SITE) !== 0)));
+  /* THE REAL LIBRARY: a real question with a picture, found by the run's own line scan, names a PNG that is in
+     data/diagrams/ — the email's picture and the twin the tool drew are one file. */
+  asked++;
+  let real = '';
+  try { real = fs.readFileSync(path.join(REPO, 'data', 'questions.json'), 'utf8'); } catch (e) { real = ''; }
+  const rw = markWorld({ site: real || LIB_TEXT });
+  rw.b.seed('submissions', [MS('P-K1', 'q:Q-9MA031-2206-5c', 'right', 'Maths · Paper 31: Statistics — June 2022 · Q5c(i)', '', '481')]);
+  rw.setClock(at('2026-10-18T20:00:00Z'));
+  run(rw.b, '2026-10-18T20:00:00Z');
+  const rm = rw.mail.sent.find(m => m.to === 'pat@example.org') || { htmlBody: '', body: '' };
+  const src = (/<img src="https:\/\/halexdias31-pixel\.github\.io\/family\/data\/diagrams\/([0-9a-f]{12})\.png" width="300" alt="Venn diagram of H, R and F[^"]*"/.exec(rm.htmlBody) || [])[1];
+  if (!real || !src || !fs.existsSync(path.join(REPO, 'data', 'diagrams', src + '.png')) || rm.body.indexOf('[Picture: Venn diagram of H, R and F') === -1
+      || rm.body.indexOf('Using this information, complete the Venn diagram above.') === -1)
+    bad.push('a real question with a picture (Q-9MA031-2206-5c) did not go with its words, its alt text and an <img> of a PNG that is in data/diagrams/: ' + JSON.stringify(src || rm.body.slice(0, 200)));
+}
+{
+  /* UNDER GMAIL'S CLIP, EVERY QUESTION KEPT. Eighty parts, each on its own paper under its own 3,000-character
+     source: whole, that is past 102 KB. The longest sources go as "(the source text is on the site)" until the
+     HTML is under DIGEST_CLIP_BYTES; every part keeps its whole words, its number and its mark, and the footer
+     is there. And eighty parts of 2,000 characters each, which no source can save: the longest parts' words go
+     too, and still every question is listed with its number and its mark. Rendered by the real `digestRender_`. */
+  const { b, G } = world();
+  const CLIP = b.ev('DIGEST_CLIP_BYTES');
+  const make = (askLen, stemLen) => {
+    const rows = {}, pre = [], items = [];
+    for (let i = 0; i < 80; i++) {
+      const ask = ('Part ' + i + ' asks: ' + 'explain the step and give a reason. '.repeat(Math.ceil(askLen / 36))).slice(0, askLen) + ' END' + i + '.';
+      rows['CL-' + i] = { row_id: 'CL-' + i, paper_id: 'CP-' + i, kind: 'question', question: '1', marks: '4', active: 'True', html: '<p>' + ask + '</p>' };
+      pre.push({ row_id: 'CLP-' + i, paper_id: 'CP-' + i, kind: 'preamble', question: '1', active: 'True', html: '<p>' + ('Source ' + i + ' reads: ' + 'the river ran fast. '.repeat(Math.ceil(stemLen / 20))).slice(0, stemLen) + '</p>' });
+      items.push({ key: 'q:CL-' + i, label: 'English · Paper ' + i + ' · Q1', words: '', hidden: false, last: '2026-10-01', verdict: 'ai:3/4' });
+    }
+    G.__L = { id: 'P-S1', first: 'Ada', fresh: items, again: [] };
+    G.__LOOK = { brand: '@family.', site: 'https://halexdias31-pixel.github.io/family/', hour: 21, lib: { rows: rows, pre: pre } };
+    return JSON.parse(JSON.stringify(b.ev('digestRender_(__L, { first: "Pat" }, { start: "2026-10-12", end: "2026-10-18" }, __LOOK)')));
+  };
+  asked++;
+  const m = make(600, 3000);
+  const kb = Buffer.byteLength(m.html, 'utf8');
+  const marks = m.text.split('\n').filter(l => l === 'Ada: 3 of 4 marks').length;
+  if (!(kb <= CLIP) || kb < 40000 || marks !== 80 || m.text.indexOf('(the source text is on the site)') === -1 || !/END79\./.test(m.text)
+      || /the question’s words are on the site/.test(m.text) || !/To stop these emails/.test(m.html) || CLIP > 100000)
+    bad.push('a week of 80 parts under long sources is ' + (kb / 1024).toFixed(1) + ' KB with ' + marks + ' marks listed — wanted under DIGEST_CLIP_BYTES (' + CLIP
+      + ', short of Gmail’s ~102 KB), all 80 with their whole words and marks, the longest sources said as on the site, and the footer');
+  asked++;
+  const m2 = make(2000, 200);
+  const kb2 = Buffer.byteLength(m2.html, 'utf8');
+  const listed = m2.text.split('\n').filter(l => /^Q1 · 4 marks$/.test(l)).length;
+  if (!(kb2 <= CLIP) || listed !== 80 || m2.text.split('\n').filter(l => l === 'Ada: 3 of 4 marks').length !== 80
+      || m2.text.indexOf('(the question’s words are on the site)') === -1 || !/To stop these emails/.test(m2.html))
+    bad.push('80 long parts made ' + (kb2 / 1024).toFixed(1) + ' KB with ' + listed + ' listed — wanted under the clip with every question still listed by number and mark');
 }
 
 /* ---------- 12. THE DRY RUN (check/digest-dry.js) STILL RUNS, SENDS NOTHING AND WRITES NOWHERE IT MAY NOT ---------
@@ -1628,8 +1814,9 @@ const planOf18 = w => JSON.parse(JSON.stringify(w.b.ev('clearCache(); digestPlan
     const r = go(path.join(tmp, 'out'));
     let one = null;
     try { one = JSON.parse(fs.readFileSync(path.join(tmp, 'out', '01.json'), 'utf8')); } catch (e) { one = null; }
-    if (r.status !== 0 || !one || one.to !== 'pat@example.test' || one.text.indexOf('Q1 1 of 3 marks: Explain why') === -1
-        || one.text.indexOf('Q4 not marked: Draw the graph.') === -1 || !/nothing was sent/.test(r.stdout) || !/would mark 1/.test(r.stdout))
+    /* EACH QUESTION AS THE SITE DRAWS IT (18 Oct): the dry run plans with the library as the run does. */
+    if (r.status !== 0 || !one || one.to !== 'pat@example.test' || one.text.indexOf('Q1 · 3 marks\nExplain why the rate increases at 30°C.\nKit: 1 of 3 marks') === -1
+        || one.text.indexOf('Q4 · 2 marks\nDraw the graph.\nKit: not marked') === -1 || !/nothing was sent/.test(r.stdout) || !/would mark 1/.test(r.stdout))
       bad.push('check/digest-dry.js on an invented week did not write Pat’s email with the stub’s mark and "not marked" (exit ' + r.status + '): ' + (r.stdout + r.stderr).slice(0, 300));
     asked++;
     const inside = go(path.join(REPO, 'check', 'dry-out-should-not-exist'));
