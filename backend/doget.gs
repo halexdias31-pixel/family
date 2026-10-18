@@ -1595,6 +1595,12 @@ function doGet(e) {
         minChildren: N(r.min_children), maxChildren: N(r.max_children),
         venue: S(r.venue), address: S(r.address),
         date: fmtDate(r.date), noticeDays: N(r.notice_days),
+        /* WHAT THE BOOKING FORM PRICES A TRIP FROM (docs/history/353) — `bookMoney_` in core.js. At cost, so
+           a figure here is what the business pays out and the Money block subtracts it again. `tripId` is
+           the row number where the cell is blank, the same number `id` has always been. */
+        tripId: S(r.trip_id) || String(r._row), place: S(r.place) || S(r.venue),
+        ticketChild: N(r.ticket_child), ticketAdult: N(r.ticket_adult),
+        travelPerChild: N(r.travel_per_child), ratio: N(r.ratio),
         notes: S(r.notes),
         fields: TRIP_EDITABLE.reduce((a, f) => { a[f] = S(r[f]); return a; }, {})
       });

@@ -3143,9 +3143,11 @@ const SHOP_EDITABLE = flat(SHOP_GROUPS);
 /* What an admin may change on a trip. Same one-list-drives-both rule as everywhere else. */
 const TRIP_GROUPS = {
   'What it is':  ['name', 'focus', 'description', 'photo', 'link', 'provider'],
-  'Cost & size': ['price_per_child', 'hours', 'min_children', 'max_children'],
-  'Where & when': ['venue', 'address', 'date', 'notice_days'],
-  'Admin':       ['active', 'notes'],
+  /* THE FOUR A BOOKING PRICES FROM, beside the old per-child price (docs/history/353). */
+  'Cost & size': ['price_per_child', 'hours', 'min_children', 'max_children',
+                  'ticket_child', 'ticket_adult', 'travel_per_child', 'ratio'],
+  'Where & when': ['place', 'venue', 'address', 'date', 'notice_days'],
+  'Admin':       ['trip_id', 'active', 'notes'],
 };
 const TRIP_EDITABLE = flat(TRIP_GROUPS);
 

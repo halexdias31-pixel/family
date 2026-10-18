@@ -1132,6 +1132,31 @@ const BOOK_STEPS = [
      doesnt let choosing a subject even though im trying to start a NEW waitlist"*, which is the
      one case the old rule had nothing to say about: there is no class yet, so there is nobody whose
      decision this already is. */
+  /* ---------- WHAT KIND OF SESSION: TUTORING, A PRACTICAL OR A TRIP (docs/history/353) ----------------
+     A NEW QUESTION, NOT "Kind" RENAMED. `Kind` two rows up is instant class against waiting list — when
+     it runs — and this is what it IS; the two are independent, so one field could not hold both.
+     `Subject` stays the subject: a practical is still Chemistry, a trip is still History.
+     THE FORMAT DECIDES THE ROWS, through `bookOn_`: a practical asks which one and prices its kit, a
+     trip asks which one, prices its tickets and travel, and has no Venue or Space to ask about. The
+     teaching is priced exactly as it always was in all three.
+     TUTORING UNLESS SOMEBODY SAYS OTHERWISE — the fallback, so a family who only wants a lesson is
+     never stopped by a question about practicals. Instant classes only: a waiting list is Maths and
+     English in a room, which is a tutoring session by definition. */
+  { id: 'format', label: 'What kind of session?', short: 'Format', only: 'book',
+    fallback: () => 'Tutoring',
+    options: () => BOOK_FORMATS.slice() },
+  /* THE PRACTICALS ARE `data/practicals.json`, by name, in the order a person looks one up. 65 of the 82
+     have no cost yet; they are offered all the same — a lab practical is still worth booking — and the
+     admin's Money block says "not costed" rather than pricing the kit at nothing. */
+  { id: 'practical', label: 'Which practical?', short: 'Practical', only: 'practical',
+    options: () => uniq((DATA.practicals || []).map(p => p.name))
+      .sort((a, b) => a.localeCompare(b)) },
+  /* THE TRIPS TAB IS EMPTY TODAY, and the row says so rather than drawing a dash a person reads as a
+     dropdown that failed to load. A trip with no row still prices its teaching; it just has no tickets. */
+  { id: 'trip', label: 'Which trip?', short: 'Trip', only: 'trip',
+    fallback: () => (DATA.trips || []).length ? '' : 'None yet',
+    options: () => uniq((DATA.trips || []).map(t => t.name)) },
+
   { id: 'subjects', label: 'What are we working on?', short: 'Subject', multi: true,
     options: () => (subjectRows() || []).map(x => x.name) },
 
@@ -1266,7 +1291,10 @@ const BOOK_STEPS = [
       const out = [];
       const top = Math.max(lim.min, Math.min(lim.min + 3, lim.max));
       for (let i = lim.min; i <= top; i++) out.push(String(i));
-      return out;
+      /* A TRIP TAKES AS MANY CHILDREN AS ITS ROW SAYS, `max_children`, and not one more — the ticket
+         office and the risk assessment were both written for that number. */
+      const cap = tripCap_();
+      return cap ? out.filter(x => Number(x) <= cap) : out;
     },
     /* THE REFUSALS ONLY: a number outside what the room and the tutor allow. The note that used to
        sit beside this — what each number means, one sentence per option — is gone with the other
@@ -1278,6 +1306,7 @@ const BOOK_STEPS = [
     why: v => {
       const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_(), BOOKING.loc);
       if (Number(v) > lim.max) return 'more than ' + (lim.why.max || 'the limit') + ' allows';
+      if (tripCap_() && Number(v) > tripCap_()) return 'more than this trip takes (' + tripCap_() + ' children)';
       /* ---------- IN THE ROW'S OWN UNITS, WHICH THIS PRINTED THE OTHER ONE OF --------------------
          `lim.min` IS A TOTAL and this row draws EXTRAS — `label_` above subtracts your own chair, and
          this sentence did not. So the one rule that makes the minimum reachable in practice would
@@ -1293,7 +1322,8 @@ const BOOK_STEPS = [
       return '';
     } },
 
-  { id: 'loc', label: 'Where?', short: 'Venue',
+  /* NOT ON A TRIP (docs/history/353): the place is the trip's, and its cost is the tickets. */
+  { id: 'loc', label: 'Where?', short: 'Venue', only: 'wait, tutoring, practical',
     options: () => ['At home'].concat(bookableSpaces().map(x => x.label)),
     /* THE ANSWER WRAPS. A room is "Venue — Room", and the three rooms of one building are the same
        answer until its last word — see the note at the foot of `stepSelect_`. */
@@ -1317,7 +1347,7 @@ const BOOK_STEPS = [
      only "Yes", so it is filled in and never asked. Nothing special is needed for the lock; it
      falls out of the rule that a question with one answer is not a question. */
   /* A CLASS IS AT A VENUE. Somebody's front room is not a place three other families are going. */
-  { id: 'hosting', label: 'Are you providing the space?', short: 'Space',
+  { id: 'hosting', label: 'Are you providing the space?', short: 'Space', only: 'wait, tutoring, practical',
     options: () => {
       if (isWaiting_()) return [];
       const rate = venueRate_();
@@ -1642,7 +1672,7 @@ function nextBookStep() {
        branch-only step added tomorrow WITH a list would otherwise be dropped from the card by
        `stepRows_` and then asked by the funnel, which is the worst of both — a question on screen
        that the document it belongs to does not have a row for. */
-    if (step.only && step.only !== on) continue;
+    if (!onlyHas_(step.only, on)) continue;
     if (bookAnswered_(step)) continue;
     const opts = step.options().filter(Boolean);
     if (!opts.length) continue;                    // nothing to offer: leave it unanswered
@@ -1719,7 +1749,7 @@ function bookSpec() {
   const perWeek = runs.reduce((n, r) => n + r.hours, 0);
   const days = [...new Set(runs.map(r => r.dayName))];
   const firstHour = runs.length ? String(runs[0].hour).padStart(2, '0') + ':00' : '';
-  return {
+  return Object.assign({
     subjects: BOOKING.subjects, level: BOOKING.level, n: Number(BOOKING.n) || 1,
     loc: BOOKING.loc === 'At home' ? '' : BOOKING.loc,
     /* The answer, or the rule when it has not been given: a venue that charges nothing is hosted
@@ -1754,7 +1784,11 @@ function bookSpec() {
     windows: ivs.map(x => ({ startDate: x.startDate || '',
                              lastSun: x.lastSun || x.endDate || '' })),
     tutor: BOOKING.tutor === 'No preference' ? '' : BOOKING.tutor,
-  };
+    /* THE FORMAT AND WHAT IT NAMES (docs/history/353). `priceFrom` reads the practical's kit and the
+       trip's tickets off these; a trip's `loc` and `hosting` are overwritten below, because the venue
+       question is not asked on a trip and an answer left from before must not hire a room. */
+    format: bookFormat_(BOOKING.format), practical: BOOKING.practical || '', trip: BOOKING.trip || '',
+  }, bookFormat_(BOOKING.format) === 'Trip' ? { loc: '', hosting: false } : {});
 }
 
 /* The price so far, or nothing. Shown from the moment it can be worked out rather than at the end
@@ -2491,6 +2525,30 @@ function breakdownRows(L) {
      — the length, on the row that decides it, in the place somebody reads it — and a second line
      restating it is the fault this file records where the roster's `name` printed an `<h3>` over
      every widget's own heading. */
+  /* ---------- WHAT THE FORMAT ADDS, AT ITS OWN ROWS (docs/history/353) --------------------------------
+     ONE FAMILY'S SHARE, like COST under them: the chain above divides by the split last, and these are
+     added after it, so a whole-booking figure here would not add up to the total it sits over.
+     Each says its own arithmetic in the value column — children × per child, plus the one-off — so the
+     figure is a sum somebody can redo, which is the whole card's promise. */
+  const e = L.earn || {}, share = x => money(x / (L.splitShares || 1));
+  const kids = Math.max(1, Number(L.n) || 1);
+  if (L.format === 'Practical') {
+    const pr = bookPractical_(BOOKING.practical);
+    if (pr && !e.uncosted) {
+      push('Materials', kids + ' × ' + money(pr.costPerRun) + (pr.setupCost ? ' + ' + money(pr.setupCost) + ' set-up' : ''),
+        e.materialsCost && e.materialsCharge !== e.materialsCost
+          ? '× ' + Math.round(e.materialsCharge / e.materialsCost * 100) / 100 : '',
+        '', share(e.materialsCharge), { step: 'practical' });
+    } else if (pr) push('Materials', 'not costed yet', '', '', '', { free: true });
+  }
+  if (L.format === 'Trip') {
+    const tr = bookTrip_(BOOKING.trip);
+    if (tr) {
+      push('Tickets', kids + ' × ' + money(tr.ticketChild) + ' + ' + money(tr.ticketAdult) + ' adult',
+        '', '', share(e.tickets), { step: 'trip' });
+      push('Travel', kids + ' × ' + money(tr.travelPerChild), '', '', share(e.travel), { step: 'trip' });
+    }
+  }
   push('Shared by', familiesSay_(L.splitShares), '', '', '', { free: true });
 
   /* ---------- AND IT IS EVERY DATE AGAIN, WHICH IS THE OWNER'S CALL AND THE SECOND TIME ROUND -----
@@ -3351,7 +3409,16 @@ function stepControl_(st) {
    questions and `bookBreakdown` tells `spineRows_` not to invent them as dashes — two readings of
    one fact, and a second `isWaiting_() ? 'wait' : 'book'` written out is the second reader this
    file keeps finding. The words are the ones `SPINE_EXTRA`'s `only:` already uses. */
-function bookOn_() { return isWaiting_() ? 'wait' : 'book'; }
+/* AND THE FORMAT, ON AN INSTANT CLASS (docs/history/353): `book, practical` — so `only: 'practical'` on a
+   step, or `only: 'wait, tutoring, practical'` on the venue, is the same one rule a branch already was,
+   rather than a second way of hiding a row. `onlyHas_` asks whether ANY word here is in `only`. */
+function bookOn_() { return isWaiting_() ? 'wait' : 'book, ' + norm(bookFormat_(BOOKING.format)); }
+/* THE TRIP'S SEAT CAP, or nought for none — `n` offers no more and refuses more. */
+function tripCap_() {
+  if (isWaiting_() || bookFormat_(BOOKING.format) !== 'Trip') return 0;
+  const t = bookTrip_(BOOKING.trip);
+  return t && Number(t.maxChildren) > 0 ? Number(t.maxChildren) : 0;
+}
 
 function stepRows_() {
   let line = 0;
@@ -3755,6 +3822,10 @@ function stageRows_(j) {
 }
 
 const SPINE_EXTRA = [
+  /* THE FORMAT'S PRICE LINES, on the question that caused them (docs/history/353). */
+  { after: 'Practical', row: 'Materials', only: 'practical' },
+  { after: 'Trip',      row: 'Tickets',   only: 'trip' },
+  { after: 'Trip',      row: 'Travel',    only: 'trip' },
   { after: 'Subject', row: 'Extra subj.' },
   { after: 'When',    row: 'Per session', only: 'wait' },
   /* `Sharing` IS PUSHED BY `jobRows` AND BY NOTHING ELSE — measured, one push in this file. The
@@ -3876,7 +3947,8 @@ const SPINE_ALIAS = { Students: 'Extra seats', Host: 'Space', Total: '',
    shape `topics`, `keystage` and `needs` already have in the data. */
 function onlyHas_(only, on) {
   if (!only || !on) return true;
-  return String(only).split(',').map(x => x.trim()).filter(Boolean).indexOf(on) !== -1;
+  const want = String(only).split(',').map(x => x.trim()).filter(Boolean);
+  return String(on).split(',').map(x => x.trim()).some(o => want.indexOf(o) !== -1);
 }
 
 const ONLY_ON = (() => {
