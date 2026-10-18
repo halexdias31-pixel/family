@@ -511,27 +511,21 @@ const tick = ms => new Promise(ok => setTimeout(ok, ms));
                                    { field: 'examMonth', value: 'June' }]);
     const NOV19 = BUNDLES.concat([{ field: 'tier', value: 'Higher' }, { field: 'examYear', value: '2019' },
                                   { field: 'examMonth', value: 'November' }, { field: 'paperId', any: true }]);
-    /* THE NONE CASE IS FOUND, NOT NAMED. Each `What you need` answer the screen offers at Higher ·
-       November 2019 · Paper `Doesn't matter` is pressed — the button itself, through the app's own
-       handler — until one leaves no whole paper. Measured: `Compass` does, keeping one question. A
-       library where none does says so as a case that measures nothing, rather than passing. */
-    const needsPick = () => [...w.document.querySelectorAll('#s-stuff [data-do="facet-pick"][data-field="needs"]')];
+    /* THE NONE CASE, FOUND BY A SEARCH. It was found through `What you need`, pressed answer by answer
+       until one left no whole paper -- and since 18 Oct that question is never asked: `needs` is a door
+       on a chosen paper's page (`tagOnly`, docs/history/355), and the Bundles end draws no doors,
+       because every answer inside a paper can only break the papers a bundle is made of. So the
+       none case is the one a person can still reach: a typed search that keeps parts of papers.
+       And the old door is held shut -- a `needs` answer offered here is a question back in the
+       Bundles funnel that the rule took out. */
     narrow(NOV19);
-    const offered = needsPick().map(e => e.dataset.value);
-    let none = null;
-    for (const v of offered) {
-      narrow(NOV19);
-      const btn = needsPick().find(e => e.dataset.value === v);
-      if (!btn) continue;
-      btn.click();
-      if (!b.bundlesBySitting_().length && b.stuffFiltered().length) {
-        none = b.STUFF.filters.map(f => Object.assign({}, f));
-        break;
-      }
-    }
+    const askedNeeds = [...w.document.querySelectorAll('#s-stuff [data-do="facet-pick"][data-field="needs"]')].length;
+    if (askedNeeds) bad.push('Bundles, Higher · November 2019: ' + askedNeeds + ' `What you need` answer(s) offered — it is tagOnly and never asked in Bundles (355)');
+    narrow(NOV19, 'work out');
+    const none = !b.bundlesBySitting_().length && b.stuffFiltered().length ? NOV19 : null;
     if (!none) {
-      bad.push('Bundles, Higher · November 2019: none of the ' + offered.length + ' `What you need` answer(s) ['
-               + offered.join(', ') + '] leaves no whole paper, so the no-bundle line was NOT asked — not a pass');
+      bad.push('Bundles, Higher · November 2019, searched "work out": ' + b.bundlesBySitting_().length
+               + ' bundle(s) over ' + b.stuffFiltered().length + ' item(s), so the no-bundle line was NOT asked — not a pass');
     }
     [{ name: 'a paper chosen', paper: true, filters: JUNE19.concat([{ field: 'paperId', value: 'P-1MA1-1906-2H' }]),
        want: 1 },
@@ -540,10 +534,9 @@ const tick = ms => new Promise(ok => setTimeout(ok, ms));
      { name: '2019, every month, paper and need', want: 'several',
        filters: BUNDLES.concat([{ field: 'examYear', value: '2019' }, { field: 'examMonth', any: true },
                                 { field: 'paperId', any: true }, { field: 'needs', any: true }]) },
-     ...(none ? [{ name: 'Higher · November 2019 · ' + (none[none.length - 1].value || '?') + ' under What you need',
-                   want: 0, filters: none }] : []),
+     ...(none ? [{ name: 'Higher · November 2019, searched "work out"', want: 0, filters: none, q: 'work out' }] : []),
     ].forEach(t => {
-      narrow(t.filters);
+      narrow(t.filters, t.q);
       const end = w.document.querySelector('#stuff-groups .find-end');
       const text = end ? end.textContent.replace(/\s+/g, ' ').trim() : '';
       const n = b.bundlesBySitting_().length;
@@ -581,18 +574,16 @@ const tick = ms => new Promise(ok => setTimeout(ok, ms));
     /* ---------- THE DEAD END SAYS WHICH ANSWER TOOK THE PAPERS APART ---------------------------------
        ROUND-1 REVIEW OF PR #130: the card read "a search or a topic narrows it past whole papers" over
        a list nobody had searched and that offers no topic — every one of the 368 dead ends passes
-       through `What you need`. It names what was chosen now (`bundleCutBy_`), so it is asked both
-       ways: the `What you need` dead end found above must name that question and nothing else, and
-       a typed search that breaks the papers must name the search and nothing else. The card is read
+       through `What you need`. It names what was chosen now (`bundleCutBy_`): a typed search that
+       breaks the papers must name the search and nothing else. (`What you need` was the other way in,
+       and is not asked in Bundles since 18 Oct -- see the none case above.) The card is read
        off the DOM, because the sentence is what somebody reads. */
     /* AND ONLY WHAT WAS CHOSEN. The sentence bolds each question it blames, the way the chip above
        names it, so the names are read off those and compared as a list: a card that blamed every
        answer on the row — `Subject`, `Year`, `Month` and all — would still contain the right one,
        and "contains" is the test that let "a search or a topic" through over a list with neither. */
     const dead = () => [...w.document.querySelectorAll('#s-stuff .card.bundle')].find(x => /No whole/.test(x.textContent));
-    const needsLabel = (b.facetBy('needs') || {}).label || 'What you need';
     const deadEnds = [];
-    if (none) deadEnds.push({ name: 'a `' + needsLabel + '` answer', filters: none, q: '', named: [needsLabel] });
     deadEnds.push({ name: 'a search, "work out"', filters: NOV19, q: 'work out', named: [], search: true });
     deadEnds.forEach(t => {
       narrow(t.filters, t.q);

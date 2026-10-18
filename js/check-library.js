@@ -2150,6 +2150,45 @@ mixedSpell_.forEach(k => {
 });
 console.log(`questions spelling their parts two ways (bi beside b(ii)): ${mixedSpell_.length}`);
 
+/* ---------- EVERY PART SPLITS INTO ITS TAGS: Q1a(ii) IS [Q1] [a] [ii] (docs/history/355) ---------------------
+   The owner, 12 Oct: the card's number is three tags, each a finder answer -- the Part [a] (or AQA's [.1])
+   and the Sub-part [ii]. `partSplit_` in find.js does it with the question's own numeral decision
+   (`partNumerals_`, the one the sort uses), so this cuts the two out by name and runs them over every
+   question row: a part that will not split is a card with half a number, and fails. AND THE ONE TRAP THE
+   DECISION EXISTS FOR: W-CBM-time Q4 runs a to j, so its `i` is the ninth LETTER -- [Q4] [i] as a part,
+   never a sub-part -- where a lone `i` anywhere else is a numeral. */
+{
+  /* SAID AS WELL AS PUSHED: this is past where `fail` prints, as the spelling rule above says. */
+  const bad_ = why => { fail.push(why); console.log('  ' + why); };
+  const need_ = ['partSplit_', 'partNumerals_', 'paperIdOf_'].map(n => cutFrom(findSrc_, n));
+  const line_ = n => (findSrc_.match(new RegExp('^const ' + n + ' = .*$', 'm')) || [''])[0];
+  const consts_ = ['ROMAN_ONLY', 'NUM_ROMAN', 'partBare_'].map(line_);
+  if (need_.some(c => !c) || consts_.some(c => !c)) {
+    bad_('partSplit_, partNumerals_, paperIdOf_, ROMAN_ONLY, NUM_ROMAN or partBare_ is not in find.js — renamed? The parts were NOT split.');
+  } else {
+    const api_ = new Function(consts_.join('\n') + '\n' + need_.join('\n') + '\nreturn { partSplit_, partNumerals_ };')();
+    const qRows_ = rows.filter(r => r && r.kind === 'question').map(r => ({ paper_id: r.paper_id, q: r.question, part: r.part, kind: r.kind, row_id: r.row_id }));
+    const numerals_ = api_.partNumerals_(qRows_);
+    const shapes_ = {}, unsplit_ = [];
+    qRows_.forEach(r => {
+      if (!String(r.part || '').trim()) return;
+      const sp = api_.partSplit_(r.part, numerals_.get(r));
+      if (!sp) { unsplit_.push(r.row_id + ' "' + r.part + '"'); return; }
+      const k = (sp.part ? (sp.part[0] === '.' ? 'digit' : 'letter') : '') + (sp.part && sp.sub ? ' + ' : '') + (sp.sub ? 'numeral' : '');
+      shapes_[k] = (shapes_[k] || 0) + 1;
+    });
+    if (unsplit_.length) bad_(unsplit_.length + ' part(s) do not split into a Part and a Sub-part tag: ' + unsplit_.slice(0, 8).join(', '));
+    const q4i_ = qRows_.filter(r => r.paper_id === 'W-CBM-time' && String(r.q) === '4' && String(r.part).trim() === 'i');
+    if (!q4i_.length) bad_('W-CBM-time Q4 (i) is not in the library — the lettered-i trap was NOT checked');
+    q4i_.forEach(r => {
+      const sp = api_.partSplit_(r.part, numerals_.get(r)) || {};
+      if (sp.part !== 'i' || sp.sub) bad_(r.row_id + ': W-CBM-time Q4 runs a to j, so its "i" is the letter [i], not the numeral -- it split as ' + JSON.stringify(sp));
+    });
+    console.log('parts split into tags: ' + Object.keys(shapes_).sort().map(k => k + ' ' + shapes_[k]).join(', ')
+      + (unsplit_.length ? ', unsplittable ' + unsplit_.length : ', none unsplittable'));
+  }
+}
+
 console.log(`rows saying where the paper prints their figure (<!--fig-->): ${marked}`
   + `   (the rest stand it in front of the ask -- a pen question too since 337, its pen on the card)`);
 const allDocs_ = rows.filter(r => r && r.kind === 'document').length;

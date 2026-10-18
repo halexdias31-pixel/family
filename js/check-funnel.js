@@ -116,7 +116,12 @@ function boot(cb) {
       /* THE LIST THE APP DRAWS, SORTED, AND THE LAST-RESORT QUESTION -- so 4e can ask what a person
          is shown once a paper is chosen, through the same two functions the screen asks. */
       ' stuffFiltered, overFacet_,' +
-      ' chipShow_, qTags_,' +
+      ' chipShow_, tagRow_,' +
+      /* THE CARD'S ROW AS A LIST -- `tagRow_`'s own markup read back, so this reads what is drawn and
+         not a second copy of the rule (docs/history/355). */
+      ' tagList_: (x, p) => { const d = document.createElement("div"); d.innerHTML = tagRow_(x, p);' +
+      ' return [...d.querySelectorAll(".qtag")].map(t => ({ tag: t.getAttribute("data-tag") || "",' +
+      ' text: t.textContent, field: t.getAttribute("data-f") || "" })); },' +
       ' RETIRED_FACETS, waveOf,' +
       /* A THUNK, NOT THE OBJECT. `load()` ends with `DATA = d` — it REPLACES the payload — so a
          reference captured at eval time is the one from before the settings files landed, and the
@@ -336,11 +341,11 @@ boot(f => {
            and pass silently: the clash rule would have gone on printing green over cards it no
            longer read. So the split is asserted, not assumed: a dated card with no month tag is a
            failure of its own. */
-        if (ms.length && f.qTags_) {
+        if (ms.length && f.tagList_) {
           const id = (x.row && x.row.paper_id) || x.id || '?';
           if (!tagsRead[id]) {
             tagsRead[id] = 1;
-            const tags = f.qTags_(x) || [];
+            const tags = f.tagList_(x) || [];
             tags.forEach(t => { if (fusedDate_(t.text)) fusedTag[id] = (t.tag || 'plain') + ' "' + t.text + '"'; });
             const sit = tags.filter(t => t.tag === 'sitting').map(t => String(t.text));
             const mTag = sit.find(t => MONTHS_LC.indexOf(t.split(/\s+/).pop().toLowerCase()) !== -1);
@@ -363,7 +368,7 @@ boot(f => {
     if (fusedIds.length) {
       bad.push(fusedIds.length + ' card(s) carry a tag holding a month and a year together: '
                + fusedIds.slice(0, 6).map(k => k + ' ' + fusedTag[k]).join(', ')
-               + ' — the funnel asks Year and then Month, so the card says them as two tags. See qTags_.');
+               + ' — the funnel asks Year and then Month, so the card says them as two tags. See tagRow_.');
     }
     const unsplitIds = Object.keys(unsplit);
     if (unsplitIds.length) {
@@ -644,9 +649,11 @@ boot(f => {
      Foundation · 2024 · June · Paper 1 went on to `1–10 | 11–20 | 21–30`, then `1–2 | 3–4 | …`, then
      `1 | 2`. Three halves, each one a way it can come back:
 
-       THE QUESTIONS ARE NOT LIVE.  `qNumber` and `qPart`, and the row's own spellings `question` and
-                                   `part`, must not be in `facetList()` -- a sheet row switched back on
-                                   is refused by `RETIRED_FACETS`, and this is what says so if that goes.
+       THE QUESTIONS ARE NOT ASKED. `qNumber` and `qPart` are live again since 18 Oct, as `tagOnly`
+                                   facets -- the card's [Q7] [a] tags are answers, offered as doors on a
+                                   chosen paper (docs/history/355) -- so each must be `tagOnly`, which
+                                   `nextFacet` and `overFacet_` skip. The row's own spellings `question`
+                                   and `part` must not be in `facetList()` at all (`RETIRED_FACETS`).
        NOTHING IS ASKED.           EVERY paper, reached the way a thumb reaches it -- Year, Month, then
                                    Paper -- asks nothing more, through `nextFacet` and the last resort
                                    both. Measured with only the two retired: 495 of 496 asked nothing
@@ -654,7 +661,14 @@ boot(f => {
        IT IS THE WHOLE PAPER, IN ORDER.  The drawn list holds every question of that paper and nothing
                                    else, question numbers never going backwards -- which is what makes
                                    it safe to stop asking: the order IS the question number. */
-  ['qNumber', 'qPart', 'question', 'part'].forEach(old => {
+  ['qNumber', 'qPart', 'qSub', 'qPage', 'qPages', 'marks'].forEach(own => {
+    const live = facets.find(x => x.field === own);
+    if (live && !live.tagOnly) {
+      bad.push('`' + own + '` is an ASKED question — the owner asked for "no more asking for questions 1-10 or '
+               + 'question part 1 or b." It must be tagOnly: a door on the paper, never asked (355).');
+    }
+  });
+  ['question', 'part'].forEach(old => {
     if (facets.find(x => x.field === old)) {
       bad.push('`' + old + '` is a live question again — the owner asked for "no more asking for '
                + 'questions 1-10 or question part 1 or b." See RETIRED_FACETS.');
@@ -720,7 +734,10 @@ boot(f => {
      a person should look, because it is how "which one did I answer?" starts. */
   const answers = {};
   facets.forEach(facet => {
-    if (facet.collect) return;
+    /* A QUESTION NOBODY IS ASKED CANNOT BE CONFUSED WITH ONE THAT IS. The `tagOnly` facets (355) are
+       picked from doors on a chosen paper, each under its own label -- `2` as a Question, a Page and a
+       Marks answer is three labelled rows, not one word in two folders. */
+    if (facet.collect || facet.tagOnly) return;
     f.facetValues(items, facet).forEach(v => {
       /* ---------- A RANGE IS NOT A NAME ----------------------------------------------------------
          THE MOMENT `bucketValues_` LANDED THIS NAMED FOUR LETTER RANGES: `2-B` is an answer to Topic
@@ -1163,13 +1180,13 @@ boot(f => {
                   to stay in the paper's name to tell two years apart -- `waveFromDoc_`
        the chip   it was labelled against the whole library rather than against the chips before
                   it -- `chipShow_`
-       the card   the paper's name was one line of text -- `qTags_`
+       the card   the paper's name was one line of text -- `tagRow_` now
 
      KS1 AND KS2, because the two were added months apart and only one of them prompted this. Each
      year is walked on its own, which is what the funnel does once `Year` is asked. The route is
      `Level · SATs` then `Key stage · KS1` / `KS2` -- *"sats is one tag not ks2 sats"* -- which is the
      question a person answers to tell the two apart now that the level does not. */
-  if (typeof f.chipShow_ === 'function' && typeof f.qTags_ === 'function' && f.STUFF) {
+  if (typeof f.chipShow_ === 'function' && typeof f.tagList_ === 'function' && f.STUFF) {
     const byField = fl => f.facetList().find(x => x.field === fl);
     const paperF = byField('paperId');
     const yearF = byField('examYear');
@@ -1208,7 +1225,7 @@ boot(f => {
           }
           const q = inYear.find(x => x.kind === 'question'
             && f.filterHit(x, { field: 'paperId', value: a.value }));
-          const tags = q ? f.qTags_(q) : [];
+          const tags = q ? f.tagList_(q) : [];
           if (!tags.some(t => t.tag === 'paper' && t.text === show)) {
             bad.push(level + ' ' + yr + ': a card from ' + JSON.stringify(show) + ' has no red paper tag '
                      + 'reading it — its tags are ' + JSON.stringify(tags.map(t => t.text)));
@@ -1277,12 +1294,12 @@ boot(f => {
       if (!pid || seenPaper[pid]) return;
       seenPaper[pid] = 1;
       cards++;
-      const tags = f.qTags_(x) || [];
+      const tags = f.tagList_(x) || [];
       const own = subjectF ? f.asList_(subjectF.of(x)).map(String) : [];
       tags.filter(t => t.tag === 'subject').forEach(t => {
         if (own.indexOf(t.text) === -1) {
           bad.push(pid + ': the card wears a green subject tag ' + JSON.stringify(t.text) + ' that is not its '
-                   + 'Subject answer (' + JSON.stringify(own) + ') — see qTags_().');
+                   + 'Subject answer (' + JSON.stringify(own) + ') — see tagRow_().');
         }
       });
       if (String(x.row.document_type || '') === '5-a-day' && f.fiveDayLabel_ && f.tagOf_) {
@@ -1303,7 +1320,7 @@ boot(f => {
     if (!fives) bad.push('no 5-a-day card was read, so the Day tag rule proves nothing');
     if (!skipped) bad.push('no SATs Paper answer was reached with the Year skipped, so that route proves nothing');
   } else {
-    bad.push('`chipShow_` or `qTags_` is not declared, so the SATs tags cannot be checked — not a pass');
+    bad.push('`chipShow_` or `tagRow_` is not declared, so the SATs tags cannot be checked — not a pass');
   }
 
   /* ---------- A `facets` ROW NAMING A FIELD NOTHING ANSWERS IS A DEAD ROW ------------------------

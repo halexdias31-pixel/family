@@ -977,6 +977,23 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
   say('A FIGURE\'S INK THE CARD\'S DRAWING FACE DOES NOT GET -- every pen is on the card (337)', inkBad);
 }
 
+/* ---------- NO TAG IS STYLED AS A KIND OF ITS OWN (docs/history/355) -------------------------------------
+   The owner, 18 Oct, over a Q7 card whose `Question` was a filled white pill: *"I'm sensing some tags are
+   treated differently from others ... Please eliminate all unique conditional rules which treat them
+   differently."* Every tag is now a facet answer drawn by one renderer (`tagRow_`), in its facet's colour
+   and the one outline. So no rule may give the page's kind, its number or its marks a look of their own
+   (`[data-tag=kind|number|marks]`, `--tag-kind` and its two siblings), and the pills that sat in the card
+   heads beside the tags (`.fc-flag`, `.fc-flags`) and the bundle's gold head (`.qcard-top`) are gone. */
+{
+  const tagBad = [];
+  rules.forEach(r => {
+    if (/\[data-tag=["']?(kind|number|marks)["']?\]/.test(r.sel)) tagBad.push('line ' + r.line + '  ' + r.sel + '  →  a tag kind with a look of its own');
+    if (/\.fc-flags?\b|\.qcard-top\b/.test(r.sel)) tagBad.push('line ' + r.line + '  ' + r.sel + '  →  a card-head pill beside the tag row');
+    r.decls.forEach(d => { if (/^--tag-(kind|number|marks)$/.test(d.prop)) tagBad.push('line ' + r.line + '  ' + d.prop + '  →  a token for a tag kind no facet has'); });
+  });
+  say('A TAG STYLED AS A KIND OF ITS OWN -- every tag is a facet answer in one outline (355)', tagBad);
+}
+
 console.log('');
 console.log('rules read: ' + rules.length);
 console.log(fail

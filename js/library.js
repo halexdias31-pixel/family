@@ -745,11 +745,8 @@ function libraryInto_(d, rows) {
          renderer and the check. `topics` and `keystage` are already comma-lists in this file for
          exactly this reason, and `asList_` has read them since before any of it. */
       images: libS(r.images),
-      /* WHO DREW THE PICTURE — absent means it came off the paper, `family` means this site drew it
-         because the original's did not survive the text layer. Named here as well as read off
-         `row` so the fact travels with the payload object rather than only with the file row; see
-         `figCredit_` in find.js for why a question has to say which. */
-      diagramBy: libS(r.diagram_by),
+      /* `diagramBy` WAS HERE, read for the credit line under a redrawn picture. The line went on 18 Oct
+         (docs/history/355); `diagram_by` stays on the row as provenance and nothing on screen reads it. */
       lead: libS(r.lead), html: libS(r.html),
       /* ---------- AN INSERT IS SEVERAL THINGS, AND IT USED TO BE ONE ---------------------------
          AN AQA ENGLISH INSERT IS NOT ONE BLOCK OF PROSE. The paper prints it line-numbered and

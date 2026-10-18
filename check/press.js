@@ -1868,10 +1868,11 @@ for (const who of VISITORS) {
             const stem = /^(stem|sfig)(\d+)(?:-\d+)?$/.exec(pg.part || '');
             const pre = /^pre\d+$/.test(pg.part || '');
             const sid = stem ? (pg.x.stems[+stem[2]] || {}).id : '';
-            /* WHAT THE PAGE SAYS IT IS: its kind tag and its number tag, the two that replaced the gold
-               header line (`qPage_`). A figure page's must hold no `Q<digit>`, as its header did not. */
-            const tagOf = k => ((el && el.querySelector('.qcard-tags [data-tag="' + k + '"]')) || {}).textContent || '';
-            const head = tagOf('kind') + ' ' + tagOf('number');
+            /* WHICH QUESTION THE PAGE SAYS IT BELONGS TO: its [Q<n>] tag, the item's own Question answer,
+               which every page of one item wears alike since 18 Oct (`tagRow_`, docs/history/355) -- a
+               figure page and an opening included, where they used to hold no number at all. */
+            const qTag = ((el && el.querySelector('.qcard-tags .qtag[data-f="qNumber"]')) || {}).textContent || '';
+            const own = qTag === 'Q' + pg.x.qNumber;
             let ok;
             /* ---------- AND A FIGURE WHERE THE PAPER PRINTS IT -------------------------------------------
                *"text, then diagram, then text then diagram then text ... same order but diagram has its
@@ -1888,24 +1889,24 @@ for (const who of VISITORS) {
               const next = pages[i + 1];
               ok = !!sid && html.indexOf('data-of="' + sid + '"') !== -1 && html.indexOf('qp-ans') === -1
                 && !!next && next.x === pg.x
-                && (stem[1] === 'stem' ? /class="qcard qstem/.test(html) : !/\bQ\d/.test(head))
+                && (stem[1] === 'stem' ? /class="qcard qstem/.test(html) : own)
                 && (stem[1] === 'stem' || i === 0 || pages[i - 1].x !== pg.x
                     || /^stem/.test(pages[i - 1].part || '') && pages[i - 1].part.split('-')[0] === 'stem' + stem[2]
                     || /^sfig/.test(pages[i - 1].part || ''));
             } else if (pg.part === 'use') {
               /* AN EARLIER PART'S DRAWING IN FRONT OF A PART THAT USES IT (`usesOf_`): this part's page,
-                 named by its row, a figure page with no box and no question number, and straight in front
+                 named by its row, a figure page with no box, wearing this part's number, and straight in front
                  of this part's own pages. */
               const next = pages[i + 1];
               ok = /class="qcard qfig qfig-uses/.test(html) && html.indexOf('data-of="' + id + '"') !== -1
-                && html.indexOf('qp-ans') === -1 && !/\bQ\d/.test(head) && !!next && next.x === pg.x;
+                && html.indexOf('qp-ans') === -1 && own && !!next && next.x === pg.x;
             } else if (pg.part === 'ans') {
               ok = /class="qcard qans-card/.test(html) && html.indexOf('data-of="' + id + '"') !== -1
                 && html.indexOf('qp-ans') === -1
                 && i > 0 && pages[i - 1].x === pg.x && (!pages[i - 1].part || pages[i - 1].part === 'fig');
             } else if (pg.part === 'fig') {
               const next = pages[i + 1];
-              ok = html.indexOf('data-of="' + id + '"') !== -1 && html.indexOf('qp-ans') === -1 && !/\bQ\d/.test(head)
+              ok = html.indexOf('data-of="' + id + '"') !== -1 && html.indexOf('qp-ans') === -1 && own
                 && ((i > 0 && pages[i - 1].x === pg.x && pages[i - 1].part !== 'ans')
                     || (!!next && next.x === pg.x && (!next.part || /^pre\d+$/.test(next.part))));
             } else {

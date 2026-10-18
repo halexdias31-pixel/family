@@ -1222,7 +1222,7 @@ const FACETS = [
      IN `KIND_BUCKET`'S ORDER, NOT THE ALPHABET'S (`orderOf`). Alphabetical put `Answers` first, top
      left, where a thumb lands -- and one tap on it opens every answer at once, for anybody. Questions
      comes first now and Answers beside it, its pair. */
-  { field: 'kindLabel', orderOf: v => KIND_BUCKET.within.indexOf(v),
+  { field: 'kindLabel', tag: true, orderOf: v => KIND_BUCKET.within.indexOf(v),
     bucketOf: KIND_BUCKET, bucketOrder: KIND_BUCKET.order, label: 'What kind',   always: true,
     of: x => {
       const k = x.kindLabel || kindOf_(x).label;
@@ -1231,7 +1231,12 @@ const FACETS = [
       if (questionHasAns_(x)) out.push('Answers');
       if (bundleable_(x)) out.push('Bundles');
       return out.length > 1 ? out : k;
-    } },
+    },
+    /* THE TAG IS WHAT THIS PAGE IS, NOT EVERY DOOR THE ITEM STANDS BEHIND. A question answers
+       `Questions`, `Answers` and `Bundles` above, because each of those lists holds it; its card is a
+       question and its answer page is an answer, so the row says the one the page is -- the same word
+       the chip that opened that page wears (docs/history/355). */
+    tagOf: (x, page) => page === 'ans' ? 'Answers' : (x.kindLabel || kindOf_(x).label) },
   /* ---------- THE THIRD DOOR: WHICH SHELF OF THE RESOURCES ---------------------------------------
      THE OWNER'S ROUTE IS "Learning → Resources → @family. textbooks → GCSE Statistics", and without
      this question there is no third rung to stand on. `Resources` is 260 rows of boxing and one
@@ -1246,7 +1251,7 @@ const FACETS = [
 
      EVERY RESOURCE NAMES ITS SHELF, which is why the boxers and the bouts say `Boxing` in their
      mappers. A shelf only some of the list had would fail the coverage rule and never be asked. */
-  { field: 'shelf',     label: 'Shelf',       always: true, of: x => x.shelf || '' },
+  { field: 'shelf', tag: true,     label: 'Shelf',       always: true, of: x => x.shelf || '' },
   /* ---------- THE BIBLE'S SIX QUESTIONS, IN THE OWNER'S ORDER -----------------------------------------
      *"tags in finder. should go translation e.g. kjv, then old testament or new, then group the books,
      e.g. torah, pauline epistles ect. then the book titles e.g. genises, eodus. then the chapters, e.g.
@@ -1272,18 +1277,18 @@ const FACETS = [
      THE FIELD NAMES ARE NOT `book`, `year`, `level`… — `book` is the textbook's question just above,
      and a shared name would put the textbooks' answers on the Bible's chip.
      The cover answers Translation alone, and only once the index has said which translation it is. */
-  { field: 'bibleTranslation', label: 'Translation', only: 'bible', folder: true,
+  { field: 'bibleTranslation', tag: true, label: 'Translation', only: 'bible', folder: true,
     of: x => x.kind !== 'bible' ? '' : x.bb ? x.bb.translation : (BIBLE.index ? BIBLE.index.translation : '') },
-  { field: 'bibleTestament', label: 'Testament', only: 'bible', folder: true,
+  { field: 'bibleTestament', tag: true, label: 'Testament', only: 'bible', folder: true,
     of: x => (x.bb ? x.bb.testament : ''), orderOf: v => bibleRank_('t', v) },
-  { field: 'bibleGroup', label: 'Group', only: 'bible', folder: true,
+  { field: 'bibleGroup', tag: true, label: 'Group', only: 'bible', folder: true,
     of: x => (x.bb ? x.bb.group : ''), orderOf: v => bibleRank_('g', v) },
-  { field: 'bibleBook', label: 'Book', only: 'bible', folder: true,
+  { field: 'bibleBook', tag: true, label: 'Book', only: 'bible', folder: true,
     of: x => (x.bb ? x.bb.book : ''), orderOf: v => bibleRank_('b', v) },
   /* NO ORDER NEEDED: `cmpText` is numeric, so 2 comes before 10 and 100. */
-  { field: 'bibleChapter', label: 'Chapter', only: 'bible', folder: true, grid: true,
+  { field: 'bibleChapter', tag: true, label: 'Chapter', only: 'bible', folder: true, grid: true,
     of: x => (x.bb ? x.ch : '') },
-  { field: 'bibleVerse', label: 'Verse', only: 'bible', folder: true, grid: true,
+  { field: 'bibleVerse', tag: true, label: 'Verse', only: 'bible', folder: true, grid: true,
     of: x => (x.bb ? x.v : '') },
   /* Only venues have one, so it is only ever asked once you are looking at venues — which is the
      coverage rule doing the work that a per-kind filter list would otherwise have to.
@@ -1292,7 +1297,7 @@ const FACETS = [
   { field: 'borough',   label: 'Where',       of: x => x.borough || '' },
   /* `category` WAS HERE — `Category`, the links' own question. It went with the links; see
      `RETIRED_FACETS`, which stops a sheet row reading the column back off whatever else has one. */
-  { field: 'subject',
+  { field: 'subject', tag: true,
     bucketOf: SUBJECT_BUCKET, bucketOrder: SUBJECT_BUCKET.order,   label: 'Subject',     of: x => x.subject },
   /* `book` WAS HERE — `Book`, which @family. textbook, asked after Subject on the textbooks' shelf.
      There are no books on screen since 12 Oct (see `content` in KINDS), so nothing answered it; it is
@@ -1347,13 +1352,29 @@ const FACETS = [
      and the boot's fetch of `data/topics.json` are gone — see `THE TOPIC TREE WAS READ HERE`. The
      file stays: `check-practicals`, `check-projects` and `check-textbooks` hold a hand-written topic
      to its labels and aliases, which is a check reading a file, not the app reading one. */
-  { field: 'topic',     label: 'Topic',
+  { field: 'topic', tag: true,     label: 'Topic',
     of: x => topicShown_(x) ? (x.topic || topicOf_(x)) : [] },
   /* Only boxers and bouts carry one, so the coverage rule keeps it out of the way of everything
      else — the same rule that hides `borough` unless you are looking at venues. */
   /* BEFORE THE WEIGHT, because "a boxer or a bout" is the question somebody has first and there
      are two answers to it, not twenty. */
-  { field: 'boxKind',   label: 'Boxers or fights', of: x => x.boxKind || '' },
+  { field: 'boxKind', tag: true,   label: 'Boxers or fights', of: x => x.boxKind || '' },
+  /* ---------- WHAT KIND OF PROJECT OR PRACTICAL, AND WHETHER A BOARD ASKS FOR IT --------------------
+     `projectType` AND `practicalType` WERE THE SHEET'S QUESTIONS ONLY, read off the column by
+     `facetFromSheet_`, and the cards said the same facts in pills of their own (`.fc-flag`) -- a
+     lowercase `experiment` on the chip beside `Experiment` on the card. They are code facets now so
+     they can carry `tag: true`, and each reads the item's own spelling (`PRAC_TYPE`, `projType_`),
+     so the card's tag, the answer and its chip are one word. The rows in data/settings/facets.json
+     still own their label, order, coverage and whether they are asked at all.
+     `required` IS THE THIRD PILL A PRACTICAL WORE -- `Required practical`, `Extra`, `Not for now` --
+     a tag now like the others, and `tagOnly`: 28/49/5 is a fact about a practical somebody may pick
+     on the practical's own list, not a question every list of practicals should stop to ask. */
+  { field: 'projectType', tag: true, label: 'Project or coursework', of: x => x.projectType || '' },
+  { field: 'practicalType', tag: true, label: 'Experiment or build', of: x => x.practicalType || '' },
+  { field: 'required', tag: true, label: 'Required', tagOnly: true,
+    orderOf: v => PRAC_NEED.indexOf(v),
+    of: x => x.kind !== 'practical' || !x.row ? ''
+      : PRAC_NEED[x.row.excluded ? 2 : x.row.required ? 0 : 1] },
   /* ---------- THE DECADE COMES BEFORE THE WEIGHT -------------------------------------------------
      REPORTED AS "boxers and fights shouldn't be organised by weight category before the decade/s
      involved of fighter or boxer", and it is the same judgement `boxKind` above already records
@@ -1377,15 +1398,15 @@ const FACETS = [
      is the same fault `keystage` had, where a primary worksheet forced into one key stage vanished
      from the other, and the machinery is the same: `asList_` reads a list, so a facet returning
      several answers already filters and counts against all of them. */
-  { field: 'decade',
+  { field: 'decade', tag: true,
     bucketOf: decadeBucket_, bucketOrder: decadeBucket_.order,    label: 'Decade',      of: x => decadesOf_(x) },
-  { field: 'division',
+  { field: 'division', tag: true,
     bucketOf: DIVISION_BUCKET, bucketOrder: DIVISION_BUCKET.order,  label: 'Division',    of: x => x.division || '' },
   /* THIRD, and it was seventh. An exercise and a past paper are different ERRANDS — somebody
      revising and somebody sitting a mock are not looking for the same thing — so it is the
      question that most changes what should come next. 412 of 417 rows can answer it, which is
      the other half of what makes a good early question. */
-  { field: 'documentType', label: 'Type',     of: x => x.documentType },
+  { field: 'documentType', tag: true, label: 'Type',     of: x => x.documentType },
   /* ---------- THREE BANDS, THREE QUESTIONS, BECAUSE THEY ARE NOT THE SAME QUESTION ----------------
      `band_value` HOLDS A NUMBER AND `band_type` SAYS WHAT KIND OF NUMBER IT IS. A GCSE grade 4 and
      a Year 4 sheet both hold `4`, and asking one question called "Grade" over both would put a
@@ -1400,7 +1421,7 @@ const FACETS = [
      THE COVERAGE RULE THEN DOES THE REST. `Grade` is only offered when enough of what is on screen
      can answer it, so choosing Learning · Maths · Worksheet with primary sheets showing offers
      `Year`, and with GCSE sheets showing offers `Grade` — without either list naming the other. */
-  { field: 'bandValue',
+  { field: 'bandValue', tag: true,
     bucketOf: GRADE_BUCKET, bucketOrder: GRADE_BUCKET.order, label: 'Grade',       of: x => x.bandValue && x.bandType === 'grade'
                                                     ? 'Grade ' + x.bandValue : '' },
   /* `School year`, NOT `Year`. There are two facets here that were both called Year — this one, the
@@ -1408,7 +1429,7 @@ const FACETS = [
      no maths resource carried a year group; the primary worksheets now do, and two questions
      labelled the same thing on one screen, one meaning 4 and the other 2024, is the sort of fault
      that reads as a bug in the data rather than in the label. */
-  { field: 'yearGroup', label: 'School year',        of: x => x.bandValue && x.bandType === 'year'
+  { field: 'yearGroup', tag: true, label: 'School year',        of: x => x.bandValue && x.bandType === 'year'
                                                     ? 'Year ' + x.bandValue : '' },
   /* ---------- ONE LADDER, NOT TWO, AND THE SPELLING IS PART OF THE FAULT ------------------------
      THIS WAS `stage`, READING ONLY `band_value` WHERE `band_type` IS `stage`. The `level` column
@@ -1440,7 +1461,7 @@ const FACETS = [
      first. The deference runs the other way now: Level is asked first and Key stage drops whatever
      Level already says (see `keystage`, just below). Both ways at once would be each dropping the
      other's answer. */
-  { field: 'level',
+  { field: 'level', tag: true,
     bucketOf: LEVEL_BUCKET, bucketOrder: LEVEL_BUCKET.order,     label: 'Level',       of: x => levelOf_(x) },
   /* ---------- A RESOURCE CAN BELONG TO MORE THAN ONE KEY STAGE -------------------------------------
      PRIMARY WORKSHEETS DO NOT RESPECT THE BOUNDARY. Column addition, times tables, telling the time,
@@ -1482,9 +1503,9 @@ const FACETS = [
      `satsStagesOf_`. Everywhere else it answers nothing, which keeps the GCSE screen the owner
      reported (`KS3 | KS4` after the qualification was chosen) and the KS3 shelf's ranges from
      asking a grey area the qualification already settled. `check-funnel` holds both halves. */
-  { field: 'keystage',  label: 'Key stage', of: x =>
+  { field: 'keystage', tag: true,  label: 'Key stage', of: x =>
       (LEVEL_BUCKET(levelOf_(x)) === 'SATs' ? satsStagesOf_(x) : []) },
-  { field: 'examBoard', label: 'Exam board',  of: x => x.examBoard },
+  { field: 'examBoard', tag: true, label: 'Exam board',  of: x => x.examBoard },
   /* ---------- `A-Level` IS NOT A TIER, AND IT WAS AN ANSWER TO THIS QUESTION ---------------------
      135 ROWS ANSWERED `Tier · A-Level` AND 263 ANSWERED `Level · A-Level`, so pressing the tier
      chip quietly gave you half of what the level chip gives — the smaller, wrong one. `check-funnel`
@@ -1493,7 +1514,7 @@ const FACETS = [
      nothing is honest where inventing a third tier is not. `Level` is untouched and still answers
      A-Level for all 263. The `tier` CELL is untouched too, because `paperLabels_` tells the A-level
      and AS papers of one sitting apart by exactly that column. */
-  { field: 'tier',      label: 'Tier',        not: 'level', of: x => x.tier },
+  { field: 'tier', tag: true,      label: 'Tier',        not: 'level', of: x => x.tier },
   /* Through `waveOf`, for the same reason `year` goes through `yearOf` one line below: the cell
      may hold a DATE rather than a wave, and a filter button sixty characters wide reading
      "Fri Jun 01 2024 08:00:00 GMT+0100 (British Summer Time)" is what that looks like untouched. */
@@ -1537,9 +1558,9 @@ const FACETS = [
      `examSeries` IS RETIRED, see `RETIRED_FACETS`. The bundle's own title still says `Summer 2017`
      where its papers share one, through `waveOf`. */
   /* NO LONGER PAIRED INTO `2023 & 2024` -- the years are drawn as they are (see `bucketLabels_`). */
-  { field: 'examYear', folder: true,
+  { field: 'examYear', tag: true, folder: true,
     label: 'Year', cmp: (a, b) => Number(b) - Number(a), of: x => sittingOf_(x).year },
-  { field: 'examMonth', folder: true, label: 'Month',
+  { field: 'examMonth', tag: true, folder: true, label: 'Month',
     cmp: (a, b) => MONTH_NAMES.indexOf(a) - MONTH_NAMES.indexOf(b), of: x => sittingMonth_(x) },
   /* Through `yearOf`, so a paper whose year lives only inside "June 2024" is filterable by year
      without anybody having to type it into a second column to make the filter work. */
@@ -1571,7 +1592,10 @@ const FACETS = [
      until the list IS questions. */
   /* `showOf` SAYS THE CALCULATOR THE WAY THE CARD'S TAG DOES -- `Non-calculator`, `Calculator allowed`
      -- and matches by the cell's own value, which is what `showOf` is for. See `needsSay_`. */
-  { field: 'needs',
+  /* `tagOnly` SINCE 18 Oct: measured, it was asked in 0 of 1,674 states -- every paper's kit is one
+     answer by the time it could split anything -- so it is a door on a chosen paper's page, with the
+     question number and the marks, rather than a question that never came. */
+  { field: 'needs', tag: true, tagOnly: true,
     bucketOf: NEEDS_BUCKET, bucketOrder: NEEDS_BUCKET.order,     label: 'What you need', of: x => asList_(x.needs),
     showOf: v => needsSay_(v) },
   /* ---------- `paper` — "PRINTED?" — WAS HERE, AND IT WAS NOT A QUESTION ------------------------
@@ -1612,25 +1636,6 @@ const FACETS = [
      THE DIFFERENCE IS THE DOCUMENT, so the document decides. A paper's numbering is part of how it
      is referred to; a worksheet's is the order it happens to be typed in. Blank on a worksheet, so
      the coverage rule never offers it there — and unchanged on the papers, where it was right. */
-  /* ---------- `qNumber` AND `qPart` ARE THE SHEET'S QUESTIONS, NOT THE CODE'S --------------------
-     THIS NOTE USED TO SAY "nothing sets either field now" AND THAT HAS BEEN FALSE FOR A WHILE:
-     `questionItems` writes `qNumber: r.q, qPart: r.part || ''` on every question item, so
-     `facetFromSheet_` reads both straight off the item and `data/settings/facets.json` carries a row
-     for each. Two live questions, described here in the past tense — the `.favwrap.is-fav` shape,
-     found while auditing the funnel's order.
-     THEY ARE GOOD QUESTIONS BECAUSE OF WHERE THEY SIT. `FACET_NEEDS_FIRST` holds `qNumber` behind
-     `paperId` and `qPart` behind `qNumber`, so both are only ever asked inside ONE paper — which is
-     what stops `Question part` offering a paper's `a, b, c` beside another's `1, 2, 3`. Measured: 20
-     distinct part values across the library, and within a paper the only mixing is a letter with the
-     roman sub-parts under it, which is what an exam paper prints.
-
-     ---------- AND THEY ARE RETIRED, BOTH, ON THE OWNER'S WORD ------------------------------------
-     *"no more asking for questions 1-10 or question part 1 or b."* Measured on GCSE · Foundation ·
-     2024 · June · Paper 1 before the change: `1–10 | 11–20 | 21–30`, then `1–2 | 3–4 | …`, then
-     `1 | 2` — three more taps inside one paper, which has at most 63 questions and a median of 8.
-     A paper is short enough to read in order, and it IS in order: `stuffSorted_` sorts by `qNumber`
-     and then `qPart`, so both fields stay on every item and only the QUESTIONS go. The rows are off in
-     `data/settings/facets.json` and `RETIRED_FACETS` keeps them off. */
   /* ---------- THE FACET THAT IS ALWAYS TOO BIG TO ASK, DELIBERATELY ---------------------------
      202 ANSWERS. It will never be offered as a question — `FACET_MAX_ANSWERS` is 40 — and that is
      not a flaw in it, it is what makes it a COLLECTION. `collectionAxes_` picks up exactly the
@@ -1674,18 +1679,52 @@ const FACETS = [
 
      THE DAY'S VALUE IS THE PAPER ID and its label is `1 June`, which is the `paperId` arrangement:
      the id decides who answers. Grouped into weeks, because a month is thirty answers. */
-  { field: 'fiveLevel', label: 'Level',       of: x => fiveADay_(x) ? x.tier || '' : '',
+  { field: 'fiveLevel', tag: true, label: 'Level',       of: x => fiveADay_(x) ? x.tier || '' : '',
     orderOf: v => FIVE_LEVELS.indexOf(v) },
-  { field: 'fiveMonth', label: 'Month',       of: x => { const d = fiveADay_(x); return d ? d.month : ''; },
+  { field: 'fiveMonth', tag: true, label: 'Month',       of: x => { const d = fiveADay_(x); return d ? d.month : ''; },
     orderOf: v => MONTH_NAMES.indexOf(v) },
-  { field: 'fiveDay',   label: 'Day',         of: x => fiveADay_(x) ? x.row.paper_id : '',
+  { field: 'fiveDay', tag: true,   label: 'Day',         of: x => fiveADay_(x) ? x.row.paper_id : '',
     showOf: (id, ids) => fiveDayLabel_(id, ids) },
-  { field: 'paperId',   label: 'Paper', folder: true,
+  { field: 'paperId', tag: true,   label: 'Paper', folder: true,
     of: x => (x.row && x.row.paper_id) || '',
     /* `said` IS WHAT THE YEAR AND MONTH CHIPS HAVE ALREADY SAID, and the label drops it — see
        `sittingUnsaid_`. Absent on every caller that labels a paper on its own (the bundle, the
        basket, a bucket's key), which keep the whole name. */
-    showOf: (id, ids, said) => sittingUnsaid_(paperLabel_(id, ids), said) },
+    showOf: (id, ids, said) => sittingUnsaid_(paperLabel_(id, ids), said),
+    /* THE TAG IS THE ANSWER AS ITS OWN FOLDER DRAWS IT -- `Paper 1`, not the library-unique
+       `Paper 1 (Non-Calculator) · Foundation — June 2024`: the tags in front already say the tier and
+       the sitting, and the calculator is its own tag (285). See `paperTag_`. */
+    tagSay: (id, x) => paperTag_(x) },
+  /* ---------- WHICH QUESTION, WHICH PART, WHICH PAGE, HOW MANY MARKS ---------------------------------
+     THE OWNER, 12 Oct: every tag on a card is an answer you can pick in the finder, and `Q1a(ii) · 1 of
+     5` is five of them -- [Q1] [a] [ii] [1] [of 5] -- with the marks a sixth. They were one bold tag and
+     one marks token the funnel could not pick; they are facets now, and `tagOnly`, so the 2 Oct rule
+     stands: *"no more asking for questions 1-10 or question part 1 or b."* `nextFacet` never asks them
+     on the way to a paper. Once a paper is chosen they are doors on its page (`tagDoors_`, held behind
+     `paperId` or `fiveDay` by `FACET_NEEDS_FIRST`), so a [Q7] on a card is a [Q7] somebody can press.
+     `qPart` is AQA's `.1` as the card has always printed `Q1.1`, so a digit part never reads as a
+     question number. PAGE AND PAGES COUNT THE PART'S OWN READING PAGES -- its pre pages and its card,
+     read live off `partPlan_` -- and only where there is more than one: [1] [of 1] says nothing. */
+  { field: 'qNumber', tag: true, label: 'Question', tagOnly: true,
+    cmp: (a, b) => Number(a) - Number(b),
+    of: x => x.kind === 'question' && x.qNumber != null && String(x.qNumber) !== '' ? String(x.qNumber) : '',
+    showOf: v => 'Q' + v },
+  { field: 'qPart', tag: true, label: 'Part', tagOnly: true, of: x => qSplitOf_(x).part },
+  { field: 'qSub', tag: true, label: 'Sub-part', tagOnly: true,
+    orderOf: v => romanVal_(String(v)), of: x => qSplitOf_(x).sub },
+  { field: 'qPage', tag: true, label: 'Page', tagOnly: true, cmp: (a, b) => Number(a) - Number(b),
+    of: x => { const n = qPagesOf_(x); return n > 1 ? Array.from({ length: n }, (_, i) => String(i + 1)) : ''; },
+    /* THE ONE PAGE THIS IS, of the pages above. */
+    tagOf: (x, page) => { const i = qPageAt_(x, page); return i && qPagesOf_(x) > 1 ? String(i) : ''; } },
+  { field: 'qPages', tag: true, label: 'Pages', tagOnly: true, cmp: (a, b) => Number(a) - Number(b),
+    of: x => { const n = qPagesOf_(x); return n > 1 ? String(n) : ''; },
+    showOf: v => 'of ' + v,
+    /* `of 2` IS HALF OF `2`: drawn where the page number is, because alone, on the answer or the
+       opening, it is a count of nothing on the screen. */
+    tagOf: (x, page) => { const n = qPagesOf_(x); return n > 1 && qPageAt_(x, page) ? String(n) : ''; } },
+  { field: 'marks', tag: true, label: 'Marks', tagOnly: true, cmp: (a, b) => Number(a) - Number(b),
+    of: x => Number(x && x.marks) > 0 ? String(Number(x.marks)) : '',
+    showOf: v => v + ' mark' + (String(v) === '1' ? '' : 's') },
   { field: 'slot',      label: 'Goes on',     of: x => x.slot },
   /* ---------- "FREE" AND "NOT PRICED" ARE DIFFERENT ANSWERS, AND THIS SAID FREE TO BOTH -------
      MEASURED: 3,262 OF 3,265 ITEMS ANSWERED `Free`. Every mapper in `stuffItems` used to write
@@ -1710,15 +1749,15 @@ const FACETS = [
      *"Can you add a health check to worksheets or past papers so we can know when we are doing
      something whether it's low accuracy or buggy or missing shit or anything."* — the owner, 18 Oct.
      The score is `paperHealth_` in library.js, the one function `check-health.js` prints too; this is
-     its band, so a card wearing `Ready · 99%` wears an answer this question offers (the owner's rule:
-     every tag on a card is something you can pick).
+     its band, so a card wearing `[Ready]` wears an answer this question offers (the owner's rule:
+     every tag on a card is something you can pick); the percentage is the Health tile's (355).
 
      `tagOnly`, SO THE FUNNEL NEVER ASKS IT ON THE WAY TO A PAPER. Every list of questions would split
      on it, and asking it would put a fourth tap in front of every folder for a fact most people do not
      filter by. It is offered instead as its own row under whatever question is being asked
-     (`healthDoor_`), which a tap can ignore. FOR EVERYBODY: *"No, everyone can see the scores"* — the
+     (`tagDoors_`), which a tap can ignore. FOR EVERYBODY: *"No, everyone can see the scores"* — the
      owner, overruling a tutors-only first draft the same day. */
-  { field: 'health',    label: 'Health', tagOnly: true,
+  { field: 'health', tag: true,    label: 'Health', tagOnly: true,
     orderOf: v => HEALTH_BANDS.findIndex(b => b[0] === v),
     of: x => { const h = healthOf_(x); return h ? h.band : ''; } },
 ];
@@ -1875,16 +1914,13 @@ const RETIRED_FACETS = {
   category: 'the links\' own question, and the links are gone -- "Get rid of links that\'s almost '
           + 'redundant now." A sheet row naming `category` would read that column off whatever else '
           + 'carries one and offer it as a question nobody wrote a label for.',
-  /* ---------- THE QUESTION NUMBER AND THE PART, IN BOTH SPELLINGS ----------------------------------
-     ALL FOUR, because `FACET_NEEDS_FIRST` said why: the sheet may name the item's field (`qNumber`,
-     `qPart`) or the row's column (`question`, `part`), and both read the same numbers. Retiring two
-     of the four would leave the owner's sentence one renamed row away from coming back. The fields
-     stay on every item -- `stuffSorted_` puts a paper's questions in order by them. */
-  qNumber: 'the owner: "no more asking for questions 1-10 or question part 1 or b." After Paper the '
-         + 'list is the paper\'s own questions, in the order the paper prints them.',
-  qPart: 'retired with `qNumber`, on the same words: "no more asking for ... question part 1 or b."',
-  question: 'the row\'s spelling of `qNumber` -- the same question numbers, and retired with them.',
-  part: 'the row\'s spelling of `qPart` -- the same question parts, and retired with them.',
+  /* ---------- THE ROW'S SPELLINGS OF THE QUESTION NUMBER AND THE PART ------------------------------
+     `qNumber` and `qPart` are code facets again, `tagOnly` (docs/history/355): never asked on the way
+     to a paper, pickable once one is chosen. These two stay retired, because a sheet row naming the
+     raw column would read the cell itself and offer `3i` beside the split [.3] [i] -- one fact in two
+     shapes on one screen. */
+  question: 'the row\'s spelling of `qNumber`; `qNumber` asks it, as the Question door on a paper.',
+  part: 'the row\'s raw `part` cell would offer `3i` beside `qPart` and `qSub`, which split it.',
   topicArea: 'the owner: "why is there a topic area menu? ... im fin with names of pdfs which are the '
            + 'names of the topics themselves". A sheet\'s topic is its PDF\'s name, which `Paper` asks; '
            + 'the strands above it were a grouping over a list that did not need one.',
@@ -3156,12 +3192,13 @@ function fiveDayLabel_(id, ids) {
   return d.day + ' ' + d.month + (mixed ? ' · ' + name : '');
 }
 
-/* ---------- THE FOUR QUESTION-NUMBER ENTRIES LEFT WITH THE QUESTIONS --------------------------------
-   `question`, `qNumber`, `part` and `qPart` were held here behind `paperId` — the note above is why,
-   and it is still the reason a question number means nothing outside its paper. The owner then took
-   the questions themselves away (*"no more asking for questions 1-10 or question part 1 or b."*), and
-   `RETIRED_FACETS` refuses all four spellings, so an entry here would be a rule about a question that
-   can no longer be asked. If one ever comes back, it comes back with its line here. */
+/* ---------- THE QUESTION'S OWN DOORS WAIT FOR A PAPER ------------------------------------------------
+   A question number means nothing outside its paper, so Question, Part, Sub-part, Page, Pages, Marks
+   and What you need are offered only once a paper is chosen -- by `Paper`, or by a 5-a-day's `Day`,
+   which is its paper under another name. A LIST MEANS ANY ONE OF THEM: the 5-a-day route never asks
+   `paperId` (its `Day` already opened that folder, `folderOpened_`), and a single rung would leave its
+   papers without the doors. All seven are `tagOnly`, so this only decides when `tagDoors_` offers them. */
+const PAPER_FIRST = ['paperId', 'fiveDay'];
 const FACET_NEEDS_FIRST = {
   fiveDay:  'fiveMonth',
   /* ---------- THE BIBLE'S RUNGS, EACH BEHIND THE ONE ABOVE IT ---------------------------------------
@@ -3173,6 +3210,13 @@ const FACET_NEEDS_FIRST = {
      whole by `overFacet_`), and Chapter after it. */
   bibleTestament: 'bibleTranslation', bibleGroup: 'bibleTestament', bibleBook: 'bibleGroup',
   bibleChapter: 'bibleBook', bibleVerse: 'bibleChapter',
+  qNumber: PAPER_FIRST, qPart: PAPER_FIRST, qSub: PAPER_FIRST, qPage: PAPER_FIRST, qPages: PAPER_FIRST,
+  marks: PAPER_FIRST, needs: PAPER_FIRST,
+};
+/* HAS WHAT THIS FACET WAITS FOR BEEN ASKED? A name, or a list of which any one will do. */
+const facetNeedsMet_ = (field, asked) => {
+  const first = FACET_NEEDS_FIRST[field];
+  return !first || [].concat(first).some(f => asked.indexOf(f) !== -1);
 };
 
 /* ---------- A PAPER IS THE LAST FOLDER, AND WHAT IS INSIDE IT IS THE LIST ------------------------------
@@ -3235,8 +3279,7 @@ function nextFacet(items) {
     /* ---------- NOT UNTIL THE QUESTION IT HANGS OFF HAS BEEN ANSWERED ---------------------------
        See `FACET_NEEDS_FIRST`. Skipped rather than reordered: reordering would ask it later and
        still ask it of a list holding three papers, which is the same wrong answer further down. */
-    const first = FACET_NEEDS_FIRST[facet.field];
-    if (first && asked.indexOf(first) === -1) continue;
+    if (!facetNeedsMet_(facet.field, asked)) continue;
     const vals = facetValues(items, facet).length;
     /* A GRID IS A NUMBERED RUN AND IS NOT CAPPED — see `grid` on the Bible's Chapter and Verse. */
     if (vals < (facet.folder ? 1 : 2) || (vals > FACET_MAX_ANSWERS && !facet.grid)) continue;
@@ -3355,7 +3398,7 @@ function whyThisQuestion(all) {
     if (asked.indexOf(f.field) !== -1) why = 'asked already';
     else if (fenced) why = f.only ? 'kept to lists that are all ' + f.only + ' (only)'
                                   : 'this list is all ' + listKind_(items) + ': only its own questions';
-    else if (first && asked.indexOf(first) === -1) why = 'waits for ' + first + ' (FACET_NEEDS_FIRST)';
+    else if (!facetNeedsMet_(f.field, asked)) why = 'waits for ' + [].concat(first).join(' or ') + ' (FACET_NEEDS_FIRST)';
     else if (!all && funnelEnded_()) why = 'a paper is chosen — its questions are the list (FACET_ENDS)';
     else if (vals.length < (f.folder ? 1 : 2)) why = (vals.length ? 'one answer' : 'nobody can answer it')
                                     + ' — nothing to decide';
@@ -3521,8 +3564,8 @@ function fightCard_(x) {
   return `<div class="card fc fight">
     <div class="fc-head">
       <h3 class="fight-line">${corner(f.a, wonA)}<em>v</em>${corner(f.b, wonB)}</h3>
-      <span class="fc-flags"><span class="fc-flag is-type">Fight</span></span>
     </div>
+    ${tagRow_(x)}
     ${/* THE DATE AS THE FIGHTER'S PAGE WRITES IT. This printed the cell — `1971-03-08` — one flick
           away from his page printing the same bout as `8 Mar 1971`: one fight, two dates, and the
           ISO one is a database's, not a poster's. `boxerDate_` leaves a cell that is not a date as
@@ -3619,6 +3662,9 @@ function decadesOf_(x) {
    THE FILE HOLDS THE WORD AND THIS HOLDS THE LABEL, so the sentence a card prints can change
    without rewriting 82 rows — the `blockPhrase_` / `head` split the booking week already makes. */
 const PRAC_TYPE = { experiment: 'Experiment', build: 'Build' };
+/* THE `required` FACET'S THREE ANSWERS, IN THE ORDER A TUTOR READS THEM: what a board demands, what is
+   worth doing anyway, and what was turned down. The words the card's pill said, unchanged. */
+const PRAC_NEED = ['Required practical', 'Extra', 'Not for now'];
 
 function practicalCard_(x) {
   const p = x.row;
@@ -3657,33 +3703,12 @@ function practicalCard_(x) {
   return `<div class="card fc prac${off ? ' is-off' : ''}">
     <div class="fc-head">
       <h3>${esc(x.name)}</h3>
-      ${/* ---------- WHAT KIND OF AFTERNOON THIS IS, BESIDE WHETHER A BOARD DEMANDS IT ----------
-            ASKED FOR AS "differentiate between a science experiment and a contraption/art and
-            craft thing". The two chips answer two different questions and both belong on the row
-            that already answers one of them: `Build · Extra` is *you make a thing, and no board
-            asks for it*, which is two facts in four words.
-
-            NEITHER TYPE IS GOLD, DELIBERATELY. Gold in this app means one thing — the answer to
-            the yes/no question is yes — and `.fc-flag.is-req`'s own note says an "Extra" in the
-            same colour would make the distinction decorative. Colouring `Build` would put a second
-            meaning on the one colour that currently has exactly one, on the same row, an inch
-            apart. The word is unambiguous and needs no help.
-
-            THE RAW CELL IS DRAWN FOR A VALUE THE MAP HAS NEVER HEARD OF, which is `tileIcon_`'s
-            rule: visibly wrong beats invisible. `check-practicals.js` refuses an unknown value at
-            the file, so this is what a phone running an older build does, not what ships. */''}
-      ${/* BOTH FLAGS IN ONE BOX, AND THE MEASUREMENT IS WHY. `.fc-head` is
-            `justify-content: space-between`, which distributes the free space between EVERY child
-            — so three of them put `Build` hard against the title and `Extra` hard against the
-            right edge with fifty-nine pixels of nothing between two chips that belong together.
-            Measured at 320px before it was written: `is-type [12→82]`, `is-req [141→256]`. One
-            wrapper takes the head back to two children, so the rule keeps meaning what it meant,
-            and the pair wraps under a long title as a pair. */''}
-      <span class="fc-flags">${p.practicalType ? `<span class="fc-flag is-type">${
-        esc(PRAC_TYPE[p.practicalType] || p.practicalType)}</span>` : ''
-      }<span class="fc-flag${off ? ' is-no' : p.required ? ' is-req' : ''}">${
-        off ? 'Not for now' : p.required ? 'Required practical' : 'Extra'}</span></span>
     </div>
+    ${/* WHAT KIND OF AFTERNOON THIS IS AND WHETHER A BOARD DEMANDS IT -- `Build · Extra` -- were two
+          pills of the head's own (*"differentiate between a science experiment and a contraption/art
+          and craft thing"*). They are the Experiment-or-build and Required answers now, in the one row
+          every card wears, so a tag can be picked as the chip it is (docs/history/355). */''}
+    ${tagRow_(x)}
     <p class="sub">${esc([p.subject, p.specRef || p.level].filter(Boolean).join(' · '))}</p>
     ${off ? `<p class="prac-no"><b>Why not</b> ${esc(p.excluded)}${p.reconsiderAt
       ? ' <span class="prac-again">Worth another look at ' + p.reconsiderAt + ', in a lab.</span>'
@@ -3958,8 +3983,8 @@ function projectCard_(x) {
   return `<div class="card fc prac proj">
     <div class="fc-head">
       <h3>${esc(x.name)}</h3>
-      <span class="fc-flags"><span class="fc-flag is-type">${esc(projType_(p))}</span></span>
     </div>
+    ${tagRow_(x)}
     <p class="sub">${esc([p.subject, p.level, qual].filter(Boolean).join(' · '))}</p>
     <p class="fc-lede">${esc(p.summary)}</p>
     ${strip ? `<p class="fc-meta">${esc(strip)}</p>` : ''}
@@ -4069,43 +4094,19 @@ const tbHigher_ = on => on ? '<span class="tb-h" title="Higher tier only">H</spa
 /* ---------- A CONTENT CARD: ONE CHAPTER, WHOLE, WITH THE QUESTIONS' TAGS ON IT -------------------
    IT WAS A CONTENTS CARD AND A PAGE PER CHAPTER (`textbookCard_`, `textbookPart_`). The owner, 12 Oct:
    *"Forget the whole concept of it being a text book. It's just a "content card"."* So the chapter IS
-   the card: the head every Find kind opens on (`.fc-head` — its title, and the `Content` flag where a
-   practical says `Practical`), the tag row a question wears (`contentTags_`), then its key words,
-   formulas and worked lines (`tbSections_`, unchanged). Nothing on it says book or chapter — the number
-   a chapter has in the file is its order there, not a fact about it. Its animations stay pages of their
-   own after it (`pageParts_`), played in whichever finder it is open in (`tbAnimWatch_`). */
+   the card: its title, the one tag row every Find card wears (`tagRow_` -- [Content] first, then the
+   question library's Level, Subject, Board, Tier and Topic answers, so *"It can share same tags as
+   questions e.g. gcse, ks2, maths"* is the same renderer rather than a copy of it), then its key words,
+   formulas and worked lines (`tbSections_`, unchanged). The title's own `H` went with its `Content`
+   pill: [Higher] says it, and two marks for one fact is the thing 355 took out. Nothing on it says book
+   or chapter. Its animations stay pages of their own after it (`pageParts_`). */
 function contentCard_(x) {
   const c = x.row;
   return `<div class="card fc prac tb ct">
-    <div class="fc-head">
-      <h3>${esc(x.name)}${tbHigher_(c.higher)}</h3>
-      <span class="fc-flags"><span class="fc-flag is-type">Content</span></span>
-    </div>
-    ${contentTags_(x)}
+    <div class="fc-head"><h3>${esc(x.name)}</h3></div>
+    ${tagRow_(x)}
     ${tbSections_(c)}
   </div>`;
-}
-/* ---------- THE QUESTION CARD'S ROW, ASKED OF THE SAME FACETS -------------------------------------
-   *"It can share same tags as questions e.g. gcse, ks2, maths."* So these are `qTags_`'s readers —
-   `qTagOf_` over Level and Key stage, Exam board, Subject, Tier — and the Topic answers, each in the
-   colour its funnel chip wears (`tagOf_`). Through the facets and not off the row, for `qTags_`'s
-   reason: a tag can then never say a word the chip above it would not, so `GCSE` here is the Level
-   answer a question says, and Key stage is said only inside SATs, as on a question. WHAT THE PAGE IS
-   — `Question` at the front of a question's row — is the head's `Content` flag here, as on every other
-   Find kind, so the row does not say it twice. NO TAG IS A CONTROL. */
-function contentTags_(x) {
-  const tags = [];
-  const add = (tag, v) => {
-    const t = String(v || '').trim();
-    if (t && !tags.some(o => norm(o.text) === norm(t))) tags.push({ tag: tag, text: t });
-  };
-  qTagOf_('level', x).concat(qTagOf_('keystage', x)).forEach(v => add(tagOf_('level'), v));
-  qTagOf_('examBoard', x).forEach(v => add('board', v));
-  qTagOf_('subject', x).forEach(v => add('subject', v));
-  qTagOf_('tier', x).forEach(v => add('tier', v));
-  qTagOf_('topic', x).forEach(v => add(tagOf_('topic'), v));
-  return `<div class="qtags qcard-tags">${tags.map(t =>
-    `<span class="qtag"${t.tag ? ` data-tag="${t.tag}"` : ''}>${esc(t.text)}</span>`).join('')}</div>`;
 }
 
 /* ---------- A CHAPTER'S KEY WORDS, FORMULAS AND WORKED LINES — ALL OF THEM, OR THE ONES ASKED FOR ---------
@@ -4743,8 +4744,8 @@ function bibleCard_(x) {
   return `<div class="card fc prac bible" data-bb="card">
     <div class="fc-head">
       <h3>${esc(BIBLE_NAME)}</h3>
-      <span class="fc-flags"><span class="fc-flag is-type">Book</span></span>
     </div>
+    ${tagRow_(x)}
     <p class="sub">The Authorized Version of 1611</p>
     <p class="fc-lede">The Old and New Testaments, whole${t ? ` — ${num(t.books)} books, ${num(t.chapters)} chapters, ${num(t.verses)} verses` : ''}.${how}</p>
     ${!ix && BIBLE.failed ? '<p class="fc-note bb-miss">The list of books did not arrive.</p>' : !ix ? loading_() : ''}
@@ -4757,21 +4758,16 @@ function bibleCard_(x) {
 }
 
 /* ---------- ONE VERSE, A CARD OF ITS OWN -------------------------------------------------------------
-   "each verse is a widget". THE TAGS ARE THE QUESTION CARD'S ROW (`qPage_`'s markup): what the page is
-   (`Verse`), which one (`Genesis 1:3`, in the coral Book, Chapter and Verse chips wear), and the three
-   answers that are not the citation — read through each facet's own `of` with `qTagOf_` and coloured by
-   `tagOf_`, so the card cannot say a word its chip would not. Then the verse, in the reading size.
+   "each verse is a widget". THE TAGS ARE EVERY CARD'S ROW (`tagRow_`): the translation, the testament,
+   the group, and the book, chapter and verse as three answers -- [Genesis] [1] [3] -- each the chip that
+   picks it. It was `Verse` in a filled pill and `Genesis 1:3` in one coral tag; neither was an answer.
+   Then the verse, in the reading size.
    THE BOOK IS FETCHED WHEN A CARD OF IT IS DRAWN, not when it is chosen: the funnel can arrive at a
    verse by any path, a search or a star, and the card is the one place every path passes. Once a
    visit (`BIBLE.books`), and only the first card to ask sets up the redraw, so twenty cards waiting
    on one book are one fetch, one redraw and — if it fails — one toast. */
 function bibleVerseCard_(x) {
   const bb = x.bb, n = bb.n, d = BIBLE.books[n];
-  const tags = [{ tag: 'kind', text: 'Verse' }, { tag: tagOf_('bibleBook'), text: x.name }];
-  ['bibleTranslation', 'bibleTestament', 'bibleGroup'].forEach(f => {
-    const v = qTagOf_(f, x)[0];
-    if (v) tags.push({ tag: tagOf_(f), text: v });
-  });
   let body;
   if (d) body = bibleV_(d.chapters[Number(x.ch) - 1][Number(x.v) - 1]);
   else if (BIBLE.missed[n] && !BIBLE.loading[n]) body = `<p class="fc-note bb-miss">${esc(bb.book)} did not arrive.</p>`;
@@ -4787,8 +4783,7 @@ function bibleVerseCard_(x) {
     }
   }
   return `<div class="card fc bible bb-verse" data-bb="v" data-bn="${n}" data-key="${esc(x.key)}">
-    <div class="qtags qcard-tags">${tags.map(t =>
-      `<span class="qtag"${t.tag ? ` data-tag="${t.tag}"` : ''}>${esc(t.text)}</span>`).join('')}</div>
+    ${tagRow_(x)}
     ${body}
   </div>`;
 }
@@ -5942,8 +5937,8 @@ function boxerCard_(x) {
   return `<div class="card fc boxer">
     <div class="fc-head">
       <h3>${esc(b.name || x.name)}${b.nickname ? `<span class="boxer-nick">“${esc(b.nickname)}”</span>` : ''}</h3>
-      <span class="fc-flags"><span class="fc-flag is-type">Boxer</span></span>
     </div>
+    ${tagRow_(x)}
     ${where ? `<p class="sub boxer-from">${where}</p>` : ''}
     ${st ? `<p class="boxer-status ${st.k}">${esc(st.t)}</p>` : ''}
     ${boxerPic_(b)}
@@ -6535,7 +6530,11 @@ function partKeyOf_(part, numerals) {
   if (m) return m[1] + (m[2] ? padNums_(String(romanVal_(m[2]))) : '');
   return padNums_(s);
 }
-function partKeys_(rows) {
+/* THE DECISION ITSELF, ONE PER QUESTION AND KEYED BY THE ROW: does this question number its parts in
+   numerals? Its own function because two readers need the same answer -- the sort key below and the
+   tag split (`partSplit_`) -- and a second copy of the rule would let W-CBM-time Q4's `i` be the ninth
+   letter in the order and a numeral on the card. */
+function partNumerals_(rows) {
   const by = {};
   (rows || []).forEach(r => {
     if (!r || r.kind === 'preamble' || r.kind === 'document') return;
@@ -6546,9 +6545,39 @@ function partKeys_(rows) {
   Object.keys(by).forEach(k => {
     const list = by[k];
     const numerals = list.every(r => { const s = partBare_(r.part); return !s || ROMAN_ONLY.test(s); });
-    list.forEach(r => out.set(r, partKeyOf_(r.part, numerals)));
+    list.forEach(r => out.set(r, numerals));
   });
   return out;
+}
+function partKeys_(rows) {
+  const numerals = partNumerals_(rows);
+  const out = new Map();
+  numerals.forEach((n, r) => out.set(r, partKeyOf_(r.part, n)));
+  return out;
+}
+
+/* ---------- A PART, TAKEN APART FOR ITS TAGS: `ai` IS [a] [ii] ----------------------------------------
+   THE OWNER, 12 Oct: Q1a(ii) is three tags, [Q1] [a] [ii]. `part` is the Part answer (a letter, or
+   AQA's `.1`, the way the card has always printed it -- `Q1.1`) and `sub` the Sub-part (a numeral).
+   THE SAME READING `partKeyOf_` MAKES, branch for branch, with the question's own numeral decision
+   (`partNumerals_`), so a lone `i` in a question running a to j is a letter here as it is in the sort.
+   Measured over the library: letter 2,717, AQA digit 1,195, letter + numeral 209, digit + numeral 119,
+   numeral alone 37 -- and nothing that does not split, which `check-library.js` holds. `null` for a
+   part that will not split, so the check can count them rather than the card guessing. */
+/* AN ITEM'S SPLIT: the one `questionItems` worked out with its question's numeral decision, or -- for an
+   item built anywhere else, a harness's or a kept copy's -- the part read alone, where a lone `i` is a
+   numeral (`qPartBits_`'s reading: lettering reaches i only at a ninth part). */
+const qSplitOf_ = x => (x && x.kind === 'question'
+  && (x.qSplit || partSplit_(x.qPart, true))) || { part: '', sub: '' };
+function partSplit_(part, numerals) {
+  const s = partBare_(part);
+  if (!s) return { part: '', sub: '' };
+  if (/^\d+$/.test(s)) return { part: '.' + Number(s), sub: '' };
+  if (numerals && ROMAN_ONLY.test(s)) return { part: '', sub: s };
+  const n = NUM_ROMAN.exec(s);
+  if (n) return { part: '.' + Number(n[1]), sub: n[2] };
+  const m = /^([a-z])(i{1,3}|iv|vi{0,3}|ix|xi{0,3})?$/.exec(s);
+  return m ? { part: m[1], sub: m[2] || '' } : null;
 }
 
 /* ---------- WHAT A QUESTION IS ABOUT, AS WORDS -----------------------------------------------------
@@ -7011,7 +7040,7 @@ function questionItems() {
   /* AND THE CODE ON EACH PAPER'S COVER — see `specIndex_`. Built once per draw, off the file. */
   const spec = specIndex_();
   /* EACH PART'S PLACE IN ITS QUESTION -- see `partKeys_`. */
-  const partKey = partKeys_(all);
+  const partKey = partKeys_(all), numerals = partNumerals_(all);
 
   return all.filter(r => r.kind !== 'preamble' && r.kind !== 'document').map(r => {
     const lead = preamble_(r, stems);
@@ -7042,6 +7071,9 @@ function questionItems() {
          nothing was visibly wrong — see the note above the sort, which is about why that is not the
          same as nothing being wrong. */
       qNumber: r.q, qPart: r.part || '', qPartKey: partKey.get(r) || '',
+      /* THE PART AS ITS TWO TAGS -- see `partSplit_`. `qPart` stays the raw cell beside it, because the
+         sort, `usesAt_`, `qRef` and the checks' fixtures all read the cell. */
+      qSplit: partSplit_(r.part, numerals.get(r)),
       /* THE TOPICS, RESOLVED ONCE. `topicOf_` splits the cell and puts every spelling of a topic on
          one button, and doing that inside the facet meant doing it per item per question asked:
          MEASURED at 38 ms to interrogate this one facet across the library. It is a fact about the
@@ -7051,9 +7083,6 @@ function questionItems() {
       lead: r.lead, html: r.html, diagram: r.diagram || '',
       /* THE SAME SPLIT `topics` AND `keystage` GET — one helper, because a comma is a comma. */
       images: topicAtoms_(r.images || (r.row && r.row.images)),
-      /* WHO DREW IT. See `figCredit_` — a picture this site made to replace one that did not come
-         across is not the same object as a picture off the paper, and the card says which. */
-      diagramBy: r.diagramBy || (r.row && r.row.diagram_by) || '',
       /* THE MARK SCHEME, WHICH THE BACKEND SENT TO NOBODY FOR MONTHS. `answer`, `answerType` and
          `examinerNote` have been in the payload since the tab was cut, and the first version of
          this function dropped all three — the other direction of the fault `check-payload.js`
@@ -8938,7 +8967,7 @@ const padBar_ = (pen, tools, tool) => `<div class="qpad-bar tile-row" role="tool
       tile_({ icon: 'bin', label: 'Clear', note: 'every mark', act: 'pad-clear', cls: 'qpad-clear' })}</span>
     </div>`;
 
-function padWrap_(x, svg, credit) {
+function padWrap_(x, svg) {
   const k = padKey_(x);
   /* DRAWING THE PAD IS OPENING IT, so this is where the phone's old marks become this person's. */
   padAdopt_(k, padPrefix_(x) + ':' + padItemKey_(x));
@@ -8979,11 +9008,7 @@ function padWrap_(x, svg, credit) {
         <g class="qpad-aid"></g>
       </svg>
     </div>
-    ${padBar_(pen, tools, tool)}${credit || ''} ${was.length ? usesSaid_(x, svg, true) : ''}
-    ${/* A SPACE BETWEEN THE CREDIT AND THE EARLIER MARKS' LINE, because on the card's drawing face the small
-          print runs on as one line (style.css, `.qp-area.is-draw .qpad > .fig-by`), and two inline `<p>`s with
-          nothing between them read "...redrawn.The fainter marks are yours from Q6(i)" -- on the old figure
-          page the credit was a block and nothing showed (337, after review). */''}
+    ${padBar_(pen, tools, tool)}
     ${/* WHERE THE MARKS GO, AND ONLY A `pad:` KEY GOES ANYWHERE: `padNoteSay_` says "Saved to Ada's
           account" signed in, "Not saved" when the store refused it and who was signed out when a session ended
           (317). The whiteboard's (`padPrefix_`) stays on this device, so of those only "Not saved" is ever
@@ -10366,7 +10391,7 @@ function padWhoChanged_() {
    drawn for them for the last person's and veiled it, and a stale Tools column showed the loader where the
    arriving child's own strokes belong. */
 function wbPaint_() {
-  const html = `<div class="wb">${padWrap_(WB_ITEM, WB_SURF, '')}</div>`;
+  const html = `<div class="wb">${padWrap_(WB_ITEM, WB_SURF)}</div>`;
   const who = typeof widgetWho_ === 'function' ? widgetWho_() : '';
   document.querySelectorAll('.wb-box').forEach(el => {
     if (PAD_ST && PAD_GO && el.contains(PAD_GO.ink)) return;
@@ -10460,16 +10485,6 @@ function usesChain_(x, svg) {
 }
 /* EVERY MARK THOSE PARTS MADE, earliest part first. */
 const usesUnder_ = (x, svg) => [].concat(...usesChain_(x, svg).map(usesMine_));
-/* AND THE ONE LINE THAT SAYS WHOSE THEY ARE -- the fainter marks under a pen are the ones its Undo will
-   not take, and a mark that will not undo with nothing saying why is a pen that looks broken. Named by
-   the parts that actually have marks, so "from Q6(i)" is never said over a blank scale. */
-function usesSaid_(x, svg, under) {
-  const from = usesChain_(x, svg).filter(y => usesMine_(y).length).map(y => esc(y.name));
-  if (!from.length) return '';
-  const who = from.length > 1 ? from.slice(0, -1).join(', ') + ' and ' + from[from.length - 1] : from[0];
-  return `<p class="qpad-note qseen-from">${under ? 'The fainter marks are' : 'The marks are'} yours from ${who} &mdash;
-    change them there.</p>`;
-}
 /* THE EARLIER MARKS AS AN INK GROUP, beside the pad's own and never inside it: `padRepaint_` rewrites
    `.qpad-g` from this part's storage, so nothing it does can reach these. */
 const usesInk_ = (all, k) => `<g class="qpad-was" vector-effect="non-scaling-stroke">${all.map(st =>
@@ -10477,22 +10492,16 @@ const usesInk_ = (all, k) => `<g class="qpad-was" vector-effect="non-scaling-str
 /* A PICTURE WITH MARKS ON IT AND NO PEN: the pad's box and ink layer (`.qpad-art`, `.qpad-ink`) so a
    mark lands exactly where `padWrap_` drew it, inside `.qseen` rather than `.qpad` -- the class every
    pen handler and `padArm_` look for, so none of them can arm a picture that is not for drawing on. */
-const usesSeen_ = (svg, all, note) => `<div class="qseen">
+const usesSeen_ = (svg, all) => `<div class="qseen">
     <div class="qpad-art">${svg}
       <svg class="qpad-ink" viewBox="0 0 340 340" preserveAspectRatio="none" aria-hidden="true">${usesInk_(all, padAspect_(null, svg))}</svg>
-    </div>${note || ''}
+    </div>
   </div>`;
 /* A PART THAT ONLY LOOKS AT THE PICTURE AN EARLIER PART DREW ON: its own copy, with those marks. */
 function usesFig_(x) {
   const was = x && x.diagram ? usesUnder_(x, x.diagram) : [];
-  return was.length ? usesSeen_(x.diagram, was, figCredit_(x, 'p') + usesSaid_(x, x.diagram)) : '';
+  return was.length ? usesSeen_(x.diagram, was) : '';
 }
-
-/* A PICTURE WITH THE CHILD'S MARKS ON IT IS HEADED AS THEIRS -- the `use` page and the Figure sheet
-   alike. In review a page headed plain "Figure" over the child's own graph read as one more printed
-   picture. The picture's own name stays where the paper gives one ("Figure 2 · your drawing"); no
-   question number, as on every figure page (`figHead_`) -- the line under it says which part. */
-const usesHead_ = name => (!name || name === 'Figure' ? 'Your drawing' : name + ' \u00b7 your drawing');
 
 /* DOES THIS PART GET THE PAGE IN FRONT -- see the note above. `prev` is the result before it in the
    strip, as `pageParts_` is told, and asked of nothing now: see where "not a page the strip has just
@@ -10511,8 +10520,8 @@ function usesPage_(x, prev) {
   if (x.diagram && x.diagram === p.svg) return false;
   return true;
 }
-/* THE PAGE: the earlier part's picture, named as its own figure page names it (a surface by what it
-   is, a paper figure by the name the paper gives it), the marks on it, and one line. `data-of` is THIS
+/* THE PAGE: the earlier part's picture with the marks on it, and nothing said under it -- the lines
+   naming whose marks they were went with every credit on 18 Oct (355). `data-of` is THIS
    part's row, because the page is this part's -- it stands in front of it and only it; `data-uses`
    names the row the marks came from. */
 function questionUsesCard_(x) {
@@ -10520,20 +10529,11 @@ function questionUsesCard_(x) {
   const p = y && padSource_(y);
   if (!p) return '';
   const all = usesUnder_(y, p.svg).concat(usesMine_(y));
-  const name = p.from === 'surface' ? (SURFACE_NAME[p.surface] || 'Space to draw')
-    : p.from === 'part' ? figLabel_(String(y.lead || '') + ' ' + String(y.html || ''),
-                                    (y.stems || []).filter(stemHasFig_).map(s => figLabel_(s.html)))
-    : figLabel_(p.from.html);
-  const label = usesHead_(name);
-  const said = all.length
-    ? `Your marks from ${esc(y.name)}, to use here. To change them, go back to ${esc(y.name)}.`
-    : `Nothing drawn on ${esc(y.name)} yet &mdash; this part uses what you draw there.`;
   const id = (x.row && x.row.row_id) || x.key || '';
   const from = (y.row && y.row.row_id) || y.key || '';
   return `<div class="qcard qfig qfig-uses" data-of="${esc(id)}" data-uses="${esc(from)}">
-    ${qPage_(x, label, '', false)}
-    <div class="qsheet">${usesSeen_(p.svg, all,
-      `<p class="qseen-note">${said}</p>` + (p.from === 'part' ? figCredit_(y, 'p') : ''))}</div>
+    ${tagRow_(x, 'use')}
+    <div class="qsheet">${usesSeen_(p.svg, all)}</div>
   </div>`;
 }
 
@@ -10793,40 +10793,16 @@ function drawTile_(x) {
 /* ---------- THE ANSWER AREA ---------------------------------------------------------------------
    `.qp-area` ONLY ROUND A QUESTION WITH A PEN, so every other card's box is the markup it always was.
    `data-q` names the question (its item key) for the tile's handler to find every copy -- Find and Saved
-   can both be holding the card. The drawing face is the picture `padSource_` names under the pen, and the
-   line under it says whose picture it is, in a card's length -- the claim alone, one line where it can be:
-     the paper's own figure, or a stem's    "The paper's figure, redrawn." (`FIG_CARD`) -- the honesty
-                                            argument the figure page's credit makes, on a card
-     a made-up surface                      "Not the paper's own figure." -- a generated grid passing as
-                                            the exam board's would be the site speaking in its voice
-   CUT IN REVIEW, BOTH OF THEM. 327 cut the surface's line from its page's sentence to the claim alone: two
-   notes under a pen's bar were two lines of a 568px phone the grid needed. 337 first carried the figure
-   page's whole sentence here ("drawn for @family. from the paper's own figures -- the original is the
-   board's and is not reproduced here") and the review of 11 Oct measured what that cost: three lines at
-   320, four signed out with "Kept on this device only -- sign in to keep it."; with the one-line credit
-   (and the floor and order fixes in `padFaceFit_` beside it) the cards still scrolling with Draw pressed at
-   320x568 went from 33 to 17, measured over all 532. The figure's own page beside the card -- the
-   stem's, for a stem's part -- still carries the whole sentence, so nothing is disclosed less.
-   NOT FOR `family-set`, whose sentence says something else entirely: these are OUR coins and OUR answer
-   (see `FIG_BY`). Cut to "redrawn" it would be the fault that note records the other way round -- a
-   picture whose content we chose, captioned as the board's. It keeps its whole sentence; none of the 470
-   is one today.
-   Either way run on one line with "Saved to Ada's account" (style.css, `.qp-area.is-draw`) -- so a credit
-   ends in a full stop here, which `FIG_BY`'s sentences do not have (a caption needs none): run on, the
-   first screenshot read "...is not reproduced here Kept on this device only". */
-const FIG_CARD = { family: 'The paper&rsquo;s figure, redrawn.' };
-const padCredit_ = (x, p) => {
-  if (p.from === 'surface') return '<p class="fig-by">Not the paper&rsquo;s own figure.</p>';
-  const of = (p.from === 'part' ? x : p.from).diagramBy;
-  const by = FIG_CARD[of] || (FIG_BY[of] ? FIG_BY[of] + '.' : '');
-  return by ? `<p class="fig-by">${by}</p>` : '';
-};
+   can both be holding the card. The drawing face is the picture `padSource_` names under the pen, with
+   nothing under it but the pen's own note: the line saying whose picture it was ("The paper's figure,
+   redrawn.", "Not the paper's own figure.") went on the owner's word, 18 Oct -- *"I don't like that
+   extra text which disclaims it's drawn from blah blah. Get rid of that. Everywhere."* (355) */
 function ansArea_(x) {
   const p = x && x.key ? padSource_(x) : null;
   if (!p) return ansBox_(x);
   const draw = padFace_(x) === 'draw';
   return `<div class="qp-area${draw ? ' is-draw' : ''}" data-q="${esc(x.key)}">${draw
-    ? padWrap_(x, p.svg, padCredit_(x, p))
+    ? padWrap_(x, p.svg)
     : ansBox_(x)}</div>`;
 }
 
@@ -10954,7 +10930,7 @@ function padFaceFit_(pane) {
       if (fit < w) svg.style.width = fit + 'px';
       by = over();
     };
-    /* THE CARD'S OWN CHILDREN THAT ARE NOT THE ANSWER: `qPage_`'s tags and the `.qsheet`. Their heights at
+    /* THE CARD'S OWN CHILDREN THAT ARE NOT THE ANSWER: `tagRow_`'s tags and the `.qsheet`. Their heights at
        zoom 1, and the zoom that takes `by` (and the four pixels `paneReach_` keeps for a border and a line
        box) off them -- which fits or overshoots, never undershoots, because words drawn smaller wrap less. */
     const shrinkWords = () => {
@@ -11074,28 +11050,12 @@ on('qw-tap', (el) => {
   });
 });
 
-/* ==================================================================================================
-   A PICTURE THIS SITE DREW IS LABELLED AS ONE.
-
-   SIX QUESTIONS IN THE CORBETTMATHS MONEY SHEET COULD NOT BE ANSWERED AT ALL. "Natalie has these
-   coins. How much money does Natalie have?" — and there were no coins: the whole of the data was in
-   an image, and the transcription is a text layer. They sat in the library looking complete, which
-   is worse than being absent, because a child is served a question with no answer in it and assumes
-   the fault is theirs.
-
-   THE ORIGINALS CANNOT BE RECOVERED. corbettmaths.com is blocked from the agent's environment by
-   the same network policy that blocks every Google host, so the coins Natalie actually had are not
-   knowable from here. The choice was to leave six broken questions or to draw a set.
-
-   SO THE SET IS DRAWN AND THE CARD SAYS SO. Choosing the coins CHOOSES THE ANSWER — this is no
-   longer Corbettmaths' question, it is one of ours wearing their words, and passing it off as
-   theirs would be the same class of mistake as a transcription that swallowed a coefficient: it
-   still reads sensibly and it is a different question. One line under the figure is the whole cost
-   of being honest about it.
-
-   `diagram_by` IS THE COLUMN, and it has exactly two meanings: absent means the picture came off
-   the paper, `family` means this site drew it. Anything that ever lists a question's provenance
-   reads that one field rather than guessing from the SVG. */
+/* ---------- `FIG_BY` AND `figCredit_` WERE HERE: a line under every picture this site redrew ("drawn for
+   @family. from the paper's own figures -- the original is the board's and is not reproduced here").
+   The owner, 18 Oct: *"I don't like that extra text which disclaims it's drawn from blah blah. Get rid of
+   that. Everywhere. It's just makes less appealing."* The paper is already named by the card's tags.
+   `diagram_by` stays in the data as provenance, held to its closed vocabulary by `check-library.js`,
+   and nothing on screen reads it (docs/history/355). */
 /* ---------- A PICTURE THE QUESTION CAME WITH -----------------------------------------------------
    `loading="lazy"` BECAUSE A RESULT PAGE HOLDS SEVERAL AND YOU ARE LOOKING AT ONE. `fillStuffPages`
    already only builds the pages you are near, and this is the same argument one level down.
@@ -11107,30 +11067,6 @@ on('qw-tap', (el) => {
 const pics_ = list => (list || []).map(src =>
   `<figure class="qpic"><img src="${esc(src)}" alt="Picture printed with this question"
      loading="lazy" decoding="async"></figure>`).join('');
-
-/* TWO WAYS THIS SITE CAN HAVE DRAWN ONE, AND THE CARD HAS TO SAY WHICH. See the note on
-   `DIAGRAM_BY` in check-library.js: `family` is a picture REDRAWN from what the paper prints, where
-   the question, the figures and the answer are all still the board's; `family-set` is one whose
-   CONTENT we chose, because the original was lost and the question could not be answered without
-   one — and choosing the coins chose the answer.
-
-   ONE SENTENCE FOR BOTH WAS A REAL FAULT AND A SCREENSHOT CAUGHT IT. This said "these are our coins
-   and our answer" on every credited row, so an Edexcel probability scale, redrawn line for line off
-   the paper, carried a line telling the student the figures had been made up. Nothing could have
-   flagged it: the markup was valid, the card fitted, and the sentence had been true of every row
-   that existed on the day it was written. */
-const FIG_BY = {
-  'family': `drawn for @family. from the paper's own figures — the original is the board's and is
-             not reproduced here`,
-  'family-set': `drawn for @family. — the original worksheet's picture did not come across in the
-                 text, so these are our coins and our answer`,
-};
-/* THE ELEMENT IS AN ARGUMENT BECAUSE THE CREDIT SITS IN TWO DIFFERENT PLACES. Inside a `<figure>`
-   the right element is `<figcaption>`; a drawing pad is not a figure — it is a picture, an ink
-   layer, three controls and a line of prose — and a `<figcaption>` outside a `<figure>` is markup
-   no parser is obliged to keep. One sentence, two containers, and the class does the styling. */
-const figCredit_ = (x, tag) => (FIG_BY[x.diagramBy]
-  ? `<${tag || 'figcaption'} class="fig-by">${FIG_BY[x.diagramBy]}</${tag || 'figcaption'}>` : '');
 
 /**
  * THE DAY A PAPER WAS SAT, WHEN THE ROW SAYS — "Thursday 25 May 2017".
@@ -11164,56 +11100,102 @@ function satOn_(x) {
 }
 
 /* ==================================================================================================
-   EVERY FACT ABOUT A PAGE OF A QUESTION IS A TAG, IN ONE ROW AT THE TOP OF THE CARD.
+   EVERY TAG ON A CARD IS AN ANSWER YOU CAN PICK IN THE FINDER: ONE RENDERER, ONE RULE.
 
-   ASKED FOR TWICE, AND THE SECOND TIME AS FOUR FACTS. First *"on the widget cards for questions it has
-   the title of it in one text name when it should still remain as tags labelling it"* -- the paper's
-   whole name in grey, `Paper 1: Arithmetic — May 2019`, taken apart into the facts it is made of.
-   Then, over a card that still said three things outside the tags: *"why do the questions say non
-   calculator but its not a tag? also the marks should also be a tag. also the question numbers
-   should also be a tag. also answers should have the answer tags and questions have the question
-   tag."* The card said the calculator TWICE -- a grey `Non-Calculator` pill cut from the name and an
-   orange `No calculator` line under the tags -- and neither was a tag of the kind it is; the number
-   and the marks were a gold header line; and nothing said whether the page in your hand was the
-   question or its answer except where it sat in the strip.
+   THE OWNER, 12 Oct: every tag is a finder answer -- same word, same colour, in the order the finder
+   asks -- and Q1a(ii) is [Q1] [a] [ii], `1 of 5` is [1] [of 5]. And on 18 Oct, over a Q7 card whose
+   `Question` tag was a filled white pill: *"I'm sensing some tags are treated differently from others
+   such as diagram, figure, question. Please eliminate all unique conditional rules which treat them
+   differently."* There were four renderers (`qTags_` with `qPage_` and `qNumSay_`, the content card's
+   `contentTags_`, the Bible verse's own row, and a pill in each card head) and about twenty rules
+   inside them: SATs hid the board, a tier the paper's name said was hidden, the name was cut at its
+   dash and its colon, a grey qualifier tag nothing could pick, `sat Friday 10 May`, a figure page with
+   no number, a 5-a-day branch, a Specimen split. Each was a fix for one card. docs/history/355.
 
-   SO THE ROW, IN THE ORDER A PERSON READS A PAGE: what this page is, which question, what it is
-   worth -- then the paper it came from -- then what to bring.
+   SO THIS WALKS `facetList()` IN ITS ORDER and draws every live facet marked `tag: true`: its answers
+   for this item through `facetOwn_` (the funnel's own reader, `not:` included), spelled by the chip's
+   speller (`showOf`) and coloured by the chip's kind (`tagAttr_`). A facet the sheet switches off takes
+   its tag with it; a facet the sheet adds and marks is drawn with no code. Two hooks, each declared on
+   its facet rather than tested here: `tagOf` where the answer depends on the page (`What kind` says
+   `Answers` on the answer page; `Page` is this page's number) and `tagSay` where the tag is shorter
+   than the library-unique chip (`Paper`, as its folder draws it).
 
-     what it is        `Question`, `Answer`, the figure's own name (`Figure 3`), a surface's (`Squared
-                       grid`). First on every page, so a page landed on cold says what it is before
-                       anything else. `qPage_` -- the builders pass it.
-     the number        `Q4a`; `Q5 · 1 of 2` on a page cut from a longer one. Never on a figure page
-                       (*"diagram widgets shouldn't have a question number on them"*).
-     the marks         `2 marks`, on the question and its answer; nothing where the row has none --
-                       a Corbettmaths sheet prints no allocation, and absent is not zero.
-     the level         `GCSE`; `SATs` and then `KS2` beside it -- *"sats is one tag not ks2 sats"*
-     the board         `Edexcel`, `AQA`, unless the level already says who sets it (SATs are STA's)
-     the subject       the Subject question's word
-     the tier          `Higher`, unless the paper's own name already says it
-     the sitting       the year, then the month, as the folders ask them; and the day it was sat
-                       where the row knows it
-     the paper         `Paper 1`, a worksheet's own title, `Biology Paper 2`
-     what it is        the words in the brackets or after the colon: `Arithmetic`
-     what to bring     `Non-calculator`, `Calculator allowed`, `Protractor` -- ONE tag per fact, from
-                       the paper's cover and the question's own row and its name, said once
+   ONE DEDUPE: A NAME IS SAID ONCE, the first facet in the order wins -- board and Publisher, Level and
+   a 5-a-day's Level, `A-Level` as a level and a tier -- and the same id is said once (a 5-a-day's Day
+   IS its paper's id, `folderOpened_`'s rule). A bare number is a position in its own facet, never a
+   name, so Genesis 1:1 keeps both its ones and Q2's page [2] is not swallowed by anything.
 
-   THE NAME IS CUT THE WAY `nameForms_` CUTS IT -- a spaced long dash, then a colon or a bracket --
-   so a hyphen inside `A-Level` or `Non-Calculator` is never a separator, for the reason that
-   function gives. Nothing here is a second copy of a column: the date and the paper's title are read
-   off the name because the name is the only place they are written, and everything else is the
-   facet's own `of`, so a tag cannot say a word the chip above it would not.
+   NO TAG IS A CONTROL. Labels, smaller than a chip; picking is the funnel's job, and every one of these
+   words is an answer it can offer (the question's own are doors on a chosen paper, `tagDoors_`). */
+const TAG_NAME = /[A-Za-z]/;
+function tagRow_(x, page) {
+  const out = [], words = new Set(), ids = new Set();
+  if (!x) return '';
+  facetList().forEach(facet => {
+    if (!facet.tag) return;
+    let vals;
+    try { vals = asList_(facet.tagOf ? facet.tagOf(x, page) : facetOwn_(facet, x)); } catch (e) { vals = []; }
+    vals.forEach(v => {
+      const raw = String(v == null ? '' : v).trim();
+      if (!raw) return;
+      let text = raw;
+      try {
+        text = String((facet.tagSay ? facet.tagSay(raw, x) : facet.showOf ? facet.showOf(raw) : raw) || raw).trim();
+      } catch (e) { text = raw; }
+      const w = norm(text);
+      if ((TAG_NAME.test(text) && words.has(w)) || (TAG_NAME.test(raw) && ids.has(raw))) return;
+      words.add(w); ids.add(raw);
+      out.push(`<span class="qtag"${tagAttr_(facet.field)} data-f="${esc(facet.field)}">${esc(text)}</span>`);
+    });
+  });
+  return `<div class="qtags qcard-tags">${out.join('')}</div>`;
+}
 
-   EACH KIND WEARS ITS FUNNEL CHIP'S COLOUR (`tagOf_`), and the three kinds no chip asks -- what the
-   page is, its number, its marks -- have tokens of their own at `:root` (`--tag-kind` and the rest).
+/* ---------- THE PAPER TAG, AS ITS OWN FOLDER NAMES IT ---------------------------------------------
+   The chip's `showOf` with no answer list is the LIBRARY-unique name -- `Paper 1 (Non-Calculator) ·
+   Foundation — June 2024` -- right for a paper standing alone, and a card is not alone: its tags in
+   front already say the level, board, tier, year and month. So the tag is what the Paper question
+   draws inside that folder -- `shortLabels_` over the papers sharing those answers, with the sitting
+   already said -- which is `Paper 1`, and the calculator is its own tag (285). Memoised per paper. */
+let PAPER_TAG = { from: null, by: {} };
+function paperTag_(x) {
+  const pid = String((x && x.row && x.row.paper_id) || '');
+  if (!pid) return '';
+  if (PAPER_TAG.from !== DATA) PAPER_TAG = { from: DATA, by: {} };
+  if (pid in PAPER_TAG.by) return PAPER_TAG.by[pid];
+  const facet = facetRaw_('paperId');
+  let show = '';
+  try {
+    const FOLDER = ['level', 'examBoard', 'subject', 'tier', 'documentType', 'examYear', 'examMonth'];
+    const key = i => FOLDER.map(f => { try { return asList_(facetRaw_(f).of(i)).join(','); } catch (e) { return ''; } }).join('|');
+    const mine = key(x);
+    const sib = [];
+    stuffItemsAll_().forEach(i => {
+      const id = String((i && i.row && i.row.paper_id) || '');
+      if (id && sib.indexOf(id) < 0 && key(i) === mine) sib.push(id);
+    });
+    if (sib.indexOf(pid) < 0) sib.push(pid);
+    const said = { year: String(asList_(facetRaw_('examYear').of(x))[0] || ''),
+                   month: String(asList_(facetRaw_('examMonth').of(x))[0] || '') };
+    const values = sib.map(v => ({ value: v, text: facet.showOf(v, sib, said) }));
+    shortLabels_(values);
+    const me = values.find(v => v.value === pid);
+    show = me ? (me.show || me.text) : '';
+  } catch (e) { show = ''; }
+  if (!show) { try { show = facet.showOf(pid); } catch (e) { show = pid; } }
+  return (PAPER_TAG.by[pid] = show);
+}
 
-   NO TAG IS A CONTROL. They are labels, smaller than a chip and not pressable, because a card of
-   44px pills would be a card of nothing but pills; narrowing is what the funnel above is for. */
-function qTagOf_(facetField, x) {
-  const facet = facetBy(facetField);
-  if (!facet) return [];
-  try { return asList_(facet.of(x)).map(v => String(v || '').trim()).filter(Boolean); }
-  catch (e) { return []; }
+/* ---------- A PART'S READING PAGES, FOR THE PAGE TAGS ---------------------------------------------
+   Its pre pages and its card -- `partPlan_`'s chunks, read live, so a change to how a part is cut
+   flows into [1] [of 2] with no edit here. `qPageAt_` is which of them a page is: the card is the
+   last, `preJ` the J+1th, and a stem, figure or answer page is none of them. */
+const qPagesOf_ = x => (x && x.kind === 'question' ? partChunks_(x).length : 0);
+function qPageAt_(x, page) {
+  if (!x || x.kind !== 'question') return 0;
+  if (page == null || page === '') return qPagesOf_(x);
+  const m = /^pre(\d+)$/.exec(String(page));
+  return m ? Number(m[1]) + 1 : 0;
 }
 
 /* ---------- WHAT TO BRING, IN ONE SPELLING ----------------------------------------------------------
@@ -11230,151 +11212,13 @@ function qTagOf_(facetField, x) {
    how it is SAID, and `showOf` is the funnel's own door for exactly that. */
 const NEEDS_SAY = { 'no calculator': 'Non-calculator', 'calculator': 'Calculator allowed' };
 const needsSay_ = v => NEEDS_SAY[String(v == null ? '' : v).trim().toLowerCase()] || String(v == null ? '' : v).trim();
-/* THE CALCULATOR, WHERE A PAPER'S NAME SAYS IT -- `Paper 1 (Non-Calculator)`, `Section B: Calculator
-   (September 2019 materials)` -- taken OUT of the words it was in, so the qualifier left behind is
-   only what is not the calculator, and the fact goes into the one list of things to bring. */
-function nameNeeds_(what) {
-  const s = String(what || '');
-  const m = /\bnon[\s-]*calculator\b/i.exec(s) || /\bcalculator\b/i.exec(s);
-  if (!m) return { what: s, need: '' };
-  const rest = (s.slice(0, m.index) + ' ' + s.slice(m.index + m[0].length))
-    .replace(/\(\s*\)/g, ' ').replace(/\s+/g, ' ').trim()
-    .replace(/^[\s,:;·–—-]+|[\s,:;·–—-]+$/g, '').replace(/^\((.*)\)$/, '$1').trim();
-  return { what: rest, need: /^non/i.test(m[0]) ? 'No calculator' : 'Calculator' };
-}
-
-function qTags_(x) {
-  const name = String(x.sub || '').trim();
-  const out = [];
-  const add = (tag, text) => {
-    const t = String(text || '').trim();
-    if (!t || out.some(o => norm(o.text) === norm(t))) return;
-    out.push({ tag: tag, text: t });
-  };
-  /* ---------- `SATs`, AND THE KEY STAGE BESIDE IT ------------------------------------------------
-     *"why is ks2 sats one tag? it should be sats. if they want to specify key stage then it should
-     be its own thing."* The Level answer and the Key stage answer, through their facets -- Key stage
-     answers only inside SATs -- each a tag in the level's colour, the colour both their chips wear. */
-  const level = qTagOf_('level', x);
-  level.concat(qTagOf_('keystage', x)).forEach(v => add(tagOf_('level'), v));
-  const sats = level.some(v => LEVEL_BUCKET(v) === 'SATs');
-  if (!sats) qTagOf_('examBoard', x).forEach(v => add('board', v));
-  /* ---------- THE SUBJECT IS THE FACET'S WORD, NOT THE ONE IN FRONT OF `Paper N` ------------------
-     IT WAS READ OFF THE NAME, and an AQA Combined Science paper is named `Biology Paper 1` -- so a
-     card reached through the green `Combined Science` chip wore a green `Biology`, which is the
-     funnel's word for a different qualification, while a real GCSE Biology paper (`Paper 1`) wore no
-     subject at all and read the same as Chemistry's. The green tag says what the Subject question
-     says; the name's own word stays with the number it belongs to, `Biology Paper 1`, in red. */
-  qTagOf_('subject', x).forEach(v => add('subject', v));
-  /* what to bring: the cover's and the row's (`needsOf_` has already unioned them), then the name's */
-  const kit = asList_(x.needs).map(v => String(v || '').trim()).filter(Boolean);
-  const bring = () => {
-    /* THE CALCULATOR FIRST: it is the one everybody asks, and the one that decides how you work. */
-    const calc = kit.filter(v => /calculator/i.test(v)), rest = kit.filter(v => !/calculator/i.test(v));
-    calc.concat(rest).forEach(v => add(tagOf_('needs'), needsSay_(v)));
-  };
-  /* ---------- A 5-A-DAY IS NOT TAKEN APART BY ITS NAME -------------------------------------------
-     ITS NAME IS `<type> <level> — <day>`, so the cut below made `5-a-day Foundation` one red pill --
-     a type and a level fused -- and coloured the day as a sitting while the Day answer that reaches
-     it is red. Each fact goes through the facet that asks it and the colour that facet's chip wears,
-     so the card and the funnel cannot disagree about either. */
-  if (fiveADay_(x)) {
-    qTagOf_('documentType', x).forEach(v => add(tagOf_('documentType'), v));
-    qTagOf_('fiveLevel', x).forEach(v => add(tagOf_('fiveLevel'), v));
-    add(tagOf_('fiveDay'), fiveDayLabel_(x.row.paper_id));
-    bring();
-    return out;
-  }
-  /* the date and the paper, off the name */
-  const dash = /\s[—–]\s/.exec(name);
-  const head = dash ? name.slice(0, dash.index).trim() : name;
-  const date = dash ? name.slice(dash.index + dash[0].length).trim() : '';
-  /* ONLY AN EXAM PAPER IS TAKEN APART. `Paper 1 (Non-Calculator)` is a number and a qualifier;
-     `Adding Fractions (same denominator)` is ONE worksheet's title, and splitting it would put half a
-     title in red and half in grey. The type says which is which, through the facet, so a sheet a
-     spreadsheet relabels is read the same way the Type question reads it. */
-  const exam = qTagOf_('documentType', x).some(v => /paper/i.test(v));
-  let paper = head, what = '';
-  const colon = /\s*:\s*/.exec(head);
-  const paren = /^(.*?)\s*\(([^)]*)\)\s*$/.exec(head);
-  if (exam && colon && colon.index) { paper = head.slice(0, colon.index); what = head.slice(colon.index + colon[0].length); }
-  else if (exam && paren && paren[1]) { paper = paren[1]; what = paren[2]; }
-  qTagOf_('tier', x).forEach(v => {
-    if (!new RegExp('\\b' + v.replace(/[^A-Za-z0-9]/g, '') + '\\b', 'i').test(head)) add('tier', v);
-  });
-  /* ---------- THE SITTING IS TWO TAGS, THE YEAR AND THEN THE MONTH -------------------------------
-     REPORTED AS *"Fix this why it say June and year in same chip"*, over a card wearing one purple
-     `June 2024` pill. The funnel had already been taken apart -- it asks Year and then Month, two
-     folders, two chips -- and the card above the question still said both in one. So the date is
-     cut the same way: the year, then the month, each a tag in the sitting's colour, in the order
-     the funnel asks them. A date that is not a month and a year (`Specimen`, `Sample`) is one fact
-     and stays one tag. A 5-a-day's `1 June` never reaches here: it is a DAY, its own Day answer,
-     and the branch above draws it whole. */
-  const sat = sittingParts_(date);
-  if (sat) { add('sitting', sat.year); add('sitting', sat.month); }
-  else add('sitting', date);
-  /* ---------- AND THE DAY IT WAS SAT, WHERE THE ROW KNOWS IT -------------------------------------
-     IT WAS A LINE OF ITS OWN UNDER THE TAGS, `sat Thursday 25 May 2017` (`.qcard-sat`), and it is a
-     fact about the paper like the year and the month beside it, so it is a tag in their colour. THE
-     YEAR IS LEFT OFF: the year tag says it, and a tag holding a month and a year is the fused pill
-     *"Fix this why it say June and year in same chip"* took apart. `sat` STAYS IN FRONT because the
-     day can be in a different month from the series -- AQA's June 2024 Paper 1 was sat on Friday 10
-     May -- and `June · Friday 10 May` without the verb reads as the card contradicting itself. */
-  const day = satOn_(x).replace(/\s+(19|20)\d{2}$/, '');
-  if (day) add('sitting', 'sat ' + day);
-  /* `Biology Paper 2`, `GPS Paper 1`, `Specimen paper 1`: what comes before `Paper N` says which of
-     several papers this is -- so it stays WITH the number, `Biology Paper 2` in red, which is what
-     the Paper answer and its chip already say. `Specimen` is a KIND of paper rather than a part of
-     its name, so it is a type tag of its own. The number is written `Paper N` whatever case the name
-     used, so the red tag reads the same on every card. */
-  const subjPaper = exam ? /^(.+?)\s+paper\s+(\S+)$/i.exec(paper) : null;
-  if (subjPaper && /^specimen$/i.test(subjPaper[1])) {
-    add('type', subjPaper[1]);
-    add('paper', 'Paper ' + subjPaper[2]);
-  } else if (subjPaper) add('paper', subjPaper[1] + ' Paper ' + subjPaper[2]);
-  else add('paper', paper.replace(/^paper\b/i, 'Paper'));
-  /* THE CALCULATOR OUT OF THE QUALIFIER, INTO WHAT TO BRING -- `Paper 1 (Non-Calculator)` leaves no
-     qualifier at all, `Section A: Non-calculator (September 2019 materials)` leaves the materials. */
-  const cut = nameNeeds_(what);
-  if (cut.need && !kit.some(v => norm(v) === norm(cut.need))) kit.unshift(cut.need);
-  add('', cut.what);
-  bring();
-  return out;
-}
-
-/* ---------- WHAT THE PAGE IS, WHICH QUESTION, WHAT IT IS WORTH ---------------------------------------
-   THE THREE FACTS NO FUNNEL CHIP ASKS, and the ones the gold header line used to say: `Q3 · answer`
-   with `5 marks` hard right. They lead the row, in that order, on every page of a question. `kind`
-   is what the page is (`Question`, `Answer`, `Figure 3`, `Squared grid`); `num` is the number, with
-   the page count where the words were cut across pages; `marks` asks for the marks, which only the
-   question and its answer carry -- they are the question's, and a figure or a stem is not it. */
-const marksSay_ = x => (Number(x && x.marks) > 0
-  ? Number(x.marks) + ' mark' + (Number(x.marks) === 1 ? '' : 's') : '');
-function qPage_(x, kind, num, marks) {
-  const tags = [{ tag: 'kind', text: String(kind || 'Question') }];
-  if (num) tags.push({ tag: 'number', text: String(num) });
-  if (marks && marksSay_(x)) tags.push({ tag: 'marks', text: marksSay_(x) });
-  qTags_(x).forEach(t => { if (!tags.some(o => norm(o.text) === norm(t.text))) tags.push(t); });
-  /* AND HOW READY ITS PAPER IS — `Ready · 99%`, last, because it is about the transcription and every
-     tag in front of it is about the paper. Here rather than in `qTags_`, which `check-funnel.js` reads
-     as the paper's own facts. */
-  const hp = healthOf_(x);
-  if (hp) tags.push({ tag: 'health', text: hp.band + ' · ' + hp.pct + '%' });
-  return `<div class="qtags qcard-tags">${tags.map(t =>
-    `<span class="qtag"${t.tag ? ` data-tag="${t.tag}"` : ''}>${esc(t.text)}</span>`).join('')}</div>`;
-}
-/* `Q4a`, and `Q4a · 2 of 2` where the part's words were cut across pages -- ONE TAG, because `2 of 2`
-   on its own is not a fact about anything: it is which page of Q4a this is. */
-const qNumSay_ = (num, i, n) => String(num || '') + (n > 1 ? ' · ' + (i + 1) + ' of ' + n : '');
 
 function questionCard_(x) {
-  const many = partChunks_(x).length;
   return `<div class="qcard">
-    ${/* THE ROW, AND NOTHING ELSE ABOVE THE QUESTION. The gold `Q4a` / `2 marks` line, the grey
-          `Non-Calculator` pill, the `sat …` line and the orange `No calculator` line under it are all
-          tags now (`qPage_`), and the calculator is said once. THE DAY YOU LAST DID IT moved to the
-          tile row, beside the star -- see `questionTiles_`. */''}
-    ${qPage_(x, 'Question', qNumSay_(x.name, many - 1, many), true)}
+    ${/* THE ROW, AND NOTHING ELSE ABOVE THE QUESTION: every fact is a tag (`tagRow_`), and every tag
+          is an answer the finder offers. THE DAY YOU LAST DID IT is in the tile row, beside the star --
+          see `questionTiles_`. */''}
+    ${tagRow_(x)}
     <div class="qsheet">
       ${/* NO STEM HERE. The paragraph a part hangs from is its own page in front of the first part
             that shares it -- `questionStemCard_`, in `pageParts_`'s order -- so six parts of one
@@ -11415,8 +11259,7 @@ function questionCard_(x) {
    `is-standin` MARKS A PREAMBLE THAT IS A DESCRIPTION OF THE REAL THING RATHER THAN IT. An AQA
    English insert is a separate booklet of third-party copyright, so the source is not in the paper
    and cannot be here either -- what is in the row is enough to teach around. A student reading an
-   exam question has to be able to tell at a glance which of the two they are looking at; the same
-   argument as `figCredit_`.
+   exam question has to be able to tell at a glance which of the two they are looking at.
 
    WHICH PART OF THE SOURCE THIS IS, when the insert has been split into several (`lines`). Every
    AQA reading question names a span -- "lines 1 to 6", "from line 20 to the end" -- so a part with
@@ -11436,7 +11279,7 @@ function questionStemCard_(x, i, j) {
      no marker, or the page before the marker where it does. */
   const figNext = stemHasFig_(p) && j === plan.figAt - 1;
   return `<div class="qcard qstem" data-of="${esc(stemId_(p))}">
-    ${qPage_(x, 'Question', qNumSay_(qNum_(x) + (stemLetter_(p) ? '(' + stemLetter_(p) + ')' : ''), j, chunks.length), false)}
+    ${tagRow_(x, 'stem' + i)}
     <div class="qsheet">
       <div class="qsheet-stem${p.placeholder ? ' is-standin' : ''}">${
         p.lines && !j ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${typeset_(chunks[j])}</div>${
@@ -11454,7 +11297,7 @@ function questionPreCard_(x, j) {
   const chunks = partChunks_(x);
   if (j >= chunks.length - 1) return '';
   return `<div class="qcard qpre" data-of="${esc((x.row && x.row.row_id) || x.key || '')}">
-    ${qPage_(x, 'Question', qNumSay_(x.name, j, chunks.length), false)}
+    ${tagRow_(x, 'pre' + j)}
     <div class="qsheet">
       ${chunkHtml_(chunks[j], circOf_(x))}
       <p class="qsheet-figref">${partPlan_(x).figAt === j + 1 ? 'Figure' : 'Continued'} on the next page &rarr;</p>
@@ -11701,8 +11544,8 @@ function questionStemFigCard_(x, i) {
   const p = (x.stems || [])[i];
   if (!p) return '';
   return `<div class="qcard qfig" data-of="${esc(stemId_(p))}">
-    ${qPage_(x, figLabel_(p.html), '', false)}
-    <div class="qsheet">${p.diagram ? `<figure>${p.diagram}${figCredit_(p)}</figure>` : ''}${
+    ${tagRow_(x, 'sfig')}
+    <div class="qsheet">${p.diagram ? `<figure>${p.diagram}</figure>` : ''}${
       pics_(figImgs_(p.images))}</div>
   </div>`;
 }
@@ -11719,9 +11562,8 @@ function questionStemFigCard_(x, i) {
    `not` is the names already taken by the stems above a part, so a part reading "use Figure 3 to
    complete Figure 4" names its own drawing Figure 4 rather than the stem's Figure 3.
 
-   THE NAME IS THE PAGE'S KIND TAG, first in its row (`qPage_`) where a question's page says
-   `Question` -- so a figure page says what it is the way every other page does, and the number tag
-   that follows `Question` is simply not there. */
+   IT IS NOT A TAG ANY MORE: a figure page wears its part's own row since 18 Oct (`tagRow_`, 355), and
+   the name heads the Figure sheet (`figsBefore_`). */
 function figLabel_(html, not) {
   const seen = String(html || '').replace(/<[^>]*>/g, ' ').match(/\bFigure\s+\d+[a-z]?\b/gi) || [];
   const hit = seen.map(t => 'Figure ' + t.replace(/^figure\s+/i, ''))
@@ -11732,11 +11574,10 @@ function figLabel_(html, not) {
 /* ---------- `qHead_` AND `figHead_` WERE HERE: ONE GOLD HEADER LINE FOR EVERY PAGE OF A QUESTION ------
    *"sleekerise the whole widget system"* gave every page `Q3`, `Q3 · figure`, `Q3 · answer` in gold
    with the marks hard right, so the pages of one question read as one question. Everything that line
-   said is a tag now -- what the page is, the number, the marks -- in the row the paper's facts were
-   already in (`qPage_`), because *"the marks should also be a tag. also the question numbers should
-   also be a tag."* Two of its rules carry over unchanged: the figure page has no number, and a row
-   with no marks says nothing rather than "0 marks" (`marksSay_`). The date it held is the tile row's
-   (`questionTiles_`). */
+   said is a tag now -- the What kind answer, the number, the marks -- in the one row (`tagRow_`),
+   because *"the marks should also be a tag. also the question numbers should also be a tag."* A row
+   with no marks still says nothing rather than "0 marks" (the Marks facet answers only above 0). The
+   date it held is the tile row's (`questionTiles_`). */
 
 
 /* ==================================================================================================
@@ -11795,10 +11636,8 @@ function questionHasFig_(x) {
    whiteboard and nothing else; check-flow walks every page of every pen question to hold that. */
 function questionFigCard_(x) {
   const out = [];
-  const stemNames = (x.stems || []).filter(stemHasFig_).map(p => figLabel_(p.html));
-  const label = figLabel_(String(x.lead || '') + ' ' + String(x.html || ''), stemNames);
   /* A PICTURE AN EARLIER PART DREW ON, WITH THOSE MARKS -- see `usesFig_`. */
-  if (x.diagram) out.push(usesFig_(x) || `<figure>${x.diagram}${figCredit_(x)}</figure>`);
+  if (x.diagram) out.push(usesFig_(x) || `<figure>${x.diagram}</figure>`);
   out.push(pics_(figImgs_(x.images)));
   const id = (x.row && x.row.row_id) || x.key || '';
   /* `.qfig-tiles` WAS HERE -- the drawing page's row, holding one tile: `To the answer`, for a pen page
@@ -11806,7 +11645,7 @@ function questionFigCard_(x) {
      need to be a scroll down tile on questions."* The answer is the next page, reached the way every
      page is, by a swipe -- and with Questions chosen it is not in the strip at all (`stuffPages_`). */
   return `<div class="qcard qfig" data-of="${esc(id)}">
-    ${qPage_(x, label, '', false)}
+    ${tagRow_(x, 'fig')}
     <div class="qsheet">${out.join('')}</div>
   </div>`;
 }
@@ -11851,7 +11690,7 @@ function figMissing_(x) {
 function questionNoFigCard_(x) {
   const id = (x.row && x.row.row_id) || x.key || '';
   return `<div class="qcard qfig is-missing" data-of="${esc(id)}">
-    ${qPage_(x, figLabel_(String(x.lead || '') + ' ' + String(x.html || '')), '', false)}
+    ${tagRow_(x, 'nofig')}
     <div class="qsheet"><p class="qfig-missing">The paper prints a figure here &mdash; not drawn yet.</p></div>
   </div>`;
 }
@@ -11942,7 +11781,7 @@ function questionAnsCard_(x) {
      tile"*): one renderer for every action on a question's pages, `check-doors` pairing each `act`
      with its handler. */
   return `<div class="qcard qans-card${open ? '' : ' is-hidden'}" data-of="${esc(id)}" data-k="${esc(k)}">
-    ${qPage_(x, 'Answer', x.name, true)}
+    ${tagRow_(x, 'ans')}
     <div class="tile-row qans-tiles">${open
       ? tile_({ icon: 'hide', label: 'Hide the answer', note: 'one tap', act: 'qa-hide', cls: 'qa-toggle', data: { k: k } })
       : tile_({ icon: 'show', label: 'Show the answer', note: 'one tap', act: 'qa-show', cls: 'qa-toggle', data: { k: k } })}${
@@ -12067,20 +11906,16 @@ function figsBefore_(x) {
   const sib = k ? ((questionParts_()[k]) || []) : [];
   const at = sib.indexOf(x);
   const drew = sib.slice(0, at < 0 ? 0 : at);
-  const seen = (svg, credit) => {
+  const seen = svg => {
     const by = drew.filter(y => { const p = padSource_(y); return p && p.svg === svg; })
-      .map(y => ({ y: y, all: usesMine_(y) })).filter(m => m.all.length);
-    if (!by.length) return '';
-    const names = by.map(m => esc(m.y.name));
-    const who = names.length > 1 ? names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1] : names[0];
-    return usesSeen_(svg, [].concat(...by.map(m => m.all)), credit +
-      `<p class="qpad-note qseen-from">The marks are yours from ${who} &mdash; change them there.</p>`);
+      .map(y => usesMine_(y)).filter(all => all.length);
+    return by.length ? usesSeen_(svg, [].concat(...by)) : '';
   };
   const pic = (p, label, onlyMarked) => {
-    const marked = p.diagram ? seen(p.diagram, figCredit_(p, 'p')) : '';
+    const marked = p.diagram ? seen(p.diagram) : '';
     if (onlyMarked && !marked) return;
-    const html = (marked || (p.diagram ? `<figure>${p.diagram}${figCredit_(p)}</figure>` : '')) + pics_(figImgs_(p.images));
-    if (html) out.push({ label: marked ? usesHead_(label) : label, html: html });
+    const html = (marked || (p.diagram ? `<figure>${p.diagram}</figure>` : '')) + pics_(figImgs_(p.images));
+    if (html) out.push({ label: label, html: html });
   };
   (x.stems || []).forEach(p => { if (stemHasFig_(p)) pic(p, figLabel_(p.html)); });
   const own = p => !!(p.diagram || figImgs_(p.images).length);
@@ -12784,6 +12619,9 @@ function stuffItemsRaw_() {
             p.minutes ? p.minutes + ' min' : ''].filter(Boolean).join(' · '),
       image: '',
       subject: p.subject, topics: p.topics, level: p.level,
+      /* IN THE CARD'S SPELLING, as `projectType` is on a project: the facet reads this, so its answer,
+         its chip and the card's tag say `Experiment` and never the file's `experiment`. */
+      practicalType: PRAC_TYPE[p.practicalType] || p.practicalType || '',
       examBoard: p.board, company: p.board,
       /* WHAT YOU HAVE TO HAVE IN FRONT OF YOU, in the column that already means that. A practical
          needing a lab is the same kind of fact as a question needing a compass, and `needsOf_`
@@ -13750,25 +13588,32 @@ function healthOf_(x) {
   return pid ? healthBy_()[String(pid)] || null : null;
 }
 
-/* ---------- THE OPTIONAL ROW: `Health`, AND ITS THREE ANSWERS ---------------------------------------
-   `health` IS `tagOnly`, so `nextFacet` never asks it. This row is how it is picked: under the
-   question the funnel IS asking, smaller, labelled, and ignorable — the same `facet-pick` press as
-   any answer, so its chip, its ✕ and `filterHit` are the ones every other answer uses. Drawn only
-   while it can split the list (two answers or more) and only until it is answered: a row whose every
-   tap leaves the list as it was is the "Doesn't matter" with a count that `stuffQuestion` refuses. */
-function healthDoor_(items) {
-  if ((STUFF.filters || []).some(f => f && f.field === 'health')) return '';
-  const facet = facetBy('health');
-  if (!facet) return '';
-  let vals = [];
-  try { vals = facetValues(items, facet); } catch (e) { vals = []; }
-  if (vals.length < 2) return '';
-  /* `.health-answers`, NOT `.answers`: that class is read across the checks as THE question on the
-     page, and check/states.js's year folder found `Health` among its Year answers and stopped
-     measuring. Styled as one rule with it in style.css. */
-  return `<div class="health-door"><p class="health-door-k">Health</p><div class="health-answers">${vals.map(v =>
-    `<div class="counted row tap" data-do="facet-pick"${tagAttr_('health')} data-field="health"
-      data-value="${esc(v.value)}"><span class="k">${esc(v.show || v.value)}</span></div>`).join('')}</div></div>`;
+/* ---------- THE OPTIONAL ROWS: EVERY TAG THE FUNNEL DOES NOT ASK, AS A DOOR ---------------------------
+   A `tagOnly` facet is never asked (`nextFacet` skips it) -- Health on every list, and once a paper is
+   chosen its Question, Part, Sub-part, Page, Pages, Marks and What you need. This is how each is
+   PICKED, so every tag a card wears is an answer the finder offers (the owner, 12 Oct): one small
+   labelled row per facet, under the question being asked or the paper's own end, each answer the same
+   `facet-pick` press as any other, so its chip, its ✕ and `filterHit` are the ones every answer uses.
+   ASKED OF EACH FACET ALIKE: not answered yet (a band like `1–10` is half an answer and opens again),
+   what it waits for already asked (`FACET_NEEDS_FIRST`), and two answers or more -- a row whose every
+   tap leaves the list as it was is the "Doesn't matter" with a count `stuffQuestion` refuses. Was
+   `healthDoor_`, the same rules for one facet (docs/history/354, 355). */
+function tagDoors_(items) {
+  const filters = STUFF.filters || [];
+  const asked = filters.map(f => f && f.field);
+  return facetList().filter(f => f.tagOnly).map(facet => {
+    if (filters.some(f => f && f.field === facet.field && !f.bucket)) return '';
+    if (!facetNeedsMet_(facet.field, asked)) return '';
+    let vals = [];
+    try { vals = facetValues(items, facet); } catch (e) { vals = []; }
+    if (vals.length < 2) return '';
+    /* `.tag-answers`, NOT `.answers`: that class is read across the checks as THE question on the
+       page, and check/states.js's year folder found `Health` among its Year answers and stopped
+       measuring. Styled as one rule with it in style.css. */
+    return `<div class="tag-door" data-field="${esc(facet.field)}"><p class="tag-door-k">${esc(facet.label)}</p><div class="tag-answers">${vals.map(v =>
+      `<div class="counted row tap" data-do="facet-pick"${tagAttr_(facet.field)} data-field="${esc(facet.field)}"
+        data-value="${esc(v.value)}"${v.bucket ? ' data-bucket="1"' : ''}><span class="k">${esc(v.show || v.text || v.value)}</span></div>`).join('')}</div></div>`;
+  }).join('');
 }
 
 /* ---------- WHAT IS WRONG, ONE TAP AWAY ------------------------------------------------------------
@@ -13784,12 +13629,14 @@ function healthTiles_(items) {
     note: h.band + ' ' + h.pct + '%', act: 'paper-health', data: { pid: x.row.paper_id } })}</div>`;
 }
 function healthListHtml_(h, pid) {
-  const head = `<p class="health-sum"><span class="qtag" data-tag="health">${esc(h.band + ' · ' + h.pct + '%')}</span>
-    ${h.questions} question${h.questions === 1 ? '' : 's'}${h.total != null ? ', ' + h.marks + ' of ' + h.total + ' marks' : ''}</p>`;
+  /* THE BAND IS THE TAG, AS ON EVERY CARD -- the Health answer, [Ready] -- and the exact score is the
+     sentence after it: a tag is a word the finder can pick, and nobody picks `99%`. */
+  const head = `<p class="health-sum"><span class="qtag"${tagAttr_('health')}>${esc(h.band)}</span>
+    ${esc(h.pct + '%')} of its points pass &middot; ${h.questions} question${h.questions === 1 ? '' : 's'}${h.total != null ? ', ' + h.marks + ' of ' + h.total + ' marks' : ''}</p>`;
   if (!h.fails.length) return head + '<p class="health-none">Nothing wrong found.</p>';
   /* IN THE CARD'S OWN WORDS FOR THE QUESTION. `paperHealth_` can only join the row's two cells, which
-     for AQA is `Q21i` where the card says `Q2.1i`; the item's `name` is what the card's number tag
-     prints (`qNumSay_`), so a line here names the card somebody will go and find. */
+     for AQA is `Q21i` where the card says `Q2.1i`; the item's `name` is the card's own reference
+     (`Q2.1(i)`, the tags [Q2] [.1] [i] read together), so a line here names the card to go and find. */
   const said = {};
   try {
     stuffItemsAll_().forEach(i => { if (i && i.row && i.row.paper_id === pid && i.name) said[i.row.row_id] = i.name; });
@@ -13803,22 +13650,36 @@ on('paper-health', el => {
   openSheet('Health · ' + (h.name || 'this paper'), healthListHtml_(h, String(el.getAttribute('data-pid') || '')));
 });
 
+/* ---------- THE PAPER'S OWN PAGE: ITS COVER, WHERE TO GO, AND ITS DOORS -------------------------------
+   THE COVER LINE IS WHAT LEFT THE TAG ROW AND IS STILL TRUE: the paper's whole name with its qualifier
+   (`Paper 1: Arithmetic — May 2019`) and the day it was sat where the row knows it (`satOn_`, the only
+   reader `exam_date` has). Both were tags the finder could not pick -- a grey `Arithmetic`, a purple
+   `sat Friday 10 May` -- so they are said once here, about the paper, in words (docs/history/355).
+   THEN THE DOORS (`tagDoors_`): the question, part, page, marks and kit of THIS paper, offered and never
+   asked, so picking [Q7] narrows the paper and the funnel stays ended (the 2 Oct rule). */
+function paperCover_(items) {
+  const x = (items || []).find(i => i && i.kind === 'question' && i.sub);
+  if (!x) return '';
+  const day = satOn_(x);
+  return `<p class="paper-cover">${esc(x.sub)}${day ? ' &middot; sat ' + esc(day) : ''}</p>`;
+}
 function paperEnd_(items) {
   const seq = wholeQuestions_(items);
   const qs = new Set(seq.map(x => qId_(x) || x)).size;
   const searched = !!String(STUFF.q || '').trim();
+  const tail = healthTiles_(items) + tagDoors_(items);
   if (answersView_()) {
     const a = stuffPages_().length;
-    return `<p class="find-end">${searched ? 'The answers it found.' : 'The paper&rsquo;s answers, in order.'}
-        <b>Swipe up for ${a === 1 ? 'the one answer' : 'its ' + a + ' answers'}.</b></p>` + healthTiles_(items);
+    return paperCover_(items) + `<p class="find-end">${searched ? 'The answers it found.' : 'The paper&rsquo;s answers, in order.'}
+        <b>Swipe up for ${a === 1 ? 'the one answer' : 'its ' + a + ' answers'}.</b></p>` + tail;
   }
   const first = seq.find(x => qId_(x));
   if (searched) {
-    return `<p class="find-end">In this paper:
-        <b>swipe up for ${qs === 1 && first ? esc(qNum_(first)) : 'its ' + qs + ' questions'}.</b></p>` + healthTiles_(items);
+    return paperCover_(items) + `<p class="find-end">In this paper:
+        <b>swipe up for ${qs === 1 && first ? esc(qNum_(first)) : 'its ' + qs + ' questions'}.</b></p>` + tail;
   }
-  return `<p class="find-end">That is the paper, in order.
-        <b>Swipe up for ${qs === 1 ? 'its one question' : 'its ' + qs + ' questions'}.</b></p>` + healthTiles_(items);
+  return paperCover_(items) + `<p class="find-end">That is the paper, in order.
+        <b>Swipe up for ${qs === 1 ? 'its one question' : 'its ' + qs + ' questions'}.</b></p>` + tail;
 }
 
 /* ---------- A SEARCH HIT ON ONE PART BRINGS THE REST OF ITS QUESTION, IN ORDER ---------------------
@@ -15002,6 +14863,10 @@ function bundleStrayLine_(b) {
   return bits.length ? 'Also on this list and not in the bundle: ' + bits.join('; ') + '.' : '';
 }
 
+/* WHAT A BUNDLE CARD'S TAG ROW IS ASKED OF: a bundle is a set of papers, not an item of the list, so
+   its one answer is the What kind it is found under. Through `tagRow_` all the same, so its tag is
+   that chip's word and look rather than a head of its own. */
+const BUNDLE_ITEM = { kind: 'bundle', kindLabel: 'Bundles' };
 function bundleCard_(b) {
   const inCart = bundleInCart_(b);
   const off = b.papers.filter(p => !p.ok);
@@ -15029,13 +14894,14 @@ function bundleCard_(b) {
      front of the questions it bundles and spoke a different language: a breadcrumb, a large title
      with "— 12 papers" trailing it in faint (which wrapped at 320 and left "papers" alone on a
      line), loose on the glass where every question after it is a bounded card. So it is a `.qcard`
-     too, with the same header row -- what it is, gold, hard left; how many, in the marks' place
-     hard right -- then its title, then what it costs, then the list. Its own name still says
-     "printed and sent", once, in the line about money, which is where that fact is used. */
+     too, with the tag row every card wears -- [Bundles], the What kind answer that opened it, where a
+     gold `Bundle` head of its own used to be (docs/history/355) -- then its title, then how many and
+     what it costs, then the list. Its own name still says "printed and sent", once, in the line about
+     money, which is where that fact is used. */
   return `<div class="card bundle qcard">
-      <div class="qcard-top"><b>Bundle</b><span>${esc(b.noun)}</span></div>
+      ${tagRow_(BUNDLE_ITEM)}
       <h3 class="bundle-title">${esc(b.title || 'These papers')}</h3>
-      <p class="bundle-sub">Printed and sent &middot; ${esc(bundlePriceLine_(b))}</p>
+      <p class="bundle-sub">Printed and sent &middot; ${esc(b.noun)} &middot; ${esc(bundlePriceLine_(b))}</p>
       <ol class="bundle-list">${list}</ol>
       ${/* NAMED, NOT DROPPED. A paper the library marks `printable: FALSE` is on the list above the
             card and missing from the bundle, and a card that said "these papers" without saying so
@@ -15106,7 +14972,7 @@ function bundleDeadEnd_() {
     ? 'Take an answer back above — a bundle is whole papers, and nothing on this list is one.'
     : `${said} ${names.length > 1 ? 'keep' : 'keeps'} only some of a paper's questions, and a bundle
         is whole papers. ${undo} above.`;
-  return `<div class="card bundle qcard"><div class="qcard-top"><b>Bundle</b></div>
+  return `<div class="card bundle qcard">${tagRow_(BUNDLE_ITEM)}
         <p class="bundle-sub">No whole sitting left on this list to bundle. ${why}</p></div>`;
 }
 
@@ -15517,8 +15383,11 @@ function chipShow_(f, i) {
    because they are where you go rather than what something is. The colours are tokens at `:root`
    (`--tag-paper` and the rest), because three components draw them. */
 const TAG_OF = {
-  /* `qNumber` and `qPart` were red too, and are retired as questions — see `RETIRED_FACETS`. */
+  /* WHICH ONE: the paper, and inside it the question, part, sub-part and page -- all red, because each
+     names one thing of several as `Paper 1` does. `marks` has no entry: its tag is the plain outline its
+     chip wears, like every facet's that is not a kind. */
   paperId: 'paper', fiveDay: 'paper',
+  qNumber: 'paper', qPart: 'paper', qSub: 'paper', qPage: 'paper', qPages: 'paper',
   subject: 'subject',
   level: 'level', keystage: 'level', yearGroup: 'level', bandValue: 'level', fiveLevel: 'level',
   examMonth: 'sitting', examYear: 'sitting', year: 'sitting', fiveMonth: 'sitting', decade: 'sitting',
@@ -15540,11 +15409,11 @@ const TAG_OF = {
   /* ---------- THE BIBLE'S SIX, IN KINDS THAT ALREADY HAVE COLOURS --------------------------------------
      THE TRANSLATION IS WHO PUBLISHED THE WORDS, which is what a board is to a paper — teal. THE
      TESTAMENT IS THE LEVEL ABOVE THE GROUP — blue. THE GROUP IS WHAT THE BOOKS ARE ABOUT, a topic —
-     orange. AND BOOK, CHAPTER AND VERSE ARE ONE CITATION, `Genesis 1:3`, which the card says in one
-     coral tag (`number`, the paper's red — it says WHICH one, as `Paper 1` does), so the three chips
-     that build it wear that tag's colour. No new token, because no new kind. */
+     orange. AND BOOK, CHAPTER AND VERSE SAY WHICH ONE, as `Paper 1` and `Q7` do -- red, three tags,
+     [Genesis] [1] [3]. They were one coral `Genesis 1:3` in a `number` kind of their own; one tag per
+     answer is the rule now, and a kind with no facet of its own went with it. */
   bibleTranslation: 'board', bibleTestament: 'level', bibleGroup: 'topic',
-  bibleBook: 'number', bibleChapter: 'number', bibleVerse: 'number',
+  bibleBook: 'paper', bibleChapter: 'paper', bibleVerse: 'paper',
   /* A PAPER'S HEALTH IS NOT ANY OTHER KIND — it is about the transcription, not the paper — so it has
      a token of its own, `--tag-health`. */
   health: 'health',
@@ -17182,7 +17051,7 @@ function stuffQuestion() {
     if (be) return be + adding;
     if (funnelEnded_()) return paperEnd_(items) + adding;
     return `<p class="find-end">Nothing left to narrow.
-      <b>Swipe up for the ${n}.</b></p>` + healthDoor_(items) + adding;
+      <b>Swipe up for the ${n}.</b></p>` + tagDoors_(items) + adding;
   }
 
   /* THE FRONT DOOR TO THE BOOKING FORM WAS HERE — a line above the funnel's answers, on the first
@@ -17278,7 +17147,7 @@ function stuffQuestion() {
         data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${v.bucket ? ' data-bucket="1"' : ''}${
         grid ? ` aria-label="${esc(facet.label + ' ' + (v.show || v.value))}"` : ''}>
         <span class="k">${mark(v.show || v.value)}</span>
-      </div>`).join('') + skip + '</div>' + healthDoor_(items) + more;
+      </div>`).join('') + skip + '</div>' + tagDoors_(items) + more;
 }
 
 /* `stuff-jump` went with the group list. It added a filter and turned to the results in one tap,

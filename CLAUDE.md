@@ -108,7 +108,7 @@ almost never writes to it directly.
   that copy to `loading_()` byte for byte, `check-css.js` keeps an inline splash out (what `#splash`
   holds is a closed list), and `check-anims.js` fails on a teaching one left there. See
   docs/history/304, 322.
-- **Every paper has a health score** — `paperHealth_` in js/library.js, the share of its points that pass; the finder shows `Ready · 99%` and a Health tile to everybody (*"No, everyone can see the scores"*), and `check-health.js` prints them all. See docs/history/354.
+- **Every paper has a health score** — `paperHealth_` in js/library.js, the share of its points that pass; the finder shows the band as a tag, `[Ready]`, and the Health tile holds the percentage, to everybody (*"No, everyone can see the scores"*), and `check-health.js` prints them all. See docs/history/354, 355.
 - **Every drawing in `data/questions.json` (`diagram`) has a PNG twin** in `data/diagrams/<first 12 hex of
   the SHA-256 of the drawing>.png`, for the Sunday email (Gmail shows no SVG; *"No jpgs"* — linked in the
   body, never attached). **Written by `tools/diagram_png.js`** (the site's CSS, paper palette, 2x) — re-run

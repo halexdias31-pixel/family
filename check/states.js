@@ -262,17 +262,18 @@ const STATES = {
         goPage('stuff', stuffFirstResult_(), true);
       },
       /* AND THE CARD'S SITTING IS TWO TAGS, `2017` THEN `June` — *"Fix this why it say June and year
-         in same chip"* was a screenshot of one purple `June 2024` pill on exactly this card. THEN THE
-         DAY IT WAS SAT, `sat Thursday 8 June`, which was a line of its own under the tags and is a
-         sitting tag now (`qTags_`) -- with no year in it, so it is not the fused pill again. */
+         in same chip"* was a screenshot of one purple `June 2024` pill on exactly this card. The day it
+         was sat is NOT a tag since 18 Oct -- no finder answer says it -- but the paper's cover line,
+         over its end (`paperCover_`, docs/history/355). */
       expect: () => {
         const rows = document.querySelectorAll('#stuff-groups .answers > .row[data-do="facet-pick"]');
         const groups = document.querySelector('#stuff-groups');
         const card = document.querySelector('#s-stuff .page.on .qcard') || document.querySelector('#s-stuff .qcard');
         const sit = card ? [...card.querySelectorAll('.qtag[data-tag="sitting"]')].map(t => t.textContent.trim()) : [];
+        const cover = groups && groups.querySelector('.paper-cover');
         return !!groups && rows.length === 0 && /That is the paper, in order/.test(groups.textContent)
-               && !!card && sit.slice(0, 2).join('|') === '2017|June'
-               && sit.slice(2).every(t => /^sat [A-Z][a-z]+ \d{1,2} [A-Z][a-z]+$/.test(t));
+               && !!card && sit.join('|') === '2017|June'
+               && !!cover && /sat [A-Z][a-z]+ \d{1,2} [A-Z][a-z]+ \d{4}/.test(cover.textContent);
       },
       wants: 'a funnel page asking nothing after Paper, with the paper\'s first question on the page after it, its sitting tagged 2017 then June (then the day it was sat, with no year)',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
@@ -464,7 +465,7 @@ const STATES = {
       expect: () => {
         const main = document.querySelector('#s-stuff .card.proj:not(.prac-part)');
         const steps = document.querySelector('#s-stuff .card.proj.is-steps');
-        const flags = [...document.querySelectorAll('#s-stuff .card.proj:not(.prac-part) .fc-flag')].map(f => f.textContent.trim());
+        const flags = [...document.querySelectorAll('#s-stuff .card.proj:not(.prac-part) .qtag[data-f="projectType"]')].map(f => f.textContent.trim());
         return !!main && !!steps
                && flags.length > 0 && flags.every(f => f === 'Coursework')
                && ((steps.querySelector('h3') || {}).textContent || '') === 'Stages'
@@ -509,8 +510,8 @@ const STATES = {
     /* ---------- THE SAME CARD, SWITCHED TO ITS FIGURE -------------------------------------------------------------
        `Draw` through its own handler: the box gives way IN PLACE to the paper's own grid under the pen -- the
        picture its figure page draws, on the same `pad:` key that page used, so every drawing made there is
-       here -- with the lock (off: the card arrives with the pen off), Undo and Clear, the card's one line of
-       credit ("The paper's figure, redrawn.") and no "Not the paper's own figure"; the tile reads `Type`, and
+       here -- with the lock (off: the card arrives with the pen off), Undo and Clear, and no line saying whose
+       figure it is (every credit went on 18 Oct, docs/history/355); the tile reads `Type`, and
        the page has not moved. AND TWO THINGS THE REVIEW OF 337 FOUND NOTHING HOLDING:
          "Figure on the next page" is hidden -- the figure is right under it. The rule is one line of
            style.css (`.qcard:has(> .qp-area.is-draw) .qsheet-figref`), and deleting it left every check green
@@ -547,17 +548,16 @@ const STATES = {
                && !!art && !art.classList.contains('qsurf') && /^A grid of squares/.test(art.getAttribute('aria-label') || '')
                && !!pad.querySelector('.qpad-art[data-do="pad-draw"]') && !!pad.querySelector('.qpad-lock')
                && !!pad.querySelector('.qpad-undo') && !!pad.querySelector('.qpad-clear')
-               && ((pad.querySelector(':scope > .fig-by') || {}).textContent || '').trim() === 'The paper\u2019s figure, redrawn.'
-               && !/not the paper.s own figure/i.test(pad.textContent)
+               && !pad.querySelector('.fig-by') && !/redrawn|not the paper.s own|drawn (by|for) @family|your marks from|yours from/i.test(pad.textContent)
                && /^Type\b/.test(tile.getAttribute('aria-label') || '') && PAGE.stuff === window.__facePage
                && [...a.closest('.qcard').querySelectorAll('.qsheet-figref')].every(e => getComputedStyle(e).display === 'none')
                && !padFaceReads_(art) && (!words || !words.style.zoom || art.getBoundingClientRect().width <= PAD_FACE_FLOOR + 0.5);
       },
-      wants: 'June 2024 1F Q7\'s own grid under the pen where its box was, on its pad: key, the pen off with the lock, Undo and Clear, the card\'s one line of credit, the tile reading Type, on the same page, no "Figure on the next page" over it, and its words drawn smaller only once the blank grid is at its floor',
+      wants: 'June 2024 1F Q7\'s own grid under the pen where its box was, on its pad: key, the pen off with the lock, Undo and Clear, no credit line, the tile reading Type, on the same page, no "Figure on the next page" over it, and its words drawn smaller only once the blank grid is at its floor',
       leave: () => { padFaceForget_(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- AND ITS FIGURE PAGE, A PICTURE TO LOOK AT ------------------------------------------------------------
        A picture the paper prints keeps its own page, where the paper prints it -- Q7's row marks its figure
-       after the ask, so the page after the card -- and the page is the picture and its credit: no lock, no
+       after the ask, so the page after the card -- and the page is the picture, with no credit (355): no lock, no
        Undo, no Clear, nothing that takes a finger. That page is where the pen was until 11 Oct. */
     { name: 'the paper\'s own figure on its page, a picture to look at with no pen',
       enter: () => {
@@ -575,9 +575,9 @@ const STATES = {
         const page = document.querySelector('#s-stuff .page.on');
         const c = page && page.querySelector('.qcard.qfig');
         return !!c && c.getAttribute('data-of') === it.row.row_id && !!c.querySelector('figure svg[aria-label^="A grid of squares"]')
-               && /drawn for @family/.test(c.textContent) && !page.querySelector('.qpad, .qpad-lock, [data-do^="pad-"]');
+               && !/redrawn|not the paper.s own|drawn (by|for) @family|your marks from|yours from/i.test(c.textContent) && !page.querySelector('.qpad, .qpad-lock, [data-do^="pad-"]');
       },
-      wants: 'Q7\'s grid on its own figure page, credited, with no pen, no lock and nothing to press',
+      wants: 'Q7\'s grid on its own figure page, with no credit line, no pen, no lock and nothing to press',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A STEM'S MAP UNDER ONE PART'S OWN PEN -----------------------------------------------------------------
        The bearings sheet's Q2 opens with a map that (a), (b) and (c) each draw on. Each part's pen was on a
@@ -812,17 +812,19 @@ const STATES = {
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'stem0'));
       },
-      /* THE PAGE'S OWN TAGS -- what it is and its number -- which replaced the gold header (`qPage_`). */
+      /* THE ITEM'S OWN TAGS, the same on its opening as on its card (`tagRow_`, 355): What kind, then
+         [Q5] [a] -- the part the opening stands in front of -- and no page number, an opening not being
+         one of the part's reading pages. */
       expect: () => {
         const c = document.querySelector('#s-stuff .page.on .qcard.qstem');
-        const tag = k => ((c && c.querySelector('.qcard-tags [data-tag="' + k + '"]')) || {}).textContent || '';
-        return !!c && tag('kind') === 'Question' && /^Q5( · \d+ of \d+)?$/.test(tag('number').trim()) && !tag('marks')
+        const tag = f => [...(c ? c.querySelectorAll('.qcard-tags [data-f="' + f + '"]') : [])].map(t => t.textContent.trim()).join(' ');
+        return !!c && tag('kindLabel') === 'Questions' && tag('qNumber') === 'Q5' && tag('qPart') === 'a' && !tag('qPage')
                && !!c.querySelector('.qsheet-stem') && !c.querySelector('.qp-ans, svg')
                && !!c.querySelector('.qsheet-figref');
       },
-      wants: 'the stem of Q5 on its own page, tagged Question and Q5 (1 of 2: its table makes it two), no marks, no box and no picture, saying what is next',
+      wants: 'the stem of Q5 on its own page, tagged Questions, Q5 and a (its part\'s row), no page number, no box and no picture, saying what is next',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    { name: 'its figure, the page after, with no question number',
+    { name: 'its figure, the page after, wearing its part\'s tags',
       /* THE VENN DIAGRAM IS PART (c)'S NOW, because that is where the paper prints it: after (b),
          under the work-from-home bullets that (c) completes it from. It sat on the stem until the
          library was read against the paper, and this state followed it there. */
@@ -837,11 +839,11 @@ const STATES = {
       expect: () => {
         const c = document.querySelector('#s-stuff .page.on .qcard.qfig');
         const row = c && c.querySelector('.qcard-tags');
-        return !!row && !/\bQ\d/.test(row.textContent) && !row.querySelector('[data-tag="number"], [data-tag="marks"]')
-               && /^Figure/.test((row.querySelector('[data-tag="kind"]') || {}).textContent || '')
+        const tag = f => [...(row ? row.querySelectorAll('[data-f="' + f + '"]') : [])].map(t => t.textContent.trim()).join(' ');
+        return !!row && tag('kindLabel') === 'Questions' && tag('qNumber') === 'Q5' && tag('qPart') === 'c'
                && !!c.querySelector('figure svg') && !c.querySelector('.qp-ans');
       },
-      wants: 'the Venn diagram on its own page, tagged Figure first, with no question number, no marks and no box',
+      wants: 'the Venn diagram on its own page, wearing (c)\'s own row (Questions, Q5, c), and no box',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A QUESTION ANSWERED ON A MADE-UP SURFACE: ONE CARD, THE BOX, AND `Draw` -----------------
        THE OWNER, 10 Oct, over this very card: *"this is confusing. theres an answer box and draw box? in
@@ -876,7 +878,7 @@ const STATES = {
       leave: () => { padFaceForget_(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- THE SAME CARD, SWITCHED TO THE DRAWING ------------------------------------------------------
        `Draw` pressed through its own handler, as a finger does: the box gives way IN PLACE to the blank
-       space under the pen -- lock, Undo, Clear, the line saying it is not the paper's own figure -- and the
+       space under the pen -- lock, Undo, Clear, and no line saying whose figure it is (355) -- and the
        tile reads `Type`. The page does not change: both faces are one page. */
     { name: 'a question answered on a surface, switched to the drawing',
       enter: () => {
@@ -902,10 +904,10 @@ const STATES = {
         return !!tile && a.classList.contains('is-draw') && !a.querySelector('.qp-ans')
                && !!a.querySelector('.qpad .qpad-art > svg.qsurf.is-blank') && !!a.querySelector('.qpad-lock')
                && !!a.querySelector('.qpad-undo') && !!a.querySelector('.qpad-clear')
-               && /not the paper.s own figure/i.test(a.textContent) && /^Type\b/.test(tile.getAttribute('aria-label') || '')
+               && !/redrawn|not the paper.s own|drawn (by|for) @family|your marks from|yours from/i.test(a.textContent) && /^Type\b/.test(tile.getAttribute('aria-label') || '')
                && PAGE.stuff === window.__facePage;
       },
-      wants: 'the hexagon card with a blank space under the pen where its box was, lock, Undo and Clear under it, saying it is not the paper\'s figure, the tile reading Type, on the same page',
+      wants: 'the hexagon card with a blank space under the pen where its box was, lock, Undo and Clear under it, no credit line, the tile reading Type, on the same page',
       leave: () => { padFaceForget_(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A SQUARED GRID, SWITCHED TO ------------------------------------------------------------------
        *"some questions require answers on diagram. So should have a diagram for them to draw on"* -- the
@@ -1108,9 +1110,9 @@ const STATES = {
         const p = document.querySelector('#s-stuff .page.on .qcard.qfig-uses');
         return !!p && p.getAttribute('data-of') === 'Q-1MA1-2406-2F-24c'
                && p.querySelectorAll('.qpad-was path').length === 1 && !p.querySelector('.qpad, .tile, .qp-ans')
-               && /Your marks from Q24b/.test(p.textContent);
+               && !/redrawn|not the paper.s own|drawn (by|for) @family|your marks from|yours from/i.test(p.textContent);
       },
-      wants: '(b)\'s grid with the curve drawn on it, read only, on the page in front of "Use your graph", saying the marks are from Q24b',
+      wants: '(b)\'s grid with the curve drawn on it, read only, on the page in front of "Use your graph", with no line about whose marks they are',
       leave: () => {
         try { localStorage.removeItem(window.__useKey); } catch (e) {}
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
@@ -1146,10 +1148,10 @@ const STATES = {
         if (!art || !ink) return false;
         const a = art.getBoundingClientRect(), k = ink.getBoundingClientRect();
         return s.querySelectorAll('.qpad-was path').length === 1 && !s.querySelector('.qpad')
-               && /yours from Q24b/.test(s.textContent)
+               && !/redrawn|not the paper.s own|drawn (by|for) @family|your marks from|yours from/i.test(s.textContent)
                && Math.abs(a.width - k.width) <= 1 && Math.abs(a.height - k.height) <= 1;
       },
-      wants: 'the sheet showing (b)\'s grid with the curve on it, read only, the ink exactly the grid\'s size, saying the marks are from Q24b',
+      wants: 'the sheet showing (b)\'s grid with the curve on it, read only, the ink exactly the grid\'s size, with no line about whose marks they are',
       leave: () => {
         try { localStorage.removeItem(window.__useKey); } catch (e) {}
         closeSheet();
@@ -1277,9 +1279,10 @@ const STATES = {
       expect: () => {
         const c = document.querySelector('#s-stuff .page.on .qcard.qpre');
         return !!c && !c.querySelector('.qp-ans') && /Continued on the next page/.test(c.textContent)
-               && /1 of \d/.test((c.querySelector('.qcard-tags [data-tag="number"]') || {}).textContent || '');
+               && ((c.querySelector('.qcard-tags [data-f="qPage"]') || {}).textContent || '') === '1'
+               && /^of \d+$/.test((c.querySelector('.qcard-tags [data-f="qPages"]') || {}).textContent || '');
       },
-      wants: 'the first page of a long part: its reading, no box, "1 of N", saying it continues',
+      wants: 'the first page of a long part: its reading, no box, tagged [1] [of N], saying it continues',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- HOW YOUR LAST ANSWER WENT, BESIDE THE STAR -------------------------------------------------
        THE OWNER, 9 OCT: *"The kids don't need to see the day they did something. Just whether it's right
@@ -1401,12 +1404,12 @@ const STATES = {
       expect: () => {
         const row = document.querySelector('#s-stuff .page.on .qcard .qcard-tags');
         const tags = row ? [...row.querySelectorAll('.qtag')].map(t => (t.getAttribute('data-tag') || '') + ':' + t.textContent.trim()) : [];
-        return tags[0] === 'kind:Question' && tags[1] === 'number:Q1' && tags.indexOf('level:SATs') >= 0
+        return tags[0] === ':Questions' && tags.indexOf('paper:Q1') >= 0 && tags.indexOf('board:STA') >= 0 && tags.indexOf('level:SATs') >= 0
                && tags.indexOf('level:KS2') === tags.indexOf('level:SATs') + 1
                && !tags.some(t => /KS\s*\d\s*SATs/i.test(t)) && tags.indexOf('needs:Ruler') >= 0
                && !document.querySelector('#s-stuff .page.on .qcard-needs, #s-stuff .page.on .qcard-top');
       },
-      wants: 'a KS2 SATs question tagged Question, Q1, its mark, then SATs and KS2 side by side and Ruler as what to bring -- no header line, no needs line',
+      wants: 'a KS2 SATs question tagged Questions first, then SATs and KS2 side by side, its board STA, Q1, its mark and Ruler as what to bring -- no header line, no needs line',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- THE ANSWER PAGE: HIDDEN, TURNED TO, AND SHOWN ----------------------------------------
        ASKED FOR AS "what I want was answers to be short and to be their own widget" -- the answer is
@@ -2713,7 +2716,8 @@ const STATES = {
       expect: () => {
         const ch = [...document.querySelectorAll('#s-res .card.ct')]
           .find(el => /spread/i.test((el.querySelector('h3') || {}).textContent || ''));
-        return !!ch && !!ch.querySelector('.fc-head .fc-flag')
+        return !!ch && !ch.querySelector('.fc-flag')
+               && ((ch.querySelector('.qtags .qtag') || {}).textContent || '') === 'Content'
                && !!ch.querySelector('.qtags .qtag[data-tag="topic"]')
                && !!ch.querySelector('.tb-words li b')
                && !!ch.querySelector('.tb-math .frac .frac-d')
@@ -2921,27 +2925,29 @@ const STATES = {
          beside the name — so this asks what only a browser can answer about that: the picture box is
          the 4:5 it was told to be, it sits to the LEFT of the name rather than over it (the grid in
          style.css, not the markup, puts it there), the scoreboard is whole numbers or says there is no
-         record, and nothing on the card scrolls sideways at this width. The shared head's two rules
-         stay: one title size, the flag above the title. */
+         record, and nothing on the card scrolls sideways at this width. The shared head's rules: one
+         title size, and the card's tag row under it ([Boxers], the answer that found it -- it was a
+         flag above the title until 355). */
       expect: () => {
         const c = document.querySelector('#s-res .page.on .card.fc.boxer:not(.is-fights)')
                || document.querySelector('#s-res .card.fc.boxer:not(.is-fights)');
         if (!c || c.querySelector('.thing')) return false;
-        const h3 = c.querySelector('.fc-head > h3'), flag = c.querySelector('.fc-head .fc-flag');
+        /* THE HEAD IS ITS TITLE; WHAT IT IS IS THE Boxers-or-fights ANSWER, in the tag row under it (355). */
+        const h3 = c.querySelector('.fc-head > h3'), flag = c.querySelector('.qtags .qtag[data-f="boxKind"]');
         const rec = c.querySelector('.boxer-rec'), frame = c.querySelector('.boxer-pic .boxer-frame');
-        if (!h3 || !flag || !rec || !frame || flag.textContent.trim() !== 'Boxer') return false;
+        if (!h3 || !flag || !rec || !frame || flag.textContent.trim() !== 'Boxers' || c.querySelector('.fc-flag')) return false;
         const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
         const nums = [...rec.querySelectorAll('.boxer-tally .boxer-n > b')].map(b => b.textContent.trim());
         const told = nums.length ? nums.length >= 3 && nums.every(n => /^\d+$/.test(n))
                                  : /No fight record on file/.test(rec.textContent);
         const f = frame.getBoundingClientRect(), t = h3.getBoundingClientRect();
         return Math.abs(parseFloat(getComputedStyle(h3).fontSize) - 1.1 * rem) < .5
-               && flag.getBoundingClientRect().bottom <= t.top + .5
+               && flag.getBoundingClientRect().top >= t.bottom - .5
                && told && f.width > 0 && Math.abs(f.width / f.height - .8) < .03
                && f.right <= t.left + .5
                && c.scrollWidth <= c.clientWidth + 1;
       },
-      wants: 'a boxer\'s profile — the name at the title size under a Boxer flag, a 4:5 picture box to its left, the record as a scoreboard of whole numbers (or "no record on file"), nothing scrolling sideways',
+      wants: 'a boxer\'s profile — the name at the title size with its [Boxers] tag under it, a 4:5 picture box to its left, the record as a scoreboard of whole numbers (or "no record on file"), nothing scrolling sideways',
       leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
     /* ---------- THE PHOTO'S CREDIT, AS A LINK A FINGER CAN HIT ------------------------------------------
        THE CREDIT IS A LINK NOW, to the photo's Commons file page — a CC BY or BY-SA licence asks for
@@ -3009,20 +3015,20 @@ const STATES = {
         const c = document.querySelector('#s-res .page.on .card.fc.fight')
                || document.querySelector('#s-res .card.fc.fight');
         if (!c || c.querySelector('p.note')) return false;
-        const h3 = c.querySelector('.fc-head > h3.fight-line'), flag = c.querySelector('.fc-head .fc-flag');
+        const h3 = c.querySelector('.fc-head > h3.fight-line'), flag = c.querySelector('.qtags .qtag[data-f="boxKind"]');
         const how = c.querySelector('.fc-meta');
-        if (!h3 || !flag || !how || flag.textContent.trim() !== 'Fight') return false;
+        if (!h3 || !flag || !how || flag.textContent.trim() !== 'Fights' || c.querySelector('.fc-flag')) return false;
         const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
-        /* AND BOTH CORNERS' FACES, SQUARE, ABOVE THE FLAG — lifted there by `order`, which only a
+        /* AND BOTH CORNERS' FACES, SQUARE, ABOVE THE TAG ROW — lifted there by `order`, which only a
            browser lays out. Two because a bout is two boxers, whether either has a photo or not. */
         const faces = [...c.querySelectorAll('.fight-faces .boxer-pic .boxer-frame')].map(e => e.getBoundingClientRect());
         return Math.abs(parseFloat(getComputedStyle(h3).fontSize) - 1.1 * rem) < .5
-               && flag.getBoundingClientRect().bottom <= h3.getBoundingClientRect().top + .5
+               && flag.getBoundingClientRect().top >= h3.getBoundingClientRect().bottom - .5
                && getComputedStyle(how).textTransform === 'none'
                && faces.length === 2 && faces.every(r => r.width > 0 && Math.abs(r.width - r.height) < 1.5
                                                         && r.bottom <= flag.getBoundingClientRect().top + .5);
       },
-      wants: 'a fight on the shared head — both corners\' faces square above it, the two names as the title under a Fight flag, how it ended in sentence case, no loose note paragraphs',
+      wants: 'a fight on the shared head — both corners\' faces square above it, the two names as the title with its [Fights] tag under it, how it ended in sentence case, no loose note paragraphs',
       leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
     /* ---------- THE FIGHTER IN THE RING LOOKS LIKE HIM, IN THE COLOURS A BROWSER ACTUALLY PAINTS -------
        THE OWNER, 10 Oct: *"make the boxers retro avatar actually look more like the boxers and their
