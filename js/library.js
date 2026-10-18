@@ -849,3 +849,174 @@ function libraryInto_(d, rows) {
 
   return d;
 }
+
+/* ==================================================================================================
+   EVERY PAPER HAS A HEALTH SCORE — ONE NUMBER, 0 TO 100, FROM THE ROWS THEMSELVES.
+
+   THE OWNER, 18 Oct: *"Can you add a health check to worksheets or past papers so we can know when we
+   are doing something whether it's low accuracy or buggy or missing shit or anything. Like 99% would
+   be it's practically perfect and ready to do. This is for work in the finder."*
+
+   ONE FUNCTION AND TWO READERS. The finder's `Health` tag and tile (find.js, `healthOf_`) and the
+   owner's report (`node js/check-health.js`) both call this, over the same rows, so the number on a
+   card and the number in the report cannot disagree. It lives HERE because this file is the library's
+   loader and is a plain script with no DOM: a check loads it in a `vm` and gets the real thing rather
+   than a copy (docs/history/354).
+
+   THE SCORE IS THE SHARE OF THE PAPER'S POINTS THAT PASS. A question is worth its marks, or 1 where
+   the paper prints none (a Corbettmaths sheet), so a broken six-marker costs six times a broken
+   one-marker — which is what it costs a lesson. Each failure takes a SHARE of its question's points,
+   by how badly it spoils the work, and two failures on one question compound rather than add, so no
+   question loses more than it is worth:
+
+     no words              1.0   there is nothing to do
+     no answer             0.5   it can be done and not checked — a tutor needs the scheme in hand
+     needs a picture       0.6   "the triangle shown" over no triangle is usually not answerable
+     picture in words      0.25  `Figure: a circle of radius 4cm` — answerable, and still not the paper
+     words are a stand-in  0.5   `placeholder` on the row or on the preamble above it: a description
+                                 of the real thing, sat only with the printed paper beside you
+     no marks              0.15  where the paper prints marks: it can be done, the weight is a guess
+
+   AND THREE THINGS ABOUT THE WHOLE PAPER, which no one row can say:
+
+     marks add to X of T   the missing (or doubled) marks are missing points: |T − X| of them. T is
+                           the paper's own `total_marks`, or 80 for an Edexcel GCSE maths paper —
+                           `outOf` in check-library.js, the same two answers in the same order.
+     Q4 missing            a gap in the question numbers. It costs a question of the paper's mean
+                           worth — unless a stated total is already short by it, which says so.
+     not checked           no row of the paper carries `pages_checked`. THAT COLUMN IS WEAK EVIDENCE
+                           and is weighed as such: it says the PAGE COUNT was checked against the PDF
+                           (resource.js labels it so), not that every question was read against it.
+                           There is no column that says that, so it moves the score by 1 — the gap
+                           between 99 and 100 — and nothing more.
+
+   A PICTURE IS NEEDED when the row names a figure that is not somewhere to write (`figure` outside
+   the answer-space labels check-library.js lists), or its words say `diagram`, `shown`, `graph`,
+   `table below` or `grid`. It is THERE when the row draws one (`diagram`, `images`, an inline svg,
+   img or table in `html` or `lead`), when a preamble over it does (paper, section or question scope,
+   `preamble_`'s three), when it `uses` an earlier part's drawing, when it is a drawing question whose
+   words only ask for a grid (the box is the grid, `padSurface_`), or when the row says it is sat on the
+   printed sheet (`needs_print` / `print_required`) and the paper has a PDF to print.
+
+   READY IS 98 AND UP, USABLE 85 TO 97, ROUGH UNDER 85 — the owner's "99% would be practically
+   perfect", with one point of room for the unchecked page count above. Rounded DOWN, so a paper
+   at 97.9 is not shown as a Ready 98.
+
+   INACTIVE ROWS ARE NOT COUNTED, the rule `libraryInto_` applies: what nobody can be shown cannot
+   spoil what they are shown. A paper with no question rows has no score — the transcription queue
+   check-library.js counts, not a paper at 0%.
+================================================================================================== */
+const HEALTH_HURT = { words: 1, answer: 0.5, picture: 0.6, described: 0.25, standin: 0.5, marks: 0.15 };
+const HEALTH_BANDS = [['Ready', 98], ['Usable', 85], ['Rough', 0]];
+const healthBand_ = pct => (HEALTH_BANDS.find(b => pct >= b[1]) || HEALTH_BANDS[2])[0];
+/* The answer-space labels, as check-library.js names them: the paper printed somewhere to WRITE. */
+const HEALTH_SPACE = ['grid-blank', 'fractions', 'boxes', 'long-method', 'lines', 'working',
+                      'answer-space', 'table-blank'];
+/* WORDED ANSWERS ARE MARKED AGAINST A SCHEME, so `accept` alone (a typed value) is not an answer. */
+const HEALTH_WORDED = ['explain', 'written', 'proof', 'annotate', 'drawing'];
+/* `graph` ONLY WHERE IT POINTS AT ONE — "the graph", "the graph below". "C is a graph with equation
+   y = 5x² − x − 15" names a curve the question then defines in words, and was counted as a missing
+   picture on the first measurement. */
+const HEALTH_SAYS_PIC = /\b(diagram|shown|table below|grid)\b|\b(the|this) graph\b|\bgraph (below|above|shows)\b/i;
+const HEALTH_DRAWN = /<(svg|img|table)\b/i;
+
+function paperHealth_(rows) {
+  const out = {};
+  if (!Array.isArray(rows)) return out;
+  const text = h => libS(h).replace(/<[^>]*>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ').replace(/\s+/g, ' ').trim();
+  const drawn = r => !!(r && (libS(r.diagram).trim() || libS(r.images).trim()
+    || HEALTH_DRAWN.test(libS(r.html)) || HEALTH_DRAWN.test(libS(r.lead))));
+  const by = {}, doc = {}, pre = {};
+  rows.forEach(r => {
+    if (!r || !libS(r.paper_id) || !libOn(r.active)) return;
+    const pid = libS(r.paper_id), kind = libS(r.kind).toLowerCase();
+    if (kind === 'document') { doc[pid] = r; return; }
+    if (kind === 'preamble') {
+      (pre[pid] = pre[pid] || []).push(r);
+      return;
+    }
+    (by[pid] = by[pid] || []).push(r);
+  });
+  Object.keys(by).forEach(pid => {
+    const qs = by[pid], d = doc[pid] || {}, pres = pre[pid] || [];
+    const fact = k => libS(d[k]) || libS((qs[0] || {})[k]);
+    /* THE PREAMBLES OVER A ROW: the whole paper's, its section's, its question's. */
+    const over = r => pres.filter(p => {
+      const pq = libS(p.question), ps = libS(p.section);
+      return pq ? pq === libS(r.question) : (!ps || ps === libS(r.section));
+    });
+    const hasPdf = !!(libS(d.source_url) || libTrue(d.printable) || qs.some(r => libS(r.source_url)));
+    const said = libNum(d.total_marks);
+    const gcseMaths = fact('exam_board') === 'Edexcel' && fact('subject') === 'Maths'
+      && fact('key_stage') === 'KS4' && fact('document_type') === 'Past paper'
+      && (fact('tier') === 'Higher' || fact('tier') === 'Foundation');
+    const total = said > 0 ? said : (gcseMaths ? 80 : null);
+    const printsMarks = total != null || /paper/i.test(fact('document_type'))
+      || qs.some(r => libNum(r.marks) > 0);
+    const fails = [];
+    let points = 0, lost = 0, marked = 0;
+    qs.forEach(r => {
+      const m = libNum(r.marks);
+      const w = m > 0 ? m : 1;
+      if (m > 0) marked += m;
+      points += w;
+      const ref = 'Q' + libS(r.question) + libS(r.part);
+      const hurt = [];
+      const words = text(r.html) + ' ' + text(r.lead);
+      if (!words.trim()) hurt.push(['words', 'no words']);
+      else if (libTrue(r.placeholder)) hurt.push(['standin', 'its words are a stand-in']);
+      else if (over(r).some(p => libTrue(p.placeholder))) hurt.push(['standin', 'what it is about is a stand-in']);
+      const type = libS(r.answer_type).toLowerCase();
+      const choice = libS(r.choices).trim() && libS(r.choice_right).trim();
+      const scheme = libS(r.answer).trim();
+      if (HEALTH_WORDED.indexOf(type) !== -1 ? !scheme : !(scheme || libS(r.accept).trim() || choice)) {
+        hurt.push(['answer', HEALTH_WORDED.indexOf(type) !== -1 ? 'no mark scheme' : 'no answer']);
+      }
+      const fig = libS(r.figure).trim();
+      const figPic = !!fig && HEALTH_SPACE.indexOf(fig) === -1;
+      const saysPic = HEALTH_SAYS_PIC.test(words);
+      if (figPic || saysPic) {
+        const gridOnly = !figPic && type === 'drawing' && !/\b(diagram|shown|graph|table below)\b/i.test(words);
+        const printed = (libTrue(r.needs_print) || libTrue(r.print_required)) && hasPdf;
+        const there = drawn(r) || over(r).some(drawn) || libS(r.uses).trim() || gridOnly || printed;
+        /* A PICTURE SAID IN WORDS (`Figure: a circle with a dotted radius of 4cm`) is answerable and is
+           still not the paper — 159 of the first 390 were this. Charged less, and said differently. */
+        if (!there && /\bFigure:/.test(libS(r.html) + libS(r.lead))) hurt.push(['described', 'its picture is described in words, not drawn']);
+        else if (!there) hurt.push(['picture', 'needs a picture, none drawn']);
+      }
+      if (printsMarks && !(m > 0)) hurt.push(['marks', 'no marks']);
+      if (!hurt.length) return;
+      let keep = 1;
+      hurt.forEach(h => { keep *= 1 - HEALTH_HURT[h[0]]; fails.push({ ref: ref, kind: h[0], why: h[1], row: libS(r.row_id) }); });
+      lost += w * (1 - keep);
+    });
+    /* THE NUMBERS RUN 1 TO THE LAST WITHOUT A GAP. Only whole numbers are read; a paper numbered any
+       other way is not asked, rather than guessed at. */
+    const nums = qs.map(r => libS(r.question)).filter(s => /^\d+$/.test(s)).map(Number);
+    const seen = new Set(nums), top = nums.length ? Math.max.apply(null, nums) : 0;
+    const gaps = [];
+    for (let n = 1; n <= top; n++) if (!seen.has(n)) gaps.push(n);
+    const mean = seen.size ? points / seen.size : 1;
+    let missing = 0;
+    const short = total != null ? total - marked : 0;
+    if (gaps.length) {
+      gaps.forEach(n => fails.push({ ref: 'Q' + n, kind: 'gap', why: 'missing — the numbers skip it', row: '' }));
+      if (!(total != null && short > 0)) missing += gaps.length * mean;
+    }
+    if (total != null && marked !== total) {
+      fails.push({ ref: 'Paper', kind: 'total', why: 'marks add to ' + marked + ' of ' + total, row: '' });
+      if (short > 0) missing += short; else lost += Math.min(-short, Math.max(0, points - lost));
+    }
+    const checked = qs.some(r => libS(r.pages_checked)) || !!libS(d.pages_checked);
+    let pct = points + missing > 0 ? 100 * Math.max(0, points - lost) / (points + missing) : 0;
+    if (!checked) {
+      fails.push({ ref: 'Paper', kind: 'unchecked', why: 'not checked against its PDF', row: '' });
+      pct -= 1;
+    }
+    pct = Math.max(0, Math.floor(pct));
+    /* `questions` IS THE NUMBERS, not the rows: an AQA paper's 47 rows are its 10 questions' parts. */
+    out[pid] = { pct: pct, band: healthBand_(pct), fails: fails, questions: seen.size || qs.length, rows: qs.length,
+                 marks: marked, total: total, name: fact('name'), type: fact('document_type') };
+  });
+  return out;
+}

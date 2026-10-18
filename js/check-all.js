@@ -139,6 +139,12 @@ const SUITE = [
      content — the library the whole Find screen is about — and no check had ever opened it. A wrong
      row does not throw; it is simply a question somebody is taught wrongly. */
   { file: 'check-library.js', what: 'the library: ids, marks, and the closed facet vocabulary' },
+  /* ---------- AND HOW READY EACH PAPER IS, AS A REPORT ---------------------------------------------
+     Every paper's health score, worst first (docs/history/354). Not `soft`, and not a gate either: it
+     exits 0 over any library, however Rough, and 1 only when its own instrument breaks — `paperHealth_`
+     missing, throwing, or misjudging the fixture paper it carries. A Rough paper is backlog; a blind
+     report is a fault. */
+  { file: 'check-health.js', what: 'every paper\'s health score — a report; fails only if the scorer breaks' },
   /* ---------- THE ONE PIECE OF THIS APP THAT TELLS A CHILD THEY ARE WRONG -----------------------
      Everything above measures whether the app works. This measures whether the marking is FAIR,
      and it is here because it caught a live one: the library spells a fraction with U+2044, a
