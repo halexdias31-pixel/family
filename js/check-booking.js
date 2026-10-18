@@ -521,6 +521,120 @@ RULES.push({
   },
 });
 
+/* ==================================================================================================
+   WHAT A BOOKING EARNS, RUN WITH THE OWNER'S OWN NUMBERS (docs/history/353)
+
+   THE PHONE'S SUM IS `bookMoney_` INSIDE `priceFrom` (js/core.js) AND THE SERVER'S IS THE FREEZE AND THE
+   DISCOUNT GUARD (booking.gs). Both are run here, not read: core.js is loaded whole with a DATA of our own
+   — one tutor at £30, c 0.5, B 0.2 — and the cases are the ones the plan was approved with on 18 Oct, so a
+   change that moves any of them moves a figure the owner has already agreed to.
+================================================================================================== */
+const coreJs = (() => { try { return fs.readFileSync(path.join(dir, 'core.js'), 'utf8'); } catch (e) { return null; } })();
+let money_ = null;
+try {
+  if (!coreJs) throw new Error('js/core.js could not be read');
+  const m = {};
+  new Function('module', 'let DATA = {}; let USER = null; const $ = () => null;' + coreJs
+    + ';module.priceFrom = priceFrom; module.setData = d => { DATA = d; };')(m);
+  const b = { exports: {} };
+  new Function('module', PRELUDE
+    + 'const TRUE_ = v => /^(true|yes|1|✓)$/i.test(S(v)); const ON_ = v => S(v) === \'\' || TRUE_(v);'
+    + block(constants, 'const BM = ', '};').replace(/\/\*[\s\S]*?\*\//g, '')
+    + fn(core, 'sheetDate') + fn(booking, 'jobMoneyFreeze_') + fn(booking, 'discountRefusal_')
+    + ';module.exports = { jobMoneyFreeze_, discountRefusal_ };')(b);
+  money_ = Object.assign(m, b.exports);
+} catch (err) {
+  RULES.push({ what: 'the money code loads', check: () => ['could not load it: ' + err.message] });
+}
+const r2 = x => Math.round(x * 100) / 100;
+const MONEY_DATA = (vars) => ({
+  constants: { vars: Object.assign({ c: 0.5, B: 0.2 }, vars || {}) },
+  tutors: [{ title: 'Tutor', rate: 30 }], multipliers: {},
+  // A ROOM AT £15/h, so a trip that forgot to drop it would be caught charging for one.
+  venues: [{ title: 'Somewhere', bestRate: 15 }],
+  practicals: [{ id: 'PR-T', name: 'Kit test', costPerRun: 2, setupCost: 5 }],
+  trips: [{ tripId: 'TR-T', name: 'Trip test', ticketChild: 8, ticketAdult: 10, travelPerChild: 5, maxChildren: 6 }],
+});
+const quote = (spec, vars) => {
+  money_.setData(MONEY_DATA(vars));
+  return money_.priceFrom(Object.assign({ subjects: [], tutor: 'Tutor', slots: 1, day: 'Monday' }, spec));
+};
+if (money_) {
+  RULES.push({
+    what: 'the owner\'s examples price to the penny: tutoring, a practical, a trip, two discounts, card fees',
+    check: () => {
+      const bad = [];
+      const want = (what, L, charged, tutor, net) => {
+        const got = [r2(L.earn.charged), r2(L.earn.tutorPayout), r2(L.earn.net)];
+        if (got.join() !== [charged, tutor, net].join()) {
+          bad.push(what + ': charged/tutor/net ' + got.join(' / ') + ', wanted ' + [charged, tutor, net].join(' / '));
+        }
+        if (r2(L.total) !== charged) bad.push(what + ': COST reads ' + r2(L.total) + ', wanted ' + charged);
+      };
+      want('tutoring, 1 child, 2h', quote({ n: 1, hours: 2, hoursPerWeek: 2 }), 60, 60, 0);
+      want('tutoring, 2 children, 2h', quote({ n: 2, hours: 2, hoursPerWeek: 2 }), 102, 90, 12);
+      const pr = quote({ n: 2, hours: 2, hoursPerWeek: 2, format: 'Practical', practical: 'Kit test' }, { materials_markup: 1.25 });
+      want('practical, 2 children, 2h, kit £2 + £5, markup 1.25', pr, 113.25, 90, 14.25);
+      if (r2(pr.earn.materialsCharge) !== 11.25) bad.push('the practical\'s materials are ' + r2(pr.earn.materialsCharge) + ', wanted 11.25');
+      const atCost = quote({ n: 2, hours: 2, hoursPerWeek: 2, format: 'Practical', practical: 'Kit test' });
+      if (r2(atCost.earn.materialsCharge) !== 9) bad.push('a blank materials_markup charges ' + r2(atCost.earn.materialsCharge) + ' for £9 of kit, wanted it at cost');
+      const tr = quote({ n: 3, hours: 4, hoursPerWeek: 4, format: 'Trip', trip: 'Trip test', loc: 'Somewhere' });
+      want('trip, 3 children, 4h, £8 + £10 adult, £5 travel', tr, 337, 240, 48);
+      if (tr.V !== 0) bad.push('a trip hires a room at £' + tr.V + '/h');
+      want('£10 off, business absorbs', quote({ n: 2, hours: 2, hoursPerWeek: 2, discount: { type: '£', value: 10 } }), 92, 90, 2);
+      want('10% off, shared with tutor', quote({ n: 2, hours: 2, hoursPerWeek: 2,
+        discount: { type: '%', value: 10, by: 'Shared with tutor' } }), 91.8, 81, 10.8);
+      const prPct = quote({ n: 2, hours: 2, hoursPerWeek: 2, format: 'Practical', practical: 'Kit test',
+        discount: { type: '%', value: 10 } }, { materials_markup: 1.25 });
+      if (r2(prPct.earn.discount) !== 10.2) bad.push('10% off a practical took ' + r2(prPct.earn.discount) + ', wanted 10.20 — off the teaching, never the kit');
+      want('£20 off one child, business absorbs: a loss', quote({ n: 1, hours: 2, hoursPerWeek: 2, discount: { type: '£', value: 20 } }), 40, 60, -20);
+      const fees = quote({ n: 2, hours: 2, hoursPerWeek: 2 }, { card_fee_pct: 1.5, card_fee_fixed: 0.2 });
+      if (r2(fees.earn.cardFees) !== 1.73 || r2(fees.earn.net) !== 10.27) {
+        bad.push('card fees 1.5% + 20p on £102 came to ' + r2(fees.earn.cardFees) + ', net ' + r2(fees.earn.net) + ', wanted 1.73 and 10.27');
+      }
+      return bad;
+    },
+  });
+  RULES.push({
+    what: 'what a booking earns is frozen when it is agreed, and a config change afterwards rewrites nothing',
+    check: () => {
+      const bad = [];
+      const row = { gross: 102, tutor_payout: 90, venue_cost: 0, materials_cost: 0, tickets_cost: 0, card_fees: 0, priced_at: '' };
+      const first = money_.jobMoneyFreeze_(row, { card_fee_pct: 1.5, card_fee_fixed: '' }, new Date(2026, 9, 18));
+      if (!first || first.card_fees !== 1.53 || first.net_profit !== 10.47 || !first.priced_at) {
+        return ['freezing £102 at 1.5% gave ' + JSON.stringify(first) + ', wanted card_fees 1.53, net_profit 10.47 and a priced_at'];
+      }
+      Object.assign(row, first);
+      const again = money_.jobMoneyFreeze_(row, { card_fee_pct: 3, card_fee_fixed: 1 }, new Date(2026, 10, 1));
+      if (again !== null) bad.push('a frozen row was priced again after the config changed: ' + JSON.stringify(again));
+      if (row.card_fees !== 1.53 || row.net_profit !== 10.47) bad.push('the frozen figures moved: ' + JSON.stringify(row));
+      if (money_.jobMoneyFreeze_({ gross: '', priced_at: '' }, {}, new Date()) !== null) {
+        bad.push('a job from before the money columns was frozen at nothing');
+      }
+      return bad;
+    },
+  });
+  RULES.push({
+    what: 'a discount is refused from anybody but an admin, and a code is held to its row',
+    check: () => {
+      const bad = [];
+      const today = new Date(2026, 9, 18);
+      const ask = { discountType: '£', discountValue: '10', discountAbsorbedBy: 'Business' };
+      if (!/Only @family\. gives a discount/.test(money_.discountRefusal_(ask, false, null, today))) bad.push('a parent\'s discount was not refused');
+      if (money_.discountRefusal_(ask, true, null, today)) bad.push('an admin\'s £10 was refused: ' + money_.discountRefusal_(ask, true, null, today));
+      if (money_.discountRefusal_({ name: 'Pat' }, false, null, today)) bad.push('a booking with no discount was refused');
+      const code = { code: 'SPRING10', type: '%', value: 10, max_uses: 2, used: 0, expires: '', active: '' };
+      const withCode = { discountType: '%', discountValue: '10', discountCode: 'SPRING10' };
+      if (money_.discountRefusal_(withCode, true, code, today)) bad.push('a good code was refused');
+      if (!/used all 2/.test(money_.discountRefusal_(withCode, true, Object.assign({}, code, { used: 2 }), today))) bad.push('a used-up code was let through');
+      if (!/expired/.test(money_.discountRefusal_(withCode, true, Object.assign({}, code, { expires: '17/10/2026' }), today))) bad.push('an expired code was let through');
+      if (!/switched off/.test(money_.discountRefusal_(withCode, true, Object.assign({}, code, { active: 'FALSE' }), today))) bad.push('a switched-off code was let through');
+      if (!/not what was sent/.test(money_.discountRefusal_(Object.assign({}, withCode, { discountValue: '50' }), true, code, today))) bad.push('a code sent with a bigger value was honoured');
+      return bad;
+    },
+  });
+}
+
 /* ---------- RUN ---------------------------------------------------------------------------------- */
 let failed = 0;
 console.log('');

@@ -92,7 +92,10 @@ const PRICE_ROWS = [
     control: 'l-location',
     value: L => L.loc || '',
     perHour: L => L.venueRate || 0,
-    atCost: true },
+    atCost: true,
+    /* NOT ON A TRIP (docs/history/353): the step is not asked there, and a priced row with no question to
+       land on would draw the Venue row back by itself, a running total under a question nobody was asked. */
+    show: L => L.format !== 'Trip' },
 
   { key: 'host',    label: 'Host',     kind: 'rate-add',  group: 'rate',
     control: 'host-toggle',
