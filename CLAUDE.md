@@ -109,8 +109,9 @@ Each check's header says what it proves, its flags and its port variable. The fu
 
 ## House style
 
-- **Comments say WHY, and what went wrong before.** Not what the line does. Most of them are a bug
-  report written from the far side. Match the density of the file you are in.
+- **Comments say WHY, in a line or two** (≤ 240 characters; `check-comments` enforces). The story — what
+  broke, what was tried, the owner's words — goes in `docs/history/NNN`. A comment ending `§` was
+  shortened and its full text is in `docs/notes/<path>.md`; `node tools/comments.js` does the move.
 - **Fallbacks everywhere:** `brand(k, or)`, `|| []`, `try/catch` around anything that can be absent. An
   empty or broken sheet must still produce a working site.
 - Plain scripts, no modules, no framework, no build.
