@@ -43,7 +43,7 @@
      node check/swipe.js --only=cell,focus --width=390
                                     some of it: cell folded axis tile slide other centre focus
                                     field hold keypad grow widgets cost flicks reduced wide
-                                    widepress findrun flappy — for proving one rule by mutation without waiting
+                                    widepress findrun sweep flappy — for proving one rule by mutation without waiting
                                     six minutes for all of them. A run narrowed
                                     this way says so, and is never what the roster runs.
    SWIPE_PORT pins the port; unset, the OS picks a free one, so parallel runs cannot collide.
@@ -188,8 +188,11 @@ function RECORDER() {
          `--only=centre`, found by the review. A phone answers before the slide lands; this machine
          does not, and the check must wait for the answer rather than report the gap. */
       const cam = typeof CAM_ASKING !== 'undefined' && !!CAM_ASKING;
+      /* AND THE BUILDER DONE (`aheadBusy_`, shell.js; docs/history/341): what it draws in the quiet — a stale
+         column, a widget slot, a finder's page — is drawing that could still be going on under a measurement. */
       const booked = !!PLACE_FRAME || !!AFTER_SLIDE || AFTER_SLIDE_JOBS.size > 0 || !!pics || cam
-        || (typeof TOOLS_WAIT !== 'undefined' && TOOLS_WAIT.length > 0);
+        || (typeof TOOLS_WAIT !== 'undefined' && TOOLS_WAIT.length > 0)
+        || (typeof aheadBusy_ === 'function' && aheadBusy_());
       /* AND THE CARD IN FRONT THE SAME HEIGHT TWICE RUNNING, WITH ITS COLUMN WHERE IT IS MEANT TO BE.
          Whatever else grows a card late — the next thing like the camera — is caught by its effect
          rather than by name: a height that changed since the last look, or a column whose placed shift
@@ -262,6 +265,12 @@ async function boot(browser, W, H, opts = {}) {
   await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => typeof placeGrid === 'function' && typeof SLIDE_UNTIL === 'number'
     && document.querySelector('#s-tools .page') && document.querySelector('#s-games .page'), null, { timeout: 30000 });
+  /* AND THE PAYLOAD'S SCREEN UP, so the builder is open (docs/history/341). The columns hold the boot's markup
+     until then, and `aheadBusy_()` says "nothing to build" before the builder opens — so on a starved machine
+     the sweep started on boot markup and drew twelve columns inside its releases, which RELEASE read as the
+     builder's failure (the final run, 12 Oct). Not fatal if it never opens: the run goes on and says what it
+     finds. */
+  await page.waitForFunction(() => typeof AHEAD === 'undefined' || AHEAD.open, null, { timeout: 60000 }).catch(() => {});
   await sleep(1500);
   await page.evaluate(() => window.__sw.arm());
   const cdp = await ctx.newCDPSession(page);
@@ -1276,6 +1285,10 @@ async function gesture(env, o) {
       const r = await page.evaluate(async () => {
         const wait = ms => new Promise(res => setTimeout(res, ms));
         await window.__sw.place('games', 0);
+        /* THE BUILDER HELD, AND TOOLS MARKED STALE, so the arrival draws the column from nothing and starts its
+           widgets through the queue — what this asks about. With the builder on they are drawn ahead and
+           adopted on arrival, which starts nothing (docs/history/341). Let go again after the finger below. */
+        window.__aheadHold = true; repaint();
         /* THE ROSTER'S OWN OBJECTS ONLY: a widget made from data (a session you are in) is a fresh
            object per call, so wrapping it here would wrap a copy nobody starts. */
         const ws = widgetsOf_('tool').filter(w => typeof WIDGETS !== 'undefined' && WIDGETS.indexOf(w) !== -1);
@@ -1321,6 +1334,8 @@ async function gesture(env, o) {
         let spot = null;
         for (const p of [2, 4, 5, 6, 7]) { await window.__sw.place('tools', p); spot = window.__sw.spot(); if (spot) break; }
         await window.__sw.place('games', 0);
+        /* HELD AND MARKED AGAIN, for the reason the arrival above is (docs/history/341). */
+        window.__aheadHold = true; repaint();
         const ws = widgetsOf_('tool').filter(w => typeof WIDGETS !== 'undefined' && WIDGETS.indexOf(w) !== -1 && w.start);
         window.__swStarts = [];
         ws.forEach(w => {
@@ -1360,6 +1375,7 @@ async function gesture(env, o) {
         if (up.left) fail('WIDGETS A FEW AT A TIME', `${at} tools, finger down`, `${up.left} widget(s) still waiting after a finger had rested 4s — the wait for a finger has no end`);
         if (after.left) fail('WIDGETS A FEW AT A TIME', `${at} tools, finger down`, `${after.left} widget(s) never started after the finger lifted`);
       }
+      await page.evaluate(() => { window.__aheadHold = false; if (typeof aheadKick_ === 'function') aheadKick_(); });
     }
 
     /* ---------- 10. A RELEASE RESTYLES THE CARDS THAT CHANGED, NOT THE DOCUMENT -------------------
@@ -1621,38 +1637,42 @@ async function gesture(env, o) {
         await page.evaluate(() => { STUFF.filters = []; STUFF.q = ''; paintStuff(true); });
       }
 
-      /* D. FIND EMPTIES PAGES WITHOUT ASKING PANES THAT NEVER SCROLLED TO SCROLL. */
+      /* D. FIND EMPTIES PAGES WITHOUT ASKING PANES THAT NEVER SCROLLED TO SCROLL.
+         SINCE docs/history/341 a page is emptied only when the window is recycled past it (nothing inside the
+         forty-one-page window is emptied), so this walks a paper longer than the window, past it. */
       const fill = await page.evaluate(async () => {
         if (typeof stuffItems !== 'function') return null;
         await window.__sw.place('stuff');
-        const facet = FACETS.find(f => f.field === 'paperId');
-        const want = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-1CM-volume-and-surface-area-cuboids-9');
-        if (!want || !facet) return null;
-        STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: facet.of(want) }];
+        STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: 'P-AQA-8461-2406-2F' }];
         paintStuff(true);
         await new Promise(r => setTimeout(r, 400));
         const n = AXES.y.count('stuff');
-        if (n < 10) return { n };
-        goPage('stuff', 6, true);
+        const first = stuffFirstResult_();
+        if (n < first + STUFF_WIN + 14) return { n, need: first + STUFF_WIN + 14 };
+        goPage('stuff', first + 2, true);
         await window.__sw.still('stuff');
         const d = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollTop');
         let bad = 0, sets = 0, emptied = 0;
-        const seen = new Set([...document.querySelectorAll('#s-stuff > .page[data-filled="1"]')]);
+        /* EMPTIED IS COUNTED AS IT HAPPENS (`stuffBlank_`), not read off the pages afterwards: a recycled page
+           is emptied and then filled again for the card it now stands for, and `still` waits for the builder,
+           which refills every one — so the pages read at the end were all filled, and the rule said "nothing
+           was asked" of a walk that had emptied a dozen (the final run, 12 Oct). */
+        const blank = window.stuffBlank_;
+        window.stuffBlank_ = function () { emptied++; return blank.apply(this, arguments); };
         Object.defineProperty(Element.prototype, 'scrollTop', { configurable: true, get: d.get, set(v) {
           if (this.classList && this.classList.contains('pane') && this.closest('#s-stuff')) { sets++; if (!this.style.overflowY) bad++; }
           return d.set.call(this, v);
         } });
         try {
-          for (const p of [7, 8, 9]) { goPage('stuff', p); await window.__sw.still('stuff'); }
-        } finally { Object.defineProperty(Element.prototype, 'scrollTop', d); }
-        seen.forEach(el => { if (el.dataset.filled !== '1') emptied++; });
+          for (const p of [first + STUFF_WIN, first + STUFF_WIN + 6, first + STUFF_WIN + 12]) { goPage('stuff', p, true); await window.__sw.still('stuff'); }
+        } finally { Object.defineProperty(Element.prototype, 'scrollTop', d); window.stuffBlank_ = blank; }
         const out = { n, bad, sets, emptied, p: PAGE.stuff };
         STUFF.filters = []; STUFF.q = ''; paintStuff(true);
         return out;
       });
       reached++;
       if (!fill) fail('REACH', `${at} find fill`, 'the paper on the Find screen was not found');
-      else if (fill.n < 10) fail('REACH', `${at} find fill`, `the paper has ${fill.n} pages — too few to empty any`);
+      else if (fill.need) fail('REACH', `${at} find fill`, `the paper has ${fill.n} pages — it needs ${fill.need} to walk past the window`);
       else {
         note(`${at} three page turns on Find: ${fill.emptied} page(s) emptied, ${fill.sets} pane scroll(s) set, ${fill.bad} on panes that could not scroll`);
         if (!fill.emptied) fail('REACH', `${at} find fill`, 'no page was emptied — nothing was asked');
@@ -1796,9 +1816,9 @@ async function gesture(env, o) {
         const pg = host && host.querySelectorAll(':scope > .page')[domIndex_(t.id, PAGE[t.id] || 0)];
         if (!pg) continue;
         /* ANY CONTROL, NOT ONLY A BUTTON. The card right of Find was You's sign-in card, all buttons; it is
-           the Resources column's question since the second finder (docs/history/329), whose controls are
-           the funnel's answers — `div[data-do="facet-pick"]` — and a press that went through one would
-           be the same fault. */
+           Find 2's question since the second finder (docs/history/329, 347) — Find's own first question,
+           whose controls are the funnel's answers, `div[data-do="facet-pick"]` — and a press that went
+           through one would be the same fault. */
         const el = [...pg.querySelectorAll('button[data-do], .tile[data-do], [data-do="facet-pick"]')].find(x => {
           const r = x.getBoundingClientRect();
           return r.width > 0 && r.left > 0 && r.right < innerWidth && r.top > 0 && r.bottom < innerHeight;
@@ -1915,7 +1935,7 @@ async function gesture(env, o) {
       }
       /* THE RECORDER: every write to Find's column, and every painted frame. */
       await page.evaluate(() => {
-        const R = window.__swRun = { on: true, writes: [], frames: [], real: colWrite_, realShift: colShiftNow_, shifting: 0 };
+        const R = window.__swRun = { on: true, writes: [], frames: [], real: colWrite_, realShift: colShiftNow_, shifting: 0, lastP: null };
         window.colWrite_ = function (host, x, y) {
           if (R.on && host && host.id === 's-stuff') {
             R.writes.push({ y: +y, p: PAGE.stuff || 0, drag: host.classList.contains('dragging'), shift: R.shifting > 0, lo: PAGE_LO.stuff || 0 });
@@ -1934,49 +1954,105 @@ async function gesture(env, o) {
         mc.port1.onmessage = () => {
           if (!R.on) return;
           const cards = [];
-          let empty = null;
-          [].forEach.call(host.querySelectorAll(':scope > .page'), (el, i) => {
+          let empty = null, black = null;
+          const all = host.querySelectorAll(':scope > .page');
+          [].forEach.call(all, (el, i) => {
             const r = el.getBoundingClientRect();
             if (r.bottom <= 0 || r.top >= innerHeight || r.right <= 0 || r.left >= innerWidth) return;
             const cs = getComputedStyle(el);
-            if (cs.visibility === 'hidden' || +cs.opacity <= 0.05) return;
+            /* BLACK ON THE GLASS (docs/history/341): a page the slide has carried onto the glass, drawn hidden
+               or at nothing — the hole the band exists to close. More than 24px of it, so an edge does not count. */
+            if (cs.visibility === 'hidden' || +cs.opacity <= 0.05) {
+              if (!black && Math.min(r.bottom, innerHeight) - Math.max(r.top, 0) > 24) black = { log: logIndex_('stuff', i), top: Math.round(r.top), vis: cs.visibility, op: +(+cs.opacity).toFixed(2) };
+              return;
+            }
             const log = logIndex_('stuff', i);
             const pane = el.querySelector(':scope > .pane');
             if (el.classList.contains('is-res') && (!pane || !pane.firstChild) && !empty) empty = { log, top: Math.round(r.top), op: +(+cs.opacity).toFixed(2) };
             cards.push([log, r.top]);
           });
-          R.frames.push({ p: PAGE.stuff || 0, lo: PAGE_LO.stuff || 0, empty, cards });
+          /* AT EVERY LANDING, HOW MANY PAGES PAST THE ONE IN FRONT ARE ALREADY FILLED — BUILT AHEAD. */
+          const p = PAGE.stuff || 0;
+          let ahead = null;
+          if (R.lastP !== p) {
+            ahead = 0;
+            while (ahead < 40) { const el = all[domIndex_('stuff', p + ahead + 1)]; if (!el || el.dataset.filled !== '1') break; ahead++; }
+            const last = stuffFirstResult_() + stuffPages_().length - 1;
+            ahead = { p, n: ahead, need: Math.min(glassRows_() + 3, last - p) };
+            R.lastP = p;
+          }
+          R.frames.push({ p, lo: PAGE_LO.stuff || 0, empty, black, ahead, cards });
           requestAnimationFrame(() => mc.port2.postMessage(0));
         };
         requestAnimationFrame(() => mc.port2.postMessage(0));
       });
       const x0 = Math.round(W / 2), y0 = Math.round(H * 0.7);
-      for (const phase of ['from the first result', 'on, through the window moving']) {
+      /* TWO RUNS. Ten flicks down the subtraction sheet from its first result; then — since docs/history/341 the
+         window is forty-one pages and the sheet's thirty-three fit inside it, so it would never move — FIFTEEN
+         flicks down a 76-question paper (AQA Biology 8461 2F) from eight pages short of the window's end, after
+         a rest, so the run crosses the window's edge and the builder's re-centring and fills are what it meets.
+         That run also asks BUILT AHEAD: at every landing, at least `glassRows_() + 3` pages past the one in
+         front already filled — a fifteen-flick run from rest never reaches an unfilled page. */
+      for (const phase of ['from the first result', 'on the long paper, past the window\'s end']) {
+        const long = phase !== 'from the first result';
+        if (long) {
+          const ok = await page.evaluate(async () => {
+            STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: 'P-AQA-8461-2406-2F' }];
+            paintStuff();
+            const first = stuffFirstResult_(), n = AXES.y.count('stuff');
+            if (n < first + STUFF_WIN + 12) return { n, need: first + STUFF_WIN + 12 };
+            goPage('stuff', first + STUFF_WIN - 8, true);
+            await window.__sw.still('stuff');
+            return { n };
+          });
+          if (ok.need) { fail('REACH', `${at}, ${phase}`, `the 2F paper is ${ok.n} pages — the run needs ${ok.need}`); continue; }
+        }
+        /* AND WHAT THE RUN HAD TO BUILD: every card drawn while it ran by anything but the builder — the release's
+           own fill, an arrival on an empty page (`stuffFillOne_` is the one way a card is drawn). From rest, ten
+           flicks down a sheet that fits inside the window should find every card already drawn and build none:
+           that is what forty-one pages were bought for (M15b, docs/history/341 — back at fifteen, the release
+           fill kept BUILT AHEAD true by drawing the cards inside the flicks, and nothing said so). */
         const before = await page.evaluate(() => {
-          const R = window.__swRun; R.writes = []; R.frames = [];
+          const R = window.__swRun; R.writes = []; R.frames = []; R.lastP = PAGE.stuff || 0; R.built = 0;
+          if (!R.realOne) {
+            R.realOne = window.stuffFillOne_;
+            window.stuffFillOne_ = function () {
+              const ok = R.realOne.apply(this, arguments);
+              if (ok && R.on && !(typeof AHEAD !== 'undefined' && AHEAD.running)) R.built++;
+              return ok;
+            };
+          }
           return { p: PAGE.stuff || 0, lo: PAGE_LO.stuff || 0 };
         });
-        for (let k = 0; k < 10; k++) {
+        for (let k = 0; k < (long ? 15 : 10); k++) {
           await finger(cdp, Object.assign({ x0, y0 }, G.flick(0, -220, 80)));
           await sleep(80);
         }
-        /* AND WHAT THE RUN LEFT BEHIND IT: the late fill, the emptying, anything that re-places the
-           column once the thumb has stopped. */
+        /* AND WHAT THE RUN LEFT BEHIND IT: anything that re-places the column once the thumb has stopped. */
         await page.evaluate(() => window.__sw.still('stuff'));
         await sleep(300);
         const r = await page.evaluate(() => {
           const R = window.__swRun;
-          return { writes: R.writes.slice(), frames: R.frames.slice(), p: PAGE.stuff || 0, lo: PAGE_LO.stuff || 0 };
+          return { writes: R.writes.slice(), frames: R.frames.slice(), p: PAGE.stuff || 0, lo: PAGE_LO.stuff || 0, built: R.built };
         });
         reached++;
-        const where = `${at}, ten flicks ${phase}`;
+        const where = `${at}, ten flicks ${phase}`.replace('ten flicks on the long', 'fifteen flicks on the long');
         const turned = r.p - before.p;
         const emptyFrames = r.frames.filter(f => f.empty);
+        const blackFrames = r.frames.filter(f => f.black);
+        const short = r.frames.filter(f => f.ahead && f.ahead.n < f.ahead.need);
         /* BACK, BY THE WRITES: each one that is not a finger's against the one before it. */
         const back = [];
         let last = null;
+        /* A WRITE MADE AFTER THE WINDOW MOVED IS IN A DIFFERENT FRAME OF REFERENCE — the pages above the card in
+           front are not the pages they were, so its aim is not comparable with the one before. Since 341 the
+           window is re-centred in the quiet as well as slid in a release, and a quiet re-centring on the page
+           the run ended on is exactly such a pair: `colShiftNow_` moves the column with its layout, then the
+           placement aims at the same place in the new coordinates. What the eye would see of a window moved
+           wrongly is still caught, by the drawn rule below. */
         r.writes.forEach(w => {
           if (w.drag || w.shift) return;
+          if (last && last.lo !== w.lo) last = null;
           if (last && last.p === w.p && w.y - last.y > 40) back.push(`re-aimed ${Math.round(last.y)} → ${Math.round(w.y)}px on page ${w.p}`);
           last = w;
         });
@@ -1988,16 +2064,128 @@ async function gesture(env, o) {
           const worst = Math.max(0, ...moved);
           if (worst > 40) back.push(`drawn ${Math.round(worst)}px back down in one frame on page ${b.p}${b.lo !== a.lo ? ' as the window moved' : ''}`);
         }
-        note(`${where}: page ${before.p} → ${r.p} (${turned} turned), ${r.frames.length} frames, ${emptyFrames.length} with an empty card on the glass, ${back.length} turn(s) back, window ${before.lo} → ${r.lo}`);
-        if (turned < 8) fail('REACH', where, `ten flicks turned ${turned} page(s) — eight is the least that is a run, so nothing about one was measured`);
-        if (phase !== 'from the first result' && r.lo === before.lo) fail('REACH', where, `the window never moved (${r.lo}) — the re-centring was not asked`);
+        note(`${where}: page ${before.p} → ${r.p} (${turned} turned), ${r.frames.length} frames, ${emptyFrames.length} with an empty card on the glass, ${blackFrames.length} black, ${back.length} turn(s) back, window ${before.lo} → ${r.lo}`
+          + (long ? `; built ahead at the landings: ${r.frames.filter(f => f.ahead).map(f => f.ahead.n).join(' ')}` : '') + `; ${r.built} card(s) drawn inside the run`);
+        if (turned < (long ? 12 : 8)) fail('REACH', where, `the flicks turned ${turned} page(s) — too few to be a run, so nothing about one was measured`);
+        if (long && r.lo === before.lo) fail('REACH', where, `the window never moved (${r.lo}) — its edge was not reached`);
         if (emptyFrames.length) {
           const e = emptyFrames[0];
           fail('EMPTY ON THE GLASS', where, `${emptyFrames.length} of ${r.frames.length} painted frames had an empty card drawn on the glass — first page ${e.empty.log} at ${e.empty.top}px, opacity ${e.empty.op}, with page ${e.p} in front`);
         }
+        if (blackFrames.length) {
+          const e = blackFrames[0];
+          fail('BLACK ON THE GLASS', where, `${blackFrames.length} of ${r.frames.length} painted frames had a page on the glass drawn ${e.black.vis === 'hidden' ? 'hidden' : 'at opacity ' + e.black.op} — first page ${e.black.log} at ${e.black.top}px, with page ${e.p} in front`);
+        }
+        if (!long && r.built) fail('BUILT AHEAD', where, `from rest, ten flicks down a sheet inside the window had ${r.built} card(s) drawn inside them — the builder had not drawn the window`);
+        if (long && short.length) {
+          const e = short[0];
+          fail('BUILT AHEAD', where, `${short.length} landing(s) found fewer pages filled ahead than ${e.ahead.need} — first page ${e.ahead.p} with ${e.ahead.n} filled past it`);
+        }
         if (back.length) fail('TURNED BACK', where, `${back.length} time(s) the column went against the run: ${back.slice(0, 3).join('; ')}`);
       }
-      await page.evaluate(() => { const R = window.__swRun; R.on = false; window.colWrite_ = R.real; window.colShiftNow_ = R.realShift; });
+      await page.evaluate(() => { const R = window.__swRun; R.on = false; window.colWrite_ = R.real; window.colShiftNow_ = R.realShift; if (R.realOne) window.stuffFillOne_ = R.realOne; });
+      if (env.errs.length) fail('PAGE ERROR', at, env.errs.slice(0, 3).join(' | '));
+      await env.ctx.close();
+    }
+  }
+
+  /* ---------- 15. ACROSS THE ROW, FAST: NO COLUMN SEE-THROUGH ON THE GLASS, AND A RELEASE BUILDS NOTHING -------
+     The owner, 11 Oct: *"If I scrol fast left right up or down it's still clunky."* Measured that day
+     (docs/history/341): a sideways sweep left whole columns at opacity nought for 0.3–0.8s while the row
+     carried them across the glass — each column's fade keyed on the column the row was GOING to, which a run
+     of flicks keeps two to six ahead of where it is drawn — and an arrival built inside the release: a
+     column drawn, a widget started, under the finger that was already starting the next flick.
+       SWEEP    from rest, bursts of four fast flicks across the whole row and back: any painted frame with a
+                column across the glass (40px of it or more, holding a page on the glass) at opacity .05 or
+                less, or hidden.
+       RELEASE  inside a release (`go`, `goPage`, run by the finger's own handler) `paint` is called, or a
+                widget's `start`: across the sweep from rest, and in a page turn on Tools made the moment its
+                arrival has queued widgets that were drawn ahead and cannot be adopted (a press since) — the
+                case where starting them in the turn would be the stall. A drawn slot is started after the
+                slide; only one still under its loader is started in a turn. */
+  if (want('sweep')) {
+    for (const [W, H] of [[390, 844], [820, 1180]].filter(z => !WIDTH || z[0] === WIDTH)) {
+      const at = `${W}x${H} sweep`;
+      const env = await boot(browser, W, H);
+      const { page, cdp } = env;
+      const ready = await page.evaluate(async () => {
+        /* FROM REST: the builder has drawn every column and every slot (up to a minute on a busy machine). */
+        for (let k = 0; k < 600 && typeof aheadBusy_ === 'function' && aheadBusy_(); k++) await new Promise(r => setTimeout(r, 100));
+        await window.__sw.place(TABS[0].id);
+        for (let k = 0; k < 600 && typeof aheadBusy_ === 'function' && aheadBusy_(); k++) await new Promise(r => setTimeout(r, 100));
+        const R = window.__swSweep = { on: false, frames: 0, blank: [], inRel: 0, paints: 0, starts: [], arm: false, armed: null };
+        const rel = name => { const real = window[name]; window[name] = function () { R.inRel++; try { return real.apply(this, arguments); } finally { R.inRel--; } }; };
+        rel('go'); rel('goPage');
+        const rp = window.paint;
+        window.paint = function (id) { if (R.on && R.inRel) R.paints++; return rp.apply(this, arguments); };
+        WIDGETS.forEach(w => { if (typeof w.start !== 'function' || w.start.__swr) return; const f = w.start;
+          w.start = function () { if (R.on && R.inRel) R.starts.push(String(w.id)); return f.apply(this, arguments); }; w.start.__swr = f; });
+        const wl = window.widgetsLater_;
+        window.widgetsLater_ = function () {
+          if (R.arm && AT === 'tools') { R.arm = false; R.armed = TOOLS_WAIT.length; goPage('tools', (PAGE.tools || 0) + 1); }
+          return wl.apply(this, arguments);
+        };
+        const sc = document.getElementById('screen');
+        const mc = new MessageChannel();
+        /* THE LOOP STAYS ALIVE WHILE IT IS OFF: it starts before the sweep does, and a first frame that found it
+           off used to end it there — "0 frames swept" whenever the first frame beat the first flick. */
+        mc.port1.onmessage = () => {
+          if (!R.on) { requestAnimationFrame(() => mc.port2.postMessage(0)); return; }
+          R.frames++;
+          const box = sc.getBoundingClientRect();
+          document.querySelectorAll('#screen > .screen').forEach(host => {
+            const r = host.getBoundingClientRect();
+            if (Math.min(r.right, box.right) - Math.max(r.left, box.left) < 40) return;
+            const cs = getComputedStyle(host);
+            if (cs.display === 'none' || (cs.visibility !== 'hidden' && +cs.opacity > 0.05)) return;
+            const on = [...host.querySelectorAll(':scope > .page')].some(pg => { const q = pg.getBoundingClientRect(); return q.bottom > box.top + 40 && q.top < box.bottom - 40 && q.right > box.left && q.left < box.right; });
+            if (on && R.blank.length < 40) R.blank.push(host.id.slice(2) + ' at ' + (cs.visibility === 'hidden' ? 'hidden' : 'opacity ' + (+cs.opacity).toFixed(2)) + ' (' + AT + ' in front)');
+          });
+          requestAnimationFrame(() => mc.port2.postMessage(0));
+        };
+        requestAnimationFrame(() => mc.port2.postMessage(0));
+        const safe = side => { const y = Math.round(innerHeight / 2);
+          for (let k = 0; k < 40; k++) { const x = side === 'right' ? innerWidth - 6 - k * 3 : 6 + k * 3; const el = document.elementFromPoint(x, y);
+            if (el && (el.id === 'screen' || el.classList.contains('screen') || el === document.body)) return { x, y }; } return null; };
+        return { L: safe('left'), R: safe('right'), n: TABS.length };
+      });
+      if (!ready.L || !ready.R) { fail('REACH', at, 'no spot at the edges the grid would take'); await env.ctx.close(); continue; }
+      await page.evaluate(() => { window.__swSweep.on = true; });
+      const dx = Math.min(240, Math.round(W * 0.55));
+      for (const dir of [1, -1]) {
+        for (let burst = 0; burst < 8; burst++) {
+          const i = await page.evaluate(() => TABS.findIndex(t => t.id === AT));
+          if ((dir > 0 && i >= ready.n - 1) || (dir < 0 && i <= 0)) break;
+          for (let k = 0; k < 4; k++) {
+            const t1 = Date.now();
+            await finger(cdp, Object.assign(dir > 0 ? { x0: ready.R.x, y0: ready.R.y } : { x0: ready.L.x, y0: ready.L.y }, G.flick(dir > 0 ? -dx : dx, 0, 80)));
+            const rest = 200 - (Date.now() - t1); if (rest > 0) await sleep(rest);
+          }
+          await sleep(500);
+        }
+      }
+      await page.evaluate(() => window.__sw.still());
+      const swept = await page.evaluate(() => { const R = window.__swSweep; R.on = false; return { frames: R.frames, blank: R.blank.slice(), paints: R.paints, starts: R.starts.slice(), at: AT }; });
+      /* THE TURN ON TOOLS: from Games at rest, a press (so what was drawn ahead cannot be adopted), then the
+         arrival; the moment its widgets are queued, a page turn — counted. */
+      const turn = await page.evaluate(async () => {
+        const R = window.__swSweep;
+        await window.__sw.place('games', 0);
+        try { ACTIONS['filter-clear'](document.createElement('button')); } catch (e) {}
+        R.starts = []; R.paints = 0; R.on = true; R.arm = true; R.armed = null;
+        go('tools', false);
+        for (let k = 0; k < 80 && R.armed === null; k++) await new Promise(r => setTimeout(r, 50));
+        await window.__sw.still();
+        R.on = false; R.arm = false;
+        return { armed: R.armed, starts: R.starts.slice(), paints: R.paints };
+      });
+      reached++;
+      note(`${at}: ${swept.frames} frames swept, ${swept.blank.length} with a column see-through on the glass; ${swept.paints} paint(s) and ${swept.starts.length} start(s) inside a release; the turn on Tools with ${turn.armed} queued: ${turn.starts.length} start(s) inside it`);
+      if (swept.frames < 30) fail('REACH', at, `${swept.frames} frames were read across the sweep — it did not happen`);
+      if (swept.blank.length) fail('SWEEP', at, `${swept.blank.length} painted frame(s) had a column on the glass see-through: ${swept.blank.slice(0, 3).join('; ')}`);
+      if (swept.paints || swept.starts.length) fail('RELEASE', at, `inside the sweep's releases: ${swept.paints} column(s) drawn and ${swept.starts.length} widget(s) started (${swept.starts.slice(0, 4).join(', ')}) — everything should have been drawn in the quiet before it`);
+      if (turn.armed == null || !turn.armed) fail('REACH', `${at}, a turn on Tools`, 'no widget was queued on arriving at Tools after a press, so the turn asked nothing');
+      else if (turn.starts.length) fail('RELEASE', `${at}, a turn on Tools`, `${turn.starts.length} drawn widget(s) started inside the page turn (${turn.starts.slice(0, 4).join(', ')}) — a drawn slot is started after the slide`);
       if (env.errs.length) fail('PAGE ERROR', at, env.errs.slice(0, 3).join(' | '));
       await env.ctx.close();
     }

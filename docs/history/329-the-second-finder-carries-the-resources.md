@@ -1,3 +1,5 @@
+> **Reversed on 12 Oct, see [347](347-one-finder-twice-and-content-cards.md)**: both finders carry everything now; the binding (one engine, two states) is what was kept.
+
 ## The second finder carries the resources: a Resources column right of Find, one engine, two states
 
 **The owner, 10 Oct:** *"i want to move everything which is in "resources" tag. i want to create a new
@@ -178,3 +180,4 @@ before the fix and is green after.
   journeys that way, and without support the variable was ignored and the whole suite ran, which looks
   exactly like a slow selection.
 
+**Changed by [341](341-what-a-flick-can-reach-is-drawn-before-it-gets-there.md)** — the builder's finder jobs (fill and re-centre, and after review the four warm steps that ask a stale finder's memos one slice each before its paint) are worked out and run inside each finder's own binding, with the question captured and asked again when the job runs; a check-flow journey proves a Resources fill leaves Find's `STUFF`, chips and window untouched.

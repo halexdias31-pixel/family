@@ -357,9 +357,74 @@ function widgetWho_() {
    FOR A REPAINT OF THE COLUMN IN FRONT, which draws it from nothing and starts its widgets again at once
    (`paint(AT, true)`, `startScreen_`): a repaint is the facts changing under the column you are on, and
    that has always been a restart. */
-function widgetsHeld_(col) {
+/* ---------- AND A DRAWING MADE FROM OLD FACTS, OR FOR SOMEBODY ELSE, GOES BACK UNDER ITS LOADER --------------
+   A WIDGET THAT HAS DRAWN AND IS NOT RUNNING keeps its drawing — a calendar's month, a notepad's words, a
+   board's scores — and when a landing finds its column's markup unchanged nothing is written (`paint`'s
+   identical-markup skip, shell.js), so that drawing would stay, made from the facts before the landing. So
+   every such slot that READS FACTS is put back under the one loader (its markup, as `widgetOnColumn_` draws
+   it), to be drawn again from the new facts in the next quiet moment (`ahead_`) or on arrival. A widget
+   declared `pure` in `WIDGETS` draws nothing from the facts — a calculator, a timer, a board game — and
+   cannot go stale, so it keeps its drawing; `check-widgets.js` proves the declaration (the slot's markup
+   the same under two payloads and two people), so it cannot drift. `who`: A CHANGE OF PERSON — then every
+   drawn slot whose drawing was somebody else's goes, pure or not (the shared iPad: the last child's notepad
+   must not sit drawn on a column a sign-out marked stale). A slot a widget is running in is left to 331's
+   rules, which stop and start it. docs/history/341.
+   AND A DRAWING MADE FROM THE PERSON'S OWN DEVICE COPY, NOT FROM THE FACTS (`slot.OWN`, which only the
+   whiteboard's `wbPaint_` stamps), is kept when only the facts change: `signedOut_` and `signedIn_` draw
+   the board for the person arriving and then repaint, and the repaint's own mark put that board straight
+   back under its loader — found by the whiteboard journey on the final run. A change of person still
+   takes it (`who`), unless it was drawn for whoever is here now. */
+/* ---------- AT A CHANGE OF PERSON, EVERY SLOT ON THE COLUMN — NOT THE NEW PERSON'S LIST --------------------------
+   `widgetsOn_(col)` is the list for whoever is signed in NOW, and a change of person is exactly when it differs
+   from what the column holds: signed out, Saved's stars are gone and an admin's flyer maker, availability and
+   uploads are not anybody's tools. Walked by that list, all fourteen of an admin's drawn slots — Tools' three
+   admin tools and the whiteboard, ten starred on Saved — kept the admin's drawing after a sign-out until the
+   builder drew those columns again, 8–15s at 4x (review, 12 Oct), where a drag towards the column could show
+   them. So `who` walks every slot the column holds and finds each one's widget by its id. */
+function widgetsReveilAll_(col) {
+  const host = document.getElementById('s-' + col);
+  if (!host) return [];
+  const all = typeof allWidgets === 'function' ? allWidgets() : [];
+  return [...host.querySelectorAll('.widget-slot[id^="wgt-"]')].map(slot => {
+    const id = slot.id.slice(4);
+    const w = all.find(x => String(x.id) === id);
+    return w ? { w, slot } : null;
+  }).filter(Boolean);
+}
+function widgetsReveil_(col, who) {
+  if (WIDGET_COLS.indexOf(col) === -1 || typeof loading_ !== 'function') return;
+  const me = widgetWho_();
+  (who ? widgetsReveilAll_(col) : widgetsOn_(col).map(w => ({ w, slot: slotOn_(col, String(w.id)) }))).forEach(({ w, slot }) => {
+    if (typeof w.start !== 'function' && typeof w.draw !== 'function') return;
+    if (!slot || slot.getAttribute('aria-busy')) return;
+    if (TOOLS_ON.some(e => e.slot === slot)) return;
+    if (who ? slot.WHO === me : (w.pure || (slot.OWN !== undefined && slot.OWN === me))) return;
+    slot.innerHTML = w.html + loading_();
+    slot.setAttribute('aria-busy', 'true');
+    delete slot.AHEAD;
+    delete slot.WHO;
+    delete slot.LENT;
+    delete slot.OWN;
+  });
+}
+
+/* `pre`: THE COLUMN STILL HOLDS THE BOOT'S MARKUP (`PRE_PAYLOAD`, shell.js) — then only a slot started after the
+   payload landed is carried; one started before it drew without the payload and is started again (331). */
+function widgetsHeld_(col, pre) {
   const who = widgetWho_();
-  return TOOLS_ON.filter(e => e.col === col && e.slot && e.slot.isConnected && e.who === who);
+  const run = TOOLS_ON.filter(e => e.col === col && e.slot && e.slot.isConnected && e.who === who && (!pre || e.slot.UP_PAID));
+  /* AND EVERY SLOT DRAWN AHEAD FOR THIS PERSON BY A WIDGET THAT READS NO FACTS (`pure`) — its drawing cannot
+     be stale, so it crosses the paint as it is, and keeps the clocks it was drawn under: on arrival it is
+     started again behind its own drawing rather than adopted, because the paint has moved them (341). A
+     drawing that reads facts is not carried; the new markup puts it back under its loader, and the builder
+     draws it again from the new facts. */
+  const pure = [];
+  widgetsOn_(col).forEach(w => {
+    if (!w.pure) return;
+    const sl = slotOn_(col, String(w.id));
+    if (sl && sl.AHEAD && sl.AHEAD.who === who && !run.some(e => e.slot === sl)) pure.push({ w, col, slot: sl, who });
+  });
+  return run.concat(pure);
 }
 function widgetsBack_(col, held) {
   held.forEach(e => {
@@ -444,17 +509,39 @@ let TOOLS_WAKE = 0;       // the booked step
    is for a widget that has not started, and this one has. A copy OFF the glass keeps its veil — on a
    phone that is every copy but the one in front, and a swipe towards Saved shows the loader it always
    showed — and `widgetsGlass_` takes it off if the copy comes onto the glass while the widget runs. */
+/* ---------- AND ONE DRAWN AHEAD WITH NOTHING CHANGED SINCE IS ADOPTED, NOT STARTED ----------------------
+   THE BUILDER DRAWS A WIDGET WITH NO `stop` BY ITS OWN `start` before anybody arrives (`aheadDrawWidget_`,
+   below), and keeps it out of `TOOLS_ON`: it is drawn, not running, and nothing it did runs on. When it is
+   then asked to start — on arrival, from the queue, beside the column in front — and NOTHING HAS MOVED since
+   it was drawn (the same person; no action dispatched, `ACT_EPOCH`; no repaint or landing, `DRAW_EPOCH`; and
+   no copy of the same widget started meanwhile, `WIDGET_UPS`), starting it again would draw exactly what is
+   on the glass, so it is entered as running and its `start` is not called. Measured on 11 Oct (341): a start
+   is one task of up to 291ms at 4x (chess), and after the slide it was the next flick's stall. Any of those
+   clocks having moved, it is started as before — a press is always a restart (Connect 4's "rebuilt every time
+   it opens"). A widget with a `stop` is never adopted: its `draw` runs none of what its `start` does. */
+const WIDGET_UPS = {};
+function widgetAdoptable_(w, slot) {
+  const a = slot && slot.AHEAD;
+  return !!(a && !w.stop && slot.isConnected && a.who === widgetWho_() && a.act === ACT_EPOCH
+    && a.draw === DRAW_EPOCH && a.ups === (WIDGET_UPS[String(w.id)] || 0));
+}
 function widgetUp_(w, col) {
   const id = String(w.id);
   const slot = col ? slotOn_(col, id) : $('wgt-' + id);
+  const adopt = widgetAdoptable_(w, slot);
   TOOLS_ON.push({ w, col, slot, who: widgetWho_() });
   if (slot && col) WIDGET_HOME[slot.id] = col;
-  try { w.start && w.start(); }
+  /* WHOM ITS DRAWING IS FOR, kept on the slot after the widget stops — see `widgetsReveil_`. And ANY other
+     copy drawn ahead is no longer what this widget's state would draw (`WIDGET_UPS`). */
+  /* AND NOT LENT ANY MORE (`LENT`, below): this copy is the one running now. */
+  if (slot) { slot.WHO = widgetWho_(); delete slot.AHEAD; delete slot.LENT; slot.UP_PAID = typeof FIRST_PAINT_DONE !== 'undefined' && !!FIRST_PAINT_DONE; }
+  WIDGET_UPS[id] = (WIDGET_UPS[id] || 0) + 1;
+  try { if (!adopt && w.start) w.start(); }
   catch (e) { console.warn('[widget]', w.id, e); }
   finally {
     if (typeof loaded_ === 'function') {
       loaded_(slot);
-      widgetCopies_(id).forEach(el => { if (el !== slot && widgetLit_(el)) loaded_(el); });
+      widgetCopies_(id).forEach(el => { if (el !== slot && widgetLit_(el)) { loaded_(el); el.LENT = true; } });
     }
   }
 }
@@ -491,9 +578,18 @@ function widgetsWake_(list, col, arriving) {
   toolsStop_(keep, q => !ids.has(String(q.w.id)));
   const up = list.filter(w => !TOOLS_ON.some(e => String(e.w.id) === String(w.id)));
   if (!arriving) { up.forEach(w => widgetUp_(w, col)); return; }
-  const far = up.filter(w => widgetDistance_(w, col) > 1);
-  up.filter(w => far.indexOf(w) === -1).forEach(w => widgetUp_(w, col));
-  far.forEach(w => TOOLS_WAIT.push({ w, col }));
+  /* ARRIVING: WHAT WAS DRAWN AHEAD WITH NOTHING CHANGED IS ADOPTED NOW, every one of them — it costs nothing
+     (`widgetUp_`). A slot still under its loader near the page in front is started now, as it always was:
+     that is the floor, for an arrival that beat the builder. A drawn slot that cannot be adopted is NOT
+     started here; it is queued, and the queue starts it one per task behind the slide — its drawing is on
+     the glass meanwhile, so a 291ms start (chess) is never a stall the next flick waits behind (341). */
+  const veiled = w => { const sl = slotOn_(col, String(w.id)); return !sl || !!sl.getAttribute('aria-busy') || !!sl.LENT; };
+  const adopt = up.filter(w => widgetAdoptable_(w, slotOn_(col, String(w.id))));
+  adopt.forEach(w => widgetUp_(w, col));
+  const rest = up.filter(w => adopt.indexOf(w) === -1);
+  const now = rest.filter(w => veiled(w) && widgetDistance_(w, col) <= 1);
+  now.forEach(w => widgetUp_(w, col));
+  rest.filter(w => now.indexOf(w) === -1).forEach(w => TOOLS_WAIT.push({ w, col }));
   if (TOOLS_WAIT.length) widgetsLater_();
 }
 
@@ -575,9 +671,17 @@ function widgetsLater_() {
    called by `goPage` before the column moves, so a tile that jumps eight widgets down the column
    arrives at a working widget rather than at its markup waiting in the queue. A turn to a page that
    is already running costs one walk of a short list. */
+/* IN THE RELEASE, ONLY A SLOT STILL UNDER ITS LOADER IS STARTED (the floor), and one drawn ahead with nothing
+   changed is adopted, which costs nothing. A drawn slot that has to be started again stays queued and is
+   started after the slide: its drawing is already on the glass, and a start inside a release is the stall
+   this note's first paragraph was written about (docs/history/341). */
 function widgetsNear_(col) {
   if (!TOOLS_WAIT.length) return;
-  const now = TOOLS_WAIT.filter(q => q.col === col && widgetDistance_(q.w, col) <= 1);
+  const now = TOOLS_WAIT.filter(q => {
+    if (q.col !== col || widgetDistance_(q.w, col) > 1) return false;
+    const sl = slotOn_(q.col, String(q.w.id));
+    return !sl || !!sl.getAttribute('aria-busy') || !!sl.LENT || widgetAdoptable_(q.w, sl);
+  });
   if (!now.length) return;
   TOOLS_WAIT = TOOLS_WAIT.filter(q => now.indexOf(q) === -1);
   now.forEach(q => { if (!TOOLS_ON.some(e => String(e.w.id) === String(q.w.id))) widgetUp_(q.w, q.col); });
@@ -711,9 +815,23 @@ function widgetsGlass_(settled) {
      anybody looking, and the copy on the glass keeps the loader until the settle has stopped that one
      and the queue has started this. */
   beside.forEach((copies, id) => {
-    if (front.has(id)) return;
+    /* ---------- AND A COPY OF A WIDGET RUNNING IN FRONT, DRAWN AGAIN BY THE BUILDER, IS NOT LEFT VEILED --------
+       `widgetUp_` takes the veil off every copy of a widget on the glass when it starts (one widget, one
+       start) — once. Since docs/history/341 the builder draws a stale column beside the one in front in the
+       quiet, AFTER that widget started, so the copy on it (chess starred into Saved, beside Games on an iPad)
+       came back under its veil and stayed there for as long as Games was in front: measured, up to 91 frames
+       of loader beside a running game. So it is said again at every placement, for the widgets the column in
+       front is running. `LENT`: unveiled for a run in another copy, not drawn by itself — an arrival starts
+       such a copy at once, as one still under its loader (`widgetsWake_`, `widgetsNear_`). */
+    if (front.has(id)) {
+      if (TOOLS_ON.some(e => String(e.w.id) === id && e.col === AT)) copies.forEach(c => {
+        const sl = slotOn_(c.col, id);
+        if (sl && sl.getAttribute('aria-busy') && typeof loaded_ === 'function') { loaded_(sl); sl.LENT = true; }
+      });
+      return;
+    }
     if (TOOLS_ON.some(e => String(e.w.id) === id && keep(e))) {
-      copies.forEach(c => { const sl = slotOn_(c.col, id); if (sl && sl.getAttribute('aria-busy') && typeof loaded_ === 'function') loaded_(sl); });
+      copies.forEach(c => { const sl = slotOn_(c.col, id); if (sl && sl.getAttribute('aria-busy') && typeof loaded_ === 'function') { loaded_(sl); sl.LENT = true; } });
       return;
     }
     if (TOOLS_WAIT.some(q => String(q.w.id) === id)) return;
@@ -724,6 +842,79 @@ function widgetsGlass_(settled) {
 /* THE SAME QUESTION ASKED AGAIN ONCE THE SLIDE HAS SETTLED, and this time what has left is stopped — and
    a starred widget whose copy left while its other copy stayed is queued on the one still there. */
 function widgetsSettle_() { widgetsGlass_(true); }
+
+/* ==================================================================================================
+   EVERY WIDGET SLOT IS DRAWN BEFORE IT IS NEEDED — AND NOTHING RUNS FOR NOBODY
+
+   THE OWNER, 11 Oct: *"If I scrol fast left right up or down it's still clunky … Increase loading scope."*
+   Measured that day (docs/history/341): a widget slot was drawn only by STARTING it, and a widget is started
+   only once its column is in front and the slide has settled — so every arrival at Tools, Games, the shop or
+   Saved showed cards under the loader for 1–4s at 4x, and a sweep across the row showed loaders in 19–77% of
+   its frames. `start` cannot simply run earlier: some starts run things — a frame loop, a clip, the network,
+   the shared classroom round — and those must run only for somebody looking.
+
+   SO A SLOT IS DRAWN IN THE QUIET, ONE PER SLICE (`ahead_`, shell.js), BY WHATEVER DRAWS IT AND RUNS NOTHING:
+     · a widget with no `stop` — whose own note says nothing of it runs on — by its `start`;
+     · a widget WITH a `stop`, by its declared `draw` (map.js): `initTables`, `flappyStill_`, `wgPaint_`,
+       `vidPaint_`, `feedPaint_`. `check-widgets.js` runs every draw ahead in a sandbox and fails on a fetch, a
+       media source or `play()`, sound or speech, the camera, an interval, a timer or frame still pending
+       400ms later, or a write outside the slot — so a draw cannot start running something by accident.
+   It is drawn into its own slot (`WIDGET_HOME` says which copy for that one call), the loader comes off, and
+   the slot is stamped with whom and under which clocks it was drawn. It is NOT entered in `TOOLS_ON`: it is
+   not running, so `check/ui.js`'s "a widget off the glass started" still counts what it counted. On arrival it
+   is adopted if nothing has changed since (`widgetUp_`), or started behind its drawing after the slide.
+   ONLY A SLOT NOTHING IS USING: not on the column in front (`startScreen_` starts those, and `$` resolves to
+   that copy), not running or queued anywhere (`initTables` would clear a running sprint), on a column already
+   drawn (the paint goes first). A reels fact that is a clip stays under its loader (`feedPaint_` says why). */
+function aheadDrawWidget_(w, col) {
+  const id = String(w.id);
+  const slot = slotOn_(col, id);
+  if (!slot || !slot.getAttribute('aria-busy')) return;
+  const had = Object.prototype.hasOwnProperty.call(WIDGET_HOME, slot.id) ? WIDGET_HOME[slot.id] : undefined;
+  WIDGET_HOME[slot.id] = col;
+  let drawn = true;
+  try { drawn = (typeof w.draw === 'function' ? w.draw() : w.start()) !== false; }
+  catch (e) { drawn = false; try { console.warn('[widget ahead]', id, e); } catch (x) {} }
+  finally { if (had === undefined) delete WIDGET_HOME[slot.id]; else WIDGET_HOME[slot.id] = had; }
+  if (!drawn) { slot.NOAHEAD = true; return; }
+  if (typeof loaded_ === 'function') loaded_(slot);
+  delete slot.LENT;
+  slot.AHEAD = { who: widgetWho_(), act: ACT_EPOCH, draw: DRAW_EPOCH, ups: WIDGET_UPS[id] || 0, pure: !!w.pure };
+  slot.WHO = widgetWho_();
+  /* AND ITS COLUMN PLACED AGAIN, NOW: a widget grows its card as it draws (`widgetsLater_`'s reason). */
+  if (typeof placeOne_ === 'function') placeOne_(col);
+}
+/* THE BUILDER'S WIDGET JOBS — every slot `aheadDrawWidget_` may draw, with how far it is.
+   A SLOT IS AS FAR AS ITS COLUMN, and its page only orders it within that column (`/16`). It was the moves to
+   reach it, columns plus pages, so Games' slots eight pages down the column beside you came after whole paints
+   of columns three and four away — and the band draws those pages as a slide carries them across the glass:
+   review, 12 Oct, Games pages 8–10 on the glass as the loader with the target page 4, 3.9s of it per run at
+   390. A column's widgets are drawn before the next column out is painted. */
+function aheadWidgetJobs_() {
+  const out = [];
+  const front = new Set(WIDGET_COLS.indexOf(AT) !== -1 ? widgetsOn_(AT).map(w => String(w.id)) : []);
+  WIDGET_COLS.forEach(col => {
+    if (col === AT || STALE[col] || !TABS.some(t => t.id === col)) return;
+    const host = document.getElementById('s-' + col);
+    if (!host || !host.firstElementChild) return;
+    let pages = null;
+    widgetsOn_(col).forEach(w => {
+      const id = String(w.id);
+      if (typeof w.start !== 'function' || (w.stop && typeof w.draw !== 'function')) return;
+      if (front.has(id)) return;
+      if (TOOLS_ON.some(e => String(e.w.id) === id) || TOOLS_WAIT.some(q => String(q.w.id) === id)) return;
+      const slot = slotOn_(col, id);
+      if (!slot || !slot.getAttribute('aria-busy') || slot.NOAHEAD) return;
+      if (!pages) pages = [...host.querySelectorAll(':scope > .page')];
+      const pos = pages.indexOf(slot.closest('.page'));
+      const dp = pos < 0 ? 0 : Math.abs(logIndex_(col, pos) - (PAGE[col] || 0));
+      out.push({ key: 'widget:' + col + ':' + id, kind: 'widget', d: aheadDist_(col, null) + Math.min(15, dp) / 16,
+        run: () => aheadDrawWidget_(w, col) });
+    });
+  });
+  return out;
+}
+AHEAD_KINDS.push(aheadWidgetJobs_);
 
 
 /* ---------- A WIDGET IS A SCREEN, NOT AN ITEM IN A LIST -------------------------------------------
@@ -765,9 +956,11 @@ screen('spotlight', () => pages('spotlight', spotlightCards_()));
    tile, no `data-do`, nothing `check/press.js` could find that does nothing — and no number.
    `placeholderFaults_` in check-flow.js asks both halves of that of every placeholder.
 
-   THE SAME CARD FOR EVERYBODY, signed out included. Who sees whose progress — a student their own,
-   a parent their children's, a tutor their students', an admin anybody's — is the first decision
-   of building it, and deciding it now would be deciding it for a card with nothing on it to show.
+   THE SAME CARD FOR EVERYBODY, signed out included — UNTIL 12 OCT, AND NOW FOR EVERYBODY BUT A
+   STUDENT AND AN ADMIN, who get "Your journey" in its place (below). Who sees whose progress — a
+   student their own, a parent their children's, a tutor their students', an admin anybody's — is
+   still the first decision of building it; what is settled is only that a student's own column holds
+   their own journey card, which was already theirs, on Settings.
 
    WHAT IT WILL DRAW FROM, written here because it is the first thing whoever builds it needs: what
    the app already keeps about each person's work. EVERY ANSWER SENT is a row of the `submissions`
@@ -781,7 +974,74 @@ screen('spotlight', () => pages('spotlight', spotlightCards_()));
    replaced these since.
 
    NOTHING STARTS OR STOPS, Spotlight's reason above: nothing on this column runs. */
+/* ---------- YOUR JOURNEY, MOVED HERE FROM THE SETTINGS COLUMN ------------------------------------------
+   ASKED FOR AS *"make a journey widget to go in account settings. its for student to track and
+   organise their progess. fo know you can just make it as a place holder."* So this is the card's
+   place and its outline, and nothing on it pretends to work: no button that does nothing, which is
+   the fault `check/press.js` exists to report. The one live line is the countdown to the two exam
+   dates a student keeps on About you, on the Settings column, because that is progress the app
+   already knows. For a student, and for an admin so the owner can see it.
+
+   MOVED, 12 OCT. The owner, with a screenshot of an admin's Settings ending on this card and the weekly
+   email's: *"This should be moved to appropriate column."* It was the one card on Settings that is not
+   a setting — tracking a student's progress is what this column was made for (9 Oct, above) — and two
+   "coming soon" cards about one thing in one column would say it twice. So for whom it is drawn it IS
+   the column's card, in place of the generic placeholder, and the placeholder stays for everybody
+   else: signed out, a parent, a tutor. docs/history/346.
+
+   THE COLUMN NOW DEPENDS ON WHO IS SIGNED IN, which it did not before, and it follows them the way
+   every other column does: `repaint` — which every sign-in, sign-out and saved role ends in — marks it
+   `STALE`, and `go` draws it again on the way in. The exam dates are the one fact on it that changes
+   without a change of person, so a Save on About you, your own card's Save and a `myProfile` landing
+   draw it again as well (`progressRedraw_`, below, called from `meSave_`, `card-save` and
+   `profileRefresh_` in me.js).
+   check-flow's journey for this card signs a student in and out and in again and asks each time.
+
+   `hasRole`, NOT A RAW `indexOf`: the role cell is matched through `ROLE_ALIASES` everywhere else, so
+   a learner whose cell says `pupil` is a student to every other card and was not one to this. */
+function mayJourney_() {
+  if (typeof hasRole !== 'function') return false;
+  return hasRole('student') || hasRole('admin');
+}
+function journeyCard_() {
+  const prof = (USER && USER.profile) || {};
+  /* `Math.round`, NOT `Math.ceil`: both ends are local midnights, so the gap is a whole number of days
+     give or take the hour the clocks move — and across the last Sunday of October in London it is
+     fourteen days and an hour, which `ceil` counted as fifteen. Found moving the card (12 Oct, thirteen
+     days before the clocks go back), measured with TZ=Europe/London. */
+  const days = iso => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''));
+    if (!m) return null;
+    const t = new Date(+m[1], +m[2] - 1, +m[3]), now = new Date();
+    return Math.round((t - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 864e5);
+  };
+  const exams = [['Small exam', prof.exam_small_date], ['Big exam', prof.exam_big_date]]
+    .map(([k, v]) => [k, days(v)]).filter(([, d]) => d !== null && d >= 0)
+    .map(([k, d]) => `<div class="row"><span class="k">${esc(k)}</span><span>${d === 0 ? 'today'
+      : d + (d === 1 ? ' day' : ' days') + ' to go'}</span></div>`).join('');
+  return `<div class="card journey">
+    <h3>Your journey</h3>
+    <p class="sub">Where you are, where you are going, and what you have done on the way. Coming soon.</p>
+    ${exams}
+    <div class="row"><span class="k">Goals</span><span class="faint">what you are aiming for</span></div>
+    <div class="row"><span class="k">Milestones</span><span class="faint">the steps on the way</span></div>
+    <div class="row"><span class="k">Worked through</span><span class="faint">papers and topics you have done</span></div>
+  </div>`;
+}
+/* THE EXAM DATES CHANGED UNDER THE COLUMN, so it is REDRAWN IF IT IS DRAWN — the rule `profileRefresh_`
+   keeps for Settings, whose About you holds the same two dates. Drawn whether or not it is in front,
+   because on a wide window it can be beside the column you are on and in sight; `paintNeighbours`'
+   pair — the markup, then the pager, which puts the new page where the old one was — and nothing
+   started or stopped, because nothing on this column runs. A column never drawn is drawn on arrival. */
+function progressRedraw_() {
+  try {
+    if (typeof screenHasMarkup_ === 'function' && !screenHasMarkup_('progress')) return;
+    paint('progress');
+    paintPager('progress', true);
+  } catch (e) {}
+}
 function progressCards_() {
+  if (mayJourney_()) return [journeyCard_()];
   return [`<div class="card">
     <h3>Progress</h3>
     <p class="sub">Coming soon: everything you have done in one place — the questions you have

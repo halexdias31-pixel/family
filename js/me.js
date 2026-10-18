@@ -729,11 +729,10 @@ function signedOut_(opts) {
      can name a shelf only an admin is shown, which is the reason above.
      ONE DECIDER PER DOOR: `signedIn_` passes `keepFind`, `api()` passes `ended`; Sign out and a switch from
      one person to another pass neither and clear Find.
-     ---------- AND THE SECOND FINDER, ON THE SAME RULE ------------------------------------------------------
-     THE RESOURCES ARE A COLUMN OF THEIR OWN NOW (docs/history/329) and the Books shelf went with them, so
-     the shelf the admin rule above was written about is in the second finder, not Find. Every finder's
-     state is kept, marked or cleared together, through `finderStates_` (find.js) — `typeof`, for the
-     reason `STUFF` is. */
+     ---------- AND FIND 2, ON THE SAME RULE ------------------------------------------------------------------
+     THERE ARE TWO FINDERS (docs/history/329) and both carry everything, the Books shelf too (347), so the
+     shelf the admin rule above was written about can be in either. Every finder's state is kept, marked
+     or cleared together, through `finderStates_` (find.js) — `typeof`, for the reason `STUFF` is. */
   try {
     const states = typeof finderStates_ === 'function' ? finderStates_()
                  : (typeof STUFF !== 'undefined' ? [STUFF] : []);
@@ -1663,6 +1662,14 @@ on('friend-drop', el => friendsSave(
 /* Adding one from the Find browse page, where the list is. */
 on('friend-add-open', () => friendsSheet());
 
+/* EVERY FINDER'S FOUND LIST FORGOTTEN, AND THE FINDER IN FRONT DRAWN — `typeof`, because find.js loads
+   after this file. */
+function friendsForget_() {
+  if (typeof finderForgetFound_ === 'function') finderForgetFound_(); else FIND_MEMO.key = null;
+  if (typeof finderOf_ === 'function' ? finderOf_(AT) : AT === 'stuff') {
+    if (typeof paintFinder_ === 'function') paintFinder_(AT); else paintStuff();
+  }
+}
 /* Written on the phone first, then sent — and the sheet redrawn either way, so removing somebody
    is visible before the round trip and put back if it fails. */
 function friendsSave(list, said) {
@@ -1675,15 +1682,15 @@ function friendsSave(list, said) {
   USER.friends = list.join(', ');
   try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
   /* The list lives on Find now, so that is what has to be redrawn — and the memo has to be told,
-     or it serves the list from before the change. */
-  FIND_MEMO.key = null;
-  if (AT === 'stuff') paintStuff();
+     or it serves the list from before the change. ON BOTH FINDERS, which list the friends alike
+     (docs/history/347): `FIND_MEMO` from out here is Find's alone, so `friendsForget_` asks every
+     finder's, and the one in front is drawn. */
+  friendsForget_();
   api({ action: 'saveFriends', name: USER.name, personId: USER.personId, friends: USER.friends })
     .then(d => { if (d && d.error) throw new Error(d.error); accountChanged_(); })
     .catch(err => {
       USER.friends = before;
-      FIND_MEMO.key = null;
-      if (AT === 'stuff') paintStuff();
+      friendsForget_();
       const el = $('fr-said');
       if (el) el.textContent = String(err.message || 'Not saved — no connection.');
     });
@@ -1846,7 +1853,7 @@ function msgRead_(q) {
 function msgQueueHtml_(key) {
   const q = MSG_QUEUE[key] || [];
   return q.map((a, i) => `<span class="msg-chip">${
-      /^image\//.test(a.type) ? `<img src="${esc(a.url)}" alt="">` : `<b>${esc(msgFileMark_(a))}</b>`}
+      /^image\//.test(a.type) ? `<img src="${esc(a.url)}" alt="" decoding="async">` : `<b>${esc(msgFileMark_(a))}</b>`}
     <span class="msg-chip-name">${esc(a.name)}</span>
     <button class="msg-chip-x" data-do="msg-unqueue" data-k="${esc(key)}" data-i="${i}"
       aria-label="Remove ${esc(a.name)}">×</button></span>`).join('');
@@ -2212,7 +2219,7 @@ function msgAttachHtml_(list) {
     if (kind === 'image') {
       return `<a class="msg-pic" href="${esc(url)}" target="_blank" rel="noopener"
         aria-label="Open ${esc(a.name || 'the photo')}">
-        <img src="${esc(pic(url))}" alt="${esc(a.name || 'photo')}" loading="lazy"></a>`;
+        <img src="${esc(pic(url))}" alt="${esc(a.name || 'photo')}" loading="lazy" decoding="async"></a>`;
     }
     if (kind === 'video') {
       return `<video class="msg-vid post-vid" src="${esc(/^blob:/.test(url) ? url : postVidSrc_(url))}"
@@ -2754,7 +2761,7 @@ on('kid-make', el => {
       ['first', 'last'].forEach(f => { try { draftDrop_('kid-new', f); } catch (e) {} });
       toast(first + '\'s account is made — they sign in as @' + KID_MADE.handle + '.');
       /* `repaint(true)`: the card grows by a slip, so the column is placed again — see `answerClaim_`. */
-      if (typeof AT !== 'undefined' && AT === 'settings') repaint(true); else STALE.settings = 1;
+      if (typeof AT !== 'undefined' && AT === 'settings') repaint(true); else markStale_('settings');
       load();
     })
     /* `send_` HAS SAID WHY; `heldBy_` turns a stale phone's form into the held card when the why is
@@ -2817,7 +2824,7 @@ const answerClaim_ = (el, accept) => {
     if (Array.isArray(DATA.claims)) DATA.claims = DATA.claims.filter(c => String(c.rowIndex) !== String(row));
     /* `repaint(true)`, NOT `paint`: a page has left the column, so it must be placed and its
        position clamped again — the Saved column's unstar records what a bare `paint` leaves. */
-    if (typeof AT !== 'undefined' && AT === 'account') repaint(true); else STALE.account = 1;
+    if (typeof AT !== 'undefined' && AT === 'account') repaint(true); else markStale_('account');
     load();
   }).catch(() => {});
 };
@@ -2920,7 +2927,9 @@ function settingsPages_() {
 
   const groups = myGroups_();
   const p = USER.profile || {};
-  const readonly = DATA.profileReadonly || [];
+  /* THE BUSINESS'S CUT OF AN EXTRA SEAT IS SHOWN TO A TUTOR AND NOT OFFERED (docs/history/345) — an admin's to
+     set, and `seatCutRefusal_` refuses it from anybody else; a disabled box is one `meSave_` never posts. */
+  const readonly = (DATA.profileReadonly || []).concat(isAdmin() ? [] : ['extra_seat_cut']);
 
   /* ---------- WHAT IS ABOUT YOUR CARD IS EDITED ON YOUR CARD, SO THOSE BOXES ARE NOT DRAWN HERE -------
      The owner, 10 Oct, for a tutor: *"all of this stuff should be editable directly on the tutors card
@@ -3027,7 +3036,9 @@ function settingsPages_() {
      card on it — and `paintPager` clamps the index to the pages there are, so a person who was on a page
      that went comes back to a real page (the last), never to nothing. This change took three pages out
      (the wardrobe, one of the two child cards, and a parent's About you), so it moves indexes once, on
-     the visit the new build arrives in. */
+     the visit the new build arrives in. AND THE ADMIN'S "YOUR CUT OF AN EXTRA CHILD", which sat after the
+     agreement, went the same way (docs/history/345): the cut is on each tutor's card now, beside their rate,
+     and its default is the config tab's `B` — an admin's later pages move up by one, once. */
   /* YOUR ROLES — the one card every signed-in person has, so it sits behind nothing that comes and goes.
      See `rolesCard_`. */
   pages.push(rolesCard_());
@@ -3038,13 +3049,24 @@ function settingsPages_() {
      who should be reading and signing this — before the yes, not after it. The server's own test in
      `signAgreement` is `hasRole(me, 'tutor')`, which a pending tutor passes. */
   if (tutorHeld_() || isAdmin()) pages.push(agreementCard_());
-  if (isAdmin()) pages.push(cutCard_());
-  if (mayJourney_()) pages.push(journeyCard_());
-  /* THE BUSINESS'S OWN PAPERWORK WAS HERE — five cards for an admin, between the journey card and the
-     weekly email — and is a column of its own now, the last one (`screen('biz')` in js/records.js;
-     *"the business checklist stuff should go in their own column at the end"*, 10 Oct). */
-  /* AND THE WEEKLY PARENT EMAIL, FOR AN ADMIN — see js/digest.js. Appended, for the rule above. */
-  if (typeof digestPages_ === 'function') pages.push(...digestPages_());
+  /* ---------- YOUR JOURNEY AND THE WEEKLY PARENT EMAIL WERE HERE, AND NEITHER IS A SETTING ----------------
+     The owner, 12 Oct, with a screenshot of an admin's Settings ending on the two of them: *"This should
+     be moved to appropriate column. Also the other widget regarding seeing weekly kids work or whatever
+     sounds dumb delete that widget."* So "Your journey" — a student's progress, and nothing on it a setting —
+     is the Progress column's card now (`journeyCard_` in js/arcade.js, beside the column that draws it),
+     and the admin's "Weekly parent email: Off" card is gone with its Preview and its file, js/digest.js.
+     THE SUNDAY EMAIL ITSELF STAYS ON THE SERVER (backend/digest.gs) — the owner asked for that
+     infrastructure and called only the card dumb, and switched the email on the same day (note 348).
+     docs/history/346. AND THE ADMIN'S "Your cut of an extra child" CARD WENT THE SAME DAY: the cut is
+     per tutor now, set on that tutor's own card beside the rate (`cardRateHtml_`, note 345).
+     THREE PAGES OUT FROM IN FRONT OF NOTIFICATIONS, for an admin (one for a student), so the one index
+     behind them moves, once, with the build — and a new build arrives by a reload, which `PAGE` does not
+     survive (only the column is remembered, `familyTab`). And whoever is on a page past the end of a
+     column that got shorter comes back on its last page, Notifications, never on nothing (`paintPager`'s
+     clamp, asked by check-flow's business journey with `PAGE.settings` at 999).
+     THE BUSINESS'S OWN PAPERWORK WAS HERE TOO — five cards for an admin, between those two — and is a
+     column of its own now, the last one (`screen('biz')` in js/records.js; *"the business checklist stuff
+     should go in their own column at the end"*, 10 Oct). */
   /* AND WHICH EMAILS YOU WANT, LAST OF ALL AND FOR EVERYBODY SIGNED IN — see `notifyCard_`. Appended,
      for the rule above. */
   pages.push(notifyCard_());
@@ -3298,38 +3320,9 @@ on('notify-pick', el => {
     });
 });
 
-/* ---------- YOUR JOURNEY — A PLACEHOLDER ----------------------------------------------------------
-   ASKED FOR AS *"make a journey widget to go in account settings. its for student to track and
-   organise their progess. fo know you can just make it as a place holder."* So this is the card's
-   place and its outline, and nothing on it pretends to work: no button that does nothing, which is
-   the fault `check/press.js` exists to report. The one live line is the countdown to the two exam
-   dates a student already keeps on this column, because that is progress the app already knows.
-   For a student, and for an admin so the owner can see it; appended for the wardrobe's reason. */
-function mayJourney_() {
-  const held = typeof heldRoles === 'function' ? heldRoles() : [];
-  return held.indexOf('student') !== -1 || held.indexOf('admin') !== -1;
-}
-function journeyCard_() {
-  const prof = (USER && USER.profile) || {};
-  const days = iso => {
-    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''));
-    if (!m) return null;
-    const t = new Date(+m[1], +m[2] - 1, +m[3]), now = new Date();
-    return Math.ceil((t - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 864e5);
-  };
-  const exams = [['Small exam', prof.exam_small_date], ['Big exam', prof.exam_big_date]]
-    .map(([k, v]) => [k, days(v)]).filter(([, d]) => d !== null && d >= 0)
-    .map(([k, d]) => `<div class="row"><span class="k">${esc(k)}</span><span>${d === 0 ? 'today'
-      : d + (d === 1 ? ' day' : ' days') + ' to go'}</span></div>`).join('');
-  return `<div class="card journey">
-    <h3>Your journey</h3>
-    <p class="sub">Where you are, where you are going, and what you have done on the way. Coming soon.</p>
-    ${exams}
-    <div class="row"><span class="k">Goals</span><span class="faint">what you are aiming for</span></div>
-    <div class="row"><span class="k">Milestones</span><span class="faint">the steps on the way</span></div>
-    <div class="row"><span class="k">Worked through</span><span class="faint">papers and topics you have done</span></div>
-  </div>`;
-}
+/* ---------- YOUR JOURNEY WAS HERE, AND IS THE PROGRESS COLUMN'S CARD NOW -----------------------------
+   `mayJourney_` and `journeyCard_` are in js/arcade.js, beside `progressCards_`, the list the Progress
+   column draws: *"This should be moved to appropriate column"* (the owner, 12 Oct). docs/history/346. */
 
 /* ---------- THE TUTOR AGREEMENT (DRAFT), AND A TICK THAT CANNOT BE TAKEN BACK ----------------------
    ASKED FOR AS *"a draft widget for tutors, just do a draft small contract with tick to agree. cant
@@ -3390,68 +3383,6 @@ on('agree-sign', el => {
       el.checked = false; el.disabled = false;
       toast(String((err && err.message) || 'Not saved.'));
     });
-});
-
-/* ---------- YOUR CUT OF AN EXTRA CHILD, FOR THE ADMIN -----------------------------------------------
-   ASKED FOR AS *"for admin he should have an extra widget which is how much does he take from extra
-   child from other tutors."* That figure is `B` in `priceFrom` (core.js) — read off config as `B`,
-   `boss rate` or `boss_rate` — a FRACTION of the tutor's hourly rate added for each child after the
-   first, beside the tutor's own share `c`. So the card says it in money as well as as a fraction,
-   because 0.1 is not a number anybody thinks in and "£3 an hour on a £30 tutor" is.
-
-   THE KEY IS WHICHEVER OF THE THREE THE SHEET ALREADY USES, so a save edits that row rather than
-   adding a second one `cv` would never read. None of them → `boss_rate`, which `updateConfig` is
-   allowed to add. `send`, not `api`: a refusal must not be toasted as "Saved". */
-const CUT_KEYS = ['B', 'boss rate', 'boss_rate'];
-function cutNow_() {
-  const v = (DATA && DATA.constants && DATA.constants.vars) || {};
-  for (const k of CUT_KEYS) {
-    const x = Number(v[k]);
-    if (v[k] !== undefined && v[k] !== '' && !isNaN(x)) return { key: k, value: x };
-  }
-  return { key: 'boss_rate', value: 0 };
-}
-function cutSay_(b) {
-  const v = (DATA && DATA.constants && DATA.constants.vars) || {};
-  const c = Number(v.c ?? v['extra child rate'] ?? v.extra_child_rate) || 0;
-  const r = 30, pct = Math.round(b * 1000) / 10;
-  return `So on a ${money(r)}/h tutor, each extra child adds ${money(r * (c + b))}/h,
-    of which you take <b>${money(r * b)}/h</b> (${pct}%) and the tutor ${money(r * c)}/h.`;
-}
-function cutCard_() {
-  const now = cutNow_();
-  return `<div class="card cut">
-    <h3>Your cut of an extra child</h3>
-    <p class="sub">What the business takes from each child after the first, as a share of the
-      tutor's hourly rate. 0.1 is 10%.</p>
-    <label class="field"><span>your share (0 to 2)</span>
-      <input id="cut-val" type="number" inputmode="decimal" step="0.01" min="0" max="2"
-        value="${esc(String(now.value))}" data-key="${esc(now.key)}"></label>
-    <p class="faint cut-say">${cutSay_(now.value)}</p>
-    <div class="tile-row">${tile_({ icon: 'save', label: 'Save', act: 'cut-save' })}</div>
-  </div>`;
-}
-on('cut-save', el => {
-  const box = el.closest('.card') && el.closest('.card').querySelector('#cut-val');
-  if (!box || !isAdmin()) return;
-  const x = Number(box.value);
-  if (box.value === '' || isNaN(x) || x < 0 || x > 2) return toast('A number from 0 to 2 \u2014 0.1 is 10%.');
-  /* `send_`, like every other Save on this column: the spinner, and the box locked while the number
-     is on the wire, so what is saved is what the box says. */
-  const want = box.dataset.key || 'boss_rate';
-  send_({ action: 'updateConfig', name: USER.name, personId: USER.personId, key: want, value: x },
-        { button: el, busy: 'Saving…' })
-    .then(d => {
-      DATA.constants = DATA.constants || {};
-      DATA.constants.vars = DATA.constants.vars || {};
-      /* THE KEY THE SERVER WROTE, which is the one the pricing reads — see the exact-case match in
-         `updateConfig`. */
-      DATA.constants.vars[(d && d.key) || want] = x;
-      const say = el.closest('.card').querySelector('.cut-say');
-      if (say) say.innerHTML = cutSay_(x);
-      toast('Saved');
-    })
-    .catch(() => {});
 });
 
 screen('settings', () => pages('settings', settingsPages_()));
@@ -3812,6 +3743,18 @@ function fieldHtml(name, value, o) {
   if (name === 'extra_seat_rate' && !o.label && !o.placeholder) {
     o = Object.assign({}, o, { label: 'extra seat: share of your rate, 0–2 (0.5 = half)',
       extra: (o.extra || '') + ' type="number" min="0" max="2" step="0.05"' });
+  }
+  /* AND THE BUSINESS'S CUT OF IT, PER TUTOR SINCE docs/history/345 — the same kind of figure, so the same caption
+     and the same bounds (`seatCutRefusal_`), and it says what a blank is, because blank and 0 are two answers here:
+     the usual share (the config tab's `B`) and none at all. Drawn as a fraction only where the rate page is still
+     on Settings — a tutor or an admin with no public card; on a card it is in pounds (`cardRateHtml_`). A tutor
+     sees it and cannot change it (`settingsPages_` makes it read-only), and the server refuses it from them.
+     READ-ONLY, IT SAYS WHO SETS IT, as the card's line does: a dimmed box under the admin's caption said nothing
+     about why it would not take a figure (the review of 345). */
+  if (name === 'extra_seat_cut' && !o.label && !o.placeholder) {
+    o = Object.assign({}, o, { label: o.readonly ? "@family.'s share of an extra seat — set by @family. (blank = the usual)"
+      : "@family.'s share of an extra seat, 0–2 (blank = the usual)",
+      extra: (o.extra || '') + ' type="number" min="0" max="2" step="0.01" inputmode="decimal"' });
   }
   const attr = o.attr || 'data-me';
   const label = o.label || fieldLabel(name);
@@ -5009,7 +4952,7 @@ function photoShelf_(list, value, o) {
     (i, hide) => {
       const v = String(value('photos_' + i) || '').trim();
       return `<div class="lib-card ph-slot"${hide ? ' hidden' : ''}>
-        <span class="ph-thumb">${v ? `<img src="${esc(pic(v))}" alt="">` : ''}</span>
+        <span class="ph-thumb">${v ? `<img src="${esc(pic(v))}" alt="" decoding="async">` : ''}</span>
         ${fieldHtml('photos_' + i, v, { placeholder: 'Another photo link', draft: (o || {}).draft,
           extra: 'type="url" inputmode="url" autocomplete="off" spellcheck="false"' })}
       </div>`;
@@ -5022,7 +4965,7 @@ document.addEventListener('input', e => {
   if (!t || !t.matches || !t.matches('.ph-slot input')) return;
   const thumb = t.closest('.ph-slot').querySelector('.ph-thumb');
   const v = String(t.value || '').trim();
-  if (thumb) thumb.innerHTML = /^https?:\/\/\S+$/i.test(v) ? `<img src="${esc(pic(v))}" alt="">` : '';
+  if (thumb) thumb.innerHTML = /^https?:\/\/\S+$/i.test(v) ? `<img src="${esc(pic(v))}" alt="" decoding="async">` : '';
 });
 
 /* ---------- YOUR PICTURE, CHOSEN RATHER THAN LINKED ---------------------------------------------
@@ -5247,7 +5190,7 @@ document.addEventListener('change', e => {
        refuses, the line says why and the old picture comes back. The ring comes off the grid for the
        same moment — a photograph is none of the eleven. */
     const face = box.querySelector('.pfp-face');
-    if (face) face.innerHTML = `<img class="pfp-pic" src="${esc(data)}" alt="Your profile picture">`;
+    if (face) face.innerHTML = `<img class="pfp-pic" src="${esc(data)}" alt="Your profile picture" decoding="async">`;
     pfpRing_(box, '');
     return send_({ action: 'savePhoto', name: USER.name, personId: USER.personId, data },
                  { button: btn, where: said, saying: 'Saving…', lock: box })
@@ -5554,6 +5497,10 @@ function meSave_(el) {
          ticks, a birthday normalised — so the next Save starts from the sheet. An older backend sends
          no profile, and the typed fields are merged as they always were. */
       USER.profile = (d && d.profile) ? d.profile : Object.assign({}, USER.profile || {}, fields);
+      /* AND THE PROGRESS COLUMN, whose journey card counts down to the two exam dates on About you
+         (`progressRedraw_`, js/arcade.js) — not left to the payload this Save asks for, which can be
+         half a minute away while the student swipes over to see the new count. */
+      if (typeof progressRedraw_ === 'function') progressRedraw_();
       /* ON THE SHEET NOW, SO EACH FIELD SENT IS NO LONGER A DRAFT (`fieldHtml`; 317). */
       Object.keys(fields).forEach(f => { try { draftDrop_('set', f); } catch (e) {} });
       if (d && d.name) USER.name = d.name;
@@ -5768,8 +5715,9 @@ function profileRefresh_(loud, onOld) {
       if (d.handle) USER.handle = String(d.handle);
       if (typeof d.friends === 'string' && d.friends !== String(USER.friends || '')) {
         USER.friends = d.friends;
-        /* THE FRIENDS LIST ON FIND IS MEMOISED — told, as `friendsSave` tells it. */
-        try { FIND_MEMO.key = null; } catch (e) {}
+        /* THE FRIENDS LIST ON BOTH FINDERS IS MEMOISED — told, as `friendsSave` tells it. Not drawn
+           here: the `landRepaint_` below draws the column in front. */
+        try { if (typeof finderForgetFound_ === 'function') finderForgetFound_(); else FIND_MEMO.key = null; } catch (e) {}
       }
       const roleMoved = JSON.stringify([USER.role, USER.roles, !!USER.tutorPending, String(USER.pendingEmail || ''),
         String(USER.name || ''), USER.children, USER.kids, String(USER.handle || ''), String(USER.friends || '')]) !== roleWas;
@@ -5787,6 +5735,9 @@ function profileRefresh_(loud, onOld) {
       if (typeof screenHasMarkup_ === 'function' && screenHasMarkup_('settings')) {
         try { land(() => { paint('settings'); placeCells('y', true, 0, 'settings'); }); } catch (e) {}
       }
+      /* AND THE PROGRESS COLUMN, the same rule: its journey card counts down to the exam dates in this
+         copy, which a Save on another phone may have moved (`progressRedraw_`, js/arcade.js). */
+      if (typeof progressRedraw_ === 'function') { try { land(() => progressRedraw_()); } catch (e) {} }
       /* AND THE LIBRARY CARDS ON TOOLS, which are drawn from this copy and are a widget now, not a page this
          column repaints (docs/history/339). `libCardsDraw_` leaves a copy with typing in it alone. */
       try { land(() => libCardsRedraw_()); } catch (e) {}
@@ -6018,7 +5969,7 @@ const CARD_SECTIONS = [
   { id: 'figure', own: true, cap: 'Your figure' },
   { id: 'name', bare: true, fields: ['first_name', 'last_name'] },
   { id: 'handle', own: true, cap: 'Handle' },
-  { id: 'rate', cap: 'Rate and class size', fields: ['rate_per_hour', 'extra_seat_rate', 'min_students', 'max_students'] },
+  { id: 'rate', cap: 'Rate and class size', fields: ['rate_per_hour', 'extra_seat_rate', 'extra_seat_cut', 'min_students', 'max_students'] },
   { id: 'headline', fields: ['headline'] },
   { id: 'photos', cap: 'Photographs', fields: ['video'], match: /^photos_\d+$/ },
   { id: 'words', fields: ['adjective_1', 'adjective_2', 'adjective_3'] },
@@ -6369,12 +6320,180 @@ function cardEditForm_(t, e, vals) {
       : s.id === 'photos' ? fieldRows_(L.filter(f => !isPhotoField_(f)), box) + (isPhotos_(L) ? photoShelf_(L, val, { draft: false }) : '')
       : s.id === 'quals' ? qualShelf_(L, val)
       : s.id === 'week' ? availGrid_(L, vals, ro, false)
+      : s.id === 'rate' ? cardRateHtml_(L, val, box, e)
       : fieldRows_(L, box);
     /* THE MAP REDRAWN FROM THE TICKS as they are ticked (the listener below), so the place a parent
        will see is the place being chosen. */
     const more = s.id === 'where' ? `<div class="ce-heat">${profHeat_(profList_(val('venues_ok')))}</div>` : '';
     return `<div class="ce-sec" data-sec="${esc(s.id)}">${s.cap ? `<div class="prof-cap">${esc(s.cap)}</div>` : ''}${body}${more}</div>`;
   }).join('');
+}
+/* ---------- THE RATE, AND WHAT AN EXTRA SEAT ADDS IN POUNDS BESIDE IT (docs/history/345) --------------------
+   THE OWNER, 12 Oct: *"Your cut off extra child for tutors should be editable on thir card. Like they can edit
+   that small number to the right of their normal rate"*. The small number is the card's `+£X/h a seat`
+   (`profSeat_`, cards.js): the rate times two shares, the tutor's own (`extra_seat_rate`) and the business's
+   (`extra_seat_cut` — per tutor since this note, and a blank one is the config tab's `B`, which is how every
+   tutor was priced before). So this section reads as the card does: the rate, the two parts of a seat side by
+   side, and the seat as the card will print it, recomputed as any of the three is typed — through `profSeat_`
+   itself, so the form cannot print a seat the card would not.
+
+   IN POUNDS AN HOUR, BECAUSE THAT IS THE NUMBER ON THE CARD the owner pointed at, and 0.5 is a number nobody
+   thinks in (the Settings card this replaces said so of 0.1). STORED AS FRACTIONS STILL: a rate that moves takes
+   the seat with it, as it always has, and nothing else that reads `extra_seat_rate` changes meaning. So the boxes
+   typed into carry no `data-me` (`data-pound`), and the fractions are HIDDEN `data-me` boxes holding the stored
+   cell EXACTLY. Untouched, `cardChanged_` sends neither — so the tutor's month clock (`pricingRefusal_`) starts
+   only on a seat that moved, not on a rate typed beside one. `cardSeatSync_` (below) turns pounds into a share.
+
+   THE CUT IS AN ADMIN'S. On an admin's edit — anybody's card, their own included — it is a box. On a tutor's own
+   card it is a line saying what it is and who sets it, over a hidden box that is DISABLED, which `cardFormVals_`
+   never reads, so a tutor's Save cannot carry it — and `seatCutRefusal_` (people.gs) refuses it from them on the
+   server whatever a phone sends. The box is still there because every field the tutor's groups name has one.
+   NO RATE, NO POUNDS: a share of nothing cannot be turned into money, so the boxes are disabled and say why. */
+const pounds2_ = x => Math.round(x * 100) / 100;
+/* WHAT A BLANK MEANS IN POUNDS AT THIS RATE — the config's `c` and `B` through the one reader, `seatShare_`. */
+function cardSeatUsual_(rate) {
+  const u = typeof seatShare_ === 'function' ? seatShare_(null) : { cUsed: 0, bUsed: 0 };
+  return { extra_seat_rate: pounds2_(rate * u.cUsed), extra_seat_cut: pounds2_(rate * u.bUsed) };
+}
+/* A BLANK BOX SAYS "usual" AND NO MORE — "usual £3.00" was cut off in a box half a 390px card wide (measured);
+   the amounts are in the line under the boxes, which has the room. Nothing without a rate: the line says why. */
+const cardSeatPh_ = rate => rate > 0 ? 'usual' : '';
+/* ---------- A PART IS DRAWN ONLY WHERE THE PRICE USES IT AS THE TUTOR'S OWN, AND ASKED OF `seatShare_` ----------
+   THIS WAS `share × rate`, A SECOND FORMULA, and it disagreed with the one reader exactly where the two answers
+   differ (the review of docs/history/345): a stored nought for the tutor's part was drawn "0.00", while
+   `seatShare_` prices a nought there as the config `c` — so on Ada at £20 the boxes read £0 and £2 under a seat
+   of +£8.00, and beside the business's box, where £0 means NO cut, the same £0 meant the opposite. So each box
+   shows a figure only when `seatShare_` would use the cell as this tutor's own (`seatOwn`, `cutOwn`), and is
+   blank — "usual", with the usual amount in the line under it — when the price falls back to the config.
+   THE TWO £0s ARE STILL TWO ANSWERS, because they always were in the price and the brief keeps the stored
+   meaning: £0 to the business is no cut; £0 for the tutor's part is the usual share, as a blank is, so that box
+   never shows "0.00" and a nought typed into it is put back to empty once it is left (`cardSeatSync_`). The
+   line under the boxes says both, in pounds. */
+function cardSeatShown_(f, rate, frac) {
+  if (!(rate > 0) || typeof seatShare_ !== 'function') return '';
+  const s = seatShare_({ extraSeat: frac, extraSeatCut: frac });
+  if (f === 'extra_seat_cut') return s.cutOwn ? pounds2_(s.bRaw * rate).toFixed(2) : '';
+  return s.seatOwn ? pounds2_(s.cRaw * rate).toFixed(2) : '';
+}
+/* POUNDS TYPED INTO A PART → THE SHARE THE HIDDEN BOX HOLDS. To SIX PLACES: the error is under half a millionth
+   of the rate, so it comes back to the same penny for any rate under £10,000 an hour. And pounds that DRAW THE
+   SAME as the cell the card was opened with, at this rate, put back THE STORED CELL ITSELF rather than a
+   recomputed one — 0.333333 is not 0.3333333333 to `cardChanged_`, and a retyped seat must not start the tutor's
+   month. Asked through `cardSeatShown_`, so "the same" is the reader's same: a nought or a blank typed into the
+   tutor's part over a stored nought is the usual over the usual, and nothing is sent. A blank, or a nought in the
+   tutor's part, that is NOT what was stored is '' — the usual. */
+function cardSeatShare_(f, typed, rate, was) {
+  const s = String(typed == null ? '' : typed).trim(), P = num(s);
+  const cell = String(was == null ? '' : was).trim();
+  const usual = s === '' || isNaN(P) || (f === 'extra_seat_rate' && P === 0);
+  if (cardSeatShown_(f, rate, cell) === (usual ? '' : pounds2_(P).toFixed(2))) return cell;
+  return usual ? '' : String(Math.round(P / rate * 1e6) / 1e6);
+}
+/* A PART OUTSIDE 0 TO 2 OF THE RATE — what the server refuses for either part. Read as the typed share. */
+const cardSeatOff_ = vals => vals.some(v => { const x = num(v); return !isNaN(x) && (x < 0 || x > 2); });
+const cardSeatOffSay_ = rate => 'Each part is £0 to ' + money(pounds2_(rate * 2)) + '/h — twice the rate.';
+/* THE SEAT AS THE CARD WILL PRINT IT — `profSeat_` over the typed row, the card's own function. Outside 0 to 2 a
+   share is read as nothing (`asFraction`), so a figure past twice the rate says so instead of printing a seat the
+   server is about to refuse. */
+function cardSeatSay_(rate, seat, cut) {
+  if (!(rate > 0)) return 'An extra seat is priced from the rate — set it first.';
+  if (cardSeatOff_([seat, cut])) return esc(cardSeatOffSay_(rate));
+  const x = typeof profSeat_ === 'function' ? profSeat_({ rate, extraSeat: seat, extraSeatCut: cut }) : 0;
+  return x > 0 ? `<span class="prof-seat">+${esc(money(x))}/h a seat</span>` : 'An extra seat adds nothing.';
+}
+/* ---------- THE LINE UNDER IT: WHAT A BLANK AND A NOUGHT ARE, IN POUNDS, FOR BOTH PARTS ----------------------
+   It named the usual amount for the business's part only, so nothing told a tutor what their own blank part was
+   worth except subtracting it from the seat (the review of 345). Both now, in the order of the boxes: the tutor's
+   part (blank or £0 is the usual), then the business's — for whoever sets it, what a blank and a nought are (the
+   usual; no cut); for a tutor on their own card, what it is and who sets it, in a few words. With no rate there
+   are no amounts, only the words. A backend too old to send the cut gets the first sentence alone. */
+function cardSeatNote_(rate, cut, o) {
+  const u = rate > 0 ? cardSeatUsual_(rate) : null;
+  const at = k => u ? ' ' + money(u[k]) : '';
+  const mine = (o.own ? 'Yours' : 'Theirs') + ': blank or £0 is the usual' + at('extra_seat_rate') + '.';
+  if (!o.hasCut) return mine;
+  if (o.mayCut) return mine + " @family.'s: blank is the usual" + at('extra_seat_cut') + ', £0 is no cut.';
+  if (!u) return mine + " @family.'s part is set by @family.";
+  const s = typeof seatShare_ === 'function' ? seatShare_({ extraSeatCut: cut }) : { bUsed: 0, cutOwn: false };
+  return mine + ' ' + money(pounds2_(rate * s.bUsed)) + "/h of a seat is @family.'s" + (s.cutOwn ? '' : ', the usual')
+    + ' — only @family. sets that.';
+}
+function cardRateHtml_(L, val, box, e) {
+  const has = f => L.indexOf(f) !== -1;
+  if (!has('rate_per_hour') || !has('extra_seat_rate')) return fieldRows_(L, box);
+  const rate = num(val('rate_per_hour'));
+  const live = rate > 0;
+  const mayCut = has('extra_seat_cut') && isAdmin();
+  const pound = (f, label) => fieldHtml(f, cardSeatShown_(f, rate, val(f)), { attr: 'data-pound', label, readonly: !live,
+    draft: false, extra: `type="number" min="0" max="${live ? pounds2_(rate * 2) : 0}" step="0.01"${
+      f === 'extra_seat_cut' ? ' inputmode="decimal"' : ''} placeholder="${esc(cardSeatPh_(rate))}"` });
+  const hidden = f => has(f) ? `<input type="hidden" data-me="${f}" value="${esc(String(val(f)))}"${
+    f === 'extra_seat_cut' && !mayCut ? ' disabled' : ''}>` : '';
+  const own = !!(e && e.own);
+  const boxes = [pound('extra_seat_rate', own ? 'yours' : 'theirs')]
+    .concat(mayCut ? [pound('extra_seat_cut', "@family.'s")] : []);
+  return box('rate_per_hour', {})
+    + `<div class="f-rowwrap"><span class="dob-cap">an extra seat adds, £ an hour</span>
+         <div class="f-row" style="--n:${boxes.length}">${boxes.join('')}</div></div>
+       ${hidden('extra_seat_rate')}${hidden('extra_seat_cut')}
+       <p class="ce-seat" aria-live="polite">${cardSeatSay_(rate, val('extra_seat_rate'), val('extra_seat_cut'))}</p>
+       <p class="faint ce-note ce-seat-note" data-own="${own ? '1' : ''}">${esc(cardSeatNote_(rate, val('extra_seat_cut'),
+         { own, mayCut, hasCut: has('extra_seat_cut') }))}</p>`
+    + fieldRows_(L.filter(f => ['rate_per_hour', 'extra_seat_rate', 'extra_seat_cut'].indexOf(f) === -1), box);
+}
+/* ---------- AND AS IT IS TYPED: POUNDS INTO THE HIDDEN SHARE, THE SEAT REDRAWN ----------------------------------
+   Run by the card's own listener before `cardKeep_`, so the draft holds the share that will be sent.
+   POUNDS TYPED → the share, by `cardSeatShare_`. The box is marked as typed in this edit.
+   THE RATE TYPED → a part TYPED IN THIS EDIT keeps its pounds and its share follows them; a part left alone keeps
+   its share and its pounds follow. It moved every part's pounds, typed or not, so the same figures saved two
+   different seats by the order they were typed in: £5 and £2 typed at £20 and the rate then corrected to £30
+   saved £7.50 and £3.00 (the review of 345). What somebody typed is what they meant; a part they did not touch
+   moves with the rate, as a stored share always has.
+   A NOUGHT LEFT IN THE TUTOR'S PART is put back to empty on `change` (when the box is left, never while typing:
+   "0.5" starts with a nought), so the box reads as it will when the card is opened again — "usual". */
+function cardSeatSync_(form, t, ev) {
+  const sec = form.querySelector('.ce-sec[data-sec="rate"]');
+  if (!sec || !t || !sec.contains(t) || !sec.querySelector('.ce-seat')) return;
+  const rateBox = sec.querySelector('[data-me="rate_per_hour"]');
+  const rate = num(rateBox ? rateBox.value : '');
+  const hid = f => sec.querySelector('input[type="hidden"][data-me="' + f + '"]');
+  const base = CARD_DRAWN.get(form.dataset.draw || '') || {};
+  const share = b => {
+    const f = b.dataset.pound, h = hid(f);
+    if (h && !h.disabled && rate > 0) h.value = cardSeatShare_(f, b.value, rate, base[f]);
+  };
+  if (t.dataset && t.dataset.pound) {
+    t.dataset.typed = '1';
+    share(t);
+    if (ev === 'change' && t.dataset.pound === 'extra_seat_rate' && String(t.value).trim() !== '' && num(t.value) === 0) t.value = '';
+  }
+  if (t === rateBox) {
+    sec.querySelectorAll('[data-pound]').forEach(b => {
+      b.disabled = !(rate > 0);
+      b.max = String(rate > 0 ? pounds2_(rate * 2) : 0);
+      b.placeholder = cardSeatPh_(rate);
+      if (b.dataset.typed) { share(b); return; }
+      const h = hid(b.dataset.pound);
+      b.value = cardSeatShown_(b.dataset.pound, rate, h ? h.value : '');
+    });
+  }
+  const seat = hid('extra_seat_rate'), cut = hid('extra_seat_cut');
+  sec.querySelector('.ce-seat').innerHTML = cardSeatSay_(rate, seat ? seat.value : '', cut ? cut.value : '');
+  const note = sec.querySelector('.ce-seat-note');
+  if (note) note.textContent = cardSeatNote_(rate, cut ? cut.value : '', { own: note.dataset.own === '1',
+    mayCut: !!sec.querySelector('[data-pound="extra_seat_cut"]'), hasCut: !!cut });
+}
+/* ---------- AND SAVE REFUSES A PART PAST TWICE THE RATE ITSELF, IN POUNDS ---------------------------------------
+   The preview already said so, and the server refuses it — but in the words of the Settings box, which is a share
+   ("from 0 to 2 — 0.1 is a tenth"), under a form where somebody typed £99 (the review of 345). So the card says it
+   in the card's unit and posts nothing. Only a part that moved: a stored figure nobody touched is not this Save's. */
+function cardSeatRefusal_(form, fields) {
+  const sec = form.querySelector('.ce-sec[data-sec="rate"]');
+  if (!sec || !sec.querySelector('.ce-seat')) return '';
+  const rate = num((sec.querySelector('[data-me="rate_per_hour"]') || {}).value);
+  const moved = ['extra_seat_rate', 'extra_seat_cut'].filter(f => Object.prototype.hasOwnProperty.call(fields, f));
+  if (!(rate > 0) || !cardSeatOff_(moved.map(f => fields[f]))) return '';
+  return cardSeatOffSay_(rate) + ' Nothing was saved.';
 }
 /* ---------- YOUR HANDLE, ON YOUR CARD, UNDER YOUR NAME (docs/history/339) ----------------------------------
    The owner, 11 Oct: *"the random name generator should be one of the editable things in the profile settings
@@ -6436,6 +6555,9 @@ function cardPatchRow_(pid, all, sent) {
   if (has('headline')) row.description = txt(all.headline) ? '"' + txt(all.headline) + '"' : '';
   if (has('rate_per_hour')) row.rate = Number(all.rate_per_hour) || 0;
   if (has('extra_seat_rate')) row.extraSeat = Number(all.extra_seat_rate) || 0;
+  /* `doGet`'s shape (`seatCutOut_`): '' is the usual cut and nought is none, so not `Number(...) || 0` — read by
+     `seatCutOf_`, the phone's copy of that one reading, so this guess and the payload that replaces it agree. */
+  if (has('extra_seat_cut')) { const x = seatCutOf_(all.extra_seat_cut); row.extraSeatCut = isNaN(x) ? '' : x; }
   if (has('min_students')) row.minStudents = Number(all.min_students) || 1;
   if (has('max_students')) row.maxStudents = Number(all.max_students) || 0;
   if (has('years_experience')) row.yrsExp = txt(all.years_experience);
@@ -6572,6 +6694,8 @@ on('card-save', el => {
   if (qualNameless_(form)) { toast(QUAL_NAMELESS_SAY_); if (said) said.textContent = QUAL_NAMELESS_SAY_; return; }
   if (cardQualHole_(form, base)) { toast(CARD_LEVELLESS_SAY_); if (said) said.textContent = CARD_LEVELLESS_SAY_; return; }
   const fields = cardChanged_(base, cardFormVals_(form));
+  const seatNo = cardSeatRefusal_(form, fields);
+  if (seatNo) { toast(seatNo); if (said) said.textContent = seatNo; return; }
   /* NOTHING TYPED — BUT A SECTION THAT SAVES ITSELF MAY HAVE BEEN (`cardSelfSaved_`): "Nothing had changed" after
      a Randomise, a pick in the wardrobe or a new picture read as if the press had been thrown away, and for a
      parent or a student three of the four sections are those. */
@@ -6585,6 +6709,8 @@ on('card-save', el => {
         USER.profile = (d && d.profile) ? d.profile : Object.assign({}, USER.profile || {}, fields);
         if (d && d.name) USER.name = d.name;
         try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (x) {}
+        /* YOUR OWN COPY CHANGED, and the Progress column's journey card is drawn from it — see `meSave_`. */
+        if (typeof progressRedraw_ === 'function') progressRedraw_();
       }
       cardPatchRow_(e.pid, Object.assign({}, base, fields), fields);
       toast((d && d.said) || 'Saved');
@@ -6695,6 +6821,7 @@ on('card-cancel', el => {
   const form = t && t.closest && t.closest('.card-ed .me-form');
   if (!form) return;
   form.dataset.dirty = '1';
+  cardSeatSync_(form, t, ev);
   cardKeep_(form);
   if (t.matches && t.matches('[data-many-of="venues_ok"]')) {
     const box = form.querySelector('[data-me="venues_ok"]'), heat = form.querySelector('.ce-heat');

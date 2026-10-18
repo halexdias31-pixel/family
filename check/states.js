@@ -2502,10 +2502,11 @@ const STATES = {
        whole list, and nothing a film's title finds in Find's search, is a film. A film is measured where
        it is found — "the films in the videos card, an admin’s", on Games.
        NOT `Learning`'s What kind ANY MORE, which is what the films branch asked for: the second finder
-       took the textbooks to the Resources column (docs/history/329), and over the fixture Learning in Find
-       then holds one kind, so What kind is skipped and the page drew Year. A state that wants a second
-       What kind answer on Find cannot arrive, whatever the films do — so this asks What kind's answers of
-       the facet over the whole list instead, which is the same question without the funnel's skip. */
+       took the textbooks to its own column for two days (docs/history/329; Find holds them again since
+       347), and over the fixture Learning in Find then held one kind, so What kind was skipped and the page
+       drew Year. A state that wants a second What kind answer on Find depends on what the fixture happens
+       to hold — so this asks What kind's answers of the facet over the whole list instead, which is the
+       same question without the funnel's skip. */
     { name: 'no films in Find, an admin’s',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => {
@@ -2539,33 +2540,19 @@ const STATES = {
       expect: () => /Nothing matches/.test((document.querySelector('#stuff-groups .empty') || {}).textContent || ''),
       wants: 'the funnel saying Nothing matches',
       leave: () => { STUFF.q = ''; paintStuff(); goPage('stuff', 0); } },
-    /* AND A SEARCH THAT MATCHES NOTHING HERE BUT SOMETHING ONE COLUMN OVER — the review of the second
-       finder, finding 1 (docs/history/329): a boxer's name typed into Find said "Try fewer words." with
-       him one swipe away in Resources. It says how many and where now, with an Open tile under it, and a
-       tile is a tap target and a line of faint words is a contrast ratio, which only a browser measures. */
-    { name: 'a search only Resources answers',
-      enter: () => { STUFF.filters = []; STUFF.q = 'Olivares'; paintStuff(); goPage('stuff', stuffQuestionPage_(), true); },
+    /* AND A SEARCH A CHIP HIDES. It was "a search only Resources answers" — a boxer's name typed into Find
+       while the boxers were one column over, which drew "1 in Resources" and an Open tile that carried the
+       words across (329's review, finding 1). Both finders hold the boxers now (347) and the tile is gone:
+       what is left to measure is the sentence a chip leaves — faint words, which is a contrast ratio, and
+       which only a browser measures — and that no tile to the other column is drawn under it. */
+    { name: 'a search a chip hides',
+      enter: () => { STUFF.filters = [{ field: 'kindLabel', value: 'Projects' }]; STUFF.q = 'Olivares'; paintStuff(); goPage('stuff', stuffQuestionPage_(), true); },
       expect: () => {
         const g = document.querySelector('#stuff-groups');
-        const t = g && g.querySelector('.tile-row [data-do="finder-words"][data-to="res"]');
-        return !!t && /\bin Resources\b/.test(g.textContent) && !/Try fewer words/.test(g.textContent);
+        return !!g && /take a filter off/.test(g.textContent) && !g.querySelector('[data-do="finder-words"]');
       },
-      wants: 'Find\'s empty search saying how many are in Resources, with an Open tile under it',
-      /* AND RESOURCES PUT BACK TOO. `check/press.js` presses the Open tile, which is the point of it:
-         it carries "Olivares" into Resources' words and box and turns that column to his card. Left
-         there, every `res` state after it — which set chips and not words — entered a column searching
-         for a boxer, and the textbook chapter and the three animations "did not arrive". */
-      leave: () => {
-        STUFF.q = ''; paintStuff(); goPage('stuff', 0);
-        inFinder_(finderOf_('res'), () => {
-          STUFF.q = ''; STUFF.filters = [];
-          const box = document.getElementById('res-q');
-          if (box) box.value = '';
-          paintStuff(); goPage('res', 0);
-        });
-        /* AND FIND IN FRONT AGAIN — the tile went to Resources, and the states after this one are Find's. */
-        if (AT !== 'stuff') go('stuff', false, true);
-      } },
+      wants: 'Find\'s empty search under a chip saying "Try fewer words, or take a filter off." and offering no other column',
+      leave: () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     { name: 'nothing left to narrow',
       /* ANSWERED BY THE FUNNEL'S OWN ROWS until it stops asking, over the projects — eight things,
          so it runs out of questions in two or three answers whatever the data says next week. */
@@ -2633,8 +2620,12 @@ const STATES = {
        kit and steps are drawn into the DOM while you are reading its card. Measured on the card:
        its title and its foot, relative to its pane, before and after turning two pages on and
        back. THREE PAGES WAS NOT ENOUGH and the first version measured nothing: with `STUFF_NEAR` at 5
-       every page it passed was already drawn. `STUFF_NEAR + 3` on is far enough that the card's OWN
-       page is emptied, so coming back draws it again from nothing — the moment a card loads. */
+       every page it passed was already drawn. `STUFF_NEAR + 3` on was far enough that the card's OWN
+       page was emptied, so coming back drew it again from nothing — the moment a card loads.
+       SINCE docs/history/341 NOTHING INSIDE THE WINDOW IS EMPTIED (`STUFF_NEAR` is gone, and the window is
+       forty-one pages, all filled): only a recycle releases a card. So the walk goes past the whole window,
+       `STUFF_WIN + 3` on, which moves it off the card's page; coming back draws the card again from nothing,
+       as before. `fillStuffPages(true)` is the whole window, now. */
     { name: "a practical's pages filled, its card still",
       enter: () => {
         const x = stuffItemsAll_().find(it => it.kind === 'practical' && !it.row.excluded && it.row.diagram);
@@ -2671,7 +2662,7 @@ const STATES = {
         fillStuffPages(true);
         const a = at();
         const was = page() && page().querySelector('.card.fc .fc-head h3');
-        goPage('stuff', first + STUFF_NEAR + 3, true); fillStuffPages(true);
+        goPage('stuff', first + STUFF_WIN + 3, true); fillStuffPages(true);
         goPage('stuff', first, true); fillStuffPages(true);
         const now = page() && page().querySelector('.card.fc .fc-head h3');
         window.__cardStill = { a, b: at(), redrawn: !!now && now !== was };
@@ -2684,73 +2675,73 @@ const STATES = {
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
   ],
   /* ================================================================================================
-     THE SECOND FINDER: RESOURCES, RIGHT OF FIND (docs/history/329)
+     FIND 2, RIGHT OF FIND (docs/history/329, 347)
 
-     THE OWNER, 10 Oct: *"i want to move everything which is in "resources" tag. i want to create a new
-     column to the right of the current finder. this new column is "finder 2". it carries resources."*
-     The textbooks, the Bible, the boxers and the fights left Find for this column, and every state that
-     measured them moved with them, word for word, but for three things: each runs in the second
-     finder's binding (`inFinder_`, find.js — inside it `STUFF` IS this column's state, so the code reads
-     as it did), each turns `goPage('res', …)` and looks in `#s-res`, and none sets a `What for` or
-     `What kind` chip, because over the resources both have one answer and the funnel skips them — a
-     chip nobody could have pressed is not a state anybody is in.
+     THE OWNER, 10 Oct, built this column for the resources; on 12 Oct: *"Return to that origional finder
+     having everything and now there is just an identical second finder."* The textbook, Bible, boxer and
+     fight states moved here with the resources (329) and STAY here now that both finders hold them,
+     because they are what proves the second column draws as Find does — the column a student keeps the
+     reading up in. Each runs in the second finder's binding (`inFinder_`, find.js — inside it `STUFF` IS
+     this column's state, so the code reads as it did), turns `goPage('res', …)` and looks in `#s-res`.
+     They set the shelf's chip without `What for · Learning` and `What kind · Resources` in front of it:
+     the shelf narrows to the same list a finger reaches through those two doors, so the page drawn is the
+     page a finger reaches.
   ================================================================================================ */
   res: [
     { name: 'the question' },
-    /* ---------- A TEXTBOOK CHAPTER, REACHED BY ITS SHELF -----------------------------------------
-       "the @family textbook should be bare bones for now and the textbooks will be in the resources
-       tag in the finder." The owner's route as chips — Resources, then the `@family. textbooks`
-       shelf — and then the Measures of spread chapter, because it is the one with everything a
-       chapter can carry: key words, Higher lines, and the standard deviation formulas, whose
-       stacked fractions under a root are the widest thing on any page of the book. The chapters
-       either side are in the DOM beside it, so they are measured too, for a tap target, a contrast
-       ratio and a sideways scroll. */
-    { name: 'a textbook chapter',
+    /* ---------- A CONTENT CARD, REACHED BY WHAT KIND · CONTENT AND ITS SUBJECT ---------------------
+       It was `a textbook chapter`, reached by the `@family. textbooks` shelf and the book's own chip; each
+       chapter is a content card since 12 Oct (docs/history/347, part 2), so it is reached the way a
+       student reaches one: What kind · Content, then the subject. Measures of spread, because it is the
+       card with everything a card can carry: the tag row, key words, Higher lines, and the standard
+       deviation formulas, whose stacked fractions under a root are the widest thing on any card. The
+       cards either side are in the DOM beside it, so they are measured too, for a tap target, a
+       contrast ratio and a sideways scroll. */
+    { name: 'a content card',
       enter: () => inFinder_(finderOf_('res'), () => {
-        /* GCSE STATISTICS BY NAME, and its own `Book` chip: the shelf holds a book for every GCSE now,
-           and the first one on it, or a chapter numbered like this one in another book, is not the
-           page this state was written about. */
-        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Statistics');
-        if (!x) throw new Error('no GCSE Statistics textbook in the list — data/textbooks.json did not load');
-        const c = (x.row.chapters || []).find(ch => /spread/i.test(ch.title)) || x.row.chapters[0];
-        STUFF.filters = [{ field: 'shelf', value: x.shelf },
-                         { field: 'book', value: x.name }];
+        /* BY ITS KEY, under What kind · Content and its own subject — written out in each state because
+           a state's `enter` runs in the page as its own text, where a helper here does not exist. */
+        const K = 'ct:TB-GCSE-STATS-9', x = stuffItemsAll_().find(it => it.key === K);
+        if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Content' }, { field: 'subject', value: x.subject }];
         paintStuff();
-        const at = typeof stuffPages_ === 'function'
-          ? Math.max(0, stuffPages_().findIndex(pg => pg.part === 'ch' + c.n)) : 0;
-        goPage('res', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + at);
+        const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && !pg.part);
+        if (at < 0) throw new Error(K + ' has no ' + 'card' + ' page under Content · ' + x.subject);
+        goPage('res', stuffFirstResult_() + at);
       }),
       expect: () => {
-        /* THE CHAPTER AND ITS NEIGHBOURS, NOT THE CONTENTS CARD: the pager keeps `STUFF_WIN` pages
-           either side of this one, and the card is nine pages back. The card has a journey of its
-           own in check-flow; this state is about the widest page. */
-        const ch = [...document.querySelectorAll('#s-res .card.tb.prac-part')]
+        const ch = [...document.querySelectorAll('#s-res .card.ct')]
           .find(el => /spread/i.test((el.querySelector('h3') || {}).textContent || ''));
-        return !!ch && !!ch.querySelector('.tb-words li b')
+        return !!ch && !!ch.querySelector('.fc-head .fc-flag')
+               && !!ch.querySelector('.qtags .qtag[data-tag="topic"]')
+               && !!ch.querySelector('.tb-words li b')
                && !!ch.querySelector('.tb-math .frac .frac-d')
                && !!ch.querySelector('.tb-points li')
                && !!ch.querySelector('li .tb-h')
-               /* NOTHING BUT THE BOOK ON THIS SHELF — a boxer here would mean the chip did not hold. */
+               /* NOTHING BUT CONTENT HERE — a boxer would mean the chip did not hold. */
                && !document.querySelector('#s-res .card:not(.tb) .boxer-rec');
       },
-      wants: 'a textbook chapter page — key words, stacked formulas, worked lines and the Higher mark',
+      wants: 'a content card — its head and tag row, key words, stacked formulas, worked lines and the Higher mark',
       leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
-    /* ---------- A TEXTBOOK ANIMATION, ON ITS PAGE AFTER ITS CHAPTER ---------------------------------
+    /* ---------- A CONTENT CARD'S ANIMATION, ON ITS PAGE AFTER ITS CARD -------------------------------
        "Add the animations from loading to respective subject text books." — the owner, 8 Oct. Three of
        the twenty-seven, chosen for what they stress in a card: Pythagoras is the TALLEST drawing,
        Bayes the WIDEST (a 20rem root that came out at 288px in a 244px card at 320 before its size
        stopped at the box), and standard form the one that SCROLLED SIDEWAYS — its point hops past the
-       row of digits it stands on. Each is reached the owner's way, by the book's chips, and turned to
-       by its page; the pages either side are in the DOM beside it and are measured too. */
-    { name: 'a textbook animation: Pythagoras',
+       row of digits it stands on. Each is reached by What kind · Content and its subject, and turned
+       to by its page; the pages either side are in the DOM beside it and are measured too. */
+    { name: 'a content card animation: Pythagoras',
       enter: () => inFinder_(finderOf_('res'), () => {
-        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Maths');
-        if (!x) throw new Error('no GCSE Maths textbook in the list — data/textbooks.json did not load');
-        STUFF.filters = [{ field: 'shelf', value: x.shelf },
-                         { field: 'book', value: x.name }];
+        /* BY ITS KEY, under What kind · Content and its own subject — written out in each state because
+           a state's `enter` runs in the page as its own text, where a helper here does not exist. */
+        const K = 'ct:TB-GCSE-MATHS-17', P = 'an17-pyth', x = stuffItemsAll_().find(it => it.key === K);
+        if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Content' }, { field: 'subject', value: x.subject }];
         paintStuff();
-        const at = stuffPages_().findIndex(pg => pg.part === 'an17-pyth');
-        if (at < 0) throw new Error('GCSE Maths has no an17-pyth page — the pyth row is not under its chapter');
+        const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && pg.part === P);
+        if (at < 0) throw new Error(K + ' has no ' + P + ' page under Content · ' + x.subject);
         goPage('res', stuffFirstResult_() + at);
       }),
       expect: () => {
@@ -2761,17 +2752,19 @@ const STATES = {
                && !!card.querySelector('.tb-about li')
                && !!document.head.querySelector('style[data-anim="pyth"]');
       },
-      wants: 'Pythagoras after Maths chapter 17: the drawing from its row, Play again, and the chapter\'s own lines about it',
+      wants: 'Pythagoras after the Pythagoras and trigonometry card: the drawing from its row, Play again, and the card\'s own lines about it',
       leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
-    { name: 'a textbook animation: Bayes',
+    { name: 'a content card animation: Bayes',
       enter: () => inFinder_(finderOf_('res'), () => {
-        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Statistics');
-        if (!x) throw new Error('no GCSE Statistics textbook in the list — data/textbooks.json did not load');
-        STUFF.filters = [{ field: 'shelf', value: x.shelf },
-                         { field: 'book', value: x.name }];
+        /* BY ITS KEY, under What kind · Content and its own subject — written out in each state because
+           a state's `enter` runs in the page as its own text, where a helper here does not exist. */
+        const K = 'ct:TB-GCSE-STATS-15', P = 'an15-bayes', x = stuffItemsAll_().find(it => it.key === K);
+        if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Content' }, { field: 'subject', value: x.subject }];
         paintStuff();
-        const at = stuffPages_().findIndex(pg => pg.part === 'an15-bayes');
-        if (at < 0) throw new Error('GCSE Statistics has no an15-bayes page — the bayes row is not under its chapter');
+        const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && pg.part === P);
+        if (at < 0) throw new Error(K + ' has no ' + P + ' page under Content · ' + x.subject);
         goPage('res', stuffFirstResult_() + at);
       }),
       expect: () => {
@@ -2782,17 +2775,19 @@ const STATES = {
                && !!card.querySelector('.tb-about li')
                && !!document.head.querySelector('style[data-anim="bayes"]');
       },
-      wants: 'Bayes after Statistics chapter 15: the drawing from its row, Play again, and the chapter\'s own lines about it',
+      wants: 'Bayes after the Probability card: the drawing from its row, Play again, and the card\'s own lines about it',
       leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
-    { name: 'a textbook animation: standard form',
+    { name: 'a content card animation: standard form',
       enter: () => inFinder_(finderOf_('res'), () => {
-        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Maths');
-        if (!x) throw new Error('no GCSE Maths textbook in the list — data/textbooks.json did not load');
-        STUFF.filters = [{ field: 'shelf', value: x.shelf },
-                         { field: 'book', value: x.name }];
+        /* BY ITS KEY, under What kind · Content and its own subject — written out in each state because
+           a state's `enter` runs in the page as its own text, where a helper here does not exist. */
+        const K = 'ct:TB-GCSE-MATHS-2', P = 'an2-sf', x = stuffItemsAll_().find(it => it.key === K);
+        if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Content' }, { field: 'subject', value: x.subject }];
         paintStuff();
-        const at = stuffPages_().findIndex(pg => pg.part === 'an2-sf');
-        if (at < 0) throw new Error('GCSE Maths has no an2-sf page — the sf row is not under its chapter');
+        const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && pg.part === P);
+        if (at < 0) throw new Error(K + ' has no ' + P + ' page under Content · ' + x.subject);
         goPage('res', stuffFirstResult_() + at);
       }),
       expect: () => {
@@ -2803,7 +2798,7 @@ const STATES = {
                && !!card.querySelector('.tb-about li')
                && !!document.head.querySelector('style[data-anim="sf"]');
       },
-      wants: 'Standard form after Maths chapter 2: the drawing from its row, Play again, and the chapter\'s own lines about it',
+      wants: 'Standard form after the Indices, surds and standard form card: the drawing from its row, Play again, and the card\'s own lines about it',
       leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
     /* ---------- THE BIBLE, WHICH ONLY THE ADMIN VISITOR IS SHOWN ----------------------------------
        "i want to add the bible to resources as a book. but only admin can see the bible." `only`, for
@@ -3264,38 +3259,33 @@ const STATES = {
       },
       wants: 'every skin, hair colour, trunks colour, the silhouette and the unrecorded trunks at 2:1 or more against the stage, a black beard 2:1 on every skin, Tyson\'s own hair and trunks too, and the unrecorded trunks 50 or more from every trunks word',
       leave: () => inFinder_(finderOf_('res'), () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
-    /* ---------- THE TEXTBOOK'S CONTENTS, AND `10.` INSIDE THE CARD ---------------------------------
-       `a textbook chapter` lands nine pages past the contents card, so the card itself was in the
-       DOM only as a neighbour and never the page measured. Its list has sixteen numbers, and with a
-       bullet's 1.1rem indent `10.` to `16.` hung out past the card's padding at 320px — a marker is
-       not a box, so no overflow rule could see it. So this asks the arithmetic directly: the list's
-       indent against the width of its widest number, set in the list's own font. */
-    { name: "the textbook's contents, every number inside the card",
+    /* ---------- THE LONGEST TAG ROW, EVERY TAG INSIDE THE CARD -----------------------------------------
+       IT WAS "the textbook's contents, every number inside the card" — sixteen chapter numbers whose
+       `10.` hung past the padding at 320px. The contents card went with the books (347, part 2); what
+       is widest on a content card now is its tag row, and the widest of those is Data and statistics:
+       thirteen topics on a GCSE Maths card, `Scatter Graphs & Correlation` the longest pill. A pill
+       is a box, so this asks that every one of them sits inside the card it is on. */
+    { name: "a content card's tag row, every tag inside the card",
       enter: () => inFinder_(finderOf_('res'), () => {
-        /* THE SIXTEEN-CHAPTER BOOK BY NAME — the widest list of numbers on the shelf, `10.` to `16.` —
-           and its own `Book` chip, so the card measured is that one and not whichever book is first. */
-        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Statistics');
-        if (!x) throw new Error('no GCSE Statistics textbook in the list — data/textbooks.json did not load');
+        /* BY ITS KEY, under What kind · Content and its own subject — written out in each state because
+           a state's `enter` runs in the page as its own text, where a helper here does not exist. */
+        const K = 'ct:TB-GCSE-MATHS-20', x = stuffItemsAll_().find(it => it.key === K);
+        if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
         STUFF.q = '';
-        STUFF.filters = [{ field: 'shelf', value: x.shelf },
-                         { field: 'book', value: x.name }];
+        STUFF.filters = [{ field: 'kindLabel', value: 'Content' }, { field: 'subject', value: x.subject }];
         paintStuff();
-        goPage('res', stuffFirstResult_(), true);
+        const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && !pg.part);
+        if (at < 0) throw new Error(K + ' has no ' + 'card' + ' page under Content · ' + x.subject);
+        goPage('res', stuffFirstResult_() + at);
       }),
       expect: () => {
-        const c = document.querySelector('#s-res .card.tb:not(.prac-part)');
-        const ol = c && c.querySelector('.tb-toc ol.fc-list');
-        const li = ol && ol.children;
-        if (!li || li.length < 10) return false;
-        const probe = document.createElement('span');
-        probe.textContent = li.length + '. ';
-        probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre';
-        li[li.length - 1].appendChild(probe);
-        const need = probe.getBoundingClientRect().width;
-        probe.remove();
-        return parseFloat(getComputedStyle(ol).paddingLeft) >= need;
+        const c = [...document.querySelectorAll('#s-res .card.ct')].find(el => /Data and statistics/.test((el.querySelector('h3') || {}).textContent || ''));
+        const tags = c ? [...c.querySelectorAll('.qtags .qtag')] : [];
+        if (tags.length < 10) return false;
+        const box = c.getBoundingClientRect();
+        return tags.every(t => { const r = t.getBoundingClientRect(); return r.left >= box.left - 0.5 && r.right <= box.right + 0.5; });
       },
-      wants: "the textbook's contents card, its list indented at least as wide as its widest number",
+      wants: "the Data and statistics card's thirteen topic tags, every one inside the card",
       leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
   ],
 
@@ -3991,6 +3981,8 @@ const STATES = {
         CARD_EDIT = cardEditFresh_(ada.personId);
         CARD_EDIT.base = { phone_cc: '+44', first_name: 'Ada', last_name: 'Tutor',
           headline: 'Ten years of GCSE and A-Level maths.', rate_per_hour: '30', extra_seat_rate: '0.5',
+          /* A CUT OF THEIR OWN (docs/history/345), so the business's pound box is measured filled, beside theirs. */
+          extra_seat_cut: '0.1',
           min_students: '1', max_students: '3', adjective_1: 'Patient', adjective_2: 'Clear', adjective_3: 'Encouraging',
           years_experience: '10', favourite_colour: 'Blue', age_min: '11', age_max: '18',
           qual_1: 'Maths', qual_1_level: 'A-Level', qual_1_grade: 'A*', qual_1_received: '2014', qual_1_teach: 'TRUE', qual_1_spec: 'TRUE',
@@ -4014,9 +4006,14 @@ const STATES = {
           && /Only Ada can change this picture/.test(form.textContent)
           && (form.querySelector('[data-me="headline"]') || {}).value === 'Ten years of GCSE and A-Level maths.'
           && form.querySelectorAll('.me-week .slot-row:not(.slot-head)').length === 7
+          /* THE TWO PARTS OF A SEAT IN POUNDS BESIDE THE RATE, THE CUT THE ADMIN'S TO SET, AND THE SEAT AS THE CARD
+             WILL PRINT IT (docs/history/345): £15.00 theirs and £3.00 the business's of a £30 rate. */
+          && (form.querySelector('[data-pound="extra_seat_rate"]') || {}).value === '15.00'
+          && (form.querySelector('[data-pound="extra_seat_cut"]') || {}).value === '3.00'
+          && /\+£18\.00\/h a seat/.test((form.querySelector('.ce-seat') || {}).textContent || '')
           && pg.querySelectorAll('.ce-tiles .tile[data-do="card-save"], .ce-tiles .tile[data-do="card-cancel"]').length === 2 ? 1 : 0;
       },
-      wants: 'the fixture tutor\'s card as a form for the admin: their headline in its box, their picture shown and not offered, the whole week, Save and Cancel' },
+      wants: 'the fixture tutor\'s card as a form for the admin: their headline in its box, their picture shown and not offered, the two parts of a seat in pounds with the seat they make, the whole week, Save and Cancel' },
     /* ---------- EVERYBODY'S OWN CARD, BEING EDITED — THE FIGURE AND THE HANDLE ON IT (docs/history/339) ---------------
        THE OWNER, 11 Oct: *"the random name generator should be one of the editable things in the profile settings of
        the profile card. your figure should also be in your profile card editing."* Edit on your own card is
@@ -4541,38 +4538,23 @@ const STATES = {
         if (at < 0) throw new Error('no pricing page on the settings column');
         goPage('settings', at, true);
       },
-      /* EXACTLY SIX, NOT MERELY SOME. `expect` is read as a truthy value, so a page holding two
+      /* EXACTLY SEVEN, NOT MERELY SOME. `expect` is read as a truthy value, so a page holding two
          boxes would pass a bare count — and two is precisely what splitting the group back into
          `Group size` and `Your rate` produces. The whole point is that they are on ONE page, so the
          number is the assertion. SIX SINCE docs/history/330: the four pricing boxes and the session
          length (`SESSION_FIELDS`, constants.gs — on this page, not under its clock), which a tutor
-         with a card edits on the card and a tutor not yet listed edits here. Two ranges, four boxes. */
-      expect: () => (document.querySelectorAll('#s-settings .page.on [data-me]').length === 6
+         with a card edits on the card and a tutor not yet listed edits here. Two ranges, four boxes.
+         SEVEN SINCE docs/history/345: the business's cut of an extra seat (`extra_seat_cut`), beside the
+         tutor's own share — a box for the lab's admin, who sets it, and enabled for them. */
+      expect: () => (document.querySelectorAll('#s-settings .page.on [data-me]').length === 7
                      && document.querySelectorAll('#s-settings .page.on .f-row.is-range [data-me]').length === 4
                      && !!document.querySelector('#s-settings .page.on .f-row.is-range [data-me="min_hours"]')
-                     ? 6 : 0),
-      wants: 'all four pricing boxes and the session length on one page, the students and the hours each one min – max row' },
+                     && !!document.querySelector('#s-settings .page.on [data-me="extra_seat_cut"]:not([disabled])')
+                     ? 7 : 0),
+      wants: 'all four pricing boxes, the business\'s cut of a seat (the admin\'s to set) and the session length on one page, the students and the hours each one min – max row' },
 
-    /* ---------- YOUR JOURNEY, THE PLACEHOLDER ----------------------------------------------------
-       For a student and an admin; the lab signs in as an admin. Found by asking the DOM, as the
-       pricing state does, and seeded with an exam date a fortnight out so the one live line draws. */
-    { name: 'your journey',
-      only: () => typeof USER !== 'undefined' && !!USER,
-      enter: () => {
-        const t = new Date(Date.now() + 14 * 864e5);
-        USER.profile = Object.assign({}, USER.profile || {},
-          { exam_big_date: t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0') });
-        paint('settings');
-        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.card.journey'));
-        if (at < 0) throw new Error('no journey card on the settings column');
-        goPage('settings', at, true);
-      },
-      expect: () => {
-        const c = document.querySelector('#s-settings .card.journey');
-        return !!c && /days? to go/.test(c.textContent) && !c.querySelector('button, [data-do]');
-      },
-      wants: 'the journey card, with the exam countdown and no control that does nothing',
-      leave: () => { if (USER && USER.profile) delete USER.profile.exam_big_date; paint('settings'); } },
+    /* ---------- YOUR JOURNEY WAS HERE, AND IS PROGRESS'S STATE NOW ---------------------------------
+       The card went to the Progress column on 12 Oct (docs/history/346); its state went with it, below. */
     /* ---------- THE AGES A TUTOR TEACHES, ON ABOUT YOU AND NOT ON THE PAGE ABOVE ------------------
        ONE `[youngest] – [oldest]` ROW OF TWO SELECTS, and the assertion is that shape rather than the
        presence of two fields: two plain boxes would mean `validations` never carried `AGE_OPTIONS`, and
@@ -4681,72 +4663,10 @@ const STATES = {
       },
       wants: 'three role ticks, Tutor and Client ticked, no Admin tick, the waiting line and a Save tile' },
 
-    /* THE ADMIN'S CUT OF AN EXTRA CHILD: a box holding the current figure and a sentence saying it
-       in money. The fixture carries no `boss_rate`, so this is the "none set" state, which is the
-       one a new sheet is in. */
-    { name: "the admin's cut of an extra child",
-      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
-      enter: () => {
-        const at = [...document.querySelectorAll('#s-settings .page')]
-          .findIndex(pg => pg.querySelector('#cut-val'));
-        if (at < 0) throw new Error('no cut card on the settings column');
-        goPage('settings', at, true);
-      },
-      expect: () => document.querySelector('#s-settings .page.on #cut-val')
-        && /extra child adds/.test((document.querySelector('#s-settings .page.on .cut-say') || {}).textContent || ''),
-      wants: 'the share box and its worked example' },
-
-    /* ---------- THE WEEKLY PARENT EMAIL: ITS CARD, AND WHAT PREVIEW OPENS ----------------------------
-       The infrastructure for *"something which triggers every sunday"* and emails parents — built and
-       switched off (backend/digest.gs, js/digest.js). The card is the last page of an admin's Settings.
-       The preview is drawn from a reply shaped the way `digestPreviewOut_` answers, with an address
-       long enough that it has to wrap at 320, rather than by posting: the fixture is one payload and
-       has no `digestPreview` to answer with. */
-    { name: 'the weekly parent email card',
-      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
-      enter: () => {
-        paint('settings');
-        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.card.digest'));
-        if (at < 0) throw new Error('no weekly parent email card on the settings column');
-        goPage('settings', at, true);
-      },
-      expect: () => {
-        const pg = document.querySelector('#s-settings .page.on');
-        return !!pg && /Weekly parent email:\s*(Off|Preview|Send)/.test((pg.querySelector('.digest-mode') || {}).textContent || '')
-          && !!pg.querySelector('.tile-row [data-do="digest-preview"]');
-      },
-      wants: 'the mode in its title and one Preview tile' },
-    { name: 'the weekly parent email, previewed',
-      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
-      enter: () => {
-        paint('settings');
-        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.card.digest'));
-        if (at < 0) throw new Error('no weekly parent email card on the settings column');
-        goPage('settings', at, true);
-        /* THE BODY AS `digestRender_` WRITES IT SINCE 8 OCT: a paper's heading, the scene its parts share
-           once (cut to DIGEST_STEM_SHOWN), each part with its own ask — the longest lines the sheet is
-           ever handed — and a paper with no words as its line of numbers. */
-        const body = 'Hello Pat,\n\nThis week (28 Sep – 4 Oct, up to 6pm on Sunday) Ada worked on 4 questions — 3 new and 1 gone back to.\n\n'
-          + 'Maths · Paper 1 (Calculator) — June 2024\nQ1, Q7 (again)\n\n'
-          + 'Maths · Paper 3 (Calculator) — November 2023 (Higher)\n'
-          + 'Here is some information about the 120 students in Year 11 at a school, who were each asked which of three after-school clubs they go to; 47 go to the chess club, 38 go to the drama club and the rest go to the football club, and no student goes to more than one club…\n'
-          + 'Q14a: A student is chosen at random from the 120. Work out the probability that the student goes to the drama club, giving your answer as a fraction in its simplest form.\n'
-          + 'Q14b: Two students are chosen at random without replacement. Work out the probability that both go to the chess club. (picture on the site)\n\n'
-          + 'Ada can see them on the site: https://halexdias31-pixel.github.io/family/\n\n'
-          + 'You get this because you are Ada’s parent on @family. To stop these emails, reply to this one and say so.';
-        openSheet('Weekly parent email', digestSheet_({ success: true, mode: 'preview', hour: 18, scheduled: 0, words: true,
-          week: { start: '2026-09-28', end: '2026-10-04', span: '28 Sep – 4 Oct' },
-          emails: [{ learner: 'Ada Pupil', parent: 'Pat Parent', to: 'pat.parent.with.a.long.address@example.org',
-                     subject: 'Ada’s week: 4 questions', text: body, html: '', count: 4 }],
-          unreachable: [{ id: 'P-S3', name: 'Cal Alone', count: 1, why: 'no parent has accepted a link to them' }] }));
-      },
-      leave: () => { if (typeof closeSheet === 'function') closeSheet(); },
-      expect: () => {
-        const t = (document.getElementById('sheet-body') || {}).textContent || '';
-        return /To Pat Parent/.test(t) && /Ada’s week: 4 questions/.test(t) && /Q14a: A student is chosen at random/.test(t)
-          && /Nobody to tell/.test(t);
-      },
-      wants: 'each email under its address, its plain body with each question’s words, and who nobody can tell' },
+    /* ---------- THE WEEKLY PARENT EMAIL'S CARD AND ITS PREVIEW WERE TWO STATES HERE --------------------
+       The card is gone from the phone (the owner, 12 Oct: *"sounds dumb delete that widget"*), with its
+       Preview sheet and its file, js/digest.js; the Sunday email stays on the server, switched off
+       (docs/history/346). Progress's journey state asks that no card of it is drawn anywhere. */
 
     /* ---------- THE QUALIFICATIONS: ONE LINE A QUALIFICATION, AND IT FITS ---------------------------
        ASKED FOR AS *"can you make the qualifications widget more efficient, elegant, intuitive and take
@@ -5407,33 +5327,65 @@ const STATES = {
 
   ],
 
-  /* ---------- PROGRESS, WHICH HAS ONE STATE UNTIL IT IS BUILT, AND IT IS ASSERTED ------------------
+  /* ---------- PROGRESS: THE PLACEHOLDER, OR A STUDENT'S JOURNEY — EITHER WAY ASSERTED ------------------
      NOT LEFT TO THE DEFAULT. A column with no entry here is measured in the state it opens in with
      nothing asked of it, and "nothing to press" printed by `check/press.js` is the same silence
-     whether the column drew its card or drew nothing. So the one state says what it must be looking
-     at — the card, "Not built yet.", and not a control on it — for both visitors, which is the
-     placeholder rule (`drill` in map.js) measured in a real browser rather than read off markup.
-     The day the column is built this entry is where its states go.
+     whether the column drew its card or drew nothing. So the unnamed state says what it must be looking
+     at, for each visitor: signed out, the placeholder — "Not built yet." and not a control on it, which
+     is the placeholder rule (`drill` in map.js) measured in a real browser rather than read off markup;
+     signed in as this lab's admin, "Your journey", which came here off Settings on 12 Oct for a student
+     and an admin (*"This should be moved to appropriate column"*, docs/history/346) — one card, headed
+     so, no placeholder beside it, and nothing on the column to press.
 
-     BOTH HALVES OF THE RULE, the three questions `placeholderFaults_` asks in check-flow.js — written
-     out again here because `expect` is sent to the page as a string and can reach nothing of this
-     file. The first version asked only "is there a control", with a selector that did not name a
+     BOTH HALVES OF THE PLACEHOLDER RULE, the three questions `placeholderFaults_` asks in check-flow.js —
+     written out again here because `expect` is sent to the page as a string and can reach nothing of
+     this file. The first version asked only "is there a control", with a selector that did not name a
      `<summary>`: a card given "Streak: 0 days · 0% of the course done", a bar at nought per cent and
      a `<details>` was measured as this state, and `check/ui.js` went red on it only because the
      summary was too small to tap (review, 9 October). So: nothing pressable anywhere in the column,
-     by tag or by attribute; nothing in the pane but `drill`'s markup; and no digit. */
+     by tag or by attribute; nothing in the pane but `drill`'s markup; and no digit. The journey card is
+     not `drill`'s markup — it has rows, and a countdown — so only the first question is asked of it. */
   progress: [
     { name: '',
       expect: () => {
         const h = document.getElementById('s-progress');
         const pane = h && h.querySelector(':scope > .page > .pane');
-        if (!pane || !pane.querySelector('.card h3') || !/Not built yet/.test(pane.textContent)) return false;
+        if (!pane || !pane.querySelector('.card h3')) return false;
         if (h.querySelector('button, [data-do], input, select, textarea, a[href], summary, details, label, '
           + '[tabindex], [onclick], [role], [contenteditable]')) return false;
+        if (typeof mayJourney_ === 'function' && mayJourney_()) {
+          return h.querySelectorAll(':scope > .page').length === 1 && !!pane.querySelector('.card.journey')
+            && pane.querySelector('h3').textContent.trim() === 'Your journey' && !/Not built yet/.test(pane.textContent);
+        }
+        if (pane.querySelector('.card.journey') || !/Not built yet/.test(pane.textContent)) return false;
         if ([...pane.querySelectorAll('*')].some(e => !e.matches('div.card, h3, p.sub, p.empty, br, span.faint'))) return false;
         return !/\d/.test(pane.textContent);
       },
-      wants: 'Progress card saying it is not built yet: drill\'s markup only, no number, nothing on it to press' },
+      wants: 'signed out, the Progress placeholder (drill\'s markup only, no number, nothing to press); a student or an admin, Your journey and nothing to press' },
+    /* ---------- YOUR JOURNEY, WITH THE ONE LIVE LINE DRAWN ----------------------------------------
+       For a student and an admin; the lab signs in as an admin. Seeded with a big exam a fortnight out
+       so the countdown draws — the one line on the card whose length depends on the person — and the
+       column drawn again for it, as `progressRedraw_` does when About you is saved. AND NOTHING OF THE
+       WEEKLY PARENT EMAIL'S CARD ANYWHERE IN THE PAGE: it went from Settings the same day this card
+       came here, and an admin is the one person it was ever drawn for. */
+    { name: 'your journey',
+      only: () => typeof USER !== 'undefined' && !!USER && typeof mayJourney_ === 'function' && mayJourney_(),
+      enter: () => {
+        const t = new Date(Date.now() + 14 * 864e5);
+        USER.profile = Object.assign({}, USER.profile || {},
+          { exam_big_date: t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0') });
+        progressRedraw_();
+        if (!document.querySelector('#s-progress .card.journey')) throw new Error('no journey card on the progress column');
+        goPage('progress', 0, true);
+      },
+      expect: () => {
+        const c = document.querySelector('#s-progress .page.on .card.journey');
+        return !!c && /days? to go/.test(c.textContent) && !document.querySelector('#s-progress button, #s-progress [data-do]')
+          && !document.querySelector('#s-settings .card.journey')
+          && !document.querySelector('.card.digest, [data-do="digest-preview"]');
+      },
+      wants: 'the journey card on Progress, with the exam countdown and no control that does nothing — none on Settings, and no weekly parent email card anywhere',
+      leave: () => { if (USER && USER.profile) delete USER.profile.exam_big_date; progressRedraw_(); } },
   ],
 
   /* ---------- THE SHOP ------------------------------------------------------------------------

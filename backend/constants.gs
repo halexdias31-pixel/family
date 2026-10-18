@@ -335,7 +335,7 @@ const NOTIFY_KINDS = {
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-10-12-p-merged";
+const BACKEND_VERSION = "2026-10-13-v-merged";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -461,7 +461,14 @@ const SCHEMA = {
     /* where they are */
     "address", "town", "city", "borough", "postcode", "travel_km",
     /* what they charge, and when they can teach */
-    "rate_per_hour", "extra_seat_rate", "min_students", "max_students", "min_hours", "max_hours",
+    "rate_per_hour", "extra_seat_rate",
+    /* THE BUSINESS'S CUT OF AN EXTRA SEAT, PER TUTOR (docs/history/345) — a fraction of THIS tutor's rate,
+       beside their own share. BLANK IS THE CONFIG TAB'S `B`, which is how every tutor was priced before the
+       column existed, so a sheet that has never typed into it prices exactly as it did; NOUGHT IS NOUGHT, no
+       cut at all. Written only by an admin (`seatCutRefusal_`, people.gs). Added at the END of a live sheet
+       by `ensureSchema`, like every new column. */
+    "extra_seat_cut",
+    "min_students", "max_students", "min_hours", "max_hours",
     "pricing_changed_at", "availability", "agreement_signed_at", "agreement_version",
     /* a family's and a student's own */
     "children", "favourite_colour", "exam_small_date", "exam_big_date",
@@ -1381,6 +1388,15 @@ const SCHEMA = {
      the scheme never settled) and `ai:N/M` (Mark with AI gave N of M marks) — `SUBMISSION_VERDICT`.
      THE PHONE MARKS IT: the library and its schemes are on the phone, not here, so a right or wrong is
      what the phone said. Nothing is paid or ranked on it; it is a child's own practice.
+     AND SINCE 12 OCT THE SERVER MARKS WHAT THE PHONE COULD NOT. A `sent` answer that is the latest press
+     of its question is marked overnight, and an hour before the Sunday email, by the same Gemini marker
+     Mark with AI uses (`digestMarkPass_` in digest.gs, which fetches the library from the site for the
+     scheme) — *"i want them to see if they got it right too"*. ITS MARK IS ONE MORE ROW, appended like a
+     press, never a cell changed: the same person, key, answer, label and words, verdict `ai:N/M`, the
+     SAME `submitted_at` (so it stays in the week it was sent, and the admin's "last" does not move), a
+     `pressed_at` one millisecond after the answer it marks (so it is the latest, and any later press of
+     the child's still wins), and an id in `SUBMISSION_MARKED`'s shape, made from the answer's own — so
+     a second pass finds it and never marks one answer twice. See docs/history/348.
 
      `submitted_at` IS THE SERVER'S CLOCK, a date-time — never the phone's, which is wrong on enough
      iPads to put a Sunday's work in the wrong week. It says WHICH WEEK a press is in (the parent email)
@@ -1608,19 +1624,54 @@ const SCHEMA = {
    the second, where a 400 or a 403 (the key, the account) is not. Google has also begun retiring a name
    by ROUTING it to a newer model (8 Oct: 3.7 Flash to 3.8 Flash), which answers 200, so the reply's
    `model` is the response's own `modelVersion` -- the model that marked it, not the name that was asked.
-   THE FALLBACK THINKS LESS. 3.5 Flash-Lite defaults to Google's MINIMAL thinking level, meant for
-   classification and extraction; 3.8 Flash thinks more by default. A forty-mark essay marked by the
-   fallback is a lighter read than one marked by the first model. Nothing sets the level, deliberately: a
-   level a model refuses is a 400, and a 400 does not fall back.
+   HOW HARD EACH MODEL THINKS IS SET, SINCE 12 OCT -- and until then it was not. THE OWNER, the day the 503
+   fix went live: *"ok the ai marking works but it takes so long. like 30 seconds or whatever"*. Sent no
+   level, 3.8 Flash thinks at its own default, MEDIUM, on every press -- a one-mark maths answer included --
+   and the call is not streamed, so the pupil waits for the whole think before the first byte comes back.
+   That is the likeliest home of the thirty seconds: the server's own work was measured at under 0.2 s a
+   press, and Gemini's own time could not be measured from here (docs/history/350). So
+   `generationConfig.thinkingConfig.thinkingLevel` is sent, per model and per kind of answer --
+   AI_THINKING_LEVELS below, with the config rows `ai_thinking` and `ai_thinking_essay` over it:
+     a short answer   the lowest level the model offers: LOW on 3.8 Flash, which refuses MINIMAL with an
+                      error, and MINIMAL on 3.5 Flash-Lite, its own default, so nothing changes there
+     an essay         LOW on both -- one step under 3.8 Flash's own MEDIUM, one over Flash-Lite's MINIMAL --
+                      so the two models read an essay to the same depth, and an essay the fallback marks is
+                      no longer the lighter read it was (note 344, the tenth finding of its review)
+     any other model  no level at all, the request as it always was: its levels are not known here, and
+                      a level a model does not offer is a 400
+   Google's own words: LOW "minimizes latency and cost"; MEDIUM is "best quality for most tasks". A
+   forty-mark essay at LOW trades some depth for speed, and it is the one choice here the owner may want
+   back: `medium` in `ai_thinking_essay` is how essays were marked before 12 Oct, with no deploy.
+   NEVER `thinkingBudget`, alone or beside a level: Google calls it legacy on 3.x, the two together are a
+   documented 400, and 3.5 Flash-Lite was seen (third-party) answering 400 to a budget of 0.
+   A LEVEL REFUSED DOES NOT STOP MARKING -- which is why nothing set one before: a 400 is not asked again
+   and not handed to the fallback, and `minimal` on the first model is exactly such a 400. Now a 400 to a
+   request that CARRIED a level is asked once more, at once, of the same model without it -- its own
+   default, the request that always worked -- and the log names the cell to change. MATCHED ON "A 400 AND
+   A LEVEL WAS SENT", NOT ON GOOGLE'S WORDS: Google documents no message for it (third parties saw
+   "Thinking level MINIMAL is not supported for this model"), so a refusal worded some other way would
+   otherwise stop all marking; a bad key, which is a 400 too, costs one more quick refusal and ends as it
+   always did. That re-ask is not one of AI_TRIES, waits for nothing, and starts only inside both clocks.
    AND ON A FREE-TIER KEY THE FIRST MODEL'S QUOTA IS SMALL. Google no longer publishes free-tier numbers;
    third-party measurements put 3.5-and-newer Flash at about 20 requests a DAY for the whole key and
    3.5 Flash-Lite at about 500 -- so on a free key most of a day's marks may come from the fallback. The
    real numbers are on AI Studio's rate-limit page; billing on the key lifts them.
+   A DAY'S QUOTA SPENT IS REMEMBERED, SINCE 12 OCT. Every press after the twentieth asked the spent model
+   first again and was refused, about half a second each for nothing -- and a 429 whose RetryInfo said
+   "1s" (third parties have seen it on a day's quota) was asked twice more, with waits. Now a 429 whose
+   QuotaFailure names a DAY's quota (`PerDay`, `Daily` -- how Google's own gemini-cli tells it) is not
+   asked again this press, whatever its RetryInfo says, and is kept in the script cache (`aiSpend_` in
+   dopost.gs) until midnight in AI_QUOTA_TZ, when Google resets a day's requests -- or for AI_SPENT_MAX_S,
+   the cache's own ceiling, whichever comes first. A 429 whose RetryInfo says later than the next ask is
+   kept for as long as it says. While it is kept, a model with another behind it is not asked at all and
+   the next model is asked at once; the LAST model is always asked, because it is the press's only chance.
+   Forgetting costs one refusal: the cache may drop a key whenever it likes, and that is all it costs.
 
    THE WAITS. Up to AI_TRIES asks of each model; between them AI_WAITS -- about 0.8 s, then about 2 s --
    each moved up to AI_JITTER (30%) either way, so a hundred phones refused in the same second do not
    all come back in the same second too. The second model is asked at once: its capacity is its own.
-   So six asks at most and at most 7.28 s of waiting in all.
+   So six asks at most and at most 7.28 s of waiting in all -- and one more ask, with no wait, for each
+   model that refused the thinking level it was sent.
    TWO CLOCKS, BOTH FROM THE FIRST ASK. No ask at all is started once AI_BUDGET_MS (20 s) has gone; and
    the first model is not asked AGAIN once AI_HANDOFF_MS (10 s) has gone, so the fallback's first ask
    still has room. The first build had only the budget and RETURNED at it: a first model refusing in 9 s
@@ -1654,6 +1705,34 @@ const AI_JITTER = 0.3;
 const AI_BUDGET_MS = 20000;
 const AI_HANDOFF_MS = 10000;
 const AI_BUSY = 'Marking is busy right now — try again in a minute.';
+/* THE THINKING LEVELS EACH PINNED MODEL OFFERS, LOWEST FIRST, as Google's thinking guide lists them (12 Oct
+   2026: "gemini-3.8-flash | On (medium) | low, medium, high"; "gemini-3.5-flash-lite | On (minimal) |
+   minimal, low, medium, high"). A level asked of a model that does not offer it becomes the next one up
+   that it does (`minimal` on 3.8 Flash is `low`), so a level typed on the config tab never earns a 400 from
+   a model named here. A model NOT named here is sent no level unless the config tab names one -- its
+   levels are not known, and Gemini 2.5 refuses `thinkingLevel` outright. `AI_THINKING_SCALE` is the order
+   "next one up" means, and the whole vocabulary of the two config cells besides `none`. */
+const AI_THINKING_SCALE = ['minimal', 'low', 'medium', 'high'];
+const AI_THINKING_LEVELS = {
+  'gemini-3.8-flash': ['low', 'medium', 'high'],
+  'gemini-3.5-flash-lite': ['minimal', 'low', 'medium', 'high'],
+};
+/* WHAT A BLANK CELL MEANS: a short answer at the lowest a model offers, an essay at LOW -- the note above.
+   NEVER ABOVE THE MODEL'S OWN DEFAULT, which is what a blank cell asked for before 12 Oct: 3.5 Flash-Lite
+   defaults to MINIMAL, so an essay it marks stays at minimal rather than being asked to think more -- the
+   review of 12 Oct found LOW there made the fallback's essays SLOWER than before, which is the one thing
+   this change exists not to do. A level TYPED on the config tab is not held to the default. */
+const AI_THINKING_SHORT = 'minimal';
+const AI_THINKING_ESSAY = 'low';
+const AI_THINKING_DEFAULT = {
+  'gemini-3.8-flash': 'medium',
+  'gemini-3.5-flash-lite': 'minimal',
+};
+/* A DAY'S GEMINI QUOTA ENDS AT MIDNIGHT PACIFIC -- Google's rate-limits page: "Requests per day (RPD)
+   quotas reset at midnight Pacific time" -- not London's. And the longest the script cache keeps
+   anything, six hours, Google's own ceiling for `CacheService`. */
+const AI_QUOTA_TZ = 'America/Los_Angeles';
+const AI_SPENT_MAX_S = 21600;
 
 /* Every tunable, with a plain-English note and a starting value. ensureSchema() adds any that
    are missing to the `config` tab and never touches one that's already there — so a value you've
@@ -1666,7 +1745,10 @@ const CONFIG_DEFAULTS = [
   // meant two places claiming to decide the same price.
   ['s', 0, 'each extra subject adds this FRACTION of the base rate. 0.15 = +15%'],
   ['c', 0, "each extra seat adds this fraction — the tutor's share of it. 0.15 = +15%"],
-  ['B', 0, 'each extra seat adds this fraction — your share of it. 0.25 = +25%'],
+  /* B IS THE DEFAULT NOW, NOT THE CUT (docs/history/345): a tutor's own `extra_seat_cut` wins, and this is
+     what a blank one means. `ensureSchema` never rewrites a note already on the sheet, so a live config tab
+     keeps the old wording until somebody edits it by hand. */
+  ['B', 0, "each extra seat adds this fraction — your share of it, for every tutor whose own extra_seat_cut is blank. 0.25 = +25%"],
   ['b', 0, 'bulk discount taken off per session AFTER THE FIRST. 0.01 is about 9% off a 10-session term. 0 = off'],
 
   ['a', 0, 'advance discount taken off per week ahead AFTER THE FIRST. 0 = off'],
@@ -1700,7 +1782,7 @@ const CONFIG_DEFAULTS = [
      different string, this app has never needed one, and it must never be put in this sheet. */
   /* ---------- AI MARKING ---------------------------------------------------------------------------
      THE KEY IS NOT HERE AND MUST NEVER BE: this tab goes to every phone. It is `GEMINI_API_KEY` in
-     Project Settings → Script Properties. These three are the parts that are safe to show.
+     Project Settings → Script Properties. These five are the parts that are safe to show.
 
      TWO MODELS, BECAUSE ONE WAS A 503 (11 Oct): the first asked up to three times, then the second, on
      capacity of its own -- the note over `AI_MODEL` above, and docs/history/344.
@@ -1716,6 +1798,17 @@ const CONFIG_DEFAULTS = [
   ['gemini_model', AI_MODEL, 'the Gemini model that marks worded answers. Blank (or the old gemini-flash-latest) = ' + AI_MODEL + '. The API KEY never goes here: it is GEMINI_API_KEY in Script Properties'],
   ['gemini_model_fallback', AI_MODEL_FALLBACK, 'the model asked when the first one is full, out of reach or retired (Gemini 429, 5xx or 404). Blank = ' + AI_MODEL_FALLBACK + '. none = no second model'],
   ['ai_marks_per_day', 20, 'how many answers one person may have marked by AI in a day. Blank = 20. 0 switches AI marking off'],
+  /* HOW HARD GEMINI THINKS BEFORE IT MARKS, ONE CELL FOR EACH KIND OF ANSWER (12 Oct) -- the note over
+     `AI_THINKING_LEVELS` above, and docs/history/350. SEEDED BLANK, because blank is "the code's default"
+     and a default that moves then moves for everybody; a word typed here is the owner's and stays. The
+     owner's reason for them: *"it takes so long. like 30 seconds or whatever"* -- a deeper level is a
+     slower mark, and which of the two matters more for an essay is theirs to decide without a deploy. A
+     word that is not a level is read as blank and logged; a level a model refuses is asked again
+     without it and logged, never a press with no mark. */
+  ['ai_thinking', '', 'how hard Gemini thinks before marking a SHORT answer: minimal, low, medium or high (each slower and deeper than the last), or none for the model\'s own default. A model that does not offer a level gets the next one up. Blank = the lowest each model offers ('
+    + [AI_MODEL, AI_MODEL_FALLBACK].map(m => (AI_THINKING_LEVELS[m] || ["its own default"])[0] + ' on ' + m).join(', ') + ') -- the fastest'],
+  ['ai_thinking_essay', '', 'the same for an ESSAY (six marks or more, marked on its levels). Blank = ' + AI_THINKING_ESSAY
+    + '. medium = deeper and slower: how ' + AI_MODEL + ' marked essays before 12 Oct 2026'],
   ['google_client_id', '', 'Google Sign-In client ID (the PUBLIC one, ending .apps.googleusercontent.com). Blank switches Google sign-in off. Never put the client SECRET here'],
   ['pages_recheck_days', 30, 'how old a resource page count may get before the nightly job re-reads the file'],
 
@@ -1789,6 +1882,21 @@ const CONFIG_DEFAULTS = [
   ['weekly_digest', 'off', 'the Sunday email to parents: off (nothing), preview (written to the digest_log tab, nothing sent) or send. Anything else = off'],
   ['weekly_digest_hour', 18, 'the hour on Sunday, London time, the weekly parent email goes. 0-23, blank = 18. Run installWeeklyDigest again after changing it'],
   ['weekly_digest_reserve', 10, 'emails a day kept back from the weekly parent email for PIN resets and notices. Blank = 10'],
+  /* ---------- AND THE MARKS IN IT — `digestMarkPass_` in digest.gs (docs/history/348) ----------------------
+     THE OWNER, 12 OCT: *"i want them to see if they got it right too. for this i need th ai marking to be
+     working too."* A worded answer sent while AI marking was off, or a maths answer the phone had nothing to
+     Check against, is `sent` — and Sunday's email would have said "not marked" beside it for ever. So a
+     pass marks those with Gemini, nightly and in the hour before the email, and this row is its own switch.
+     ON BY DEFAULT, AND THAT IS THE SAFE ANSWER HERE, because it is the second switch and not the first:
+     nothing runs while `weekly_digest` is `off` (its default) or while GEMINI_API_KEY is missing from
+     Script Properties, and `ai_marks_per_day` at 0 stops it too, as that note has always promised for all
+     AI marking. It spends the KEY's Gemini quota, never a child's `ai_marks_per_day` (that cap is about
+     presses). Off stops only this pass; the email still goes, saying "not marked".
+     ON IS SPELLED, OFF IS EVERYTHING ELSE (the review of 12 Oct): blank, on, yes, true, 1 or ✓ is on. It
+     read only off, no, 0 and false as off, so "disabled", "none" or "n" — words an owner types to mean off —
+     left a pass spending the key's quota every night; and the row above reads anything it does not know
+     as off, so one row meant the opposite of its neighbour. */
+  ['weekly_digest_marking', 'on', 'whether answers nothing could mark are marked by AI overnight and in the hour before the Sunday email: on (blank, on, yes, true or 1) or off (anything else). Runs only while weekly_digest is preview or send and GEMINI_API_KEY is set; spends the key’s Gemini quota, not anybody’s ai_marks_per_day. ai_marks_per_day 0 stops it too'],
 
   ['print_rate_per_page', 0.02, 'what a printed page costs. 0.02 = 2p. Set to 0 and no paper copies are offered at all'],
   ['print_minimum', 0, 'the least a print job can cost, whatever the page count. 0 = no minimum'],
@@ -2410,6 +2518,12 @@ const SUBMISSION_ID = /^\d{10,16}-[a-z0-9]{3,16}$/;
    week, and the summary dates it by when it was pressed. No phone's own press has this shape (`subId_`
    ends in six letters). */
 const SUBMISSION_CARRIED = /^\d{10,16}-m[a-z0-9]{14}$/;
+/* ---------- AND THE NAME OF A MARK THE SERVER GAVE (`digestMarkPass_`, docs/history/348) -----------------
+   The answer's own time, a dash, `ai` and ten letters made from the answer's id — so the same answer always
+   gets the same name, and a second pass, or two passes at once, find the first one's row and write none.
+   It is still a `SUBMISSION_ID`, and it can be neither of the others: a phone's tail is six letters
+   (`subId_`) and a carried press's is `m` and fourteen. */
+const SUBMISSION_MARKED = /^\d{10,16}-ai[a-z0-9]{10}$/;
 /* AND HOW LONG A QUESTION'S NAME MAY BE. A paper's name and a question number are fifty-odd
    characters; this is room for the longest the library has with a margin, and a ceiling on what one
    request can put in a cell a parent's email prints. See SCHEMA.submissions. The name says ATTEMPT
@@ -2465,6 +2579,89 @@ const DIGEST_RUN = 'weeklyDigestRun';
    failure. `installWeeklyDigest` deletes any project trigger with this handler, and says so. The one
    place the old name is still written, because a trigger is found by that string and nothing else. */
 const DIGEST_RETIRED_RUNS = ['sessionRecapRun'];
+/* ---------- THE MARKING PASS — `digestMarkRun` / `digestMarkPass_` in digest.gs (docs/history/348) ----------
+   THE HANDLER BY NAME, written once for `DIGEST_RUN`'s reason: a trigger is found and deleted by that string.
+   Two bookings of it, both by `installWeeklyDigest`: nightly at `DIGEST_MARK_NIGHT` (02:00 London), so a
+   child sees the marks next morning, and on Sunday an hour before the email, so the email has them — that
+   one carrying on until the email is close (the run-up, below), and the email's own run asking once more.
+   02:00 AND NOT LATER IN THE MORNING ON PURPOSE: Gemini's daily quota is counted on California's day, which
+   starts at 08:00 here, so a pass at 02:00 spends what the children's presses left of yesterday and not
+   what they will want today (constants above AI_MODEL: the first model's free quota is about twenty a day).
+
+   ITS CLOCK. Apps Script stops a run at six minutes, and one Gemini ask can take up to about 80 s once it
+   has started (`AI_BUDGET_MS` bounds when asks START, not how long the last one runs). So no ask is started
+   once `DIGEST_MARK_BUDGET_MS` (4 min) has gone, and what is left waits for the next pass — which works out
+   what is left from the sheet, so nothing is kept between passes but a tally of replies that had no mark.
+   `DIGEST_MARK_GAP_MS` between asks keeps it under the free tier's few requests a minute, and
+   `DIGEST_MARK_MAX` answers a pass keeps a week's backlog from spending the key's whole day in one night
+   (an ask Gemini was too busy to answer spends nothing, and is not counted).
+   `DIGEST_MARK_TRIES`: an answer Gemini twice gave no mark for is left "not marked" rather than asked every
+   night — without it, twenty such answers at the front of the queue would hold back everything behind them.
+   `DIGEST_MARK_CLAIM_MS`: a pass's claim on the work, longer than any run can be, so the nightly pass, the
+   Sunday one and a run from the editor never ask Gemini twice for one answer.
+   `DIGEST_MARK_LOCK_MS`: how long the pass waits for the script lock to write one mark — never held while
+   Gemini is asked, because every child's saved answer waits on that lock. */
+const DIGEST_MARK_RUN = 'digestMarkRun';
+const DIGEST_MARK_NIGHT = 2;
+const DIGEST_MARK_BUDGET_MS = 240000;
+const DIGEST_MARK_GAP_MS = 12000;
+const DIGEST_MARK_MAX = 20;
+const DIGEST_MARK_TRIES = 2;
+const DIGEST_MARK_CLAIM_MS = 420000;
+const DIGEST_MARK_LOCK_MS = 10000;
+const DIGEST_MARK_CLAIM = 'DIGEST_MARKING';
+const DIGEST_MARK_TRIED = 'DIGEST_MARK_TRIED';
+/* ---------- THE RUN-UP TO THE EMAIL, AND THE LAST PASS AS IT GOES (the review of 12 Oct) -------------------
+   ONE PASS AN HOUR BEFORE WAS NOT ENOUGH. Four minutes at an answer every ~16 s (Gemini's ~4 s and the 12 s
+   gap) is about SIXTEEN answers — and the live sheet's 62 rows all came on a Saturday and a Sunday. Measured
+   over the real backend with Gemini stubbed at 4 s: 60 answers sent on the Sunday morning went out 16 marked
+   and 44 "not marked", with Gemini answering every ask and the email still an hour away. So:
+     `DIGEST_MARK_RUNUP_MS`  a pass this close to the email (90 min: the Sunday pass is booked an hour before,
+                             near the hour, and Google may start it fifteen minutes early) is in its RUN-UP:
+                             while work is left it books itself again, once, `DIGEST_MARK_AGAIN_MS` later
+                             (a one-off trigger on the same handler, whose id is kept in `DIGEST_MARK_AGAIN`
+                             so the next pass deletes it and the setup check does not count it as booked);
+     `DIGEST_MARK_CLEAR_MS`  and no ask is started closer to the email than this: the email is booked near
+                             the hour too, so it may begin fifteen minutes early, and an ask once started can
+                             take ~80 s. 17 min keeps every run-up pass out of the email's way;
+     `DIGEST_MARK_FINAL_MS`  the email's own run marks what came in since, for this long, before it plans —
+                             two minutes, because the mailing has to fit in the same six;
+     `DIGEST_MARK_BUSY_MS`   Gemini busy or out of reach is waited out, not given up on: the pass waits this
+                             long and asks the same answer again while its time allows. It gave up at the
+                             first busy, and a 20-second 503 storm at 16:55 left the whole Sunday "not marked"
+                             with 3.6 of its 4 minutes unspent.
+   `DIGEST_BOOKED`: the hour `installWeeklyDigest` booked the email at, kept in Script Properties. Apps Script
+   cannot read a trigger's hour back, and `weekly_digest_hour` changed after installing moved nothing but the
+   words: the setup check said "installed at 20:00" over a trigger still firing at 18:00. */
+const DIGEST_MARK_RUNUP_MS = 90 * 60000;
+const DIGEST_MARK_CLEAR_MS = 17 * 60000;
+const DIGEST_MARK_AGAIN_MS = 60000;
+const DIGEST_MARK_AGAIN = 'DIGEST_MARK_AGAIN';
+const DIGEST_MARK_FINAL_MS = 120000;
+const DIGEST_MARK_BUSY_MS = 30000;
+const DIGEST_BOOKED = 'DIGEST_BOOKED_HOUR';
+/* ---------- WHERE THE PASS FINDS A QUESTION AND ITS SCHEME: THE SITE'S OWN COPY OF THE LIBRARY ----------
+   The backend has no library — `data/questions.json` is in git, served by GitHub Pages, and the phone
+   sends the question and the scheme with each Mark with AI press. A pass with no phone fetches the same
+   file: `site_url` (or `SITE_URL`) + this path, and raw.githubusercontent.com (`RAW`, sync.gs) when the
+   site does not answer. 14.1 MB, one row per line (`check-library.js` holds that layout), so a row is
+   found by its `"row_id":"…"` and that one line is parsed — never the whole file, which in Node is a
+   quarter of a second and 20 MB more heap, and Apps Script's memory ceiling is not published. */
+const DIGEST_LIBRARY_PATH = 'data/questions.json';
+/* THE ENTITIES THE LIBRARY'S MARKUP USES, AS CHARACTERS — every named one in data/questions.json on 12 Oct,
+   counted. The phone reads a question's markup through DOMParser (`aiPlain_` in js/keypad.js); Apps Script
+   has none, so `digestPlain_` decodes these and any numeric one, and leaves a name it does not know as it
+   is. Gemini reads "x &minus; 3 &le; 7" as noise and "x − 3 ≤ 7" as maths. */
+const DIGEST_ENTITIES = {
+  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', thinsp: ' ', emsp: ' ', ensp: ' ',
+  mdash: '—', ndash: '–', minus: '−', times: '×', divide: '÷', frasl: '/', deg: '°', pound: '£',
+  radic: '√', hellip: '…', rsquo: '’', lsquo: '‘', rdquo: '”', ldquo: '“', middot: '·', bull: '•',
+  sup2: '²', sup3: '³', frac12: '½', frac14: '¼', frac34: '¾', frac13: '⅓', le: '≤', ge: '≥', ne: '≠',
+  asymp: '≈', equiv: '≡', prop: '∝', infin: '∞', int: '∫', plusmn: '±', rarr: '→', cap: '∩', cup: '∪',
+  prime: '′', pi: 'π', theta: 'θ', alpha: 'α', beta: 'β', gamma: 'γ', lambda: 'λ', mu: 'μ', micro: 'µ',
+  nu: 'ν', rho: 'ρ', sigma: 'σ', epsilon: 'ε', omega: 'ω', Omega: 'Ω', Delta: 'Δ', Sigma: 'Σ',
+  Lambda: 'Λ', eacute: 'é',
+};
 /* HOW MANY QUESTIONS THE WEEKLY EMAIL LISTS, each with its own words (`digestQuestions_`), before
    "…and N more." A WEEK'S WORK, NOT A DAY'S: the owner made Sunday's the email parents get — *"all
    they done that week"* — and the 30 the list held when it was names is one evening of a past paper,
@@ -2632,6 +2829,18 @@ const AVATAR_ITEMS = [
    costs, what a second seat is worth, then the range of class sizes it applies to. */
 const PRICING_FIELDS = ['rate_per_hour', 'extra_seat_rate', 'max_students', 'min_students'];
 
+/* ---------- AND THE BUSINESS'S CUT OF AN EXTRA SEAT, WHICH IS ON THE RATE PAGE AND NOT THE FIFTH OF THEM -----
+   THE OWNER, 12 Oct: *"Your cut off extra child for tutors should be editable on thir card. Like they can edit
+   that small number to the right of their normal rate"* — so the cut that was one config number for everybody
+   is a cell on each tutor's row (docs/history/345), drawn on their card's rate section beside their own share.
+   ON THE PAGE, so `PROFILE_GROUPS` (the layout AND the write allow-list) carries it and the card can draw it.
+   NOT IN `PRICING_FIELDS`, for three reasons each of which would be a bug: `pricingMoved_` compares with `N()`,
+   which reads blank and nought as the same number, and those are two different answers here (the default, and
+   no cut); an admin setting it would stamp `pricing_changed_at` and lock the TUTOR out of their own rate for a
+   month over a number they cannot touch; and the tutor is not the one who moves it. Its own rule is
+   `seatCutRefusal_` in people.gs: an admin's alone, blank, nought, or a share from above 0 to 2. */
+const SEAT_CUT_FIELD = 'extra_seat_cut';
+
 /* ---------- THE AGES A TUTOR MAY SAY THEY TEACH, AS ONE LIST THE FORM AND THE RULE BOTH READ ------
    FOUR TO EIGHTEEN, THEN `Adults`. Four is Reception, eighteen is the end of sixth form, and the word
    is everyone past it — "18" and "Adults" are two answers because a tutor who stops at Year 13 and one
@@ -2714,7 +2923,10 @@ const PROFILE_GROUPS = {
      you, because nobody browses their card. */
   'Photos': ['photo','video'].concat(PHOTO_FIELDS),
   /* THE QUOTE, THEN HOW LONG A SESSION IS — `SESSION_FIELDS`' note says why they share a page and not a clock. */
-  'Your rate and group size': PRICING_FIELDS.concat(SESSION_FIELDS),
+  /* AND THE BUSINESS'S CUT OF AN EXTRA SEAT straight after the tutor's own share, as the card reads them — an
+     admin's to write, which `seatCutRefusal_` decides, not this list (`SEAT_CUT_FIELD` above says why). */
+  'Your rate and group size': PRICING_FIELDS.reduce((a, f) => a.concat(f === 'extra_seat_rate' ? [f, SEAT_CUT_FIELD] : [f]), [])
+                                .concat(SESSION_FIELDS),
   /* WHAT YOU TEACH, WHAT YOU ARE STUDYING AND ANYTHING ELSE — one page, because they are the
      three answers to "what do you know". `Qualifications` beside it is the graded list. */
   /* ---------- WHAT YOU SPECIALISE IN, THEN WHAT ELSE YOU TEACH -------------------------------

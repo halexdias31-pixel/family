@@ -35,7 +35,10 @@ const KEEP=new Set(['doGet','doPost','missingKeys','layout',
   'makeBrandAccount','migrateLikes','installTriggers','listTriggers',
   'refreshPageCounts','closeFinishedJobs','geocodeVenues','fetchMap','renameValue',
   'seedOptions','ensureResourceIds','schemaGaps','dataProblems','autoMigrate',
-  'seedConfig','seedAvatarItems','seedPostcodes','ensurePersonIds','gallery','landmarks']);
+  'seedConfig','seedAvatarItems','seedPostcodes','ensurePersonIds','gallery','landmarks',
+  /* THE CHECKS' QUESTION "is the builder done?" (docs/history/341) — asked by check-flow, swipe, reach, press
+     and ui through the page, and by nothing in the app, which never needs to wait for itself. */
+  'aheadBusy_']);
 const files=(dir,filter)=>fs.readdirSync(dir).filter(filter).map(f=>({f,p:dir+f}));
 const jsF=files(O+'js/',f=>f.endsWith('.js')&&!f.startsWith('check')&&f!=='_scope.js');
 /* THE BACKEND FILES, UNDER WHATEVER THEY ARE CALLED. Numbered in one place, plain in another, and

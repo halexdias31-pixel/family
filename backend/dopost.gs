@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-10-12-p-merged";
+const DOPOST_VERSION = "2026-10-13-v-merged";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -176,6 +176,9 @@ function linkMail_(r, token, asParent) {
 }
 
 function doPost(e) {
+  /* WHEN THIS REQUEST BEGAN, so `aiMark`'s timing line can say how long the gate and the reads before
+     Gemini took, as well as Gemini itself (docs/history/350). Nothing else reads it. */
+  const began = Date.now();
   try {
     /* Nothing carried over from whoever asked last. Apps Script reuses an instance between
        requests, so a miss left in the list would be reported against the next person. */
@@ -1129,6 +1132,13 @@ function doPost(e) {
       }
       const priceNo = pricingRefusal_(r, priceAsked, iAmAdmin);
       if (priceNo) return jsonOut({ error: priceNo });
+      /* ---------- AND THE BUSINESS'S CUT OF AN EXTRA SEAT, WHICH IS AN ADMIN'S (docs/history/345) -----------
+         On the same page and the same card as the four, and allowed by the same list, so who may write it is
+         asked here rather than by the allow-list: `seatCutRefusal_` in people.gs. `iAmAdmin` — the TOKEN's row —
+         and not `adminEditing`, which only says "another person's row": an admin who also tutors sets their own
+         cut too. Nothing here touches `pricing_changed_at`; that clock is the tutor's (`SEAT_CUT_FIELD`). */
+      const cutNo = seatCutRefusal_(r, priceAsked, iAmAdmin);
+      if (cutNo) return jsonOut({ error: cutNo });
       /* ---------- AND THE AGE RANGE, WHICH IS NOT THE QUOTE AND HAS NO CLOCK ----------------------
          Asked of the same wanted-only object for the same reason, and before any write for the
          reason this whole section exists. A youngest older than the oldest is a range nobody falls
@@ -1313,18 +1323,23 @@ function doPost(e) {
        Every number in the formula lives in `config`; this is how the site writes one back.
        Restricted to keys that already exist, so a typo can't invent a variable that looks like a
        setting and is read by nothing. --- */
-    /* ---------- IT HAS A CALLER NOW: the admin's "your cut of an extra child" card ------------
-       Dead for as long as it existed — see the note under `saveRoom` below. The Settings column's
-       admin card posts `boss_rate` here, which is the `B` `priceFrom` reads as the business's
-       share of each extra child. `setCell` and `addRow` both set `POST_WROTE`, so the six-hour
-       payload is retired on the way out and the new figure is on the next load rather than
-       tomorrow — which is the whole difference between a control and a suggestion.
+    /* ---------- NO CARD CALLS IT NOW (docs/history/345), AND IT STAYS ------------------------------
+       It had one caller, the admin's "Your cut of an extra child" card on Settings, which posted
+       `boss_rate` — the `B` `priceFrom` read as the business's share of every extra child. The owner
+       asked for that cut on each tutor's card instead (*"Your cut off extra child for tutors should be
+       editable on thir card"*), so it is `extra_seat_cut` on the tutor's row, written by
+       `updateProfile`, and the card is gone. `B` is still read: it is what a BLANK cut means, the
+       default, set in the config tab of the spreadsheet. KEPT because a phone still on the old build
+       posts here during the minute after a deploy, and refusing it would say "Not saved" over a
+       figure that still means something. `setCell` and `addRow` both set `POST_WROTE`, so the
+       six-hour payload is retired on the way out and a new figure is on the next load.
 
        A KEY THAT IS NOT THERE MAY BE ADDED, BUT ONLY FROM A SHORT LIST. `priceFrom` reads `B`,
        `boss rate` or `boss_rate`, and a config tab that has never carried any of them prices every
-       extra child with no cut at all; refusing to create the row would leave the card unable to set
-       the one thing it exists for. A list rather than any key, because an admin's typo would
-       otherwise become a config row nothing reads.
+       extra child of a tutor with no cut of their own at no cut at all; refusing to create the row
+       would leave an old-build phone's Save in the deploy gap unable to set the one thing it posts.
+       A list rather than any key, because an admin's typo would otherwise become a config row
+       nothing reads.
 
        A NUMBER STAYS A NUMBER. A fraction is what this key means (`asFraction` in core.js takes
        0 to 2 and ignores anything bigger as a leftover pound figure), so it is checked here too —
@@ -1340,8 +1355,8 @@ function doPost(e) {
       }
       const t = read(TAB.config);
       /* EXACT CASE FIRST. `config()` keys its variables case-sensitively and the pricing reads `B`
-         (your cut) and `b` (the bulk discount) as two different numbers — so a case-folded match let
-         row order decide which of the two a Save on the cut card changed. */
+         (the default cut) and `b` (the bulk discount) as two different numbers — so a case-folded match
+         let row order decide which of the two a post of the cut changed. */
       let r = t.rows.find(x => S(x.key) === want) || t.rows.find(x => norm(x.key) === norm(want));
       if (!r && CONFIG_ADDABLE[norm(want)]) {
         r = addRow(t, { key: norm(want), value: Number(body.value), what_it_does: CONFIG_ADDABLE[norm(want)] });
@@ -3479,7 +3494,13 @@ function doPost(e) {
 
        IT WRITES NOTHING TO THE SHEET. The verdict is advice on practice work, shown once on the
        phone; it is not a mark anybody records, and the reply says which model gave it -- the one that
-       actually did, which since the 503 of 11 Oct may be the second (`aiGemini_`, docs/history/344). */
+       actually did, which since the 503 of 11 Oct may be the second (`aiGemini_`, docs/history/344).
+       (The phone records the marks as a press of its own, `ai:N/M`, through `submitAnswer`.)
+
+       AND SINCE 12 OCT THE SERVER ASKS THE SAME MARKER WITH NO PRESS AT ALL: `digestMarkPass_` in
+       digest.gs marks a `sent` answer overnight and before the Sunday email, through `aiMarkAsk_` with
+       the same clamps as below — and never through `aiMarkCount_`, because that cap is a child's presses,
+       and a pass spending it would leave a child "today's 20 AI marks used" for work they never pressed. */
     if (action === 'aiMark') {
       const key = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY') || '';
       if (!key) return jsonOut({ success: false, why: 'ai-off', message: 'AI marking isn’t switched on.' });
@@ -3512,25 +3533,32 @@ function doPost(e) {
       if (answer.length > AI_ANSWER_MAX) return jsonOut({ success: false,
         message: 'That is too long to mark — ' + String(AI_ANSWER_MAX).replace(/\B(?=(\d{3})+$)/g, ',') + ' characters at most.' });
       if (!scheme) return jsonOut({ success: false, message: 'This question has no mark scheme to mark against.' });
+      /* THE TAKE IS TIMED: it waits up to five seconds for the script lock, and the lock is the one a
+         `submitAnswer` from the press before holds while it writes -- a cost the timing line shows. */
+      const taking = Date.now();
       const took = aiMarkCount_(who, cap);
+      const take = Date.now() - taking;
       /* A LOCK NOT HAD IS NOT A CAP REACHED. Until the review of 12 Oct both came back as null, so a press
          made while something else held the script lock for more than this one's five seconds -- the lock
          every save, sync and migration on the site shares -- told the pupil "That is today's 20 AI marks
          used — they come back tomorrow" with marks left, sending them away for the day over a few
          seconds. It is busy, in the busy sentence, with the `why` every other lock-busy refusal in this
          file carries. */
-      if (took && took.busy) return jsonOut({ success: false, why: 'busy', message: AI_BUSY });
-      if (!took) return jsonOut({ success: false, why: 'ai-cap',
-        message: cap ? 'That is today’s ' + cap + ' AI marks used — they come back tomorrow.' : 'AI marking is paused.' });
+      if (took && took.busy) { aiMarkTimed_(began, take, essay, { error: 'the script lock was busy' }); return jsonOut({ success: false, why: 'busy', message: AI_BUSY }); }
+      if (!took) { aiMarkTimed_(began, take, essay, { error: 'at the cap' }); return jsonOut({ success: false, why: 'ai-cap',
+        message: cap ? 'That is today’s ' + cap + ' AI marks used — they come back tomorrow.' : 'AI marking is paused.' }); }
       /* A PRESS THAT ENDS WITHOUT A MARK GIVES ITS COUNT BACK -- a 503, a refusal, a reply with no mark
          in it, or a throw on the way, which is why it is a `finally` and not a line after the call. The
          cap counts marks GIVEN; on 11 Oct a pupil was told "Gemini said 503" and lost one of the day's
-         twenty for it. Taken first and given back, never counted after: see `aiMarkCount_`. */
+         twenty for it. Taken first and given back, never counted after: see `aiMarkCount_`.
+         AND EVERY PRESS THAT GOT THIS FAR WRITES ONE TIMING LINE, marked or not, thrown or not (12 Oct,
+         docs/history/350) -- after the give-back, so its lock is in the total too. */
       let got = null;
       try {
         got = aiMarkAsk_(key, models, question, scheme, answer, avail, essay);
       } finally {
         if (!got || got.error) aiMarkGiveBack_(who, took.day);
+        aiMarkTimed_(began, take, essay, got);
       }
       if (got.error) return jsonOut({ success: false, message: got.error });
       /* THE SAME FOUR FIELDS THE PHONE HAS ALWAYS READ, and an essay's breakdown beside them for anything
@@ -5122,17 +5150,59 @@ function aiMarkAsk_(key, models, question, scheme, answer, avail, essay) {
        and says later models will answer 400 to them -- and a 400 is neither asked again nor handed to the
        fallback, so `temperature: 0`, which did nothing on either pinned model, would one day have stopped
        marking (the review of 11 Oct). The schema and the system instruction are what keep a mark steady. */
+    /* NO `thinkingConfig` HERE: the level differs by model, so `aiGemini_` puts it in for each model it
+       asks, from `aiThinking_` -- and takes it out again for a model that refuses it (12 Oct). */
     generationConfig: {
       responseMimeType: 'application/json',
       responseSchema: shape,
     },
-  }));
+  }), aiThinking_(models, essay));
   if (sent.error) return sent;
   /* WHICH MODEL MARKED IT, on every answer -- `aiMarkEssay_`'s too -- so the reply's `model` is the one
-     that did the marking (Google's `modelVersion`, `aiServed_`), not the one the config tab asked for first. */
+     that did the marking (Google's `modelVersion`, `aiServed_`), not the one the config tab asked for first.
+     AND HOW THE ASKING WENT, for the timing line (`aiMarkTimed_`), a mark or not. */
   const marked = aiMarkRead_(sent.body, avail, essay);
   if (!marked.error) marked.model = sent.model;
+  marked.asks = sent.asks;
   return marked;
+}
+/* ---------- HOW HARD EACH MODEL THINKS, FOR THIS KIND OF ANSWER (12 Oct) -------------------------------
+   THE OWNER: *"ok the ai marking works but it takes so long. like 30 seconds or whatever"* -- the note over
+   `AI_MODEL` in constants.gs says why the level is the lever and why each default is what it is. Returns
+   `{ cell, level: { model: 'low', ... } }` for `aiGemini_`: a model with no entry is sent no level at all.
+     the cell blank         AI_THINKING_SHORT or AI_THINKING_ESSAY, but only for a model AI_THINKING_LEVELS
+                            names -- another model's levels are not known here, so it is asked as before
+     a level typed          that level, for every model
+     `none`                 no level for any model: each one's own default, the request before 12 Oct
+     anything else typed    read as blank, and logged, because a typo must not be a 400 on every press
+   and for a model AI_THINKING_LEVELS names, a level it does not offer becomes the next one up that it
+   does, so `minimal` typed in the short cell is `low` on 3.8 Flash rather than a refusal. A numbered
+   version of a named model (`gemini-3.8-flash-001`) offers what its name does. Read from `config()`, which
+   the request has already read (`read` keeps a tab for the request), so the signature of `aiMarkAsk_`, and
+   every caller of it, is as it was. */
+function aiThinking_(models, essay) {
+  const cell = essay ? 'ai_thinking_essay' : 'ai_thinking';
+  let typed = '';
+  try { typed = S(config()[cell]).trim().toLowerCase(); } catch (e) { typed = ''; }
+  if (typed && typed !== 'none' && AI_THINKING_SCALE.indexOf(typed) < 0) {
+    console.log('aiMark: ' + cell + ' on the config tab says "' + typed.slice(0, 40) + '", which is not '
+      + AI_THINKING_SCALE.join(', ') + ' or none -- read as blank');
+    typed = '';
+  }
+  const known = n => (Object.prototype.hasOwnProperty.call(AI_THINKING_LEVELS, n) ? AI_THINKING_LEVELS[n] : null);
+  const rank = l => AI_THINKING_SCALE.indexOf(l);
+  const level = {};
+  if (typed !== 'none') (models || []).forEach(m => {
+    const offers = known(m) || known(S(m).replace(/-\d+$/, ''));
+    const want = typed || (offers ? (essay ? AI_THINKING_ESSAY : AI_THINKING_SHORT) : '');
+    if (!want) return;
+    let got = offers ? (offers.filter(l => rank(l) >= rank(want))[0] || offers[offers.length - 1]) : want;
+    /* A BLANK CELL NEVER ASKS A MODEL TO THINK MORE THAN IT WOULD UNASKED -- the note on AI_THINKING_DEFAULT. */
+    const own = AI_THINKING_DEFAULT[m] || AI_THINKING_DEFAULT[S(m).replace(/-\d+$/, '')];
+    if (!typed && own && rank(got) > rank(own)) got = own;
+    level[m] = got;
+  });
+  return { cell: cell, level: level };
 }
 /* THE REPLY, BELIEVED ONLY IN THE SHAPE THAT WAS ASKED FOR -- the note over `aiMarkAsk_`. Lifted out of it
    unchanged when the asking became `aiGemini_`. */
@@ -5189,15 +5259,22 @@ function aiMarkEssay_(out, avail, clamp) {
    what it is are the note over `AI_MODEL` in constants.gs; here they are in the order they happen:
 
      each model in `models` -- the config tab's, then its fallback (`aiModels_`) --
-       up to AI_TRIES asks, AI_WAITS apart, each wait moved by up to AI_JITTER either way
+       not asked at all if a 429 from an earlier press said its quota is spent and another model is
+                                 behind it -- the next model, at once (`aiSpentUntil_`, 12 Oct)
+       up to AI_TRIES asks, AI_WAITS apart, each wait moved by up to AI_JITTER either way, each sent
+                                 the thinking level `thinking` names for that model, if any (12 Oct)
        200                       the answer, and the model Google says gave it (`aiServed_`)
        429, any 5xx, a throw     asked again; after the model's last try, the next model, at once
-       a 429 that says "later"   not asked again -- its RetryInfo is past the next ask -- the next model
+       a 429 that says "later"   not asked again -- its RetryInfo is past the next ask, or its quota is a
+                                 DAY's -- the next model; and remembered for later presses (`aiSpend_`)
        404                       not asked again -- a retired or misspelt name will not come back --
                                  but the next model at once, which is a different name
+       400 to a level sent       asked once more AT ONCE without the level -- not one of AI_TRIES -- and
+                                 the cell to change logged when that marks (12 Oct)
        anything else             stop: the key, the request or the account, which no second ask mends
      and no ask at all started once AI_BUDGET_MS has gone since the first, and no model with another
-     behind it asked AGAIN once AI_HANDOFF_MS has, so the other still gets its turn
+     behind it asked AGAIN once AI_HANDOFF_MS has, so the other still gets its turn -- the re-ask without
+     a level included, so a level refused past the handoff hands the press to the next model instead
 
    WHEN A CLOCK RUNS OUT THE MODEL'S TURN ENDS, NOT THE PRESS. The first build `return`ed there: a
    retry whose wait would cross 20 s gave up on the press, though the fallback's first ask has no wait
@@ -5209,47 +5286,106 @@ function aiMarkEssay_(out, avail, clamp) {
    said 503" read to a pupil as broken rather than busy, and "Gemini said 404" about a fallback they never
    asked for is not theirs to act on at all. `aiGaveUp_` says one of three sentences, none with a digit,
    and the log keeps the rest -- every refused ask with its code, its model and which try it was, and a
-   model that cannot be used named with the config cell to change. */
-function aiGemini_(key, models, payload) {
+   model that cannot be used named with the config cell to change.
+
+   `thinking` IS OPTIONAL AND LAST, so a caller that passes three arguments asks exactly as before 12 Oct:
+   no level for any model. It is `aiThinking_`'s `{ cell, level: { model: 'low' } }`; `payload` itself
+   should carry no `thinkingConfig`, because the level is put in here per model and taken out here for a
+   model that refuses it. EVERY ANSWER CARRIES `asks` -- each ask's model, level, code, start and length,
+   each wait, each model passed over -- for the timing line (`aiMarkTimed_`), and nothing else reads it. */
+function aiGemini_(key, models, payload, thinking) {
   const start = Date.now();
   const ends = [];                                // how each model asked ended: { model, code }, -1 a throw
+  const asks = [];                                // what the timing line says: every ask, wait and model passed over
+  const done = out => { out.asks = asks; return out; };
+  let body = null;
+  try { body = JSON.parse(payload); } catch (e) { body = null; }
+  const levels = (thinking && thinking.level) || {};
   for (let m = 0; m < models.length; m++) {
     const model = models[m], another = m < models.length - 1;
-    let code = 0, hold = 0;
+    const cell = m ? 'gemini_model_fallback' : 'gemini_model';
+    /* A QUOTA AN EARLIER PRESS WAS TOLD IS SPENT IS NOT ASKED AGAIN WHILE IT IS -- unless this is the last
+       model, which is always asked: passing it over would be giving up without asking anybody. Counted as
+       the 429 it was, so a fallback that then fails is "busy", which it is. */
+    const spent = another ? aiSpentUntil_(model) : 0;
+    if (spent) {
+      asks.push({ model: model, skipped: spent });
+      ends.push({ model: model, code: 429, cell: cell });
+      continue;
+    }
+    let level = body && Object.prototype.hasOwnProperty.call(levels, model) ? S(levels[model]) : '';
+    let code = 0, hold = 0, now = false, refused = '';
     for (let t = 0; t < AI_TRIES; t++) {
-      /* NO WAIT BEFORE A MODEL'S FIRST ASK. A retry waits, and is not started past either clock, or when
-         Google has said this model is not back before it. */
-      const wait = t ? Math.round(AI_WAITS[Math.min(t, AI_WAITS.length) - 1] * (1 + AI_JITTER * (2 * Math.random() - 1))) : 0;
+      /* NO WAIT BEFORE A MODEL'S FIRST ASK, NOR BEFORE ITS ASK WITHOUT A REFUSED LEVEL (`now`). A retry
+         waits, and is not started past either clock, or when Google has said this model is not back
+         before it. */
+      const wait = t && !now ? Math.round(AI_WAITS[Math.min(t, AI_WAITS.length) - 1] * (1 + AI_JITTER * (2 * Math.random() - 1))) : 0;
       const at = Date.now() - start + wait;
-      if (at > AI_BUDGET_MS || (t && another && at > AI_HANDOFF_MS) || hold > wait) break;
-      if (wait) Utilities.sleep(wait);
+      if (at > AI_BUDGET_MS || ((t || now) && another && at > AI_HANDOFF_MS) || hold > wait) break;
+      now = false;
+      if (wait) { Utilities.sleep(wait); asks.push({ wait: wait }); }
       let said = '';
       hold = 0;
+      const asked = Date.now();
+      const ask = { model: model, level: level, at: asked, code: 0, ms: 0 };
+      asks.push(ask);
       try {
         const res = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/'
           + encodeURIComponent(model) + ':generateContent', {
           method: 'post', contentType: 'application/json', muteHttpExceptions: true,
-          headers: { 'x-goog-api-key': key }, payload: payload,
+          headers: { 'x-goog-api-key': key }, payload: level ? aiLevel_(body, level) : payload,
         });
         code = res.getResponseCode();
+        ask.code = code;
+        ask.ms = Date.now() - asked;
         const text = String(res.getContentText());
-        if (code === 200) return { body: text, model: aiServed_(text, model) };
+        if (code === 200) {
+          if (refused) console.log('aiMark: ' + model + ' REFUSED THINKING LEVEL ' + refused + ' (Gemini said 400) and marked '
+            + 'without one -- put a level it offers, or none, in ' + ((thinking && thinking.cell) || 'ai_thinking')
+            + ' on the config tab; Google’s words are in its 400 line');
+          return done({ body: text, model: aiServed_(text, model) });
+        }
         said = text.slice(0, 500);
-        if (code === 429) hold = aiRetryDelay_(text);
+        if (code === 429) {
+          /* A DAY'S QUOTA DOES NOT COME BACK IN TWO SECONDS, whatever RetryInfo says -- "1s" has been seen on
+             one (third-party) -- so it holds this model for the rest of the press; and either kind that
+             says "later" is remembered for the presses after this one, until then. */
+          const day = aiQuotaDay_(text);
+          hold = day ? Infinity : aiRetryDelay_(text);
+          aiSpend_(model, day ? aiPacificMidnight_(Date.now()) : hold ? Date.now() + hold : 0);
+        }
       } catch (err) {
         code = -1;
+        ask.code = -1;
+        ask.ms = Date.now() - asked;
         said = String((err && err.message) || err).slice(0, 500);
       }
       console.log('aiMark: Gemini answered ' + (code < 0 ? 'nothing (the fetch threw)' : code) + ' for model '
-        + model + ' (try ' + (t + 1) + ' of ' + AI_TRIES + '): ' + said);
+        + model + ' (try ' + (t + 1) + ' of ' + AI_TRIES + ')' + (level ? ' at thinking level ' + level : '') + ': ' + said);
       if (code < 0 || aiAgain_(code)) continue;
       if (code === 404) break;
-      ends.push({ model: model, code: code, cell: m ? 'gemini_model_fallback' : 'gemini_model' });
-      return aiGaveUp_(ends);
+      /* A 400 TO A REQUEST THAT CARRIED A LEVEL: the same model again, at once, without it -- the same try,
+         so it is not one of AI_TRIES. A second 400 is the key or the request, and stops as it always did. */
+      if (code === 400 && level) {
+        refused = level;
+        level = '';
+        now = true;
+        t--;
+        continue;
+      }
+      ends.push({ model: model, code: code, cell: cell });
+      return done(aiGaveUp_(ends));
     }
-    if (code) ends.push({ model: model, code: code, cell: m ? 'gemini_model_fallback' : 'gemini_model' });
+    if (code) ends.push({ model: model, code: code, cell: cell });
   }
-  return aiGaveUp_(ends);
+  return done(aiGaveUp_(ends));
+}
+/* THE REQUEST WITH ONE MODEL'S THINKING LEVEL IN IT, `generationConfig.thinkingConfig.thinkingLevel` as
+   Google's REST examples send it -- and never `thinkingBudget` beside it, which is a 400 (constants.gs). A
+   copy: the next model, and the re-ask without a level, are sent the request as it was given. */
+function aiLevel_(body, level) {
+  const gc = Object.assign({}, body.generationConfig || {}, { thinkingConfig: { thinkingLevel: level } });
+  return JSON.stringify(Object.assign({}, body, { generationConfig: gc }));
 }
 /* GOOGLE'S SIDE, AND SO WORTH ASKING AGAIN: 429 and any 5xx. 502 and 504 were the owner's in the first
    build -- asked once, no fallback, "Gemini said 504" to the pupil -- though a 504 is Google's deadline
@@ -5268,6 +5404,71 @@ function aiRetryDelay_(text) {
     const s = info && /^(\d+(?:\.\d+)?)s$/.exec(S(info.retryDelay));
     return s ? Math.round(parseFloat(s[1]) * 1000) : 0;
   } catch (e) { return 0; }
+}
+/* WHETHER A 429 IS A DAY'S QUOTA SPENT (12 Oct): its `google.rpc.QuotaFailure` names a quota id with
+   `PerDay` or `Daily` in it -- `GenerateRequestsPerDayPerProjectPerModel-FreeTier` on a free key -- the
+   test Google's own gemini-cli makes before calling a 429 terminal. A minute's quota, or a 429 with no
+   QuotaFailure at all, is not; those are believed by their RetryInfo, as before. */
+function aiQuotaDay_(text) {
+  try {
+    return (((JSON.parse(text) || {}).error || {}).details || [])
+      .filter(d => d && /google\.rpc\.QuotaFailure$/.test(S(d['@type'])))
+      .some(d => (Array.isArray(d.violations) ? d.violations : []).some(v => /perday|daily/i.test(S(v && v.quotaId))));
+  } catch (e) { return false; }
+}
+/* ---------- A MODEL'S QUOTA, SPENT, REMEMBERED BETWEEN PRESSES (12 Oct) ---------------------------------
+   IN THE SCRIPT CACHE, NOT SCRIPT PROPERTIES: the quota is the project's, so one entry per model serves
+   every pupil, and forgetting it costs exactly one refusal -- which is what the cache may do whenever it
+   likes, and what it does after AI_SPENT_MAX_S, its own ceiling. `until` is kept IN the value as well as
+   given as the expiry, so an entry is believed only while the clock says so. Under a second is not kept:
+   the cache keeps nothing for less. Nothing here can throw into a press. */
+function aiSpend_(model, until) {
+  const s = Math.min(AI_SPENT_MAX_S, Math.ceil((Number(until) - Date.now()) / 1000));
+  if (!(s >= 1)) return;
+  try { CacheService.getScriptCache().put('AI_SPENT:' + S(model).slice(0, 200), String(until), s); } catch (e) {}
+}
+/* WHEN THAT MODEL IS BACK, in ms since 1970 -- 0 if nothing is remembered, or it is back already. */
+function aiSpentUntil_(model) {
+  try {
+    const until = Number(CacheService.getScriptCache().get('AI_SPENT:' + S(model).slice(0, 200)));
+    return until > Date.now() ? until : 0;
+  } catch (e) { return 0; }
+}
+/* THE NEXT MIDNIGHT IN AI_QUOTA_TZ, when Google resets a day's requests, in ms since 1970. The time of day
+   there is asked of `Utilities.formatDate` and today's midnight worked back from it; on the two days a year
+   the clocks change it is an hour out either way, which costs one refusal or an hour of the fallback. A
+   clock that cannot be read is six hours from now, the cache's own ceiling. */
+function aiPacificMidnight_(now) {
+  let hms = null;
+  try { hms = /^(\d\d):(\d\d):(\d\d)$/.exec(String(Utilities.formatDate(new Date(now), AI_QUOTA_TZ, 'HH:mm:ss'))); } catch (e) { hms = null; }
+  if (!hms) return now + AI_SPENT_MAX_S * 1000;
+  return now - now % 1000 - ((Number(hms[1]) * 60 + Number(hms[2])) * 60 + Number(hms[3])) * 1000 + 86400000;
+}
+/* ---------- ONE LINE PER PRESS: WHERE ITS TIME WENT (12 Oct) ---------------------------------------------
+   THE OWNER: *"ok the ai marking works but it takes so long. like 30 seconds or whatever"* -- and nothing
+   logged a press that worked, so where the thirty seconds went could only be guessed (docs/history/350).
+   Now every press that reaches the take writes one line to Executions in the Apps Script editor:
+     aiMark: timing -- short answer, 4120 ms in all; 690 ms before the first ask (the take 15 ms);
+       gemini-3.8-flash at low 429 in 402 ms, gemini-3.5-flash-lite at minimal 200 in 2210 ms;
+       marked by gemini-3.5-flash-lite
+   "In all" is from the start of `doPost` to the end of the asking and any give-back; Apps Script's own
+   start and the phone's network are outside it, and Executions' own duration is the request's whole.
+   NO LEARNER DATA: no answer, question, scheme, name or id -- the models, levels, codes and times, and,
+   for a press with no mark, which of the pupil's fixed sentences it ended on. Never throws: it runs in the
+   `finally` that gives a mark back. */
+function aiMarkTimed_(began, take, essay, got) {
+  try {
+    const asks = (got && got.asks) || [];
+    const first = asks.filter(a => a.at)[0];
+    const steps = asks.map(a => (a.wait ? 'wait ' + a.wait + ' ms'
+      : a.skipped ? a.model + ' not asked (a 429 said it is out of quota until '
+        + new Date(a.skipped).toISOString().slice(0, 16).replace('T', ' ') + ' UTC)'
+      : a.model + (a.level ? ' at ' + a.level : '') + ' ' + (a.code < 0 ? 'threw' : a.code || 'no answer') + ' in ' + a.ms + ' ms'));
+    console.log('aiMark: timing -- ' + (essay ? 'essay' : 'short answer') + ', ' + (Date.now() - began) + ' ms in all; '
+      + (first ? (first.at - began) + ' ms before the first ask (the take ' + take + ' ms); ' : 'the take ' + take + ' ms; ')
+      + (steps.length ? steps.join(', ') : 'Gemini not asked') + '; '
+      + (got && !got.error && got.model ? 'marked by ' + got.model : 'no mark -- ' + (got ? S(got.error).slice(0, 120) : 'it threw')));
+  } catch (e) {}
 }
 /* THE MODEL THAT ANSWERED, from the response's `modelVersion`, else the name asked for. Google now
    retires a name by routing it to a newer model (8 Oct: 3.7 Flash to 3.8 Flash) and the 200 says nothing
@@ -5294,9 +5495,12 @@ function aiGaveUp_(ends) {
       + ') -- the key in Script Properties, the request, or the account; Google’s words are in the line above');
   });
   console.log('aiMark: gave up -- ' + (ends.map(e => e.model + ' ' + (e.code < 0 ? 'threw' : e.code)).join(', ') || 'nothing asked'));
-  if (ends.some(e => aiAgain_(e.code))) return { error: AI_BUSY };
-  if (ends.some(e => e.code < 0)) return { error: 'Could not reach Gemini just now — try again in a moment.' };
-  return { error: 'AI marking is not working right now.' };
+  /* AND A `why` BESIDE THE SENTENCE, for a caller that is not a pupil: the Sunday marking pass
+     (`digestMarkPass_`) stops on `busy` and `unreachable` and tries tomorrow, and on `refused` tells the
+     owner — reading which by the wording would break the day the sentence is reworded. */
+  if (ends.some(e => aiAgain_(e.code))) return { error: AI_BUSY, why: 'busy' };
+  if (ends.some(e => e.code < 0)) return { error: 'Could not reach Gemini just now — try again in a moment.', why: 'unreachable' };
+  return { error: 'AI marking is not working right now.', why: 'refused' };
 }
 
 /* ---------- THE REPLY A SIGNED-IN PERSON GETS ------------------------------------------------------

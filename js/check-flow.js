@@ -252,14 +252,51 @@ function boot(opts) {
      the payload's arrival makes, for somebody signed in from the moment the page opened — a path no
      journey here could stand on. So a journey may hand the window over first, the way `check/ui.js`
      uses `addInitScript`: seed storage, or stand in for a browser API jsdom does not have. */
+  /* ---------- THE BUILDER IS HELD, UNLESS A JOURNEY ASKS FOR IT ---------------------------------------
+     `ahead_` (shell.js, docs/history/341) draws every stale column, every widget slot and both finders'
+     windows in the quiet after a landing. Every journey written before it asks what an ARRIVAL does —
+     a column drawn on the way in, a widget started when its column comes in front — so they boot with it
+     held and go on testing that floor; the journeys about the builder itself pass `ahead: true`. */
+  w.__aheadHold = !opts.ahead;
   if (typeof opts.before === 'function') opts.before(w);
   const src = ORDER.map(n => fs.readFileSync(path.join(dir, n + '.js'), 'utf8')).join('\n');
   try {
     w.eval(src + '\n;window.__t = {' +
       'go, USER: v => { USER = v; }, whoami: () => USER, ACTIONS, BOOKING, STEPS: BOOK_STEPS, isTutorRole,' +
       /* WHETHER EVERYTHING BOOKED FOR AFTER A SLIDE HAS RUN, the widget queue included — `woken_`
-         below. A function, because a `let` inside this eval is not reachable from a second one. */
-      'quiet: () => !AFTER_SLIDE && !AFTER_SLIDE_JOBS.size && !(typeof TOOLS_WAIT !== "undefined" && TOOLS_WAIT.length),' +
+         below. A function, because a `let` inside this eval is not reachable from a second one.
+         AND NO PLACEMENT STILL WAITING FOR ITS FRAME (`PLACE_FRAME`): it is the placement that books the
+         after-slide jobs, so until its frame has come there is nothing booked to wait for and this said
+         "quiet" with the leave not yet seen. Under a load average of 15–23 the word-game journeys failed so
+         ("the clock went on running behind the Saved column"), on cafb838 too, every one green alone; with
+         every animation frame held back 900ms the Saved round failed every time, and with this it passes at
+         1.5s (docs/history/341, after review). */
+      'quiet: () => !PLACE_FRAME && !AFTER_SLIDE && !AFTER_SLIDE_JOBS.size && !(typeof TOOLS_WAIT !== "undefined" && TOOLS_WAIT.length)' +
+      '  && !(typeof aheadBusy_ === "function" && aheadBusy_()),' +
+      /* THE BUILDER'S OWN STATE, for the journeys about it (docs/history/341): what is still marked, what a
+         landing drew, the log of what it ran, and the two landings — a reply (`landRepaint_`) and a change
+         of facts (`repaint`). */
+      'STALE: () => STALE, paints: () => Object.assign({}, PAINT_N), aheadLog: () => window.__aheadLog.slice(),' +
+      'aheadBusy: () => aheadBusy_(), landRepaint: d => landRepaint_(d), epochs: () => ({ act: ACT_EPOCH, draw: DRAW_EPOCH }),' +
+      /* WHETHER A SLIDE'S BAND IS STILL WIDER THAN THE GLASS — `trailEnd_` has one placement left to make, the one
+         that puts it back (docs/history/341). A page is not still until it has. */
+      'trailWide: () => TRAIL_X.lo < TRAIL_X.hi || TABS.some(x => { const h = document.getElementById("s-" + x.id); const was = h && h.TRAIL && colPlaced_(h);' +
+      '  return !!(was && (h.TRAIL.top < -was[1] - 1 || h.TRAIL.bot > -was[1] + (h.clientHeight || innerHeight) + 1)); }),' +
+      'TOOLS_ON: () => TOOLS_ON, PRE_PAYLOAD: () => [...PRE_PAYLOAD], GLASS: () => GLASS,' +
+      /* AND WHAT THE BUILDER'S JOURNEYS ASK OF IT: a column drawn as `paint` draws it, a screen's own drawing
+         (twice, for the determinism journey), the running state of the widgets with a `stop` — `let`s, so
+         only this evaluation reaches them — a kick, and a widget's slot on one column. */
+      'paint: (id, f) => paint(id, f), screenDraw: id => (SCREENS[id] ? SCREENS[id].draw() : null),' +
+      'widgetState: () => ({ tt: typeof ttState !== "undefined" ? ttState : null, flappy: typeof flappyState !== "undefined" ? flappyState : null,' +
+      '  vid: typeof VID !== "undefined" ? VID.at : null, party: typeof PARTY !== "undefined" ? PARTY : null }),' +
+      'aheadKick: () => aheadKick_(), slotOn: (c, i) => slotOn_(c, i), reelMore: n => reelMore_(document.getElementById("s-reel"), n),' +
+      'pageLo: () => PAGE_LO, swipeLive: v => { SWIPE.live = !!v; },' +
+      /* AND WHAT THE REVIEW OF 12 OCT ASKED THE BUILDER (docs/history/341, "After review"): which job a slice is
+         running, when it opened, the gates a journey closes by hand (a booked slide, a settle), the message
+         poll's clock, how far behind the finder's window keeps the card in front, and which finder is bound. */
+      'aheadRunning: () => AHEAD.running, aheadOpened: () => AHEAD.opened, slideUntil: v => { SLIDE_UNTIL = v; },' +
+      'settleOn: v => { SETTLE_ON = v; }, dmLast0: () => { DM_LAST = 0; }, stuffBehind: () => stuffBehind_(),' +
+      'aheadSlow: () => [...AHEAD_SLOW], finder: () => FINDER.id, domIndex: (id, i) => domIndex_(id, i), afterIdle: () => !AFTER_SLIDE && !AFTER_SLIDE_JOBS.size && !(typeof TOOLS_WAIT !== "undefined" && TOOLS_WAIT.length),' +
       /* THE REAL TAB LIST, so a journey asking "does every tab draw" cannot be asking about tabs
          that no longer exist. It has been wrong twice from being written out by hand. */
       'TABS, wgChosen: () => wgChosen_(),' +
@@ -381,6 +418,18 @@ function boot(opts) {
       /* WHICH TOOL EACH PAD HOLDS, a `const` Map -- so a journey can leave a stale choice behind and
          ask whether the bar, not the Map, decides what a drag draws. */
       'padTool: () => (typeof PAD_TOOL !== "undefined" ? PAD_TOOL : null),' +
+      /* THE FINGER PEN'S CONTACTS, a `const` Map (338) -- a journey asks that every one is forgotten when the
+         fingers have lifted, because one left behind is a pad the swipe engine refuses for ever. AND THE
+         SWIPE ENGINE'S OWN STATE, a `const` in overworld.js, so a journey can ask that a palm drifting on
+         the card did not take the column while a finger was on the drawing. */
+      'padTouch: () => (typeof PAD_TOUCH !== "undefined" ? PAD_TOUCH : null),' +
+      'swipe: () => (typeof SWIPE !== "undefined" ? SWIPE : null),' +
+      /* AND THE STROKE BEING DRAWN, and the path the pen draws a stroke as, so a journey can hold the live path
+         and the stored one up against `padPath_` of the points (338). */
+      'padSt: () => (typeof PAD_ST !== "undefined" ? PAD_ST : null),' +
+      'padPath: (st, k) => padPath_(st, k),' +
+      /* AND THE PATHS IT KEEPS (`PAD_PATHS`, a `const` Map, after review), so a journey can ask what it holds. */
+      'padPaths: () => (typeof PAD_PATHS !== "undefined" ? PAD_PATHS : null),' +
       /* THE CARD ON THE 📷 COLUMN. It was `newPostCard`, which no longer exists — it was a heading,
          a sentence and a tap target, and it is a button on the camera now. The rule the journey
          below checks is unchanged: a client and an admin are told different things. */
@@ -507,7 +556,7 @@ function boot(opts) {
       /* THE EIGHT-BIT FIGHTER'S WORDS AND SHAPES — `const`s, so a getter built here, like `STUFF`. The
          boxer journey asks the figure for exactly the pixels these say, rather than a copy of them. */
       'BOXER: () => (typeof BOXER_LOOK !== "undefined" ? { LOOK: BOXER_LOOK, HAIR: BOXER_HAIR, FACE: BOXER_FACE, BODY: BOXER_BODY, UNSAID: BOXER_HAIR_UNSAID } : null),' +
-      /* AND THE SECOND FINDER'S — the Resources column's own words and chips (docs/history/329). The
+      /* AND THE SECOND FINDER'S — Find 2's own words and chips (docs/history/329, 347). The
          object itself, never parked or replaced; `STUFF` outside a binding is Find's, so the two
          getters name the two finders. */
       'RES: () => (typeof RES_ST !== "undefined" ? RES_ST : null),' +
@@ -775,6 +824,12 @@ check('a YouTube Short is a reel: poster first, one muted nocookie player when r
   const t = w.__t;
   if (!t) return ['the app did not finish loading'];
   const d = w.document;
+  /* ONE SHORT IN THE DEAL. With a second Short (12 Oct) the two are often dealt side by side, and the page
+     next to the one asked about rightly keeps a player of its own — so "one give-up clock", "one player"
+     counted the neighbour's too, and the journey passed or failed on the shuffle. Each Short is the same
+     code; this asks about one, alone, by taking the others out of the deal before the column is drawn. */
+  const dealt = w.clipsNow_;
+  if (typeof dealt === 'function') w.clipsNow_ = () => dealt().filter(f => !/youtu/i.test(String(f.clip)) || /jD2Yy_wCBLE/.test(String(f.clip)));
   const bad = [];
   const at = () => ((typeof t.PAGE === 'function' ? t.PAGE() : t.PAGE) || {}).reel || 0;
   const turn = async n => { t.goPage('reel', n, true); await wait(LEAVE_MS); await woken_(); };
@@ -782,10 +837,13 @@ check('a YouTube Short is a reel: poster first, one muted nocookie player when r
   await wait(LEAVE_MS); await woken_();
   const host = d.querySelector('#s-reel');
   if (!host) return ['the Reels column did not draw'];
+  /* THIS SHORT, NOT ANY SHORT. There were one Short and two mp4s, so "the first `.feed-yt` ahead" was
+     this one; a second Short (12 Oct) made it a coin toss which this journey asked about, and the poster
+     line below names this id. A lap is as many pages as there are clips, read off the app's own deal. */
   const ytAway = () => [...host.querySelectorAll('.reel')]
-    .find(r => r.querySelector('.feed-yt') && Number(r.dataset.reel) > at());
-  /* DEALT TO THE PAGE IN FRONT, its next copy is one lap on — and turning one page appends that lap. */
-  if (!ytAway()) await turn(1);
+    .find(r => r.querySelector('.feed-yt[data-yt="jD2Yy_wCBLE"]') && Number(r.dataset.reel) > at());
+  /* DEALT TO THE PAGE IN FRONT, its next copy is one lap on — walked to, a page at a time. */
+  for (let k = 0; k < 12 && !ytAway(); k++) await turn(at() + 1);
   const reel = ytAway();
   if (!reel) return ['no slide in the Reels column holds the YouTube row: ' + [...host.querySelectorAll('.reel')].length + ' reels drawn'];
   const n = Number(reel.dataset.reel);
@@ -957,6 +1015,12 @@ check('a YouTube Short that never answers ends at its door even held or a page a
   const t = w.__t;
   if (!t) return ['the app did not finish loading'];
   const d = w.document;
+  /* ONE SHORT IN THE DEAL. With a second Short (12 Oct) the two are often dealt side by side, and the page
+     next to the one asked about rightly keeps a player of its own — so "one give-up clock", "one player"
+     counted the neighbour's too, and the journey passed or failed on the shuffle. Each Short is the same
+     code; this asks about one, alone, by taking the others out of the deal before the column is drawn. */
+  const dealt = w.clipsNow_;
+  if (typeof dealt === 'function') w.clipsNow_ = () => dealt().filter(f => !/youtu/i.test(String(f.clip)) || /jD2Yy_wCBLE/.test(String(f.clip)));
   const bad = [];
   const live = kind => clocks.filter(c => c.kind === kind && !c.off);
   const ring = kind => { const l = live(kind); l.forEach(c => { c.off = true; c.fn(); }); return l.length; };
@@ -973,10 +1037,13 @@ check('a YouTube Short that never answers ends at its door even held or a page a
   t.go('reel', false, true);
   await wait(LEAVE_MS); await woken_();
   if (!d.querySelector('#s-reel')) return ['the Reels column did not draw'];
-  /* THE SHORT IS DEALT ONE CLIP IN THREE, at a random page per open. Its copies are a lap apart, and
-     if it was dealt to the page in front its next copy is drawn by the first turn. */
-  const ahead = () => [...d.querySelectorAll('#s-reel .reel')].find(r => r.querySelector('.feed-yt') && Number(r.dataset.reel) > at());
-  if (!ahead()) await turn(1);
+  /* THE SHORT IS DEALT ONCE A LAP, at a random page per open, and its copies are a lap apart. A LAP IS
+     EVERY CLIP ONCE — three pages while there were three clips, which this journey once wrote as `+ 3`
+     and which a fourth clip (12 Oct) broke: page n + 3 held another reel. So the lap is read off the
+     app's own deal, and the Short asked about is one id, not whichever `.feed-yt` comes first. */
+  const LAP = (typeof w.clipsNow_ === 'function' ? w.clipsNow_().length : 0) || 3;
+  const ahead = () => [...d.querySelectorAll('#s-reel .reel')].find(r => r.querySelector('.feed-yt[data-yt="jD2Yy_wCBLE"]') && Number(r.dataset.reel) > at());
+  for (let k = 0; k < 12 && !ahead(); k++) await turn(at() + 1);
   const first = ahead();
   if (!first) return ['no YouTube Short ahead in the Reels column to ask about'];
   const n = Number(first.dataset.reel);
@@ -997,19 +1064,19 @@ check('a YouTube Short that never answers ends at its door even held or a page a
   if (reel.classList.contains('is-held')) bad.push('A: a tap on a Short that cannot play drew a ▶ over its door');
 
   /* B: NEVER ANSWERS, AND IS FLICKED ONE PAGE AWAY before the clock runs out. */
-  await reach(n + 3);
-  reel = reelAt(n + 3);
-  if (!reel || !reel.querySelector('.feed-yt')) return bad.concat(['the Short\'s next lap is not on page ' + (n + 3)]);
-  await turn(n + 4);
+  await reach(n + LAP);
+  reel = reelAt(n + LAP);
+  if (!reel || !reel.querySelector('.feed-yt')) return bad.concat(['the Short\'s next lap is not on page ' + (n + LAP)]);
+  await turn(n + LAP + 1);
   if (!reel.querySelector('iframe')) bad.push('B: the page next door lost its player — a flick back would reload it');
   ring('clock');
   if (!dead(reel)) bad.push('B: a player that said nothing for the whole clock, a page away when it ran out, was not given up on — no door when you flick back');
 
   /* C: ANSWERS, NEVER PLAYS, AND IS HELD WHEN THE CLOCK RUNS OUT — waits; the next ask winds a fresh clock. */
-  await reach(n + 6);
-  reel = reelAt(n + 6);
+  await reach(n + 2 * LAP);
+  reel = reelAt(n + 2 * LAP);
   const fc = reel && reel.querySelector('iframe');
-  if (!fc) return bad.concat(['the Short on page ' + (n + 6) + ' built no player']);
+  if (!fc) return bad.concat(['the Short on page ' + (n + 2 * LAP) + ' built no player']);
   hear(fc, { event: 'onReady' });
   tap(reel);
   ring('clock');
@@ -1021,10 +1088,10 @@ check('a YouTube Short that never answers ends at its door even held or a page a
   if (!dead(reel)) bad.push('C: a player asked to play for a whole clock that never played its first frame was not given up on');
 
   /* D: A LAP. Ended, unstarted, buffering, playing — the picture stays up through all of it. */
-  await reach(n + 9);
-  reel = reelAt(n + 9);
+  await reach(n + 3 * LAP);
+  reel = reelAt(n + 3 * LAP);
   const fd = reel && reel.querySelector('iframe');
-  if (!fd) return bad.concat(['the Short on page ' + (n + 9) + ' built no player']);
+  if (!fd) return bad.concat(['the Short on page ' + (n + 3 * LAP) + ' built no player']);
   const box = reel.querySelector('.feed-yt');
   hear(fd, { event: 'onReady' });
   hear(fd, { event: 'onStateChange', info: 1 });
@@ -2289,9 +2356,12 @@ const cardWorld_ = (more) => {
      what the server now sends, qualifications included. */
   const GET = () => {
     const g = real.get({});
-    return Object.assign(payload(), { features: ['setNotify'], tutors: g.tutors, venues: g.venues,
+    const p = Object.assign(payload(), { features: ['setNotify'], tutors: g.tutors, venues: g.venues,
       profileFields: g.profileFields, studentFields: g.studentFields, clientFields: g.clientFields,
       validations: g.validations, profileReadonly: g.profileReadonly, phoneCodes: g.phoneCodes });
+    /* `more.vars`: config numbers laid over the fixture's — the seat's `c` and `B` (docs/history/345). */
+    if (more && more.vars) p.constants = Object.assign({}, p.constants, { vars: Object.assign({}, (p.constants || {}).vars, more.vars) });
+    return p;
   };
   /* AND A PAYLOAD THAT CAN BE HELD — the live one takes seconds, and "the card says it at once" is a
      question about the seconds before it lands, which an instant stub would answer for it. */
@@ -2833,6 +2903,252 @@ check('an admin edits another tutor\'s card the same way — filled from getProf
     if (JSON.stringify(o.edits()) !== JSON.stringify([pid])) bad.push(who + ' is offered Edit on ' + JSON.stringify(o.edits()) + ', wanted their own card alone');
     if (!o.d.querySelector('#s-account .card.is-prof')) bad.push(who + ' sees no card on the You column, so Edit was NOT checked');
   }
+  return bad;
+});
+
+/* ---------- THE BUSINESS'S CUT OF AN EXTRA SEAT, ON THE TUTOR'S CARD, IN POUNDS (docs/history/345) ----------------
+   THE OWNER, 12 Oct: *"Your cut off extra child for tutors should be editable on thir card. Like they can edit that
+   small number to the right of their normal rate"*. Against the real backend: an admin editing a tutor's card sees
+   the two parts of a seat in POUNDS beside the rate — the tutor's own and the business's, the cut blank and saying
+   what blank is — and the seat as the card prints it, recomputed as the rate and the cut are typed; the rate typed
+   carries the pounds with it and back; a cut typed in pounds at a rate it does not divide goes up as a SHARE, the
+   only things sent are what moved, the sheet and `doGet` hold the share, the card says the new seat at once, and the
+   editor opened again shows the same pounds to the penny. Config c 0.3 and B 0.1; Ada charges £20 with her own 0.5. */
+const CUT_VARS_ = { c: 0.3, B: 0.1 };
+const seatSaid_ = c => String((c.form() && (c.form().querySelector('.ce-seat') || {}).textContent) || '').trim();
+check('an admin sets a tutor\'s cut of an extra seat in pounds on their card: the preview follows typing, one updateProfile sends the share, the sheet and doGet hold it, the card says the new seat, and the pounds come back to the penny', async () => {
+  const W = cardWorld_({ vars: CUT_VARS_ });
+  const c = await cardOpen_(W, 'admin@example.org');
+  if (c.err) return [c.err];
+  const bad = [];
+  const ada = c.edit('P-T1');
+  if (!ada) return ['the admin is offered no Edit on Ada\'s card — offered ' + JSON.stringify(c.edits())];
+  c.A('card-edit', ada);
+  await wait(500);
+  if (!c.form() || c.card().dataset.pid !== 'P-T1') return ['Edit on Ada\'s card did not open it as a form'];
+  const pound = f => c.form().querySelector('[data-pound="' + f + '"]');
+  const sec = c.form().querySelector('.ce-sec[data-sec="rate"]');
+  if (!sec || !pound('extra_seat_rate') || !pound('extra_seat_cut')) return ['the rate section has no pound boxes for the two parts of a seat: ' + (sec ? sec.innerHTML.slice(0, 200) : 'no section')];
+  /* BESIDE THE RATE, IN THE CARD'S ORDER: the rate, then the two parts, then the students. */
+  const order = [...sec.querySelectorAll('[data-me="rate_per_hour"], [data-pound], [data-me="min_students"]')].map(x => x.dataset.me || x.dataset.pound);
+  if (JSON.stringify(order) !== '["rate_per_hour","extra_seat_rate","extra_seat_cut","min_students"]') bad.push('the rate section reads ' + JSON.stringify(order));
+  if (pound('extra_seat_rate').value !== '10.00') bad.push('Ada\'s own part shows "' + pound('extra_seat_rate').value + '", wanted 10.00 (0.5 of £20)');
+  if (pound('extra_seat_cut').value !== '' || pound('extra_seat_cut').placeholder !== 'usual') bad.push('a blank cut shows "' + pound('extra_seat_cut').value + '" under "' + pound('extra_seat_cut').placeholder + '", wanted nothing under "usual"');
+  if (c.box('extra_seat_cut').disabled) bad.push('the admin\'s hidden cut box is disabled, so their Save could never carry it');
+  if (seatSaid_(c) !== '+£12.00/h a seat') bad.push('the preview reads "' + seatSaid_(c) + '", wanted +£12.00/h a seat (20 × (0.5 + 0.1))');
+  if (!/Theirs: blank or £0 is the usual £6\.00\. @family\.'s: blank is the usual £2\.00, £0 is no cut\./.test(sec.textContent.replace(/\s+/g, ' '))) bad.push('the section does not say what blank and £0 are for each part — the usual £6.00 theirs, the usual £2.00 and no cut for @family.: ' + sec.textContent.replace(/\s+/g, ' ').slice(0, 300));
+  /* THE RATE TYPED: the pounds follow the shares, and blank disables them with a reason. */
+  c.type(c.box('rate_per_hour'), '');
+  if (!pound('extra_seat_rate').disabled || !/set it first/.test(seatSaid_(c))) bad.push('with no rate the pound boxes are not disabled, or the preview does not say why: "' + seatSaid_(c) + '"');
+  c.type(c.box('rate_per_hour'), '24');
+  if (pound('extra_seat_rate').disabled || pound('extra_seat_rate').value !== '12.00' || seatSaid_(c) !== '+£14.40/h a seat') bad.push('at £24 the part reads ' + pound('extra_seat_rate').value + ' and the preview "' + seatSaid_(c) + '", wanted 12.00 and +£14.40/h a seat');
+  /* AND A CUT IN POUNDS AT A RATE IT DOES NOT DIVIDE: £3.33 of £23 is 0.144783 to six places. */
+  c.type(c.box('rate_per_hour'), '23');
+  c.type(pound('extra_seat_cut'), '3.33');
+  if (c.box('extra_seat_cut').value !== '0.144783') bad.push('£3.33 at £23 is held as the share ' + JSON.stringify(c.box('extra_seat_cut').value) + ', wanted "0.144783"');
+  if (seatSaid_(c) !== '+£14.83/h a seat') bad.push('the preview reads "' + seatSaid_(c) + '", wanted +£14.83/h a seat (11.50 + 3.33)');
+  if (c.box('extra_seat_rate').value !== '0.5') bad.push('typing the rate moved Ada\'s own share to ' + c.box('extra_seat_rate').value + ' — it should stay 0.5 and the pounds follow it');
+  c.type(pound('extra_seat_cut'), '99');
+  if (!/twice the rate/.test(seatSaid_(c))) bad.push('a cut past twice the rate is not said: "' + seatSaid_(c) + '"');
+  c.type(pound('extra_seat_cut'), '3.33');
+  c.sent.length = 0;
+  c.A('card-save', c.tile('card-save'));
+  await wait(600);
+  const p = c.posts();
+  if (p.length !== 1) return bad.concat(['the Save posted ' + p.length + ' updateProfile requests']);
+  const f = p[0].fields || {};
+  if (JSON.stringify(Object.keys(f).sort()) !== '["extra_seat_cut","rate_per_hour"]' || f.extra_seat_cut !== '0.144783' || f.rate_per_hour !== '23') bad.push('the Save sent ' + JSON.stringify(f) + ', wanted the rate 23 and the cut 0.144783 and nothing else');
+  const row = W.real.row('P-T1');
+  if (Number(row.extra_seat_cut) !== 0.144783 || Number(row.rate_per_hour) !== 23 || Number(row.extra_seat_rate) !== 0.5) bad.push('the sheet holds ' + JSON.stringify({ rate: row.rate_per_hour, seat: row.extra_seat_rate, cut: row.extra_seat_cut }));
+  const sent = (W.real.get({}).tutors || []).find(x => x.personId === 'P-T1') || {};
+  if (sent.extraSeatCut !== 0.144783) bad.push('doGet sends Ada\'s cut as ' + JSON.stringify(sent.extraSeatCut));
+  if (c.card()) bad.push('after Save Ada\'s card is still a form');
+  const pg = c.pageOf('P-T1');
+  const onCard = ((pg && pg.querySelector('.prof-seat')) || {}).textContent || '';
+  if (onCard.trim() !== '+£14.83/h a seat') bad.push('Ada\'s card says "' + onCard.trim() + '" after the Save, wanted +£14.83/h a seat');
+  /* OPENED AGAIN, FROM THE SERVER'S COPY: the same pounds, to the penny. */
+  await wait(300);
+  if (c.edit('P-T1')) c.A('card-edit', c.edit('P-T1'));
+  await wait(500);
+  if (!c.form() || !pound('extra_seat_cut')) bad.push('Ada\'s card did not open again for editing');
+  else if (pound('extra_seat_cut').value !== '3.33' || pound('extra_seat_rate').value !== '11.50') bad.push('opened again the parts read ' + pound('extra_seat_rate').value + ' and ' + pound('extra_seat_cut').value + ', wanted 11.50 and 3.33');
+  return bad;
+});
+
+/* ---------- AND ON THE TUTOR'S OWN CARD: THE CUT IS SHOWN, NOT OFFERED, AND NEVER SENT ------------------------
+   The same section for Ada herself, whose cut an admin has set to 0.15 and whose own share is a third, typed into
+   the sheet by hand as 0.3333333333: her own part is a pound box (£6.67), the business's is a line saying what it
+   is and who sets it, and its hidden box is disabled, so her Save of her own part sends that and nothing else. Her
+   part typed back to the £6.67 it showed puts back THE CELL ITSELF, not 0.3335 — which would be a change, and
+   would start her month. And a phone that sends the cut anyway — the hidden box enabled by hand — is refused by
+   the server, said under the form, which stays open with nothing written. */
+check('a tutor sees the business\'s cut of a seat on their own card and cannot change it: their own part in pounds is all a Save sends, and a forced cut is refused with nothing written', async () => {
+  const W = cardWorld_({ vars: CUT_VARS_ });
+  const h = W.real.tabs.people[0], ri = W.real.tabs.people.findIndex((x, i) => i > 0 && x[h.indexOf('person_id')] === 'P-T1');
+  if (h.indexOf('extra_seat_cut') < 0 || ri < 0) return ['the people tab has no extra_seat_cut column or no Ada, so the tutor\'s view was NOT checked'];
+  W.real.tabs.people[ri][h.indexOf('extra_seat_cut')] = 0.15;
+  W.real.tabs.people[ri][h.indexOf('extra_seat_rate')] = 0.3333333333;
+  const c = await cardOpen_(W, 'tutor@example.org');
+  if (c.err) return [c.err];
+  const bad = [];
+  if (!c.edit('P-T1')) return ['Ada\'s own card has no Edit'];
+  c.A('card-edit', c.edit('P-T1'));
+  await wait(400);
+  if (!c.form()) return ['Ada\'s own card did not open for editing'];
+  const pound = f => c.form().querySelector('[data-pound="' + f + '"]');
+  const sec = c.form().querySelector('.ce-sec[data-sec="rate"]');
+  if (pound('extra_seat_cut')) bad.push('Ada is offered a box for the business\'s cut');
+  if (!c.box('extra_seat_cut') || !c.box('extra_seat_cut').disabled) bad.push('Ada\'s hidden cut box is missing or not disabled — her Save could carry it');
+  if (!pound('extra_seat_rate') || pound('extra_seat_rate').value !== '6.67') bad.push('Ada\'s own part is not a pound box reading 6.67 (a third of £20)');
+  if (!sec || !/£3\.00\/h of a seat is @family\.'s — only @family\. sets that/.test(sec.textContent)) bad.push('the section does not say the business\'s £3.00 and who sets it: ' + (sec ? sec.textContent.replace(/\s+/g, ' ').slice(0, 300) : 'no section'));
+  if (seatSaid_(c) !== '+£9.67/h a seat') bad.push('the preview reads "' + seatSaid_(c) + '", wanted +£9.67/h a seat (20 × (⅓ + 0.15))');
+  c.type(pound('extra_seat_rate'), '12');
+  if (c.box('extra_seat_rate').value !== '0.6' || seatSaid_(c) !== '+£15.00/h a seat') bad.push('£12 of £20 is held as ' + c.box('extra_seat_rate').value + ' and previewed "' + seatSaid_(c) + '", wanted 0.6 and +£15.00/h a seat');
+  /* TYPED BACK TO WHAT IT SHOWED, IT IS WHAT IT WAS — the stored cell, so nothing moves and no month starts. */
+  c.type(pound('extra_seat_rate'), '6.67');
+  if (c.box('extra_seat_rate').value !== '0.3333333333') bad.push('typed back to £6.67 the share is ' + JSON.stringify(c.box('extra_seat_rate').value) + ', not the stored 0.3333333333 — a Save would send a share nobody changed');
+  c.type(pound('extra_seat_rate'), '12');
+  c.sent.length = 0;
+  c.A('card-save', c.tile('card-save'));
+  await wait(600);
+  const p = c.posts();
+  if (p.length !== 1 || JSON.stringify(p[0].fields) !== '{"extra_seat_rate":"0.6"}') bad.push('Ada\'s Save sent ' + JSON.stringify(p.map(x => x.fields)) + ', wanted her own share 0.6 alone');
+  const row = W.real.row('P-T1');
+  if (Number(row.extra_seat_rate) !== 0.6 || Number(row.extra_seat_cut) !== 0.15) bad.push('the sheet holds ' + JSON.stringify({ seat: row.extra_seat_rate, cut: row.extra_seat_cut }));
+  /* A FORCED CUT: the box enabled by hand, as a phone that does not mean well would. */
+  await wait(300);
+  if (c.edit('P-T1')) c.A('card-edit', c.edit('P-T1'));
+  await wait(400);
+  if (!c.form()) return bad.concat(['Ada\'s own card did not open again']);
+  c.box('extra_seat_cut').disabled = false;
+  c.box('extra_seat_cut').value = '0';
+  c.sent.length = 0;
+  c.A('card-save', c.tile('card-save'));
+  await wait(600);
+  const forced = c.posts();
+  if (!forced.length || (forced[0].fields || {}).extra_seat_cut !== '0') bad.push('the forced cut was never sent, so the server\'s refusal was NOT checked');
+  if (!c.form() || !/Only @family\. sets its share of an extra seat/.test(c.said())) bad.push('a forced cut did not keep the form open with the server\'s refusal under it: "' + c.said() + '"');
+  if (Number(W.real.row('P-T1').extra_seat_cut) !== 0.15) bad.push('a tutor\'s forced cut reached the sheet: ' + W.real.row('P-T1').extra_seat_cut);
+  return bad;
+});
+
+/* ---------- THE PARTS OF A SEAT ADD UP TO THE SEAT, AND A NOUGHT IN THE TUTOR'S PART IS THE USUAL (the review of 345) --
+   `seatShare_` prices a tutor's own share of nought — stored or typed — as the config `c`, and the editor drew it as
+   "0.00": on Ada at £20 the boxes read £0 and £2 over a seat of +£8.00, beside a business's box where £0 means NO cut.
+   So this asks what a person reads: each part drawn, or, where it is blank, the usual amount the line under the boxes
+   names, add up to the seat printed under them. Ada's own share is a stored nought here, and her card is opened by
+   herself: her box is empty under "usual", never "0.00"; the line names her usual £6.00 and the business's £2.00; a
+   nought typed into her box and left is put back to empty and to the stored cell, so a Save sends nothing. */
+const seatParts_ = (c, f) => { const b = c.form() && c.form().querySelector('[data-pound="' + f + '"]'); return b ? String(b.value).trim() : null; };
+const seatNote_ = c => String(((c.form() && c.form().querySelector('.ce-seat-note')) || {}).textContent || '').replace(/\s+/g, ' ').trim();
+const seatSum_ = s => { const m = /\+£(\d+\.\d\d)\/h a seat/.exec(s); return m ? Number(m[1]) : NaN; };
+check('a nought in a tutor\'s own part of a seat is the usual share, drawn empty and never 0.00, and the line names what both usual parts are worth so the parts add up to the seat', async () => {
+  const W = cardWorld_({ vars: CUT_VARS_ });
+  const h = W.real.tabs.people[0], ri = W.real.tabs.people.findIndex((x, i) => i > 0 && x[h.indexOf('person_id')] === 'P-T1');
+  if (h.indexOf('extra_seat_rate') < 0 || ri < 0) return ['the people tab has no extra_seat_rate column or no Ada, so a stored nought was NOT checked'];
+  W.real.tabs.people[ri][h.indexOf('extra_seat_rate')] = 0;
+  const c = await cardOpen_(W, 'tutor@example.org');
+  if (c.err) return [c.err];
+  const bad = [];
+  if (!c.edit('P-T1')) return ['Ada\'s own card has no Edit'];
+  c.A('card-edit', c.edit('P-T1'));
+  await wait(400);
+  if (!c.form()) return ['Ada\'s own card did not open for editing'];
+  const yours = () => c.form().querySelector('[data-pound="extra_seat_rate"]');
+  if (!yours()) return ['Ada\'s own part has no pound box'];
+  if (yours().value !== '' || yours().placeholder !== 'usual') bad.push('a stored nought for Ada\'s own part is drawn "' + yours().value + '" under "' + yours().placeholder + '", wanted nothing under "usual" — the price reads it as the usual share');
+  if (seatSaid_(c) !== '+£8.00/h a seat') bad.push('the preview reads "' + seatSaid_(c) + '", wanted +£8.00/h a seat (20 × (0.3 + 0.1))');
+  const want = "Yours: blank or £0 is the usual £6.00. £2.00/h of a seat is @family.'s, the usual — only @family. sets that.";
+  if (seatNote_(c) !== want) bad.push('the line under the boxes reads "' + seatNote_(c) + '", wanted "' + want + '"');
+  /* WHAT IS ON THE SCREEN ADDS UP: her part as drawn, or the usual the line names when it is blank, and the business's. */
+  const m = /usual £(\d+\.\d\d)\. £(\d+\.\d\d)\/h of a seat/.exec(seatNote_(c));
+  const mine = seatParts_(c, 'extra_seat_rate') || (m ? m[1] : 'NaN');
+  if (!m || Math.abs(Number(mine) + Number(m[2]) - seatSum_(seatSaid_(c))) > 0.005) bad.push('the parts on the screen (' + mine + ' and ' + (m ? m[2] : '?') + ') do not add up to the seat "' + seatSaid_(c) + '"');
+  /* A NOUGHT TYPED AND LEFT: the usual over the usual — the stored cell back, the box empty again, nothing sent. */
+  c.type(yours(), '0');
+  if (c.box('extra_seat_rate').value !== '0') bad.push('£0 typed over a stored nought is held as ' + JSON.stringify(c.box('extra_seat_rate').value) + ', not the stored "0" — a Save would send a share nobody changed');
+  if (yours().value !== '') bad.push('a nought typed into Ada\'s own part and left still reads "' + yours().value + '" — it is the usual, and is drawn empty');
+  if (seatSaid_(c) !== '+£8.00/h a seat') bad.push('after £0 in her own part the preview reads "' + seatSaid_(c) + '", wanted +£8.00/h a seat');
+  c.sent.length = 0;
+  c.A('card-save', c.tile('card-save'));
+  await wait(500);
+  if (c.posts().length) bad.push('a Save after £0 over a stored nought sent ' + JSON.stringify(c.posts().map(x => x.fields)) + ', wanted nothing');
+  /* AND WHERE THE RATE PAGE IS STILL ON SETTINGS (a tutor with no public card), the cut a tutor cannot change says who
+     sets it, as the card's line does — a dimmed box under the admin's caption said nothing about why. Drawn by the
+     same `fieldHtml` call `settingsPages_` makes, read-only. */
+  if (typeof c.w.fieldHtml === 'function') {
+    const ro = c.d.createElement('div'); ro.innerHTML = c.w.fieldHtml('extra_seat_cut', '0.2', { readonly: true });
+    const box = ro.querySelector('[data-me="extra_seat_cut"]');
+    if (!box || !box.disabled || !/set by @family\./.test(ro.textContent)) bad.push('the read-only cut on Settings does not say who sets it, or can be typed into: "' + ro.textContent.replace(/\s+/g, ' ').trim() + '"');
+  } else bad.push('fieldHtml is not reachable, so the read-only cut on Settings was NOT checked');
+  return bad;
+});
+
+/* ---------- AND ON AN ADMIN'S EDIT: £0 IN THE TUTOR'S PART IS THE USUAL, £0 TO THE BUSINESS IS NO CUT, THE POUNDS TYPED
+   STAY WHEN THE RATE IS CORRECTED AFTER THEM, AND A PART PAST TWICE THE RATE IS REFUSED IN POUNDS BEFORE IT IS SENT ------
+   Ada at £20 with her own 0.5 and no cut of her own. Typing the rate moved every part's pounds, typed or not, so £5 and £2
+   typed at £20 and the rate then corrected to £30 saved £7.50 and £3.00; the order things were typed in decided the seat.
+   And £99 past twice the rate went to the server, which answered in the Settings box's unit ("0.1 is a tenth"). */
+check('on an admin\'s edit of a tutor\'s card the parts of a seat add up to the seat, £0 means the usual for the tutor and no cut for the business, the pounds typed are kept when the rate moves after them, and a part past twice the rate is refused in pounds with nothing sent', async () => {
+  const W = cardWorld_({ vars: CUT_VARS_ });
+  const c = await cardOpen_(W, 'admin@example.org');
+  if (c.err) return [c.err];
+  const bad = [];
+  if (!c.edit('P-T1')) return ['the admin is offered no Edit on Ada\'s card'];
+  c.A('card-edit', c.edit('P-T1'));
+  await wait(500);
+  if (!c.form() || c.card().dataset.pid !== 'P-T1') return ['Edit on Ada\'s card did not open it as a form'];
+  const pound = f => c.form().querySelector('[data-pound="' + f + '"]');
+  if (!pound('extra_seat_rate') || !pound('extra_seat_cut')) return ['the admin\'s edit has no pound boxes for the two parts'];
+  const want = "Theirs: blank or £0 is the usual £6.00. @family.'s: blank is the usual £2.00, £0 is no cut.";
+  if (seatNote_(c) !== want) bad.push('the line under the boxes reads "' + seatNote_(c) + '", wanted "' + want + '"');
+  /* WHAT IS ON THE SCREEN ADDS UP: each part as drawn, or the usual the line names when it is blank. */
+  const adds = when => {
+    const m = /usual £(\d+\.\d\d)\..*usual £(\d+\.\d\d),/.exec(seatNote_(c));
+    if (!m) { bad.push(when + ': the line names no usual amounts: "' + seatNote_(c) + '"'); return; }
+    const a = seatParts_(c, 'extra_seat_rate') || m[1], b = seatParts_(c, 'extra_seat_cut') || m[2];
+    if (Math.abs(Number(a) + Number(b) - seatSum_(seatSaid_(c))) > 0.005) bad.push(when + ': the parts on the screen (' + a + ' and ' + b + ') do not add up to the seat "' + seatSaid_(c) + '"');
+  };
+  adds('opened');
+  /* £0 IN THE TUTOR'S PART is the usual: the share goes blank, the box is empty once left, and the seat is the usual one. */
+  c.type(pound('extra_seat_rate'), '0');
+  if (c.box('extra_seat_rate').value !== '') bad.push('£0 in the tutor\'s part over a stored 0.5 is held as ' + JSON.stringify(c.box('extra_seat_rate').value) + ', wanted "" — the usual');
+  if (pound('extra_seat_rate').value !== '') bad.push('£0 typed into the tutor\'s part and left still reads "' + pound('extra_seat_rate').value + '"');
+  if (seatSaid_(c) !== '+£8.00/h a seat') bad.push('with the tutor\'s part at the usual the preview reads "' + seatSaid_(c) + '", wanted +£8.00/h a seat');
+  adds('£0 in the tutor\'s part');
+  /* £0 TO THE BUSINESS is no cut: held as nought, drawn as typed, and the seat loses the business's part. */
+  c.type(pound('extra_seat_cut'), '0');
+  if (c.box('extra_seat_cut').value !== '0' || pound('extra_seat_cut').value !== '0') bad.push('£0 to @family. is held as ' + JSON.stringify(c.box('extra_seat_cut').value) + ' and drawn "' + pound('extra_seat_cut').value + '", wanted 0 and 0');
+  if (seatSaid_(c) !== '+£6.00/h a seat') bad.push('with no cut the preview reads "' + seatSaid_(c) + '", wanted +£6.00/h a seat');
+  adds('£0 to @family.');
+  /* THE PARTS TYPED, THEN THE RATE CORRECTED: the pounds stay as typed and the shares follow them. */
+  c.type(pound('extra_seat_rate'), '5');
+  c.type(pound('extra_seat_cut'), '2');
+  c.type(c.box('rate_per_hour'), '3');
+  c.type(c.box('rate_per_hour'), '30');
+  if (pound('extra_seat_rate').value !== '5' || pound('extra_seat_cut').value !== '2') bad.push('the rate typed after the parts moved them to ' + pound('extra_seat_rate').value + ' and ' + pound('extra_seat_cut').value + ', wanted the 5 and 2 typed');
+  if (c.box('extra_seat_rate').value !== '0.166667' || c.box('extra_seat_cut').value !== '0.066667') bad.push('£5 and £2 at £30 are held as ' + c.box('extra_seat_rate').value + ' and ' + c.box('extra_seat_cut').value + ', wanted 0.166667 and 0.066667');
+  if (seatSaid_(c) !== '+£7.00/h a seat') bad.push('£5 and £2 at £30 preview "' + seatSaid_(c) + '", wanted +£7.00/h a seat');
+  adds('the rate typed after the parts');
+  /* PAST TWICE THE RATE: said in pounds under the form, nothing sent, the form still open. */
+  c.type(pound('extra_seat_cut'), '99');
+  c.sent.length = 0;
+  c.A('card-save', c.tile('card-save'));
+  await wait(400);
+  if (c.posts().length) bad.push('a part of £99 at £30 was sent: ' + JSON.stringify(c.posts().map(x => x.fields)));
+  if (!c.form() || !/Each part is £0 to £60\.00\/h — twice the rate\. Nothing was saved\./.test(c.said())) bad.push('a part past twice the rate is not refused in pounds under the open form: "' + c.said() + '"');
+  c.type(pound('extra_seat_cut'), '2');
+  c.sent.length = 0;
+  c.A('card-save', c.tile('card-save'));
+  await wait(600);
+  const p = c.posts();
+  const f = (p[0] || {}).fields || {};
+  if (p.length !== 1 || JSON.stringify(f) !== JSON.stringify({ rate_per_hour: '30', extra_seat_rate: '0.166667', extra_seat_cut: '0.066667' })) bad.push('the Save sent ' + JSON.stringify(p.map(x => x.fields)) + ', wanted the rate 30 and the two shares of £5 and £2');
+  const sent = (W.real.get({}).tutors || []).find(x => x.personId === 'P-T1') || {};
+  if (sent.extraSeatCut !== 0.066667) bad.push('doGet sends Ada\'s cut as ' + JSON.stringify(sent.extraSeatCut));
+  const pg = c.pageOf('P-T1');
+  const onCard = (((pg && pg.querySelector('.prof-seat')) || {}).textContent || '').trim();
+  if (onCard !== '+£7.00/h a seat') bad.push('Ada\'s card says "' + onCard + '" after the Save, wanted +£7.00/h a seat');
   return bad;
 });
 
@@ -4519,6 +4835,1531 @@ check('the whiteboard keeps one finger to a stroke, is not cut by a repaint, put
   t.padOn('');
   try { w.localStorage.removeItem(k); w.localStorage.removeItem('board:whiteboard'); } catch (e) {}
   t.USER(null);
+  return bad;
+});
+
+/* ---------- THE FINGER PEN: TWO FINGERS, A PALM OR A THUMB LEAVE NOTHING (338) -----------------------------
+   *"they are just using their fingers"* -- the owner, 11 Oct. Measured before with real touch: a two-finger
+   tap stored a dot, a pan or a pinch a line, and a palm that landed first took the stroke and lost the
+   finger's whole line. Each rule of the contact model (find.js, over `padLand_`) is asked here through the
+   pen's own listeners, on a question's 340x170 pad (one unit across is 1px, one down 0.5px) and on the
+   board, with events the way a phone sends them: `pointerType: 'touch'`, the first finger primary, each
+   carrying its own `timeStamp`. Every case asks, synchronously after the last lift: what was stored, that no
+   preview or aid is left, that `padBusy_` has let go of the swipe engine, and that no contact is left
+   behind -- a contact left behind is a pad the column can never be swiped off. */
+const penEv_ = (w, el, type, o) => {
+  const e = new w.MouseEvent(type, { bubbles: true, cancelable: true, clientX: o.x, clientY: o.y });
+  const put = (n, v) => Object.defineProperty(e, n, { value: v });
+  put('pointerId', o.id);
+  put('pointerType', o.type === undefined ? 'touch' : o.type);
+  put('isPrimary', !!o.prim);
+  if (o.t !== undefined) put('timeStamp', o.t);
+  put('width', o.size || 16); put('height', o.size || 16);
+  if (o.co) put('getCoalescedEvents', () => o.co);
+  el.dispatchEvent(e);
+  return e;
+};
+/* EVERY STORED VALUE IS A LIST OF LISTS OF WHOLE NUMBERS -- the format every device and account holds. */
+const penWhole_ = all => Array.isArray(all) && all.every(st => Array.isArray(st) && st.length % 2 === 0
+  && st.every(v => typeof v === 'number' && Number.isInteger(v)));
+
+check('the finger pen: on a question\'s pad a two-finger tap, pan or pinch, a third finger or a palm leave nothing, a palm that lands first does not take the finger\'s line, and a cancel keeps only a real line', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  if (!t || typeof t.padWrap !== 'function' || typeof t.padKey !== 'function' || typeof t.padOn !== 'function'
+      || typeof w.padBusy_ !== 'function' || typeof w.padDrop_ !== 'function' || typeof t.padTouch !== 'function' || !t.padTouch()) {
+    return ['padWrap_, padKey_, padBusy_, padDrop_ or PAD_TOUCH are not reachable — the finger pen was NOT checked'];
+  }
+  const x = { kind: 'question', answerType: 'drawing', html: '<p>Draw it.</p>', key: 'q:Q-FINGER-1' };
+  const k = t.padKey(x);
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  /* (100, 50) to (440, 220) on the screen: x units = px - 100, y units = (py - 50) * 2. */
+  const L = 100, T = 50, W = 340, H = 170;
+  const ink = () => host.querySelector('.qpad-ink');
+  const fresh = () => {
+    w.padDrop_();
+    try { w.localStorage.removeItem(k); } catch (e) {}
+    t.padOn(k);
+    host.innerHTML = t.padWrap(x, '<svg viewBox="0 0 340 170"></svg>', '');
+    ink().getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
+  };
+  const fire = (type, id, px, py, ts, o) => penEv_(w, ink(), type, Object.assign({ id: id, x: px, y: py, t: ts }, o || {}));
+  const stored = () => { try { return JSON.parse(w.localStorage.getItem(k) || '[]'); } catch (e) { return ['unreadable']; } };
+  const clean = (what, want) => {
+    const s = stored();
+    if (JSON.stringify(s) !== JSON.stringify(want)) bad.push(what + ': stored ' + JSON.stringify(s).slice(0, 160) + ', wanted ' + JSON.stringify(want).slice(0, 160));
+    if (!penWhole_(s)) bad.push(what + ': the store holds something that is not a list of lists of whole numbers: ' + JSON.stringify(s).slice(0, 80));
+    const paths = host.querySelectorAll('.qpad-g path').length;
+    if (paths !== s.length) bad.push(what + ': ' + paths + ' path(s) drawn for ' + s.length + ' stored');
+    if (host.querySelector('[data-live]')) bad.push(what + ': a live preview was left on the picture');
+    if ((host.querySelector('.qpad-aid') || {}).innerHTML) bad.push(what + ': the aid was left on the picture');
+    if (w.padBusy_()) bad.push(what + ': padBusy_ still says a finger is on the drawing, so the column could never be swiped off it');
+    if (t.padTouch().size) bad.push(what + ': ' + t.padTouch().size + ' contact(s) left behind after every finger lifted');
+  };
+  /* A LINE OF n STEPS from (x0, y0) by (dx, dy) a step, every `dt` ms from `t0`, as one finger's moves. */
+  const line = (id, x0, y0, dx, dy, n, t0, dt) => { for (let i = 1; i <= n; i++) fire('pointermove', id, x0 + dx * i, y0 + dy * i, t0 + dt * i); };
+  /* AND TWO FINGERS MOVING TOGETHER, each frame's moves one after the other, as the platform sends them. */
+  const both = (a, b, n, t0, dt) => {
+    for (let i = 1; i <= n; i++) {
+      fire('pointermove', a.id, a.x + a.dx * i, a.y + a.dy * i, t0 + dt * i);
+      fire('pointermove', b.id, b.x + b.dx * i, b.y + b.dy * i, t0 + dt * i);
+    }
+  };
+  /* IN UNITS BY THE PEN'S OWN ARITHMETIC (`padMap_`), so a half is rounded the way the pen rounds it. */
+  const units = (pts) => [].concat(...pts.map(p => [Math.round((p[0] - L) / W * 340), Math.round((p[1] - T) / H * 340)]));
+
+  /* P2: A TWO-FINGER TAP, 40ms apart, both still, lifted in either order. */
+  for (const first of [1, 2]) {
+    fresh();
+    fire('pointerdown', 1, 150, 100, 1000, { prim: true });
+    fire('pointerdown', 2, 250, 110, 1040);
+    if (host.querySelector('[data-live]')) bad.push('a second finger 40ms after the first left the first one\'s dot showing');
+    fire('pointerup', first, first === 1 ? 150 : 250, 100, 1100);
+    fire('pointerup', 3 - first, first === 1 ? 250 : 150, 110, 1110);
+    clean('a two-finger tap, finger ' + first + ' lifted first', []);
+  }
+  /* P3: A TWO-FINGER PAN, 40ms apart, 150px up together -- in 5px steps, and in 15px steps (several samples
+     folded into one event, finger 1's arriving before finger 2's of the same frame). */
+  for (const step of [5, 15]) {
+    fresh();
+    fire('pointerdown', 1, 150, 210, 1000, { prim: true });
+    fire('pointerdown', 2, 230, 212, 1040);
+    both({ id: 1, x: 150, y: 210, dx: 0, dy: -step }, { id: 2, x: 230, y: 212, dx: 0, dy: -step }, 150 / step, 1040, 8);
+    fire('pointerup', 1, 150, 60, 1300); fire('pointerup', 2, 230, 62, 1302);
+    clean('a two-finger pan in ' + step + 'px steps', []);
+  }
+  /* P4: A PINCH, then one finger lifts and the other drags on 100px. */
+  fresh();
+  fire('pointerdown', 1, 200, 135, 1000, { prim: true });
+  fire('pointerdown', 2, 260, 135, 1040);
+  both({ id: 1, x: 200, y: 135, dx: -4, dy: 0 }, { id: 2, x: 260, y: 135, dx: 4, dy: 0 }, 10, 1040, 8);
+  fire('pointerup', 1, 160, 135, 1200);
+  line(2, 300, 135, 5, 0, 20, 1200, 8);
+  fire('pointerup', 2, 400, 135, 1400);
+  clean('a pinch, then the other finger dragged on', []);
+  /* P5: A THIRD FINGER while the first two are held. */
+  fresh();
+  fire('pointerdown', 1, 150, 100, 1000, { prim: true });
+  fire('pointerdown', 2, 300, 100, 1040);
+  fire('pointerdown', 3, 220, 180, 1060);
+  line(1, 150, 100, 3, 0, 5, 1060, 8);
+  fire('pointerup', 3, 220, 180, 1120); fire('pointerup', 2, 300, 100, 1125); fire('pointerup', 1, 165, 100, 1130);
+  clean('a third finger while two were held', []);
+  /* P6: A PALM FIRST (its size unknown), the fingertip 40ms later drawing 4.5px a step, the palm trembling
+     by a pixel: exactly the finger's line, from its own first point, and nothing of the palm. */
+  fresh();
+  fire('pointerdown', 1, 380, 190, 1000, { prim: true, size: 1 });
+  fire('pointerdown', 2, 150, 80, 1040);
+  const finger = [[150, 80]];
+  for (let i = 1; i <= 30; i++) {
+    finger.push([150 + 4.5 * i, 80 + 2 * i]);
+    fire('pointermove', 2, 150 + 4.5 * i, 80 + 2 * i, 1040 + 8 * i);
+    fire('pointermove', 1, 380 + ((i % 3) - 1) * 1.2, 190 + ((i + 1) % 3) * 0.4, 1040 + 8 * i, { size: 1 });
+  }
+  fire('pointerup', 2, 285, 140, 1300);
+  fire('pointerup', 1, 380, 190, 1320);
+  clean('a palm first and then the finger', [units(finger)]);
+  /* P7: A FINGER HELD STILL 300ms, A PALM LANDS ON THE INK, the finger draws 100px, the palm lifts: the
+     finger's line with every sample, those taken while it was held too -- and the preview back within a
+     frame of the finger moving on alone. */
+  fresh();
+  fire('pointerdown', 1, 150, 100, 1000, { prim: true });
+  fire('pointerdown', 2, 380, 190, 1300);
+  if (host.querySelector('[data-live]')) bad.push('a palm landing beside a finger held still left the finger\'s dot showing — it is not yet known which is the finger');
+  const held = [[150, 100]];
+  for (let i = 1; i <= 10; i++) { held.push([150 + 2 * i, 100]); fire('pointermove', 1, 150 + 2 * i, 100, 1300 + 8 * i); }
+  await wait(5);
+  if (!host.querySelector('[data-live]')) bad.push('the finger moved 20px with the palm still and its line did not come back within a frame');
+  for (let i = 11; i <= 50; i++) { held.push([150 + 2 * i, 100]); fire('pointermove', 1, 150 + 2 * i, 100, 1300 + 8 * i); }
+  fire('pointerup', 2, 380, 190, 1800);
+  fire('pointerup', 1, 250, 100, 1810);
+  clean('a finger held still, then a palm, then the line', [units(held)]);
+  /* P8: A BRUSH -- a still touch 80px away at +60ms, lifted while the finger draws on: one stroke, every
+     sample. */
+  fresh();
+  const brush = [[150, 100]];
+  fire('pointerdown', 1, 150, 100, 1000, { prim: true });
+  for (let i = 1; i <= 50; i++) {
+    if (i === 8) fire('pointerdown', 2, 230, 100, 1060);
+    if (i === 13) fire('pointerup', 2, 230, 100, 1100);
+    brush.push([150 + 2 * i, 100]);
+    fire('pointermove', 1, 150 + 2 * i, 100, 1000 + 8 * i);
+  }
+  fire('pointerup', 1, 250, 100, 1410);
+  clean('a brush of another finger while drawing', [units(brush)]);
+  /* P9: A STAGGERED PAN -- the second finger 150ms after the first has gone 30px, and 300ms after with the
+     first still. */
+  fresh();
+  fire('pointerdown', 1, 150, 200, 1000, { prim: true });
+  line(1, 150, 200, 0, -2, 15, 1000, 10);
+  fire('pointerdown', 2, 250, 200, 1150);
+  both({ id: 1, x: 150, y: 170, dx: 0, dy: -5 }, { id: 2, x: 250, y: 200, dx: 0, dy: -5 }, 20, 1150, 8);
+  fire('pointerup', 1, 150, 70, 1400); fire('pointerup', 2, 250, 100, 1402);
+  clean('a pan whose second finger came 150ms late', []);
+  fresh();
+  fire('pointerdown', 1, 150, 200, 1000, { prim: true });
+  fire('pointerdown', 2, 250, 200, 1300);
+  both({ id: 1, x: 150, y: 200, dx: 0, dy: -5 }, { id: 2, x: 250, y: 200, dx: 0, dy: -5 }, 20, 1300, 8);
+  fire('pointerup', 1, 150, 100, 1500); fire('pointerup', 2, 250, 100, 1502);
+  clean('a pan whose second finger came 300ms after a still first', []);
+  /* P10: A THUMB AND AN INDEX FINGER PINCHING, sizes 24 and 16. */
+  fresh();
+  fire('pointerdown', 1, 200, 135, 1000, { prim: true, size: 24 });
+  fire('pointerdown', 2, 260, 135, 1040, { size: 16 });
+  for (let i = 1; i <= 15; i++) {
+    fire('pointermove', 1, 200 - 4 * i, 135, 1040 + 8 * i, { size: 24 });
+    fire('pointermove', 2, 260 + 4 * i, 135, 1040 + 8 * i, { size: 16 });
+  }
+  fire('pointerup', 1, 140, 135, 1200); fire('pointerup', 2, 320, 135, 1202);
+  clean('a thumb-and-finger pinch', []);
+  /* P12: A CANCEL 50ms IN (a system gesture, the platform's own palm rejection) withdraws; A CANCEL AFTER
+     500ms AND 200px of a real line keeps it, every sample. */
+  fresh();
+  fire('pointerdown', 1, 150, 100, 1000, { prim: true });
+  line(1, 150, 100, 5, 0, 6, 1000, 8);
+  fire('pointercancel', 1, 180, 100, 1050);
+  clean('a cancel 50ms into a stroke', []);
+  fresh();
+  const real = [[110, 60]];
+  fire('pointerdown', 1, 110, 60, 2000, { prim: true });
+  for (let i = 1; i <= 50; i++) { real.push([110 + 4 * i, 60 + 2 * i]); fire('pointermove', 1, 110 + 4 * i, 60 + 2 * i, 2000 + 10 * i); }
+  fire('pointercancel', 1, 310, 160, 2500);
+  clean('a cancel after 500ms and 200px', [units(real)]);
+  /* P13: TWO FINGERS WITH ONE LIFT NEVER SENT, then a touch the platform calls primary -- nothing else is
+     down -- draws its line. */
+  fresh();
+  fire('pointerdown', 1, 150, 100, 1000, { prim: true });
+  fire('pointerdown', 2, 250, 100, 1040);
+  both({ id: 1, x: 150, y: 100, dx: 5, dy: 0 }, { id: 2, x: 250, y: 100, dx: 5, dy: 0 }, 6, 1040, 8);
+  fire('pointerup', 1, 180, 100, 1200);
+  const after = [[120, 150]];
+  fire('pointerdown', 3, 120, 150, 3000, { prim: true });
+  for (let i = 1; i <= 10; i++) { after.push([120 + 3 * i, 150]); fire('pointermove', 3, 120 + 3 * i, 150, 3000 + 8 * i); }
+  fire('pointerup', 3, 150, 150, 3100);
+  clean('a primary touch after a lost lift', [units(after)]);
+
+  w.padDrop_();
+  t.padOn('');
+  try { w.localStorage.removeItem(k); } catch (e) {}
+  host.remove();
+  return bad;
+});
+
+check('the finger pen on the board: a hand resting on the card never moves the column under a stroke, a repaint does not cut a held stroke, Undo and Clear wait for the drawing hand, a change of person puts it all down', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t, A = t && t.ACTIONS, d = w.document, bad = [];
+  if (!t || typeof w.initWhiteboard !== 'function' || typeof w.padBusy_ !== 'function' || typeof w.padDrop_ !== 'function'
+      || typeof w.padHold_ !== 'function' || typeof w.padWhoChanged_ !== 'function' || typeof t.swipe !== 'function' || !t.swipe()
+      || typeof t.padTouch !== 'function' || !t.padTouch() || !A['pad-undo'] || !A['pad-clear']) {
+    return ['the board, padBusy_, padDrop_, padHold_, padWhoChanged_, SWIPE or PAD_TOUCH is not reachable — the finger pen on the board was NOT checked'];
+  }
+  const sam = { name: 'Sam Student', personId: 'P9', role: 'student', roles: ['student'] };
+  t.USER(sam);
+  const roster = t.widgetsOf('tool').map(x => String(x.id));
+  t.go('tools', false, true);
+  await wait(LEAVE_MS); await woken_();
+  t.goPage('tools', roster.indexOf('whiteboard'), true);
+  const pad = () => d.querySelector('#s-tools #wgt-whiteboard .qpad');
+  for (let i = 0; i < 100 && !pad(); i++) await wait(100);
+  await woken_();
+  if (!pad()) return ['the whiteboard did not draw a pad on the Tools column'];
+  const k = pad().getAttribute('data-k');
+  const page0 = t.PAGE.tools;
+  /* THE BOARD AT (20, 100), 300 x 400 -- note 310's. */
+  const L = 20, T = 100, W = 300, H = 400;
+  const ink = () => pad().querySelector('.qpad-ink');
+  const fix = () => { ink().getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T }); };
+  const fresh = () => { w.padDrop_(); try { w.localStorage.removeItem(k); } catch (e) {} t.padOn(k); w.initWhiteboard(); fix(); };
+  const fire = (type, id, px, py, ts, o) => penEv_(w, (o && o.on) || ink(), type, Object.assign({ id: id, x: px, y: py, t: ts }, o || {}));
+  /* OFF THE INK: the note under the board, where a hand holding the card rests. */
+  const card = () => pad().querySelector('.qpad-note');
+  const stored = () => { try { return JSON.parse(w.localStorage.getItem(k) || '[]'); } catch (e) { return ['unreadable']; } };
+  const paths = () => pad().querySelectorAll('.qpad-g path').length;
+  const still = (what) => {
+    if (t.screenAt() !== 'tools' || t.PAGE.tools !== page0) bad.push(what + ': the column or page moved — now ' + t.screenAt() + ' page ' + t.PAGE.tools);
+    if (t.padNow() !== k) bad.push(what + ': the board is no longer armed');
+  };
+  const clean = (what, want) => {
+    const s = stored();
+    if (JSON.stringify(s) !== JSON.stringify(want)) bad.push(what + ': stored ' + JSON.stringify(s).slice(0, 160) + ', wanted ' + JSON.stringify(want));
+    if (!penWhole_(s)) bad.push(what + ': the store holds something that is not a list of lists of whole numbers');
+    if (paths() !== s.length) bad.push(what + ': ' + paths() + ' path(s) drawn for ' + s.length + ' stored');
+    if (pad().querySelector('[data-live]')) bad.push(what + ': a live preview was left on the board');
+    if (w.padBusy_()) bad.push(what + ': padBusy_ still says a finger is on the board');
+    if (t.padTouch().size) bad.push(what + ': ' + t.padTouch().size + ' contact(s) left behind');
+  };
+  fresh();
+  if (!pad().classList.contains('is-drawing')) return ['setup: the board did not arm, so the finger pen on it was NOT checked'];
+
+  /* P11, TIMED: note 310's palm, landing 350ms into a line that has gone 120px, 150px from the finger --
+     an established stroke, so the palm is a rest and the line is finger 1's (the untimed original is the
+     journey above, unchanged). */
+  fire('pointerdown', 1, 50, 140, 1000, { prim: true });
+  fire('pointermove', 1, 170, 140, 1300);
+  fire('pointerdown', 2, 260, 260, 1350);
+  fire('pointermove', 2, 255, 255, 1360);
+  fire('pointermove', 1, 290, 140, 1400);
+  fire('pointerup', 2, 255, 255, 1410);
+  fire('pointermove', 1, 290, 300, 1450);
+  fire('pointerup', 1, 290, 300, 1460);
+  clean('a palm 350ms into an established line', [[34, 34, 306, 34, 306, 170]]);
+
+  /* P14: A HAND ON THE CARD FIRST (primary), A FINGER ON THE INK 40ms LATER, BOTH MOVE: two fingers, so
+     nothing -- and the hand, the pointer the grid follows, does not take the column. */
+  fresh();
+  fire('pointerdown', 1, 170, 560, 1000, { prim: true, on: card() });
+  fire('pointerdown', 2, 150, 300, 1040);
+  for (let i = 1; i <= 8; i++) {
+    fire('pointermove', 1, 170 + 5 * i, 560, 1040 + 8 * i, { on: card() });
+    fire('pointermove', 2, 150 + 5 * i, 300, 1040 + 8 * i);
+  }
+  if (t.swipe().live || t.swipe().axis) bad.push('a hand on the card and a finger on the board moving together: the swipe engine took the hand (' + JSON.stringify({ live: t.swipe().live, axis: t.swipe().axis }) + ')');
+  fire('pointerup', 2, 190, 300, 1200); fire('pointerup', 1, 210, 560, 1210, { on: card() });
+  clean('a hand on the card and a finger on the board moving together', []);
+  still('a hand on the card and a finger on the board moving together');
+
+  /* P15: THE HAND DOWN FOR A SECOND, A FINGER DRAWS, THEN THE HAND DRIFTS 30px SIDEWAYS: the line, and the
+     column stays where it is. */
+  fresh();
+  fire('pointerdown', 1, 170, 560, 1000, { prim: true, on: card() });
+  fire('pointerdown', 2, 60, 200, 2000);
+  for (let i = 1; i <= 25; i++) fire('pointermove', 2, 60 + 4 * i, 200, 2000 + 8 * i);
+  await wait(5);
+  for (let i = 1; i <= 10; i++) fire('pointermove', 1, 170 + 3 * i, 560, 2300 + 8 * i, { on: card() });
+  if (t.swipe().live || t.swipe().axis) bad.push('a hand drifting 30px on the card while a finger drew: the swipe engine took it (' + JSON.stringify({ live: t.swipe().live, axis: t.swipe().axis }) + ')');
+  fire('pointerup', 2, 160, 200, 2400); fire('pointerup', 1, 200, 560, 2410, { on: card() });
+  clean('a hand resting a second, then drifting while the finger drew', [[45, 85, 159, 85]]);
+  still('a hand resting a second, then drifting while the finger drew');
+
+  /* P16: THE HAND STILL FOR A SECOND, A FINGER LANDS, BOTH MOVE 30px: a two-finger gesture begun with a
+     finger already down -- nothing. */
+  fresh();
+  fire('pointerdown', 1, 170, 560, 1000, { prim: true, on: card() });
+  fire('pointerdown', 2, 100, 200, 2000);
+  for (let i = 1; i <= 6; i++) {
+    fire('pointermove', 2, 100 + 5 * i, 200, 2000 + 8 * i);
+    fire('pointermove', 1, 170 + 5 * i, 560, 2000 + 8 * i, { on: card() });
+  }
+  fire('pointerup', 2, 130, 200, 2100); fire('pointerup', 1, 200, 560, 2110, { on: card() });
+  clean('a hand already down and a finger moving together', []);
+  still('a hand already down and a finger moving together');
+
+  /* P17: A REPAINT WHILE A STROKE IS HELD, then the finger moves on: the column is held (`padHold_`), the
+     board under the finger is the same one, and the whole line is kept. */
+  fresh();
+  fire('pointerdown', 1, 50, 140, 1000, { prim: true });
+  fire('pointerdown', 2, 280, 470, 1040);
+  const was = ink();
+  if (!w.padHold_('tools')) bad.push('a stroke held by a second finger does not hold the Tools column against a repaint');
+  try { t.repaint(); } catch (e) { bad.push('repaint threw: ' + e.message); }
+  await wait(50);
+  if (ink() !== was) { bad.push('a repaint replaced the board under a held stroke'); fix(); }
+  for (let i = 1; i <= 12; i++) fire('pointermove', 1, 50 + 10 * i, 140, 1040 + 8 * i);
+  fire('pointerup', 2, 280, 470, 1200);
+  fire('pointerup', 1, 170, 140, 1210);
+  clean('a repaint while a stroke was held', [[34, 34, 170, 34]]);
+
+  /* P18: UNDO AND CLEAR PRESSED WHILE A FINGER IS ON THE BOARD -- a palm on the bar -- do nothing, and the
+     stroke under the finger is kept and drawn. */
+  fresh();
+  fire('pointerdown', 1, 50, 140, 1000, { prim: true });
+  fire('pointermove', 1, 290, 460, 1100);
+  fire('pointerup', 1, 290, 460, 1110);
+  fire('pointerdown', 1, 50, 300, 2000, { prim: true });
+  fire('pointermove', 1, 150, 300, 2100);
+  A['pad-undo'](pad().querySelector('.qpad-undo'));
+  A['pad-clear'](pad().querySelector('.qpad-clear'));
+  fire('pointermove', 1, 250, 300, 2200);
+  fire('pointerup', 1, 250, 300, 2210);
+  clean('Undo and Clear pressed while a finger drew', [[34, 34, 306, 306], [34, 170, 261, 170]]);
+  /* AND ONCE THE HAND HAS LIFTED, they work again. */
+  A['pad-undo'](pad().querySelector('.qpad-undo'));
+  if (stored().length !== 1) bad.push('Undo after the drawing hand lifted did nothing: ' + JSON.stringify(stored()));
+
+  /* P19: A CHANGE OF PERSON WHILE A STROKE IS HELD puts everything down, and stores nothing. */
+  fresh();
+  fire('pointerdown', 1, 50, 140, 1000, { prim: true });
+  fire('pointerdown', 2, 280, 470, 1040);
+  w.padWhoChanged_();
+  fire('pointerup', 1, 50, 140, 1100);
+  fire('pointerup', 2, 280, 470, 1110);
+  if (pad().querySelector('[data-live]')) bad.push('a change of person under a held stroke left its preview');
+  if (w.padBusy_() || t.padTouch().size) bad.push('a change of person under a held stroke left the pen holding contacts');
+  if (stored().length) bad.push('a change of person under a held stroke stored ' + JSON.stringify(stored()));
+
+  w.padDrop_();
+  t.padOn('');
+  try { w.localStorage.removeItem(k); } catch (e) {}
+  t.USER(null);
+  return bad;
+});
+
+/* ---------- THE FINGER PEN, AFTER REVIEW: A HAND THAT STAYS, A HAND THAT SETTLES, A PIN, A LATE REPORT, ANOTHER KIND ----
+   The review of 11 Oct drove the pen with real touch as a child would (338, "After review") and found five ways it lost a
+   line or kept the wrong one. Each is asked here through the pen's own listeners, with the events as a phone sends them:
+   - A HAND LEFT DOWN AFTER A TWO-FINGER GESTURE kept the pen dead -- every later line drew nothing until it lifted, and a
+     gripping thumb or a resting palm never lifts. A hand gone still is not half of a pan in progress.
+   - A THUMB OR A PALM THAT ROLLS OR SETTLES a few pixels as the line starts was taken for the second finger of a pan, and
+     the line was lost. A settle stops; a second finger keeps up.
+   - A PIN HELD ON THE CENTRE (a compass, a ruler's end) and a second finger moving was handed to the second finger, and
+     stored a mark neither meant. It stores nothing, as it did before 338.
+   - THE OTHER FINGER'S REPORT FOR THE SAME MOMENT came in an event stamped later than its samples, and was judged as if
+     it were current: a pan drew a line. Each finger is judged at its samples' own time.
+   - A POINTER OF ANOTHER KIND going down as the primary one ended the stroke: "primary" is per kind, so a palm is the
+     primary touch while a stylus draws, and a mouse click is primary while a finger does.
+   And the two counted costs the review found unasked: Undo on a full board rebuilt and recomputed every stroke, where one
+   came off. */
+check('the finger pen after review: a hand left down after two fingers, a thumb or palm that settles, a held pin, a late report and a pointer of another kind all leave the line that was meant, and Undo takes off one stroke without redrawing the rest', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t, A = t && t.ACTIONS, d = w.document, bad = [];
+  if (!t || typeof w.initWhiteboard !== 'function' || typeof w.padBusy_ !== 'function' || typeof w.padDrop_ !== 'function'
+      || typeof t.padTouch !== 'function' || !t.padTouch() || typeof t.padWrap !== 'function' || typeof t.padKey !== 'function'
+      || !A['pad-undo'] || !A['pad-tool'] || typeof w.padSegs_ !== 'function') {
+    return ['the board, padBusy_, padDrop_, PAD_TOUCH, padWrap_, padSegs_ or the pad-undo / pad-tool handlers are not reachable — the review\'s cases were NOT checked'];
+  }
+  t.USER({ name: 'Sam Student', personId: 'P9', role: 'student', roles: ['student'] });
+  const roster = t.widgetsOf('tool').map(x => String(x.id));
+  t.go('tools', false, true);
+  await wait(LEAVE_MS); await woken_();
+  t.goPage('tools', roster.indexOf('whiteboard'), true);
+  const pad = () => d.querySelector('#s-tools #wgt-whiteboard .qpad');
+  for (let i = 0; i < 100 && !pad(); i++) await wait(100);
+  await woken_();
+  if (!pad()) return ['the whiteboard did not draw a pad on the Tools column'];
+  const bk = pad().getAttribute('data-k');
+
+  /* ==================== ON THE BOARD, AT (20, 100), 300 x 400 -- note 310's ==================== */
+  const BL = 20, BT = 100, BW = 300, BH = 400;
+  const bink = () => pad().querySelector('.qpad-ink');
+  const bfix = () => { bink().getBoundingClientRect = () => ({ left: BL, top: BT, width: BW, height: BH, right: BL + BW, bottom: BT + BH, x: BL, y: BT }); };
+  const bfresh = () => { w.padDrop_(); try { w.localStorage.removeItem(bk); } catch (e) {} t.padOn(bk); w.initWhiteboard(); bfix(); };
+  const card = () => pad().querySelector('.qpad-note');
+  const bfire = (type, id, px, py, ts, o) => penEv_(w, (o && o.on) || bink(), type, Object.assign({ id: id, x: px, y: py, t: ts }, o || {}));
+  const bstored = () => { try { return JSON.parse(w.localStorage.getItem(bk) || '[]'); } catch (e) { return ['unreadable']; } };
+  /* WHAT THE PEN STORES FOR A TRACK, by its own arithmetic: each point in units, a repeat of the one before dropped. The
+     board thins at one unit, and a straight track thins to its two ends. */
+  const btrack = pts => { const o = []; pts.forEach(p => { const x = Math.round((p[0] - BL) / BW * 340), y = Math.round((p[1] - BT) / BH * 340);
+    if (o.length && o[o.length - 2] === x && o[o.length - 1] === y) return; o.push(x, y); }); return typeof w.ansSimplify_ === 'function' ? w.ansSimplify_(o, 1) : o; };
+  const bclean = (what, want) => {
+    const s = bstored();
+    if (JSON.stringify(s) !== JSON.stringify(want)) bad.push(what + ': stored ' + JSON.stringify(s).slice(0, 160) + ', wanted ' + JSON.stringify(want).slice(0, 160));
+    if (!penWhole_(s)) bad.push(what + ': the store holds something that is not a list of lists of whole numbers');
+    if (pad().querySelectorAll('.qpad-g path').length !== s.length) bad.push(what + ': ' + pad().querySelectorAll('.qpad-g path').length + ' path(s) drawn for ' + s.length + ' stored');
+    if (pad().querySelector('[data-live]')) bad.push(what + ': a live preview was left on the board');
+    if (w.padBusy_()) bad.push(what + ': padBusy_ still says a finger is on the board');
+    if (t.padTouch().size) bad.push(what + ': ' + t.padTouch().size + ' contact(s) left behind');
+  };
+  /* A LINE ACROSS THE BOARD at 300px/s -- 2.4px every 8ms, a child's steady stroke -- from (x0, y), `n` steps, with a FRAME
+     every fourth step: the pen decides two fingers at a frame, with every report in, so a journey that never let a frame
+     run would only ever ask the lift. */
+  const bline = async (id, x0, y, n, t0, also) => {
+    const pts = [[x0, y]];
+    bfire('pointerdown', id, x0, y, t0);
+    for (let i = 1; i <= n; i++) {
+      pts.push([x0 + 2.4 * i, y]); bfire('pointermove', id, x0 + 2.4 * i, y, t0 + 8 * i); if (also) also(i, t0 + 8 * i);
+      if (!(i % 4)) await wait(1);
+    }
+    bfire('pointerup', id, x0 + 2.4 * n, y, t0 + 8 * n + 4);
+    return pts;
+  };
+
+  /* A HAND LEFT DOWN AFTER TWO FINGERS (the review's case, as note 338's P16 begins): a hand on the card goes down first, a
+     finger lands on the board and the two move 30px together -- two fingers, nothing. The finger lifts, the HAND STAYS,
+     still. Two lines drawn after it are each drawn: a hand gone still is not half of a pan in progress. */
+  bfresh();
+  bfire('pointerdown', 1, 170, 560, 1000, { prim: true, on: card() });
+  bfire('pointerdown', 2, 100, 200, 2000);
+  for (let i = 1; i <= 6; i++) { bfire('pointermove', 2, 100 + 5 * i, 200, 2000 + 8 * i); bfire('pointermove', 1, 170 + 5 * i, 560, 2000 + 8 * i, { on: card() }); }
+  bfire('pointerup', 2, 130, 200, 2100);
+  if (bstored().length) bad.push('a hand and a finger moving 30px together stored ' + JSON.stringify(bstored()) + ' — two fingers draw nothing');
+  bfire('pointerdown', 3, 60, 300, 2400);
+  for (let i = 1; i <= 25; i++) bfire('pointermove', 3, 60 + 4 * i, 300, 2400 + 12 * i);
+  bfire('pointerup', 3, 160, 300, 2700);
+  bfire('pointerdown', 4, 60, 400, 3000);
+  for (let i = 1; i <= 25; i++) bfire('pointermove', 4, 60 + 4 * i, 400, 3000 + 12 * i);
+  bfire('pointerup', 4, 160, 400, 3300);
+  bfire('pointerup', 1, 200, 560, 3400, { on: card() });
+  bclean('a hand left still on the card after a two-finger gesture, then two lines', [[45, 170, 159, 170], [45, 255, 159, 255]]);
+
+  /* A THUMB GRIPPING THE EDGE ROLLS 9px IN 48ms AS THE LINE STARTS, then is still; a second line with the thumb still down. */
+  bfresh();
+  bfire('pointerdown', 1, 8, 340, 1000, { prim: true, on: card() });
+  const r1 = await bline(2, 40, 200, 100, 2000, (i, ts) => { if (i <= 6) bfire('pointermove', 1, 8, 340 - 1.5 * i, ts, { on: card() }); });
+  const r2 = await bline(3, 40, 400, 100, 3200);
+  bfire('pointerup', 1, 8, 331, 4200, { on: card() });
+  bclean('a thumb at the edge that rolled 9px as the line started', [btrack(r1), btrack(r2)]);
+
+  /* A PALM ON THE CARD SETTLES 12px SIDEWAYS IN 80ms AS THE LINE STARTS. */
+  bfresh();
+  bfire('pointerdown', 1, 170, 560, 1000, { prim: true, on: card() });
+  const r3 = await bline(2, 40, 200, 100, 2000, (i, ts) => { if (i <= 10) bfire('pointermove', 1, 170 + 1.2 * i, 560, ts, { on: card() }); });
+  bfire('pointerup', 1, 182, 560, 3000, { on: card() });
+  bclean('a palm on the card that settled 12px as the line started', [btrack(r3)]);
+
+  /* A PALM LANDS ON THE BOARD 120ms INTO A LINE, 110px BELOW IT, AND ITS CENTRE SETTLES 10px IN 60ms as it flattens -- the
+     finger draws on throughout. The whole line, every sample, and nothing of the palm. */
+  bfresh();
+  const r4 = await bline(1, 40, 200, 100, 2000, (i, ts) => {
+    if (i === 15) bfire('pointerdown', 2, 90, 310, ts + 2);
+    else if (i > 15 && i <= 23) bfire('pointermove', 2, 90 + 1.25 * (i - 15), 310, ts + 2);
+  });
+  bfire('pointerup', 2, 100, 310, 3000);
+  bclean('a palm that landed 120ms into a line and settled 10px', [btrack(r4)]);
+
+  /* A PALM FIRST, ON THE BOARD, SETTLING 12px IN 80ms WHILE THE FINGER, 40ms LATER, DRAWS: the finger's line, from its own
+     first point, every sample. */
+  bfresh();
+  bfire('pointerdown', 1, 300, 450, 1000, { prim: true });
+  const r5 = await bline(2, 40, 200, 60, 1040, (i, ts) => { if (i <= 10) bfire('pointermove', 1, 300 - 1.2 * i, 450, ts); });
+  bfire('pointerup', 1, 288, 450, 1600);
+  bclean('a palm first that settled 12px as the finger drew', [btrack(r5)]);
+
+  /* A PALM THAT CAME LATER TO ONE LINE IS NOT LATER THAN THE NEXT (found while fixing these). A palm lands on the board as
+     a line ends -- a rest, having come after that line's finger -- and the next finger lands 64ms later, so the palm is a
+     young contact held against it. The palm then slides 30px while the finger is still: it was down BEFORE this finger,
+     so it may never take its stroke (a watched contact never may, 338 T3); the finger's line is drawn. Kept marked as
+     "came later" from the line before, the palm was handed the stroke -- its slide stored, the finger's line lost. */
+  bfresh();
+  const r6 = await bline(1, 40, 150, 100, 1000, (i, ts) => { if (i === 98) bfire('pointerdown', 2, 250, 450, ts + 2); });
+  bfire('pointerdown', 3, 60, 250, 1850);
+  for (let i = 1; i <= 6; i++) bfire('pointermove', 2, 250 - 5 * i, 450, 1850 + 8 * i);
+  await wait(5);
+  const r7 = [[60, 250]];
+  for (let i = 1; i <= 25; i++) { r7.push([60 + 4 * i, 250]); bfire('pointermove', 3, 60 + 4 * i, 250, 1910 + 12 * i); if (!(i % 4)) await wait(1); }
+  bfire('pointerup', 3, 160, 250, 2220);
+  bfire('pointerup', 2, 220, 450, 2240);
+  bclean('a palm left down from one line, sliding as the next finger lands', [btrack(r6), btrack(r7)]);
+
+  /* AND A TWO-FINGER GESTURE STILL IN PROGRESS TAKES IN A FINGER THAT LANDS: a pinch, one finger lifts and the other drags on
+     -- it is still moving, so the gesture is not over -- and a tap lands meanwhile. Nothing: the tap joined the gesture.
+     (Dissolved at every landing instead, the dragging finger would be held against the tap, move alone, be a rest -- it
+     was down first -- and the tap's dot would be stored.) */
+  bfresh();
+  bfire('pointerdown', 1, 150, 300, 1000, { prim: true });
+  bfire('pointerdown', 2, 230, 300, 1040);
+  for (let i = 1; i <= 10; i++) { bfire('pointermove', 1, 150 - 4 * i, 300, 1040 + 8 * i); bfire('pointermove', 2, 230 + 4 * i, 300, 1040 + 8 * i); }
+  bfire('pointerup', 1, 110, 300, 1130);
+  for (let i = 1; i <= 30; i++) {
+    if (i === 10) bfire('pointerdown', 3, 120, 200, 1130 + 8 * i - 2);
+    if (i === 14) bfire('pointerup', 3, 120, 200, 1130 + 8 * i - 2);
+    bfire('pointermove', 2, 270, 300 - 4 * i, 1130 + 8 * i);
+  }
+  bfire('pointerup', 2, 270, 180, 1400);
+  bclean('a tap landing while the other finger of a pinch dragged on', []);
+
+  /* ==================== UNDO TAKES OFF ONE STROKE AND REDRAWS NOTHING ELSE ====================
+     MEASURED BY THE REVIEW: on a full board (314 strokes, 98,942 characters) Undo cost 74ms of main thread at 4x against 31
+     before -- every stroke's curve recomputed and every `d` parsed again, for one stroke taken off. The screen is still
+     the store's: a path is kept only where it already says exactly what its stroke draws. */
+  const ring = (cx, cy, r, n) => { const st = []; for (let i = 0; i <= n; i++) { const a = 2 * Math.PI * i / n; st.push(Math.round(cx + r * Math.cos(a)), Math.round(cy + r * Math.sin(a))); } return st; };
+  bfresh();
+  const three = [ring(100, 100, 60, 12), ring(240, 120, 70, 12), ring(170, 250, 50, 12)];
+  w.ansStore_(bk, JSON.stringify(three));
+  w.initWhiteboard(); bfix();
+  const was = [...pad().querySelectorAll('.qpad-g path')];
+  if (was.length !== 3 || !/C/.test(was[0].getAttribute('d'))) bad.push('setup: the board drew ' + was.length + ' path(s) for three rings, or drew them without curves — Undo was NOT checked');
+  else {
+    const seg = w.padSegs_;
+    let calls = 0;
+    w.padSegs_ = function () { calls++; return seg.apply(this, arguments); };
+    try { A['pad-undo'](pad().querySelector('.qpad-undo')); } finally { w.padSegs_ = seg; }
+    const now = [...pad().querySelectorAll('.qpad-g path')];
+    if (bstored().length !== 2) bad.push('Undo on three rings left ' + bstored().length + ' stored');
+    if (now.length !== 2 || now[0] !== was[0] || now[1] !== was[1]) bad.push('Undo redrew the strokes it did not take off (' + now.length + ' paths, the first two ' + (now[0] === was[0] && now[1] === was[1] ? 'kept' : 'replaced') + ') — one comes off, the rest are already the store\'s');
+    if (calls) bad.push('Undo recomputed ' + calls + ' stroke(s)\' curves for strokes already drawn');
+    if (now.map(p => p.getAttribute('d')).join('|') !== three.slice(0, 2).map(st => w.padPath_(st, 1.3333)).join('|')) bad.push('after Undo the board does not draw exactly what is stored');
+  }
+  /* AND WHAT IS KEPT IS HELD TO A SIZE, NOT A COUNT: a question keeps every sample, so 150 long strokes (1,200 points each,
+     about 40K characters of key and path apiece) are 6M characters -- under a cap of 4,000 strokes they would all be kept.
+     The memo must stay within its character budget, and still answer for the stroke drawn last. */
+  try {
+    const big = [];
+    /* EACH STEP ABOUT 10-14 UNITS AND TURNING 7 DEGREES: long and gentle, so every segment is a curve -- the size a fast
+       stroke really draws at. */
+    for (let s = 0; s < 150; s++) { const st = []; for (let i = 0; i < 1200; i++) { const a = i / 8 + s; st.push(Math.round(170 + (80 + s % 30) * Math.cos(a)), Math.round(170 + (80 + s % 30) * Math.sin(a * 1.01))); } big.push(st); }
+    big.forEach(st => w.padPath_(st, 1));
+    const memo = t.padPaths && t.padPaths();
+    if (!memo) throw new Error('PAD_PATHS is not reachable');
+    const held = [...memo].reduce((a, e) => a + e[0].length + e[1].length, 0);
+    if (held > 4.1e6) bad.push('the kept paths hold ' + Math.round(held / 1e3) + 'K characters after 150 long strokes — a memo held to a count of strokes is hundreds of megabytes on a long visit; it is held to 4M characters');
+    if (memo.get('1|' + big[149].join(',')) !== w.padPath_(big[149], 1)) bad.push('the memo does not hold the stroke drawn last');
+  } catch (e) { bad.push('the kept paths could not be read (' + e.message + ') — the memo\'s size was NOT checked'); }
+
+  /* ==================== ON A QUESTION'S PAD, 340 x 170 AT (100, 50) ==================== */
+  const L = 100, T = 50, W = 340, H = 170;
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  let x = { kind: 'question', answerType: 'drawing', html: '<p>Draw it.</p>', key: 'q:Q-FINGER-5' };
+  let k = t.padKey(x);
+  const ink = () => host.querySelector('.qpad-ink');
+  const fresh = (item) => {
+    w.padDrop_();
+    if (item) { x = item; k = t.padKey(x); }
+    try { w.localStorage.removeItem(k); } catch (e) {}
+    t.padOn(k);
+    host.innerHTML = t.padWrap(x, '<svg viewBox="0 0 340 170"></svg>', '');
+    ink().getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
+  };
+  const fire = (type, id, px, py, ts, o) => penEv_(w, (o && o.on) || ink(), type, Object.assign({ id: id, x: px, y: py, t: ts }, o || {}));
+  const stored = () => { try { return JSON.parse(w.localStorage.getItem(k) || '[]'); } catch (e) { return ['unreadable']; } };
+  const units = pts => { const o = []; pts.forEach(p => { const a = Math.round((p[0] - L) / W * 340), b = Math.round((p[1] - T) / H * 340);
+    if (o.length && o[o.length - 2] === a && o[o.length - 1] === b) return; o.push(a, b); }); return o; };
+  const clean = (what, want) => {
+    const s = stored();
+    if (JSON.stringify(s) !== JSON.stringify(want)) bad.push(what + ': stored ' + JSON.stringify(s).slice(0, 160) + ', wanted ' + JSON.stringify(want).slice(0, 160));
+    if (!penWhole_(s)) bad.push(what + ': the store holds something that is not a list of lists of whole numbers');
+    if (host.querySelectorAll('.qpad-g path').length !== s.length) bad.push(what + ': ' + host.querySelectorAll('.qpad-g path').length + ' path(s) drawn for ' + s.length + ' stored');
+    if (host.querySelector('[data-live]')) bad.push(what + ': a live preview was left on the picture');
+    if ((host.querySelector('.qpad-aid') || {}).innerHTML) bad.push(what + ': the aid was left on the picture');
+    if (w.padBusy_()) bad.push(what + ': padBusy_ still says a finger is on the drawing');
+    if (t.padTouch().size) bad.push(what + ': ' + t.padTouch().size + ' contact(s) left behind after every finger lifted');
+  };
+
+  /* A PINCH, ONE FINGER LIFTS, THE OTHER RESTS ON THE PICTURE half a second -- then a third finger draws: its line. */
+  fresh();
+  fire('pointerdown', 1, 200, 135, 1000, { prim: true });
+  fire('pointerdown', 2, 260, 135, 1040);
+  for (let i = 1; i <= 10; i++) { fire('pointermove', 1, 200 - 4 * i, 135, 1040 + 8 * i); fire('pointermove', 2, 260 + 4 * i, 135, 1040 + 8 * i); }
+  fire('pointerup', 1, 160, 135, 1200);
+  const q3 = [[120, 80]];
+  fire('pointerdown', 3, 120, 80, 1700);
+  for (let i = 1; i <= 20; i++) { q3.push([120 + 5 * i, 80]); fire('pointermove', 3, 120 + 5 * i, 80, 1700 + 8 * i); }
+  fire('pointerup', 3, 220, 80, 1900);
+  fire('pointerup', 2, 300, 135, 2000);
+  clean('a finger left resting after a pinch, then a third finger drew', [units(q3)]);
+
+  /* THE OTHER FINGER'S REPORT COMES LATE: finger 2 of a pan reports 5ms out of phase, and one of its events is stamped after
+     finger 1 has gone 10px while carrying only its sample from 16ms before (4px). Judged at that event's stamp it reads as
+     still and the pan draws finger 1's line; judged at its samples' own time it is moving with finger 1. */
+  fresh();
+  fire('pointerdown', 1, 150, 210, 1000, { prim: true });
+  fire('pointerdown', 2, 230, 212, 1005);
+  const s2 = i => ({ clientX: 230, clientY: 212 - 4 * i, timeStamp: 1005 + 8 * i });
+  fire('pointermove', 1, 150, 206, 1008);
+  fire('pointermove', 1, 150, 202, 1016);
+  fire('pointermove', 1, 150, 198, 1024);
+  fire('pointermove', 2, 230, 208, 1029, { co: [s2(1)] });
+  /* A FRAME HERE: finger 1 has gone 12px by 1024, finger 2 has reported only to 1013 -- so it is judged at 1013, where neither
+     has gone 10px, and not at 1024 with finger 2 taken to be where its old sample left it. */
+  await wait(5);
+  fire('pointermove', 2, 230, 196, 1037, { co: [s2(2), s2(3), s2(4)] });
+  for (let i = 4; i <= 37; i++) {
+    fire('pointermove', 1, 150, 210 - 4 * i, 1000 + 8 * i); fire('pointermove', 2, 230, 212 - 4 * (i + 1), 1005 + 8 * (i + 1));
+    if (!(i % 4)) await wait(1);
+  }
+  fire('pointerup', 1, 150, 62, 1310); fire('pointerup', 2, 230, 60, 1315);
+  clean('a two-finger pan whose second finger reported late', []);
+
+  /* A STYLUS DRAWS AND A PALM LANDS ON THE PICTURE -- the palm is the PRIMARY TOUCH, primary being per kind of pointer: the
+     stylus's line, and nothing of the palm. */
+  fresh();
+  const sty = [[150, 100]];
+  fire('pointerdown', 3, 150, 100, 1000, { prim: true, type: 'pen' });
+  for (let i = 1; i <= 50; i++) {
+    if (i === 21) fire('pointerdown', 4, 380, 190, 1000 + 8 * i - 2, { prim: true });
+    if (i === 41) fire('pointerup', 4, 380, 190, 1000 + 8 * i - 2);
+    sty.push([150 + 5 * i, 100 + 2 * i]);
+    fire('pointermove', 3, 150 + 5 * i, 100 + 2 * i, 1000 + 8 * i, { type: 'pen' });
+  }
+  fire('pointerup', 3, 400, 200, 1420, { type: 'pen' });
+  clean('a stylus line with a palm landing as the primary touch', [units(sty)]);
+
+  /* A FINGER DRAWS AND A MOUSE CLICKS BESIDE THE PICTURE (a touchscreen laptop) -- the mouse is primary among mice: the
+     finger's line. */
+  fresh();
+  const fin = [[110, 60]];
+  fire('pointerdown', 2, 110, 60, 1000, { prim: true });
+  for (let i = 1; i <= 50; i++) {
+    if (i === 21) { penEv_(w, host, 'pointerdown', { id: 1, x: 60, y: 30, t: 1166, prim: true, type: 'mouse' }); penEv_(w, host, 'pointerup', { id: 1, x: 60, y: 30, t: 1170, prim: true, type: 'mouse' }); }
+    fin.push([110 + 4 * i, 60 + 2 * i]);
+    fire('pointermove', 2, 110 + 4 * i, 60 + 2 * i, 1000 + 8 * i);
+  }
+  fire('pointerup', 2, 310, 160, 1410);
+  clean('a finger line with a mouse click beside the picture', [units(fin)]);
+
+  /* ==================== A PIN HELD ON A COMPASS'S CENTRE OR A RULER'S END ==================== */
+  const tq = { kind: 'question', answerType: 'drawing', html: '<p>Use a ruler and compasses to construct the bisector of angle ABC.</p>', key: 'q:Q-FINGER-6' };
+  fresh(tq);
+  const tool = name => host.querySelector('.qpad-tool[data-tool="' + name + '"]');
+  if (!tool('compass') || !tool('ruler')) bad.push('setup: the construction question has no Ruler and Compass tiles — the held pin was NOT checked');
+  else {
+    for (const name of ['compass', 'ruler']) {
+      fresh();
+      A['pad-tool'](tool(name));
+      ink().getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
+      /* THE PIN: finger 1 on (270, 135), held 300ms, trembling under a pixel. Finger 2 lands 60px right and swings 270
+         degrees round it (the compass) or slides 40px (the ruler). Nothing is stored -- as before 338. */
+      fire('pointerdown', 1, 270, 135, 1000, { prim: true });
+      for (let i = 1; i <= 30; i++) fire('pointermove', 1, 270 + (i % 2 ? 0.4 : -0.4), 135, 1000 + 10 * i);
+      fire('pointerdown', 2, 330, 135, 1302);
+      for (let i = 1; i <= 60; i++) {
+        const a = 1.5 * Math.PI * i / 60;
+        if (name === 'compass') fire('pointermove', 2, 270 + 60 * Math.cos(a), 135 + 60 * Math.sin(a), 1302 + 10 * i);
+        else if (i <= 20) fire('pointermove', 2, 330 + 2 * i, 135, 1302 + 10 * i);
+        fire('pointermove', 1, 270 + (i % 2 ? 0.4 : -0.4), 135, 1305 + 10 * i);
+      }
+      fire('pointerup', 2, 330, 135, 1920); fire('pointerup', 1, 270, 135, 1925);
+      clean('a pin held on the ' + name + (name === 'ruler' ? '\'s end' : '\'s centre') + ' and a second finger moving', []);
+    }
+    /* WHAT IS ON THE PICTURE WHILE IT HAPPENS (third review, 12 Oct): a mark that cannot be kept is not shown either. The
+       review watched a resting palm's own ruler line, or a ring round it, follow the palm about the picture while the
+       finger's line showed nothing, and vanish at the lift. */
+    const aidOf = () => host.querySelector('.qpad-aid');
+    const unseen = what => {
+      const live = host.querySelector('[data-live]');
+      if (live) bad.push(what + ': a preview was on the picture (' + (live.getAttribute('d') || '').slice(0, 50) + ') for a mark that cannot be kept');
+      if (aidOf() && aidOf().innerHTML) bad.push(what + ': the ruler\'s or compass\'s aid was on the picture for a mark that cannot be kept');
+    };
+    const tfresh = name => {
+      fresh();
+      A['pad-tool'](tool(name));
+      ink().getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
+    };
+    /* AND A PIN THAT ROLLS (second review, 12 Oct; third, the same day): the same pin, but once finger 2 has landed it drifts
+       over 300ms, as a fingertip held on a point rolls. Refused the swap, the pin was made the stroke again with only
+       `PAD_MIN_PX` (4px) to go -- the ruler stored its own `[[170,170,176,170]]` and the compass a ring of radius 6 round
+       itself. The second review made that 10px; the third rolled the pin 12, 16 and 24px, and the ruler stored
+       `[[170,170,184,170]]` and the compass a ring round the pin again -- 10px is inside what a pin rolls. Nothing at any
+       roll, and nothing of the pin on the picture while it rolls. */
+    for (const name of ['compass', 'ruler']) for (const roll of [6, 12, 16, 24]) {
+      tfresh(name);
+      fire('pointerdown', 1, 270, 135, 1000, { prim: true });
+      for (let i = 1; i <= 30; i++) fire('pointermove', 1, 270 + (i % 2 ? 0.4 : -0.4), 135, 1000 + 10 * i);
+      fire('pointerdown', 2, 330, 135, 1302);
+      for (let i = 1; i <= 60; i++) {
+        const a = 1.5 * Math.PI * i / 60;
+        if (name === 'compass') fire('pointermove', 2, 270 + 60 * Math.cos(a), 135 + 60 * Math.sin(a), 1302 + 10 * i);
+        else if (i <= 20) fire('pointermove', 2, 330 + 2 * i, 135, 1302 + 10 * i);
+        fire('pointermove', 1, 270 + roll * Math.min(1, i / 30), 135, 1305 + 10 * i);
+        if (!(i % 4)) await wait(1);
+      }
+      const what = 'a pin held on the ' + name + (name === 'ruler' ? '\'s end' : '\'s centre') + ' that rolled ' + roll + 'px while a second finger moved';
+      unseen(what);
+      fire('pointerup', 2, 330, 135, 1920); fire('pointerup', 1, 270 + roll, 135, 1925);
+      clean(what, []);
+    }
+    /* A PALM RESTING ON THE PICTURE FIRST, 400ms BEFORE THE FINGER, drifting as the finger uses the tool -- all of it in the
+       finger's first 120ms (a palm settling), or spread over the whole line (a hand sliding a little with the finger) --
+       then a second line while it stays (second and third reviews). By movement the palm is a pin: the finger is refused
+       the stroke and the palm made it again. Round 2 stored the PALM's own ruler line or its ring at 6px; with its 10px it
+       still stored them at 12, 16 and 24 -- at the corner of the picture, where nobody drew. Now nothing at any drift, and
+       nothing of the palm on the picture while it drifts. The finger's line goes with it -- the cost chosen in 338
+       section 4 (a mark lost rather than a stray one left): only a contact's size tells a resting palm from a pin -- and
+       so does a second line while the palm stays down. If tools are ever given the palm-first swap back, these want the
+       finger's lines. */
+    for (const name of ['ruler', 'compass']) for (const drift of [6, 12, 16, 24]) for (const quick of [true, false]) {
+      tfresh(name);
+      fire('pointerdown', 1, 420, 210, 1000, { prim: true, size: 50 });
+      for (let i = 1; i <= 40; i++) fire('pointermove', 1, 420 + (i % 2 ? 0.4 : -0.4), 210, 1000 + 10 * i, { size: 50 });
+      const what = 'a palm resting on the picture 400ms before the ' + name + ' finger, drifting ' + drift + 'px ' + (quick ? 'in 120ms' : 'over the line') + ', and a second line while it stayed';
+      for (const t0 of [1400, 2200]) {
+        fire('pointerdown', 2, 130, 85, t0);
+        for (let i = 1; i <= 30; i++) {
+          if (name === 'compass') fire('pointermove', 2, 130 + 5 * Math.min(i, 12), 85, t0 + 10 * i);
+          else fire('pointermove', 2, 130 + 4 * i, 85 + i, t0 + 10 * i);
+          if (t0 === 1400 && (!quick || i <= 12)) fire('pointermove', 1, 420 - drift * Math.min(1, i / (quick ? 12 : 30)), 210, t0 + 10 * i + 3, { size: 50 });
+          if (!(i % 4)) await wait(1);
+        }
+        if (t0 === 1400) unseen(what);
+        fire('pointerup', 2, name === 'compass' ? 190 : 250, name === 'compass' ? 85 : 115, t0 + 320);
+      }
+      fire('pointerup', 1, 420 - drift, 210, 2700, { size: 50 });
+      clean(what, []);
+    }
+    /* THE PALM STILL WHILE THE FINGER DRAWS, THEN SLIDING ONCE IT HAS LIFTED (third review): 12px, as the review slid it, and
+       60px -- a hand moved across the card to draw somewhere else. Round 2 stored the palm's own line or ring at 12px. The
+       finger drew 120px (the ruler) or opened 60px (the compass): it was the one drawing, and the palm marks nothing in that
+       stroke however far it then goes. */
+    for (const name of ['ruler', 'compass']) for (const slide of [12, 60]) {
+      tfresh(name);
+      fire('pointerdown', 1, 420, 210, 1000, { prim: true, size: 50 });
+      for (let i = 1; i <= 40; i++) fire('pointermove', 1, 420 + (i % 2 ? 0.4 : -0.4), 210, 1000 + 10 * i, { size: 50 });
+      fire('pointerdown', 2, 130, 85, 1400);
+      for (let i = 1; i <= 30; i++) {
+        if (name === 'compass') fire('pointermove', 2, 130 + 5 * Math.min(i, 12), 85, 1400 + 10 * i);
+        else fire('pointermove', 2, 130 + 4 * i, 85 + i, 1400 + 10 * i);
+        if (!(i % 4)) await wait(1);
+      }
+      fire('pointerup', 2, name === 'compass' ? 190 : 250, name === 'compass' ? 85 : 115, 1720);
+      for (let i = 1; i <= 60; i++) { fire('pointermove', 1, 420 - slide * i / 60, 210, 1800 + 10 * i, { size: 50 }); if (!(i % 4)) await wait(1); }
+      const what = 'a palm still while the ' + name + ' finger drew, then sliding ' + slide + 'px after it lifted';
+      unseen(what);
+      fire('pointerup', 1, 420 - slide, 210, 2420, { size: 50 });
+      clean(what, []);
+    }
+    /* A PALM DOWN THROUGH THREE TRIES, CREEPING 22px IN 2.4s (third review): round 2 stored its 22px line, or a ring round it,
+       when it lifted -- and none of the three lines. Nothing. */
+    for (const name of ['ruler', 'compass']) {
+      tfresh(name);
+      fire('pointerdown', 1, 420, 210, 1000, { prim: true, size: 50 });
+      const tries = [1400, 2100, 2800];
+      for (let t = 1010; t <= 3400; t += 10) {
+        tries.forEach((t0, n) => {
+          const i = (t - t0) / 10, id = 2 + n;
+          if (i === 0) fire('pointerdown', id, 130, 85, t0);
+          else if (i >= 1 && i <= 30) {
+            if (name === 'compass') fire('pointermove', id, 130 + 5 * Math.min(i, 12), 85, t);
+            else fire('pointermove', id, 130 + 4 * i, 85 + i, t);
+          } else if (i === 32) fire('pointerup', id, name === 'compass' ? 190 : 250, name === 'compass' ? 85 : 115, t);
+        });
+        fire('pointermove', 1, 420 - 22 * (t - 1000) / 2400, 210, t + 3, { size: 50 });
+        if (!(t % 40)) await wait(1);
+      }
+      const what = 'a palm down through three ' + name + ' lines, creeping 22px';
+      unseen(what);
+      fire('pointerup', 1, 398, 210, 3410, { size: 50 });
+      clean(what, []);
+    }
+    /* A FINGER'S SHORT RULER TICK, REFUSED, AND THE PALM THEN DRIFTING 15px, and 28px (third review's rule, and the fourth's):
+       at 10px, as round 2 had it, the palm's 15px line was stored; round 3 stored the palm's line once it had gone further
+       than the tick (the 28px drift); since the fourth review the still one marks only by going 30px first -- nothing.
+       (A palm that slides 30px or more after a refused tick shorter than that still marks: 338 section 4.) */
+    for (const drift of [15, 28]) {
+      tfresh('ruler');
+      fire('pointerdown', 1, 420, 210, 1000, { prim: true, size: 50 });
+      for (let i = 1; i <= 40; i++) fire('pointermove', 1, 420 + (i % 2 ? 0.4 : -0.4), 210, 1000 + 10 * i, { size: 50 });
+      fire('pointerdown', 2, 130, 85, 1400);
+      for (let i = 1; i <= 5; i++) { fire('pointermove', 2, 130 + 4 * i, 85 + i, 1400 + 10 * i); if (!(i % 4)) await wait(1); }
+      await wait(5);
+      fire('pointerup', 2, 150, 90, 1470);
+      for (let i = 1; i <= 30; i++) { fire('pointermove', 1, 420 - drift * i / 30, 210, 1500 + 10 * i, { size: 50 }); if (!(i % 4)) await wait(1); }
+      const what = 'a palm drifting ' + drift + 'px after a finger\'s 20px ruler tick was refused';
+      unseen(what);
+      fire('pointerup', 1, 420 - drift, 210, 1820, { size: 50 });
+      clean(what, []);
+    }
+    /* AND A FINGER THAT WAS AIMING STILL GETS ITS LINE: the ruler finger held 300ms on its point, a palm lands on the picture
+       and settles 12px in 80ms before the finger moves -- refused the swap, the finger is the stroke again, and its 120px
+       line goes 30px before the palm does. (Withdrawn outright instead, the palm's settle would cost this line.) And the
+       same with the palm then SLIDING ALONG with the hand, 40px, as the finger draws: the finger went 30px first, so it
+       is the one drawing (third review -- the review's prototype, "once the refused one has gone 30px the still one never
+       marks", lost this line). Its line is SHOWN as it is drawn, from the moment it has gone 30px. */
+    for (const along of [0, 40]) {
+      tfresh('ruler');
+      fire('pointerdown', 2, 130, 85, 1000, { prim: true });
+      for (let i = 1; i <= 30; i++) fire('pointermove', 2, 130 + (i % 2 ? 0.4 : -0.4), 85, 1000 + 10 * i);
+      fire('pointerdown', 1, 420, 210, 1302, { size: 50 });
+      for (let i = 1; i <= 8; i++) { fire('pointermove', 1, 420 - 1.5 * i, 210, 1302 + 10 * i, { size: 50 }); fire('pointermove', 2, 130 + (i % 2 ? 0.4 : -0.4), 85, 1305 + 10 * i); }
+      await wait(5);
+      const what = 'a ruler finger aiming 300ms, a palm landing and settling 12px before it moved' + (along ? ', then sliding ' + along + 'px along with the line' : '');
+      for (let i = 1; i <= 30; i++) {
+        fire('pointermove', 2, 130 + 4 * i, 85 + i, 1500 + 10 * i);
+        if (along) fire('pointermove', 1, 408 - along * i / 30, 210, 1503 + 10 * i, { size: 50 });
+        if (!(i % 4)) await wait(1);
+        if (i === 20 && !host.querySelector('[data-live]')) bad.push(what + ': the finger\'s line was not shown as it was drawn');
+      }
+      fire('pointerup', 2, 250, 115, 1820);
+      fire('pointerup', 1, 408 - along, 210, 1900, { size: 50 });
+      clean(what, [[30, 70, 150, 130]]);
+    }
+    /* AND THE RACE IS RUN BY THE SAMPLES' OWN CLOCK, not by which event came first: the same aiming finger and settled palm,
+       then the finger draws at 400px/s while the palm slides along at 200px/s, and under load the palm's moves come folded
+       -- one event carrying 50ms of samples -- with the finger's last 25ms still on their way. The palm's second fold says
+       it went 30px at 1590; the finger had gone further than the palm by 1580, in samples that arrive just after it.
+       Decided at the palm's fold, the finger's line was lost; the finger is still reporting (its last report 30ms
+       before), so the frame waits for it -- and it went further first: its line. */
+    {
+      tfresh('ruler');
+      fire('pointerdown', 2, 130, 85, 1000, { prim: true });
+      for (let i = 1; i <= 30; i++) fire('pointermove', 2, 130 + (i % 2 ? 0.4 : -0.4), 85, 1000 + 10 * i);
+      fire('pointerdown', 1, 420, 210, 1302, { size: 50 });
+      for (let i = 1; i <= 8; i++) { fire('pointermove', 1, 420 - 1.5 * i, 210, 1302 + 10 * i, { size: 50 }); fire('pointermove', 2, 130 + (i % 2 ? 0.4 : -0.4), 85, 1305 + 10 * i); }
+      await wait(5);
+      const fp = t => ({ clientX: 130 + 0.4 * (t - 1500), clientY: 85 + 0.1 * (t - 1500), timeStamp: t });
+      const pp = t => ({ clientX: 408 - 0.2 * (t - 1500), clientY: 210, timeStamp: t });
+      const fold = (id, from, to, at, o) => { const co = []; for (let t = from; t <= to; t += 5) co.push(at(t)); const z = co[co.length - 1]; fire('pointermove', id, z.clientX, z.clientY, to, Object.assign({ co }, o || {})); };
+      for (let t = 1505; t <= 1545; t += 5) fold(2, t, t, fp);
+      fold(1, 1505, 1550, pp, { size: 50 });
+      await wait(5);
+      for (let t = 1550; t <= 1570; t += 5) fold(2, t, t, fp);
+      fold(1, 1555, 1600, pp, { size: 50 });
+      await wait(5);
+      fold(2, 1575, 1600, fp);
+      await wait(5);
+      for (let t = 1610; t <= 1800; t += 10) { fold(2, t - 5, t, fp); fold(1, t - 5, t, pp, { size: 50 }); if (!(t % 40)) await wait(1); }
+      fire('pointerup', 2, 250, 115, 1805);
+      fire('pointerup', 1, 348, 210, 1850, { size: 50 });
+      clean('a ruler finger aiming, a settled palm sliding along, the palm\'s moves folded ahead of the finger\'s', [[30, 70, 150, 130]]);
+    }
+    /* A THUMB ON THE CARD, OFF THE PICTURE, landing 300ms after the ruler finger and sliding 40px before the finger moves: it
+       is refused (it is not on the picture) and says nothing about the finger -- the finger's line. Counted as though it were
+       a refused contact on the picture, a thumb sliding on the card would cost every ruler line drawn beside it. */
+    tfresh('ruler');
+    fire('pointerdown', 2, 130, 85, 1000, { prim: true });
+    for (let i = 1; i <= 30; i++) fire('pointermove', 2, 130 + (i % 2 ? 0.4 : -0.4), 85, 1000 + 10 * i);
+    fire('pointerdown', 3, 300, 260, 1302, { on: host });
+    for (let i = 1; i <= 8; i++) { fire('pointermove', 3, 300 + 5 * i, 260, 1302 + 10 * i, { on: host }); fire('pointermove', 2, 130 + (i % 2 ? 0.4 : -0.4), 85, 1305 + 10 * i); }
+    await wait(5);
+    for (let i = 1; i <= 30; i++) { fire('pointermove', 2, 130 + 4 * i, 85 + i, 1500 + 10 * i); if (!(i % 4)) await wait(1); }
+    fire('pointerup', 2, 250, 115, 1820);
+    fire('pointerup', 3, 340, 260, 1900, { on: host });
+    clean('a ruler finger aiming 300ms and a thumb on the card sliding 40px before it moved', [[30, 70, 150, 130]]);
+    /* AND A PALM LEFT DOWN FROM ONE RULER LINE, SLIDING 30px AS THE NEXT FINGER LANDS (the board's case, with the ruler): the
+       palm was down BEFORE that finger, so it is refused for being first, not by the pin rule -- the finger is the one
+       drawing, and both lines are kept. */
+    tfresh('ruler');
+    fire('pointerdown', 1, 130, 85, 1000, { prim: true });
+    for (let i = 1; i <= 30; i++) {
+      fire('pointermove', 1, 130 + 4 * i, 85 + i, 1000 + 10 * i);
+      if (i === 29) fire('pointerdown', 2, 420, 210, 1000 + 10 * i + 2, { size: 50 });
+      if (!(i % 4)) await wait(1);
+    }
+    fire('pointerup', 1, 250, 115, 1310);
+    fire('pointerdown', 3, 130, 150, 1356);
+    for (let i = 1; i <= 6; i++) fire('pointermove', 2, 420 - 5 * i, 210, 1356 + 8 * i, { size: 50 });
+    await wait(5);
+    for (let i = 1; i <= 30; i++) { fire('pointermove', 3, 130 + 4 * i, 150 + i, 1420 + 10 * i); if (!(i % 4)) await wait(1); }
+    fire('pointerup', 3, 250, 180, 1730);
+    fire('pointerup', 2, 390, 210, 1800, { size: 50 });
+    clean('a palm left down from one ruler line, sliding 30px as the next finger landed', [[30, 70, 150, 130], [30, 200, 150, 260]]);
+    /* WITHIN `PAD_TOGETHER_MS` THE PALM STILL HANDS THE TOOL OVER (round 1 kept it; checked so the pin rule cannot widen
+       unseen): a palm 120ms before the ruler finger, drifting 6px -- the finger's line. And the PEN always hands it over: a
+       palm 400ms before, drifting 6px -- the finger's line, from its own first point. */
+    for (const [name, gap] of [['ruler', 120], ['pen', 400]]) {
+      fresh();
+      if (!tool(name)) { bad.push('setup: the construction question has no ' + name + ' tile — the palm ' + gap + 'ms before was NOT checked'); continue; }
+      A['pad-tool'](tool(name));
+      ink().getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
+      fire('pointerdown', 1, 420, 210, 1000, { prim: true, size: 50 });
+      for (let i = 1; i <= gap / 10; i++) fire('pointermove', 1, 420 + (i % 2 ? 0.4 : -0.4), 210, 1000 + 10 * i, { size: 50 });
+      const t0 = 1000 + gap, fin = [[130, 85]];
+      fire('pointerdown', 2, 130, 85, t0);
+      for (let i = 1; i <= 30; i++) {
+        fin.push([130 + 4 * i, 85 + i]);
+        fire('pointermove', 2, 130 + 4 * i, 85 + i, t0 + 10 * i);
+        if (i <= 12) fire('pointermove', 1, 420 - 0.5 * i, 210, t0 + 10 * i + 3, { size: 50 });
+        if (!(i % 4)) await wait(1);
+      }
+      fire('pointerup', 2, 250, 115, t0 + 320);
+      fire('pointerup', 1, 414, 210, t0 + 400, { size: 50 });
+      clean('a palm ' + gap + 'ms before the ' + name + ' finger, drifting 6px', [name === 'pen' ? units(fin) : [30, 70, 150, 130]]);
+    }
+    /* AND A PALM FIRST, THEN THE COMPASS FINGER 40ms LATER: the finger's circle, about where IT went down. */
+    fresh();
+    A['pad-tool'](tool('compass'));
+    ink().getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
+    fire('pointerdown', 1, 420, 210, 1000, { prim: true });
+    fire('pointerdown', 2, 270, 135, 1040);
+    for (let i = 1; i <= 12; i++) fire('pointermove', 2, 270 + 5 * i, 135, 1040 + 8 * i);
+    fire('pointerup', 2, 330, 135, 1150); fire('pointerup', 1, 420, 210, 1160);
+    const s = stored(), rg = s[0] || [];
+    const xs = rg.filter((v, i) => !(i % 2)), ys = rg.filter((v, i) => i % 2);
+    if (s.length !== 1 || rg.length < 40 || Math.abs((Math.max(...xs) + Math.min(...xs)) / 2 - 170) > 1 || Math.abs((Math.max(...ys) + Math.min(...ys)) / 2 - 170) > 1) {
+      bad.push('a palm first and then the compass finger stored ' + JSON.stringify(s).slice(0, 80) + ' — wanted one ring about where the finger went down, (170, 170)');
+    }
+
+    /* ==================== FOURTH REVIEW (12 Oct): A PALM THAT LANDS AFTER AN AIMING FINGER ====================
+       The palm lands on the picture at (420, 210) -- units (320, 320) -- with a finger already held on its point at (130, 85),
+       units (30, 70). Nothing may ever be stored near the palm, and the finger's line is the one meant. */
+    const nearPalm = s => s.some(st => { for (let i = 0; i + 1 < st.length; i += 2) if (Math.hypot(st[i] - 320, st[i + 1] - 320) < 30) return true; return false; });
+    /* THE COMPASS'S ARC, centred where the finger went down: every point 60px off it (a unit is 1px across, 0.5px down). */
+    const arcAt = (st, cx, cy) => {
+      if (st.length < 16) return false;
+      for (let i = 0; i + 1 < st.length; i += 2) if (Math.abs(Math.hypot((st[i] - cx) * W / 340, (st[i + 1] - cy) * H / 340) - 60) > 3) return false;
+      return true;
+    };
+    const quiver = i => (i % 2 ? 0.3 : -0.3);
+    /* THE FINGER'S STROKE FROM `t0`: 40 moves 10ms apart -- a 120px pen or ruler line, or the compass opened 60px and swung
+       half a turn. Each move is handed to `also(i, t)` for the other hand. Returns the points, for the pen's `units`. */
+    const draw = async (name, t0, also, what) => {
+      const pts = [[130, 85]];
+      for (let i = 1; i <= 40; i++) {
+        const t = t0 + 10 * i;
+        let p;
+        if (name === 'compass') { const g = Math.PI * Math.max(0, i - 16) / 24; p = i <= 16 ? [130 + 60 * i / 16, 85] : [130 + 60 * Math.cos(g), 85 + 60 * Math.sin(g)]; }
+        else p = [130 + 3 * i, 85 + 0.5 * i];
+        pts.push(p);
+        fire('pointermove', 2, p[0], p[1], t);
+        if (also) also(i, t);
+        if (!(i % 4)) await wait(1);
+        if (what && i === 32 && !host.querySelector('[data-live]')) bad.push(what + ': the finger\'s line was not shown as it was drawn');
+      }
+      fire('pointerup', 2, pts[40][0], pts[40][1], t0 + 405);
+      return pts;
+    };
+    const fingers = (name, pts) => name === 'pen' ? [units(pts)] : name === 'ruler' ? [[30, 70, 150, 110]] : null;
+    const theFinger = (what, name, pts) => {
+      const s = stored();
+      if (nearPalm(s)) bad.push(what + ': a mark at the PALM was stored: ' + JSON.stringify(s).slice(0, 120));
+      if (name === 'compass') {
+        if (s.length !== 1 || !arcAt(s[0], 30, 70)) bad.push(what + ': stored ' + JSON.stringify(s).slice(0, 120) + ' — wanted one arc about where the finger went down, (30, 70)');
+        clean(what, s.length === 1 && arcAt(s[0], 30, 70) ? s : [['the finger\'s arc']]);
+      } else clean(what, fingers(name, pts));
+    };
+    /* THE FINGER HELD ON ITS POINT FROM 1000; THE PALM LANDS `gap` LATER AND SETTLES `S` px IN 80ms (8 moves), then rests,
+       trembling, both of them, for 400ms from its landing -- unless `lift` names one of them that goes at +210. */
+    const aimAndSettle = async (name, gap, S, lift) => {
+      tfresh(name);
+      const g0 = 1000 + gap;
+      fire('pointerdown', 2, 130, 85, 1000, { prim: true });
+      for (let t = 1010; t < g0; t += 10) fire('pointermove', 2, 130 + quiver(t / 10), 85, t);
+      fire('pointerdown', 1, 420, 210, g0, { size: 50 });
+      for (let i = 1; i <= 40; i++) {
+        if (lift !== 'palm' || i <= 20) fire('pointermove', 1, 420 - S * Math.min(1, i / 8) + (i > 8 ? quiver(i) : 0), 210, g0 + 10 * i, { size: 50 });
+        if (lift !== 'finger' || i <= 20) fire('pointermove', 2, 130 + quiver(i), 85, g0 + 10 * i + 2);
+        if (i === 21 && lift === 'palm') fire('pointerup', 1, 420 - S, 210, g0 + 205, { size: 50 });
+        if (i === 21 && lift === 'finger') fire('pointerup', 2, 130, 85, g0 + 205);
+        if (!(i % 4)) await wait(1);
+        /* HELD, AND SO NOTHING ON THE PICTURE: the review watched the palm's settle drawn in 28-48 frames. */
+        if (i === 12) unseen('a palm landing ' + gap + 'ms after a ' + name + ' finger and settling ' + S + 'px');
+      }
+      return g0 + 400;
+    };
+    /* THE MUST-FIX: THE FINGER HELD STILL TO AIM, A PALM LANDING AFTER IT AND SETTLING 9, 12 OR 16px -- the pen at 300ms and
+       at 1.5s (it hands a palm-first stroke over at any age), the ruler and the compass at 120ms (within `PAD_TOGETHER_MS`,
+       where they hand it over too) -- and then the finger draws. 2a89387 handed the palm the stroke at its 10px: at 12 and
+       16 the palm's settle was stored, `[[320,320,308,320]]` or a ring round it, and the finger's line was lost. Now the palm
+       would have to go 30px; it stops at 16, the finger moves, and the half rule says the palm settled: the finger's line,
+       shown as it is drawn. */
+    for (const [name, gap] of [['pen', 300], ['pen', 1500], ['ruler', 120], ['compass', 120]]) for (const S of [9, 12, 16]) {
+      const what = 'a ' + name + ' finger aiming, a palm landing ' + gap + 'ms after it and settling ' + S + 'px, then the finger drew';
+      const go = await aimAndSettle(name, gap, S);
+      const pts = await draw(name, go, (i, t) => fire('pointermove', 1, 420 - S + quiver(i), 210, t + 3, { size: 50 }), what);
+      fire('pointerup', 1, 420 - S, 210, go + 500, { size: 50 });
+      theFinger(what, name, pts);
+    }
+    /* AND A LIFT HANDS NOTHING OVER (decided while fixing the above -- 338 section 4). The same palm, settling 12 or 16px:
+       - it LIFTS before the finger moves (a hand brushing the picture): the review's rule let the lift hand it the stroke,
+         so its settle was stored at its lift and the finger's line after it was lost -- the finger's line, now;
+       - the FINGER lifts still (a tap) while the palm stays: the lift handed the palm the stroke and its settle was stored
+         -- nothing, now (the tap's dot is the cost in section 4's first line). */
+    for (const [name, gap] of [['pen', 300], ['ruler', 120], ['compass', 120]]) for (const S of [12, 16]) {
+      let what = 'a ' + name + ' finger aiming, a palm landing ' + gap + 'ms after it, settling ' + S + 'px and lifting, then the finger drew';
+      const go = await aimAndSettle(name, gap, S, 'palm');
+      theFinger(what, name, await draw(name, go, null, what));
+      what = 'a ' + name + ' finger tapping still while a palm landed ' + gap + 'ms after it and settled ' + S + 'px';
+      const end = await aimAndSettle(name, gap, S, 'finger');
+      for (let i = 1; i <= 20; i++) { fire('pointermove', 1, 420 - S + quiver(i), 210, end + 10 * i, { size: 50 }); if (!(i % 4)) await wait(1); }
+      unseen(what);
+      fire('pointerup', 1, 420 - S, 210, end + 210, { size: 50 });
+      if (nearPalm(stored())) bad.push(what + ': a mark at the PALM was stored: ' + JSON.stringify(stored()).slice(0, 120));
+      clean(what, []);
+    }
+    /* THE COST OF THAT, CHECKED SO IT CANNOT GROW UNSEEN: a palm resting first, the pen's first strokes after it are a later
+       contact's, and one shorter than 30px is not handed over -- two 20px ticks are lost while the palm stays down and
+       still. A 60px line is handed over (from its own first point, every sample); from then on the palm is a watched rest,
+       and the next 20px tick is drawn. The ruler, the palm 100ms first: its 20px tick is lost the same way. */
+    {
+      tfresh('pen');
+      fire('pointerdown', 1, 420, 210, 1000, { prim: true, size: 50 });
+      const rest = (a, b) => { for (let t = a; t < b; t += 10) fire('pointermove', 1, 420 + quiver(t / 10), 210, t + 3, { size: 50 }); };
+      rest(1010, 1400);
+      const kept = [];
+      for (const [t0, len, y] of [[1400, 20, 85], [1700, 20, 105], [2000, 60, 125], [2400, 20, 145]]) {
+        const pts = [[130, y]];
+        fire('pointerdown', 2, 130, y, t0);
+        for (let i = 1; i <= len / 2; i++) { pts.push([130 + 2 * i, y]); fire('pointermove', 2, 130 + 2 * i, y, t0 + 10 * i); fire('pointermove', 1, 420 + quiver(i), 210, t0 + 10 * i + 3, { size: 50 }); if (!(i % 4)) await wait(1); }
+        await wait(2);
+        fire('pointerup', 2, 130 + len, y, t0 + 5 * len + 5);
+        rest(t0 + 5 * len + 10, t0 + 300);
+        if (len === 60 || t0 === 2400) kept.push(units(pts));
+      }
+      fire('pointerup', 1, 420, 210, 2800, { size: 50 });
+      clean('a palm resting first, then the pen: two 20px ticks, a 60px line and a 20px tick', kept);
+      tfresh('ruler');
+      fire('pointerdown', 1, 420, 210, 1000, { prim: true, size: 50 });
+      rest(1010, 1100);
+      fire('pointerdown', 2, 130, 85, 1100);
+      for (let i = 1; i <= 10; i++) { fire('pointermove', 2, 130 + 2 * i, 85, 1100 + 10 * i); fire('pointermove', 1, 420 + quiver(i), 210, 1100 + 10 * i + 3, { size: 50 }); if (!(i % 4)) await wait(1); }
+      await wait(2);
+      fire('pointerup', 2, 150, 85, 1205);
+      fire('pointerup', 1, 420, 210, 1400, { size: 50 });
+      clean('a palm resting 100ms first, then a 20px ruler tick', []);
+    }
+    /* AND THE ONE LEFT ALONE IN A HELD STROKE IS HANDED IT ONLY AT 30px, WHICHEVER CAME FIRST (decision 4, again). A lift
+       hands nothing over, so after a palm-first tick the PALM is the one left holding the stroke -- and it was handed it
+       back at its 10px: the hand moving on, the palm sliding 15px, drew its slide, and every finger stroke after it was
+       a rest beside an established stroke, lost until the palm lifted (and so it was after a finger's TAP on 2a89387).
+       - the pen: a palm resting first, a 20px tick (the cost above), the palm slides 15px, then a finger draws 60px: the
+         line, and nothing at the palm, and nothing on the picture while the palm slides;
+       - the same palm sliding 15px and lifting: nothing;
+       - the ruler, the palm 100ms first: a 20px tick, the palm slides 15px and lifts: nothing.
+       And the price, so it cannot grow unseen: a finger aiming, a palm landing 300ms after it, settling 12px and lifting
+       (a brush) -- the finger then draws 20px: nothing (it was handed it back at 10px before); 40px: its line. */
+    {
+      const slide = (a, dx) => { for (let i = 1; i <= 15; i++) fire('pointermove', 1, 420 - dx * i / 15, 210, a + 10 * i, { size: 50 }); };
+      for (const [name, gap, line] of [['pen', 400, true], ['pen', 400, false], ['ruler', 100, false]]) {
+        tfresh(name);
+        fire('pointerdown', 1, 420, 210, 1000, { prim: true, size: 50 });
+        for (let t = 1010; t < 1000 + gap; t += 10) fire('pointermove', 1, 420 + quiver(t / 10), 210, t + 3, { size: 50 });
+        const t0 = 1000 + gap;
+        fire('pointerdown', 2, 130, 85, t0);
+        for (let i = 1; i <= 10; i++) { fire('pointermove', 2, 130 + 2 * i, 85, t0 + 10 * i); fire('pointermove', 1, 420 + quiver(i), 210, t0 + 10 * i + 3, { size: 50 }); if (!(i % 4)) await wait(1); }
+        await wait(2);
+        fire('pointerup', 2, 150, 85, t0 + 105);
+        await wait(2);
+        slide(t0 + 200, 15);
+        await wait(5);
+        const what = 'a palm resting first, a ' + name + ' finger\'s 20px tick, then the palm sliding 15px' + (line ? ' and a finger drawing 60px' : ' and lifting');
+        unseen(what);
+        const kept = [];
+        if (line) {
+          const pts = [[130, 125]];
+          fire('pointerdown', 2, 130, 125, t0 + 500);
+          for (let i = 1; i <= 30; i++) { pts.push([130 + 2 * i, 125]); fire('pointermove', 2, 130 + 2 * i, 125, t0 + 500 + 10 * i); fire('pointermove', 1, 405 + quiver(i), 210, t0 + 500 + 10 * i + 3, { size: 50 }); if (!(i % 4)) await wait(1); }
+          await wait(2);
+          fire('pointerup', 2, 190, 125, t0 + 805);
+          kept.push(units(pts));
+        }
+        fire('pointerup', 1, 405, 210, t0 + 900, { size: 50 });
+        if (nearPalm(stored())) bad.push(what + ': a mark at the PALM was stored: ' + JSON.stringify(stored()).slice(0, 120));
+        clean(what, kept);
+      }
+      for (const len of [20, 40]) {
+        const go = await aimAndSettle('pen', 300, 12, 'palm');
+        const pts = [[130, 85]];
+        for (let i = 1; i <= len / 2; i++) { pts.push([130 + 2 * i, 85]); fire('pointermove', 2, 130 + 2 * i, 85, go + 10 * i); if (!(i % 4)) await wait(1); }
+        await wait(2);
+        fire('pointerup', 2, 130 + len, 85, go + 5 * len + 5);
+        clean('a pen finger aiming, a palm brushing the picture 300ms after it (settling 12px and lifting), then a ' + len + 'px line', len < 30 ? [] : [units(pts)]);
+      }
+    }
+    /* AND THE ONE IT WENT TO AT A LIFT STAYS OWED WITH A NEW FINGER BESIDE IT: a finger taps still beside a palm that landed
+       300ms after it and settled 12px -- the palm is held as the stroke's (the tap's cost) -- then a finger lands, and the
+       palm drifts 12px more before it moves. An owner with a candidate beside it is handed the stroke back at 10px (P7),
+       but this owner came later and never showed it was drawing: it waits for 30, and the finger's 60px line is drawn. */
+    {
+      const end = await aimAndSettle('pen', 300, 12, 'finger');
+      const pts = [[130, 125]];
+      fire('pointerdown', 3, 130, 125, end + 10);
+      for (let i = 1; i <= 10; i++) { fire('pointermove', 1, 408 - 1.2 * i + quiver(i), 210, end + 10 + 10 * i, { size: 50 }); fire('pointermove', 3, 130 + quiver(i), 125, end + 12 + 10 * i); if (!(i % 4)) await wait(1); }
+      await wait(5);
+      unseen('a palm handed a tap\'s stroke, then a finger landing beside it while it drifted 12px');
+      for (let i = 1; i <= 30; i++) { pts.push([130 + 2 * i, 125]); fire('pointermove', 3, 130 + 2 * i, 125, end + 120 + 10 * i); fire('pointermove', 1, 396 + quiver(i), 210, end + 123 + 10 * i, { size: 50 }); if (!(i % 4)) await wait(1); }
+      await wait(2);
+      fire('pointerup', 3, 190, 125, end + 425);
+      fire('pointerup', 1, 396, 210, end + 500, { size: 50 });
+      const what = 'a palm handed a tap\'s stroke, a finger landing while it drifted 12px, then drawing 60px';
+      if (nearPalm(stored())) bad.push(what + ': a mark at the PALM was stored: ' + JSON.stringify(stored()).slice(0, 120));
+      clean(what, [units(pts)]);
+    }
+    /* THE SHOULD-FIX: THE RACE COUNTED THE STILL ONE FROM ITS OWN DOWN. A palm 400ms first that settled 8 or 9px as it was put
+       down -- under 10, still a dot -- then drifts 2-4px more over the first 200ms of a finger that starts slowly (a hand's
+       stroke: minimum jerk), drawing a 120px ruler line or opening the compass 60px and swinging. The finger is refused (the
+       pin rule) and the two race; counted from its down the palm was at 11-13px while the finger was at 10-12, and 2a89387
+       showed and stored the palm's ruler line `[[320,320,308,320]]` or a ring round it (real touch, timing-dependent: the
+       review's 6 of 12 ruler runs and 4 of 4 compass runs at 9+3 and 9+4; 3 of 8 and 1 of 6 in round 4's last pass).
+       Counted from where it was when the finger landed it
+       has moved 4px: nothing, and nothing shown -- the finger's line is the cost section 4 chose for a palm down over 200ms.
+       (With the race to 30px, below, a 2-4px drift cannot win from either point: the next case is the one that tells them
+       apart.)
+       And a PIN that settled 8 or 9px as it was put down, then rolls 3 or 5: the same. And one that rolls 12px in 200ms
+       beside a finger starting slowly: it reaches 10px first, and with the race at 10px and "further", asked by the
+       samples' clock, it won every time -- its own ruler line, or a ring round itself (real touch too, 390 and 820). The
+       race is to 30px now: nothing. */
+    {
+      const mj = u => { u = Math.max(0, Math.min(1, u)); return 10 * u ** 3 - 15 * u ** 4 + 6 * u ** 5; };
+      const slow = (name, i, t, id, cx, cy) => {
+        const u = i / 60;
+        if (name === 'compass') { if (u < 0.8) fire('pointermove', id, cx + 60 * mj(u / 0.8), cy, t); else { const g = Math.PI * (u - 0.8) / 0.2; fire('pointermove', id, cx + 60 * Math.cos(g), cy + 60 * Math.sin(g), t); } }
+        else fire('pointermove', id, cx + 120 * mj(u), cy + 20 * mj(u), t);
+      };
+      for (const name of ['ruler', 'compass']) for (const [pre, more] of [[9, 2], [9, 3], [9, 4], [8, 4], [9, 0], [0, 12]]) {
+        tfresh(name);
+        fire('pointerdown', 1, 420, 210, 1000, { prim: true, size: 50 });
+        for (let i = 1; i <= 8; i++) fire('pointermove', 1, 420 - pre * i / 8, 210, 1000 + 10 * i, { size: 50 });
+        for (let i = 9; i <= 40; i++) fire('pointermove', 1, 420 - pre + quiver(i), 210, 1000 + 10 * i, { size: 50 });
+        fire('pointerdown', 2, 130, 85, 1400);
+        for (let i = 1; i <= 60; i++) {
+          slow(name, i, 1400 + 10 * i, 2, 130, 85);
+          fire('pointermove', 1, 420 - pre - more * Math.min(1, i / 20) + quiver(i), 210, 1400 + 10 * i + 3, { size: 50 });
+          if (!(i % 2)) await wait(1);
+        }
+        const what = 'a palm 400ms first that settled ' + pre + 'px, then drifting ' + more + 'px while a slow-starting ' + name + ' finger drew';
+        unseen(what);
+        fire('pointerup', 2, 250, 105, 2010);
+        fire('pointerup', 1, 420 - pre - more, 210, 2100, { size: 50 });
+        clean(what, []);
+      }
+      /* AND RACED FROM WHERE IT WAS WHEN THE FINGER LANDED: the palm settled 9px as it was put down; the finger goes 12px
+         quickly -- refused, the race begins -- and pauses 200ms, the palm drifting 22px meanwhile, 31 from its own down and
+         22 from where it was when the finger landed; then the finger draws on. Counted from its own down the palm went 30px
+         first, and its line or ring was shown and stored; counted from where it was, it never did: nothing. */
+      for (const name of ['ruler', 'compass']) {
+        tfresh(name);
+        fire('pointerdown', 1, 420, 210, 1000, { prim: true, size: 50 });
+        for (let i = 1; i <= 8; i++) fire('pointermove', 1, 420 - 9 * i / 8, 210, 1000 + 10 * i, { size: 50 });
+        for (let i = 9; i <= 40; i++) fire('pointermove', 1, 411 + quiver(i), 210, 1000 + 10 * i, { size: 50 });
+        fire('pointerdown', 2, 130, 85, 1400);
+        for (let i = 1; i <= 4; i++) { fire('pointermove', 2, 130 + 3 * i, 85, 1400 + 10 * i); fire('pointermove', 1, 411 + quiver(i), 210, 1403 + 10 * i, { size: 50 }); }
+        await wait(2);
+        for (let i = 1; i <= 20; i++) {
+          fire('pointermove', 2, 142 + quiver(i), 85, 1440 + 10 * i);
+          fire('pointermove', 1, 411 - 22 * Math.min(1, i / 15) + quiver(i), 210, 1443 + 10 * i, { size: 50 });
+          if (!(i % 4)) await wait(1);
+        }
+        for (let i = 1; i <= 30; i++) {
+          if (name === 'compass') { if (i <= 12) fire('pointermove', 2, 142 + 4 * i, 85, 1640 + 10 * i); else { const g = Math.PI * (i - 12) / 18; fire('pointermove', 2, 130 + 60 * Math.cos(g), 85 + 60 * Math.sin(g), 1640 + 10 * i); } }
+          else fire('pointermove', 2, 142 + 4 * i, 85 + i, 1640 + 10 * i);
+          if (!(i % 4)) await wait(1);
+        }
+        const what = 'a palm 400ms first that settled 9px, a ' + name + ' finger refused at 12px and pausing while the palm drifted 22px more';
+        unseen(what);
+        fire('pointerup', 2, 262, 115, 1950);
+        fire('pointerup', 1, 389, 210, 2000, { size: 50 });
+        clean(what, []);
+      }
+      for (const name of ['ruler', 'compass']) for (const [pre, more] of [[9, 3], [8, 5], [0, 12]]) {
+        tfresh(name);
+        fire('pointerdown', 1, 270, 135, 1000, { prim: true });
+        for (let i = 1; i <= 8; i++) fire('pointermove', 1, 270 + pre * i / 8, 135, 1000 + 10 * i);
+        for (let i = 9; i <= 30; i++) fire('pointermove', 1, 270 + pre + quiver(i), 135, 1000 + 10 * i);
+        fire('pointerdown', 2, 330, 135, 1302);
+        for (let i = 1; i <= 60; i++) {
+          const u = i / 60;
+          if (name === 'compass') { const g = 1.5 * Math.PI * mj(u); fire('pointermove', 2, 270 + 60 * Math.cos(g), 135 + 60 * Math.sin(g), 1302 + 10 * i); }
+          else fire('pointermove', 2, 330 + 60 * mj(u), 135, 1302 + 10 * i);
+          fire('pointermove', 1, 270 + pre + more * Math.min(1, i / 20) + quiver(i), 135, 1305 + 10 * i);
+          if (!(i % 2)) await wait(1);
+        }
+        const what = 'a pin on the ' + name + (name === 'ruler' ? '\'s end' : '\'s centre') + ' that settled ' + pre + 'px as it was put down, then rolled ' + more;
+        unseen(what);
+        fire('pointerup', 2, 330, 135, 1920); fire('pointerup', 1, 270 + pre + more, 135, 1925);
+        clean(what, []);
+      }
+    }
+    /* THE NIT: THE RACE WAS JUDGED AGAINST HOW FAR THE PALM HAD GONE BY THE FRAME, not by the finger's samples. The ruler
+       finger aiming 300ms, a palm landing and settling 12px -- a frame: refused, the race begins. Then, with no frame
+       between (a busy main thread), the finger goes 32px in 80ms, and only then the palm slides 30px in 50ms -- 42 by the
+       frame. By the samples the finger went 30px first: its line. 2a89387 asked for a finger sample further than the palm's
+       42 at the frame, found one only after the palm had passed 30, and lost the line. */
+    {
+      tfresh('ruler');
+      fire('pointerdown', 2, 130, 85, 1000, { prim: true });
+      for (let i = 1; i <= 30; i++) fire('pointermove', 2, 130 + quiver(i), 85, 1000 + 10 * i);
+      fire('pointerdown', 1, 420, 210, 1302, { size: 50 });
+      for (let i = 1; i <= 8; i++) { fire('pointermove', 1, 420 - 1.5 * i, 210, 1302 + 10 * i, { size: 50 }); fire('pointermove', 2, 130 + quiver(i), 85, 1305 + 10 * i); }
+      await wait(5);
+      for (let i = 1; i <= 8; i++) fire('pointermove', 2, 130 + 4 * i, 85, 1500 + 10 * i);
+      for (let i = 1; i <= 5; i++) { fire('pointermove', 1, 408 - 6 * i, 210, 1580 + 10 * i, { size: 50 }); fire('pointermove', 2, 162 + 4 * i, 85, 1582 + 10 * i); }
+      await wait(5);
+      for (let i = 1; i <= 16; i++) { fire('pointermove', 2, 182 + 4 * i, 85 + i, 1640 + 10 * i); if (!(i % 4)) await wait(1); }
+      fire('pointerup', 2, 246, 101, 1810);
+      fire('pointerup', 1, 378, 210, 1850, { size: 50 });
+      clean('a ruler finger aiming, a settled palm, the finger 30px by its samples before the palm, one frame for all', [[30, 70, 146, 102]]);
+    }
+    /* THE COST OF THE 30px RACE (338 section 4): the same aiming ruler finger and settled palm, and the finger then draws only
+       20px -- shorter than 30, it never shows it was the one drawing: nothing. At 40px: its line. */
+    for (const len of [20, 40]) {
+      tfresh('ruler');
+      fire('pointerdown', 2, 130, 85, 1000, { prim: true });
+      for (let i = 1; i <= 30; i++) fire('pointermove', 2, 130 + quiver(i), 85, 1000 + 10 * i);
+      fire('pointerdown', 1, 420, 210, 1302, { size: 50 });
+      for (let i = 1; i <= 8; i++) { fire('pointermove', 1, 420 - 1.5 * i, 210, 1302 + 10 * i, { size: 50 }); fire('pointermove', 2, 130 + quiver(i), 85, 1305 + 10 * i); }
+      await wait(5);
+      for (let i = 1; i <= len / 4; i++) { fire('pointermove', 2, 130 + 4 * i, 85, 1500 + 10 * i); fire('pointermove', 1, 408 + quiver(i), 210, 1503 + 10 * i, { size: 50 }); if (!(i % 4)) await wait(1); }
+      await wait(2);
+      fire('pointerup', 2, 130 + len, 85, 1500 + 10 * len / 4 + 5);
+      fire('pointerup', 1, 408, 210, 1700, { size: 50 });
+      clean('a ruler finger aiming, a palm settling 12px 300ms after it, then a ' + len + 'px line', len < 30 ? [] : [[30, 70, 30 + len, 70]]);
+    }
+  }
+
+  w.padDrop_();
+  t.padOn('');
+  try { w.localStorage.removeItem(k); w.localStorage.removeItem(bk); } catch (e) {}
+  host.remove();
+  t.USER(null);
+  return bad;
+});
+
+/* ---------- THE FINGER PEN KEEPS EVERY SAMPLE, AND DRAWS IT ONCE A FRAME (338, increment 1b) ------------------
+   MEASURED BEFORE: a 1,200-sample zigzag at 4x CPU reached the pen as 395 events and 394 points were kept --
+   every sample was there in `getCoalescedEvents`. And the whole live path was rebuilt per event, with the next
+   event's box read forcing the layout that write dirtied. Asked here on a question's 340x170 pad: the folded
+   samples are the stroke's (one of them with no `pointerId`, as iOS 18.2 sends them); an event that answers
+   `[]` is its own sample; ONE box read per event however many samples it carries; the box read AGAIN when the
+   pad has moved under the finger (a box kept from the down would put the rest of the line in the wrong
+   place); before a frame the live path is behind, after one it is exactly `padPath_` of the points so far;
+   past 128 segments it is in chunks; and on the lift the last point is in the store and in the one path
+   drawn -- nothing the last frame had not yet drawn is lost. */
+check('the finger pen keeps every sample: the folded ones, one box read per event, the box read again when the pad moves, the frame\'s live path is padPath_ of the points so far, chunked past 128 segments, and the last point is never dropped', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  if (!t || typeof t.padWrap !== 'function' || typeof t.padKey !== 'function' || typeof t.padOn !== 'function'
+      || typeof w.padDrop_ !== 'function' || typeof t.padSt !== 'function' || typeof t.padPath !== 'function') {
+    return ['padWrap_, padKey_, padDrop_, PAD_ST or padPath_ are not reachable — every sample was NOT checked'];
+  }
+  const x = { kind: 'question', answerType: 'drawing', html: '<p>Draw it.</p>', key: 'q:Q-FINGER-2' };
+  const k = t.padKey(x);
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  const W = 340, H = 170;
+  let L = 100, T = 50, reads = 0;
+  const ink = () => host.querySelector('.qpad-ink');
+  const kOf = () => Number((host.querySelector('.qpad') || { getAttribute: () => 1 }).getAttribute('data-aspect')) || 1;
+  const fresh = () => {
+    w.padDrop_();
+    try { w.localStorage.removeItem(k); } catch (e) {}
+    t.padOn(k);
+    L = 100; T = 50;
+    host.innerHTML = t.padWrap(x, '<svg viewBox="0 0 340 170"></svg>', '');
+    ink().getBoundingClientRect = () => { reads++; return { left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T }; };
+  };
+  const fire = (type, id, px, py, ts, o) => penEv_(w, ink(), type, Object.assign({ id: id, x: px, y: py, t: ts }, o || {}));
+  const stored = () => { try { return JSON.parse(w.localStorage.getItem(k) || '[]'); } catch (e) { return ['unreadable']; } };
+  const lives = () => [...host.querySelectorAll('.qpad-g [data-live]')];
+  const one = (what) => {
+    const s = stored(), paths = [...host.querySelectorAll('.qpad-g path')];
+    if (lives().length) bad.push(what + ': ' + lives().length + ' live chunk(s) left after the lift');
+    if (paths.length !== s.length) bad.push(what + ': ' + paths.length + ' path(s) drawn for ' + s.length + ' stored');
+    const last = paths[paths.length - 1], want = s.length ? t.padPath(s[s.length - 1], kOf()) : '';
+    if (last && last.getAttribute('d') !== want) bad.push(what + ': the path drawn after the lift is not padPath_ of what was stored — ' + String(last.getAttribute('d')).slice(-60) + ' against ' + want.slice(-60));
+    if (!penWhole_(s)) bad.push(what + ': the store holds something that is not a list of lists of whole numbers');
+  };
+
+  /* P1: ONE MOVE CARRYING SIX FOLDED SAMPLES, one a duplicate and none with a `pointerId`; then a move whose
+     list is empty. (150,100) is units (50,100). */
+  fresh();
+  fire('pointerdown', 1, 150, 100, 1000, { prim: true });
+  const co = [[152, 100], [154, 101], [154, 101], [156, 102], [158, 103], [160, 104]]
+    .map((p, i) => ({ clientX: p[0], clientY: p[1], timeStamp: 1002 + 2 * i }));
+  reads = 0;
+  fire('pointermove', 1, 160, 104, 1012, { co: co });
+  if (reads !== 1) bad.push('a move carrying six samples read the pad\'s box ' + reads + ' times — wanted once, shared by all of them');
+  if (JSON.stringify(t.padSt()) !== '[50,100,52,100,54,102,56,104,58,106,60,108]') bad.push('six folded samples gave the stroke ' + JSON.stringify(t.padSt()) + ', wanted [50,100,52,100,54,102,56,104,58,106,60,108] — every one, less the repeat');
+  fire('pointermove', 1, 170, 110, 1020, { co: [] });
+  fire('pointerup', 1, 170, 110, 1030);
+  if (JSON.stringify(stored()) !== '[[50,100,52,100,54,102,56,104,58,106,60,108,70,120]]') bad.push('the folded samples and an empty list stored ' + JSON.stringify(stored()) + ' — wanted every sample, then the event\'s own point');
+  one('the folded samples');
+
+  /* THE PAD MOVES UNDER THE FINGER (a sibling's zoom, `padFaceFit_`, the pane scrolled): the next event reads
+     the box again. Units 50, then 60; the pad 50px further right; (220,100) is then unit 70, not 120. */
+  fresh();
+  fire('pointerdown', 1, 150, 100, 1000, { prim: true });
+  fire('pointermove', 1, 160, 100, 1010);
+  L = 150;
+  fire('pointermove', 1, 220, 100, 1020);
+  fire('pointerup', 1, 220, 100, 1030);
+  if (JSON.stringify(stored()) !== '[[50,100,60,100,70,100]]') bad.push('after the pad moved 50px under the finger the stroke was stored as ' + JSON.stringify(stored()) + ', wanted [[50,100,60,100,70,100]] — a box kept from the down');
+  one('the pad moved');
+
+  /* P20: THE LIVE PATH AGAINST WHAT IS STORED. */
+  fresh();
+  fire('pointerdown', 1, 110, 60, 1000, { prim: true });
+  const dot = (lives()[0] || { getAttribute: () => null }).getAttribute('d');
+  if (dot !== t.padPath([10, 20], kOf())) bad.push('the finger\'s dot was not drawn the moment it landed: ' + dot);
+  for (let i = 1; i <= 40; i++) fire('pointermove', 1, 110 + 4 * i, 60 + (i % 5) * 3, 1000 + 8 * i);
+  const before = (lives()[0] || { getAttribute: () => '' }).getAttribute('d');
+  if (before === t.padPath(t.padSt(), kOf())) bad.push('the live path was rewritten inside every event — it was meant to be written once a frame');
+  await wait(5);
+  const framed = lives().map(p => p.getAttribute('d'));
+  if (framed.length !== 1 || framed[0] !== t.padPath(t.padSt(), kOf())) bad.push('after a frame the live path is not padPath_ of the points so far: ' + framed.map(s => s.slice(-40)).join(' | '));
+  fire('pointermove', 1, 280, 70, 1400);
+  fire('pointermove', 1, 300, 80, 1408);
+  fire('pointerup', 1, 300, 80, 1410);
+  const s20 = stored()[0] || [];
+  if (JSON.stringify(s20.slice(-4)) !== '[180,40,200,60]') bad.push('the last two points, moved after the last frame, are not the stored stroke\'s end: ' + JSON.stringify(s20.slice(-6)));
+  one('the live path against the stored');
+
+  /* P21: A 300-POINT STROKE IS DRAWN IN CHUNKS while it is drawn, and is one path after. */
+  fresh();
+  fire('pointerdown', 1, 110, 100, 1000, { prim: true });
+  for (let i = 1; i < 300; i++) fire('pointermove', 1, 110 + i, 100 + (i % 2) * 2, 1000 + 4 * i);
+  await wait(5);
+  const ch = lives().map(p => p.getAttribute('d'));
+  if (ch.length < 2) bad.push('a 300-point stroke was drawn as ' + ch.length + ' live path(s) — the frame rewrites the whole stroke');
+  const joined = ch.map((s, i) => (i ? s.replace(/^M[^LC]*/, '') : s)).join('');
+  if (joined !== t.padPath(t.padSt(), kOf())) bad.push('the chunks of a 300-point stroke do not join into padPath_ of it');
+  /* AND A FRAME AFTER THAT WRITES THE OPEN CHUNK, NOT THE STROKE: at most two `d`s -- the open chunk and one being frozen
+     -- however long the stroke has grown. Every chunk rewritten every frame keeps every other line here true and costs a
+     frame more as the stroke grows (the review's mutation: 20 writes a frame at 2,500 points, where this writes 1-2). */
+  let dw = 0;
+  const sa = w.Element.prototype.setAttribute;
+  w.Element.prototype.setAttribute = function (n, v) { if (n === 'd' && this.hasAttribute && this.hasAttribute('data-live')) dw++; return sa.call(this, n, v); };
+  try {
+    for (let i = 300; i < 320; i++) fire('pointermove', 1, 110 + i, 100 + (i % 2) * 2, 1000 + 4 * i);
+    await wait(5);
+  } finally { w.Element.prototype.setAttribute = sa; }
+  if (dw > 2) bad.push('a frame of a 320-point stroke wrote ' + dw + ' live `d`s — wanted the open chunk only (and one being frozen): a frame\'s cost must not grow with the stroke');
+  if (!dw) bad.push('a frame after 20 more points wrote no live path at all');
+  fire('pointerup', 1, 429, 102, 2300);
+  if ((stored()[0] || []).length !== 640) bad.push('the 320-point stroke stored ' + ((stored()[0] || []).length / 2) + ' points');
+  one('a 320-point stroke');
+
+  w.padDrop_();
+  t.padOn('');
+  try { w.localStorage.removeItem(k); } catch (e) {}
+  host.remove();
+  return bad;
+});
+
+/* ---------- A FAST LINE IS DRAWN ROUND, AND EVERY STORED STROKE STILL DRAWS (338, increment 1c) ----------------
+   `padPath_(st, k)` draws long, gently turning segments as corner-keeping centripetal Catmull-Rom curves
+   through every stored point, and NOTHING STORED CHANGES. Asked here of the function itself and of a pad:
+   today's string byte for byte for a dot, two points, a repeated pair, a square, a triangle, note 310's
+   stroke, a dense stroke, a malformed one and every stroke the journeys in this file store; an L keeps its
+   corner; a 12-gon of radius 100 is drawn within half a percent of its circle and a 9-point ring curves while a
+   hexagon does not; a circle stored on the 3:4 board is round on the screen when drawn with the board's
+   aspect; and an OLD drawing -- whole numbers in the store, as every device holds them -- is drawn round, its
+   stored value byte for byte what it was, every stored point an end of a segment. */
+check('a fast line is drawn round and every stored stroke still draws: padPath_ keeps dots, rulers, corners and dense strokes byte for byte, curves a fast circle within half a percent, reads the pad\'s aspect, and an old drawing loads unchanged', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  if (typeof w.padPath_ !== 'function' || typeof w.padAspect_ !== 'function' || !t || typeof t.padWrap !== 'function') {
+    return ['padPath_, padAspect_ or padWrap_ is not reachable — the curves were NOT checked'];
+  }
+  /* TODAY'S STRING, written out here as it was: the polyline, and a lone point as a dot. */
+  const today = st => { let s = ''; for (let i = 0; i + 1 < st.length; i += 2) s += (i ? 'L' : 'M') + st[i] + ' ' + st[i + 1];
+    return st.length === 2 ? `M${st[0]} ${st[1]}L${st[0]} ${st[1]}` : s; };
+  const P = (st, k) => w.padPath_(st, k);
+  /* THE PATH AS SEGMENTS, and points along it: a cubic at 21 values of t, a line at its two ends. */
+  const segs = s => { const out = []; let cur = null; const re = /([MLC])([^MLC]*)/g; let m;
+    while ((m = re.exec(s))) {
+      const n = m[2].trim().split(/[\s,]+/).map(Number);
+      if (m[1] === 'M') cur = [n[0], n[1]];
+      else if (m[1] === 'L') { out.push([cur, [n[0], n[1]]]); cur = [n[0], n[1]]; }
+      else { out.push([cur, [n[0], n[1]], [n[2], n[3]], [n[4], n[5]]]); cur = [n[4], n[5]]; }
+    }
+    return out; };
+  const along = (s, from, to) => [].concat(...segs(s).slice(from || 0, to).map(g => {
+    if (g.length === 2) return [g[0], g[1]];
+    const pts = [];
+    for (let i = 0; i <= 20; i++) { const u = i / 20, v = 1 - u;
+      pts.push([0, 1].map(c => v * v * v * g[0][c] + 3 * v * v * u * g[1][c] + 3 * v * u * u * g[2][c] + u * u * u * g[3][c])); }
+    return pts; }));
+  /* EVERY STORED POINT IS AN END OF A SEGMENT, in order -- the curve passes through what was drawn. */
+  const ends = (s, st) => {
+    const want = []; for (let i = 0; i + 1 < st.length; i += 2) if (!want.length || want[want.length - 1][0] !== st[i] || want[want.length - 1][1] !== st[i + 1]) want.push([st[i], st[i + 1]]);
+    const g = segs(s), got = g.length ? [g[0][0]].concat(g.map(x => x[x.length - 1])) : [];
+    return JSON.stringify(got) === JSON.stringify(want) || JSON.stringify(got) === JSON.stringify(want.concat([want[want.length - 1]]));
+  };
+  /* THE WORST DISTANCE OF THE DRAWN PATH FROM A CIRCLE, in Q = (x, k.y) -- proportional to the screen. */
+  const radial = (s, k, cx, cy, r, from, to) => Math.max(...along(s, from, to).map(p => Math.abs(Math.hypot(p[0] - cx, k * p[1] - k * cy) - r)));
+
+  /* PP1, PP2, PP7: TODAY'S STRING, BYTE FOR BYTE. */
+  const same = [[5, 5], [1, 2, 3, 4], [5, 5, 5, 5], [0, 0, 100, 0, 100, 100, 0, 100, 0, 0], [0, 0, 200, 0, 100, 170, 0, 0],
+    [34, 34, 306, 34, 306, 170], [50, 100, 200, 180], [1, 2, NaN, 4, 5, 6], [1, 2, 3, 4, 5, 6, 7], [1, 2, Infinity, 4, 5, 6, 7, 8]];
+  /* PP3: A DENSE STROKE (every chord under 8 units) and every stroke the journeys in this file store. */
+  const dense = []; for (let i = 0; i <= 90; i++) dense.push(Math.round(170 + 60 * Math.cos(i / 15)), Math.round(170 + 60 * Math.sin(i / 15)));
+  same.push(dense);
+  /* (AT k = 1: a vertex's turn is measured on the screen, so a stroke's corners are the same at every aspect
+     only where they are square to the page -- the rest are drawn as the pad's own shape bends them.) */
+  const journeys = [[20, 20, 200, 200], [5, 5, 9, 9], [1, 1, 300, 300], [10, 10, 100, 100], [40, 40, 120, 40, 160, 120], [34, 34, 170, 34], [45, 85, 159, 85], [34, 34, 306, 306], [30, 30, 90, 30]];
+  same.concat(journeys).forEach((st, n) => { (n < same.length ? [1, 0.5, 4 / 3] : [1]).forEach(k => {
+    let got;
+    try { got = P(st, k); } catch (e) { got = 'threw ' + e.message; }
+    if (got !== today(st)) bad.push('padPath_(' + JSON.stringify(st).slice(0, 50) + ', ' + k + ') drew ' + String(got).slice(0, 70) + ' — wanted today\'s ' + today(st).slice(0, 70));
+  }); });
+  /* PP4: AN L KEEPS ITS CORNER. */
+  const ell = P([0, 0, 100, 0, 100, 100], 1);
+  if (/C/.test(ell) || !/L100 0L100 100/.test(ell)) bad.push('an L was drawn ' + ell + ' — its corner is the answer');
+  /* PP5: A 12-GON OF RADIUS 100, k = 1: curves, within half a percent of its circle between its ends, through every
+     point. AT THE TWO ENDS a stroke's tangent runs along its chord (it has no point beyond), so the first and last
+     segments are held to the polygon's own sagitta -- never worse than the straight line was. Closing the seam of a
+     ring was declined (338, section 9): the kink there is no larger than the ring's own step. */
+  const ring = n => { const st = []; for (let i = 0; i <= n; i++) { const a = 2 * Math.PI * i / n; st.push(170 + 100 * Math.cos(a), 170 + 100 * Math.sin(a)); } return st; };
+  const g12 = P(ring(12), 1);
+  if (!/C/.test(g12)) bad.push('a 12-gon of radius 100 was drawn with no curve: ' + g12.slice(0, 60));
+  const e12 = radial(g12, 1, 170, 170, 100, 1, -1), x12 = radial(g12, 1, 170, 170, 100), sag = 100 * (1 - Math.cos(Math.PI / 12));
+  if (!(e12 <= 0.5)) bad.push('a 12-gon of radius 100 is drawn ' + e12.toFixed(2) + ' units off its circle between its ends — wanted 0.5 (half a percent) at most');
+  if (!(x12 < sag)) bad.push('a 12-gon\'s end segments are ' + x12.toFixed(2) + ' units off its circle — worse than the polygon\'s ' + sag.toFixed(2));
+  if (!ends(g12, ring(12))) bad.push('the 12-gon\'s curve does not pass through every stored point');
+  /* PP6: A 9-POINT RING CURVES (40 degrees a vertex); A HEXAGON DOES NOT (60). */
+  if (!/C/.test(P(ring(9), 1))) bad.push('a 9-point ring (40 degrees a turn) was drawn with no curve');
+  if (/C/.test(P(ring(6), 1))) bad.push('a hexagon (60 degrees a turn) was drawn with curves — its corners are corners');
+  /* PP8: A CIRCLE STORED ON THE 3:4 BOARD -- round on the screen, so an ellipse in units -- is round drawn with
+     k = 4/3, and the k = 1 string differs. Board 300 x 400px: one unit across is 300/340px, down 400/340. */
+  const sx = 300 / 340, sy = 400 / 340, R = 120, board = [];
+  for (let i = 0; i <= 12; i++) { const a = 2 * Math.PI * i / 12; board.push(Math.round(170 + R * Math.cos(a) / sx), Math.round(170 + R * Math.sin(a) / sy)); }
+  const kb = w.padAspect_({ prefix: 'board' }, '');
+  if (kb !== 1.3333) bad.push('the board\'s aspect is ' + kb + ', wanted 1.3333 — it is 3:4 whatever its surface\'s viewBox says');
+  const gb = P(board, kb), eb = radial(gb, kb, 170, 170, R / sx, 1, -1);
+  if (!(eb <= R / sx * 0.01)) bad.push('a round circle stored on the board is drawn ' + eb.toFixed(2) + ' units off round between its ends with the board\'s aspect — wanted 1% at most');
+  if (gb === P(board, 1)) bad.push('the board\'s circle is drawn the same with k = 1 and k = 4/3 — the aspect is not read');
+  /* PP9: DUPLICATES AND COLLINEAR RUNS -- nothing that is not a number. */
+  const dup = P([10, 10, 10, 10, 50, 10, 90, 10, 90, 10, 130, 10, 170, 50, 170, 50, 210, 90], 1);
+  if (/NaN|Infinity|undefined/.test(dup)) bad.push('duplicates and a straight run drew ' + dup);
+  if (!ends(dup, [10, 10, 10, 10, 50, 10, 90, 10, 90, 10, 130, 10, 170, 50, 170, 50, 210, 90])) bad.push('duplicates and a straight run: not every point is an end of a segment');
+
+  /* ---------- AND ON A PAD: THE ASPECT IT IS DRAWN WITH, AND AN OLD DRAWING ------------------------------- */
+  const x = { kind: 'question', answerType: 'drawing', html: '<p>Draw it.</p>', key: 'q:Q-FINGER-3' };
+  const k = t.padKey(x);
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  /* AN OLD DRAWING: a fast circle as a phone stored it before 338 -- ten whole-number points a turn. */
+  const old = []; for (let i = 0; i <= 9; i++) { const a = 2 * Math.PI * i / 9; old.push(Math.round(170 + 120 * Math.cos(a)), Math.round(170 + 120 * Math.sin(a))); }
+  const value = JSON.stringify([old, [50, 100, 200, 180]]);
+  w.localStorage.setItem(k, value);
+  host.innerHTML = t.padWrap(x, '<svg viewBox="0 0 340 340"></svg>', '');
+  const pad = host.querySelector('.qpad');
+  if (pad.getAttribute('data-aspect') !== '1') bad.push('a square figure\'s pad says data-aspect="' + pad.getAttribute('data-aspect') + '", wanted 1');
+  const ds = [...pad.querySelectorAll('.qpad-g path')].map(p => p.getAttribute('d'));
+  if (!/C/.test(ds[0] || '') || !ends(ds[0] || '', old)) bad.push('an old fast circle is not drawn round through its stored points: ' + String(ds[0]).slice(0, 60));
+  if (ds[1] !== 'M50 100L200 180') bad.push('an old ruler line is drawn ' + ds[1] + ', wanted M50 100L200 180');
+  if (w.localStorage.getItem(k) !== value) bad.push('drawing an old drawing changed what is stored');
+  host.innerHTML = t.padWrap(x, '<svg viewBox="0 0 340 170"></svg>', '');
+  const wide = host.querySelector('.qpad');
+  if (wide.getAttribute('data-aspect') !== '0.5') bad.push('a 340x170 figure\'s pad says data-aspect="' + wide.getAttribute('data-aspect') + '", wanted 0.5');
+  if (wide.querySelector('.qpad-g path').getAttribute('d') !== P(old, 0.5)) bad.push('the pad does not draw its marks with its own aspect');
+  /* AND A REPAINT (Undo, Clear, a copy) DRAWS WITH THE SAME NUMBER. */
+  w.padRepaint_(wide, [old]);
+  if (wide.querySelector('.qpad-g path').getAttribute('d') !== P(old, 0.5)) bad.push('padRepaint_ does not draw with the pad\'s own aspect');
+  if (w.localStorage.getItem(k) !== value) bad.push('drawing the pad again changed what is stored');
+  try { w.localStorage.removeItem(k); } catch (e) {}
+  host.remove();
+  return bad;
+});
+
+/* ---------- `?pen=sizes`: THE READING INCREMENT 2 WAITS FOR, AND NOTHING ELSE (338) ------------------------------
+   No finger, thumb or palm width has ever been measured on an iPad here, so increment 1 records sizes and decides
+   nothing by them. With `?pen=sizes` in the address a fixed line lists the last eight contacts: the pointer's
+   kind, its width x height at the down, the largest during. Asked: it is there with the address and not without
+   it, it says what the platform reported, it keeps eight, it is hidden from a screen reader -- and a contact of
+   a palm's size still draws, because size decides nothing yet. */
+check('?pen=sizes lists the last eight contacts\' widths for one reading on a device, and size decides nothing yet', async () => {
+  const bad = [];
+  for (const url of ['https://example.org/?pen=sizes', 'https://example.org/']) {
+    const { w } = boot({ url });
+    await wait(300);
+    const t = w.__t, d = w.document;
+    if (!t || typeof t.padWrap !== 'function' || typeof t.padOn !== 'function' || typeof w.padDrop_ !== 'function') return ['padWrap_, padOn or padDrop_ not reachable — ?pen=sizes was NOT checked'];
+    const x = { kind: 'question', answerType: 'drawing', html: '<p>Draw it.</p>', key: 'q:Q-FINGER-4' };
+    const k = t.padKey(x);
+    try { w.localStorage.removeItem(k); } catch (e) {}
+    const host = d.createElement('div'); d.body.appendChild(host);
+    t.padOn(k);
+    host.innerHTML = t.padWrap(x, '<svg viewBox="0 0 340 340"></svg>', '');
+    const ink = host.querySelector('.qpad-ink');
+    ink.getBoundingClientRect = () => ({ left: 0, top: 0, width: 340, height: 340, right: 340, bottom: 340, x: 0, y: 0 });
+    for (let i = 0; i < 10; i++) {
+      const o = { id: 1, prim: true, size: 30 + i * 5 };
+      penEv_(w, ink, 'pointerdown', Object.assign({ x: 20 + i * 30, y: 50, t: 1000 + 100 * i }, o));
+      penEv_(w, ink, 'pointermove', Object.assign({ x: 25 + i * 30, y: 80, t: 1040 + 100 * i }, o, { size: 60 + i * 5 }));
+      penEv_(w, ink, 'pointerup', Object.assign({ x: 25 + i * 30, y: 80, t: 1060 + 100 * i }, o, { size: 1 }));
+    }
+    /* THE LINE IS WRITTEN AT THE NEXT FRAME, never inside a pointer event (after review: written in every `pointermove` it
+       forced a layout per move, in the very mode the iPad reading is taken in). */
+    await wait(5);
+    const line = d.querySelector('.pad-sizes');
+    let st = []; try { st = JSON.parse(w.localStorage.getItem(k) || '[]'); } catch (e) {}
+    if (st.length !== 10) bad.push(url + ': ten strokes by contacts 30 to 75px wide stored ' + st.length + ' — size must decide nothing until a device has been measured');
+    if (/pen=sizes/.test(url)) {
+      if (!line) bad.push('with ?pen=sizes in the address there is no .pad-sizes line');
+      else {
+        const rows = line.textContent.split('\n');
+        if (rows.length !== 8) bad.push('the sizes line lists ' + rows.length + ' contacts, wanted the last 8');
+        if (rows[rows.length - 1] !== 'touch 75x75 largest 105') bad.push('the last contact reads "' + rows[rows.length - 1] + '", wanted "touch 75x75 largest 105" — its kind, its size at the down and the largest during (the 1 of a lift is not a size)');
+        if (line.getAttribute('aria-hidden') !== 'true') bad.push('the sizes line is read out to a screen reader');
+        /* A CONTACT THAT GROWS: nothing written while its events are handled, the new size at the next frame. */
+        const before = line.textContent;
+        penEv_(w, ink, 'pointerdown', { id: 1, prim: true, size: 90, x: 30, y: 50, t: 3000 });
+        penEv_(w, ink, 'pointermove', { id: 1, prim: true, size: 120, x: 40, y: 90, t: 3040 });
+        if (line.textContent !== before) bad.push('the sizes line was written inside a pointer event — it forces a layout on every move; it is written once a frame');
+        await wait(5);
+        const last = line.textContent.split('\n').pop();
+        if (last !== 'touch 90x90 largest 120') bad.push('a frame after a contact grew the sizes line ends "' + last + '", wanted "touch 90x90 largest 120"');
+        penEv_(w, ink, 'pointerup', { id: 1, prim: true, size: 1, x: 40, y: 90, t: 3060 });
+      }
+    } else if (line) bad.push('without ?pen=sizes in the address the sizes line was drawn anyway');
+    w.padDrop_(); t.padOn(''); try { w.localStorage.removeItem(k); } catch (e) {} host.remove();
+  }
   return bad;
 });
 
@@ -6927,8 +8768,16 @@ check('every tab draws something', async () => {
     try { w.__t.go(id, false, true); } catch (e) { bad.push(id + ' threw: ' + e.message); return; }
     const el = w.document.getElementById('s-' + id);
     if (!el) { bad.push(id + ': no screen element'); return; }
-    if (!el.textContent.trim()) bad.push(id + ': drew nothing at all');
+    /* THE ONE LOADER IS SOMETHING DRAWN ON MESSAGES ALONE, and only while its ask is out: a parent signed in
+       after the payload landed has no inbox yet, and the column is the loader and no words until it answers.
+       Every other column drew words before docs/history/341 and must still — the review of 12 Oct found this
+       had been loosened for every tab, so a column stuck on the loader for good passed here. */
+    if (!el.textContent.trim() && !(id === 'dm' && el.querySelector('.loading'))) bad.push(id + ': drew nothing at all');
   });
+  /* AND MESSAGES ONCE ITS ASK HAS ANSWERED: words, not the loader for ever. */
+  await wait(300);
+  const dm = w.document.getElementById('s-dm');
+  if (dm && !dm.textContent.trim()) bad.push('dm: still drew nothing but the loader after its ask answered');
   if (errs.length) bad.push('errors: ' + errs.join(' | '));
   return bad;
 });
@@ -11070,7 +12919,10 @@ check('nothing offers to install, and the browser is not left to offer it either
     /* THIRTY SECONDS, NOT TEN. Ten held alone and failed for every copy when eleven ran at once on four
        cores (the round-3 review): the boot of four apps together simply had not finished. A slow page
        is not an offer; only a page that NEVER settles is "not checked". */
-    while (!quiet && Date.now() - from < 30000) { moved = 0; await wait(500); quiet = !moved; }
+    /* AND THE APP'S OWN DEFERRED WORK DONE: since docs/history/341 a slide leaves its band wider than the glass
+       until `trailEnd_` puts it back with one more placement, which can land after half a second of nothing —
+       and then inside the three and a half seconds below, read as a page that moved for the offer. */
+    while (!quiet && Date.now() - from < 30000) { moved = 0; await wait(500); quiet = !moved && !t.trailWide() && t.quiet(); }
     settle.disconnect();
     if (!quiet) {
       bad.push(who + ': the page never stayed still for half a second in thirty, so a redraw for the offer '
@@ -11181,9 +13033,12 @@ check('each column opens on the page worth reading', async () => {
    gesture rather than `go('progress')`, which would reach the column whether or not anything sat
    next to it. And one more past the end stays put: the last column is an end, not a wrap.
 
-   THE SAME CARD FOR EVERYBODY until it is built — signed out, a student, a parent, a tutor, an
-   admin — so all five are asked, and a card that grew a role's control would fail here. */
-check('progress is the last column, one card that says it is not built yet with nothing to press, and a swipe off Spotlight lands on it', async () => {
+   THE SAME CARD FOR EVERYBODY until it was built — UNTIL 12 OCT, when "Your journey" came here off
+   Settings for a student and an admin (docs/history/346). So all five are still asked, each for
+   their own card: the placeholder, whole, for signed out, a parent and a tutor; the journey card for
+   a student and an admin, one page, headed Your journey, not saying "Not built yet" beside it, and
+   nothing on the column to press. A card that grew a role's control fails here either way. */
+check('progress is the last column, one card with nothing to press — the placeholder, or a student\'s journey — and a swipe off Spotlight lands on it', async () => {
   const cols = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'columns.json'), 'utf8'));
   const { w } = boot({ serve: u => (/(^|\/)data\/settings\/columns\.json(\?|$)/.test(u) ? cols : undefined) });
   await wait(600);
@@ -11213,13 +13068,13 @@ check('progress is the last column, one card that says it is not built yet with 
     if (t.AT() !== 'progress') bad.push('a sideways swipe past the last column moved off Progress, to ' + t.AT());
   }
 
-  /* THE CARD, FOR EVERY VISITOR. */
-  const who = [['signed out', null],
-    ['a student', { name: 'Test Student', personId: 'P9', role: 'student', roles: ['student'], token: 'tk' }],
-    ['a parent', { name: 'Test Parent', personId: 'P8', role: 'parent', roles: ['parent'], token: 'tk' }],
-    ['a tutor', { name: 'Test Tutor', personId: 'P7', role: 'tutor', roles: ['tutor'], token: 'tk' }],
-    ['an admin', { name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk' }]];
-  for (const [as, u] of who) {
+  /* THE CARD, FOR EVERY VISITOR — the third field is whether it is theirs to see their journey. */
+  const who = [['signed out', null, false],
+    ['a student', { name: 'Test Student', personId: 'P9', role: 'student', roles: ['student'], token: 'tk' }, true],
+    ['a parent', { name: 'Test Parent', personId: 'P8', role: 'parent', roles: ['parent'], token: 'tk' }, false],
+    ['a tutor', { name: 'Test Tutor', personId: 'P7', role: 'tutor', roles: ['tutor'], token: 'tk' }, false],
+    ['an admin', { name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk' }, true]];
+  for (const [as, u, journey] of who) {
     t.USER(u);
     w.paint('progress');
     const host = d.getElementById('s-progress');
@@ -11228,6 +13083,19 @@ check('progress is the last column, one card that says it is not built yet with 
     if (n !== 1) bad.push(as + ': the column draws ' + n + ' pages, wanted the one card');
     if (t.pageCount('progress') !== n) bad.push(as + ': the pager counts ' + t.pageCount('progress') + ' pages over ' + n + ' drawn');
     const h = host.querySelector('h3');
+    /* A STUDENT'S AND AN ADMIN'S CARD IS THEIR JOURNEY: headed so, the one card on the column, and not
+       the placeholder beside it — two "coming soon" cards about one thing would say it twice. Its
+       rows and its countdown are not `drill`'s markup, so `placeholderFaults_` is not asked of it;
+       nothing on the column to press is. */
+    if (journey) {
+      if (!host.querySelector('.card.journey')) bad.push(as + ': Progress has no journey card');
+      if (!h || h.textContent.trim() !== 'Your journey') bad.push(as + ': the card is headed ' + JSON.stringify(h && h.textContent.trim()) + ', wanted Your journey');
+      if (/Not built yet/.test(host.textContent)) bad.push(as + ': the placeholder is drawn as well as the journey card');
+      const live = [...host.querySelectorAll(PLACEHOLDER_KEYS_)];
+      if (live.length) bad.push(as + ': the journey card has ' + live.length + ' control(s) on it: ' + live.map(e => e.outerHTML.slice(0, 60)).join(' | '));
+      continue;
+    }
+    if (host.querySelector('.card.journey')) bad.push(as + ': is shown a journey card — it is a student\'s, and an admin\'s to see');
     if (!h || h.textContent.trim() !== 'Progress') bad.push(as + ': the card is not headed Progress');
     if (!/Not built yet/.test(host.textContent)) bad.push(as + ': the card does not say it is not built yet');
     /* THE PANE, NOT THE COLUMN: `#s-progress` holds the page and pane `pages()` wraps every card in,
@@ -11241,6 +13109,189 @@ check('progress is the last column, one card that says it is not built yet with 
     if (outside.length) bad.push(as + ': the column has ' + outside.length + ' control(s) outside its card: ' + outside.map(e => e.outerHTML.slice(0, 60)).join(' | '));
   }
   t.USER(null);
+  return bad;
+});
+
+/* ---------- YOUR JOURNEY IS PROGRESS'S CARD, IT FOLLOWS WHOEVER SIGNS IN, AND THE WEEKLY EMAIL'S CARD IS GONE ----
+   THE OWNER, 12 Oct, with a screenshot of an admin's Settings ending on "Your journey" and "Weekly parent
+   email: Off": *"This should be moved to appropriate column. Also the other widget regarding seeing weekly
+   kids work or whatever sounds dumb delete that widget."* (docs/history/346).
+
+   THE JOURNEY ABOVE SETS `USER` BY HAND AND PAINTS THE COLUMN BY HAND, which asks what each visitor's card
+   is and nothing about whether the column is ever drawn again. It is now the one column whose card depends
+   on who is signed in and is not on the column they sign in on, so the fault it can have is the last
+   person's card — a parent shown the child's journey on the family iPad, or a student signing in to the
+   placeholder until a reload. So this one goes the way a phone goes: the sign-in card, Sign out, the roles
+   card's Save and About you's Save, and the column is left to draw itself.
+     · signed out: the placeholder;
+     · a student signs in: their journey, counting down to their big exam — and none on Settings;
+     · they switch their role to Client on the roles card: the placeholder;
+     · Sign out from Spotlight, a parent signs in: the placeholder, and no journey anywhere in the page;
+     · the parent signs out ON Progress — the column in front, redrawn there and then — and the student
+       signs in again: the journey, on the same document, with no reload;
+     · the student moves their big exam on About you and presses Save: Progress, which is not in front,
+       already counts to the new date;
+     · an admin: the journey on Progress and not on Settings, and — every column drawn — no weekly parent
+       email card, no Preview tile, no `digest-preview` handler, and nothing in the page naming either.
+   EVERY PAYLOAD AFTER THE FIRST IS HELD, as in the business journey — the GET a sign-in, a role and a Save
+   each ask for never answers — so whatever redraws Progress is the sign-in, the sign-out, the role or the
+   Save itself, never a payload landing fifteen seconds later and redrawing everything. */
+const JOURNEY_DAY_ = n => { const t = new Date(Date.now() + n * 864e5);
+  return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); };
+check('your journey: on Progress for a student and not on Settings, the placeholder for a parent, drawn again by a sign-in, a sign-out, a role and a saved exam date without a reload — and no weekly parent email card anywhere', async () => {
+  const cols = BIZ_COLS_();
+  /* `phone_cc` IS WHAT `profileShapeOk_` asks for before a Save is sent from a copy of your details. */
+  const STUDENT = { name: 'Sam Student', personId: 'P-S9', role: 'student', roles: ['student'], token: 'tk-s9', handle: 'samstudent',
+                    profile: { phone_cc: '+44', exam_small_date: '', exam_big_date: JOURNEY_DAY_(14), date_of_birth: '' } };
+  const PARENT = { name: 'Pip Parent', personId: 'P-C8', role: 'client', roles: ['client'], token: 'tk-c8', handle: 'pipparent',
+                   profile: { phone_cc: '+44' } };
+  const ADMIN = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk-admin', handle: 'annadmin',
+                  profile: { phone_cc: '+44' } };
+  let next = null, hold = false;
+  const p = payload();
+  /* A STUDENT'S ABOUT YOU, as `doGet` sends `studentFields`: the birthday and the two exams stay on Settings. */
+  p.studentFields = { 'About you': ['date_of_birth', 'exam_small_date', 'exam_big_date'] };
+  const { w, sent } = boot({ payload: p,
+    serve: u => (hold && /script\.google\.com/.test(u) ? new Promise(() => {}) : BIZ_SERVE_(cols)(u)),
+    reply: b => (b.action === 'verifyLogin' ? Object.assign({ success: true }, JSON.parse(JSON.stringify(next)))
+      : b.action === 'setMyRoles' ? { success: true, changed: 1, role: b.roles[0], roles: b.roles }
+      : b.action === 'updateProfile' ? { success: true, changed: 1, profile: Object.assign({}, (w.__t.whoami() || {}).profile, b.fields) }
+      : undefined) });
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  await wait(600);
+  const t = w.__t, d = w.document;
+  if (!t) return ['the app did not finish loading'];
+  if (t.whoami()) return ['the journey meant to start signed out and somebody is signed in — NOT checked'];
+  if (!bizApplied_(t.TABS.map(x => x.id))) return ['columns.json was not applied — NOT checked: ' + t.TABS.map(x => x.id).join(', ')];
+  const doc = d.documentElement;
+  hold = true;
+  const bad = [];
+  const settle = async () => { await wait(LEAVE_MS); await woken_(); };
+  const go = async id => { t.go(id, false, true); await settle(); };
+  const prog = () => d.getElementById('s-progress');
+  /* WHAT PROGRESS SHOWS, read off the column as drawn — never off `progressCards_()`, which would be asking
+     the function the column is drawn from rather than whether it was drawn again. */
+  const seen = () => {
+    const h = prog(), j = h && h.querySelector('.card.journey');
+    return { journey: !!j, held: !!(h && /Not built yet/.test(h.textContent)),
+             count: j ? ((j.textContent.match(/(\d+) days? to go/) || [])[1] || '') : '',
+             pages: h ? h.querySelectorAll(':scope > .page').length : 0 };
+  };
+  const signIn = async (u, as) => {
+    next = u;
+    await go('account');
+    const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
+    const btn = d.querySelector('[data-do="do-signin"]');
+    if (!name || !pin || !btn) return as + ': the sign-in card is not on the account column — NOT checked';
+    name.value = u.handle; pin.value = '0000';
+    try { t.ACTIONS['do-signin'](btn); } catch (e) { return as + ': do-signin threw: ' + e.message; }
+    for (let n = 0; n < 50 && !(t.whoami() && t.whoami().personId === u.personId); n++) await wait(100);
+    await settle();
+    return t.whoami() && t.whoami().personId === u.personId ? '' : as + ' did not sign in — NOT checked';
+  };
+  const signOut = async () => {
+    try { t.ACTIONS['signout'](d.createElement('button')); } catch (e) { return 'signout threw: ' + e.message; }
+    await settle();
+    return t.whoami() ? 'Sign out did not sign anybody out — NOT checked' : '';
+  };
+
+  /* 1. SIGNED OUT. */
+  await go('progress');
+  let s1 = seen();
+  if (s1.journey || !s1.held) bad.push('signed out, Progress is ' + JSON.stringify(s1) + ' — wanted the placeholder');
+
+  /* 2. A STUDENT SIGNS IN: their journey on Progress, and none on Settings. */
+  let no = await signIn(STUDENT, 'the student');
+  if (no) return bad.concat([no]);
+  await go('progress');
+  s1 = seen();
+  if (!s1.journey || s1.held) bad.push('a student signed in, and Progress is ' + JSON.stringify(s1) + ' — wanted their journey, without a reload');
+  if (s1.count !== '14') bad.push('the student\'s journey counts "' + s1.count + '" days to their big exam, wanted 14');
+  if (s1.pages !== 1 || t.pageCount('progress') !== 1) bad.push('a student\'s Progress draws ' + s1.pages + ' page(s) and its pager counts ' + t.pageCount('progress') + ' — wanted the one card');
+  if (prog().querySelector(PLACEHOLDER_KEYS_)) bad.push('the student\'s journey card has a control on it: ' + prog().querySelector(PLACEHOLDER_KEYS_).outerHTML.slice(0, 80));
+  await go('settings');
+  if (d.querySelector('#s-settings .card.journey')) bad.push('a student\'s Settings still holds the journey card — it is Progress\'s now');
+  if (/card journey/.test(w.settingsPages_().join(''))) bad.push('`settingsPages_` still builds the journey card');
+
+  /* 3. THE STUDENT'S ROLE BECOMES CLIENT, on the roles card: the placeholder. */
+  const roles = d.querySelector('#s-settings .roles-card');
+  if (!roles) bad.push('the student\'s Settings has no roles card — the change of role was NOT checked');
+  else {
+    roles.querySelectorAll('[data-role-pick]').forEach(b => { b.checked = b.dataset.rolePick === 'client'; });
+    try { t.ACTIONS['roles-save'](roles.querySelector('[data-do="roles-save"]')); } catch (e) { bad.push('roles-save threw: ' + e.message); }
+    for (let n = 0; n < 30 && !(t.whoami() && t.whoami().role === 'client'); n++) await wait(100);
+    await settle();
+    if (!t.whoami() || t.whoami().role !== 'client') bad.push('the roles card\'s Save did not make the student a client — NOT checked');
+    else {
+      await go('progress');
+      s1 = seen();
+      if (s1.journey || !s1.held) bad.push('the student made themselves a client, and Progress is ' + JSON.stringify(s1) + ' — wanted the placeholder');
+    }
+  }
+
+  /* 4. OUT FROM SPOTLIGHT, AND A PARENT IN: the placeholder, and no journey anywhere. */
+  await go('spotlight');
+  if ((no = await signOut())) return bad.concat([no]);
+  await go('progress');
+  s1 = seen();
+  if (s1.journey || !s1.held) bad.push('signed out from Spotlight, Progress is ' + JSON.stringify(s1) + ' — wanted the placeholder');
+  if ((no = await signIn(PARENT, 'the parent'))) return bad.concat([no]);
+  for (const id of t.TABS.map(x => x.id)) { try { t.go(id, false, true); } catch (e) { bad.push('the parent: ' + id + ' threw: ' + e.message); } }
+  await go('progress');
+  s1 = seen();
+  if (s1.journey || !s1.held) bad.push('a parent signed in, and Progress is ' + JSON.stringify(s1) + ' — wanted the placeholder');
+  if (d.querySelector('.card.journey')) bad.push('a parent has a journey card somewhere in the page');
+
+  /* 5. THE PARENT SIGNS OUT ON PROGRESS, THE STUDENT IN AGAIN: the journey, on the same document. */
+  if ((no = await signOut())) return bad.concat([no]);
+  s1 = seen();
+  if (s1.journey || !s1.held) bad.push('the parent signed out on Progress, and it shows ' + JSON.stringify(s1) + ' — wanted the placeholder there and then');
+  if ((no = await signIn(STUDENT, 'the student, again'))) return bad.concat([no]);
+  await go('progress');
+  s1 = seen();
+  if (!s1.journey || s1.held || s1.count !== '14') bad.push('the student signed in again after a sign-out, and Progress is ' + JSON.stringify(s1) + ' — wanted their journey at 14 days, without a reload');
+
+  /* 6. THE BIG EXAM MOVED ON ABOUT YOU: Progress counts to the new date before anybody goes there. */
+  await go('settings');
+  const exam = d.querySelector('#s-settings [data-me="exam_big_date"]');
+  const form = exam && exam.closest('.me-form');
+  const save = form && form.querySelector('[data-do="me-save"]');
+  if (!exam || !save) bad.push('the student\'s Settings has no big-exam box with a Save — the saved date was NOT checked');
+  else {
+    exam.value = JOURNEY_DAY_(30);
+    exam.dispatchEvent(new w.Event('input', { bubbles: true }));
+    const before = sent.length;
+    try { t.ACTIONS['me-save'](save); } catch (e) { bad.push('me-save threw: ' + e.message); }
+    for (let n = 0; n < 30 && (t.whoami().profile || {}).exam_big_date !== JOURNEY_DAY_(30); n++) await wait(100);
+    await wait(300);
+    if (!sent.slice(before).some(b => b.action === 'updateProfile' && b.fields && b.fields.exam_big_date === JOURNEY_DAY_(30))) bad.push('Save on About you did not post the new big-exam date — NOT checked');
+    else if (t.screenAt() !== 'settings') bad.push('the Save moved the student off Settings, to ' + t.screenAt() + ' — the column beside was NOT checked');
+    else {
+      s1 = seen();
+      if (s1.count !== '30') bad.push('the student saved their big exam 30 days out, and Progress (not in front, the payload held) still counts "' + s1.count + '"');
+      await go('progress');
+      s1 = seen();
+      if (s1.count !== '30') bad.push('the student saved their big exam 30 days out and went to Progress, which counts "' + s1.count + '"');
+    }
+  }
+
+  /* 7. AN ADMIN: the journey on Progress and not on Settings, and the weekly email's card nowhere. */
+  if ((no = await signOut())) return bad.concat([no]);
+  if ((no = await signIn(ADMIN, 'the admin'))) return bad.concat([no]);
+  for (const id of t.TABS.map(x => x.id)) { try { t.go(id, false, true); } catch (e) { bad.push('the admin: ' + id + ' threw: ' + e.message); } await wait(50); }
+  await go('settings');
+  w.paint('settings');
+  if (d.querySelector('#s-settings .card.journey')) bad.push('an admin\'s Settings still holds the journey card');
+  await go('progress');
+  s1 = seen();
+  if (!s1.journey || s1.held) bad.push('an admin signed in, and Progress is ' + JSON.stringify(s1) + ' — wanted the journey, so the owner can see it');
+  const gone = d.querySelectorAll('.card.digest, [data-do="digest-preview"], .digest-mode, .digest-said');
+  if (gone.length) bad.push('the weekly parent email card is still drawn for an admin: ' + [...gone].map(e => e.outerHTML.slice(0, 60)).join(' | '));
+  if (/digest-preview|Weekly parent email/.test(d.documentElement.outerHTML)) bad.push('the page still names the weekly parent email card or its Preview');
+  if (Object.prototype.hasOwnProperty.call(t.ACTIONS, 'digest-preview')) bad.push('a `digest-preview` handler is still wired — for a tile nothing draws');
+  if (/digest/i.test(w.settingsPages_().join(''))) bad.push('`settingsPages_` still builds something of the weekly email\'s card');
+  if (sent.some(b => b.action === 'digestPreview')) bad.push('something on the phone still asks the server for digestPreview');
+  if (d.documentElement !== doc) bad.push('the page was reloaded');
   return bad;
 });
 
@@ -11363,7 +13414,9 @@ check('business: an admin has a Business column last, straight after Progress, h
   if (!set || !set.querySelector('.page')) return bad.concat(['Settings did not draw for an admin — it was NOT checked for records']);
   if (set.querySelector('[data-biz-page], [data-biz], .card.biz')) bad.push('an admin\'s Settings still holds a business-records card');
   if (/data-biz/.test(w.settingsPages_().join(''))) bad.push('`settingsPages_` still builds a business-records card');
-  if (!set.querySelector('.card.digest')) bad.push('the weekly parent email card is gone from an admin\'s Settings — it was to stay');
+  /* AND THE TWO CARDS THAT WERE BEHIND THE RECORDS ARE GONE FROM IT TOO (docs/history/346): the journey to
+     Progress, the weekly parent email altogether — so the page past the end below is past a shorter column. */
+  if (set.querySelector('.card.digest, .card.journey, [data-do="digest-preview"]')) bad.push('an admin\'s Settings still holds the journey card or the weekly parent email card — the first is Progress\'s, the second is gone');
   t.PAGE().settings = 999;
   t.go('feed', false, true); await wait(200);
   t.go('settings', false, true);
@@ -15982,7 +18035,7 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in front
    student, a tutor, an admin -- and compared as markup: a stem with words both sides of its figure, a
    part with a lead, a figure and a box, its answer page hidden and then shown, a tapped question, a
    worded one with Mark with AI beside it, a drawing question on a squared grid, a passage to ring words
-   in; and a real practical, project and textbook through the real mapper.
+   in; and a real practical, project and content card (with its animation's page) through the real mapper.
 
    WHAT IS ALLOWED TO DIFFER IS WHAT IS A PERSON'S, NOT A ROLE'S, and it is taken out before comparing:
    the answer box's key and the done date's (`ans:u:<id>:`, whose drawer this is), the name over the box
@@ -15993,7 +18046,7 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in front
    the line under a box and the pen's note say "on this device", or which account (js/answers.js) —
    which is whether somebody is signed in, never which role they hold.
    Anything else that differs is a role showing through, and the first difference is printed. */
-check('Find and Resources draw the same question family, practical, project and textbook for a tutor, an admin, a student and nobody', async () => {
+check('Find and Find 2 draw the same question family, practical, project and content card for a tutor, an admin, a student and nobody', async () => {
   const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
   const one = boot();
   await wait(300);
@@ -16024,11 +18077,13 @@ check('Find and Resources draw the same question family, practical, project and 
     { kind: 'question', name: 'Q12', qNumber: '12', marks: 1, key: 'q:Q-SAME-12', row: row('Q-SAME-12'), stems: [],
       answerType: 'annotate', surface: 'text', html: '<p>Circle the adjective.</p><p>The tall tree swayed.</p>', answer: '<b>tall</b>' },
   ];
-  /* EACH FROM THE FINDER THAT CARRIES IT — the textbook from the Resources column since the resources
-     moved (docs/history/329), the practical and the project from Find. */
+  /* THE PRACTICAL AND THE PROJECT FROM FIND, THE CONTENT CARD FROM FIND 2 — either finder carries all
+     three (docs/history/347); taking one from each keeps both lists asked. A card WITH an animation, so
+     its page is compared too. */
   const R = resView_(w);
-  const real = [['practical', w], ['project', w], ['textbook', R]].map(([k, V]) => V.stuffItems().find(x => x.kind === k));
-  real.forEach((x, i) => { if (!x) bad.push('no ' + ['practical', 'project', 'textbook'][i] + ' reached ' + (i === 2 ? 'Resources' : 'Find') + ', so it was NOT compared'); });
+  const real = [['practical', w], ['project', w], ['content', R]].map(([k, V]) => V.stuffItems()
+    .find(x => x.kind === k && (k !== 'content' || ((x.row && x.row.animations) || []).length)));
+  real.forEach((x, i) => { if (!x) bad.push('no ' + ['practical', 'project', 'content card with an animation'][i] + ' reached ' + (i === 2 ? 'Find 2' : 'Find') + ', so it was NOT compared'); });
   const items = fam.concat(real.filter(Boolean));
   /* A PERSON'S, NOT A ROLE'S -- see the note above. */
   const norm = html => {
@@ -16091,8 +18146,16 @@ check('Find and Resources draw the same question family, practical, project and 
      Find for anybody since 10 Oct), so with the payload held still the only difference left is one the
      phone made — which is what this asks. */
   const BIBLE_KEY = 'bible:kjv';
-  /* OVER BOTH FINDERS: the Bible is on the Resources column now, and the rule is about everything offered. */
-  const offered = u => { t.USER(u); const ks = w.stuffItems().concat(R.stuffItems()).filter(x => w.kindOf_(x).group === 'Learning').map(x => x.key).sort(); t.USER(null); return ks; };
+  /* OVER BOTH FINDERS, AND THE SAME ON EACH: for every visitor Find 2 offers exactly Find's learning items
+     (347) — the one finder twice — and the rule below is about what either offers. */
+  const learn = l => l.filter(x => w.kindOf_(x).group === 'Learning').map(x => x.key).sort();
+  const offered = u => {
+    t.USER(u);
+    const f = learn(w.stuffItems()), r = learn(R.stuffItems());
+    t.USER(null);
+    if (f.join('|') !== r.join('|')) bad.push((u ? u.role : 'signed out') + ': Find offers ' + f.length + ' learning items and Find 2 ' + r.length + ' — not the same list');
+    return f;
+  };
   const out0 = offered(null);
   if (out0.indexOf(BIBLE_KEY) >= 0) bad.push('somebody signed out is offered the Bible — it is for admins only');
   who.slice(1).forEach(([what, u]) => {
@@ -18224,112 +20287,6 @@ check('mark sound: the context rests when nothing is playing — a second after 
   return bad;
 });
 
-/* ---------- THE WEEKLY PARENT EMAIL'S CARD -----------------------------------------------------------
-   ASKED FOR AS THE INFRASTRUCTURE FOR *"something which triggers every sunday"* and emails parents —
-   built and switched off (backend/digest.gs). The card is how an admin sees which: it says the mode the
-   config row says (anything but preview or send is Off, as on the server), it is an admin's alone, and
-   its one tile asks `digestPreview` — a read — and opens what would be sent, the plain body escaped.
-   It posts nothing else, and a backend without the action is told so rather than asked.
-
-   AND SINCE 8 OCT THE EMAIL LISTS EACH QUESTION WITH ITS OWN WORDS (`digestQuestions_`): the card says
-   so, the sheet prints the body as the server wrote it — a paper's heading, the stem once, "Q1a: …" —
-   and a reply without `words: true`, which is a deployed web-app version from before (the Preview is
-   answered by the deployed version, the Sunday trigger runs the code as saved), is told to make a new
-   version rather than read as the new email. The fixture is the body `digestRender_` writes. */
-check('the weekly parent email card is an admin\'s, says the switch and the words, and Preview opens the emails without sending one', async () => {
-  const preview = { success: true, mode: 'preview', hour: 18, scheduled: 0, words: true, submissions: true,
-    week: { start: '2026-09-28', end: '2026-10-04', span: '28 Sep – 4 Oct' },
-    emails: [{ learner: 'Ada Pupil', parent: 'Pat Parent', to: 'pat@example.org', subject: 'Ada’s week: 2 questions',
-               text: 'Hello Pat,\n\nThis week (28 Sep – 4 Oct, up to 6pm on Sunday) Ada worked on 2 questions.\n\n'
-                 + 'Maths · Paper 1\nA bag holds 3 red and 5 blue beads.\nQ1a: Find P(red), and is <b>Maths</b> x < 7?\nQ1b (again): Find P(blue).\n\n'
-                 + 'Ada can see them on the site: https://halexdias31-pixel.github.io/family/\n\n'
-                 + 'You get this because you are Ada’s parent on @family. To stop these emails, reply to this one and say so.',
-               html: '<p>Hello Pat,</p>', count: 2 }],
-    unreachable: [{ id: 'P-S3', name: 'Cal Alone', count: 1, why: 'no parent has accepted a link to them' }] };
-  const p = payload();
-  p.features = ['digestPreview'];
-  p.constants.vars.weekly_digest = 'off';
-  const { w, sent } = boot({ payload: p, reply: b => (b.action === 'digestPreview' ? preview : { success: true }) });
-  await wait(300);
-  const t = w.__t, d = w.document;
-  const bad = [];
-  const card = () => d.querySelector('#s-settings .card.digest');
-  const said = () => (card().querySelector('.digest-mode') || {}).textContent || '';
-  t.USER({ name: 'Pat Parent', personId: 'P-C1', role: 'parent', roles: ['parent'], token: 'tk', profile: {} });
-  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
-  await wait(200);
-  if (card()) bad.push('a parent is shown the weekly parent email card — it is an admin’s');
-  t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk', profile: {} });
-  w.paint('settings');
-  await wait(200);
-  if (!card()) return bad.concat(['an admin has no Weekly parent email card on the Settings column']);
-  if (!/Weekly parent email:\s*Off/.test(said())) bad.push('with weekly_digest off the card reads "' + said() + '"');
-  /* WHAT IT SENDS, IN THE CARD'S OWN WORDS: every question of the week, each with what it asked. */
-  const sub = ((card().querySelector('.sub') || {}).textContent || '').replace(/\s+/g, ' ');
-  if (!/every question that child worked on that week, each with its own words/.test(sub)) bad.push('the card does not say the email lists every question with its own words: "' + sub + '"');
-  /* AND ONE CARD: the daily email's went with it (docs/history/295). */
-  if (/Daily email to parents/.test(d.getElementById('s-settings').textContent)) bad.push('the removed daily email still has a card on the Settings column');
-  [['Preview', 'Preview'], ['send', 'Send'], ['yes', 'Off'], ['', 'Off']].forEach(([cell, word]) => {
-    t.DATA().constants.vars.weekly_digest = cell;
-    w.paint('settings');
-    if (!new RegExp('Weekly parent email:\\s*' + word).test(said())) bad.push('weekly_digest "' + cell + '" reads "' + said() + '" — wanted ' + word + ', as the server reads it');
-  });
-  t.DATA().constants.vars.weekly_digest = 'off';
-  w.paint('settings');
-  const tile = card().querySelector('.tile-row .tile[data-do="digest-preview"]');
-  if (!tile) return bad.concat(['the card has no Preview tile in a tile row']);
-  if (card().querySelector('button:not(.tile)')) bad.push('the card has a plain button — a thing has tiles');
-  sent.length = 0;
-  t.ACTIONS['digest-preview'](tile);
-  await wait(300);
-  const asks = sent.filter(b => b.action === 'digestPreview');
-  if (asks.length !== 1) bad.push('Preview posted ' + JSON.stringify(sent.map(b => b.action)) + ' — wanted one digestPreview');
-  if (sent.some(b => b.action !== 'digestPreview')) bad.push('Preview posted something besides the read: ' + JSON.stringify(sent.map(b => b.action)));
-  const sheet = d.getElementById('sheet'), body = d.getElementById('sheet-body');
-  if (!sheet || sheet.classList.contains('hidden')) bad.push('Preview did not open the sheet');
-  const text = body ? body.textContent.replace(/\s+/g, ' ') : '';
-  ['28 Sep – 4 Oct', 'To Pat Parent · pat@example.org', 'Ada’s week: 2 questions', 'Hello Pat,', 'Maths · Paper 1',
-   'A bag holds 3 red and 5 blue beads.', 'Q1b (again): Find P(blue).',
-   'Cal Alone — no parent has accepted a link to them', 'This preview sent nothing', 'no Sunday booked yet',
-   'On Sunday this email would be written to the digest_log tab, and none sent'].forEach(s => {
-    if (text.indexOf(s) === -1) bad.push('the preview sheet does not say "' + s + '"');
-  });
-  if (text.indexOf('<b>Maths</b> x < 7?') === -1 || (body && [...body.querySelectorAll('b')].some(b => b.textContent === 'Maths'))) bad.push('a question’s words were drawn as markup in the preview — they came off a phone and must be printed as text');
-  /* A REPLY WITH `words` IS THE NEW BACKEND, AND IS NOT TOLD IT IS OLD. */
-  if (body && body.querySelector('.digest-old')) bad.push('a preview reply with words: true is told the live web app lists names only');
-  if (!/Weekly parent email:\s*Preview/.test(said())) bad.push('after the preview the card still reads "' + said() + '" — wanted the mode the server just answered with');
-  /* A BACKEND FROM BEFORE digest.gs: told, not asked. */
-  try { t.ACTIONS['close-sheet'] && t.ACTIONS['close-sheet'](); } catch (e) {}
-  t.DATA().features = [];
-  sent.length = 0;
-  t.ACTIONS['digest-preview'](card().querySelector('[data-do="digest-preview"]'));
-  await wait(100);
-  if (sent.some(b => b.action === 'digestPreview')) bad.push('a backend that does not list digestPreview was sent it: ' + JSON.stringify(sent.map(b => b.action)));
-  if (!/sync backend/i.test((card().querySelector('.digest-said') || {}).textContent || '')) bad.push('a backend without the weekly email is not said to need a sync');
-  /* A DEPLOYED VERSION FROM BEFORE THE WORDS: its reply has no `words`, and its emails are names. Said
-     first and in bold, so the old list is not read as what Sunday will send. */
-  const oldSheet = w.digestSheet_(Object.assign({}, preview, { words: undefined }));
-  const oldDoc = new w.DOMParser().parseFromString('<div>' + oldSheet + '</div>', 'text/html').body.firstChild;
-  const first = oldDoc && oldDoc.firstElementChild;
-  if (!first || !first.classList.contains('digest-old') || !first.querySelector('b') || !/new version/.test(first.textContent)) bad.push('a preview reply with no `words` (a web-app version from before the words) is not told first, in bold, to make a new version: ' + JSON.stringify(first && first.outerHTML));
-  /* AND THE WEEKLY SHEET, WITH NO submissions TAB: the reason, not "nobody has done a question". */
-  const weekly = w.digestSheet_({ success: true, mode: 'off', hour: 18, scheduled: 0, submissions: false, words: true,
-    warning: 'The Ledger has no submissions tab, so nothing says what anybody sent.', week: { span: '28 Sep – 4 Oct' }, emails: [], unreachable: [] });
-  if (!/<b>The Ledger has no submissions tab/.test(weekly) || /Nobody has done a question/.test(weekly)) bad.push('the weekly preview with no submissions tab does not say so in bold, or still says nobody has done a question');
-  if (!/Nobody has done a question/.test(w.digestSheet_({ success: true, mode: 'off', submissions: true, words: true, warning: '', week: {}, emails: [], unreachable: [] }))) bad.push('the weekly preview with the tab and no work no longer says nobody has done a question');
-  /* AND A DEPLOYED VERSION FROM BEFORE THE SUBMISSIONS (review of 9 Oct): it answers `words: true` and
-     `attempts:`, never `submissions:`, and plans from a tab nothing writes since the phones took the new
-     code. Its empty week is not a quiet week, and the sheet says which, first and in bold. */
-  const pre = w.digestSheet_({ success: true, mode: 'off', hour: 18, scheduled: 0, words: true, attempts: true, warning: '',
-    week: { span: '28 Sep – 4 Oct' }, emails: [], unreachable: [] });
-  const preDoc = new w.DOMParser().parseFromString('<div>' + pre + '</div>', 'text/html').body.firstChild;
-  const preFirst = preDoc && preDoc.firstElementChild;
-  if (!preFirst || !preFirst.classList.contains('digest-old') || !preFirst.querySelector('b') || !/attempts/.test(preFirst.textContent) || !/new version/.test(preFirst.textContent)) bad.push('a preview reply from a backend before the submissions (words, attempts, no submissions) is not told first, in bold, that the live web app still reads the attempts tab: ' + JSON.stringify(preFirst && preFirst.outerHTML));
-  if (/digest-old/.test(w.digestSheet_(Object.assign({}, preview)))) bad.push('the new backend’s reply (words and submissions) is told it is old');
-  t.USER(null);
-  return bad;
-});
-
 /* ---------- A TUTOR'S HOURS ON THEIR CARD ---------------------------------------------------------
    ASKED FOR AS *"tutors availability should appear on their card."* Asked of the card itself, off
    the shape `doGet` really sends — `availGridOut`'s 77 codes with 'TRUE' or '' — because the fixture
@@ -19623,75 +21580,61 @@ check('Coursework is a type of project: Projects asks Project or coursework, whi
   return bad;
 });
 
-/* ---------- THE @family. TEXTBOOK, REACHED THE WAY THE OWNER SAID --------------------------------
-   ASKED FOR AS "the @family textbook should be bare bones for now and the textbooks will be in the
-   resources tag in the finder. first one can be gcse statistics." So the route is the claim:
-   Learning → Resources → @family. textbooks → GCSE Statistics, pressed on the REAL answer buttons
-   the funnel draws, over the real file through the real mapper — with the real boxers and bouts
-   beside it, because they are what the book has to be found among, and a Resources holding only
-   the book would never ask the Shelf question at all.
+/* ---------- A CONTENT CARD, REACHED THE WAY A QUESTION IS ----------------------------------------
+   IT WAS THE @family. TEXTBOOK, reached Learning → Resources → @family. textbooks → GCSE Statistics, a
+   contents card and a page per chapter. THE OWNER, 12 Oct: *"Forget the whole concept of it being a text
+   book. It's just a "content card" or whatever. It can share same tags as questions e.g. gcse, ks2,
+   maths."* So the route is the claim again, on the REAL answer buttons over the real file through the
+   real mapper, with the real boxers and bouts and projects beside it: Learning → Content → Statistics.
 
-   Then: the list is the book; it is a contents card and one page per chapter in chapter order; a
-   chapter page has its key words, its formulas STACKED by `typeset_`, its worked lines and the
-   Higher mark; typing a word that is only inside a chapter finds it; and the star keeps it on
-   Saved. */
-/* MOVED TO THE SECOND FINDER WITH THE BOOK (docs/history/329): the route is the Resources column's now —
-   `What for` and `What kind` have one answer there and are skipped, so the shelf is its first question. */
-check('the @family. textbook, on the Resources column: @family. textbooks, GCSE Statistics — contents, chapters, search, star', async () => {
+   Then: the list is the Statistics cards, one a chapter; a card is whole — its title, the questions'
+   tag row, its key words, its formulas STACKED by `typeset_`, its worked lines and the Higher mark — and
+   its animations are pages after it; nothing anybody can see says textbook or chapter; the textbooks'
+   shelf is never offered; typing a word that is only inside a card finds it on both finders; the star
+   keeps it on Saved; and a star on a BOOK, kept from before, draws nothing at all. */
+/* ON FIND 2, WHICH CARRIES WHAT FIND CARRIES (docs/history/347): the route is Find's own, run in the
+   second column. */
+check('a content card, on Find 2 and on Find: What kind · Content, Statistics — the card whole, its animations, its tags, search, star, and a book\'s old star dropped', async () => {
   const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
   const one = boot();
   await wait(300);
-  if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so the textbooks were NOT checked — not a pass'];
+  if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so the content cards were NOT checked — not a pass'];
   const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({},
     { textbooks: read('textbooks'), boxers: read('boxers'), fights: read('fights'), projects: read('projects') })));
   const books = made.textbooks || [];
-  if (!books.length) return ['the mapper made no book of data/textbooks.json'];
-  if (!(made.boxers || []).length) return ['the mapper made no boxers, so the shelf the book sits beside is empty — NOT a pass'];
+  if (!books.length) return ['the mapper made nothing of data/textbooks.json'];
+  if (!(made.boxers || []).length) return ['the mapper made no boxers, so the cards were not found among anything — NOT a pass'];
   const p = payload();
-  /* THE PROJECTS TOO, so `What kind` has a second answer and the Resources press is a real press —
-     the fixture has no library, and with Resources the only kind the question would not be asked. */
   Object.assign(p, { textbooks: books, boxers: made.boxers, fights: made.fights || [], projects: made.projects || [] });
   const { w } = boot({ payload: p });
   await wait(300);
   const t = w.__t;
-  if (!t.RES || !t.RES()) return ['the Resources column\'s state is not exported to the journey'];
+  if (!t.RES || !t.RES()) return ['Find 2\'s state is not exported to the journey'];
   const R = resView_(w);
   const bad = [];
-  const book = books.find(b => b.name === 'GCSE Statistics');
-  if (!book) return ['data/textbooks.json has no book called GCSE Statistics — names: ' + books.map(b => b.name).join(', ')];
+  const stats = books.find(b => b.id === 'TB-GCSE-STATS');
+  if (!stats) return ['data/textbooks.json has no TB-GCSE-STATS — ids: ' + books.map(b => b.id).join(', ')];
 
-  /* THE ROUTE, ONE PRESS AT A TIME, on whatever the question page draws. A grouped question may
-     draw the BUCKET first (`Read or watch it`), and pressing it is the same route one tap longer,
-     so a bucket that holds the next word on the route is pressed and the question asked again. */
   t.go('res');
   t.RES().filters.length = 0; t.RES().q = '';
   w.paintFinder_('res');
-  /* AND FIND DOES NOT HOLD IT ANY MORE. */
-  if (w.stuffItems().some(i => i.kind === 'textbook')) bad.push('Find still holds the textbooks');
-  /* AND `Subject` AFTER THE SHELF, now that the shelf holds a book for every GCSE: the book is found
-     by its subject's group and then its subject — Maths, then Statistics — before `Book`, which is
-     only asked if two books are left. With one book on the shelf the rung has one answer and is
-     skipped by the rule below, so this route is the claim either way. */
-  /* AND IN THE CODE'S OWN ORDER, which is the order whenever `data/settings/facets.json` is not read — as
-     in every journey here — Subject before Book. It was Book first, under the shelf, and only the sheet
-     put it right. */
-  const order = t.DATA().facets ? [] : w.facetList().map(f => f.field);
-  if (!(order.indexOf('subject') !== -1 && order.indexOf('subject') < order.indexOf('book'))) bad.push('facetList() with no DATA.facets asks ' + (order.length ? order.filter(f => f === 'subject' || f === 'book').join(' before ') : 'nothing — DATA.facets was set, so NOT checked') + ' — wanted subject before book');
-  const route = ['Learning', 'Resources', '@family. textbooks', 'Statistics'];
-  const rungs = ['forLabel', 'kindLabel', 'shelf', 'subject'];
-  const pressed = [];
+  /* AND FIND HOLDS THEM TOO — the same list in both columns, one card a chapter. */
+  const chapters = books.reduce((n, b) => n + b.chapters.length, 0);
+  const cards = w.stuffItems().filter(i => i.kind === 'content');
+  if (cards.length !== chapters) bad.push('Find holds ' + cards.length + ' content cards for ' + chapters + ' chapters — one card a chapter');
+  if (w.stuffItems().some(i => i.kind === 'textbook')) bad.push('a textbook is still an item on Find');
+  /* THE BOOK QUESTION IS RETIRED, and is not in the code's own order any more. */
+  if (w.facetList().some(f => f.field === 'book')) bad.push('`book` is still a question in facetList() — nothing answers it');
+  const route = ['Learning', 'Content', 'Statistics'];
+  const rungs = ['forLabel', 'kindLabel', 'subject'];
+  const pressed = [], offered = [];
   for (let guard = 0; route.length && guard < 10; guard++) {
     const btns = [...w.document.querySelectorAll('#s-res [data-do="facet-pick"]')];
+    btns.forEach(b => offered.push(b.dataset.field + ':' + b.dataset.value));
     let el = btns.find(b => b.dataset.value === route[0]);
-    /* A RUNG EVERYTHING LEFT ALREADY ANSWERS IS SKIPPED BY THE ONE-ANSWER RULE, and that is the
-       route working rather than failing: the fixture has nothing under `What for` but Learning. The
-       question is only allowed to be absent when its one answer IS the next word on the route. */
     const rung = w.facetList().find(f => f.field === rungs[rungs.length - route.length]);
     const only = rung ? R.facetValues(R.stuffFiltered(), rung).map(v => String(v.value)) : [];
-    if (!el && only.length === 1 && only[0] === route[0]) {
-      pressed.push('(' + route.shift() + ')');
-      continue;
-    }
+    if (!el && only.length === 1 && only[0] === route[0]) { pressed.push('(' + route.shift() + ')'); continue; }
     if (!el) {
       const grp = (() => { try { return rung.bucketOf(route[0]); } catch (e) { return ''; } })();
       el = grp && btns.find(b => b.dataset.value === grp && b.dataset.bucket);
@@ -19706,84 +21649,108 @@ check('the @family. textbook, on the Resources column: @family. textbooks, GCSE 
     await wait(20);
   }
   if (route.length) return bad;
-  /* THE SHELF HAS TO HAVE BEEN PRESSED, not skipped: one answer there would mean the boxing was
-     not beside it, and the door this journey is about was never on screen. Same for Resources. */
-  if (pressed.indexOf('@family. textbooks') < 0) bad.push('the shelf was never a question — ' + pressed.join(' → '));
-  /* AND `What kind` IS NOT A QUESTION HERE: every thing on the column is a resource. */
-  if (pressed.indexOf('(Resources)') < 0) bad.push('What kind was asked on the Resources column, or not skipped — ' + pressed.join(' → '));
-  /* THE SHELF QUESTION OFFERED BOXING BESIDE IT, or it was not a door — it was the only answer. */
+  /* `Content` IS ITS OWN ANSWER UNDER WHAT KIND, pressed — not a shelf of Resources. */
+  if (pressed.indexOf('Content') < 0) bad.push('What kind did not offer Content on Find 2: ' + pressed.join(' → '));
+  if (offered.some(o => /^shelf:@family\. textbooks$/.test(o))) bad.push('the @family. textbooks shelf was offered — it went with the books');
   const left = R.stuffFiltered();
-  if (left.length !== 1 || left[0].kind !== 'textbook' || left[0].name !== 'GCSE Statistics') {
+  if (left.length !== stats.chapters.length || left.some(i => i.kind !== 'content' || i.subject !== 'Statistics')) {
     bad.push('after ' + pressed.join(' → ') + ' the list is ' + left.length + ' item(s): '
-      + left.slice(0, 4).map(x => x.kind + ' ' + x.name).join(', ') + ' — not the book');
+      + left.slice(0, 4).map(x => x.kind + ' ' + x.name).join(', ') + ' — not the ' + stats.chapters.length + ' Statistics cards');
   }
-  /* AND NOTHING ELSE ON RESOURCES FELL OFF THE SHELVES. Pressing `Boxing` keeps only what says
-     Boxing, so a boxer with no shelf would vanish from the route that used to reach him — the door
-     would have cost the boxing what it gave the book. */
+  /* AND NOTHING ON RESOURCES FELL OFF THE SHELVES: the boxing and the Bible keep their door. */
   const shelfFacet = w.facetList().find(f => f.field === 'shelf');
   const resources = R.stuffItems().filter(i => w.kindOf_(i).label === 'Resources');
   const unshelved = resources.filter(i => !R.facetValues([i], shelfFacet).length);
-  if (unshelved.length) {
-    bad.push(unshelved.length + ' of ' + resources.length + ' Resources are on no shelf ('
-      + [...new Set(unshelved.map(i => i.kind))].join(', ') + ') — pressing a shelf hides them');
-  }
-  const x = left.find(i => i.kind === 'textbook') || R.stuffItems().find(i => i.kind === 'textbook');
-  if (!x) return bad.concat(['Resources offers no textbook at all']);
+  if (unshelved.length) bad.push(unshelved.length + ' of ' + resources.length + ' Resources are on no shelf — pressing a shelf hides them');
+  if (cards.some(i => R.facetValues([i], shelfFacet).length)) bad.push('a content card is on a shelf — the textbooks\' shelf went');
 
-  /* CARD, THEN A PAGE PER CHAPTER IN ORDER — AND AFTER EACH CHAPTER ITS ANIMATIONS. "Add the animations
-     from loading to respective subject text books" (the owner, 8 Oct): Statistics teaches the mean, Bayes,
-     Pascal and the Galton board, each a page straight after its chapter. */
+  /* THE CARD, THEN A PAGE PER ANIMATION, in the file's order. "Averages" teaches the mean. */
+  const x = left.find(i => i.name === 'Averages') || cards.find(i => i.key === 'ct:TB-GCSE-STATS-8');
+  if (!x) return bad.concat(['no Averages card among the Statistics cards']);
   const parts = w.pageParts_(x);
-  const want = [null].concat(...book.chapters.map(c => ['ch' + c.n].concat((c.animations || []).map(a => 'an' + c.n + '-' + a.id))));
-  if (JSON.stringify(parts) !== JSON.stringify(want)) bad.push('the book is pages ' + JSON.stringify(parts).slice(0, 80) + ', not the card and ' + book.chapters.length + ' chapters in order, each with its animations after it');
-  ['an8-mean', 'an15-bayes', 'an16-pas', 'an16-gal'].forEach(a => { if (parts.indexOf(a) < 0) bad.push('GCSE Statistics has no ' + a + ' page — data/textbooks.json put it under that chapter'); });
+  const want = [null].concat((x.row.animations || []).map(a => 'an' + x.row.n + '-' + a.id));
+  if (JSON.stringify(parts) !== JSON.stringify(want) || parts.indexOf('an8-mean') < 0) bad.push('the Averages card is pages ' + JSON.stringify(parts) + ', not the card and the mean\'s animation');
   const box = html => { const d = w.document.createElement('div'); d.innerHTML = html; return d; };
   const card = box(w.stuffCard(x));
-  if (!card.querySelector('.card.tb')) bad.push('the book card is not drawn as a textbook');
-  else {
-    if (card.querySelector('.fc-flag').textContent.trim() !== 'Textbook') bad.push('the card is not flagged Textbook');
-    const toc = [...card.querySelectorAll('.tb-toc ol > li')].map(li => li.textContent.replace(/H$/, '').trim());
-    if (toc.join('|') !== book.chapters.map(c => c.title).join('|')) bad.push('the contents do not list the chapters in order: ' + toc.slice(0, 3).join(', '));
-    if (card.querySelector('.tb-words, .tb-math')) bad.push('the card carries a chapter — chapters are pages of their own');
+  if (!card.querySelector('.card.ct')) bad.push('the card is not drawn as a content card');
+  if (!card.querySelector('.tb-an-stage') && !box(w.stuffPart_(x, 'an8-mean')).querySelector('.tb-an-stage')) bad.push('the mean\'s animation has no stage on its page');
+  /* WHAT IT IS, IN THE HEAD EVERY FIND KIND OPENS ON: `Content`. Then THE QUESTIONS' TAGS — the Level
+     answer, the subject and the topics — and NO board, because the words of a GCSE Statistics card are
+     every board's. */
+  const flag = card.querySelector('.fc-head .fc-flag');
+  if (!flag || flag.textContent.trim() !== 'Content') bad.push('the card is not flagged Content: ' + (flag ? flag.textContent : 'no flag'));
+  const tags = [...card.querySelectorAll('.qtags .qtag')].map(e => e.textContent.trim());
+  ['GCSE', 'Statistics', 'Mean', 'Median'].forEach(v => { if (tags.indexOf(v) < 0) bad.push('the Averages card has no "' + v + '" tag: ' + tags.join(' | ')); });
+  if (tags.some(v => /^(Edexcel|AQA|OCR)$/.test(v))) bad.push('the Averages card names a board — its words are every board\'s: ' + tags.join(' | '));
+  /* A SET TEXT IS ONE BOARD'S, and says so. */
+  const mac = cards.find(i => i.name === 'Macbeth');
+  if (!mac || [...box(w.stuffCard(mac)).querySelectorAll('.qtag')].map(e => e.textContent).indexOf('AQA') < 0) bad.push('the Macbeth card does not say AQA — a set text is the board\'s');
+  /* A CARD WITH FORMULAS, WHOLE, AND THE ONE THAT IS HIGHER ALL THROUGH. */
+  const withMath = cards.find(i => i.row.formulas.some(f => /\//.test(f.text)));
+  const pg = box(w.stuffCard(withMath));
+  const c = withMath.row;
+  if (pg.querySelectorAll('.tb-words li').length !== c.words.length) bad.push(withMath.name + ' does not list every key word');
+  if (pg.querySelectorAll('.tb-math li').length !== c.formulas.length) bad.push(withMath.name + ' does not list every formula');
+  if (!pg.querySelector('.tb-math .frac .frac-n') || !pg.querySelector('.tb-math .frac .frac-d')) bad.push(withMath.name + '\'s fractions are not stacked — typeset_ was not run over the formulas');
+  if (pg.querySelectorAll('.tb-points li').length !== c.points.length) bad.push(withMath.name + ' does not list every worked line');
+  const hItems = c.words.concat(c.formulas, c.points).filter(i => i.higher).length;
+  if (pg.querySelectorAll('li .tb-h').length !== hItems) bad.push(withMath.name + ' marks ' + pg.querySelectorAll('li .tb-h').length + ' lines Higher, the file says ' + hItems);
+  const hc = cards.find(i => i.row.higher);
+  if (hc) {
+    const hb = box(w.stuffCard(hc));
+    if (!hb.querySelector('h3 .tb-h')) bad.push(hc.name + ' is Higher all through and its heading does not say so');
+    if ([...hb.querySelectorAll('.qtag')].map(e => e.textContent).indexOf('Higher') < 0) bad.push(hc.name + ' is Higher all through and has no Higher tag');
   }
-  /* A CHAPTER WITH FORMULAS, AND THE ONE THAT IS HIGHER ALL THROUGH. */
-  const withMath = book.chapters.find(c => c.formulas.some(f => /\//.test(f.text)));
-  const pg = box(w.stuffPart_(x, 'ch' + withMath.n));
-  if (pg.querySelectorAll('.tb-words li').length !== withMath.words.length) bad.push('chapter ' + withMath.n + ' does not list every key word');
-  if (pg.querySelectorAll('.tb-math li').length !== withMath.formulas.length) bad.push('chapter ' + withMath.n + ' does not list every formula');
-  if (!pg.querySelector('.tb-math .frac .frac-n') || !pg.querySelector('.tb-math .frac .frac-d')) bad.push('chapter ' + withMath.n + '\'s fractions are not stacked — typeset_ was not run over the formulas');
-  if (/&frasl;|\//.test([...pg.querySelectorAll('.tb-fm')].map(e => e.innerHTML.replace(/<span class="frac-s">\/<\/span>/g, '').replace(/<[^>]*>/g, '')).join(''))) bad.push('a slash is left standing in a formula on chapter ' + withMath.n);
-  if (pg.querySelectorAll('.tb-points li').length !== withMath.points.length) bad.push('chapter ' + withMath.n + ' does not list every worked line');
-  const hItems = withMath.words.concat(withMath.formulas, withMath.points).filter(i => i.higher).length;
-  if (pg.querySelectorAll('li .tb-h').length !== hItems) bad.push('chapter ' + withMath.n + ' marks ' + pg.querySelectorAll('li .tb-h').length + ' lines Higher, the file says ' + hItems);
-  const hc = book.chapters.find(c => c.higher);
-  if (hc && !box(w.stuffPart_(x, 'ch' + hc.n)).querySelector('h3 .tb-h')) bad.push('chapter ' + hc.n + ' is Higher all through and its heading does not say so');
+  /* NOTHING THE APP SAYS IS TEXTBOOK OR CHAPTER — every card and every animation page, all of them. The
+     card's own words are left out of the reading: a Jekyll and Hyde quotation cites "(Chapter 10)" of the
+     novel, which is the content talking, not the app calling the card a chapter. */
+  const said = [];
+  cards.forEach(i => w.pageParts_(i).forEach(part => {
+    const d = box(part ? w.stuffPart_(i, part) : w.stuffCard(i));
+    d.querySelectorAll('.fc-sec').forEach(n => n.remove());
+    const txt = d.textContent;
+    if (/text ?book|\bchapter\b/i.test(txt)) said.push(i.name + (part ? ' #' + part : ''));
+  }));
+  if (said.length) bad.push(said.length + ' content page(s) say textbook or chapter: ' + said.slice(0, 4).join(', '));
 
-  /* SEARCHABLE BY ITS WORDS — one that is only inside a chapter, never in the title. */
+  /* SEARCHABLE BY ITS WORDS — one that is only inside a card, never in its title — ON BOTH FINDERS. */
   t.RES().filters.length = 0; t.RES().q = 'frequency density';
-  if (!R.stuffFiltered().some(i => i.kind === 'textbook')) bad.push('typing "frequency density" on Resources does not find the book — the chapters are not in its haystack');
+  if (!R.stuffFiltered().some(i => i.kind === 'content')) bad.push('typing "frequency density" on Find 2 does not find a content card — the words are not in its haystack');
   t.RES().q = '';
+  t.STUFF().filters.length = 0; t.STUFF().q = 'frequency density';
+  if (!w.stuffFiltered().some(i => i.kind === 'content')) bad.push('typing "frequency density" on Find does not find a content card — both finders carry them');
+  t.STUFF().q = '';
 
   /* STARRABLE, by the card's own Save tile, and kept on Saved. */
   t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   const fav = box(w.stuffCard(x)).querySelector('[data-do="fav"]');
-  if (!fav) bad.push('the book card has no Save tile');
+  if (!fav) bad.push('the content card has no Save tile');
   else {
     t.ACTIONS.fav(fav);
-    if (!t.savedPages().join('').includes('tb-toc')) bad.push('the book was starred and is not on the Saved column');
+    const kept = t.savedPages().join('');
+    if (!/class="card fc prac tb ct/.test(kept)) bad.push('the card was starred and is not on the Saved column');
+    /* A BOOK STARRED BEFORE THIS (`tb:<id>`) NAMES NO ITEM NOW: Saved draws nothing for it — no card,
+       no blank, no "undefined" — and the content card beside it is drawn exactly as before. */
+    w.toggleFav('tb:TB-GCSE-STATS', 'textbook');
+    const after = t.savedPages().join('');
+    if (after !== kept) bad.push('a star on a book from before drew something on Saved — it names no item and must be dropped quietly');
+    if (/undefined|GCSE Statistics/.test(after)) bad.push('Saved draws the old book (or an undefined) for a star that names nothing');
   }
   return bad;
 });
 
 /* ==================================================================================================
-   THE SECOND FINDER: RESOURCES, IMMEDIATELY RIGHT OF FIND (docs/history/329)
-   THE OWNER, 10 Oct: *"i want to move everything which is in "resources" tag. i want to create a new
-   column to the right of the current finder. this new column is "finder 2". it carries resources.
-   like text books, boxing stuff books. ect."* One journey per rule of the build: the column is there
-   and where it was asked for; it carries the resources and Find none; the two share no state; each
-   keeps its own place across a reload and a sign-in; a link into a resource from elsewhere — Find, Saved
-   — opens it in the Resources column. The resources are the real files mapped by the app's own
-   `libraryExtras_`, so the shelves and questions are the ones a phone is asked.
+   FIND 2: ONE FINDER, TWICE, IMMEDIATELY RIGHT OF FIND (docs/history/329, reversed in 347)
+   THE OWNER, 10 Oct, built a second column for the resources — *"this new column is "finder 2". it
+   carries resources."* — and on 12 Oct took the split back: *"Return to that origional finder having
+   everything and now there is just an identical second finder. Smart students will know to use this
+   second finder to have the content up while they do questions on the origional finder."* One journey
+   per rule: the column is there, where it was asked for, called Find 2; both finders carry the same
+   items and ask the same first question; the two share no state; each keeps its own place across a
+   reload and a sign-in, and a kept chip nothing will answer is dropped; a kept card Saved cannot draw
+   whole opens in Find; an empty search says "take a filter off" and offers no other column. The items
+   are the real files mapped by the app's own `libraryExtras_`, so the questions are the ones a phone is
+   asked. The journeys were the split's (329) and are rewritten to the new rule, not deleted.
 ================================================================================================== */
 const RES_MADE_ = { v: null };
 const resPayload_ = async () => {
@@ -19799,11 +21766,11 @@ const resPayload_ = async () => {
   /* THE PROJECTS TOO, so Find has a `What kind` of its own to ask while the resources are away. */
   return Object.assign(payload(), { textbooks: m.textbooks || [], boxers: m.boxers || [], fights: m.fights || [], projects: m.projects || [] });
 };
-/* A call made as the second finder: `inFinder_` is the app's own binding (find.js). */
+/* A call made as Find 2: `inFinder_` is the app's own binding (find.js). */
 const inRes_ = (w, fn) => w.inFinder_(w.finderOf_('res'), fn);
-/* THE APP'S OWN FUNCTIONS, EACH CALLED AS THE SECOND FINDER — `R.stuffFiltered()` is Resources' list,
-   `R.nextFacet(l)` its next question, `R.paintStuff()` its repaint. A journey that moved from Find to
-   Resources reads exactly as it did, with `w.` become `R.` where the finder is asked. */
+/* THE APP'S OWN FUNCTIONS, EACH CALLED AS FIND 2 — `R.stuffFiltered()` is Find 2's list,
+   `R.nextFacet(l)` its next question, `R.paintStuff()` its repaint. A journey asked of Find reads
+   exactly as it did, with `w.` become `R.` where the second finder is asked. */
 const resView_ = w => new Proxy({}, { get: (_, k) => (...a) => inRes_(w, () => w[k](...a)) });
 const resBoot_ = async (opts) => {
   const p = await resPayload_();
@@ -19817,7 +21784,9 @@ const resBoot_ = async (opts) => {
    earlier in the same literal), so `pg_(t).res` is undefined and a comparison of two of them passes
    whatever the app did. Asked through this, so a page check can fail. */
 const pg_ = t => (typeof t.PAGE === 'function' ? t.PAGE() : t.PAGE) || {};
-const resIs_ = (w, x) => !!x && (x.kindLabel || w.kindOf_(x).label) === 'Resources';
+/* THE ANSWERS A COLUMN'S QUESTION PAGE DRAWS, as `field:value`, in the order drawn. */
+const resAnswers_ = (w, id) => [...w.document.querySelectorAll('#s-' + id + ' #' + id + '-groups [data-do="facet-pick"]')]
+  .map(el => el.dataset.field + ':' + el.dataset.value);
 const resPick_ = (w, id, v) => [...w.document.querySelectorAll('#s-' + id + ' #' + id + '-groups [data-do="facet-pick"]')]
   .find(b => b.dataset.value === v);
 const resType_ = (w, id, v) => {
@@ -19828,7 +21797,7 @@ const resType_ = (w, id, v) => {
   return true;
 };
 
-check('the second finder: a column called Resources immediately right of Find — the tab row, data/settings/columns.json, one swipe from Find, and its own search box and first question', async () => {
+check('Find 2: a column immediately right of Find, called Find 2 with Find\'s icon — the tab row, data/settings/columns.json, one swipe from Find, its own search box, and Find\'s first question', async () => {
   const file = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'columns.json'), 'utf8'));
   /* THE REAL FILE, SERVED, so the order a phone is given is the one checked — `applyColumns_` keeps only
      the columns it names, in its order. */
@@ -19840,16 +21809,23 @@ check('the second finder: a column called Resources immediately right of Find �
   const ids = t.TABS.map(x => x.id);
   const i = ids.indexOf('stuff'), j = ids.indexOf('res');
   if (j < 0) return bad.concat(['there is no `res` column on the phone: ' + ids.join(' ')]);
-  if (j !== i + 1) bad.push('Resources is column ' + j + ' and Find ' + i + ' — wanted immediately right of Find: ' + ids.join(' '));
-  if (t.TABS[j].label !== 'Resources') bad.push('the column is labelled ' + JSON.stringify(t.TABS[j].label) + ', not Resources');
+  if (j !== i + 1) bad.push('Find 2 is column ' + j + ' and Find ' + i + ' — wanted immediately right of Find: ' + ids.join(' '));
+  /* CALLED WHAT IT IS — "finder 2", "an identical second finder" — WITH FIND'S OWN ICON, on the phone
+     (the file served, `applyColumns_` over it) and in the file itself. */
+  if (t.TABS[j].label !== 'Find 2') bad.push('the column is labelled ' + JSON.stringify(t.TABS[j].label) + ', not Find 2');
+  if (t.TABS[j].icon !== t.TABS[i].icon) bad.push('the column\'s icon is ' + JSON.stringify(t.TABS[j].icon) + ', not Find\'s ' + JSON.stringify(t.TABS[i].icon));
   const row = file.find(r => r.screen === 'res');
   if (!row) bad.push('data/settings/columns.json has no `res` row, so the column is on no phone');
+  else if (row.label !== 'Find 2' || row.icon !== (file.find(r => r.screen === 'stuff') || {}).icon) bad.push('data/settings/columns.json calls the column ' + JSON.stringify(row.label) + ' ' + JSON.stringify(row.icon) + ' — wanted Find 2 with Find\'s icon');
   /* AND IN THE CODE'S OWN ORDER, which is the order whenever the file is not read (`TAB_ORDER`). */
   const bare = boot();
   for (let k = 0; k < 80 && !bare.w.__t; k++) await wait(25);
   if (bare.w.__t) {
-    const ids0 = bare.w.__t.TABS.map(x => x.id);
-    if (ids0.indexOf('res') !== ids0.indexOf('stuff') + 1) bad.push('without the file, TAB_ORDER puts Resources at ' + ids0.indexOf('res') + ' and Find at ' + ids0.indexOf('stuff') + ': ' + ids0.join(' '));
+    const T0 = bare.w.__t.TABS, ids0 = T0.map(x => x.id);
+    if (ids0.indexOf('res') !== ids0.indexOf('stuff') + 1) bad.push('without the file, TAB_ORDER puts Find 2 at ' + ids0.indexOf('res') + ' and Find at ' + ids0.indexOf('stuff') + ': ' + ids0.join(' '));
+    /* AND THE CODE'S OWN NAME, which is the name whenever the file is not read. */
+    const r0 = T0.find(x => x.id === 'res') || {}, f0 = T0.find(x => x.id === 'stuff') || {};
+    if (r0.label !== 'Find 2' || r0.icon !== f0.icon) bad.push('without the file the column is ' + JSON.stringify(r0.label) + ' ' + JSON.stringify(r0.icon) + ' — wanted Find 2 with Find\'s icon ' + JSON.stringify(f0.icon));
   } else bad.push('the second boot did not load, so TAB_ORDER was NOT checked');
   /* ONE SWIPE FROM FIND, AND ITS OWN PAGE: a search box, chips and the question, under its own ids. */
   t.go('stuff', false, true);
@@ -19860,63 +21836,84 @@ check('the second finder: a column called Resources immediately right of Find �
   await wait(120); await woken_();
   const host = d.getElementById('s-res');
   if (!host) return bad.concat(['index.html has no <section id="s-res">']);
-  if (!host.querySelector('#res-q.search')) bad.push('the Resources column has no search box of its own (#res-q)');
-  if (!host.querySelector('#res-chips') || !host.querySelector('#res-groups')) bad.push('the Resources column has no chips row or question (#res-chips, #res-groups)');
+  if (!host.querySelector('#res-q.search')) bad.push('Find 2 has no search box of its own (#res-q)');
+  if (!host.querySelector('#res-chips') || !host.querySelector('#res-groups')) bad.push('Find 2 has no chips row or question (#res-chips, #res-groups)');
   if (host.querySelector('#stuff-q') || d.getElementById('s-stuff').querySelector('#res-q')) bad.push('a finder drew the other finder\'s search box');
-  /* ITS FIRST QUESTION, BY THE FUNNEL'S OWN RULES: Shelf. What for and What kind have one answer each
-     over the resources, so both are skipped. */
-  const answers = [...host.querySelectorAll('#res-groups [data-do="facet-pick"]')].map(el => el.dataset.field + ':' + el.dataset.value);
-  if (!answers.length || !answers.every(a => a.indexOf('shelf:') === 0)) bad.push('the first question on Resources is not Shelf: ' + (answers.join(' | ') || 'no answers'));
-  ['@family. textbooks', 'Boxing'].forEach(v => { if (answers.indexOf('shelf:' + v) < 0) bad.push('Shelf does not offer ' + v + ': ' + answers.join(' | ')); });
-  if (host.querySelector('#res-groups [data-field="forLabel"], #res-groups [data-field="kindLabel"]')) bad.push('Resources asks What for or What kind, which each have one answer there');
+  /* ITS FIRST QUESTION IS FIND'S, BY THE FUNNEL'S OWN RULES — the same list asks the same question.
+     It was Shelf while the column held the resources alone (329). */
+  t.go('stuff', false, true);
+  await wait(120); await woken_();
+  const find = resAnswers_(w, 'stuff');
+  t.go('res', false, true);
+  await wait(120); await woken_();
+  const answers = resAnswers_(w, 'res');
+  if (!answers.length) bad.push('Find 2 draws no first question');
+  if (answers.join(' | ') !== find.join(' | ')) bad.push('Find 2 asks ' + (answers.join(' | ') || 'nothing') + ' first, Find asks ' + (find.join(' | ') || 'nothing') + ' — wanted the same question');
+  if (answers.some(a => /^shelf:/.test(a))) bad.push('Find 2 asks Shelf first, which is the split\'s question (329): ' + answers.join(' | '));
   return bad;
 });
 
-check('the second finder carries every resource kind and nothing else, and Find carries none — not in its list, its What kind or its search', async () => {
+check('both finders carry the same items — the same keys, the same count, every kind the whole list offers — and ask the same What kind; a kind relabelled in the sheet moves nothing between them', async () => {
   const b = await resBoot_();
   if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
   const { w } = b, t = w.__t, bad = [];
   const find = w.stuffItems();
   const res = inRes_(w, () => w.stuffItems());
   const kinds = l => [...new Set(l.map(x => x.kind))].sort().join(', ') || 'nothing';
-  if (!res.length) return ['the Resources column holds nothing — NOT checked'];
-  ['textbook', 'boxer', 'fight'].forEach(k => {
-    if (!res.some(x => x.kind === k)) bad.push('Resources holds no ' + k);
-    if (find.some(x => x.kind === k)) bad.push('Find still holds ' + find.filter(x => x.kind === k).length + ' ' + k + '(s)');
+  const keys = l => l.map(x => String(x.key || x.kind + ':' + x.name)).sort();
+  if (!find.length) return ['Find holds nothing — NOT checked'];
+  /* THE SAME LIST, BOTH WAYS: every key on one is on the other, and as many of them. */
+  const fk = keys(find), rk = keys(res);
+  if (fk.length !== rk.length) bad.push('Find holds ' + fk.length + ' items and Find 2 ' + rk.length + ' — the same finder twice holds the same list');
+  const rs = new Set(rk), fs_ = new Set(fk);
+  const onlyF = fk.filter(k => !rs.has(k)), onlyR = rk.filter(k => !fs_.has(k));
+  if (onlyF.length) bad.push(onlyF.length + ' item(s) on Find and not on Find 2, first ' + onlyF.slice(0, 3).join(', '));
+  if (onlyR.length) bad.push(onlyR.length + ' item(s) on Find 2 and not on Find, first ' + onlyR.slice(0, 3).join(', '));
+  /* EVERYTHING THE WHOLE LIST OFFERS, on each — the content cards, the boxers, the fights AND the
+     projects — less only what the funnel offers nobody (`FUNNEL_NOT_FOR`: Booking and Shop). */
+  ['content', 'boxer', 'fight', 'project'].forEach(k => {
+    if (!find.some(x => x.kind === k)) bad.push('Find holds no ' + k);
+    if (!res.some(x => x.kind === k)) bad.push('Find 2 holds no ' + k);
   });
-  if (find.some(x => resIs_(w, x))) bad.push('Find still holds Resources: ' + kinds(find.filter(x => resIs_(w, x))));
-  if (!res.every(x => resIs_(w, x))) bad.push('Resources holds things that are not Resources: ' + kinds(res.filter(x => !resIs_(w, x))));
-  if (!find.some(x => x.kind === 'project')) bad.push('Find lost its projects — NOT a split, a loss');
-  /* AND SAVED STILL SEES BOTH: the whole list is untouched (`stuffItemsAll_`). */
-  const all = w.stuffItemsAll_();
-  if (!all.some(x => x.kind === 'textbook') || !all.some(x => x.kind === 'project')) bad.push('the whole list (Saved, Spotlight, answer lookups) lost a kind: ' + kinds(all));
-  /* WHAT KIND ON FIND: no Resources answer, bucketed or not. */
+  const offered = w.stuffItemsAll_().filter(x => {
+    const g = [].concat(x.groups || w.kindOf_(x).group || []).filter(Boolean);
+    return !(g.length && g.every(k => ['Booking', 'Shop'].indexOf(k) >= 0));
+  });
+  if (keys(offered).join('|') !== fk.join('|')) bad.push('Find\'s list is not the whole list less Booking and Shop: whole ' + offered.length + ' (' + kinds(offered) + '), Find ' + find.length);
+  /* WHAT KIND, ASKED OF EACH: the same answers, Resources among them. */
   const kl = w.facetList().find(f => f.field === 'kindLabel');
-  const said = w.facetValues(find, kl).map(v => String(v.value));
-  if (said.indexOf('Resources') >= 0) bad.push('Find\'s What kind still offers Resources: ' + said.join(', '));
-  if (find.some(x => [].concat(kl.of(x)).indexOf('Resources') >= 0)) bad.push('an item on Find still answers What kind with Resources');
-  /* SEARCH: words that are only inside a textbook's chapters. */
+  const said = l => w.facetValues(l, kl).map(v => String(v.value) + ' ' + v.n).join(', ');
+  const fSaid = said(find), rSaid = inRes_(w, () => said(res));
+  if (fSaid !== rSaid) bad.push('What kind on Find offers ' + fSaid + ' and on Find 2 ' + rSaid);
+  if (!/\bResources\b/.test(fSaid) || !/\bProjects\b/.test(fSaid)) bad.push('What kind does not offer both Projects and Resources: ' + fSaid);
+  /* SEARCH: a word that is only inside a content card's words finds the card on both. */
   t.STUFF().filters.length = 0; t.STUFF().q = 'frequency density';
   const fHits = w.stuffFiltered();
-  if (fHits.some(x => resIs_(w, x))) bad.push('typing "frequency density" on Find finds ' + kinds(fHits.filter(x => resIs_(w, x))));
   t.STUFF().q = '';
   t.RES().filters.length = 0; t.RES().q = 'frequency density';
   const rHits = inRes_(w, () => w.stuffFiltered());
-  if (!rHits.some(x => x.kind === 'textbook')) bad.push('typing "frequency density" on Resources does not find the textbook');
   t.RES().q = '';
-  /* THE BIBLE IS A RESOURCE — the item that holds it decides the column. */
-  if (w.finderOfItem_({ kind: 'bible' }).id !== 'res') bad.push('the Bible would open in ' + w.finderOfItem_({ kind: 'bible' }).id + ', not Resources');
-  /* ANYTHING ELSE WHOSE LABEL IS RESOURCES — the live kinds tab decides, with no deploy. Relabel the
-     boxers in the sheet and they change column; put the label back and they come home. */
+  if (!fHits.some(x => x.kind === 'content')) bad.push('typing "frequency density" on Find does not find the content card');
+  if (!rHits.some(x => x.kind === 'content')) bad.push('typing "frequency density" on Find 2 does not find the content card');
+  if (keys(fHits).join('|') !== keys(rHits).join('|')) bad.push('"frequency density" finds ' + fHits.length + ' on Find and ' + rHits.length + ' on Find 2');
+  /* ONE LIST, COUNTED ONCE: with no chips and no words both finders' first question is asked of the same
+     array (`FUNNEL_MEMO`, find.js), so its tallies — keyed on the array — are counted once. Two copies cost
+     Find 2 the whole library's tally a second time on the first load, ~300 ms in jsdom. */
+  const fBare = w.stuffFiltered(), rBare = inRes_(w, () => w.stuffFiltered());
+  if (fBare !== rBare) bad.push('Find and Find 2 ask their first question of two copies of the same list — every tally of it is counted twice');
+  /* A KIND RELABELLED IN THE LIVE SHEET MOVES NOTHING BETWEEN THEM: it changed column while the label
+     was the membership rule (329). Relabel the boxers and both finders' What kind say the new word, and
+     the two lists stay one list. */
   const was = t.DATA().kinds;
   t.DATA().kinds = [{ kind: 'boxer', group: 'Learning', label: 'Fighters', active: true }];
   w.stuffForget_();
-  const fMoved = w.stuffItems().filter(x => x.kind === 'boxer').length;
-  const rMoved = inRes_(w, () => w.stuffItems()).filter(x => x.kind === 'boxer').length;
-  if (!fMoved || rMoved) bad.push('the kinds tab relabelled the boxers and they did not move to Find (Find ' + fMoved + ', Resources ' + rMoved + ')');
+  const f2 = w.stuffItems(), r2 = inRes_(w, () => w.stuffItems());
+  const fB = f2.filter(x => x.kind === 'boxer').length, rB = r2.filter(x => x.kind === 'boxer').length;
+  if (!fB || fB !== rB) bad.push('the kinds tab relabelled the boxers and the finders hold ' + fB + ' and ' + rB + ' of them — wanted all of them on both');
+  const fS2 = said(f2), rS2 = inRes_(w, () => said(r2));
+  if (!/\bFighters\b/.test(fS2) || fS2 !== rS2) bad.push('after the relabel What kind says ' + fS2 + ' on Find and ' + rS2 + ' on Find 2 — wanted Fighters on both, the same');
   t.DATA().kinds = was;
   w.stuffForget_();
-  if (inRes_(w, () => w.stuffItems()).filter(x => x.kind === 'boxer').length !== res.filter(x => x.kind === 'boxer').length) bad.push('the boxers did not come back to Resources when the label did');
   return bad;
 });
 
@@ -19928,30 +21925,32 @@ check('two finders, no shared state: a chip, a search word or a page turned in o
   const R = () => JSON.stringify([t.RES().filters, t.RES().q]);
   t.go('stuff', false, true); await wait(60);
   t.go('res', false, true); await wait(120); await woken_();
-  /* A CHIP PRESSED ON RESOURCES IS RESOURCES' ALONE. */
-  const shelf = resPick_(w, 'res', 'Boxing');
-  if (!shelf) return ['Resources does not offer Shelf · Boxing to press — NOT checked'];
+  /* A CHIP PRESSED ON FIND 2 IS FIND 2'S ALONE — the answer its question draws for the resources,
+     since both columns ask the same first question now (347) and `Resources` keeps the boxers for
+     the word below. */
+  const shelf = resPick_(w, 'res', 'Resources');
+  if (!shelf) return ['Find 2 does not offer What kind · Resources to press — NOT checked: ' + resAnswers_(w, 'res').join(' | ')];
   const f0 = F();
   A['facet-pick'](shelf);
-  if (JSON.stringify(t.RES().filters) !== JSON.stringify([{ field: 'shelf', value: 'Boxing' }])) bad.push('pressing Boxing on Resources left its chips ' + JSON.stringify(t.RES().filters));
-  if (F() !== f0) bad.push('a chip pressed on Resources reached Find: ' + F());
-  if (!/Boxing/.test(d.getElementById('res-chips').textContent)) bad.push('the Resources chips row does not show Boxing');
-  if (/Boxing/.test((d.getElementById('stuff-chips') || {}).textContent || '')) bad.push('Find\'s chips row shows Boxing');
-  /* A WORD TYPED IN RESOURCES' BOX IS RESOURCES' ALONE. */
+  if (JSON.stringify(t.RES().filters) !== JSON.stringify([{ field: 'kindLabel', value: 'Resources' }])) bad.push('pressing Resources on Find 2 left its chips ' + JSON.stringify(t.RES().filters));
+  if (F() !== f0) bad.push('a chip pressed on Find 2 reached Find: ' + F());
+  if (!/Resources/.test(d.getElementById('res-chips').textContent)) bad.push('Find 2\'s chips row does not show Resources');
+  if (/Resources/.test((d.getElementById('stuff-chips') || {}).textContent || '')) bad.push('Find\'s chips row shows Resources');
+  /* A WORD TYPED IN FIND 2'S BOX IS FIND 2'S ALONE. */
   resType_(w, 'res', 'ali');
   await wait(260);
-  if (t.RES().q !== 'ali') bad.push('typing in #res-q left Resources\' words ' + JSON.stringify(t.RES().q));
+  if (t.RES().q !== 'ali') bad.push('typing in #res-q left Find 2\'s words ' + JSON.stringify(t.RES().q));
   if (t.STUFF().q) bad.push('typing in #res-q put ' + JSON.stringify(t.STUFF().q) + ' into Find\'s words');
-  /* A PAGE TURNED IN RESOURCES IS RESOURCES' ALONE. */
+  /* A PAGE TURNED IN FIND 2 IS FIND 2'S ALONE. */
   const p0 = pg_(t).stuff;
   const first = inRes_(w, () => w.stuffFirstResult_());
   const n = inRes_(w, () => w.stuffPages_().length);
-  if (!n) bad.push('Shelf · Boxing and "ali" left nothing to turn to on Resources — the page rule was NOT checked');
+  if (!n) bad.push('What kind · Resources and "ali" left nothing to turn to on Find 2 — the page rule was NOT checked');
   else {
     t.goPage('res', first + Math.min(1, n - 1), true);
     await wait(80);
-    if (pg_(t).res !== first + Math.min(1, n - 1)) bad.push('Resources did not turn to page ' + (first + 1) + ' (it is on ' + pg_(t).res + ')');
-    if (pg_(t).stuff !== p0) bad.push('turning a page on Resources moved Find from page ' + p0 + ' to ' + pg_(t).stuff);
+    if (pg_(t).res !== first + Math.min(1, n - 1)) bad.push('Find 2 did not turn to page ' + (first + 1) + ' (it is on ' + pg_(t).res + ')');
+    if (pg_(t).stuff !== p0) bad.push('turning a page on Find 2 moved Find from page ' + p0 + ' to ' + pg_(t).stuff);
   }
   /* AND BACK ON FIND, EVERYTHING THE OTHER WAY ROUND. */
   t.go('stuff', false, true); await wait(120); await woken_();
@@ -19961,32 +21960,32 @@ check('two finders, no shared state: a chip, a search word or a page turned in o
   else {
     A['facet-pick'](pick);
     if (!t.STUFF().filters.length) bad.push('pressing an answer on Find left no chip on Find');
-    if (R() !== r0) bad.push('a chip pressed on Find changed Resources: ' + R());
+    if (R() !== r0) bad.push('a chip pressed on Find changed Find 2: ' + R());
   }
   resType_(w, 'stuff', 'fractions');
   await wait(260);
   if (t.STUFF().q !== 'fractions') bad.push('typing in #stuff-q left Find\'s words ' + JSON.stringify(t.STUFF().q));
-  if (t.RES().q !== 'ali') bad.push('typing in #stuff-q changed Resources\' words to ' + JSON.stringify(t.RES().q));
+  if (t.RES().q !== 'ali') bad.push('typing in #stuff-q changed Find 2\'s words to ' + JSON.stringify(t.RES().q));
   t.goPage('stuff', 0, true);
-  if (pg_(t).res !== pr) bad.push('turning a page on Find moved Resources from ' + pr + ' to ' + pg_(t).res);
+  if (pg_(t).res !== pr) bad.push('turning a page on Find moved Find 2 from ' + pr + ' to ' + pg_(t).res);
   /* A PRESS FROM NOWHERE — a detached button, as the checks press — acts on the column in front. */
   A['filter-clear'](d.createElement('button'));
   if (t.STUFF().filters.length) bad.push('Clear pressed with Find in front left Find\'s chips');
-  if (R() !== r0) bad.push('Clear pressed with Find in front cleared Resources too: ' + R());
-  /* AND RESOURCES' OWN CLEAR TILE CLEARS RESOURCES ONLY. */
+  if (R() !== r0) bad.push('Clear pressed with Find in front cleared Find 2 too: ' + R());
+  /* AND FIND 2'S OWN CLEAR TILE CLEARS FIND 2 ONLY. */
   t.go('res', false, true); await wait(120);
   const clear = d.querySelector('#res-clear [data-do="filter-clear"]');
-  if (!clear) bad.push('Resources has no Clear tile beside its box while it holds a chip');
+  if (!clear) bad.push('Find 2 has no Clear tile beside its box while it holds a chip');
   else {
     t.STUFF().filters.push({ field: 'kindLabel', value: 'Projects' });
     A['filter-clear'](clear);
-    if (t.RES().filters.length) bad.push('Resources\' Clear left ' + JSON.stringify(t.RES().filters));
-    if (JSON.stringify(t.STUFF().filters) !== JSON.stringify([{ field: 'kindLabel', value: 'Projects' }])) bad.push('Resources\' Clear reached Find: ' + JSON.stringify(t.STUFF().filters));
+    if (t.RES().filters.length) bad.push('Find 2\'s Clear left ' + JSON.stringify(t.RES().filters));
+    if (JSON.stringify(t.STUFF().filters) !== JSON.stringify([{ field: 'kindLabel', value: 'Projects' }])) bad.push('Find 2\'s Clear reached Find: ' + JSON.stringify(t.STUFF().filters));
   }
   return bad;
 });
 
-check('the second finder keeps its own place across a reload — the column, its chips and the chapter in front — and Find keeps its own', async () => {
+check('Find 2 keeps its own place across a reload — the column, its chips and the animation in front — and Find keeps its own; a kept chip nothing will answer comes back dropped, one nothing answers yet comes back kept', async () => {
   const ADA = ANS_ADA;
   const one = await resBoot_({ before: signedInAs_(ADA) });
   if (!one) return ['the app or libraryExtras_ did not load — NOT checked'];
@@ -19994,12 +21993,13 @@ check('the second finder keeps its own place across a reload — the column, its
   /* REMEMBERED, as a finger's swipe is (`familyTab`): the column is half of where you were. */
   T.go('res');
   await wait(80);
-  const chips = [{ field: 'shelf', value: '@family. textbooks' }, { field: 'subject', value: 'Statistics' }];
+  /* A CONTENT CARD'S ANIMATION, a page past its card: the mean's, under Averages. */
+  const chips = [{ field: 'kindLabel', value: 'Content' }, { field: 'subject', value: 'Statistics' }];
   T.RES().filters = chips.map(f => Object.assign({}, f));
   W.paintFinder_('res');
   const pages = inRes_(W, () => W.stuffPages_());
-  const at = pages.findIndex(pg => pg.x && pg.x.kind === 'textbook' && pg.part === 'ch3');
-  if (at < 0) return ['Shelf · @family. textbooks, Subject · Statistics has no chapter 3 page — nothing was reloaded'];
+  const at = pages.findIndex(pg => pg.x && pg.x.kind === 'content' && pg.part === 'an8-mean');
+  if (at < 0) return ['What kind · Content, Subject · Statistics has no page for the mean\'s animation — nothing was reloaded'];
   T.goPage('res', inRes_(W, () => W.stuffFirstResult_()) + at, true);
   await wait(150);
   const want = pg_(T).res;
@@ -20011,19 +22011,19 @@ check('the second finder keeps its own place across a reload — the column, its
   const kept = keptStore_(W);
   const resKey = Object.keys(kept).find(k => /^draft:u:P7:res:place$/.test(k));
   if (!resKey) return bad.concat(['nothing was kept under draft:u:P7:res:place: ' + Object.keys(kept).filter(k => /place/.test(k)).join(', ')]);
-  if (Object.keys(kept).some(k => /:find:place$/.test(k) && /textbooks/.test(kept[k]))) bad.push('Resources\' chips were kept under Find\'s place');
+  if (Object.keys(kept).some(k => /:find:place$/.test(k) && /Statistics/.test(kept[k]))) bad.push('Find 2\'s chips were kept under Find\'s place');
   const two = await resBoot_({ before: fromStore_(kept) });
   if (!two) return bad.concat(['the reload did not load — NOT checked']);
   const w = two.w, t = w.__t;
   for (let i = 0; i < 100 && !(t.RES().filters || []).length; i++) await wait(50);
   await wait(200);
-  if (t.AT() !== 'res') bad.push('the reload opened on ' + t.AT() + ', not Resources');
-  if (JSON.stringify(t.RES().filters) !== JSON.stringify(chips)) bad.push('the reload brought Resources back with the chips ' + JSON.stringify(t.RES().filters));
-  if (pg_(t).res !== want) bad.push('the reload put Resources on page ' + pg_(t).res + ', not chapter 3\'s ' + want);
-  const shown = w.document.querySelector('#s-res .card.is-ch3');
-  if (!shown) bad.push('after the reload no chapter 3 card is drawn on Resources');
-  if ((t.STUFF().filters || []).length) bad.push('the reload put Resources\' place on Find: ' + JSON.stringify(t.STUFF().filters));
-  /* AND FIND'S OWN, FROM FIND: kept under its own name and brought back to Find, Resources untouched. */
+  if (t.AT() !== 'res') bad.push('the reload opened on ' + t.AT() + ', not Find 2');
+  if (JSON.stringify(t.RES().filters) !== JSON.stringify(chips)) bad.push('the reload brought Find 2 back with the chips ' + JSON.stringify(t.RES().filters));
+  if (pg_(t).res !== want) bad.push('the reload put Find 2 on page ' + pg_(t).res + ', not the mean animation\'s ' + want);
+  const shown = w.document.querySelector('#s-res .card.is-an8-mean');
+  if (!shown) bad.push('after the reload the mean\'s animation is not drawn on Find 2');
+  if ((t.STUFF().filters || []).length) bad.push('the reload put Find 2\'s place on Find: ' + JSON.stringify(t.STUFF().filters));
+  /* AND FIND'S OWN, FROM FIND: kept under its own name and brought back to Find, Find 2 untouched. */
   const t2 = two.w;
   t.go('stuff');
   await wait(60);
@@ -20038,27 +22038,47 @@ check('the second finder keeps its own place across a reload — the column, its
   for (let i = 0; i < 100 && !(t3.STUFF().filters || []).length; i++) await wait(50);
   if (t3.AT() !== 'stuff') bad.push('the reload from Find opened on ' + t3.AT());
   if (JSON.stringify(t3.STUFF().filters) !== JSON.stringify([{ field: 'kindLabel', value: 'Projects' }])) bad.push('the reload from Find brought Find back with ' + JSON.stringify(t3.STUFF().filters));
-  if ((t3.RES().filters || []).length) bad.push('the reload from Find put chips on Resources: ' + JSON.stringify(t3.RES().filters));
-  /* A PLACE KEPT BEFORE THE RESOURCES MOVED: Find's own, holding a resource chip, comes back without it. */
+  if ((t3.RES().filters || []).length) bad.push('the reload from Find put chips on Find 2: ' + JSON.stringify(t3.RES().filters));
+  /* A PLACE KEPT BEFORE THIS CHANGE, AND CHIPS NOTHING WILL ANSWER (`placeChipDead_`). Find's own,
+     holding: `Shelf · Boxing`, which the split dropped from Find (329) and both finders answer now, so
+     it is KEPT; the Bible's chips, and `Shelf · Books`, kept by somebody the Bible is not for (P7 is no
+     admin), DROPPED; a question the funnel has retired (`examWave`), DROPPED; the textbooks' shelf and a
+     `Book` chip from before the chapters became content cards (347, part 2), DROPPED; a paper nothing answers YET
+     — the library lands after this runs, which is 329's "early" half — KEPT, or a reload before the
+     library arrived would lose the place it exists to keep. */
   const stale = Object.assign({}, kept2);
+  const early = { field: 'paperId', value: 'P-NOT-HERE-YET' };
   Object.keys(stale).filter(k => /^draft:u:P7:find:place$/.test(k)).forEach(k => {
     const dd = JSON.parse(stale[k]); const p = JSON.parse(dd.v);
-    /* AND THE BIBLE'S CHIPS (the review, finding 3): nothing on any list answers a Bible book, so the
-       rule that drops a chip only the other finder answers read it as early and kept it. */
-    p.f = [{ field: 'kindLabel', value: 'Projects' }, { field: 'shelf', value: 'Boxing' },
-           { field: 'bibleTranslation', value: 'KJV' }, { field: 'bibleBook', value: 'Genesis' }];
+    p.f = [{ field: 'kindLabel', value: 'Projects' }, { field: 'shelf', value: 'Boxing' }, { field: 'shelf', value: 'Books' },
+           { field: 'bibleTranslation', value: 'KJV' }, { field: 'bibleBook', value: 'Genesis' },
+           { field: 'examWave', value: 'Summer 2018' }, { field: 'shelf', value: '@family. textbooks' },
+           { field: 'book', value: 'GCSE Statistics' }, early];
     dd.v = JSON.stringify(p); stale[k] = JSON.stringify(dd);
   });
   const four = await resBoot_({ before: fromStore_(stale) });
-  if (four) {
-    const t4 = four.w.__t;
-    for (let i = 0; i < 100 && !(t4.STUFF().filters || []).length; i++) await wait(50);
-    if (JSON.stringify(t4.STUFF().filters) !== JSON.stringify([{ field: 'kindLabel', value: 'Projects' }])) bad.push('a place kept before the move, holding Shelf · Boxing and a Bible book, came back to Find as ' + JSON.stringify(t4.STUFF().filters) + ' — wanted the resource chip dropped and the rest kept');
-  }
+  if (!four) return bad.concat(['the stale reload did not load — the dead-chip rule was NOT checked']);
+  const t4 = four.w.__t;
+  for (let i = 0; i < 100 && !(t4.STUFF().filters || []).length; i++) await wait(50);
+  const want4 = [{ field: 'kindLabel', value: 'Projects' }, { field: 'shelf', value: 'Boxing' }, early];
+  if (JSON.stringify(t4.STUFF().filters) !== JSON.stringify(want4)) bad.push('a kept place holding Shelf · Boxing, the Books shelf, Bible chips, a retired question and a paper not here yet came back to Find as ' + JSON.stringify(t4.STUFF().filters) + ' (the textbooks\' shelf and a Book chip among them)' + ' — wanted ' + JSON.stringify(want4));
+  /* AND A CHIP ON A FIELD NO FACET ASKS, once the facets have arrived — it is a chip that does nothing
+     (`filterHit` reads a facetless chip as matching everything). Before they arrive a sheet-only
+     question is merely not here yet, so it is kept. Asked of the rule itself, in both finders. */
+  const w4 = four.w, D = t4.DATA();
+  const ghost = { field: 'noSuchQuestion', value: 'x' };
+  const wasF = D.facets;
+  D.facets = [];
+  const earlyF = [w4.placeChipDead_(ghost), inRes_(w4, () => w4.placeChipDead_(ghost))];
+  D.facets = [{ field: 'subject', label: 'Subject', order: 30, minCoverage: null, active: true }];
+  const lateF = [w4.placeChipDead_(ghost), inRes_(w4, () => w4.placeChipDead_(ghost))];
+  D.facets = wasF;
+  if (earlyF.some(Boolean)) bad.push('a chip on a field no facet asks was dropped before the facets arrived — it may be a sheet-only question not here yet');
+  if (!lateF.every(Boolean)) bad.push('a chip on a field no facet asks was kept once the facets arrived (Find ' + !lateF[0] + ', Find 2 ' + !lateF[1] + ') — it would hang on as a chip that does nothing');
   return bad;
 });
 
-check('the second finder across a sign-in: kept from signed out, kept for the child whose session ended, cleared when an admin signs out or another child signs in', async () => {
+check('Find 2 across a sign-in: kept from signed out, kept for the child whose session ended, cleared when an admin signs out or another child signs in', async () => {
   const bad = [];
   const where = t => JSON.stringify([t.RES().filters, t.RES().q, pg_(t).res]);
   /* ---- SIGNED OUT, ON A CHAPTER, THEN SIGNED IN ---- */
@@ -20068,22 +22088,24 @@ check('the second finder across a sign-in: kept from signed out, kept for the ch
     const { w } = b, t = w.__t;
     if (t.whoami()) return ['the app opened signed in — signing in from signed OUT was NOT checked'];
     t.go('res', false, true); await wait(100);
-    const btn = resPick_(w, 'res', '@family. textbooks');
-    if (!btn) return ['Resources does not offer the textbooks shelf — NOT checked'];
+    /* WHAT KIND · CONTENT — Find's own first question, which Find 2 asks too (347). It was Resources while
+       the textbooks were on that shelf; the probability pages are content cards now (347, part 2). */
+    const btn = resPick_(w, 'res', 'Content');
+    if (!btn) return ['Find 2 does not offer What kind · Content — NOT checked: ' + resAnswers_(w, 'res').join(' | ')];
     t.ACTIONS['facet-pick'](btn);
     resType_(w, 'res', 'probability');
     await wait(260);
     const n = inRes_(w, () => w.stuffPages_().length);
-    if (n < 3) return ['the textbooks searched for "probability" left ' + n + ' page(s) — the page was NOT checked'];
+    if (n < 3) return ['the content cards searched for "probability" left ' + n + ' page(s) — the page was NOT checked'];
     t.goPage('res', inRes_(w, () => w.stuffFirstResult_()) + 2, true);
     await wait(80);
     const before = where(t);
     w.signedIn_(Object.assign({ success: true }, KEEP_SOL_), 'sol');
     await wait(80);
     if ((t.whoami() || {}).personId !== 'P12') return ['the child did not sign in: ' + JSON.stringify(t.whoami())];
-    if (where(t) !== before) bad.push('signing in from signed out changed Resources from ' + before + ' to ' + where(t));
+    if (where(t) !== before) bad.push('signing in from signed out changed Find 2 from ' + before + ' to ' + where(t));
   }
-  /* ---- AN ADMIN, ON THE BOOKS SHELF (which lives in Resources now), SIGNS OUT ---- */
+  /* ---- AN ADMIN, ON THE BOOKS SHELF IN FIND 2 (both finders hold it), SIGNS OUT ---- */
   {
     const b = await resBoot_({ before: win => { win.localStorage.setItem('familyUser', JSON.stringify({ name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk-a' })); } });
     if (!b) return bad.concat(['the admin boot did not load — NOT checked']);
@@ -20092,15 +22114,15 @@ check('the second finder across a sign-in: kept from signed out, kept for the ch
     t.RES().filters = [{ field: 'shelf', value: 'Books' }];
     t.RES().q = 'genesis';
     w.paintFinder_('res');
-    if (!/\bBooks\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('the setup: the admin\'s Resources chips do not name the Books shelf, so its going was NOT checked');
+    if (!/\bBooks\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('the setup: the admin\'s Find 2 chips do not name the Books shelf, so its going was NOT checked');
     t.ACTIONS.signout(d.createElement('button'));
     await wait(60);
     if (t.whoami()) bad.push('Sign out left somebody signed in');
-    if (t.RES().filters.length || t.RES().q) bad.push('an admin signed out from the Books shelf left Resources holding ' + JSON.stringify(t.RES().filters) + ' "' + t.RES().q + '"');
+    if (t.RES().filters.length || t.RES().q) bad.push('an admin signed out from the Books shelf left Find 2 holding ' + JSON.stringify(t.RES().filters) + ' "' + t.RES().q + '"');
     t.go('res', false, true); await wait(60);
-    if (/\bBooks\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('signed out, the Resources chips still name the Books shelf');
+    if (/\bBooks\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('signed out, Find 2\'s chips still name the Books shelf');
   }
-  /* ---- A CHILD'S SESSION ENDS ON RESOURCES: kept for them, not for the next child ---- */
+  /* ---- A CHILD'S SESSION ENDS ON FIND 2: kept for them, not for the next child ---- */
   {
     const b = await resBoot_({ before: signedInAs_(KEEP_SOL_) });
     if (!b) return bad.concat(['the child boot did not load — NOT checked']);
@@ -20109,75 +22131,77 @@ check('the second finder across a sign-in: kept from signed out, kept for the ch
     t.RES().filters = [{ field: 'shelf', value: 'Boxing' }];
     w.paintFinder_('res');
     w.signedOut_({ ended: true, quiet: true });
-    if (JSON.stringify(t.RES().filters) !== JSON.stringify([{ field: 'shelf', value: 'Boxing' }])) bad.push('a session ending under the child emptied Resources: ' + JSON.stringify(t.RES().filters));
-    if (t.RES().whose !== 'P12') bad.push('the kept Resources does not say whose it is: ' + JSON.stringify(t.RES().whose));
+    if (JSON.stringify(t.RES().filters) !== JSON.stringify([{ field: 'shelf', value: 'Boxing' }])) bad.push('a session ending under the child emptied Find 2: ' + JSON.stringify(t.RES().filters));
+    if (t.RES().whose !== 'P12') bad.push('the kept Find 2 does not say whose it is: ' + JSON.stringify(t.RES().whose));
     w.signedIn_(Object.assign({ success: true }, KEEP_SOL_), 'sol');
-    if (JSON.stringify(t.RES().filters) !== JSON.stringify([{ field: 'shelf', value: 'Boxing' }])) bad.push('the same child signing in again lost Resources\' chips');
+    if (JSON.stringify(t.RES().filters) !== JSON.stringify([{ field: 'shelf', value: 'Boxing' }])) bad.push('the same child signing in again lost Find 2\'s chips');
     if (t.RES().whose) bad.push('signed in, RES.whose still names ' + JSON.stringify(t.RES().whose));
     w.signedOut_({ ended: true, quiet: true });
     w.signedIn_(Object.assign({ success: true }, KEEP_KIT_), 'kit');
-    if (t.RES().filters.length) bad.push('the next child signing in over a dead session is handed the last child\'s Resources: ' + JSON.stringify(t.RES().filters));
+    if (t.RES().filters.length) bad.push('the next child signing in over a dead session is handed the last child\'s Find 2: ' + JSON.stringify(t.RES().filters));
   }
   return bad;
 });
 
-check('a link into a resource from elsewhere opens it in Resources: pressed on Find, and Saved\'s Open under a kept textbook — on its card, the chapters a swipe up', async () => {
+/* ---------- A KEPT CARD SAVED CANNOT DRAW WHOLE OPENS IN FIND ----------------------------------------
+   It was "Open in Resources" under a resource kept on Saved, and on a resource drawn on Find (329). Both
+   finders hold everything now (347), so the line is between a card Saved draws whole — a question, a
+   fight — and one it does not — a content card's animations, a boxer's fights, a project's steps are a swipe
+   up in a finder and not on Saved. Under the second kind, `Open · in Find`; inside a finder, nothing. */
+check('a kept card Saved cannot draw whole opens in Find: Saved\'s Open under a kept content card, boxer and project lands on its card in Find; a kept fight and question get none, and no card in a finder does', async () => {
   const b = await resBoot_({ before: signedInAs_(ANS_ADA) });
   if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
   const { w } = b, t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
-  const book = w.stuffItemsAll_().find(x => x.kind === 'textbook' && x.name === 'GCSE Statistics');
-  const boxer = w.stuffItemsAll_().find(x => x.kind === 'boxer');
-  if (!book || !boxer) return ['no GCSE Statistics or no boxer in the whole list — NOT checked'];
-  const onCard = (x, when) => {
-    if (t.AT() !== 'res') bad.push(when + ': the column in front is ' + t.AT() + ', not Resources');
-    const pg = inRes_(w, () => w.stuffPages_()[pg_(t).res - w.stuffFirstResult_()]);
-    if (!pg || pg.x !== x || pg.part) bad.push(when + ': Resources is on ' + (pg ? (pg.x && pg.x.name) + ':' + (pg.part || 'card') : 'no result') + ', not ' + x.name + '\'s card');
-    const next = inRes_(w, () => w.stuffPages_()[pg_(t).res - w.stuffFirstResult_() + 1]);
-    if (x.kind === 'textbook' && !(next && next.x === x && next.part === 'ch1')) bad.push(when + ': the page after the card is not chapter 1');
+  const all = w.stuffItemsAll_();
+  /* A CONTENT CARD WITH AN ANIMATION: its words are on the card, the drawing is a page after it. */
+  const book = all.find(x => x.kind === 'content' && x.key === 'ct:TB-GCSE-STATS-8');
+  const boxer = all.find(x => x.kind === 'boxer' && w.pageParts_(x).length > 1);
+  const fight = all.find(x => x.kind === 'fight');
+  const proj = all.find(x => x.kind === 'project');
+  if (!book || !boxer || !fight || !proj) return ['no Averages content card, boxer with fights, fight or project in the whole list — NOT checked'];
+  const onCard = (x, when, next) => {
+    if (t.AT() !== 'stuff') bad.push(when + ': the column in front is ' + t.AT() + ', not Find');
+    const pg = w.stuffPages_()[pg_(t).stuff - w.stuffFirstResult_()];
+    if (!pg || pg.x !== x || pg.part) bad.push(when + ': Find is on ' + (pg ? (pg.x && pg.x.name) + ':' + (pg.part || 'card') : 'no result') + ', not ' + x.name + '\'s card');
+    const after = w.stuffPages_()[pg_(t).stuff - w.stuffFirstResult_() + 1];
+    if (next && !(after && after.x === x && after.part === next)) bad.push(when + ': the page after the card is ' + (after ? (after.x && after.x.name) + ':' + (after.part || 'card') : 'nothing') + ', not its ' + next);
+    if (w.stuffFiltered().indexOf(x) < 0) bad.push(when + ': Find\'s chips lose it: ' + JSON.stringify(t.STUFF().filters));
   };
-  /* ---- FROM FIND: the tile a link into a textbook draws, pressed while Find is in front ---- */
-  t.go('stuff', false, true); await wait(60);
+  /* ---- IN A FINDER: the card is already open there, its pages a swipe up — no tile, either column ---- */
+  const tileIn = html => { const el = d.createElement('div'); el.innerHTML = html; return el.querySelector('[data-do="find-open"]'); };
+  [book, boxer, proj].forEach(x => {
+    if (tileIn(w.stuffCard(x))) bad.push('a ' + x.kind + ' drawn in Find carries an Open tile to where it already is');
+    if (inRes_(w, () => tileIn(w.stuffCard(x)))) bad.push('a ' + x.kind + ' drawn in Find 2 carries an Open tile');
+  });
+  /* ---- ON SAVED: star each, and Find 2 holds a place of its own that opening must not touch ---- */
+  [book, boxer, fight, proj].forEach(x => { const el = d.createElement('div'); el.innerHTML = w.stuffCard(x); const fav = el.querySelector('[data-do="fav"]'); if (fav) A.fav(fav); });
+  t.RES().filters = [{ field: 'kindLabel', value: 'Resources' }]; t.RES().q = 'ali';
+  const r0 = JSON.stringify([t.RES().filters, t.RES().q]);
   t.STUFF().filters = [{ field: 'kindLabel', value: 'Projects' }];
-  w.paintStuff();
-  const f0 = JSON.stringify(t.STUFF().filters), p0 = pg_(t).stuff;
-  const host = d.createElement('div');
-  d.getElementById('s-stuff').querySelector('.pane').appendChild(host);
-  host.innerHTML = w.finderOpenTile_(book);
-  const link = host.querySelector('[data-do="find-open"]');
-  if (!link) return bad.concat(['a textbook drawn on Find has no Open tile into Resources']);
-  if (!/Resources/.test(link.getAttribute('aria-label') || '')) bad.push('the Open tile does not say where it goes: ' + JSON.stringify(link.getAttribute('aria-label')));
-  A['find-open'](link);
-  await wait(120);
-  onCard(book, 'a textbook opened from Find');
-  if (JSON.stringify(t.STUFF().filters) !== f0 || pg_(t).stuff !== p0) bad.push('opening a textbook from Find changed Find\'s own chips or page');
-  if (!t.RES().filters.some(f => f.field === 'shelf' && f.value === '@family. textbooks')) bad.push('Resources opened the book without the shelf a finger would have pressed: ' + JSON.stringify(t.RES().filters));
-  host.remove();
-  /* INSIDE RESOURCES THE CARD IS ALREADY OPEN: no tile. */
-  const inside = inRes_(w, () => w.finderOpenTile_(book));
-  if (inside) bad.push('a textbook drawn on Resources carries an Open tile to where it already is');
-  /* ---- FROM SAVED: star the book and a boxer, open each from its Open tile ---- */
-  t.RES().filters = []; t.RES().q = '';
-  [book, boxer].forEach(x => { const el = d.createElement('div'); el.innerHTML = w.stuffCard(x); const fav = el.querySelector('[data-do="fav"]'); if (fav) A.fav(fav); });
   t.go('saved', false, true); await wait(150); await woken_();
-  const saved = d.getElementById('s-saved');
-  const opens = [...saved.querySelectorAll('[data-do="find-open"]')];
-  const forBook = opens.find(el => el.getAttribute('data-key') === book.key);
-  const forBoxer = opens.find(el => el.getAttribute('data-key') === boxer.key);
-  if (!forBook) return bad.concat(['the textbook kept on Saved has no Open tile — its chapters cannot be reached from there']);
+  const openOn = x => [...d.getElementById('s-saved').querySelectorAll('[data-do="find-open"]')].find(el => el.getAttribute('data-key') === x.key);
+  if (openOn(fight)) bad.push('a fight kept on Saved has an Open tile — Saved draws it whole');
+  /* A QUESTION, KEPT: whole on Saved (its opening, figure and answer are Saved's pages too). */
+  const q = { kind: 'question', name: 'Q9(a)', qNumber: '9', qPart: 'a', marks: 2, key: 'q:Q-OPEN-9a',
+              row: { row_id: 'Q-OPEN-9a', paper_id: 'P-OPEN', subject: 'Maths', name: 'Paper 1' }, stems: [],
+              html: '<p>Work out PR.</p>', answer: '<b>5 cm</b>', accept: '5' };
+  if (tileIn(w.keptPages_([q], 0).join(''))) bad.push('a question kept on Saved has an Open tile — Saved draws it whole');
+  const forBook = openOn(book), forBoxer = openOn(boxer), forProj = openOn(proj);
+  if (!forBook) return bad.concat(['the content card kept on Saved has no Open tile — its animation cannot be reached from there']);
+  if (!/\bin Find\b/.test(forBook.getAttribute('aria-label') || forBook.textContent || '')) bad.push('the Open tile does not say it goes to Find: ' + JSON.stringify(forBook.getAttribute('aria-label') || forBook.textContent));
+  if (/Find 2|Resources/.test(forBook.getAttribute('aria-label') || '')) bad.push('the Open tile names the wrong column: ' + JSON.stringify(forBook.getAttribute('aria-label')));
   A['find-open'](forBook);
   await wait(150);
-  onCard(book, 'a textbook opened from Saved');
-  if (!forBoxer) bad.push('the boxer kept on Saved has no Open tile');
-  else {
+  onCard(book, 'a content card opened from Saved', 'an8-mean');
+  if (JSON.stringify([t.RES().filters, t.RES().q]) !== r0) bad.push('opening from Saved changed Find 2\'s place: ' + JSON.stringify([t.RES().filters, t.RES().q]));
+  for (const [x, tile, next] of [[boxer, forBoxer, w.pageParts_(boxer)[1]], [proj, forProj, w.pageParts_(proj)[1]]]) {
+    if (!tile) { bad.push('the ' + x.kind + ' kept on Saved has no Open tile'); continue; }
     t.go('saved', false, true); await wait(120);
-    const again = [...d.getElementById('s-saved').querySelectorAll('[data-do="find-open"]')].find(el => el.getAttribute('data-key') === boxer.key);
-    A['find-open'](again || forBoxer);
+    const again = openOn(x);
+    A['find-open'](again || tile);
     await wait(150);
-    onCard(boxer, 'a boxer opened from Saved');
+    onCard(x, 'a ' + x.kind + ' opened from Saved', next);
   }
-  /* A QUESTION KEPT ON SAVED IS FIND'S, and is not given a way into Resources. */
-  const q = w.stuffItemsAll_().find(x => x.kind === 'project');
-  if (q && w.finderOpenTile_(q)) bad.push('a project kept on Saved was given an Open tile into Resources');
   return bad;
 });
 
@@ -20187,89 +22211,64 @@ check('a link into a resource from elsewhere opens it in Resources: pressed on F
    so the rule it found stays found.
 ================================================================================================== */
 
-/* ---------- A SEARCH ONE COLUMN SHORT SAYS WHERE THE THING IS ----------------------------------------------
-   FINDING 1. Find's search stopped carrying the resources, which is the owner's split — and its empty
-   answer still said "Try fewer words." for a boxer that is one swipe away. Before the move, typing a
-   boxer's name, a verse's book or a textbook's word into Find was the way to reach it by name; the
-   owner's list of links into a resource names "a search hit". So an empty search counts what the same
-   words find in the other finder and, if anything, says how many and where, with one Open tile that
-   carries the words there — and the other way round, Resources pointing to Find. A word nobody has
-   still says "Try fewer words." with no tile, and a chip on the other finder that would hide every hit
-   is taken off by the tile rather than landing on "Nothing matches" over there. */
-check('a search one finder cannot answer and the other can says where: Find\'s "Olivares" offers Resources and lands on his card there; a project\'s word on Resources offers Find', async () => {
+/* ---------- AN EMPTY SEARCH SAYS WHAT TO DO HERE, AND OFFERS NO OTHER COLUMN ---------------------------------
+   FINDING 1 OF 329'S REVIEW, AND WHAT BECAME OF IT. While the second column held the resources, a boxer's
+   name typed into Find found nothing with his card one swipe away, so an empty search asked the other
+   finder and offered "1 in Resources" with an Open tile that carried the words across — and cleared that
+   column's chips when they hid him. With both finders holding the same list (347) the tile could only
+   ever do the second thing: take the words into the column a student keeps a chapter up in and empty its
+   chips. So it is gone, and this asks that it stays gone, on both finders: a name is found where it is
+   typed; under a chip that hides it, the sentence says "take a filter off" and draws no tile; a word
+   nobody has says "Try fewer words." */
+check('an empty search on either finder says "take a filter off" under a chip that hides the hit, "Try fewer words." for a word nobody has, and offers no other column; a boxer\'s name is found where it is typed', async () => {
   const b = await resBoot_();
   if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
-  const { w } = b, t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  const { w } = b, t = w.__t, d = w.document, bad = [];
   const olivares = w.stuffItemsAll_().find(x => x.kind === 'boxer' && /Olivares/.test(x.name));
   if (!olivares) return ['no Ruben Olivares among the boxers — NOT checked'];
-  /* RESOURCES HOLDS A CHIP UNDER WHICH HE IS NOT ON THE LIST: the tile must not land there blind. */
-  t.RES().filters = [{ field: 'shelf', value: '@family. textbooks' }];
-  t.go('stuff', false, true); await wait(80); await woken_();
-  if (!resType_(w, 'stuff', 'Olivares')) return ['Find has no search box — NOT checked'];
-  await wait(260); await woken_();
-  if (t.STUFF().q !== 'Olivares') return ['typing into #stuff-q did not reach Find\'s words — NOT checked'];
-  if (w.stuffFiltered().length) return ['the setup: Find itself finds ' + w.stuffFiltered().length + ' thing(s) for "Olivares", so the empty answer was NOT checked'];
-  const groups = d.getElementById('stuff-groups');
-  const said = (groups.textContent || '').replace(/\s+/g, ' ').trim();
-  if (/Try fewer words/.test(said)) bad.push('Find says "Try fewer words." for a boxer one swipe away in Resources: "' + said + '"');
-  if (!/\b1 in Resources\b/.test(said)) bad.push('Find\'s empty search does not say "1 in Resources": "' + said + '"');
-  const tile = groups.querySelector('.tile-row [data-do="finder-words"]');
-  if (!tile) return bad.concat(['no Open tile under Find\'s empty search, so nothing carries the words to Resources']);
-  if (tile.getAttribute('data-to') !== 'res') bad.push('the tile goes to ' + JSON.stringify(tile.getAttribute('data-to')) + ', not res');
-  if (!/Resources/.test(tile.getAttribute('aria-label') || '')) bad.push('the tile does not say where it goes: ' + JSON.stringify(tile.getAttribute('aria-label')));
-  const f0 = JSON.stringify([t.STUFF().filters, t.STUFF().q]), p0 = pg_(t).stuff;
-  A['finder-words'](tile);
-  await wait(150); await woken_();
-  if (t.AT() !== 'res') bad.push('the Open tile landed on ' + t.AT() + ', not Resources');
-  if (t.RES().q !== 'Olivares') bad.push('Resources\' words are ' + JSON.stringify(t.RES().q) + ', not "Olivares"');
-  if ((d.getElementById('res-q') || {}).value !== 'Olivares') bad.push('Resources\' box reads ' + JSON.stringify((d.getElementById('res-q') || {}).value) + ' — the words are not shown where they now narrow');
-  if (t.RES().filters.length) bad.push('the tile left Resources\' chip that hides him: ' + JSON.stringify(t.RES().filters));
-  const pg = inRes_(w, () => w.stuffPages_()[pg_(t).res - w.stuffFirstResult_()]);
-  if (!pg || pg.x !== olivares || pg.part) bad.push('Resources is on ' + (pg ? (pg.x && pg.x.name) + ':' + (pg.part || 'card') : 'no result') + ', not Ruben Olivares\'s card');
-  if (!inRes_(w, () => w.stuffHeld_())) bad.push('the page in front of Resources is not drawn after the tile');
-  if (JSON.stringify([t.STUFF().filters, t.STUFF().q]) !== f0 || pg_(t).stuff !== p0) bad.push('the tile changed Find\'s own words, chips or page');
-  /* ---- THE OTHER WAY: a project's word, typed on Resources ---- */
-  const proj = w.stuffItems().filter(x => x.kind === 'project');
-  let word = '';
-  for (const x of proj) {
-    for (const v of String(x.name || '').split(/[^A-Za-z]+/).filter(s => s.length >= 5)) {
-      const inRes = inRes_(w, () => { const was = w.__t.STUFF().q; w.__t.STUFF().q = v; try { return w.stuffFiltered().length; } finally { w.__t.STUFF().q = was; } });
-      if (!inRes) { word = v; break; }
+  for (const id of ['stuff', 'res']) {
+    const name = id === 'stuff' ? 'Find' : 'Find 2';
+    const st = () => (id === 'stuff' ? t.STUFF() : t.RES());
+    const list = () => (id === 'stuff' ? w.stuffFiltered() : inRes_(w, () => w.stuffFiltered()));
+    const said = () => ((d.getElementById(id + '-groups') || {}).textContent || '').replace(/\s+/g, ' ').trim();
+    const tile = () => d.querySelector('#s-' + id + ' [data-do="finder-words"]');
+    t.go(id, false, true); await wait(80); await woken_();
+    st().filters = []; st().q = '';
+    w.paintFinder_(id);
+    /* HIS NAME, FOUND WHERE IT IS TYPED. */
+    if (!resType_(w, id, 'Olivares')) { bad.push(name + ' has no search box — NOT checked'); continue; }
+    await wait(260); await woken_();
+    if (st().q !== 'Olivares') { bad.push('typing into #' + id + '-q did not reach ' + name + '\'s words — NOT checked'); continue; }
+    if (list().indexOf(olivares) < 0) bad.push(name + ' does not find Ruben Olivares by name — both finders hold the boxers');
+    /* UNDER A CHIP THAT HIDES HIM: take a filter off — and no tile to the other column. */
+    st().filters = [{ field: 'kindLabel', value: 'Projects' }];
+    w.paintFinder_(id);
+    await wait(60); await woken_();
+    if (list().length) bad.push('the setup: ' + name + ' still finds ' + list().length + ' thing(s) for "Olivares" under Projects — the empty answer was NOT checked');
+    else {
+      if (!/Try fewer words, or take a filter off/.test(said())) bad.push(name + '\'s empty search under a chip does not say "Try fewer words, or take a filter off.": "' + said() + '"');
+      if (/\bin (Find|Find 2|Resources)\b/.test(said())) bad.push(name + '\'s empty search points to another column: "' + said() + '"');
+      if (tile()) bad.push(name + '\'s empty search draws a finder-words tile — it would carry the words into the other column and clear its chips');
     }
-    if (word) break;
+    /* A WORD NOBODY HAS. */
+    st().filters = [];
+    resType_(w, id, 'zqxjv');
+    await wait(260); await woken_();
+    if (!/Try fewer words\./.test(said()) || /take a filter off/.test(said())) bad.push('a word nobody has does not say "Try fewer words." on ' + name + ': "' + said() + '"');
+    if (tile()) bad.push('a word nobody has drew an Open tile to the other finder on ' + name);
+    st().q = '';
   }
-  if (!word) return bad.concat(['no project word that Resources does not answer — the reverse was NOT checked']);
-  t.RES().filters = []; 
-  resType_(w, 'res', word);
-  await wait(260); await woken_();
-  const rsaid = (d.getElementById('res-groups').textContent || '').replace(/\s+/g, ' ').trim();
-  if (!/\b\d+ in Find\b/.test(rsaid)) bad.push('Resources\' empty search for "' + word + '" does not say how many are in Find: "' + rsaid + '"');
-  const back = d.querySelector('#res-groups .tile-row [data-do="finder-words"]');
-  if (!back) bad.push('no Open tile under Resources\' empty search for "' + word + '"');
-  else {
-    if (back.getAttribute('data-to') !== 'stuff') bad.push('Resources\' tile goes to ' + back.getAttribute('data-to'));
-    A['finder-words'](back);
-    await wait(150); await woken_();
-    if (t.AT() !== 'stuff') bad.push('Resources\' Open landed on ' + t.AT() + ', not Find');
-    if (t.STUFF().q !== word) bad.push('Find\'s words are ' + JSON.stringify(t.STUFF().q) + ', not ' + JSON.stringify(word));
-    if (!w.stuffFiltered().length) bad.push('Find finds nothing for "' + word + '" after the tile');
-  }
-  /* ---- A WORD NOBODY HAS: the old sentence, and no tile ---- */
-  t.go('stuff', false, true);
-  resType_(w, 'stuff', 'zqxjv');
-  await wait(260); await woken_();
-  const none = (d.getElementById('stuff-groups').textContent || '').replace(/\s+/g, ' ');
-  if (!/Try fewer words/.test(none)) bad.push('a word nobody has no longer says "Try fewer words.": "' + none.trim() + '"');
-  if (d.querySelector('#stuff-groups [data-do="finder-words"]')) bad.push('a word nobody has drew an Open tile to the other finder');
   return bad;
 });
 
-/* ---------- A FIND PLACE KEPT BEFORE THE MOVE, INSIDE THE BIBLE, AN ADMIN'S ------------------------------
-   FINDING 3. `finderForeign_` drops a chip that only the other finder answers — and nothing on any list
-   answers a Bible book, a chapter or a verse (the verses are a list of their own, `bibleVerses_`), so
-   `Genesis` read as EARLY rather than foreign, stayed on Find, and Find came back inside the Bible
-   saying "Nothing matches". Only an admin could have had the Bible on Find, so this is an admin's. */
-check('a Find place kept before the move inside the Bible (an admin\'s) comes back to Find without any Bible chip', async () => {
+/* ---------- A PLACE KEPT INSIDE THE BIBLE COMES BACK INSIDE IT, FOR WHOEVER THE BIBLE IS FOR -----------------
+   FINDING 3 OF 329'S REVIEW was that an admin's Find place inside the Bible came back from a reload with
+   `bibleBook · Genesis` and "Nothing matches", because nothing on any list answers a Bible book and the
+   foreign-chip rule read it as early. Then Find had no Bible, and the fix dropped the chips. Both finders
+   hold the Bible for an admin now (347), so the same kept place comes back INSIDE Genesis 1, on Find;
+   and kept by somebody who is not an admin, the Bible's chips — and the Books shelf, which holds nothing
+   else — are dropped (`placeChipDead_`), the rest kept. */
+check('a Find place kept inside the Bible comes back inside Genesis 1 for an admin, and without any Bible chip for somebody the Bible is not for', async () => {
   const ADMIN = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk-a' };
   /* THE REAL BIBLE FILES, SERVED, so the Bible is on the admin's list as it is on the site — without its
      index there is no Bible item, and the chips would be measured against a list that has no Bible. */
@@ -20286,35 +22285,53 @@ check('a Find place kept before the move inside the Bible (an admin\'s) comes ba
   for (let i = 0; i < 80 && !(T.BIBLE() && T.BIBLE().index); i++) await wait(25);
   if (!(T.BIBLE() && T.BIBLE().index)) return ['the Bible\'s index never loaded for the admin — NOT checked'];
   T.go('stuff'); await wait(80);
-  T.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' },
+  const chips = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' },
     { field: 'bibleTranslation', value: 'KJV' }, { field: 'bibleBook', value: 'Genesis' }, { field: 'bibleChapter', value: '1' }];
+  T.STUFF().filters = chips.map(f => Object.assign({}, f));
   W.localStorage.setItem('familyTabAt', String(Date.now() - 20 * 60 * 1000));
   W.dispatchEvent(new W.Event('pagehide'));
   const kept = keptStore_(W);
-  if (!Object.keys(kept).some(x => /^draft:u:P001:find:place$/.test(x))) return ['nothing was kept under draft:u:P001:find:place — NOT checked'];
+  const key = Object.keys(kept).find(x => /^draft:u:P001:find:place$/.test(x));
+  if (!key) return ['nothing was kept under draft:u:P001:find:place — NOT checked'];
+  /* ---- THE ADMIN: back inside Genesis 1, on Find ---- */
   const two = await resBoot_({ serve, before: fromStore_(kept) });
   if (!two) return ['the reload did not load — NOT checked'];
   const w = two.w, t = w.__t;
   for (let i = 0; i < 100 && !(t.STUFF().filters || []).length; i++) await wait(50);
   for (let i = 0; i < 80 && !(t.BIBLE() && t.BIBLE().index); i++) await wait(25);
-  await wait(200);
+  await wait(200); await woken_();
   if (t.AT() !== 'stuff') bad.push('the reload opened on ' + t.AT() + ', not Find — the place was NOT brought back');
   const fl = t.STUFF().filters || [];
-  if (JSON.stringify(fl) !== JSON.stringify([{ field: 'forLabel', value: 'Learning' }])) bad.push('Find came back with ' + JSON.stringify(fl) + ' — wanted Learning and every resource and Bible chip dropped');
-  if (w.bibleInside_()) bad.push('Find is inside the Bible after the reload');
-  if (/Nothing matches/.test((w.document.getElementById('s-stuff') || {}).textContent || '')) bad.push('Find says "Nothing matches" after the reload');
-  /* AND THE SAME CHIPS ARE RESOURCES' OWN: a place kept there keeps them. */
-  if (w.inFinder_(w.finderOf_('res'), () => w.finderForeign_({ field: 'bibleBook', value: 'Genesis' }))) bad.push('Resources would drop its own Bible book chip from a kept place');
+  if (JSON.stringify(fl) !== JSON.stringify(chips)) bad.push('an admin\'s Find came back with ' + JSON.stringify(fl) + ' — wanted every chip, the Bible\'s too: Find holds the Bible for an admin');
+  if (!w.bibleInside_()) bad.push('an admin\'s Find is not inside the Bible after the reload');
+  for (let i = 0; i < 80 && /Nothing matches/.test((w.document.getElementById('s-stuff') || {}).textContent || ''); i++) await wait(25);
+  if (/Nothing matches/.test((w.document.getElementById('s-stuff') || {}).textContent || '')) bad.push('an admin\'s Find says "Nothing matches" after the reload');
+  /* NEITHER FINDER DROPS AN ADMIN'S BIBLE CHIP. */
+  const g = { field: 'bibleBook', value: 'Genesis' }, books = { field: 'shelf', value: 'Books' };
+  if (w.placeChipDead_(g) || w.placeChipDead_(books)) bad.push('Find would drop an admin\'s own Bible chip from a kept place');
+  if (inRes_(w, () => w.placeChipDead_(g) || w.placeChipDead_(books))) bad.push('Find 2 would drop an admin\'s own Bible chip from a kept place');
+  /* ---- THE SAME PLACE, KEPT BY SOMEBODY THE BIBLE IS NOT FOR: its chips go, the rest stay ---- */
+  const theirs = {};
+  Object.keys(kept).forEach(k => { theirs[k.replace(/^draft:u:P001:/, 'draft:u:P7:')] = kept[k]; });
+  delete theirs.familyUser;
+  const three = await resBoot_({ serve, before: win => { fromStore_(theirs)(win); signedInAs_(ANS_ADA)(win); } });
+  if (!three) return bad.concat(['the non-admin reload did not load — NOT checked']);
+  const t3 = three.w.__t;
+  for (let i = 0; i < 100 && !(t3.STUFF().filters || []).length; i++) await wait(50);
+  await wait(200);
+  const want = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' }];
+  if (JSON.stringify(t3.STUFF().filters) !== JSON.stringify(want)) bad.push('kept by somebody the Bible is not for, the place came back as ' + JSON.stringify(t3.STUFF().filters) + ' — wanted the Bible\'s chips and the Books shelf dropped: ' + JSON.stringify(want));
+  if (three.w.bibleInside_()) bad.push('a non-admin\'s Find came back inside the Bible');
   return bad;
 });
 
 /* ---------- WORK THAT RUNS LATER, BOUND TO ITS FINDER ----------------------------------------------------
    FINDING 4. The build listed the delayed work it re-binds — the search box's debounce, the draw's
    microtask, `goPage` — and none of the six journeys above failed when any one of them was undone,
-   while the Resources column visibly broke: it never updated as you typed, a landing repaint left the
+   while the second column visibly broke: it never updated as you typed, a landing repaint left the
    page in front blank, and a swipe turned to blank pages until the after-slide fill. One journey each,
    asked of what is on the screen. */
-check('Resources\' search box repaints Resources after its debounce, even with an answer pressed on Find inside the 180ms', async () => {
+check('Find 2\'s search box repaints Find 2 after its debounce, even with an answer pressed on Find inside the 180ms', async () => {
   const b = await resBoot_();
   if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
   const { w } = b, t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
@@ -20327,19 +22344,19 @@ check('Resources\' search box repaints Resources after its debounce, even with a
   const findGroups = d.getElementById('stuff-groups').innerHTML;
   const findF = JSON.stringify(t.STUFF().filters);
   await wait(400); await woken_();
-  if (t.RES().q !== 'frequency density') bad.push('Resources\' words are ' + JSON.stringify(t.RES().q));
+  if (t.RES().q !== 'frequency density') bad.push('Find 2\'s words are ' + JSON.stringify(t.RES().q));
   if (t.STUFF().q) bad.push('Find\'s words are ' + JSON.stringify(t.STUFF().q));
   /* NORMALISED THROUGH AN ELEMENT, as the screen's own markup is once the browser has parsed it. */
   const tmp = d.createElement('div'); tmp.innerHTML = inRes_(w, () => w.stuffQuestion());
   const want = tmp.innerHTML;
-  if (want === resQ0) return bad.concat(['the setup: "frequency density" does not change Resources\' question, so its repaint was NOT checked']);
-  if (d.getElementById('res-groups').innerHTML !== want) bad.push('Resources\' question on screen is not what its own state draws after the debounce (unchanged since before typing: ' + (d.getElementById('res-groups').innerHTML === resQ0) + ')');
-  if (d.getElementById('stuff-groups').innerHTML !== findGroups) bad.push('Find\'s question was repainted by Resources\' debounce');
-  if (JSON.stringify(t.STUFF().filters) !== findF) bad.push('Find\'s chips changed under Resources\' debounce');
+  if (want === resQ0) return bad.concat(['the setup: "frequency density" does not change Find 2\'s question, so its repaint was NOT checked']);
+  if (d.getElementById('res-groups').innerHTML !== want) bad.push('Find 2\'s question on screen is not what its own state draws after the debounce (unchanged since before typing: ' + (d.getElementById('res-groups').innerHTML === resQ0) + ')');
+  if (d.getElementById('stuff-groups').innerHTML !== findGroups) bad.push('Find\'s question was repainted by Find 2\'s debounce');
+  if (JSON.stringify(t.STUFF().filters) !== findF) bad.push('Find\'s chips changed under Find 2\'s debounce');
   return bad;
 });
 
-check('a landing repaint on a Resources result leaves the page in front drawn (the draw\'s microtask fills in Resources\' binding)', async () => {
+check('a landing repaint on a Find 2 result leaves the page in front drawn (the draw\'s microtask fills in Find 2\'s binding)', async () => {
   const b = await resBoot_();
   if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
   const { w } = b, t = w.__t, bad = [];
@@ -20348,15 +22365,15 @@ check('a landing repaint on a Resources result leaves the page in front drawn (t
   w.paintFinder_('res');
   const first = inRes_(w, () => w.stuffFirstResult_());
   t.goPage('res', first + 7, true); await wait(200); await woken_();
-  if (!inRes_(w, () => w.stuffHeld_())) return ['the setup: the page in front of Resources was not filled before the repaint — NOT checked'];
+  if (!inRes_(w, () => w.stuffHeld_())) return ['the setup: the page in front of Find 2 was not filled before the repaint — NOT checked'];
   w.landRepaint_();
   await wait(300); await woken_();
-  if (!inRes_(w, () => w.stuffHeld_())) bad.push('after a landing repaint the page in front of Resources is empty (PAGE.res ' + pg_(t).res + ')');
-  if (!w.document.querySelectorAll('#s-res > .page.is-res[data-filled="1"]').length) bad.push('no result page of Resources is filled after a landing repaint');
+  if (!inRes_(w, () => w.stuffHeld_())) bad.push('after a landing repaint the page in front of Find 2 is empty (PAGE.res ' + pg_(t).res + ')');
+  if (!w.document.querySelectorAll('#s-res > .page.is-res[data-filled="1"]').length) bad.push('no result page of Find 2 is filled after a landing repaint');
   return bad;
 });
 
-check('a page turn on Resources from outside any binding (a swipe) has the page in front drawn at once, near and far', async () => {
+check('a page turn on Find 2 from outside any binding (a swipe) has the page in front drawn at once, near and far', async () => {
   const b = await resBoot_();
   if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
   const { w } = b, t = w.__t, bad = [];
@@ -20459,8 +22476,8 @@ check('a retired splash stays retired: the file\'s list reaches the device, and 
    when the page turns; its stylesheet is in the page once and is the row's; the drawing is the row's
    markup with its ids made its own; no id inside any drawing on the page is shared; the chapter's
    formula under it is typeset; the book's search words hold no markup; and Play again starts it over. */
-/* ON THE RESOURCES COLUMN, where the textbooks are (docs/history/329). */
-check('a chapter plays its animation on the Resources column: Pythagoras after GCSE Maths chapter 17, drawn from its row', async () => {
+/* ON FIND 2 (docs/history/329), a page after the Pythagoras content card (347, part 2). */
+check('a content card plays its animation on Find 2: Pythagoras after the Pythagoras and trigonometry card, drawn from its row', async () => {
   const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
   const one = boot();
   await wait(300);
@@ -20479,15 +22496,19 @@ check('a chapter plays its animation on the Resources column: Pythagoras after G
   t.go('res');
   const S = t.RES();
   S.q = ''; S.filters.length = 0;
-  S.filters.push({ field: 'shelf', value: '@family. textbooks' }, { field: 'book', value: 'GCSE Maths' });
+  S.filters.push({ field: 'kindLabel', value: 'Content' }, { field: 'subject', value: 'Maths' });
   w.paintFinder_('res');
   const pages = R.stuffPages_();
   const at = pages.findIndex(pg => pg.part === 'an17-pyth');
-  if (at < 0) return ['GCSE Maths has no an17-pyth page: ' + pages.map(pg => pg.part || 'card').slice(0, 30).join(' ')];
-  if (!pages[at - 1] || pages[at - 1].part !== 'ch17') bad.push('Pythagoras is not the page straight after chapter 17 (it follows ' + (pages[at - 1] && pages[at - 1].part) + ')');
+  if (at < 0) return ['Content · Maths has no an17-pyth page: ' + pages.map(pg => pg.part || 'card').slice(0, 30).join(' ')];
+  if (!pages[at - 1] || pages[at - 1].part || !pages[at - 1].x || pages[at - 1].x.key !== 'ct:TB-GCSE-MATHS-17') bad.push('Pythagoras is not the page straight after the Pythagoras and trigonometry card (it follows ' + (pages[at - 1] && ((pages[at - 1].x || {}).name + ':' + (pages[at - 1].part || 'card'))) + ')');
   const first = R.stuffFirstResult_();
   t.goPage('res', first + at);
   await wait(450); await woken_();
+  /* THE WINDOW FILLED AS THE BUILDER WOULD FILL IT IN THE QUIET — the builder is held here (it is the arrival
+     this asks about), and since docs/history/341 a turn fills only the page in front, one either side and
+     what the glass shows; the drawings two pages on are the builder's. `all` is the whole window, now. */
+  R.fillStuffPages(true);
   const host = w.document.getElementById('s-res');
   /* THE PAGE IN FRONT, AS THE FINDER MARKS IT — `.on` on the page the column is placed at. */
   const cardEl = host.querySelector('.card.is-an17-pyth');
@@ -20514,27 +22535,27 @@ check('a chapter plays its animation on the Resources column: Pythagoras after G
   if (!ids.length) bad.push('no drawing near the page has an id, so the id rule was NOT exercised (the Venn two pages on has four)');
   /* WHAT IT IS ABOUT, IN THE CHAPTER'S WORDS AND TYPESET. */
   const card = here.querySelector('.card.tb-an');
-  if (!card) bad.push('the page is not drawn as a textbook animation card');
+  if (!card) bad.push('the page is not drawn as a content card\'s animation');
   else {
     if (!/Pythagoras/.test(card.querySelector('h3').textContent)) bad.push('the page is not headed Pythagoras');
-    if (!/chapter 17/.test(card.querySelector('.fc-kick').textContent)) bad.push('the kicker does not say chapter 17');
+    /* THE KICKER NAMES THE SUBJECT AND THE CARD, AND NEVER A CHAPTER (347, part 2). */
+    const kick = card.querySelector('.fc-kick').textContent;
+    if (!/Maths · Pythagoras and trigonometry/.test(kick) || /chapter|book/i.test(kick)) bad.push('the kicker is "' + kick + '" — wanted the subject and the card, and no chapter');
     const fm = card.querySelector('.tb-about .tb-math .tb-fm');
     if (!fm || !fm.querySelector('sup')) bad.push('the Pythagoras formula under the drawing is not typeset (no raised power)');
     if (card.querySelectorAll('.tb-about li').length > 4) bad.push('the page lists ' + card.querySelectorAll('.tb-about li').length + ' lines — only what it is about, not the whole chapter');
     if (/@family\./.test(card.querySelector('.tb-an-stage').textContent)) bad.push('the drawing in the chapter signs itself');
   }
-  /* THE BOOK IS FOUND BY THE ANIMATION'S TITLE, AND ITS WORDS HOLD NO MARKUP. */
-  const bk = (made.textbooks || []).find(b => b.name === 'GCSE Maths');
-  const words = w.textbookText_(bk);
+  /* THE CARD IS FOUND BY THE ANIMATION'S TITLE, AND ITS WORDS HOLD NO MARKUP. */
+  const ch = (id, n) => (((made.textbooks || []).find(b => b.id === id) || {}).chapters || []).find(c => c.n === n);
+  const words = w.contentText_(ch('TB-GCSE-MATHS', 17));
   /* NOT `<` ITSELF: the chapters' own words have inequalities in them. The drawing's tags and rules. */
-  if (/class=|<svg|<div|@keyframes|py-cell|an-pyth/.test(words)) bad.push('the book\'s search words hold markup — the drawing\'s html or css went into the haystack');
+  if (/class=|<svg|<div|@keyframes|py-cell|an-pyth/.test(words)) bad.push('the card\'s search words hold markup — the drawing\'s html or css went into the haystack');
   /* AND NOT ITS WORDS EITHER: the haystack strips tags, so markup put into it arrives as the drawing's
      own captions. Bayes's "people take a test" is on the drawing and nowhere in the chapter. */
-  const statsBook = (made.textbooks || []).find(b => b.name === 'GCSE Statistics');
-  if (w.textbookText_(statsBook).indexOf('people take a test') !== -1) bad.push('GCSE Statistics is found by "people take a test", which is Bayes\'s drawing, not its chapter — the drawing went into the haystack');
-  if (words.indexOf('Galton') !== -1) bad.push('GCSE Maths\'s words hold Galton, which is a Statistics animation');
-  const stats = (made.textbooks || []).find(b => b.name === 'GCSE Statistics');
-  if (w.textbookText_(stats).indexOf('Galton board') < 0) bad.push('"Galton board" does not find GCSE Statistics');
+  if (w.contentText_(ch('TB-GCSE-STATS', 15)).indexOf('people take a test') !== -1) bad.push('the Probability card is found by "people take a test", which is Bayes\'s drawing, not its words — the drawing went into the haystack');
+  if (words.indexOf('Galton') !== -1) bad.push('the Pythagoras card\'s words hold Galton, which is a Statistics animation');
+  if (w.contentText_(ch('TB-GCSE-STATS', 16)).indexOf('Galton board') < 0) bad.push('"Galton board" does not find the Probability distributions card');
   /* PLAY AGAIN PUTS THE MARKUP BACK, which starts it over. */
   const tile = card && card.querySelector('[data-do="tb-an-again"]');
   if (!tile || typeof t.ACTIONS['tb-an-again'] !== 'function') bad.push('no Play again tile, or no handler for it');
@@ -20548,6 +22569,66 @@ check('a chapter plays its animation on the Resources column: Pythagoras after G
   t.goPage('res', first + at + 1);
   await wait(450); await woken_();
   if (stage.isConnected && stage.classList.contains('is-on')) bad.push('turned to the next page, and Pythagoras is still `.is-on` — playing out of sight');
+  return bad;
+});
+
+/* ---------- THE OWNER'S TEST: A TOPIC FINDS THE CONTENT CARD BESIDE THE QUESTIONS, ON EITHER FINDER ------
+   *"for maths text book begin adding topic tags so students can immediately find what they need … It can
+   share same tags as questions"* — the owner, 12 Oct. So, over the REAL question rows on five topics and
+   the real content cards through the real mapper, on Find AND on Find 2:
+     · Maths · GCSE · Topic <T> holds the card that teaches <T> — the Topic chip's answer is the library's
+       own spelling, so the card is reached by the word the questions carry;
+     · typing <T> under Maths · GCSE holds that card AND questions tagged <T> — the search is where the
+       questions answer a topic (a question's topic is not a Topic answer, the owner's call of 6 Oct,
+       `topicShown_`), so this is the half that puts the card beside them, and it is asked of the card's
+       place too: on the first page of hits, not 300 results down.
+   Five topics: Surds, Pythagoras' Theorem (with the apostrophe, as the library spells it), Standard Form,
+   Simultaneous Equations and Histograms. */
+check('the owner\'s test, on Find and Find 2: Maths · GCSE · Topic Surds, Pythagoras\' Theorem, Standard Form, Simultaneous Equations, Histograms holds the content card, and typing the topic finds it beside the questions', async () => {
+  const p = await resPayload_();
+  if (!p) return ['libraryExtras_ is not reachable — the owner\'s test was NOT run'];
+  const TOPICS = ['Surds', 'Pythagoras\' Theorem', 'Standard Form', 'Simultaneous Equations', 'Histograms'];
+  const key = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const lib = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const tops = r => String(r.topics || '').split(',').map(key);
+  const rows = lib.filter(r => r.subject === 'Maths' && /^gcse$/i.test(String(r.level || '')) && TOPICS.some(T => tops(r).indexOf(key(T)) !== -1));
+  const missing = TOPICS.filter(T => !rows.some(r => tops(r).indexOf(key(T)) !== -1));
+  if (missing.length) return ['data/questions.json has no GCSE maths question on ' + missing.join(', ') + ' — the test has nothing to put the card beside'];
+  const { w } = boot({ payload: p, serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
+  for (let i = 0; i < 120 && !(typeof w.stuffItemsAll_ === 'function' && w.stuffItemsAll_().some(x => x.kind === 'question')); i++) await wait(50);
+  const t = w.__t, R = resView_(w), bad = [];
+  if (!w.stuffItemsAll_().some(x => x.kind === 'question')) return ['the served questions never reached Find — the test was NOT run'];
+  const finders = [['Find', w, () => t.STUFF()], ['Find 2', R, () => t.RES()]];
+  TOPICS.forEach(T => {
+    const cards = w.stuffItemsAll_().filter(x => x.kind === 'content' && x.subject === 'Maths' && w.topicOf_(x).indexOf(T) !== -1);
+    if (!cards.length) { bad.push('no GCSE Maths content card is tagged "' + T + '" — spelled as the library spells it'); return; }
+    finders.forEach(([name, V, S]) => {
+      const st = S();
+      st.q = '';
+      st.filters.length = 0;
+      st.filters.push({ field: 'subject', value: 'Maths' }, { field: 'level', value: 'GCSE' }, { field: 'topic', value: T });
+      const byChip = V.stuffFiltered();
+      cards.forEach(c => { if (!byChip.some(x => x.key === c.key)) bad.push(name + ': Maths · GCSE · Topic ' + T + ' does not hold "' + c.name + '"'); });
+      st.filters.length = 0;
+      st.filters.push({ field: 'subject', value: 'Maths' }, { field: 'level', value: 'GCSE' });
+      st.q = T.toLowerCase();
+      const hits = V.stuffFiltered();
+      const at = hits.findIndex(x => x.kind === 'content' && cards.some(c => c.key === x.key));
+      const qs = hits.filter(x => x.kind === 'question' && tops(x.row || {}).indexOf(key(T)) !== -1).length;
+      if (at < 0) bad.push(name + ': typing "' + T.toLowerCase() + '" under Maths · GCSE does not find the ' + T + ' card');
+      else if (at >= 10) bad.push(name + ': typing "' + T.toLowerCase() + '" puts the ' + T + ' card at hit ' + (at + 1) + ' of ' + hits.length + ' — not beside the questions, 10 down at most');
+      if (!qs) bad.push(name + ': typing "' + T.toLowerCase() + '" under Maths · GCSE finds no question tagged ' + T + ' — the card is not beside anything');
+      /* AND FIND STAYS A PLACE TO DO QUESTIONS: a browse, or words in every worked example, opens on a
+         question, not on a page of reading (13 Oct — the note over `sortKey_`). */
+      st.q = '';
+      const browse = V.stuffFiltered();
+      if (browse.length && browse[0].kind === 'content') bad.push(name + ': Maths · GCSE with no words opens on a content card, "' + browse[0].name + '", not a question');
+      st.q = 'work out';
+      const worked = V.stuffFiltered();
+      if (worked.length && worked[0].kind === 'content') bad.push(name + ': typing "work out" under Maths · GCSE leads with a content card, "' + worked[0].name + '" — words in its worked lines, not its title or topics');
+      st.q = ''; st.filters.length = 0;
+    });
+  });
   return bad;
 });
 
@@ -20591,7 +22672,7 @@ check('the splash is drawn from the textbooks\' copy: a load keeps it, the next 
   const made = w.libraryExtras_({}, { textbooks: books });
   const maths = made.textbooks.find(b => b.name === 'GCSE Maths');
   const page = w.document.createElement('div');
-  page.innerHTML = w.textbookAnimPart_({ name: maths.name, row: maths, kind: 'textbook' }, 'an17-pyth');
+  page.innerHTML = w.textbookAnimPart_({ name: 'Pythagoras and trigonometry', row: maths.chapters.find(c => c.n === 17), kind: 'content' }, 'an17-pyth');
   const stage = page.querySelector('.tb-an-stage');
   const splashCopy = root.cloneNode(true); splashCopy.querySelector('.sp-sig').remove();
   const unsuffix = h => h.replace(/(id="|url\(#|href="#)([\w-]+?)-t\d+/g, '$1$2');
@@ -20634,7 +22715,7 @@ check('the books and the settings files are fetched with the deploy stamp', asyn
 
    NOBODY BUT AN ADMIN. Signed out, a parent, a student and a tutor are each booted SIGNED IN FROM THE
    FIRST LINE (seeded the way `check/ui.js` seeds its visitor, so the boot that builds Find is theirs),
-   with the real `data/bible/` files there to be fetched. Each walks to Resources, searches the Bible's
+   with the real `data/bible/` files there to be fetched. Each walks to the resources, searches the Bible's
    words, presses the Bible's answers and its tiles as forged buttons — and the list of everything
    fetched is read: not one URL under `data/bible/`.
 
@@ -20649,7 +22730,7 @@ check('the books and the settings files are fetched with the deploy stamp', asyn
    forged, a citation typed; every chapter of every book walked; a book that does not come and comes on
    the second try; the late index; the library held back; stars; a demotion; and signing out. On every
    Bible list, what the funnel TALLIED is read as well as what it asked. */
-check('the Bible, on the Resources column: Books → KJV → testament → group → book → chapter → verse, a card each; nobody else is shown it or fetches a byte of it', async () => {
+check('the Bible, on Find 2 (and on Find): Books → KJV → testament → group → book → chapter → verse, a card each; nobody else is shown it or fetches a byte of it', async () => {
   const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
   const one = boot();
   await wait(300);
@@ -20696,7 +22777,7 @@ check('the Bible, on the Resources column: Books → KJV → testament → group
     const shelf = w.facetList().find(f => f.field === 'shelf');
     const shelves = shelf ? R.facetValues(R.stuffFiltered(), shelf).map(v => String(v.value)) : [];
     if (shelves.indexOf('Books') >= 0) bad.push(what + ' is offered the Books shelf');
-    if (shelves.indexOf('@family. textbooks') < 0) bad.push(what + ' was not offered the textbooks shelf — the walk did not reach Resources, so the absence proves nothing');
+    if (shelves.indexOf('Boxing') < 0) bad.push(what + ' was not offered the Boxing shelf — the walk did not reach the resources, so the absence proves nothing');
     if (w.stuffItemsAll_().some(x => x.kind === 'bible')) bad.push(what + ' has the Bible on the list of everything the app holds');
     for (const q of ['bible', 'genesis', 'king james', 'kjv', 'psalms']) {
       t.RES().filters = []; t.RES().q = q;
@@ -20724,7 +22805,7 @@ check('the Bible, on the Resources column: Books → KJV → testament → group
       try { t.ACTIONS[act](fake); } catch (e) { bad.push(what + ': pressing a forged ' + act + ' threw ' + e.message); }
     }
     await wait(60);
-    if (JSON.stringify(t.RES().filters) !== was) bad.push(what + ' pressed a forged Bible tile and Resources\' chips changed to ' + JSON.stringify(t.RES().filters));
+    if (JSON.stringify(t.RES().filters) !== was) bad.push(what + ' pressed a forged Bible tile and Find 2\'s chips changed to ' + JSON.stringify(t.RES().filters));
     const got = ofBible(b.gets);
     if (got.length) bad.push(what + ' fetched ' + got.length + ' file(s) of the Bible: ' + got.slice(0, 3).join(', '));
     if (!b.gets.length) bad.push(what + ': no fetch was recorded at all, so "nothing of the Bible" proves nothing');
@@ -20734,15 +22815,16 @@ check('the Bible, on the Resources column: Books → KJV → testament → group
   const admin = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'] };
   const a = boot({ payload: base(), serve, before: seed(admin) });
   const w = a.w, t = w.__t, d = w.document;
-  /* THE BIBLE IS A RESOURCE, so every question below is asked of the Resources column (docs/history/329). */
+  /* ASKED OF FIND 2, which carries what Find carries (docs/history/347) — the second column is where a
+     student keeps reading up, and the journey moved there with the Bible in 329. */
   const R = resView_(w);
   for (let i = 0; i < 40 && !(t && t.BIBLE && t.BIBLE() && t.BIBLE().index); i++) await wait(25);
   if (!t || !t.BIBLE || !t.BIBLE()) return bad.concat(['the Bible\'s state is not exported to the journey']);
   if (!t.BIBLE().index) return bad.concat(['an admin\'s Find never received data/bible/index.json — fetched: ' + ofBible(a.gets).join(', ')]);
   if (ofBible(a.gets).length !== 1 || !/index\.json/.test(ofBible(a.gets)[0])) bad.push('an admin\'s boot fetched ' + JSON.stringify(ofBible(a.gets)) + ' — the index and no book is the right answer');
   if (w.stuffItemsAll_().some(i => i.bb)) bad.push('a verse is on the app\'s own list — the 31,102 are a list of their own, read only while the Bible is open');
-  if (w.stuffItems().some(i => i.kind === 'bible')) bad.push('the Bible\'s cover is on Find\'s list for an admin — it is a resource, and lives on the Resources column');
-  if (!R.stuffItems().some(i => i.kind === 'bible')) bad.push('the Bible\'s cover is not on the Resources column\'s list for an admin');
+  if (!w.stuffItems().some(i => i.kind === 'bible')) bad.push('the Bible\'s cover is not on Find\'s list for an admin — both finders carry it');
+  if (!R.stuffItems().some(i => i.kind === 'bible')) bad.push('the Bible\'s cover is not on Find 2\'s list for an admin');
   /* EVERY TOAST, COUNTED: a book that does not come must be said once, not once per card waiting on it. */
   const toasts = [];
   const realToast = w.toast;
@@ -20769,8 +22851,9 @@ check('the Bible, on the Resources column: Books → KJV → testament → group
     await wait(60);
     return true;
   };
-  /* THE ONE DOOR LEFT: on the Resources column `What for` and `What kind` have one answer each and are
-     skipped, so the Books shelf is the only chip in front of the Bible's own (docs/history/329). */
+  /* THE ONE DOOR `bible-go` SETS: under `Shelf · Books` the list is the Bible, so `What for` and `What
+     kind` have one answer each over it and are skipped — the Books shelf is the only chip in front of the
+     Bible's own, on either finder (docs/history/329, 347). */
   const DOORS = [{ field: 'shelf', value: 'Books' }];
   const KJV = { field: 'bibleTranslation', value: 'KJV' };
   const setTo = list => { t.RES().q = ''; t.RES().filters = list.map(f => Object.assign({}, f)); w.paintFinder_('res'); };
@@ -21145,10 +23228,16 @@ check('the Bible, on the Resources column: Books → KJV → testament → group
   st.RES().q = 'psalms';
   const early = resView_(slow.w).stuffFiltered().some(i => i.kind === 'bible');
   slow.w.paintFinder_('res');
+  /* AND THE SAME WORD IN FIND, which holds the Bible too (347): the landing tells every finder's memo,
+     not only the one the Bible was "in". */
+  st.STUFF().q = 'psalms'; st.STUFF().filters = [];
+  const earlyF = slow.w.stuffFiltered().some(i => i.kind === 'bible');
   release();
   await wait(80);
   if (early) bad.push('"psalms" found the Bible before its index arrived — the late-index case was not reached, so it is NOT checked');
   else if (!resView_(slow.w).stuffFiltered().some(i => i.kind === 'bible')) bad.push('typing "psalms" while the index was on its way still misses the Bible after it lands — the cached search was not told');
+  if (!earlyF && !slow.w.stuffFiltered().some(i => i.kind === 'bible')) bad.push('"psalms" typed into Find while the index was on its way still misses the Bible after it lands — the landing told one finder\'s memo, not both');
+  st.STUFF().q = '';
   if (!sd.querySelector('#res-groups [data-do="facet-pick"][data-field="bibleTranslation"][data-value="KJV"]')) bad.push('when the index landed the Books shelf was not drawn again — it does not ask Translation until something else repaints it');
   if (waitingAt()) bad.push('the index landed and the Books shelf still shows its loader');
   const kjvLate = sd.querySelector('#res-groups [data-do="facet-pick"][data-field="bibleTranslation"]');
@@ -21199,10 +23288,15 @@ check('the Bible, on the Resources column: Books → KJV → testament → group
       await wait(60);
       t.ACTIONS['bible-go'](back);
       await wait(80);
-      if (t.AT() !== 'res') bad.push('the Chapter tile on Saved left the app on ' + t.AT() + ', not Resources');
-      const f = t.RES().filters;
-      if (!f.some(c => c.field === 'bibleChapter' && c.value === '1') || !f.some(c => c.field === 'bibleBook' && c.value === 'Genesis')) bad.push('the Chapter tile on Saved set the chips to ' + JSON.stringify(f));
-      if (t.PAGE().res !== R.stuffFirstResult_() + 2) bad.push('the Chapter tile on Saved turned to page ' + t.PAGE().res + ', not Genesis 1:3');
+      /* INTO FIND: Saved is no finder, so the press lands in the front one (`finderAt_`), and Find 2's
+         place — where the reading above was done — is left as it was. */
+      const r0 = JSON.stringify(t.RES().filters);
+      if (t.AT() !== 'stuff') bad.push('the Chapter tile on Saved left the app on ' + t.AT() + ', not Find');
+      const f = t.STUFF().filters;
+      if (!f.some(c => c.field === 'bibleChapter' && c.value === '1') || !f.some(c => c.field === 'bibleBook' && c.value === 'Genesis')) bad.push('the Chapter tile on Saved set Find\'s chips to ' + JSON.stringify(f));
+      if (t.PAGE().stuff !== w.stuffFirstResult_() + 2) bad.push('the Chapter tile on Saved turned Find to page ' + t.PAGE().stuff + ', not Genesis 1:3');
+      if (JSON.stringify(t.RES().filters) !== r0) bad.push('the Chapter tile on Saved changed Find 2\'s chips');
+      t.STUFF().filters = []; t.STUFF().q = '';
     }
   }
 
@@ -21223,7 +23317,7 @@ check('the Bible, on the Resources column: Books → KJV → testament → group
   setTo(DOORS.concat([KJV, { field: 'bibleTestament', value: 'Old Testament' }]));
   t.RES().q = 'genesis';
   const qBox = d.getElementById('res-q');
-  if (!qBox) bad.push('there is no search box on Resources, so whether its word is left behind was NOT checked');
+  if (!qBox) bad.push('there is no search box on Find 2, so whether its word is left behind was NOT checked');
   else qBox.value = 'genesis';
   if (!t.ACTIONS.signout) bad.push('there is no signout action to press, so signing out from the Bible was NOT checked');
   else {
@@ -21233,9 +23327,9 @@ check('the Bible, on the Resources column: Books → KJV → testament → group
     await wait(30);
     if (t.whoami()) bad.push('pressing sign out left somebody signed in, so what it leaves behind was NOT checked');
     const f = t.RES().filters, said2 = (d.getElementById('s-res') || {}).textContent || '';
-    if (f.length || t.RES().q) bad.push('signed out, Resources still holds the admin\'s question: ' + JSON.stringify(f) + (t.RES().q ? ' and "' + t.RES().q + '"' : ''));
-    if (/\bBooks\b/.test(said2)) bad.push('signed out, Resources still names the Books shelf: …' + said2.slice(Math.max(0, said2.indexOf('Books') - 60), said2.indexOf('Books') + 20).replace(/\s+/g, ' '));
-    if (d.querySelector('#s-res .card.bible')) bad.push('signed out, a Bible card is still drawn on Resources');
+    if (f.length || t.RES().q) bad.push('signed out, Find 2 still holds the admin\'s question: ' + JSON.stringify(f) + (t.RES().q ? ' and "' + t.RES().q + '"' : ''));
+    if (/\bBooks\b/.test(said2)) bad.push('signed out, Find 2 still names the Books shelf: …' + said2.slice(Math.max(0, said2.indexOf('Books') - 60), said2.indexOf('Books') + 20).replace(/\s+/g, ' '));
+    if (d.querySelector('#s-res .card.bible')) bad.push('signed out, a Bible card is still drawn on Find 2');
     if (d.getElementById('res-q') && d.getElementById('res-q').value) bad.push('signed out, the search box still holds "' + d.getElementById('res-q').value + '"');
     if (/bible/i.test(t.savedPages().join(''))) bad.push('signed out, Saved still draws something of the Bible');
     const was = JSON.stringify(t.RES().filters), fetched = ofBible(a.gets).length;
@@ -21245,7 +23339,7 @@ check('the Bible, on the Resources column: Books → KJV → testament → group
       t.ACTIONS[act](fake);
     }
     await wait(60);
-    if (JSON.stringify(t.RES().filters) !== was) bad.push('signed out, a Bible tile pressed anyway set Resources\' chips to ' + JSON.stringify(t.RES().filters) + ' — the index was still in memory and the handler did not ask who is looking');
+    if (JSON.stringify(t.RES().filters) !== was) bad.push('signed out, a Bible tile pressed anyway set Find 2\'s chips to ' + JSON.stringify(t.RES().filters) + ' — the index was still in memory and the handler did not ask who is looking');
     if (ofBible(a.gets).length !== fetched) bad.push('signed out, a Bible tile pressed anyway fetched ' + (ofBible(a.gets).length - fetched) + ' file(s)');
   }
   w.toast = realToast;
@@ -21272,21 +23366,20 @@ check('the funnel asks an admin exactly what it asks a parent, the Books shelf a
   const seed = u => w => { try { w.localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} };
   const who = [['a parent', { name: 'Pat Parent', personId: 'P004', role: 'parent', roles: ['parent'] }],
                ['an admin', { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'] }]];
-  /* BOTH FINDERS (docs/history/329): the Books shelf moved to the Resources column with the rest of the
-     resources, so its four starts are walked there, and Find's six on Find — where the Bible must now cost
-     nothing at all, not even the shelf. */
-  const STARTS = [
-    ['Find, the top', [], 'stuff'],
-    ['Find, Learning', [['forLabel', 'Learning']], 'stuff'],
-    ['Find, Learning → Questions', [['forLabel', 'Learning'], ['kindLabel', 'Questions']], 'stuff'],
-    ['Find, Learning → skip', [['forLabel', 'Learning'], 'skip'], 'stuff'],
-    ['Find, Learning → skip → skip', [['forLabel', 'Learning'], 'skip', 'skip'], 'stuff'],
-    ['Find, Learning → Practicals', [['forLabel', 'Learning'], ['kindLabel', 'Practicals']], 'stuff'],
-    ['Resources, the top', [], 'res'],
-    ['Resources → Boxing', [['shelf', 'Boxing']], 'res'],
-    ['Resources → @family. textbooks', [['shelf', '@family. textbooks']], 'res'],
-    ['Resources → skip', ['skip'], 'res'],
+  /* BOTH FINDERS, THE SAME STARTS (docs/history/347): each is the same finder, so every start is walked
+     on Find and on Find 2 and the two walks must be the same walk — for each visitor. The Books shelf is
+     on both for an admin; the resources' two starts are where it is met. */
+  const PLACES = [
+    ['the top', []],
+    ['Learning', [['forLabel', 'Learning']]],
+    ['Learning → Questions', [['forLabel', 'Learning'], ['kindLabel', 'Questions']]],
+    ['Learning → skip', [['forLabel', 'Learning'], 'skip']],
+    ['Learning → skip → skip', [['forLabel', 'Learning'], 'skip', 'skip']],
+    ['Learning → Practicals', [['forLabel', 'Learning'], ['kindLabel', 'Practicals']]],
+    ['Learning → Resources', [['forLabel', 'Learning'], ['kindLabel', 'Resources']]],
+    ['Learning → Resources → Boxing', [['forLabel', 'Learning'], ['kindLabel', 'Resources'], ['shelf', 'Boxing']]],
   ];
+  const STARTS = [].concat(...['stuff', 'res'].map(fid => PLACES.map(([say, steps]) => [(fid === 'res' ? 'Find 2, ' : 'Find, ') + say, steps, fid])));
   const bad = [];
   const traces = [];
   for (const [what, u] of who) {
@@ -21295,8 +23388,12 @@ check('the funnel asks an admin exactly what it asks a parent, the Books shelf a
     const R = resView_(w);
     for (let i = 0; i < 120 && !(t && t.STUFF && w.stuffItems().length > 1000 && (u.role !== 'admin' || (t.BIBLE().index && R.stuffItems().some(x => x.kind === 'bible')))); i++) await wait(50);
     if (!t || w.stuffItems().length < 1000) { bad.push(what + ': the library did not load, so the walk was NOT checked'); return bad; }
-    if (u.role === 'admin' && !R.stuffItems().some(x => x.kind === 'bible')) { bad.push('the admin\'s Resources holds no Bible cover, so the walk proves nothing about it'); return bad; }
-    if (w.stuffItems().some(x => x.kind === 'bible')) bad.push(what + ': the Bible is on Find\'s list — it is a resource');
+    const admin = u.role === 'admin';
+    ['stuff', 'res'].forEach(fid => {
+      const has = (fid === 'res' ? R : w).stuffItems().some(x => x.kind === 'bible');
+      if (admin && !has) bad.push('the admin\'s ' + (fid === 'res' ? 'Find 2' : 'Find') + ' holds no Bible cover — both finders hold it for an admin');
+      if (!admin && has) bad.push(what + '\'s ' + (fid === 'res' ? 'Find 2' : 'Find') + ' holds the Bible — it is for admins only');
+    });
     const trace = {};
     STARTS.forEach(([say, steps, fid]) => {
       const V = fid === 'res' ? R : w;
@@ -21319,7 +23416,6 @@ check('the funnel asks an admin exactly what it asks a parent, the Books shelf a
         if (!f) { out.push('(end, ' + list.length + ')'); break; }
         const vals = V.facetValues(list, f);
         out.push({ field: f.field, vals: vals.map(v => String(v.value)) });
-        if (fid === 'stuff' && f.field === 'shelf') bad.push(what + ' is asked Shelf on Find, from ' + say + ' — the shelves are the Resources column\'s');
         let best = vals[0];
         vals.forEach(v => { if (v.n > best.n) best = v; });
         S.filters.push({ field: f.field, value: best.value });
@@ -21327,12 +23423,22 @@ check('the funnel asks an admin exactly what it asks a parent, the Books shelf a
       trace[say] = out;
       S.filters = [];
     });
+    /* THE SAME FINDER TWICE: Find 2's walk from every start is Find's walk, question for question. */
+    PLACES.forEach(([say]) => {
+      const f = JSON.stringify(trace['Find, ' + say]), r = JSON.stringify(trace['Find 2, ' + say]);
+      if (f !== r) bad.push(what + ', from ' + say + ': Find asks ' + f.slice(0, 160) + ' and Find 2 ' + r.slice(0, 160));
+    });
     traces.push(trace);
   }
   const [parent, admin] = traces;
   let compared = 0;
   STARTS.forEach(([say]) => {
-    const p = parent[say] || [], a = admin[say] || [];
+    const p = parent[say] || [], a = (admin[say] || []).slice();
+    /* THE ONE STEP ONLY AN ADMIN MAY BE ASKED: Shelf, where Books is the second shelf and the parent's
+       one shelf is skipped by the one-answer rule. Taken out of the admin's walk, the rest must match. */
+    const k = a.findIndex((s, i) => s && typeof s === 'object' && s.field === 'shelf' && s.vals.filter(v => v !== 'Books').length <= 1
+      && !(p[i] && typeof p[i] === 'object' && p[i].field === 'shelf'));
+    if (k >= 0) a.splice(k, 1);
     const n = Math.max(p.length, a.length);
     for (let i = 0; i < n; i++) {
       const ps = p[i], as = a[i];
@@ -21409,7 +23515,7 @@ check('every Find kind that is not a question is made of the shared parts: head,
   const onCard = el => !el.closest('svg, figure, .tb-an-stage');
   const strayFilms = all.filter(x => x.kind === 'film' || p.films.some(f => f.title === x.name));
   if (strayFilms.length) bad.push(strayFilms.length + ' of the payload\'s films reached Find (' + strayFilms.map(x => x.name).join(', ') + ') — films are found in Games → Videos, not in Find');
-  const KINDS_HERE =['practical', 'project', 'textbook', 'boxer', 'fight'];
+  const KINDS_HERE =['practical', 'project', 'content', 'boxer', 'fight'];
   KINDS_HERE.forEach(kind => {
     const xs = all.filter(x => x.kind === kind);
     if (!xs.length) { bad.push('no ' + kind + ' reached Find, so its card was NOT checked'); return; }
@@ -22374,6 +24480,77 @@ check('a closed day inside a term is stepped over, and the price counts the sess
   return bad;
 });
 
+/* ---------- THE BUSINESS'S CUT OF AN EXTRA SEAT IS THE TUTOR'S OWN, ELSE THE CONFIG DEFAULT (docs/history/345) ------
+   The owner, 12 Oct: *"Your cut off extra child for tutors should be editable on thir card. Like they can edit that
+   small number to the right of their normal rate"*. The cut was ONE config number (`B`) for every tutor; it is
+   `extraSeatCut` on each tutor's row now, and a blank one is `B`. `seatShare_` is the one reader, so this asks the
+   three things it feeds: the card's `+£X/h a seat` (`profSeat_`, and the card `findCard` draws), the quote
+   (`priceFrom`'s seat multiplier and total) and the split of the seat money between the tutor and the business
+   (`tutorPay` and `profitTotal`, which become the job row's `tutor_pay` and `admin_profit`). Four tutors at £30 with
+   their own share 0.5, under a config of c 0.3 and B 0.1: a BLANK cut and an OLDER BACKEND that sends no key at
+   all are priced exactly alike, from B (a seat is 0.6 of the rate); their own 0.2 is priced from it (0.7) on the
+   card AND in the quote AND in the split; and NOUGHT is no cut — the business keeps nothing of the seat and the
+   tutor all of it — where blank is the default. A tutor whose own share is blank still draws c (0.3 + 0.1). */
+check('the business\'s cut of an extra seat is the tutor\'s own when set and the config default when blank — on the card, in the quote and in the split; nought is nought', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t, d = w.document;
+  if (typeof w.priceFrom !== 'function' || typeof w.profSeat_ !== 'function' || typeof w.findCard !== 'function') {
+    return ['priceFrom / profSeat_ / findCard are not reachable, so the cut was NOT checked — not a pass'];
+  }
+  const D = t.DATA();
+  D.constants = D.constants || {};
+  D.constants.vars = Object.assign({}, D.constants.vars || {}, { c: 0.3, B: 0.1 });
+  D.closures = [];
+  D.promotions = [];
+  const ada = (D.tutors || []).find(x => x && x.personId) || {};
+  const mk = (title, more) => Object.assign({}, ada, { title, personId: 'P-' + title.replace(/\W/g, ''), rate: 30, extraSeat: 0.5 }, more);
+  const rows = { blank: mk('Cut Blank', { extraSeatCut: '' }), old: mk('Cut Older', {}), own: mk('Cut Own', { extraSeatCut: 0.2 }),
+                 none: mk('Cut None', { extraSeatCut: 0 }), usual: mk('Cut Usual', { extraSeat: 0, extraSeatCut: '' }) };
+  delete rows.old.extraSeatCut;
+  D.tutors = Object.keys(rows).map(k => rows[k]).concat(D.tutors || []);
+  const mon = w.mondayOf_(new Date()); mon.setDate(mon.getDate() + 28);
+  const at = n => { const x = new Date(mon); x.setDate(x.getDate() + n); return x; };
+  const dmy = x => String(x.getDate()).padStart(2, '0') + '/' + String(x.getMonth() + 1).padStart(2, '0') + '/' + x.getFullYear();
+  const win = { startDate: dmy(at(-14)), lastSun: dmy(at(20)) };
+  const quote = k => w.priceFrom({ subjects: ['Maths'], level: 'GCSE', n: 2, hours: 1, hoursPerWeek: 1, day: 'Monday',
+    runs: [{ dayName: 'Monday', day: 'm', hours: 1 }], windows: [win], tutor: rows[k].title });
+  const bad = [];
+  const near = (a, b) => Math.abs(a - b) < 0.005;
+  /* WHAT EACH ONE SHOULD BE: the tutor's share c and the business's b, of the rate, for one extra seat. */
+  const WANT = { blank: [0.5, 0.1], old: [0.5, 0.1], own: [0.5, 0.2], none: [0.5, 0], usual: [0.3, 0.1] };
+  const got = {};
+  Object.keys(WANT).forEach(k => {
+    const [c, b] = WANT[k], share = c + b;
+    const L = got[k] = quote(k);
+    if (!(L.hoursTotal > 0) || !(L.total > 0)) { bad.push(k + ': the quote has no hours or no total (' + L.hoursTotal + ', ' + L.total + '), so its split was NOT checked'); return; }
+    /* THE CARD: the number to the right of the rate, by the function and as drawn. */
+    const seat = w.profSeat_(rows[k]);
+    if (!near(seat, 30 * share)) bad.push(k + ': the card\'s seat is £' + seat + '/h, wanted £' + (30 * share).toFixed(2) + ' (30 × (' + c + ' + ' + b + '))');
+    const box = d.createElement('div'); box.innerHTML = w.findCard({ kind: 'tutor', row: rows[k] });
+    const said = ((box.querySelector('.prof-seat') || {}).textContent || '').trim();
+    if (said !== '+£' + (30 * share).toFixed(2) + '/h a seat') bad.push(k + ': the card draws "' + said + '", wanted "+£' + (30 * share).toFixed(2) + '/h a seat"');
+    /* THE QUOTE: one extra seat adds `share` of the hourly figure. */
+    if (!near(L.fChildrenAll, 1 + share)) bad.push(k + ': the quote\'s seat multiplier is ' + L.fChildrenAll + ', wanted ' + (1 + share));
+    /* THE SPLIT: the seat money goes c : b, and the two add to what is paid (no venue, nobody sharing). */
+    const unit = L.R * L.discountFactor * L.promoAdj * L.hoursTotal;
+    const seatMoney = unit * (L.fChildrenAll - 1);
+    if (!near(L.profitTotal, seatMoney * b / share)) bad.push(k + ': the business keeps £' + L.profitTotal.toFixed(2) + ' of the seat, wanted £' + (seatMoney * b / share).toFixed(2) + ' (' + b + ' of ' + share + ')');
+    if (!near(L.tutorPay, unit + seatMoney * c / share)) bad.push(k + ': the tutor is paid £' + L.tutorPay.toFixed(2) + ', wanted £' + (unit + seatMoney * c / share).toFixed(2));
+    if (!near(L.tutorPay + L.profitTotal, L.total)) bad.push(k + ': the tutor\'s £' + L.tutorPay.toFixed(2) + ' and the business\'s £' + L.profitTotal.toFixed(2) + ' do not add to the £' + L.total.toFixed(2) + ' paid');
+  });
+  /* BLANK AND AN OLDER BACKEND ARE ONE PRICE — exactly as every tutor was priced before the column existed. */
+  if (got.blank && got.old && ['total', 'tutorPay', 'profitTotal', 'fChildrenAll'].some(f => got.blank[f] !== got.old[f])) {
+    bad.push('a blank cut and no key at all are priced differently: ' + JSON.stringify([got.blank.total, got.old.total, got.blank.profitTotal, got.old.profitTotal]));
+  }
+  /* NOUGHT IS NOUGHT: nothing for the business, the whole seat for the tutor — not the default. */
+  if (got.none && got.none.profitTotal !== 0) bad.push('a cut of nought still keeps £' + got.none.profitTotal + ' for the business');
+  /* AND THE ADMIN'S LINE SAYS WHERE THE CUT CAME FROM — their own, or the default. */
+  if (got.own && !/their cut 0\.2/.test(got.own.seatSource || '')) bad.push('the breakdown\'s source for a tutor\'s own cut reads "' + (got.own && got.own.seatSource) + '"');
+  if (got.blank && !/\+ B 0\.1/.test(got.blank.seatSource || '')) bad.push('the breakdown\'s source for a blank cut reads "' + (got.blank && got.blank.seatSource) + '"');
+  return bad;
+});
+
 /* ---------- THE CALENDAR SHOWS EVERY DATE THE APP KNOWS ------------------------------------------------
    It drew exams and birthdays and nothing else. Now: your sessions on their own dates (and nobody
    else's), a term's first day, every day of a half term, a bank holiday off `DATA.closures`, a festive
@@ -22915,11 +25092,10 @@ check('films are not in Find for an admin with films in the payload — not by t
   /* THE PROJECTS AND THE PRACTICALS, REAL, so `What kind` has answers of its own to draw — the fixture has no
      library, and a Learning holding nothing but films would ask What kind only when the films are there,
      which is the fault and not a setup. Through the real mapper, as the textbook journey does.
-     THE PRACTICALS AND NOT THE TEXTBOOKS SINCE THE SECOND FINDER (docs/history/329): the textbooks are a
-     resource and live in the Resources column, so on Find they left Learning with one kind — Projects —
-     and a question with one answer is skipped. This journey then failed asking for `Projects and
-     Resources` on a page that drew Year instead: it was written on the branch where Find still held the
-     resources. Practicals are Find's own sibling of Projects (`KIND_BUCKET`), so the page is What kind. */
+     THE PRACTICALS AND NOT THE TEXTBOOKS SINCE THE SECOND FINDER (docs/history/329): while the textbooks
+     lived in the Resources column, Find's Learning held one kind — Projects — and a question with one
+     answer is skipped. Find carries the textbooks again (347), but the practicals stay: they are Find's own
+     sibling of Projects (`KIND_BUCKET`), so the page is What kind whichever finder holds what. */
   const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
   const one = boot();
   await wait(300);
@@ -22974,11 +25150,11 @@ check('films are not in Find for an admin with films in the payload — not by t
   const kinds = picks().filter(b => b.dataset.field === 'kindLabel').map(b => b.dataset.value);
   if (kinds.indexOf('Projects') === -1 || kinds.indexOf('Practicals') === -1) bad.push('What kind was not drawn with Projects and Practicals (the page offers ' + (picks().map(b => b.dataset.field + ':' + b.dataset.value).join(' | ') || 'nothing') + '), so its chips were NOT checked');
   else if (kinds.indexOf('Films') !== -1) bad.push('What kind offers "Films" to an admin: ' + kinds.join(' | '));
-  /* AND NOT IN THE OTHER FINDER EITHER: a film is not a resource, so the column the resources moved to
+  /* AND NOT IN FIND 2 EITHER: it carries what Find carries (347), and a film is in neither, so the column
      must not have become where the films went. */
   if (typeof w.finderOf_ === 'function') {
     const resList = w.inFinder_(w.finderOf_('res'), () => w.stuffItems());
-    if (resList.some(isFilm)) bad.push('the Resources column holds ' + resList.filter(isFilm).length + ' film(s)');
+    if (resList.some(isFilm)) bad.push('Find 2 holds ' + resList.filter(isFilm).length + ' film(s)');
   }
   const kindFacet = w.facetList().find(f => f.field === 'kindLabel');
   const answers = kindFacet ? w.facetValues(w.stuffItems(), kindFacet).map(v => String(v.value)) : [];
@@ -25356,19 +27532,19 @@ check('both finders are started again when an admin signs out from the admin-onl
     w.paintFinder_('res');
     t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Questions' }];
     t.STUFF().q = 'fractions';
-    if (!/\bBooks\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('the setup: the admin’s Resources chips do not name the Books shelf, so its going was NOT checked');
+    if (!/\bBooks\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('the setup: the admin’s Find 2 chips do not name the Books shelf, so its going was NOT checked');
     t.ACTIONS.signout(d.createElement('button'));
     await wait(50);
     t.go('res', false, true);
     await wait(30);
     if (t.whoami()) bad.push('Sign out left somebody signed in');
-    if (t.RES().filters.length || t.RES().q) bad.push('an admin signed out from the Books shelf left Resources holding ' + JSON.stringify(t.RES().filters) + ' "' + t.RES().q + '"');
+    if (t.RES().filters.length || t.RES().q) bad.push('an admin signed out from the Books shelf left Find 2 holding ' + JSON.stringify(t.RES().filters) + ' "' + t.RES().q + '"');
     if (t.STUFF().filters.length || t.STUFF().q) bad.push('an admin signed out left Find holding ' + JSON.stringify(t.STUFF().filters) + ' "' + t.STUFF().q + '"');
-    if (/\bBooks\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('signed out, the Resources chips still name the Books shelf');
+    if (/\bBooks\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('signed out, Find 2’s chips still name the Books shelf');
     /* AND THE NEXT CHILD SIGNING IN FROM THERE IS SIGNED IN FROM NOBODY — kept, and holding nothing of the admin's. */
     w.signedIn_(Object.assign({ success: true }, KEEP_SOL_), 'sol');
     if (t.STUFF().filters.length || t.STUFF().q) bad.push('a child signing in after the admin signed out is handed the admin’s Find: ' + JSON.stringify(t.STUFF().filters));
-    if (t.RES().filters.length || t.RES().q) bad.push('a child signing in after the admin signed out is handed the admin’s Resources: ' + JSON.stringify(t.RES().filters));
+    if (t.RES().filters.length || t.RES().q) bad.push('a child signing in after the admin signed out is handed the admin’s Find 2: ' + JSON.stringify(t.RES().filters));
   }
   /* ---- ONE CHILD SIGNED IN, ANOTHER SIGNS IN OVER THEM ---- */
   {
@@ -25385,7 +27561,7 @@ check('both finders are started again when an admin signs out from the admin-onl
     w.signedIn_(Object.assign({ success: true }, KEEP_SOL_), 'sol');
     if ((t.whoami() || {}).personId !== 'P12') return bad.concat(['the second child did not sign in: ' + JSON.stringify(t.whoami())]);
     if (t.STUFF().filters.length || t.STUFF().q) bad.push('a child signing in over Ada is handed Ada’s Find: ' + JSON.stringify(t.STUFF().filters) + ' "' + t.STUFF().q + '"');
-    if (t.RES().filters.length || t.RES().q) bad.push('a child signing in over Ada is handed Ada’s Resources: ' + JSON.stringify(t.RES().filters) + ' "' + t.RES().q + '"');
+    if (t.RES().filters.length || t.RES().q) bad.push('a child signing in over Ada is handed Ada’s Find 2: ' + JSON.stringify(t.RES().filters) + ' "' + t.RES().q + '"');
     /* THE SAME CHILD SIGNING IN AGAIN IS NOT A SWITCH: their Find stays. */
     t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }];
     w.signedIn_(Object.assign({ success: true }, KEEP_SOL_), 'sol');
@@ -25509,7 +27685,7 @@ check('a session that ends while a child types keeps Find for them to sign in ag
     await w.api({ action: 'sessionProbe', personId: 'P001' });
     await wait(30);
     if (t.whoami()) return bad.concat(['the admin’s refused request did not sign the phone out — the admin case was NOT checked']);
-    if (t.RES().filters.length || t.RES().q) bad.push('an admin’s session ending on the Books shelf left Resources holding ' + JSON.stringify(t.RES().filters) + ' "' + t.RES().q + '"');
+    if (t.RES().filters.length || t.RES().q) bad.push('an admin’s session ending on the Books shelf left Find 2 holding ' + JSON.stringify(t.RES().filters) + ' "' + t.RES().q + '"');
     if (t.RES().whose || t.STUFF().whose) bad.push('an admin’s dead session left whose = ' + JSON.stringify([t.STUFF().whose, t.RES().whose]));
   }
   return bad;
@@ -25650,6 +27826,39 @@ check('the payload landing does not rebuild Find under a keypad box with the foc
   inp.blur();
   await wait(500);
   if (d.contains(inp)) bad.push('half a second after the box was left, Find was still the stale copy — it is never redrawn');
+  return bad;
+});
+
+/* ---------- AND FIND 2 THE SAME, NOW THAT IT HOLDS THE QUESTIONS (docs/history/347) ---------------------
+   The owner's use of the second finder is a child answering in one column with a chapter up in the
+   other — so either can hold the box being typed in. `findKeep_` was Find's alone while the second
+   column held only the resources, which have no answer box; left so, a payload landing under a child
+   typing in Find 2 rebuilt it under her — the diag-signin fault above, on the other column. */
+check('the payload landing does not rebuild Find 2 under a keypad box with the focus, and does rebuild it once the box is left', async () => {
+  const { w } = boot();
+  await wait(400);
+  const t = w.__t, d = w.document, bad = [];
+  if (typeof w.findKeep_ !== 'function' || typeof w.kpField_ !== 'function') return ['findKeep_ or kpField_ not reachable — the keep was NOT checked'];
+  t.USER(Object.assign({}, ANS_ADA));
+  t.go('res', false, true);
+  await wait(60);
+  const host = d.getElementById('s-res');
+  if (!host || !host.firstElementChild) return ['Find 2 is not drawn — the keep was NOT checked'];
+  const page = d.createElement('div');
+  page.className = 'qcard';
+  page.innerHTML = w.kpField_('ans:u:P7:q:Q-KEEP-2', '7');
+  host.appendChild(page);
+  const inp = page.querySelector('.kp-in');
+  inp.focus();
+  if (d.activeElement !== inp) return ['the keypad box could not take the focus, so nothing was checked'];
+  if (!w.findKeep_('res')) bad.push('findKeep_ does not hold Find 2 while a box in it has the focus');
+  await w.load();
+  await wait(50);
+  if (!d.contains(inp)) bad.push('the payload landing rebuilt Find 2 and threw away the box the child was typing in');
+  if (d.activeElement !== inp) bad.push('after the payload the focus is on ' + (d.activeElement && d.activeElement.tagName) + ', not the box in Find 2');
+  inp.blur();
+  await wait(500);
+  if (d.contains(inp)) bad.push('half a second after the box was left, Find 2 was still the stale copy — it is never redrawn');
   return bad;
 });
 
@@ -26329,6 +28538,1000 @@ check('a figure nobody dressed keeps its face when her handle moves: Randomise, 
     }
   }
   if (one.errs.length || two.errs.length) bad.push('errors: ' + one.errs.concat(two.errs).slice(0, 3).join(' | '));
+  return bad;
+});
+
+/* ==================================================================================================
+   WHAT A FLICK CAN REACH IS DRAWN BEFORE IT GETS THERE — THE BUILDER'S OWN JOURNEYS (docs/history/341)
+
+   The owner, 11 Oct: *"Increase loading scope. Make it more massive so it's never really an issue."* One
+   builder (`ahead_`, shell.js) now draws in the quiet every column a repaint or a landing marked, every
+   widget slot, and both finders' whole windows. Every journey above boots with it HELD and asks what an
+   arrival does — the floor. These boot with it on and ask what it promises: that it finishes, that it never
+   runs under a finger or a settle, that a refused paint waits for its reason to go, that a drawing made
+   ahead is adopted only when nothing has moved since, that nothing drawn from old facts or for somebody
+   else is ever shown, that a finder's job stays in its finder, and that a landing which changes nothing
+   writes nothing. jsdom has no `requestIdleCallback`, so this is the timer path iPadOS Safari takes. */
+/* AT REST: the builder's list empty and everything booked for after a slide run — or the cap, and then the
+   journey says it never came. Longer than `woken_`'s eight seconds: from a repaint the builder draws every
+   column and both windows of forty-one cards, one per slice, and a slice is a 60ms timer here. */
+/* FOUR MINUTES, NOT ONE AND A HALF: under a load average of forty a jsdom fill of one boxing card took up to
+   970ms, and forty-one of them is the Resources window alone. A builder that never finishes still fails. */
+const aheadQuiet_ = async (t, cap) => {
+  const t0 = Date.now();
+  await wait(500);
+  while (Date.now() - t0 < (cap || 240000)) {
+    let q = false;
+    try { q = t.quiet() && !t.aheadBusy(); } catch (e) { q = true; }
+    if (q) { await wait(150); try { if (t.quiet() && !t.aheadBusy()) return true; } catch (e) { return true; } }
+    await wait(150);
+  }
+  return false;
+};
+const aheadBoot_ = async (opts) => {
+  const b = boot(Object.assign({ ahead: true }, opts || {}));
+  for (let i = 0; i < 80 && !b.w.__t; i++) await wait(25);
+  await wait(400);
+  return b;
+};
+const SAM_ = { name: 'Sam Student', personId: 'P9', person_id: 'P9', role: 'student', roles: ['student'], token: 't-sam' };
+/* A QUESTION ANSWERED ON THE RESOURCES COLUMN — the boxing shelf — so it has a window of results to fill;
+   with nothing asked a finder is its question alone. */
+const resAsk_ = w => {
+  const R = resView_(w), S = w.__t.RES();
+  const x = R.stuffItemsAll_().find(it => it.kind === 'boxer');
+  if (!x) return false;
+  S.q = ''; S.filters.length = 0; S.filters.push({ field: 'shelf', value: x.shelf });
+  w.paintFinder_('res');
+  return w.document.querySelectorAll('#s-res > .page.is-res').length > 0;
+};
+const veiled_ = (w, col) => [...w.document.querySelectorAll('#s-' + col + ' .widget-slot[aria-busy]')]
+  .filter(sl => sl.querySelector(':scope > .loading')).map(sl => sl.id);
+
+check('the builder draws every stale column and every widget slot in the quiet, and never under a finger, a settle or a booked slide', async () => {
+  /* THE RESOURCES IN THE PAYLOAD, so the second finder has a window to fill. */
+  const p = await resPayload_();
+  if (!p) return ['the resources payload could not be made — NOT checked'];
+  const { w } = await aheadBoot_({ payload: p });
+  const t = w.__t, bad = [];
+  if (!t || typeof t.aheadBusy !== 'function' || typeof t.aheadLog !== 'function') return ['the builder is not reachable — NOT checked'];
+  if (!resAsk_(w)) return ['the Resources column has no boxing shelf to fill — NOT checked'];
+  const r0 = w.performance.now();
+  t.USER(SAM_); t.repaint();
+  /* A FINGER DOWN FOR A SECOND AND A HALF, once the builder is under way: nothing is built under it. jsdom has
+     no touch, so the finger is the state the engine keeps (`SWIPE.live`). NOT straight after the repaint:
+     `afterSlide_` waits out a finger too, and with its jobs still booked the builder is shut by them — the
+     finger's own rule would never be asked (the mutation that took it out stayed green that way). */
+  for (let k = 0; k < 600 && t.aheadLog().filter(x => x.t >= r0).length < 3; k++) await wait(50);
+  if (t.aheadLog().filter(x => x.t >= r0).length < 3) bad.push('the builder never got under way after the repaint, so the finger was not asked about');
+  const f0 = w.performance.now();
+  t.swipeLive(true);
+  await wait(1500);
+  t.swipeLive(false);
+  const f1 = w.performance.now();
+  const under = t.aheadLog().filter(x => x.t >= f0 && x.t <= f1);
+  if (under.length) bad.push(under.length + ' slice(s) ran while a finger was down: ' + under.slice(0, 3).map(x => x.key).join(', '));
+  if (!(await aheadQuiet_(t))) bad.push('the builder never finished: ' + JSON.stringify(t.aheadLog().slice(-3)));
+  const stale = t.TABS.map(x => x.id).filter(id => t.stale(id));
+  if (stale.length) bad.push('still STALE after the quiet: ' + stale.join(', '));
+  ['tools', 'games', 'shop'].forEach(col => {
+    const left = veiled_(w, col).filter(id => id !== 'wgt-reels' && id !== 'wgt-flabby');
+    if (left.length) bad.push(col + ' still has widget slots under the loader after the quiet: ' + left.join(', '));
+  });
+  const log = t.aheadLog();
+  if (log.length < 5) bad.push('the builder ran ' + log.length + ' slice(s) — it did not draw anything, so nothing was checked');
+  const wrong = log.filter(x => x.live || x.settle || x.after || x.quiet < 400);
+  if (wrong.length) bad.push(wrong.length + ' slice(s) ran under a finger, a settle, a booked slide or within 400ms of input: ' + JSON.stringify(wrong.slice(0, 2)));
+  if (!log.some(x => /^widget:/.test(x.key))) bad.push('no widget slot was drawn by the builder');
+  if (!log.some(x => /^fill:/.test(x.key))) bad.push('no finder page was filled by the builder');
+  t.USER(null);
+  return bad;
+});
+
+check('a paint the builder is refused (a Settings form being edited) stays stale and waits, and is drawn once a box lets go', async () => {
+  const admin = { name: 'Test Admin', personId: 'P001', person_id: 'P001', role: 'admin', roles: ['admin'], token: 't-adm' };
+  const { w } = await aheadBoot_();
+  const t = w.__t, bad = [];
+  if (!t || typeof t.aheadLog !== 'function') return ['the builder is not reachable — NOT checked'];
+  t.USER(admin); t.go('feed', false, true); t.repaint();
+  await aheadQuiet_(t);
+  const form = w.document.querySelector('#s-settings .me-form');
+  if (!form) { t.USER(null); return ['no Settings form drawn for an admin — NOT checked']; }
+  form.setAttribute('data-dirty', '1');
+  t.repaint();
+  await aheadQuiet_(t, 20000);
+  if (!t.stale('settings')) bad.push('Settings was drawn again while a form on it was being edited — the typing would be lost');
+  const tries = t.aheadLog().filter(x => x.key === 'paint:settings').length;
+  if (tries > 3) bad.push('the refused paint was tried ' + tries + ' times — it should wait for its reason to change, not loop');
+  if (t.stale('tools')) bad.push('Tools was left stale too — one refused column held up the rest');
+  const f2 = w.document.querySelector('#s-settings .me-form[data-dirty]');
+  if (f2) f2.removeAttribute('data-dirty');
+  w.document.dispatchEvent(new w.Event('focusout'));
+  await aheadQuiet_(t, 20000);
+  if (t.stale('settings')) bad.push('Settings stayed stale after the box let go — the builder was never asked again');
+  t.USER(null);
+  return bad;
+});
+
+check('a widget drawn ahead with nothing changed is adopted on arrival without starting; after a press, a carried drawing, a change of person or a start on another copy it is started', async () => {
+  const { w } = await aheadBoot_();
+  const t = w.__t, bad = [];
+  if (!t || typeof t.widgetsOf !== 'function') return ['the widgets are not reachable — NOT checked'];
+  t.USER(SAM_); t.go('feed', false, true); t.repaint();
+  await aheadQuiet_(t);
+  const tools = t.widgetsOf('tool');
+  const calc = tools.find(x => String(x.id) === 'calculator'), cal = tools.find(x => String(x.id) === 'calendar');
+  if (!calc || !cal) { t.USER(null); return ['no calculator or calendar on Tools — NOT checked']; }
+  const n = { calculator: 0, calendar: 0 };
+  [calc, cal].forEach(x => { const real = x.start; x.start = function () { n[x.id]++; return real.apply(this, arguments); }; });
+  const arrive = async () => { n.calculator = 0; n.calendar = 0; t.go('tools', false, true); await wait(LEAVE_MS); await woken_(); };
+  const leave = async () => { t.go('feed', false, true); await wait(LEAVE_MS); await woken_(); };
+  const slot = id => t.slotOn('tools', id);
+  /* 1. NOTHING MOVED: adopted. */
+  if (!slot('calculator') || slot('calculator').getAttribute('aria-busy')) bad.push('the calculator was not drawn ahead on Tools');
+  await arrive();
+  if (n.calculator || n.calendar) bad.push('arriving at drawn, unchanged widgets started them again (' + JSON.stringify(n) + ') — they should be adopted');
+  if (!t.running().some(e => e.id === 'calculator' && e.col === 'tools')) bad.push('the adopted calculator is not entered as running');
+  /* 2. A PRESS: the next drawing ahead, then an action, then the arrival — started. */
+  await leave(); t.repaint(); await aheadQuiet_(t);
+  try { t.ACTIONS['filter-clear'](w.document.createElement('button')); } catch (e) {}
+  await arrive();
+  if (!n.calendar) bad.push('after a press the calendar drawn before it was adopted, not started');
+  /* 3. A DRAWING CARRIED THROUGH A PAINT (pure, the calculator) keeps its old clocks: started behind it. */
+  await leave(); t.repaint(); await aheadQuiet_(t);
+  const before = slot('calculator');
+  t.repaint(); await aheadQuiet_(t);
+  if (slot('calculator') !== before) bad.push('the pure calculator was not carried through the paint — its drawing was thrown away');
+  await arrive();
+  if (!n.calculator) bad.push('a calculator drawn before a repaint and carried through it was adopted rather than started');
+  /* 4. A CHANGE OF PERSON, with the builder held so nothing is drawn again: started, never adopted. */
+  await leave(); t.repaint(); await aheadQuiet_(t);
+  w.__aheadHold = true;
+  t.USER(Object.assign({}, SAM_, { name: 'Ada Other', personId: 'P8', person_id: 'P8' }));
+  await arrive();
+  if (!n.calculator && !slot('calculator').getAttribute('aria-busy')) bad.push('a drawing made for Sam was adopted for somebody else');
+  w.__aheadHold = false;
+  t.USER(null);
+  return bad;
+});
+
+check('every widget with a stop is drawn ahead by its draw and runs nothing: no sprint, no frame loop, no classroom round, no film', async () => {
+  const { w } = await aheadBoot_();
+  const t = w.__t, bad = [];
+  if (!t || typeof t.widgetState !== 'function') return ['the widgets\' state is not reachable — NOT checked'];
+  t.USER(SAM_); t.go('feed', false, true); t.repaint();
+  await aheadQuiet_(t);
+  const st = t.widgetState();
+  if (st.tt) bad.push('the times-tables sprint is running after being drawn ahead');
+  if (st.flappy && st.flappy.raf) bad.push('Flabby Pird\'s frame loop is running after being drawn ahead');
+  const P = st.party || {};
+  Object.keys(P).forEach(k => { if (P[k] && (P[k].ends || P[k].run)) bad.push('a classroom round (' + k + ') is running after being drawn ahead'); });
+  if (st.vid) bad.push('a film is playing in the videos card after being drawn ahead (' + st.vid + ')');
+  if (t.running().length) bad.push('drawn-ahead widgets are entered as running: ' + t.running().map(e => e.id).join(', '));
+  /* DRAWN: each slot with a stop is out from under its loader — but Flabby Pird, whose still drawing needs a
+     box and jsdom has none, and the reels card when its fact is a clip (`feedPaint_`). */
+  ['tables', 'wordgames', 'videos'].forEach(id => {
+    const sl = t.slotOn('games', id);
+    if (!sl) bad.push('no ' + id + ' slot on Games');
+    else if (sl.getAttribute('aria-busy')) bad.push(id + ' is still under its loader after the quiet — its draw did not draw it');
+  });
+  t.USER(null);
+  return bad;
+});
+
+check('the first payload draws the column in front (and the glass), and every other column keeps the boot\'s loader until it is drawn — never empty', async () => {
+  const { w } = boot();
+  for (let i = 0; i < 80 && !w.__t; i++) await wait(25);
+  await wait(600);
+  const t = w.__t, bad = [];
+  if (!t || typeof t.paints !== 'function') return ['the paint counter is not reachable — NOT checked'];
+  const P = t.paints(), at = t.AT(), glass = t.glass().cols;
+  const again = Object.keys(P).filter(id => P[id] > 1 && id !== at && glass.indexOf(id) === -1);
+  if (again.length) bad.push('the landing drew columns that are neither in front nor on the glass: ' + again.join(', '));
+  if (!(P[at] > 1)) bad.push('the column in front was not drawn by the payload (' + at + ': ' + P[at] + ')');
+  const empty = t.TABS.map(x => x.id).filter(id => { const el = w.document.getElementById('s-' + id); return el && !el.firstElementChild; });
+  if (empty.length) bad.push('columns left empty after the first payload: ' + empty.join(', '));
+  const held = t.TABS.map(x => x.id).filter(id => id !== at && glass.indexOf(id) === -1 && !t.stale(id));
+  if (held.length) bad.push('columns neither drawn nor marked stale after the first payload: ' + held.join(', '));
+  return bad;
+});
+
+check('a landing never leaves a drawing made from old facts on the glass: a widget that reads facts is veiled at once and drawn again; a pure one is the same element throughout', async () => {
+  const { w } = await aheadBoot_();
+  const t = w.__t, bad = [];
+  if (!t || typeof t.landRepaint !== 'function') return ['landRepaint_ is not reachable — NOT checked'];
+  t.USER(SAM_); t.go('feed', false, true); t.repaint();
+  await aheadQuiet_(t);
+  const cal0 = t.slotOn('tools', 'calendar'), calc0 = t.slotOn('tools', 'calculator');
+  if (!cal0 || cal0.getAttribute('aria-busy') || !calc0) { t.USER(null); return ['the calendar was not drawn ahead on Tools — NOT checked']; }
+  w.__aheadHold = true;
+  const d = new Date();
+  const dd = String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+  const D = t.DATA();
+  D.exams = (D.exams || []).concat([{ date: dd, kind: 'exam', subject: 'Maths', label: 'Paper 1' }]);
+  t.landRepaint();
+  const cal1 = t.slotOn('tools', 'calendar');
+  if (!cal1 || !cal1.getAttribute('aria-busy')) bad.push('the calendar drawn from the old facts is still showing after the landing');
+  if (t.slotOn('tools', 'calculator') !== calc0) bad.push('the pure calculator was replaced by the landing');
+  w.__aheadHold = false; t.aheadKick();
+  await aheadQuiet_(t);
+  const cal2 = t.slotOn('tools', 'calendar');
+  if (!cal2 || cal2.getAttribute('aria-busy')) bad.push('the calendar was not drawn again from the new facts in the quiet');
+  else if (!cal2.querySelector('.cal-d.has .dot.exam')) bad.push('the calendar drawn again does not show the exam the landing brought');
+  if (t.slotOn('tools', 'calculator') !== calc0) bad.push('the pure calculator was replaced while the builder drew the rest');
+  t.USER(null);
+  return bad;
+});
+
+check('signing out puts away what was drawn for the last person, before the repaint returns — no idle moment in between', async () => {
+  const { w } = await aheadBoot_();
+  const t = w.__t, bad = [];
+  if (!t || typeof w.signedOut_ !== 'function') return ['signedOut_ is not reachable — NOT checked'];
+  t.USER(SAM_); t.go('feed', false, true); t.repaint();
+  await aheadQuiet_(t);
+  /* THE NOTEPAD AND THE TIMETABLE, both asked: each draws what is somebody's own — the notepad's words, the week
+     and its bookings — and a sign-out must put them away before the repaint returns. (The timetable was `pure`
+     until the review of 12 Oct found it draws the bookings; the journey below asks the slots the next person has
+     no widget for.) */
+  const ids = ['notepad', 'timetable'];
+  const drawn = ids.filter(id => { const sl = t.slotOn('tools', id); return sl && !sl.getAttribute('aria-busy'); });
+  if (drawn.length < 2) { t.USER(null); return ['the notepad and the timetable were not both drawn ahead for Sam (' + drawn.join(', ') + ') — NOT checked']; }
+  w.signedOut_();
+  ids.forEach(id => {
+    const now = t.slotOn('tools', id);
+    if (now && !now.getAttribute('aria-busy') && now.WHO === 'P9') bad.push('the ' + id + ' drawn for Sam is still drawn after signing out');
+  });
+  return bad;
+});
+
+check('the builder fills the Resources window inside its own binding: Find\'s words, chips and window are untouched', async () => {
+  const p = await resPayload_();
+  if (!p) return ['the resources payload could not be made — NOT checked'];
+  const { w } = await aheadBoot_({ payload: p });
+  const t = w.__t, bad = [];
+  if (!t || typeof t.STUFF !== 'function' || typeof t.RES !== 'function') return ['the finders are not reachable — NOT checked'];
+  await aheadQuiet_(t);
+  const S = t.STUFF();
+  S.q = ''; S.filters = [{ field: 'kindLabel', value: 'Practical' }];
+  w.paintFinder_('stuff');
+  await aheadQuiet_(t);
+  const lo = t.pageLo().stuff || 0;
+  const marks = () => [...w.document.querySelectorAll('#s-stuff > .page.is-res')].map(el => (el.dataset.filled || '-') + (el.FIND_AT ? el.FIND_AT.ask : ''));
+  const before = JSON.stringify(marks());
+  /* BY TIME, NOT BY POSITION: the log is a ring of the last two hundred slices. */
+  const t0 = w.performance.now();
+  if (!resAsk_(w)) return ['the Resources column has no boxing shelf to fill — NOT checked'];
+  await aheadQuiet_(t);
+  const resFills = t.aheadLog().filter(x => x.t >= t0 && /^fill:res:/.test(x.key)).length;
+  if (!resFills) bad.push('the builder filled nothing in the Resources window, so the binding was NOT exercised');
+  /* AND WHAT IT CLAIMED IS DRAWN: a slice is logged whether or not its fill wrote anything, so a fill run
+     outside the binding (reading Find's ask, finding it changed, and returning) was logged as a fill and
+     passed (M14, docs/history/341). Every Resources page in its window is drawn, once it is quiet. */
+  const resPages = [...w.document.querySelectorAll('#s-res > .page.is-res')];
+  const unfilled = resPages.filter(el => el.dataset.filled !== '1').length;
+  if (!resPages.length) bad.push('the Resources column holds no result pages, so nothing was asked');
+  else if (unfilled) bad.push(unfilled + ' of the ' + resPages.length + ' Resources pages in its window are still empty once the builder is quiet');
+  if (t.STUFF() !== S) bad.push('Find\'s state object was replaced while the Resources window filled');
+  if (JSON.stringify(t.STUFF().filters) !== JSON.stringify([{ field: 'kindLabel', value: 'Practical' }])) bad.push('Find\'s chips changed while the Resources window filled: ' + JSON.stringify(t.STUFF().filters));
+  if ((t.pageLo().stuff || 0) !== lo) bad.push('Find\'s window moved while the Resources window filled');
+  if (JSON.stringify(marks()) !== before) bad.push('Find\'s pages changed while the Resources window filled');
+  return bad;
+});
+
+check('every screen draws the same markup twice from the same facts — a landing can only skip a column if that is true', async () => {
+  const { w } = boot();
+  for (let i = 0; i < 80 && !w.__t; i++) await wait(25);
+  await wait(600);
+  const t = w.__t, bad = [];
+  if (!t || typeof t.screenDraw !== 'function') return ['the screens are not reachable — NOT checked'];
+  for (const who of [null, SAM_]) {
+    t.USER(who);
+    t.TABS.forEach(x => {
+      let a, b;
+      try { a = t.screenDraw(x.id); b = t.screenDraw(x.id); } catch (e) { bad.push(x.id + ' threw: ' + e.message); return; }
+      if (a !== b) {
+        let i = 0; while (i < a.length && a[i] === b[i]) i++;
+        bad.push((who ? 'signed in' : 'signed out') + ', ' + x.id + ' drew different markup twice, first at ' + i + ': ' + JSON.stringify(String(a).slice(Math.max(0, i - 30), i + 40)));
+      }
+    });
+  }
+  t.USER(null);
+  return bad;
+});
+
+check('a landing that changes nothing writes nothing — every element of a column off the glass is the one it was, and its mark is cleared; after a press the next landing writes it', async () => {
+  const { w } = boot();
+  for (let i = 0; i < 80 && !w.__t; i++) await wait(25);
+  await wait(600);
+  const t = w.__t, bad = [];
+  if (!t || typeof t.paint !== 'function') return ['paint is not reachable — NOT checked'];
+  t.go('feed', false, true); await wait(LEAVE_MS); await woken_();
+  const cols = ['tools', 'account', 'spotlight'].filter(id => w.document.getElementById('s-' + id) && id !== t.AT() && t.glass().cols.indexOf(id) === -1);
+  if (!cols.length) return ['no column off the glass to ask about — NOT checked'];
+  cols.forEach(id => t.paint(id));
+  const kids = id => [...w.document.querySelectorAll('#s-' + id + ' *')];
+  const was = {}; cols.forEach(id => { was[id] = kids(id); });
+  /* THE LANDING MARKS, AND THE COLUMN IS DRAWN AS THE BUILDER OR AN ARRIVAL WOULD DRAW IT — `paint`, not fresh. */
+  t.landRepaint();
+  cols.forEach(id => {
+    if (!t.stale(id)) bad.push(id + ' was not marked by the landing at all, so this asked nothing');
+    t.paint(id);
+    if (t.stale(id)) bad.push(id + ' is still marked after it was drawn (it should be answered by writing nothing)');
+    const now = kids(id);
+    if (now.length !== was[id].length || now.some((el, i) => el !== was[id][i])) bad.push(id + ' was written by a landing that changed nothing');
+  });
+  /* BUT A `repaint()`'S MARK OF 1 ALWAYS WRITES, with nothing pressed and nothing changed. The skip is a
+     landing's (`'maybe'`); `repaint()` is asked for by code that means "draw it again" — and the journey
+     at "a repaint and then an arrival" could not tell the two apart, because the column it arrives at
+     still holds the boot's markup and so is never skipped (M13, docs/history/341, was green there). */
+  const r = cols[cols.length - 1];
+  const rWas = kids(r);
+  t.repaint();
+  if (!t.stale(r)) bad.push(r + ' was not marked by a repaint at all, so this asked nothing');
+  t.paint(r);
+  if (kids(r)[0] === rWas[0]) bad.push('a repaint\'s mark of 1 kept ' + r + ' as it was — the identical-markup skip is a landing\'s, never a repaint\'s');
+  /* AND AFTER A PRESS, THE NEXT LANDING WRITES: a press can have edited the column in place. */
+  try { t.ACTIONS['filter-clear'](w.document.createElement('button')); } catch (e) {}
+  t.landRepaint();
+  const id = cols[0];
+  t.paint(id);
+  if (kids(id)[0] === was[id][0]) bad.push('after a press the next landing kept ' + id + ' as it was — a press can have edited it in place');
+  return bad;
+});
+
+check('a column\'s page count follows its pages: a reel appended and a paint are both counted', async () => {
+  const { w } = boot();
+  for (let i = 0; i < 80 && !w.__t; i++) await wait(25);
+  await wait(600);
+  const t = w.__t, bad = [];
+  if (!t || typeof t.reelMore !== 'function') return ['the reels are not reachable — NOT checked'];
+  t.go('reel', false, true); await wait(LEAVE_MS); await woken_();
+  const count = () => w.document.querySelectorAll('#s-reel > .page').length;
+  const a = t.pageCount('reel');
+  if (a !== count()) bad.push('the count says ' + a + ' and the column holds ' + count() + ' pages');
+  t.reelMore(2);
+  const b = t.pageCount('reel');
+  if (b !== count()) bad.push('after two reels appended the count says ' + b + ' and the column holds ' + count());
+  if (b === a && count() !== a) bad.push('the count did not move when reels were appended');
+  t.paint('reel');
+  const c = t.pageCount('reel');
+  if (c !== count()) bad.push('after a paint the count says ' + c + ' and the column holds ' + count());
+  return bad;
+});
+
+/* ==================================================================================================
+   AFTER THE REVIEW OF 12 OCT (docs/history/341, "After review"): what three reviewers found the builder's
+   journeys above could not see. Each was red on the reviewed tree, or is red when its mechanism is taken
+   out, and each says which.
+================================================================================================== */
+/* THE 76-QUESTION PAPER the swipe checks run Find down (check/swipe.js), served as the library — a window of
+   results long enough to have pages either side of the one in front, past the window's edge. */
+const paper2F_ = () => {
+  const lib = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const rows = lib.filter(r => r.paper_id === 'P-AQA-8461-2406-2F');
+  return { rows, serve: url => (/data\/questions\.json/.test(url) ? rows : undefined), ask: [{ field: 'paperId', value: 'P-AQA-8461-2406-2F' }] };
+};
+/* EVERY SLICE THAT ASKS THE NETWORK, by the job it was running — `fetch` is the window's, so a wrapper put
+   there after boot sees every ask the app makes from then on. */
+const aheadNet_ = (w, t) => {
+  const out = [];
+  const f0 = w.fetch;
+  w.fetch = function (url, o) {
+    const k = t.aheadRunning();
+    if (k) {
+      let what = String(url);
+      try { if (o && o.body) what = JSON.parse(o.body).action || what; } catch (e) {}
+      out.push({ key: String(k), what });
+    }
+    return f0.apply(this, arguments);
+  };
+  return out;
+};
+
+check('a landing never deals a reel twice: the reels topped up in the quiet and landed on three times are each there once, and the count is the column', async () => {
+  /* REVIEW, 12 Oct: the identical-markup skip kept a reel column the builder had appended to, after the reel
+     draw had counted its reels from nought — every landing added six repeats, without end, and from page
+     thirteen the clip started was off the glass. An append nulls the column's drawing (`reelMore_`). */
+  const { w } = await aheadBoot_();
+  const t = w.__t, bad = [];
+  if (!t || typeof t.landRepaint !== 'function') return ['landRepaint_ is not reachable — NOT checked'];
+  t.USER(SAM_); t.go('feed', false, true); t.repaint();
+  await aheadQuiet_(t);
+  const reels = () => [...w.document.querySelectorAll('#s-reel > .page .reel[data-reel]')].map(el => Number(el.dataset.reel));
+  const n0 = reels().length;
+  if (n0 < 13) bad.push('the quiet left ' + n0 + ' reels in the column — it keeps twelve past the one in front (so the top-up this asks about never ran)');
+  for (let k = 0; k < 3; k++) {
+    t.landRepaint();
+    await aheadQuiet_(t);
+    const got = reels();
+    const dup = got.filter((v, i) => got.indexOf(v) !== i);
+    if (dup.length) { bad.push('after landing ' + (k + 1) + ' the column deals reel(s) ' + [...new Set(dup)].join(', ') + ' twice: ' + got.join(',')); break; }
+    if (got.some((v, i) => v !== i)) { bad.push('after landing ' + (k + 1) + ' the reels run ' + got.join(',') + ' — not one after another from nought'); break; }
+    const pages = w.document.querySelectorAll('#s-reel > .page').length;
+    if (t.pageCount('reel') !== pages) { bad.push('after landing ' + (k + 1) + ' the count says ' + t.pageCount('reel') + ' and the column holds ' + pages + ' pages'); break; }
+  }
+  t.USER(null);
+  return bad;
+});
+
+check('nothing drawn ahead asks the network: three repaints with the builder on send no messages ask, and no slice sends anything', async () => {
+  /* REVIEW, 12 Oct: the Messages column's draw asks for the inbox (`dmSync_`), and the builder drew it after
+     every repaint and landing for nobody — one POST each, where base asked none. Drawn ahead it asks nothing
+     now (`dmAsk_`, posts.js), and the inbox the payload fetched is its first answer. AND NO SLICE ASKS
+     ANYTHING: the one job that is meant to (the chosen book of the Bible) is an admin's, and nobody here is. */
+  const { w, sent } = await aheadBoot_({ before: x => { try { x.localStorage.setItem('familyUser', JSON.stringify(SAM_)); } catch (e) {} } });
+  const t = w.__t, bad = [];
+  if (!t || typeof t.aheadRunning !== 'function') return ['the builder\'s running job is not reachable — NOT checked'];
+  if (!(t.whoami() && t.whoami().personId === 'P9')) return ['Sam was not signed in at boot — NOT checked'];
+  await aheadQuiet_(t);
+  const asks = () => sent.filter(b => b && b.action === 'messages').length;
+  if (!asks()) bad.push('the payload\'s own inbox ask was never made, so the count below proves nothing');
+  const n0 = asks();
+  const net = aheadNet_(w, t);
+  for (let k = 0; k < 3; k++) {
+    t.dmLast0();
+    t.repaint();
+    await aheadQuiet_(t);
+  }
+  if (asks() > n0) bad.push('three repaints sent ' + (asks() - n0) + ' messages ask(s) with nobody on Messages — the builder\'s draw asked');
+  if (net.length) bad.push(net.length + ' ask(s) from inside a builder slice: ' + net.slice(0, 4).map(x => x.key + ' → ' + x.what).join(', '));
+  if (!t.aheadLog().some(x => x.key === 'paint:dm')) bad.push('the builder never drew Messages, so this asked nothing');
+  const dm = w.document.getElementById('s-dm');
+  if (dm && !dm.textContent.trim() && dm.querySelector('.loading')) bad.push('Messages is still the loader after the quiet, with the inbox answered');
+  t.USER(null);
+  return bad;
+});
+
+check('signing out puts away every drawing the last person had, including the ones the next person has no slot for: an admin\'s tools and her stars', async () => {
+  /* REVIEW, 12 Oct: the re-veil at a change of person walked the NEW person's widgets, so the admin's flyer
+     maker, availability and uploads on Tools, and every star on Saved (which a sign-out clears), kept her
+     drawing for 8–15s at 4x. It walks every slot on the column now (`widgetsReveil_`). */
+  const admin = { name: 'Test Admin', personId: 'P001', person_id: 'P001', role: 'admin', roles: ['admin'], token: 't-adm' };
+  const { w } = await aheadBoot_({ before: x => { try {
+    x.localStorage.setItem('familyUser', JSON.stringify(admin));
+    x.localStorage.setItem('favs', JSON.stringify(['w:calculator', 'w:notepad']));
+  } catch (e) {} } });
+  const t = w.__t, bad = [];
+  if (!t || typeof w.signedOut_ !== 'function') return ['signedOut_ is not reachable — NOT checked'];
+  t.go('feed', false, true); t.repaint();
+  await aheadQuiet_(t);
+  const ask = [['tools', 'flyers'], ['saved', 'calculator'], ['saved', 'notepad']];
+  const drawn = ask.filter(([c, id]) => { const sl = t.slotOn(c, id); return sl && !sl.getAttribute('aria-busy') && sl.WHO === 'P001'; });
+  if (drawn.length < ask.length) { return ['not every slot was drawn ahead for the admin (' + drawn.map(x => x.join(':')).join(', ') + ') — NOT checked']; }
+  w.signedOut_();
+  ask.forEach(([c, id]) => {
+    const sl = t.slotOn(c, id);
+    if (sl && !sl.getAttribute('aria-busy') && sl.WHO === 'P001') bad.push('the ' + id + ' drawn for the admin on ' + c + ' is still drawn after signing out');
+  });
+  return bad;
+});
+
+check('a column marked stale by a press with no finger lifted — a star from the keyboard — is drawn in the quiet all the same', async () => {
+  /* REVIEW, 12 Oct: six places marked `STALE` themselves, and the builder runs nothing periodic — so a star
+     pressed without a `pointerup` left thirteen columns stale for good, and every wait for quiet timed out.
+     They mark through `markStale_` now, which kicks. */
+  const { w } = await aheadBoot_();
+  const t = w.__t, bad = [];
+  if (!t || typeof t.aheadKick !== 'function') return ['the builder is not reachable — NOT checked'];
+  t.USER(SAM_); t.go('tools', false, true); t.repaint();
+  await aheadQuiet_(t);
+  const star = w.document.createElement('button');
+  star.setAttribute('data-key', 'w:timer'); star.setAttribute('data-kind', 'widget');
+  t.ACTIONS.fav(star);
+  if (!t.TABS.some(x => x.id !== t.AT() && t.stale(x.id))) bad.push('the star marked nothing stale, so this asked nothing');
+  if (!(await aheadQuiet_(t, 60000))) bad.push('the builder never went quiet after the star — nothing kicked it');
+  const stale = t.TABS.map(x => x.id).filter(id => t.stale(id));
+  if (stale.length) bad.push('still stale after the star and the quiet: ' + stale.join(', '));
+  t.USER(null);
+  return bad;
+});
+
+check('a sideways landing in the first seconds after a load draws every column it shows: none is left on the boot\'s loader, on a phone or a wide window', async () => {
+  /* REVIEW, 12 Oct: the first payload draws the column in front and the glass, and leaves the rest on the
+     boot's loader for the builder — which a hand that keeps moving never lets run. A sideways landing then
+     showed columns still on that loader (Reels and Find at 1280, 2–11s of it). `go` draws them now
+     (`bootGlass_`). Held, so this asks the arrival and nothing else. */
+  const bad = [];
+  for (const wide of [false, true]) {
+    const { w } = boot(wide ? { before: x => { x.matchMedia = q => ({ matches: /min-width/.test(String(q)), addEventListener() {}, removeEventListener() {} }); } } : {});
+    for (let i = 0; i < 80 && !w.__t; i++) await wait(25);
+    await wait(600);
+    const t = w.__t;
+    const say = wide ? 'wide' : 'phone';
+    if (!t || typeof t.PRE_PAYLOAD !== 'function') { bad.push(say + ': the boot\'s columns are not reachable — NOT checked'); continue; }
+    if (!t.PRE_PAYLOAD().length) { bad.push(say + ': no column was left on the boot\'s markup, so nothing was asked'); continue; }
+    const ids = t.TABS.map(x => x.id);
+    const to = ids[Math.min(ids.length - 2, ids.indexOf(t.AT()) + 4)];
+    t.go(to, false);
+    await wait(LEAVE_MS);
+    const ti = ids.indexOf(t.AT());
+    const shown = wide ? t.glass().cols : [ids[ti - 1], ids[ti + 1]].filter(Boolean);
+    if (wide && shown.length < 2) bad.push(say + ': the glass shows ' + shown.length + ' column(s) at ' + to + ', so nothing beside it was asked');
+    const left = shown.filter(id => id !== t.AT() && t.PRE_PAYLOAD().indexOf(id) !== -1);
+    if (left.length) bad.push(say + ': landed on ' + t.AT() + ' and ' + left.join(', ') + ' — on the glass' + (wide ? '' : ', the peek') + ' — still hold the boot\'s loader');
+  }
+  return bad;
+});
+
+check('a landing that changes nothing keeps the column in front, and an arrival after it keeps the column it arrives at; after a press, or with widgets in front, it is drawn again', async () => {
+  /* REVIEW, 12 Oct: the identical-markup skip was never for the column in front, so a landing redrew the Feed
+     from nothing (its pictures gone for 120ms and more) and an arrival that beat the builder wrote the whole
+     column inside the release. Both take the skip now, for a column with no widgets (`paint`, `repaint`). */
+  const { w } = boot();
+  for (let i = 0; i < 80 && !w.__t; i++) await wait(25);
+  await wait(600);
+  const t = w.__t, bad = [];
+  if (!t || typeof t.landRepaint !== 'function') return ['landRepaint_ is not reachable — NOT checked'];
+  const kids = id => [...w.document.querySelectorAll('#s-' + id + ' *')];
+  const same = (a, b) => a.length === b.length && a.every((el, i) => el === b[i]);
+  t.go('feed', false, true); await wait(LEAVE_MS); await woken_();
+  /* 1. THE COLUMN IN FRONT, A LANDING WITH NOTHING NEW: kept. */
+  const f0 = kids('feed'), p0 = t.paints().feed || 0;
+  t.landRepaint();
+  if ((t.paints().feed || 0) !== p0 || !same(kids('feed'), f0)) bad.push('a landing that changed nothing wrote the Feed in front again');
+  /* 2. AFTER A PRESS: written. */
+  try { t.ACTIONS['filter-clear'](w.document.createElement('button')); } catch (e) {}
+  t.landRepaint();
+  if ((t.paints().feed || 0) === p0) bad.push('after a press the next landing kept the Feed in front — a press can have edited it in place');
+  /* 3. AN ARRIVAL AFTER A LANDING THAT CHANGED NOTHING: the column arrived at is kept. */
+  t.paint('account');
+  const a0 = kids('account'), q0 = t.paints().account || 0;
+  t.landRepaint();
+  if (!t.stale('account')) bad.push('Account was not marked by the landing, so the arrival asked nothing');
+  t.go('account', false, true); await wait(LEAVE_MS); await woken_();
+  if ((t.paints().account || 0) !== q0 || !same(kids('account'), a0)) bad.push('arriving at Account after a landing that changed nothing wrote it again');
+  /* 4. A COLUMN OF WIDGETS IN FRONT IS STILL DRAWN AGAIN AT A LANDING — 331's restart. */
+  t.go('tools', false, true); await wait(LEAVE_MS); await woken_();
+  const r0 = t.paints().tools || 0;
+  t.landRepaint();
+  if ((t.paints().tools || 0) === r0) bad.push('a landing kept Tools in front — a column of widgets in front is drawn again and restarted, as it always was');
+  return bad;
+});
+
+check('a landing that brings a fact draws it: a new post is in the Feed once the column is drawn as the builder draws it', async () => {
+  /* REVIEW, 12 Oct: the identical-markup skip's own comparison (`el.DRAWN.html === html`) could be taken out
+     with every journey green — the skip would keep a column whatever the facts said. */
+  const p = payload();
+  p.posts = [1, 2].map(i => ({ id: 'PO' + i, author: '@family.', handle: '@family.', avatar: '',
+    image: '', media: [], caption: 'Post ' + i, body: '', location: '', when: '0' + i + '/09/2026',
+    at: Date.UTC(2026, 8, i), pinned: false, active: true, waiting: false, refused: false,
+    reactions: NO_REACTIONS_(), comments: { total: 0, list: [] } }));
+  const { w } = boot({ payload: p });
+  for (let i = 0; i < 80 && !w.__t; i++) await wait(25);
+  await wait(600);
+  const t = w.__t, bad = [];
+  if (!t || typeof t.landRepaint !== 'function') return ['landRepaint_ is not reachable — NOT checked'];
+  t.go('tools', false, true); await wait(LEAVE_MS); await woken_();
+  t.paint('feed');
+  if (!/Post 1/.test(w.document.getElementById('s-feed').textContent)) return ['the Feed does not show its first post, so a new one proves nothing — NOT checked'];
+  const D = t.DATA();
+  D.posts.unshift(Object.assign({}, D.posts[0], { id: 'PZ', caption: 'ZZ-new-post-landed', at: Date.UTC(2026, 8, 9), when: '09/09/2026' }));
+  t.landRepaint();
+  t.paint('feed');
+  if (!/ZZ-new-post-landed/.test(w.document.getElementById('s-feed').textContent)) bad.push('the landing brought a post and the Feed, drawn after it, does not show it — the skip kept old markup');
+  return bad;
+});
+
+check('a window drawn afresh in front is filled as far as the glass shows, both ways — not only the card in front and one either side', async () => {
+  /* REVIEW, 12 Oct: a repaint drew Find in front from nothing and filled three cards; on an iPad the pages
+     above the card in front sat on the glass as empty shells until the builder reached them. `stuffBandFill_`
+     (find.js) fills the band in the same task. jsdom lays nothing out, so the band is its floor here — what is
+     asked is that it goes both ways, at once. */
+  const P = paper2F_();
+  const { w } = boot({ serve: P.serve });
+  for (let i = 0; i < 80 && !w.__t; i++) await wait(25);
+  await wait(600);
+  const t = w.__t, bad = [];
+  if (!t || typeof t.STUFF !== 'function') return ['Find is not reachable — NOT checked'];
+  t.go('stuff', false, true); await wait(LEAVE_MS); await woken_();
+  const S = t.STUFF();
+  S.q = ''; S.filters = P.ask.slice();
+  w.paintFinder_('stuff');
+  const first = w.inFinder_(w.finderOf_('stuff'), () => w.stuffFirstResult_());
+  t.goPage('stuff', first + 6, true);
+  await wait(LEAVE_MS); await woken_();
+  t.repaint();
+  await wait(0);
+  const at = t.PAGE().stuff;
+  const host = w.document.getElementById('s-stuff');
+  const filled = i => { const el = host.querySelectorAll(':scope > .page')[t.domIndex('stuff', i)]; return !!(el && el.dataset.filled === '1'); };
+  const want = [-3, -2, 2, 3].map(d => at + d).filter(i => i >= first);
+  if (want.length < 4 || !(at > first)) return ['Find is on page ' + at + ' with its first result at ' + first + ' — the band either side was NOT asked'];
+  const empty = want.filter(i => !filled(i));
+  if (empty.length) bad.push('straight after a repaint with Find in front at page ' + at + ', pages ' + empty.join(', ') + ' are not filled — only the card in front and one either side were');
+  return bad;
+});
+
+check('the builder waits for the hand: no slice within 400ms of a key or a pointer, none while a box has the focus, a slide or a settle runs, the page is hidden or an input is already waiting — and it carries on after each', async () => {
+  /* REVIEW, 12 Oct: every one of these gates could be taken out with every check green — jsdom sends no
+     pointer, wheel or key, J1's quiet assertion could never fail, and nothing focused a box or hid the page. */
+  const { w } = await aheadBoot_();
+  const t = w.__t, bad = [];
+  if (!t || typeof t.slideUntil !== 'function') return ['the builder\'s gates are not reachable — NOT checked'];
+  t.USER(SAM_); t.go('feed', false, true); t.repaint();
+  await aheadQuiet_(t);
+  const ran = (a, b) => t.aheadLog().filter(x => x.t >= a && x.t <= b);
+  const stale = () => t.TABS.map(x => x.id).filter(id => t.stale(id));
+  const work = () => { t.repaint(); return w.performance.now(); };
+  /* 1. A KEY EVERY 100ms FOR 1.5s, the work made a moment into it. */
+  {
+    const key = () => w.document.dispatchEvent(new w.KeyboardEvent('keydown', { bubbles: true, key: 'Shift' }));
+    key();
+    const a = w.performance.now();
+    work();
+    let last = a;
+    while (w.performance.now() - a < 1500) { key(); last = w.performance.now(); await wait(100); }
+    const under = ran(a, last + 380);
+    if (under.length) bad.push(under.length + ' slice(s) ran within 400ms of a key: ' + under.slice(0, 3).map(x => x.key + ' (quiet ' + x.quiet + 'ms)').join(', '));
+    if (!(await aheadQuiet_(t, 60000)) || stale().length) bad.push('after the keys stopped the builder did not finish: ' + stale().join(', '));
+  }
+  /* 2. A BOX WITH THE FOCUS. */
+  {
+    const box = w.document.createElement('input');
+    box.type = 'text';
+    w.document.getElementById('s-tools').appendChild(box);
+    box.focus();
+    if (w.document.activeElement !== box) bad.push('the box would not take the focus, so the typing gate was NOT asked');
+    const a = work();
+    await wait(1500);
+    const under = ran(a, w.performance.now());
+    if (under.length) bad.push(under.length + ' slice(s) ran while a box had the focus: ' + under.slice(0, 3).map(x => x.key).join(', '));
+    box.blur(); box.remove();
+    w.document.dispatchEvent(new w.Event('focusout'));
+    if (!(await aheadQuiet_(t, 60000)) || stale().length) bad.push('after the box let go the builder did not finish: ' + stale().join(', '));
+  }
+  /* 3. A TAPPED SLIDE STILL GLIDING, THEN A SETTLE. */
+  for (const [what, shut] of [['a tapped slide', u => t.slideUntil(u)], ['a settle', u => t.settleOn({ until: u })]]) {
+    const a = w.performance.now();
+    shut(a + 1500);
+    work();
+    await wait(1400);
+    const under = ran(a, a + 1500);
+    if (under.length) bad.push(under.length + ' slice(s) ran inside ' + what + ': ' + under.slice(0, 3).map(x => x.key).join(', '));
+    if (!(await aheadQuiet_(t, 60000)) || stale().length) bad.push('after ' + what + ' the builder did not finish: ' + stale().join(', '));
+    shut(0);
+  }
+  /* 4. THE PAGE HIDDEN, THEN SHOWN. */
+  {
+    let hidden = true;
+    try { Object.defineProperty(w.document, 'hidden', { get: () => hidden, configurable: true }); }
+    catch (e) { bad.push('document.hidden could not be stood in for, so the hidden gate was NOT asked'); }
+    w.document.dispatchEvent(new w.Event('visibilitychange'));
+    const a = work();
+    await wait(1500);
+    const under = ran(a, w.performance.now());
+    if (under.length) bad.push(under.length + ' slice(s) ran while the page was hidden: ' + under.slice(0, 3).map(x => x.key).join(', '));
+    if (!stale().length) bad.push('nothing was left stale while hidden, so showing the page again asked nothing');
+    hidden = false;
+    w.document.dispatchEvent(new w.Event('visibilitychange'));
+    if (!(await aheadQuiet_(t, 60000)) || stale().length) bad.push('after the page was shown again the builder did not finish: ' + stale().join(', '));
+  }
+  /* 5. AN INPUT THE BROWSER HOLDS AND THE PAGE HAS NOT HEARD YET (review round 1: a third of the slow touches in
+        the first thirty seconds waited behind slices that started after they were sent). Chromium's
+        `isInputPending` is stood in for — jsdom has none — saying yes for 1.5s, then no. */
+  {
+    let pending = true;
+    try { Object.defineProperty(w.navigator, 'scheduling', { value: { isInputPending: () => pending }, configurable: true }); }
+    catch (e) { bad.push('navigator.scheduling could not be stood in for, so the waiting-input gate was NOT asked'); }
+    const a = work();
+    await wait(1500);
+    const under = ran(a, w.performance.now());
+    if (under.length) bad.push(under.length + ' slice(s) ran while an input was waiting: ' + under.slice(0, 3).map(x => x.key).join(', '));
+    if (!stale().length) bad.push('nothing was left stale while an input waited, so its going asked nothing');
+    pending = false;
+    if (!(await aheadQuiet_(t, 60000)) || stale().length) bad.push('after the input was handled the builder did not finish: ' + stale().join(', '));
+    try { delete w.navigator.scheduling; } catch (e) {}
+  }
+  t.USER(null);
+  return bad;
+});
+
+check('the first slices after the screen is up need their quiet too, a column\'s first draw from a payload waits a whole second of it, and the device remembers what was slow', async () => {
+  /* REVIEW, 12 Oct: the quiet was measured from nothing (`AHEAD.input` 0), so the first slices after the splash
+     ran at once; and `AHEAD_SLOW` started empty, so every heavy first draw ran after 400ms. The quiet starts
+     when the builder opens, a column's first draw from a payload is slow until timed, and the slow bit is kept
+     on the device (`familyAheadSlow`). */
+  const b = boot({ ahead: true, before: x => { try { x.localStorage.setItem('familyAheadSlow', JSON.stringify(['paint:account'])); } catch (e) {} } });
+  const w = b.w;
+  for (let i = 0; i < 400 && !w.__t; i++) await wait(5);
+  const t = w.__t, bad = [];
+  if (!t || typeof t.aheadOpened !== 'function') return ['the builder\'s opening is not reachable — NOT checked'];
+  const kept = t.aheadSlow();
+  await aheadQuiet_(t);
+  const opened = t.aheadOpened();
+  const log = t.aheadLog().filter(x => x.t >= opened);
+  if (!opened || !log.length) return ['the builder never opened or never ran — NOT checked'];
+  if (log[0].t - opened < 390) bad.push('the first slice ran ' + Math.round(log[0].t - opened) + 'ms after the builder opened — it needs 400ms of quiet like any other');
+  /* AND THE QUIET IT COUNTED STARTS NO EARLIER THAN THE OPENING: jsdom sends no input, so a quiet counted from
+     nothing is the whole time since the page began (and `afterSlide_`'s own jobs delay the first slice enough
+     that the line above alone cannot tell — the mutation that took the opening's clock out stayed green on it). */
+  if (log[0].quiet > log[0].t - opened + 50) bad.push('the first slice counted ' + log[0].quiet + 'ms of quiet ' + Math.round(log[0].t - opened) + 'ms after the builder opened — the quiet was counted from before the screen was up');
+  const firstPaints = {};
+  log.forEach(x => { if (/^paint:/.test(x.key) && !firstPaints[x.key]) firstPaints[x.key] = x; });
+  const hurried = Object.values(firstPaints).filter(x => x.quiet < 990);
+  if (!Object.keys(firstPaints).length) bad.push('no column was drawn by the builder after the first payload, so nothing was asked');
+  if (hurried.length) bad.push('a column\'s first draw from the payload ran after less than a second of quiet: ' + hurried.slice(0, 4).map(x => x.key + ' ' + x.quiet + 'ms').join(', '));
+  /* AND WHAT THE DEVICE KEPT: read in before any slice (`kept`, at boot), and written back as it was learned —
+     Account, slow last visit, was timed again on this one and the device holds what it found. */
+  if (kept.indexOf('paint:account') === -1) bad.push('the slow bit kept on the device (paint:account) was not read in at boot: ' + JSON.stringify(kept));
+  const mem = t.aheadSlow().filter(k => /^(paint|widget):/.test(k)).sort();
+  let disk = null;
+  try { disk = JSON.parse(w.localStorage.getItem('familyAheadSlow') || 'null'); } catch (e) {}
+  if (!Array.isArray(disk) || JSON.stringify(disk.slice().sort()) !== JSON.stringify(mem)) bad.push('the device keeps ' + JSON.stringify(disk) + ' and the builder learned ' + JSON.stringify(mem) + ' — what was learned was not written back');
+  return bad;
+});
+
+check('a column\'s first draw from a payload waits a whole second of quiet even when nothing else is in its way', async () => {
+  /* REVIEW ROUND 1, 12 Oct: the journey above asks this of the first slices after the screen comes up — and once
+     `afterSlide_` counted its own jobs as booked until the last had run, those jobs alone kept the builder shut
+     past a second, so taking the cold rule out (`j.cold`) left it green. Here nothing else is in the way: the
+     builder held through the landing, every column but the one in front still on the boot's markup, then a key
+     and the hold let go. The first of those columns drawn must have waited a second since the key. */
+  const b = boot({ ahead: true, before: x => { x.__aheadHold = true; } });
+  const w = b.w;
+  for (let i = 0; i < 400 && !w.__t; i++) await wait(5);
+  const t = w.__t, bad = [];
+  if (!t || typeof t.PRE_PAYLOAD !== 'function') return ['the builder is not reachable — NOT checked'];
+  for (let i = 0; i < 200 && !t.afterIdle(); i++) await wait(25);
+  await wait(300);
+  const cold = t.PRE_PAYLOAD().filter(id => t.stale(id) && id !== t.AT());
+  if (!cold.length) return ['no column was left on the boot\'s markup, so nothing was asked — NOT checked'];
+  w.document.dispatchEvent(new w.KeyboardEvent('keydown', { bubbles: true, key: 'Shift' }));
+  const k = w.performance.now();
+  w.__aheadHold = false;
+  t.aheadKick();
+  for (let i = 0; i < 200 && !t.aheadLog().some(x => x.t >= k && /^paint:/.test(x.key) && cold.indexOf(x.key.slice(6)) !== -1); i++) await wait(25);
+  const first = t.aheadLog().find(x => x.t >= k && /^paint:/.test(x.key) && cold.indexOf(x.key.slice(6)) !== -1);
+  if (!first) return ['the builder drew none of the columns on the boot\'s markup — NOT checked'];
+  if (first.t - k < 990) bad.push(first.key + ', a first draw from the payload, ran ' + Math.round(first.t - k) + 'ms after a key — it waits a second');
+  return bad;
+});
+
+check('a finder drawn for nobody is filled inside the builder\'s slices: no card of it is built outside one', async () => {
+  /* REVIEW, 12 Oct: the finder's draw queued its own fill as a microtask, which ran after the builder's slice had
+     ended and outside the time it measured — 2.7s of one idle callback against 1.6s logged. Drawn ahead, it is
+     filled by the builder. */
+  const P = paper2F_();
+  const { w } = await aheadBoot_({ serve: P.serve });
+  const t = w.__t, bad = [];
+  if (!t || typeof t.finder !== 'function') return ['the finders are not reachable — NOT checked'];
+  t.go('feed', false, true);
+  await aheadQuiet_(t);
+  /* AN ASK, so Find has a window of results to fill — with nothing asked a finder is its question alone. Made once
+     the builder has drawn Find from the payload, so it lands on Find's own question and not the boot's loader. */
+  const S = t.STUFF();
+  S.q = ''; S.filters = P.ask.slice();
+  w.paintFinder_('stuff');
+  await aheadQuiet_(t);
+  if (!w.document.querySelectorAll('#s-stuff > .page.is-res').length) return ['Find holds no result pages for the paper, so nothing was asked — NOT checked'];
+  let outside = 0, inside = 0;
+  const f0 = w.stuffFillOne_;
+  w.stuffFillOne_ = function () {
+    const r = f0.apply(this, arguments);
+    if (r && t.finder() !== t.AT() && t.glass().cols.indexOf(t.finder()) === -1) { if (t.aheadRunning()) inside++; else outside++; }
+    return r;
+  };
+  t.repaint();
+  await aheadQuiet_(t);
+  w.stuffFillOne_ = f0;
+  if (!t.aheadLog().some(x => x.key === 'paint:stuff')) bad.push('the builder never drew Find, so this asked nothing');
+  if (outside) bad.push(outside + ' card(s) of a finder nobody is looking at were built outside a builder slice — after it, unmeasured');
+  if (!inside) bad.push('no card of a finder off the glass was built by the builder, so this asked nothing');
+  return bad;
+});
+
+check('a finder drawn for nobody after a landing is warmed a step a slice before its paint, each step in its own binding, and its paint builds no list', async () => {
+  /* REVIEW ROUND 1, 12 Oct (the first thirty seconds, measured again): Find's first draw from a payload was one
+     slice of 285–470ms at 4x, and almost none of it was the draw — the list, its sort keys, the sort and the first
+     question's tally, every one a memo. The builder asks those first, one slice each (`stuffWarmJobs_`, find.js),
+     so the paint left is the markup. Asked here: after a landing that brings a NEW payload (a real `load()`), each
+     finder off the glass is warmed — every step, in order, before its paint — each step inside that finder's own
+     binding (329), and the paint itself builds no list: the list is built in the warm. */
+  const P = paper2F_();
+  const { w } = await aheadBoot_({ serve: P.serve });
+  const t = w.__t, bad = [];
+  if (!t || typeof t.finder !== 'function' || typeof w.load !== 'function') return ['the finders or load() are not reachable — NOT checked'];
+  t.go('feed', false, true);
+  await aheadQuiet_(t);
+  const builds = [];
+  const b0 = w.stuffItemsBuild_;
+  w.stuffItemsBuild_ = function () { builds.push({ key: String(t.aheadRunning() || ''), finder: t.finder() }); return b0.apply(this, arguments); };
+  const D0 = t.DATA();
+  const a = w.performance.now();
+  w.load();
+  for (let i = 0; i < 400 && t.DATA() === D0; i++) await wait(25);
+  if (t.DATA() === D0) { w.stuffItemsBuild_ = b0; return ['load() brought no new payload, so nothing was asked — NOT checked']; }
+  await aheadQuiet_(t);
+  w.stuffItemsBuild_ = b0;
+  const log = t.aheadLog().filter(x => x.t >= a);
+  ['stuff', 'res'].forEach(fid => {
+    if (!t.TABS.some(x => x.id === fid)) return;
+    const paintAt = log.findIndex(x => x.key === 'paint:' + fid);
+    if (paintAt < 0) { bad.push('the builder never drew ' + fid + ' after the landing, so nothing was asked of it'); return; }
+    const steps = log.slice(0, paintAt).filter(x => x.key.indexOf('warm:' + fid + ':') === 0).map(x => +x.key.split(':')[2]);
+    if (steps.join() !== '0,1,2,3') bad.push(fid + ' was painted after warm steps [' + steps.join(',') + '] — every step, in order, comes before the paint');
+    const inPaint = builds.filter(x => x.key === 'paint:' + fid).length;
+    if (inPaint) bad.push(fid + '\'s paint built its list ' + inPaint + ' time(s) — the warm had not built it');
+  });
+  const wrong = builds.filter(x => /^warm:/.test(x.key) && x.key.split(':')[1] !== x.finder);
+  if (wrong.length) bad.push('a warm step ran outside its own finder\'s binding: ' + wrong.slice(0, 3).map(x => x.key + ' bound to ' + x.finder).join(', '));
+  if (!builds.some(x => /^warm:/.test(x.key))) bad.push('no warm step built a list, so the warm did nothing');
+  return bad;
+});
+
+check('a card the builder fills ahead of the card in front asks for its pictures as one the placement saw: nothing lazy from two behind to six ahead, at rest', async () => {
+  /* REVIEW ROUND 1, 12 Oct, found re-running check/reach.js: "res page 7 (in front 1) is still lazy" on the Boxing
+     shelf at 390. The column in front asks for its pictures six pages ahead IN THE PLACEMENT (`picsAhead_`), and
+     a card the builder fills after that placement — every card past the band on a fresh window — kept `lazy`
+     until something placed the column again. jsdom lays nothing out, so the band is its floor of one either side
+     and every card past it is the builder's: exactly that case, every time. AND jsdom HAS NO `img.loading`, so it
+     is stood in for as the attribute it reflects — without it nothing the app writes there is ever seen. */
+  const p = await resPayload_();
+  if (!p) return ['the resources payload could not be made — NOT checked'];
+  const reflect = x => { try { Object.defineProperty(x.HTMLImageElement.prototype, 'loading', { configurable: true,
+    get() { return this.getAttribute('loading') || 'auto'; }, set(v) { this.setAttribute('loading', String(v)); } }); } catch (e) {} };
+  const { w } = await aheadBoot_({ payload: p, before: reflect });
+  const t = w.__t, bad = [];
+  if (!t || typeof t.domIndex !== 'function') return ['the builder is not reachable — NOT checked'];
+  if (!resAsk_(w)) return ['the Resources column has no boxing shelf to fill — NOT checked'];
+  t.go('res', false, true);
+  await aheadQuiet_(t);
+  /* THE CARDS FOUR TO SIX AHEAD EMPTIED AND LEFT TO THE BUILDER — filled again in the quiet with nothing placing
+     the column after, which is the case: jsdom places the column often enough on the way in (the trail's end,
+     the window's centring) that a first fill alone did not show it. */
+  const pages = () => [...w.document.querySelectorAll('#s-res > .page')];
+  const k = t.domIndex('res', t.PAGE().res || 0);
+  const ahead = [4, 5, 6].map(d => pages()[k + d]).filter(pg => pg && pg.dataset.filled === '1' && pg.querySelector('img'));
+  if (!ahead.length) return ['no filled card with a picture four to six ahead of the card in front, so nothing was asked — NOT checked'];
+  ahead.forEach(pg => w.stuffBlank_(pg));
+  t.aheadKick();
+  await aheadQuiet_(t);
+  const back = ahead.filter(pg => pg.dataset.filled === '1');
+  if (back.length !== ahead.length) return ['the builder did not fill the emptied cards again, so nothing was asked — NOT checked'];
+  const lazy = back.filter(pg => pg.querySelector('img[loading="lazy"]')).map(pg => pages().indexOf(pg) - k);
+  if (lazy.length) bad.push('at rest, the cards ' + lazy.map(d => '+' + d).join(', ') + ' from the one in front, filled by the builder after the last placement, still hold a lazy picture');
+  return bad;
+});
+
+check('everything booked after a slide counts as booked until the last of it has run, and no builder slice runs between its jobs', async () => {
+  /* REVIEW ROUND 1, 12 Oct: `afterSlide_` runs its jobs one per task and said "nothing booked" from before the
+     first of them — so the builder's gate ("work for the glass goes first") and every check's quiet were told
+     the slide's work was done while it was still running. Found through the word-game journeys under load
+     (the job that stops a round left behind was four tasks away when the check looked). Five jobs of 60ms
+     each, booked after a repaint with the builder on: each must see the chain as still booked, and no slice
+     may start between the first and the last. */
+  const { w } = await aheadBoot_();
+  const t = w.__t, bad = [];
+  if (!t || typeof t.afterIdle !== 'function' || typeof w.afterSlide_ !== 'function') return ['the after-slide list is not reachable — NOT checked'];
+  t.USER(SAM_); t.go('feed', false, true); t.repaint();
+  await aheadQuiet_(t);
+  t.repaint();
+  const seen = [];
+  const busy = ms => { const e = w.performance.now() + ms; while (w.performance.now() < e) { /* the job's own work */ } };
+  for (let i = 0; i < 5; i++) w.afterSlide_(() => { seen.push({ i, t: w.performance.now(), idle: t.afterIdle() }); busy(60); }, 'chain-' + i);
+  for (let k = 0; k < 200 && seen.length < 5; k++) await wait(25);
+  if (seen.length < 5) return ['only ' + seen.length + ' of the five jobs ran — NOT checked'];
+  const early = seen.filter(x => x.idle).map(x => x.i);
+  if (early.length) bad.push('job(s) ' + early.join(', ') + ' of five ran with the list already saying nothing was booked');
+  const a = seen[0].t, b = seen[4].t;
+  const between = t.aheadLog().filter(x => x.t > a && x.t < b);
+  if (between.length) bad.push(between.length + ' builder slice(s) ran between the jobs of one slide: ' + between.slice(0, 3).map(x => x.key).join(', '));
+  if (!(await aheadQuiet_(t, 60000))) bad.push('the builder did not finish after the chain');
+  t.USER(null);
+  return bad;
+});
+
+check('the reels are kept six ahead at every turn and twelve ahead after the quiet', async () => {
+  /* REVIEW, 12 Oct: 7/6/6, the one-slide append in a turn and the builder's top-up could all be reverted with
+     every check green. */
+  const { w } = await aheadBoot_();
+  const t = w.__t, bad = [];
+  if (!t || typeof t.pageCount !== 'function') return ['the reels are not reachable — NOT checked'];
+  t.go('reel', false, true);
+  await aheadQuiet_(t);
+  const pages = () => w.document.querySelectorAll('#s-reel > .page').length;
+  const at = () => t.PAGE().reel || 0;
+  if (pages() - 1 - at() < 12) bad.push('after the quiet the reels hold ' + (pages() - 1 - at()) + ' past the one in front — twelve are kept');
+  w.__aheadHold = true;
+  for (let k = 0; k < 14; k++) {
+    t.goPage('reel', at() + 1);
+    if (pages() - 1 - at() < 6) { bad.push('after turning to reel ' + at() + ' only ' + (pages() - 1 - at()) + ' are ahead — six are kept in a turn'); break; }
+  }
+  w.__aheadHold = false;
+  return bad;
+});
+
+check('the quiet puts a finder\'s window where a run needs it: the card in front thirteen or fourteen from the end it is leaving', async () => {
+  /* REVIEW, 12 Oct: the builder's `centre` job could be dropped with every check green — the release's slide by
+     six kept BUILT AHEAD satisfied. After a run of single turns the window has been slid, not centred; the
+     quiet centres it. */
+  const lib = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const rows = lib.filter(r => r.paper_id === 'P-AQA-8461-2406-2F');
+  const { w } = await aheadBoot_({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
+  const t = w.__t, bad = [];
+  if (!t || typeof t.stuffBehind !== 'function') return ['the window is not reachable — NOT checked'];
+  t.go('stuff', false, true);
+  const S = t.STUFF();
+  S.q = ''; S.filters = [{ field: 'paperId', value: 'P-AQA-8461-2406-2F' }];
+  w.paintFinder_('stuff');
+  await aheadQuiet_(t);
+  const first = w.inFinder_(w.finderOf_('stuff'), () => w.stuffFirstResult_());
+  const n = w.inFinder_(w.finderOf_('stuff'), () => w.stuffPages_().length);
+  if (n < 60) return ['the 2F paper is ' + n + ' page(s) on Find — this needs sixty, so it was NOT checked'];
+  w.__aheadHold = true;
+  t.goPage('stuff', first, true);
+  for (let k = 0; k < 40; k++) t.goPage('stuff', t.PAGE().stuff + 1);
+  const slid = t.pageLo().stuff || 0;
+  w.__aheadHold = false; t.aheadKick();
+  await aheadQuiet_(t);
+  const r = t.PAGE().stuff - first;
+  const want = Math.max(0, Math.min(n - t.STUFF_WIN, r - t.stuffBehind()));
+  const lo = t.pageLo().stuff || 0;
+  if (lo !== want) bad.push('after a run to result ' + r + ' and the quiet the window starts at ' + lo + ' (slid to ' + slid + ') — the quiet puts it at ' + want + ', ' + t.stuffBehind() + ' behind');
+  if (slid === want) bad.push('the run itself left the window where the quiet would, so the centring was NOT asked');
+  return bad;
+});
+
+check('a column\'s widget slots are drawn before any column further out is painted — the one beside you first, every page of it', async () => {
+  /* REVIEW, 12 Oct (a nit, and the loaders it left): a slot was as far as its column plus its pages, so Games' slots
+     eight pages down came after whole paints of columns three and four away — and the band draws those pages as a
+     slide carries them across the glass. A slot is as far as its column now (`aheadWidgetJobs_`, arcade.js). */
+  const { w } = await aheadBoot_();
+  const t = w.__t, bad = [];
+  if (!t || typeof t.aheadLog !== 'function') return ['the builder is not reachable — NOT checked'];
+  t.USER(SAM_); t.go('saved', false, true); t.go('tools', false, true);
+  await aheadQuiet_(t);
+  const a = w.performance.now();
+  t.repaint();
+  await aheadQuiet_(t);
+  const ids = t.TABS.map(x => x.id), ti = ids.indexOf('tools');
+  const log = t.aheadLog().filter(x => x.t >= a);
+  const lastGames = log.map(x => x.key).lastIndexOf(log.filter(x => /^widget:games:/.test(x.key)).map(x => x.key).pop());
+  if (lastGames < 0) return ['no widget on Games was drawn by the builder after the repaint — NOT checked'];
+  const far = log.findIndex(x => /^paint:/.test(x.key) && Math.abs(ids.indexOf(x.key.slice(6)) - ti) >= 3);
+  if (far >= 0 && far < lastGames) bad.push('the builder painted ' + log[far].key.slice(6) + ', three or more columns from Tools, before it had drawn every widget on Games beside it (' + log[lastGames].key + ' came after)');
+  t.USER(null);
+  return bad;
+});
+
+check('a chosen book of the Bible is fetched by the builder before any card of it is drawn, on a Resources column nobody is looking at', async () => {
+  /* REVIEW, 12 Oct: the builder's Bible job could be taken out with every check green. Resources marked and
+     drawn by the builder off the glass, with a book chosen and its question in front: the book is asked for by
+     the `bible` job, a slice before the first verse card is filled (which would ask for it too). The chip's
+     own prefetch was taken out — the page in front is filled in the same task as the chip, and its first verse
+     card asks (docs/history/341, "After review"). */
+  const admin = { name: 'Test Admin', personId: 'P001', person_id: 'P001', role: 'admin', roles: ['admin'], token: 't-adm' };
+  const bibleDir = path.join(dir, '..', 'data', 'bible');
+  const serve = url => {
+    const m = /(?:^|\/)data\/bible\/([a-z0-9-]+\.json)(?:\?|$)/.exec(url);
+    if (!m) return undefined;
+    const p = path.join(bibleDir, m[1]);
+    return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : null;
+  };
+  const { w } = await aheadBoot_({ serve, before: x => { try { x.localStorage.setItem('familyUser', JSON.stringify(admin)); } catch (e) {} } });
+  const t = w.__t, bad = [];
+  if (!t || typeof t.BIBLE !== 'function' || typeof w.bibleIndex_ !== 'function') return ['the Bible is not reachable — NOT checked'];
+  t.go('feed', false, true);
+  await aheadQuiet_(t);
+  try { w.bibleIndex_(); } catch (e) {}
+  for (let k = 0; k < 100 && !(t.BIBLE() && t.BIBLE().index); k++) await wait(50);
+  if (!(t.BIBLE() && t.BIBLE().index)) return ['the Bible\'s index never landed — NOT checked'];
+  t.RES().q = '';
+  t.RES().filters = [{ field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+    { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Torah' }, { field: 'bibleBook', value: 'Leviticus' }];
+  t.PAGE().res = 0;
+  /* WHO ASKED, at the moment of asking: `bibleLoad_` is where a book is asked for, and its fetch itself waits a
+     microtask (`bibleGet_`), which runs after the slice has ended. */
+  const net = [];
+  const l0 = w.bibleLoad_;
+  w.bibleLoad_ = function (n) { net.push({ n: Number(n), key: String(t.aheadRunning() || '') }); return l0.apply(this, arguments); };
+  t.repaint();
+  await aheadQuiet_(t);
+  w.bibleLoad_ = l0;
+  const lev = net.filter(x => x.n === 3);
+  if (!t.aheadLog().some(x => x.key === 'paint:res')) bad.push('the builder never drew Resources, so this asked nothing');
+  if (!lev.length) bad.push('Leviticus was never fetched after the builder drew Resources with it chosen');
+  else if (!/^bible:/.test(lev[0].key)) bad.push('Leviticus was first asked for by ' + (lev[0].key || 'nothing in a slice') + ' — the builder\'s Bible job should ask before a card of it is drawn');
   return bad;
 });
 

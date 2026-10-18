@@ -58,14 +58,21 @@
    for the life of the page — only which finder's object the name stands for. */
 let STUFF = { q: '', filters: [], whose: '' };
 
-/* ---------- TWO FINDERS, ONE ENGINE ---------------------------------------------------------------
-   THE OWNER, 10 Oct: *"i want to move everything which is in "resources" tag. i want to create a new
-   column to the right of the current finder. this new column is "finder 2". it carries resources.
-   like text books, boxing stuff books. ect."* So there are two finders: Find (`stuff`) and the second
-   finder (`res`, called Resources wherever a column is named), immediately right of it. The second
-   one is a finder like the first in every way a finger can tell — the search box, the questions as
-   chips, the cards and their pages, the swipe, the loader, the star — and it carries only the kinds
-   whose label is Resources: the textbooks, the boxers and their fights, the Bible.
+/* ---------- ONE FINDER, TWICE ---------------------------------------------------------------------
+   THE OWNER, 12 Oct: *"Also forget what I said about the finders regarding one having content and
+   other have exercises. Return to that origional finder having everything and now there is just an
+   identical second finder. Smart students will know to use this second finder to have the content up
+   while they do questions on the origional finder."* So there are two finders, Find (`stuff`) and
+   Find 2 (`res`), immediately right of it, and they are the SAME finder: both carry every item the
+   funnel offers and ask the same questions of it. What the second one is for is its own STATE — its
+   own words, chips, page and kept place — so a chapter can stay up in one column while the questions
+   on it are answered in the other.
+   IT WAS A SPLIT FOR TWO DAYS (10 to 12 Oct, docs/history/329): the second column carried only the
+   kinds whose label is Resources and Find the rest, a kinds-table rule (`resKind_`) on each finder's
+   list, links routed "to the finder that holds it" (`finderOfItem_`), an empty search that offered
+   the other column, and a kept place that dropped the other finder's chips. All of that is gone
+   (docs/history/347); the binding below is what was kept, because it is the half the owner's use
+   depends on.
 
    ONE ENGINE, NOT A COPY. The funnel is this file, and it reads `STUFF` and its memos by name at
    about a hundred places. A copy is two engines that drift; a scope threaded through every function
@@ -80,23 +87,27 @@ let STUFF = { q: '', filters: [], whose: '' };
    receipt.js and cards.js, sign-out in me.js — means Find and gets Find, and so does every check that
    pokes `STUFF` from outside. Only find.js binds, at the places a finder is drawn, pressed, filled or
    typed into: the screen draw, the funnel's handlers, the fill and the search box. So the two finders'
-   chips, words, page and place cannot reach each other.
+   chips, words, page and place cannot reach each other — which is now the only thing that makes the
+   second one worth having.
 
    WORK THAT RUNS LATER RUNS OUTSIDE THE BINDING, which is the one rule this adds. A timer, a
    microtask, an `afterSlide_` job or a promise captures its F and binds again — the late fill
    (`STUFF_LATE`), the draw's microtask, the search box's debounce, the `fill:` keys in shell.js and the
    Bible's index landing are all written that way. `afterSlide_` dedupes by key, and by function when
    there is none, so a finder's fill is booked under `'fill:' + id` or two finders' fills become one.
-
-   WHICH KIND IS A RESOURCE is the kinds table's answer, the live sheet first (`kindOf_` merges
-   `DATA.kinds`), so a kind relabelled in the sheet changes column with no deploy. See docs/history/329. */
+   AND SOMETHING THAT FORGETS "THE FOUND LIST" FORGETS EVERY FINDER'S (`finderEach_`,
+   `finderForgetFound_`): a `FIND_MEMO.key = null` written outside a binding reaches Find's alone, and
+   with both finders holding the friends, the Bible and every question, the other would go on
+   answering from the list before the change. */
 const RES_ST = { q: '', filters: [], whose: '' };
-function resKind_(x) { return !!x && (x.kindLabel || kindOf_(x).label) === 'Resources'; }
-/* A FINDER'S RECORD: who it is, what it carries, and — while it is not the bound one — its parked
-   state. `place` is the surface its kept place is filed under (`draftKeep_`); `widgets` is whether the
-   Tools tail of the fill runs (Find's alone — the second finder holds no widget to start or stop);
-   `front` the pages between the question and the results (the booking form, the posts, the bundles:
-   all Find's); `empty` what an empty database says. */
+/* A FINDER'S RECORD: who it is and — while it is not the bound one — its parked state. `place` is the
+   surface its kept place is filed under (`draftKeep_`); `widgets` is whether the Tools tail of the fill
+   runs (Find's alone — one widget started and stopped by two columns would be started twice);
+   `front` the pages between the question and the results — the booking form, the posts, the bundles —
+   FIND'S ALONE, because they are not search results: the booking form is one draft of one booking
+   (`BOOKING` is one global state), and a second copy of it one swipe along would be a second form
+   writing the same booking; `empty` what an empty database says, the same sentence in both. There is
+   no `has` any more: both finders carry everything (347). */
 const finder_ = o => Object.assign({
   items: { key: null, from: null, items: null },
   found: { key: null, from: null, items: null, total: 0 },
@@ -104,15 +115,14 @@ const finder_ = o => Object.assign({
   chips: { key: null, from: null, out: {} },
   late: 0, typing: null, tried: false,
 }, o);
+const FINDER_EMPTY = 'Nothing in the shop or the library yet.';
 const FINDERS = {
   stuff: finder_({ id: 'stuff', st: STUFF, place: 'find', widgets: true,
-                   has: x => !resKind_(x),
                    front: () => [].concat(bookingPages_(), feedPages_(), bundlePages_()),
-                   empty: 'Nothing in the shop or the library yet.' }),
+                   empty: FINDER_EMPTY }),
   res:   finder_({ id: 'res', st: RES_ST, place: 'res', widgets: false,
-                   has: resKind_,
                    front: () => [],
-                   empty: 'No resources yet.' }),
+                   empty: FINDER_EMPTY }),
 };
 let FINDER = FINDERS.stuff;
 function finderPark_(F) {
@@ -130,19 +140,21 @@ function inFinder_(F, fn) {
   try { return fn(); }
   finally { finderPark_(F); finderUnpark_(was); FINDER = was; }
 }
-/* By screen id; by the screen an element is drawn in, falling back to the column in front and then
-   Find — a handler pressed from a detached button (the checks do that) still acts on a finder; and by
-   the item, for a link into a resource from anywhere else. */
+/* By screen id; and by the screen an element is drawn in, falling back to the column in front and
+   then Find — a handler pressed from a detached button (the checks do that) still acts on a finder,
+   and a press from Saved or the Spotlight, which are no finder, acts on Find.
+   `finderOfItem_` WAS HERE — "the finder that holds this item" — and went with the split (347). With
+   both finders holding everything it could only ever answer Find, which would have hidden a decision
+   in a function's name; each of its callers now says which finder it means. */
 function finderOf_(id) { return Object.prototype.hasOwnProperty.call(FINDERS, id) ? FINDERS[id] : null; }
 function finderAt_(el) {
   const s = el && el.closest ? el.closest('.screen') : null;
   return (s && finderOf_(String(s.id).replace(/^s-/, ''))) || finderOf_(typeof AT === 'string' ? AT : '') || FINDERS.stuff;
 }
-function finderOfItem_(x) {
-  const id = Object.keys(FINDERS).find(k => FINDERS[k].has(x));
-  return id ? FINDERS[id] : FINDERS.stuff;
-}
 function finderEach_(fn) { Object.keys(FINDERS).forEach(id => inFinder_(FINDERS[id], () => fn(FINDERS[id]))); }
+/* FORGET WHAT EVERY FINDER FOUND, for a change to something both of them list — the friends (me.js),
+   whose memo `FIND_MEMO.key = null` from outside a binding cleared on Find alone. */
+function finderForgetFound_() { finderEach_(() => { FIND_MEMO.key = null; }); }
 /* A finder's state from outside, for the files that load before this one (me.js) and the checks. */
 function finderStates_() { return Object.keys(FINDERS).map(id => FINDERS[id].st); }
 function paintFinder_(id, keep) { const F = finderOf_(id); if (F) inFinder_(F, () => paintStuff(keep)); }
@@ -433,16 +445,19 @@ const KINDS = {
   /* THE BOUTS. `boxers` is who; this is what happened. 157 of them sat in the sheet unread,
      because nothing in the app had ever been told the tab existed. */
   fight: { group: 'Learning', label: 'Resources', card: x => fightCard_(x) },
-  /* ---------- THE @family. TEXTBOOK IS A RESOURCE, AND THE OWNER SAID WHERE ----------------------
-     ASKED FOR AS "the @family textbook should be bare bones for now and the textbooks will be in the
-     resources tag in the finder. first one can be gcse statistics." So it wears `Resources` beside
-     the boxers and the bouts, and the `Shelf` door below is what keeps one book from being lost
-     under 260 rows of boxing — see `shelf` in FACETS.
-
-     ONE RESULT, ONE PAGE PER CHAPTER, the way a project is one result and four pages: the card is
-     the contents, and `pageParts_` adds a page for each chapter after it. Starring the card keeps
-     the book; a chapter is a page of it, not a thing of its own. */
-  textbook: { group: 'Learning', label: 'Resources', card: x => textbookCard_(x) },
+  /* ---------- `textbook` WAS HERE, AND EACH OF ITS CHAPTERS IS A CONTENT CARD NOW -----------------
+     IT WAS ONE RESULT A BOOK, labelled `Resources` on the `@family. textbooks` shelf, with a contents
+     card and a page per chapter. THE OWNER, 12 Oct: *"for maths text book begin adding topic tags so
+     students can immediately find what they need. Forget the whole concept of it being a text book.
+     It's just a "content card" or whatever. It can share same tags as questions e.g. gcse, ks2,
+     maths."* So a chapter is ONE THING you find, the way a question is: `content`, its own answer
+     under What kind beside Questions and Practicals, carrying the question library's Subject, Level,
+     Tier and Topic in the library's own spellings (`contentItem_`), so "surds" finds the surds card
+     beside the surds questions. The shelf and the `Book` question went with the book; a kept chip on
+     either is dropped (`placeChipDead_`), and a star on a book names no item and is skipped by
+     Saved (`collItems_`). `Content` IS THE CODE'S OWN LABEL, so an empty `kinds` tab still says it.
+     See docs/history/347, part 2. */
+  content: { group: 'Learning', label: 'Content', card: x => contentCard_(x) },
   /* ---------- THE BIBLE, AND THE ONE KIND THE PHONE ITSELF KEEPS FROM ALL BUT AN ADMIN -----------
      ASKED FOR AS "i want to add the bible to resources as a book. but only admin can see the bible."
      So it wears `Resources` like the textbook beside it, on a shelf of its own (`Books`), and its
@@ -624,7 +639,7 @@ function thingCard_(x, credits) {
               scarf makes the scarf the smallest thing on the card. */''}
         ${x.wearable && x.artId && itemArt(x.slot, x.artId)
           ? `<span class="thing-pic art">${itemArt(x.slot, x.artId, 44)}</span>`
-          : x.image ? `<img class="thing-pic" src="${esc(pic(x.image))}" alt="" loading="lazy">` : ''}
+          : x.image ? `<img class="thing-pic" src="${esc(pic(x.image))}" alt="" loading="lazy" decoding="async">` : ''}
         <div class="thing-body">
           ${/* ---------- A RESULT IS READ LIKE A SEARCH RESULT -------------------------------------
                 WHERE IT IS FROM GOES ABOVE THE NAME, not under it. That is the one structural thing
@@ -1024,7 +1039,9 @@ function bucketTable_(pairs) {
 const KIND_BUCKET = bucketTable_([
   ['Work through it',  ['Questions', 'Answers', 'Practicals', 'Projects']],
   ['Order it',         ['Bundles']],
-  ['Read or watch it', ['Resources']],
+  /* `Content` FIRST, then the boxing and the Bible: a chapter is read, and it is the one a student
+     reaches for beside a question, so it stands next to the work and ahead of the shelves. */
+  ['Read or watch it', ['Content', 'Resources']],
 ]);
 
 /* THE FOUR SCIENCES ARE ONE ANSWER UNTIL SOMEBODY WANTS ONE OF THEM. Maths and English are not
@@ -1277,14 +1294,9 @@ const FACETS = [
      `RETIRED_FACETS`, which stops a sheet row reading the column back off whatever else has one. */
   { field: 'subject',
     bucketOf: SUBJECT_BUCKET, bucketOrder: SUBJECT_BUCKET.order,   label: 'Subject',     of: x => x.subject },
-  /* AND WHICH BOOK, once the shelf is chosen. With one book this has one answer and is not asked,
-     which is right — the list IS the book. The second book makes it a question with no deploy.
-     ASKED AFTER `Subject` SINCE THE SHELF HOLDS A BOOK FOR EVERY GCSE, so the shelf asks Maths /
-     English / Science … first and a subject with one book ends the funnel on it. Twenty-four book
-     titles in one list would be the reading the cap exists to spare. HERE AND IN THE SHEET: its row in
-     `data/settings/facets.json` is below Subject's too, and this list is the order whenever that file
-     is not read — the app's own journeys boot without it, and asked Book first. */
-  { field: 'book',      label: 'Book',        of: x => x.kind === 'textbook' ? x.name : '' },
+  /* `book` WAS HERE — `Book`, which @family. textbook, asked after Subject on the textbooks' shelf.
+     There are no books on screen since 12 Oct (see `content` in KINDS), so nothing answered it; it is
+     in `RETIRED_FACETS`, which keeps the sheet's row from asking it and a kept chip from coming back. */
   /* ---------- THE QUESTION THE FUNNEL HAD NEVER ASKED --------------------------------------------
      STRAIGHT AFTER `Subject`, because "Maths, and it is about fractions" is how somebody says what
      they are looking for — and because `nextFacet` walks this list IN ORDER, so anything below the
@@ -1861,6 +1873,9 @@ const RETIRED_FACETS = {
   topicArea: 'the owner: "why is there a topic area menu? ... im fin with names of pdfs which are the '
            + 'names of the topics themselves". A sheet\'s topic is its PDF\'s name, which `Paper` asks; '
            + 'the strands above it were a grouping over a list that did not need one.',
+  book: 'which @family. textbook -- and there are no textbooks on screen since 12 Oct: every chapter is '
+      + 'a content card of its own (docs/history/347, part 2), so nothing answers it. A sheet row naming '
+      + '`book` would read a field no item has; a kept `Book` chip would hold an empty list.',
 };
 
 function facetList() {
@@ -4036,38 +4051,46 @@ const tbSub_ = html => String(html).replace(/[₀-₉ₐₑₒₓₙₛₜ]+/g,
    in a photocopy too; `title` says it in full for anybody who does not know the convention. */
 const tbHigher_ = on => on ? '<span class="tb-h" title="Higher tier only">H</span>' : '';
 
-function textbookCard_(x) {
-  const b = x.row;
-  const higher = (b.chapters || []).some(c => c.higher || c.words.concat(c.formulas, c.points).some(i => i.higher));
-  return `<div class="card fc prac tb">
+/* ---------- A CONTENT CARD: ONE CHAPTER, WHOLE, WITH THE QUESTIONS' TAGS ON IT -------------------
+   IT WAS A CONTENTS CARD AND A PAGE PER CHAPTER (`textbookCard_`, `textbookPart_`). The owner, 12 Oct:
+   *"Forget the whole concept of it being a text book. It's just a "content card"."* So the chapter IS
+   the card: the head every Find kind opens on (`.fc-head` — its title, and the `Content` flag where a
+   practical says `Practical`), the tag row a question wears (`contentTags_`), then its key words,
+   formulas and worked lines (`tbSections_`, unchanged). Nothing on it says book or chapter — the number
+   a chapter has in the file is its order there, not a fact about it. Its animations stay pages of their
+   own after it (`pageParts_`), played in whichever finder it is open in (`tbAnimWatch_`). */
+function contentCard_(x) {
+  const c = x.row;
+  return `<div class="card fc prac tb ct">
     <div class="fc-head">
-      <h3>${esc(x.name)}</h3>
-      <span class="fc-flags"><span class="fc-flag is-type">Textbook</span></span>
+      <h3>${esc(x.name)}${tbHigher_(c.higher)}</h3>
+      <span class="fc-flags"><span class="fc-flag is-type">Content</span></span>
     </div>
-    <p class="sub">${esc(['@family.', b.board, b.spec].filter(Boolean).join(' · '))}</p>
-    ${b.summary ? `<p class="fc-lede">${esc(b.summary)}</p>` : ''}
-    <p class="fc-meta">${esc((b.chapters || []).length + ' chapters')}${higher
-      ? ` · ${tbHigher_(true)} = Higher tier only` : ''}</p>
-    <section class="fc-sec tb-toc"><h4>Contents</h4>
-      <ol class="fc-list">${(b.chapters || []).map(c => `<li>${esc(c.title)}${tbHigher_(c.higher)}</li>`).join('')}</ol>
-    </section>
+    ${contentTags_(x)}
+    ${tbSections_(c)}
   </div>`;
 }
-
-/* ONE CHAPTER. `part` is `ch` and the chapter's number — `ch7` — because it also lands in a class
-   name, `is-ch7`, and a colon there would need escaping in every selector that reads it. */
-/* AND ONE ANIMATION. `an7-mean` is the mean's page after chapter 7 — see `textbookAnimPart_`. */
-function textbookPart_(x, part) {
-  if (/^an\d+-/.test(String(part || ''))) return textbookAnimPart_(x, part);
-  const b = x.row, n = Number(String(part || '').slice(2));
-  const c = (b.chapters || []).find(ch => ch.n === n);
-  if (!c) return '';
-  return `<div class="card fc prac prac-part tb is-${esc(part)}">
-    <p class="fc-kick">${esc(x.name)} · chapter ${c.n}</p>
-    <h3>${esc(c.title)}${tbHigher_(c.higher)}</h3>
-    ${tbSections_(c)}
-    ${c.topics ? `<p class="fc-note"><b>Topics</b> ${esc(c.topics)}</p>` : ''}
-  </div>`;
+/* ---------- THE QUESTION CARD'S ROW, ASKED OF THE SAME FACETS -------------------------------------
+   *"It can share same tags as questions e.g. gcse, ks2, maths."* So these are `qTags_`'s readers —
+   `qTagOf_` over Level and Key stage, Exam board, Subject, Tier — and the Topic answers, each in the
+   colour its funnel chip wears (`tagOf_`). Through the facets and not off the row, for `qTags_`'s
+   reason: a tag can then never say a word the chip above it would not, so `GCSE` here is the Level
+   answer a question says, and Key stage is said only inside SATs, as on a question. WHAT THE PAGE IS
+   — `Question` at the front of a question's row — is the head's `Content` flag here, as on every other
+   Find kind, so the row does not say it twice. NO TAG IS A CONTROL. */
+function contentTags_(x) {
+  const tags = [];
+  const add = (tag, v) => {
+    const t = String(v || '').trim();
+    if (t && !tags.some(o => norm(o.text) === norm(t))) tags.push({ tag: tag, text: t });
+  };
+  qTagOf_('level', x).concat(qTagOf_('keystage', x)).forEach(v => add(tagOf_('level'), v));
+  qTagOf_('examBoard', x).forEach(v => add('board', v));
+  qTagOf_('subject', x).forEach(v => add('subject', v));
+  qTagOf_('tier', x).forEach(v => add('tier', v));
+  qTagOf_('topic', x).forEach(v => add(tagOf_('topic'), v));
+  return `<div class="qtags qcard-tags">${tags.map(t =>
+    `<span class="qtag"${t.tag ? ` data-tag="${t.tag}"` : ''}>${esc(t.text)}</span>`).join('')}</div>`;
 }
 
 /* ---------- A CHAPTER'S KEY WORDS, FORMULAS AND WORKED LINES — ALL OF THEM, OR THE ONES ASKED FOR ---------
@@ -4075,7 +4098,8 @@ function textbookPart_(x, part) {
    is ABOUT (`keep`, the row's `about`): a key word or a formula by its name, a worked line by how it
    opens. Two copies of this markup would be two places for a Higher mark or a fraction to be drawn
    differently, which is the shape `typeset_` exists to end. With no `keep` this is, byte for byte, what
-   `textbookPart_` drew before it moved here — proved over every chapter of every book when it moved. */
+   `textbookPart_` drew before it moved here — proved over every chapter of every book when it moved.
+   The content card draws it whole now (`contentCard_`), where the chapter's own page used to. */
 function tbSections_(c, keep) {
   const line = (i, body) => `<li>${body}${tbHigher_(i.higher)}</li>`;
   const named = i => !keep || keep.indexOf(i.name) !== -1;
@@ -4111,15 +4135,18 @@ function tbSections_(c, keep) {
 
    A THING HAS TILES (CLAUDE.md), and an animation is a thing: Play again is a tile, not a button. */
 let TB_AN_SEQ = 0;
+/* THE PART IS STILL `an17-pyth` — the chapter's number in the file, then the drawing's id — because
+   the number is what tells two cards' drawings apart in a class name and a kept page. It is never
+   SAID: the kicker names the subject and the card, which is what a student reaching this page from
+   the card above it already knows it by. */
 function textbookAnimPart_(x, part) {
   const m = /^an(\d+)-([a-z0-9]+)$/.exec(String(part || ''));
-  const b = x && x.row;
-  const c = m && b && (b.chapters || []).find(ch => ch.n === Number(m[1]));
-  const a = c && (c.animations || []).find(y => y.id === m[2]);
+  const c = x && x.row;
+  const a = m && c && c.n === Number(m[1]) && (c.animations || []).find(y => y.id === m[2]);
   if (!a) return '';
   animStyle_(a);
   return `<div class="card fc prac prac-part tb tb-an is-${esc(part)}">
-    <p class="fc-kick">${esc(x.name)} · chapter ${c.n} · ${esc(c.title)}${tbHigher_(c.higher)}</p>
+    <p class="fc-kick">${esc([c.subject, c.title].filter(Boolean).join(' · '))}${tbHigher_(c.higher)}</p>
     <h3>${esc(a.title)}</h3>
     <div class="tb-an-stage" data-anim="${esc(a.id)}">${animIds_(a.html, ++TB_AN_SEQ)}</div>
     <div class="tile-row">${tile_({ icon: 'undo', label: 'Play again', note: 'from the start', act: 'tb-an-again' })}</div>
@@ -4163,16 +4190,18 @@ function animIds_(html, n) {
 }
 
 /* ---------- ONLY THE ONE ON THE PAGE IN FRONT PLAYS, AND IT PLAYS FROM THE START ----------------------
-   FIND KEEPS ELEVEN PAGES FILLED (`STUFF_NEAR`), so a book with four drawings near the page you are on
+   FIND KEEPS ITS WHOLE WINDOW FILLED (`STUFF_WIN`, forty-one pages since docs/history/341), so a book with
+   four drawings near the page you are on
    would run four animations nobody can see — and the one you swipe to would already be half way through
    its story. So the stage on the page in front is `.is-on`, and arriving there puts its markup back
    (`innerHTML = innerHTML`), which starts every animation in it again; every other stage stands paused
    by `.tb-an-stage:not(.is-on)` in style.css. Off the Find screen, nothing plays.
    BOOKED BY NAME through `afterSlide_` from `goPage`, so a run of quick flicks is one decision at the
    end, and called when a screen arrives and at the end of a fill.
-   EVERY FINDER'S COLUMN, not a parameter: the chapters moved to the second finder with the textbooks
-   (docs/history/329), and asking each column costs two `querySelectorAll`s — far less than remembering
-   to pass the right one from four callers, one of which (`startScreen_`) knows no finder at all. */
+   EVERY FINDER'S COLUMN, not a parameter: both finders carry the textbooks (docs/history/347), so a
+   chapter's drawing can be open in either column — the one a student keeps the reading up in — and
+   asking each column costs two `querySelectorAll`s, far less than remembering to pass the right one
+   from four callers, one of which (`startScreen_`) knows no finder at all. */
 function tbAnimWatch_() {
   Object.keys(FINDERS).forEach(id => {
     const host = $('s-' + id);
@@ -4199,18 +4228,39 @@ on('tb-an-again', el => {
   if (st) st.innerHTML = st.innerHTML;
 });
 
-/* `textbookText_` — `projectText_`'s move for a book: `frequency density` and `stratified` are what
-   somebody types, and they are only ever inside a chapter. The formulas go in as typed, so `IQR`
-   finds the chapter that defines it. */
-/* AN ANIMATION IS FOUND BY ITS TITLE — "Galton board" finds the statistics book — and never by its
+/* ---------- ONE CHAPTER, AS AN ITEM THE FUNNEL ASKS THE QUESTIONS' QUESTIONS OF ----------------------
+   THE QUESTION LIBRARY'S FIELDS, IN ITS SPELLINGS, so one chip holds both: `subject` and `level` as
+   the cover or the chapter says them (`libraryExtras_` fills a chapter's blank cell from the cover),
+   `keystage` as a comma list like a worksheet's, `tier` only where the chapter is Higher all through,
+   and `examBoard` ONLY where the chapter's own content is one board's — a set text, an anthology, a
+   language's themes, an exam's question numbers. Blank everywhere else, because the words of a GCSE
+   Maths chapter are every board's, and a `Edexcel` chip that hid them from an AQA student would be
+   the judgement-drawn-as-a-fact the owner refused for question topics (`topicShown_`). TOPICS ARE THE
+   LIBRARY'S LABELS, SPELLED EXACTLY — `check-textbooks.js` refuses one that is not — so the search
+   reaches the card and the questions with one word, and Topic folds them into one answer.
+   THE KEY IS THE BOOK'S ID AND THE CHAPTER'S NUMBER (`ct:TB-GCSE-MATHS-2`). A star on a book (`tb:`)
+   names nothing now, and `collItems_` skips a key that names nothing, so Saved drops it quietly. */
+function contentItem_(b, c) {
+  return {
+    kind: 'content', name: c.title, key: 'ct:' + b.id + '-' + c.n,
+    sub: [c.subject, c.level].filter(Boolean).join(' · '),
+    image: '',
+    subject: c.subject, level: c.level, keystage: c.keystage, topics: c.topics,
+    examBoard: c.board || '', tier: c.higher ? 'Higher' : '',
+    text: contentText_(c) + ' ' + topicAtoms_(c.topics).join(' '),
+    row: c,
+  };
+}
+
+/* `contentText_` — `projectText_`'s move for one content card: `frequency density` and `stratified` are
+   what somebody types, and they are only ever inside the card's words. The formulas go in as typed, so
+   `IQR` finds the card that defines it. It was `textbookText_`, the same lines over a whole book. */
+/* AN ANIMATION IS FOUND BY ITS TITLE — "Galton board" finds the card it is under — and never by its
    markup or its CSS, which are not words anybody types. */
-function textbookText_(b) {
-  const parts = [b.summary, b.board, b.spec];
-  (b.chapters || []).forEach(c => {
-    parts.push(c.title);
-    c.words.concat(c.formulas, c.points).forEach(i => parts.push(i.name, i.text));
-    (c.animations || []).forEach(a => parts.push(a.title));
-  });
+function contentText_(c) {
+  const parts = [c.title, c.subject, c.level, c.board, c.spec];
+  c.words.concat(c.formulas, c.points).forEach(i => parts.push(i.name, i.text));
+  (c.animations || []).forEach(a => parts.push(a.title));
   return plainText_(parts.filter(Boolean).join(' '));
 }
 
@@ -4346,19 +4396,20 @@ function bibleIndex_() {
          list): a `psalms` typed while the index was on its way would otherwise go on answering from
          the list that did not have it, and the Books shelf would go on showing its loader over a
          question it can now ask.
-         IN THE FINDER THAT HOLDS THE BIBLE, which is the second one (docs/history/329) — and bound
-         again by hand, because a promise lands outside whatever binding asked for it. */
-      const F = finderOfItem_(BIBLE.item || { kind: 'bible' });
-      inFinder_(F, () => {
+         IN EVERY FINDER, because both hold the Bible for an admin (docs/history/347) — a `psalms`
+         typed into either while the index was on its way would otherwise go on answering from the
+         stale memo — and bound again by hand, because a promise lands outside whatever binding asked
+         for it. The cards are redrawn once, first: `bibleRedraw_` is the whole document's. */
+      bibleRedraw_();
+      finderEach_(F => {
         if (ok) {
           FIND_MEMO.key = null;
           STUFF_PAGES = { from: null, pages: [] };
         }
-        bibleRedraw_();
         if ($(F.id + '-controls')) paintStuff(true);
       });
       /* A STARRED VERSE IS NAMED FROM THE INDEX, so Saved could not draw one until now. */
-      if (AT === 'saved') repaint(true); else STALE.saved = 1;
+      if (AT === 'saved') repaint(true); else markStale_('saved');
       return BIBLE.index;
     });
   }
@@ -4455,6 +4506,31 @@ function bibleLoad_(n) {
   });
   return BIBLE.loading[n];
 }
+
+/* ---------- THE CHOSEN BOOK, ASKED FOR BEFORE ITS VERSES ARE DRAWN (docs/history/341) ---------------------
+   The verse card's own fetch (`bibleCard_`) stays as the floor, and the builder asks (the `bible` job) if the
+   book is chosen and still not here — Resources drawn in the quiet for nobody, its question in front, where no
+   verse card would be drawn until the fill reached it. The chip asked too, until the review of 12 Oct found
+   nothing could tell: the page in front is filled in the chip's own task and its first verse asks first (the
+   note in `on('facet-pick')`). The cards waiting for it are drawn again when it comes, whichever asked first
+   (`bibleRedraw_`). Admin only, as every Bible fetch is (`bibleFor_`). */
+function bibleChosen_() {
+  const st = typeof RES_ST !== 'undefined' ? RES_ST : STUFF;
+  const f = (st.filters || []).find(x => x.field === 'bibleBook' && x.value != null);
+  if (!f || !BIBLE.rank || !BIBLE.rank.b) return 0;
+  return BIBLE.rank.b[spellKey_(f.value)] || 0;
+}
+function bibleAhead_() {
+  const n = bibleChosen_();
+  if (!n || !bibleFor_() || BIBLE.books[n] || BIBLE.loading[n] || BIBLE.missed[n]) return;
+  bibleLoad_(n).then(() => bibleRedraw_(n));
+}
+function bibleJobs_() {
+  const n = TABS.some(t => t.id === 'res') ? bibleChosen_() : 0;
+  if (!n || !bibleFor_() || BIBLE.books[n] || BIBLE.loading[n] || BIBLE.missed[n]) return [];
+  return [{ key: 'bible:' + n, kind: 'bible', d: aheadDist_('res', null), run: bibleAhead_ }];
+}
+AHEAD_KINDS.push(bibleJobs_);
 
 /* ---------- A VERSE, DRAWN ------------------------------------------------------------------------
    THE TWO MARKS THE 1611 PRINTERS LEFT IN THE TEXT, and both are kept in the file for this function
@@ -4783,16 +4859,20 @@ function bibleRedraw_(n) {
    chapter is the strip, so the verses either side are a swipe away), or on the question for the cover.
    From Saved this is how a kept verse is read in its chapter; from Find it is how a verse found by a
    search or a Verse answer is. The search box is cleared, because words would narrow the chapter. */
-/* INTO THE SECOND FINDER NOW, wherever the tap was — Find, Saved, the Spotlight — because the Bible is
-   a resource and the resources moved (docs/history/329). `What for` and `What kind` are no longer
-   chips it sets: over the second finder's list each has one answer, so the funnel skips both and a
-   chip for them would be a chip nobody could have pressed. */
+/* INTO THE FINDER THE TAP WAS IN — a verse's Chapter or the cover's Open pressed in Find 2 stays in
+   Find 2, where the student is reading — and into Find from Saved or the Spotlight, which are no
+   finder (`finderAt_`). Both finders hold the Bible (docs/history/347), so either can open it; the
+   one being read in is the one not to take somebody out of. It was "the finder that holds the Bible"
+   while the second one held the resources alone (329).
+   `What for` and `What kind` are not chips it sets: under `Shelf · Books` the list is the Bible, each
+   of the two has one answer over it, so the funnel skips both and a chip for them would be a chip
+   nobody could have pressed. */
 on('bible-go', el => {
   if (!bibleFor_() || !BIBLE.index || !BIBLE.item) return;
   const k = el && el.getAttribute('data-key');
   const x = k ? bibleByKey_(k) : null;
   if (k && !x) return;
-  const F = finderOfItem_(BIBLE.item);
+  const F = finderAt_(el);
   const f = [{ field: 'shelf', value: BIBLE_SHELF }, { field: 'bibleTranslation', value: BIBLE.index.translation }];
   if (x) {
     f.push({ field: 'bibleTestament', value: x.bb.testament }, { field: 'bibleGroup', value: x.bb.group },
@@ -4816,15 +4896,23 @@ on('bible-retry', el => {
   BIBLE.failed = false;
   bibleIndex_();
   bibleRedraw_();
-  const F = finderOfItem_(BIBLE.item || { kind: 'bible' });
-  inFinder_(F, () => { if ($(F.id + '-controls')) paintStuff(true); });
+  /* EVERY FINDER WHOSE QUESTION IS DRAWN — both hold the Bible's shelf now. */
+  finderEach_(F => { if ($(F.id + '-controls')) paintStuff(true); });
 });
 
-/* ---------- A RESOURCE MET ANYWHERE ELSE OPENS IN THE SECOND FINDER ---------------------------------
-   THE RESOURCES LIVE IN THEIR OWN COLUMN NOW (docs/history/329), so a textbook, a boxer or a fight met
-   anywhere else — kept on Saved, put in the Spotlight — is opened THERE, on its own card, with the rest
-   of it a swipe up. Saved draws the card alone (`cardPages_` keeps only a question's parts), so before
-   this a kept book listed its fourteen chapters and nothing on the column could open one.
+/* ---------- A KEPT CARD SAVED CANNOT DRAW WHOLE OPENS IN FIND ---------------------------------------
+   SAVED AND THE SPOTLIGHT DRAW A KEPT THING AS ITS CARD (`cardPages_`): a question whole — its opening,
+   figure, words and answer — but a practical without its kit, method and worksheet, a project without
+   its steps and Share, a textbook without its chapters, a boxer without his fights. So under a kept
+   card that is not whole there, `Open` takes it to Find, on its own card, with the rest of it a swipe
+   up. It was "Open in Resources" under a resource only (329), because the resources lived in one
+   column; with both finders holding everything (347) the line is drawn where it always belonged —
+   between a card that is all of itself on the column and one that is not — which also gives the kept
+   practicals and projects a way to their method pages that they never had.
+   INTO FIND, NOT FIND 2. Saved and the Spotlight are no finder, so neither is "the one the tap was in",
+   and Find is the front door of the two. The cost is said in docs/history/347: opening replaces Find's
+   chips and words with the walk below — the one place this file puts a finder's place over without a
+   press inside that finder.
    THE CHIPS A FINGER WOULD HAVE PRESSED, found by walking the funnel for it: the engine's own next
    question each time (`nextFacet`), answered with this item's own answer, or "Doesn't matter" where
    it has none — until the list is down to it or there is nothing left to ask. Never a chip that would
@@ -4845,8 +4933,10 @@ function finderWalk_(x) {
   }
   return out;
 }
-function finderOpen_(x, part) {
-  const F = finderOfItem_(x);
+/* `F` IS WHICH FINDER, said by the caller — Find when nobody says (`find-open` passes the finder the
+   press was in, which from Saved and the Spotlight is Find). */
+function finderOpen_(x, part, F) {
+  F = F || FINDERS.stuff;
   inFinder_(F, () => {
     STUFF.q = '';
     const box = $(F.id + '-q');
@@ -4858,105 +4948,52 @@ function finderOpen_(x, part) {
     goPage(F.id, i >= 0 ? stuffFirstResult_() + i : stuffQuestionPage_());
   });
 }
-/* THE TILE, under a resource's card wherever it is drawn outside its own finder — which is exactly
-   when the bound finder (Find, outside every binding: Saved, the Spotlight) does not carry it. Inside
-   the second finder the card is already open, and no tile is drawn. The Bible has its own way in
-   (`bibleTiles_`'s Open). `Open` and the column's name, from `TABS` so a renamed column says so. */
+/* WHICH OF A THING'S PAGES A KEPT LIST DRAWS: the card, and a question's own parts — its opening, its
+   figure, its earlier part's picture, its answer. One predicate, read by `cardPages_` to draw them and
+   by `finderOpenTile_` to ask whether the card is whole without them, so "what Saved draws" and "is
+   there more than Saved draws" cannot disagree. */
+const keptPart_ = p => !p || p === 'fig' || p === 'nofig' || p === 'use' || p === 'ans'
+  || /^(stem\d+(-\d+)?|sfig\d+|pre\d+)$/.test(p);
+/* SET WHILE A KEPT LIST IS BEING DRAWN (`keptPages_`, for Saved and the Spotlight), in the way
+   `SPOT_TILES` is: a card is drawn by the same `stuffCard` → `cardTiles_` in Find's fill and on Saved,
+   both outside any binding, so nothing else tells the two apart. */
+let KEPT_DRAW = false;
+/* THE TILE: under a kept card that is not whole on the column, `Open · in Find` — the column's name
+   from `TABS`, so a renamed column says so. Never in a finder (the card is already open there, its
+   pages a swipe up), never under a question (whole), and never under the Bible's cover, which has
+   its own Open (`bibleTiles_`). */
 function finderOpenTile_(x) {
-  if (!x || !x.key || x.kind === 'bible' || FINDER.has(x)) return '';
-  const F = finderOfItem_(x);
-  const t = (typeof TABS !== 'undefined' ? TABS : []).find(r => r.id === F.id);
-  return tile_({ icon: 'open', label: 'Open', note: 'in ' + (t ? t.label : F.id), act: 'find-open', data: { key: x.key } });
+  if (!KEPT_DRAW || !x || !x.key || x.kind === 'bible') return '';
+  let parts;
+  try { parts = pageParts_(x); } catch (e) { return ''; }
+  if (parts.every(keptPart_)) return '';
+  const t = (typeof TABS !== 'undefined' ? TABS : []).find(r => r.id === 'stuff');
+  return tile_({ icon: 'open', label: 'Open', note: 'in ' + (t ? t.label : 'Find'), act: 'find-open', data: { key: x.key } });
 }
 on('find-open', el => {
   const k = el && el.getAttribute('data-key');
   const x = k ? stuffItemsAll_().find(i => i && i.key === k) : null;
-  if (x) finderOpen_(x);
+  if (x) finderOpen_(x, null, finderAt_(el));
 });
 
-/* ---------- A SEARCH ONE COLUMN SHORT SAYS WHERE THE THING IS --------------------------------------------
-   THE REVIEW OF 329, FINDING 1. Find's search stopped carrying the resources, which is the owner's
-   split — and its empty answer went on saying "Try fewer words." for a boxer one swipe away. Measured
-   at 390 as an admin: "Olivares" on Find drew "Nothing matches. / Try fewer words."; on the commit
-   before the move the same words found Ruben Olivares's card. Typing a name into Find WAS the way to a
-   boxer, a book of the Bible or a textbook's chapter, and the owner's list of links into a resource
-   names "a search hit". Fewer words would never have found him: the advice was wrong, not just weak.
-   SO AN EMPTY SEARCH ASKS THE OTHER FINDER the same words, in that finder's own binding and through
-   its own `stuffFiltered` — so its kinds, its role rules and the Bible's `holds` all answer as they
-   would there — and when anything answers, says how many and where (the column's name from `TABS`),
-   with one Open tile that carries the words across. Both ways: Resources points to Find. A word
-   nobody has keeps "Try fewer words.", and no tile.
-   UNDER THE OTHER FINDER'S OWN CHIPS FIRST, because those are what it will show; if they hide every
-   hit, under none, and the tile takes them off (`clear`) — landing on "Nothing matches" over there,
-   under a shelf somebody chose an hour ago, would be the same dead end one column further on.
-   THE OTHER FINDER IS LEFT AS IT WAS: its words, chips and memo are put back in a `finally`, so asking
-   costs it nothing it had, and a throw cannot leave it holding these words. */
-function finderWordsCount_(q) {
-  const was = { q: STUFF.q, filters: STUFF.filters, memo: FIND_MEMO };
-  try {
-    STUFF.q = q;
-    let n = stuffFiltered().length;
-    if (n || !(was.filters || []).length) return { n: n, clear: false };
-    STUFF.filters = [];
-    FIND_MEMO = { key: null, from: null, items: null, total: 0 };
-    n = stuffFiltered().length;
-    return { n: n, clear: n > 0 };
-  } catch (e) {
-    return { n: 0, clear: false };
-  } finally {
-    STUFF.q = was.q; STUFF.filters = was.filters; FIND_MEMO = was.memo;
-  }
-}
-function finderElsewhere_() {
-  const q = String(STUFF.q || '');
-  if (!q.trim()) return null;
-  const here = FINDER;
-  for (const id of Object.keys(FINDERS)) {
-    const G = FINDERS[id];
-    if (G === here) continue;
-    const got = inFinder_(G, () => finderWordsCount_(q));
-    if (got.n) return { id: G.id, n: got.n, clear: got.clear };
-  }
-  return null;
-}
+/* `finderElsewhere_`, `finderWordsCount_` AND THE `finder-words` TILE WERE HERE: an empty search asked
+   the other finder the same words and offered "N in Resources" with an Open tile that carried them
+   across (329's review, finding 1), because a boxer's name typed into Find found nothing while he was
+   one column along. GONE WITH THE SPLIT (347). Both finders hold the same list, so with no chips the
+   other one finds exactly what this one did not — nothing — and under chips the tile would carry the
+   words into the column a student keeps a chapter up in AND CLEAR ITS CHIPS: the very place the second
+   finder exists to hold. The right advice when chips hide every hit is the sentence below, "take a
+   filter off". */
 /* THE ONE EMPTY ANSWER, for the question page and a results page alike — they were two copies of the
-   same three sentences, and the tile would otherwise have been one more thing for them to disagree on. */
+   same three sentences. */
 function stuffNoneHtml_() {
   if (!FIND_MEMO.total) return nothingHere(FINDER.empty, true);
-  const there = STUFF.q ? finderElsewhere_() : null;
-  if (there) {
-    const t = (typeof TABS !== 'undefined' ? TABS : []).find(r => r.id === there.id);
-    const name = t ? t.label : there.id;
-    return `<p class="empty">Nothing matches.<br><span class="faint">${esc(there.n.toLocaleString('en-GB') + ' in ' + name)}.</span></p>`
-      + `<div class="tile-row is-elsewhere">${tile_({ icon: 'open', label: 'Open', note: 'in ' + name, act: 'finder-words',
-                                         data: { to: there.id, q: STUFF.q } })}</div>`;
-  }
   const why = STUFF.q && STUFF.filters.length ? 'Try fewer words, or take a filter off.'
             : STUFF.q                          ? 'Try fewer words.'
             : STUFF.filters.length             ? 'Nothing matches all of those together.'
             : '';
   return `<p class="empty">Nothing matches.${why ? `<br><span class="faint">${esc(why)}</span>` : ''}</p>`;
 }
-/* THE WORDS, CARRIED ACROSS — into the other finder's own words and its own box, so they are seen
-   narrowing where they now narrow — and on to the card when the words found one thing, as Find's own
-   "Swipe up for the one" would have; on the question when they found several, for the funnel to ask.
-   The finder the tile was pressed in keeps its words: going back finds it as it was left. */
-on('finder-words', el => {
-  const G = finderOf_(el && el.getAttribute('data-to'));
-  const q = String((el && el.getAttribute('data-q')) || '');
-  if (!G || !q.trim()) return;
-  inFinder_(G, () => {
-    const c = finderWordsCount_(q);
-    STUFF.q = q;
-    if (c.clear) STUFF.filters = [];
-    const box = $(G.id + '-q');
-    if (box) box.value = q;
-    paintStuff();
-    if (AT !== G.id) go(G.id);
-    const one = stuffFiltered().length === 1 && stuffPages_().length;
-    goPage(G.id, one ? stuffFirstResult_() : stuffQuestionPage_());
-  });
-});
 
 /* ---------- WHICH PAGES A PRACTICAL TAKES, OFF WHAT THE ROW ACTUALLY HAS ------------------------
    The card, then a page per section that has something in it. A REFUSED experiment is its card
@@ -5038,17 +5075,11 @@ function pageParts_(x, prev) {
     out.push('share');
     return out;
   }
-  /* A TEXTBOOK IS ITS CONTENTS CARD AND A PAGE PER CHAPTER, in the chapters' own order — the
-     mapper sorted them by number, so this is the book read front to back. AND A PAGE PER ANIMATION,
-     straight after the chapter it teaches: `an17-pyth` after `ch17`. Saved and Spotlight keep the
-     cover only (`cardPages_` takes none of these). */
-  if (x && x.kind === 'textbook' && x.row) {
-    const out = [null];
-    (x.row.chapters || []).forEach(c => {
-      out.push('ch' + c.n);
-      (c.animations || []).forEach(a => out.push('an' + c.n + '-' + a.id));
-    });
-    return out;
+  /* A CONTENT CARD IS ITSELF AND A PAGE PER ANIMATION, in the file's order: `an17-pyth` after the
+     Pythagoras card. Its words are on the card, so there is no chapter page any more. Saved and
+     Spotlight keep the card only (`cardPages_` takes none of these), and give it Open. */
+  if (x && x.kind === 'content' && x.row) {
+    return [null].concat((x.row.animations || []).map(a => 'an' + x.row.n + '-' + a.id));
   }
   /* THE BIBLE HAS NO BRANCH HERE ANY MORE. Its cover and each of its verses are one page, the
      default below; the cover's three lists of books and the open book's pages went with the reader
@@ -5080,7 +5111,7 @@ function pageParts_(x, prev) {
    kept here once, because the cover was a card with no other way into the book. */
 /* `prev` IS THE KEPT THING IN FRONT, as on Find -- see `keptPages_`. */
 function cardPages_(x, credits, prev) {
-  return pageParts_(x, prev).filter(p => !p || p === 'fig' || p === 'nofig' || p === 'use' || p === 'ans' || /^(stem\d+(-\d+)?|sfig\d+|pre\d+)$/.test(p))
+  return pageParts_(x, prev).filter(keptPart_)
     .map(p => (p ? stuffPart_(x, p) : stuffCard(x, credits)));
 }
 
@@ -5107,11 +5138,16 @@ function keptPages_(items, credits) {
     done[k] = true;
     by[k].slice().sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0)).forEach(p => seq.push(p));
   });
-  return [].concat(...seq.map((x, i) => cardPages_(x, credits, seq[i - 1])));
+  /* `KEPT_DRAW` FOR THE DRAW, so a card that is not whole here is given its way to Find — see
+     `finderOpenTile_`. In a `finally`, so a throw cannot leave Find's own cards carrying it. */
+  const was = KEPT_DRAW;
+  KEPT_DRAW = true;
+  try { return [].concat(...seq.map((x, i) => cardPages_(x, credits, seq[i - 1]))); }
+  finally { KEPT_DRAW = was; }
 }
 function stuffPart_(x, part) {
   if (x && x.kind === 'project') return projectPart_(x, part);
-  if (x && x.kind === 'textbook') return textbookPart_(x, part);
+  if (x && x.kind === 'content') return textbookAnimPart_(x, part);
   if (x && x.kind === 'boxer') return boxerPart_(x, part);
   if (x && x.kind === 'question' && part === 'ans') return questionAnsCard_(x);
   if (x && x.kind === 'question' && part === 'use') return questionUsesCard_(x);
@@ -5886,7 +5922,7 @@ function boxerCard_(x) {
     esc(b.country)}</span>` : '') + (b.bestDivision ? `<span class="boxer-weight">${esc(b.bestDivision)}</span>` : '');
   const st = boxerStatus_(b);
   /* `.boxer-rec` IS STILL THE RECORD'S NAME, on the whole record box now rather than on one gold
-     line. `check/states.js` looks for it on the textbook's shelf to prove no boxer leaked in, so the
+     line. `check/states.js` looks for it under What kind · Content to prove no boxer leaked in, so the
      name has to go on meaning "a boxer's record is drawn here". */
   return `<div class="card fc boxer">
     <div class="fc-head">
@@ -8700,14 +8736,136 @@ function padRead_(k) {
    rounded coordinates per stroke, because a list of {x,y} objects is three times the characters for
    the same marks and `localStorage` is a few megabytes shared with everything else this app keeps.
    Rounded to whole units of a 340-wide picture, which is finer than a finger. */
-const padPath_ = st => {
-  let d = '';
-  for (let i = 0; i + 1 < st.length; i += 2) d += (i ? 'L' : 'M') + st[i] + ' ' + st[i + 1];
-  /* A SINGLE TAP IS A DOT, and a dot is a real answer — "mark with a cross" starts as one, and a
-     `<path>` with one point paints nothing at all. Repeating the point gives it length, and
-     `stroke-linecap: round` makes that length a disc. */
-  return st.length === 2 ? `M${st[0]} ${st[1]}L${st[0]} ${st[1]}` : d;
-};
+/* ---------- A FAST LINE IS DRAWN ROUND: CORNER-KEEPING CENTRIPETAL CATMULL-ROM (338) ---------------------
+   MEASURED BEFORE: one turn of a circle in 200ms, at 4x CPU on a phone, stored 10 points -- a lopsided 9-gon
+   with a 114px chord -- and on an iPad without coalesced samples that is all a fast line will ever have. The
+   STORE is right (every point the finger gave, rounded to a unit); the DRAWING was a polyline through it. So a
+   long, gently turning segment is drawn as a curve THROUGH the two stored points at its ends, and nothing
+   stored changes: every drawing on every device and account loads as it was and is drawn round where it was
+   a polygon of a curve, and an older copy of the app draws a new stroke as the polyline it always drew.
+
+   THE MATHS, in Q = (x, k·y) -- proportional to screen pixels, because 340 units span the box's width AND its
+   height (`preserveAspectRatio="none"`), so `k` = H/W of the box (`padAspect_`). A segment Qi -> Qi+1 is a
+   cubic with centripetal handles (alpha = 1/2; Yuksel, Schaefer and Keyser 2011: the one member of the family
+   with no cusps and no self-intersection within a segment), d0 = |Qi - Qi-1|^1/2, d1 = |Qi+1 - Qi|^1/2,
+   d2 = |Qi+2 - Qi+1|^1/2:
+     B1 = (d0^2 Qi+1 - d1^2 Qi-1 + (2d0^2 + 3d0d1 + d1^2) Qi) / (3d0(d0 + d1))
+     B2 = (d2^2 Qi - d1^2 Qi+2 + (2d2^2 + 3d2d1 + d1^2) Qi+1) / (3d2(d2 + d1))
+   and at a CORNER the handle runs along the chord (a third of it), which is the same formula with a
+   reflected phantom point. A vertex turning 50 degrees or more is a corner, and so are the two ends.
+   WHY 50: a circle of 8 or 9 points a turn (45 and 40 degrees -- the measured fast circles) comes out round,
+   0.82 and 0.52px off the true circle against 7.4 and 5.9px of polygon; a heptagon (51.4), a hexagon, a
+   square, a triangle -- a reflection on squared paper, where the corner IS the answer -- keep their corners.
+   WHY 8 UNITS: a chord's sagitta is about L.theta/8, so under 8 units and 50 degrees a straight segment is
+   within 0.87 units of the curve it stands for -- 0.96px at most, on the iPad board. A slowly drawn stroke
+   (samples 1-3 units apart) is therefore drawn BYTE FOR BYTE as before, and `d` grows only where a curve
+   shows. Both are free to re-tune: no stored point depends on either.
+   NOTHING FILTERS OR PREDICTS THE INPUT (338, section 6): a filter quiet enough for a still finger lags 8px at
+   the corner a child slows down for, and is irreversible; this is drawing, and can be changed tomorrow. */
+const PAD_CORNER_DEG = 50;
+const PAD_CURVE_MIN = 8;
+const PAD_CORNER_COS = Math.cos(PAD_CORNER_DEG * Math.PI / 180);
+/* A CONTROL POINT TO ONE DECIMAL, "12.3" or "12" -- whole units would bend a curve by up to half a unit. */
+const padNum_ = v => String(Math.round(v * 10) / 10);
+/* SEGMENTS a..b-1 OF A STROKE `st` (a flat list with no point repeated), with neighbours from the whole of it
+   -- the one writer the stored path and the live chunks share (`padChunks_`), so the two can never draw a
+   stroke two ways. The last point of the list is an end (a corner), so a live chunk drawn now is exactly
+   what a lift now would store. */
+function padSegs_(st, k, a, b) {
+  const m = st.length / 2;
+  const X = i => st[2 * i], Y = i => k * st[2 * i + 1];
+  const corner = i => {
+    if (i <= 0 || i >= m - 1) return true;
+    const ux = X(i) - X(i - 1), uy = Y(i) - Y(i - 1), vx = X(i + 1) - X(i), vy = Y(i + 1) - Y(i);
+    return ux * vx + uy * vy <= PAD_CORNER_COS * Math.hypot(ux, uy) * Math.hypot(vx, vy);
+  };
+  let d = '', c0 = corner(a);
+  for (let i = a; i < b; i++) {
+    const c1 = corner(i + 1);
+    const x0 = X(i), y0 = Y(i), x1 = X(i + 1), y1 = Y(i + 1);
+    const len = Math.hypot(x1 - x0, y1 - y0);
+    if (len < PAD_CURVE_MIN || (c0 && c1)) d += 'L' + st[2 * i + 2] + ' ' + st[2 * i + 3];
+    else {
+      const d1 = Math.sqrt(len);
+      let b1x, b1y, b2x, b2y;
+      if (c0) { b1x = x0 + (x1 - x0) / 3; b1y = y0 + (y1 - y0) / 3; }
+      else {
+        const px = X(i - 1), py = Y(i - 1), d0 = Math.sqrt(Math.hypot(x0 - px, y0 - py));
+        const q = 3 * d0 * (d0 + d1), w = 2 * d0 * d0 + 3 * d0 * d1 + d1 * d1;
+        b1x = (d0 * d0 * x1 - d1 * d1 * px + w * x0) / q; b1y = (d0 * d0 * y1 - d1 * d1 * py + w * y0) / q;
+      }
+      if (c1) { b2x = x1 - (x1 - x0) / 3; b2y = y1 - (y1 - y0) / 3; }
+      else {
+        const nx = X(i + 2), ny = Y(i + 2), d2 = Math.sqrt(Math.hypot(nx - x1, ny - y1));
+        const q = 3 * d2 * (d2 + d1), w = 2 * d2 * d2 + 3 * d2 * d1 + d1 * d1;
+        b2x = (d2 * d2 * x0 - d1 * d1 * nx + w * x1) / q; b2y = (d2 * d2 * y0 - d1 * d1 * ny + w * y1) / q;
+      }
+      d += 'C' + padNum_(b1x) + ' ' + padNum_(b1y / k) + ' ' + padNum_(b2x) + ' ' + padNum_(b2y / k)
+        + ' ' + st[2 * i + 2] + ' ' + st[2 * i + 3];
+    }
+    c0 = c1;
+  }
+  return d;
+}
+/* A STROKE AS A PATH. `k` is the pad's aspect (`data-aspect`, `padAspect_`); a wrong or missing one only
+   changes how a curve bends, never where a point is. TODAY'S STRING, BYTE FOR BYTE, for a dot, two points, a
+   list that is malformed (an odd length, a value that is not a finite number) and a stroke with no segment
+   long and gentle enough to curve -- so every journey's `M50 100L200 180` still reads as it did.
+   KEPT, BY THE STROKE AND THE ASPECT (`PAD_PATHS`), AFTER REVIEW: Undo, Clear and every copy repaint a pad from the
+   store, and on a full board (314 strokes, 98,942 characters) that recomputed every curve -- 9.2ms at full speed in
+   Node against 0.7 for the polylines, and Undo's whole task 74ms of main thread at 4x against 31. A stroke stored is
+   never changed, so the path of one already drawn is looked up, not worked out again. `live` is the preview of a
+   stroke still growing, which is never asked for twice: not kept.
+   HELD TO A SIZE IN CHARACTERS, NOT A COUNT OF STROKES: a question keeps every sample, so one stroke can be 1,200
+   points -- a 10K key and a 30K path -- and a count of 4,000 such would be hundreds of megabytes. A full board is
+   about 350K (its 100K stored and its curves); `PAD_PATHS_MAX` holds about eleven, and past it the memo starts
+   again empty, which costs one repaint's worth of curves and nothing else. */
+const PAD_PATHS = new Map();
+const PAD_PATHS_MAX = 4e6;    // characters, keys and paths together: about 8MB
+let PAD_PATHS_SIZE = 0;
+function padPath_(st, k, live) {
+  const plain = () => {
+    let d = '';
+    for (let i = 0; i + 1 < st.length; i += 2) d += (i ? 'L' : 'M') + st[i] + ' ' + st[i + 1];
+    /* A SINGLE TAP IS A DOT, and a dot is a real answer — "mark with a cross" starts as one, and a
+       `<path>` with one point paints nothing at all. Repeating the point gives it length, and
+       `stroke-linecap: round` makes that length a disc. */
+    return st.length === 2 ? `M${st[0]} ${st[1]}L${st[0]} ${st[1]}` : d;
+  };
+  if (!Array.isArray(st) || st.length < 6 || st.length % 2) return plain();
+  const q = k > 0 && isFinite(k) ? k : 1;
+  const s = [];
+  for (let i = 0; i < st.length; i += 2) {
+    const x = st[i], y = st[i + 1];
+    if (typeof x !== 'number' || typeof y !== 'number' || !isFinite(x) || !isFinite(y)) return plain();
+    if (s.length && s[s.length - 2] === x && s[s.length - 1] === y) continue;
+    s.push(x, y);
+  }
+  if (s.length < 6) return plain();
+  /* EVERY VALUE IS A FINITE NUMBER HERE, so the key cannot mistake "12" for 12. */
+  const key = live ? '' : q + '|' + st.join(',');
+  if (key) { const was = PAD_PATHS.get(key); if (was !== undefined) return was; }
+  const segs = padSegs_(s, q, 0, s.length / 2 - 1);
+  const d = segs.indexOf('C') === -1 ? plain() : 'M' + s[0] + ' ' + s[1] + segs;
+  if (key) {
+    if (PAD_PATHS_SIZE + key.length + d.length > PAD_PATHS_MAX) { PAD_PATHS.clear(); PAD_PATHS_SIZE = 0; }
+    PAD_PATHS.set(key, d);
+    PAD_PATHS_SIZE += key.length + d.length;
+  }
+  return d;
+}
+/* THE PAD'S SHAPE, H/W OF ITS BOX: the board is 3:4 whatever its surface's viewBox says (note 310 -- the
+   surface is 340x340 stretched); a figure's is its own first `viewBox` (the picture is drawn at its own
+   shape: width set, height auto); a made-up surface is square. Four decimals, so the attribute it is written
+   to reads back as the same number the markup was drawn with. */
+function padAspect_(x, svg) {
+  if (x && padPrefix_(x) === 'board') return Math.round(4 / 3 * 1e4) / 1e4;
+  const m = /viewBox\s*=\s*["']\s*[-\d.eE+]+[\s,]+[-\d.eE+]+[\s,]+([\d.eE+]+)[\s,]+([\d.eE+]+)/.exec(String(svg || ''));
+  const w = m ? Number(m[1]) : 0, h = m ? Number(m[2]) : 0;
+  return w > 0 && h > 0 && isFinite(w) && isFinite(h) ? Math.round(h / w * 1e4) / 1e4 : 1;
+}
+/* AND WHAT A PAD ELEMENT SAYS IT IS. */
+const padAspectOf_ = pad => Number(pad && pad.getAttribute && pad.getAttribute('data-aspect')) || 1;
 
 /* ---------- WHAT THE CONTROL SAYS, IN ONE PLACE --------------------------------------------------
    THE HANDLER REWRITES THIS TILE IN PLACE rather than repainting the card, so its face exists in
@@ -8780,13 +8938,16 @@ function padWrap_(x, svg, credit) {
      the invisible mode this repository already records for the reel that was paused with nothing
      on it saying so. */
   const pen = PAD_ON === k;
+  /* THE PAD'S SHAPE, written on it for the live path and every repaint to read -- one number for all of them,
+     so the stroke under the finger and the same stroke drawn again agree byte for byte (`padPath_`). */
+  const ka = padAspect_(x, svg);
   const tools = padToolsOf_(x);
   const held = PAD_TOOL.get(k);
   const tool = held && tools.indexOf(held) !== -1 ? held : 'pen';
   /* THE OVERLAY TAKES ITS BOX FROM THE PICTURE UNDER IT, by stretching to the same box, rather
      than by parsing a viewBox out of the drawing's markup. `preserveAspectRatio="none"` is what
      makes that exact: 340 units of user space map to the box's width and 340 to its HEIGHT
-     whatever shape the box is, which is the same arithmetic `padAt_` does on a pointer. Reading
+     whatever shape the box is, which is the same arithmetic `padMap_` does on a pointer. Reading
      the drawing's own viewBox instead would mean trusting a string, and a diagram that ever
      omitted one would silently put every mark in the wrong place.
 
@@ -8794,12 +8955,12 @@ function padWrap_(x, svg, credit) {
      different thicknesses on any box that is not square. `vector-effect="non-scaling-stroke"` is
      the answer to exactly that: the width is measured on the screen rather than in the stretched
      user space, so the pen is one pen. */
-  return `<div class="qpad${pen ? ' is-drawing' : ''}" data-k="${esc(k)}">
+  return `<div class="qpad${pen ? ' is-drawing' : ''}" data-k="${esc(k)}" data-aspect="${ka}">
     <div class="qpad-art"${pen ? '' : ` data-do="pad-draw" title="${esc(PAD_TAP)}"`}>${svg}
       <svg class="qpad-ink"${pen ? ' data-noswipe' : ''} viewBox="0 0 340 340" preserveAspectRatio="none" aria-hidden="true">
-        ${was.length ? usesInk_(was) : ''}
+        ${was.length ? usesInk_(was, ka) : ''}
         <g class="qpad-g" vector-effect="non-scaling-stroke">${marks.map(st =>
-          `<path vector-effect="non-scaling-stroke" d="${padPath_(st)}"/>`).join('')}</g>
+          `<path vector-effect="non-scaling-stroke" d="${padPath_(st, ka)}"/>`).join('')}</g>
         <g class="qpad-aid"></g>
       </svg>
     </div>
@@ -8887,13 +9048,6 @@ const PAD_TOOL = new Map();
 const PAD_CLEARED = new Map();
 const PAD_CLEARED_MARK = new Map();
 
-function padAt_(ink, e) {
-  const r = ink.getBoundingClientRect();
-  if (!r.width || !r.height) return null;
-  return [Math.round((e.clientX - r.left) / r.width * 340),
-          Math.round((e.clientY - r.top) / r.height * 340)];
-}
-
 /* THE TOOL A DRAG ON THIS PAD USES: what was chosen for it, and only if the bar offers that tool.
    Asked of the bar rather than of `padTools_` again, so a tool the decider did not give this question
    cannot be drawn with, whatever a stale `PAD_TOOL` entry says -- the tile IS the permission. */
@@ -8911,6 +9065,12 @@ function padToolNow_(pad) {
    turned back into units. The picture's shape is the drawing's, the same at 320px and on a laptop,
    so a ring stored that way is round wherever it is drawn again. */
 const PAD_MIN_PX = 4;                     // shorter than this a line or a radius is a slip, not a mark
+/* AND LONGER FOR ONE STROKE: a ruler's or a compass's owner that stayed still while another contact moved, and was made
+   the stroke again (`padAlone_`), marks nothing until it has really moved: `g.min`. AND NOTHING AT ALL once the pin rule
+   has refused a contact ON THE PICTURE, unless the still one has since shown it is the one drawing (`g.refused` without
+   `g.mine`, `padRace_`): a pin or a palm is put down and then only drifts, and the second review's 10px was inside the
+   drift a real palm makes. */
+const padMinOf_ = g => (!g ? PAD_MIN_PX : g.refused && !g.mine ? Infinity : g.min || PAD_MIN_PX);
 const PAD_SWING_PX = 16;                  // nearer the point than this, its angle is noise
 const PAD_ARC_MIN = Math.PI / 6;          // a swing of 30 degrees or more is an arc rather than a circle
 
@@ -8986,11 +9146,11 @@ const PAD_DRAW = {
   ruler: {
     move: (g, at) => [g.from[0], g.from[1], at[0], at[1]],
     end: (g, st) => (st.length === 4
-      && Math.hypot((st[2] - st[0]) * g.sx, (st[3] - st[1]) * g.sy) >= PAD_MIN_PX ? st : null),
+      && Math.hypot((st[2] - st[0]) * g.sx, (st[3] - st[1]) * g.sy) >= padMinOf_(g) ? st : null),
   },
   compass: {
     move: (g, at) => padSwing_(g, at),
-    end: (g, st) => (g.r >= PAD_MIN_PX && st.length >= 4 ? st : null),
+    end: (g, st) => (g.r >= padMinOf_(g) && st.length >= 4 ? st : null),
   },
 };
 
@@ -9004,86 +9164,836 @@ function padAid_(g) {
   if (!aid) return;
   const c = g.from;
   const pin = `<path class="qpad-pin" vector-effect="non-scaling-stroke" d="M${c[0]} ${c[1]}L${c[0]} ${c[1]}"/>`;
-  const rad = g.tool === 'compass' && g.tip && g.r >= PAD_MIN_PX
+  const rad = g.tool === 'compass' && g.tip && g.r >= padMinOf_(g)
     ? `<path class="qpad-rad" vector-effect="non-scaling-stroke" d="M${c[0]} ${c[1]}L${Math.round(g.tip[0])} ${Math.round(g.tip[1])}"/>`
     : '';
   aid.innerHTML = pin + rad;
 }
 
-/* ---------- ONE FINGER IS ONE STROKE, AND A SECOND ONE IS NOT A TAKEOVER ---------------------------
-   FOUND BY THE REVIEW OF THE WHITEBOARD with real touches through CDP: finger 1 drawing, a second
-   touch down near the bottom of the board -- a palm resting, or a second child's finger, which on a
-   board the size of a page is the ordinary case and not the odd one -- and the second `pointerdown`
-   replaced the stroke in progress while `pointermove` took every pointer's moves as the stroke's. The
-   stored line alternated between the two (`[272,306,272,305,156,68,272,304,169,68,…]`, a fan of
-   spokes from the palm), finger 1's first 60px were gone, and the first live preview was left in the
-   DOM as a path nothing had stored. The question pages' pen had the same three lines; a question's
-   picture is small enough that nobody rests a hand on it.
-   SO A STROKE BELONGS TO THE POINTER THAT STARTED IT (`PAD_GO.id`): another pointer going down while
-   it is drawn is ignored, and only that pointer's moves and lift are the stroke's. THE SAME ID GOING
-   DOWN AGAIN means its own lift never arrived -- a mouse is always pointer 1 -- so that starts afresh
-   rather than wedging the pen, and so does a stroke whose ink a repaint has already replaced. */
-document.addEventListener('pointerdown', e => {
-  const ink = e.target && e.target.closest && e.target.closest('.qpad-ink');
-  if (!ink) return;
-  const pad = ink.closest('.qpad');
-  if (!pad || pad.getAttribute('data-k') !== PAD_ON) return;
-  if (PAD_GO && PAD_GO.id !== e.pointerId && PAD_GO.ink.isConnected) { e.preventDefault(); return; }
-  const at = padAt_(ink, e);
-  if (!at) return;
-  e.preventDefault();
-  /* A STROKE LEFT HALF DRAWN BY A LIFT THAT NEVER CAME takes its preview with it. */
-  if (PAD_GO) { const old = PAD_GO.ink.querySelector('[data-live]'); if (old) old.remove(); }
-  const r = ink.getBoundingClientRect();
-  PAD_GO = { tool: padToolNow_(pad), ink: ink, from: at, sx: r.width / 340, sy: r.height / 340,
-             r: 0, rMax: 0, a: null, a0: 0, sweep: 0, held: false, tip: null, id: e.pointerId };
-  /* THE PEN AND THE RULER START AS A DOT WHERE THE FINGER WENT DOWN; the compass starts as nothing,
-     because a ring of no width is not a mark -- its point is the aid's. */
-  PAD_ST = PAD_GO.tool === 'compass' ? [] : at.slice();
-  const g = ink.querySelector('.qpad-g');
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  path.setAttribute('d', padPath_(PAD_ST));
-  path.setAttribute('vector-effect', 'non-scaling-stroke');
-  path.setAttribute('data-live', '1');
-  if (g) g.appendChild(path);
-  if (PAD_GO.tool !== 'pen') padAid_(PAD_GO);
-  try { ink.setPointerCapture(e.pointerId); } catch (err) {}
-});
+/* ==================================================================================================
+   A FINGER IS THE PEN, AND TWO FINGERS, A PALM OR A THUMB ARE NOT (docs/history/338).
 
-document.addEventListener('pointermove', e => {
-  if (!PAD_ST || !PAD_GO || e.pointerId !== PAD_GO.id) return;
-  const ink = e.target && e.target.closest && e.target.closest('.qpad-ink');
-  if (!ink || ink !== PAD_GO.ink) return;
-  const at = padAt_(ink, e);
-  if (!at) return;
-  const st = PAD_DRAW[PAD_GO.tool].move(PAD_GO, at, PAD_ST);
+   THE OWNER, 11 OCT: *"drawing or editing with a finger (especially on tablets like an iPad or
+   touchscreens) feels finicky, imprecise, and frustrating"* -- naming *"accidental stray ink blobs while
+   trying to pan"* -- and, asked what the children draw with, *"they are just using their fingers"*.
+
+   MEASURED BEFORE A LINE OF THIS WAS WRITTEN, with real touch through CDP on the board and on June 2024
+   1F Q7 at 390x844 and 820x1180: finger 1 always owned the stroke (note 310's rule, below), so a
+   two-finger tap stored a DOT, a two-finger pan or a pinch stored a LINE, and a palm that landed first
+   took the stroke -- its blob was stored (`[238,299,240,299,238,299]`) and the fingertip's whole line was
+   lost. And a palm or a thumb resting on the card beside the pad is the PRIMARY pointer, the one the
+   swipe engine follows, so it could slide the column out from under a finger that was drawing.
+
+   ---------- WHAT NOTE 310 SAID, AND HOW THIS AMENDS IT -- READ THIS BEFORE "SIMPLIFYING" IT BACK ----------
+   310: *"a stroke belongs to the pointer that started it; a second pointer neither takes it over nor
+   ends it."* That stands for a stroke that is ESTABLISHED -- the finger has gone 10px and 200ms -- and a
+   palm landing mid-line is a rest exactly as before. It is amended ONLY for a stroke that is still
+   TENTATIVE (a dot, or under 200ms old) or HELD: there a second contact is evidence of a gesture, so the
+   preview is hidden (every sample kept) until movement says which it was -- two fingers moving is a pan
+   or a pinch and stores nothing; the first finger moving alone carries on with nothing lost; the SECOND
+   one moving alone, on the ink, was the real finger after a palm, and takes the stroke from its own
+   first point. Restore first-finger-wins and the palm blob comes back, and a two-finger pan draws.
+
+   CONTACTS, NOT TIMERS. Nothing here waits: a one-finger stroke is drawn the moment the finger lands,
+   exactly as before, and a stroke is held back only when a second contact gives evidence. Contacts are
+   told apart by HOW THEY MOVE. Contact size is recorded (`?pen=sizes`) and decides nothing yet: no
+   finger or palm on an iPad here has ever been measured, and a size threshold that is wrong low silently
+   stops a child drawing (338, increment 2).
+
+   THE THRESHOLDS ARE CSS PIXELS AND MILLISECONDS, never rem -- a fingertip is the same size on every
+   screen (CLAUDE.md). Every age is a difference of two events' `timeStamp`s. */
+const PAD_STILL_PX = 10;      // "a dot", and "has moved": the app's own drag decision (`PRESS_MOVED`), iOS's 10pt
+const PAD_ALSO_PX = 5;        // "moving too": half of it -- by the time one finger of a pan has gone 10, the other has gone 5
+const PAD_TOGETHER_MS = 200;  // twice Android's tap timeout, because children's fingers land less in step
+const PAD_TOGETHER_PX = 200;  // two fingertips of one hand (38mm on an iPad, 31 on a phone), not a palm heel
+const PAD_BAR_MS = 400;       // a resting hand's release becomes a click within this: Android's long press
+/* AFTER REVIEW (11 Oct, docs/history/338): a hand that rolls or settles as the line starts moves 6-12px and STOPS; the
+   second finger of a pan or a pinch keeps going. At the moment the first of them has gone 10px the two look the same, so
+   when the other has moved too the question is asked again once the one that went furthest has gone `PAD_KEEPUP_PX`:
+   the other is moving WITH it if it has gone `PAD_WITH` of that, and settled if not. And each finger is judged at its
+   own samples' time -- the other's report for the same moment can come `PAD_LAG_MS` behind. */
+const PAD_KEEPUP_PX = 30;     // 3 x the 10px: at a child's 300px/s, 100ms -- past the 50-80ms a thumb rolls or a palm settles in
+const PAD_WITH = 0.5;         // "kept up": half as far as the one that went furthest (a pan or pinch is about 1, a settle falls away)
+const PAD_LAG_MS = 40;        // a finger that reported within this is still reporting: a frame at 60Hz plus a report's spread
+
+/* THE CONTACTS, by `pointerId` (jsdom's `undefined` is a key like any other). Every pointer that goes
+   down on the armed ink, of any kind, and every TOUCH that goes down anywhere while a pad is armed -- a
+   palm on the card, a gripping thumb, the second finger of a pinch on a 180px figure. Each is
+   `{id, type, t0, p0, p, pm, tm, ts, hist, far, onInk, ink, k, size, big, role, pts, m0, h0, late, busy}`:
+   points in client px, `far` the furthest it has been from where it went down, `tm` the last time it
+   moved `PAD_ALSO_PX`, `ts` the time of its last SAMPLE and `hist` its recent samples `[t, x, y]` (so two
+   fingers are compared at one moment, not at whenever each one's event happened to be dispatched),
+   `role` one of owner / cand / watch / rest / two. */
+const PAD_TOUCH = new Map();
+/* HELD: the stroke is kept (`PAD_ST`, `PAD_GO`, so `padHold_` and `findKeep_` still hold its column) and
+   its samples go on accumulating, but nothing of it is on the screen. `{cand, kind, from}`: the contact
+   that caused it (null once it has gone), `b` if the owner was still a dot when it came and `a` if the
+   owner had moved but was young, and where the owner was when it began. */
+let PAD_HUSH = null;
+/* TWO FINGERS: no stroke, and nothing drawn until every one of these has lifted. */
+const PAD_TWO = new Set();
+/* A DECISION NOT YET MADE: one of the fingers being told apart has gone 10px, and the others have yet to
+   report that moment, or have moved too and it is not yet clear whether WITH it -- see `padJudge_`. Asked at
+   the next frame after one of them moves; a lift, a cancel or the page going away makes it then and there. */
+let PAD_DUE = null;
+let PAD_FRAME = 0;
+/* UNDO AND CLEAR REFUSED UNTIL THIS TIME, by pad key -- a hand resting on the bar (`padRested_`). */
+const PAD_RESTED = new Map();
+/* `?pen=sizes` IN THE ADDRESS: the last eight contacts' widths, on the screen -- the reading increment 2
+   waits for. Nothing reads it but the line that shows it. */
+const PAD_SIZES = (() => { try { return /[?&]pen=sizes(&|$)/.test(location.search) ? [] : null; } catch (e) { return null; } })();
+
+const padDist_ = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+/* A CONTACT'S SIZE: the larger of its two sides, and only when the platform reports one -- 1 (or 0) is
+   "not known", which is what a mouse, iOS before 18 and Android's `pointerup` say. */
+const padSizeOf_ = e => { const s = Math.max(Number(e && e.width) || 0, Number(e && e.height) || 0); return s > 1 ? s : 0; };
+
+/* WHETHER A FINGER IS ON THE ARMED DRAWING -- the swipe engine asks this before it takes a gesture
+   (overworld.js, the axis decision), so a palm or a thumb that went down first beside the pad, which is
+   the pointer the grid follows, cannot slide the column out from under a stroke. Keyed by the pad's KEY,
+   not its element, so a repaint in the middle of a gesture does not let go of it; T0 and `padDrop_` are
+   what clear it, and a stuck one would mean the column never moves again -- which is why both exist. */
+function padBusy_(k) {
+  const on = k === undefined ? PAD_ON : k;
+  if (!on || on !== PAD_ON || !PAD_TOUCH.size) return false;
+  for (const c of PAD_TOUCH.values()) if (c.onInk && c.k === on) return true;
+  return false;
+}
+/* ---------- UNDO AND CLEAR UNDER A RESTING HAND -----------------------------------------------------
+   THE BAR SITS RIGHT UNDER THE PICTURE, WHERE A DRAWING HAND RESTS. A palm lifting off Undo is a click,
+   and that undid the stroke before this one -- and `padRepaint_` wiped the preview of the one being
+   drawn. So Undo and Clear do nothing while a finger is on that drawing, or within `PAD_BAR_MS` of the
+   lift of a touch that went down off the ink while one was: a click follows its `pointerup` in the same
+   task, and 400ms is the longest a resting hand's release takes to become one. Silently -- a child
+   resting a palm should not be told anything. The lock and the tools are NOT guarded: "Done drawing"
+   pressed by the other hand still ends the stroke as it always did. */
+const padRested_ = k => padBusy_(k) || (PAD_RESTED.get(k) || 0) > performance.now();
+
+/* WRITTEN ONCE A FRAME, NOT IN THE HANDLER (after review): the line written inside every `pointermove` dirtied the
+   layout the next event's box read then forced -- 78 forced layouts in 78 moves, 2.3ms each at 4x, the very cost 1b took
+   out of the pen -- in the one mode the iPad reading is to be taken in. Nothing changes in the frame but the words. */
+let PAD_SIZES_FRAME = 0;
+function padSizesSay_(c, e) {
+  if (!PAD_SIZES || typeof document === 'undefined') return;
+  if (e.type === 'pointerdown') {
+    c.say = { type: c.type || '?', w: Math.round(Number(e.width) || 0), h: Math.round(Number(e.height) || 0), big: c.size };
+    PAD_SIZES.push(c.say);
+    if (PAD_SIZES.length > 8) PAD_SIZES.shift();
+  } else if (c.say) {
+    const big = Math.max(c.say.big, padSizeOf_(e));
+    if (big === c.say.big) return;
+    c.say.big = big;
+  }
+  if (PAD_SIZES_FRAME || typeof requestAnimationFrame !== 'function') return;
+  PAD_SIZES_FRAME = requestAnimationFrame(padSizesShow_);
+}
+function padSizesShow_() {
+  PAD_SIZES_FRAME = 0;
+  let el = document.querySelector('.pad-sizes');
+  if (!el) {
+    el = document.createElement('div');
+    el.className = 'pad-sizes';
+    el.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(el);
+  }
+  el.textContent = PAD_SIZES.map(s => s.type + ' ' + s.w + 'x' + s.h + ' largest ' + Math.round(s.big)).join('\n');
+}
+
+/* A CONTACT, NEW. `busy` names the pad a finger was on when an OFF-ink touch went down, for the bar. */
+function padContact_(e, ink, k) {
+  const at = [e.clientX, e.clientY], ts = e.timeStamp;
+  const c = { id: e.pointerId, type: e.pointerType || '', t0: ts, p0: at, p: at.slice(), pm: at.slice(), tm: ts, ts: ts,
+              hist: [[ts, at[0], at[1]]], far: 0,
+              onInk: !!ink, ink: ink || null, k: k || '', size: padSizeOf_(e), big: 0, role: 'rest', pts: null,
+              m0: null, h0: null, late: false, busy: !ink && padBusy_() ? PAD_ON : '' };
+  c.big = c.size;
+  PAD_TOUCH.set(e.pointerId, c);
+  padSizesSay_(c, e);
+  return c;
+}
+/* AND WHERE IT HAS GOT TO: how far from where it went down, and when it last really moved. A "move" is
+   `PAD_ALSO_PX`, so a resting palm's tremble is not a contact on the move. */
+function padTrack_(c, x, y, ts) {
+  c.p = [x, y];
+  const d = padDist_(c.p0, c.p);
+  if (d > c.far) c.far = d;
+  /* AND WHEN IT FIRST WENT `PAD_KEEPUP_PX`, by this sample's clock -- the moment `padRace_` compares. */
+  if (c.tk === undefined && d >= PAD_KEEPUP_PX) c.tk = ts;
+  if (padDist_(c.pm, c.p) >= PAD_ALSO_PX) { c.pm = c.p.slice(); c.tm = ts; }
+  /* AND WHEN, BY THE SAMPLE'S OWN CLOCK. The review found a pan's second finger whose event was stamped after the
+     first had gone 10px while it carried only a sample from 16ms before -- judged by the event, it read as still and
+     the pan drew a line. 256 samples is a second at 240Hz; a decision looks back `PAD_LAG_MS`. */
+  if (ts > c.ts) c.ts = ts;
+  c.hist.push([ts, x, y]);
+  if (c.hist.length > 256) c.hist.splice(0, 128);
+}
+/* WHERE A CONTACT WAS AT A MOMENT: its last sample at or before it. */
+function padPos_(c, t) {
+  const h = c.hist;
+  for (let i = h.length - 1; i >= 0; i--) if (h[i][0] <= t) return h[i];
+  return h[0];
+}
+
+/* WHERE A POINT IS ON THE PICTURE, IN ITS 340 UNITS, from a box ALREADY READ -- one read per event. */
+function padMap_(r, cx, cy) {
+  if (!r || !r.width || !r.height) return null;
+  return [Math.round((cx - r.left) / r.width * 340), Math.round((cy - r.top) / r.height * 340)];
+}
+/* ---------- EVERY SAMPLE THE FINGER GAVE ----------------------------------------------------------------
+   MEASURED BEFORE: under load the pen kept about one sample in three -- a 1,200-sample zigzag at 4x CPU
+   reached it as 395 `pointermove`s, and every one of the 1,200 was there in `getCoalescedEvents`. A fast
+   circle came out a 9-gon. So every sample an event carries is the stroke's, read the way overworld.js
+   reads them for the swipe: where the call exists AND answers something (Firefox on Android answers `[]`,
+   Safari before 18.2 and jsdom have none), else the event itself. From each entry only the point and its
+   time: iOS 18.2 shipped them with no `pointerId` and no `target`, so those come from the event. Predicted
+   events are never read -- ink where the finger has not been is the surprise the brief forbids (338). */
+function padSamples_(e) {
+  const co = typeof e.getCoalescedEvents === 'function' ? e.getCoalescedEvents() : null;
+  return co && co.length ? co : [e];
+}
+
+/* ---------- A STROKE STARTS: today's start, for one contact ----------------------------------------
+   THE PEN AND THE RULER START AS A DOT WHERE THE FINGER WENT DOWN; the compass starts as nothing,
+   because a ring of no width is not a mark -- its point is the aid's. */
+function padStart_(c, at, r) {
+  const pad = c.ink.closest('.qpad');
+  PAD_GO = { tool: padToolNow_(pad), ink: c.ink, from: at, sx: r.width / 340, sy: r.height / 340,
+             r: 0, rMax: 0, a: null, a0: 0, sweep: 0, held: false, tip: null, id: c.id,
+             c: c, t0: c.t0, k: padAspectOf_(pad), est: false, pen: false, dirty: false, live: [], start: 0 };
+  PAD_ST = PAD_GO.tool === 'compass' ? [] : at.slice();
+  c.role = 'owner';
+  return PAD_GO;
+}
+/* ONE SAMPLE OF THE OWNER, THROUGH ITS TOOL. */
+function padStep_(g, at) {
+  const st = PAD_DRAW[g.tool].move(g, at, PAD_ST);
   if (!st) return;
   PAD_ST = st;
-  const live = ink.querySelector('[data-live]');
-  if (live) live.setAttribute('d', padPath_(PAD_ST));
-  if (PAD_GO.tool !== 'pen') padAid_(PAD_GO);
-});
+  g.dirty = true;
+}
+/* A CANDIDATE'S OWN SAMPLES, in units of its own ink, for the day it turns out to be the finger. */
+function padKeep_(pts, at) {
+  if (pts.length && pts[pts.length - 2] === at[0] && pts[pts.length - 1] === at[1]) return;
+  pts.push(at[0], at[1]);
+}
 
-function padEnd_(e) {
-  if (!PAD_ST || !PAD_GO) { PAD_ST = null; PAD_GO = null; return; }
-  /* ANOTHER FINGER LIFTING IS NOT THE END OF THIS STROKE -- the note over `pointerdown`. */
-  if (e && e.pointerId !== PAD_GO.id) return;
+/* ---------- WHAT IS ON THE SCREEN OF IT ----------------------------------------------------------- */
+function padLiveOff_(g) {
+  if (!g || !g.ink) return;
+  (g.live || []).forEach(p => p.remove());
+  g.live = [];
+  g.ink.querySelectorAll('[data-live]').forEach(p => p.remove());
+  const aid = g.ink.querySelector('.qpad-aid');
+  if (aid) aid.innerHTML = '';
+}
+function padLivePath_(g, d) {
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', d);
+  path.setAttribute('vector-effect', 'non-scaling-stroke');
+  path.setAttribute('data-live', '1');
+  const host = g.ink.querySelector('.qpad-g');
+  if (host) host.appendChild(path);
+  return path;
+}
+/* ---------- THE PEN'S LIVE PATH, ONCE A FRAME, IN CHUNKS ---------------------------------------------------
+   IT WAS REWRITTEN WHOLE ON EVERY `pointermove`: the whole `d` rebuilt and re-parsed per event, and the next
+   event's box read then forced the layout that write had dirtied -- `padAt_` measured 1.0ms at p95 at 4x, a
+   forced layout every move. With every coalesced sample kept a stroke is three times longer, so rebuilding
+   it whole would cost three times as much per move. So the samples are fed as they come, and the PATH is
+   written once a frame: a frame asked for from an input handler runs before the next paint, so nothing is
+   drawn later than it was -- only less often than the events come (iOS sends touches unaligned to frames,
+   two writes a frame became one). And nothing is written between two pen events, so each event's box read
+   finds clean layout.
+   IN CHUNKS OF `PAD_CHUNK` SEGMENTS, so a frame's cost does not grow with the stroke: only the OPEN chunk's
+   `d` is rewritten; at 128 segments, once the stroke has 2 points beyond it (what its last segment's
+   corner test and far handle need), it is written one last time and left, and the next starts at its last
+   point. At every frame the chunks draw exactly `padPath_` of the points so far; the pen is opaque with
+   round caps, so the joins do not show. On a lift they collapse into one path (`padCommit_`), so a stroke
+   is one `<path>` as it always was.
+   THE RULER AND THE COMPASS STAY SYNCHRONOUS: a two-point line or one ring of at most 120 points, and the
+   journeys read their live radius straight after `pointermove`. */
+const PAD_CHUNK = 128;
+/* ONE CHUNK: points a..b, through the one segment writer `padPath_` uses. */
+const padChunk_ = (st, k, a, b) => 'M' + st[2 * a] + ' ' + st[2 * a + 1] + padSegs_(st, k, a, b);
+function padChunks_(g) {
+  g.dirty = false;
+  const st = PAD_ST, n = st.length / 2;
+  let open = g.live[g.live.length - 1];
+  /* A REPAINT OF THIS PAD TOOK THE CHUNKS (an Undo from the other hand, a copy repainted): drawn again whole. */
+  if (!open || !open.isConnected) {
+    g.live.forEach(p => p.remove());
+    open = padLivePath_(g, '');
+    g.live = [open];
+    g.start = 0;
+  }
+  while (n - 1 - g.start >= PAD_CHUNK + 2) {
+    const b = g.start + PAD_CHUNK;
+    open.setAttribute('d', padChunk_(st, g.k, g.start, b));
+    open = padLivePath_(g, '');
+    g.live.push(open);
+    g.start = b;
+  }
+  open.setAttribute('d', g.start ? padChunk_(st, g.k, g.start, n - 1) : padPath_(st, g.k, true));
+}
+/* THE PREVIEW, DRAWN WHOLE FROM EVERY SAMPLE KEPT -- at the start, and when a hold resolves. Now, not at
+   the next frame: the dot is under the finger the moment it lands. */
+function padLiveShow_() {
   const g = PAD_GO;
+  if (!g) return;
+  padLiveOff_(g);
+  g.start = 0;
+  /* NOR WHAT CANNOT BE KEPT: a pin's or a palm's ruler line or ring while it is not known to be the one drawing (`padRace_`)
+     -- the third review watched a palm's line and ring follow it round the picture and vanish at the lift. */
+  if (!padShown_(g)) { g.dirty = false; return; }
+  g.live = [padLivePath_(g, '')];
+  if (g.tool === 'pen') padChunks_(g);
+  else { g.live[0].setAttribute('d', padPath_(PAD_ST, g.k, true)); g.dirty = false; padAid_(g); }
+}
+/* AND AS IT GROWS: the pen at the next frame, the ruler and the compass now. */
+function padLive_() {
+  const g = PAD_GO;
+  if (!g || PAD_HUSH || !g.dirty) return;
+  if (g.tool === 'pen') { padFrameWant_(); return; }
+  g.dirty = false;
+  if (!padShown_(g)) return;
+  const live = g.live[0];
+  if (live) live.setAttribute('d', padPath_(PAD_ST, g.k, true));
+  padAid_(g);
+}
+
+/* ---------- THE TRANSITIONS --------------------------------------------------------------------- */
+/* NOTHING OF THE STROKE: no preview, no aid, nothing stored. The owner's contact stays (it is still down). */
+function padWithdraw_() {
+  const g = PAD_GO;
+  PAD_ST = null; PAD_GO = null; PAD_HUSH = null; PAD_DUE = null;
+  if (g) { padLiveOff_(g); if (g.c && g.c.role === 'owner') g.c.role = 'rest'; }
+}
+/* HELD: see `PAD_HUSH`. The candidate's own samples are kept from now on, if it is on the ink. */
+function padHush_(c, kind) {
+  c.role = 'cand';
+  c.h0 = c.p.slice();
+  c.pts = null;
+  if (c.onInk && c.ink && c.ink.isConnected) {
+    const at = padMap_(c.ink.getBoundingClientRect(), c.p[0], c.p[1]);
+    if (at) c.pts = at;
+  }
+  PAD_HUSH = { cand: c, kind: kind, from: PAD_GO.c.p.slice() };
+  padLiveOff_(PAD_GO);
+}
+/* THE OWNER WAS THE FINGER: the preview comes back from every sample kept, and the other is a rest. */
+function padResume_() {
+  const h = PAD_HUSH;
+  if (h && h.cand && h.cand.role === 'cand') { h.cand.role = 'rest'; h.cand.pts = null; }
+  PAD_HUSH = null;
+  padLiveShow_();
+}
+/* THE OTHER WAS THE FINGER (a palm landed first): it takes the stroke from its own first point, with
+   every sample it gave while held, and the palm is a rest. `held` keeps it hidden -- the owner lifted
+   still, and the one left has yet to move. */
+function padSwap_(c, held) {
+  const old = PAD_GO ? PAD_GO.c : null;
+  padWithdraw_();
+  if (old && PAD_TOUCH.get(old.id) === old) old.role = 'rest';
+  const pts = c.pts || [];
+  c.pts = null;
+  if (pts.length < 2 || !c.ink || !c.ink.isConnected) { c.role = 'rest'; return; }
+  const r = c.ink.getBoundingClientRect();
+  const g = padStart_(c, pts.slice(0, 2), r);
+  for (let i = 2; i + 1 < pts.length; i += 2) padStep_(g, [pts[i], pts[i + 1]]);
+  if (held) { PAD_HUSH = { cand: null, kind: 'b', from: c.h0.slice() }; padLiveOff_(g); }
+  else padLiveShow_();
+}
+/* TWO FINGERS: whatever the owner drew goes, and nothing is drawn until every one of these lifts. */
+function padTwo_(more) {
+  const who = [];
+  if (PAD_GO && PAD_GO.c) who.push(PAD_GO.c);
+  if (PAD_HUSH && PAD_HUSH.cand) who.push(PAD_HUSH.cand);
+  (more || []).forEach(c => { if (c) who.push(c); });
+  padWithdraw_();
+  who.forEach(c => { if (PAD_TOUCH.get(c.id) === c) { c.role = 'two'; c.pts = null; PAD_TWO.add(c.id); } });
+  PAD_TOUCH.forEach(c => { if (c.role === 'watch' || c.role === 'cand') c.role = 'rest'; });
+}
+/* A STROKE IS TENTATIVE while its finger is still a dot, or younger than `PAD_TOGETHER_MS`, or held. */
+const padTentative_ = now => !!PAD_GO && !PAD_GO.est
+  && (!!PAD_HUSH || PAD_GO.c.far < PAD_STILL_PX || !(now - PAD_GO.t0 >= PAD_TOGETHER_MS));
+
+/* ---------- WHO MOVED, AND WHETHER WITH THE OTHER: JUDGED AT ONE MOMENT --------------------------------
+   THE RULE IS "the first of them to go 10px decides, by how far the others have gone": a second finger that has not
+   moved half of that is not part of it. Two things the review of 11 Oct found with real touch, each costing a child's
+   line, are why it is asked the way it is:
+   - EACH FINGER IS JUDGED AT ITS OWN SAMPLES' TIME. The platform sends each finger's moves as their own `pointermove`,
+     one after the other, and under load one event carries several folded samples -- finger 1's arrives 14px on while
+     finger 2's report for that moment has not come, or comes in an event stamped later than the samples it carries.
+     Judged by what had arrived (the first build decided at the other finger's next event stamped after the
+     crossing; the review still drew 8 pans in 28 with finger 2 out of phase), finger 2 reads as still and the pan
+     draws finger 1's line. So it is decided AT A FRAME -- input that has arrived is dispatched before a frame's
+     callbacks, so every finger's queued report is in; judged inside an event, the other finger's events of the same
+     batch can still be queued behind it, and a stall of the main thread makes it look silent (measured: 3 pans in 8
+     drew that way at 4x) -- and the moment judged is the latest every finger still reporting has reported
+     (`PAD_LAG_MS`: one silent longer than that is still, not late), every finger taken where it was THEN (`padPos_`).
+   - A HAND THAT ROLLS OR SETTLES IS NOT A SECOND FINGER. A thumb gripping the edge rolls 6-12px in the first 50-80ms
+     of a line and stops; a palm put down flattens and its centre slides as far. At the 10px moment that is "moving
+     too", and the first build called it a pan: six resting-hand gestures drew nothing on every pad and size, where the
+     pen before 338 drew them. A second finger keeps going. So when another has moved 5px as well, nothing is decided
+     until the one that went furthest has gone `PAD_KEEPUP_PX`, and then the others that have kept `PAD_WITH` of it
+     are fingers WITH it -- two fingers, nothing drawn -- and one that fell behind settled.
+   Nothing is lost by waiting: a held stroke keeps every sample (`PAD_HUSH`), and a watched contact's stroke is drawn
+   all along. A lift, a cancel or the page going away decides at once, from where each one got to. */
+/* THE ONES BEING TOLD APART, each with the point it is measured from: the owner (from where it was when the hold began,
+   or from its down while it is watched against), the candidate (from where it was then) and every watched contact (from
+   where it was when the owner went down). */
+function padParties_() {
+  const g = PAD_GO;
+  if (!g) return [];
+  const o = g.c, h = PAD_HUSH, out = [{ c: o, ref: h ? h.from : o.p0 }];
+  if (h && h.cand && PAD_TOUCH.get(h.cand.id) === h.cand) out.push({ c: h.cand, ref: h.cand.h0 });
+  PAD_TOUCH.forEach(x => { if (x.role === 'watch' && x.m0) out.push({ c: x, ref: x.m0 }); });
+  return out;
+}
+/* THE DECISION, if it can be made. `force` is a lift, a cancel or the page going: decided from where each one is. */
+function padJudge_(force) {
+  PAD_DUE = null;
+  if (!PAD_GO || PAD_TWO.size) return;
+  const ps = padParties_();
+  if (ps.length < 2 && !PAD_HUSH) return;
+  /* THE MOMENT: the latest every one still reporting has reported. One silent for `PAD_LAG_MS` has not moved since. */
+  let latest = -Infinity;
+  ps.forEach(p => { if (p.c.ts > latest) latest = p.c.ts; });
+  let tc = latest;
+  if (!force) ps.forEach(p => { if (p.c.ts > latest - PAD_LAG_MS && p.c.ts < tc) tc = p.c.ts; });
+  ps.forEach(p => {
+    const at = force ? [0, p.c.p[0], p.c.p[1]] : padPos_(p.c, tc);
+    p.d = Math.hypot(at[1] - p.ref[0], at[2] - p.ref[1]);
+  });
+  const far = ps.reduce((a, b) => (b.d > a.d ? b : a));
+  if (far.d < PAD_STILL_PX) {
+    /* NOBODY HAS GONE 10px AT A MOMENT ALL HAVE REPORTED -- though one has by its own latest: the others' reports are
+       still coming. Asked again at the frame after their next event; a lift decides it. */
+    if (ps.some(p => padDist_(p.ref, p.c.p) >= PAD_STILL_PX)) PAD_DUE = { at: tc };
+    return;
+  }
+  const moving = ps.filter(p => p.d >= PAD_ALSO_PX);
+  if (moving.length > 1) {
+    /* MORE THAN ONE HAS MOVED: a pan, or a hand settling as the finger goes? Not yet known. */
+    if (far.d < PAD_KEEPUP_PX && !force) { PAD_DUE = { at: tc }; return; }
+    const kept = moving.filter(p => p.d >= PAD_WITH * far.d);
+    if (kept.length > 1) { padTwo_(kept.map(p => p.c)); return; }
+  }
+  /* A LATER CONTACT IS HANDED THE STROKE ONLY ONCE IT HAS GONE `PAD_KEEPUP_PX` (fourth review, 12 Oct). 10px alone was
+     enough, and a palm that lands beside a finger held still to aim -- at any age with the pen, within `PAD_TOGETHER_MS`
+     with the ruler or the compass -- settles 6-12px as it flattens (round 1), and 16 is not rare: it was handed the
+     stroke, its settle was shown and stored, and the finger, a rest from then on, drew a 120px line that was lost.
+     Measured with real touch on the board and on June 2024 1F Q7: 16 of 16 at a 12 or 16px settle, where 4955c7c, the
+     first finger always the stroke, kept the line every time. A finger drawing after a palm goes 30px in 100ms; a settle
+     stops short of it. Until then the hold goes on, every sample kept -- and if the still one moves, the half rule above
+     tells a settle from a second finger and the still one's line comes back.
+     AND A LIFT HANDS NOTHING OVER. The review's rule let a lift decide from 10px, and the same palm then still marked
+     whenever something lifted first: a palm that settled 12px and lifted (a hand brushing the picture) was handed the
+     stroke at its lift -- its settle stored, and the aiming finger's line after it lost; a finger that tapped still
+     beside a settling palm handed it the stroke at the finger's lift. So the 30px holds at a lift too, and for the one
+     left holding the stroke when the first lifts (`padSwap_`, held): it is that contact's only once it has gone 30px.
+     The simpler rule, chosen over keeping the exception for a lift (338, round 4). The cost, section 4: a palm-first
+     finger's line shows from 30px, not 10, and the first strokes after a palm lands, if shorter than 30px, are lost for
+     as long as it stays down and still.
+     AND THE FIRST, LEFT ALONE, THE SAME. With a lift handing nothing over, a palm-first tick left the PALM holding the
+     stroke with nobody beside it, and at its 10px it was handed it back: the hand moving on, the palm sliding 15px, drew
+     its slide -- and every finger after it was a rest beside an established stroke, its line lost until the palm lifted
+     (jsdom, this round; after a finger's TAP 2a89387 did the same). Once the other has lifted there is nothing left to
+     compare it with, and a finger after a brush and a palm after a tick move alike: whichever is left alone in a held
+     stroke is handed it only at 30px, as a later contact is. The cost, section 4: a short stroke by the aiming finger
+     after a palm has brushed the picture is lost too. */
+  if (padOwed_(far.c) && far.d < PAD_KEEPUP_PX) { if (!force) PAD_DUE = { at: tc }; return; }
+  padAlone_(far.c);
+}
+/* THE ONE TO BE HANDED THE STROKE, NOT YET HAVING SHOWN IT IS DRAWING -- it waits for `PAD_KEEPUP_PX`: the held candidate the
+   stroke may go to (`padTakes_`); the one it went to when the first lifted, still held (`padSwap_` -- `late`); and the
+   owner left alone when its candidate lifted. NOT an owner with its candidate still down: moving alone beside a contact
+   that stays still is the evidence (round 1's P7 -- its line back within a frame at 10px). Kind `b` only: a later
+   contact that has gone 30px is never held as `b` again (that needs a still owner). */
+const padOwed_ = c => !!PAD_HUSH && PAD_HUSH.kind === 'b' && (c === PAD_HUSH.cand ? padTakes_(c) : c === PAD_GO.c && (c.late || !PAD_HUSH.cand));
+/* ONE OF THEM MOVED, ALONE. The owner: it was the finger -- anything watched is a rest and a held stroke comes back. A
+   watched contact: a rest; it was down first, so it can never take the stroke. The candidate: kind a (the owner had
+   already moved when it came) is two fingers, as 338's T4 says; otherwise it takes the stroke if it may (`padTakes_`)
+   -- the palm landed first -- and if not the owner was the finger after all. */
+function padAlone_(x) {
+  const o = PAD_GO.c, h = PAD_HUSH, cand = h ? h.cand : null;
+  if (x === o) {
+    PAD_TOUCH.forEach(c => { if (c.role === 'watch') c.role = 'rest'; });
+    if (h) padResume_();
+    return;
+  }
+  if (x.role === 'watch') { x.role = 'rest'; return; }
+  if (!h || x !== cand) return;
+  if (h.kind === 'a') { padTwo_(); return; }
+  if (padTakes_(cand)) { padSwap_(cand, false); return; }
+  const pinned = padPinned_(cand);
+  cand.role = 'rest'; cand.pts = null;
+  /* REFUSED, SO THE STILL ONE IS THE STROKE AGAIN -- and a ruler's or a compass's still owner is a PIN or a PALM until it
+     shows otherwise. Its end needed only `PAD_MIN_PX` (4px), so a pin that rolled 6px while the other finger swung stored
+     its own 7-unit ruler line, or a ring of radius 8 round itself, and a palm resting on the picture that drifted 6px while
+     the finger drew stored a line or a ring at the PALM (second review, 12 Oct). Not the pen: its still owner resumed is the
+     finger after a tap or a brush -- the pen hands a palm's stroke over.
+     THE SECOND REVIEW'S ANSWER WAS A THRESHOLD, and the third review found it only moved the stray mark: its line or radius
+     counted from `PAD_STILL_PX`, 10px, and a resting palm that drifted 12px while the finger drew stored its own ruler line
+     or a ring round itself -- so did one that slid 12px after the finger lifted, one that crept 22px through three tries,
+     and a pin that rolled 12px. 6-12px is what round 1 measured a thumb roll and a palm settle at; 10px is inside it, and
+     so is any number a drift can reach. So when the pin rule refused a contact ON THE PICTURE, which of the two is drawing
+     is decided by what they do next (`padRace_`), and until then the still one can mark nothing and shows nothing.
+     `PAD_STILL_PX` stays the least it can mark once it is the one: kept for a refusal off the picture as well. */
+  if (PAD_GO.tool !== 'pen') PAD_GO.min = Math.max(PAD_GO.min || 0, PAD_STILL_PX);
+  if (pinned) {
+    (PAD_GO.refused || (PAD_GO.refused = [])).push(cand);
+    /* THE RACE STARTS WHERE THE STILL ONE WAS WHEN THE FIRST REFUSED ONE LANDED (fourth review), by the samples' clock: what
+       it moved before that is not a race with anything. Counted from its own down, a palm that settled 9px as it was put
+       down -- still a dot, so it never marked -- had only 2-4px more to drift while a slow-starting finger was at 10-12px,
+       and its own ruler line or ring was shown and stored (2a89387, real touch: 3-4 of 8 such ruler runs and 1-3 of 6 compass
+       runs here, more in the review's). */
+    if (PAD_GO.raceAt === undefined) { PAD_GO.raceAt = cand.t0; PAD_GO.raceFrom = padPos_(PAD_GO.c, cand.t0).slice(1); }
+  }
+  padResume_();
+  padRace_(PAD_GO, false);
+}
+/* WHICH OF THE TWO IS DRAWING, after the pin rule refused the later one: THE FIRST TO GO `PAD_KEEPUP_PX` -- past any roll
+   or settle (round 1: 6-12px in 50-80ms, and then still). The refused one first: it is the finger drawing, the still one
+   is a pin or a palm, and it NEVER marks in this stroke, however far it then drifts, slides or creeps (a palm slid along
+   the card after the finger lifts is a hand moving, not a line). The still one first: it is a finger that was aiming
+   when a palm landed and settled, and its line counts from then on, and is shown -- even if that palm then slides along
+   with the hand, which is why it is a race and not a threshold on the refused one alone (the review's prototype, "30px
+   and the still one never marks", lost that line). Neither by the owner's lift: nothing.
+   THE STILL ONE WON AT 10px, AND "FURTHER THAN THE OTHER", UNTIL THE FOURTH REVIEW -- and every repair to that left a
+   stray mark. Counted from its own down, a palm that settled 9px as it was put down (a dot, so it never marked) needed
+   2-4px more to beat a finger that started slowly. Counted from where it was when the other landed (`raceAt`, `raceFrom`,
+   kept by `padAlone_`), and "further" asked at each sample's own time rather than at the frame that asks (a frame 100-230ms
+   late found a settled palm already past the finger's sample that had beaten it), a ruler's PIN that rolled 12px in
+   200ms beat a finger starting slowly beside it every time, real touch, at 390 and 820: the pin's line stored -- where
+   2a89387 had only missed it by luck of when its frames ran. 10px is inside what a pin rolls and a palm settles; 30px is
+   not. So both sides need 30, the rule `padJudge_` and a hand-over already use, and nothing is compared but two moments.
+   The cost, 338 section 4: an aiming finger's line shorter than 30px, beside a palm that landed on the picture over
+   `PAD_TOGETHER_MS` later and settled 10px, is lost.
+   BY THE SAMPLES' OWN CLOCK, and decided at a frame, for the reason `padJudge_` is: under load one event carries a
+   finger's last 100ms, and the other's event for the same moments can be dispatched before or after it. So each side's
+   moment is the sample it crossed at (`tk`, kept by `padTrack_`; the still one's from its history, from `raceAt`), and a
+   side is beaten only once the other has reported that far in time -- or has been silent `PAD_LAG_MS`, or lifted: it did
+   not move. Kept on the stroke, not the contact: a refused one that lifts still counts by how far it went.
+   `force` is the owner's lift or the page going: decided from what has come. */
+function padRace_(g, force) {
+  if (!g || !g.refused || g.mine || g.never || g !== PAD_GO) return;
+  const o = g.c;
+  let tk = Infinity, latest = o.ts;
+  g.refused.forEach(c => { if (c.tk < tk) tk = c.tk; if (c.ts > latest) latest = c.ts; });
+  let tl = Infinity;
+  for (const h of o.hist) {
+    if (h[0] < g.raceAt) continue;
+    if (h[0] >= tk) break;
+    if (Math.hypot(h[1] - g.raceFrom[0], h[2] - g.raceFrom[1]) >= PAD_KEEPUP_PX) { tl = h[0]; break; }
+  }
+  const told = (c, t) => force || c.ts >= t || latest - c.ts > PAD_LAG_MS || PAD_TOUCH.get(c.id) !== c;
+  if (tl < tk) {
+    if (!g.refused.every(c => told(c, tl))) return;
+    g.mine = true;
+    if (!PAD_HUSH) padLiveShow_();
+    return;
+  }
+  if (tk < Infinity && told(o, tk)) g.never = true;
+}
+/* WHETHER ANY OF A STROKE IS SHOWN: all of it, unless the still one may not mark yet (`padRace_`). */
+const padShown_ = g => !g.refused || !!g.mine;
+/* WHETHER THE OTHER MAY TAKE THE STROKE: it came later, onto this pad's ink, and its samples were kept -- the finger
+   after a palm. NOT a second finger beside a PIN: with the ruler or the compass, an owner that had been held still on its
+   point for longer than `PAD_TOGETHER_MS` before the other came was put there on purpose -- the centre, an end. The
+   review drove a real compass's way with two fingers (one on the centre, the other swinging round it) and the pen
+   handed the stroke to the swinging finger: an arc centred where IT landed, 52 units off the centre, and a ruler line
+   from its start to its end. Neither finger meant either. It is kept as the pen before 338 kept it: the pin's, which
+   stores nothing -- and, since the third review, a pin's that marks nothing however it rolls, once the other has gone on
+   to draw (`padRace_`). (A two-finger compass -- pin and pencil -- is a revisit, 338.) The pen keeps the swap: a finger
+   held still and another drawing is a hand resting and a finger drawing.
+   THE COST, CHOSEN (second review, 12 Oct; 338 section 4): by movement a PALM resting on the picture is a pin, so a palm
+   down more than `PAD_TOGETHER_MS` before the finger takes the finger's ruler line or compass arc with it -- and every
+   one after, while that palm stays down, since each new finger is held against it and refused the same way. A palm down
+   within `PAD_TOGETHER_MS` of the finger still hands it over; the pen always does. Only a contact's SIZE tells a palm
+   from a pin (increment 2). "Nothing is left at the palm" was written here in the second review and was not yet true: a
+   palm that drifted 10px or more marked; the third review made it true once the finger had drawn `PAD_KEEPUP_PX`, and
+   the fourth found a palm or pin that beat a slow-starting finger to 10px still marked. Since then the still one marks
+   only by going 30px before the finger does (`padRace_`): a palm or a pin drifting less than that never marks. */
+function padTakes_(c) {
+  if (!c || !c.late || !c.onInk || c.k !== PAD_ON || !c.pts) return false;
+  return !padPinned_(c);
+}
+/* THE PIN RULE ITSELF, apart from the other reasons a contact may not take the stroke: it came later, onto this pad's
+   picture, with the ruler or the compass, more than `PAD_TOGETHER_MS` after a still owner. Only these go into the race
+   (`padRace_`) -- a contact refused because it was down FIRST, or is off the picture, says nothing about the owner: the
+   owner is the later finger, or the other is a thumb on the card, and either way the owner is the one drawing. */
+function padPinned_(c) {
+  const g = PAD_GO;
+  return !!c && !!g && c.late && c.onInk && c.k === PAD_ON && !!c.pts && g.tool !== 'pen' && c.t0 - g.t0 > PAD_TOGETHER_MS;
+}
+/* EVERY MOVE OF ONE OF THEM, AFTER ITS SAMPLES: once one has gone 10px by its own latest, the question is asked at the
+   next frame (`padFrame_`). A frame is asked for only then, so a held stroke whose fingers are still costs nothing. */
+function padRules_(c) {
+  if (!PAD_GO || PAD_TWO.size) return;
+  let watching = false;
+  PAD_TOUCH.forEach(x => { if (x.role === 'watch') watching = true; });
+  if (!PAD_HUSH && !watching) return;
+  if (c !== PAD_GO.c && c.role !== 'cand' && c.role !== 'watch') return;
+  if (!PAD_DUE && !padParties_().some(p => padDist_(p.ref, p.c.p) >= PAD_STILL_PX)) return;
+  if (!PAD_DUE) PAD_DUE = { at: c.ts };
+  padFrameWant_();
+}
+/* THE PEN'S FRAME: a decision waiting (`padJudge_`), then the live path's open chunk, written once a frame
+   (`padChunks_`). */
+function padFrameWant_() {
+  if (PAD_FRAME || typeof requestAnimationFrame !== 'function') return;
+  PAD_FRAME = requestAnimationFrame(padFrame_);
+}
+function padFrame_() {
+  PAD_FRAME = 0;
+  if (PAD_DUE) padJudge_(false);
+  if (PAD_GO && PAD_GO.refused) padRace_(PAD_GO, false);
+  const g = PAD_GO;
+  if (g && g.dirty && !PAD_HUSH && g.tool === 'pen') padChunks_(g);
+}
+
+/* ---------- A CONTACT LANDS --------------------------------------------------------------------------
+   T1, ON THE ARMED INK WITH NOTHING DRAWN: the stroke starts as it always did -- the owner, a dot drawn at
+   once -- and every contact already down is looked at. One that landed in the last `PAD_TOGETHER_MS`, or
+   is moving now, is a second finger: the stroke is held. An old, still one (a thumb gripping the card, a
+   palm put down a while ago) is WATCHED: it can make the stroke two-finger by moving with it, and never
+   take it over. A mouse or a stylus owns the pad outright, as before.
+   T2, WHILE A STROKE IS DRAWN: an established stroke makes the newcomer a rest (310's rule); a dot of a
+   stroke is held, at any age and distance; a young one is held if the newcomer is within
+   `PAD_TOGETHER_PX` (two fingers of one hand, not the heel of the palm); anything else is a rest.
+   T5, AMENDED AFTER REVIEW: while two fingers are a gesture, a contact landing on the ink joins it -- but only while
+   the gesture is IN PROGRESS, one of them having moved in the last `PAD_TOGETHER_MS`. 338 first said "until every
+   member has lifted", and the review found what that costs: a thumb gripping the edge, or a palm resting on the
+   card, that was half of a two-finger decision and then stayed down kept the pen dead -- line after line drawn and
+   nothing under the finger, nothing stored, until that hand lifted, which a gripping thumb never does. A hand gone
+   still is not half of a pan in progress: the gesture is over, and what is still down is an ordinary contact already
+   down -- T1 watches it, so it can still make the new stroke two-finger by moving WITH it. */
+function padLand_(e, ink, k) {
+  const old = PAD_TOUCH.get(e.pointerId);
+  /* THE SAME ID GOING DOWN AGAIN means its own lift never came -- a mouse is always pointer 1 -- so it
+     starts afresh rather than wedging the pen; and so does a stroke whose ink a repaint has replaced. */
+  if (old) padGone_(old, e.timeStamp, 'lost');
+  if (PAD_GO && !(PAD_GO.ink && PAD_GO.ink.isConnected)) { const g = PAD_GO; padWithdraw_(); if (g.c) PAD_TOUCH.delete(g.c.id); }
+  const c = padContact_(e, ink, k);
+  const now = e.timeStamp;
+  if (PAD_TWO.size) {
+    let going = false;
+    PAD_TWO.forEach(id => { const x = PAD_TOUCH.get(id); if (x && now - x.tm <= PAD_TOGETHER_MS) going = true; });
+    if (going) { if (ink) { c.role = 'two'; PAD_TWO.add(c.id); } return; }
+    PAD_TWO.forEach(id => { const x = PAD_TOUCH.get(id); if (x) x.role = 'rest'; });
+    PAD_TWO.clear();
+  }
+  if (PAD_GO && PAD_GO.pen) return;
+  if (PAD_HUSH) {
+    /* A THIRD CONTACT is two fingers and more (T4). Held ALONE -- the other has lifted -- it is a second. */
+    if (PAD_HUSH.cand) { padTwo_([c]); return; }
+    c.late = true;
+    padHush_(c, 'b');
+    return;
+  }
+  if (PAD_ST && PAD_GO) {
+    const o = PAD_GO.c;
+    c.late = true;
+    if (PAD_GO.est || (o.far >= PAD_STILL_PX && now - PAD_GO.t0 >= PAD_TOGETHER_MS)) return;
+    if (o.far < PAD_STILL_PX) { padHush_(c, 'b'); return; }
+    if (now - PAD_GO.t0 < PAD_TOGETHER_MS && padDist_(c.p0, o.p) <= PAD_TOGETHER_PX) { padHush_(c, 'a'); return; }
+    return;
+  }
+  if (!ink) return;
+  /* A COLUMN OR A PANE ALREADY MOVING IS NOT DRAWN ON: the swipe engine is carrying another finger. */
+  if (e.isPrimary === false && typeof SWIPE !== 'undefined' && SWIPE.live && SWIPE.axis && SWIPE.id !== e.pointerId) return;
+  const r = ink.getBoundingClientRect();
+  const at = padMap_(r, e.clientX, e.clientY);
+  if (!at) { PAD_TOUCH.delete(c.id); return; }
+  padStart_(c, at, r);
+  padLiveShow_();
+  if (c.type === 'mouse' || c.type === 'pen') {
+    PAD_GO.est = true;
+    /* A STYLUS: every touch already down, and every one to come, is the hand holding it. */
+    if (c.type === 'pen') { PAD_GO.pen = true; PAD_TOUCH.forEach(x => { if (x !== c) x.role = 'rest'; }); }
+    return;
+  }
+  const young = [];
+  PAD_TOUCH.forEach(x => {
+    if (x === c) return;
+    /* EVERY ONE OF THEM WAS DOWN BEFORE THIS OWNER, whatever it was to the stroke before -- so none may take this one over. */
+    x.late = false;
+    const moving = padDist_(x.p0, x.p) >= PAD_STILL_PX && now - x.tm <= PAD_TOGETHER_MS;
+    if (now - x.t0 <= PAD_TOGETHER_MS || moving) young.push(x);
+    else { x.role = 'watch'; x.m0 = x.p.slice(); }
+  });
+  if (young.length > 1) padTwo_(young);
+  else if (young.length) padHush_(young[0], 'b');
+}
+
+/* ---------- A CONTACT GOES -----------------------------------------------------------------------------
+   `how` is up, cancel, or lost (a lift that never came). THE OWNER LIFTING ends the stroke as it always
+   did (T6), unless it was held -- then whatever it drew goes, and the other, if it came later and is on
+   the ink, is held alone: it becomes the stroke if it goes on to move 30px from where it was held (`padOwed_`;
+   10px until the fourth review, when a palm that settled 12px beside a finger's tap was handed the stroke this
+   way), and nothing if it lifts short of that. THE OTHER LIFTING leaves the owner held alone, on the same terms
+   (fourth review: a palm left holding a stroke after a finger's short tick drew its slide at 10px). So a two-finger
+   tap stores nothing whichever finger lifts first, and a finger that slides on 30px after the other lifts is a
+   deliberate stroke.
+   A CANCEL (T7) WITHDRAWS A TENTATIVE STROKE AND KEEPS AN ESTABLISHED ONE. The cancels that are not ink
+   arrive early -- the platform's own palm rejection, a system edge gesture -- and one after 200ms and
+   10px of a real line is an interruption; dropping it would lose a mark the child saw. It was always
+   kept, which stored the stray mark of every early one. */
+function padGone_(c, now, how) {
+  if (PAD_TOUCH.get(c.id) === c) PAD_TOUCH.delete(c.id);
+  if (c.busy && !c.onInk) PAD_RESTED.set(c.busy, performance.now() + PAD_BAR_MS);
+  if (PAD_TWO.has(c.id)) { PAD_TWO.delete(c.id); return; }
+  const g = PAD_GO;
+  if (g && g.c === c) {
+    if (how === 'lost') { padWithdraw_(); return; }
+    if (PAD_HUSH) {
+      const cand = PAD_HUSH.cand, takes = padTakes_(cand);
+      padWithdraw_();
+      if (takes) padSwap_(cand, true);
+      else if (cand) { cand.role = 'rest'; cand.pts = null; }
+      return;
+    }
+    /* A PIN-RULE PAIR NOT YET TOLD APART: decided now, from what has come (`padRace_`). */
+    if (g.refused) padRace_(g, true);
+    /* THE LOCK PRESSED OFF BY ANOTHER HAND mid-stroke: an established stroke is kept, as it always was. */
+    if ((how === 'cancel' || PAD_ON !== c.k) && padTentative_(now)) { padWithdraw_(); return; }
+    padCommit_();
+    return;
+  }
+  if (PAD_HUSH && PAD_HUSH.cand === c) { PAD_HUSH.cand = null; c.pts = null; }
+}
+/* T6: THE STROKE KEPT. Today's lift, unchanged: the tool's end, the board's thinning, `padSave_`. */
+function padCommit_() {
+  const g = PAD_GO;
+  if (!g) return;
   let st = PAD_DRAW[g.tool].end(g, PAD_ST);
-  PAD_ST = null; PAD_GO = null;
-  const live = g.ink.querySelector('[data-live]');
+  PAD_ST = null; PAD_GO = null; PAD_HUSH = null; PAD_DUE = null;
+  /* THE FRAME NOT YET RUN IS DONE HERE, NOW: the stroke is stored from every sample fed, and drawn below
+     from what was stored -- never from what the last frame happened to have drawn. */
+  if (PAD_FRAME && typeof cancelAnimationFrame === 'function') { cancelAnimationFrame(PAD_FRAME); PAD_FRAME = 0; }
+  if (g.c && g.c.role === 'owner') g.c.role = 'rest';
+  const lives = [].slice.call(g.ink.querySelectorAll('[data-live]'));
   const aid = g.ink.querySelector('.qpad-aid');
   if (aid) aid.innerHTML = '';
   /* A SLIP IS TAKEN BACK OFF THE SCREEN as well as never stored: the preview is not a mark. */
-  if (!st) { if (live) live.remove(); return; }
+  if (!st) { lives.forEach(p => p.remove()); return; }
   const pad = g.ink.closest('.qpad');
   const k = (pad && pad.getAttribute('data-k')) || '';
   /* THE WHITEBOARD'S STROKE IS STORED THINNED -- see `PAD_BOARD_MAX`. A question's keeps every point. */
   if (padIsBoard_(k) && typeof ansSimplify_ === 'function') st = ansSimplify_(st, 1);
-  if (live) { live.removeAttribute('data-live'); live.setAttribute('d', padPath_(st)); }
+  lives.slice(1).forEach(p => p.remove());
+  /* AND DRAWN EVEN IF A REPAINT OF THIS PAD TOOK THE PREVIEW (an Undo pressed by the other hand, a copy
+     repainted): a stored stroke that is not on the screen is the one Undo then takes off unseen. */
+  const live = lives[0] || padLivePath_(g, '');
+  live.removeAttribute('data-live');
+  live.setAttribute('d', padPath_(st, g.k));
   if (!pad) return;
   const all = padRead_(k); all.push(st);
   padSave_(pad, k, all);
+}
+/* ---------- T8: LEAVING, AND T0: A LIFT THAT NEVER CAME ------------------------------------------------
+   EVERYTHING THE PEN HOLDS FOR A GESTURE, PUT DOWN, AND NOTHING STORED: a change of person
+   (`padWhoChanged_`), the drawing turned to its box (`q-draw`), and a primary pointer going down while every
+   contact still here is of its kind -- the platform saying no other of that kind is down, so they all lost
+   their lifts (`padPrimary_`; one of another kind is left be). */
+function padDrop_() {
+  if (PAD_FRAME && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(PAD_FRAME);
+  PAD_FRAME = 0;
+  const g = PAD_GO;
+  PAD_ST = null; PAD_GO = null; PAD_HUSH = null; PAD_DUE = null;
+  PAD_TOUCH.clear(); PAD_TWO.clear();
+  if (g) padLiveOff_(g);
+  if (typeof document === 'undefined') return;
+  document.querySelectorAll('.qpad-ink [data-live]').forEach(p => p.remove());
+  document.querySelectorAll('.qpad-aid').forEach(a => { if (a.firstChild) a.innerHTML = ''; });
+}
+/* THE PAGE GOING AWAY, OR THE WINDOW LOSING FOCUS, MID-STROKE: the cancel rule, and every contact forgotten
+   -- their lifts will not come here. */
+function padAway_(e) {
+  if (PAD_DUE) padJudge_(true);
+  if (PAD_GO && PAD_GO.refused) padRace_(PAD_GO, true);
+  if (PAD_ST && PAD_GO) {
+    const now = e && typeof e.timeStamp === 'number' ? e.timeStamp : PAD_GO.t0;
+    if (padTentative_(now)) padWithdraw_(); else padCommit_();
+  }
+  if (PAD_TOUCH.size || PAD_TWO.size || PAD_GO) padDrop_();
+}
+
+/* ---------- THE LISTENERS -----------------------------------------------------------------------------
+   ON `document`, so they run before the swipe engine's on `window` (overworld.js): T0's forgetting
+   happens before the grid's own `pointerdown`, and a finger is on the drawing before the grid asks.
+   EVERY CONTACT ON THE ARMED INK is the pen's -- `preventDefault` and the capture, rest or owner, so a
+   palm on the picture is never a press of anything. A touch OFF the ink gets neither: a tap on a tile
+   still works. */
+/* T0: A PRIMARY POINTER IS THE PLATFORM SAYING NO OTHER OF ITS KIND IS DOWN -- so every contact of that kind still
+   here lost its lift. OF ITS KIND: the Pointer Events spec makes `isPrimary` per pointer type, so a touch is primary
+   while a stylus or a mouse is down, and a mouse click is primary while a finger draws. The first build read it as "no
+   other pointer of any kind" and the review found it in Chromium with real input: a palm landing as a stylus drew threw
+   the stylus's 250px line away and stored the palm's dot, and a mouse clicked beside the picture on a touchscreen laptop
+   threw away the finger's line -- where the pen before 338 kept both. So only that kind is forgotten, each one as a lift
+   that never came (`padGone_`, 'lost'); a stroke by another kind carries on, and the newcomer is classed by T1/T2 as
+   any other (a touch under a stylus is the hand holding it). Every kind gone at once is the old reset. jsdom's
+   `undefined` never resets anything. */
+function padPrimary_(e) {
+  const type = e.pointerType || '';
+  let other = false;
+  PAD_TOUCH.forEach(c => { if (c.type !== type) other = true; });
+  if (!other) { if (PAD_TOUCH.size || PAD_GO || PAD_TWO.size) padDrop_(); return; }
+  const mine = [];
+  PAD_TOUCH.forEach(c => { if (c.type === type) mine.push(c); });
+  mine.forEach(c => padGone_(c, e.timeStamp, 'lost'));
+  /* WHAT IS LEFT, IF ITS STROKE WENT WITH THEM, IS ORDINARY. */
+  if (!PAD_GO) PAD_TOUCH.forEach(c => { if (c.role !== 'rest' && c.role !== 'two') { c.role = 'rest'; c.pts = null; } });
+}
+document.addEventListener('pointerdown', e => {
+  if (e.isPrimary === true && (PAD_TOUCH.size || PAD_GO || PAD_TWO.size)) padPrimary_(e);
+  const ink = e.target && e.target.closest && e.target.closest('.qpad-ink');
+  const pad = ink && ink.closest('.qpad');
+  const k = pad ? pad.getAttribute('data-k') || '' : '';
+  if (!pad || !PAD_ON || k !== PAD_ON) {
+    if (PAD_ON && e.pointerType === 'touch') padLand_(e, null, '');
+    return;
+  }
+  e.preventDefault();
+  padLand_(e, ink, k);
+  try { ink.setPointerCapture(e.pointerId); } catch (err) {}
+});
+
+document.addEventListener('pointermove', e => {
+  if (!PAD_TOUCH.size) return;
+  const c = PAD_TOUCH.get(e.pointerId);
+  if (!c) return;
+  const s = padSizeOf_(e);
+  if (s > c.big) c.big = s;
+  if (PAD_SIZES) padSizesSay_(c, e);
+  const g = PAD_GO && PAD_GO.c === c ? PAD_GO : null;
+  /* THE OWNER'S SAMPLES ONLY FROM ITS OWN INK: a repaint that replaced it ends what this stroke can take,
+     and the lift stores what it has. A candidate's, from its own. */
+  const feed = !!g && !!e.target && !!e.target.closest && e.target.closest('.qpad-ink') === g.ink;
+  const keep = !feed && c.role === 'cand' && !!c.pts && !!c.ink && c.ink.isConnected;
+  const r = feed ? g.ink.getBoundingClientRect() : keep ? c.ink.getBoundingClientRect() : null;
+  padSamples_(e).forEach(p => {
+    const x = p.clientX, y = p.clientY;
+    padTrack_(c, x, y, p.timeStamp || e.timeStamp);
+    if (!r) return;
+    const at = padMap_(r, x, y);
+    if (!at) return;
+    if (feed) padStep_(g, at); else padKeep_(c.pts, at);
+  });
+  /* WHICH OF A PIN-RULE PAIR IS DRAWING, asked at the frame after any move while it is not known (`padRace_`) -- the
+     refused one's moves too, though it is only a rest now: how far it goes is the evidence. */
+  if (PAD_GO && PAD_GO.refused && !PAD_GO.mine && !PAD_GO.never) padFrameWant_();
+  padRules_(c);
+  if (feed && PAD_GO === g) padLive_();
+});
+
+function padEnd_(e) {
+  const c = PAD_TOUCH.get(e ? e.pointerId : undefined);
+  /* ONE OF THEM LIFTING DECIDES what was not yet decided, from where each one got to. A rest lifting does not. */
+  if (PAD_DUE && c && PAD_GO && (c === PAD_GO.c || c.role === 'cand' || c.role === 'watch')) padJudge_(true);
+  if (c) { padGone_(c, e ? e.timeStamp : 0, e && e.type === 'pointercancel' ? 'cancel' : 'up'); return; }
+  /* A LIFT THE PEN KEPT NO CONTACT FOR: another finger's, which is not the end of this stroke. */
 }
 
 /* ---------- A STROKE THE DEVICE REFUSED STAYS ON THE SCREEN, AND THE NOTE SAYS IT IS NOT SAVED -------
@@ -9133,6 +10043,16 @@ function padCopies_(k, pad, all) {
 }
 document.addEventListener('pointerup', padEnd_);
 document.addEventListener('pointercancel', padEnd_);
+/* NO CALLOUT AND NO MENU FROM A FINGER HELD ON THE ARMED DRAWING -- the keypad's precedent (keypad.js). */
+document.addEventListener('contextmenu', e => {
+  const ink = e.target && e.target.closest && e.target.closest('.qpad-ink');
+  const pad = ink && ink.closest('.qpad');
+  if (pad && PAD_ON && pad.getAttribute('data-k') === PAD_ON) e.preventDefault();
+});
+/* THE PAGE HIDDEN OR LEFT, OR THE WINDOW LOSING FOCUS, MID-GESTURE: `padAway_`. */
+document.addEventListener('visibilitychange', e => { if (document.visibilityState === 'hidden') padAway_(e); });
+window.addEventListener('pagehide', padAway_);
+window.addEventListener('blur', padAway_);
 
 /* THE BAR'S TILES. `Lock it to draw` is a MODE and not an action, so it says which it is with
    `aria-pressed` and a class — see the note at the top of this block about why the pen cannot
@@ -9159,7 +10079,18 @@ on('pad-draw', (el) => {
   [].slice.call(document.querySelectorAll('.qpad')).forEach(p => padArm_(p, false));
   PAD_ON = want ? k : '';
   if (want) padArm_(pad, true);
+  /* AND EVERY CONTACT BUT THE ONE DRAWING IS FORGOTTEN, either way: a palm on the old pad is not a palm
+     on this one, and pressed off mid-stroke the stroke ends at its lift as it always did -- kept if it
+     was established, withdrawn if it was not (338, T8). */
+  padForgetOthers_();
 });
+function padForgetOthers_() {
+  const keep = PAD_GO ? PAD_GO.c : null;
+  PAD_TOUCH.forEach((c, id) => { if (c !== keep) PAD_TOUCH.delete(id); });
+  PAD_TWO.clear();
+  if (PAD_HUSH) PAD_HUSH.cand = null;
+  PAD_DUE = null;
+}
 
 /* ---------- PEN, RULER, COMPASS: CHOOSING ONE IS ALSO LOCKING THE CARD ------------------------------
    *"some questions require a compass or ruler. so should have a tile for these things."* Pressing one
@@ -9174,6 +10105,7 @@ on('pad-tool', (el) => {
   if (PAD_ON !== k) {
     [].slice.call(document.querySelectorAll('.qpad')).forEach(p => padArm_(p, false));
     PAD_ON = k;
+    padForgetOthers_();
   }
   padArm_(pad, true);
 });
@@ -9181,6 +10113,8 @@ on('pad-tool', (el) => {
 on('pad-undo', (el) => {
   const pad = el.closest('.qpad'); if (!pad) return;
   const k = pad.getAttribute('data-k') || '';
+  /* NOT UNDER A RESTING HAND -- `padRested_`. */
+  if (padRested_(k)) return;
   const all = padRead_(k);
   /* AN EMPTY PAD THAT CLEAR EMPTIED: the last thing done was the Clear, so it is what Undo undoes. */
   if (!all.length && PAD_CLEARED.has(k)) {
@@ -9216,6 +10150,7 @@ on('pad-undo', (el) => {
 on('pad-clear', (el) => {
   const pad = el.closest('.qpad'); if (!pad) return;
   const k = pad.getAttribute('data-k') || '';
+  if (padRested_(k)) return;
   const had = padRead_(k);
   if (!had.length) return;
   PAD_CLEARED.set(k, had);
@@ -9231,11 +10166,33 @@ on('pad-clear', (el) => {
 /* REPAINTED FROM THE STORED MARKS RATHER THAN BY REMOVING A NODE, so that what is on the screen is
    always exactly what would come back on a reload. An undo that deleted the last `<path>` and an
    undo that rewrote the list from storage look identical until the two disagree, and then the one
-   that disagrees is the one you find out about a week later. */
+   that disagrees is the one you find out about a week later.
+   AND A PATH ALREADY DRAWN EXACTLY AS ITS STORED STROKE DRAWS IS LEFT WHERE IT IS (after review, 338): every `d` is
+   still worked out from the store (`padPath_`, kept per stroke), and the screen is still made to say exactly that --
+   but from the first path that differs, not from the first path. Rewriting every `<path>` cost a full board's Undo
+   2.5 times the characters re-parsed once curves came in (243K against 98K), for one stroke taken off. Only a plain
+   path with its two attributes is kept, so a live chunk or anything else in the group is taken off as before. */
 function padRepaint_(pad, all) {
   const g = pad.querySelector('.qpad-g');
-  if (g) g.innerHTML = (all || [])
-    .map(st => `<path vector-effect="non-scaling-stroke" d="${padPath_(st)}"/>`).join('');
+  if (!g) return;
+  const k = padAspectOf_(pad);
+  const want = (all || []).map(st => padPath_(st, k));
+  const have = g.children;
+  let i = 0;
+  while (i < want.length && i < have.length) {
+    const p = have[i];
+    if (String(p.tagName).toLowerCase() !== 'path' || p.attributes.length !== 2
+        || p.getAttribute('vector-effect') !== 'non-scaling-stroke' || p.getAttribute('d') !== want[i]) break;
+    i++;
+  }
+  if (!i) { g.innerHTML = want.map(d => `<path vector-effect="non-scaling-stroke" d="${d}"/>`).join(''); return; }
+  while (have.length > i) g.removeChild(have[have.length - 1]);
+  for (; i < want.length; i++) {
+    const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    p.setAttribute('vector-effect', 'non-scaling-stroke');
+    p.setAttribute('d', want[i]);
+    g.appendChild(p);
+  }
 }
 
 /* ==================================================================================================
@@ -9376,7 +10333,9 @@ function padHold_(id) {
    question's pad left on a stale column is disarmed here too, so none can take a stroke meanwhile. */
 function padWhoChanged_() {
   [].slice.call(document.querySelectorAll('.qpad')).forEach(p => padArm_(p, false));
-  PAD_ON = ''; PAD_ST = null; PAD_GO = null;
+  PAD_ON = '';
+  /* THE STROKE, ITS PREVIEW AND EVERY CONTACT, PUT DOWN AND NOTHING STORED -- `padDrop_`. */
+  padDrop_();
   PAD_CLEARED.clear();
   PAD_CLEARED_MARK.clear();
   wbPaint_();
@@ -9385,11 +10344,22 @@ function padWhoChanged_() {
 /* EVERY COPY, BY CLASS -- `tmtPaint_`'s reason: the Saved column draws this same markup, and two
    elements under one id is the `$('msg-text')` fault. The same key in both, so a stroke on one is on
    the other the next time it is drawn. EXCEPT THE COPY A FINGER IS DRAWING ON, `padHold_`'s reason. */
+/* AND EACH SLOT IT DRAWS INTO IS SAID TO BE DRAWN FOR WHOEVER IS SIGNED IN NOW (`slot.WHO`). A change of
+   person puts every drawing that was somebody else's back under its loader, at once (`widgetsReveil_`,
+   arcade.js; docs/history/341) — and this is called by `signedOut_` and `signedIn_` exactly to draw the
+   board for the person arriving, before their repaint. Unstamped, the repaint took the board it had just
+   drawn for them for the last person's and veiled it, and a stale Tools column showed the loader where the
+   arriving child's own strokes belong. */
 function wbPaint_() {
   const html = `<div class="wb">${padWrap_(WB_ITEM, WB_SURF, '')}</div>`;
+  const who = typeof widgetWho_ === 'function' ? widgetWho_() : '';
   document.querySelectorAll('.wb-box').forEach(el => {
     if (PAD_ST && PAD_GO && el.contains(PAD_GO.ink)) return;
     el.innerHTML = html;
+    const slot = el.closest('.widget-slot');
+    /* `OWN` AS WELL: the board is drawn from this person's strokes on this device and from no fact, so a
+       landing or a repaint for the same person leaves it drawn (`widgetsReveil_`). */
+    if (slot) { slot.WHO = who; slot.OWN = who; }
   });
 }
 function initWhiteboard() { wbPaint_(); }
@@ -9487,14 +10457,14 @@ function usesSaid_(x, svg, under) {
 }
 /* THE EARLIER MARKS AS AN INK GROUP, beside the pad's own and never inside it: `padRepaint_` rewrites
    `.qpad-g` from this part's storage, so nothing it does can reach these. */
-const usesInk_ = all => `<g class="qpad-was" vector-effect="non-scaling-stroke">${all.map(st =>
-  `<path vector-effect="non-scaling-stroke" d="${padPath_(st)}"/>`).join('')}</g>`;
+const usesInk_ = (all, k) => `<g class="qpad-was" vector-effect="non-scaling-stroke">${all.map(st =>
+  `<path vector-effect="non-scaling-stroke" d="${padPath_(st, k)}"/>`).join('')}</g>`;
 /* A PICTURE WITH MARKS ON IT AND NO PEN: the pad's box and ink layer (`.qpad-art`, `.qpad-ink`) so a
    mark lands exactly where `padWrap_` drew it, inside `.qseen` rather than `.qpad` -- the class every
    pen handler and `padArm_` look for, so none of them can arm a picture that is not for drawing on. */
 const usesSeen_ = (svg, all, note) => `<div class="qseen">
     <div class="qpad-art">${svg}
-      <svg class="qpad-ink" viewBox="0 0 340 340" preserveAspectRatio="none" aria-hidden="true">${usesInk_(all)}</svg>
+      <svg class="qpad-ink" viewBox="0 0 340 340" preserveAspectRatio="none" aria-hidden="true">${usesInk_(all, padAspect_(null, svg))}</svg>
     </div>${note || ''}
   </div>`;
 /* A PART THAT ONLY LOOKS AT THE PICTURE AN EARLIER PART DREW ON: its own copy, with those marks. */
@@ -9876,7 +10846,7 @@ on('q-draw', el => {
   if (face === 'draw') {
     if (typeof KP_AT !== 'undefined' && KP_AT && KP_AT.getAttribute('data-k') === ansKey_(x)
         && typeof kpClose_ === 'function') kpClose_();
-  } else if (PAD_ON === k) { PAD_ON = ''; PAD_ST = null; PAD_GO = null; }
+  } else if (PAD_ON === k) { PAD_ON = ''; padDrop_(); }
   padFaceRedraw_(x);
 });
 /* ---------- AND THE SURFACE GIVES WAY BEFORE ITS CARD IS DRAWN SMALLER ---------------------------------
@@ -11350,8 +12320,9 @@ function stuffItemsAll_() {
    (`signedOut_` in me.js) still needs it — it empties the stars and the per-person keys in place. */
 function stuffForget_() {
   ALL_MEMO = { key: null, from: null, items: null };
-  /* EVERY FINDER'S, not the bound one's: a sign-out that forgot Find's list and left the second
-     finder's would hand the next child the last one's Books shelf. */
+  FUNNEL_MEMO = { key: null, from: null, items: null };
+  /* EVERY FINDER'S, not the bound one's: a sign-out that forgot Find's list and left Find 2's would
+     hand the next child the last one's Books shelf — which is on both finders' lists (347). */
   finderEach_(() => {
     ITEM_MEMO = { key: null, from: null, items: null };
     FIND_MEMO = { key: null, from: null, items: null, total: 0 };
@@ -11409,7 +12380,7 @@ function findPlaceBack_(F) {
       if (AT !== F.id || (STUFF.filters || []).length || STUFF.q) return;
       STUFF.filters = (Array.isArray(p.f) ? p.f : [])
         .filter(f => f && typeof f === 'object' && typeof f.field === 'string')
-        .filter(f => !finderForeign_(f));
+        .filter(f => !placeChipDead_(f));
       STUFF.q = typeof p.q === 'string' ? p.q : '';
       const box = $(F.id + '-q');
       if (box) box.value = STUFF.q;
@@ -11421,41 +12392,63 @@ function findPlaceBack_(F) {
     } catch (e) {}
   });
 }
-/* ---------- A CHIP THAT BELONGS TO THE OTHER FINDER ---------------------------------------------------
-   A PLACE KEPT BEFORE THE RESOURCES MOVED can hold their chips — `Resources`, `Shelf · Boxing`, a
-   Bible book — and restoring those on Find would put it on "Nothing matches" under chips nobody set.
-   So a chip is dropped when something outside the bound finder answers it and nothing inside does.
-   Both halves, because before the library lands nothing answers a paper's chip anywhere, and a chip
-   that matches nothing yet is not foreign — it is early, and dropping it would lose the place it
-   exists to keep. Written for the move and for whatever kind changes column next.
-   EXCEPT THE BIBLE'S OWN CHIPS, which no list answers (the review of 329, finding 3). A Book, a
-   Chapter, a Verse — and the Testament and Group above them — are answered only by the verses, and
-   the verses are a list of their own (`bibleVerses_`), not items. So `Genesis` was never "answered
-   outside": it read as early, stayed on Find, and Find came back from a reload INSIDE the Bible, an
-   admin's, saying "Nothing matches" under a Book chip on a column that has no Bible. A Bible chip
-   belongs to whichever finder holds the Bible (`finderOfItem_`, the kinds table's answer) and is
-   foreign everywhere else, whether or not anything on the list answers it yet. */
-function finderForeign_(f) {
-  if (f && BIBLE_FIELDS[f.field]) return finderOfItem_({ kind: 'bible' }) !== FINDER;
-  const facet = facetBy(f.field);
-  if (!facet) return false;
-  const hit = f.any
-    ? x => { try { return facetOwn_(facet, x).length > 0; } catch (e) { return false; } }
-    : x => { try { return filterHit(x, f); } catch (e) { return false; } };
-  let inside = false, outside = false;
-  stuffItemsAll_().forEach(x => {
-    if (inside || !hit(x)) return;
-    if (FINDER.has(x)) inside = true; else outside = true;
-  });
-  return outside && !inside;
+/* ---------- A KEPT CHIP NOTHING WILL EVER ANSWER --------------------------------------------------------
+   `finderForeign_` WAS HERE (329): a chip was dropped from a kept place when something outside the bound
+   finder answered it and nothing inside did — a Find place from before the resources moved came back
+   without `Shelf · Boxing`. Both finders hold everything now (347), so nothing is outside either, and
+   that test could never fire. What is left of its job is a chip NOTHING answers any more, which would
+   put the column back on "Nothing matches" under a chip nobody can see the point of — and a chip that
+   nothing answers YET is not that: the library lands after the first payload, which is when this runs
+   (`findPlaceBack_` from shell.js), so at that moment no paper's chip is answered by anything, and
+   dropping it would lose the place it exists to keep (329's "early" half, kept). So it is decided by
+   what the chip IS, never by what answers it at this moment:
+     · A BIBLE CHIP (Book, Chapter, Verse and the doors above them, and `Shelf · Books`, which holds
+       the Bible and nothing else) is dead for anybody the Bible is not for (`bibleFor_`). The kept
+       place is the signed-in person's own, so an admin's place inside the Bible comes back inside the
+       Bible, on either finder; the same place kept by somebody who is no longer an admin comes back
+       without it.
+     · A chip on a question the funnel has RETIRED (`RETIRED_FACETS`) is dead: the sheet cannot bring
+       that question back, so nothing will answer it.
+     · A chip on a field no facet asks is dead once the facets have arrived (`DATA.facets` has rows —
+       before then a sheet-only question like `projectType` is merely not here yet). `filterHit` reads a
+       facetless chip as matching everything, so it would have hung on as a chip that does nothing. */
+const RETIRED_SHELVES = ['@family. textbooks'];
+function placeChipDead_(f) {
+  if (!f || typeof f.field !== 'string') return true;
+  if (BIBLE_FIELDS[f.field] || (f.field === 'shelf' && f.value === BIBLE_SHELF)) return !bibleFor_();
+  if (RETIRED_FACETS[f.field]) return true;
+  /* A SHELF THAT WENT. `@family. textbooks` held the books, and each chapter is a content card now
+     with no shelf at all — so a kept place standing on it would come back to an empty list, on a chip
+     that is a perfectly good question (`shelf` still sorts boxing from the Bible). By what the chip
+     IS, like the two rules above: the shelf is gone for everybody, early or late. */
+  if (f.field === 'shelf' && RETIRED_SHELVES.indexOf(f.value) !== -1) return true;
+  return !facetBy(f.field) && Array.isArray(DATA.facets) && DATA.facets.length > 0;
 }
 
+/* ---------- ONE LIST FOR BOTH FINDERS, COUNTED ONCE --------------------------------------------------
+   BOTH FINDERS CARRY THE SAME LIST (347), and each memoised its own copy of it — the same 8,381 items in
+   two arrays. That cost more than the build: every count the funnel makes (`facetTally_`, the sort in
+   `stuffSorted_`) is held in a WeakMap KEYED ON THE ARRAY, so Find 2's first question tallied the whole
+   library again, item by item, to arrive at the answers Find had just drawn — measured at 299 ms in
+   jsdom on the first load, where every column is painted (`paintNeighbours`). So the list is built
+   once (`FUNNEL_MEMO`) and each finder's memo holds that same array. The first question then costs Find
+   2 nothing (measured 0 ms): with no chips and no words `stuffFind` hands back `stuffSorted_`'s copy of
+   that one array, the same array in both finders, so its tallies are counted once. NOTHING SORTS OR
+   SPLICES EITHER IN PLACE: every reader that orders the list orders a copy (`stuffSorted_`), and a
+   narrowing is a `filter`.
+   AND NOTHING IN `stuffItemsBuild_` MAY ASK WHICH FINDER IS BOUND: what it returns is both finders'
+   list, built by whichever asked first, so a rule written there for one finder would reach both or
+   neither, at random — the split's `FINDER.has`, put back there, was measured doing nothing at all.
+   A finder that ever needs a list of its own needs its own memo here, not a test in the build. */
+let FUNNEL_MEMO = { key: null, from: null, items: null };
 function stuffItems() {
   const key = itemMemoKey_();
   if (ITEM_MEMO.from === DATA && ITEM_MEMO.key === key) return ITEM_MEMO.items;
-  const built = stuffItemsBuild_();
-  ITEM_MEMO = { key: key, from: DATA, items: built };
-  return built;
+  if (!(FUNNEL_MEMO.from === DATA && FUNNEL_MEMO.key === key)) {
+    FUNNEL_MEMO = { key: key, from: DATA, items: stuffItemsBuild_() };
+  }
+  ITEM_MEMO = { key: key, from: DATA, items: FUNNEL_MEMO.items };
+  return ITEM_MEMO.items;
 }
 
 /* ---------- BOOKING IS NOT IN THE FUNNEL, AND THIS IS THE TOOLS AND GAMES DECISION AGAIN -------
@@ -11517,11 +12510,10 @@ function stuffItemsBuild_() {
        would silently drop a kind from a group it belongs in. */
     const g = asList_(x.groups || kindOf_(x).group);
     if (g.length && g.every(k => FUNNEL_NOT_FOR.indexOf(k) >= 0)) return false;
-    /* AND ONLY WHAT THIS FINDER CARRIES — Find everything but the resources, the second finder the
-       resources (`FINDERS`). Filtered here and not in the mappers: `stuffItemsAll_` still holds every
-       kind for Saved, the Spotlight and the answer lookups, and check-bible.js requires the Bible's
-       spread to stay in `stuffItemsRaw_`. Each finder's list is memoised on its own record. */
-    return FINDER.has(x);
+    /* AND NOTHING ELSE: BOTH FINDERS CARRY EVERYTHING (347). For two days this went on to keep only
+       what the bound finder carried — Find everything but the resources, the second finder the
+       resources (329, `FINDER.has`) — and that was the split the owner took back. */
+    return true;
   });
 }
 
@@ -11818,22 +12810,11 @@ function stuffItemsRaw_() {
       row: p,
     })),
 
-    /* ---------- THE @family. TEXTBOOKS ------------------------------------------------------
-       ONE ITEM PER BOOK, and the chapters are its pages — `pageParts_`. The topics of every
-       chapter are the book's topics, so the Topic join and the search both reach it from
-       `Histograms` the way they reach a practical. Every word of every chapter is in the
-       haystack: somebody types `frequency density`, not `GCSE Statistics`. */
-    ...(DATA.textbooks || []).map(b => {
-      const topics = (b.chapters || []).map(c => c.topics).filter(Boolean).join(', ');
-      return {
-        kind: 'textbook', name: b.name, key: 'tb:' + b.id,
-        sub: [b.board, b.spec, (b.chapters || []).length + ' chapters'].filter(Boolean).join(' · '),
-        image: '', shelf: '@family. textbooks',
-        subject: b.subject, level: b.level, topics: topics,
-        text: textbookText_(b) + ' ' + topicAtoms_(topics).join(' '),
-        row: b,
-      };
-    }),
+    /* ---------- THE CONTENT CARDS: ONE ITEM PER CHAPTER OF data/textbooks.json -----------------------
+       IT WAS ONE ITEM PER BOOK on the `@family. textbooks` shelf, and the chapters were its pages —
+       see `content` in KINDS for the owner's words that ended it. Now a chapter is found on its own,
+       by the tags a question is found by. */
+    ...[].concat(...(DATA.textbooks || []).map(b => (b.chapters || []).map(c => contentItem_(b, c)))),
 
     /* ---------- THE BIBLE, FOR AN ADMIN AND NOBODY ELSE ---------------------------------------
        ONE ITEM ON THE `Books` SHELF, or none. The single place on this list where code on the phone
@@ -12433,6 +13414,16 @@ function stuffFind(items, credits) {
      THEY ARE WRITTEN AGAIN ANYWAY, because the key below needs them stated rather than implied: it
      is built from the fields, and a key that leans on a number happening to be inside a name is a
      key that breaks the day a name changes. This is an intent made explicit, not a bug fixed. */
+  /* THE CARDS A SEARCH NAMES, FIRST — see the note over `sortKey_`. Their own order kept, and the rest's. */
+  const words = stuffWords_(STUFF.q);
+  if (words.length) {
+    const named = x => x.kind === 'content' && (() => {
+      const hay = norm([x.name, (x.row && x.row.topics) || x.topics].filter(Boolean).join(" "));
+      return words.every(w => hay.indexOf(w) !== -1);
+    })();
+    const lead = out.filter(named);
+    if (lead.length) out = lead.concat(out.filter(x => !named(x)));
+  }
   return out;
 }
 /* THE NARROWING ITSELF, split out of `stuffFind` so `stuffFiltered` can run it over the list it
@@ -12557,7 +13548,21 @@ function stuffSorted_(items) {
    there), because "ix" sorted before "v" and part 10 before part 2 on letters, and the obvious fix --
    numerals by value everywhere -- puts h, i, j out of order. Anything that is not a question has no
    key and falls through to the letters, as it always did. */
+/* ---------- CONTENT CARDS AFTER THE REST, IN THE ORDER THEY TEACH — AND FIRST ONLY WHEN THEY ARE ASKED FOR
+   *"begin adding topic tags so students can immediately find what they need"* — the owner, 12 Oct. The
+   order here is the alphabet of a paper's name, and a card's `Maths · GCSE` filed it among the papers:
+   typing `histograms` put the Histograms card at hit 32 of 47, under thirty past-paper parts.
+   THE FIRST ANSWER WAS "A CONTENT CARD LEADS ANY LIST IT IS IN", and Find is where the questions are
+   done: Maths · GCSE then opened on thirty-six cards of reading before its first question, and a search
+   for `work out` — words in every worked example — put a page of cards over every question it found
+   (check/press.js's results state, 13 Oct). So in a list a card comes AFTER everything else, in the
+   file's own order among themselves (the book's id, then the number — the order they teach in; their
+   names' alphabet would put Averages before The statistical enquiry cycle), and `stuffFind` lifts to the
+   front only the cards a typed search NAMES: every word in the card's title or its topics, so
+   `histograms` and `surds` lead with their card and `work out` leads with the questions. Every other
+   item's key gains the same leading `1`, so their order among themselves is exactly what it was. */
 const sortKey_ = x => [
+  x.kind === 'content' ? '2' + String((x.row && x.row.bookId) || '') + '\u0000' + padNums_(String((x.row && x.row.n) || 0)) : '1',
   padNums_(String(x.sub || x.name || '').toLowerCase()),
   x.kind === 'question' ? String(paperIdOf_(x.row) || '').toLowerCase() : '',
   padNums_(String(x.qNumber == null ? '' : x.qNumber)),
@@ -13520,8 +14525,11 @@ screen('account', () => pages('account',
 /* THE BUNDLE IS THE LAST OF THEM — see `bundlePages_`. It is asked here and nowhere else, so
    `PAGER.stuff`, `stuffFirstResult_`, `paintStuff` and `screen('stuff')` all count it by asking the
    one function that draws it, which is the rule every one of those already follows. */
-/* THE BOUND FINDER'S, since there are two (`FINDERS`): Find's are the three above, and the second
-   finder has none — no booking form, no posts and no paper to bundle is a resource. */
+/* THE BOUND FINDER'S, since there are two (`FINDERS`): Find's are the three above, and Find 2 has
+   none. Not because it carries less — both carry every item (347) — but because these are not search
+   results: the booking form is one draft of one booking (`BOOKING` is one global state), and a second
+   copy of it one swipe along would be two forms writing the same booking; the posts and the bundles
+   are the front door's, and twice them is the same pages to swipe past twice. */
 function frontPages_() {
   return FINDER.front();
 }
@@ -14312,7 +15320,7 @@ on('fav', el => {
      `receipt.js` already does for the booking column. Redrawing Tools from here would be worse than
      the bug: `paint` replaces the markup, `startScreen_` restarts what was in it, and unstarring a
      timer would put it back to 25:00. */
-  TABS.forEach(t => { if (t.id !== AT) STALE[t.id] = 1; });
+  markStale_(TABS.map(t => t.id).filter(id => id !== AT));
   if (AT === 'saved') { repaint(true); return; }
   /* EITHER FINDER, whichever is in front — a star on a boxer is pressed in the second one. */
   const F = finderOf_(AT);
@@ -14542,6 +15550,12 @@ on('facet-pick', el => inFinder_(finderAt_(el), () => {
   if (el.dataset.bucket) f.bucket = true;
   STUFF.filters.push(f);
   paintStuff();
+  /* A BOOK OF THE BIBLE CHOSEN WAS FETCHED HERE TOO (docs/history/341), and the review of 12 Oct found nothing
+     could tell: the finder is in front when its chip is pressed, `paintStuff` fills the page in front and the
+     band round it in this same task, and the first verse card drawn asks for its book (`bibleLoad_`) before
+     this line was reached. A second door to the same fetch that no check can see is the shape this repository
+     keeps deleting. The builder's `bible` job stays — Resources drawn for nobody, its question in front, is
+     the one case where no card would ask first — and a journey asks it. */
 }));
 /* ---------- AND NOT ANSWERING IT IS ALSO AN ANSWER ----------------------------------------------
    Same push, same repaint, no value. See the `any` note in `stuffFind` for what that entry does and
@@ -14605,15 +15619,41 @@ on('filter-clear', el => inFinder_(finderAt_(el), () => { STUFF.filters = []; pa
 
    RE-CENTRED ONLY AT THE EDGES. Moving the window on every turn would mean recycling on every turn;
    waiting until you are within `STUFF_EDGE` of an end means most turns move nothing at all. */
-const STUFF_WIN = 15;
-const STUFF_EDGE = 4;
+/* ---------- FORTY-ONE, ALL OF THEM FILLED, AND MOVED IN THE QUIET (docs/history/341) -----------------------
+   THE OWNER, 11 Oct: *"If I scrol fast left right up or down it's still clunky … Increase loading scope.
+   Make it more massive so it's never really an issue."* Measured that day at 4x CPU: fifteen elements with
+   eleven filled was outrun by a run of flicks — the column's drawn position lags its target by up to eight
+   pages in a run (each release re-aims a slide that has not finished), and the late pass that filled the
+   far eight was one task of up to 551ms booked behind `afterSlide_`, which quick flicks starve by design.
+   SO THE WINDOW IS FORTY-ONE, AND EVERY PAGE IN IT IS FILLED — by the builder, one card per idle slice,
+   nearest first and on the side last travelled (`ahead_`, shell.js; the fill job below). Forty-one is the
+   lag (8), a fifteen-flick run (15), three glass rows (3) and slack, and it is what the what-if measured:
+   DOM up 250–1,150 elements, heap unchanged, no black glass. A filled card is bounded by the window, so
+   the most this holds is forty-one cards per finder, and NOTHING INSIDE THE WINDOW IS EVER EMPTIED: a
+   flick back up never rebuilds what it passed. Only a recycle releases a card.
+   WHERE THE WINDOW SITS. In the quiet it is re-centred so the page in front is `stuffBehind_()` from the
+   end it is leaving — thirteen behind and twenty-seven ahead going down (lag 8 + three glass rows + 2),
+   mirrored going up — so a fifteen-flick run from rest never reaches an unfilled page. Inside a release it
+   only slides, by `STUFF_STEP` (6) and only when fewer than `glassRows_() + 3` pages are left ahead: six
+   at a time rather than one per turn, because each move is a shift the column has to be corrected for
+   (`stuffKeepPlace_`, below), and the six it recycles are all thirty or more behind. */
+const STUFF_WIN = 41;
+const STUFF_STEP = 6;
+const STUFF_LAG = 8;
+function stuffBehind_() { return STUFF_LAG + (typeof glassRows_ === 'function' ? glassRows_() : 2) + 2; }
 
 /* A PAGE THAT NOW STANDS FOR A DIFFERENT RESULT MUST NOT KEEP THE OLD ONE'S MARKUP. The `filled`
    mark is what `fillStuffPages` reads, so taking it off is what asks for the redraw.
    AND IT KEEPS ITS HEIGHT, as a page emptied in `fillStuffPages` does — see `stuffPin_`. */
+/* AND ITS SCROLL PUT BACK, which the emptying beyond `STUFF_NEAR` used to do: since docs/history/341 nothing
+   inside the window is emptied, so a recycle is the one moment a page stops standing for its card — and a
+   pane a reader had scrolled down would hand the next card to somebody half way through it. Only a pane
+   `paneReach_` made scrollable can have been scrolled, and asking any other for its `scrollTop` would be a
+   forced layout per page recycled (the note that was over the old emptying). */
 function stuffBlank_(el) {
   if (!el) return;
   const pane = el.querySelector(':scope > .pane');
+  if (pane && pane.style.overflowY) { pane.scrollTop = 0; pane.style.overflowY = ''; }
   if (el.dataset.filled === '1') stuffPin_(el, pane);
   delete el.dataset.filled;
   if (pane) pane.innerHTML = '';
@@ -14623,21 +15663,34 @@ function stuffBlank_(el) {
    where it started last time. One function because TWO things build the window — `stuffWindow_`,
    recycling the elements already there, and `screen('stuff')`, drawing it from nothing — and two
    copies of this arithmetic would be two answers to which result is on which element. */
-function stuffLo_(want, keep, had) {
+/* `centre`: THE BUILDER'S RE-CENTRING, in the quiet — the page in front put `stuffBehind_()` from the end it
+   is leaving. Otherwise a turn: the window stays where it is unless fewer than `glassRows_() + 3` pages are
+   left ahead, and then slides `STUFF_STEP` that way; a page outside the window altogether (a jump, a
+   first draw) is centred as the quiet would centre it. */
+function stuffLo_(want, keep, had, mode) {
   const size = Math.min(want, STUFF_WIN);
   const maxLo = Math.max(0, want - size);
+  const fit = v => Math.max(0, Math.min(maxLo, v));
   /* WHICH RESULT WE ARE ON, counted from the first one rather than from the top of the column. */
   const r = Math.max(0, (PAGE[FINDER.id] || 0) - keep);
-  let lo = Math.max(0, Math.min(maxLo, had || 0));
-  if (r < lo + STUFF_EDGE || r > lo + size - 1 - STUFF_EDGE) {
-    lo = Math.max(0, Math.min(maxLo, r - ((size - 1) >> 1)));
-  }
+  /* THE WAY THIS COLUMN WAS LAST TURNED (`goPage`), down when nobody has turned it yet. */
+  const dir = (typeof AHEAD !== 'undefined' && AHEAD.dir.y[FINDER.id]) || 1;
+  const behind = Math.min(stuffBehind_(), size - 1);
+  const centred = fit(dir < 0 ? r - (size - 1 - behind) : r - behind);
+  let lo = fit(had || 0);
+  if (mode === 'centre' || r < lo || r > lo + size - 1) return centred;
+  const need = (typeof glassRows_ === 'function' ? glassRows_() : 2) + 3;
+  const ahead = lo + size - 1 - r, back = r - lo;
+  if (dir > 0 && ahead < need) lo = fit(lo + Math.max(STUFF_STEP, need - ahead));
+  else if (dir < 0 && back < need) lo = fit(lo - Math.max(STUFF_STEP, need - back));
   return lo;
 }
 
-function stuffWindow_() {
+function stuffWindow_(mode) {
   const host = $('s-' + FINDER.id);
   if (!host) return;
+  /* A WINDOW THAT MAY MOVE IS PAGES THAT MAY MOVE — the next placement walks them (`placePages_`). */
+  host.PG_SIG = null;
   /* ASKED OF THE DOM, because a star adds a page in front of the question and the number of pages
      before the results is exactly what this has to be right about. */
   const keep = stuffFirstResult_();
@@ -14647,7 +15700,7 @@ function stuffWindow_() {
   const size = Math.min(want, STUFF_WIN);
   const maxLo = Math.max(0, want - size);
   const had = Math.max(0, Math.min(maxLo, PAGE_LO[FINDER.id] || 0));
-  const lo = stuffLo_(want, keep, had);
+  const lo = stuffLo_(want, keep, had, mode);
 
   /* ---------- THE COUNT FIRST, AT THE TAIL --------------------------------------------------------
      Growing appends and shrinking removes from the END, which is the high-numbered end of the
@@ -14670,7 +15723,7 @@ function stuffWindow_() {
   /* THE FIRST PAGE THAT STAYS, and where it sat — see `stuffKeepPlace_` below. Read before anything
      moves, when the layout is the one the last frame already drew. */
   const ref = k > 0 ? res[k] : res[0];
-  const top0 = ref ? ref.offsetTop : 0;
+  const top0 = ref ? stuffTop_(ref) : 0;
   if (k > 0) {
     for (let i = 0; i < k; i++) { stuffBlank_(res[i]); host.appendChild(res[i]); }
   } else {
@@ -14682,7 +15735,7 @@ function stuffWindow_() {
       host.insertBefore(el, host.children[keep] || null);
     }
   }
-  if (ref) stuffKeepPlace_(host, top0 - ref.offsetTop);
+  if (ref) stuffKeepPlace_(host, top0 - stuffTop_(ref));
 }
 
 /* ---------- THE WINDOW MOVES, AND THE CARDS ON THE GLASS DO NOT ---------------------------------------
@@ -14702,6 +15755,12 @@ function stuffWindow_() {
    it a frame later — `colShiftNow_` in shell.js, which `holdColumn_` uses for a card above that
    changes height mid-slide. Nothing is drawn in between: this runs in the handler that turned the
    page, and the frame after it is the slide. */
+/* WHERE A PAGE SITS, TO THE FRACTION OF A PIXEL. `offsetTop` is rounded, and a card's height is not: with the
+   builder filling the window round the card you are reading (docs/history/341), each card drawn above it
+   moved it by up to half a pixel the correction never saw, and a drawing meant to be still with less
+   movement asked for shimmered on its own edges (check/anims.js). The box is read twice in one task, so the
+   column's own transform — even mid-slide — is the same in both and cancels. */
+function stuffTop_(el) { return el.getBoundingClientRect().top; }
 function stuffKeepPlace_(host, d) {
   try { colShiftNow_(host, d); } catch (e) { /* the column left as it was is the jump this exists to stop, and nothing worse */ }
 }
@@ -14738,6 +15797,7 @@ function paintStuff(keepPage) {
 
   const host = $('s-' + FINDER.id);
   if (!host) return;
+  host.PG_SIG = null;
   /* THE QUESTION PAGE, BY ITS ID. `:scope > .page` was "the first one", which is a saved thing now
      — so this kept a favourite and deleted the search box. */
   const ctrl = $(FINDER.id + '-controls');
@@ -14897,7 +15957,13 @@ function paintStuff(keepPage) {
   stuffWindow_();
 
   fillStuffPages();
+  /* AND A NEW WINDOW IN FRONT IS FILLED AS FAR AS THE GLASS SHOWS — the question's own page is the one in front,
+     and an iPad shows four or five results under it (`stuffBandFill_`). */
+  if (stuffOnGlass_(FINDER.id) && stuffBandFill_()) settle_(true);
   paintPager(FINDER.id, true);
+  /* A NEW QUESTION IS A NEW WINDOW TO FILL — the builder is asked to look (`ahead_`, shell.js; 341). It runs
+     nothing periodic, so whatever makes work says so. */
+  if (typeof aheadKick_ === 'function') aheadKick_();
 }
 
 /**
@@ -15017,9 +16083,10 @@ function layout(which) {
   return { screen: id, overlaps, unfilled, rows };
 }
 
-/* HOW MANY PAGES EITHER SIDE OF THE ONE YOU ARE ON GET BUILT AHEAD. Raise it if a fast flick still
-   lands on a blank page; lower it if holding the markup ever starts to cost something. */
-const STUFF_NEAR = 5;
+/* `STUFF_NEAR` WAS HERE — five pages either side filled, and everything past them emptied again. It is gone
+   as a rule (docs/history/341): the whole window is filled, by the builder in the quiet, and nothing in it
+   is emptied; only a recycle releases a card (`STUFF_WIN`'s note). Its own advice — "raise it if a fast
+   flick still lands on a blank page" — was taken as far as it goes. */
 
 /* ---------- THE THREE UNDER YOUR THUMB NOW, THE OTHER EIGHT A FRAME LATER -------------------------
    REPORTED AS "it takes long to load when i click questions on phone", and measured at 20x CPU --
@@ -15041,7 +16108,13 @@ const STUFF_NEAR = 5;
    cancels the first, so a run of quick taps does the far work once at the end rather than per tap.
 
    KEYED ON NOTHING AND CANCELLED BY IDENTITY, because the only job is "finish the fill" and the
-   only thing that can invalidate it is another fill. */
+   only thing that can invalidate it is another fill.
+   ---------- AND THE REST ARE NOW THE BUILDER'S, ONE CARD PER IDLE SLICE (docs/history/341) -----------
+   "The next turn of the event loop" was one task of eight cards, measured at up to 551ms at 4x — and
+   booked behind `afterSlide_`, which a run of quick flicks starves, so it ran exactly when the run
+   stopped and the next flick began. The near three are still built in the tap, for the reason above;
+   everything else in the window is filled by `ahead_` (shell.js) in the quiet, one card at a time,
+   nearest first. `STUFF_LATE` is left only for measuring the cards a pass has just drawn. */
 let STUFF_LATE = 0;
 const STUFF_SOON = 1;
 
@@ -15451,6 +16524,202 @@ function stuffFillOne_(i, ctx) {
   return true;
 }
 
+/* ---------- THE RELEASE'S FLOOR: EVERY PAGE THE BAND WILL SHOW, FILLED BEFORE THE COLUMN MOVES -------------
+   The band (`placeGrid`, shell.js; docs/history/341) draws every page whose box meets the glass a turn is
+   aimed at, widened by a glass height either way, measured in pixels. So the fill a turn makes before its
+   slide is asked in the same units, or the band would uncover a page this left empty: from the page being
+   turned to, in the direction of the turn, every unfilled page until the far edge of that page's glass plus
+   one glass height — and never fewer than `glassRows_() + 3` pages: check/swipe.js's BUILT AHEAD asks that
+   many filled past the card in front at every landing of a run, when the builder has had no quiet moment,
+   and on the 76-question paper at 820 a glass height and a half reached only five of the six (the cards are
+   tall; the final run, 12 Oct). POSITIONS ARE
+   READ BEFORE THE FIRST FILL, while the layout is the one the last frame drew, so a turn that finds
+   everything filled (which, after any rest, the builder has made every turn) forces no layout at all.
+   BOUNDED AT `glassRows_() + 3` FILLS IN ONE RELEASE: the band past the glass is the builder's to have
+   filled, and a release that fills a dozen cards because the builder has not had a quiet moment is the
+   stall this whole change exists to remove. The glass itself is always covered: a phone shows at most
+   five cards on it, an iPad six. */
+/* `least`: THE FLOOR, in pages — `glassRows_() + 3` for a turn (above); 1 for `stuffBandFill_`, which asks for
+   the band and no more. */
+function stuffEdgeFill_(n, dir, least) {
+  const id = FINDER.id, host = $('s-' + id);
+  if (!host) return 0;
+  const pages = host.querySelectorAll(':scope > .page');
+  const cur = pages[domIndex_(id, n)];
+  if (!cur) return 0;
+  const rows = typeof glassRows_ === 'function' ? glassRows_() : 2;
+  const floor = least == null ? rows + 3 : least;
+  const glassH = host.clientHeight || innerHeight;
+  const top = cur.offsetTop, h = cur.offsetHeight;
+  const gTop = top - Math.max(0, (glassH - h) / 2);
+  const reach = dir > 0 ? gTop + 2 * glassH : gTop - glassH;
+  let y = dir > 0 ? top + h : top;
+  let filled = 0;
+  for (let k = 1; k <= STUFF_WIN; k++) {
+    const i = n + dir * k;
+    const el = pages[domIndex_(id, i)];
+    if (!el || !el.classList.contains('is-res')) break;
+    if (k > floor && (dir > 0 ? y >= reach : y <= reach)) break;
+    if (el.dataset.filled !== '1' && stuffFillOne_(i)) filled++;
+    y += dir * el.offsetHeight;
+    if (filled >= rows + 3) break;
+  }
+  return filled;
+}
+
+/* ---------- A WINDOW DRAWN AFRESH ON THE GLASS IS FILLED AS FAR AS THE GLASS SHOWS, BOTH WAYS ------------------
+   FOUND BY REVIEW, 12 Oct, on an iPad and a desktop: a star, a save, a sign-in or the inbox landing two seconds
+   after every signed-in open repaints Find in front from nothing (`paint(AT, true)`), and the draw filled the
+   card in front and one either side (`STUFF_SOON`). The rest of the window was the builder's — behind thirteen
+   other columns' paints — and the release's fill (`stuffEdgeFill_`) fills only the way a turn goes. On a phone
+   one card is taller than the glass and nothing showed; at 820 and 1024 the unfilled pages above the card in
+   front, 29–46px stubs, sat on the glass as three empty card shells for 1–2.5s (137–186 frames of a real drag).
+   Base filled five either side at every paint, and showed none. So when a window is drawn afresh where it can
+   be seen — the column in front, or one beside it on a wide window — every page the band can show (`placeGrid`,
+   shell.js: the glass and a glass height either side, in pixels) is filled in the same task, both ways, before
+   the column is placed: `stuffEdgeFill_` with no floor, from the page in front. Up to six cards each way on an
+   iPad, against base's ten; on a phone usually none past the three. A window drawn for nobody (the builder,
+   off the glass) is filled by the builder one card per slice, as before. */
+function stuffBandFill_() {
+  const at = PAGE[FINDER.id] || 0;
+  let n = stuffFillOne_(at) ? 1 : 0;
+  n += stuffEdgeFill_(at, 1, 1);
+  n += stuffEdgeFill_(at, -1, 1);
+  return n;
+}
+/* WHETHER THIS FINDER'S COLUMN IS ONE THE GLASS SHOWS — in front, or beside it on a wide window. */
+function stuffOnGlass_(id) {
+  return id === AT || (typeof GLASS !== 'undefined' && GLASS.at === AT && GLASS.cols.indexOf(id) !== -1);
+}
+
+/* ---------- THE BUILDER'S FINDER JOBS: THE WHOLE WINDOW FILLED, AND RE-CENTRED, IN THE QUIET --------------
+   `ahead_` in shell.js asks every kind for its jobs as they stand, on every slice, and takes the nearest.
+   For each finder there are two: FILL the nearest page in its window that has no card (or a card drawn
+   for another question), and CENTRE the window where the quiet wants it (`stuffLo_`'s `centre`). The
+   centre is offered at the column's own distance, so it goes before any fill — recycling first and then
+   filling, rather than filling pages the centring is about to throw away.
+   BOUND, BOTH OF THEM (docs/history/329). The jobs are worked out inside each finder's own binding, and
+   each runs inside it again, so a fill of the Resources window cannot touch Find's `STUFF`, memos or
+   window. The question asked is captured when the job is made and asked again when it runs: a different
+   question means the job is dropped, and the next slice makes the jobs of the new one.
+   NOT A COLUMN STILL STALE (its paint goes first, and draws a new window), nor one being typed in or drawn
+   on (the builder's own gate waits for those), nor the admin's column or any other a person cannot reach
+   (`TABS` is read again every slice). */
+function stuffAheadJobs_() {
+  const out = [];
+  Object.keys(FINDERS).forEach(fid => {
+    const F = FINDERS[fid];
+    if (!TABS.some(t => t.id === fid) || STALE[fid]) return;
+    const host = $('s-' + fid);
+    if (!host || !host.querySelector(':scope > .page.is-res')) return;
+    inFinder_(F, () => {
+      if (!$(fid + '-controls')) return;
+      const first = stuffFirstResult_();
+      const n = stuffPages_().length;
+      if (!n) return;
+      const want = stuffPageCount();
+      const size = Math.min(want, STUFF_WIN);
+      const had = PAGE_LO[fid] || 0;
+      const ask = stuffAsk_();
+      const at = PAGE[fid] || 0;
+      if (stuffLo_(want, first, had, 'centre') !== had) {
+        out.push({ key: 'centre:' + fid, kind: 'centre', d: aheadDist_(fid, at), run: () => stuffAheadCentre_(F, ask) });
+      }
+      const pages = host.querySelectorAll(':scope > .page');
+      let best = null;
+      for (let i = first + had; i < first + had + size && i < first + n; i++) {
+        const el = pages[domIndex_(fid, i)];
+        if (!el) continue;
+        if (el.dataset.filled === '1' && !(el.FIND_AT && el.FIND_AT.ask !== ask)) continue;
+        const d = aheadDist_(fid, i);
+        if (!best || d < best.d) best = { i: i, d: d };
+      }
+      if (best) {
+        const i = best.i;
+        out.push({ key: 'fill:' + fid + ':' + i, kind: 'fill', d: best.d, run: () => stuffAheadFill_(F, i, ask) });
+      }
+    });
+  });
+  return out;
+}
+/* ONE CARD, AND ITS PANE MEASURED NOW — `paneWatch_` measures the panes it has not seen, which is this one —
+   so nothing later measures the window; and a card drawn ABOVE the one in front moves the column back by
+   exactly what it grew, as the release's fill does (`stuffKeepPlace_`). */
+function stuffAheadFill_(F, i, ask) {
+  return inFinder_(F, () => {
+    if (stuffAsk_() !== ask) return;
+    const id = F.id, host = $('s-' + id);
+    if (!host) return;
+    const pages = host.querySelectorAll(':scope > .page');
+    const el = pages[domIndex_(id, i)];
+    if (!el || !el.classList.contains('is-res')) return;
+    if (el.dataset.filled === '1' && el.FIND_AT && el.FIND_AT.ask === ask) return;
+    if (el.dataset.filled === '1') stuffBlank_(el);
+    const at = PAGE[id] || 0;
+    const ref = i < at ? pages[domIndex_(id, at)] : null;
+    const top0 = ref ? stuffTop_(ref) : 0;
+    if (!stuffFillOne_(i)) return false;
+    if (typeof paneWatch_ === 'function') paneWatch_(host);
+    if (ref) stuffKeepPlace_(host, top0 - stuffTop_(ref));
+  });
+}
+function stuffAheadCentre_(F, ask) {
+  return inFinder_(F, () => {
+    if (stuffAsk_() !== ask) return;
+    stuffWindow_('centre');
+    if (typeof placeOne_ === 'function') placeOne_(F.id);
+  });
+}
+AHEAD_KINDS.push(stuffAheadJobs_);
+
+/* ---------- A FINDER DRAWN FROM NOTHING IS WARMED IN FOUR SLICES BEFORE ITS PAINT (`warm`) -----------------------
+   FOUND IN THE SECOND LOOK AT THE FIRST THIRTY SECONDS (review round 1, 12 Oct). The builder draws Find and
+   Resources in the quiet after the first screen, and Find's first draw from a payload was ONE slice of
+   285–470ms at 4x on a quiet machine — the longest the builder runs for a student, and the one a touch
+   landed in: a flick on the Feed every 0.9–1.7s waited 433ms behind `paint:stuff 453`. Profiled, almost
+   none of it is the draw: `stuffQuestion` was 368ms of 374, and inside it the library listed for this
+   finder (`stuffItems`, 48ms), each item's sort key (`sortKey_`, 100), the sort and the filter (60) and
+   the first question's tally (`facetTally_`, 157). EVERY ONE OF THOSE IS A MEMO that checks itself — on
+   the payload's identity, the list's identity (`SORTED_ITEMS`, `FACET_TALLY`), the person — so asking it
+   early is never wrong: if anything moves before the paint, the memo misses and the paint does the work it
+   always did. The second draw of the same payload was 23ms.
+   So before a stale finder is painted, the builder asks those four things one slice each, nearest the
+   paint and before it (`d` a hair under the paint's), inside the finder's own binding (329), with the
+   question captured and asked again. The longest is the tally, about a third of the slice it was cut from;
+   the paint left is the markup, its placing and its panes. A step is not repeated for the same payload,
+   person and question (`STUFF_WARM`); a new one of any of them starts again from the first, which is a
+   memo hit wherever nothing changed. NOT the finder in front, which `go` and `repaint` draw at once. */
+const STUFF_WARM = {};
+const STUFF_WARM_STEPS = [
+  () => stuffItems(),
+  () => stuffItems().forEach(x => { if (!x._sk) x._sk = sortKey_(x); }),
+  () => stuffFiltered(),
+  () => stuffQuestion(),
+];
+function stuffWarmJobs_() {
+  const out = [];
+  Object.keys(FINDERS).forEach(fid => {
+    if (fid === AT || !STALE[fid] || !TABS.some(t => t.id === fid) || !$('s-' + fid)) return;
+    const F = FINDERS[fid];
+    inFinder_(F, () => {
+      const ask = stuffAsk_(), who = itemMemoKey_();
+      const w = STUFF_WARM[fid];
+      const step = w && w.data === DATA && w.ask === ask && w.who === who ? w.step : 0;
+      if (step >= STUFF_WARM_STEPS.length) return;
+      out.push({ key: 'warm:' + fid + ':' + step, kind: 'paint', d: aheadDist_(fid, null) - 0.01, run: () => stuffWarm_(F, ask, step) });
+    });
+  });
+  return out;
+}
+function stuffWarm_(F, ask, step) {
+  return inFinder_(F, () => {
+    if (stuffAsk_() !== ask) return false;
+    STUFF_WARM_STEPS[step]();
+    STUFF_WARM[F.id] = { data: DATA, ask: ask, who: itemMemoKey_(), step: step + 1 };
+  });
+}
+AHEAD_KINDS.push(stuffWarmJobs_);
+
 /* ---------- AN EMPTIED PAGE KEEPS ITS HEIGHT -------------------------------------------------------
    PART OF THE OWNER'S *"if i scroll down quickly it does glitch out or clip fast or idk"* (8 Oct, a
    pupil's iPad). A page is emptied when you are more than `STUFF_NEAR` past it, and an empty pane is
@@ -15471,11 +16740,10 @@ function stuffPin_(el, pane) {
   if (el && h > 0) el.style.minHeight = h + 'px';
 }
 
-/* `all` IS THE LATE PASS SAYING "DO THE REST". Without it the deferred call is not a continuation
-   but a repeat: `at` has not moved, the near three are already filled so there is no work in them,
-   and the loop reaches the same far page and defers again. Measured before it existed -- the tall
-   pane stayed `overflow: hidden` for ever, because the measuring runs at the end of the pass that
-   has nothing left to build and no pass ever did. */
+/* `all` WAS THE LATE PASS SAYING "DO THE REST", and the late pass is gone (`STUFF_LATE`'s note). It is now
+   the whole window, filled in this task — for a caller that must see it filled before it reads anything
+   (the checks' states); the app never asks it, because the builder fills the window one card per idle
+   slice and a forty-one-card task is the stall this was rewritten to remove. */
 function fillStuffPages(all) {
   const host = $('s-' + FINDER.id);
   if (!host) return;
@@ -15484,114 +16752,46 @@ function fillStuffPages(all) {
   const at = PAGE[FINDER.id] || 0;
   const items = stuffFiltered();
   const first = stuffFirstResult_();
-  /* ---------- THE ELEVEN YOU ARE NEAR, NOT THE FIVE THOUSAND YOU ARE NOT -------------------------
+  /* ---------- THE THREE YOU ARE ON, NOT THE FIVE THOUSAND YOU ARE NOT --------------------------------
      THIS WALKED EVERY PAGE IN THE STRIP, calling `paneOf_` on each -- a DOM query per page, 5,227
      of them, on every repaint and every page turn. Measured at 8x CPU: 45 ms, for a function whose
      own note says it only ever touches eleven.
-
-     THE TWO JOBS ARE FILL AND EMPTY AND BOTH ARE BOUNDED. What to fill is the window round where
-     you are; what to empty is whatever is still MARKED filled and is no longer in it, and that mark
-     is a selector the browser can answer without this walking anything. Same behaviour, same
-     `changed` flag, same order -- and the cost stops depending on how big the library is. */
+     NOW IT TOUCHES THREE: the page in front and one either side (`STUFF_SOON`), built in this task
+     because a tap must land on its card. Everything else in the window is the builder's, one card per
+     idle slice (`ahead_` in shell.js, the fill job below), and NOTHING IS EMPTIED HERE ANY MORE: a page
+     the window still holds keeps its card, so turning back never rebuilds what it passed, and the
+     window itself bounds what is held (`STUFF_WIN`). A page filled for a different question than the one
+     asked now (`FIND_AT`) counts as empty, and is drawn again. */
   /* EVERY NUMBER HERE IS A PAGE NUMBER and every lookup goes through `domIndex_`, because the
      results are a window and the element standing for page 400 is not the four-hundredth child.
      See `stuffWindow_`. */
-  const seen = {};
-  const lo = Math.max(first, at - STUFF_NEAR);
-  /* THE PAGE COUNT, not the result count — a practical is four pages. See `stuffPages_`. */
-  const hi = Math.min(first + stuffPages_().length - 1, at + STUFF_NEAR);
-  const todo = [];
-  for (let i = lo; i <= hi; i++) { todo.push(i); seen[i] = 1; }
-  [].slice.call(host.querySelectorAll(':scope > .page[data-filled="1"]')).forEach(el => {
-    const i = logIndex_(FINDER.id, [].indexOf.call(pages, el));
-    if (i >= first && !seen[i]) todo.push(i);
-  });
-  /* THE ONES UNDER THE THUMB FIRST, and the emptying with them: a page being cleared is a page
-     whose markup is going away, which costs nothing to lay out and must not be left behind a
-     deferred pass or the strip holds cards it has been told to drop. See `STUFF_LATE`. */
-  todo.sort((a, b) => (Math.abs(a - at) <= STUFF_SOON ? 0 : 1) - (Math.abs(b - at) <= STUFF_SOON ? 0 : 1));
-  clearTimeout(STUFF_LATE);
-  let late = -1;
-  for (let n = 0; n < todo.length; n++) {
-    const i = todo[n];
-    /* PAST THE NEAR THREE AND THERE IS STILL SOMETHING TO BUILD -- stop here and finish after the
-       paint. A page that only needs EMPTYING is not a reason to stop, so the test is on the work
-       rather than on the distance. */
-    if (!all && Math.abs(i - at) > STUFF_SOON) {
-      const ahead = pages[domIndex_(FINDER.id, i)];
-      if (ahead && ahead.dataset.filled !== '1') { late = n; break; }
-    }
+  const last = first + stuffPages_().length - 1;
+  const winLo = first + (PAGE_LO[FINDER.id] || 0);
+  const lo = Math.max(first, all ? winLo : at - STUFF_SOON);
+  const hi = Math.min(last, all ? winLo + STUFF_WIN - 1 : at + STUFF_SOON);
+  const ask = stuffAsk_();
+  const drawn = [];
+  for (let i = lo; i <= hi; i++) {
     const el = pages[domIndex_(FINDER.id, i)];
     if (!el) continue;
-    /* INTO THE PANE, not over it. Writing to the page itself replaces the glass wrapper with bare
-       content — which is exactly what happened, for as long as these pages were built without a
-       pane to write into: the results were drawn onto the black while the question above them sat
-       on a card.
-       `paneOf_` used to hand back the page when there was no pane, so this could not tell the two
-       apart. It returns nothing now, and a page with nowhere to put its contents is skipped and
-       said out loud rather than filled wrongly. */
-    /* `paneOf_` makes one if the page has not got one, so there is nothing to check here. */
-    const pane = paneOf_(el);
-    /* FIVE EITHER SIDE. This was one, then two, and each widening was bought for the same reason:
-       a page built at the moment you turn to it is a page that stutters as you turn to it, and the
-       only screen filled lazily was the only screen whose swipe was not smooth.
-
-       TWO COVERED A SINGLE GESTURE and nothing more. A flick that carries three or four pages —
-       which is most of how anybody moves through a list of this length — outruns it and lands on
-       an empty page while the fill catches up.
-
-       WHAT IT COSTS IS MARKUP HELD, eleven pages instead of five, and nothing else: the widgets are
-       not started on the pages either side, only on the one being looked at, so nothing is running
-       out of sight. Pictures on those pages are `loading="lazy"` and the browser decides for itself
-       whether to fetch them.
-
-       ONE PLACE TO CHANGE IT, because the number appears in the test above and in the clearing
-       below, and two comparisons that are supposed to be the same number are two comparisons that
-       will eventually disagree. */
-    const near = Math.abs(i - at) <= STUFF_NEAR;
-    if (near && el.dataset.filled !== '1') {
-      /* THE CARD, ITS WIDGET DRAWN WITH IT — see `stuffFillOne_`, which the far edge of the glass in
-         `goPage` shares. */
-      if (stuffFillOne_(i, { pages: pages, first: first, items: items })) changed = true;
-    } else if (!near && el.dataset.filled === '1') {
-      /* AND THE SCROLL WITH IT. The pages are a window and their elements are recycled, so a pane
-         left scrolled down would hand the next card it stands for to somebody half way through it.
-         `paneReach_` puts the overflow back too, on the next fill.
-         ---------- ONLY A PANE THAT COULD HAVE SCROLLED, AND BEFORE ITS MARKUP GOES ------------------
-         `scrollTop = 0` IS A FORCED LAYOUT — the browser has to know how far the box can scroll
-         before it can be told where to — and it ran on EVERY page this loop emptied, straight after
-         the `innerHTML` a fill a line earlier had written, so the whole column was laid out again
-         inside the loop. Part of *"if i try to scroll quickly up or down its clunky and janky"* (6
-         October): a profile of rapid flicks down a paper on the Find screen put two seconds of a
-         thirteen-flick run inside this function at 4x CPU, in single tasks of up to 1.3s — the screen
-         frozen for a beat after a quick run of page turns.
-         Only a pane `paneReach_` made scrollable (`overflow-y: auto` inline) can have been scrolled:
-         every other pane clips, and `scrollHost_` in overworld.js scrolls only a box whose overflow
-         says it may. So the rest are not asked, and the few that are lose their scroll first. */
-      if (pane.style.overflowY) {
-        pane.scrollTop = 0;
-        pane.style.overflowY = '';
-      }
-      /* AT THE HEIGHT IT HAD, so the cards under it stay where they are — see `stuffPin_`. */
-      stuffPin_(el, pane);
-      pane.innerHTML = '';
-      delete el.dataset.filled;
+    if (el.dataset.filled === '1' && el.FIND_AT && el.FIND_AT.ask !== ask) stuffBlank_(el);
+    if (el.dataset.filled === '1') continue;
+    /* THE CARD, ITS WIDGET DRAWN WITH IT — see `stuffFillOne_`, which the far edge of the glass in
+       `goPage` and the builder share. */
+    if (stuffFillOne_(i, { pages: pages, first: first, items: items })) {
       changed = true;
+      drawn.push(el);
     }
   }
 
-  /* WHATEVER IS LEFT, AND THE MEASURING, ON THE NEXT TURN OF THE EVENT LOOP. `fillStuffPages` is
-     what a later tap calls anyway, so finishing IS calling it again and there is nothing to
-     remember about where it stopped; `paneReach_` runs at the end of whichever pass has no more
-     building to do, so a run of quick taps measures once rather than per tap. */
-  /* THE FINDER IS CAPTURED, because the timer fires outside every binding (`inFinder_`): a late fill
-     that ran unbound would finish Find's strip with the second finder's half-built one in front. */
-  const F = FINDER;
-  if (late >= 0) {
-    STUFF_LATE = setTimeout(() => inFinder_(F, () => fillStuffPages(true)), 0);
-  } else {
-    STUFF_LATE = setTimeout(() => paneReach_(
-      host.querySelectorAll(':scope > .page[data-filled="1"] > .pane')), 0);
+  /* AND THE CARDS THIS PASS DREW ARE MEASURED ON THE NEXT TURN OF THE EVENT LOOP — only those, never the
+     whole window: forty-one panes measured per tap would be the cost the window was bought to avoid.
+     Cancelled by the next pass, so a run of quick taps measures once. */
+  /* THE FINDER IS CAPTURED, because the timer fires outside every binding (`inFinder_`). */
+  clearTimeout(STUFF_LATE);
+  if (drawn.length) {
+    STUFF_LATE = setTimeout(() => paneReach_(drawn.filter(el => el.isConnected && el.dataset.filled === '1')
+      .map(el => el.querySelector(':scope > .pane')).filter(Boolean)), 0);
   }
 
   /* A TEXTBOOK'S ANIMATION ON THE PAGE IN FRONT PLAYS, AND ONLY THAT ONE — see `tbAnimWatch_`. Here,
@@ -15607,8 +16807,9 @@ function fillStuffPages(all) {
      Started again on every fill rather than once. They are idempotent — a board redraws from the
      position it already holds, a clock from the time it already has — and remembering which have
      been started is a second thing to keep true.
-     FIND'S ALONE (`widgets`): the second finder holds no widget, so its fill leaves `WIDGET_ON` to
-     Find, whose own fills start and stop it as they always did. */
+     FIND'S ALONE (`widgets`): Find 2's fill leaves `WIDGET_ON` to Find, whose own fills start and stop
+     it as they always did — one widget started and stopped from two columns' fills would be one clock
+     reset by whichever filled last. */
   if (!FINDER.widgets) { settle_(changed); return; }
   if (!showingWidgets()) { stopWidget_(); settle_(changed); return; }
   const wgt = items[at - first] && items[at - first].row;
@@ -16013,9 +17214,9 @@ function stuffQuestion() {
 
 /* ---------- ONE DRAW FOR BOTH FINDERS -----------------------------------------------------------------
    `screen('stuff')` WAS THIS FUNCTION, and it is now the draw of whichever finder is bound — Find's
-   and the second finder's are registered under it, below, each in its own binding. The ids are the
-   finder's (`stuff-q`, `res-q` …) so a press finds its own column; everything else on this page is
-   the same page in both, which is the point (docs/history/329). */
+   and Find 2's are registered under it, below, each in its own binding. The ids are the finder's
+   (`stuff-q`, `res-q` …) so a press finds its own column; everything else on this page is the same
+   page in both, which is the point (docs/history/329, 347). */
 function finderScreen_() {
   const F = FINDER;
   const credits = USER ? (USER.credits || 0) : 0;
@@ -16139,16 +17340,28 @@ function finderScreen_() {
      it runs before the browser draws, so the page you are on is never seen empty — and
      `fillStuffPages` settles the column itself once the cards have their heights. */
   /* `F` CAPTURED: the microtask runs after this binding has ended (`inFinder_`). */
-  if (typeof queueMicrotask === 'function') {
-    queueMicrotask(() => { try { inFinder_(F, () => { if ($(F.id + '-controls')) fillStuffPages(); }); } catch (e) {} });
+  /* NOT WHEN THE BUILDER DRAWS IT (`AHEAD.running`, shell.js; docs/history/341). This fill ran after the
+     builder's slice had ended and outside the time it measured — one idle callback took 2.7s by the browser's
+     own frame timing against 1.6s logged for the slice (review, 12 Oct) — so the one slow rule never saw it, and
+     a flick that began then waited for both. Drawn ahead, the window is filled by the builder: in the same slice
+     if the column is on the glass (`aheadPaint_`), one card per slice if it is not. AND AS FAR AS THE GLASS
+     SHOWS, both ways, when it is on the glass (`stuffBandFill_`, above). */
+  const ahead = typeof AHEAD !== 'undefined' && !!AHEAD.running;
+  if (typeof queueMicrotask === 'function' && !ahead) {
+    queueMicrotask(() => { try { inFinder_(F, () => {
+      if (!$(F.id + '-controls')) return;
+      fillStuffPages();
+      if (stuffOnGlass_(F.id) && stuffBandFill_()) settle_(true);
+    }); } catch (e) {} });
   }
-  /* `is-res` IS "A PAGE OF RESULTS", as it always was — older than the second finder's `res` id, and
-     nothing to do with it: `#s-res .page.is-res` is a result page of the Resources column. */
+  /* `is-res` IS "A PAGE OF RESULTS", as it always was — older than Find 2's `res` id, and nothing to
+     do with it: `#s-res .page.is-res` is a result page of Find 2. */
   return pages(F.id, [controls].concat(front))
     + '<section class="page is-res"><div class="pane"></div></section>'.repeat(Math.min(want, STUFF_WIN));
 }
 screen('stuff', () => inFinder_(FINDERS.stuff, finderScreen_));
-/* THE SECOND FINDER — the owner's *"finder 2"*, the column right of Find, carrying the resources. */
+/* FIND 2 — the owner's *"finder 2"*, the column right of Find: *"an identical second finder"* (12 Oct),
+   the same list and the same questions with a state of its own. */
 screen('res', () => inFinder_(FINDERS.res, finderScreen_));
 /* THE `basket ‧ 2` LINK WENT WITH THE SHEET IT OPENED. The basket is the page in front of this one
    — one swipe, and the pager names it — so a control that jumps there is a shortcut to somewhere

@@ -196,3 +196,5 @@ Learning → Questions, and the six Bible questions are never tallied (`check-fu
   pressed by `check/press.js`. Without the grid class the two grid states do not arrive. A first
   version counted `[data-field="bibleChapter"]` and got 151, because "Doesn't matter" carries the
   field too; they count `facet-pick`s.
+
+**Changed by [341](341-what-a-flick-can-reach-is-drawn-before-it-gets-there.md), after its review** — the book chip no longer asks for its book itself (nothing could tell it from the first verse card, filled in the same task); the builder asks (`bibleJobs_`) when Resources is drawn for nobody with a book chosen and its question in front.

@@ -9,7 +9,7 @@
    and the solar system since — are drawn in a second: a card, narrower than the phone by its padding,
    with words above and below.
    `check-anims.js` proves the rows are one source, kept and drawn as written; this asks what only a
-   browser can answer about each one, on the page the Resources column turns to after its chapter, at 320 and 390:
+   browser can answer about each one, on the page Find 2 turns to after its chapter, at 320 and 390:
 
      · THE DRAWING IS THERE: the stage holds its root, with a size;
      · NOTHING OF IT LEAVES THE CARD: every part of it, sampled at six moments of its loop (a hop, a
@@ -87,17 +87,11 @@ const route = (page, backend) => page.route('**/*', r => {
   if (/script\.google\.com/.test(u)) return backend ? r.fulfill({ status: 200, contentType: 'application/json', body: FIXTURE }) : undefined;
   return r.abort();
 });
-/* THE BOOK'S NAME AS FIND SHOWS IT: its title page's title, read off the file. This was a map of three
-   books written out, and the first drawing to land in a fourth (the solar system, in Physics) would
-   have been looked for under no book at all. */
-const TITLES = {};
-fs.readFileSync(path.join(ROOT, 'data', 'textbooks.json'), 'utf8').split('\n').forEach(l => {
-  const s = l.trim().replace(/,$/, '');
-  if (!s.startsWith('{')) return;
-  try { const r = JSON.parse(s); if (r.chapter === 0 && !('anim' in r)) TITLES[r.book_id] = r.title; } catch (e) {}
-});
-const bookOf = r => TITLES[r.book_id];
-
+/* THE CARD AN ANIMATION IS UNDER, BY KEY: each chapter row is one content card since 12 Oct (docs/history/
+   347, part 2), keyed `ct:<book_id>-<chapter>` by `contentItem_` — so the row's own two cells name it, and
+   a drawing landing under a new book needs nothing written here. It was the book's title, read off its
+   title page, when the book was the card. */
+const cardOf = r => 'ct:' + r.book_id + '-' + r.chapter;
 async function boot(ctx) {
   const page = await ctx.newPage();
   await route(page, true);
@@ -107,18 +101,19 @@ async function boot(ctx) {
   await page.waitForTimeout(600);
   return page;
 }
-/* TO THE ANIMATION'S PAGE, THE WAY A READER GETS THERE: the book's chips, then its page — on the
-   Resources column, where the textbooks and so their chapters are (docs/history/329). The chips are set
-   in that finder's binding (`inFinder_`), inside which `STUFF` is the column's own state. */
+/* TO THE ANIMATION'S PAGE, THE WAY A READER GETS THERE: What kind · Content and the card's subject, then
+   its page — on Find 2, the column a student keeps the reading up in (both finders hold the cards,
+   docs/history/347). The chips are set in that finder's binding (`inFinder_`), inside which `STUFF` is
+   the column's own state. */
 async function turnTo(page, r) {
   const part = 'an' + r.chapter + '-' + r.anim;
-  return page.evaluate(async ([book, part]) => {
+  return page.evaluate(async ([key, part]) => {
     if (AT !== 'res') go('res');
-    const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === book);
-    if (!x) return 'no book ' + book;
+    const x = stuffItemsAll_().find(it => it.kind === 'content' && it.key === key);
+    if (!x) return 'no content card ' + key;
     const miss = inFinder_(finderOf_('res'), () => {
       STUFF.q = '';
-      STUFF.filters = [{ field: 'shelf', value: x.shelf }, { field: 'book', value: x.name }];
+      STUFF.filters = [{ field: 'kindLabel', value: 'Content' }, { field: 'subject', value: x.subject }];
       paintStuff();
       const at = stuffPages_().findIndex(pg => pg.part === part);
       if (at < 0) return 'no ' + part + ' page';
@@ -129,10 +124,22 @@ async function turnTo(page, r) {
     for (let i = 0; i < 60; i++) {
       await new Promise(d => setTimeout(d, 100));
       const st = document.querySelector('#s-res .card.is-' + part + ' .tb-an-stage');
-      if (st && st.classList.contains('is-on')) return '';
+      if (st && st.classList.contains('is-on')) {
+        /* AND THE BUILDER DONE (`aheadBusy_`, docs/history/341), as press.js and ui.js wait for it. A new
+           question kicks it, and it fills the window round the chapter one card per quiet slice; each card
+           drawn above this one moves the column back by what it grew. That correction is exact to the
+           fraction of a pixel it can read, and the column's next placement rounds — so frames taken
+           meanwhile differed by a half-pixel shimmer that is not the drawing. Before this wait the same rule
+           caught a real fault: with less movement asked for, the correction was eased over `.01ms` and the
+           chapter flashed a card's height down and back (`colShiftNow_`, shell.js). Bounded at thirty
+           seconds. */
+        for (let k = 0; k < 300 && typeof aheadBusy_ === 'function' && aheadBusy_(); k++) await new Promise(d => setTimeout(d, 100));
+        await new Promise(d => requestAnimationFrame(() => requestAnimationFrame(d)));
+        return '';
+      }
     }
     return 'the stage never came on';
-  }, [bookOf(r), part]);
+  }, [cardOf(r), part]);
 }
 
 let PORT = 0;
@@ -353,7 +360,7 @@ let PORT = 0;
   if (bad.length) {
     console.log('\nBROKEN  (' + bad.length + ')');
     bad.forEach(b => console.log('  ' + b));
-    console.log('\nFAILED — a textbook animation that is not whole, inside its card, and still when asked.');
+    console.log('\nFAILED — a content card\'s animation that is not whole, inside its card, and still when asked.');
     process.exit(1);
   }
   console.log('OK — every animation is drawn in its chapter, stays inside its card, and holds still when asked.');

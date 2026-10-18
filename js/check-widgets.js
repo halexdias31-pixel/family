@@ -885,6 +885,304 @@ if (acceptedEngine.length) {
   }
 }
 
+/* ==================================================================================================
+   A WIDGET DRAWN AHEAD RUNS NOTHING — AND ONE THAT SAYS IT READS NO FACTS READS NONE
+
+   THE BUILDER DRAWS EVERY WIDGET SLOT BEFORE ANYBODY ARRIVES (`aheadDrawWidget_`, arcade.js;
+   docs/history/341): a widget with no `stop` by its own `start`, one WITH a `stop` by its declared `draw`.
+   The whole arrangement rests on two promises nothing else can see being broken:
+     · A DRAW AHEAD RUNS NOTHING. A widget whose `start` runs something — a frame loop, a clock, a clip,
+       a sound, the camera, the network — has a `stop`, and a widget with a `stop` is drawn by a `draw`
+       that runs none of it. Broken, it is a game ticking or a film downloading on a column nobody is on,
+       which is the flat battery arcade.js has always refused, now for every column at once. So EVERY
+       draw ahead is run here in a sandbox and fails on: a fetch, an XHR, `send_` or `sendBeacon`; a media
+       source (a `src` on a video, audio, source or iframe) or `play()`; an `AudioContext` or speech; the
+       camera; any `setInterval`; a `setTimeout` or animation frame it set (or one of those set) still
+       pending 400ms after the draw; and a write anywhere outside its own slot (any copy of it).
+     · `pure: true` MEANS THE DRAWING READS NO FACTS — so it is carried through a paint and kept across a
+       landing (`widgetsHeld_`, `widgetsReveil_`), and a wrong one is a drawing from old facts left on
+       the glass. So each widget is drawn, with `Math.random` and `Date` held still, under five
+       scenarios — signed out; a student; another student over a payload with every list changed; an
+       admin; another admin over the changed payload — and its slot must come out byte-identical in
+       every scenario it is drawn in IF AND ONLY IF it says `pure`. A widget drawn in fewer than two
+       scenarios that differ in both person and facts cannot be proved pure, and may not say so.
+   A STOP WITH NO DRAW is refused before any of it: the builder would have nothing safe to draw it by. */
+const ACCEPTED_IMPURE = {
+  mat: 'reads the cheat sheet tab (`DATA.cheatsheet`), which the fixture leaves empty, so both payloads draw the built-in sheet',
+  reels: 'reads the facts tab through `factsNow_`, which the fixture leaves empty, so both payloads deal the built-in facts',
+  videos: 'a typed search lists the owner\'s list and an admin\'s films (`DATA.films`); the bar drawn ahead with nothing typed reads neither',
+};
+async function drawAheadRuntime_() {
+  const out = { fails: [], pureWrong: [], drawn: 0, scenarios: 0, notes: [] };
+  /* EVERY WIDGET WITH A STOP DECLARES A DRAW — read off the parsed list, as the rules above are. */
+  widgets.forEach(w => {
+    if (w._keys.includes('stop') && !w._keys.includes('draw')) {
+      out.fails.push(str(w.id) + ' has a `stop` and no `draw` — the builder cannot draw it ahead without running it');
+    }
+  });
+  let JSDOM;
+  try { ({ JSDOM } = require('jsdom')); }
+  catch (e) { out.fails.push('jsdom could not be loaded (' + e.message + '), so NO draw ahead was run — not a pass'); return out; }
+  const root = path.join(jsDir, '..');
+  const html0 = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  const fm = /window\.FILES\s*=\s*\[([\s\S]*?)\]/.exec(html0);
+  if (!fm) { out.fails.push('cannot read window.FILES out of index.html, so NO draw ahead was run'); return out; }
+  const order = [...fm[1].matchAll(/'([^']+)'/g)].map(x => x[1]);
+  const appSrc = order.map(n => fs.readFileSync(path.join(jsDir, n + '.js'), 'utf8')).join('\n');
+  const fixture = JSON.parse(fs.readFileSync(path.join(root, 'check', 'fixture.json'), 'utf8'));
+  /* THE CHANGED PAYLOAD: every list in it different — each row's words altered, its numbers moved, its dates
+     three days later, and one row more — and the settings and switches beside them moved too. A drawing
+     that reads any of it differs. The few keys that say what the payload IS rather than what it holds
+     (its version, which features are on, which columns exist) are left, or the app would be a different
+     app rather than the same one over different facts. */
+  const shiftDate = v => v.replace(/\b(\d{2})\/(\d{2})\/(\d{4})\b/g, (m, d, mo, y) => {
+    const t = new Date(Date.UTC(+y, +mo - 1, +d + 3));
+    return String(t.getUTCDate()).padStart(2, '0') + '/' + String(t.getUTCMonth() + 1).padStart(2, '0') + '/' + t.getUTCFullYear();
+  }).replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g, (m, y, mo, d) => new Date(Date.UTC(+y, +mo - 1, +d + 3)).toISOString().slice(0, 10));
+  const bend = v => {
+    if (typeof v === 'string') return !v ? 'x' : (shiftDate(v) !== v ? shiftDate(v) : v + ' (2)');
+    if (typeof v === 'number') return v + 7;
+    if (Array.isArray(v)) return v.map(bend);
+    if (v && typeof v === 'object') { const o = {}; Object.keys(v).forEach(k => { o[k] = bend(v[k]); }); return o; }
+    return v;
+  };
+  const KEEP = new Set(['version', 'cached', 'fileVersions', 'features', 'columns', 'googleClientId']);
+  const changed = JSON.parse(JSON.stringify(fixture));
+  Object.keys(changed).forEach(k => {
+    const v = changed[k];
+    if (KEEP.has(k)) return;
+    if (Array.isArray(v)) changed[k] = v.length ? v.map(bend).concat([bend(v[0])]) : v;
+    else if (v && typeof v === 'object') changed[k] = bend(v);
+  });
+  const T0 = Date.UTC(2026, 9, 7, 10, 0, 0);
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const P = (id, role, extra) => Object.assign({ name: 'Test ' + id, personId: id, person_id: id, role, roles: [role],
+    handle: 'test' + id.toLowerCase(), token: 't-' + id }, extra || {});
+  /* WHO, OVER WHICH FACTS. The tutor is the fixture's own (P002, with a row and hours of her own), so a
+     widget that reads the person's row reads one; the same basket is on the device in every scenario, so
+     the basket draws its prices — which come from the facts. */
+  const SCEN = [
+    { key: 'signed out', user: null, data: fixture },
+    { key: 'student', user: P('P9', 'student'), data: fixture },
+    /* WITH A WEEK OF HER OWN: a drawing that reads the person (the timetable's `USER.timetable`) differs
+       between two people here, so `pure` can only be said of one that reads nobody. Without it every
+       scenario's person had an empty week and the timetable passed as pure (review, 12 Oct). */
+    { key: 'student 2, changed facts', user: P('P8', 'student', { timetable: JSON.stringify({ weekend: true,
+        days: [0, 1, 2, 3, 4, 5, 6].map(i => [{ id: 'L' + i, at: '09:0' + i, subject: 'Maths' }]) }) }), data: changed },
+    { key: 'admin', user: P('P001', 'admin'), data: fixture },
+    { key: 'tutor, changed facts', user: P('P002', 'tutor', { name: 'Ada Tutor' }), data: changed },
+  ];
+  const BASKET = [{ key: 'T1', name: 'Quadratics', kind: 'print', cost: 0, money: 0.16, pages: 8 }];
+  const marks = {};   // id -> [{ scen, html }]
+  for (const sc of SCEN) {
+    let w;
+    try { w = await bootFor_(sc); }
+    catch (e) { out.fails.push('the app did not boot for "' + sc.key + '" (' + e.message + '), so its draws were NOT run'); continue; }
+    out.scenarios++;
+    const t = w.__wt;
+    const seenHere = new Set();
+    for (const col of ['tools', 'games', 'shop']) {
+      try { if (t.STALE()[col] || !w.document.querySelector('#s-' + col + ' .widget-slot')) t.paint(col, true); } catch (e) {}
+      const list = (() => { try { return t.widgetsOn(col); } catch (e) { return []; } })();
+      for (const wd of list) {
+        const id = String(wd.id);
+        if (seenHere.has(id)) continue;
+        const draw = typeof wd.draw === 'function' ? wd.draw : (!wd.stop && typeof wd.start === 'function' ? wd.start : null);
+        if (!draw) continue;
+        const slot = t.slotOn(col, id);
+        if (!slot) continue;
+        seenHere.add(id);
+        const got = await sandboxDraw_(w, t, wd, col, slot, draw, T0);
+        out.drawn++;
+        got.fails.forEach(f => out.fails.push(id + ' (' + sc.key + '): ' + f));
+        (marks[id] = marks[id] || []).push({ scen: sc, html: got.html });
+        if (process.env.CW_DUMP && process.env.CW_DUMP.split(',').indexOf(id) !== -1) console.log('--- ' + id + ' (' + sc.key + ')\n' + got.html.slice(0, 1500));
+      }
+    }
+    try { w.close(); } catch (e) {}
+  }
+  /* PURE, IF AND ONLY IF THE SAME IN EVERY SCENARIO — and drawn under two people and two sets of facts. A
+     widget that reads facts these scenarios do not reach is listed in `ACCEPTED_IMPURE` with what it reads:
+     the same arrangement as `ACCEPTED` in check-payload.js, so a new one fails loudly instead of joining it. */
+  const declared = new Set(widgets.filter(x => /^\s*true\s*$/.test(String(x.pure || ''))).map(x => str(x.id)));
+  Object.keys(marks).forEach(id => {
+    const m = marks[id];
+    const same = m.every(x => x.html === m[0].html);
+    const varied = m.some(x => x.scen.data !== m[0].scen.data) && m.some(x => String((x.scen.user || {}).personId) !== String((m[0].scen.user || {}).personId));
+    const isPure = same && varied;
+    if (declared.has(id) && !isPure) {
+      const diff = m.find(x => x.html !== m[0].html);
+      out.pureWrong.push(id + ' says `pure: true` and its drawing ' + (diff
+        ? 'differs between "' + m[0].scen.key + '" and "' + diff.scen.key + '" — it reads facts, and a paint would carry a stale drawing'
+        : 'was drawn in only ' + m.length + ' scenario(s), which cannot prove it reads no facts'));
+    }
+    if (!declared.has(id) && isPure && !ACCEPTED_IMPURE[id]) {
+      out.pureWrong.push(id + ' draws the same markup for every person and every payload and does not say `pure: true` — '
+        + 'say it, so a paint carries its drawing instead of putting it back under the loader');
+    }
+  });
+  declared.forEach(id => { if (!marks[id]) out.pureWrong.push(id + ' says `pure: true` and was never drawn here, so nothing proved it'); });
+  out.notes.push('pure: ' + Object.keys(marks).filter(id => declared.has(id)).sort().join(', '));
+  return out;
+
+  /* ONE APP IN A REAL DOM, signed in (or not) the way the browser's own boot reads it, the builder held so
+     nothing is drawn but what this asks for, and the payload landed. */
+  async function bootFor_(sc) {
+    const html = html0.replace(/<script[\s\S]*?<\/script>/g, '');
+    const dom = new JSDOM(html, { runScripts: 'outside-only', pretendToBeVisual: true, url: 'https://example.org/' });
+    const w = dom.window;
+    w.matchMedia = w.matchMedia || (() => ({ matches: false, addEventListener() {}, removeEventListener() {} }));
+    w.scrollTo = () => {};
+    w.HTMLElement.prototype.scrollIntoView = () => {};
+    w.confirm = () => true;
+    w.prompt = () => '';
+    try {
+      w.HTMLMediaElement.prototype.pause = function () {};
+      w.HTMLMediaElement.prototype.load = function () {};
+    } catch (e) {}
+    w.__sb = { on: false, hits: [] };
+    const hit = what => { if (w.__sb.on) w.__sb.hits.push(what); };
+    const realFetch = (url, o) => {
+      hit('a fetch of ' + String(url).slice(0, 80));
+      const body = o && o.body ? { success: true } : sc.data;
+      return Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(JSON.stringify(body)), json: () => Promise.resolve(body) });
+    };
+    w.fetch = realFetch;
+    const xo = w.XMLHttpRequest && w.XMLHttpRequest.prototype.open;
+    if (xo) w.XMLHttpRequest.prototype.open = function () { hit('an XHR'); return xo.apply(this, arguments); };
+    try { Object.defineProperty(w.navigator, 'sendBeacon', { value: () => { hit('sendBeacon'); return true; }, configurable: true }); } catch (e) {}
+    try {
+      Object.defineProperty(w.navigator, 'mediaDevices', { configurable: true, value: {
+        getUserMedia: () => { hit('the camera (getUserMedia)'); return new Promise(() => {}); },
+        enumerateDevices: () => Promise.resolve([]) } });
+    } catch (e) {}
+    const fake = () => new Proxy(function () {}, { get: (o, k) => (k === 'then' ? undefined : fake()), apply: () => fake(), construct: () => fake() });
+    w.AudioContext = w.webkitAudioContext = function () { hit('an AudioContext'); return fake(); };
+    w.speechSynthesis = { speak: () => hit('speech'), cancel() {}, pause() {}, resume() {}, getVoices: () => [], speaking: false, pending: false,
+      addEventListener() {}, removeEventListener() {} };
+    w.SpeechSynthesisUtterance = function () {};
+    try { w.HTMLMediaElement.prototype.play = function () { hit('play() on a ' + this.tagName.toLowerCase()); return Promise.resolve(); }; } catch (e) {}
+    if (sc.user) w.localStorage.setItem('familyUser', JSON.stringify(sc.user));
+    w.localStorage.setItem('familyCart', JSON.stringify(BASKET));
+    w.__aheadHold = true;
+    w.eval(appSrc + '\n;window.__wt = { paint, widgetsOn: c => widgetsOn_(c), slotOn: (c, i) => slotOn_(c, i),'
+      + ' HOME: WIDGET_HOME, loading: () => loading_(), STALE: () => STALE, loaded: () => LOADED, user: () => USER,'
+      + ' send: typeof send_ === "function" ? send_ : null, ahead: v => { AHEAD.running = v; } };');
+    if (typeof w.send_ === 'function') { const s0 = w.send_; w.send_ = function () { hit('send_'); return s0.apply(this, arguments); }; }
+    for (let i = 0; i < 100 && !w.__wt.loaded(); i++) await sleep(50);
+    if (!w.__wt.loaded()) throw new Error('the payload never landed');
+    await sleep(100);
+    return w;
+  }
+
+  /* ONE DRAW, WATCHED. The slot goes back to what `widgetOnColumn_` writes, the clocks and the dice are held
+     still, `$` is told which copy (`WIDGET_HOME`, as the builder does), and everything the draw — or a timer
+     or frame it set — asks for is written down. Then 400ms for anything it left pending. */
+  async function sandboxDraw_(w, t, wd, col, slot, draw, T0) {
+    const fails = [];
+    const id = String(wd.id);
+    slot.innerHTML = wd.html + t.loading();
+    slot.setAttribute('aria-busy', 'true');
+    const RealDate = w.Date;
+    class Still extends RealDate {
+      constructor(...a) { if (a.length) super(...a); else super(T0); }
+      static now() { return T0; }
+    }
+    let seed = 12345;
+    const realRandom = w.Math.random;
+    w.Math.random = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+    w.Date = Still;
+    const mine = new Map();   // timer handle -> 'pending' | 'done'
+    let inMine = 0;
+    const rT = w.setTimeout, rC = w.clearTimeout, rI = w.setInterval, rA = w.requestAnimationFrame, rCA = w.cancelAnimationFrame;
+    const sb = w.__sb;
+    const own = el => { for (let n = el; n; n = n.parentNode) { if (n.id === 'wgt-' + id && n.classList && n.classList.contains('widget-slot')) return true; } return false; };
+    const media = /^(VIDEO|AUDIO|SOURCE|IFRAME)$/;
+    const mo = new w.MutationObserver(() => {});
+    const probes = new Set();
+    const audit = () => {
+      mo.takeRecords().forEach(r => {
+        const tgt = r.target;
+        if (r.type === 'attributes' && r.attributeName === 'src' && tgt && media.test(tgt.tagName || '') && tgt.getAttribute('src')) {
+          fails.push('gave a <' + tgt.tagName.toLowerCase() + '> a source');
+        }
+        (r.addedNodes ? [...r.addedNodes] : []).forEach(n => {
+          if (!n.querySelectorAll) return;
+          [n].concat([...n.querySelectorAll('video,audio,source,iframe')]).forEach(m => {
+            if (media.test(m.tagName || '') && m.getAttribute && m.getAttribute('src')) fails.push('drew a <' + m.tagName.toLowerCase() + '> with a source');
+          });
+        });
+        /* A PROBE IS NOT A WRITE: an element put at the end of the body to be measured and taken away in the
+           same tick (the cheat sheet's x-height and page gauge, mat.js) leaves nothing behind. */
+        (r.addedNodes ? [...r.addedNodes] : []).forEach(n => probes.add(n));
+        const probe = r.type === 'childList' && [...(r.addedNodes || [])].every(n => !n.isConnected)
+          && [...(r.removedNodes || [])].every(n => probes.has(n));
+        if (!own(tgt) && !probe) fails.push('wrote outside its own slot (' + r.type + ' on <' + String(tgt.nodeName).toLowerCase()
+          + (tgt.id ? '#' + tgt.id : '') + (tgt.className && typeof tgt.className === 'string' ? '.' + tgt.className.split(/\s+/)[0] : '') + '>)');
+      });
+    };
+    const wrap = fn => function () { inMine++; try { return fn.apply(this, arguments); } finally { inMine--; audit(); } };
+    w.setTimeout = function (fn, ms) {
+      if (!inMine || typeof fn !== 'function') return rT.apply(w, arguments);
+      const h = rT.call(w, function () { mine.set(h, 'done'); return wrap(fn).apply(this, arguments); }, ms);
+      mine.set(h, 'pending');
+      return h;
+    };
+    w.clearTimeout = function (h) { if (mine.has(h)) mine.set(h, 'done'); return rC.call(w, h); };
+    w.setInterval = function () { if (inMine) fails.push('set an interval'); return rI.apply(w, arguments); };
+    w.requestAnimationFrame = function (fn) {
+      if (!inMine) return rT.call(w, () => fn(RealDate.now()), 16);
+      const h = rT.call(w, () => { mine.set(h, 'done'); wrap(fn)(RealDate.now()); }, 16);
+      mine.set(h, 'pending');
+      return h;
+    };
+    w.cancelAnimationFrame = function (h) { if (mine.has(h)) mine.set(h, 'done'); return rC.call(w, h); };
+    mo.observe(w.document, { subtree: true, childList: true, attributes: true, characterData: true });
+    const had = Object.prototype.hasOwnProperty.call(t.HOME, slot.id) ? t.HOME[slot.id] : undefined;
+    t.HOME[slot.id] = col;
+    sb.hits = []; sb.on = true;
+    /* AS THE BUILDER DRAWS IT — inside a slice (`AHEAD.running`, which `aheadSlice_` holds for the job), so a
+       draw that asks whether it is being drawn ahead is asked the question the app asks it. */
+    try { t.ahead('widget:' + col + ':' + id); wrap(() => draw())(); }
+    catch (e) { fails.push('threw: ' + e.message); }
+    finally { t.ahead(false); if (had === undefined) delete t.HOME[slot.id]; else t.HOME[slot.id] = had; }
+    const htmlNow = slot.innerHTML;
+    /* WHAT IT LEFT FOR LATER, given its 400ms — with the dice still held, so a timer's own redraw is as still
+       as the first. */
+    const until = RealDate.now() + 400;
+    while (RealDate.now() < until) await new Promise(r => rT.call(w, r, 20));
+    sb.on = false;
+    audit();
+    mo.disconnect();
+    sb.hits.forEach(h => fails.push('asked for ' + h));
+    const pend = [...mine.values()].filter(v => v === 'pending').length;
+    if (pend) fails.push(pend + ' timer(s) or frame(s) still pending 400ms after the draw — something is still running');
+    w.setTimeout = rT; w.clearTimeout = rC; w.setInterval = rI; w.requestAnimationFrame = rA; w.cancelAnimationFrame = rCA;
+    w.Date = RealDate; w.Math.random = realRandom;
+    return { fails: [...new Set(fails)], html: htmlNow };
+  }
+}
+
+drawAheadRuntime_().then(rt => {
+  if (rt.fails.length) {
+    console.log('');
+    console.log('A WIDGET DRAWN AHEAD THAT RUNS SOMETHING  (' + rt.fails.length + ')');
+    rt.fails.forEach(x => console.log('  ' + x));
+    bad = true;
+  }
+  if (rt.pureWrong.length) {
+    console.log('');
+    console.log('`pure` SAYS SOMETHING THE DRAWING DOES NOT  (' + rt.pureWrong.length + ')');
+    rt.pureWrong.forEach(x => console.log('  ' + x));
+    bad = true;
+  }
+  console.log('');
+  console.log('  drawn ahead in a sandbox: ' + rt.drawn + ' draws over ' + rt.scenarios + ' scenarios');
+  rt.notes.forEach(x => console.log('  ' + x));
+  finish_();
+}, e => { console.log('FAILED — the draw-ahead sandbox threw: ' + (e && e.stack || e)); bad = true; finish_(); });
+
+function finish_() {
 console.log('');
 console.log('  tools: ' + widgets.filter(w => str(w.kind) === 'tool').map(w => str(w.id)).join(', '));
 console.log('  games: ' + widgets.filter(w => str(w.kind) === 'game').map(w => str(w.id)).join(', '));
@@ -895,5 +1193,6 @@ console.log('widgets: ' + widgets.length
 console.log(bad
   ? 'FAILED — each of those is a widget that draws and does nothing.'
   : 'OK — every widget has the four keys, a kind a column asks for, a unique id, and an `into` its '
-    + 'own html contains.');
+    + 'own html contains; every draw ahead runs nothing, and `pure` says what the drawing does.');
 process.exit(bad ? 1 : 0);
+}

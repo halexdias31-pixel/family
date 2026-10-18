@@ -1087,6 +1087,63 @@ let examDates = 0;
   } else bad.push('exam dates: somebody could not sign in');
 }
 
+/* 17b. THE BUSINESS'S CUT OF AN EXTRA SEAT, PER TUTOR — AN ADMIN'S, AND BLANK IS NOT NOUGHT (docs/history/345).
+   The owner, 12 Oct: *"Your cut off extra child for tutors should be editable on thir card."* The cut that was one
+   config number is `extra_seat_cut` on each tutor's row: blank is the config default and nought is no cut. Asked of
+   the real `doPost` and `doGet`: a tutor cannot set it, blank to nought included, and nothing is written; an admin
+   can, on a tutor's row and on their own; out of range is refused for an admin too; blank and nought are stored
+   and SENT as two different answers; and an admin moving it does not stamp the tutor's `pricing_changed_at` —
+   that month is the tutor's, over what THEY charge. A tutor's own no-change Save of the page still saves. */
+let cutRules = 0;
+{
+  const rule = (ok, said) => { if (ok) cutRules++; else bad.push('the cut of an extra seat: ' + said); };
+  const t = b.post({ action: 'verifyLogin', email: 'tutor@example.org', pin: '0000' });
+  const a = b.post({ action: 'verifyLogin', email: 'admin@example.org', pin: '0000' });
+  if (!t.success || !a.success) bad.push('the cut of an extra seat: the tutor or the admin could not sign in, so it was NOT checked');
+  else {
+    const ask = (who, pid, targetId, cut) => b.post({ action: 'updateProfile', token: who.token, name: who.name, personId: pid,
+      target: who.name, targetId, fields: { extra_seat_cut: cut } });
+    const cell = pid => b.row(pid).extra_seat_cut;
+    const sent = pid => { const r = (b.get({}).tutors || []).find(x => x.personId === pid); return r ? r.extraSeatCut : 'no tutor row'; };
+    /* A STAMP FROM LONG AGO, so an admin's edit that stamped it again would show — and long enough ago that the
+       tutor's own clock is not what refuses them below. */
+    const h = b.tabs.people[0], at = h.indexOf('pricing_changed_at');
+    const ri = b.tabs.people.findIndex((x, i) => i > 0 && x[h.indexOf('person_id')] === 'P-T1');
+    const OLD = new Date(2020, 0, 2);
+    if (at < 0 || ri < 0) bad.push('the cut of an extra seat: no pricing_changed_at column or no tutor row, so the clock was NOT checked');
+    else b.tabs.people[ri][at] = OLD;
+    const show = pid => JSON.stringify({ cell: cell(pid), sent: sent(pid) });
+    rule(cell('P-T1') === '' && sent('P-T1') === '', 'a tutor with no cut of their own is not stored and sent blank: ' + show('P-T1'));
+    const t1 = ask(t, 'P-T1', 'P-T1', '0.2');
+    rule(!t1.success && /Only @family/.test(String(t1.error)) && !t1.writes && cell('P-T1') === '',
+      'a tutor setting their own cut was not refused, or something was written — ' + JSON.stringify(t1) + ' ' + show('P-T1'));
+    const t0 = ask(t, 'P-T1', 'P-T1', '0');
+    rule(!t0.success && !t0.writes && cell('P-T1') === '', 'a tutor taking the cut from blank to nought was not refused — ' + JSON.stringify(t0));
+    const a2 = ask(a, 'P-A1', 'P-T1', '0.2');
+    rule(a2.success && Number(cell('P-T1')) === 0.2 && sent('P-T1') === 0.2,
+      'an admin setting a tutor\'s cut to 0.2 was refused or did not arrive — ' + (a2.error || show('P-T1')));
+    rule(at >= 0 && new Date(b.row('P-T1').pricing_changed_at).getTime() === OLD.getTime(),
+      'an admin moving the cut stamped the tutor\'s pricing_changed_at (' + b.row('P-T1').pricing_changed_at + ') — the tutor\'s month started over a number they cannot touch');
+    const a0 = ask(a, 'P-A1', 'P-T1', '0');
+    rule(a0.success && cell('P-T1') === 0 && sent('P-T1') === 0, 'nought is not stored and sent as nought (no cut) — ' + (a0.error || show('P-T1')));
+    const ab = ask(a, 'P-A1', 'P-T1', '');
+    rule(ab.success && cell('P-T1') === '' && sent('P-T1') === '', 'blank after nought is not stored and sent as blank (the default) — ' + (ab.error || show('P-T1')));
+    [['15', 'pounds typed into a fraction'], ['-1', 'a share below nothing']].forEach(([v, why]) => {
+      const r = ask(a, 'P-A1', 'P-T1', v);
+      rule(!r.success && !r.writes && cell('P-T1') === '', 'an admin\'s cut of ' + v + ' (' + why + ') was not refused, or was written — ' + JSON.stringify(r) + ' ' + show('P-T1'));
+    });
+    const own = ask(a, 'P-A1', 'P-A1', '0.15');
+    rule(own.success && Number(cell('P-A1')) === 0.15, 'an admin could not set their own cut — ' + (own.error || JSON.stringify(cell('P-A1'))));
+    /* THE TUTOR'S OWN RATE PAGE, SAVED WITH NOTHING TOUCHED — every box, the cut among them as it was drawn. */
+    ask(a, 'P-A1', 'P-T1', '0.1');
+    const prof = b.ev(`profileOf_(read(TAB.people).rows.find(r => r.person_id === 'P-T1'))`);
+    const page = formOf(b.ev('PROFILE_GROUPS')['Your rate and group size'] || [], prof);
+    const same = b.post({ action: 'updateProfile', token: t.token, name: t.name, personId: 'P-T1', target: t.name, targetId: 'P-T1', fields: page });
+    rule('extra_seat_cut' in page && same.success && !same.writes,
+      'a tutor\'s no-change Save of the rate page, carrying the cut as drawn, was refused or wrote — ' + (same.error || same.writes + ' cell(s)'));
+  }
+}
+
 /* 18. THE CARD: WHERE A TUTOR'S FIELDS ARE EDITED NOW, AND WHETHER EVERY ONE IS STILL SAVED (docs/history/330).
    The owner, 10 Oct: *"all of this stuff should be editable directly on the tutors card for that respective
    tutor."* The phone stopped drawing five Settings pages for anybody with a card and edits those fields on
@@ -1263,7 +1320,7 @@ console.log('');
 console.log('people: ' + PEOPLE.length + '   saves: ' + saves + '   changes read back after signing in again: ' + rounds
   + '   handles randomised: ' + shuffles + '   pictures saved: ' + photos + '   picture-choice rules held: ' + pictures + '   role rules held: ' + roleRules
   + '   closed days sent: ' + closed + '   tutor-hours rules held: ' + hoursRules + '   timetable rules held: ' + timetables
-  + '   exam-date rules held: ' + examDates + '   card rules held: ' + cardRules);
+  + '   exam-date rules held: ' + examDates + '   card rules held: ' + cardRules + '   seat-cut rules held: ' + cutRules);
 if (bad.length) {
   console.log('FAILED — a Save that does not stick, or writes what nobody asked, is the one on the screen that only exists to change what the sheet holds.');
   process.exit(1);

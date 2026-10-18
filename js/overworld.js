@@ -143,6 +143,22 @@ function drawFeed() {
      The note in `feedShuffle` has the whole argument. */
 }
 
+/* THE FACT'S CARD AND NOTHING ELSE — the widget's declared `draw`, for the builder (docs/history/341). No
+   clip is given a source and no photograph is fetched: those are `drawFeed`'s, on arrival. A fact that is a
+   `<video>` clip is not drawn at all (`false`): a video with no source is a black box, and the loader the
+   slot already shows is the honest face of a clip that has not been asked for. */
+function feedPaint_() {
+  const host = $('feed-screen');
+  if (!host) return false;
+  if (FEED_AT === null) FEED_AT = 0;
+  const it = feedItem(Math.max(0, FEED_AT));
+  if (!it) return false;
+  const html = feedSlide(it);
+  if (/<video\b/i.test(html)) return false;
+  host.innerHTML = html;
+  return true;
+}
+
 function initFeed() {
   if (!$('feed-screen')) return;
   /* EVERY SESSION STARTS AT THE FIRST CARD OF ITS OWN SHUFFLE — see `drawFeed` above and the long
@@ -526,6 +542,14 @@ addEventListener('pointermove', e => {
      safer wrong answer, because scrolling is the thing people do a thousand times more often. */
   if (!SWIPE.axis) {
     if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+    /* ---------- NOT WHILE A FINGER IS ON THE ARMED DRAWING ---------------------------------------------
+       THIS FOLLOWS THE PRIMARY POINTER, and on a card being drawn on that is often not the finger: a palm
+       or a gripping thumb that went down first beside the pad is primary, the drawing finger is not, and
+       `[data-noswipe]` below asks only what the PRIMARY one landed on. So a hand drifting on the card slid
+       the column out from under a stroke (docs/history/338). `padBusy_` (find.js) says a finger is on the
+       armed ink, whichever went down first; while it does, neither the grid nor the pane takes this. A
+       swipe already moving when a finger lands is left to finish -- that finger is a rest (338, T1). */
+    if (typeof padBusy_ === 'function' && padBusy_()) { SWIPE.live = false; return; }
     /* ONE COUNT FOR THE WHOLE DECISION — `countHold_` in shell.js. It was asked up to three times
        here, and on Settings each one builds the column's markup; this is the frame the card should
        start moving in. Let go at the end of the block, before anything can paint. */

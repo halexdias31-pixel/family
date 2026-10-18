@@ -1023,8 +1023,21 @@ function paintBoard_(id, field) {
   if (el) el.innerHTML = scoreBoard_(field);
 }
 
+/* ---------- `draw` AND `pure`: WHAT THE BUILDER MAY DO WITH A WIDGET BEFORE ANYBODY ARRIVES ----------------
+   Every widget slot is drawn in the quiet before it is needed (`aheadDrawWidget_`, arcade.js; docs/history/
+   341). A widget with no `stop` is drawn by its `start`, whose note says nothing of it runs on. A widget WITH
+   a `stop` runs something a stop has to end — a clock, a frame loop, a clip, the network, the classroom
+   round — so it declares a `draw` that puts down its card and runs none of it, and is started exactly as it
+   always was, on arrival. `check-widgets.js` runs every draw ahead in a sandbox and fails on a fetch, a media
+   source, sound, the camera, an interval, a timer still pending, or a write outside the slot.
+   `pure: true` SAYS THE DRAWING READS NO FACTS — nothing from the payload and nothing a landing changes: a
+   calculator, a timer, a board game. Such a drawing cannot go stale, so a paint carries it across and a
+   landing leaves it; every other drawing goes back under its loader when the facts move and is drawn again
+   from the new ones. It is not taken on trust: `check-widgets.js` draws each widget for two people over two
+   payloads and fails a `pure` whose drawing differs, and a drawing that never differs without one. */
 const WIDGETS = [
   { id: 'chess', kind: 'game', name: 'Chess', start: () => initChess?.(),
+    pure: true,
     into: 'chess-board', what: 'The board',
     /* THE BOARD, AND NOTHING ELSE.
        A title saying "Chess" above a chessboard, and a line explaining that chess has castling in
@@ -1048,6 +1061,10 @@ const WIDGETS = [
     </div>
   </div>` },
   { id: 'tables', kind: 'game', name: 'Times Tables', start: () => initTables?.(),
+    /* DRAWN AHEAD BY ITS OWN START (`draw`, docs/history/341): `initTables` writes the idle card and the
+       board and runs nothing — the clock is the Start button's. It clears `ttState`, which is why the
+       builder only draws a widget that is running nowhere (`aheadDrawWidget_`, arcade.js). */
+    draw: () => initTables?.(),
     /* The sprint's clock is a setInterval. Left running it goes on counting a sixty-second round
        nobody is watching, and fires its finish into a screen that is no longer there. */
     stop: () => { if (typeof ttState !== 'undefined' && ttState) { clearInterval(ttState.timer); ttState = null; } },
@@ -1070,6 +1087,9 @@ const WIDGETS = [
     <div id="tt-board" class="board"></div>
   </div>` },
   { id: 'flabby', kind: 'game', name: 'Flabby Pird', start: () => initFlappy?.(),
+    /* DRAWN AHEAD STILL: the board, the canvas fitted, one frame of the scene — and no frame loop, no
+       handler and no key listener, which `initFlappy` puts on (`flappyStill_`, receipt.js). */
+    draw: () => flappyStill_?.(),
     /* An animation loop, which is the expensive one: sixty frames a second drawn into a canvas
        off the side of the screen, for as long as the tab is open. */
     stop: () => { if (typeof flappyState !== 'undefined' && flappyState && flappyState.raf) {
@@ -1108,6 +1128,7 @@ const WIDGETS = [
      wrongly. See `c4Reply_` and `othReply_` in games.js, where both opponents were deleted and the
      argument for them is kept. */
   { id: 'connect4', kind: 'game', name: 'Connect 4', start: () => initConnect4?.(),
+    pure: true,
     into: 'c4-board', what: 'The board',
     html: `<div class="card">
     <h3>Connect 4</h3>
@@ -1118,6 +1139,7 @@ const WIDGETS = [
   </div>` },
 
   { id: 'othello', kind: 'game', name: 'Othello', start: () => initOthello?.(),
+    pure: true,
     into: 'oth-board', what: 'The board',
     html: `<div class="card">
     <h3>Othello</h3>
@@ -1152,6 +1174,10 @@ const WIDGETS = [
      once is not a word to get across; that was a call nobody had asked for, and the owner's line
      overrides it. Alibi was the other one left out, and is deleted — see where its card was, below. */
   { id: 'wordgames', kind: 'game', name: 'Word games', start: () => initWordGames?.(),
+    pure: true,
+    /* DRAWN AHEAD AS MARKUP ONLY: the picker and the chosen game's card (`wgPaint_`, games.js). Its start
+       drives `PARTY`, which is shared by the four classroom games, and must run for somebody looking. */
+    draw: () => wgPaint_?.(),
     stop: () => { if (typeof wordGamesStop_ === 'function') wordGamesStop_(); },
     into: 'wg-slot', what: 'The game',
     /* A GETTER, SO THE CHOSEN GAME IS IN THE MARKUP `paint` PUTS DOWN. A repaint is a stop and a
@@ -1174,6 +1200,7 @@ const WIDGETS = [
      saves — so `initScrabble` redraws whatever is in progress rather than dealing again. `New game`
      is the only thing that throws one away, which is the only thing that should. */
   { id: 'scrabble', kind: 'game', name: 'Scrabble', start: () => initScrabble?.(),
+    pure: true,
     into: 'scr-board', what: 'The board',
     html: `<div class="card">
     <h3>Scrabble</h3>
@@ -1210,6 +1237,7 @@ const WIDGETS = [
      ("delete alibi game.") — the note where its engine was in games.js says what went with it. A
      star on it no longer matches a widget, so `savedWidgets_` simply stops drawing it. */
   { id: 'maze', kind: 'game', name: 'Maze', start: () => initMaze?.(),
+    pure: true,
     into: 'maze-grid', what: 'The maze',
     html: `<div class="card">
     <h3>Maze</h3>
@@ -1233,6 +1261,7 @@ const WIDGETS = [
      beside the select: on one row at 320px the select had eighty pixels and read "Spelling…",
      which is a choice nobody can read. */
   { id: 'wordsearch', kind: 'game', name: 'Word Search', start: () => initWordSearch?.(),
+    pure: true,
     into: 'ws-grid', what: 'The grid',
     html: `<div class="card">
     <h3>Word Search</h3>
@@ -1251,6 +1280,7 @@ const WIDGETS = [
      beside Check, rather than beside the select — see the word search above for what that row
      did to the select's label. */
   { id: 'scramble', kind: 'game', name: 'Sentence Scramble', start: () => initScramble?.(),
+    pure: true,
     into: 'ss-box', what: 'The sentence',
     html: `<div class="card">
     <h3>Sentence Scramble</h3>
@@ -1270,6 +1300,10 @@ const WIDGETS = [
      with less to find it by: there is no column to come back to, just sound from a screen you are
      not on. `clipsStop_` is the one the column uses. */
   { id: 'reels', kind: 'game', name: 'One more thing', start: () => initFeed?.(),
+    /* DRAWN AHEAD AS THE FACT'S CARD AND NOTHING ELSE (`feedPaint_`, overworld.js): `drawFeed` would set
+       a clip's source (up to 7MB) and fetch its photograph. A fact that is a `<video>` clip is left under
+       the loader — a video with no source is a black box, and the loader is the honest face of it. */
+    draw: () => feedPaint_?.(),
     stop: () => clipsStop_($('feed-screen')),
     into: 'feed-screen', what: 'This',
     html: `<div class="card">
@@ -1329,6 +1363,9 @@ const WIDGETS = [
      widget shouldn't acknowledge reels"*), and "films" was a word every visitor read for a list only
      an admin is sent — the one sign, on a student's screen, that the films exist. */
   { id: 'videos', kind: 'game', name: 'Videos', start: () => initVideos?.(),
+    /* DRAWN AHEAD FROM WHAT IS ALREADY HERE (`vidPaint_`): `initVideos` asks the network for the list and,
+       for an admin, the films' sync. */
+    draw: () => vidPaint_?.(),
     stop: () => videosStop_?.(),
     into: 'vid-box', what: 'The videos',
     html: `<h3>Videos</h3>
@@ -1354,6 +1391,7 @@ const WIDGETS = [
      Moved to the You screen; see `meBlocks`. */
 
   { id: 'calculator', kind: 'tool', name: 'Calculator', solid: true, start: () => initMiniCalc?.(),
+    pure: true,
     into: 'mc-display', what: 'The calculator',
     html: `<div class="card">
     <h3>Calculator</h3>
@@ -1427,6 +1465,7 @@ const WIDGETS = [
     <div id="mat-box"></div>
   </div>` },
   { id: 'timer', kind: 'tool', name: 'Timer', solid: true, start: () => initTimer?.(),
+    pure: true,
     into: 'timer-display', what: 'The timer',
     html: `<div class="card">
     <h3>Timer</h3>
@@ -1486,6 +1525,10 @@ const WIDGETS = [
 
      `.tmt-box` IS A CLASS AS WELL AS AN ID, the basket's reason: the Saved column draws this markup
      again and `tmtPaint_` writes every copy. */
+  /* NOT `pure`, though it was until the review of 12 Oct: it draws the person's own week (`USER.timetable`)
+     AND the sessions booked here, locked into it — a booking is a fact, and a landing that brings one must
+     not leave the week drawn without it. It passed `check-widgets.js` only because nobody in that check had
+     a week or a booking; one there has a week now, and the check says what this says. */
   { id: 'timetable', kind: 'tool', name: 'Timetable', solid: true, start: () => initTimetable?.(),
     into: 'tmt-box', what: 'Your timetable',
     /* NO `.card` OF ITS OWN. `widgetOnColumn_` already draws the card, and the inner one only added
@@ -1507,6 +1550,7 @@ const WIDGETS = [
      NO `stop`. Nothing in it runs between keystrokes — see the note over `KT_LESSONS` in games.js —
      so it is drawn with its page. `.kt-box` is a class as well as an id, the timetable's reason. */
   { id: 'typing', kind: 'tool', name: 'Touch typing (keyboard practice)', solid: true,
+    pure: true,
     start: () => initTyping?.(), into: 'kt-box', what: 'The lesson',
     html: `<h3>Touch typing</h3>
     <div id="kt-box" class="kt-box"></div>` },

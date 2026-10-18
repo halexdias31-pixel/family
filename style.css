@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-12-merge-cardset";
+  --css-version: "2026-10-13-integrate";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -553,10 +553,18 @@ html.wide body { max-width: none; box-shadow: none; }
 }
 
 .page {
-  /* Quicker than the movement on purpose: a fade that outlasts the slide is still resolving after
-     the card has arrived, which is what makes a transition feel slack. Stated ONCE — there was a
-     second `.page` rule further down saying `.26s`, and the later one silently won. */
-  transition: opacity .2s ease;
+  /* NO FADE ANY MORE. It was `transition: opacity .2s ease` — quicker than the movement on purpose, so a
+     fade that outlasted the slide could not leave the card resolving after it arrived. On 11 Oct the
+     owner wrote *"If I scrol fast left right up or down it's still clunky … Make it more massive so it's
+     never really an issue"*, and measured at 4x CPU the fade was half of what he saw: a card already
+     built was carried across the glass at opacity 0 for the first 200ms of every page it newly came
+     into reach of, so a run of flicks showed black where the cards were (the holes needed both this and
+     the reach gone: 4 of 7 left with the reach widened alone, 0 with both). It also cost a layer per
+     fading page on every Feed turn (20 became 26) and 300–630ms of main thread per turn at 4x. The reach
+     now makes a page visible a whole glass height before it can arrive (`placeGrid`, shell.js), so there
+     is nothing left on the glass for a fade to soften: a neighbour's .9 / .75 shade steps at the release
+     instead of easing in over a fifth of a second. The column's own `.22s` stays — columns are composited
+     already — and so does the reduced-motion `none` below. See docs/history/341. */
   /* Containment belongs HERE, where it is still true: a page cannot affect anything outside
      itself, so a post loading its picture cannot cost a relayout of the pages around it. `layout`
      and `style` only — `paint` would clip a card to its own box for no gain. */
@@ -5326,6 +5334,9 @@ label.bk-k { cursor: pointer; }
 .av-wrap { display: flex; align-items: center; justify-content: center; padding: .3rem 0; }
 /* `.av-big` WAS HERE, the figure's padding when the wardrobe opened in a sheet; nothing draws it. */
 .avatar, .av-item { display: block; }
+/* THE PAGE'S ONE DEFINITION OF THE FIGURE'S CIRCLE (`#av-clip`, index.html; `avatarFor`, links.js) takes
+   no room and is never seen. Not `display: none`, under which a browser may refuse to use what is inside. */
+.av-defs { position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; }
 /* On a card, the figure sits in the same square a photograph would — so a row with a picture and
    a row with a figure line up rather than one of them being taller. */
 .thing-pic.art { display: flex; align-items: center; justify-content: center;
@@ -6471,6 +6482,12 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 /* SOMEBODY ELSE'S PICTURE, ON AN ADMIN'S EDIT: the card's own circle, and why it is not offered. */
 .ce-pic { display: flex; gap: .7rem; align-items: center; }
 .ce-pic .ce-note { margin: 0; }
+/* WHAT AN EXTRA SEAT ADDS, UNDER ITS TWO PARTS — `cardRateHtml_` in me.js (docs/history/345). The seat as the card
+   will print it, in the card's own `.prof-seat` type, so the form's answer and the card's number look like one
+   thing; the line under it pulled up to it, because the two are one sentence about one seat. */
+.ce-seat { margin: -.35rem 0 0; font: 400 .7rem/1.35 var(--mono); color: var(--dim); }
+.ce-seat .prof-seat { font-size: inherit; line-height: inherit; }
+.ce-seat + .ce-seat-note { margin: .2rem 0 .75rem; }
 /* THE MAP UNDER THE VENUES, redrawn from the ticks; nothing ticked is no map and no gap. */
 .ce-heat:empty { display: none; }
 /* WHERE THE PAGES WENT, once, at the top of Settings — for everybody since docs/history/339. */
@@ -8461,6 +8478,11 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    card that also held the part. A stem is its own page now, in front of its parts (`questionStemCard_`
    in find.js), so there is no part below it to defer to: full ink, and no rule leading to nothing. */
 .qstem .qsheet-stem { opacity: 1; border-bottom: 0; padding-bottom: 0; margin-bottom: 0; }
+/* BUT A STAND-IN'S DASHED EDGE IS ITS BOX, NOT THAT RULE (`.qsheet-stem.is-standin` above: "the dashed edge
+   all the way round"), so on its own page it keeps the bottom of it. Two rules of one specificity decided by
+   file order alone: check/cascade.js found it once Find's window held a stand-in's card at the moment it
+   looked (docs/history/341 — the whole window is drawn now, not five either side). */
+.qstem .qsheet-stem.is-standin { border-bottom: 1px dashed var(--line); padding-bottom: .7rem; }
 /* WHICH SPAN OF THE SOURCE A PART COVERS — "Lines 10–19". A label rather than prose, so it reads
    as an index into the insert instead of as the first sentence of it: the gold is `.qsheet-pn`'s,
    which already marks a question number, and this is the same job one level out. Only drawn when
@@ -8959,7 +8981,13 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
    `.fc-say` is the card's own "You end up with", which is untouched. */
 .fc-say b { color: var(--gold); font-weight: 600; }
 
-/* ---------- THE @family. TEXTBOOK — WHAT A BOOK HAS THAT A PROJECT DOES NOT -----------------------
+/* A CONTENT CARD'S TAG ROW, UNDER ITS TITLE (347, part 2). A question's row is the first thing on its card;
+   here it follows the head, and with no gap the first line of pills sat on the title's descenders —
+   measured on Indices, surds and standard form at 390. Half a line apart, and the same again before the
+   key words, so the row reads as the card's label and not as the first line of its content. */
+.ct > .qtags { margin: .45rem 0 .6rem; }
+
+/* ---------- THE @family. TEXTBOOK — WHAT A BOOK HAS THAT A PROJECT DOES NOT (each chapter is a content card now) -----------------
    "the @family textbook should be bare bones for now". Everything else on its pages is `.prac` and
    the guide's `.fc-sec`, so these are the only three things it adds: the Higher mark, a key word's
    own term, and a formula drawn on a line of its own.
@@ -9772,11 +9800,8 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   flex-wrap: wrap;
 }
 
-/* ---------- THE WAY TO THE OTHER FINDER, UNDER AN EMPTY SEARCH -------------------------------------
-   `stuffNoneHtml_` (find.js): "Nothing matches. / 1 in Resources." and one Open tile. Left-aligned it
-   stood alone in the bottom corner of the card, a long way from the words it answers; centred under
-   them, and drawn up into the empty paragraph's own bottom padding, it reads as that sentence's door. */
-.tile-row.is-elsewhere { justify-content: center; margin-top: -1.6rem; }
+/* `.tile-row.is-elsewhere` WAS HERE — the Open tile under an empty search that pointed to the other
+   finder ("1 in Resources"). It went with the tile: both finders hold the same list (docs/history/347). */
 
 /* ---------- THE ADMIN MARKS SIT AT THE FAR END ----------------------------------------------------
    THIS IS WHAT REPLACES THE SECOND ROW, and it does the job the second row was there for: keeping a
@@ -11939,6 +11964,26 @@ button.scr-sq { cursor: pointer; }
    swallows the click a swipe produces. */
 .qpad-art[data-do] { cursor: pointer; }
 .qpad.is-drawing .qpad-ink { pointer-events: auto; touch-action: none; cursor: crosshair; }
+/* ---------- A FINGER HELD ON THE ARMED CARD SELECTS NOTHING ----------------------------------------------
+   iOS SELECTS THE NEAREST TEXT ON A HELD PRESS, `preventDefault` or not (note 301), and the nearest text to
+   a pad is the question's own words and the pane's next heading -- a child holding a finger still to aim
+   a dot got a selection and a callout instead. So while the pen is on, the pane and the pad are not
+   selectable and give no callout: the flappy card's rule (above), the pane as well as the card. ONLY WHILE
+   ARMED -- a question is text somebody may want to copy. The pad's own selector is written as well,
+   because `:has()` needs iOS 15.4. And a box to type in stays one: on iOS an input inside an unselectable
+   box can stop taking a caret (338). */
+.pane:has(.qpad.is-drawing), .qpad.is-drawing {
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.pane:has(.qpad.is-drawing) :is(input, textarea) {
+  -webkit-user-select: text; user-select: text; }
+/* ---------- `?pen=sizes`: THE LAST EIGHT CONTACTS' WIDTHS, FOR ONE READING ON AN iPAD ----------------------
+   Increment 2's size rules wait for one screenshot of this (338): a fingertip, a palm and a thumb, as the
+   device reports them. Shown only with `?pen=sizes` in the address; it presses nothing and says nothing to
+   a screen reader. */
+.pad-sizes { position: fixed; left: 8px; bottom: 8px; z-index: 9999; max-width: calc(100% - 16px);
+  padding: .3rem .5rem; font: 400 .7rem/1.35 var(--font); white-space: pre;
+  color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-sm);
+  pointer-events: none; }
 .qpad.is-drawing .qpad-art { outline: 2px solid var(--gold); outline-offset: 4px;
                              border-radius: var(--r-sm); }
 /* GOLD, BECAUSE THE PAPER'S OWN INK IS `currentColor`. Your marks have to be visibly yours — a line
@@ -12334,8 +12379,9 @@ button.scr-sq { cursor: pointer; }
 .rc-shot { display: block; width: 100%; height: auto; margin: 0 0 .6rem;
            border: 1px solid var(--line); border-radius: var(--r); }
 
-/* ---------- THE TUTOR AGREEMENT (DRAFT) and THE ADMIN'S CUT -------------------------------------
-   Two Settings cards (see `agreementCard_` and `cutCard_` in me.js). The draft mark is its own
+/* ---------- THE TUTOR AGREEMENT (DRAFT) ---------------------------------------------------------
+   A Settings card (see `agreementCard_` in me.js). The admin's cut card that sat beside it went to each
+   tutor's own card in docs/history/345, and its one rule with it. The draft mark is its own
    class rather than `.chip`, which is the funnel's 44px filter with a ✕ on it. The list is small
    type because it is ten sentences on one pane; a locked box recedes so it reads as done rather
    than as a control waiting for a tap. */
@@ -12348,7 +12394,6 @@ button.scr-sq { cursor: pointer; }
 .agree-list li + li { margin-top: .25rem; }
 .agree .check input:disabled ~ span:last-child { color: var(--dim); }
 .agree .check:has(input:disabled) { cursor: default; }
-.cut-say b { color: var(--gold); }
 
 
 /* ---------- BUSINESS RECORDS: ADMIN PAGES OF THE SETTINGS COLUMN — see js/records.js ------------

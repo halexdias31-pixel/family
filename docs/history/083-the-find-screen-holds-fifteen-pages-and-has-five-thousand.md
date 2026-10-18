@@ -62,3 +62,5 @@ to the other and an off-by-one shows up only when you arrive from the other side
 that names the row it was built from: `Q6(i)` and `Q6(ii)` both start `Q6`, and my own throwaway
 probe reported those two as failures for exactly that reason before the real check existed.
 **Proved by mutation**: `domIndex_` returning its argument names 52 wrong pages and exits 1.
+
+**Changed by [341](341-what-a-flick-can-reach-is-drawn-before-it-gets-there.md)** — the window is forty-one pages now, every one filled by the builder in the quiet and none emptied while the window holds it; `STUFF_EDGE`'s re-centring is gone — a release slides the window by `STUFF_STEP` (6) only when fewer than `glassRows_() + 3` pages are left ahead, and the quiet re-centres it thirteen behind and twenty-seven ahead. `domIndex_` / `logIndex_` are unchanged.
