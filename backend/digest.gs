@@ -14,11 +14,11 @@
    steps, in the same order, as docs/history/348):
      1. the backend deployed (the GitHub Assistant extension — CLAUDE.md's route 1), then Deploy → Manage
         deployments → New version, so the site's own requests run it too;
-     2. (optional) `ensureSchema` — `/exec?setup=1` — so the config tab gains `weekly_digest_marking` with
-        its note; blank is on without it;
+     2. (optional) `ensureSchema` — `/exec?setup=1` — so the config tab has `weekly_digest_hour` and its
+        neighbours with their notes; a blank cell is its default without it;
      3. `weekly_digest` on the config tab to `send` (`off` until somebody types otherwise, CONFIG_DEFAULTS;
         `preview` writes the `digest_log` tab and emails nobody);
-     4. `installWeeklyDigest` run once: the Sunday email, and the two AI marking passes beside it — and run
+     4. `installWeeklyDigest` run once: ONE trigger, the Sunday email, and nothing beside it — and run
         AGAIN whenever `weekly_digest_hour` changes (21, 9pm, since 18 Oct: *"On Sunday @9pm"*), because a
         booked trigger keeps its hour. Nothing in this project calls it, and `check-digest.js` fails if
         anything starts to;
@@ -45,15 +45,14 @@
    submissions is, by London's calendar, and the email shows its LATEST verdict of the week. Every press
    is a row, so a run days late still finds the week whole (docs/history/308).
 
-   AND THE MARKS IN IT ARE MADE BEFORE IT GOES (`digestMarkPass_`, below). An answer the phone could not
-   mark — a worded one sent while AI marking was off, a maths one with nothing to Check against — is
-   `sent`. Nightly; from an hour before the email, again and again until it is close; and once more as
-   the email goes, the pass asks the same Gemini marker Mark with AI asks (`aiMarkAsk_`, dopost.gs) for
-   each one, with the question and the scheme it fetches from the site's own copy of the library, and
-   appends the mark as a row the way a press would — so the child sees it on their phone the next
-   morning, and the parent reads it on Sunday. It spends the key's Gemini quota
-   and never a child's `ai_marks_per_day`. An answer it cannot mark (no scheme, a drawing, a pick with no
-   right answer, Gemini refusing) stays unmarked, and the email says "not marked".
+   AND THE MARKS IN IT ARE THE ONES RECORDED WHEN THE CHILD SENT THE ANSWER (18 Oct, docs/history/352).
+   The owner: *"Marking? Why marking? It's already marked when they submit the questions? Don't be silly.
+   The marking is already done on each question. 9pm on Sunday should be the only time trigger."* So the
+   email reads each answer's verdict as the phone recorded it — ✓, ✗, the AI's "3 of 4 marks" — and an
+   answer recorded `sent` (nothing marked it) says "not marked". Nothing here asks Gemini, nothing appends
+   a mark, and the run marks nothing before it plans. From 12 to 18 Oct a server pass did all three,
+   nightly at 02:00 and in a run-up before the email; it is gone, and `installWeeklyDigest` takes its
+   triggers away (`DIGEST_RETIRED_RUNS`).
 
    WHO IT GOES TO, AND THE ONE RULE THAT MATTERS: a learner's ACCEPTED parents with an address
    (`acceptedParents` — a link the child said yes to, on the `family` tab), and nobody else. Not a
@@ -64,7 +63,7 @@
 
    FILE ORDER. Functions only, like every file but constants.gs: Apps Script joins the files in an
    order nobody chooses, and a top-level `const` here could be read before it exists. Its constants —
-   `DIGEST_MODES`, `DIGEST_TZ`, `DIGEST_RUN`, `DIGEST_MARK_*`, `DIGEST_LIBRARY_PATH` and the rest — are
+   `DIGEST_MODES`, `DIGEST_TZ`, `DIGEST_RUN`, `DIGEST_RETIRED_RUNS`, `DIGEST_LIBRARY_PATH` and the rest — are
    in constants.gs for that reason.
 ================================================================================================== */
 
@@ -322,8 +321,8 @@ function digestReach_(pid, parentsOf) {
 
    HOW EACH ONE WENT, BESIDE ITS NUMBER (`digestMark_`): ✓, ✗, the AI's "3 of 4 marks", or "not marked".
    It said `sent` where nothing could mark an answer — the server's word for it, which a parent read as
-   "handed in, and that is all anybody knows" at best. Since the marking pass (`digestMarkPass_`) nearly
-   everything worded IS marked by Sunday, and what is left says plainly that it was not.
+   "handed in, and that is all anybody knows" at best. The verdict is the one recorded when the answer was
+   sent, unchanged (18 Oct: nothing marks it again before Sunday), and what nothing marked says so plainly.
    THE KEY IS SAID ONCE, in the lead, and only for the marks the list has: a week of ticks needs no
    sentence about an AI marker.
 
@@ -707,11 +706,11 @@ function digestPrep_(html) {
     .replace(/<span class="frac">\s*<span class="frac-n">([\s\S]*?)<\/span>\s*<span class="frac-d">([\s\S]*?)<\/span>\s*<\/span>/g, '<sup>$1</sup>&frasl;<sub>$2</sub>')
     .replace(/<span aria-hidden="true"[^>]*>\s*(?:&bull;|•|&middot;|·)\s*<\/span>/g, '&#775;');
 }
-/* AND AS TEXT, for the plain body: `digestPlain_` (Gemini's reading of it, unchanged) over the same start,
+/* AND AS TEXT, for the plain body: `digestPlain_` (the library's markup as text, unchanged) over the same start,
    with a table's cells kept apart and a block's end a line's end. */
 function digestText_(html) {
   /* A FRACTION AND A POWER AS A PARENT WRITES THEM — `5/x`, `x^2`, brackets only round more than one term —
-     where `digestPlain_` brackets every one for Gemini, and a tag inside them (`<i>x</i>`) is no reason to
+     where `digestPlain_` brackets every one, and a tag inside them (`<i>x</i>`) is no reason to
      lose the fraction. */
   const bare = t => t.replace(/<[^<>]*>/g, '');
   const term = t => (/^[\w.\u00b2\u00b3\u03b1-\u03c9\u221a]+$/.test(t) ? t : '(' + t + ')');
@@ -775,7 +774,7 @@ function digestDiagram_(svg, site) {
 }
 
 /* ---------- THE ROWS THE WEEK'S EMAIL PRINTS, FETCHED ONCE FOR THE WHOLE RUN ------------------------------------------
-   The marking pass's own fetch and line scan (`digestLibrary_`, `digestLibraryFind_`) for every library key
+   The library's fetch and line scan (`digestLibrary_`, `digestLibraryFind_`, below) for every library key
    with a press in the week. A fetch that fails is said in the run's log and costs nothing else: each question
    then goes as its words cell, as it did before 18 Oct. */
 function digestEmailLibrary_(week, subRows, cfg) {
@@ -917,19 +916,12 @@ function digestSendAt_(now, hour) {
    failure email Google sends is the notice. `digestRun_` itself returns, because the checks and the
    admin want the counts, not a stack.
 
-   AND THE LAST MARKS FIRST (the review of 12 Oct). The pass before the email stops a quarter of an hour
-   short of it, and Sunday evening is homework's busiest hour: an answer sent at 17:30 went out "not
-   marked" with Gemini idle. So the run marks what came in since, for `DIGEST_MARK_FINAL_MS`, and only
-   then plans — the marks as fresh as the list. Short, because the mailing must fit in the same six
-   minutes; never a reason not to send (its own failure is logged and the email goes, saying "not
-   marked"); and through the same claim, so it never asks about an answer a running pass is asking about. */
+   AND NO MARKING FIRST (18 Oct, docs/history/352). It ran a last AI marking pass for two minutes before
+   it planned; the owner: *"It's already marked when they submit the questions"*. The list is made from
+   the verdicts on the sheet as they were recorded, and an answer nothing marked says "not marked".
+   `check-digest.js` fails if this run asks Gemini or writes a row to `submissions`. */
 function weeklyDigestRun(e) {
-  let marks = null;
-  try { marks = digestMarkPass_(new Date(), { final: true }); }
-  catch (err) { marks = { error: S(err && err.message || err) }; }
-  if (marks && !marks.did) console.log('weeklyDigestRun: the last marks before the email — ' + JSON.stringify(marks));
   const out = digestRun_(new Date());
-  if (out) out.marking = marks;
   if (out && /^NOT fetched/.test(S(out.library))) console.log('weeklyDigestRun: the question library was ' + out.library);
   if (out && (out.error || out.held || out.failed || out.busy)) {
     throw new Error('The weekly parent email did not finish: '
@@ -1125,94 +1117,74 @@ function digestQuota_() {
 }
 
 
-/* ---------- BOOKING THE SUNDAY, AND ITS MARKING, BY HAND --------------------------------------------------
+/* ---------- BOOKING THE SUNDAY, BY HAND ---------------------------------------------------------------------
    RUN FROM THE APPS SCRIPT EDITOR'S FUNCTION LIST, ONCE, AND BY NOBODY ELSE. Not from `installTriggers`,
    not from `?run=`, not from `doGet` — a trigger booked as a side effect of something else is a Sunday
    email nobody decided to start. `check-digest.js` reads the backend for a call to either and fails.
 
-   THREE BOOKINGS, ALL HERE (12 Oct): the email, every Sunday at `weekly_digest_hour`; the marking pass
-   (`digestMarkRun`) every night at `DIGEST_MARK_NIGHT`, so a child sees the marks next morning; and the
-   marking pass again on Sunday an hour before the email, so the email has them — the RUN-UP, which books
-   itself again while work is left (`digestMarkAgain_`, the one other `newTrigger(` in this file, a
-   one-off on the same handler, so the way back takes it too). `nearMinute(0)` on all three because a
-   trigger fires anywhere in its hour otherwise — 17:58 for a pass the 18:00 email must follow, 18:59 for
-   an email whose run-up stopped at 17:43 — and with it Google keeps to fifteen minutes either side. The
-   EMAIL had none until the review of 12 Oct, so it could go at any minute from 18:00 to 18:59, and an
-   answer sent in that gap went out "not marked". An email at midnight has its pass at 23:00 on the
-   Saturday. The hour booked is kept (`DIGEST_BOOKED`), because a trigger's hour cannot be read back and
-   the setup check must say when it really goes.
+   ONE BOOKING (18 Oct): the email, every Sunday at `weekly_digest_hour` — the owner, *"9pm on Sunday should
+   be the only time trigger."* From 12 to 18 Oct this booked three: the email, an AI marking pass every
+   night at 02:00, and a Sunday run-up an hour before the email that booked itself again while work was
+   left. The marks are made when a child sends an answer, so those are gone (docs/history/352).
+   `nearMinute(0)` because a trigger fires anywhere in its hour otherwise; with it Google keeps to fifteen
+   minutes either side. The hour booked is kept (`DIGEST_BOOKED`), because a trigger's hour cannot be read
+   back and the setup check must say when it really goes.
 
-   THE OLD ONES GO FIRST, the `installWarmTrigger` rule: run twice, it still leaves exactly one of each,
-   and changing `weekly_digest_hour` is running this again. `inTimezone` says London out loud rather
-   than trusting the project's own setting, so 18:00 stays 18:00 across the clocks changing.
+   THE OLD ONE GOES FIRST, the `installWarmTrigger` rule: run twice, it still leaves exactly one, and
+   changing `weekly_digest_hour` is running this again. `inTimezone` says London out loud rather than
+   trusting the project's own setting, so 21:00 stays 21:00 across the clocks changing.
 
-   INSTALLED IS NOT ON. With `weekly_digest` at `off` every one of them fires and returns at its first
-   line; `preview` and `send` are a cell on the config tab, not another run of this.
+   INSTALLED IS NOT ON. With `weekly_digest` at `off` it fires and returns at its first line; `preview` and
+   `send` are a cell on the config tab, not another run of this.
 
-   AND THE OLD EMAIL'S HOURLY CHECK GOES WITH IT. The email after each session was booked the same way
-   (from the editor, an hourly trigger) and was removed on 8 Oct; a trigger left booked for it fires
-   every hour into a function that no longer exists, fails, and Google emails the owner each failure.
-   The owner runs this anyway to switch the weekly email on, so this is where it is taken away — every
-   trigger whose handler is in `DIGEST_RETIRED_RUNS`, and only those — and the log line says how many. */
+   AND WHAT NOTHING RUNS ANY MORE GOES WITH IT — every trigger whose handler is in `DIGEST_RETIRED_RUNS`,
+   and only those, by `removeWeeklyDigest`: the old after-session email's hourly check (removed 8 Oct) and
+   the marking passes' handler (removed 18 Oct) — nightly, run-up and one-off alike. Left booked, each
+   fires into a function that no longer exists, fails, and Google emails the owner each failure. The owner
+   runs this anyway to book the email, so this is where they go, and the log line says how many. */
 function installWeeklyDigest() {
   let cfg = {};
   try { cfg = config(); } catch (err) { cfg = {}; }
   const hour = digestHour_(cfg);
   const gone = removeWeeklyDigest();
-  let retired = 0;
-  ScriptApp.getProjectTriggers().forEach(t => {
-    if (DIGEST_RETIRED_RUNS.indexOf(t.getHandlerFunction()) !== -1) { ScriptApp.deleteTrigger(t); retired++; }
-  });
-  const book = fn => ScriptApp.newTrigger(fn).timeBased();
-  book(DIGEST_RUN).onWeekDay(ScriptApp.WeekDay.SUNDAY).atHour(hour).nearMinute(0).inTimezone(DIGEST_TZ).create();
-  book(DIGEST_MARK_RUN).everyDays(1).atHour(DIGEST_MARK_NIGHT).nearMinute(0).inTimezone(DIGEST_TZ).create();
-  const before = hour ? hour - 1 : 23;
-  book(DIGEST_MARK_RUN).onWeekDay(hour ? ScriptApp.WeekDay.SUNDAY : ScriptApp.WeekDay.SATURDAY).atHour(before)
-    .nearMinute(0).inTimezone(DIGEST_TZ).create();
+  ScriptApp.newTrigger(DIGEST_RUN).timeBased().onWeekDay(ScriptApp.WeekDay.SUNDAY).atHour(hour).nearMinute(0).inTimezone(DIGEST_TZ).create();
   try { PropertiesService.getScriptProperties().setProperty(DIGEST_BOOKED, String(hour)); } catch (err) {}
   const mode = digestMode_(cfg);
-  const out = { installed: 'every Sunday at about ' + hour + ':00, London time', replaced: gone.removed, mode: mode,
+  const fns = Object.keys(gone.retired), old = fns.reduce((n, fn) => n + gone.retired[fn], 0);
+  const out = { installed: 'every Sunday at about ' + hour + ':00, London time — the only trigger the email has',
+           replaced: gone.removed, mode: mode,
            means: mode === 'off' ? 'it runs and does nothing until weekly_digest on the config tab is preview or send'
                 : mode === 'preview' ? 'it writes what it would send to the digest_log tab and sends nothing'
                 : 'it EMAILS PARENTS',
-           marking: 'AI marking of unmarked answers every night at about ' + DIGEST_MARK_NIGHT + ':00 and '
-                    + (hour ? 'on Sunday' : 'on Saturday') + ' at about ' + before + ':00, London time, carrying on '
-                    + 'until a quarter of an hour before the email, and once more as it goes ('
-                    + (digestMarkOff_(cfg) || 'on, while GEMINI_API_KEY is set') + ')',
-           oldHourly: retired ? 'removed the old after-session email’s hourly check (' + retired + ' trigger'
-                                + (retired === 1 ? '' : 's') + ')' : 'no old after-session email check was booked',
+           retired: old ? 'removed ' + old + ' old trigger' + (old === 1 ? '' : 's') + ' that nothing runs any more: '
+                          + fns.map(fn => fn + ' ×' + gone.retired[fn]).join(', ') : 'no old trigger was booked',
            next: 'run checkSundayEmail to see that everything is ready' };
   Logger.log(JSON.stringify(out, null, 2));
   return out;
 }
-/* THE WAY BACK: every trigger of the email's handler and of the marking pass's — a run-up's one-off
-   included — gone, and nothing else; and the two Script Properties that describe them. Safe to run when
-   there are none. */
+/* THE WAY BACK: every trigger of the email's handler, and every one in `DIGEST_RETIRED_RUNS`, gone, and
+   nothing else; and the Script Properties that describe them — the hour booked, and what the old marking
+   pass kept (`DIGEST_RETIRED_PROPS`). Safe to run when there are none. */
 function removeWeeklyDigest() {
-  let n = 0, marking = 0;
+  let n = 0;
+  const retired = {};
   ScriptApp.getProjectTriggers().forEach(t => {
     const fn = t.getHandlerFunction();
     if (fn === DIGEST_RUN) { ScriptApp.deleteTrigger(t); n++; }
-    else if (fn === DIGEST_MARK_RUN) { ScriptApp.deleteTrigger(t); marking++; }
+    else if (DIGEST_RETIRED_RUNS.indexOf(fn) !== -1) { ScriptApp.deleteTrigger(t); retired[fn] = (retired[fn] || 0) + 1; }
   });
   try {
     const props = PropertiesService.getScriptProperties();
-    props.deleteProperty(DIGEST_BOOKED);
-    props.deleteProperty(DIGEST_MARK_AGAIN);
+    [DIGEST_BOOKED].concat(DIGEST_RETIRED_PROPS).forEach(k => props.deleteProperty(k));
   } catch (err) {}
-  return { removed: n, marking: marking };
+  return { removed: n, retired: retired };
 }
-/* How many are booked, for the admin's card and `checkSundayEmail` — a run-up's one-off not among them,
-   since it is gone again within minutes. Null when it cannot be asked. */
+/* How many of `fn`'s triggers are booked — the email's by default — for the admin's card and
+   `checkSundayEmail`. Null when it cannot be asked. */
 function digestScheduled_(fn) {
-  try {
-    const again = digestMarkAgainId_();
-    return ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === (fn || DIGEST_RUN)
-      && !(again && S(t.getUniqueId && t.getUniqueId()) === again)).length;
-  } catch (err) { return null; }
+  try { return ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === (fn || DIGEST_RUN)).length; }
+  catch (err) { return null; }
 }
-
-
 /* ---------- WHAT THE ADMIN'S PREVIEW IS SENT — `digestPreview` in dopost.gs -------------------------
    THIS WEEK SO FAR, and nothing written and nothing sent: the plan, rendered, for the card on the
    Settings column (js/digest.js). Every address is in it, which is why the action is `admin`. */
@@ -1245,292 +1217,16 @@ function digestPreviewOut_(now) {
 
 
 /* ==================================================================================================
-   THE MARKING PASS — EVERY ANSWER OF THE WEEK THAT NOTHING MARKED, MARKED BEFORE THE EMAIL GOES
-   (12 Oct, docs/history/348)
+   THE LIBRARY, FOR THE EMAIL — EACH QUESTION PRINTED AS IT IS ON THE SITE (18 Oct, docs/history/351)
 
-   THE OWNER: *"i want them to see if they got it right too. for this i need th ai marking to be working
-   too."* An answer is `sent` when the phone had nothing to mark it with: a worded answer while AI marking
-   was off (no key, or a phone still on a cached payload), a maths answer whose scheme is words and has no
-   `accept` to Check against, or a press made before the child thought to press Mark with AI. In the
-   email each of those said `sent`; and an answer marked only when the phone is open is an answer never
-   marked once the child shuts the iPad straight after sending it.
-
-   SO THE SERVER MARKS THEM, WITH THE MARKER A PRESS USES. `aiMarkAsk_` (dopost.gs) — its prompt, its
-   schema, its retries and its pinned fallback model (docs/history/344) — with the same clamps `aiMark`
-   puts on a press (`AI_QUESTION_MAX`, `AI_SCHEME_MAX`, `AI_ANSWER_MAX`, 1 to 40 marks), so a pass is never
-   more generous than a press. NOT `aiMarkCount_`: that is a child's twenty presses a day, and a pass
-   that spent it would answer a child "today's 20 AI marks used" for work they never pressed.
-
-   WHERE THE QUESTION AND ITS SCHEME COME FROM — the site, because nowhere else has them. The backend
-   holds no library (SCHEMA.submissions); a press sends the question and the scheme from the phone; a
-   submission row carries the question's words for the email (up to 1,200 characters, and no scheme).
-   Two ways were weighed: the phone sending the scheme with every worded submission, which marks
-   nothing already on the sheet, nothing from a phone still running cached code, and needs a js/ change;
-   or the server fetching `data/questions.json` from the public site, which marks every row on the sheet
-   today. The second, measured: 14,092,112 bytes (1.77 MB gzipped) from raw.githubusercontent.com in
-   1.35 s; ONE ROW A LINE, so a row is its `"row_id":"…"` and one `JSON.parse` of one line — three keys
-   and a paper's preambles in 10-30 ms in Node, where parsing the whole file is a quarter of a second and
-   20 MB more heap, and Apps Script's memory ceiling is not published. The question is built as the phone
-   builds it (`aiQuestion_` in js/keypad.js): the paper's, section's, question's and letter's preambles
-   (`digestStems_`, a port of `stemIndex_`/`preamble_` in js/find.js), then its lead and its ask, read as
-   text (`digestPlain_`, a port of `aiPlain_`) — and the scheme is its `answer` and its examiner's note.
-
-   WHICH ANSWERS: the LATEST press of a question, by `pressed_at` (the card's rule and the email's), when
-   it is `sent`, it arrived this week or last (`digestWeekToSend_`'s Monday to today: a pass on a Monday
-   still finishes the week the email just went for), and it is not work carried over from before the
-   switch (`SUBMISSION_CARRIED`). Newest first. MARKABLE as Mark with AI is offered (`aiWanted_` in
-   js/keypad.js): a question with a scheme and no `accept`, not a pick from a list, not a drawing — and,
-   one step past the phone, a maths answer whose scheme is words, which the phone sends as `sent` because
-   its keypad has nothing to Check it against (`ansMaths_`). Marked as an essay when the phone would
-   (`ansEssay_`: written or explain, 6 marks or more, not Maths or Statistics).
-
-   THE MARK IS ONE ROW, APPENDED — SCHEMA.submissions: what a press would have written, with the answer's
-   own `submitted_at`, `pressed_at` one millisecond after it, and an id made from it (`SUBMISSION_MARKED`).
-   UNDER THE LOCK, BRIEFLY, AND NEVER WHILE GEMINI IS ASKED: an ask can take up to 80 s and every child's
-   saved answer waits on that lock. Under it, the tab is read fresh, and nothing is written if the mark is
-   already there (a second pass) or the child has pressed that question again since (their press is the
-   newer word, and a mark of an older answer must not go over it).
-
-   THE CLOCK, THE PACE AND THE RESUME: constants.gs, over `DIGEST_MARK_RUN`. Nothing is kept between
-   passes but `DIGEST_MARK_TRIED` (answers Gemini gave no mark for) — the next pass works out what is
-   left from the sheet itself, so a pass stopped at four minutes, or by Apps Script at six, loses nothing.
-
-   AND BEFORE THE EMAIL IT DOES NOT STOP AT ONE PASS (the review of 12 Oct). A pass is about sixteen
-   answers (four minutes, an answer every ~16 s), and one an hour before the email left a weekend burst
-   mostly "not marked". So a pass in the RUN-UP (`DIGEST_MARK_RUNUP_MS` before the email) that stopped
-   with work left books itself again a minute later (`digestMarkAgain_`), until it is
-   `DIGEST_MARK_CLEAR_MS` from the email — measured over the real backend with Gemini at 4 s an answer,
-   that is about nine passes, some 140 answers, where it was 16; the email's own run then marks what came
-   in since (`weeklyDigestRun`). And GEMINI BUSY IS WAITED OUT: the pass waits `DIGEST_MARK_BUSY_MS` and
-   asks the same answer again while its time allows, where it gave up at the first busy and left the rest
-   for a pass that, on a Sunday, came after the email.
+   The backend holds no library: `data/questions.json` is in git, served by GitHub Pages. So the Sunday
+   run fetches the site's own copy once (`digestEmailLibrary_`, above) and finds the week's rows in it by
+   their text. Written for the AI marking pass of 12 Oct, which is gone (docs/history/352); the fetch and
+   the scan stayed, because the email prints each question from its row. Measured then: 14,092,112 bytes
+   (1.77 MB gzipped) from raw.githubusercontent.com in 1.35 s; ONE ROW A LINE, so a row is its
+   `"row_id":"…"` and one `JSON.parse` of one line — never the whole file, which in Node is a quarter of a
+   second and 20 MB more heap, and Apps Script's memory ceiling is not published.
 ================================================================================================== */
-
-/* THE SWITCHES, READ IN ONE PLACE: '' when the pass may run, otherwise why not, in words. `weekly_digest`
-   off is off for its marking too — installed is not on. `ai_marks_per_day` 0 has always said "switches AI
-   marking off", and the owner reaching for it means all of it; blank there is 20, as for a press. */
-function digestMarkOff_(cfg) {
-  if (digestMode_(cfg) === 'off') return 'off: weekly_digest on the config tab is off';
-  /* ON IS SPELLED — blank, on, yes, true, 1 or ✓ — AND OFF IS EVERYTHING ELSE, `weekly_digest`'s own rule
-     (the note on its row in CONFIG_DEFAULTS says why it changed). */
-  if (!/^(|on|yes|y|true|1|✓)$/i.test(S(cfg && cfg.weekly_digest_marking))) return 'off: weekly_digest_marking on the config tab is off';
-  const cap = S(cfg && cfg.ai_marks_per_day);
-  if (cap !== '' && Math.max(0, Math.floor(N(cap))) === 0) return 'off: ai_marks_per_day on the config tab is 0, which switches AI marking off';
-  return '';
-}
-
-/* ---------- WHAT THE TRIGGERS CALL ------------------------------------------------------------------------
-   Booked by `installWeeklyDigest`, nightly and an hour before the Sunday email, and by a run-up pass for
-   the minute after it (`digestMarkAgain_`). A pass that could not start, or that Gemini REFUSED (the key,
-   the account, a model name — the owner's to mend), throws, so Google emails the owner; one that ran out
-   of time or found Gemini busy has not failed — the next pass carries on — and returns. */
-function digestMarkRun(e) {
-  const out = digestMarkPass_(new Date());
-  if (out && out.error) throw new Error('The AI marking for the Sunday email did not run: ' + out.error);
-  if (out && out.stopped === 'refused') {
-    throw new Error('The AI marking for the Sunday email stopped: Gemini refused to mark (' + S(out.said) + '). '
-      + 'Check GEMINI_API_KEY in Script Properties and gemini_model on the config tab, then run checkSundayEmail. '
-      + out.marked + ' marked before it stopped.');
-  }
-  return out;
-}
-
-/* ---------- ONE PASS -------------------------------------------------------------------------------------
-   Returns the counts, for the trigger, the checks and the dry run (check/digest-dry.js):
-     waiting   answers whose latest press is `sent`, this week or last
-     marked    marks written            asked    Gemini asks made
-     cannot    { reason: n } — never asked: no scheme, a drawing, a pick, too long, given no mark twice
-     nomark    Gemini answered with no mark in it (asked again next pass, up to DIGEST_MARK_TRIES)
-     newer     marked, but the child had pressed again meanwhile — not written
-     already   marked by another pass meanwhile — not written
-     left      not reached: `stopped` says why — time, max, busy, unreachable, refused, lock
-     waited    times it waited Gemini out (busy or unreachable) and asked the same answer again
-     again     true when it booked the run-up's next pass
-   `o.final`: the email's own last pass — `DIGEST_MARK_FINAL_MS`, and no run-up: it is the last word. */
-function digestMarkPass_(now, o) {
-  const t0 = Date.now();
-  let cfg = {};
-  try { cfg = config(); } catch (err) { cfg = {}; }
-  const off = digestMarkOff_(cfg);
-  if (off) return { did: 'nothing', why: off };
-  const apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY') || '';
-  if (!apiKey) return { did: 'nothing', why: 'off: there is no GEMINI_API_KEY in Script Properties' };
-  const noTab = digestNoSubmissions_();
-  if (noTab) return { error: noTab };
-  const claim = digestMarkClaim_();
-  if (!claim) return { did: 'nothing', why: 'another marking pass is running' };
-  try {
-    /* THE ONE-OFF THAT STARTED THIS PASS, IF ONE DID, IS DELETED — under the claim, so only the pass that
-       holds it does; a fired one-off is otherwise left in the project's trigger list. */
-    digestMarkAgainDone_();
-    return digestMarkWork_(now, cfg, apiKey, t0, o || {});
-  } finally {
-    digestMarkLetGo_(claim);
-  }
-}
-function digestMarkWork_(now, cfg, apiKey, t0, o) {
-  const today = digestDay_(now), from = digestWeekToSend_(now).start;
-  /* THE RUN-UP: this week's email still to come, and close. Its asks stop `DIGEST_MARK_CLEAR_MS` short of
-     it, whatever is left of the pass's own four minutes; the email's last pass is not clipped — it IS the
-     email's. */
-  const sendAt = o.final ? 0 : digestSendAt_(now, digestBookedHour_(cfg));
-  const runUp = !!sendAt && sendAt - now.getTime() <= DIGEST_MARK_RUNUP_MS;
-  let deadline = t0 + (o.final ? DIGEST_MARK_FINAL_MS : DIGEST_MARK_BUDGET_MS);
-  if (runUp) deadline = Math.min(deadline, sendAt - DIGEST_MARK_CLEAR_MS);
-  try { delete _cache[TAB.submissions]; } catch (err) {}
-  const waiting = digestMarkWaiting_(read(TAB.submissions).rows, from, today);
-  const out = { from: from, to: today, waiting: waiting.length, marked: 0, asked: 0, cannot: {}, nomark: 0,
-                newer: 0, already: 0, left: 0, stopped: '', model: '', waited: 0, again: false };
-  const tried = digestMarkTried_();
-  if (!waiting.length) { digestMarkTriedKeep_(tried, waiting); return out; }
-  const lib = digestMarkLibraryFor_(waiting, cfg);
-  if (lib.error) { out.error = lib.error; out.left = waiting.length; return out; }
-  out.library = lib.url || '';
-  const sorted = digestMarkSort_(waiting, lib, tried);
-  out.cannot = sorted.cannot;
-  const work = sorted.work;
-  const models = aiModels_(cfg);
-  let answered = 0, rested = false;
-  for (let i = 0; i < work.length; i++) {
-    const M = work[i];
-    /* NO ASK STARTED PAST THE DEADLINE OR THE CAP — and the gap is counted before it is slept, so the last
-       sleep cannot carry an ask past the deadline either. THE CAP COUNTS ANSWERS: an ask Gemini was too
-       busy to answer spent none of the key's day. After a wait for a busy Gemini, no gap: it was longer. */
-    const gap = out.asked && !rested ? DIGEST_MARK_GAP_MS : 0;
-    if (answered >= DIGEST_MARK_MAX || Date.now() + gap > deadline) {
-      out.left = work.length - i; out.stopped = answered >= DIGEST_MARK_MAX ? 'max' : 'time'; break;
-    }
-    if (gap) Utilities.sleep(gap);
-    rested = false;
-    out.asked++;
-    let got = null;
-    try { got = aiMarkAsk_(apiKey, models, M.question, M.scheme, M.answer, M.avail, M.essay); }
-    catch (err) { got = { error: S(err && err.message || err), why: 'unreachable' }; }
-    if (!got || got.error) {
-      const why = S(got && got.why);
-      /* REFUSING is the owner's to mend — the key, the account, a model name — so the pass stops and
-         `digestMarkRun` throws. */
-      if (why === 'refused') { out.left = work.length - i; out.stopped = why; out.said = S(got && got.error); break; }
-      /* FULL OR OUT OF REACH IS WAITED OUT, NOT GIVEN UP ON (the review of 12 Oct). It broke out here and
-         left everything for "the next pass", which on a Sunday is the one after the email: a 20-second
-         503 storm at 16:55 went out as a whole week "not marked", with Gemini back seconds later. Now the
-         pass waits `DIGEST_MARK_BUSY_MS` and asks the SAME answer again while its time allows, and stops
-         only when the wait would carry it past its deadline. */
-      if (why === 'busy' || why === 'unreachable') {
-        out.said = S(got && got.error);
-        if (Date.now() + DIGEST_MARK_BUSY_MS > deadline) { out.left = work.length - i; out.stopped = why; break; }
-        Utilities.sleep(DIGEST_MARK_BUSY_MS);
-        out.waited++;
-        rested = true;
-        i--;
-        continue;
-      }
-      /* A reply with no mark in it is about this answer alone: counted, and the pass goes on. */
-      answered++;
-      tried[M.id] = (Number(tried[M.id]) || 0) + 1;
-      out.nomark++;
-      continue;
-    }
-    answered++;
-    const awarded = Math.max(0, Math.min(M.avail, Math.round(Number(got.awarded) || 0)));
-    const wrote = digestMarkWrite_(M.W, 'ai:' + awarded + '/' + M.avail, M.id);
-    if (wrote === 'wrote') { out.marked++; out.model = S(got.model) || out.model; delete tried[M.id]; }
-    else if (wrote === 'newer') out.newer++;
-    else if (wrote === 'already') out.already++;
-    else { out.left = work.length - i; out.stopped = 'lock'; break; }
-  }
-  digestMarkTriedKeep_(tried, waiting);
-  /* AND IN THE RUN-UP, AGAIN A MINUTE LATER while work is left and there is a minute of asking before the
-     email's quarter of an hour. Not on `refused` (the owner's), and never from the email's own pass. */
-  if (runUp && out.left && /^(time|max|busy|unreachable|lock)$/.test(out.stopped)
-      && Date.now() + DIGEST_MARK_AGAIN_MS + 60000 < sendAt - DIGEST_MARK_CLEAR_MS) {
-    out.again = digestMarkAgain_();
-  }
-  console.log('digestMarkPass: ' + JSON.stringify(out));
-  return out;
-}
-
-/* ---------- THE RUN-UP'S NEXT PASS: A ONE-OFF, A MINUTE ON ------------------------------------------------
-   THE ONE OTHER `newTrigger(` IN THIS FILE, and `check-digest.js` holds it to this shape: the marking
-   pass's own handler, `after(DIGEST_MARK_AGAIN_MS)`, nothing else — so it can book no email and no
-   recurring trigger, and `removeWeeklyDigest` takes it with the rest. Its id is kept (`DIGEST_MARK_AGAIN`):
-   the pass it starts deletes it (`digestMarkAgainDone_`), because a fired one-off stays in the project's
-   list, and the project has twenty triggers to share among everything. */
-function digestMarkAgain_() {
-  try {
-    const t = ScriptApp.newTrigger(DIGEST_MARK_RUN).timeBased().after(DIGEST_MARK_AGAIN_MS).create();
-    PropertiesService.getScriptProperties().setProperty(DIGEST_MARK_AGAIN, S(t && t.getUniqueId && t.getUniqueId()) || '?');
-    return true;
-  } catch (err) {
-    console.log('digestMarkPass: could not book the next pass of the run-up — ' + S(err && err.message || err));
-    return false;
-  }
-}
-function digestMarkAgainId_() {
-  try { return S(PropertiesService.getScriptProperties().getProperty(DIGEST_MARK_AGAIN)); } catch (err) { return ''; }
-}
-function digestMarkAgainDone_() {
-  const id = digestMarkAgainId_();
-  if (!id) return;
-  try {
-    ScriptApp.getProjectTriggers().forEach(t => {
-      if (t.getHandlerFunction() === DIGEST_MARK_RUN && S(t.getUniqueId && t.getUniqueId()) === id) ScriptApp.deleteTrigger(t);
-    });
-    PropertiesService.getScriptProperties().deleteProperty(DIGEST_MARK_AGAIN);
-  } catch (err) {}
-}
-
-/* ---------- WHICH ANSWERS ARE WAITING — PURE ------------------------------------------------------------
-   Per person and key (a practical's `#slot` kept: each box is its own answer), the latest press — by
-   `pressed_at`, `submitted_at` where there is none, and of two in one instant the later row, the rule
-   `submissionsBuild_` and `digestPlan_` keep — when it is `sent`, arrived between `from` and `to` (London
-   days) and is not carried over. Newest first, each with the id its mark would have. */
-function digestMarkWaiting_(rows, from, to) {
-  const last = {};
-  (rows || []).forEach(r => {
-    const pid = S(r && r.person_id), k = S(r && r.key);
-    if (!pid || !k) return;
-    const came = answerAtMs_(r.submitted_at);
-    if (!came) return;
-    const ms = answerAtMs_(r.pressed_at) || came;
-    const id = pid + '\u0001' + k;
-    if (last[id] && last[id].ms > ms) return;
-    last[id] = { r: r, ms: ms, came: came };
-  });
-  return Object.keys(last).map(id => last[id]).filter(W => {
-    if (S(W.r.verdict) !== 'sent' || SUBMISSION_CARRIED.test(S(W.r.event_id))) return false;
-    const day = digestDay_(new Date(W.came));
-    return day >= from && day <= to;
-  }).map(W => Object.assign(W, { id: digestMarkId_(W.r, W.ms) })).sort((a, b) => b.ms - a.ms);
-}
-
-/* THE NAME OF THE MARK OF ONE ANSWER — the same answer always gets the same one (`SUBMISSION_MARKED`).
-   Two FNV-1a hashes of the answer's person, key, id and moment, in base 36: no service to call, so the
-   checks and the editor make the same name. */
-function digestMarkId_(r, ms) {
-  const src = S(r && r.event_id);
-  const at = SUBMISSION_ID.test(src) ? src.split('-')[0] : String(Math.floor(Number(ms) || 0));
-  const seed = S(r && r.person_id) + '|' + S(r && r.key) + '|' + src + '|' + Math.floor(Number(ms) || 0);
-  const h = salt => {
-    let x = (2166136261 ^ salt) >>> 0;
-    for (let i = 0; i < seed.length; i++) { x ^= seed.charCodeAt(i); x = Math.imul(x, 16777619) >>> 0; }
-    return x.toString(36);
-  };
-  return at + '-ai' + (h(0) + h(0x9e3779b9) + '0000000000').slice(0, 10);
-}
-
-/* ---------- THE LIBRARY, FOR THE ANSWERS THAT NEED IT ------------------------------------------------------
-   Only a `q:` key has a scheme; a practical's box and anything typed into the sheet are sorted out before
-   the 14 MB is fetched, so a night with nothing worded fetches nothing. */
-function digestMarkLibraryFor_(waiting, cfg) {
-  const ids = {};
-  waiting.forEach(W => { const k = S(W.r.key); if (/^q:/.test(k) && DIGEST_KEY_SHAPE.test(k)) ids[k.slice(2)] = 1; });
-  if (!Object.keys(ids).length) return { rows: {}, pre: [] };
-  const got = digestLibrary_(S(cfg && cfg.site_url) || SITE_URL);
-  if (got.error) return got;
-  return Object.assign(digestLibraryFind_(got.text, Object.keys(ids)), { url: got.url, ms: got.ms, size: got.size });
-}
-
 /* THE FILE ITSELF: the site's copy first — the one the phones read — then raw.githubusercontent.com (`RAW`
    in sync.gs, read at call time, so a scope without sync.gs simply has no second address). A 200 that is
    not the library (a login page, a GitHub error page) is refused, not parsed. */
@@ -1552,7 +1248,7 @@ function digestLibrary_(site) {
       said.push(urls[i] + ' could not be reached (' + S(err && err.message || err).slice(0, 120) + ')');
     }
   }
-  return { error: 'the question library could not be fetched, so nothing could be marked — ' + said.join('; ') };
+  return { error: 'the question library could not be fetched, so each question goes as its words — ' + said.join('; ') };
 }
 
 /* THE ROWS ASKED FOR, AND THE PREAMBLES OF THEIR PAPERS — one line each, found by its text and parsed
@@ -1590,49 +1286,10 @@ function digestLibraryFind_(text, ids) {
   return { rows: rows, pre: pre };
 }
 
-/* ---------- WHAT CAN BE MARKED, AND WHAT GEMINI IS GIVEN -------------------------------------------------- */
-function digestMarkSort_(waiting, lib, tried) {
-  const work = [], cannot = {};
-  const no = why => { cannot[why] = (cannot[why] || 0) + 1; };
-  waiting.forEach(W => {
-    const k = S(W.r.key);
-    if (/^pr:/.test(k)) return no('a practical’s worksheet box, which has no mark scheme');
-    if (!/^q:/.test(k) || !DIGEST_KEY_SHAPE.test(k)) return no('not a question from the library');
-    if ((Number(tried && tried[W.id]) || 0) >= DIGEST_MARK_TRIES) return no('Gemini gave no mark for it, twice');
-    const M = digestMarkable_((lib.rows || {})[k.slice(2)], lib.pre || [], digestAnswer_(W.r));
-    if (M.why) return no(M.why);
-    work.push(Object.assign(M, { W: W, id: W.id }));
-  });
-  return { work: work, cannot: cannot };
-}
-/* AS MARK WITH AI IS OFFERED (`aiWanted_`, js/keypad.js), AND AS ITS PRESS IS CLAMPED (`aiMark`, dopost.gs). */
-function digestMarkable_(q, pre, answer) {
-  if (!q || q.kind !== 'question' || !ON_(q.active)) return { why: 'no longer in the library' };
-  if (S(q.choices).split('|').map(x => x.trim()).filter(Boolean).length >= 2) return { why: 'a pick from a list with no right answer' };
-  const type = norm(q.answer_type);
-  if (type === 'drawing' || type === 'annotate') return { why: 'a drawing' };
-  if (S(q.accept)) return { why: 'a question the phone checks, not the AI' };
-  const plainScheme = digestPlain_(q.answer);
-  if (!plainScheme) return { why: 'no mark scheme' };
-  if (!S(answer)) return { why: 'no answer' };
-  if (answer.length > AI_ANSWER_MAX) return { why: 'too long to mark' };
-  const note = S(q.examiner_note);
-  return {
-    question: digestStems_(q, pre).concat([q.lead, q.html]).map(digestPlain_).filter(Boolean).join('\n\n').slice(0, AI_QUESTION_MAX),
-    scheme: (plainScheme + (note ? '\nExaminer’s note: ' + note : '')).slice(0, AI_SCHEME_MAX),
-    answer: answer,
-    avail: Math.max(1, Math.min(40, Math.round(N(q.marks)) || 1)),
-    essay: (type === 'written' || type === 'explain') && N(q.marks) >= 6 && !/\bmath|statistic/i.test(S(q.subject)),
-  };
-}
 /* THE PREAMBLES IN FRONT OF A QUESTION, OUTERMOST FIRST — `stemIndex_` and `preamble_` (js/find.js) for
    one question: the paper's, the section's, the question's, then its letter's ("(d)" for d(ii)), each
-   scope in `sort_order`. */
-function digestStems_(q, pre) {
-  return digestStemRows_(q, pre).filter(one => S(one.html)).map(one => one.html);
-}
-/* THE PREAMBLE ROWS THEMSELVES, for the email (18 Oct): one with a picture and no words is a stem the card
-   draws too (`preamble_`: `x.html || x.diagram`); Gemini is given only the words (`digestStems_`). */
+   scope in `sort_order` — and one with a picture and no words is a stem the card draws too (`preamble_`:
+   `x.html || x.diagram`), so the email prints it too (18 Oct). */
 function digestStemRows_(q, pre) {
   const bare = v => S(v).toLowerCase().replace(/[()\s]/g, '');
   const pidOf = one => S(one && (one.paper_id || one.paper));
@@ -1680,114 +1337,26 @@ function digestPlain_(html) {
     .replace(/[ \t\u00a0]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim();
 }
 
-/* THE ANSWER AS IT WAS SENT — not `S()`, which trims: an essay's last line break is part of what the child
-   wrote, and the mark's row repeats the answer it marks exactly. */
-function digestAnswer_(r) {
-  const a = r && r.answer;
-  return a === undefined || a === null ? '' : String(a);
-}
-
-/* ---------- THE MARK, WRITTEN ---------------------------------------------------------------------------
-   `'wrote'`, `'already'` (this mark is on the sheet), `'newer'` (the child pressed that question again
-   after the answer that was marked), `'busy'` (no lock in `DIGEST_MARK_LOCK_MS`) or `'gone'` (no tab).
-   The row as `submissionsAppend_` writes a press — the answer with its apostrophe, the name and the words
-   only where the tab has the column — but NOT through it: it stamps `submitted_at` with now, and a mark
-   written on Monday would move last week's question into the new week. Then flushed, and the person's
-   stamp moved (`submissionsTouched_`), so their phone's cached copy is rebuilt with the mark in it. */
-function digestMarkWrite_(W, verdict, id) {
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(DIGEST_MARK_LOCK_MS)) return 'busy';
-  try {
-    const t = readCols_(TAB.submissions, ['person_id', 'key', 'event_id', 'submitted_at', 'pressed_at']);
-    if (!t.sheet) return 'gone';
-    const src = W.r, pid = S(src.person_id), k = S(src.key);
-    let had = false, newer = false;
-    t.rows.forEach(r => {
-      if (S(r.event_id) === id) had = true;
-      if (S(r.person_id) !== pid || S(r.key) !== k) return;
-      const at = answerAtMs_(r.pressed_at) || answerAtMs_(r.submitted_at);
-      if (at > W.ms || (at === W.ms && r._row > src._row)) newer = true;
-    });
-    if (had) return 'already';
-    if (newer) return 'newer';
-    const has = c => t.headers.indexOf(c) !== -1;
-    const row = { person_id: pid, key: k, answer: "'" + digestAnswer_(src), verdict: verdict, submitted_at: src.submitted_at };
-    if (has('label')) row.label = attemptLabel_(src.label);
-    if (has('words')) row.words = attemptWords_(src.words);
-    if (has('event_id')) row.event_id = id;
-    if (has('pressed_at')) row.pressed_at = "'" + new Date(W.ms + 1).toISOString();
-    if (!addRow(t, row)) return 'gone';
-    try { SpreadsheetApp.flush(); } catch (err) {}
-    submissionsTouched_(pid);
-    try { delete _cache[TAB.submissions]; } catch (err) {}
-    return 'wrote';
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-/* ---------- ONE PASS AT A TIME, AND WHAT GEMINI GAVE NO MARK FOR -------------------------------------------
-   THE CLAIM: the nightly pass, the Sunday one and a run from the editor could overlap, and the id and the
-   re-check stop a second ROW but not a second ASK. A claim older than `DIGEST_MARK_CLAIM_MS` is a pass
-   Apps Script stopped at six minutes, and is taken over. Given back only by the pass that holds it. */
-function digestMarkClaim_() {
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(DIGEST_MARK_LOCK_MS)) return '';
-  try {
-    const props = PropertiesService.getScriptProperties();
-    let c = {};
-    try { c = JSON.parse(props.getProperty(DIGEST_MARK_CLAIM) || '{}') || {}; } catch (err) { c = {}; }
-    if (Number(c.until) > Date.now()) return '';
-    const id = Utilities.getUuid();
-    props.setProperty(DIGEST_MARK_CLAIM, JSON.stringify({ id: id, until: Date.now() + DIGEST_MARK_CLAIM_MS }));
-    return id;
-  } finally {
-    lock.releaseLock();
-  }
-}
-function digestMarkLetGo_(id) {
-  try {
-    const props = PropertiesService.getScriptProperties();
-    const c = JSON.parse(props.getProperty(DIGEST_MARK_CLAIM) || '{}') || {};
-    if (c.id === id) props.deleteProperty(DIGEST_MARK_CLAIM);
-  } catch (err) {}
-}
-function digestMarkTried_() {
-  try { return JSON.parse(PropertiesService.getScriptProperties().getProperty(DIGEST_MARK_TRIED) || '{}') || {}; }
-  catch (err) { return {}; }
-}
-/* KEPT ONLY FOR ANSWERS STILL WAITING, so the tally cannot grow past this week and last. */
-function digestMarkTriedKeep_(tried, waiting) {
-  const keep = {};
-  waiting.forEach(W => { const n = Number(tried && tried[W.id]) || 0; if (n > 0) keep[W.id] = n; });
-  try {
-    const props = PropertiesService.getScriptProperties();
-    if (Object.keys(keep).length) props.setProperty(DIGEST_MARK_TRIED, JSON.stringify(keep));
-    else props.deleteProperty(DIGEST_MARK_TRIED);
-  } catch (err) {}
-}
-
-
 /* ==================================================================================================
    `checkSundayEmail` — ONE CHECK THE OWNER RUNS FROM THE EDITOR, AND IT CHANGES NOTHING (12 Oct)
 
    *"i want to make sure everything is set up."* Every part of the Sunday email lives somewhere different
-   — a cell on the config tab, three triggers, a Script Property, Google's mail quota, the family tab, the
-   site's library, Gemini — and "is it set up" was six places to look, two of which (the triggers, the
-   key) the owner cannot see without knowing where. So this reads each and says, in words, in the
-   execution log: the mode and the hour; whether the Sunday trigger and the two marking passes are
-   booked; whether GEMINI_API_KEY is there (never what it is) and which model marking asks; a live ask of
-   the marker with a made-up question (no learner's work leaves the sheet for it); the mail quota; the
-   library, fetched as the pass fetches it; and THIS WEEK — how many learners sent answers, how many have a
-   parent who will be emailed, why each of the rest will not be, which children with a parent to email have
-   sent nothing yet (no work, no email), how many answers are still unmarked and how many of those the pass
-   can mark, and roughly how many the passes have room for before the email. The hours are the ones the
-   triggers were BOOKED at (`DIGEST_BOOKED`), and a config cell changed since is said to be out of step.
+   — a cell on the config tab, a trigger, a Script Property, Google's mail quota, the family tab, the
+   site's library — and "is it set up" was six places to look, two of which (the trigger and the hour it
+   was booked at) the owner cannot see without knowing where. So this reads each and says, in words, in
+   the execution log: the mode and the hour; whether the Sunday trigger is booked, once, and whether an old
+   trigger nothing runs any more is still booked beside it; the hour it was BOOKED at (`DIGEST_BOOKED`),
+   with a WARNING while the config cell says another; the mail quota; the library, fetched as the run
+   fetches it; and THIS WEEK — how many learners sent answers, how many have a parent who will be emailed,
+   why each of the rest will not be, and which children with a parent to email have sent nothing yet (no
+   work, no email). ITS MARKING LINES WENT ON 18 OCT with the marking passes — the key, the models, a live
+   ask of Gemini, what was unmarked and the room before the email: the email asks Gemini nothing, so
+   whether Gemini answers says nothing about Sunday (docs/history/352).
 
    NOTHING WRITTEN, SENT OR BOOKED — `check-digest.js` runs it over the stubbed backend and fails on a
    cell, an email, a trigger or a Script Property it changed. Names are FIRST names, and the log is the
-   owner's; nothing here is ever sent to anybody. Not in `RUNNABLE`: the live ask is a Gemini request,
-   and `?run=` is a URL. Returns `{ lines }` for the checks. */
+   owner's; nothing here is ever sent to anybody. Not in `RUNNABLE`: `?run=` is a URL, and this log names
+   children. Returns `{ lines }` for the checks. */
 function checkSundayEmail() {
   const lines = [];
   const say = s => { lines.push(s); };
@@ -1795,14 +1364,16 @@ function checkSundayEmail() {
   const now = new Date();
   let cfg = {};
   try { cfg = config(); } catch (err) { say('The config tab could not be read (' + S(err && err.message || err) + '), so this is the defaults.'); }
-  /* THE HOUR THE TRIGGERS WERE BOOKED AT, not the cell's (the review of 12 Oct): the cell changed after
+  /* THE HOUR THE TRIGGER WAS BOOKED AT, not the cell's (the review of 12 Oct): the cell changed after
      installing moves nothing, and this said "installed, at about 20:00" over a trigger firing at 18:00. */
   const mode = digestMode_(cfg), hour = digestBookedHour_(cfg), cellHour = digestHour_(cfg), reserve = digestReserve_(cfg);
-  say('Backend ' + BACKEND_VERSION + ' — the code these triggers run, as saved in this editor.');
+  say('Backend ' + BACKEND_VERSION + ' — the code this trigger runs, as saved in this editor.');
 
-  const sun = digestScheduled_(DIGEST_RUN), mk = digestScheduled_(DIGEST_MARK_RUN), booked = digestBooked_();
-  /* AN HOUR NOBODY RECORDED IS NOT THE CELL'S HOUR: triggers booked by a backend from before the record fire at
-     whatever the cell said then, and this said "about 21:00" over a trigger firing at 18:00. */
+  const sun = digestScheduled_(DIGEST_RUN), booked = digestBooked_();
+  let old = 0;
+  DIGEST_RETIRED_RUNS.forEach(fn => { old += Number(digestScheduled_(fn)) || 0; });
+  /* AN HOUR NOBODY RECORDED IS NOT THE CELL'S HOUR: a trigger booked by a backend from before the record fires
+     at whatever the cell said then, and this said "about 21:00" over a trigger firing at 18:00. */
   const unknownHour = booked < 0 && !!sun;
   say('THE EMAIL: ' + (mode === 'send' ? 'ON — it emails parents'
       : mode === 'preview' ? 'PREVIEW — it writes the digest_log tab and emails nobody'
@@ -1811,51 +1382,35 @@ function checkSundayEmail() {
        : 'It goes on Sundays at about ' + hour + ':00, London time.')
     + (mode === 'send' ? '' : ' Set weekly_digest to send on the config tab to email parents.'));
 
-  say('THE TRIGGERS: the Sunday email is ' + (sun === null ? 'unknown (the triggers could not be listed)'
+  /* ONE TRIGGER (18 Oct): the email's, and nothing beside it. An old one still booked — the AI marking
+     passes', or the after-session check's — fires into a function that is gone and fails, so it is a WARNING. */
+  say('THE TRIGGER: the Sunday email is ' + (sun === null ? 'unknown (the triggers could not be listed)'
       : sun === 1 ? 'installed' : sun ? 'installed ' + sun + ' times (run installWeeklyDigest to leave one)'
-      : 'NOT installed (run installWeeklyDigest)') + '; the AI marking passes are '
-    + (mk === null ? 'unknown' : mk === 2 ? 'installed (every night at about ' + DIGEST_MARK_NIGHT + ':00, and '
-        + (hour ? 'on Sunday at about ' + (hour - 1) : 'on Saturday at about 23') + ':00)'
-      : mk ? plural(mk, 'trigger') + ', wanted 2 (run installWeeklyDigest)' : 'NOT installed (run installWeeklyDigest)') + '.');
+      : 'NOT installed (run installWeeklyDigest)') + ', and it is the only trigger the email has. '
+    + (old ? 'WARNING: ' + plural(old, 'old trigger') + ' that nothing runs any more (' + DIGEST_RETIRED_RUNS.join(', ')
+        + ') ' + (old === 1 ? 'is' : 'are') + ' still booked and will fail — run installWeeklyDigest to remove '
+        + (old === 1 ? 'it' : 'them') + '.'
+      : 'No old trigger is booked.'));
 
   /* THE HOUR BOOKED, ON A LINE OF ITS OWN (18 Oct). Apps Script cannot read the hour a trigger fires at, so
      `installWeeklyDigest` writes down the hour it booked (`DIGEST_BOOKED`) and this prints it — and WARNS, in
      words, when the config cell says another hour now: the owner moved `weekly_digest_hour` from 18 to 21 on
-     the day, and a cell changed after installing moves nothing until the triggers are booked again. */
+     the day, and a cell changed after installing moves nothing until the trigger is booked again. */
   say('THE HOUR BOOKED: ' + (booked >= 0
       ? 'installWeeklyDigest booked the email for about ' + booked + ':00 on Sundays, London time (recorded in Script Properties as '
         + DIGEST_BOOKED + ').' + (booked !== cellHour
           ? ' WARNING: weekly_digest_hour on the config tab now says ' + cellHour + ', but the email still goes at about ' + booked
             + ':00 — run installWeeklyDigest again to move it to ' + cellHour + ':00.'
           : ' The config tab says the same.')
-      : unknownHour ? 'NOT recorded — the triggers were booked by an older backend, and Apps Script cannot read a trigger’s hour back. '
+      : unknownHour ? 'NOT recorded — the trigger was booked by an older backend, and Apps Script cannot read a trigger’s hour back. '
         + 'WARNING: run installWeeklyDigest again, so the email is booked at ' + cellHour + ':00 (weekly_digest_hour) and the hour is recorded.'
       : 'nothing is booked yet; installWeeklyDigest will book ' + cellHour + ':00 (weekly_digest_hour on the config tab).'));
-
-  const off = digestMarkOff_(cfg);
-  let apiKey = '';
-  try { apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY') || ''; } catch (err) { apiKey = ''; }
-  const models = aiModels_(cfg);
-  say('AI MARKING: ' + (off ? off.replace(/^off: /, 'OFF — ') : 'on') + '. GEMINI_API_KEY is '
-    + (apiKey ? 'set in Script Properties' : 'NOT set — add it under Project Settings → Script Properties, or nothing is marked')
-    + '. Marking asks ' + models.join(', then ') + ', and never spends anybody’s ai_marks_per_day.');
-
-  if (apiKey) {
-    const t = Date.now();
-    let got = null;
-    try { got = aiMarkAsk_(apiKey, models, 'Work out 2 + 3.', '5', '5', 1, false); }
-    catch (err) { got = { error: S(err && err.message || err) }; }
-    say('LIVE TEST OF THE MARKER (a made-up question, "Work out 2 + 3.", answered "5"): '
-      + (got && !got.error ? 'Gemini answered — ' + got.awarded + ' of 1 mark, from ' + S(got.model || models[0])
-         : 'Gemini did NOT mark it — ' + S(got && got.error)) + ' (' + ((Date.now() - t) / 1000).toFixed(1) + ' s).');
-  } else {
-    say('LIVE TEST OF THE MARKER: not asked — there is no key to ask with.');
-  }
 
   const quota = digestQuota_();
   say('MAIL: ' + plural(quota, 'email') + ' left in today’s quota; the Sunday run keeps ' + reserve + ' back for PIN resets and notices.');
 
-  /* THE LIBRARY, AS THE PASS FETCHES IT — the one part of this nobody can see from the editor. */
+  /* THE LIBRARY, AS THE RUN FETCHES IT — the one part of this nobody can see from the editor, and what
+     prints each question as it is on the site. */
   const lib = digestLibrary_(S(cfg.site_url) || SITE_URL);
   say(lib.error ? 'THE QUESTION LIBRARY: NOT fetched — ' + lib.error + '.'
     : 'THE QUESTION LIBRARY: fetched ' + (lib.size / 1e6).toFixed(1) + ' million characters in '
@@ -1866,8 +1421,8 @@ function checkSundayEmail() {
   if (noTab) {
     say('THIS WEEK: ' + noTab);
   } else {
-    let plan = null, rows = [];
-    try { rows = read(TAB.submissions).rows; plan = digestPlanNow_(week); }
+    let plan = null;
+    try { plan = digestPlanNow_(week); }
     catch (err) { say('THIS WEEK: could not be planned (' + S(err && err.message || err) + ').'); }
     if (plan) {
       const reached = plan.learners.filter(L => !L.why);
@@ -1892,61 +1447,11 @@ function checkSundayEmail() {
       if (idle.length) say('  NO ANSWERS YET — ' + idle.join(', ') + ': a parent can be emailed, but no email goes unless '
         + (idle.length === 1 ? 'they answer' : 'each answers') + ' a question by about ' + hour + ':00 on Sunday.');
     }
-    const from = digestWeekToSend_(now).start, today = digestDay_(now);
-    const waiting = digestMarkWaiting_(rows, from, today);
-    let markable = 0;
-    if (!waiting.length) {
-      say('NOT MARKED YET (sent since ' + from + '): none.');
-    } else {
-      const found = lib.error ? null : digestLibraryFind_(lib.text,
-        waiting.map(W => S(W.r.key)).filter(k => /^q:/.test(k) && DIGEST_KEY_SHAPE.test(k)).map(k => k.slice(2)));
-      if (!found) say('NOT MARKED YET (sent since ' + from + '): ' + plural(waiting.length, 'answer') + ', and none can be marked until the library can be fetched.');
-      else {
-        const sorted = digestMarkSort_(waiting, found, digestMarkTried_());
-        const why = Object.keys(sorted.cannot).map(w => sorted.cannot[w] + ' (' + w + ')').join(', ');
-        say('NOT MARKED YET (sent since ' + from + '): ' + plural(waiting.length, 'answer') + '. The marking pass can mark '
-          + sorted.work.length + (why ? '; it cannot mark ' + why + ' — the email says "not marked" beside those' : '') + '.');
-        markable = sorted.work.length;
-      }
-    }
-    /* HOW MANY FIT BEFORE THE EMAIL — what the triggers will really do, not what is markable (the review of
-       12 Oct: this said "can mark 60" over a schedule with room for 16). */
-    const room = digestMarkRoom_(now, hour);
-    say(!room ? 'ROOM BEFORE THE EMAIL: this week’s email has gone.'
-      : 'ROOM BEFORE THE EMAIL: about ' + room.total + ' answers — ' + room.nights + ' nightly pass' + (room.nights === 1 ? '' : 'es') + ' (about ' + room.per
-        + ' each), then from about ' + (hour ? hour - 1 : 23) + ':00 a run-up of about ' + room.runup + ' pass' + (room.runup === 1 ? '' : 'es') + ' until a quarter of an hour before, '
-        + 'then about ' + room.final + ' as it goes; a guess at about ' + room.askSecs + ' s an answer, and slower answers mean fewer.'
-        + (markable > room.total ? ' FEWER THAN THE ' + markable + ' WAITING: about ' + (markable - room.total) + ' would go out "not marked" unless they are marked sooner.' : ''));
   }
   say('Nothing was changed: no row written, no email sent, no trigger booked.');
   Logger.log(lines.join('\n'));
   return { lines: lines };
 }
-/* ---------- ROOM BEFORE THE EMAIL, ROUGHLY — `checkSundayEmail`'s estimate, in words, never a promise ----
-   Per pass: the asks that fit its time at one every `DIGEST_MARK_GAP_MS` plus Gemini's own (`ask`, a guess:
-   about 4 s for an ordinary answer, longer for an essay), capped at `DIGEST_MARK_MAX`. The nightly passes
-   still to come before the run-up, the run-up's passes (one every `DIGEST_MARK_AGAIN_MS` + its budget,
-   from an hour before — or now — until `DIGEST_MARK_CLEAR_MS` before), and the email's own last pass.
-   Null once this week's email has gone. */
-function digestMarkRoom_(now, hour) {
-  const ask = 4000;
-  const fit = ms => Math.min(DIGEST_MARK_MAX, Math.floor(ms / (DIGEST_MARK_GAP_MS + ask)) + 1);
-  const sendAt = digestSendAt_(now, hour);
-  if (!sendAt) return null;
-  const left = sendAt - now.getTime();
-  const wall = Utilities.formatDate(now, DIGEST_TZ, 'yyyy-MM-dd HH:mm');
-  const nowMin = Number(wall.slice(11, 13)) * 60 + Number(wall.slice(14, 16));
-  let nights = 0;
-  for (let k = 0; k <= 7; k++) {
-    const off = (k * 1440 + DIGEST_MARK_NIGHT * 60 - nowMin) * 60000;
-    if (off > 0 && off < left - DIGEST_MARK_RUNUP_MS) nights++;
-  }
-  const span = Math.min(left, 3600e3) - DIGEST_MARK_CLEAR_MS;
-  const runup = span > 0 ? Math.ceil(span / (DIGEST_MARK_AGAIN_MS + DIGEST_MARK_BUDGET_MS)) : 0;
-  const per = fit(DIGEST_MARK_BUDGET_MS), final = fit(DIGEST_MARK_FINAL_MS);
-  return { nights: nights, runup: runup, per: per, final: final, askSecs: ask / 1000, total: (nights + runup) * per + final };
-}
-
 /* WHY A LEARNER WILL NOT BE REACHED, IN THE OWNER'S WORDS — from `digestPlan_`'s reasons, naming each
    parent by first name. */
 function digestWhyNot_(L) {

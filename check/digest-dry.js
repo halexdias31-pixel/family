@@ -4,13 +4,13 @@
 
    *"i want to make sure everything is set up"* (the owner, 12 Oct, about the email of Sunday 18 Oct). The
    checks prove the rules on invented people; this proves the WEEK — the real Ledger's people, links and
-   submissions through the real `digestPlan_`, `digestRender_` and marking pass, the night before it
-   matters, without a single email leaving this machine. docs/history/348.
+   submissions through the real `digestPlan_` and `digestRender_`, the night before it matters, without a
+   single email leaving this machine. docs/history/348. SINCE 18 OCT IT SIMULATES NO MARKING (docs/history/352,
+   the owner: *"The marking is already done on each question."*): the 9pm run prints each verdict as the
+   child's press recorded it, so this renders exactly that, and stops if anything asks Gemini.
 
      node check/digest-dry.js --sheets /path/to/sheets.json --week 2026-10-18 --out /tmp/sunday
-     (--marks half|full|none   what the stubbed Gemini gives — half by default; none is Gemini full all week)
-     (--gemini-secs 4          how long the stubbed Gemini takes an answer, on the fake clock)
-     (--library /path/to/questions.json   the library to mark against — the repository's by default)
+     (--library /path/to/questions.json   the library each question is printed from — the repository's by default)
 
    `--sheets` is check/live.js's dump — `{ "ledger": { "<tab>": [[header], [row], …] } }`, a cell a string,
    number or boolean — and a date cell may be ISO text, `dd/mm/yyyy hh:mm:ss` as a UK sheet shows it (read
@@ -19,22 +19,13 @@
 
    WHAT IT DOES, IN ONE BACKEND SCOPE (`check-mail-load.js`'s world: London's calendar, the lock,
    the triggers and MailApp stubbed):
-     0. THE SHEET AS IT IS, FIRST AND LOUD: when `weekly_digest` is not `send`, or the marking switch or
-        `ai_marks_per_day` turns marking off, a real Sunday with this sheet sends or marks NOTHING, and the
-        first line says so before anything else. What follows is what it would do with `weekly_digest` at
-        `send` and everything else as the sheet has it (the review of 12 Oct: it switched to preview in
-        memory and said so in a parenthesis, and printed "would mark 4" over a sheet that marks nothing);
-     1. the setup check's reach lines (`checkSundayEmail`) as of the hour before the email, after that
-        week's nightly passes — who sent
-        answers, who will be emailed, who will not be and why, who has a parent and no work yet, and what
-        is still unmarked;
-     2. THE MARKING THE TRIGGERS WOULD DO, ON THEIR SCHEDULE — not a pass looped until nothing was left,
-        which showed a backlog the real triggers cannot reach as all marked (the review of 12 Oct): the
-        nightly pass at 02:00 on each day of the week, the Sunday run-up from an hour before the email with
-        each one-off it books, and the email's own last pass — each pass seeing only the answers that had
-        ARRIVED by its time, Gemini STUBBED (`--marks`) taking `--gemini-secs` an answer on the fake clock,
-        the library served from the local file. It says how many answers the email will still show as
-        "not marked", and how many of those the passes could have marked but did not reach;
+     0. THE SHEET AS IT IS, FIRST AND LOUD: when `weekly_digest` is not `send`, a real Sunday with this sheet
+        sends NOTHING, and the first line says so before anything else. What follows is what it would do
+        with `weekly_digest` at `send` and everything else as the sheet has it;
+     1. the setup check's reach lines (`checkSundayEmail`) as of the hour before the email — who sent
+        answers, who will be emailed, who will not be and why, who has a parent and no work yet;
+     2. how many answers in the emails say "not marked" — recorded `sent`, so nothing marked them; no pass
+        marks them first (there is none since 18 Oct), and Gemini is never asked;
      3. every email the Sunday run would send — less any the sheet's `digest_log` already records as
         sent for that week — put through `mailOut_`'s own net with a MailApp that only keeps what it is
         handed, written to `--out` as NN.html, NN.txt and NN.json (to, subject, text, html), with
@@ -45,8 +36,7 @@
    handed to it and this exits 1 if it recorded one; `--out` inside the repository is refused — by its
    real path, so a symlink or a folder called `..something` inside it is refused too — because the emails
    carry real addresses and children's first names, and this repository is public. THE MARKS IN THE
-   EMAILS ARE THE STUB'S, not Gemini's — the point is which answers get one and what the email looks
-   like, and the summary says so.
+   EMAILS ARE THE SHEET'S, as each press recorded them.
 ================================================================================================== */
 'use strict';
 const fs = require('fs');
@@ -56,15 +46,11 @@ const argv = process.argv.slice(2);
 const arg = n => { const i = argv.indexOf('--' + n); return i < 0 ? null : argv[i + 1]; };
 const REPO = path.resolve(__dirname, '..');
 const SHEETS = arg('sheets'), WEEK = arg('week'), OUT = arg('out');
-const MARKS = arg('marks') || 'half';
-const ASK_MS = Math.round(Number(arg('gemini-secs') == null ? 4 : arg('gemini-secs')) * 1000);
 const LIBRARY = arg('library') || path.join(REPO, 'data', 'questions.json');
 
 const stop = s => { console.error('check/digest-dry.js: ' + s); process.exit(1); };
 if (!SHEETS || !WEEK || !OUT) stop('--sheets <sheets.json>, --week <yyyy-mm-dd> and --out <folder> are all required. See the header of this file.');
 if (!/^\d{4}-\d{2}-\d{2}$/.test(WEEK)) stop('--week must be a date, yyyy-mm-dd: ' + WEEK);
-if (!/^(half|full|none)$/.test(MARKS)) stop('--marks is half, full or none: ' + MARKS);
-if (!(ASK_MS >= 0 && ASK_MS <= 600000)) stop('--gemini-secs is a number of seconds, 0 to 600: ' + arg('gemini-secs'));
 /* ---------- REFUSING TO WRITE INTO THE REPO — check/live.js's rule, for the same reason: addresses and names.
    INSIDE IS INSIDE BY ITS REAL PATH. It asked `path.relative(...).startsWith('..')`, and a folder in the
    repository called `..sunday` is `..sunday` relative to it — so the real week's emails went into the
@@ -141,32 +127,25 @@ b.ev('clearCache()');
 
 /* ---------- 0. WHAT THE SHEET SAYS, BEFORE THIS RUN TREATS IT AS SWITCHED ON --------------------------------
    `weekly_digest` is the one switch this run assumes is `send` — the owner's step 3 — so the rest is the
-   week as it will be. The marking switch is left as the sheet has it, and asked as if the email were on. */
+   week as it will be. The plan does not read the switch, so nothing is changed for it. */
 const cfgReal = JSON.parse(JSON.stringify(b.ev('config()')));
 const mode = b.ev('digestMode_(config())'), hour = b.ev('digestHour_(config())');
-G.__cfgOn = Object.assign({}, cfgReal, { weekly_digest: 'send' });
-const markOff = String(b.ev('digestMarkOff_(__cfgOn)') || '');
 const loud = [];
 if (mode !== 'send') {
-  loud.push('ON THE SHEET AS IT IS, SUNDAY SENDS NOTHING' + (mode === 'off' ? ' AND MARKS NOTHING' : '') + ': weekly_digest is "'
+  loud.push('ON THE SHEET AS IT IS, SUNDAY SENDS NOTHING: weekly_digest is "'
     + String(cfgReal.weekly_digest || '') + '"' + (mode === 'preview' ? ' (preview writes the digest_log tab and emails nobody)' : '')
     + '. What follows is what it would do with weekly_digest set to send.');
 }
-if (markOff) loud.push('ON THE SHEET AS IT IS, THE MARKING PASS MARKS NOTHING — ' + markOff.replace(/^off: /, '') + '. The marking below is as the sheet has it.');
-if (mode === 'off') cfgSet(b, 'weekly_digest', 'preview');           // in memory only: the pass runs only while it is on
-b.props.GEMINI_API_KEY = 'dry-run-stub-not-a-key';
 
 /* ---------- THE CLOCK, AND THE ANSWERS AS THEY HAD ARRIVED BY IT --------------------------------------------
-   A pass sees the sheet as it was AT ITS TIME. The dump is the sheet as it is now, so every answer that
-   arrived after the simulated moment is taken off the tab before a pass reads it, and put back after; the
-   marks the passes append are kept throughout. The grid is changed in place, because the backend's own
-   table holds that array. */
+   The dump is the sheet as it is now, so every answer that arrived after the simulated moment is taken off
+   the tab before the backend reads it. The grid is changed in place, because the backend's own table holds
+   that array. */
 const d0 = new RealDate(WEEK + 'T12:00:00Z');
 const sunday = new RealDate(d0.getTime() + ((7 - d0.getUTCDay()) % 7) * 864e5).toISOString().slice(0, 10);
 const [sy, sm, sd] = sunday.split('-').map(Number);
-const monday = new RealDate(Date.UTC(sy, sm - 1, sd) - 6 * 864e5);
 const sendAt = london(sy, sm, sd, hour, 0, 0);
-let now = london(monday.getUTCFullYear(), monday.getUTCMonth() + 1, monday.getUTCDate(), 0, 0, 0);
+let now = sendAt - 3600e3;
 const setNow = t => { now = Math.max(now, t); w.setClock(now); };
 w.setClock(now);
 G.Utilities.sleep = ms => { now += ms; w.setClock(now); };
@@ -175,75 +154,32 @@ const subHead = sub[0];
 const atCol = subHead.indexOf('submitted_at');
 const arrived = r => { const v = r[atCol]; return v instanceof RealDate || (v && typeof v.getTime === 'function') ? v.getTime() : -Infinity; };
 const orig = sub.slice(1);
-const marks = [];
 const showUpTo = t => {
   const seen = orig.filter(r => arrived(r) <= t);
   sub.length = 0;
-  sub.push(subHead, ...seen, ...marks);
+  sub.push(subHead, ...seen);
   b.ev('clearCache()');
   return seen.length;
 };
-const keepMarks = shown => { sub.slice(1 + shown + marks.length).forEach(r => marks.push(r)); };
 
-/* ---------- GEMINI AND THE SITE, STUBBED ---------------------------------------------------------------------
-   The library's URL is the local file; Gemini gives half the marks (or all, or is full all week), taking
-   `--gemini-secs` of the fake clock an answer; anything else is refused, so nothing here reaches the
-   network. */
-const net = { asks: 0, lib: 0 };
+/* ---------- THE SITE STUBBED, AND GEMINI REFUSED ------------------------------------------------------------
+   The library's URL is the local file. A Gemini call STOPS the run: the 9pm email marks nothing (18 Oct), so
+   one is a bug, not a thing to simulate. Anything else is refused, so nothing here reaches the network. */
+const net = { lib: 0 };
 G.UrlFetchApp = { fetch: (url, o) => {
   if (/data\/questions\.json/.test(url)) { net.lib++; return { getResponseCode: () => 200, getContentText: () => libText }; }
-  if (/generativelanguage/.test(url)) {
-    net.asks++;
-    now += ASK_MS; w.setClock(now);
-    if (MARKS === 'none') return { getResponseCode: () => 503, getContentText: () => '{"error":{"code":503,"message":"stubbed: full"}}' };
-    const of = +((/<mark_scheme marks="(\d+)">/.exec(JSON.parse(o.payload).contents[0].parts[0].text) || [])[1] || 1);
-    const awarded = MARKS === 'full' ? of : Math.floor(of / 2);
-    const text = JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify({ awarded: awarded, feedback: 'Stubbed.' }) }] } }] });
-    return { getResponseCode: () => 200, getContentText: () => text };
-  }
+  if (/generativelanguage/.test(url)) stop('the Sunday run asked Gemini — it must mark nothing, only print each verdict as it was recorded. Nothing was written.');
   throw new Error('check/digest-dry.js reaches no network: ' + url);
 } };
 const logs = [];
 G.console = { log: s => logs.push(String(s)), warn: () => {}, error: () => {}, info: () => {} };
 G.Logger = { log: () => {} };
-const wall = t => {
-  const p = {};
-  new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', hourCycle: 'h23', weekday: 'short', hour: '2-digit', minute: '2-digit' })
-    .formatToParts(new RealDate(t)).forEach(x => { p[x.type] = x.value; });
-  return p.weekday + ' ' + p.hour + ':' + p.minute;
-};
 
-/* ---------- 2. THE MARKING, AS THE TRIGGERS WOULD DO IT ---------------------------------------------------------
-   Nightly at DIGEST_MARK_NIGHT, Monday to Sunday; the run-up from an hour before the email (Saturday at
-   23:00 for a midnight email), and every one-off it books (`again`), a minute after the pass that booked
-   it; then the email's own last pass at the hour. A pass that runs late starts the next one late. */
-const NIGHT = b.ev('DIGEST_MARK_NIGHT'), AGAIN = b.ev('DIGEST_MARK_AGAIN_MS');
-const passes = [];
-const onePass = (kind, at, final) => {
-  setNow(at);
-  const shown = showUpTo(now);
-  const t = now;
-  const r = JSON.parse(JSON.stringify(b.ev('clearCache(); digestMarkPass_(new Date()' + (final ? ', { final: true }' : '') + ')')));
-  keepMarks(shown);
-  passes.push(Object.assign({ kind: kind, at: wall(t), secs: Math.round((now - t) / 1000) }, r));
-  return r;
-};
-for (let k = 0; k < 7; k++) {
-  const d = new RealDate(monday.getTime() + k * 864e5);
-  onePass('nightly', london(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate(), NIGHT, 0, 0));
-}
-const runUpAt = hour ? london(sy, sm, sd, hour - 1, 0, 0) : sendAt - 3600e3;
-
-/* ---------- 1. THE SETUP CHECK'S REACH, AS OF THE HOUR BEFORE — after the nightly passes, before the run-up,
-   over the answers that had arrived by then: what `checkSundayEmail` would say if the owner ran it then. */
-setNow(runUpAt);
+/* ---------- 1. THE SETUP CHECK'S REACH, AS OF THE HOUR BEFORE, over the answers that had arrived by then:
+   what `checkSundayEmail` would say if the owner ran it then. */
 showUpTo(now);
 const check = JSON.parse(JSON.stringify(b.ev('clearCache(); checkSundayEmail()'))).lines || [];
-const reach = check.filter(l => /^(THIS WEEK|  NOT REACHED|  NO ANSWERS YET|NOT MARKED YET)/.test(l));
-
-let r = onePass('run-up', runUpAt);
-for (let n = 0; r && r.again && n < 40; n++) r = onePass('run-up, again', now + AGAIN);
-onePass('as the email goes', sendAt, true);
+const reach = check.filter(l => /^(THIS WEEK|  NOT REACHED|  NO ANSWERS YET)/.test(l));
 
 /* ---------- 3. THE EMAILS, AT THE SEND HOUR, THROUGH THE NET, TO A FOLDER --------------------------------------
    The answers as they stood when the run planned; less any email the sheet's own `digest_log` says went. */
@@ -253,12 +189,6 @@ showUpTo(now);
    (`digestEmailLibrary_`, from the local file here), so the emails written are the ones the run would send. */
 const plan = b.ev('clearCache(); (() => { const week = digestWeekToSend_(new Date()); let cfg = {}; try { cfg = config(); } catch (e) { cfg = {}; }'
   + ' return digestPlanNow_(week, new Date(), digestEmailLibrary_(week, read(TAB.submissions).rows, cfg)); })()');
-G.__lib = libText;
-const unreached = b.ev('(() => { const today = digestDay_(new Date()), from = digestWeekToSend_(new Date()).start;'
-  + ' const waiting = digestMarkWaiting_(read(TAB.submissions).rows, from, today);'
-  + ' const ids = waiting.map(W => S(W.r.key)).filter(k => /^q:/.test(k) && DIGEST_KEY_SHAPE.test(k)).map(k => k.slice(2));'
-  + ' const sorted = digestMarkSort_(waiting, digestLibraryFind_(__lib, ids), digestMarkTried_());'
-  + ' return sorted.work.length; })()');
 let notMarked = 0;
 plan.learners.forEach(L => (L.fresh || []).concat(L.again || []).forEach(q => {
   if (b.ev('digestMark_(' + JSON.stringify(String(q.verdict || '')) + ')') === 'not marked') notMarked++;
@@ -291,17 +221,12 @@ kept.forEach((m, i) => {
 });
 
 
-const marked = passes.reduce((n, x) => n + (x.marked || 0), 0);
-const cannot = {};
-passes.forEach(x => Object.keys(x.cannot || {}).forEach(k => { cannot[k] = Math.max(cannot[k] || 0, x.cannot[k]); }));
 const summary = {
-  sheet: { weekly_digest: String(cfgReal.weekly_digest || ''), weekly_digest_hour: hour, weekly_digest_marking: String(cfgReal.weekly_digest_marking || ''),
-           sends: mode === 'send', marks: !markOff && mode !== 'off', loud: loud },
+  sheet: { weekly_digest: String(cfgReal.weekly_digest || ''), weekly_digest_hour: hour, sends: mode === 'send', loud: loud },
   week: { start: plan.week.start, end: plan.week.end, email_at: new RealDate(sendAt).toISOString() },
   reach: reach,
-  marking: { stubbed: 'Gemini is STUBBED (' + MARKS + ', ' + ASK_MS / 1000 + ' s an answer) — the marks in these emails are not real',
-             passes: passes, cannot: cannot, would_mark: marked, not_marked_in_emails: notMarked, markable_but_not_reached: unreached,
-             library_fetches: net.lib, gemini_asks: net.asks, gemini_asks_note: 'one of them is the setup check’s live test' },
+  verdicts: { as: 'each verdict as the child’s press recorded it — the 9pm run marks nothing (docs/history/352)',
+              not_marked_in_emails: notMarked, library_fetches: net.lib, gemini_asks: 0 },
   emails: kept.map((m, i) => ({ file: pad(i + 1), to: m.to, subject: m.subject })),
   already_sent: sentAlready.map(m => ({ to: m.to, subject: m.subject })),
   unreachable: plan.unreachable.map(u => ({ count: u.count, why: u.why })),
@@ -312,17 +237,7 @@ loud.forEach(l => console.log(l));
 console.log('The week of ' + plan.week.start + ' to ' + plan.week.end + '; the email at ' + hour + ':00 London on ' + sunday
   + ' (weekly_digest on the sheet: "' + summary.sheet.weekly_digest + '").');
 reach.forEach(l => console.log(l));
-const ran = passes.filter(x => !x.did && (x.waiting || x.marked || x.error));
-console.log('Marking (Gemini STUBBED, ' + MARKS + ', ' + ASK_MS / 1000 + ' s an answer), on the triggers’ schedule: ' + passes.length + ' pass(es), '
-  + ran.length + ' with work; would mark ' + marked + '; cannot mark ' + (Object.keys(cannot).map(k => cannot[k] + ' (' + k + ')').join(', ') || 'none') + '.');
-passes.forEach(x => {
-  /* A NIGHT WITH NOTHING TO DO IS NOT A LINE; a pass that did nothing for a reason says the reason once. */
-  if (x.did) { if (x === passes[0] || x.kind !== 'nightly') console.log('  ' + x.at + ' ' + x.kind + ': ' + x.why); return; }
-  if (!x.waiting && !x.error && x.kind === 'nightly') return;
-  console.log('  ' + x.at + ' ' + x.kind + ': ' + (x.error ? 'ERROR ' + x.error : 'waiting ' + x.waiting + ', marked ' + x.marked + ', left ' + x.left
-    + (x.stopped ? ' (' + x.stopped + ')' : '') + (x.again ? ', books the next' : '')) + ', ' + x.secs + ' s');
-});
-console.log('IN THE EMAILS: ' + notMarked + ' answer(s) say "not marked" — ' + unreached + ' of them markable but not reached before the email'
-  + (unreached ? ' (the passes ran out of room)' : '') + ', the rest not markable.');
+console.log('Marking: none — the 9pm run prints each verdict as it was recorded when the child sent it; '
+  + notMarked + ' answer(s) say "not marked" (recorded `sent`: nothing marked them). Gemini was not asked.');
 if (sentAlready.length) console.log(sentAlready.length + ' email(s) not written: the sheet’s digest_log already has them sent for this week, so the run would skip them.');
 console.log(kept.length + ' email(s) written to ' + path.resolve(OUT) + ' — nothing was sent.');

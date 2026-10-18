@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-10-18-w-asonsite";
+const DOPOST_VERSION = "2026-10-18-x-onetrigger";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -3497,10 +3497,10 @@ function doPost(e) {
        actually did, which since the 503 of 11 Oct may be the second (`aiGemini_`, docs/history/344).
        (The phone records the marks as a press of its own, `ai:N/M`, through `submitAnswer`.)
 
-       AND SINCE 12 OCT THE SERVER ASKS THE SAME MARKER WITH NO PRESS AT ALL: `digestMarkPass_` in
-       digest.gs marks a `sent` answer overnight and before the Sunday email, through `aiMarkAsk_` with
-       the same clamps as below — and never through `aiMarkCount_`, because that cap is a child's presses,
-       and a pass spending it would leave a child "today's 20 AI marks used" for work they never pressed. */
+       A PRESS IS THE ONLY WAY IN (18 Oct). From 12 to 18 Oct a server pass in digest.gs asked the same
+       marker with no press at all, overnight and before the Sunday email; the owner: *"The marking is
+       already done on each question."* It is gone (docs/history/352), and the Sunday email prints the
+       verdict each press recorded. */
     if (action === 'aiMark') {
       const key = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY') || '';
       if (!key) return jsonOut({ success: false, why: 'ai-off', message: 'AI marking isn’t switched on.' });
@@ -5495,9 +5495,9 @@ function aiGaveUp_(ends) {
       + ') -- the key in Script Properties, the request, or the account; Google’s words are in the line above');
   });
   console.log('aiMark: gave up -- ' + (ends.map(e => e.model + ' ' + (e.code < 0 ? 'threw' : e.code)).join(', ') || 'nothing asked'));
-  /* AND A `why` BESIDE THE SENTENCE, for a caller that is not a pupil: the Sunday marking pass
-     (`digestMarkPass_`) stops on `busy` and `unreachable` and tries tomorrow, and on `refused` tells the
-     owner — reading which by the wording would break the day the sentence is reworded. */
+  /* AND A `why` BESIDE THE SENTENCE, for a caller that branches on it — written for the Sunday marking pass
+     of 12 Oct (gone since 18 Oct, docs/history/352), kept because reading which failure it was by the
+     wording would break the day the sentence is reworded. */
   if (ends.some(e => aiAgain_(e.code))) return { error: AI_BUSY, why: 'busy' };
   if (ends.some(e => e.code < 0)) return { error: 'Could not reach Gemini just now — try again in a moment.', why: 'unreachable' };
   return { error: 'AI marking is not working right now.', why: 'refused' };
