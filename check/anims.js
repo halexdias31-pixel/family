@@ -48,6 +48,7 @@
      node check/anims.js --shots    and the reduced-motion stills, for a person
 ================================================================================================== */
 'use strict';
+require('./quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 const http = require('http');
 const fs = require('fs');
 const path = require('path');

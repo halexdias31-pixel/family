@@ -20,6 +20,7 @@
    Exits non-zero on any of them, and when it cannot read what it checks.
 ================================================================================================== */
 'use strict';
+require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
 const REPO = path.resolve(__dirname, '..');
 const DIR = path.join(REPO, 'data', 'diagrams');

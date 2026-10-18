@@ -25,6 +25,7 @@
    their addresses are on example.org.
 ================================================================================================== */
 'use strict';
+require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 const fs = require('fs'), path = require('path');
 const { backend } = require('./check-gas-load.js');
 

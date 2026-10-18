@@ -38,6 +38,7 @@
    every id is `example-…`. Nothing here is, or may become, the real folder's.
 ================================================================================================== */
 'use strict';
+require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 const { backend } = require('./check-gas-load.js');
 
 const bad = [];

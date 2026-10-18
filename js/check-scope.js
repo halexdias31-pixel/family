@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* ==================================================================================================
    check-scope.js — A NAME DECLARED INSIDE A BLOCK AND USED OUTSIDE IT.
 

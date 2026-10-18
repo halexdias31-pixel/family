@@ -1,3 +1,4 @@
+require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* ==================================================================================================
    check-health.js — EVERY PAPER'S HEALTH SCORE, WORST FIRST. A REPORT FOR THE OWNER.
 
@@ -111,3 +112,4 @@ if (broken.length) {
   process.exit(1);
 }
 console.log('fixture: three faults found, scored below Ready; the clean paper 100%  — the instrument sees');
+console.log('OK — ' + ids.length + ' papers scored (' + Object.keys(bands).map(b => b + ' ' + bands[b]).join(', ') + '); the fixture\'s faults are seen.');

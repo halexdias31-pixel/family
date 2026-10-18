@@ -27,6 +27,7 @@
    public.
 ================================================================================================== */
 'use strict';
+require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 const { backend } = require('./check-gas-load.js');
 
 const bad = [];

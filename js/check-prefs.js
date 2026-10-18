@@ -34,6 +34,7 @@
    The people are invented, their addresses are on example.org and every PIN is 0000.
 ================================================================================================== */
 'use strict';
+require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 const fs = require('fs'), path = require('path');
 const acorn = require('acorn');
 const { backend } = require('./check-gas-load.js');

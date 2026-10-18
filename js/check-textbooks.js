@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* ==================================================================================================
    @family. — check-textbooks.js
    THE @family. TEXTBOOKS, WHETHER EACH CHAPTER HAS ITS BONES, AND WHETHER FIND CAN REACH THEM.

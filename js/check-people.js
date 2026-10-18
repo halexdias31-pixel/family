@@ -32,6 +32,7 @@
    the fault this file exists to catch one table along.
 ================================================================================================== */
 'use strict';
+require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 
 /* ---------- EVERY CASE IN THIS FILE RUNS IN A TIMEZONE BEHIND UTC --------------------------------
    NOT DECORATION, AND MEASURED. `new Date('2027-05-14')` is UTC MIDNIGHT, so it reads back as the

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* ==================================================================================================
    @family. — check-bible.js
    THE KING JAMES BIBLE: CUT INTO BOOKS WITHOUT LOSING A WORD, GROUPED AS THE OWNER ASKED, NAMED VERSE

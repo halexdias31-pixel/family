@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+require('./quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* ==================================================================================================
    @family. — check/press.js
 
@@ -99,7 +100,7 @@ const FIXTURE_ANON = (() => {
   catch (e) { return FIXTURE; }
 })();
 const ONLY = (process.argv.find(a => a.startsWith('--screen=')) || '').split('=')[1] || '';
-const VERBOSE = process.argv.includes('--verbose');
+const VERBOSE = process.argv.includes('--verbose') || process.env.VERBOSE === '1';
 
 /* ---------- BOTH VISITORS, AND THE SECOND ONE IS THE FRONT DOOR ----------------------------------
    THE ADMIN SEES NEARLY EVERY CONTROL, which is why the sweep is worth running as one. What that

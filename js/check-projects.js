@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* ==================================================================================================
    @family. — check-projects.js
    THE PROJECTS, AND WHETHER THE THINGS THEY ARE JOINED TO EXIST.

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* ==================================================================================================
    @family. — check-settings.js
 
@@ -311,5 +312,5 @@ if (factBad.length) {
 console.log('');
 if (failed) console.log(failed + ' problem(s) — a column read off a file that does not have it is a '
                       + 'value that is always empty, with a fallback hiding it.');
-else console.log('every column the app reads off a settings file is a column that file has.');
+else console.log('OK — every column the app reads off a settings file is a column that file has.');
 process.exit(failed ? 1 : 0);

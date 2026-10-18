@@ -71,6 +71,7 @@
    their PINs are 0000.
 ================================================================================================== */
 'use strict';
+require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 const fs = require('fs'), path = require('path');
 /* THE WORLD — MailApp, ScriptApp, the lock and a London clock over the real backend — is
    `check-mail-load.js` now, lifted out of this file when the email after a session needed the same

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+require('./quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* ==================================================================================================
    @family. — check/swipe.js
 
@@ -56,7 +57,7 @@ const { chromium } = require('playwright');
 const ROOT = path.join(__dirname, '..');
 const PORT_WANTED = Number(process.env.SWIPE_PORT || 0);
 const FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture.json'), 'utf8');
-const VERBOSE = process.argv.includes('--verbose');
+const VERBOSE = process.argv.includes('--verbose') || process.env.VERBOSE === '1';
 const USER = { name: 'Test Admin', personId: 'P001', person_id: 'P001', role: 'admin', roles: ['admin'], handle: 'testadmin' };
 /* THE TWO PHONES THE OWNER'S FAMILIES HOLD: a current iPhone and the small one. */
 const WIDTH = Number((process.argv.find(a => a.startsWith('--width=')) || '').split('=')[1] || 0);

@@ -59,6 +59,7 @@
    this site. The first has the same right answer for all of them.
 ================================================================================================== */
 'use strict';
+require('./quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 
 const { chromium } = require('playwright');
 const http = require('http');

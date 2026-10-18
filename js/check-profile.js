@@ -31,6 +31,7 @@
    The people are invented, their PINs are 0000 and their addresses are on example.org.
 ================================================================================================== */
 'use strict';
+require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 
 /* THE HARNESS IS `check-gas-load.js` NOW — written here, lifted out when `check-aimark.js` needed the
    same backend in the same scope. One copy, so a service stubbed for one check is stubbed for both. */

@@ -36,6 +36,10 @@ const path = require('path');
 const fs = require('fs');
 
 const dir = __dirname;
+// A green run is one line; -v (or VERBOSE=1) adds a line per check. The checks themselves stay quiet either way.
+const VERBOSE = process.argv.includes('-v') || process.argv.includes('--verbose')
+  || /^(1|true|yes)$/i.test(process.env.VERBOSE || '');
+const childEnv = Object.assign({}, process.env, { VERBOSE: '' });
 
 /* `soft` — reports rather than fails. See above: these two name things to look at, and treating a
    list to look at as a broken build is how a team learns to ignore the build. */
@@ -504,7 +508,7 @@ for (const c of SUITE.filter(x => x.slow).sort((x, y) => (/ui\.js/.test(y.file) 
        9m47s ALONE on a quiet machine — clean, nothing new — so ten minutes killed it inside the suite
        every run. Fifteen is the same margin over what it takes now. If it outgrows this too, split
        the states across two runs rather than raising it again. */
-    execFile(process.execPath, [p].concat(args), { cwd: dir, encoding: 'utf8', timeout: 900000,
+    execFile(process.execPath, [p].concat(args), { cwd: dir, encoding: 'utf8', timeout: 900000, env: childEnv,
                                       maxBuffer: 32 * 1024 * 1024 },
       (err, stdout, stderr) => done({ ok: !err, out: String(stdout || '') + String(stderr || ''),
                                       secs: ((Date.now() - t0) / 1000).toFixed(1) }));
@@ -516,7 +520,8 @@ pump();
    their place below, and `await` at the top level of a CommonJS file is a syntax error Node
    reports as an ambiguous module format — which is four lines removed from the cause. */
 (async () => {
-  console.log('');
+  if (VERBOSE) console.log('');
+  let ran = 0;
   for (const c of SUITE) {
     /* A CHECK MAY LIVE OUTSIDE `js/`. `check/cards.js` needs a browser, which is what puts it in
        `check/` beside `ui.js` rather than here — and the roster is the only thing that makes a check
@@ -529,6 +534,7 @@ pump();
       console.log('  ????  ' + c.file.padEnd(18) + 'not here');
       continue;
     }
+    ran++;
     let out = '', ok = true, secs = '0.0';
     if (running.has(c.file)) {
       const r = await running.get(c.file);
@@ -541,7 +547,8 @@ pump();
            as a red check with nothing wrong in it. The limit is for a check that has HUNG, and none
            of these takes a minute on a quiet machine. */
         out = execFileSync(process.execPath, [p].concat(args), { cwd: dir, encoding: 'utf8',
-                                                    timeout: 300000, stdio: ['ignore', 'pipe', 'pipe'] });
+                                                    timeout: 300000, env: childEnv,
+                                                    stdio: ['ignore', 'pipe', 'pipe'] });
       } catch (e) {
         ok = false;
         out = String((e.stdout || '') + (e.stderr || ''));
@@ -550,14 +557,17 @@ pump();
     }
 
     if (ok) {
-      console.log('  PASS  ' + c.file.padEnd(18) + c.what.padEnd(38) + secs + 's');
+      if (VERBOSE) console.log('  PASS  ' + c.file.padEnd(18) + c.what.padEnd(38) + secs + 's');
     } else if (c.soft) {
       noted++;
-      console.log('  note  ' + c.file.padEnd(18) + c.what.padEnd(38) + secs + 's');
+      if (VERBOSE) console.log('  note  ' + c.file.padEnd(18) + c.what.padEnd(38) + secs + 's');
       /* THE INTERESTING LINES ONLY. These two print their whole report; what somebody wants here is
          the things they named, which are the indented ones under a heading. */
-      notes.push({ file: c.file, lines: out.split('\n')
-        .filter(l => /^ {2}\S/.test(l) && !/^ {2}none$/.test(l)).slice(0, 12) });
+      notes.push({ file: c.file, what: c.what, lines: out.split('\n')
+        .filter(l => /^ {2}\S/.test(l) && !/^ {2}none$/.test(l)) });
+      // check-dead names things at the left margin: with nothing indented, its first lines are the finding.
+      const last = notes[notes.length - 1];
+      if (!last.lines.length) last.lines = out.split('\n').filter(l => l.trim() && !/^\s*none$/.test(l) && !/\(0\)\s*$/.test(l));
     } else {
       failed++;
       console.log('  FAIL  ' + c.file.padEnd(18) + c.what.padEnd(38) + secs + 's');
@@ -596,7 +606,7 @@ pump();
       tail.forEach(l => console.log('          ' + l));
       if (lines.length > 14) console.log('          … ' + (lines.length - 14)
         + ' earlier line(s) not shown — `node '
-        + (c.file.includes('/') ? c.file : 'js/' + c.file) + '` for the whole report');
+        + (c.file.includes('/') ? c.file : 'js/' + c.file) + ' -v` for the whole report');
     }
   }
 
@@ -604,19 +614,22 @@ pump();
     console.log('');
     console.log('WORTH A LOOK — not failures, but things nothing can reach or nothing calls:');
     notes.forEach(n => {
-      if (!n.lines.length) return;
-      console.log('  ' + n.file);
-      n.lines.forEach(l => console.log('  ' + l));
+      console.log('  ' + n.file + '  ' + n.what);
+      const shown = VERBOSE ? n.lines : n.lines.slice(0, 5);
+      shown.forEach(l => console.log('  ' + l));
+      if (shown.length < n.lines.length) console.log('    … ' + (n.lines.length - shown.length) + ' more — `node '
+        + (n.file.includes('/') ? n.file : 'js/' + n.file) + '`');
     });
   }
 
-  console.log('');
+  // session-start.sh reads "OK — nothing is broken (N checks" for its count, so every green ending carries it.
+  if (failed || notes.length || VERBOSE) console.log('');
   if (failed) {
-    console.log('FAILED — ' + failed + ' of ' + SUITE.length + ' checks found something wrong.');
+    console.log('FAILED — ' + failed + ' of ' + ran + ' checks found something wrong.');
   } else if (noted) {
-    console.log('OK — nothing is broken. ' + noted + ' check(s) have something worth a look above.');
+    console.log('OK — nothing is broken (' + ran + ' checks; ' + noted + ' with a note above).');
   } else {
-    console.log('OK — all ' + SUITE.length + ' checks clean.');
+    console.log('OK — nothing is broken (' + ran + ' checks).');
   }
   process.exit(failed ? 1 : 0);
 

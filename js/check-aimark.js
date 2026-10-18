@@ -45,6 +45,7 @@
    here touches the network. The people are invented and their PINs are 0000.
 ================================================================================================== */
 'use strict';
+require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 const { backend } = require('./check-gas-load.js');
 
 const KEY = 'test-key-not-a-real-one';

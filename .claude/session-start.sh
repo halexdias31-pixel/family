@@ -48,7 +48,8 @@ OUT=$(npm run check 2>&1)
 # COUNTED, NOT TYPED. This line said "all 18 checks pass" for as long as there were 18, and went on
 # saying it when there were 22 — a number in a sentence nobody re-reads. It is read off the run now,
 # so it cannot be wrong again.
-N=$(printf '%s\n' "$OUT" | grep -cE "^[[:space:]]+(PASS|note)[[:space:]]")
+# check-all prints one line when green, "OK — nothing is broken (N checks…", so N is read from it.
+N=$(printf '%s\n' "$OUT" | grep -oE "nothing is broken \([0-9]+ checks" | grep -oE "[0-9]+" | tail -1)
 if printf '%s' "$OUT" | grep -q "OK — nothing is broken"; then
   echo "· all $N checks pass"
 else

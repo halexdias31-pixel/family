@@ -1,3 +1,4 @@
+require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* ==================================================================================================
    node js/check-chess.js — THE MOVE GENERATOR, COUNTED RATHER THAN READ.
 
@@ -79,4 +80,4 @@ if (bad.length) {
   process.exit(1);
 }
 console.log('perft start 20 / 400 / 8,902, kiwipete 48 / 2,039 / 97,862, position 3 14 / 2,812, and 10 special moves');
-console.log('PASS');
+console.log('OK — chess: every perft count and special move is right.');

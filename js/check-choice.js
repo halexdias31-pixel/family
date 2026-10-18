@@ -24,6 +24,7 @@
      · UNDER THE SCRIPT LOCK: a lock that cannot be had answers `why: 'busy'` and writes nothing
 ================================================================================================== */
 'use strict';
+require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 const { backend } = require('./check-gas-load');
 
 const bad = [];

@@ -25,6 +25,7 @@
      node js/check-manifest.js
 ================================================================================================== */
 'use strict';
+require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 
 const fs = require('fs');
 const path = require('path');

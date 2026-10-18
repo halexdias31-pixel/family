@@ -59,6 +59,7 @@
    REACH_PORT pins the port; unset, the OS picks a free one, so parallel runs cannot collide.
 ================================================================================================== */
 'use strict';
+require('./quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
@@ -66,7 +67,7 @@ const { chromium } = require('playwright');
 
 const ROOT = path.join(__dirname, '..');
 const PORT_WANTED = Number(process.env.REACH_PORT || 0);
-const VERBOSE = process.argv.includes('--verbose');
+const VERBOSE = process.argv.includes('--verbose') || process.env.VERBOSE === '1';
 const arg = k => (process.argv.find(a => a.startsWith('--' + k + '=')) || '').split('=')[1] || '';
 const WIDTH = Number(arg('width') || 0);
 const ONLY = arg('only').split(',').filter(Boolean);

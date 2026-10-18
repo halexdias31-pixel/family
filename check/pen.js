@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+require('./quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* ==================================================================================================
    @family. — check/pen.js
 
@@ -104,7 +105,7 @@ const { chromium } = require('playwright');
 const ROOT = path.join(__dirname, '..');
 const PORT_WANTED = Number(process.env.PEN_PORT || 0);
 const FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture.json'), 'utf8');
-const VERBOSE = process.argv.includes('--verbose');
+const VERBOSE = process.argv.includes('--verbose') || process.env.VERBOSE === '1';
 const ONLY = ((process.argv.find(a => a.startsWith('--only=')) || '').split('=')[1] || '').split(',').filter(Boolean);
 const want = k => !ONLY.length || ONLY.indexOf(k) !== -1;
 /* `--shots` WRITES WHAT A HUMAN SHOULD LOOK AT to check/shots/ (ignored by git), or to PEN_SHOTS. */

@@ -1,3 +1,4 @@
+require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* ==================================================================================================
    @family. — check-lifecycle.js
 
@@ -179,7 +180,7 @@ function run() {
   });
 
   console.log('BOOKING LIFECYCLES  (' + cases.length + ' paths, ' + bad.length + ' wrong)');
-  if (!bad.length) { console.log('  every path ends where it should.'); return; }
+  if (!bad.length) { console.log('OK — all ' + cases.length + ' booking lifecycles end where they should.'); return; }
   bad.forEach(b => console.log('  ✗ ' + b));
   process.exitCode = 1;
 }

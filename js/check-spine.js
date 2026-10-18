@@ -1,3 +1,4 @@
+require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 /* ==================================================================================================
    @family. — check-spine.js
 
@@ -141,6 +142,7 @@ function run() {
   if (never.length) {
     console.log('  rows nothing fills yet (they print a dash on both): ' + never.join(', '));
   }
+  if (!process.exitCode) console.log('OK — every row either builder draws is on the spine (' + spine.length + ' rows).');
 }
 
 run();
