@@ -404,6 +404,6 @@ function analyse(opts) {
     });
   }
 
-  if (!news.length) console.log('\nnothing is decided by file order alone.');
+  if (!news.length) console.log('\nOK — nothing is decided by file order alone.');
   process.exit(news.length ? 1 : 0);
 })();

@@ -2291,7 +2291,7 @@ for (const who of VISITORS) {
                              + gone.map(r => r.screen + '/' + r.action).join(', '));
 
   if (!threw.length && !dead.length && !quiet.length)
-    console.log('\nnothing threw, nothing was silently inert, and the app survived every press.');
+    console.log('\nOK — nothing threw, nothing was silently inert, and the app survived every press.');
 
   /* A QUIET PRESS FAILS, and that is the whole point of the list above. `ACCEPTED_TAP` in
      check/ui.js prints and does not fail, because a 20px hour cell is a real finding that cannot be

@@ -2533,5 +2533,7 @@ function inspect(opts) {
     console.log(`not reachable: ${[...new Set(skipped.map(s => s.id))].join(', ')}\n`);
   }
 
+  if (!failures) console.log('OK — ' + (known.length ? 'nothing NEW to report' : 'nothing to report')
+    + (skipped.length ? '; ' + new Set(skipped.map(s => s.id)).size + ' state(s) not reachable (-v names them)' : '') + '.');
   process.exit(failures ? 1 : 0);
 })().catch(err => { console.error('check/ui.js fell over:', err); process.exit(2); });

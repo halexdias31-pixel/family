@@ -192,6 +192,8 @@ function serve() {
 
   console.log('\nPRINTED, NOT FAILED. Which of these is a rhythm and which is a freeze is a');
   console.log('judgement about the animation, and the pool is the sheet\'s — `splashOff`.');
+  if (!process.exitCode) console.log('OK — ' + rows.length + ' splash(es) measured; ' + dull.length
+    + ' still for more than a third of the time (-v lists them).');
 
   await browser.close();
   srv.close();
