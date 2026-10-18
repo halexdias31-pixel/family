@@ -8,8 +8,8 @@ the rules only; the reasons and figures behind them are in `docs/map-detail.md` 
 ## Reading this repo cheaply
 
 - Grep first, then Read a line range. Never Read a whole big file (`js/find.js`, `style.css`, `js/check-flow.js`).
-- Never Read or `cat` `data/*.json` whole (`questions.json` is 14 MB): a `node -e`/python one-liner for the rows you need.
-- In `docs/history`, `grep -n` the keyword and read around the hits; some notes are 140 KB.
+- Never Read or `cat` `data/*.json` whole: a `node -e`/python one-liner for the rows you need.
+- A pathless Grep skips `docs/` and `data/` (`.ignore`). In `docs/history`, `grep -n` the keyword and read around the hits; some notes are 140 KB.
 - Checks print one line when green; `-v` (or `VERBOSE=1`) for the detail. A failure prints every failure and why.
 - A comment ending `§` was shortened: its whole story is in `docs/notes/<path>.md` (`grep -rn '<headline>' docs/notes`).
 - In a workflow: maps and mechanical stages at low effort, two agents at a time, one review lens unless the change is risky.
