@@ -1207,7 +1207,7 @@ document.addEventListener('input', e => {
   if (why && why.classList.contains('qp-ai-why')) why.textContent = '';
 });
 
-/* ---------- ROOM TO WRITE: THE ANSWER ON A WHOLE-SCREEN SHEET (359) § */
+/* ---------- ROOM TO WRITE: THE ANSWER ON A WHOLE-SCREEN SHEET (359) */
 /* An Expand tile beside every typed box; the sheet holds the same answer under the same key, wraps it over as many lines
    as it needs, and stands over the app above the pad, upright or sideways. */
 function kpWideTile_(k) {

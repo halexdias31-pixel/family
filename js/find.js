@@ -3934,7 +3934,7 @@ on('qp-choose', (el) => {
   /* RIGHT DOES NOT OPEN THE ANSWER PAGE ANY MORE. § */
 });
 
-/* ---------- A WORDED ANSWER OF A MARK OR TWO, MARKED BY RULE BEFORE ANY AI (359) § */
+/* ---------- A WORDED ANSWER OF A MARK OR TWO, MARKED BY RULE BEFORE ANY AI (359) */
 /* `mark_words`: points split by `;`, a mark each; ways by `|`; words that must all be there joined by `+`; a number is
    compared as a number. Words are matched on their stems, and a word straight after "not" or "no" does not count. */
 const MW_STOP = /^(the|a|an|of|to|is|it|and|or|in|on|be|as|so|by|at|for)$/;
@@ -3968,7 +3968,7 @@ function markWords_(typed, rule) {
   return { got: got, of: points.length };
 }
 
-/* ---------- A GRID OR TABLE WITH BLANKS IS FILLED IN WHERE IT STANDS, A CELL AT A TIME § */
+/* ---------- A GRID OR TABLE WITH BLANKS IS FILLED IN WHERE IT STANDS, A CELL AT A TIME (359) */
 const CELL_BLANK = /<(td|th)([^>]*)>\s*(?:&nbsp;|\u00a0)?\s*<\/\1>/g;
 /* `cells` READ: one entry a blank, in reading order -- `{ label, ways }`, and `ways` empty for a blank not asked. */
 function cellsOf_(x) {

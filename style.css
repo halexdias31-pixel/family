@@ -6088,7 +6088,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .qp-cells { display: flex; flex-wrap: wrap; gap: .5rem; }
 .qp-cell-l { display: flex; align-items: center; gap: .3rem; flex: 0 1 6rem; font: 600 .8rem/1 var(--font); color: var(--dim); }
 
-/* ---------- ROOM TO WRITE (keypad.js, `kpWideTile_`): the whole screen above the pad, upright or sideways § */
+/* ---------- ROOM TO WRITE (keypad.js, `kpWideTile_`): the whole screen above the pad, upright or sideways (359) */
 .kp-wide { position: fixed; left: 0; right: 0; top: 0; bottom: var(--kp-h, 45vh); z-index: 48;
   display: flex; flex-direction: column; gap: .5rem; box-sizing: border-box;
   padding: calc(8px + env(safe-area-inset-top, 0px)) 16px 8px; background: var(--bg); }
