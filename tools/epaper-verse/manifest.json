@@ -1,0 +1,8 @@
+{
+  "name": "Verse of the day",
+  "version": "2026-10-19-e-verse",
+  "new_install_prompt_erase": true,
+  "builds": [
+    { "chipFamily": "ESP32-S3", "parts": [{ "path": "epaper-verse.bin", "offset": 0 }] }
+  ]
+}

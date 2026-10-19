@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verse Screen Install</title>
+<script type="module" src="https://unpkg.com/esp-web-tools@10.0.1/dist/web/install-button.js?module"></script>
+<style>
+  :root { --bg: #000; --ink: #f3ead2; --gold: #d4af37; --line: #3a3220; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 1.05rem/1.5 Georgia, serif; }
+  main { max-width: 34rem; margin: 0 auto; padding: 1.5rem 16px 3rem; }
+  h1 { color: var(--gold); font-weight: normal; margin: 0 0 1rem; }
+  ol { padding-left: 1.3rem; } li { margin: 0 0 .7rem; }
+  .box { border: 1px solid var(--line); border-radius: 10px; padding: 1rem; margin: 1.2rem 0; text-align: center; }
+  esp-web-install-button { --esp-tools-button-color: #d4af37; --esp-tools-button-text-color: #000; }
+  small { color: #a89f86; }
+  a { color: var(--gold); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Verse of the day</h1>
+  <p>Puts the verse-a-day program on the Waveshare ESP32-S3-ePaper-1.54. Use Chrome (a Chromebook is fine).</p>
+  <ol>
+    <li>Plug the board into the Chromebook with a USB-C cable.</li>
+    <li>Press <b>Install</b> below, choose the board in the list (it may be called "USB JTAG/serial debug unit"), press <b>Connect</b>, then <b>Install</b>. It takes about a minute.</li>
+    <li>If it is not in the list or says it cannot connect: unplug it, hold the <b>BOOT</b> button, plug it back in, let go, and try again. Afterwards press <b>RESET</b> once.</li>
+    <li>The screen then says <b>Wi-Fi setup</b>. On your phone, join the Wi-Fi network <b>Verse-Setup</b>. A page opens (if not, open <b>192.168.4.1</b> in the phone's browser). Tap <b>Configure WiFi</b>, pick your home Wi-Fi, type its password, leave the verse address as it is, and press <b>Save</b>.</li>
+    <li>A few seconds later today's verse appears. It changes every morning at about 6am.</li>
+  </ol>
+  <div class="box">
+    <esp-web-install-button manifest="manifest.json">
+      <span slot="unsupported">This browser cannot talk to the board. Open this page in Chrome or Edge on a computer or Chromebook.</span>
+      <span slot="not-allowed">Open this page from its https:// address.</span>
+    </esp-web-install-button>
+  </div>
+  <p><small>To change the Wi-Fi later: press RESET, then within two seconds press and hold BOOT until the setup screen shows. Free software: the program is GPL-3.0 and its source is in this site's repository, <code>tools/epaper-verse/</code>; see NOTICE.txt.</small></p>
+</main>
+</body>
+</html>
