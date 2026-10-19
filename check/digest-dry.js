@@ -153,7 +153,7 @@ const toWrite = plan.emails.filter(m => {
 const kept = [];
 G.MailApp = { sendEmail: m => { kept.push(JSON.parse(JSON.stringify(m))); }, getRemainingDailyQuota: () => 0 };
 toWrite.forEach(m => {
-  G.__m = { to: m.to, subject: m.subject, body: m.text, htmlBody: m.html, name: plan.look.brand, firstNamesOnly: true };
+  G.__m = { to: m.to, subject: m.subject, body: m.text, htmlBody: m.html, firstNamesOnly: true };
   b.ev('mailOut_(__m)');
 });
 if (mail.sent.length) stop('an email reached the world’s MailApp — nothing may be sent from here. Nothing was written.');

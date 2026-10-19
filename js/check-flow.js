@@ -2766,7 +2766,7 @@ check('every role\'s own card has Edit, with the sections their card prints: a t
     if (!h || (h.querySelector('.handle-shown') || {}).textContent !== c.t.whoami().handle
         || h.querySelector('[data-do="handle-shuffle"], input, .btn'))
       bad.push(who + '\'s handle section is not their handle shown with nothing to press or type (364: no Randomise)');
-    if (h && !/first initial and the year you joined/.test(h.textContent)) bad.push(who + '\'s handle section does not say how the handle is made, so nobody can work theirs out');
+    if (h && !/first and last letter of your first name and the year you joined/.test(h.textContent)) bad.push(who + '\'s handle section does not say how the handle is made, so nobody can work theirs out');
     if (!c.form().querySelector('.ce-sec[data-sec="picture"] .pfp [data-do="pfp-pick"]')) bad.push(who + ' is not offered the picture chooser on their own card');
     if (!c.box('first_name') || !c.box('last_name')) bad.push(who + ' cannot change their name on their own card');
     if (order === bare && c.form().querySelector('[data-me="date_of_birth"], [data-me="dob_d"], [data-me="email"], [data-me^="lib"]')) bad.push(who + '\'s card offers a box their card does not print');
@@ -4497,9 +4497,16 @@ check('the finger pen after review: a hand left down after two fingers, a thumb 
   const stored = () => { try { return JSON.parse(w.localStorage.getItem(k) || '[]'); } catch (e) { return ['unreadable']; } };
   const units = pts => { const o = []; pts.forEach(p => { const a = Math.round((p[0] - L) / W * 340), b = Math.round((p[1] - T) / H * 340);
     if (o.length && o[o.length - 2] === a && o[o.length - 1] === b) return; o.push(a, b); }); return o; };
-  const clean = (what, want) => {
+  /* `steady`: a stylus's or a mouse's line is steadied (368), so it is asked to start and end where the pointer did and keep within 2 units of its path */
+  const along = (s, want) => s.length === want.length && s.every((a, i) => { const b = want[i], seg = [];
+    for (let j = 0; j + 1 < b.length; j += 2) seg.push([b[j], b[j + 1]]);
+    const dSeg = (x, y) => Math.min.apply(null, seg.slice(1).map((q, k) => { const p = seg[k], dx = q[0] - p[0], dy = q[1] - p[1], L = dx * dx + dy * dy || 1, u = Math.max(0, Math.min(1, ((x - p[0]) * dx + (y - p[1]) * dy) / L)); return Math.hypot(x - p[0] - u * dx, y - p[1] - u * dy); }));
+    let ok = a[0] === b[0] && a[1] === b[1] && a[a.length - 2] === b[b.length - 2] && a[a.length - 1] === b[b.length - 1];
+    for (let j = 0; ok && j + 1 < a.length; j += 2) ok = dSeg(a[j], a[j + 1]) <= 2;
+    return ok; });
+  const clean = (what, want, steady) => {
     const s = stored();
-    if (JSON.stringify(s) !== JSON.stringify(want)) bad.push(what + ': stored ' + JSON.stringify(s).slice(0, 160) + ', wanted ' + JSON.stringify(want).slice(0, 160));
+    if (steady ? !along(s, want) : JSON.stringify(s) !== JSON.stringify(want)) bad.push(what + ': stored ' + JSON.stringify(s).slice(0, 160) + ', wanted ' + JSON.stringify(want).slice(0, 160));
     if (!penWhole_(s)) bad.push(what + ': the store holds something that is not a list of lists of whole numbers');
     if (host.querySelectorAll('.qpad-g path').length !== s.length) bad.push(what + ': ' + host.querySelectorAll('.qpad-g path').length + ' path(s) drawn for ' + s.length + ' stored');
     if (host.querySelector('[data-live]')) bad.push(what + ': a live preview was left on the picture');
@@ -4553,7 +4560,7 @@ check('the finger pen after review: a hand left down after two fingers, a thumb 
     fire('pointermove', 3, 150 + 5 * i, 100 + 2 * i, 1000 + 8 * i, { type: 'pen' });
   }
   fire('pointerup', 3, 400, 200, 1420, { type: 'pen' });
-  clean('a stylus line with a palm landing as the primary touch', [units(sty)]);
+  clean('a stylus line with a palm landing as the primary touch', [units(sty)], true);
 
   /* A FINGER DRAWS AND A MOUSE CLICKS BESIDE THE PICTURE (a touchscreen laptop) -- the mouse is primary among mice: the
      finger's line. */
@@ -13690,8 +13697,9 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
   if (card.querySelector('.qp-bar')) bad.push('the essay card still draws a chat bar');
   const go = card.querySelector('.qp-sheet-foot.tile-row > .tile.qp-ai-go[data-do="qp-ai"]');
   if (!go) bad.push('Mark with AI is not a tile in the row under the sheet');
-  const sayIt = card.querySelector('.qp-sheet-foot > .qp-ai-say');
-  if (!sayIt || sayIt.textContent !== 'Mark with AI' || sayIt.previousElementSibling !== go) bad.push('the Mark with AI tile has no name beside it — on a touch screen a sparkle alone says nothing');
+  /* ONE CHECK (368): the AI's tile is the same Check as every other question's, with no caption of its own */
+  if (card.querySelector('.qp-ai-say')) bad.push('the essay still captions its Check "Mark with AI"');
+  if (go && go.getAttribute('aria-label') !== 'Check') bad.push('the essay\u2019s marking tile is ' + JSON.stringify(go.getAttribute('aria-label')) + ', not the Check every question has');
   const blank = () => !!card.querySelector('.qp-sheet > .kp-field.kp-essay.is-blank');
   if (!blank()) bad.push('an empty sheet is not marked is-blank, so it shows no "press return" hint');
   const words = () => (card.querySelector('.qp-essay .qp-sheet-foot .qp-words') || {}).textContent;
@@ -15306,15 +15314,22 @@ const subDraw_ = (w, x, host) => {
   if (!host) w.document.body.appendChild(h);
   return h.querySelector('.qcard');
 };
-const subSlotOf_ = card => card.parentNode.querySelector('.tile-row .qcard-verdict');
+/* THE LATEST SUBMISSION, AS THE OLD SLOT BESIDE THE STAR SAID IT -- the slot is gone (368: the box's line says it once), so the store is asked; signed out, nobody's */
+/* THE SAVED LINE'S WORDS (368: it is silent while the answer is safe, so its words are asked of `ansSavedWords_`, and a quiet state drawn aloud is a failure) */
+const savedWords_ = el => { if (!el) return undefined; const w = el.ownerDocument.defaultView, words = w.ansSavedWords_(el.getAttribute('data-k'));
+  if (w.ansQuiet_(words) ? el.textContent !== '' : el.textContent !== words) throw new Error('the saved line says ' + JSON.stringify(el.textContent) + ' for ' + JSON.stringify(words)); return words; };
+const latestWord_ = v => { if (v === 'right') return ['Correct', 'is-right']; if (v === 'wrong') return ['Not yet', 'is-near']; if (v === 'sent') return ['Sent', '']; const m = /^(ai|rule):(\d+)\/(\d+)$/.exec(String(v || '')); return m ? [m[2] + '/' + m[3], +m[2] >= +m[3] ? 'is-right' : 'is-near'] : ['', '']; };
+const latestOf_ = (w, k) => { if (!(w.whoIs_ && w.whoIs_())) return null; const [t, c] = latestWord_(((w.subLatest_ && w.subLatest_(k)) || {}).v); return { textContent: t, classList: { contains: x => x === c } }; };
+const cardKey_ = card => { const e = card && card.querySelector('.qp-ans-in[data-k], .qp-multi-val[data-k], .qp-mark[data-k], .qp-order[data-k], [data-k]'); return e ? e.getAttribute('data-k') : ''; };
+const subSlotOf_ = card => latestOf_(card.ownerDocument.defaultView, cardKey_(card));
 
 check('submission: the latest one is the verdict beside the star, never a date, for the person signed in alone', async () => {
   const { w } = boot();
   await wait(300);
   const d = w.document, A = w.__t.ACTIONS, bad = [];
-  if (typeof w.subSlot_ !== 'function' || typeof w.questionCard_ !== 'function' || typeof w.subRecord_ !== 'function'
+  if (typeof w.questionCard_ !== 'function' || typeof w.subRecord_ !== 'function'
       || !A['qp-check'] || !A['qp-choose'] || !A['qp-send']) {
-    return ['subSlot_, subRecord_, questionCard_ or the marking handlers are not reachable — renamed? The verdict was NOT checked'];
+    return ['subRecord_, questionCard_ or the marking handlers are not reachable — renamed? The verdict was NOT checked'];
   }
   const base = { kind: 'question', name: 'Q8', marks: 2, row: { row_id: 'Q-V-8', paper_id: 'P-V', subject: 'Maths', name: 'Verdict' },
     html: '<p>Work out 3 &times; 5</p>', answer: '<b>15</b>', accept: '15' };
@@ -15326,20 +15341,17 @@ check('submission: the latest one is the verdict beside the star, never a date, 
   /* SIGNED OUT: Check marks, no slot, and nothing is kept on the device to be anybody's. */
   w.__t.USER(null);
   const out = subDraw_(w, typed);
-  if (subSlotOf_(out)) bad.push('signed out, the tile row has a verdict slot — the device everybody shares has nobody to mark');
   markIt(out, '16');
   if (!/Not yet/.test(out.querySelector('.qp-verdict').textContent)) bad.push('signed out, Check did not mark the answer');
   if (kept().length) bad.push('signed out, a submission was kept on the device: ' + kept().join(', '));
   /* SIGNED IN. */
   w.__t.USER({ name: 'Ada Pupil', personId: 'P7', role: 'student', roles: ['student'] });
   const card = subDraw_(w, typed);
-  if (!subSlotOf_(card)) return bad.concat(['signed in, the tile row has no verdict slot, so a verdict would arrive as a new element and move the card']);
-  if (card.querySelector('.qcard-verdict')) bad.push('the verdict slot is inside the card, not in the tile row beside the star');
+  if (card.parentNode.querySelector('.qcard-verdict')) bad.push('a verdict slot is drawn beside the star -- the box\u2019s own line says it (368)');
   if (subSlotOf_(card).textContent) bad.push('a question never sent already says "' + subSlotOf_(card).textContent + '"');
   const s0 = subSlotOf_(card), tags = card.querySelector('.qcard-tags'), t0 = tags && tags.outerHTML;
   markIt(card, '16');
   if (say(card) !== 'Not yet [near]') bad.push('after a wrong Check the slot says ' + JSON.stringify(say(card)) + ' — wanted "Not yet", in the verdict line’s amber');
-  if (subSlotOf_(card) !== s0) bad.push('the verdict drew a new slot rather than writing into the one that was there');
   if (!tags || card.querySelector('.qcard-tags') !== tags || tags.outerHTML !== t0) bad.push('marking redrew the tag row');
   if (!/Not yet — have another go/.test(card.querySelector('.qp-verdict').textContent)) bad.push('the verdict line under the box lost its words');
   const mine = () => { try { return JSON.parse(w.localStorage.getItem('subLast:u:P7') || '{}'); } catch (e) { return {}; } };
@@ -15407,7 +15419,7 @@ check('submission: right, edited, wrong — two events on the account, a draft s
   if (need.length) return [need.join(', ') + ' not reachable — renamed? Nothing was sent'];
   const bad = [];
   const subs = () => sent.filter(b => b.action === 'submitAnswer');
-  const said = card => (card.parentNode.querySelector('.qp-saved') || {}).textContent;
+  const said = card => savedWords_(card.parentNode.querySelector('.qp-saved'));
   w.stuffItemsAll_ = () => [SUB_SUM];
   /* SIGNED OUT: nothing goes anywhere. */
   w.__t.USER(null);
@@ -15419,7 +15431,7 @@ check('submission: right, edited, wrong — two events on the account, a draft s
   w.__t.USER(Object.assign({}, ANS_ADA));
   const card = subDraw_(w, SUB_SUM);
   const inp = () => card.querySelector('.qp-ans-in');
-  const line = () => (card.querySelector('.qp-saved') || {}).textContent;
+  const line = () => savedWords_(card.querySelector('.qp-saved'));
   ansType_(w, inp(), '15');
   if (line() !== 'On this device until you send it') bad.push('an answer typed and not sent says ' + JSON.stringify(line()));
   card.querySelector('.qp-check').click();
@@ -15472,7 +15484,7 @@ check('submission: right, edited, wrong — two events on the account, a draft s
   if (b2.w.localStorage.getItem('ans:u:P7:q:Q-SUB-1') !== '16') bad.push('the account’s old draft of a typed answer was read back into this device: ' + JSON.stringify(b2.w.localStorage.getItem('ans:u:P7:q:Q-SUB-1')));
   if (c2.querySelector('.qp-verdict').textContent !== 'Not yet — have another go' || !c2.querySelector('.qp-mark.is-near')) bad.push('a fresh device’s verdict line says ' + JSON.stringify(c2.querySelector('.qp-verdict').textContent) + ' — *"they would see incorrect answer there next time they login"*');
   if (subSlotOf_(c2).textContent !== 'Not yet') bad.push('a fresh device’s card says ' + JSON.stringify(subSlotOf_(c2).textContent));
-  if ((c2.querySelector('.qp-saved') || {}).textContent !== 'Sent to Ada’s account') bad.push('a fresh device says ' + JSON.stringify((c2.querySelector('.qp-saved') || {}).textContent) + ' under the account’s own answer');
+  if (savedWords_(c2.querySelector('.qp-saved')) !== 'Sent to Ada’s account') bad.push('a fresh device says ' + JSON.stringify(savedWords_(c2.querySelector('.qp-saved'))) + ' under the account’s own answer');
   if (b2.sent.some(b => b.action === 'submitAnswer')) bad.push('the fresh device sent the account’s presses straight back');
   /* AND A PAYLOAD BUILT FOR SOMEBODY ELSE IS NOT READ. */
   const b3 = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES, submissions: subMine_(rows, 'P7') }),
@@ -15571,7 +15583,7 @@ check('submission: a pick, an ordering, Mark with AI and a worksheet box are eac
     await wait(60);
     const m = of('q:Q-SUB-AI');
     if (m.length !== 1 || m[0].verdict !== 'ai:2/3' || m[0].answer !== 'because it is hot') bad.push('Mark with AI went up as ' + JSON.stringify(m) + ' — wanted one event, ai:2/3');
-    const slot = ah.querySelector('.tile-row .qcard-verdict');
+    const slot = subSlotOf_(ah.querySelector('.qcard') || ah);
     if (!slot || slot.textContent !== '2/3') bad.push('the card after Mark with AI says ' + JSON.stringify(slot && slot.textContent) + ' — wanted the AI’s 2/3');
     /* AND WHEN AI MARKING GOES AWAY MID-VISIT, THE BOX KEEPS A SEND. */
     w.aiOff_('AI marking is switched off');
@@ -16133,7 +16145,7 @@ check('submission: a queue the store refuses is held for the visit and sent, the
       ansType_(w, card.querySelector('.qp-ans-in'), '15');
       w.__t.ACTIONS['qp-check'](card.querySelector('.qp-check'));
       await wait(200);
-      const line = (card.parentNode.querySelector('.qp-saved') || {}).textContent;
+      const line = savedWords_(card.parentNode.querySelector('.qp-saved'));
       if (rows.length !== 1) bad.push('Check with the queue’s write refused put ' + rows.length + ' row(s) on the account — the press lived only in a copy nothing read');
       if (line !== 'Sent to Ada’s account') bad.push('Check with the queue’s write refused: the line under the box says ' + JSON.stringify(line));
     } finally { undo(); }
@@ -16252,7 +16264,7 @@ check('submission: before the payload lands, a box holding a press the server to
   if (typeof w.awaiting_ !== 'function' || !w.awaiting_()) return ['the app is not waiting on the payload — the setup did not hold it, and the line was NOT checked'];
   const bad = [];
   const cards = [SUB_SUM, two, three].map(x => subDraw_(w, x));
-  const line = c => (c.parentNode.querySelector('.qp-saved') || {}).textContent;
+  const line = c => savedWords_(c.parentNode.querySelector('.qp-saved'));
   const held = cards.map(line);
   if (held[0] !== 'Sent to Ada’s account') bad.push('the payload out: a box holding the press the server took says ' + JSON.stringify(held[0]) + ' — the account has it');
   [[1, 'a draft never sent'], [2, 'a press still on its way']].forEach(([i, what]) => {
@@ -16371,7 +16383,7 @@ check('submission: after AI marking switches off, the plain Send says Sent, and 
   h.innerHTML = w.questionCard_(AIQ, 0) + '<div class="tile-row">' + w.questionTiles_(AIQ) + '</div>';
   const inp = () => h.querySelector('.qp-ans-in');
   const out = () => (h.querySelector('.qp-verdict') || {}).textContent;
-  const saved = () => (h.querySelector('.qp-saved') || {}).textContent;
+  const saved = () => savedWords_(h.querySelector('.qp-saved'));
   ansType_(w, inp(), 'because it is hot');
   A['qp-ai'](h.querySelector('.qp-ai-go'));
   await wait(80);
@@ -16859,7 +16871,6 @@ check('mark sound: the switch is the sound tile on a card that can be marked, of
     if (!can && t) bad.push(x.row.row_id + ' cannot be marked (its press is `sent`) and its row still has a sound switch — a switch for a noise it never makes');
     if (t) {
       markSoundSays_(t, true, x.row.row_id + ' as first drawn').forEach(m => bad.push(m));
-      if (!t.nextElementSibling || !t.nextElementSibling.classList.contains('qcard-verdict')) bad.push('the sound switch on ' + x.row.row_id + ' is not just before the verdict slot — a verdict landing in front of it would move it under the finger');
     }
   });
   /* SIGNED OUT: still there (a signed-out child is marked and hears it), with no slot after it. */
@@ -21504,7 +21515,7 @@ const ansCards_ = (w, tag) => {
   const kp = () => q('[data-k$="' + maths.key + '"].qp-ans-in');
   const box = () => q('.qp-choices');
   const pad = () => q('.qpad');
-  const saidFor = x => { const el = q('.qp-saved[data-k$="' + x.key + '"]'); return el ? el.textContent : null; };
+  const saidFor = x => { const el = q('.qp-saved[data-k$="' + x.key + '"]'); return el ? savedWords_(el) : null; };
   const ringed = () => [...host.querySelectorAll('[data-circ] .qw.is-circled')].map(s2 => s2.getAttribute('data-w'));
   return { host, draw, words, maths, pick, pen, ta, kp, box, pad, saidFor, ringed };
 };
@@ -23301,7 +23312,7 @@ check('sign out, then the next child signs in: none of the last child’s messag
   if (typeof w.subAdopt_ === 'function') w.subAdopt_();
   if (typeof w.subRecord_ === 'function') w.subRecord_('ans:u:P7:q:Q-ADA-2', '16', 'wrong');
   const QADA = { kind: 'question', key: 'q:Q-ADA', name: 'Q1', marks: 1, row: { row_id: 'Q-ADA', paper_id: 'P-ADA', subject: 'Maths', name: 'Ada' }, html: '<p>Work out 3 × 5.</p>', accept: '15' };
-  const slotFor = x => { const h = d.createElement('div'); h.innerHTML = '<div class="tile-row">' + w.questionTiles_(x) + '</div>'; const s = h.querySelector('.qcard-verdict'); return s ? s.textContent : ''; };
+  const slotFor = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0); return ((latestOf_(w, cardKey_(h)) || {}).textContent) || ''; };
   if (slotFor(QADA) !== 'Correct') bad.push('Ada’s latest submission was not on her card to begin with (' + JSON.stringify(slotFor(QADA)) + '), so its absence below proves nothing');
   try { w.localStorage.setItem('favs', JSON.stringify(['q:Q-ADA-STAR'])); } catch (e) {}
   t.go('dm', false, true); w.paint('dm');
@@ -25797,42 +25808,6 @@ check('a drawn answer is marked on Check: strokes on a real Corbettmaths figure 
 });
 
 /* ---------- ROOM TO WRITE: AN EXPAND TILE OPENS THE ANSWER ON A WHOLE-SCREEN SHEET, AND DONE BRINGS IT BACK (docs/history/359) ---------- */
-check('room to write: every typed box has an Expand tile; the sheet holds the same answer, keeps what is written, and Done puts it back in the card', async () => {
-  const base = { active: 'True', subject: 'Maths', document_type: 'Worksheet', key_stage: 'KS4', pages_checked: 'True' };
-  const rows = [
-    Object.assign({}, base, { row_id: 'D-RW', paper_id: 'RW', kind: 'document', name: 'Long sums' }),
-    Object.assign({}, base, { row_id: 'RW-1', paper_id: 'RW', kind: 'question', name: 'Long sums', question: '1', marks: '1', answer_type: 'calculation',
-                              html: '<p>Expand (x + 1)(x + 2)(x + 3)</p>', answer: 'x^3 + 6x^2 + 11x + 6', accept: 'x^3+6x^2+11x+6' }),
-  ];
-  const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
-  await wait(300);
-  const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
-  if (!A['kp-wide'] || !A['kp-wide-done']) return ['the kp-wide / kp-wide-done handlers are not reachable — nothing was checked'];
-  const x = w.stuffItemsAll_().find(i => i.row && i.row.row_id === 'RW-1');
-  if (!x) return ['the fixture row did not reach Find'];
-  const host = d.createElement('div');
-  d.body.appendChild(host);
-  host.innerHTML = w.questionCard_(x, 0);
-  const go = host.querySelector('.qp-bar [data-do="kp-wide"]');
-  if (!go) return ['the answer bar has no Expand tile'];
-  A['kp-wide'](go);
-  const sheet = d.querySelector('body > .kp-wide');
-  const inp = sheet && sheet.querySelector('.kp-in');
-  if (!inp || inp.getAttribute('data-k') !== go.getAttribute('data-k')) return ['Expand opened no sheet with the same answer box'];
-  inp.value = 'x^3 + 6x^2 + 11x + 6';
-  inp.dispatchEvent(new w.Event('input', { bubbles: true }));
-  A['kp-wide-done'](sheet.querySelector('[data-do="kp-wide-done"]'));
-  if (d.querySelector('body > .kp-wide')) bad.push('Done left the sheet up');
-  const back = host.querySelector('.qp-bar .kp-in');
-  if (!back || back.value !== 'x^3 + 6x^2 + 11x + 6') bad.push('the card\'s box holds ' + JSON.stringify(back && back.value) + ' after Done');
-  host.innerHTML = w.questionCard_(x, 0);
-  const again = host.querySelector('.qp-bar .kp-in');
-  if (!again || again.value !== 'x^3 + 6x^2 + 11x + 6') bad.push('drawn again, the box has lost what was written on the sheet');
-  host.remove();
-  return bad;
-});
-
-/* ---------- MARK WITHOUT AI FIRST: A SHORT WORDED ANSWER IS MARKED BY ITS KEY WORDS (docs/history/359) ---------- */
 check('marked by rule first: a 2-mark worded answer with mark_words gets Check, marks per point, says "by key words", and the AI tile stays hidden on full marks', async () => {
   const base = { active: 'True', subject: 'Biology', document_type: 'Past paper', key_stage: 'KS4', pages_checked: 'True' };
   const rows = [

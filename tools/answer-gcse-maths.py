@@ -287,6 +287,22 @@ F = {
     'Q-1MA1-2406-3H-11b': {W: 'higher|median+42; varied|iqr|15'},
     'Q-1MA1-2406-3H-20b': {A: '8, -1/2 | 8, -0.5'},
     'Q-1MA1-2406-3H-21': {W: '6 r; 2 r; 4 3 r'},
+
+    # ---- 376: the last of them.  "A line parallel to M" (M is y = 5x): any line of gradient 5 but M itself.
+    'Q-1MA1-2406-1H-6b': {A: 'y = 5x + 1 | rule: eqn y = 5x + 1, parallel, not y = 5x'},
+    'Q-1MA1-2406-1F-25b': {A: 'y = 5x + 1 | rule: eqn y = 5x + 1, parallel, not y = 5x'},
+    # The scale drawing (1 cm to 4 km): the scheme's 21.6 km and 322 degrees, within the usual 2 mm and 2 degrees.
+    'Q-1MA1-1911-1H-8': {A: '21.6 km | 20.8 to 22.4'},
+    'Q-1MA1-1911-1H-8ii': {A: '322° | 320 to 324'},
+    # "Give your answer as a mixed number": the top-heavy fraction is not it.
+    'Q-1MA1-2306-1H-2': {A: '4 7/8 | rule: count 1, mixed, each eq 39/8'},
+    'Q-1MA1-2211-1H-2a': {A: '3 17/20 | rule: count 1, mixed, each eq 77/20'},
+    # A matching with four blanks in its table is filled in its cells, as May 2017 2H Q14 is.
+    'Q-1MA1-1806-2H-12': {C: 'B ; D ; A ; C', A: None},
+    # "/2a" reads as "/2 times a" (1/3x is x/3), so the subject's ways are bracketed for the rule to prove them.
+    'Q-1MA1-1811-1H-2b': {A: 's = (v^2 − u^2)/(2a) | (v^2 − u^2)/(2a) | rule: expr s = (v^2 - u^2)/(2a)'},
+    # g( is a function, so y = -g(x), the reflection in the x-axis, is not taken for y = g(-x).
+    'Q-1MA1-1811-1H-18b': {A: 'y = g(−x) | rule: expr y = g(-x), fn g'},
 }
 
 
@@ -315,6 +331,28 @@ RULED = {
     'Q-1MA1-1911-3H-20': 'expr n^2 - 2n',
     'Q-1MA1-1805-1H-19': 'expr b = (2a + 6)/3',
     'Q-1MA1-1806-2H-3': 'eqn y = 3x - 6',
+    # 376: the 25 check-qtypes listed (1806-2H-12, 1811-1H-2b and 18b are in F above)
+    'Q-1MA1-2406-1H-1': 'expr 4n - 3',
+    'Q-1MA1-2406-1F-20': 'expr 4n - 3',
+    'Q-1MA1-2406-1H-6a': 'eqn y = 3/2x + 3',
+    'Q-1MA1-2406-1F-25a': 'eqn y = 3/2x + 3',
+    'Q-1MA1-2406-2H-12a': 'expr f = 224/d^2',
+    'Q-1MA1-2406-3F-16b': 'expr 5x + 2y',
+    'Q-1MA1-2406-3F-29b': 'expr h = 3p + 5',
+    'Q-1MA1-2306-1H-17': 'expr x = (3y + 28)/(8 - 5y)',
+    'Q-1MA1-2306-1H-20a': 'expr 5x - 2',
+    'Q-1MA1-2306-2H-22': 'expr 1 - (4/5)^n - (1/5)^n',
+    'Q-1MA1-2306-3H-22': 'expr b = 3a',
+    'Q-1MA1-1806-3H-16b': 'expr n^2 - n',
+    'Q-1MA1-1705-1H-13a': 'expr y = 9/x^2',
+    'Q-1MA1-1705-1H-18': 'eqn y = -2x + 21',
+    'Q-1MA1-1706-2H-22': 'expr 2n^2 + n + 1',
+    'Q-1MA1-1706-3H-14b': 'expr v = 15t/(w + 30)',
+    'Q-1MA1-1711-1H-19': 'eqn y = 2x + 36',
+    'Q-1MA1-2211-2H-3a': 'expr 6n + 1',
+    'Q-1MA1-1706-1F-27a': 'expr 2b',
+    'Q-1MA1-1706-1F-27b': 'expr b - a',
+    'Q-1MA1-1706-1F-27c': 'expr -a - b',
 }
 
 
@@ -338,7 +376,10 @@ def main():
             out.append(line)
             continue
         for k, v in set_.items():
-            row[k] = v
+            if v is None:
+                row.pop(k, None)    # a field the part no longer has (an `accept` made `cells`)
+            else:
+                row[k] = v
         out.append(json.dumps(row, ensure_ascii=False, separators=(',', ':')) + tail)
     missing = (set(F) | set(RULED)) - seen
     assert not missing, 'no such row: %r' % sorted(missing)

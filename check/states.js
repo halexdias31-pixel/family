@@ -639,6 +639,8 @@ const STATES = {
         let all = {};
         try { all = JSON.parse(localStorage.getItem('subLast:' + window.__subWho) || '{}') || {}; } catch (e) { all = {}; }
         all[window.__subKey] = { a: '7', v: 'right', at: Date.now(), id: '1760000000000-state1' };
+        /* THE BOX HOLDS WHAT WAS SENT, so its own line says the verdict (368: no slot beside the star) */
+        window.__subAns = ansKey_(it); try { ansStore_(window.__subAns, '7'); } catch (e) {}
         try { localStorage.setItem('subLast:' + window.__subWho, JSON.stringify(all)); } catch (e) {}
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
@@ -646,17 +648,18 @@ const STATES = {
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it));
       },
       expect: () => {
-        const s = document.querySelector('#s-stuff .page.on .tile-row .qcard-verdict');
-        return !!s && s.textContent === 'Correct' && s.classList.contains('is-right')
+        const s = document.querySelector('#s-stuff .page.on .qp-mark > .qp-verdict');
+        return !!s && s.textContent === 'Correct' && s.closest('.qp-mark').classList.contains('is-right')
                && !/\d{1,2} [A-Z][a-z]{2}|Done/.test(s.textContent)
-               && !document.querySelector('#s-stuff .page.on .qcard .qcard-verdict, .qcard-done');
+               && !document.querySelector('#s-stuff .page.on .qcard-verdict, .qcard-done');
       },
-      wants: 'the question card\'s tile row saying "Correct", with its tick, beside the star — and no day anywhere',
+      wants: 'the box\'s own line saying "Correct", with its tick, and no slot beside the star — and no day anywhere',
       leave: () => {
         try {
           const all = JSON.parse(localStorage.getItem('subLast:' + window.__subWho) || '{}') || {};
           delete all[window.__subKey];
           localStorage.setItem('subLast:' + window.__subWho, JSON.stringify(all));
+          if (window.__subAns) ansStore_(window.__subAns, '');
         } catch (e) {}
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
       } },
@@ -670,6 +673,8 @@ const STATES = {
         let all = {};
         try { all = JSON.parse(localStorage.getItem('subLast:' + window.__subWho) || '{}') || {}; } catch (e) { all = {}; }
         all[window.__subKey] = { a: '8', v: 'wrong', at: Date.now(), id: '1760000000000-state1' };
+        /* THE BOX HOLDS WHAT WAS SENT, so its own line says the verdict (368: no slot beside the star) */
+        window.__subAns = ansKey_(it); try { ansStore_(window.__subAns, '8'); } catch (e) {}
         try { localStorage.setItem('subLast:' + window.__subWho, JSON.stringify(all)); } catch (e) {}
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
@@ -677,17 +682,18 @@ const STATES = {
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it));
       },
       expect: () => {
-        const s = document.querySelector('#s-stuff .page.on .tile-row .qcard-verdict');
-        return !!s && s.textContent === 'Not yet' && s.classList.contains('is-near')
+        const s = document.querySelector('#s-stuff .page.on .qp-mark > .qp-verdict');
+        return !!s && /^Not yet/.test(s.textContent) && s.closest('.qp-mark').classList.contains('is-near')
                && !/\d{1,2} [A-Z][a-z]{2}|Done/.test(s.textContent)
-               && !document.querySelector('#s-stuff .page.on .qcard .qcard-verdict, .qcard-done');
+               && !document.querySelector('#s-stuff .page.on .qcard-verdict, .qcard-done');
       },
-      wants: 'the question card\'s tile row saying "Not yet", with the turning arrow, beside the star — and no day anywhere',
+      wants: 'the box\'s own line saying "Not yet", with the turning arrow, and no slot beside the star — and no day anywhere',
       leave: () => {
         try {
           const all = JSON.parse(localStorage.getItem('subLast:' + window.__subWho) || '{}') || {};
           delete all[window.__subKey];
           localStorage.setItem('subLast:' + window.__subWho, JSON.stringify(all));
+          if (window.__subAns) ansStore_(window.__subAns, '');
         } catch (e) {}
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
       } },
@@ -701,6 +707,8 @@ const STATES = {
         let all = {};
         try { all = JSON.parse(localStorage.getItem('subLast:' + window.__subWho) || '{}') || {}; } catch (e) { all = {}; }
         all[window.__subKey] = { a: 'because it is', v: 'sent', at: Date.now(), id: '1760000000000-state1' };
+        /* THE BOX HOLDS WHAT WAS SENT, so its own line says the verdict (368: no slot beside the star) */
+        window.__subAns = ansKey_(it); try { ansStore_(window.__subAns, 'because it is'); } catch (e) {}
         try { localStorage.setItem('subLast:' + window.__subWho, JSON.stringify(all)); } catch (e) {}
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
@@ -708,17 +716,18 @@ const STATES = {
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it));
       },
       expect: () => {
-        const s = document.querySelector('#s-stuff .page.on .tile-row .qcard-verdict');
-        return !!s && s.textContent === 'Sent' && !s.classList.contains('is-right') && !s.classList.contains('is-near')
+        const s = document.querySelector('#s-stuff .page.on .qp-mark > .qp-verdict');
+        return !!s && /^Sent/.test(s.textContent) && !s.closest('.qp-mark').classList.contains('is-right') && !s.closest('.qp-mark').classList.contains('is-near')
                && !/\d{1,2} [A-Z][a-z]{2}|Done/.test(s.textContent)
-               && !document.querySelector('#s-stuff .page.on .qcard .qcard-verdict, .qcard-done');
+               && !document.querySelector('#s-stuff .page.on .qcard-verdict, .qcard-done');
       },
-      wants: 'the question card\'s tile row saying "Sent", no tick and no arrow, beside the star — and no day anywhere',
+      wants: 'the box\'s own line saying "Sent", no tick and no arrow, and no slot beside the star — and no day anywhere',
       leave: () => {
         try {
           const all = JSON.parse(localStorage.getItem('subLast:' + window.__subWho) || '{}') || {};
           delete all[window.__subKey];
           localStorage.setItem('subLast:' + window.__subWho, JSON.stringify(all));
+          if (window.__subAns) ansStore_(window.__subAns, '');
         } catch (e) {}
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
       } },
@@ -1631,7 +1640,7 @@ const STATES = {
       expect: () => {
         const inp = [...document.querySelectorAll('#s-stuff .qp-ans-in')].find(b => b.getAttribute('data-k') === window.__svKey);
         const line = [...document.querySelectorAll('#s-stuff .qp-saved')].find(b => b.getAttribute('data-k') === window.__svKey);
-        return !!inp && inp.value === '4.6' && !!line && /^Saved to .+account$/.test(line.textContent);
+        return !!inp && inp.value === '4.6' && !!line && line.textContent === '' && /^Saved to .+account$/.test(ansSavedWords_(window.__svKey));  // saved, and silent about it (368)
       },
       wants: 'Q0664\u2019s box filled with 4.6 from the account, and "Saved to \u2026\u2019s account" under it on one line',
       leave: () => {

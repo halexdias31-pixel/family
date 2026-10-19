@@ -110,7 +110,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-19-h-verse-offline";
+const BACKEND_VERSION = "2026-10-19-i-handles-email";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1373,6 +1373,12 @@ const MIGRATIONS = [
   { id: 'handles-initial-year',
     retry: true,
     what: 'every handle becomes first initial and the year they joined',
+    run: () => { const r = renameHandles_(); if (r && r.error) throw new Error(r.error); return r; } },
+
+  /* THE OWNER (372): first and last letter of the first name and the year joined. A new id, so it runs once more. */
+  { id: 'handles-first-last-year',
+    retry: true,
+    what: 'every handle becomes the first and last letter of the first name and the year they joined',
     run: () => { const r = renameHandles_(); if (r && r.error) throw new Error(r.error); return r; } },
 ];
 

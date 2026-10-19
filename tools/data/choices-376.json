@@ -1,0 +1,23 @@
+[
+  {"row_id": "Q-CBM-area-of-squares-and-rectangles-20",
+   "choices": ["Yes: two rectangles with the same area always have the same perimeter",
+               "No: 1 cm by 12 cm and 3 cm by 4 cm both have an area of 12 cm², but perimeters of 26 cm and 14 cm",
+               "No: two rectangles with the same area can never have the same perimeter",
+               "Yes: 2 cm by 6 cm and 3 cm by 4 cm both have an area of 12 cm², and the same perimeter"],
+   "right": [2], "strip": "<p>Yes / No</p>"},
+  {"row_id": "Q-CBM-words-and-figures-21",
+   "choices": ["Nothing: five thousand and four hundred is right",
+               "There should be no “and”: five thousand, four hundred",
+               "It needs a comma as well: five thousand, and four hundred",
+               "It should say hundred, not thousand: five hundred and four"],
+   "right": [2]},
+  {"row_id": "Q-CBM-words-and-figures-21c",
+   "choices": ["Nothing: seventy-nine thousand, thirty-two is right",
+               "There should be no comma: seventy-nine thousand thirty-two",
+               "“and” is missing: seventy-nine thousand and thirty-two",
+               "It should say hundred, not thousand: seven hundred and ninety-two"],
+   "right": [3]},
+  {"row_id": "Q-CBM-2d-shapes-5b",
+   "choices": ["3.8 cm", "5.2 cm", "8.6 cm", "12.4 cm"],
+   "right": [3]}
+]

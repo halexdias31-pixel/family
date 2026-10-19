@@ -62,6 +62,7 @@ const SUITE = [
   { file: 'check-library.js', what: 'the library: ids, marks, and the closed facet vocabulary' },
   /* ---------- AND HOW READY EACH PAPER IS, AS A REPORT § */
   { file: 'check-health.js', what: 'every paper\'s health score — a report; fails only if the scorer breaks' },
+  { file: 'check-qtypes.js', what: 'every question part one interaction type, every type a protocol — gaps a report' },
   /* ---------- THE ONE PIECE OF THIS APP THAT TELLS A CHILD THEY ARE WRONG § */
   { file: 'check-marking.js', what: 'a right answer marked right, a wrong one wrong' },
   /* ---------- AND WHETHER THE MATHS ON A CARD LOOKS LIKE MATHS § */
