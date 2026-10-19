@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-19-j-people-admin";
+  --css-version: "2026-10-19-i-ink";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -4745,17 +4745,6 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 /* THE FILLED VERSION IS WITH THE OTHER FILLED RULES, further down. It was declared twice — here
    with a .07 background and there with .09 — and the one you could see was never this one. */
 
-/* ---------- SEND IS A GOLD DISC, THE ANSWER BAR'S ONE ACTION § */
-.tile.is-send { width: 48px; height: 48px; border-radius: 50%;
-  background: var(--gold); border-color: var(--gold); color: var(--bg); }
-.tile.is-send .tile-i { width: 22px; height: 22px; stroke-width: 1.8; }
-.tile.is-send:active, .tile.is-send.is-pressed { background: var(--gold); border-color: var(--gold);
-  filter: brightness(.85); }
-/* SWITCHED OFF (no AI key on the server) IT LOSES THE DISC, like every disabled tile -- "nothing to
-   press here"; WAITING FOR THE MARKER IT KEEPS IT, with the busy ring in its own ink. */
-.tile.is-send[disabled] { background: none; border-color: var(--line); color: var(--dim); }
-.tile.is-send.is-busy { background: var(--gold); border-color: var(--gold); color: var(--bg); }
-
 /* ---------- SILVER MEANS ONLY YOU CAN SEE THIS § */
 /* ---------- AND IT IS YELLOW NOW, NOT SILVER § */
 /* THE TONE IS THE TOKEN, THINNED -- `color-mix` with `transparent` paints exactly what `rgb(242 210 75 / .07)` did, and names which colour it is. § */
@@ -5853,6 +5842,12 @@ button.scr-sq { cursor: pointer; }
   pointer-events: none; }
 .qpad.is-drawing .qpad-art { outline: 2px solid var(--gold); outline-offset: 4px;
                              border-radius: var(--r-sm); }
+/* PINCHED CLOSER (374, `padZoomPaint_`): the picture and its ink scaled together inside their own box, so nothing spills over the card */
+.qpad.is-zoomed .qpad-art { overflow: hidden; }
+.qpad.is-zoomed .qpad-art > svg { transform-origin: 0 0; transform: var(--pad-zoom); }
+/* YOUR INK STAYS ITS OWN WIDTH ON THE SCREEN however close the picture is pinched */
+.qpad.is-zoomed :is(.qpad-g, .qpad-was) path { stroke-width: calc(2.5px / var(--pad-zoom-s, 1)); }
+.qpad.is-zoomed .qpad-aid .qpad-pred { stroke-width: calc(2.5px / var(--pad-zoom-s, 1)); }
 /* GOLD, BECAUSE THE PAPER'S OWN INK IS `currentColor`. Your marks have to be visibly yours — a line
    of best fit in the same colour as the axis it crosses is a line you cannot check. */
 .qpad-g path { fill: none; stroke: var(--gold); stroke-width: 2.5;
@@ -5861,6 +5856,8 @@ button.scr-sq { cursor: pointer; }
 .qpad-aid path { fill: none; stroke: var(--gold); stroke-linecap: round; }
 .qpad-aid .qpad-pin { stroke-width: 7; }
 .qpad-aid .qpad-rad { stroke-width: 1.5; stroke-dasharray: 4 5; opacity: .85; }
+.qpad-aid .qpad-pred { stroke-width: 2.5; stroke-linejoin: round; }
+.wb .qpad-aid .qpad-pred { stroke: var(--paper-ink); }
 .qpad-aid .qpad-halo { fill: none; stroke: var(--gold); stroke-width: 1.5; opacity: .6; }
 /* ---------- THE LOUPE (357, `padLoupe_`) § */
 .pad-loupe { position: fixed; left: 0; top: 0; width: 128px; height: 128px; border-radius: 50%; overflow: hidden;
