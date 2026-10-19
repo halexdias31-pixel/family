@@ -8541,13 +8541,16 @@ function accountPages_() {
   const asItem_ = (t, kind) => ({
     kind: kind || 'tutor', name: t.title, key: t.title, sub: t.subtitle || '', image: t.image,
     cost: priced_(t.rate), off: t.listed === false, row: t, account: true,
+    more: typeof peopleTiles_ === 'function' ? peopleTiles_(t) : '',
   });
 
   /* ---------- A CARD OPEN FOR EDITING IS ITS OWN FORM, IN ITS OWN PLACE § */
   const editing_ = t => typeof cardEditing_ === 'function' && cardEditing_(t);
-  const withTiles_ = t => editing_(t) ? cardEditHtml_(t)
+  /* AN ADMIN'S PERSON FORM (373, me.js) TAKES THE CARD'S PLACE the same way, while it is open on them. */
+  const personForm_ = t => typeof personFormFor_ === 'function' ? personFormFor_(t) : '';
+  const withTiles_ = t => personForm_(t) || (editing_(t) ? cardEditHtml_(t)
     : (typeof findCard === 'function' ? findCard({ kind: 'tutor', row: t }) : '')
-    + (typeof cardTiles_ === 'function' ? cardTiles_(asItem_(t)) : '');
+    + (typeof cardTiles_ === 'function' ? cardTiles_(asItem_(t)) : ''));
 
   /* ---------- AND THE PRIVATE HALF WENT DARK WHEN BOOKING LEFT THE FUNNEL § */
   const me = [
@@ -8583,7 +8586,9 @@ function accountPages_() {
       role: famLabel_[f.relation] + (asTutor ? ' · ' + (asTutor.role || 'Tutor') : ''),
     });
     /* ---------- "NEW PIN" WAS HERE, ON YOUR CHILD'S CARD § */
-    return asTutor ? withTiles_(row) : (typeof findCard === 'function' ? findCard({ kind: 'tutor', row }) : '');
+    const more = typeof peopleTiles_ === 'function' ? peopleTiles_(row) : '';
+    return asTutor ? withTiles_(row) : personForm_(row) || (typeof findCard === 'function' ? findCard({ kind: 'tutor', row }) : '')
+      + (more ? `<div class="tile-row">${more}</div>` : '');
   });
 
   const others = (DATA.tutors || [])
@@ -8603,19 +8608,22 @@ function accountPages_() {
     .map(p => Object.assign({}, p, { activity: subsLine_(p.personId),
                                      role: (p.role || 'Client') + (p.handle ? '' : ' · no handle yet') }))
     /* AND "NEW PIN" BESIDE "MESSAGE" — the admin is who a child with no email and no linked parent goes to, and the only remedy was four digits typed into the sheet § */
-    .map(p => (typeof findCard === 'function' ? findCard({ kind: 'tutor', row: p }) : '')
+    .map(p => personForm_(p) || (typeof findCard === 'function' ? findCard({ kind: 'tutor', row: p }) : '')
       + (typeof tile_ === 'function' ? `<div class="tile-row">${tile_({ icon: 'chat',
           label: 'Message', note: 'a note to them', act: 'msg-open',
           data: { to: p.title, id: p.personId || '' } })}${p.personId ? tile_({ icon: 'key',
           label: 'New PIN', note: 'to sign in with', act: 'kid-pin',
-          data: { id: p.personId, name: String(p.title || '').split(' ')[0] } }) : ''}</div>` : ''));
+          data: { id: p.personId, name: String(p.title || '').split(' ')[0] } }) : ''}${
+          typeof peopleTiles_ === 'function' ? peopleTiles_(p) : ''}</div>` : ''));
 
   /* ---------- THE WRAPPER WENT WHEN THE PASS DID, AND LEAVING IT WOULD HAVE NESTED TWO CARDS § */
   /* ---------- AND WHILE THE PAYLOAD IS ON ITS WAY, THE COLUMN SAYS MORE IS COMING § */
   const coming = typeof awaiting_ === 'function' && awaiting_() ? [loading_()] : [];
   /* THE SETUP CARD, second, for an admin only (361) — `setupCard_` in me.js returns '' for anybody else. */
   const setup = typeof setupCard_ === 'function' ? [setupCard_()].filter(Boolean) : [];
-  return [me].concat(setup, claimPages, famPages, others, everyone, coming);
+  /* "+ ADD A PERSON", above everybody but you, for an admin only (373) — `peopleAddPage_` in me.js. */
+  const add = typeof peopleAddPage_ === 'function' ? [peopleAddPage_()].filter(Boolean) : [];
+  return [me].concat(setup, add, claimPages, famPages, others, everyone, coming);
 }
 
 /* ---------- HOW A LEARNER IS GETTING ON, IN ONE LINE UNDER THEIR NAME § */

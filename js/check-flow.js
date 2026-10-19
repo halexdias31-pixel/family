@@ -9925,6 +9925,146 @@ check('an admin sees everyone on the people column, and nobody else sees more th
   return bad;
 });
 
+/* "I MYSELF NEED TO BE ABLE TO ADD NEW PEOPLE … ADD OR DELETE OR EDIT PEOPLE FROM ADMIN ACCOUNT" (373): the "+" above everybody, its form, Edit and Delete. */
+check('an admin adds a person from the "+" above the people column, edits one and deletes one, each seen without a reload; nobody else is offered any of it', async () => {
+  const PIN = ['6', '1', '4', '8', '2', '7'].join('');
+  let hold = false, release = null;
+  const { w, sent } = boot({
+    /* THE PAYLOAD THAT `load()` ASKS FOR AFTER A SAVE IS HELD, so what the column shows is the reply's doing. */
+    serve: () => hold ? new Promise(res => { release = () => res(null); }) : undefined,
+    reply: b => b.action === 'personGet'
+      ? { success: true, parents: [{ personId: 'P-E2', name: 'Carl Handled' }],
+          person: b.targetId === 'P-E1' ? { personId: 'P-E1', firstName: 'Evie', lastName: 'Child', roles: ['student'], email: '',
+                                            dob: '2015-03-02', handle: 'evie_calm31', parentIds: ['P-E2'] } : null }
+      : b.action === 'personSave'
+        ? (b.targetId ? { success: true, made: false, person: { personId: b.targetId, title: b.firstName, handle: 'evie_calm31', role: 'Student', image: '' },
+                          first: b.firstName, handle: 'evie_calm31', pin: '' }
+                      : { success: true, made: true, person: { personId: 'P-NEW', title: b.firstName, handle: 'na2026', role: 'Student', image: '' },
+                          first: b.firstName, handle: 'na2026', pin: PIN })
+        : b.action === 'personDelete' ? { success: true, deleted: b.targetId } : { success: true } });
+  await wait(400);
+  const t = w.__t, d = w.document, bad = [];
+  /* `DATA` IS ASKED FOR EACH TIME — the `load()` after a save replaces it whole. */
+  if (!t.accountPages) return ['accountPages_ is not exported — cannot check the people column'];
+  const rows = () => [{ personId: 'P-E1', title: 'Evie', handle: 'evie_calm31', role: 'Student', image: '' },
+                      { personId: 'P-E2', title: 'Carl Handled', handle: 'carl_kind32', role: 'Client', image: '' }];
+  t.DATA().everyone = rows();
+  const all = () => t.accountPages().join('');
+  const draw = () => { try { t.go('account', false, true); w.paint('account'); } catch (e) { bad.push('drawing the people column threw: ' + e.message); } };
+  const col = () => d.querySelector('#s-account');
+  /* NOT AN ADMIN: no "+", no Edit, no Delete, and the doors do nothing — over a tutor and a parent who have ids to name. */
+  const tutors0 = t.DATA().tutors;
+  t.DATA().tutors = (tutors0 || []).slice(0, 1).map(x => Object.assign({}, x, { personId: 'P-TX', title: 'Tom Tutorid' }));
+  t.DATA().family = [{ personId: 'P-PX', title: 'Pip Parent', relation: 'parent', handle: 'pip_kind12', image: '' }];
+  t.DATA().familyFor = 'P-S';
+  t.USER({ name: 'Sam Student', personId: 'P-S', role: 'student', roles: ['student'], token: 'tk1' });
+  if (!/Tom Tutorid/.test(all()) || !/Pip Parent/.test(all())) bad.push('the student\'s column did not draw the tutor and parent this asks about');
+  if (/data-do="person-(add|edit|del)"/.test(all())) bad.push('a student is offered the admin\'s +, Edit or Delete');
+  t.USER({ name: 'Tia Tutor', personId: 'P-T', role: 'tutor', roles: ['tutor'], token: 'tk2' });
+  if (/data-do="person-(add|edit|del)"/.test(all())) bad.push('a tutor is offered the admin\'s +, Edit or Delete');
+  sent.length = 0;
+  const fake = d.createElement('button'); fake.setAttribute('data-id', 'P-E1');
+  ['person-add', 'person-edit', 'person-del', 'person-del-go'].forEach(a => { try { t.ACTIONS[a](fake); } catch (e) {} });
+  await wait(150);
+  if (sent.some(b => /^person/.test(b.action))) bad.push('a tutor pressing the admin\'s doors posted ' + sent.filter(b => /^person/.test(b.action)).map(b => b.action).join(', '));
+  if (/person-form/.test(all())) bad.push('a tutor pressing + was drawn the new-person form');
+
+  t.DATA().tutors = tutors0; delete t.DATA().family; delete t.DATA().familyFor;
+  /* AN ADMIN: the "+" once, after their own card and above everybody else; Edit and Delete on others, not on themselves. */
+  t.USER({ name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], token: 'tk' });
+  const pages = t.accountPages();
+  const at = pages.findIndex(h => /data-do="person-add"/.test(h)), evieAt = pages.findIndex(h => h.indexOf('>Evie<') !== -1);
+  if (pages.filter(h => /data-do="person-add"/.test(h)).length !== 1) bad.push('the admin\'s column does not have exactly one "+"');
+  if (!(at > 0 && evieAt > at)) bad.push('the "+" is at page ' + at + ', not after the admin\'s own card and above everybody (Evie at ' + evieAt + ')');
+  if (/data-do="person-(edit|del)"/.test(pages[0])) bad.push('the admin\'s own card offers Edit or Delete of themselves');
+  const evie = pages[evieAt] || '';
+  if (!/data-do="person-edit" data-id="P-E1"/.test(evie) || !/data-do="person-del" data-id="P-E1"/.test(evie)) bad.push('Evie\'s card has no Edit and Delete for the admin');
+  if (!/data-do="msg-open"/.test(evie) || !/data-do="kid-pin"/.test(evie)) bad.push('Edit and Delete pushed Message or New PIN off the card');
+
+  /* ADD: the form, then `personSave` with no target, then the slip and the new person in the list. */
+  draw();
+  await wait(200);
+  const plus = col() && col().querySelector('[data-do="person-add"]');
+  if (!plus) return bad.concat(['the "+" is not drawn on the people column']);
+  t.ACTIONS['person-add'](plus);
+  await wait(250);
+  let form = col().querySelector('.person-form');
+  if (!form) return bad.concat(['pressing + drew no form']);
+  if (!form.querySelector('[data-pf="first"]') || !form.querySelector('[data-pf="email"]') || !form.querySelector('[data-pf="dob"]')
+      || form.querySelectorAll('[data-pf-role]').length !== 4) bad.push('the new-person form lacks a name, email, date of birth or the four roles');
+  form.querySelector('[data-pf="first"]').value = 'Nia';
+  form.querySelector('[data-pf="last"]').value = 'Newby';
+  form.querySelector('[data-pf="parent"]').value = 'P-E2';
+  sent.length = 0;
+  hold = true;
+  t.ACTIONS['person-save'](form.querySelector('[data-do="person-save"]'));
+  await wait(300);
+  const add = sent.find(b => b.action === 'personSave');
+  if (!add || add.targetId || add.firstName !== 'Nia' || add.lastName !== 'Newby' || add.personId !== 'P-AD'
+      || JSON.stringify(add.roles) !== '["student"]' || JSON.stringify(add.parentIds) !== '["P-E2"]') bad.push('saving the new person posted ' + JSON.stringify(add));
+  const slip = col().querySelector('.person-made .pin-slip');
+  if (!slip || !/@na2026/.test(slip.textContent) || slip.textContent.indexOf(PIN) === -1) bad.push('after adding there is no slip with the handle and the PIN');
+  if (!t.accountPages().some(h => h.indexOf('>Nia<') !== -1)) bad.push('the new person is not on the column until a reload');
+  t.ACTIONS['person-cancel'](col().querySelector('.person-made [data-do="person-cancel"]'));
+  if (release) release();
+  hold = false;
+  await wait(300);
+  t.DATA().everyone = rows();
+
+  /* EDIT: the form filled in, the handle said to stay, and the new name drawn. */
+  draw();
+  await wait(200);
+  const ed = col().querySelector('[data-do="person-edit"][data-id="P-E1"]');
+  if (!ed) return bad.concat(['Evie has no Edit tile on the drawn column']);
+  sent.length = 0;
+  t.ACTIONS['person-edit'](ed);
+  await wait(300);
+  form = col().querySelector('.person-form[data-pid="P-E1"]');
+  if (!form) return bad.concat(['Edit drew no form in Evie\'s place']);
+  if (!sent.some(b => b.action === 'personGet' && b.targetId === 'P-E1')) bad.push('Edit did not ask for Evie\'s details');
+  if (form.querySelector('[data-pf="last"]').value !== 'Child' || form.querySelector('[data-pf="dob"]').value !== '2015-03-02'
+      || !form.querySelector('[data-pf-parent="P-E2"]:checked')) bad.push('the edit form is not filled in with Evie\'s name, birthday and parent');
+  if (!/handle stays @evie_calm31/.test(form.textContent)) bad.push('the edit form does not say the handle stays');
+  form.querySelector('[data-pf="first"]').value = 'Evangeline';
+  sent.length = 0;
+  hold = true;
+  t.ACTIONS['person-save'](form.querySelector('[data-do="person-save"]'));
+  await wait(300);
+  const sv = sent.find(b => b.action === 'personSave');
+  if (!sv || sv.targetId !== 'P-E1' || sv.firstName !== 'Evangeline') bad.push('saving the edit posted ' + JSON.stringify(sv));
+  if (!t.accountPages().some(h => h.indexOf('>Evangeline<') !== -1) || /person-form/.test(all())) bad.push('after the edit the column does not draw the new name, or the form stayed open');
+  if (release) release();
+  hold = false;
+  await wait(300);
+  t.DATA().everyone = rows();
+
+  /* DELETE: one step — asked first, then `personDelete`, then gone. */
+  draw();
+  await wait(200);
+  const del = col().querySelector('[data-do="person-del"][data-id="P-E2"]');
+  if (!del) return bad.concat(['Carl has no Delete tile on the drawn column']);
+  sent.length = 0;
+  t.ACTIONS['person-del'](del);
+  await wait(100);
+  if (sent.some(b => b.action === 'personDelete')) bad.push('Delete deleted before asking');
+  const title = (d.getElementById('sheet-title') || {}).textContent || '', body = (d.getElementById('sheet-body') || {}).textContent || '';
+  if (title !== 'Delete Carl?' || !/This can't be undone\./.test(body)) bad.push('Delete asked ' + JSON.stringify(title + ' / ' + body.trim()));
+  const yes = d.querySelector('#sheet-body [data-do="person-del-go"]');
+  if (!yes || !d.querySelector('#sheet-body [data-do="sheet-done"]')) return bad.concat(['the Delete sheet has no Delete and Cancel']);
+  hold = true;
+  t.ACTIONS['person-del-go'](yes);
+  await wait(300);
+  const gone = sent.find(b => b.action === 'personDelete');
+  if (!gone || gone.targetId !== 'P-E2' || gone.personId !== 'P-AD') bad.push('saying Delete posted ' + JSON.stringify(gone));
+  if (t.accountPages().some(h => h.indexOf('>Carl Handled<') !== -1)) bad.push('Carl is still on the column after being deleted');
+  if (release) release();
+  hold = false;
+  await wait(200);
+  delete t.DATA().everyone;
+  t.USER(null);
+  return bad;
+});
+
 check('every pager counts the pages its screen actually draws', async () => {
   /* ---------- THE BUG THIS IS WRITTEN FOR, AND IT HAS HAPPENED THREE TIMES § */
   const { w } = boot();
