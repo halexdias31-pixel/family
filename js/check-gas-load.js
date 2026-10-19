@@ -81,7 +81,8 @@ function backend(extra) {
     /* A NEW TAB HAS NO ROWS, so `appendRow` lands on row 1. § */
     insertSheet: n => { tabs[n] = []; gridOf[n] = { cols: 26, rows: 1000 }; return sheetOf(n); },
   };
-  const props = {};
+  /* THE HANDLE MOVE (364) IS MARKED DONE, so a fixture keeps the handles it was written with; check-handles runs `renameHandles_` itself, and a check deletes this key to see the job run. */
+  const props = { 'MIGRATED_handles-to-template': 'checks' };
   let out = null;
   const sandbox = {
     console, JSON, Math, Date, String, Number, Boolean, Array, Object, RegExp, Error, isNaN, isFinite,

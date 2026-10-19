@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-19-b-setup";
+const DOPOST_VERSION = "2026-10-19-c-handles";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -180,15 +180,16 @@ function doPost(e) {
         && p.rows.some(x => norm(x.email) === norm(r.to_email));
       if (!peopleNamed(S(body.newName)).length && !mailTaken) {
         const invFirst = S(body.newName).split(/\s+/)[0] || '';
+        const invId = 'P' + Date.now(), invLast = S(body.newName).split(/\s+/).slice(1).join(' ');
         addRow(p, {
           /* THE NAME IS SPLIT, because `full_name` is gone (see `SCHEMA.people`): the first word is
              the first name and the rest the last, which is how every row typed by hand reads. */
-          person_id: 'P' + Date.now(),
+          person_id: invId,
           first_name: invFirst,
-          last_name: S(body.newName).split(/\s+/).slice(1).join(' '),
+          last_name: invLast,
           /* A HANDLE, AS `register` GIVES ONE. This row had none, so every card drew the first name
              where the handle goes — `@Max` — and `Max` at the sign-in box was refused. */
-          handle: handleMake_(null, invFirst) || '',
+          handle: handleMake_({ person_id: invId, first_name: invFirst, last_name: invLast }) || '',
           email: S(r.to_email),
           role: 'client', came_from: 'invited', invited_by: S(r.from_person),
           joined_on: new Date(), listed: 'FALSE',
@@ -265,19 +266,19 @@ function doPost(e) {
         if (owner) inviter = S(owner.person_id) || personDisplayName(owner);
       }
 
-      /* BEFORE THE ROW EXISTS, so `handleMake_` is passed no row of the tab's: § */
-      const regHandle = handleMake_(asParent ? null : { role: 'student', first_name: first, last_name: last }, first);
+      /* BEFORE THE ROW EXISTS: a draft with the id it will have, so the template (364) can use it. */
+      const regId = 'P' + Date.now();
+      const regHandle = handleMake_({ person_id: regId, first_name: first, last_name: last });
       /* WITH NO ADDRESS THE HANDLE IS THE ONLY WAY IN, so an account the generator could not name
          would be an account nobody can sign in to. Said now, with nothing written. */
       if (!email && !regHandle) {
         return jsonOut({ error: 'No free handle could be made just now. Nothing was saved — try again.' });
       }
-      const regId = 'P' + Date.now();
       addRow(t, Object.assign({
         /* THE ROLE THEY CHOSE — see the note over this action. § */
         person_id: regId, role: asParent ? 'client' : 'student',
         first_name: first, last_name: last,
-        /* ---------- THE HANDLE IS GENERATED — first name, virtue, number — see `handleMake_` § */
+        /* THE HANDLE IS THE TEMPLATE (364) — see `handleMake_`. */
         handle: regHandle || '',
         email, pin, credits: 0, xp: 0,
         came_from: arrivedWith,
@@ -804,6 +805,8 @@ function doPost(e) {
 
       /* 3. ONE WRITE. `setCells` is `setCell` for a whole row: § */
       const wrote = setCells(t, r, put);
+      /* A BIRTHDAY JUST TYPED moves a handle made without one onto the template (364). */
+      if (dobSent && handleBirthdayMove_(t, r)) wrote.push('handle');
       /* AND WHAT WAITS BESIDE THE ROW. § */
       if (mailPlan === 'correct' || mailPlan === 'keep') authMoveDrop_(r);
       if (mailPlan === 'correct') authResetDrop_(r);
@@ -1931,38 +1934,6 @@ function doPost(e) {
       return jsonOut({ success: true, signedAt: at, version: version });
     }
 
-    /* ---------- A NEW WORD FOR YOUR OWN HANDLE § */
-    if (action === 'randomiseHandle') {
-      const t = read(TAB.people);
-      const lacking = ['handle', 'handle_was', 'handle_changed_at']
-        .filter(c => t.headers.indexOf(c) === -1);
-      if (lacking.length)
-        return jsonOut({ error: 'The sheet has no column for: ' + lacking.join(', ') + '. Run ?setup=1 — nothing was saved.' });
-      const want = key(body.personId);
-      const r = want ? t.rows.find(x => key(x.person_id) === want) : null;
-      if (!r) return jsonOut({ error: 'We could not find your account.' });
-      const was = S(r.handle);
-      /* A FULL HISTORY STOPS THE PRESS, IT DOES NOT LOSE ITS OLDEST (342, the review). § */
-      const hist = S(r.handle_was).split(',').map(x => x.trim()).filter(Boolean);
-      if (hist.length >= HANDLE_WAS_MAX) {
-        return jsonOut({ error: 'You have had ' + hist.length + ' handles — ask us if you want another. '
-                              + 'Nothing was changed.' });
-      }
-      const made = handleMake_(r, r.first_name, was);
-      if (!made) return jsonOut({ error: 'No free handle could be found just now. Nothing was changed '
-                                       + '— try again.' });
-      /* `handle_was` IS A HISTORY, newest first and kept whole — see `handleWasWith_`. § */
-      /* AND THE FACE THE OLD HANDLE DREW, in the same write, when nobody ever chose a look (`handleFaceKept_`, 342 round 2) — a blank look is drawn from the handle, so § */
-      setCells(t, r, Object.assign({ handle_was: handleWasWith_(r.handle_was, was) }, handleFaceKept_(t, r, was)));
-      setCells(t, r, { handle: made, handle_changed_at: new Date() });
-      /* AND EVERY FRIENDS LIST THAT NAMED THE OLD ONE (342) — it was left naming nobody, so a press of
-         this took the person off every friend's list without a word. */
-      if (was) handleFriendsMove_(t, { [key(was)]: made });
-      const avatar = S(r.avatar);
-      clearCache();
-      return jsonOut({ success: true, handle: made, was: was, avatar: avatar });
-    }
-
     /* ---------- A PARENT MAKES THEIR CHILD'S ACCOUNT § */
     if (action === 'makeChild') {
       const me = findPerson('', S(body.personId));
@@ -1996,11 +1967,10 @@ function doPost(e) {
         return jsonOut({ error: 'We could not make that account. If your child has one already, use "Add your '
                               + 'child" to ask them to link it — or ask us to help.' });
       }
-      /* A DRAFT OF THE ROW ABOUT TO BE WRITTEN, a student with both names — so it is a child's handle,
-         their initials and a tail (342), never their first name. */
-      const handle = handleMake_({ role: 'student', first_name: first, last_name: last }, first);
-      if (!handle) return jsonOut({ error: 'No free handle could be made just now. Nothing was saved — try again.' });
+      /* A DRAFT OF THE ROW ABOUT TO BE WRITTEN, for the template (364): never their surname, only its initial. */
       const kidId = 'P' + Date.now() + '-k';
+      const handle = handleMake_({ person_id: kidId, first_name: first, last_name: last });
+      if (!handle) return jsonOut({ error: 'No free handle could be made just now. Nothing was saved — try again.' });
       const kid = addRow(t, {
         person_id: kidId, role: 'student', first_name: first, last_name: last, handle: handle,
         email: '', pin: pin, credits: 0, xp: 0, came_from: 'parent', invited_by: S(me.person_id),

@@ -110,7 +110,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-19-b-setup";
+const BACKEND_VERSION = "2026-10-19-c-handles";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1264,7 +1264,6 @@ const RUNNABLE = {
   /* ---------- AND EVERY HANDLE THAT WAS NEVER THE GENERATED SHAPE, ONCE § */
   renameHandles:     () => renameHandles_(),
   /* ---------- AND EVERY CHILD'S HANDLE INTO INITIALS AND FOUR DIGITS, PREVIEWED FIRST (342) § */
-  kidHandles:        a => kidHandles(a),
   /* `seedPastPapers`, `seedALevelPapers`, `dropOldALevelPapers` and `ensureResourceIds` WERE HERE. § */
   /* The Colliers Wood landmarks, with their surveyed outlines. Safe to run whenever — a landmark
      already on the tab is left exactly as it is. */
@@ -1363,6 +1362,12 @@ const MIGRATIONS = [
     retry: true,
     what: 'the Sunday parent email is booked at weekly_digest_hour (9pm unless the config tab says otherwise)',
     run: () => digestKeepBooked_() || 'already booked at the right hour' },
+
+  /* EVERYBODY'S HANDLE BECOMES THE TEMPLATE THEY CAN WORK OUT ALONE (364); the old one stays a sign-in alias. */
+  { id: 'handles-to-template',
+    retry: true,
+    what: 'every handle becomes first initial, day of the month born, surname initial',
+    run: () => { const r = renameHandles_(); if (r && r.error) throw new Error(r.error); return r; } },
 ];
 
 /* ============================== POST ========================================================= */
@@ -1418,7 +1423,6 @@ const ACTION_ACCESS = {
   /* A FRESH CONFIRMATION LINK TO YOUR OWN ADDRESS. § */
   resendLink: 'self',
   /* A NEW WORD FOR YOUR OWN HANDLE. § */
-  randomiseHandle: 'self',
   /* The shop window is the business talking, so only the business may change it. */
   spotlight: 'admin',
   createCheckout: 'self', finalizePayment: 'self',

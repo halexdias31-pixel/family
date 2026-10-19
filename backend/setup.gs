@@ -113,134 +113,41 @@ function fillHandles() {
   return out;
 }
 
-/* EVERY HANDLE INTO THE NEW SHAPE — `?run=renameHandles`. § */
+/* EVERY HANDLE INTO THE TEMPLATE (364) — the `handles-to-template` migration, and `?run=renameHandles`. Rows in person-id order, so a clash always goes the same way; safe to repeat. */
 function renameHandles_() {
   const t = read(TAB.people);
   if (!t.sheet) return { error: 'no people tab' };
-  for (const col of ['handle']) {
-    if (t.headers.indexOf(col) === -1) {
-      return { error: 'the people tab has no ' + col + ' column. Open the site once as an admin first '
-                    + '— nothing was changed.' };
-    }
-  }
-  const keepWas = t.headers.indexOf('handle_was') !== -1;
-  const keepAt = t.headers.indexOf('handle_changed_at') !== -1;
-  const out = { renamed: [], leftAlone: 0, children: 0, couldNotGenerate: [] };
-  t.rows.forEach(r => {
-    const who = S(r.person_id) || '(a row with no id)';
-    const has = S(r.handle);
-    /* A CHILD'S HANDLE IS NOT THIS JOB'S (342). § */
-    if (isChild_(r)) { out.children++; return; }
-    /* SHAPED FOR THIS PERSON — a grown-up's arrangement, or the initials-and-tail of a grown-up who was
-       a child (`handleIsShaped_`): they keep it until they press Randomise. */
-    if (handleIsShaped_(has, r.first_name)) { out.leftAlone++; return; }
-    const made = handleMake_(r, undefined, has);
-    if (!made) { out.couldNotGenerate.push(who); return; }
-    /* THE HISTORY BEFORE THE HANDLE (342, the review): § */
-    const cells = {};
-    if (keepWas && has) cells.handle_was = handleWasWith_(r.handle_was, has);
-    /* AND THE FACE THE OLD HANDLE DREW, before the handle, when nobody chose a look (`handleFaceKept_`). */
-    Object.assign(cells, handleFaceKept_(t, r, has));
-    cells.handle = made;
-    if (keepAt) cells.handle_changed_at = new Date();
-    Object.keys(cells).forEach(c => setCell(t, r, c, cells[c]));
-    out.renamed.push(who);
-  });
-  clearCache();
-  out.renamedCount = out.renamed.length;
-  /* A PRIVATE GROWN-UP WHOSE HANDLE STILL CARRIES THEIR SURNAME (342) — by id, never moved here. */
-  out.surnameInHandle = handleSurnameIn_(t.rows);
-  out.means = 'every grown-up\'s handle that was not a first name and a virtue (with or without a number, in '
-            + 'any order) was regenerated and the old one put at the front of handle_was. Shaped '
-            + 'handles were left alone, so nobody signing in with a handle was moved. Children are '
-            + '?run=kidHandles\'s, and were not touched.';
-  return out;
-}
-
-/* EVERY CHILD'S HANDLE INTO THEIR INITIALS AND FOUR DIGITS — `?run=kidHandles`, PREVIEWED FIRST (342) § */
-function kidHandles(arg) {
-  const apply = norm(arg) === 'apply';
-  const t = read(TAB.people);
-  if (!t.sheet) return { error: 'no people tab' };
-  /* ALL THREE BEFORE ANYTHING, as `randomiseHandle` asks — a handle moved with nowhere to put the old one
-     is a child whose slip no longer signs them in. */
+  /* ALL THREE BEFORE ANYTHING — a handle moved with nowhere to put the old one is somebody whose slip no longer signs them in. */
   const lacking = ['handle', 'handle_was', 'handle_changed_at'].filter(c => t.headers.indexOf(c) === -1);
   if (lacking.length) {
     return { error: 'the people tab has no ' + lacking.join(', ') + ' column. Run ?setup=1 first '
                   + '— nothing was changed.' };
   }
-  const out = { mode: apply ? 'apply' : 'preview', children: 0, toMove: 0, leftAlone: 0,
-                signInByHandle: 0, figuresKept: 0, couldNotGenerate: [], rows: [],
-                inAnotherHistory: [], grownUpsSurnameInHandle: handleSurnameIn_(t.rows) };
-  const inOthers = (r, h) => !!key(h)
-    && t.rows.some(x => x !== r && S(x.handle_was).split(',').some(w => key(w) === key(h)));
+  const out = { renamed: 0, leftAlone: 0, longer: 0, noBirthday: 0, couldNotGenerate: [] };
+  const moves = {};
+  const order = t.rows.slice().sort((a, b) => (S(a.person_id) < S(b.person_id) ? -1 : S(a.person_id) > S(b.person_id) ? 1 : a._row - b._row));
   try {
-    t.rows.forEach(r => {
-      if (!isChild_(r)) return;
-      out.children++;
+    order.forEach(r => {
       const has = S(r.handle);
-      const who = S(r.person_id) || '(a row with no id)';
-      if (has && handleKidShaped_(has)) { out.leftAlone++; return; }
-      out.toMove++;
-      if (!S(r.email)) out.signInByHandle++;
-      if (inOthers(r, has)) out.inAnotherHistory.push(who);
-      if (!apply) {
-        if (handleFaceKept_(t, r, has).avatar) out.figuresKept++;
-        out.rows.push({ id: who, from: has,
-                        to: (handleInitials_(r.first_name, r.last_name) || HANDLE_FALLBACK) + '····' });
-        return;
-      }
-      const made = handleMake_(r, undefined, has);
-      if (!made) { out.couldNotGenerate.push(who); return; }
-      /* THE HISTORY FIRST, IN ITS OWN WRITE — see above. § */
-      const kept = handleFaceKept_(t, r, has);
-      setCells(t, r, Object.assign({ handle_was: handleWasWith_(r.handle_was, has) }, kept));
+      if (!handleDay_(r)) out.noBirthday++;
+      const made = handleTemplate_(r, want => handleTrouble_(want, r));
+      if (!made) { out.couldNotGenerate.push(S(r.person_id) || '(a row with no id)'); return; }
+      if (made !== handleCandidates_(r)[0]) out.longer++;
+      if (key(made) === key(has)) { out.leftAlone++; return; }
+      /* THE HISTORY FIRST, IN ITS OWN WRITE, and the face the old handle drew when nobody chose a look. */
+      if (has) setCells(t, r, Object.assign({ handle_was: handleWasWith_(r.handle_was, has) }, handleFaceKept_(t, r, has)));
       setCells(t, r, { handle: made, handle_changed_at: new Date() });
-      if (kept.avatar) out.figuresKept++;
-      out.rows.push({ id: who, from: has, to: made });
+      if (has) moves[key(has)] = made;
+      out.renamed++;
     });
-    if (apply) {
-      /* EVERY CHILD'S OLD HANDLES, whichever run moved them: § */
-      const had = {};
-      t.rows.forEach(r => {
-        [...new Set(S(r.handle_was).split(',').map(w => key(w)).filter(Boolean))]
-          .forEach(k => { (had[k] = had[k] || []).push(r); });
-      });
-      const moves = {};
-      Object.keys(had).forEach(k => {
-        const r = had[k].length === 1 ? had[k][0] : null;
-        if (r && isChild_(r) && S(r.handle) && !t.rows.some(x => key(x.handle) === k)) moves[k] = S(r.handle);
-      });
-      out.friendsMoved = handleFriendsMove_(t, moves);
-    }
+    out.friendsMoved = handleFriendsMove_(t, moves);
   } finally {
-    if (apply) clearCache();
+    clearCache();
   }
-  out.means = (apply
-    ? 'every child whose handle was not initials and four digits has one now; the old one is at the '
-      + 'front of handle_was and still signs them in, and is never given to anybody else. Grown-ups were not touched.'
-    : 'NOTHING WAS CHANGED. This is what &arg=apply would do: ' + out.toMove + ' of ' + out.children
-      + ' children moved to their initials and four digits (drawn when it runs), ' + out.signInByHandle
-      + ' of them signing in with the handle — their old one keeps working and they are told the new one '
-      + 'when they use it.')
-    /* THE FIGURE (round 2) — a blank look is drawn from the handle, so the move writes the old one's down. */
-    + ' ' + out.figuresKept + ' child(ren) had never chosen a look (figuresKept): the figure their old handle drew '
-    + (apply ? 'was' : 'will be') + ' written into their avatar cell, so moving the handle changes nobody\'s face.'
-    + (out.inAnotherHistory.length ? ' ' + out.inAnotherHistory.length + ' child(ren) in inAnotherHistory hold a '
-      + 'handle that is also on somebody else\'s handle_was — after the move typing it would be refused as two '
-      + 'accounts\', so take it off the other row\'s handle_was first.' : '')
-    + (out.grownUpsSurnameInHandle.length ? ' ' + out.grownUpsSurnameInHandle.length + ' grown-up(s) in '
-      + 'grownUpsSurnameInHandle have their surname in their handle, which is shown beside their first name — '
-      + 'not changed here; Randomise gives them one without it.' : '');
+  out.means = out.renamed + ' handle(s) moved to the template (first initial, day of the month born, surname '
+            + 'initial; no birthday: initials and the last two digits of the id). Each old handle is at the '
+            + 'front of handle_was and still signs in; ' + out.friendsMoved + ' friends list(s) moved.';
   return out;
-}
-
-/* ---------- A PRIVATE GROWN-UP WHOSE HANDLE CARRIES THEIR SURNAME (342, the review) § */
-function handleSurnameIn_(rows) {
-  const fold = v => String(v == null ? '' : v).toLowerCase().normalize('NFKD').replace(/[^a-z]/g, '');
-  return (rows || []).filter(r => !isChild_(r) && namePrivate_(r)
-      && fold(r.last_name).length >= 3 && fold(r.handle).indexOf(fold(r.last_name)) !== -1)
-    .map(r => S(r.person_id) || '(a row with no id)');
 }
 
 /** Add any config key that's missing. Never overwrites a value you've set. */

@@ -2416,7 +2416,7 @@ check('Settings holds only what is not on your card — a tutor\'s and an admin\
   const common = (who, d) => {
     const on = ['first_name', 'last_name', 'photo', 'lib1_name', 'lib1_no', 'lib1_pin'].filter(f => d.querySelector('#s-settings [data-me="' + f + '"]'));
     if (on.length) bad.push(who + '\'s Settings still has boxes their card or Tools now holds: ' + on.join(', '));
-    const moved = ['.pfp', '.handle-shown', '[data-do="handle-shuffle"]', '.av-card', '[data-do="av-pick"]', '.lib-face', '[data-do="shelf-more"]']
+    const moved = ['.pfp', '.handle-shown', '.av-card', '[data-do="av-pick"]', '.lib-face', '[data-do="shelf-more"]']
       .filter(q => d.querySelector('#s-settings ' + q));
     if (moved.length) bad.push(who + '\'s Settings still draws ' + moved.join(', ') + ' — the picture, the handle, the figure or a library card');
     if (!d.querySelector('#s-settings #pin-now') || !d.querySelector('#s-settings [data-do="pin-save"]')) bad.push(who + '\'s Settings lost the PIN form');
@@ -2478,9 +2478,9 @@ check('an admin edits another tutor\'s card the same way — filled from getProf
   if (!c.form() || c.card().dataset.pid !== 'P-T2') return bad.concat(['Edit on Ben\'s card did not open Ben\'s card as a form']);
   if (c.box('headline').value !== 'Physics, mostly') bad.push('Ben\'s form opened with the headline ' + JSON.stringify(c.box('headline').value));
   if (c.form().querySelector('.pfp, [data-do="pfp-pick"]')) bad.push('Ben\'s form offers the picture chooser, which would change the admin\'s own picture');
-  /* NOR THE ADMIN'S OWN FIGURE OR HANDLE — `saveAvatar` and `randomiseHandle` write the row the token resolves to,
+  /* NOR THE ADMIN'S OWN FIGURE OR HANDLE — `saveAvatar` writes the row the token resolves to,
      so on Ben's card they would dress and rename the admin (docs/history/339). */
-  if (c.form().querySelector('.av-card, [data-do="av-pick"], .handle-shown, [data-do="handle-shuffle"]')) bad.push('Ben\'s form offers a figure or a handle, which would change the admin\'s own');
+  if (c.form().querySelector('.av-card, [data-do="av-pick"], .handle-shown')) bad.push('Ben\'s form offers a figure or a handle, which would change the admin\'s own');
   if (!/Only Ben can change this picture/.test(c.form().textContent)) bad.push('Ben\'s form does not say why his picture is not offered');
   /* HIS FACE AS THE CARD DRAWS IT — `pfp:fox` is a token, and anything but `personFace_` draws it as a broken
      `<img src="pfp:fox">` (the review of 330, on the tree with fix-dp merged). */
@@ -2763,9 +2763,9 @@ check('every role\'s own card has Edit, with the sections their card prints: a t
       bad.push(who + '\'s figure section is not the wardrobe — one figure, the colours and the slots');
     const h = c.form().querySelector('.ce-sec[data-sec="handle"]');
     if (!h || (h.querySelector('.handle-shown') || {}).textContent !== c.t.whoami().handle
-        || h.querySelectorAll('.tile-row > .tile[data-do="handle-shuffle"]').length !== 1 || h.querySelector('input, .btn'))
-      bad.push(who + '\'s handle section is not their handle shown with one Randomise tile and nothing to type');
-    if (h && !/Cancel does not put the old one back/.test(h.textContent)) bad.push(who + '\'s handle section does not say a Randomise is saved at once and Cancel does not undo it');
+        || h.querySelector('[data-do="handle-shuffle"], input, .btn'))
+      bad.push(who + '\'s handle section is not their handle shown with nothing to press or type (364: no Randomise)');
+    if (h && !/first initial, the day of the month you were born/.test(h.textContent)) bad.push(who + '\'s handle section does not say how the handle is made, so nobody can work theirs out');
     if (!c.form().querySelector('.ce-sec[data-sec="picture"] .pfp [data-do="pfp-pick"]')) bad.push(who + ' is not offered the picture chooser on their own card');
     if (!c.box('first_name') || !c.box('last_name')) bad.push(who + ' cannot change their name on their own card');
     if (order === bare && c.form().querySelector('[data-me="date_of_birth"], [data-me="dob_d"], [data-me="email"], [data-me^="lib"]')) bad.push(who + '\'s card offers a box their card does not print');
@@ -2805,54 +2805,6 @@ check('every role\'s own card has Edit, with the sections their card prints: a t
   return bad;
 });
 
-/* ---------- THE HANDLE'S RANDOMISE, ON YOUR OWN CARD § */
-check('Randomise on your own card\'s Edit saves a new handle at once, shows it and the old one, and Cancel leaves it — saved, as the line says', async () => {
-  const W = cardWorld_();
-  const reply = b => (b.action === 'randomiseHandle' ? W.real.post(b) : W.reply(b));
-  const bad = [];
-  for (const [who, pid] of [['parent@example.org', 'P-C1'], ['tutor@example.org', 'P-T1']]) {
-    const c = await cardOpen_(W, who, { reply });
-    if (c.err) { bad.push(who + ': ' + c.err); continue; }
-    const was = c.t.whoami().handle;
-    const e = c.edit(pid);
-    if (!e) { bad.push(who + ' has no Edit on their own card'); continue; }
-    c.A('card-edit', e);
-    for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
-    const sec = c.form() && c.form().querySelector('.ce-sec[data-sec="handle"]');
-    const tile = sec && sec.querySelector('[data-do="handle-shuffle"]');
-    if (!tile) { bad.push(who + '\'s card has no Randomise'); continue; }
-    c.sent.length = 0;
-    W.holding = true;
-    c.A('handle-shuffle', tile);
-    await wait(400);
-    const asks = c.sent.filter(x => x.action === 'randomiseHandle');
-    const now = String(W.real.row(pid).handle || '');
-    if (asks.length !== 1) bad.push(who + '\'s Randomise posted ' + JSON.stringify(c.sent.map(x => x.action)) + ', wanted one randomiseHandle');
-    if (!now || now === was) bad.push(who + '\'s row still holds ' + JSON.stringify(now) + ' after Randomise');
-    if (c.t.whoami().handle !== now) bad.push(who + '\'s phone says @' + c.t.whoami().handle + ', the sheet @' + now);
-    const sec2 = c.form() && c.form().querySelector('.ce-sec[data-sec="handle"]');
-    if (!sec2 || (sec2.querySelector('.handle-shown') || {}).textContent !== now) bad.push(who + '\'s card form does not show the new handle @' + now);
-    if (!sec2 || !(new RegExp('You were @' + was)).test((sec2.querySelector('.handle-said') || {}).textContent || '')) bad.push(who + '\'s line under Randomise does not say the old handle @' + was);
-    if (!(new RegExp('@' + now)).test(c.toast())) bad.push(who + '\'s toast says ' + JSON.stringify(c.toast()) + ', not the new handle');
-    if (pid === 'P-T1') {
-      const row = (c.t.DATA().tutors || []).find(r => r.personId === 'P-T1');
-      if (!row || row.handle !== now) bad.push('Ada\'s row in the payload still says @' + (row && row.handle) + ' before the payload lands');
-    }
-    /* CANCEL: the form closes and the handle is the new one, on the card, the phone and the sheet. */
-    c.sent.length = 0;
-    c.A('card-cancel', c.tile('card-cancel'));
-    await wait(300);
-    if (c.card()) bad.push(who + '\'s Cancel did not close the form');
-    if (c.sent.some(x => x.action === 'randomiseHandle' || x.action === 'updateProfile')) bad.push(who + '\'s Cancel sent ' + JSON.stringify(c.sent.map(x => x.action)) + ' — there is nothing to put back');
-    if (c.t.whoami().handle !== now || String(W.real.row(pid).handle) !== now) bad.push(who + '\'s Cancel changed the handle back');
-    const pg = c.pageOf(pid);
-    if (!pg || !(new RegExp('@' + now)).test(pg.textContent) || (new RegExp('@' + was + '\\b')).test((pg.querySelector('.prof-handle') || {}).textContent || '')) bad.push(who + '\'s own card does not print @' + now + ' straight after Cancel');
-    W.holding = false;
-    W.release();
-    await wait(200);
-  }
-  return bad;
-});
 
 /* ---------- YOUR FIGURE, DRESSED ON YOUR OWN CARD, IS THE FIGURE YOUR PICTURE DRAWS § */
 check('your figure dressed on your own card\'s Edit is the figure your picture draws, saved as picked — and Cancel puts the look back', async () => {
@@ -2907,166 +2859,8 @@ check('your figure dressed on your own card\'s Edit is the figure your picture d
 
 /* ---------- THE REVIEW OF docs/history/339: WHAT ONE FORM FOR THE HANDLE, THE FIGURE AND THE BOXES COST § */
 
-/* SAVE WHILE RANDOMISE IS OUT. § */
-check('review 339: Save pressed while Randomise is on the wire waits in words and keeps the typing, and once it lands Save posts what was typed', async () => {
-  const bad = [];
-  for (const [who, pid, f, v] of [['parent@example.org', 'P-C1', 'last_name', 'Parenti'], ['tutor@example.org', 'P-T1', 'headline', 'Algebra, mostly']]) {
-    const W = cardWorld_();
-    let release = null;
-    const reply = b => (b.action === 'randomiseHandle' ? new Promise(ok => { release = () => ok(W.real.post(b)); }) : W.reply(b));
-    const c = await cardOpen_(W, who, { reply });
-    if (c.err) { bad.push(who + ': ' + c.err); continue; }
-    const e = c.edit(pid);
-    if (!e) { bad.push(who + ' has no Edit on their own card — NOT checked'); continue; }
-    c.A('card-edit', e);
-    for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
-    if (!c.box(f)) { bad.push(who + '\'s card form has no ' + f + ' box — NOT checked'); continue; }
-    c.type(c.box(f), v);
-    c.sent.length = 0;
-    c.A('handle-shuffle', c.form().querySelector('[data-do="handle-shuffle"]'));
-    await wait(150);
-    if (!release) { bad.push(who + '\'s Randomise sent ' + JSON.stringify(c.sent.map(x => x.action)) + ' — NOT checked'); continue; }
-    if (c.box(f).disabled) bad.push(who + '\'s ' + f + ' box is locked while Randomise is out — only the handle section should be');
-    c.A('card-save', c.tile('card-save'));
-    await wait(300);
-    if (!c.form()) bad.push(who + '\'s Save shut the card while Randomise was out (toast ' + JSON.stringify(c.toast()) + ')');
-    if (c.posts().length) bad.push(who + '\'s Save posted while Randomise was out: ' + JSON.stringify(c.posts().map(x => x.fields)));
-    if (!/handle is still changing/.test(c.toast())) bad.push(who + '\'s Save said ' + JSON.stringify(c.toast()) + ', not that the handle is still changing');
-    if (!c.drafts().length) bad.push(who + '\'s card draft was dropped by a Save that saved nothing');
-    release();
-    for (let k = 0; k < 30 && String(W.real.row(pid).handle) === String(c.u.handle); k++) await wait(100);
-    await wait(200);
-    if (!c.form() || !c.box(f) || c.box(f).value !== v) { bad.push(who + '\'s typed ' + f + ' is not on the card after Randomise landed (' + JSON.stringify(c.box(f) && c.box(f).value) + ')'); continue; }
-    c.sent.length = 0;
-    c.A('card-save', c.tile('card-save'));
-    for (let k = 0; k < 30 && c.card(); k++) await wait(100);
-    const posts = c.posts();
-    if (posts.length !== 1 || JSON.stringify(posts[0].fields) !== JSON.stringify({ [f]: v })) bad.push(who + '\'s Save after Randomise posted ' + JSON.stringify(posts.map(x => x.fields)) + ', wanted one updateProfile with ' + f + ' alone');
-    if (String(W.real.row(pid)[f]) !== v) bad.push(who + '\'s sheet holds ' + f + ' ' + JSON.stringify(String(W.real.row(pid)[f])) + ', typed ' + JSON.stringify(v));
-  }
-  return bad;
-});
 
-/* RANDOMISE WITH A FIRST NAME TYPED AND NOT SAVED. § */
-check('review 339: Randomise waits for a first name typed and not saved, says why, and after Save makes the handle from the new name', async () => {
-  const W = cardWorld_();
-  const reply = b => (b.action === 'randomiseHandle' ? W.real.post(b) : W.reply(b));
-  const c = await cardOpen_(W, 'parent@example.org', { reply });
-  if (c.err) return [c.err];
-  const bad = [];
-  c.A('card-edit', c.edit('P-C1'));
-  for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
-  if (!c.box('first_name')) return ['Pat\'s card has no first name box — NOT checked'];
-  c.type(c.box('first_name'), 'Quinn');
-  c.sent.length = 0;
-  const tile = () => c.form().querySelector('[data-do="handle-shuffle"]');
-  c.A('handle-shuffle', tile());
-  await wait(300);
-  if (c.sent.some(x => x.action === 'randomiseHandle')) bad.push('Randomise posted with "Quinn" typed and Pat on the sheet — the handle would be made from the old name');
-  const line = String((c.form().querySelector('.handle-said') || {}).textContent || '');
-  if (!/Save your new first name first/.test(line)) bad.push('the line under Randomise says ' + JSON.stringify(line) + ', not to save the new name first');
-  if (c.box('first_name').value !== 'Quinn') bad.push('the typed first name went: ' + JSON.stringify(c.box('first_name').value));
-  /* SAVED, AND EDIT AGAIN: now Randomise posts, and the handle starts with the new name. */
-  c.A('card-save', c.tile('card-save'));
-  for (let k = 0; k < 30 && c.card(); k++) await wait(100);
-  if (String(W.real.row('P-C1').first_name) !== 'Quinn') return bad.concat(['Save did not write Quinn (' + JSON.stringify(W.real.row('P-C1').first_name) + ') — the second half was NOT checked']);
-  c.A('card-edit', c.edit('P-C1'));
-  for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
-  c.sent.length = 0;
-  c.A('handle-shuffle', tile());
-  for (let k = 0; k < 30 && !/quinn/.test(String(W.real.row('P-C1').handle)); k++) await wait(100);
-  if (!/quinn/.test(String(W.real.row('P-C1').handle))) bad.push('after the name was saved, Randomise made ' + JSON.stringify(W.real.row('P-C1').handle) + ', not a handle from Quinn');
-  return bad;
-});
 
-/* A FIGURE NOBODY DRESSED IS DRAWN FROM THE HANDLE, so Randomise changed its skin and hair colour (it did on the base commit too, on another page); and Cancel § */
-check('review 339: Randomise keeps the face of a figure nobody dressed, and Cancel after Randomise and a pick puts back the face the card opened with — after a reload too', async () => {
-  const bad = [];
-  /* EACH HALF ON A FRESH SHEET, so each opens on a look nobody chose — after the first half's Randomise the look is
-     written out, and a Cancel that put a blank look back under the wrong handle would no longer show. */
-  const half = async (who, pid, pick) => {
-    const W = cardWorld_();
-    const reply = b => (['randomiseHandle', 'saveAvatar'].indexOf(b.action) !== -1 ? W.real.post(b) : W.reply(b));
-    const c = await cardOpen_(W, who, { reply });
-    if (c.err) { bad.push(who + ': ' + c.err); return; }
-    if (String(W.real.row(pid).avatar || '')) { bad.push(who + ' starts with a look of their own — NOT the case asked about'); return; }
-    const drawn = (cell, handle) => JSON.stringify(c.w.avatarConfig(cell, handle));
-    const me = () => c.t.whoami();
-    const face0 = drawn(me().avatar, me().handle || me().name);
-    const sheetFace = () => drawn(W.real.row(pid).avatar, W.real.row(pid).handle);
-    c.A('card-edit', c.edit(pid));
-    for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
-    const was = String(W.real.row(pid).handle);
-    c.A('handle-shuffle', c.form().querySelector('[data-do="handle-shuffle"]'));
-    for (let k = 0; k < 30 && String(W.real.row(pid).handle) === was; k++) await wait(100);
-    await wait(400);
-    if (String(W.real.row(pid).handle) === was) { bad.push(who + '\'s Randomise wrote nothing — NOT checked'); return; }
-    if (!pick) {
-      if (drawn(me().avatar, me().handle) !== face0) bad.push(who + '\'s face on the phone changed with the handle: ' + face0 + ' → ' + drawn(me().avatar, me().handle));
-      if (sheetFace() !== face0) bad.push(who + '\'s face on the sheet changed with the handle (what everybody else draws): ' + face0 + ' → ' + sheetFace());
-    } else {
-      const sw = c.form() && c.form().querySelector('.ce-sec[data-sec="figure"] [data-do="av-colour"][data-field="shirt"][data-value="3"]');
-      if (!sw) { bad.push(who + '\'s figure section has no shirt 3 — NOT checked'); return; }
-      c.A('av-colour', sw);
-      await wait(400);
-    }
-    /* CANCEL: after a Randomise alone, nothing to put back and nothing sent; after a pick, the face it opened with. */
-    c.sent.length = 0;
-    c.A('card-cancel', c.tile('card-cancel'));
-    for (let k = 0; k < 30 && c.card(); k++) await wait(100);
-    await wait(300);
-    if (!pick && c.sent.some(x => x.action === 'saveAvatar')) bad.push(who + '\'s Cancel after a Randomise alone sent a saveAvatar — the face had not changed');
-    if (drawn(me().avatar, me().handle) !== face0) bad.push(who + '\'s Cancel' + (pick ? ' after Randomise and a pick' : '') + ' left the phone drawing ' + drawn(me().avatar, me().handle) + ', opened with ' + face0);
-    if (sheetFace() !== face0) bad.push(who + '\'s Cancel' + (pick ? ' after Randomise and a pick' : '') + ' left the sheet drawing ' + sheetFace() + ', opened with ' + face0);
-    if (pick && !/figure too/.test(c.toast())) bad.push(who + '\'s Cancel said ' + JSON.stringify(c.toast()));
-  };
-  /* AND ACROSS A RELOAD (round 2 of the fixes for 339). § */
-  const reloaded = async (who, pid, end) => {
-    const W = cardWorld_();
-    const reply = b => (['randomiseHandle', 'saveAvatar'].indexOf(b.action) !== -1 ? W.real.post(b) : W.reply(b));
-    const c = await cardOpen_(W, who, { reply });
-    if (c.err) { bad.push(who + ' (reload, ' + end + '): ' + c.err); return; }
-    if (String(W.real.row(pid).avatar || '')) { bad.push(who + ' starts with a look of their own — NOT the case asked about'); return; }
-    const me = c.t.whoami();
-    const face0 = JSON.stringify(c.w.avatarConfig(me.avatar, me.handle || me.name));
-    const sheetFace = () => JSON.stringify(c.w.avatarConfig(W.real.row(pid).avatar, W.real.row(pid).handle));
-    c.A('card-edit', c.edit(pid));
-    for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
-    const was = String(W.real.row(pid).handle);
-    c.A('handle-shuffle', c.form().querySelector('[data-do="handle-shuffle"]'));
-    /* THE KEEP ANSWERED AND KEPT ON THE PHONE — the new handle and the written-out face both in `familyUser`, which is
-       what the reload starts from — not merely the handle written on the sheet. */
-    const kept = () => { try { return JSON.parse(c.w.localStorage.getItem('familyUser')) || {}; } catch (e) { return {}; } };
-    const landed = () => String(W.real.row(pid).handle) !== was && String(W.real.row(pid).avatar || '')
-      && String(kept().handle) === String(W.real.row(pid).handle) && String(kept().avatar || '') === String(W.real.row(pid).avatar);
-    for (let k = 0; k < 50 && !landed(); k++) await wait(100);
-    await wait(300);
-    if (!landed()) { bad.push(who + '\'s Randomise and its keep did not both land on the sheet and the phone (handle ' + JSON.stringify(W.real.row(pid).handle) + ', look ' + JSON.stringify(W.real.row(pid).avatar) + ') — NOT checked'); return; }
-    c.w.dispatchEvent(new c.w.Event('pagehide'));
-    const two = await cardOpen_(W, null, { before: fromStore_(keptStore_(c.w)), reply });
-    if (two.err) { bad.push(who + ' after the reload: ' + two.err); return; }
-    for (let k = 0; k < 30 && !two.form(); k++) await wait(100);
-    if (!two.form() || !two.tile('card-' + end)) { bad.push('after the reload ' + who + '\'s card is not open for editing — NOT checked'); return; }
-    two.sent.length = 0;
-    two.A('card-' + end, two.tile('card-' + end));
-    for (let k = 0; k < 30 && two.card(); k++) await wait(100);
-    await wait(300);
-    const me2 = two.t.whoami();
-    const phone = JSON.stringify(two.w.avatarConfig(me2.avatar, me2.handle || me2.name));
-    const looks = two.sent.filter(x => x.action === 'saveAvatar');
-    if (looks.length) bad.push(who + '\'s ' + end + ' after Randomise and a reload sent ' + looks.length + ' saveAvatar (' + JSON.stringify(looks.map(x => x.avatar)) + ') — the face had not changed');
-    if (phone !== face0) bad.push(who + '\'s ' + end + ' after Randomise and a reload left the phone drawing ' + phone + ', opened with ' + face0);
-    if (sheetFace() !== face0) bad.push(who + '\'s ' + end + ' after Randomise and a reload left the sheet drawing ' + sheetFace() + ', opened with ' + face0);
-    if (end === 'save' && two.toast() !== 'Your handle was saved as you chose it.') bad.push(who + '\'s Save with nothing typed after Randomise and a reload said ' + JSON.stringify(two.toast()) + ' — wanted the handle, and only the handle');
-  };
-  for (const [who, pid] of [['parent@example.org', 'P-C1'], ['tutor@example.org', 'P-T1']]) {
-    await half(who, pid, false);
-    await half(who, pid, true);
-    await reloaded(who, pid, 'cancel');
-  }
-  await reloaded('parent@example.org', 'P-C1', 'save');
-  return bad;
-});
 
 /* CANCEL WHILE A PICK IS OUT. § */
 check('review 339: Cancel pressed while a wardrobe pick is on the wire waits for it in words, and then puts the look back', async () => {
@@ -3108,63 +2902,18 @@ check('review 339: Cancel pressed while a wardrobe pick is on the wire waits for
   return bad;
 });
 
-/* A PICK WHILE THE FACE IS STILL BEING KEPT. § */
-check('review 339: a colour picked while Randomise is still keeping the face is the look the sheet ends with', async () => {
-  const W = cardWorld_();
-  let release = null, n = 0;
-  const reply = b => (b.action === 'randomiseHandle' ? W.real.post(b)
-    : b.action === 'saveAvatar' ? (n++ === 0 ? new Promise(ok => { release = () => ok(W.real.post(b)); }) : W.real.post(b))
-    : W.reply(b));
-  const c = await cardOpen_(W, 'parent@example.org', { reply });
-  if (c.err) return [c.err];
-  const bad = [];
-  if (String(W.real.row('P-C1').avatar || '')) return ['Pat starts with a look of her own — NOT the case asked about'];
-  const drawn = (cell, handle) => c.w.avatarConfig(cell, handle);
-  const face0 = drawn(c.t.whoami().avatar, c.t.whoami().handle);
-  c.A('card-edit', c.edit('P-C1'));
-  for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
-  const was = String(W.real.row('P-C1').handle);
-  c.A('handle-shuffle', c.form().querySelector('[data-do="handle-shuffle"]'));
-  for (let k = 0; k < 30 && !release; k++) await wait(100);
-  if (!release) return ['Randomise sent no keep of the face (' + JSON.stringify(c.sent.map(x => x.action)) + ') — NOT checked'];
-  if (String(W.real.row('P-C1').handle) === was) return ['Randomise wrote no new handle — NOT checked'];
-  await wait(200);
-  const sw = c.form() && c.form().querySelector('.ce-sec[data-sec="figure"] [data-do="av-colour"][data-field="shirt"][data-value="3"]');
-  if (!sw) return ['Pat\'s figure section has no shirt 3 — NOT checked'];
-  c.A('av-colour', sw);
-  await wait(400);
-  /* THE KEEP FINISHES LAST, if the pick went beside it. */
-  release();
-  for (let k = 0; k < 30 && !/shirt:3/.test(String(W.real.row('P-C1').avatar)); k++) await wait(100);
-  await wait(300);
-  const sheet = drawn(W.real.row('P-C1').avatar, W.real.row('P-C1').handle);
-  const phone = drawn(c.t.whoami().avatar, c.t.whoami().handle);
-  if (Number(sheet.shirt) !== 3) bad.push('the sheet ends in shirt ' + sheet.shirt + ' (' + JSON.stringify(W.real.row('P-C1').avatar) + ') — the keep, finishing last, put the shirt picked after it back');
-  if (Number(phone.shirt) !== 3) bad.push('the phone ends in shirt ' + phone.shirt + ', picked 3');
-  if (sheet.skin !== face0.skin || sheet.hairColour !== face0.hairColour) bad.push('the sheet\'s face is not the face the card opened with: skin ' + sheet.skin + ' hair ' + sheet.hairColour + ', opened skin ' + face0.skin + ' hair ' + face0.hairColour);
-  const order = c.sent.filter(x => x.action === 'saveAvatar').map(x => Number(x.avatar && x.avatar.shirt));
-  if (JSON.stringify(order) !== '[0,3]') bad.push('the looks went to the server as ' + JSON.stringify(order) + ', wanted the keep (shirt 0) and then the pick (shirt 3)');
-  return bad;
-});
 
-/* SAVE WITH NOTHING TYPED, AFTER A SECTION SAVED ITSELF. "Nothing had changed" after a Randomise, a pick or a picture
+/* SAVE WITH NOTHING TYPED, AFTER A SECTION SAVED ITSELF. "Nothing had changed" after a pick or a picture
    read as if the press had been thrown away — and for a parent three of her four sections are those. */
-check('review 339: Save with nothing typed after a Randomise, a pick or a picture says what was saved, not "Nothing had changed"', async () => {
+check('review 339: Save with nothing typed after a pick or a picture says what was saved, not "Nothing had changed"', async () => {
   const W = cardWorld_();
-  const reply = b => (['randomiseHandle', 'saveAvatar', 'savePhoto'].indexOf(b.action) !== -1 ? W.real.post(b) : W.reply(b));
+  const reply = b => (['saveAvatar', 'savePhoto'].indexOf(b.action) !== -1 ? W.real.post(b) : W.reply(b));
   const c = await cardOpen_(W, 'parent@example.org', { reply });
   if (c.err) return [c.err];
   const bad = [];
   const open = async () => { c.A('card-edit', c.edit('P-C1')); for (let k = 0; k < 30 && !c.form(); k++) await wait(100); return !!c.form(); };
   const save = async () => { c.A('card-save', c.tile('card-save')); for (let k = 0; k < 30 && c.card(); k++) await wait(100); return c.toast(); };
   if (!(await open())) return ['Pat\'s card did not open — NOT checked'];
-  const was = String(W.real.row('P-C1').handle);
-  c.A('handle-shuffle', c.form().querySelector('[data-do="handle-shuffle"]'));
-  for (let k = 0; k < 30 && String(W.real.row('P-C1').handle) === was; k++) await wait(100);
-  await wait(300);
-  let said = await save();
-  if (/Nothing had changed/.test(said) || !/handle was saved/.test(said)) bad.push('Save after a Randomise said ' + JSON.stringify(said));
-  if (!(await open())) return bad.concat(['Pat\'s card did not open again — NOT checked']);
   const sw = c.form().querySelector('.ce-sec[data-sec="figure"] [data-do="av-colour"][data-field="shirt"][data-value="5"]');
   const fox = c.form().querySelector('.pfp [data-do="pfp-choose"][data-pic="fox"]');
   if (!sw || !fox) return bad.concat(['no shirt 5 or no fox on Pat\'s form — NOT checked']);
@@ -3172,7 +2921,7 @@ check('review 339: Save with nothing typed after a Randomise, a pick or a pictur
   c.A('pfp-choose', fox);
   for (let k = 0; k < 30 && String(W.real.row('P-C1').photo) !== 'pfp:fox'; k++) await wait(100);
   await wait(300);
-  said = await save();
+  let said = await save();
   if (!/picture and figure were saved/.test(said)) bad.push('Save after a pick and a picture said ' + JSON.stringify(said));
   if (!(await open())) return bad.concat(['Pat\'s card did not open a third time — NOT checked']);
   said = await save();
@@ -24648,22 +24397,8 @@ async function heldProfileOpen_(b, chips) {
   if (!held) throw new Error('myProfile was never asked at open, so the race was NOT set up');
   return { w, t: w.__t, d: w.document, errs, release: () => release() };
 }
-function shuffleTile_(d) {
-  const card = d.createElement('div'); card.className = 'card';
-  card.innerHTML = '<span class="handle-shown"></span><button data-do="handle-shuffle"></button><p class="handle-said"></p>';
-  d.body.appendChild(card);
-  return card.querySelector('button');
-}
 const serverCell_ = (b, pid, col) => JSON.parse(b.ev('JSON.stringify(String(read(TAB.people).rows.find(r => r.person_id === '
   + JSON.stringify(pid) + ').' + col + ' || ""))'));
-async function pressShuffle_(t, tile, n) {
-  for (let i = 0; i < n; i++) {
-    const before = String((t.whoami() || {}).handle);
-    t.ACTIONS['handle-shuffle'](tile);
-    for (let k = 0; k < 60 && String((t.whoami() || {}).handle) === before; k++) await wait(100);
-    await wait(300);
-  }
-}
 const chipsOf_ = w => { try { return JSON.parse(w.localStorage.getItem('familyHandles') || '[]'); } catch (e) { return ['(unreadable)']; } };
 
 check('a child who signs in on the family iPad with her moved handle: its chip becomes the new one, so the next tap says nothing', async () => {
@@ -24706,35 +24441,6 @@ check('a phone that learns a moved handle from myProfile swaps the old chip for 
   return JSON.stringify(chips) !== JSON.stringify(['cd4567', 'ej2345', 'ab3456'])
     ? ['the phone calls her @ej2345 but the device\'s chips are ' + JSON.stringify(chips) + ' — wanted the old one replaced where it was'] : [];
 });
-check('a myProfile asked at open and answered after TWO Randomise presses keeps the handle the server has', async () => {
-  let b, o;
-  try { b = movedWorld3_(); o = await heldProfileOpen_(b, ['ej2345']); } catch (e) { return [e.message]; }
-  const tile = shuffleTile_(o.d);
-  const seen = [String(o.t.whoami().handle)];
-  await pressShuffle_(o.t, tile, 1); seen.push(String(o.t.whoami().handle));
-  await pressShuffle_(o.t, tile, 1); seen.push(String(o.t.whoami().handle));
-  const server = serverCell_(b, 'P-EJ', 'handle');
-  if (seen[2] !== server || seen[1] === seen[0]) return ['the two presses did not land as asked, so the race was NOT set up — ' + JSON.stringify(seen) + ' / server ' + server];
-  o.release(); await wait(1500);
-  const u = o.t.whoami() || {}, bad = [];
-  if (String(u.handle) !== server) bad.push('the presses gave ' + JSON.stringify(seen) + '; the myProfile asked at open landed after them and the phone says @' + u.handle + ' while the server has @' + server);
-  const chips = chipsOf_(o.w);
-  if (JSON.stringify(chips) !== JSON.stringify([server])) bad.push('the device\'s chip did not follow Randomise — ' + JSON.stringify(chips) + ', the server has @' + server);
-  if (o.errs.length) bad.push('errors: ' + o.errs.slice(0, 3).join(' | '));
-  return bad;
-});
-check('a myProfile asked at open and answered after one Randomise press keeps the new handle', async () => {
-  let b, o;
-  try { b = movedWorld3_(); o = await heldProfileOpen_(b); } catch (e) { return [e.message]; }
-  const tile = shuffleTile_(o.d);
-  const was = String(o.t.whoami().handle);
-  await pressShuffle_(o.t, tile, 1);
-  const server = serverCell_(b, 'P-EJ', 'handle');
-  if (server === was) return ['Randomise never landed, so the race was NOT set up'];
-  o.release(); await wait(1500);
-  const u = o.t.whoami() || {};
-  return String(u.handle) !== server ? ['after one press the phone says @' + u.handle + ', the server @' + server + ' — the reply asked before the press put the old handle back'] : [];
-});
 check('a myProfile asked at open and answered after a friend is added keeps the new friend', async () => {
   let b, o;
   try { b = movedWorld3_(); o = await heldProfileOpen_(b); } catch (e) { return [e.message]; }
@@ -24753,10 +24459,10 @@ check('a myProfile asked at open and answered after a friend is added keeps the 
 });
 
 /* ---------- AFTER REVIEW, ROUND 2 (docs/history/342): A FIGURE NOBODY DRESSED KEEPS ITS FACE § */
-check('a figure nobody dressed keeps its face when her handle moves: Randomise, and a phone that learns the move from myProfile', async () => {
+check('a figure nobody dressed keeps its face when her handle moves: a phone that learns the move from myProfile', async () => {
   const bad = [];
   const faceIn = (w, packed, handle) => { const c = w.avatarConfig(packed, handle); return [c.skin, c.hairColour, c.hair, c.legs].join('/'); };
-  /* THE MOVE, AS `?run=kidHandles` LEAVES IT: the old handle's look written into her blank cell. */
+  /* THE MOVE, AS `renameHandles_` LEAVES IT: the old handle's look written into her blank cell. */
   let b;
   try { b = movedWorld3_(); } catch (e) { return ['the real backend could not be built — ' + e.message]; }
   const kept = JSON.parse(b.ev('JSON.stringify(handleFaceKept_(read(TAB.people), { avatar: "" }, "ella_kind42").avatar || "")'));
@@ -24777,30 +24483,7 @@ check('a figure nobody dressed keeps its face when her handle moves: Randomise, 
     bad.push('after myProfile moved her handle the phone draws her with ' + JSON.stringify(u1.avatar || '(a blank look)') + ' on @' + u1.handle
       + ' — a different figure from the one @ella_kind42 drew; the server kept ' + JSON.stringify(kept));
   }
-  /* RANDOMISE, ON A BLANK LOOK. */
-  let b2;
-  try { b2 = movedWorld3_(); } catch (e) { return bad.concat(['the real backend could not be built — ' + e.message]); }
-  const s2 = b2.post({ action: 'verifyLogin', email: 'ej2345', name: 'ej2345', pin: '0000' });
-  const two = boot({ payload: b2.get({ token: s2.token }), reply: body => b2.post(body),
-    before: win => win.localStorage.setItem('familyUser', JSON.stringify(s2)) });
-  for (let k = 0; k < 80 && !two.w.__t; k++) await wait(100);
-  if (!two.w.__t) return bad.concat(['the app did not finish loading for Randomise']);
-  await wait(800);
-  const face0 = faceIn(two.w, '', 'ej2345');
-  await pressShuffle_(two.w.__t, shuffleTile_(two.w.document), 1);
-  const u2 = two.w.__t.whoami() || {};
-  const cell = serverCell_(b2, 'P-EJ', 'avatar');
-  if (String(u2.handle) === 'ej2345') bad.push('Randomise never landed, so its face was NOT asked');
-  else {
-    if (!cell || faceIn(two.w, cell, String(u2.handle)) !== face0) bad.push('Randomise left the server drawing a different figure: ' + JSON.stringify(cell));
-    /* THE FACE, NOT THE STRING: after the merge with `fix-card-settings` its `avatarKeep_` may write the same look
-       in its own packing order. Blank is the fault — the new handle's colours. */
-    if (!String(u2.avatar || '').trim() || faceIn(two.w, u2.avatar, u2.handle) !== face0) {
-      bad.push('after Randomise the phone draws her with ' + JSON.stringify(u2.avatar || '(a blank look)') + ' on @' + u2.handle
-        + ' — the server kept ' + JSON.stringify(cell) + ', the face @ej2345 drew');
-    }
-  }
-  if (one.errs.length || two.errs.length) bad.push('errors: ' + one.errs.concat(two.errs).slice(0, 3).join(' | '));
+  if (one.errs.length) bad.push('errors: ' + one.errs.slice(0, 3).join(' | '));
   return bad;
 });
 
