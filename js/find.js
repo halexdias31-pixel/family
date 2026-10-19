@@ -3743,6 +3743,8 @@ function markRule_(typed, rule) {
 }
 
 function markAnswer_(typed, accept, again) {
+  /* ONE BOX PER VALUE hands the values as a list (362): read as the comma list the scheme writes. */
+  if (Array.isArray(typed)) typed = typed.map(v => String(v == null ? '' : v).trim()).filter(Boolean).join(', ');
   const t = markNorm_(typed);
   if (!t) return null;                              /* nothing typed is not a wrong answer */
   /* A `rule:` WAY IS TESTED, NOT MATCHED (markRule_); the other ways are matched as before. */
@@ -4159,6 +4161,109 @@ on('qp-cells-check', el => {
   subRecord_(box.getAttribute('data-k'), vals.join(' ; '), all ? 'right' : 'wrong');
 });
 
+/* "and" parts values only between numbers or letters ("36 and 48", "C and D"), never "two hundred and nine" */
+function multiSplit_(s) {
+  return [].concat(...String(s).split(/\s*,\s*/).map(v => (/\d|^[a-z]{1,2}\s+(and|&)\s+[a-z]{1,2}$/i.test(v)
+    ? v.replace(/^and\s+/i, '').split(/\s+and\s+|\s*&\s*/) : [v])));
+}
+/* ---------- ONE BOX PER VALUE (362): an answer of several values gets a box each, not one box and commas to type. */
+/* How many, from `accept`: a rule's `count N`, a `set`'s groups, a way's comma list; a rule with no count grows a box at a time. */
+function multiOf_(x) {
+  const all = String((x && x.accept) || '').split('|').map(w => w.trim()).filter(Boolean);
+  const ways = all.filter(w => !/^rule:/i.test(w));
+  for (const r of all.filter(w => /^rule:/i.test(w))) {
+    const body = r.replace(/^rule:\s*/i, '');
+    const set = /(?:^|,)\s*set\s+([^,]+)/.exec(body);
+    if (set) return { n: set[1].split('/').length, words: true, wrap: '', labels: [] };
+    const c = /(?:^|,)\s*count\s+(\d+)/.exec(body);
+    if (c && +c[1] >= 2) return { n: +c[1], wrap: '', labels: [] };
+    if (!c) return { n: 0, grow: true, wrap: '', labels: [] };
+  }
+  /* a way splits only into short values: never a thousands comma (1,000) or a sentence */
+  const split = w => {
+    const p = /^\((.*)\)$/.exec(w), s = p ? p[1] : w;
+    if (/\d,\d{3}(?!\d)/.test(s) || !/,|\sand\s|&/.test(s)) return null;
+    const parts = multiSplit_(s);
+    if (parts.length < 2 || parts.some(v => !/^[-a-z]{0,2}\s*=?\s*[-\d.\/£$%°a-z²³√π ]{1,14}$/i.test(v) || v.split(' ').length > 3)) return null;
+    return { parts: parts, wrap: p ? '()' : '' };
+  };
+  const first = ways.length ? split(ways[0]) : null;
+  if (!first || first.parts.length > 16 || ways.map(split).some(g => g && g.parts.length !== first.parts.length)) return null;
+  return { n: first.parts.length, wrap: first.wrap, labels: first.parts.map(v => (/^([a-z])\s*=/i.exec(v) || [])[1] || '') };
+}
+/* A SAVED ANSWER INTO ITS BOXES — an old one typed with commas too: brackets and `x =` off, split at the commas. */
+function multiVals_(val, m) {
+  let s = String(val == null ? '' : val).trim();
+  if (m.wrap) s = s.replace(/^\((.*)\)$/, '$1');
+  const out = s ? multiSplit_(s).map((v, i) => (m.labels[i] ? v.replace(new RegExp('^' + m.labels[i] + '\\s*=\\s*', 'i'), '') : v)) : [];
+  return out;
+}
+/* AND THE BOXES INTO ONE ANSWER: what the marker and the account receive, written as the scheme writes it. */
+function multiJoin_(vals, m) {
+  const v = vals.map(s => String(s == null ? '' : s).trim());
+  while (v.length && !v[v.length - 1]) v.pop();
+  if (!v.length) return '';
+  const s = v.map((s, i) => (m.labels[i] ? m.labels[i] + ' = ' + s : s)).join(', ');
+  return m.wrap ? '(' + s + ')' : s;
+}
+function multiField_(k, i, v, kind, signs, label) {
+  return kpField_(k + '#' + i, v, kind, signs, 'Answer ' + (i + 1))
+    .replace('data-do="qp-ans"', `data-do="qp-multi" data-n="${i}" data-mk="${esc(k)}"`);
+}
+function multiBoxes_(x, k, val, m, maths, signs) {
+  const vals = multiVals_(val, m);
+  const n = m.grow ? vals.filter(Boolean).length + 1 : m.n;
+  const kind = m.words || !maths ? 'words' : 'maths';
+  const one = i => `<label class="qp-ans qp-multi-f">${m.labels[i] ? `<span class="qp-multi-l">${esc(m.labels[i])} =</span>` : ''}${
+    multiField_(k, i, vals[i] || '', kind, signs)}</label>`;
+  const boxes = [];
+  for (let i = 0; i < n; i++) boxes.push(one(i));
+  /* the joined answer, first in the box, is what Check, Send and every verdict painter read as `.qp-ans-in` */
+  return `<div class="qp-multi${m.wrap ? ' is-pair' : ''}" data-mk="${esc(k)}" data-m="${esc(JSON.stringify(m))}" data-kind="${kind}"${
+    signs ? ' data-signs="1"' : ''}${m.grow ? ' data-grow="1"' : ''}><input type="hidden" class="qp-ans-in qp-multi-val" data-do="qp-ans" data-k="${esc(k)}" value="${esc(multiJoin_(vals, m))}">${boxes.join('')}</div>`;
+}
+const multiIns_ = box => [].slice.call(box.querySelectorAll('.kp-in[data-do="qp-multi"]'));
+/* EVERY KEY IN A BOX: the joined answer kept under the question's own key, and a filled last box grows another where the count is open. */
+document.addEventListener('input', e => {
+  const el = e.target && e.target.closest && e.target.closest('[data-do="qp-multi"]');
+  const box = el && el.closest('.qp-multi');
+  if (!box) return;
+  let m;
+  try { m = JSON.parse(box.getAttribute('data-m')); } catch (err) { return; }
+  const ins = multiIns_(box), all = box.querySelector('.qp-multi-val');
+  const v = multiJoin_(ins.map(i => i.value), m);
+  if (all) all.value = v;
+  ansStore_(box.getAttribute('data-mk') || '', v);
+  if (box.hasAttribute('data-grow') && ins.length && ins[ins.length - 1] === el && el.value.trim()) {
+    const at = document.createElement('div');
+    const kind = box.getAttribute('data-kind');
+    at.innerHTML = `<label class="qp-ans qp-multi-f">${multiField_(box.getAttribute('data-mk'), ins.length, '', kind, box.hasAttribute('data-signs'))}</label>`;
+    box.appendChild(at.firstChild);
+  }
+  const mark = box.closest('.qp-mark');
+  if (mark && all && typeof subVerdictPaint_ === 'function') subVerdictPaint_(mark, all);
+});
+/* AN ANSWER ARRIVING FROM ANOTHER DEVICE OR TAB (answers.js) lands on the joined value; its boxes take it too. */
+function multiFill_(all) {
+  const box = all && all.closest && all.closest('.qp-multi');
+  if (!box) return;
+  let m;
+  try { m = JSON.parse(box.getAttribute('data-m')); } catch (err) { return; }
+  const vals = multiVals_(all.value, m);
+  multiIns_(box).forEach((inp, i) => {
+    if (inp.value === (vals[i] || '')) return;
+    inp.value = vals[i] || '';
+    if (typeof kpRender_ === 'function') kpRender_(inp);
+  });
+}
+/* THE BOX AFTER THIS ONE, for ✓ and the comma key on the pad: one tap from box to box. */
+function multiNext_(inp) {
+  const box = inp && inp.closest && inp.closest('.qp-multi');
+  if (!box) return null;
+  const ins = multiIns_(box), i = ins.indexOf(inp);
+  return i >= 0 && i < ins.length - 1 ? ins[i + 1] : null;
+}
+
 function ansBox_(x) {
   if (x && Array.isArray(x.choices) && x.choices.length >= 2) return choiceBox_(x);
   if (cellsOf_(x).length) return cellsBox_(x);
@@ -4201,7 +4306,9 @@ function ansBox_(x) {
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
   </div>${ai ? `<p class="qp-ai-why">${own ? esc(own.why) : ''}</p>` : ''}`;
   }
-  const bar = `<div class="qp-ans-row qp-bar"><label class="qp-ans${maths ? ' qp-ans-maths' : ''}" aria-label="Your answer">
+  const many = can ? multiOf_(x) : null;
+  const bar = many ? `<div class="qp-ans-row qp-bar qp-multi-bar">${multiBoxes_(x, k, val, many, maths, signs)}${fig}${send}</div>`
+    : `<div class="qp-ans-row qp-bar"><label class="qp-ans${maths ? ' qp-ans-maths' : ''}" aria-label="Your answer">
     ${kpField_(k, val, maths ? 'maths' : 'words', signs)}
   </label>${fig}${kpWideTile_(k)}${send}</div>`;
   if (!send) return `<div class="qp-compose">${bar}
@@ -4533,8 +4640,41 @@ function padWrap_(x, svg) {
     ${/* WHERE THE MARKS GO, AND ONLY A `pad:` KEY GOES ANYWHERE: § */
           ''}
     <p class="qpad-note" data-kept-k="${esc(k)}">${esc(padNoteSay_(k))}</p>
+    ${padSendRow_(x, marks)}
   </div>`;
 }
+
+/* ---------- A DRAWN ANSWER IS SENT LIKE A TYPED ONE (362) */
+/* What the submission says: the drawing itself rides under its `pad:` key; this names it, and changes when a mark does. */
+function padSay_(marks) {
+  const n = (marks || []).length;
+  if (!n) return '';
+  let h = 0;
+  const raw = JSON.stringify(marks);
+  for (let i = 0; i < raw.length; i++) h = (h * 31 + raw.charCodeAt(i)) | 0;
+  return 'drawing \u00b7 ' + n + ' mark' + (n === 1 ? '' : 's') + ' \u00b7 #' + (h >>> 0).toString(36);
+}
+/* ONLY UNDER A QUESTION ANSWERED BY DRAWING ALONE; one with a value as well is sent by its box. */
+function padSendRow_(x, marks) {
+  if (!x || x.prefix || !x.key || answerKinds_(x).value) return '';
+  const k = ansKey_(x), said = subBoxSay_(k, padSay_(marks));
+  return `<div class="qp-mark qpad-send${said.cls ? ' ' + said.cls : ''}" data-k="${esc(k)}">
+      <div class="tile-row">${tile_({ icon: 'send', label: 'Send', note: 'for marking', act: 'pad-send', cls: 'qp-check', tone: 'send' })}</div>
+      <span class="qp-verdict" role="status" aria-live="polite">${esc(said.text === 'Sent' ? PAD_SENT_SAY : said.text)}</span>
+    </div>`;
+}
+const PAD_SENT_SAY = 'Sent \u2014 waiting to be marked';
+on('pad-send', el => {
+  const row = el.closest('.qpad-send'), pad = el.closest('.qpad');
+  const out = row && row.querySelector('.qp-verdict');
+  if (!row || !pad || !out) return;
+  const say = padSay_(padRead_(pad.getAttribute('data-k')));
+  if (!say) { out.textContent = 'Draw your answer first'; return; }
+  const signed = typeof whoIs_ === 'function' && !!whoIs_();
+  const e = subRecord_(row.getAttribute('data-k'), say, 'sent');
+  out.textContent = !e ? 'Could not send it \u2014 try again' : signed ? PAD_SENT_SAY : 'Kept on this device \u2014 sign in to send it for marking';
+  if (typeof answersPush_ === 'function') answersPush_(true);
+});
 
 /* ---------- ARMING ONE PAD, EVERY PART OF IT TOGETHER § */
 function padArm_(pad, on) {
@@ -5573,6 +5713,14 @@ function padSave_(pad, k, all) {
   }
   ansStore_(k, v);
   padCopies_(k, pad, all);
+  /* A VERDICT IS ABOUT THE DRAWING IT WAS FOR: a mark added or taken away says so again under Send. */
+  document.querySelectorAll('.qpad[data-k] .qpad-send').forEach(row => {
+    const p = row.closest('.qpad'), out = row.querySelector('.qp-verdict');
+    if (p.getAttribute('data-k') !== k || !out) return;
+    const said = subBoxSay_(row.getAttribute('data-k'), padSay_(all));
+    row.classList.remove('is-right', 'is-near');
+    out.textContent = said.text === 'Sent' ? PAD_SENT_SAY : said.text;
+  });
   return true;
 }
 /* ---------- AND EVERY OTHER COPY OF THE SAME PAD, FROM THE STORE § */

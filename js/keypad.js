@@ -301,11 +301,22 @@ function kpLayout_(inp) {
     pad.innerHTML = kpPadHtml_(KP_LAYER, words, signs, essay);
     pad.setAttribute('data-sig', sig);
   }
+  kpNextPaint_(pad, inp);
   pad.classList.toggle('is-abc', KP_LAYER === 'abc');
   pad.setAttribute('data-layer', KP_LAYER);
   pad.setAttribute('aria-label', KP_LAYER === 'abc' ? 'Letters keypad' : 'Maths keypad');
   kpShiftPaint_();
   return pad;
+}
+/* ✓ READS "next" IN A BOX WITH ANOTHER AFTER IT (one box per value, 362), and is Send again on the last. */
+function kpNextPaint_(pad, inp) {
+  const d = pad.querySelector('.kp-key.kp-done:not(.kp-done-k)');
+  if (!d) return;
+  const nx = !!(inp && typeof multiNext_ === 'function' && multiNext_(inp));
+  if (d.classList.contains('is-next') === nx) return;
+  d.classList.toggle('is-next', nx);
+  d.setAttribute('aria-label', nx ? 'next box' : 'done');
+  d.innerHTML = nx ? 'next' : tileIcon_('send');
 }
 /* `abc` AND `123`: the same pad turned over, the box keeping its focus and its caret. § */
 function kpLayer_(name, inp) {
@@ -596,6 +607,11 @@ function kpType_(inp, cmd, typed) {
     if (KP_SHIFT === 'once') KP_SHIFT = 'off';
   }
   if (words && KP_WORD_SIGN[c]) c = KP_WORD_SIGN[c];
+  /* A COMMA BETWEEN VALUES IS THE NEXT BOX, where each value has its own (362). */
+  if (c === ',' && inp.getAttribute('data-do') === 'qp-multi') {
+    const nx = typeof multiNext_ === 'function' ? multiNext_(inp) : null;
+    if (nx) return kpTake_(nx);
+  }
   /* A KEY BETWEEN TWO ⇧ MAKES THEM TWO PRESSES, NOT A DOUBLE TAP -- ⇧ a ⇧ typed quickly is two capitals,
      never caps lock. */
   KP_SHIFT_AT = 0;
@@ -606,6 +622,8 @@ function kpType_(inp, cmd, typed) {
    screen reader hears. Undo comes through here too. */
 function kpAfter_(inp, c) {
   kpRender_(inp);
+  const pad = document.getElementById('kp');
+  if (pad && inp.getAttribute('data-do') === 'qp-multi') kpNextPaint_(pad, inp);
   if (!/^!(left|right|home|end|top|bottom)$/.test(c)) kpAutoShift_(inp);
   kpShiftPaint_();
   kpKeepClear_(inp);
@@ -630,6 +648,8 @@ on('kp-key', (el) => {
 /* ✓ IS CHECK, where the question has a scheme to check against — the same handler the button runs, not a copy of it — and otherwise it is "I have finished" § */
 /* ---------- ✓ — THE GOLD SEND KEY, AND ENTER ON A LAPTOP — RUNS THE BOX'S OWN SEND § */
 function kpDone_(inp) {
+  const nx = typeof multiNext_ === 'function' ? multiNext_(inp) : null;
+  if (nx) return kpTake_(nx);
   const box = inp.hasAttribute('data-kp-essay') ? null : inp.closest('.qp-mark');
   const go = box && (box.querySelector('.qp-check[data-do="qp-check"]')
     || box.querySelector('.qp-send[data-do="qp-send"]')

@@ -631,6 +631,21 @@ ruleLib.forEach(r => {
     if (markAnswer_(w, rules) !== true) { mwBad++; console.log('  WRONG  %s: its own example %j is marked wrong by %j', r.row_id, w, rules); }
   });
 });
+/* ONE BOX PER VALUE (362): the scheme's own list, typed a value to a box and joined as the boxes join it, is marked right. */
+let boxRows = 0;
+LIB.forEach(r => {
+  if (!r.accept || r.cells || (r.choices && String(r.choices).trim())) return;
+  const m = multiOf_(r);
+  if (!m) return;
+  boxRows++;
+  const eg = String(r.accept).split('|').map(w => w.trim()).find(w => w && !/^rule:/i.test(w));
+  if (!eg) return;
+  const vals = multiVals_(eg, m);
+  if (!m.grow && vals.length !== m.n) { mwBad++; console.log('  WRONG  %s: %d boxes for the %d values of %j', r.row_id, m.n, vals.length, eg); }
+  if (!m.wrap && !m.labels.some(Boolean) && markAnswer_(vals, r.accept) !== true) { mwBad++; console.log('  WRONG  %s: %j typed a value to a box is marked wrong', r.row_id, vals); }
+  if (markAnswer_(multiJoin_(vals, m), r.accept) !== true) { mwBad++; console.log('  WRONG  %s: the boxes joined, %j, are marked wrong', r.row_id, multiJoin_(vals, m)); }
+});
+if (boxRows < 100) { mwBad++; console.log('  WRONG  only %d library answers get a box per value — multiOf_ has stopped reading them', boxRows); }
 if (mwBad) { console.log('\n%d rule-marking cases wrong — a short worded answer is being marked wrongly without AI.', mwBad); process.exit(1); }
 console.log('rule marking: %d key-word cases, the cells, %d library rules each scoring its own scheme in full; %d `rule:` cases and %d library rules', MW.length, mwLib.length, RULES.length, ruleLib.length);
 

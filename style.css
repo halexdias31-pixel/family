@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-19-c-room";
+  --css-version: "2026-10-19-d-boxes";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -5571,6 +5571,23 @@ button.scr-sq { cursor: pointer; }
 /* THE RING TAKES THE VERDICT'S COLOUR, so what was marked and what it was marked as are joined on the screen, not only in the sentence under it. § */
 .qp-mark.is-right > .qp-bar > .qp-ans { box-shadow: 0 0 0 3px var(--good); }
 .qp-mark.is-near > .qp-bar > .qp-ans { box-shadow: 0 0 0 3px var(--warn); }
+/* ONE BOX PER VALUE (362): the bar's paper field, once per value, side by side and wrapping. */
+.qp-multi { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--ink); }
+.qp-multi > .qp-ans {
+  flex: 1 1 4.5rem; max-width: 9rem; margin: 0; display: flex; align-items: center;
+  min-height: 52px; padding: 2px 12px; box-sizing: border-box; cursor: text;
+  background: var(--paper); color: var(--paper-ink); border-radius: 26px;
+}
+.qp-multi[data-kind="words"] > .qp-ans { flex-basis: 10rem; max-width: none; }
+.qp-multi > .qp-ans > .kp-field { flex: 1 1 auto; min-width: 0; }
+.qp-multi .kp-show:empty::before { content: "\2026"; }
+.qp-multi-l { flex: none; margin-right: .3rem; font: 600 .95rem/1 var(--font); color: var(--paper-dim); }
+.qp-multi.is-pair::before { content: "("; font-size: 1.4rem; }
+.qp-multi.is-pair::after { content: ")"; font-size: 1.4rem; }
+.qp-multi > .qp-ans:focus-within { box-shadow: 0 0 0 3px var(--gold); }
+.qp-mark.is-right .qp-multi > .qp-ans { box-shadow: 0 0 0 3px var(--good); }
+.qp-mark.is-near .qp-multi > .qp-ans { box-shadow: 0 0 0 3px var(--warn); }
+.kp-key.kp-done.is-next { font: 700 .95rem/1 var(--font); }
 /* THE VERDICT'S LINE, reserved: one line of `.qp-verdict` tall when it is empty, and it wraps rather
    than cutting a sentence off when one is longer. Set in from the edge to sit under the field's words. */
 .qp-compose > .qp-verdict { display: block; min-height: 1.3em; margin: 6px 14px 0; }
