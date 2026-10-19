@@ -209,84 +209,13 @@ PEOPLE.forEach(p => {
     bad.push('changing a saved item did not update its one row — ' + JSON.stringify(back));
 }
 
-/* 10. RANDOMISE — A NEW WORD FOR YOUR OWN HANDLE, AND NOBODY ELSE'S. § */
+/* 10. NO PRESS FOR A HANDLE (364): it is a template, so `randomiseHandle` is gone and writes nothing. */
 {
   const t = tokens['P-T1'];
-  const VIRTUES = b.ev('HANDLE_ADJ'), MAX = b.ev('HANDLE_WAS_MAX'), PRESSES = 14;
-  const histOf = () => String(b.row('P-T1').handle_was || '').split(',').map(x => x.trim()).filter(Boolean);
-  const hist0 = histOf().length;
-  const shuffle = body => { shuffles++; return b.post(Object.assign({ action: 'randomiseHandle' }, body)); };
-  const before = b.row('P-T1').handle;
-  const d = shuffle({ token: t.token, name: t.name, personId: 'P-T1' });
-  /* THE SHAPE, WRITTEN HERE RATHER THAN ASKED OF `handleParts_`: § */
-  const W = '(' + VIRTUES.join('|') + ')', N = '([1-9][0-9])';
-  const ADA_SHAPES = [['ada', W, N], [W, 'ada', N], ['ada', N, W], [W, N, 'ada']]
-    .map(ps => new RegExp('^' + ps.join('_?') + '$'));
-  const adaShaped = h => ADA_SHAPES.some(re => re.test(String(h || '')))
-    && (String(h).match(/_/g) || []).length <= 1 && !/^[0-9]/.test(String(h));
-  if (!d.success) bad.push('randomiseHandle was refused for a signed-in tutor — ' + d.error);
-  else {
-    if (!adaShaped(d.handle)) bad.push('randomiseHandle answered "' + d.handle
-      + '" for somebody called Ada — wanted ada, a virtue and a two-digit number in a random order');
-    if (b.row('P-T1').handle !== d.handle) bad.push('randomiseHandle answered "' + d.handle
-      + '" and the row holds "' + b.row('P-T1').handle + '"');
-    if (d.was !== before) bad.push('randomiseHandle said the old handle was "' + d.was + '", the row held "' + before + '"');
-    if (String(b.row('P-T1').handle_was).split(', ')[0] !== before)
-      bad.push('handle_was does not start with the handle just replaced — it reads "' + b.row('P-T1').handle_was + '"');
-    if (!(b.row('P-T1').handle_changed_at instanceof Date)) bad.push('handle_changed_at was not written');
-    const back = b.post({ action: 'verifyLogin', email: b.row('P-T1').email, pin: '0000' });
-    tokens['P-T1'] = back;
-    if (back.handle !== d.handle) bad.push('the next sign-in handed back "' + back.handle + '", not the randomised "' + d.handle + '"');
-  }
-  /* PRESSED AGAIN AND AGAIN: never the handle you have, and the history newest first and WHOLE. */
-  let prev = b.row('P-T1').handle, same = 0;
-  const orders = [];
-  for (let i = 0; i < PRESSES; i++) {
-    const tk = tokens['P-T1'];
-    const e = shuffle({ token: tk.token, name: tk.name, personId: 'P-T1' });
-    if (!e.success) { bad.push('randomiseHandle press ' + (i + 2) + ' was refused — ' + e.error); break; }
-    if (String(e.handle).replace(/_/g, '') === String(prev).replace(/_/g, '')) same++;
-    if (!adaShaped(e.handle)) bad.push('press ' + (i + 2) + ' answered "' + e.handle + '" — not ada, a virtue and NN');
-    orders[ADA_SHAPES.findIndex(re => re.test(e.handle))] = true;
-    if (String(b.row('P-T1').handle_was).split(', ')[0] !== prev)
-      bad.push('press ' + (i + 2) + ': handle_was does not start with "' + prev + '"');
-    prev = e.handle;
-  }
-  if (same) bad.push('randomiseHandle handed back the handle the person already had, ' + same + ' time(s)');
-  /* MORE THAN ONE ORDER OVER THE PRESSES — "but all random order". § */
-  if (orders.filter(Boolean).length < 2) bad.push('fourteen Randomise presses all laid the parts out '
-    + 'in one order — the owner asked for a random one');
-  /* EVERY ONE KEPT — it was "the last ten", and the eleventh press retired the handle on a child's slip,
-     which since 342 still signs her in and is reserved for her (the review). */
-  const hist = histOf();
-  if (hist.length !== hist0 + PRESSES + 1) bad.push('after ' + (PRESSES + 1) + ' presses handle_was holds ' + hist.length
-    + ' handle(s), wanted all ' + (hist0 + PRESSES + 1) + ' — an old handle is a credential, never trimmed');
-
-  /* SOMEBODY ELSE'S ID POSTED: the gate writes `personId` from the token, so the asker's own changes. */
-  const parentWas = b.row('P-C1').handle, mineWas = b.row('P-T1').handle;
-  const tk = tokens['P-T1'];
-  const other = shuffle({ token: tk.token, name: 'Pat Parent', personId: 'P-C1' });
-  if (b.row('P-C1').handle !== parentWas) bad.push('a tutor\'s randomiseHandle naming P-C1 changed the PARENT\'s handle');
-  if (!other.success || b.row('P-T1').handle === mineWas) bad.push('a randomiseHandle naming somebody else did not change the asker\'s own');
-
-  /* SIGNED OUT: refused, and nothing written. */
-  const out = shuffle({ name: 'Ada Tutor', personId: 'P-T1' });
-  if (out.success) bad.push('randomiseHandle with no token was allowed');
-  else if (out.writes) bad.push('a refused randomiseHandle had already written ' + out.writes + ' cell(s)');
-
-  /* AND A FULL HISTORY STOPS THE PRESS, WRITING NOTHING, rather than losing its oldest. */
-  {
-    const full = Array.from({ length: MAX }, (_, i) => 'ada_kind' + (i % 90 + 10) + '_' + i).join(', ');
-    b.ev('(function () { const t = read(TAB.people); const r = t.rows.find(x => S(x.person_id) === "P-T1"); '
-      + 'setCell(t, r, "handle_was", ' + JSON.stringify(full) + '); clearCache(); })()');
-    const hBefore = b.row('P-T1').handle, w0 = b.log.writes;
-    const tk = tokens['P-T1'];
-    const capped = shuffle({ token: tk.token, name: tk.name, personId: 'P-T1' });
-    if (capped.success || b.row('P-T1').handle !== hBefore || histOf().length !== MAX || b.log.writes !== w0)
-      bad.push('with ' + MAX + ' handles in its history Randomise was not refused with nothing written — '
-        + JSON.stringify({ capped, handle: b.row('P-T1').handle, kept: histOf().length, writes: b.log.writes - w0 }));
-  }
-
+  const before = b.row('P-T1').handle, w0 = b.log.writes;
+  const gone = b.post({ action: 'randomiseHandle', token: t.token, name: t.name, personId: 'P-T1' });
+  if (gone.success || b.row('P-T1').handle !== before || b.log.writes !== w0)
+    bad.push('randomiseHandle is still an action — ' + JSON.stringify(gone));
   /* AND THE TYPED BOX IS GONE FROM THE SERVER TOO, not only from the phone. */
   const typed = b.post({ action: 'changeHandle', token: tokens['P-T1'].token, name: tokens['P-T1'].name,
     personId: 'P-T1', handle: 'ada_whatever' });

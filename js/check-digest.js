@@ -750,7 +750,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   asked++;
   const w0 = b.log.writes;
   const r = run(b, SUN);
-  if (!/submissions tab/.test(String(r.error)) || !/setup=1/.test(String(r.error))) bad.push('with no submissions tab the Sunday run answered ' + JSON.stringify(r).slice(0, 200) + ' — wanted an error naming the submissions tab and /exec?setup=1');
+  if (!/submissions tab/.test(String(r.error)) || !/open the site once as an admin/i.test(String(r.error))) bad.push('with no submissions tab the Sunday run answered ' + JSON.stringify(r).slice(0, 200) + ' — wanted an error naming the submissions tab and what adds it (opening the site as an admin)');
   if (mail.sent.length || b.log.writes !== w0) bad.push('with no submissions tab the run sent ' + mail.sent.length + ' and wrote ' + (b.log.writes - w0) + ' cell(s) — it must do neither');
   setClock(at(SUN));
   let threw = '';
@@ -781,7 +781,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   b.ev('ScriptApp.newTrigger("closeFinishedJobs").timeBased().everyDays(1).atHour(3).create()');
   const mine = () => trig.filter(t => t.spec.fn === 'weeklyDigestRun');
   asked++;
-  b.ev('installWeeklyDigest()');
+  b.ev('installWeeklyDigest_()');
   let t = mine();
   /* 21 SINCE 18 OCT — the owner: *"On Sunday @9pm"* — the code's default, the config row's and its note's, and
      the hour `installWeeklyDigest` writes down for `checkSundayEmail` (Apps Script cannot read it back). */
@@ -791,13 +791,13 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   if (!row || row[1] !== 21 || !/blank = 21\b/.test(String(row[2]))) bad.push('CONFIG_DEFAULTS has weekly_digest_hour as ' + JSON.stringify(row) + ' — wanted 21, and a note saying blank = 21');
   if (String(b.props[b.ev('DIGEST_BOOKED')]) !== '21') bad.push('installWeeklyDigest did not record the hour it booked (' + JSON.stringify(b.props[b.ev('DIGEST_BOOKED')]) + ') — wanted "21" in Script Properties');
   cfgSet(b, 'weekly_digest_hour', '7');
-  b.ev('installWeeklyDigest()');
-  b.ev('installWeeklyDigest()');
+  b.ev('installWeeklyDigest_()');
+  b.ev('installWeeklyDigest_()');
   t = mine();
   if (t.length !== 1 || t[0].spec.hour !== 7) bad.push('installWeeklyDigest run twice more at hour 7 left ' + JSON.stringify(t.map(x => x.spec)) + ' — wanted exactly one, at 7');
   ['25', 'six', '-1'].forEach(v => {
     cfgSet(b, 'weekly_digest_hour', v);
-    b.ev('installWeeklyDigest()');
+    b.ev('installWeeklyDigest_()');
     if (mine().length !== 1 || mine()[0].spec.hour !== 21) bad.push('weekly_digest_hour "' + v + '" booked ' + JSON.stringify(mine().map(x => x.spec.hour)) + ' — wanted the fallback, 21');
   });
   if (!trig.some(x => x.spec.fn === 'closeFinishedJobs')) bad.push('installWeeklyDigest deleted somebody else’s trigger');
@@ -805,18 +805,30 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   if (mine().length || gone.removed !== 1 || !trig.some(x => x.spec.fn === 'closeFinishedJobs')) bad.push('removeWeeklyDigest left ' + mine().length + ' Sunday trigger(s), or took another');
 }
 {
+  /* (k) KEPT BOOKED BY ITSELF (361): twice leaves one trigger and books nothing the second time; a new hour re-books. */
+  const { b, trig } = seeded();
+  const mine = () => trig.filter(t => t.spec.fn === 'weeklyDigestRun');
+  asked++;
+  const first = b.ev('digestKeepBooked_()'), second = b.ev('digestKeepBooked_()');
+  if (!first || second !== null || mine().length !== 1 || mine()[0].spec.hour !== 21) bad.push('digestKeepBooked_ run twice left ' + mine().length + ' Sunday trigger(s), or booked again with nothing to change — wanted one, at 21, and null the second time');
+  asked++;
+  cfgSet(b, 'weekly_digest_hour', '19');
+  b.ev('clearCache(); digestKeepBooked_()');
+  if (mine().length !== 1 || mine()[0].spec.hour !== 19) bad.push('digestKeepBooked_ after weekly_digest_hour moved to 19 left ' + JSON.stringify(mine().map(x => x.spec.hour)) + ' — wanted one trigger, at 19');
+}
+{
   /* (g) ONE TRIGGER, AND ONLY ONE (18 Oct, docs/history/352) — the owner: § */
   const { b, trig } = seeded();
   b.ev('ScriptApp.newTrigger("closeFinishedJobs").timeBased().everyDays(1).atHour(3).create()');
   const fns = () => trig.map(t => t.spec.fn).sort().join(', ');
   asked++;
-  const out = JSON.parse(JSON.stringify(b.ev('installWeeklyDigest()')));
+  const out = JSON.parse(JSON.stringify(b.ev('installWeeklyDigest_()')));
   if (fns() !== 'closeFinishedJobs, weeklyDigestRun') bad.push('installWeeklyDigest booked [' + fns() + '] — wanted ONE trigger, the 9pm Sunday email (closeFinishedJobs is somebody else’s, kept)');
   if ('marking' in out || !/the only trigger the email has/.test(String(out.installed))) bad.push('installWeeklyDigest still reports a marking schedule, or does not say the email’s trigger is its only one: ' + JSON.stringify(out));
   asked++;
-  b.ev('installWeeklyDigest()'); b.ev('installWeeklyDigest()');
+  b.ev('installWeeklyDigest_()'); b.ev('installWeeklyDigest_()');
   cfgSet(b, 'weekly_digest_hour', '0');
-  b.ev('installWeeklyDigest()');
+  b.ev('installWeeklyDigest_()');
   const sun = trig.filter(t => t.spec.fn === 'weeklyDigestRun').map(t => t.spec);
   if (fns() !== 'closeFinishedJobs, weeklyDigestRun' || sun[0].weekDay !== 'SUNDAY' || sun[0].hour !== 0 || sun[0].minute !== 0)
     bad.push('installWeeklyDigest run three more times, the last at hour 0, left [' + fns() + '] ' + JSON.stringify(sun) + ' — wanted one Sunday trigger at 0:00 near the hour, and nothing else');
@@ -840,13 +852,13 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   };
   const { b, trig } = seed();
   asked++;
-  const out = JSON.parse(JSON.stringify(b.ev('installWeeklyDigest()')));
+  const out = JSON.parse(JSON.stringify(b.ev('installWeeklyDigest_()')));
   const fns = trig.map(t => t.spec.fn).sort().join(', ');
   if (fns !== 'closeFinishedJobs, weeklyDigestRun') bad.push('after installWeeklyDigest the triggers are [' + fns + '] — wanted the old hourly check and every marking pass gone, closeFinishedJobs kept, one Sunday email');
   if (!/removed 5 old triggers that nothing runs any more: .*sessionRecapRun ×2/.test(String(out.retired)) || !/digestMarkRun ×3/.test(String(out.retired))) bad.push('installWeeklyDigest does not say what old triggers it removed: ' + JSON.stringify(out.retired));
   if (['DIGEST_MARKING', 'DIGEST_MARK_TRIED', 'DIGEST_MARK_AGAIN'].some(k => k in b.props)) bad.push('installWeeklyDigest left the old marking pass’s Script Properties: ' + Object.keys(b.props).filter(k => /DIGEST_MARK/.test(k)).join(', '));
   asked++;
-  const again = JSON.parse(JSON.stringify(b.ev('installWeeklyDigest()')));
+  const again = JSON.parse(JSON.stringify(b.ev('installWeeklyDigest_()')));
   if (!/no old trigger was booked/.test(String(again.retired)) || trig.map(t => t.spec.fn).sort().join(', ') !== 'closeFinishedJobs, weeklyDigestRun')
     bad.push('installWeeklyDigest run again, with no old trigger booked, said ' + JSON.stringify(again.retired) + ' and left [' + trig.map(t => t.spec.fn) + ']');
   asked++;
@@ -868,10 +880,11 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   const back = files.map(f => ['backend/' + f, strip(fs.readFileSync(path.join(dir, f), 'utf8'))]);
   /* NOT ONE CALL, anywhere, to what books or runs it — its own declarations and the run's one caller aside — AND NOT ONE BARE MENTION, which is a call waiting to § */
   back.concat(front).forEach(([f, src]) => {
-    ['installWeeklyDigest', 'weeklyDigestRun', 'removeWeeklyDigest', 'checkSundayEmail'].forEach(n => {
+    ['installWeeklyDigest_', 'weeklyDigestRun', 'removeWeeklyDigest', 'checkSundayEmail'].forEach(n => {
       const c = Math.max(calls(src, n).length, mentions(src, n).length);
-      const allowed = f === 'backend/digest.gs' && n === 'removeWeeklyDigest' ? 1 : 0;
-      if (c > allowed) bad.push(f + ' names ' + n + ' outside its declaration — nothing may book or run the Sunday email but the owner, by hand');
+      /* 361: removeWeeklyDigest's one caller is the installer, and the installer's is digestKeepBooked_. */
+      const allowed = f === 'backend/digest.gs' && (n === 'removeWeeklyDigest' || n === 'installWeeklyDigest_') ? 1 : 0;
+      if (c > allowed) bad.push(f + ' names ' + n + ' outside its declaration — nothing may book or run the Sunday email but digestKeepBooked_');
     });
     if (f !== 'backend/digest.gs' && calls(src, 'digestRun_').length) bad.push(f + ' calls digestRun_() — only the trigger’s weeklyDigestRun may');
     /* AND THE MARKING PASS IS GONE (18 Oct, docs/history/352): nothing declares its handler or its pass again. */
@@ -880,7 +893,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   });
   const dg = (back.find(([f]) => f === 'backend/digest.gs') || [])[1] || '';
   const nt = [...dg.matchAll(/newTrigger\s*\(/g)];
-  const inst = dg.indexOf('function installWeeklyDigest');
+  const inst = dg.indexOf('function installWeeklyDigest_');
   const instEnd = dg.indexOf('\nfunction ', inst + 1);
   /* ONE, AND IT IS IN installWeeklyDigest (18 Oct): the run-up's one-off went with the marking pass. */
   if (nt.length !== 1 || !(nt[0].index > inst && nt[0].index < instEnd))
@@ -889,14 +902,14 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   const { b } = world();
   if (/digest|Digest/.test(rn(b))) bad.push('RUNNABLE names a digest function — `?run=` would be a way to start it from a URL');
   /* ITS VALUES TOO: a key called `sunday` holding installWeeklyDigest is the same door with another name. */
-  if (b.ev('Object.values(typeof RUNNABLE === "object" ? RUNNABLE : {}).some(f => f === installWeeklyDigest || f === weeklyDigestRun || f === digestRun_'
+  if (b.ev('Object.values(typeof RUNNABLE === "object" ? RUNNABLE : {}).some(f => f === installWeeklyDigest_ || f === digestKeepBooked_ || f === weeklyDigestRun || f === digestRun_'
     + ' || f === checkSundayEmail || /igest|Sunday/.test(String(f && f.name)))'))
     bad.push('a RUNNABLE entry is a digest function under another name — `?run=` would start it from a URL');
   const def = b.ev('(CONFIG_DEFAULTS.find(r => r[0] === "weekly_digest") || [])[1]');
   if (def !== 'off') bad.push('weekly_digest arrives as "' + def + '" on the config tab — it must arrive off');
   if (b.ev('digestMode_(config())') !== 'off') bad.push('an empty config tab is not off');
-  const install = b.ev('typeof installTriggers === "function" ? installTriggers.toString() : ""');
-  if (/igest|Sunday|DIGEST_MARK/.test(install)) bad.push('installTriggers mentions the digest or its marking — /exec?triggers=1 would book it');
+  const install = b.ev('typeof installTriggers_ === "function" ? installTriggers_.toString() : ""');
+  if (/igest|Sunday|DIGEST_MARK/.test(install)) bad.push('installTriggers_ mentions the digest or its marking — /exec?triggers=1 would book it');
   /* AND THE MARKING SWITCH IS GONE WITH ITS PASS (18 Oct) — a row on the config tab that nothing reads is a
      switch the owner would flip and see nothing change. */
   if (b.ev('CONFIG_DEFAULTS.some(r => r[0] === "weekly_digest_marking")')) bad.push('weekly_digest_marking is still a config row — the marking pass it switched is gone');
@@ -1099,7 +1112,7 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
     { link_id: 'M2', parent_id: 'P-P2', child_id: 'P-S9', child_typed: '', state: 'accepted' },
     { link_id: 'M3', parent_id: 'P-P1', child_id: 'P-K2', child_typed: '', state: 'accepted' },
   ]);
-  b.ev('installWeeklyDigest()');
+  b.ev('installWeeklyDigest_()');
   const snap = () => JSON.stringify({ tabs: b.tabs, props: b.props, trig: trig.map(t => t.spec), sent: mail.sent.length });
   const before = snap(), w0 = b.log.writes;
   asked++;
@@ -1113,7 +1126,7 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
   [[new RegExp('^Backend ' + String(b.ev('BACKEND_VERSION')).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ' ', 'm'), 'the backend’s version'],
    [/THE EMAIL: ON — it emails parents \(weekly_digest is "send"\)\. It goes on Sundays at about 21:00, London time\./, 'the mode and the hour'],
    [/THE TRIGGER: the Sunday email is installed, and it is the only trigger the email has\. No old trigger is booked\./, 'the one trigger, installed'],
-   [/THE HOUR BOOKED: installWeeklyDigest booked the email for about 21:00 on Sundays, London time \(recorded in Script Properties as DIGEST_BOOKED_HOUR\)\. The config tab says the same\./, 'the hour installWeeklyDigest booked'],
+   [/THE HOUR BOOKED: The setup booked the email for about 21:00 on Sundays, London time \(recorded in Script Properties as DIGEST_BOOKED_HOUR\)\. The config tab says the same\./, 'the hour installWeeklyDigest booked'],
    [/MAIL: 100 emails left in today’s quota; the Sunday run keeps 10 back/, 'the mail quota'],
    [/THE QUESTION LIBRARY: fetched 0\.0 million characters in [\d.]+ s from https:\/\/halexdias31-pixel\.github\.io\/family\/data\/questions\.json\./, 'the library fetched'],
    [/THIS WEEK \(12 Oct – 18 Oct, so far\): 2 learners sent answers; 1 of them will have a parent emailed \(1 email\)\./, 'this week’s reach'],
@@ -1129,38 +1142,38 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
   /* AND AN OLD TRIGGER STILL BOOKED IS A WARNING — it fires into a function that is gone. */
   asked++;
   const stale = markWorld({ clock: '2026-10-15T09:00:00Z' });
-  stale.b.ev('installWeeklyDigest()');
+  stale.b.ev('installWeeklyDigest_()');
   stale.b.ev('ScriptApp.newTrigger("digestMarkRun").timeBased().everyDays(1).atHour(2).create()');
   const t6 = (JSON.parse(JSON.stringify(stale.b.ev('clearCache(); checkSundayEmail()'))).lines || []).join('\n');
-  if (!/THE TRIGGER: the Sunday email is installed, and it is the only trigger the email has\. WARNING: 1 old trigger that nothing runs any more \(sessionRecapRun, digestMarkRun\) is still booked and will fail — run installWeeklyDigest to remove it\./.test(t6))
+  if (!/THE TRIGGER: the Sunday email is installed, and it is the only trigger the email has\. WARNING: 1 old trigger that nothing runs any more \(sessionRecapRun, digestMarkRun\) is still booked and will fail — the next admin page load removes it\./.test(t6))
     bad.push('checkSundayEmail with an old marking trigger still booked does not WARN:\n      ' + t6.split('\n').slice(0, 4).join('\n      '));
   /* AND WITH NOTHING SET UP: no key, no triggers, the switch off — each said plainly. */
   asked++;
   const bare0 = markWorld({ key: false, mode: 'off' });
   const o2 = JSON.parse(JSON.stringify(bare0.b.ev('clearCache(); checkSundayEmail()')));
   const t2 = (o2.lines || []).join('\n');
-  [/THE EMAIL: OFF — nothing is sent/, /Set weekly_digest to send/, /the Sunday email is NOT installed \(run installWeeklyDigest\), and it is the only trigger the email has/].forEach(re => {
+  [/THE EMAIL: OFF — nothing is sent/, /Set weekly_digest to send/, /the Sunday email is NOT installed \(the next admin page load books it\), and it is the only trigger the email has/].forEach(re => {
     if (!re.test(t2)) bad.push('checkSundayEmail with nothing set up does not say ' + re + ':\n      ' + t2.split('\n').join('\n      '));
   });
   /* THE HOUR BOOKED AND THE CELL APART (18 Oct): § */
   asked++;
   const moved = markWorld({ clock: '2026-10-18T09:00:00Z' });
   cfgSet(moved.b, 'weekly_digest_hour', '18');
-  moved.b.ev('installWeeklyDigest()');
+  moved.b.ev('installWeeklyDigest_()');
   cfgSet(moved.b, 'weekly_digest_hour', '21');
   const t3 = (JSON.parse(JSON.stringify(moved.b.ev('clearCache(); checkSundayEmail()'))).lines || []).join('\n');
-  if (!/THE HOUR BOOKED: installWeeklyDigest booked the email for about 18:00 on Sundays, London time \(recorded in Script Properties as DIGEST_BOOKED_HOUR\)\. WARNING: weekly_digest_hour on the config tab now says 21, but the email still goes at about 18:00 — run installWeeklyDigest again to move it to 21:00\./.test(t3)
+  if (!/THE HOUR BOOKED: The setup booked the email for about 18:00 on Sundays, London time \(recorded in Script Properties as DIGEST_BOOKED_HOUR\)\. WARNING: weekly_digest_hour on the config tab now says 21, but the email still goes at about 18:00 — the next admin page load moves it to 21:00\./.test(t3)
       || !/It goes on Sundays at about 18:00, London time\./.test(t3))
     bad.push('with the cell moved from 18 to 21 after installing, checkSundayEmail does not print the booked 18:00 and WARN to run installWeeklyDigest again:\n      ' + t3.split('\n').slice(0, 5).join('\n      '));
   asked++;
-  moved.b.ev('installWeeklyDigest()');
+  moved.b.ev('installWeeklyDigest_()');
   const t4 = (JSON.parse(JSON.stringify(moved.b.ev('clearCache(); checkSundayEmail()'))).lines || []).join('\n');
-  if (!/THE HOUR BOOKED: installWeeklyDigest booked the email for about 21:00 on Sundays.*The config tab says the same\./.test(t4) || /WARNING/.test(t4))
+  if (!/THE HOUR BOOKED: The setup booked the email for about 21:00 on Sundays.*The config tab says the same\./.test(t4) || /WARNING/.test(t4))
     bad.push('installWeeklyDigest run again at 21 did not leave the setup check agreeing, with no warning:\n      ' + t4.split('\n').slice(0, 5).join('\n      '));
   asked++;
   delete moved.b.props[moved.b.ev('DIGEST_BOOKED')];
   const t5 = (JSON.parse(JSON.stringify(moved.b.ev('clearCache(); checkSundayEmail()'))).lines || []).join('\n');
-  if (!/THE HOUR BOOKED: NOT recorded — the trigger was booked by an older backend.*WARNING: run installWeeklyDigest again, so the email is booked at 21:00/.test(t5)
+  if (!/THE HOUR BOOKED: NOT recorded — the trigger was booked by an older backend.*WARNING: the next admin page load re-books it at 21:00/.test(t5)
       || /It goes on Sundays at about/.test(t5))
     bad.push('triggers with no recorded hour are not said to be unknown, with the warning to run installWeeklyDigest again:\n      ' + t5.split('\n').slice(0, 5).join('\n      '));
 }

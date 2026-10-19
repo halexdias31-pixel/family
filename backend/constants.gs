@@ -110,7 +110,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-19-a-rule";
+const BACKEND_VERSION = "2026-10-19-c-handles";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -618,7 +618,7 @@ const CONFIG_DEFAULTS = [
 
   /* ---------- THE WEEKLY PARENT EMAIL — see backend/digest.gs § */
   ['weekly_digest', 'off', 'the Sunday email to parents: off (nothing), preview (written to the digest_log tab, nothing sent) or send. Anything else = off'],
-  ['weekly_digest_hour', 21, 'the hour on Sunday, London time, the weekly parent email goes. 0-23, blank = 21 (9pm). Run installWeeklyDigest again after changing it'],
+  ['weekly_digest_hour', 21, 'the hour on Sunday, London time, the weekly parent email goes. 0-23, blank = 21 (9pm). A change re-books itself the next time an admin opens the site'],
   ['weekly_digest_reserve', 10, 'emails a day kept back from the weekly parent email for PIN resets and notices. Blank = 10'],
   /* `weekly_digest_marking` WAS HERE, 12–18 Oct: § */
 
@@ -1224,14 +1224,14 @@ const PAGES_TIME_BUDGET = 4 * 60 * 1000;
 const RUNNABLE = {
   /* Forced, and then CHECKED — the report says what it meant to do, and this says what is
      actually on the sheet afterwards. Those had never been the same question. */
-  ensureSchema:      () => ({ ran: ensureSchema(), stillMissing: schemaGaps() }),
+  ensureSchema:      () => ({ ran: ensureSchema_(), stillMissing: schemaGaps() }),
   schemaGaps:        () => schemaGaps(),
   makeBrandAccount:  a => makeBrandAccount(a),
-  migrateLikes:      () => migrateLikes(),
-  installTriggers:   () => installTriggers(),
+  migrateLikes:      () => migrateLikes_(),
+  installTriggers:   () => installTriggers_(),
   listTriggers:      () => listTriggers(),
   /* ---------- THE SPREADSHEET AS THE CONTROL PANEL § */
-  installSheetWatch: () => installSheetWatch(),
+  installSheetWatch: () => installSheetWatch_(),
   sheetWatchStatus:  () => sheetWatchStatus(),
   clearPayloadCache: () => { clearPayloadCache(); return { cleared: true, generation: payloadGen_(),
                              means: 'the next request rebuilds from the sheet as it is now' }; },
@@ -1253,7 +1253,7 @@ const RUNNABLE = {
   /* The ground itself, from OpenStreetMap. Once per world; name one to fetch it again. */
   fetchMap:          a => fetchMap(a),
   regeocode:         () => geocodeVenues(true),
-  rename:            a => renameValue(a),
+  rename:            a => renameValue_(a),
   seedOptions:       () => seedOptions(),
   /* `seedFamilies` WAS HERE, and went with the hand-written map it wrote — see where
      `KNOWN_FAMILIES` used to be. An admin links a child to a parent from the app (`linkChild`). */
@@ -1262,9 +1262,8 @@ const RUNNABLE = {
   /* ---------- EVERY PERSON GETS A HANDLE, AND ONLY A BLANK CELL IS TOUCHED § */
   fillHandles:       () => fillHandles(),
   /* ---------- AND EVERY HANDLE THAT WAS NEVER THE GENERATED SHAPE, ONCE § */
-  renameHandles:     () => renameHandles(),
+  renameHandles:     () => renameHandles_(),
   /* ---------- AND EVERY CHILD'S HANDLE INTO INITIALS AND FOUR DIGITS, PREVIEWED FIRST (342) § */
-  kidHandles:        a => kidHandles(a),
   /* `seedPastPapers`, `seedALevelPapers`, `dropOldALevelPapers` and `ensureResourceIds` WERE HERE. § */
   /* The Colliers Wood landmarks, with their surveyed outlines. Safe to run whenever — a landmark
      already on the tab is left exactly as it is. */
@@ -1293,31 +1292,31 @@ const RUNNABLE = {
 const MIGRATIONS = [
   { id: 'likes-to-reactions',
     what: 'every old like becomes a 👍, keeping the date it was pressed',
-    run: () => migrateLikes() },
+    run: () => migrateLikes_() },
 
   { id: 'nightly-jobs',
     what: 'the page-count sweep and the job closer, on a daily trigger',
-    run: () => installTriggers() },
+    run: () => installTriggers_() },
 
   /* The nightly list gained the geocoder, and `nightly-jobs` has already run — a migration is remembered by its id, so the only way to install a new trigger is a § */
   { id: 'nightly-jobs-with-geocode',
     what: 'the nightly list again, now including the geocoder',
-    run: () => installTriggers() },
+    run: () => installTriggers_() },
 
   /* "English Lang." and "English Language" were two spellings of one subject, on 48 rows and 198 rows — and to everything downstream they are two different § */
   { id: 'english-lang-to-english-language',
     what: 'every "English Lang." becomes "English Language"',
-    run: () => renameValue('English Lang.>English Language') },
+    run: () => renameValue_('English Lang.>English Language') },
 
   /* THE SAME RENAME AGAIN, under a new name, because the first one ran before it knew how to merge. § */
   { id: 'english-language-merge-duplicates',
     what: 'one subject in the dropdown and one row in pricing, not two of each',
-    run: () => renameValue('English Lang.>English Language') },
+    run: () => renameValue_('English Lang.>English Language') },
 
   /* ONE SPELLING OF EACH EXAM BOARD. § */
   { id: 'exam-board-one-spelling',
     what: 'every spelling of Edexcel becomes "Edexcel"',
-    run: () => renameValue('edexcel>Edexcel') },
+    run: () => renameValue_('edexcel>Edexcel') },
 
   /* PUT THE VENUES ON THE MAP, without anybody being asked to do anything. § */
   { id: 'venue-coordinates',
@@ -1357,6 +1356,18 @@ const MIGRATIONS = [
     retry: true,
     what: 'the wearables get the prices they have in the code, without touching one anybody typed',
     run: () => repairShopPrices() },
+
+  /* THE SUNDAY EMAIL BOOKS ITSELF (361): the owner forgot which functions they had run. Safe to repeat; the hour is kept right on every admin page load too. */
+  { id: 'sunday-email',
+    retry: true,
+    what: 'the Sunday parent email is booked at weekly_digest_hour (9pm unless the config tab says otherwise)',
+    run: () => digestKeepBooked_() || 'already booked at the right hour' },
+
+  /* EVERYBODY'S HANDLE BECOMES THE TEMPLATE THEY CAN WORK OUT ALONE (364); the old one stays a sign-in alias. */
+  { id: 'handles-to-template',
+    retry: true,
+    what: 'every handle becomes first initial, day of the month born, surname initial',
+    run: () => { const r = renameHandles_(); if (r && r.error) throw new Error(r.error); return r; } },
 ];
 
 /* ============================== POST ========================================================= */
@@ -1412,7 +1423,6 @@ const ACTION_ACCESS = {
   /* A FRESH CONFIRMATION LINK TO YOUR OWN ADDRESS. § */
   resendLink: 'self',
   /* A NEW WORD FOR YOUR OWN HANDLE. § */
-  randomiseHandle: 'self',
   /* The shop window is the business talking, so only the business may change it. */
   spotlight: 'admin',
   createCheckout: 'self', finalizePayment: 'self',

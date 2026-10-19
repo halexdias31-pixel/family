@@ -552,7 +552,7 @@ function markWhere_(k) {
     if (!k || document.visibilityState === 'hidden') return false;
     const host = document.getElementById('s-' + AT);
     const pg = host && host.querySelector(':scope > .page.on');
-    return !!pg && [...pg.querySelectorAll('.qp-ans-in[data-k]')].some(el => el.getAttribute('data-k') === k);
+    return !!pg && [...pg.querySelectorAll('.qp-ans-in[data-k], .qp-multi-val[data-k]')].some(el => el.getAttribute('data-k') === k);
   } catch (e) { return false; }
 }
 
@@ -682,7 +682,7 @@ function subVerdictPaint_(mark, inp) {
 }
 function subBoxPaint_(k) {
   try {
-    document.querySelectorAll('.qp-ans-in[data-k]').forEach(inp => {
+    document.querySelectorAll('.qp-ans-in[data-k], .qp-multi-val[data-k]').forEach(inp => {
       if (inp.getAttribute('data-k') === k) subVerdictPaint_(inp.closest('.qp-mark'), inp);
     });
     document.querySelectorAll('.qp-order[data-k]').forEach(box => {

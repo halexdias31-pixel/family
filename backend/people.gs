@@ -153,33 +153,23 @@ function handleTrouble_(want, me) {
   return '';
 }
 
-/* AND A HANDLE IS GENERATED RATHER THAN DERIVED FROM A CHILD'S NAME. § */
+/* ---------- A HANDLE IS A TEMPLATE ANYBODY CAN WORK OUT FOR THEMSELVES (docs/history/364) */
+/* First initial, day of the month born, surname initial: "t04d". No birthday: both initials and the
+   id's last two digits ("td42"). A clash adds first-name letters ("th04d"). Nothing is random. */
+const HANDLE_NO_LETTER = 'x';
 
-/* ---------- A HANDLE IS THEIR FIRST NAME, A VIRTUE AND A NUMBER, IN ANY ORDER § */
+/* THE OLD SHAPES (342) are read, never made: an old handle is a sign-in alias in `handle_was`, and
+   `handleAnswers_` still spells a long first name out in one. */
 const HANDLE_ADJ = ['kind', 'brave', 'honest', 'patient', 'gentle', 'loyal', 'humble', 'wise',
                     'fair', 'caring', 'cheerful', 'hopeful', 'generous', 'grateful', 'faithful',
                     'joyful', 'calm', 'steady', 'true', 'careful', 'polite', 'helpful', 'bold',
                     'sincere', 'modest', 'noble', 'diligent', 'earnest', 'upright', 'valiant'];
 const HANDLE_FIRST_MAX = 9;
 const HANDLE_FALLBACK = 'friend';
-/* THE NUMBER: ten to ninety-nine, so it is always two digits. § */
 const HANDLE_TAIL_MIN = 10, HANDLE_TAIL_MAX = 99;
-/* THE ORDERS A HANDLE IS DRAWN IN — every arrangement of the three parts that does not start with the number. § */
 const HANDLE_ORDERS = [['first', 'virtue', 'nn'], ['virtue', 'first', 'nn'],
                        ['first', 'nn', 'virtue'], ['virtue', 'nn', 'first']];
-/* HOW OFTEN THERE IS AN UNDERSCORE — "maybe an underscore". Half the draws have none; the other
-   half have one, at either join with the same chance. */
-const HANDLE_UNDERSCORE_ODDS = 0.5;
-/* HOW MANY CANDIDATES A HEAD GETS before the walk moves to the fallback: § */
-const HANDLE_TRIES = 2 * HANDLE_ADJ.length;
-/* HOW MANY EARLIER HANDLES `handle_was` MAY HOLD BEFORE RANDOMISE STOPS — AND NONE IS EVER DROPPED. § */
-const HANDLE_WAS_MAX = 200;
 
-/* A CHILD'S HANDLE IS THEIR INITIALS AND FOUR DIGITS, AND NOTHING ELSE ABOUT THEM (docs/history/342) § */
-const HANDLE_KID_DIGITS = '23456789';
-const HANDLE_KID_TAIL = 4;
-/* HOW MANY TAILS A HEAD IS TRIED WITH before the fallback, and then the fallback as many again. § */
-const HANDLE_KID_TRIES = 60;
 /* LETTERS NFKD DOES NOT TAKE APART — a stroke or a ligature is not an accent, so `Ł` stays `Ł` and its
    initial would otherwise be lost. The common ones, folded by hand. */
 const HANDLE_KID_FOLD = { 'ł': 'l', 'ø': 'o', 'đ': 'd', 'ð': 'd', 'þ': 't', 'æ': 'a', 'œ': 'o', 'ß': 's', 'ı': 'i' };
@@ -214,50 +204,59 @@ function handleParts_(h, first) {
   return null;
 }
 
-/* Does `h` already have the generated shape for somebody called `first`? § */
-function handleIsShaped_(h, first) {
-  return !!handleParts_(h, first) || handleKidShaped_(h);
-}
 
-/* ---------- A CHILD'S INITIALS: the first letter of the first name and of the last, folded to a–z § */
-function handleInitials_(first, last) {
-  const one = v => {
-    const m = String(v == null ? '' : v).match(/\p{L}/u);
-    if (!m) return '';
-    let c = m[0].toLowerCase();
+/* A NAME'S LETTERS folded to a–z (accents off, `HANDLE_KID_FOLD` for the ones NFKD keeps), in order. */
+function handleLetters_(v) {
+  return Array.from(String(v == null ? '' : v).toLowerCase()).map(c => {
     try { c = c.normalize('NFKD').charAt(0); } catch (err) {}
     c = HANDLE_KID_FOLD[c] || c;
     return /^[a-z]$/.test(c) ? c : '';
-  };
-  return one(first) + one(last);
+  }).join('');
 }
 
-/* A FRESH TAIL: `HANDLE_KID_TAIL` digits, each drawn from `HANDLE_KID_DIGITS`. */
-function handleKidTail_() {
-  let t = '';
-  for (let i = 0; i < HANDLE_KID_TAIL; i++) t += HANDLE_KID_DIGITS.charAt(Math.floor(Math.random() * HANDLE_KID_DIGITS.length));
-  return t;
+/* THE DAY OF THE MONTH THEY WERE BORN, two digits, or '' when the row has no date of birth. */
+function handleDay_(r) {
+  const d = r && S(r.date_of_birth) ? sheetDate(r.date_of_birth) : null;
+  return d ? ('0' + d.getDate()).slice(-2) : '';
 }
 
-/* Is `h` in a child's shape — one or two letters (or the fallback) and a tail? § */
-function handleKidShaped_(h) {
-  return new RegExp('^([a-z]{1,2}|' + HANDLE_FALLBACK + ')[' + HANDLE_KID_DIGITS + ']{' + HANDLE_KID_TAIL + '}$')
-    .test(String(h == null ? '' : h));
+/* The template's candidates for row `r`, in the order they are tried: the plain one first, then one
+   more letter of the first name after the initial each time, then a counter at the end. */
+function handleCandidates_(r) {
+  const first = handleLetters_(r && r.first_name) || HANDLE_NO_LETTER;
+  const last = handleLetters_(r && r.last_name).charAt(0) || HANDLE_NO_LETTER;
+  const day = handleDay_(r);
+  const idDigits = S(r && r.person_id).replace(/\D/g, '');
+  const tail = day ? day + last : last + ('00' + idDigits).slice(-2);
+  const out = [];
+  for (let n = 1; n <= first.length; n++) out.push(first.slice(0, n) + tail);
+  for (let i = 2; i <= 99; i++) out.push(first + tail + i);
+  return out;
 }
 
-/** A child's handle nobody has, or '' — `handleMake_`'s walk with the initials for a head and a fresh
-    tail each try. `avoid` is the handle somebody pressing Randomise already has. */
-function handleKid_(me, avoid) {
-  const ini = handleInitials_(me && me.first_name, me && me.last_name);
-  const heads = ini ? [ini, HANDLE_FALLBACK] : [HANDLE_FALLBACK];
-  const skip = key(avoid);
-  for (let h = 0; h < heads.length; h++) {
-    for (let i = 0; i < HANDLE_KID_TRIES; i++) {
-      const want = heads[h] + handleKidTail_();
-      if (key(want) !== skip && !handleTrouble_(want, me || null)) return want;
-    }
-  }
+/* THE HANDLE THE TEMPLATE GIVES ROW `r`: the first candidate `trouble(want)` does not refuse, or ''. */
+function handleTemplate_(r, trouble) {
+  const all = handleCandidates_(r);
+  for (let i = 0; i < all.length; i++) if (!trouble(all[i])) return all[i];
   return '';
+}
+
+/* One handle for a person about to be written or already on the tab — `handleTrouble_` is the gate, so somebody else's handle or old handle is never given. `me` may be a draft row. */
+function handleMake_(me) {
+  return handleTemplate_(me || {}, want => handleTrouble_(want, me && me.person_id ? me : null));
+}
+
+/* A HANDLE MADE WITHOUT A BIRTHDAY moves to the template once the row has one; the old one stays a sign-in alias. The new handle, or ''. */
+function handleBirthdayMove_(t, r) {
+  const has = S(r && r.handle);
+  if (!has || !handleDay_(r) || !t || t.headers.indexOf('handle_was') === -1) return '';
+  if (handleCandidates_(Object.assign({}, r, { date_of_birth: '' })).indexOf(has) === -1) return '';
+  const made = handleMake_(r);
+  if (!made || made === has) return '';
+  setCells(t, r, Object.assign({ handle_was: handleWasWith_(r.handle_was, has) }, handleFaceKept_(t, r, has)));
+  setCells(t, r, { handle: made, handle_changed_at: new Date() });
+  handleFriendsMove_(t, { [key(has)]: made });
+  return made;
 }
 
 /* ---------- THE ROWS AN OLD HANDLE STILL SIGNS IN (342) § */
@@ -303,46 +302,6 @@ function handleAnswers_(h, first, want) {
     .replace(/[^a-z0-9]/g, '').replace(/^[0-9]+/, '');
   if (!cut || whole.length <= cut.length || !handleParts_(h, first)) return false;
   return have.replace(cut, whole) === want;
-}
-
-/** The list in a random order. Fisher–Yates, because `sort(() => Math.random() - 0.5)` is the
-    famous wrong one: it does not give every order the same chance. */
-function handleShuffle_(list) {
-  const a = list.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    const x = a[i]; a[i] = a[j]; a[j] = x;
-  }
-  return a;
-}
-
-/** One candidate: `head` and `word`, a fresh number, a random order from `HANDLE_ORDERS` and maybe
-    one underscore. Nothing is asked of the gate here — `handleMake_` does that. */
-function handleDraw_(head, word) {
-  const pick = n => Math.floor(Math.random() * n);
-  const nn = String(HANDLE_TAIL_MIN + pick(HANDLE_TAIL_MAX - HANDLE_TAIL_MIN + 1));
-  const order = HANDLE_ORDERS[pick(HANDLE_ORDERS.length)];
-  const parts = order.map(p => (p === 'first' ? head : p === 'virtue' ? word : nn));
-  const join = Math.random() < HANDLE_UNDERSCORE_ODDS ? pick(parts.length - 1) : -1;
-  return parts.map((p, i) => (i && i - 1 === join ? '_' : '') + p).join('');
-}
-
-/* A handle nobody has, or '' if one could not be found. § */
-function handleMake_(me, first, avoid) {
-  /* A CHILD'S IS THEIR INITIALS AND A TAIL (342) — `isChild_`, the one test 333 uses, asked of the row § */
-  if (isChild_(me)) return handleKid_(me, avoid);
-  const name = handleFirst_(first !== undefined ? first : (me && me.first_name));
-  const heads = name ? [name, HANDLE_FALLBACK] : [HANDLE_FALLBACK];
-  const skip = key(avoid);
-  const free = want => key(want) !== skip && !handleTrouble_(want, me || null);
-  for (let h = 0; h < heads.length; h++) {
-    const words = handleShuffle_(HANDLE_ADJ);
-    for (let i = 0; i < HANDLE_TRIES; i++) {
-      const want = handleDraw_(heads[h], words[i % words.length]);
-      if (free(want)) return want;
-    }
-  }
-  return '';
 }
 
 /* `handleBareFree_` WAS HERE. § */
@@ -505,7 +464,7 @@ function peopleNamed(name) {
 
 /** Give every row a permanent id. Rows that predate this have none, which is how they were
     identified by name in the first place. Idempotent; never changes an id that exists. */
-function ensurePersonIds() {
+function ensurePersonIds_() {
   const t = read(TAB.people);
   const c = t.headers.indexOf('person_id');
   if (c < 0) return 0;

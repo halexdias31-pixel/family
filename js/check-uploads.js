@@ -164,7 +164,7 @@ const SCOPE_WORDS = /googleapis\.com|auth\/drive|Deploy|Apps Script/;
   const tab = b.ev('TAB.messages'), cols = b.ev('SCHEMA.messages') || [];
   const where = b.ev('WHERE.messages || WHERE[TAB.messages]');
   if (!tab) fail('the tab', 'TAB has no messages');
-  if (cols.indexOf('attachments') < 0) fail('the tab', 'SCHEMA.messages has no `attachments` — ensureSchema would never add the column');
+  if (cols.indexOf('attachments') < 0) fail('the tab', 'SCHEMA.messages has no `attachments` — ensureSchema_ would never add the column');
   if (!where || !where.file) fail('the tab', 'WHERE does not route messages to a file, so nothing can open it');
 }
 
@@ -177,7 +177,7 @@ const SCOPE_WORDS = /googleapis\.com|auth\/drive|Deploy|Apps Script/;
   if (parent.success) fail('no column', 'a photograph was accepted with nowhere to keep its address');
   else {
     if (!/^Photos and videos cannot be sent yet, so nothing was sent/.test(parent.error)) fail('no column', 'the parent was told "' + parent.error + '"');
-    if (/\?setup=1|ensureSchema/.test(parent.error)) fail('no column', 'a parent was told to run setup: "' + parent.error + '"');
+    if (/\?setup=1|ensureSchema_/.test(parent.error)) fail('no column', 'a parent was told to run setup: "' + parent.error + '"');
     if (parent.why !== 'files') fail('no column', 'the refusal does not say it was the files (why: "' + parent.why + '"), so the phone cannot offer Words only');
   }
   const owner = W.msg('P-A1', 'P-T1', '', [VID]);

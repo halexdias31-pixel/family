@@ -579,6 +579,8 @@ const MW = [
   ['gravitational potential energy', 'gravitational potential', 1, 'a phrase, in order'],
   ['potential gravitational', 'gravitational potential', 0, 'and out of order it is not the phrase'],
   ['', 'placebo', null, 'nothing typed is not a wrong answer'],
+  ['No. The powers of 10 come first', 'no ; powers', 2, 'an opening No with its full stop is the verdict, not a negation of the next word'],
+  ['No placebo was given', 'placebo', 0, 'but a No inside the sentence still negates'],
 ];
 if (mwSrc.some(x => !x)) { console.log('check-marking: cannot find ' + MW_NAMES.filter((n, i) => !mwSrc[i]).join(', ') + ' in find.js — renamed?'); process.exit(1); }
 eval(mwSrc.join('\n'));
@@ -600,6 +602,9 @@ mwLib.forEach(r => {
 });
 /* AND A `rule:` WAY (360): the numbers typed tested, not matched. typed, accept, wanted, why. */
 const RULES = [
+  ['1, 100, 2, 50, 4, 25', 'rule: count 6, distinct, pairs prod 100', true, 'a net\u2019s opposite faces, in pairs, each making 100 (366)'],
+  ['1, 100, 2, 50, 4, 26', 'rule: count 6, distinct, pairs prod 100', false, 'one pair making 104'],
+  ['10, 10, 2, 50, 4, 25', 'rule: count 6, distinct, pairs prod 100', false, 'ten twice is not six different numbers'],
   ['4, 12, 18', 'rule: count 3, distinct, each factor 36, sum 31..34', true, 'three factors of 36 adding to 34'],
   ['4, 12, 19', 'rule: count 3, distinct, each factor 36, sum 31..34', false, '19 is not a factor'],
   ['6, 12, 18', 'rule: count 3, distinct, each factor 36, sum 31..34', false, 'they add to 36, past the band'],
@@ -616,6 +621,21 @@ const RULES = [
   ['Head and 2', 'rule: set head~h+1/head+2', false, 'a list with one missing'],
   ['Soup and Chicken, Beef and Soup', 'rule: set soup+chicken/soup+beef', true, 'each pair either way round'],
   ['', 'rule: count 1', null, 'nothing typed is not a wrong answer'],
+  ['35, 28', 'rule: count 2, hcf 7, at 1 mult 5, at 2 even', true, 'another pair with HCF 7, m a multiple of 5, n even'],
+  ['35, 70', 'rule: count 2, hcf 7, at 1 mult 5, at 2 even', false, 'their HCF is 35, not 7'],
+  ['14, 35', 'rule: count 2, hcf 7, at 1 mult 5, at 2 even', false, 'the two the wrong way round'],
+  /* `expr` and `eqn` (365): an algebraic answer marked by its value at sample points, not its spelling */
+  ['x^2 + 7x + 12', 'rule: expr x^2+7x+12', true, 'the scheme as written'],
+  ['7x + x² + 12', 'rule: expr x^2+7x+12', true, 'the terms in another order, a squared sign'],
+  ['(x + 3)(x + 4)', 'rule: expr x^2+7x+12, nobracket', false, 'still in brackets where it was to be multiplied out'],
+  ['x^2 + 7x + 13', 'rule: expr x^2+7x+12', false, 'one term wrong'],
+  ['(f+4)/(f-3)', 'rule: expr m = (f+4)/(f-3)', true, 'the subject without its name'],
+  ['m = (4 + f)/(f − 3)', 'rule: expr m = (f+4)/(f-3)', true, 'the subject named, the top turned round'],
+  ['m(f - 3) = f + 4', 'rule: expr m = (f+4)/(f-3)', false, 'a true equation with the letter not yet the subject'],
+  ['4y + 3x + 11 = 0', 'rule: eqn y = -3/4x - 11/4', true, 'the same line as an equation in another form'],
+  ['y = -0.75x + 2.75', 'rule: eqn y = -3/4x - 11/4', false, 'a parallel line, not the line'],
+  ['h = 120t^-0.5', 'rule: expr h = 120/√t', true, 'a negative power for a root underneath'],
+  ['banana', 'rule: expr x^2+7x+12', false, 'words are not an expression'],
 ];
 RULES.forEach(([typed, accept, want, why]) => {
   const got = markAnswer_(typed, accept);
@@ -631,8 +651,176 @@ ruleLib.forEach(r => {
     if (markAnswer_(w, rules) !== true) { mwBad++; console.log('  WRONG  %s: its own example %j is marked wrong by %j', r.row_id, w, rules); }
   });
 });
+/* ONE BOX PER VALUE (362): the scheme's own list, typed a value to a box and joined as the boxes join it, is marked right. */
+let boxRows = 0;
+LIB.forEach(r => {
+  if (!r.accept || r.cells || (r.choices && String(r.choices).trim())) return;
+  const m = multiOf_(r);
+  if (!m) return;
+  boxRows++;
+  const eg = String(r.accept).split('|').map(w => w.trim()).find(w => w && !/^rule:/i.test(w));
+  if (!eg) return;
+  const vals = multiVals_(eg, m);
+  if (!m.grow && vals.length !== m.n) { mwBad++; console.log('  WRONG  %s: %d boxes for the %d values of %j', r.row_id, m.n, vals.length, eg); }
+  if (!m.wrap && !m.labels.some(Boolean) && markAnswer_(vals, r.accept) !== true) { mwBad++; console.log('  WRONG  %s: %j typed a value to a box is marked wrong', r.row_id, vals); }
+  if (markAnswer_(multiJoin_(vals, m), r.accept) !== true) { mwBad++; console.log('  WRONG  %s: the boxes joined, %j, are marked wrong', r.row_id, multiJoin_(vals, m)); }
+});
+if (boxRows < 100) { mwBad++; console.log('  WRONG  only %d library answers get a box per value — multiOf_ has stopped reading them', boxRows); }
 if (mwBad) { console.log('\n%d rule-marking cases wrong — a short worded answer is being marked wrongly without AI.', mwBad); process.exit(1); }
 console.log('rule marking: %d key-word cases, the cells, %d library rules each scoring its own scheme in full; %d `rule:` cases and %d library rules', MW.length, mwLib.length, RULES.length, ruleLib.length);
+
+/* ---------- A DRAWN ANSWER MARKED BY ITS GEOMETRY (366): every kind, a right drawing right, a near miss wrong, and the tolerance's two edges */
+const cutDraw_ = require('./check-marks-load.js').cutFrom;
+const DRAW_NAMES = ['PAD_GRIDS', 'padGrid_', 'drawFig_', 'drawMarker_'];
+const drawSrc = DRAW_NAMES.map(n => cutDraw_(src, n));
+if (drawSrc.some(x => !x)) { console.log('check-marking: cannot find ' + DRAW_NAMES.filter((n, i) => !drawSrc[i]).join(', ') + ' in find.js — the drawing marker was NOT checked'); process.exit(1); }
+const DM = new Function(drawSrc.join('\n') + '\nreturn { fig: drawFig_, M: drawMarker_() };')();
+/* a 16-square grid, 20 units a square, with its axes numbered -8 to 8 (the made-up "Axes" surface's shape) */
+const gridSvg = (() => {
+  const o = [];
+  for (let v = 10; v <= 330; v += 20) o.push(`<line x1="${v}" y1="10" x2="${v}" y2="330"/><line x1="10" y1="${v}" x2="330" y2="${v}"/>`);
+  for (let n = -8; n <= 8; n += 2) if (n) o.push(`<text x="${170 + n * 20}" y="182">${n}</text><text x="164" y="${170 - n * 20 + 3}">${n}</text>`);
+  return `<svg viewBox="0 0 340 340">${o.join('')}</svg>`;
+})();
+const plainSvg = '<svg viewBox="0 0 340 340"><rect x="10" y="10" width="320" height="320"/></svg>';
+const AX = DM.fig(gridSvg), PL = DM.fig(plainSvg);
+/* strokes as the pen stores them, from points in the picture's units (both pictures are 340 square) */
+const st = (...pls) => pls.map(pl => [].concat.apply([], pl));
+const xy = (X, Y) => [170 + X * 20, 170 - Y * 20];            // a point on the axes, in their numbers
+const P_ = (...pts) => pts.map(p => xy(p[0], p[1]));
+const cross_ = (X, Y) => [P_([X - 0.2, Y - 0.2], [X + 0.2, Y + 0.2]), P_([X + 0.2, Y - 0.2], [X - 0.2, Y + 0.2])];
+const at_ = (c, g, r) => [c[0] + r * Math.sin(g * Math.PI / 180), c[1] - r * Math.cos(g * Math.PI / 180)];
+const TRI = [[1, 1], [4, 1], [1, 3]];
+const DRAW = [
+  /* points plotted, by a cross or a dot */
+  ['pts', AX, { items: [{ k: 'pts', at: [[2, -3], [-4, 1]] }], loose: true }, st(...cross_(2, -3), ...cross_(-4, 1)), 1, 'two crosses where they belong'],
+  ['pts', AX, { items: [{ k: 'pts', at: [[2, -3], [-4, 1]] }], loose: true }, st(...cross_(-3, 2), ...cross_(-4, 1)), 0, '(−3, 2) for (2, −3): across and up swapped'],
+  ['pts', AX, { items: [{ k: 'pts', at: [[2, -3]] }] }, st([xy(2.25, -3)]), 1, 'a dot a quarter of a square out: inside the tolerance'],
+  ['pts', AX, { items: [{ k: 'pts', at: [[2, -3]] }] }, st([xy(2.45, -3)]), 0, 'and nearly half a square out: outside it'],
+  /* a shape corner for corner: a reflection, a translation */
+  ['segs', AX, { items: [{ k: 'segs', poly: TRI }] }, st(P_(...TRI, TRI[0])), 1, 'the image triangle drawn in one go'],
+  ['segs', AX, { items: [{ k: 'segs', poly: TRI }] }, st(P_(TRI[1], TRI[2]), P_(TRI[2], TRI[0], TRI[1])), 1, 'in two strokes, the other way round'],
+  ['segs', AX, { items: [{ k: 'segs', poly: TRI }] }, st(P_([1, 1], [4, 1], [1, 4], [1, 1])), 0, 'one corner a square out'],
+  ['segs', AX, { items: [{ k: 'segs', poly: TRI }] }, st(P_([1.2, 1.1], [4.1, 0.9], [0.9, 3.2], [1.2, 1.1])), 1, 'drawn a little off by hand, within 0.3 of a square'],
+  ['segs', AX, { items: [{ k: 'segs', poly: TRI, m: 2, or: { k: 'segs', poly: TRI, move: 'xy', m: 1 } }] }, st(P_(...TRI, TRI[0]).map(p => [p[0] + 40, p[1]])), 1, 'the right shape in the wrong place: the scheme’s 1 of 2'],
+  ['segs', AX, { items: [{ k: 'segs', poly: TRI, m: 2, or: { k: 'segs', poly: TRI, move: 'xy', m: 1 } }] }, st(P_(...TRI, TRI[0])), 2, 'and in the right place, 2 of 2'],
+  ['segs', AX, { items: [{ k: 'segs', poly: TRI, turn: true, move: 'xy' }] }, st(P_([-1, -1], [-1, -4], [-3, -1], [-1, -1])), 1, 'turned and moved, where any orientation will do (a plan)'],
+  /* a graph: a polyline through its points */
+  ['path', AX, { items: [{ k: 'segs', path: [[-2, 4], [-1, 1], [0, 0], [1, 1], [2, 4]] }] }, st(P_([-2, 4], [-1.5, 2.25], [-1, 1], [-0.5, 0.25], [0, 0], [0.5, 0.25], [1, 1], [1.5, 2.25], [2, 4])), 1, 'y = x² drawn as a curve through its points'],
+  ['path', AX, { items: [{ k: 'segs', path: [[-2, 4], [-1, 1], [0, 0], [1, 1], [2, 4]] }] }, st(P_([-2, 5], [-1, 2], [0, 1], [1, 2], [2, 5])), 0, 'the curve one square too high'],
+  /* a line of symmetry, and a line that is not one */
+  ['line', PL, { frame: 'vb', items: [{ k: 'line', thru: [[170, 20], [170, 300]] }] }, st([[170, 10], [171, 310]]), 1, 'the line down the middle'],
+  ['line', PL, { frame: 'vb', items: [{ k: 'line', thru: [[170, 20], [170, 300]] }] }, st([[170, 10], [171, 310]], [[20, 20], [300, 300]]), 0, 'and a diagonal that is not a line of symmetry with it'],
+  ['line', PL, { frame: 'vb', items: [{ k: 'line', thru: [[170, 20], [170, 300]] }] }, st([[190, 10], [190, 310]]), 0, 'a parallel line a square off the middle'],
+  /* shading: how many cells, or which */
+  ['cells', PL, { frame: 'vb', items: [{ k: 'cells', need: 2, rects: [[10, 10, 100, 100], [110, 10, 100, 100], [210, 10, 100, 100]] }] }, st([[20, 20], [100, 30], [20, 60], [100, 90], [30, 100]], [[220, 20], [300, 30], [220, 60], [300, 90], [230, 100]]), 1, 'two of three shaded'],
+  ['cells', PL, { frame: 'vb', items: [{ k: 'cells', need: 2, rects: [[10, 10, 100, 100], [110, 10, 100, 100], [210, 10, 100, 100]] }] }, st([[20, 20], [100, 30], [20, 60], [100, 90], [30, 100]]), 0, 'one of three'],
+  ['cells', PL, { frame: 'vb', items: [{ k: 'cells', set: [[1]], rects: [[10, 10, 100, 100], [110, 10, 100, 100]] }] }, st([[20, 20], [100, 30], [20, 60], [100, 90], [30, 100]]), 0, 'a cell shaded, the wrong one'],
+  /* a radius and a diameter */
+  ['radius', PL, { frame: 'vb', items: [{ k: 'radius', c: [170, 170], r: 100 }] }, st([[170, 170], at_([170, 170], 40, 100)]), 1, 'centre to edge'],
+  ['radius', PL, { frame: 'vb', items: [{ k: 'radius', c: [170, 170], r: 100 }] }, st([[170, 170], at_([170, 170], 40, 60)]), 0, 'stopping short of the edge'],
+  ['radius', PL, { frame: 'vb', items: [{ k: 'radius', c: [170, 170], r: 100, dia: true }] }, st([at_([170, 170], 40, 100), at_([170, 170], 220, 100)]), 1, 'a diameter through the centre'],
+  ['radius', PL, { frame: 'vb', items: [{ k: 'radius', c: [170, 170], r: 100, dia: true }] }, st([at_([170, 170], 40, 100), at_([170, 170], 180, 100)]), 0, 'a chord that misses it'],
+  /* perpendicular and parallel */
+  ['dir', PL, { frame: 'vb', items: [{ k: 'dir', to: [100, 170, 240, 170], rel: 'perp', meet: true }] }, st([[170, 100], [171, 240]]), 1, 'a perpendicular crossing the line'],
+  ['dir', PL, { frame: 'vb', items: [{ k: 'dir', to: [100, 170, 240, 170], rel: 'perp', meet: true }] }, st([[170, 100], [190, 240]]), 0, 'eight degrees off'],
+  ['pair', PL, { frame: 'vb', items: [{ k: 'pair', rel: 'par' }] }, st([[40, 100], [300, 110]], [[40, 200], [300, 210]]), 1, 'two parallel lines'],
+  ['pair', PL, { frame: 'vb', items: [{ k: 'pair', rel: 'par' }] }, st([[40, 100], [300, 110]], [[40, 200], [300, 240]]), 0, 'two lines that will meet'],
+  ['dir', AX, { items: [{ k: 'dir', len: 5, ltol: 0.2 }] }, st(P_([-3, 0], [2, 0])), 1, 'a 5 cm line on a centimetre grid'],
+  ['dir', AX, { items: [{ k: 'dir', len: 5, ltol: 0.2 }] }, st(P_([-3, 0], [2.5, 0])), 0, 'and one 5.5 cm long'],
+  /* an angle drawn: within two degrees, as a protractor is marked */
+  ['angle', PL, { frame: 'vb', items: [{ k: 'angle', deg: 40 }] }, st([[300, 280], [60, 280], at_([60, 280], 50, 200)]), 1, '40° in one stroke'],
+  ['angle', PL, { frame: 'vb', items: [{ k: 'angle', deg: 40 }] }, st([[300, 280], [60, 280]], [[60, 280], at_([60, 280], 48.5, 200)]), 1, '41.5° in two: inside two degrees'],
+  ['angle', PL, { frame: 'vb', items: [{ k: 'angle', deg: 40 }] }, st([[300, 280], [60, 280], at_([60, 280], 46, 200)]), 0, '44°: outside them'],
+  /* a shape by its properties, wherever it is drawn */
+  ['polygon', PL, { frame: 'vb', items: [{ k: 'polygon', n: 8 }] }, st([[170, 50], [255, 85], [290, 170], [255, 255], [170, 290], [85, 255], [50, 170], [85, 85], [170, 50]]), 1, 'an octagon'],
+  ['polygon', PL, { frame: 'vb', items: [{ k: 'polygon', n: 8 }] }, st([[170, 50], [255, 85], [290, 170], [255, 255], [170, 290], [85, 255], [50, 170], [170, 50]]), 0, 'seven sides'],
+  ['polygon', PL, { frame: 'vb', items: [{ k: 'polygon', n: 8 }] }, st([[170, 50], [255, 85], [290, 170], [255, 255], [170, 290], [85, 255], [50, 170], [85, 85], [150, 60]]), 0, 'eight sides left open'],
+  ['polygon', PL, { frame: 'vb', items: [{ k: 'polygon', is: 'kite' }] }, st([[170, 40], [240, 120], [170, 300], [100, 120], [170, 40]]), 1, 'a kite'],
+  ['polygon', PL, { frame: 'vb', items: [{ k: 'polygon', is: 'kite' }] }, st([[170, 40], [240, 120], [170, 300], [80, 160], [170, 40]]), 0, 'a quadrilateral with no equal pair'],
+  ['polygon', PL, { frame: 'vb', items: [{ k: 'polygon', is: 'scalene' }] }, st([[50, 280], [300, 280], [110, 90], [50, 280]]), 1, 'a scalene triangle'],
+  ['polygon', PL, { frame: 'vb', items: [{ k: 'polygon', is: 'scalene' }] }, st([[50, 280], [290, 280], [170, 60], [50, 280]]), 0, 'an isosceles one'],
+  ['polygon', PL, { frame: 'vb', items: [{ k: 'polygon', is: 'right' }] }, st([[60, 280], [280, 280], [62, 80], [60, 280]]), 1, 'a right angle drawn by hand, half a degree off'],
+  ['polygon', PL, { frame: 'vb', items: [{ k: 'polygon', is: 'right' }] }, st([[60, 280], [280, 280], [90, 80], [60, 280]]), 0, 'eight degrees off'],
+  ['polygon', PL, { frame: 'vb', items: [{ k: 'polygon', n: 3, sas: [6, 5, 30], sim: true }] }, st([[40, 300], [280, 300], at_([280, 300], 300, 200), [40, 300]]), 1, 'a triangle with sides 6 and 5 at 30°, at any size'],
+  ['polygon', PL, { frame: 'vb', items: [{ k: 'polygon', n: 3, sas: [6, 5, 30], sim: true }] }, st([[40, 300], [280, 300], at_([280, 300], 300, 240), [40, 300]]), 0, 'with the sides equal'],
+  ['polygon', PL, { frame: 'vb', items: [{ k: 'polygon', is: 'equilateral', on: { lat: [20, 20, 40, 0, 20, 34.64] } }] }, st([[60, 20], [100, 20], [80, 54.64], [60, 20]]), 1, 'an equilateral triangle on dotted paper'],
+  ['polygon', PL, { frame: 'vb', items: [{ k: 'polygon', is: 'equilateral', on: { lat: [20, 20, 40, 0, 20, 34.64] } }] }, st([[60, 20], [100, 20], [80, 60], [60, 20]]), 0, 'a corner off the dots'],
+  ['polygon', AX, { items: [{ k: 'polygon', n: 3, area: 18, atol: 0.5 }] }, st(P_([0, 0], [6, 0], [0, 6], [0, 0])), 1, 'a triangle of area 18 squares'],
+  ['polygon', AX, { items: [{ k: 'polygon', n: 3, area: 18, atol: 0.5 }] }, st(P_([0, 0], [6, 0], [0, 5], [0, 0])), 0, 'one of 15'],
+  /* a cuboid on isometric dots: its volume */
+  ['cuboid', PL, { frame: 'vb', sq: 20, items: [{ k: 'cuboid', vol: 8, on: { lat: [10, 10, 17.32, 10, 0, 20] } }] }, (() => {
+    const u = [17.32, 10], w = [-17.32, 10], d = [0, 20], g = (p, v, n) => [p[0] + v[0] * n, p[1] + v[1] * n];
+    const T = [165.88, 40], A = g(T, u, 2), B = g(A, d, 2), C = g(B, w, 2), D = g(C, u, -2), E = g(D, d, -2);
+    return st([T, A, B, C, D, E, T]);
+  })(), 1, 'a 2 by 2 by 2 cuboid for a volume of 8'],
+  ['cuboid', PL, { frame: 'vb', sq: 20, items: [{ k: 'cuboid', vol: 8, on: { lat: [10, 10, 17.32, 10, 0, 20] } }] }, (() => {
+    const u = [17.32, 10], w = [-17.32, 10], d = [0, 20], g = (p, v, n) => [p[0] + v[0] * n, p[1] + v[1] * n];
+    const T = [165.88, 40], A = g(T, u, 2), B = g(A, d, 3), C = g(B, w, 2), D = g(C, u, -2), E = g(D, d, -3);
+    return st([T, A, B, C, D, E, T]);
+  })(), 0, 'a 2 by 2 by 3, volume 12'],
+  /* clocks, dials, scales and pie charts: the value or the angle shown */
+  ['clock', PL, { frame: 'vb', items: [{ k: 'clock', c: [170, 170], r: 120, h: 5, min: 40 }] }, st([[170, 170], at_([170, 170], 240, 96)], [[170, 170], at_([170, 170], 170, 60)]), 1, 'twenty to six'],
+  ['clock', PL, { frame: 'vb', items: [{ k: 'clock', c: [170, 170], r: 120, h: 5, min: 40 }] }, st([[170, 170], at_([170, 170], 240, 60)], [[170, 170], at_([170, 170], 170, 96)]), 0, 'the hands swapped'],
+  ['clock', PL, { frame: 'vb', items: [{ k: 'clock', c: [170, 170], r: 120, h: 5, min: 40 }] }, st([[170, 170], at_([170, 170], 240, 96)], [[170, 170], at_([170, 170], 150, 60)]), 0, 'the hour hand on the 5, as if it did not move'],
+  ['dial', PL, { frame: 'vb', items: [{ k: 'dial', c: [170, 170], r: 100, a: [0, 360], v: [0, 1000], want: 650, vtol: 10 }] }, st([[170, 170], at_([170, 170], 234, 90)]), 1, 'a pointer at 650 g'],
+  ['dial', PL, { frame: 'vb', items: [{ k: 'dial', c: [170, 170], r: 100, a: [0, 360], v: [0, 1000], want: 650, vtol: 10 }] }, st([[170, 170], at_([170, 170], 241.2, 90)]), 0, 'at 670 g'],
+  ['scale', PL, { frame: 'vb', items: [{ k: 'scale', a: [20, 200], b: [320, 200], v: [0, 10], want: 4, vtol: 0.25 }] }, st([[140, 150], [140, 198]]), 1, 'an arrow at 4 on a 0 to 10 line'],
+  ['scale', PL, { frame: 'vb', items: [{ k: 'scale', a: [20, 200], b: [320, 200], v: [0, 10], want: 4, vtol: 0.25 }] }, st([[155, 150], [155, 198]]), 0, 'at 4.5'],
+  ['pie', PL, { frame: 'vb', loose: true, items: [{ k: 'pie', c: [170, 170], r: 120, given: [0], sect: [60, 80, 220] }] }, st([[170, 170], at_([170, 170], 60, 120)], [[170, 170], at_([170, 170], 140, 120)]), 1, 'sectors of 60°, 80° and 220°'],
+  ['pie', PL, { frame: 'vb', loose: true, items: [{ k: 'pie', c: [170, 170], r: 120, given: [0], sect: [60, 80, 220] }] }, st([[170, 170], at_([170, 170], 60, 120)], [[170, 170], at_([170, 170], 145, 120)]), 0, 'one sector 5° out'],
+  ['pie', PL, { frame: 'vb', loose: true, items: [{ k: 'pie', c: [170, 170], r: 120, given: [0], sect: [60, 80, 220] }] }, st([[170, 170], at_([170, 170], 61.5, 120)], [[170, 170], at_([170, 170], 141.5, 120)]), 1, 'each line 1.5° out: inside two degrees'],
+  /* a region shown */
+  ['inside', AX, { items: [{ k: 'inside', poly: [[0, 0], [4, 0], [0, 4]] }] }, st(P_([0.5, 0.5], [1.5, 1], [0.6, 1.5], [1.2, 0.5])), 1, 'shading inside the triangle'],
+  ['inside', AX, { items: [{ k: 'inside', poly: [[0, 0], [4, 0], [0, 4]] }] }, st(P_([3.5, 3.5], [4.5, 4], [3.6, 4.5], [4.2, 3.5])), 0, 'shading outside it'],
+  /* a histogram bar for bar; and with no numbers up the axis, its bars' proportions */
+  ['hist', AX, { items: [{ k: 'hist', x: [0, 2, 6], h: [3, 1] }] }, st(P_([0, 0], [0, 3], [2, 3], [2, 0]), P_([2, 1], [6, 1], [6, 0])), 1, 'two bars at their heights'],
+  ['hist', AX, { items: [{ k: 'hist', x: [0, 2, 6], h: [3, 1] }] }, st(P_([0, 0], [0, 3], [2, 3], [2, 0]), P_([2, 2], [6, 2], [6, 0])), 0, 'the second bar a square too tall'],
+  ['hist', AX, { items: [{ k: 'hist', x: [0, 2, 6], h: [3, 1], fy: true }] }, st(P_([0, 0], [0, 6], [2, 6], [2, 0]), P_([2, 2], [6, 2], [6, 0])), 1, 'twice the scale, with the scale the drawer\u2019s'],
+  ['hist', AX, { items: [{ k: 'hist', x: [0, 2, 6], h: [3, 1], fy: true }] }, st(P_([0, 0], [0, 6], [2, 6], [2, 0]), P_([2, 3], [6, 3], [6, 0])), 0, 'and out of proportion'],
+  ['hist', AX, { items: [{ k: 'hist', seq: [[3, 1, 2]] }] }, st(P_([1, 0], [1, 3], [2, 3], [2, 0]), P_([3, 0], [3, 1], [4, 1], [4, 0]), P_([5, 0], [5, 2], [6, 2], [6, 0])), 1, 'three bars, read left to right'],
+  /* a box plot, at whatever height it is drawn */
+  ['box', AX, { items: [{ k: 'box', v: [-6, -2, 0, 3, 7] }] }, st(P_([-6, 4], [-2, 4]), P_([-2, 3], [-2, 5], [3, 5], [3, 3], [-2, 3]), P_([0, 3], [0, 5]), P_([3, 4], [7, 4])), 1, 'the five values'],
+  ['box', AX, { items: [{ k: 'box', v: [-6, -2, 0, 3, 7] }] }, st(P_([-6, 4], [-2, 4]), P_([-2, 3], [-2, 5], [3, 5], [3, 3], [-2, 3]), P_([1, 3], [1, 5]), P_([3, 4], [7, 4])), 0, 'the median a square out'],
+  /* an inequality on a number line: the circles open and filled */
+  ['interval', AX, { items: [{ k: 'interval', a: -2, b: 3, ca: true, cb: false }] }, (() => {
+    const ring = (X, r) => Array.from({ length: 13 }, (_, i) => xy(X + r * Math.sin(i * Math.PI / 6), 1 + r * Math.cos(i * Math.PI / 6)));
+    return st(P_([-1.7, 1], [2.7, 1]), ring(-2, 0.3), ring(-2, 0.2), ring(-2, 0.1), P_([-2.25, 1], [-1.75, 1]), P_([-2, 1.25], [-2, 0.75]), ring(3, 0.3));
+  })(), 1, '\u22122 \u2264 x < 3: filled at \u22122, open at 3'],
+  ['interval', AX, { items: [{ k: 'interval', a: -2, b: 3, ca: true, cb: false }] }, (() => {
+    const ring = (X, r) => Array.from({ length: 13 }, (_, i) => xy(X + r * Math.sin(i * Math.PI / 6), 1 + r * Math.cos(i * Math.PI / 6)));
+    return st(P_([-1.7, 1], [2.7, 1]), ring(-2, 0.3), ring(3, 0.3));
+  })(), 0, 'both circles open'],
+  /* the symbols of a pictogram, by their area */
+  ['area', AX, { items: [{ k: 'area', in: [[-8, 8], [8, -8]], want: 2.5 }] }, st(P_([0, 0], [1, 0], [1, 1], [0, 1], [0, 0]), P_([2, 0], [3, 0], [3, 1], [2, 1], [2, 0]), P_([4, 0], [4.5, 0], [4.5, 1], [4, 1], [4, 0])), 1, 'two and a half squares'],
+  ['area', AX, { items: [{ k: 'area', in: [[-8, 8], [8, -8]], want: 2.5 }] }, st(P_([0, 0], [1, 0], [1, 1], [0, 1], [0, 0]), P_([2, 0], [3, 0], [3, 1], [2, 1], [2, 0])), 0, 'two'],
+  /* compass arcs by a construction */
+  ['curves', PL, { frame: 'vb', items: [{ k: 'curves', n: 2, near: [170, 200], r: 80 }] }, st(Array.from({ length: 9 }, (_, i) => at_([170, 60], 150 + i * 7.5, 150)), Array.from({ length: 9 }, (_, i) => at_([170, 340], -30 + i * 7.5, 150))), 1, 'two arcs near the foot'],
+  ['curves', PL, { frame: 'vb', items: [{ k: 'curves', n: 2, near: [170, 200], r: 80 }] }, st([[100, 200], [240, 200]]), 0, 'a ruled line, no arcs'],
+  /* a sketch by its shape */
+  ['sketch', AX, { items: [{ k: 'sketch', test: ['inc', 'above', 'crossy'] }] }, st(P_([-6, 0.1], [-3, 0.2], [-1, 0.6], [0, 1], [1, 2], [2, 4], [3, 8])), 1, 'y = 2\u02e3 rising, above the axis, crossing above the origin'],
+  ['sketch', AX, { items: [{ k: 'sketch', test: ['inc', 'above', 'crossy'] }] }, st(P_([-6, -1], [-3, -0.5], [0, 1], [3, 8])), 0, 'dipping below the axis'],
+  /* a vector's arrowhead; a sketch's height fitted */
+  ['head', AX, { items: [{ k: 'segs', at: [[0, 0, 3, 4]], move: 'xy', head: true }] }, st(P_([1, 1], [4, 5]), P_([3.2, 4.6], [4, 5], [4.1, 4.1])), 1, 'an arrow 3 right and 4 up, anywhere'],
+  ['head', AX, { items: [{ k: 'segs', at: [[0, 0, 3, 4]], move: 'xy', head: true }] }, st(P_([1, 1], [4, 5]), P_([1.6, 1.9], [1, 1], [1.9, 1.4])), 0, 'the head at the wrong end'],
+  ['fity', AX, { items: [{ k: 'segs', path: Array.from({ length: 13 }, (_, i) => [i / 2 - 3, Math.sin(i * Math.PI / 6)]), fity: true }] }, st(P_(...Array.from({ length: 13 }, (_, i) => [i / 2 - 3, 3 * Math.sin(i * Math.PI / 6)]))), 1, 'a sine wave three squares high, on an axis with no numbers'],
+  ['fity', AX, { items: [{ k: 'segs', path: Array.from({ length: 13 }, (_, i) => [i / 2 - 3, Math.sin(i * Math.PI / 6)]), fity: true }] }, st(P_(...Array.from({ length: 13 }, (_, i) => [i / 2 - 3, -3 * Math.sin(i * Math.PI / 6)]))), 0, 'and upside down'],
+  /* nothing drawn is not a wrong answer */
+  ['empty', AX, { items: [{ k: 'pts', at: [[0, 0]] }] }, [], null, 'nothing drawn'],
+];
+let drawBad = 0;
+const drawKinds = new Set();
+DRAW.forEach(([kind, fig, spec, strokes, want, why]) => {
+  drawKinds.add(kind);
+  const r = DM.M.mark(strokes, spec, fig);
+  const got = r && r.empty ? null : r && r.got;
+  if (got !== want) { drawBad++; console.log('  WRONG  %s: %s — wanted %j, got %j', kind, why, want, r); }
+});
+/* the frame read off the axes' numbers: (2, −3) is 2 squares right of the 0 and 3 down */
+const fr = DM.M.frameOf({}, AX);
+if (Math.abs(fr.o[0] - 170) > 0.5 || Math.abs(fr.o[1] - 170) > 0.5 || Math.abs(fr.u[0] - 20) > 0.01 || Math.abs(fr.u[1] + 20) > 0.01) { drawBad++; console.log('  WRONG  the axes’ numbers give the frame %j, not the origin at (170, 170) and 20 a unit', [fr.o, fr.u]); }
+if (drawBad) { console.log('\n%d of %d drawing cases wrong — a drawn answer is being marked wrongly.', drawBad, DRAW.length); process.exit(1); }
+console.log('drawings: %d cases over %d kinds, each a right drawing right and a near miss wrong', DRAW.length, drawKinds.size);
 
 if (bad || normBad || lib.bad.length || rowBad || slow || orderBad || orderLib.bad.length || seqBad || seqLib.bad.length) {
   console.log('\n%d of %d marking cases wrong, %d of %d markNorm_ cases, %d in the library sweep, %d of %d\n' +

@@ -438,32 +438,32 @@ const ev = (key, answer, verdict, more) => Object.assign({ id: ID(), key: key, a
   b.tabs.submissions = [SH.slice(), ['P-S1', 'q:Q-K-1', 'Maths · Q1', 'Work it out.', '3/4', 'right', new Date(Date.now() - 86400e3), '1760000000001-ab0001']];
   const before = JSON.stringify(opt.map(r => r.slice()));
   const subBefore = JSON.stringify(b.tabs.submissions[1]);
-  b.ev('ensureSchema()');
+  b.ev('ensureSchema_()');
   const after = opt.map(r => r.slice());
   const was = JSON.parse(before);
   was.forEach((row, i) => {
     const now = after[i] || [];
     if (JSON.stringify(row) !== JSON.stringify(now.slice(0, row.length).concat(Array(Math.max(0, row.length - now.length)).fill('')).slice(0, row.length)))
-      bad.push('ensureSchema changed row ' + (i + 1) + ' of the options tab: ' + JSON.stringify(row) + ' → ' + JSON.stringify(now) + ' — an owner’s row is never rewritten, moved or removed');
+      bad.push('ensureSchema_ changed row ' + (i + 1) + ' of the options tab: ' + JSON.stringify(row) + ' → ' + JSON.stringify(now) + ' — an owner’s row is never rewritten, moved or removed');
   });
   const added = after.slice(was.length).map(r => r[OH.indexOf('list_name')] + ':' + r[OH.indexOf('value')]);
   const want = [];
   const defs = b.ev('OPTION_DEFAULTS');
   const have = new Set(was.slice(1).map(r => String(r[0]).trim() + ':' + String(r[1]).trim().toLowerCase()));
   Object.keys(defs).forEach(l => defs[l].forEach(v => { if (!have.has(l + ':' + v.toLowerCase())) want.push(l + ':' + v); }));
-  if (JSON.stringify(added) !== JSON.stringify(want)) bad.push('ensureSchema added ' + JSON.stringify(added) + ' to the options tab — wanted exactly the code’s missing values ' + JSON.stringify(want));
+  if (JSON.stringify(added) !== JSON.stringify(want)) bad.push('ensureSchema_ added ' + JSON.stringify(added) + ' to the options tab — wanted exactly the code’s missing values ' + JSON.stringify(want));
   const ps = after.slice(was.length).filter(r => r[0] === 'participant_status').map(r => r[OH.indexOf('sort_order')]);
   if (ps.some(n => !(n > 3))) bad.push('a value added to an owner’s list was numbered ' + JSON.stringify(ps) + ' — wanted after their own (3)');
   /* A SECOND RUN ADDS NOTHING. */
   asked++;
   const n1 = opt.length;
-  b.ev('ensureSchema()');
-  if (opt.length !== n1) bad.push('a second ensureSchema added ' + (opt.length - n1) + ' option row(s) — it must add a missing value once');
+  b.ev('ensureSchema_()');
+  if (opt.length !== n1) bad.push('a second ensureSchema_ added ' + (opt.length - n1) + ' option row(s) — it must add a missing value once');
   /* AND THE SUBMISSIONS TAB GAINED ITS COLUMN AT THE END, THE PRESS ON IT UNTOUCHED. */
   asked++;
   const sh = b.tabs.submissions;
-  if (JSON.stringify(sh[0]) !== JSON.stringify(SH.concat(['pressed_at']))) bad.push('ensureSchema left the submissions header as ' + JSON.stringify(sh[0]) + ' — wanted pressed_at added at the end');
-  if (JSON.stringify(sh[1].slice(0, SH.length)) !== subBefore) bad.push('ensureSchema moved the press already on the submissions tab: ' + subBefore + ' → ' + JSON.stringify(sh[1]));
+  if (JSON.stringify(sh[0]) !== JSON.stringify(SH.concat(['pressed_at']))) bad.push('ensureSchema_ left the submissions header as ' + JSON.stringify(sh[0]) + ' — wanted pressed_at added at the end');
+  if (JSON.stringify(sh[1].slice(0, SH.length)) !== subBefore) bad.push('ensureSchema_ moved the press already on the submissions tab: ' + subBefore + ' → ' + JSON.stringify(sh[1]));
 }
 
 /* ---------- 9b. AND THE LIVE `people` TAB HAS NOT ONE SPARE COLUMN (review of 10 Oct) § */
@@ -478,20 +478,20 @@ const ev = (key, answer, verdict, more) => Object.assign({ id: ID(), key: key, a
   const ci = () => b.tabs.config[0].indexOf('key');
   b.tabs.config = b.tabs.config.filter((r, i) => i === 0 || r[ci()] !== 'gemini_model');
   let threw = null;
-  try { b.ev('ensureSchema()'); } catch (e) { threw = e; }
-  if (threw) bad.push('ensureSchema threw on a people tab with no spare column, so nothing after it ran: ' + String(threw.message || threw).slice(0, 160));
+  try { b.ev('ensureSchema_()'); } catch (e) { threw = e; }
+  if (threw) bad.push('ensureSchema_ threw on a people tab with no spare column, so nothing after it ran: ' + String(threw.message || threw).slice(0, 160));
   else {
-    if (JSON.stringify(b.tabs.people[0]) !== JSON.stringify(FULL)) bad.push('ensureSchema left the people header as ' + b.tabs.people[0].length + ' columns — wanted the ' + CUT + ' missing ones added at the end, ' + FULL.length + ' in all');
-    if (JSON.stringify(b.tabs.people.slice(1).map(r => r.slice(0, FULL.length - CUT))) !== keptRows) bad.push('ensureSchema moved or changed a cell already on the people tab while widening it');
-    ['submissions', 'answers'].forEach(t => { if (!b.tabs[t]) bad.push('ensureSchema got past people but did not create the ' + t + ' tab'); });
-    if (!b.tabs.config.some((r, i) => i > 0 && r[ci()] === 'gemini_model')) bad.push('ensureSchema got past people but did not seed the config row gemini_model');
+    if (JSON.stringify(b.tabs.people[0]) !== JSON.stringify(FULL)) bad.push('ensureSchema_ left the people header as ' + b.tabs.people[0].length + ' columns — wanted the ' + CUT + ' missing ones added at the end, ' + FULL.length + ' in all');
+    if (JSON.stringify(b.tabs.people.slice(1).map(r => r.slice(0, FULL.length - CUT))) !== keptRows) bad.push('ensureSchema_ moved or changed a cell already on the people tab while widening it');
+    ['submissions', 'answers'].forEach(t => { if (!b.tabs[t]) bad.push('ensureSchema_ got past people but did not create the ' + t + ' tab'); });
+    if (!b.tabs.config.some((r, i) => i > 0 && r[ci()] === 'gemini_model')) bad.push('ensureSchema_ got past people but did not seed the config row gemini_model');
     const gaps = b.ev('schemaGaps()');
-    if (Object.keys(gaps).length) bad.push('after ensureSchema, schemaGaps still says ' + JSON.stringify(gaps).slice(0, 200) + ' — a tab it created must have its header on row 1');
+    if (Object.keys(gaps).length) bad.push('after ensureSchema_, schemaGaps still says ' + JSON.stringify(gaps).slice(0, 200) + ' — a tab it created must have its header on row 1');
     /* AND A SECOND RUN, ON THE GRID THE FIRST ONE LEFT, WRITES NOTHING. */
     asked++;
     const all = JSON.stringify(b.tabs), w = b.log.writes;
-    try { b.ev('ensureSchema()'); } catch (e) { bad.push('a second ensureSchema threw: ' + String(e.message || e).slice(0, 160)); }
-    if (b.log.writes !== w || JSON.stringify(b.tabs) !== all) bad.push('a second ensureSchema changed the sheet — it must add a missing column once');
+    try { b.ev('ensureSchema_()'); } catch (e) { bad.push('a second ensureSchema_ threw: ' + String(e.message || e).slice(0, 160)); }
+    if (b.log.writes !== w || JSON.stringify(b.tabs) !== all) bad.push('a second ensureSchema_ changed the sheet — it must add a missing column once');
   }
 }
 
@@ -565,21 +565,21 @@ const ev = (key, answer, verdict, more) => Object.assign({ id: ID(), key: key, a
       const nv = steps.findIndex(st => /New version/.test(st));
       steps.forEach((st, i) => {
         if (nv !== -1 && i < nv && /\bopen\b[^.\n]*\?setup=1/i.test(st)) bad.push(f + ': an owner step before the New version says to open ?setup=1 — until then /exec runs the deployed (old) code: ' + JSON.stringify(st.trim().slice(0, 120)));
-        if (/first request[^.]*\bruns?\b[^.]*ensureSchema[^.]*by itself/i.test(st)) bad.push(f + ': an owner step says the first request runs ensureSchema by itself — doGet runs it only on ?setup= or ?run=: ' + JSON.stringify(st.trim().slice(0, 120)));
+        if (/first request[^.]*\bruns?\b[^.]*ensureSchema_[^.]*by itself/i.test(st)) bad.push(f + ': an owner step says the first request runs ensureSchema_ by itself — doGet runs it only on ?setup= or ?run=: ' + JSON.stringify(st.trim().slice(0, 120)));
       });
     }
   });
   if (!sections) bad.push('no "For the owner" section was found in docs/history — the owner’s steps were NOT read');
-  /* AND THE CODE THOSE SENTENCES DESCRIBE: an ordinary request never runs ensureSchema; ?setup=1 does. */
+  /* AND THE CODE THOSE SENTENCES DESCRIBE: an ordinary request never runs ensureSchema_; ?setup=1 does. */
   asked++;
   const { b } = world();
-  b.ev('var __es = 0, __es0 = ensureSchema; ensureSchema = function () { __es++; return __es0.apply(this, arguments); };');
+  b.ev('var __es = 0, __es0 = ensureSchema_; ensureSchema_ = function () { __es++; return __es0.apply(this, arguments); };');
   b.get({});
   const plain = b.ev('__es');
   b.get({ setup: '1' });
   const setup = b.ev('__es') - plain;
-  if (plain !== 0) bad.push('an ordinary request ran ensureSchema ' + plain + ' time(s) — the owner’s steps say only ?setup= or ?run= does');
-  if (setup < 1) bad.push('?setup=1 did not run ensureSchema — the owner’s steps send them there once the new version is deployed');
+  if (plain !== 0) bad.push('an ordinary request ran ensureSchema_ ' + plain + ' time(s) — the owner’s steps say only ?setup= or ?run= does');
+  if (setup < 1) bad.push('?setup=1 did not run ensureSchema_ — the owner’s steps send them there once the new version is deployed');
 }
 
 console.log('');

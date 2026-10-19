@@ -349,6 +349,8 @@ function libraryInto_(d, rows) {
       cells: libS(r.cells),
       /* KEY WORDS THAT MARK A SHORT WORDED ANSWER WITHOUT AI (find.js, `markWords_`). */
       markWords: libS(r.mark_words),
+      /* THE EXPECTED DRAWING AS GEOMETRY (find.js, `drawMarker_`, 366). */
+      drawAnswer: libS(r.draw_answer),
       /* A CLOSED LIST OF OPTIONS, TAPPED RATHER THAN TYPED. § */
       choices: libS(r.choices).split('|').map(t => t.trim()).filter(Boolean),
       /* ---------- AN ORDERING IS THE SAME TWO COLUMNS AND ONE MORE § */
@@ -391,14 +393,16 @@ const HEALTH_WORDED = ['explain', 'written', 'proof', 'annotate', 'drawing'];
 const HEALTH_SAYS_PIC = /\b(diagram|shown|table below|grid)\b|\b(the|this) graph\b|\bgraph (below|above|shows)\b/i;
 const HEALTH_DRAWN = /<(svg|img|table)\b/i;
 /* ANSWERABLE: a part has a box the app gives it AND a way to mark it with no AI -- `accept`, a choice or
-   an order key, filled cells, or `mark_words`. A drawing is answerable on its figure and marked by a person. */
+   an order key, filled cells, `mark_words`, or `draw_answer` (a drawing marked by its geometry, 366). */
 const ABLE_HURT = { input: 1, mark: 0.6 };
 function ableOf_(r) {
   const type = libS(r.answer_type).toLowerCase();
-  if ((libTrue(r.needs_print) || libTrue(r.print_required)) && !libS(r.accept).trim()) return ['input', 'answered on the printed sheet only'];
+  /* a part with key words, cells or choices has its box and its marker like any other, printed sheet or not (365) */
   if (libS(r.choices).trim() && libS(r.choice_right).trim()) return null;
-  if (libS(r.accept).trim() || libS(r.mark_words).trim() || libS(r.cells).trim()) return null;
+  if (libS(r.accept).trim() || libS(r.mark_words).trim() || libS(r.cells).trim() || libS(r.draw_answer).trim()) return null;
+  /* and a drawing is drawn under the pen and sent (362), whether or not the paper's sheet is printed too */
   if (type === 'drawing' || type === 'annotate') return ['mark', 'drawn — marked by a person or AI'];
+  if (libTrue(r.needs_print) || libTrue(r.print_required)) return ['input', 'answered on the printed sheet only'];
   return ['mark', HEALTH_WORDED.indexOf(type) !== -1 ? 'worded — no keyword rule' : 'no answer the app can check'];
 }
 

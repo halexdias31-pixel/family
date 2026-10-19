@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-19-a-rule";
+const DOGET_VERSION = "2026-10-19-c-handles";
 
 
 function doGet(e) {
@@ -31,7 +31,11 @@ function doGet(e) {
     })();
     /* A maintenance URL still brings it up to date first — a job that needs a column needs the
        column to exist, and nobody is watching a spinner on one of those. */
-    const migrated = (p.run || p.setup) ? autoMigrate() : null;
+    const migrated = (p.run || p.setup) ? autoMigrate_() : null;
+    /* AND ON AN ADMIN'S PAGE LOAD (361), so "open the site once" after a deploy is the whole of setup; a visitor never waits on it. */
+    if (!p.run && !p.setup && p.token) {
+      try { const a = askedBy_(); if (a && hasRole(a, 'admin')) setupOnAdminLoad_(); } catch (err) {}
+    }
 
     /* ---------- AND THE SHEET SAYS SO ITSELF, ONCE § */
     if (behind && !p.run && !p.setup) {
@@ -81,7 +85,7 @@ function doGet(e) {
     }
 
     /* ?setup=1 brings the sheets' tabs and columns up to date in place, so a schema change never means re-uploading a file and repointing the ids in FILES. § */
-    if (p.setup) return jsonOut({ version: BACKEND_VERSION, schema: ensureSchema(),
+    if (p.setup) return jsonOut({ version: BACKEND_VERSION, schema: ensureSchema_(),
       alsoAvailable: 'add ?run=<job>&name=…&pin=… for the rest: ' + Object.keys(RUNNABLE).join(', ') });
 
     /* `?pages=1` AND `?pages=all` WERE HERE. § */
@@ -140,7 +144,7 @@ function doGet(e) {
 
     // ?triggers=1 installs the nightly jobs; ?triggers=list shows what's scheduled.
     if (p.triggers) return jsonOut({ version: BACKEND_VERSION,
-      triggers: String(p.triggers).toLowerCase() === 'list' ? listTriggers() : installTriggers() });
+      triggers: String(p.triggers).toLowerCase() === 'list' ? listTriggers() : installTriggers_() });
 
     // Confirm the tabs exist before building anything. Pointing at the wrong spreadsheet is the
     // single likeliest setup mistake, and read() returning empty rows makes it look like eleven
@@ -962,6 +966,8 @@ function doGet(e) {
     /* ---------- WHEN THE FILMS WERE LAST FILLED FROM DRIVE, FOR THE ADMIN AND NOBODY ELSE § */
     if (viewerIsAdmin) {
       try { payload.filmsSync = filmsSyncSays_(); } catch (err) { payload.filmsSync = { at: '', more: false }; }
+      /* THE SETUP CARD ON YOU (361) — versions, run-once jobs, triggers. Fresh every time, like filmsSync. */
+      try { payload.setup = setupStatus_(); } catch (err) { payload.setup = { error: String(err && err.message || err) }; }
     }
 
     /* ---------- AND THE SHOP WINDOW, WHICH IS THE SAME LIST FOR EVERYBODY § */
@@ -1050,7 +1056,7 @@ function doGet(e) {
     const shopTab = read(TAB.shop);
     if (shopTab.sheet && shopTab.headers.indexOf('kind') >= 0
         && !shopTab.rows.some(r => norm(r.kind) === 'avatar')) {
-      seedAvatarItems();
+      seedAvatarItems_();
       clearCache();
     }
 
@@ -1231,7 +1237,7 @@ function doGet(e) {
          `freshFor_`. */
       try { kidNamesOff_(payload); } catch (err) {}
       const fresh = {};
-      ['submissions', 'films', 'filmsSync'].forEach(k => { fresh[k] = payload[k]; delete payload[k]; });
+      ['submissions', 'films', 'filmsSync', 'setup'].forEach(k => { fresh[k] = payload[k]; delete payload[k]; });
       const body = JSON.stringify(payload);
       cachePut_(cacheKey, body);
       return jsonRaw_(payloadWithFresh_(body, fresh, false));
@@ -1289,6 +1295,7 @@ function freshFor_(viewer) {
   if (admin) {
     try { out.films = filmsFor_(true); } catch (err) { out.films = []; }
     try { out.filmsSync = filmsSyncSays_(); } catch (err) { out.filmsSync = { at: '', more: false }; }
+    try { out.setup = setupStatus_(); } catch (err) { out.setup = { error: String(err && err.message || err) }; }
   }
   /* THE NET, for the half laid on a kept body — which goes out through `jsonRaw_`, not `jsonOut`. */
   try { kidNamesOff_(out); } catch (err) {}
@@ -1300,6 +1307,7 @@ function payloadWithFresh_(body, fresh, cached) {
     + ',"submissions":' + JSON.stringify(f.submissions || { for: '', mine: {} })
     + ',"films":' + JSON.stringify(Array.isArray(f.films) ? f.films : [])
     + (f.filmsSync ? ',"filmsSync":' + JSON.stringify(f.filmsSync) : '')
+    + (f.setup ? ',"setup":' + JSON.stringify(f.setup) : '')
     + (cached ? ',"cached":true' : '') + '}';
 }
 

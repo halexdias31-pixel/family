@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-10-19-a-rule";
+const BOOKING_VERSION = "2026-10-19-c-handles";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -134,9 +134,9 @@ function logEvent(ev) {
   try {
     // Self-heal a sheet that predates a column. Without `target`, an Accept loses WHO it was
     // aimed at — so a tutor chosen at booking stays "Applied" and the card offers to pick a
-    // tutor who has already been picked. Depending on someone remembering to run ensureSchema is
+    // tutor who has already been picked. Depending on someone remembering to run ensureSchema_ is
     // not a safeguard.
-    if (read(TAB.events).headers.indexOf('target') < 0) { ensureSchema(); clearCache(); }
+    if (read(TAB.events).headers.indexOf('target') < 0) { ensureSchema_(); clearCache(); }
     addRow(read(TAB.events), {
       event_id: 'e-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
       at: new Date(), job_id: S(ev.jobId), actor: S(ev.actor), role: S(ev.role),

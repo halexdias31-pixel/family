@@ -4951,3 +4951,29 @@ document.addEventListener('keydown', e => {
   }
   if (/^Arrow/.test(e.key || '')) e.stopPropagation();
 }, true);
+
+/* ---------- SUPERTUX: someone else's game, framed only on request (docs/history/363) */
+const TUX_VERSION = 'v0.7.0';
+const TUX_SOURCE = 'https://github.com/SuperTux/supertux/tree/' + TUX_VERSION;
+const TUX_GET = 'https://github.com/SuperTux/supertux/releases/tag/' + TUX_VERSION;
+/* The web build to frame; empty means none is set, and Play leaves for the official downloads. */
+const tuxUrl_ = () => String(brand('supertux_url', '') || '').trim();
+function tuxPaint_() {
+  const tiles = $('tux-tiles'), lic = $('tux-licence');
+  if (!tiles || !lic) return;
+  const url = tuxUrl_();
+  tiles.innerHTML = url
+    ? tile_({ icon: 'play', label: 'Play', act: 'tux-play' }) + tile_({ icon: 'full', label: 'Full screen', href: url })
+    : tile_({ icon: 'ext', label: 'Get SuperTux', href: TUX_GET });
+  lic.innerHTML = `SuperTux ${TUX_VERSION} · code GPL-3.0, art CC-BY-SA / GPL ·
+    <a href="${esc(TUX_SOURCE)}" target="_blank" rel="noopener" class="tux-src">source and licences</a>`;
+}
+function tuxPlay_() {
+  const stage = $('tux-stage'), url = tuxUrl_();
+  if (!stage || !url) return;
+  stage.setAttribute('aria-busy', 'true');
+  stage.innerHTML = loading_() + `<iframe class="tux-frame" title="SuperTux" src="${esc(url)}"
+    allow="fullscreen; gamepad; autoplay" allowfullscreen></iframe>`;
+  stage.querySelector('iframe').addEventListener('load', () => loaded_(stage), { once: true });
+}
+on('tux-play', tuxPlay_);

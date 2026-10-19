@@ -67,9 +67,6 @@ const TILE_ICONS = {
        + '<path d="M11.2 9v1.8"/>',
   join:  '<circle cx="7" cy="5.5" r="2.6"/><path d="M2 15.5a5 5 0 0 1 10 0"/>'
        + '<path d="M14 6v5"/><path d="M11.5 8.5h5"/>',
-  /* SHUFFLE: two crossing arrows, the mark every music player puts on "play these in a random order" — which is what Randomise does to the three parts of a handle. § */
-  shuffle: '<path d="M2.5 5h3c3.5 0 4.5 7 8 7h2"/><path d="M2.5 12h3c3.5 0 4.5-7 8-7h2"/>'
-         + '<path d="m13.5 3 2 2-2 2"/><path d="m13.5 10 2 2-2 2"/>',
   /* FULL SCREEN: four corners pushed outward, the mark every video player puts on the button that
      asked for it — asked for in those words on the Videos widget. Four open paths, so it sits in
      the set as one more outline. */

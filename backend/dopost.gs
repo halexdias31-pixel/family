@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-19-a-rule";
+const DOPOST_VERSION = "2026-10-19-c-handles";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -180,15 +180,16 @@ function doPost(e) {
         && p.rows.some(x => norm(x.email) === norm(r.to_email));
       if (!peopleNamed(S(body.newName)).length && !mailTaken) {
         const invFirst = S(body.newName).split(/\s+/)[0] || '';
+        const invId = 'P' + Date.now(), invLast = S(body.newName).split(/\s+/).slice(1).join(' ');
         addRow(p, {
           /* THE NAME IS SPLIT, because `full_name` is gone (see `SCHEMA.people`): the first word is
              the first name and the rest the last, which is how every row typed by hand reads. */
-          person_id: 'P' + Date.now(),
+          person_id: invId,
           first_name: invFirst,
-          last_name: S(body.newName).split(/\s+/).slice(1).join(' '),
+          last_name: invLast,
           /* A HANDLE, AS `register` GIVES ONE. This row had none, so every card drew the first name
              where the handle goes — `@Max` — and `Max` at the sign-in box was refused. */
-          handle: handleMake_(null, invFirst) || '',
+          handle: handleMake_({ person_id: invId, first_name: invFirst, last_name: invLast }) || '',
           email: S(r.to_email),
           role: 'client', came_from: 'invited', invited_by: S(r.from_person),
           joined_on: new Date(), listed: 'FALSE',
@@ -265,19 +266,19 @@ function doPost(e) {
         if (owner) inviter = S(owner.person_id) || personDisplayName(owner);
       }
 
-      /* BEFORE THE ROW EXISTS, so `handleMake_` is passed no row of the tab's: § */
-      const regHandle = handleMake_(asParent ? null : { role: 'student', first_name: first, last_name: last }, first);
+      /* BEFORE THE ROW EXISTS: a draft with the id it will have, so the template (364) can use it. */
+      const regId = 'P' + Date.now();
+      const regHandle = handleMake_({ person_id: regId, first_name: first, last_name: last });
       /* WITH NO ADDRESS THE HANDLE IS THE ONLY WAY IN, so an account the generator could not name
          would be an account nobody can sign in to. Said now, with nothing written. */
       if (!email && !regHandle) {
         return jsonOut({ error: 'No free handle could be made just now. Nothing was saved — try again.' });
       }
-      const regId = 'P' + Date.now();
       addRow(t, Object.assign({
         /* THE ROLE THEY CHOSE — see the note over this action. § */
         person_id: regId, role: asParent ? 'client' : 'student',
         first_name: first, last_name: last,
-        /* ---------- THE HANDLE IS GENERATED — first name, virtue, number — see `handleMake_` § */
+        /* THE HANDLE IS THE TEMPLATE (364) — see `handleMake_`. */
         handle: regHandle || '',
         email, pin, credits: 0, xp: 0,
         came_from: arrivedWith,
@@ -679,21 +680,21 @@ function doPost(e) {
       const venueTab = venuesSent ? read(TAB.venues) : null;
       if (venueTab && venueTab.headers.indexOf('tutors_happy_here') === -1) {
         return jsonOut({ error: 'The venues tab has no column for: tutors_happy_here. '
-          + 'Run ensureSchema() to add it — nothing was saved.' });
+          + 'Open the site once as an admin to add it — nothing was saved.' });
       }
       const packedMissing = [availSent && 'availability', phoneSent && 'phone',
                              dobSent && 'date_of_birth', photosSent && 'photos']
         .filter(c => c && !has(c));
       if (packedMissing.length) {
         return jsonOut({ error: 'The sheet has no column for: ' + packedMissing.join(', ')
-          + '. Run ensureSchema() to add it — nothing was saved.' });
+          + '. Open the site once as an admin to add it — nothing was saved.' });
       }
       /* QUALIFICATIONS AND LIBRARY CARDS ARE ROWS ON TABS OF THEIR OWN now (see `SCHEMA.people`), so the question is whether the TAB is there — a tab `ensureSchema` § */
       const tabMissing = [qualsSent && !read(TAB.qualifications).sheet && 'qualifications',
                           libSent && !read(TAB.library_cards).sheet && 'library_cards'].filter(Boolean);
       if (tabMissing.length) {
         return jsonOut({ error: 'The spreadsheet has no tab called: ' + tabMissing.join(', ')
-          + '. Run ensureSchema() to make it — nothing was saved.' });
+          + '. Open the site once as an admin to make it — nothing was saved.' });
       }
       /* A PARTIAL BIRTHDAY is `null` to `sheetDate`, so it would go off the calendar under a toast
          saying Saved. `dobRefusal_` is in `core.gs` beside `sheetDate` so something can run it. */
@@ -723,7 +724,7 @@ function doPost(e) {
       const noColumn = wanted.filter(f => !has(f));
       if (noColumn.length) {
         return jsonOut({ error: 'The sheet has no column for: ' + noColumn.join(', ')
-          + '. Run ensureSchema() to add it — nothing was saved.' });
+          + '. Open the site once as an admin to add it — nothing was saved.' });
       }
       /* ---------- WHAT A TUTOR CHARGES MOVES ONCE A MONTH, ALL FOUR FIELDS TOGETHER § */
       const priceAsked = {};
@@ -732,7 +733,7 @@ function doPost(e) {
       /* THE STAMP'S COLUMN IS CHECKED HERE NOW. § */
       if (priceMoved && !has('pricing_changed_at')) {
         return jsonOut({ error: 'The sheet has no column for: pricing_changed_at. '
-          + 'Run ensureSchema() to add it — nothing was saved.' });
+          + 'Open the site once as an admin to add it — nothing was saved.' });
       }
       const priceNo = pricingRefusal_(r, priceAsked, iAmAdmin);
       if (priceNo) return jsonOut({ error: priceNo });
@@ -804,6 +805,8 @@ function doPost(e) {
 
       /* 3. ONE WRITE. `setCells` is `setCell` for a whole row: § */
       const wrote = setCells(t, r, put);
+      /* A BIRTHDAY JUST TYPED moves a handle made without one onto the template (364). */
+      if (dobSent && handleBirthdayMove_(t, r)) wrote.push('handle');
       /* AND WHAT WAITS BESIDE THE ROW. § */
       if (mailPlan === 'correct' || mailPlan === 'keep') authMoveDrop_(r);
       if (mailPlan === 'correct') authResetDrop_(r);
@@ -1064,7 +1067,7 @@ function doPost(e) {
       const r = rowById_(t, 'post_id', body.id, body.rowIndex);
       if (!r) return jsonOut({ error: 'No post with that id.' });
       if (t.headers.indexOf('approved') < 0) {
-        return jsonOut({ error: 'The posts tab has no `approved` column. Run ensureSchema() — '
+        return jsonOut({ error: 'The posts tab has no `approved` column. Open the site once as an admin — '
           + 'nothing was changed.' });
       }
       const yes = TRUE_(body.on);
@@ -1108,7 +1111,7 @@ function doPost(e) {
       if (!r) return jsonOut({ error: 'Person not found.' });
       if (t.headers.indexOf(field) < 0) {
         /* setCell returns false for a column that does not exist and says nothing. § */
-        return jsonOut({ error: 'The sheet has no `' + field + '` column. Run ensureSchema() — '
+        return jsonOut({ error: 'The sheet has no `' + field + '` column. Open the site once as an admin — '
           + 'nothing was saved.' });
       }
       setCell(t, r, field, value);
@@ -1931,38 +1934,6 @@ function doPost(e) {
       return jsonOut({ success: true, signedAt: at, version: version });
     }
 
-    /* ---------- A NEW WORD FOR YOUR OWN HANDLE § */
-    if (action === 'randomiseHandle') {
-      const t = read(TAB.people);
-      const lacking = ['handle', 'handle_was', 'handle_changed_at']
-        .filter(c => t.headers.indexOf(c) === -1);
-      if (lacking.length)
-        return jsonOut({ error: 'The sheet has no column for: ' + lacking.join(', ') + '. Run ?setup=1 — nothing was saved.' });
-      const want = key(body.personId);
-      const r = want ? t.rows.find(x => key(x.person_id) === want) : null;
-      if (!r) return jsonOut({ error: 'We could not find your account.' });
-      const was = S(r.handle);
-      /* A FULL HISTORY STOPS THE PRESS, IT DOES NOT LOSE ITS OLDEST (342, the review). § */
-      const hist = S(r.handle_was).split(',').map(x => x.trim()).filter(Boolean);
-      if (hist.length >= HANDLE_WAS_MAX) {
-        return jsonOut({ error: 'You have had ' + hist.length + ' handles — ask us if you want another. '
-                              + 'Nothing was changed.' });
-      }
-      const made = handleMake_(r, r.first_name, was);
-      if (!made) return jsonOut({ error: 'No free handle could be found just now. Nothing was changed '
-                                       + '— try again.' });
-      /* `handle_was` IS A HISTORY, newest first and kept whole — see `handleWasWith_`. § */
-      /* AND THE FACE THE OLD HANDLE DREW, in the same write, when nobody ever chose a look (`handleFaceKept_`, 342 round 2) — a blank look is drawn from the handle, so § */
-      setCells(t, r, Object.assign({ handle_was: handleWasWith_(r.handle_was, was) }, handleFaceKept_(t, r, was)));
-      setCells(t, r, { handle: made, handle_changed_at: new Date() });
-      /* AND EVERY FRIENDS LIST THAT NAMED THE OLD ONE (342) — it was left naming nobody, so a press of
-         this took the person off every friend's list without a word. */
-      if (was) handleFriendsMove_(t, { [key(was)]: made });
-      const avatar = S(r.avatar);
-      clearCache();
-      return jsonOut({ success: true, handle: made, was: was, avatar: avatar });
-    }
-
     /* ---------- A PARENT MAKES THEIR CHILD'S ACCOUNT § */
     if (action === 'makeChild') {
       const me = findPerson('', S(body.personId));
@@ -1996,11 +1967,10 @@ function doPost(e) {
         return jsonOut({ error: 'We could not make that account. If your child has one already, use "Add your '
                               + 'child" to ask them to link it — or ask us to help.' });
       }
-      /* A DRAFT OF THE ROW ABOUT TO BE WRITTEN, a student with both names — so it is a child's handle,
-         their initials and a tail (342), never their first name. */
-      const handle = handleMake_({ role: 'student', first_name: first, last_name: last }, first);
-      if (!handle) return jsonOut({ error: 'No free handle could be made just now. Nothing was saved — try again.' });
+      /* A DRAFT OF THE ROW ABOUT TO BE WRITTEN, for the template (364): never their surname, only its initial. */
       const kidId = 'P' + Date.now() + '-k';
+      const handle = handleMake_({ person_id: kidId, first_name: first, last_name: last });
+      if (!handle) return jsonOut({ error: 'No free handle could be made just now. Nothing was saved — try again.' });
       const kid = addRow(t, {
         person_id: kidId, role: 'student', first_name: first, last_name: last, handle: handle,
         email: '', pin: pin, credits: 0, xp: 0, came_from: 'parent', invited_by: S(me.person_id),
@@ -2227,7 +2197,7 @@ function doPost(e) {
                               + '. Nothing was changed.' });
       }
       if (t.headers.indexOf(K.col) === -1) {
-        return jsonOut({ error: 'The sheet has no `' + K.col + '` column. Run ensureSchema() — nothing was saved.' });
+        return jsonOut({ error: 'The sheet has no `' + K.col + '` column. Open the site once as an admin — nothing was saved.' });
       }
       const on = TRUE_(body.on);
       /* WRITTEN ONLY WHEN IT CHANGES WHAT THE CELL MEANS: a `yes` typed by hand is already on, and turning
@@ -2271,7 +2241,7 @@ function doPost(e) {
       const r = findPerson(S(body.name), S(body.personId));
       if (!r) return jsonOut({ error: 'Person not found.' });
       if (t.headers.indexOf('photo') < 0) {
-        return jsonOut({ error: 'The people tab has no `photo` column. Run ensureSchema() — nothing was saved.' });
+        return jsonOut({ error: 'The people tab has no `photo` column. Open the site once as an admin — nothing was saved.' });
       }
       if (body.remove === true || norm(body.remove) === 'true') {
         setCell(t, r, 'photo', '');
@@ -2312,7 +2282,7 @@ function doPost(e) {
       const r = findPerson('', S(body.personId));
       if (!r) return jsonOut({ error: 'Person not found.' });
       if (t.headers.indexOf('role') < 0) {
-        return jsonOut({ error: 'The people tab has no `role` column. Run ensureSchema() — nothing was saved.' });
+        return jsonOut({ error: 'The people tab has no `role` column. Open the site once as an admin — nothing was saved.' });
       }
       const asked = (Array.isArray(body.roles) ? body.roles : S(body.roles).split(','))
         .map(x => norm(x)).filter(Boolean).map(x => SELF_ROLE_ALIASES[x] || ROLE_FROM_APP[x] || x);
@@ -2350,7 +2320,7 @@ function doPost(e) {
       const gate = adding.indexOf('tutor') !== -1 && !iAmAdmin;
       if (gate && t.headers.indexOf('listed') < 0) {
         return jsonOut({ error: 'The people tab has no `listed` column, so a new tutor could not be '
-          + 'held for approval. Run ensureSchema() — nothing was saved.' });
+          + 'held for approval. Open the site once as an admin — nothing was saved.' });
       }
 
       if (adding.length || dropping.length) {
@@ -2377,7 +2347,7 @@ function doPost(e) {
          wardrobe change was discarded in silence. Said out loud rather than pretended. */
       if (t.headers.indexOf('avatar') < 0 || t.headers.indexOf('avatar_owned') < 0) {
         return jsonOut({ error: 'The people tab has no `avatar` or `avatar_owned` column. Run '
-          + 'ensureSchema() — nothing was saved.' });
+          + 'open the site once as an admin — nothing was saved.' });
       }
 
       const wanted = body.avatar || {};
@@ -3969,7 +3939,7 @@ function loginReplyFor_(r, token, extra) {
 /* ---------- ONE ROW PER PRESS, APPENDED § */
 function submissionsAppend_(pid, items, sent) {
   const t = readCols_(TAB.submissions, ['person_id', 'event_id']);
-  if (!t.sheet) return { error: 'The sheet has no submissions tab. Run ensureSchema() (open /exec?setup=1) to add it.' };
+  if (!t.sheet) return { error: 'The sheet has no submissions tab. Open the site once as an admin to add it.' };
   const has = c => t.headers.indexOf(c) !== -1;
   const now = new Date(), nowMs = now.getTime();
   const sentMs = Math.floor(Number(sent));
@@ -4034,7 +4004,7 @@ function answerAtMs_(v) {
 }
 function answersUpsert_(pid, items) {
   const t = read(TAB.answers);
-  if (!t.sheet) return { error: 'The sheet has no answers tab. Run ensureSchema() (open /exec?setup=1) to add it.' };
+  if (!t.sheet) return { error: 'The sheet has no answers tab. Open the site once as an admin to add it.' };
   const now = Date.now();
   /* THIS PERSON'S ROWS, ONCE — not a scan of the whole tab per item. */
   const mine = {};

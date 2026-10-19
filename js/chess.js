@@ -183,7 +183,6 @@ const FEED_FACTS = [
   ['@family.', '', '', '', 'data/reels/archetest.mp4'],
   ['@family.', '', '', '', 'data/reels/v24044gl0000d88i15nog65im2kilnbg.mp4'],
   ['@family.', '', '', '', 'https://youtube.com/shorts/jD2Yy_wCBLE'],
-  ['@family.', '', '', '', 'https://youtube.com/shorts/eW8ZNkuLhZw'],
   ['Space', 'You are seeing the sun as it was eight minutes ago',
    'Light takes 8 minutes 20 seconds to cross 150 million km. If it went out you would carry on reading in bright daylight for the length of a song.', 'sun solar corona'],
   ['Space', 'There is a planet where it rains glass, sideways',

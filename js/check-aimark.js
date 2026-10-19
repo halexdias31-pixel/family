@@ -484,13 +484,13 @@ function tallyHeld(what, writes) {
     if (gem.sent.length !== 3 || r.message !== b.ev('AI_BUSY')) bad.push('with ' + JSON.stringify(cfg) + ' everything 503 asked ' + gem.sent.length + ' times and answered ' + JSON.stringify(r.message) + ' — wanted one model, three asks');
     gem.reply = null;
   });
-  /* AND ensureSchema PUTS THE NEW ROW ON A SHEET THAT HAS NEITHER, with the pinned default in it. */
+  /* AND ensureSchema_ PUTS THE NEW ROW ON A SHEET THAT HAS NEITHER, with the pinned default in it. */
   const { b } = world();
-  b.ev('ensureSchema()');
+  b.ev('ensureSchema_()');
   const C = b.tabs.config, k = C[0].indexOf('key'), v = C[0].indexOf('value');
   const row = n => C.find((r, i) => i > 0 && r[k] === n);
-  if (!row('gemini_model_fallback') || row('gemini_model_fallback')[v] !== b.ev('AI_MODEL_FALLBACK')) bad.push('ensureSchema did not seed gemini_model_fallback with ' + b.ev('AI_MODEL_FALLBACK') + ' — the owner would have no row to change it in');
-  if (!row('gemini_model') || row('gemini_model')[v] !== b.ev('AI_MODEL')) bad.push('ensureSchema seeded gemini_model as ' + JSON.stringify((row('gemini_model') || [])[v]) + ' — wanted ' + b.ev('AI_MODEL'));
+  if (!row('gemini_model_fallback') || row('gemini_model_fallback')[v] !== b.ev('AI_MODEL_FALLBACK')) bad.push('ensureSchema_ did not seed gemini_model_fallback with ' + b.ev('AI_MODEL_FALLBACK') + ' — the owner would have no row to change it in');
+  if (!row('gemini_model') || row('gemini_model')[v] !== b.ev('AI_MODEL')) bad.push('ensureSchema_ seeded gemini_model as ' + JSON.stringify((row('gemini_model') || [])[v]) + ' — wanted ' + b.ev('AI_MODEL'));
 }
 {
   /* THE WAITS ARE BOUNDED AND JITTERED, AND NO ASK STARTS PAST THE BUDGET. § */
@@ -670,17 +670,17 @@ function tallyHeld(what, writes) {
   const seeded = (value, note) => {
     const { b } = world();
     b.seed('config', [{ key: 'gemini_model', value: value, what_it_does: note }]);
-    b.ev('ensureSchema()');
+    b.ev('ensureSchema_()');
     const C = b.tabs.config, k = C[0].indexOf('key'), v = C[0].indexOf('value'), w = C[0].indexOf('what_it_does');
     const row = C.find((x, i) => i > 0 && x[k] === 'gemini_model') || [];
     return { value: row[v], note: String(row[w] || ''), b: b };
   };
   const old = seeded('gemini-flash-latest', OLD_NOTE);
-  if (old.value !== old.b.ev('AI_MODEL') || /Blank = gemini-flash-latest/.test(old.note)) bad.push('ensureSchema left the untouched old row as ' + JSON.stringify([old.value, old.note.slice(0, 60)]) + ' — wanted ' + old.b.ev('AI_MODEL') + ' and the note that goes with it');
+  if (old.value !== old.b.ev('AI_MODEL') || /Blank = gemini-flash-latest/.test(old.note)) bad.push('ensureSchema_ left the untouched old row as ' + JSON.stringify([old.value, old.note.slice(0, 60)]) + ' — wanted ' + old.b.ev('AI_MODEL') + ' and the note that goes with it');
   const mine = seeded('gemini-flash-latest', 'I chose this.');
-  if (mine.value !== 'gemini-flash-latest' || mine.note !== 'I chose this.') bad.push('ensureSchema rewrote a row the owner had changed: ' + JSON.stringify([mine.value, mine.note]));
+  if (mine.value !== 'gemini-flash-latest' || mine.note !== 'I chose this.') bad.push('ensureSchema_ rewrote a row the owner had changed: ' + JSON.stringify([mine.value, mine.note]));
   const typed = seeded('gemini-test-model', OLD_NOTE);
-  if (typed.value !== 'gemini-test-model') bad.push('ensureSchema rewrote a model name the owner typed: ' + JSON.stringify(typed.value));
+  if (typed.value !== 'gemini-test-model') bad.push('ensureSchema_ rewrote a model name the owner typed: ' + JSON.stringify(typed.value));
 }
 
 /* ---------- AFTER REVIEW, ROUND 2 (12 Oct, note 344): THE TALLY IS CHANGED UNDER THE LOCK § */
@@ -822,14 +822,14 @@ const fresh12 = b => { gem.sent.length = 0; gem.slept.length = 0; gem.queue.leng
     const g = JSON.parse(pair[0].opts.payload).generationConfig || {};
     if (strip(pair[0]) !== strip(pair[1]) || !g.responseSchema || g.responseMimeType !== 'application/json') bad.push('the request with a thinking level lost or changed something else — the schema, the MIME type, or the words sent');
   }
-  /* AND ensureSchema PUTS BOTH ROWS ON THE CONFIG TAB, BLANK, WITH A NOTE THAT SAYS WHAT BLANK IS. */
+  /* AND ensureSchema_ PUTS BOTH ROWS ON THE CONFIG TAB, BLANK, WITH A NOTE THAT SAYS WHAT BLANK IS. */
   const { b } = world();
-  b.ev('ensureSchema()');
+  b.ev('ensureSchema_()');
   const C = b.tabs.config, k = C[0].indexOf('key'), v = C[0].indexOf('value'), w = C[0].indexOf('what_it_does');
   [['ai_thinking', /Blank = the lowest each model offers \(low on gemini-3\.8-flash, minimal on gemini-3\.5-flash-lite\)/],
    ['ai_thinking_essay', /Blank = low\. medium = deeper and slower/]].forEach(([n, note]) => {
     const row = C.find((r, i) => i > 0 && r[k] === n);
-    if (!row || row[v] !== '' || !note.test(String(row[w]))) bad.push('ensureSchema seeded ' + n + ' as ' + JSON.stringify(row ? [row[v], String(row[w]).slice(0, 90)] : null) + ' — wanted a blank value and a note saying what blank means');
+    if (!row || row[v] !== '' || !note.test(String(row[w]))) bad.push('ensureSchema_ seeded ' + n + ' as ' + JSON.stringify(row ? [row[v], String(row[w]).slice(0, 90)] : null) + ' — wanted a blank value and a note saying what blank means');
   });
 }
 {

@@ -1,5 +1,25 @@
 # Deploying the backend — the whole story
 
+## After a change is merged: three steps
+
+1. **Pull.** Open the Apps Script project and press the GitHub Assistant's **↓** (pull) arrow.
+2. **Deploy.** Deploy → Manage deployments → edit the web app → Version: **New version** → Deploy.
+3. **Open the site once**, signed in as an admin.
+
+That is all. Opening the site does the rest by itself, once: the sheet gets any new tabs and columns,
+the run-once jobs run, the nightly jobs and the edit watch are installed, and the Sunday 9pm parent
+email is booked (at `weekly_digest_hour` on the config tab; change that cell and the next admin page
+load moves it). Nothing is ever installed twice. **Do not run anything from the function list.**
+
+To see that it worked, look at the **Setup** card on the You screen: the live backend version, each
+run-once job with ✓ and the date it ran (or "waiting"), the triggers installed, and when the Sunday
+email next goes. If a job failed it says which and why, and it tries again on the next page load.
+
+What is still in the function list on purpose: `previewFromGitHub` / `pullFromGitHub` (the sync, below),
+and read-only checks such as `checkSundayEmail`, `checkEverything`, `checkScopes`, `listTriggers` and
+`sheetWatchStatus`. The installers and one-off jobs end in `_` now, which hides them from the list
+(docs/history/361).
+
 Moved out of CLAUDE.md on 18 Oct 2026, verbatim; CLAUDE.md keeps the table and a pointer.
 
 ## Deploying — they are not the same thing

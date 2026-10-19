@@ -112,6 +112,41 @@ function versionSaid_() {
       })()}`;
 }
 
+/* ---------- THE SETUP CARD (361): what has set itself up since the last deploy, for an admin only ----------
+   No buttons: every job runs by itself on an admin's page load, so there is nothing to press twice. */
+function setupWhen_(iso) {
+  const d = new Date(String(iso || ''));
+  if (isNaN(d)) return String(iso || '');
+  return d.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+function setupCard_() {
+  if (!(typeof isAdmin === 'function' && isAdmin())) return '';
+  const S_ = DATA && DATA.setup;
+  if (!S_) {
+    return typeof awaiting_ === 'function' && awaiting_()
+      ? `<div class="card setup-card"><h3>Setup</h3>${loading_()}</div>`
+      : `<div class="card setup-card"><h3>Setup</h3><p class="sub">The live backend sends no setup report, so it is older than this site. Pull, then Deploy → New version.</p></div>`;
+  }
+  if (S_.error) return `<div class="card setup-card"><h3>Setup</h3><p class="sub">The setup report failed: ${esc(S_.error)}</p></div>`;
+  const files = S_.files || {};
+  const odd = Object.keys(files).filter(k => files[k] !== S_.backend);
+  const jobs = Array.isArray(S_.jobs) ? S_.jobs : [];
+  const failed = jobs.filter(j => j && j.error);
+  const sun = S_.sunday || {};
+  const mode = { send: 'on — it emails parents', preview: 'preview — it writes the log and emails nobody' }[sun.mode] || 'off — nothing is sent';
+  return `<div class="card setup-card"><h3>Setup</h3>
+    <p class="sub">Backend live: <b>${esc(S_.backend || '—')}</b> · site ${esc(typeof SITE_VERSION !== 'undefined' ? SITE_VERSION : '—')}${odd.length
+      ? ` · <span class="setup-bad">not deployed: ${odd.map(k => esc(k) + '.gs (' + esc(files[k]) + ')').join(', ')}</span>` : ' · all four files agree'}</p>
+    ${failed.map(j => `<p class="setup-bad">${esc(j.id)} failed: ${esc(j.error)} — it tries again on the next page load.</p>`).join('')}
+    <ul class="setup-list">${jobs.map(j => `<li><span>${j.ran ? '✓' : j.error ? '✗' : '…'}</span> ${esc(j.id)} <span class="faint">${j.ran
+      ? esc(j.ran === 'yes' ? 'done' : setupWhen_(j.ran)) : j.error ? 'failed' : 'waiting'}</span></li>`).join('')}</ul>
+    <h4>Triggers</h4>
+    <ul class="setup-list">${(S_.triggers || []).map(t => `<li>${esc(t.fn)}${t.times > 1 ? ' ×' + esc(t.times) : ''} <span class="faint">${esc(t.when)}</span></li>`).join('')
+      || `<li class="faint">${S_.triggersError ? 'could not be listed: ' + esc(S_.triggersError) : 'none yet — they install on the next page load'}</li>`}</ul>
+    <p class="sub">Sunday email: ${esc(mode)}. ${sun.next ? 'Next send ' + esc(setupWhen_(sun.next)) + '.' : 'Not booked yet — it books itself on the next page load.'}</p>
+  </div>`;
+}
+
 /* THE YOU SCREEN IS ONE PAGE. § */
 /* MESSAGES, ON A PANE OF ITS OWN. § */
 /* `meMessagesCard` WAS HERE — one pane on `You` holding every message from everybody, filled by `fillMessages` into a single `#msg-body`. § */
@@ -567,7 +602,7 @@ function avatarPost_(cfg) {
 /* ---------- EVERY FIGURE ON THE COLUMN, NOT THE FIRST ONE `$()` FINDS § */
 /* ---------- THE WHOLE CARD FOLLOWS THE LOOK, NOT ONLY THE FIGURE § */
 /* ---------- AND THE PICTURE'S "YOUR FIGURE" WITH IT § */
-/* LIFTED OUT OF `avatarSave` (the review of docs/history/339) — a Randomise that keeps the face and a refused
+/* LIFTED OUT OF `avatarSave` (the review of docs/history/339) — a handle the server moved that keeps the face, and a refused
    keep redraw with it too, and two copies of "every figure on the page" would be the fault this note is about. */
 function avatarDraw_() {
   const cards = document.querySelectorAll('.av-card');
@@ -616,28 +651,6 @@ function avatarSave(change) {
       /* A REFUSAL IS A TOAST. This app decided that once already — see the note on `why_` in
          shell.js — and the line it used to be written to is gone. */
       toast(String(err.message || err));
-    });
-}
-
-/* ---------- A NEW HANDLE KEEPS THE FACE IT HAD (the review of docs/history/339) § */
-function avatarKeep_(seed) {
-  const cfg = avatarConfig('', seed);
-  const seq = ++AV_SEQ;
-  USER.avatar = packLook_(cfg);
-  try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
-  avatarPost_(cfg)
-    .then(d => {
-      if (seq !== AV_SEQ) return;
-      if (!d || d.error) throw new Error((d && d.error) || 'Could not keep your figure as it was');
-      USER.avatar = d.avatar;
-      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
-    })
-    .catch(err => {
-      if (seq !== AV_SEQ) return;
-      USER.avatar = '';
-      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
-      avatarDraw_();
-      toast('Your figure\'s colours follow your new handle — ' + String(err.message || err));
     });
 }
 
@@ -3535,54 +3548,6 @@ function profileRefresh_(loud, onOld) {
 }
 /* `change-pin` opened a sheet of its own. It is three fields at the bottom of `edit-me` now — the
    sheet that already exists for changing your details, which a PIN is one of. */
-/* ---------- AND THE HANDLE, WHICH IS A PRESS RATHER THAN A BOX § */
-/* ON YOUR OWN CARD NOW (docs/history/339), the `handle` section of its Edit — `el.closest('.card')` is the card being edited, and `send_` locks its form while § */
-/* ---------- AFTER REVIEW (docs/history/339) — THREE THINGS THE ONE FORM CHANGED § */
-const HANDLE_NAME_FIRST_ = 'Save your new first name first — Randomise makes the handle from the name that is saved.';
-let HANDLE_ASKING = false;
-on('handle-shuffle', el => {
-  if (!USER || HANDLE_ASKING) return;
-  const card = el.closest('.card');
-  const said = card && card.querySelector('.handle-said');
-  const form = el.closest('.card-ed .me-form');
-  const base = form && CARD_DRAWN.get(form.dataset.draw || '');
-  const first = form && form.querySelector('[data-me="first_name"]');
-  if (first && base && !cardSame_('first_name', first.value, base.first_name)) {
-    if (said) said.textContent = HANDLE_NAME_FIRST_;
-    toast(HANDLE_NAME_FIRST_);
-    return;
-  }
-  /* THE SEED THE FACE IS DRAWN FROM NOW, as `avatarSave` reads it — kept if the look is blank when the answer lands. */
-  const seed = USER.handle || USER.name;
-  HANDLE_ASKING = true;
-  send_({ action: 'randomiseHandle', name: USER.name, personId: USER.personId || '' },
-        { button: el, busy: 'Choosing…', where: said || undefined, lock: el.closest('.ce-sec') || undefined })
-    .then(d => {
-      /* A `myProfile` ASKED BEFORE THIS ANSWER IS ABOUT THE HANDLE BEFORE IT, and is asked again rather than landing § */
-      accountChanged_();
-      handleRename_(d.was, d.handle);
-      HANDLE_ASKING = false;
-      if (USER && !String(USER.avatar || '').trim()) avatarKeep_(seed);
-      USER.handle = d.handle;
-      /* AND THE FACE THE OLD HANDLE DREW, which the server wrote into a blank look (`handleFaceKept_`, 342
-         round 2) — a blank look is drawn from the handle, so without it this phone changed the face. */
-      if (d.avatar && !String(USER.avatar || '').trim()) USER.avatar = String(d.avatar);
-      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
-      ['tutors', 'family', 'everyone'].forEach(k => ((DATA && DATA[k]) || []).forEach(r => {
-        if (r && USER.personId && String(r.personId) === String(USER.personId) && 'handle' in r) r.handle = d.handle;
-      }));
-      const shown = card && card.querySelector('.handle-shown');
-      if (shown) shown.textContent = d.handle;
-      HANDLE_SAID = { pid: String(USER.personId || ''),
-                      text: d.was ? 'You were @' + d.was + '.' : 'Changed.' };
-      if (said) said.textContent = HANDLE_SAID.text;
-      toast('You are @' + d.handle);
-      try { load(); } catch (e) {}
-    })
-    /* `send_` has said why, on the line under the tile. */
-    .catch(() => { HANDLE_ASKING = false; });
-});
-
 on('pin-save', el => {
   const v = id => ($(id) || {}).value || '';
   const said = $('pin-said');
@@ -4026,13 +3991,13 @@ function cardSeatRefusal_(form, fields) {
 }
 /* ---------- YOUR HANDLE, ON YOUR CARD, UNDER YOUR NAME (docs/history/339) § */
 function cardHandleHtml_() {
-  /* THE LINE SAYS WHAT A PRESS DOES, NOT WHAT A HANDLE IS MADE OF: § */
+  /* NO PRESS ANY MORE (364): the handle is a template, said here so nobody has to be told it. */
   const said = (HANDLE_SAID.pid && HANDLE_SAID.pid === String(USER.personId || '') && HANDLE_SAID.text)
-    || 'Randomise saves a new one at once, and Cancel does not put the old one back — '
-     + 'if you sign in with your handle, that is your new sign-in name.';
+    || 'Your handle is your first initial, the day of the month you were born (two digits) and the first '
+     + 'letter of your surname. With no birthday saved, it is your two initials and the last two digits of '
+     + 'your account number. If somebody had it already, more letters of your first name were added.';
   return `<p class="handle-now" aria-live="polite"><b aria-hidden="true">@</b><span class="handle-shown">${
       esc((USER && USER.handle) || '')}</span></p>
-    <div class="tile-row">${tile_({ icon: 'shuffle', label: 'Randomise', note: 'a new handle', act: 'handle-shuffle' })}</div>
     <p class="faint handle-said">${esc(said)}</p>`;
 }
 /* SOMEBODY ELSE'S PICTURE, SHOWN AND NOT OFFERED — `savePhoto` writes the asker's own row. § */
@@ -4164,8 +4129,7 @@ on('card-save', el => {
   const base = CARD_DRAWN.get(form.dataset.draw || '');
   if (!base) { cardRepaint_(); return; }
   /* ---------- NOT WHILE A SECTION THAT SAVES ITSELF IS ON THE WIRE (the review of docs/history/339) § */
-  const busy = HANDLE_ASKING ? 'Your handle is still changing'
-    : form.querySelector('.pfp.is-sending') ? 'Your picture is still saving'
+  const busy = form.querySelector('.pfp.is-sending') ? 'Your picture is still saving'
     : form.querySelector('.is-sending') || form.classList.contains('is-sending') ? 'Part of your card is still saving' : '';
   if (busy) { toast(busy + ' — Save once it has.'); if (said) said.textContent = busy + ' — Save once it has.'; return; }
   if (qualNameless_(form)) { toast(QUAL_NAMELESS_SAY_); if (said) said.textContent = QUAL_NAMELESS_SAY_; return; }

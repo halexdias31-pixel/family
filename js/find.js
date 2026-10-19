@@ -3364,6 +3364,8 @@ function questionItems() {
       images: topicAtoms_(r.images || (r.row && r.row.images)),
       /* THE MARK SCHEME, WHICH THE BACKEND SENT TO NOBODY FOR MONTHS. § */
       answer: r.answer || '', answerType: r.answerType || '',
+      /* THE EXPECTED DRAWING AS GEOMETRY, which Check marks the strokes against (366). */
+      drawAnswer: r.drawAnswer || '',
       /* WHAT TO ANSWER ON when the answer is a mark rather than words -- see `padSurface_`. */
       surface: r.surface || '',
       /* AND WHICH EARLIER PART'S DRAWING IT READS -- see `usesOf_`. */
@@ -3648,7 +3650,7 @@ function markUnitOff_(t) {
 
 /* ---------- AN ANSWER WITH MANY RIGHT FORMS, MARKED BY WHAT MAKES IT RIGHT (360) */
 /* `rule: count 3, distinct, each factor 36, sum 31..34` in `accept`: the typed numbers are tested, not matched. */
-/* Clauses: count, distinct, mixed, each <tests>, sum, diff, from a/b/…, rounddiff R V, set a+b/c+d (word groups). */
+/* Clauses: count, distinct, mixed, each <tests>, at N <tests>, hcf N, sum, diff, from a/b/…, rounddiff R V, set a+b/c+d (word groups). */
 function markRuleNums_(typed) {
   const t = markNorm_(typed).replace(/[,;=+×]/g, ' , ').replace(/(\d)-(?=\d)/g, '$1 , ');
   const out = [];
@@ -3701,8 +3703,119 @@ function markRuleSet_(typed, spec) {
     .filter(Boolean).sort();
   return got.length === want.length && got.every((g, i) => g === want[i]);
 }
+/* ---------- AN ALGEBRAIC ANSWER, MARKED BY ITS VALUE (365) */
+/* `rule: expr R`: any expression equal to R at sample values; `v = R` wants v as the subject; `eqn A = B`: any equation a multiple of it. */
+function markExprParse_(t) {
+  let i = 0;
+  const peek = () => t[i];
+  const starts = c => !!c && /[a-z0-9.(√∛π]/.test(c);
+  const atom = () => {
+    const c = peek();
+    if (c === '(') { i++; const n = sum(); if (!n || peek() !== ')') return null; i++; return n; }
+    if (c === '√' || c === '∛') { i++; const n = power(); return n && [c, n]; }
+    if (c === 'π') { i++; return ['n', Math.PI]; }
+    if (/^[a-z]$/.test(c || '')) { i++; return ['v', c]; }
+    const m = /^\d*\.?\d+/.exec(t.slice(i));
+    if (!m) return null;
+    i += m[0].length;
+    return ['n', Number(m[0])];
+  };
+  const power = () => {
+    const b = atom();
+    if (b && peek() === '^') { i++; const e = unary(); return e && ['^', b, e]; }
+    return b;
+  };
+  const unary = () => {
+    if (peek() === '-') { i++; const n = unary(); return n && ['neg', n]; }
+    if (peek() === '+') { i++; return unary(); }
+    return power();
+  };
+  const product = () => {
+    let n = unary();
+    while (n) {
+      if (peek() === '*' || peek() === '/') { const op = t[i++], r = unary(); n = r && [op, n, r]; }
+      else if (starts(peek())) { const r = power(); n = r && ['*', n, r]; }
+      else break;
+    }
+    return n;
+  };
+  const sum = () => {
+    let n = product();
+    while (n && (peek() === '+' || peek() === '-')) { const op = t[i++], r = product(); n = r && [op, n, r]; }
+    return n;
+  };
+  const n = sum();
+  return n && i === t.length ? n : null;
+}
+function markExprVal_(n, at) {
+  const [k, a, b] = n;
+  if (k === 'n') return a;
+  if (k === 'v') return at[a];
+  const x = markExprVal_(a, at), y = b && markExprVal_(b, at);
+  switch (k) {
+    case 'neg': return -x;
+    case '√': return Math.sqrt(x);
+    case '∛': return Math.cbrt(x);
+    case '+': return x + y;
+    case '-': return x - y;
+    case '*': return x * y;
+    case '/': return x / y;
+    default: return Math.pow(x, y);
+  }
+}
+/* `{ sides: [tree, tree?], vars }`, or null for anything that is not an expression. */
+function markExprRead_(s) {
+  const t = String(s == null ? '' : s).toLowerCase().replace(/<[^>]*>/g, '').replace(/&minus;/g, '-')
+    .replace(/[−–—]/g, '-').replace(/[×·]/g, '*').replace(/÷/g, '/').replace(/[⁄∕]/g, '/')
+    .replace(/²/g, '^2').replace(/³/g, '^3').replace(/⁴/g, '^4').replace(/sqrt|root/g, '√').replace(/cbrt/g, '∛')
+    .replace(/pi/g, 'π').replace(/\s+/g, '');
+  if (!t || /[^a-z0-9.+\-*\/^()√∛π=]/.test(t)) return null;
+  const sides = t.split('=').map(markExprParse_);
+  if (sides.length > 2 || sides.some(x => !x)) return null;
+  return { sides: sides, vars: (t.match(/[a-z]/g) || []).filter((v, i, a) => a.indexOf(v) === i) };
+}
+function markExpr_(typed, want, eqn) {
+  const T = markExprRead_(typed), W = markExprRead_(want);
+  if (!T || !W) return false;
+  let f, g;
+  if (eqn) {
+    if (T.sides.length !== 2 || W.sides.length !== 2) return false;
+    f = at => markExprVal_(T.sides[0], at) - markExprVal_(T.sides[1], at);
+    g = at => markExprVal_(W.sides[0], at) - markExprVal_(W.sides[1], at);
+  } else {
+    /* a subject wants that letter alone on the left, or nothing on the left, and nowhere on the right */
+    const subj = W.sides.length === 2 && W.sides[0][0] === 'v' ? W.sides[0][1] : null;
+    if (W.sides.length === 2 && !subj) return false;
+    let tr = T.sides;
+    if (tr.length === 2) { if (!subj || tr[0][0] !== 'v' || tr[0][1] !== subj) return false; tr = [tr[1]]; }
+    if (subj && T.vars.indexOf(subj) >= 0 && T.sides.length === 1) return false;
+    if (subj && JSON.stringify(tr[0]).indexOf('["v","' + subj + '"]') >= 0) return false;
+    const w = W.sides[W.sides.length - 1];
+    f = at => markExprVal_(tr[0], at);
+    g = at => markExprVal_(w, at);
+  }
+  const vars = T.vars.concat(W.vars).filter((v, i, a) => a.indexOf(v) === i);
+  const SEEDS = [1.37, 2.71, 0.53, 3.19, 1.83, 4.07, 0.29, 2.23];
+  let ratio = null, used = 0;
+  for (let s = 0; s < 6; s++) {
+    const at = {};
+    vars.forEach((v, j) => { at[v] = SEEDS[(s + 3 * j) % SEEDS.length] + 0.11 * j; });
+    const a = f(at), b = g(at);
+    if (!isFinite(b) || Math.abs(b) < 1e-12) continue;
+    if (!isFinite(a)) return false;
+    const r = a / b;
+    if (!eqn && Math.abs(r - 1) > 1e-7) return false;
+    if (eqn && (Math.abs(r) < 1e-9 || (ratio !== null && Math.abs(r - ratio) > 1e-7 * Math.max(1, Math.abs(ratio))))) return false;
+    ratio = r;
+    used++;
+  }
+  return used >= 3;
+}
 function markRule_(typed, rule) {
   const body = String(rule || '').replace(/^\s*rule:\s*/i, '');
+  /* `expr`/`eqn` is the whole rule but for `nobracket`, which wants it multiplied out */
+  const ex = /(?:^|,)\s*(expr|eqn)\s+([^,]+)/.exec(body);
+  if (ex) return markExpr_(typed, ex[2], ex[1] === 'eqn') && !(/(?:^|,)\s*nobracket\b/.test(body) && /\(/.test(String(typed)));
   const set = /(?:^|,)\s*set\s+([^,]+)/.exec(body);
   if (set) return markRuleSet_(typed, set[1]);
   const nums = markRuleNums_(typed), vs = nums.map(n => n.v);
@@ -3722,9 +3835,29 @@ function markRule_(typed, rule) {
       for (let i = 1; i < w.length; i++) tests.push(/^(mult|notmult|factor|notfactor|over|under|eq|ne)$/.test(w[i]) ? [w[i], w[++i]] : [w[i]]);
       return vs.every(v => tests.every(x => markRuleIs_(v, x[0], x[1])));
     }
+    /* `at 2 even`: the tests for one value by its place, where each value has its own condition (m a multiple of 5, n even) */
+    if (k === 'at') {
+      const v = vs[Number(w[1]) - 1];
+      if (v === undefined) return false;
+      for (let i = 2; i < w.length; i++) {
+        const t = w[i], arg = /^(mult|notmult|factor|notfactor|over|under|eq|ne)$/.test(t) ? w[++i] : undefined;
+        if (!markRuleIs_(v, t, arg)) return false;
+      }
+      return true;
+    }
+    if (k === 'hcf') {
+      const g = (a, b) => (b ? g(b, a % b) : a);
+      return vs.every(v => near(v, Math.round(v)) && v > 0) && near(vs.map(Math.round).reduce(g), markRuleVal_(w[1]));
+    }
     if (k === 'sum') {
       const r = w[1].split('..');
       return r.length === 2 ? sum >= markRuleVal_(r[0]) - 1e-9 && sum <= markRuleVal_(r[1]) + 1e-9 : near(sum, markRuleVal_(r[0]));
+    }
+    /* `pairs prod 100`: the values taken two at a time, in order, each pair making it -- opposite faces of a net (366) */
+    if (k === 'pairs') {
+      if (vs.length % 2) return false;
+      for (let i = 0; i < vs.length; i += 2) if (!near(w[1] === 'sum' ? vs[i] + vs[i + 1] : vs[i] * vs[i + 1], markRuleVal_(w[2]))) return false;
+      return true;
     }
     if (k === 'diff') return vs.length === 2 && near(Math.abs(vs[0] - vs[1]), markRuleVal_(w[1]));
     if (k === 'rounddiff') {
@@ -3743,6 +3876,8 @@ function markRule_(typed, rule) {
 }
 
 function markAnswer_(typed, accept, again) {
+  /* ONE BOX PER VALUE hands the values as a list (362): read as the comma list the scheme writes. */
+  if (Array.isArray(typed)) typed = typed.map(v => String(v == null ? '' : v).trim()).filter(Boolean).join(', ');
   const t = markNorm_(typed);
   if (!t) return null;                              /* nothing typed is not a wrong answer */
   /* A `rule:` WAY IS TESTED, NOT MATCHED (markRule_); the other ways are matched as before. */
@@ -4041,13 +4176,15 @@ on('qp-choose', (el) => {
    compared as a number. Words are matched on their stems, and a word straight after "not" or "no" does not count. */
 const MW_STOP = /^(the|a|an|of|to|is|it|and|or|in|on|be|as|so|by|at|for)$/;
 function mwStem_(w) {
-  let s = String(w || '').toLowerCase().replace(/[^a-z0-9.]/g, '');
-  if (/^-?\d/.test(s)) return s.replace(/\.$/, '');
+  /* a full stop ends the sentence, not the word: "No." is "no" and "the same." is "same" */
+  let s = String(w || '').toLowerCase().replace(/[^a-z0-9.]/g, '').replace(/\.+$/, '');
+  if (/^-?\d/.test(s)) return s;
   const cut = s.replace(/(ations?|ings?|edly|ed|es|ly|er|est|s)$/, '');
   return cut.length >= 3 ? cut : s;
 }
 function mwToks_(t) {
-  return String(t || '').toLowerCase().replace(/['\u2019]/g, '').replace(/(\d),(?=\d{3}\b)/g, '$1').replace(/[^a-z0-9.\s-]/g, ' ')
+  /* "No, the powers ...": a No stopped by its punctuation is the verdict, and must not negate the next word */
+  return String(t || '').toLowerCase().replace(/^\s*no\s*[,.:;!\u2013\u2014]+/, 'no verdict ').replace(/['\u2019]/g, '').replace(/(\d),(?=\d{3}\b)/g, '$1').replace(/[^a-z0-9.\s-]/g, ' ')
     .split(/[\s-]+/).filter(Boolean).map(mwStem_).filter(Boolean);
 }
 function mwHas_(toks, term) {
@@ -4071,7 +4208,8 @@ function markWords_(typed, rule) {
 }
 
 /* ---------- A GRID OR TABLE WITH BLANKS IS FILLED IN WHERE IT STANDS, A CELL AT A TIME (359) */
-const CELL_BLANK = /<(td|th)([^>]*)>\s*(?:&nbsp;|\u00a0)?\s*<\/\1>/g;
+/* a blank is empty however many spaces the transcriber left in it (`&nbsp;&nbsp;&nbsp;&nbsp;` is one blank) */
+const CELL_BLANK = /<(td|th)([^>]*)>(?:\s|&nbsp;|\u00a0)*<\/\1>/g;
 /* `cells` READ: one entry a blank, in reading order -- `{ label, ways }`, and `ways` empty for a blank not asked. */
 function cellsOf_(x) {
   const raw = String((x && x.cells) || '').trim();
@@ -4159,6 +4297,109 @@ on('qp-cells-check', el => {
   subRecord_(box.getAttribute('data-k'), vals.join(' ; '), all ? 'right' : 'wrong');
 });
 
+/* "and" parts values only between numbers or letters ("36 and 48", "C and D"), never "two hundred and nine" */
+function multiSplit_(s) {
+  return [].concat(...String(s).split(/\s*,\s*/).map(v => (/\d|^[a-z]{1,2}\s+(and|&)\s+[a-z]{1,2}$/i.test(v)
+    ? v.replace(/^and\s+/i, '').split(/\s+and\s+|\s*&\s*/) : [v])));
+}
+/* ---------- ONE BOX PER VALUE (362): an answer of several values gets a box each, not one box and commas to type. */
+/* How many, from `accept`: a rule's `count N`, a `set`'s groups, a way's comma list; a rule with no count grows a box at a time. */
+function multiOf_(x) {
+  const all = String((x && x.accept) || '').split('|').map(w => w.trim()).filter(Boolean);
+  const ways = all.filter(w => !/^rule:/i.test(w));
+  for (const r of all.filter(w => /^rule:/i.test(w))) {
+    const body = r.replace(/^rule:\s*/i, '');
+    if (/(?:^|,)\s*(expr|eqn)\s/.test(body)) continue;   /* one expression, one box */
+    const set = /(?:^|,)\s*set\s+([^,]+)/.exec(body);
+    if (set) return { n: set[1].split('/').length, words: true, wrap: '', labels: [] };
+    const c = /(?:^|,)\s*count\s+(\d+)/.exec(body);
+    if (c && +c[1] >= 2) return { n: +c[1], wrap: '', labels: [] };
+    if (!c) return { n: 0, grow: true, wrap: '', labels: [] };
+  }
+  /* a way splits only into short values: never a thousands comma (1,000) or a sentence */
+  const split = w => {
+    const p = /^\((.*)\)$/.exec(w), s = p ? p[1] : w;
+    if (/\d,\d{3}(?!\d)/.test(s) || !/,|\sand\s|&/.test(s)) return null;
+    const parts = multiSplit_(s);
+    if (parts.length < 2 || parts.some(v => !/^[-a-z]{0,2}\s*=?\s*[-\d.\/£$%°a-z²³√π ]{1,14}$/i.test(v) || v.split(' ').length > 3)) return null;
+    return { parts: parts, wrap: p ? '()' : '' };
+  };
+  const first = ways.length ? split(ways[0]) : null;
+  if (!first || first.parts.length > 16 || ways.map(split).some(g => g && g.parts.length !== first.parts.length)) return null;
+  return { n: first.parts.length, wrap: first.wrap, labels: first.parts.map(v => (/^([a-z])\s*=/i.exec(v) || [])[1] || '') };
+}
+/* A SAVED ANSWER INTO ITS BOXES — an old one typed with commas too: brackets and `x =` off, split at the commas. */
+function multiVals_(val, m) {
+  let s = String(val == null ? '' : val).trim();
+  if (m.wrap) s = s.replace(/^\((.*)\)$/, '$1');
+  const out = s ? multiSplit_(s).map((v, i) => (m.labels[i] ? v.replace(new RegExp('^' + m.labels[i] + '\\s*=\\s*', 'i'), '') : v)) : [];
+  return out;
+}
+/* AND THE BOXES INTO ONE ANSWER: what the marker and the account receive, written as the scheme writes it. */
+function multiJoin_(vals, m) {
+  const v = vals.map(s => String(s == null ? '' : s).trim());
+  while (v.length && !v[v.length - 1]) v.pop();
+  if (!v.length) return '';
+  const s = v.map((s, i) => (m.labels[i] ? m.labels[i] + ' = ' + s : s)).join(', ');
+  return m.wrap ? '(' + s + ')' : s;
+}
+function multiField_(k, i, v, kind, signs) {
+  return kpField_(k + '#' + i, v, kind, signs, 'Answer ' + (i + 1), { n: i, k: k });
+}
+function multiBoxes_(x, k, val, m, maths, signs) {
+  const vals = multiVals_(val, m);
+  const n = m.grow ? vals.filter(Boolean).length + 1 : m.n;
+  const kind = m.words || !maths ? 'words' : 'maths';
+  const one = i => `<label class="qp-ans qp-multi-f">${m.labels[i] ? `<span class="qp-multi-l">${esc(m.labels[i])} =</span>` : ''}${
+    multiField_(k, i, vals[i] || '', kind, signs)}</label>`;
+  const boxes = [];
+  for (let i = 0; i < n; i++) boxes.push(one(i));
+  /* the joined answer, first in the box, is what Check, Send and every verdict painter read in place of `.qp-ans-in` */
+  return `<div class="qp-multi${m.wrap ? ' is-pair' : ''}" data-mk="${esc(k)}" data-m="${esc(JSON.stringify(m))}" data-kind="${kind}"${
+    signs ? ' data-signs="1"' : ''}${m.grow ? ' data-grow="1"' : ''}><input type="hidden" class="qp-multi-val" data-k="${esc(k)}" value="${esc(multiJoin_(vals, m))}">${boxes.join('')}</div>`;
+}
+const multiIns_ = box => [].slice.call(box.querySelectorAll('.kp-in[data-do="qp-multi"]'));
+/* EVERY KEY IN A BOX: the joined answer kept under the question's own key, and a filled last box grows another where the count is open. */
+document.addEventListener('input', e => {
+  const el = e.target && e.target.closest && e.target.closest('[data-do="qp-multi"]');
+  const box = el && el.closest('.qp-multi');
+  if (!box) return;
+  let m;
+  try { m = JSON.parse(box.getAttribute('data-m')); } catch (err) { return; }
+  const ins = multiIns_(box), all = box.querySelector('.qp-multi-val');
+  const v = multiJoin_(ins.map(i => i.value), m);
+  if (all) all.value = v;
+  ansStore_(box.getAttribute('data-mk') || '', v);
+  if (box.hasAttribute('data-grow') && ins.length && ins[ins.length - 1] === el && el.value.trim()) {
+    const at = document.createElement('div');
+    const kind = box.getAttribute('data-kind');
+    at.innerHTML = `<label class="qp-ans qp-multi-f">${multiField_(box.getAttribute('data-mk'), ins.length, '', kind, box.hasAttribute('data-signs'))}</label>`;
+    box.appendChild(at.firstChild);
+  }
+  const mark = box.closest('.qp-mark');
+  if (mark && all && typeof subVerdictPaint_ === 'function') subVerdictPaint_(mark, all);
+});
+/* AN ANSWER ARRIVING FROM ANOTHER DEVICE OR TAB (answers.js) lands on the joined value; its boxes take it too. */
+function multiFill_(all) {
+  const box = all && all.closest && all.closest('.qp-multi');
+  if (!box) return;
+  let m;
+  try { m = JSON.parse(box.getAttribute('data-m')); } catch (err) { return; }
+  const vals = multiVals_(all.value, m);
+  multiIns_(box).forEach((inp, i) => {
+    if (inp.value === (vals[i] || '')) return;
+    inp.value = vals[i] || '';
+    if (typeof kpRender_ === 'function') kpRender_(inp);
+  });
+}
+/* THE BOX AFTER THIS ONE, for ✓ and the comma key on the pad: one tap from box to box. */
+function multiNext_(inp) {
+  const box = inp && inp.closest && inp.closest('.qp-multi');
+  if (!box) return null;
+  const ins = multiIns_(box), i = ins.indexOf(inp);
+  return i >= 0 && i < ins.length - 1 ? ins[i + 1] : null;
+}
+
 function ansBox_(x) {
   if (x && Array.isArray(x.choices) && x.choices.length >= 2) return choiceBox_(x);
   if (cellsOf_(x).length) return cellsBox_(x);
@@ -4201,7 +4442,9 @@ function ansBox_(x) {
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
   </div>${ai ? `<p class="qp-ai-why">${own ? esc(own.why) : ''}</p>` : ''}`;
   }
-  const bar = `<div class="qp-ans-row qp-bar"><label class="qp-ans${maths ? ' qp-ans-maths' : ''}" aria-label="Your answer">
+  const many = can ? multiOf_(x) : null;
+  const bar = many ? `<div class="qp-ans-row qp-bar qp-multi-bar">${multiBoxes_(x, k, val, many, maths, signs)}${fig}${send}</div>`
+    : `<div class="qp-ans-row qp-bar"><label class="qp-ans${maths ? ' qp-ans-maths' : ''}" aria-label="Your answer">
     ${kpField_(k, val, maths ? 'maths' : 'words', signs)}
   </label>${fig}${kpWideTile_(k)}${send}</div>`;
   if (!send) return `<div class="qp-compose">${bar}
@@ -4231,7 +4474,7 @@ function subBoxSay_(k, val) {
 on('qp-check', (el) => {
   const box = el.closest('.qp-mark');
   const card = el.closest('.qcard');
-  const inp = card && card.querySelector('.qp-ans-in');
+  const inp = card && card.querySelector('.qp-multi-val, .qp-ans-in');
   const out = box && box.querySelector('.qp-verdict');
   if (!box || !inp || !out) return;
   const verdict = markAnswer_(inp.value, box.getAttribute('data-accept'));
@@ -4251,7 +4494,7 @@ on('qp-check', (el) => {
 /* ---------- BY RULE: full marks is decided; anything less says what the rule found and offers the AI, if it is on (359). */
 on('qp-rule', (el) => {
   const box = el.closest('.qp-mark');
-  const inp = box && box.querySelector('.qp-ans-in');
+  const inp = box && box.querySelector('.qp-multi-val, .qp-ans-in');
   const out = box && box.querySelector('.qp-verdict');
   if (!inp || !out) return;
   const m = markWords_(inp.value, box.getAttribute('data-rule'));
@@ -4269,7 +4512,7 @@ on('qp-rule', (el) => {
 /* ---------- SEND, WHERE NOTHING CAN MARK IT § */
 on('qp-send', (el) => {
   const box = el.closest('.qp-mark');
-  const inp = box && box.querySelector('.qp-ans-in');
+  const inp = box && box.querySelector('.qp-multi-val, .qp-ans-in');
   const out = box && box.querySelector('.qp-verdict');
   if (!inp || !out || el.disabled) return;
   box.classList.remove('is-right', 'is-near');
@@ -4345,7 +4588,8 @@ function padSource_(x) {
 /* ---------- WHAT A QUESTION IS ANSWERED WITH: A DRAWING, A VALUE, OR BOTH § */
 function answerKinds_(x) {
   const draw = !!padSource_(x);
-  return { draw: draw, value: !draw || !!String((x && x.accept) || '').trim() || cellsOf_(x).length > 0 };
+  /* key words mark it too (`mark_words`): the box is what is marked, the pen is the working (366) */
+  return { draw: draw, value: !draw || !!String((x && x.accept) || '').trim() || !!String((x && x.markWords) || '').trim() || cellsOf_(x).length > 0 };
 }
 
 /* ---------- WHICH TOOLS A QUESTION'S PEN COMES WITH § */
@@ -4533,8 +4777,690 @@ function padWrap_(x, svg) {
     ${/* WHERE THE MARKS GO, AND ONLY A `pad:` KEY GOES ANYWHERE: § */
           ''}
     <p class="qpad-note" data-kept-k="${esc(k)}">${esc(padNoteSay_(k))}</p>
+    ${padSendRow_(x, marks)}
   </div>`;
 }
+
+/* ---------- A DRAWN ANSWER IS SENT LIKE A TYPED ONE (362) */
+/* What the submission says: the drawing itself rides under its `pad:` key; this names it, and changes when a mark does. */
+function padSay_(marks) {
+  const n = (marks || []).length;
+  if (!n) return '';
+  let h = 0;
+  const raw = JSON.stringify(marks);
+  for (let i = 0; i < raw.length; i++) h = (h * 31 + raw.charCodeAt(i)) | 0;
+  return 'drawing \u00b7 ' + n + ' mark' + (n === 1 ? '' : 's') + ' \u00b7 #' + (h >>> 0).toString(36);
+}
+/* ONLY UNDER A QUESTION ANSWERED BY DRAWING ALONE; one with a value as well is sent by its box. */
+function padSendRow_(x, marks) {
+  if (!x || x.prefix || !x.key || answerKinds_(x).value) return '';
+  const k = ansKey_(x), said = subBoxSay_(k, padSay_(marks));
+  /* WITH ITS ANSWER AS GEOMETRY (`draw_answer`, 366) it is marked here, on Check, like a typed one; without, it is sent */
+  const geo = String(x.drawAnswer || '').trim();
+  const tile = geo ? tile_({ icon: 'send', label: 'Check', note: 'the drawing', act: 'pad-check', cls: 'qp-check', tone: 'send' })
+    : tile_({ icon: 'send', label: 'Send', note: 'for marking', act: 'pad-send', cls: 'qp-check', tone: 'send' });
+  return `<div class="qp-mark qpad-send${said.cls ? ' ' + said.cls : ''}" data-k="${esc(k)}"${geo ? ` data-draw="${esc(geo)}" data-marks="${esc(String(Number(x.marks) || ''))}"` : ''}>
+      <div class="tile-row">${tile}</div>
+      <span class="qp-verdict" role="status" aria-live="polite">${esc(padSaid_(said.text))}</span>
+    </div>`;
+}
+/* a drawing's verdict line: marks counted by the drawing say so, and a sent one is waiting */
+const padSaid_ = t => t === 'Sent' ? PAD_SENT_SAY : String(t || '').replace(/ \u00b7 by key words$/, ' \u00b7 by the drawing');
+const PAD_SENT_SAY = 'Sent \u2014 waiting to be marked';
+on('pad-send', el => {
+  const row = el.closest('.qpad-send'), pad = el.closest('.qpad');
+  const out = row && row.querySelector('.qp-verdict');
+  if (!row || !pad || !out) return;
+  const say = padSay_(padRead_(pad.getAttribute('data-k')));
+  if (!say) { out.textContent = 'Draw your answer first'; return; }
+  const signed = typeof whoIs_ === 'function' && !!whoIs_();
+  const e = subRecord_(row.getAttribute('data-k'), say, 'sent');
+  out.textContent = !e ? 'Could not send it \u2014 try again' : signed ? PAD_SENT_SAY : 'Kept on this device \u2014 sign in to send it for marking';
+  if (typeof answersPush_ === 'function') answersPush_(true);
+});
+
+/* ---------- A DRAWN ANSWER IS MARKED BY ITS GEOMETRY (366) */
+/* The figure as numbers: its viewBox, its ruled grid (`padGrid_`) and its numeric labels, which give an axis its scale. */
+function drawFig_(svg) {
+  const s = String(svg || '');
+  const m = /viewBox\s*=\s*["']\s*([-\d.eE+]+)[\s,]+([-\d.eE+]+)[\s,]+([\d.eE+]+)[\s,]+([\d.eE+]+)/.exec(s);
+  const vb = m ? [+m[1], +m[2], +m[3], +m[4]] : [0, 0, 340, 340];
+  const labels = [];
+  (s.match(/<text\b[^>]*>[\s\S]*?<\/text>/g) || []).forEach(t => {
+    if (/\btransform\s*=/.test(t)) return;
+    const num = k => { const r = new RegExp('\\s' + k + '\\s*=\\s*["\']\\s*([-\\d.eE+]+)').exec(t); return r ? +r[1] : NaN; };
+    /* a tick drawn as a dash after the number ("40 \u2212") is not part of it */
+    const words = t.replace(/<[^>]*>/g, '').replace(/&minus;|\u2212|&#8722;/g, '-').replace(/&[a-z#0-9]+;/gi, '').trim().replace(/\s+-$/, '');
+    if (/^-?\d+(\.\d+)?$/.test(words) && isFinite(num('x')) && isFinite(num('y'))) labels.push([+words, num('x'), num('y')]);
+  });
+  return { vb: vb, grid: typeof padGrid_ === 'function' ? padGrid_(s) : null, labels: labels };
+}
+
+/* THE MARKER, pure: strokes in the pen's 340 by 340 space, the row's `draw_answer`, the figure. Distances are in the picture's own units, tolerances in grid squares. */
+function drawMarker_() {
+  const H = Math.hypot, R = Math.PI / 180;
+  const near = (a, b) => H(a[0] - b[0], a[1] - b[1]);
+  function dSeg(p, a, b) {
+    const dx = b[0] - a[0], dy = b[1] - a[1], L = dx * dx + dy * dy;
+    const t = L ? Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L)) : 0;
+    return H(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy);
+  }
+  function dLine(p, a, b) {
+    const dx = b[0] - a[0], dy = b[1] - a[1], L = H(dx, dy) || 1;
+    return Math.abs((p[0] - a[0]) * dy - (p[1] - a[1]) * dx) / L;
+  }
+  const dPoly = (p, pl) => pl.length === 1 ? near(p, pl[0]) : pl.slice(1).reduce((m, q, i) => Math.min(m, dSeg(p, pl[i], q)), Infinity);
+  const len = pl => pl.slice(1).reduce((s, q, i) => s + near(q, pl[i]), 0);
+  function rdp(pl, eps) {
+    if (pl.length < 3) return pl.slice();
+    let k = 0, dm = 0;
+    for (let i = 1; i < pl.length - 1; i++) { const d = dSeg(pl[i], pl[0], pl[pl.length - 1]); if (d > dm) { dm = d; k = i; } }
+    if (dm <= eps) return [pl[0], pl[pl.length - 1]];
+    return rdp(pl.slice(0, k + 1), eps).slice(0, -1).concat(rdp(pl.slice(k), eps));
+  }
+  function inside(p, poly) {
+    let c = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const a = poly[i], b = poly[j];
+      if ((a[1] > p[1]) !== (b[1] > p[1]) && p[0] < (b[0] - a[0]) * (p[1] - a[1]) / (b[1] - a[1]) + a[0]) c = !c;
+    }
+    return c;
+  }
+  const area = poly => Math.abs(poly.reduce((s, p, i) => { const q = poly[(i + 1) % poly.length]; return s + p[0] * q[1] - q[0] * p[1]; }, 0)) / 2;
+  /* clockwise from straight up, in degrees, as a clock and a protractor on screen read it */
+  const bearing = (c, p) => ((Math.atan2(p[0] - c[0], c[1] - p[1]) / R) + 360) % 360;
+  const dirOf = (a, b) => ((Math.atan2(b[1] - a[1], b[0] - a[0]) / R) + 180) % 180;
+  const dDir = (a, b) => { const d = Math.abs(a - b) % 180; return Math.min(d, 180 - d); };
+
+  /* THE FRAME: figure units to the picture's. Labels give an axis its scale; a grid alone counts squares from its bottom-left corner, y up. */
+  function fitAxis(fig, axis, not) {
+    const L = (fig.labels || []).filter(l => !(not && not.indexOf(l) !== -1)), by = {};
+    L.forEach(l => { const key = Math.round((axis === 'x' ? l[2] : l[1]) / 8); (by[key] = by[key] || []).push(l); });
+    let best = null;
+    Object.keys(by).forEach(k => {
+      const g = by[k].filter((l, i, a) => a.findIndex(o => o[0] === l[0]) === i);
+      if (g.length < 3) return;
+      /* a y label's number sits on its baseline, about a third of a line below the grid line it names */
+      const vs = g.map(l => l[0]), ps = g.map(l => axis === 'x' ? l[1] : l[2] - 3.5);
+      const n = vs.length, mv = vs.reduce((a, b) => a + b) / n, mp = ps.reduce((a, b) => a + b) / n;
+      const sxx = vs.reduce((s, v) => s + (v - mv) * (v - mv), 0);
+      if (!sxx) return;
+      const b = vs.reduce((s, v, i) => s + (v - mv) * (ps[i] - mp), 0) / sxx, a = mp - b * mv;
+      const res = Math.max.apply(null, vs.map((v, i) => Math.abs(a + b * v - ps[i])));
+      const span = Math.abs(b) * (Math.max.apply(null, vs) - Math.min.apply(null, vs));
+      if (!b || res > span * 0.04 + 3) return;
+      if (axis === 'x' ? b < 0 : b > 0) return;
+      if (!best || n > best.n) best = { a: a, b: b, n: n, v0: vs[0], g: g };
+    });
+    if (!best) return null;
+    const G = fig.grid, lines = G ? (axis === 'x' ? G.xs : G.ys) : null;
+    if (lines && lines.length > 1) {
+      const pitch = (lines[lines.length - 1] - lines[0]) / (lines.length - 1);
+      /* a square is a round number of units: 1, 2, 2.5 or 5 times a power of ten */
+      const u = pitch / Math.abs(best.b), e = Math.pow(10, Math.floor(Math.log10(u)));
+      const nice = [1, 2, 2.5, 5, 10].map(f => f * e).find(n => Math.abs(n - u) <= 0.06 * n);
+      if (nice) best.b = Math.sign(best.b) * pitch / nice;
+      const p0 = best.a + best.b * best.v0;
+      const g = lines.reduce((m, l) => Math.abs(l - p0) < Math.abs(m - p0) ? l : m, lines[0]);
+      if (Math.abs(g - p0) < pitch * 0.4) best.a += g - p0;
+    }
+    return best;
+  }
+  function frameOf(spec, fig) {
+    const G = fig.grid, vb = fig.vb;
+    const sq = G && G.xs.length > 1 ? (G.xs[G.xs.length - 1] - G.xs[0]) / (G.xs.length - 1) : (spec.sq || 20);
+    let o, u;
+    const f = spec.frame;
+    if (f && f.o && f.u) { o = f.o; u = f.u; }
+    else if (f === 'vb') { o = [0, 0]; u = [1, 1]; }
+    else {
+      /* each axis by its own numbers where it has them; one without counts squares (or the picture's units) */
+      const ax = f === 'grid' ? null : fitAxis(fig, 'x'), ay = f === 'grid' ? null : fitAxis(fig, 'y', ax && ax.g);
+      const at = (f && f.grid) || [0, 0], py = G ? (G.ys[G.ys.length - 1] - G.ys[0]) / (G.ys.length - 1) : 1;
+      o = [ax ? ax.a : G ? G.xs[0] - at[0] * sq : 0, ay ? ay.a : G ? G.ys[G.ys.length - 1] + at[1] * py : 0];
+      u = [ax ? ax.b : G ? sq : 1, ay ? ay.b : G ? -py : 1];
+    }
+    return { o: o, u: u, sq: sq, vb: vb, grid: G,
+      v: p => [o[0] + p[0] * u[0], o[1] + p[1] * u[1]],
+      f: p => [(p[0] - o[0]) / u[0], (p[1] - o[1]) / u[1]] };
+  }
+
+  /* THE INK: each stroke as a polyline in the picture's units, its corners snapped to grid points (357's snap, read back). */
+  function inkOf(strokes, F) {
+    const vb = F.vb, G = F.grid, snap = F.sq * 0.22;
+    const gp = (v, list) => list.reduce((m, l) => Math.abs(l - v) < Math.abs(m - v) ? l : m, list[0]);
+    return (strokes || []).filter(s => Array.isArray(s) && s.length >= 2).map(s => {
+      const pl = [];
+      for (let i = 0; i + 1 < s.length; i += 2) pl.push([vb[0] + s[i] / 340 * vb[2], vb[1] + s[i + 1] / 340 * vb[3]]);
+      const segs = rdp(pl, F.sq * 0.15).map(p => {
+        if (!G) return p;
+        const q = [gp(p[0], G.xs), gp(p[1], G.ys)];
+        return near(p, q) <= snap ? q : p;
+      });
+      return { pl: pl, segs: segs, len: len(pl), c: pl.reduce((a, p) => [a[0] + p[0] / pl.length, a[1] + p[1] / pl.length], [0, 0]),
+        size: H(Math.max.apply(null, pl.map(p => p[0])) - Math.min.apply(null, pl.map(p => p[0])),
+                Math.max.apply(null, pl.map(p => p[1])) - Math.min.apply(null, pl.map(p => p[1]))) };
+    });
+  }
+  const samples = (a, b, step) => { const n = Math.max(2, Math.ceil(near(a, b) / step)); const out = []; for (let i = 0; i <= n; i++) out.push([a[0] + (b[0] - a[0]) * i / n, a[1] + (b[1] - a[1]) * i / n]); return out; };
+  const dInk = (p, ink) => ink.reduce((m, s) => Math.min(m, dPoly(p, s.pl)), Infinity);
+  /* a line, a side or a curve is drawn when nearly all of it has ink within the tolerance */
+  const covered = (a, b, ink, tol, from, to, frac) => {
+    const pts = samples(a, b, tol / 2).filter((p, i, all) => i / (all.length - 1) >= (from || 0) - 1e-9 && i / (all.length - 1) <= (to == null ? 1 : to) + 1e-9);
+    return pts.filter(p => dInk(p, ink) <= tol).length >= pts.length * (frac || 0.85);
+  };
+  /* straight pieces of ink, for the kinds that ask about directions and corners */
+  const straights = (ink, min) => {
+    const out = [];
+    ink.forEach(s => s.segs.slice(1).forEach((q, i) => { if (near(q, s.segs[i]) >= min) out.push([s.segs[i], q]); }));
+    return out;
+  };
+  /* closed shapes in the ink: corners joined across strokes, straight-on corners dropped */
+  function polygons(ink, F, join) {
+    const S = straights(ink, F.sq * 0.3), nodes = [], edges = [];
+    const node = p => { let i = nodes.findIndex(n => near(n, p) <= join); if (i < 0) { nodes.push(p.slice()); i = nodes.length - 1; } return i; };
+    S.forEach(s => { const a = node(s[0]), b = node(s[1]); if (a !== b && !edges.some(e => (e[0] === a && e[1] === b) || (e[0] === b && e[1] === a))) edges.push([a, b]); });
+    const nb = nodes.map((n, i) => edges.filter(e => e[0] === i || e[1] === i).map(e => e[0] === i ? e[1] : e[0]));
+    const seen = new Set(), out = [];
+    nodes.forEach((n, i) => {
+      if (seen.has(i)) return;
+      const comp = [], st = [i];
+      while (st.length) { const k = st.pop(); if (seen.has(k)) continue; seen.add(k); comp.push(k); nb[k].forEach(j => st.push(j)); }
+      if (comp.length < 3 || comp.some(k => nb[k].length !== 2)) return;
+      const ring = [comp[0]];
+      let prev = -1, cur = comp[0];
+      for (;;) { const nx = nb[cur][0] !== prev ? nb[cur][0] : nb[cur][1]; if (nx === comp[0]) break; ring.push(nx); prev = cur; cur = nx; if (ring.length > comp.length) return; }
+      let cyc = ring.map(k => nodes[k]);
+      for (let again = true; again && cyc.length > 3;) {
+        again = false;
+        for (let k = 0; k < cyc.length; k++) {
+          const a = cyc[(k + cyc.length - 1) % cyc.length], b = cyc[k], c = cyc[(k + 1) % cyc.length];
+          if (dDir(dirOf(a, b), dirOf(b, c)) < 8) { cyc.splice(k, 1); again = true; break; }
+        }
+      }
+      out.push(cyc);
+    });
+    return out;
+  }
+  const sides = poly => poly.map((p, i) => near(p, poly[(i + 1) % poly.length]));
+  const corners = poly => poly.map((b, i) => {
+    const a = poly[(i + poly.length - 1) % poly.length], c = poly[(i + 1) % poly.length];
+    const u = [a[0] - b[0], a[1] - b[1]], v = [c[0] - b[0], c[1] - b[1]];
+    return Math.acos(Math.max(-1, Math.min(1, (u[0] * v[0] + u[1] * v[1]) / (H(u[0], u[1]) * H(v[0], v[1]) || 1)))) / R;
+  });
+  const same = (a, b, rel) => Math.abs(a - b) <= rel * Math.max(a, b);
+  const SHAPE = {
+    kite: (p, s) => p.length === 4 && ((same(s[0], s[1], 0.08) && same(s[2], s[3], 0.08)) || (same(s[1], s[2], 0.08) && same(s[3], s[0], 0.08))),
+    scalene: (p, s) => p.length === 3 && !same(s[0], s[1], 0.06) && !same(s[1], s[2], 0.06) && !same(s[0], s[2], 0.06),
+    right: (p, s, a) => p.length === 3 && a.some(x => Math.abs(x - 90) <= 4),
+    acute: (p, s, a) => p.length === 3 && a.every(x => x < 87),
+    notacute: (p, s, a) => p.length === 3 && a.some(x => x >= 88),
+    equilateral: (p, s) => p.length === 3 && same(Math.min.apply(null, s), Math.max.apply(null, s), 0.07),
+    square: (p, s, a) => p.length === 4 && same(Math.min.apply(null, s), Math.max.apply(null, s), 0.07) && a.every(x => Math.abs(x - 90) <= 4),
+    /* two lines of symmetry and no more: a rectangle or a rhombus that is not a square */
+    twosym: (p, s, a) => p.length === 4 && !SHAPE.square(p, s, a) && (a.every(x => Math.abs(x - 90) <= 4) || same(Math.min.apply(null, s), Math.max.apply(null, s), 0.07)),
+    perpdiag: (p, s, a) => p.length === 4 && !SHAPE.square(p, s, a) && dDir(dirOf(p[0], p[2]), dirOf(p[1], p[3])) >= 86,
+    notperpdiag: (p) => p.length === 4 && dDir(dirOf(p[0], p[2]), dirOf(p[1], p[3])) < 84,
+    isosceles: (p, s) => p.length === 3 && (same(s[0], s[1], 0.06) || same(s[1], s[2], 0.06) || same(s[0], s[2], 0.06)),
+  };
+
+  /* EACH KIND: is it there, and which ink does it account for (the rest is stray). */
+  const KIND = {
+    pts(it, ink, F, tol) {
+      const P = it.at.map(F.v), small = F.sq * (it.dot || 1);
+      const marks = [];
+      ink.forEach(s => { if (s.size <= small) marks.push(s.c); s.segs.forEach(p => marks.push(p)); });
+      ink.forEach((s, i) => ink.forEach((t, j) => { if (j > i && s.size <= small && t.size <= small && near(s.c, t.c) <= small) marks.push([(s.c[0] + t.c[0]) / 2, (s.c[1] + t.c[1]) / 2]); }));
+      const got = P.filter(p => marks.some(m => near(m, p) <= tol) || (it.onink && dInk(p, ink) <= tol)).length;
+      return { ok: got >= (it.need || P.length), ex: q => P.some(p => near(p, q) <= Math.max(tol * 1.5, F.sq * 0.7)) };
+    },
+    segs(it, ink, F, tol) {
+      const base = (it.at || []).map(s => [[s[0], s[1]], [s[2], s[3]]]);
+      if (it.poly || it.path) {
+        const P = it.poly || it.path;
+        P.forEach((p, i) => { if (i + 1 < P.length) base.push([p, P[i + 1]]); });
+        if (it.poly) base.push([P[P.length - 1], P[0]]);
+      }
+      const also = (it.also || []).map(s => [F.v([s[0], s[1]]), F.v([s[2], s[3]])]);
+      const tries = [];
+      /* `fity`: a sketch on an axis with no numbers up it -- the curve's height is the drawer's, so it is fitted */
+      if (it.fity) {
+        const ys = [].concat.apply([], ink.map(s => s.pl.map(p => F.f(p)[1]))), top = Math.max.apply(null, base.map(s => Math.max(Math.abs(s[0][1]), Math.abs(s[1][1]))));
+        const k0 = ys.length && top ? Math.max.apply(null, ys.map(Math.abs)) / top : 1;
+        [0.7, 0.8, 0.9, 1, 1.1, 1.25, 1.4].forEach(f => tries.push(base.map(s => s.map(p => F.v([p[0], p[1] * k0 * f])))));
+      }
+      const flips = it.fity ? [] : it.turn ? [[1, 0, 0, 1], [0, -1, 1, 0], [-1, 0, 0, -1], [0, 1, -1, 0], [-1, 0, 0, 1], [1, 0, 0, -1], [0, 1, 1, 0], [0, -1, -1, 0]] : [[1, 0, 0, 1]];
+      flips.forEach(m => {
+        const S = base.map(s => s.map(p => F.v([m[0] * p[0] + m[1] * p[1], m[2] * p[0] + m[3] * p[1]])));
+        if (!it.move) { tries.push(S); return; }
+        /* placed anywhere (a plan, a vector, a box plot's height): laid where the ink is, by its box and by its middle */
+        const bx = list => { const xs = list.map(p => p[0]), ys = list.map(p => p[1]); return [Math.min.apply(null, xs), Math.min.apply(null, ys), Math.max.apply(null, xs), Math.max.apply(null, ys)]; };
+        const ip = [].concat.apply([], ink.map(s => s.pl)), sp = [].concat.apply([], S);
+        if (!ip.length) return;
+        const a = bx(ip), b = bx(sp);
+        /* and by each corner of the ink, so two shapes drawn side by side are each found where they are */
+        const anchors = [].concat.apply([], ink.map(s => s.segs)).slice(0, 60).map(p => [p[0] - sp[0][0], p[1] - sp[0][1]]);
+        [[a[0] - b[0], a[1] - b[1]], [a[2] - b[2], a[3] - b[3]], [(a[0] + a[2] - b[0] - b[2]) / 2, (a[1] + a[3] - b[1] - b[3]) / 2]].concat(anchors).forEach(d => {
+          let dx = it.move === 'y' ? 0 : d[0], dy = it.move === 'x' ? 0 : d[1];
+          if (F.grid && it.snap !== false) { dx = Math.round(dx / F.sq) * F.sq; dy = Math.round(dy / F.sq) * F.sq; }
+          tries.push(S.map(s => s.map(p => [p[0] + dx, p[1] + dy])));
+        });
+      });
+      let best = null;
+      tries.forEach(S => {
+        const n = S.filter(s => covered(s[0], s[1], ink, tol, 0, 1, it.cover)).length;
+        if (!best || n > best.n) best = { n: n, S: S };
+      });
+      const S = best ? best.S : [];
+      /* `head`: a vector's arrowhead, ink at the far end that is not the shaft */
+      const headOk = !it.head || (S.length === 1 && ink.some(s => s.pl.some(p => near(p, S[0][1]) <= F.sq * 1.2 && near(p, S[0][1]) > tol * 0.5 && dLine(p, S[0][0], S[0][1]) > tol * 0.4)));
+      return { ok: !!best && best.n >= (it.need || S.length) && headOk, ex: q => S.concat(also).some(s => dSeg(q, s[0], s[1]) <= tol * 1.5) || (it.head && S.length === 1 && near(q, S[0][1]) <= F.sq * 1.4) };
+    },
+    line(it, ink, F, tol) {
+      const a = F.v(it.thru[0]), b = F.v(it.thru[1]);
+      /* `cover`: how much of it must be inked -- a dashed line (a strict inequality) is about half */
+      return { ok: covered(a, b, ink, tol, it.from == null ? 0.15 : it.from, it.to == null ? 0.85 : it.to, it.cover),
+        ex: q => dLine(q, a, b) <= tol * 1.5 };
+    },
+    cells(it, ink, F) {
+      const C = (it.cells || []).map(c => c.map(F.v)).concat((it.rects || []).map(r => [[r[0], r[1]], [r[0] + r[2], r[1]], [r[0] + r[2], r[1] + r[3]], [r[0], r[1] + r[3]]].map(F.v)));
+      const given = it.given || [];
+      const on = C.map((c, i) => {
+        if (given.indexOf(i) !== -1) return false;
+        const m = c.reduce((s, p) => [s[0] + p[0] / c.length, s[1] + p[1] / c.length], [0, 0]);
+        const sh = c.map(p => [m[0] + (p[0] - m[0]) * 0.85, m[1] + (p[1] - m[1]) * 0.85]);
+        let L = 0;
+        ink.forEach(s => s.pl.forEach((p, k) => { if (k && inside(p, sh) && inside(s.pl[k - 1], sh)) L += near(p, s.pl[k - 1]); }));
+        return L >= (it.shade || 1.2) * Math.sqrt(area(c));
+      });
+      const chosen = on.map((v, i) => v ? i : -1).filter(i => i >= 0);
+      /* `touch`: how many sides the chosen cells share, which is what a perimeter asks of them */
+      const shared = (a, b) => a.filter(p => b.some(q => near(p, q) <= F.sq * 0.1)).length >= 2;
+      let touch = 0;
+      chosen.forEach((i, x) => chosen.forEach((j, y) => { if (y > x && shared(C[i], C[j])) touch++; }));
+      const ok = (it.set ? it.set.some(w => w.length === chosen.length && w.every(i => chosen.indexOf(i) !== -1))
+        : chosen.length === it.need) && (it.touch == null || touch === it.touch);
+      return { ok: ok, ex: q => C.some(c => inside(q, c)) };
+    },
+    radius(it, ink, F, tol) {
+      const c = F.v(it.c), r = Math.abs(it.r * F.u[0]);
+      const S = straights(ink, r * 0.4);
+      const rim = p => Math.abs(near(p, c) - r) <= tol;
+      const hit = S.find(s => it.dia ? rim(s[0]) && rim(s[1]) && dSeg(c, s[0], s[1]) <= tol
+        : (near(s[0], c) <= tol && rim(s[1])) || (near(s[1], c) <= tol && rim(s[0])));
+      return { ok: !!hit, ex: q => S.some(s => dSeg(q, s[0], s[1]) <= tol * 1.5) };
+    },
+    dir(it, ink, F, tol) {
+      const to = it.to ? [F.v([it.to[0], it.to[1]]), F.v([it.to[2], it.to[3]])] : null;
+      const want = to ? (dirOf(to[0], to[1]) + (it.rel === 'perp' ? 90 : 0)) % 180 : it.ang;
+      const S = straights(ink, F.sq * (it.min || 1.5));
+      const ok = S.filter(s => (want == null || dDir(dirOf(s[0], s[1]), want) <= (it.atol || 4))
+        && (!it.len || Math.abs(near(F.f(s[0]), F.f(s[1])) - it.len) <= (it.ltol || 0.2))
+        && (!it.meet || !to || dSeg(s[0], to[0], to[1]) <= tol || dSeg(s[1], to[0], to[1]) <= tol || cross(s, to))
+        && (!it.apart || !to || dLine(s[0], to[0], to[1]) > tol * 2)).length >= (it.need || 1);
+      return { ok: ok, ex: q => S.some(s => dSeg(q, s[0], s[1]) <= tol * 1.5) };
+    },
+    pair(it, ink, F, tol) {
+      const S = straights(ink, F.sq * (it.min || 2));
+      let ok = false;
+      S.forEach((s, i) => S.forEach((t, j) => {
+        if (j <= i) return;
+        const d = dDir(dirOf(s[0], s[1]), dirOf(t[0], t[1]));
+        if (it.rel === 'perp' ? Math.abs(d - 90) <= (it.atol || 4) : d <= (it.atol || 3) && dLine(t[0], s[0], s[1]) > tol * 2) ok = true;
+      }));
+      return { ok: ok, ex: q => S.some(s => dSeg(q, s[0], s[1]) <= tol * 1.5) };
+    },
+    angle(it, ink, F) {
+      const S = straights(ink, F.sq * (it.min || 1.5)), j = F.sq * 0.5;
+      let ok = false;
+      S.forEach((s, i) => S.forEach((t, k) => {
+        if (k <= i) return;
+        [[0, 0], [0, 1], [1, 0], [1, 1]].forEach(e => {
+          if (near(s[e[0]], t[e[1]]) > j) return;
+          const v = s[e[0]], a = s[1 - e[0]], b = t[1 - e[1]];
+          const g = corners([a, v, b])[1];
+          if (Math.abs(g - it.deg) <= (it.atol || 2)) ok = true;
+        });
+      }));
+      return { ok: ok, ex: q => S.some(s => dSeg(q, s[0], s[1]) <= F.sq * 0.4) };
+    },
+    polygon(it, ink, F, tol) {
+      const join = F.sq * (it.join || 0.5);
+      const all = polygons(ink, F, join).map(p => ({ v: p, f: p.map(F.f) }));
+      const good = all.filter(P => {
+        const p = P.f, s = sides(p), a = corners(p);
+        if (it.n && p.length !== it.n) return false;
+        if (it.is && !(SHAPE[it.is] && SHAPE[it.is](p, s, a))) return false;
+        if (it.side && !s.every(x => Math.abs(x - it.side) <= (it.ltol || 0.25))) return false;
+        if (it.area && Math.abs(area(p) - it.area) > (it.atol || 0.5)) return false;
+        if (it.on && !P.v.every(q => onDots(q, it.on, F, tol))) return false;
+        if (it.sas) {
+          const [l1, l2, g] = it.sas, lt = it.ltol || 0.25;
+          /* `sim`: the right shape at any size, where the screen cannot be a ruler -- the two sides' ratio and the angle between them */
+          const fits = (x, y) => it.sim ? Math.abs(x / y - l1 / l2) <= 0.06 * l1 / l2 : Math.abs(x - l1) <= lt && Math.abs(y - l2) <= lt;
+          if (p.length !== 3 || !p.some((v, i) => {
+            const x = s[(i + 2) % 3], y = s[i];
+            return Math.abs(a[i] - g) <= 4 && (fits(x, y) || fits(y, x));
+          })) return false;
+        }
+        return true;
+      });
+      return { ok: good.length >= (it.count || 1), ex: q => all.some(P => dPoly(q, P.v.concat([P.v[0]])) <= tol * 1.5) };
+    },
+    clock(it, ink, F) {
+      const c = F.v(it.c), r = Math.abs(it.r * F.u[0]);
+      const S = straights(ink, r * 0.2).map(s => near(s[0], c) <= near(s[1], c) ? s : [s[1], s[0]]).filter(s => near(s[0], c) <= r * 0.3);
+      const hands = [];
+      S.sort((a, b) => near(b[0], b[1]) - near(a[0], a[1])).forEach(s => { const g = bearing(c, s[1]); if (!hands.some(h => Math.abs(((h.g - g + 540) % 360) - 180) < 5)) hands.push({ g: g, L: near(c, s[1]) }); });
+      const off = (a, b) => Math.abs(((a - b + 540) % 360) - 180);
+      const mi = (it.min % 60) * 6, hr = ((it.h % 12) * 30 + it.min * 0.5) % 360;
+      const ok = hands.length === 2 && off(hands[0].g, mi) <= (it.mtol || 6) && off(hands[1].g, hr) <= (it.htol || 9) && hands[0].L > hands[1].L * 1.05;
+      return { ok: ok, ex: q => near(q, c) <= r * 1.05 };
+    },
+    dial(it, ink, F) {
+      const c = F.v(it.c), r = Math.abs(it.r * F.u[0]);
+      const S = straights(ink, r * 0.1).sort((a, b) => near(b[0], b[1]) - near(a[0], a[1]));
+      if (!S.length) return { ok: false, ex: () => false };
+      const s = S[0];
+      const tip = near(s[0], c) <= r * 0.3 ? s[1] : near(s[1], c) <= r * 0.3 ? s[0]
+        : (Math.abs(near(s[0], c) - r) < Math.abs(near(s[1], c) - r) ? s[0] : s[1]);
+      const g = (bearing(c, tip) - it.a[0] + 360) % 360, span = (it.a[1] - it.a[0] + 360) % 360 || 360;
+      const v = it.v[0] + g / span * (it.v[1] - it.v[0]);
+      return { ok: Math.abs(v - it.want) <= it.vtol, ex: q => near(q, c) <= r * 1.4 };
+    },
+    scale(it, ink, F, tol) {
+      const a = F.v(it.a), b = F.v(it.b);
+      const S = straights(ink, F.sq * 0.4).sort((p, q) => near(q[0], q[1]) - near(p[0], p[1]));
+      const dots = ink.filter(s => s.size <= F.sq * 0.6).map(s => [s.c, s.c]);
+      const s = S[0] || dots[0];
+      if (!s) return { ok: false, ex: () => false };
+      const tip = dSeg(s[0], a, b) <= dSeg(s[1], a, b) ? s[0] : s[1];
+      const t = ((tip[0] - a[0]) * (b[0] - a[0]) + (tip[1] - a[1]) * (b[1] - a[1])) / (near(a, b) * near(a, b));
+      const v = it.v[0] + t * (it.v[1] - it.v[0]);
+      return { ok: dSeg(tip, a, b) <= F.sq * 2 && Math.abs(v - it.want) <= it.vtol, ex: () => true };
+    },
+    pie(it, ink, F) {
+      const c = F.v(it.c), r = Math.abs(it.r * F.u[0]);
+      const S = straights(ink, r * 0.5).map(s => near(s[0], c) <= near(s[1], c) ? s : [s[1], s[0]]).filter(s => near(s[0], c) <= r * 0.18);
+      const g = (it.given || []).slice();
+      S.forEach(s => { const b = bearing(c, s[1]); if (!g.some(x => Math.abs(((x - b + 540) % 360) - 180) < 3)) g.push(b); });
+      g.sort((a, b) => a - b);
+      const gaps = g.map((x, i) => ((g[(i + 1) % g.length] - x + 360) % 360) || 360);
+      const want = it.sect.slice(), at = it.atol || 2;
+      let hit = 0;
+      gaps.forEach(d => { const k = want.findIndex(w => Math.abs(w - d) <= at); if (k >= 0) { want.splice(k, 1); hit++; } });
+      const ok = it.need ? hit >= it.need : (hit === it.sect.length && gaps.length === it.sect.length);
+      return { ok: ok, ex: q => near(q, c) <= r * 1.1 };
+    },
+    /* a cuboid on dotted paper: its outline is a hexagon whose sides, in dots, go a b c a b c, and a times b times c is its volume */
+    cuboid(it, ink, F, tol) {
+      const pts = [];
+      straights(ink, F.sq * 0.5).forEach(s => s.forEach(p => pts.push(p)));
+      const L = it.on && it.on.lat, hull = convex(pts.map(p => L ? latSnap(p, L) : p));
+      const ok = (() => {
+        if (hull.length !== 6) return false;
+        const e = hull.map((p, i) => near(p, hull[(i + 1) % 6]) / F.sq);
+        if (!e.every(v => Math.abs(v - Math.round(v)) < 0.15 && Math.round(v) > 0)) return false;
+        const n = e.map(Math.round);
+        return n[0] === n[3] && n[1] === n[4] && n[2] === n[5] && n[0] * n[1] * n[2] === it.vol
+          && hull.every((p, i) => covered(p, hull[(i + 1) % 6], ink, tol));
+      })();
+      return { ok: ok, ex: q => hull.length > 2 && (inside(q, hull) || dPoly(q, hull.concat([hull[0]])) <= tol * 1.5) };
+    },
+    /* HISTOGRAM OR BAR CHART: each bar's top, read off the ink; an axis with no numbers (`fx`, `fy`) is scaled from the bars themselves */
+    hist(it, ink, F, tol) {
+      const base = F.v([0, 0])[1];
+      const tops = straights(ink, F.sq * 0.5).filter(s => dDir(dirOf(s[0], s[1]), 0) <= 6 && Math.abs((s[0][1] + s[1][1]) / 2 - base) > F.sq * 0.4)
+        .map(s => { const a = Math.min(s[0][0], s[1][0]), b = Math.max(s[0][0], s[1][0]); return { a: a, b: b, y: (s[0][1] + s[1][1]) / 2 }; })
+        .sort((p, q) => p.a - q.a);
+      /* `seq`: bars whose order and heights are known but not where they stand (a dual bar chart): the heights read left to right */
+      if (it.seq) {
+        let best = 0;
+        it.seq.forEach(h => {
+          if (tops.length !== h.length) return;
+          const r = h.map((v, i) => (tops[i].y - base) / v).sort((p, q) => p - q), sy = it.fy ? r[r.length >> 1] : F.u[1];
+          best = Math.max(best, h.filter((v, i) => Math.abs(base + sy * v - tops[i].y) <= tol).length);
+        });
+        return { ok: best >= (it.need || it.seq[0].length), ex: q => q[1] <= base + tol };
+      }
+      const X = it.x, n = X.length - 1;
+      let sx = F.u[0], ox = F.o[0];
+      if (it.fx && tops.length) { sx = (tops[tops.length - 1].b - tops[0].a) / (X[n] - X[0]); ox = tops[0].a - sx * X[0]; }
+      const px = v => ox + sx * v;
+      const mine = tops.map(t => X.findIndex((v, i) => i < n && Math.abs(px(v) - t.a) <= tol && Math.abs(px(X[i + 1]) - t.b) <= tol));
+      let sy = F.u[1];
+      if (it.fy) {
+        const r = mine.map((i, k) => i >= 0 && it.h[i] ? (tops[k].y - base) / it.h[i] : null).filter(v => v != null).sort((p, q) => p - q);
+        sy = r.length ? r[r.length >> 1] : sy;
+      }
+      let good = 0;
+      mine.forEach((i, k) => { if (i >= 0 && Math.abs(base + sy * it.h[i] - tops[k].y) <= tol) good++; });
+      const want = it.only != null ? it.only : n;
+      const ok = good >= (it.need || want) && (it.need || tops.length <= want);
+      return { ok: ok, ex: q => q[1] <= base + tol && X.some((v, i) => i < n && q[0] >= px(v) - tol && q[0] <= px(X[i + 1]) + tol) };
+    },
+    /* A BOX PLOT: the box's three upright lines at the quartiles and the median, the whiskers out to the least and greatest -- at whatever height it is drawn */
+    box(it, ink, F, tol) {
+      const S = straights(ink, F.sq * 0.4), up = S.filter(s => dDir(dirOf(s[0], s[1]), 90) <= 8), across = S.filter(s => dDir(dirOf(s[0], s[1]), 0) <= 8);
+      const X = v => F.v([v, 0])[0], v = it.v;
+      const atUp = x => up.some(s => Math.abs((s[0][0] + s[1][0]) / 2 - x) <= tol);
+      const ends = across.map(s => [Math.min(s[0][0], s[1][0]), Math.max(s[0][0], s[1][0])]);
+      const end = x => atUp(x) || ends.some(e => Math.abs(e[0] - x) <= tol || Math.abs(e[1] - x) <= tol);
+      const good = [end(X(v[0])), atUp(X(v[1])), atUp(X(v[2])), atUp(X(v[3])), end(X(v[4]))].filter(Boolean).length;
+      return { ok: good >= (it.need || 5), ex: q => q[0] >= X(v[0]) - tol * 1.5 && q[0] <= X(v[4]) + tol * 1.5 };
+    },
+    /* AN INEQUALITY ON A NUMBER LINE: a line from a to b, and at each end a circle, filled where the end is included */
+    interval(it, ink, F, tol) {
+      const S = straights(ink, F.sq * 1).filter(s => dDir(dirOf(s[0], s[1]), 0) <= 6).sort((p, q) => near(q[0], q[1]) - near(p[0], p[1]));
+      if (!S.length) return { ok: false, ex: () => false };
+      const L = S[0], xs = [L[0][0], L[1][0]].sort((p, q) => p - q), ya = (L[0][1] + L[1][1]) / 2;
+      const A = F.v([it.a, 0])[0], B = F.v([it.b, 0])[0], r = F.sq * 0.9;
+      const end = x => {
+        const near_ = ink.filter(s => s !== L && Math.abs(s.c[0] - x) <= r && Math.abs(s.c[1] - ya) <= r * 1.5 && s.size <= r * 2.5);
+        if (!near_.length) return null;
+        const size = Math.max.apply(null, near_.map(s => s.size)), Lsum = near_.reduce((t, s) => t + s.len, 0);
+        return Lsum >= 1.2 * Math.PI * Math.max(size, 1) ? 'filled' : 'open';
+      };
+      const ea = end(A), eb = end(B);
+      const at = Math.abs(xs[0] - A) <= tol * 1.6 && Math.abs(xs[1] - B) <= tol * 1.6;
+      const circles = it.loose ? !!ea && !!eb : ea === (it.ca ? 'filled' : 'open') && eb === (it.cb ? 'filled' : 'open');
+      return { ok: at && circles, ex: q => q[0] >= A - r * 1.5 && q[0] <= B + r * 1.5 && Math.abs(q[1] - ya) <= r * 2 };
+    },
+    /* AREA: the closed shapes drawn inside a box, their areas added (a pictogram's symbols) */
+    area(it, ink, F) {
+      const box = it.in.map(F.v), inBox = p => p[0] >= Math.min(box[0][0], box[1][0]) && p[0] <= Math.max(box[0][0], box[1][0]) && p[1] >= Math.min(box[0][1], box[1][1]) && p[1] <= Math.max(box[0][1], box[1][1]);
+      const P = polygons(ink, F, F.sq * 0.4).filter(p => p.every(inBox));
+      const A = P.reduce((t, p) => t + area(p.map(F.f)), 0);
+      return { ok: Math.abs(A - it.want) <= (it.rtol || 0.08) * it.want, ex: inBox };
+    },
+    /* CONSTRUCTION ARCS: compass curves, near where the construction puts them */
+    curves(it, ink, F) {
+      const c = it.near ? F.v(it.near) : null, R_ = it.r ? it.r * Math.abs(F.u[0]) : Infinity;
+      const C = ink.filter(s => s.segs.length >= 4 && s.len >= F.sq * 0.8 && (!c || s.pl.some(p => near(p, c) <= R_)));
+      return { ok: C.length >= (it.n || 2), ex: q => C.some(s => dPoly(q, s.pl) <= F.sq * 0.3) };
+    },
+    /* A SKETCH: the curve's shape, read in the figure's own axes -- rising or falling, above the axis, where it crosses */
+    sketch(it, ink, F, tol) {
+      const pts = [].concat.apply([], ink.map(s => s.pl.map(p => F.f(p)))).sort((p, q) => p[0] - q[0]);
+      if (pts.length < 4) return { ok: false, ex: () => false };
+      const yt = tol / Math.abs(F.u[1]);
+      const k = Math.max(1, Math.floor(pts.length / 8)), steps = [];
+      for (let i = k; i < pts.length; i += k) steps.push(pts[i][1] - pts[i - k][1]);
+      const T = it.test || [];
+      const ok = T.every(t => {
+        if (t === 'inc') return steps.filter(d => d < -yt).length === 0;
+        if (t === 'dec') return steps.filter(d => d > yt).length === 0;
+        if (t === 'above') return pts.every(p => p[1] > -yt);
+        if (t === 'crossy') { const at = pts.filter(p => Math.abs(p[0]) <= 2 * tol / Math.abs(F.u[0])); return at.length && at.every(p => p[1] > yt); }
+        if (t === 'flatleft') { const L = pts.slice(0, Math.max(2, pts.length >> 3)); return L.every(p => Math.abs(p[1]) <= 3 * yt); }
+        /* `asym`: a vertical asymptote at each value -- no ink on it, and the curve running away up on its left and down on its right (tan) */
+        if (t === 'asym') return (it.asym || []).every(a => { const w = 2 * tol / Math.abs(F.u[0]); return !pts.some(p => Math.abs(p[0] - a) < w * 0.5)
+          && pts.some(p => p[0] < a && p[0] > a - 8 * w && p[1] > 3 * yt) && pts.some(p => p[0] > a && p[0] < a + 8 * w && p[1] < -3 * yt); });
+        if (t === 'steepright') { const L = pts.slice(-Math.max(2, pts.length >> 3)); return L[L.length - 1][1] - L[0][1] > 4 * yt; }
+        return false;
+      });
+      return { ok: ok, ex: () => true };
+    },
+    inside(it, ink, F) {
+      const P = it.poly.map(F.v);
+      let L = 0;
+      ink.forEach(s => s.pl.forEach((p, k) => { if (k && inside(p, P) && inside(s.pl[k - 1], P)) L += near(p, s.pl[k - 1]); }));
+      return { ok: L >= F.sq * (it.min || 0.5), ex: q => inside(q, P) };
+    },
+  };
+  /* a dotted grid as two steps from one dot, so the row does not list every dot */
+  function latSnap(q, L) {
+    const d = L[2] * L[5] - L[3] * L[4], x = q[0] - L[0], y = q[1] - L[1];
+    const i = Math.round((x * L[5] - y * L[4]) / d), j = Math.round((L[2] * y - L[3] * x) / d);
+    return [L[0] + i * L[2] + j * L[4], L[1] + i * L[3] + j * L[5]];
+  }
+  const onDots = (q, on, F, tol) => on.lat ? near(latSnap(q, on.lat), q) <= tol : on.some(o => near(F.v(o), q) <= tol);
+  function convex(P) {
+    const p = P.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]).filter((q, i, a) => !i || near(q, a[i - 1]) > 1e-6);
+    if (p.length < 3) return p;
+    const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+    const lo = [], hi = [];
+    p.forEach(q => { while (lo.length > 1 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 1e-6) lo.pop(); lo.push(q); });
+    p.slice().reverse().forEach(q => { while (hi.length > 1 && cr(hi[hi.length - 2], hi[hi.length - 1], q) <= 1e-6) hi.pop(); hi.push(q); });
+    return lo.slice(0, -1).concat(hi.slice(0, -1));
+  }
+  function cross(s, t) {
+    const o = (a, b, c) => Math.sign((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]));
+    return o(s[0], s[1], t[0]) !== o(s[0], s[1], t[1]) && o(t[0], t[1], s[0]) !== o(t[0], t[1], s[1]);
+  }
+  function one(it, ink, F, spec) {
+    const tol = F.sq * (it.tol || spec.tol || 0.3);
+    if (it.k === 'any') {
+      const rs = it.of.map(o => one(o, ink, F, spec)), hit = rs.find(r => r.ok);
+      return hit || { ok: false, ex: q => rs.some(r => r.ex(q)) };
+    }
+    const f = KIND[it.k];
+    return f ? f(it, ink, F, tol) : { ok: false, ex: () => false };
+  }
+
+  /* `draw_answer`: `{ frame?, tol?, loose?, items: [{ k, m, ..., or }] }`. An item's `or` is what the scheme gives fewer marks for. Ink that no item accounts for costs a mark. */
+  function mark(strokes, spec, fig, marks) {
+    if (typeof spec === 'string') { try { spec = JSON.parse(spec); } catch (e) { return null; } }
+    if (!spec || !Array.isArray(spec.items)) return null;
+    const F = frameOf(spec, fig), ink = inkOf(strokes, F);
+    const total = spec.items.reduce((s, it) => s + (it.m == null ? 1 : it.m), 0);
+    const of = Math.max(1, Number(marks) || spec.marks || total);
+    if (!ink.length) return { got: 0, of: of, each: [], stray: 0, empty: true };
+    let got = 0;
+    const exs = [], each = [];
+    spec.items.forEach(it => {
+      let cur = it, r = one(cur, ink, F, spec);
+      exs.push(r.ex);
+      while (!r.ok && cur.or) { cur = cur.or; r = one(cur, ink, F, spec); exs.push(r.ex); }
+      each.push(r.ok ? (cur.m == null ? 1 : cur.m) : 0);
+      if (r.ok) got += cur.m == null ? 1 : cur.m;
+    });
+    let all = 0, lost = 0;
+    ink.forEach(s => {
+      const pts = s.pl.length === 1 ? s.pl : [].concat.apply([], s.pl.slice(1).map((q, i) => samples(s.pl[i], q, F.sq * 0.25).slice(1)));
+      pts.forEach(p => { all++; if (!exs.some(e => e(p))) lost++; });
+    });
+    const stray = all ? lost / all : 0;
+    if (!spec.loose && stray > 0.12 && lost * F.sq * 0.25 > F.sq) got = Math.max(0, got - 1);
+    return { got: Math.min(of, Math.floor(got * of / Math.max(1, total) + 1e-9)), of: of, each: each, stray: Math.round(stray * 100) / 100 };
+  }
+  /* A RIGHT DRAWING OF THE ANSWER, as strokes the pen would store: the row's own `eg` (figure units) or one made from its items. The checks mark it full and a near miss less. */
+  function example(spec, fig) {
+    if (typeof spec === 'string') { try { spec = JSON.parse(spec); } catch (e) { return []; } }
+    const F = frameOf(spec, fig), vb = F.vb, out = [];
+    const put = pl => out.push([].concat.apply([], pl.map(p => [Math.round((p[0] - vb[0]) / vb[2] * 3400) / 10, Math.round((p[1] - vb[1]) / vb[3] * 3400) / 10])));
+    const at = (c, g, r) => [c[0] + r * Math.sin(g * R), c[1] - r * Math.cos(g * R)];
+    const zig = poly => { const m = poly.reduce((s, p) => [s[0] + p[0] / poly.length, s[1] + p[1] / poly.length], [0, 0]);
+      const k = poly.map(p => [m[0] + (p[0] - m[0]) * 0.6, m[1] + (p[1] - m[1]) * 0.6]); put(k.concat([k[0], k[2 % k.length], m, k[1 % k.length]])); };
+    if (spec.eg) { spec.eg.forEach(pl => put(pl.map(F.v))); return out; }
+    const one = it => {
+      const q = F.sq;
+      if (it.k === 'any') return one(it.of[0]);
+      if (it.k === 'pts') it.at.map(F.v).forEach(p => { put([[p[0] - q * 0.2, p[1] - q * 0.2], [p[0] + q * 0.2, p[1] + q * 0.2]]); put([[p[0] + q * 0.2, p[1] - q * 0.2], [p[0] - q * 0.2, p[1] + q * 0.2]]); });
+      if (it.k === 'segs') {
+        (it.at || []).forEach(t => put([[t[0], t[1]], [t[2], t[3]]].map(F.v)));
+        if (it.poly) put(it.poly.concat([it.poly[0]]).map(F.v));
+        if (it.path) put(it.path.map(F.v));
+      }
+      if (it.k === 'segs' && it.head && it.at && it.at[0]) {
+        const t = it.at[0], a = F.v([t[0], t[1]]), b = F.v([t[2], t[3]]), L = H(b[0] - a[0], b[1] - a[1]) || 1, u = [(b[0] - a[0]) / L, (b[1] - a[1]) / L];
+        put([[b[0] - u[0] * q * 0.8 - u[1] * q * 0.5, b[1] - u[1] * q * 0.8 + u[0] * q * 0.5], b, [b[0] - u[0] * q * 0.8 + u[1] * q * 0.5, b[1] - u[1] * q * 0.8 - u[0] * q * 0.5]]);
+      }
+      if (it.k === 'hist') {
+        /* an axis with no numbers: drawn to a scale that fills most of the grid */
+        const G = F.grid, W = G ? G.xs[G.xs.length - 1] - G.xs[0] : vb[2], Hh = G ? G.ys[G.ys.length - 1] - G.ys[0] : vb[3];
+        const hs = it.seq ? it.seq[0] : it.h, top = Math.max.apply(null, hs.filter(Boolean));
+        const ky = it.fy ? Math.round(Hh * 0.7 / top / Math.abs(F.u[1]) * 4) / 4 || 1 : 1;
+        const X = it.seq ? hs.map((h, i) => [i * 2 + 1, i * 2 + 2]) : it.x.slice(0, -1).map((x, i) => [x, it.x[i + 1]]);
+        const x0 = it.seq ? 0 : it.x[0], span = it.seq ? hs.length * 2 + 1 : it.x[it.x.length - 1] - x0;
+        const kx = it.fx || it.seq ? Math.max(1, Math.floor(W * 0.85 / span / Math.abs(F.u[0]))) : 1, ox = it.fx || it.seq ? 1 - x0 * kx : 0;
+        hs.forEach((h, i) => { if (h) put([[X[i][0] * kx + ox, 0], [X[i][0] * kx + ox, h * ky], [X[i][1] * kx + ox, h * ky], [X[i][1] * kx + ox, 0]].map(F.v)); });
+      }
+      if (it.k === 'box') {
+        const v = it.v, y = F.f([0, F.vb[1] + F.vb[3] * 0.35])[1], h = F.sq * 0.8 / Math.abs(F.u[1]);
+        put([[v[0], y], [v[1], y]].map(F.v)); put([[v[3], y], [v[4], y]].map(F.v));
+        put([[v[1], y - h], [v[1], y + h], [v[3], y + h], [v[3], y - h], [v[1], y - h]].map(F.v)); put([[v[2], y - h], [v[2], y + h]].map(F.v));
+      }
+      if (it.k === 'interval') {
+        const a = F.v([it.a, 0]), b = F.v([it.b, 0]), y = it.y != null ? F.v([0, it.y])[1] : a[1] - q * 1.5, r = q * 0.35;
+        put([[a[0] + r, y], [b[0] - r, y]]);
+        [[a, it.ca], [b, it.cb]].forEach(e => { const c = [e[0][0], y], ring = []; for (let g = 0; g <= 360; g += 30) ring.push(at(c, g, r)); put(ring); if (e[1]) { put(ring.map(p => [c[0] + (p[0] - c[0]) * 0.5, c[1] + (p[1] - c[1]) * 0.5])); put([at(c, 0, r * 0.8), at(c, 180, r * 0.8)]); put([at(c, 90, r * 0.8), at(c, 270, r * 0.8)]); put(ring.map(p => [c[0] + (p[0] - c[0]) * 0.75, c[1] + (p[1] - c[1]) * 0.75])); } });
+      }
+      if (it.k === 'line') put(it.thru.map(F.v));
+      if (it.k === 'cells') {
+        const C = (it.cells || []).concat((it.rects || []).map(r => [[r[0], r[1]], [r[0] + r[2], r[1]], [r[0] + r[2], r[1] + r[3]], [r[0], r[1] + r[3]]]));
+        const pick = it.set ? it.set[0] : C.map((c, i) => i).filter(i => (it.given || []).indexOf(i) === -1).slice(0, it.need);
+        pick.forEach(i => { const c = C[i].map(F.v); zig(c); zig(c); });
+      }
+      if (it.k === 'radius') { const c = F.v(it.c), r = Math.abs(it.r * F.u[0]); put(it.dia ? [at(c, 60, r), at(c, 240, r)] : [c, at(c, 60, r)]); }
+      if (it.k === 'dir' && it.to) {
+        const a = F.v([it.to[0], it.to[1]]), b = F.v([it.to[2], it.to[3]]), m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+        const d = [b[0] - a[0], b[1] - a[1]], L = H(d[0], d[1]), u = it.rel === 'perp' ? [-d[1] / L, d[0] / L] : [d[0] / L, d[1] / L];
+        const o = it.rel === 'perp' ? [0, 0] : [-d[1] / L * q * 3, d[0] / L * q * 3], h = q * 2.5;
+        put([[m[0] + o[0] - u[0] * h, m[1] + o[1] - u[1] * h], [m[0] + o[0] + u[0] * h, m[1] + o[1] + u[1] * h]]);
+      }
+      if (it.k === 'clock') { const c = F.v(it.c), r = Math.abs(it.r * F.u[0]); put([c, at(c, (it.min % 60) * 6, r * 0.8)]); put([c, at(c, ((it.h % 12) * 30 + it.min * 0.5) % 360, r * 0.5)]); }
+      if (it.k === 'dial') {
+        const c = F.v(it.c), r = Math.abs(it.r * F.u[0]), span = (it.a[1] - it.a[0] + 360) % 360 || 360;
+        const g = it.a[0] + (it.want - it.v[0]) / (it.v[1] - it.v[0]) * span;
+        put(it.out ? [at(c, g, r * 1.12), at(c, g, r)] : [c, at(c, g, r * 0.9)]);
+      }
+      if (it.k === 'scale') {
+        const a = F.v(it.a), b = F.v(it.b), t = (it.want - it.v[0]) / (it.v[1] - it.v[0]), p = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+        put([[p[0], p[1] - q * 1.5], p]);
+      }
+      if (it.k === 'pie') {
+        const c = F.v(it.c), r = Math.abs(it.r * F.u[0]);
+        let g = (it.given || [0])[0];
+        it.sect.slice(0, -1).forEach(d => { g += d; put([c, at(c, g, r)]); });
+      }
+      if (it.k === 'inside') zig(it.poly.map(F.v));
+    };
+    spec.items.forEach(one);
+    return out;
+  }
+  return { mark: mark, frameOf: frameOf, inkOf: inkOf, polygons: polygons, example: example };
+}
+const DRAW_MARK = drawMarker_();
+
+/* CHECK: the strokes read in the figure's own units and held against `draw_answer` (366) -- a verdict and marks, as a typed answer gets */
+function padCheck_(row, pad) {
+  const out = row && row.querySelector('.qp-verdict');
+  if (!row || !pad || !out) return null;
+  const marks = padRead_(pad.getAttribute('data-k')), say = padSay_(marks);
+  row.classList.remove('is-right', 'is-near');
+  if (!say) { out.textContent = 'Draw your answer first'; return null; }
+  const art = pad.querySelector('.qpad-art > svg:first-child');
+  const r = DRAW_MARK.mark(marks, row.getAttribute('data-draw'), drawFig_(art ? (art.__src || art.outerHTML) : ''), row.getAttribute('data-marks'));
+  if (!r) { out.textContent = 'Could not mark it \u2014 try again'; return null; }
+  const v = r.of === 1 ? (r.got ? 'right' : 'wrong') : 'rule:' + r.got + '/' + r.of;
+  row.classList.add(r.got >= r.of ? 'is-right' : 'is-near');
+  out.textContent = padSaid_(subSay_(v).text);
+  subRecord_(row.getAttribute('data-k'), say, v);
+  if (typeof answersPush_ === 'function') answersPush_(true);
+  return r;
+}
+on('pad-check', el => padCheck_(el.closest('.qpad-send'), el.closest('.qpad')));
 
 /* ---------- ARMING ONE PAD, EVERY PART OF IT TOGETHER § */
 function padArm_(pad, on) {
@@ -5573,6 +6499,14 @@ function padSave_(pad, k, all) {
   }
   ansStore_(k, v);
   padCopies_(k, pad, all);
+  /* A VERDICT IS ABOUT THE DRAWING IT WAS FOR: a mark added or taken away says so again under Send. */
+  document.querySelectorAll('.qpad[data-k] .qpad-send').forEach(row => {
+    const p = row.closest('.qpad'), out = row.querySelector('.qp-verdict');
+    if (p.getAttribute('data-k') !== k || !out) return;
+    const said = subBoxSay_(row.getAttribute('data-k'), padSay_(all));
+    row.classList.remove('is-right', 'is-near');
+    out.textContent = padSaid_(said.text);
+  });
   return true;
 }
 /* ---------- AND EVERY OTHER COPY OF THE SAME PAD, FROM THE STORE § */
@@ -7085,8 +8019,10 @@ const cmpText = (a, b) =>
 /* Every word must appear SOMEWHERE — so "maths 7" finds a Grade 7 Maths topic without the two words having to sit next to each other. § */
 /* ---------- THE HAYSTACK IS BUILT ONCE PER ITEM, NOT ONCE PER KEYSTROKE § */
 function stuffHay_(x) {
+  /* and the item's own tags (365): "june 2024 foundation paper 1" and "edexcel higher 2019" found nothing, the tier, board and level being on no word searched */
   return x._hay || (x._hay = norm([x.name, x.sub, x.subject, x.slot,
-                                   x.grade && 'grade ' + x.grade, x.text].filter(Boolean).join(' ')));
+                                   x.grade && 'grade ' + x.grade, x.text, x.tier, x.examBoard || x.company, x.documentType,
+                                   x.row && x.row.level].filter(Boolean).join(' ')));
 }
 
 function stuffFind(items, credits) {
@@ -7116,7 +8052,8 @@ function stuffFind(items, credits) {
   return out;
 }
 /* THE NARROWING ITSELF, split out of `stuffFind` so `stuffFiltered` can run it over the list it already has rather than over the whole library — see the note § */
-const stuffWords_ = q => norm(q).split(/\s+/).filter(Boolean);
+/* "paper 2" is one word to look for: as two, the 2 was found in every Q2 and every 2024 of every paper */
+const stuffWords_ = q => norm(q).replace(/\bpaper\s+(?=\d)/g, 'paper\u0000').split(/\s+/).filter(Boolean).map(w => w.replace('\u0000', ' '));
 function stuffNarrow_(out, filters, words, credits) {
   const byField = {};
   filters.forEach(f => {
@@ -7602,7 +8539,9 @@ function accountPages_() {
   /* ---------- THE WRAPPER WENT WHEN THE PASS DID, AND LEAVING IT WOULD HAVE NESTED TWO CARDS § */
   /* ---------- AND WHILE THE PAYLOAD IS ON ITS WAY, THE COLUMN SAYS MORE IS COMING § */
   const coming = typeof awaiting_ === 'function' && awaiting_() ? [loading_()] : [];
-  return [me].concat(claimPages, famPages, others, everyone, coming);
+  /* THE SETUP CARD, second, for an admin only (361) — `setupCard_` in me.js returns '' for anybody else. */
+  const setup = typeof setupCard_ === 'function' ? [setupCard_()].filter(Boolean) : [];
+  return [me].concat(setup, claimPages, famPages, others, everyone, coming);
 }
 
 /* ---------- HOW A LEARNER IS GETTING ON, IN ONE LINE UNDER THEIR NAME § */

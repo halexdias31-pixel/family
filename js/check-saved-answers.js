@@ -185,14 +185,14 @@ const T1 = T0 + 60000, T2 = T0 + 120000;
   if (access !== '["self","self"]') bad.push('ACTION_ACCESS says ' + access + ' for saveAnswers and myAnswers — wanted self for both');
 }
 
-/* ---------- A BACKEND SYNCED BEFORE `ensureSchema` MADE THE TAB -------------------------------------
+/* ---------- A BACKEND SYNCED BEFORE `ensureSchema_` MADE THE TAB -------------------------------------
    Saving says what to do and writes nothing; signing in still works, with no answers. */
 {
   const { b, tok } = world();
   delete b.tabs.answers;
   asked++;
   const d = b.post({ action: 'saveAnswers', token: tok[ADA], items: [{ key: 'ans:q:Q-1', v: '1', at: T0 }] });
-  if (!d.error || !/ensureSchema|setup/.test(d.error)) bad.push('with no answers tab, saveAnswers answered ' + JSON.stringify(d).slice(0, 200) + ' — wanted a sentence naming ensureSchema');
+  if (!d.error || !/ensureSchema_|setup|as an admin/.test(d.error)) bad.push('with no answers tab, saveAnswers answered ' + JSON.stringify(d).slice(0, 200) + ' — wanted a sentence naming ensureSchema_');
   asked++;
   const m = b.post({ action: 'myAnswers', token: tok[ADA] });
   if (!m.success || Object.keys(m.answers || {}).length) bad.push('with no answers tab, myAnswers answered ' + JSON.stringify(m).slice(0, 200) + ' — wanted success and none');

@@ -30,7 +30,7 @@ function seedOptions() {
 
 /** Put the wearables into the shop, once. Also labels existing rows as physical stock, since
     they predate the `kind` column and would otherwise be read as wearables with no art. */
-function seedAvatarItems() {
+function seedAvatarItems_() {
   const t = read(TAB.shop);
   if (!t.sheet) return 0;
   if (t.rows.some(r => norm(r.kind) === 'avatar')) return 0;   // already there
@@ -82,7 +82,7 @@ function fillHandles() {
   for (const col of ['handle']) {
     /* NAMED, NOT SKIPPED. `setCell` writes to a header that is not there and loses the value with no error anywhere — the fault every `noColumn` refusal in this § */
     if (t.headers.indexOf(col) === -1) {
-      return { error: 'the people tab has no ' + col + ' column. Run ensureSchema() first '
+      return { error: 'the people tab has no ' + col + ' column. Open the site once as an admin first '
                     + '— nothing was changed.' };
     }
   }
@@ -113,138 +113,45 @@ function fillHandles() {
   return out;
 }
 
-/* EVERY HANDLE INTO THE NEW SHAPE — `?run=renameHandles`. § */
-function renameHandles() {
+/* EVERY HANDLE INTO THE TEMPLATE (364) — the `handles-to-template` migration, and `?run=renameHandles`. Rows in person-id order, so a clash always goes the same way; safe to repeat. */
+function renameHandles_() {
   const t = read(TAB.people);
   if (!t.sheet) return { error: 'no people tab' };
-  for (const col of ['handle']) {
-    if (t.headers.indexOf(col) === -1) {
-      return { error: 'the people tab has no ' + col + ' column. Run ensureSchema() first '
-                    + '— nothing was changed.' };
-    }
-  }
-  const keepWas = t.headers.indexOf('handle_was') !== -1;
-  const keepAt = t.headers.indexOf('handle_changed_at') !== -1;
-  const out = { renamed: [], leftAlone: 0, children: 0, couldNotGenerate: [] };
-  t.rows.forEach(r => {
-    const who = S(r.person_id) || '(a row with no id)';
-    const has = S(r.handle);
-    /* A CHILD'S HANDLE IS NOT THIS JOB'S (342). § */
-    if (isChild_(r)) { out.children++; return; }
-    /* SHAPED FOR THIS PERSON — a grown-up's arrangement, or the initials-and-tail of a grown-up who was
-       a child (`handleIsShaped_`): they keep it until they press Randomise. */
-    if (handleIsShaped_(has, r.first_name)) { out.leftAlone++; return; }
-    const made = handleMake_(r, undefined, has);
-    if (!made) { out.couldNotGenerate.push(who); return; }
-    /* THE HISTORY BEFORE THE HANDLE (342, the review): § */
-    const cells = {};
-    if (keepWas && has) cells.handle_was = handleWasWith_(r.handle_was, has);
-    /* AND THE FACE THE OLD HANDLE DREW, before the handle, when nobody chose a look (`handleFaceKept_`). */
-    Object.assign(cells, handleFaceKept_(t, r, has));
-    cells.handle = made;
-    if (keepAt) cells.handle_changed_at = new Date();
-    Object.keys(cells).forEach(c => setCell(t, r, c, cells[c]));
-    out.renamed.push(who);
-  });
-  clearCache();
-  out.renamedCount = out.renamed.length;
-  /* A PRIVATE GROWN-UP WHOSE HANDLE STILL CARRIES THEIR SURNAME (342) — by id, never moved here. */
-  out.surnameInHandle = handleSurnameIn_(t.rows);
-  out.means = 'every grown-up\'s handle that was not a first name and a virtue (with or without a number, in '
-            + 'any order) was regenerated and the old one put at the front of handle_was. Shaped '
-            + 'handles were left alone, so nobody signing in with a handle was moved. Children are '
-            + '?run=kidHandles\'s, and were not touched.';
-  return out;
-}
-
-/* EVERY CHILD'S HANDLE INTO THEIR INITIALS AND FOUR DIGITS — `?run=kidHandles`, PREVIEWED FIRST (342) § */
-function kidHandles(arg) {
-  const apply = norm(arg) === 'apply';
-  const t = read(TAB.people);
-  if (!t.sheet) return { error: 'no people tab' };
-  /* ALL THREE BEFORE ANYTHING, as `randomiseHandle` asks — a handle moved with nowhere to put the old one
-     is a child whose slip no longer signs them in. */
+  /* ALL THREE BEFORE ANYTHING — a handle moved with nowhere to put the old one is somebody whose slip no longer signs them in. */
   const lacking = ['handle', 'handle_was', 'handle_changed_at'].filter(c => t.headers.indexOf(c) === -1);
   if (lacking.length) {
     return { error: 'the people tab has no ' + lacking.join(', ') + ' column. Run ?setup=1 first '
                   + '— nothing was changed.' };
   }
-  const out = { mode: apply ? 'apply' : 'preview', children: 0, toMove: 0, leftAlone: 0,
-                signInByHandle: 0, figuresKept: 0, couldNotGenerate: [], rows: [],
-                inAnotherHistory: [], grownUpsSurnameInHandle: handleSurnameIn_(t.rows) };
-  const inOthers = (r, h) => !!key(h)
-    && t.rows.some(x => x !== r && S(x.handle_was).split(',').some(w => key(w) === key(h)));
+  const out = { renamed: 0, leftAlone: 0, longer: 0, noBirthday: 0, couldNotGenerate: [] };
+  const moves = {};
+  const order = t.rows.slice().sort((a, b) => (S(a.person_id) < S(b.person_id) ? -1 : S(a.person_id) > S(b.person_id) ? 1 : a._row - b._row));
   try {
-    t.rows.forEach(r => {
-      if (!isChild_(r)) return;
-      out.children++;
+    order.forEach(r => {
       const has = S(r.handle);
-      const who = S(r.person_id) || '(a row with no id)';
-      if (has && handleKidShaped_(has)) { out.leftAlone++; return; }
-      out.toMove++;
-      if (!S(r.email)) out.signInByHandle++;
-      if (inOthers(r, has)) out.inAnotherHistory.push(who);
-      if (!apply) {
-        if (handleFaceKept_(t, r, has).avatar) out.figuresKept++;
-        out.rows.push({ id: who, from: has,
-                        to: (handleInitials_(r.first_name, r.last_name) || HANDLE_FALLBACK) + '····' });
-        return;
-      }
-      const made = handleMake_(r, undefined, has);
-      if (!made) { out.couldNotGenerate.push(who); return; }
-      /* THE HISTORY FIRST, IN ITS OWN WRITE — see above. § */
-      const kept = handleFaceKept_(t, r, has);
-      setCells(t, r, Object.assign({ handle_was: handleWasWith_(r.handle_was, has) }, kept));
+      if (!handleDay_(r)) out.noBirthday++;
+      const made = handleTemplate_(r, want => handleTrouble_(want, r));
+      if (!made) { out.couldNotGenerate.push(S(r.person_id) || '(a row with no id)'); return; }
+      if (made !== handleCandidates_(r)[0]) out.longer++;
+      if (key(made) === key(has)) { out.leftAlone++; return; }
+      /* THE HISTORY FIRST, IN ITS OWN WRITE, and the face the old handle drew when nobody chose a look. */
+      if (has) setCells(t, r, Object.assign({ handle_was: handleWasWith_(r.handle_was, has) }, handleFaceKept_(t, r, has)));
       setCells(t, r, { handle: made, handle_changed_at: new Date() });
-      if (kept.avatar) out.figuresKept++;
-      out.rows.push({ id: who, from: has, to: made });
+      if (has) moves[key(has)] = made;
+      out.renamed++;
     });
-    if (apply) {
-      /* EVERY CHILD'S OLD HANDLES, whichever run moved them: § */
-      const had = {};
-      t.rows.forEach(r => {
-        [...new Set(S(r.handle_was).split(',').map(w => key(w)).filter(Boolean))]
-          .forEach(k => { (had[k] = had[k] || []).push(r); });
-      });
-      const moves = {};
-      Object.keys(had).forEach(k => {
-        const r = had[k].length === 1 ? had[k][0] : null;
-        if (r && isChild_(r) && S(r.handle) && !t.rows.some(x => key(x.handle) === k)) moves[k] = S(r.handle);
-      });
-      out.friendsMoved = handleFriendsMove_(t, moves);
-    }
+    out.friendsMoved = handleFriendsMove_(t, moves);
   } finally {
-    if (apply) clearCache();
+    clearCache();
   }
-  out.means = (apply
-    ? 'every child whose handle was not initials and four digits has one now; the old one is at the '
-      + 'front of handle_was and still signs them in, and is never given to anybody else. Grown-ups were not touched.'
-    : 'NOTHING WAS CHANGED. This is what &arg=apply would do: ' + out.toMove + ' of ' + out.children
-      + ' children moved to their initials and four digits (drawn when it runs), ' + out.signInByHandle
-      + ' of them signing in with the handle — their old one keeps working and they are told the new one '
-      + 'when they use it.')
-    /* THE FIGURE (round 2) — a blank look is drawn from the handle, so the move writes the old one's down. */
-    + ' ' + out.figuresKept + ' child(ren) had never chosen a look (figuresKept): the figure their old handle drew '
-    + (apply ? 'was' : 'will be') + ' written into their avatar cell, so moving the handle changes nobody\'s face.'
-    + (out.inAnotherHistory.length ? ' ' + out.inAnotherHistory.length + ' child(ren) in inAnotherHistory hold a '
-      + 'handle that is also on somebody else\'s handle_was — after the move typing it would be refused as two '
-      + 'accounts\', so take it off the other row\'s handle_was first.' : '')
-    + (out.grownUpsSurnameInHandle.length ? ' ' + out.grownUpsSurnameInHandle.length + ' grown-up(s) in '
-      + 'grownUpsSurnameInHandle have their surname in their handle, which is shown beside their first name — '
-      + 'not changed here; Randomise gives them one without it.' : '');
+  out.means = out.renamed + ' handle(s) moved to the template (first initial, day of the month born, surname '
+            + 'initial; no birthday: initials and the last two digits of the id). Each old handle is at the '
+            + 'front of handle_was and still signs in; ' + out.friendsMoved + ' friends list(s) moved.';
   return out;
 }
 
-/* ---------- A PRIVATE GROWN-UP WHOSE HANDLE CARRIES THEIR SURNAME (342, the review) § */
-function handleSurnameIn_(rows) {
-  const fold = v => String(v == null ? '' : v).toLowerCase().normalize('NFKD').replace(/[^a-z]/g, '');
-  return (rows || []).filter(r => !isChild_(r) && namePrivate_(r)
-      && fold(r.last_name).length >= 3 && fold(r.handle).indexOf(fold(r.last_name)) !== -1)
-    .map(r => S(r.person_id) || '(a row with no id)');
-}
-
 /** Add any config key that's missing. Never overwrites a value you've set. */
-function seedConfig() {
+function seedConfig_() {
   const t = read(TAB.config);
   if (!t.sheet) return {};
   const have = {};
@@ -269,7 +176,7 @@ function seedConfig() {
   return added;
 }
 
-function renameValue(arg) {
+function renameValue_(arg) {
   const bits = String(arg || '').split('>');
   if (bits.length !== 2 || !bits[0].trim() || !bits[1].trim()) {
     return { error: 'Give it old>new, for example: English Lang.>English Language' };
@@ -403,10 +310,10 @@ function makeBrandAccount(pin) {
 }
 
 /* EVERY OLD LIKE BECOMES A 👍. § */
-function migrateLikes() {
+function migrateLikes_() {
   const likes = read(TAB.post_likes);
   const t = read(TAB.post_reactions);
-  if (!likes.sheet || !t.sheet) return { error: 'a tab is missing — run ensureSchema()' };
+  if (!likes.sheet || !t.sheet) return { error: 'a tab is missing — open the site once as an admin' };
 
   const already = {};
   t.rows.forEach(r => { already[S(r.post_id) + '|' + S(r.person_id)] = true; });
@@ -440,7 +347,7 @@ function migrateLikes() {
 /* THERE WERE TWO OF THESE. § */
 function seedLandmarks() {
   const t = read(TAB.landmarks);
-  if (!t.sheet) return { error: 'no landmarks tab — run ensureSchema() first' };
+  if (!t.sheet) return { error: 'no landmarks tab — open the site once as an admin first' };
 
   const WORLD = 'Merton';
   const ROWS = [
@@ -537,7 +444,7 @@ function lastDow_(y, month, dow) {
 /* THE HOLIDAYS OF ONE YEAR, WRITTEN INTO THE TAB. § */
 function seedHolidays(arg) {
   const t = read(TAB.holidays);
-  if (!t.sheet) return { error: 'no holidays tab — run ensureSchema() first' };
+  if (!t.sheet) return { error: 'no holidays tab — open the site once as an admin first' };
 
   const year = Number(S(arg)) || new Date().getFullYear();
   const E = easterOf_(year);
@@ -590,7 +497,7 @@ function seedHolidays(arg) {
   return out;
 }
 
-function ensureSchema() {
+function ensureSchema_() {
   const report = {};
   Object.keys(SCHEMA).forEach(name => {
     /* THE SAME LOOKUP `read` USES. § */
@@ -635,9 +542,9 @@ function ensureSchema() {
     }
   });
   clearCache();
-  const seeded = seedConfig();
+  const seeded = seedConfig_();
   if (seeded.length) report.config = (report.config || 'up to date') + ' | seeded: ' + seeded.join(', ');
-  const idsAdded = ensurePersonIds();
+  const idsAdded = ensurePersonIds_();
   if (idsAdded) report.people = (report.people || 'up to date') + ' | gave ' + idsAdded + ' rows an id';
   /* ---------- AND A HANDLE, WHICH A ROW TYPED INTO THE SHEET HAS NOT GOT § */
   try {
@@ -646,7 +553,7 @@ function ensureSchema() {
       report.people = (report.people || 'up to date') + ' | gave ' + handles.filled + ' rows a handle';
     }
   } catch (err) { report.people = (report.people || 'up to date') + ' | handles not filled: ' + err; }
-  const seededItems = seedAvatarItems();
+  const seededItems = seedAvatarItems_();
   if (seededItems) report.shop = (report.shop || 'up to date') + ' | seeded ' + seededItems + ' wearables';
   const lists = seedOptions();
   if (lists.length) report.options = (report.options || 'up to date') + ' | added: ' + lists.join(', ');
@@ -744,7 +651,7 @@ function dataProblems(deep) {
   WRITE_MISSES.forEach(x => {
     add('a value went nowhere', 'Something wrote to ' + x.tab + '.' + x.field + ', which is not '
         + 'a column',
-        'Run ensureSchema. Until then anything saved to that field is discarded.');
+        'Open the site once as an admin. Until then anything saved to that field is discarded.');
   });
 
   /* THE JOBS THAT RUN THEMSELVES, AND WHETHER THEY DID. § */
@@ -762,14 +669,14 @@ function dataProblems(deep) {
       })() : '';
       add('the sheet is behind the code',
           which || ('The schema has not been brought up to date for ' + BACKEND_VERSION),
-          'Run ensureSchema from the editor\u2019s function list, or open ?setup=1 once the new version is '
-          + 'deployed (before that, /exec is the old code). Nothing runs it on an ordinary request.');
+          'It runs by itself the next time an admin opens the site after Deploy \u2192 New version. If this stays, '
+          + 'the Setup card on the You screen says what failed.');
     }
     MIGRATIONS.forEach(m => {
       if (seen['MIGRATED_' + m.id]) return;
       add('a one-off job has not run', m.id + ' — ' + m.what,
-          'It runs on the next ?setup=1 or ?run= request, or from the editor. If it keeps saying this, that '
-          + 'attempt failed — run it from the editor and read the error.');
+          'It runs by itself the next time an admin opens the site. If it keeps saying this, that attempt '
+          + 'failed — the Setup card on the You screen shows the error, and it retries on the next page load.');
     });
   }
 
@@ -864,8 +771,8 @@ function dataProblems(deep) {
   const likeRows = read(TAB.post_likes).rows.filter(r => S(r.post_id)).length;
   if (likeRows) {
     add('a record is stranded', likeRows + ' like(s) are on the old post_likes tab',
-        'Nothing reads them since the heart was replaced by reactions. Run migrateLikes() from '
-        + 'the editor and each becomes a 👍, keeping the date it was pressed.');
+        'Nothing reads them since the heart was replaced by reactions. Open the site once as an admin '
+        + 'and each becomes a 👍, keeping the date it was pressed.');
   }
 
   /* `brand!logo_square` IS CHECKED ON THE PHONE OR NOWHERE. § */
@@ -990,7 +897,7 @@ function checkEverything() {
   say('A "New deployment" makes a NEW /exec URL, and the site still calls the old one.');
   say('');
 
-  /* 1. WHICH TABS EXIST. A tab missing means ensureSchema has not run since it was added — the
+  /* 1. WHICH TABS EXIST. A tab missing means ensureSchema_ has not run since it was added — the
      commonest cause of a feature that is built and invisible. */
   say('TABS');
   Object.keys(TAB).forEach(k => {
@@ -1002,7 +909,7 @@ function checkEverything() {
       const ss2 = SpreadsheetApp.openById(at.id);
       for (let i = 0; i < at.names.length && !sheet; i++) sheet = ss2.getSheetByName(at.names[i]);
     } catch (err) {}
-    if (!sheet) { say('  ✗ ' + TAB[k] + '  MISSING — run ensureSchema()'); return; }
+    if (!sheet) { say('  ✗ ' + TAB[k] + '  MISSING — open the site once as an admin'); return; }
     const rows = Math.max(0, sheet.getLastRow() - 1);
     say('  ✓ ' + (TAB[k] + '                    ').slice(0, 16) + rows + ' row(s)');
   });
@@ -1030,7 +937,7 @@ function checkEverything() {
     const undated = rows.filter(r => !postWhen_(r)).length;
     if (undated) say('  → ' + undated + ' post(s) have no date. They sort to the bottom of the '
       + 'feed. Press ⟳ on the site to read the dates off the files.');
-  } catch (err) { say('  no posts tab — run ensureSchema()'); }
+  } catch (err) { say('  no posts tab — open the site once as an admin'); }
 
   /* 4. RESOURCES WAS HERE — ids, page counts and what could be sold on paper. § */
 
@@ -1040,7 +947,7 @@ function checkEverything() {
   [['post_likes', 'likes'], ['post_reactions', 'reactions'], ['post_votes', 'votes']]
     .forEach(([t, name]) => {
       try { say('  ' + (name + '           ').slice(0, 12) + read(TAB[t]).rows.length); }
-      catch (err) { say('  ' + name + ': no tab — run ensureSchema()'); }
+      catch (err) { say('  ' + name + ': no tab — open the site once as an admin'); }
     });
 
   /* WHAT IT MAY DO, before anything else is guessed at. A missing scope explains a whole class
@@ -1054,7 +961,7 @@ function checkEverything() {
   } catch (err) { say('  could not check: ' + err); }
 
   say('');
-  say('If a tab says MISSING, run ensureSchema().');
+  say('If a tab says MISSING, open the site once as an admin.');
   say('If the tabs are all there and the site still looks old, the DEPLOYMENT is old —');
   say('Deploy → New deployment, not Save.');
   return out.join('\n');
@@ -1111,14 +1018,14 @@ function checkPostsFolder() {
     say('posts tab rows      : ' + t.rows.length);
     say('→ All four checks pass. Press the scan button on the site and it should add ' + n + '.');
   } catch (err) {
-    say('→ STOP. No posts tab. Run ensureSchema() first.');
+    say('→ STOP. No posts tab. Open the site once as an admin first.');
   }
   return log.join('\n');
 }
 
 
 /* Install the background jobs. § */
-function installTriggers() {
+function installTriggers_() {
   /* `geocodeVenues` is here so a postcode typed on Tuesday is placed on Tuesday night without anybody being told to go and run something. § */
   /* `refreshPageCounts` WAS THE THIRD. § */
   const wanted = ['refreshPageCounts', 'closeFinishedJobs', 'geocodeVenues'];
@@ -1132,14 +1039,14 @@ function installTriggers() {
 
   /* ---------- AND THE ONE THAT DECIDES WHETHER THE SPREADSHEET IS THE SITE § */
   const watch = (function () {
-    try { return installSheetWatch(); }
+    try { return installSheetWatch_(); }
     catch (err) { return { error: String(err && err.message || err) }; }
   })();
 
   /* ---------- AND `installWarmTrigger` IS DELIBERATELY NOT CALLED HERE § */
 
   const out = { installed: wanted, when: 'daily, about 3am', sheetWatch: watch,
-                warm: 'not installed on purpose — see the note in installTriggers' };
+                warm: 'not installed on purpose — see the note in installTriggers_' };
   Logger.log(JSON.stringify(out));
   return out;
 }
@@ -1280,7 +1187,7 @@ function schemaGaps() {
   return gaps;
 }
 
-function autoMigrate() {
+function autoMigrate_() {
   const props = PropertiesService.getScriptProperties();
   const seen = props.getProperties() || {};
 
@@ -1311,19 +1218,23 @@ function autoMigrate() {
     if (schemaStale) {
       /* MARKED ONLY IF IT WORKED, and "worked" is checked rather than assumed. § */
       try {
-        out.schema = ensureSchema();
+        out.schema = ensureSchema_();
         const gaps = schemaGaps();
         if (Object.keys(gaps).length) {
           out.stillMissing = gaps;
           /* Not recorded, so the next request tries again — but only after a pause, which is what the attempt marker is for. § */
           props.setProperty('SCHEMA_TRIED', BACKEND_VERSION + '@' + Date.now());
+          props.setProperty('SCHEMA_FAILED', 'columns still missing: ' + Object.keys(gaps).join(', '));
         } else {
           props.setProperty('SCHEMA_VERSION', BACKEND_VERSION);
+          props.setProperty('SCHEMA_AT', new Date().toISOString());
           props.deleteProperty('SCHEMA_TRIED');
+          props.deleteProperty('SCHEMA_FAILED');
         }
       } catch (err) {
         out.schemaError = String((err && err.message) || err);
         props.setProperty('SCHEMA_TRIED', BACKEND_VERSION + '@' + Date.now());
+        props.setProperty('SCHEMA_FAILED', out.schemaError);
       }
     }
 
@@ -1335,7 +1246,10 @@ function autoMigrate() {
         out.ran.push({ id: m.id, what: m.what, result: m.run() });
         if (m.retry) props.setProperty('MIGRATED_' + m.id, new Date().toISOString());
         props.deleteProperty('TRIED_' + m.id);
+        props.deleteProperty('FAILED_' + m.id);
       } catch (err) {
+        /* THE WORDS OF THE ERROR, for the Setup card on You (361) — "it failed" gives the owner nothing to tell anyone. */
+        props.setProperty('FAILED_' + m.id, String((err && err.message) || err).slice(0, 300));
         /* WHEN IT LAST FAILED, so the next request does not immediately try again. Cleared on
            success below, so a job that starts working stops being paced. */
         props.setProperty('TRIED_' + m.id, String(Date.now()));
@@ -1352,6 +1266,59 @@ function autoMigrate() {
   }
 }
 
+/* ---------- ON AN ADMIN'S PAGE LOAD, WHAT USED TO BE RUN BY HAND (361) ----------
+   Schema and run-once jobs (cheap when nothing is pending), and the Sunday email's hour, checked at most
+   every ten minutes. Never throws. */
+const SETUP_CHECK_MS = 10 * 60 * 1000;
+function setupOnAdminLoad_() {
+  try { autoMigrate_(); } catch (err) { Logger.log('setup: ' + err); }
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const at = Number(props.getProperty('SETUP_CHECKED_AT') || 0);
+    if (Date.now() - at < SETUP_CHECK_MS) return;
+    props.setProperty('SETUP_CHECKED_AT', String(Date.now()));
+    try { digestKeepBooked_(); props.deleteProperty('FAILED_sunday-email-hour'); }
+    catch (err) { props.setProperty('FAILED_sunday-email-hour', String((err && err.message) || err).slice(0, 300)); }
+  } catch (err) { Logger.log('setup: ' + err); }
+}
+
+/* WHEN A TRIGGER RUNS, in words — Apps Script will not read a trigger's schedule back, so this is what the installers book. */
+function setupTriggerWhen_(fn, hour) {
+  const said = { closeFinishedJobs: 'every day, about 3am', geocodeVenues: 'every day, about 3am',
+    refreshPageCounts: 'every day, about 3am', onSheetChange: 'whenever a spreadsheet is edited',
+    warmAfterEdit: 'once, a minute after an edit', warmPayload: 'every 5 minutes' };
+  return digestTriggerWhen_(fn, hour) || said[fn] || 'booked';
+}
+
+/* ---------- WHAT THE SETUP CARD ON YOU SAYS (361), for an admin only — doGet sends it to nobody else. ---------- */
+function setupStatus_() {
+  const out = { backend: BACKEND_VERSION, files: {}, jobs: [], triggers: [], sunday: {} };
+  try {
+    out.files = { constants: BACKEND_VERSION, doGet: DOGET_VERSION, doPost: DOPOST_VERSION, booking: BOOKING_VERSION };
+  } catch (err) { out.files = { constants: BACKEND_VERSION }; }
+  let seen = {};
+  try { seen = PropertiesService.getScriptProperties().getProperties() || {}; } catch (err) { seen = {}; }
+  const schemaOk = seen.SCHEMA_VERSION === BACKEND_VERSION;
+  out.jobs.push({ id: 'schema', what: 'the sheet gets every tab and column this version uses',
+    ran: schemaOk ? S(seen.SCHEMA_AT) || 'yes' : '', error: schemaOk ? '' : S(seen.SCHEMA_FAILED) });
+  MIGRATIONS.forEach(m => out.jobs.push({ id: m.id, what: m.what, ran: S(seen['MIGRATED_' + m.id]),
+    error: seen['MIGRATED_' + m.id] ? '' : S(seen['FAILED_' + m.id]) }));
+  if (seen['FAILED_sunday-email-hour']) {
+    out.jobs.push({ id: 'sunday-email-hour', what: 'the Sunday email kept at weekly_digest_hour', ran: '',
+      error: S(seen['FAILED_sunday-email-hour']) });
+  }
+  let cfg = {};
+  try { cfg = config(); } catch (err) { cfg = {}; }
+  const hour = digestBookedHour_(cfg);
+  try {
+    const n = {};
+    ScriptApp.getProjectTriggers().forEach(t => { const fn = t.getHandlerFunction(); n[fn] = (n[fn] || 0) + 1; });
+    out.triggers = Object.keys(n).sort().map(fn => ({ fn: fn, times: n[fn], when: setupTriggerWhen_(fn, hour) }));
+  } catch (err) { out.triggersError = String((err && err.message) || err); }
+  out.sunday = digestSetupSays_(cfg, new Date());
+  return out;
+}
+
 /* WHERE IS EVERY TAB, AND IS IT THERE? § */
 function checkTabs() {
   const out = { ok: [], EMPTY: [], MISSING: [] };
@@ -1360,7 +1327,7 @@ function checkTabs() {
     const label = name + (at.away ? '  (' + at.away + ' → ' + at.names.join(' / ') + ')' : '');
     if (!at.id) { out.MISSING.push(label + '  — no file id'); return; }
     let sh = null;
-    /* THE SAME FAULT AS `ensureSchema` ABOVE — `at.tab` is undefined, so this found no tab for any
+    /* THE SAME FAULT AS `ensureSchema_` ABOVE — `at.tab` is undefined, so this found no tab for any
        name and reported the whole database missing. Same fix: the names `read` would try. */
     try {
       const ss2 = SpreadsheetApp.openById(at.id);
