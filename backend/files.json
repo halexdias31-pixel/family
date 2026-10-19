@@ -10,5 +10,6 @@
   "people.gs",
   "records.gs",
   "setup.gs",
-  "sync.gs"
+  "sync.gs",
+  "verse.gs"
 ]

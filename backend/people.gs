@@ -154,8 +154,8 @@ function handleTrouble_(want, me) {
 }
 
 /* ---------- A HANDLE IS A TEMPLATE ANYBODY CAN WORK OUT FOR THEMSELVES (docs/history/364) */
-/* First initial, day of the month born, surname initial: "t04d". No birthday: both initials and the
-   id's last two digits ("td42"). A clash adds first-name letters ("th04d"). Nothing is random. */
+/* First initial and the year they joined: "t2025" (367). A clash adds first-name letters ("th2025"),
+   then a counter; earliest joiner first. No surname, no birthday, nothing random. */
 const HANDLE_NO_LETTER = 'x';
 
 /* THE OLD SHAPES (342) are read, never made: an old handle is a sign-in alias in `handle_was`, and
@@ -214,49 +214,64 @@ function handleLetters_(v) {
   }).join('');
 }
 
-/* THE DAY OF THE MONTH THEY WERE BORN, two digits, or '' when the row has no date of birth. */
-function handleDay_(r) {
-  const d = r && S(r.date_of_birth) ? sheetDate(r.date_of_birth) : null;
-  return d ? ('0' + d.getDate()).slice(-2) : '';
-}
+/* WHERE A PERSON FIRST SHOWS UP when their row has no joined_on: [tab, id column, date column]. */
+const HANDLE_ACTIVITY = [['submissions', 'person_id', 'submitted_at'],
+  ['answers', 'person_id', 'saved_at'], ['messages', 'from_id', 'sent_at'], ['receipts', 'person_id', 'issued_on'],
+  ['orders', 'person_id', 'asked_on'], ['post_reactions', 'person_id', 'reacted_on'], ['favourites', 'person_id', 'at'],
+  ['family', 'parent_id', 'asked_on'], ['family', 'child_id', 'asked_on']];
 
-/* The template's candidates for row `r`, in the order they are tried: the plain one first, then one
-   more letter of the first name after the initial each time, then a counter at the end. */
-function handleCandidates_(r) {
-  const first = handleLetters_(r && r.first_name) || HANDLE_NO_LETTER;
-  const last = handleLetters_(r && r.last_name).charAt(0) || HANDLE_NO_LETTER;
-  const day = handleDay_(r);
-  const idDigits = S(r && r.person_id).replace(/\D/g, '');
-  const tail = day ? day + last : last + ('00' + idDigits).slice(-2);
-  const out = [];
-  for (let n = 1; n <= first.length; n++) out.push(first.slice(0, n) + tail);
-  for (let i = 2; i <= 99; i++) out.push(first + tail + i);
+/* EACH PERSON'S EARLIEST RECORDED ACTIVITY, `{ person_id: Date }` — their own dated cells and every tab above. A missing tab is skipped. */
+function handleFirstSeen_(rows) {
+  const out = {};
+  const see = (id, v) => {
+    const d = S(id) && v ? sheetDate(v) : null;
+    if (d && (!out[S(id)] || d < out[S(id)])) out[S(id)] = d;
+  };
+  (rows || []).forEach(r => ['handle_changed_at', 'agreement_signed_at'].forEach(c => see(r.person_id, r[c])));
+  HANDLE_ACTIVITY.forEach(([tab, idCol, dateCol]) => {
+    if (!TAB[tab]) return;
+    try { (read(TAB[tab]).rows || []).forEach(x => see(x[idCol], x[dateCol])); } catch (err) {}
+  });
   return out;
 }
 
+/* WHEN THEY JOINED, as a Date, and where it came from: joined_on, else first activity (`seen`), else now. */
+function handleJoined_(r, seen) {
+  const own = r && S(r.joined_on) ? sheetDate(r.joined_on) : null;
+  if (own) return { when: own, from: 'joined_on' };
+  const act = seen && r && seen[S(r.person_id)];
+  if (act) return { when: act, from: 'activity' };
+  return { when: new Date(), from: 'now' };
+}
+
+/* The template's candidates for row `r`, in the order they are tried: initial + year joined, then one
+   more letter of the first name after the initial each time, then a counter at the end. */
+function handleCandidates_(r, seen) {
+  const first = handleLetters_(r && r.first_name) || HANDLE_NO_LETTER;
+  const year = String(handleJoined_(r, seen).when.getFullYear());
+  const out = [];
+  for (let n = 1; n <= first.length; n++) out.push(first.slice(0, n) + year);
+  for (let i = 2; i <= 99; i++) out.push(first + year + i);
+  return out;
+}
+
+/* ALREADY IN THE TEMPLATE'S SHAPE for this first name (any year) — such a handle is never moved again. */
+function handleInShape_(h, r) {
+  const first = handleLetters_(r && r.first_name) || HANDLE_NO_LETTER;
+  const m = S(h).toLowerCase().match(/^([a-z]+)(\d{4})(\d*)$/);
+  return !!m && m[1].length >= 1 && first.indexOf(m[1]) === 0 && (!m[3] || m[1] === first);
+}
+
 /* THE HANDLE THE TEMPLATE GIVES ROW `r`: the first candidate `trouble(want)` does not refuse, or ''. */
-function handleTemplate_(r, trouble) {
-  const all = handleCandidates_(r);
+function handleTemplate_(r, trouble, seen) {
+  const all = handleCandidates_(r, seen);
   for (let i = 0; i < all.length; i++) if (!trouble(all[i])) return all[i];
   return '';
 }
 
 /* One handle for a person about to be written or already on the tab — `handleTrouble_` is the gate, so somebody else's handle or old handle is never given. `me` may be a draft row. */
-function handleMake_(me) {
-  return handleTemplate_(me || {}, want => handleTrouble_(want, me && me.person_id ? me : null));
-}
-
-/* A HANDLE MADE WITHOUT A BIRTHDAY moves to the template once the row has one; the old one stays a sign-in alias. The new handle, or ''. */
-function handleBirthdayMove_(t, r) {
-  const has = S(r && r.handle);
-  if (!has || !handleDay_(r) || !t || t.headers.indexOf('handle_was') === -1) return '';
-  if (handleCandidates_(Object.assign({}, r, { date_of_birth: '' })).indexOf(has) === -1) return '';
-  const made = handleMake_(r);
-  if (!made || made === has) return '';
-  setCells(t, r, Object.assign({ handle_was: handleWasWith_(r.handle_was, has) }, handleFaceKept_(t, r, has)));
-  setCells(t, r, { handle: made, handle_changed_at: new Date() });
-  handleFriendsMove_(t, { [key(has)]: made });
-  return made;
+function handleMake_(me, seen) {
+  return handleTemplate_(me || {}, want => handleTrouble_(want, me && me.person_id ? me : null), seen);
 }
 
 /* ---------- THE ROWS AN OLD HANDLE STILL SIGNS IN (342) § */

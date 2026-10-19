@@ -32,6 +32,7 @@ const SUITE = [
   { file: 'check-manifest.js', what: 'the backend file list sync.gs pulls by' },
   /* THE BACKEND'S OWN `check.js`. § */
   { file: 'check-backend.js', what: 'one scope, one declaration per name' },
+  { file: 'check-verse.js',   what: 'the e-paper verse: short, new each day, no payload' },
   /* ---------- BEFORE THE COLUMNS, BECAUSE A TAB NOBODY CAN OPEN HAS NO COLUMNS § */
   { file: 'check-tabs.js',    what: 'every tab routed to a file that can hold it' },
   { file: 'check-columns.js', what: 'every column the backend touches' },

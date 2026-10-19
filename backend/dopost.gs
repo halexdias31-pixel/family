@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-19-c-handles";
+const DOPOST_VERSION = "2026-10-19-f-year-verse";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -805,8 +805,6 @@ function doPost(e) {
 
       /* 3. ONE WRITE. `setCells` is `setCell` for a whole row: § */
       const wrote = setCells(t, r, put);
-      /* A BIRTHDAY JUST TYPED moves a handle made without one onto the template (364). */
-      if (dobSent && handleBirthdayMove_(t, r)) wrote.push('handle');
       /* AND WHAT WAITS BESIDE THE ROW. § */
       if (mailPlan === 'correct' || mailPlan === 'keep') authMoveDrop_(r);
       if (mailPlan === 'correct') authResetDrop_(r);

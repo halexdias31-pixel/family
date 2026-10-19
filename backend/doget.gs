@@ -1,12 +1,14 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-19-c-handles";
+const DOGET_VERSION = "2026-10-19-f-year-verse";
 
 
 function doGet(e) {
   try {
     WRITE_MISSES = [];
+    /* THE DESK SCREEN'S VERSE FIRST: no viewer, no setup, no payload (verse.gs). */
+    if (e && e.parameter && e.parameter.verse) return verseOut_(e.parameter);
     /* NOBODY YET — the last request's viewer is not this one's (`NET_VIEWER_`, constants.gs; 342). */
     NET_VIEWER_ = null;
     /* Read once, at the top, so every exit from this function is wrapped the same way — including the early returns and the error at the bottom. § */
