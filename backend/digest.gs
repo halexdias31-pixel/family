@@ -622,7 +622,7 @@ function digestRun_(now) {
   const mode = digestMode_(cfg);
   if (mode === 'off') return { mode: 'off', did: 'nothing — weekly_digest on the config tab is off' };
 
-  if (!digestLog_().sheet) return { mode: mode, error: 'The sheet has no digest_log tab. Run ensureSchema() (open /exec?setup=1) to add it. Nothing was sent.' };
+  if (!digestLog_().sheet) return { mode: mode, error: 'The sheet has no digest_log tab. Open the site once as an admin to add it. Nothing was sent.' };
   /* NO `submissions` TAB IS NOT A QUIET WEEK. § */
   const noSubmissions = digestNoSubmissions_();
   if (noSubmissions) return { mode: mode, error: noSubmissions };
@@ -723,7 +723,7 @@ function digestNoSubmissions_() {
   let there = false;
   try { there = !!read(TAB.submissions).sheet; } catch (err) { there = false; }
   return there ? ''
-    : 'The Ledger has no submissions tab, so nothing says what anybody sent. Open /exec?setup=1 (ensureSchema) '
+    : 'The Ledger has no submissions tab, so nothing says what anybody sent. Open the site once as an admin '
     + 'to add it; answers sent from then on are what these emails report. Nothing was sent.';
 }
 
@@ -747,8 +747,8 @@ function digestQuota_() {
 }
 
 
-/* ---------- BOOKING THE SUNDAY, BY HAND § */
-function installWeeklyDigest() {
+/* ---------- BOOKING THE SUNDAY — BY ITSELF NOW (361): only `digestKeepBooked_` calls this, so it is private. */
+function installWeeklyDigest_() {
   let cfg = {};
   try { cfg = config(); } catch (err) { cfg = {}; }
   const hour = digestHour_(cfg);
@@ -767,6 +767,28 @@ function installWeeklyDigest() {
            next: 'run checkSundayEmail to see that everything is ready' };
   Logger.log(JSON.stringify(out, null, 2));
   return out;
+}
+/* KEEPS THE SUNDAY BOOKED, on an admin's page load and as a run-once job (361): re-books only when there is not exactly one
+   trigger, an old one lingers, or the booked hour is not the config tab's. Null when nothing needed doing. */
+function digestKeepBooked_(cfg) {
+  if (!cfg) { try { cfg = config(); } catch (err) { cfg = {}; } }
+  const sun = digestScheduled_(DIGEST_RUN);
+  if (sun === null) throw new Error('the triggers could not be listed');
+  let old = 0;
+  DIGEST_RETIRED_RUNS.forEach(fn => { old += Number(digestScheduled_(fn)) || 0; });
+  if (sun === 1 && !old && digestBooked_() === digestHour_(cfg)) return null;
+  return installWeeklyDigest_();
+}
+/* FOR THE SETUP CARD (361): when the Sunday trigger runs, in words, and null for any other handler. */
+function digestTriggerWhen_(fn, hour) {
+  return fn === DIGEST_RUN ? 'Sundays, about ' + hour + ':00 London time' : null;
+}
+/* AND THE EMAIL'S MODE, ITS HOUR AND ITS NEXT SEND, for the same card. `next` is '' when nothing is booked. */
+function digestSetupSays_(cfg, now) {
+  const hour = digestBookedHour_(cfg), booked = !!digestScheduled_(DIGEST_RUN);
+  let next = 0;
+  try { next = booked ? (digestSendAt_(now, hour) || digestSendAt_(new Date(now.getTime() + 864e5), hour)) : 0; } catch (err) { next = 0; }
+  return { mode: digestMode_(cfg), hour: hour, booked: booked, next: next ? new Date(next).toISOString() : '' };
 }
 /* THE WAY BACK: every trigger of the email's handler, and every one in `DIGEST_RETIRED_RUNS`, gone, and nothing else; and the Script Properties that describe § */
 function removeWeeklyDigest() {
@@ -946,23 +968,23 @@ function checkSundayEmail() {
   /* ONE TRIGGER (18 Oct): the email's, and nothing beside it. An old one still booked — the AI marking
      passes', or the after-session check's — fires into a function that is gone and fails, so it is a WARNING. */
   say('THE TRIGGER: the Sunday email is ' + (sun === null ? 'unknown (the triggers could not be listed)'
-      : sun === 1 ? 'installed' : sun ? 'installed ' + sun + ' times (run installWeeklyDigest to leave one)'
-      : 'NOT installed (run installWeeklyDigest)') + ', and it is the only trigger the email has. '
+      : sun === 1 ? 'installed' : sun ? 'installed ' + sun + ' times (the next admin page load leaves one)'
+      : 'NOT installed (the next admin page load books it)') + ', and it is the only trigger the email has. '
     + (old ? 'WARNING: ' + plural(old, 'old trigger') + ' that nothing runs any more (' + DIGEST_RETIRED_RUNS.join(', ')
-        + ') ' + (old === 1 ? 'is' : 'are') + ' still booked and will fail — run installWeeklyDigest to remove '
+        + ') ' + (old === 1 ? 'is' : 'are') + ' still booked and will fail — the next admin page load removes '
         + (old === 1 ? 'it' : 'them') + '.'
       : 'No old trigger is booked.'));
 
   /* THE HOUR BOOKED, ON A LINE OF ITS OWN (18 Oct). § */
   say('THE HOUR BOOKED: ' + (booked >= 0
-      ? 'installWeeklyDigest booked the email for about ' + booked + ':00 on Sundays, London time (recorded in Script Properties as '
+      ? 'The setup booked the email for about ' + booked + ':00 on Sundays, London time (recorded in Script Properties as '
         + DIGEST_BOOKED + ').' + (booked !== cellHour
           ? ' WARNING: weekly_digest_hour on the config tab now says ' + cellHour + ', but the email still goes at about ' + booked
-            + ':00 — run installWeeklyDigest again to move it to ' + cellHour + ':00.'
+            + ':00 — the next admin page load moves it to ' + cellHour + ':00.'
           : ' The config tab says the same.')
       : unknownHour ? 'NOT recorded — the trigger was booked by an older backend, and Apps Script cannot read a trigger’s hour back. '
-        + 'WARNING: run installWeeklyDigest again, so the email is booked at ' + cellHour + ':00 (weekly_digest_hour) and the hour is recorded.'
-      : 'nothing is booked yet; installWeeklyDigest will book ' + cellHour + ':00 (weekly_digest_hour on the config tab).'));
+        + 'WARNING: the next admin page load re-books it at ' + cellHour + ':00 (weekly_digest_hour) and the hour is recorded.'
+      : 'nothing is booked yet; the next admin page load books ' + cellHour + ':00 (weekly_digest_hour on the config tab).'));
 
   const quota = digestQuota_();
   say('MAIL: ' + plural(quota, 'email') + ' left in today’s quota; the Sunday run keeps ' + reserve + ' back for PIN resets and notices.');

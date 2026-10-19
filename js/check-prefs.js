@@ -30,7 +30,7 @@ Object.keys(KINDS).forEach(k => {
     rule(!K.col, 'NOTIFY_KINDS.' + k + ' is essential and has a column (' + K.col + ') — a column is a switch');
     rule(typeof K.why === 'string' && K.why.trim(), 'NOTIFY_KINDS.' + k + ' is essential and does not say why');
   } else {
-    rule(PEOPLE_COLS.indexOf(K.col) !== -1, 'NOTIFY_KINDS.' + k + "'s column `" + K.col + '` is not in SCHEMA.people, so ensureSchema never adds it');
+    rule(PEOPLE_COLS.indexOf(K.col) !== -1, 'NOTIFY_KINDS.' + k + "'s column `" + K.col + '` is not in SCHEMA.people, so ensureSchema_ never adds it');
     rule(OPTIONAL.filter(o => KINDS[o].col === K.col).length === 1, 'NOTIFY_KINDS.' + k + ' shares its column ' + K.col + ' with another kind');
   }
   /* `hidden` IS A SWITCH LEFT OFF THE CARD — only an optional kind has one to leave off. `parents` widens
@@ -475,7 +475,7 @@ OPTIONAL.forEach(k => rule(proved[k], 'no real sender proved `' + k + '` on and 
   O.as('P-T1', { action: 'sendMessage', to: 'Pat Parent', toId: 'P-C1', body: 'Hello.' });
   rule(O.to('parent@example.org', m1, /A message from/).length === 1, 'on a sheet without the columns a message was not sent');
   const d = O.as('P-C1', { action: 'setNotify', kind: 'messages', on: false });
-  rule(!d.success && /Run ensureSchema\(\)/.test(String(d.error)) && !d.writes, 'on a sheet without the column, setNotify did not refuse with the ensureSchema sentence, or wrote — ' + JSON.stringify(d));
+  rule(!d.success && /Open the site once as an admin/.test(String(d.error)) && !d.writes, 'on a sheet without the column, setNotify did not refuse with the ensureSchema_ sentence, or wrote — ' + JSON.stringify(d));
 }
 
 /* 3f. WHOEVER A SENDER WRITES TO IS SHOWN ITS SWITCH, AND MAY USE IT. § */

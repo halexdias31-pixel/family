@@ -52,7 +52,7 @@ const asked = new Set();
 for (const m of tabBlock.matchAll(/(\w+)\s*:\s*'([^']+)'/g)) asked.add(m[2]);
 
 /* SCHEMA's keys are tab names too, and they are not the same set: a tab can have columns described
-   without `TAB` naming it. `ensureSchema` walks SCHEMA, so an unrouted key there is a tab whose
+   without `TAB` naming it. `ensureSchema_` walks SCHEMA, so an unrouted key there is a tab whose
    columns are never added to anything. */
 const schemaBlock = objectAfter_('SCHEMA') || '';
 const described = new Set();
@@ -146,7 +146,7 @@ for (const name of required) {
               'it nowhere. read() gets a blank id, so this is EVERY SCREEN DARK on the next deploy.');
   } else if (!described.has(name)) {
     fail.push('REQUIRED_TABS.' + name + ' — doGet refuses to answer without it, and SCHEMA does ' +
-              'not describe it, so ensureSchema will never create it and ?setup=1 cannot repair it.');
+              'not describe it, so ensureSchema_ will never create it and ?setup=1 cannot repair it.');
   }
 }
 

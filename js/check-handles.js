@@ -58,7 +58,7 @@ const SRC = [
   grab(people, /function handleMake_\([\s\S]*?\n\}/, 'handleMake_'),
   grab(people, /function handleDraw_\([\s\S]*?\n\}/, 'handleDraw_'),
   grab(people, /function handleWasWith_\([\s\S]*?\n\}/, 'handleWasWith_'),
-  /* AND THE FACE A MOVED HANDLE KEEPS (342, round 2) — `renameHandles` writes it before the handle.
+  /* AND THE FACE A MOVED HANDLE KEEPS (342, round 2) — `renameHandles_` writes it before the handle.
      `check-signin.js` holds the face itself, drawn by the phone's own code. */
   grab(people, /const FACE_SKINS[^;]*;/, 'FACE_SKINS'),
   grab(people, /const FACE_HAIRS[^;]*;/, 'FACE_HAIRS'),
@@ -66,7 +66,7 @@ const SRC = [
   /* ---------- AND THE REPAIR JOB, WHICH IS THE ONE THING HERE THAT WRITES § */
   grab(setup,  /function fillHandles\([\s\S]*?\n\}/, 'fillHandles'),
   /* AND THE ONE THAT REPLACES A HANDLE ON PURPOSE, into the owner's `<first>_<virtue>`. */
-  grab(setup,  /function renameHandles\([\s\S]*?\n\}/, 'renameHandles'),
+  grab(setup,  /function renameHandles_\([\s\S]*?\n\}/, 'renameHandles_'),
   /* WHICH NOW REPORTS A PRIVATE GROWN-UP WHOSE HANDLE CARRIES THEIR SURNAME (342) — the real test of who
      is private, cut out with it. */
   grab(people, /function namePrivate_\([\s\S]*?\n\}/, 'namePrivate_'),
@@ -131,7 +131,7 @@ new Function('box', PRELUDE + SRC + '\nbox.trouble = handleTrouble_; box.fold = 
            + ' box.FIRST_MAX = HANDLE_FIRST_MAX; box.FALLBACK = HANDLE_FALLBACK;'
            + ' box.TAIL_MIN = HANDLE_TAIL_MIN; box.TAIL_MAX = HANDLE_TAIL_MAX;'
            + ' box.WAS_MAX = HANDLE_WAS_MAX; box.wasWith = handleWasWith_;'
-           + ' box.first = handleFirst_; box.shaped = handleIsShaped_; box.rename = renameHandles;'
+           + ' box.first = handleFirst_; box.shaped = handleIsShaped_; box.rename = renameHandles_;'
            + ' box.parts = handleParts_; box.ORDERS = HANDLE_ORDERS; box.TRIES = HANDLE_TRIES;'
            + ' box.fill = fillHandles;'
            + ' box.initials = handleInitials_; box.kidShaped = handleKidShaped_; box.isChild = isChild_;'
@@ -525,8 +525,8 @@ function run() {
   ].forEach(([h, want]) => {
     if (box.shaped(h, 'Halex') !== want) bad.push({ handle: h,
       want: want ? 'shaped' : 'not shaped',
-      why: want ? 'renameHandles would regenerate a handle already in the shape on every run'
-                : 'renameHandles would leave a handle that is not the generated shape alone',
+      why: want ? 'renameHandles_ would regenerate a handle already in the shape on every run'
+                : 'renameHandles_ would leave a handle that is not the generated shape alone',
       said: want ? 'no' : 'yes' });
   });
   /* A FIRST NAME THAT IS ALSO A VIRTUE. § */
@@ -686,7 +686,7 @@ function run() {
   if (missAll > 1e-9) bad.push({ handle: 'initials ' + worstHead, want: 'a free tail within ' + box.KID_TRIES + ' draws',
     why: Math.round(kidWorst * 100) + '% of this pair\'s tails are refused, so a child could run out of draws', said: missAll.toExponential(2) });
 
-  /* `renameHandles` IS NOT A CHILD'S JOB, and a grown-up who was a child keeps the handle they sign in with. */
+  /* `renameHandles_` IS NOT A CHILD'S JOB, and a grown-up who was a child keeps the handle they sign in with. */
   box.setHeaders(['person_id', 'handle', 'handle_was', 'handle_changed_at', 'first_name', 'last_name', 'role']);
   const krows = [
     { person_id: 'KC', role: 'student', first_name: 'Ella', last_name: 'Jones', handle: 'ella_kind42' },
@@ -696,9 +696,9 @@ function run() {
   box.setRows(krows);
   const kr = box.rename();
   if (krows[0].handle !== 'ella_kind42' || krows[1].handle !== 'BrightOtter42' || kr.children !== 2)
-    bad.push({ handle: 'renameHandles', want: 'children untouched, and counted',
+    bad.push({ handle: 'renameHandles_', want: 'children untouched, and counted',
       why: 'a child\'s handle is moved only by ?run=kidHandles, which previews first', said: krows[0].handle + ', ' + krows[1].handle + ' / ' + kr.children });
-  if (krows[2].handle !== 'gg2345') bad.push({ handle: 'renameHandles', want: 'gg2345, untouched',
+  if (krows[2].handle !== 'gg2345') bad.push({ handle: 'renameHandles_', want: 'gg2345, untouched',
     why: 'a grown-up who was a child keeps their initials-and-tail until they press Randomise', said: krows[2].handle });
   /* AND `fillHandles` GIVES A BLANK CHILD THE CHILD'S SHAPE. */
   box.setHeaders(['person_id', 'handle', 'email', 'first_name', 'last_name']);
@@ -813,35 +813,35 @@ function run() {
   const halexShapes = shapeOf('halex');
   if (!Object.keys(halexShapes).some(k => halexShapes[k].test(r1.handle))
       || r1.handle_was !== 'BrightOtter42' || !(r1.handle_changed_at instanceof Date)) {
-    bad.push({ handle: 'renameHandles', want: 'halex, a virtue and NN; old kept, date written',
+    bad.push({ handle: 'renameHandles_', want: 'halex, a virtue and NN; old kept, date written',
       why: 'the oldest shape must become the new one, the old in handle_was',
       said: r1.handle + ' / was ' + r1.handle_was });
   }
-  if (byId('R2').handle !== 'ada_kind') bad.push({ handle: 'renameHandles', want: 'untouched',
+  if (byId('R2').handle !== 'ada_kind') bad.push({ handle: 'renameHandles_', want: 'untouched',
     why: 'a 1 October handle is still the shape and must not be regenerated', said: byId('R2').handle });
   if (!isFallback(byId('R3').handle))
-    bad.push({ handle: 'renameHandles', want: box.FALLBACK + ', a virtue and NN',
+    bad.push({ handle: 'renameHandles_', want: box.FALLBACK + ', a virtue and NN',
       why: 'a row with no first name gets the fallback head', said: byId('R3').handle });
   if (r4.handle !== 'sam_steady71' || r4.handle_was !== 'samsmith') {
-    bad.push({ handle: 'renameHandles', want: 'sam_steady71, untouched',
+    bad.push({ handle: 'renameHandles_', want: 'sam_steady71, untouched',
       why: 'a number is part of the shape now — stripping it would strip every Randomise press too',
       said: r4.handle + ' / was ' + r4.handle_was });
   }
-  if (r5.handle !== 'kind42zo') bad.push({ handle: 'renameHandles', want: 'untouched',
+  if (r5.handle !== 'kind42zo') bad.push({ handle: 'renameHandles_', want: 'untouched',
     why: 'a handle in one of the new orders must be left alone, or the job renames every '
        + 'Randomise press', said: r5.handle });
   const r6was = r6.handle_was.split(', ');
   if (r6was.length !== box.WAS_MAX + 1 || r6was[0] !== 'Pat_Typed' || r6was[r6was.length - 1] !== 'old' + (box.WAS_MAX - 1))
-    bad.push({ handle: 'renameHandles', want: 'Pat_Typed first, all ' + (box.WAS_MAX + 1) + ' kept',
+    bad.push({ handle: 'renameHandles_', want: 'Pat_Typed first, all ' + (box.WAS_MAX + 1) + ' kept',
       why: 'handle_was is every earlier handle, newest first — none dropped, since each still signs its person in', said: r6.handle_was.slice(0, 120) });
   if (ren.renamedCount !== 3 || ['R1', 'R3', 'R6'].some(id => ren.renamed.indexOf(id) === -1)
       || ren.leftAlone !== rrows.length - 3) {
-    bad.push({ handle: 'renameHandles', want: '3 renamed by id, the rest left alone',
+    bad.push({ handle: 'renameHandles_', want: '3 renamed by id, the rest left alone',
       why: 'the report names who changed', said: JSON.stringify(ren.renamed) + ' / ' + ren.leftAlone });
   }
   const snap = JSON.stringify(rrows);
   const again = box.rename();
-  if (again.renamedCount !== 0 || JSON.stringify(rrows) !== snap) bad.push({ handle: 'renameHandles',
+  if (again.renamedCount !== 0 || JSON.stringify(rrows) !== snap) bad.push({ handle: 'renameHandles_',
     want: 'nothing on a second run', why: 'the job must be safe to run twice',
     said: again.renamedCount + ' renamed' });
 

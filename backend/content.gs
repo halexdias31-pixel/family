@@ -1081,7 +1081,7 @@ function filmsSync_(opts) {
        about to change. */
     clearCache();
     const t = read(TAB.films);
-    if (!t.sheet) return { error: 'The Ledger has no films tab. Run ensureSchema once from the editor.', why: 'tab' };
+    if (!t.sheet) return { error: 'The Ledger has no films tab. Open the site once as an admin.', why: 'tab' };
     const byId = {}, loose = [];
     let top = 0;
     t.rows.forEach(r => {

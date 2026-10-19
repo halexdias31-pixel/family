@@ -7602,7 +7602,9 @@ function accountPages_() {
   /* ---------- THE WRAPPER WENT WHEN THE PASS DID, AND LEAVING IT WOULD HAVE NESTED TWO CARDS § */
   /* ---------- AND WHILE THE PAYLOAD IS ON ITS WAY, THE COLUMN SAYS MORE IS COMING § */
   const coming = typeof awaiting_ === 'function' && awaiting_() ? [loading_()] : [];
-  return [me].concat(claimPages, famPages, others, everyone, coming);
+  /* THE SETUP CARD, second, for an admin only (361) — `setupCard_` in me.js returns '' for anybody else. */
+  const setup = typeof setupCard_ === 'function' ? [setupCard_()].filter(Boolean) : [];
+  return [me].concat(setup, claimPages, famPages, others, everyone, coming);
 }
 
 /* ---------- HOW A LEARNER IS GETTING ON, IN ONE LINE UNDER THEIR NAME § */

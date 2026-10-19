@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-19-c-room";
+  --css-version: "2026-10-19-d-setup";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -581,6 +581,10 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .me-build { margin-top: .9rem; padding-top: .6rem; border-top: 1px dashed var(--line);
             font-size: .62rem; }
 .me-build p { margin: 0; }
+/* THE SETUP CARD ON YOU (361), an admin's: one line a job. */
+.setup-list { list-style: none; margin: .4rem 0; padding: 0; font-size: .8rem; }
+.setup-list li { padding: .15rem 0; }
+.setup-bad { color: var(--gold); font-weight: 600; }
 
 /* ---------- A DATE OF BIRTH IS ONE QUESTION IN THREE BOXES § */
 .dob-row { margin-bottom: .75rem; }

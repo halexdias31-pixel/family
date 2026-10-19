@@ -2372,6 +2372,35 @@ check('Sign out stays under a tutor\'s card while they edit it, keeps the typing
 });
 
 /* ---------- SETTINGS HOLDS WHAT IS NOT ON YOUR CARD, FOR EVERYBODY (docs/history/330, 339) § */
+/* THE SETUP CARD (361): the owner's "open the site once" ends here — an admin sees what ran; nobody else sees it, or is sent it. */
+check('the Setup card on You is an admin\'s alone: the admin\'s payload carries the run-once jobs and triggers, the card lists them with no button, and a tutor gets neither', async () => {
+  const W = cardWorld_();
+  const bad = [];
+  const a = await cardOpen_(W, 'admin@example.org');
+  if (a.err) return [a.err];
+  /* THE REAL doGet, asked with each token — the world's GET is the anonymous copy, so the admin's report is laid on from here. */
+  const asAdmin = W.real.get({ token: a.u && a.u.token });
+  if (!asAdmin.setup || !Array.isArray(asAdmin.setup.jobs)) bad.push('doGet with the admin\'s token sent no setup report: ' + JSON.stringify(asAdmin.setup));
+  if (W.real.get({}).setup) bad.push('doGet with no token sent the setup report');
+  try { a.t.DATA().setup = asAdmin.setup; } catch (e) { return ['could not lay the setup report on: ' + e.message]; }
+  try { a.t.go('account', false, true); a.w.paint('account'); } catch (e) { return ['redrawing You threw: ' + e.message]; }
+  await wait(250);
+  const card = a.d.querySelector('#s-account .setup-card');
+  const text = String(card ? card.textContent : '');
+  if (!card) bad.push('the admin\'s You column has no Setup card');
+  else {
+    if (!/sunday-email/.test(text) || !/schema/.test(text)) bad.push('the Setup card does not list the run-once jobs (schema, sunday-email): ' + text.slice(0, 200));
+    if (!/Backend live: \S+/.test(text) || !/Sunday email:/.test(text) || !/Triggers/.test(text)) bad.push('the Setup card does not say the live backend, the triggers and the Sunday email: ' + text.slice(0, 200));
+    if (card.querySelector('button, [data-do]')) bad.push('the Setup card has something to press — every job runs by itself, so nothing may be pressed twice');
+  }
+  const t = await cardOpen_(W, 'tutor@example.org');
+  if (t.err) return bad.concat([t.err]);
+  await wait(400);
+  if (t.d.querySelector('#s-account .setup-card')) bad.push('a tutor\'s You column draws the Setup card');
+  if (W.real.get({ token: t.u && t.u.token }).setup) bad.push('doGet with a tutor\'s token sent the setup report');
+  return bad;
+});
+
 check('Settings holds only what is not on your card — a tutor\'s and an admin\'s lose the card\'s pages, a parent\'s About you goes, a student\'s keeps their dates — and nobody\'s draws the library cards, the handle or the figure', async () => {
   const W = cardWorld_();
   const bad = [];
@@ -17910,14 +17939,14 @@ check('a Notifications tick saves to the real sheet, survives a reload, and a re
   else if (again.checked) bad.push('after a reload Messages is ticked again — the choice did not survive');
   /* A REFUSAL — the sheet without the column — PUTS THE TICK BACK and says why. */
   const no = await notifyCardOf_({ payload: payload_, as: pat,
-    reply: b => b.action === 'setNotify' ? { error: 'The sheet has no `posts_email` column. Run ensureSchema() — nothing was saved.' } : reply(b) });
+    reply: b => b.action === 'setNotify' ? { error: 'The sheet has no `posts_email` column. Run ensureSchema_() — nothing was saved.' } : reply(b) });
   const pb = no.card() && no.card().querySelector('[data-kind="posts"]');
   if (!pb) return bad.concat(['the refusal journey has no Posts switch']);
   pb.click();
   await wait(400);
   const pb2 = no.card().querySelector('[data-kind="posts"]');
   if (!pb2.checked) bad.push('a refused save left Posts unticked — a box showing a choice the server never kept');
-  if (!/ensureSchema/.test((no.card().querySelector('.notify-said') || {}).textContent || '')) bad.push('a refused save did not say why under the ticks');
+  if (!/ensureSchema_/.test((no.card().querySelector('.notify-said') || {}).textContent || '')) bad.push('a refused save did not say why under the ticks');
   return bad;
 });
 

@@ -31,7 +31,7 @@ function recordsPageRefusal_(list) {
 
 function recordsAction_(action, body) {
   const t = read(TAB.records);
-  if (!t.sheet) return { error: 'The sheet has no records tab. Run ensureSchema() (open /exec?setup=1) to add it.' };
+  if (!t.sheet) return { error: 'The sheet has no records tab. Open the site once as an admin to add it.' };
 
   if (action === 'listRecords') {
     return { success: true, records: t.rows.filter(r => S(r.title) && TRUE_(r.active)).map(recordOut_) };

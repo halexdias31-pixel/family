@@ -388,10 +388,10 @@ const post = (b, body) => { asked++; return b.post(body); };
     const fam = (b.get({ token: pat.token }).family || []).find(x => x.personId === 'P-KIT');
     if (fam && fam.handle) no('a parent is shown their child\'s first name as a handle', fam);
   }
-  /* `ensureSchema` FILLS A BLANK HANDLE AND OVERWRITES NONE. */
-  try { b.ev('ensureSchema()'); } catch (e) { no('ensureSchema threw in the harness', String(e && e.message || e)); }
-  if (!S(rowOf(b, x => x.person_id === 'P-KIT').handle)) no('ensureSchema left a hand-typed child with no handle');
-  if (S(rowOf(b, x => x.person_id === 'P-STU').handle) !== 'sam_kind71') no('ensureSchema changed a handle somebody already had');
+  /* `ensureSchema_` FILLS A BLANK HANDLE AND OVERWRITES NONE. */
+  try { b.ev('ensureSchema_()'); } catch (e) { no('ensureSchema_ threw in the harness', String(e && e.message || e)); }
+  if (!S(rowOf(b, x => x.person_id === 'P-KIT').handle)) no('ensureSchema_ left a hand-typed child with no handle');
+  if (S(rowOf(b, x => x.person_id === 'P-STU').handle) !== 'sam_kind71') no('ensureSchema_ changed a handle somebody already had');
   /* AN INVITATION ACCEPTED MAKES A ROW WITH A HANDLE. */
   b.seed('invites', [{ token: 'INV1', job_id: 'J1', from_person: 'Pat Parent', to_email: 'max@example.org' }]);
   const inv = post(b, { action: 'acceptInvite', token: 'INV1', newName: 'Max Invited' });
@@ -1181,7 +1181,7 @@ const kidRule = (ok, what, got) => { kidRules++; if (!ok) no(what, got); return 
 
   /* ---- THE PREVIEW: counts, before and after, and NOTHING WRITTEN ---- */
   const run = (arg) => { asked++; return b.get(Object.assign({ run: 'kidHandles', name: 'Hal Admin', pin: PLACE }, arg ? { arg: arg } : {})); };
-  run();                                   // the first ?run brings the sheet up to date (`autoMigrate`), as every ?run does
+  run();                                   // the first ?run brings the sheet up to date (`autoMigrate_`), as every ?run does
   const snap = JSON.stringify(b.tabs.people), w0 = b.log.writes;
   const pv = run();
   const r0 = pv.result || {};
@@ -1191,10 +1191,10 @@ const kidRule = (ok, what, got) => { kidRules++; if (!ok) no(what, got); return 
   const ejRow = (r0.rows || []).find(x => x.id === 'P-EJ') || {};
   kidRule(ejRow.from === 'ella_kind62' && ejRow.to === 'ej····', 'the preview does not show Ella\'s handle now and the initials she would get', ejRow);
   kidRule(!(r0.rows || []).some(x => /^P-(GR|TAM|PAT|ADM)$/.test(x.id)), 'the preview would move a grown-up', r0.rows);
-  /* A ROW NOT A CHILD'S STAYS SO THROUGH `renameHandles` TOO — and that job leaves the children to this one. */
+  /* A ROW NOT A CHILD'S STAYS SO THROUGH `renameHandles_` TOO — and that job leaves the children to this one. */
   const ren = b.get({ run: 'renameHandles', name: 'Hal Admin', pin: PLACE }).result || {};
   kidRule(S(rowOf(b, x => x.person_id === 'P-EJ').handle) === 'ella_kind62' && ren.children >= 5,
-    'renameHandles moved a child\'s handle — that is kidHandles\', which shows what it will do first', ren);
+    'renameHandles_ moved a child\'s handle — that is kidHandles\', which shows what it will do first', ren);
 
   /* ---- APPLY ---- */
   const ojWas = S(rowOf(b, x => x.person_id === 'P-OS').handle);
@@ -1443,7 +1443,7 @@ const faceOf = (packed, handle) => {
   const b = fresh();
   const firsts = ['Ada', 'Bo', 'Cy', 'Di', 'Ed', 'Flo', 'Gil', 'Hal', 'Ida', 'Jo', 'Kai', 'Lu', 'Mo', 'Nell', 'Oz', 'Pia', 'Quin', 'Ray', 'Sue', 'Ty'];
   const kids = firsts.map((f, i) => person('P-F' + i, 'student', f, 'Fenn', { handle: f.toLowerCase() + '_kind' + (20 + i), avatar: '' }));
-  /* ONE WHO CHOSE A LOOK, one with no handle at all, and a grown-up whose typed handle `renameHandles` moves. */
+  /* ONE WHO CHOSE A LOOK, one with no handle at all, and a grown-up whose typed handle `renameHandles_` moves. */
   const CHOSEN = 'hair:bun|headwear:none|faceware:none|shoulders:none|handheld:none|legs:plain|skin:4|hairColour:2|shirt:3';
   kids.push(person('P-FC', 'student', 'Una', 'Fenn', { handle: 'una_kind50', avatar: CHOSEN }));
   kids.push(person('P-FN', 'student', 'Vi', 'Fenn', { handle: '', avatar: '' }));
@@ -1485,12 +1485,12 @@ const faceOf = (packed, handle) => {
     const rnd2 = post(b, { action: 'randomiseHandle', token: viaOld.token });
     faceRule(rnd2.success && S(byId(b, 'P-F0').avatar) === S(after.avatar), 'a second Randomise wrote over the look the first one kept — it is a chosen look now', byId(b, 'P-F0').avatar);
   }
-  /* AND `renameHandles` ON A GROWN-UP. */
+  /* AND `renameHandles_` ON A GROWN-UP. */
   const gusFace = faceOf('', 'GusTyped');
   b.get({ run: 'renameHandles', name: 'Hal Admin', pin: PLACE });
   const gus = byId(b, 'P-GT');
   faceRule(S(gus.handle) !== 'GusTyped' && faceOf(S(gus.avatar), S(gus.handle)) === gusFace,
-    'renameHandles moved a grown-up\'s handle and changed the face his blank look drew', { handle: gus.handle, avatar: gus.avatar });
+    'renameHandles_ moved a grown-up\'s handle and changed the face his blank look drew', { handle: gus.handle, avatar: gus.avatar });
 }
 faceRule(faceRules >= 12, 'only ' + faceRules + ' of the face rules were asked');
 

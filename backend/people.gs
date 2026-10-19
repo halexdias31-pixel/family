@@ -505,7 +505,7 @@ function peopleNamed(name) {
 
 /** Give every row a permanent id. Rows that predate this have none, which is how they were
     identified by name in the first place. Idempotent; never changes an id that exists. */
-function ensurePersonIds() {
+function ensurePersonIds_() {
   const t = read(TAB.people);
   const c = t.headers.indexOf('person_id');
   if (c < 0) return 0;

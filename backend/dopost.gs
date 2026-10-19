@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-19-a-rule";
+const DOPOST_VERSION = "2026-10-19-b-setup";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -679,21 +679,21 @@ function doPost(e) {
       const venueTab = venuesSent ? read(TAB.venues) : null;
       if (venueTab && venueTab.headers.indexOf('tutors_happy_here') === -1) {
         return jsonOut({ error: 'The venues tab has no column for: tutors_happy_here. '
-          + 'Run ensureSchema() to add it — nothing was saved.' });
+          + 'Open the site once as an admin to add it — nothing was saved.' });
       }
       const packedMissing = [availSent && 'availability', phoneSent && 'phone',
                              dobSent && 'date_of_birth', photosSent && 'photos']
         .filter(c => c && !has(c));
       if (packedMissing.length) {
         return jsonOut({ error: 'The sheet has no column for: ' + packedMissing.join(', ')
-          + '. Run ensureSchema() to add it — nothing was saved.' });
+          + '. Open the site once as an admin to add it — nothing was saved.' });
       }
       /* QUALIFICATIONS AND LIBRARY CARDS ARE ROWS ON TABS OF THEIR OWN now (see `SCHEMA.people`), so the question is whether the TAB is there — a tab `ensureSchema` § */
       const tabMissing = [qualsSent && !read(TAB.qualifications).sheet && 'qualifications',
                           libSent && !read(TAB.library_cards).sheet && 'library_cards'].filter(Boolean);
       if (tabMissing.length) {
         return jsonOut({ error: 'The spreadsheet has no tab called: ' + tabMissing.join(', ')
-          + '. Run ensureSchema() to make it — nothing was saved.' });
+          + '. Open the site once as an admin to make it — nothing was saved.' });
       }
       /* A PARTIAL BIRTHDAY is `null` to `sheetDate`, so it would go off the calendar under a toast
          saying Saved. `dobRefusal_` is in `core.gs` beside `sheetDate` so something can run it. */
@@ -723,7 +723,7 @@ function doPost(e) {
       const noColumn = wanted.filter(f => !has(f));
       if (noColumn.length) {
         return jsonOut({ error: 'The sheet has no column for: ' + noColumn.join(', ')
-          + '. Run ensureSchema() to add it — nothing was saved.' });
+          + '. Open the site once as an admin to add it — nothing was saved.' });
       }
       /* ---------- WHAT A TUTOR CHARGES MOVES ONCE A MONTH, ALL FOUR FIELDS TOGETHER § */
       const priceAsked = {};
@@ -732,7 +732,7 @@ function doPost(e) {
       /* THE STAMP'S COLUMN IS CHECKED HERE NOW. § */
       if (priceMoved && !has('pricing_changed_at')) {
         return jsonOut({ error: 'The sheet has no column for: pricing_changed_at. '
-          + 'Run ensureSchema() to add it — nothing was saved.' });
+          + 'Open the site once as an admin to add it — nothing was saved.' });
       }
       const priceNo = pricingRefusal_(r, priceAsked, iAmAdmin);
       if (priceNo) return jsonOut({ error: priceNo });
@@ -1064,7 +1064,7 @@ function doPost(e) {
       const r = rowById_(t, 'post_id', body.id, body.rowIndex);
       if (!r) return jsonOut({ error: 'No post with that id.' });
       if (t.headers.indexOf('approved') < 0) {
-        return jsonOut({ error: 'The posts tab has no `approved` column. Run ensureSchema() — '
+        return jsonOut({ error: 'The posts tab has no `approved` column. Open the site once as an admin — '
           + 'nothing was changed.' });
       }
       const yes = TRUE_(body.on);
@@ -1108,7 +1108,7 @@ function doPost(e) {
       if (!r) return jsonOut({ error: 'Person not found.' });
       if (t.headers.indexOf(field) < 0) {
         /* setCell returns false for a column that does not exist and says nothing. § */
-        return jsonOut({ error: 'The sheet has no `' + field + '` column. Run ensureSchema() — '
+        return jsonOut({ error: 'The sheet has no `' + field + '` column. Open the site once as an admin — '
           + 'nothing was saved.' });
       }
       setCell(t, r, field, value);
@@ -2227,7 +2227,7 @@ function doPost(e) {
                               + '. Nothing was changed.' });
       }
       if (t.headers.indexOf(K.col) === -1) {
-        return jsonOut({ error: 'The sheet has no `' + K.col + '` column. Run ensureSchema() — nothing was saved.' });
+        return jsonOut({ error: 'The sheet has no `' + K.col + '` column. Open the site once as an admin — nothing was saved.' });
       }
       const on = TRUE_(body.on);
       /* WRITTEN ONLY WHEN IT CHANGES WHAT THE CELL MEANS: a `yes` typed by hand is already on, and turning
@@ -2271,7 +2271,7 @@ function doPost(e) {
       const r = findPerson(S(body.name), S(body.personId));
       if (!r) return jsonOut({ error: 'Person not found.' });
       if (t.headers.indexOf('photo') < 0) {
-        return jsonOut({ error: 'The people tab has no `photo` column. Run ensureSchema() — nothing was saved.' });
+        return jsonOut({ error: 'The people tab has no `photo` column. Open the site once as an admin — nothing was saved.' });
       }
       if (body.remove === true || norm(body.remove) === 'true') {
         setCell(t, r, 'photo', '');
@@ -2312,7 +2312,7 @@ function doPost(e) {
       const r = findPerson('', S(body.personId));
       if (!r) return jsonOut({ error: 'Person not found.' });
       if (t.headers.indexOf('role') < 0) {
-        return jsonOut({ error: 'The people tab has no `role` column. Run ensureSchema() — nothing was saved.' });
+        return jsonOut({ error: 'The people tab has no `role` column. Open the site once as an admin — nothing was saved.' });
       }
       const asked = (Array.isArray(body.roles) ? body.roles : S(body.roles).split(','))
         .map(x => norm(x)).filter(Boolean).map(x => SELF_ROLE_ALIASES[x] || ROLE_FROM_APP[x] || x);
@@ -2350,7 +2350,7 @@ function doPost(e) {
       const gate = adding.indexOf('tutor') !== -1 && !iAmAdmin;
       if (gate && t.headers.indexOf('listed') < 0) {
         return jsonOut({ error: 'The people tab has no `listed` column, so a new tutor could not be '
-          + 'held for approval. Run ensureSchema() — nothing was saved.' });
+          + 'held for approval. Open the site once as an admin — nothing was saved.' });
       }
 
       if (adding.length || dropping.length) {
@@ -2377,7 +2377,7 @@ function doPost(e) {
          wardrobe change was discarded in silence. Said out loud rather than pretended. */
       if (t.headers.indexOf('avatar') < 0 || t.headers.indexOf('avatar_owned') < 0) {
         return jsonOut({ error: 'The people tab has no `avatar` or `avatar_owned` column. Run '
-          + 'ensureSchema() — nothing was saved.' });
+          + 'open the site once as an admin — nothing was saved.' });
       }
 
       const wanted = body.avatar || {};
@@ -3969,7 +3969,7 @@ function loginReplyFor_(r, token, extra) {
 /* ---------- ONE ROW PER PRESS, APPENDED § */
 function submissionsAppend_(pid, items, sent) {
   const t = readCols_(TAB.submissions, ['person_id', 'event_id']);
-  if (!t.sheet) return { error: 'The sheet has no submissions tab. Run ensureSchema() (open /exec?setup=1) to add it.' };
+  if (!t.sheet) return { error: 'The sheet has no submissions tab. Open the site once as an admin to add it.' };
   const has = c => t.headers.indexOf(c) !== -1;
   const now = new Date(), nowMs = now.getTime();
   const sentMs = Math.floor(Number(sent));
@@ -4034,7 +4034,7 @@ function answerAtMs_(v) {
 }
 function answersUpsert_(pid, items) {
   const t = read(TAB.answers);
-  if (!t.sheet) return { error: 'The sheet has no answers tab. Run ensureSchema() (open /exec?setup=1) to add it.' };
+  if (!t.sheet) return { error: 'The sheet has no answers tab. Open the site once as an admin to add it.' };
   const now = Date.now();
   /* THIS PERSON'S ROWS, ONCE — not a scan of the whole tab per item. */
   const mine = {};

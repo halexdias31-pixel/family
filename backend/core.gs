@@ -201,7 +201,7 @@ function jsonOut(obj) {
       delete obj.success;
       obj.error = 'Nothing was saved for: '
         + missed.map(x => x.tab + '.' + x.field).join(', ')
-        + '. Those columns are not in the sheet — deploy and reload, or run ensureSchema.';
+        + '. Those columns are not in the sheet — deploy and reload, or open the site once as an admin.';
     }
   }
   /* NO CHILD'S SURNAME LEAVES BY THIS DOOR — the owner, 10 Oct: § */
@@ -318,15 +318,15 @@ function testCache() {
   out.push(watching ? ('edit watch installed (' + watching + ' spreadsheet'
                        + (watching === 1 ? '' : 's') + ')')
                     : 'WARNING — nothing is watching the spreadsheet, so an edit typed into a tab '
-                      + 'will not reach the site for up to six hours. Run installSheetWatch, or '
-                      + 'open /exec?triggers=1.');
+                      + 'will not reach the site for up to six hours. Open /exec?triggers=1 '
+                      + '(it is also installed by itself after a deploy).');
 
   const trig = ScriptApp.getProjectTriggers()
     .filter(t => t.getHandlerFunction() === 'warmPayload').length;
   out.push(trig ? ('five-minute warmer installed (' + trig + ') — note it costs about five hours of '
                    + 'script time a day against an allowance of ninety minutes')
                 : 'no five-minute warmer, which is the intended state: rebuilds happen a minute '
-                  + 'after an edit instead. See the note in installTriggers.');
+                  + 'after an edit instead. See the note in installTriggers_.');
 
   return 'PASS — the cache itself works.\n' + out.join('\n')
     + '\n\nIf loads are still slow with this passing, the deployed version is older than this code: '
@@ -396,17 +396,7 @@ function warmPayload() {
   return 'warmed ' + done.join(', ');
 }
 
-/** Put the five-minute refresh in place. Run once, by hand, after deploying. */
-function installWarmTrigger() {
-  /* THE OLD ONES GO FIRST. Running this twice would otherwise leave two triggers doing the same
-     work, and there is no way to see that from the app — only a quota that runs out sooner than it
-     should. */
-  ScriptApp.getProjectTriggers().forEach(t => {
-    if (t.getHandlerFunction() === 'warmPayload') ScriptApp.deleteTrigger(t);
-  });
-  ScriptApp.newTrigger('warmPayload').timeBased().everyMinutes(5).create();
-  return 'the payload will be rebuilt every 5 minutes';
-}
+/* `installWarmTrigger` WAS HERE (361): every five minutes ate the day's script time, nothing called it, and it was a Run-menu item to press by mistake. */
 
 /* AN EDIT TYPED INTO THE SPREADSHEET IS A CHANGE TO THE SITE, AND UNTIL NOW IT WAS NOT. § */
 
@@ -454,7 +444,7 @@ function warmAfterEdit() {
 }
 
 /* PUT THE WATCH ON THE SPREADSHEETS. § */
-function installSheetWatch() {
+function installSheetWatch_() {
   const out = [];
   try {
     ScriptApp.getProjectTriggers().forEach(t => {
@@ -509,7 +499,7 @@ function sheetWatchStatus() {
     verdict: (names.onSheetChange || 0) > 0
       ? 'Edits typed into the spreadsheet retire the stored payload straight away.'
       : 'NOT WATCHING — an edit typed into the spreadsheet will not show on the site for up to six '
-        + 'hours. Run installSheetWatch, or open /exec?triggers=1.',
+        + 'hours. Open /exec?triggers=1 (it is also installed by itself after a deploy).',
   };
 }
 

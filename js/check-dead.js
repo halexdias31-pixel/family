@@ -9,11 +9,11 @@ const strip=t=>t.replace(/\/\*[\s\S]*?\*\//g,'').replace(/\/\/.*/g,'');
    maintenance jobs by name; a person types the console tools. None of these has a caller in the
    source and all of them are alive. */
 const KEEP=new Set(['doGet','doPost','missingKeys','layout',
-  'ensureSchema','checkEverything','checkPostsFolder','checkScopes','authoriseDrive',
-  'makeBrandAccount','migrateLikes','installTriggers','listTriggers',
-  'refreshPageCounts','closeFinishedJobs','geocodeVenues','fetchMap','renameValue',
-  'seedOptions','ensureResourceIds','schemaGaps','dataProblems','autoMigrate',
-  'seedConfig','seedAvatarItems','seedPostcodes','ensurePersonIds','gallery','landmarks',
+  'ensureSchema_','checkEverything','checkPostsFolder','checkScopes','authoriseDrive',
+  'makeBrandAccount','migrateLikes_','installTriggers_','listTriggers',
+  'refreshPageCounts','closeFinishedJobs','geocodeVenues','fetchMap','renameValue_',
+  'seedOptions','ensureResourceIds','schemaGaps','dataProblems','autoMigrate_',
+  'seedConfig_','seedAvatarItems_','seedPostcodes','ensurePersonIds_','gallery','landmarks',
   /* THE CHECKS' QUESTION "is the builder done?" (docs/history/341) — asked by check-flow, swipe, reach, press
      and ui through the page, and by nothing in the app, which never needs to wait for itself. */
   'aheadBusy_']);

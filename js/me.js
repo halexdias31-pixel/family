@@ -112,6 +112,41 @@ function versionSaid_() {
       })()}`;
 }
 
+/* ---------- THE SETUP CARD (361): what has set itself up since the last deploy, for an admin only ----------
+   No buttons: every job runs by itself on an admin's page load, so there is nothing to press twice. */
+function setupWhen_(iso) {
+  const d = new Date(String(iso || ''));
+  if (isNaN(d)) return String(iso || '');
+  return d.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+function setupCard_() {
+  if (!(typeof isAdmin === 'function' && isAdmin())) return '';
+  const S_ = DATA && DATA.setup;
+  if (!S_) {
+    return typeof awaiting_ === 'function' && awaiting_()
+      ? `<div class="card setup-card"><h3>Setup</h3>${loading_()}</div>`
+      : `<div class="card setup-card"><h3>Setup</h3><p class="sub">The live backend sends no setup report, so it is older than this site. Pull, then Deploy → New version.</p></div>`;
+  }
+  if (S_.error) return `<div class="card setup-card"><h3>Setup</h3><p class="sub">The setup report failed: ${esc(S_.error)}</p></div>`;
+  const files = S_.files || {};
+  const odd = Object.keys(files).filter(k => files[k] !== S_.backend);
+  const jobs = Array.isArray(S_.jobs) ? S_.jobs : [];
+  const failed = jobs.filter(j => j && j.error);
+  const sun = S_.sunday || {};
+  const mode = { send: 'on — it emails parents', preview: 'preview — it writes the log and emails nobody' }[sun.mode] || 'off — nothing is sent';
+  return `<div class="card setup-card"><h3>Setup</h3>
+    <p class="sub">Backend live: <b>${esc(S_.backend || '—')}</b> · site ${esc(typeof SITE_VERSION !== 'undefined' ? SITE_VERSION : '—')}${odd.length
+      ? ` · <span class="setup-bad">not deployed: ${odd.map(k => esc(k) + '.gs (' + esc(files[k]) + ')').join(', ')}</span>` : ' · all four files agree'}</p>
+    ${failed.map(j => `<p class="setup-bad">${esc(j.id)} failed: ${esc(j.error)} — it tries again on the next page load.</p>`).join('')}
+    <ul class="setup-list">${jobs.map(j => `<li><span>${j.ran ? '✓' : j.error ? '✗' : '…'}</span> ${esc(j.id)} <span class="faint">${j.ran
+      ? esc(j.ran === 'yes' ? 'done' : setupWhen_(j.ran)) : j.error ? 'failed' : 'waiting'}</span></li>`).join('')}</ul>
+    <h4>Triggers</h4>
+    <ul class="setup-list">${(S_.triggers || []).map(t => `<li>${esc(t.fn)}${t.times > 1 ? ' ×' + esc(t.times) : ''} <span class="faint">${esc(t.when)}</span></li>`).join('')
+      || `<li class="faint">${S_.triggersError ? 'could not be listed: ' + esc(S_.triggersError) : 'none yet — they install on the next page load'}</li>`}</ul>
+    <p class="sub">Sunday email: ${esc(mode)}. ${sun.next ? 'Next send ' + esc(setupWhen_(sun.next)) + '.' : 'Not booked yet — it books itself on the next page load.'}</p>
+  </div>`;
+}
+
 /* THE YOU SCREEN IS ONE PAGE. § */
 /* MESSAGES, ON A PANE OF ITS OWN. § */
 /* `meMessagesCard` WAS HERE — one pane on `You` holding every message from everybody, filled by `fillMessages` into a single `#msg-body`. § */

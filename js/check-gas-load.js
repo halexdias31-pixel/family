@@ -57,7 +57,7 @@ function backend(extra) {
             return self;
           },
           setNumberFormat: () => self, setBackground: () => self, setFontWeight: () => self,
-          /* `ensureSchema` REWROTE THE OPTIONS TAB through this until 10 Oct (`seedOptions` only adds
+          /* `ensureSchema_` REWROTE THE OPTIONS TAB through this until 10 Oct (`seedOptions` only adds
              now). Kept emptying the cells it covers rather than a no-op, so anything that still clears
              a range is seen doing it. */
           clearContent() {
