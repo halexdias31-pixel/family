@@ -5,7 +5,7 @@ const { backend } = require('./check-gas-load');
 
 const b = backend();
 const fails = [];
-/* EVERY SHEET OPENED IS COUNTED: the verse may look at the Ledger's `verses` tab, and `people` for `jsonOut`'s surname net, nothing else. */
+/* EVERY SHEET OPENED IS COUNTED: only `people` for `jsonOut`'s surname net, nothing else. */
 b.ev(`(function(){ const o = SpreadsheetApp.openById; globalThis.OPENED_ = [];
   SpreadsheetApp.openById = id => { const bk = o(id), g = bk.getSheetByName.bind(bk);
     return Object.assign(Object.create(bk), { getSheetByName: n => { OPENED_.push(n); return g(n); } }); }; })()`);
@@ -26,8 +26,8 @@ for (let i = 0; i < N; i++) {
 }
 if (ask('2026-10-19') !== ask('2026-10-19')) fails.push('not the same verse for the same day');
 if (!ask('today').includes('\n')) fails.push('?verse=today gave nothing');
-const opened = b.ev('OPENED_').filter(n => n !== 'verses' && n !== 'people');
-if (opened.length) fails.push('opened tabs besides `verses` (a payload being built?): ' + opened.join(', '));
+const opened = b.ev('OPENED_').filter(n => n !== 'people');
+if (opened.length) fails.push('opened tabs besides `people` (a payload being built?): ' + opened.join(', '));
 
 if (fails.length) { console.log('FAILED — ?verse=\n  ' + fails.join('\n  ')); process.exit(1); }
 console.log('check-verse: ' + N + ' verses, ' + N + ' days without a repeat, no payload');

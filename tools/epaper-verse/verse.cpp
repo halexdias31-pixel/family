@@ -1,59 +1,48 @@
 #include <Arduino.h>
-// epaper-verse.ino - a different Bible verse every morning on the Waveshare ESP32-S3-ePaper-1.54.
-// Wakes, joins Wi-Fi, asks the Apps Script backend for ?verse=today, draws it, deep-sleeps until about 6am.
-// Wi-Fi and the backend address are typed in on a phone (WiFiManager's setup page), kept in flash. GPL-3.0, as GxEPD2.
-// Pins come from Waveshare's own demo: github.com/waveshareteam/ESP32-S3-ePaper-1.54, 02_Example/Arduino/*/user_config.h.
+// verse.cpp - a different Bible verse every morning on the Waveshare ESP32-S3-ePaper-1.54. GPL-3.0, as GxEPD2.
+// Wake -> Wi-Fi -> fetch ?verse=today -> draw -> sleep until 06:02 UK time. Wi-Fi is typed into the install page (Improv).
+// Pins from Waveshare's demo: github.com/waveshareteam/ESP32-S3-ePaper-1.54, 02_Example/Arduino/*/user_config.h.
 
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
-#include <SPI.h>
-#include <time.h>
+#include <ArduinoJson.h>
 #include <GxEPD2_BW.h>
 #include <Fonts/FreeSerif12pt7b.h>
 #include <Fonts/FreeSerif9pt7b.h>
 #include <Fonts/FreeSerifItalic9pt7b.h>
-#include <WiFiManager.h>
-#include <ArduinoJson.h>
-#include <Preferences.h>
+#include "improv.h"
 
-// E-paper wiring on this board (Waveshare user_config.h). The panel is SSD1681-class, 200x200 black/white.
-#define EPD_PWR   6    // panel power switch, LOW = on (Waveshare's POWEER_EPD_ON writes 0)
-#define EPD_BUSY  8
-#define EPD_RST   9
-#define EPD_DC   10
-#define EPD_CS   11
-#define EPD_SCK  12
-#define EPD_MOSI 13
+#define EPD_PWR 6   // panel power, LOW = on; e-paper keeps its picture with the power off
+GxEPD2_BW<GxEPD2_154_D67, GxEPD2_154_D67::HEIGHT> display(GxEPD2_154_D67(/*CS*/ 11, /*DC*/ 10, /*RST*/ 9, /*BUSY*/ 8));
 
-GxEPD2_BW<GxEPD2_154_D67, GxEPD2_154_D67::HEIGHT> display(GxEPD2_154_D67(EPD_CS, EPD_DC, EPD_RST, EPD_BUSY));
+const char *URL = "https://script.google.com/macros/s/AKfycbyDr5ZsF63_zfgx3tlhqPF3H7U8zSY8TjB8EKY30ZWxBfDIR0QztN4B64V9c-mud7Go/exec?verse=today";
+const char *NAME = "Verse of the day", *VERSION = "2026-10-19-g-builtin";   // told to the install page when it asks
 
-const char *TZ_LONDON = "GMT0BST,M3.5.0/1,M10.5.0";   // UK time, summer time included
-const int WAKE_HOUR = 6;
-const uint64_t RETRY_SECONDS = 30 * 60;
-const char *SETUP_AP = "Verse-Setup";
-#define BOOT_BUTTON 0
-// The site's own backend (js/data.js API); changeable on the setup page.
-const char *DEFAULT_URL = "https://script.google.com/macros/s/AKfycbyDr5ZsF63_zfgx3tlhqPF3H7U8zSY8TjB8EKY30ZWxBfDIR0QztN4B64V9c-mud7Go/exec";
+// A verse is always shown: these, by date, when the backend cannot be reached or does not answer with a verse yet.
+const char *const BUILT_IN[][2] = {
+  { "In the beginning God created the heaven and the earth.", "Genesis 1:1" },
+  { "The LORD is my shepherd; I shall not want.", "Psalm 23:1" },
+  { "The LORD is my light and my salvation; whom shall I fear? the LORD is the strength of my life; of whom shall I be afraid?", "Psalm 27:1" },
+  { "Delight thyself also in the LORD; and he shall give thee the desires of thine heart.", "Psalm 37:4" },
+  { "God is our refuge and strength, a very present help in trouble.", "Psalm 46:1" },
+  { "Be still, and know that I am God: I will be exalted among the heathen, I will be exalted in the earth.", "Psalm 46:10" },
+  { "Cast thy burden upon the LORD, and he shall sustain thee: he shall never suffer the righteous to be moved.", "Psalm 55:22" },
+  { "This is the day which the LORD hath made; we will rejoice and be glad in it.", "Psalm 118:24" },
+  { "Thy word is a lamp unto my feet, and a light unto my path.", "Psalm 119:105" },
+  { "I will lift up mine eyes unto the hills, from whence cometh my help.", "Psalm 121:1" },
+  { "My help cometh from the LORD, which made heaven and earth.", "Psalm 121:2" },
+  { "O give thanks unto the LORD; for he is good: for his mercy endureth for ever.", "Psalm 136:1" },
+};
 
-Preferences prefs;
-String verseUrl;
-bool displayReady = false;
-
-void sleepFor(uint64_t seconds) {
-  Serial.printf("Sleeping %llu s\n", seconds);
-  Serial.flush();
-  digitalWrite(EPD_PWR, HIGH);   // panel off; e-paper keeps its picture with no power
-  esp_sleep_enable_timer_wakeup(seconds * 1000000ULL);
-  esp_deep_sleep_start();
+void builtIn(String &text, String &ref) {
+  struct tm now;
+  long day = getLocalTime(&now, 10000) ? mktime(&now) / 86400 : 0;
+  int n = sizeof(BUILT_IN) / sizeof(BUILT_IN[0]);
+  text = BUILT_IN[day % n][0]; ref = BUILT_IN[day % n][1];
 }
 
-bool joinSaved() {
-  WiFi.mode(WIFI_STA);
-  WiFi.begin();   // the network WiFiManager saved
-  for (int i = 0; i < 40 && WiFi.status() != WL_CONNECTED; i++) delay(500);
-  return WiFi.status() == WL_CONNECTED;
-}
+bool online() { return WiFi.status() == WL_CONNECTED; }
 
 // Apps Script answers on script.google.com, then redirects to googleusercontent.com - follow it.
 bool fetchVerse(String &text, String &ref) {
@@ -62,17 +51,11 @@ bool fetchVerse(String &text, String &ref) {
   HTTPClient http;
   http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
   http.setTimeout(20000);
-  if (!http.begin(client, verseUrl + "?verse=today")) return false;
-  int code = http.GET();
-  String body = code == 200 ? http.getString() : "";
-  http.end();
-  Serial.printf("HTTP %d, %d bytes\n", code, body.length());
   JsonDocument doc;
-  if (code != 200 || deserializeJson(doc, body)) return false;
-  text = (const char *)(doc["text"] | "");
-  ref = (const char *)(doc["ref"] | "");
-  text.trim(); ref.trim();
-  return text.length() > 0 && ref.length() > 0;
+  bool ok = http.begin(client, URL) && http.GET() == 200 && !deserializeJson(doc, http.getString());
+  http.end();
+  text = (const char *)(doc["text"] | ""); ref = (const char *)(doc["ref"] | "");
+  return ok && text.length() && ref.length();
 }
 
 // The built-in fonts are plain ASCII: turn curly quotes and dashes from a sheet into straight ones.
@@ -108,32 +91,19 @@ int wrap(const String &text, int maxW, String lines[], int maxLines) {
   return n;
 }
 
-void startDisplay() {
-  if (displayReady) return;
-  SPI.begin(EPD_SCK, -1, EPD_MOSI, EPD_CS);
-  display.epd2.selectSPI(SPI, SPISettings(4000000, MSBFIRST, SPI_MODE0));
-  display.init(115200, true, 2, false);
-  display.setRotation(0);
-  displayReady = true;
-}
-
-// Setup instructions on the screen itself, for the phone that will do the typing.
-void drawSetup() {
-  startDisplay();
+// One plain sentence in the middle of the screen: what is happening, or what to do.
+void say(const String &msg) {
+  display.setFont(&FreeSerif12pt7b);
+  String lines[8]; int n = min(wrap(msg, 184, lines, 8), 8);
   display.setFullWindow();
   display.firstPage();
   do {
     display.fillScreen(GxEPD_WHITE);
     display.setTextColor(GxEPD_BLACK);
-    display.setFont(&FreeSerif12pt7b);
-    display.setCursor(8, 28); display.print("Wi-Fi setup");
-    display.setFont(&FreeSerif9pt7b);
-    display.setCursor(8, 60);  display.print("On your phone, join");
-    display.setCursor(8, 82);  display.print("the Wi-Fi network:");
-    display.setCursor(8, 108); display.print(SETUP_AP);
-    display.setCursor(8, 140); display.print("A page opens; pick your");
-    display.setCursor(8, 162); display.print("home Wi-Fi, type its");
-    display.setCursor(8, 184); display.print("password, press Save.");
+    for (int i = 0; i < n; i++) {
+      display.setCursor(8 + (184 - textWidth(lines[i])) / 2, 100 - n * 12 + (i + 1) * 24 - 6);
+      display.print(lines[i]);
+    }
   } while (display.nextPage());
 }
 
@@ -164,71 +134,84 @@ void drawVerse(const String &text, const String &ref) {
     display.setCursor(M + (W - textWidth(ref)) / 2, 194);
     display.print(ref);
   } while (display.nextPage());
-  display.hibernate();
 }
 
 uint64_t secondsUntilWake() {
   struct tm now;
   if (!getLocalTime(&now, 10000)) return 24 * 3600ULL;   // no clock: try again in a day
   struct tm next = now;
-  next.tm_hour = WAKE_HOUR; next.tm_min = 2; next.tm_sec = 0;   // 06:02, safely after midnight's new verse
+  next.tm_hour = 6; next.tm_min = 2; next.tm_sec = 0;   // 06:02, safely after midnight's new verse
   time_t t = mktime(&next);
   if (t <= mktime(&now)) { next.tm_mday += 1; t = mktime(&next); }
   return (uint64_t)(t - mktime(&now));
 }
 
-// The phone page: home Wi-Fi plus the backend address. Returns true once connected.
-bool runPortal(uint16_t seconds) {
-  drawSetup();
-  WiFiManager wm;
-  WiFiManagerParameter urlField("url", "Verse address (leave as it is)", verseUrl.c_str(), 200);
-  wm.addParameter(&urlField);
-  wm.setConfigPortalTimeout(seconds);
-  bool ok = wm.startConfigPortal(SETUP_AP);
-  String u = urlField.getValue(); u.trim();
-  if (u.startsWith("https://") && u != verseUrl) { verseUrl = u; prefs.putString("url", u); }
-  return ok;
+// Improv: answers the install page while it waits. A Wi-Fi name and password are joined (and kept by the chip) on the spot.
+uint8_t out[300];
+void reply(uint8_t type, uint8_t value) { Serial.write(out, improvPacket(out, type, &value, 1)); }
+void result(uint8_t cmd, const char *const s[], int k) { Serial.write(out, improvResult(out, cmd, s, k)); }
+Improv improv;
+bool newWifi = false;
+
+void serveImprov() {
+  while (Serial.available()) {
+    if (!improv.feed(Serial.read())) continue;
+    char ssid[33], pass[65];
+    if (improv.cmd() == CMD_STATE) {
+      reply(IMPROV_STATE, online() ? PROVISIONED : READY);
+      if (online()) result(CMD_STATE, nullptr, 0);
+    } else if (improv.cmd() == CMD_INFO) {
+      const char *info[] = { NAME, VERSION, "ESP32-S3", "Verse screen" };
+      result(CMD_INFO, info, 4);
+    } else if (improv.cmd() == CMD_WIFI && improv.wifi(ssid, pass)) {
+      reply(IMPROV_STATE, PROVISIONING);
+      say("Connecting to Wi-Fi...");
+      WiFi.begin(ssid, pass);
+      for (int i = 0; i < 40 && !online(); i++) delay(500);
+      if (online()) { reply(IMPROV_STATE, PROVISIONED); result(CMD_WIFI, nullptr, 0); newWifi = true; say("Connected - getting today's verse"); }
+      else { reply(IMPROV_ERROR, 3); say("Wi-Fi password didn't work - press Install again"); }
+    } else reply(IMPROV_ERROR, 2);
+  }
 }
 
-// The last verse drawn is kept in flash, so a setup screen that timed out can be put back.
-void showVerse(const String &text, const String &ref) {
-  startDisplay();
+// Waits up to ms, answering the install page; stops early once online if asked to.
+void waitFor(unsigned long ms, bool untilOnline) {
+  for (unsigned long t = millis(); millis() - t < ms && !(untilOnline && online()) && !newWifi; delay(20)) serveImprov();
+}
+
+bool showToday() {
+  String text, ref;
+  if (!online()) return false;
+  if (!fetchVerse(text, ref)) builtIn(text, ref);
   drawVerse(asciiOnly(text), asciiOnly(ref));
+  return true;
 }
 
 void setup() {
   Serial.begin(115200);
-  delay(200);
-  pinMode(EPD_PWR, OUTPUT);
-  digitalWrite(EPD_PWR, LOW);   // panel on
-  pinMode(BOOT_BUTTON, INPUT_PULLUP);
-  prefs.begin("verse", false);
-  verseUrl = prefs.getString("url", DEFAULT_URL);
+  pinMode(EPD_PWR, OUTPUT); digitalWrite(EPD_PWR, LOW);
+  SPI.begin(12, -1, 13, 11);
+  display.epd2.selectSPI(SPI, SPISettings(4000000, MSBFIRST, SPI_MODE0));
+  display.init(115200, true, 2, false);
+  bool byHand = esp_sleep_get_wakeup_cause() != ESP_SLEEP_WAKEUP_TIMER;   // plugged in or RESET, not the morning alarm
+  configTzTime("GMT0BST,M3.5.0/1,M10.5.0", "pool.ntp.org", "time.google.com");   // UK time, summer time included
 
-  // RESET, then hold BOOT within two seconds: open the setup page again (a new router, a new password).
-  bool askedSetup = false;
-  for (int i = 0; i < 20 && !askedSetup; i++) { askedSetup = digitalRead(BOOT_BUTTON) == LOW; delay(100); }
-
-  bool online = !askedSetup && joinSaved();
-  if (!online) online = runPortal(askedSetup || !prefs.getBool("ever", false) ? 600 : 180);
-  if (online) prefs.putBool("ever", true);
-
-  String text, ref;
-  bool ok = false;
-  if (online) {
-    configTzTime(TZ_LONDON, "pool.ntp.org", "time.google.com");
-    ok = fetchVerse(text, ref);
+  WiFi.mode(WIFI_STA);
+  WiFi.begin();   // the Wi-Fi saved last time, if any
+  if (byHand) say("Connecting to Wi-Fi...");
+  waitFor(20000, true);
+  if (!online() && byHand) { say("Now type your Wi-Fi name and password on the Chromebook."); waitFor(600000, true); }
+  bool shown = showToday();
+  if (!shown && byHand) say("No Wi-Fi - plug me into the Chromebook and press Install");
+  if (byHand) {   // two minutes in which Install can still change the Wi-Fi
+    newWifi = false;
+    waitFor(120000, false);
+    if (newWifi) shown = showToday();
   }
-  if (ok) {
-    prefs.putString("text", text); prefs.putString("ref", ref);
-    showVerse(text, ref);
-    uint64_t s = secondsUntilWake();
-    WiFi.disconnect(true);
-    sleepFor(s);
-  }
-  // Failed: the screen keeps the old verse, or gets it back if the setup page covered it.
-  if (displayReady && prefs.getString("text", "").length()) showVerse(prefs.getString("text", ""), prefs.getString("ref", ""));
-  sleepFor(RETRY_SECONDS);
+  display.hibernate();
+  digitalWrite(EPD_PWR, HIGH);
+  esp_sleep_enable_timer_wakeup((shown ? secondsUntilWake() : 30 * 60ULL) * 1000000ULL);
+  esp_deep_sleep_start();
 }
 
 void loop() {}

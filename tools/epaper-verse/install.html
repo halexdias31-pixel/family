@@ -3,38 +3,50 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Verse Screen Install</title>
-<script type="module" src="https://unpkg.com/esp-web-tools@10.0.1/dist/web/install-button.js?module"></script>
+<title>Verse Screen Setup</title>
 <style>
-  :root { --bg: #000; --ink: #f3ead2; --gold: #d4af37; --line: #3a3220; }
-  body { margin: 0; background: var(--bg); color: var(--ink); font: 1.05rem/1.5 Georgia, serif; }
-  main { max-width: 34rem; margin: 0 auto; padding: 1.5rem 16px 3rem; }
-  h1 { color: var(--gold); font-weight: normal; margin: 0 0 1rem; }
-  ol { padding-left: 1.3rem; } li { margin: 0 0 .7rem; }
-  .box { border: 1px solid var(--line); border-radius: 10px; padding: 1rem; margin: 1.2rem 0; text-align: center; }
-  esp-web-install-button { --esp-tools-button-color: #d4af37; --esp-tools-button-text-color: #000; }
-  small { color: #a89f86; }
-  a { color: var(--gold); }
+  :root { --bg: #000; --ink: #f3ead2; --gold: #d4af37; --line: #3a3220; --dim: #a89f86; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 1.15rem/1.5 Georgia, serif; }
+  main { max-width: 32rem; margin: 0 auto; padding: 2rem 16px 3rem; }
+  h1 { color: var(--gold); font-weight: normal; margin: 0 0 .3rem; }
+  .dim { color: var(--dim); }
+  ol { list-style: none; padding: 0; margin: 1.5rem 0 2rem; }
+  li { display: flex; align-items: center; gap: 1rem; padding: .9rem 0; border-top: 1px solid var(--line); font-size: 1.3rem; }
+  li b { color: var(--gold); font-size: 1.8rem; width: 1.4rem; }
+  svg { width: 44px; height: 44px; flex: none; margin-left: auto; stroke: var(--gold); fill: none; stroke-width: 2; stroke-linecap: round; }
+  button { font: inherit; font-size: 1.4rem; min-height: 56px; width: 100%; border: 0; border-radius: 12px; background: var(--gold); color: #000; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: default; }
+  input { font: inherit; width: 100%; box-sizing: border-box; min-height: 48px; margin: 0 0 1rem; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: #111; color: var(--ink); }
+  label { display: block; color: var(--dim); }
+  progress { width: 100%; height: 14px; accent-color: var(--gold); margin: 1rem 0 0; }
+  #say { font-size: 1.3rem; min-height: 2rem; margin: 1.2rem 0; }
+  [hidden] { display: none !important; }
+  small { display: block; color: var(--dim); margin-top: 2rem; }
 </style>
 </head>
 <body>
 <main>
-  <h1>Verse of the day</h1>
-  <p>Puts the verse-a-day program on the Waveshare ESP32-S3-ePaper-1.54. Use Chrome (a Chromebook is fine).</p>
+  <h1>Verse screen</h1>
+  <p class="dim">Use Chrome on a Chromebook or computer (not a phone).</p>
   <ol>
-    <li>Plug the board into the Chromebook with a USB-C cable.</li>
-    <li>Press <b>Install</b> below, choose the board in the list (it may be called "USB JTAG/serial debug unit"), press <b>Connect</b>, then <b>Install</b>. It takes about a minute.</li>
-    <li>If it is not in the list or says it cannot connect: unplug it, hold the <b>BOOT</b> button, plug it back in, let go, and try again. Afterwards press <b>RESET</b> once.</li>
-    <li>The screen then says <b>Wi-Fi setup</b>. On your phone, join the Wi-Fi network <b>Verse-Setup</b>. A page opens (if not, open <b>192.168.4.1</b> in the phone's browser). Tap <b>Configure WiFi</b>, pick your home Wi-Fi, type its password, leave the verse address as it is, and press <b>Save</b>.</li>
-    <li>A few seconds later today's verse appears. It changes every morning at about 6am.</li>
+    <li><b>1</b> Plug the screen into the Chromebook.
+      <svg viewBox="0 0 44 44"><rect x="6" y="14" width="14" height="16" rx="2"/><path d="M20 22h10c4 0 6-4 8-8"/></svg></li>
+    <li><b>2</b> Press Install and choose the screen.
+      <svg viewBox="0 0 44 44"><rect x="6" y="14" width="32" height="16" rx="8"/><circle cx="22" cy="22" r="3"/></svg></li>
+    <li><b>3</b> Type your Wi-Fi name and password.
+      <svg viewBox="0 0 44 44"><path d="M8 18a20 20 0 0 1 28 0M13 24a12 12 0 0 1 18 0M18 30a5 5 0 0 1 8 0"/><circle cx="22" cy="35" r="1"/></svg></li>
   </ol>
-  <div class="box">
-    <esp-web-install-button manifest="manifest.json">
-      <span slot="unsupported">This browser cannot talk to the board. Open this page in Chrome or Edge on a computer or Chromebook.</span>
-      <span slot="not-allowed">Open this page from its https:// address.</span>
-    </esp-web-install-button>
-  </div>
-  <p><small>To change the Wi-Fi later: press RESET, then within two seconds press and hold BOOT until the setup screen shows. Free software: the program is GPL-3.0 and its source is in this site's repository, <code>tools/epaper-verse/</code>; see NOTICE.txt.</small></p>
+  <button id="go" type="button">Install</button>
+  <progress id="bar" max="1" value="0" hidden></progress>
+  <form id="wifi" hidden>
+    <label for="ssid">Wi-Fi name</label><input id="ssid" autocomplete="off" required>
+    <label for="pass">Wi-Fi password</label><input id="pass" type="password" autocomplete="off">
+    <button type="submit">Save</button>
+  </form>
+  <p id="say" aria-live="polite"></p>
+  <small>If it doesn't show up: try another cable, or hold the BOOT button while you plug it in.
+    To change the Wi-Fi, do it all again. Free software (GPL-3.0); the source is in tools/epaper-verse/.</small>
 </main>
+<script type="module" src="install.js"></script>
 </body>
 </html>
