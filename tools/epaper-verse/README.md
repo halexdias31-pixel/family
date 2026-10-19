@@ -1,33 +1,32 @@
 # Verse screen
 
-A new Bible verse every morning on the little Waveshare e-paper screen.
+A Bible verse a day on the little Waveshare e-paper screen. No Wi-Fi, nothing to set up.
 
 1. On a **Chromebook**, open **https://atfamily.co.uk/tools/epaper-verse/install.html** in Chrome
-   (or: the site, admin area, **Verse screen · set up**). Plug the screen in with its USB-C cable.
+   (or: the site, admin area, **Verse screen · set up**). Plug the screen into the Chromebook.
 2. Press **Install** and choose the screen (it is the only thing in the list). About a minute.
-3. Type your **Wi-Fi name and password** in the boxes that appear. Today's verse appears.
+   "Done. Your verse is on the screen."
 
-Then plug it into any phone charger. It changes every morning at about 6am.
+Then plug it into any phone charger and **leave it on USB power**. It shows the next verse every 24 hours.
+If it is unplugged, it carries on from the next verse when plugged back in. Pressing RESET just redraws today's.
 
-- **Not in the list?** Try another cable, or hold **BOOT** while you plug it in (press **RESET** after).
-- **New Wi-Fi?** The screen says "No Wi-Fi". Plug it into the Chromebook and do the three steps again.
+- **Not in the list?** Try another cable, close other tabs, or hold **BOOT** while you plug it in (press **RESET** after).
 
 ---
 
 ## Technical notes
 
-- `verse.cpp` is the whole program (the `.ino` only names it for the Arduino tools): wake, join Wi-Fi,
-  fetch `?verse=today` from the Apps Script backend (or, if that fails or is not deployed, one of 12 built-in verses by date), draw, deep-sleep until 06:02 UK time (30 min on failure).
-  When woken by hand (plug-in or RESET) it listens on USB for 2 minutes so Install can change the Wi-Fi.
+- `verse.cpp` is the whole program (the `.ino` only names it for the Arduino tools). Every wake: full
+  refresh to white (`clearScreen`, wipes any old picture), draw verse `i`, deep-sleep 24 h on the RTC
+  timer. `i` lives in NVS (`Preferences`, namespace `verse`); only the timer wake advances it, so plug-in,
+  RESET or a fresh install redraws the same verse. 79 short KJV verses, brackets removed, built in.
+  No Wi-Fi, no NTP, no backend.
 - `install.html` + `install.js` are our own installer on esptool-js 0.6.1 (unpkg): the Chrome list is
-  filtered to Espressif's USB id 0x303a, the `.bin` is written at 0, then the Wi-Fi goes over **Improv
-  Wi-Fi serial** (`improv.h`, about 50 lines); the chip keeps it. Tests, no board needed:
-  `node tools/epaper-verse/test/improv-test.js` (g++) and `node tools/epaper-verse/test/install-test.js` (Playwright).
-- Verses: `backend/verse.gs`, 79 short KJV verses; day n shows verse n mod 79.
-- Build: arduino-esp32 3.0.7, libraries GxEPD2 and ArduinoJson. ESP32S3 Dev Module, USB CDC On Boot,
+  filtered to Espressif's USB id 0x303a, the `.bin` is written at 0, then a hard reset. Test, no board
+  needed: `node tools/epaper-verse/test/install-test.js` (Playwright, a pretend board).
+- Build: arduino-esp32 3.0.7, library GxEPD2. ESP32S3 Dev Module, USB CDC On Boot,
   QIO 80MHz 4MB, Huge APP, PSRAM off. Then
   `esptool --chip esp32s3 merge-bin -o epaper-verse.bin --flash-mode keep --flash-freq keep --flash-size keep 0x0 epaper-verse.ino.bootloader.bin 0x8000 epaper-verse.ino.partitions.bin 0xe000 <core>/tools/partitions/boot_app0.bin 0x10000 epaper-verse.ino.bin`.
-  Bump `VERSION` in `verse.cpp`.
 - Pins (Waveshare demo `github.com/waveshareteam/ESP32-S3-ePaper-1.54`): DC 10, CS 11, SCK 12, MOSI 13,
   RST 9, BUSY 8, panel power GPIO 6 (low = on). Panel: GxEPD2 `GxEPD2_154_D67`.
 - Licence GPL-3.0 (`COPYING`), as GxEPD2; other notices in `NOTICE.txt`.
