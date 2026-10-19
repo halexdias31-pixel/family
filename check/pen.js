@@ -340,7 +340,7 @@ const unmoved = (sec, where, r, b) => {
   /* ==================== THE BOARD, AT A PHONE AND AN iPAD ==================== */
   for (const [W, H] of [[390, 844], [820, 1180]]) {
     const at = `${W}x${H}`;
-    if (!['two', 'palm', 'large', 'tap', 'cancel', 'lost', 'bar', 'drift', 'grip', 'settle', 'phase', 'types', 'inv', 'samples', 'round'].some(want)) break;
+    if (!['two', 'palm', 'large', 'tap', 'cancel', 'lost', 'bar', 'drift', 'grip', 'settle', 'phase', 'types', 'steady', 'inv', 'samples', 'round'].some(want)) break;
     const env = await boot(browser, W, H, port);
     let b = await board(env);
     if (!b) { fail('REACH', at, 'no whiteboard on Tools'); await env.ctx.close(); continue; }
@@ -636,6 +636,47 @@ const unmoved = (sec, where, r, b) => {
       if (r.stored.length !== 1 || (r.stored[0] || []).length < 4) fail('types', at + ' mouse', `a finger line with a mouse click beside the board stored ${JSON.stringify(r.stored).slice(0, 100)} — wanted the finger's line`);
       unmoved('types', at + ' mouse', r, b);
       say(`types ${at} mouse ${JSON.stringify(r.stored).slice(0, 80)}`);
+      await fresh();
+    }
+
+    if (want('steady')) {
+      /* A SHAKY MOUSE (368): a 220px level line with +-3px of jitter each sample, then a lift. The stored line is steadier than the hand, ends at the lift, and a finger's same line is kept as it went */
+      const a = { x: b.ink.l + b.ink.w * 0.12, y: b.ink.t + b.ink.h * 0.5 }, L = Math.min(220, b.ink.w * 0.76), N = 60;
+      const jit = i => [Math.sin(i * 2.7) * 3, Math.cos(i * 1.9) * 3];
+      const pathOf = i => [a.x + L * i / N + (i && i < N ? jit(i)[0] : 0), a.y + (i && i < N ? jit(i)[1] : 0)];
+      const rough = (pts, sy) => { let s = 0; for (let i = 2; i < pts.length; i++) s += Math.abs(pts[i][1] - 2 * pts[i - 1][1] + pts[i - 2][1]) * sy; return s / Math.max(1, pts.length - 2); };
+      const sy = b.ink.h / 340, toPad = q => [(q[0] - b.ink.l) / b.ink.w * 340, (q[1] - b.ink.t) / b.ink.h * 340];
+      const raw = Array.from({ length: N + 1 }, (_, i) => toPad(pathOf(i)));
+      /* the board stores its strokes thinned; a question's pad keeps every point, so the board is asked as a question's would be */
+      await env.page.evaluate(() => { window.__thin = ansSimplify_; ansSimplify_ = st => st; });
+      for (const kind of ['mouse', 'pen']) {
+        const r = await gesture(env, k, BOARD, async () => {
+          await MO(env, 'mousePressed', a.x, a.y, kind, 1);
+          for (let i = 1; i <= N; i++) { const q = pathOf(i); await MO(env, 'mouseMoved', q[0], q[1], kind, 1); await sleep(8); }
+          await MO(env, 'mouseReleased', a.x + L, a.y, kind, 0);
+        });
+        const st = r.stored[0] || [], pts = [];
+        for (let i = 0; i + 1 < st.length; i += 2) pts.push([st[i], st[i + 1]]);
+        const end = pts[pts.length - 1], lift = toPad([a.x + L, a.y]);
+        const rr = rough(raw, sy), rs = rough(pts, sy);
+        if (r.stored.length !== 1 || pts.length < 4) fail('steady', at + ' ' + kind, 'a shaky line stored ' + JSON.stringify(r.stored).slice(0, 100));
+        else {
+          if (!(rs < rr * 0.5)) fail('steady', at + ' ' + kind, `the stored line is ${rs.toFixed(2)}px rough a sample, the hand ${rr.toFixed(2)} -- wanted under half`);
+          if (Math.hypot(end[0] - lift[0], end[1] - lift[1]) > 1.5) fail('steady', at + ' ' + kind, `the line ends at ${end} -- the pointer lifted at ${lift.map(Math.round)}: it lags`);
+        }
+        console.log(`  steady ${at} ${kind}: ${rs.toFixed(2)}px rough a sample where the hand was ${rr.toFixed(2)}, ${pts.length} points, ending at the lift`);
+        await fresh();
+      }
+      /* THE FINGER, UNSTEADIED: its own jitter is in what is kept (357: a freehand line stays under the finger) */
+      const r = await gesture(env, k, BOARD, async () => {
+        await T(env, 'touchStart', [pt(a.x, a.y, 3)], 0);
+        await stream(env, Array.from({ length: N }, (_, j) => { const q = pathOf(j + 1); return [pt(q[0], q[1], 3)]; }), 8);
+        await T(env, 'touchEnd', [], since(env) + 8);
+      });
+      const st = r.stored[0] || [], pts = [];
+      for (let i = 0; i + 1 < st.length; i += 2) pts.push([st[i], st[i + 1]]);
+      if (pts.length < N * 0.6 || !(rough(pts, sy) > rough(raw, sy) * 0.5)) fail('steady', at + ' finger', `a finger's shaky line kept ${pts.length} points of ${N} -- the finger is steadied too`);
+      await env.page.evaluate(() => { ansSimplify_ = window.__thin; });
       await fresh();
     }
 

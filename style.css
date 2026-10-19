@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-19-f-boxes";
+  --css-version: "2026-10-19-g-quiet";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -5640,7 +5640,6 @@ button.scr-sq { cursor: pointer; }
 }
 .qp-ai-note { flex: 1 1 10rem; min-width: 0; padding: 0 4px; font: 400 .78rem/1.3 var(--font); color: var(--dim); }
 /* THE TILE'S NAME BESIDE IT (`ansBox_`): § */
-.qp-ai-say { padding: 0 2px; white-space: nowrap; font: 600 .78rem/1.3 var(--font); color: var(--ink); }
 /* AN ESSAY'S MARK, KEPT WHILE IT IS REVISED (`aiKeptPaint_`, keypad.js): § */
 .qp-essay.is-stale > .qp-verdict { color: var(--dim); }
 /* THE VERDICT AND THE SAVED LINE SIT UNDER THE ROW, in line with the paper's edge rather than the pill's text, which is 14px in from a rounded end the sheet does § */
@@ -5870,6 +5869,8 @@ button.scr-sq { cursor: pointer; }
 .qpad-group { display: inline-flex; gap: .3rem; }
 /* NOT SENT ANYWHERE, AND THE CARD SAYS SO. `ansBox_` makes the same promise in its label; a pad
    that looked like homework going somewhere would be a promise the app cannot keep. */
+/* SILENT WHEN SAVED (368): the pen's note takes no room until it has a failure to say; the box's saved line keeps its reserved line, so words arriving move nothing (261) */
+.qpad-note:empty { display: none; }
 .qpad-note { margin: .35rem 0 0; font: 400 .62rem/1.4 var(--font); color: var(--faint);
              line-height: 1.4; }
 
@@ -6111,17 +6112,5 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .qp-cells { display: flex; flex-wrap: wrap; gap: .5rem; }
 .qp-cell-l { display: flex; align-items: center; gap: .3rem; flex: 0 1 6rem; font: 600 .8rem/1 var(--font); color: var(--dim); }
 
-/* ---------- ROOM TO WRITE (keypad.js, `kpWideTile_`): the whole screen above the pad, upright or sideways (359) */
-.kp-wide { position: fixed; left: 0; right: 0; top: 0; bottom: var(--kp-h, 45vh); z-index: 48;
-  display: flex; flex-direction: column; gap: .5rem; box-sizing: border-box;
-  padding: calc(8px + env(safe-area-inset-top, 0px)) 16px 8px; background: var(--bg); }
-.kp-wide-top { justify-content: flex-end; }
-.kp-wide > .kp-wide-ans { flex: 1 1 auto; min-height: 0; margin: 0; display: flex;
-  background: var(--paper); color: var(--paper-ink); border-radius: 12px; padding: .5rem .9rem; overflow: hidden; }
-.kp-wide-ans > .kp-field { flex: 1 1 auto; min-height: 0; display: flex; }
-/* THE WORKING WRAPS LINE AFTER LINE, larger, and scrolls inside -- the caret kept in sight by `kpCaretSeen_`. */
-.kp-wide-ans .kp-show { flex: 1 1 auto; align-content: flex-start; max-height: none; overflow-y: auto;
-  font-size: 1.35rem; line-height: 1.7; }
-.kp-wide-ans .kp-field.kp-words > .kp-show { max-height: none; font-size: 18px; }
 /* IN THE CARD a long maths answer stops at four lines and scrolls, where it used to push the card taller. */
 .qp-bar .kp-field.kp-maths > .kp-show { max-height: 9.5rem; overflow-y: auto; }

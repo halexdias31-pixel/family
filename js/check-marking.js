@@ -819,8 +819,32 @@ DRAW.forEach(([kind, fig, spec, strokes, want, why]) => {
 /* the frame read off the axes' numbers: (2, −3) is 2 squares right of the 0 and 3 down */
 const fr = DM.M.frameOf({}, AX);
 if (Math.abs(fr.o[0] - 170) > 0.5 || Math.abs(fr.o[1] - 170) > 0.5 || Math.abs(fr.u[0] - 20) > 0.01 || Math.abs(fr.u[1] + 20) > 0.01) { drawBad++; console.log('  WRONG  the axes’ numbers give the frame %j, not the origin at (170, 170) and 20 a unit', [fr.o, fr.u]); }
+/* THE OWNER'S DIAL (19 Oct): Metric Units Q1a's real figure, drawn in a translated group, and a hand's line from near its centre to 450 g -- wobbly, a little off the centre, either way round */
+const QROWS_ = (() => { const q = require('../data/questions.json'); return q.rows || q; })();
+const dialRow_ = QROWS_.find(x => x.row_id === 'Q-CBM-metric-units-1'), dialFig_ = DM.fig((QROWS_.find(x => x.row_id === 'S-Q-CBM-metric-units-1') || {}).diagram);
+const hand_ = (a, b, wob, n) => Array.from({ length: n + 1 }, (_, i) => { const t = i / n, w = wob * Math.sin(i * 2.1) * Math.sin(t * Math.PI); return [a[0] + (b[0] - a[0]) * t - w * (b[1] - a[1]) / 70, a[1] + (b[1] - a[1]) * t + w * (b[0] - a[0]) / 70]; });
+const pen_ = (vb, pl) => [].concat.apply([], pl.map(p => [(p[0] - vb[0]) / vb[2] * 340, (p[1] - vb[1]) / vb[3] * 340]));
+[[450, [173, 86], 1, 'a wobbly line from just off the centre to 450 g'], [455, [168, 82], 1, 'at 455 g, inside half a small mark'],
+ [450, null, 1, 'drawn from the rim in to the centre'], [490, [171, 84], 0, 'at 490 g'], [400, [171, 84], 0, 'at 400 g']].forEach(([gr, from, want, why]) => {
+  const c = [170, 84], tip = at_(c, gr * 0.36, 66), a = from || tip, b = from ? tip : [171, 85];
+  const r = dialRow_ && dialFig_.vb ? DM.M.mark([pen_(dialFig_.vb, hand_(a, b, 2.5, 24))], dialRow_.draw_answer, dialFig_) : null;
+  if (!r || r.got !== want) { drawBad++; console.log('  WRONG  the metric-units dial: %s -- wanted %j, got %j', why, want, r); }
+});
+/* EVERY RIGHT DRAWING BY HAND: each stroke densified, wobbled by a twentieth of a square and drawn backwards still marks the same */
+let handN = 0;
+DRAW.forEach(([kind, fig, spec, strokes, want, why]) => {
+  if (!want) return;
+  const wob = strokes.map(f => { const pl = []; for (let i = 0; i + 1 < f.length; i += 2) pl.push([f[i], f[i + 1]]);
+    if (pl.length < 2) return f;
+    const out = [];
+    pl.slice(1).forEach((q, i) => { const p = pl[i], n = Math.max(1, Math.ceil(Math.hypot(q[0] - p[0], q[1] - p[1]) / 4));
+      for (let k = i ? 1 : 0; k <= n; k++) { const t = k / n, j = (k === 0 || k === n) ? 0 : Math.sin((out.length + 1) * 2.3); out.push([p[0] + (q[0] - p[0]) * t + j, p[1] + (q[1] - p[1]) * t + j * 0.7]); } });
+    return [].concat.apply([], out.reverse()); });
+  const r = DM.M.mark(wob, spec, fig); handN++;
+  if (!r || r.got !== want) { drawBad++; console.log('  WRONG  %s by hand: %s -- wanted %j, got %j', kind, why, want, r); }
+});
 if (drawBad) { console.log('\n%d of %d drawing cases wrong — a drawn answer is being marked wrongly.', drawBad, DRAW.length); process.exit(1); }
-console.log('drawings: %d cases over %d kinds, each a right drawing right and a near miss wrong', DRAW.length, drawKinds.size);
+console.log('drawings: %d cases over %d kinds, each a right drawing right and a near miss wrong; %d drawn again by a wobbly hand, backwards; the metric-units dial by hand', DRAW.length, drawKinds.size, handN);
 
 if (bad || normBad || lib.bad.length || rowBad || slow || orderBad || orderLib.bad.length || seqBad || seqLib.bad.length) {
   console.log('\n%d of %d marking cases wrong, %d of %d markNorm_ cases, %d in the library sweep, %d of %d\n' +

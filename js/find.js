@@ -3436,11 +3436,6 @@ function ansRead_(k) {
 }
 
 /* ---------- `Done 4 Oct` WAS HERE, AND THE `attempts` TAB UNDER IT § */
-function subSlot_(x) {
-  const k = ansKey_(x);
-  const m = typeof subMark_ === 'function' && typeof subLatest_ === 'function' ? subMark_((subLatest_(k) || {}).v) : { text: '', cls: '' };
-  return `<i class="qcard-verdict${m.cls}" data-k="${esc(k)}">${esc(m.text)}</i>`;
-}
 /* ---------- A DONE QUESTION'S NAME, AS A PARENT READS IT § */
 function doneTier_(it) {
   if (!it || it.kind !== 'question') return '';
@@ -4065,7 +4060,7 @@ function orderBox_(x) {
   }).join('');
   /* THE VERDICT'S LINE IS RESERVED AND THE TILES SIT IN IT, so "Correct" lands in a space that was already there and marking moves nothing (261). § */
   const clear = tile_({ icon: 'bin', label: 'Clear', note: 'put them all back', act: 'qp-order-clear', cls: 'qp-order-clear', off: !placed.size });
-  const send = ways.length ? tile_({ icon: 'send', label: 'Send', note: 'mark the order', act: 'qp-order-send', cls: 'qp-order-send', tone: 'send' }) : '';
+  const send = ways.length ? checkTile_({ act: 'qp-order-send', cls: 'qp-order-send' }) : '';
   /* THE TWO ENDS ARE THE ONLY WORDS SAYING WHICH WAY THE ROW RUNS, so they are a line of their own over the slots, one at each edge with an arrow between, at the § */
   const word = e => String(e).charAt(0).toUpperCase() + String(e).slice(1);
   return `<div class="qp-order${cls}" data-k="${esc(k)}" data-n="${n}">
@@ -4260,7 +4255,7 @@ function cellsBox_(x) {
     ? `<label class="qp-cell-l"><span>${esc(c.label)}</span>${cellInput_(k, c, i, vals[i])}</label>` : '').join('')}</div>`;
   const said = subBoxSay_(k, ansRead_(k));
   return `<div class="qp-mark qp-compose qp-cells-box${said.cls ? ' ' + said.cls : ''}" data-k="${esc(k)}">${row}
-    <div class="tile-row">${tile_({ icon: 'send', label: 'Check', note: 'every cell', act: 'qp-cells-check', cls: 'qp-check', tone: 'send' })}${figTile_(x)}</div>
+    <div class="tile-row">${figTile_(x)}${checkTile_({ act: 'qp-cells-check', cls: 'qp-check' })}</div>
     <span class="qp-verdict" role="status" aria-live="polite">${esc(said.text)}</span>
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span></div>`;
 }
@@ -4418,8 +4413,8 @@ function ansBox_(x) {
   const aiNow = can ? '' : aiTile_(x);
   /* A RULE MARKS FIRST; the AI tile stays hidden until the rule cannot give every mark (`qp-rule`). */
   const ai = rule && aiNow ? `<span class="qp-ai-later" hidden>${aiNow}</span>` : aiNow;
-  const send = can ? tile_({ icon: 'send', label: 'Send', note: 'mark it', act: 'qp-check', cls: 'qp-check', tone: 'send' })
-    : rule ? tile_({ icon: 'send', label: 'Check', note: 'marked by its key words', act: 'qp-rule', cls: 'qp-check', tone: 'send' }) + ai
+  const send = can ? checkTile_({ act: 'qp-check', cls: 'qp-check' })
+    : rule ? checkTile_({ act: 'qp-rule', cls: 'qp-check' }) + ai
     : ai || subSendTile_();
   const val = ansRead_(k);
   /* ---------- AN ESSAY IS WRITTEN ON A SHEET, NOT IN A CHAT BAR § */
@@ -4428,12 +4423,11 @@ function ansBox_(x) {
   if (ansEssay_(x)) {
     const v = val;
     const note = ai || can ? '' : aiWhyNot_(x);
-    const say = ai ? '<span class="qp-ai-say" aria-hidden="true">Mark with AI</span>' : '';
     const kept = ai && typeof aiKeptView_ === 'function' ? aiKeptView_(k, v) : null;
     const said = subBoxSay_(k, v);
     const own = kept && (kept.fresh || !said.text) ? kept : null;
     const vcls = own ? own.cls : said.cls, vsay = own ? own.verdict : said.text;
-    const foot = `<div class="tile-row qp-sheet-foot">${send}${say}${fig}${kpWideTile_(k)}${note ? `<span class="qp-ai-note">${esc(note)}</span>` : ''}
+    const foot = `<div class="tile-row qp-sheet-foot">${fig}${send}${note ? `<span class="qp-ai-note">${esc(note)}</span>` : ''}
       <span class="qp-words">${esc(kpWordsSay_(kpWordCount_(v)))}</span></div>`;
     const sheet = `<label class="qp-ans qp-sheet" aria-label="Your answer">${kpField_(k, v, 'essay', signs)}</label>`;
     return `<div class="${send ? 'qp-mark ' : ''}qp-compose qp-essay${ai ? ' qp-ai' : ''}${send && vcls ? ' ' + vcls : ''}"${can ? ` data-accept="${esc(can)}"` : ''}>
@@ -4446,7 +4440,7 @@ function ansBox_(x) {
   const bar = many ? `<div class="qp-ans-row qp-bar qp-multi-bar">${multiBoxes_(x, k, val, many, maths, signs)}${fig}${send}</div>`
     : `<div class="qp-ans-row qp-bar"><label class="qp-ans${maths ? ' qp-ans-maths' : ''}" aria-label="Your answer">
     ${kpField_(k, val, maths ? 'maths' : 'words', signs)}
-  </label>${fig}${kpWideTile_(k)}${send}</div>`;
+  </label>${fig}${send}</div>`;
   if (!send) return `<div class="qp-compose">${bar}
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span></div>`;
   /* THE VERDICT IS THE LATEST SUBMISSION'S, WHILE THE BOX HOLDS WHAT WAS SENT -- on this device or on the account, next sign-in § */
@@ -4461,7 +4455,7 @@ function ansBox_(x) {
    pages is, under its own name, so nothing that runs Check runs it. */
 function subSendTile_() {
   if (!(typeof whoIs_ === 'function' && whoIs_())) return '';
-  return tile_({ icon: 'send', label: 'Send', note: 'to your account', act: 'qp-send', cls: 'qp-send', tone: 'send' });
+  return checkTile_({ act: 'qp-send', cls: 'qp-send' });
 }
 /* WHAT A BOX'S VERDICT LINE SAYS AS IT IS DRAWN: the latest submission's verdict, if the box holds it. */
 function subBoxSay_(k, val) {
@@ -4797,8 +4791,7 @@ function padSendRow_(x, marks) {
   const k = ansKey_(x), said = subBoxSay_(k, padSay_(marks));
   /* WITH ITS ANSWER AS GEOMETRY (`draw_answer`, 366) it is marked here, on Check, like a typed one; without, it is sent */
   const geo = String(x.drawAnswer || '').trim();
-  const tile = geo ? tile_({ icon: 'send', label: 'Check', note: 'the drawing', act: 'pad-check', cls: 'qp-check', tone: 'send' })
-    : tile_({ icon: 'send', label: 'Send', note: 'for marking', act: 'pad-send', cls: 'qp-check', tone: 'send' });
+  const tile = geo ? checkTile_({ act: 'pad-check', cls: 'qp-check' }) : checkTile_({ act: 'pad-send', cls: 'qp-check' });
   return `<div class="qp-mark qpad-send${said.cls ? ' ' + said.cls : ''}" data-k="${esc(k)}"${geo ? ` data-draw="${esc(geo)}" data-marks="${esc(String(Number(x.marks) || ''))}"` : ''}>
       <div class="tile-row">${tile}</div>
       <span class="qp-verdict" role="status" aria-live="polite">${esc(padSaid_(said.text))}</span>
@@ -4825,15 +4818,18 @@ function drawFig_(svg) {
   const s = String(svg || '');
   const m = /viewBox\s*=\s*["']\s*([-\d.eE+]+)[\s,]+([-\d.eE+]+)[\s,]+([\d.eE+]+)[\s,]+([\d.eE+]+)/.exec(s);
   const vb = m ? [+m[1], +m[2], +m[3], +m[4]] : [0, 0, 340, 340];
+  /* a figure wrapped whole in one translate (the metric-units dial): its items are in the group's units, so the frame shifts by it */
+  const tm = /^<svg\b[^>]*>\s*<g\s+transform\s*=\s*["']\s*translate\(\s*([-\d.eE+]+)(?:[\s,]+([-\d.eE+]+))?\s*\)\s*["']\s*>/.exec(s.trim());
+  const shift = tm ? [+tm[1], +(tm[2] || 0)] : [0, 0];
   const labels = [];
   (s.match(/<text\b[^>]*>[\s\S]*?<\/text>/g) || []).forEach(t => {
     if (/\btransform\s*=/.test(t)) return;
     const num = k => { const r = new RegExp('\\s' + k + '\\s*=\\s*["\']\\s*([-\\d.eE+]+)').exec(t); return r ? +r[1] : NaN; };
     /* a tick drawn as a dash after the number ("40 \u2212") is not part of it */
     const words = t.replace(/<[^>]*>/g, '').replace(/&minus;|\u2212|&#8722;/g, '-').replace(/&[a-z#0-9]+;/gi, '').trim().replace(/\s+-$/, '');
-    if (/^-?\d+(\.\d+)?$/.test(words) && isFinite(num('x')) && isFinite(num('y'))) labels.push([+words, num('x'), num('y')]);
+    if (/^-?\d+(\.\d+)?$/.test(words) && isFinite(num('x')) && isFinite(num('y'))) labels.push([+words, num('x') + shift[0], num('y') + shift[1]]);
   });
-  return { vb: vb, grid: typeof padGrid_ === 'function' ? padGrid_(s) : null, labels: labels };
+  return { vb: vb, grid: typeof padGrid_ === 'function' ? padGrid_(s) : null, labels: labels, shift: shift };
 }
 
 /* THE MARKER, pure: strokes in the pen's 340 by 340 space, the row's `draw_answer`, the figure. Distances are in the picture's own units, tolerances in grid squares. */
@@ -4911,8 +4907,9 @@ function drawMarker_() {
     const sq = G && G.xs.length > 1 ? (G.xs[G.xs.length - 1] - G.xs[0]) / (G.xs.length - 1) : (spec.sq || 20);
     let o, u;
     const f = spec.frame;
-    if (f && f.o && f.u) { o = f.o; u = f.u; }
-    else if (f === 'vb') { o = [0, 0]; u = [1, 1]; }
+    const sh = fig.shift || [0, 0];
+    if (f && f.o && f.u) { o = [f.o[0] + sh[0], f.o[1] + sh[1]]; u = f.u; }
+    else if (f === 'vb') { o = sh.slice(); u = [1, 1]; }
     else {
       /* each axis by its own numbers where it has them; one without counts squares (or the picture's units) */
       const ax = f === 'grid' ? null : fitAxis(fig, 'x'), ay = f === 'grid' ? null : fitAxis(fig, 'y', ax && ax.g);
@@ -4932,7 +4929,14 @@ function drawMarker_() {
     return (strokes || []).filter(s => Array.isArray(s) && s.length >= 2).map(s => {
       const pl = [];
       for (let i = 0; i + 1 < s.length; i += 2) pl.push([vb[0] + s[i] / 340 * vb[2], vb[1] + s[i + 1] / 340 * vb[3]]);
-      const segs = rdp(pl, F.sq * 0.15).map(p => {
+      /* a hand's wobble leaves a corner that is no corner: one turning under 12 degrees and close to the line is dropped, so a straight side stays one piece */
+      const kept = rdp(pl, F.sq * 0.15);
+      for (let i = kept.length - 2; i > 0; i--) {
+        const a = kept[i - 1], b = kept[i], c = kept[i + 1];
+        const t = Math.abs(Math.atan2(c[1] - b[1], c[0] - b[0]) - Math.atan2(b[1] - a[1], b[0] - a[0])) / R;
+        if (Math.min(t, 360 - t) < 12 && dSeg(b, a, c) <= F.sq * 0.3) kept.splice(i, 1);
+      }
+      const segs = kept.map(p => {
         if (!G) return p;
         const q = [gp(p[0], G.xs), gp(p[1], G.ys)];
         return near(p, q) <= snap ? q : p;
@@ -4953,6 +4957,23 @@ function drawMarker_() {
   const straights = (ink, min) => {
     const out = [];
     ink.forEach(s => s.segs.slice(1).forEach((q, i) => { if (near(q, s.segs[i]) >= min) out.push([s.segs[i], q]); }));
+    return out;
+  };
+  /* hands, pointers and radii: each stroke cut where it passes nearest the centre, in either direction; an arm's way is the mean way of its outer half, so a wobble or a start off the centre cancels */
+  const rays = (ink, c, r, inR, min) => {
+    const out = [];
+    ink.forEach(s => {
+      let k = 0;
+      s.pl.forEach((p, i) => { if (near(p, c) < near(s.pl[k], c)) k = i; });
+      if (near(s.pl[k], c) > r * inR) return;
+      [s.pl.slice(0, k + 1).reverse(), s.pl.slice(k)].forEach(arm => {
+        const L = Math.max.apply(null, arm.map(p => near(p, c)));
+        if (L < r * min) return;
+        let x = 0, y = 0;
+        arm.filter(p => near(p, c) >= L * 0.5).forEach(p => { const d = near(p, c) || 1; x += (p[0] - c[0]) / d; y += (p[1] - c[1]) / d; });
+        out.push({ g: bearing(c, [c[0] + x, c[1] + y]), L: L });
+      });
+    });
     return out;
   };
   /* closed shapes in the ink: corners joined across strokes, straight-on corners dropped */
@@ -5149,9 +5170,8 @@ function drawMarker_() {
     },
     clock(it, ink, F) {
       const c = F.v(it.c), r = Math.abs(it.r * F.u[0]);
-      const S = straights(ink, r * 0.2).map(s => near(s[0], c) <= near(s[1], c) ? s : [s[1], s[0]]).filter(s => near(s[0], c) <= r * 0.3);
       const hands = [];
-      S.sort((a, b) => near(b[0], b[1]) - near(a[0], a[1])).forEach(s => { const g = bearing(c, s[1]); if (!hands.some(h => Math.abs(((h.g - g + 540) % 360) - 180) < 5)) hands.push({ g: g, L: near(c, s[1]) }); });
+      rays(ink, c, r, 0.3, 0.2).sort((a, b) => b.L - a.L).forEach(h => { if (!hands.some(o => Math.abs(((o.g - h.g + 540) % 360) - 180) < 5)) hands.push(h); });
       const off = (a, b) => Math.abs(((a - b + 540) % 360) - 180);
       const mi = (it.min % 60) * 6, hr = ((it.h % 12) * 30 + it.min * 0.5) % 360;
       const ok = hands.length === 2 && off(hands[0].g, mi) <= (it.mtol || 6) && off(hands[1].g, hr) <= (it.htol || 9) && hands[0].L > hands[1].L * 1.05;
@@ -5159,14 +5179,18 @@ function drawMarker_() {
     },
     dial(it, ink, F) {
       const c = F.v(it.c), r = Math.abs(it.r * F.u[0]);
-      const S = straights(ink, r * 0.1).sort((a, b) => near(b[0], b[1]) - near(a[0], a[1]));
-      if (!S.length) return { ok: false, ex: () => false };
-      const s = S[0];
-      const tip = near(s[0], c) <= r * 0.3 ? s[1] : near(s[1], c) <= r * 0.3 ? s[0]
-        : (Math.abs(near(s[0], c) - r) < Math.abs(near(s[1], c) - r) ? s[0] : s[1]);
-      const g = (bearing(c, tip) - it.a[0] + 360) % 360, span = (it.a[1] - it.a[0] + 360) % 360 || 360;
+      /* a pointer from the centre, or an arrow outside pointing in: the way of the ink's outer half, read from the centre */
+      let P = rays(ink, c, r, 0.35, 0.3).sort((a, b) => b.L - a.L)[0];
+      if (!P) {
+        const pts = [].concat.apply([], ink.map(s => s.pl)).filter(p => near(p, c) >= r * 0.5 && near(p, c) <= r * 1.6);
+        if (!pts.length) return { ok: false, ex: () => false };
+        let x = 0, y = 0;
+        pts.forEach(p => { const d = near(p, c); x += (p[0] - c[0]) / d; y += (p[1] - c[1]) / d; });
+        P = { g: bearing(c, [c[0] + x, c[1] + y]) };
+      }
+      const g = (P.g - it.a[0] + 360) % 360, span = (it.a[1] - it.a[0] + 360) % 360 || 360;
       const v = it.v[0] + g / span * (it.v[1] - it.v[0]);
-      return { ok: Math.abs(v - it.want) <= it.vtol, ex: q => near(q, c) <= r * 1.4 };
+      return { ok: Math.abs(v - it.want) <= it.vtol, ex: q => near(q, c) <= r * 1.6 };
     },
     scale(it, ink, F, tol) {
       const a = F.v(it.a), b = F.v(it.b);
@@ -5181,9 +5205,8 @@ function drawMarker_() {
     },
     pie(it, ink, F) {
       const c = F.v(it.c), r = Math.abs(it.r * F.u[0]);
-      const S = straights(ink, r * 0.5).map(s => near(s[0], c) <= near(s[1], c) ? s : [s[1], s[0]]).filter(s => near(s[0], c) <= r * 0.18);
       const g = (it.given || []).slice();
-      S.forEach(s => { const b = bearing(c, s[1]); if (!g.some(x => Math.abs(((x - b + 540) % 360) - 180) < 3)) g.push(b); });
+      rays(ink, c, r, 0.18, 0.5).forEach(h => { const b = h.g; if (!g.some(x => Math.abs(((x - b + 540) % 360) - 180) < 3)) g.push(b); });
       g.sort((a, b) => a - b);
       const gaps = g.map((x, i) => ((g[(i + 1) % g.length] - x + 360) % 360) || 360);
       const want = it.sect.slice(), at = it.atol || 2;
@@ -5558,11 +5581,23 @@ const PAD_DRAW = {
        finger moves anything visible, and every duplicated point is two more characters in storage
        for a mark nobody can see. */
     move: (g, at, st) => {
-      if (st[st.length - 2] === at[0] && st[st.length - 1] === at[1]) return null;
+      if (padSteady_(g)) at = padLazy_(g, at, st);
+      if (!at || (st[st.length - 2] === at[0] && st[st.length - 1] === at[1])) return null;
       st.push(at[0], at[1]);
       return st;
     },
-    end: (g, st) => st,
+    /* A STEADIED STROKE ENDS WHERE THE POINTER LIFTED: the string's slack is paid out in two steps, so nothing lags */
+    end: (g, st) => {
+      if (padSteady_(g) && g.at && st && st.length >= 2) {
+        const x = st[st.length - 2], y = st[st.length - 1], a = g.at;
+        if (x !== a[0] || y !== a[1]) {
+          const m = [Math.round((x + a[0]) / 2), Math.round((y + a[1]) / 2)];
+          if (m[0] !== x || m[1] !== y) st.push(m[0], m[1]);
+          if (m[0] !== a[0] || m[1] !== a[1]) st.push(a[0], a[1]);
+        }
+      }
+      return st;
+    },
   },
   /* A RULER IS ITS TWO ENDS. The live line follows the finger from where it went down; what is kept
      is that line and nothing of the path the finger took to get there. */
@@ -5700,6 +5735,21 @@ function padPos_(c, t) {
 function padMap_(r, cx, cy) {
   if (!r || !r.width || !r.height) return null;
   return [Math.round((cx - r.left) / r.width * 340), Math.round((cy - r.top) / r.height * 340)];
+}
+
+/* A STEADY HAND FOR A MOUSE OR A STYLUS (368): a lazy brush -- the ink follows the pointer on a string -- then a light low-pass. A finger keeps 357's ink under it, untouched */
+const PAD_STRING_PX = 6;      // the string: a pointer's jitter inside it moves no ink, and a straight pull draws a straight line
+const PAD_STEADY_K = 0.55;    // the low-pass: each point this much of the way from the last kept one to the string's end
+const padSteady_ = g => !!(g && g.c && (g.c.type === 'mouse' || g.c.type === 'pen'));
+function padLazy_(g, at, st) {
+  const sx = g.sx || 1, sy = g.sy || 1;
+  if (!g.lz) { g.lz = st.length >= 2 ? [st[st.length - 2], st[st.length - 1]] : at.slice(); g.sm = g.lz.slice(); }
+  const dx = (at[0] - g.lz[0]) * sx, dy = (at[1] - g.lz[1]) * sy, d = Math.hypot(dx, dy);
+  if (d <= PAD_STRING_PX) return null;
+  const t = (d - PAD_STRING_PX) / d;
+  g.lz = [g.lz[0] + (at[0] - g.lz[0]) * t, g.lz[1] + (at[1] - g.lz[1]) * t];
+  g.sm = [g.sm[0] + (g.lz[0] - g.sm[0]) * PAD_STEADY_K, g.sm[1] + (g.lz[1] - g.sm[1]) * PAD_STEADY_K];
+  return [Math.round(g.sm[0]), Math.round(g.sm[1])];
 }
 
 /* A POINT PUT DOWN EXACTLY WITH A FINGER (docs/history/357). § */
@@ -7396,7 +7446,8 @@ function questionTiles_(x) {
      drawing is drawn on its card now, with nothing to switch (`ansArea_`, 356). */
   /* NO WAY TO THE ANSWER IN THIS ROW ANY MORE -- see where `To the answer` was, above. */
   /* AND THE SOUND SWITCH, JUST BEFORE THE SLOT, on a card that can be marked -- signed in or out, since a signed-out child is marked and hears it too § */
-  return fig + (typeof markSoundTile_ === 'function' ? markSoundTile_(x) : '') + (whoIs_() ? subSlot_(x) : '');
+  /* NO VERDICT BESIDE THE STAR (368): the box's own line says it once */
+  return fig + (typeof markSoundTile_ === 'function' ? markSoundTile_(x) : '');
 }
 
 /* THE FIGURE, OVER THE CARD, ONE TAP AWAY. § */

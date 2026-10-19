@@ -415,14 +415,6 @@ function subSay_(v) {
   if (ai) return { text: ai.got + ' of ' + ai.of + ' mark' + (ai.of === 1 ? '' : 's') + (ai.by === 'rule' ? ' · by key words' : ' · AI'), cls: ai.got >= ai.of ? 'is-right' : 'is-near' };
   return { text: '', cls: '' };
 }
-function subMark_(v) {
-  if (v === 'right') return { text: 'Correct', cls: ' is-right' };
-  if (v === 'wrong') return { text: 'Not yet', cls: ' is-near' };
-  if (v === 'sent') return { text: 'Sent', cls: ' is-sent' };
-  const ai = subAiOf_(v);
-  if (ai) return { text: ai.got + '/' + ai.of, cls: ai.got >= ai.of ? ' is-right' : ' is-near' };
-  return { text: '', cls: '' };
-}
 
 /* ---------- THE VERDICT, HEARD § */
 const MARK_SOUND_KEY = 'mark-sound';
@@ -642,20 +634,10 @@ window.addEventListener('storage', e => {
 });
 
 /* ---------- PAINTED WHERE IT STANDS § */
-function subSlotSet_(el) {
-  const m = subMark_((subLatest_(el.getAttribute('data-k')) || {}).v);
-  const cls = 'qcard-verdict' + m.cls;
-  if (el.className !== cls) el.className = cls;
-  if (el.textContent !== m.text) el.textContent = m.text;
-}
 function subPaint_(k) {
-  try {
-    document.querySelectorAll('.qcard-verdict[data-k]').forEach(el => { if (el.getAttribute('data-k') === k) subSlotSet_(el); });
-  } catch (e) {}
   if (typeof ansSavedPaint_ === 'function') ansSavedPaint_();
 }
 function subPaintAll_() {
-  try { document.querySelectorAll('.qcard-verdict[data-k]').forEach(subSlotSet_); } catch (e) {}
   if (typeof ansSavedPaint_ === 'function') ansSavedPaint_();
 }
 /* A BOX'S VERDICT LINE, FROM THE STORE: § */
