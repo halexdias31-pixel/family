@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-19-g-quiet";
+  --css-version: "2026-10-19-j-people-admin";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -3193,6 +3193,20 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 /* SOMEBODY ELSE'S PICTURE, ON AN ADMIN'S EDIT: the card's own circle, and why it is not offered. */
 .ce-pic { display: flex; gap: .7rem; align-items: center; }
 .ce-pic .ce-note { margin: 0; }
+
+/* ---------- "+" AT THE TOP OF A LIST THAT CAN GROW — `addCard_` in tiles.js (373) ---------- */
+.add-card { display: flex; width: 100%; align-items: center; gap: .7rem; min-height: 48px; margin: 0;
+  padding: .7rem .85rem; border: 1px dashed var(--line); border-radius: .75rem; background: none;
+  color: var(--dim); font: inherit; font-size: .9rem; text-align: left; }
+.add-card:hover, .add-card:focus-visible { border-color: var(--gold); color: var(--ink); }
+.add-card .add-plus { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%;
+  border: 1px solid var(--gold); color: var(--gold); flex: none; }
+.add-card .add-plus .tile-i { width: 16px; height: 16px; }
+/* ITS FORM, AND THE PEOPLE COLUMN'S EDIT — `personFormHtml_` in me.js. */
+.person-form .pf-roles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: .5rem; }
+.person-form .pf-roles .check { padding: .45rem 0; }
+.person-form .pf-handle, .person-form .pf-note, .person-form .pf-said { margin: .1rem 0 .5rem; }
+.pf-go { display: flex; gap: .5rem; flex-wrap: wrap; }
 /* WHAT AN EXTRA SEAT ADDS, UNDER ITS TWO PARTS — `cardRateHtml_` in me.js (docs/history/345). § */
 .ce-seat { margin: -.35rem 0 0; font: 400 .7rem/1.35 var(--mono); color: var(--dim); }
 .ce-seat .prof-seat { font-size: inherit; line-height: inherit; }

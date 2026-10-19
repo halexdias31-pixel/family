@@ -1054,3 +1054,95 @@ function avatarUnlocks(row) {
 
 /** Ten ticked topics is one level. Whole levels only — the same rule the card shows. */
 function levelFromXp(xp) { return Math.floor((N(xp) || 0) / 10); }
+/* ---------- PEOPLE MADE, CHANGED AND REMOVED BY AN ADMIN (373) ---------- */
+/* THE FOUR ROLES THE FORM TICKS, in the order it draws them. `client` is the sheet's word for a parent. */
+const PEOPLE_ROLES_ = ['student', 'client', 'tutor', 'admin'];
+function adminRolesIn_(v) {
+  const list = (Array.isArray(v) ? v : S(v).split(',')).map(x => norm(x) === 'parent' ? 'client' : norm(x));
+  return PEOPLE_ROLES_.filter(r => list.indexOf(r) !== -1);
+}
+/* A DATE PICKER'S `yyyy-mm-dd` AS THE THREE BOXES `dobRefusal_` AND `dobIn` READ; null for anything else. */
+function adminDobFields_(v) {
+  const t = S(v);
+  if (!t) return { dob_d: '', dob_m: '', dob_y: '' };
+  const m = t.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? { dob_d: m[3], dob_m: m[2], dob_y: m[1] } : null;
+}
+function adminCount_(t) { return t.rows.filter(x => hasRole(x, 'admin')).length; }
+
+/* A PERSON AS THE ADMIN'S FORM READS THEM. `lastName` is a box the child-name net leaves whole (`kidWholeOk_`). */
+function adminPersonOut_(r) {
+  const pid = S(r.person_id);
+  return { personId: pid, firstName: S(r.first_name), lastName: S(r.last_name), roles: rolesOf(r),
+           email: S(r.email), dob: isoDate_(r.date_of_birth), handle: S(r.handle),
+           parentIds: read(TAB.family).rows
+             .filter(f => S(f.child_id) === pid && norm(f.state) === 'accepted').map(f => S(f.parent_id)) };
+}
+/* THE GROWN-UPS A CHILD CAN BE PUT ON, for the form's parent list — the people tab's parents, by whole name. */
+function adminParentChoices_() {
+  return read(TAB.people).rows.filter(r => S(r.person_id) && hasRole(r, 'client'))
+    .map(r => ({ personId: S(r.person_id), name: personDisplayName(r) }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+/* THE CARD THE COLUMN DRAWS, in `everyone`'s shape (doget.gs), so a saved person is drawn without a reload. */
+function adminPersonCard_(r) {
+  return Object.assign({ personId: S(r.person_id), title: nameFor_(r, true), handle: S(r.handle),
+    role: ROLE_LABEL[mainRole(r)] || 'Client', image: S(r.photo) }, faceFig_(r));
+}
+
+/* EVERY REFUSAL BEFORE A CELL IS WRITTEN: '' or the sentence. `r` is the row being edited, or null for a new one. */
+function adminPersonRefusal_(t, body, r) {
+  const first = S(body.firstName), last = S(body.lastName), email = S(body.email);
+  if (!first || !last) return 'A first name and a last name, please.';
+  const roles = adminRolesIn_(body.roles);
+  if (!roles.length) return 'Tick at least one role.';
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return 'That email address does not look right.';
+  const mine = x => !!r && S(x.person_id) === S(r.person_id);
+  if (email && t.rows.some(x => !mine(x) && norm(x.email) === norm(email))) return 'Somebody else already has that email address.';
+  const clash = findPerson((first + ' ' + last).trim());
+  if (clash && !mine(clash)) return 'There is already somebody called ' + first + ' ' + last + '.';
+  const dob = adminDobFields_(body.dob);
+  if (!dob) return 'The date of birth is not a date.';
+  const dobSaid = dobRefusal_(dob);
+  if (dobSaid) return dobSaid;
+  if (r && hasRole(r, 'admin') && roles.indexOf('admin') === -1 && adminCount_(t) <= 1) {
+    return S(r.first_name) + ' is the last admin — make somebody else an admin first.';
+  }
+  const want = Array.isArray(body.parentIds) ? body.parentIds.map(S).filter(Boolean) : [];
+  for (let i = 0; i < want.length; i++) {
+    const p = t.rows.find(x => S(x.person_id) === want[i]);
+    if (!p) return 'One of the parents ticked is not on the people tab any more.';
+    if (mine(p)) return 'Nobody is their own parent.';
+    /* `linkChild`'S RULE: no child onto an account whose address nobody has proved, even by an admin. */
+    if (addressPending_(p)) return personDisplayName(p) + '\'s email has not been confirmed, so no child can go on their account yet.';
+  }
+  return '';
+}
+
+/* THE CHILD'S ACCEPTED PARENTS MADE EXACTLY `want`: links not wanted are removed, missing ones made or settled. */
+function adminParentsSet_(child, want) {
+  const fam = read(TAB.family);
+  if (!fam.sheet) return false;
+  const cid = S(child.person_id);
+  fam.rows.filter(f => S(f.child_id) === cid && norm(f.state) === 'accepted' && want.indexOf(S(f.parent_id)) === -1)
+    .sort((a, b) => b._row - a._row).forEach(f => delRow(fam, f));
+  want.forEach((pid, i) => {
+    const had = fam.rows.find(f => S(f.child_id) === cid && S(f.parent_id) === pid);
+    if (had && norm(had.state) === 'accepted') return;
+    if (had) { setCells(fam, had, { state: 'accepted', answered_on: new Date() }); return; }
+    addRow(fam, { link_id: 'F' + Date.now() + '-' + i, parent_id: pid, child_id: cid,
+      child_typed: personDisplayName(child), state: 'accepted', asked_on: new Date(), answered_on: new Date() });
+  });
+  return true;
+}
+
+/* REMOVED WHOLE: every family row naming them, their sessions, then the row. Bookings and messages keep the name they had. */
+function adminPersonDelete_(t, r) {
+  const fam = read(TAB.family), pid = S(r.person_id);
+  if (fam.sheet) {
+    fam.rows.filter(f => S(f.parent_id) === pid || S(f.child_id) === pid)
+      .sort((a, b) => b._row - a._row).forEach(f => delRow(fam, f));
+  }
+  authEndSession_(t, r);
+  return delRow(t, r);
+}

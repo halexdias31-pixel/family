@@ -70,6 +70,7 @@ const KEPT = [
     proof: [['me.js', /matches\('input\[type="checkbox"\]\[data-many-of\]'\)[\s\S]{0,1500}?draftKeep_\(surface, id, box\.value/], ['me.js', /<input type="hidden" \$\{attr\}="\$\{esc\(name\)\}" value="\$\{esc\(said\)\}"\$\{da\}>/]] },
 ];
 const PIN = 'a PIN — never written to the device, by a draft or anything else';
+const PEOPLE_FORM = 'an admin making or changing somebody else\'s account — a decision made and saved there and then, not left half-made on a device';
 const EXEMPT = [
   { file: 'me.js', fn: 'signInCard_', has: 'id="in-name"', why: 'the sign-in box — a handle remembered after a sign-in that worked (`familyHandles`); half of one is not work' },
   { file: 'me.js', fn: 'signInCard_', has: 'id="in-pin"', why: PIN },
@@ -81,6 +82,11 @@ const EXEMPT = [
   { file: 'me.js', fn: 'registerSheet_', has: 'id="reg-noemail"', why: 'reset by the who-is-it question above it, which is asked again on purpose (`REG_NOTE`)' },
   { file: 'me.js', fn: 'friendsSheet', has: 'id="fr-add"', why: 'one handle, typed in seconds and sent by the button beside it' },
   { file: 'me.js', fn: 'rolesCard_', has: 'data-role-pick', why: 'an admin\'s ticks of somebody else\'s roles — a decision about another person\'s account is made and saved there and then, not left half-made on a device' },
+  /* THE PEOPLE COLUMN'S PERSON FORM (373): rolesCard_'s reason — another person's account, decided and saved there and then. */
+  { file: 'me.js', fn: 'box', has: 'data-pf="${k}"', why: PEOPLE_FORM },
+  { file: 'me.js', fn: 'personFormHtml_', has: 'data-pf="dob"', why: PEOPLE_FORM },
+  { file: 'me.js', fn: 'personFormHtml_', has: 'data-pf-role', why: PEOPLE_FORM },
+  { file: 'me.js', fn: 'personFormHtml_', has: 'data-pf-parent', why: PEOPLE_FORM },
   { file: 'me.js', fn: 'agreementCard_', has: 'agree-sign', why: 'acts the moment it is ticked (`agree-sign`) — nothing waits between the tick and the server' },
   { file: 'me.js', fn: 'notifyCard_', has: 'notify-pick', why: 'a Notifications tick is a `setNotify` the moment it is ticked, and a failure puts it back to what the server has — the agreement\'s reason: there is no Save to wait for, so nothing is half-made on the device, and a reload draws the server\'s answer (docs/history/309)' },
   { file: 'posts.js', fn: 'cameraCard', has: 'id="cam-cap"', why: 'the caption of photographs held in memory (`CAM_ITEMS`), which a reload loses with it — keeping those needs IndexedDB (317)' },

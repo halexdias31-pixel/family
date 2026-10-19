@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-19-i-handles-email";
+const DOPOST_VERSION = "2026-10-19-j-people-admin";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -3417,6 +3417,70 @@ function doPost(e) {
       clearCache();
       return jsonOut({ success: true,
                        parent: nameFor_(parent), child: nameFor_(child) });
+    }
+
+    /* PEOPLE, BY AN ADMIN (373) ------------------------------------------------------------------- */
+    /* THE FORM'S FILLING: the person by id (none for a new one) and the parents a child can go on. */
+    if (action === 'personGet') {
+      const want = S(body.targetId);
+      const r = want ? read(TAB.people).rows.find(x => S(x.person_id) === want) : null;
+      if (want && !r) return jsonOut({ error: 'We could not find that person.' });
+      return jsonOut({ success: true, person: r ? adminPersonOut_(r) : null, parents: adminParentChoices_() });
+    }
+
+    /* MADE OR CHANGED. No `targetId` is a new person: a fresh PIN shown once, a handle by the template, joined today. */
+    if (action === 'personSave') {
+      const t = read(TAB.people);
+      const want = S(body.targetId);
+      const r = want ? t.rows.find(x => S(x.person_id) === want) : null;
+      if (want && !r) return jsonOut({ error: 'We could not find that person — nothing was saved.' });
+      if (r && S(r.person_id) === S(body.personId)) return jsonOut({ error: 'Your own card is changed with Edit on it.' });
+      const lacking = ['handle', 'pin', 'date_of_birth'].filter(c => t.headers.indexOf(c) === -1);
+      if (lacking.length) return jsonOut({ error: 'The sheet has no column for: ' + lacking.join(', ') + '. Run ?setup=1 — nothing was saved.' });
+      const said = adminPersonRefusal_(t, body, r);
+      if (said) return jsonOut({ error: said + ' Nothing was saved.' });
+      const first = S(body.firstName), last = S(body.lastName), email = S(body.email);
+      const put = { first_name: first, last_name: last, role: adminRolesIn_(body.roles).join(', '),
+                    email: email, date_of_birth: dobIn(adminDobFields_(body.dob)) };
+      let row = r, pin = '';
+      if (r) {
+        /* THE HANDLE STAYS — a name corrected is not a new person, and a handle is how they sign in. */
+        const before = personDisplayName(r);
+        if (t.headers.indexOf('name_was') !== -1 && key(before) && key(before) !== key(first + ' ' + last)) {
+          put.name_was = nameWasWith_(r.name_was, before);
+        }
+        /* AN ADDRESS THE ADMIN TYPED IS VOUCHED FOR — no link to open, and any move waiting on one is dropped. */
+        if (norm(email) !== norm(r.email)) { put.verified = 'TRUE'; put.verify_token = ''; authMoveDrop_(r); }
+        setCells(t, r, put);
+      } else {
+        const id = 'P' + Date.now() + '-a';
+        const draft = Object.assign({ person_id: id, joined_on: new Date() }, put);
+        const handle = handleMake_(draft);
+        if (!handle) return jsonOut({ error: 'No free handle could be made just now. Nothing was saved — try again.' });
+        pin = authFreshPin_();
+        row = addRow(t, Object.assign(draft, { handle: handle, pin: pin, credits: 0, xp: 0,
+          came_from: 'admin', invited_by: S(body.personId), verified: 'TRUE' }));
+        if (!row) return jsonOut({ error: 'The people tab could not be opened — nothing was saved.' });
+      }
+      if (Array.isArray(body.parentIds) && !adminParentsSet_(row, body.parentIds.map(S).filter(Boolean))) {
+        clearCache();
+        return jsonOut({ error: 'Saved, but the family tab could not be opened, so their parents were not changed.' });
+      }
+      clearCache();
+      return jsonOut({ success: true, made: !r, person: adminPersonCard_(row), first: first,
+                       handle: S(row.handle), pin: pin });
+    }
+
+    /* REMOVED, with their family links. Never yourself, and never the last admin. */
+    if (action === 'personDelete') {
+      const t = read(TAB.people);
+      const r = t.rows.find(x => S(x.person_id) === S(body.targetId));
+      if (!r) return jsonOut({ error: 'We could not find that person — nothing was deleted.' });
+      if (S(r.person_id) === S(body.personId)) return jsonOut({ error: 'You cannot delete yourself.' });
+      if (hasRole(r, 'admin') && adminCount_(t) <= 1) return jsonOut({ error: 'That is the last admin — nothing was deleted.' });
+      if (!adminPersonDelete_(t, r)) return jsonOut({ error: 'The people tab could not be changed — nothing was deleted.' });
+      clearCache();
+      return jsonOut({ success: true, deleted: S(body.targetId) });
     }
 
     /* AN ADMIN ENDS A SESSION --------------------------------------------------------------- DELETING A JOB IS WITHDRAWING EVERYONE FROM IT. § */

@@ -110,7 +110,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-19-i-handles-email";
+const BACKEND_VERSION = "2026-10-19-j-people-admin";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1492,6 +1492,8 @@ const ACTION_ACCESS = {
   deleteJob: 'admin',
   /* LINKING A CHILD TO A PARENT WITHOUT ASKING THE CHILD. § */
   linkChild: 'admin', unlinkChild: 'admin',
+  /* PEOPLE MADE, CHANGED AND REMOVED FROM THE PEOPLE COLUMN (373). */
+  personGet: 'admin', personSave: 'admin', personDelete: 'admin',
   /* Reports every tab and column in the spreadsheet. It was open to anyone, which hands a
      stranger the shape of the whole database — the thing you would want before attacking it. */
   debugTabs: 'admin',
