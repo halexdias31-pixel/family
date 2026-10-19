@@ -144,6 +144,14 @@ function tile_(o) {
 }
 
 
+/* ---------- "+" AT THE TOP OF A LIST THAT CAN GROW (373) ---------- */
+/* ONE CARD, THE WHOLE OF IT THE TARGET: a plus and what it adds. `{ act, label, data }`; a list adopts it by putting it first. */
+function addCard_(o) {
+  const data = Object.keys(o.data || {}).map(k => ` data-${k}="${esc(String(o.data[k]))}"`).join('');
+  return `<button type="button" class="card tap add-card" data-do="${esc(o.act)}"${data} aria-label="${esc(o.label)}">
+    <span class="add-plus">${tileIcon_('plus')}</span><span class="add-say">${esc(o.label)}</span></button>`;
+}
+
 /* ---------- FILLING THE SHAPE § */
 function tileSet_(el, o) {
   if (!el) return;
@@ -353,7 +361,8 @@ function boxerTiles_(x) {
 function cardTiles_(x) {
   /* ---------- ONE ROW OF MARKS, UNDER THE CARD § */
   /* AND `Open`, to Find, under a kept card that Saved or the Spotlight cannot draw whole — a practical's method, a project's steps, a textbook's chapters, a § */
-  const mine = favTile_(x) + cardActions_(x) + finderOpenTile_(x);
+  /* `more` IS WHAT ONE COLUMN ADDS TO THE ROW — the people column's Edit and Delete for an admin (373). */
+  const mine = favTile_(x) + cardActions_(x) + finderOpenTile_(x) + (x.more || '');
   const admin = adminTiles_(x, x.topic || null);
   if (!mine && !admin) return '';
   return `<div class="tile-row">${mine}${admin}</div>`;

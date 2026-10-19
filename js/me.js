@@ -4233,3 +4233,162 @@ on('card-cancel', el => {
     if (box && heat) heat.innerHTML = profHeat_(profList_(box.value));
   }
 }));
+
+/* ---------- PEOPLE, MADE, CHANGED AND REMOVED BY AN ADMIN, ON THE PEOPLE COLUMN (373) ---------- */
+/* THE ONE FORM OPEN: `{ id }` ('' for a new person), `data` once `personGet` answers, `made` for the slip. */
+let PEOPLE_FORM_ = null;
+/* THE ROLES CARD'S OWN WORDS (`ROLE_PICKS`), student first, and Admin, which only an admin gives. */
+const peopleRolePicks_ = () => 'student client tutor'.split(' ').map(r => (ROLE_PICKS.find(x => x[0] === r) || [r, r]).slice(0, 2))
+  .concat([['admin', 'Admin']]);
+const peopleMay_ = () => typeof isAdmin === 'function' && isAdmin() && !!USER;
+const peopleSelf_ = p => !!(USER && p && p.personId && String(p.personId) === String(USER.personId || ''));
+
+/* EDIT AND DELETE UNDER SOMEBODY ELSE'S CARD, for an admin; '' for anybody else and on your own. */
+function peopleTiles_(p) {
+  if (!peopleMay_() || !p || !p.personId || peopleSelf_(p)) return '';
+  const first = String(nameBesideHandle_(p.title, p.handle) || p.title || '').trim().split(' ')[0] || 'them';
+  return tile_({ icon: 'join', label: 'Edit', note: 'name, role, email', act: 'person-edit', tone: 'admin',
+                 data: { id: p.personId } })
+    + tile_({ icon: 'bin', label: 'Delete', note: 'their account', act: 'person-del', tone: 'danger',
+              data: { id: p.personId, name: first } });
+}
+
+/* THE TOP OF THE LIST: the "+", or the new person's form, or the slip once they are made. */
+function peopleAddPage_() {
+  if (!peopleMay_()) return '';
+  const F = PEOPLE_FORM_;
+  if (F && !F.id && F.made) {
+    return `<div class="card person-made"><h3>${esc(F.made.first)} is on the people tab</h3>
+      ${pinSlip_(F.made.first, F.made.handle, F.made.pin)}
+      <p class="faint">Write it down or read it to them — the PIN is not shown again.</p>
+      <button class="btn quiet" data-do="person-cancel">Done</button></div>`;
+  }
+  if (F && !F.id) return personFormHtml_(F);
+  return addCard_({ act: 'person-add', label: 'Add a person' });
+}
+/* THE FORM IN THE CARD'S PLACE while it is open on this person. */
+function personFormFor_(p) {
+  const F = PEOPLE_FORM_;
+  return F && F.id && p && p.personId && String(p.personId) === F.id && peopleMay_() ? personFormHtml_(F) : '';
+}
+
+function personFormHtml_(F) {
+  const head = `<h3>${F.id ? 'Edit ' + esc((F.data && F.data.person && F.data.person.firstName) || 'them') : 'A new person'}</h3>`;
+  if (!F.data) {
+    if (!F.asked && !F.err) { F.asked = true; setTimeout(() => personFetch_(F), 0); }
+    return `<div class="card person-form" data-pid="${esc(F.id)}">${head}${F.err
+      ? `<p class="faint">${esc(F.err)}</p><button class="btn quiet" data-do="person-cancel">Close</button>` : loading_()}</div>`;
+  }
+  const p = F.data.person || { firstName: '', lastName: '', roles: ['student'], email: '', dob: '', parentIds: [] };
+  const choices = Array.isArray(F.data.parents) ? F.data.parents : [];
+  const nameOf = id => (choices.find(c => c.personId === id) || {}).name || id;
+  const has = (p.parentIds || []).filter(Boolean);
+  const kid = (p.roles || []).indexOf('student') !== -1;
+  const box = (k, ph, v, type) => `<label class="field"><input data-pf="${k}" placeholder="${esc(ph)}"
+    autocomplete="off"${type ? ` type="${type}"` : ''} value="${esc(v || '')}"></label>`;
+  return `<div class="card person-form" data-pid="${esc(F.id)}">${head}
+    <div class="f-row" style="--n:2">${box('first', 'First name', p.firstName)}${box('last', 'Last name', p.lastName)}</div>
+    ${F.id && p.handle ? `<p class="faint pf-handle">Their handle stays @${esc(p.handle)}.</p>` : ''}
+    <div class="pf-roles" role="group" aria-label="Role">${peopleRolePicks_().map(([r, label]) => `<label class="check">
+      <input type="checkbox" data-pf-role="${r}"${(p.roles || []).indexOf(r) !== -1 ? ' checked' : ''}><span class="box"></span>
+      <span>${label}</span></label>`).join('')}</div>
+    ${box('email', 'Email (optional)', p.email, 'email')}
+    <label class="field"><span>Date of birth (optional)</span><input type="date" data-pf="dob" value="${esc(p.dob || '')}"></label>
+    <div class="pf-parents"${kid ? '' : ' hidden'}>
+      ${has.length ? '<p class="faint pf-note">Their parents — untick one to unlink.</p>' : ''}
+      ${has.map(id => `<label class="check"><input type="checkbox" data-pf-parent="${esc(id)}" checked><span class="box"></span>
+        <span>${esc(nameOf(id))}</span></label>`).join('')}
+      <label class="field"><span>${has.length ? 'Another parent' : 'Their parent (optional)'}</span><select data-pf="parent">
+        <option value="">None</option>${choices.filter(c => has.indexOf(c.personId) === -1).map(c =>
+          `<option value="${esc(c.personId)}">${esc(c.name)}</option>`).join('')}</select></label>
+    </div>
+    <p class="faint pf-said" aria-live="polite"></p>
+    <div class="pf-go"><button class="btn" data-do="person-save">${F.id ? 'Save' : 'Add them'}</button>
+      <button class="btn quiet" data-do="person-cancel">Cancel</button></div>
+  </div>`;
+}
+
+function peopleRedraw_() {
+  if (typeof AT !== 'undefined' && AT === 'account') repaint(true); else markStale_('account');
+}
+function personFetch_(F) {
+  send_({ action: 'personGet', personId: (USER && USER.personId) || '', targetId: F.id })
+    .then(d => { if (PEOPLE_FORM_ !== F) return; F.data = { person: d.person || null, parents: d.parents || [] }; peopleRedraw_(); })
+    .catch(e => { if (PEOPLE_FORM_ !== F) return; F.err = (e && e.message) || 'That could not be opened.'; peopleRedraw_(); });
+}
+
+on('person-add', () => { if (!peopleMay_()) return; PEOPLE_FORM_ = { id: '' }; peopleRedraw_(); });
+on('person-edit', el => {
+  if (!peopleMay_()) return;
+  PEOPLE_FORM_ = { id: el.getAttribute('data-id') || '' };
+  if (PEOPLE_FORM_.id) peopleRedraw_(); else PEOPLE_FORM_ = null;
+});
+on('person-cancel', () => { PEOPLE_FORM_ = null; peopleRedraw_(); });
+
+/* THE PARENTS' PART FOLLOWS THE STUDENT TICK — a parent is only asked of a child. */
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (!t || !t.matches || !t.matches('.person-form [data-pf-role="student"]')) return;
+  const box = t.closest('.person-form').querySelector('.pf-parents');
+  if (box) box.hidden = !t.checked;
+});
+
+/* THE CARD THE SERVER SENT, put where the column draws it — `everyone`, or the tutor already drawn. */
+function peoplePut_(card, gone) {
+  const id = String(gone || (card && card.personId) || '');
+  if (!id || !DATA) return;
+  const tut = (DATA.tutors || []).find(t => t && String(t.personId) === id);
+  if (Array.isArray(DATA.tutors) && gone) DATA.tutors = DATA.tutors.filter(t => !(t && String(t.personId) === id));
+  else if (tut) Object.assign(tut, { title: card.title, handle: card.handle });
+  const list = Array.isArray(DATA.everyone) ? DATA.everyone.filter(p => !(p && String(p.personId) === id)) : [];
+  if (!gone && !tut) list.push(card);
+  DATA.everyone = list;
+}
+
+on('person-save', el => {
+  const F = PEOPLE_FORM_, form = el.closest('.person-form');
+  if (!F || !form || !peopleMay_()) return;
+  const val = k => ((form.querySelector('[data-pf="' + k + '"]') || {}).value || '').trim();
+  const roles = [...form.querySelectorAll('[data-pf-role]')].filter(x => x.checked).map(x => x.getAttribute('data-pf-role'));
+  const said = form.querySelector('.pf-said');
+  if (!val('first') || !val('last')) { if (said) said.textContent = 'A first name and a last name, please.'; return; }
+  if (!roles.length) { if (said) said.textContent = 'Tick at least one role.'; return; }
+  const parentIds = roles.indexOf('student') === -1 ? []
+    : [...form.querySelectorAll('[data-pf-parent]')].filter(x => x.checked).map(x => x.getAttribute('data-pf-parent'))
+      .concat(val('parent') ? [val('parent')] : []);
+  send_({ action: 'personSave', personId: USER.personId || '', targetId: F.id, firstName: val('first'),
+          lastName: val('last'), roles, email: val('email'), dob: val('dob'), parentIds },
+        { button: el, where: said, lock: form })
+    .then(d => {
+      peoplePut_(d.person);
+      if (!F.id) { PEOPLE_FORM_ = { id: '', made: { first: d.first || val('first'), handle: d.handle || '', pin: d.pin || '' } }; }
+      else { PEOPLE_FORM_ = null; toast('Saved.'); }
+      peopleRedraw_();
+      load();
+    })
+    .catch(() => {});
+});
+
+/* ONE STEP: the sheet asks, Delete does it. */
+on('person-del', el => {
+  if (!peopleMay_()) return;
+  const id = el.getAttribute('data-id') || '', who = el.getAttribute('data-name') || 'them';
+  if (!id) return;
+  openSheet('Delete ' + who + '?', `<p class="sub">This can't be undone.</p>
+    <div class="pf-go"><button class="btn" data-do="person-del-go" data-id="${esc(id)}" data-name="${esc(who)}">Delete</button>
+    <button class="btn quiet" data-do="sheet-done">Cancel</button></div>`);
+});
+on('person-del-go', el => {
+  if (!peopleMay_()) return;
+  const id = el.getAttribute('data-id') || '';
+  send_({ action: 'personDelete', personId: USER.personId || '', targetId: id }, { button: el })
+    .then(() => {
+      peoplePut_(null, id);
+      if (PEOPLE_FORM_ && PEOPLE_FORM_.id === id) PEOPLE_FORM_ = null;
+      closeSheet();
+      toast((el.getAttribute('data-name') || 'They') + ' is deleted.');
+      peopleRedraw_();
+      load();
+    })
+    .catch(() => {});
+});

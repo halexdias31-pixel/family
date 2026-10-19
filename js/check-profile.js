@@ -1071,13 +1071,73 @@ let cardRules = 0;
   }
 }
 
+/* 19. PEOPLE MADE, CHANGED AND REMOVED BY AN ADMIN, THROUGH THE REAL `doPost` (373). Anybody else is refused. */
+let peopleRules = 0;
+{
+  const f = backend();
+  const mk = (id, role, first, last) => Object.assign({}, base, { person_id: id, role, first_name: first, last_name: last,
+    handle: first.toLowerCase() + '_calm', email: id.toLowerCase() + '@example.org' });
+  f.seed('people', [mk('P-AD', 'admin', 'Ada', 'Boss'), mk('P-PA', 'client', 'Anna', 'Parent'),
+                    mk('P-SA', 'student', 'Abe', 'Child'), mk('P-TU', 'tutor', 'Tia', 'Tutor')]);
+  f.seed('family', [{ link_id: 'L1', parent_id: 'P-PA', child_id: 'P-SA', state: 'accepted' }]);
+  const rule = (ok, said) => { peopleRules++; if (!ok) bad.push('people: ' + said); };
+  const tok = id => f.post({ action: 'verifyLogin', email: id.toLowerCase() + '@example.org', pin: '0000' });
+  const ad = tok('P-AD'), pa = tok('P-PA'), tu = tok('P-TU');
+  const as = (who, body) => f.post(Object.assign({ token: who.token, personId: who.personId }, body));
+  const peopleN = () => f.tabs.people.length, famN = () => f.tabs.family.length;
+  if (!ad.success || !pa.success || !tu.success) bad.push('people: a seeded person could not sign in, so the admin rules were NOT checked');
+  else {
+    /* NOBODY BUT AN ADMIN: each of the three refused, and nothing written. */
+    [pa, tu].forEach(w => {
+      const n = peopleN();
+      rule(!as(w, { action: 'personGet', targetId: 'P-SA' }).success, w.personId + ' was handed a person by personGet');
+      rule(!as(w, { action: 'personSave', firstName: 'Zed', lastName: 'Nobody', roles: ['admin'] }).success && peopleN() === n, w.personId + ' made a person');
+      rule(!as(w, { action: 'personSave', targetId: 'P-SA', firstName: 'Zed', lastName: 'Child', roles: ['student'] }).success
+        && f.row('P-SA').first_name === 'Abe', w.personId + ' changed somebody else');
+      rule(!as(w, { action: 'personDelete', targetId: 'P-SA' }).success && peopleN() === n, w.personId + ' deleted a person');
+    });
+    /* MADE: a template handle, joined today, a fresh PIN that signs them in, their parent linked. */
+    const made = as(ad, { action: 'personSave', firstName: 'Nia', lastName: 'Newby', roles: ['student'], dob: '2015-03-02', parentIds: ['P-PA'] });
+    const id = made.person && made.person.personId;
+    rule(made.success && id && /^na\d{4}$/.test(made.handle) && /^\d{6}$/.test(made.pin), 'adding a person said ' + JSON.stringify(made));
+    if (id) {
+      const row = f.row(id);
+      rule(row.role === 'student' && row.handle === made.handle && String(row.joined_on) !== '', 'the new row is not a student with the handle it was given and a day joined');
+      rule(f.post({ action: 'verifyLogin', email: made.handle, pin: made.pin }).success, 'the new person could not sign in with the handle and PIN the admin was shown');
+      rule(f.tabs.family.some(r => r.indexOf('P-PA') !== -1 && r.indexOf(id) !== -1), 'the parent ticked was not linked to the new child');
+      rule(made.person.title === 'Nia' && made.person.role === 'Student', 'the card sent back is not the one the column draws: ' + JSON.stringify(made.person));
+      /* CHANGED: name, email, parents off. The handle does not move with the first name. */
+      const got = as(ad, { action: 'personGet', targetId: id });
+      rule(got.success && got.person.lastName === 'Newby' && got.person.dob === '2015-03-02' && got.person.parentIds.join() === 'P-PA'
+        && got.parents.some(p => p.personId === 'P-PA'), 'personGet did not fill the form: ' + JSON.stringify(got));
+      const ed = as(ad, { action: 'personSave', targetId: id, firstName: 'Niamh', lastName: 'Newby', roles: ['student'], email: 'niamh@example.org', parentIds: [] });
+      const after = f.row(id);
+      rule(ed.success && after.first_name === 'Niamh' && after.handle === made.handle && after.email === 'niamh@example.org', 'editing did not write the name and email, or moved the handle: ' + JSON.stringify(ed));
+      rule(!f.tabs.family.some(r => r.indexOf(id) !== -1), 'unticking the parent left the link');
+      rule(!as(ad, { action: 'personSave', targetId: id, firstName: 'Niamh', lastName: 'Newby', roles: ['student'], email: 'p-pa@example.org' }).success, 'two people were given one email address');
+      /* REMOVED, with every family row naming them. */
+      as(ad, { action: 'personSave', targetId: id, firstName: 'Niamh', lastName: 'Newby', roles: ['student'], parentIds: ['P-PA'] });
+      const n = peopleN();
+      const del = as(ad, { action: 'personDelete', targetId: id });
+      rule(del.success && peopleN() === n - 1 && !f.tabs.family.some(r => r.indexOf(id) !== -1), 'deleting did not remove the row and their family links: ' + JSON.stringify(del));
+    }
+    /* NEVER YOURSELF, NEVER THE LAST ADMIN, AND NEVER YOUR OWN CARD THROUGH HERE. */
+    rule(!as(ad, { action: 'personDelete', targetId: 'P-AD' }).success && f.row('P-AD').role === 'admin', 'an admin deleted themselves');
+    rule(!as(ad, { action: 'personSave', targetId: 'P-AD', firstName: 'Ada', lastName: 'Boss', roles: ['tutor'] }).success, 'an admin took their own admin away here');
+    rule(!as(ad, { action: 'personSave', firstName: 'Abe', lastName: 'Child', roles: ['student'] }).success, 'a second person was made with a name already on the tab');
+    const n = famN();
+    rule(as(ad, { action: 'personDelete', targetId: 'P-SA' }).success && famN() === n - 1, 'deleting a linked child left their family row');
+  }
+}
+
 console.log(bad.length ? 'WRONG (' + bad.length + ')' : 'WRONG (0)');
 bad.forEach(x => console.log('  ' + x));
 console.log('');
 console.log('people: ' + PEOPLE.length + '   saves: ' + saves + '   changes read back after signing in again: ' + rounds
   + '   handles randomised: ' + shuffles + '   pictures saved: ' + photos + '   picture-choice rules held: ' + pictures + '   role rules held: ' + roleRules
   + '   closed days sent: ' + closed + '   tutor-hours rules held: ' + hoursRules + '   timetable rules held: ' + timetables
-  + '   exam-date rules held: ' + examDates + '   card rules held: ' + cardRules + '   seat-cut rules held: ' + cutRules);
+  + '   exam-date rules held: ' + examDates + '   card rules held: ' + cardRules + '   seat-cut rules held: ' + cutRules
+  + '   people-admin rules held: ' + peopleRules);
 if (bad.length) {
   console.log('FAILED — a Save that does not stick, or writes what nobody asked, is the one on the screen that only exists to change what the sheet holds.');
   process.exit(1);
