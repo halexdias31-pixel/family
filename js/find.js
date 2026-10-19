@@ -3648,7 +3648,7 @@ function markUnitOff_(t) {
 
 /* ---------- AN ANSWER WITH MANY RIGHT FORMS, MARKED BY WHAT MAKES IT RIGHT (360) */
 /* `rule: count 3, distinct, each factor 36, sum 31..34` in `accept`: the typed numbers are tested, not matched. */
-/* Clauses: count, distinct, mixed, each <tests>, sum, diff, from a/b/…, rounddiff R V, set a+b/c+d (word groups). */
+/* Clauses: count, distinct, mixed, each <tests>, at N <tests>, hcf N, sum, diff, from a/b/…, rounddiff R V, set a+b/c+d (word groups). */
 function markRuleNums_(typed) {
   const t = markNorm_(typed).replace(/[,;=+×]/g, ' , ').replace(/(\d)-(?=\d)/g, '$1 , ');
   const out = [];
@@ -3832,6 +3832,20 @@ function markRule_(typed, rule) {
       const tests = [];
       for (let i = 1; i < w.length; i++) tests.push(/^(mult|notmult|factor|notfactor|over|under|eq|ne)$/.test(w[i]) ? [w[i], w[++i]] : [w[i]]);
       return vs.every(v => tests.every(x => markRuleIs_(v, x[0], x[1])));
+    }
+    /* `at 2 even`: the tests for one value by its place, where each value has its own condition (m a multiple of 5, n even) */
+    if (k === 'at') {
+      const v = vs[Number(w[1]) - 1];
+      if (v === undefined) return false;
+      for (let i = 2; i < w.length; i++) {
+        const t = w[i], arg = /^(mult|notmult|factor|notfactor|over|under|eq|ne)$/.test(t) ? w[++i] : undefined;
+        if (!markRuleIs_(v, t, arg)) return false;
+      }
+      return true;
+    }
+    if (k === 'hcf') {
+      const g = (a, b) => (b ? g(b, a % b) : a);
+      return vs.every(v => near(v, Math.round(v)) && v > 0) && near(vs.map(Math.round).reduce(g), markRuleVal_(w[1]));
     }
     if (k === 'sum') {
       const r = w[1].split('..');
@@ -4154,13 +4168,15 @@ on('qp-choose', (el) => {
    compared as a number. Words are matched on their stems, and a word straight after "not" or "no" does not count. */
 const MW_STOP = /^(the|a|an|of|to|is|it|and|or|in|on|be|as|so|by|at|for)$/;
 function mwStem_(w) {
-  let s = String(w || '').toLowerCase().replace(/[^a-z0-9.]/g, '');
-  if (/^-?\d/.test(s)) return s.replace(/\.$/, '');
+  /* a full stop ends the sentence, not the word: "No." is "no" and "the same." is "same" */
+  let s = String(w || '').toLowerCase().replace(/[^a-z0-9.]/g, '').replace(/\.+$/, '');
+  if (/^-?\d/.test(s)) return s;
   const cut = s.replace(/(ations?|ings?|edly|ed|es|ly|er|est|s)$/, '');
   return cut.length >= 3 ? cut : s;
 }
 function mwToks_(t) {
-  return String(t || '').toLowerCase().replace(/['\u2019]/g, '').replace(/(\d),(?=\d{3}\b)/g, '$1').replace(/[^a-z0-9.\s-]/g, ' ')
+  /* "No, the powers ...": a No stopped by its punctuation is the verdict, and must not negate the next word */
+  return String(t || '').toLowerCase().replace(/^\s*no\s*[,.:;!\u2013\u2014]+/, 'no verdict ').replace(/['\u2019]/g, '').replace(/(\d),(?=\d{3}\b)/g, '$1').replace(/[^a-z0-9.\s-]/g, ' ')
     .split(/[\s-]+/).filter(Boolean).map(mwStem_).filter(Boolean);
 }
 function mwHas_(toks, term) {
@@ -4184,7 +4200,8 @@ function markWords_(typed, rule) {
 }
 
 /* ---------- A GRID OR TABLE WITH BLANKS IS FILLED IN WHERE IT STANDS, A CELL AT A TIME (359) */
-const CELL_BLANK = /<(td|th)([^>]*)>\s*(?:&nbsp;|\u00a0)?\s*<\/\1>/g;
+/* a blank is empty however many spaces the transcriber left in it (`&nbsp;&nbsp;&nbsp;&nbsp;` is one blank) */
+const CELL_BLANK = /<(td|th)([^>]*)>(?:\s|&nbsp;|\u00a0)*<\/\1>/g;
 /* `cells` READ: one entry a blank, in reading order -- `{ label, ways }`, and `ways` empty for a blank not asked. */
 function cellsOf_(x) {
   const raw = String((x && x.cells) || '').trim();

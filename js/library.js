@@ -395,10 +395,12 @@ const HEALTH_DRAWN = /<(svg|img|table)\b/i;
 const ABLE_HURT = { input: 1, mark: 0.6 };
 function ableOf_(r) {
   const type = libS(r.answer_type).toLowerCase();
-  if ((libTrue(r.needs_print) || libTrue(r.print_required)) && !libS(r.accept).trim()) return ['input', 'answered on the printed sheet only'];
+  /* a part with key words, cells or choices has its box and its marker like any other, printed sheet or not (365) */
   if (libS(r.choices).trim() && libS(r.choice_right).trim()) return null;
   if (libS(r.accept).trim() || libS(r.mark_words).trim() || libS(r.cells).trim()) return null;
+  /* and a drawing is drawn under the pen and sent (362), whether or not the paper's sheet is printed too */
   if (type === 'drawing' || type === 'annotate') return ['mark', 'drawn — marked by a person or AI'];
+  if (libTrue(r.needs_print) || libTrue(r.print_required)) return ['input', 'answered on the printed sheet only'];
   return ['mark', HEALTH_WORDED.indexOf(type) !== -1 ? 'worded — no keyword rule' : 'no answer the app can check'];
 }
 

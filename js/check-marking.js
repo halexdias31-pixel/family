@@ -579,6 +579,8 @@ const MW = [
   ['gravitational potential energy', 'gravitational potential', 1, 'a phrase, in order'],
   ['potential gravitational', 'gravitational potential', 0, 'and out of order it is not the phrase'],
   ['', 'placebo', null, 'nothing typed is not a wrong answer'],
+  ['No. The powers of 10 come first', 'no ; powers', 2, 'an opening No with its full stop is the verdict, not a negation of the next word'],
+  ['No placebo was given', 'placebo', 0, 'but a No inside the sentence still negates'],
 ];
 if (mwSrc.some(x => !x)) { console.log('check-marking: cannot find ' + MW_NAMES.filter((n, i) => !mwSrc[i]).join(', ') + ' in find.js — renamed?'); process.exit(1); }
 eval(mwSrc.join('\n'));
@@ -616,6 +618,9 @@ const RULES = [
   ['Head and 2', 'rule: set head~h+1/head+2', false, 'a list with one missing'],
   ['Soup and Chicken, Beef and Soup', 'rule: set soup+chicken/soup+beef', true, 'each pair either way round'],
   ['', 'rule: count 1', null, 'nothing typed is not a wrong answer'],
+  ['35, 28', 'rule: count 2, hcf 7, at 1 mult 5, at 2 even', true, 'another pair with HCF 7, m a multiple of 5, n even'],
+  ['35, 70', 'rule: count 2, hcf 7, at 1 mult 5, at 2 even', false, 'their HCF is 35, not 7'],
+  ['14, 35', 'rule: count 2, hcf 7, at 1 mult 5, at 2 even', false, 'the two the wrong way round'],
   /* `expr` and `eqn` (365): an algebraic answer marked by its value at sample points, not its spelling */
   ['x^2 + 7x + 12', 'rule: expr x^2+7x+12', true, 'the scheme as written'],
   ['7x + x² + 12', 'rule: expr x^2+7x+12', true, 'the terms in another order, a squared sign'],
