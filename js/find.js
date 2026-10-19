@@ -9765,11 +9765,13 @@ function paneReach_(panes) {
     /* ---------- AND NEITHER IS A CARD BEING EDITED (`cardEditHtml_`, me.js; docs/history/330) § */
     /* ---------- NOR "MANAGE YOUR CHILD" (`childManageCard_`, me.js; the review of docs/history/339) § */
     const forms = list.map(p => !!p.querySelector('.card-ed .me-form, .kid-manage'));
+    /* ---------- NOR A CARD ANSWERED BY TAPPING ITS OPTIONS, ITS ORDER OR ITS CELLS (374): drawn smaller they fell to 39-41px at 320; it scrolls and they stay 44 */
+    const picks = list.map(p => !!p.querySelector('.qcard .qp-opts, .qcard .qp-order, .qcard .qp-cells-box'));
     const want = list.map((p, i) => {
       const room = p.clientHeight - pad(p);
       const used = p.scrollHeight - pad(p);
       if (room <= 0 || used - room <= 2) return 1;
-      if (ticks[i] || forms[i] || drawn[i]) return 1;
+      if (ticks[i] || forms[i] || drawn[i] || picks[i]) return 1;
       /* FOUR PIXELS SHORT OF THE ROOM, because a 1px border and a sub-pixel line box do not scale:
          measured, a card zoomed to exactly room / used ended 4px past its pane. */
       const z = Math.max(PANE_ZOOM_MIN, Math.floor((room - 4) / used * 1000) / 1000);
@@ -9810,8 +9812,8 @@ function paneReach_(panes) {
     /* AN OPEN LIST SCROLLS FROM ITS FIRST PIXEL OVER, not from `PANE_REACH`'s 24: § */
     /* A CARD BEING EDITED THE SAME: its Save and Cancel are its foot, and the pane has to reach them — and
        "Manage your child", whose foot is Ask them. */
-    const over = list.map((p, i) => (want[i] <= PANE_ZOOM_MIN || ((essay[i] || ticks[i] || forms[i] || drawn[i]) && want[i] === 1))
-      && p.scrollHeight - p.clientHeight > (ticks[i] || forms[i] || drawn[i] ? 2 : PANE_REACH));
+    const over = list.map((p, i) => (want[i] <= PANE_ZOOM_MIN || ((essay[i] || ticks[i] || forms[i] || drawn[i] || picks[i]) && want[i] === 1))
+      && p.scrollHeight - p.clientHeight > (ticks[i] || forms[i] || drawn[i] || picks[i] ? 2 : PANE_REACH));
     /* WRITTEN ONLY WHERE IT CHANGES, which is what stops `paneWatch_` below feeding itself: § */
     list.forEach((p, i) => {
       const to = over[i] ? 'auto' : '';

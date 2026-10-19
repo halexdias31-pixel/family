@@ -1499,6 +1499,20 @@ const unmoved = (sec, where, r, b) => {
           if (seed === SEEDS[0]) await shot(env.page, 'straight-line');
           await reset(env, o.k);
         }
+        /* A MOUSE: pressed, dragged with a wobble, held still (no events at all) 700ms, released -- straight too */
+        {
+          const Rm = rng(4);
+          await MO(env, 'mousePressed', A2[0], A2[1], 'mouse', 1);
+          const n = 60;
+          for (let i = 1; i <= n; i++) { const u = i / n; await MO(env, 'mouseMoved', A2[0] + (B2[0] - A2[0]) * u + (Rm() * 2 - 1) * 2, A2[1] + (B2[1] - A2[1]) * u + 4 * Math.sin(Math.PI * u), 'mouse', 1); await sleep(8); }
+          await MO(env, 'mouseMoved', B2[0], B2[1], 'mouse', 1);
+          await sleep(700);
+          await MO(env, 'mouseReleased', B2[0], B2[1], 'mouse', 0);
+          await sleep(400);
+          const r = await look(env, o.k, CARD), st = r.stored[0] || [];
+          if (r.stored.length !== 1 || JSON.stringify(st) !== JSON.stringify(wantU)) fail('straight', `${at} mouse`, `a mouse line held 700ms stored ${JSON.stringify(r.stored).slice(0, 120)} — wanted ${JSON.stringify(wantU)}`);
+          await reset(env, o.k);
+        }
         /* THE SAME LINE, LIFTED AT ONCE: kept as the finger drew it */
         await drawThrough(env, [A2, B2], [], 0, rng(5));
         let r = await look(env, o.k, CARD), st = r.stored[0] || [];
