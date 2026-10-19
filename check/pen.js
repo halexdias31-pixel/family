@@ -1425,7 +1425,7 @@ const unmoved = (sec, where, r, b) => {
       }
     }
 
-    /* ---- loupe: at once for a dot on a fine grid, after 300ms elsewhere; follows; never with a second finger; gone after every end ---- */
+    /* ---- loupe: up from the touch for every stroke (359); follows a freehand line; never with a second finger; gone after every end ---- */
     if (want('loupe') && W === 390) {
       const isOn = () => env.page.evaluate(() => !!document.querySelector('body > .pad-loupe.on'));
       const o = await open(env, FINE, at);
@@ -1467,26 +1467,23 @@ const unmoved = (sec, where, r, b) => {
         await T(env, 'touchEnd', [], 300); await sleep(200);
         await reset(env, o.k);
       }
-      /* ELSEWHERE -- Q7's 17px squares -- only after a 300ms pause, and then it follows. */
+      /* ELSEWHERE -- Q7's 17px squares, a FREEHAND stroke with no pause -- up from the touch and following (359). */
       const q = await open(env, Q7, at);
       if (q) {
         const c = q.c, x0 = c.ink.l + c.ink.w * 0.45, y0 = c.ink.t + c.ink.h * 0.55;
-        begin(env); await T(env, 'touchStart', [pt(x0, y0)], 0);
-        await sleep(150);
-        const early = await isOn();
-        await sleep(350);
-        const late = await isOn();
         await loupeWatch(env);
-        const fr = []; for (let i = 1; i <= 60; i++) fr.push([pt(x0 + i * 1.5, y0 - i)]);
-        await stream(env, fr, 16, 500);
+        begin(env); await T(env, 'touchStart', [pt(x0, y0)], 0);
+        const fr = []; for (let i = 1; i <= 60; i++) fr.push([pt(x0 + i * 1.5 + Math.sin(i / 3) * 6, y0 - i + Math.cos(i / 4) * 5)]);
+        await stream(env, fr.slice(0, 8), 16);
+        const early = await isOn();
+        await stream(env, fr.slice(8), 16, 8 * 16);
         const lw = await loupeRead(env);
-        await T(env, 'touchEnd', [], 500 + 61 * 16); await sleep(300);
+        await T(env, 'touchEnd', [], 61 * 16); await sleep(300);
         const after = await isOn();
-        if (early) fail('loupe', at + ' Q7', 'the loupe was up 150ms into a still finger on a coarse grid — wanted only after 300ms');
-        if (!late) fail('loupe', at + ' Q7', 'the loupe was not up 500ms into a still finger');
-        if (!lw.frames || lw.follow / lw.frames < 0.95) fail('loupe', at + ' Q7', `the loupe followed the finger in ${lw.follow} of ${lw.frames} frames — under 95%`);
-        if (after) fail('loupe', at + ' Q7', 'the loupe was left on after the lift');
-        console.log(`  loupe ${at} Q7: up at 150ms ${early}, at 500ms ${late}, followed ${lw.follow}/${lw.frames}`);
+        if (!early) fail('loupe', at + ' Q7 freehand', 'the loupe was not up 130ms into a freehand stroke on a coarse grid — wanted from the touch');
+        if (!lw.frames || lw.follow / lw.frames < 0.95) fail('loupe', at + ' Q7 freehand', `the loupe followed the finger in ${lw.follow} of ${lw.frames} frames — under 95%`);
+        if (after) fail('loupe', at + ' Q7 freehand', 'the loupe was left on after the lift');
+        console.log(`  loupe ${at} Q7 freehand: up at 130ms ${early}, followed ${lw.follow}/${lw.frames}`);
         await reset(env, q.k);
       }
     }

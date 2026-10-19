@@ -628,9 +628,13 @@ const FACETS = [
            : x.cost === 0 ? 'Free'
            : x.cost <= (USER ? USER.credits || 0 : 0) ? 'Can afford' : '' },
   /* ---------- HOW READY A PAPER IS, AS AN ANSWER YOU CAN PICK § */
-  { field: 'health', tag: true,    label: 'Health', tagOnly: true,
+  { field: 'health', tag: true,    label: 'Faithful', tagOnly: true,
     orderOf: v => HEALTH_BANDS.findIndex(b => b[0] === v),
     of: x => { const h = healthOf_(x); return h ? h.band : ''; } },
+  /* THE SECOND HEALTH: can every part be answered here and marked without AI (library.js, `ableOf_`). */
+  { field: 'answerable', tag: true, label: 'Answerable', tagOnly: true,
+    orderOf: v => HEALTH_BANDS.findIndex(b => b[0] === v),
+    of: x => { const h = healthOf_(x); return h && h.able ? h.able.band : ''; } },
 ];
 
 /* ---------- THE FENCE: A CLOSED KIND'S QUESTIONS, AND ONLY ITS QUESTIONS § */
@@ -3364,7 +3368,7 @@ function questionItems() {
       surface: r.surface || '',
       /* AND WHICH EARLIER PART'S DRAWING IT READS -- see `usesOf_`. */
       uses: r.uses || '',
-      accept: r.accept || '',
+      accept: r.accept || '', cells: r.cells || '', markWords: r.markWords || '',
       choices: r.choices || [], choiceRight: r.choiceRight || [],
       /* AN ORDERING'S EVERY RIGHT ORDER AND ITS TWO ENDS -- see `orderBox_` and library.js. */
       choiceWays: r.choiceWays || [], orderEnds: r.orderEnds || [],
@@ -3930,8 +3934,131 @@ on('qp-choose', (el) => {
   /* RIGHT DOES NOT OPEN THE ANSWER PAGE ANY MORE. § */
 });
 
+/* ---------- A WORDED ANSWER OF A MARK OR TWO, MARKED BY RULE BEFORE ANY AI (359) */
+/* `mark_words`: points split by `;`, a mark each; ways by `|`; words that must all be there joined by `+`; a number is
+   compared as a number. Words are matched on their stems, and a word straight after "not" or "no" does not count. */
+const MW_STOP = /^(the|a|an|of|to|is|it|and|or|in|on|be|as|so|by|at|for)$/;
+function mwStem_(w) {
+  let s = String(w || '').toLowerCase().replace(/[^a-z0-9.]/g, '');
+  if (/^-?\d/.test(s)) return s.replace(/\.$/, '');
+  const cut = s.replace(/(ations?|ings?|edly|ed|es|ly|er|est|s)$/, '');
+  return cut.length >= 3 ? cut : s;
+}
+function mwToks_(t) {
+  return String(t || '').toLowerCase().replace(/['\u2019]/g, '').replace(/(\d),(?=\d{3}\b)/g, '$1').replace(/[^a-z0-9.\s-]/g, ' ')
+    .split(/[\s-]+/).filter(Boolean).map(mwStem_).filter(Boolean);
+}
+function mwHas_(toks, term) {
+  const want = mwToks_(term).filter(w => !MW_STOP.test(w));
+  if (!want.length) return false;
+  for (let i = 0; i + want.length <= toks.length; i++) {
+    let b = i - 1;
+    while (b >= 0 && MW_STOP.test(toks[b])) b--;
+    if (b >= 0 && /^(not|no|never|isnt|wasnt)$/.test(toks[b])) continue;
+    if (want.every((w, j) => toks[i + j] === w || (/^-?[\d.]+$/.test(w) && parseFloat(toks[i + j]) === parseFloat(w)))) return true;
+  }
+  return false;
+}
+/* `{ got, of }`, or null for nothing typed. */
+function markWords_(typed, rule) {
+  if (!String(typed || '').trim()) return null;
+  const toks = mwToks_(typed);
+  const points = String(rule || '').split(';').map(p => p.trim()).filter(Boolean);
+  const got = points.filter(p => p.split('|').some(way => way.split('+').every(term => mwHas_(toks, term)))).length;
+  return { got: got, of: points.length };
+}
+
+/* ---------- A GRID OR TABLE WITH BLANKS IS FILLED IN WHERE IT STANDS, A CELL AT A TIME (359) */
+const CELL_BLANK = /<(td|th)([^>]*)>\s*(?:&nbsp;|\u00a0)?\s*<\/\1>/g;
+/* `cells` READ: one entry a blank, in reading order -- `{ label, ways }`, and `ways` empty for a blank not asked. */
+function cellsOf_(x) {
+  const raw = String((x && x.cells) || '').trim();
+  if (!raw) return [];
+  return raw.split(';').map((c, i) => {
+    const m = /^\s*([^=|]{1,12}?)\s*=\s*(.*)$/.exec(c);
+    const ways = (m ? m[2] : c).trim();
+    return { label: m ? m[1].trim() : String(i + 1), ways: ways === '-' ? '' : ways };
+  });
+}
+/* EACH CELL MARKED ON ITS OWN by `markAnswer_`: `{ right, of, each }`, `each[i]` true, false, or null for nothing typed. */
+function markCells_(vals, cells) {
+  const each = cells.map((c, i) => c.ways ? markAnswer_(vals[i] || '', c.ways) : undefined);
+  const asked = each.filter(v => v !== undefined);
+  return { right: asked.filter(v => v === true).length, of: asked.length, each: each };
+}
+const cellsVals_ = v => String(v == null ? '' : v).split(' ; ');
+function cellInput_(k, c, i, v) {
+  if (!c.ways) return '';
+  const num = /^[-\d.,\s|£$%°/]+$/.test(c.ways);
+  return `<input class="qp-cell" data-k="${esc(k)}" data-n="${i}" aria-label="Blank ${esc(c.label)}" autocomplete="off"
+    inputmode="${num ? 'decimal' : 'text'}" value="${esc(v || '')}">`;
+}
+/* THE QUESTION'S OWN TABLE, ITS BLANKS MADE CELLS -- or '' when it has none with as many blanks as `cells`. */
+function cellsTable_(x, html) {
+  const cells = cellsOf_(x);
+  if (!cells.length) return '';
+  const k = ansKey_(x), vals = cellsVals_(ansRead_(k));
+  let n = 0;
+  const out = String(html || '').replace(/<table[\s\S]*?<\/table>/, t => {
+    const blanks = (t.match(CELL_BLANK) || []).length;
+    if (blanks !== cells.length) return t;
+    return t.replace(CELL_BLANK, (m, tag, at) => {
+      const i = n++;
+      return `<${tag}${at} class="qp-cell-at">${cellInput_(k, cells[i], i, vals[i])}</${tag}>`;
+    }).replace(/^<table/, '<table data-cells="1"');
+  });
+  return n ? out : '';
+}
+/* THE BOX UNDER IT: Check marks every cell; with no table to fill, the cells stand in a row of their own. */
+const cellsHere_ = (x, html) => (cellsOf_(x).length && cellsTable_(x, html)) || html;
+function cellsBox_(x) {
+  const cells = cellsOf_(x), k = ansKey_(x);
+  const inTable = !!cellsTable_(x, x.html);
+  const vals = cellsVals_(ansRead_(k));
+  const row = inTable ? '' : `<div class="qp-cells">${cells.map((c, i) => c.ways
+    ? `<label class="qp-cell-l"><span>${esc(c.label)}</span>${cellInput_(k, c, i, vals[i])}</label>` : '').join('')}</div>`;
+  const said = subBoxSay_(k, ansRead_(k));
+  return `<div class="qp-mark qp-compose qp-cells-box${said.cls ? ' ' + said.cls : ''}" data-k="${esc(k)}">${row}
+    <div class="tile-row">${tile_({ icon: 'send', label: 'Check', note: 'every cell', act: 'qp-cells-check', cls: 'qp-check', tone: 'send' })}${figTile_(x)}</div>
+    <span class="qp-verdict" role="status" aria-live="polite">${esc(said.text)}</span>
+    <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span></div>`;
+}
+const cellsIn_ = el => { const card = el && el.closest('.qcard'); return card ? [].slice.call(card.querySelectorAll('.qp-cell')) : []; };
+function cellsRead_(el) {
+  const vals = [];
+  cellsIn_(el).forEach(c => { vals[+c.getAttribute('data-n')] = c.value; });
+  return vals;
+}
+document.addEventListener('input', e => {
+  const el = e.target && e.target.classList && e.target.classList.contains('qp-cell') ? e.target : null;
+  if (!el) return;
+  const vals = cellsRead_(el);
+  for (let i = 0; i < vals.length; i++) if (vals[i] == null) vals[i] = '';
+  ansStore_(el.getAttribute('data-k') || '', vals.join(' ; '));
+  el.classList.remove('is-right', 'is-near');
+});
+on('qp-cells-check', el => {
+  const box = el.closest('.qp-cells-box');
+  const out = box && box.querySelector('.qp-verdict');
+  const x = box && stuffItemsAll_().find(it => ansKey_(it) === box.getAttribute('data-k'));
+  if (!x || !out) return;
+  const vals = cellsRead_(box), m = markCells_(vals, cellsOf_(x));
+  cellsIn_(box).forEach(c => {
+    const v = m.each[+c.getAttribute('data-n')];
+    c.classList.toggle('is-right', v === true);
+    c.classList.toggle('is-near', v === false);
+  });
+  box.classList.remove('is-right', 'is-near');
+  if (!m.each.some(v => v === true || v === false)) { out.textContent = 'Fill a cell first'; return; }
+  const all = m.right === m.of;
+  box.classList.add(all ? 'is-right' : 'is-near');
+  out.textContent = all ? 'Correct — every cell' : m.right + ' of ' + m.of + ' cells right';
+  subRecord_(box.getAttribute('data-k'), vals.join(' ; '), all ? 'right' : 'wrong');
+});
+
 function ansBox_(x) {
   if (x && Array.isArray(x.choices) && x.choices.length >= 2) return choiceBox_(x);
+  if (cellsOf_(x).length) return cellsBox_(x);
   const k = ansKey_(x);
   /* MARKABLE ONLY WHERE `accept` SAYS SO. § */
   const can = String(x && x.accept || '').trim();
@@ -3943,8 +4070,12 @@ function ansBox_(x) {
   /* ---------- THE FIGURE TILE STANDS BESIDE THE BOX, NOT IN THE ROW UNDER IT § */
   const fig = figTile_(x);
   /* ---------- THE ANSWER BOX IS A CHAT BAR, WITH A SEND TILE § */
-  const ai = can ? '' : aiTile_(x);
+  const rule = can ? '' : String(x && x.markWords || '').trim();
+  const aiNow = can ? '' : aiTile_(x);
+  /* A RULE MARKS FIRST; the AI tile stays hidden until the rule cannot give every mark (`qp-rule`). */
+  const ai = rule && aiNow ? `<span class="qp-ai-later" hidden>${aiNow}</span>` : aiNow;
   const send = can ? tile_({ icon: 'send', label: 'Send', note: 'mark it', act: 'qp-check', cls: 'qp-check', tone: 'send' })
+    : rule ? tile_({ icon: 'send', label: 'Check', note: 'marked by its key words', act: 'qp-rule', cls: 'qp-check', tone: 'send' }) + ai
     : ai || subSendTile_();
   const val = ansRead_(k);
   /* ---------- AN ESSAY IS WRITTEN ON A SHEET, NOT IN A CHAT BAR § */
@@ -3958,7 +4089,7 @@ function ansBox_(x) {
     const said = subBoxSay_(k, v);
     const own = kept && (kept.fresh || !said.text) ? kept : null;
     const vcls = own ? own.cls : said.cls, vsay = own ? own.verdict : said.text;
-    const foot = `<div class="tile-row qp-sheet-foot">${send}${say}${fig}${note ? `<span class="qp-ai-note">${esc(note)}</span>` : ''}
+    const foot = `<div class="tile-row qp-sheet-foot">${send}${say}${fig}${kpWideTile_(k)}${note ? `<span class="qp-ai-note">${esc(note)}</span>` : ''}
       <span class="qp-words">${esc(kpWordsSay_(kpWordCount_(v)))}</span></div>`;
     const sheet = `<label class="qp-ans qp-sheet" aria-label="Your answer">${kpField_(k, v, 'essay', signs)}</label>`;
     return `<div class="${send ? 'qp-mark ' : ''}qp-compose qp-essay${ai ? ' qp-ai' : ''}${send && vcls ? ' ' + vcls : ''}"${can ? ` data-accept="${esc(can)}"` : ''}>
@@ -3969,12 +4100,12 @@ function ansBox_(x) {
   }
   const bar = `<div class="qp-ans-row qp-bar"><label class="qp-ans${maths ? ' qp-ans-maths' : ''}" aria-label="Your answer">
     ${kpField_(k, val, maths ? 'maths' : 'words', signs)}
-  </label>${fig}${send}</div>`;
+  </label>${fig}${kpWideTile_(k)}${send}</div>`;
   if (!send) return `<div class="qp-compose">${bar}
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span></div>`;
   /* THE VERDICT IS THE LATEST SUBMISSION'S, WHILE THE BOX HOLDS WHAT WAS SENT -- on this device or on the account, next sign-in § */
   const said = subBoxSay_(k, val);
-  return `<div class="qp-mark qp-compose${ai ? ' qp-ai' : ''}${said.cls ? ' ' + said.cls : ''}"${can ? ` data-accept="${esc(can)}"` : ''}>
+  return `<div class="qp-mark qp-compose${ai ? ' qp-ai' : ''}${said.cls ? ' ' + said.cls : ''}"${can ? ` data-accept="${esc(can)}"` : ''}${rule ? ` data-rule="${esc(rule)}" data-marks="${esc(String(Number(x.marks) || ''))}"` : ''}>
     ${bar}
     <span class="qp-verdict" role="status" aria-live="polite">${esc(said.text)}</span>
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
@@ -4012,6 +4143,24 @@ on('qp-check', (el) => {
      what the card and every device show (js/submit.js). Signed out it is this visit's alone. */
   subRecord_(inp.getAttribute('data-k'), inp.value, verdict ? 'right' : 'wrong');
   /* A RIGHT ANSWER DOES NOT OPEN THE ANSWER PAGE. § */
+});
+
+/* ---------- BY RULE: full marks is decided; anything less says what the rule found and offers the AI, if it is on (359). */
+on('qp-rule', (el) => {
+  const box = el.closest('.qp-mark');
+  const inp = box && box.querySelector('.qp-ans-in');
+  const out = box && box.querySelector('.qp-verdict');
+  if (!inp || !out) return;
+  const m = markWords_(inp.value, box.getAttribute('data-rule'));
+  box.classList.remove('is-right', 'is-near');
+  if (!m) { out.textContent = 'Write something first'; return; }
+  const of = Math.max(1, Math.min(m.of, Number(box.getAttribute('data-marks')) || m.of));
+  const got = Math.min(m.got, of);
+  box.classList.add(got >= of ? 'is-right' : 'is-near');
+  const later = box.querySelector('.qp-ai-later');
+  if (later) later.hidden = got >= of;
+  out.textContent = got + ' of ' + of + ' mark' + (of === 1 ? '' : 's') + ' · by key words' + (got < of && later ? ' — or mark it with AI' : '');
+  subRecord_(inp.getAttribute('data-k'), inp.value, 'rule:' + got + '/' + of);
 });
 
 /* ---------- SEND, WHERE NOTHING CAN MARK IT § */
@@ -4079,6 +4228,8 @@ function padSource_(x) {
   if (!x) return null;
   /* A ROW WITH OPTIONS IS ANSWERED BY CHOOSING ONE, and is given nothing to draw on (18 Oct, 356): § */
   if (Array.isArray(x.choices) && x.choices.length) return null;
+  /* AND A ROW WITH CELLS IS ANSWERED IN ITS TABLE (`cellsTable_`), so nothing to draw on either. */
+  if (String(x.cells || '').trim()) return null;
   const surf = padSurface_(x);
   if (!padWanted_(x) && (!surf || surf === 'text')) return null;
   if (x.diagram) return { svg: x.diagram, from: 'part' };
@@ -4091,7 +4242,7 @@ function padSource_(x) {
 /* ---------- WHAT A QUESTION IS ANSWERED WITH: A DRAWING, A VALUE, OR BOTH § */
 function answerKinds_(x) {
   const draw = !!padSource_(x);
-  return { draw: draw, value: !draw || !!String((x && x.accept) || '').trim() };
+  return { draw: draw, value: !draw || !!String((x && x.accept) || '').trim() || cellsOf_(x).length > 0 };
 }
 
 /* ---------- WHICH TOOLS A QUESTION'S PEN COMES WITH § */
@@ -4733,7 +4884,7 @@ function padStart_(c, at, r) {
              r: 0, rMax: 0, a: null, a0: 0, sweep: 0, held: false, tip: null, id: c.id,
              c: c, t0: c.t0, k: padAspectOf_(pad), est: false, pen: false, dirty: false, live: [], start: 0,
              box: r, board: !!pad && padIsBoard_(pad.getAttribute('data-k')), lat: null, tg: null, hold: null, gain: null,
-             at: at.slice(), fp: null, raw: at.slice(), dot: false, far: 0, loupe: 0, dwell: null };
+             at: at.slice(), fp: null, raw: at.slice(), dot: false, far: 0, loupe: 0 };
   const g = PAD_GO;
   /* A PLACEMENT, PUT DOWN (357): the pin and the ruler's first end where they snap, and the pen's touch a
      DOT -- one point -- until it has gone `PAD_DOT_PX`. Not on the board: it never snaps, and its taps are as before. */
@@ -5019,25 +5170,14 @@ function padRules_(c) {
 const PAD_LOUPE_PX = 128;
 const PAD_LOUPE_RISE = 112;
 let PAD_LOUPE_T = 0;
+/* EVERY STROKE, EVERY TOOL, EVERY SURFACE (359): the loupe is up from the touch, above the finger, not only for a placement or after a pause. */
 function padLoupeWant_(g) {
   if (PAD_LOUPE_T) { clearTimeout(PAD_LOUPE_T); PAD_LOUPE_T = 0; }
-  const L = g.lat;
-  g.lnow = !!L && (g.tool !== 'pen' || (g.dot && L.pitch < PAD_FINE_PX));
-  const p = g.c && g.c.p ? g.c.p : [0, 0];
-  g.dwell = { x: p[0], y: p[1], t: performance.now(), lim: 10, ms: 300 };
-  if (g.lnow) padFrameWant_();
-  else if (typeof setTimeout === 'function') PAD_LOUPE_T = setTimeout(() => { PAD_LOUPE_T = 0; padFrameWant_(); }, 300);
+  g.lnow = true;
+  padFrameWant_();
 }
-/* A SAMPLE: the loupe, if it is up, follows at the next frame; if not, the pause is timed again from here
-   whenever the finger has left the circle it was pausing in. */
-function padLoupeStep_(g, at) {
-  if (g.lnow || g.loupe) { padFrameWant_(); return; }
-  const d = g.dwell, p = g.c && g.c.p;
-  if (!d || !p || Math.hypot(p[0] - d.x, p[1] - d.y) <= d.lim) return;
-  d.x = p[0]; d.y = p[1]; d.t = performance.now(); d.lim = 8; d.ms = 400;
-  if (PAD_LOUPE_T) clearTimeout(PAD_LOUPE_T);
-  PAD_LOUPE_T = typeof setTimeout === 'function' ? setTimeout(() => { PAD_LOUPE_T = 0; padFrameWant_(); }, 400) : 0;
-}
+/* A SAMPLE: the loupe follows at the next frame. */
+function padLoupeStep_(g) { if (g.lnow || g.loupe) padFrameWant_(); }
 /* `hide` ONLY HIDES IT: the preview redrawn (`padLiveShow_`, at every landing) or held keeps the pause's timer, which a
    lift, a drop or the page going away ends. */
 function padLoupeOff_(hide) {
@@ -5050,7 +5190,7 @@ function padLoupeOff_(hide) {
 /* AT THE FRAME: shown or not, and where. */
 function padLoupe_(g) {
   if (!g || PAD_HUSH || PAD_TWO.size || !padShown_(g) || !g.ink || !g.ink.isConnected) { if (g && g.loupe) padLoupeOff_(); return; }
-  if (!g.loupe && !g.lnow && !(g.dwell && performance.now() - g.dwell.t >= g.dwell.ms)) return;
+  if (!g.loupe && !g.lnow) return;
   let el = document.querySelector('body > .pad-loupe');
   if (!el) {
     el = document.createElement('div');
@@ -5822,7 +5962,7 @@ function questionCard_(x) {
             ''}
       ${/* THE LAST OF THE WORDS, which is all of them unless the part is too long for one page -- then the pages in front (`questionPreCard_`) hold the rest and this § */
             ''}
-      ${chunkHtml_(partChunks_(x).slice(-1)[0], circOf_(x), x)}
+      ${cellsHere_(x, chunkHtml_(partChunks_(x).slice(-1)[0], circOf_(x), x))}
     </div>
     ${/* YOUR BOX, AND THE MARK SCHEME IS NOT UNDER IT ANY MORE. § */
           ''}
@@ -7065,21 +7205,26 @@ function healthTiles_(items) {
   const h = x ? healthOf_(x) : null;
   if (!h) return '';
   return `<div class="tile-row health-tiles">${tile_({ icon: 'pulse', label: 'Health',
-    note: h.band + ' ' + h.pct + '%', act: 'paper-health', data: { pid: x.row.paper_id } })}</div>`;
+    note: 'Faithful ' + h.pct + '% · Answerable ' + (h.able ? h.able.pct : 0) + '%', act: 'paper-health', data: { pid: x.row.paper_id } })}</div>`;
 }
 function healthListHtml_(h, pid) {
   /* THE BAND IS THE TAG, AS ON EVERY CARD -- the Health answer, [Ready] -- and the exact score is the
      sentence after it: a tag is a word the finder can pick, and nobody picks `99%`. */
   const head = `<p class="health-sum"><span class="qtag"${tagAttr_('health')}>${esc(h.band)}</span>
-    ${esc(h.pct + '%')} of its points pass &middot; ${h.questions} question${h.questions === 1 ? '' : 's'}${h.total != null ? ', ' + h.marks + ' of ' + h.total + ' marks' : ''}</p>`;
-  if (!h.fails.length) return head + '<p class="health-none">Nothing wrong found.</p>';
+    Faithful ${esc(h.pct + '%')} of its points pass &middot; ${h.questions} question${h.questions === 1 ? '' : 's'}${h.total != null ? ', ' + h.marks + ' of ' + h.total + ' marks' : ''}</p>`;
+  const a = h.able || { pct: 0, band: '', fails: [] };
+  const able = `<p class="health-sum able-sum"><span class="qtag"${tagAttr_('answerable')}>${esc(a.band)}</span>
+    ${esc(a.pct + '%')} answerable here and marked without AI</p>` + (a.fails.length
+    ? `<ul class="health-list able-list">${a.fails.map(f => `<li><b class="health-ref">${esc(f.ref)}</b> — ${esc(f.why)}</li>`).join('')}</ul>`
+    : '<p class="health-none">Every part can be answered and marked.</p>');
+  if (!h.fails.length) return head + '<p class="health-none">Nothing wrong found.</p>' + able;
   /* IN THE CARD'S OWN WORDS FOR THE QUESTION. § */
   const said = {};
   try {
     stuffItemsAll_().forEach(i => { if (i && i.row && i.row.paper_id === pid && i.name) said[i.row.row_id] = i.name; });
   } catch (e) { /* the row's own reference stands */ }
-  return head + `<ul class="health-list">${h.fails.map(f =>
-    `<li><b class="health-ref">${esc((f.row && said[f.row]) || f.ref)}</b> — ${esc(f.why)}</li>`).join('')}</ul>`;
+  return head + `<ul class="health-list faith-list">${h.fails.map(f =>
+    `<li><b class="health-ref">${esc((f.row && said[f.row]) || f.ref)}</b> — ${esc(f.why)}</li>`).join('')}</ul>` + able;
 }
 on('paper-health', el => {
   const h = healthBy_()[String(el.getAttribute('data-pid') || '')];
@@ -7937,7 +8082,7 @@ const TAG_OF = {
   bibleBook: 'paper', bibleChapter: 'paper', bibleVerse: 'paper',
   /* A PAPER'S HEALTH IS NOT ANY OTHER KIND — it is about the transcription, not the paper — so it has
      a token of its own, `--tag-health`. */
-  health: 'health',
+  health: 'health', answerable: 'answerable',
 };
 const tagOf_ = field => TAG_OF[field] || '';
 const tagAttr_ = field => tagOf_(field) ? ` data-tag="${tagOf_(field)}"` : '';

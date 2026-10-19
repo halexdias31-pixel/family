@@ -345,6 +345,10 @@ function libraryInto_(d, rows) {
       uses: libS(r.uses),
       /* WHAT A STUDENT COULD TYPE AND BE RIGHT. § */
       accept: libS(r.accept),
+      /* THE BLANKS OF A GRID OR TABLE, `;` between cells, `|` between ways, `-` a blank not asked (find.js, `cellsOf_`). */
+      cells: libS(r.cells),
+      /* KEY WORDS THAT MARK A SHORT WORDED ANSWER WITHOUT AI (find.js, `markWords_`). */
+      markWords: libS(r.mark_words),
       /* A CLOSED LIST OF OPTIONS, TAPPED RATHER THAN TYPED. § */
       choices: libS(r.choices).split('|').map(t => t.trim()).filter(Boolean),
       /* ---------- AN ORDERING IS THE SAME TWO COLUMNS AND ONE MORE § */
@@ -386,6 +390,17 @@ const HEALTH_WORDED = ['explain', 'written', 'proof', 'annotate', 'drawing'];
    picture on the first measurement. */
 const HEALTH_SAYS_PIC = /\b(diagram|shown|table below|grid)\b|\b(the|this) graph\b|\bgraph (below|above|shows)\b/i;
 const HEALTH_DRAWN = /<(svg|img|table)\b/i;
+/* ANSWERABLE: a part has a box the app gives it AND a way to mark it with no AI -- `accept`, a choice or
+   an order key, filled cells, or `mark_words`. A drawing is answerable on its figure and marked by a person. */
+const ABLE_HURT = { input: 1, mark: 0.6 };
+function ableOf_(r) {
+  const type = libS(r.answer_type).toLowerCase();
+  if ((libTrue(r.needs_print) || libTrue(r.print_required)) && !libS(r.accept).trim()) return ['input', 'answered on the printed sheet only'];
+  if (libS(r.choices).trim() && libS(r.choice_right).trim()) return null;
+  if (libS(r.accept).trim() || libS(r.mark_words).trim() || libS(r.cells).trim()) return null;
+  if (type === 'drawing' || type === 'annotate') return ['mark', 'drawn — marked by a person or AI'];
+  return ['mark', HEALTH_WORDED.indexOf(type) !== -1 ? 'worded — no keyword rule' : 'no answer the app can check'];
+}
 
 function paperHealth_(rows) {
   const out = {};
@@ -420,14 +435,16 @@ function paperHealth_(rows) {
     const total = said > 0 ? said : (gcseMaths ? 80 : null);
     const printsMarks = total != null || /paper/i.test(fact('document_type'))
       || qs.some(r => libNum(r.marks) > 0);
-    const fails = [];
-    let points = 0, lost = 0, marked = 0;
+    const fails = [], ableFails = [];
+    let points = 0, lost = 0, marked = 0, ableLost = 0;
     qs.forEach(r => {
       const m = libNum(r.marks);
       const w = m > 0 ? m : 1;
       if (m > 0) marked += m;
       points += w;
       const ref = 'Q' + libS(r.question) + libS(r.part);
+      const no = ableOf_(r);
+      if (no) { ableLost += w * ABLE_HURT[no[0]]; ableFails.push({ ref: ref, kind: no[0], why: no[1], row: libS(r.row_id) }); }
       const hurt = [];
       const words = text(r.html) + ' ' + text(r.lead);
       if (!words.trim()) hurt.push(['words', 'no words']);
@@ -482,7 +499,10 @@ function paperHealth_(rows) {
     }
     pct = Math.max(0, Math.floor(pct));
     /* `questions` IS THE NUMBERS, not the rows: an AQA paper's 47 rows are its 10 questions' parts. */
-    out[pid] = { pct: pct, band: healthBand_(pct), fails: fails, questions: seen.size || qs.length, rows: qs.length,
+    const ablePct = points > 0 ? Math.floor(100 * Math.max(0, points - ableLost) / points) : 0;
+    /* `pct`/`band`/`fails` ARE FAITHFUL (the paper reproduced); `able` is ANSWERABLE (answered and marked here). */
+    out[pid] = { pct: pct, band: healthBand_(pct), fails: fails,
+                 able: { pct: ablePct, band: healthBand_(ablePct), fails: ableFails }, questions: seen.size || qs.length, rows: qs.length,
                  marks: marked, total: total, name: fact('name'), type: fact('document_type') };
   });
   return out;

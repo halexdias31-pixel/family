@@ -154,7 +154,7 @@ const ev = (key, answer, verdict, more) => Object.assign({ id: ID(), key: key, a
   if (!kept || String(kept.answer).length !== MAX) bad.push('an answer exactly ANSWER_TEXT_MAX long was ' + (kept ? 'kept at ' + String(kept.answer).length : 'refused') + ' — wanted it whole');
   /* EVERY VERDICT THE PHONE SENDS. */
   asked++;
-  const okV = ['right', 'wrong', 'sent', 'ai:0/4', 'ai:4/4', 'ai:12/20'];
+  const okV = ['right', 'wrong', 'sent', 'ai:0/4', 'ai:4/4', 'ai:12/20', 'rule:1/2', 'rule:2/2'];
   const vs = okV.map((v, i) => ev('q:Q-V-' + i, 'a' + i, v));
   const dv = send(ADA, vs);
   vs.forEach(e => { if (!dv.saved || !dv.saved[e.id]) bad.push('the verdict ' + e.verdict + ' was refused — the phone sends it'); });

@@ -25728,15 +25728,135 @@ check('every paper has a health score: its cards wear it, Health · Ready narrow
     const tile = host.querySelector('.tile-row > .tile[data-do="paper-health"][data-pid="HX"]');
     if (!tile) { bad.push(who + ' sees no Health tile under the chosen paper HX'); continue; }
     A['paper-health'](tile);
-    const lines = [...d.querySelectorAll('#sheet-body .health-list li')].map(li => li.textContent.replace(/\s+/g, ' ').trim());
+    const lines = [...d.querySelectorAll('#sheet-body .faith-list li')].map(li => li.textContent.replace(/\s+/g, ' ').trim());
     /* THE SHEET'S HEAD: the band as its tag, the score as the words after it. */
     const sum = d.querySelector('#sheet-body .health-sum');
     const sTag = sum && sum.querySelector('.qtag[data-tag="health"]');
     if (!sTag || sTag.textContent !== hxh.band || !new RegExp('\\b' + hxh.pct + '%').test(sum.textContent)) bad.push(who + ': HX\'s Health sheet heads ' + JSON.stringify(sum && sum.textContent.replace(/\s+/g, ' ').trim()) + ' — wanted the [' + hxh.band + '] tag and ' + hxh.pct + '% in words');
     const want = ['Q2 — no answer', 'Q3 — needs a picture, none drawn', 'Paper — marks add to 76 of 80'];
     if (lines.join(' | ') !== want.join(' | ')) bad.push(who + ': HX\'s Health list says ' + JSON.stringify(lines) + ', wanted exactly ' + JSON.stringify(want));
+    /* AND THE SECOND SCORE UNDER IT: HX Q2 has no answer, so it cannot be marked here. */
+    const aSum = d.querySelector('#sheet-body .able-sum .qtag[data-tag="answerable"]');
+    const aLines = [...d.querySelectorAll('#sheet-body .able-list li')].map(li => li.textContent.replace(/\s+/g, ' ').trim());
+    if (!aSum || !hxh.able || aSum.textContent !== hxh.able.band || aLines.join(' | ') !== 'Q2 — no answer the app can check') bad.push(who + ': HX\'s Answerable part says ' + JSON.stringify(aLines) + ' under ' + JSON.stringify(aSum && aSum.textContent));
     t.STUFF().filters = [];
   }
+  return bad;
+});
+
+/* ---------- A TABLE'S BLANKS ARE CELLS, TYPED IN WHERE THEY STAND AND MARKED A CELL AT A TIME (docs/history/359) ---------- */
+check('a fill-in table: its blanks are cells in the card, typing keeps them, Check marks each cell, and the paper counts as Answerable', async () => {
+  const base = { active: 'True', subject: 'Maths', document_type: 'Worksheet', key_stage: 'KS2', pages_checked: 'True' };
+  const R_ = o => Object.assign({}, base, o);
+  const rows = [
+    R_({ row_id: 'D-CT', paper_id: 'CT', kind: 'document', name: 'Times grid' }),
+    R_({ row_id: 'CT-1', paper_id: 'CT', kind: 'question', name: 'Times grid', question: '1', marks: '2', answer_type: 'annotate',
+         html: '<p>Complete the table</p><table><tr><th></th><th>2</th><th>3</th></tr><tr><td>2</td><td>4</td><td></td></tr><tr><td>3</td><td></td><td>&nbsp;</td></tr></table>',
+         answer: '6, 6, 9', cells: '- ; 6 ; 6 ; 9' }),
+  ];
+  const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
+  await wait(300);
+  const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  if (typeof w.questionCard_ !== 'function' || !A['qp-cells-check']) return ['questionCard_ or the qp-cells-check handler is not reachable — no cell was checked'];
+  t.STUFF().filters = [];
+  const x = w.stuffItemsAll_().find(i => i.row && i.row.row_id === 'CT-1');
+  if (!x) return ['the fixture row did not reach Find'];
+  const host = d.createElement('div');
+  host.className = 'qcard-host';
+  d.body.appendChild(host);
+  host.innerHTML = w.questionCard_(x, 0);
+  const cells = [...host.querySelectorAll('table[data-cells] .qp-cell')];
+  if (cells.length !== 3) return ['the card\'s table holds ' + cells.length + ' cells, wanted 3 (the corner is not asked)'];
+  if (host.querySelector('.qp-cells')) bad.push('the cells are drawn twice: in the table and in a row under it');
+  const type = (el, v) => { el.value = v; el.dispatchEvent(new w.Event('input', { bubbles: true })); };
+  type(cells[0], '6'); type(cells[1], '7'); type(cells[2], '9');
+  const go = host.querySelector('[data-do="qp-cells-check"]');
+  if (!go) return bad.concat('no Check tile under the table');
+  A['qp-cells-check'](go);
+  const say = host.querySelector('.qp-cells-box .qp-verdict').textContent;
+  if (say !== '2 of 3 cells right') bad.push('one wrong cell of three says ' + JSON.stringify(say));
+  if (!cells[1].classList.contains('is-near') || !cells[0].classList.contains('is-right')) bad.push('the wrong cell and the right one are not told apart');
+  host.innerHTML = w.questionCard_(x, 0);
+  const back = [...host.querySelectorAll('.qp-cell')].map(c => c.value).join(',');
+  if (back !== '6,7,9') bad.push('drawn again, the cells hold ' + JSON.stringify(back) + ' — what was typed is lost');
+  const again = [...host.querySelectorAll('.qp-cell')];
+  type(again[1], '6');
+  A['qp-cells-check'](host.querySelector('[data-do="qp-cells-check"]'));
+  if (host.querySelector('.qp-cells-box .qp-verdict').textContent !== 'Correct — every cell') bad.push('every cell right is not Correct');
+  const h = w.healthOf_(x);
+  if (!h || !h.able || h.able.pct !== 100) bad.push('a paper of one fill-in table with its cells is ' + (h && h.able ? h.able.pct : '?') + '% Answerable, wanted 100');
+  host.remove();
+  return bad;
+});
+
+/* ---------- ROOM TO WRITE: AN EXPAND TILE OPENS THE ANSWER ON A WHOLE-SCREEN SHEET, AND DONE BRINGS IT BACK (docs/history/359) ---------- */
+check('room to write: every typed box has an Expand tile; the sheet holds the same answer, keeps what is written, and Done puts it back in the card', async () => {
+  const base = { active: 'True', subject: 'Maths', document_type: 'Worksheet', key_stage: 'KS4', pages_checked: 'True' };
+  const rows = [
+    Object.assign({}, base, { row_id: 'D-RW', paper_id: 'RW', kind: 'document', name: 'Long sums' }),
+    Object.assign({}, base, { row_id: 'RW-1', paper_id: 'RW', kind: 'question', name: 'Long sums', question: '1', marks: '1', answer_type: 'calculation',
+                              html: '<p>Expand (x + 1)(x + 2)(x + 3)</p>', answer: 'x^3 + 6x^2 + 11x + 6', accept: 'x^3+6x^2+11x+6' }),
+  ];
+  const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
+  await wait(300);
+  const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  if (!A['kp-wide'] || !A['kp-wide-done']) return ['the kp-wide / kp-wide-done handlers are not reachable — nothing was checked'];
+  const x = w.stuffItemsAll_().find(i => i.row && i.row.row_id === 'RW-1');
+  if (!x) return ['the fixture row did not reach Find'];
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  host.innerHTML = w.questionCard_(x, 0);
+  const go = host.querySelector('.qp-bar [data-do="kp-wide"]');
+  if (!go) return ['the answer bar has no Expand tile'];
+  A['kp-wide'](go);
+  const sheet = d.querySelector('body > .kp-wide');
+  const inp = sheet && sheet.querySelector('.kp-in');
+  if (!inp || inp.getAttribute('data-k') !== go.getAttribute('data-k')) return ['Expand opened no sheet with the same answer box'];
+  inp.value = 'x^3 + 6x^2 + 11x + 6';
+  inp.dispatchEvent(new w.Event('input', { bubbles: true }));
+  A['kp-wide-done'](sheet.querySelector('[data-do="kp-wide-done"]'));
+  if (d.querySelector('body > .kp-wide')) bad.push('Done left the sheet up');
+  const back = host.querySelector('.qp-bar .kp-in');
+  if (!back || back.value !== 'x^3 + 6x^2 + 11x + 6') bad.push('the card\'s box holds ' + JSON.stringify(back && back.value) + ' after Done');
+  host.innerHTML = w.questionCard_(x, 0);
+  const again = host.querySelector('.qp-bar .kp-in');
+  if (!again || again.value !== 'x^3 + 6x^2 + 11x + 6') bad.push('drawn again, the box has lost what was written on the sheet');
+  host.remove();
+  return bad;
+});
+
+/* ---------- MARK WITHOUT AI FIRST: A SHORT WORDED ANSWER IS MARKED BY ITS KEY WORDS (docs/history/359) ---------- */
+check('marked by rule first: a 2-mark worded answer with mark_words gets Check, marks per point, says "by key words", and the AI tile stays hidden on full marks', async () => {
+  const base = { active: 'True', subject: 'Biology', document_type: 'Past paper', key_stage: 'KS4', pages_checked: 'True' };
+  const rows = [
+    Object.assign({}, base, { row_id: 'D-MW', paper_id: 'MW', kind: 'document', name: 'Cells' }),
+    Object.assign({}, base, { row_id: 'MW-1', paper_id: 'MW', kind: 'question', name: 'Cells', question: '1', marks: '2', answer_type: 'short',
+                              html: '<p>Name the two elements in a hydrocarbon.</p>', answer: 'Carbon and hydrogen', mark_words: 'carbon ; hydrogen' }),
+  ];
+  const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
+  await wait(300);
+  const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  if (!A['qp-rule']) return ['the qp-rule handler is not reachable — nothing was checked'];
+  const x = w.stuffItemsAll_().find(i => i.row && i.row.row_id === 'MW-1');
+  if (!x) return ['the fixture row did not reach Find'];
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  host.innerHTML = w.questionCard_(x, 0);
+  const go = host.querySelector('.qp-mark[data-rule] [data-do="qp-rule"]');
+  if (!go) return ['a row with mark_words has no Check by its key words'];
+  const later = host.querySelector('.qp-ai-later');
+  if (later && !later.hidden) bad.push('the AI tile shows before the rule has marked');
+  const inp = host.querySelector('.qp-ans-in'), out = host.querySelector('.qp-verdict');
+  inp.value = 'just carbon';
+  A['qp-rule'](go);
+  if (!/^1 of 2 marks · by key words/.test(out.textContent)) bad.push('one point of two says ' + JSON.stringify(out.textContent));
+  inp.value = 'Hydrogen and carbon';
+  A['qp-rule'](go);
+  if (out.textContent !== '2 of 2 marks · by key words') bad.push('both points say ' + JSON.stringify(out.textContent));
+  if (later && !later.hidden) bad.push('full marks by rule still offers the AI');
+  const latest = typeof w.subLatest_ === 'function' ? w.subLatest_(inp.getAttribute('data-k')) : null;
+  if (latest && latest.v !== 'rule:2/2') bad.push('the mark was recorded as ' + JSON.stringify(latest.v) + ', wanted rule:2/2 — which way it was made is lost');
+  host.remove();
   return bad;
 });
 
