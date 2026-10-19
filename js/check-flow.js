@@ -25537,6 +25537,163 @@ check('a fill-in table: its blanks are cells in the card, typing keeps them, Che
   return bad;
 });
 
+/* ---------- ONE BOX PER VALUE: AN ANSWER OF SEVERAL VALUES GETS A BOX EACH, AND THE MARKER THE LIST (docs/history/362) ---------- */
+check('one box per value: a counted rule, a pair and an open list each get their boxes; typing keeps them, a comma string loads into them, Check marks the list', async () => {
+  const base = { active: 'True', subject: 'Maths', document_type: 'Worksheet', key_stage: 'KS2', pages_checked: 'True', kind: 'question', name: 'Lists', paper_id: 'MB', marks: '1', answer_type: 'calculation' };
+  const R_ = o => Object.assign({}, base, o);
+  const rows = [
+    R_({ row_id: 'D-MB', kind: 'document' }),
+    R_({ row_id: 'MB-1', question: '1', html: '<p>Write three factors of 36</p>', answer: '1, 2, 3', accept: '4, 12, 18 | rule: count 3, distinct, each factor 36' }),
+    R_({ row_id: 'MB-2', question: '2', html: '<p>Write the coordinates of A</p>', answer: '(3, -2)', accept: '(3, -2) | (3,-2)' }),
+    R_({ row_id: 'MB-3', question: '3', html: '<p>Which coins make 30p?</p>', answer: '20p, 10p', accept: '20p, 10p | rule: sum 30p, from 20p/10p/10p/5p' }),
+  ];
+  const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
+  await wait(300);
+  const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  if (typeof w.questionCard_ !== 'function' || !A['qp-check'] || typeof w.multiNext_ !== 'function') return ['questionCard_, qp-check or multiNext_ is not reachable — the boxes were NOT checked'];
+  t.STUFF().filters = [];
+  const item = id => w.stuffItemsAll_().find(i => i.row && i.row.row_id === id);
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  const draw = x => { host.innerHTML = '<div class="qcard">' + w.ansBox_(x) + '</div>'; return [...host.querySelectorAll('.qp-multi .kp-in[data-do="qp-multi"]')]; };
+  const type = (el, v) => { el.value = v; el.dispatchEvent(new w.Event('input', { bubbles: true })); };
+  const say = () => (host.querySelector('.qp-verdict') || {}).textContent;
+  const x1 = item('MB-1');
+  if (!x1) return ['the fixture rows did not reach Find'];
+  w.ansStore_(t.ansKey(x1), '4, 12, 18');
+  let ins = draw(x1);
+  if (ins.length !== 3) bad.push('count 3 draws ' + ins.length + ' boxes, wanted 3');
+  if (host.querySelector('.qp-bar > label.qp-ans')) bad.push('a counted list still has the one box to type commas in');
+  if (ins.map(i => i.value).join('|') !== '4|12|18') bad.push('an old comma answer loads into the boxes as ' + JSON.stringify(ins.map(i => i.value)));
+  if (ins.length === 3) {
+    if (w.multiNext_(ins[0]) !== ins[1] || w.multiNext_(ins[2]) !== null) bad.push('the next box after the first is not the second, or the last has one');
+    type(ins[1], '7');
+    if (w.ansRead_(t.ansKey(x1)) !== '4, 7, 18') bad.push('typing a box keeps ' + JSON.stringify(w.ansRead_(t.ansKey(x1))) + ', wanted "4, 7, 18"');
+    A['qp-check'](host.querySelector('[data-do="qp-check"]'));
+    if (say() !== 'Not yet — have another go') bad.push('7 is not a factor of 36 but Check says ' + JSON.stringify(say()));
+    type(ins[1], '9');
+    A['qp-check'](host.querySelector('[data-do="qp-check"]'));
+    if (say() !== 'Correct') bad.push('4, 9, 18 in three boxes says ' + JSON.stringify(say()) + ', wanted Correct');
+    ins = draw(x1);
+    if (ins.map(i => i.value).join('|') !== '4|9|18') bad.push('drawn again the boxes hold ' + JSON.stringify(ins.map(i => i.value)));
+  }
+  const x2 = item('MB-2');
+  ins = draw(x2);
+  if (ins.length !== 2 || !host.querySelector('.qp-multi.is-pair')) bad.push('a coordinate pair draws ' + ins.length + ' boxes' + (host.querySelector('.qp-multi.is-pair') ? '' : ' and no brackets'));
+  if (ins.length === 2) {
+    type(ins[0], '3'); type(ins[1], '-2');
+    A['qp-check'](host.querySelector('[data-do="qp-check"]'));
+    if (say() !== 'Correct') bad.push('3 and -2 in the pair\'s boxes says ' + JSON.stringify(say()));
+  }
+  const x3 = item('MB-3');
+  ins = draw(x3);
+  if (ins.length !== 1 || !host.querySelector('.qp-multi[data-grow]')) bad.push('an open list starts with ' + ins.length + ' boxes, wanted 1 that grows');
+  if (ins.length) {
+    type(ins[0], '20p');
+    ins = [...host.querySelectorAll('.qp-multi .kp-in[data-do="qp-multi"]')];
+    if (ins.length !== 2) bad.push('a filled last box did not grow another (' + ins.length + ' boxes)');
+    if (ins[1]) type(ins[1], '10p');
+    A['qp-check'](host.querySelector('[data-do="qp-check"]'));
+    if (say() !== 'Correct') bad.push('20p and 10p in two boxes says ' + JSON.stringify(say()));
+  }
+  if (w.markAnswer_(['4', '9', '18'], x1.accept) !== true) bad.push('markAnswer_ given the values as a list does not mark them');
+  host.remove();
+  return bad;
+});
+
+/* ---------- A DRAWN ANSWER IS SENT: EVERY DRAWING-ONLY QUESTION HAS SEND, AND IT RECORDS A SUBMISSION (docs/history/362) ---------- */
+check('a drawn answer is sent: a made-up surface and a figure each have Send under the pen; nothing drawn says so; a drawing is recorded as sent', async () => {
+  const base = { active: 'True', subject: 'Maths', document_type: 'Worksheet', key_stage: 'KS2', pages_checked: 'True', kind: 'question', name: 'Draw', paper_id: 'DS', marks: '1', answer_type: 'drawing' };
+  const R_ = o => Object.assign({}, base, o);
+  const rows = [
+    R_({ row_id: 'D-DS', kind: 'document' }),
+    R_({ row_id: 'DS-1', question: '1', html: '<p>Draw a kite</p>', answer: 'a kite', surface: 'blank' }),
+    R_({ row_id: 'DS-2', question: '2', html: '<p>Draw a radius on the circle</p>', answer: 'a radius', diagram: '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40"/></svg>' }),
+  ];
+  const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
+  await wait(300);
+  const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  if (typeof w.questionCard_ !== 'function' || !A['pad-send'] || !t.padKey) return ['questionCard_, padKey_ or the pad-send handler is not reachable — NOT checked'];
+  t.STUFF().filters = [];
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  for (const id of ['DS-1', 'DS-2']) {
+    const x = w.stuffItemsAll_().find(i => i.row && i.row.row_id === id);
+    if (!x) { bad.push(id + ' did not reach Find'); continue; }
+    host.innerHTML = w.questionCard_(x, 0);
+    const go = host.querySelector('.qpad .qpad-send [data-do="pad-send"]');
+    if (!go) { bad.push(id + ': no Send under the pen — drawn, and nothing to submit'); continue; }
+    A['pad-send'](go);
+    const out = () => host.querySelector('.qpad-send .qp-verdict').textContent;
+    if (out() !== 'Draw your answer first') bad.push(id + ': Send with nothing drawn says ' + JSON.stringify(out()));
+    try { w.localStorage.setItem(t.padKey(x), JSON.stringify([[30, 30, 120, 90]])); } catch (e) {}
+    host.innerHTML = w.questionCard_(x, 0);
+    A['pad-send'](host.querySelector('.qpad-send [data-do="pad-send"]'));
+    if (!/^(Sent|Kept on this device)/.test(out())) bad.push(id + ': Send after drawing says ' + JSON.stringify(out()));
+    const latest = w.subLatest_(t.ansKey(x));
+    if (!latest || latest.v !== 'sent' || !/^drawing · 1 mark/.test(latest.a)) bad.push(id + ': the drawing is not recorded as a submission waiting to be marked (' + JSON.stringify(latest) + ')');
+    host.innerHTML = w.questionCard_(x, 0);
+    if (!/^(Sent|Kept)/.test(out()) && out() !== 'Sent — waiting to be marked') bad.push(id + ': drawn again the Send line says ' + JSON.stringify(out()));
+    try { w.localStorage.removeItem(t.padKey(x)); } catch (e) {}
+  }
+  host.remove();
+  return bad;
+});
+
+/* ---------- AND OVER THE WHOLE LIBRARY: EVERY QUESTION ANSWERED BY DRAWING ALONE CAN BE SENT (docs/history/362) ---------- */
+check('every question in the library answered by drawing alone has a Send under its pen', async () => {
+  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined) });
+  await wait(300);
+  const bad = [];
+  if (typeof w.questionCard_ !== 'function' || typeof w.answerKinds_ !== 'function') return ['questionCard_ or answerKinds_ not reachable — NOT checked'];
+  w.__t.STUFF().filters = [];
+  const host = w.document.createElement('div');
+  w.document.body.appendChild(host);
+  let n = 0;
+  for (const x of w.stuffItemsAll_()) {
+    if (!x || x.kind !== 'question') continue;
+    const k = w.answerKinds_(x);
+    if (!k.draw || k.value) continue;
+    n++;
+    host.innerHTML = w.questionCard_(x, 0);
+    if (!host.querySelector('.qpad-send [data-do="pad-send"]')) bad.push((x.row && x.row.row_id) + ': drawn, with no Send');
+  }
+  host.remove();
+  if (n < 100) bad.push('only ' + n + ' drawing-only questions were found — wanted the library\'s hundreds');
+  return bad.slice(0, 20).concat(bad.length > 20 ? ['… and ' + (bad.length - 20) + ' more'] : []);
+});
+
+/* ---------- CORBETTMATHS PRIMARY, EVERY PART: SOMETHING TO ANSWER WITH AND SOMETHING THAT SENDS IT (docs/history/362) ---------- */
+check('every part of the 71 Corbettmaths primary worksheets has an answer and a tile that marks or sends it', async () => {
+  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const papers = new Set(LIB.filter(r => r.company === 'Corbettmaths' && /KS[12]/.test(r.key_stage || '')).map(r => r.paper_id));
+  const rows = LIB.filter(r => papers.has(r.paper_id));
+  const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
+  await wait(300);
+  const bad = [];
+  if (typeof w.questionCard_ !== 'function') return ['questionCard_ not reachable — NOT checked'];
+  w.__t.STUFF().filters = [];
+  const SEND = '[data-do="qp-check"], [data-do="qp-cells-check"], [data-do="qp-choose"], [data-do="qp-order-send"], [data-do="qp-rule"], [data-do="pad-send"]';
+  /* a typed answer with no scheme is marked by a person or AI: Send or the AI tile, which come with signing in */
+  const host = w.document.createElement('div');
+  w.document.body.appendChild(host);
+  let n = 0, later = 0;
+  for (const x of w.stuffItemsAll_()) {
+    if (!x || x.kind !== 'question' || !papers.has(x.row && x.row.paper_id)) continue;
+    n++;
+    host.innerHTML = w.questionCard_(x, 0) + (w.questionTiles_ ? w.questionTiles_(x) : '');
+    if (host.querySelector(SEND)) continue;
+    const open = !String(x.accept || x.markWords || x.cells || '').trim() && !(x.choices && x.choices.length) && host.querySelector('.qp-ans-in');
+    if (open) { later++; continue; }
+    bad.push(x.row.row_id + ': nothing marks or sends it');
+  }
+  host.remove();
+  if (n < 1300) bad.push('only ' + n + ' Corbettmaths primary parts reached Find — wanted 1358');
+  if (later > 4) bad.push(later + ' parts are typed with nothing to mark them by machine — 4 were known (362)');
+  return bad.slice(0, 25).concat(bad.length > 25 ? ['… and ' + (bad.length - 25) + ' more'] : []);
+});
+
 /* ---------- ROOM TO WRITE: AN EXPAND TILE OPENS THE ANSWER ON A WHOLE-SCREEN SHEET, AND DONE BRINGS IT BACK (docs/history/359) ---------- */
 check('room to write: every typed box has an Expand tile; the sheet holds the same answer, keeps what is written, and Done puts it back in the card', async () => {
   const base = { active: 'True', subject: 'Maths', document_type: 'Worksheet', key_stage: 'KS4', pages_checked: 'True' };

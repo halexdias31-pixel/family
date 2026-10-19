@@ -2941,7 +2941,7 @@ function buildMayReload_(tag, booted) {
   /* 3. NOTHING TYPED AND UNSAVED. § */
   const typed = [].slice.call(document.querySelectorAll('textarea, input[type="text"], input:not([type])'))
     .filter(el => String(el.value || '').trim())
-    .filter(el => el.getAttribute('data-do') !== 'qp-ans' && el.id !== 'notepad' && !el.hasAttribute('data-draft'));
+    .filter(el => el.getAttribute('data-do') !== 'qp-ans' && el.getAttribute('data-do') !== 'qp-multi' && el.id !== 'notepad' && !el.hasAttribute('data-draft'));
   /* 4. NOTHING THE STORE REFUSED — that is in this page and nowhere else, and a reload is the loss
         (`keepAtRisk_`, data.js; 317). */
   if (typeof keepAtRisk_ === 'function' && keepAtRisk_().length) return false;

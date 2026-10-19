@@ -398,7 +398,7 @@ function ansRefresh_(keys) {
   const want = new Set(keys);
   const has = k => want.has(k) && !ansHeld_(k);
   try {
-    document.querySelectorAll('[data-do="qp-ans"][data-k]').forEach(el => {
+    document.querySelectorAll('[data-do="qp-ans"][data-k], .qp-multi-val[data-k]').forEach(el => {
       const k = el.getAttribute('data-k');
       if (!has(k)) return;
       const v = typeof ansRead_ === 'function' ? ansRead_(k) : (ansValue_(k) || '');
@@ -406,6 +406,7 @@ function ansRefresh_(keys) {
       el.value = v;
       /* REDRAWN BY THE PAD'S OWN DRAWING (`kpRender_`), which knows a worded box from a maths one: § */
       if (el.classList.contains('kp-in') && typeof kpRender_ === 'function') kpRender_(el);
+      if (el.classList.contains('qp-multi-val') && typeof multiFill_ === 'function') multiFill_(el);
       const card = el.closest('.qcard');
       [card && card.querySelector('.qp-mark[data-accept]'), card && card.querySelector('.qp-ai')].forEach(m => {
         if (!m) return;
@@ -663,7 +664,7 @@ function padKeptSay_() {
 
 /* ---------- WHEN IT SENDS AT ONCE § */
 document.addEventListener('focusout', e => {
-  const el = e.target && e.target.closest && e.target.closest('[data-do="qp-ans"]');
+  const el = e.target && e.target.closest && e.target.closest('[data-do="qp-ans"], [data-do="qp-multi"]');
   if (el) answersPush_(true);
 });
 /* TO A BACKEND FROM BEFORE `submitAnswer` ONLY, now: § */
@@ -687,10 +688,11 @@ window.addEventListener('storage', e => {
     ANS_MEM.delete(k);
     if (ansIsRing_(k) && typeof CIRC_HELD !== 'undefined') CIRC_HELD.delete(k);
     const v = e.newValue === null ? '' : String(e.newValue);
-    document.querySelectorAll('[data-do="qp-ans"][data-k]').forEach(el => {
+    document.querySelectorAll('[data-do="qp-ans"][data-k], .qp-multi-val[data-k]').forEach(el => {
       if (el.getAttribute('data-k') !== k || el.value === v) return;
       el.value = v;
       if (el.classList.contains('kp-in') && typeof kpRender_ === 'function') kpRender_(el);
+      if (el.classList.contains('qp-multi-val') && typeof multiFill_ === 'function') multiFill_(el);
     });
     if (typeof KP_UNDO !== 'undefined' && KP_UNDO && typeof KP_UNDO.delete === 'function') KP_UNDO.delete(k);
     ansRefresh_([k]);
