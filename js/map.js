@@ -839,6 +839,19 @@ const WIDGETS = [
     ${rowLive('Best', '0', 'flappy-best')}
     <div id="flappy-board" class="board"></div>
   </div>` },
+  /* SUPERTUX (GPL), NOT OURS: nothing is fetched until Play is tapped (`tuxPlay_`, games.js); the page it
+     frames is `brand('supertux_url')`, since upstream hosts no web build we can rely on (docs/history/363). */
+  { id: 'supertux', kind: 'game', name: 'SuperTux', start: () => tuxPaint_?.(),
+    pure: true, draw: () => tuxPaint_?.(),
+    stop: () => { const s = document.getElementById('tux-stage'); if (s) s.innerHTML = ''; },
+    into: 'tux-stage', what: 'The game',
+    html: `<div class="card">
+    <h3>SuperTux</h3>
+    <p class="sub">The open-source penguin platformer.</p>
+    <div id="tux-stage" class="tux-stage"></div>
+    <div id="tux-tiles" class="tile-row"></div>
+    <p class="note" id="tux-licence"></p>
+  </div>` },
   /* THE BOARD, NOT THE DRAWING. § */
   /* THE BOARD, which is SVG now rather than three.js — so it draws immediately, needs no loader,
      and leaves nothing running when the widget closes. */

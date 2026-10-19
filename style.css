@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-19-d-setup";
+  --css-version: "2026-10-19-e-supertux";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -990,6 +990,8 @@ a { color: inherit; text-decoration: none; }
 
 /* ---------- TIMES TABLES AND FLAPPY --------------------------------------------------------------- */
 #tt-answer { text-align: center; font-size: 1.2rem; }
+.tux-stage:not(:empty) { position: relative; width: 100%; aspect-ratio: 4/3; margin: .5rem 0; }
+.tux-frame { width: 100%; height: 100%; border: 0; display: block; background: var(--bg); }
 /* ---------- THE SCREEN § */
 .flappy { width: 100%; aspect-ratio: 4/5; display: block; touch-action: none;
           background: var(--sunk); border: 1px solid var(--line); border-radius: .5rem; }

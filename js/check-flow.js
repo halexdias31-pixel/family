@@ -7021,6 +7021,42 @@ check('a Space typed into the videos search box is not eaten by Flappy Bird, and
   return bad;
 });
 
+/* ---------- SUPERTUX: AN ENTRY THAT FETCHES NOTHING UNTIL PLAY, THEN FRAMES THE CONFIGURED URL (docs/history/363) */
+check('supertux is on the Games column, loads nothing until Play, then frames the configured URL beside a source link', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t, d = w.document;
+  t.go('games', false, true);
+  await wait(LEAVE_MS); await woken_();
+  const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'supertux');
+  if (at < 0) return ['there is no SuperTux on the Games column'];
+  t.goPage('games', at, true);
+  await woken_();
+  const bad = [];
+  const q = sel => d.querySelector('#s-games ' + sel);
+  for (let k = 0; k < 30 && !q('#tux-tiles .tile'); k++) await wait(100);
+  if (!q('#tux-tiles .tile')) return ['the SuperTux entry drew no tiles'];
+  if (d.querySelector('.tux-frame')) bad.push('a SuperTux frame exists before anybody tapped Play');
+  const get = q('#tux-tiles a.tile');
+  if (!get || !/github\.com\/SuperTux\/supertux\/releases/.test(get.href)) bad.push('with no web build set, the entry does not offer the official downloads');
+  const src = q('#tux-licence a.tux-src');
+  if (!src || !/github\.com\/SuperTux\/supertux\/tree\/v\d/.test(src.href)) bad.push('the source-and-licence link to an exact upstream version is missing');
+  if (!/GPL/.test((q('#tux-licence') || {}).textContent || '')) bad.push('the licence line does not name the GPL');
+  const URL_ = 'https://example.org/supertux/';
+  const D = t.DATA(); D.brand = Object.assign({}, D.brand, { supertux_url: URL_ });
+  w.tuxPaint_();
+  if (d.querySelector('.tux-frame')) bad.push('setting the URL alone created the frame');
+  const play = q('#tux-tiles [data-do="tux-play"]');
+  if (!play) return bad.concat(['with a web build set, there is no Play tile']);
+  t.ACTIONS['tux-play'](play);
+  const f = q('#tux-stage iframe.tux-frame');
+  if (!f || f.getAttribute('src') !== URL_) bad.push('Play did not frame the configured URL');
+  if (!q('#tux-stage[aria-busy="true"] > .loading')) bad.push('the wait for the frame is not loading_()');
+  const full = q('#tux-tiles a.tile[href="' + URL_ + '"]');
+  if (!full) bad.push('there is no full-screen tile to the configured URL');
+  return bad;
+});
+
 /* ---------- CONNECT 4: ONE COUNTER FALLS, INTO THE RIGHT SQUARE, AND THE FOUR THAT WON ARE RINGED § */
 check('connect 4 drops exactly the counter just played into the lowest empty square, and rings the four that win', async () => {
   const { w } = boot();
