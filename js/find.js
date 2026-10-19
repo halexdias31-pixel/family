@@ -7361,8 +7361,10 @@ const cmpText = (a, b) =>
 /* Every word must appear SOMEWHERE — so "maths 7" finds a Grade 7 Maths topic without the two words having to sit next to each other. § */
 /* ---------- THE HAYSTACK IS BUILT ONCE PER ITEM, NOT ONCE PER KEYSTROKE § */
 function stuffHay_(x) {
+  /* and the item's own tags (365): "june 2024 foundation paper 1" and "edexcel higher 2019" found nothing, the tier, board and level being on no word searched */
   return x._hay || (x._hay = norm([x.name, x.sub, x.subject, x.slot,
-                                   x.grade && 'grade ' + x.grade, x.text].filter(Boolean).join(' ')));
+                                   x.grade && 'grade ' + x.grade, x.text, x.tier, x.examBoard || x.company, x.documentType,
+                                   x.row && x.row.level].filter(Boolean).join(' ')));
 }
 
 function stuffFind(items, credits) {
@@ -7392,7 +7394,8 @@ function stuffFind(items, credits) {
   return out;
 }
 /* THE NARROWING ITSELF, split out of `stuffFind` so `stuffFiltered` can run it over the list it already has rather than over the whole library — see the note § */
-const stuffWords_ = q => norm(q).split(/\s+/).filter(Boolean);
+/* "paper 2" is one word to look for: as two, the 2 was found in every Q2 and every 2024 of every paper */
+const stuffWords_ = q => norm(q).replace(/\bpaper\s+(?=\d)/g, 'paper\u0000').split(/\s+/).filter(Boolean).map(w => w.replace('\u0000', ' '));
 function stuffNarrow_(out, filters, words, credits) {
   const byField = {};
   filters.forEach(f => {

@@ -51,7 +51,7 @@ function boot(cb) {
     w.eval(src + '\n;window.__f = { stuffItems, facetList, facetValues, facetCoverage,' +
       ' facetSplit_, nextFacet, FACET_MIN_MINORITY, FACET_MAX_ANSWERS, FACET_MAX_SHOWN, asList_,' +
       ' filterHit, facetOwn_, bucketHas_, bucketDeclares_, STUFF, paperLabels_, stuffHay_, norm,' +
-      ' stuffNarrow_, FACET_NEEDS_FIRST, fiveDayLabel_, tagOf_,' +
+      ' stuffNarrow_, stuffWords_, FACET_NEEDS_FIRST, fiveDayLabel_, tagOf_,' +
       /* THE LIST THE APP DRAWS, SORTED, AND THE LAST-RESORT QUESTION -- so 4e can ask what a person
          is shown once a paper is chosen, through the same two functions the screen asks. */
       ' stuffFiltered, overFacet_,' +
@@ -569,6 +569,21 @@ boot(f => {
   if (unreachable.length > 10) bad.push('… and ' + (unreachable.length - 10) + ' more papers '
     + 'whose own code does not find them');
 
+  /* ---------- 6c. A PAST PAPER IS FOUND BY THE WORDS A STUDENT SAYS IT IN (365): level, tier, its name. "Paper 2" finds no Paper 1. */
+  const said = {};
+  items.forEach(x => {
+    const r = x.row || {};
+    if (x.kind !== 'question' || !r.paper_id || !x.tier || !r.level || !/past paper/i.test(x.documentType || '') || said[r.paper_id]) return;
+    said[r.paper_id] = [r.level, x.subject, x.tier, x.sub].join(' ');
+  });
+  const byWords = Object.keys(said).filter(pid => {
+    const got = f.stuffNarrow_(items, [], f.stuffWords_(said[pid]));
+    const n = /\bpaper (\d+)/i.exec(said[pid]);
+    return !got.some(x => x.row && x.row.paper_id === pid)
+      || (n && got.some(x => x.row && /\bpaper (\d+)/i.test(x.sub || '') && /\bpaper (\d+)/i.exec(x.sub)[1] !== n[1]));
+  });
+  if (Object.keys(said).length < 20) bad.push('only ' + Object.keys(said).length + ' past papers with a tier and a level reached 6c — the search was NOT proved');
+  byWords.slice(0, 10).forEach(pid => bad.push(pid + ': typing "' + said[pid] + '" does not find it, or finds another numbered paper with it'));
   /* THE BACKLOG, PRINTED. § */
   const papers = {};
   items.forEach(x => {
