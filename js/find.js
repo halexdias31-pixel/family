@@ -8958,7 +8958,16 @@ const PAD_TOOL_FACE = {
 };
 const padToolTile_ = (t, on) => tile_(Object.assign({ act: 'pad-tool', cls: 'qpad-tool', data: { tool: t },
   on: on, pressed: on }, PAD_TOOL_FACE[t]));
-const padToolsOf_ = x => padTools_(x).filter(t => PAD_TOOL_FACE[t]);
+/* AND A RULER ON EVERY GRID (357): a bar's side, a line between two plotted points, an axis -- on a grid the
+   ruler is how a finger draws them straight, and its ends snap to the intersections. Measured, 5 of 224 grid
+   pads offered one, because the question's words never say "ruler" for a chart; Q7, the owner's screenshot,
+   had the pen alone. Decided here from the picture and not in `padTools_`, which check-library cuts out of
+   this file by name and runs on the rows alone. */
+const padToolsOf_ = (x, svg) => {
+  const t = padTools_(x).filter(k => PAD_TOOL_FACE[k]);
+  if (t.indexOf('ruler') === -1 && svg && padGrid_(svg)) t.splice(1, 0, 'ruler');
+  return t;
+};
 
 /* TWO GROUPS IN THE ROW, so it breaks BETWEEN them and never inside one. Six tiles is 286px and a 390px
    phone's card has about 288 -- measured, it wrapped Clear alone onto a line of its own, a bin
@@ -8989,7 +8998,7 @@ function padWrap_(x, svg) {
   /* THE PAD'S SHAPE, written on it for the live path and every repaint to read -- one number for all of them,
      so the stroke under the finger and the same stroke drawn again agree byte for byte (`padPath_`). */
   const ka = padAspect_(x, svg);
-  const tools = padToolsOf_(x);
+  const tools = padToolsOf_(x, svg);
   const held = PAD_TOOL.get(k);
   const tool = held && tools.indexOf(held) !== -1 ? held : 'pen';
   /* THE OVERLAY TAKES ITS BOX FROM THE PICTURE UNDER IT, by stretching to the same box, rather
@@ -9207,11 +9216,16 @@ function padAid_(g) {
   const aid = g.ink.querySelector('.qpad-aid');
   if (!aid) return;
   const c = g.from;
+  /* AND A HALO ROUND A SNAP THAT IS HOLDING (357): 30px on the screen, an ellipse in the stretched units so it
+     is round where it is seen. Shown, never stored -- the aid is emptied at the lift. */
+  const h = g.hold;
+  const halo = h ? `<ellipse class="qpad-halo" vector-effect="non-scaling-stroke" cx="${h.u[0]}" cy="${h.u[1]}" rx="${30 / g.sx}" ry="${30 / g.sy}"/>` : '';
+  if (g.tool === 'pen') { if (aid.innerHTML !== halo) aid.innerHTML = halo; return; }
   const pin = `<path class="qpad-pin" vector-effect="non-scaling-stroke" d="M${c[0]} ${c[1]}L${c[0]} ${c[1]}"/>`;
   const rad = g.tool === 'compass' && g.tip && g.r >= padMinOf_(g)
     ? `<path class="qpad-rad" vector-effect="non-scaling-stroke" d="M${c[0]} ${c[1]}L${Math.round(g.tip[0])} ${Math.round(g.tip[1])}"/>`
     : '';
-  aid.innerHTML = pin + rad;
+  aid.innerHTML = pin + rad + halo;
 }
 
 /* ==================================================================================================
@@ -9383,6 +9397,250 @@ function padMap_(r, cx, cy) {
   if (!r || !r.width || !r.height) return null;
   return [Math.round((cx - r.left) / r.width * 340), Math.round((cy - r.top) / r.height * 340)];
 }
+
+/* ==================================================================================================
+   A POINT PUT DOWN EXACTLY WITH A FINGER (docs/history/357). AMENDS 338's "THE PEN NEVER SNAPS".
+
+   THE OWNER, 18 OCT, over Q7's grid: *"how are the students supposed to answer it by using there fingers
+   to draw such a fine line at time? Shouldn't we implement best touch strategies to make it work? Like
+   magnify or manipulate acceleration when drawing?"* MEASURED FIRST, with real touch at 390x844: six taps
+   aimed at Q7's intersections with a fingertip's +-4px wobble stored six five-point squiggles and 0 of 6
+   on the intersection; on a cumulative frequency grid of 3.3px squares, 0 of 6, one or two squares off.
+
+   ONLY PLACEMENTS ARE TRANSFORMED: a dot, the ruler's two ends, the compass's pin and radius. A freehand
+   line stays under the finger with every sample kept -- nothing snaps it, nothing filters it -- because a
+   curve through plotted points is the child's own and 338's smoothing already draws it round. The board
+   never snaps (it has no grid to snap to and is nobody's answer). `padTrack_` still sees the raw finger,
+   so the palm, two-finger, hand-over and race rules are exactly 338's. And every transformed point is
+   SHOWN before the lift -- the dot sits on the intersection, the loupe's crosshair on the point -- which
+   is 338's "a preview is a promise of what the lift keeps", the reason 338 refused snapping unseen.
+
+   CHOSEN BY THE RESEARCH AND THEN BY MEASUREMENT (357 has both): snapping (Baudisch's Snap-and-go, 138%
+   and 231% faster alignment; Fernquist's Oh Snap, ~40% better on touch), a loupe over the finger that
+   commits on lift (Vogel & Baudisch's Shift), and a FIXED slow gain for fine grids (Benko's slow 4x, the
+   1/4 of US8896561; 1/5 measured better here). DECLINED: two-finger techniques (338: two fingers do nothing), an offset cursor that
+   is always on (338 section 9), and a speed-dependent gain -- a fingertip's wobble is fast from one sample
+   to the next, so the gain would follow the wobble, and Benko warns a varying speed spoils steering. */
+const PAD_DOT_PX = 12;        // a dot while the point has gone less than this from landing: +-4px wobble is at most 11.3
+const PAD_FINE_PX = 13;       // a grid square under this is finer than a wobble can hit (2 x 5.66px, the worst radial error)
+const PAD_GAIN = 0.2;         // the slow mode's gain: measured best of 0.5 / 0.33 / 0.25 / 0.2 by check/pen.js 'plotfine' (357's table)
+const PAD_GAIN_OFF_PX = 40;   // the finger this far from where the slow mode began: it is going somewhere, not aiming
+const PAD_GAIN_MAX_PX = 48;   // and the point is never further than this from the finger, so no band is out of reach
+const PAD_GAIN_STILL_PX = 5;  // a ruler's end is "still" when the finger moved less than this ...
+const PAD_GAIN_STILL_MS = 120; // ... over this long: then the slow mode takes over to aim it
+const PAD_SNAP_OWN = 24;      // the snap radius cap for your own marks, px
+const PAD_SNAP_GRID = 20;     // and for the grid's intersections and the figure's points
+const PAD_SNAP_KEEP = 1.25;   // a held snap lets go only past this many radii -- no flicker at the edge
+const PAD_LOCK_DEG = 6;       // a ruler line this near level or upright IS level or upright: how a bar lands on a grid line
+
+/* THE GRID IN A PICTURE'S MARKUP, in its own viewBox units: `{vb, xs, ys}` or null. The library draws a
+   grid three ways -- `<line class="grid">` (102 pads), `<path class="grid" d="M..L..">` with the major lines
+   thicker (19), and lines with no class at all (75, Q7 among them) -- so the class is not asked: a line
+   counts when it is level or upright and spans a quarter of the picture, and an AXIS has a grid when at
+   least 5 of them are evenly spaced (the run's spacings vary by under 15%). That keeps a bar chart's bars,
+   a table's rules and an axis's ticks out. Read from the STRING, so `padToolsOf_` can ask it while the card
+   is being written, memoised by the markup itself. */
+const PAD_GRIDS = new Map();
+function padGrid_(svg) {
+  const s = String(svg || '');
+  if (!s) return null;
+  if (PAD_GRIDS.has(s)) return PAD_GRIDS.get(s);
+  const m = /viewBox\s*=\s*["']\s*([-\d.eE+]+)[\s,]+([-\d.eE+]+)[\s,]+([\d.eE+]+)[\s,]+([\d.eE+]+)/.exec(s);
+  let out = null;
+  if (m) {
+    const vb = [+m[1], +m[2], +m[3], +m[4]];
+    const V = [], H = [];
+    const seg = (x1, y1, x2, y2) => {
+      if (Math.abs(x1 - x2) < 0.05 && Math.abs(y2 - y1) >= vb[3] * 0.25) V.push(x1);
+      else if (Math.abs(y1 - y2) < 0.05 && Math.abs(x2 - x1) >= vb[2] * 0.25) H.push(y1);
+    };
+    const num = (t, k) => { const r = new RegExp('\\b' + k + '\\s*=\\s*["\']\\s*([-\\d.eE+]+)').exec(t); return r ? +r[1] : 0; };
+    /* NOTHING INSIDE A TRANSFORM OR A DEFINITION: its numbers are not where it is drawn. */
+    const plain = s.replace(/<(defs|clipPath|pattern|mask|symbol)\b[\s\S]*?<\/\1>/g, '').replace(/<g\b[^>]*\btransform\s*=[\s\S]*?<\/g>/g, '');
+    (plain.match(/<line\b[^>]*>/g) || []).forEach(t => { if (!/\btransform\s*=/.test(t)) seg(num(t, 'x1'), num(t, 'y1'), num(t, 'x2'), num(t, 'y2')); });
+    (plain.match(/<path\b[^>]*>/g) || []).forEach(t => {
+      if (/\btransform\s*=/.test(t)) return;
+      const d = /\bd\s*=\s*["']([^"']*)["']/.exec(t);
+      /* ONLY ABSOLUTE MOVES AND LINES: anything curved or relative is a drawing, not a ruled grid. */
+      if (!d || /[^MLHVZmz\d\s,.eE+-]/.test(d[1]) || /[a-y]/.test(d[1].replace(/[eE]/g, ''))) return;
+      const tok = d[1].match(/[MLHVZz]|[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?/g) || [];
+      let cx = 0, cy = 0, c = '';
+      for (let i = 0; i < tok.length;) {
+        if (/[MLHVZz]/.test(tok[i])) { c = tok[i++]; if (c === 'Z' || c === 'z') continue; }
+        if (c === 'M') { cx = +tok[i++]; cy = +tok[i++]; c = 'L'; }
+        else if (c === 'L') { const x = +tok[i++], y = +tok[i++]; seg(cx, cy, x, y); cx = x; cy = y; }
+        else if (c === 'H') { const x = +tok[i++]; seg(cx, cy, x, cy); cx = x; }
+        else if (c === 'V') { const y = +tok[i++]; seg(cx, cy, cx, y); cy = y; }
+        else i++;
+      }
+    });
+    const run = list => {
+      const p = [...new Set(list.filter(isFinite).map(v => Math.round(v * 10) / 10))].sort((a, b) => a - b);
+      if (p.length < 5) return null;
+      const d = p.slice(1).map((v, i) => v - p[i]);
+      const med = d.slice().sort((a, b) => a - b)[d.length >> 1];
+      if (!(med > 0)) return null;
+      /* THE LONGEST RUN OF EVEN STEPS -- an axis drawn a little off the grid, or a frame round it, ends a run, not the grid. */
+      let best = [0, 0];
+      for (let i = 0, j = 0; i < d.length; i = j) {
+        j = i;
+        while (j < d.length && Math.abs(d[j] - med) <= med * 0.15) j++;
+        if (j - i > best[1] - best[0]) best = [i, j];
+        if (j === i) j++;
+      }
+      const r = p.slice(best[0], best[1] + 1);
+      if (r.length < 5) return null;
+      const st = r.slice(1).map((v, i) => v - r[i]);
+      const mean = st.reduce((a, b) => a + b, 0) / st.length;
+      const cv = Math.sqrt(st.reduce((a, b) => a + (b - mean) * (b - mean), 0) / st.length) / mean;
+      return cv < 0.15 ? r : null;
+    };
+    const xs = run(V), ys = run(H);
+    if (xs && ys) out = { vb, xs, ys };
+  }
+  if (PAD_GRIDS.size > 400) PAD_GRIDS.clear();
+  PAD_GRIDS.set(s, out);
+  return out;
+}
+/* AND THAT GRID ON THE SCREEN, for one pad at one box size: its lines in the ink's 340 units and in px from
+   the box's corner, and its smallest square in px. Null for the board, for a picture with no grid, and for
+   jsdom's empty box -- so nothing snaps where nothing can be seen. Cached on the picture per box size. */
+function padLattice_(pad, r) {
+  if (!pad || !r || !r.width || !r.height || padIsBoard_(pad.getAttribute('data-k'))) return null;
+  const svg = pad.querySelector('.qpad-art > svg:first-child');
+  if (!svg) return null;
+  const key = Math.round(r.width) + 'x' + Math.round(r.height);
+  if (svg.__lat && svg.__lat.key === key) return svg.__lat.val;
+  const G = padGrid_(svg.__src || (svg.__src = svg.outerHTML));
+  let val = null;
+  if (G) {
+    const [vx, vy, vw, vh] = G.vb;
+    const xu = G.xs.map(v => (v - vx) / vw * 340), yu = G.ys.map(v => (v - vy) / vh * 340);
+    const sx = r.width / 340, sy = r.height / 340;
+    const xp = xu.map(u => u * sx), yp = yu.map(u => u * sy);
+    const step = a => Math.min.apply(null, a.slice(1).map((v, i) => v - a[i]));
+    val = { xu, yu, xp, yp, pitch: Math.min(step(xp), step(yp)) };
+  }
+  svg.__lat = { key, val };
+  return val;
+}
+/* THE NEAREST OF A SORTED LIST, by halving: a 71-line grid is 7 looks, not 71. */
+function padNearest_(a, v) {
+  let lo = 0, hi = a.length - 1;
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (a[m] < v) lo = m; else hi = m; }
+  return Math.abs(a[lo] - v) <= Math.abs(a[hi] - v) ? lo : hi;
+}
+/* WHAT A PLACEMENT CAN SNAP TO, IN 338 SECTION 8's ORDER, read once when the finger lands: your own marks
+   first (a dot, a line's two ends -- and an earlier part's, `.qpad-was`), then the grid's intersections, then
+   the figure's points (`.pt`). Each target's radius is 0.45 of the way to its nearest neighbour, the grid's
+   square included, so two targets never both claim a point and a fine grid's own marks do not swallow its
+   intersections; capped at 24px and 20px. Targets within 2px are one. */
+function padTargets_(g, pad) {
+  const own = [], pts = [];
+  const sx = g.sx, sy = g.sy;
+  const add = (list, u) => { if (isFinite(u[0]) && isFinite(u[1])) list.push({ u: u, x: u[0] * sx, y: u[1] * sy }); };
+  try {
+    padRead_(pad.getAttribute('data-k') || '').forEach(st => {
+      if (!Array.isArray(st) || st.length < 2) return;
+      add(own, [st[0], st[1]]);
+      if (st.length > 2) add(own, [st[st.length - 2], st[st.length - 1]]);
+    });
+  } catch (e) {}
+  pad.querySelectorAll('.qpad-was path').forEach(p => {
+    const n = (p.getAttribute('d') || '').match(/-?\d+(\.\d+)?/g) || [];
+    if (n.length >= 2) add(own, [+n[0], +n[1]]);
+    if (n.length >= 4) add(own, [+n[n.length - 2], +n[n.length - 1]]);
+  });
+  const svg = pad.querySelector('.qpad-art > svg:first-child');
+  const vb = svg && /([-\d.eE+]+)[\s,]+([-\d.eE+]+)[\s,]+([\d.eE+]+)[\s,]+([\d.eE+]+)/.exec(svg.getAttribute('viewBox') || '');
+  if (vb) svg.querySelectorAll('.pt').forEach(c => {
+    const x = Number(c.getAttribute('cx')), y = Number(c.getAttribute('cy'));
+    if (isFinite(x) && isFinite(y) && c.hasAttribute('cx')) add(pts, [(x - vb[1]) / vb[3] * 340, (y - vb[2]) / vb[4] * 340]);
+  });
+  const pitch = g.lat ? g.lat.pitch : Infinity;
+  const merge = list => list.filter((t, i) => !list.slice(0, i).some(o => Math.hypot(o.x - t.x, o.y - t.y) < 2));
+  const radii = (list, cap) => list.map(t => {
+    let nn = pitch;
+    list.forEach(o => { if (o !== t) nn = Math.min(nn, Math.hypot(o.x - t.x, o.y - t.y)); });
+    t.r = Math.min(cap, 0.45 * nn);
+    return t;
+  });
+  return { own: radii(merge(own), PAD_SNAP_OWN), pts: radii(merge(pts), PAD_SNAP_GRID) };
+}
+/* THE TARGET A POINT (px from the box's corner) SNAPS TO, or null: the held one while the point is within
+   1.25 of its radius, else the first group in the order that has one within its radius. `axis` 'x' or 'y'
+   is a ruler locked level or upright: only that coordinate may move, and only onto a grid line. */
+function padSnap_(g, x, y, axis) {
+  const L = g.lat, T = g.tg;
+  if (axis) {
+    if (!L) return null;
+    const r = Math.min(PAD_SNAP_GRID, 0.45 * L.pitch);
+    if (axis === 'x') { const i = padNearest_(L.xp, x); return Math.abs(L.xp[i] - x) <= r ? { u: [L.xu[i], y / g.sy], x: L.xp[i], y: y, r: r } : null; }
+    const j = padNearest_(L.yp, y);
+    return Math.abs(L.yp[j] - y) <= r ? { u: [x / g.sx, L.yu[j]], x: x, y: L.yp[j], r: r } : null;
+  }
+  const h = g.hold;
+  if (h && Math.hypot(h.x - x, h.y - y) <= h.r * PAD_SNAP_KEEP) return h;
+  const near = list => { let b = null, bd = Infinity; (list || []).forEach(t => { const d = Math.hypot(t.x - x, t.y - y); if (d <= t.r && d < bd) { b = t; bd = d; } }); return b; };
+  let t = T ? near(T.own) : null;
+  if (!t && L) {
+    const i = padNearest_(L.xp, x), j = padNearest_(L.yp, y);
+    const r = Math.min(PAD_SNAP_GRID, 0.45 * L.pitch);
+    if (Math.hypot(L.xp[i] - x, L.yp[j] - y) <= r) t = { u: [L.xu[i], L.yu[j]], x: L.xp[i], y: L.yp[j], r: r };
+  }
+  if (!t && T) t = near(T.pts);
+  return t;
+}
+/* THE SLOW MODE ON A FINE GRID: the point moves a fifth as far as the finger, from where it was when the
+   mode began, so a fingertip's 4px wobble is under 1px of point and a 3.3px square can be aimed at through
+   the loupe. A fifth and not Benko's quarter because it measured better: 18 of 18 against 9 of 18 at 320,
+   where the square is 2.1px (357's table). Relative and starting UNDER the finger -- not an offset (338 section 9): nothing is out of reach,
+   and the point is never more than 48px from the finger. On for a dot and for a pin from the landing; for a
+   ruler's or compass's moving end once the finger is still; off once the finger goes 40px from where it
+   began, so a real drag is a real drag. */
+function padGain_(g, f, start) {
+  const P = g.gain;
+  if (P && Math.hypot(f[0] - P.f[0], f[1] - P.f[1]) >= PAD_GAIN_OFF_PX) g.gain = null;
+  if (!g.gain) {
+    let on = start;
+    if (!on && g.tool !== 'pen' && g.c && g.c.hist) {
+      const h = g.c.hist, now = h[h.length - 1];
+      let ok = now && now[0] - h[0][0] >= PAD_GAIN_STILL_MS;
+      for (let i = h.length - 1; ok && i >= 0 && now[0] - h[i][0] <= PAD_GAIN_STILL_MS; i--) if (Math.hypot(h[i][1] - now[1], h[i][2] - now[2]) >= PAD_GAIN_STILL_PX) ok = false;
+      on = ok;
+    }
+    if (!on) return f;
+    g.gain = { f: f.slice(), c: f.slice() };
+    return f;
+  }
+  let cx = g.gain.c[0] + PAD_GAIN * (f[0] - g.gain.f[0]), cy = g.gain.c[1] + PAD_GAIN * (f[1] - g.gain.f[1]);
+  const d = Math.hypot(cx - f[0], cy - f[1]);
+  if (d > PAD_GAIN_MAX_PX) { cx = f[0] + (cx - f[0]) * PAD_GAIN_MAX_PX / d; cy = f[1] + (cy - f[1]) * PAD_GAIN_MAX_PX / d; }
+  return [cx, cy];
+}
+/* ONE PLACEMENT: the finger's point (units) through the slow mode and the snap, back to WHOLE units -- what
+   is stored is always whole numbers (check-flow's "unrounded points"), so a snapped point is round() of the
+   intersection, at most 0.6px off it on the tallest figure. `start` is the landing. Sets `g.hold` (the halo)
+   and `g.at` (the point the loupe's crosshair shows). */
+function padPlace_(g, at, start) {
+  let f = [at[0] * g.sx, at[1] * g.sy];
+  if (g.lat && g.lat.pitch < PAD_FINE_PX) f = padGain_(g, f, start);
+  let axis = '';
+  if (g.tool === 'ruler' && !start && g.fp) {
+    const dx = f[0] - g.fp[0], dy = f[1] - g.fp[1], a = Math.abs(Math.atan2(dy, dx)) * 180 / Math.PI;
+    if (Math.hypot(dx, dy) >= PAD_MIN_PX) {
+      if (a <= PAD_LOCK_DEG || a >= 180 - PAD_LOCK_DEG) { f = [f[0], g.fp[1]]; axis = 'x'; }
+      else if (Math.abs(a - 90) <= PAD_LOCK_DEG) { f = [g.fp[0], f[1]]; axis = 'y'; }
+    }
+  }
+  const t = padSnap_(g, f[0], f[1], axis);
+  g.hold = t && !axis ? t : null;
+  g.snapped = !!t;
+  const u = t ? t.u : [f[0] / g.sx, f[1] / g.sy];
+  g.at = [Math.round(u[0]), Math.round(u[1])];
+  if (start) g.fp = t ? [t.x, t.y] : f;
+  return g.at.slice();
+}
 /* ---------- EVERY SAMPLE THE FINGER GAVE ----------------------------------------------------------------
    MEASURED BEFORE: under load the pen kept about one sample in three -- a 1,200-sample zigzag at 4x CPU
    reached it as 395 `pointermove`s, and every one of the 1,200 was there in `getCoalescedEvents`. A fast
@@ -9403,14 +9661,46 @@ function padStart_(c, at, r) {
   const pad = c.ink.closest('.qpad');
   PAD_GO = { tool: padToolNow_(pad), ink: c.ink, from: at, sx: r.width / 340, sy: r.height / 340,
              r: 0, rMax: 0, a: null, a0: 0, sweep: 0, held: false, tip: null, id: c.id,
-             c: c, t0: c.t0, k: padAspectOf_(pad), est: false, pen: false, dirty: false, live: [], start: 0 };
-  PAD_ST = PAD_GO.tool === 'compass' ? [] : at.slice();
+             c: c, t0: c.t0, k: padAspectOf_(pad), est: false, pen: false, dirty: false, live: [], start: 0,
+             box: r, board: !!pad && padIsBoard_(pad.getAttribute('data-k')), lat: null, tg: null, hold: null, gain: null,
+             at: at.slice(), fp: null, raw: at.slice(), dot: false, far: 0, loupe: 0, dwell: null };
+  const g = PAD_GO;
+  /* A PLACEMENT, PUT DOWN (357): the pin and the ruler's first end where they snap, and the pen's touch a
+     DOT -- one point -- until it has gone `PAD_DOT_PX`. Not on the board: it never snaps, and its taps are as before. */
+  if (!g.board) {
+    g.lat = padLattice_(pad, r);
+    g.tg = padTargets_(g, pad);
+    g.dot = g.tool === 'pen';
+    g.from = padPlace_(g, at, true);
+  }
+  PAD_ST = g.tool === 'compass' ? [] : g.from.slice();
   c.role = 'owner';
-  return PAD_GO;
+  padLoupeWant_(g);
+  return g;
 }
-/* ONE SAMPLE OF THE OWNER, THROUGH ITS TOOL. */
+/* ONE SAMPLE OF THE OWNER, THROUGH ITS TOOL. A pen still a dot moves its one point (placed) and keeps the
+   raw samples beside it; once the point has gone `PAD_DOT_PX` it is a freehand line drawn from the finger's
+   own first sample, exactly as before 357 -- nothing of a line is snapped. The ruler's end and the compass's
+   radius (until the swing holds it) are placements. */
 function padStep_(g, at) {
-  const st = PAD_DRAW[g.tool].move(g, at, PAD_ST);
+  let st;
+  if (g.tool === 'pen' && g.dot) {
+    const r = g.raw;
+    if (r[r.length - 2] !== at[0] || r[r.length - 1] !== at[1]) r.push(at[0], at[1]);
+    const p = padPlace_(g, at, false);
+    const f = g.gain ? [g.at[0] * g.sx, g.at[1] * g.sy] : [at[0] * g.sx, at[1] * g.sy];
+    g.far = Math.max(g.far, Math.hypot(f[0] - g.raw[0] * g.sx, f[1] - g.raw[1] * g.sy));
+    if (g.far < PAD_DOT_PX) {
+      if (PAD_ST.length === 2 && PAD_ST[0] === p[0] && PAD_ST[1] === p[1]) { padLoupeStep_(g, at); return; }
+      st = p;
+    } else { g.dot = false; g.hold = null; g.gain = null; g.at = at.slice(); st = r.slice(); }
+  } else {
+    if (g.tool === 'pen') g.at = at.slice();
+    /* A COMPASS WHOSE SWING HOLDS ITS RADIUS IS DRAWING, not placing: no halo left at the radius's old target. */
+    if (g.tool === 'compass' && g.held) g.hold = null;
+    st = PAD_DRAW[g.tool].move(g, g.tool === 'pen' || g.board || (g.tool === 'compass' && g.held) ? at : padPlace_(g, at, false), PAD_ST);
+  }
+  padLoupeStep_(g, at);
   if (!st) return;
   PAD_ST = st;
   g.dirty = true;
@@ -9429,6 +9719,7 @@ function padLiveOff_(g) {
   g.ink.querySelectorAll('[data-live]').forEach(p => p.remove());
   const aid = g.ink.querySelector('.qpad-aid');
   if (aid) aid.innerHTML = '';
+  padLoupeOff_(true);
 }
 function padLivePath_(g, d) {
   const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -9783,6 +10074,104 @@ function padRules_(c) {
   if (!PAD_DUE) PAD_DUE = { at: c.ts };
   padFrameWant_();
 }
+/* ---------- THE LOUPE: WHAT IS UNDER THE FINGER, ABOVE IT (357; 338 section 7's increment 2) ----------------
+   A FINGERTIP HIDES THE VERY POINT IT IS PUTTING DOWN. Vogel & Baudisch's Shift: a callout above the finger
+   showing the picture under it, magnified, with a crosshair on the point the lift will keep -- snapped or
+   slowed, it is that point, so what the loupe shows is the promise. 128px across, its zoom enough to make a
+   grid square 12px (2x to 4x), centred 112px above the finger, beside it near the top of the screen and never
+   below it, where the hand is. ON `<body>`: the panes are moved by transforms (`placeCells`), and a fixed box
+   inside one is placed against the pane and clipped by it. A copy of the picture taken once a stroke, the live
+   line copied into it at each frame WITHOUT `data-live` -- nothing here is a mark -- and written ONLY in the pen's
+   frame (`padFrame_`), so a pen event still reads one box and writes nothing (check/pen.js 'samples').
+   WHEN: at once where the target is finer than a fingertip -- a placement on a grid under 13px, a ruler or a
+   compass on any grid (Shift's rule: no delay where the target is smaller than the finger hides). Elsewhere
+   only on a pause, 338's dwell: 300ms within 10px as a stroke starts, 400ms within 8px in the middle of one.
+   NEVER while a stroke is held, while two fingers are down, or while it is not known to be the one drawing --
+   what cannot be kept is not shown. */
+const PAD_LOUPE_PX = 128;
+const PAD_LOUPE_RISE = 112;
+let PAD_LOUPE_T = 0;
+function padLoupeWant_(g) {
+  if (PAD_LOUPE_T) { clearTimeout(PAD_LOUPE_T); PAD_LOUPE_T = 0; }
+  const L = g.lat;
+  g.lnow = !!L && (g.tool !== 'pen' || (g.dot && L.pitch < PAD_FINE_PX));
+  const p = g.c && g.c.p ? g.c.p : [0, 0];
+  g.dwell = { x: p[0], y: p[1], t: performance.now(), lim: 10, ms: 300 };
+  if (g.lnow) padFrameWant_();
+  else if (typeof setTimeout === 'function') PAD_LOUPE_T = setTimeout(() => { PAD_LOUPE_T = 0; padFrameWant_(); }, 300);
+}
+/* A SAMPLE: the loupe, if it is up, follows at the next frame; if not, the pause is timed again from here
+   whenever the finger has left the circle it was pausing in. */
+function padLoupeStep_(g, at) {
+  if (g.lnow || g.loupe) { padFrameWant_(); return; }
+  const d = g.dwell, p = g.c && g.c.p;
+  if (!d || !p || Math.hypot(p[0] - d.x, p[1] - d.y) <= d.lim) return;
+  d.x = p[0]; d.y = p[1]; d.t = performance.now(); d.lim = 8; d.ms = 400;
+  if (PAD_LOUPE_T) clearTimeout(PAD_LOUPE_T);
+  PAD_LOUPE_T = typeof setTimeout === 'function' ? setTimeout(() => { PAD_LOUPE_T = 0; padFrameWant_(); }, 400) : 0;
+}
+/* `hide` ONLY HIDES IT: the preview redrawn (`padLiveShow_`, at every landing) or held keeps the pause's timer, which a
+   lift, a drop or the page going away ends. */
+function padLoupeOff_(hide) {
+  if (PAD_LOUPE_T && !hide) { clearTimeout(PAD_LOUPE_T); PAD_LOUPE_T = 0; }
+  if (PAD_GO) PAD_GO.loupe = 0;
+  if (typeof document === 'undefined') return;
+  const el = document.querySelector('body > .pad-loupe');
+  if (el && el.classList.contains('on')) { el.classList.remove('on'); el.removeAttribute('data-at'); }
+}
+/* AT THE FRAME: shown or not, and where. */
+function padLoupe_(g) {
+  if (!g || PAD_HUSH || PAD_TWO.size || !padShown_(g) || !g.ink || !g.ink.isConnected) { if (g && g.loupe) padLoupeOff_(); return; }
+  if (!g.loupe && !g.lnow && !(g.dwell && performance.now() - g.dwell.t >= g.dwell.ms)) return;
+  let el = document.querySelector('body > .pad-loupe');
+  if (!el) {
+    el = document.createElement('div');
+    el.className = 'pad-loupe';
+    el.setAttribute('aria-hidden', 'true');
+    el.innerHTML = '<div class="pad-loupe-in"></div><i class="pad-loupe-x"></i>';
+    document.body.appendChild(el);
+  }
+  const box = g.box, inner = el.firstChild;
+  if (!g.loupe) {
+    const art = g.ink.closest('.qpad-art');
+    if (!art || !box) return;
+    const copy = art.cloneNode(true);
+    copy.removeAttribute('data-do'); copy.removeAttribute('title');
+    copy.querySelectorAll('[data-live]').forEach(p => p.removeAttribute('data-live'));
+    copy.querySelectorAll('[data-noswipe]').forEach(p => p.removeAttribute('data-noswipe'));
+    copy.style.width = box.width + 'px';
+    copy.style.height = box.height + 'px';
+    inner.textContent = '';
+    inner.appendChild(copy);
+    g.lcopy = { g: copy.querySelector('.qpad-g'), aid: copy.querySelector('.qpad-aid'), paths: [], aidWas: '' };
+    copy.querySelectorAll('.qpad-g path:not([d])').forEach(p => p.remove());
+    el.classList.toggle('is-paper', g.board);
+    g.loupe = 1;
+  }
+  /* THE LIVE LINE AND THE AID, COPIED: only what changed is written. */
+  const C = g.lcopy;
+  if (C && C.g) {
+    (g.live || []).forEach((p, i) => {
+      let q = C.paths[i];
+      if (!q) { q = document.createElementNS('http://www.w3.org/2000/svg', 'path'); q.setAttribute('vector-effect', 'non-scaling-stroke'); C.g.appendChild(q); C.paths[i] = q; q.was = ''; }
+      const d = p.getAttribute('d') || '';
+      if (q.was !== d) { q.setAttribute('d', d); q.was = d; }
+    });
+    const aid = g.ink.querySelector('.qpad-aid'), html = aid ? aid.innerHTML : '';
+    if (C.aid && C.aidWas !== html) { C.aid.innerHTML = html; C.aidWas = html; }
+  }
+  const L = g.lat, z = Math.max(2, Math.min(4, L ? 12 / L.pitch : 2));
+  const at = g.tool === 'compass' && g.held && g.tip ? [Math.round(g.tip[0]), Math.round(g.tip[1])] : g.at || g.from;
+  const P = [at[0] * g.sx, at[1] * g.sy], f = g.c && g.c.p ? g.c.p : [box.left + P[0], box.top + P[1]];
+  const half = PAD_LOUPE_PX / 2, W = window.innerWidth || 0;
+  let cx = f[0], cy = f[1] - PAD_LOUPE_RISE;
+  if (cy - half < 4) { cx = f[0] + (f[0] < W / 2 ? 1 : -1) * PAD_LOUPE_RISE; cy = Math.max(half + 4, f[1]); }
+  if (W) cx = Math.max(half + 4, Math.min(W - half - 4, cx));
+  inner.style.transform = `translate(${half - P[0] * z}px, ${half - P[1] * z}px) scale(${z})`;
+  el.style.transform = `translate(${cx - half}px, ${cy - half}px)`;
+  el.setAttribute('data-at', at[0] + ',' + at[1]);
+  if (!el.classList.contains('on')) el.classList.add('on');
+}
 /* THE PEN'S FRAME: a decision waiting (`padJudge_`), then the live path's open chunk, written once a frame
    (`padChunks_`). */
 function padFrameWant_() {
@@ -9794,7 +10183,9 @@ function padFrame_() {
   if (PAD_DUE) padJudge_(false);
   if (PAD_GO && PAD_GO.refused) padRace_(PAD_GO, false);
   const g = PAD_GO;
-  if (g && g.dirty && !PAD_HUSH && g.tool === 'pen') padChunks_(g);
+  if (g && g.dirty && !PAD_HUSH && g.tool === 'pen') { padChunks_(g); if (padShown_(g)) padAid_(g); }
+  /* AND THE LOUPE, here and nowhere else (357). */
+  if (g) padLoupe_(g);
 }
 
 /* ---------- A CONTACT LANDS --------------------------------------------------------------------------
@@ -9917,6 +10308,7 @@ function padCommit_() {
      from what was stored -- never from what the last frame happened to have drawn. */
   if (PAD_FRAME && typeof cancelAnimationFrame === 'function') { cancelAnimationFrame(PAD_FRAME); PAD_FRAME = 0; }
   if (g.c && g.c.role === 'owner') g.c.role = 'rest';
+  padLoupeOff_();
   const lives = [].slice.call(g.ink.querySelectorAll('[data-live]'));
   const aid = g.ink.querySelector('.qpad-aid');
   if (aid) aid.innerHTML = '';
@@ -9948,6 +10340,7 @@ function padDrop_() {
   PAD_ST = null; PAD_GO = null; PAD_HUSH = null; PAD_DUE = null;
   PAD_TOUCH.clear(); PAD_TWO.clear();
   if (g) padLiveOff_(g);
+  padLoupeOff_();
   if (typeof document === 'undefined') return;
   document.querySelectorAll('.qpad-ink [data-live]').forEach(p => p.remove());
   document.querySelectorAll('.qpad-aid').forEach(a => { if (a.firstChild) a.innerHTML = ''; });
@@ -9955,6 +10348,7 @@ function padDrop_() {
 /* THE PAGE GOING AWAY, OR THE WINDOW LOSING FOCUS, MID-STROKE: the cancel rule, and every contact forgotten
    -- their lifts will not come here. */
 function padAway_(e) {
+  padLoupeOff_();
   if (PAD_DUE) padJudge_(true);
   if (PAD_GO && PAD_GO.refused) padRace_(PAD_GO, true);
   if (PAD_ST && PAD_GO) {
@@ -10025,6 +10419,8 @@ document.addEventListener('pointermove', e => {
     if (!at) return;
     if (feed) padStep_(g, at); else padKeep_(c.pts, at);
   });
+  /* THE BOX THIS EVENT READ, for the loupe's frame to place itself by -- read once, here, as it always was. */
+  if (feed && r) g.box = r;
   /* WHICH OF A PIN-RULE PAIR IS DRAWING, asked at the frame after any move while it is not known (`padRace_`) -- the
      refused one's moves too, though it is only a rest now: how far it goes is the evidence. */
   if (PAD_GO && PAD_GO.refused && !PAD_GO.mine && !PAD_GO.never) padFrameWant_();

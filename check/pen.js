@@ -70,6 +70,18 @@
               turn, what an iPad without coalesced events gives -- is drawn within 1.5px of round between its
               ends, where its polygon was 6% of the radius off, on the board and on Q7
 
+   AND A POINT PUT DOWN EXACTLY (docs/history/357), at 390x844, 4x CPU, three seeds, a fingertip's +-4px wobble:
+     plot      six taps on Q7's grid and on a made-up squared grid: six one-point strokes, each round() of its
+               intersection and within 0.6px of it (0 of 6 before 357); the board keeps the same tap exactly as before
+     plotfine  a closed loop on a 3.3px cumulative frequency grid -- the finger follows the loupe's crosshair, wobbling:
+               6 of 6 exact within 1.5s each, three times; at 320 (2.1px squares) printed
+     rulersnap a ruler line between two intersections ends on both; a bar's side drawn 3 degrees off upright is stored upright
+     curve     six dots, then a freehand curve through them: the curve is the finger's own samples, the dots unchanged, the
+               line within the wobble + 1.5px of the aim, within 3px of each dot, and no vertex turning 50 degrees
+     loupe     on in the first frame for a dot on a fine grid, only after 300ms on a coarse one; following the finger in 95% of
+               frames; never on from a second finger's landing (`shownWatch` counts it); gone after a lift, a cancel, `padDrop_`
+     samples   (and) with the loupe open: no forced layout, two live writes a frame, painted in the first frame
+
    COUNTS AND GEOMETRY ARE PASS OR FAIL; TIMINGS ARE PRINTED. The machine is shared and a frame time is
    noise, but a coalesced sample arrives whatever the frame rate, and "what was stored" is not noise. The first
    build also JUDGED the handler's p95 against a backstop, gated on how many frames ran slow: the review found it
@@ -339,8 +351,10 @@ const shownWatch = env => env.page.evaluate(() => {
       if (S && S.on && S.second) {
         S.frames++;
         const live = document.querySelector('.qpad-ink [data-live]');
-        const aid = [...document.querySelectorAll('.qpad-aid')].some(a => a.firstChild);
-        if (live || aid) { S.shown++; if (!S.what) S.what = live ? 'a preview ' + (live.getAttribute('d') || '').slice(0, 40) : 'the aid'; }
+        const aid = [...document.querySelectorAll('.qpad .qpad-aid')].some(a => a.firstChild);
+        /* AND THE LOUPE (357): a magnified copy of a mark that cannot be kept is that mark shown. */
+        const lp = !!document.querySelector('body > .pad-loupe.on');
+        if (live || aid || lp) { S.shown++; if (!S.what) S.what = live ? 'a preview ' + (live.getAttribute('d') || '').slice(0, 40) : aid ? 'the aid' : 'the loupe'; }
       }
       requestAnimationFrame(tick);
     };
@@ -1327,6 +1341,405 @@ const unmoved = (sec, where, r, b) => {
       await env.cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
     }
     if (env.errs.length) fail('ERRORS', at + ' pin', env.errs.slice(0, 3).join(' | '));
+    await env.ctx.close();
+  }
+
+  /* ==================== A POINT PUT DOWN EXACTLY (docs/history/357): plot, plotfine, rulersnap, curve, loupe ====================
+     THE OWNER, 18 OCT: *"how are the students supposed to answer it by using there fingers to draw such a fine line"*.
+     Measured before 357 with these gestures: 0 of 6 taps on Q7's intersections, every one a five-point squiggle. Real touch,
+     390x844, DPR 2, 4x CPU, three seeds. A fingertip's wobble is uniform +-4px on each axis at the landing and on every
+     sample after it -- the worst radial error is 5.66px. What is judged is what is STORED: round() of the intersection,
+     within 0.6px of it on the screen. Pen positions are picked from the app's own grid reading (`padLattice_`), so the
+     aim is the grid the child sees. */
+  const PLACE = ['plot', 'plotfine', 'rulersnap', 'curve', 'loupe', 'samples'];
+  /* A SEEDED WOBBLE, so a failure can be run again exactly. */
+  const rng = seed => () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const SEEDS = [11, 23, 37];
+  const QUAD = 'Q-CBM-quadrilaterals-8';      // a made-up squared grid (`surfaceSvg_`), no figure of its own
+  const FINE = 'Q-1MA1-2005-1H-12b';          // a cumulative frequency grid, 3.3px squares at 390
+  /* THE GRID AS THE APP READS IT, in client px and in units. */
+  const latOf = env => env.page.evaluate(() => {
+    const pad = [...document.querySelectorAll('#s-stuff .page.on .qpad')].find(p => p.getAttribute('data-k') === window.__k);
+    if (!pad) return null;
+    const r = pad.querySelector('.qpad-ink').getBoundingClientRect();
+    const L = padLattice_(pad, r);
+    return L ? { xp: L.xp.map(v => v + r.left), yp: L.yp.map(v => v + r.top), xu: L.xu, yu: L.yu, pitch: L.pitch, sx: r.width / 340, sy: r.height / 340,
+                 tools: [...pad.querySelectorAll('.qpad-tool')].map(t => t.getAttribute('data-tool')) } : { none: true };
+  });
+  /* SIX INTERSECTIONS SPREAD OVER THE GRID, none on its edge. */
+  const sixOf = L => {
+    const nx = L.xp.length, ny = L.yp.length, at = (fx, fy) => [Math.max(1, Math.min(nx - 2, Math.round(fx * (nx - 1)))), Math.max(1, Math.min(ny - 2, Math.round(fy * (ny - 1))))];
+    return [[0.2, 0.25], [0.45, 0.6], [0.7, 0.3], [0.3, 0.8], [0.8, 0.75], [0.55, 0.15]].map(([a, b]) => at(a, b));
+  };
+  /* A TAP AIMED AT (x, y): landing at aim + U(+-J)^2, then 4-6 moves at aim + U(+-J)^2, 16ms apart. Returns what was sent. */
+  async function jtap(env, x, y, R, J) {
+    const j = () => (R() * 2 - 1) * J, sent = [[x + j(), y + j()]];
+    const n = 4 + Math.floor(R() * 3), fr = [];
+    for (let i = 0; i < n; i++) { const p = [x + j(), y + j()]; sent.push(p); fr.push([pt(p[0], p[1])]); }
+    begin(env);
+    await T(env, 'touchStart', [pt(sent[0][0], sent[0][1])], 0);
+    await stream(env, fr, 16);
+    await T(env, 'touchEnd', [], (n + 1) * 16);
+    await sleep(260);
+    return sent;
+  }
+  const tapTool = async (env, name) => {
+    const b = await env.page.evaluate(n => {
+      const pad = [...document.querySelectorAll('#s-stuff .page.on .qpad')].find(p => p.getAttribute('data-k') === window.__k);
+      const t = pad && pad.querySelector('.qpad-tool[data-tool="' + n + '"]');
+      if (!t) return null; const r = t.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    }, name);
+    if (!b) return false;
+    begin(env); await T(env, 'touchStart', [pt(b.x, b.y)], 0); await sleep(40); await T(env, 'touchEnd', [], 40); await sleep(500);
+    return true;
+  };
+  /* A CARD OPENED AND ARMED; null (and a REACH failure) when it cannot be. */
+  async function open(env, row, at) {
+    await env.page.waitForFunction(r => typeof stuffItemsAll_ === 'function' && stuffItemsAll_().some(x => x.row && x.row.row_id === r), row, { timeout: 90000 }).catch(() => {});
+    const k = await card(env, row);
+    let c = k ? await cardBox(env) : null;
+    if (!c) { fail('REACH', at, row + '\'s pen is not on the screen'); return null; }
+    await reset(env, k);
+    c = await arm(env, c, cardBox);
+    if (!c) { fail('REACH', at, row + '\'s pad could not be armed with a real tap on its lock'); return null; }
+    reached++;
+    return { k, c: (await cardBox(env)) || c };
+  }
+  /* THE LOUPE, FRAME BY FRAME, judged inside the pen's own frame (`padFrame_` wrapped): once it has been shown, is it on
+     and where the finger is -- its centre 112px above the finger, or beside it near the top -- in every frame after. */
+  const loupeWatch = env => env.page.evaluate(() => {
+    if (!window.__lw0) {
+      const f = window.padFrame_;
+      window.__lw0 = true;
+      window.padFrame_ = function () {
+        f.apply(this, arguments);
+        const S = window.__lw, g = PAD_GO;
+        if (!S || !S.on || !g || !g.c) return;
+        const el = document.querySelector('body > .pad-loupe.on');
+        if (el) S.seen = true;
+        if (!S.seen) return;
+        S.frames++;
+        if (!el) return;
+        const m = /translate\(([-\d.]+)px, ([-\d.]+)px\)/.exec(el.style.transform || '');
+        if (!m) return;
+        const cx = +m[1] + 64, cy = +m[2] + 64, p = g.c.p;
+        const over = Math.abs(cx - Math.max(68, Math.min(innerWidth - 68, p[0]))) < 1.5 && Math.abs(cy - (p[1] - 112)) < 1.5;
+        const beside = Math.abs(cy - Math.max(68, p[1])) < 1.5 && Math.abs(Math.abs(cx - p[0]) - 112) < 70;
+        if (over || beside) S.follow++;
+      };
+    }
+    window.__lw = { on: true, seen: false, frames: 0, follow: 0 };
+  });
+  const loupeRead = env => env.page.evaluate(() => { const S = window.__lw || {}; S.on = false; return { frames: S.frames || 0, follow: S.follow || 0, on: !!document.querySelector('body > .pad-loupe.on') }; });
+
+  if (PLACE.some(want)) for (const [W, H] of [[390, 844], [320, 568]]) {
+    const at = `${W}x${H}`;
+    if (W === 320 && !want('plotfine')) continue;
+    const env = await boot(browser, W, H, port);
+    await env.cdp.send('Emulation.setCPUThrottlingRate', { rate: RATE });
+
+    /* ---- plot: six taps on Q7's own grid and on a made-up squared grid; the board keeps the same tap as it always did ---- */
+    if (want('plot') && W === 390) for (const row of [Q7, QUAD]) {
+      const o = await open(env, row, at);
+      if (!o) continue;
+      const L = await latOf(env);
+      if (!L || L.none) { fail('plot', at + ' ' + row, 'the app reads no grid in its picture — nothing can snap'); continue; }
+      for (const seed of SEEDS) {
+        const R = rng(seed), six = sixOf(L);
+        for (const [i, j] of six) await jtap(env, L.xp[i], L.yp[j], R, 4);
+        const r = await look(env, o.k, CARD);
+        const want6 = six.map(([i, j]) => [Math.round(L.xu[i]), Math.round(L.yu[j])]);
+        let ok = 0;
+        r.stored.forEach((st, n) => {
+          const w = want6[n];
+          const off = w ? Math.hypot(w[0] * L.sx - L.xu[six[n][0]] * L.sx, w[1] * L.sy - L.yu[six[n][1]] * L.sy) : 99;
+          if (st.length === 2 && w && st[0] === w[0] && st[1] === w[1] && off <= 0.6) ok++;
+        });
+        if (r.stored.length !== 6 || ok !== 6) fail('plot', `${at} ${row} seed ${seed}`, `${ok} of 6 taps stored as the one point of their intersection (${r.stored.length} strokes: ${JSON.stringify(r.stored).slice(0, 120)}; wanted ${JSON.stringify(want6)})`);
+        console.log(`  plot ${at} ${row} seed ${seed}: ${ok} of 6 on the intersection, square ${L.pitch.toFixed(1)}px`);
+        await reset(env, o.k);
+      }
+    }
+    if (want('plot') && W === 390) {
+      /* THE BOARD NEVER SNAPS AND A TAP ON IT IS WHAT IT WAS: the landing and every move, a repeat dropped, thinned. */
+      let b = await board(env);
+      if (b) { await reset(env, b.k); b = await arm(env, b, board); }
+      if (!b) fail('REACH', at, 'the board could not be armed for plot');
+      else {
+        const sent = await jtap(env, b.ink.l + b.ink.w * 0.4, b.ink.t + b.ink.h * 0.4, rng(5), 4);
+        await sleep(300);
+        const res = await env.page.evaluate(([k, sent, box]) => {
+          const raw = [];
+          sent.forEach(([x, y]) => {
+            const u = [Math.round((Math.round(x * 100) / 100 - box.l) / box.w * 340), Math.round((Math.round(y * 100) / 100 - box.t) / box.h * 340)];
+            if (raw.length && raw[raw.length - 2] === u[0] && raw[raw.length - 1] === u[1]) return;
+            raw.push(u[0], u[1]);
+          });
+          let st = []; try { st = JSON.parse(ansValue_(k) || '[]'); } catch (e) {}
+          return { st, want: ansSimplify_(raw, 1) };
+        }, [b.k, sent, b.ink]);
+        if (JSON.stringify(res.st) !== JSON.stringify([res.want])) fail('plot', at + ' board', `the board stored ${JSON.stringify(res.st)} for a tap it stores as ${JSON.stringify([res.want])} — the board must never snap`);
+        await reset(env, b.k);
+      }
+    }
+
+    /* ---- plotfine: a closed loop on a 3.3px grid -- the finger follows the loupe's crosshair, wobbling ---- */
+    if (want('plotfine')) {
+      const o = await open(env, FINE, at);
+      const L = o ? await latOf(env) : null;
+      if (o && (!L || L.none)) fail('plotfine', at, 'no grid read on the fine grid');
+      else if (o) {
+        const g = await env.page.evaluate(() => PAD_GAIN);
+        let exact = 0, tries = 0, slow = 0;
+        const times = [];
+        for (const seed of SEEDS) {
+          const R = rng(seed), six = sixOf(L);
+          for (const [i, j] of six) {
+            tries++;
+            const aim = [L.xp[i], L.yp[j]], want = [Math.round(L.xu[i]), Math.round(L.yu[j])];
+            const jj = () => (R() * 2 - 1) * 4;
+            let F = [aim[0] + jj(), aim[1] + jj()];
+            begin(env);
+            const t0 = Date.now();
+            await T(env, 'touchStart', [pt(F[0], F[1])], 0);
+            let held = 0, ms = 0;
+            for (let step = 1; step < 120; step++) {
+              await sleep(16); ms = since(env);
+              const d = await env.page.evaluate(() => { const el = document.querySelector('body > .pad-loupe.on'); return el ? el.getAttribute('data-at') : null; });
+              if (!d) continue;
+              const [ax, ay] = d.split(',').map(Number);
+              if (ax === want[0] && ay === want[1]) { held += 16; if (held >= 150) break; }
+              else held = 0;
+              /* THE CHILD MOVES TOWARD WHAT THE LOUPE SHOWS, BY HALF OF WHAT IS LEFT, AT THE GAIN THEY FEEL -- and wobbles. */
+              F = [F[0] + 0.5 * (want[0] - ax) * L.sx / g, F[1] + 0.5 * (want[1] - ay) * L.sy / g];
+              await T(env, 'touchMove', [pt(F[0] + jj(), F[1] + jj())], ms);
+            }
+            await T(env, 'touchEnd', [], since(env));
+            const took = Date.now() - t0;
+            await sleep(200);
+            const r = await look(env, o.k, CARD);
+            const st = r.stored[r.stored.length - 1] || [];
+            if (st.length === 2 && st[0] === want[0] && st[1] === want[1] && took <= 1500) exact++;
+            if (took > 1500) slow++;
+            times.push(took);
+            await reset(env, o.k);
+          }
+        }
+        const mean = Math.round(times.reduce((a, b) => a + b, 0) / Math.max(1, times.length));
+        console.log(`  plotfine ${at} gain ${g}: ${exact} of ${tries} exact within 1.5s (${slow} slower), mean ${mean}ms, square ${L.pitch.toFixed(2)}px`);
+        /* JUDGED AT 390; AT 320 PRINTED (the spec's line): its 2.1px squares measured 17-18 of 18 -- the condition 338 section 9
+           named for revisiting pinch-zoom is a 320 that fails outright, and 357 records it. */
+        if (W === 390 && exact !== tries) fail('plotfine', at, `${exact} of ${tries} points on a ${L.pitch.toFixed(1)}px grid stored exactly within 1.5s, following the loupe`);
+      }
+    }
+
+    /* ---- rulersnap: both ends on their intersections from a wobbling finger; a bar side 3 degrees off upright stored upright ---- */
+    if (want('rulersnap') && W === 390) {
+      const o = await open(env, Q7, at);
+      const L = o ? await latOf(env) : null;
+      if (o && (!L || L.none || L.tools.indexOf('ruler') === -1)) fail('rulersnap', at, `Q7 offers no Ruler (${L && L.tools}) — every grid gets one`);
+      else if (o && await tapTool(env, 'ruler')) {
+        for (const seed of SEEDS) {
+          const R = rng(seed), jj = () => (R() * 2 - 1) * 4;
+          const A = [3, 4], B = [9, 11];
+          const a = [L.xp[A[0]] + jj(), L.yp[A[1]] + jj()], b = [L.xp[B[0]] + jj(), L.yp[B[1]] + jj()];
+          const fin = track(1, 8, 0, 400, 8, u => [a[0] + (b[0] - a[0]) * mj(u / 400) + (u ? jj() / 4 : 0), a[1] + (b[1] - a[1]) * mj(u / 400) + (u ? jj() / 4 : 0)])
+            .concat(track(1, 8, 408, 700, 16, () => [b[0] + jj(), b[1] + jj()]));
+          const r = await gesture(env, o.k, CARD, () => play(env, plan(fin)));
+          const want = [Math.round(L.xu[A[0]]), Math.round(L.yu[A[1]]), Math.round(L.xu[B[0]]), Math.round(L.yu[B[1]])];
+          if (JSON.stringify(r.stored) !== JSON.stringify([want])) fail('rulersnap', `${at} seed ${seed}`, `a ruler line stored ${JSON.stringify(r.stored)} — wanted ${JSON.stringify([want])}, both ends on their intersections`);
+          await reset(env, o.k);
+          /* A BAR'S SIDE, 5 SQUARES UP, DRAWN 3 DEGREES OFF UPRIGHT. */
+          const C = [6, 13], c0 = [L.xp[C[0]] + jj(), L.yp[C[1]] + jj()], len = (L.yp[C[1]] - L.yp[C[1] - 5]);
+          const d = [L.xp[C[0]] + len * Math.sin(3 * Math.PI / 180), L.yp[C[1]] - len * Math.cos(3 * Math.PI / 180)];
+          const bar = track(1, 8, 0, 300, 8, u => [c0[0] + (d[0] - c0[0]) * mj(u / 300), c0[1] + (d[1] - c0[1]) * mj(u / 300)]).concat(track(1, 8, 308, 600, 16, () => d));
+          const r2 = await gesture(env, o.k, CARD, () => play(env, plan(bar)));
+          const s = r2.stored[0] || [];
+          const wantBar = [Math.round(L.xu[C[0]]), Math.round(L.yu[C[1]]), Math.round(L.xu[C[0]]), Math.round(L.yu[C[1] - 5])];
+          if (JSON.stringify(r2.stored) !== JSON.stringify([wantBar])) fail('rulersnap', `${at} seed ${seed} bar`, `a bar side 3 degrees off upright stored ${JSON.stringify(r2.stored)} — wanted ${JSON.stringify([wantBar])}, upright and on the grid`);
+          say(`rulersnap ${at} ${seed} ${JSON.stringify(r.stored)} bar ${JSON.stringify(s)}`);
+          await reset(env, o.k);
+        }
+        await tapTool(env, 'pen');
+      } else if (o) fail('rulersnap', at, 'the Ruler tile could not be pressed');
+    }
+
+    /* ---- curve: six dots, then a freehand curve through them -- the line is the finger's own, round, and the dots stay ---- */
+    if (want('curve') && W === 390) {
+      const o = await open(env, Q7, at);
+      const L = o ? await latOf(env) : null;
+      if (o && (!L || L.none)) fail('curve', at, 'no grid on Q7');
+      else if (o) for (const seed of SEEDS) {
+        const R = rng(seed);
+        /* SIX POINTS ON A PARABOLA OF THE GRID, left to right. */
+        const cols = [2, 4, 6, 8, 10, 12].map(c => Math.min(L.xp.length - 2, c));
+        const rows = [12, 7, 4, 3, 4, 7].map(v => Math.min(L.yp.length - 2, v));
+        const dots = cols.map((cI, n) => [L.xp[cI], L.yp[rows[n]]]);
+        for (const [x, y] of dots) await jtap(env, x, y, R, 4);
+        const before = (await look(env, o.k, CARD)).stored;
+        /* THE CURVE: Catmull-Rom through the six, about 2.4px a sample at 8ms (300px/s), +-1.5px of wobble. */
+        const cr = (p0, p1, p2, p3, t) => [0, 1].map(k => 0.5 * (2 * p1[k] + (-p0[k] + p2[k]) * t + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * t * t + (-p0[k] + 3 * p1[k] - 3 * p2[k] + p3[k]) * t * t * t));
+        const P = [dots[0]].concat(dots, [dots[5]]), ideal = [];
+        for (let s = 1; s < 6; s++) { const n = Math.ceil(Math.hypot(P[s + 1][0] - P[s][0], P[s + 1][1] - P[s][1]) / 2.4); for (let q = s === 1 ? 0 : 1; q <= n; q++) ideal.push(cr(P[s - 1], P[s], P[s + 1], P[s + 2], q / n)); }
+        const sent = ideal.map(p => [p[0] + (R() * 2 - 1) * 1.5, p[1] + (R() * 2 - 1) * 1.5]);
+        begin(env);
+        await T(env, 'touchStart', [pt(sent[0][0], sent[0][1])], 0);
+        await stream(env, sent.slice(1).map(p => [pt(p[0], p[1])]), 8);
+        await T(env, 'touchEnd', [], sent.length * 8 + 8);
+        await sleep(500);
+        const res = await env.page.evaluate(([k, sent, ideal, dots]) => {
+          const pad = [...document.querySelectorAll('#s-stuff .page.on .qpad')].find(p => p.getAttribute('data-k') === k);
+          const box = pad.querySelector('.qpad-ink').getBoundingClientRect();
+          let all = []; try { all = JSON.parse(ansValue_(k) || '[]'); } catch (e) {}
+          const st = all[all.length - 1] || [];
+          const raw = [];
+          sent.forEach(([x, y]) => { const u = padMap_(box, Math.round(x * 100) / 100, Math.round(y * 100) / 100); if (raw.length && raw[raw.length - 2] === u[0] && raw[raw.length - 1] === u[1]) return; raw.push(u[0], u[1]); });
+          /* EVERY STORED POINT IS ONE OF THE FINGER'S, IN ORDER, to the unit -- a touch reaches the page on the screen's
+             half-pixel grid at DPR 2, so a sample can land one unit from where it was sent. A snap would move it 8. */
+          let j = 0, own = true;
+          const near = (a, b, c, d) => Math.abs(a - c) <= 1 && Math.abs(b - d) <= 1;
+          for (let i = 0; i + 1 < st.length; i += 2) { let k = j; while (k + 1 < raw.length && !near(raw[k], raw[k + 1], st[i], st[i + 1])) k += 2; if (k + 1 >= raw.length || k - j > 8) { own = false; break; } j = k; }
+          const paths = pad.querySelectorAll('.qpad-g path'), path = paths[paths.length - 1];
+          const toS = q => [box.left + q.x / 340 * box.width, box.top + q.y / 340 * box.height];
+          const L = path.getTotalLength(), pts = [];
+          for (let s = 0; s <= L; s += 2) pts.push(toS(path.getPointAtLength(s)));
+          const segD = (p, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], l = dx * dx + dy * dy; const t = l ? Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l)) : 0; return Math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy); };
+          let far = 0;
+          pts.forEach(p => { let m = Infinity; for (let i = 1; i < ideal.length; i++) m = Math.min(m, segD(p, ideal[i - 1], ideal[i])); far = Math.max(far, m); });
+          const dotD = dots.map(d => Math.min(...pts.map(p => Math.hypot(p[0] - d[0], p[1] - d[1]))));
+          /* THE TURN AT EACH VERTEX OF THE DRAWN LINE AS A PERSON SEES IT -- read every 12px along it, its end chords left out.
+             Every 2.4px sample is kept and drawn (nothing filters a line), so between two samples the wobble itself turns. */
+          const v = []; for (let s = 12; s < L - 12; s += 12) v.push(toS(path.getPointAtLength(s)));
+          let turn = 0;
+          for (let i = 1; i + 1 < v.length; i++) { const a1 = Math.atan2(v[i][1] - v[i - 1][1], v[i][0] - v[i - 1][0]), a2 = Math.atan2(v[i + 1][1] - v[i][1], v[i + 1][0] - v[i][0]); let d = Math.abs(a2 - a1) * 180 / Math.PI; if (d > 180) d = 360 - d; turn = Math.max(turn, d); }
+          return { all: all.length, first: [st[0], st[1]], rawFirst: [raw[0], raw[1]], own, n: st.length / 2, rawN: raw.length / 2, far, dotD: Math.max(...dotD), turn, dotsNow: all.slice(0, 6) };
+        }, [o.k, sent, ideal, dots]);
+        const where = `${at} seed ${seed}`;
+        if (res.all !== 7) fail('curve', where, `${res.all} strokes stored — wanted the six dots and the curve`);
+        if (JSON.stringify(res.dotsNow) !== JSON.stringify(before.slice(0, 6))) fail('curve', where, 'the dots changed when the curve was drawn');
+        if (!res.own || Math.abs(res.first[0] - res.rawFirst[0]) > 1 || Math.abs(res.first[1] - res.rawFirst[1]) > 1) fail('curve', where, `the curve stored is not the finger's own samples through padMap_ (first ${res.first} against ${res.rawFirst}) — a line must never snap`);
+        if (res.n < res.rawN * 0.95) fail('curve', where, `the curve kept ${res.n} of ${res.rawN} samples`);
+        if (!(res.far <= 1.5 + 1.5 + 0.01)) fail('curve', where, `the drawn curve strays ${res.far.toFixed(2)}px from the one aimed at — wanted within the wobble + 1.5px`);
+        if (!(res.dotD <= 3)) fail('curve', where, `the curve passes ${res.dotD.toFixed(2)}px from a dot it was drawn through — wanted 3px`);
+        if (!(res.turn < 50)) fail('curve', where, `the drawn curve turns ${Math.round(res.turn)} degrees at a vertex — wanted under 50`);
+        console.log(`  curve ${where}: ${res.n} of ${res.rawN} samples kept, ${res.far.toFixed(2)}px from the aim, ${res.dotD.toFixed(2)}px from the furthest dot, sharpest turn ${Math.round(res.turn)} degrees`);
+        await shot(env.page, `curve-${seed}`);
+        await reset(env, o.k);
+      }
+    }
+
+    /* ---- loupe: at once for a dot on a fine grid, after 300ms elsewhere; follows; never with a second finger; gone after every end ---- */
+    if (want('loupe') && W === 390) {
+      const isOn = () => env.page.evaluate(() => !!document.querySelector('body > .pad-loupe.on'));
+      const o = await open(env, FINE, at);
+      if (o) {
+        const c = o.c;
+        /* THE FIRST FRAME: a frame asked for from a `pointerdown` listener added after the app's runs after the pen's frame. */
+        await env.page.evaluate(() => { window.__first = null; if (!window.__fl) { window.__fl = 1; document.addEventListener('pointerdown', () => { requestAnimationFrame(() => { if (window.__first === null) window.__first = !!document.querySelector('body > .pad-loupe.on'); }); }); } });
+        await loupeWatch(env);
+        const x0 = c.ink.l + c.ink.w * 0.4, y0 = c.ink.t + c.ink.h * 0.5, fr = [];
+        for (let i = 1; i <= 40; i++) fr.push([pt(x0 + Math.sin(i / 4) * 8, y0 + Math.cos(i / 5) * 8)]);
+        begin(env);
+        await T(env, 'touchStart', [pt(x0, y0)], 0);
+        await stream(env, fr, 16);
+        const fl = await env.page.evaluate(() => window.__first);
+        await T(env, 'touchEnd', [], 41 * 16);
+        await sleep(300);
+        const lw = await loupeRead(env);
+        if (fl !== true) fail('loupe', at + ' fine', 'the loupe was not on in the first frame after a finger landed on a 3.3px grid');
+        if (!lw.frames || lw.follow / lw.frames < 0.95) fail('loupe', at + ' fine', `the loupe followed the finger in ${lw.follow} of ${lw.frames} frames — under 95%`);
+        if (lw.on) fail('loupe', at + ' fine', 'the loupe was left on after the lift');
+        console.log(`  loupe ${at} fine: on in the first frame ${fl}, followed ${lw.follow}/${lw.frames}`);
+        /* A SECOND FINGER: nothing on the screen from its landing -- the loupe counted with the preview (`shownWatch`). */
+        await reset(env, o.k);
+        await shownWatch(env);
+        /* A TWO-FINGER PAN: both land within 80ms and move together. */
+        const two = await gesture(env, o.k, CARD, () => play(env, plan(track(1, 8, 0, 400, 16, u => [x0 + u * 0.12, y0 - u * 0.05]), track(2, 8, 80, 400, 16, u => [x0 + 60 + (u - 80) * 0.12, y0 + 30 - (u - 80) * 0.05]))));
+        const sh = await shownRead(env);
+        if (sh.shown) fail('loupe', at + ' two fingers', `the picture showed ${sh.what} in ${sh.shown} of ${sh.frames} frames from the second finger's landing`);
+        if (two.stored.length) fail('loupe', at + ' two fingers', 'two fingers stored ' + JSON.stringify(two.stored).slice(0, 80));
+        /* A CANCEL AND `padDrop_` mid-stroke take it away too. */
+        await reset(env, o.k);
+        begin(env); await T(env, 'touchStart', [pt(x0, y0)], 0); await sleep(120);
+        if (!await isOn()) fail('loupe', at + ' cancel', 'the loupe was not up before the cancel');
+        await T(env, 'touchCancel', [], 120); await sleep(200);
+        if (await isOn()) fail('loupe', at + ' cancel', 'the loupe was left on after a touchCancel');
+        begin(env); await T(env, 'touchStart', [pt(x0, y0)], 0); await sleep(120);
+        await env.page.evaluate(() => padDrop_()); await sleep(100);
+        if (await isOn()) fail('loupe', at + ' padDrop_', 'the loupe was left on after padDrop_');
+        await T(env, 'touchEnd', [], 300); await sleep(200);
+        await reset(env, o.k);
+      }
+      /* ELSEWHERE -- Q7's 17px squares -- only after a 300ms pause, and then it follows. */
+      const q = await open(env, Q7, at);
+      if (q) {
+        const c = q.c, x0 = c.ink.l + c.ink.w * 0.45, y0 = c.ink.t + c.ink.h * 0.55;
+        begin(env); await T(env, 'touchStart', [pt(x0, y0)], 0);
+        await sleep(150);
+        const early = await isOn();
+        await sleep(350);
+        const late = await isOn();
+        await loupeWatch(env);
+        const fr = []; for (let i = 1; i <= 60; i++) fr.push([pt(x0 + i * 1.5, y0 - i)]);
+        await stream(env, fr, 16, 500);
+        const lw = await loupeRead(env);
+        await T(env, 'touchEnd', [], 500 + 61 * 16); await sleep(300);
+        const after = await isOn();
+        if (early) fail('loupe', at + ' Q7', 'the loupe was up 150ms into a still finger on a coarse grid — wanted only after 300ms');
+        if (!late) fail('loupe', at + ' Q7', 'the loupe was not up 500ms into a still finger');
+        if (!lw.frames || lw.follow / lw.frames < 0.95) fail('loupe', at + ' Q7', `the loupe followed the finger in ${lw.follow} of ${lw.frames} frames — under 95%`);
+        if (after) fail('loupe', at + ' Q7', 'the loupe was left on after the lift');
+        console.log(`  loupe ${at} Q7: up at 150ms ${early}, at 500ms ${late}, followed ${lw.follow}/${lw.frames}`);
+        await reset(env, q.k);
+      }
+    }
+
+    /* ---- samples, with the loupe open: the pen's budgets hold while it follows -- 0 forced layouts, 2 live writes a frame,
+       painted in the first frame -- the loupe being written only in the pen's frame ---- */
+    if (want('samples') && W === 390) {
+      const o = await open(env, FINE, at);
+      if (o) {
+        const c = o.c, Lx = c.ink.l + c.ink.w * 0.15, Rx = c.ink.l + c.ink.w * 0.85, y0 = c.ink.t + c.ink.h * 0.5, fr = [];
+        for (let i = 1; i <= 240; i++) fr.push([pt(Lx + (Rx - Lx) * i / 240, y0 + Math.sin(i / 12) * c.ink.h * 0.2)]);
+        await env.page.evaluate(() => { const M = window.__pm; M.reads = []; M.writes = []; M.dur = []; M.t0s = []; M.t1s = []; M.dw = []; M.fw = 0; M.on = true;
+          window.__fr = []; window.__ft = []; window.__fw = []; window.__lup = 0;
+          const tick = t => { if (!M.on) return; window.__fr.push(t); window.__ft.push(performance.now()); window.__fw.push(M.fw); M.fw = 0; if (document.querySelector('body > .pad-loupe.on')) window.__lup++; requestAnimationFrame(tick); }; requestAnimationFrame(tick); });
+        await traceStart(env);
+        begin(env);
+        await T(env, 'touchStart', [pt(Lx, y0)], 0);
+        await sleep(200);
+        await stream(env, fr, 8, 200);
+        await T(env, 'touchEnd', [], 200 + 241 * 8);
+        await sleep(600);
+        const tr = await traceEnd(env);
+        const m = await env.page.evaluate(() => {
+          const M = window.__pm; M.on = false;
+          const ft = window.__ft;
+          let same = 0, n = 0;
+          M.t1s.forEach((t1, i) => {
+            const w = M.dw.find(x => x >= M.t0s[i]);
+            if (w === undefined) return;
+            n++;
+            const first = ft.find(x => x >= t1), wf = w <= t1 ? first : ft.filter(x => x <= w).pop();
+            if (wf !== undefined && wf === first) same++;
+          });
+          return { reads: Math.max(0, ...M.reads), writes: M.writes.reduce((a, b) => a + b, 0), fw: Math.max(0, ...window.__fw), fwn: window.__fw.length, same, n, lup: window.__lup };
+        });
+        const where = at + ' with the loupe open';
+        if (!m.lup) fail('samples', where, 'the loupe was never on — its cost was NOT measured');
+        if (m.reads > 1) fail('samples', where, `a pen event read the ink's box ${m.reads} times`);
+        if (m.writes) fail('samples', where, `${m.writes} path write(s) inside pen events`);
+        if (m.fw > FRAME_WRITES_MAX) fail('samples', where, `a frame wrote ${m.fw} live \`d\`s — at most ${FRAME_WRITES_MAX}`);
+        if (!m.n) fail('samples', where, 'no event was followed by a live path write');
+        else if (m.same / m.n < PAINTED_MIN) fail('samples', where, `painted in the first frame for ${Math.round(m.same / m.n * 100)}% of ${m.n} events — under ${PAINTED_MIN * 100}%`);
+        if (!tr.n) fail('samples', where, 'the trace held no pointermove dispatch');
+        else if (tr.forced) fail('samples', where, `${tr.forced} of ${tr.n} pen pointermoves forced a layout — the loupe written inside the event?`);
+        console.log(`  samples ${where}: loupe on in ${m.lup} frames, forced layouts ${tr.forced} of ${tr.n}, at most ${m.fw} live write(s) a frame, painted in the first frame ${m.n ? Math.round(m.same / m.n * 100) : '-'}% of ${m.n}`);
+        await reset(env, o.k);
+      }
+    }
+    if (env.errs.length) fail('ERRORS', at + ' placements', env.errs.slice(0, 3).join(' | '));
+    await env.cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
     await env.ctx.close();
   }
 

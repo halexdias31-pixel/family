@@ -6126,7 +6126,9 @@ check('the finger pen keeps every sample: the folded ones, one box read per even
   reads = 0;
   fire('pointermove', 1, 160, 104, 1012, { co: co });
   if (reads !== 1) bad.push('a move carrying six samples read the pad\'s box ' + reads + ' times — wanted once, shared by all of them');
-  if (JSON.stringify(t.padSt()) !== '[50,100,52,100,54,102,56,104,58,106,60,108]') bad.push('six folded samples gave the stroke ' + JSON.stringify(t.padSt()) + ', wanted [50,100,52,100,54,102,56,104,58,106,60,108] — every one, less the repeat');
+  /* 10.8px FROM THE LANDING IS STILL A DOT (357, `PAD_DOT_PX` 12): the stroke is ONE point, where the finger is aiming
+     now, and every sample is kept beside it -- the move past 12px below draws the line from all of them. */
+  if (JSON.stringify(t.padSt()) !== '[60,108]') bad.push('six folded samples 10.8px from the landing gave the stroke ' + JSON.stringify(t.padSt()) + ', wanted [60,108] — one point, still a dot under PAD_DOT_PX');
   fire('pointermove', 1, 170, 110, 1020, { co: [] });
   fire('pointerup', 1, 170, 110, 1030);
   if (JSON.stringify(stored()) !== '[[50,100,52,100,54,102,56,104,58,106,60,108,70,120]]') bad.push('the folded samples and an empty list stored ' + JSON.stringify(stored()) + ' — wanted every sample, then the event\'s own point');
@@ -6186,6 +6188,88 @@ check('the finger pen keeps every sample: the folded ones, one box read per even
   if ((stored()[0] || []).length !== 640) bad.push('the 320-point stroke stored ' + ((stored()[0] || []).length / 2) + ' points');
   one('a 320-point stroke');
 
+  w.padDrop_();
+  t.padOn('');
+  try { w.localStorage.removeItem(k); } catch (e) {}
+  host.remove();
+  return bad;
+});
+
+/* ---------- A POINT PUT DOWN ON THE GRID THE PICTURE DRAWS (docs/history/357) --------------------------------
+   The grid is read from the picture's own markup (`padGrid_`): Q7's 14 x 17 unclassed lines, a `path.grid`, and over
+   the library every pad whose picture is ruled -- and NOT a bar chart's bars or an axis's ticks, which would snap a
+   point to a bar's top. Then, on a pad with a box (jsdom's is stubbed), a wobbling tap on an intersection is stored
+   as that one intersection, a line drawn from it is the finger's own samples, and the ruler's end lands on its
+   intersection. check/pen.js asks the same with real touch; this is the arithmetic, in two seconds. */
+check('a placement snaps to the grid the picture draws and a line never does: Q7\'s grid read, a bar chart not, a wobbling tap stored as its intersection, a line kept raw, a ruler end on its intersection (357)', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  if (!t || typeof w.padGrid_ !== 'function' || typeof t.padWrap !== 'function' || typeof t.padOn !== 'function' || typeof w.padDrop_ !== 'function') {
+    return ['padGrid_, padWrap_ or padDrop_ are not reachable — snapping was NOT checked'];
+  }
+  const rows = JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '..', 'data', 'questions.json'), 'utf8'));
+  const q7 = rows.find(r => r.row_id === 'Q-1MA1-2406-1F-7');
+  const G = q7 && w.padGrid_(q7.diagram);
+  if (!G || G.xs.length !== 14 || G.ys.length !== 17) bad.push('Q7\'s grid read as ' + (G ? G.xs.length + ' x ' + G.ys.length : 'nothing') + ' lines — wanted 14 x 17');
+  const fine = rows.find(r => r.row_id === 'Q-1MA1-2005-1H-12b');
+  const F = fine && w.padGrid_(fine.diagram);
+  if (!F || F.xs.length < 60) bad.push('the cumulative frequency grid (path.grid) read as ' + (F ? F.xs.length + ' x ' + F.ys.length : 'nothing'));
+  const bars = '<svg viewBox="0 0 340 300"><line x1="30" y1="10" x2="30" y2="270"/><line x1="30" y1="270" x2="330" y2="270"/>'
+    + [60, 110, 160, 210, 260].map((x, i) => `<rect x="${x}" y="${270 - 40 * (i + 1)}" width="30" height="${40 * (i + 1)}"/><line x1="${x}" y1="${270 - 40 * (i + 1)}" x2="${x}" y2="270"/>`).join('')
+    + [50, 90, 130, 170, 210, 250].map(y => `<line x1="24" y1="${y}" x2="30" y2="${y}"/>`).join('') + '</svg>';
+  if (w.padGrid_(bars)) bad.push('a bar chart\'s bars and ticks were read as a grid — a point would snap to a bar');
+  let grids = 0, pens = 0;
+  rows.forEach(r => { if (!/^(drawing|annotate)$/.test(r.answer_type || '') || !r.diagram) return; pens++; if (w.padGrid_(r.diagram)) grids++; });
+  if (grids < 150) bad.push(`only ${grids} of ${pens} pen pictures read as a grid — the map measured 196 ruled`);
+
+  /* ON A PAD, Q7's PICTURE at 280px wide (17px squares at 390 are 16.5 here). */
+  const x = { kind: 'question', answerType: 'annotate', html: '<p>Draw it.</p>', key: 'q:Q-SNAP-1', needs: [] };
+  const k = t.padKey(x), host = d.createElement('div');
+  d.body.appendChild(host);
+  const vb = /viewBox="0 0 ([\d.]+) ([\d.]+)"/.exec(q7.diagram), Wd = 280, Hd = Wd * vb[2] / vb[1], L = 40, T = 60;
+  const fresh = () => {
+    w.padDrop_();
+    try { w.localStorage.removeItem(k); } catch (e) {}
+    t.padOn(k);
+    host.innerHTML = t.padWrap(x, q7.diagram, '');
+    host.querySelector('.qpad-ink').getBoundingClientRect = () => ({ left: L, top: T, width: Wd, height: Hd, right: L + Wd, bottom: T + Hd, x: L, y: T });
+  };
+  const ink = () => host.querySelector('.qpad-ink');
+  const fire = (type, px, py, ts) => penEv_(w, ink(), type, { id: 1, x: px, y: py, t: ts, prim: type === 'pointerdown' });
+  const stored = () => { try { return JSON.parse(w.localStorage.getItem(k) || '[]'); } catch (e) { return ['unreadable']; } };
+  fresh();
+  if (!host.querySelector('.qpad-tool[data-tool="ruler"]')) bad.push('Q7\'s pad offers no Ruler — every grid gets one');
+  const ux = G.xs.map(v => v / vb[1] * 340), uy = G.ys.map(v => v / vb[2] * 340);
+  const sx = Wd / 340, sy = Hd / 340;
+  const aim = [L + ux[5] * sx, T + uy[8] * sy], want = [Math.round(ux[5]), Math.round(uy[8])];
+  fire('pointerdown', aim[0] + 3.6, aim[1] - 3.2, 1000);
+  fire('pointermove', aim[0] - 2.9, aim[1] + 3.8, 1016);
+  fire('pointermove', aim[0] + 1.1, aim[1] - 3.9, 1032);
+  fire('pointerup', aim[0] + 1.1, aim[1] - 3.9, 1040);
+  if (JSON.stringify(stored()) !== JSON.stringify([want])) bad.push('a tap wobbling 4px round an intersection stored ' + JSON.stringify(stored()) + ' — wanted ' + JSON.stringify([want]));
+  /* A LINE FROM THERE: the finger's own samples, from its own first one -- not the intersection. */
+  fire('pointerdown', aim[0] + 3, aim[1] + 2, 2000);
+  for (let i = 1; i <= 10; i++) fire('pointermove', aim[0] + 3 + 5 * i, aim[1] + 2 + 2 * i, 2000 + 8 * i);
+  fire('pointerup', aim[0] + 53, aim[1] + 22, 2090);
+  const line = stored()[1] || [];
+  const first = [Math.round((aim[0] + 3 - L) / Wd * 340), Math.round((aim[1] + 2 - T) / Hd * 340)];
+  if (line.length !== 22 || line[0] !== first[0] || line[1] !== first[1]) bad.push('a line was stored as ' + JSON.stringify(line) + ' — wanted 11 raw points from ' + JSON.stringify(first) + ': a line never snaps');
+  /* THE RULER: both ends land on their intersections. */
+  fresh();
+  const tool = host.querySelector('.qpad-tool[data-tool="ruler"]');
+  if (tool) tool.click();
+  host.innerHTML = t.padWrap(x, q7.diagram, '');
+  host.querySelector('.qpad-ink').getBoundingClientRect = () => ({ left: L, top: T, width: Wd, height: Hd, right: L + Wd, bottom: T + Hd, x: L, y: T });
+  const a = [L + ux[2] * sx, T + uy[3] * sy], b = [L + ux[9] * sx, T + uy[12] * sy];
+  fire('pointerdown', a[0] - 3, a[1] + 3.5, 3000);
+  for (let i = 1; i <= 10; i++) fire('pointermove', a[0] - 3 + (b[0] - a[0] + 6) * i / 10, a[1] + 3.5 + (b[1] - a[1] - 6.5) * i / 10, 3000 + 16 * i);
+  fire('pointerup', b[0] + 3, b[1] - 3, 3200);
+  const r = stored()[0] || [];
+  const rw = [Math.round(ux[2]), Math.round(uy[3]), Math.round(ux[9]), Math.round(uy[12])];
+  if (tool && JSON.stringify(r) !== JSON.stringify(rw)) bad.push('a ruler line stored ' + JSON.stringify(r) + ' — wanted ' + JSON.stringify(rw) + ', both ends on their intersections');
+  if (!tool) bad.push('no Ruler tile to press');
+  console.log(`          ${grids} of ${pens} pen pictures read as a grid`);
   w.padDrop_();
   t.padOn('');
   try { w.localStorage.removeItem(k); } catch (e) {}

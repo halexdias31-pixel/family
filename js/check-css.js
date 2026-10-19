@@ -972,6 +972,10 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
       seen.add(k);
       if (!parts.includes('.qp-area .' + k)) inkBad.push('line ' + r.line + '  ' + r.sel + '  →  inks `.' + k
         + '` in the card\'s sheet and not on a made-up surface beside it (`.qp-area .' + k + '`)');
+      /* AND IN THE LOUPE (357): a copy of the picture on <body>, outside every card, so a rule that names only
+         the card's containers leaves the magnified grid unstroked and its numbers in the wrong font. */
+      if (!parts.includes('.pad-loupe .' + k)) inkBad.push('line ' + r.line + '  ' + r.sel + '  →  inks `.' + k
+        + '` in the card and not in the loupe over the finger (`.pad-loupe .' + k + '`)');
     });
   });
   INK.filter(k => !seen.has(k)).forEach(k => inkBad.push('no rule inks `.qsheet .' + k + '` at all -- renamed? whether a made-up surface gets it was NOT checked'));
