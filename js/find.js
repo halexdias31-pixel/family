@@ -3700,7 +3700,8 @@ function markRuleSet_(typed, spec) {
 }
 /* ---------- AN ALGEBRAIC ANSWER, MARKED BY ITS VALUE (365) */
 /* `rule: expr R`: any expression equal to R at sample values; `v = R` wants v as the subject; `eqn A = B`: any equation a multiple of it. */
-function markExprParse_(t) {
+/* `fn g` makes g( a function call, not g times a bracket, so y = g(-x) is not y = -g(x) (376) */
+function markExprParse_(t, fns) {
   let i = 0;
   const peek = () => t[i];
   const starts = c => !!c && /[a-z0-9.(√∛π]/.test(c);
@@ -3709,6 +3710,7 @@ function markExprParse_(t) {
     if (c === '(') { i++; const n = sum(); if (!n || peek() !== ')') return null; i++; return n; }
     if (c === '√' || c === '∛') { i++; const n = power(); return n && [c, n]; }
     if (c === 'π') { i++; return ['n', Math.PI]; }
+    if (fns && fns.indexOf(c) >= 0 && t[i + 1] === '(') { i++; const n = atom(); return n && ['f', c, n]; }
     if (/^[a-z]$/.test(c || '')) { i++; return ['v', c]; }
     const m = /^\d*\.?\d+/.exec(t.slice(i));
     if (!m) return null;
@@ -3746,6 +3748,8 @@ function markExprVal_(n, at) {
   const [k, a, b] = n;
   if (k === 'n') return a;
   if (k === 'v') return at[a];
+  /* a named function: one fixed curve per letter, neither odd nor even, so g(-x), -g(x) and g(x) all differ */
+  if (k === 'f') { const v = markExprVal_(b, at), s = a.charCodeAt(0) % 7 + 1; return Math.exp(0.3 * v) * s + v * v * v / s + s; }
   const x = markExprVal_(a, at), y = b && markExprVal_(b, at);
   switch (k) {
     case 'neg': return -x;
@@ -3759,18 +3763,26 @@ function markExprVal_(n, at) {
   }
 }
 /* `{ sides: [tree, tree?], vars }`, or null for anything that is not an expression. */
-function markExprRead_(s) {
+function markExprRead_(s, fns) {
   const t = String(s == null ? '' : s).toLowerCase().replace(/<[^>]*>/g, '').replace(/&minus;/g, '-')
     .replace(/[−–—]/g, '-').replace(/[×·]/g, '*').replace(/÷/g, '/').replace(/[⁄∕]/g, '/')
     .replace(/²/g, '^2').replace(/³/g, '^3').replace(/⁴/g, '^4').replace(/sqrt|root/g, '√').replace(/cbrt/g, '∛')
     .replace(/pi/g, 'π').replace(/\s+/g, '');
   if (!t || /[^a-z0-9.+\-*\/^()√∛π=]/.test(t)) return null;
-  const sides = t.split('=').map(markExprParse_);
+  const sides = t.split('=').map(x => markExprParse_(x, fns));
   if (sides.length > 2 || sides.some(x => !x)) return null;
-  return { sides: sides, vars: (t.match(/[a-z]/g) || []).filter((v, i, a) => a.indexOf(v) === i) };
+  return { sides: sides, vars: (t.match(/[a-z]/g) || []).filter((v, i, a) => a.indexOf(v) === i && !(fns && fns.indexOf(v) >= 0)) };
 }
-function markExpr_(typed, want, eqn) {
-  const T = markExprRead_(typed), W = markExprRead_(want);
+/* `parallel`: the gradient of a straight line in x and y, or null when it is not one (a line parallel to M, 376) */
+function markExprGrad_(R) {
+  if (!R || R.sides.length !== 2 || R.vars.some(v => v !== 'x' && v !== 'y')) return null;
+  const F = (x, y) => markExprVal_(R.sides[0], { x: x, y: y }) - markExprVal_(R.sides[1], { x: x, y: y });
+  const c = F(0, 0), a = F(1, 0) - c, b = F(0, 1) - c, size = 1 + Math.abs(a) + Math.abs(b) + Math.abs(c);
+  const flat = [[1.37, 2.71], [0.53, -3.19], [-1.83, 4.07]].every(p => Math.abs(F(p[0], p[1]) - (a * p[0] + b * p[1] + c)) < 1e-7 * size);
+  return flat && Math.abs(b) > 1e-12 ? -a / b : null;
+}
+function markExpr_(typed, want, eqn, fns) {
+  const T = markExprRead_(typed, fns), W = markExprRead_(want, fns);
   if (!T || !W) return false;
   let f, g;
   if (eqn) {
@@ -3808,9 +3820,18 @@ function markExpr_(typed, want, eqn) {
 }
 function markRule_(typed, rule) {
   const body = String(rule || '').replace(/^\s*rule:\s*/i, '');
-  /* `expr`/`eqn` is the whole rule but for `nobracket`, which wants it multiplied out */
+  /* `expr`/`eqn` is the whole rule but for `nobracket` (multiplied out), `fn g`, `parallel` and `not E` (any but that one) */
   const ex = /(?:^|,)\s*(expr|eqn)\s+([^,]+)/.exec(body);
-  if (ex) return markExpr_(typed, ex[2], ex[1] === 'eqn') && !(/(?:^|,)\s*nobracket\b/.test(body) && /\(/.test(String(typed)));
+  if (ex) {
+    const eqn = ex[1] === 'eqn', fns = (/(?:^|,)\s*fn\s+([a-z]+)/.exec(body) || [])[1] || '';
+    const not = /(?:^|,)\s*not\s+([^,]+)/.exec(body);
+    if (not && markExpr_(typed, not[1], eqn, fns)) return false;
+    if (/(?:^|,)\s*parallel\s*(?:,|$)/.test(body)) {
+      const g = markExprGrad_(markExprRead_(typed)), h = markExprGrad_(markExprRead_(ex[2]));
+      return g !== null && h !== null && Math.abs(g - h) < 1e-9;
+    }
+    return markExpr_(typed, ex[2], eqn, fns) && !(/(?:^|,)\s*nobracket\b/.test(body) && /\(/.test(String(typed)));
+  }
   const set = /(?:^|,)\s*set\s+([^,]+)/.exec(body);
   if (set) return markRuleSet_(typed, set[1]);
   const nums = markRuleNums_(typed), vs = nums.map(n => n.v);
@@ -3880,6 +3901,8 @@ function markAnswer_(typed, accept, again) {
   if (rules.length) {
     if (rules.some(w => markRule_(typed, w))) return true;
     accept = String(accept).split('|').filter(w => !/^\s*rule:/i.test(w)).join('|');
+    /* a form asked for (`mixed`) is not given by the value: beside it a written way counts only as written, so 28/5 is not 5 3/5 (376) */
+    if (rules.some(w => /(?:^|[:,])\s*mixed\s*(?:,|$)/i.test(w))) return accept.split('|').some(w => markNorm_(w) === t);
   }
   if (!again) {
     /* A NAME IN FRONT IS THE SENTENCE TOO. § */

@@ -217,7 +217,7 @@ function qType_(x) {
 }
 
 /* ---------- COMPLETE: every `need` of its type's protocol met. Returns the needs NOT met ([] is complete). */
-const QT_FORM = /\b(simplify|simplest|factori[sz]e|expand|multiply out|in the form|standard form|surd)\b/;
+const QT_FORM = /\b(simplify|simplest|factori[sz]e|expand|multiply out|in the form|standard form|surd|as a (single )?power of)\b/;
 const QT_NEED = {
   /* an algebraic answer asked for its value needs a rule (365); a form question is matched as written */
   exprRule: r => QT_FORM.test(qtText_(r)) || /[<>≤≥]/.test(qtPlain_(r)[0] || '') || /(?:^|,)\s*(expr|eqn)\s/.test(qtRules_(r).join(', ')),

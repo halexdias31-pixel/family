@@ -636,6 +636,22 @@ const RULES = [
   ['y = -0.75x + 2.75', 'rule: eqn y = -3/4x - 11/4', false, 'a parallel line, not the line'],
   ['h = 120t^-0.5', 'rule: expr h = 120/√t', true, 'a negative power for a root underneath'],
   ['banana', 'rule: expr x^2+7x+12', false, 'words are not an expression'],
+  /* 376: `parallel` and `not E` (a line parallel to M, y = 5x), `fn g` (a function, not a product), and the form `mixed` asks for */
+  ['y = 5x + 1', 'rule: eqn y = 5x + 1, parallel, not y = 5x', true, 'the worked example'],
+  ['5x − y + 1 = 0', 'rule: eqn y = 5x + 1, parallel, not y = 5x', true, 'another of gradient 5, rearranged'],
+  ['y - 7 = 5x', 'rule: eqn y = 5x + 1, parallel, not y = 5x', true, 'another intercept'],
+  ['y = 5x', 'rule: eqn y = 5x + 1, parallel, not y = 5x', false, 'M itself is not parallel to M'],
+  ['2y = 10x', 'rule: eqn y = 5x + 1, parallel, not y = 5x', false, 'M itself, doubled'],
+  ['y = 4x + 1', 'rule: eqn y = 5x + 1, parallel, not y = 5x', false, 'another gradient'],
+  ['y = 5x^2 + 1', 'rule: eqn y = 5x + 1, parallel, not y = 5x', false, 'a curve is not a line'],
+  ['x = 5', 'rule: eqn y = 5x + 1, parallel, not y = 5x', false, 'a vertical line'],
+  ['y = g(−x)', 'rule: expr y = g(-x), fn g', true, 'a reflection in the y-axis'],
+  ['g(-x)', 'rule: expr y = g(-x), fn g', true, 'the subject left unnamed'],
+  ['y = -g(x)', 'rule: expr y = g(-x), fn g', false, 'the reflection in the x-axis, which a product would take for it'],
+  ['y = g(x)', 'rule: expr y = g(-x), fn g', false, 'graph A itself'],
+  ['5 3/5', '5 3/5 | rule: count 1, mixed, each eq 28/5', true, 'the mixed number asked for'],
+  ['28/5', '5 3/5 | rule: count 1, mixed, each eq 28/5', false, 'the written way beside `mixed` does not let the top-heavy fraction through'],
+  ['5.6', '5 3/5 | rule: count 1, mixed, each eq 28/5', false, 'nor the decimal'],
 ];
 RULES.forEach(([typed, accept, want, why]) => {
   const got = markAnswer_(typed, accept);

@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const NAMES = ['markNorm_', 'markParts_', 'markNum_', 'MARK_NUM', 'MARK_SYM', 'MARK_POW', 'MARK_BARE', 'markBare_', 'markFrac_',
-               'markRange_', 'markRuleNums_', 'markRuleVal_', 'markRuleIs_', 'markRuleSet_', 'markExprParse_', 'markExprVal_', 'markExprRead_', 'markExpr_', 'markRule_', 'MARK_WORD', 'MARK_UNIT', 'MARK_UNIT_OF', 'markUnitOff_', 'markAnswer_',
+               'markRange_', 'markRuleNums_', 'markRuleVal_', 'markRuleIs_', 'markRuleSet_', 'markExprParse_', 'markExprVal_', 'markExprRead_', 'markExprGrad_', 'markExpr_', 'markRule_', 'MARK_WORD', 'MARK_UNIT', 'MARK_UNIT_OF', 'markUnitOff_', 'markAnswer_',
                'multiSplit_', 'multiOf_', 'multiVals_', 'multiJoin_'];
 
 function cutFrom(src, name) {
