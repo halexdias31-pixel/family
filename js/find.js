@@ -4206,9 +4206,8 @@ function multiJoin_(vals, m) {
   const s = v.map((s, i) => (m.labels[i] ? m.labels[i] + ' = ' + s : s)).join(', ');
   return m.wrap ? '(' + s + ')' : s;
 }
-function multiField_(k, i, v, kind, signs, label) {
-  return kpField_(k + '#' + i, v, kind, signs, 'Answer ' + (i + 1))
-    .replace('data-do="qp-ans"', `data-do="qp-multi" data-n="${i}" data-mk="${esc(k)}"`);
+function multiField_(k, i, v, kind, signs) {
+  return kpField_(k + '#' + i, v, kind, signs, 'Answer ' + (i + 1), { n: i, k: k });
 }
 function multiBoxes_(x, k, val, m, maths, signs) {
   const vals = multiVals_(val, m);
@@ -4218,9 +4217,9 @@ function multiBoxes_(x, k, val, m, maths, signs) {
     multiField_(k, i, vals[i] || '', kind, signs)}</label>`;
   const boxes = [];
   for (let i = 0; i < n; i++) boxes.push(one(i));
-  /* the joined answer, first in the box, is what Check, Send and every verdict painter read as `.qp-ans-in` */
+  /* the joined answer, first in the box, is what Check, Send and every verdict painter read in place of `.qp-ans-in` */
   return `<div class="qp-multi${m.wrap ? ' is-pair' : ''}" data-mk="${esc(k)}" data-m="${esc(JSON.stringify(m))}" data-kind="${kind}"${
-    signs ? ' data-signs="1"' : ''}${m.grow ? ' data-grow="1"' : ''}><input type="hidden" class="qp-ans-in qp-multi-val" data-do="qp-ans" data-k="${esc(k)}" value="${esc(multiJoin_(vals, m))}">${boxes.join('')}</div>`;
+    signs ? ' data-signs="1"' : ''}${m.grow ? ' data-grow="1"' : ''}><input type="hidden" class="qp-multi-val" data-k="${esc(k)}" value="${esc(multiJoin_(vals, m))}">${boxes.join('')}</div>`;
 }
 const multiIns_ = box => [].slice.call(box.querySelectorAll('.kp-in[data-do="qp-multi"]'));
 /* EVERY KEY IN A BOX: the joined answer kept under the question's own key, and a filled last box grows another where the count is open. */
@@ -4338,7 +4337,7 @@ function subBoxSay_(k, val) {
 on('qp-check', (el) => {
   const box = el.closest('.qp-mark');
   const card = el.closest('.qcard');
-  const inp = card && card.querySelector('.qp-ans-in');
+  const inp = card && card.querySelector('.qp-multi-val, .qp-ans-in');
   const out = box && box.querySelector('.qp-verdict');
   if (!box || !inp || !out) return;
   const verdict = markAnswer_(inp.value, box.getAttribute('data-accept'));
@@ -4358,7 +4357,7 @@ on('qp-check', (el) => {
 /* ---------- BY RULE: full marks is decided; anything less says what the rule found and offers the AI, if it is on (359). */
 on('qp-rule', (el) => {
   const box = el.closest('.qp-mark');
-  const inp = box && box.querySelector('.qp-ans-in');
+  const inp = box && box.querySelector('.qp-multi-val, .qp-ans-in');
   const out = box && box.querySelector('.qp-verdict');
   if (!inp || !out) return;
   const m = markWords_(inp.value, box.getAttribute('data-rule'));
@@ -4376,7 +4375,7 @@ on('qp-rule', (el) => {
 /* ---------- SEND, WHERE NOTHING CAN MARK IT § */
 on('qp-send', (el) => {
   const box = el.closest('.qp-mark');
-  const inp = box && box.querySelector('.qp-ans-in');
+  const inp = box && box.querySelector('.qp-multi-val, .qp-ans-in');
   const out = box && box.querySelector('.qp-verdict');
   if (!inp || !out || el.disabled) return;
   box.classList.remove('is-right', 'is-near');

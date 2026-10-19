@@ -398,7 +398,7 @@ function ansRefresh_(keys) {
   const want = new Set(keys);
   const has = k => want.has(k) && !ansHeld_(k);
   try {
-    document.querySelectorAll('[data-do="qp-ans"][data-k]').forEach(el => {
+    document.querySelectorAll('[data-do="qp-ans"][data-k], .qp-multi-val[data-k]').forEach(el => {
       const k = el.getAttribute('data-k');
       if (!has(k)) return;
       const v = typeof ansRead_ === 'function' ? ansRead_(k) : (ansValue_(k) || '');
@@ -688,7 +688,7 @@ window.addEventListener('storage', e => {
     ANS_MEM.delete(k);
     if (ansIsRing_(k) && typeof CIRC_HELD !== 'undefined') CIRC_HELD.delete(k);
     const v = e.newValue === null ? '' : String(e.newValue);
-    document.querySelectorAll('[data-do="qp-ans"][data-k]').forEach(el => {
+    document.querySelectorAll('[data-do="qp-ans"][data-k], .qp-multi-val[data-k]').forEach(el => {
       if (el.getAttribute('data-k') !== k || el.value === v) return;
       el.value = v;
       if (el.classList.contains('kp-in') && typeof kpRender_ === 'function') kpRender_(el);

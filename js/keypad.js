@@ -124,11 +124,12 @@ function kpPadHtml_(layer, words, signs, essay) {
 /* ---------- THE BOX § */
 const KP_HOLE = '\u03d9', KP_CARET = '\u03db';
 /* `kind` 'essay' IS A WORDED BOX THAT IS A SHEET (`ansEssay_`): § */
-function kpField_(k, val, kind, signs, name) {
+/* `multi` IS ONE OF SEVERAL BOXES FOR ONE ANSWER (find.js `multiBoxes_`, 362): `{ n, k }`, the box's place and the answer's key. */
+function kpField_(k, val, kind, signs, name, multi) {
   const essay = kind === 'essay';
   const words = kind === 'words' || essay;
   const v = val == null ? '' : String(val);
-  const lock = `class="qp-ans-in kp-in" data-do="qp-ans" data-k="${esc(k)}" data-kp="${words ? 'words' : 'maths'}"${
+  const lock = `class="qp-ans-in kp-in" ${multi ? `data-do="qp-multi" data-n="${multi.n}" data-mk="${esc(multi.k)}"` : 'data-do="qp-ans"'} data-k="${esc(k)}" data-kp="${words ? 'words' : 'maths'}"${
     signs ? ' data-kp-signs="1"' : ''}${essay ? ' data-kp-essay="1"' : ''} aria-label="${esc(name || 'Your answer')}"
         readonly inputmode="none" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="${essay ? 'enter' : 'done'}"`;
   return `<span class="kp-field kp-${words ? 'words' : 'maths'}${essay ? ' kp-essay' + (v ? '' : ' is-blank') : ''}">
@@ -1141,7 +1142,7 @@ function aiKeptPaint_(box, inp) {
 on('qp-ai', (el) => {
   const box = el.closest('.qp-ai');
   const card = el.closest('.qcard');
-  const inp = card && card.querySelector('.qp-ans-in');
+  const inp = card && card.querySelector('.qp-multi-val, .qp-ans-in');
   const out = box && box.querySelector('.qp-verdict');
   const why = box && box.nextElementSibling && box.nextElementSibling.classList.contains('qp-ai-why')
     ? box.nextElementSibling : null;
