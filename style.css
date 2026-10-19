@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-18-z-touch";
+  --css-version: "2026-10-19-a-two-healths";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -1612,6 +1612,7 @@ button.text-drop { color: var(--bad); }
 [data-tag="topic"]   { --tag: var(--tag-topic); }
 [data-tag="needs"]   { --tag: var(--tag-needs); }
 [data-tag="health"]  { --tag: var(--tag-health); }
+[data-tag="answerable"] { --tag: var(--tag-health); }
 .chips { display: flex; flex-wrap: wrap; gap: .3rem; margin: 0 0 .45rem; }
 /* ---------- WHAT YOU CHOSE, A RULE, THEN WHAT IS ASKED NEXT § */
 .chips:has(.chip) { padding-bottom: .45rem; border-bottom: 1px solid var(--chip-line); }

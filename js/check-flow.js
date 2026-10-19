@@ -25728,13 +25728,17 @@ check('every paper has a health score: its cards wear it, Health · Ready narrow
     const tile = host.querySelector('.tile-row > .tile[data-do="paper-health"][data-pid="HX"]');
     if (!tile) { bad.push(who + ' sees no Health tile under the chosen paper HX'); continue; }
     A['paper-health'](tile);
-    const lines = [...d.querySelectorAll('#sheet-body .health-list li')].map(li => li.textContent.replace(/\s+/g, ' ').trim());
+    const lines = [...d.querySelectorAll('#sheet-body .faith-list li')].map(li => li.textContent.replace(/\s+/g, ' ').trim());
     /* THE SHEET'S HEAD: the band as its tag, the score as the words after it. */
     const sum = d.querySelector('#sheet-body .health-sum');
     const sTag = sum && sum.querySelector('.qtag[data-tag="health"]');
     if (!sTag || sTag.textContent !== hxh.band || !new RegExp('\\b' + hxh.pct + '%').test(sum.textContent)) bad.push(who + ': HX\'s Health sheet heads ' + JSON.stringify(sum && sum.textContent.replace(/\s+/g, ' ').trim()) + ' — wanted the [' + hxh.band + '] tag and ' + hxh.pct + '% in words');
     const want = ['Q2 — no answer', 'Q3 — needs a picture, none drawn', 'Paper — marks add to 76 of 80'];
     if (lines.join(' | ') !== want.join(' | ')) bad.push(who + ': HX\'s Health list says ' + JSON.stringify(lines) + ', wanted exactly ' + JSON.stringify(want));
+    /* AND THE SECOND SCORE UNDER IT: HX Q2 has no answer, so it cannot be marked here. */
+    const aSum = d.querySelector('#sheet-body .able-sum .qtag[data-tag="answerable"]');
+    const aLines = [...d.querySelectorAll('#sheet-body .able-list li')].map(li => li.textContent.replace(/\s+/g, ' ').trim());
+    if (!aSum || !hxh.able || aSum.textContent !== hxh.able.band || aLines.join(' | ') !== 'Q2 — no answer the app can check') bad.push(who + ': HX\'s Answerable part says ' + JSON.stringify(aLines) + ' under ' + JSON.stringify(aSum && aSum.textContent));
     t.STUFF().filters = [];
   }
   return bad;

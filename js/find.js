@@ -628,9 +628,13 @@ const FACETS = [
            : x.cost === 0 ? 'Free'
            : x.cost <= (USER ? USER.credits || 0 : 0) ? 'Can afford' : '' },
   /* ---------- HOW READY A PAPER IS, AS AN ANSWER YOU CAN PICK § */
-  { field: 'health', tag: true,    label: 'Health', tagOnly: true,
+  { field: 'health', tag: true,    label: 'Faithful', tagOnly: true,
     orderOf: v => HEALTH_BANDS.findIndex(b => b[0] === v),
     of: x => { const h = healthOf_(x); return h ? h.band : ''; } },
+  /* THE SECOND HEALTH: can every part be answered here and marked without AI (library.js, `ableOf_`). */
+  { field: 'answerable', tag: true, label: 'Answerable', tagOnly: true,
+    orderOf: v => HEALTH_BANDS.findIndex(b => b[0] === v),
+    of: x => { const h = healthOf_(x); return h && h.able ? h.able.band : ''; } },
 ];
 
 /* ---------- THE FENCE: A CLOSED KIND'S QUESTIONS, AND ONLY ITS QUESTIONS § */
@@ -7065,21 +7069,26 @@ function healthTiles_(items) {
   const h = x ? healthOf_(x) : null;
   if (!h) return '';
   return `<div class="tile-row health-tiles">${tile_({ icon: 'pulse', label: 'Health',
-    note: h.band + ' ' + h.pct + '%', act: 'paper-health', data: { pid: x.row.paper_id } })}</div>`;
+    note: 'Faithful ' + h.pct + '% · Answerable ' + (h.able ? h.able.pct : 0) + '%', act: 'paper-health', data: { pid: x.row.paper_id } })}</div>`;
 }
 function healthListHtml_(h, pid) {
   /* THE BAND IS THE TAG, AS ON EVERY CARD -- the Health answer, [Ready] -- and the exact score is the
      sentence after it: a tag is a word the finder can pick, and nobody picks `99%`. */
   const head = `<p class="health-sum"><span class="qtag"${tagAttr_('health')}>${esc(h.band)}</span>
-    ${esc(h.pct + '%')} of its points pass &middot; ${h.questions} question${h.questions === 1 ? '' : 's'}${h.total != null ? ', ' + h.marks + ' of ' + h.total + ' marks' : ''}</p>`;
-  if (!h.fails.length) return head + '<p class="health-none">Nothing wrong found.</p>';
+    Faithful ${esc(h.pct + '%')} of its points pass &middot; ${h.questions} question${h.questions === 1 ? '' : 's'}${h.total != null ? ', ' + h.marks + ' of ' + h.total + ' marks' : ''}</p>`;
+  const a = h.able || { pct: 0, band: '', fails: [] };
+  const able = `<p class="health-sum able-sum"><span class="qtag"${tagAttr_('answerable')}>${esc(a.band)}</span>
+    ${esc(a.pct + '%')} answerable here and marked without AI</p>` + (a.fails.length
+    ? `<ul class="health-list able-list">${a.fails.map(f => `<li><b class="health-ref">${esc(f.ref)}</b> — ${esc(f.why)}</li>`).join('')}</ul>`
+    : '<p class="health-none">Every part can be answered and marked.</p>');
+  if (!h.fails.length) return head + '<p class="health-none">Nothing wrong found.</p>' + able;
   /* IN THE CARD'S OWN WORDS FOR THE QUESTION. § */
   const said = {};
   try {
     stuffItemsAll_().forEach(i => { if (i && i.row && i.row.paper_id === pid && i.name) said[i.row.row_id] = i.name; });
   } catch (e) { /* the row's own reference stands */ }
-  return head + `<ul class="health-list">${h.fails.map(f =>
-    `<li><b class="health-ref">${esc((f.row && said[f.row]) || f.ref)}</b> — ${esc(f.why)}</li>`).join('')}</ul>`;
+  return head + `<ul class="health-list faith-list">${h.fails.map(f =>
+    `<li><b class="health-ref">${esc((f.row && said[f.row]) || f.ref)}</b> — ${esc(f.why)}</li>`).join('')}</ul>` + able;
 }
 on('paper-health', el => {
   const h = healthBy_()[String(el.getAttribute('data-pid') || '')];
@@ -7937,7 +7946,7 @@ const TAG_OF = {
   bibleBook: 'paper', bibleChapter: 'paper', bibleVerse: 'paper',
   /* A PAPER'S HEALTH IS NOT ANY OTHER KIND — it is about the transcription, not the paper — so it has
      a token of its own, `--tag-health`. */
-  health: 'health',
+  health: 'health', answerable: 'answerable',
 };
 const tagOf_ = field => TAG_OF[field] || '';
 const tagAttr_ = field => tagOf_(field) ? ` data-tag="${tagOf_(field)}"` : '';
