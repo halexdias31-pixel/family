@@ -33,7 +33,7 @@ const cases = [
   ['happy path: filtered, written at 0, reset, done', {}, async p => {
     await p.waitForFunction(() => /^Done/.test(document.getElementById('say').textContent), null, { timeout: 10000 });
     const log = await p.evaluate(() => LOG.join('; '));
-    return (await say(p)) === 'Done. Your verse is on the screen.' && log.includes('filters [{"usbVendorId":12346}]')
+    return (await say(p)) === 'Done. Now unplug the screen and plug it into its charger — the verse appears in a few seconds.' && log.includes('filters [{"usbVendorId":12346}]')
       && log.includes('write 0 ' + fs.statSync(path.join(DIR, 'epaper-verse.bin')).size) && log.includes('after hard_reset')
       && !(await p.locator('input').count());
   }],

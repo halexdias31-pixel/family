@@ -33,5 +33,5 @@ async function install() {
   await loader.after('hard_reset');   // the screen restarts, clears and draws its verse
   try { await transport.disconnect(); } catch (_) {}
   $('bar').hidden = true;
-  say('Done. Your verse is on the screen.');
+  say('Done. Now unplug the screen and plug it into its charger — the verse appears in a few seconds.');
 }
