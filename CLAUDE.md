@@ -84,7 +84,7 @@ list, one written reason each. (`missingKeys()` only knows the screens you happe
 | What changed | How it goes live |
 |---|---|
 | `index.html`, `js/`, `style.css` | `git push` → GitHub Pages, about a minute. |
-| `backend/*.gs` | push to `main`, then sync into Apps Script (GitHub Assistant extension, clasp, or `pullFromGitHub`). |
+| `backend/*.gs` | merge to `main`; in Apps Script press ↓ (GitHub Assistant), Deploy → New version, then open the site once as an admin — setup runs itself (361). |
 | Spreadsheet contents | Immediately, if the edit watch is installed. |
 
 Every sync route replaces the project's files wholesale: code typed only into the Apps Script editor is
