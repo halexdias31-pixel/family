@@ -1161,74 +1161,78 @@ const faceOf = (packed, handle) => {
 };
 {
   const b = fresh();
-  /* FICTIONAL PEOPLE IN THE OLD SHAPES. Tam and Tia share initials and a birthday; Bea's template is Bo's handle now. */
+  /* FICTIONAL PEOPLE IN THE OLD SHAPES (367). Tam and Tia share an initial and a year, Tam joined first; Bo is already on the new template, so Bea, earlier, works round him. */
   const CHOSEN = 'hair:bun|headwear:none|faceware:none|shoulders:none|handheld:none|legs:plain|skin:4|hairColour:2|shirt:3';
+  const NOW_Y = String(new Date().getFullYear());
   b.seed('people', [
-    person('P-ADM', 'admin', 'Hal', 'Admin', { email: 'admin@example.org', handle: 'hal_kind60' }),
-    person('P-PAT', 'client', 'Pat', 'Ashdown', { email: 'pat@example.org', handle: 'pat_kind61' }),
-    person('P-01', 'student', 'Tam', 'Dove', { handle: 'tam_kind62', date_of_birth: '04/03/2015', avatar: '' }),
-    person('P-02', 'student', 'Tia', 'Dunn', { handle: 'td2345', date_of_birth: '04/11/2014', avatar: CHOSEN }),
+    person('P-ADM', 'admin', 'Hal', 'Admin', { email: 'admin@example.org', handle: 'hal_kind60', joined_on: '01/01/2024' }),
+    person('P-PAT', 'client', 'Pat', 'Ashdown', { email: 'pat@example.org', handle: 'pat_kind61', joined_on: '01/02/2024' }),
+    person('P-01', 'student', 'Tam', 'Dove', { handle: 'tam_kind62', joined_on: '04/03/2025', avatar: '' }),
+    person('P-02', 'student', 'Tia', 'Dunn', { handle: 'td2345', joined_on: '04/11/2025', avatar: CHOSEN }),
     person('P-03', 'student', 'Oli', 'Sand', { handle: 'kindoli63', friends: 'tam_kind62, td2345' }),
-    person('P-04', 'client', 'Gus', 'Grown', { email: 'gus@example.org', handle: 'GusTyped', date_of_birth: '19/07/1980' }),
-    person('P-05', 'student', 'Ann', 'Roe', { handle: 'a09r', date_of_birth: '09/01/2013' }),
-    person('P-06', 'student', 'Christopher', 'Lake', { handle: 'christoph_kind42', date_of_birth: '12/05/2012' }),
-    person('P-07', 'student', 'Bea', 'Cole', { handle: 'bea_true12', date_of_birth: '05/02/2014' }),
-    person('P-08', 'student', 'Bo', 'Cox', { handle: 'b05c', date_of_birth: '06/02/2014' }),
+    person('P-04', 'client', 'Gus', 'Grown', { email: 'gus@example.org', handle: 'GusTyped', joined_on: '19/07/2025' }),
+    person('P-05', 'student', 'Ann', 'Roe', { handle: 'a2024', joined_on: '09/01/2024' }),
+    person('P-06', 'student', 'Christopher', 'Lake', { handle: 'christoph_kind42', joined_on: '12/05/2025' }),
+    person('P-07', 'student', 'Bea', 'Cole', { handle: 'bea_true12', joined_on: '05/02/2025' }),
+    person('P-08', 'student', 'Bo', 'Cox', { handle: 'b2025', joined_on: '06/02/2025' }),
+    person('P-09', 'student', 'Kai', 'Penn', { handle: 'kai_kind13' }),
   ]);
   b.seed('family', [{ link_id: 'L1', parent_id: 'P-PAT', child_id: 'P-01', state: 'accepted' }]);
+  /* OLI'S JOIN DATE IS BLANK, so his year is his first recorded activity. */
+  b.seed('submissions', [{ person_id: 'P-03', key: 'q1', submitted_at: '2024-06-01' }, { person_id: 'P-03', key: 'q2', submitted_at: '2025-03-01' }]);
 
-  /* ---- THE DOORS THAT MAKE A HANDLE: no birthday yet, so initials and the id's last two digits ---- */
+  /* ---- THE DOORS THAT MAKE A HANDLE: first initial and the year now ---- */
   const pat = signIn(b, 'pat@example.org', PLACE);
   if (!pat.token) no('the parent could not sign in, so the doors that make a handle were NOT checked', pat);
   else {
     const made = post(b, { action: 'makeChild', token: pat.token, firstName: 'Ivy', lastName: 'Kemp', pin: ZERO });
-    kidRule(made.success && made.handle === 'ik' + ('00' + S(made.personId).replace(/\D/g, '')).slice(-2),
-      'a child a parent made was not given her initials and the last two digits of her id', made);
+    kidRule(made.success && made.handle === 'i' + NOW_Y,
+      'a child a parent made was not given her initial and the year she joined', made);
     kidRule(!/kemp/i.test(S(made.handle)), 'the handle of a child a parent made carries her surname', made.handle);
     const ivyMail = MAIL.filter(m => m.to === 'pat@example.org').pop();
     kidRule(ivyMail && S(ivyMail.body).indexOf('@' + made.handle) !== -1, 'the parent was not emailed the new child\'s handle', ivyMail && ivyMail.body);
   }
   const reg = post(b, { action: 'register', who: 'parent', first_name: 'Una', last_name: 'Vale', email: 'una@example.org', pin: ZERO2 });
-  kidRule(reg.success && /^uv\d{2}$/.test(S(reg.handle)), 'a person who registered was not given the template (initials and two digits of the id)', reg);
+  kidRule(reg.success && S(reg.handle) === 'u' + NOW_Y, 'a person who registered was not given the template (initial and the year joined)', reg);
   kidRule(post(b, { action: 'randomiseHandle', token: pat.token }).error, 'randomiseHandle is still answered — the handle is a template now, not a press');
 
   /* ---- THE MIGRATION, ON THE NEXT ADMIN LOAD ---- */
   const tamFace = faceOf('', 'tam_kind62');
-  delete b.props['MIGRATED_handles-to-template'];
+  delete b.props['MIGRATED_handles-initial-year'];
   b.get({ run: 'schemaGaps', name: 'Hal Admin', pin: PLACE });
-  kidRule(!!b.props['MIGRATED_handles-to-template'], 'the handles-to-template job did not run on an admin page load', Object.keys(b.props));
-  const want = { 'P-01': 't04d', 'P-02': 'ti04d', 'P-03': 'os03', 'P-04': 'g19g', 'P-05': 'a09r',
-                 'P-06': 'c12l', 'P-07': 'be05c', 'P-08': 'b06c', 'P-ADM': 'ha00', 'P-PAT': 'pa00' };
+  kidRule(!!b.props['MIGRATED_handles-initial-year'], 'the handles-initial-year job did not run on an admin page load', Object.keys(b.props));
+  const want = { 'P-01': 't2025', 'P-02': 'ti2025', 'P-03': 'o2024', 'P-04': 'g2025', 'P-05': 'a2024',
+                 'P-06': 'c2025', 'P-07': 'be2025', 'P-08': 'b2025', 'P-09': 'k' + NOW_Y, 'P-ADM': 'h2024', 'P-PAT': 'p2024' };
   const got = {};
   Object.keys(want).forEach(id => { got[id] = S(byId(b, id).handle); });
-  kidRule(JSON.stringify(got) === JSON.stringify(want), 'the move did not give everybody the template, clashes broken by id order', got);
+  kidRule(JSON.stringify(got) === JSON.stringify(want), 'the move did not give everybody the template, clashes broken by join order', got);
   kidRule(S(byId(b, 'P-02').handle_was).split(',')[0].trim() === 'td2345', 'Tia\'s old handle is not at the front of her handle_was', byId(b, 'P-02').handle_was);
-  kidRule(S(byId(b, 'P-05').handle_changed_at) === '', 'somebody already on the template was moved', byId(b, 'P-05'));
-  kidRule(S(byId(b, 'P-03').friends) === 't04d, ti04d', 'a friends list naming old handles was not moved to the new ones', byId(b, 'P-03').friends);
-  kidRule(faceOf(S(byId(b, 'P-01').avatar), 't04d') === tamFace, 'the move changed the face Tam\'s blank look drew', byId(b, 'P-01').avatar);
+  kidRule(S(byId(b, 'P-05').handle_changed_at) === '' && S(byId(b, 'P-08').handle_changed_at) === '', 'somebody already on the template was moved', [byId(b, 'P-05'), byId(b, 'P-08')]);
+  kidRule(S(byId(b, 'P-03').friends) === 't2025, ti2025', 'a friends list naming old handles was not moved to the new ones', byId(b, 'P-03').friends);
+  kidRule(faceOf(S(byId(b, 'P-01').avatar), 't2025') === tamFace, 'the move changed the face Tam\'s blank look drew', byId(b, 'P-01').avatar);
   kidRule(S(byId(b, 'P-02').avatar) === CHOSEN, 'the move wrote over a look somebody chose', byId(b, 'P-02').avatar);
-  kidRule(!Object.keys(want).some(id => /dove|dunn|sand|grown|lake|cole|cox|admin|ashdown/i.test(got[id])), 'a handle carries a surname', got);
+  kidRule(!Object.keys(want).some(id => /dove|dunn|sand|grown|lake|cole|cox|admin|ashdown|penn/i.test(got[id])), 'a handle carries a surname', got);
 
   /* ---- OLD HANDLES STILL SIGN IN, AND THE NEW ONE DOES ---- */
   const viaOld = signIn(b, 'tam_kind62', PLACE);
-  kidRule(viaOld.success && viaOld.handle === 't04d', 'Tam\'s old handle no longer signs him in, or the reply does not say the new one', viaOld);
+  kidRule(viaOld.success && viaOld.handle === 't2025', 'Tam\'s old handle no longer signs him in, or the reply does not say the new one', viaOld);
   const long = signIn(b, 'christopher_kind42', PLACE);
-  kidRule(long.success && long.handle === 'c12l', 'Christopher\'s old handle, with his first name spelled out, no longer signs him in', long);
-  kidRule(signIn(b, 'ti04d', PLACE).success, 'Tia cannot sign in with her new handle');
+  kidRule(long.success && long.handle === 'c2025', 'Christopher\'s old handle, with his first name spelled out, no longer signs him in', long);
+  kidRule(signIn(b, 'ti2025', PLACE).success, 'Tia cannot sign in with her new handle');
   kidRule(!signIn(b, 'td2345', ZERO).success, 'an old handle signed in with the wrong PIN');
 
   /* ---- A SECOND RUN MOVES NOBODY ---- */
   const again = b.get({ run: 'renameHandles', name: 'Hal Admin', pin: PLACE }).result || {};
-  kidRule(again.renamed === 0 && again.longer === 2, 'a second run moved somebody, or lost count of the two clashes', again);
+  kidRule(again.renamed === 0 && again.couldNotGenerate && !again.couldNotGenerate.length, 'a second run moved somebody', again);
 
-  /* ---- A BIRTHDAY TYPED LATER MOVES A HANDLE MADE WITHOUT ONE ---- */
-  const oli = signIn(b, 'os03', PLACE);
+  /* ---- A BIRTHDAY TYPED LATER CHANGES NOTHING (367: the date of birth no longer matters) ---- */
+  const oli = signIn(b, 'o2024', PLACE);
   if (!oli.token) no('Oli could not sign in, so a birthday typed later was NOT checked', oli);
   else {
     const u = post(b, { action: 'updateProfile', token: oli.token, name: oli.name, personId: 'P-03', target: oli.name, targetId: 'P-03',
                         fields: { dob_d: '7', dob_m: '8', dob_y: '2014' } });
-    kidRule(u.success && S(byId(b, 'P-03').handle) === 'o07s', 'a birthday typed later did not move Oli onto the template', { u, handle: byId(b, 'P-03').handle });
-    kidRule(signIn(b, 'os03', PLACE).success, 'the handle Oli had before his birthday was typed no longer signs him in');
+    kidRule(u.success && S(byId(b, 'P-03').handle) === 'o2024', 'a birthday typed later moved Oli\'s handle', { u, handle: byId(b, 'P-03').handle });
+    kidRule(signIn(b, 'kindoli63', PLACE).success, 'Oli\'s first handle no longer signs him in');
   }
   kidRule(kidRules >= 20, 'only ' + kidRules + ' of the handle rules were asked');
 }

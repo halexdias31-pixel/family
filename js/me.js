@@ -3991,11 +3991,10 @@ function cardSeatRefusal_(form, fields) {
 }
 /* ---------- YOUR HANDLE, ON YOUR CARD, UNDER YOUR NAME (docs/history/339) § */
 function cardHandleHtml_() {
-  /* NO PRESS ANY MORE (364): the handle is a template, said here so nobody has to be told it. */
+  /* NO PRESS ANY MORE (364, 367): the handle is a template, said here so nobody has to be told it. */
   const said = (HANDLE_SAID.pid && HANDLE_SAID.pid === String(USER.personId || '') && HANDLE_SAID.text)
-    || 'Your handle is your first initial, the day of the month you were born (two digits) and the first '
-     + 'letter of your surname. With no birthday saved, it is your two initials and the last two digits of '
-     + 'your account number. If somebody had it already, more letters of your first name were added.';
+    || 'Your handle is your first initial and the year you joined. If somebody had it already, more '
+     + 'letters of your first name were added, and then a number.';
   return `<p class="handle-now" aria-live="polite"><b aria-hidden="true">@</b><span class="handle-shown">${
       esc((USER && USER.handle) || '')}</span></p>
     <p class="faint handle-said">${esc(said)}</p>`;

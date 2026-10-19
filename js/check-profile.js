@@ -220,6 +220,11 @@ PEOPLE.forEach(p => {
   const typed = b.post({ action: 'changeHandle', token: tokens['P-T1'].token, name: tokens['P-T1'].name,
     personId: 'P-T1', handle: 'ada_whatever' });
   if (typed.success || typed.writes) bad.push('changeHandle is still an action — a typed handle reached the sheet');
+  /* A BIRTHDAY SAVED NEVER MOVES A HANDLE (367): the handle is the year joined, not the day born. */
+  const st = tokens['P-A1'], was = b.row('P-S1').handle;
+  const dob = b.post({ action: 'updateProfile', token: st.token, name: st.name, personId: 'P-A1',
+    target: 'Sam Student', targetId: 'P-S1', fields: { dob_d: '3', dob_m: '4', dob_y: '2011' } });
+  if (!dob.success || b.row('P-S1').handle !== was) bad.push('a birthday saved moved the handle — ' + JSON.stringify({ dob, handle: b.row('P-S1').handle }));
 }
 
 /* 10. THE AGE RANGE: A YOUNGEST OLDER THAN THE OLDEST IS REFUSED BEFORE ANYTHING IS WRITTEN, so is an age that is not on the list, and a real change comes back. § */

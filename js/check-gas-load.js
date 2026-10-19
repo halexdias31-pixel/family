@@ -82,7 +82,7 @@ function backend(extra) {
     insertSheet: n => { tabs[n] = []; gridOf[n] = { cols: 26, rows: 1000 }; return sheetOf(n); },
   };
   /* THE HANDLE MOVE (364) IS MARKED DONE, so a fixture keeps the handles it was written with; check-handles runs `renameHandles_` itself, and a check deletes this key to see the job run. */
-  const props = { 'MIGRATED_handles-to-template': 'checks' };
+  const props = { 'MIGRATED_handles-to-template': 'checks', 'MIGRATED_handles-initial-year': 'checks' };
   let out = null;
   const sandbox = {
     console, JSON, Math, Date, String, Number, Boolean, Array, Object, RegExp, Error, isNaN, isFinite,

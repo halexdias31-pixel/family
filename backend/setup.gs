@@ -86,6 +86,7 @@ function fillHandles() {
                     + '— nothing was changed.' };
     }
   }
+  const seen = handleFirstSeen_(t.rows);
   const out = { filled: 0, leftAlone: 0, couldNotGenerate: [],
                 noEmail: [], noFirstName: [], noLastName: [] };
   t.rows.forEach(r => {
@@ -97,7 +98,7 @@ function fillHandles() {
     if (S(r.handle)) { out.leftAlone++; return; }
     /* `r` IS PASSED, so this row's own cells are not counted as a clash — which matters for
        `first + last`, which `handleTrouble_` also compares against. */
-    const made = handleMake_(r);
+    const made = handleMake_(r, seen);
     if (!made) { out.couldNotGenerate.push(who); return; }
     setCell(t, r, 'handle', made);
     out.filled++;
@@ -113,7 +114,7 @@ function fillHandles() {
   return out;
 }
 
-/* EVERY HANDLE INTO THE TEMPLATE (364) — the `handles-to-template` migration, and `?run=renameHandles`. Rows in person-id order, so a clash always goes the same way; safe to repeat. */
+/* EVERY HANDLE INTO THE TEMPLATE (367) — the `handles-initial-year` migration, and `?run=renameHandles`. Earliest joiner first, then person id, so a clash always goes the same way; a handle already in the shape stays. */
 function renameHandles_() {
   const t = read(TAB.people);
   if (!t.sheet) return { error: 'no people tab' };
@@ -123,16 +124,21 @@ function renameHandles_() {
     return { error: 'the people tab has no ' + lacking.join(', ') + ' column. Run ?setup=1 first '
                   + '— nothing was changed.' };
   }
-  const out = { renamed: 0, leftAlone: 0, longer: 0, noBirthday: 0, couldNotGenerate: [] };
+  const out = { renamed: 0, leftAlone: 0, longer: 0, yearFrom: { joined_on: 0, activity: 0, now: 0 }, couldNotGenerate: [] };
   const moves = {};
-  const order = t.rows.slice().sort((a, b) => (S(a.person_id) < S(b.person_id) ? -1 : S(a.person_id) > S(b.person_id) ? 1 : a._row - b._row));
+  /* THE DATES BEFORE ANY WRITE, so a handle_changed_at written below never moves somebody's join year. */
+  const seen = handleFirstSeen_(t.rows);
+  const when = r => handleJoined_(r, seen).when.getTime();
+  const order = t.rows.slice().sort((a, b) => (when(a) - when(b))
+    || (S(a.person_id) < S(b.person_id) ? -1 : S(a.person_id) > S(b.person_id) ? 1 : a._row - b._row));
   try {
     order.forEach(r => {
       const has = S(r.handle);
-      if (!handleDay_(r)) out.noBirthday++;
-      const made = handleTemplate_(r, want => handleTrouble_(want, r));
+      if (has && handleInShape_(has, r)) { out.leftAlone++; return; }
+      out.yearFrom[handleJoined_(r, seen).from]++;
+      const made = handleTemplate_(r, want => handleTrouble_(want, r), seen);
       if (!made) { out.couldNotGenerate.push(S(r.person_id) || '(a row with no id)'); return; }
-      if (made !== handleCandidates_(r)[0]) out.longer++;
+      if (made !== handleCandidates_(r, seen)[0]) out.longer++;
       if (key(made) === key(has)) { out.leftAlone++; return; }
       /* THE HISTORY FIRST, IN ITS OWN WRITE, and the face the old handle drew when nobody chose a look. */
       if (has) setCells(t, r, Object.assign({ handle_was: handleWasWith_(r.handle_was, has) }, handleFaceKept_(t, r, has)));
@@ -144,9 +150,9 @@ function renameHandles_() {
   } finally {
     clearCache();
   }
-  out.means = out.renamed + ' handle(s) moved to the template (first initial, day of the month born, surname '
-            + 'initial; no birthday: initials and the last two digits of the id). Each old handle is at the '
-            + 'front of handle_was and still signs in; ' + out.friendsMoved + ' friends list(s) moved.';
+  out.means = out.renamed + ' handle(s) moved to the template (first initial and the year joined; a clash '
+            + 'adds first-name letters, then a counter). Each old handle is at the front of handle_was and '
+            + 'still signs in; ' + out.friendsMoved + ' friends list(s) moved.';
   return out;
 }
 
