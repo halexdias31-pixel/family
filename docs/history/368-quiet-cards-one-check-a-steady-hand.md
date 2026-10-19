@@ -36,7 +36,8 @@ labels are moved by it and `frameOf` adds it to the origin of `vb` and explicit 
 - **The verdict beside the star** (`subSlot_`, `.qcard-verdict`): gone. The box's own verdict line says it once.
 - **"Saved to …'s account" / "Sent to …" / "Saving…" / "On this device until you send it"**: silent
   (`ANS_QUIET`, `padKeptSay_`). The line speaks only when an answer is not on the account or cannot be: signed out,
-  too long, refused by the store. `.qp-saved:empty` and `.qpad-note:empty` take no room.
+  too long, refused by the store. The box's line keeps its reserved height (261: words arriving move nothing); an empty
+  `.qpad-note` takes no room.
 - The essay's "Mark with AI" caption beside its tile is gone.
 - Tile notes are only titles and aria-labels (never drawn), so they were left as they were.
 
