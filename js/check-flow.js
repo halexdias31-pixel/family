@@ -25756,8 +25756,40 @@ check('a drawn answer is marked on Check: strokes on a real Corbettmaths figure 
     if (x.company === 'Corbettmaths') sets.cbm++; else sets.gcse++;
     try { w.localStorage.removeItem(t.padKey(x)); } catch (e) {}
   }
+  /* NOTHING IN EITHER SET IS LEFT WAITING FOR A PERSON: a drawing-only part has Check, never Send */
+  const docs = {};
+  LIB.forEach(r => { if (r.kind === 'document') docs[r.paper_id] = r; });
+  const inSets = r => (r.company === 'Corbettmaths' && /KS[12]/.test(r.key_stage || '') && r.document_type === 'Worksheet')
+    || (d => d.exam_board === 'Edexcel' && d.subject === 'Maths' && d.key_stage === 'KS4' && d.document_type === 'Past paper' && /Higher|Foundation/.test(d.tier || ''))(docs[r.paper_id] || r);
+  let waiting = 0;
+  for (const x of all) {
+    if (!x || x.kind !== 'question' || !x.row || !inSets(x.row)) continue;
+    const k = w.answerKinds_(x);
+    if (!k.draw || k.value) continue;
+    host.innerHTML = w.questionCard_(x, 0);
+    if (!host.querySelector('.qpad-send [data-do="pad-check"]')) { waiting++; bad.push(x.row.row_id + ': drawn, and still sent to a person'); }
+  }
+  /* AND THE DRAWINGS MADE BOXES (a Venn diagram's regions, a tree's branches, a choice of brackets): each scheme's own answer, entered, is Correct */
+  const TYPED = ['Q-CBM-nets-8', 'Q-1MA1-2306-1H-5a', 'Q-1MA1-2406-3F-27a', 'Q-1MA1-1811-2H-1a', 'Q-1MA1-1911-1H-21', 'Q-1MA1-1905-1H-4', 'Q-1MA1-2406-1F-11c'];
+  for (const id of TYPED) {
+    const x = all.find(i => i.row && i.row.row_id === id);
+    if (!x) { bad.push(id + ' did not reach Find'); continue; }
+    host.innerHTML = w.questionCard_(x, 0);
+    if (host.querySelector('.qpad')) bad.push(id + ': made a box, and still drawn on');
+    const cells = [...host.querySelectorAll('.qp-cell')], opts = [...host.querySelectorAll('[data-do="qp-choose"]')];
+    if (cells.length) {
+      const ways = w.cellsOf_(x);
+      cells.forEach(c => { const v = ways[Number(c.getAttribute('data-n'))]; c.value = v ? v.ways.split('|')[0].trim() : ''; });
+      A['qp-cells-check'](host.querySelector('[data-do="qp-cells-check"]'));
+      const say = host.querySelector('.qp-cells-box .qp-verdict').textContent;
+      if (!/^Correct/.test(say)) bad.push(id + ': its own answers in its boxes say ' + JSON.stringify(say));
+    } else if (opts.length) {
+      if (opts.length !== 5) bad.push(id + ': ' + opts.length + ' places for the brackets, wanted 5');
+    } else if (!host.querySelector('[data-do="qp-check"]')) bad.push(id + ': made typed, and nothing marks it');
+  }
   host.remove();
   if (sets.cbm < 72) bad.push('only ' + sets.cbm + ' Corbettmaths drawn parts are marked by geometry — wanted 72');
+  if (sets.gcse < 74) bad.push('only ' + sets.gcse + ' GCSE Maths drawn parts are marked by geometry — wanted 74');
   return bad.slice(0, 25).concat(bad.length > 25 ? ['… and ' + (bad.length - 25) + ' more'] : []);
 });
 

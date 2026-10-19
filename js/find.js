@@ -4588,7 +4588,8 @@ function padSource_(x) {
 /* ---------- WHAT A QUESTION IS ANSWERED WITH: A DRAWING, A VALUE, OR BOTH § */
 function answerKinds_(x) {
   const draw = !!padSource_(x);
-  return { draw: draw, value: !draw || !!String((x && x.accept) || '').trim() || cellsOf_(x).length > 0 };
+  /* key words mark it too (`mark_words`): the box is what is marked, the pen is the working (366) */
+  return { draw: draw, value: !draw || !!String((x && x.accept) || '').trim() || !!String((x && x.markWords) || '').trim() || cellsOf_(x).length > 0 };
 }
 
 /* ---------- WHICH TOOLS A QUESTION'S PEN COMES WITH § */
@@ -4828,7 +4829,8 @@ function drawFig_(svg) {
   (s.match(/<text\b[^>]*>[\s\S]*?<\/text>/g) || []).forEach(t => {
     if (/\btransform\s*=/.test(t)) return;
     const num = k => { const r = new RegExp('\\s' + k + '\\s*=\\s*["\']\\s*([-\\d.eE+]+)').exec(t); return r ? +r[1] : NaN; };
-    const words = t.replace(/<[^>]*>/g, '').replace(/&minus;|\u2212|&#8722;/g, '-').replace(/&[a-z#0-9]+;/gi, '').trim();
+    /* a tick drawn as a dash after the number ("40 \u2212") is not part of it */
+    const words = t.replace(/<[^>]*>/g, '').replace(/&minus;|\u2212|&#8722;/g, '-').replace(/&[a-z#0-9]+;/gi, '').trim().replace(/\s+-$/, '');
     if (/^-?\d+(\.\d+)?$/.test(words) && isFinite(num('x')) && isFinite(num('y'))) labels.push([+words, num('x'), num('y')]);
   });
   return { vb: vb, grid: typeof padGrid_ === 'function' ? padGrid_(s) : null, labels: labels };
@@ -4871,14 +4873,15 @@ function drawMarker_() {
   const dDir = (a, b) => { const d = Math.abs(a - b) % 180; return Math.min(d, 180 - d); };
 
   /* THE FRAME: figure units to the picture's. Labels give an axis its scale; a grid alone counts squares from its bottom-left corner, y up. */
-  function fitAxis(fig, axis) {
-    const L = fig.labels || [], by = {};
+  function fitAxis(fig, axis, not) {
+    const L = (fig.labels || []).filter(l => !(not && not.indexOf(l) !== -1)), by = {};
     L.forEach(l => { const key = Math.round((axis === 'x' ? l[2] : l[1]) / 8); (by[key] = by[key] || []).push(l); });
     let best = null;
     Object.keys(by).forEach(k => {
       const g = by[k].filter((l, i, a) => a.findIndex(o => o[0] === l[0]) === i);
       if (g.length < 3) return;
-      const vs = g.map(l => l[0]), ps = g.map(l => axis === 'x' ? l[1] : l[2]);
+      /* a y label's number sits on its baseline, about a third of a line below the grid line it names */
+      const vs = g.map(l => l[0]), ps = g.map(l => axis === 'x' ? l[1] : l[2] - 3.5);
       const n = vs.length, mv = vs.reduce((a, b) => a + b) / n, mp = ps.reduce((a, b) => a + b) / n;
       const sxx = vs.reduce((s, v) => s + (v - mv) * (v - mv), 0);
       if (!sxx) return;
@@ -4887,7 +4890,7 @@ function drawMarker_() {
       const span = Math.abs(b) * (Math.max.apply(null, vs) - Math.min.apply(null, vs));
       if (!b || res > span * 0.04 + 3) return;
       if (axis === 'x' ? b < 0 : b > 0) return;
-      if (!best || n > best.n) best = { a: a, b: b, n: n, v0: vs[0] };
+      if (!best || n > best.n) best = { a: a, b: b, n: n, v0: vs[0], g: g };
     });
     if (!best) return null;
     const G = fig.grid, lines = G ? (axis === 'x' ? G.xs : G.ys) : null;
@@ -4911,12 +4914,11 @@ function drawMarker_() {
     if (f && f.o && f.u) { o = f.o; u = f.u; }
     else if (f === 'vb') { o = [0, 0]; u = [1, 1]; }
     else {
-      const ax = f === 'grid' ? null : fitAxis(fig, 'x'), ay = f === 'grid' ? null : fitAxis(fig, 'y');
-      if (ax && ay) { o = [ax.a, ay.a]; u = [ax.b, ay.b]; }
-      else if (G) {
-        const at = (f && f.grid) || [0, 0], py = (G.ys[G.ys.length - 1] - G.ys[0]) / (G.ys.length - 1);
-        o = [G.xs[0] - at[0] * sq, G.ys[G.ys.length - 1] + at[1] * py]; u = [sq, -py];
-      } else { o = [0, 0]; u = [1, 1]; }
+      /* each axis by its own numbers where it has them; one without counts squares (or the picture's units) */
+      const ax = f === 'grid' ? null : fitAxis(fig, 'x'), ay = f === 'grid' ? null : fitAxis(fig, 'y', ax && ax.g);
+      const at = (f && f.grid) || [0, 0], py = G ? (G.ys[G.ys.length - 1] - G.ys[0]) / (G.ys.length - 1) : 1;
+      o = [ax ? ax.a : G ? G.xs[0] - at[0] * sq : 0, ay ? ay.a : G ? G.ys[G.ys.length - 1] + at[1] * py : 0];
+      u = [ax ? ax.b : G ? sq : 1, ay ? ay.b : G ? -py : 1];
     }
     return { o: o, u: u, sq: sq, vb: vb, grid: G,
       v: p => [o[0] + p[0] * u[0], o[1] + p[1] * u[1]],
@@ -4943,9 +4945,9 @@ function drawMarker_() {
   const samples = (a, b, step) => { const n = Math.max(2, Math.ceil(near(a, b) / step)); const out = []; for (let i = 0; i <= n; i++) out.push([a[0] + (b[0] - a[0]) * i / n, a[1] + (b[1] - a[1]) * i / n]); return out; };
   const dInk = (p, ink) => ink.reduce((m, s) => Math.min(m, dPoly(p, s.pl)), Infinity);
   /* a line, a side or a curve is drawn when nearly all of it has ink within the tolerance */
-  const covered = (a, b, ink, tol, from, to) => {
+  const covered = (a, b, ink, tol, from, to, frac) => {
     const pts = samples(a, b, tol / 2).filter((p, i, all) => i / (all.length - 1) >= (from || 0) - 1e-9 && i / (all.length - 1) <= (to == null ? 1 : to) + 1e-9);
-    return pts.filter(p => dInk(p, ink) <= tol).length >= pts.length * 0.85;
+    return pts.filter(p => dInk(p, ink) <= tol).length >= pts.length * (frac || 0.85);
   };
   /* straight pieces of ink, for the kinds that ask about directions and corners */
   const straights = (ink, min) => {
@@ -4999,6 +5001,7 @@ function drawMarker_() {
     twosym: (p, s, a) => p.length === 4 && !SHAPE.square(p, s, a) && (a.every(x => Math.abs(x - 90) <= 4) || same(Math.min.apply(null, s), Math.max.apply(null, s), 0.07)),
     perpdiag: (p, s, a) => p.length === 4 && !SHAPE.square(p, s, a) && dDir(dirOf(p[0], p[2]), dirOf(p[1], p[3])) >= 86,
     notperpdiag: (p) => p.length === 4 && dDir(dirOf(p[0], p[2]), dirOf(p[1], p[3])) < 84,
+    isosceles: (p, s) => p.length === 3 && (same(s[0], s[1], 0.06) || same(s[1], s[2], 0.06) || same(s[0], s[2], 0.06)),
   };
 
   /* EACH KIND: is it there, and which ink does it account for (the rest is stray). */
@@ -5020,7 +5023,13 @@ function drawMarker_() {
       }
       const also = (it.also || []).map(s => [F.v([s[0], s[1]]), F.v([s[2], s[3]])]);
       const tries = [];
-      const flips = it.turn ? [[1, 0, 0, 1], [0, -1, 1, 0], [-1, 0, 0, -1], [0, 1, -1, 0], [-1, 0, 0, 1], [1, 0, 0, -1], [0, 1, 1, 0], [0, -1, -1, 0]] : [[1, 0, 0, 1]];
+      /* `fity`: a sketch on an axis with no numbers up it -- the curve's height is the drawer's, so it is fitted */
+      if (it.fity) {
+        const ys = [].concat.apply([], ink.map(s => s.pl.map(p => F.f(p)[1]))), top = Math.max.apply(null, base.map(s => Math.max(Math.abs(s[0][1]), Math.abs(s[1][1]))));
+        const k0 = ys.length && top ? Math.max.apply(null, ys.map(Math.abs)) / top : 1;
+        [0.7, 0.8, 0.9, 1, 1.1, 1.25, 1.4].forEach(f => tries.push(base.map(s => s.map(p => F.v([p[0], p[1] * k0 * f])))));
+      }
+      const flips = it.fity ? [] : it.turn ? [[1, 0, 0, 1], [0, -1, 1, 0], [-1, 0, 0, -1], [0, 1, -1, 0], [-1, 0, 0, 1], [1, 0, 0, -1], [0, 1, 1, 0], [0, -1, -1, 0]] : [[1, 0, 0, 1]];
       flips.forEach(m => {
         const S = base.map(s => s.map(p => F.v([m[0] * p[0] + m[1] * p[1], m[2] * p[0] + m[3] * p[1]])));
         if (!it.move) { tries.push(S); return; }
@@ -5029,7 +5038,9 @@ function drawMarker_() {
         const ip = [].concat.apply([], ink.map(s => s.pl)), sp = [].concat.apply([], S);
         if (!ip.length) return;
         const a = bx(ip), b = bx(sp);
-        [[a[0] - b[0], a[1] - b[1]], [a[2] - b[2], a[3] - b[3]], [(a[0] + a[2] - b[0] - b[2]) / 2, (a[1] + a[3] - b[1] - b[3]) / 2]].forEach(d => {
+        /* and by each corner of the ink, so two shapes drawn side by side are each found where they are */
+        const anchors = [].concat.apply([], ink.map(s => s.segs)).slice(0, 60).map(p => [p[0] - sp[0][0], p[1] - sp[0][1]]);
+        [[a[0] - b[0], a[1] - b[1]], [a[2] - b[2], a[3] - b[3]], [(a[0] + a[2] - b[0] - b[2]) / 2, (a[1] + a[3] - b[1] - b[3]) / 2]].concat(anchors).forEach(d => {
           let dx = it.move === 'y' ? 0 : d[0], dy = it.move === 'x' ? 0 : d[1];
           if (F.grid && it.snap !== false) { dx = Math.round(dx / F.sq) * F.sq; dy = Math.round(dy / F.sq) * F.sq; }
           tries.push(S.map(s => s.map(p => [p[0] + dx, p[1] + dy])));
@@ -5037,15 +5048,18 @@ function drawMarker_() {
       });
       let best = null;
       tries.forEach(S => {
-        const n = S.filter(s => covered(s[0], s[1], ink, tol)).length;
+        const n = S.filter(s => covered(s[0], s[1], ink, tol, 0, 1, it.cover)).length;
         if (!best || n > best.n) best = { n: n, S: S };
       });
       const S = best ? best.S : [];
-      return { ok: !!best && best.n >= (it.need || S.length), ex: q => S.concat(also).some(s => dSeg(q, s[0], s[1]) <= tol * 1.5) };
+      /* `head`: a vector's arrowhead, ink at the far end that is not the shaft */
+      const headOk = !it.head || (S.length === 1 && ink.some(s => s.pl.some(p => near(p, S[0][1]) <= F.sq * 1.2 && near(p, S[0][1]) > tol * 0.5 && dLine(p, S[0][0], S[0][1]) > tol * 0.4)));
+      return { ok: !!best && best.n >= (it.need || S.length) && headOk, ex: q => S.concat(also).some(s => dSeg(q, s[0], s[1]) <= tol * 1.5) || (it.head && S.length === 1 && near(q, S[0][1]) <= F.sq * 1.4) };
     },
     line(it, ink, F, tol) {
       const a = F.v(it.thru[0]), b = F.v(it.thru[1]);
-      return { ok: covered(a, b, ink, tol, it.from == null ? 0.15 : it.from, it.to == null ? 0.85 : it.to),
+      /* `cover`: how much of it must be inked -- a dashed line (a strict inequality) is about half */
+      return { ok: covered(a, b, ink, tol, it.from == null ? 0.15 : it.from, it.to == null ? 0.85 : it.to, it.cover),
         ex: q => dLine(q, a, b) <= tol * 1.5 };
     },
     cells(it, ink, F) {
@@ -5193,6 +5207,100 @@ function drawMarker_() {
       })();
       return { ok: ok, ex: q => hull.length > 2 && (inside(q, hull) || dPoly(q, hull.concat([hull[0]])) <= tol * 1.5) };
     },
+    /* HISTOGRAM OR BAR CHART: each bar's top, read off the ink; an axis with no numbers (`fx`, `fy`) is scaled from the bars themselves */
+    hist(it, ink, F, tol) {
+      const base = F.v([0, 0])[1];
+      const tops = straights(ink, F.sq * 0.5).filter(s => dDir(dirOf(s[0], s[1]), 0) <= 6 && Math.abs((s[0][1] + s[1][1]) / 2 - base) > F.sq * 0.4)
+        .map(s => { const a = Math.min(s[0][0], s[1][0]), b = Math.max(s[0][0], s[1][0]); return { a: a, b: b, y: (s[0][1] + s[1][1]) / 2 }; })
+        .sort((p, q) => p.a - q.a);
+      /* `seq`: bars whose order and heights are known but not where they stand (a dual bar chart): the heights read left to right */
+      if (it.seq) {
+        let best = 0;
+        it.seq.forEach(h => {
+          if (tops.length !== h.length) return;
+          const r = h.map((v, i) => (tops[i].y - base) / v).sort((p, q) => p - q), sy = it.fy ? r[r.length >> 1] : F.u[1];
+          best = Math.max(best, h.filter((v, i) => Math.abs(base + sy * v - tops[i].y) <= tol).length);
+        });
+        return { ok: best >= (it.need || it.seq[0].length), ex: q => q[1] <= base + tol };
+      }
+      const X = it.x, n = X.length - 1;
+      let sx = F.u[0], ox = F.o[0];
+      if (it.fx && tops.length) { sx = (tops[tops.length - 1].b - tops[0].a) / (X[n] - X[0]); ox = tops[0].a - sx * X[0]; }
+      const px = v => ox + sx * v;
+      const mine = tops.map(t => X.findIndex((v, i) => i < n && Math.abs(px(v) - t.a) <= tol && Math.abs(px(X[i + 1]) - t.b) <= tol));
+      let sy = F.u[1];
+      if (it.fy) {
+        const r = mine.map((i, k) => i >= 0 && it.h[i] ? (tops[k].y - base) / it.h[i] : null).filter(v => v != null).sort((p, q) => p - q);
+        sy = r.length ? r[r.length >> 1] : sy;
+      }
+      let good = 0;
+      mine.forEach((i, k) => { if (i >= 0 && Math.abs(base + sy * it.h[i] - tops[k].y) <= tol) good++; });
+      const want = it.only != null ? it.only : n;
+      const ok = good >= (it.need || want) && (it.need || tops.length <= want);
+      return { ok: ok, ex: q => q[1] <= base + tol && X.some((v, i) => i < n && q[0] >= px(v) - tol && q[0] <= px(X[i + 1]) + tol) };
+    },
+    /* A BOX PLOT: the box's three upright lines at the quartiles and the median, the whiskers out to the least and greatest -- at whatever height it is drawn */
+    box(it, ink, F, tol) {
+      const S = straights(ink, F.sq * 0.4), up = S.filter(s => dDir(dirOf(s[0], s[1]), 90) <= 8), across = S.filter(s => dDir(dirOf(s[0], s[1]), 0) <= 8);
+      const X = v => F.v([v, 0])[0], v = it.v;
+      const atUp = x => up.some(s => Math.abs((s[0][0] + s[1][0]) / 2 - x) <= tol);
+      const ends = across.map(s => [Math.min(s[0][0], s[1][0]), Math.max(s[0][0], s[1][0])]);
+      const end = x => atUp(x) || ends.some(e => Math.abs(e[0] - x) <= tol || Math.abs(e[1] - x) <= tol);
+      const good = [end(X(v[0])), atUp(X(v[1])), atUp(X(v[2])), atUp(X(v[3])), end(X(v[4]))].filter(Boolean).length;
+      return { ok: good >= (it.need || 5), ex: q => q[0] >= X(v[0]) - tol * 1.5 && q[0] <= X(v[4]) + tol * 1.5 };
+    },
+    /* AN INEQUALITY ON A NUMBER LINE: a line from a to b, and at each end a circle, filled where the end is included */
+    interval(it, ink, F, tol) {
+      const S = straights(ink, F.sq * 1).filter(s => dDir(dirOf(s[0], s[1]), 0) <= 6).sort((p, q) => near(q[0], q[1]) - near(p[0], p[1]));
+      if (!S.length) return { ok: false, ex: () => false };
+      const L = S[0], xs = [L[0][0], L[1][0]].sort((p, q) => p - q), ya = (L[0][1] + L[1][1]) / 2;
+      const A = F.v([it.a, 0])[0], B = F.v([it.b, 0])[0], r = F.sq * 0.9;
+      const end = x => {
+        const near_ = ink.filter(s => s !== L && Math.abs(s.c[0] - x) <= r && Math.abs(s.c[1] - ya) <= r * 1.5 && s.size <= r * 2.5);
+        if (!near_.length) return null;
+        const size = Math.max.apply(null, near_.map(s => s.size)), Lsum = near_.reduce((t, s) => t + s.len, 0);
+        return Lsum >= 1.2 * Math.PI * Math.max(size, 1) ? 'filled' : 'open';
+      };
+      const ea = end(A), eb = end(B);
+      const at = Math.abs(xs[0] - A) <= tol * 1.6 && Math.abs(xs[1] - B) <= tol * 1.6;
+      const circles = it.loose ? !!ea && !!eb : ea === (it.ca ? 'filled' : 'open') && eb === (it.cb ? 'filled' : 'open');
+      return { ok: at && circles, ex: q => q[0] >= A - r * 1.5 && q[0] <= B + r * 1.5 && Math.abs(q[1] - ya) <= r * 2 };
+    },
+    /* AREA: the closed shapes drawn inside a box, their areas added (a pictogram's symbols) */
+    area(it, ink, F) {
+      const box = it.in.map(F.v), inBox = p => p[0] >= Math.min(box[0][0], box[1][0]) && p[0] <= Math.max(box[0][0], box[1][0]) && p[1] >= Math.min(box[0][1], box[1][1]) && p[1] <= Math.max(box[0][1], box[1][1]);
+      const P = polygons(ink, F, F.sq * 0.4).filter(p => p.every(inBox));
+      const A = P.reduce((t, p) => t + area(p.map(F.f)), 0);
+      return { ok: Math.abs(A - it.want) <= (it.rtol || 0.08) * it.want, ex: inBox };
+    },
+    /* CONSTRUCTION ARCS: compass curves, near where the construction puts them */
+    curves(it, ink, F) {
+      const c = it.near ? F.v(it.near) : null, R_ = it.r ? it.r * Math.abs(F.u[0]) : Infinity;
+      const C = ink.filter(s => s.segs.length >= 4 && s.len >= F.sq * 0.8 && (!c || s.pl.some(p => near(p, c) <= R_)));
+      return { ok: C.length >= (it.n || 2), ex: q => C.some(s => dPoly(q, s.pl) <= F.sq * 0.3) };
+    },
+    /* A SKETCH: the curve's shape, read in the figure's own axes -- rising or falling, above the axis, where it crosses */
+    sketch(it, ink, F, tol) {
+      const pts = [].concat.apply([], ink.map(s => s.pl.map(p => F.f(p)))).sort((p, q) => p[0] - q[0]);
+      if (pts.length < 4) return { ok: false, ex: () => false };
+      const yt = tol / Math.abs(F.u[1]);
+      const k = Math.max(1, Math.floor(pts.length / 8)), steps = [];
+      for (let i = k; i < pts.length; i += k) steps.push(pts[i][1] - pts[i - k][1]);
+      const T = it.test || [];
+      const ok = T.every(t => {
+        if (t === 'inc') return steps.filter(d => d < -yt).length === 0;
+        if (t === 'dec') return steps.filter(d => d > yt).length === 0;
+        if (t === 'above') return pts.every(p => p[1] > -yt);
+        if (t === 'crossy') { const at = pts.filter(p => Math.abs(p[0]) <= 2 * tol / Math.abs(F.u[0])); return at.length && at.every(p => p[1] > yt); }
+        if (t === 'flatleft') { const L = pts.slice(0, Math.max(2, pts.length >> 3)); return L.every(p => Math.abs(p[1]) <= 3 * yt); }
+        /* `asym`: a vertical asymptote at each value -- no ink on it, and the curve running away up on its left and down on its right (tan) */
+        if (t === 'asym') return (it.asym || []).every(a => { const w = 2 * tol / Math.abs(F.u[0]); return !pts.some(p => Math.abs(p[0] - a) < w * 0.5)
+          && pts.some(p => p[0] < a && p[0] > a - 8 * w && p[1] > 3 * yt) && pts.some(p => p[0] > a && p[0] < a + 8 * w && p[1] < -3 * yt); });
+        if (t === 'steepright') { const L = pts.slice(-Math.max(2, pts.length >> 3)); return L[L.length - 1][1] - L[0][1] > 4 * yt; }
+        return false;
+      });
+      return { ok: ok, ex: () => true };
+    },
     inside(it, ink, F) {
       const P = it.poly.map(F.v);
       let L = 0;
@@ -5273,6 +5381,30 @@ function drawMarker_() {
         (it.at || []).forEach(t => put([[t[0], t[1]], [t[2], t[3]]].map(F.v)));
         if (it.poly) put(it.poly.concat([it.poly[0]]).map(F.v));
         if (it.path) put(it.path.map(F.v));
+      }
+      if (it.k === 'segs' && it.head && it.at && it.at[0]) {
+        const t = it.at[0], a = F.v([t[0], t[1]]), b = F.v([t[2], t[3]]), L = H(b[0] - a[0], b[1] - a[1]) || 1, u = [(b[0] - a[0]) / L, (b[1] - a[1]) / L];
+        put([[b[0] - u[0] * q * 0.8 - u[1] * q * 0.5, b[1] - u[1] * q * 0.8 + u[0] * q * 0.5], b, [b[0] - u[0] * q * 0.8 + u[1] * q * 0.5, b[1] - u[1] * q * 0.8 - u[0] * q * 0.5]]);
+      }
+      if (it.k === 'hist') {
+        /* an axis with no numbers: drawn to a scale that fills most of the grid */
+        const G = F.grid, W = G ? G.xs[G.xs.length - 1] - G.xs[0] : vb[2], Hh = G ? G.ys[G.ys.length - 1] - G.ys[0] : vb[3];
+        const hs = it.seq ? it.seq[0] : it.h, top = Math.max.apply(null, hs.filter(Boolean));
+        const ky = it.fy ? Math.round(Hh * 0.7 / top / Math.abs(F.u[1]) * 4) / 4 || 1 : 1;
+        const X = it.seq ? hs.map((h, i) => [i * 2 + 1, i * 2 + 2]) : it.x.slice(0, -1).map((x, i) => [x, it.x[i + 1]]);
+        const x0 = it.seq ? 0 : it.x[0], span = it.seq ? hs.length * 2 + 1 : it.x[it.x.length - 1] - x0;
+        const kx = it.fx || it.seq ? Math.max(1, Math.floor(W * 0.85 / span / Math.abs(F.u[0]))) : 1, ox = it.fx || it.seq ? 1 - x0 * kx : 0;
+        hs.forEach((h, i) => { if (h) put([[X[i][0] * kx + ox, 0], [X[i][0] * kx + ox, h * ky], [X[i][1] * kx + ox, h * ky], [X[i][1] * kx + ox, 0]].map(F.v)); });
+      }
+      if (it.k === 'box') {
+        const v = it.v, y = F.f([0, F.vb[1] + F.vb[3] * 0.35])[1], h = F.sq * 0.8 / Math.abs(F.u[1]);
+        put([[v[0], y], [v[1], y]].map(F.v)); put([[v[3], y], [v[4], y]].map(F.v));
+        put([[v[1], y - h], [v[1], y + h], [v[3], y + h], [v[3], y - h], [v[1], y - h]].map(F.v)); put([[v[2], y - h], [v[2], y + h]].map(F.v));
+      }
+      if (it.k === 'interval') {
+        const a = F.v([it.a, 0]), b = F.v([it.b, 0]), y = it.y != null ? F.v([0, it.y])[1] : a[1] - q * 1.5, r = q * 0.35;
+        put([[a[0] + r, y], [b[0] - r, y]]);
+        [[a, it.ca], [b, it.cb]].forEach(e => { const c = [e[0][0], y], ring = []; for (let g = 0; g <= 360; g += 30) ring.push(at(c, g, r)); put(ring); if (e[1]) { put(ring.map(p => [c[0] + (p[0] - c[0]) * 0.5, c[1] + (p[1] - c[1]) * 0.5])); put([at(c, 0, r * 0.8), at(c, 180, r * 0.8)]); put([at(c, 90, r * 0.8), at(c, 270, r * 0.8)]); put(ring.map(p => [c[0] + (p[0] - c[0]) * 0.75, c[1] + (p[1] - c[1]) * 0.75])); } });
       }
       if (it.k === 'line') put(it.thru.map(F.v));
       if (it.k === 'cells') {

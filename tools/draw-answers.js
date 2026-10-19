@@ -138,7 +138,27 @@ const CBM = {
 };
 
 /* ---------- A DRAWN ANSWER BETTER TYPED: the field changes that make it a box (366) */
+const VENN = '<p>Type the numbers that go in each part of the diagram.</p>';
+const TREE = '<p>Type the probability that goes on each empty branch.</p>';
 const FIELDS = {
+  /* GCSE: what the scheme marks is a value written in a diagram -- a Venn diagram's regions, a tree's branches -- so each is a box (366) */
+  'Q-1MA1-2306-1H-5a': { typed: true, answer_type: 'short', cells: 'A only=3, 5, 7; A and B=1, 9; B only=4; Outside=2, 6, 8, 10', html_add: VENN },
+  'Q-1MA1-2006-2H-2a': { typed: true, answer_type: 'short', cells: 'A only=4, 6, 8; A and B=2, 10; B only=1, 5; Outside=3, 7, 9', html_add: VENN },
+  'Q-1MA1-1906-3H-1a': { typed: true, answer_type: 'short', cells: 'A only=1, 5, 8; A and B=6, 9; B only=2; Outside=3, 4, 7', html_add: VENN },
+  'Q-1MA1-1706-3H-1a': { typed: true, answer_type: 'short', cells: 'A only=3, 9, 21, 27; A and B=15; B only=5, 25; Outside=1, 7, 11, 13, 17, 19, 23, 29', html_add: '<p>Call the left circle A and the right circle B, and type the numbers that go in each part of the diagram.</p>' },
+  'Q-1MA1-1811-2H-1a': { typed: true, answer_type: 'short', cells: 'A only=2, 10, 14; B only=6; C only=18, 22; A and B only=-; A and C only=-; B and C only=20; A, B and C=8; Outside=4, 12, 16, 24', html_add: VENN + '<p>Leave a part empty if no number goes in it.</p>' },
+  'Q-1MA1-2406-3F-27a': { typed: true, answer_type: 'short', cells: 'A not heads=0.4|2/5|40%; H, not H=0.45|9/20|45%; Not H, H=0.55|11/20|55%; Not H, not H=0.45|9/20|45%', html_add: TREE },
+  'Q-1MA1-2406-3H-6a': { typed: true, answer_type: 'short', cells: 'A not heads=0.4|2/5|40%; H, not H=0.45|9/20|45%; Not H, H=0.55|11/20|55%; Not H, not H=0.45|9/20|45%', html_add: TREE },
+  'Q-1MA1-2006-3H-5a': { typed: true, answer_type: 'short', cells: 'A on 2=1/3; A not 2=2/3; On 2, on 2=1/3; On 2, not=2/3; Not, on 2=1/3; Not, not=2/3', html_add: TREE },
+  'Q-1MA1-1906-2H-10a': { typed: true, answer_type: 'short', cells: 'Thu not late=0.85|17/20|85%; Late, late=0.15|3/20|15%; Late, not=0.85|17/20|85%; Not, late=0.15|3/20|15%; Not, not=0.85|17/20|85%', html_add: TREE },
+  'Q-1MA1-1806-2H-15a': { typed: true, answer_type: 'short', cells: 'Sat not win=0.55|11/20|55%; Win, win=0.67; Win, not=0.33; Not, win=0.35; Not, not=0.65', html_add: TREE },
+  /* a choice of five places for one pair of brackets */
+  'Q-1MA1-2406-1F-11c': { typed: true, answer_type: 'short', surface: '', choices: '(30 &divide; 3) + 2 &minus; 4 | 30 &divide; (3 + 2) &minus; 4 | 30 &divide; 3 + (2 &minus; 4) | (30 &divide; 3 + 2) &minus; 4 | 30 &divide; (3 + 2 &minus; 4)', choice_right: '2' },
+  /* a labelled sketch whose marks are for its numbers: the numbers typed */
+  'Q-1MA1-1911-1H-21': { typed: true, answer_type: 'short', surface: '', cells: 'Turning pt=(2, \u221213)|2, \u221213; y-intercept=(0, \u22125)|0, \u22125|\u22125; x-intercepts=(4 + \u221a26)/2, (4 \u2212 \u221a26)/2 | 2 + \u221a26/2, 2 \u2212 \u221a26/2 | 2 \u00b1 \u221a26/2 | (4 \u00b1 \u221a26)/2',
+    html_add: '<p>Type the coordinates your sketch would show: the turning point, where the curve crosses the y-axis, and where it crosses the x-axis (exactly).</p>' },
+  'Q-1MA1-1706-3H-20b': { typed: true, answer_type: 'short', surface: '', cells: 'Centre=(3, 0)|3, 0; Crosses x at=(\u22121, 0), (7, 0)|\u22121, 7', html_add: '<p>Type the coordinates your sketch would be labelled with: the centre of circle B and where it crosses the x-axis.</p>' },
+  'Q-1MA1-1905-1H-4': { typed: true, answer_type: 'short', cells: 'Solid=cylinder|a cylinder; Diameter cm=4|4 cm; Height cm=5|5 cm', html_add: '<p>Name the solid, and give its dimensions.</p>' },
   /* a length on a screen needs a scale: the made-up space becomes a 1 cm grid, and says so */
   'Q-CBM-metric-units-3': { surface: 'grid', html_add: '<p>Each square of the grid is 1 cm.</p>' },
   /* six numbers on a net: typed as the three opposite pairs, each pair multiplying to 100 */
@@ -146,7 +166,140 @@ const FIELDS = {
     html_add: '<p>Type the six numbers as three pairs of opposite faces, each pair together: above and below the row, then the 1st and 3rd of the row, then the 2nd and 4th.</p>' },
 };
 
-const GCSE = {};
+/* ---------- GCSE MATHS PAST PAPERS, Foundation and Higher: every drawn part, by its mark scheme's points */
+/* a region as a polygon: a convex shape clipped by half-planes `a x + b y <= c` (Sutherland-Hodgman) */
+const clip = (P, a, b, c) => {
+  const out = [], f = p => a * p[0] + b * p[1] - c;
+  P.forEach((p, i) => {
+    const q = P[(i + 1) % P.length], fp = f(p), fq = f(q);
+    if (fp <= 1e-9) out.push(p);
+    if ((fp < -1e-9 && fq > 1e-9) || (fp > 1e-9 && fq < -1e-9)) { const t = fp / (fp - fq); out.push([p[0] + t * (q[0] - p[0]), p[1] + t * (q[1] - p[1])]); }
+  });
+  return out.map(p => p.map(r2));
+};
+const disc = (c, r, n) => ring(c, r, n || 48);
+const clipBy = (P, Q) => Q.reduce((acc, q, i) => {          // P clipped by the convex polygon Q, counter-clockwise in y-down
+  const n = Q[(i + 1) % Q.length], a = n[1] - q[1], b = q[0] - n[0];
+  return clip(acc, -a, -b, -(a * q[0] + b * q[1]));
+}, P);
+const sq_ = (x0, y0, w, h) => [[x0, y0], [x0 + w, y0], [x0 + w, y0 + h], [x0, y0 + h]];
+/* a graph drawn: the curve as a path, B1 for the points of its table plotted */
+const graph = (f, a, b, m, o) => ({ k: 'segs', path: fn(f, a, b, 24), m: m, tol: 0.4, or: Object.assign({ k: 'pts', onink: true, at: fn(f, a, b, Math.round(b - a)), need: Math.max(2, Math.round(b - a)), m: m - 1 }, o || {}) });
+const cf = (P, m) => [{ k: 'pts', onink: true, at: P.slice(1), need: P.length - 2, m: 1 }, { k: 'segs', path: P, tol: 0.6, cover: 0.8, m: m - 1 }];
+const fpoly = P => [{ k: 'pts', onink: true, at: P, m: 1 }, { k: 'segs', path: P, m: 1 }];
+const box3 = v => ({ k: 'box', v: v, m: 3, or: { k: 'box', v: v, need: 4, m: 2, or: { k: 'box', v: v, need: 2, m: 1 } } });
+const sinp = (f, a, b) => fn(x => f(x), a, b, 36);
+const S2 = Math.sin, D = Math.PI / 180;
+const TRI17 = [[101.5, 22], [313.5, 173.1], [24, 173.1]];
+const R17 = clipBy(clip(TRI17, 1, 0, 168.75), disc([101.5, 22], 120).slice().reverse());
+const ARC17 = (() => { const o = []; for (let g = 90; g <= 270; g += 5) { const p = at([101.5, 22], g, 120); if (p[1] <= 173.1 && p[0] <= 101.5 + (p[1] - 22) * (313.5 - 101.5) / 151.1 && p[0] >= 101.5 - (p[1] - 22) * (101.5 - 24) / 151.1) o.push(p); } return o; })();
+const GCSE = {
+  /* histograms and bar charts: bar for bar; with no numbers on an axis, the bars' own proportions */
+  'Q-1MA1-2406-1H-13a': { items: [{ k: 'hist', x: [0, 10, 30, 35, 50, 60], h: [2, 3.5, 4.4, 2, 0.8], fx: true, fy: true, m: 3, or: { k: 'hist', x: [0, 10, 30, 35, 50, 60], h: [2, 3.5, 4.4, 2, 0.8], fx: true, fy: true, need: 3, m: 2, or: { k: 'hist', x: [0, 10, 30, 35, 50, 60], h: [2, 3.5, 4.4, 2, 0.8], fx: true, fy: true, need: 2, m: 1 } } }] },
+  'Q-1MA1-2306-2H-16a': { frame: { o: [73.233, 169.9], u: [3.8778, -38.79] }, items: [{ k: 'hist', x: [40, 60], h: [1.2], m: 2 }] },
+  'Q-1MA1-1911-2H-18': { items: [{ k: 'hist', x: [10, 12.5], h: [3.2], m: 3 }] },
+  'Q-1MA1-1811-3H-17a': { items: [{ k: 'hist', x: [0, 20, 50, 80, 150, 200], h: [6, 3, 4, 2, 2], fy: true, m: 3, or: { k: 'hist', x: [0, 20, 50, 80, 150, 200], h: [6, 3, 4, 2, 2], fy: true, need: 3, m: 2, or: { k: 'hist', x: [0, 20, 50, 80, 150, 200], h: [6, 3, 4, 2, 2], fy: true, need: 2, m: 1 } } }] },
+  'Q-1MA1-1711-2H-17a': { items: [{ k: 'hist', x: [140, 150, 155, 160, 165, 180], h: [1.5, 6, 10.2, 7.2, 1.2], fx: true, fy: true, m: 3, or: { k: 'hist', x: [140, 150, 155, 160, 165, 180], h: [1.5, 6, 10.2, 7.2, 1.2], fx: true, fy: true, need: 3, m: 2, or: { k: 'hist', x: [140, 150, 155, 160, 165, 180], h: [1.5, 6, 10.2, 7.2, 1.2], fx: true, fy: true, need: 2, m: 1 } } }] },
+  'Q-1MA1-2211-1H-14': { items: [{ k: 'hist', x: [50, 70, 80, 90, 110], h: [1, 5, 6, 1.5], fy: true, m: 3, or: { k: 'hist', x: [50, 70, 80, 90, 110], h: [1, 5, 6, 1.5], fy: true, need: 3, m: 2, or: { k: 'hist', x: [50, 70, 80, 90, 110], h: [1, 5, 6, 1.5], fy: true, need: 2, m: 1 } } }] },
+  /* a dual bar chart, Lena and Pavel side by side each day, or each person's four days together */
+  'Q-1MA1-2406-1F-7': { loose: true, items: [{ k: 'hist', seq: [[6, 7, 9, 6, 8, 5, 6, 6], [7, 6, 6, 9, 5, 8, 6, 6], [6, 9, 8, 6, 7, 6, 5, 6], [7, 6, 5, 6, 6, 9, 8, 6]], fy: true, m: 4,
+    or: { k: 'any', m: 1, of: [{ k: 'hist', seq: [[6, 9, 8, 6]], fy: true }, { k: 'hist', seq: [[7, 6, 5, 6]], fy: true }] } }] },
+  'Q-1MA1-2406-2F-6b': Object.assign({ items: [{ k: 'area', in: [[97.3, 139], [300.1, 182.7]], want: 2.75 * 27.8 * 27.8, rtol: 0.1 }],
+    eg: [sq_(103.9, 147, 27.8, 27.8).concat([[103.9, 147]]), sq_(146.1, 147, 27.8, 27.8).concat([[146.1, 147]]), sq_(188.2, 147, 20.85, 27.8).concat([[188.2, 147]])] }, blank),
+  /* frequency polygons: each point at its class's middle, joined with straight lines */
+  'Q-1MA1-2306-1H-4': { items: fpoly([[2.5, 8], [7.5, 24], [12.5, 13], [17.5, 11], [22.5, 4]]) },
+  'Q-1MA1-1906-3H-3b': { frame: { o: [40.9, 178], u: [4.0318, -8.064] }, items: fpoly([[15, 7], [25, 13], [35, 14], [45, 12], [55, 16], [65, 18]]) },
+  'Q-1MA1-1811-3H-7': { items: fpoly([[5, 14], [15, 18], [25, 26], [35, 12]]) },
+  'Q-1MA1-1711-3H-1b': { items: fpoly([[135, 4], [145, 11], [155, 24], [165, 22], [175, 19]]) },
+  /* cumulative frequency: each point at its class's upper end, joined by a curve or lines */
+  'Q-1MA1-2406-2H-11b': { items: cf([[0, 0], [2, 7], [4, 28], [6, 43], [8, 54], [10, 60]], 2) },
+  'Q-1MA1-2306-2H-9a': { items: cf([[20, 0], [30, 20], [40, 48], [50, 64], [60, 75], [70, 80]], 2) },
+  'Q-1MA1-2005-1H-12b': { items: cf([[200, 0], [250, 5], [300, 15], [350, 35], [400, 55], [450, 70], [500, 80]], 2) },
+  'Q-1MA1-1906-2H-11b': { frame: { o: [63.3, 185.1], u: [1.8538, -1.8677] }, items: cf([[0, 0], [20, 5], [40, 35], [60, 55], [80, 70], [100, 78], [120, 80]], 2) },
+  'Q-1MA1-1911-1H-10a': { frame: { o: [72.1, 212.4], u: [2.1088, -4.22] }, items: cf([[20, 0], [40, 5], [60, 25], [80, 35], [100, 38], [120, 40]], 2) },
+  /* box plots: the five values, at any height */
+  'Q-1MA1-2406-3H-11a': { items: [box3([25, 35, 40, 47, 62])] },
+  'Q-1MA1-2306-3H-11a': { items: [box3([169, 174, 177, 180, 186])] },
+  'Q-1MA1-1911-3H-12': { items: [box3([173, 188, 197, 209, 219])] },
+  'Q-1MA1-1805-1H-10a': { items: [box3([133, 145, 151, 157, 170])] },
+  'Q-1MA1-1811-1H-9a': { items: [box3([0, 4, 10, 20, 42])] },
+  'Q-1MA1-1706-3H-9b': { items: [{ k: 'box', v: [60, 180, 300, 350, 650], m: 2, or: { k: 'box', v: [60, 180, 300, 350, 650], need: 3, m: 1 } }] },
+  'Q-1MA1-1711-1H-12a': { items: [box3([154, 161, 165, 168, 174])] },
+  'Q-1MA1-2211-2H-11': { frame: { o: [40, 72], u: [2.75, -2.75] }, tol: 0.5, items: [box3([24, 42, 54, 64, 96])] },
+  /* graphs drawn from a table: the curve, or B1 for its points */
+  'Q-1MA1-2406-2H-5b': { items: [graph(x => x * x - x, -2, 3, 2)] },
+  'Q-1MA1-2406-2F-24b': { items: [graph(x => x * x - x, -2, 3, 2)] },
+  'Q-1MA1-2006-2H-4b': { items: [graph(x => 5 - x * x * x, -2, 2, 2)] },
+  'Q-1MA1-1806-2H-5b': { items: [graph(x => x * x - x - 6, -3, 3, 2)] },
+  'Q-1MA1-1811-3H-3b': { items: [graph(x => x * x + x - 4, -3, 3, 2)] },
+  'Q-1MA1-2211-1H-9b': { items: [graph(x => 6 * x - x * x * x, -3, 3, 2)] },
+  'Q-1MA1-2406-3F-19': { items: [{ k: 'segs', path: [[-2, -8], [3, 7]], m: 3, or: { k: 'pts', onink: true, at: fn(x => 3 * x - 2, -2, 3, 5), need: 3, m: 2, or: { k: 'pts', onink: true, at: fn(x => 3 * x - 2, -2, 3, 5), need: 2, m: 1 } } }] },
+  'Q-1MA1-1906-2H-2': { items: [{ k: 'segs', path: [[-2, -7], [4, 5]], m: 3, or: { k: 'pts', onink: true, at: fn(x => 2 * x - 3, -2, 4, 6), need: 3, m: 2, or: { k: 'pts', onink: true, at: fn(x => 2 * x - 3, -2, 4, 6), need: 2, m: 1 } } }] },
+  'Q-1MA1-1806-2H-16a': { items: [{ k: 'segs', path: ring([0, 0], 3.5, 36).concat([at([0, 0], 0, 3.5)]), m: 2, tol: 0.4, or: { k: 'pts', onink: true, at: [[3.5, 0], [-3.5, 0], [0, 3.5], [0, -3.5]], m: 1 } }] },
+  /* transformations of graphs: the new curve, or the scheme's B1 for half the move */
+  'Q-1MA1-2406-2H-21': { items: [{ k: 'segs', path: fn(x => 0.75 * (x + 1) * (x + 1), -3, 1, 16), tol: 0.4, m: 2, or: { k: 'any', m: 1, of: [{ k: 'segs', path: fn(x => 0.75 * (x + 1) * (x + 1) - 2, -3, 1, 16), tol: 0.4 }, { k: 'segs', path: fn(x => 0.75 * (x - 1) * (x - 1), -1, 3, 16), tol: 0.4 }] } }] },
+  'Q-1MA1-2306-2H-21a': { items: [path_([[-3, -4], [-2, -3], [-1, -3], [0, -4]])] },
+  'Q-1MA1-2306-2H-21b': { items: [path_([[0, 0], [1, 1], [2, 1], [3, 0]])] },
+  'Q-1MA1-1911-1H-20a': { items: [Object.assign(path_(mv([[-4, 3], [-3, 3], [-2, 1], [1, 4], [3, 4]], -1, -3)), { m: 2, or: { k: 'any', m: 1, of: [path_(mv([[-4, 3], [-3, 3], [-2, 1], [1, 4], [3, 4]], -1, 0)), path_(mv([[-4, 3], [-3, 3], [-2, 1], [1, 4], [3, 4]], 0, -3))] } })] },
+  'Q-1MA1-1811-1H-18a': { frame: { o: [138.93, 118.75], u: [28.344, -28.35] }, items: [{ k: 'segs', path: fn(x => (x - 3) * (x - 3) - 1, 1, 5, 16), tol: 0.4 }] },
+  'Q-1MA1-2006-2H-21a': { frame: { o: [160.1, 148.1], u: [36.1, -36.1] }, items: [{ k: 'pts', onink: true, at: [[0, 0], [1, 2], [3, 0]], m: 1 }, { k: 'segs', path: [[0, 0], [0.5, 1.5], [1, 2], [2, 1.2], [3, 0], [3.5, 0.6], [4, 2]], tol: 0.7, cover: 0.75, m: 1 }] },
+  'Q-1MA1-1805-1H-18': { items: [{ k: 'segs', path: sinp(x => S2(x * D) - 2, -180, 180), tol: 0.5, m: 2, or: { k: 'segs', path: sinp(x => S2(x * D), -180, 180), move: 'y', snap: false, tol: 0.5, m: 1 } }] },
+  /* sketches: the curve's shape and the points the scheme names */
+  'Q-1MA1-2406-1H-22a': { frame: { o: [18.2, 87.7], u: [0.8111, -1] }, items: [{ k: 'pts', onink: true, at: [[0, 0], [180, 0], [360, 0]], tol: 0.4, m: 1 }, { k: 'segs', path: sinp(x => 50 * S2(x * D), 0, 360), fity: true, tol: 0.6, cover: 0.8, m: 1 }] },
+  'Q-1MA1-1811-3H-11': { frame: { o: [40, 160], u: [0.66, -1] }, items: [{ k: 'pts', onink: true, at: [[0, 0], [180, 0], [360, 0]], tol: 0.4, m: 1 }, { k: 'sketch', test: ['asym'], asym: [90, 270], m: 1 }],
+    eg: [fn(x => 30 * Math.tan(x * D), 0, 78, 13), fn(x => 30 * Math.tan(x * D), 102, 258, 26), fn(x => 30 * Math.tan(x * D), 282, 360, 13)] },
+  'Q-1MA1-1811-2H-14': { frame: { o: [150, 150], u: [20, -20] }, items: [{ k: 'sketch', test: ['inc', 'above', 'crossy', 'flatleft', 'steepright'], m: 2 }], eg: [fn(x => Math.pow(2, x), -5, 2.9, 24)] },
+  /* transformations of shapes: the image, corner for corner, or the scheme's B1 */
+  'Q-1MA1-2406-3F-18a': { items: [poly(rot180([[1, 4], [5, 4], [4, 2], [2, 2]], [0, 0]), { m: 2, or: { k: 'any', m: 1, of: [poly(rot180([[1, 4], [5, 4], [4, 2], [2, 2]], [0, 0]), { move: 'xy' }), { k: 'pts', at: rot180([[1, 4], [5, 4], [4, 2], [2, 2]], [0, 0]), need: 3 }] } })] },
+  'Q-1MA1-2406-3H-12': { items: [poly(enl([[1, 2], [1, 3], [3, 2]], [0, 0], -2), { m: 2, or: { k: 'any', m: 1, of: [poly(enl([[1, 2], [1, 3], [3, 2]], [0, 0], -2), { move: 'xy' }), poly(enl([[1, 2], [1, 3], [3, 2]], [0, 0], 2))] } })] },
+  'Q-1MA1-2306-3H-16': { items: [poly(enl([[-6, -2], [-5, -5], [-7, -5]], [-2, -2], -2), { m: 2, or: { k: 'any', m: 1, of: [poly(enl([[-6, -2], [-5, -5], [-7, -5]], [-2, -2], -2), { move: 'xy' }), poly(enl([[-6, -2], [-5, -5], [-7, -5]], [-2, -2], 2))] } })] },
+  'Q-1MA1-1911-3H-9': { items: [poly(enl([[1, 1], [1, 3], [2, 3]], [0, 1], 2.5), { m: 2, or: poly(enl([[1, 1], [1, 3], [2, 3]], [0, 1], 2.5), { move: 'xy', snap: false, m: 1 }) })] },
+  'Q-1MA1-1806-2H-7': { items: [poly(enl([[3, 10], [6, 10], [6, 7], [3, 4]], [0, 1], 1 / 3), { m: 2, or: poly(enl([[3, 10], [6, 10], [6, 7], [3, 4]], [0, 1], 1 / 3), { move: 'xy', m: 1 }) })] },
+  'Q-1MA1-1711-1H-18': { loose: true, items: [poly(enl([[2, 7], [2, 3], [4, 3]], [0, 0], -0.5), { m: 2, or: { k: 'any', m: 1, of: [poly(enl([[2, 7], [2, 3], [4, 3]], [0, 0], -0.5), { move: 'xy', snap: false }), poly(enl([[2, 7], [2, 3], [4, 3]], [0, 0], 0.5))] } })] },
+  'Q-1MA1-1711-2H-5a': { loose: true, items: [poly(rot180([[2, -1], [4, -1], [5, -2], [2, -2]], [0, 0]))] },
+  'Q-1MA1-1711-2H-5b': { loose: true, items: [poly(mv([[2, -1], [4, -1], [5, -2], [2, -2]], -1, -3))] },
+  /* plans and elevations: the shape at its size, anywhere on the grid, any way round */
+  'Q-1MA1-2406-3F-24b': { items: [{ k: 'segs', at: edges(sq_(0, 0, 7, 6)), turn: true, move: 'xy', m: 1 }, { k: 'segs', at: edges(sq_(0, 0, 7, 6)).concat([[0, 3, 7, 3]]), turn: true, move: 'xy', m: 1 }] },
+  'Q-1MA1-2406-3H-3b': { items: [{ k: 'segs', at: edges(sq_(0, 0, 7, 6)), turn: true, move: 'xy', m: 1 }, { k: 'segs', at: edges(sq_(0, 0, 7, 6)).concat([[0, 3, 7, 3]]), turn: true, move: 'xy', m: 1 }] },
+  'Q-1MA1-2211-2H-2': { items: [{ k: 'segs', at: edges(sq_(0, 0, 3, 5)), move: 'xy', m: 2 }] },
+  'Q-1MA1-1706-2H-3': { items: [{ k: 'segs', at: edges([[0, 0], [4, 0], [4, 1], [0, 4]]), move: 'xy', m: 2 }, { k: 'segs', at: edges(sq_(0, 0, 2, 4)).concat([[0, 1, 2, 1]]), move: 'xy', m: 2 }] },
+  'Q-1MA1-1805-1H-5a': Object.assign({ loose: true, items: [{ k: 'polygon', n: 3, sas: [6, 5, 53.13], sim: true, m: 2, or: { k: 'polygon', n: 3, is: 'isosceles', m: 1 } }], eg: [[[60, 260], [240, 260], [150, 140], [60, 260]]] }, blank),
+  'Q-1MA1-1806-3H-3': { items: [{ k: 'polygon', n: 3, area: 18, atol: 0.5, m: 2 }], eg: [[[10, 1], [19, 1], [12, 5], [10, 1]]] },
+  /* vectors: the arrow, its head at the right end, anywhere on the grid */
+  'Q-1MA1-2406-3H-8': { items: [{ k: 'segs', at: [[0, 0, 5, 8]], move: 'xy', head: true, m: 3, or: { k: 'segs', at: [[0, 0, 5, 8]], move: 'xy', m: 2 } }] },
+  'Q-1MA1-1806-2H-10a': { loose: true, items: [{ k: 'segs', at: [[0, 0, -2, -4]], move: 'xy', head: true }] },
+  /* points, circles, pie charts and scales */
+  'Q-1MA1-2406-2F-8c': { loose: true, items: [{ k: 'pts', at: [[-4, 2]] }] },
+  'Q-1MA1-2406-2F-7c': Object.assign({ items: [{ k: 'polygon', n: 6 }], eg: [regular([170, 170], 120, 6).concat([at([170, 170], 30, 120)])] }, blank),
+  'Q-1MA1-2406-3F-10a': Object.assign({ items: [{ k: 'radius', c: [170, 84], r: 72 }] }, blank),
+  'Q-1MA1-2406-3F-14': Object.assign({ loose: true, items: [{ k: 'pie', c: [170, 124], r: 112, given: [0], sect: [120, 40, 200], m: 2, or: { k: 'pie', c: [170, 124], r: 112, given: [0], sect: [120, 40, 200], need: 1, m: 1 } }, { k: 'pie', c: [170, 124], r: 112, given: [0], sect: [120, 40, 200], m: 1 }] }, blank),
+  'Q-1MA1-1706-1F-14a': Object.assign({ loose: true, items: [{ k: 'pie', c: [170, 112], r: 96, given: [0], sect: [168, 120, 72], m: 2, or: { k: 'pie', c: [170, 112], r: 96, given: [0], sect: [168, 120, 72], need: 1, m: 1 } }, { k: 'pie', c: [170, 112], r: 96, given: [0], sect: [168, 120, 72], m: 1 }] }, blank),
+  'Q-1MA1-1706-1F-6i': Object.assign({ items: [{ k: 'pts', at: [[170, 30]] }] }, blank),
+  'Q-1MA1-1706-1F-6ii': Object.assign({ items: [{ k: 'pts', at: [[44, 30]] }] }, blank),
+  'Q-1MA1-2306-2H-4b': { frame: { o: [166.1, 0], u: [24.274, 1] }, items: [{ k: 'interval', a: -4, b: 1, ca: true, cb: false, y: -4, m: 2, or: { k: 'interval', a: -4, b: 1, loose: true, y: -4, m: 1 } }] },
+  'Q-1MA1-1906-2H-1b': { frame: { o: [162.86, 0], u: [24.562, 1] }, items: [{ k: 'interval', a: -5, b: 1, ca: false, cb: true, y: 6, m: 3, or: { k: 'interval', a: -5, b: 1, loose: true, y: 6, m: 2 } }] },
+  /* regions: each boundary line, then the region itself shaded or labelled */
+  'Q-1MA1-2406-2H-13': { loose: true, items: [
+    { k: 'segs', at: [[2, -3, 2, 0], [-2, -3, 2, -3]], m: 1 },
+    { k: 'segs', at: [[-2, -3, 4 / 7, 15 / 7], [4 / 7, 15 / 7, 2, 0]], m: 1 },
+    { k: 'inside', poly: [[-2, -3], [2, -3], [2, 0], [4 / 7, 15 / 7]], m: 1 }] },
+  'Q-1MA1-2006-3H-13a': { loose: true, items: [
+    { k: 'segs', at: [[0, 2, 0, 3], [2, 2 / 3, 2, 5]], m: 1 },
+    { k: 'segs', at: [[0, 3, 2, 5]], m: 1 },
+    { k: 'segs', at: [[0, 2, 2, 2 / 3]], m: 1 },
+    { k: 'inside', poly: [[0, 2], [0, 3], [2, 5], [2, 2 / 3]], m: 1 }] },
+  'Q-1MA1-1711-2H-14': { loose: true, items: [
+    { k: 'segs', at: [[0.5, 1, 4, 1], [4, 1, 5 / 3, 10 / 3], [0.5, 1, 5 / 3, 10 / 3]], cover: 0.45, need: 2, m: 1 },
+    { k: 'segs', at: [[0.5, 1, 4, 1], [4, 1, 5 / 3, 10 / 3], [0.5, 1, 5 / 3, 10 / 3]], cover: 0.45, m: 1 },
+    { k: 'inside', poly: [[0.5, 1], [4, 1], [5 / 3, 10 / 3]], m: 1 }] },
+  'Q-1MA1-2406-2F-17': Object.assign({ loose: true, items: [
+    { k: 'segs', path: ARC17, cover: 0.75, tol: 0.4, m: 1 },
+    { k: 'line', thru: [[168.75, 70.3], [168.75, 173.1]], m: 1 },
+    { k: 'inside', poly: R17, min: 1, m: 1 }] }, blank),
+  /* a construction: the line, and the compass arcs that made it */
+  'Q-1MA1-1911-1H-4': Object.assign({ loose: true, items: [{ k: 'curves', n: 2, near: [223.7, 174.2], r: 140, m: 1 }, { k: 'line', thru: [[223.7, 20.7], [223.7, 174.2]], m: 1 }],
+    eg: [[[223.7, 20.7], [223.7, 174.2]], sector([223.7, 20.7], 180, 150, 210).slice(1), sector([223.7, 20.7], 180, 150, 210).slice(1).map(p => [p[0], 2 * 174.2 - p[1] + 60])] }, blank),
+};
 
 module.exports = { CBM, GCSE, FIELDS };
 if (require.main === module) {
@@ -163,7 +316,7 @@ if (require.main === module) {
     }
     const T = FIELDS[r.row_id];
     if (T) {
-      Object.keys(T).forEach(k => { if (k !== 'html_add' && k !== 'typed') r[k] = T[k]; });
+      Object.keys(T).forEach(k => { if (k === 'html_add' || k === 'typed') return; if (T[k] === '') delete r[k]; else r[k] = T[k]; });
       if (T.html_add && String(r.html || '').indexOf(T.html_add) === -1) r.html = String(r.html || '') + T.html_add;
       if (T.typed) { delete r.draw_answer; t++; }
     }
