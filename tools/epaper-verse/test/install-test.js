@@ -11,7 +11,7 @@ export class ESPLoader {
   constructor(o) { this.t = o.transport; LOG.push('filters ' + JSON.stringify(FILTERS)); }
   async main() { if (CASE.main) { const e = new Error('x'); e.name = CASE.main; throw e; } LOG.push('main'); }
   async writeFlash(o) { LOG.push('write ' + o.fileArray[0].address + ' ' + o.fileArray[0].data.length); o.reportProgress(0, 5, 10); o.reportProgress(0, 10, 10); }
-  async after(m) { LOG.push('after ' + m); }
+  async after(m) { LOG.push('after ' + m); window.FLASHED = 1; }
 }`;
 
 /* A pretend navigator.serial whose board answers Improv: "home"/"secret" is the only Wi-Fi that works. */
@@ -25,7 +25,7 @@ const FAKE_SERIAL = () => {
       this.readable = new ReadableStream({ start(c) { push = b => c.enqueue(b); c.enqueue(new TextEncoder().encode('boot noise\\n')); } }); },
     writable: new WritableStream({ write(b) {
       const type = b[7], cmd = b[9];
-      if (type !== 3) return;
+      if (type !== 3 || !(window.FLASHED || CASE.installed)) return;
       if (cmd === 2) push(pkt(1, [2]));
       if (cmd === 1) {
         const s = b[11], ssid = new TextDecoder().decode(b.slice(12, 12 + s)), pass = new TextDecoder().decode(b.slice(13 + s, 13 + s + b[12 + s]));
@@ -47,6 +47,10 @@ const cases = [
   ['no board in the list', { none: 1 }, async p => (await say(p)).includes('Try a different cable')],
   ['port busy', { main: 'NetworkError' }, async p => (await say(p)).includes('Close other tabs')],
   ['will not enter download mode', { main: 'Error' }, async p => (await say(p)).includes('Hold BOOT, unplug and replug')],
+  ['already installed: straight to the Wi-Fi, nothing written', { installed: 1 }, async p => {
+    await p.waitForSelector('#wifi:not([hidden])', { timeout: 20000 });
+    return !(await p.evaluate(() => LOG.join('; '))).includes('write');
+  }],
   ['happy path', {}, async p => {
     await p.waitForSelector('#wifi:not([hidden])', { timeout: 20000 });
     await p.fill('#ssid', 'home'); await p.fill('#pass', 'nope'); await p.click('#wifi button');

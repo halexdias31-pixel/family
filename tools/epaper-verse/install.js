@@ -19,6 +19,8 @@ async function install() {
   $('wifi').hidden = true;
   try { port = await navigator.serial.requestPort({ filters: [{ usbVendorId: ESPRESSIF }] }); }
   catch (e) { return say('No screen found. Try a different cable (some only charge).'); }
+  // Already installed? Then it answers on USB straight away and only needs the Wi-Fi.
+  if (await probe()) return askWifi();
   const transport = new Transport(port, false);
   const loader = new ESPLoader({ transport, baudrate: 460800, romBaudrate: 115200, terminal: quiet });
   say('Installing...');
@@ -37,10 +39,19 @@ async function install() {
   await transport.disconnect();
   $('bar').hidden = true;
   say('Starting up...');
-  if (!(await reopen()) || !(await improvState())) return say('Unplug the screen, plug it back in, and press Install again.');
-  say('');
-  $('wifi').hidden = false;
-  $('ssid').focus();
+  if (!(await reopen()) || !(await improvState())) return say('Installed. Now unplug the screen, plug it back in, and press Install once more for the Wi-Fi.');
+  askWifi();
+}
+function askWifi() { say(''); $('wifi').hidden = false; $('ssid').focus(); }
+
+// Opens the chosen port and asks the verse program for its state for a few seconds; closes it again if nothing answers.
+async function probe() {
+  try { await port.open({ baudRate: 115200 }); } catch (e) { return false; }
+  read(); packets = [];
+  if (await next(4, () => rpc(2))) return true;
+  try { await reader.cancel(); } catch (e) {}
+  try { await port.close(); } catch (e) {}
+  return false;
 }
 
 // After the reset the board comes back on USB a moment later, sometimes as a new port.
