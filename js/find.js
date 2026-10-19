@@ -4825,15 +4825,18 @@ function drawFig_(svg) {
   const s = String(svg || '');
   const m = /viewBox\s*=\s*["']\s*([-\d.eE+]+)[\s,]+([-\d.eE+]+)[\s,]+([\d.eE+]+)[\s,]+([\d.eE+]+)/.exec(s);
   const vb = m ? [+m[1], +m[2], +m[3], +m[4]] : [0, 0, 340, 340];
+  /* a figure wrapped whole in one translate (the metric-units dial): its items are in the group's units, so the frame shifts by it */
+  const tm = /^<svg\b[^>]*>\s*<g\s+transform\s*=\s*["']\s*translate\(\s*([-\d.eE+]+)(?:[\s,]+([-\d.eE+]+))?\s*\)\s*["']\s*>/.exec(s.trim());
+  const shift = tm ? [+tm[1], +(tm[2] || 0)] : [0, 0];
   const labels = [];
   (s.match(/<text\b[^>]*>[\s\S]*?<\/text>/g) || []).forEach(t => {
     if (/\btransform\s*=/.test(t)) return;
     const num = k => { const r = new RegExp('\\s' + k + '\\s*=\\s*["\']\\s*([-\\d.eE+]+)').exec(t); return r ? +r[1] : NaN; };
     /* a tick drawn as a dash after the number ("40 \u2212") is not part of it */
     const words = t.replace(/<[^>]*>/g, '').replace(/&minus;|\u2212|&#8722;/g, '-').replace(/&[a-z#0-9]+;/gi, '').trim().replace(/\s+-$/, '');
-    if (/^-?\d+(\.\d+)?$/.test(words) && isFinite(num('x')) && isFinite(num('y'))) labels.push([+words, num('x'), num('y')]);
+    if (/^-?\d+(\.\d+)?$/.test(words) && isFinite(num('x')) && isFinite(num('y'))) labels.push([+words, num('x') + shift[0], num('y') + shift[1]]);
   });
-  return { vb: vb, grid: typeof padGrid_ === 'function' ? padGrid_(s) : null, labels: labels };
+  return { vb: vb, grid: typeof padGrid_ === 'function' ? padGrid_(s) : null, labels: labels, shift: shift };
 }
 
 /* THE MARKER, pure: strokes in the pen's 340 by 340 space, the row's `draw_answer`, the figure. Distances are in the picture's own units, tolerances in grid squares. */
@@ -4911,8 +4914,9 @@ function drawMarker_() {
     const sq = G && G.xs.length > 1 ? (G.xs[G.xs.length - 1] - G.xs[0]) / (G.xs.length - 1) : (spec.sq || 20);
     let o, u;
     const f = spec.frame;
-    if (f && f.o && f.u) { o = f.o; u = f.u; }
-    else if (f === 'vb') { o = [0, 0]; u = [1, 1]; }
+    const sh = fig.shift || [0, 0];
+    if (f && f.o && f.u) { o = [f.o[0] + sh[0], f.o[1] + sh[1]]; u = f.u; }
+    else if (f === 'vb') { o = sh.slice(); u = [1, 1]; }
     else {
       /* each axis by its own numbers where it has them; one without counts squares (or the picture's units) */
       const ax = f === 'grid' ? null : fitAxis(fig, 'x'), ay = f === 'grid' ? null : fitAxis(fig, 'y', ax && ax.g);
@@ -4932,7 +4936,14 @@ function drawMarker_() {
     return (strokes || []).filter(s => Array.isArray(s) && s.length >= 2).map(s => {
       const pl = [];
       for (let i = 0; i + 1 < s.length; i += 2) pl.push([vb[0] + s[i] / 340 * vb[2], vb[1] + s[i + 1] / 340 * vb[3]]);
-      const segs = rdp(pl, F.sq * 0.15).map(p => {
+      /* a hand's wobble leaves a corner that is no corner: one turning under 12 degrees and close to the line is dropped, so a straight side stays one piece */
+      const kept = rdp(pl, F.sq * 0.15);
+      for (let i = kept.length - 2; i > 0; i--) {
+        const a = kept[i - 1], b = kept[i], c = kept[i + 1];
+        const t = Math.abs(Math.atan2(c[1] - b[1], c[0] - b[0]) - Math.atan2(b[1] - a[1], b[0] - a[0])) / R;
+        if (Math.min(t, 360 - t) < 12 && dSeg(b, a, c) <= F.sq * 0.3) kept.splice(i, 1);
+      }
+      const segs = kept.map(p => {
         if (!G) return p;
         const q = [gp(p[0], G.xs), gp(p[1], G.ys)];
         return near(p, q) <= snap ? q : p;
@@ -4953,6 +4964,23 @@ function drawMarker_() {
   const straights = (ink, min) => {
     const out = [];
     ink.forEach(s => s.segs.slice(1).forEach((q, i) => { if (near(q, s.segs[i]) >= min) out.push([s.segs[i], q]); }));
+    return out;
+  };
+  /* hands, pointers and radii: each stroke cut where it passes nearest the centre, in either direction; an arm's way is the mean way of its outer half, so a wobble or a start off the centre cancels */
+  const rays = (ink, c, r, inR, min) => {
+    const out = [];
+    ink.forEach(s => {
+      let k = 0;
+      s.pl.forEach((p, i) => { if (near(p, c) < near(s.pl[k], c)) k = i; });
+      if (near(s.pl[k], c) > r * inR) return;
+      [s.pl.slice(0, k + 1).reverse(), s.pl.slice(k)].forEach(arm => {
+        const L = Math.max.apply(null, arm.map(p => near(p, c)));
+        if (L < r * min) return;
+        let x = 0, y = 0;
+        arm.filter(p => near(p, c) >= L * 0.5).forEach(p => { const d = near(p, c) || 1; x += (p[0] - c[0]) / d; y += (p[1] - c[1]) / d; });
+        out.push({ g: bearing(c, [c[0] + x, c[1] + y]), L: L });
+      });
+    });
     return out;
   };
   /* closed shapes in the ink: corners joined across strokes, straight-on corners dropped */
@@ -5149,9 +5177,8 @@ function drawMarker_() {
     },
     clock(it, ink, F) {
       const c = F.v(it.c), r = Math.abs(it.r * F.u[0]);
-      const S = straights(ink, r * 0.2).map(s => near(s[0], c) <= near(s[1], c) ? s : [s[1], s[0]]).filter(s => near(s[0], c) <= r * 0.3);
       const hands = [];
-      S.sort((a, b) => near(b[0], b[1]) - near(a[0], a[1])).forEach(s => { const g = bearing(c, s[1]); if (!hands.some(h => Math.abs(((h.g - g + 540) % 360) - 180) < 5)) hands.push({ g: g, L: near(c, s[1]) }); });
+      rays(ink, c, r, 0.3, 0.2).sort((a, b) => b.L - a.L).forEach(h => { if (!hands.some(o => Math.abs(((o.g - h.g + 540) % 360) - 180) < 5)) hands.push(h); });
       const off = (a, b) => Math.abs(((a - b + 540) % 360) - 180);
       const mi = (it.min % 60) * 6, hr = ((it.h % 12) * 30 + it.min * 0.5) % 360;
       const ok = hands.length === 2 && off(hands[0].g, mi) <= (it.mtol || 6) && off(hands[1].g, hr) <= (it.htol || 9) && hands[0].L > hands[1].L * 1.05;
@@ -5159,14 +5186,18 @@ function drawMarker_() {
     },
     dial(it, ink, F) {
       const c = F.v(it.c), r = Math.abs(it.r * F.u[0]);
-      const S = straights(ink, r * 0.1).sort((a, b) => near(b[0], b[1]) - near(a[0], a[1]));
-      if (!S.length) return { ok: false, ex: () => false };
-      const s = S[0];
-      const tip = near(s[0], c) <= r * 0.3 ? s[1] : near(s[1], c) <= r * 0.3 ? s[0]
-        : (Math.abs(near(s[0], c) - r) < Math.abs(near(s[1], c) - r) ? s[0] : s[1]);
-      const g = (bearing(c, tip) - it.a[0] + 360) % 360, span = (it.a[1] - it.a[0] + 360) % 360 || 360;
+      /* a pointer from the centre, or an arrow outside pointing in: the way of the ink's outer half, read from the centre */
+      let P = rays(ink, c, r, 0.35, 0.3).sort((a, b) => b.L - a.L)[0];
+      if (!P) {
+        const pts = [].concat.apply([], ink.map(s => s.pl)).filter(p => near(p, c) >= r * 0.5 && near(p, c) <= r * 1.6);
+        if (!pts.length) return { ok: false, ex: () => false };
+        let x = 0, y = 0;
+        pts.forEach(p => { const d = near(p, c); x += (p[0] - c[0]) / d; y += (p[1] - c[1]) / d; });
+        P = { g: bearing(c, [c[0] + x, c[1] + y]) };
+      }
+      const g = (P.g - it.a[0] + 360) % 360, span = (it.a[1] - it.a[0] + 360) % 360 || 360;
       const v = it.v[0] + g / span * (it.v[1] - it.v[0]);
-      return { ok: Math.abs(v - it.want) <= it.vtol, ex: q => near(q, c) <= r * 1.4 };
+      return { ok: Math.abs(v - it.want) <= it.vtol, ex: q => near(q, c) <= r * 1.6 };
     },
     scale(it, ink, F, tol) {
       const a = F.v(it.a), b = F.v(it.b);
@@ -5181,9 +5212,8 @@ function drawMarker_() {
     },
     pie(it, ink, F) {
       const c = F.v(it.c), r = Math.abs(it.r * F.u[0]);
-      const S = straights(ink, r * 0.5).map(s => near(s[0], c) <= near(s[1], c) ? s : [s[1], s[0]]).filter(s => near(s[0], c) <= r * 0.18);
       const g = (it.given || []).slice();
-      S.forEach(s => { const b = bearing(c, s[1]); if (!g.some(x => Math.abs(((x - b + 540) % 360) - 180) < 3)) g.push(b); });
+      rays(ink, c, r, 0.18, 0.5).forEach(h => { const b = h.g; if (!g.some(x => Math.abs(((x - b + 540) % 360) - 180) < 3)) g.push(b); });
       g.sort((a, b) => a - b);
       const gaps = g.map((x, i) => ((g[(i + 1) % g.length] - x + 360) % 360) || 360);
       const want = it.sect.slice(), at = it.atol || 2;
