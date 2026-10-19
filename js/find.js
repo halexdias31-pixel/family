@@ -3436,11 +3436,6 @@ function ansRead_(k) {
 }
 
 /* ---------- `Done 4 Oct` WAS HERE, AND THE `attempts` TAB UNDER IT § */
-function subSlot_(x) {
-  const k = ansKey_(x);
-  const m = typeof subMark_ === 'function' && typeof subLatest_ === 'function' ? subMark_((subLatest_(k) || {}).v) : { text: '', cls: '' };
-  return `<i class="qcard-verdict${m.cls}" data-k="${esc(k)}">${esc(m.text)}</i>`;
-}
 /* ---------- A DONE QUESTION'S NAME, AS A PARENT READS IT § */
 function doneTier_(it) {
   if (!it || it.kind !== 'question') return '';
@@ -4065,7 +4060,7 @@ function orderBox_(x) {
   }).join('');
   /* THE VERDICT'S LINE IS RESERVED AND THE TILES SIT IN IT, so "Correct" lands in a space that was already there and marking moves nothing (261). § */
   const clear = tile_({ icon: 'bin', label: 'Clear', note: 'put them all back', act: 'qp-order-clear', cls: 'qp-order-clear', off: !placed.size });
-  const send = ways.length ? tile_({ icon: 'send', label: 'Send', note: 'mark the order', act: 'qp-order-send', cls: 'qp-order-send', tone: 'send' }) : '';
+  const send = ways.length ? checkTile_({ act: 'qp-order-send', cls: 'qp-order-send' }) : '';
   /* THE TWO ENDS ARE THE ONLY WORDS SAYING WHICH WAY THE ROW RUNS, so they are a line of their own over the slots, one at each edge with an arrow between, at the § */
   const word = e => String(e).charAt(0).toUpperCase() + String(e).slice(1);
   return `<div class="qp-order${cls}" data-k="${esc(k)}" data-n="${n}">
@@ -4260,7 +4255,7 @@ function cellsBox_(x) {
     ? `<label class="qp-cell-l"><span>${esc(c.label)}</span>${cellInput_(k, c, i, vals[i])}</label>` : '').join('')}</div>`;
   const said = subBoxSay_(k, ansRead_(k));
   return `<div class="qp-mark qp-compose qp-cells-box${said.cls ? ' ' + said.cls : ''}" data-k="${esc(k)}">${row}
-    <div class="tile-row">${tile_({ icon: 'send', label: 'Check', note: 'every cell', act: 'qp-cells-check', cls: 'qp-check', tone: 'send' })}${figTile_(x)}</div>
+    <div class="tile-row">${figTile_(x)}${checkTile_({ act: 'qp-cells-check', cls: 'qp-check' })}</div>
     <span class="qp-verdict" role="status" aria-live="polite">${esc(said.text)}</span>
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span></div>`;
 }
@@ -4418,8 +4413,8 @@ function ansBox_(x) {
   const aiNow = can ? '' : aiTile_(x);
   /* A RULE MARKS FIRST; the AI tile stays hidden until the rule cannot give every mark (`qp-rule`). */
   const ai = rule && aiNow ? `<span class="qp-ai-later" hidden>${aiNow}</span>` : aiNow;
-  const send = can ? tile_({ icon: 'send', label: 'Send', note: 'mark it', act: 'qp-check', cls: 'qp-check', tone: 'send' })
-    : rule ? tile_({ icon: 'send', label: 'Check', note: 'marked by its key words', act: 'qp-rule', cls: 'qp-check', tone: 'send' }) + ai
+  const send = can ? checkTile_({ act: 'qp-check', cls: 'qp-check' })
+    : rule ? checkTile_({ act: 'qp-rule', cls: 'qp-check' }) + ai
     : ai || subSendTile_();
   const val = ansRead_(k);
   /* ---------- AN ESSAY IS WRITTEN ON A SHEET, NOT IN A CHAT BAR § */
@@ -4428,12 +4423,11 @@ function ansBox_(x) {
   if (ansEssay_(x)) {
     const v = val;
     const note = ai || can ? '' : aiWhyNot_(x);
-    const say = ai ? '<span class="qp-ai-say" aria-hidden="true">Mark with AI</span>' : '';
     const kept = ai && typeof aiKeptView_ === 'function' ? aiKeptView_(k, v) : null;
     const said = subBoxSay_(k, v);
     const own = kept && (kept.fresh || !said.text) ? kept : null;
     const vcls = own ? own.cls : said.cls, vsay = own ? own.verdict : said.text;
-    const foot = `<div class="tile-row qp-sheet-foot">${send}${say}${fig}${kpWideTile_(k)}${note ? `<span class="qp-ai-note">${esc(note)}</span>` : ''}
+    const foot = `<div class="tile-row qp-sheet-foot">${fig}${send}${note ? `<span class="qp-ai-note">${esc(note)}</span>` : ''}
       <span class="qp-words">${esc(kpWordsSay_(kpWordCount_(v)))}</span></div>`;
     const sheet = `<label class="qp-ans qp-sheet" aria-label="Your answer">${kpField_(k, v, 'essay', signs)}</label>`;
     return `<div class="${send ? 'qp-mark ' : ''}qp-compose qp-essay${ai ? ' qp-ai' : ''}${send && vcls ? ' ' + vcls : ''}"${can ? ` data-accept="${esc(can)}"` : ''}>
@@ -4446,7 +4440,7 @@ function ansBox_(x) {
   const bar = many ? `<div class="qp-ans-row qp-bar qp-multi-bar">${multiBoxes_(x, k, val, many, maths, signs)}${fig}${send}</div>`
     : `<div class="qp-ans-row qp-bar"><label class="qp-ans${maths ? ' qp-ans-maths' : ''}" aria-label="Your answer">
     ${kpField_(k, val, maths ? 'maths' : 'words', signs)}
-  </label>${fig}${kpWideTile_(k)}${send}</div>`;
+  </label>${fig}${send}</div>`;
   if (!send) return `<div class="qp-compose">${bar}
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span></div>`;
   /* THE VERDICT IS THE LATEST SUBMISSION'S, WHILE THE BOX HOLDS WHAT WAS SENT -- on this device or on the account, next sign-in § */
@@ -4461,7 +4455,7 @@ function ansBox_(x) {
    pages is, under its own name, so nothing that runs Check runs it. */
 function subSendTile_() {
   if (!(typeof whoIs_ === 'function' && whoIs_())) return '';
-  return tile_({ icon: 'send', label: 'Send', note: 'to your account', act: 'qp-send', cls: 'qp-send', tone: 'send' });
+  return checkTile_({ act: 'qp-send', cls: 'qp-send' });
 }
 /* WHAT A BOX'S VERDICT LINE SAYS AS IT IS DRAWN: the latest submission's verdict, if the box holds it. */
 function subBoxSay_(k, val) {
@@ -4797,8 +4791,7 @@ function padSendRow_(x, marks) {
   const k = ansKey_(x), said = subBoxSay_(k, padSay_(marks));
   /* WITH ITS ANSWER AS GEOMETRY (`draw_answer`, 366) it is marked here, on Check, like a typed one; without, it is sent */
   const geo = String(x.drawAnswer || '').trim();
-  const tile = geo ? tile_({ icon: 'send', label: 'Check', note: 'the drawing', act: 'pad-check', cls: 'qp-check', tone: 'send' })
-    : tile_({ icon: 'send', label: 'Send', note: 'for marking', act: 'pad-send', cls: 'qp-check', tone: 'send' });
+  const tile = geo ? checkTile_({ act: 'pad-check', cls: 'qp-check' }) : checkTile_({ act: 'pad-send', cls: 'qp-check' });
   return `<div class="qp-mark qpad-send${said.cls ? ' ' + said.cls : ''}" data-k="${esc(k)}"${geo ? ` data-draw="${esc(geo)}" data-marks="${esc(String(Number(x.marks) || ''))}"` : ''}>
       <div class="tile-row">${tile}</div>
       <span class="qp-verdict" role="status" aria-live="polite">${esc(padSaid_(said.text))}</span>
@@ -5588,11 +5581,23 @@ const PAD_DRAW = {
        finger moves anything visible, and every duplicated point is two more characters in storage
        for a mark nobody can see. */
     move: (g, at, st) => {
-      if (st[st.length - 2] === at[0] && st[st.length - 1] === at[1]) return null;
+      if (padSteady_(g)) at = padLazy_(g, at, st);
+      if (!at || (st[st.length - 2] === at[0] && st[st.length - 1] === at[1])) return null;
       st.push(at[0], at[1]);
       return st;
     },
-    end: (g, st) => st,
+    /* A STEADIED STROKE ENDS WHERE THE POINTER LIFTED: the string's slack is paid out in two steps, so nothing lags */
+    end: (g, st) => {
+      if (padSteady_(g) && g.at && st && st.length >= 2) {
+        const x = st[st.length - 2], y = st[st.length - 1], a = g.at;
+        if (x !== a[0] || y !== a[1]) {
+          const m = [Math.round((x + a[0]) / 2), Math.round((y + a[1]) / 2)];
+          if (m[0] !== x || m[1] !== y) st.push(m[0], m[1]);
+          if (m[0] !== a[0] || m[1] !== a[1]) st.push(a[0], a[1]);
+        }
+      }
+      return st;
+    },
   },
   /* A RULER IS ITS TWO ENDS. The live line follows the finger from where it went down; what is kept
      is that line and nothing of the path the finger took to get there. */
@@ -5730,6 +5735,21 @@ function padPos_(c, t) {
 function padMap_(r, cx, cy) {
   if (!r || !r.width || !r.height) return null;
   return [Math.round((cx - r.left) / r.width * 340), Math.round((cy - r.top) / r.height * 340)];
+}
+
+/* A STEADY HAND FOR A MOUSE OR A STYLUS (368): a lazy brush -- the ink follows the pointer on a string -- then a light low-pass. A finger keeps 357's ink under it, untouched */
+const PAD_STRING_PX = 6;      // the string: a pointer's jitter inside it moves no ink, and a straight pull draws a straight line
+const PAD_STEADY_K = 0.55;    // the low-pass: each point this much of the way from the last kept one to the string's end
+const padSteady_ = g => !!(g && g.c && (g.c.type === 'mouse' || g.c.type === 'pen'));
+function padLazy_(g, at, st) {
+  const sx = g.sx || 1, sy = g.sy || 1;
+  if (!g.lz) { g.lz = st.length >= 2 ? [st[st.length - 2], st[st.length - 1]] : at.slice(); g.sm = g.lz.slice(); }
+  const dx = (at[0] - g.lz[0]) * sx, dy = (at[1] - g.lz[1]) * sy, d = Math.hypot(dx, dy);
+  if (d <= PAD_STRING_PX) return null;
+  const t = (d - PAD_STRING_PX) / d;
+  g.lz = [g.lz[0] + (at[0] - g.lz[0]) * t, g.lz[1] + (at[1] - g.lz[1]) * t];
+  g.sm = [g.sm[0] + (g.lz[0] - g.sm[0]) * PAD_STEADY_K, g.sm[1] + (g.lz[1] - g.sm[1]) * PAD_STEADY_K];
+  return [Math.round(g.sm[0]), Math.round(g.sm[1])];
 }
 
 /* A POINT PUT DOWN EXACTLY WITH A FINGER (docs/history/357). § */
@@ -7426,7 +7446,8 @@ function questionTiles_(x) {
      drawing is drawn on its card now, with nothing to switch (`ansArea_`, 356). */
   /* NO WAY TO THE ANSWER IN THIS ROW ANY MORE -- see where `To the answer` was, above. */
   /* AND THE SOUND SWITCH, JUST BEFORE THE SLOT, on a card that can be marked -- signed in or out, since a signed-out child is marked and hears it too § */
-  return fig + (typeof markSoundTile_ === 'function' ? markSoundTile_(x) : '') + (whoIs_() ? subSlot_(x) : '');
+  /* NO VERDICT BESIDE THE STAR (368): the box's own line says it once */
+  return fig + (typeof markSoundTile_ === 'function' ? markSoundTile_(x) : '');
 }
 
 /* THE FIGURE, OVER THE CARD, ONE TAP AWAY. § */

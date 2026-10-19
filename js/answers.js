@@ -607,7 +607,14 @@ function ansJoin_(bare, mine, v, words) {
   if (String(mine).indexOf(add) !== -1) return mine;
   return String(mine).replace(/\s+$/, '') + '\n\n' + add;
 }
+/* SAVING IS SILENT (368): the line speaks only when an answer is not, or cannot be, on the account -- "Saved to Ada's account" told a child what they knew */
+const ANS_QUIET = /^(Saved to|Sent to|Saving|Sending|On this device until you send it)/;
 function ansSavedSay_(k) {
+  const say = ansSavedWords_(k);
+  return ansQuiet_(say) ? '' : say;
+}
+function ansQuiet_(say) { return ANS_QUIET.test(String(say || '')); }
+function ansSavedWords_(k) {
   k = String(k || '');
   const v = ansValue_(k);
   if (v === null || !String(v).trim() || v === '[]') return ansGoneSay_(k);
@@ -658,8 +665,7 @@ function ansSavedPaint_() {
 function padKeptSay_() {
   if (!(typeof whoIs_ === 'function' && whoIs_())) return 'Kept on this device only — sign in to keep it.';
   if (!answersCan_('saveAnswers')) return 'Kept on this device only.';
-  const name = ansFirstName_();
-  return 'Saved to ' + (name ? name + '’s' : 'your') + ' account.';
+  return '';
 }
 
 /* ---------- WHEN IT SENDS AT ONCE § */

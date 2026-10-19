@@ -1030,7 +1030,7 @@ function aiTile_(x) {
   if (!aiWanted_(x)) return '';
   const wait = aiUndecided_();
   if (!wait && !aiOffered_()) return '';
-  return tile_({ icon: 'spark', label: 'Mark with AI', note: 'out of the marks', act: 'qp-ai', cls: wait ? 'qp-ai-go qp-ai-wait' : 'qp-ai-go', tone: 'send', off: wait });
+  return checkTile_({ act: 'qp-ai', cls: wait ? 'qp-ai-go qp-ai-wait' : 'qp-ai-go', off: wait });
 }
 /* ---------- AND DECIDED WHERE IT STANDS, THE MOMENT THE PAYLOAD SAYS (`adoptMarks_`, shell.js) § */
 function aiDecided_() {
@@ -1229,44 +1229,4 @@ document.addEventListener('input', e => {
   if (why && why.classList.contains('qp-ai-why')) why.textContent = '';
 });
 
-/* ---------- ROOM TO WRITE: THE ANSWER ON A WHOLE-SCREEN SHEET (359) */
-/* An Expand tile beside every typed box; the sheet holds the same answer under the same key, wraps it over as many lines
-   as it needs, and stands over the app above the pad, upright or sideways. */
-function kpWideTile_(k) {
-  return tile_({ icon: 'open', label: 'Expand', note: 'room to write', act: 'kp-wide', cls: 'kp-wide-go', data: { k: k } });
-}
-function kpWideShut_() {
-  const el = document.querySelector('body > .kp-wide');
-  if (!el) return;
-  const inp = el.querySelector('.kp-in');
-  const k = inp ? inp.getAttribute('data-k') : '';
-  el.remove();
-  document.documentElement.classList.remove('kp-wide-up');
-  kpClose_();
-  /* THE CARD'S OWN BOX TAKES WHAT WAS WRITTEN, and its verdict, if any, is about an answer no longer there. */
-  document.querySelectorAll('.kp-in').forEach(i => {
-    if (!inp || i.getAttribute('data-k') !== k || i.value === inp.value) return;
-    i.value = inp.value;
-    kpRender_(i);
-    const mark = i.closest('.qp-mark');
-    if (mark && typeof subVerdictPaint_ === 'function') subVerdictPaint_(mark, i);
-  });
-}
-on('kp-wide', el => {
-  const k = el.getAttribute('data-k') || '';
-  const card = el.closest('.qcard') || document;
-  const from = [...card.querySelectorAll('.kp-in')].find(i => i.getAttribute('data-k') === k);
-  if (!from) return;
-  kpWideShut_();
-  const kind = from.hasAttribute('data-kp-essay') ? 'essay' : from.getAttribute('data-kp') === 'words' ? 'words' : 'maths';
-  const sheet = document.createElement('div');
-  sheet.className = 'kp-wide';
-  sheet.setAttribute('role', 'dialog');
-  sheet.setAttribute('aria-label', 'Room to write');
-  sheet.innerHTML = `<div class="tile-row kp-wide-top">${tile_({ icon: 'tick', label: 'Done', note: 'back to the question', act: 'kp-wide-done', tone: 'send' })}</div>
-    <label class="qp-ans kp-wide-ans" aria-label="Your answer">${kpField_(k, from.value, kind, from.hasAttribute('data-kp-signs'))}</label>`;
-  document.body.appendChild(sheet);
-  document.documentElement.classList.add('kp-wide-up');
-  kpTake_(sheet.querySelector('.kp-in'));
-});
-on('kp-wide-done', () => kpWideShut_());
+/* ---------- ROOM TO WRITE, the whole-screen sheet of 359, is gone (368): the owner found it did nothing; the box wraps its own lines */
