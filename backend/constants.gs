@@ -110,7 +110,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-18-y-money";
+const BACKEND_VERSION = "2026-10-19-a-rule";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -863,7 +863,7 @@ const HOUSE_REACTIONS = ['👍', '❤️', '😂', '😮', '👏', '🎉'];
 /* ---------- HOW MANY SUBMISSIONS ONE `submitAnswer` MAY CARRY § */
 const SUBMISSIONS_PER_POST = 25;
 /* THE WHOLE VOCABULARY OF `submissions.verdict`: § */
-const SUBMISSION_VERDICT = /^(right|wrong|sent|ai:\d{1,3}\/[1-9]\d{0,2})$/;
+const SUBMISSION_VERDICT = /^(right|wrong|sent|(?:ai|rule):\d{1,3}\/[1-9]\d{0,2})$/;
 /* AND THE PHONE'S NAME FOR A PRESS — its clock in ms, a dash, a random tail (`subId_` in js/submit.js).
    Checked for its shape so a retried send is recognised and nothing else rides in the column. */
 const SUBMISSION_ID = /^\d{10,16}-[a-z0-9]{3,16}$/;

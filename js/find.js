@@ -3368,7 +3368,7 @@ function questionItems() {
       surface: r.surface || '',
       /* AND WHICH EARLIER PART'S DRAWING IT READS -- see `usesOf_`. */
       uses: r.uses || '',
-      accept: r.accept || '', cells: r.cells || '',
+      accept: r.accept || '', cells: r.cells || '', markWords: r.markWords || '',
       choices: r.choices || [], choiceRight: r.choiceRight || [],
       /* AN ORDERING'S EVERY RIGHT ORDER AND ITS TWO ENDS -- see `orderBox_` and library.js. */
       choiceWays: r.choiceWays || [], orderEnds: r.orderEnds || [],
@@ -3934,6 +3934,40 @@ on('qp-choose', (el) => {
   /* RIGHT DOES NOT OPEN THE ANSWER PAGE ANY MORE. § */
 });
 
+/* ---------- A WORDED ANSWER OF A MARK OR TWO, MARKED BY RULE BEFORE ANY AI (359) § */
+/* `mark_words`: points split by `;`, a mark each; ways by `|`; words that must all be there joined by `+`; a number is
+   compared as a number. Words are matched on their stems, and a word straight after "not" or "no" does not count. */
+const MW_STOP = /^(the|a|an|of|to|is|it|and|or|in|on|be|as|so|by|at|for)$/;
+function mwStem_(w) {
+  let s = String(w || '').toLowerCase().replace(/[^a-z0-9.]/g, '');
+  if (/^-?\d/.test(s)) return s.replace(/\.$/, '');
+  const cut = s.replace(/(ations?|ings?|edly|ed|es|ly|er|est|s)$/, '');
+  return cut.length >= 3 ? cut : s;
+}
+function mwToks_(t) {
+  return String(t || '').toLowerCase().replace(/['\u2019]/g, '').replace(/(\d),(?=\d{3}\b)/g, '$1').replace(/[^a-z0-9.\s-]/g, ' ')
+    .split(/[\s-]+/).filter(Boolean).map(mwStem_).filter(Boolean);
+}
+function mwHas_(toks, term) {
+  const want = mwToks_(term).filter(w => !MW_STOP.test(w));
+  if (!want.length) return false;
+  for (let i = 0; i + want.length <= toks.length; i++) {
+    let b = i - 1;
+    while (b >= 0 && MW_STOP.test(toks[b])) b--;
+    if (b >= 0 && /^(not|no|never|isnt|wasnt)$/.test(toks[b])) continue;
+    if (want.every((w, j) => toks[i + j] === w || (/^-?[\d.]+$/.test(w) && parseFloat(toks[i + j]) === parseFloat(w)))) return true;
+  }
+  return false;
+}
+/* `{ got, of }`, or null for nothing typed. */
+function markWords_(typed, rule) {
+  if (!String(typed || '').trim()) return null;
+  const toks = mwToks_(typed);
+  const points = String(rule || '').split(';').map(p => p.trim()).filter(Boolean);
+  const got = points.filter(p => p.split('|').some(way => way.split('+').every(term => mwHas_(toks, term)))).length;
+  return { got: got, of: points.length };
+}
+
 /* ---------- A GRID OR TABLE WITH BLANKS IS FILLED IN WHERE IT STANDS, A CELL AT A TIME § */
 const CELL_BLANK = /<(td|th)([^>]*)>\s*(?:&nbsp;|\u00a0)?\s*<\/\1>/g;
 /* `cells` READ: one entry a blank, in reading order -- `{ label, ways }`, and `ways` empty for a blank not asked. */
@@ -4036,8 +4070,12 @@ function ansBox_(x) {
   /* ---------- THE FIGURE TILE STANDS BESIDE THE BOX, NOT IN THE ROW UNDER IT § */
   const fig = figTile_(x);
   /* ---------- THE ANSWER BOX IS A CHAT BAR, WITH A SEND TILE § */
-  const ai = can ? '' : aiTile_(x);
+  const rule = can ? '' : String(x && x.markWords || '').trim();
+  const aiNow = can ? '' : aiTile_(x);
+  /* A RULE MARKS FIRST; the AI tile stays hidden until the rule cannot give every mark (`qp-rule`). */
+  const ai = rule && aiNow ? `<span class="qp-ai-later" hidden>${aiNow}</span>` : aiNow;
   const send = can ? tile_({ icon: 'send', label: 'Send', note: 'mark it', act: 'qp-check', cls: 'qp-check', tone: 'send' })
+    : rule ? tile_({ icon: 'send', label: 'Check', note: 'marked by its key words', act: 'qp-rule', cls: 'qp-check', tone: 'send' }) + ai
     : ai || subSendTile_();
   const val = ansRead_(k);
   /* ---------- AN ESSAY IS WRITTEN ON A SHEET, NOT IN A CHAT BAR § */
@@ -4067,7 +4105,7 @@ function ansBox_(x) {
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span></div>`;
   /* THE VERDICT IS THE LATEST SUBMISSION'S, WHILE THE BOX HOLDS WHAT WAS SENT -- on this device or on the account, next sign-in § */
   const said = subBoxSay_(k, val);
-  return `<div class="qp-mark qp-compose${ai ? ' qp-ai' : ''}${said.cls ? ' ' + said.cls : ''}"${can ? ` data-accept="${esc(can)}"` : ''}>
+  return `<div class="qp-mark qp-compose${ai ? ' qp-ai' : ''}${said.cls ? ' ' + said.cls : ''}"${can ? ` data-accept="${esc(can)}"` : ''}${rule ? ` data-rule="${esc(rule)}" data-marks="${esc(String(Number(x.marks) || ''))}"` : ''}>
     ${bar}
     <span class="qp-verdict" role="status" aria-live="polite">${esc(said.text)}</span>
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
@@ -4105,6 +4143,24 @@ on('qp-check', (el) => {
      what the card and every device show (js/submit.js). Signed out it is this visit's alone. */
   subRecord_(inp.getAttribute('data-k'), inp.value, verdict ? 'right' : 'wrong');
   /* A RIGHT ANSWER DOES NOT OPEN THE ANSWER PAGE. § */
+});
+
+/* ---------- BY RULE: full marks is decided; anything less says what the rule found and offers the AI, if it is on (359). */
+on('qp-rule', (el) => {
+  const box = el.closest('.qp-mark');
+  const inp = box && box.querySelector('.qp-ans-in');
+  const out = box && box.querySelector('.qp-verdict');
+  if (!inp || !out) return;
+  const m = markWords_(inp.value, box.getAttribute('data-rule'));
+  box.classList.remove('is-right', 'is-near');
+  if (!m) { out.textContent = 'Write something first'; return; }
+  const of = Math.max(1, Math.min(m.of, Number(box.getAttribute('data-marks')) || m.of));
+  const got = Math.min(m.got, of);
+  box.classList.add(got >= of ? 'is-right' : 'is-near');
+  const later = box.querySelector('.qp-ai-later');
+  if (later) later.hidden = got >= of;
+  out.textContent = got + ' of ' + of + ' mark' + (of === 1 ? '' : 's') + ' · by key words' + (got < of && later ? ' — or mark it with AI' : '');
+  subRecord_(inp.getAttribute('data-k'), inp.value, 'rule:' + got + '/' + of);
 });
 
 /* ---------- SEND, WHERE NOTHING CAN MARK IT § */

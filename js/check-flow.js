@@ -25825,6 +25825,41 @@ check('room to write: every typed box has an Expand tile; the sheet holds the sa
   return bad;
 });
 
+/* ---------- MARK WITHOUT AI FIRST: A SHORT WORDED ANSWER IS MARKED BY ITS KEY WORDS (docs/history/359) ---------- */
+check('marked by rule first: a 2-mark worded answer with mark_words gets Check, marks per point, says "by key words", and the AI tile stays hidden on full marks', async () => {
+  const base = { active: 'True', subject: 'Biology', document_type: 'Past paper', key_stage: 'KS4', pages_checked: 'True' };
+  const rows = [
+    Object.assign({}, base, { row_id: 'D-MW', paper_id: 'MW', kind: 'document', name: 'Cells' }),
+    Object.assign({}, base, { row_id: 'MW-1', paper_id: 'MW', kind: 'question', name: 'Cells', question: '1', marks: '2', answer_type: 'short',
+                              html: '<p>Name the two elements in a hydrocarbon.</p>', answer: 'Carbon and hydrogen', mark_words: 'carbon ; hydrogen' }),
+  ];
+  const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
+  await wait(300);
+  const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  if (!A['qp-rule']) return ['the qp-rule handler is not reachable — nothing was checked'];
+  const x = w.stuffItemsAll_().find(i => i.row && i.row.row_id === 'MW-1');
+  if (!x) return ['the fixture row did not reach Find'];
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  host.innerHTML = w.questionCard_(x, 0);
+  const go = host.querySelector('.qp-mark[data-rule] [data-do="qp-rule"]');
+  if (!go) return ['a row with mark_words has no Check by its key words'];
+  const later = host.querySelector('.qp-ai-later');
+  if (later && !later.hidden) bad.push('the AI tile shows before the rule has marked');
+  const inp = host.querySelector('.qp-ans-in'), out = host.querySelector('.qp-verdict');
+  inp.value = 'just carbon';
+  A['qp-rule'](go);
+  if (!/^1 of 2 marks · by key words/.test(out.textContent)) bad.push('one point of two says ' + JSON.stringify(out.textContent));
+  inp.value = 'Hydrogen and carbon';
+  A['qp-rule'](go);
+  if (out.textContent !== '2 of 2 marks · by key words') bad.push('both points say ' + JSON.stringify(out.textContent));
+  if (later && !later.hidden) bad.push('full marks by rule still offers the AI');
+  const latest = typeof w.subLatest_ === 'function' ? w.subLatest_(inp.getAttribute('data-k')) : null;
+  if (latest && latest.v !== 'rule:2/2') bad.push('the mark was recorded as ' + JSON.stringify(latest.v) + ', wanted rule:2/2 — which way it was made is lost');
+  host.remove();
+  return bad;
+});
+
 /* ---------- RUN THEM ---------------------------------------------------------------------------- */
 /* `FLOW_PART=2/4` RUNS THE SECOND QUARTER, in roster order — for a machine where the whole file takes longer than one shell may wait § */
 const FLOW_PART_ = /^(\d+)\/(\d+)$/.exec(process.env.FLOW_PART || '');

@@ -402,16 +402,17 @@ function subMigrate_() {
 }
 
 /* ---------- THE WORDS FOR A VERDICT § */
+/* `ai:2/3` MARKED BY THE AI, `rule:2/3` BY THE QUESTION'S KEY WORDS (359) -- which way is kept with the marks. */
 function subAiOf_(v) {
-  const m = /^ai:(\d{1,3})\/(\d{1,3})$/.exec(String(v || ''));
-  return m ? { got: +m[1], of: +m[2] } : null;
+  const m = /^(ai|rule):(\d{1,3})\/(\d{1,3})$/.exec(String(v || ''));
+  return m ? { got: +m[2], of: +m[3], by: m[1] } : null;
 }
 function subSay_(v) {
   if (v === 'right') return { text: 'Correct', cls: 'is-right' };
   if (v === 'wrong') return { text: 'Not yet — have another go', cls: 'is-near' };
   if (v === 'sent') return { text: 'Sent', cls: '' };
   const ai = subAiOf_(v);
-  if (ai) return { text: ai.got + ' of ' + ai.of + ' mark' + (ai.of === 1 ? '' : 's') + ' · AI', cls: ai.got >= ai.of ? 'is-right' : 'is-near' };
+  if (ai) return { text: ai.got + ' of ' + ai.of + ' mark' + (ai.of === 1 ? '' : 's') + (ai.by === 'rule' ? ' · by key words' : ' · AI'), cls: ai.got >= ai.of ? 'is-right' : 'is-near' };
   return { text: '', cls: '' };
 }
 function subMark_(v) {

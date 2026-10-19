@@ -347,6 +347,8 @@ function libraryInto_(d, rows) {
       accept: libS(r.accept),
       /* THE BLANKS OF A GRID OR TABLE, `;` between cells, `|` between ways, `-` a blank not asked (find.js, `cellsOf_`). */
       cells: libS(r.cells),
+      /* KEY WORDS THAT MARK A SHORT WORDED ANSWER WITHOUT AI (find.js, `markWords_`). */
+      markWords: libS(r.mark_words),
       /* A CLOSED LIST OF OPTIONS, TAPPED RATHER THAN TYPED. § */
       choices: libS(r.choices).split('|').map(t => t.trim()).filter(Boolean),
       /* ---------- AN ORDERING IS THE SAME TWO COLUMNS AND ONE MORE § */

@@ -557,6 +557,50 @@ const took = Date.now() - t0;
 const slow = took > 400;
 if (slow) console.log('  marking %j took %d ms — a unit is being read more than one way again', SLOW, took);
 
+/* ---------- BY RULE: KEY WORDS MARK A SHORT WORDED ANSWER, A MARK A POINT (docs/history/359) ---------- */
+const MW_NAMES = ['MW_STOP', 'mwStem_', 'mwToks_', 'mwHas_', 'markWords_', 'cellsOf_', 'markCells_'];
+const mwSrc = MW_NAMES.map(n => cutFrom(src, n));
+let mwBad = 0;
+const MW = [
+  /* typed, rule, wanted marks, why */
+  ['It is an underestimate because both numbers were rounded down', 'underestimate ; rounded+down | round+down', 2, 'both points, in other words than the scheme'],
+  ['underestimate', 'underestimate ; rounded+down | round+down', 1, 'the answer without its reason is one mark of two'],
+  ['an overestimate since they were rounded up', 'underestimate ; rounded+down | round+down', 0, 'the opposite answer scores nothing'],
+  ['A placebo', 'placebo', 1, 'one word, one mark'],
+  ['placebos', 'placebo', 1, 'a plural is the same word'],
+  ['it is not a placebo', 'placebo', 0, 'a word straight after "not" does not count'],
+  ['Negative correlation', 'negative+correlation', 1, 'all-of: both words'],
+  ['there is correlation', 'negative+correlation', 0, 'one of two all-of words is not the mark'],
+  ['the bromine water turns colourless', 'colourless | decolourised | decolorised', 1, 'any-of, a synonym'],
+  ['it was decolourised', 'colourless | decolourised | decolorised', 1, 'and the other spelling of it'],
+  ['56 ways', '56', 1, 'a number with its unit'],
+  ['1,905 metres', '1905', 1, 'a number with its thousands comma'],
+  ['55 ways', '56', 0, 'a different number is wrong'],
+  ['gravitational potential energy', 'gravitational potential', 1, 'a phrase, in order'],
+  ['potential gravitational', 'gravitational potential', 0, 'and out of order it is not the phrase'],
+  ['', 'placebo', null, 'nothing typed is not a wrong answer'],
+];
+if (mwSrc.some(x => !x)) { console.log('check-marking: cannot find ' + MW_NAMES.filter((n, i) => !mwSrc[i]).join(', ') + ' in find.js — renamed?'); process.exit(1); }
+eval(mwSrc.join('\n'));
+MW.forEach(([typed, rule, want, why]) => {
+  const m = markWords_(typed, rule), got = m ? m.got : null;
+  if (got !== want) { mwBad++; console.log('  WRONG  markWords_(%j, %j) gave %j, wanted %j — %s', typed, rule, got, want, why); }
+});
+/* AND A FILL-IN TABLE'S CELLS, each marked on its own. */
+const cellsGot = markCells_(['6', '7', ''], cellsOf_({ cells: '- ; 6 ; 6 | six ; 9' }).slice(1));
+if (cellsGot.right !== 1 || cellsGot.of !== 3 || cellsGot.each[1] !== false || cellsGot.each[2] !== null) { mwBad++; console.log('  WRONG  markCells_ gave %j', cellsGot); }
+const cellsAll = markCells_(['x', '6', 'six', '9'], cellsOf_({ cells: '- ; 6 ; 6 | six ; 9' }));
+if (cellsAll.right !== 3 || cellsAll.of !== 3) { mwBad++; console.log('  WRONG  a full table with its corner not asked gave %j', cellsAll); }
+/* EVERY RULE IN THE LIBRARY GIVES FULL MARKS TO ITS OWN SCHEME'S HEADLINE -- a rule its own answer fails is a wrong rule. */
+const mwLib = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'questions.json'), 'utf8')).filter(r => String(r.mark_words || '').trim());
+mwLib.forEach(r => {
+  const head = String(r.answer || '').replace(/<[^>]*>/g, ' ').replace(/&[a-z]+;/g, ' ');
+  const m = markWords_(head, r.mark_words);
+  if (!m || m.got < m.of) { mwBad++; console.log('  WRONG  %s: its own scheme scores %j against mark_words %j', r.row_id, m, r.mark_words); }
+});
+if (mwBad) { console.log('\n%d rule-marking cases wrong — a short worded answer is being marked wrongly without AI.', mwBad); process.exit(1); }
+console.log('rule marking: %d key-word cases, the cells, and %d library rules each scoring its own scheme in full', MW.length, mwLib.length);
+
 if (bad || normBad || lib.bad.length || rowBad || slow || orderBad || orderLib.bad.length || seqBad || seqLib.bad.length) {
   console.log('\n%d of %d marking cases wrong, %d of %d markNorm_ cases, %d in the library sweep, %d of %d\n' +
     'named rows, %d of %d orderings and %d in the orderings sweep, %d of %d stored rows read back wrong and\n' +
