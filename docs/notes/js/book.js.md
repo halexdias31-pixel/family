@@ -1,0 +1,6019 @@
+# js/book.js
+
+The full text of comments in `js/book.js` that `tools/comments.js` shortened to a headline ending in " §".
+Append-only, in the order they were shortened; each entry names what the comment sat in.
+
+### @family. — book.js ONE FILE, SPLIT.
+
+top level, before `bookBlocks`
+
+```
+/* ==================================================================================================
+   @family. — book.js
+   ONE FILE, SPLIT. Every file here shares a single global scope, exactly as before: index.html
+   loads them in order and the browser concatenates them. Nothing was renamed, nothing was moved
+   between files, and no import/export exists — which is why this split cannot have changed
+   behaviour. The only thing that changed is where the newlines are.
+
+   THE ONE RULE, and the only way to break it: a file must not be REORDERED against the others.
+   book.js is number 14 of 18. index.html lists them; the list is the order.
+
+   WHAT REPLACES THE COMPILER. Nothing here fails at load if a name is missing — that is the cost
+   of plain scripts over modules, and it is paid by check.js, which reads every file and reports
+   any name used but never declared. Run it after every change; it is two seconds and it is the
+   whole safety net.
+================================================================================================== */
+```
+
+### ---------- BOOK
+
+top level, before `bookBlocks`
+
+```
+/* ---------- BOOK --------------------------------------------------------------------------------
+   The classes that exist, and the way to ask for one that does not. The pricing chain underneath
+   this is the one carried over whole — the screen only has to show what it says.
+--------------------------------------------------------------------------------------------- */
+```
+
+### ---------- `jobCard` WAS HERE, AND IT HAS NO CALLERS LEFT
+
+top level, before `bookBlocks`
+
+```
+/* ---------- `jobCard` WAS HERE, AND IT HAS NO CALLERS LEFT ----------------------------------------
+   THE FOLDED STUB — subject, day, price, a stamp and a dotted tear — made for a LIST of sessions
+   you would then open one of. Three things drew it and none of them does now: the You column was
+   folded into the funnel, `Booking · Receipts` opens the whole receipt on its own page rather than a
+   fold that opens a sheet, and `Your sessions` is a roster of who is in each class rather than a
+   pile of small documents.
+
+   REMOVED RATHER THAN LEFT. A session has exactly two faces now — the receipt and the roster — and
+   a third that nothing calls is a third somebody will call again by accident, and then there will
+   be three shapes to keep in step. If a list of folds is ever wanted, it is `jobReceipt` with a
+   class on it, not a second builder. */
+```
+
+### ---------- THE BOOKING PAGES ARE THE FORM, AND ONLY THE FORM
+
+top level, before `bookBlocks`
+
+```
+/* ---------- THE BOOKING PAGES ARE THE FORM, AND ONLY THE FORM -------------------------------------
+   `bookBlocks` USED TO BE THE WHOLE COLUMN: the form, your sessions, the open classes and whatever
+   the calendar was advertising, in one list. That was right when it WAS a column — one place for
+   everything to do with booking.
+
+   IT IS A FUNNEL ANSWER NOW, and a funnel already knows how to keep different kinds of thing apart:
+   your sessions are `Receipts` and the open classes are `Coupons`, each a kind of its own under
+   "What for · Booking", each found by asking for it. See `KINDS` in find.js.
+
+   SO WHAT IS LEFT HERE IS THE FORM. The festive cards went to Posts, which is where the business
+   talking already lives — a holiday offer is an announcement with a date on it, and it was only
+   ever here because bookings were.
+
+   SIGNED OUT, IT IS ONE SENTENCE, THE SAME SHAPE AS EVERY OTHER COLUMN'S. The form drew
+   unconditionally after the move, which meant a visitor got twelve fields they could fill in and no
+   way to send any of it — so a card stands in for it. It used to carry a gold `Sign in` button,
+   and that button only ever toasted "Sign-in screen next": signing in is the You column's, and the
+   Camera and Messages cards already say so in one line with nothing to press. A control that does
+   nothing on a card whose whole job is to say where to go is the one thing on it that was wrong. */
+```
+
+### ---------- THE FORM, THEN WHAT IS ALREADY BOOKED, THEN WHAT IS FINISHED
+
+in `bookBlocks`
+
+```
+/* ---------- THE FORM, THEN WHAT IS ALREADY BOOKED, THEN WHAT IS FINISHED -----------------------
+     THE PAST ONES HAD NOWHERE TO BE. `myJobs_` has always held every session a person is in, live
+     and finished together, and the only things reading it were the week grid — which draws one week
+     and so cannot show last term at all — and the open-class split. So a receipt for a session that
+     has happened existed in the payload and appeared on no screen in the app.
+
+     HERE, BECAUSE THIS IS WHERE BOOKING IS. Somebody looking for what they paid for a session in
+     March is on the same errand as somebody booking one for June: they answered "What for ·
+     Booking" to get here, and the answer to "what did last term cost" should not be behind a
+     different question.
+
+     LAST, BECAUSE IT IS THE LEAST URGENT THING ON THE PAGE. The form is what somebody came for; a
+     finished session is a record. The funnel pages these in order, so the receipts are a swipe past
+     the form rather than something in front of it. */
+```
+
+### ---------- THE FORM, AND ONLY THE FORM, AGAIN
+
+in `bookBlocks`
+
+```
+/* ---------- THE FORM, AND ONLY THE FORM, AGAIN --------------------------------------------------
+     `pastCard_` WAS HERE and its receipts are results now — `Booking · Receipts`, beside Classes and
+     Waitlists, each a kind of its own. A page holding a list of them AND a searchable list of the
+     same rows is the duplication this evening has already produced twice, and the funnel version is
+     the better one: it counts them, it can be searched, and it separates finished from running
+     rather than lumping both under "past". */
+```
+
+### THE PAGE IS ALWAYS THE FORM.
+
+in `bookBlocks`
+
+```
+/* THE PAGE IS ALWAYS THE FORM. For one commit an open list replaced it here, on the argument that
+     the money block and the receipt are both ABOUT the form and neither is what somebody pressing a
+     field went looking for. True, and it was reported as *"i hate this"* — the list hangs off its
+     own field now and covers nothing, so there is nothing for this to stand aside for. */
+```
+
+### ---------- YOUR SESSIONS CAME BACK TO THIS COLUMN, AND THE NOTE ABOVE IS WHY IT HAD TO
+
+top level, before `OPEN_JOB`
+
+```
+/* ---------- YOUR SESSIONS CAME BACK TO THIS COLUMN, AND THE NOTE ABOVE IS WHY IT HAD TO ------------
+   READ THE PARAGRAPH TWO ABOVE THIS ONE BEFORE CHANGING ANYTHING HERE. It says `pastCard_` was
+   taken off this column *because* the receipts had become results in the funnel — "a page holding a
+   list of them AND a searchable list of the same rows is the duplication this evening has already
+   produced twice". That was right while both existed. Booking has now left the funnel entirely (see
+   `FUNNEL_NOT_FOR` in find.js), so the half that was kept is the half that was deleted, and every
+   session a person has ever had would have been on no screen in the app at all.
+
+   SO THE TWO CHANGES ARE ONE CHANGE. Removing an answer and restoring what it was the only route to
+   belong in the same commit, or the gap between them is a live site where somebody cannot find what
+   they paid for in March — which is the exact case the deleted note named.
+
+   ONE PAGE EACH, NOT A LIST, AND NOT A NEW RENDERER. `jobPage_` is the same builder `Booking ·
+   Receipts` drew with — the receipt, the money and the way in — so a session looks identical to how
+   it looked yesterday and there is still exactly one function that draws one. That is the rule this
+   file keeps breaking and the rule `accountPages_` cites: two renderers for one thing is two things
+   to keep in step.
+
+   NEWEST FIRST, because the session somebody is looking for is almost always the last one — and
+   because the form is page one, so the first swipe should land on what is happening now rather than
+   on a receipt from two years ago. `myJobs_` is the one place that knows whose sessions are whose;
+   nothing here re-derives it. */
+```
+
+### ---------- THE ORDER IS ONE FUNCTION, BECAUSE TWO THINGS NEED TO AGREE ABOUT IT
+
+top level, before `OPEN_JOB`
+
+```
+/* ---------- THE ORDER IS ONE FUNCTION, BECAUSE TWO THINGS NEED TO AGREE ABOUT IT ------------------
+   `myJobPages_` BUILDS THE PAGES AND `on('job')` HAS TO FIND ONE. Sorting in both places is two
+   sorts that must stay identical for ever — the fault this file records under `documents_()`, under
+   `paperIdOf_` and under `factsNow_`: a second reader of one thing is a second chance to disagree
+   about it. Tapping Thursday and landing on Tuesday's receipt is what that disagreement looks like.
+
+   `OPEN_JOB` IS THE SECOND HALF, AND IT IS `ASKED_JOB`'S OWN PATTERN. The week grid drew
+   `DATA.liveJobs` — every session, because an admin's week is everybody's — and `myJobs_` returns
+   only the ones you are in. (The week is the Timetable's now and reads `myJobs_`; the case stays for
+   any other surface that opens a session somebody is not in.) So an admin tapping a session they are neither the tutor nor the client
+   of has no page to be sent to, and sending them nowhere is the silent failure this whole change is
+   about. One id, held in memory, drawn as a page: a reload drops it, which is right for something
+   you opened rather than something you own. */
+```
+
+### THE ONE BEING LOOKED AT, IF IT IS NOT ALREADY YOURS.
+
+in `myJobsOrdered_`
+
+```
+/* THE ONE BEING LOOKED AT, IF IT IS NOT ALREADY YOURS. Added at the front rather than sorted in,
+     because it is the thing that was just tapped and the first swipe past the form should land on
+     it — the same reasoning `askedBlock_` uses for the booking just sent. */
+```
+
+### NOT THE ONE ALREADY UNDER THE FORM.
+
+in `myJobsOrdered_`
+
+```
+/* NOT THE ONE ALREADY UNDER THE FORM. `askedBlock_` draws the booking just sent, on page one,
+       and drawing it again three pages down is the same receipt twice — which is how a person comes
+       to believe they booked two sessions. Matched on the id, which is what `ASKED_JOB` holds. */
+```
+
+### THE RECEIPT FOR THE BOOKING JUST SENT — see `ASKED_JOB` above for why it is one and not a list.
+
+top level, before `askedBlock_`
+
+```
+/* THE RECEIPT FOR THE BOOKING JUST SENT — see `ASKED_JOB` above for why it is one and not a list.
+
+   IT IS LOOKED UP EVERY DRAW rather than kept as HTML, so the document says where the booking has
+   got to NOW. That matters within one visit: an admin accepting a session while the family still
+   has the page open moves `Stage` from "Asked for — waiting on us" to "Accepted — waiting for
+   payment" on the next `load()`, with nothing here to tell. Storing the drawn markup would have
+   frozen the one row somebody is watching.
+
+   AND IT DISAPPEARS IF THE JOB DOES. A declined booking leaves the payload and this finds nothing,
+   which is the honest outcome — better than a stale receipt for a session that is not happening.
+   `jobReceipt` is the same builder the session sheet uses, so this cannot drift from it. */
+```
+
+### ---------- WHEN A SESSION IS OVER
+
+top level, before `jobIsPast_`
+
+```
+/* ---------- WHEN A SESSION IS OVER --------------------------------------------------------------
+   OFF `endDate`, WHICH THE PAYLOAD ALREADY SENDS — the last of `session_dates`, computed in
+   `doget.gs` beside `startDate`. Nothing had to be added at either end.
+
+   A SESSION WITH NO DATES IS NOT PAST. An empty `endDate` means nobody has said when it runs yet,
+   which is a booking still being arranged — the newest thing a person has, and the last thing that
+   should be filed under finished. So the test is explicit about having a date at all rather than
+   letting an empty string fall through a comparison.
+
+   THE WHOLE DAY COUNTS. A session at four this afternoon is not history at nine this morning, and
+   an `endDate` of today read as "past" would move it into the receipts on the morning of the day it
+   happens. Compared against the START of today, so today is always still live. */
+```
+
+### ---------- A LIVE CLASS IS ONE THAT IS ACTUALLY RUNNING
+
+top level, before `liveJobs_`
+
+```
+/* ---------- A LIVE CLASS IS ONE THAT IS ACTUALLY RUNNING ------------------------------------------
+   THIS WAS "EVERYTHING NOT PAST", so a request nobody had answered and a session paid for last week
+   were both `Your sessions` — which is how two unconfirmed bookings came to be listed as live
+   classes for a family who has never paid for anything. The widget was right about the rows and
+   wrong about the word.
+
+   `jobStage_` ALREADY KNOWS. It returns `receipt` once money has moved and `application` until
+   then, which is exactly the line: a class is live when it has been agreed AND paid for. Reused
+   rather than re-derived, so the widget and the stamp can never disagree about what has happened.
+
+   EVERYTHING ELSE IS STILL THERE, under `Booking · Receipts` — one receipt per session at every
+   stage, which is where a booking somebody is waiting to hear about belongs. Nothing is hidden;
+   what changed is that a word now means what it says. */
+```
+
+### `pastCard_` WAS HERE.
+
+top level, before `liveWidgets_`
+
+```
+/* `pastCard_` WAS HERE. The finished sessions are `Booking · Receipts` in the funnel now — one
+   answer, counted like every other, searchable by subject. `jobIsPast_` stays because `stuffItems`
+   and the sessions widget both need to know which side of today a session falls on. */
+```
+
+### ---------- ONE WIDGET PER SESSION, NOT ONE WIDGET OF SESSIONS
+
+top level, before `liveWidgets_`
+
+```
+/* ---------- ONE WIDGET PER SESSION, NOT ONE WIDGET OF SESSIONS -------------------------------------
+   `Your sessions` WAS A SINGLE WIDGET WITH EVERY ROSTER STACKED INSIDE IT — a card headed with your
+   name for it, then a heading and a roster, then a rule, then another heading and another roster.
+   Which is a list again, and the reason the folded stubs went was that a list of sessions is not
+   what somebody wants: they want a session.
+
+   ONE EACH, NAMED FOR ITSELF. `Maths · GCSE · Monday` is a thing you can search for, count, star and
+   open; "Your sessions" is a container you then have to read. The funnel already counts and filters
+   results, so a widget per session means Booking says how many you are in, and typing "maths" finds
+   the one.
+
+   `msgWidgets_` HAS DONE THIS SINCE MESSAGES WERE BUILT — a widget per conversation rather than one
+   inbox — and `allWidgets` concatenates them for exactly this reason. Same shape, same place, no
+   new machinery.
+
+   THE ROSTER IS THE WHOLE BODY. No subject line inside it, because the widget's own name is the
+   subject; no stage line, because that is on the receipt where the money is. What is left is the
+   thing this answers: who is in it, and how many seats are free. */
+```
+
+### ONE SESSION, ONE PANE.
+
+top level, before `DAY3_`
+
+```
+/* ONE SESSION, ONE PANE.
+   Eight stubs on a pane made the pane a list, and the whole point of a pane is that it is ONE
+   thing — you swipe to the next rather than scan down. A session is a receipt, and a receipt is a
+   document: it gets a card of its own.
+   The first pane is the asking. Everything after it is one session each, in the order `bookBlocks`
+   already puts them — yours first, then the open ones. */
+```
+
+### ---------- `weekGrid` AND `initWeek` STOOD HERE — `Your week`, FOLDED INTO THE TIMETABLE
+
+top level, before `DAY3_`
+
+```
+/* ---------- `weekGrid` AND `initWeek` STOOD HERE — `Your week`, FOLDED INTO THE TIMETABLE ------------
+   IT WAS A GRID OF HOURS AGAINST DAYS for the sessions booked here, a widget of its own beside the
+   Timetable, where somebody wrote down the rest of their week. Two weeks of one person, side by side,
+   and they never met: asked about as *"calander and time table and availability ... it seems they
+   clash"*. The Timetable draws your booked sessions now, locked, among your own lessons — see
+   `tmtBooked_` in games.js — and a tap on one still opens the session through `job`. What the grid
+   computed is `weekSessions_` below, which is the one reader both used. */
+```
+
+### ---------- WHICH DAYS A SESSION RUNS ON, AND WHETHER IT IS RUNNING ON ONE
+
+top level, before `DAY3_`
+
+```
+/* ---------- WHICH DAYS A SESSION RUNS ON, AND WHETHER IT IS RUNNING ON ONE ------------------------
+   ASKED FOR AS *"i need to fix how calander and time table and availability and all of that should
+   work or be set up or synced. it seems they clash"*. Three of the clashes were here, in the one week
+   that draws your sessions:
+
+     · IT LIT ONLY THE FIRST DAY OF A BOOKING. `norm(j.day).indexOf('mon') === 0` is true for
+       `Monday, Friday` and false for Friday, so a two-day booking showed one day — the fault history
+       124 records `jobGrid_` and `busyHours` both having, fixed in both of them and not here.
+     · IT DREW EVERYBODY'S. `DATA.liveJobs` holds the OPEN sessions of other families as well as your
+       own — `doGet` sends them so a family can ask to join — so a parent's week had strangers'
+       lessons in it. `liveWidgets_` has always gone through `myJobs_`; this did not.
+     · IT IGNORED THE DATES. A booking that finished in July was still on the week in October.
+
+   SO A SESSION IS ON A DAY WHEN THAT DATE IS ONE OF ITS SESSION DATES — the list `computeSessionDates`
+   wrote at booking, which already leaves out the half terms and the bank holidays. A job with no
+   dates yet (a request somebody has not put in the diary) is on every week its weekday comes round,
+   because nothing has said otherwise; one with a start and an end and no list is on the weeks
+   between them. These are the answers the job row can give, read in that order. */
+```
+
+### ---------- YOUR SESSIONS, AS THE SEVEN DAYS OF ONE WEEK
+
+top level, before `weekSessions_`
+
+```
+/* ---------- YOUR SESSIONS, AS THE SEVEN DAYS OF ONE WEEK ------------------------------------------
+   ONE LIST, AND EVERY WEEK OF SESSIONS READS IT, so two views of this week cannot disagree about
+   which sessions are in it.
+
+   YOURS ONLY, through `myJobs_` — the client or the tutor on the row is you. A job with no day or no
+   time has not been settled and is not in a week; a cancelled one is nobody's. Each entry is ONE DAY
+   of one session, so a Monday-and-Friday booking is two entries, each with its own date. */
+```
+
+### ---------- REPAINTING BOOK WITHOUT LOSING THE PLACE
+
+top level, before `paintBook_`
+
+```
+/* ---------- REPAINTING BOOK WITHOUT LOSING THE PLACE ----------------------------------------------
+   The booker is a card on the first page now, so answering a question means redrawing that page —
+   not the whole column, which would throw away the pager position of anybody who had swiped down
+   to look at an existing session before coming back.
+
+   THE FIRST PAGE ONLY. `bookPages` rebuilds every block from the same job data; only block zero
+   can have changed, because only block zero holds the booker. */
+```
+
+### ---------- REPAINTING THE BOOKER, WHEREVER IT IS
+
+top level, before `paintBook_`
+
+```
+/* ---------- REPAINTING THE BOOKER, WHEREVER IT IS -------------------------------------------------
+   IT LIVED ON ITS OWN COLUMN and this rewrote that column's first pane. There is no such column:
+   the booker is a page on Find, behind "What for · Booking", and answering a question can change
+   how many pages there are — the hours grid unfolding, a saved thing starred.
+
+   SO `paintStuff` DOES IT. It already rebuilds the pages around the question page and already
+   knows not to touch the search box mid-word, which is exactly the guarantee this needs. One
+   repainter for one screen, rather than two that have to agree about what is on it. */
+```
+
+### ---------- WHICHEVER SCREEN THE FORM IS ACTUALLY ON
+
+in `paintBook_`
+
+```
+/* ---------- WHICHEVER SCREEN THE FORM IS ACTUALLY ON -------------------------------------------
+     THIS REPAINTED `s-stuff` AND NOTHING ELSE, and it was right for exactly as long as the form
+     lived only inside the funnel. `bookingPages_` answers `What for · Booking` there — and it also
+     builds the Booking COLUMN, `screen('booking', ...)` a few hundred lines down. Same markup, two
+     hosts, and this knew about one of them.
+
+     REPORTED AS "grid not working when click", AND THAT IS THE WHOLE OF IT. On the column, pressing
+     an hour ran the handler, toggled `BOOKING.slots`, called `drawBooker()` — and repainted a
+     screen that was not even on the display, leaving the cell the SAME DOM NODE it had been before.
+     Measured: `BOOKING.slots` came back `["m10"]` with `.hr.on` still at 0. The app's own press log
+     named the shape exactly — *"the handler ran and did nothing"*, the fourth of the four causes it
+     lists, which is the one that looks identical to the other three from outside.
+
+     AND IT WAS NEVER ONLY THE GRID. Every `drawBooker()` caller is on this path — the edit row, the
+     undo, the dropdowns — so on the column nothing derived was redrawing either. A `<select>` shows
+     its own new value natively without any help, which is why the answers appeared to work while
+     the grid and the running cost did not: the half that needed no repaint was the half that looked
+     fine.
+
+     ASKED OF THE DOM, NOT REMEMBERED. `#bookr` is the form's own wrapper and `.screen` is the
+     section it is in, so the answer to "where is this drawn" comes from where it IS — the same move
+     as `msg-send` walking up to its nearest `.msg-form` and `me-save` to its own container, both
+     written after an id was handed to the wrong element. A flag saying which host is in use would
+     be a third thing to keep in step with the two that already exist. */
+```
+
+### NOWHERE TO BE FOUND — the form is not on screen at all, so there is nothing to repaint and the state it just changed is read the next time something draws it.
+
+in `paintBook_`
+
+```
+/* NOWHERE TO BE FOUND — the form is not on screen at all, so there is nothing to repaint and the
+     state it just changed is read the next time something draws it. Silent on purpose: this runs on
+     every answer, and a toast about an invisible form is noise. */
+```
+
+### The second argument was a header action — a "Sign in" link in the top right for anybody who was not.
+
+top level, before `BOOKING`
+
+```
+/* The second argument was a header action — a "Sign in" link in the top right for anybody who was
+   not. There is no header, so it went nowhere; the Book screen's own first card already says
+   "Sign in to book", which is where somebody is actually looking. */
+```
+
+### `on('signin')` WAS HERE — `toast('Sign-in screen next')`, behind the gold button on the signed-out booking card.
+
+top level, before `BOOKING`
+
+```
+/* `on('signin')` WAS HERE — `toast('Sign-in screen next')`, behind the gold button on the signed-out
+   booking card. The button went (see `bookBlocks`), and a handler with no door is what
+   `check-doors.js` exists to print, so it went with it. Signing in is `do-signin` on the You card. */
+```
+
+### THE BOOKER. Nine things have to be known before a session can be asked for:
+
+top level, before `BOOKING`
+
+```
+/* ================================================================================================
+   THE BOOKER.
+
+   Nine things have to be known before a session can be asked for: subject, level, how many
+   students, where, which days, what time, how long, for how many weeks, and whether a particular
+   tutor. Put on one screen that is a form nobody finishes on a phone.
+
+   SO IT IS THE SAME FUNNEL AS FIND. One question at a time, each answer narrowing the next, and
+   the price appearing the moment it can be worked out rather than at the end. Which is not a
+   stylistic echo — it is the same problem. A booking is a search through everything you COULD ask
+   for, and the questions that matter depend on the answers already given: nobody is asked about a
+   tier at KS3, and nobody is asked which room when the venue has one.
+
+   TWO RULES CARRIED OVER, both learned the hard way on the finding screen:
+
+     A QUESTION EVERYONE ANSWERS THE SAME WAY IS NOT ASKED. One venue means no venue question. One
+     interval means no interval question. It is not a shortcut, it is the difference between a form
+     and a conversation.
+
+     AN ANSWER IS NEVER TAKEN AWAY. Choosing a small room after asking for six students does not
+     silently drop you to four. The conflict is SHOWN — the room says why it does not fit — and it
+     is yours to resolve. `setOptions` has done this for the old form since the beginning and the
+     reasoning is written out there; this obeys the same rule for the same reason.
+================================================================================================ */
+```
+
+### EVERY ANSWER STARTS EMPTY, including the numbers.
+
+top level, before `BOOKING`
+
+```
+/* EVERY ANSWER STARTS EMPTY, including the numbers.
+   `n` began at 1 and `hours` at 0 — sensible defaults, and both counted as ANSWERED, so the
+   booker never asked how many students were coming and quietly booked for one. A default is the
+   app answering on somebody's behalf and then showing them the answer as though they gave it,
+   which is the same fault `setOptions` was written to avoid on the old form.
+   They become numbers in `bookSpec`, which is where a number is actually needed. */
+```
+
+### WHO ELSE IS SHARING THE COST, stored under the STEP'S OWN ID like every other answer.
+
+in `BOOKING`
+
+```
+/* WHO ELSE IS SHARING THE COST, stored under the STEP'S OWN ID like every other answer.
+
+     It was `splitWith`, with a second field `splitAsked` saying whether the question had been put
+     — two names, neither of them the step's id, for one question. Every other step in this file
+     answers at `BOOKING[step.id]`, so this one needed a special case in `bookAnswered_`, another
+     in `book-undo`, and a third in the chip row. Three exceptions to a rule that has no other
+     exceptions is not a rule.
+
+     `splitAsked` is gone as well, because `done` already does its job: a question you can answer
+     several times is finished when you SAY it is, which is exactly the case a list of email
+     addresses is — and nought addresses is a real answer that an empty list cannot express on its
+     own. `done` was written for the multiple-choice steps and this is one, in everything but the
+     shape of the control. */
+```
+
+### WHICH OF YOUR OWN CHILDREN THIS IS FOR.
+
+in `BOOKING`
+
+```
+/* WHICH OF YOUR OWN CHILDREN THIS IS FOR. Names, chosen from the ones on your account.
+     Empty is a real answer and the common one — a parent booking for a friend's children, or for a
+     child who has no account here. That is why the seats say "Child" rather than your name: a seat
+     is a person and we do not know which, and inventing one is worse than admitting it. */
+```
+
+### A LIST NOW — see the `interval` step.
+
+in `BOOKING`
+
+```
+/* A LIST NOW — see the `interval` step. `resetBooking_` reads `st.multi` and would set `[]`
+     anyway; this literal is what the form is built from on the very first draw, before anything
+     has been reset, and a string here would have `bookPick` push onto a `String` and throw. */
+```
+
+### AN ADMIN'S DISCOUNT (docs/history/353) — not a step, because it is not a question the family is asked:
+
+in `BOOKING`
+
+```
+/* AN ADMIN'S DISCOUNT (docs/history/353) — not a step, because it is not a question the family is asked:
+     one line above COST that only an admin is drawn (`discountRow_`). `%` or `£`, how much, the code or
+     the reason, and who absorbs it. Cleared with the rest by `resetBooking_`. */
+```
+
+### ---------- THE ONE YOU JUST ASKED FOR
+
+top level, before `ASKED_JOB`
+
+```
+/* ---------- THE ONE YOU JUST ASKED FOR ------------------------------------------------------------
+   SENDING A BOOKING LOOKED LIKE LOSING IT. `resetBooking_()` empties every answer and `load()`
+   fetches the new job — so the screen a person was looking at went blank, a toast said "Asked", and
+   the twelve answers they had spent a minute on were nowhere. The session existed; it was two
+   swipes away under `Booking · Receipts`, which is not where somebody is looking a second after
+   pressing send.
+
+   SO THE ANSWER COMES BACK, UNDER THE BLANK FORM. One id, set by whichever of the three send paths
+   succeeded, and `askedBlock_` draws that job's receipt below the booker. The form is ready for the
+   next booking and the last one is still on the page, which is what "it worked" looks like.
+
+   ONE JOB, NOT A LIST, and that is the whole care here. `bookBlocks` used to draw every live job
+   under the form and the note above it says why that went: the funnel already has a searchable
+   list of them, and a page holding both is the duplication this file has produced twice. A
+   confirmation of the thing you just did is not that list — it is one document, and it is only
+   here because you pressed send.
+
+   IN MEMORY, SO IT GOES WHEN THE PAGE DOES. There is nothing to clear and nothing to keep in step:
+   asking for a second session replaces it, and a reload drops it, which is right — it is a receipt
+   for this visit, not a preference. */
+```
+
+### ---------- NINE TILL SIX, WRITTEN ONCE
+
+top level, before `SLOT_HOURS`
+
+```
+/* ---------- NINE TILL SIX, WRITTEN ONCE ------------------------------------------------------------
+   `for (let h = 10; h <= 20; h++)` WAS WRITTEN OUT IN TWO PLACES — `slotGrid()` and the receipt's
+   week — and the waiting-list blocks below would have been a third. That is survivable while all
+   three agree and is the shape this repository records under `needs_print` / `print_required` and
+   under `handle` / `username`: one fact in several places, and nothing comparing them.
+
+   IT MATTERS MORE HERE THAN IT DID, because `SLOT_BLOCKS` is DERIVED from this span. A morning is
+   whichever of these hours falls before noon — so moving the day to nine gives the morning block a
+   third hour with nothing to edit, and it cannot end up describing hours the grid beside it does
+   not offer. That is the note this block carried BEFORE the span moved, written as a hypothetical.
+   It is what happened.
+
+   ---------- AND THE SPAN IT MOVED TO IS THE ONE THE SHEET ALREADY HELD ------------------------------
+   ASKED FOR AS *"make it go from 9-6 instead of 10- to 8"*, and the two ends were not equally free
+   to move. `AVAIL_HOURS` in `constants.gs` was `[9 … 19]` — the hours a tutor's own availability
+   grid offers, and the cells `slotGrid` looks a code up in. (It is `[9 … 18]` now, the same span as
+   this: a seven o'clock tick could be made and never booked. `check-booking.js` holds the two equal.)
+
+   SO THE TWO SPANS DISAGREED AT BOTH ENDS, silently, since the booking grid was written:
+
+     · HOUR 20 HAD NO AVAILABILITY CELL AT ALL. `tAvail['m20']` is `undefined` for everybody, so any
+       tutor who had ticked a single hour was unavailable at eight in the evening on every day of
+       the week, for ever. The column was drawn, pressable-looking and permanently grey.
+     · HOUR 9 HAD ONE AND NOTHING COULD BOOK IT. A tutor ticking nine o'clock was recording a fact
+       the booking form never asked about.
+
+   NINE TO EIGHTEEN SITS INSIDE `AVAIL_HOURS` AT BOTH ENDS, so that disagreement is gone rather than
+   moved. It is not luck: the span being asked for is narrower than the sheet's on both sides, and
+   the rule for anything wider is that `AVAIL_HOURS` has to move first — the column would otherwise
+   be grey for everyone the moment they set any hours at all.
+
+   SIX IS INCLUDED, as eight was: a session STARTING at six is a session, and a grid that stops at
+   the last start time has to explain itself. Ten columns rather than eleven, which is one fewer box
+   sharing the row and so a tenth more width for each of them. */
+```
+
+### ---------- MORNING, AFTERNOON, EVENING — THE WAITING LIST'S OWN COLUMNS
+
+top level, before `SLOT_BLOCKS`
+
+```
+/* ---------- MORNING, AFTERNOON, EVENING — THE WAITING LIST'S OWN COLUMNS ---------------------------
+   ASKED FOR AS *"i want the grid blocks to form into chunks for morning, afternoon, evening ect."*,
+   and it replaces a dropdown of five phrases: `Weekday mornings`, `Weekday afternoons`, `Weekday
+   evenings`, `Weekends`, `Flexible`. The old note over that question is still right about WHY the
+   answer must be broad — *"asking a family to tick specific hours for a session that may run in six
+   weeks is asking them to promise something nobody can promise"* — and wrong about the shape: a
+   week is a SHAPE you read, which is the argument the hour grid has carried since it was written,
+   and "Weekdays" as one word cannot say that Tuesday is the one evening that does not work.
+
+   PER DAY, SO IT IS THE SAME OBJECT AS THE GRID ABOVE IT. Seven rows, the same day letters, the
+   same builder — three columns instead of eleven. A family that means "weekday evenings" presses
+   five cells, and a family whose Tuesday is football can say so, which the five phrases could not.
+
+   `from` IS THE ONLY NUMBER, and each block takes the span's hours from there up to the next one.
+   Morning is what starts before noon; evening is after five, which is what "after school" and
+   "after work" both mean for this business. A block with no hours in the span simply has none. */
+```
+
+### ---------- `head` IS THE COLUMN LABEL AND `name` IS THE WORD THAT GETS STORED
+
+top level, before `SLOT_BLOCKS`
+
+```
+/* ---------- `head` IS THE COLUMN LABEL AND `name` IS THE WORD THAT GETS STORED ---------------------
+   THEY HAVE TO BE TWO FIELDS, and that is the whole reason this is not a one-line edit. `name` goes
+   through `blockPhrase_` into the cell as `Monday morning`, which is what `waitlistWhen` splits and
+   tallies on the backend — so shortening it would leave every row written before today saying
+   `morning` and every row after it saying `morn`, counted as two different answers. That is two
+   spellings of one answer, which is the fault this repository records under `level`, `exam_wave`,
+   `topics` and `company`, and the one place it must not happen is a tally somebody reads to decide
+   when to open a class.
+
+   SO THE SHORTENING IS VISUAL ONLY. The header is a label on a column; the cell's own `title` and
+   `aria-label` are still `blockPhrase_`, so a screen reader and a long press both get the full
+   word. Measured at the width the owner asked for: `Afternoon` is 34.5px of ink in a 34.5px box at
+   390 and WRAPS ONTO TWO LINES at 320, which makes the header ragged and taller than its own row —
+   `Aft` is about 11px in 27.8. */
+```
+
+### ---------- WHAT THE ROW SAYS, WHICH IS NOT WHAT IS STORED
+
+top level, before `blockSay_`
+
+```
+/* ---------- WHAT THE ROW SAYS, WHICH IS NOT WHAT IS STORED ------------------------------------------
+   `Monday evening, Tuesday evening, Wednesday evening` IS WHAT THE GRID WRITES and it is the wrong
+   thing to print on a receipt line: measured at 390px with two blocks ticked, that row was 62px —
+   three wrapped lines in an 81px value column — and it grows by a line every time somebody presses
+   another cell. A row whose height depends on how much of the week suits you is the card changing
+   shape under the thumb answering it, which is the fault `SPINE` records about folding.
+
+   SO IT IS GROUPED BY BLOCK AND THE DAYS ARE SHORTENED: `Mon–Fri evenings`, `Sat · Sun
+   mornings`. At most three phrases whatever is ticked, because there are three blocks — so the row
+   has a ceiling rather than growing, and it reads as the sentence somebody would actually say.
+
+   THE STORED LIST IS UNTOUCHED, and that separation is the same one the hour grid already makes:
+   `BOOKING.slots` holds `m13, m14` and the row prints `Monday 13:00–15:00`, because
+   `waitlistWhen` on the backend counts the PHRASES and a grouped string would be one vote for a
+   thing nobody ticked. What is drawn is a rendering; what is sent is the answer.
+
+   A RUN OF THREE OR MORE DAYS BECOMES A RANGE, because `Mon · Tue · Wed · Thu
+   · Fri` is five times the room for one fact, and two is not a run worth a dash: `Mon ·
+   Tue` is no longer than `Mon–Tue` and does not claim a span. */
+```
+
+### ---------- WHAT IS STORED IS THE SENTENCE, NOT A CODE
+
+top level, before `blockPhrase_`
+
+```
+/* ---------- WHAT IS STORED IS THE SENTENCE, NOT A CODE --------------------------------------------
+   `Monday morning`, because that is what `waitlistWhen` counts. It splits the event message on
+   commas and tallies the phrases, so ANY phrase works and no backend change is needed — and the
+   tutor reading "Monday evening · 4 of 4" is reading the answer rather than decoding `m-evening`.
+
+   LOWER CASE ON THE BLOCK, because it is the middle of a sentence and `Monday Morning` is a title
+   nobody wrote. The day keeps its capital: it is a proper noun either way. */
+```
+
+### ---------- WHEN, AS ONE QUESTION
+
+top level, before `availSet_`
+
+```
+/* ---------- WHEN, AS ONE QUESTION -----------------------------------------------------------------
+   This was three: which day, what time, how long. It is one, and the reason is written in the old
+   file at `onSlotTick` — a session length chosen separately from the hours ticked meant two
+   controls describing one thing, and everything that function did existed to force them to agree.
+   Tick two hours on Monday and you have said the day, the time AND the length. Tick two more on
+   Wednesday and you have a second session a week, which three separate questions could not express
+   at all.
+
+   AND IT ONLY OFFERS HOURS SOMEBODY CAN ACTUALLY TEACH IN. The tutor's availability and the
+   venue's, overlapped. My three questions offered every hour of every day and would happily have
+   booked a tutor who does not work Sundays into a library that shuts at four.
+--------------------------------------------------------------------------------------------- */
+```
+
+### NOTHING SET WAS READ AS EVERYTHING FREE, and for a TUTOR that is over.
+
+in `slotGrid`
+
+```
+/* NOTHING SET WAS READ AS EVERYTHING FREE, and for a TUTOR that is over. The old note said a tutor
+     with no hours "has not said they are unavailable — nobody has said anything — so every hour is
+     offered and the sheet is the thing to fix". The owner's answer was the other way: *"tutor with
+     no hours wont be bookable."* A tutor nobody has heard from is not free all week, so a NAMED
+     tutor with an empty grid shuts every hour, and the grid says why. No tutor chosen (`t` null) is
+     unchanged — the business matches it. A VENUE with no hours is still read as open: rooms are
+     the admin's to fill in, and the owner's sentence was about tutors. */
+```
+
+### ---------- AND WHAT THE TUTOR IS ALREADY TEACHING
+
+in `slotGrid`
+
+```
+/* ---------- AND WHAT THE TUTOR IS ALREADY TEACHING ---------------------------------------------
+     `avail` says when they CAN work; `busy` says when they already are. Two facts, kept apart on
+     purpose — see `busyHours` in booking.gs for why un-ticking the availability cell would be
+     destructive rather than helpful.
+
+     THE EFFECT IS THE SAME AND THE DAMAGE IS NOT: an hour they are teaching is offered as taken,
+     and the moment that session is cancelled the hour comes back on its own, because nothing was
+     ever removed from anything. */
+```
+
+### EVERY DAY AND EVERY HOUR, ALWAYS — the ones nobody is free for greyed rather than removed.
+
+in `slotGrid`
+
+```
+/* EVERY DAY AND EVERY HOUR, ALWAYS — the ones nobody is free for greyed rather than removed.
+     A grid that changes shape as you choose things cannot be read: you cannot tell a Tuesday the
+     tutor does not work from a Tuesday that was never offered, and the row moving under your thumb
+     as you pick a venue is the same fault the dropdowns had before they started showing WHY an
+     option does not fit instead of dropping it. */
+```
+
+### ---------- `rows` IS STILL ALL SEVEN; `days` IS WHAT THE WEEK DRAWS
+
+in `slotGrid`
+
+```
+/* ---------- `rows` IS STILL ALL SEVEN; `days` IS WHAT THE WEEK DRAWS ---------------------------
+     THE PARAGRAPH ABOVE LOST ONE ARGUMENT, TO THE OWNER, 10 Oct: *"availability of tutors should just
+     show the days they have an availibility up. no need to display monday if they dont have any hours
+     on monday."* Once a tutor is NAMED, a day they have ticked nothing on is left off the week — see
+     `days` below. Everything else the paragraph says still holds and is why the cut is that narrow:
+     an hour stays greyed rather than removed, a day the tutor works stays when every hour of it is
+     taken or the venue is shut (a different fact from not working it, and the one worth trying a
+     different week for), and choosing a VENUE never moves a row. `rows` keeps all seven for every
+     reader that looks a day up by its code. */
+```
+
+### AND WHY NOT, carried on the cell so the grid can say it rather than just greying out.
+
+in `hours`
+
+```
+/* AND WHY NOT, carried on the cell so the grid can say it rather than just greying out. A
+         tutor who does not work Tuesdays and a tutor already teaching that Tuesday look identical
+         when a box is simply dim, and only one of those is worth trying a different week for. */
+```
+
+### ---------- THE DAYS THE WEEK DRAWS
+
+in `slotGrid`
+
+```
+/* ---------- THE DAYS THE WEEK DRAWS ---------------------------------------------------------------
+     A NAMED TUTOR'S WEEK IS THE DAYS THEY WORK: any day with an hour they ticked inside the span,
+     whatever has happened to that hour since (taught, or the venue shut). NO TUTOR — `No preference`,
+     or nobody chosen yet — keeps all seven: nobody's week is being shown, and the family is saying
+     when THEY can come. `tutorRow_` is null for both, so that is one test.
+
+     TWO WAYS A NAMED TUTOR STILL GETS ALL SEVEN, both so the week can carry its reason. Nothing ticked
+     at all (`tNone`) and ticks only outside the span both leave no day to draw — and `weekRows_` puts
+     `why` under the LAST row, so an empty week would lose the sentence saying why it is empty. Seven
+     greyed rows and the reason is what that tutor got before today.
+
+     ---------- AND A TICK ON A DAY THAT GOES IS FOUND, NOT LOST ----------------------------------------
+     CHOOSING A TUTOR NEVER UNTICKED ANYTHING, and that is how the form treats every hour that stops
+     being bookable: Monday 10:00 ticked under No preference, then Ada chosen, who does not teach
+     Mondays — the tick stays in `BOOKING.slots`, the cell draws lit-and-greyed (`on shut`, disabled),
+     its title says `not available`, the day's `× 1` and the When answer still count it, and
+     `createJob`'s `tutorHoursRefusal_` refuses it by name at the send. Dropping Monday's ROW would
+     hide that tick while the price still multiplied by it. So a day with a tick on it stays drawn
+     whether the tutor works it or not, exactly as it would have been before. */
+```
+
+### THE TICKED HOURS, GROUPED INTO SESSIONS.
+
+top level, before `bookRuns`
+
+```
+/**
+ * THE TICKED HOURS, GROUPED INTO SESSIONS.
+ *
+ * A run of adjacent hours in one day IS a session, and its length IS the session length. Carried
+ * over whole from `lessonRuns`, because it is the rule that lets one grid answer three questions.
+ */
+```
+
+### ---------- IN THE WEEK'S OWN ORDER, OFF `SLOT_DAYS`
+
+in `bookRuns`
+
+```
+/* ---------- IN THE WEEK'S OWN ORDER, OFF `SLOT_DAYS` -----------------------------------------
+     THIS SORTED THE CODE PREFIXES ALPHABETICALLY — `f`, `m`, `sa`, `su`, `th`, `tu`, `w` — which is
+     Friday, Monday, Saturday, Sunday, Thursday, Tuesday, Wednesday. Measured: a Monday-and-Friday
+     booking, which is the commonest two-day shape there is, came back `Friday, Monday`.
+
+     AND IT IS NOT ONLY THE READING ORDER, because three things are taken from the FIRST run. The
+     day list goes on the receipt and into the job's `weekday` cell; `time` is the first run's hour
+     and becomes `start_time`; `hours` is the first run's length and becomes `hours_per_session`,
+     which `priceLooksWrong` then measures the total against. So a Monday 10-12 with a Friday 16-18
+     recorded its start as 16:00, and a Monday 10-12 / Wednesday 15-16 / Friday 09-12 recorded a
+     three-hour session because Friday sorted first. The comment above says the first run names the
+     session, and it meant the first of the WEEK.
+
+     THE TOTAL IS UNAFFECTED, which is why nothing showed: the money is built from `hoursPerWeek`
+     and the real session dates (see `priceFrom`), and both are sums over every run.
+
+     `blockSay_` ALREADY LEARNED THIS — *"in the week's own order, off `SLOT_DAYS`, so Sunday cannot
+     sort to the front"* — on the waiting list's week, written months after this one. One lesson,
+     applied to one of the two weeks, which is this repository's oldest shape. */
+```
+
+### Every question, in the order somebody assembles a booking:
+
+top level, before `UNNAMED`
+
+```
+/* Every question, in the order somebody assembles a booking: WHAT, then WHO FOR, then WHERE, then
+   WHEN, then HOW LONG, then WHO BY. `multi` means several answers are normal rather than an edge
+   case — two subjects in one session is a thing people do, one venue is not.
+   `why` is what makes an option that does not fit visible instead of absent. */
+```
+
+### ---------- WHICH BRANCH, AND WHY THE NAME CHANGED
+
+top level, before `UNNAMED`
+
+```
+/* ---------- WHICH BRANCH, AND WHY THE NAME CHANGED -----------------------------------------------
+   IT WAS CALLED `isClass_` AND IT MEANT THE WAITING LIST. That was survivable while the button said
+   "a shared class", and it is actively misleading now the two are called "start a class" and "join
+   a waiting list" — because under the old name, the branch for STARTING a class was the one where
+   `isWaiting_()` returned FALSE. A reader would have to test it to believe it.
+
+   The real difference is waiting, so the name is `isWaiting_` and the test looks for "wait".
+   Matched as a substring rather than the whole string, so rewording the button again cannot
+   silently send every booking down the wrong branch. */
+```
+
+### THE ANSWER FOR A SEAT NOBODY HAS DECIDED ABOUT.
+
+top level, before `UNNAMED`
+
+```
+/* THE ANSWER FOR A SEAT NOBODY HAS DECIDED ABOUT. Named once so the option, the check that exempts
+   it from the seat cap, and the roster that turns it into "Child" all mean the same string — three
+   copies of a literal is two chances to change one and not the others. */
+```
+
+### ---------- THE CLASSES ON OFFER, NAMED FOR A DROPDOWN
+
+top level, before `NEW_LIST`
+
+```
+/* ---------- THE CLASSES ON OFFER, NAMED FOR A DROPDOWN --------------------------------------------
+   WHAT SOMEBODY NEEDS TO TELL TWO APART: what is taught, where, and how much room is left. The day
+   and the time are deliberately absent — a waiting list has neither until it fills, which is the
+   whole difference between it and an instant class.
+
+   ONE FUNCTION, because the label is also the KEY. A step stores the string somebody chose, so
+   finding the job again means matching that string — and a second copy of this, written slightly
+   differently, would match nothing and silently drop the class from the booking. */
+```
+
+### WHEN IT RUNS, FOR ONE THAT ALREADY DOES.
+
+in `openClassLabel_`
+
+```
+/* WHEN IT RUNS, FOR ONE THAT ALREADY DOES. A waiting list has no day — that is what makes it a
+     list — but an instant class does, and it is the fact somebody choosing between two of them
+     needs most. Left off where there is none rather than printed empty. */
+```
+
+### ---------- A LIST AND A CLASS ARE JOINED DIFFERENTLY
+
+top level, before `isWaitJob_`
+
+```
+/* ---------- A LIST AND A CLASS ARE JOINED DIFFERENTLY -------------------------------------------
+   `kind` IS ON THE PAYLOAD and says which. A waiting list is a thing that exists to be joined —
+   you buy a seat and the server prices it. A class that is already running belongs to the family
+   who booked it, and joining is a REQUEST to them.
+
+   BOTH ARE JOINABLE AND ONLY ONE WAS OFFERED. The form asked "a list already going, or a new one?"
+   only after somebody said "waiting list class", so a class with two seats left and a subject you
+   wanted was invisible unless you happened to be looking at the right card. `canAsk` — computed by
+   the backend, which knows whether the owner opened it to others — has been on every one of them
+   the whole time. */
+```
+
+### ---------- WHICH OF THE TWO THINGS THIS IS
+
+in `BOOK_STEPS`
+
+```
+/* ---------- WHICH OF THE TWO THINGS THIS IS -----------------------------------------------------
+     THEY ARE NOT THE SAME PRODUCT AND THE FORM CANNOT PRETEND THEY ARE.
+
+     A session of your own is a negotiation: you pick the subjects, the level, the seats, the venue,
+     the day, the term, and a tutor if you have a view. Everything about it is yours to set, and the
+     price falls out of what you chose.
+
+     A shared class is the opposite of all of that. One seat, Maths and English, no tutor to pick,
+     no day yet — and a price that is FIXED before anybody joins, because four families are buying
+     the same seat and have to be shown the same number. What you choose is the venue and the level,
+     and that is genuinely all.
+
+     SO IT FORKS HERE, at the first question, and every question that belongs only to a session
+     offers nothing when the answer is a class. `nextBookStep` skips a question with no options —
+     the same rule that already hides the children question from somebody with no children — so the
+     fork needs no new machinery and cannot fall out of step with itself. */
+```
+
+### ---------- THE TRADE-OFF, SAID PLAINLY
+
+in `BOOK_STEPS`
+
+```
+/* ---------- THE TRADE-OFF, SAID PLAINLY ---------------------------------------------------------
+     THE TWO OPTIONS SAID "A session of your own" AND "A shared class — join the waiting list",
+     which describes the paperwork and not the choice. Somebody reading that has no idea which one
+     costs more, which one is certain, or what they are giving up either way — and it is the only
+     question in the form where the two answers lead to genuinely different bargains.
+
+     WHAT THE CHOICE ACTUALLY IS:
+
+       BOOK IT YOURSELF — certain, and you carry the cost. The time is yours from the moment you
+       pay. Take every seat and it is private; take one and the rest may fill up later, which
+       brings the price down for everybody. You do not have to wait to find out.
+
+       JOIN A CLASS — cheaper, and it is a gamble. One seat, a fixed price per child, and it only
+       runs if enough others take a seat too. Nothing is charged until it does.
+
+     `why` CARRIES THE DETAIL rather than the label, because a label long enough to explain a
+     bargain is a label nobody finishes reading. The short version is on the button and the reason
+     sits under it. */
+```
+
+### ---------- THE TRADE-OFF, IN ONE LINE EACH
+
+in `BOOK_STEPS`
+
+```
+/* ---------- THE TRADE-OFF, IN ONE LINE EACH -----------------------------------------------------
+     `why` IS CALLED ONCE PER OPTION, WITH THAT OPTION. I ignored the argument and returned the same
+     two paragraphs both times — so each button carried the full explanation of BOTH choices,
+     including the one it was not. Every word on the screen twice, and half of it describing the
+     button next to it.
+
+     ONE SHORT LINE EACH, and it names the thing that differs rather than everything that is true.
+     What separates these two is certainty against price: one is yours the moment you pay, the other
+     is cheaper and might not happen. That is the whole decision, and it fits on a line. */
+```
+
+### ---------- WHO IT IS FOR IS THE FIRST QUESTION
+
+in `BOOK_STEPS`
+
+```
+/* ---------- WHO IT IS FOR IS THE FIRST QUESTION ------------------------------------------------
+     ASKED FOR AS *"the 'for' field should be before 'Kind'"*, and the order of this list IS the
+     order of both documents — so moving the question moves the row on the form and on the receipt
+     together. It reads the way somebody says it out loud: who this is for, then what kind of thing
+     it is. It was last because it is admin-only and skips itself for everybody else, which is an
+     argument about who is asked rather than about where it belongs.
+
+     THE FIVE ROWS PINNED TO IT HAD TO COME OFF, and that is the half that would have gone wrong in
+     silence. `Dates`, `Note`, `About`, `A seat` and `Shared by` were pinned `after: 'For'` because
+     `For` was the last question — so moving it to the front would have carried the dates, the note
+     and the two waiting-list lines up to the top of the card with it. They are pinned to the TAIL
+     now instead, which is what they were always for: a foot that does not care which question
+     happens to be last is a foot that survives the next reordering. Same fault the note over the
+     old pinning already records about using an index.
+
+     `check-spine.js` IS WHAT MAKES THIS SAFE TO DO AT ALL — one order, both documents, and a row
+     that falls off the spine is a failure rather than a row quietly drawn somewhere else. */
+```
+
+### ---------- WHOSE BOOKING IT IS
+
+in `BOOK_STEPS`
+
+```
+/* ---------- WHOSE BOOKING IT IS ------------------------------------------------------------------
+     ADMIN ONLY, AND IT SKIPS ITSELF FOR EVERYBODY ELSE. A client has exactly one answer to this and
+     being asked it is being asked to confirm they are themselves — so the options list comes back
+     empty and `nextBookStep` passes over it, which is the same rule that already hides the children
+     question from somebody with no children. No new machinery, and nothing to keep in step.
+
+     WHY AN ADMIN NEEDS IT: somebody rings up and you book it for them. Without this the receipt
+     says the booking belongs to whoever was holding the phone, which is you. */
+```
+
+### WHOEVER IS SIGNED IN, UNTIL SOMEBODY SAYS OTHERWISE.
+
+in `BOOK_STEPS`
+
+```
+/* WHOEVER IS SIGNED IN, UNTIL SOMEBODY SAYS OTHERWISE. The same expression `bookPrice`,
+       `breakdownRows` and the submitted job have each carried privately — said once here instead,
+       so the row cannot disagree with what is actually sent. */
+```
+
+### `DATA.people` AND `hasRole_` BOTH NEVER EXISTED — I wrote them from memory of what a codebase like this usually has.
+
+in `options`
+
+```
+/* `DATA.people` AND `hasRole_` BOTH NEVER EXISTED — I wrote them from memory of what a
+         codebase like this usually has. The payload sends `tutors` and `students` and now
+         `clients`, filtered server-side to admins, which is the right place for that decision:
+         a list the browser has to be trusted not to show is a list that has already been sent. */
+```
+
+### ---------- AND NOBODY AT ALL, WHICH IS HOW A LIST IS OPENED
+
+in `options`
+
+```
+/* ---------- AND NOBODY AT ALL, WHICH IS HOW A LIST IS OPENED ---------------------------------
+         EVERY OPTION WAS A PERSON, so an admin could not say "this is for nobody yet" — and that is
+         exactly what opening a waiting list before a campaign IS. The list has to exist with zero
+         families on it, so the first person who arrives finds one to join rather than one to start.
+
+         FIRST IN THE LIST ON A WAITING LIST, LAST OTHERWISE. On the waiting-list branch it is the
+         likely answer; on an ordinary booking it is a strange one, and the order should say which.
+
+         A SESSION FOR NOBODY IS STILL REFUSED — see `why` below. Nobody sits in the chair at a
+         session somebody booked outright, and offering it there would be offering a booking that
+         cannot happen. */
+```
+
+### ---------- "your own booking" WAS HERE AND IT WAS THE ROW READ BACK TO YOU
+
+in `BOOK_STEPS`
+
+```
+/* ---------- "your own booking" WAS HERE AND IT WAS THE ROW READ BACK TO YOU -----------------
+       REPORTED AS *"There seems to be writing under one of the fields at the top. It's redundant or
+       unnecessary."* It was the first note on the card, under the first field, and it printed
+       `your own booking` beneath a row already reading `For — <your own name>`. One fact drawn
+       twice, which is the fault this repository records where the roster's `name` put an `<h3>`
+       above every widget's own heading: both were correct, and both were on the screen at once.
+
+       THE OTHER BRANCH STAYS, because it is not the row said again. `Nobody yet — just open it` is
+       what you PICKED; *the list opens empty, and families join it* is what happens NEXT, and
+       nothing else on the card says it. That is the line between a note worth its thirteen pixels
+       and a caption. */
+```
+
+### BOTH ARE "START", because both are things you set going — the difference is whether it runs now or waits for company.
+
+in `BOOK_STEPS`
+
+```
+/* BOTH ARE "START", because both are things you set going — the difference is whether it runs
+       now or waits for company. "Join a waiting list" was wrong twice over: there may be no list to
+       join, and you are the one opening it. */
+```
+
+### THE TWO KINDS, NAMED.
+
+in `BOOK_STEPS`
+
+```
+/* THE TWO KINDS, NAMED. "Start a class" and "Start a waiting list" describe the ACT; what a
+       family ends up with is an INSTANT CLASS or a WAITING LIST CLASS, and those are the words that
+       belong on the card afterwards too. Naming the thing rather than the button lets the form, the
+       receipt and the saved job all say the same noun.
+       `isWaiting_` still matches on "wait", which both old and new wording contain. */
+```
+
+### ---------- JOINING ONE, OR STARTING ONE
+
+in `BOOK_STEPS`
+
+```
+/* ---------- JOINING ONE, OR STARTING ONE ----------------------------------------------------------
+     THE OPEN CLASSES WERE CARDS IN FIND, each with a "Take a seat" button — a whole findable kind
+     for a handful of rows, and a second way to make a booking that did not look like the first one.
+     Somebody wanting a class had to know to go looking for one; somebody filling in this form was
+     never told they existed.
+
+     THEY ARE AN ANSWER TO A QUESTION THIS FORM WAS ALREADY ASKING. "Waiting list class" is chosen
+     one row above; the only thing left to know is whether it is a list that already exists or a new
+     one, and that is a dropdown like every other field on the paper.
+
+     "START A NEW ONE" IS FIRST AND IS NOT A CLASS. Opening a list and joining one are both waiting
+     list classes and the form has to let you say which — leaving it out would mean nobody could ever
+     open the first list at a new venue.
+
+     ASKED ONLY WHEN IT APPLIES. An empty option list is how every other step here says "not this
+     time", and `nextBookStep` skips one — so on an instant class this row does not exist. */
+```
+
+### THE ONES OF THE KIND BEING ASKED FOR.
+
+in `BOOK_STEPS`
+
+```
+/* THE ONES OF THE KIND BEING ASKED FOR. Say "waiting list" and the lists are offered; say
+       "instant" and the classes already running with room in them are. Nothing is offered before
+       the kind is chosen, because the two are joined by different verbs and a mixed list would ask
+       somebody to tell them apart from a label. */
+```
+
+### ---------- IT WAS ALWAYS MULTI AND NOTHING ON THE CARD SAID SO
+
+in `BOOK_STEPS`
+
+```
+/* ---------- IT WAS ALWAYS MULTI AND NOTHING ON THE CARD SAID SO --------------------------------
+     ASKED FOR AS *"subject drop down should allow multi select"*, and measured before anything was
+     changed: `multi: true` has been on this step since it was written, the `change` handler
+     toggles rather than replaces, a chosen option comes back with a ✓ in front of it, and the row
+     reads "Maths, English Language" once two are picked. Every part of it works.
+
+     WHAT WAS MISSING IS THE SENTENCE. A closed dropdown showing "—" is a dropdown you pick ONE
+     thing from, everywhere else anybody has used one — so nothing invited a second tap, and a
+     feature nobody knows is there is a feature that is not. The note is drawn under the row now
+     (see `stepRows_`, which found seven of these written and drawn nowhere), which is the one place
+     it can be said without a second control to keep in step.
+
+     IT SPEAKS WHILE THERE IS SOMETHING TO SAY. Once two are chosen the row says so itself and the
+     line would be explaining a thing already on the screen — the fault this file records where the
+     roster's name printed an `<h3>` above every widget's own heading. */
+```
+
+### ---------- AND THEN THE SENTENCE CAME OFF AGAIN
+
+in `BOOK_STEPS`
+
+```
+/* ---------- AND THEN THE SENTENCE CAME OFF AGAIN ----------------------------------------------
+     REPORTED WITH A SCREENSHOT OF THE CARD AND ONE WORD: "remove this text". The note above is the
+     argument for it and it is still true of a dropdown nobody has opened — and it was printed on
+     the most crowded card in the app, under the first field, where the row above it already reads
+     back whatever has been picked. The owner has now read it, so it has done the one job it had.
+
+     `multi: true` IS UNTOUCHED, which is the half that matters: choosing again still adds one and a
+     ticked one still comes back off. What is gone is the caption saying so. */
+```
+
+### ---------- AND A WAITING LIST IS ASKED IT TOO
+
+in `BOOK_STEPS`
+
+```
+/* ---------- AND A WAITING LIST IS ASKED IT TOO ------------------------------------------------
+     THIS RETURNED `[]` WHEN `isWaiting_()`, on the argument written above it: *"A class is Maths
+     and English, and that is what the class IS rather than something to pick."* True of JOINING a
+     list that somebody has already opened — and the row above this one asks exactly that, and
+     `book-set` writes the class's subject in when you choose one, so joining is already covered by
+     a different mechanism.
+
+     WHAT IT ALSO DID WAS SILENCE THE QUESTION FOR SOMEBODY OPENING A NEW LIST. Reported as *"it
+     doesnt let choosing a subject even though im trying to start a NEW waitlist"*, which is the
+     one case the old rule had nothing to say about: there is no class yet, so there is nobody whose
+     decision this already is. */
+```
+
+### ---------- WHAT KIND OF SESSION: TUTORING, A PRACTICAL OR A TRIP (docs/history/353)
+
+in `BOOK_STEPS`
+
+```
+/* ---------- WHAT KIND OF SESSION: TUTORING, A PRACTICAL OR A TRIP (docs/history/353) ----------------
+     A NEW QUESTION, NOT "Kind" RENAMED. `Kind` two rows up is instant class against waiting list — when
+     it runs — and this is what it IS; the two are independent, so one field could not hold both.
+     `Subject` stays the subject: a practical is still Chemistry, a trip is still History.
+     THE FORMAT DECIDES THE ROWS, through `bookOn_`: a practical asks which one and prices its kit, a
+     trip asks which one, prices its tickets and travel, and has no Venue or Space to ask about. The
+     teaching is priced exactly as it always was in all three.
+     TUTORING UNLESS SOMEBODY SAYS OTHERWISE — the fallback, so a family who only wants a lesson is
+     never stopped by a question about practicals. Instant classes only: a waiting list is Maths and
+     English in a room, which is a tutoring session by definition. */
+```
+
+### THE PRACTICALS ARE `data/practicals.json`, by name, in the order a person looks one up.
+
+in `BOOK_STEPS`
+
+```
+/* THE PRACTICALS ARE `data/practicals.json`, by name, in the order a person looks one up. 65 of the 82
+     have no cost yet; they are offered all the same — a lab practical is still worth booking — and the
+     admin's Money block says "not costed" rather than pricing the kit at nothing. */
+```
+
+### ---------- HOW MANY SEATS, AND WHAT THE REST OF THEM COST YOU
+
+in `BOOK_STEPS`
+
+```
+/* ---------- HOW MANY SEATS, AND WHAT THE REST OF THEM COST YOU ---------------------------------
+     THE NUMBER IS NOT JUST A HEAD COUNT. Take every seat and the session is private and you pay for
+     all of it; take fewer and the empty ones may fill later, which brings the price down for
+     everybody who is in it. That is the second half of the bargain the fork above offered, and the
+     question asked it as though it were only arithmetic. */
+```
+
+### ---------- HOW MANY EXTRA, NOT HOW MANY IN TOTAL
+
+in `BOOK_STEPS`
+
+```
+/* ---------- HOW MANY EXTRA, NOT HOW MANY IN TOTAL -----------------------------------------------
+     "HOW MANY SEATS" MADE SOMEBODY COUNT THEMSELVES IN. A parent booking for one child had to work
+     out that the answer was 1, and a parent wanting one other family had to work out that it was 2
+     — arithmetic in a question that should not need any.
+
+     THE VALUE IS STILL THE TOTAL. `n` is read by the pricing, the room capacity and the roster, and
+     changing what the number MEANS would put every one of them out by one. `label_` changes only
+     what is written on the option, so the question reads in extras and the booking still stores the
+     count everything downstream expects. Presentation moved; the data did not. */
+```
+
+### ---------- WHO TEACHES IT IS ASKED EARLY, NOT LAST
+
+in `BOOK_STEPS`
+
+```
+/* ---------- WHO TEACHES IT IS ASKED EARLY, NOT LAST -----------------------------------------------
+     IT WAS THE FINAL QUESTION, and on the receipt that put `Tutor` twenty rows down among the
+     arithmetic — under the term rows and `Split` — when it is one of the three things
+     anybody actually looks for. The order of this list IS the order of both documents now, so
+     moving the question is the whole change: the form asks it here and the receipt prints it here.
+
+     AFTER `Level` AND NOT BEFORE `Subject`, because the tutor list is filtered by what and at what
+     level — asking who before what would offer everybody and then quietly narrow it. Subject, level,
+     then who, which is the order somebody says it out loud.
+
+     THE ROWS PINNED AFTER IT MOVE TOO, so they are re-pinned to `For` — the last question now.
+     `Dates`, `Note` and the two waiting-list lines belong at the foot, not beside the tutor. */
+```
+
+### ---------- AND AN UNLISTED TUTOR IS THE SERVER'S DECISION, NOT THIS LIST'S
+
+in `BOOK_STEPS`
+
+```
+/* ---------- AND AN UNLISTED TUTOR IS THE SERVER'S DECISION, NOT THIS LIST'S --------------------
+     THIS FILTERED `t.listed !== false` AND THAT WAS A SECOND COPY OF A POLICY. `doGet`'s gate is
+     `(listed || viewerIsAdmin)`, so a client is never SENT an unlisted tutor and there was nothing
+     here for that clause to remove — it only ever hid them from the one person the server had
+     deliberately shown them to. Measured as the admin: the dropdown offered two tutors and the
+     roster three, on the same payload, and `js/find.js` had had its own copy of the same clause
+     removed months earlier while this one was never found. The `MESSAGING` fault, and the reason
+     is always the same: a rule written twice is two rules to keep in step, and the copy is the one
+     that goes stale.
+
+     MARKED RATHER THAN SILENT, because an admin offering a switched-off tutor to a family needs to
+     know that is what they are doing. `label_` changes the option's TEXT and not its value, which
+     is what keeps `priceFrom`'s `norm(t.title) === norm(tutor)` working — the same split
+     `shortLabels_` draws in the funnel. The card says it the same way: `· not listed`. */
+```
+
+### ---------- A TUTOR WITH NO HOURS CANNOT BE CHOSEN, AND SAYS WHY
+
+in `BOOK_STEPS`
+
+```
+/* ---------- A TUTOR WITH NO HOURS CANNOT BE CHOSEN, AND SAYS WHY ---------------------------
+       ASKED FOR AS *"tutor with no hours wont be bookable."* An empty availability grid used to
+       mean EVERY HOUR OPEN — `slotGrid`'s old note: "nobody has said anything, so every hour is
+       offered and the sheet is the thing to fix" — which put a tutor who had never opened Settings
+       in front of a family as free all week. Nobody had said they were free either.
+
+       DISABLED, NOT ABSENT, for the reason `stepSelect_` gives every option: a list whose names
+       come and go cannot be learnt, and a family looking for a tutor they were told about should
+       find them, greyed, with the reason beside the name. `No preference` is untouched — a booking
+       nobody has named a tutor for is matched by the business, exactly as before. */
+```
+
+### ---------- A WAITING LIST HAS NO TUTOR YET, AND THE ROW WAS SHOWING THE LAST ONE
+
+in `BOOK_STEPS`
+
+```
+/* ---------- A WAITING LIST HAS NO TUTOR YET, AND THE ROW WAS SHOWING THE LAST ONE -----------
+       REPORTED AS *"when i want to do a waitlist session it just defualts to sasha motola and wont
+       let change. it should defualt to no preference and not be able to change."* Both halves were
+       true and only one of them was intended: `options()` is empty on this branch, so `stepLocked_`
+       greys the row — correct, because who teaches a list is settled when it fills — and a locked
+       row prints `BOOKING[st.id]`, which was whatever had been picked before the kind was switched.
+
+       `fallback` IS THE HOOK THE `client` STEP ALREADY USES for exactly this shape: *"the row shows
+       what the booking would be submitted as, which is the only honest thing for it to show."* And
+       `bookPick` clears the tutor when the kind changes, so the stale name cannot win the `||`
+       above it — the fallback alone would have been a second rule losing to a stale cell. */
+```
+
+### ---------- THE NUMBER ON THE ROW IS THE EXTRA SEATS, AND THE ONE IN `BOOKING` IS THE TOTAL
+
+in `BOOK_STEPS`
+
+```
+/* ---------- THE NUMBER ON THE ROW IS THE EXTRA SEATS, AND THE ONE IN `BOOKING` IS THE TOTAL ----
+     ASKED FOR AS *"change this to be extra seats, then options are 0,1,2,3."* The question already
+     said "How many extra seats?" and then offered `Just mine`, `One more seat`, `2 more seats` —
+     three different ways of counting one thing, none of them the bare number that was asked for.
+
+     `BOOKING.n` STAYS THE TOTAL, which is the half that matters and the half nobody sees.
+     `seatLimits`, `spaceFor`, `priceFrom` and the backend all read it as *how many chairs*, so
+     storing the extras would be one fact in two units — the `needs_print`/`print_required` shape
+     this repository has paid for three times. `label_` is the whole of the change: the stored value
+     is the total and the drawn value is the total minus yours.
+
+     `String(...)`, NOT THE NUMBER. `stepRows_` does `String(text || '—')`, and `0` is falsy — so a
+     `label_` returning the number zero would print a dash over an answer somebody had given.
+
+     FOUR OPTIONS, BECAUSE FOUR WAS ASKED FOR, and still capped by what the room and the tutor
+     allow: a rule that offers three extra seats in a room that holds two is a rule that has to be
+     refused a line below, which is worse than not offering them. */
+```
+
+### ---------- AND A WAITING LIST GETS TO ANSWER IT TOO
+
+in `BOOK_STEPS`
+
+```
+/* ---------- AND A WAITING LIST GETS TO ANSWER IT TOO --------------------------------------
+       THIS RETURNED `[]` WHEN `isWaiting_()`, under a comment saying a class is one seat and the
+       seat is the price — reported as *"it doesnt let me select number of extra seats for waitlist
+       session."* A family with two children joining a list wants two seats on it, and an empty
+       option list is how `stepLocked_` greys a row, so the question was not merely unasked: it was
+       shown, greyed, with whatever the previous branch had left in it. */
+```
+
+### ---------- AND IT STARTS AT THE FLOOR, NOT AT ONE
+
+in `BOOK_STEPS`
+
+```
+/* ---------- AND IT STARTS AT THE FLOOR, NOT AT ONE ----------------------------------------
+       ASKED FOR AS *"if its at clients house, then it should minimum 3 extra seats. there should be
+       no option for 1 extra seat."* The floor is `seatLimits`' job and always was — a venue with a
+       minimum party size has set one for as long as that function has existed — and this loop
+       ignored it, offering 1, 2, 3 and 4 whatever it said. So the rule that refused a number below
+       the minimum one line down was refusing numbers this list had just offered.
+
+       FOUR OPTIONS FROM THE FLOOR rather than four from one, so "four options, because four was
+       asked for" still holds and the window slides. At a paid venue the floor is 1 and the list is
+       1, 2, 3, 4 exactly as before; at somebody's own house it is 4, 5, 6, 7 — extras 3, 4, 5 and 6.
+
+       AND THE FLOOR IS ALWAYS OFFERED, even where it is above the ceiling. A tutor who takes two
+       students and a home visit that needs four is a real contradiction, and an empty list is how
+       `stepLocked_` greys a row — the exact fault this step was reported for. One option and the gold
+       line under it saying what is wrong beats a dead control saying nothing. */
+```
+
+### THE SAME THREE ARGUMENTS AS THE LIST ABOVE, and that is what makes this the refusal for a number the list cannot offer rather than a second opinion about what
+
+in `BOOK_STEPS`
+
+```
+/* THE SAME THREE ARGUMENTS AS THE LIST ABOVE, and that is what makes this the refusal for a
+       number the list cannot offer rather than a second opinion about what the bounds are. `loc`
+       reads the CURRENT venue, so a seat count chosen before the venue and left behind by it says so
+       here — which is where the floor becomes visible on a form that asks these two in this order. */
+```
+
+### ---------- IN THE ROW'S OWN UNITS, WHICH THIS PRINTED THE OTHER ONE OF
+
+in `why`
+
+```
+/* ---------- IN THE ROW'S OWN UNITS, WHICH THIS PRINTED THE OTHER ONE OF --------------------
+         `lim.min` IS A TOTAL and this row draws EXTRAS — `label_` above subtracts your own chair, and
+         this sentence did not. So the one rule that makes the minimum reachable in practice would
+         have put "needs 4" under a control offering 0, 1, 2 and 3: the same fact in two units, one
+         inch apart, which is the shape this repository records under `needs_print` / `print_required`
+         and under `BOOKING.n` itself. Reachable before this commit too, on any venue with a minimum
+         party size — nothing here has ever had one, which is why nobody had read the sentence. */
+```
+
+### "I'LL HOST" IS A CHOICE, and it was an inference — turned on only when somebody picked "At home", so a client who wanted to provide the room at a paid venue
+
+in `BOOK_STEPS`
+
+```
+/* "I'LL HOST" IS A CHOICE, and it was an inference — turned on only when somebody picked "At
+     home", so a client who wanted to provide the room at a paid venue could not say so and never
+     saw the saving. The rule the pricing chain has always followed is written at `const V`: the
+     client provides the space, so they pay no venue rent, and it is AUTO-ON AND LOCKED for a venue
+     that costs nothing.
+     Locked is what `nextBookStep` already does with a one-answer question — a free venue offers
+     only "Yes", so it is filled in and never asked. Nothing special is needed for the lock; it
+     falls out of the rule that a question with one answer is not a question. */
+```
+
+### ONE QUESTION WHERE THERE WERE THREE.
+
+in `BOOK_STEPS`
+
+```
+/* ONE QUESTION WHERE THERE WERE THREE. `days`, `time` and `hours` all described the same
+     fact, which is the mistake the old file had already found and removed: two controls for one
+     thing means code whose whole job is making them agree.
+     `grid` rather than a list, so it is drawn by hand below rather than as options. */
+```
+
+### `grid: 'hours'` RATHER THAN `true`.
+
+in `BOOK_STEPS`
+
+```
+/* `grid: 'hours'` RATHER THAN `true`. There are two weeks on this form now — eleven hours for a
+     session, three blocks for a waiting list — and `stepRows_` renders their values differently:
+     one is `bookRuns()`, a span with a start and an end, and the other is a list of phrases. A
+     boolean could not tell them apart and the runs branch would have run over the blocks. */
+```
+
+### ---------- `week: true` MAKES THIS STEP SEVEN ROWS RATHER THAN ONE
+
+in `BOOK_STEPS`
+
+```
+/* ---------- `week: true` MAKES THIS STEP SEVEN ROWS RATHER THAN ONE -----------------------------
+     `short` IS NOT A LABEL ANY MORE, IT IS AN ANCHOR. No row is drawn called "When": the seven days
+     are the questions and `SPINE` holds their names in this step's place. What `short` still does is
+     hold the position — `SPINE_EXTRA`'s `{ after: 'When', row: 'Per session' }` pins itself to it,
+     so that row lands after Sunday without naming a day. */
+```
+
+### ---------- WHEN COULD YOU COME?
+
+in `BOOK_STEPS`
+
+```
+/* ---------- WHEN COULD YOU COME? ----------------------------------------------------------------
+     A CLASS HAS NO DAY YET, and that is the whole reason to ask this. An ordinary session picks
+     exact hours off the grid — a stronger answer than any of these, which is why the grid question
+     is the one a class does not get. A waiting list is four families who have not met, and the day
+     is chosen AFTER they have all joined. Somebody has to know what would suit them.
+
+     BROAD, NOT EXACT. Asking a family to tick specific hours for a session that may run in six
+     weeks is asking them to promise something nobody can promise — and four exact grids rarely
+     overlap at all, so the answer would be no class. "Weekday evenings" from four families is
+     something you can actually schedule against.
+
+     SEVERAL ANSWERS, because most families have more than one. And `Flexible` is on the list
+     rather than implied by ticking everything: a parent who means "whatever suits you" should be
+     able to say it in one tap, and it reads differently from six ticks — one is a preference and
+     the other is an offer.
+
+     IT IS NOT STORED ON THE JOB. Four families on one list have four different answers, and the
+     job is one row — so it goes on each family's own JOINING EVENT, where it is theirs by
+     construction and needs no column. See `joinWaitlist`. */
+```
+
+### ---------- "FREE" MEANT FREE OF CHARGE TO EVERY READER
+
+in `BOOK_STEPS`
+
+```
+/* ---------- "FREE" MEANT FREE OF CHARGE TO EVERY READER --------------------------------------
+     The question is "when could you come?" and the column said `Free`, on a card whose other
+     columns are money. Nobody reads that as availability — they read it as a price of nothing, on a
+     row sitting two lines from a running total.
+
+     `When free` IS NINE CHARACTERS and the column holds nine. It also pairs with `When` directly
+     above it, which is the settled day for an instant class; these are the two halves of the same
+     question and now look like it. */
+```
+
+### ---------- AND IT IS THE WEEK NOW, NOT FIVE PHRASES
+
+in `BOOK_STEPS`
+
+```
+/* ---------- AND IT IS THE WEEK NOW, NOT FIVE PHRASES -------------------------------------------
+     IT WAS A MULTI-SELECT: `Weekday mornings`, `Weekday afternoons`, `Weekday evenings`,
+     `Weekends`, `Flexible — whatever suits`. Everything the note above says about the answer being
+     BROAD is still true and is why the columns are blocks rather than hours; what changed is that
+     the week is drawn, which is the argument the hour grid has always carried — *"which hours are
+     free across a week is a SHAPE"* — and five phrases in a dropdown destroyed exactly that.
+
+     `grid: 'blocks'` MAKES `stepControl_` DRAW NOTHING and `stepGrid_` draw the week, which is the
+     path the When row has taken since the panel was removed. `multi` stays because the answer is
+     still a list and `BOOKING.avail` is still initialised to `[]` by the same line.
+
+     `options` IS EMPTY AND THAT IS NOT WHAT LOCKS IT. `stepLocked_` tests `st.grid` FIRST, so a
+     grid step is answerable with no options — which is how the hour week has always worked. */
+```
+
+### ---------- AND IT IS NOT ON AN ORDINARY BOOKING AT ALL
+
+in `BOOK_STEPS`
+
+```
+/* ---------- AND IT IS NOT ON AN ORDINARY BOOKING AT ALL -------------------------------------
+     REPORTED AS *"When free field is redundant now as we are using the grid bit."* Measured on the
+     ordinary form: a row reading `When free  —`, with no control, no week and nothing that can ever
+     fill it — directly under the When row, which had just answered the same question to the hour.
+     `stepGrid_` draws the blocks only on the waiting branch and `options()` is empty, so
+     `stepControl_` draws nothing either: a question with no way to answer it, printed under the
+     answer.
+
+     THE RULE IS THE ONE `only:` ALREADY STATES on `SPINE_EXTRA`, and the distinction it draws is
+     the whole of why this is a deletion rather than a lock. A row you have not answered YET keeps
+     its dash — you are about to answer it, and a line appearing under your thumb moves everything
+     below it. A row this BRANCH can never answer was never on this document: an ordinary booking
+     does not become a waiting list.
+
+     `When` IS NOT MARKED AND THAT ASYMMETRY IS DELIBERATE. On a waiting list it is a dash too — and
+     it says *no day yet*, which is TRUE of that booking and becomes a real day once the list fills.
+     `When free` on an instant booking is not a fact about the booking; it is a question already
+     answered one row above, more precisely, by the grid that prompted this. */
+```
+
+### ---------- SEVERAL TERMS, BECAUSE A BOOKING IS RARELY ONE OF THEM
+
+in `BOOK_STEPS`
+
+```
+/* ---------- SEVERAL TERMS, BECAUSE A BOOKING IS RARELY ONE OF THEM ------------------------------
+     ASKED FOR AS *"Let term be multi select."* It was one choice, so a family who wanted the whole
+     of the autumn had to book Autumn 1 and then book Autumn 2 — two jobs, two prices, two receipts,
+     for one arrangement that never changes. Every other question on this form that can have more
+     than one answer already takes them.
+
+     THE SESSIONS ARE COUNTED PER TERM AND ADDED, NOT FROM THE FIRST START TO THE LAST END. That
+     distinction is the whole of why this is worth more than one line: `Autumn 1` and `Autumn 2` have
+     the October half term between them, and a window drawn end to end would bill a family for a week
+     the school is shut. `bookSpec` sends `windows`, one per chosen term, and `priceFrom` walks
+     them — see the note there.
+
+     `multi: true` IS ALL THE CONTROL NEEDED. `stepControl_` already draws a toggling dropdown with
+     a tick beside what is chosen, `bookPick` already toggles, `bookAnswered_` already reads a list,
+     and `stepRows_` already joins one for the row. Nothing about this step is special except what
+     it means. */
+```
+
+### ---------- AND ON A WAITING LIST IT ANSWERS ITSELF
+
+in `BOOK_STEPS`
+
+```
+/* ---------- AND ON A WAITING LIST IT ANSWERS ITSELF ----------------------------------------
+     THE QUESTION IS NOT ASKED ON THAT BRANCH and the card still has to say when. `fallback` is the
+     hook the `client` step already uses for exactly this shape — *"the row shows what the booking
+     would be submitted as, which is the only honest thing for it to show"* — and here what it would
+     be submitted as is whatever term is running. Nothing is written into `BOOKING`, so `bookSpec`
+     still prices from an empty list and a family has answered nothing they did not answer. */
+```
+
+### ---------- AND IT IS OFFERED ON BOTH BRANCHES NOW
+
+in `BOOK_STEPS`
+
+```
+/* ---------- AND IT IS OFFERED ON BOTH BRANCHES NOW ----------------------------------------
+       THIS RETURNED `[]` WHEN `isWaiting_()` and the fallback above stood in for it, so a family
+       opening a list got whatever term happened to be running and could not say otherwise —
+       reported as *"it also doesnt let me select which terms."* The fallback is still right for a
+       list nobody has answered: it says what the booking WOULD be submitted as. It is a default
+       now rather than a ceiling. */
+```
+
+### SHARING THE COST. The pricing chain divides by `splitShares` and has since the beginning — three families in one session each pay a third — and the form never
+
+in `BOOK_STEPS`
+
+```
+/* SHARING THE COST. The pricing chain divides by `splitShares` and has since the beginning —
+     three families in one session each pay a third — and the form never set it, so the feature
+     existed and could not be reached. It is asked last but one because it changes the price
+     without changing the session. */
+```
+
+### NAMING SOMEONE IS SPLITTING WITH THEM.
+
+in `BOOK_STEPS`
+
+```
+/* NAMING SOMEONE IS SPLITTING WITH THEM. The old form learned this the hard way: a count
+     chosen separately from the addresses is two statements of one fact, and choosing three while
+     naming two leaves neither the price nor the invitation list knowing which is true.
+     So there is no number to pick. The count IS how many addresses have been given. */
+```
+
+### ---------- AND A TYPED ADDRESS IS CHECKED FOR BEING ONE
+
+in `BOOK_STEPS`
+
+```
+/* ---------- AND A TYPED ADDRESS IS CHECKED FOR BEING ONE ---------------------------------------
+     ASKED FOR AS *"for split field, have something which verifies that its an email format that has
+     been entered."* Every other thing this list is used for — the price per family, the roster, the
+     invitation the backend sends — treats an entry as a person, so `dan@` or `dan gmail.com` is a
+     family who is charged a share and never hears about it.
+
+     A REFUSAL, NOT A REWRITE. `why` is the one mechanism this form has for saying an answer is
+     wrong, it is drawn under the row it is about, and it leaves what was typed alone — a box that
+     silently drops what somebody entered is the fault this file records under `nothingHere`. The
+     backend still checks; this is the half that can answer before Send is pressed.
+
+     THE SHAPE IS THE NARROW ONE. Something, an `@`, something with a dot in it, no spaces — which
+     is what a browser's own `type="email"` asks and as far as a string can honestly go. Anything
+     stricter refuses real addresses, and a right answer marked wrong is the worse of the two
+     failures, which is this repository's own sentence about the marking. */
+```
+
+### ---------- WOULD YOU SHARE WITH SOMEBODY YOU DO NOT KNOW?
+
+in `BOOK_STEPS`
+
+```
+/* ---------- WOULD YOU SHARE WITH SOMEBODY YOU DO NOT KNOW? --------------------------------
+     ASKED, NEVER ASSUMED, and this is the question the whole join mechanism rests on.
+
+     The step above takes email addresses — families you already know and are inviting. This is a
+     different question: whether a family you have never met may ask to join. Nothing had ever put
+     it, and without it the only way to open a session to strangers would be to decide on their
+     behalf that a shared booking means a public one. It does not.
+
+     WHY IT IS WORTH ASKING AT ALL. A session with one child in it and three seats going is three
+     empty chairs the tutor is paid for by one family. Somebody joining makes it cheaper for both
+     and fuller for you, which is the whole economics of group tuition — but only if the family
+     whose booking it is said yes first.
+
+     DEFAULT IS NO, by being a question with two answers and no preselection. A default of yes on a
+     question about who may sit with your child is a default nobody should be handed. */
+```
+
+### THE JOIN QUESTION WAS HERE, AND IT ASKED SOMETHING THE SEATS ALREADY ANSWER.
+
+in `BOOK_STEPS`
+
+```
+/* THE JOIN QUESTION WAS HERE, AND IT ASKED SOMETHING THE SEATS ALREADY ANSWER.
+     "May another family join this?" is a checkbox about sharing, and a family who wants the room to
+     itself buys the remaining seats — which is a decision made with money, in the same form, and
+     unambiguous in a way a tick is not. One fewer question between somebody and a booking.
+
+     SO EVERY ORDINARY SESSION IS OPEN, and that is the half worth saying out loud: `open_to_others`
+     still exists and the backend still refuses a join without it, so leaving it FALSE would have
+     switched the whole join mechanism off rather than opening it up. It is written TRUE in
+     `receipt.js`, and the seats decide. */
+```
+
+### ---------- WHOSE CHILDREN ARE THESE?
+
+in `BOOK_STEPS`
+
+```
+/* ---------- WHOSE CHILDREN ARE THESE? -----------------------------------------------------
+     A parent with three children on their account books three seats, and until now every one of
+     those seats was anonymous — so the tutor arrived at a library knowing a booking existed and
+     not who was coming, and you could not tell one of a parent's bookings from another.
+
+     ONE TICKLIST, NOT A YES/NO EACH. Three children is three questions and six taps to say what
+     one list says in one or two, and the ticklist has an answer the questions do not: ticking
+     NOTHING means none of them, which is a parent booking for somebody else's children and is a
+     perfectly ordinary thing to do. A run of yes/no cannot say that without you answering No three
+     times to get to the same place.
+
+     Only asked of somebody who HAS children on their account, and only when there are seats to put
+     them in — `nextBookStep` skips a question with no options, so a client with none never sees it
+     and nothing has to remember that. */
+```
+
+### EVERY CHILD IS OFFERED.
+
+in `BOOK_STEPS`
+
+```
+/* EVERY CHILD IS OFFERED. This used to hand back only as many names as there were seats —
+       so booking two seats showed a mother of three two of her children and she could not choose
+       WHICH two. The seat count limits HOW MANY you may tick, and it has never had anything to say
+       about which names exist.
+
+       That is the same mistake `why` was written to prevent, one line further down: an option that
+       does not fit is MARKED with the reason and left on the list, because a list that quietly
+       drops things seems to have decided for you — and the thing it drops is often the one you
+       meant. Removing them here contradicted the rule the next line states. */
+```
+
+### ---------- WHOSE CHILDREN, WHICH IS NOT ALWAYS YOURS
+
+in `BOOK_STEPS`
+
+```
+/* ---------- WHOSE CHILDREN, WHICH IS NOT ALWAYS YOURS -----------------------------------------
+       THIS READ `USER.children` AND ONLY EVER THAT. An admin who had just chosen a client on the
+       question above was still offered their own children — or told there were none — because
+       choosing a client changed the booking and this was reading the account. Two different people
+       and the form only knew about one of them.
+
+       THE CLIENT'S CHILDREN WHEN ONE HAS BEEN CHOSEN, and yours otherwise, which is the ordinary
+       case and unchanged. */
+```
+
+### ---------- AND ONE UNNAMED SEAT, ALWAYS OFFERED
+
+in `BOOK_STEPS`
+
+```
+/* ---------- AND ONE UNNAMED SEAT, ALWAYS OFFERED -----------------------------------------------
+       THE NAMED CHILDREN WERE THE ONLY ANSWERS, and that forced a family to know things they often
+       do not. Two seats and three children: which two are coming may be Sunday's problem. A cousin
+       is staying that week. A friend is being brought along. All of those are ordinary, and none of
+       them could be said — the form insisted on a name for every seat it was about to charge for.
+
+       "SOMEONE ELSE" IS APPENDED RATHER THAN REPLACING ANYTHING, and it can be ticked more than
+       once by ticking it and picking another seat: it is the answer for a seat nobody has decided
+       about yet, so the receipt says `Child` for that one and everything else proceeds. */
+```
+
+### THE UNNAMED SEAT IS NEVER THE ONE THAT IS FULL.
+
+in `why`
+
+```
+/* THE UNNAMED SEAT IS NEVER THE ONE THAT IS FULL. It is what you tick BECAUSE you cannot
+         name somebody, so refusing it for want of a free seat would refuse the only answer left —
+         and its explanation is a NOTE, below, because it is an option you may take. */
+```
+
+### ---------- HAS THIS TUTOR SAID WHEN THEY CAN TEACH
+
+top level, before `tutorNoHours_`
+
+```
+/* ---------- HAS THIS TUTOR SAID WHEN THEY CAN TEACH -----------------------------------------------
+   One question, four readers: the tutor dropdown greys them, the booking grid shuts every hour, the
+   send refuses, and their card says so. `availSet_` is the one reader of the grid's shapes, so a
+   tutor whose `avail` is `{ m09: '' … }` — all 70 codes and none ticked, which is what `doGet` sends
+   for somebody who never opened Settings — is a tutor with no hours. A name that matches no tutor
+   is not this question's to answer; `No preference` never is. */
+```
+
+### A QUESTION YOU CAN ANSWER SEVERAL TIMES IS FINISHED WHEN YOU SAY IT IS.
+
+in `bookAnswered_`
+
+```
+/* A QUESTION YOU CAN ANSWER SEVERAL TIMES IS FINISHED WHEN YOU SAY IT IS.
+     This returned true the moment ONE thing was ticked — so picking Maths counted as an answer,
+     the booker moved straight on, and the Done button that would have let you add Physics was
+     never drawn. Both multiple-choice questions were single-choice in practice: subjects, and the
+     hours grid, where it meant you could book one hour and never two.
+     `done` is the list of questions somebody has finished with. */
+```
+
+### EMPTY IS UNANSWERED.
+
+in `bookAnswered_`
+
+```
+/* EMPTY IS UNANSWERED. NOTHING ELSE IS.
+     This also refused '0', from when `hours` started at 0 and had to be told apart from a real
+     answer. Everything starts empty now, so that guard had nothing left to protect — and it made
+     "Just us", which is nought other families, impossible to record: the question was answered,
+     the answer was thrown away, and it was asked again for ever.
+     A zero is an answer. It is the answer to most of the questions worth asking. */
+```
+
+### THE NEXT QUESTION WORTH ASKING, or nothing left.
+
+top level, before `nextBookStep`
+
+```
+/**
+ * THE NEXT QUESTION WORTH ASKING, or nothing left.
+ *
+ * Skipped when answered, and skipped when there is only one thing it could be — in which case the
+ * answer is filled in on the way past. One venue is not a choice, and asking is the app pretending
+ * to consult somebody it has already decided for.
+ */
+```
+
+### THE OTHER BRANCH'S QUESTIONS ARE NOT ASKED — see the `only:` note on the `avail` step.
+
+in `nextBookStep`
+
+```
+/* THE OTHER BRANCH'S QUESTIONS ARE NOT ASKED — see the `only:` note on the `avail` step. It
+       changes nothing today, because that step offers no options and this loop already skips a
+       question with nothing to offer. It is here so `only:` means ONE thing rather than two: a
+       branch-only step added tomorrow WITH a list would otherwise be dropped from the card by
+       `stepRows_` and then asked by the funnel, which is the worst of both — a question on screen
+       that the document it belongs to does not have a row for. */
+```
+
+### A GRID AND AN EMAIL LIST ARE NOT ONE-ANSWER QUESTIONS.
+
+in `nextBookStep`
+
+```
+/* A GRID AND AN EMAIL LIST ARE NOT ONE-ANSWER QUESTIONS. Both declare a single option because
+       they are drawn rather than listed — and the fill-in-the-only-answer rule took that literally,
+       writing the string 'emails' into the booking and skipping the question entirely. The rule is
+       about a LIST with one entry in it; these have no list. */
+```
+
+### ---------- ONE TERM PER NAME, AND THE NEAREST ONE
+
+top level, before `intervals_`
+
+```
+/* ---------- ONE TERM PER NAME, AND THE NEAREST ONE ----------------------------------------------
+   REPORTED AS *"why is it coming out to so much?"* over a card totalling £1024.59 whose Dates row
+   listed EIGHTEEN sessions across two Septembers — September 2026 AND September 2027 — for one
+   chosen term. Reproduced: with two rows named `Autumn 1` in the payload, ticking that one button
+   gave `windows` a length of two, `Time interval` read `Autumn 1, Autumn 1`, and three sessions
+   became ten. A family would have been billed for a term a year away that nobody has taught.
+
+   THE PAYLOAD REALLY SHIPS THE NAME TWICE TODAY, and `doget.gs` believes otherwise — its own
+   comment says that once terms which have ENDED are dropped *"each name appears once inside the
+   next twelve months"*. Measured against the real `schoolYear`: on 25/09/2026 that filter keeps
+   `Autumn 1 2026-09-07..2026-10-23` AND `Autumn 1 2027-09-06..2027-10-22`, because the first has
+   not ended and the second starts four days inside the 370-day cut-off. The claim holds for most
+   of the year and fails every autumn, which is the one term this actually matters for. Repaired
+   there too — but the deploy that carries it is blocked on the Cloud-project switch, and this app's
+   house rule is that a broken sheet must still produce a working site, so the phone answers it.
+
+   A NAME IS AN ANSWER TO A QUESTION AND A QUESTION HAS ONE ANSWER. Two identical buttons is not a
+   choice anybody can make, and ticking one cannot honestly mean "both of them" — it means the one
+   they are about to teach, which is the first, because `doGet` sends them chronologically.
+
+   FOUR READERS, ONE ANSWER. The step's option list, this filter, `waitTerm_` and the receipt's
+   term lookup all read the same deduped list. The last two used `.find`, so they were already
+   right by accident; going through here makes it a rule rather than luck, and stops the option
+   list offering a name the price would then read differently. */
+```
+
+### ---------- EVERY TERM CHOSEN, IN DATE ORDER
+
+in `bookSpec`
+
+```
+/* ---------- EVERY TERM CHOSEN, IN DATE ORDER ---------------------------------------------------
+     THIS WAS `.find(...)` AGAINST A STRING. The step takes several answers now, so it is a filter —
+     and the ORDER is the sheet's rather than the order somebody happened to tick, because the spine
+     row reads them out and "Spring 1, Autumn 2" is a sentence about the wrong school year.
+     `DATA.intervals` arrives chronologically from `doGet` (see the `computed` block there), so
+     keeping its order is the whole of it. Nothing sorts by parsed date: a term whose dates are the
+     wrong way round is a fault `dateFault` already reports, and sorting on it would hide it.
+
+     A STRING STILL WORKS, deliberately. `check-flow.js` seeds `BOOKING` directly and an older
+     saved form could hold one, so a bare name is read as a list of one rather than throwing. */
+```
+
+### The session length IS the length of a run — not a separate answer that has to be reconciled with the hours ticked.
+
+in `bookSpec`
+
+```
+/* The session length IS the length of a run — not a separate answer that has to be reconciled
+     with the hours ticked. Where runs differ, the first one names the session; the total hours a
+     week is what the price is actually built from. */
+```
+
+### EVERY TICKED HOUR, added up.
+
+in `bookSpec`
+
+```
+/* EVERY TICKED HOUR, added up. Two on Monday and two on Wednesday is four a week — and the
+       chain multiplies by weeks, so passing one session's length would price a two-day booking as
+       a one-day one. Counted from the grid rather than multiplied out, so two hours on Monday and
+       one on Friday is three, which no amount of days-times-length can express. */
+```
+
+### ---------- THE SPAN, AND THE WINDOWS INSIDE IT
+
+in `bookSpec`
+
+```
+/* ---------- THE SPAN, AND THE WINDOWS INSIDE IT --------------------------------------------
+       `startDate` / `endDate` / `lastSun` ARE THE OUTER SPAN and are kept because half a dozen
+       readers still want one pair of dates — `price-rows.js`, the receipt, the breakdown. With one
+       term they are exactly what they always were.
+
+       `windows` IS WHAT THE SESSIONS ARE COUNTED FROM, one per chosen term, and it is the reason
+       this is not just a longer string: Autumn 1 and Autumn 2 have the October half term between
+       them, so an outer span would bill a family for a week nobody teaches. `priceFrom` walks
+       the list where there is one and falls back to the single pair where there is not — a live
+       job prices from `spec.slots` and never reaches either. */
+```
+
+### THE FORMAT AND WHAT IT NAMES (docs/history/353).
+
+in `bookSpec`
+
+```
+/* THE FORMAT AND WHAT IT NAMES (docs/history/353). `priceFrom` reads the practical's kit and the
+       trip's tickets off these; a trip's `loc` and `hosting` are overwritten below, because the venue
+       question is not asked on a trip and an answer left from before must not hire a room. */
+```
+
+### ---------- A WAITING LIST IS PRICED A DIFFERENT WAY, AND WAS NOT PRICED AT ALL
+
+top level, before `waitPrice_`
+
+```
+/* ---------- A WAITING LIST IS PRICED A DIFFERENT WAY, AND WAS NOT PRICED AT ALL ------------------
+   `if (!BOOKING.subjects.length) return null` KILLED IT. A waiting list never asks for subjects —
+   it is Maths and English by definition, which is why the question is skipped — so `subjects` is
+   always empty on that branch and the card said "not enough answered to price it yet" no matter how
+   much had been answered. It could never have priced one.
+
+   THE SUM IS THE ONE THE BACKEND ALREADY USES, restated here rather than invented: the room's hourly
+   cost plus the open tutor rate, plus the extra-seat charge for the seats beyond the first, all
+   divided by the number of seats. Four families splitting one room and one tutor.
+
+   ROUNDED AT THE SEAT, NOT AT THE TOTAL, for the same reason `waitlistPrice` does it: the seat is
+   what somebody is charged, and rounding the total first leaves four seats that do not add up to
+   it. The two must agree to the penny or the card and the receipt disagree in public. */
+```
+
+### ---------- THE ANSWER, NOT THE INGREDIENTS
+
+in `waitPrice_`
+
+```
+/* ---------- THE ANSWER, NOT THE INGREDIENTS ---------------------------------------------------
+     THIS DID THE SUM ITSELF from three config numbers, and two of the three did not exist on the
+     phone — `DATA.config` is not a thing the payload sends, and the venue rate is `bestRate` rather
+     than either name I guessed. Both would have come back undefined and priced every room at zero:
+     a seat price that looks plausible and is wrong by the whole cost of the room, which is worse
+     than no price because nothing about it looks like a fault.
+
+     AND EVEN WITH THE RIGHT NAMES IT WAS THE WRONG SHAPE. `waitlistPrice` in the backend is what a
+     seat is actually charged at; a second copy of that arithmetic here is one sum in two languages,
+     free to drift the first time either is touched. The backend now sends the figure per venue. */
+```
+
+### ---------- BACK TO NOTHING, FROM THE STEP LIST ITSELF
+
+top level, before `resetBooking_`
+
+```
+/* ---------- BACK TO NOTHING, FROM THE STEP LIST ITSELF -------------------------------------------
+   THE RESET WAS A HAND-WRITTEN LIST OF KEYS, and it was missing two of them.
+
+     `done`  — which says "you have finished answering this question". Left behind, the NEXT booking
+               believes subjects, hours, sharing and children are all already answered and walks
+               straight past every one of them.
+     `kids`  — so the next booking arrived with the same children ticked.
+
+   Neither is exotic. They were simply added to the form later than the list was written, which is
+   what always happens to a list that has to be kept in step with something else by hand — the
+   third copy of the step names, after `BOOK_STEPS` and `BOOKING`.
+
+   So it is derived. Every step's answer is cleared because every step is asked, and a step added
+   tomorrow is cleared without anybody remembering this function exists. */
+```
+
+### A list question gets an empty list and a single one gets an empty string, because that is what each is tested against — `[].length` for one, `''` for the other.
+
+in `resetBooking_`
+
+```
+/* A list question gets an empty list and a single one gets an empty string, because that is
+       what each is tested against — `[].length` for one, `''` for the other. Handing a multi step
+       an empty string would make `.length` read 0 and look right until something pushed to it. */
+```
+
+### THE ONE THAT IS NOT AN ANSWER:
+
+in `resetBooking_`
+
+```
+/* THE ONE THAT IS NOT AN ANSWER: what has been finished with. It is about the FORM rather than
+     about the booking, and it must go with the rest.
+
+     `BOOKING.editing` WAS CLEARED HERE TOO, and in two other places, and read nowhere — see the
+     note over the deleted `book-edit`. */
+```
+
+### AND THE DRAFT OF IT — sent, or started again, is not a booking to bring back (`bookKeep_`).
+
+in `resetBooking_`
+
+```
+/* AND THE DRAFT OF IT — sent, or started again, is not a booking to bring back (`bookKeep_`). NOT
+     when the form is only being cleared off the screen for somebody else (`bookFollow_`): the draft
+     is the person's who left, and theirs again when they sign back in. */
+```
+
+### ---------- THE FORM SURVIVES A RELOAD (docs/history/317)
+
+top level, before `bookBlank_`
+
+```
+/* ---------- THE FORM SURVIVES A RELOAD (docs/history/317) -------------------------------------------------
+   EVERY ANSWER LIVED IN `BOOKING`, IN MEMORY: about a dozen of them — subjects, level, how many, where,
+   the hours ticked on the grid, the other families, the note — and a reload was the blank paper again.
+   So `BOOKING` is a DRAFT (data.js), written whole by `drawBooker` (receipt.js), which every answer
+   already goes through, and by the note as it is typed; read back once as this file loads, for whoever
+   is signed in (a draft is the person's, or the device's for a few hours signed out); and dropped by
+   `resetBooking_`, which is what sending a booking and starting again both call. `picking` — which
+   list hangs open — is about the screen, not the booking, and is not kept. A blank form is no draft. */
+```
+
+### ---------- SENT IS NOT A DRAFT (`draftSent_`, data.js)
+
+top level, before `bookSending_`
+
+```
+/* ---------- SENT IS NOT A DRAFT (`draftSent_`, data.js) ---------------------------------------------------
+   FOUND BY THE REVIEW OF 317: Send pressed, the page reloaded while Apps Script was still answering, and
+   the form came back whole — subjects, hours, note — after the server had the booking, so Send asked for
+   it a second time, with a new requestId the backend could not match. `book-send` (receipt.js) marks the
+   form and its addresses SENT as each request goes; `resetBooking_` drops them when it is answered, and a
+   refusal gives them back (`false`). Another page reads a sent form as no form. */
+```
+
+### ---------- AND ANOTHER TAB'S FORM IS THIS TAB'S (the `storage` listener in data.js)
+
+top level, before `bookElsewhere_`
+
+```
+/* ---------- AND ANOTHER TAB'S FORM IS THIS TAB'S (the `storage` listener in data.js) ----------------------
+   Two tabs on the Booking column: an answer given in a tab drawn before the other filled the form in
+   wrote that stale tab's near-blank `BOOKING` over the whole draft. So the other tab's copy is read in
+   — or, sent or started again there, this tab's identical form is cleared — and redrawn WITHOUT writing
+   (`redrawBooker_`, not `drawBooker`), so two tabs never answer each other's writes back and forth. */
+```
+
+### ---------- AND THE FORM IS THE PERSON'S, ON A SHARED iPAD
+
+top level, before `bookFollow_`
+
+```
+/* ---------- AND THE FORM IS THE PERSON'S, ON A SHARED iPAD -------------------------------------------------
+   `BOOKING` IS ONE OBJECT IN MEMORY, and it outlived a sign-out: the next family to pick the iPad up was
+   shown the last one's subjects, hours, other families' addresses and note — and now that the form is a
+   draft, the first answer they gave would have written all of it into the device's draft as well. So
+   `signedOut_` and `signedIn_` (me.js) ask this whenever the person changes:
+     · FROM NOBODY TO SOMEBODY, with a form on the screen: the same person, signing in to send what they
+       filled in — it becomes theirs, and the device's copy goes (or it would come back, sent, for the
+       next visitor). With nothing filled in, their own draft is read instead: a session the server
+       ended, signed in again, finds the booking it left.
+     · FROM SOMEBODY TO ANYBODY ELSE: the form is cleared off the screen — not dropped, it is still the
+       person's who left — and whoever is in front now is given their own. `signingIn` is the sign-out
+       on the way from one child to the next (`signedIn_`): the device's draft is not read in between,
+       or the next step would hand it to the child signing in as though they had filled it in.
+   ---------- UNLESS THE DEVICE'S FORM IS SOMEBODY'S (317, "Six edges closed", P8) ---------------------------
+   "Filled in signed out, it is whoever signs in next's" is 318's seat, and it was the whole rule here — so
+   Ada's address, typed into the form on the family computer after the server ended her session, became
+   BEN'S booking when he signed in next. The form is a draft of the device's, and such a draft is marked as
+   hers (`draftMark_`, data.js) as a signed-out answer is; so this asks `ansMayMove_` (answers.js), the one
+   question every other door asks:
+     ''      somebody else's — not carried: off the screen, still the device's, and the person signing in
+             is given their own;
+     'own'   theirs — carried, from nobody AND over somebody else (whose sign-out step cleared the screen
+             without reading the device's form in, so it is read in here for them);
+     'later' nobody's — carried from nobody, as before; never over somebody else (`ansMayMove_` answers ''
+             for whoever arrived over somebody, `familySwitched`).
+   ---------- CARRIED BESIDE THEIR OWN DRAFT, NOT OVER IT (317, "Undo, the booking form, a switch") ----------
+   CARRYING WAS `bookKeep_()`, which writes the whole form over the person's draft — and the person's own
+   form was usually beside it. Ada was part-way through a booking, signed in: the client answered, the note
+   "Tuesdays after school". The server ended her session, `signedOut_` cleared the form off the screen and
+   kept her draft, and the screen read the device's blank form in; she typed "1 Example Road" on it, and
+   signed in again — and "Tuesdays after school" and the client were gone, the signed-out form written
+   over them. The owner's 9 Oct essay by the booking door: typed beside her draft, on a form the ended
+   session had emptied, not over it. So the two are joined (`bookJoin_`): her draft, and then what the
+   device's form adds. And the addresses typed into the device's form and not yet left (`emails:`, a draft
+   of their own until `change`) go with it — they were dropped, so a carried form lost them. */
+```
+
+### ---------- TWO FORMS OF ONE PERSON'S, PUT TOGETHER — `ansJoin_`'s rule (answers.js), for a form
+
+top level, before `bookJoin_`
+
+```
+/* ---------- TWO FORMS OF ONE PERSON'S, PUT TOGETHER — `ansJoin_`'s rule (answers.js), for a form ----------
+   `raw` is the person's own draft; `BOOKING` holds the device's form, typed later. Nothing of either is lost:
+     a list (subjects, children, hours, addresses, what is done)   every entry of both, in the order the
+                                                                   question offers them where it offers any
+     the note                                                      theirs, a blank line, then the device's —
+                                                                   unless theirs already says it
+     anything else (one answer: the level, how many, where)       the device's where it says anything, as
+                                                                   the later edit; theirs where it is blank */
+```
+
+### THE ADDRESSES TYPED ON THE DEVICE'S FORM AND NOT YET LEFT, into the person's:
+
+top level, before `bookEmailsCarry_`
+
+```
+/* THE ADDRESSES TYPED ON THE DEVICE'S FORM AND NOT YET LEFT, into the person's: theirs and the device's in
+   one box (each address once), drawn over the list the joined form now holds. Asked like the form, so
+   another person's never move. */
+```
+
+### `on('new-booking')` AND `on('book-close')` WERE HERE.
+
+top level, before `code`
+
+```
+/* `on('new-booking')` AND `on('book-close')` WERE HERE. One opened the form and one shut it, and
+   both existed because the form was a thing you opened. It is the first card on Book now — there is
+   no moment when it is not there, so there is no opening it and nothing to close. */
+```
+
+### ---------- AND THE SAME TOGGLE ONE GRID ALONG
+
+top level, before `when`
+
+```
+/* ---------- AND THE SAME TOGGLE ONE GRID ALONG ------------------------------------------------------
+   `book-slot` KEEPS HOUR CODES AND THIS KEEPS SENTENCES, which is the only difference: the cell
+   carries the phrase it stands for, so there is nothing to build here and no second spelling of
+   "Monday morning" to keep in step with the one the grid drew.
+
+   IT WRITES `BOOKING.avail` AND NEVER `BOOKING.slots`. Those are two different facts and the
+   second is priced: `bookRuns()` reads it, the total multiplies by it, and a waiting list putting
+   hours in there would look like a booked session to everything downstream. A waiting list has no
+   hours — that is the whole reason this grid exists. */
+```
+
+### ---------- A DROPDOWN ANSWERED
+
+top level, before `bookToggle_`
+
+```
+/* ---------- A DROPDOWN ANSWERED --------------------------------------------------------------------
+   `change`, NOT A TAP. Every other control in this app is `data-do` on a press; a select is answered
+   by choosing, which fires `change` and never a click — so the shell's press handler would never
+   hear it. Bound here rather than added to the shell, because this is the only select in the app
+   that answers a question.
+
+   AN EMPTY CHOICE CLEARS THE STEP, which is what the "—" option is: putting a field back to unset
+   without a separate control for it. `done` goes too, or a cleared field would refuse to be asked
+   again — the same fault `book-undo` had. */
+```
+
+### ---------- TICKING ONE ANSWER OF SEVERAL
+
+top level, before `bookToggle_`
+
+```
+/* ---------- TICKING ONE ANSWER OF SEVERAL ------------------------------------------------------------
+   IT WAS INLINE IN THE `change` HANDLER, which was right while a dropdown was the only way to
+   answer a multiple-answer question. The checkboxes under the row are that way now — see
+   `stepMulti_` — and it stays lifted out, because *toggle, then re-sort into the offered order* is
+   the half that drifts when a second control ever answers the same question. */
+```
+
+### ---------- KEPT IN THE ORDER THE QUESTION OFFERS THEM, NOT THE ORDER THEY WERE TICKED
+
+in `bookToggle_`
+
+```
+/* ---------- KEPT IN THE ORDER THE QUESTION OFFERS THEM, NOT THE ORDER THEY WERE TICKED -----
+       THE TERM STEP IS WHAT MADE THIS MATTER. `stepRows_` joins the list onto one row, so ticking
+       Autumn 2 and then Autumn 1 read back as "Autumn 2, Autumn 1" — a sentence about the wrong
+       school year, on the row somebody checks before they pay.
+
+       AGAINST `options()` RATHER THAN SORTED, because the offered order is the only order this
+       form knows: chronological for terms, whatever the sheet says for subjects. A comparator on
+       the option index says "read them back the way you read them" for every multi at once.
+
+       A GRID STEP IS UNTOUCHED BY CONSTRUCTION. `avail` offers no options, so every key is −1,
+       every comparison is 0, and a stable sort leaves the list exactly as it was. Wrapped anyway:
+       an `options()` that throws must not take a tick with it. */
+```
+
+### ANSWERED THE MOMENT THERE IS SOMETHING IN IT.
+
+in `bookToggle_`
+
+```
+/* ANSWERED THE MOMENT THERE IS SOMETHING IN IT. `done` was how a multiple-choice question said
+     "I have finished adding", which existed because the panel moved on to the next question as
+     soon as you picked once. Nothing moves on any more — the whole form is on screen — so the
+     list being non-empty is the whole of what "answered" means here. */
+```
+
+### A SEVERAL-OF-A-LIST QUESTION IS NEVER A SELECT — it is checkboxes, answered by `book-many-pick`.
+
+top level, before `no`
+
+```
+/* A SEVERAL-OF-A-LIST QUESTION IS NEVER A SELECT — it is checkboxes, answered by `book-many-pick`.
+     This toggled one when it was a select that dropped back to "—" after every pick; nothing has
+     drawn that select since `stepControl_` sent every open multi to `stepMulti_`, so a `book-set`
+     naming a multi is a stale event, and it is refused rather than allowed to replace a list with a
+     string. */
+```
+
+### ---------- SWITCHING THE KIND CLEARS THE ANSWER ONLY THE OTHER KIND COULD HAVE GIVEN
+
+top level, before `BOOKING.tutor`
+
+```
+/* ---------- SWITCHING THE KIND CLEARS THE ANSWER ONLY THE OTHER KIND COULD HAVE GIVEN ---------
+     REPORTED AS *"when i want to do a waitlist session it just defualts to sasha motola and wont
+     let change."* A waiting list has no tutor — the question is locked on that branch because who
+     teaches a list is settled when it fills — and a locked row prints `BOOKING[st.id]`, which was
+     whatever had been picked while the form was still an instant class.
+
+     THE FALLBACK ALONE WOULD NOT HAVE DONE IT. `stepSelect_` reads `BOOKING[st.id] || fb`, so a
+     stale name wins the `||` and `'No preference'` is never reached — two rules, and the older one
+     silently in front. Cleared here, where the kind actually changes, so the fallback is reached
+     because there is nothing in front of it rather than because it out-ranks something.
+
+     ONE STEP, NOT A SWEEP. Every other question on this form is asked on both branches now, so
+     their answers carry across as they should: a family switching from an instant class to a list
+     keeps the subject, the level, the venue, the seats and the term they had already chosen. The
+     tutor is the one answer the other branch has no way to honour. */
+```
+
+### ---------- CHOOSING A CLASS ANSWERS FOUR OTHER QUESTIONS
+
+top level, before `j`
+
+```
+/* ---------- CHOOSING A CLASS ANSWERS FOUR OTHER QUESTIONS ------------------------------------
+     A LIST THAT IS ALREADY GOING HAS A VENUE, A LEVEL AND A SUBJECT, decided by whoever opened it
+     and not up for negotiation by the fifth person to join. Asking again would be offering somebody
+     a choice that cannot be honoured — and the answer they gave would then disagree with the class
+     they are joining.
+
+     WRITTEN IN, NOT SKIPPED. The rows stay on the paper showing what the class is, because that is
+     what somebody joining most needs to see. Their dropdowns still exist and still work: change one
+     and you are describing a different class from the one you picked, which is worth being able to
+     do and worth being able to see.
+
+     CLEARED WHEN THE CLASS IS UNCHOSEN, or a switch to "start a new one" would carry the last
+     class's venue into a booking nobody attached it to. */
+```
+
+### `on('book-pick')` WAS HERE — the handler for the option cards in the panel.
+
+top level, before `el`
+
+```
+/* `on('book-pick')` WAS HERE — the handler for the option cards in the panel. There is no panel for
+   a list of options any more; a list of options is a `<select>` on its row, answered by `book-set`.
+   See the note where the cards were, in receipt.js.
+
+   `on('book-back')` AND `on('book-undo')` WENT WITH IT, and both were right to go: "Leave it as it
+   is" and "Clear it" were buttons on that panel, and clearing is what choosing "—" does on a single
+   row and what picking a ticked option again does on a multi one. */
+```
+
+### ---------- `on('book-edit')` IS GONE, AND IT WAS THE ONE CONTROL ON THE CARD DRAWN IN GOLD
+
+top level, before `el`
+
+```
+/* ---------- `on('book-edit')` IS GONE, AND IT WAS THE ONE CONTROL ON THE CARD DRAWN IN GOLD --------
+   REPORTED AS "grid not working when click", AND THIS IS THE HALF UNDERNEATH THE HALF THAT WAS
+   FIXED. `paintBook_` was repainting a screen the booking column is not on, so no press on this
+   card did anything; that is repaired. This one still did nothing afterwards, and had done nothing
+   since the grid stopped folding.
+
+   `stepGrid_` SAYS "ALWAYS OPEN" IN ITS FIRST LINE and gives the reason — a panel that unfolds
+   changes the card's height under the thumb reaching for it. The moment that was true there was
+   nothing left for this to open: `stepIsPanel_` returned `!!st.grid`, so the ONE row marked
+   pressable was the one row whose panel is always drawn. The handler set `BOOKING.editing`,
+   `drawBooker()` rebuilt the card byte for byte identically, and nothing anywhere read the field —
+   written in four places, read in none, which is this repository's oldest shape and is already
+   recorded here under `figure`, `orderPrints`, the four message actions, `exam_date` and `wow`.
+
+   AND IT WAS NOT INVISIBLE, WHICH IS WHY IT MATTERS. `.bk-pick` gave that value a GOLD underline
+   and a pointer cursor, and gold in this app means the one thing on the card to press. So the When
+   row advertised itself, in the app's own vocabulary, as the control for the week — and a person
+   pressing the row rather than the cells got nothing, twice over.
+
+   FOUND BY `check/press.js`, which exists for exactly this question and found it on its second
+   honest run. No check here could have: the wiring was perfect — a `data-do` with a handler, a
+   handler with a door — and `check/ui.js` measures whether a control can be read and hit, which a
+   dead one passes perfectly. */
+```
+
+### ---------- THE SPLIT, TYPED
+
+top level, before `el`
+
+```
+/* ---------- THE SPLIT, TYPED --------------------------------------------------------------------
+   COMMAS, AND EMPTIES DROPPED. Somebody typing a list leaves a trailing comma or a double one, and
+   an empty string in `BOOKING.split` counts as a person on every screen that reads the length — the
+   roster, the price per family, the "split N ways" line. Cleaned here, once, where it is read in.
+
+   `done` FOLLOWS WHETHER THERE IS ANYONE IN IT. It used to be set by a Done button on the panel;
+   with no panel, having typed somebody in IS the answer, and clearing the box is unanswering it. */
+```
+
+### `on('book-more')` WAS HERE — the Done button that closed a multiple-choice question.
+
+top level, before `waitTerm_`
+
+```
+/* `on('book-more')` WAS HERE — the Done button that closed a multiple-choice question. Nothing draws
+   one: a multi answer is a toggling dropdown and is finished when the list has something in it, and
+   the hours grid closes by pressing its own row again. The handler outlived both. */
+```
+
+### THE CARD. Photographs, then every priced row, then the dates, then where it stands.
+
+top level, before `waitTerm_`
+
+```
+/**
+ * THE CARD. Photographs, then every priced row, then the dates, then where it stands.
+ *
+ * The order is the old one and it is right: what you are buying, what it costs and how that was
+ * arrived at, when it happens, and only then its state. State last because what a booking IS is
+ * what somebody came to read; where it STANDS is what they check afterwards.
+ */
+```
+
+### THE ROWS OF THE RECEIPT, AS DATA.
+
+top level, before `waitTerm_`
+
+```
+/**
+ * THE ROWS OF THE RECEIPT, AS DATA.
+ *
+ * Split out of `bookBreakdown` when the same receipt had to be drawn onto a canvas as well as into
+ * HTML. Two renderers walking one list is duplication of PAINTING; two renderers each deciding
+ * which rows exist would be duplication of MEANING, and that is the kind that drifts — a row added
+ * to the card and not to the picture makes a shared receipt that quietly disagrees with the screen.
+ */
+```
+
+### ---------- WHICH TERM A WAITING LIST IS FOR
+
+top level, before `waitTerm_`
+
+```
+/* ---------- WHICH TERM A WAITING LIST IS FOR ------------------------------------------------------
+   A LIST OPENED NOW IS FOR THE TERM RUNNING NOW, or the next to start if today is a holiday: nobody
+   opens a list for a term already half gone. `DATA.intervals` is on the phone with every term's
+   dates on it, so this is a find rather than a second copy of the school year.
+
+   NOT A QUESTION, WHICH IS WHY IT IS A LOOKUP. The waiting-list branch skips "over what period" on
+   purpose — a list has no dates until it fills and somebody sets a day — so the answer has to come
+   from the calendar or the card says nothing about when at all.
+
+   A FUNCTION RATHER THAN A LOCAL, because two things want it now: the `About` estimate inside
+   `breakdownRows`, and the `interval` step's `fallback`, which is what actually puts the term on the
+   card. Two lookups would be two answers to which term this is.
+
+   ---------- `new Date('02/11/2026')` IS THE SECOND OF NOVEMBER TO A PERSON AND THE ELEVENTH OF
+   FEBRUARY TO A BROWSER ------------------------------------------------------------------------
+   THIS READ `v => { const d = new Date(v); … }` AND EVERY DATE HERE IS `dd/mm/yyyy` — `fmtDate`
+   writes them that way and `opensOn`/`closesOn` come straight from it. So every comparison was
+   against a date in the American order: a term opening on 2 November was read as 11 February, which
+   is in the past, so it was never "next"; one closing on 23 October parsed as month 23 and came back
+   `null`, so it was never "running" either.
+
+   WHICH MEANS THIS HAS BEEN SILENT RATHER THAN WRONG — the lookup found nothing, the caller's
+   `if (term)` was false, and the card simply had no term on it. Nothing threw and nothing looked
+   broken, which is why it survived: a row that is absent reads as a row nobody has filled in.
+
+   `parseDMY` IS THE APP'S OWN READER and is right about both orders: it takes the three numbers in
+   the order this business writes them, and falls back to `new Date` only for a string that is not a
+   date at all. One parser, in core.js, used by everything that reads one. */
+```
+
+### HOW MANY FAMILIES ARE SPLITTING IT, IN ONE WORDING.
+
+top level, before `familiesSay_`
+
+```
+/* HOW MANY FAMILIES ARE SPLITTING IT, IN ONE WORDING. Both branches of the card push this row now
+   — see below — and two spellings of one count is the shape this file records under `handle` and
+   `username`, under `needs_print` and `print_required`, and under `category` and `compliance`. The
+   waiting branch said `4 families` and would have said `1 families`; it never met a one-seat list. */
+```
+
+### ONE FAMILY IS NOT A SPLIT, AND "1 family" ON A ROW CALLED `Shared by` READS AS A FAULT.
+
+in `familiesSay_`
+
+```
+/* ONE FAMILY IS NOT A SPLIT, AND "1 family" ON A ROW CALLED `Shared by` READS AS A FAULT. The
+     receipt's own `Sharing` row already says `Just you` for a session nobody is splitting, so this
+     is that wording rather than a second one — the two rows sit four lines apart on the same
+     document. Seen on a screenshot of an unsplit instant booking. */
+```
+
+### ---------- WHO IT IS FOR, AT THE TOP
+
+in `breakdownRows`
+
+```
+/* ---------- WHO IT IS FOR, AT THE TOP ----------------------------------------------------------
+     THE RECEIPT NEVER SAID WHOSE IT WAS. The client is stored on the booking and shown in the
+     roster at the foot, and the breakdown itself — the part somebody reads to check the money is
+     right — never named them. On a card with one booking on it that is survivable; on a screen an
+     admin is scrolling through it means every receipt looks like everybody else's.
+
+     FIRST ROW, and marked `free` so it takes no line number: it is not a charge, it is who the
+     charges are for. A numbered row that costs nothing reads as a mistake in the arithmetic. */
+```
+
+### READ FROM THE BOOKING, NOT FROM `L`.
+
+in `breakdownRows`
+
+```
+/* READ FROM THE BOOKING, NOT FROM `L`. `L` is the PRICING — rates, multipliers, a total — and it
+     has no idea who the booking is for. I reached for `L.client` because it was the object to hand,
+     which is the same mistake as reading the receipt's stage where the job's kind belonged: two
+     objects in scope, one of them plausible, and the wrong one fails silently as an empty string.
+     `BOOKING.client` is where an admin's change lands, so it is what has to be read. */
+```
+
+### ---------- "NOBODY YET" IS AN ANSWER, NOT A NAME
+
+in `breakdownRows`
+
+```
+/* ---------- "NOBODY YET" IS AN ANSWER, NOT A NAME -----------------------------------------------
+     IT WENT STRAIGHT ONTO THE RECEIPT: "For Nobody yet — just open it", and worse, the children
+     note read "No children are on Nobody yet — just open it's account". The option is a way of
+     saying there is no client, and every line that then treated it as one produced a sentence
+     nobody could take seriously.
+
+     SO THE ROW IS OMITTED. A list with nobody on it has nobody to name, and a "For" line saying so
+     at length is worse than no line — the empty seats already say it. */
+```
+
+### ---------- A WAITING LIST HAS A DIFFERENT BREAKDOWN, AND WAS SHOWN THE WRONG ONE
+
+in `breakdownRows`
+
+```
+/* ---------- A WAITING LIST HAS A DIFFERENT BREAKDOWN, AND WAS SHOWN THE WRONG ONE ---------------
+     IT PRINTED THE WHOLE SESSION TABLE AT ZERO: "Tuition · No preference · £0.00", "Subject" with
+     nothing beside it, "Extra seats 0", "Venue £0.00" — twelve rows describing a sum that is not
+     how a seat is priced, every one of them empty because none of those questions was asked.
+
+     A SEAT IS ONE FIGURE. The room and the tutor, split four ways — so the breakdown is those three
+     facts and nothing else. Rows that describe a calculation nobody performed are worse than no
+     rows: they look like a price that came out at zero. */
+```
+
+### WHAT KIND OF THING THIS IS, FIRST.
+
+in `breakdownRows`
+
+```
+/* WHAT KIND OF THING THIS IS, FIRST. Nothing on the card said it was a waiting list — you had
+       to infer it from "Not open yet" three rows down, or from the absence of a date. The one fact
+       that changes what somebody is agreeing to should not be the one they work out. */
+```
+
+### ---------- `Running`, `Weeks left` AND A `For` HOLDING THE TERM WERE ALL HERE
+
+in `breakdownRows`
+
+```
+/* ---------- `Running`, `Weeks left` AND A `For` HOLDING THE TERM WERE ALL HERE -------------
+         REMOVED ON REQUEST: *"Remove weeks left running bit."* `Running` printed the term's two
+         dates and `Weeks left` printed a bare number, one under the other.
+
+         WHAT IS LOST IS THE DATES, and it is worth writing down rather than discovering: a family
+         reading `Autumn 1` now has to know when Autumn 1 is. The count itself is not lost — it is
+         the multiplier on the `About` row below, where it is doing arithmetic somebody can follow
+         rather than sitting on a line of its own.
+
+         AND THE TERM'S OWN ROW IS NOT PUSHED FROM HERE AT ALL, which is the part that took
+         measuring. It went into `For` — the row that means the CLIENT, the exact fault `jobRows`
+         fixed on the receipt and wrote up — and a push naming a question is DROPPED: `bookBreakdown`
+         builds `said` from every step's label and filters the priced rows against it, *"anything
+         naming a question twice is dropped"*. `For` is a step and so is `Term`, so a push under
+         either name has never reached the card under any label. The row belongs to the `interval`
+         STEP, and it fills itself through that step's `fallback` — see it in `BOOK_STEPS`. */
+```
+
+### ---------- AND WHAT THE TERM WOULD COME TO
+
+in `breakdownRows`
+
+```
+/* ---------- AND WHAT THE TERM WOULD COME TO ---------------------------------------------
+         A PER-SESSION FIGURE IS NOT WHAT ANYBODY IS DECIDING. "£19.00 a seat" answers a question
+         nobody asked; "seven weeks, so about £133" is the number a family weighs against the month.
+         The card had every part of that sum on it — the seat price, the weeks — and left the
+         multiplication to the reader.
+
+         "ABOUT", AND SAID SO. The weeks are what is LEFT in the term, so a list opened halfway
+         through is honestly cheaper; and nothing runs until the seats fill, so the real figure
+         depends on when that happens. A precise-looking total would be a promise this cannot keep. */
+```
+
+### THE FIVE STAGES, NONE OF THEM TICKED — for the same reason as the ones on the ordinary form below, and a waiting list nobody has joined is not a special case.
+
+in `breakdownRows`
+
+```
+/* THE FIVE STAGES, NONE OF THEM TICKED — for the same reason as the ones on the ordinary form
+       below, and a waiting list nobody has joined is not a special case. `stageRows_(null)` is the
+       one builder both documents use; see `JOB_STAGES` for why an unsent booking shows the five
+       ahead of it rather than a dash. */
+```
+
+### ---------- `Hours a week` WAS THE THIRD ROW TO SAY THE SAME THING
+
+in `breakdownRows`
+
+```
+/* ---------- `Hours a week` WAS THE THIRD ROW TO SAY THE SAME THING ---------------------------
+         `When` ALREADY READS "Monday 12:00–13:00", and the day rows above already print each run
+         with its hours. A row whose whole content is "× 1" adds a multiplier and no fact — and on a
+         document people read to check the money, a line with no value in the value column reads as
+         something that failed to fill in.
+         THE FIGURE IT CARRIED IS NOT LOST: it multiplies into the Term total two rows down, which is
+         the line that says what the weeks actually cost. */
+```
+
+### AN UNANSWERED ROW SHOWS A DASH, the same as one on the unpriced card — see `stepRows_`.
+
+in `breakdownRows`
+
+```
+/* AN UNANSWERED ROW SHOWS A DASH, the same as one on the unpriced card — see `stepRows_`.
+         "Level" with an empty value drew a bare dashed underline and nothing else, which reads as a
+         row that failed rather than a blank waiting for you. Only on rows somebody can answer:
+         a computed row with no value has nothing to fill in. */
+```
+
+### THE SAME DROPDOWN THE UNPRICED CARD USES.
+
+in `breakdownRows`
+
+```
+/* THE SAME DROPDOWN THE UNPRICED CARD USES. A row does not change how it is answered the
+         moment the booking becomes costable — `asked` names the step this row stands for, and if
+         that step is a plain list it gets a select here exactly as it does in `stepRows_`. */
+```
+
+### ---------- `step` IS ALWAYS THE STEP, EVEN WHEN THE ROW HAS A CONTROL
+
+in `breakdownRows`
+
+```
+/* ---------- `step` IS ALWAYS THE STEP, EVEN WHEN THE ROW HAS A CONTROL --------------------
+           THIS SAID `sel ? '' : asked`, blanked so a row carrying a dropdown would not also be
+           pressable. That was right when these rows WERE the card. They are not: `bookBreakdown`
+           merges them onto the form's rows now, and it finds the right one by this field — so
+           blanking it meant every priced line failed to find its question and printed as a row of
+           its own, with the figures stranded away from the answer that caused them. Which is
+           exactly what "the multiplier is gone" was. */
+```
+
+### ---------- NO WEEK HANGS OFF A PRICED ROW ANY MORE
+
+in `breakdownRows`
+
+```
+/* ---------- NO WEEK HANGS OFF A PRICED ROW ANY MORE --------------------------------------
+           THIS DREW `stepGrid_(st)` so a priced row standing for the When step kept its grid. The
+           week is not a block under a row now — it is seven rows of the card with the day names as
+           their labels — so there is nothing to hang, and `bookBreakdown` merges figures onto those
+           rows by `step` exactly as it does onto any other question's. */
+```
+
+### ---------- AND THE COUNT OF FAMILIES IS ON BOTH DOCUMENTS NOW
+
+in `breakdownRows`
+
+```
+/* ---------- AND THE COUNT OF FAMILIES IS ON BOTH DOCUMENTS NOW ---------------------------------
+     ASKED FOR AS *"\"shared by 4 families\" is a new line i think!? there should be no exclusive
+     field lines to one then the other. add that line to instant session too."* It was pushed by the
+     waiting branch and by nothing else, so a family splitting an instant session three ways had the
+     price divided by three on the card and nothing anywhere saying by what.
+
+     `splitShares` IS THE PRICING'S OWN COUNT, not a second reading of `BOOKING.split`. `priceFrom`
+     computes `splitOthers + 1` and divides the hourly charge by it, so this row is the denominator
+     of the figure two rows up rather than a description of it — which is the difference between a
+     row that can be wrong and a row that cannot.
+
+     `Per session` IS STILL WAITING-ONLY, AND THAT IS NOT THE SAME KIND OF EXCLUSIVITY. On a waiting
+     list nothing else on the card says how long a session is: there is no day yet, so the week is
+     blocks rather than hours. On an instant booking the When rows already print `Monday 13:00–15:00`
+     — the length, on the row that decides it, in the place somebody reads it — and a second line
+     restating it is the fault this file records where the roster's `name` printed an `<h3>` over
+     every widget's own heading. */
+```
+
+### ---------- WHAT THE FORMAT ADDS, AT ITS OWN ROWS (docs/history/353)
+
+in `breakdownRows`
+
+```
+/* ---------- WHAT THE FORMAT ADDS, AT ITS OWN ROWS (docs/history/353) --------------------------------
+     ONE FAMILY'S SHARE, like COST under them: the chain above divides by the split last, and these are
+     added after it, so a whole-booking figure here would not add up to the total it sits over.
+     Each says its own arithmetic in the value column — children × per child, plus the one-off — so the
+     figure is a sum somebody can redo, which is the whole card's promise. NO `step`: a priced row with one
+     merges onto its question's row, and the trip's two lines would land on one row and lose a figure —
+     these are rows of their own, pinned under their question by `SPINE_EXTRA`. */
+```
+
+### ---------- AND IT IS EVERY DATE AGAIN, WHICH IS THE OWNER'S CALL AND THE SECOND TIME ROUND
+
+in `breakdownRows`
+
+```
+/* ---------- AND IT IS EVERY DATE AGAIN, WHICH IS THE OWNER'S CALL AND THE SECOND TIME ROUND -----
+     ASKED FOR AS *"also look at dates, it should outline every date there."* This row was a SPAN
+     and a count — `28/09/26 – 16/10/27  ·  36 dates` — and the note that made it one is still worth
+     reading, because everything it says is true: every date comma-separated wraps to six lines on
+     the card and is truncated mid-date on the shared picture.
+
+     WHAT IT GOT WRONG IS WHOSE QUESTION IT WAS. "Nobody reads a weekly booking date by date" is an
+     assumption about the reader, and the reader has now said otherwise: a family checking a booking
+     against a diary wants the days, and a span plus a count cannot say which Mondays are missed for
+     half term. The wrapping is a real cost and it is a cost the owner has chosen.
+
+     `dates: true` STILL MARKS THE ROW so `.bk-dates` can set the run in the mono figures face and
+     let it wrap — see the note there. A single session still prints its one date. */
+```
+
+### ---------- AND HOW MANY OF THEM THERE ARE GOES IN THE COLUMN THAT COUNTS
+
+in `breakdownRows`
+
+```
+/* ---------- AND HOW MANY OF THEM THERE ARE GOES IN THE COLUMN THAT COUNTS ----------------------
+     ASKED FOR AS *"there should be a multipler for the number of dates bit."*
+
+     THE COUNT WAS ON THIS CARD AND WAS TAKEN OFF IT, one commit ago, as *"remove the 36 sessions at
+     the bottom next to the price"* — and the reason given was that *"the count is the MULTIPLIER on
+     the row that does the arithmetic"*. That sentence was wrong about which number: the `Time
+     interval` row's multiplier is `weeksBooked`, so a booking of three days a week for twelve weeks
+     shows `× 12` and the thirty-six sessions it really is are now nowhere on the document. Which is
+     exactly what is being asked for back, in the column a count belongs in.
+
+     IT IS NOT IN THE CHAIN AND THE CARD SAYS SO BY HAVING NO TOTAL BESIDE IT. The × column holds two
+     kinds of thing: a factor the running total is multiplied by, which carries a rate and a total,
+     and a count of what the row lists, which carries neither. The day rows are already the second
+     kind — `× 3` is how many hours that day is — so this is the same shape one row along rather than
+     a new one, and a reader following the `+` column straight down is never handed 36 to multiply by.
+
+     AND IT IS HONEST ARITHMETIC RATHER THAN DECORATION: the price is the rate times hours-a-session
+     times sessions, which is the same product the card already shows decomposed the other way as
+     hours-a-week times weeks. 36 is a factor of the total in its own right; it is simply not the
+     factor the row above it uses.
+
+     SILENT ON ONE DATE. `× 1` is the multiplier this file already refuses to print on a `rate-mult`
+     row, for the reason written there, and a single session listing one date needs no count of it. */
+```
+
+### ---------- WHERE THIS ONE IS, TOO
+
+in `breakdownRows`
+
+```
+/* ---------- WHERE THIS ONE IS, TOO ---------------------------------------------------------------
+     THREE ROWS WERE REMOVED FROM HERE — "STATUS · UNSENT", "POSSESSION · YOURS", "LIFECYCLE ·
+     UNCREATED" — and they deserved to go: three lines all reporting that a form had not been sent,
+     in words about a row in a spreadsheet, on the one document where there is no row yet.
+
+     ONE LINE COMES BACK, IN THE SAME WORDS THE RECEIPT USES. `jobSaid_` has four sentences and this
+     is the first of them, so a booking reads the same before and after it is sent: the form says
+     "Asked for — waiting on us" is what will happen, and the receipt for the same session says it
+     has. Same vocabulary, one place, no second table of words to keep in step.
+
+     AND `Status` COMES WITH IT. It was left off on the grounds that a form nobody has sent has no
+     seats — true, and the wrong conclusion: the point of these two lines is that the document reads
+     the SAME from the first question to the last payment, and a row that appears only once the
+     thing is saved is a row that changes shape at exactly the moment somebody is checking it.
+     It says what it is: nobody in it yet. Which is a fact about the booking, not a blank.
+
+     ---------- AND THEY ARE DASHES NOW, WHICH IS THE ASKED-FOR BEHAVIOUR AND THE CONSISTENT ONE ----
+     The paragraph above argued for sentences: that a row appearing only once the booking is saved
+     changes shape at the moment somebody is checking it. The first half of that still holds and is
+     why the rows are still HERE rather than added on send.
+
+     WHAT IT GOT WRONG IS THE FILLING. Every other unanswered row on this form already prints `—`
+     — see the `plain || (asked ? '—' : '')` a few lines up — so two rows carrying sentences while
+     the twenty above them carry dashes is the inconsistency, not the fix for one. A blank that
+     reads like every other blank is a blank somebody can skim past; "Not asked for yet" reads as
+     content and stops the eye on the one row that has nothing to say.
+
+     ---------- AND `Stage` IS FIVE TICK ROWS NOW, WHICH IS THE THIRD ANSWER AND THE RIGHT ONE ------
+     The paragraph above is the argument between a SENTENCE and a DASH, and both are one row trying
+     to say where a booking has got to. Five boxes say it without a vocabulary to learn, and an
+     empty one is the same "nothing to report yet" a dash was carrying — with the difference that it
+     also says what WILL be reported. `stageRows_(null)` is the unsent form's five; see
+     `JOB_STAGES`. `jobSaid_` is gone with the row it was written for.
+
+     `Status` KEEPS ITS DASH. It is the seat statuses — Waiting, Agreed, Paying, Booked — which is
+     not a stage anything reaches but a list of who among several families is where, and a form
+     nobody has sent has no seats to list. */
+```
+
+### ---------- THREE ROWS SAYING THE SAME NOTHING
+
+in `breakdownRows`
+
+```
+/* ---------- THREE ROWS SAYING THE SAME NOTHING --------------------------------------------------
+     "STATUS · UNSENT", "POSSESSION · YOURS", "LIFECYCLE · UNCREATED". Three lines, on a form nobody
+     has sent, all reporting that it has not been sent — which the card already says at the bottom,
+     says by having a "Ask for it" button on it, and says by existing at all.
+
+     They are also the wrong VOCABULARY for the reader. A parent filling in a booking has no use for
+     lifecycle or possession; those are words about the row in the sheet, and this is the one stage
+     where there is no row in the sheet. Once it IS sent it becomes a job, and `jobRows` prints a
+     real status from real data — which is where a status line earns its place.
+
+     `Dates` STAYS. It is a fact about the booking rather than about the record of it, and it is the
+     one row here somebody would actually check. */
+```
+
+### ---------- A ROW IS ITS OWN QUESTION
+
+top level, before `stepSelect_`
+
+```
+/* ---------- A ROW IS ITS OWN QUESTION ---------------------------------------------------------------
+   THE LIST OF OPTIONS UNDER THE CARD IS GONE. It was the last piece of the wizard: the card showed
+   every field, and then the same screen showed a list of answers to whichever one was current — so
+   the thing you were filling in and the way you filled it in were two objects, and the second one
+   was as tall as the first.
+
+   THE VALUE CELL IS A `<select>`. A field with a fixed set of answers is what a dropdown is FOR, and
+   a phone already knows how to show one — a wheel, over the top, dismissed by choosing. That is the
+   whole interaction, it costs no height at all, and every row can be open to being changed at once
+   rather than one at a time in an order the form decides.
+
+   THE WHEEL WAS GONE FOR A WEEK AND IS BACK. *"should be consistent with the booking multiselect
+   drop down list"* hung the app's own panel off this select (note 226); *"i want a more stable
+   standard simple conventional drop down list"* (9 October) took it away again. A tap is the
+   phone's own picker once more — see the banner over `dropOnFront_`.
+
+   A QUESTION WITH SEVERAL ANSWERS IS NOT A SELECT. `subjects`, `interval` and `kids` take more than
+   one; a select closes on every pick, so they are a row that opens a list of checkboxes under it —
+   see `stepMulti_`. This function drew a toggling select for them once (a ✓ in front of each ticked
+   option, the box dropping back to "—" after every pick) and that branch had been unreachable since
+   `stepControl_` sent every open multi to `stepMulti_`; it went with the panel. A LOCKED multi still
+   comes here, for the settled text below.
+
+   ONE STEP GENUINELY CANNOT BE ONE. `slots` is a week to tick — seven days of hours, which is not a
+   choice from a list and cannot be a dropdown. It is seven rows of the card (`weekRows_`).
+
+   `split` IS TYPING, NOT CHOOSING, so it is a text box in its row rather than a panel of email
+   fields. Addresses separated by commas: one line instead of a stack of labelled inputs and a
+   ＋ button, and the row already had to show them joined by commas anyway.
+
+   AN UNANSWERED SELECT SHOWS A DASH as its first option, so a field nobody has filled reads the same
+   as it did before and cannot be submitted by accident. */
+```
+
+### ---------- A FALLBACK HAS TO REACH THE CONTROL, NOT ONLY THE TEXT
+
+in `stepSelect_`
+
+```
+/* ---------- A FALLBACK HAS TO REACH THE CONTROL, NOT ONLY THE TEXT -------------------------------
+     `receiptRow` DRAWS THE DROPDOWN INSTEAD OF THE VALUE when a row has one — rightly, since a
+     select already shows what is chosen and printing both would be the row saying it twice. Which
+     means a fallback that only reaches the row's TEXT is a fallback an admin never sees: their
+     "Who is this for?" has a list of families on it, so the select wins, and the select had nothing
+     selected because `BOOKING.client` is only set by choosing.
+     So the same one rule is read here too. The control opens on whoever is signed in — which is
+     what the booking would be submitted as — and picking a family still overwrites it. */
+```
+
+### ---------- A SETTLED ANSWER IS TEXT, NOT A CONTROL
+
+in `stepSelect_`
+
+```
+/* ---------- A SETTLED ANSWER IS TEXT, NOT A CONTROL ----------------------------------------------
+     A LOCKED SELECT STILL SHOWED "—" ON A MULTI. The dropdown on a multiple-answer row is a way of
+     picking the NEXT one, so its own selection is always the blank — the chosen list was supposed to
+     be read off the row's value, and the control replaced it. Which is why joining a class showed
+     "Subject · —" directly under "Class · Maths, English Language": the answer was there, and the
+     thing drawn on top of it could not say so.
+
+     SO WHEN NOTHING CAN BE PICKED, NOTHING IS DRAWN THAT PICKS. Plain text, which also wraps — a
+     select cannot, and "Colliers Wood Library" was being cut to "Colliers …" in a column wide enough
+     for the whole thing over two lines. */
+```
+
+### ---------- AND A LOCKED MULTI HAD NO FALLBACK EITHER
+
+in `said`
+
+```
+/* ---------- AND A LOCKED MULTI HAD NO FALLBACK EITHER ---------------------------------
+         THE LINE BELOW ALREADY SAYS `v` CARRIES IT and this one, one branch up, did not — so the
+         `interval` step on a waiting list printed a dash over a term it had already worked out.
+         That step is locked on that branch by construction (`stepLocked_` reads `options()`, which
+         is empty there), so this IS the branch it takes, every time. */
+```
+
+### ---------- THE BLANK OPTION DOES NOT REPEAT AN ANSWER ON THE LIST
+
+in `stepSelect_`
+
+```
+/* ---------- THE BLANK OPTION DOES NOT REPEAT AN ANSWER ON THE LIST ------------------------------
+     THE FALLBACK IS THE BLANK'S WORDS, so "Who is this for?" read `Test Admin` on its empty option
+     and `Test Admin` again on the person — two lines nobody could tell apart, one ticked and one not,
+     which a screenshot of the panel caught and the panel hid (note 226). The phone's own list draws
+     every option it is given, so it is settled here, where the options are written: when the
+     fallback is already an answer on the list, the blank is the dash that clears the row. When it is
+     not — the tutor's `No preference` — the blank IS that answer and keeps its words. */
+```
+
+### ---------- AN ANSWER TOLD APART BY ITS END IS DRAWN IN WORDS, WITH THE SELECT LAID OVER THEM
+
+in `stepSelect_`
+
+```
+/* ---------- AN ANSWER TOLD APART BY ITS END IS DRAWN IN WORDS, WITH THE SELECT LAID OVER THEM -------
+     A SELECT CANNOT WRAP, and once a venue has rooms its answers are one string until the last word:
+     "Colliers Wood Library — Small room 1", "… — Small room 2", "… — Large room 1". In the 81px the
+     answer column has at 390 every one of them read "Colliers …" — on the form, and in the picture the
+     Share tile makes of it — so which room had been chosen was said by nothing but the rate beside it
+     (found by review, 10 Oct). Putting the room first does not rescue it: "Small room 1" and "Small
+     room 2" are both "Small roo…" in that width.
+
+     SO THE ROW SHOWS ITS ANSWER AS TEXT, which wraps the way a settled answer and a saved receipt
+     already do (`.bk-set`), and the select is still the control: laid exactly over the words, its own
+     letters unpainted, its arrow drawn — so a tap anywhere on the answer is a tap on the platform's own
+     dropdown (note 315), nothing stands in front of it, and the row's `<label for>` still reaches it.
+     The words are the chosen option's own text, from the one `words` the options are written with;
+     `aria-hidden`, because the select already says them to a screen reader. `drawBooker` runs on every
+     `change` (the listener over `book-set`), so the words are redrawn whenever the answer moves.
+
+     OPTED INTO BY THE STEP (`wrap`), not imposed on every row. The other answers on this card are told
+     apart by how they START — `No prefer…`, `Waiting li…` — and wrapping them would make a card already
+     called too long longer, to fix a fault they do not have. */
+```
+
+### ---------- THE NOTE IS A ROW LIKE THE REST
+
+top level, before `noteRow_`
+
+```
+/* ---------- THE NOTE IS A ROW LIKE THE REST -------------------------------------------------------
+   IT WAS A LABELLED TEXTAREA UNDER THE CARD, the last thing on the form that was not on the paper.
+   Everything else somebody types or picks is a line on the receipt; this was a box below it with a
+   heading of its own, which made it look like a different kind of question when it is the same kind
+   as all the others — a thing you tell us.
+
+   IT LIVES IN `BOOKING` NOW, not in the DOM. `book-send` read it straight off `#book-note`, which
+   worked only because that box happened to still be on screen at the moment you pressed send. A
+   redraw between typing and sending — starting the grid, changing a subject — would have wiped it
+   silently. Kept with the answers, it survives every redraw the way every other answer does.
+
+   AND IT IS THE NARROWEST BOX ON THE CARD, which is the price of five columns and is stated rather
+   than worked around. It used to take the three money tracks as well — `receiptRow` gave a row with
+   no multiplier, rate or total the full width for its value — and that is the span removed by
+   *"each field in its correct column"*, measured up in style.css. A sentence in 75px scrolls
+   sideways inside its own input the way every other text field on the card does. */
+```
+
+### ---------- TYPING INTO A ROW
+
+top level, before `stepInput_`
+
+```
+/* ---------- TYPING INTO A ROW --------------------------------------------------------------------
+   Same shape as `stepSelect_` and for the same reason: the answer belongs in the row, not under the
+   card. Read on `change` rather than on every keystroke — redrawing the whole receipt per letter
+   would take the focus out of the box mid-word. */
+```
+
+### THE ADDRESSES AS TYPED ARE A DRAFT of their own (data.js; 317) until `change` makes them answers — typed and reloaded before leaving the box, they were not in
+
+in `stepInput_`
+
+```
+/* THE ADDRESSES AS TYPED ARE A DRAFT of their own (data.js; 317) until `change` makes them answers —
+     typed and reloaded before leaving the box, they were not in `BOOKING` yet. Drawn holding the
+     draft; the answer it becomes is the value that takes it away. */
+```
+
+### ---------- PICKING SEVERAL ANSWERS WAS FOUR TAPS FOR TWO SUBJECTS
+
+top level, before `stepMulti_`
+
+```
+/* ---------- PICKING SEVERAL ANSWERS WAS FOUR TAPS FOR TWO SUBJECTS ---------------------------------
+   REPORTED AS *"for me to multiselect i have to click on field then click on subject then click on
+   field then click on another subject. thats long. should be click on subject field then click on
+   the subjects."*
+
+   THE NATIVE SELECT CANNOT DO IT AND THAT IS NOT A BUG IN THE APP. A `<select>` closes when you
+   choose — that is what choosing MEANS to it — so a question taking three answers is three opens,
+   three scrolls and three closes. The toggling worked perfectly; the gesture was the cost.
+
+   FOUR SHAPES WERE TRIED AND THREE WERE REPORTED (notes 144, 147, 153): a sheet (*"this is shit. no
+   pop up menus"*), the page drawing the list instead of the form (*"i hate this"*), and a panel
+   hanging off the field, `#drop`, which lasted until 9 October and is described in the banner over
+   `dropOnFront_` below. What was asked for every time is one thing — *"one that allows multiselect,
+   but doesnt disapear after each option click"* — and on 9 October, *"standard simple conventional"*.
+
+   SO IT IS THE CONVENTIONAL ONE: A LIST OF CHECKBOXES, OPENED UNDER ITS ROW, IN THE CARD. The row
+   says what is ticked; pressing it opens the list directly underneath, one real
+   `<input type="checkbox">` per option, each a full-width 44px row; pressing the row again closes it.
+   Nothing floats and nothing is positioned by script, so nothing can hang off the wrong field.
+
+   IT PUSHES THE ROWS BELOW IT DOWN, and note 147 ruled that out by arithmetic — 544px of card in a
+   534px pane at 320, so an in-flow list put Send past a fold with no scroll. That was before
+   `paneReach_` (find.js): a card taller than its pane is drawn smaller to 0.7 and scrolled past
+   that, so Send is reached by scrolling rather than lost. Measured again on 9 October, recorded in
+   note 315.
+
+   `<select multiple>` IS STILL REFUSED, though not for 144's reason. A phone draws it well — iOS a
+   list with ticks, Android a dialog of checkboxes — but a laptop draws a list box you Ctrl-click,
+   which nobody discovers, and an admin books from a laptop.
+
+   `BOOKING.picking` IS STILL THE WHOLE OF THE STATE, and it is an answer like every other one — kept
+   with them rather than in the DOM, so a redraw cannot lose it. Every tick redraws the card, which is
+   what makes the tick, the row's own summary and the running price land together; `bookToggle_` is
+   the one place the list changes.
+
+   THE ROW'S CONTROL IS A BUTTON WEARING `.bk-sel`. It is the same object as far as the card is
+   concerned — right-aligned, no chrome, the answer as its text, the same chevron as a select — and
+   drawing it as a second thing would be the `.reel .over` fault, where one object was described
+   twice in this stylesheet and the two drifted. What it cannot inherit is
+   `:has(option[value=""]:checked)`, which is how an unanswered select recedes: a button has no
+   options, so it says so with a class instead. */
+```
+
+### WHICH QUESTION'S LIST IS OPEN.
+
+top level, before `manyOpen_`
+
+```
+/* WHICH QUESTION'S LIST IS OPEN. A STEP THAT CANNOT BE ANSWERED CLOSES IT rather than drawing an
+   unpressable one: changing Kind can lock the very question being picked — a joined class settles
+   its own subjects — and a list of greyed boxes under a row that is now plain text is a state nobody
+   chose to be in. */
+```
+
+### ---------- THE LIST, UNDER ITS ROW
+
+top level, before `stepManyList_`
+
+```
+/* ---------- THE LIST, UNDER ITS ROW ---------------------------------------------------------------
+   `.check`, THE APP'S OWN CHECKBOX ROW — the roles card's and every yes/no field's — so a tick here
+   looks like a tick anywhere else in the app. The `<input>` is real and only drawn over: its value,
+   its `change`, Space to tick it and what a screen reader says about it are all the browser's.
+
+   FULL WIDTH AND ONE COLUMN, under the whole row rather than in the 80px answer column, because the
+   answer column ellipsises at the second subject and a list is read down its left edge. `receiptRow`
+   draws it after the row, where `.bk-say` goes.
+
+   `role="group"` NAMED BY THE QUESTION, so the list is announced as the answers to it and not as
+   twelve loose checkboxes. Empty, it says so in a sentence rather than drawing an empty box. */
+```
+
+### ON THE SCREEN YOU ARE ON, ON THE PAGE IN FRONT OF YOU.
+
+top level, before `dropOnFront_`
+
+```
+/* ON THE SCREEN YOU ARE ON, ON THE PAGE IN FRONT OF YOU. Written for the booking list when it hung
+   off its field outside the screens, and kept when that list went into the card: the maze's arrow
+   keys ask it whether the maze is the board in front of you (`mzInFront_` in games.js). */
+```
+
+### WHICH PAGE, OFF `PAGE` RATHER THAN OFF `.page.on`.
+
+in `dropOnFront_`
+
+```
+/* WHICH PAGE, OFF `PAGE` RATHER THAN OFF `.page.on`. That class is written by `placeGrid`, and
+     `paint` replaces the markup without placing it — so the first version of this read `.on` from a
+     page that had just been rebuilt by the very redraw that called it, found it absent on every
+     tick, and closed the list it was meant to keep open. `PAGE[AT]` is the app's own answer to
+     "which page is in front of you" and no repaint can lose it; `logIndex_` is what turns a DOM
+     position into a page number, which is not the same thing on the Find screen. */
+```
+
+### ---------- THE ROW'S LABEL IS THE ROW'S CONTROL'S LABEL
+
+top level, before `bkCtl_`
+
+```
+/* ---------- THE ROW'S LABEL IS THE ROW'S CONTROL'S LABEL ---------------------------------------------
+   FOUND BY REVIEW ON 9 OCTOBER, with real touch at 390x844: a tap on `Kind` — the word at the left of
+   the row — reached nothing at all, and the stylesheet said "the whole ROW is the target". While the
+   panel stood that was true, because its own hit test took any tap on `.bk-row`; with the platform's
+   own select, the only thing a finger could open was the select itself, 81 by 15 pixels in a 19px row.
+
+   SO THE WORD IS A `<label for>` THE CONTROL, which is what a form has always done to make its caption
+   part of the target: a tap on it focuses the select (an iPhone opens its wheel from that focus), clicks
+   the several-answers button (a label's activation is the control's click), and puts the caret in a
+   typed row. A locked row draws text, not a control, and keeps a plain `<span>`.
+
+   AND ON A BROWSER THAT CAN, THE LIST OPENS FROM THE LABEL TOO. A laptop's Chrome and Android's focus a
+   select from its label without opening it, which on a phone is invisible, so a tap on the word asks
+   for the platform's own list with `showPicker()` — the standard call for exactly this, riding the tap's
+   own activation. Where it does not exist (Safari) the label's focus is the whole of it. Not on a swipe:
+   the drag guard cancels a label's click (`FIELD_ACTS_` in shell.js), and a cancelled click asks for
+   nothing.
+
+   ONE ID PER STEP, on the card that `#bookr` already names once: the booking form is drawn in one place
+   at a time, which `#bookr` and `aria-controls` already rely on. */
+```
+
+### ---------- AND THE LIST JUST OPENED IS BROUGHT ONTO THE SCREEN
+
+top level, before `tickListShow_`
+
+```
+/* ---------- AND THE LIST JUST OPENED IS BROUGHT ONTO THE SCREEN ------------------------------------
+   A PANE WITH A LIST OPEN IN IT IS DRAWN AT FULL SIZE AND SCROLLS (`paneReach_`, find.js) rather than
+   shrinking every tick under 44px. So a card that was drawn smaller to fit grows when a list opens in
+   it, and the row just pressed can go below the glass with its list: measured at 320x568, the settings
+   column's venues field and the booking form's Child row both opened out of sight, the only sign
+   anything had happened an arrow turning over. So the pane is scrolled — that pane only, never
+   `scrollIntoView`, which would also scroll the overflow-hidden ancestors the columns are placed in —
+   by as much as puts the list's foot on screen, and never so far that the row it opened from leaves the
+   top. Asked twice, because the pane's zoom and its scroll are settled by an observer and a frame of
+   their own after the redraw. `head` is the row (or the summary); `still` says whether it is still the
+   list somebody opened, so a list shut in the meantime is left alone. Used by me.js for the venues
+   field as well. */
+```
+
+### A BOX TICKED OR UNTICKED.
+
+top level, before `st`
+
+```
+/* A BOX TICKED OR UNTICKED. Through `change`, which `cards.js` hands a checkbox's `data-do` — the
+   click handler refuses a checkbox because its `checked` can be read mid-flight there.
+
+   THE BOX SAYS WHAT IT WANTS AND THE LIST IS MADE TO AGREE, rather than toggled blind: a redraw
+   between the tap and this handler, or a second event for one tap, would otherwise turn one tick
+   into two and leave the box and the row disagreeing.
+
+   THE LIST STAYS OPEN, which is the whole feature, and the box keeps the focus the redraw took from
+   it — a keyboard's Tab carries on from the box it was on rather than from the top of the page. That
+   is `redrawBooker_`'s now, for every control on the card (`bookFocusOf_`). */
+```
+
+### EVERY `<select>` IS THE PLATFORM'S OWN AGAIN THE OWNER, 9 OCTOBER:
+
+top level, before `slotHead_`
+
+```
+/* ==================================================================================================
+   EVERY `<select>` IS THE PLATFORM'S OWN AGAIN
+   ==================================================================================================
+   THE OWNER, 9 OCTOBER: *"i dont like currect drop down list thing. i want a more stable standard
+   simple conventional drop down list."* This is the reverse of what stood here until that morning,
+   and both halves are kept here because the next request about a dropdown will arrive at one of them.
+
+   WHAT STOOD HERE. Asked for in note 226 as *"should be consistent with the booking multiselect drop
+   down list"*: every single-choice `<select>` in the app was `pointer-events: none`, and a tap near
+   one was caught, hit-tested against the select's rectangle and answered with the app's own floating
+   panel, `#drop` — the one the booking form's several-of-a-list questions hung off their row (147,
+   153). It worked, and it cost more than any other control in the app:
+     · capture listeners for click, for focus (a phone's keyboard bar focuses a select, and iOS draws
+       its wheel from focus) and for scroll, and an eight-pixel slop, because a 15px select that no
+       longer took the finger could no longer be snapped onto by the browser's touch adjustment (226);
+     · the select found again after every repaint, because a repaint under an open list hands back a
+       new node (226);
+     · a visibility test that shut every list opened while a column was still settling, until it was
+       rewritten against `AT` and `PAGE` rather than the viewport (226, 153);
+     · a z-order lifted over the sheet for a select inside one, and a rectangle test that opened a
+       hidden select's list BEHIND a sheet until it asked which page the tap was on (226);
+     · and three numbers written by script on every placement the grid made, because a panel outside
+       the screens does not travel with a column sliding under it (153).
+   All of that to draw by hand what every phone already draws — and a screen reader was never claimed
+   for it (226): VoiceOver opened the platform's list anyway.
+
+   WHY NATIVE IS WHAT "STABLE" MEANS. The open list is drawn by the platform, over the page, and
+   nothing in this app positions it: the wheel on an iPhone, the sheet on Android, the system list on
+   a laptop. It cannot hang off the wrong field, shut under a settling column or open behind a sheet,
+   because none of those is a thing it does.
+
+   WHAT IT CAN STILL LOSE IS ITS SELECT. The first version of this banner said a repaint could not take
+   it, and review proved otherwise the same day: tap Kind, let the payload land, and the column was
+   rebuilt — the list belonged to a select no longer in the document, and the pick went nowhere. The
+   panel had found its select again after a repaint (226); the platform's list cannot, because the
+   list IS that element's. So a landing reply leaves a column whose select is focused alone, as it
+   leaves a box being typed in (`landRepaint_`, shell.js), and draws it once the select is left. And
+   the keyboard keeps its place across this card's own redraws (`bookFocusOf_`). Every caller drew a real
+   `<select>` and listened for `change` the whole time — that was the panel's own design — so not one
+   caller changed in either direction: the booking steps, the settings fields, the qualification
+   shelf's `Something else…`, the cheat sheet, the flyer maker, the word games and Scrabble's blank.
+
+   WHAT THE APP STILL OWNS IS THE CLOSED BOX: the field's ground, edge and type, one chevron, a 44px
+   floor and 16px text, in one rule beside `input, select, textarea` in the stylesheet. The booking
+   card's rows are the one exception and the stylesheet says why (`.bk-sel`, note 031).
+
+   THE SWIPE. With the panel, no select took the finger, so a swipe that began on one moved the
+   column like a swipe anywhere else. That is kept: `axisFree` (overworld.js) and the stylesheet's
+   `touch-action` list no longer name `select`, and a drag that the app counts as a swipe cannot also
+   open the list — see the `mousedown` guard beside `PRESS_MOVED` in shell.js.
+
+   FOR WHOEVER IS ASKED NEXT TO MAKE THE OPEN LIST LOOK LIKE THE APP. It cannot be done. An iPhone's
+   wheel and Android's sheet take no CSS at all, and a laptop's list honours an option's two colours
+   and nothing else (the `option` rule in the stylesheet sets them). A request for the open list to
+   look like this app is a request for the panel back, with every line of the list above, and that
+   is the thing to say before building it a third time. Note 315 records the reversal; note 226 holds
+   the panel.
+================================================================================================== */
+```
+
+### ---------- ELEVEN HOURS, SAID ONCE
+
+top level, before `slotHead_`
+
+```
+/* ---------- ELEVEN HOURS, SAID ONCE --------------------------------------------------------------
+   SEVENTY-SEVEN NUMBERS FOR ELEVEN FACTS. Every day drew its own `10 11 12 … 20`, so the week was
+   154 characters of digits in 77 boxes — and the numbers were identical down every column, because
+   `slotGrid()` builds the hour span ONCE and every day in `SLOT_DAYS` maps over the same list. The
+   repetition was not a coincidence to be tidied; it was structural, and so is the fix.
+
+   `.hr`'S OWN NOTE ALREADY SAID WHY THIS IS SAFE: "a grid of numbers is scanned rather than read —
+   you are looking for the shape of the ticked boxes, not reading eleven figures". A cell's number
+   was never the thing being read. The COLUMN it sits in is, and a column needs a heading rather
+   than a hundred and fifty-four repetitions of one.
+
+   ONE HELPER, CALLED BY BOTH GRIDS. `jobGrid_` was deliberately built out of the form's own markup
+   — its own comment says "the form's markup, down to the class names" — because a receipt drawn
+   with different elements is a receipt that drifts the next time the grid is restyled. A header
+   written twice would put that back, one element up. Same argument as `documents_()`, `factsNow_`
+   and `childrenOf`.
+
+   `aria-hidden`, BECAUSE THE CELLS CARRY THEIR OWN HOUR. A screen reader walking the grid gets
+   "Monday 14:00" off each button's own label rather than a stray row of numerals with no context —
+   which is what the header is for a pair of eyes and exactly not what it is for a reader. */
+```
+
+### ---------- AND THE WEEK ROUND IT, BECAUSE THERE WERE THREE OF THESE
+
+top level, before `weekRows_`
+
+```
+/* ---------- AND THE WEEK ROUND IT, BECAUSE THERE WERE THREE OF THESE ------------------------------
+   THE SAME SEVEN ROWS WERE WRITTEN OUT IN THREE PLACES: the booking form, `jobGrid_` on the
+   receipt, and `availGrid_` in `me.js` — where a TUTOR ticks the hours they can teach. That third
+   one carries its own note saying *"the same grid the booker uses … answering it in two different
+   shapes would be two things to learn"*, and the hour header proved the note right by breaking it:
+   two of the three gained a header row and a joined bar, and the tutor's kept printing all
+   seventy-seven numbers. A comment forbidding the drift is not a thing that stops it.
+
+   WHAT DIFFERS BETWEEN THEM IS THE CELL AND NOTHING ELSE. One is a button you press, one is a
+   button you cannot, one is a label wrapping a checkbox `me-save` reads. So the cell is the
+   argument and everything round it — the header, the day label, the row, which days collapse —
+   is here, once.
+
+   `days` IS `[{ label, hours, shut }]` and `cell(hour, day)` returns the innards. The hours of the
+   first day name the columns, which is true by construction everywhere this is used: `slotGrid()`
+   builds one hour span and every day maps over it, the receipt counts 10 to 20, and a tutor's
+   codes are that same span grouped by prefix. */
+```
+
+### ---------- THE WEEK AS SEVEN ROWS OF THE CARD, NOT ONE BLOCK UNDER ONE ROW
+
+top level, before `weekRows_`
+
+```
+/* ---------- THE WEEK AS SEVEN ROWS OF THE CARD, NOT ONE BLOCK UNDER ONE ROW ------------------------
+   ASKED FOR AS *"get rid of When and instead have the day names be the field questions. So it
+   becomes Monday field Tuesday field Wednesday field."* — the fourth round of one complaint, and
+   the one that dissolves it instead of trading against it.
+
+   EVERY OTHER ARRANGEMENT WAS A CHOICE BETWEEN TWO BAD ONES. The week was a block hanging off a
+   `When` row: indent it to the answer column and its left edge lines up but its right edge cannot,
+   because eleven pressable cells need 240px and the answer column beside three figure columns is
+   78px. Written, reverted, written, reverted — see the notes in `style.css`.
+
+   A DAY IS A QUESTION. "Monday · which hours" is a field with a label, exactly like "Subject · which
+   one", so it belongs on a row of the card rather than inside a picture drawn beside one. The day
+   name moves out of the grid's own 1.5rem gutter and into the label column every other question
+   uses, and the eleven hours become that row's answer. Nothing is nested, nothing is indented, and
+   the phrase "the input column" stops needing a rule to enforce it: the hours ARE in it, because
+   they are what the row answers.
+
+   AND IT COSTS NOTHING IN WIDTH. The cells were 17.6px at 390 inside the old indented block and
+   they are 17.6px here, because a day row carries no figures and so gives its three figure tracks
+   to the answer — which is what every other unpriced row on the card now does too.
+
+   THE HOUR NUMBERS RIDE ON THE FIRST ROW. They are one fact about eleven columns, so drawing them
+   once is the same argument that took them out of seventy-seven cells: `slotHead_`'s note records
+   it. They sit above Monday's strip inside Monday's own answer cell rather than on a row of their
+   own, because a row of their own would need a name, a place in `SPINE` and a label column holding
+   nothing. */
+```
+
+### ---------- HOW MANY HOURS THAT DAY IS, IN THE COLUMN THAT MULTIPLIES
+
+in `weekRows_`
+
+```
+/* ---------- HOW MANY HOURS THAT DAY IS, IN THE COLUMN THAT MULTIPLIES ---------------------
+       REPORTED AS *"can you see how in screenshot i booked 3 hours? there should be a 3 hour
+       multiplier in the multiplication column, but i can also see theres no space for that."*
+       Both halves are right and the second is why this is two changes: the week was spanning the
+       multiplier column, so there was nowhere for the figure to go. It stops at the answer
+       column's edge now — see `.bk-row.bk-wk .bk-v` in style.css.
+
+       IT IS A COUNT AND IT IS ALSO A MULTIPLIER, which is what makes the column the honest place
+       for it rather than a convenient one. `priceFrom` does `p *= L.hoursPerWeek`, and
+       hours-a-week is the sum of these seven numbers — so a day's figure is a term of the product
+       the card is already reading down, not a label that happens to start with a `×`.
+
+       COUNTED FROM THE TICKS, never stored beside them. Three lit cells and a `× 3` that disagree
+       is the shape this repository pays for every time a fact is written twice, and here the two
+       would be a foot apart on one row. */
+```
+
+### ---------- THE ANSWER IS DRAWN, NOT WRITTEN
+
+in `weekRows_`
+
+```
+/* ---------- THE ANSWER IS DRAWN, NOT WRITTEN --------------------------------------------------
+       `strip` IS MARKUP AND `v` IS TEXT, which is why it is a field of its own rather than a flag on
+       `v`: the renderer escapes a value and must not escape this. Same shape as `sel`, which is how
+       a dropdown already reaches the value cell. */
+```
+
+### ---------- AND A TEN-COLUMN STRIP HAS NO ROOM TO LETTER EVERY COLUMN
+
+in `weekRows_`
+
+```
+/* ---------- AND A TEN-COLUMN STRIP HAS NO ROOM TO LETTER EVERY COLUMN ----------------------
+       ONE LABEL PER COLUMN IS RIGHT UNTIL THE COLUMN IS NARROWER THAN THE LABEL. With the week in
+       the answer column a cell is 4.7px at 320, and `18` is about 7.4px of ink at `.slot-hh`'s
+       size — so every two-digit hour wrapped onto two lines and the header went from 7.4px tall to
+       14.8, on the one row of the seven that carries it. Measured in the arrangement that ships:
+       the card went 544 to 551 at 320 — seven pixels for a row of numbers nobody could read.
+
+       SO THE HOUR WEEK SAYS ITS SPAN AND THE BLOCK WEEK NAMES ITS COLUMNS, and which of the two is
+       the caller's to state because it is a fact about the caller's grid: a block's name is a third
+       of the strip and an hour's is a tenth. `9 – 18` over ten evenly spaced cells is a ruler — you
+       count along it — and every cell still says its own hour in `title` and `aria-label`, which is
+       more than the numerals ever gave a screen reader.
+
+       NOT AN ELLIPSIS AND NOT A SHRUNK FONT. Both leave a number on screen that cannot be read,
+       which is the shape this repository records under `figure`: a thing drawn confidently and
+       wrongly beats nothing only if it can be read. */
+```
+
+### A DAY WITH NOTHING OPEN COLLAPSES.
+
+in `weekRows_`
+
+```
+/* A DAY WITH NOTHING OPEN COLLAPSES. It is still drawn — a missing Wednesday and a Wednesday
+       nobody works are different facts, which is the same reason a shut hour is greyed rather than
+       removed — but it does not need a thumb-sized row, because there is nothing on it to press.
+       ONE EXCEPTION, AND IT IS THE CALLER'S, NOT THIS BUILDER'S: once a tutor is named, a day they
+       do not work is not passed in at all (`days` in `slotGrid`; the owner, 10 Oct, *"no need to
+       display monday if they dont have any hours on monday"*). A day they work with every hour
+       taken, or the venue shut, still arrives here and still collapses. */
+```
+
+### ---------- ONE SENTENCE, UNDER THE LAST DAY
+
+in `weekRows_`
+
+```
+/* ---------- ONE SENTENCE, UNDER THE LAST DAY --------------------------------------------------
+       THE WEEK'S OWN REASON, where the week ends rather than where it starts: "nobody has set any
+       hours yet" is about the seven rows above it, and a note printed over a control is a note you
+       read before you know what it is about. It used to replace the grid entirely, which threw away
+       the one thing a greyed week still says — WHICH hours are shut and why. */
+```
+
+### ---------- NO DAY HERE COLLAPSES ANY MORE, SO THIS NO LONGER DRAWS ONE
+
+in `weekGrid_`
+
+```
+/* ---------- NO DAY HERE COLLAPSES ANY MORE, SO THIS NO LONGER DRAWS ONE ------------------------
+          A DAY WITH NOTHING OPEN USED TO COLLAPSE to a thin `is-shut` row, and the tutor's card was
+          the one week built here that had such days. The owner, 10 Oct: *"no need to display monday
+          if they dont have any hours on monday"* — so the card leaves the day out (`profAvail_`), and
+          the Settings week draws all seven at full height because it is where a day GETS its hours:
+          a Monday that collapsed there would be a Monday you could not tick. With no caller left
+          passing `shut`, the class and its three rules went with it rather than waiting in the
+          stylesheet for a week nobody builds. The FORM's thin day is `weekRows_`'s, not this. */
+```
+
+### ---------- THE WAITING LIST'S WEEK, IN BLOCKS
+
+top level, before `blockWeekRows_`
+
+```
+/* ---------- THE WAITING LIST'S WEEK, IN BLOCKS ------------------------------------------------------
+   THE SAME BUILDER AS THE HOUR WEEK, THREE CELLS INSTEAD OF ELEVEN. `weekGrid_`'s own note says
+   what differs between the grids in this app is THE CELL and nothing else, and that holds here:
+   the header, the day letters, the row and the collapse rule are all its.
+
+   NOTHING IS GREYED, AND THAT IS THE QUESTION BEING ASKED. The hour week greys an hour the tutor
+   does not work or the venue is shut for — right, because it offers hours that can be BOOKED. This
+   asks when the FAMILY can come, of a class with no tutor, no room and no day yet; greying a block
+   by whoever happens to be selected now would be answering a different question with the first
+   question's data. Every block is offerable and the shape on screen is entirely the family's.
+
+   THE SAME CELL AS THE WEEK ABOVE IT, AND 44px WAS MEASURED AND REFUSED. Three columns could pay
+   the tap-target rule where eleven cannot — but the waiting-list card has three pixels of headroom
+   in its pane, and a 44px block week is 330px against the hour week's 162 and runs 216px past the
+   fold. The arithmetic, and the second and better reason, are written where that rule is not, in
+   `style.css` beside `.hr`.
+
+   A DAY NOBODY WANTS IS NOT REMOVED. `shut` collapses a row on the hour week when the tutor works
+   none of it; here there is nothing to be shut, so every row is full height and the week is seven
+   equal rows — which is what makes it readable as a week rather than as a list. */
+```
+
+### ---------- `is-blocks` HAS GONE AND `blk` HAS NOT
+
+in `blockWeekRows_`
+
+```
+/* ---------- `is-blocks` HAS GONE AND `blk` HAS NOT ----------------------------------------------
+     `is-blocks` SAID "THIS WEEK MAY START AT THE VALUE COLUMN", back when the hour week could not.
+     Both weeks are rows of the card now, so it had no reader left and a class with no rule behind it
+     is `.favwrap.is-fav` — markup that reads as a decision and does nothing.
+
+     `blk` IS THE OPPOSITE AND IT WAS DROPPED BY MISTAKE. It is the one thing that differs between
+     this week and the hour week — three cells a row can pay a real fingertip where eleven cannot —
+     and without it the blocks quietly took the hour week's 14px when that grid was made thinner.
+     Nothing on screen said so; `check-css.js` did, by naming `blk` as a class styled and nowhere
+     produced. */
+```
+
+### THE PHRASE ITSELF, not a code.
+
+in `blockWeekRows_`
+
+```
+/* THE PHRASE ITSELF, not a code. It is what gets stored and what `waitlistWhen` counts,
+              so the handler has nothing to assemble and there is no second place for "Monday
+              morning" to be spelled — which is the fault this file records under `handle` and
+              `username`. */
+```
+
+### ---------- THE WEEK, ON THE PAPER
+
+top level, before `stepWeekRows_`
+
+```
+/* ---------- THE WEEK, ON THE PAPER ------------------------------------------------------------------
+   THE LAST PANEL, AND THE ONE WORTH KEEPING AS A GRID. Every other question is a list, and a list is
+   a dropdown. Hours are not: which hours are free across a week is a SHAPE — you read it by seeing
+   Tuesday afternoon is solid and Thursday morning is not — and a dropdown of seventy-seven options
+   destroys exactly the thing you were looking at.
+
+   SO IT KEEPS ITS GRID AND LOSES ITS PANEL. It opens underneath the When row, inside the receipt,
+   rather than below the card and after everything else. Same markup, same buttons, drawn where the
+   answer belongs.
+
+   IT SPANS THE WHOLE ROW because it is not a value in a column — it is the control for the row above
+   it, and squeezing seven days into the 55px value column would be worse than the panel was.
+
+   IT IS NOT A MODE AND THERE IS NOTHING TO OPEN. This note used to say `BOOKING.editing` held which
+   row was showing its grid and that pressing the row again closed it. That stopped being true in
+   the paragraph below — the grid is drawn whenever the When row is — and the control, the field and
+   this sentence all outlived it by months. See the note over the deleted `book-edit`. */
+```
+
+### ---------- ALWAYS DRAWN
+
+in `stepWeekRows_`
+
+```
+/* ---------- ALWAYS DRAWN --------------------------------------------------------------------
+     IT UNFOLDED WHEN YOU PRESSED THE ROW ONCE, and folding is the thing to avoid: the card changed
+     height under your thumb, every row below it moved, and whether the week was on screen depended
+     on something you had to discover. Seven rows of the paper, every time, which is the point — a
+     card whose size does not move is a card you can learn. */
+```
+
+### ---------- ONE WEEK ON THE CARD, AND WHICH ONE DEPENDS ON THE BRANCH
+
+in `stepWeekRows_`
+
+```
+/* ---------- ONE WEEK ON THE CARD, AND WHICH ONE DEPENDS ON THE BRANCH -------------------------
+     A WAITING LIST GETS THE BLOCKS AND NOT BOTH, and they share the seven row names — `SPINE` holds
+     Monday to Sunday once and whichever branch is live fills them. Two weeks stacked with one of
+     them dead is a different object, and on a card whose pane caps at 805px it is most of the paper
+     spent on one question with half of it unanswerable. */
+```
+
+### `g.days`, NOT `g.rows`:
+
+in `stepWeekRows_`
+
+```
+/* `g.days`, NOT `g.rows`: once a tutor is named, the days they work (and any day already holding a
+     tick) — see `days` in `slotGrid` for the rule and its two exceptions. The owner, 10 Oct: *"no
+     need to display monday if they dont have any hours on monday."* Nobody named, all seven. */
+```
+
+### THE NAME THE CELL USED TO CARRY AS TEXT.
+
+in `stepWeekRows_`
+
+```
+/* THE NAME THE CELL USED TO CARRY AS TEXT. With the hours in one strip above the first row
+            the box is empty, and an empty button has no accessible name at all — so the day and the
+            hour are said here, which is more than the bare numeral ever managed. */
+```
+
+### ---------- A WEEK NOBODY IS FREE FOR IS STILL DRAWN
+
+in `stepWeekRows_`
+
+```
+/* ---------- A WEEK NOBODY IS FREE FOR IS STILL DRAWN -------------------------------------
+         IT USED TO BE REPLACED BY THE SENTENCE, which threw away the half a greyed week still says:
+         which hours are shut and why each one is. The reason goes under the last day instead, which
+         is where a note about the seven rows above it belongs. */
+```
+
+### ---------- A FIELD THAT CANNOT BE ANSWERED IS SHOWN, NOT REMOVED
+
+top level, before `FIXED_BY_CLASS`
+
+```
+/* ---------- A FIELD THAT CANNOT BE ANSWERED IS SHOWN, NOT REMOVED ----------------------------------
+   ROWS USED TO DISAPPEAR. `stepRows_` skipped any step whose `options()` came back empty, so
+   choosing "waiting list class" deleted Subject, Level, When and Term off the card, and choosing a
+   class to join deleted four more. The paper reshaped itself under every answer, which is the
+   opposite of what a form should do — you cannot learn where anything is if it moves.
+
+   EVERY QUESTION HAS A ROW, ALWAYS. What changes is whether you can answer it, which is a state of
+   the control rather than a reason to remove the line. A greyed row still says what the booking is:
+   "Level · 11+, and not yours to change" is information; a missing Level row is a question you are
+   left wondering about.
+
+   TWO REASONS TO LOCK ONE:
+     · NOTHING TO OFFER — a class has no day to pick, an instant booking has no list to join.
+     · ALREADY DECIDED — the class you are joining has a subject, a level, a venue and one seat,
+       chosen by whoever opened it. Those are shown, filled in, and not up for negotiation by the
+       fifth person to join. */
+```
+
+### The control a row carries.
+
+top level, before `stepControl_`
+
+```
+/* The control a row carries. One answer here so `stepRows_` and `breakdownRows` cannot draw a
+   different thing for the same step.
+
+   `st.grid` DIRECTLY, WHERE THIS READ `stepIsPanel_(st)`. That predicate was `!!st.grid` under a
+   name describing a panel that no longer exists — see the note over the deleted `book-edit` — and
+   a wrapper whose name is wrong about what it tests is worse than no wrapper. The week is its own
+   control, drawn under the row by `stepGrid_`, so the row itself carries no dropdown. */
+```
+
+### ---------- EVERY QUESTION AS A ROW, ANSWERED OR NOT
+
+top level, before `bookOn_`
+
+```
+/* ---------- EVERY QUESTION AS A ROW, ANSWERED OR NOT -----------------------------------------------
+   THE PAPER USED TO ARRIVE LATE. `breakdownRows` builds a row per thing that has a PRICE, so before
+   anything was answered there was nothing to draw and the card said "not enough answered to price
+   it yet" — a sentence where the document should have been. And even part-way through, a question
+   still to come left no trace: you could not see that a venue was expected until the venue question
+   arrived.
+
+   SO THE UNANSWERED ONES ARE DRAWN TOO, as rows with a blank in the value column, pressable like
+   every answered one. The card is the whole form from the first moment: what it will ask, what you
+   have said, and what it costs so far, in one object that fills in rather than appears at the end.
+
+   `short` IS THE COLUMN NAME. A step's `label` is a question — "How would you like to book?" — and
+   a question does not fit a 4.4rem column or read like a receipt line. Every step carries a short
+   noun beside its question now, which is the word a till roll would print.
+
+   A QUESTION WITH NOTHING TO OFFER IS NOT DRAWN. `nextBookStep` skips those and never asks them —
+   the subjects question on a shared class, the children question for somebody with no children —
+   so a row for one would be a line nobody can ever fill in. */
+```
+
+### WHICH OF THE FORM'S TWO BRANCHES THIS IS, in one place.
+
+top level, before `bookOn_`
+
+```
+/* WHICH OF THE FORM'S TWO BRANCHES THIS IS, in one place. `stepRows_` drops the other branch's
+   questions and `bookBreakdown` tells `spineRows_` not to invent them as dashes — two readings of
+   one fact, and a second `isWaiting_() ? 'wait' : 'book'` written out is the second reader this
+   file keeps finding. The words are the ones `SPINE_EXTRA`'s `only:` already uses. */
+```
+
+### AND THE FORMAT, ON AN INSTANT CLASS (docs/history/353):
+
+top level, before `bookOn_`
+
+```
+/* AND THE FORMAT, ON AN INSTANT CLASS (docs/history/353): `book, practical` — so `only: 'practical'` on a
+   step, or `only: 'wait, tutoring, practical'` on the venue, is the same one rule a branch already was,
+   rather than a second way of hiding a row. `onlyHas_` asks whether ANY word here is in `only`. */
+```
+
+### ONE FILTER, AND IT IS NOT ABOUT WHETHER A QUESTION CAN BE ANSWERED YET — see `stepLocked_` for why a question with nothing to offer is greyed rather than
+
+in `stepRows_`
+
+```
+/* ONE FILTER, AND IT IS NOT ABOUT WHETHER A QUESTION CAN BE ANSWERED YET — see `stepLocked_` for
+     why a question with nothing to offer is greyed rather than dropped, and the `only:` note on the
+     `avail` step for the one thing that is dropped: a question belonging to the branch this card is
+     not on. */
+```
+
+### ---------- ONE STEP IS NOT ALWAYS ONE ROW
+
+in `stepRows_`
+
+```
+/* ---------- ONE STEP IS NOT ALWAYS ONE ROW ---------------------------------------------------
+       A WEEK IS SEVEN. `flatMap` rather than `map` because the When question is answered on seven
+       lines of the card — Monday to Sunday, each with its hours in the answer column — and a step
+       that draws no week on this branch contributes none at all. See `weekRows_`. */
+```
+
+### ---------- THE WHOLE RUN, NOT ITS START
+
+in `text`
+
+```
+/* ---------- THE WHOLE RUN, NOT ITS START -----------------------------------------------
+           THIS SAID "Mon 13:00" and the grid printed "Monday 13:00–15:00" underneath it — the same
+           answer twice, and the row had the less useful half. A session is a span; when it ENDS is
+           what somebody checks against the rest of their day, and the start alone cannot say
+           whether two ticked hours are one two-hour session or two separate ones.
+
+           The full form is on the row now and the line under the grid has gone with it. */
+```
+
+### A MULTI WITH NOTHING TICKED FALLS BACK LIKE ANY OTHER STEP.
+
+in `text`
+
+```
+/* A MULTI WITH NOTHING TICKED FALLS BACK LIKE ANY OTHER STEP. It could not before: this
+           branch sits above the `fallback` line and returned `''` for an empty list, so the one
+           step that has both — `interval`, which takes several terms and answers itself on a
+           waiting list — would have shown a dash over an answer it already knew. */
+```
+
+### ---------- A QUESTION WITH AN OBVIOUS ANSWER SHOWS IT
+
+in `text`
+
+```
+/* ---------- A QUESTION WITH AN OBVIOUS ANSWER SHOWS IT ---------------------------------
+           "FOR" SAT EMPTY WHILE EVERY OTHER PART OF THE APP ALREADY KNEW. `BOOKING.client` is only
+           set when somebody CHOOSES — which for an admin booking on behalf of a family is the whole
+           point of the row, and for everybody else is a question with one possible answer. So the
+           three places that actually use it all wrote `BOOKING.client || USER.name`, and the row
+           that DISPLAYS it did not: signed in as Daniel, the booking priced itself for Daniel,
+           saved itself for Daniel, and printed "For —".
+
+           `fallback` PUTS THAT ONE RULE ON THE STEP. The row shows what the booking would be
+           submitted as, which is the only honest thing for it to show, and choosing anything else
+           still overwrites it exactly as before. */
+```
+
+### THE STEP THIS ROW STANDS FOR.
+
+in `stepRows_`
+
+```
+/* THE STEP THIS ROW STANDS FOR. `bookBreakdown` matches a price line to its
+                  question on this, which is how the hours and the rate land on the Tutor row.
+
+                  `step:` WAS HERE TOO AND IT MARKED THE ROW PRESSABLE — see the note over the
+                  deleted `book-edit`. Nothing read it but the markup that drew a gold underline
+                  under a control that did nothing. */
+```
+
+### ---------- `why` WAS WRITTEN OUT ON FOUR STEPS AND DRAWN NOWHERE
+
+in `stepRows_`
+
+```
+/* ---------- `why` WAS WRITTEN OUT ON FOUR STEPS AND DRAWN NOWHERE ---------------
+                  MEASURED WHEN IT WAS WIRED UP: `st.why(` occurred nowhere in `js/`, so the form
+                  could tell you that the tutor you picked does not teach your subject and that you
+                  had ticked more children than you had seats, and said neither. This repository's
+                  oldest shape, already recorded under `figure`, `orderPrints`, the four message
+                  actions, `exam_date` and `wow`.
+
+                  IT IS A REFUSAL AND NOT AN ASIDE. `note` was the other half of this pair and is
+                  gone — see below for why, and for why this one is not. */
+```
+
+### ---------- AND THE ASIDES ARE GONE, WHICH IS THE THIRD TIME OF ASKING
+
+in `stepRows_`
+
+```
+/* ---------- AND THE ASIDES ARE GONE, WHICH IS THE THIRD TIME OF ASKING ---
+                  REPORTED AS *"theres text there AGAIN! fucking stop with that."* Four steps
+                  carried a `note` — what "Nobody yet" means, what each kind of booking is, what
+                  each seat count leaves open, what an unnamed seat is — and every one of them was
+                  a correct sentence printed under the first fields of the app's most crowded card,
+                  explaining a control whose own row already reads back what was chosen.
+
+                  THE `note` PROPERTIES WENT WITH THE RENDERING, not just the rendering. A hook
+                  left behind with nothing reading it is the shape this file records under
+                  `resource_type` in `VOCAB` and the dead `kind === 'paper'` guard: four live
+                  functions, drawn nowhere, for the next reader to wonder about.
+
+                  `why` STAYS, AND IT IS NOT THE SAME THING. A refusal says the answer ON THE ROW is
+                  wrong for the booking — more seats than the room holds, a tutor who does not teach
+                  the subject, an address that is not an address — and nothing else on the card says
+                  so. It is silent on every answer that is fine, which is why none of the four
+                  screenshots has one on it. Removing it would let somebody send a booking the
+                  backend will refuse, with no way of knowing which field did it. */
+```
+
+### ---------- NOTHING IS SAID ABOUT AN ANSWER NOBODY HAS GIVEN
+
+in `say`
+
+```
+/* ---------- NOTHING IS SAID ABOUT AN ANSWER NOBODY HAS GIVEN ------------------
+                    THE FIRST RUN PRINTED "the minimum needs 1" IN GOLD UNDER AN EMPTY SEATS ROW.
+                    Every one of these predicates takes the chosen value and tests it, so an unset
+                    step hands them `''` and several have something to say about it — which on the
+                    card is the form refusing a question it has not asked yet. A refusal before the
+                    answer is the shape this file records where a missing fact was drawn as a
+                    negative one.
+
+                    ASKED OF THE ANSWER RATHER THAN OF THE STEP, so a multi with nothing ticked and
+                    a dropdown left on the dash are both silent by the same test. */
+```
+
+### ---------- AND NOTHING IS SAID ABOUT A QUESTION THIS BRANCH CANNOT ASK
+
+in `say`
+
+```
+/* ---------- AND NOTHING IS SAID ABOUT A QUESTION THIS BRANCH CANNOT ASK --------
+                    FOUND BY A DECLARED STATE, on the waiting-list form: a locked row is a control
+                    that cannot be used, and a sentence about using it is the same fault as the
+                    caption over the week grid this file already removed. */
+```
+
+### `BOOK_ROWS` STOOD HERE and it was a list the card kept for something else to read.
+
+top level, before `JOB_STAGES`
+
+```
+/* `BOOK_ROWS` STOOD HERE and it was a list the card kept for something else to read. `receiptCanvas`
+   drew the receipt a second time onto a canvas, and this was how it got the rows the card had
+   actually drawn rather than the priced ones alone. Sharing pictures the element now — see
+   `on('book-share')` — so the second renderer is gone and so is the only thing that read this. */
+```
+
+### THE SPINE — ONE ROW LIST, TWO DOCUMENTS.
+
+top level, before `JOB_STAGES`
+
+```
+/* ==================================================================================================
+   THE SPINE — ONE ROW LIST, TWO DOCUMENTS.
+
+   THE BOOKING FORM AND THE RECEIPT WERE BUILT BY TWO FUNCTIONS that had drifted apart line by line.
+   The form said `Seats`, the receipt said `Students`. The form said `Space`, the receipt said
+   `Host`. The receipt had `Running`, `Weeks left` and `About` that the form had never heard of, and
+   the form had `Kind`, `Class`, `Split` and `When free` that the receipt dropped. Their orders
+   disagreed. Every fix all evening had to be made twice, and twice it was made once.
+
+   THIS IS THE ONE ORDER. Taken from the FORM, because that is the document somebody meets first and
+   the order they learn — a receipt that reshuffles what they just filled in is a receipt they have
+   to read from scratch.
+
+   EVERY ROW APPEARS ON BOTH. A row with nothing to say prints a dash rather than being left out,
+   because a document whose SHAPE changes with its contents cannot be read at a glance: you find a
+   line by where it is, and "where it is" has to be the same every time. That is the whole point of
+   a printed form.
+
+   ADDING A ROW MEANS ADDING IT HERE, and both documents get it. `check-spine.js` fails if either
+   builder emits a label that is not on this list, which is what stops the drift coming back.
+================================================================================================== */
+```
+
+### ---------- THE FORM IS THE ARCHETYPE, SO THE FORM IS WHERE THIS COMES FROM
+
+top level, before `JOB_STAGES`
+
+```
+/* ---------- THE FORM IS THE ARCHETYPE, SO THE FORM IS WHERE THIS COMES FROM ------------------------
+   THE FIRST VERSION OF THIS WAS THE FORM'S ORDER TYPED OUT BY HAND, which is a copy — and a copy is
+   a thing that goes stale the first time somebody adds a question to `BOOK_STEPS` and does not think
+   to come here. That is the exact failure the spine exists to stop, reintroduced one level up.
+
+   SO THE QUESTIONS ARE READ OFF THE STEPS. Every step's `short` IS a spine row, in the order the
+   form asks them, taken from the one list that already decides what the form looks like. Add a
+   question to the form and the receipt grows a row for it, with no second place to remember.
+
+   AND THE ROWS THAT ARE NOT QUESTIONS ARE DECLARED HERE, because they have nowhere else to come
+   from: `Extra subjects` is arithmetic, `About` is looked up from the term,
+   `Stage` and `Status` and `Asked for` only exist once a booking has been sent. Each is pinned
+   AFTER the question it belongs with rather than given an index, so inserting a step upstream moves
+   them along with it instead of leaving them stranded at a number that no longer means anything. */
+```
+
+### ---------- FOUR LABELS WERE TOO LONG FOR THEIR OWN COLUMN
+
+top level, before `JOB_STAGES`
+
+```
+/* ---------- FOUR LABELS WERE TOO LONG FOR THEIR OWN COLUMN ----------------------------------------
+   `Extra subjects`, `Each session`, `Sharing with` and `Shared between` all broke onto a second
+   line, so four rows on every document were twice the height of the twenty-three around them — and
+   a document read by position is hardest to read when the positions are uneven.
+
+   SHORTENED RATHER THAN THE COLUMN WIDENED. The column is 6.2em because the VALUE column needs what
+   is left; giving it two more would take them off the answers, which are the part somebody is
+   actually reading. `Per session`, `Sharing`, `Shared by`, `Extra subj.` — each still says what it
+   is beside the figure that follows it.
+
+   `Extra subj.` KEEPS ITS FULL STOP. It is the one genuine abbreviation of the four, and a shortened
+   word that does not admit it is a word somebody reads twice. */
+```
+
+### ---------- `only` — WHICH DOCUMENT CAN EVER FILL THIS ROW
+
+top level, before `JOB_STAGES`
+
+```
+/* ---------- `only` — WHICH DOCUMENT CAN EVER FILL THIS ROW -------------------------------------
+   THE SPINE IS THE UNION OF THREE DOCUMENTS AND THE FORM WAS PRINTING ALL THREE. Measured on a
+   priced ordinary booking at 390px: nine rows drew a dash and EIGHT of them were another document's
+   — `A seat`, `Shared by`, `Per session` and `About` are pushed only
+   inside `if (isWaiting_()) { … return rows; }`, which an ordinary booking never enters, and
+   `Sharing` and `Asked for` are pushed only by `jobRows`, which is the receipt.
+
+   `SPINE`'S OWN ARGUMENT IS ABOUT ONE DOCUMENT, and it still holds: *"a document whose SHAPE
+   changes with its contents cannot be read at a glance: you find a line by where it is"* — so a
+   row you have not answered YET keeps its place, because you are about to answer it and everything
+   below it would move. A row this branch cannot answer at all is not that: nothing you do on this
+   form will ever fill it, so it never moves anything, and it was never on this document.
+
+   IT ONLY GOVERNS THE INVENTED DASH. If a builder pushes the row, the row is drawn, whatever this
+   says — so a branch that starts pushing `Per session` needs nothing changed here, and a flag that
+   goes stale can hide nothing. The order is untouched, `check-spine.js` reads the labels both
+   builders push rather than the markup, and the receipt passes `fill: false` so none of this
+   reaches it. */
+```
+
+### WHERE A BOOKING HAS GOT TO, AS FIVE TICKS RATHER THAN ONE SENTENCE.
+
+top level, before `JOB_STAGES`
+
+```
+/* ==================================================================================================
+   WHERE A BOOKING HAS GOT TO, AS FIVE TICKS RATHER THAN ONE SENTENCE.
+
+   ASKED FOR AS *"it needs a line for requested and it gets ticked automatically by system. Then
+   line for accepted, then line for paid, then line for started. Then line for completed. All tick
+   boxes."*
+
+   WHAT WAS THERE was `Stage` — one row carrying one of `jobSaid_`'s four sentences ("Asked for —
+   waiting on us", "Accepted — waiting for payment") — and `Asked for`, a date. A sentence says
+   where you are; it cannot say what the shape of the whole thing is, so "how far along is this"
+   took reading a line and knowing the vocabulary. Five ticks say it at a glance, and the first
+   un-ticked one IS what happens next, which is the half the sentence was carrying.
+
+   SO `Stage` IS GONE AND SO IS `jobSaid_`. The ticks and the sentence are the same fact drawn two
+   ways, which is the fault recorded in CLAUDE.md where every widget printed its own name twice —
+   and that function's own note claimed three readers ("the receipt row, the booking form and the
+   stamp on the card"). Measured before deleting it: one. The stamp went with the four receipt
+   skins and the form pushes a literal dash, so the sentence had one home and it was this row.
+
+   `Asked for` IS GONE TOO, and it is the other half of the same duplication: it is the DATE of the
+   Requested tick, so it is that row's value rather than a row of its own. It had never drawn —
+   `created_at` is written by three handlers and `doGet` sent it nowhere, so the guard
+   `if (j.createdAt)` in `jobRows` could not fire. The date arrives now because this row reads it.
+
+   ---------- NOBODY TICKS THESE BY HAND, AND THAT IS WHY THERE ARE NO CHECKBOXES IN THEM ----------
+   Every one of the five is already derivable from what the machine holds — the roster the backend
+   folds out of the events, and the session dates. A tick somebody could press would be a SECOND
+   source for a fact the roster already answers, which is the drift this file records under
+   `documents_()`, `factsNow_` and `childrenOf`: two places to say one thing, and the one a person
+   maintains is the one that goes wrong.
+
+   So they are a MARK rather than a CONTROL. `.check` is this app's only checkbox and it is a
+   `<label>` round an `<input>` at a 44px floor; five of those is 220px of pressable nothing on a
+   card whose headroom has been measured in single pixels. `.bk-tick` borrows that control's
+   argument — a visible edge, a ghost ✓ in an empty box, gold when it is done — at receipt-row size.
+
+   ---------- EACH ONE ASKS ITS OWN QUESTION, AND THEN THE ONE ABOVE IT -----------------------------
+   A CHAIN, because that is what a progression means and because the calendar alone is not evidence
+   that a lesson happened. A session accepted but never paid for, whose start date has passed, would
+   tick `Started` off the clock — the app claiming teaching took place that nobody paid for. Read as
+   a chain it cannot: `Started` needs `Paid`, which needs `Accepted`, which needs the seats agreed.
+
+   AND CANCELLATION FALLS OUT OF IT FOR FREE. `jobAccepted_` answers false on an empty roster, and
+   `participantsOf` empties the roster when everybody has gone — so a cancelled booking ticks
+   `Requested` and stops, with nothing here that knows the word.
+
+   WHAT IT CANNOT SAY, said rather than implied: `Started` and `Completed` are read off the PLANNED
+   dates, because that is the only record there is. A session paid for and then not taught still
+   ticks. A "the lesson happened" record would be a column and a person to maintain it, which is
+   exactly what the paragraph above refuses. */
+```
+
+### ---------- AND EVERY TICK CARRIES THE DAY IT HAPPENED
+
+top level, before `JOB_STAGES`
+
+```
+/* ---------- AND EVERY TICK CARRIES THE DAY IT HAPPENED -------------------------------------------
+   ASKED FOR AS *"The tick boxes have a date for when it got requested. When other things get ticked
+   they should also have a date."*
+
+   THE DATES WERE ALREADY ON THE PHONE and nothing was reading them. `doGet` has put
+   `events: eventsForJob(jobId)` on every job since the roster was derived from the log — six
+   fields per row, `at` among them — and the only reader anywhere in `js/` was nothing at all. That
+   is this repository's oldest shape once more, and the fix needs no backend change: `Accepted` and
+   `Paid` are days the job's own log already records.
+
+   `at` IS DAY-GRANULAR. `eventsForJob` puts it through `fmtDate`, so the time `logEvent` wrote is
+   thrown away and what arrives is `dd/mm/yyyy`. That is exactly right as a label and useless as a
+   sort key, so nothing here sorts by it: the log is append-only and ARRAY ORDER is the order things
+   happened in.
+
+   ---------- WHICH EVENT, AND THE TWO ANSWERS ARE OPPOSITE ENDS OF THE LIST --------------------
+   EACH DATE IS TAKEN TO MATCH ITS OWN PREDICATE, which is the only rule that stays right when the
+   predicates differ:
+
+     `Accepted` needs EVERY seat agreed, so it became true at the LAST `Accept`.
+     `Paid` needs a seat BOOKED, and `jobStage_` counts how many — one for a session, all of them
+     for a waiting list — so it became true at the Nth `Confirm`.
+
+   THE LAST `Accept` IS EXACT FOR EVERY STATE THE APP CAN REACH, and that took checking rather than
+   assuming. Two things could have broken it. An `Edit` drops everybody un-booked back to Waiting,
+   so a re-Accept follows — and the last Accept is that re-Accept, which is the right day. And the
+   admin's Accept writes one event per participant on every press, so pressing it twice would move
+   the date with nothing having changed — except that `bmActionsFor` withholds `ACT.ACCEPT` from a
+   seat already at `Agreed`, and `check-flow.js` asserts an admin is only offered it on a booking
+   that is waiting. So the second press is not a thing the app offers.
+
+   `Confirm` IS THE ONE VERB THAT REACHES `Booked` and it is a bare string in three places rather
+   than a member of `ACT` — `dopost.gs` writes it twice, `booking.gs` reads it once. Named here
+   where it is read, because the phone has no `ACT` to reach for.
+
+   ---------- A TICK WITH NO DATE IS A TICK, AND A DATE WITH NO TICK IS A LIE -------------------
+   `stageRows_` computes the value only when the tick is on, so an un-ticked row is blank by
+   construction. That is deliberate for `Started` and `Completed`, whose dates are the PLANNED ones
+   and are known in advance: putting a future date in the column that everywhere else means *the
+   day this became true* would make one column mean two things, told apart only by whether the box
+   beside it is filled. The plan is already on the card — `Dates` prints the range and the count.
+
+   And where a ticked stage has no event to date it, it draws the tick and nothing else. Printing a
+   dash or the word unknown would be content where a blank is skimmed past; inventing a nearby
+   event's date would be the `cost: 0` shape on a document somebody keeps. */
+```
+
+### THE ROW EXISTS, SO IT WAS ASKED FOR.
+
+in `JOB_STAGES`
+
+```
+/* THE ROW EXISTS, SO IT WAS ASKED FOR. This is the one the owner described as ticked by the
+     system, and it is ticked by the booking's own existence rather than by anything writing a cell:
+     `jobRows` only ever runs on a job, and a job is a row on the jobs tab.
+
+     `created_at` IS THE JOB'S OWN CELL and the first `Request` is the fallback, because that column
+     is newer than the tab: a job made before it existed has a blank cell and an event log that
+     still says exactly when somebody asked. */
+```
+
+### ---------- PUT TO A TUTOR, WHICH FOR MOST BOOKINGS IS THE SAME MOMENT AS THE ASKING
+
+in `JOB_STAGES`
+
+```
+/* ---------- PUT TO A TUTOR, WHICH FOR MOST BOOKINGS IS THE SAME MOMENT AS THE ASKING -----------
+     ASKED FOR AS *"add \"applied for\" line under requested, above accepted. its not really
+     applicable for sessions booked with specific tutors, but it is for no preference tutors.
+     however it will just be autimatically ticked with requested after it has been requeted for a
+     specific tutor."*
+
+     SO IT IS `true`, LIKE `Requested`, AND THE CHAIN DOES THE REST. A booking naming a tutor is an
+     application to that tutor and there is no second moment to wait for; a booking saying "No
+     preference" is put out to whoever is free, which also happens at the asking. The row earns its
+     place on the second kind — where "asked for" and "put in front of somebody" are two different
+     things a family wants to see separately — and costs the first kind nothing, because a stage
+     that is always true the instant the one above it is true reads exactly as the automatic tick
+     the owner described.
+
+     A ROW RATHER THAN A CONDITIONAL ROW. `stageRows_` draws every stage on every document and the
+     chain decides which are filled — so a stage that came and went with the tutor answer would be
+     the document changing shape at the moment somebody is checking it, which is `SPINE`'s own rule
+     and what `check-flow.js` refused when the argument was made about `Asked for`.
+
+     `Apply` IS READ FIRST AND NOTHING WRITES ONE. When a job is put to tutors as its own act — an
+     admin offering a no-preference booking round — that is the event this row is dated by, and
+     until then it falls back to the asking's own date. A reader left standing over a condition
+     nothing can satisfy is this repository's oldest shape, so it is said here rather than left to
+     be discovered: the fallback is the behaviour, and the first branch is the hook. */
+```
+
+### THE BUSINESS HAS SAID YES.
+
+in `JOB_STAGES`
+
+```
+/* THE BUSINESS HAS SAID YES. `jobAccepted_` is the same function the receipt has always used and
+     its note is the argument: an accepted application is still an application, because money has
+     not moved, and both facts are true at once. */
+```
+
+### MONEY HAS MOVED. A seat at `Booked` is the machine's own record of a payment — `jobStage_` reads the same seats to decide which of the four documents this is
+
+in `JOB_STAGES`
+
+```
+/* MONEY HAS MOVED. A seat at `Booked` is the machine's own record of a payment — `jobStage_`
+     reads the same seats to decide which of the four documents this is, so the tick and the
+     document cannot disagree.
+
+     AND THE SAME ARITHMETIC DECIDES THE DATE. `jobStage_` needs one booked seat on a session and
+     a full house on a waiting list, so the `Confirm` that ticked it is the first or the last, and
+     `paidNeeds_` is that count rather than a second reading of the rule. */
+```
+
+### THE FIRST PLANNED SESSION IS IN THE PAST.
+
+in `JOB_STAGES`
+
+```
+/* THE FIRST PLANNED SESSION IS IN THE PAST. `startDate` and `endDate` are sent by `doGet` off the
+     job's own `session_dates`, so this needs nothing new in the sheet — and they are the dates the
+     two ticks are READ from, so a tick and its date cannot disagree here by construction. */
+```
+
+### THE nTH EVENT OF A KIND, AND `-1` IS THE LAST.
+
+top level, before `evAt_`
+
+```
+/* THE nTH EVENT OF A KIND, AND `-1` IS THE LAST. Array order is the order they were written, which
+   is the only ordering there is — `at` is a day and two things can happen on one day. A job with
+   no log, or too few of that kind, answers with nothing rather than with the nearest thing. */
+```
+
+### HOW MANY BOOKED SEATS `jobStage_` IS WAITING FOR — one on a session, the whole house on a waiting list.
+
+top level, before `paidNeeds_`
+
+```
+/* HOW MANY BOOKED SEATS `jobStage_` IS WAITING FOR — one on a session, the whole house on a waiting
+   list. Read here so the tick and its date are made of one rule; a waiting list with no seat count
+   cannot be full, which is `jobStage_`'s own early answer, and `0` here means the same thing. */
+```
+
+### HAS THIS DAY BEEN AND GONE.
+
+top level, before `datePassed_`
+
+```
+/* HAS THIS DAY BEEN AND GONE. `parseDMY` is the app's one reader of a `dd/mm/yyyy` cell and it
+   zeroes the time, so this is a comparison of days rather than of moments — a session at four this
+   afternoon has not started at nine this morning, and it has by tomorrow. An unparseable or absent
+   date is not passed, which is the right answer for a booking with no dates yet. */
+```
+
+### ONE BUILDER, BOTH DOCUMENTS — which is the whole of what stops them drifting, the same argument `weekRows_` makes for the three week grids.
+
+top level, before `stageRows_`
+
+```
+/* ONE BUILDER, BOTH DOCUMENTS — which is the whole of what stops them drifting, the same argument
+   `weekRows_` makes for the three week grids. `j` is null on the form: five rows, none ticked, so
+   an unsent booking shows the stages ahead of it and pressing Send ticks the first. That is
+   `SPINE`'s own rule about a document not changing shape at the moment somebody is checking it,
+   which is why these are NOT marked `only: 'receipt'` — the form and the receipt are one document
+   across time, and the placeholder is the point. */
+```
+
+### ---------- ONE DATE FORMAT FOR THE FIVE, DECIDED HERE AND NOT IN FIVE PLACES
+
+in `stageRows_`
+
+```
+/* ---------- ONE DATE FORMAT FOR THE FIVE, DECIDED HERE AND NOT IN FIVE PLACES ---------------
+       THE THREE SOURCES SPELL A DAY THREE WAYS. `createdAt` and an event's `at` both go through
+       the backend's `fmtDate` and arrive as `dd/mm/yyyy`; `startDate` and `endDate` are cut
+       straight out of the `session_dates` cell and are whatever somebody typed. So `Accepted
+       25/09/2026` sat above `Started 06/10/26` — one column, two spellings, on a document read by
+       running your eye down it.
+
+       `fmtDate` IS THE APP'S OWN VOICE and the `Dates` row three lines up already speaks it, so
+       this is the format the card had rather than a new one. Applied where the value is built, so
+       no `when` has to remember — and it passes through anything it cannot parse, which is the
+       right answer for a cell nobody has normalised. */
+```
+
+### ---------- THE TALLY OF EVERYBODY'S ANSWER TO `When free`, UNDER THAT QUESTION
+
+in `SPINE_EXTRA`
+
+```
+/* ---------- THE TALLY OF EVERYBODY'S ANSWER TO `When free`, UNDER THAT QUESTION ----------------
+     RECEIPT ONLY, because the form is where ONE family gives its answer and the receipt is where
+     the answers are counted — a row the form could only ever print as a dash. Pinned to the step it
+     tallies rather than to the tail, so on a waiting list it lands under the empty week, which is
+     the week this is the closest thing to. See `jobRows`. */
+```
+
+### ---------- PINNED TO THE FOOT RATHER THAN TO WHICHEVER QUESTION IS LAST
+
+in `SPINE_EXTRA`
+
+```
+/* ---------- PINNED TO THE FOOT RATHER THAN TO WHICHEVER QUESTION IS LAST -----------------------
+     THESE FIVE HAVE NOW BEEN RE-PINNED TWICE, and both times the row they hung off had moved. They
+     were on `Tutor` while `Tutor` was last and went to `For` when it became last; `For` is the
+     FIRST question now, and pinning them there would have carried the dates, the note and the two
+     waiting-list lines to the top of the card. The note that used to sit here said pinning is what
+     makes a move visible where an index would be silent — true, and it still leaves the rows
+     following a question around the form for a reason that has nothing to do with either of them.
+
+     AN EMPTY `after` IS THE TAIL, which is where they belong by description: they are the foot of
+     the document, after everything it is about. That is immune to which question is last, so this
+     cannot need repinning a third time — and the tail keeps SPINE_EXTRA's own order, so they still
+     come out in front of `Stage`, `Status` and `Asked for`. */
+```
+
+### THE TWO WAITING-LIST ROWS.
+
+in `SPINE_EXTRA`
+
+```
+/* THE TWO WAITING-LIST ROWS. `check-spine.js` found these the first time it ran: the form printed
+     `A seat` and `Shared between` and the receipt printed neither, so the one document that says
+     what a seat costs and how many families share it was the one nobody was handed. */
+```
+
+### ---------- `Shared by` BELONGS TO THE FORM, ON BOTH ITS BRANCHES
+
+in `SPINE_EXTRA`
+
+```
+/* ---------- `Shared by` BELONGS TO THE FORM, ON BOTH ITS BRANCHES --------------------------
+     IT WAS `only: 'wait'` and `breakdownRows` pushes it on both branches now — see the note there.
+     Dropping the flag altogether put it on the RECEIPT too, where `Sharing` two rows up already
+     answers the question in the words that document needs: the addresses somebody was invited by
+     name, or `Open — 3 seats free` on a list. Two rows for one fact, the second of them a permanent
+     dash, and 13px past the pane at 768 and 1280 — which `check/ui.js` named on its first run.
+
+     SO THE FLAG IS A SET RATHER THAN A WORD. A row can belong to two of the three documents, and
+     the alternative — a `not:` beside `only:` — is a second way of saying one thing, which is the
+     shape this file spends most of its length recording. */
+```
+
+### LAST, ALWAYS. Where a booking has got to is the closing of the document, after everything it is about — which is where a receipt puts it and where the form now
+
+in `SPINE_EXTRA`
+
+```
+/* LAST, ALWAYS. Where a booking has got to is the closing of the document, after everything it is
+     about — which is where a receipt puts it and where the form now puts it too.
+
+     NONE OF THE FIVE IS MARKED `only:`, AND THAT IS A DECISION RATHER THAN AN OVERSIGHT. By the
+     rule above they would go — they are pushed by `jobRows` and by the form's two branches, never
+     by a builder that can only reach one document. `check-flow.js` refused exactly that argument
+     when it was made about `Asked for`, and the reason is the one `SPINE` opens with: the form and
+     the receipt are one document across TIME, so a row that appears only once the thing is saved
+     is a row that changes shape at the moment somebody is checking it. The waiting-list rows above
+     are a different branch of the FORM, which is one document across nothing — an ordinary booking
+     never becomes a waiting list.
+
+     `Stage` AND `Asked for` STOOD HERE. See `JOB_STAGES`: the sentence is what the ticks say
+     in words, and the date is the `Requested` tick's own value. */
+```
+
+### ---------- A WEEK STEP IS SEVEN ROWS AND THEY ARE THE SAME SEVEN ON BOTH BRANCHES
+
+in `SPINE`
+
+```
+/* ---------- A WEEK STEP IS SEVEN ROWS AND THEY ARE THE SAME SEVEN ON BOTH BRANCHES -----------
+       MONDAY TO SUNDAY ONCE, not twice. Both week steps — hours for a session, blocks for a waiting
+       list — answer the same seven questions, and only one of them is ever on the card, so they
+       share the row names rather than each contributing a set. Deduped here rather than by ordering
+       the two steps carefully, because an order is a thing to keep in step and this is not.
+
+       `st.short` STILL ANCHORS ITS EXTRAS. It names no row now; it is the name `SPINE_EXTRA` pins
+       to, so `Per session` still lands directly after Sunday. */
+```
+
+### `Total: ''` DROPS THE ROW.
+
+top level, before `SPINE_ALIAS`
+
+```
+/* `Total: ''` DROPS THE ROW. The receipt pushed a `Total` line AND the paper prints a total bar at
+   the foot — so £151.82 appeared twice, four rows apart, on the document whose entire job is to say
+   what something costs. The form has only the bar. The bar wins: it is the thing set apart from the
+   rows, which is what a total is. */
+```
+
+### `Extra subjects` → `Extra subj.` WAS THE ONE SHORTENING THAT NEVER REACHED ITS PUSH SITE.
+
+top level, before `SPINE_ALIAS`
+
+```
+/* `Extra subjects` → `Extra subj.` WAS THE ONE SHORTENING THAT NEVER REACHED ITS PUSH SITE. The
+   note above records four labels shortened to fit the 6.2em column; three of them were shortened
+   where they are pushed, and this one lives in `price-rows.js` as `label: 'Extra subjects'`. So
+   `SPINE.indexOf('Extra subjects')` was −1, the row fell through to `extra`, and a priced booking
+   drew it at the FOOT of the card — below `Status` — while `Extra subj.` drew a dash up beside
+   `Subject` where `AFTER` had carefully placed it. One fact, twice, in two places, on the live
+   form. Measured: nine dashes and a stray `Extra subjects` row after `Status`. */
+```
+
+### `Students` → `Extra seats`, WHICH MOVED WITH THE STEP'S OWN `short`.
+
+top level, before `SPINE_ALIAS`
+
+```
+/* `Students` → `Extra seats`, WHICH MOVED WITH THE STEP'S OWN `short`. The form's seats question is
+   asked and drawn as the EXTRAS now — see the step — and an alias left pointing at `Seats` would
+   name a spine row that no longer exists, so the merge would mark a row nothing draws and
+   `spineRows_` would invent a dash beside the answer. Same fault as `Extra subjects` below, which
+   is the note this line already carries. */
+```
+
+### One row name to the one document that can fill it, read off the two lists that declare rows so there is no third one to keep in step.
+
+top level, before `onlyHas_`
+
+```
+/* One row name to the one document that can fill it, read off the two lists that declare rows so
+   there is no third one to keep in step.
+
+   BOTH, BECAUSE A STEP CAN BE BRANCH-ONLY TOO. `SPINE` is built from every step's `short`, so a
+   question `stepRows_` correctly drops would come straight back as an invented dash under the same
+   name — the row removed and then re-added by the function two hundred lines down. The flag is
+   declared once, beside the row it belongs to, wherever that row is declared. */
+```
+
+### WHICH DOCUMENTS A FLAG NAMES, READ THE SAME WAY BY BOTH READERS.
+
+top level, before `onlyHas_`
+
+```
+/* WHICH DOCUMENTS A FLAG NAMES, READ THE SAME WAY BY BOTH READERS. `stepRows_` asks it of a step
+   and `spineRows_` of a spine row, and the two comparing a string one way and a list another is the
+   second reader this file keeps finding. A flag naming several is comma-separated, which is the
+   shape `topics`, `keystage` and `needs` already have in the data. */
+```
+
+### ---------- AND WHICH SPINE ROWS ARE A TICK RATHER THAN A VALUE
+
+top level, before `TICK_ROW`
+
+```
+/* ---------- AND WHICH SPINE ROWS ARE A TICK RATHER THAN A VALUE --------------------------------
+   AN INVENTED ROW HAS TO KNOW, and a blank form is where it is invented: `breakdownRows` does not
+   run until there is enough answered to price the booking, so on the form somebody has just opened
+   all five stages come from `spineRows_`. Without this they would draw a dash, and the same five
+   rows would draw an empty box the moment a price appeared — one document in two shapes, which is
+   the fault the spine exists to stop.
+
+   READ OFF `SPINE_EXTRA` FOR `ONLY_ON`'S REASON: the flag is declared once, beside the row it
+   belongs to, rather than listed a second time here. */
+```
+
+### ---------- PUT ROWS IN SPINE ORDER, AND FILL WHAT IS MISSING
+
+top level, before `spineRows_`
+
+```
+/* ---------- PUT ROWS IN SPINE ORDER, AND FILL WHAT IS MISSING -------------------------------------
+   NEITHER BUILDER IS REWRITTEN. Each still produces whatever rows it can, in whatever order suits
+   the code that makes them; this puts them in the one order and adds a dash for every spine row
+   neither produced. One function, so the two documents cannot disagree about order even if somebody
+   edits one builder and forgets the other.
+
+   ANYTHING NOT ON THE SPINE KEEPS ITS PLACE AT THE END — the day rows, the seat lines, whatever a
+   branch prints for itself. The spine fixes the skeleton, not every bone. */
+```
+
+### ---------- AND ONE OF THE TWO DOCUMENTS DOES NOT WANT THE DASHES
+
+top level, before `spineRows_`
+
+```
+/* ---------- AND ONE OF THE TWO DOCUMENTS DOES NOT WANT THE DASHES --------------------------------
+   REPORTED AS "its so fucking clunky long looking", about the receipt. Measured at 390px on a real
+   session — subject, level, tutor, venue, six dates, a price: the card is 683px and **fourteen of
+   its twenty-eight rows are a dash**, 168px of it, a quarter of the document spent saying nothing
+   fourteen times.
+
+   THE ARGUMENT ABOVE IS ABOUT A DOCUMENT YOU FILL IN, and it is right about one. "You find a line
+   by where it is" is how you use a FORM: the rows you have not answered yet are the rows you are
+   about to, and one appearing under your thumb as you answer moves everything below it — which is
+   the complaint this file already records about the week grid folding. A form keeps its dashes.
+
+   A RECEIPT IS NOT FILLED IN. It is read once, about one session, and nobody counts down it to find
+   `Tutor` — they look for the word. A row that says a fact does not exist is not a fact; on a
+   printed receipt it is the line the shop leaves off.
+
+   THE SPINE IS UNTOUCHED AND SO IS ITS GUARD. This changes which rows are DRAWN, not what a row is
+   called or where it sits: what survives is still in spine order, `SPINE_ALIAS` still resolves the
+   old names, and `check-spine.js` reads the LABELS both builders push rather than the markup — so
+   the drift it exists to stop (`Seats` against `Students`, `Space` against `Host`) is caught
+   exactly as before. Proved by putting a stray label back.
+
+   `fill` DEFAULTS TO TRUE, so the form is the untouched caller and the receipt is the one that asks
+   for something different. A default that changes the form's behaviour from a line in the receipt's
+   builder is the kind of action at a distance this file keeps finding. */
+```
+
+### WHICH DOCUMENT IS ASKING.
+
+in `spineRows_`
+
+```
+/* WHICH DOCUMENT IS ASKING. `ONLY_ON` is built from `SPINE_EXTRA`, so the flag is declared once
+     beside the row it belongs to rather than listed again here. No `on` means invent everything,
+     which is what every caller that does not know about branches gets. */
+```
+
+### ---------- AND A ROW WHOSE FIGURES WENT ONTO A QUESTION IS NOT A ROW TO INVENT
+
+in `spineRows_`
+
+```
+/* ---------- AND A ROW WHOSE FIGURES WENT ONTO A QUESTION IS NOT A ROW TO INVENT ----------------
+     `A seat` IS PUSHED BY THE WAITING BRANCH AND CARRIES `step: 'loc'`, so `bookBreakdown` merges
+     its rate and total onto the Venue row and marks it used — which is right: the venue IS what a
+     seat is priced from, and printing `Colliers Wood Library · £12.00/h · £24.00` twice under two
+     names is the duplication that merge exists to stop.
+
+     WHAT WAS LEFT IS THE NAME. The row never reached here, so the spine saw a key nothing had
+     filled and invented a dash for it — on the one branch the row belongs to, under a label whose
+     content is four lines above. A blank that can never fill, which is exactly what `only:` was
+     added to stop one kind of.
+
+     `check-spine.js` CANNOT SEE THIS and does not claim to: it reads what the builders PUSH, and
+     `A seat` is genuinely pushed. The merge happens afterwards, in `bookBreakdown`, which is the one
+     place that knows — so it is the one place that can say so. */
+```
+
+### `blank` MARKS A ROW THE SPINE ADDED because neither document had one — it holds its place in the sequence and takes half the height of a row with something in
+
+in `out`
+
+```
+/* `blank` MARKS A ROW THE SPINE ADDED because neither document had one — it holds its place in
+       the sequence and takes half the height of a row with something in it. See `.bk-row.is-blank`.
+       A TICK ROW IS NOT BLANK IN THAT SENSE: an empty box is its answer, so it keeps a full row's
+       height and draws the mark unticked. See `TICK_ROW`. */
+```
+
+### ---------- THE TWO PHOTOGRAPHS ARE GONE
+
+in `bookBreakdown`
+
+```
+/* ---------- THE TWO PHOTOGRAPHS ARE GONE --------------------------------------------------------
+     THEY WERE HALF THE CARD. Two squares side by side, each a full 1:1 at half the card's width —
+     about 180px of height before a single row of the booking was drawn, and on the first question
+     both of them were empty outlines, so the largest thing on the screen said nothing at all.
+
+     THEY WERE ARGUED FOR AS AN OFFER rather than a receipt: you are choosing a room and a person,
+     and you want to see them. That is true on the VENUE card and the TUTOR card, where the photo is
+     the point and is what you press. Here it is the same picture a second time, under the name it
+     already says on the Venue and Tutor rows.
+
+     The job stubs keep theirs — `rc-stub-pics` draws them small, two to a line beside the text,
+     which costs nothing and is what tells one saved session from another at a glance. */
+```
+
+### `L` IS NULL UNTIL ENOUGH IS ANSWERED TO COST IT — no subjects, or no venue on a shared class.
+
+in `bookBreakdown`
+
+```
+/* `L` IS NULL UNTIL ENOUGH IS ANSWERED TO COST IT — no subjects, or no venue on a shared class.
+     Everything below reads it for figures, so each read is guarded rather than the whole card being
+     refused. The paper exists from the first question; only the numbers arrive late. */
+```
+
+### ---------- ONE LIST, AND IT IS THE FORM
+
+in `bookBreakdown`
+
+```
+/* ---------- ONE LIST, AND IT IS THE FORM ---------------------------------------------------------
+     THIS CHOSE ONE LIST OR THE OTHER, and the two are not the same length. `stepRows_` is the form —
+     every question, one row each. `breakdownRows` is the invoice, built from `PRICE_ROWS`, which
+     only has lines for things that COST something.
+
+     SO THE FORM VANISHED THE MOMENT IT COULD BE PRICED. Answer a subject and a level and Kind,
+     Seats, Space, When, Split, Child and Tutor were gone from the card — still being asked by
+     `nextBookStep`, with nowhere left to answer them. Nothing threw. The rows were simply not
+     drawn, which is why it read as "not everything is showing".
+
+     THE QUESTIONS ARE THE ROWS AND THE PRICES DECORATE THEM. A price line already names the step it
+     came from — `asked` in `breakdownRows` has mapped them all along — so the multiplier, the rate
+     and the running total land on the question that caused them.
+
+     WHAT IS LEFT OVER GOES AFTER: "Extra subjects", "Hours a week", each booked day, everything the
+     class branch prints. Those are consequences of answers rather than answers, so they sit below
+     the questions and above the total.
+
+     AND ANYTHING NAMING A QUESTION TWICE IS DROPPED. `breakdownRows` prints "For" and "Kind" as free
+     lines of its own; both are steps with rows three lines above — the same fact stated once as an
+     answer you can change and once as a figure you cannot.
+
+     THE NOTE IS LAST, which on a real docket is where the handwriting goes.
+
+     ONE LIST, walked twice — here into HTML and in `receiptCanvas` into pixels. Which rows exist is
+     decided once, so a row added to the card cannot go missing from the shared picture. */
+```
+
+### ---------- WHICH PRICED LINES BELONG TO A QUESTION
+
+in `bookBreakdown`
+
+```
+/* ---------- WHICH PRICED LINES BELONG TO A QUESTION -----------------------------------------
+     ALL BUT THE BASE. `PRICE_ROWS` maps its base line to the tutor step, because pressing it should
+     open the tutor question — but "Tuition · × 10 · £10.00/h" is what you are being charged FOR,
+     not an answer you gave, and a receipt without a base line is a receipt that has lost its
+     subject. It stays its own row at the foot, where the other consequences are. */
+```
+
+### ONE RULE, ASKED TWICE.
+
+in `bookBreakdown`
+
+```
+/* ONE RULE, ASKED TWICE. A line either belongs to a question or it does not, and both the merge
+     and the leftovers below have to agree — the first version said it in two places and the base
+     line fell through the gap: excluded from merging, then dropped by a filter that saw it named a
+     step and assumed it had merged. It vanished off the card entirely. */
+```
+
+### ---------- THE BASE LINE MERGES ONTO THE TUTOR ROW LIKE EVERY OTHER PRICED LINE
+
+in `bookBreakdown`
+
+```
+/* ---------- THE BASE LINE MERGES ONTO THE TUTOR ROW LIKE EVERY OTHER PRICED LINE ---------------
+     `Tutor · Halex Dias` AND `Tuition · Halex Dias · × 10 · £10.00/h` ARE ONE FACT PRINTED TWICE.
+     The base was held out of the merge so it could keep a row of its own at the foot — right when
+     this was an invoice, where "Tuition" is the line that says what you are being charged for. On a
+     card that ALREADY asks "Tutor" three rows above, it is the same name twice: once as something
+     you can change and once as something you cannot.
+
+     `asked` ALREADY MAPS IT. `base: 'tutor'` has been in that table all along, so the merge knows
+     exactly where the line belongs — it was only the exclusion here stopping it. The hours, the
+     rate and the total land on the Tutor row, which is the question that produced them, and the
+     second row stops existing rather than being blanked and left. */
+```
+
+### ---------- THE BASE LINE SAID THE TUTOR'S NAME, AND SO DID THE TUTOR ROW
+
+in `bookBreakdown`
+
+```
+/* ---------- THE BASE LINE SAID THE TUTOR'S NAME, AND SO DID THE TUTOR ROW ----------------------
+     `PRICE_ROWS` gives the base line the tutor as its value — right when it was an invoice on its
+     own, where "Tuition · Halex Dias · × 10 · £10.00/h" is one readable line. On a card that also
+     asks "Tutor" as a question three rows above, it is the same name printed twice, once as
+     something you can change and once as something you cannot.
+
+     THE FIGURES ARE WHAT THE LINE IS FOR. The hours, the rate and the total have no question behind
+     them; the name does, and it already has its row. */
+```
+
+### WHAT THE QUESTIONS ALREADY SAY, both by name and by which step they stand for.
+
+in `bookBreakdown`
+
+```
+/* WHAT THE QUESTIONS ALREADY SAY, both by name and by which step they stand for. The name alone
+     was not enough: `PRICE_ROWS` calls the hosting line "Host" and the step calls it "Space", so it
+     survived the check and printed the same fact twice under two words. Matching on the step id as
+     well catches that however either is worded. */
+```
+
+### ---------- A CONSEQUENCE SITS UNDER THE ANSWER THAT CAUSED IT
+
+in `bookBreakdown`
+
+```
+/* ---------- A CONSEQUENCE SITS UNDER THE ANSWER THAT CAUSED IT ---------------------------------
+     EVERYTHING LEFT OVER WAS APPENDED AT THE FOOT, in whatever order `PRICE_ROWS` happened to
+     produce it — so "Extra subjects", which is the count of subjects beyond the first, printed
+     itself between the Tutor row and the Dates, nowhere near the Subject row it is entirely about.
+     It reads as a stray charge rather than as an explanation of one.
+
+     WHICH STEP IT FOLLOWS, SAID ONCE. `asked` maps a priced row to the step that ANSWERS it, and
+     these are rows no step answers — the arithmetic that follows from one. Same shape, different
+     question, so a second small table rather than a special case: the row is placed straight after
+     the step it belongs to, and anything not named here still falls to the foot as before. */
+```
+
+### THE SPINE APPLIED AS THE LIST IS BUILT, not to a `const` afterwards — which is what the last version did, and `Assignment to constant variable` took the whole
+
+in `bookBreakdown`
+
+```
+/* THE SPINE APPLIED AS THE LIST IS BUILT, not to a `const` afterwards — which is what the last
+     version did, and `Assignment to constant variable` took the whole screen down with it. One
+     expression, so there is nothing to reassign and no order for the two steps to get wrong. */
+```
+
+### `on` SAYS WHICH OF THE FORM'S TWO BRANCHES THIS IS, so the other one's rows are not invented as dashes — see the note over `SPINE_EXTRA`.
+
+in `bookBreakdown`
+
+```
+/* `on` SAYS WHICH OF THE FORM'S TWO BRANCHES THIS IS, so the other one's rows are not invented as
+     dashes — see the note over `SPINE_EXTRA`. Through `bookOn_()`, which is the same answer
+     `stepRows_` drops the other branch's questions on: the row must not be re-added here under the
+     name the filter just removed, and one reader is what makes that impossible rather than
+     remembered. It resolves to `isWaiting_()`, the one test the branch itself is taken on. */
+```
+
+### ---------- A DAY THE WEEK LEFT OUT IS NOT A DAY TO INVENT
+
+in `bookBreakdown`
+
+```
+/* ---------- A DAY THE WEEK LEFT OUT IS NOT A DAY TO INVENT ---------------------------------------
+     MONDAY TO SUNDAY ARE SPINE ROWS, so a day `stepWeekRows_` did not draw would come straight back
+     here as `Monday —`: the row the owner asked to go — *"no need to display monday if they dont have
+     any hours on monday"* — removed by the week and re-added by the spine two hundred lines down,
+     which is the round trip `ONLY_ON` already records for a branch-only step.
+
+     READ OFF THE ROWS THE WEEK ACTUALLY DREW, not worked out again from the tutor's hours. If any
+     day row is on the card, the days that are not were left out on purpose; if none is (no week on
+     this branch), nothing is marked and the spine fills as it always has. One reader of one
+     decision, so the two cannot disagree about which Monday is gone. */
+```
+
+### ---------- THE PICTURE IS DRAWN FROM THIS LIST, NOT FROM ITS OWN
+
+in `bookBreakdown`
+
+```
+/* ---------- THE PICTURE IS DRAWN FROM THIS LIST, NOT FROM ITS OWN --------------------------------
+     THE COMMENT ABOVE HAS SAID "ONE LIST, WALKED TWICE" SINCE IT WAS WRITTEN, AND IT WAS NOT TRUE.
+     `receiptCanvas` called `breakdownRows(L)` again and drew whatever came back — the raw priced
+     lines, before any of the work this function does. So the card merged the base line onto the
+     Tutor row and the picture did not; the card put Extra subjects under Subject and the picture
+     put it at the foot; the card showed the questions and the picture showed only the charges.
+     Two documents of the same booking, and the one people actually send is the one nobody was
+     looking at.
+
+     PUT WHERE THE CANVAS CAN REACH IT rather than passed as an argument, because `receiptCanvas` is
+     called from a share button that has no idea a card was ever drawn — and the card is always
+     drawn before it can be shared. One assignment, and the picture is the screen. */
+```
+
+### ---------- ONE SEQUENCE OF LINE NUMBERS, COUNTED AFTER THE MERGE
+
+in `bookBreakdown`
+
+```
+/* ---------- ONE SEQUENCE OF LINE NUMBERS, COUNTED AFTER THE MERGE ------------------------------
+     `stepRows_` NUMBERS 1..n AND `breakdownRows` NUMBERS 1..n, SEPARATELY — which was fine while
+     they were two documents and is nonsense now that they are one. Merged, the picture printed
+     "003 Subject" then "003 Extra subjects", and "009 When free" then "009 Hours a week": two
+     rows claiming the same line, twice, on the receipt somebody sends to a parent.
+
+     COUNTED HERE, ONCE, IN THE ORDER THE ROWS ACTUALLY END UP IN — which is the only place that
+     knows it, since the order is decided four lines above. A `free` row keeps its blank: it is not
+     a charge, and a numbered row that costs nothing reads as an error in the arithmetic. */
+```
+
+### ---------- THE HEAD SAID WHAT THE ROWS SAY
+
+in `bookBreakdown`
+
+```
+/* ---------- THE HEAD SAID WHAT THE ROWS SAY -----------------------------------------------
+       "No venue yet · No tutor yet · 29/08/26 00:29" sat above a Venue row and a Tutor row holding
+       exactly those two facts, one line apart, and the clock was the time the card happened to be
+       drawn — which on a form nobody has sent is not a fact about anything.
+
+       A REAL RECEIPT KEEPS ITS HEAD, because it left the shop and the reader needs to know where and
+       when. A form on screen has not left anything, and the answers are directly underneath. */
+```
+
+### DRAW THE COLUMN HEADER.
+
+in `bookBreakdown`
+
+```
+/* DRAW THE COLUMN HEADER. It carried the word for the input column until the five headings were
+       dictated as symbols — see `spineHead_`, which writes all five now — so what is left here is
+       the yes-or-no it always also was. The basket is the caller that says no, by omission. */
+```
+
+### ---------- £0.00 IS NOT A PRICE, IT IS AN ANSWER NOBODY GAVE
+
+in `bookBreakdown`
+
+```
+/* ---------- £0.00 IS NOT A PRICE, IT IS AN ANSWER NOBODY GAVE ---------------------------------
+       The card said COST £0.00 as soon as a subject was picked, because a total with no seats and no
+       hours in it multiplies out to nothing. A zero on a receipt means FREE, and that is a promise
+       this form is in no position to make. A dash means not yet, which is the truth. */
+```
+
+### `aside` WAS HERE — "36 sessions", beside the figure on the total bar.
+
+in `bookBreakdown`
+
+```
+/* `aside` WAS HERE — "36 sessions", beside the figure on the total bar. REMOVED ON REQUEST:
+       *"remove the 36 sessions at the bottom next to the price."* It is not lost: the session count
+       is the multiplier on the row that does the arithmetic, where it is doing a job somebody can
+       follow rather than sitting beside an answer as a caption. `.rc-total .bk-r` went with it. */
+```
+
+### ---------- THE ROSTER IS NOT ON EITHER DOCUMENT
+
+in `bookBreakdown`
+
+```
+/* ---------- THE ROSTER IS NOT ON EITHER DOCUMENT ----------------------------------------------
+       IT WAS ON THE RECEIPT, THEN ON BOTH, AND NOW ON NEITHER — and the last move is the right one
+       for a reason the first two missed. The chairs are not a row of a document: they are a view of
+       a session, the same as the week grid is a view of a timetable. `Your sessions` is built to be
+       exactly that view, one widget per class, and it is where somebody asking "who is in this" now
+       goes.
+
+       ON A DOCUMENT IT WAS ALWAYS EITHER A REPEAT OR A SURPRISE. On the form it drew chairs from the
+       Seats row and the Child row printed directly above it. On the receipt it drew names that no
+       row mentions — which sounds like an argument for keeping it, and is really an argument for it
+       being somewhere of its own rather than smuggled onto the end of a price list.
+
+       WHAT THE DOCUMENTS KEEP is the count: `Seats` says how many, `Sharing with` says who else. A
+       receipt is what was agreed and what it costs. Who turned up is a different question. */
+```
+
+### ---------- THE SKIN WAS ONE WORD HERE, AND NOW THERE IS NO WORD
+
+in `bookBreakdown`
+
+```
+/* ---------- THE SKIN WAS ONE WORD HERE, AND NOW THERE IS NO WORD --------------------------------
+       THIS SAID `kind: 'receipt'`, and the note under it was proud that the whole choice of costume
+       for this document had come down to a single line: the form had been a green terminal, and
+       changing it to cream paper — and back — was one edit.
+
+       THAT WAS TRUE AND IT WAS STILL THE WRONG SHAPE. One line to pick between four palettes is one
+       line that decides which of four sets of rules a control on this card obeys, and the set nobody
+       remembers is the one the next control gets wrong. There is one palette now — the app's — so
+       there is nothing to pick and no line to pick it with. `receiptHtml` says why at length. */
+```
+
+### THE RECEIPT ITSELF — paper, head, columns, rows, total, barcode.
+
+top level, before `rosterHtml`
+
+```
+/**
+ * THE RECEIPT ITSELF — paper, head, columns, rows, total, barcode.
+ *
+ * Extracted so a SAVED job can be printed on the same paper as a booking being built. They are the
+ * same document at two moments: one is what you are asking for, the other is what you asked for,
+ * and a client comparing the two should not have to work out whether a difference is real or just
+ * two screens drawn by different code.
+ */
+```
+
+### ---------- THE ROSTER
+
+top level, before `rosterHtml`
+
+```
+/* ---------- THE ROSTER ------------------------------------------------------------------------------
+   Four slots: the tutor, and one for each seat. The shape a game lobby uses — Halo's fireteam, a
+   Destiny fireteam, an Xbox party — and it is used here for the reason those use it: it makes the
+   size of the group a PICTURE rather than a number, and it makes an empty slot look like an
+   invitation instead of an absence.
+
+   That second part is the useful one. "Sharing with: 2 other families" is a fact somebody has to
+   read and think about. Two filled slots and two open ones is a thing you look at and immediately
+   understand you could fill — which is exactly what splitting a session is, and it was previously
+   buried in a question most people skipped.
+
+   FOUR UNLESS THERE ARE MORE. Four is the lobby size everybody recognises, and a session of six
+   still has to show six — a roster that hides two of the people in the room is worse than one that
+   is the wrong shape.
+--------------------------------------------------------------------------------------------- */
+```
+
+### THE TWO FACES: the room and the person.
+
+top level, before `rosterHtml`
+
+```
+/**
+ * THE TWO FACES: the room and the person.
+ *
+ * Pulled out of `bookBreakdown` when a job stub needed them as well — the same lookup was about to
+ * be written a second time, and two ways of finding a venue's photograph is two ways for one of
+ * them to stop finding it.
+ *
+ * Greyed by the stylesheet, because a receipt has one ink.
+ */
+```
+
+### A SEAT SOMEBODY HAS PAID FOR IS TAKEN, whether or not it has a name on it.
+
+in `rosterHtml`
+
+```
+/* A SEAT SOMEBODY HAS PAID FOR IS TAKEN, whether or not it has a name on it. A parent booking
+       three seats has three children coming and has told us none of their names — the slot reads
+       "Booked" rather than repeating its own label, which is what happened when the name fell back
+       to the role and every unnamed seat printed "Seat 2 · Seat 2". */
+```
+
+### NAMED IF WE KNOW, "Child" IF WE DO NOT.
+
+in `rosterHtml`
+
+```
+/* NAMED IF WE KNOW, "Child" IF WE DO NOT.
+       This used to put the CLIENT's name on the first seat, which is wrong in the ordinary case: a
+       parent booking is a parent booking FOR somebody, and the person in the chair is the child,
+       not the person paying. So the seats take the names actually given — the children ticked at
+       booking — and anything left over says "Child", which is true and admits what it does not
+       know. It used to say "Booked", which describes the seat rather than who is in it. */
+```
+
+### "SOMEONE ELSE" IS AN ANSWER, NOT A NAME.
+
+in `rosterHtml`
+
+```
+/* "SOMEONE ELSE" IS AN ANSWER, NOT A NAME. It is what a family ticks when they do not yet know
+       who is coming, so on the roster it reads the same as an empty seat: `Child`. Printing the
+       option back at them would be the form repeating their own words as though it had learned
+       something. */
+```
+
+### ---------- AN EMPTY SEAT SAID "OPEN" TWICE
+
+in `rosterHtml`
+
+```
+/* ---------- AN EMPTY SEAT SAID "OPEN" TWICE -------------------------------------------
+            The slot is padded with `{ role: 'Open', name: '' }`, and the name line falls back to
+            'Open' when there is no name — so a free seat printed Open above OPEN, one word stacked
+            on itself in two type sizes. Three of the four seats are usually empty, so most of the
+            roster was that.
+
+            ONE LINE WHEN THERE IS ONE THING TO SAY. A taken seat still has two: who is in it, and
+            which seat it is. */
+```
+
+### `facesFor` AND `rosterPips` WENT WITH `jobCard`.
+
+top level, before `spineHead_`
+
+```
+/* `facesFor` AND `rosterPips` WENT WITH `jobCard`. Both existed only to draw the fold: the two
+   photographs at its head and the row of dots counting its seats. The roster draws whole faces and
+   the receipt draws whole rows, so neither has a caller. Same reasoning as `jobCard` above — a
+   helper nothing calls is a helper somebody calls again by accident. */
+```
+
+### FOUR OBJECTS, NOT ONE OBJECT IN FOUR MOODS.
+
+top level, before `spineHead_`
+
+```
+/* ==================================================================================================
+   FOUR OBJECTS, NOT ONE OBJECT IN FOUR MOODS.
+
+   A booking passes through four states and each is a DIFFERENT KIND OF PAPER in the real world.
+   Drawing them as one document with the edges changed was the mistake: it said "this is a receipt,
+   slightly" about three things that are not receipts at all.
+
+     screen        the terminal you type into. Nothing exists yet — there is no row, no id, no
+                   record. Somebody at a counter is entering it in front of you.
+     application   you have ASKED. It is a form that has been handed in and not yet answered, which
+                   is a real object with a real name, and nobody mistakes one for a receipt.
+     waitlist      you are in a QUEUE. Not a form and not a purchase — a numbered ticket, the thing
+                   you hold while you wait for a seat.
+     receipt       ACCEPTED. Money has moved and this is the proof. Only now is it paper off a till.
+
+   THE TRANSITION IS ACCEPTANCE, both ways. A regular session becomes a receipt when it is accepted;
+   a waitlist becomes a receipt when the seats fill and it is accepted. Two paths, one destination,
+   and the destination is the only one that is a receipt.
+
+   ONE ROW LIST UNDERNEATH ALL FOUR. The rows, the roster and the arithmetic are built once and
+   walked once — the shared picture reads the same list, and a second layout is how the screen and
+   the picture come to disagree.
+================================================================================================== */
+```
+
+### ---------- WHAT EACH COLUMN IS, IN ONE SMALL ROW AT THE TOP
+
+top level, before `spineHead_`
+
+```
+/* ---------- WHAT EACH COLUMN IS, IN ONE SMALL ROW AT THE TOP -------------------------------------
+   ASKED FOR AS *"label each column at the top. Small"*, and the word that matters is the last one.
+   THIS CARD HAD COLUMN HEADINGS ONCE and they were deleted — the note where they were says they were
+   *"six words explaining a layout nobody was confused by, and the widest band of text on the card"*.
+   Half of that has stopped being true: the report that brought them back is somebody counting the
+   columns and asking which is which. The other half is why this is .58rem of uppercase tracking
+   rather than a band: a heading that costs a line of reading is the thing that was right to delete.
+
+   FIVE SYMBOLS, DICTATED COLUMN BY COLUMN: *"Q for the prompt, a for answer. X for multipliers.
+   +/h for plus rate per hour, then + for full added price"*, over a sketch of the five-column head.
+   They are what this row says now, and two of the five overrule what was written here before.
+
+   THE STUB HEAD WAS BLANK AND THE ARGUMENT FOR IT IS THE OWNER'S TO OVERRULE. It read *"a word over
+   'For / Kind / Subject' would be a label for labels"*, which is what a table does with the column
+   its row names live in — and it leaves four headings over five columns, so the reader counting
+   across has to work out which one is unlabelled. `Q` names it, and the card's own rows say why the
+   word is right: every label in that column IS a question the document asks.
+
+   AND THE VALUE COLUMN'S WORD NO LONGER COMES FROM THE CALLER. It was `Answer` on the form and
+   `Detail` on the receipt, on the argument that *"the form is what you ANSWER and the receipt is
+   what was DECIDED"* — true, and `A` is the same letter for both, so the difference has nowhere
+   left to show. `cols` stays as the FLAG it also was (the basket passes none, which is how a caller
+   says it wants no header at all — see `collections.js`, where the card is two columns and there is
+   nothing for five names to sit over), and the five words are written once, here, where they sit
+   over the columns they name.
+
+   `×` RATHER THAN A LETTER X, and it is the same glyph to a reader. The values beneath it are
+   `× 6` and `× 1.005`, so the header is the character the column already uses rather than a
+   second spelling of it.
+
+   AND `text-transform: uppercase` CAME OFF THE ROW WITH THE WORDS. It was there for `ANSWER`,
+   `RATE` and `TOTAL`; of the five symbols now in it the only letter it would touch is the `h` of
+   `+/h`, which it would raise to `H` — a header spelling the unit one way over a column of
+   `£12.00/h` spelling it the other. One property removed, and what the source says is what the
+   row draws.
+
+   AND IT IS THE SAME ROW AS EVERY OTHER ROW, `.bk-row` and the six spans, so the labels sit over
+   their columns by construction rather than by a second set of widths that can disagree. That is
+   `weekGrid_`'s header one card out, and the fault it avoids is the one this stylesheet keeps
+   paying for. */
+```
+
+### ---------- `kind`, `SKIN` AND `STAGE` STOOD HERE, AND ONE OF THEM WAS ALREADY DEAD
+
+in `receiptHtml`
+
+```
+/* ---------- `kind`, `SKIN` AND `STAGE` STOOD HERE, AND ONE OF THEM WAS ALREADY DEAD -------------
+     `kind` PICKED ONE OF FOUR COSTUMES — screen, application, waitlist, receipt — and appended a
+     class that chose a palette in the stylesheet. All four callers pass the same one now, so it
+     chose nothing; the three skins it could no longer reach are deleted, and the argument for why
+     is kept at their old place in `style.css`.
+
+     `STAGE` WAS THIRTY LINES OF PROSE OVER A MAP NOTHING READ. It built the sentence for each of
+     the four stages and was never interpolated into the markup — the heading it fed was removed in
+     an earlier pass and the map was left behind, complete with a note explaining which of the four
+     stages keeps its wording and why. `.rc-stage` styled its output in four places and matched
+     nothing; `check-css` had been naming it as a class styled but never produced, in a list of 28.
+
+     THE STAGE IS STILL SAID. `jobSaid_` returns the sentence and `jobReceipt` puts it in a row with
+     Status and Asked for, which is where somebody checking where a booking has got to looks. A row
+     rather than a costume: readable, the same size in every language, and impossible to render as
+     a palette the next control on this card forgets about. */
+```
+
+### ---------- THE SHOP NAME WAS FOR A RECEIPT, AND THIS IS NOT ONE ANY MORE
+
+in `receiptHtml`
+
+```
+/* ---------- THE SHOP NAME WAS FOR A RECEIPT, AND THIS IS NOT ONE ANY MORE -------------------
+            A till roll names the shop because it LEAVES the shop — it is evidence, held by somebody
+            who might need to say where it came from. That argument already dropped it from the form
+            being filled in, on the grounds that a form on screen has not left anything.
+
+            THE SAME SENTENCE FINISHES THE JOB. Nothing drawn by this function leaves: it is on
+            screen, inside the app, under a tab bar with the shop's name on it, above a button with
+            the shop's own wording on it. The ONE thing that does leave is the picture
+            `receiptCanvas` draws for WhatsApp, and that keeps the name — it is the only copy of
+            this document a stranger ever holds. */
+```
+
+### THE THREE LINES ON ONE LINE.
+
+in `receiptHtml`
+
+```
+/* THE THREE LINES ON ONE LINE. Venue, tutor and term were a paragraph each, three deep at
+           the top of every card — and they are one fact, not three: where and with whom and when.
+           Joined with a middot, they read at a glance and give back two lines of height. */
+```
+
+### ---------- AND THE RULE ABOVE THE ROWS IS THE HEADER'S OWN
+
+in `receiptHtml`
+
+```
+/* ---------- AND THE RULE ABOVE THE ROWS IS THE HEADER'S OWN ------------------------------
+         A `.rc-rule` HERE AND A DASHED BORDER UNDER `.is-cols` IS TWO LINES DOING ONE JOB, and the
+         second one is labelled. It is not tidiness: the waiting-list card has three pixels of
+         headroom in its pane at 390 and eight at 768 — measured, and written up where the block
+         week is — so the header had to be paid for out of something. `.rc-rule` is 1px and
+         `.22rem` either side, which is 8px at 768, and that is most of what the header costs.
+
+         WITHOUT A HEADER THE RULE STAYS, because then nothing else closes the block above off. */
+```
+
+### THE OLD COLUMN HEADINGS ARE STILL GONE, and `spineHead_` is not them.
+
+in `receiptHtml`
+
+```
+/* THE OLD COLUMN HEADINGS ARE STILL GONE, and `spineHead_` is not them. "# Item × Rate Total" over four rows that are plainly a
+         number, a thing, a multiplier and a price — six words explaining a layout nobody was
+         confused by, and the widest band of text on the card. A receipt is read by shape rather
+         than by heading, and the shape was already doing the work. */
+```
+
+### ---------- THE TOTAL IS A ROW OF THE TABLE NOW, NOT A BAR BESIDE IT
+
+in `receiptHtml`
+
+```
+/* ---------- THE TOTAL IS A ROW OF THE TABLE NOW, NOT A BAR BESIDE IT --------------------
+         ASKED FOR AS *"the final cost needs to be in same style as everything else. cost is in the
+         Q column and the total cost is in the + column, styled like everything else for maximum
+         uniformity."* It was OUTSIDE `.bk` with three columns of its own — `auto minmax(0,1fr)
+         max-content` — so the one figure the whole card adds up to was the only figure on it that
+         did not sit under the `+` heading, and the word `COST` was the only label not under `Q`.
+
+         INSIDE `.bk`, IT SUBGRIDS LIKE EVERY OTHER ROW and the five tracks place it with nothing to
+         keep in step: `Cost` lands in the label column because that is where a label goes, and the
+         figure lands in the last one because that is where `.bk-t` goes. The three columns it
+         declared for itself are deleted rather than restated — see `style.css`.
+
+         AND THE FIGURE STOPS BEING BIGGER. It was `1.05rem` at weight 700 in a `7.5ch` track, which
+         that stylesheet's own note records overflowing by 18px on a receipt and 28 in the basket.
+         "Styled like everything else" is the fix for both the complaint and the overflow.
+
+         THE RULE ABOVE IT GOES TOO. A `.rc-rule` between the rows and the total was closing off a
+         block the total is now part of; the row's own top border does that job, in the one place
+         the card already draws a line between rows. */
+```
+
+### ---------- `r.more`: WHO GETS WHAT, FOR THE ONE PERSON ALLOWED TO KNOW
+
+in `receiptHtml`
+
+```
+/* ---------- `r.more`: WHO GETS WHAT, FOR THE ONE PERSON ALLOWED TO KNOW ------------------
+         ASKED FOR AS *"admin should be able to see grand total client pays. total tutor earns, and
+         how much admin earns."* That was `moneyBlock`, a line of faint text floating UNDER the
+         paper — and on the form it never drew at all, because it read `L.profit` where `priceFrom`
+         returns `profitTotal`. A reader of a field nobody writes is a block that cannot appear.
+
+         ROWS OF THE TOTAL, SHAPED LIKE IT. The client's figure is the total row; the tutor's and
+         the admin's are the same row again under it, a label in `Q` and a figure in `+`, so the
+         three money lines read down one column. Only the caller decides who is given any — this
+         function draws whatever it is handed and asks nobody's role. */
+```
+
+### THE ROSTER SLOT IS STILL HERE and nothing fills it — see the notes above.
+
+in `receiptHtml`
+
+```
+/* THE ROSTER SLOT IS STILL HERE and nothing fills it — see the notes above. Kept rather than
+          cut out, because `rosterHtml` is what `Your sessions` draws and this is the one line that
+          would put chairs back on a document if that ever turns out to be right. Removing it would
+          mean rediscovering where they went. */
+```
+
+### ---------- WHAT YOU DO WITH IT, ON IT
+
+in `receiptHtml`
+
+```
+/* ---------- WHAT YOU DO WITH IT, ON IT --------------------------------------------------------
+          THE BUTTONS SAT UNDER THE PAPER, on the page, with nothing behind them. The pane on that
+          page is transparent — the receipt is the box — so "Ask for it" and the share mark were
+          floating on black beneath a card they plainly belonged to, and the gap between the two
+          read as a rendering fault rather than as a layout.
+
+          THEY ARE PART OF THE DOCUMENT. A till receipt does not have its buttons printed on a
+          separate slip; the thing you press to commit belongs on the thing being committed.
+
+          LAST, because it is what the document is FOR. It used to go before the barcode, on the
+          grounds that nothing goes after the end of a receipt; with the barcode gone the buttons
+          are the end, which is the right place for the one thing anybody presses. */
+```
+
+### THE BARCODE WAS HERE.
+
+in `receiptHtml`
+
+```
+/* THE BARCODE WAS HERE. Its own stylesheet note convicted it: "decoration and priced as such
+          — 44 bars off a hash, and it is there because a till receipt has one." Nothing scanned it
+          and nothing could; it was the most receipt-shaped thing on a document that is also the
+          booking form and the basket. `receiptBars` went with it, and so did the `bars:` all three
+          callers were passing. */
+```
+
+### THE FOOTER LINE IS DRAWN ONLY IF THERE IS ONE.
+
+in `receiptHtml`
+
+```
+/* THE FOOTER LINE IS DRAWN ONLY IF THERE IS ONE. It said "Nothing is booked until you ask for
+          it" under every unsent booking — true, and already obvious from the question sitting under
+          the card and the button that sends it. A card that has to explain its own state is a card
+          whose state is not visible; this one's is. */
+```
+
+### THE REFERENCE, WHEN THERE IS ONE.
+
+in `receiptHtml`
+
+```
+/* THE REFERENCE, WHEN THERE IS ONE. It was `r.thanks` in a `.rc-thanks` and it has never held
+          a thank-you — `jobReceipt` puts "Session 42" in it, which is the number somebody quotes
+          when they ring up about a booking. Named for what it carries, because this file is read
+          far more often than it is written. */
+```
+
+### `wide` — A TITLE IS NOT A VALUE.
+
+in `receiptRow`
+
+```
+/* `wide` — A TITLE IS NOT A VALUE. The six columns are sized for a booking: a short label and a
+     short answer with three figures beside them. A basket line is the other shape entirely — one
+     long name and one price — and squeezed into the 4.5em value column, "Paper 31: Statistics —
+     June 2022" came out one word per line, six lines tall, with the price clipped off the edge.
+
+     So a row can say it is the wide kind and the grid becomes two columns. Decided here, with the
+     rest of what a row looks like, rather than by the caller patching the string afterwards. */
+```
+
+### A DAY SHOWS ITS HOURS, drawn rather than written — the same row of boxes the picker uses, so a day on the receipt and a day in the grid are visibly the same
+
+in `receiptRow`
+
+```
+/* A DAY SHOWS ITS HOURS, drawn rather than written — the same row of boxes the picker uses, so
+     a day on the receipt and a day in the grid are visibly the same thing.
+     Decided here rather than by the caller patching the markup afterwards: this function knows what
+     a row looks like, and a caller that has to reach into the string it was given is a caller doing
+     this function's job badly. */
+```
+
+### A DROPDOWN WHERE THERE IS ONE, and it replaces the value rather than sitting beside it:
+
+in `receiptRow`
+
+```
+/* A DROPDOWN WHERE THERE IS ONE, and it replaces the value rather than sitting beside it: the
+     select already shows what is chosen, and a cell that printed the answer AND a control showing
+     the same answer would be the row saying it twice. */
+```
+
+### ---------- A DAY'S HOURS ARE ITS ANSWER
+
+in `receiptRow`
+
+```
+/* ---------- A DAY'S HOURS ARE ITS ANSWER --------------------------------------------------------
+     `strip` IS MARKUP AND IS NOT ESCAPED, which is why it is its own field rather than a flag on
+     `v` — the same distinction `sel` already draws for a dropdown. It is built by `weekRows_` and by
+     nothing else, so there is one place that decides what a day row looks like. */
+```
+
+### ---------- A STAGE IS A MARK, NOT A VALUE
+
+in `receiptRow`
+
+```
+/* ---------- A STAGE IS A MARK, NOT A VALUE ------------------------------------------------------
+     `tick` IS THREE-VALUED AND THAT IS DELIBERATE: `true` is done, `false` is not yet, and absent
+     is not one of these rows at all. A plain boolean could not tell the third from the second, and
+     every row on this card would have grown a box.
+
+     IT IS NOT A CHECKBOX AND IT IS NOT PRESSABLE — see `JOB_STAGES` for why nobody ticks these by
+     hand. So the state is an `aria-label` rather than a hidden word: a ✓ that is the same glyph
+     ticked and unticked, told apart by colour alone, says nothing at all to a screen reader and
+     nothing to anybody who cannot separate gold from grey. */
+```
+
+### THE BOX LAST, BECAUSE `.bk-v` IS RIGHT-ALIGNED AND FIVE BOXES HAVE TO BE ONE COLUMN.
+
+in `receiptRow`
+
+```
+/* THE BOX LAST, BECAUSE `.bk-v` IS RIGHT-ALIGNED AND FIVE BOXES HAVE TO BE ONE COLUMN. Written
+     the other way round — box, then date — the four stages with nothing beside them put their box
+     on the card's edge and `Requested` put its box wherever its date started, so the ticks
+     came out at two different x positions. A progression you read DOWN cannot be ragged across,
+     and the date is the subordinate half of that row either way. Caught on a screenshot, which is
+     the only thing that could have: every row measured correctly and none of them overflowed. */
+```
+
+### ---------- A ROW WITH NO FIGURES DOES NOT NEED THE FIGURE COLUMNS
+
+in `receiptRow`
+
+```
+/* ---------- A ROW WITH NO FIGURES DOES NOT NEED THE FIGURE COLUMNS ------------------------------
+     "STATUS · UNCONFIRMED" AND "YOUR SEAT · UNCONFIRMED" CLASHED, and the grid is why: the
+     multiplier, rate and total columns are a fixed 151 pixels plus their gaps, reserved on EVERY
+     row — including the ones that have nothing to put in them. On a phone card that left 59 pixels
+     for the value, and "unconfirmed" needs about 74.
+
+     So a row carrying no numbers says so, and the value runs to the end of the card. Nothing moves
+     on the rows that do have figures; the columns still line up down the card, because a row that
+     spans has no figures to line up with. */
+```
+
+### ---------- A QUESTION KEEPS ITS COLUMNS WHETHER OR NOT IT HAS FIGURES
+
+in `receiptRow`
+
+```
+/* ---------- A QUESTION KEEPS ITS COLUMNS WHETHER OR NOT IT HAS FIGURES ------------------------
+     `is-bare` COLLAPSES A ROW TO TWO COLUMNS so a value with no figures beside it can use the width
+     they would have taken. That is right on a receipt, where a bare row is an aside — "Shared
+     between · 4 families" — among priced ones.
+
+     ON A FORM IT MADE THE FIELDS DIFFERENT WIDTHS. Subject has no surcharge so its box ran the
+     width of the card; Venue has one so its box was 4.5em and cut "Sutton Library" to "Sutton Li…".
+     Two editable fields, one above the other, in two sizes — and which size a field got depended on
+     whether the answer in it happened to cost anything.
+
+     SO A ROW THAT IS A QUESTION NEVER COLLAPSES. `id` is set by `stepRows_` and by nothing else, so
+     asking for it is asking "is this a field somebody fills in". The asides still collapse, which is
+     what the rule was for.
+
+     EXCEPT THE ROW ABOVE A GRID, WHICH HAS NO FIELD TO KEEP THE SAME WIDTH AS ANYTHING. `r.open`
+     is the week hanging under it, and the note below records that such a row loses its dashed
+     underline precisely because it is a heading rather than a box — *"the answer goes in the week
+     below it"*. There is no control on the line, so the argument above it does not apply: nothing
+     can come out a different size from the field under it, because there is no field.
+
+     WHAT IT BUYS IS THE ROW'S OWN SUMMARY ON ONE LINE. Measured at 390px, the value column is 81px
+     and both grid summaries are sentences: `Monday 13:00–15:00, Wednesday 15:00–16:00` for the
+     hours and `Mon · Tue evenings` for the blocks. The second wrapped to two lines at two blocks
+     ticked and grew by a line with every press — a row whose height depends on how much of the week
+     suits you, which is the shape `SPINE` objects to about folding. Spanning, it is 240px and one
+     line, and the waiting-list card comes back inside its pane.
+
+     THE FIGURE GUARD STAYS, so a grid row that ever carries a price keeps its columns with nothing
+     here to change. */
+```
+
+### AND A DAY ROW NEVER COLLAPSES TO THE NARROW COLUMN EITHER, for the reason the grid row had it:
+
+in `receiptRow`
+
+```
+/* AND A DAY ROW NEVER COLLAPSES TO THE NARROW COLUMN EITHER, for the reason the grid row had it:
+     eleven pressable cells need 240px and the answer column beside three figure tracks is 78px, so
+     a day row that kept them would have a five-pixel cell. It is the same exception, and it is the
+     last one — `strip` is what carries a control that cannot be squeezed. */
+```
+
+### ---------- THE ROW ABOVE A GRID IS A HEADING, NOT A FIELD
+
+in `receiptRow`
+
+```
+/* ---------- THE ROW ABOVE A GRID IS A HEADING, NOT A FIELD -------------------------------------
+     REPORTED AS *"the 'when' dotted line is redundant as the grid is right underneath it."* It is.
+     A dashed underline on this card means *an answer goes here*, and on the When row the answer
+     goes in the week below it — so the row was advertising a blank that could never be filled in on
+     that line, with the real control two pixels under it. And an unanswered one printed a dash as
+     well, which is the same claim a second time.
+
+     THE SUMMARY STAYS WHERE THERE IS ONE. `stepRows_` reads the ticked hours back as
+     "Monday 12:00–14:00, Wednesday 15:00–16:00", which is the one thing the picture cannot say at a
+     glance — whether two ticked boxes are a two-hour session or two separate ones. That is a
+     caption on the grid rather than a value in a column, so it is drawn and the line under it is
+     not.
+
+     ASKED OF `r.open`, WHICH IS THE GRID ITSELF. Both documents hang the week off that field — see
+     `jobRows` — so the receipt's When row loses its dash for the same reason without being told
+     separately, and a row that stops carrying a grid gets its underline back with nothing here to
+     change. */
+```
+
+### AND A DAY ROW LOSES ITS DASHED UNDERLINE FOR THE SAME REASON THE `When` ROW DID:
+
+in `receiptRow`
+
+```
+/* AND A DAY ROW LOSES ITS DASHED UNDERLINE FOR THE SAME REASON THE `When` ROW DID: the underline
+     means *an answer goes here*, and on these rows the answer is the row of boxes itself. A dashed
+     line under a strip of cells is the card advertising a blank that is already filled in. */
+```
+
+### ---------- THE WEEK IS A CELL OF THIS ROW NOW, NOT A BLOCK AFTER IT
+
+in `receiptRow`
+
+```
+/* ---------- THE WEEK IS A CELL OF THIS ROW NOW, NOT A BLOCK AFTER IT --------------------
+          ASKED AS *"is it possible to have the grid be in the 2nd column like the other stuff."*
+          It was a sibling of the row, so it started at the CARD's left edge — under the label
+          column, where no other answer on the card begins — and every value beside it starts two
+          thirds of an inch further in. One left edge for the answers is most of what makes this
+          read as a document.
+
+          PLACED BY THE GRID RATHER THAN MEASURED AGAIN. The obvious version is `margin-left: 6.2em`
+          on the week, which is the label column's own floor written in a second place — and that
+          column is `minmax(6.2em, max-content)`, so a long label widens it and the margin would not
+          follow. As a CELL it takes whatever the browser worked out, and `grid-column` is the one
+          declaration that differs between the two weeks.
+
+          AND A NOTE ON A GRID ROW NOW SITS UNDER THE WEEK rather than between the row and it. No
+          grid step carries one today, so nothing moved; it is the better order if one ever does,
+          because a sentence about a control belongs under the control. */
+```
+
+### THE CHECKBOXES OF A SEVERAL-OF-A-LIST ROW THAT IS OPEN, under the row and the full width of the card — see `stepManyList_`.
+
+in `receiptRow`
+
+```
+/* THE CHECKBOXES OF A SEVERAL-OF-A-LIST ROW THAT IS OPEN, under the row and the full width of
+       the card — see `stepManyList_`. After the refusal rather than before it, because the sentence
+       is about the answer on the row and the list is what changes it. Markup for `sel`'s reason. */
+```
+
+### A SAVED JOB, AS A RECEIPT OF WHAT WAS ASKED FOR.
+
+top level, before `jobRows`
+
+```
+/**
+ * A SAVED JOB, AS A RECEIPT OF WHAT WAS ASKED FOR.
+ *
+ * Built from what the job ROW actually holds, not by re-pricing it. Re-pricing would produce a
+ * fuller chain of multipliers and would be the wrong document: a receipt records what was agreed,
+ * and rates move. A session asked for in September should still say what September said.
+ */
+```
+
+### A ROW WITH NOTHING IN IT IS SKIPPED — a job with no tutor should not print an empty Tutor line.
+
+in `push`
+
+```
+/* A ROW WITH NOTHING IN IT IS SKIPPED — a job with no tutor should not print an empty Tutor
+       line. But "nothing in it" means no VALUE and no TOTAL: the money rows carry their figure in
+       the total column and an empty value, and this dropped every one of them, so a client saw a
+       receipt of their booking with no price on it. */
+```
+
+### ---------- FOUR ROWS WERE READING NAMES THE PAYLOAD HAS NEVER SENT
+
+in `jobRows`
+
+```
+/* ---------- FOUR ROWS WERE READING NAMES THE PAYLOAD HAS NEVER SENT --------------------------
+     FOUND BY COMPARING EVERY `j.<field>` THIS FUNCTION READS against every key `doGet` puts on a
+     job — sixteen against forty-seven — which is `check-payload.js`'s question asked one level
+     down, where it cannot go: that check compares top-level `DATA.*` keys, so a field inside a row
+     that nothing sends is invisible to it. Six came back, and four of them were drawing something.
+
+     `Students` READ `j.students` AND `j.maxStudents`, and the payload sends `maxKids`. So the row
+     was absent from every real receipt — `push` skips a row with no value, so not even a dash.
+     `seatsOf_` is the app's one reader of "how many seats", already used by the roster and the
+     stamp, so asking it here is the `documents_()` argument rather than a third spelling. The
+     `|| ''` matters: it answers 0 for a job with no seat count and `push` would print "Students 0".
+
+     `Venue` READ `j.venue` AND THE PAYLOAD SENDS `location`. `jobReceipt`'s own header already
+     tries both, with the note *"both names are tried, because two lists genuinely use two"* — it
+     was found once, for the line under the title, and not for the row. Same fix, same reason.
+
+     `Host` AND `Sharing` were the other two and they are repaired at the other end, in `doGet`:
+     both were drawing a CONFIDENT WRONG ANSWER rather than nothing — "We book the room" to a
+     family hosting at home, and "Just you" on a session split three ways — so a name tried here
+     would have been a second guess at a fact the sheet holds and the payload was not carrying. */
+```
+
+### ---------- AND THE COUNT IS THE EXTRAS, BECAUSE THAT IS WHAT THE FORM ASKED
+
+in `jobRows`
+
+```
+/* ---------- AND THE COUNT IS THE EXTRAS, BECAUSE THAT IS WHAT THE FORM ASKED -------------------
+     `seatsOf_` IS THE TOTAL and the form's question is *"How many extra seats?"* — so a receipt
+     printing the total under the label the form prints the extras under is the two documents
+     disagreeing about what one row MEANS, which is the whole fault the spine was built to stop.
+     Minus yours, in the one place a saved job is read.
+     A JOB WITH NO SEAT COUNT STILL DRAWS NOTHING, which is what the `|| ''` was for: `seatsOf_`
+     answers 0 for a job that never had one, and that is an absence rather than a booking with no
+     extra seats. The two are told apart before the subtraction rather than after it. */
+```
+
+### ---------- SEVEN DAY ROWS WHERE THE `When` ROW WAS
+
+in `jobRows`
+
+```
+/* ---------- SEVEN DAY ROWS WHERE THE `When` ROW WAS ---------------------------------------------
+     THE FORM ASKS ON SEVEN LINES NOW and the receipt answers on the same seven, in the same place,
+     built by the same function — which is what stops the two documents drifting. The old single
+     `When` row said "Monday, Friday 10:00" and hung the picture underneath it; the day names are
+     the labels, so the sentence had nowhere left to be that was not a second copy of the picture. */
+```
+
+### "JUST YOU" IS WRONG ON A WAITING LIST, and on an open one it is the opposite of true:
+
+in `jobRows`
+
+```
+/* "JUST YOU" IS WRONG ON A WAITING LIST, and on an open one it is the opposite of true: the whole
+     point is that other families join. `splitEmails` is for a session somebody splits with people
+     they know; a list is shared with whoever turns up, which is a different fact and wants
+     different words. */
+```
+
+### ---------- AND ON AN OPEN SESSION IT WAS THE OPPOSITE OF TRUE TOO
+
+in `jobRows`
+
+```
+/* ---------- AND ON AN OPEN SESSION IT WAS THE OPPOSITE OF TRUE TOO -------------------------------
+     ASKED FOR AS *"the session booking thing at the bottom of receipt should be a line in the
+     booking."* The thing was `joinBlock` — "3 seats going on this one. The family who booked it are
+     happy to share." in a block under the card — and this row, four lines up the same card, said
+     **"Just you"**. One page, two answers to one question, and the one inside the document was the
+     wrong one: `splitEmails` goes only to the family who typed the addresses (see `doGet`), so to
+     anybody else looking at a session it is blank and the fallback spoke for it.
+
+     SO THIS ROW IS THE LINE, and it says the seats the way a waiting list already did. Every
+     ordinary session is written `open_to_others` (see the note where the join question used to be)
+     and the seats decide; a session with seats going is shared with whoever asks, which is the fact
+     the block was there to say. "Just you" is kept for a session with no seat left to share and no
+     list of names — the one case where it is true.
+
+     THE PRICE IS NOT REPEATED HERE. The block said "£19.00 a seat" and the total row of the same
+     card already says `Your seat £19.00` — and on an ordinary session there is no seat price to say,
+     because what a joiner pays is agreed when the family says yes. A figure on two lines of one
+     document is the fault the `Total` alias in `SPINE_ALIAS` was written to remove. */
+```
+
+### ---------- WHEN THE FAMILIES ON A LIST CAN COME, AS A LINE OF THE LIST'S OWN PAPER
+
+in `jobRows`
+
+```
+/* ---------- WHEN THE FAMILIES ON A LIST CAN COME, AS A LINE OF THE LIST'S OWN PAPER ------------
+     IT WAS DRAWN INSIDE THE JOIN BLOCK, so the only people who ever saw it were the ones `canAsk`
+     lets in — everybody NOT on the list. The tutor, whose one open question it answers (`doGet`
+     says so beside `whenCould`), and the families who gave the answers, never saw it at all.
+
+     IT IS NOT A FORM, whatever it sits next to. Each count is an answer another family already
+     gave on their own booking form — the `When could you come?` step — and a joiner gives theirs
+     the same way, on the form `Take a seat` turns to. So it is a FACT about the class, it goes on
+     the class's paper for everybody the class is shown to, and it sits where the question it
+     tallies sits: pinned after `When free`, under the week a list has not got yet.
+
+     `tally` IS MARKUP, and that is why it is its own field — the same distinction `strip` and `sel`
+     draw. `v` keeps the plain words, so anything that reads a row as text still reads the answer. */
+```
+
+### ---------- WHEN IT RUNS, AND WHAT THE TERM WOULD COME TO
+
+in `jobRows`
+
+```
+/* ---------- WHEN IT RUNS, AND WHAT THE TERM WOULD COME TO ---------------------------------------
+     THE SAVED CARD SHOWED NONE OF IT. The booking form works out the term, its dates and an
+     estimate; the card the same list turns into showed "Dates —" and a per-session figure, so the
+     one screen a family comes BACK to knew less than the screen they filled in.
+
+     THE TERM IS ON THE JOB — `term_name`, written when the list was opened — and its dates come off
+     `DATA.intervals` by name. So this is a lookup rather than a second copy of the school year. */
+```
+
+### ---------- `For` MEANS THE CLIENT, AND HERE IT MEANT THE TERM
+
+in `jobRows`
+
+```
+/* ---------- `For` MEANS THE CLIENT, AND HERE IT MEANT THE TERM -------------------------------
+       ON THE FORM `For` IS WHO THE SESSION IS FOR — the family paying. On a waiting list it was
+       pushed with the TERM in it, and there is a `Term` row four lines up, so the receipt printed
+       the school term twice under two names while never once saying whose booking it was. The
+       spine put them next to each other and made it obvious.
+       DROPPED, because `Term` already says it. `For` now means one thing on both documents. */
+```
+
+### `Running` AND `Weeks left` WERE TWO PUSHES HERE and went with the form's — see the note by the waiting-list branch above.
+
+in `jobRows`
+
+```
+/* `Running` AND `Weeks left` WERE TWO PUSHES HERE and went with the form's — see the note by
+       the waiting-list branch above. Both documents lose the same two rows in the same commit,
+       which is what `check-spine.js` exists to make unavoidable: a row on one and not the other is
+       the drift it was written for. */
+```
+
+### ---------- `dates` IS WHAT THE SERVER SENDS AND THIS ASKED FOR `sessionDates`
+
+in `jobRows`
+
+```
+/* ---------- `dates` IS WHAT THE SERVER SENDS AND THIS ASKED FOR `sessionDates` -----------------
+     THE PAYLOAD HAS NEVER CARRIED THAT NAME. `doGet` builds the run with `sessionDatesOf(j)` and
+     ships it as `dates: dates.join(', ')` — so this read `undefined` on every real job and the
+     `Dates` row printed a dash on every receipt anybody has ever been handed. A row about WHEN the
+     sessions are, on the document whose whole job is to record them.
+
+     NOTHING COULD SEE IT, and the reason is the one this repository keeps finding: `check/states.js`
+     seeds a job carrying `sessionDates`, so the lab has been measuring the name the CODE reads
+     rather than the name the SERVER sends — the same fault as the fixture stating `focus` as a
+     string `doGet` does not send. The state seeds `dates` now.
+
+     BOTH NAMES, because a job object is also built elsewhere and `j.venue || j.location` two rows
+     up already carries the same argument: two lists genuinely use two spellings, and a receipt that
+     can only read one of them is a receipt that goes blank when it meets the other. */
+```
+
+### THE SAME EVERY-DATE LIST AS THE BOOKING CARD — see the note there.
+
+in `jobRows`
+
+```
+/* THE SAME EVERY-DATE LIST AS THE BOOKING CARD — see the note there. A job's receipt and the form
+     it came from must not disagree about how a run of dates is written, and the whole point of
+     spelling them out is that a family can check them against a diary. */
+```
+
+### ---------- HOW MANY DATES IS NOT A FIGURE, AND THE FIGURE COLUMN IS SIZED FOR MONEY
+
+in `jobRows`
+
+```
+/* ---------- HOW MANY DATES IS NOT A FIGURE, AND THE FIGURE COLUMN IS SIZED FOR MONEY -----------
+     "6 dates" WAS IN THE TOTAL COLUMN AND OVERFLOWED IT BY 18 TO 21 PIXELS at all four widths.
+     Two things meet: `.bk-t` is `--mono`, and the column is `7.5ch` measured against the ROW's
+     proportional font — so a track sized for seven narrow characters was handed seven wide ones.
+     It is exactly wide enough for `£270.00`, which is what it was measured for, and every other
+     thing that column has ever held is money.
+
+     SO THE COUNT GOES WITH THE DATES, which is the fact it is about: a run of dates and how many
+     there are is one answer, not a value and a total. The row carries no figure now, so it takes
+     the whole width — which also stops the range itself wrapping to two lines in a 71px column.
+
+     FOUND BY `check/ui.js` ON ITS FIRST RUN WITH A RECEIPT ON THE SCREEN. It had never had one —
+     see the note beside the `booking` state in that file — so this had been on every receipt with
+     more than one date for as long as receipts have had dates. */
+```
+
+### THE SAME COUNT AS THE BOOKING CARD, THROUGH `opts` BECAUSE THIS `push` HARDCODES `mul: ''`.
+
+in `jobRows`
+
+```
+/* THE SAME COUNT AS THE BOOKING CARD, THROUGH `opts` BECAUSE THIS `push` HARDCODES `mul: ''`.
+     Every other row on a receipt carries its figure in the total column, so the multiplier was never
+     a parameter here — and `Object.assign` puts the options on last, which is what lets this one row
+     have one without a fourth argument nothing else would ever pass. See the note on the form's own
+     Dates row for why the count is a count rather than a link in the chain. */
+```
+
+### WHAT THE MONEY DOES, for whoever is allowed to see it.
+
+in `jobRows`
+
+```
+/* WHAT THE MONEY DOES, for whoever is allowed to see it. A client sees what they pay; a tutor
+     sees what they earn; an admin sees both and the difference. Same receipt, three readings —
+     which is better than three screens that can disagree. */
+```
+
+### `Tutor is paid` AND `Left over` WERE ROWS HERE.
+
+in `jobRows`
+
+```
+/* `Tutor is paid` AND `Left over` WERE ROWS HERE. They are not on the spine and they are not on
+     the paper: what a tutor earns and what is left over are facts about the BUSINESS, and a
+     document a client is handed should not have lines on it that vanish depending on who is
+     holding it — which is still true, and is now kept true by the PAYLOAD: `tutorPay` and
+     `adminKeeps` are sent to nobody who pays, and `jobMoney_` puts them in the total rows for an
+     admin. */
+```
+
+### ---------- WHERE IT IS, AND WHERE IT IS GOING
+
+in `jobRows`
+
+```
+/* ---------- WHERE IT IS, AND WHERE IT IS GOING --------------------------------------------------
+     `Status` PRINTED THE SHEET'S OWN CELL — "unconfirmed", "active", "cancelled" — which is a word
+     about a row in a spreadsheet, not about a session. And there was nothing at all saying where in
+     its life the thing had got to, which is the one question somebody opening a receipt is actually
+     asking: has anybody agreed to this, do I owe money, is it done.
+
+     SIX LINES, ALL DERIVED. Five ticks say where in its life it has got to — see `JOB_STAGES` —
+     and `Status` keeps the seat statuses, which is what the machine is actually tracking: Waiting,
+     Agreed, Paying, Booked. That second one is not a summary of the first: a session where one
+     family has paid and another has not is one line here and could not be one tick above.
+
+     `Stage` WAS ONE OF `jobSaid_`'s FOUR SENTENCES and `Asked for` was the date under it. Both are
+     in the ticks now — the first as the shape of them, the second as `Requested`'s own value.
+
+     PLAIN WORDS. A parent has no use for "lifecycle" or "possession"; they want to know whether it
+     is settled. */
+```
+
+### THE SAME ORDER THE FORM USES, so a receipt does not reshuffle what somebody just filled in — and NOT a dash for every question this job cannot answer.
+
+in `jobRows`
+
+```
+/* THE SAME ORDER THE FORM USES, so a receipt does not reshuffle what somebody just filled in —
+     and NOT a dash for every question this job cannot answer. See the note over `spineRows_`: the
+     dashes are what makes a form readable while it is being filled in, and they are a quarter of a
+     receipt spent saying nothing fourteen times. Order from the spine, rows from the booking. */
+```
+
+### WHICH OF THE FOUR A SAVED BOOKING IS.
+
+top level, before `jobWeekRows_`
+
+```
+/* WHICH OF THE FOUR A SAVED BOOKING IS.
+   Read off the ROSTER, which the backend folds out of the events and sends on every seat — so
+   there is no fifth place for this to come from and nothing to keep in step.
+
+     a waitlist that has not filled     a ticket in a queue
+     a waitlist everybody has paid for  a receipt: it was accepted, and that is the whole test
+     a session nobody has paid for      an application, handed in and waiting
+     a session somebody has paid for    a receipt
+
+   ACCEPTANCE IS THE LINE, not payment exactly — but on this system they are the same moment: the
+   only thing that writes `Booked` is the payment coming back confirmed. */
+```
+
+### ---------- THE WEEK, ON A RECEIPT, WITH THE BOOKED HOURS LIT
+
+top level, before `jobWeekRows_`
+
+```
+/* ---------- THE WEEK, ON A RECEIPT, WITH THE BOOKED HOURS LIT -------------------------------------
+   THE FORM HAS SEVEN ROWS OF TAPPABLE HOURS AND THE RECEIPT HAD NOTHING — so the tallest, most
+   recognisable part of the document vanished the moment it was sent, and a family checking when
+   their session runs had to read `Monday 12:00–13:00` off a line instead of seeing it.
+
+   THE SAME GRID, ANSWERED. Same seven rows, same eleven hours, same cells — the booked ones lit and
+   nothing tappable. It is the picture of the week the form asked for, showing the answer rather
+   than the question, which is what every other row on a receipt does.
+
+   BUILT FROM THE JOB, NOT FROM `slotGrid()`. That reads the tutor's and venue's free hours, which
+   is a question about what COULD be booked; a receipt is about what WAS. So a session on Monday at
+   12 for two hours lights Monday 12 and 13, and every other cell is simply a cell. */
+```
+
+### ---------- THE SAME SEVEN ROWS ON THE RECEIPT
+
+top level, before `jobWeekRows_`
+
+```
+/* ---------- THE SAME SEVEN ROWS ON THE RECEIPT --------------------------------------------------
+   A BOOKING MAY RUN ON MORE THAN ONE DAY, AND THE ROW SAYS SO. This once compared the whole cell to
+   one day name — `weekday` holds what `bookSpec` sent, which is every day the booking runs joined
+   with commas, so `norm('Monday') === norm('Monday, Friday')` is false for Monday AND for Friday and
+   a two-day booking lit NOTHING. Measured: 2 cells on a one-day job, 0 on a two-day one.
+
+   ONE SPAN, SHOWN ON EVERY DAY, because that is what the job row holds: `start_time` and
+   `hours_per_session` are single cells. Where the runs really differ the row is already a
+   simplification of them — see `bookSpec`, where the first run of the week names the session.
+
+   `weekRows_`, NOT A SECOND SET OF MARKUP. The form and the receipt draw a day the same way down to
+   the class names, so a week restyled once is restyled on both. Disabled, because nothing on a
+   receipt is answerable. */
+```
+
+### THE SAME FIGURE THE FORM PRINTS, off the row rather than off the ticks — a saved job holds `hours_per_session` and one span, so a day it runs on is that many
+
+in `jobWeekRows_`
+
+```
+/* THE SAME FIGURE THE FORM PRINTS, off the row rather than off the ticks — a saved job holds
+         `hours_per_session` and one span, so a day it runs on is that many hours and a day it does
+         not is none. The two documents agree because they say the same number, not because they
+         share a function that guesses it. */
+```
+
+### ---------- `moneyBlock` STOOD HERE, AND THE FIGURES ARE ROWS OF THE PAPER NOW
+
+top level, before `seatsOf_`
+
+```
+/* ---------- `moneyBlock` STOOD HERE, AND THE FIGURES ARE ROWS OF THE PAPER NOW -------------------
+   IT FLOATED THE BUSINESS'S ARITHMETIC UNDER THE CARD, on the argument that "a document is the same
+   document for everybody" — a client comparing theirs with an admin's would otherwise find lines
+   they have no explanation for. The argument was about a client ever SEEING those lines, and that
+   is now settled at the source: `doGet` sends `tutorPay` and `adminKeeps` to nobody who pays, so a
+   client's receipt cannot carry them however it is drawn.
+
+   IT ALSO NEVER DREW ON THE FORM. Its one caller there passed `profit: L.profit`, and `priceFrom`
+   returns `profitTotal` — so the admin's margin under a booking being priced was a block that
+   could not appear, which is this repository's oldest shape: a reader of a field nobody writes.
+
+   REPLACED BY `jobMoney_` (a saved session) and `formMoney_` (the form), which hand `receiptHtml`
+   the extra total rows for an admin. Under the paper is where the owner said nothing should float. */
+```
+
+### ---------- HOW MANY SEATS A SESSION HAS
+
+top level, before `seatsOf_`
+
+```
+/* ---------- HOW MANY SEATS A SESSION HAS ----------------------------------------------------------
+   `Number(j.maxKids || j.maxStudents) || 4` WAS WRITTEN IN TWO PLACES — the roster and the fullness
+   test — and that trailing `|| 4` is a hard-coded default in the one comparison that decides whether
+   a waiting list has filled. A job with a blank `max_students` fills at four whatever the room holds
+   and whatever `waitlist_seats` says.
+
+   THE JOB CARRIES ITS OWN NUMBER. `max_students` is written at booking from `waitlistPrice`, which
+   now takes it from the room — so the seat count a list was PRICED at is the seat count it FILLS at,
+   by construction rather than by two places agreeing.
+
+   AND WHEN IT IS BLANK, SAY SO RATHER THAN GUESS. Zero draws no chairs and never reports a list as
+   full, which is visible and wrong-looking; four draws four chairs and quietly closes a list early,
+   which is invisible and wrong. Of the two, the one somebody notices is the one to have. */
+```
+
+### ---------- `jobSaid_` STOOD HERE, AND THE STAGE IS FIVE TICKS NOW
+
+top level, before `jobStatusSaid_`
+
+```
+/* ---------- `jobSaid_` STOOD HERE, AND THE STAGE IS FIVE TICKS NOW --------------------------------
+   IT RETURNED ONE OF FOUR SENTENCES — "Paid — booked", "On the waiting list", "Accepted — waiting
+   for payment", "Asked for — waiting on us" — and its own note claimed three readers: *"the receipt
+   row, the booking form and the stamp on the card"*. Measured before deleting it: ONE. The stamp
+   went when the four receipt skins became one document, and the form pushes a literal dash.
+
+   THE SENTENCES ARE NOT LOST, THEY ARE THE PICTURE. `JOB_STAGES` draws the same four facts as a row
+   of ticks, and the first un-ticked one is "what happens next" — which is the half a sentence was
+   doing that a single stage word could not. Keeping both would be one fact drawn twice on the same
+   card, which is what this repository already records about the roster's `name` printing an `<h3>`
+   above every widget's own heading.
+
+   `jobStage_` AND `jobAccepted_` SURVIVE IT. They are the tests two of the stage ticks are made of,
+   and `jobStage_` still says which of the four documents a saved booking is. */
+```
+
+### HAS IT BEEN ACCEPTED YET — which is a different question from which of the four it is.
+
+top level, before `jobAccepted_`
+
+```
+/* HAS IT BEEN ACCEPTED YET — which is a different question from which of the four it is.
+   AN ACCEPTED APPLICATION IS STILL AN APPLICATION. Money has not moved, so it is not a receipt;
+   what has changed is that the business has said yes and the family may now pay. Both facts are
+   true at once and the widget has to say both, or accepting a booking looks like it did nothing —
+   which is exactly how it looked, because the card was identical before and after.
+
+   AGREED IS THE WORD THE MACHINE USES for "the terms are settled". Everybody in the room has to be
+   at it: one family agreed out of three is a session still being negotiated. */
+```
+
+### THE TWO SIDES SPEAK DIFFERENT WORDS, and reading them as one list is why this said "pending" on a session that had been accepted.
+
+in `jobAccepted_`
+
+```
+/* THE TWO SIDES SPEAK DIFFERENT WORDS, and reading them as one list is why this said "pending"
+     on a session that had been accepted. A client seat carries the machine's own status — Waiting,
+     Agreed, Paying, Booked. A tutor seat carries `Applied` or `Confirmed`, which `doGet` derives
+     before sending. Checking both against the same four words meant every tutor read as not-agreed
+     and no session could ever be accepted.
+     Asked of each side in its own vocabulary. */
+```
+
+### A TUTOR IS OPTIONAL.
+
+in `jobAccepted_`
+
+```
+/* A TUTOR IS OPTIONAL. A session with none yet can still be accepted by the business — the
+     teaching is arranged afterwards — so an empty tutor list is not a reason to withhold it. What
+     must not happen is a tutor sitting at `Applied` while the family is told it is settled. */
+```
+
+### ---------- THREE PEOPLE, THREE FIGURES, AND EACH SEES THEIR OWN
+
+top level, before `jobMoney_`
+
+```
+/* ---------- THREE PEOPLE, THREE FIGURES, AND EACH SEES THEIR OWN -------------------------------
+   ASKED FOR AS *"for tutor they shouldnt see grand total client pays, only grand total they earn.
+   admin should be able to see grand total client pays. total tutor earns, and how much admin
+   earns."* So the total row is a question of who is holding the paper:
+
+     a CLIENT     what they pay — the figure that was agreed, unchanged
+     a TUTOR      what they earn, in that row's place, and not the client's figure at all
+     an ADMIN     what the client pays, then what the tutor earns and what the business keeps
+
+   THE PAYLOAD DECIDES FIRST AND THIS ONLY DRAWS WHAT ARRIVED. `doGet` sends `tutorPay` to the
+   tutors on the job and to an admin, `adminKeeps` to an admin alone, and withholds `price` from a
+   tutor who is not also paying — because a figure hidden here and shipped anyway is a filter
+   anybody reads past with the network tab open, which is `MESSAGING`'s argument. Asked of the
+   roster as well as of `j.tutor`: `tutor` is the first name on it, so a second tutor who applied
+   would otherwise be shown the client's line with its figure missing.
+
+   AN UNRECORDED FIGURE IS A DASH, NEVER £0.00. `tutor_pay` was written blank on every job before
+   the phone started sending it, and a nought there would tell a tutor they earn nothing — the
+   `cost: 0` shape on the one number they open the receipt for. */
+```
+
+### A WAITING LIST'S `price` IS ONE SEAT, NOT A TOTAL — `doGet` says so beside it — so "Client pays" over it would name the per-seat figure as everything the
+
+in `jobMoney_`
+
+```
+/* A WAITING LIST'S `price` IS ONE SEAT, NOT A TOTAL — `doGet` says so beside it — so "Client
+       pays" over it would name the per-seat figure as everything the families are charged, on the
+       one line an admin reads to see what a session brings in. Said as what it is. */
+```
+
+### AND THE FORM, WHILE IT IS BEING PRICED — for an admin only, and only once `priceFrom` has said what the tutor and the business would take.
+
+top level, before `bookMoneySend_`
+
+```
+/* AND THE FORM, WHILE IT IS BEING PRICED — for an admin only, and only once `priceFrom` has said
+   what the tutor and the business would take. A waiting list is priced by `waitPrice_`, which works
+   out a seat and nothing about who keeps what, so it carries no rows rather than two dashes: the
+   form changes shape as it is answered, and a pair of rows that can never fill would be furniture.
+   Everybody else reads the form exactly as before — the figure on it is the quote for the family. */
+```
+
+### ---------- AND THE MONEY BLOCK, WHICH IS THOSE TWO ROWS GROWN UP (docs/history/353)
+
+top level, before `bookMoneySend_`
+
+```
+/* ---------- AND THE MONEY BLOCK, WHICH IS THOSE TWO ROWS GROWN UP (docs/history/353) -------------------
+   "Tutor earns" and "Admin earns" told an admin the split of the teaching and nothing about what the
+   booking COSTS — kit, tickets, travel, card fees, a discount — so "Admin earns £12" sat over a practical
+   whose kit had eaten £9 of it. The rows are now the whole sum `bookMoney_` (core.js) does, top to
+   bottom in the order money moves: what is charged (the discount already off it, which is the line
+   under it), what goes out, what is left.
+   A row appears where its format or its figure makes it a fact — Materials on a practical, Tickets &
+   travel on a trip, Discount when there is one — and Charged, Tutor payout, Card fees and Net always,
+   because those four are the sum and a missing term reads as a nought nobody can check.
+   WHOLE-BOOKING FIGURES, even when the cost is split: the tutor and the venue are paid for the whole
+   session, so "Client pays" (one family's share) and "Charged" (all of them) can differ, and say so.
+   A NEGATIVE NET GETS ONE SENTENCE, in plain words — the owner reads a figure in red faster than a
+   minus sign, and "this booking costs you £X" is the decision in front of them. */
+```
+
+### ---------- WHAT THE JOB ROW KEEPS OF THE MONEY BLOCK
+
+top level, before `bookMoneySend_`
+
+```
+/* ---------- WHAT THE JOB ROW KEEPS OF THE MONEY BLOCK -------------------------------------------------
+   WHOLE-BOOKING FIGURES, ROUNDED TO THE PENNY — a sheet column is summed by a person with a formula, and
+   12.000000000000002 in a money cell is the kind of thing that makes them distrust every other one.
+   `gross` IS WHAT THE CLIENT IS CHARGED, the discount already off, so the row's own sum reads
+   net = gross − tutor_payout − venue_cost − materials_cost − tickets_cost − card_fees with no discount
+   term in it: `discount_*` says what was given, and the subtraction has already been done once. */
+```
+
+### ---------- COST, WITH THE DISCOUNT SHOWN AS A SUM
+
+top level, before `costLabel_`
+
+```
+/* ---------- COST, WITH THE DISCOUNT SHOWN AS A SUM -------------------------------------------------------
+   "COST · £102.00 − £10.00 =" and £92.00 in the figure's place, so the row reads £X − £D = £Y across and the
+   family's figure and the admin's discount are one line somebody can check. THE SUM GOES IN THE LABEL,
+   which spans every track but the last: in the figure's own column at 390 it pushed the card 60px past its
+   edge and cut the answer off — the screenshot of 18 Oct. No discount, and the label is exactly what it
+   was: `formMoney_`'s for an admin, COST for everybody else. One family's share, like the figure. */
+```
+
+### ---------- THE DISCOUNT LINE: AN ADMIN'S FORM, SO IT HAS CONTROLS, NOT TILES (docs/history/353)
+
+top level, before `discountRow_`
+
+```
+/* ---------- THE DISCOUNT LINE: AN ADMIN'S FORM, SO IT HAS CONTROLS, NOT TILES (docs/history/353) ----------
+   ONE LINE ABOVE COST, drawn for an admin on an instant booking and for nobody else — `bookSpec` asks the
+   same, and the server refuses the fields from anybody else (`discountRefusal_`), which is the half that
+   matters. A form's controls belong to the form: two dropdowns and two boxes, tap targets in px.
+   THE CODE BOX TAKES A CODE OR A REASON. Picking one of the promo_codes rows fills its type, value and
+   who absorbs it (`book-disc`); typing anything else is a reason, recorded as written. A code that is
+   switched off, expired or used up is listed with why, and the server would refuse it anyway. */
+```
+
+### KEPT AS IT IS TYPED, REDRAWN ON A CHANGE.
+
+top level, before `el`
+
+```
+/* KEPT AS IT IS TYPED, REDRAWN ON A CHANGE. Each keystroke goes into `BOOKING` and the draft (`bookKeep_`), so
+   a reload half-way through "12.5" loses nothing — the booking note's rule — but the form is redrawn only on
+   `change`: redrawing under somebody typing would take the box away from them at the "1". */
+```
+
+### ---------- THE SAME SKIN AS THE FORM, WHICH IS THE WHOLE POINT
+
+in `jobReceipt`
+
+```
+/* ---------- THE SAME SKIN AS THE FORM, WHICH IS THE WHOLE POINT --------------------------------
+       THERE WERE FOUR LOOKS — screen, application, waiting list, receipt — and the same session
+       wore three of them over its life. That went first: one document at every stage. This is the
+       last of it, and it goes further, because sharing an ORDER while keeping two appearances left
+       every size, weight and colour to be guessed at twice.
+
+       ONE SKIN, AND IT IS THE FORM'S. Not because the green screen is prettier than cream paper,
+       but because the form is the archetype: whatever its type size, its column widths, its row
+       rules and its grid cells turn out to be, the receipt is those things by construction rather
+       than by somebody matching them by eye. Restyle the form and the receipt has already followed.
+
+       PAPER IT IS. The note above said the choice was one word and that the property worth having
+       was that there is only one to pick — so here is that word being changed, on both documents,
+       in the same breath. A booking form that looks like the receipt it becomes explains itself:
+       this is what you will be holding.
+
+       `stage` IS STILL COMPUTED AND STILL PASSED — the wording reads it. */
+```
+
+### `done` MARKED THE SAVED DOCUMENT so the screen skin's blinking cursor could be turned off.
+
+in `jobReceipt`
+
+```
+/* `done` MARKED THE SAVED DOCUMENT so the screen skin's blinking cursor could be turned off.
+       There is no cursor on paper, so with both documents on the receipt skin this decides nothing.
+       Left in place: the screen skin is one word away for either of them, and a flag that goes and
+       comes back is a flag somebody has to work out the meaning of twice. */
+```
+
+### THE JOB'S OWN KIND, WHICH IS NOT THE STAGE.
+
+in `jobReceipt`
+
+```
+/* THE JOB'S OWN KIND, WHICH IS NOT THE STAGE. `kind` above is which of the four documents this
+       is — screen, application, waitlist, receipt — and it changes as the booking moves. `was` is
+       what the job IS, and never changes: a shared class stays a shared class after it fills.
+       Passed separately because the paid receipt needs both, and reading one for the other is the
+       mistake I made writing this — `r.kind` at the stamp was the stage, so the line meant to say
+       "a shared class" could never have fired. */
+```
+
+### `location` IS WHAT THE PAYLOAD SENDS FOR A CLASS, and this read `venue` — which the jobs list uses and `clientClasses` does not.
+
+in `jobReceipt`
+
+```
+/* `location` IS WHAT THE PAYLOAD SENDS FOR A CLASS, and this read `venue` — which the jobs list
+       uses and `clientClasses` does not. So every waiting list said "No venue" while the sheet held
+       one, and the venue is the single most useful thing on a waiting-list card: it is the whole of
+       what somebody is deciding about. Both names are tried, because two lists genuinely use two. */
+```
+
+### WHAT THE FIGURE IS, and it is not the same sentence at every stage.
+
+in `jobReceipt`
+
+```
+/* WHAT THE FIGURE IS, and it is not the same sentence at every stage. "To pay" was the default
+       everywhere, which is the app telling somebody they owe money for a thing nobody has agreed to
+       yet — and even on a settled receipt it is a demand where a statement of fact would do.
+       "Cost" says what the number IS without saying what anybody should do about it. */
+```
+
+### ---------- THE SESSION'S ACTIONS ARE PRINTED ON IT, LIKE THE FORM'S
+
+in `jobReceipt`
+
+```
+/* ---------- THE SESSION'S ACTIONS ARE PRINTED ON IT, LIKE THE FORM'S --------------------------
+       ASKED FOR AS *"no floating tiles for already booked sessions"*. Pay, Withdraw and an admin's
+       four were a `.tile-row` UNDER the paper, on a pane that is transparent because the receipt is
+       the box — so they hung on black beneath the card they belong to, which is exactly what the
+       form's own two tiles were moved off for. Same slot, same row class: `jobPage_` builds it. */
+```
+
+### ---------- THE STATUS WORD IS NOT AN ASIDE ON THE TOTAL
+
+in `jobReceipt`
+
+```
+/* ---------- THE STATUS WORD IS NOT AN ASIDE ON THE TOTAL -----------------------------------
+       IT SAT BESIDE THE FIGURE — "IT WOULD COME TO   unconfirmed   £151.82" — a raw cell from the
+       jobs tab, in a slot meant for a remark ABOUT the money ("6 sessions"). It is neither: it is a
+       fact about the booking, and it now has two rows of its own further up, in words rather than
+       in the sheet's vocabulary.
+
+       AND IT DID NOT FIT. The label is `nowrap` and up to sixteen characters at this stage, so on a
+       narrow card the word and the label drew over each other. Removing it fixes the collision and
+       the duplication in one go — which is usually the sign that the thing should not have been
+       there.
+
+       THE FIELD ITSELF IS GONE NOW, on both documents: the total is an ordinary row of the table
+       and there is no column beside the figure for a remark to sit in. See `receiptHtml`. */
+```
+
+### ---------- ASKING TO JOIN SOMEBODY ELSE'S SESSION IS A TILE ON ITS PAPER NOW
+
+top level, before `festiveCard`
+
+```
+/* ---------- ASKING TO JOIN SOMEBODY ELSE'S SESSION IS A TILE ON ITS PAPER NOW --------------------
+   THE ARGUMENT THAT STOOD HERE STILL HOLDS AND IS WHY THE TILE IS WHERE IT IS: the subject, the day,
+   the venue, the price and how many seats are left are all on the document in front of you, and
+   asking to join is agreeing to those — so the way in belongs on that document, not on a list. It
+   was a block UNDER the paper; it is the receipt's own foot now, `joinTile_` in tiles.js, and the
+   seats are the receipt's `Sharing` row. See `joinBlock`'s tombstone below.
+
+   IT IS STILL AN ASK, AND THE WORD STILL MATTERS. The family whose booking it is has said other
+   people MAY join; they have not said THIS person may. The tile reads `Ask to join`, and `job-join`
+   turns to the form, which sends a Request that waits for somebody to say yes. */
+```
+
+### ---------- THE STEP THAT WAS NOT THERE AT ALL
+
+top level, before `festiveCard`
+
+```
+/* ---------- THE STEP THAT WAS NOT THERE AT ALL ----------------------------------------------------
+   ACCEPTED, AND THEN NOTHING. The backend has had `createCheckout` and `finalizePayment` since
+   payment was built — Stripe session, verified return leg, the Confirm event that is the only thing
+   in the whole system that reaches `Booked`. The app never offered a way to start it. So a booking
+   could be asked for and accepted and then sat there for ever, and the receipt at the end of it was
+   a document nothing could ever produce.
+
+   ONLY WHEN IT IS THEIRS AND ONLY WHEN IT IS AGREED. The backend checks both again — it charges from
+   the RECEIPT rather than from the job, so what is asked for here cannot change what is charged —
+   but a button offered to somebody who cannot use it is a button that gives an error for a reason
+   they cannot see. */
+```
+
+### ---------- WHEN THE FAMILIES ON A LIST CAN COME
+
+top level, before `whenCouldHtml`
+
+```
+/* ---------- WHEN THE FAMILIES ON A LIST CAN COME --------------------------------------------------
+   EACH ANSWER BELONGS TO THE FAMILY WHO GAVE IT, not to the class. Somebody joining says when THEY
+   could come; the class has no day and will not have one until enough people have said. So this is
+   a tally of separate answers rather than a property of the session — and the backend keeps it that
+   way, logging each against that family's own join event.
+
+   WHAT IT IS FOR: the tutor has one question to answer, which is what day suits everybody, and
+   until now the only way to answer it was to read the event log by hand. The slot everybody offered
+   is marked, because that is the answer when there is one.
+
+   IT IS THE ANSWER CELL OF A RECEIPT ROW NOW — `Can come`, see `jobRows` — so the heading it carried
+   ("When the 2 of them can come") went: the row's label says what the bars are, and every count
+   says out of how many. */
+```
+
+### ---------- `joinBlock` STOOD HERE, UNDER THE PAPER, AND IT IS THREE PIECES OF THE PAPER NOW
+
+top level, before `redrawBooker_`
+
+```
+/* ---------- `joinBlock` STOOD HERE, UNDER THE PAPER, AND IT IS THREE PIECES OF THE PAPER NOW -------
+   ASKED FOR AS *"the session booking thing at the bottom of receipt should be a line in the
+   booking."* It was a block drawn after the receipt on a stranger's view of a session: a sentence
+   with the seats and the seat price, the waiting list's tally, a full-width gold `Take a seat` or
+   `Ask to join`, and a faint sentence about when anybody is charged. Floating on black under a card
+   it plainly belonged to — the fault *"no floating tiles for already booked sessions"* moved the
+   tiles off once already, there for the people booked on it and here for the people who are not.
+
+   EACH PIECE WENT WHERE ITS KIND GOES:
+     · the seats are the `Sharing` row, which was already the receipt's line about them — and was
+       saying "Just you" on the same page the block said "3 seats going". See `jobRows`.
+     · the seat price is the total row, `Your seat £19.00`, which already said it. Not repeated.
+     · the tally is the `Can come` row, on everybody's copy of the list rather than only on the
+       copy the families NOT on it saw. See `whenCouldHtml` above.
+     · the action is a tile in the receipt's foot — `joinTile_` in tiles.js — beside Share, and the
+       faint sentence is that tile's note. *"It should all be tiles."*
+
+   THE TWO KINDS OF JOINING ARE STILL TWO ACTS, and `joinTile_` carries the argument that was here:
+   joining a LIST is taking a seat in a thing that exists to be joined, asking to SHARE is a request
+   to the family who booked it. Same mark, different word, different handler. */
+```
+
+### REDRAW WITHOUT MOVING.
+
+top level, before `redrawBooker_`
+
+```
+/**
+ * REDRAW WITHOUT MOVING.
+ *
+ * Every answer rebuilds the whole sheet — the options change, the breakdown grows a row — and the
+ * sheet scrolls back to the top each time, so the thing you were looking at leaves the screen at
+ * the moment you touch it. On a list of eleven venues that means scrolling back down after every
+ * single tap.
+ *
+ * The position is taken before the rebuild and put back after it, in the frame after the markup
+ * lands — before that, the new content has no height and the scroll would be clamped to zero.
+ * Clamped to the new height, because the page after an answer is usually shorter.
+ */
+```
+
+### ---------- KEEPING THE PLACE ACROSS A REDRAW
+
+top level, before `redrawBooker_`
+
+```
+/* ---------- KEEPING THE PLACE ACROSS A REDRAW ------------------------------------------------------
+   Answering a question rebuilds the whole card, and a rebuild puts the scroll back at the top —
+   which on the last question, where the answers and the running price sit above a long list of
+   options, throws somebody back to the start of a card they had scrolled to the bottom of.
+
+   IT SCROLLED `#sheet-body` and there is no sheet. The pane the booker lives in is the scroller
+   now, and it is found from the card rather than named directly: the card knows which pane it is
+   in, and nothing else has to agree about the shell's structure. */
+```
+
+### ---------- AND THE FOCUS STAYS ON WHAT WAS JUST ANSWERED
+
+top level, before `bookFocusOf_`
+
+```
+/* ---------- AND THE FOCUS STAYS ON WHAT WAS JUST ANSWERED ---------------------------------------------
+   FOUND BY REVIEW ON A LAPTOP, 9 October: every answer on this card rebuilds it, and the rebuild threw
+   the keyboard's place away. Enter on the Subject row opened its list and left the focus on `<body>`,
+   so the next Tab started from the top of the form, not from the ticks just opened; ArrowDown on the
+   For select changed it once and the second ArrowDown went nowhere; a pick made with the keyboard in a
+   select's open list did the same. The conventional form keeps its place: the control you answered
+   still has the focus afterwards. So the control holding it is named before the redraw — by its tag,
+   EVERY `data-` attribute it carries (an hour of the week is told from the next by its `data-code`,
+   a block by its `data-when`) and, for a tick, its value, since the element itself is about to be
+   replaced — and the same control on the new card takes it back. `book-many-pick` did this for a tick alone;
+   this is that rule for every control on the card.
+
+   NOT A TEXT BOX. The note and the addresses answer on `change`, which fires as the box is LEFT — the
+   focus is already on its way to whatever was pressed, and pulling it back would steal it.
+
+   A SELECT ONLY ON A KEYBOARD-AND-MOUSE MACHINE (`pointer: fine`, the test me.js already uses for
+   Enter in a message). On a phone a focused select is its list (iOS draws the wheel from focus), and
+   focusing the new select from script after a pick could put the list straight back up. A phone has
+   no Tab to lose. */
+```
+
+### BOOKING, AS A COLUMN `bookingPages_` ALREADY BUILDS THIS and has done since the form was folded into the funnel — it answers `What for · Booking`, and it
+
+top level, before `column`
+
+```
+/* ==================================================================================================
+   BOOKING, AS A COLUMN
+
+   `bookingPages_` ALREADY BUILDS THIS and has done since the form was folded into the funnel — it
+   answers `What for · Booking`, and it already knows to stand aside once a second question has been
+   answered, because `Booking · Tutors` is somebody browsing rather than somebody filling a form in.
+
+   A COLUMN DOES NOT REPEAT THAT REASONING, it skips it. There is no funnel state here and no second
+   question to have answered, so the form is simply the screen — which is what it is to anybody who
+   swiped here on purpose.
+================================================================================================== */
+```
+

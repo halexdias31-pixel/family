@@ -1,39 +1,10 @@
-/* ==================================================================================================
-   @family. — check-lifecycle.js
-
-   AUDITING A PROCESS, WITHOUT ANYBODY HAVING TO BOOK ANYTHING.
-
-   A static card can be checked by looking at it. A LIFECYCLE cannot: to see what a booking looks
-   like after a tutor applies, is chosen, is paid for and then withdraws, somebody has to do all
-   five of those things, in order, with two accounts, and then look. That is twenty minutes to test
-   one path, and there are a dozen paths, so in practice none of them is ever tested twice — which
-   is exactly how a client-side Accept sat in `createJob` marking every family as having agreed to a
-   session nobody had read.
-
-   THE WAY OUT IS THAT THE RULES ARE ALREADY PURE. `participantsOf` reads a list of event rows and
-   folds them into a roster. It touches no spreadsheet: `eventsForJob` hands it rows and everything
-   after that is arithmetic on names and words. So the events can be FABRICATED — written here, in
-   order, the way a booking would have written them — and the real rule run over them.
-
-   WHAT THIS IS NOT. It is not a copy of the rules. It reads `booking.gs` off disk and runs the
-   actual `participantsOf`, so a change to the fold changes what this tests. A test that
-   reimplements the thing it tests passes for ever and proves nothing.
-
-   RUN IT:  node js/check-lifecycle.js
-
-================================================================================================== */
+require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
+/* @family. — check-lifecycle.js AUDITING A PROCESS, WITHOUT ANYBODY HAVING TO BOOK ANYTHING. § */
 
 const fs = require('fs');
 const path = require('path');
 
-/* ---------- THE REAL RULE, LIFTED OUT AND GIVEN FAKE EVENTS --------------------------------------
-   `participantsOf` and the four functions that read it are cut out of booking.gs by name and
-   evaluated with stubs for the two things they touch that we are not testing: `S` (string-ify) and
-   `eventsForJob` (the sheet). Everything else — the vocabulary, the fold, the withdrawal rule — is
-   the deployed code.
-
-   IF THE CUT FAILS the harness says so and stops, rather than quietly testing nothing. A checker
-   that silently tests an empty string is worse than no checker. */
+/* ---------- THE REAL RULE, LIFTED OUT AND GIVEN FAKE EVENTS § */
 function loadRules(dir) {
   const gs = p => fs.readFileSync(path.join(dir, p), 'utf8');
   let booking, constants;
@@ -72,10 +43,7 @@ function loadRules(dir) {
   try { return eval(src); } catch (err) { return { error: 'the rules did not evaluate: ' + err.message }; }
 }
 
-/* ---------- A BOOKING, WRITTEN AS THE THINGS THAT HAPPENED --------------------------------------
-   Each step is one event, in the order the app would have written it. Reading a case top to bottom
-   IS reading the story, which is the property that makes this worth having: a path nobody has
-   walked in the app can be walked here in four lines. */
+/* ---------- A BOOKING, WRITTEN AS THE THINGS THAT HAPPENED § */
 const ev = (actor, role, action, target) => ({ actor, role, action, target: target || '' });
 
 function run() {
@@ -93,10 +61,7 @@ function run() {
         ev('Sasha',  'tutor',  R.ACT.REQUEST),
         ev('Sasha',  'tutor',  R.ACT.ACCEPT),
       ],
-      /* THE ONE THIS HARNESS WAS WRITTEN FOR. Until 1 Sep the third event was
-         `Daniel · client · Accept · target Sasha`, and the mutual-agreement rule marked DANIEL
-         agreed as well — so the card offered a Pay button on a request nobody had read. Stated as
-         an expectation, that failure can never come back unnoticed. */
+      /* THE ONE THIS HARNESS WAS WRITTEN FOR. § */
       want: { Daniel: BM.WAITING, Sasha: BM.AGREED } },
 
     { name: 'Path A — then the business accepts',
@@ -179,7 +144,7 @@ function run() {
   });
 
   console.log('BOOKING LIFECYCLES  (' + cases.length + ' paths, ' + bad.length + ' wrong)');
-  if (!bad.length) { console.log('  every path ends where it should.'); return; }
+  if (!bad.length) { console.log('OK — all ' + cases.length + ' booking lifecycles end where they should.'); return; }
   bad.forEach(b => console.log('  ✗ ' + b));
   process.exitCode = 1;
 }

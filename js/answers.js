@@ -1,69 +1,6 @@
-/* ==================================================================================================
-   @family. — answers.js
+/* @family. — answers.js WHAT A CHILD WRITES IS THEIRS, AND IT GOES WHERE THEY GO. § */
 
-   WHAT A CHILD WRITES IS THEIRS, AND IT GOES WHERE THEY GO.
-
-   REPORTED BY THE OWNER, LIVE, ON A PUPIL'S iPAD:
-     *"i just relogged in as [the child] after having done the questions earlier and i dont see his
-      answers there"*
-     *"it doesnt seem to save their answers"*
-     *"i am very dissapointed it didnt have his answers already written in when he went to see them on
-      the computer"*
-
-   ALL THREE WERE TRUE. An answer — typed, picked, drawn or ringed — lived in the browser it was made
-   in (`localStorage`, under `ans:u:<person>:<question>`) and nowhere else. The card on the computer
-   said `Done 8 Oct` (the `attempts` tab has had the date since 268) over an empty box: the record that
-   the work happened, without the work. And on the SAME iPad, an answer typed before anybody signed in
-   was looked for under a key no answer had (the `ansRead_` regex — see find.js) and never found.
-
-   SO EVERY ANSWER NOW HAS A HOME ON THE ACCOUNT — the `answers` tab (SCHEMA.answers), one row per
-   person per answer — and this file is the phone's half:
-
-     WRITING     `ansStore_` is the ONE writer. Every place that used to `localStorage.setItem` an answer
-                 calls it (the box's `input`, a pick, a stroke, an undo, a clear, a ringed word, an old
-                 drawing moved to whoever opened it). Signed in, it stamps the edit's time and marks the
-                 key DIRTY — kept in `localStorage`, so a reload, a crash or a dead battery cannot lose
-                 the fact that it still has to go up.
-     SENDING     `answersPush_`, a second and a half after the last keystroke, and AT ONCE on Check, on a
-                 pick, on leaving the box, and as the app goes to the background (with `keepalive`, so a
-                 child closing the iPad cover does not take the last answer with them). A key stops
-                 being dirty only when the server has it AND the box has not changed since it was sent.
-     READING     `answersPull_`, from `adoptMarks_` once a visit, the moment somebody signs in, and when
-                 the app comes back to the front (at most once a minute — the iPad to the computer and
-                 back). A DIRTY KEY WINS (it is about to upload, and it is newer), and A BOX UNDER A
-                 FINGER IS NEVER OVERWRITTEN.
-     SAYING SO   `ansSavedSay_` / `ansSavedPaint_` — one dim line under the box: "Saved to Ada’s
-                 account", "Saving…", or "On this device only — sign in to keep it". The owner said
-                 *"i feel very insecure when signing into the kids accounts"*; a parent has to be able
-                 to SEE where the work went. Not a global "who is signed in" pill: the owner took the
-                 name off the box as clutter (*"remove 'names answer'. that is redundant."*), so the name
-                 appears only in the one sentence that is about whose account the answer is on.
-
-   AND `findKeep_`, which keeps the Find column from being rebuilt under a child who is typing — the
-   other half of *"janky and unresponsive"*: a payload landing fifteen seconds after "Signed in" used to
-   replace the box with the keypad up.
-
-   ---------- SINCE 9 OCT, ONLY WHAT HAS NO SEND --------------------------------------------------------
-   THE OWNER: *"I just want system to record each submition. So like if they submit a correct answer then
-   change it and submit an incorrect answer, that's 2 events. And it will leave the latest event up, so
-   they would see incorrect answer there next time they login."* So a typed, picked or ordered answer
-   reaches the account when it is SENT — each press an event, the latest the one every device opens on
-   (js/submit.js) — and this file stops sending those (`ans:` keys) to a backend that keeps submissions:
-   a draft typed after the last Send stays on THIS device, with no verdict, until it is sent. What has no
-   Send — the pen's strokes and the ringed words (`pad:` keys) — goes up as it always has. Against a
-   backend from before (no `submitAnswer` in its `features`) nothing here changed: the typed answers go
-   up as drafts, as they did, until it can take the presses instead.
-
-   ITS OWN FILE because it is one idea with one vocabulary, and find.js is 940 KB that three people are
-   working in at once. It loads after find.js and keypad.js; everything it calls in them is called at
-   run time, never while loading, so the order between them is free.
-================================================================================================== */
-
-/* ---------- THE KEYS ----------------------------------------------------------------------------------
-   ON THE PHONE an answer's key carries the person: `ans:u:P7:q:Q-1`, `pad:u:P7:q:Q-1`,
-   `pad:u:P7:q:Q-1:words`, `ans:u:P7:pr:PR-1#iv`. ON THE SHEET the person is its own column, so the key
-   goes up without them — `ans:q:Q-1` — and comes back with whoever asked put in again. A signed-out key
-   (`ans:q:Q-1`) has nobody in it, and is the device's alone. */
+/* ---------- THE KEYS § */
 const ANS_KEY_WHO = /^(?:ans|pad):(u:[^:]+):/;
 const ansWhoOf_ = k => { const m = ANS_KEY_WHO.exec(String(k || '')); return m ? m[1] : ''; };
 const ansServerKey_ = k => String(k || '').replace(/^(ans|pad):u:[^:]+:/, '$1:');
@@ -73,21 +10,12 @@ const ansIsPad_ = k => /^pad:/.test(String(k || '')) && !/:words$/.test(String(k
 const ansIsRing_ = k => /^pad:/.test(String(k || '')) && /:words$/.test(String(k || ''));
 /* THE WHITEBOARD'S STROKES (`board:`, find.js): a drawing, kept on the device and never sent. */
 const ansIsBoard_ = k => /^board:/.test(String(k || ''));
-/* ---------- WHAT A MARK OF WHOSE IT IS CAN NAME (`ansGoneMark_`, below) ----------------------------------
-   THE SIGNED-OUT KEY OF ANYTHING A PERSON MADE: an answer, a drawing or its rings (`ans:` / `pad:`), the
-   whiteboard (`board:` — never sent anywhere, and still somebody's), and a draft of the device's
-   (`draft:device:`, data.js — `bookFollow_` carries the booking form into whoever signs in). The board and
-   the drafts were never marked, so a board drawn and an address typed signed out after the server ended
-   Ada's session were handed to Ben when he signed in next (317, "Six edges closed": P5, P8). `ansKeyWho_` is
-   whose key `k` is, in any of the four shapes. */
+/* ---------- WHAT A MARK OF WHOSE IT IS CAN NAME (`ansGoneMark_`, below) § */
 const ANS_MARKABLE = /^(?:(?:ans|pad|board):(?!u:)|draft:device:)/;
 const ansMarkable_ = k => ANS_MARKABLE.test(String(k || ''));
 const ansKeyWho_ = k => { const m = /^(?:ans|pad|board|draft):(u:[^:]+):/.exec(String(k || '')); return m ? m[1] : ''; };
 
-/* THE SERVER'S CEILINGS, said again because the phone must not send what will be refused — and a value
-   it would refuse stays on the device rather than being retried for ever. `ANSWER_TEXT_MAX`,
-   `ANSWER_PAD_MAX` and `ANSWERS_PER_POST` in backend/constants.gs; `check-saved-answers.js` asks the
-   server's. */
+/* THE SERVER'S CEILINGS, said again because the phone must not send what will be refused — and a value it would refuse stays on the device rather than being § */
 /* 20,000 SINCE AN ESSAY BECAME AN ANSWER (9 Oct): at 2,000 a forty-mark essay stopped going to the account
    at its fourth paragraph. See `ANSWER_TEXT_MAX`. */
 const ANS_TEXT_MAX = 20000, ANS_PAD_MAX = 40000, ANS_PER_POST = 25;
@@ -99,12 +27,7 @@ const ANS_KEEPALIVE_MAX = 60000;
    once more. */
 const ANS_HERE_ONLY = -1;
 
-/* ---------- WHAT IS ON THIS DEVICE -------------------------------------------------------------------
-   EVERY READ AND WRITE IS WRAPPED, for find.js's reason: private mode THROWS on `localStorage` rather
-   than answering null. `ANS_MEM` holds this visit's writes so a throwing storage still saves the visit's
-   work to the account — the one case where the account is the only copy there will ever be.
-   ONLY WHEN STORAGE THROWS. A storage that answers null means the key is not there — taken away by a
-   clear, a move to whoever signed in, or another tab — and the visit's old copy must not bring it back. */
+/* ---------- WHAT IS ON THIS DEVICE § */
 const ANS_MEM = new Map();
 function ansValue_(k) {
   /* A KEY THE STORE REFUSED IS READ FROM THE VISIT FIRST (`keepHeld_`, data.js) — the stored copy is
@@ -122,18 +45,9 @@ function ansLocalPut_(k, v, words) {
   const mark = ansMarkable_(k);
   const was = mark ? ansValue_(k) : null;
   ANS_MEM.set(k, v);
-  /* SIGNED OUT, WHILE A SESSION THE SERVER ENDED IS FRESH, IT IS THAT PERSON'S — `ansGoneMark_` below.
-     MARKED FIRST, THEN WRITTEN: an answer the mark is waiting on is not written without it
-     (`keepWaits_`), and as the page goes the mark is tried again before the answers (`keepRetry_`). */
+  /* SIGNED OUT, WHILE A SESSION THE SERVER ENDED IS FRESH, IT IS THAT PERSON'S — `ansGoneMark_` below. § */
   if (mark) ansGoneMark_(k, v, words, was);
-  /* A FULL STORE GIVES UP THE LOADING SCREEN'S COPY BEFORE IT GIVES UP A CHILD'S WORK. The splash
-     keeps the books' drawings here (`splashSync_`, shell.js), and on a nearly full device they were
-     the last 170 000 characters of room: a 2 000-character answer was refused, this swallowed it,
-     and a child who was not signed in lost it on reload. So a refused write takes that copy away and
-     tries once more — `keepPut_` in data.js now, the one writer for answers and drafts alike. A write
-     refused even then is REMEMBERED there, read from the visit by every reader, and SAID under the box
-     ("Not saved — this browser is not keeping it", below) — it was swallowed here, and the line read
-     "On this device only" over an answer that was on no device at all (317). */
+  /* A FULL STORE GIVES UP THE LOADING SCREEN'S COPY BEFORE IT GIVES UP A CHILD'S WORK. § */
   if (typeof keepPut_ === 'function') keepPut_(k, v);
   else { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
   /* A RING HELD FOR THE VISIT (`CIRC_HELD`) is the copy `circRead_` falls back to, and must say the same. */
@@ -173,11 +87,7 @@ function ansDirtyKeep_(who) {
   } catch (e) {}
 }
 
-/* ---------- THE ONE WRITER ---------------------------------------------------------------------------
-   `v` is the value as stored (`null` takes the key away — a cleared drawing, the last ring taken off).
-   SIGNED OUT IT IS WHAT IT ALWAYS WAS: the value, on the device — there is nobody to send it to, and the
-   line under the box says so. AND ITS TIME: that is what lets `answersClaim_` tell an answer typed a
-   minute ago from an older one already on the account, when somebody signs in. */
+/* ---------- THE ONE WRITER § */
 function ansStore_(k, v, words) {
   k = String(k || '');
   if (!k) return;
@@ -185,9 +95,7 @@ function ansStore_(k, v, words) {
   const who = ansWhoOf_(k);
   ansAtSet_(k, Date.now());
   if (who) {
-    /* STAMPED ALWAYS (above, signed out too — 318's claim reads it) — the time of the edit is also what
-       tells a draft typed here after the last press from the press itself (`subAdopt_`). DUE only if this
-       key still goes up as a draft (`ansSyncs_`). */
+    /* STAMPED ALWAYS (above, signed out too — 318's claim reads it) — the time of the edit is also what tells a draft typed here after the last press from the press § */
     if (ansSyncs_(k)) {
       ansDirtySet_(who).add(k);
       ansDirtyKeep_(who);
@@ -202,10 +110,7 @@ function ansSyncs_(k) {
   return !/^ans:/.test(String(k || '')) || !answersCan_('submitAnswer');
 }
 
-/* ---------- MAY THIS PHONE SEND, AND READ ------------------------------------------------------------
-   A person with an id and a session, and a backend that says it can (`DATA.features`) — so a phone
-   ahead of the deploy keeps answers on the device and SAYS so under the box, rather than being refused
-   on every keystroke or claiming a save that never happened. */
+/* ---------- MAY THIS PHONE SEND, AND READ § */
 function answersCan_(what) {
   try {
     return !!(USER && USER.personId && USER.token && DATA && Array.isArray(DATA.features)
@@ -213,11 +118,7 @@ function answersCan_(what) {
   } catch (e) { return false; }
 }
 
-/* ---------- A DRAWING, SMALLER, BEFORE IT TRAVELS -------------------------------------------------------
-   RAMER–DOUGLAS–PEUCKER, ONE UNIT OF THE 340-WIDE PICTURE. Measured: a 340-unit freehand stroke is 504
-   points and 3,796 characters as drawn, 33 points and 248 characters after — and the line it draws is
-   the same line to within a unit, which is finer than the finger that made it. Only what is SENT is
-   simplified; this device keeps every point it drew. A dot (one point) is a dot. */
+/* ---------- A DRAWING, SMALLER, BEFORE IT TRAVELS § */
 function ansSimplify_(st, tol) {
   const n = Math.floor((st || []).length / 2);
   if (n <= 2) return (st || []).slice();
@@ -250,9 +151,7 @@ function ansOutgoing_(k, raw) {
     return JSON.stringify(all.map(st => Array.isArray(st) ? ansSimplify_(st, 1) : st));
   } catch (e) { return String(raw); }
 }
-/* AND WHAT COMES DOWN, CHECKED, before it goes anywhere near the markup. A drawing is a list of lists of
-   numbers and a ringed word is `3.7`; anything else is a value this phone cannot draw, and it is left on
-   the sheet rather than put in a `<path d>`. */
+/* AND WHAT COMES DOWN, CHECKED, before it goes anywhere near the markup. § */
 function ansIncoming_(sk, v) {
   const s = v === null || v === undefined ? '' : String(v);
   if (!/^pad:/.test(sk)) return s;
@@ -266,11 +165,7 @@ function ansIncoming_(sk, v) {
   } catch (e) { return null; }
 }
 
-/* ---------- SENDING ----------------------------------------------------------------------------------
-   `answersPush_()` books a send a second and a half out, the notepad's rhythm, so a sentence typed is one
-   request and not forty. `answersPush_(true)` sends now — Check, a pick, leaving the box, the app going
-   away — and returns a promise of whether everything due went up. `keepalive` is for the last of those:
-   a request the browser finishes after the page is gone. */
+/* ---------- SENDING § */
 const ANS_WAIT = 1500;
 let ANS_TIMER = 0;
 let ANS_BUSY = null;          // the request in flight, so a second flush joins it rather than racing it
@@ -361,11 +256,7 @@ function answersPush_(now, keepalive) {
   return ANS_BUSY;
 }
 
-/* ---------- READING ----------------------------------------------------------------------------------
-   ONCE PER PERSON PER VISIT from `adoptMarks_` (a payload landing), and again whenever `force` says so:
-   signing in, and coming back to the app after a minute away. Answered `{ success, for, answers }`; a
-   reply for anybody but the person signed in NOW is about the last child on a shared iPad, and is
-   dropped. `check/ui.js` answers every POST with the payload, which has no `for` — dropped the same way. */
+/* ---------- READING § */
 let ANS_PULLED = '';
 let ANS_PULL_AT = 0;
 let ANS_PULLING = null;
@@ -401,23 +292,13 @@ function ansHeld_(k) {
   return false;
 }
 
-/* ---------- THE MERGE -----------------------------------------------------------------------------------
-   `got` is `{ <server key>: { v, at } }` for this person — from `myAnswers` or the sign-in reply.
-     a DIRTY key here         wins: it is about to go up, and it is the later edit
-     a key under a finger     is left alone — the child is writing in it
-     the same edit coming back (same `at`)  nothing to do
-     otherwise                the server's value replaces this device's, and its `at` with it
-   THEN THE BACKLOG: an answer on this device for this person with no stamp at all is from before this
-   file — typed by this child on this iPad this afternoon, say — and if the sheet has nothing for it, it
-   is due. That is the answer the owner went looking for on the computer. */
+/* ---------- THE MERGE § */
 function answersAdopt_(pid, got) {
   const who = 'u:' + String(pid);
   const dirty = ansDirtySet_(who);
   const changed = [];
   const seen = new Set();
-  /* THE ACCOUNT'S OLD DRAFTS OF TYPED ANSWERS ARE NOT READ BACK to a phone whose backend keeps
-     submissions: the box opens on the latest answer SENT (`subAdopt_`, js/submit.js), and a draft from
-     8 Oct laid over it would be a box saying something nobody sent. */
+  /* THE ACCOUNT'S OLD DRAFTS OF TYPED ANSWERS ARE NOT READ BACK to a phone whose backend keeps submissions: § */
   const subs = answersCan_('submitAnswer');
   Object.keys(got || {}).forEach(sk => {
     if (!/^(ans|pad):/.test(sk)) return;
@@ -459,58 +340,7 @@ function answersAdopt_(pid, got) {
   ansSavedPaint_();
 }
 
-/* ---------- WHAT WAS WRITTEN SIGNED OUT, CLAIMED BY WHOEVER SIGNS IN FROM SIGNED OUT --------------------
-   `signedIn_` (me.js) calls this when nobody was signed in — the same seat that keeps Find's place
-   (docs/history/318) — after the sign-in reply's answers have gone into the boxes.
-
-   IT WAS LEFT TO `ansRead_` AND `padAdopt_` (find.js), which move a signed-out answer the first time its
-   box is drawn for somebody, and ONLY INTO AN EMPTY BOX. Measured (review of 318, 820x1180): Sol's
-   account held Q13 = "75" from three days before; signed out, Sol typed "80" on Q13 and signed in. The
-   reply put "75" in Sol's box, so the box was not empty, and "80" stayed under the signed-out key —
-   not shown, not sent. Sol signed out, Kit signed in and opened Q13: Kit's box was empty, "80" moved
-   into it, and went up to KIT'S account. The work of the child who typed it, in the next child's.
-
-   SO EVERY SIGNED-OUT ANSWER ON THE DEVICE IS DECIDED HERE, AT ONCE, and none is left behind:
-     this person has nothing in that box    it moves to them, and is due
-     the signed-out one is the later edit   it replaces theirs, and is due — the account then decides
-                                            against its own copy by the same rule (`answersUpsert_`:
-                                            the later edit wins, and the reply carries the winner)
-     theirs is the later edit               theirs stays, and the signed-out one goes
-   `ansStore_` stamps a signed-out edit; one from before it did has no time, and counts as older than
-   anything this person has — so it fills an empty box, stamped as it moves, which is what `ansRead_`
-   always did, and never replaces one. A STAMPED ONE MOVES WITH ITS OWN TIME, not now's, so "later" means
-   when it was typed, not when the child signed in.
-   EXCEPT WHAT AN ENDED SESSION LEFT (317), which this did not ask about until the two were merged — and
-   then Ada's words, typed signed out after the server ended her session, went into Ben's box and up to
-   Ben's account the moment he signed in. `ansMayMove_` is asked FIRST, before anything is taken from
-   under the signed-out key: another person's stays exactly where it is, for them. The same question
-   `ansRead_` and `padAdopt_` ask.
-   AND THE PERSON'S OWN IS ALL DECIDED HERE TOO, none of it left behind (review of the merge, P1). It was
-   moved only into an EMPTY box of theirs — "the later edit wins" had put Ada's "More words" in place of
-   her 3,000-character essay — and the rest stayed under the signed-out key for good: not shown to her,
-   and drawn in the box for every signed-out visitor after her, the hour `ANS_GONE_MS` keeps the line to
-   notwithstanding. Beside an answer of theirs it is now JOINED to it where the two can be one answer
-   (`ansJoin_`: words after words, strokes after strokes, rings with rings), and otherwise decided by
-   the later edit like anything else; either way the signed-out key is empty once they are back.
-   ---------- `ownOnly`: SIGNED IN OVER SOMEBODY ELSE (317, "Six edges closed", G1) ----------------------------
-   `signedIn_` called this from nobody only, by 318's reasoning: a switch from one child to another is not
-   the same seat, so nothing anybody made signed out is the arriving child's. True of 'later'. NOT of what is
-   marked as theirs — and that was left to `ansRead_` and `padAdopt_`, which move it only into an EMPTY box:
-   Ada came back to the family computer while Ben was still signed in, signed in over him, and her "More
-   words" stayed under the signed-out key, out of her essay, in the box for every signed-out visitor after
-   her, as P1 had been from nobody. So a switch claims too, and takes the person's own and nothing else.
-   `ansMayMove_` answers '' for 'later' on a switch itself now (`familySwitched`, 317, "Undo, the booking
-   form, a switch"), so there this is a second line; it still decides a same-person sign-in, not a switch.
-   ---------- THE WHITEBOARD'S OWN, and only its own (P5) --------------------------------------------------------
-   A board drawn signed out with no ended session behind it is the device's, moved to whoever first OPENS
-   the board (`padAdopt_`) and never claimed here — note 310's rule, unchanged. One drawn after the server
-   ended its person's session is theirs: claimed by them like their answers (strokes after their strokes),
-   and like the board itself never due to go up — it is not an answer, and the `answers` tab never sees it.
-   ---------- WHAT THE STORE REFUSED IS CLAIMED TOO (G2) --------------------------------------------------------
-   This walked `localStorage`'s keys, so a signed-out answer the store had refused — held by the visit
-   (`keepPut_`, data.js) — was never claimed: not in the box of the person signing in, drawn for every
-   signed-out visitor after them, and written back under the signed-out key as the page went
-   (`keepRetry_`). `ansBareKeys_` is the store's keys and the visit's. */
+/* ---------- WHAT WAS WRITTEN SIGNED OUT, CLAIMED BY WHOEVER SIGNS IN FROM SIGNED OUT § */
 function ansBareKeys_() {
   const all = new Set();
   try { for (let i = 0; i < localStorage.length; i++) all.add(localStorage.key(i)); }
@@ -540,10 +370,7 @@ function answersClaim_(pid, ownOnly) {
     try { localStorage.removeItem('ansAt:' + bare); } catch (e) {}
     if (v === null || !String(v).trim() || v === '[]') return;
     const joined = mark && has ? ansJoin_(bare, mine, v, mark.words) : null;
-    /* WHAT IS WRITTEN OVER IS THE ANSWER THE OLD CODE LEFT, until this person's one-time carry-over has run
-       on this device — and that pass reads the box, so it was the claimed draft it sent, as their
-       submission, nobody having pressed anything (review of 10 Oct). Kept for it (`subClaimOver_`,
-       js/submit.js), read before the box, gone once the pass has run. */
+    /* WHAT IS WRITTEN OVER IS THE ANSWER THE OLD CODE LEFT, until this person's one-time carry-over has run on this device — and that pass reads the box, so it was § */
     const over = () => { if (has && typeof subClaimOver_ === 'function') subClaimOver_(k, mine, ansAt_(k)); };
     if (joined !== null) {
       if (joined === mine) return;
@@ -556,10 +383,7 @@ function answersClaim_(pid, ownOnly) {
       ansLocalPut_(k, v);
       ansAtSet_(k, at || Date.now());
     }
-    /* THE BOARD STAYS ON THE DEVICE (note 310): its person's again, and never due to go up. NOR A TYPED
-       ANSWER TO A BACKEND THAT KEEPS SUBMISSIONS (`ansSyncs_`, note 308): claimed, it is this person's
-       draft on this device, and reaches the account when they SEND it — never as a draft, and never as
-       a submission nobody pressed. */
+    /* THE BOARD STAYS ON THE DEVICE (note 310): § */
     if (!board && ansSyncs_(k)) dirty.add(k);
     moved.push(k);
   });
@@ -569,11 +393,7 @@ function answersClaim_(pid, ownOnly) {
   return moved;
 }
 
-/* ---------- AND WHAT IS ON THE SCREEN, CHANGED WHERE IT STANDS -------------------------------------------
-   NOT A REPAINT. A repaint of Find is the thing `findKeep_` exists to hold back, and it would throw away
-   every verdict on the column. Each kind of answer is put back by the code that draws it: a box's value
-   (and the keypad's drawing of it), the options rebuilt by `choiceBox_` exactly as a tap does, a pad's
-   strokes by `padRepaint_`, a ring by its class. A verdict about the old answer goes, as typing takes it. */
+/* ---------- AND WHAT IS ON THE SCREEN, CHANGED WHERE IT STANDS § */
 function ansRefresh_(keys) {
   const want = new Set(keys);
   const has = k => want.has(k) && !ansHeld_(k);
@@ -584,16 +404,12 @@ function ansRefresh_(keys) {
       const v = typeof ansRead_ === 'function' ? ansRead_(k) : (ansValue_(k) || '');
       if (el.value === v) return;
       el.value = v;
-      /* REDRAWN BY THE PAD'S OWN DRAWING (`kpRender_`), which knows a worded box from a maths one: this
-         called `kpTypeset_` on every box, and a worded answer filled from another device came back
-         typeset -- `well-known` with a minus in it, `and/or` stacked as a fraction. */
+      /* REDRAWN BY THE PAD'S OWN DRAWING (`kpRender_`), which knows a worded box from a maths one: § */
       if (el.classList.contains('kp-in') && typeof kpRender_ === 'function') kpRender_(el);
       const card = el.closest('.qcard');
       [card && card.querySelector('.qp-mark[data-accept]'), card && card.querySelector('.qp-ai')].forEach(m => {
         if (!m) return;
-        /* EXCEPT AN ESSAY'S KEPT AI MARK, which is said again against the words now on the sheet -- fresh
-           if they are the ones it read, "before your changes" if not -- rather than blanked: blanking took
-           the verdict and left its points under an empty line (docs/history/312, `aiKeptPaint_`). */
+        /* EXCEPT AN ESSAY'S KEPT AI MARK, which is said again against the words now on the sheet -- fresh if they are the ones it read, "before your changes" if not § */
         if (m.classList.contains('qp-essay') && m.classList.contains('qp-ai') && typeof aiKeptPaint_ === 'function' && aiKeptPaint_(m, el)) return;
         m.classList.remove('is-right', 'is-near');
         const out = m.querySelector('.qp-verdict');
@@ -611,39 +427,7 @@ function ansRefresh_(keys) {
       const k = pad.getAttribute('data-k');
       if (has(k) && typeof padRepaint_ === 'function') padRepaint_(pad, padRead_(k));
     });
-    /* ---------- AND A CARD WITH TWO FACES, ASKED AGAIN WHICH ONE IT SHOWS (docs/history/337, after review) -----
-       THE LOOP ABOVE REPAINTS A PEN THAT IS ON THE SCREEN, and a card on its BOX has none. Since every pen
-       moved onto its card (11 Oct) that is how most cards are, so a drawing pulled from the account under a
-       card on its box -- made on the tutor's iPad, `answersPull_` on coming back to the app -- was shown
-       nowhere, and its tile went on saying "Draw · on the figure" over it: the empty box over the child's
-       work that 327's note exists to prevent. Before, the figure page's pen was a swipe away and was
-       repainted by the loop above at once. (327's 62 surfaces had the same hole from the day they moved.)
-       So every card on the screen with a Draw tile whose drawing or typed answer is among these keys is
-       asked `padFace_` again -- a drawing and nothing typed opens on the drawing; a `Type` chosen over an
-       older drawing gives way to a newer one -- and a face that changed is turned where it stands, every
-       copy, no repaint (`padFaceRedraw_`); one that did not has its tile say again what the face you cannot
-       see holds. NEVER UNDER THE KEYPAD: a box being typed into is not taken away from the finger typing in
-       it; its tile still says "has a drawing".
-       NOR FROM UNDER THE PEN, and that one is not decided here: a pen switched on over the card's drawing
-       holds the drawing in `padFace_` itself (find.js), so this asks it, finds "draw" where "draw" is shown,
-       and only says the tile again -- "Type · has an answer". The second review of 337 found this block
-       turning such a card to its box from under the pen; a guard here alone left the next repaint to do
-       the same, and the rule is the face's, which every repaint asks. */
-    if (typeof padFace_ === 'function' && typeof stuffItemsAll_ === 'function') {
-      const on = new Set();
-      document.querySelectorAll('.q-drawt[data-key]').forEach(b => on.add(b.getAttribute('data-key')));
-      if (on.size) stuffItemsAll_().forEach(x => {
-        if (!x || !on.has(x.key)) return;
-        on.delete(x.key);
-        if (!has(padKey_(x)) && !has(ansKey_(x))) return;
-        const area = [].find.call(document.querySelectorAll('.qp-area'), a => a.getAttribute('data-q') === x.key);
-        const shown = area && area.classList.contains('is-draw') ? 'draw' : 'type';
-        const typing = typeof KP_AT !== 'undefined' && KP_AT && KP_AT.getAttribute('data-k') === ansKey_(x);
-        if (area && !typing && padFace_(x) !== shown) { padFaceRedraw_(x); return; }
-        const face = padFaceTile_(x, shown);
-        document.querySelectorAll('.q-drawt').forEach(b => { if (b.getAttribute('data-key') === x.key) tileSet_(b, face); });
-      });
-    }
+    /* `padFace_` WAS ASKED AGAIN HERE for every card with a `Draw` tile (337): § */
     document.querySelectorAll('[data-circ]').forEach(h => {
       const k = h.getAttribute('data-circ');
       if (!has(k) || typeof circRead_ !== 'function') return;
@@ -657,25 +441,7 @@ function ansRefresh_(keys) {
   } catch (e) {}
 }
 
-/* ---------- THE LINE UNDER THE BOX ---------------------------------------------------------------------
-   ONE LINE, ALWAYS THE SAME HEIGHT (`.qp-saved` reserves it), so a box that goes from nothing to
-   "Sending…" to "Sent" moves nothing under it — the rule 261 made for the verdict. Empty when there is
-   nothing written: a line about saving an empty box is a line about nothing.
-
-   A TYPED, PICKED OR ORDERED ANSWER, to a backend that keeps submissions — the account has what was SENT:
-     signed out                                   On this device only — sign in to keep it
-     the box holds the latest press, on its way   Sending…
-     the box holds the latest press, on the sheet Sent to Ada’s account
-     typed since the last press, or never sent    On this device until you send it
-     the press was over the account's ceiling     On this device only — too long to send
-   A DRAWING, OR ANY ANSWER TO A BACKEND FROM BEFORE `submitAnswer` — the account has the draft:
-     signed in, a backend that cannot   On this device only
-     over the account's ceiling         On this device only — too long for the account
-     due, or not yet reconciled         Saving…
-     on the account                     Saved to Ada’s account
-
-   THE FIRST NAME, AND ONLY HERE. It is the one sentence that is about whose account the work went to,
-   which is exactly what a parent handing an iPad between children needs to read. */
+/* ---------- THE LINE UNDER THE BOX § */
 function ansFirstName_() {
   try { return String((USER && (USER.name || USER.handle)) || '').trim().split(/\s+/)[0] || ''; }
   catch (e) { return ''; }
@@ -687,11 +453,7 @@ function ansOnAccount_(k) {
   try {
     const who = ansWhoOf_(k);
     if (!who || who !== 'u:' + String(USER.personId)) return false;
-    /* A TYPED, PICKED OR ORDERED ANSWER IS ON THE ACCOUNT ONLY AS IT WAS SENT (note 308). Found at the
-       merge with 317: this asked "stamped and not due", and since 9 Oct such an answer is stamped on every
-       key and never due — so a draft the store refused counted as on the account, "Not saved" was never
-       said under it, and the browser was never told to ask "Leave site?" before a reload took it. On the
-       account means the latest press holds exactly this, and the server has it. */
+    /* A TYPED, PICKED OR ORDERED ANSWER IS ON THE ACCOUNT ONLY AS IT WAS SENT (note 308). § */
     if (/^ans:/.test(k)) {
       /* AND SAID FROM THE DEVICE'S OWN RECORD OF THE PRESS, before the payload has said which backend it is
          (`ansSentHere_`, below) — a typed answer to a backend from before submissions is still a draft. */
@@ -701,15 +463,7 @@ function ansOnAccount_(k) {
     return answersCan_('saveAnswers') && ansAt_(k) > 0 && !ansDirtySet_(who).has(k);
   } catch (e) { return false; }
 }
-/* ---------- A PRESS THE SERVER HAS ANSWERED FOR IS ON THE ACCOUNT, WHATEVER THE PAYLOAD HAS SAID YET ----------
-   THE LATEST PRESS HOLDS EXACTLY WHAT IS IN THE BOX, AND THE SERVER SAID IT HAS IT: `q` comes off only when a
-   `submitAnswer` reply names the press (`subApply_`, js/submit.js), and an entry laid from the account
-   (`subAdopt_`) never had one. Neither needs `DATA.features` to be true. Both of these asked
-   `answersCan_('submitAnswer')` first, which is false until the payload lands — fifteen seconds on the live
-   site, on every reload — so Saved and Find's search, which draw a kept card before then, said "On this
-   device only" under an answer the account holds, and "Sent to Ada's account" when the payload landed
-   (review of 10 Oct; the line must never say where an answer is when that is not true, 317). An old
-   backend never takes `q` off, so this can never say Sent for a press it did not keep. */
+/* ---------- A PRESS THE SERVER HAS ANSWERED FOR IS ON THE ACCOUNT, WHATEVER THE PAYLOAD HAS SAID YET § */
 function ansSentHere_(k) {
   try {
     const l = typeof subLatest_ === 'function' ? subLatest_(k) : null;
@@ -717,30 +471,10 @@ function ansSentHere_(k) {
   } catch (e) { return false; }
 }
 const ANS_NOT_KEPT = 'Not saved — this browser is not keeping it';
-/* ---------- AN EMPTY BOX OVER AN ANSWER THAT IS STILL HERE ---------------------------------------------
-   THE OTHER LOSS THE HUNT REPRODUCED (317, scenario B): a session the SERVER ended — signed out on
-   another device, a PIN changed, thirty days — answers `why: 'signed-out'` on the reload, `signedOut_`
-   forgets the person, and the box is drawn under the signed-out key: empty, over an essay of 3,015
-   characters still sitting under the person's own key. Nothing was deleted and nothing said so. `api()`
-   (shell.js) notes whose session the server ended (`familyGone`) and this says it under the box that
-   person had written in, until anybody signs in, and for an hour at most. The words only; the answer
-   stays theirs. */
-/* ---------- FOR AN HOUR, NOT UNTIL SOMEBODY SIGNS IN -----------------------------------------------------
-   `familyGone` IS `{ who, at }`. It was the bare key, cleared only by a sign-in or a chosen sign-out, so
-   on the family's iPad every signed-out visitor after the server ended a child's session was told
-   "your answer is back" under each question that child had answered — words addressed to somebody else,
-   and a list of what they had done (review of 317). It is for the person who was in front of the screen
-   when it happened, so it lasts `ANS_GONE_MS`: a reload in the same lesson, not tomorrow's visitor. */
+/* ---------- AN EMPTY BOX OVER AN ANSWER THAT IS STILL HERE § */
+/* ---------- FOR AN HOUR, NOT UNTIL SOMEBODY SIGNS IN § */
 const ANS_GONE_MS = 60 * 60 * 1000;
-/* ---------- AND THE RECORD OF IT IS KEPT AS CAREFULLY AS THE WORK IT GUARDS ------------------------------
-   `familyGone` (whose session the server ended, and when) and `familyGoneKeys` (which signed-out answers
-   are theirs, below) were bare `setItem`s read back with `getItem`. A browser keeping no site data THROWS on
-   both, so `ansMayMove_` never knew whose an answer was and answered "anybody's" — and 318's claim, which
-   walks the visit's copies (`ANS_MEM`) exactly when storage throws, moved Ada's "(5)/(6)" into Ben's box and
-   up to Ben's account (review of the merge, P3). A store merely full at that moment lost the record the same
-   way. So both go through `keepPut_` (data.js) as a `'record'`: held for the visit when the store refuses
-   or throws, given the loading screen's room like an answer, tried again as the page goes — before the
-   answers waiting on it — and read with the visit's copy first (`ansValue_` → `keepHeld_`). */
+/* ---------- AND THE RECORD OF IT IS KEPT AS CAREFULLY AS THE WORK IT GUARDS § */
 const ansRec_ = name => ansValue_(name);
 function ansRecPut_(name, v) {
   if (typeof keepPut_ === 'function') { keepPut_(name, v, 'record'); return; }
@@ -760,49 +494,8 @@ function ansGoneSay_(k) {
   return theirs !== null && String(theirs).trim() && theirs !== '[]'
     ? 'Signed out — sign in again and your answer is back' : '';
 }
-/* ---------- AND WHAT THEY TYPE SIGNED OUT MEANWHILE IS STILL THEIRS ---------------------------------------
-   FOUND BY THE REVIEW OF 317, ON THE PATH THE LINE ABOVE PROTECTS: the server ended Sam's session, the
-   reload drew his essay's box empty and signed out, and he typed "More words" into it. Kit signed in next
-   and opened the question — and `ansRead_` (find.js), which moves a signed-out answer into whoever signs
-   in if their box is empty, moved Sam's words into KIT'S account. So a signed-out answer written while a
-   session the server ended is fresh (`ansGone_`) is marked as that person's, in `familyGoneKeys`, and
-   nothing moves it into anybody else's box: every path that moves a signed-out answer asks `ansMayMove_`
-   (below). It stays under the signed-out key, as it always did, until that person signs in. The mark
-   goes with the answer — emptied, or moved to them.
-   ---------- AND A LATER WRITE CHANGES WHOSE IT IS ONLY BY WRITING OVER ALL OF IT (317, "Six edges", P7) ----------
-   THIS SAID "never taken off by a later write: an answer half one person's is not handed to the next" —
-   and so an answer with NOTHING of theirs left in it stayed theirs. The hour passes, the next visitor on
-   the family computer selects Ada's "(5)/(6)" and types "(1)/(9)" over it, and when Ada signed in again
-   the visitor's answer went up to ADA's account, by the mark. And it was not true of the half-and-half
-   case either: a write while ANOTHER child's ended session was fresh re-marked the whole answer as
-   theirs, Ada's words in it. So whose it is follows what is in it (`ansKeeps_`, below):
-     an EDIT of it — a key typed, a letter taken off, a word pasted in, a stroke added or undone — keeps
-     it whose it was, whoever makes the edit: mostly theirs is theirs, and is not handed to the next;
-     a write OVER ALL OF IT — the box selected and typed over, a paste over the whole, another number —
-     is the writer's: theirs if their own ended session is fresh, and otherwise nobody's, so it follows
-     whoever signs in next from nobody (318), as anything made signed out with no ended session does. If
-     that is the person whose mark it was, it is theirs by that rule, not by the mark — after the hour
-     nothing on the device can tell who is at the keyboard, and 318's seat is the rule for that.
-     Emptied, it is nobody's, as before.
-   `was` is the value before this write (`ansLocalPut_` reads it); a caller without it is read for it.
-   ---------- AND UNDO PUTS BACK WHOSE IT WAS, WITH WHAT WAS THERE (317, "Undo, the booking form, a switch") -------
-   EMPTIED IS NOBODY'S — and the two features built for slips put the emptied answer straight back: the pen's
-   Undo after Clear (`PAD_CLEARED`, find.js — the bin sits 4px from Undo) and the keypad's Ctrl+Z (`kpUndo_`,
-   keypad.js) after Ctrl+A and Backspace, or a held Backspace. The write that put it back was judged like a
-   new one, against the empty box or the visitor's one letter, so `ansKeeps_` saw nothing of Ada's to keep:
-   her own stroke and her own words came back with no mark — anybody's, and Ben, signing in next from
-   nobody, was handed them and they went up to HIS account; or, while Cal's ended session was fresh, they
-   came back marked as Cal's. So both Undos write through `ansPutBack_`, below, with the mark the answer had
-   when it was last that value (kept beside the value it undoes to), and that mark is the one written —
-   Ada's for Ada's words, nobody's for the visitor's one letter put back by a Redo. Undo is time going
-   backwards for one box; whose it was goes backwards with it.
-   A MARK IS `{ who, words }`: whose, and whether it was typed in a worded box (the `input` listener in
-   find.js says), which is what `ansJoin_` needs to know when they sign in again. The record's name,
-   `ANS_GONE_KEYS`, is declared in data.js: the draft sweep there asks it as that file loads. */
-/* THE WRITE AN UNDO IS MAKING, while it makes it: `{ k, mark }`. `write` is the Undo's own write — the pen's
-   `ansStore_`, or the keypad's `input` event, which find.js's listener stores — and the mark is decided here
-   and not after it, so the answer is never on the device without its mark, even for a moment (`keepWaits_`).
-   `mark` is null for a value that was nobody's. Only a key a mark can name is told anything. */
+/* ---------- AND WHAT THEY TYPE SIGNED OUT MEANWHILE IS STILL THEIRS § */
+/* THE WRITE AN UNDO IS MAKING, while it makes it: § */
 let ANS_PUT_BACK = null;
 function ansPutBack_(k, mark, write) {
   const before = ANS_PUT_BACK;
@@ -826,29 +519,12 @@ function ansGoneMark_(k, v, words, was) {
         && ansKeeps_(k, was === undefined ? ansValue_(k) : was, v)) want = had;
     if (want ? !!had && had.who === want.who && had.words === want.words : !had) return;
     if (want) map[k] = want; else delete map[k];
-    /* AND WHAT NO LONGER NAMES AN ANSWER, while it is open anyway — ASKED OF `ansValue_`, which answers
-       with the visit's copy of a key the store refused. This asked `localStorage` alone, and so took the
-       mark off an answer the visit was holding (`keepPut_`, data.js) the moment the next box was typed
-       in; the store took the answer once there was room again, unmarked, and the next child to sign in
-       was given it (review of the merge, P6). */
+    /* AND WHAT NO LONGER NAMES AN ANSWER, while it is open anyway — ASKED OF `ansValue_`, which answers with the visit's copy of a key the store refused. § */
     Object.keys(map).forEach(x => { if (x !== k && ansValue_(x) === null) delete map[x]; });
     ansRecPut_(ANS_GONE_KEYS, Object.keys(map).length ? JSON.stringify(map) : null);
   } catch (e) {}
 }
-/* ---------- DOES A WRITE KEEP WHAT WAS THERE — an edit of it, or a new answer over it? (P7, above) ------------
-   A KEY TYPED, A LETTER DELETED, A WORD PASTED IN: one place changes, and the text before it and after it
-   is as it was — the keypad writes the whole box on every key, so two writes in a row differ in one place.
-   HALF OR MORE of the old text still there, at its start and its end, is an edit of it. Less is a new
-   answer written over it: "(5)/(6)" typed over with "(1)/(9)" keeps a bracket at each end, two characters
-   of seven, which is chance and not keeping. A drawing or its rings is a list, and is kept while any
-   stroke or ring of the old one is still in it: Undo takes one off, and Clear empties it, which takes the
-   mark off on its own. NOT AS TEXT: a visitor's Undo that takes Ada's long stroke off leaves her short
-   one, a fifth of the characters, and as text that read as a new drawing over hers — and Ben, signing
-   in next, was handed her stroke.
-   HALF COUNTS, and that was found the short way: "more than half" made one Backspace on Ada's "80" a new
-   answer — "8" keeps one character of two — so her own last digit was nobody's and went to Ben. Every
-   key is one write, so with half counted a visitor trimming her words key by key leaves them hers to the
-   last character, and the empty box that ends it takes the mark off with nothing of hers left. */
+/* ---------- DOES A WRITE KEEP WHAT WAS THERE — an edit of it, or a new answer over it? (P7, above) § */
 function ansKeeps_(k, was, v) {
   if (was === null || was === undefined || v === null || v === undefined) return false;
   if (ansIsPad_(k) || ansIsRing_(k) || ansIsBoard_(k)) {
@@ -877,11 +553,7 @@ function ansGoneRead_(m) {
 function ansGoneOf_(bare) {
   try { return ansGoneRead_((JSON.parse(ansRec_(ANS_GONE_KEYS) || '{}') || {})[bare]); } catch (e) { return null; }
 }
-/* ---------- AND NEVER ON THE DEVICE WITHOUT ITS MARK -------------------------------------------------------
-   Asked by `keepPut_` and `keepRetry_` (data.js) before they write a key. WHILE THE STORE IS REFUSING THE
-   MARKS, an answer they name waits for them in the visit, like any refused write ("Not saved" under its
-   box): written alone, it would be on the device with nothing to say whose it is, and after a reload it
-   would be anybody's. The marks are written first as the page goes, so the two land together. */
+/* ---------- AND NEVER ON THE DEVICE WITHOUT ITS MARK § */
 function keepWaits_(k) {
   if (typeof KEEP_UNKEPT === 'undefined' || !KEEP_UNKEPT.has(ANS_GONE_KEYS)) return false;
   /* ANYTHING A MARK CAN NAME — the board and the device's drafts as well as answers (`ansMarkable_`). */
@@ -893,14 +565,7 @@ function keepWaits_(k) {
   try { kept = ansGoneRead_((JSON.parse(localStorage.getItem(ANS_GONE_KEYS) || '{}') || {})[k]); } catch (e) {}
   return !(kept && kept.who === held.who);
 }
-/* ---------- THE PEN'S AND THE RINGS' NOTE, FOR THE KEY IT IS UNDER -------------------------------------
-   `padKeptSay_` (below) says where drawings are kept, and only that: the review of 317 found it reading
-   "Kept on this device only" over strokes the store had refused, and saying nothing over a pad drawn
-   empty by a session the server ended. So the two lines the answer box gives come first here too.
-   AND THE WHITEBOARD'S (`board:`, find.js), which is a pen's note too: refused, it is "Not saved" like
-   anything else the store refused (the rule the board took from 317 when the two were merged — note
-   310); otherwise it is on this device and nowhere else, so never an account's sentence and never an
-   ended session's — `PAD_HERE_ONLY`. */
+/* ---------- THE PEN'S AND THE RINGS' NOTE, FOR THE KEY IT IS UNDER § */
 function padNoteSay_(k) {
   k = String(k || '');
   const v = ansValue_(k);
@@ -910,47 +575,7 @@ function padNoteSay_(k) {
   const gone = has ? '' : ansGoneSay_(k);
   return gone ? gone + '.' : padKeptSay_();
 }
-/* ---------- MAY THE SIGNED-OUT `bare` BECOME `k`'S — THE ONE QUESTION EVERY MOVE ASKS --------------------
-   FOUR PATHS MOVE A SIGNED-OUT ANSWER INTO SOMEBODY'S KEY: `answersClaim_` (above — signing in from
-   nobody, and the person's own over somebody else), `ansRead_` and `padAdopt_` (find.js — a box or a pad
-   drawn for somebody signed in) and `circOf_` (find.js — the visit's rings, when storage throws). The
-   guard used to be `ansGoneOthers_`, which `ansRead_` and `padAdopt_` asked, `circOf_` did not, and
-   `answersClaim_` had never heard of: 317 and 318 were built on separate branches, and once merged, 318's
-   claim moved Ada's "More words" — typed signed out after the server ended HER session — into Ben's box
-   and up to Ben's account the moment Ben signed in, the fault 317's review had just closed at the other
-   doors. So all four ask this, and only this:
-     ''        it was written while ANOTHER person's ended session was fresh (`familyGoneKeys`): it is
-               theirs, and stays under the signed-out key for them. Never moved, never sent.
-     'own'     it is THIS person's own, typed after the server ended their session. Drawn for them
-               (`ansRead_`, `padAdopt_`, `circOf_`) it moves only into an EMPTY box, as anything does
-               there. Signing in from nobody (`answersClaim_`) it is all theirs and none of it is left:
-               into an empty box, or JOINED to the answer there (`ansJoin_`, below) — never "the later
-               edit wins" over a worded answer. The box it was typed into was drawn empty because the
-               session had gone, over the answer the line under it promised back (`ansGoneSay_`), so it
-               was typed beside that answer, not over it: by the later edit, "More words" went in place
-               of a 3,000-character essay and up to the account — the owner's 9 Oct report again.
-               It was 'empty', and moved ONLY into an empty box at sign-in too, which left the words
-               typed beside the essay under the signed-out key for good (review of the merge, P1).
-               And signing in OVER somebody else claims it too, and nothing else (`ownOnly`, G1).
-     'later'   anybody's: no session ended. Whoever signs in, by 318's rule (`answersClaim_`).
-   WHOSE IS READ FROM THE VISIT'S COPY FIRST (`ansRec_`), so a store that throws or is full still knows.
-   ---------- AND EVERY MOVER READS BOTH KEYS AS THE WRITER'S OWN READER DOES (317, "Six edges") --------------
-   `ansValue_`, the visit's copy first. `padAdopt_` asked `localStorage` whether the person's pad was
-   empty, and a pad the store had refused — held by the visit — was "empty", so a drawing made signed out
-   was moved over it (P4); the claim walked the store's keys and never saw a signed-out answer the visit
-   was holding (G2). AND TWO MORE DOORS ASK THIS NOW: the whiteboard (`board:`, P5), and `bookFollow_`
-   (book.js), which carries the device's booking form into whoever signs in (`draft:device:`, P8) — `k` is
-   then the person's own key of that shape, and `ansKeyWho_` reads whose it is.
-   ---------- 'later' IS NEVER FOR SOMEBODY WHO ARRIVED OVER SOMEBODY ELSE (317, "Undo, the booking form, a switch") ----
-   THE CLAIM SAID SO (`ownOnly`) AND THE OTHER DOORS DID NOT. Ben signed in; another tab of the site, signed
-   out there and never reloaded, wrote a maths answer and a stroke — nobody's session behind them, so 'later'.
-   Ada signed in over Ben, and the claim rightly left them: a switch is not the same seat (318). Then her
-   card was drawn, and `ansRead_` and `padAdopt_` — which refused only '' — moved the other tab's answer into
-   her empty box and up to HER account; the board's `padAdopt_`, which `wbPaint_` runs at every sign-in, did
-   the same with a board. So whoever signed in over somebody else is written down (`familySwitched`, set by
-   `signedIn_`, gone at the next sign-out — `answersForget_`), kept as carefully as `familyGone` and for as long
-   as the session (a reload is still the same arrival), and for them 'later' is ''. A device signed in from
-   nobody, or already signed in when this tab opened, keeps 318's rule: `ansRead_` is what is left for it. */
+/* ---------- MAY THE SIGNED-OUT `bare` BECOME `k`'S — THE ONE QUESTION EVERY MOVE ASKS § */
 const ANS_SWITCHED = 'familySwitched';
 function ansSwitched_() {
   const v = String(ansRec_(ANS_SWITCHED) || '');
@@ -965,16 +590,7 @@ function ansMayMove_(bare, k) {
   if (m) return m.who === who ? 'own' : '';
   return who && who === ansSwitched_() ? '' : 'later';
 }
-/* ---------- TWO ANSWERS OF ONE PERSON'S, PUT TOGETHER WHERE THEY CAN BE ONE --------------------------------
-   `mine` is what the box holds for them, `v` what they wrote signed out beside it after their session
-   ended (`answersClaim_`). Nothing of either is lost, and nothing is said twice:
-     a drawing   their strokes, then the ones drawn signed out
-     rings       every word either rang
-     words       theirs, a blank line, then the words typed signed out — the essay, then what was typed
-                 after it — unless theirs already holds them
-   ANYTHING ELSE IS ONE ANSWER, NOT TWO — a number, a pick, an order: `null`, and the later edit wins, as it
-   does for every other signed-out answer. So does a worded answer whose mark is from before marks said
-   how it was typed (`ansGoneRead_`). */
+/* ---------- TWO ANSWERS OF ONE PERSON'S, PUT TOGETHER WHERE THEY CAN BE ONE § */
 function ansJoin_(bare, mine, v, words) {
   if (ansIsPad_(bare) || ansIsRing_(bare) || ansIsBoard_(bare)) {
     try {
@@ -1006,11 +622,7 @@ function ansSavedSay_(k) {
     const nm = ansFirstName_();
     return nm ? 'Sent to ' + nm + '’s account' : 'Sent to your account';
   }
-  /* ---------- AND WHAT DEPENDS ON THE BACKEND WAITS FOR THE PAYLOAD THAT SAYS WHICH ONE IT IS ----------
-     "Sending…", "until you send it", and the drafts' own lines below all turn on `DATA.features`, which is
-     not there until the payload lands. Said before then, a box the account will keep read "On this device
-     only". Nothing is said until it is known — the line keeps its height (`.qp-saved`), so nothing moves
-     when it fills in. The person's own boxes only: a signed-out box and a refused write are known already. */
+  /* ---------- AND WHAT DEPENDS ON THE BACKEND WAITS FOR THE PAYLOAD THAT SAYS WHICH ONE IT IS § */
   if (own && typeof awaiting_ === 'function' && awaiting_()) return '';
   if (/^ans:/.test(k) && answersCan_('submitAnswer') && own) {
     const latest = typeof subLatest_ === 'function' ? subLatest_(k) : null;
@@ -1041,10 +653,7 @@ function ansSavedPaint_() {
     });
   } catch (e) {}
 }
-/* THE SAME FACT FOR THE PEN AND THE RINGED WORDS, in the note they already carried. Drawn with the card,
-   so it is the state at the last repaint. It said "…account, like the answer box" — true while the box
-   went up as it was typed, and not since 9 Oct, when a typed answer goes up as it is SENT and a drawing,
-   which has no Send, still goes as it is drawn. */
+/* THE SAME FACT FOR THE PEN AND THE RINGED WORDS, in the note they already carried. § */
 function padKeptSay_() {
   if (!(typeof whoIs_ === 'function' && whoIs_())) return 'Kept on this device only — sign in to keep it.';
   if (!answersCan_('saveAnswers')) return 'Kept on this device only.';
@@ -1052,19 +661,12 @@ function padKeptSay_() {
   return 'Saved to ' + (name ? name + '’s' : 'your') + ' account.';
 }
 
-/* ---------- WHEN IT SENDS AT ONCE ------------------------------------------------------------------------
-   LEAVING A BOX, which is the moment a child has finished with it. AFTER CHECK, A PICK, AN ORDER SENT OR
-   "MARK WITH AI" — this listener is added after the app's own click dispatcher (shell.js), so the handler
-   has stored the answer by the time this runs. AND THE APP GOING AWAY: `visibilitychange` to hidden is the last event an
-   iPad reliably sends when the cover closes or the Home Screen is pressed, and `pagehide` is the one a
-   tab closing sends — both with `keepalive`. */
+/* ---------- WHEN IT SENDS AT ONCE § */
 document.addEventListener('focusout', e => {
   const el = e.target && e.target.closest && e.target.closest('[data-do="qp-ans"]');
   if (el) answersPush_(true);
 });
-/* TO A BACKEND FROM BEFORE `submitAnswer` ONLY, now: there the typed answer is still a draft that goes up,
-   and a press is the moment to send it. To one that keeps submissions nothing typed is due, and the press
-   itself goes up by js/submit.js. */
+/* TO A BACKEND FROM BEFORE `submitAnswer` ONLY, now: § */
 document.addEventListener('click', e => {
   const t = e.target && e.target.closest && e.target.closest('[data-do="qp-check"], [data-do="qp-choose"], [data-do="qp-order-send"], [data-do="qp-ai"], [data-do="qp-send"]');
   if (t) answersPush_(true);
@@ -1076,14 +678,7 @@ document.addEventListener('visibilitychange', () => {
 });
 window.addEventListener('pagehide', () => { answersPush_(true, true); });
 
-/* ---------- AND AN ANSWER WRITTEN IN ANOTHER TAB IS THE ANSWER IN THIS ONE -------------------------------
-   FOUND BY THE HUNT (317): the card open in two tabs, the essay (1,369 characters) written in one, a
-   single key pressed in the other — whose box was drawn empty before the first tab wrote — and that one
-   letter was saved over the essay, because the box saves its whole value. Nothing here listened for
-   `storage`, which a browser fires in every OTHER tab of the site when one writes. So a box, a pick, an
-   ordering, a drawing or a ring showing a key another tab has just written is given that tab's value
-   where it stands — a focused box too, since a `storage` event is never this tab's own keystroke — and
-   the keypad's undo for it forgets a history that is no longer this box's. */
+/* ---------- AND AN ANSWER WRITTEN IN ANOTHER TAB IS THE ANSWER IN THIS ONE § */
 window.addEventListener('storage', e => {
   const k = e && e.key;
   if (!k || !/^(ans|pad):/.test(k)) return;
@@ -1103,33 +698,7 @@ window.addEventListener('storage', e => {
   } catch (err) {}
 });
 
-/* ==================================================================================================
-   AND THE FIND COLUMN IS NOT REBUILT UNDER A CHILD WHO IS WRITING.
-
-   MEASURED (diag-signin, 820x1180, the iPad): focus a keypad box on Find right after signing in, type
-   "7" — saved — and when the payload landed fifteen seconds later the whole column was rebuilt: the box
-   replaced, `KP_AT` left on a detached input, the keypad closed. On Safari, which may not send
-   `focusout` for a removed element, the pad would stay up typing into nothing. The messages reply and
-   the profile refresh then did it twice more.
-
-   `settingsKeep_` (me.js) already answers this for a half-filled settings card, and `paint` asks it.
-   This is the same question for Find: while an answer box has the focus, the keypad is up or a stroke
-   is half drawn, the column is marked STALE instead of rebuilt — and drawn again a moment after the
-   child leaves the box, or the next time the column is arrived at.
-
-   NOT WHILE THE PEN IS MERELY ON, and not while a verdict is showing, though both were tried: either
-   can outlast a sign-out, and a Find column held stale across a change of person is one whose boxes are
-   still keyed to the last child. The pen's state is redrawn from `PAD_ON` anyway, and every stroke is
-   stored the moment it ends. A verdict is only held back from the moment-after redraw below, which is
-   the one that would wipe "Correct" a heartbeat after Check put it there.
-   ---------- AND FIND 2, ON THE SAME TERMS ----------------------------------------------------------------
-   BOTH FINDERS HOLD EVERY QUESTION NOW (docs/history/347), and the owner's own use is a child answering
-   in one column with a chapter up in the other — so either column can hold the box being typed in. This
-   was Find's alone while the second finder held only the resources, which have no answer box; left that
-   way, a payload landing under a child typing in Find 2 rebuilt the column under her, the diag-signin
-   bug above on the other column. Any finder (`finderOf_`, find.js — `typeof`, because this file loads
-   first). The keypad and the stroke are held for both columns, as they always held Find whichever column
-   the box was on: a column marked stale is only drawn on arrival, which costs nothing. */
+/* AND THE FIND COLUMN IS NOT REBUILT UNDER A CHILD WHO IS WRITING. § */
 const findIs_ = id => (typeof finderOf_ === 'function' ? !!finderOf_(id) : id === 'stuff');
 function findKeep_(id) {
   if (!findIs_(id)) return false;
@@ -1142,11 +711,7 @@ function findKeep_(id) {
     return typeof PAD_ST !== 'undefined' && !!PAD_ST;
   } catch (e) { return false; }
 }
-/* A VERDICT ON THE SCREEN. It lived in the DOM only until 9 Oct — Check wrote it there and nothing stored
-   it — and a redraw a moment after leaving the box wiped "Correct" a heartbeat after it appeared. It is
-   drawn from the latest submission now (js/submit.js) and a redraw draws it again; the redraw is still
-   held over one, which costs nothing and keeps the card still under a child reading it. Of the finder
-   asked about, Find when none is named. */
+/* A VERDICT ON THE SCREEN. § */
 function findVerdictShown_(id) {
   try {
     const host = document.getElementById('s-' + (id && findIs_(id) ? id : 'stuff'));
@@ -1154,10 +719,7 @@ function findVerdictShown_(id) {
       el => !!String(el.textContent || '').trim());
   } catch (e) { return false; }
 }
-/* THE REDRAW IT HELD BACK, once nothing is held — a moment after leaving the box, so a tap that moved the
-   focus from one box to the next (focusout, then focusin) finds the next box focused and waits again.
-   Not over a verdict just given: that waits for the next arrival at the column (`go` draws a stale
-   column on the way in). */
+/* THE REDRAW IT HELD BACK, once nothing is held — a moment after leaving the box, so a tap that moved the focus from one box to the next (focusout, then focusin) § */
 let FIND_KEPT_TIMER = 0;
 document.addEventListener('focusout', () => {
   clearTimeout(FIND_KEPT_TIMER);
@@ -1168,19 +730,14 @@ document.addEventListener('focusout', () => {
   }, 400);
 });
 
-/* ---------- AND FORGOTTEN AT SIGN-OUT ----------------------------------------------------------------
-   `signedOut_` (me.js) calls this: the next person to sign in is read for at once, whoever they are, and
-   a retry booked for the last one is not left to run. What is still due stays due — under the last
-   person's key, for the next time they sign in here. */
+/* ---------- AND FORGOTTEN AT SIGN-OUT § */
 function answersForget_() {
   ANS_PULLED = '';
   ANS_PULLING = null;
   ANS_PULL_AT = 0;
   clearTimeout(ANS_RETRY);
   ANS_BACKOFF = 0;
-  /* AND THE NOTE OF A SESSION THE SERVER ENDED (`ansGoneSay_`): whoever signs in next, or a sign-out
-     somebody chose, is a new start. `api()` writes it again AFTER this, for the sign-out it causes.
-     Through `ansRecPut_`, so the visit's copy goes with the stored one. */
+  /* AND THE NOTE OF A SESSION THE SERVER ENDED (`ansGoneSay_`): § */
   try { ansRecPut_('familyGone', null); } catch (e) {}
   /* AND WHO ARRIVED OVER SOMEBODY ELSE (`ansMayMove_`): the next arrival says again how it came. */
   try { ansRecPut_(ANS_SWITCHED, null); } catch (e) {}

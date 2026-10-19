@@ -1,0 +1,912 @@
+# js/check-all.js
+
+The full text of comments in `js/check-all.js` that `tools/comments.js` shortened to a headline ending in " §".
+Append-only, in the order they were shortened; each entry names what the comment sat in.
+
+### @family. — check-all.js ONE COMMAND, ONE VERDICT.
+
+top level, before `execFileSync`
+
+```
+/* ==================================================================================================
+   @family. — check-all.js
+
+   ONE COMMAND, ONE VERDICT.
+
+   There are eleven checkers and running them by hand meant eleven commands, which in practice meant running
+   the two you remembered. A safety net you have to assemble by hand each time is a safety net with
+   holes in it wherever your memory has them — and the two that got skipped were reliably the slow
+   ones, which are the ones that check the most.
+
+     node check-all.js
+
+   WHAT EACH ONE IS FOR, in the order they run — cheapest first, so a syntax error stops you in two
+   seconds rather than after a minute of booting browsers:
+
+     check          every name declared, nothing read before it exists   (a compiler's job)
+     check-strings  no ${…} stranded inside quotes, drawn as characters
+     check-css      no dead rules, no silent overrides, no contradictions
+     check-tabs     every tab the backend reads is routed to a file that exists
+     check-columns  every column the backend reads and writes exists
+     check-doors    every handler has a button and every button a handler
+     check-dead     functions nothing calls, on both sides
+     check-booking  the state machine folded over real event sequences — where the money is
+     check-flow     the app actually boots, draws, and can be pressed
+
+   TWO OF THEM REPORT RATHER THAN FAIL. `check-dead` and `check-doors` name things that are
+   suspicious rather than wrong — a function reached only from the console, a handler waiting for a
+   button somebody has not built yet. They exit non-zero, and this treats that as WORTH READING
+   rather than as broken, because a red that is permanently red is a red nobody reads.
+
+   EVERYTHING ELSE IS PASS OR FAIL and a failure means something is actually wrong.
+================================================================================================== */
+```
+
+### ---------- ONE LOADER, AND NOTHING ELSE DRAWS A WAIT
+
+in `SUITE`
+
+```
+/* ---------- ONE LOADER, AND NOTHING ELSE DRAWS A WAIT --------------------------------------------
+     The owner, 9 Oct: *"Every widget has unique loading look. They should all have a simplistic
+     simple loading thing."* Twenty-four looks for one fact were replaced by `loading_()`; this is
+     what stops the twenty-fifth — a phrase, a class, a keyframe — arriving one fix at a time. */
+```
+
+### ---------- IT EXISTED AND NEVER RAN
+
+in `SUITE`
+
+```
+/* ---------- IT EXISTED AND NEVER RAN -------------------------------------------------------
+     `check-scope.js` was written for the two faults that got past all the others — a name declared
+     inside a block and read outside it, which throws the moment that line runs. It was never added
+     to this list, so the one checker built for the faults nothing else can see has never been part
+     of the safety net it belongs to.
+     A checker that is not in the suite is a checker that does not run, and this file IS the suite. */
+```
+
+### ---------- AND A CONSTANT BEING ASSIGNED TO, WHICH THROWS AND IS OFTEN SILENT
+
+in `SUITE`
+
+```
+/* ---------- AND A CONSTANT BEING ASSIGNED TO, WHICH THROWS AND IS OFTEN SILENT ----------------
+     `shell.js` had `d = libraryInto_(d, …)` where `d` is `const`. It threw on every load, the
+     surrounding try swallowed it, and nothing looked wrong because the function MUTATES `d` before
+     returning it — so the useful work was already done when the assignment blew up. What it cost
+     was that nothing after that line inside the try could ever run, which stayed invisible until
+     something was finally put there. */
+```
+
+### THE BACKEND'S OWN `check.js`.
+
+in `SUITE`
+
+```
+/* THE BACKEND'S OWN `check.js`. Apps Script loads every `.gs` into one scope exactly as the
+     browser concatenates `js/`, so a name declared twice is a name declared once — and nothing
+     warned. It ran before `check-columns` because a project that cannot load has no columns. */
+```
+
+### ---------- BEFORE THE COLUMNS, BECAUSE A TAB NOBODY CAN OPEN HAS NO COLUMNS
+
+in `SUITE`
+
+```
+/* ---------- BEFORE THE COLUMNS, BECAUSE A TAB NOBODY CAN OPEN HAS NO COLUMNS -------------------
+     The database is three spreadsheets now and `WHERE` says which tab is in which. A tab with no
+     line there resolves to no file and reads back as an empty list — the same shape as an empty
+     database, which is precisely how five unreachable tabs went unnoticed until all four of the old
+     spreadsheets were read by hand. */
+```
+
+### ---------- THE SAME QUESTION, ASKED OF ONE TAB AT A TIME
+
+in `SUITE`
+
+```
+/* ---------- THE SAME QUESTION, ASKED OF ONE TAB AT A TIME -------------------------------------
+     `check-columns` asks "is this a column ANYWHERE", because it works by regex and a bare `r.name`
+     carries no clue which tab it came from. That union is why seven reads of `r.link` on rows that
+     had no `link` passed clean — `venues` has one. This parses instead, binds each row back to its
+     `read(TAB.x)`, and asks the narrower question. Both are worth running: the union catches a
+     column NO tab has, this catches a column the WRONG tab has. */
+```
+
+### ---------- THE FAULT CLAUDE.md CALLS THE WORST ONE HERE
+
+in `SUITE`
+
+```
+/* ---------- THE FAULT CLAUDE.md CALLS THE WORST ONE HERE --------------------------------------
+     "A key the site asks for and the backend does not send fails silently." Nothing checked it, and
+     `missingKeys()` only knows about screens somebody opened while signed in as the right person.
+     This reads the files, so it sees every read whether or not anybody performed it. */
+```
+
+### ---------- I DELETED THREE GAMES AND EVERY CHECK STAYED GREEN
+
+in `SUITE`
+
+```
+/* ---------- I DELETED THREE GAMES AND EVERY CHECK STAYED GREEN --------------------------------
+     Removing one widget, I cut from its entry to the next one I could see, and three sat in
+     between. Nothing noticed: the functions were still declared, the flow journeys do not know
+     what belongs on a column, and the UI check measures what is drawn. This asks whether a
+     widget's machinery exists with no widget to reach it — the question that would have. */
+```
+
+### ---------- AND WHETHER A REFUSAL IS REPORTED AS ONE
+
+in `SUITE`
+
+```
+/* ---------- AND WHETHER A REFUSAL IS REPORTED AS ONE -------------------------------------------
+     `api()` RESOLVES ON `{ error: … }`; `send()` THROWS. A caller that posts through the first and
+     then toasts "Sent" tells somebody a write worked on the strength of an answer it never read —
+     written after making exactly that mistake on the Message control, where a stubbed refusal
+     closed the sheet, discarded what had been typed, and said it had gone. */
+```
+
+### ---------- AND WHETHER WHAT WAS TYPED SURVIVES A RELOAD
+
+in `SUITE`
+
+```
+/* ---------- AND WHETHER WHAT WAS TYPED SURVIVES A RELOAD ------------------------------------------
+     *"the box should be autosaving his work like everywhere else should be doing this"* — the owner,
+     9 Oct, after an essay went with a refresh (docs/history/317). Every box the app draws is an answer,
+     a draft, kept by its own code, or exempt with a reason; a new one that is none of them fails here. */
+```
+
+### ---------- THREE CHECKS EXISTED AND NONE OF THEM RAN
+
+in `SUITE`
+
+```
+/* ---------- THREE CHECKS EXISTED AND NONE OF THEM RAN -------------------------------------------
+     `check-lifecycle`, `check-spine` and `check-surfaces` were written, committed, and left off this
+     list. All three pass, and all three have passed in silence for however long they have been
+     here — CLAUDE.md even cites `check-spine.js` finding two missing receipt rows "the first time it
+     ran", which is the last time anything ran it.
+
+     A CHECK THAT IS NOT IN THE ROSTER SAYS NOTHING, which is the same fault as `check-booking`
+     printing "nothing to check" and exiting 0 — recorded a few paragraphs up this very file. The
+     roster is the only thing that makes a check real, so it is the thing to add to. */
+```
+
+### ---------- AND NOTHING STANDS IN FRONT OF A DROPDOWN
+
+in `SUITE`
+
+```
+/* ---------- AND NOTHING STANDS IN FRONT OF A DROPDOWN ------------------------------------------
+     For a week every `<select>` was `pointer-events: none` and answered by a floating panel of the
+     app's own (note 226); on 9 October the owner asked for *"a more stable standard simple
+     conventional drop down list"* and got the platform's own back (note 315). That panel was built
+     from three small pieces — a CSS rule, a listener, a box in index.html — and this fails on any of
+     them coming back. Static and quick, beside `check-surfaces`, which asks the same of sheets. */
+```
+
+### ---------- AND THE DATA ITSELF, WHICH NOTHING HAD EVER READ
+
+in `SUITE`
+
+```
+/* ---------- AND THE DATA ITSELF, WHICH NOTHING HAD EVER READ ------------------------------------
+     Every check above this line reads the CODE. `data/questions.json` is 4,264 rows of committed
+     content — the library the whole Find screen is about — and no check had ever opened it. A wrong
+     row does not throw; it is simply a question somebody is taught wrongly. */
+```
+
+### ---------- AND HOW READY EACH PAPER IS, AS A REPORT
+
+in `SUITE`
+
+```
+/* ---------- AND HOW READY EACH PAPER IS, AS A REPORT ---------------------------------------------
+     Every paper's health score, worst first (docs/history/354). Not `soft`, and not a gate either: it
+     exits 0 over any library, however Rough, and 1 only when its own instrument breaks — `paperHealth_`
+     missing, throwing, or misjudging the fixture paper it carries. A Rough paper is backlog; a blind
+     report is a fault. */
+```
+
+### ---------- THE ONE PIECE OF THIS APP THAT TELLS A CHILD THEY ARE WRONG
+
+in `SUITE`
+
+```
+/* ---------- THE ONE PIECE OF THIS APP THAT TELLS A CHILD THEY ARE WRONG -----------------------
+     Everything above measures whether the app works. This measures whether the marking is FAIR,
+     and it is here because it caught a live one: the library spells a fraction with U+2044, a
+     phone types `/`, and `5/9` was marked wrong against `5⁄9` on a paper somebody was sitting. */
+```
+
+### ---------- AND WHETHER THE MATHS ON A CARD LOOKS LIKE MATHS
+
+in `SUITE`
+
+```
+/* ---------- AND WHETHER THE MATHS ON A CARD LOOKS LIKE MATHS ------------------------------------
+     "no x2 or x^2 ... it shouldnt be 4/5 it should be 4 over the five." `typeset_` stacks what the
+     library stores as a fraction; this runs it over every row and fails on the maths it cannot know
+     is maths -- a plain `5/8`, a `?/24`, a `cm3` -- and counts what is left on purpose, 1st Class
+     Maths' lost powers among it, rather than going quiet about them. */
+```
+
+### ---------- AND WHETHER THE ANSWER YOU SEE IS SHORT, AND ALL THERE IS
+
+in `SUITE`
+
+```
+/* ---------- AND WHETHER THE ANSWER YOU SEE IS SHORT, AND ALL THERE IS -----------------------------
+     "make answers breaifer ... i want shorter answers", then "remove all 'why's. I just want it to
+     have answer." The result is drawn and the working is not; this fails on a result over 120
+     characters that nobody has given a reason for, on a split that cut a fraction or a power, and on
+     an answer page that draws anything of the working or the examiner's note. */
+```
+
+### ---------- AND EVERY TIMESTAMP ANYBODY SEES
+
+in `SUITE`
+
+```
+/* ---------- AND EVERY TIMESTAMP ANYBODY SEES ---------------------------------------------------
+     `parseWhen` read `2026-09-15` as 26 September 2015, because its day-month-year match was not
+     anchored and the engine slid past the four-digit year. A plausible date, wrong by eleven years,
+     on every surface that prints a time. On the roster because the roster is the only thing that
+     makes a check real — three good checks once sat on disk for months. */
+```
+
+### ---------- THE PRACTICALS, AND WHETHER THEIR TOPICS NAME ANYTHING REAL
+
+in `SUITE`
+
+```
+/* ---------- THE PRACTICALS, AND WHETHER THEIR TOPICS NAME ANYTHING REAL ----------------------
+     A practical's whole value is the join: name the topics a question names and a tutor looking at
+     perimeter finds the trundle wheel. The export's own spelling, `Perimeter and area`, reached one
+     question out of ninety-four — a join that looks like a feature and returns the wrong list. */
+```
+
+### ---------- AND THEIR SIBLING, WHICH IS NOT ONE OF THEM
+
+in `SUITE`
+
+```
+/* ---------- AND THEIR SIBLING, WHICH IS NOT ONE OF THEM ---------------------------------------
+     "the projects are like practicles, but not practicles." The same join and the same kit rule,
+     plus the three things a project can break that a practical cannot: a subject or level the
+     funnel's tables do not place (which stands a whole question down), a kind missing from
+     `What kind`, and a step that tells a child to put their work online. */
+```
+
+### ---------- AND THE @family. TEXTBOOKS, WHICH ARE RESOURCES
+
+in `SUITE`
+
+```
+/* ---------- AND THE @family. TEXTBOOKS, WHICH ARE RESOURCES -----------------------------------
+     "the @family textbook should be bare bones for now and the textbooks will be in the resources
+     tag in the finder." The bones are the rule — key words, formulas typeset_ can draw, three to
+     five worked lines — and the route is the other half: a kind wearing Resources, the Shelf door
+     that is the only way past 260 rows of boxing, and the file fetched at all. */
+```
+
+### ---------- AND THE ANIMATIONS IN THEM, WHICH THE LOADING SCREEN DRAWS FROM A COPY
+
+in `SUITE`
+
+```
+/* ---------- AND THE ANIMATIONS IN THEM, WHICH THE LOADING SCREEN DRAWS FROM A COPY -------------------
+     "the source for the animations should be in text books. The animation from loading screen are
+     pulling and syncing from the text book animations." — the owner, 8 Oct. One row each; the sync and
+     the picker are run, not read, and a copy that is not the row is never drawn. */
+```
+
+### ---------- AND THE BIBLE BESIDE THEM, WHICH ONLY AN ADMIN IS SHOWN
+
+in `SUITE`
+
+```
+/* ---------- AND THE BIBLE BESIDE THEM, WHICH ONLY AN ADMIN IS SHOWN -----------------------------
+     "i want to add the bible to resources as a book. but only admin can see the bible." — and then
+     "tags in finder ... each verse is a widget." The split out of `data/archive/bible.json` checked
+     verse by verse against the archive, the ten groups against the check's own copy, every chapter's
+     verse count against its file, every `[word]` drawn in italics by the real `bibleVerse_`, the
+     31,102 verse cards built by the real `bibleVerseList_`, and the gate, the six questions and their
+     chain read out of the source. What an admin sees and what a student fetches is the journey in
+     `check-flow`. */
+```
+
+### ---------- AND WHETHER A REEL IS A FILE THAT IS THERE
+
+in `SUITE`
+
+```
+/* ---------- AND WHETHER A REEL IS A FILE THAT IS THERE ------------------------------------------
+     A clip whose path is one character wrong does not draw a broken link. The slide stays its own
+     gradient, so a missing file reads as the feature half-working rather than as a file nobody
+     uploaded — and a clip that could only ever be embedded is refused outright. The README in
+     `data/reels/` asked for this the day there was a clip to check, and there are two. */
+```
+
+### ---------- AND WHAT A PERSON MAY CALL THEMSELVES
+
+in `SUITE`
+
+```
+/* ---------- AND WHAT A PERSON MAY CALL THEMSELVES ----------------------------------------------
+     The second check here that measures whether the app is SAFE rather than whether it works, after
+     `check-marking.js`. A rude handle reaches a parent; a real name refused reaches somebody who
+     has done nothing. And the rule that is not about words at all: `findPerson` answers to
+     `full_name`, `handle` AND `username`, so a handle that duplicates one of those makes
+     `changePin` check a PIN against the wrong row. It caught a real one on its first run. */
+```
+
+### ---------- AND THE CELLS ON THAT SAME TAB THAT HOLD MORE THAN ONE FACT
+
+in `SUITE`
+
+```
+/* ---------- AND THE CELLS ON THAT SAME TAB THAT HOLD MORE THAN ONE FACT -------------------------
+     `availability` AND `library_card` ARE PACKED, each because the alternative is a numbered column,
+     and neither packer had ever been run by anything. It is the one shape where a fault is
+     completely silent: a dropped field writes a shorter cell, the form reloads with an empty box,
+     and the person who typed it assumes they forgot. */
+```
+
+### THE SETTINGS COLUMN THROUGH THE REAL BACKEND.
+
+in `SUITE`
+
+```
+/* THE SETTINGS COLUMN THROUGH THE REAL BACKEND. For months nobody but an admin could save, and the
+     admin's Saves wrote blanks over five packed cells — and nothing on this roster ever ran
+     `updateProfile`. See the header of that file. */
+```
+
+### EVERY WAY A CHILD GETS IN, FROM THE CHILD'S SIDE.
+
+in `SUITE`
+
+```
+/* EVERY WAY A CHILD GETS IN, FROM THE CHILD'S SIDE. Three audits found a child with no email who
+     could not get an account, a PIN starting with 0 refused for ever and "Forgotten your PIN?"
+     wiping whoever's handle was typed into it — under a green suite. Same backend, same harness. */
+```
+
+### "also side note dont show children's last name."* — the owner, 10 Oct.
+
+in `SUITE`
+
+```
+/* *"also side note dont show children's last name."* — the owner, 10 Oct. ABSENT, NOT HIDDEN: through the
+     real backend, no payload, reply or email carries a child's surname for anybody — her own parent and an
+     admin included — and her own Settings still has it. */
+```
+
+### A FACE AND A POLL VOTE ARE SET, NOT TOGGLED.
+
+in `SUITE`
+
+```
+/* A FACE AND A POLL VOTE ARE SET, NOT TOGGLED. A toggle per tap, each refused one undone on its own,
+     left the server holding a reaction the page had taken back (docs/history/335). `want` sent twice
+     is one row, a race's copies are cleared, the lock is taken, an old phone still toggles. */
+```
+
+### EVERY ANSWER SENT IS AN EVENT.
+
+in `SUITE`
+
+```
+/* EVERY ANSWER SENT IS AN EVENT. *"if they submit a correct answer then change it and submit an
+     incorrect answer, that's 2 events. And it will leave the latest event up"* — the owner, 9 Oct. A
+     learner's record: a row per press, a retried press once, the person from the token, the answer as
+     text, and nobody sent another learner's — through the same backend. It replaced check-attempts.js,
+     the day a question was done, with the tab it asked about. */
+```
+
+### THE FILMS ARE WHAT IS IN THE NOTFLIX FOLDER.
+
+in `SUITE`
+
+```
+/* THE FILMS ARE WHAT IS IN THE NOTFLIX FOLDER. *"Let admin be able to search up films which are in
+     the notflix folder on gdrive"* — the card was wired and the tab it reads was empty. The sync that
+     fills it, over an invented Drive: once each, a second pass writes nothing, typed cells survive,
+     a missing file goes off, only an admin, no id sent, no payload retired, and the clock bounds it. */
+```
+
+### WHAT A CHILD WROTE, ON THEIR ACCOUNT.
+
+in `SUITE`
+
+```
+/* WHAT A CHILD WROTE, ON THEIR ACCOUNT. *"it didnt have his answers already written in when he went to
+     see them on the computer"* — the answers tab: the token's person, the later edit, every value as text,
+     and the sign-in reply carrying the child's own work. Same backend, same harness. */
+```
+
+### THE WEEKLY PARENT EMAIL, BUILT AND SWITCHED OFF.
+
+in `SUITE`
+
+```
+/* THE WEEKLY PARENT EMAIL, BUILT AND SWITCHED OFF. Nothing has ever sent one, which is why it is
+     checked: the first real run is a Sunday with families on the other end, and every rule it has
+     fails by emailing — the wrong parent, twice, or at all while it was meant to be off. */
+```
+
+### AND THE PICTURES IN IT (18 Oct):
+
+in `SUITE`
+
+```
+/* AND THE PICTURES IN IT (18 Oct): *"So each question As is on site."* Gmail shows no SVG, so the email links
+     each drawing's PNG twin in data/diagrams/, written by tools/diagram_png.js — a drawing changed without
+     running it is a broken picture in a parent's inbox, and a twin of no drawing is weight for nobody. */
+```
+
+### WHAT EVERYBODY HAS CHOSEN TO BE EMAILED.
+
+in `SUITE`
+
+```
+/* WHAT EVERYBODY HAS CHOSEN TO BE EMAILED. *"Also let parents select their communication preferences
+     like notification. And kids and tutors too I guess"* — every sender names its kind and asks
+     `wants_`, through the real doPost: off is held and logged, on is sent, the essentials always go. */
+```
+
+### A PHOTOGRAPH OR A CLIP IN A MESSAGE, THROUGH THE SAME BACKEND AND THE REAL APP.
+
+in `SUITE`
+
+```
+/* A PHOTOGRAPH OR A CLIP IN A MESSAGE, THROUGH THE SAME BACKEND AND THE REAL APP. *"i cant send
+     images, or videos in the chat"* — the manifest asked for `drive.readonly`, which no harness here
+     could see because every one stubbed Drive as a thing that works. This one's Drive asks for the
+     scope Google asks for, and its token holds what the manifest lists. */
+```
+
+### THE ROOMS INSIDE A VENUE, THROUGH THE SAME BACKEND.
+
+in `SUITE`
+
+```
+/* THE ROOMS INSIDE A VENUE, THROUGH THE SAME BACKEND. *"colliers would library has 3 rooms within it
+     ... 2 have capacity for 4 kids and large one has capacity for 10 kids"* — the owner, 10 Oct, and not
+     a word about price. A blank rate was sent as 0, which this site draws as "free" and prices at
+     nothing; `roomTerms_` makes it the venue's, and this asks every reader that prices or caps a room. */
+```
+
+### ---------- AND WHETHER A CREDENTIAL IS SITTING IN THE SOURCE
+
+in `SUITE`
+
+```
+/* ---------- AND WHETHER A CREDENTIAL IS SITTING IN THE SOURCE -----------------------------------
+     The third check here about SAFETY rather than about working, after `check-marking.js` and
+     `check-handles.js` — and the only one whose subject is this repository rather than the app.
+     `constants.gs` carried a real admin's real name and real four digits in a usage line for
+     months, under a heading about deployment, where nothing renders and nobody re-reads. Public
+     repository, permanent history: deleting the line stops the next reader finding it and
+     un-publishes nothing. One question with one right answer — a PIN literal here must be the
+     `0000` placeholder — and it caught its own author on its first run, naming the two lines the
+     header had pasted in to explain the fault. */
+```
+
+### ---------- AND WHETHER THE QUESTIONS IT ASKS ARE WORTH ASKING
+
+in `SUITE`
+
+```
+/* ---------- AND WHETHER THE QUESTIONS IT ASKS ARE WORTH ASKING ----------------------------------
+     `check-library` reads the data file and `check-flow` presses the app. Neither can see a facet
+     that loads fine, draws fine and narrows NOTHING — which is what "the Find screen feels
+     arbitrary" turns out to mean. Three of those had accumulated behind twenty-two green checks:
+     a question fed by a literal, a sitting spelled three ways, and one word answering two
+     questions with different result sets. This runs the real funnel over the real library and
+     asks the arithmetic. */
+```
+
+### ---------- AND THE NINE TABS THAT BECAME FILES
+
+in `SUITE`
+
+```
+/* ---------- AND THE NINE TABS THAT BECAME FILES -------------------------------------------------
+     `brand`, `facets`, `kinds`, `laws`, `facts`, `splashes`, `links`, `campaigns` and `copy` left
+     the Settings spreadsheet and are `data/settings/*.json` now, which makes them the source of
+     truth. Nothing checked that the columns `settingsInto_` reads are the columns those files have
+     — and that is the fault `check-rows.js` was written for, one layer along: folding two tabs
+     together once left SEVEN reads of `r.link` on rows that call the URL `source_url`, every
+     checklist topic arriving with no link on it, and nothing throwing. */
+```
+
+### SLOW, LIKE THE BROWSERS, AND FOR THE SAME REASON.
+
+in `SUITE`
+
+```
+/* SLOW, LIKE THE BROWSERS, AND FOR THE SAME REASON. The funnel walks the real library and took 283s
+     in a full run on 8 Oct, seventeen seconds inside the five-minute clock the file checks get; the
+     journeys below were killed at 300.4s the same evening, all of them passing alone. A check that
+     grows with the library and the app does not belong under a clock sized for "has it hung" — so
+     both run in the pool beside the browsers, each timed from its own start, with fifteen minutes. */
+```
+
+### ---------- AND THE ONE THING THE FUNNEL CAN NOW BE ORDERED AS
+
+in `SUITE`
+
+```
+/* ---------- AND THE ONE THING THE FUNNEL CAN NOW BE ORDERED AS --------------------------------
+     A bundle is the whole papers on the list, a trolley that puts them in the basket, and a Send
+     that tells the owner. `check-flow` cannot reach it — its fake backend answers the library with
+     the payload, so no bundle ever forms there — and each half can be wrong in a way that draws
+     perfectly: a paper named that the list does not hold, a paper in the basket twice, an order
+     that empties the basket on a refusal. This runs the real library and works the right papers out
+     from the file on its own. */
+```
+
+### ---------- AND THE LIBRARY ITSELF, LAID OUT
+
+in `SUITE`
+
+```
+/* ---------- AND THE LIBRARY ITSELF, LAID OUT ---------------------------------------------------
+     `check/ui.js` MEASURES THE APP AND SAMPLES THE LIBRARY. The Find screen's results are pages
+     filled five either side of where you are, so one run renders about six question cards out of
+     four thousand — and fifty-one rows carrying an unbreakable 128-character dotted answer line
+     took the card, the pane and the page sideways at every width while `ui.js` reported nothing on
+     every commit for weeks. It was measuring exactly that fault and never landed on a row with one.
+     A sample is not a sweep. This lays every question out in a 320px column and asks whether it
+     fits — one page load, no navigation, no lazy fill. */
+```
+
+### ---------- AND EVERY LABEL IN EVERY DRAWING, AGAINST ITS OWN LINES
+
+in `SUITE`
+
+```
+/* ---------- AND EVERY LABEL IN EVERY DRAWING, AGAINST ITS OWN LINES ----------------------------
+     REPORTED BY THE OWNER, TUTORING FROM THE JUNE 2024 FOUNDATION PAPER: "the Venn diagram was a bit
+     off. Like P and Q was clashing with lines." `cards.js` above asks whether a label is inside its
+     `<svg>`, and a letter on a circle's rim is. This asks the third question — does any inked line
+     run through a label's glyphs, does it overlap another label — of all 334 drawings in
+     `data/*.json`, at 320 and 390. It found 124 collisions in 55 drawings the day it was written.
+     No port to collide on: unset, `DIAGRAMS_PORT` is 0 and the OS picks a free one. */
+```
+
+### ---------- AND WHETHER A PUSH ACTUALLY ARRIVES
+
+in `SUITE`
+
+```
+/* ---------- AND WHETHER A PUSH ACTUALLY ARRIVES ------------------------------------------------
+     REPORTED AS "when i first go on site it shows old reels... then i hard refresh then it works
+     fine???" — the service worker decided what a navigation was from `url.pathname === '/'`, and
+     GitHub Pages serves this site from `/family/`. So the entry point fell through to the file
+     branch and matched itself for ever: every visitor pinned to the build that first filed it
+     away. `check/load.js` could never have caught it — it serves the repository at `/`, where the
+     guess is true, and it measures TIMES AND BYTES, both of which a stale load flatters. This one
+     asks the question neither can: after a deploy, does the browser run the new code. Deterministic,
+     seven seconds, and it runs at both base paths because the base path is what hid the fault. */
+```
+
+### ---------- EVERY TEXTBOOK ANIMATION IN ITS CHAPTER, AND STILL WHEN ASKED
+
+in `SUITE`
+
+```
+/* ---------- EVERY TEXTBOOK ANIMATION IN ITS CHAPTER, AND STILL WHEN ASKED ---------------------------
+     Twenty-seven drawings made for the middle of a black screen are drawn in a card as well. Each is
+     measured on its page at 320 and 390, at six moments of its loop, for leaving the card; and with
+     less movement asked for, in the chapter and on the splash, for holding still. */
+```
+
+### ---------- AND WHETHER PRESSING ANYTHING DOES ANYTHING
+
+in `SUITE`
+
+```
+/* ---------- AND WHETHER PRESSING ANYTHING DOES ANYTHING ----------------------------------------
+     REPORTED BY THE OWNER AS "grid not working when click", and it was true: `paintBook_` repainted
+     `s-stuff`, which on the Booking column is not merely the wrong element but a dead one. Every
+     press on the app's main form set the right state and rebuilt nothing.
+
+     NOT ONE CHECK HERE COULD SEE IT, and each was right about what it asks. `check-doors.js` found
+     a `data-do` with a handler and a handler with a door — the wiring was perfect and the wire went
+     nowhere. `check/ui.js` measures whether a control can be read and hit, which a dead one passes
+     perfectly. `check-flow.js` drives bookings through `BOOKING` and never presses a cell. And the
+     dispatcher catches every handler error on purpose, so `pageerror` never fires either.
+
+     IT IS ON THE ROSTER RATHER THAN BESIDE `load.js` AND `splash.js` because its answer does not
+     move with the machine — it presses and asks whether anything changed, which is the same answer
+     on a busy container as on an idle one — and because the roster is the only thing that makes a
+     check real. Fifty-seven seconds for both visitors. */
+```
+
+### ---------- AND WHAT A THUMB DOES THAT A PRESS DOES NOT
+
+in `SUITE`
+
+```
+/* ---------- AND WHAT A THUMB DOES THAT A PRESS DOES NOT ----------------------------------------
+     ASKED FOR ON 5 OCTOBER: *"can you make swiping and so on more stable ... focused widgets should
+     be in centre of screen. also those widgets not in focus should actually look slightly out of
+     focus effect."* `press.js` swipes from rest and twice on one axis; what a lab with real touch
+     found unstable was the rest of a thumb — a peek, a change of mind, a diagonal on a one-page
+     column, a second flick on the OTHER axis mid-slide, a tap on a card still moving, a field left
+     focused on a card that went — and the release restyling the whole document. This asks each of
+     those, and the two things the owner asked to see: the card in front centred within a pixel at
+     320 and 390, and the cards beside it out of focus. No port to collide on: unset, `SWIPE_PORT`
+     is 0 and the OS picks a free one. */
+```
+
+### ---------- AND A FINGER ON THE PEN
+
+in `SUITE`
+
+```
+/* ---------- AND A FINGER ON THE PEN -------------------------------------------------------------------
+     *"they are just using their fingers"* (note 338). jsdom asks every rule of the contact model; this asks
+     what only a browser with real touch can say -- two fingers, a palm, a cancel, a palm drifting beside the
+     pad while the swipe engine follows it, a lost lift, a held finger and the geometry the rules rest on --
+     on the board and on Q7's card. Counts and geometry fail; timings print. No port to collide on: unset,
+     `PEN_PORT` is 0 and the OS picks a free one. */
+```
+
+### ---------- AND WHAT A RUN OF FAST FLICKS REACHES IS ALREADY DRAWN WHEN IT GETS THERE
+
+in `SUITE`
+
+```
+/* ---------- AND WHAT A RUN OF FAST FLICKS REACHES IS ALREADY DRAWN WHEN IT GETS THERE ----------------
+     THE OWNER, 11 Oct: *"If I scrol fast left right up or down it's still clunky … Increase loading scope.
+     Make it more massive so it's never really an issue."* (docs/history/341). The real app at four times
+     slower CPU, a phone and an iPad, five flicks a second down Find, the Resources boxing shelf, the Feed,
+     across the whole row, and into Tools after a landing: any frame with a hole, an empty card, a loader or
+     a see-through column on the glass, or a widget running off it, fails. Outcomes, never timings. No port
+     to collide on: unset, `REACH_PORT` is 0 and the OS picks a free one. */
+```
+
+### ---------- AND THE VIDEOS CARD UNDER A FINGER, A KEYBOARD AND A PHONE TURNED SIDEWAYS
+
+in `SUITE`
+
+```
+/* ---------- AND THE VIDEOS CARD UNDER A FINGER, A KEYBOARD AND A PHONE TURNED SIDEWAYS ---------------
+     *"at first all you see is a search bare ... you can click fullscreen to make it fullscreen"* (note
+     321). The review of 10 Oct found four faults between jsdom (no layout, no top layer) and `ui.js`
+     (one snapshot a state, no phone on its side): the bar jumping 128px under the typing finger, the
+     keyboard's Search key doing nothing, one tap building two players with the card starred, and the
+     app's own full screen at 844x390 guarded by nothing — its zoom rule deleted, every check stayed
+     green with the Exit tile at 31px. This asks all four in Chromium. No port to collide on: unset,
+     `VIDEOS_PORT` is 0 and the OS picks a free one. */
+```
+
+### ---------- AND THE MARKING SOUNDS, HEARD IN A BROWSER
+
+in `SUITE`
+
+```
+/* ---------- AND THE MARKING SOUNDS, HEARD IN A BROWSER -------------------------------------------------
+     *"Make it make a nice noise when they get a question right and a buzzer when wrong."* (note 340).
+     `check-flow.js` proves when a sound is asked for, against a recording AudioContext with an iPad's
+     rules; jsdom has no Web Audio, so what the two sounds ARE is asked here: rendered from the app's own
+     `markTone_`, short, under the Timer's level, the chime rising, silent at both ends with no step a
+     click would make, and the buzzer as loud as the chime TO AN EAR (A-weighted, and through a phone's
+     speaker) -- and one real tap on Send is one sound, the context made and woken inside the tap, and at
+     rest when nothing plays. About fifteen seconds. No port to collide on: unset, `SOUNDS_PORT` is 0 and
+     the OS picks a free one. */
+```
+
+### ---------- AND THE INSTRUMENT THAT WAS NEVER ON THIS LIST
+
+in `SUITE`
+
+```
+/* ---------- AND THE INSTRUMENT THAT WAS NEVER ON THIS LIST --------------------------------------
+     `check/ui.js` IS THE APP'S MAIN MEASUREMENT — every combination of screen, state, width and
+     visitor, for sideways scroll, tap targets, contrast, JS errors and content below a pane's own
+     fold — and it was not on the roster. CLAUDE.md says in two places that it "has run on every
+     commit for weeks"; it has run when somebody typed `npm run check:ui`. That is the exact fault
+     this file records under "Three checks existed and none of them ran", and the sentence there is
+     the answer: the roster is the only thing that makes a check real.
+
+     WHAT KEPT IT OFF WAS THE CLOCK, and that is what the parallel start below is for: ninety seconds
+     added to a sequential run is ninety seconds every session pays, and run beside the other three
+     browser checks it costs nothing it was not already costing. */
+```
+
+### THE NUMBER IS NOT IN THIS LINE, AND IT USED TO BE.
+
+in `SUITE`
+
+```
+/* THE NUMBER IS NOT IN THIS LINE, AND IT USED TO BE. It said `132 combinations` for as long as
+     there were 132 and went on saying it at 140, because a state added to `check/states.js` does
+     not touch this file — the run prints its own count and this is a label somebody reads instead
+     of it. Same fault as "all 18 checks pass", "one of the eighteen names" and the prose over
+     `CARD_W` naming 88% and 4% while the code said 80 and 8. */
+```
+
+### ---------- IN TWO HALVES, BECAUSE THE NOTE BELOW SAID SO
+
+in `SUITE`
+
+```
+/* ---------- IN TWO HALVES, BECAUSE THE NOTE BELOW SAID SO --------------------------------------
+     The 3 October time-sync batch added two Tools states (a timetable with sessions in it, a calendar
+     with every kind of date) and took the run to 87 states: 11m19s alone on a shared machine, and
+     past fifteen minutes beside the other browser checks. `--part` deals the screens alternately
+     into two runs that go side by side, each well inside the clock. The `file` carries the
+     argument; see where it is split below. */
+```
+
+### ---------- AND NOW IN THIRDS
+
+in `SUITE`
+
+```
+/* ---------- AND NOW IN THIRDS ---------------------------------------------------------------------
+     7 October: the fifth width (1920, the wide window) and the Bible's states took `--part=2/2` past
+     the fifteen-minute clock with nothing wrong in it — a timeout reported as a failure. Three runs
+     side by side, each a third of the screens, put every one back inside it. */
+```
+
+### ---------- AND WHICH CSS RULE ACTUALLY WINS
+
+in `SUITE`
+
+```
+/* ---------- AND WHICH CSS RULE ACTUALLY WINS ----------------------------------------------------
+     THIS STYLESHEET HAS LOST THE SAME ARGUMENT SEVEN TIMES — `.price.faint`, `--fly-ink`,
+     `.bk-row.is-blank`, `.rc-total`, an SVG `text-anchor`, `.gd-sec p`, and the docket's ＋ written
+     at 1.1rem and rendering at 0.80rem since the day it was written. Every one was found by a person
+     reading two blocks side by side or looking at a screenshot. Seven repairs and no rule is the
+     sentence this file keeps writing about `cost: 0`.
+
+     IT ASKS ONE NARROW QUESTION: two DIFFERENT rules, the same property, the same specificity, a
+     shared class, neither contained in the other, and a real element in the rendered app matching
+     both — so only the order in the file decides which wins. The general form reported 1,001
+     findings and was the `check-rows.js` noise generator; this reports none. */
+```
+
+### ---------- AND WHETHER THE PICTURE A FAMILY IS SENT IS THE BOOKING THEY SAW
+
+in `SUITE`
+
+```
+/* ---------- AND WHETHER THE PICTURE A FAMILY IS SENT IS THE BOOKING THEY SAW ------------------
+     *"just make sure sharing booking is an identical jpg or png or whatevers best of the booking
+     reciept."* Identical is a claim about pixels, and jsdom has none: `check-flow` proves the share
+     path hands over a PNG file, this proves the PNG is the card. No port — it serves the files
+     through Playwright's own router, so it cannot collide with the five above. */
+```
+
+### ---------- THE ONES THAT DRIVE A BROWSER START AT THE TOP, A FEW AT A TIME
+
+top level, before `POOL`
+
+```
+/* ---------- THE ONES THAT DRIVE A BROWSER START AT THE TOP, A FEW AT A TIME ------------------------
+   THEY ARE NOT CPU-BOUND AND NEVER WERE. Measured: `check/press.js` spends 77 seconds of wall clock
+   and 4.5 seconds of processor — the rest is waiting for a page to settle, which is exactly the
+   thing four processes can do at once on a four-core machine. Sequentially the four cost about three
+   minutes; started together they cost the slowest of them.
+
+   THAT IS WHAT LETS `check/ui.js` BE ON THIS LIST AT ALL. Ninety seconds added to a sequential run
+   is ninety seconds every session start pays; ninety seconds beside three other browsers is free.
+
+   EACH NEEDS ITS OWN PORT, and two of them did not have one: `check/ui.js` and `check/deploy.js`
+   both defaulted to 8731, which cost nothing while they ran one after another and would have been
+   one of them dying on EADDRINUSE here. Fixed in `ui.js`, with the reason written beside it.
+
+   THE OUTPUT DOES NOT MOVE. They are printed in roster order, in their place, when the fast ones
+   have finished — so a run reads exactly as it did, and a failure is still named where somebody
+   expects to find it. */
+```
+
+### AND NOT ALL AT ONCE.
+
+top level, before `POOL`
+
+```
+/* AND NOT ALL AT ONCE. Eleven browser checks on a four-core machine, beside the fast ones, meant every
+   clock below was spent waiting for a core: on 8 Oct `check/ui.js --part=3/3` was killed at 900s in
+   the suite three runs running while it passed alone in 796s, then in under 600s once dealt by
+   weight -- and still died in the suite, because the clock starts when the process does and the
+   process spent most of it queued behind ten others. So at most a core fewer than the machine has
+   run together (one is left for the fast checks), each one's clock starts when IT starts, and the
+   rest wait their turn without spending their fifteen minutes. The order is the roster's, which puts
+   `check/ui.js` and its parts -- the longest -- last; they go first, so the run ends on short ones. */
+```
+
+### TEN MINUTES, NOT FIVE.
+
+top level, before `cwd`
+
+```
+/* TEN MINUTES, NOT FIVE. `check/ui.js` passed 300s on the day ten owner-list items each brought
+       their own states, with the other three browser checks running beside it — and a check killed
+       by the clock prints FAIL over a report with no finding in it, which reads exactly like a fault
+       in the app. A real hang still ends; ten minutes is about twice what the slowest takes alone.
+       AND THEN FIFTEEN. The 3 October batch took `check/ui.js` to 85 states, 524 combinations, and
+       9m47s ALONE on a quiet machine — clean, nothing new — so ten minutes killed it inside the suite
+       every run. Fifteen is the same margin over what it takes now. If it outgrows this too, split
+       the states across two runs rather than raising it again. */
+```
+
+### THE RUN ITSELF, IN AN ASYNC WRAPPER.
+
+top level, before `ran`
+
+```
+/* THE RUN ITSELF, IN AN ASYNC WRAPPER. The four browser checks are started above and awaited in
+   their place below, and `await` at the top level of a CommonJS file is a syntax error Node
+   reports as an ambiguous module format — which is four lines removed from the cause. */
+```
+
+### A CHECK MAY LIVE OUTSIDE `js/`.
+
+top level, before `p`
+
+```
+/* A CHECK MAY LIVE OUTSIDE `js/`. `check/cards.js` needs a browser, which is what puts it in
+       `check/` beside `ui.js` rather than here — and the roster is the only thing that makes a check
+       real, so the roster has to be able to name it. A `/` in the entry means "from the repo root". */
+```
+
+### FIVE MINUTES FOR A FILE CHECK, NOT THREE.
+
+top level, before `out`
+
+```
+/* FIVE MINUTES FOR A FILE CHECK, NOT THREE. check-flow is 135 journeys now and took 180s on a
+           machine at load 20 -- killed by this limit while every journey passed alone, which printed
+           as a red check with nothing wrong in it. The limit is for a check that has HUNG, and none
+           of these takes a minute on a quiet machine. */
+```
+
+### ---------- AND IT SAYS WHEN THE TAIL IS NOT THE REPORT
+
+top level, before `lines`
+
+```
+/* ---------- AND IT SAYS WHEN THE TAIL IS NOT THE REPORT ---------------------------------
+         `slice(-14)` IS THE LAST FOURTEEN LINES AND A LONG REPORT ENDS WITH ITS ACCEPTED LIST. So
+         `check/press.js` failed here once and the fourteen lines printed under it were the twelve
+         controls that are correctly quiet and a count — the part that is fine. Two full suite runs
+         went into finding out what that failure said, and it could not be found from this output at
+         all. That is this repository's oldest shape pointed at its own runner: "I did not manage to
+         look", printed as a report.
+
+         THE TAIL STAYS, because for most checks it IS the finding. What is added is the one fact it
+         cannot carry — that there was more — and the command that prints the whole thing.
+
+         AND THE LINES A CHECK MARKED WITH `!` ARE LIFTED OUT OF IT, which is the half the paragraph
+         above stopped one step short of. `check/press.js` writes a state it could not enter as
+         `! could not enter account · a tutor switched off: pic is not defined` — the whole of the
+         failure, in one line, forty lines above the tail. A pointer at the command that prints it
+         is better than nothing and it is still asking somebody to run the check a second time to
+         find out what the first run said. Anything a check chose to mark is printed whether or not
+         it falls in the last fourteen. */
+```
+
+### AND A `FAIL` OR AN INDENTED `!` WITH THE TWO LINES UNDER IT.
+
+top level, before `marked`
+
+```
+/* AND A `FAIL` OR AN INDENTED `!` WITH THE TWO LINES UNDER IT. `check-flow.js` names a broken
+         journey as `  FAIL  <name>` with its reason beneath, and `check/ui.js` a state it could not
+         measure as `  ! …` — both indented, so the test above never saw them, and a journey that
+         failed only inside the suite (a timer starved by four browsers) could not be named from
+         this output at all. */
+```
+

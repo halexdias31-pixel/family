@@ -1,0 +1,3 @@
+# ripgrep (and Claude Code's Grep) skip these unless given an explicit path: archives, not code.
+docs/
+data/

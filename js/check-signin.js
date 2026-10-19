@@ -1,30 +1,7 @@
 #!/usr/bin/env node
-/* ==================================================================================================
-   node js/check-signin.js — EVERY WAY A CHILD GETS IN, THROUGH THE REAL BACKEND
-
-   ASKED FOR AS *"audit the registration process and so on so all kids can login easily with their
-   handle and pin."* Three audits read the sign-up and sign-in code and walked it through the real
-   `doPost`, and between them found a child with no email who could not get an account at all, a PIN
-   that starts with 0 refused for ever, "Forgotten your PIN?" wiping the PIN of whoever's handle was
-   typed into it, and an admin reset that could never run. Every one of those passed every check in
-   the suite, because no check asked the question from the child's side.
-
-   THIS ASKS IT FROM THE CHILD'S SIDE, END TO END: a child with no email registered by a parent, the
-   same child registering themselves with a grown-up's address, a child typed into the sheet by hand,
-   each signing in by handle and PIN and getting a new PIN when they forget it — and the ways a
-   classmate who knows their public handle could get in their way.
-
-   NOT A SECOND IMPLEMENTATION. `check-gas-load.js` loads every `.gs` file into one scope over an
-   in-memory Ledger whose `setValue` parses a string the way a real sheet does — including dropping
-   the 0 off the front of a string of digits, which is the half of this a stub would have hidden.
-   Mail is caught, not sent: `MAIL` below records every message, and `MAIL_FAIL` / `QUOTA` make the
-   mail service refuse, so "the PIN changed and nobody was sent it" is something this can see.
-
-   THE PINS ARE BUILT, NOT WRITTEN. `check-secrets.js` refuses four digits beside the word, so every
-   PIN here but the `0000` placeholder is assembled from its digits. The people are invented and
-   their addresses are on example.org.
-================================================================================================== */
+/* node js/check-signin.js — EVERY WAY A CHILD GETS IN, THROUGH THE REAL BACKEND § */
 'use strict';
+require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 const fs = require('fs'), path = require('path');
 const { backend } = require('./check-gas-load.js');
 
@@ -113,9 +90,7 @@ const post = (b, body) => { asked++; return b.post(body); };
   if (weakReg.success || rowOf(b, r => r.first_name === 'Wes')) no('register accepted four noughts, which changePin refuses', weakReg);
 }
 
-/* ==================================================================================================
-   2. A PARENT MAKES THEIR CHILD'S ACCOUNT — no email, signed in by handle at once
-   ================================================================================================== */
+/* 2. A PARENT MAKES THEIR CHILD'S ACCOUNT — no email, signed in by handle at once § */
 {
   const b = fresh();
   b.seed('people', [
@@ -166,9 +141,7 @@ const post = (b, body) => { asked++; return b.post(body); };
   }
 }
 
-/* ==================================================================================================
-   3. A CHILD WITH NO EMAIL MAKES THEIR OWN ACCOUNT, WITH A GROWN-UP'S ADDRESS
-   ================================================================================================== */
+/* 3. A CHILD WITH NO EMAIL MAKES THEIR OWN ACCOUNT, WITH A GROWN-UP'S ADDRESS § */
 {
   const b = fresh();
   b.seed('people', [
@@ -230,9 +203,7 @@ const post = (b, body) => { asked++; return b.post(body); };
   }
 }
 
-/* ==================================================================================================
-   4. "FORGOTTEN YOUR PIN?" — sent beside the old one, honest, and not a way to lock a child out
-   ================================================================================================== */
+/* 4. "FORGOTTEN YOUR PIN?" § */
 {
   const b = fresh();
   b.seed('people', [
@@ -291,9 +262,7 @@ const post = (b, body) => { asked++; return b.post(body); };
   if (!long.success || !mailTo('chris@example.org', m3).length) no('forgotPin by a long first name spelled out found nobody', long);
 }
 
-/* ==================================================================================================
-   5. A CLASSMATE WITH YOUR HANDLE — the lock, the way out of it, and who is told
-   ================================================================================================== */
+/* 5. A CLASSMATE WITH YOUR HANDLE — the lock, the way out of it, and who is told § */
 {
   const b = fresh();
   b.seed('people', [
@@ -339,9 +308,7 @@ const post = (b, body) => { asked++; return b.post(body); };
   if (!/Too many wrong PINs/.test(S(runRight.error))) no('eleven wrong PINs at ?run= did not lock it — an unlimited guess at an admin\'s PIN', runRight);
 }
 
-/* ==================================================================================================
-   6. A NEW PIN FROM A PARENT OR AN ADMIN, AND A ROW TYPED INTO THE SHEET
-   ================================================================================================== */
+/* 6. A NEW PIN FROM A PARENT OR AN ADMIN, AND A ROW TYPED INTO THE SHEET § */
 {
   const b = fresh();
   b.seed('people', [
@@ -394,9 +361,7 @@ const post = (b, body) => { asked++; return b.post(body); };
   }
 }
 
-/* ==================================================================================================
-   7. WHAT THE PAYLOAD SAYS ABOUT A HANDLE, AND WHAT IT NO LONGER SENDS
-   ================================================================================================== */
+/* 7. WHAT THE PAYLOAD SAYS ABOUT A HANDLE, AND WHAT IT NO LONGER SENDS § */
 {
   const b = fresh();
   b.seed('people', [
@@ -435,15 +400,7 @@ const post = (b, body) => { asked++; return b.post(body); };
   else if (!S(max.handle)) no('the row an invitation makes has no handle — every card draws @Max, which does not sign in');
 }
 
-/* ==================================================================================================
-   8. WHO THE ACCOUNT IS FOR — a parent signs up as a parent, a student as a student, and a student
-      still cannot make themself one
-   --------------------------------------------------------------------------------------------------
-   THE WALK AFTER 273 FOUND IT: a parent who signed up on the phone was written `student`, so Settings
-   never offered "Make your child's account" and ticking Client was refused by the rule that stops a
-   child promoting themself. The form now asks, and `register` writes the role it was told — and the
-   rule stays. Each half is asked of the SHEET afterwards, and then of the next thing the person does.
-   ================================================================================================== */
+/* 8. WHO THE ACCOUNT IS FOR — a parent signs up as a parent, a student as a student, and a student still cannot make themself one THE WALK AFTER 273 FOUND IT: § */
 let whoRules = 0;
 {
   const b = fresh();
@@ -520,15 +477,11 @@ let whoRules = 0;
       const n = b.tabs.people.length;
       const mk = post(b, { action: 'makeChild', token: min.token, firstName: 'Zed', lastName: 'Learner', pin: ZERO2 });
       rule(!mk.success && b.tabs.people.length === n, 'a student made a child\'s account', mk);
-      /* AND THE REFUSAL DOES NOT SEND THEM TO A TICK THEY WERE JUST REFUSED. It said "Tick Parent
-         under Your roles" — a word the card does not have, and a tick `setMyRoles` turns a student
-         down for two lines above. A student is told who can change it. */
+      /* AND THE REFUSAL DOES NOT SEND THEM TO A TICK THEY WERE JUST REFUSED. § */
       rule(!/\bTick\b/i.test(S(mk.error)) && /@family\./.test(S(mk.error)),
         'a student\'s makeChild refusal sends them to a tick they cannot have, or not to @family.', mk.error);
 
-      /* ---------- THE STALE ROLE: the owner changes it in the sheet, the phone asks `myProfile` --------
-         The walk changed a role in the sheet and the card stayed missing until a sign-out. The phone
-         asks `myProfile` once per app open; it has to carry the role the sheet holds NOW. */
+      /* ---------- THE STALE ROLE: the owner changes it in the sheet, the phone asks `myProfile` § */
       const before = post(b, { action: 'myProfile', token: min.token });
       rule(before.success && before.role === 'kid' && (before.roles || []).join() === 'kid',
         'myProfile does not say what the person is — the phone cannot correct a stale role', { role: before.role, roles: before.roles });
@@ -542,9 +495,7 @@ let whoRules = 0;
     }
   }
 
-  /* A TUTOR MAY TICK CLIENT, SO A TUTOR IS TOLD THE TICK — by the word the card prints. The card's
-     labels are read from `ROLE_PICKS` in js/me.js, so a refusal and the card cannot drift apart
-     again: "Parent" was the drift, and nothing could see it. */
+  /* A TUTOR MAY TICK CLIENT, SO A TUTOR IS TOLD THE TICK — by the word the card prints. § */
   const LABELS = [...fs.readFileSync(path.join(__dirname, 'me.js'), 'utf8')
     .matchAll(/\[\s*'(?:tutor|client|student)'\s*,\s*'([^']+)'/g)].map(m => m[1]);
   const tia = signIn(b, 'tia@example.org', PLACE);
@@ -578,36 +529,7 @@ let whoRules = 0;
 const WHO_RULES = 26;
 if (whoRules !== WHO_RULES && !bad.length) no('only ' + whoRules + ' of ' + WHO_RULES + ' who-the-account-is-for rules were asked');
 
-/* ==================================================================================================
-   9. AN ADDRESS NOBODY HAS PROVED — it signs in, it holds no child, and its owner can always take it
-   --------------------------------------------------------------------------------------------------
-   THE OWNER, 6 Oct: *"dont make them have to need to verify their email to login"*, and that stays —
-   every PENDING row below signs in. What the PR #130 review found is what the sign-in refusal had been
-   hiding: a PIN on a self-made row proves who REGISTERED, not who owns the address. Round one held the
-   mail back and ended the squatter's sessions while the row was PENDING; the review of round one found
-   the squatter back in by their own PIN after Google, still in after the owner had opened the link and
-   then used an emailed PIN, and a typo'd address's owner still taking the parent's child. So this is the
-   design now, and each part is asked here through the real backend:
-   (a) A CHILD IS TIED TO AN ACCOUNT ONLY THROUGH A CONFIRMED ADDRESS — `makeChild`, `claimChild`, a
-       child's yes in `answerClaim`, a grown-up's link in `verifyEmail`, a parent's `resetPin` and an
-       admin's `linkChild` each refuse while the parent is PENDING, and the parent's own doors work once
-       the address is confirmed;
-   (b) THE ADDRESS'S OWNER CAN ALWAYS TAKE IT BACK — the emailed PIN used ends every other session,
-       PENDING or not; Google on a PENDING row ends them AND takes the registrant's PIN; opening your own
-       link signs nobody out;
-   (c) NOTHING BUT THE LINK AND THE FORGOTTEN-PIN PIN IS MAILED TO AN UNPROVED ADDRESS — `notify`, the
-       guesses warning and a child's forgotten PIN skip a PENDING parent and a PENDING child's typed
-       grown-up; an account's OWN pending address still gets its forgotten PIN;
-   (d) "SEND THE LINK AGAIN" mails only the row's own pending address, a fresh link, once a quarter hour.
-   ROUND THREE OF THE REVIEW found each of those stepped round by a door none of them watched, so:
-   (e) A NEW ADDRESS TYPED IN SETTINGS is proved by the ACCOUNT before it is trusted — it waits beside a
-       confirmed row and only that account, signed in, can open its link; a PENDING row's corrected
-       address gets a fresh link and the old one (and any PIN mailed to the old address) dies;
-   (f) WHEN AN ADDRESS'S OWNER TAKES A PENDING ROW BACK, the children the registrant put on it — links
-       from before (a) — are `held`, and only an admin settles them; opening your own link holds none;
-   (g) A SQUATTER TYPING WRONG PINS CANNOT KEEP THE OWNER OUT — the mail to an account's own address
-       carries a sign-in link no miss can use up.
-   ================================================================================================== */
+/* 9. AN ADDRESS NOBODY HAS PROVED — it signs in, it holds no child, and its owner can always take it THE OWNER, 6 Oct: § */
 let proofRules = 0;
 {
   const rule = (ok, said, got) => { if (ok) proofRules++; else no(said, got); };
@@ -619,10 +541,7 @@ let proofRules = 0;
   };
   const live = (b, token) => !!token && !post(b, { action: 'myProfile', token: token }).error;
   const pinOf = (b, pid) => S(rowOf(b, r => r.person_id === pid).pin);
-  /* ONE MILLISECOND APART. `register` names a row 'P' + Date.now(), so two sign-ups inside one
-     millisecond — which this harness does and a phone never would — are ONE PERSON to every session and
-     every family link: the stranger's `resetPin` on the child was refused as "your own PIN", which
-     passed the rule for the wrong reason, and only on a fast run. Measured on the unfixed backend. */
+  /* ONE MILLISECOND APART. § */
   const register = (b, body) => {
     const was = Date.now();
     while (Date.now() === was) { /* wait for the clock */ }
@@ -630,10 +549,7 @@ let proofRules = 0;
   };
   const PENDING = r => S(r && r.verified).toUpperCase() === 'PENDING';
 
-  /* ---------- (a) A CHILD WAITS ON THE PARENT'S ADDRESS BEING PROVED ------------------------------------
-     Jo's address is a typo, jsmith1@ for jsmith@. Seeded PENDING with a token, as `register` leaves it.
-     Ned is a child put on Jo by hand before this rule existed (an accepted link to a PENDING row — the
-     shape round one's `verifyEmail` and main's both wrote); Pia has an unanswered claim from Jo. */
+  /* ---------- (a) A CHILD WAITS ON THE PARENT'S ADDRESS BEING PROVED § */
   {
     const b = fresh();
     b.seed('people', [
@@ -741,9 +657,7 @@ let proofRules = 0;
       rule(live(b, vic.token), 'the owner\'s own new session did not survive the sessions being ended');
     }
 
-    /* THE ROUTE ROUND ONE LEFT OPEN: the owner opens the confirmation link FIRST. The row goes TRUE with
-       the squatter still signed in (opening a link signs nobody out — that is right), and THEN she uses
-       "Forgotten your PIN?". The emailed PIN must end their session whatever state the row is in now. */
+    /* THE ROUTE ROUND ONE LEFT OPEN: § */
     register(b, { who: 'parent', first_name: 'Sol', last_name: 'Squat', email: 'wen@example.org', pin: P1 });
     const sq2 = signIn(b, 'wen@example.org', P1);
     const wenRow = rowOf(b, r => r.email === 'wen@example.org');
@@ -785,9 +699,7 @@ let proofRules = 0;
     b.seed('family', [{ link_id: 'L-GKD', parent_id: sid && sid.person_id, child_id: 'P-GKD', state: 'accepted' }]);
     if (!live(b, squat.token)) no('the squatter could not sign in, so the Google half of (b) was NOT checked', squat);
     else {
-      /* A PIN MAILED BEFORE GOOGLE PROVED THE ADDRESS — the squatter pressing "Forgotten your PIN?" is
-         enough to put one there — goes with the registrant's PIN: the reply names Google and a FRESH one
-         as the only ways in, and `googleLogin` drops it (`authResetDrop_`). Nothing else held this. */
+      /* A PIN MAILED BEFORE GOOGLE PROVED THE ADDRESS — the squatter pressing "Forgotten your PIN?" § */
       const m0 = MAIL.length;
       post(b, { action: 'forgotPin', who: 'val@example.org' });
       const early = mailTo('val@example.org', m0)[0];
@@ -822,10 +734,7 @@ let proofRules = 0;
       { success: cg.success, pinCleared: cg.pinCleared, error: cg.error });
   }
 
-  /* ---------- (c) NOTHING BUT THE LINK AND THE FORGOTTEN-PIN PIN TO AN UNPROVED ADDRESS ---------------------
-     Jo's address is the typo again, PENDING. Lu is Jo's child (a link from before the rule). Bo has no
-     email and typed gran1@ for his grown-up — a typo too — and has not been confirmed; Pat is a
-     confirmed parent who has Bo through an answered claim. */
+  /* ---------- (c) NOTHING BUT THE LINK AND THE FORGOTTEN-PIN PIN TO AN UNPROVED ADDRESS § */
   {
     const b = fresh();
     b.seed('people', [
@@ -948,12 +857,7 @@ let proofRules = 0;
     }
   }
 
-  /* ---------- (e) A NEW ADDRESS TYPED IN SETTINGS IS PROVED BY THE ACCOUNT BEFORE IT IS TRUSTED ------------
-     Round three of the review, older than every round: Settings → Contact → email wrote the address
-     straight in and left `verified` as it was. Jo is CONFIRMED on jsmith@ with Lu on her account; she
-     types jsmith1@. Measured on round two's backend: the row kept TRUE, `notify` mailed jsmith1@, its
-     owner's "Forgotten your PIN?" got Jo's account and `resetPin` handed them Lu. Now the new address
-     waits beside the row (`authMove*_`), and only Jo, signed in, can open its link. */
+  /* ---------- (e) A NEW ADDRESS TYPED IN SETTINGS IS PROVED BY THE ACCOUNT BEFORE IT IS TRUSTED § */
   {
     const b = fresh();
     b.seed('people', [
@@ -1044,9 +948,7 @@ let proofRules = 0;
         'an admin\'s edit put an unproved address straight onto somebody\'s confirmed row', byAdmin);
     }
 
-    /* BLOCK D: A PENDING ROW CORRECTED. Nothing on it was proved, so the address is simply replaced — and
-       the old link, mailed to the old address, must not confirm the row holding the new one. Nor may a
-       PIN mailed to the old address still open it. */
+    /* BLOCK D: A PENDING ROW CORRECTED. § */
     const kay = signIn(b, 'kay1@example.org', PLACE);
     post(b, { action: 'forgotPin', who: 'kay1@example.org' });
     const oldPin = pinIn(mailTo('kay1@example.org').slice(-1)[0]);
@@ -1064,10 +966,7 @@ let proofRules = 0;
       'a PIN mailed to the address the row has since left still signs in to it', { oldPin: !!oldPin });
   }
 
-  /* ---------- (f) LINKS MADE BEFORE THE RULE GO TO `held` WHEN THE ADDRESS'S OWNER TAKES THE ROW BACK ----------
-     Round three: Jo PENDING on the typo jsmith1@ with Ned accepted (a link from before `confirmFirst_`)
-     and a claim to Pia unanswered. The stranger who owns jsmith1@ presses "Forgotten your PIN?", types
-     the PIN back, and the row is confirmed — measured on round two: resetPin on Ned, signed in as Ned. */
+  /* ---------- (f) LINKS MADE BEFORE THE RULE GO TO `held` WHEN THE ADDRESS'S OWNER TAKES THE ROW BACK § */
   {
     const b = fresh();
     b.seed('people', [
@@ -1118,10 +1017,7 @@ let proofRules = 0;
       'opening your own confirmation link took your child off your account');
   }
 
-  /* ---------- (g) A SQUATTER TYPING WRONG PINS CANNOT KEEP THE OWNER OUT ----------------------------------------
-     Round three: the squatter keeps their session and types wrong PINs at the address — eleven lock
-     it, five more used to throw away the PIN Vic had just been mailed, for every new one she asked
-     for. The typed PIN is still retired (a guesser gets five), and the link in the same mail is not. */
+  /* ---------- (g) A SQUATTER TYPING WRONG PINS CANNOT KEEP THE OWNER OUT § */
   {
     const b = fresh();
     b.seed('people', [
@@ -1171,12 +1067,7 @@ let proofRules = 0;
     rule(!!pinIn(kitMail) && !/\?signin=/.test(S(kitMail && kitMail.body)), 'a child\'s forgotten PIN, mailed to a grown-up, carried a sign-in link', kitMail && kitMail.body);
   }
 
-  /* ---------- (h) TAKING IT BACK CANCELS A CHANGE OF ADDRESS THE SQUATTER LEFT WAITING -------------------
-     The review of round three, reproduced: Vic opens her confirmation link with the squatter still signed
-     in; the squatter types sam@ in Settings and is mailed its link; Vic takes the account back by the
-     emailed PIN — and the move sat on. Her Contact card said her email was changing to sam@, her "Send the
-     link again" mailed the squatter a fresh link, and the squatter's link, forwarded and opened by Vic
-     signed in, moved her account to sam@, where "Forgotten your PIN?" took it again. */
+  /* ---------- (h) TAKING IT BACK CANCELS A CHANGE OF ADDRESS THE SQUATTER LEFT WAITING § */
   {
     const b = fresh();
     b.seed('people', [person('P-ADM', 'admin', 'Hal', 'Admin', { email: 'admin@example.org', handle: 'hal_kind140' })]);
@@ -1225,15 +1116,7 @@ let proofRules = 0;
       { wyn: wyn.success, error: wyn.error, message: wyn.message, moving: (wp.profile || wp).email_moving });
   }
 }
-/* ==================================================================================================
-   SIGNING OUT ON ONE DEVICE IS SIGNING OUT OF THAT DEVICE (docs/history/317)
-   THE ESSAY: a child writing on the computer, the same account signed in on the iPad and signed out
-   there — and every session ended, so the computer's next request was refused `signed-out` and its box
-   was drawn empty over 3,015 characters. Reproduced in a sandbox of the live backend; held here: two
-   sessions, the iPad signs out, the computer is still signed in, and the iPad's own token is refused.
-   A PIN CHANGED STILL ENDS THEM ALL — that is `authEndSession_`'s job, and asked here so the two are
-   not confused the other way.
-   ================================================================================================== */
+/* SIGNING OUT ON ONE DEVICE IS SIGNING OUT OF THAT DEVICE (docs/history/317) THE ESSAY: § */
 {
   const b = fresh();
   b.seed('people', [person('P-SO', 'student', 'Sam', 'Student', { email: 'sam@example.org', handle: 'sam_kind90' })]);
@@ -1255,19 +1138,7 @@ let proofRules = 0;
   }
 }
 
-/* ==================================================================================================
-   10. A CHILD'S HANDLE CARRIES NO NAME, AND NOBODY LOSES THEIR SIGN-IN OVER IT (docs/history/342)
-
-   THE OWNER, 11 OCT: *"Change usernames to be more abstract to hide the names of kids. Just use initials
-   and some combination which comes from date of birth or something."* Every door that makes a child's
-   handle makes their initials and four digits from 2 to 9 (a parent's, a self-registered child's, a
-   blank one filled, Randomise); a grown-up's is still the first name, a virtue and a number. And the
-   children who already have a first-name handle are moved by `?run=kidHandles`, which with no `arg`
-   WRITES NOTHING and says what it would do, and with `arg=apply` moves only children, puts every old
-   handle at the front of `handle_was`, moves every friends list that named it — and a second run moves
-   nobody. Through all of it, the old handle on a child's slip still signs them in, and says the new
-   one; it never signs in anybody else.
-   ================================================================================================== */
+/* 10. A CHILD'S HANDLE CARRIES NO NAME, AND NOBODY LOSES THEIR SIGN-IN OVER IT (docs/history/342) § */
 let kidRules = 0;
 const kidRule = (ok, what, got) => { kidRules++; if (!ok) no(what, got); return !!ok; };
 {
@@ -1386,25 +1257,7 @@ const kidRule = (ok, what, got) => { kidRules++; if (!ok) no(what, got); return 
   kidRule(kidRules >= 28, 'only ' + kidRules + ' of the children\'s-handle rules were asked');
 }
 
-/* ==================================================================================================
-   11. AFTER REVIEW, ROUND 1 (docs/history/342, "After review") — WHAT SECTION 10 DID NOT HOLD
-
-   Three reviewers read the branch and found the lock-outs section 10 could not see, because it asked
-   only the cases the builder thought of. Each rule below was RED on the branch before its fix:
-     · an old handle answered only to its exact spelling, so a child who had always spelled out her long
-       first name (`christopher_kind42` for `christoph_kind42`) was let in the day before the move and
-       refused the day after it — at the sign-in box and at "Forgotten your PIN?";
-     · `handle_was` was trimmed to ten, so ten Randomise presses after the move retired the handle on
-       the slip: it stopped signing her in AND became free to give to somebody else;
-     · nothing held "a current handle wins" for "Forgotten your PIN?", or Randomise moving friends lists;
-     · "not the birthday" was held only at `handleMake_`, not at the doors that call it;
-     · a run that failed part-way left friends lists naming handles nobody has, for good, and on a tab
-       whose `handle_was` is not beside `handle` it could leave a child with a new handle and no history;
-     · a handle Randomise had reissued before 342 became ambiguous after the move, unseen;
-     · a later run moved a child again because a surname had been corrected;
-     · a private grown-up's hand-typed handle could carry the surname the net takes out of their name;
-     · and the refusal for a handle nobody has still showed a grown-up's handle as the example.
-   ================================================================================================== */
+/* 11. AFTER REVIEW, ROUND 1 (docs/history/342, "After review") — WHAT SECTION 10 DID NOT HOLD § */
 let revRules = 0;
 const revRule = (ok, what, got) => { revRules++; if (!ok) no(what, got); return !!ok; };
 const kidRun = (b, arg) => {
@@ -1566,17 +1419,7 @@ const withDice = fn => { const real = Math.random; Math.random = dice(); try { r
 }
 revRule(revRules >= 17, 'only ' + revRules + ' of the after-review rules were asked');
 
-/* ==================================================================================================
-   12. AFTER REVIEW, ROUND 2 — A HANDLE MOVED BY THE SERVER KEEPS THE FACE A BLANK LOOK DREW
-
-   A figure nobody dressed is drawn from the HANDLE (`avatarConfig` in js/links.js: skin and hair colour
-   from `hashOf(handle)`), so `?run=kidHandles` gave every child who never chose a look a different figure
-   — a different skin tone — and the preview said nothing (the review: all eight children on the Ledger
-   snapshot). Every handle the server moves now writes the old handle's look into a blank cell first
-   (`handleFaceKept_`). THE FACE IS DRAWN HERE BY THE PHONE'S OWN CODE — `hashOf` out of js/core.js and
-   `avatarConfig` out of js/links.js — because the server's copy of the hash and of the two palette lengths
-   is exactly the thing that could drift: twenty handles, and every one must come out the same face.
-   ================================================================================================== */
+/* 12. AFTER REVIEW, ROUND 2 — A HANDLE MOVED BY THE SERVER KEEPS THE FACE A BLANK LOOK DREW § */
 let faceRules = 0;
 const faceRule = (ok, what, got) => { faceRules++; if (!ok) no(what, got); return !!ok; };
 const PHONE_ = (() => {

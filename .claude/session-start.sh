@@ -44,13 +44,14 @@ echo "· $(git rev-parse --abbrev-ref HEAD 2>/dev/null)  $(git log --oneline -1 
 DIRTY=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
 [ "$DIRTY" != "0" ] && echo "· $DIRTY uncommitted file(s) — these were here BEFORE this session"
 
-OUT=$(npm run check 2>&1)
+OUT=$(node js/check-all.js --fast 2>&1)   # the quick checks; the hook's 180s cannot hold the browser ones
 # COUNTED, NOT TYPED. This line said "all 18 checks pass" for as long as there were 18, and went on
 # saying it when there were 22 — a number in a sentence nobody re-reads. It is read off the run now,
 # so it cannot be wrong again.
-N=$(printf '%s\n' "$OUT" | grep -cE "^[[:space:]]+(PASS|note)[[:space:]]")
+# check-all prints one line when green, "OK — nothing is broken (N checks…", so N is read from it.
+N=$(printf '%s\n' "$OUT" | grep -oE "nothing is broken \([0-9]+ checks" | grep -oE "[0-9]+" | tail -1)
 if printf '%s' "$OUT" | grep -q "OK — nothing is broken"; then
-  echo "· all $N checks pass"
+  echo "· all $N quick checks pass (browser checks: npm run check)"
 else
   echo "· CHECKS ARE RED ON ARRIVAL — this is not something this session did:"
   printf '%s\n' "$OUT" | grep -E "^\s+(FAIL|PASS)|FAILED" | grep -v PASS | sed 's/^/    /'

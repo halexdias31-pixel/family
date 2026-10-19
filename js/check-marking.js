@@ -1,44 +1,12 @@
 #!/usr/bin/env node
-/* ==================================================================================================
-   @family. — check-marking.js
-
-   DOES THE MARKER SAY YES TO A RIGHT ANSWER AND NO TO A WRONG ONE.
-
-   WHY THIS EXISTS. `markAnswer_` is the one piece of this app that tells a child they are wrong,
-   and there is nobody for them to appeal to. Everything else here measures whether the app WORKS;
-   this measures whether it is FAIR, and the two failures are not symmetrical:
-
-     a right answer marked wrong   a child stops trusting the marking, and then stops using it
-     a wrong answer marked right   a child learns the wrong thing and finds out in an exam
-
-   Both are real and the first is the one that happened. The library writes Q23(b) of the June 2024
-   Foundation paper as `5&frasl;9`, which strips to `5⁄9` carrying U+2044 FRACTION SLASH -- a
-   character no phone keyboard has. What a student types is `5/9`, and before the fold in
-   `markNorm_` those were two different strings. Ninety-one rows in the library are spelled that
-   way, and somebody was sitting one of those papers at the time.
-
-   IT READS THE REAL FUNCTIONS, NOT A COPY. `find.js` is 350 KB and needs a browser, so the five
-   marking functions are cut out of it by name and run on their own -- they touch nothing else in
-   the app, which is what makes that safe and is also why they are worth checking in isolation. A
-   second implementation here would be a second thing to keep in step, which is the fault this
-   repository records under `childrenOf`, under `link`/`source_url` and under `kinds`.
-
-   EVERY CASE IS A FAULT THAT HAPPENED OR ONE THAT NEARLY DID. The thousands-separator row is the
-   first question of that same Foundation paper, whose scheme answer is "18 000" and which marked
-   "18000" wrong. The `11/6` row is the reason spaces are NOT stripped wholesale: 1 1/6 and 11/6 are
-   1.17 and 1.83, and folding them together would mark a wrong answer right to fix a right one.
-================================================================================================== */
+require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
+/* @family. — check-marking.js DOES THE MARKER SAY YES TO A RIGHT ANSWER AND NO TO A WRONG ONE. § */
 const fs = require('fs');
 const path = require('path');
 
 const src = fs.readFileSync(path.join(__dirname, 'find.js'), 'utf8');
 
-/* CUT BY NAME, BRACE-COUNTED, AND THE CUTTER IS `check-marks-load.js` — one extractor, because
-   other checks need the same functions to ask different questions of them, and a second cutter
-   written once already could not find `markBare_`. A regex for "the body of a
-   function" is really a regex for "up to the next closing brace at the start of a line", which is
-   a formatting convention rather than a fact about the code, and this file is checking the one
-   thing in the app that must not be approximately right. */
+/* CUT BY NAME, BRACE-COUNTED, AND THE CUTTER IS `check-marks-load.js` — one extractor, because other checks need the same functions to ask different questions of § */
 const { NAMES, markingSource } = require('./check-marks-load.js');
 
 const marks = markingSource(path.join(__dirname, '..'));
@@ -96,9 +64,7 @@ const CASES = [
   ['6/12', '1\u20442 km', true, 'with the unit still on the expected side'],
   ['5/8', '3\u20444', false, 'close is not equal'],
   ['1/0', '5', false, 'a denominator of nought is not a number'],
-  /* A UNIT IS NOT A LIST OF ALTERNATIVES. `set-accept.py` used to split an answer on `/`, so
-     `12 km/h` became the two acceptable answers `12 km` and `h` — and the bare letter **h** was
-     marked RIGHT. Found on Q14(a) of the June 2024 Foundation Paper 2. */
+  /* A UNIT IS NOT A LIST OF ALTERNATIVES. § */
   ['12 km/h', '12 km/h', true, 'the speed, written out'],
   ['12', '12 km/h', true, 'and without the unit, which is the sentence not the answer'],
   ['h', '12 km/h', false, 'the letter out of the unit is not an answer'],
@@ -109,10 +75,7 @@ const CASES = [
   ['3.42 × 10^7', '3.42 × 10^7', true, 'standard form'],
   /* THE MINUS SIGN THE PAPER PRINTS IS NOT THE ONE ON THE KEYBOARD */
   ['-3', '−3', true, 'U+2212 against the hyphen'],
-  /* A BAND THE SCHEME PRINTS TAKES EVERY NUMBER IN IT. Q13 of the May 2017 Foundation Paper 1 is
-     `1.5 to 2 metres` and there is no single right answer to it — and before `markRange_` the
-     BOTTOM of the band passed while the TOP failed, from the same cell, which is worse than
-     failing both: it looks like marking. */
+  /* A BAND THE SCHEME PRINTS TAKES EVERY NUMBER IN IT. § */
   ['1.5', '1.5 to 2 metres', true, 'the bottom of the band — right before this rule and after it'],
   ['2', '1.5 to 2 metres', true, 'the top of the same band, which used to be marked wrong'],
   ['1.75', '1.5 to 2 metres', true, 'and the middle, which is what a person actually writes'],
@@ -127,12 +90,7 @@ const CASES = [
   ['9', '7-11', false, 'a hyphen is not `to`'],
   ['banana', '1.5 to 2 metres', false, 'and a word is in no band'],
 
-  /* ---------- A RATIO, WHICH NOTHING IN THIS LIBRARY COULD MARK UNTIL THE COLON FOLDED ----------
-     `markNorm_` took the spaces off either side of a fraction slash and left them round a colon,
-     so `2:3` typed against the `2 : 3` a mark scheme prints came out FALSE. Measured across the
-     whole library first: not one of its 1,435 `accept` cells held a colon, so no ratio answer
-     anywhere could mark itself -- which is also what proves the fold cannot change an existing
-     row. Q10 of the June 2024 Foundation paper is the first one that can. */
+  /* ---------- A RATIO, WHICH NOTHING IN THIS LIBRARY COULD MARK UNTIL THE COLON FOLDED § */
   ['2:3', '2 : 3', true, 'Q10 of June 2024 Foundation, typed the way a child types it'],
   ['2 : 3', '2 : 3', true, 'and the way the mark scheme prints it'],
   ['2 :3', '2 : 3', true, 'and with the spacing somebody actually manages on a phone'],
@@ -140,22 +98,14 @@ const CASES = [
   ['6:9', '2 : 3', false, 'and an uncancelled one fails a question asking for simplest form'],
   ['2/3', '2 : 3', false, 'a ratio is not the fraction its two numbers make'],
 
-  /* ---------- AN ACCEPTED BAND WRITTEN WITH A DASH, WHICH NO CASE HERE HAD -----------------------
-     `markRange_` takes `to` and the two long dashes, and every case above uses the word -- so the
-     dash half of that rule has never once been exercised. CLAUDE.md records the gap in as many
-     words, and it is the shape an escape sweep has broken in this repository twice: a real en dash
-     written into a regex through a layer that eats the backslash leaves `/(?:to|-|-)/`, which
-     matches the word and no dash, and every case in this file goes on passing. */
+  /* ---------- AN ACCEPTED BAND WRITTEN WITH A DASH, WHICH NO CASE HERE HAD § */
   ['1.75', '1.5\u20132 metres', true, 'the middle of a band written with an EN dash'],
   ['1.5', '1.5\u20132 metres', true, 'its bottom end'],
   ['2', '1.5\u20132 metres', true, 'its top end'],
   ['2.1', '1.5\u20132 metres', false, 'and over is still over'],
   ['1.75', '1.5\u20142 metres', true, 'and the same band written with an EM dash'],
   /* NOTHING TYPED IS NOT A WRONG ANSWER */
-  /* ---------- A SPACE ROUND AN OPERATOR, WHICH IS THE RATIO RULE ONE CLASS OF CHARACTER ALONG ----
-     A MARK SCHEME PRINTS `4n \u2212 3` AND NOBODY TYPES THE SPACES. 178 of the library's 1,436
-     `accept` cells carry one, and they are the algebra questions \u2014 so the nth-term answer every
-     student actually writes was marked wrong on every one of them. */
+  /* ---------- A SPACE ROUND AN OPERATOR, WHICH IS THE RATIO RULE ONE CLASS OF CHARACTER ALONG § */
   ['4n-3', '4n \u2212 3', true, 'Q20 of June 2024 Foundation, typed the way a child types it'],
   ['4n - 3', '4n \u2212 3', true, 'and with the spaces the scheme prints'],
   ['3(2x-5)', '3(2x \u2212 5)', true, 'a factorised expression closed up'],
@@ -163,26 +113,18 @@ const CASES = [
   ['2\u00d73\u00d73\u00d75', '2 \u00d7 3 \u00d7 3 \u00d7 5', true, 'a product of primes'],
   ['4n+1', '4n \u2212 3', false, 'the common slip off the first term is still wrong'],
   ['4x-3', '4n \u2212 3', false, 'and so is the wrong letter'],
-  /* THE ONE THING THIS MUST NOT DO, and the fraction rule above names it: `1 1/6` is 1.17 and
-     `11/6` is 1.83. The space in a mixed number touches no operator, so nothing here can reach it
-     \u2014 and these two cases are what says so rather than a sentence claiming it. */
+  /* THE ONE THING THIS MUST NOT DO, and the fraction rule above names it: § */
   ['1 1/6', '11/6', false, 'a mixed number must not fold onto the improper fraction'],
   ['11/6', '1 1/6', false, 'and not the other way round either'],
 
-  /* ---------- A SIGN NO PHONE KEYBOARD HAS ------------------------------------------------------
-     `\u2264` IS ON ELEVEN `accept` CELLS AND THERE IS NO KEY FOR IT. Q28 of June 2024 Foundation is
-     `x \u2264 \u22124`, so a student who had solved it could not enter the answer at all. */
+  /* ---------- A SIGN NO PHONE KEYBOARD HAS § */
   ['x<=-4', 'x \u2264 \u22124', true, 'Q28 of June 2024 Foundation, with the keyboard\'s own operator'],
   ['x \u2264 -4', 'x \u2264 \u22124', true, 'and with the sign, if they can find it'],
   ['x>=-4', 'x \u2264 \u22124', false, 'the wrong way round is a different answer'],
   ['x=-4', 'x \u2264 \u22124', false, 'and an equation is not an inequality'],
   ['100<w<=150', '100 < w \u2264 150', true, 'a grouped-data class, typed'],
 
-  /* ---------- WHAT THE MATHS KEYPAD WRITES ------------------------------------------------------
-     `keypad.js` builds every structure with a slot to type into — `()/()`, `^()`, `√()` — so the
-     stacked preview has somewhere to put the caret. These are its own outputs, typed key by key,
-     against the scheme as the library writes it. The bracket fold in `markNorm_` is what makes
-     them right, and the `2(3)` row is what it must never do. */
+  /* ---------- WHAT THE MATHS KEYPAD WRITES § */
   ['(3)/(4)', '0.75', true, 'the keypad’s fraction, against a decimal scheme that says oe'],
   ['(3)/(4)', '3⁄4', true, 'and against the fraction the library prints'],
   ['3/(4)', '3⁄4', true, 'a fraction begun after its numerator was already typed'],
@@ -199,11 +141,7 @@ const CASES = [
   ['2(3)', '23', false, 'a bracket after a digit is multiplication and must not be folded away'],
   ['(x+1)/(3)', 'x/3', false, 'a bracket round more than one term keeps its meaning'],
 
-  /* ---------- A ROOT UNDER THE LINE, OFF THE KEYPAD ----------------------------------------------
-     sin 45° on the exact-trig sheet: the cell lists `1/√2` and the model answer prints it, and the
-     keypad writes it `1/(√(2))` — the fraction key after the 1 opens `/()`, the root key opens
-     `√()`. The two folds ran in one pass, the outer bracket was tried while the inner one was still
-     on, and "Not yet" was the answer to a right one. */
+  /* ---------- A ROOT UNDER THE LINE, OFF THE KEYPAD § */
   ['1/(√(2))', '1/√2', true, 'sin 45° off the keypad: 1, the fraction key, √, 2'],
   ['(1)/(√(2))', '1/√2', true, 'and begun with the fraction key'],
   ['1/(√(3))', '√3/3 | 1/√3', true, 'tan 30° the same way'],
@@ -212,30 +150,20 @@ const CASES = [
   ['2/(√(2))', '1/√2', false, 'and so is a different numerator'],
   ['(√(2)+1)/(2)', '√2/2', false, 'a bracket holding a root AND more is still more than one term'],
 
-  /* ---------- `root`, THE THIRD SPELLING OF √ --------------------------------------------------------
-     The exact-trig cells listed `root3/2` beside `sqrt3/2`, so `root3/2` was right and `root 3/2`
-     wrong, and the letters sent four surd questions to the keyboard, which has no √ key. */
+  /* ---------- `root`, THE THIRD SPELLING OF √ § */
   ['root 3/2', '√3/2 | sqrt3/2 | sqrt(3)/2 | (√3)/2', true, 'sin 60° typed out with the space a person puts in'],
   ['root3', '√3', true, 'run together'],
   ['root(3)', '√3', true, 'and bracketed the way sqrt(3) is'],
   ['root 2', '√3', false, 'the wrong root is still wrong'],
   ['10', '10 root 2 cm', false, 'the 10 of 10√2 — `root 2 cm` read as a UNIT after it, so this passed'],
-  /* AND THE SAME CELL REFUSED ITS OWN ANSWER. June 2023 Higher Q16 is `10 root 2 cm`, which the
-     fold made `10 √2 cm` — and the space stayed, so the keypad's `10√(2)` matched nothing. A space
-     between a number and the root or π it multiplies says nothing (`3 √6` and `3√6` sit side by side
-     in one cell), so it folds; and a unit comes off a surd as it does off a number. */
+  /* AND THE SAME CELL REFUSED ITS OWN ANSWER. § */
   ['10√(2)', '10 root 2 cm', true, 'June 2023 Q16 off the keypad: 1, 0, √, 2'],
   ['10√2 cm', '10 root 2 cm', true, 'and with the unit'],
   ['10√2cm', '10 root 2 cm', true, 'and the unit closed up'],
   ['√2', '10 root 2 cm', false, 'the root without its 10 is still wrong'],
   ['10√2 m', '10 root 2 cm', false, 'and a different unit is a different answer'],
 
-  /* ---------- A UNIT GLUED TO A ROOT, OR TO A MULTIPLE OF π ---------------------------------------
-     ROUND 1 TOOK `√3cm` OUT OF EXACT-TRIG Q17 so the row would get the keypad, and that made `√3cm`,
-     `sqrt3cm` and the keypad's `√(3)cm` — right answers the cell had marked right — "Not yet". The
-     marker took a unit off a bare NUMBER only (`MARK_UNIT` began `-?[\d.\/]+`), so a surd with a unit
-     on it was never reduced, and `√3 cm` in the cell did not cover `√3cm` typed. The rule is fixed
-     (`MARK_NUM`: a number may end in a root or in π) and the spelling stays out of the cell. */
+  /* ---------- A UNIT GLUED TO A ROOT, OR TO A MULTIPLE OF π § */
   ['√3cm', '√3 | sqrt3 | sqrt(3) | √3 cm', true, 'exact-trig Q17, the unit closed up'],
   ['√(3)cm', '√3 | sqrt3 | sqrt(3) | √3 cm', true, 'and off the keypad, then `cm` on the abc keys'],
   ['sqrt3cm', '√3 | sqrt3 | sqrt(3) | √3 cm', true, 'and the root spelled out'],
@@ -245,13 +173,7 @@ const CASES = [
   ['48πcm²', '48π | 48pi | 48 pi | 48π cm²', true, 'a sector’s area, the unit closed up after π'],
   ['48 π', '48π', true, 'and the space a person leaves before π'],
 
-  /* ---------- AND ONLY THE UNIT ITS CELL NAMES -----------------------------------------------------
-     ROUND 2 TOOK A UNIT OFF A ROOT, AND THE BARE ROOT BESIDE IT LET ANY UNIT THROUGH. A bare way is
-     where a plain number's unit is "the sentence", and round 2 handed that to every surd and π row
-     with nobody having measured it there: `√3 m` was Correct on Q17, whose own cell says `√3 cm`;
-     `√3²` (3), `2√3²` (12) and `√3x` passed on every surd; `15πcm³`, a volume, on an area. orig and
-     round 1 refused every one. So a unit after a root or π now has to be one the cell names — on
-     any of its ways, because `37.7 cm | 12π` is one circumference written twice. */
+  /* ---------- AND ONLY THE UNIT ITS CELL NAMES § */
   ['√3 m', '√3 | sqrt3 | sqrt(3) | √3 cm', false, 'exact-trig Q17 as the library holds it: the bare √3 let a metre through'],
   ['√3cm²', '√3 | sqrt3 | sqrt(3) | √3 cm', false, 'and an area where the cell says a length'],
   ['√3x', '√3 | sqrt3 | sqrt(3) | √3 cm', false, 'a letter after a root is algebra, not a unit'],
@@ -264,9 +186,7 @@ const CASES = [
   ['12π cm', '37.7 | 37.7 cm | 37.7cm | 12π | 12pi', true, 'a circumference whose cell names its unit on the decimal'],
   ['12π m', '37.7 | 37.7 cm | 37.7cm | 12π | 12pi', false, 'and another unit on the same circumference'],
 
-  /* ---------- `*` AND A LETTER `x` BETWEEN NUMBERS ARE `×` ----------------------------------------
-     Prime factorisation Q1 (88): the cell lists `2^3*11` and `2^3 x 11`, and refused every other
-     spacing — `2^3 * 11`, `2 * 2 * 2 * 11`, `2^3 x11`, `2³ x 11` — on all eleven rows. */
+  /* ---------- `*` AND A LETTER `x` BETWEEN NUMBERS ARE `×` § */
   ['2^3 * 11', '2^3 × 11 | 2 × 2 × 2 × 11', true, '88 as a product of primes, with the spaces round the asterisk'],
   ['2 * 2 * 2 * 11', '2^3 × 11 | 2 × 2 × 2 × 11', true, 'and written out'],
   ['2^3 *11', '2^3 × 11', true, 'with the spacing somebody manages on a phone'],
@@ -275,19 +195,11 @@ const CASES = [
   ['2^(3) x 11', '2^3 × 11', true, 'the keypad’s power, then the letter'],
   ['3.42 x 10^7', '3.42 × 10^7', true, 'standard form with the letter'],
   ['2^3 * 13', '2^3 × 11', false, 'a different prime is still wrong'],
-  /* THE CELL IS WRITTEN WITH THE LETTER, because that is the hole. Round 1 wrote this case against
-     `2 × 3 × 3 × 5` — the sign, which no rule ever read as a unit — so it was green against the
-     find.js that had the hole, and guarded nothing. Two rules close it now and each is enough on
-     its own: the fold makes the letter `×`, and `markBare_` never reads a lone `x` as a unit. So this
-     goes red against the old find.js and with both rules gone; the fold alone is pinned by `2^3 x11`
-     above and by NORMS below, and `markBare_` alone by `6` against `6w² − 10w` further down. */
+  /* THE CELL IS WRITTEN WITH THE LETTER, because that is the hole. § */
   ['2', '2 x 3 x 3 x 5', false, 'the first prime alone — `x 3 x 3 x 5` read as a unit after the 2, so this passed'],
   ['6.3', '6.3 x 10^7', false, 'and the number without its power of ten, the same way'],
 
-  /* ---------- A UNIT WITH A CARET, AND THE POWER IS PART OF THE UNIT -------------------------------
-     Pyramid Q1 refused `300cm^3` against a cell listing `300 cm^3`, and the keypad's power key
-     writes `cm^(3)`. Area of Shapes Q1 asks for the units, and once its bare `60` was gone `60 cm`
-     still passed, because `cm^2` was read as `cm`. */
+  /* ---------- A UNIT WITH A CARET, AND THE POWER IS PART OF THE UNIT § */
   ['300cm^3', '300 | 300cm3 | 300 cm3 | 300 cm^3 | 300cm³', true, 'pyramid Q1 with no space before the unit'],
   ['300cm^(3)', '300 cm^3', true, 'and off the keypad’s power key'],
   ['300cm^3', '300 cm³', true, 'the caret against the superscript: one power, two spellings'],
@@ -299,16 +211,11 @@ const CASES = [
   ['12 cm²', '12m2 | 12 m2 | 12 m^2 | 12m² | 12 m²', false, 'Area of Shapes Q2: the triangle is in metres'],
   ['3x^2', '3', false, 'a letter with a power is algebra, not a coefficient with a unit after it'],
   ['6w2', '6w^2 - 10w | 6w² − 10w', false, 'and `w²` is not the unit `w2`'],
-  /* A COMPOUND UNIT CLOSED UP was "Not yet" on every speed and density in the library: the unit a
-     child typed came off only as letters, and `/` is not a letter, so `12km/h` stayed whole against
-     a cell of `12 km/h`. The whole-library sweep below found 23 of them. */
+  /* A COMPOUND UNIT CLOSED UP was "Not yet" on every speed and density in the library: § */
   ['12km/h', '12 km/h', true, 'June 2024 Foundation Q14(a), the unit closed up'],
   ['1.01g/cm3', '1.01 g/cm^3', true, 'a density, its power spelled the other way'],
   ['12km/minute', '12 km/h', false, 'a different rate is a different unit'],
-  /* A COMPOUND CAME OFF IN ROUND 2 TOO, AND TOOK THE SAME GENEROSITY: `2 kg/m^3` passed on a density
-     listed `2 g/cm^3 | 2`, and `12 km/h m` on `12 km/h` because only the first word of a unit was
-     read. A compound has to be the cell's own when the cell names a unit; where it names none, a
-     compound after a plain number comes off as a plain unit does. */
+  /* A COMPOUND CAME OFF IN ROUND 2 TOO, AND TOOK THE SAME GENEROSITY: § */
   ['2 kg/m^3', '2 g/cm^3 | 2', false, 'June 2024 Foundation Q26: a density in the other unit'],
   ['12 km/h m', '12 km/h', false, 'a unit with another after it is not the unit'],
   ['15 km/h', '15', true, 'a compound against a cell that names no unit, as `3.75 litres` against `3.75`'],
@@ -323,12 +230,7 @@ const CASES = [
   ['15 degrees', '15 | 15°C | 15 °C | 15C', true, 'the cell writes °C and the child writes degrees'],
   ['7.25 pounds', '£7.25 | 7.25 | 725p', true, 'and the pence on the same cell do not bind the pounds'],
 
-  /* ---------- THE SPACE BETWEEN A NUMBER AND ITS LETTERS --------------------------------------------
-     ROUND 2 TOOK IT AWAY. `markBare_` used to cut both `185p` and `185 p` to `185`, so whichever way
-     round the cell and the child wrote it they met in the middle; once it stopped cutting a letter
-     glued to a number (`7m` is "simplify 9m − 2m"), `185 p` typed against `185p` matched nothing, and
-     43 spellings on 36 rows went from right to wrong. The library sweep below only ever typed the
-     OTHER direction — a spaced cell, closed up — so it stayed green. */
+  /* ---------- THE SPACE BETWEEN A NUMBER AND ITS LETTERS § */
   ['185 p', '1.85 | 185p', true, 'KS2 2019 Paper 3 Q16: pence with the space a child puts in'],
   ['12 p', '12p', true, 'the smallest case of it'],
   ['7 m', '7m', true, '"simplify 9m − 2m", spaced'],
@@ -338,13 +240,7 @@ const CASES = [
   ['6 w²', '6w^2 | 6w² | 6w2', true, 'and a letter with a power'],
   ['75 g, 180 g, 300 g', '180g, 300g, 75g', true, 'and every part of a list, in another order'],
 
-  /* ---------- THE NUMBER IN FRONT OF AN EXPRESSION IS NOT THE ANSWER -------------------------------
-     `markBare_` TOOK EVERYTHING AFTER THE FIRST NUMBER AS ITS UNIT, so it cut `6w² − 10w` to `6`, and
-     a bare 6 was marked RIGHT for "expand 2w(3w − 5)". Not one cell: across the library the leading
-     number of 241 expressions in 110 questions passed — every nth term (`4` for `4n − 1`), every
-     expansion, every line (`2` for `2y = 3x + 6`), every error interval (`93.5` for `93.5 m ≤ length
-     < 94.5 m`) — and times (`2` for `2 hours 45 minutes`). It takes off a UNIT now and nothing else: a
-     word or a symbol from the list, a power and a `/`, and then the end of the answer. */
+  /* ---------- THE NUMBER IN FRONT OF AN EXPRESSION IS NOT THE ANSWER § */
   ['6', '6w^2 - 10w|6w^2-10w|6w² − 10w|6w²-10w', false, 'Corbettmaths 30 June Q3: the 6 of 6w² − 10w'],
   ['4', '4n − 1', false, 'the 4 of an nth term'],
   ['2', 'y = 3⁄2x + 3 | y = 1.5x + 3 | 2y = 3x + 6', false, 'the 2 of an equation of a line'],
@@ -352,11 +248,7 @@ const CASES = [
   ['2', '2 hours 45 minutes | 2h 45m', false, 'and the hours are not the time'],
   ['5', '5 minutes past 4 | 5 past 4 | 4:05', false, 'nor the minutes'],
   ['42', '42, 70, 15 | 42 days, 70 days and 15 weeks', false, 'nor the first of three'],
-  /* A SINGLE LETTER IS ALGEBRA UNLESS IT IS A UNIT, AND GLUED TO A NUMBER IT IS NEVER TAKEN FOR ONE.
-     `7m` is "simplify 9m − 2m" on the 5-a-day sheet and `6.27m` is a length on the next; nothing in
-     the spelling tells them apart. Every metre, gram and second the library glues on also lists the
-     bare number or the spaced unit beside it, so refusing the glued letter costs no right answer —
-     and the money cells that list only `250p` are pounds questions where 250 alone reads as £250. */
+  /* A SINGLE LETTER IS ALGEBRA UNLESS IT IS A UNIT, AND GLUED TO A NUMBER IT IS NEVER TAKEN FOR ONE. § */
   ['3', '3a | a3', false, 'June 2024 Foundation Q4: simplify 7a + a − 5a'],
   ['7', '7m', false, 'simplify 9m − 2m'],
   ['6', '6cd | 6dc', false, 'two letters are a product, not a unit'],
@@ -375,12 +267,7 @@ const CASES = [
   ['1905', '1,905 m', true, 'a length with its thousands comma'],
   ['3.4', '3.4 mg/cm³', true, 'a density'],
 
-  /* ---------- AN ALGEBRAIC FRACTION, OFF THE KEYPAD ------------------------------------------------
-     June 2020 Higher Q12(a). Its cell was `3x2⁄(x + 2)(x − 4), which is …` — the superscript lost
-     when the tags came off, and a sentence after it — so it marked nothing right, and it reached the
-     keypad only because `markBare_` cut it at the first letter. Rewritten as maths. The keypad begun
-     with the fraction key writes `(3x^(2))/(…)`: the POWER's slot folds first now, as the root's
-     does, and a numerator's slot may hold one term with a power, so the bracket comes off. */
+  /* ---------- AN ALGEBRAIC FRACTION, OFF THE KEYPAD § */
   ['(3x^(2))/((x+2)(x-4))', '3x^2/((x+2)(x-4)) | 3x^2/((x-4)(x+2)) | 3x^2/(x^2-2x-8)', true, 'begun with the fraction key'],
   ['3x^(2)/((x+2)(x-4))', '3x^2/((x+2)(x-4)) | 3x^2/(x^2-2x-8)', true, 'and with the 3x² typed first'],
   ['3', '3x^2/((x+2)(x-4)) | 3x^2/(x^2-2x-8)', false, 'the 3 of it, which the old cut passed'],
@@ -416,15 +303,7 @@ CASES.forEach(([typed, accept, want, why]) => {
     typed, accept, String(got), String(want), why);
 });
 
-/* ---------- WHAT `markNorm_` ITSELF WRITES -----------------------------------------------------------
-   SOME RULES CANNOT BE SEEN THROUGH `markAnswer_`, and a case written against it goes on passing with
-   the rule deleted. `markParts_` runs `markNorm_` a second time over a string it has already
-   normalised, so a bracket the first pass left is taken off by the second, and the order of two
-   folds stops mattering at the level a CASE can see. The reviewer of round 1 deleted the line that
-   folds a root's own slot first and all 137 cases stayed green. And a fold applied to BOTH sides
-   cannot change whether they are equal: drop the lookahead that keeps the letter `x` in `2x + 3` and
-   `2×+3` still equals `2×+3`. Those rules are statements about what `markNorm_` writes, so they are
-   checked here, as that. */
+/* ---------- WHAT `markNorm_` ITSELF WRITES § */
 const NORMS = [
   ['1/(√(2))', '1/√2', 'the root’s own slot folds first, then the fraction’s slot holding the root'],
   ['(√(3))/(2)', '√3/2', 'and a root on top, begun with the fraction key'],
@@ -448,31 +327,7 @@ NORMS.forEach(([s, want, why]) => {
   console.log('  markNorm_(%j) wrote %j, should be %j   (%s)', s, got, want, why);
 });
 
-/* ---------- THE WHOLE LIBRARY, MARKED ------------------------------------------------------------
-   THE CASES ABOVE ARE THE FAULTS SOMEBODY THOUGHT OF, and every fault in this file was found the
-   other way: by typing the library into itself. `6` against `6w² − 10w` was not one cell but 110, and
-   `√3cm` was a right answer lost to a data edit that a sweep over one data set could not see. So the
-   library is marked here on every run, seven ways, each a property that holds for EVERY row and
-   needs nobody to list the rows:
-
-     CLOSED UP   a way that is a number, a space and a unit — `√3 cm`, `12 km/h`, `80 y` — typed with
-                 the space taken out is still right. A space is not an answer.
-     SPACED      and the other way round: `185p`, `7m`, `6cd` typed with a space in. Round 2 lost 43 of
-                 these and this sweep, typing only the first direction, stayed green over it.
-     KEYPAD      a way typed the way the keypad stores it — every root, power and one-term
-                 denominator in its own bracketed slot, `1/(√(2))` for `1/√2` — is still right.
-     IN FRONT    the number in front of an EXPRESSION — letters and an operator after it, `4n − 1`,
-                 `2y = 3x + 6`, `93.5 m ≤ length < 94.5 m` — is WRONG on its own. A unit is the
-                 sentence; an expression is the answer.
-     AFTER √/π   a root or a multiple of π the cell lists bare takes the units the cell names, closed
-                 up or spaced, and nothing else: not a letter (`√3x`), not a power (`√3²`), not a unit
-                 the cell does not name, and not the right one with another after it.
-     A POWER     a number its cell lists, with `²` or `x²` after it, is wrong: a power is not a unit.
-     COMPOUND    a compound unit the cell does not name, typed after a value it gives one, is wrong,
-                 and so is the cell's own with another unit after it.
-
-   The patterns that choose the rows are written out here and NOT borrowed from find.js: a check
-   that asked the marker which ways have a unit would agree with the marker by construction. */
+/* ---------- THE WHOLE LIBRARY, MARKED § */
 const LIB = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'questions.json'), 'utf8'))
   .filter(r => r && r.kind === 'question' && String(r.accept || '').trim());
 /* a way written with a space between the value and its unit — typed GLUED by the CLOSED UP sweep */
@@ -552,11 +407,7 @@ LIB.forEach(r => {
 lib.bad.slice(0, 40).forEach(x => console.log('  ' + x));
 if (lib.bad.length > 40) console.log('  … and ' + (lib.bad.length - 40) + ' more');
 
-/* ---------- THE ROWS THESE FAULTS WERE FOUND ON, AS THE LIBRARY HOLDS THEM TODAY ------------------
-   EVERY CASE ABOVE CARRIES ITS OWN COPY OF A CELL, which is what lets it state a rule — and what let
-   round 1's data edit go unseen: `√3cm` came out of the REAL exact-trig Q17 while the cases went on
-   testing a copy. These are typed against the live `accept`, so a data edit that loses a right
-   answer, or puts a bare number back where the unit is the question, is red here as well as there. */
+/* ---------- THE ROWS THESE FAULTS WERE FOUND ON, AS THE LIBRARY HOLDS THEM TODAY § */
 const ROWS = [
   ['Q-1CM-exact-trig-values-17', '√3cm', true, 'the right answer round 1’s data edit lost'],
   ['Q-1CM-exact-trig-values-17', '√(3)cm', true, 'and off the keypad'],
@@ -604,14 +455,7 @@ ROWS.forEach(([id, typed, want, why]) => {
     id, typed, r ? r.accept : '', String(got), String(want), why);
 });
 
-/* ---------- AN ORDERING IS MARKED BY ITS ORDER --------------------------------------------------------
-   `markOrder_` IS THE OTHER MARKER, and it exists because `markAnswer_` cannot do this: it reads a typed
-   list as a set, so any order of the right items was right (docs/history/303). Cut out of find.js by
-   the same extractor and run on its own, for the reason at the top of this file -- a copy here would be
-   a second opinion about what a right order is. The row is positions, `3,4,5,2,1` the 3rd item first.
-
-   ITS ONE FAULT THAT MATTERS IS THE SAME ONE: an order that is right marked wrong. So the alternatives
-   a scheme allows where two values are equal are cases, and the library's own rows are swept below. */
+/* ---------- AN ORDERING IS MARKED BY ITS ORDER § */
 const { cutFrom } = require('./check-marks-load.js');
 const orderSrc = cutFrom(src, 'markOrder_');
 if (!orderSrc) {
@@ -645,9 +489,7 @@ ORDERS.forEach(([seq, ways, want, why]) => {
   orderBad++;
   console.log('  markOrder_(%j, %j) — marked %s, should be %s   (%s)', seq, ways, String(got), String(want), why);
 });
-/* EVERY ORDERING IN THE LIBRARY, three ways: each order its cell lists is right; the row reversed is
-   wrong unless the cell lists it too; and every single swap of two neighbours is wrong unless the
-   cell lists that. A cell that cannot mark its own order right marks nobody right, ever. */
+/* EVERY ORDERING IN THE LIBRARY, three ways: § */
 const ORDER_ROWS = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'questions.json'), 'utf8'))
   .filter(r => r && r.kind === 'question' && String(r.answer_type || '').trim() === 'order');
 const orderLib = { ways: 0, wrong: 0, bad: [] };
@@ -667,14 +509,7 @@ ORDER_ROWS.forEach(r => {
 });
 orderLib.bad.slice(0, 20).forEach(x => console.log('  ' + x));
 
-/* ---------- A TYPED LIST UNDER THE SAME KEY IS NOT A ROW -----------------------------------------------
-   `orderSeq_` READS THE STORED VALUE BACK AS THE STRIP, and before these cards were orderings 52 of them
-   drew the keypad and 16 a text box: what pupils typed is under the same `ansKey_`, on the device and
-   in the account. Read a piece at a time, "-3, -1, 2, 4, 7" on 2406-2F-1 became `_ _ −3 2 _` -- a strip
-   the pupil never made, and the next tap wrote it to the account. Cut out of find.js like `markOrder_`.
-   Every case is a value and the strip it must draw, 0 for an empty slot; and every ordering in the
-   library is swept with its own answer typed out the way a pupil would have (the `<b>` list, tags
-   out), which must draw an empty strip, not a half-filled one. */
+/* ---------- A TYPED LIST UNDER THE SAME KEY IS NOT A ROW § */
 const seqSrc = cutFrom(src, 'orderSeq_');
 if (!seqSrc) {
   console.log('check-marking: cannot find orderSeq_ in find.js — renamed? No stored row was read back.');
@@ -714,16 +549,7 @@ ORDER_ROWS.forEach(r => {
 });
 seqLib.bad.slice(0, 20).forEach(x => console.log('  ' + x));
 
-/* ---------- AND IN TIME ------------------------------------------------------------------------------
-   `MARK_UNIT` USED TO TAKE SECONDS OVER A SENTENCE. Its unit was `[a-z][a-z0-9]*` repeated with
-   nothing required between repeats, so `because` could be read as one unit, or `b` + `ecause`, or
-   every other split — 2.8 s for "5 because the triangle is much bigger?" when round 1 measured it,
-   doubling with each letter, on a phone, on Check. It is the question mark that does it: the words
-   all read as units, the `?` does not, and every way of reading them is tried before the match is
-   given up. A unit now has to end where its letters do, which is the same language with one way to
-   read it. The sentence here is one plural longer: about 1.6 s with the old pattern, warm, on the
-   machine that wrote this (11 s cold), and a millisecond or two now. The limit sits a quarter of the
-   way up, so a slow machine is not the thing that goes red. */
+/* ---------- AND IN TIME § */
 const SLOW = '5 because the triangles are much bigger?';
 const t0 = Date.now();
 markAnswer_(SLOW, '5');
