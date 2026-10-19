@@ -25789,6 +25789,42 @@ check('a fill-in table: its blanks are cells in the card, typing keeps them, Che
   return bad;
 });
 
+/* ---------- ROOM TO WRITE: AN EXPAND TILE OPENS THE ANSWER ON A WHOLE-SCREEN SHEET, AND DONE BRINGS IT BACK (docs/history/359) ---------- */
+check('room to write: every typed box has an Expand tile; the sheet holds the same answer, keeps what is written, and Done puts it back in the card', async () => {
+  const base = { active: 'True', subject: 'Maths', document_type: 'Worksheet', key_stage: 'KS4', pages_checked: 'True' };
+  const rows = [
+    Object.assign({}, base, { row_id: 'D-RW', paper_id: 'RW', kind: 'document', name: 'Long sums' }),
+    Object.assign({}, base, { row_id: 'RW-1', paper_id: 'RW', kind: 'question', name: 'Long sums', question: '1', marks: '1', answer_type: 'calculation',
+                              html: '<p>Expand (x + 1)(x + 2)(x + 3)</p>', answer: 'x^3 + 6x^2 + 11x + 6', accept: 'x^3+6x^2+11x+6' }),
+  ];
+  const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
+  await wait(300);
+  const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  if (!A['kp-wide'] || !A['kp-wide-done']) return ['the kp-wide / kp-wide-done handlers are not reachable — nothing was checked'];
+  const x = w.stuffItemsAll_().find(i => i.row && i.row.row_id === 'RW-1');
+  if (!x) return ['the fixture row did not reach Find'];
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  host.innerHTML = w.questionCard_(x, 0);
+  const go = host.querySelector('.qp-bar [data-do="kp-wide"]');
+  if (!go) return ['the answer bar has no Expand tile'];
+  A['kp-wide'](go);
+  const sheet = d.querySelector('body > .kp-wide');
+  const inp = sheet && sheet.querySelector('.kp-in');
+  if (!inp || inp.getAttribute('data-k') !== go.getAttribute('data-k')) return ['Expand opened no sheet with the same answer box'];
+  inp.value = 'x^3 + 6x^2 + 11x + 6';
+  inp.dispatchEvent(new w.Event('input', { bubbles: true }));
+  A['kp-wide-done'](sheet.querySelector('[data-do="kp-wide-done"]'));
+  if (d.querySelector('body > .kp-wide')) bad.push('Done left the sheet up');
+  const back = host.querySelector('.qp-bar .kp-in');
+  if (!back || back.value !== 'x^3 + 6x^2 + 11x + 6') bad.push('the card\'s box holds ' + JSON.stringify(back && back.value) + ' after Done');
+  host.innerHTML = w.questionCard_(x, 0);
+  const again = host.querySelector('.qp-bar .kp-in');
+  if (!again || again.value !== 'x^3 + 6x^2 + 11x + 6') bad.push('drawn again, the box has lost what was written on the sheet');
+  host.remove();
+  return bad;
+});
+
 /* ---------- RUN THEM ---------------------------------------------------------------------------- */
 /* `FLOW_PART=2/4` RUNS THE SECOND QUARTER, in roster order — for a machine where the whole file takes longer than one shell may wait § */
 const FLOW_PART_ = /^(\d+)\/(\d+)$/.exec(process.env.FLOW_PART || '');

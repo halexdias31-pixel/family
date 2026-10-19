@@ -4051,7 +4051,7 @@ function ansBox_(x) {
     const said = subBoxSay_(k, v);
     const own = kept && (kept.fresh || !said.text) ? kept : null;
     const vcls = own ? own.cls : said.cls, vsay = own ? own.verdict : said.text;
-    const foot = `<div class="tile-row qp-sheet-foot">${send}${say}${fig}${note ? `<span class="qp-ai-note">${esc(note)}</span>` : ''}
+    const foot = `<div class="tile-row qp-sheet-foot">${send}${say}${fig}${kpWideTile_(k)}${note ? `<span class="qp-ai-note">${esc(note)}</span>` : ''}
       <span class="qp-words">${esc(kpWordsSay_(kpWordCount_(v)))}</span></div>`;
     const sheet = `<label class="qp-ans qp-sheet" aria-label="Your answer">${kpField_(k, v, 'essay', signs)}</label>`;
     return `<div class="${send ? 'qp-mark ' : ''}qp-compose qp-essay${ai ? ' qp-ai' : ''}${send && vcls ? ' ' + vcls : ''}"${can ? ` data-accept="${esc(can)}"` : ''}>
@@ -4062,7 +4062,7 @@ function ansBox_(x) {
   }
   const bar = `<div class="qp-ans-row qp-bar"><label class="qp-ans${maths ? ' qp-ans-maths' : ''}" aria-label="Your answer">
     ${kpField_(k, val, maths ? 'maths' : 'words', signs)}
-  </label>${fig}${send}</div>`;
+  </label>${fig}${kpWideTile_(k)}${send}</div>`;
   if (!send) return `<div class="qp-compose">${bar}
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span></div>`;
   /* THE VERDICT IS THE LATEST SUBMISSION'S, WHILE THE BOX HOLDS WHAT WAS SENT -- on this device or on the account, next sign-in § */
