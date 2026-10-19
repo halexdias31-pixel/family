@@ -161,11 +161,11 @@ function S(pid, key, day, label, verdict, words, hh, more) {
     if (pat.subject !== 'Ada’s week: 3 questions') bad.push('Pat’s subject is "' + pat.subject + '"');
     /* THE WEEK'S LIST, GROUPED BY PAPER: the paper's name once, then its question with the week's latest
        verdict beside its number; a question with no name is the "1 more", never its key. */
-    ['Hello,\n', '28 Sep – 4 Oct', '\nMaths · Paper 1 (Calculator) — June 2024\nQ1 ✗\n', '\nFractions & decimals\nQ2 ✓\n', '\n…and 1 more.\n',
-     'To stop these emails',
+    ['Hi Pat,\n', '28 Sep – 4 Oct', '\nMaths · Paper 1 (Calculator) — June 2024\nQ1 ✗\n', '\nFractions & decimals\nQ2 ✓\n', '\n…and 1 more.\n',
+     'Don’t want these any more? Just reply and say so.',
      /* WORDED FOR WHAT THE SHEET KNOWS: a first keystroke is "worked on", not "did"; the run is at 18:00 so
         the week is "up to 6pm"; and the marks the list has are said once, in the lead. */
-     'Ada worked on 3 questions this week', '28 Sep – 4 Oct, up to 6pm on Sunday', 'Beside each one is how it went: ✓ right or ✗ wrong.'].forEach(s => {
+     'Here’s what Ada worked on this week: 3 questions', '28 Sep – 4 Oct, up to 6pm on Sunday', 'Beside each one is how it went: ✓ right or ✗ wrong.'].forEach(s => {
       if (pat.text.indexOf(s) === -1) bad.push('Pat’s email does not say "' + s + '"');
     });
     /* CUT ON 12 OCT — the owner: *"all they need to see are the questions their kids have done this week"*.
@@ -336,7 +336,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
     });
     /* A QUESTION WITH NO NAME: neither its key nor its words, and counted in the "more". */
     asked++;
-    if (/Work out 7|Tutor says/.test(bo.text + bo.html) || !/Ben worked on 9 questions/.test(bo.text) || bo.text.indexOf('\n…and 1 more.\n') === -1)
+    if (/Work out 7|Tutor says/.test(bo.text + bo.html) || !/Ben worked on this week: 9 questions/.test(bo.text) || bo.text.indexOf('\n…and 1 more.\n') === -1)
       bad.push('a question with no name printed its key or its words, or was not counted in "…and 1 more.": ' + bo.text.split('\n').slice(2, 20).join(' / '));
   }
 
@@ -481,7 +481,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   if (listed.length !== 80 || listed[0] !== 'Q1 ✓: Work out 1 + 1.' || listed[79] !== 'Q80 ✓: Work out 80 + 80.' || /\nQ8[1-5] /.test(m.text))
     bad.push('87 questions listed ' + listed.length + ' (' + JSON.stringify([listed[0], listed[listed.length - 1]]) + ') — wanted 80, Q1 to Q80 in number order, and none past');
   asked++;
-  if (m.subject !== 'Eve’s week: 87 questions' || !/Eve worked on 87 questions/.test(m.text) || m.text.indexOf('\n…and 7 more.\n') === -1
+  if (m.subject !== 'Eve’s week: 87 questions' || !/Eve worked on this week: 87 questions/.test(m.text) || m.text.indexOf('\n…and 7 more.\n') === -1
       || m.html.indexOf('<p>…and 7 more.</p>') === -1 || /q:EVE|Somebody typed|99 × 7/.test(m.text + m.html))
     bad.push('the cap does not count what it left out — wanted "Eve’s week: 87 questions" and "…and 7 more." (Q81–Q85 and the two with no name, neither printed by key nor by words): subject "' + m.subject + '", ' + JSON.stringify(m.text.split('\n').filter(x => /…and/.test(x))));
 }
@@ -499,7 +499,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   const r = JSON.parse(JSON.stringify(b.ev('digestRender_(__L, { first: "Pat" }, { start: "2026-09-28", end: "2026-10-04" }, { brand: "@family.", site: "https://halexdias31-pixel.github.io/family/", hour: 18 })')));
   const kb = Buffer.byteLength(r.html, 'utf8') / 1024;
   asked++;
-  if (!(kb < 102) || kb < 40 || r.html.indexOf('<p>…and 5 more.</p>') === -1 || !/To stop these emails/.test(r.html))
+  if (!(kb < 102) || kb < 40 || r.html.indexOf('<p>…and 5 more.</p>') === -1 || !/Just reply and say so/.test(r.html))
     bad.push('80 of the longest questions make ' + kb.toFixed(1) + ' KB of HTML — wanted under Gmail’s ~102 KB clip (and over 40, the words printed at length), "…and 5 more." and the footer after them');
 }
 
@@ -581,9 +581,9 @@ function S(pid, key, day, label, verdict, words, hh, more) {
       if (bo.text.indexOf(x) !== -1 || bo.html.indexOf(x) !== -1) bad.push('Bo’s email prints "' + x + '" — phone text that is a link, an address or a sentence must not go out under the business’s name');
     });
     /* A LABEL TURNED AWAY IS NOT REPLACED BY THE KEY. § */
-    if (!/Ben worked on 5 questions/.test(bo.text) || !/\n…and 3 more\.\n/.test(bo.text) || /q:BEN|pr:PR/.test(bo.subject + bo.text + bo.html)
+    if (!/Ben worked on this week: 5 questions/.test(bo.text) || !/\n…and 3 more\.\n/.test(bo.text) || /q:BEN|pr:PR/.test(bo.subject + bo.text + bo.html)
         || bo.text.indexOf('\nPhysics · AQA required practical · Specific heat capacity\nWorksheet ✓\n') === -1)
-      bad.push('Bo’s email does not count what it does not print ("Ben worked on 5 questions", the practical by its name, "…and 3 more.", no raw key): ' + bo.text.split('\n').slice(2, 12).join(' / '));
+      bad.push('Bo’s email does not count what it does not print ("Ben worked on this week: 5 questions", the practical by its name, "…and 3 more.", no raw key): ' + bo.text.split('\n').slice(2, 12).join(' / '));
   }
   /* AND THE CHILD'S OWN FIRST NAME, which goes in the subject and is a cell the child edits. */
   asked++;
@@ -638,7 +638,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   if (s1.sent !== 2) bad.push('send reported ' + s1.sent + ' sent');
   if (st('sent').length !== 2 || log().length !== rows1) bad.push('after sending the log is ' + JSON.stringify(log().map(r => r.parent_id + ':' + r.status)) + ' — wanted the two preview rows turned to sent, nothing added');
   const m0 = mail.sent.find(m => m.to === 'pat@example.org');
-  if (m0 && (!m0.htmlBody || !m0.body || m0.name !== '@family.')) bad.push('the email went without both bodies or the business’s name: ' + JSON.stringify(Object.keys(m0)));
+  if (m0 && (!m0.htmlBody || !m0.body || m0.name)) bad.push('the email went without both bodies, or under a sender name (372: no branding): ' + JSON.stringify(Object.keys(m0)));
   /* AND AGAIN, the same Sunday and the Monday after: nothing. */
   asked++;
   const s2 = run(b, SUN);
@@ -1078,9 +1078,9 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
   if (!sent || r.sent !== 1) bad.push('Pat was not emailed Kit’s week through the real send: ' + JSON.stringify(r));
   else {
     const all = [sent.subject, sent.body, sent.htmlBody].join('\n');
-    [['the handle', /ke_bright_42|ko_calm_17|@[a-z]+_[a-z]+_\d+/], ['an @ that is not the business’s name', /@(?!family\.)/], ['the surname', /Example|Learner|\bOther\b/],
+    [['the handle', /ke_bright_42|ko_calm_17|@[a-z]+_[a-z]+_\d+/], ['an @ or the business’s name (372: no branding)', /@|family\./], ['the surname', /Example|Learner|\bOther\b/],
      ['a person id', /P-[A-Z]\d/], ['the PIN', /0000/], ['the word "sent"', /\bsent\b/i], ['the child’s own address', /kit\.e@|example\.org/],
-     ['the parent’s name', /\bPat\b|Parent/], ['the other Kit', /ko_calm|Other/], ['"(again)" or "gone back to"', /\(again\)|gone back to/],
+     ['the parent’s surname or a greeting other than her first name', /Parent|\bPat\b(?!,)|Hello/], ['the other Kit', /ko_calm|Other/], ['"(again)" or "gone back to"', /\(again\)|gone back to/],
      ['a link', /https?:\/\//], ['a library key', /q:TST|TST-/]].forEach(([what, re]) => {
       asked++;
       if (re.test(all)) bad.push('the email Pat is sent carries ' + what + ': ' + JSON.stringify((all.match(new RegExp('.{0,40}' + re.source + '.{0,40}', re.flags.replace('g', ''))) || [''])[0]));
@@ -1089,7 +1089,7 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
     /* SINCE 18 OCT A QUESTION THE LIBRARY HAS IS PRINTED AS THE SITE DRAWS IT — its number and marks, its words,
        then how the child did; Q9 is not in the library and goes as its words cell, as before. */
     ['Kit’s week: 4 questions', 'Q7 · 1 mark\nWork out 4 × 4.\nKit: ✓', 'Q9 ✗: Kit buys 3 pens at 40p each. How much does he pay?', 'Q11 · 3 marks\nExplain the trend.\nKit: 2 of 3 marks',
-     'Q6 · 1 mark\nSay anything.\nKit: not marked', 'Kit worked on 4 questions this week (12 Oct – 18 Oct, up to 6pm on Sunday).'].forEach(x => {
+     'Q6 · 1 mark\nSay anything.\nKit: not marked', 'Hi Pat,\n\nHere’s what Kit worked on this week: 4 questions (12 Oct – 18 Oct, up to 6pm on Sunday).'].forEach(x => {
       if ((sent.subject + '\n' + sent.body).indexOf(x) === -1) bad.push('the email Pat is sent does not say "' + x + '": ' + sent.body.split('\n').slice(0, 12).join(' / '));
     });
     if (unstyled(sent.htmlBody).indexOf('<b>Q9</b> ✗ — Kit buys 3 pens') === -1 || unstyled(sent.htmlBody).indexOf('<p><b>Q6</b> · 1 mark</p><div><p>Say anything.</p></div><p>Kit: not marked</p>') === -1)
@@ -1290,7 +1290,7 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
   const kb = Buffer.byteLength(m.html, 'utf8');
   const marks = m.text.split('\n').filter(l => l === 'Ada: 3 of 4 marks').length;
   if (!(kb <= CLIP) || kb < 40000 || marks !== 80 || m.text.indexOf('(the source text is on the site)') === -1 || !/END79\./.test(m.text)
-      || /the question’s words are on the site/.test(m.text) || !/To stop these emails/.test(m.html) || CLIP > 100000)
+      || /the question’s words are on the site/.test(m.text) || !/Just reply and say so/.test(m.html) || CLIP > 100000)
     bad.push('a week of 80 parts under long sources is ' + (kb / 1024).toFixed(1) + ' KB with ' + marks + ' marks listed — wanted under DIGEST_CLIP_BYTES (' + CLIP
       + ', short of Gmail’s ~102 KB), all 80 with their whole words and marks, the longest sources said as on the site, and the footer');
   asked++;
@@ -1298,7 +1298,7 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
   const kb2 = Buffer.byteLength(m2.html, 'utf8');
   const listed = m2.text.split('\n').filter(l => /^Q1 · 4 marks$/.test(l)).length;
   if (!(kb2 <= CLIP) || listed !== 80 || m2.text.split('\n').filter(l => l === 'Ada: 3 of 4 marks').length !== 80
-      || m2.text.indexOf('(the question’s words are on the site)') === -1 || !/To stop these emails/.test(m2.html))
+      || m2.text.indexOf('(the question’s words are on the site)') === -1 || !/Just reply and say so/.test(m2.html))
     bad.push('80 long parts made ' + (kb2 / 1024).toFixed(1) + ' KB with ' + listed + ' listed — wanted under the clip with every question still listed by number and mark');
 }
 

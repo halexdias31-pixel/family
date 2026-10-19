@@ -166,8 +166,10 @@ function digestReach_(pid, parentsOf) {
 
 /* ---------- ONE EMAIL: A SUBJECT, A PLAIN BODY AND THE SAME IN HTML § */
 function digestRender_(L, P, week, look) {
-  const brand = S(look && look.brand) || BRAND_NAME;
   const kid = S(L.first) || 'Your child';
+  /* THE OWNER (372): each parent by their first name, casual, no branding anywhere. A name that is not safe to print is just "Hi,". */
+  const pf = S(P && P.first).split(/\s+/)[0];
+  const hi = 'Hi' + (pf && pf.length <= 30 && digestSafe_(pf) ? ' ' + pf : '') + ',';
   const items = (L.fresh || []).concat(L.again || []);
   const n = items.length;
   const qs = x => x + ' question' + (x === 1 ? '' : 's');
@@ -183,9 +185,8 @@ function digestRender_(L, P, week, look) {
      is part of the "more". */
   /* EACH QUESTION AS IT IS ON THE SITE when the library has it (`look.lib`, 18 Oct) — see `digestPartOut_`. */
   const opts = { lib: look && look.lib, site: S(look && look.site) || SITE_URL, kid: kid, cut: {} };
-  /* THE BUSINESS'S NAME ENDS IN A FULL STOP, so it is the last word of its sentence and never followed by more punctuation — "on @family.." § */
-  const foot = 'You get this because you are ' + (S(L.first) ? kid + '’s parent' : 'a parent') + ' on ' + brand + (/[.!?]$/.test(brand) ? '' : '.')
-    + ' To stop these emails, untick Weekly progress email in Settings → Notifications on the site, or reply to this one and say so.';
+  /* ONE PLAIN LINE TO STOP, and no business name, logo or link (372). */
+  const foot = 'Don’t want these any more? Just reply and say so.';
   const subject = kid + '’s week: ' + qs(n);
   const make = Q => {
     /* THE KEY IS SAID FOR THE MARKS THE LIST PRINTS — not every item of the week. § */
@@ -200,12 +201,12 @@ function digestRender_(L, P, week, look) {
       : '';
     /* "BESIDE" WHILE EVERY MARK IS BESIDE ITS NUMBER; a question printed from the library has its words first
        and the child's mark under them, so a list with one says where without saying either. */
-    const lead = kid + ' worked on ' + qs(n) + ' this week (' + digestSpan_(week) + upTo + ').'
+    const lead = 'Here’s what ' + kid + ' worked on this week: ' + qs(n) + ' (' + digestSpan_(week) + upTo + ').'
       + (said ? (Q.fromLib ? ' How each one went: ' : ' Beside each one is how it went: ') + said + '.' : '') + unnamed;
     return {
-      text: ['Hello,', '', lead, ''].concat(Q.lines, [foot]).join('\n'),
+      text: [hi, '', lead, ''].concat(Q.lines, [foot]).join('\n'),
       html: '<div style="font-family:Georgia,serif;font-size:16px;line-height:1.5;color:#222;max-width:560px">'
-        + '<p>Hello,</p><p>' + digestEsc_(lead) + '</p>' + Q.html
+        + '<p>' + digestEsc_(hi) + '</p><p>' + digestEsc_(lead) + '</p>' + Q.html
         + '<p style="color:#666;font-size:13px">' + digestEsc_(foot) + '</p></div>',
     };
   };
@@ -706,7 +707,7 @@ function digestMail_(emails, o) {
     try {
       /* `firstNamesOnly`: the net in `mailOut_` leaves a child's whole name as the first name alone here,
          never "First (@handle)" — a parent's email carries no username (the note over `digestRender_`). */
-      mailOut_({ to: m.to, subject: m.subject, body: m.text, htmlBody: m.html, name: o.brand || BRAND_NAME, firstNamesOnly: true });
+      mailOut_({ to: m.to, subject: m.subject, body: m.text, htmlBody: m.html, firstNamesOnly: true });
     } catch (err) {
       try { setCells(claim.log, claim.row, { status: 'failed', note: S(err && err.message || err).slice(0, 200) }); } catch (e2) {}
       out.failed++;
