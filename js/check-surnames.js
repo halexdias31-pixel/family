@@ -269,8 +269,8 @@ const made = as('P-PAR', { action: 'makeChild', firstName: 'Moss', lastName: SUR
 rule(made && made.success, 'her parent could not make her brother\'s account, so that email and reply were not asked — ' + JSON.stringify(made));
 none(made, 'the make-child reply');
 rule(made && made.name === 'Moss', 'the make-child reply does not name the new child "Moss" — ' + JSON.stringify(made && made.name));
-/* AND HIS HANDLE CARRIES NO SURNAME (367): the template — his first initial and the year he joined, nothing of his surname. */
-rule(made && S(made.handle) === 'm' + new Date().getFullYear(), 'the child his parent made was not given the template (his initial and the year he joined) — ' + JSON.stringify(made && made.handle));
+/* AND HIS HANDLE CARRIES NO SURNAME (367): the template — first and last letter of his first name and the year he joined (372), nothing of his surname. */
+rule(made && S(made.handle) === 'ms' + new Date().getFullYear(), 'the child his parent made was not given the template (his initial and the year he joined) — ' + JSON.stringify(made && made.handle));
 /* AND THE WEEKLY EMAIL'S DOOR, `digestMail_`, with her whole name in the HTML it is handed. */
 const m3 = MAIL.length;
 b.ev('digestMail_([{ to: "pip@example.org", subject: "This week", text: "Wren Quorrington did 3", html: "<p>Wren Quorrington did 3</p>",'

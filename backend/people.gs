@@ -154,8 +154,8 @@ function handleTrouble_(want, me) {
 }
 
 /* ---------- A HANDLE IS A TEMPLATE ANYBODY CAN WORK OUT FOR THEMSELVES (docs/history/364) */
-/* First initial and the year they joined: "t2025" (367). A clash adds first-name letters ("th2025"),
-   then a counter; earliest joiner first. No surname, no birthday, nothing random. */
+/* First and last letter of the first name and the year joined: "to2026" (372). A clash adds letters before
+   the last ("tho2026"), then a counter; earliest joiner first. No surname, no birthday, nothing random. */
 const HANDLE_NO_LETTER = 'x';
 
 /* THE OLD SHAPES (342) are read, never made: an old handle is a sign-in alias in `handle_was`, and
@@ -244,22 +244,30 @@ function handleJoined_(r, seen) {
   return { when: new Date(), from: 'now' };
 }
 
-/* The template's candidates for row `r`, in the order they are tried: initial + year joined, then one
-   more letter of the first name after the initial each time, then a counter at the end. */
-function handleCandidates_(r, seen) {
+/* THE STEMS (372): first letter + last letter of the first name, then one more letter from the start each
+   time before the last (`to`, `tho`, `theo`); a one-letter name doubles (`aa`). */
+function handleStems_(r) {
   const first = handleLetters_(r && r.first_name) || HANDLE_NO_LETTER;
-  const year = String(handleJoined_(r, seen).when.getFullYear());
+  const last = first.charAt(first.length - 1);
   const out = [];
-  for (let n = 1; n <= first.length; n++) out.push(first.slice(0, n) + year);
-  for (let i = 2; i <= 99; i++) out.push(first + year + i);
+  for (let n = 1; n <= Math.max(1, first.length - 1); n++) out.push(first.slice(0, n) + last);
+  return out;
+}
+
+/* The template's candidates for row `r`, in the order tried: each stem + year joined, then a counter. */
+function handleCandidates_(r, seen) {
+  const stems = handleStems_(r);
+  const year = String(handleJoined_(r, seen).when.getFullYear());
+  const out = stems.map(st => st + year);
+  for (let i = 2; i <= 99; i++) out.push(stems[stems.length - 1] + year + i);
   return out;
 }
 
 /* ALREADY IN THE TEMPLATE'S SHAPE for this first name (any year) — such a handle is never moved again. */
 function handleInShape_(h, r) {
-  const first = handleLetters_(r && r.first_name) || HANDLE_NO_LETTER;
+  const stems = handleStems_(r);
   const m = S(h).toLowerCase().match(/^([a-z]+)(\d{4})(\d*)$/);
-  return !!m && m[1].length >= 1 && first.indexOf(m[1]) === 0 && (!m[3] || m[1] === first);
+  return !!m && stems.indexOf(m[1]) !== -1 && (!m[3] || m[1] === stems[stems.length - 1]);
 }
 
 /* THE HANDLE THE TEMPLATE GIVES ROW `r`: the first candidate `trouble(want)` does not refuse, or ''. */
