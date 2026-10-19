@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-19-i-ink";
+  --css-version: "2026-10-20-a-notebook";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -5913,6 +5913,41 @@ button.scr-sq { cursor: pointer; }
 .wb .qpad-note { text-align: center; }
 /* CLEAR OF THE FRAME. Locked, the gold outline stands 6px outside the paper (`outline-offset: 4px`, 2px wide), and the tile row's own .5rem left it a pixel from § */
 .wb .qpad-bar { justify-content: center; margin-top: .85rem; }
+
+/* ---------- THE WHITEBOARD AS A MATHS NOTEBOOK (board.js, 377): the page above, the tiles, the pad to write big in below ---------- */
+/* THE HEIGHT IS THE SCREEN'S LESS THE CARD AROUND IT, the old board's sum: a long working needs all the room there is. */
+.nb {
+  --nb-chrome: calc(88px + 12.6rem);
+  display: flex; flex-direction: column; gap: .45rem; margin-top: .25rem;
+  height: calc(100dvh - var(--bar) - var(--safe-bottom) - var(--nb-chrome)); min-height: 24rem;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+.nb-book, .nb-pad {
+  position: relative; overflow: hidden; touch-action: none;
+  background: var(--paper); border: 1px solid var(--paper-rule); border-radius: var(--r-sm);
+}
+/* HALF AND HALF: the page shows enough lines to see the working, the pad is tall enough for a finger's letters. */
+.nb-book { flex: 1 1 0; min-height: 8rem; }
+.nb-pad { flex: 1 1 0; min-height: 10rem; cursor: crosshair; }
+.nb canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.nb-bar { justify-content: center; margin: 0; flex: none; }
+.nb-note { text-align: center; margin: 0; flex: none; font: 400 .62rem/1.4 var(--font); color: var(--faint); }
+/* ON ITS SIDE: the page over the pad in the full height, the star, heading, tiles and note beside them (the old board's arrangement). */
+@media (orientation: landscape) and (max-height: 500px) {
+  .card.is-widget:has(.nb) {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto auto 1fr;
+    column-gap: 1rem; align-items: start;
+    --nb-half: calc((100dvh - var(--bar) - var(--safe-bottom) - 2.5rem - .45rem) / 2);
+  }
+  .card.is-widget:has(.nb) .widget-slot, .card.is-widget:has(.nb) .nb-box, .card.is-widget:has(.nb) .nb { display: contents; }
+  .card.is-widget:has(.nb) > .wgt-keep { grid-area: 1 / 2; margin-top: 0; }
+  .card.is-widget:has(.nb) .widget-slot > h3 { grid-area: 2 / 2; margin: .45rem 0 0; }
+  .card.is-widget:has(.nb) .nb-book, .card.is-widget:has(.nb) .nb-pad { min-height: 0; height: var(--nb-half); }
+  .card.is-widget:has(.nb) .nb-book { grid-area: 1 / 1 / 3 / 2; }
+  .card.is-widget:has(.nb) .nb-pad { grid-area: 3 / 1 / 5 / 2; margin-top: .45rem; }
+  .card.is-widget:has(.nb) .nb-bar { grid-area: 3 / 2; justify-content: flex-start; max-width: calc(3 * (44px + .5rem)); margin-top: .5rem; }
+  .card.is-widget:has(.nb) .nb-note { grid-area: 4 / 2; text-align: left; max-width: calc(3 * (44px + .5rem)); }
+}
 
 /* ---------- ON ITS SIDE, THE BOARD TAKES THE HEIGHT AND EVERYTHING ELSE GOES BESIDE IT § */
 @media (orientation: landscape) and (max-height: 500px) {

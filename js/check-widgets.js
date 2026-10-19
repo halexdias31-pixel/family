@@ -134,6 +134,9 @@ const ACCEPTED_ENGINE = {
   initHerd: 'Herd Mentality is a game inside the Word games widget since the owner moved it there '
           + '("heard mentality is a word game so should go there."); WORD_GAMES in games.js starts '
           + 'it from initWordGames, which is the starter a widget names.',
+  initWhiteboard: 'The Whiteboard widget is the maths notebook in board.js since 377 (initBoard_). The pen on a '
+                + 'blank sheet stays in find.js as the sheet check/pen.js, check/press.js and the pen journeys '
+                + 'draw on; whether to delete it waits on the branch changing the pen.',
 };
 
 const starters = widgets.map(w => String(w.start || '')).join(' ');

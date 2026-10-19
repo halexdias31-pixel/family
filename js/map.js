@@ -1177,10 +1177,10 @@ const WIDGETS = [
   </div>` },
 
   /* ---------- THE WHITEBOARD § */
-  { id: 'whiteboard', kind: 'tool', name: 'Whiteboard', solid: true, start: () => initWhiteboard?.(),
-    into: 'wb-box', what: 'The whiteboard',
+  { id: 'whiteboard', kind: 'tool', name: 'Whiteboard', solid: true, start: () => initBoard_?.(),
+    into: 'nb-box', what: 'The whiteboard',
     html: `<h3>Whiteboard</h3>
-    <div id="wb-box" class="wb-box"></div>` },
+    <div id="nb-box" class="nb-box"></div>` },
 
   /* ---------- YOUR LIBRARY CARDS (docs/history/339) § */
   { id: 'libcards', kind: 'tool', name: 'Library cards', solid: true, signedIn: true,
