@@ -245,6 +245,7 @@ function startScreen_(id, arriving) {
   if (typeof reconnectKeep_ === 'function' && reconnectKeep_(id)) return;
   /* NOR ONE `paint` HELD UNDER A STROKE (`padHold_`, find.js), for the same reason and one more: § */
   if (typeof padHold_ === 'function' && padHold_(id)) return;
+  if (typeof boardHold_ === 'function' && boardHold_(id)) return;
   /* NOR A WIDGET COLUMN `paint` HELD FOR A FORM WITH TYPING IN IT (`settingsKeep_`, me.js) — the library cards on Tools, and their starred copy on Saved § */
   if (!arriving && (id === 'tools' || id === 'saved') && typeof settingsKeep_ === 'function' && settingsKeep_(id)) return;
   /* THE SAVED COLUMN HOLDS WIDGETS TOO, so it starts them — from its own list rather than from a
@@ -344,6 +345,7 @@ function paint(id, fresh, o) {
   if (typeof reconnectKeep_ === 'function' && reconnectKeep_(id)) { STALE[id] = 1; return; }
   /* ---------- AND NO COLUMN IS REDRAWN UNDER A STROKE, WHICHEVER COLUMN IT IS § */
   if (typeof padHold_ === 'function' && padHold_(id)) { STALE[id] = 1; return; }
+  if (typeof boardHold_ === 'function' && boardHold_(id)) { STALE[id] = 1; return; }
   /* Drawn is fresh, by definition, whoever asked for it. THE MARK IS KEPT FOR ONE QUESTION FIRST: whether
      a landing's `'maybe'` may be answered by writing nothing (below). */
   const mark = STALE[id];

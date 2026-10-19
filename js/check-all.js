@@ -139,6 +139,8 @@ const SUITE = [
   { file: 'check/swipe.js',   what: 'a swipe lands one card away or back, centred, the rest out of focus', slow: true },
   /* ---------- AND A FINGER ON THE PEN § */
   { file: 'check/pen.js',     what: 'a finger on the pen: two fingers, a palm or a thumb leave nothing, and the column holds', slow: true },
+  /* ---------- AND THE WHITEBOARD, A MATHS NOTEBOOK (377) ---------- */
+  { file: 'check/whiteboard.js', what: 'the whiteboard notebook: written big it lands small, the pad moves on, gestures undo, rub out, straighten and move', slow: true },
   /* ---------- AND WHAT A RUN OF FAST FLICKS REACHES IS ALREADY DRAWN WHEN IT GETS THERE § */
   { file: 'check/reach.js',   what: 'what a run of fast flicks reaches is drawn before it gets there, at 4x CPU', slow: true },
   /* ---------- AND THE VIDEOS CARD UNDER A FINGER, A KEYBOARD AND A PHONE TURNED SIDEWAYS § */

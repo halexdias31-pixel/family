@@ -178,6 +178,16 @@ async function board(env) {
     for (let i = 0; i < 100; i++) {
       const busy = (typeof TOOLS_WAIT !== 'undefined' && TOOLS_WAIT.length) || (typeof AFTER_SLIDE !== 'undefined' && AFTER_SLIDE)
         || (typeof SETTLE_ON !== 'undefined' && SETTLE_ON && performance.now() < SETTLE_ON.until);
+      /* THE PEN'S BLANK SHEET, mounted where the board was: the whiteboard is the maths notebook since 377 (board.js), and this check is the pen's. */
+      const slot = document.querySelector('#s-tools #wgt-whiteboard');
+      if (!busy && i >= 4 && slot && !slot.querySelector('.wb-box')) {
+        const nb = slot.querySelector('.nb-box');
+        if (nb) nb.style.display = 'none';
+        const host = document.createElement('div');
+        host.className = 'wb-box';
+        (nb ? nb.parentNode : slot).insertBefore(host, nb ? nb.nextSibling : null);
+        initWhiteboard();
+      }
       if (!busy && i >= 4 && document.querySelector('#s-tools #wgt-whiteboard .qpad')) break;
       await new Promise(r => setTimeout(r, 100));
     }
