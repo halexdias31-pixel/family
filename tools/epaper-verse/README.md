@@ -17,7 +17,7 @@ Then plug it into any phone charger. It changes every morning at about 6am.
 ## Technical notes
 
 - `verse.cpp` is the whole program (the `.ino` only names it for the Arduino tools): wake, join Wi-Fi,
-  fetch `?verse=today` from the Apps Script backend, draw, deep-sleep until 06:02 UK time (30 min on failure).
+  fetch `?verse=today` from the Apps Script backend (or, if that fails or is not deployed, one of 12 built-in verses by date), draw, deep-sleep until 06:02 UK time (30 min on failure).
   When woken by hand (plug-in or RESET) it listens on USB for 2 minutes so Install can change the Wi-Fi.
 - `install.html` + `install.js` are our own installer on esptool-js 0.6.1 (unpkg): the Chrome list is
   filtered to Espressif's USB id 0x303a, the `.bin` is written at 0, then the Wi-Fi goes over **Improv

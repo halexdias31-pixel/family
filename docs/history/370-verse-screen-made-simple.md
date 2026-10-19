@@ -19,9 +19,14 @@ more simple and minimal and intuitive".
   RESET, a fresh install) it says what is happening in one plain sentence and listens on USB for Improv:
   20 s for saved Wi-Fi, then 10 min for the page, then 2 min more so Install can offer "Change Wi-Fi". The
   morning alarm does none of that. The verse copy kept in flash went: e-paper keeps its picture.
-  Screens: "Connecting to Wi-Fi...", "Now type your Wi-Fi name and password on the Chromebook.", "That
-  Wi-Fi did not work. Try the name and password again.", "No Wi-Fi. Plug me into the Chromebook and press
-  Install.", "No verse yet. I will try again soon."
+  Screens: "Connecting to Wi-Fi...", "Now type your Wi-Fi name and password on the Chromebook.",
+  "Connected - getting today's verse", "Wi-Fi password didn't work - press Install again", "No Wi-Fi - plug
+  me into the Chromebook and press Install".
+- **A verse whatever the backend says.** Field report on the 369 firmware: phone setup saved, screen stuck
+  on "Wi-Fi setup" (a failure after the portal never redrew; the deployed Apps Script may not have
+  `?verse=` yet). Now the firmware carries 12 short verses and shows one by date (NTP) whenever the backend
+  is unreachable or answers with anything but a verse, so the first verse never waits on a deploy; the
+  backend is optional. Either way it then sleeps till morning (no 5-minute redraws).
 - **`backend/verse.gs`:** the Ledger `verses` tab and the coprime-step rotation went; day n shows verse
   n mod 79 (still 79 days without a repeat, never yesterday's). `check-verse` now allows only `people`.
 - **Install page:** three numbered steps with tiny drawings, one Install button, a progress bar, "needs Chrome on a
@@ -35,5 +40,5 @@ more simple and minimal and intuitive".
   a wrong then right password, and the three failures (a wrong vendor id fails it). The Business flow
   journey now wants six pages, the last holding the tile; dropping the tile fails it. The firmware compiles (1.2 MB);
   not yet run on a real board.
-- Lines: verse.cpp 234 → 193 (+ improv.h 51), verse.gs 117 → 92, install.html 40 → 52 (+ install.js 114), README 59 → 31.
+- Lines: verse.cpp 234 → 217 (12 of them built-in verses) (+ improv.h 51), verse.gs 117 → 92, install.html 40 → 52 (+ install.js 114), README 59 → 31.
 - Versions bumped to `2026-10-19-g-verse-simple`.

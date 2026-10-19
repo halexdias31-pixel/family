@@ -17,7 +17,30 @@
 GxEPD2_BW<GxEPD2_154_D67, GxEPD2_154_D67::HEIGHT> display(GxEPD2_154_D67(/*CS*/ 11, /*DC*/ 10, /*RST*/ 9, /*BUSY*/ 8));
 
 const char *URL = "https://script.google.com/macros/s/AKfycbyDr5ZsF63_zfgx3tlhqPF3H7U8zSY8TjB8EKY30ZWxBfDIR0QztN4B64V9c-mud7Go/exec?verse=today";
-const char *NAME = "Verse of the day", *VERSION = "2026-10-19-f-simple";   // told to the install page when it asks
+const char *NAME = "Verse of the day", *VERSION = "2026-10-19-g-builtin";   // told to the install page when it asks
+
+// A verse is always shown: these, by date, when the backend cannot be reached or does not answer with a verse yet.
+const char *const BUILT_IN[][2] = {
+  { "In the beginning God created the heaven and the earth.", "Genesis 1:1" },
+  { "The LORD is my shepherd; I shall not want.", "Psalm 23:1" },
+  { "The LORD is my light and my salvation; whom shall I fear? the LORD is the strength of my life; of whom shall I be afraid?", "Psalm 27:1" },
+  { "Delight thyself also in the LORD; and he shall give thee the desires of thine heart.", "Psalm 37:4" },
+  { "God is our refuge and strength, a very present help in trouble.", "Psalm 46:1" },
+  { "Be still, and know that I am God: I will be exalted among the heathen, I will be exalted in the earth.", "Psalm 46:10" },
+  { "Cast thy burden upon the LORD, and he shall sustain thee: he shall never suffer the righteous to be moved.", "Psalm 55:22" },
+  { "This is the day which the LORD hath made; we will rejoice and be glad in it.", "Psalm 118:24" },
+  { "Thy word is a lamp unto my feet, and a light unto my path.", "Psalm 119:105" },
+  { "I will lift up mine eyes unto the hills, from whence cometh my help.", "Psalm 121:1" },
+  { "My help cometh from the LORD, which made heaven and earth.", "Psalm 121:2" },
+  { "O give thanks unto the LORD; for he is good: for his mercy endureth for ever.", "Psalm 136:1" },
+};
+
+void builtIn(String &text, String &ref) {
+  struct tm now;
+  long day = getLocalTime(&now, 10000) ? mktime(&now) / 86400 : 0;
+  int n = sizeof(BUILT_IN) / sizeof(BUILT_IN[0]);
+  text = BUILT_IN[day % n][0]; ref = BUILT_IN[day % n][1];
+}
 
 bool online() { return WiFi.status() == WL_CONNECTED; }
 
@@ -145,8 +168,8 @@ void serveImprov() {
       say("Connecting to Wi-Fi...");
       WiFi.begin(ssid, pass);
       for (int i = 0; i < 40 && !online(); i++) delay(500);
-      if (online()) { reply(IMPROV_STATE, PROVISIONED); result(CMD_WIFI, nullptr, 0); newWifi = true; }
-      else { reply(IMPROV_ERROR, 3); say("That Wi-Fi did not work. Try the name and password again."); }
+      if (online()) { reply(IMPROV_STATE, PROVISIONED); result(CMD_WIFI, nullptr, 0); newWifi = true; say("Connected - getting today's verse"); }
+      else { reply(IMPROV_ERROR, 3); say("Wi-Fi password didn't work - press Install again"); }
     } else reply(IMPROV_ERROR, 2);
   }
 }
@@ -158,7 +181,8 @@ void waitFor(unsigned long ms, bool untilOnline) {
 
 bool showToday() {
   String text, ref;
-  if (!online() || !fetchVerse(text, ref)) return false;
+  if (!online()) return false;
+  if (!fetchVerse(text, ref)) builtIn(text, ref);
   drawVerse(asciiOnly(text), asciiOnly(ref));
   return true;
 }
@@ -178,7 +202,7 @@ void setup() {
   waitFor(20000, true);
   if (!online() && byHand) { say("Now type your Wi-Fi name and password on the Chromebook."); waitFor(600000, true); }
   bool shown = showToday();
-  if (!shown && byHand) say(online() ? "No verse yet. I will try again soon." : "No Wi-Fi. Plug me into the Chromebook and press Install.");
+  if (!shown && byHand) say("No Wi-Fi - plug me into the Chromebook and press Install");
   if (byHand) {   // two minutes in which Install can still change the Wi-Fi
     newWifi = false;
     waitFor(120000, false);
