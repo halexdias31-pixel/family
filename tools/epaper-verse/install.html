@@ -16,8 +16,6 @@
   svg { width: 44px; height: 44px; flex: none; margin-left: auto; stroke: var(--gold); fill: none; stroke-width: 2; stroke-linecap: round; }
   button { font: inherit; font-size: 1.4rem; min-height: 56px; width: 100%; border: 0; border-radius: 12px; background: var(--gold); color: #000; cursor: pointer; }
   button:disabled { opacity: .5; cursor: default; }
-  input { font: inherit; width: 100%; box-sizing: border-box; min-height: 48px; margin: 0 0 1rem; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: #111; color: var(--ink); }
-  label { display: block; color: var(--dim); }
   progress { width: 100%; height: 14px; accent-color: var(--gold); margin: 1rem 0 0; }
   #say { font-size: 1.3rem; min-height: 2rem; margin: 1.2rem 0; }
   [hidden] { display: none !important; }
@@ -28,24 +26,17 @@
 <main>
   <h1>Verse screen</h1>
   <p class="dim">Use Chrome on a Chromebook or computer (not a phone).</p>
-  <ol>
+  <ol style="list-style:none;padding:0">
     <li><b>1</b> Plug the screen into the Chromebook.
       <svg viewBox="0 0 44 44"><rect x="6" y="14" width="14" height="16" rx="2"/><path d="M20 22h10c4 0 6-4 8-8"/></svg></li>
     <li><b>2</b> Press Install and choose the screen.
       <svg viewBox="0 0 44 44"><rect x="6" y="14" width="32" height="16" rx="8"/><circle cx="22" cy="22" r="3"/></svg></li>
-    <li><b>3</b> Type your Wi-Fi name and password.
-      <svg viewBox="0 0 44 44"><path d="M8 18a20 20 0 0 1 28 0M13 24a12 12 0 0 1 18 0M18 30a5 5 0 0 1 8 0"/><circle cx="22" cy="35" r="1"/></svg></li>
   </ol>
   <button id="go" type="button">Install</button>
   <progress id="bar" max="1" value="0" hidden></progress>
-  <form id="wifi" hidden>
-    <label for="ssid">Wi-Fi name</label><input id="ssid" autocomplete="off" required>
-    <label for="pass">Wi-Fi password</label><input id="pass" type="password" autocomplete="off">
-    <button type="submit">Save</button>
-  </form>
   <p id="say" aria-live="polite"></p>
   <small>If it doesn't show up: try another cable, or hold the BOOT button while you plug it in.
-    To change the Wi-Fi, do it all again. Free software (GPL-3.0); the source is in tools/epaper-verse/.</small>
+    Keep the screen on USB power; it shows a new verse every day by itself. Free software (GPL-3.0); the source is in tools/epaper-verse/.</small>
 </main>
 <script type="module" src="install.js"></script>
 </body>
