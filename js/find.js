@@ -3701,8 +3701,119 @@ function markRuleSet_(typed, spec) {
     .filter(Boolean).sort();
   return got.length === want.length && got.every((g, i) => g === want[i]);
 }
+/* ---------- AN ALGEBRAIC ANSWER, MARKED BY ITS VALUE (365) */
+/* `rule: expr R`: any expression equal to R at sample values; `v = R` wants v as the subject; `eqn A = B`: any equation a multiple of it. */
+function markExprParse_(t) {
+  let i = 0;
+  const peek = () => t[i];
+  const starts = c => !!c && /[a-z0-9.(√∛π]/.test(c);
+  const atom = () => {
+    const c = peek();
+    if (c === '(') { i++; const n = sum(); if (!n || peek() !== ')') return null; i++; return n; }
+    if (c === '√' || c === '∛') { i++; const n = power(); return n && [c, n]; }
+    if (c === 'π') { i++; return ['n', Math.PI]; }
+    if (/^[a-z]$/.test(c || '')) { i++; return ['v', c]; }
+    const m = /^\d*\.?\d+/.exec(t.slice(i));
+    if (!m) return null;
+    i += m[0].length;
+    return ['n', Number(m[0])];
+  };
+  const power = () => {
+    const b = atom();
+    if (b && peek() === '^') { i++; const e = unary(); return e && ['^', b, e]; }
+    return b;
+  };
+  const unary = () => {
+    if (peek() === '-') { i++; const n = unary(); return n && ['neg', n]; }
+    if (peek() === '+') { i++; return unary(); }
+    return power();
+  };
+  const product = () => {
+    let n = unary();
+    while (n) {
+      if (peek() === '*' || peek() === '/') { const op = t[i++], r = unary(); n = r && [op, n, r]; }
+      else if (starts(peek())) { const r = power(); n = r && ['*', n, r]; }
+      else break;
+    }
+    return n;
+  };
+  const sum = () => {
+    let n = product();
+    while (n && (peek() === '+' || peek() === '-')) { const op = t[i++], r = product(); n = r && [op, n, r]; }
+    return n;
+  };
+  const n = sum();
+  return n && i === t.length ? n : null;
+}
+function markExprVal_(n, at) {
+  const [k, a, b] = n;
+  if (k === 'n') return a;
+  if (k === 'v') return at[a];
+  const x = markExprVal_(a, at), y = b && markExprVal_(b, at);
+  switch (k) {
+    case 'neg': return -x;
+    case '√': return Math.sqrt(x);
+    case '∛': return Math.cbrt(x);
+    case '+': return x + y;
+    case '-': return x - y;
+    case '*': return x * y;
+    case '/': return x / y;
+    default: return Math.pow(x, y);
+  }
+}
+/* `{ sides: [tree, tree?], vars }`, or null for anything that is not an expression. */
+function markExprRead_(s) {
+  const t = String(s == null ? '' : s).toLowerCase().replace(/<[^>]*>/g, '').replace(/&minus;/g, '-')
+    .replace(/[−–—]/g, '-').replace(/[×·]/g, '*').replace(/÷/g, '/').replace(/[⁄∕]/g, '/')
+    .replace(/²/g, '^2').replace(/³/g, '^3').replace(/⁴/g, '^4').replace(/sqrt|root/g, '√').replace(/cbrt/g, '∛')
+    .replace(/pi/g, 'π').replace(/\s+/g, '');
+  if (!t || /[^a-z0-9.+\-*\/^()√∛π=]/.test(t)) return null;
+  const sides = t.split('=').map(markExprParse_);
+  if (sides.length > 2 || sides.some(x => !x)) return null;
+  return { sides: sides, vars: (t.match(/[a-z]/g) || []).filter((v, i, a) => a.indexOf(v) === i) };
+}
+function markExpr_(typed, want, eqn) {
+  const T = markExprRead_(typed), W = markExprRead_(want);
+  if (!T || !W) return false;
+  let f, g;
+  if (eqn) {
+    if (T.sides.length !== 2 || W.sides.length !== 2) return false;
+    f = at => markExprVal_(T.sides[0], at) - markExprVal_(T.sides[1], at);
+    g = at => markExprVal_(W.sides[0], at) - markExprVal_(W.sides[1], at);
+  } else {
+    /* a subject wants that letter alone on the left, or nothing on the left, and nowhere on the right */
+    const subj = W.sides.length === 2 && W.sides[0][0] === 'v' ? W.sides[0][1] : null;
+    if (W.sides.length === 2 && !subj) return false;
+    let tr = T.sides;
+    if (tr.length === 2) { if (!subj || tr[0][0] !== 'v' || tr[0][1] !== subj) return false; tr = [tr[1]]; }
+    if (subj && T.vars.indexOf(subj) >= 0 && T.sides.length === 1) return false;
+    if (subj && JSON.stringify(tr[0]).indexOf('["v","' + subj + '"]') >= 0) return false;
+    const w = W.sides[W.sides.length - 1];
+    f = at => markExprVal_(tr[0], at);
+    g = at => markExprVal_(w, at);
+  }
+  const vars = T.vars.concat(W.vars).filter((v, i, a) => a.indexOf(v) === i);
+  const SEEDS = [1.37, 2.71, 0.53, 3.19, 1.83, 4.07, 0.29, 2.23];
+  let ratio = null, used = 0;
+  for (let s = 0; s < 6; s++) {
+    const at = {};
+    vars.forEach((v, j) => { at[v] = SEEDS[(s + 3 * j) % SEEDS.length] + 0.11 * j; });
+    const a = f(at), b = g(at);
+    if (!isFinite(b) || Math.abs(b) < 1e-12) continue;
+    if (!isFinite(a)) return false;
+    const r = a / b;
+    if (!eqn && Math.abs(r - 1) > 1e-7) return false;
+    if (eqn && (Math.abs(r) < 1e-9 || (ratio !== null && Math.abs(r - ratio) > 1e-7 * Math.max(1, Math.abs(ratio))))) return false;
+    ratio = r;
+    used++;
+  }
+  return used >= 3;
+}
 function markRule_(typed, rule) {
   const body = String(rule || '').replace(/^\s*rule:\s*/i, '');
+  /* `expr`/`eqn` is the whole rule but for `nobracket`, which wants it multiplied out */
+  const ex = /(?:^|,)\s*(expr|eqn)\s+([^,]+)/.exec(body);
+  if (ex) return markExpr_(typed, ex[2], ex[1] === 'eqn') && !(/(?:^|,)\s*nobracket\b/.test(body) && /\(/.test(String(typed)));
   const set = /(?:^|,)\s*set\s+([^,]+)/.exec(body);
   if (set) return markRuleSet_(typed, set[1]);
   const nums = markRuleNums_(typed), vs = nums.map(n => n.v);
@@ -4173,6 +4284,7 @@ function multiOf_(x) {
   const ways = all.filter(w => !/^rule:/i.test(w));
   for (const r of all.filter(w => /^rule:/i.test(w))) {
     const body = r.replace(/^rule:\s*/i, '');
+    if (/(?:^|,)\s*(expr|eqn)\s/.test(body)) continue;   /* one expression, one box */
     const set = /(?:^|,)\s*set\s+([^,]+)/.exec(body);
     if (set) return { n: set[1].split('/').length, words: true, wrap: '', labels: [] };
     const c = /(?:^|,)\s*count\s+(\d+)/.exec(body);

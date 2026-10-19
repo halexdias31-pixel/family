@@ -616,6 +616,18 @@ const RULES = [
   ['Head and 2', 'rule: set head~h+1/head+2', false, 'a list with one missing'],
   ['Soup and Chicken, Beef and Soup', 'rule: set soup+chicken/soup+beef', true, 'each pair either way round'],
   ['', 'rule: count 1', null, 'nothing typed is not a wrong answer'],
+  /* `expr` and `eqn` (365): an algebraic answer marked by its value at sample points, not its spelling */
+  ['x^2 + 7x + 12', 'rule: expr x^2+7x+12', true, 'the scheme as written'],
+  ['7x + x² + 12', 'rule: expr x^2+7x+12', true, 'the terms in another order, a squared sign'],
+  ['(x + 3)(x + 4)', 'rule: expr x^2+7x+12, nobracket', false, 'still in brackets where it was to be multiplied out'],
+  ['x^2 + 7x + 13', 'rule: expr x^2+7x+12', false, 'one term wrong'],
+  ['(f+4)/(f-3)', 'rule: expr m = (f+4)/(f-3)', true, 'the subject without its name'],
+  ['m = (4 + f)/(f − 3)', 'rule: expr m = (f+4)/(f-3)', true, 'the subject named, the top turned round'],
+  ['m(f - 3) = f + 4', 'rule: expr m = (f+4)/(f-3)', false, 'a true equation with the letter not yet the subject'],
+  ['4y + 3x + 11 = 0', 'rule: eqn y = -3/4x - 11/4', true, 'the same line as an equation in another form'],
+  ['y = -0.75x + 2.75', 'rule: eqn y = -3/4x - 11/4', false, 'a parallel line, not the line'],
+  ['h = 120t^-0.5', 'rule: expr h = 120/√t', true, 'a negative power for a root underneath'],
+  ['banana', 'rule: expr x^2+7x+12', false, 'words are not an expression'],
 ];
 RULES.forEach(([typed, accept, want, why]) => {
   const got = markAnswer_(typed, accept);
