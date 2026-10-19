@@ -1,0 +1,19 @@
+epaper-verse.bin - third-party notices
+
+epaper-verse.bin is built from verse.cpp in this folder, which is licensed under the GNU General Public
+License version 3 (COPYING), because it links GxEPD2. Its complete source is this folder; the libraries
+below are built unmodified, at the versions given, and can be fetched from their repositories.
+
+Built with arduino-esp32 3.0.7 (board ESP32S3 Dev Module, 4MB flash, QIO 80MHz, Huge APP partitions,
+PSRAM disabled, USB CDC on boot).
+
+  GxEPD2 1.6.9 (de82887)            github.com/ZinggJM/GxEPD2              GPL-3.0
+  Adafruit GFX Library 1.12.6        github.com/adafruit/Adafruit-GFX-Library  BSD-2-Clause, Copyright (c) 2012 Adafruit Industries
+  Adafruit BusIO 1.17.4              github.com/adafruit/Adafruit_BusIO     MIT, Copyright (c) 2017 Adafruit Industries
+  WiFiManager 2.0.17 (4131fe6)       github.com/tzapu/WiFiManager           MIT, Copyright (c) 2015 tzapu
+  ArduinoJson 7.4.2 (1cd478f)        github.com/bblanchon/ArduinoJson       MIT, Copyright (c) 2014-2026 Benoit Blanchon
+  arduino-esp32 3.0.7                github.com/espressif/arduino-esp32     LGPL-2.1
+  ESP-IDF 5.1 libraries              github.com/espressif/esp-idf           Apache-2.0 (and their own notices)
+
+The MIT and BSD licences permit redistribution in binary form with their copyright notice, given above.
+The fonts are Adafruit GFX's FreeSerif (GNU FreeFont, GPL with font exception).
