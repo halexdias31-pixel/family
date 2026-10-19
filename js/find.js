@@ -4828,7 +4828,7 @@ function padStart_(c, at, r) {
              r: 0, rMax: 0, a: null, a0: 0, sweep: 0, held: false, tip: null, id: c.id,
              c: c, t0: c.t0, k: padAspectOf_(pad), est: false, pen: false, dirty: false, live: [], start: 0,
              box: r, board: !!pad && padIsBoard_(pad.getAttribute('data-k')), lat: null, tg: null, hold: null, gain: null,
-             at: at.slice(), fp: null, raw: at.slice(), dot: false, far: 0, loupe: 0, dwell: null };
+             at: at.slice(), fp: null, raw: at.slice(), dot: false, far: 0, loupe: 0 };
   const g = PAD_GO;
   /* A PLACEMENT, PUT DOWN (357): the pin and the ruler's first end where they snap, and the pen's touch a
      DOT -- one point -- until it has gone `PAD_DOT_PX`. Not on the board: it never snaps, and its taps are as before. */
@@ -5114,25 +5114,14 @@ function padRules_(c) {
 const PAD_LOUPE_PX = 128;
 const PAD_LOUPE_RISE = 112;
 let PAD_LOUPE_T = 0;
+/* EVERY STROKE, EVERY TOOL, EVERY SURFACE (359): the loupe is up from the touch, above the finger, not only for a placement or after a pause. */
 function padLoupeWant_(g) {
   if (PAD_LOUPE_T) { clearTimeout(PAD_LOUPE_T); PAD_LOUPE_T = 0; }
-  const L = g.lat;
-  g.lnow = !!L && (g.tool !== 'pen' || (g.dot && L.pitch < PAD_FINE_PX));
-  const p = g.c && g.c.p ? g.c.p : [0, 0];
-  g.dwell = { x: p[0], y: p[1], t: performance.now(), lim: 10, ms: 300 };
-  if (g.lnow) padFrameWant_();
-  else if (typeof setTimeout === 'function') PAD_LOUPE_T = setTimeout(() => { PAD_LOUPE_T = 0; padFrameWant_(); }, 300);
+  g.lnow = true;
+  padFrameWant_();
 }
-/* A SAMPLE: the loupe, if it is up, follows at the next frame; if not, the pause is timed again from here
-   whenever the finger has left the circle it was pausing in. */
-function padLoupeStep_(g, at) {
-  if (g.lnow || g.loupe) { padFrameWant_(); return; }
-  const d = g.dwell, p = g.c && g.c.p;
-  if (!d || !p || Math.hypot(p[0] - d.x, p[1] - d.y) <= d.lim) return;
-  d.x = p[0]; d.y = p[1]; d.t = performance.now(); d.lim = 8; d.ms = 400;
-  if (PAD_LOUPE_T) clearTimeout(PAD_LOUPE_T);
-  PAD_LOUPE_T = typeof setTimeout === 'function' ? setTimeout(() => { PAD_LOUPE_T = 0; padFrameWant_(); }, 400) : 0;
-}
+/* A SAMPLE: the loupe follows at the next frame. */
+function padLoupeStep_(g) { if (g.lnow || g.loupe) padFrameWant_(); }
 /* `hide` ONLY HIDES IT: the preview redrawn (`padLiveShow_`, at every landing) or held keeps the pause's timer, which a
    lift, a drop or the page going away ends. */
 function padLoupeOff_(hide) {
@@ -5145,7 +5134,7 @@ function padLoupeOff_(hide) {
 /* AT THE FRAME: shown or not, and where. */
 function padLoupe_(g) {
   if (!g || PAD_HUSH || PAD_TWO.size || !padShown_(g) || !g.ink || !g.ink.isConnected) { if (g && g.loupe) padLoupeOff_(); return; }
-  if (!g.loupe && !g.lnow && !(g.dwell && performance.now() - g.dwell.t >= g.dwell.ms)) return;
+  if (!g.loupe && !g.lnow) return;
   let el = document.querySelector('body > .pad-loupe');
   if (!el) {
     el = document.createElement('div');
