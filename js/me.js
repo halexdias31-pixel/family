@@ -3993,8 +3993,8 @@ function cardSeatRefusal_(form, fields) {
 function cardHandleHtml_() {
   /* NO PRESS ANY MORE (364, 367): the handle is a template, said here so nobody has to be told it. */
   const said = (HANDLE_SAID.pid && HANDLE_SAID.pid === String(USER.personId || '') && HANDLE_SAID.text)
-    || 'Your handle is your first initial and the year you joined. If somebody had it already, more '
-     + 'letters of your first name were added, and then a number.';
+    || 'Your handle is the first and last letter of your first name and the year you joined. If somebody '
+     + 'had it already, more letters of your first name were added, and then a number.';
   return `<p class="handle-now" aria-live="polite"><b aria-hidden="true">@</b><span class="handle-shown">${
       esc((USER && USER.handle) || '')}</span></p>
     <p class="faint handle-said">${esc(said)}</p>`;

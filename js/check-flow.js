@@ -2766,7 +2766,7 @@ check('every role\'s own card has Edit, with the sections their card prints: a t
     if (!h || (h.querySelector('.handle-shown') || {}).textContent !== c.t.whoami().handle
         || h.querySelector('[data-do="handle-shuffle"], input, .btn'))
       bad.push(who + '\'s handle section is not their handle shown with nothing to press or type (364: no Randomise)');
-    if (h && !/first initial and the year you joined/.test(h.textContent)) bad.push(who + '\'s handle section does not say how the handle is made, so nobody can work theirs out');
+    if (h && !/first and last letter of your first name and the year you joined/.test(h.textContent)) bad.push(who + '\'s handle section does not say how the handle is made, so nobody can work theirs out');
     if (!c.form().querySelector('.ce-sec[data-sec="picture"] .pfp [data-do="pfp-pick"]')) bad.push(who + ' is not offered the picture chooser on their own card');
     if (!c.box('first_name') || !c.box('last_name')) bad.push(who + ' cannot change their name on their own card');
     if (order === bare && c.form().querySelector('[data-me="date_of_birth"], [data-me="dob_d"], [data-me="email"], [data-me^="lib"]')) bad.push(who + '\'s card offers a box their card does not print');
