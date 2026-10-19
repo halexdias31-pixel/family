@@ -281,6 +281,7 @@ function boot(opts) {
       'padNow: () => PAD_ON,' +
       /* AND THE PAD'S KEY, a `const` arrow, so a journey can arm a pad by the key its marks are kept
          under -- and read those marks back -- without writing the key's format out a second time. */
+      'drawMark: typeof DRAW_MARK !== "undefined" ? DRAW_MARK : null,' +
       'padKey: typeof padKey_ === "function" ? padKey_ : null,' +
       /* WHICH TOOL EACH PAD HOLDS, a `const` Map -- so a journey can leave a stale choice behind and
          ask whether the bar, not the Map, decides what a drag draws. */
@@ -25641,7 +25642,7 @@ check('a drawn answer is sent: a made-up surface and a figure each have Send und
 });
 
 /* ---------- AND OVER THE WHOLE LIBRARY: EVERY QUESTION ANSWERED BY DRAWING ALONE CAN BE SENT (docs/history/362) ---------- */
-check('every question in the library answered by drawing alone has a Send under its pen', async () => {
+check('every question in the library answered by drawing alone has a Send or a Check under its pen', async () => {
   const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined) });
   await wait(300);
@@ -25657,7 +25658,7 @@ check('every question in the library answered by drawing alone has a Send under 
     if (!k.draw || k.value) continue;
     n++;
     host.innerHTML = w.questionCard_(x, 0);
-    if (!host.querySelector('.qpad-send [data-do="pad-send"]')) bad.push((x.row && x.row.row_id) + ': drawn, with no Send');
+    if (!host.querySelector('.qpad-send [data-do="pad-send"], .qpad-send [data-do="pad-check"]')) bad.push((x.row && x.row.row_id) + ': drawn, with no Send or Check');
   }
   host.remove();
   if (n < 100) bad.push('only ' + n + ' drawing-only questions were found — wanted the library\'s hundreds');
@@ -25674,7 +25675,7 @@ check('every part of the 71 Corbettmaths primary worksheets has an answer and a 
   const bad = [];
   if (typeof w.questionCard_ !== 'function') return ['questionCard_ not reachable — NOT checked'];
   w.__t.STUFF().filters = [];
-  const SEND = '[data-do="qp-check"], [data-do="qp-cells-check"], [data-do="qp-choose"], [data-do="qp-order-send"], [data-do="qp-rule"], [data-do="pad-send"]';
+  const SEND = '[data-do="qp-check"], [data-do="qp-cells-check"], [data-do="qp-choose"], [data-do="qp-order-send"], [data-do="qp-rule"], [data-do="pad-send"], [data-do="pad-check"]';
   /* a typed answer with no scheme is marked by a person or AI: Send or the AI tile, which come with signing in */
   const host = w.document.createElement('div');
   w.document.body.appendChild(host);
@@ -25691,6 +25692,72 @@ check('every part of the 71 Corbettmaths primary worksheets has an answer and a 
   host.remove();
   if (n < 1300) bad.push('only ' + n + ' Corbettmaths primary parts reached Find — wanted 1358');
   if (later > 4) bad.push(later + ' parts are typed with nothing to mark them by machine — 4 were known (362)');
+  return bad.slice(0, 25).concat(bad.length > 25 ? ['… and ' + (bad.length - 25) + ' more'] : []);
+});
+
+/* ---------- A DRAWN ANSWER IS MARKED BY ITS GEOMETRY (docs/history/366): drawn on a real Corbettmaths figure in the real card, and every row's own example ---------- */
+check('a drawn answer is marked on Check: strokes on a real Corbettmaths figure get Correct, a near miss Not yet, and every drawn Corbettmaths and GCSE part marks its own right drawing in full', async () => {
+  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined) });
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, bad = [];
+  if (typeof w.questionCard_ !== 'function' || !A['pad-check'] || !t.padKey || typeof w.drawFig_ !== 'function') return ['questionCard_, padKey_, drawFig_ or the pad-check handler is not reachable — NOT checked'];
+  const DM = t.drawMark;
+  if (!DM) return ['DRAW_MARK is not reachable — NOT checked'];
+  t.STUFF().filters = [];
+  const host = w.document.createElement('div');
+  w.document.body.appendChild(host);
+  const all = w.stuffItemsAll_();
+  const draw = (x, strokes) => {
+    try { w.localStorage.setItem(t.padKey(x), JSON.stringify(strokes)); } catch (e) {}
+    host.innerHTML = w.questionCard_(x, 0);
+    const go = host.querySelector('.qpad-send [data-do="pad-check"]');
+    if (!go) return null;
+    A['pad-check'](go);
+    return host.querySelector('.qpad-send .qp-verdict').textContent;
+  };
+  /* ONE BY HAND: Reflections Q7, triangle A reflected in the x-axis, drawn as a child would -- three strokes, one corner at a time, a little off the grid */
+  const x7 = all.find(i => i.row && i.row.row_id === 'Q-CBM-reflections-7');
+  if (!x7) bad.push('Reflections Q7 did not reach Find');
+  else {
+    host.innerHTML = w.questionCard_(x7, 0);
+    const svg = host.querySelector('.qpad-art > svg');
+    const F = DM.frameOf(JSON.parse(x7.drawAnswer), w.drawFig_(svg ? svg.outerHTML : ''));
+    const vb = F.vb, pen = (...pts) => [].concat.apply([], pts.map(p => { const v = F.v(p); return [(v[0] - vb[0]) / vb[2] * 340, (v[1] - vb[1]) / vb[3] * 340]; }));
+    const right = [pen([1.05, -4.1], [1, -2.9], [0.95, -2]), pen([1, -2], [2.5, -2.05], [4.1, -2]), pen([4, -2], [2.5, -3], [1, -4])];
+    const say = draw(x7, right);
+    if (say !== 'Correct') bad.push('Reflections Q7 drawn right says ' + JSON.stringify(say));
+    const latest = w.subLatest_(t.ansKey(x7));
+    if (!latest || latest.v !== 'right' || !/^drawing · 3 marks/.test(latest.a)) bad.push('the drawing is not recorded as a marked submission: ' + JSON.stringify(latest));
+    /* reflected in the y-axis instead: the near miss every class makes */
+    const miss = [pen([-1, 4], [-1, 2]), pen([-1, 2], [-4, 2]), pen([-4, 2], [-1, 4])];
+    if (draw(x7, miss) !== 'Not yet — have another go') bad.push('Reflections Q7 reflected in the wrong axis says ' + JSON.stringify(host.querySelector('.qpad-send .qp-verdict').textContent));
+    host.innerHTML = w.questionCard_(x7, 0);
+    if (host.querySelector('.qpad-send .qp-verdict').textContent !== 'Not yet — have another go') bad.push('drawn again, the card does not show the drawing\'s own verdict');
+    try { w.localStorage.setItem(t.padKey(x7), '[]'); } catch (e) {}
+    host.innerHTML = w.questionCard_(x7, 0);
+    A['pad-check'](host.querySelector('.qpad-send [data-do="pad-check"]'));
+    if (host.querySelector('.qpad-send .qp-verdict').textContent !== 'Draw your answer first') bad.push('Check with nothing drawn does not ask for a drawing');
+  }
+  /* AND EVERY ROW: its own right drawing (`example`) is full marks in the real card, and the same drawing a square to the right is not */
+  let n = 0;
+  const sets = { cbm: 0, gcse: 0 };
+  for (const x of all) {
+    if (!x || x.kind !== 'question' || !String(x.drawAnswer || '').trim()) continue;
+    n++;
+    host.innerHTML = w.questionCard_(x, 0);
+    const svg = host.querySelector('.qpad-art > svg');
+    if (!svg) { bad.push(x.row.row_id + ': has draw_answer and no figure to draw on'); continue; }
+    const fig = w.drawFig_(svg.outerHTML), eg = DM.example(x.drawAnswer, fig);
+    const say = draw(x, eg);
+    const full = DM.mark(eg, x.drawAnswer, fig, x.marks);
+    if (!full || full.got !== full.of) bad.push(x.row.row_id + ': its own right drawing scores ' + JSON.stringify(full));
+    else if (!/^Correct$|^(\d+) of \1 marks/.test(say || '')) bad.push(x.row.row_id + ': its right drawing, checked in the card, says ' + JSON.stringify(say));
+    if (x.company === 'Corbettmaths') sets.cbm++; else sets.gcse++;
+    try { w.localStorage.removeItem(t.padKey(x)); } catch (e) {}
+  }
+  host.remove();
+  if (sets.cbm < 72) bad.push('only ' + sets.cbm + ' Corbettmaths drawn parts are marked by geometry — wanted 72');
   return bad.slice(0, 25).concat(bad.length > 25 ? ['… and ' + (bad.length - 25) + ' more'] : []);
 });
 
