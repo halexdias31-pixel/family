@@ -1,81 +1,9 @@
 #!/usr/bin/env node
-/* ==================================================================================================
-   node js/check-digest.js — THE SUNDAY PARENT EMAIL AND ITS MARKS, ASKED OF THE REAL BACKEND
-
-   ASKED FOR AS *"something which triggers every sunday. it checks what the student has done that week
-   and records the questions and send it in an email to parents. for now dont actually make it but make
-   the infrastructure"*. So nothing here has ever emailed anybody, and that is exactly why it needs a
-   check: the first time it runs for real is a Sunday evening with forty families on the other end, and
-   every rule below fails by sending — to the wrong person, twice, or at all when it was meant not to.
-
-     · A WEEK IS MONDAY TO SUNDAY IN LONDON, including the two Sundays the clocks change, and a run on a
-       Monday sends the week that just ended rather than starting one with nothing in it.
-     · ONLY THAT WEEK'S SUBMISSIONS (since 9 Oct — `attempts` before), one line per question however many
-       times it was sent, grouped per learner, new and gone-back-to apart, with the name the phone sent —
-       and never the key in its place: a question with no name is counted, not listed.
-     · EACH WITH THE WEEK'S LATEST VERDICT AS A MARK — ✓, ✗, the AI's "3 of 4 marks", "not marked" (it
-       printed `sent` until 12 Oct) — the owner's *"Just whether it's right or not"*: the last press of
-       the week decides it, a press after the week does not, and a press before it is still this week's,
-       in the one list (the plan keeps it apart; the email no longer says "(again)").
-     · ONLY THE LEARNER'S ACCEPTED PARENTS WITH AN ADDRESS. Not a pending link, not a refused one, not
-       another family's parent, not the learner; a parent whose `weekly_email` says no is skipped; a
-       learner nobody can be told about is listed with the reason and emailed to nobody.
-     · OFF DOES NOTHING. PREVIEW WRITES THE LOG AND SENDS NOTHING. SEND SENDS ONE PER PARENT PER LEARNER,
-       AND A SECOND RUN SENDS NONE — the log row is the receipt. The daily quota keeps its reserve, and
-       what it held back goes on the next run, once.
-     · `installWeeklyDigest` LEAVES EXACTLY ONE SUNDAY TRIGGER AT THE CONFIGURED HOUR, London, however
-       many times it is run, and touches no other trigger. NOTHING CALLS IT, or the run, from anywhere.
-     · `digestPreview` IS AN ADMIN'S, and writes, sends and books nothing.
-     · `submitAnswer` KEEPS THE LABEL: tags out, capped — and a tab made without the column still takes
-       the press.
-     · THE PLAN CARRIES EACH QUESTION'S WORDS (SCHEMA.submissions `words`): a practical's latest box that
-       has any, none that hold a link, an address or a domain anywhere in them — the question still
-       listed by its name — and none on an item not printed.
-     · AND THE EMAIL PRINTS THEM, since the owner made it the one parents get (*"should be at the end
-       of the week that it send to parents all they done that week"*): each question under its paper
-       as "Q4a: <its ask>", the stem its parts share once, refused words gone and the number kept, a
-       paper with no words its line of numbers, one list, escaped, never a raw key, at most
-       `DIGEST_WEEK_LIST_MAX` and then "…and N more." — and 80 of the longest under Gmail's clip.
-     · `installWeeklyDigest` AND `removeWeeklyDigest` TAKE AWAY WHAT NOTHING RUNS ANY MORE
-       (`DIGEST_RETIRED_RUNS`: the removed email's hourly check, the removed marking passes), and only
-       that, and say so.
-     · `installWeeklyDigest` TAKES AWAY THE REMOVED EMAIL'S HOURLY CHECK (`DIGEST_RETIRED_RUNS`), and
-       only that, and says so.
-     · `DIGEST_WORDS_REFUSE` RULE BY RULE — a one-letter domain, a dot that is not a full stop, a
-       mobile, a landline as it is written, an account number, a sort code — words only under a key in
-       the library's shape, and EVERY QUESTION AND STEM IN data/questions.json, as the phone sends it,
-       refused by none of them.
-     · SINCE 12 OCT (docs/history/348) — *"i want them to see if they got it right too"*:
-         THE VERDICTS AS RECORDED (9, since 18 Oct — docs/history/352, *"It's already marked when they
-         submit the questions"*): ✓, ✗ and the AI's marks as the press recorded them, "not marked" for a
-         `sent` answer, no Gemini call from the email's run, no row appended to `submissions`.
-         THE EMAIL (10, f), as MailApp is handed it: no handle, surname, id, PIN, `sent`, link or key —
-         and each question's words with ✓, ✗, "N of M marks" or "not marked".
-         THE TRIGGER (6, g): ONE — the 9pm Sunday email — booked once, and the way back.
-         `checkSundayEmail` (11, h): every line it promises, and nothing changed.
-         `check/digest-dry.js` (12): an invented week written to a folder, nothing sent, never in the repo.
-     · SINCE 18 OCT (docs/history/351) — *"On Sunday @9pm"* and *"So each question As is on site."*:
-         9PM (6, 9f, 11): 21 the code's default and the config row's, the run-up booked at 20:00 and working a
-         burst from 19:50, the email's own run "up to 9:02pm"; `checkSundayEmail` printing the hour
-         `installWeeklyDigest` recorded, WARNING while the config cell says another, and calling triggers with
-         no recorded hour unknown.
-         AS ON THE SITE (13): a library question printed whole from its row — the shared stem once, its
-         picture after it, each part's number and marks over all its words, then "Kit: ✓" — through the
-         allow-list; each picture the PNG twin by SHA-256 on the site, with its alt text, and the alt text in
-         the plain body; a key the library has not got as its words line; no address but the pictures'; a
-         real question's picture a file that is in data/diagrams/; and 80 whole papers under Gmail's clip
-         with every question kept.
-
-   THROUGH THE REAL BACKEND on `check-gas-load.js`, with MailApp, ScriptApp and the clock stubbed so
-   that nothing here can reach a mailbox, a project or the time of day. The people are invented and
-   their PINs are 0000.
-================================================================================================== */
+/* node js/check-digest.js — THE SUNDAY PARENT EMAIL AND ITS MARKS, ASKED OF THE REAL BACKEND § */
 'use strict';
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 const fs = require('fs'), path = require('path');
-/* THE WORLD — MailApp, ScriptApp, the lock and a London clock over the real backend — is
-   `check-mail-load.js` now, lifted out of this file when the email after a session needed the same
-   one. The weekly receipt (`digest_log`, keyed by `week_of`) is its default. */
+/* THE WORLD — MailApp, ScriptApp, the lock and a London clock over the real backend — is `check-mail-load.js` now, lifted out of this file when the email after a § */
 const { world, cfgSet, rowsOf, at, strip, calls, unquote, mentions } = require('./check-mail-load.js');
 
 const bad = [];
@@ -86,11 +14,7 @@ const run = (b, s) => JSON.parse(JSON.stringify(b.ev('clearCache(); digestRun_(n
 /* THE HTML WITHOUT ITS INLINE STYLES — what the email says, asked apart from how it is dressed. */
 const unstyled = h => String(h || '').replace(/ style="[^"]*"/g, '').replace(/<\/?span>/g, '').replace(/^<div>|<\/div>$/g, '');
 
-/* ---------- THE PEOPLE, THE FAMILIES AND A WEEK OF WORK ----------------------------------------------
-   THE WEEK IS MON 28 SEP – SUN 4 OCT 2026, and the run is that Sunday at 18:00 in London (17:00 UTC —
-   it is still summer time). Ada did five things around it: two new inside it (the Monday-after-the-
-   Sunday-before and the Sunday itself), one done again inside it, one entirely the week before, and one
-   on the Monday after. Her family is every kind of link there is. */
+/* ---------- THE PEOPLE, THE FAMILIES AND A WEEK OF WORK § */
 const SUN = '2026-10-04T17:00:00Z';
 function seeded(opts) {
   const w = world(opts);
@@ -128,10 +52,7 @@ function seeded(opts) {
     L(7, 'P-S1', 'P-S1', 'accepted'),       // a typo linking Ada to herself
     L(8, 'P-C7', 'P-S5', 'accepted'),
   ]);
-  /* ONE ROW PER PRESS (SCHEMA.submissions). Ada sent q:ADA-1 three times in the week — right on the
-     Monday and the Wednesday, wrong on the Friday — and once more, right, on the Monday after, which is
-     next week's: the week's mark is the Friday's ✗, neither the week's first press nor next week's.
-     q:ADA-SUN was right on the Sunday afternoon, before the 18:00 run. */
+  /* ONE ROW PER PRESS (SCHEMA.submissions). § */
   b.seed('submissions', [
     S('P-S1', 'q:ADA-1', '2026-09-28', 'Maths · Paper 1 (Calculator) — June 2024 · Q1', 'right'),
     S('P-S1', 'q:ADA-1', '2026-09-30', 'Maths · Paper 1 (Calculator) — June 2024 · Q1', 'right'),
@@ -201,9 +122,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   else {
     if (keys(ada.fresh) !== 'q:ADA-1, q:ADA-SUN') bad.push('Ada’s new this week is [' + keys(ada.fresh) + '], wanted q:ADA-1 (the Monday) and q:ADA-SUN (the Sunday) — the week is Monday to Sunday inclusive');
     if (keys(ada.again) !== 'q:ADA-AGAIN') bad.push('Ada’s gone-back-to is [' + keys(ada.again) + '], wanted q:ADA-AGAIN (sent on 10 Sep, again on 2 Oct)');
-    /* THE WEEK'S LATEST VERDICT, ONE LINE PER QUESTION: q:ADA-1 was sent three times in the week and once
-       the Monday after — one item, the Friday's `wrong`; never the week's first press, Monday's `right`,
-       and never next week's `right`. */
+    /* THE WEEK'S LATEST VERDICT, ONE LINE PER QUESTION: § */
     asked++;
     const a1 = (ada.fresh || []).filter(q => q.key === 'q:ADA-1');
     if (a1.length !== 1) bad.push('q:ADA-1, sent three times in the week, is ' + a1.length + ' items in the plan — one question is one line however often it was sent');
@@ -265,10 +184,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   }
 }
 
-/* ---------- 2a. A PRESS IS IN THE WEEK BY LONDON'S CALENDAR, NOT BY UTC'S --------------------------------------
-   `submitted_at` is an instant, and in summer London is an hour ahead of it: 23:00 UTC on Sunday 4 Oct is
-   midnight starting Monday 5 Oct in London — next week's — and 23:00 UTC on Sunday 27 Sep is the first
-   minute of Monday 28 Sep, this week's. Eve's only other row is the week before. */
+/* ---------- 2a. A PRESS IS IN THE WEEK BY LONDON'S CALENDAR, NOT BY UTC'S § */
 {
   const { b } = seeded();
   b.seed('submissions', [
@@ -282,19 +198,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   if (got !== 'q:EVE-EARLY') bad.push('Eve’s week is [' + got + '] — wanted q:EVE-EARLY alone: 00:00 on Monday 28 Sep in London is this week, and 00:00 on Monday 5 Oct is next week, whatever UTC says');
 }
 
-/* ---------- 2a2. THE WEEK'S LATEST IS BY TIME, NOT BY ROW, AND A TIE IS THE LATER ROW --------------------------
-   THE REVIEW OF 9 OCT: every seed above was in time order with no two presses at one moment, so nothing
-   pinned "latest" — `ms > J.at` for `>=` (the first of a tie wins) and the verdict taken from sheet order
-   both stayed green. A tie is certain in use: one request's items share one `submitted_at`, and that is
-   every offline flush and the whole queue a phone held until the backend could take it — wrong then
-   right in one batch. The email must say what the child's card says (`submissionsBuild_` in doget.gs):
-   the later row of a tie, and otherwise the latest PRESS (`pressed_at`), whatever row it is on. Eve,
-   whose only other row is last week's, so these are her whole week:
-     q:EVE-TIE    wrong then right, one `submitted_at`, no `pressed_at` (a row from before the column) → ✓
-     q:EVE-REV    the later instant on the EARLIER row (right at 14:00, then wrong at 10:00)            → ✓
-     q:EVE-PRESS  one flush (one `submitted_at`), pressed in the reverse of row order: wrong on Wednesday
-                  on the first row, right on Tuesday on the second                                      → ✗
-     q:EVE-PTIE   one flush, pressed in one instant, wrong then right                                   → ✓ */
+/* ---------- 2a2. THE WEEK'S LATEST IS BY TIME, NOT BY ROW, AND A TIE IS THE LATER ROW § */
 {
   const { b } = seeded();
   const P = iso => ({ pressed_at: iso });
@@ -333,15 +237,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   else ['Q1 ✓', 'Q2 ✓', 'Q3 ✗', 'Q4 ✓'].forEach(m => { if (text.indexOf(m) === -1) bad.push('Eve’s email does not print “' + m + '”: ' + JSON.stringify(text.split('Maths · Ties')[1] || text).slice(0, 160)); });
 }
 
-/* ---------- 2a. WORK CARRIED OVER FROM BEFORE THE SWITCH IS HISTORY, NOT THE WEEK IT ARRIVED (review of 10 Oct) ----------
-   `subMigrate_` (js/submit.js) sends what a child had done before 9 Oct as one press per question, once, the
-   first time the backend can take it — so those rows ARRIVE the week the backend lands, pressed weeks
-   before, under an id made from the person and the key (`1791504000000-m` and fourteen letters). Read by
-   arrival, the first email after the update said "Ada worked on 4 questions" with three from September.
-   Eve's week here, every row arriving on the Thursday:
-     q:EVE-CARRIED   carried over (pressed 22 Sep), nothing since   → not in the email at all
-     q:EVE-BOTH      carried over (pressed 23 Sep), pressed again this week → in the list, this week's mark
-     q:EVE-NEW       pressed this week only                          → new */
+/* ---------- 2a. WORK CARRIED OVER FROM BEFORE THE SWITCH IS HISTORY, NOT THE WEEK IT ARRIVED (review of 10 Oct) § */
 {
   const { b } = seeded();
   const C = (key, label, pressed, verdict) => S('P-S5', key, '2026-10-01', label, verdict || 'right', '', 12,
@@ -370,18 +266,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   else if (/Carried · Q1|Q1 ✓/.test(String(mail.text)) || !/2 questions/.test(String(mail.subject) + String(mail.text))) bad.push('Eve’s email lists the carried-over question as this week’s, or does not count two: ' + JSON.stringify(String(mail.subject)) + ' / ' + JSON.stringify(String(mail.text).slice(0, 240)));
 }
 
-/* ---------- 2b. THE QUESTION'S WORDS: CARRIED, REFUSED WHEN THEY ARE A MESSAGE, AND PRINTED ---------------------
-   *"emails all parents on work their child has done with the exact questions for each"*, and then *"should
-   be at the end of the week that it send to parents all they done that week"* — so Sunday's email prints
-   each question's `words`, and it gets them from this plan: this is where a practical's three boxes become
-   one question's words and where phone text is turned away. The refusal is `digestWordsSafe_`, over the
-   WHOLE text: `digestSafe_` reads `attemptLabel_(s)`, which is the first 120 characters, and a question
-   with a link on its second line passes it. A refusal costs the words and never the question: it is still
-   listed, by its number under its paper, and still counted.
-
-   THIS ASKED, UNTIL 8 OCT, THAT SUNDAY'S EMAIL WAS THE SAME TO THE BYTE WITH AND WITHOUT WORDS — it listed
-   names then. What that protected still holds and is asked below in its new shape: words never change
-   what is counted, which questions are listed or under which paper — they only add what each one asked. */
+/* ---------- 2b. THE QUESTION'S WORDS: CARRIED, REFUSED WHEN THEY ARE A MESSAGE, AND PRINTED § */
 {
   const { b } = seeded();
   const W1 = 'A bag holds 3 red and 5 blue counters.\n---\nWork out the probability of red.';
@@ -455,9 +340,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
       bad.push('a question with no name printed its key or its words, or was not counted in "…and 1 more.": ' + bo.text.split('\n').slice(2, 20).join(' / '));
   }
 
-  /* AND WORDS CHANGE NOTHING BUT THE WORDS — the question this file asked as "byte-identical" while the
-     email listed names. With the column blank: the same subject, the same lead, the same papers and the
-     same question numbers, each paper back to its line of numbers. */
+  /* AND WORDS CHANGE NOTHING BUT THE WORDS — the question this file asked as "byte-identical" while the email listed names. § */
   asked++;
   const g = b.tabs.submissions, wi = g[0].indexOf('words');
   g.slice(1).forEach(r => { r[wi] = ''; });
@@ -475,12 +358,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   if (!(bare.learners.find(x => x.id === 'P-S2') || { fresh: [] }).fresh.every(q => q.words === '')) bad.push('with the words column blank, an item still carries words');
 }
 
-/* ---------- 2c. WHAT A QUESTION NEVER SAYS, RULE BY RULE — AND THE WHOLE LIBRARY THROUGH IT ---------------------
-   `DIGEST_WORDS_REFUSE` is wider than the name's rule, because the words are ten times longer and printed
-   under "@family." in a parent's inbox: a domain with one letter before its dot, a dot that is not a full
-   stop, a phone number, an account number, a sort code. Each one asked by itself, in the shape a person
-   types it. And words go out only under a key in the library's own shape — an invented key is somebody
-   typing into the sheet, and its "question" is whatever they typed. */
+/* ---------- 2c. WHAT A QUESTION NEVER SAYS, RULE BY RULE — AND THE WHOLE LIBRARY THROUGH IT § */
 {
   const { b } = seeded();
   const safe = s => b.ev('digestWordsSafe_(' + JSON.stringify(s) + ')');
@@ -512,11 +390,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   }
 }
 {
-  /* EVERY QUESTION AND STEM IN THE LIBRARY, AS THE PHONE SENDS IT — and not one refused. The comment over
-     `DIGEST_WORDS_REFUSE` says each rule was measured so; this measures it every run, so a rule widened
-     tomorrow cannot quietly cost real questions their words in every parent's email. The text is the
-     phone's own: `doneWordsPlain_` and the constants above it, read out of js/find.js and run over jsdom,
-     then `attemptWords_`, as submitAnswer keeps it — the html and the lead of every question and preamble. */
+  /* EVERY QUESTION AND STEM IN THE LIBRARY, AS THE PHONE SENDS IT — and not one refused. § */
   asked++;
   let plain = null;
   try {
@@ -551,16 +425,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   }
 }
 
-/* ---------- 2d. THE WEEK'S LIST: ONE STEM, ONE LIST, ESCAPED, AT MOST 80, AND UNDER GMAIL'S CLIP -----------------
-   `digestQuestions_` (backend/digest.gs) is the list, and these are its rules asked of the email a parent
-   opens. A question's parts share a scene, printed ONCE above them, so Q5a, Q5b and Q5c read as the paper
-   prints them rather than as one scene three times. A question first done before the week is in the same
-   list with this week's mark, and says nothing of when it was first done (no "(again)" since 12 Oct).
-   What came off a phone is escaped in the HTML and printed as written in the text. A week is up to seven
-   days of this, so the list stops at `DIGEST_WEEK_LIST_MAX` (80) with "…and N more." — which counts the
-   questions past the cap and the ones with no name alike — and 80 of the longest a question can be still
-   come in under the ~102 KB of HTML past which Gmail clips a message and hides the footer that says how to
-   stop. Read at the backend's own limits. */
+/* ---------- 2d. THE WEEK'S LIST: ONE STEM, ONE LIST, ESCAPED, AT MOST 80, AND UNDER GMAIL'S CLIP § */
 {
   const { b, G } = seeded();
   const STEM = 'A bag holds 3 red beads and 5 blue beads.';
@@ -599,9 +464,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
     bad.push('the HTML does not escape a question’s words — "<", ">", "&" and quotes came off a phone: ' + JSON.stringify((m.html.match(/<b>Q3<\/b>[^<]*/) || [''])[0]));
 }
 {
-  /* THE CAP, THROUGH THE REAL RUN'S PLAN: Eve (whose only other row is last week's) did 85 named questions
-     and 2 with no name. 80 are listed, in number order, and "…and 7 more." counts the five past the cap
-     and the two that were never printable. */
+  /* THE CAP, THROUGH THE REAL RUN'S PLAN: § */
   const { b } = seeded();
   const MAX = b.ev('DIGEST_WEEK_LIST_MAX');
   asked++;
@@ -623,11 +486,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
     bad.push('the cap does not count what it left out — wanted "Eve’s week: 87 questions" and "…and 7 more." (Q81–Q85 and the two with no name, neither printed by key nor by words): subject "' + m.subject + '", ' + JSON.stringify(m.text.split('\n').filter(x => /…and/.test(x))));
 }
 {
-  /* AND 80 OF THE LONGEST A QUESTION CAN BE STILL COME IN UNDER GMAIL'S CLIP: each on its own paper of 110
-     characters, its own stem past `DIGEST_STEM_SHOWN` and its own ask past `DIGEST_WORDS_SHOWN`, with a
-     sprinkling of what `digestEsc_` grows. Rendered by the real `digestRender_`. Over ~102 KB of HTML Gmail
-     shows "[Message clipped]" and the footer that says how to stop is behind it. The floor beside it is
-     that the words really were printed at length — a render that dropped them would pass the ceiling. */
+  /* AND 80 OF THE LONGEST A QUESTION CAN BE STILL COME IN UNDER GMAIL'S CLIP: § */
   const { b, G } = world();
   const MAX = b.ev('DIGEST_WEEK_LIST_MAX'), SHOWN = b.ev('DIGEST_WORDS_SHOWN'), STEM_SHOWN = b.ev('DIGEST_STEM_SHOWN');
   const long = (lead, n) => { let t = lead, i = 0; while (t.length < n) t += (++i % 9 ? ' word' + i : ' x < ' + i + ' & y'); return t; };
@@ -644,11 +503,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
     bad.push('80 of the longest questions make ' + kb.toFixed(1) + ' KB of HTML — wanted under Gmail’s ~102 KB clip (and over 40, the words printed at length), "…and 5 more." and the footer after them');
 }
 
-/* ---------- 3. THE LABEL submitAnswer KEEPS -------------------------------------------------------------
-   The name a parent reads came off a phone, so the row keeps it by the email's own rule (`attemptLabel_`):
-   tags out, spaces folded, capped. It was `markDone`'s to keep until 9 Oct, with a rule for filling a
-   blank cell on a day already covered; a press is a row of its own now, written once with whatever name
-   came with it, so that rule went with the upsert. */
+/* ---------- 3. THE LABEL submitAnswer KEEPS § */
 {
   const { b } = world();
   b.seed('people', [{ person_id: 'P-S1', first_name: 'Ada', last_name: 'Pupil', handle: 'adapupil', email: 's1@example.org',
@@ -668,10 +523,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
 }
 
 {
-  /* A TAB MADE BY HAND WITHOUT THE `label` AND `words` COLUMNS. `addRow` reports every key with no column
-     and `jsonOut` makes that an error, so a name written regardless would answer "Nothing was saved for:
-     submissions.label" over a row that was in fact written. The name and the words are the email's; the
-     press must still save, and say it did. */
+  /* A TAB MADE BY HAND WITHOUT THE `label` AND `words` COLUMNS. § */
   const { b } = world();
   b.tabs.submissions[0] = b.tabs.submissions[0].filter(c => c !== 'label' && c !== 'words');
   b.seed('people', [{ person_id: 'P-S1', first_name: 'Ada', last_name: 'Pupil', handle: 'adapupil', email: 's1@example.org',
@@ -728,10 +580,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
     ['https://pay', 'NOTICE', 'Tutor says', 'www.example.net', 'office.family@', '#iv', '#dv', '#cv'].forEach(x => {
       if (bo.text.indexOf(x) !== -1 || bo.html.indexOf(x) !== -1) bad.push('Bo’s email prints "' + x + '" — phone text that is a link, an address or a sentence must not go out under the business’s name');
     });
-    /* A LABEL TURNED AWAY IS NOT REPLACED BY THE KEY. This fell back to a key in the library's shape
-       (q:BEN-2) while the email listed names; with each question's words a raw key reads to a parent as
-       a fault. The three whose text came off the phone — two labels and a key that is a sentence — are
-       not printed at all, and are the "3 more". */
+    /* A LABEL TURNED AWAY IS NOT REPLACED BY THE KEY. § */
     if (!/Ben worked on 5 questions/.test(bo.text) || !/\n…and 3 more\.\n/.test(bo.text) || /q:BEN|pr:PR/.test(bo.subject + bo.text + bo.html)
         || bo.text.indexOf('\nPhysics · AQA required practical · Specific heat capacity\nWorksheet ✓\n') === -1)
       bad.push('Bo’s email does not count what it does not print ("Ben worked on 5 questions", the practical by its name, "…and 3 more.", no raw key): ' + bo.text.split('\n').slice(2, 12).join(' / '));
@@ -842,9 +691,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   if (mail2.sent.some(m => m.to === 'pat@example.org')) bad.push('a row left `sending` was sent again — at most once');
 }
 {
-  /* THE `sent` WRITE FAILS AFTER THE EMAIL WENT — a sheet timeout on the one cell. It was inside the
-     same `try` as the send, so the `catch` wrote `failed` over the receipt and the next run emailed the
-     parent again. It must leave `sending`, and a rerun must count that as sent. */
+  /* THE `sent` WRITE FAILS AFTER THE EMAIL WENT — a sheet timeout on the one cell. § */
   const { b, mail } = seeded();
   cfgSet(b, 'weekly_digest', 'send');
   asked++;
@@ -860,9 +707,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   if (!/sending/.test(log)) bad.push('the email whose `sent` write failed is not left `sending` on the log: ' + log);
 }
 {
-  /* A RUN THAT DID NOT FINISH THROWS. Google throws a trigger's return value away and emails the owner
-     only on an exception, so a busy lock or a held email returned quietly was a run marked
-     "Completed" — and a held email nobody noticed by next Sunday is never sent. */
+  /* A RUN THAT DID NOT FINISH THROWS. § */
   const thrown = (b, s) => { try { b.ev('clearCache(); weeklyDigestRun({})'); return ''; } catch (e) { return String(e && e.message || e); } };
   const a = seeded(); cfgSet(a.b, 'weekly_digest', 'send'); a.lock.free = false; a.setClock(at(SUN));
   asked++;
@@ -896,12 +741,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   if (!r.week || r.week.start !== '2026-09-28' || mail.sent.length !== 2) bad.push('weeklyDigestRun on the Sunday clock ran ' + JSON.stringify(r) + ' and sent ' + mail.sent.length);
 }
 
-/* ---------- 5b. NO `submissions` TAB IS NOT A QUIET WEEK ---------------------------------------------------------
-   THE OWNER'S LEDGER HAD NO `attempts` TAB UNTIL 6 OCT, and `read` answers a missing tab with no rows —
-   so the run planned nothing, wrote nothing, and the Preview said "Nobody has done a question yet this
-   week" over a sheet that had never been told what anybody did. The same is true of `submissions`
-   until `ensureSchema` makes it: the run must stop and say why, send nothing, write nothing, and throw
-   from the trigger so the owner is emailed the reason. */
+/* ---------- 5b. NO `submissions` TAB IS NOT A QUIET WEEK § */
 {
   const { b, mail, setClock } = seeded();
   cfgSet(b, 'weekly_digest', 'send');
@@ -965,11 +805,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   if (mine().length || gone.removed !== 1 || !trig.some(x => x.spec.fn === 'closeFinishedJobs')) bad.push('removeWeeklyDigest left ' + mine().length + ' Sunday trigger(s), or took another');
 }
 {
-  /* (g) ONE TRIGGER, AND ONLY ONE (18 Oct, docs/history/352) — the owner: *"9pm on Sunday should be the only
-     time trigger."* It booked the email and two AI marking passes beside it (nightly at 02:00, and a run-up on
-     the Sunday) from 12 Oct. Now, run once, three times, and at the hour 0: the email's trigger and nobody
-     else's of this file — not one `digestMarkRun`, nightly, weekly or one-off — and the way back leaves only
-     what was not the email's. */
+  /* (g) ONE TRIGGER, AND ONLY ONE (18 Oct, docs/history/352) — the owner: § */
   const { b, trig } = seeded();
   b.ev('ScriptApp.newTrigger("closeFinishedJobs").timeBased().everyDays(1).atHour(3).create()');
   const fns = () => trig.map(t => t.spec.fn).sort().join(', ');
@@ -990,13 +826,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
     bad.push('removeWeeklyDigest left [' + fns() + '] and said ' + JSON.stringify(gone) + ' — wanted the email gone, nothing retired to find, closeFinishedJobs kept');
 }
 {
-  /* WHAT NOTHING RUNS ANY MORE GOES WHEN THE SUNDAY IS BOOKED — and by the way back too. The email after each
-     session was booked from the editor as an hourly trigger on `sessionRecapRun` (gone since docs/history/295);
-     the marking pass was booked as `digestMarkRun`, nightly, on the Sunday, and as one-offs in its run-up (gone
-     since docs/history/352). Left booked, each fails every time it fires and Google emails the owner each
-     failure. So `installWeeklyDigest` and `removeWeeklyDigest` take those away — by those exact handler names,
-     written out here rather than read from `DIGEST_RETIRED_RUNS`, so a misspelling there is red — with the
-     Script Properties the marking pass kept, touch no other trigger, and say how many. */
+  /* WHAT NOTHING RUNS ANY MORE GOES WHEN THE SUNDAY IS BOOKED — and by the way back too. § */
   const seed = () => {
     const s = seeded();
     s.b.ev('ScriptApp.newTrigger("sessionRecapRun").timeBased().everyHours(1).create()');
@@ -1036,10 +866,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   const front = fs.readdirSync(path.join(REPO, 'js')).filter(f => f.endsWith('.js') && !/^check/.test(f))
     .map(f => ['js/' + f, strip(fs.readFileSync(path.join(REPO, 'js', f), 'utf8'))]);
   const back = files.map(f => ['backend/' + f, strip(fs.readFileSync(path.join(dir, f), 'utf8'))]);
-  /* NOT ONE CALL, anywhere, to what books or runs it — its own declarations and the run's one caller
-     aside — AND NOT ONE BARE MENTION, which is a call waiting to happen: `sunday: installWeeklyDigest,`
-     in RUNNABLE calls nothing in the text and books the Sunday from `?run=sunday`. `calls`, `mentions`
-     and `unquote` are check-mail-load.js's. */
+  /* NOT ONE CALL, anywhere, to what books or runs it — its own declarations and the run's one caller aside — AND NOT ONE BARE MENTION, which is a call waiting to § */
   back.concat(front).forEach(([f, src]) => {
     ['installWeeklyDigest', 'weeklyDigestRun', 'removeWeeklyDigest', 'checkSundayEmail'].forEach(n => {
       const c = Math.max(calls(src, n).length, mentions(src, n).length);
@@ -1097,10 +924,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
     if (!(pv.emails || []).every(m => m.text && m.html)) bad.push('the preview does not carry each email’s bodies');
     if ((pv.unreachable || []).map(u => u.id).sort().join() !== 'P-S3,P-S4') bad.push('the preview’s unreachable list is ' + JSON.stringify(pv.unreachable));
     if (pv.scheduled !== 0) bad.push('the preview says ' + pv.scheduled + ' Sunday trigger(s) are booked — none is');
-    /* AND `words: true`, THE DEPLOYED VERSION'S OWN WORD THAT IT PRINTS EACH QUESTION'S WORDS — a version
-       older than that answers without it, and that is the whole of the contract, whoever asks. This said
-       "the card tells an older version apart by it" until 12 Oct, when the Settings card that read it was
-       deleted (docs/history/346); the action and its answer stayed, so the rule is the server's now. */
+    /* AND `words: true`, THE DEPLOYED VERSION'S OWN WORD THAT IT PRINTS EACH QUESTION'S WORDS — a version older than that answers without it, and that is the whole § */
     if (pv.words !== true) bad.push('the preview does not answer words: true, so whoever asks would read this backend as one that lists names only');
   }
   if (pv.writes || mail.sent.length || trig.length || rowsOf(b, 'digest_log').length !== logBefore) bad.push('digestPreview wrote ' + pv.writes + ' cell(s), sent ' + mail.sent.length + ', booked ' + trig.length + ' trigger(s) — it must do none of them');
@@ -1111,10 +935,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   });
 }
 
-/* THE STUBBED WORLD OF THE SUNDAY OF 18 OCT (written for the marking pass of 12 Oct, kept for the email's checks):
-   `UrlFetchApp` answers the library's URL with an invented library in the file's one-row-a-line layout and
-   records every Gemini ask (`net.asks`) — there must be none; `Utilities.sleep` moves the clock. Every person
-   is invented and every PIN is 0000. */
+/* THE STUBBED WORLD OF THE SUNDAY OF 18 OCT (written for the marking pass of 12 Oct, kept for the email's checks): § */
 const SUN18 = '2026-10-18T15:55:00Z';               // 16:55 in London (still summer time)
 const LIB_ROWS = [
   { row_id: 'TST-PRE', paper_id: 'PX-1', kind: 'preamble', question: '', section: '', html: '<p>Read the source about the river.</p>', active: 'True' },
@@ -1191,13 +1012,7 @@ let MSEQ = 0;
 const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.assign({ person_id: pid, key: key, label: label || '', words: words || '',
   answer: answer == null ? 'an answer' : answer, verdict: verdict, submitted_at: new Date((day || '2026-10-14') + 'T' + String(hh == null ? 11 : hh).padStart(2, '0') + ':00:00Z'),
   event_id: (1760400000000 + (++MSEQ)) + '-mk' + String(MSEQ).padStart(4, '0') }, more || {});
-/* ---------- 9. THE EMAIL PRINTS EACH VERDICT AS IT WAS RECORDED, AND MARKS NOTHING (18 Oct, docs/history/352) ----
-   The owner: *"Marking? Why marking? It's already marked when they submit the questions? Don't be silly. The
-   marking is already done on each question."* From 12 Oct a server pass marked `sent` answers with Gemini
-   before the email; it is gone. Through the real `weeklyDigestRun` at 21:02 on the Sunday, WITH a key in
-   Script Properties and the library served — everything the old pass needed, so its absence is what is
-   asked: ✓, ✗ and the AI's marks print as recorded, a `sent` answer prints "not marked", no Gemini call is
-   made (the stub records every one), and not one row is added to `submissions`. */
+/* ---------- 9. THE EMAIL PRINTS EACH VERDICT AS IT WAS RECORDED, AND MARKS NOTHING (18 Oct, docs/history/352) § */
 {
   const w = markWorld({ clock: '2026-10-18T20:02:00Z' });              // 21:02 in London: the email's run
   const { b, net, mail } = w;
@@ -1232,11 +1047,7 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
   if (/generativelanguage|GEMINI_API_KEY/.test(dgs)) bad.push('digest.gs reaches for Gemini (its address or GEMINI_API_KEY) — the Sunday email asks Gemini nothing');
 }
 
-/* ---------- 10. (f) THE EMAIL HOLDS ONLY WHAT A PARENT NEEDS — through the real send ---------------------------------
-   The owner: *"they dont need to see usernames or whatever, all they need to see are the questions their kids
-   have done this week ... i want them to see if they got it right too."* The message MailApp is handed —
-   after `mailOut_`'s net, which on a screen turns a child's whole name into "Kit (@handle)" when two children
-   share a first name. Kit's week has a question whose words name him in full, and there is another Kit. */
+/* ---------- 10. (f) THE EMAIL HOLDS ONLY WHAT A PARENT NEEDS — through the real send § */
 {
   const w = markWorld();
   const { b, mail } = w;
@@ -1331,11 +1142,7 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
   [/THE EMAIL: OFF — nothing is sent/, /Set weekly_digest to send/, /the Sunday email is NOT installed \(run installWeeklyDigest\), and it is the only trigger the email has/].forEach(re => {
     if (!re.test(t2)) bad.push('checkSundayEmail with nothing set up does not say ' + re + ':\n      ' + t2.split('\n').join('\n      '));
   });
-  /* THE HOUR BOOKED AND THE CELL APART (18 Oct): the owner moved weekly_digest_hour from 18 to 21 on the day,
-     over triggers booked at 18. Apps Script cannot read a trigger's hour, so the setup check prints the hour
-     installWeeklyDigest wrote down, and WARNS in words while the cell says another; run again, it agrees. And
-     triggers booked by a backend from before the record (no hour written down) are said to be unknown, never
-     taken for the cell's. Changes nothing, as ever. */
+  /* THE HOUR BOOKED AND THE CELL APART (18 Oct): § */
   asked++;
   const moved = markWorld({ clock: '2026-10-18T09:00:00Z' });
   cfgSet(moved.b, 'weekly_digest_hour', '18');
@@ -1358,15 +1165,7 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
     bad.push('triggers with no recorded hour are not said to be unknown, with the warning to run installWeeklyDigest again:\n      ' + t5.split('\n').slice(0, 5).join('\n      '));
 }
 
-/* ---------- 13. EACH QUESTION AS IT IS ON THE SITE, WITH ITS PICTURE (18 Oct, docs/history/351) -------------------
-   The owner, 18 Oct: *"So each question As is on site."* — and *"No jpgs."* A question the library has is printed
-   from its row through the real send, as the card draws it: the preamble its parts share ONCE in the paper, its
-   picture where the row says, each part's number and marks over ALL of its words — never cut, never "…" — then
-   how the child did. The row's markup through the allow-list: no attribute but colspan and rowspan, no link, no
-   script, no image of its own. A picture is the PNG twin on the site, named by the SHA-256 of the drawing
-   (tools/diagram_png.js), at the drawing's width with its aria-label as alt — and the plain body says the alt.
-   A key the library does not have goes as its words cell, as before. And a week of whole papers stays under
-   Gmail's clip with every question in it, the longest source texts said as "on the site". */
+/* ---------- 13. EACH QUESTION AS IT IS ON THE SITE, WITH ITS PICTURE (18 Oct, docs/history/351) § */
 {
   const crypto = require('crypto');
   const hashOf = s => crypto.createHash('sha256').update(s, 'utf8').digest('hex').slice(0, 12);
@@ -1458,11 +1257,7 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
     bad.push('a real question with a picture (Q-9MA031-2206-5c) did not go with its words, its alt text and an <img> of a PNG that is in data/diagrams/: ' + JSON.stringify(src || rm.body.slice(0, 200)));
 }
 {
-  /* UNDER GMAIL'S CLIP, EVERY QUESTION KEPT. Eighty parts, each on its own paper under its own 3,000-character
-     source: whole, that is past 102 KB. The longest sources go as "(the source text is on the site)" until the
-     HTML is under DIGEST_CLIP_BYTES; every part keeps its whole words, its number and its mark, and the footer
-     is there. And eighty parts of 2,000 characters each, which no source can save: the longest parts' words go
-     too, and still every question is listed with its number and its mark. Rendered by the real `digestRender_`. */
+  /* UNDER GMAIL'S CLIP, EVERY QUESTION KEPT. § */
   const { b, G } = world();
   const CLIP = b.ev('DIGEST_CLIP_BYTES');
   const make = (askLen, stemLen) => {
@@ -1494,9 +1289,7 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
     bad.push('80 long parts made ' + (kb2 / 1024).toFixed(1) + ' KB with ' + listed + ' listed — wanted under the clip with every question still listed by number and mark');
 }
 
-/* ---------- 12. THE DRY RUN (check/digest-dry.js) STILL RUNS, SENDS NOTHING AND WRITES NOWHERE IT MAY NOT ---------
-   The lead runs it on the real sheet before a Sunday; a tool nobody runs between Sundays is a tool that has
-   rotted by the next one. An invented dump and the invented library above, in the system's temp folder. */
+/* ---------- 12. THE DRY RUN (check/digest-dry.js) STILL RUNS, SENDS NOTHING AND WRITES NOWHERE IT MAY NOT § */
 {
   const os = require('os'), { spawnSync } = require('child_process');
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'digest-dry-'));

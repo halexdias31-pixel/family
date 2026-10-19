@@ -1,156 +1,18 @@
-/* ==================================================================================================
-   @family. — 00_constants.gs   (1 of 8)
+/* @family. — 00_constants.gs (1 of 8) EVERY TOP-LEVEL VALUE, IN ONE FILE AND IN THE ORIGINAL ORDER. § */
 
-   EVERY TOP-LEVEL VALUE, IN ONE FILE AND IN THE ORIGINAL ORDER.
+/* @family. — backend (hermes) Rewritten against the eleven-tab database. § */
 
-   THIS IS THE ONE RULE THE SPLIT DEPENDS ON, and it is not tidiness. Apps Script concatenates
-   every .gs file into a single global scope before anything runs, and the ORDER it does that in
-   is not something you control reliably. A `function` declaration is hoisted, so it can be called
-   from any file whatever the order. A top-level `const` is NOT: it is evaluated in file order, and
-   read before its own line it throws.
-
-   Several of these are computed at load time — `PROFILE_EDITABLE` calls `flat()`, `PROFILE_GROUPS`
-   calls `AVAIL_DAYS.reduce()`, `VENUE_EDITABLE` calls both. Split those across files and a file
-   order you did not choose is a dead site with an error nobody can place.
-
-   Keep them all here, in this order, and order stops mattering for ever. Every other file in this
-   project contains function declarations and nothing else.
-
-   ---------------------------------------------------------------------------------------------
-   HERMES WAS ONE FILE OF SEVEN THOUSAND LINES. It is eight now. Nothing was renamed and no
-   behaviour changed: Apps Script joins these back into one global scope before anything runs, so
-   this is the same program with the newlines in different places.
-
-   THE RULE THAT KEEPS IT SAFE: every top-level `const` and `let` lives in 00_constants.gs, and
-   every other file holds function declarations only. Functions hoist across files whatever order
-   Apps Script loads them in; top-level values do not. Follow that and the order can never matter.
-
-   Adding a new value? It goes in 00_constants.gs. Adding a new function? Anywhere.
-================================================================================================== */
-
-/* =============================================================================================
-   @family. — backend  (hermes)
-   Rewritten against the eleven-tab database. Paste over the whole Apps Script file.
-   ---------------------------------------------------------------------------------------------
-   WHAT CHANGED FROM THE FLAT-SHEET VERSION, and why it's shorter:
-
-   • No col(), no COLUMN_ALIASES, no writeCell, no checkColumns. A row is an OBJECT with named
-     fields — r.first_name, r.rate_per_hour — because the headers are now clean enough to use
-     directly. Fifteen aliases existed to paper over names like `child_first_name_&_last_initial`
-     and `day` vs `days`; the names are fixed, so the shims are deleted.
-
-   • No stale-snapshot class of bug. Every write goes through setCell(), which updates the cell
-     AND the in-memory object, so read-after-write inside one request sees the truth. That single
-     omission was why a withdrawal could clear the last client and still count them present.
-
-   • Reads are per-tab, not per-sheet. Touching one job used to read 1,277 x 284 cells. Now it
-     reads the `jobs` tab, which has as many rows as you have jobs.
-
-   • Validations aren't scanned at all. `options` IS the dropdown list, read as data.
-     rebuildValidations() and its 318,000-object scan are gone.
-
-   THE ONE INVARIANT that drives the booking flow, unchanged:
-     at most ONE side of a pair is `Requested` at a time. Whoever is Requested is waiting; the
-     other side holds the move. Possession is therefore never stored.
-============================================================================================= */
-
-/* ==================================================================================================
-   BOTH OF THESE IDS POINTED AT AN .xlsx AND `SpreadsheetApp` CANNOT OPEN ONE.
-
-   THE SYMPTOM WAS EVERY SECTION EMPTY, WHICH IS ALSO THE SYMPTOM OF A BLANK DATABASE. The comment
-   below used to say "if every section ever loads empty, this line is the first thing to check", and
-   it was right, and the line was wrong:
-
-     was  1WeY0AD7dEzpKKDzndqEl4bAyahI6AgrW   businessDB.xlsx   an Excel UPLOAD
-     is   1bashNkVQSyMfsJeGDSQNYY9QN5Troy2quHNx_qKUi7s          the Google Sheet
-
-   `SpreadsheetApp.openById` opens Google Sheets. An .xlsx sitting in Drive is a FILE in Drive — it
-   has an id, it has the same title, it opens in the browser when you click it, and Apps Script
-   cannot read a cell of it. Both files exist, both are called the same thing, both are owned by the
-   same person, and the one the code named was the one that cannot be opened.
-
-   THAT IS WHY IT LOOKED LIKE THE QUESTIONS WERE MISSING. They are not: `questions` in SubjectsDB has
-   the real Edexcel papers in it, stems and parts and mark schemes, and has had for a while. Nothing
-   was ever reading the file they are in.
-
-   HOW TO TELL THEM APART, since the URL does not: a Google Sheet lives at
-   `docs.google.com/spreadsheets/d/<id>/edit` and an uploaded .xlsx at `drive.google.com/file/d/<id>`.
-   If the address says `file/d`, Apps Script cannot open it, whatever the title says.
-================================================================================================== */
+/* BOTH OF THESE IDS POINTED AT AN .xlsx AND `SpreadsheetApp` CANNOT OPEN ONE. § */
 const LEDGER_ID = "1l26ZSHC5DDvsP-tBkAhxs8blRKjAtuV5Y2g0D4s1Gbo";
 
-/* ==================================================================================================
-   THE OTHER TWO FILES, AND WHY THERE ARE THREE OF THEM.
+/* THE OTHER TWO FILES, AND WHY THERE ARE THREE OF THEM. § */
+/* ---------- `SETTINGS_ID` WAS HERE, AND THERE ARE TWO SPREADSHEETS NOW § */
+/* `LIBRARY_ID` WAS HERE. § */
 
-   IT WAS FOUR SPREADSHEETS AND THE SPLIT WAS BY SUBJECT MATTER: businessDB held forty tabs of
-   everything, SubjectsDB held the content, and Widget_Settings and Engine held notes. That split
-   could not be checked by anything. Nobody could say where a tab belonged without knowing the
-   history, so `kinds` existed in two files with two different column sets, `widgets` did too, and
-   the live copy of each was the EMPTY one.
-
-   IT IS NOW THREE FILES AND THE SPLIT IS BY WHO WRITES THE ROWS, which is a question with one
-   answer per tab:
-
-     ledger    the app writes it.   people, jobs, receipts, posts, ticks — the business as it
-                                    happened. Hand-editing these races doPost.
-     settings  you write it, the app reads it. brand, config, pricing, venues, facets — editorial.
-                                    Changing any of it is a cell, never a deploy.
-     library   IT IS TWO FILES NOW. `Library` held four tabs and the code reads none of them:
-                                    questions, cheatsheet, boxers and fights are all files in the
-                                    repository, read by js/library.js. The third id is gone from
-                                    FILES below rather than left blank, because a blank id is a
-                                    file `installSheetWatch` still books a trigger against.
-
-   THAT IS WHY THE TAB COLOURS IN EACH FILE SAY THE SAME THING: green written by the app, gold read
-   by it, grey read by nobody. A tab whose colour and whose file disagree is a mistake you can see
-   without opening it.
-
-   ALL THREE ARE GOOGLE SHEETS AND THAT IS LOAD-BEARING — see the note on LEDGER_ID above. The four
-   they replace are in a folder called `old sheets`; moving a file in Drive does not change its id,
-   so those ids still resolve and the old data is still there if any of this turns out wrong.
-================================================================================================== */
-/* ---------- `SETTINGS_ID` WAS HERE, AND THERE ARE TWO SPREADSHEETS NOW --------------------------
-   SEVEN TABS MOVED INTO `Ledger` AND NINE WERE DELETED. The seven are the ones this backend still
-   COMPUTES with rather than forwards — `config`, `pricing` and `venues` decide a price, and a total
-   posted by a browser is a total the client chose; `options`, `shop`, `holidays` and `landmarks`
-   are each reshaped by a function here before anybody sees them. The nine that went are the ones
-   `js/settings.js` reads straight out of `data/settings/*.json`.
-
-   THE ID IS NOT DELETED FOR SECRECY — it names a file that no longer exists. Leaving it would have
-   been worse than untidy: `ensureSchema` calls `SpreadsheetApp.openById(at.id)` with no `try`
-   around it, so one tab still routed at a binned file takes the whole of `?setup=1` down — and
-   `?setup=1` is the only thing that creates `post_comments`. Found by reading that function while
-   checking whether the spreadsheet was safe to delete, which is the only reason it is not a live
-   site with a broken setup route. It is wrapped now as well, because the rule is the fix. */
-/* `LIBRARY_ID` WAS HERE. The id itself is not secret — every Drive link in the library is
-   already public and already served to anonymous visitors — but a constant nothing reads is a
-   thing the next reader has to work out the status of, and this one would read as "there is a
-   third database" when there is not. The spreadsheet still exists; nothing in this project
-   opens it. */
-
-/* `installSheetWatch` walks this to put an edit trigger on every file, so a fourth database is one
-   line here and nothing else. A BLANK ID IS NOT AN ERROR — it is that file's tabs coming back
-   empty, the same as a tab that is not there, and `checkTabs()` says which. */
+/* `installSheetWatch` walks this to put an edit trigger on every file, so a fourth database is one line here and nothing else. § */
 const FILES = { ledger: LEDGER_ID };
 
-/* ---------- WHICH FILE EACH TAB IS IN -------------------------------------------------------------
-   EVERY TAB IS LISTED, and that is the change. This was two maps — `HERE` for renamed tabs in the
-   main file, `ELSEWHERE` for the four that had moved — and everything absent from both fell through
-   to the main file by default. A default is fine until there is no main file, and with three there
-   is not: a typo'd key, or a new tab nobody routed, would have silently resolved to the ledger and
-   come back empty, which reads exactly like an empty database. `checkTabs()` now reports a tab in
-   SCHEMA with no line here, because "I did not look" must not print as "I looked and it was fine".
-
-   NOTHING ELSE IN THE CODE KNOWS WHERE A TAB LIVES, which is the point of doing it in one place.
-   Every tab is reached through `read(name)`, so this one lookup covers the pricing, the venues and
-   the facets alike. They still ask for `venues`; they just get it from wherever this says.
-
-   `alsoTry` IS A SECOND TAB NAME to look under, tried after the code's own name, so renaming a tab
-   in the spreadsheet never has to be atomic with a deploy. The two below are both satisfied by the
-   current files and are kept anyway: they cost one word each and they are what makes reverting to
-   the old spreadsheets a change of three ids rather than a change of three ids and two tab names.
-   `make` — the name used if a tab has to be CREATED — is always the plain one, so nothing new is
-   ever born under an alias. */
+/* ---------- WHICH FILE EACH TAB IS IN § */
 const WHERE = {
   /* ---- the app writes these ---- */
   people:         { file: 'ledger' },
@@ -175,33 +37,14 @@ const WHERE = {
      beside `favourites` and `submissions`, for their reason: it is a record OF a learner, and the app
      writes it. */
   answers:        { file: 'ledger' },
-  /* EVERY ANSWER A LEARNER SENT, AND WHAT IT WAS MARKED — one row per press, never rewritten. The Ledger
-     because it is where every other record OF a learner already lives — `people`, `exams`, `favourites`
-     — so a tutor looking up a student finds their work beside their row rather than in a second
-     spreadsheet. Written by `submitAnswer`, read by `submissionsFor_` and the weekly parent email; see
-     SCHEMA.submissions. `attempts` WAS HERE: the day each question was done, one row per question.
-     The owner, 9 Oct: *"Instead of each question just saving number of attempts."* The tab is left in
-     the live sheet and nothing reads it. */
+  /* EVERY ANSWER A LEARNER SENT, AND WHAT IT WAS MARKED — one row per press, never rewritten. § */
   submissions:    { file: 'ledger' },
   /* WHAT THE WEEKLY PARENT EMAIL SENT, OR WOULD HAVE — see SCHEMA.digest_log. The Ledger beside
      `submissions`, which is what it reports on, and because the app writes it. */
   digest_log:     { file: 'ledger' },
-  /* WRITTEN BY AN ADMIN FROM THE PHONE, so it is the Ledger rather than a settings file: question
-     2 of the three-question test at the top of CLAUDE.md, and code cannot be written to at
-     runtime. `data/settings/spotlight.json` is the FLOOR beneath it — see `spotNow_`. */
+  /* WRITTEN BY AN ADMIN FROM THE PHONE, so it is the Ledger rather than a settings file: § */
   spotlight:      { file: 'ledger' },
-  /* ---------- THE FILMS, AND WHY THEY ARE IN `Ledger` RATHER THAN IN THE REPOSITORY ------------
-     THE OWNER'S OWN SENTENCE WAS "i dont want people to be able to see them", and CLAUDE.md's
-     first question about where a thing lives answers it before any of the others get a turn: is
-     it secret -> a sheet, never here. That repository is PUBLIC and git history is permanent, so
-     a `data/films.json` would publish both the list and the Drive ids in it, for ever, with no
-     way to take it back. The Drive folder is already shared `anyone: reader`, which makes the ids
-     the whole of the protection — publishing them turns "anyone with the link" into "anyone".
-
-     AND A TAB IN A PRIVATE SHEET IS STILL NOT HIDDEN BY ITSELF. `doGet` serves
-     `ANYONE_ANONYMOUS`, so a tab the backend forwards lands in every visitor's JSON whether or
-     not a screen draws it. See where this is read in `doget.gs`: it is gated on the viewer, not
-     on the renderer. */
+  /* ---------- THE FILMS, AND WHY THEY ARE IN `Ledger` RATHER THAN IN THE REPOSITORY § */
   films:          { file: 'ledger' },
 
   /* ---- you write these, the app reads them ---- */
@@ -224,74 +67,12 @@ const WHERE = {
   herd:           { file: 'ledger' },
 
   /* ---- subject content, edited in bulk ---- */
-  /* NOTHING IS ROUTED HERE ANY MORE, and the section is kept so that is visible rather than
-     merely absent. `questions` went first — 4,807 rows to `data/questions.json` — and
-     `cheatsheet`, `boxers` and `fights` have followed, so the `Library` spreadsheet has no tab
-     this code reads and `LIBRARY_ID` is gone from `FILES` above. An unrouted name resolves to a
-     blank id, which `read` cannot tell from an empty tab, so leaving any of these lines in would
-     have been four tabs nothing fills, read on every load, for ever. */
+  /* NOTHING IS ROUTED HERE ANY MORE, and the section is kept so that is visible rather than merely absent. § */
 };
-/* WHO GETS TOLD when something needs doing by hand. A name rather than an address, because
-   notify() looks the address up on the people tab — so changing your email is one cell, not a
-   redeploy.
-
-   NOT NECESSARILY A PERSON. If the business account is the admin and the people behind it are
-   tutors, this is "@family." and the address on that row is where the printing lists and the
-   reported messages go. `adminEmail()` below is what actually resolves it, and it falls back to
-   any admin who has an address — because a hard-coded name that no longer holds the admin role,
-   or has no email on its row, means every notification this system sends is discarded in silence.
-   That is the failure the health check already reports for nine of fifteen people. */
+/* WHO GETS TOLD when something needs doing by hand. § */
 const ADMIN_NAME = "@family.";
 
-/* ==================================================================================================
-   EVERY KIND OF EMAIL THIS SITE SENDS, AND WHICH OF THEM SOMEBODY MAY TURN OFF
-
-   The owner, 9 Oct: *"Also let parents select their communication preferences like notification. And
-   kids and tutors too I guess"*. The site sends email and nothing else — no push, no SMS — so a
-   preference is a yes or no per KIND of email, and this table is the one list of kinds. Every sender
-   names its kind (`notify(name, subject, body, kind)`), `wants_` in people.gs asks the recipient's row,
-   and the Notifications card on Settings draws the kinds that reach that person (`notifyOf_`).
-   `js/check-prefs.js` fails on a `notify(` with no kind, or a kind that is not a key here.
-
-   OPTIONAL KINDS have a `col` on the people tab — BLANK IS ON, `no` is off, `ON_` reads it, the shape
-   `weekly_email` already had — and the `roles` it reaches (the words `rolesOf` gives). A person sees the
-   kinds of every role they hold. Default ON for everybody, because every row already on the sheet has a
-   blank there, and nobody was asked before; nothing here is off unless somebody turns it off.
-
-   ESSENTIAL KINDS have no column and no switch: `wants_` answers yes without looking. They are what
-   somebody needs to USE the service, and each says why in `why`, which the card does not print — it is
-   for whoever is tempted to add a column:
-     access    — the confirmation link, a new address's link, a forgotten PIN, the grown-up's yes for a
-                 child with no email, your child's handle. Without them nobody can get in, or back in.
-     security  — too many wrong PINs, your PIN changed. The only warning an account theft ever gives.
-     family    — somebody saying they are your parent, and the child's answer. A child is never put on an
-                 account they were not told about, and a parent who asked is owed the answer.
-     booked    — a booking received, a tutor chosen or not taken forward, accepted, declined, withdrawn,
-                 paid, cancelled. Each DECIDES whether a session happens; found out at the door is too
-                 late. See `move` in dopost.gs for which of its acts are which.
-     reported  — a message somebody reported. Safeguarding, and the admin is the only one told.
-   EVERYTHING ELSE IS THE CONVERSATION AROUND THOSE — a note on a session, new terms, a payment someone
-   else made, a festive sign-up, a message, a post going up, a thank-you for a referral, a post waiting
-   for approval — and is somebody's to turn off.
-
-   THE NOTES ARE THE CARD'S WORDS, and short because the card has to fit a 320 phone without scrolling —
-   the owner: *"I don't like scrolling. If you need to leave things more compact or smaller font"*. An
-   optional kind's label and note sit beside its tick; an essential kind is drawn as its LABEL ALONE, in
-   one run of words under "Always sent", so its label says the whole of it ("Bookings confirmed or
-   cancelled", not "Your bookings") and its note is for a pointer that can hover. `noteFor` is the same kind
-   as one role meets it — an admin's "booking updates" are festive sign-ups, not session notes. Order is the
-   card's order: optional first, then what is always sent.
-
-   `parents: true` — IT ALSO REACHES ANYBODY WITH AN ACCEPTED CHILD, WHATEVER THEIR ROLE CELL SAYS. The
-   Sunday run sends to every parent `acceptedParents` names, and that reads the family tab, not the role
-   cell; an admin may make or link a child (`makeChild`, `claimChild`, `linkChild`), and a tutor who was a
-   client can untick Client and keep their children. So a role list alone left an admin with their own
-   child on the site being sent the weekly email, its footer pointing at a tick the card never drew, and
-   `setNotify` answering that it "is not an email that reaches you" (review, 9 Oct). The card and
-   `setNotify` both ask `notifyHow_` in people.gs, which reads the same fact the sender does.
-
-   `hidden: true` — A SWITCH LEFT OFF THE CARD, AND STILL HONOURED. The column stays, `wants_` still reads it
-   and a `no` typed in the sheet still holds; `notifyOf_` just does not draw it. See `referrals`. */
+/* EVERY KIND OF EMAIL THIS SITE SENDS, AND WHICH OF THEM SOMEBODY MAY TURN OFF § */
 const NOTIFY_ALL_ROLES = ['client', 'student', 'tutor', 'admin'];
 const NOTIFY_KINDS = {
   weekly:    { col: 'weekly_email', roles: ['client'], parents: true,
@@ -303,13 +84,7 @@ const NOTIFY_KINDS = {
                noteFor: { admin: 'Sign-ups to a festive event' } },
   posts:     { col: 'posts_email', roles: ['client', 'student', 'tutor'],
                label: 'Your posts', note: 'When one goes up, or is not put up' },
-  /* HIDDEN: NOTHING HANDS A CODE OUT ANY MORE. The my-referral sheet went (js/me.js, `on('my-referral')`
-     WAS HERE) and the register form sends no `ref`, so `register`'s thank-you cannot be triggered from the
-     site — and a tick on every parent's and child's card about a code they have never seen is the rule
-     printing broke ("a column for a mail that cannot be triggered is a switch nobody could ever see work",
-     `orderPosted`), and a 60px row on a card that only fits 320 at 98% (review, 9 Oct). KEPT AS A KIND, with
-     its column, so the sender stays gated: a `ref` posted by hand still asks `wants_`, and a `no` already
-     typed holds. The day a code is handed out again, deleting `hidden` is the whole change. */
+  /* HIDDEN: NOTHING HANDS A CODE OUT ANY MORE. § */
   referrals: { col: 'referrals_email', roles: NOTIFY_ALL_ROLES, hidden: true,
                label: 'Your code was used', note: 'When somebody joins with it' },
   /* OFF MEANS A POST WAITS UNSEEN until the admin opens Posts — said on the card, because nothing else
@@ -334,10 +109,7 @@ const NOTIFY_KINDS = {
                why: 'a report is a safeguarding matter and the admin is the only one told' },
 };
 
-/* Bumped on every paste that changes behaviour. It is the ONLY way to tell from the outside
-   whether a deploy landed — open the /exec URL and read the first field. Two different files
-   sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
-   look like it did nothing. */
+/* Bumped on every paste that changes behaviour. § */
 const BACKEND_VERSION = "2026-10-18-y-money";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
@@ -390,68 +162,17 @@ const TAB = {
 };
 
 
-/* ---------- SCHEMA, AND KEEPING IT IN STEP ---------------------------------------------------
-   The shape of every tab, so the sheet can be brought up to date IN PLACE. This exists because
-   re-uploading a spreadsheet gives it a new file id, which means editing an id in FILES and
-   redeploying every single time — a change to one column costing two config edits.
-
-   Run ensureSchema() instead:
-     • a missing tab is created with its headers
-     • a missing column is APPENDED to an existing tab
-     • nothing is ever renamed, reordered or deleted, so your data can't be harmed
-   It's idempotent — running it twice does nothing the second time. Run it from the editor, or
-   load /exec?setup=1.
----------------------------------------------------------------------------------------------- */
+/* ---------- SCHEMA, AND KEEPING IT IN STEP § */
 const SCHEMA = {
-  /* ---------- THE PEOPLE TAB, REDESIGNED -----------------------------------------------------------
-     ASKED FOR AS *"do you think that the current structure of having qualification 1 2 3 is a bit
-     barbaric ... i am giving you position to completely redesign organisation of people tab"* and
-     then *"make it the best you in charge you choose"*.
-
-     IT WAS 89 COLUMNS AND ABOUT A QUARTER OF THEM WERE ONE FACT WRITTEN TWICE OR A FACT NOTHING
-     READ. Qualifications lived in a packed `quals` cell AND in `qual_1…3` with a level, a grade and a
-     board each; what a tutor teaches lived in `teaches_1`, `teaches_2` and `teaches_also`; `full_name`
-     repeated `first_name` + `last_name`; `username` repeated `handle`; `studying`, `studying_at` and
-     `extra_quals` had been folded into qualifications; `ticks_1…3` were read by one handler nothing
-     called; `locked_until` was kept only to clear a lock the old code wrote. And the packed cells —
-     `Maths:GCSE:Edexcel:8~~ts|…` — worked for the code and could not be read or edited in the sheet.
-
-     SO A PERSON IS ONE ROW OF FACTS ABOUT THEM, AND A LIST IS A TAB. `qualifications` and
-     `library_cards` below are one row per thing, keyed by `person_id`, which is the shape every
-     other list in this spreadsheet already has (`family`, `favourites`, `post_comments`). A tab can
-     be read, sorted, filtered ("who can teach GCSE Chemistry") and typed into by hand; a packed cell
-     can only be decoded. The phone's form did not change — it still posts `qual_N_*` and `libN_*`
-     boxes — and `qualsIn` / `libCardsIn` turn those into rows.
-
-     THE ORDER IS THE ORDER SOMEBODY LOOKS FOR THINGS: who they are, how to reach them and sign in,
-     the account's own bookkeeping, what the profile says, where they are, what they charge and when
-     they can teach, a family's and a student's own fields, and last the app's state, which nobody
-     types into. `ensureSchema` only ever ADDS, so a column dropped here is never deleted from a live
-     sheet by code — the new tab is pasted in whole, from the CSV that goes with this commit.
-
-     `handle_was` IS A SAFEGUARDING COLUMN — every earlier handle, newest first, none dropped since
-     each still signs its person in (342, `HANDLE_WAS_MAX`) — and
-     `handle_changed_at` is when the newest one began: most of the people here are children, and "who
-     was @foo last week" is asked exactly once, about the one account it matters for. Neither is a
-     cooldown any more; that went with the typed handle box (see `handleTrouble_`).
-     `pricing_changed_at` IS one — a month's — for the four fields that between them ARE a quote
-     (see `pricingRefusal_`). `_date` on the two exam columns is load-bearing:
-     `FIELD_IS_DATE` in js/me.js is `/_date$/`, which is what draws a date picker. */
+  /* ---------- THE PEOPLE TAB, REDESIGNED § */
   people: [
     /* who they are */
     "person_id", "role", "first_name", "last_name", "handle", "handle_changed_at", "handle_was",
-    /* EVERY WHOLE NAME THEY HAVE HAD BEFORE, newest first — written by `updateProfile` when a name
-       changes, so a child whose surname was corrected after she booked is still recognised in what was
-       stored under the old one and called by her first name there too (`kidNamesIndex_`, people.gs; the
-       owner, 10 Oct: *"dont show children's last name"*). A safeguarding column, like `handle_was`. */
+    /* EVERY WHOLE NAME THEY HAVE HAD BEFORE, newest first — written by `updateProfile` when a name changes, so a child whose surname was corrected after she booked § */
     "name_was",
     /* how to reach them, and how they sign in */
     "email", "phone", "pin", "date_of_birth",
-    /* A GROWN-UP'S ADDRESS, FOR A CHILD WHO HAS NONE — written by `register` when a child makes their
-       own account with no email of their own. NOT a sign-in address: `email` is that, and one address
-       on two rows locks both out. This is only where the confirmation link, a forgotten PIN and the
-       too-many-guesses warning are sent (`authGrownUps_`). Added at the END of a live sheet by
-       `ensureSchema`, like every new column. */
+    /* A GROWN-UP'S ADDRESS, FOR A CHILD WHO HAS NONE — written by `register` when a child makes their own account with no email of their own. § */
     "parent_email",
     /* the account */
     "verified", "verify_token", "listed", "details_confirmed", "joined_on", "came_from",
@@ -466,230 +187,58 @@ const SCHEMA = {
     "address", "town", "city", "borough", "postcode", "travel_km",
     /* what they charge, and when they can teach */
     "rate_per_hour", "extra_seat_rate",
-    /* THE BUSINESS'S CUT OF AN EXTRA SEAT, PER TUTOR (docs/history/345) — a fraction of THIS tutor's rate,
-       beside their own share. BLANK IS THE CONFIG TAB'S `B`, which is how every tutor was priced before the
-       column existed, so a sheet that has never typed into it prices exactly as it did; NOUGHT IS NOUGHT, no
-       cut at all. Written only by an admin (`seatCutRefusal_`, people.gs). Added at the END of a live sheet
-       by `ensureSchema`, like every new column. */
+    /* THE BUSINESS'S CUT OF AN EXTRA SEAT, PER TUTOR (docs/history/345) — a fraction of THIS tutor's rate, beside their own share. § */
     "extra_seat_cut",
     "min_students", "max_students", "min_hours", "max_hours",
     "pricing_changed_at", "availability", "agreement_signed_at", "agreement_version",
     /* a family's and a student's own */
     "children", "favourite_colour", "exam_small_date", "exam_big_date",
-    /* THE WEEKLY PARENT EMAIL, PER PARENT — see backend/digest.gs. BLANK IS ON, and only once the
-       owner has switched the email itself on (`weekly_digest` on the config tab): a column every
-       existing row would have to have typed into before anybody got one is a feature that never
-       starts. `no` (or anything that is not blank/yes/true/1, which is `ON_`) is this parent asking
-       to stop, and it is the one cell that does it. Read on the PARENT's row, never the child's. */
+    /* THE WEEKLY PARENT EMAIL, PER PARENT — see backend/digest.gs. § */
     "weekly_email",
-    /* ---------- AND EVERY OTHER EMAIL SOMEBODY MAY TURN OFF, ONE COLUMN EACH — see `NOTIFY_KINDS` ----------
-       The owner, 9 Oct: *"Also let parents select their communication preferences like notification. And
-       kids and tutors too I guess"*. `weekly_email` was already the shape — BLANK IS ON, `no` is off, read
-       through `ON_` — so the other five optional kinds are five more of it beside it, not a second
-       mechanism: one packed cell of choices is what the redesign note above calls a cell that "could not
-       be read or edited in the sheet", and `ensureSchema` can append a column to a live tab and cannot
-       re-pack a cell. `weekly_email` KEEPS ITS NAME — renaming it would lose every `no` already typed —
-       which is why the others end in `_email` too. Written only by `setNotify` (the row the token
-       resolves to) or by hand. NOT `admin_email`, which reads like an address: `approvals_email` is
-       whether the admin is emailed about a post waiting for them. */
+    /* ---------- AND EVERY OTHER EMAIL SOMEBODY MAY TURN OFF, ONE COLUMN EACH — see `NOTIFY_KINDS` § */
     "messages_email", "bookings_email", "posts_email", "referrals_email", "approvals_email",
     /* the app's state, which nobody types into */
     "avatar", "avatar_owned", "xp", "credits", "high_score_flappy", "high_score_tables",
     "friends", "notepad", "todo",
-    /* THE TIMETABLE WIDGET'S WEEK — what somebody writes down around their sessions. It lived only on
-       the phone it was typed on, so a tutor's standing week on their laptop was not on their phone.
-       ONE CELL OF JSON, `{ weekend, days: [7 lists of { id, at, subject, note }], colours }`, for the
-       docket's reason: nothing links to a lesson, nothing counts it, nobody else reads it — a tab
-       would be ids and a deletion policy for a scrap of paper. Written by `saveTimetable`, own row
-       only; the sessions BOOKED here are not in it, they are read from `jobs` every time. */
+    /* THE TIMETABLE WIDGET'S WEEK — what somebody writes down around their sessions. § */
     "timetable"
   ],
-  /* ---------- ONE ROW PER QUALIFICATION --------------------------------------------------------
-     A qualification is a subject at a level with a grade, from somewhere, finished in a year (or
-     `Present` while it is still being studied). `institution` is the school, college or university
-     — never the exam board, which the owner took off. `teach` is the ONE level a tutor specialises
-     in (the gold chip under "Teaches"); `can_teach` is everything else they will take on (under
-     "Can also teach"). Rows for one person are read in sheet order, which is the order they show.
-     A PGCE or an Enhanced DBS is a row with a subject and nothing else. */
+  /* ---------- ONE ROW PER QUALIFICATION § */
   qualifications: [
     "person_id", "subject", "level", "grade", "institution", "completed", "teach", "can_teach"
   ],
-  /* ---------- ONE ROW PER LIBRARY CARD ---------------------------------------------------------
-     A note rather than a credential of ours, kept here rather than in `data/` because a card number
-     and its four digits are secret, and in a sheet because the app writes them. Up to `LIB_MAX` per
-     person on the form. */
+  /* ---------- ONE ROW PER LIBRARY CARD § */
   library_cards: [
     "person_id", "library", "card_number", "pin"
   ],
-  /* ---------- THE MAP -----------------------------------------------------------------------
-     WHERE THE GROUND COMES FROM, and the reason this tab exists at all.
-
-     Hand-writing a street network is hopeless: a borough is several hundred ways, each a chain of
-     points, and anything written from memory would be plausible and wrong — which is worse than
-     coarse, because coarse looks coarse and wrong looks right.
-
-     So it is FETCHED, once, from OpenStreetMap through the Overpass API, and kept here. OSM is
-     the only source that is both accurate and free to redraw: its data is ODbL, which asks for
-     attribution and gets it on the map. Tiles were the wrong shape of answer — they are pictures,
-     they need a key, and they cannot be drawn in this app's own ink. Geometry can.
-
-     ONE ROW PER SHAPE. A park, a river, a road — each with the world it belongs to and its points
-     as a flat list. Rows rather than one big cell because a cell holds 50,000 characters and a
-     borough does not fit, and because a row can be deleted when a shape turns out to be rubbish.
-
-     Nobody edits this by hand. `?run=fetchMap` fills it and `?run=fetchMap&arg=Merton` refills one
-     world when the source improves. */
-  /* ---------- LANDMARKS ---------------------------------------------------------------------
-     BUILDINGS MEASURED BY HAND, and the shape of this tab is decided by how you actually measure
-     one: open the satellite view, drop the ruler along the front of the building, read the metres.
-     That gives a length, a width and a direction — not a polygon — so that is what it stores.
-
-     `shape` = "box" is the common case and needs three numbers: `width_m` along the front,
-     `depth_m` back from it, and `bearing` — see the note on it below, which changed when squaring
-     became automatic. Once: the compass direction the front faces, 0 for north, 90
-     for east. Almost nothing in London is aligned to north and a building drawn square when it sits
-     at forty degrees to the street is the single thing that makes a map look wrong.
-
-     `shape` = "polygon" is for the ones that are not rectangles — an L, a curve, a terrace that
-     bends. `points` is then "lat lng, lat lng, …" walked round the outline, and the box numbers are
-     ignored.
-
-     HEIGHT: put in `height_m` if you know it, `storeys` if you do not. Storeys are easier to count
-     off a photograph and get multiplied by about 3.2m. One or the other, not both — and if both are
-     given the measured metres win, because somebody measured them.
-
-     HAND-MEASURED BEATS FETCHED. OpenStreetMap's copy of a building is whatever a volunteer traced;
-     yours is what you stood in front of with a ruler. Anything in this tab overrides the same
-     building from `fetchMap`. */
+  /* ---------- THE MAP § */
+  /* ---------- LANDMARKS § */
   landmarks: [
-    /* ---------- THESE ARE THE TAB'S OWN NAMES, AND THEY DID NOT USED TO BE -----------------------
-       THIS ENTRY DESCRIBED A TAB THAT DOES NOT EXIST. It said `landmark_id`, `shape`, `width_m`,
-       `depth_m`, `height_m`, `colour` and `roof`; the sheet has `id`, `w`, `d`, `height`,
-       `wall_colour` and `roof_colour`, and no `shape` at all. So `content.gs` read seven names off
-       every landmark row that were not there, and **every building came through with width 0,
-       depth 0, height 0 and no colour** — drawn as a flat slab of nothing.
-
-       NEITHER CHECK COULD SEE IT. `check-columns` asks whether a name is a column of any tab and
-       `check-rows` asks whether it is a column of THIS tab — and both were answered by this entry,
-       which is the code's belief rather than the sheet. Found by downloading the spreadsheet and
-       comparing, which is the third question and the one nothing automates yet.
-
-       THE SHEET IS THE SIDE THAT IS RIGHT, so the names moved here rather than there — the same
-       conclusion this file reached about `SCHEMA.questions`. `shape` is gone entirely: it was read
-       into a variable that nothing used, and the comment beside it already said no row has ever
-       had one. */
+    /* ---------- THESE ARE THE TAB'S OWN NAMES, AND THEY DID NOT USED TO BE § */
     "id", "parent", "name", "world", "kind",
     "lat", "lng",
-    /* ---------- WHICH WAY ROUND IT STANDS ON THE BOARD --------------------------------------------
-       DEGREES TO TURN IT, and the sign is the ordinary one: POSITIVE IS CLOCKWISE, negative is
-       anticlockwise. So -90 turns a site a quarter turn anticlockwise and 90 turns it the other way.
-
-       IT IS A TURN ON TOP OF SQUARE, not an absolute compass bearing. The board works out for itself
-       what angle a site was built at — Britannia Point stands at 105 degrees, fifteen off the grid —
-       and turns it until its longest wall runs along the tiles, because a rectangle at fifteen
-       degrees rasterises into a staircase and a staircase reads as an L. That happens whatever this
-       says. This is the ADDITIONAL turn, for choosing which face you want toward you once the
-       tiling is already clean.
-
-       SO 0 IS RIGHT FOR MOST THINGS. Fill this in only when a site looks square and faces the wrong
-       way, and then it is one of four numbers: 90, 180, -90, or 0. */
+    /* ---------- WHICH WAY ROUND IT STANDS ON THE BOARD § */
     "bearing",
     /* `x` and `z` are the board position when one is set by hand, and `active` is how a landmark
        is retired without deleting the row. All three are on the tab and none was declared. */
     "x", "z", "active",
     "w", "d", "points",
     "height", "storeys", "wall_colour", "note",
-    /* ---------- WHAT THE SHEET ALREADY HAD AND THE SCHEMA DID NOT --------------------------------
-       These four are on the landmarks tab and were never declared here — so `ensureSchema` would
-       not create them on a fresh sheet, and `check-columns` reported them the moment anything read
-       one. The tab was ahead of the schema, which is the quiet half of the same fault as a schema
-       being ahead of the tab.
-
-         label   what to write on the map, when the full name is too long for it
-         icon    which glyph stands for it — a bus, a tree, a basket
-         role    what it is TO THE APP rather than to the town: a venue, a start, a post
-         marker  how it is drawn where there is no outline to draw
-    */
+    /* ---------- WHAT THE SHEET ALREADY HAD AND THE SCHEMA DID NOT § */
     "label", "icon", "role", "marker", "roof_colour", "address",
-    /* ---------- WHAT MAKES A LANDMARK RECOGNISABLE ON THE BOARD ----------------------------------
-       THE BOARD IS NOT A MAP AND NOTHING ON IT IS TO SCALE. Each landmark gets a plot of its own,
-       in order along the path, and what has to carry it is the SHAPE — because you know a church
-       from a factory at a hundred metres by outline alone, long before you can read a sign.
-
-       FOUR COLUMNS, IN THE ORDER THEY DO WORK:
-
-         form     THE SILHOUETTE, and by far the strongest of the four:
-                    tower   tall and narrow — Britannia Point
-                    hall    wide, one storey, a big roof — a community centre, a church
-                    shed    long and low — the bus garage, a retail park
-                    house   small and square
-                    slab    a plain block, which is what most things are
-                    dome    round-topped
-
-         roof     THE ROOFLINE, second strongest — it is what tells a house from a warehouse of
-                  exactly the same size:
-                    flat  ·  pitch  ·  dome  ·  saw   (saw is the north-light roof of a factory)
-
-         feature  ONE thing that sticks up or out. One is memorable; three is noise:
-                    chimney · spire · clock · mast · sign · none
-
-         plots    HOW MANY TILES WIDE it sits. Not its real width — how much room it needs to look
-                  like itself. A bus garage wants four; a house wants one. Blank means two.
-
-       ALL FOUR ARE OPTIONAL. A row with none of them draws as a plain slab, which is what
-       everything drew as before these existed. */
+    /* ---------- WHAT MAKES A LANDMARK RECOGNISABLE ON THE BOARD § */
     "form", "roof_shape", "feature", "plots",
     /* HOW DEEP THE PLOT IS, in tiles. Width is `plots`; this is the other side of it, and it exists
        because a retail park is wide AND deep while a house is neither. */
     "plot_depth",
   ],
 
-  /* ---------- THE PARTS OF A LANDMARK ------------------------------------------------------------
-     A LANDMARK IS NOT ONE THING, and one row cannot say otherwise. Priory Retail Park is a store
-     with grey walls and a blue roof, AND a flat black car park beside it. Deen City Farm is a barn,
-     paddocks, and a fence round the lot. A single row has one height, one colour and one form, so
-     every landmark that is really two things has to lie about one of them.
-
-     SO A PART IS A ROW. Which landmark it belongs to, where it sits on that landmark's plot, how
-     big it is, and what it is made of. Exactly the move the people tab needed when it was a hundred
-     and twelve columns: the thing that repeats becomes rows.
-
-     TILE COORDINATES, NOT METRES. `x` and `z` are measured from the front-left corner of the plot,
-     in tiles, and `w` and `d` are how many tiles the part covers. The board is not to scale — it is
-     a board — so a part is placed where it LOOKS right rather than where it measures, and tiles are
-     the unit somebody can actually reason about while filling this in.
-
-     A LANDMARK WITH NO PARTS still draws, from the `form` and `plots` on its own row. That is the
-     whole of the previous behaviour and it stays: parts are for the ones worth the detail, and
-     nothing has to be filled in for the ones that are not. */
+  /* ---------- THE PARTS OF A LANDMARK § */
   landmark_parts: [
     "part_id", "landmark_id", "name",
-    /* WHAT IT IS, and this decides everything about how it draws:
-         building  walls and a roof, standing on the plot
-         tarmac    flat and dark — a car park, a yard, a service road
-         grass     flat and green
-         water     flat, blue, and slightly sunken
-         trees     grass with trees on it
-         fence     a low line round the edge of the tiles it covers
-         path      the pale surface of a footway
-         bridge    a raised deck on piers — the one flat thing that is OFF the ground, so it can
-                   cross a `water` part with the river visible underneath */
+    /* WHAT IT IS, and this decides everything about how it draws: § */
     "kind",
-    /* ---------- THE SHAPE, TWO WAYS, AND ONE OF THEM IS BETTER --------------------------------
-       `points` — THE REAL CORNERS, `lat lng, lat lng, …`, exactly as the landmarks tab holds them.
-       Any number of them. When this is filled in, everything below is IGNORED: the shape is
-       rasterised onto the landmark's tiles, so a C-shaped building comes out C-shaped and a car
-       park wrapping round it wraps round it. That is the only way a plan actually survives to the
-       board — a bounding box turns every building into the same rectangle, which is what made
-       Tandem Centre and Priory look identical.
-
-       `x` `z` `w` `d` — TILES, from the front-left corner of the plot, for parts nobody has walked
-       round. Quicker to fill in and always a rectangle. Fine for a shed; wrong for a shopping
-       centre built round a car park.
-
-       BOTH ARE SCALED TO THE LANDMARK'S OWN PLOT, not to the board. So the shape within a site is
-       true and the size between sites is not, which is what a board is for: Tandem Centre and a
-       corner shop each get the room they need, and each is the right shape inside it. */
+    /* ---------- THE SHAPE, TWO WAYS, AND ONE OF THEM IS BETTER § */
     "points",
     "x", "z", "w", "d",
     /* HOW TALL, in metres — 0 for anything flat. The board squashes the range so a tower and a shed
@@ -708,72 +257,30 @@ const SCHEMA = {
     "note", "active",
   ],
 
-  /* ---------- RECEIPTS ----------------------------------------------------------------------
-     WHAT WAS AGREED, KEPT AS IT WAS AGREED.
-
-     A receipt is not a view of a job — it is a record of what was said at a moment. Rates move,
-     multipliers get corrected, a venue's room hire goes up; regenerating a receipt from today's
-     numbers would hand somebody a different document from the one they were given, which is the
-     one thing a receipt must never do.
-
-     So the LINES are stored, as they were printed. `lines` is the JSON the phone drew, and reissuing
-     is reading it back rather than recomputing it. That is deliberate duplication of data that
-     exists elsewhere, and the duplication is the point: the job can change afterwards and this
-     cannot.
-
-     `total_pence` is stored as a whole number of pence beside the lines. Money in a spreadsheet
-     cell is a float, and a float is a thing that can arrive as 836.0000000001 — fine to display,
-     wrong to reconcile against a bank statement. */
+  /* ---------- RECEIPTS § */
   receipts: [
     "receipt_id", "kind", "job_id", "order_id", "person_id", "person_name",
     "issued_on", "total_pence", "currency", "lines", "note",
   ],
 
   map: [
-    /* `meta` carries whatever the shape needs beyond its outline — a building's storeys, a road's
-       classification. One spare column rather than a column per property, because the properties
-       differ per kind and a tab with `levels`, `lanes` and `surface` in it would be mostly blank. */
+    /* `meta` carries whatever the shape needs beyond its outline — a building's storeys, a road's classification. § */
     "world", "kind", "name", "points", "meta",
   ],
 
   venues: [
     "venue_id", "name", "focus", "borough", "city",
-    /* WHERE IT ACTUALLY IS. Borough and town say roughly; a postcode says exactly, and the two
-       numbers derived from it are what let a map put the venues in their real relation to one
-       another rather than in the order somebody typed them.
-       `postcode` is the one anybody fills in. `lat` and `lng` are FILLED FOR YOU — see the geocode
-       runner — because nobody should be looking up coordinates by hand, and a number typed from a
-       website is a number that can be typed wrong with nothing to check it against. */
+    /* WHERE IT ACTUALLY IS. § */
     "postcode", "lat", "lng",
     "town", "photo", "link", "description",
     "cost_per_hour",
-    /* ---------- WHAT IT COSTS TO SEND SOMEBODY HERE ----------------------------------------------
-       PER SESSION, NOT PER HOUR, because a journey is a journey: Richmond and back costs the same
-       whether the lesson is one hour or three. Charging it by the hour would make a long session
-       look expensive to reach, which is the opposite of true.
-
-       ON THE VENUE, NOT ON THE TUTOR, and that is the whole design. A distance from a tutor's home
-       to a venue is more accurate and it is also a number a tutor can change by editing their own
-       address — which turns a pay field into something to be gamed, and puts the business in the
-       position of auditing where its staff say they live. A figure per venue is set by you, cannot
-       be edited by anybody it pays, and answers the only question that matters: what does it cost
-       to get somebody to this room.
-
-       ZERO IS A REAL ANSWER and Online is the case it was written for: there is no journey, so
-       there is no cost. Blank means the same as zero, so nothing has to be filled in for the
-       venues nobody travels to.
-
-       CLIENT HOUSE IS THE ONE TO THINK ABOUT. It is a door rather than a library and it is the
-       longest journey on the list — so it is the venue most likely to want a figure here, and the
-       one where leaving it blank quietly costs you money. */
+    /* ---------- WHAT IT COSTS TO SEND SOMEBODY HERE § */
     "travel_cost",
     "max_students", "min_students",
     "min_hours", "max_hours", "focus", "notice_days",
     "availability", "tutors_happy_here"
   ],
-  /* AN INVITATION. One row is one family asked to share one booking — who asked, who was asked,
-     which booking, and what happened. Separate from `jobs` because an invitation has its own life:
-     it is sent, opened, and accepted or not, and most are not. */
+  /* AN INVITATION. One row is one family asked to share one booking — who asked, who was asked, which booking, and what happened. § */
   invites: [
     "invite_id", "job_id", "from_person", "to_email", "to_name",
     "sent_on", "opened_on", "accepted_on", "declined_on", "token", "notes",
@@ -783,57 +290,20 @@ const SCHEMA = {
     "job_id", "status", "subject", "level",
     "service", "weekday", "start_time", "hours_per_session",
     "venue", "client_hosts", "term_name", "session_dates",
-    /* WHAT IT COST, beside what it earned. `tutor_pay` has been written as an empty string on every
-       job ever created — so the books record what a session brought in and nothing about what it
-       took to run, and the margin column is a figure the browser sent rather than a subtraction.
-       `travel_paid` is the journey, copied from the venue AT THE TIME OF BOOKING: the rate can
-       change afterwards and what you actually paid for this session cannot. */
+    /* WHAT IT COST, beside what it earned. § */
     "price_total", "tutor_pay", "travel_paid", "admin_profit", "max_students",
-    /* WHO THE SESSION IS FOR, by name, as the parent ticked them at booking. Comma-separated
-       because a booking is one row and the children in it are two or three names, never a table.
-       Blank is ORDINARY and means the seats are children we have no name for — somebody booking
-       for a friend's family, or for a child with no account here. It is not the same as nobody
-       coming, and the roster says "Child" rather than pretending to know. */
-    /* WHETHER A FAMILY THIS ONE HAS NEVER MET MAY ASK TO JOIN, answered by the client at booking.
-       Not derived from anything: a booking with seats going and a booking that is open to strangers
-       are different facts, and inferring the second from the first would be deciding on somebody
-       else's behalf who may sit with their child.
-       Blank counts as NO. Every row that predates this column was made when the question was not
-       being asked, and reading silence as consent is the one direction this must never fail in. */
+    /* WHO THE SESSION IS FOR, by name, as the parent ticked them at booking. § */
+    /* WHETHER A FAMILY THIS ONE HAS NEVER MET MAY ASK TO JOIN, answered by the client at booking. § */
     "open_to_others",
     "for_children",
     "split_emails", "stealable", "created_at",
-    /* WHAT KIND OF SESSION THIS IS, and it is the one column that changes the RULES rather than the
-       facts. Blank or `session` is the ordinary booking: you choose a tutor, you choose how many
-       children, and the price falls out of the formula.
-       `waitlist` is a different product wearing the same shape — one seat, no tutor chosen, Maths
-       and English, and a price fixed before anybody joins. Everything downstream still works
-       because it is still a job: `participantsOf` folds the roster, `move` runs the lobby, the
-       payment path is identical. Only the making of it differs, which is why this is a column and
-       not a tab.
-       BLANK IS A SESSION, for the same reason every other flag on this sheet reads that way: every
-       row that predates the column was made before the question was being asked. */
+    /* WHAT KIND OF SESSION THIS IS, and it is the one column that changes the RULES rather than the facts. § */
     "kind",
-    /* WHEN THE LIST SHUTS. A waitlist that never fills has to end somewhere or the families on it
-       are waiting on a thing that is never going to be told to them. Nothing enforces it yet — it
-       is written so the closing can be a date rather than somebody remembering. */
+    /* WHEN THE LIST SHUTS. § */
     "closes_on",
-    /* WHO MADE IT, when that is not the family it is for.
-       BLANK IS THE ORDINARY CASE and means they booked themselves — which is also what makes the
-       receipt's question skippable: "who is this for" is only worth asking when this is going to be
-       filled in, so one column answers the question AND decides whether to ask it.
-       A booking a parent made and one an admin made on their behalf were identical rows before
-       this, and that is the fact you want on the day somebody says they never booked it. */
+    /* WHO MADE IT, when that is not the family it is for. § */
     "booked_by",
-    /* ---------- WHAT THE BOOKING EARNS, KEPT AS IT WAS AGREED (docs/history/353) ------------------------
-       THE MONEY BLOCK'S FIGURES, whole-booking, as the phone priced them at the ask, and FROZEN when the
-       job is accepted: `jobMoneyFreeze_` (booking.gs) works the card fees out from the config of THAT
-       moment, writes the net and stamps `priced_at` — and a row with `priced_at` is never written again,
-       so a fee or a markup changed next month cannot rewrite what an old booking earned.
-       `gross` is what the client is charged, the discount already off; `net_profit` = gross − tutor_payout
-       − venue_cost − materials_cost − tickets_cost − card_fees. `price_total`, `tutor_pay` and
-       `admin_profit` above are unchanged and still what the receipt and checkout read.
-       `format` is Tutoring, Practical or Trip — blank is Tutoring, every row before this column. */
+    /* ---------- WHAT THE BOOKING EARNS, KEPT AS IT WAS AGREED (docs/history/353) § */
     "gross", "tutor_payout", "venue_cost", "materials_charge", "materials_cost", "tickets_cost",
     "card_fees", "discount_type", "discount_value", "discount_code", "discount_absorbed_by",
     "net_profit", "priced_at", "format", "practical_id", "trip_id"
@@ -845,49 +315,16 @@ const SCHEMA = {
   ],
   terms: [
     "term_id", "term_name",
-    /* WHAT KIND of interval it is: term, holiday, or half-term. The name usually says so —
-       "Christmas Holiday" is not subtle — but a name is prose and this is a fact the site needs to
-       act on: a holiday prices differently, fills differently and is offered differently from a
-       teaching block. Derived from the name when the cell is blank, so nothing has to be filled in
-       for it to start working. */
+    /* WHAT KIND of interval it is: § */
     "kind",
     "relative_name", "display_name",
     "start_date", "end_date", "last_sunday", "weeks_left"
   ],
-  /* ---------- HERD MENTALITY'S QUESTIONS -------------------------------------------------------
-     ONE COLUMN THAT MATTERS AND THREE THAT HELP. The game hands out a question and gets out of the
-     way, so a row is a question — `sort_order` is here because the tab will be typed in bursts and
-     somebody will want to group them, and `active` because a question that did not land in a room
-     should be switchable off rather than deleted, so the next person does not re-add it.
-
-     THE CODE KEEPS ITS OWN LIST AND THIS REPLACES IT. `HERD_BUILTIN` in games.js is twenty
-     questions; fill this tab and those are replaced with no deploy, leave it empty and the game
-     still works. An empty tab must never produce an empty game — see `herdPack_`. */
+  /* ---------- HERD MENTALITY'S QUESTIONS § */
   herd: ["question_id", "question", "sort_order", "active", "notes"],
 
-  /* ---------- `resources` WAS A TAB, THEN A KIND OF ROW, AND IS NOW NEITHER --------------------
-     Its 559 rows and every column it had went onto the `questions` tab as `kind: 'paper'` rows —
-     and that tab has since left the spreadsheet altogether for `data/questions.json` in this
-     repository. See the note where `SCHEMA.questions` used to be, a few hundred lines down.
-
-     REMOVED RATHER THAN LEFT EMPTY, ON PURPOSE. `ensureSchema` walks SCHEMA and CREATES any tab
-     it cannot find, so an entry left here would quietly rebuild an empty `resources` tab on the
-     next `?setup=1` — a decoy with the right headers and no rows in it, which is the exact shape
-     of the fault that hid the real rows in another file for months. */
-  /* ---------- ONE TAB FOR EVERYTHING THAT IS A THING -----------------------------------------------
-     `shop` HELD THE WEARABLES AND `items` HELD THE STATIONERY, and `items` was never wired up at
-     all — forty rows in a tab with no SCHEMA entry, no TAB entry and nothing reading it, which is
-     the same fault as the `notes` column and the English cheat-sheet components. Merged rather than
-     wired up twice: a pencil and a pair of jeans are both a thing with a name, a price and a way of
-     getting hold of it, and the differences are columns rather than tabs.
-
-     `acquire` IS THE COLUMN THAT DID THE MERGING. `shop` said how you got something by leaving the
-     price blank; `items` said it in a word — buy, ticks, issued, loan. The word won, and `level`
-     joined it for the wearables you earn by levelling up.
-
-     THREE PRICE COLUMNS BECAUSE THERE ARE THREE CURRENCIES. Pence for money, ticks for ticks, coins
-     for the wardrobe. One `price` and a `currency` beside it meant every reader had to check the
-     second before trusting the first, and a blank currency was a silent guess. */
+  /* ---------- `resources` WAS A TAB, THEN A KIND OF ROW, AND IS NOW NEITHER § */
+  /* ---------- ONE TAB FOR EVERYTHING THAT IS A THING § */
   shop: [
     "item_id", "name", "brand", "kind", "description", "photo",
     "audience", "acquire",
@@ -904,137 +341,31 @@ const SCHEMA = {
   ],
   options: [
     "list_name", "value", "sort_order",
-    /* WHAT KIND of thing it is. The same word tutors and venues already use, so "academic" means
-       one thing across the whole site — a tutor who does sport, a venue with a hall, and a subject
-       like PE all say `sporty`, and a filter that understands one understands all three.
-       Only meaningful on rows in the `subject` list; harmless everywhere else. */
+    /* WHAT KIND of thing it is. § */
     "focus"
   ],
-  /* ROOMS.
-     A venue is a building; a room is what you actually hire, and Richmond has several at different
-     prices holding different numbers. One rate per venue could only ever describe the cheapest
-     room or the dearest, and both are wrong on the invoice.
-
-     Concession is a second RATE on the same room rather than a second room: it's the same space at
-     a different price, and duplicating the row would mean editing capacity twice and having the
-     two disagree the first time somebody didn't.
-
-     Optional. A venue with no rooms behaves exactly as before, using its own cost_per_hour — so
-     you can describe Richmond properly without touching the other ten.
-
-     A BLANK CELL ON A ROOM IS ITS VENUE'S — rate, minimum, capacity and hours — and an explicit 0
-     rate is free on purpose. `roomTerms_` in booking.gs decides it once for everything that prices
-     or caps a room; a blank rate used to be sent as 0, which the site draws as "free". The names are
-     `ROOM_SLOTS` below. See docs/history/336. */
+  /* ROOMS. A venue is a building; a room is what you actually hire, and Richmond has several at different prices holding different numbers. § */
   rooms: [
     "room_id", "venue", "name", "rate_per_hour",
     "concession_rate", "min_capacity", "max_capacity", "availability",
     "notes", "active"
   ],
-  /* A `feed` tab lived here. The cards are GENERATED now — computed arithmetic, and the topics
-     already in `resources` turned into retrieval prompts — so there is nothing to fill in and
-     nothing to run out of. A table would have been twenty rows somebody had to write and then
-     maintain, seen once each. */
+  /* A `feed` tab lived here. § */
 
-  /* THE WIDGETS. One row per tool and per game.
-
-     `key` is the only thing the code needs — it names which drawing function to call, and a
-     function cannot live in a spreadsheet. Everything ELSE about a widget comes from here: what it
-     is called, what it says under the name, whether it appears at all, what order it sits in, and
-     who sees it.
-     So renaming a tool, hiding one, reordering them or making one admin-only is a cell rather than
-     a deploy — which is the whole reason for the tab.
-
-     `search` is the words somebody might type looking for it: "reels" finds the feed, "todo" finds
-     the checklist. Those were buried in the code as part of a name nobody ever saw. */
+  /* THE WIDGETS. One row per tool and per game. § */
   widgets: [
     "widget_id", "key", "name", "blurb", "section",
     "search", "sort_order", "roles", "active", "notes",
   ],
 
-  /* BRANDING. Key and value, not a column each.
+  /* BRANDING. Key and value, not a column each. § */
 
-     A column per logo means every new piece of branding is a schema change and a deploy; a row per
-     piece means it is a row. And the point of this tab is to be ready for things not yet decided
-     on — which is exactly the case where naming the columns in advance would be guessing.
+  /* ---------- THE REELS, WHICH HAD NO TAB AT ALL § */
 
-     Known keys, none of them required:
-       logo_square    the square mark — an avatar, a favicon, a tile
-       logo_circle    the round one, where a circle is wanted
-       logo_wide      a wordmark, for a header or a letterhead
-       cover          the wide photograph behind a profile
-       favicon        the browser tab
-       tagline        one line, under the name
-       accent         a colour, if you ever want it to differ from the stylesheet
-       reactions      the emoji a post offers — `👍 ❤️ 😂 😮 👏 🎉`. While this is empty there
-                      are no faces to draw, so no reaction row appears on any post at all.
+  /* THE LAWS — how words are coloured, wherever they appear. § */
 
-     Anything else you add appears too — the site passes the whole tab through, so a key it has
-     never heard of is still available to whatever you write next. */
-
-  /* ---------- THE REELS, WHICH HAD NO TAB AT ALL --------------------------------------------------
-     `screen('reel')` READS `DATA.facts` AND NOTHING EVER SENT IT. No `facts` in TAB, none in this
-     schema, and no line in doGet — so the column showed its empty state on every load since it was
-     written, and that empty state says "add a row to the facts tab", naming a tab the sheet has
-     never had. Somebody following the instruction would have made one and still seen nothing,
-     because the payload had no idea it existed.
-
-     Exactly the failure CLAUDE.md names: a key the site asks for and the backend does not send is
-     `|| []` away from looking like an empty database.
-
-     `pic` IS A SEARCH TERM, NOT A URL. The photograph is found on Wikimedia Commons when the slide
-     scrolls into view — see `reelsWatch_`. So the cell holds words like "Roman aqueduct", not a
-     link, and a row with no `pic` simply keeps its gradient. */
-
-  /* THE LAWS — how words are coloured, wherever they appear.
-
-     A rules table rather than rules scattered through the code, so a new one is a row and not a
-     deploy. Every law is: what to match, how to match it, and what colour it becomes.
-
-       kind = list    match against a list the site already has — subjects, clients, tutors, venues
-       kind = prefix  a symbol and the word after it: # or @
-       kind = word    one exact word or phrase
-       kind = regex   for anything the first three cannot express
-
-     `colour` is a name, not a hex — so the palette stays in the stylesheet where a designer would
-     look for it, and a person filling in this tab writes "green" rather than #3ddc84.
-
-     `weight` decides which law wins when two match the same word. Higher goes first. */
-
-  /* POSTS. What the front of the app is: a photograph, a line about it, and a date.
-
-     `image` is a Drive share link or any URL — the same treatment the showcase already had, so
-     dropping a file in a folder and pasting the link is the whole workflow. */
-  /* ---------- ONE ROW PER FILM OR SERIES, NOT PER EPISODE --------------------------------------
-     AN EPISODE IS NOT A THING ANYBODY SEARCHES FOR. You choose the show and then the episode, and
-     Drive's own folder view already does the second half well — so a five-season show is ONE
-     row with a folder link on it rather than sixty-two rows of `5.7.mkv`. Same judgement the funnel already
-     makes about tools: the thing you choose is the thing that gets a row.
-
-     `placeholder` IS THE LIBRARY'S OWN COLUMN, one table along. It marks a row asked for by name
-     whose file is not in the Drive yet — a card that says so beats a link that opens nothing,
-     which is the argument `check-library.js` already prints an outstanding list for.
-
-     `audience` IS `adults` OR `kids` AND IT IS NOT A RATING. It is which of the owner's two
-     folders a thing came out of. Nothing in this app decides who may watch what from it; the
-     whole tab is admin-only before it leaves the server.
-
-     ---------- AND THE FOLDER FILLS IT NOW, NOT A PERSON ----------------------------------------
-     *"Let admin be able to search up films which are in the notflix folder on gdrive."* It was
-     filled once by hand, and the Ledger it went into was replaced with headers only — so an admin
-     searched and found nothing, and nothing anywhere could see why. `filmsSync_` in content.gs
-     walks the folder and upserts this tab BY `drive_id`. THE MACHINE'S COLUMNS are `kind`,
-     `audience`, `drive_name`, `drive_url`, `file_kind` (file | folder), `size_gb`, `seasons`,
-     `placeholder` and `active`, refreshed on every pass. A PERSON'S COLUMNS are `title`, `year`,
-     `director`, `lead` and `notes`. The sync never writes `director` or `lead` (a name says
-     neither). `title`, `year` and `notes` are read out of the file's name, and they FOLLOW A RENAME
-     for as long as they still say what the last name said — `drive_name` is that name, which is how
-     the sync can tell its own cell from a typed one. A cell a person typed something else into is
-     never written over — so a corrected title survives. `drive_name` IS LAST, where `ensureSchema`
-     appends it, and like `drive_id` it is never sent: the title is the name, read. A row whose file
-     has left the folder is switched off, never deleted; a row with no `drive_id` is somebody's own
-     and is not touched (a title typed with no id is ADOPTED by the file of that name when it
-     arrives, rather than duplicated). */
+  /* POSTS. What the front of the app is: § */
+  /* ---------- ONE ROW PER FILM OR SERIES, NOT PER EPISODE § */
   films: [
     "film_id", "title", "year", "kind", "audience", "director", "lead", "seasons",
     "drive_id", "drive_url", "file_kind", "size_gb", "placeholder", "notes", "active",
@@ -1042,35 +373,14 @@ const SCHEMA = {
   ],
 
   posts: [
-    /* `file_name` is what the caption was taken FROM. Without it a scan cannot tell a caption
-       somebody typed from one it copied off a filename, so it must either never update a caption
-       or always overwrite one — and both of those are wrong in the ordinary case. */
-    /* WHETHER IT MAY BE SEEN, and it is NOT the same question as `active` below.
-       `active` is whether it has been deleted. This is whether it has been let through. A post from
-       a client is neither deleted nor visible — it is waiting — and folding those two facts into one
-       column would mean approving a post and undeleting one were the same act, which they are not.
-
-         (blank)   never needed approving. Every row that predates this column, and every post an
-                   admin makes — because an admin approving their own post is a step that exists
-                   only to be skipped.
-         PENDING   somebody who is not an admin has posted it. Nobody sees it but them and you.
-         REFUSED   you said no. The row stays: a post you turned down is the one you may need to
-                   show somebody afterwards, and deleting it is the one thing you cannot undo. */
+    /* `file_name` is what the caption was taken FROM. § */
+    /* WHETHER IT MAY BE SEEN, and it is NOT the same question as `active` below. § */
     "approved", "approved_by", "approved_on",
     "post_id", "author", "image",
-    /* ---------- EVERY PICTURE AND CLIP AFTER THE FIRST, AS ONE LIST ---------------------------------
-       ASKED FOR AS "tutors should be able to post more then one photo. not just one. and also
-       videos." `image` stays the FIRST — the scan, `creation_date`, the edit sheet and every row that
-       predates this column read it — and `media` holds the rest, `|`-separated. A pipe rather than a
-       comma because an address may carry a comma and none carries a pipe; ONE column rather than
-       `image_2`, `image_3`, which is the numbered-column fault the `images` column on the library
-       already refuses in writing. A clip is marked `#video` on the end of its address, because a
-       Drive link does not say what the file is and the phone has to know which element to draw. */
+    /* ---------- EVERY PICTURE AND CLIP AFTER THE FIRST, AS ONE LIST § */
     "media",
     "caption", "file_name", "body",
-    /* Where it was taken. Free text — "Colliers Wood Library", "Wandle Park", "the Tandem
-       Centre". Not a venue id: a photograph might be somewhere you have never taught, and
-       forcing it into the venues list would mean inventing venue rows for a park bench. */
+    /* Where it was taken. Free text — "Colliers Wood Library", "Wandle Park", "the Tandem Centre". § */
     "location",
     /* WHO ACTUALLY PRESSED THE BUTTON, as against whose name is on the post. A post from
        @family. was still made by a person, and on the day there is more than one admin that is
@@ -1080,33 +390,16 @@ const SCHEMA = {
        a shared set is what makes the counts mean anything, and a post with its own five is a
        little world of its own. */
     "reactions",
-    /* A POLL, as a comma-separated list of answers: `Yes, No, Maybe, No idea`.
-       In a cell rather than a tab of its own, because the options only ever belong to one post and
-       a second tab would mean joining two things that are never apart. The VOTES are a tab, because
-       those belong to people. */
+    /* A POLL, as a comma-separated list of answers: § */
     "poll",
     /* WHEN, and it comes from the FILE rather than from whoever typed the row. A photograph has a
        date already; asking a person to retype it is asking them to get it wrong. */
-    /* THREE DATE COLUMNS, and they are not the same fact.
-         creation_date  when the photograph was taken — when the thing HAPPENED
-         uploaded_date  when it reached Drive, which may be months later
-         posted_on      what this file used to call it, kept so an older sheet still reads
-       The feed is ordered by when something happened, so `creation_date` wins. Listed here rather
-       than renamed in the sheet: the columns already there are better than the one they replace,
-       and a schema that argues with a spreadsheet is a schema somebody works around. */
+    /* THREE DATE COLUMNS, and they are not the same fact. § */
     "creation_date", "uploaded_date", "posted_on",
     "pinned", "active",
   ],
 
-  /* LIKES. HISTORICAL — nothing reads this tab any more.
-     A like is a reaction with exactly one option, so keeping both meant two counts of the same
-     gesture and a heart sitting beside a 👍 competing with it. Reactions won because they say
-     WHICH, and a like cannot.
-
-     The tab stays, and the rows in it stay. `migrateLikes()` turns each one into a 👍 on the
-     reactions tab — nobody's press is thrown away — and after that this is a record of what
-     happened, kept for the same reason a flagged message is kept: deleting it is the one thing
-     you cannot undo. */
+  /* LIKES. HISTORICAL — nothing reads this tab any more. § */
   post_likes: [
     "like_id", "post_id", "person_id", "liked_on",
   ],
@@ -1123,39 +416,13 @@ const SCHEMA = {
     "vote_id", "post_id", "person_id", "choice", "voted_on",
   ],
 
-  /* A COMMENT is a row, and the shape is deliberately the reaction's and the vote's: a post_id, a
-     person_id, what they said and when. Three tabs with one shape is three things that behave the
-     same way, which is most of why this app stays quiet.
-
-     WHAT IT DOES NOT HAVE, and both absences are decisions:
-
-     NO `parent_id`. A reply to a comment is a tree, and a tree is a second reading order on a
-     surface whose whole job is one photograph and what people said about it. The day somebody
-     wants threads it is one column; inventing it now is a join nobody has asked for, which is the
-     `orderPrints` shape.
-
-     NO EDIT. A comment is a thing somebody said in public. It can be DELETED, by its author or by
-     an admin — and a deleted row is the one thing you cannot undo, so `active` is a cell rather
-     than a `deleteRow`, exactly as `approved` is on a post: a comment you took down is the one you
-     may need to show somebody afterwards.
-
-     `body` IS CAPPED AT 2,000 by the handler, which is the same cap `sendMessage` has and for the
-     same reason: a cell has a limit and a person typing an essay into a feed should be told so
-     rather than have it silently truncated by the sheet. */
+  /* A COMMENT is a row, and the shape is deliberately the reaction's and the vote's: § */
   post_comments: [
     "comment_id", "post_id", "person_id", "body", "said_on", "active",
   ],
 
-  /* MESSAGES. One row per message — a thread is messages sharing a pair, not a thing of its own,
-     so nothing has to be created before somebody can write.
-     `read_at` is when the recipient opened it. `flagged` is for you: a message somebody reported,
-     which stays in the sheet rather than being deleted, because a deleted message is one you
-     cannot show anybody afterwards. */
-  /* BUSINESS RECORDS. The business's own paperwork — insurance, tax, registrations, policies, DBS —
-     one row per thing that has a reference, a date it runs out or falls due, and somewhere the
-     document lives. ADMIN ONLY, and in the Ledger rather than in the repository, because a policy
-     number is exactly the kind of fact a public repository must never hold. `active` rather than a
-     deleted row, for the reason `messages` gives: a record removed is one you may need afterwards. */
+  /* MESSAGES. One row per message — a thread is messages sharing a pair, not a thing of its own, so nothing has to be created before somebody can write. § */
+  /* BUSINESS RECORDS. The business's own paperwork — insurance, tax, registrations, policies, DBS — one row per thing that has a reference, a date it runs out or § */
   records: [
     "record_id", "category", "title", "provider", "reference", "due_on", "cost", "link", "notes",
     "active", "updated_at",
@@ -1164,163 +431,36 @@ const SCHEMA = {
   messages: [
     "message_id", "from_id", "to_id", "sent_at", "body",
     "read_at", "flagged", "flag_reason",
-    /* ATTACHMENTS: pictures, clips and files, as `url#type#name` items joined by ` | `. One cell
-       rather than `attachment_1 … attachment_n`, which is the numbered-column fault this file
-       refuses under `images` and `needs` — see `msgAttachIn_` in content.gs, the only writer. */
+    /* ATTACHMENTS: pictures, clips and files, as `url#type#name` items joined by ` | `. § */
     "attachments",
   ],
 
-  /* FAMILY LINKS. A parent asks; the child accepts. Nothing is true until both have said so.
-     A row with a state rather than a name in a cell, because a cell has no room for "who asked",
-     "when", or "did they agree" — and those are the whole point. A name typed into a list claims
-     somebody silently, and claims the wrong person just as silently.
-     asked → accepted, or asked → refused. Only `accepted` is a link.
-     AND → held, from either, when the parent row was PENDING and its address's owner took it back
-     (`authTakeBack_`): read as neither a link nor a request, and settled only by an admin's `linkChild`. */
+  /* FAMILY LINKS. A parent asks; the child accepts. § */
   family: [
     "link_id", "parent_id", "child_id", "child_typed", "state", "asked_on", "answered_on",
   ],
 
-  /* ORDERS. A reward that arrives in the post is not a purchase — it is a request with a state.
-     An avatar hat is bought and worn in one step; a printed paper has to be printed, put in an
-     envelope and posted, and the student needs to see where it has got to.
-     The state only ever moves one way: asked → posted → arrived. Nothing here can go backwards,
-     which is what stops a paper being posted twice.
-
-     THE PRINT COLUMNS. A printed resource is the same shape of thing as a redeemed paper — work
-     you have to do over days — so it is the same tab rather than a second one. What it needs on
-     top: how many sheets, what it cost in money rather than ticks, and whether it is collected or
-     posted. `delivery` is on the ORDER and not on each line, because three resources going to one
-     address is one decision. */
+  /* ORDERS. A reward that arrives in the post is not a purchase — it is a request with a state. § */
   orders: [
     "order_id", "person_id", "item", "resource", "cost_ticks",
     "pages", "cost_pence", "delivery",
     "state", "asked_on", "posted_on", "address", "notes",
   ],
 
-  /* ---------- HOLIDAYS -----------------------------------------------------------------------
-     A RULE, NOT A DATE, and that is the whole design of this tab.
+  /* ---------- HOLIDAYS § */
+  /* A `holidays` TAB WAS DECLARED TWICE, and this was the first of the two. § */
 
-     Christmas is the 25th of December for ever. Easter is not: it moves every year, and so does
-     everything hung off it. Diwali, Eid, Hanukkah and Chinese New Year move because they are on
-     lunar calendars and do not line up with this one at all.
+  /* ---------- HOLIDAYS § */
+  /* ---------- AD CAMPAIGNS § */
+  /* ---------- THE LOADING SPLASHES § */
 
-     A `date` column would therefore be correct for one year and quietly wrong the next — and
-     quietly wrong here means a Christmas waitlist opening in March, or an Easter event advertised
-     three weeks after Easter. Nobody would connect either to a cell nobody re-typed.
-
-     So each row says HOW to find its day, and `holidayDate` works it out for whatever year is
-     being asked about:
-
-       fixed     `when` is MM-DD.  Christmas is `12-25` and always will be.
-       easter    `when` is an offset in days from Easter Sunday. Good Friday is `-2`, Easter
-                 Monday `1`, Shrove Tuesday `-47`. Computed exactly, and the algorithm is tested
-                 against six known years before anything trusts it.
-       nth       `when` is like `3:0:6` — the 3rd Sunday of June, Father's Day. 0 is Sunday.
-                 A negative first number counts back from the end: `-1:1:5` is the last Monday in May.
-       date      `when` is a real date, YYYY-MM-DD, and there is ONE ROW PER YEAR.
-
-     THE LAST ONE IS FOR THE LUNAR FESTIVALS, and it is deliberately the dumbest option. Eid and
-     Diwali are decided by observation and by calendars this code has no business approximating —
-     an almost-right date for somebody's festival is worse than an absent one, because it will be
-     acted on. They are typed in, a year at a time, by somebody who knows.
-
-     `lead_days` is how far ahead the event appears. A Christmas thing that shows up on the 20th of
-     December is a Christmas thing nobody can arrange childcare for. */
-  /* A `holidays` TAB WAS DECLARED TWICE, and this was the first of the two. JavaScript keeps the
-     LAST one silently, so half the columns named here — `rule`, `when`, `lead_days`, `trail_days`,
-     `event`, `event_name` — never existed on the sheet at all, while sitting in the schema looking
-     as though they did. `check-columns` cannot see it either: both halves are in `SCHEMA`, so
-     every name reads as declared.
-     Merged into the one below rather than deleted, so nothing that was meant is lost. */
-
-  /* ---------- HOLIDAYS ------------------------------------------------------------------------
-     WHEN A FESTIVE EVENT COULD HAPPEN, so a waitlist can open itself before one rather than being
-     remembered three days too late.
-
-     THE DATES ARE COMPUTED, NOT TYPED, and that is the whole reason this is a tab with a seeder
-     rather than a list somebody fills in. Ten of the eighteen move: Easter shifts by a month
-     between 2026 and 2027, and Pancake Day, Mother's Day, Good Friday and Easter Monday all hang
-     off it, while the bank holidays are "the first Monday in May" and "the last Monday in August".
-     A typed date is right for one year and quietly wrong every January after — which for a thing
-     whose entire job is to fire at the right time is the worst possible failure.
-
-     ONE ROW PER HOLIDAY PER YEAR. `seedHolidays` writes a year at a time, so a row is a fact about
-     a date rather than a rule to be re-read, and the rows can be edited: move a date, switch one
-     off, change how far ahead its waitlist opens.
-
-     `opens_days` IS THE POINT OF THE TAB. Christmas needs six weeks of notice to fill four seats;
-     Pancake Day needs one. It is per row because the answer differs per holiday, and it is the
-     number that decides when a family first sees the thing. */
-  /* ---------- AD CAMPAIGNS ------------------------------------------------------------------------
-     A LIST OF THE THINGS YOU RUN, and no more than that. A first version of this carried audience
-     targeting, budgets, promo codes and a second tab for logging responses — which is a
-     measurement system, not a list, and none of it is any use until there are campaigns to
-     measure. Written down first, measured later if it turns out to matter. */
-  /* ---------- THE LOADING SPLASHES -----------------------------------------------------------------
-     A CATALOGUE, AND A SWITCH. Twenty-nine of them now, all drawn in CSS — this tab cannot make one
-     or change how it looks, and pretending otherwise would be the sort of table that looks like
-     control and is decoration.
-
-     WHAT IT DOES DO IS RETIRE THEM. `active` FALSE takes one out of the pool from the next load
-     onward, which is the thing actually worth having in a sheet: seeing one you have tired of and
-     turning it off without touching any code.
-
-     `kind` GROUPS THEM so the list is readable at thirty rows: proof, brand, game, tool. */
-
-  /* `cheatsheet` WAS HERE and is gone for the reason `questions` is gone, one file along:
-     the 77 rows are `data/cheatsheet.json` in this repository and `libraryExtras_` in
-     js/library.js reads them. THE ENTRY HAD TO GO WITH THE TAB, because `ensureSchema` walks
-     this object and CREATES any tab it cannot find — so an entry left behind rebuilds an empty
-     `cheatsheet` tab on the next `?setup=1`, with the right headers and no rows, which is the
-     exact shape of the fault that hid the real resource rows in another file for months. */
+  /* `cheatsheet` WAS HERE and is gone for the reason `questions` is gone, one file along: § */
 
 
-  /* ---------- FAVOURITES ---------------------------------------------------------------------------
-     ONE ROW PER FAVOURITE, not a column on every table.
+  /* ---------- FAVOURITES § */
+  /* ---------- `questions` WAS HERE, AND IT IS NOT A TAB ANY MORE § */
 
-     THE COLUMN VERSION IS THE OBVIOUS ONE and it loses data. A cell holding "P-001,P-002,P-003" has
-     to be READ, appended to, and WRITTEN BACK — so two people favouriting the same resource in the
-     same second both read the old value and the second write erases the first. Nothing reports it;
-     somebody's favourite is simply not there later. Every other problem with it is survivable and
-     that one is not.
-
-     THE REST, for the record: it needs a new column on each of the seven searchable tables and on
-     every table added afterwards, which is a thing to forget; "what have I favourited" means
-     reading all seven and splitting every cell; and a cell caps at 50,000 characters, which
-     truncates in silence.
-
-     APPENDING A ROW HAS NONE OF THAT. Nothing is read first, so nothing can be overwritten, and one
-     filter answers the only question anybody asks of this table.
-
-     `kind` + `item_id` RATHER THAN A FOREIGN KEY PER TABLE, because the searcher already speaks in
-     exactly those terms — a result IS a kind and an id — so this table needs no knowledge of what
-     the kinds are, and a kind invented next year works without touching it. */
-  /* ---------- `questions` WAS HERE, AND IT IS NOT A TAB ANY MORE --------------------------------
-     THE 3,913 ROWS LIVE IN `data/questions.json` IN THIS REPOSITORY. `js/library.js` fetches that
-     file and builds `DATA.questions` and `dropdowns.checklists` out of it; the backend no longer
-     reads a question, a paper, a link or a page count, and there is nothing left here for it to
-     read one FROM.
-
-     SO THE ENTRY IS DELETED RATHER THAN EMPTIED, and that distinction is the whole reason this note
-     sits where the column list used to. `ensureSchema` walks `SCHEMA` and CREATES any tab it cannot
-     find — so an entry left behind would quietly rebuild an empty `questions` tab on the next
-     `?setup=1`: a decoy with the right headers and no rows, which is EXACTLY the shape of the fault
-     that hid the real resource rows in another file for months. `SCHEMA.resources` was deleted for
-     this reason a fortnight ago, and this is the same argument a second time.
-
-     SO THE TAB CAN BE DELETED FROM `Library`, which is the whole point of the change. Nothing in
-     `TAB`, `WHERE` or `SCHEMA` names it, `documents_()` is gone from core.gs, and the five handlers
-     that wrote to it are gone from dopost.gs. See the header of js/library.js for what moved, and
-     what was deliberately left behind. */
-
-  /* `boxers` AND `fights` WERE HERE, and they leave together for the same reason and by the
-     same route: 103 fighters are `data/boxers.json` and 157 bouts are `data/fights.json`, both
-     read by `libraryExtras_`. The columns they describe are not lost — the files hold the
-     SHEET'S OWN column names, `boxer_id`, `height_cm`, `winner_id`, so an export is a row you
-     can paste back without translating it, and js/library.js holds the one mapping that renames
-     them for the phone. Same `ensureSchema` argument as `cheatsheet` above: an entry left here
-     would quietly rebuild the tab this change exists to delete. */
+  /* `boxers` AND `fights` WERE HERE, and they leave together for the same reason and by the same route: § */
 
 
   favourites: [
@@ -1330,144 +470,27 @@ const SCHEMA = {
     "at",
   ],
 
-  /* ---------- ANSWERS: WHAT THE CHILD DREW, SO IT IS THERE ON THE NEXT DEVICE ------------------------
-     REPORTED BY THE OWNER FROM A PUPIL'S iPAD: *"i am very dissapointed it didnt have his answers
-     already written in when he went to see them on the computer"*, and *"it doesnt seem to save their
-     answers"*. Until this tab an answer lived in the browser it was typed in and nowhere else.
-
-     SINCE 9 OCT IT HOLDS WHAT HAS NO SEND: the pen's strokes and the ringed words. A typed, picked or
-     ordered answer reaches the account when it is SENT, as a row of SCHEMA.submissions — the owner:
-     *"I just want system to record each submition."* Rows of typed answers from 8 Oct stay on the sheet,
-     and `saveAnswers` still takes one from a phone that has not loaded the new site; nothing hands them
-     back to a phone that has (js/answers.js), because the account's record of a typed answer is its
-     submissions now.
-
-     ITS OWN TAB, NOT COLUMNS ON `submissions`. A submission is written once and never rewritten; a
-     drawing changes on every stroke. And `submissions` is what the parent email reads whole — drawings
-     in it would be every email run reading every child's pen strokes for nothing.
-
-     ONE ROW PER PERSON PER ANSWER KEY, upserted by `saveAnswers`, read only by `myAnswers` and the
-     sign-in reply — for the person the token resolved to and nobody else (no parent, tutor or admin
-     view: the owner can open the sheet).
-
-     `answer_key` IS THE PHONE'S OWN KEY WITH THE PERSON TAKEN OUT — `pad:q:<row>` the pen's strokes,
-     `pad:q:<row>:words` the ringed words, and from before 9 Oct `ans:q:<row>` a typed answer or a pick
-     (`2,4`) and `ans:q:<row>#iv` a practical's worksheet box. The person is `person_id`, so the key
-     cannot carry another.
-
-     `value` IS ALWAYS TEXT — written with a leading apostrophe whatever it holds. `cellSafe_` guards a
-     formula, not a fraction: `3/4` and `1/2` are dates to a sheet, `2,4` (two picked options) can
-     come back 24, and `0.50` comes back `0.5`. An empty value is a real row: clearing an answer has
-     to reach the other device as well.
-
-     `edited_at` IS WHEN THE CHILD MADE THE EDIT (the phone's clock, never later than the server's),
-     as ISO text; the later one wins, so a stale phone coming back online cannot write over the
-     newer answer. `saved_at` is when the server took it, for the owner reading the sheet. */
+  /* ---------- ANSWERS: WHAT THE CHILD DREW, SO IT IS THERE ON THE NEXT DEVICE § */
   answers: [
     "person_id", "answer_key",
     "value", "edited_at", "saved_at",
   ],
 
-  /* ---------- SUBMISSIONS: EVERY ANSWER SENT, AND WHAT IT WAS MARKED --------------------------------
-     THE OWNER, 9 OCT: *"The kids don't need to see the day they did something. Just whether it's right
-     or not. Also I just want system to record each submition. So like if they submit a correct answer
-     then change it and submit an incorrect answer, that's 2 events. And it will leave the latest event
-     up, so they would see incorrect answer there next time they login. Simple. Instead of each question
-     just saving number of attempts."*
-
-     SO ONE ROW PER PRESS, APPENDED AND NEVER UPDATED OR DELETED. A press is one that asks for a verdict:
-     Send on a typed or maths answer, a pick that completes a multiple-choice card, Send on an ordering,
-     Mark with AI, and Send on a box nothing can mark. Typing is not a submission and neither is an item
-     placed in an ordering. Right, then wrong, is two rows; the card and the box show the LATEST, on any
-     device, and a parent's Sunday email lists the week's questions with the latest verdict of the week.
-     It replaced `attempts` (one row per person per question: the first day, the last, and a count of
-     days), which is left in the live sheet and read by nothing.
-
-     `person_id` IS THE TOKEN'S, NEVER THE BODY'S — `accessDenied` overwrites `body.personId` before
-     `submitAnswer` runs (`self` in ACTION_ACCESS), so a request naming another child writes a row for
-     the child who sent it. A name is a cell they can edit; an id is not.
-
-     `key` IS THE LIBRARY'S OWN KEY — `q:Q-9MA031-2206-1`, `pr:PR-PH01#iv` for a practical's worksheet
-     box — the same string `attempts.question_key` held. `label` and `words` ARE WHAT A PARENT CAN READ,
-     sent by the phone because the backend cannot look a key up (the library is `data/questions.json`
-     in git, not a tab): `Maths · Paper 1 (Calculator) — June 2024 · Q3`, and the question's own stem, a
-     line holding only `---`, then its ask. The same caps and the same refusals as the email has always
-     applied (`attemptLabel_`, `attemptWords_`, `DIGEST_WORDS_REFUSE`).
-
-     `answer` IS WHAT WAS SENT, AS TEXT — a leading apostrophe on every write, the `answers` tab's rule:
-     `3/4` is a date to a sheet and `0.50` comes back `0.5`. A pick is its positions (`2,4`), an ordering
-     its order (`3,4,5,2,1`). Over `ANSWER_TEXT_MAX` the row is refused whole and the answer stays on
-     the device that has it — never cut, because half an answer read back on another device is a
-     different answer.
-
-     `verdict` IS ONE OF `right`, `wrong`, `sent` (nothing could mark it: no scheme, no AI, or an option
-     the scheme never settled) and `ai:N/M` (Mark with AI gave N of M marks) — `SUBMISSION_VERDICT`.
-     THE PHONE MARKS IT: the library and its schemes are on the phone, not here, so a right or wrong is
-     what the phone said. Nothing is paid or ranked on it; it is a child's own practice.
-     NOTHING MARKS IT AGAIN LATER (18 Oct, docs/history/352). From 12 to 18 Oct a server pass marked a `sent`
-     answer with Gemini overnight and before the Sunday email, appending its mark as a row (`ai:N/M`, an
-     id ending `-ai` and ten letters). The owner: *"The marking is already done on each question."* So a
-     row's verdict is the one the phone recorded when the child sent it, and the Sunday email prints
-     exactly that — `sent` as "not marked". The rows that pass appended stay on the sheet as presses.
-
-     `submitted_at` IS THE SERVER'S CLOCK, a date-time — never the phone's, which is wrong on enough
-     iPads to put a Sunday's work in the wrong week. It says WHICH WEEK a press is in (the parent email)
-     and nothing else.
-
-     `event_id` IS THE PHONE'S NAME FOR THE PRESS — its own clock in ms, a dash and a random tail. A
-     send that is retried (no reply, a dropped connection, the app put away mid-request) carries the
-     same id, and a row already holding it is not written again: one press is one row, however many
-     times it travels. Appended last, so `ensureSchema` adds it at the end of a tab without moving
-     anything.
-
-     `pressed_at` IS WHEN THE CHILD PRESSED, by the phone's clock and never later than the server's (the
-     `answers` tab's rule, `answersUpsert_`), as ISO text. IT DECIDES WHICH PRESS IS THE LATEST — on the
-     card, in the box, in the email's mark — and of two pressed in the same instant, the later row (lower
-     in the sheet). It was `submitted_at`,
-     and the review of 9 Oct found the rollout itself would invert it: every press is queued on its
-     device until the owner's Apps Script steps are done, so "wrong" on the iPad on Monday and "right" on
-     the computer on Tuesday reach the server in whatever order the two devices next load — and the
-     iPad's older "wrong", arriving last, became the latest everywhere and was written over the box on
-     the computer that had sent "right". A press arrives when it can; it was MADE when it was made.
-     Blank on a row written before the column existed, and then `submitted_at` stands in for it. */
+  /* ---------- SUBMISSIONS: EVERY ANSWER SENT, AND WHAT IT WAS MARKED § */
   submissions: [
     "person_id", "key", "label", "words",
     "answer", "verdict", "submitted_at",
     "event_id", "pressed_at",
   ],
 
-  /* ---------- THE WEEKLY PARENT EMAIL'S RECEIPTS ---------------------------------------------------
-     ONE ROW PER PARENT PER LEARNER PER WEEK, written by `weeklyDigestRun` (backend/digest.gs) and by
-     nothing else. In `preview` it is the whole output — what WOULD have been sent, to whom, with what
-     subject — so the owner can read a real Sunday's worth before a single parent is emailed. In
-     `send` it is the RECEIPT: a row saying `sent` (or `sending`, written just before the send) for
-     this week, this learner and this parent is what stops a second run the same week sending again.
-
-     FOUND BY WHAT IT IS — the week, the learner, the parent — like `answers`, so no id column.
-     `week_of` is the Monday, written as TEXT (`'2026-09-28`): it is a key compared as a string, and a
-     cell the sheet turned into a date would come back as one in whichever time zone the file is set
-     to. A learner nobody can be told about is a row too, with no parent and the reason in `note`, so
-     the log answers "who did NOT get one" as well as who did. */
+  /* ---------- THE WEEKLY PARENT EMAIL'S RECEIPTS § */
   digest_log: [
     "week_of", "learner_id", "parent_id",
     "to", "subject", "questions",
     "status", "at", "note",
   ],
 
-  /* ---------- SPOTLIGHT: THE SAME SHAPE AS A FAVOURITE WITH THE PERSON TAKEN OUT -----------------
-     A FAVOURITE IS A STATEMENT ABOUT YOU AND A SPOTLIGHT IS A STATEMENT ABOUT THE BUSINESS, which
-     is the one difference and it is the whole difference: no `person_id`, one list, the same list
-     on every phone, and only an admin may change it. `js/collections.js` has said exactly that at
-     the top of the file since spotlight was written.
-
-     `on` RATHER THAN DELETING THE ROW, which is the opposite of what `favourite` does and is
-     deliberate. An unfavourite leaves nothing anybody wants a history of; an admin taking something
-     out of the shop window is a decision about what the business promotes, and `who` and `at`
-     beside it say who made it and when. It is also what lets the sheet be the authority the moment
-     it holds ANY row — see `spotNow_` in js/collections.js: with rows deleted, an admin who had
-     cleared the window would fall back to the file's list and the thing would come back.
-
-     FILLED IN BY `spotlight` IN dopost.gs. Nothing else writes it. */
+  /* ---------- SPOTLIGHT: THE SAME SHAPE AS A FAVOURITE WITH THE PERSON TAKEN OUT § */
   spotlight: [
     "spot_id",
     /* The same two the tile sends: a key whole, and what kind of thing it names. */
@@ -1475,256 +498,46 @@ const SCHEMA = {
     "on", "who", "at",
   ],
 
-  /* ---------- A CAMPAIGN IS A DESIGN AND A SCHEDULE, AND IT WAS ONLY EVER THE SCHEDULE -----------
-     This tab said WHEN to run each campaign and nothing about what it says. The words lived in
-     `FLY_ROWS`, an array in flyer.js — eleven campaigns, headline and paragraph and colours, all
-     in code. So the one part of the app that is pure copywriting was the one part that needed a
-     developer to change, and the tab that was obviously for it sat here holding notes.
+  /* ---------- A CAMPAIGN IS A DESIGN AND A SCHEDULE, AND IT WAS ONLY EVER THE SCHEDULE § */
 
-     THE DESIGN COLUMNS COME HERE. The WORDS go in `copy` below, one row per line, because a
-     headline is not a property of a campaign the way a colour is — you want four of them and to
-     pick between them.
+  /* ---------- THE WORDS, ONE LINE PER ROW § */
 
-       style    minimal · elegant · detailed · loud
-       ink      the colour the text is set in
-       accent   the one thing meant to be looked at
-       ground   the paper
-       blocks   which pieces appear, space separated, from:
-                  code name head slogan say facts price phone foot qr
+  /* ---------- WHAT THE SEARCH ASKS, AND WHAT IT CALLS IT § */
 
-     Leave a row's design columns empty and the built-in defaults are used, so a campaign added
-     with nothing but a name still prints. */
-
-  /* ---------- THE WORDS, ONE LINE PER ROW ---------------------------------------------------------
-     WHY THIS IS NOT MORE COLUMNS ON `campaigns`. A campaign has one style and one accent, so those
-     are properties of it. A headline is not: the whole point is to have four and choose. Columns
-     cannot hold four of a thing without becoming head_1, head_2, head_3 — which is a table lying
-     about its own shape, and which caps you at however many somebody guessed.
-
-       slot     which part of the flyer this is
-                  head    the big line. `|` is where it breaks
-                  say     the paragraph under it
-                  offer   the line about price and seats
-       variant  1, 2, 3 … Rows sharing a campaign and a slot are alternatives, and the flyer
-                maker offers them in a Wording menu. Numbers need not be tidy; they order the list.
-       text     the words themselves
-
-     `active` OFF TAKES IT OUT OF THE MENU without deleting it, which is what you want for a line
-     that worked last year and is wrong for this term. A slot with no active row falls back to the
-     campaign's built-in wording, so emptying this tab cannot produce a blank flyer. */
-
-  /* ---------- WHAT THE SEARCH ASKS, AND WHAT IT CALLS IT -------------------------------------------
-     THE FUNNEL IS TWO DIFFERENT THINGS AND ONLY ONE OF THEM BELONGS IN CODE.
-
-     Reading a value off a row is logic — "the band, but only when it is a grade rather than a
-     stage" cannot be written in a cell without inventing a formula language in a spreadsheet
-     column, and that is a bad day for everybody. That half stays in find.js, keyed by `field`.
-
-     WHICH QUESTIONS GET ASKED, IN WHAT ORDER, AND WHAT THEY ARE CALLED is editorial. It is the
-     same kind of decision as the wording on a flyer, and it was in code for the same bad reason.
-
-       field         the key. It must match a field the code knows; one it does not is ignored.
-       label         what the question is called on screen
-       sort_order    lower is asked earlier
-       min_coverage  0 to 1. A question is skipped while fewer than this share of the things in
-                     front of you can answer it — because choosing a value silently drops every
-                     item that has none. Blank uses the 0.5 the code has always used.
-       active        OFF removes the question entirely, however well covered it is.
-
-     A FIELD WITH NO ROW KEEPS ITS BUILT-IN SETTINGS, so this tab can be empty, or hold one row for
-     the one thing you wanted to rename, and everything else carries on. */
-
-  /* ---------- AND WHAT THE FIRST TWO QUESTIONS ANSWER ----------------------------------------------
-     THE `facets` TAB MOVED THE QUESTIONS OUT OF CODE AND LEFT THE ANSWERS BEHIND. "What for" and
-     "What kind" are the first two things the funnel asks and the two that shape everything after,
-     and every one of their answers — which group a kind belongs to, what that group is called, what
-     the kind is called, what order the groups come in — was a literal in find.js.
-
-     THAT IS THE SAME KIND OF DECISION AS A FACET LABEL, and it got a tab for exactly the reason
-     this one now has one: it is editorial, it changes, and changing it should not be a deploy.
-
-     WHAT IT COST TO BE IN CODE. The note above `forLabel` says grouping takes the first question
-     "from nine answers to four". There are EIGHT groups now. Adding one is a single word inside a
-     literal, nothing counts them, and the benefit the grouping exists for was given back one word
-     at a time without anybody deciding to.
-
-       kind        the row's `kind` value — one the code does not produce is ignored
-       group       the answer to "What for". Kinds sharing a group are asked about together
-       label       the answer to "What kind"
-       sort_order  lower groups are offered first. Ties fall back to alphabetical
-       active      OFF hides that kind from the funnel entirely
-
-     A KIND WITH NO ROW KEEPS ITS BUILT-IN GROUP AND LABEL, so this tab can be empty and the funnel
-     behaves exactly as it does today. */
+  /* ---------- AND WHAT THE FIRST TWO QUESTIONS ANSWER § */
 
   holidays: [
     "holiday_id", "name", "date", "year", "kind",
-    /* HOW MANY DAYS BEFORE the date the event goes up, and how long it stays after. A holiday is
-       not a deadline — the day after Christmas is still Christmas to a family with a week off, and
-       an event that vanishes at midnight on the 25th vanishes during the week people are free. */
+    /* HOW MANY DAYS BEFORE the date the event goes up, and how long it stays after. § */
     "opens_days", "trail_days",
-    /* ---------- AND WHAT THE EVENT ACTUALLY IS -------------------------------------------------
-       A DATE IS NOT AN EVENT. The tab knew when Christmas was and nothing about what you would run
-       for it — so "a festive thing appears automatically" had no thing to appear.
-
-       These five are the whole of it, and they are the same five questions any event has: what it
-       is called, where, how much a child, how many children, and how long. Filled in per holiday,
-       because a Halloween afternoon at the farm and a Christmas party in a hall are not the same
-       event and never will be.
-
-       BLANK MEANS NOT READY. An event with no venue or no price cannot be offered to anybody — it
-       would be a card asking somebody to join something with no place and no cost — so it simply
-       does not go up, whatever `active` says. That is the safe direction: a holiday you half
-       filled in shows nobody anything rather than showing everybody half an event. */
+    /* ---------- AND WHAT THE EVENT ACTUALLY IS § */
     "event_name", "venue", "price_per_child", "max_children", "hours",
     /* One line under the name — "an afternoon at the farm, hot chocolate included". */
     "blurb",
-    /* Whether you run something for it. Every holiday can be on this tab; only the ones with this
-       ticked ever put anything in front of anybody. The rest are the calendar knowing what day it
-       is, which is worth having on its own. */
+    /* Whether you run something for it. § */
     "active", "notes",
   ],
 
-  /* EXAMS. One row per paper, because a student sits several and nobody knows how many in
-     advance — three columns on `people` works until somebody has four, which is the same mistake
-     the original flat sheet made.
-     `kind` separates a mock from the real thing: both matter, and they carry different amounts of
-     panic. */
+  /* EXAMS. One row per paper, because a student sits several and nobody knows how many in advance — three columns on `people` works until somebody has four, which § */
   exams: [
     "exam_id", "person_id", "subject", "label", "exam_date", "kind", "board", "notes", "active",
   ],
 
-  /* TRIPS.
-     Deliberately shaped like BOTH the things a trip could turn out to be, because you don't know
-     yet and the columns are the expensive part to change later:
-       like shop stock — a name, a price, a picture, something you browse and pay for
-       like a job      — a focus, a duration, a capacity, a date, a place it happens
-     Whichever way it goes, the data is already there. What you'd otherwise do is pick one now,
-     discover in three months it was the other, and migrate rows people have already booked.
-
-     `price_per_child` rather than a flat price: capacity is the thing that varies, and a per-head
-     figure survives a group changing size where a total doesn't. */
+  /* TRIPS. Deliberately shaped like BOTH the things a trip could turn out to be, because you don't know yet and the columns are the expensive part to change later: § */
   trips: [
     "trip_id", "name", "focus", "description",
     "photo", "link", "provider", "price_per_child",
     "hours", "min_children", "max_children", "venue",
     "address", "date", "notice_days", "active",
     "notes",
-    /* ---------- WHAT A TRIP COSTS TO TAKE, FOR THE BOOKING FORM (docs/history/353) -----------------------
-       The tab is empty today and the form says so. `ticket_child` and `ticket_adult` are the gate price —
-       the tutor goes in on an adult ticket, which the booking pays for; `travel_per_child` is the fare
-       there and back. All at cost: the business's share of a trip is the seat cut on the teaching, as on
-       any session. `max_children` above caps the seats. `place` is where it is, said for a person; the
-       older `venue` cell is still read where `place` is blank. `ratio` is children per adult, kept for the
-       day somebody staffs a big trip — nothing enforces it yet. `trip_id` is what a job's `trip_id`
-       joins on; a blank one is the row number, which is what `doGet` always sent as `id`. */
+    /* ---------- WHAT A TRIP COSTS TO TAKE, FOR THE BOOKING FORM (docs/history/353) § */
     "trip_id", "place", "ticket_child", "ticket_adult", "travel_per_child", "ratio"
   ],
-  /* ---------- AN ADMIN'S DISCOUNT CODES (docs/history/353) -----------------------------------------------
-     ONE ROW A CODE, CHECKED ON THE SERVER EVERY TIME IT IS USED (`discountRefusal_`, booking.gs).
-     `type` is `%` or `£` and `value` how much; `absorbed_by` is `Business` (blank) or `Shared with tutor`,
-     the form's default for that code. `max_uses` blank is unlimited; `used` is counted up by `createJob`
-     and is the sheet's to reset. `expires` is the last day it works. `active` blank is on, as on every
-     tab here — a row just typed in is one you meant. Only an admin is ever sent this tab. Separate from
-     the `promotions` the pricing tab already runs, which still work exactly as they did. */
+  /* ---------- AN ADMIN'S DISCOUNT CODES (docs/history/353) § */
   promo_codes: ["code", "type", "value", "absorbed_by", "max_uses", "used", "expires", "active", "notes"],
 };
 
-/* ---------- WHICH GEMINI MARKS, AND WHAT "MARK WITH AI" DOES WHEN GOOGLE IS FULL ---------------------
-   `aiGemini_` in dopost.gs reads all of these, and `gemini_model` / `gemini_model_fallback` in
-   CONFIG_DEFAULTS name the first two as their defaults -- WHICH IS WHY THEY ARE UP HERE and not beside
-   `AI_ANSWER_MAX`: the backend is one scope, and a `const` read above its own line throws "Cannot access
-   before initialization" as the script loads, which takes every request down with it, not just this one.
-
-   THE OWNER, 11 Oct: *"Ai marking is not working right now Gemini said 503."* -- a pupil's press on a
-   2024 June Foundation maths question, asked of Gemini ONCE. A 503 is UNAVAILABLE, "the model is
-   overloaded": Google's capacity for that one model, not the key and not the quota, and gone again in
-   seconds as often as not. Google's troubleshooting page gives both answers used here -- retry with a
-   growing wait, or move to another model -- and a pupil got neither. AND THE PRESS COST THEM ONE OF THE
-   DAY'S MARKS, because the count was taken before Gemini was asked; see `aiMarkCount_`.
-
-   THE MODELS, checked against Google's own pages on 11 Oct 2026 (sources in docs/history/344):
-     AI_MODEL           gemini-3.8-flash       stable (GA 2 Sep 2026), no shutdown date announced
-     AI_MODEL_FALLBACK  gemini-3.5-flash-lite  stable (GA 21 Jul 2026), the newest Flash-Lite, no shutdown date
-   PINNED NAMES, NEVER A `-latest` ALIAS. Google's models page keeps the alias for "exploratory testing
-   apps and prototypes" because it may point at a preview -- and on 21 Jan 2026 `gemini-flash-latest`
-   did, at `gemini-3-flash-preview`, which is the kind of build that is full first. A pinned name is
-   still retired one day, and a retired name answers 404 -- so a 404 from the first model is handed to
-   the second, where a 400 or a 403 (the key, the account) is not. Google has also begun retiring a name
-   by ROUTING it to a newer model (8 Oct: 3.7 Flash to 3.8 Flash), which answers 200, so the reply's
-   `model` is the response's own `modelVersion` -- the model that marked it, not the name that was asked.
-   HOW HARD EACH MODEL THINKS IS SET, SINCE 12 OCT -- and until then it was not. THE OWNER, the day the 503
-   fix went live: *"ok the ai marking works but it takes so long. like 30 seconds or whatever"*. Sent no
-   level, 3.8 Flash thinks at its own default, MEDIUM, on every press -- a one-mark maths answer included --
-   and the call is not streamed, so the pupil waits for the whole think before the first byte comes back.
-   That is the likeliest home of the thirty seconds: the server's own work was measured at under 0.2 s a
-   press, and Gemini's own time could not be measured from here (docs/history/350). So
-   `generationConfig.thinkingConfig.thinkingLevel` is sent, per model and per kind of answer --
-   AI_THINKING_LEVELS below, with the config rows `ai_thinking` and `ai_thinking_essay` over it:
-     a short answer   the lowest level the model offers: LOW on 3.8 Flash, which refuses MINIMAL with an
-                      error, and MINIMAL on 3.5 Flash-Lite, its own default, so nothing changes there
-     an essay         LOW on both -- one step under 3.8 Flash's own MEDIUM, one over Flash-Lite's MINIMAL --
-                      so the two models read an essay to the same depth, and an essay the fallback marks is
-                      no longer the lighter read it was (note 344, the tenth finding of its review)
-     any other model  no level at all, the request as it always was: its levels are not known here, and
-                      a level a model does not offer is a 400
-   Google's own words: LOW "minimizes latency and cost"; MEDIUM is "best quality for most tasks". A
-   forty-mark essay at LOW trades some depth for speed, and it is the one choice here the owner may want
-   back: `medium` in `ai_thinking_essay` is how essays were marked before 12 Oct, with no deploy.
-   NEVER `thinkingBudget`, alone or beside a level: Google calls it legacy on 3.x, the two together are a
-   documented 400, and 3.5 Flash-Lite was seen (third-party) answering 400 to a budget of 0.
-   A LEVEL REFUSED DOES NOT STOP MARKING -- which is why nothing set one before: a 400 is not asked again
-   and not handed to the fallback, and `minimal` on the first model is exactly such a 400. Now a 400 to a
-   request that CARRIED a level is asked once more, at once, of the same model without it -- its own
-   default, the request that always worked -- and the log names the cell to change. MATCHED ON "A 400 AND
-   A LEVEL WAS SENT", NOT ON GOOGLE'S WORDS: Google documents no message for it (third parties saw
-   "Thinking level MINIMAL is not supported for this model"), so a refusal worded some other way would
-   otherwise stop all marking; a bad key, which is a 400 too, costs one more quick refusal and ends as it
-   always did. That re-ask is not one of AI_TRIES, waits for nothing, and starts only inside both clocks.
-   AND ON A FREE-TIER KEY THE FIRST MODEL'S QUOTA IS SMALL. Google no longer publishes free-tier numbers;
-   third-party measurements put 3.5-and-newer Flash at about 20 requests a DAY for the whole key and
-   3.5 Flash-Lite at about 500 -- so on a free key most of a day's marks may come from the fallback. The
-   real numbers are on AI Studio's rate-limit page; billing on the key lifts them.
-   A DAY'S QUOTA SPENT IS REMEMBERED, SINCE 12 OCT. Every press after the twentieth asked the spent model
-   first again and was refused, about half a second each for nothing -- and a 429 whose RetryInfo said
-   "1s" (third parties have seen it on a day's quota) was asked twice more, with waits. Now a 429 whose
-   QuotaFailure names a DAY's quota (`PerDay`, `Daily` -- how Google's own gemini-cli tells it) is not
-   asked again this press, whatever its RetryInfo says, and is kept in the script cache (`aiSpend_` in
-   dopost.gs) until midnight in AI_QUOTA_TZ, when Google resets a day's requests -- or for AI_SPENT_MAX_S,
-   the cache's own ceiling, whichever comes first. A 429 whose RetryInfo says later than the next ask is
-   kept for as long as it says. While it is kept, a model with another behind it is not asked at all and
-   the next model is asked at once; the LAST model is always asked, because it is the press's only chance.
-   Forgetting costs one refusal: the cache may drop a key whenever it likes, and that is all it costs.
-
-   THE WAITS. Up to AI_TRIES asks of each model; between them AI_WAITS -- about 0.8 s, then about 2 s --
-   each moved up to AI_JITTER (30%) either way, so a hundred phones refused in the same second do not
-   all come back in the same second too. The second model is asked at once: its capacity is its own.
-   So six asks at most and at most 7.28 s of waiting in all -- and one more ask, with no wait, for each
-   model that refused the thinking level it was sent.
-   TWO CLOCKS, BOTH FROM THE FIRST ASK. No ask at all is started once AI_BUDGET_MS (20 s) has gone; and
-   the first model is not asked AGAIN once AI_HANDOFF_MS (10 s) has gone, so the fallback's first ask
-   still has room. The first build had only the budget and RETURNED at it: a first model refusing in 9 s
-   an ask was asked twice and the fallback never, and at 7 s an ask its three asks used the whole budget
-   on their own (the review of 11 Oct).
-   WHAT THAT BOUNDS, HONESTLY. The clocks decide when an ask STARTS. An ask that has started runs as long
-   as Gemini takes -- a whole essay is marked in seconds to tens of seconds -- and `UrlFetchApp` has no
-   timeout to set; it gives up by itself at about a minute (not documented by Google). So a storm of quick
-   503s answers in about 8-12 s, and the worst a press can take is the budget plus one ask: about 80 s if
-   an ask started at 19.9 s hangs until UrlFetchApp gives up, against about 60 s when there was one ask.
-   A pupil watching three dots is told "busy" in seconds in the ordinary case, which is the case that
-   happened.
-
-   WHAT IS ASKED AGAIN IS WHAT IS GOOGLE'S (`aiAgain_` in dopost.gs): 429, any 5xx -- 500 (its own fault),
-   502 (a gateway), 503 (full), 504 (its deadline, which the faster fallback may meet) -- and a fetch that
-   threw. A 400, 401 or 403 is the key, the request or the account, and asking again is asking to be told
-   again. A 429 on the Gemini API is that model's quota, a minute's or a day's: when its RetryInfo says
-   the model is not back before the next ask would be, it is not asked again and the fallback, whose
-   quota is its own, is asked at once.
-   NO STATUS CODE REACHES A PUPIL. AI_BUSY when anything asked was merely busy -- including a first model
-   that was full and a fallback that is broken, because the first will be back; "Could not reach Gemini"
-   when nothing answered at all; and "AI marking is not working right now." when every model asked
-   refused for a reason that is the owner's to mend. The number, the model and Google's own words go to
-   the log, with the config cell to change when it is a model name. */
+/* ---------- WHICH GEMINI MARKS, AND WHAT "MARK WITH AI" DOES WHEN GOOGLE IS FULL § */
 const AI_MODEL = 'gemini-3.8-flash';
 const AI_MODEL_FALLBACK = 'gemini-3.5-flash-lite';
 const AI_MODEL_OLD_SEED = 'gemini-flash-latest';
@@ -1734,106 +547,48 @@ const AI_JITTER = 0.3;
 const AI_BUDGET_MS = 20000;
 const AI_HANDOFF_MS = 10000;
 const AI_BUSY = 'Marking is busy right now — try again in a minute.';
-/* THE THINKING LEVELS EACH PINNED MODEL OFFERS, LOWEST FIRST, as Google's thinking guide lists them (12 Oct
-   2026: "gemini-3.8-flash | On (medium) | low, medium, high"; "gemini-3.5-flash-lite | On (minimal) |
-   minimal, low, medium, high"). A level asked of a model that does not offer it becomes the next one up
-   that it does (`minimal` on 3.8 Flash is `low`), so a level typed on the config tab never earns a 400 from
-   a model named here. A model NOT named here is sent no level unless the config tab names one -- its
-   levels are not known, and Gemini 2.5 refuses `thinkingLevel` outright. `AI_THINKING_SCALE` is the order
-   "next one up" means, and the whole vocabulary of the two config cells besides `none`. */
+/* THE THINKING LEVELS EACH PINNED MODEL OFFERS, LOWEST FIRST, as Google's thinking guide lists them § */
 const AI_THINKING_SCALE = ['minimal', 'low', 'medium', 'high'];
 const AI_THINKING_LEVELS = {
   'gemini-3.8-flash': ['low', 'medium', 'high'],
   'gemini-3.5-flash-lite': ['minimal', 'low', 'medium', 'high'],
 };
-/* WHAT A BLANK CELL MEANS: a short answer at the lowest a model offers, an essay at LOW -- the note above.
-   NEVER ABOVE THE MODEL'S OWN DEFAULT, which is what a blank cell asked for before 12 Oct: 3.5 Flash-Lite
-   defaults to MINIMAL, so an essay it marks stays at minimal rather than being asked to think more -- the
-   review of 12 Oct found LOW there made the fallback's essays SLOWER than before, which is the one thing
-   this change exists not to do. A level TYPED on the config tab is not held to the default. */
+/* WHAT A BLANK CELL MEANS: § */
 const AI_THINKING_SHORT = 'minimal';
 const AI_THINKING_ESSAY = 'low';
 const AI_THINKING_DEFAULT = {
   'gemini-3.8-flash': 'medium',
   'gemini-3.5-flash-lite': 'minimal',
 };
-/* A DAY'S GEMINI QUOTA ENDS AT MIDNIGHT PACIFIC -- Google's rate-limits page: "Requests per day (RPD)
-   quotas reset at midnight Pacific time" -- not London's. And the longest the script cache keeps
-   anything, six hours, Google's own ceiling for `CacheService`. */
+/* A DAY'S GEMINI QUOTA ENDS AT MIDNIGHT PACIFIC -- Google's rate-limits page: § */
 const AI_QUOTA_TZ = 'America/Los_Angeles';
 const AI_SPENT_MAX_S = 21600;
 
-/* Every tunable, with a plain-English note and a starting value. ensureSchema() adds any that
-   are missing to the `config` tab and never touches one that's already there — so a value you've
-   changed is safe, and a NEW knob arrives documented instead of as a bare key you have to guess
-   at. This is also where the pricing formula is written down: the sheet should explain how a
-   price is reached without anyone having to open the script. */
+/* Every tunable, with a plain-English note and a starting value. § */
 const CONFIG_DEFAULTS = [
   // M, w and open_rate are gone: a tutor now sets one charge-out rate, the minimum wage is fixed
   // in the code, and the open rate is fixed too. Leaving them here as editable numbers would have
   // meant two places claiming to decide the same price.
   ['s', 0, 'each extra subject adds this FRACTION of the base rate. 0.15 = +15%'],
   ['c', 0, "each extra seat adds this fraction — the tutor's share of it. 0.15 = +15%"],
-  /* B IS THE DEFAULT NOW, NOT THE CUT (docs/history/345): a tutor's own `extra_seat_cut` wins, and this is
-     what a blank one means. `ensureSchema` never rewrites a note already on the sheet, so a live config tab
-     keeps the old wording until somebody edits it by hand. */
+  /* B IS THE DEFAULT NOW, NOT THE CUT (docs/history/345): § */
   ['B', 0, "each extra seat adds this fraction — your share of it, for every tutor whose own extra_seat_cut is blank. 0.25 = +25%"],
   ['b', 0, 'bulk discount taken off per session AFTER THE FIRST. 0.01 is about 9% off a 10-session term. 0 = off'],
 
   ['a', 0, 'advance discount taken off per week ahead AFTER THE FIRST. 0 = off'],
   ['h', 2, 'hours per session'],
   ['max_students_per_job', 4, 'seat cap when neither the tutor nor the venue sets one'],
-  /* ---------- A VISIT TO SOMEBODY'S HOUSE HAS A FLOOR, AND IT IS EDITORIAL -----------------------
-     ASKED FOR AS *"if its at clients house, then it should minimum 3 extra seats."* Three extra is
-     four chairs, and it is a judgement about the business rather than arithmetic: a tutor crossing
-     London to a front room needs a group to be worth the journey, and at a paid venue the room is
-     already booked so nothing of the kind applies.
-
-     A CELL RATHER THAN A LITERAL, because *how many* is exactly the sort of number an owner changes
-     without wanting a deploy — the argument `brand(k, or)` makes about every editorial figure in
-     this app. `seatLimits` falls back to 4 so an empty tab still enforces the rule that was asked
-     for. Set it to 1 and the floor is gone. */
+  /* ---------- A VISIT TO SOMEBODY'S HOUSE HAS A FLOOR, AND IT IS EDITORIAL § */
   ['min_seats_at_home', 4, 'chairs a session at the client\'s own home must be booked for, yours included'],
   ['max_open_requests', 2, 'how many live requests one family may hold at once'],
   ['showcase_folder_id', '', 'Drive folder the Showcase reads'],
 
-  /* ---------- GOOGLE SIGN-IN, WHICH HAD NO ROW TO SET IT IN --------------------------------------
-     `googleLogin` has always read this cell and the config tab has never offered it, so the only
-     way to switch the feature on was to know the key existed and type the row by hand. A setting
-     nobody can find is a feature nobody has.
-
-     BLANK IS OFF, AND OFF IS SAFE. Empty draws no button and `googleLogin` refuses outright —
-     with no id there is nothing to check `aud` against, and a check that cannot run must refuse
-     rather than wave things through.
-
-     THIS IS THE CLIENT ID, NOT THE CLIENT SECRET. The id is public by design: every site using
-     Google Sign-In ships it in the page, and it goes to the phone in the payload. The secret is a
-     different string, this app has never needed one, and it must never be put in this sheet. */
-  /* ---------- AI MARKING ---------------------------------------------------------------------------
-     THE KEY IS NOT HERE AND MUST NEVER BE: this tab goes to every phone. It is `GEMINI_API_KEY` in
-     Project Settings → Script Properties. These five are the parts that are safe to show.
-
-     TWO MODELS, BECAUSE ONE WAS A 503 (11 Oct): the first asked up to three times, then the second, on
-     capacity of its own -- the note over `AI_MODEL` above, and docs/history/344.
-
-     A CELL STILL HOLDING THE OLD SEED IS READ AS BLANK. `seedConfig` never rewrites a value, so every
-     sheet seeded before 11 Oct holds `gemini-flash-latest` as though somebody had chosen it -- and a
-     default that moved would have moved nowhere. `aiModels_` reads that one string as "the default",
-     from the first request, with nothing for anybody to do; any other name typed here is used as typed.
-     THE ALIAS IS NOT OFFERED: typed on purpose it is still the default, because Google keeps it for
-     prototypes. AND THE SHEET IS TOLD, at the next `ensureSchema`: a row whose value AND note are both
-     still the old seed's is a row nobody set, and `CONFIG_RESEEDED` below brings it up to date, so the
-     config tab says which model marks instead of a note that stopped being true on 11 Oct. */
+  /* ---------- GOOGLE SIGN-IN, WHICH HAD NO ROW TO SET IT IN § */
+  /* ---------- AI MARKING § */
   ['gemini_model', AI_MODEL, 'the Gemini model that marks worded answers. Blank (or the old gemini-flash-latest) = ' + AI_MODEL + '. The API KEY never goes here: it is GEMINI_API_KEY in Script Properties'],
   ['gemini_model_fallback', AI_MODEL_FALLBACK, 'the model asked when the first one is full, out of reach or retired (Gemini 429, 5xx or 404). Blank = ' + AI_MODEL_FALLBACK + '. none = no second model'],
   ['ai_marks_per_day', 20, 'how many answers one person may have marked by AI in a day. Blank = 20. 0 switches AI marking off'],
-  /* HOW HARD GEMINI THINKS BEFORE IT MARKS, ONE CELL FOR EACH KIND OF ANSWER (12 Oct) -- the note over
-     `AI_THINKING_LEVELS` above, and docs/history/350. SEEDED BLANK, because blank is "the code's default"
-     and a default that moves then moves for everybody; a word typed here is the owner's and stays. The
-     owner's reason for them: *"it takes so long. like 30 seconds or whatever"* -- a deeper level is a
-     slower mark, and which of the two matters more for an essay is theirs to decide without a deploy. A
-     word that is not a level is read as blank and logged; a level a model refuses is asked again
-     without it and logged, never a press with no mark. */
+  /* HOW HARD GEMINI THINKS BEFORE IT MARKS, ONE CELL FOR EACH KIND OF ANSWER (12 Oct) -- the note over `AI_THINKING_LEVELS` above, and docs/history/350. § */
   ['ai_thinking', '', 'how hard Gemini thinks before marking a SHORT answer: minimal, low, medium or high (each slower and deeper than the last), or none for the model\'s own default. A model that does not offer a level gets the next one up. Blank = the lowest each model offers ('
     + [AI_MODEL, AI_MODEL_FALLBACK].map(m => (AI_THINKING_LEVELS[m] || ["its own default"])[0] + ' on ' + m).join(', ') + ') -- the fastest'],
   ['ai_thinking_essay', '', 'the same for an ESSAY (six marks or more, marked on its levels). Blank = ' + AI_THINKING_ESSAY
@@ -1841,139 +596,52 @@ const CONFIG_DEFAULTS = [
   ['google_client_id', '', 'Google Sign-In client ID (the PUBLIC one, ending .apps.googleusercontent.com). Blank switches Google sign-in off. Never put the client SECRET here'],
   ['pages_recheck_days', 30, 'how old a resource page count may get before the nightly job re-reads the file'],
 
-  /* THE REELS PICTURE. Blank means Wikimedia Commons, which needs no key, allows the request from
-     a browser, and answers a search like "octopus underwater" with a photograph of one.
-     Put a Giphy key here and it fetches GIFs instead. Two things to know before you do: the key
-     ships inside script.js where anybody can read it — normal for Giphy's free tier, since the
-     limit is tied to the key rather than the key being secret — and Giphy answers those same
-     search terms with reaction GIFs, which read as a joke where an illustration should be. */
+  /* THE REELS PICTURE. Blank means Wikimedia Commons, which needs no key, allows the request from a browser, and answers a search like "octopus underwater" with a § */
   ['giphy_key', '', 'leave BLANK for Wikimedia Commons photographs (no key needed). A Giphy API key switches the reels to GIFs instead'],
-  /* WHERE A PROFILE PICTURE CHOSEN IN SETTINGS IS KEPT. Blank means the posts folder, which already
-     works — so this is a row for somebody who wants faces kept apart from the feed, not a thing that
-     has to be set before the picker does anything. See `getPhotoFolder_` in content.gs. */
+  /* WHERE A PROFILE PICTURE CHOSEN IN SETTINGS IS KEPT. § */
   ['photos_folder', '', 'Drive folder id (or its URL) for profile pictures chosen in Settings. BLANK uses the posts folder'],
-  /* ---------- WHERE THE FILMS COME FROM, AND IT NEVER LEAVES THE SERVER ---------------------------
-     THE ONE ROW IN THIS TAB THAT IS A SECRET. The Notflix folder is shared "anyone with the link",
-     so its id IS the protection (note 068) — and this whole tab goes to every phone as
-     `constants.vars`. So it is named in `CONFIG_PRIVATE` below and `configPublic_` takes it out
-     before anything is sent; a value typed here reaches `filmsRoot_` and nobody else. Blank uses
-     the folder synced before, or else finds it by its name — which works today because there is
-     exactly one, and refuses when there are two (see `filmsRoot_`). */
+  /* ---------- WHERE THE FILMS COME FROM, AND IT NEVER LEAVES THE SERVER § */
   ['films_folder', '', 'Drive folder id (or its URL) the admin film search is filled from. BLANK uses the folder synced before, or the one folder named Notflix. Never sent to any phone'],
 
-  /* PRINTING. The file is free and always will be; this is paper and toner, at cost.
-     A rate of 0 switches printing off entirely rather than making it free — a resource offered at
-     £0.00 for a paper copy is the site promising to post something for nothing. */
-  /* ---------- THE WAITLIST SESSION ---------------------------------------------------------------
-     A DIFFERENT PRODUCT, PRICED BEFORE ANYBODY JOINS. An ordinary booking is priced from what the
-     family chose; this one is priced from the VENUE and a seat count, and every family pays the
-     same because they are all buying the same seat.
-
-         per hour, whole session = venue rate + open tutor rate + (seats - 1) x extra
-         per hour, one seat      = that / seats
-
-     At Colliers Wood: 15 + 14 + 9 = £38 an hour for the room and the teaching, £9.50 a seat.
-
-     WHY IT DIVIDES BY THE MAXIMUM rather than by how many have joined: the price has to be on the
-     card before anybody joins, or nobody can decide whether to. It is safe here in a way it would
-     not be otherwise, because nobody is charged until the list is FULL — the acceptance is the
-     gate, and a list that never fills costs nothing and runs never. */
+  /* PRINTING. The file is free and always will be; this is paper and toner, at cost. § */
+  /* ---------- THE WAITLIST SESSION § */
   ['waitlist_seats', 4, 'how many seats a waitlist session has. The price divides by this'],
   ['open_tutor_rate', 14, "the hourly rate for a tutor nobody chose — what a waitlist seat is priced against"],
   ['waitlist_extra_seat', 3, 'added to the HOURLY total for each seat after the first. 3 = £3'],
 
-  /* ---------- WHO CARRIES THE TRAVEL ---------------------------------------------------------
-     TWO DECISIONS, AND ONLY ONE OF THEM HAS TO BE MADE TODAY. What you PAY a tutor to reach a
-     venue is a cost and it is now recorded. Whether a CLIENT pays it is a separate question about
-     pricing, and it can be answered later without touching any code — which is the point of it
-     being a key here rather than a rule in the source.
-
-     OFF, because that is what happens now: the journey comes out of your margin and the client
-     never sees it. Turn it on and it is added to the session price and appears on the receipt as
-     its own line, which is the honest way to charge for it — a fee folded invisibly into an hourly
-     rate is the thing people find later and mind about. */
+  /* ---------- WHO CARRIES THE TRAVEL § */
   ['travel_on_client', 0, 'set to 1 to add the venue travel cost to what the client pays, as its own line on the receipt. 0 = you absorb it'],
-  /* ---------- WHAT A BOOKING COSTS BEYOND THE TUTOR AND THE ROOM (docs/history/353) ----------------------
-     BLANK IS NOUGHT, AND A MARKUP OF BLANK IS ONE — at cost. The owner has chosen neither a card provider's
-     rate nor a margin on kit, so the sheet arrives saying so and the admin's Money block prices exactly as
-     before until somebody types a number. Read on the phone (`priceFrom`) for the block, and by the server
-     once, when a job is accepted, for the frozen `card_fees` (`jobMoneyFreeze_`). */
+  /* ---------- WHAT A BOOKING COSTS BEYOND THE TUTOR AND THE ROOM (docs/history/353) § */
   ['card_fee_pct', '', 'card fee as a PERCENT of what the client is charged: 1.5 means 1.5%. Blank = 0. Only the admin Money block and the frozen job row use it; nobody is charged it'],
   ['card_fee_fixed', '', 'card fee in pounds per booking, on top of card_fee_pct: 0.2 means 20p. Blank = 0'],
   ['materials_markup', '', 'a practical\'s kit is charged at cost x this: 1.25 = +25%. Blank = 1, at cost'],
 
-  /* ---------- THE WEEKLY PARENT EMAIL — see backend/digest.gs ----------------------------------------
-     ASKED FOR AS *"something which triggers every sunday. it checks what the student has done that
-     week and records the questions and send it in an email to parents. for now dont actually make it
-     but make the infrastructure"*. So the switch arrives OFF, and off is checked first: with `off`
-     the Sunday run returns before it reads a tab, and nothing installs the Sunday trigger until the
-     owner runs `installWeeklyDigest` by hand. `preview` writes what would be sent to `digest_log`
-     and sends nothing — the step to sit on for a Sunday or two. `send` emails parents. Anything
-     else typed here is `off`, because a typo must never be the thing that emails forty families.
-
-     THE HOUR IS LONDON'S, read by `installWeeklyDigest` when it books the trigger — so changing it
-     here means running that again (`checkSundayEmail` says so when this cell and the hour it booked,
-     `DIGEST_BOOKED`, disagree). 21 SINCE 18 OCT, the owner: *"On Sunday @9pm"* — after the weekend's
-     work, Sunday evening's homework included, and before Monday. It was 18, and a question done at
-     20:00 on a Sunday was in nobody's email (next week starts on Monday): the trade an earlier hour
-     makes. Everything else follows this number — the email's
-     "up to 9pm on Sunday", the setup check's lines. THE RESERVE is mail quota left for everything else
-     the site emails — a new PIN at 21:00 on a Sunday must not find the day's quota spent on summaries. */
+  /* ---------- THE WEEKLY PARENT EMAIL — see backend/digest.gs § */
   ['weekly_digest', 'off', 'the Sunday email to parents: off (nothing), preview (written to the digest_log tab, nothing sent) or send. Anything else = off'],
   ['weekly_digest_hour', 21, 'the hour on Sunday, London time, the weekly parent email goes. 0-23, blank = 21 (9pm). Run installWeeklyDigest again after changing it'],
   ['weekly_digest_reserve', 10, 'emails a day kept back from the weekly parent email for PIN resets and notices. Blank = 10'],
-  /* `weekly_digest_marking` WAS HERE, 12–18 Oct: the switch of the server's AI marking pass, which is gone —
-     the owner: *"The marking is already done on each question."* (docs/history/352). A cell left on a live
-     config tab is read by nothing. */
+  /* `weekly_digest_marking` WAS HERE, 12–18 Oct: § */
 
   ['print_rate_per_page', 0.02, 'what a printed page costs. 0.02 = 2p. Set to 0 and no paper copies are offered at all'],
   ['print_minimum', 0, 'the least a print job can cost, whatever the page count. 0 = no minimum'],
-  /* LAMINATING IS OFF BY DEFAULT, and that is the honest default rather than a cautious one: a
-     pouch and the machine's time are a real cost, so a site that offered it free because nobody had
-     filled in a cell would be selling at a loss on every order and saying nothing about it. At 0
-     the basket draws no upgrade at all — see `laminatePrice`. */
+  /* LAMINATING IS OFF BY DEFAULT, and that is the honest default rather than a cautious one: § */
   ['laminate_rate_per_page', 0, 'what laminating one page costs. 0 = laminating is not offered'],
   ['laminate_minimum', 0, 'the least a laminating job can cost, whatever the page count. 0 = none'],
   ['postage_flat', 0, 'one stamp and one envelope for a whole order, not per item. 0 = you do not post, and only collection is offered'],
   // Documentation rows. Read by nobody — written so the sheet explains its own arithmetic.
-  /* The formula_* rows lived here. They were documentation stored as data: a written copy of the
-     maths, in cells nothing reads, which had to be edited every time the maths changed — and by
-     the end described a version of the formula that hadn't run for weeks. The pricing card shows
-     the live formula, derived from the code that actually prices, so it can't fall behind. */
+  /* The formula_* rows lived here. § */
 ];
 
-/* ---------- A SEED THAT MOVED: `[key, the old value, the old note]` -----------------------------------
-   `seedConfig` NEVER REWRITES A VALUE SOMEBODY SET, and that stays the rule. But a row whose value and
-   note are BOTH exactly what an old seed wrote is a row nobody set, and leaving it says something that
-   is no longer true: on 11 Oct `gemini_model` stopped defaulting to the `-latest` alias, and every sheet
-   seeded before that still read "gemini-flash-latest ... Blank = gemini-flash-latest" (the review of
-   11 Oct). Such a row is given the current default and note from CONFIG_DEFAULTS. Change either cell
-   and it is yours, and left alone. */
+/* ---------- A SEED THAT MOVED: `[key, the old value, the old note]` § */
 const CONFIG_RESEEDED = [
   ['gemini_model', AI_MODEL_OLD_SEED, 'the Gemini model that marks worded answers. Blank = gemini-flash-latest. The API KEY never goes here: it is GEMINI_API_KEY in Script Properties'],
 ];
 
-/* ---------- THE CONFIG KEYS NO PHONE IS SENT ------------------------------------------------------
-   `constants.vars` IS THE WHOLE CONFIG TAB, sent to every visitor including the anonymous one —
-   which is right for a price and a switch, and was right for everything in the tab until a key held
-   something that is only safe while nobody else knows it. Lower case, compared after `norm`.
-   `check-films.js` asks every payload, signed out, student and admin, for the value set here. */
+/* ---------- THE CONFIG KEYS NO PHONE IS SENT § */
 const FILMS_FOLDER_KEY = 'films_folder';
 const CONFIG_PRIVATE = [FILMS_FOLDER_KEY];
 
-/* ---------- THE FILMS SYNC — see `filmsSync_` in content.gs ---------------------------------------
-   THE FOLDER IS FOUND BY THIS NAME when `films_folder` is blank: a folder whose name, lower-cased,
-   is exactly this. `Notflix adults` and `Notflix kids` contain it and are not it.
-
-   THE BUDGET IS A WALL CLOCK, because what can run long is Drive and Drive is slow by the call. The
-   phone's run is short — the admin is looking at a card, and the script lock is held for the write
-   at the end — and the editor's is most of Apps Script's six minutes. A pass that does not fit stops
-   between two things, writes what it has, records where, and the next run carries on from there
-   (`FILMS_SYNC` in Script Properties). EVERY RUN DOES AT LEAST ONE THING, so a slow folder is slow
-   rather than stuck; the ceiling is the line no run crosses whatever it has done.
-
-   STALE AFTER A DAY: the videos card asks for a sync for an admin when the last whole pass is older
-   than this (js/games.js keeps the same number), and the owner can press Sync from Drive any time. */
+/* ---------- THE FILMS SYNC — see `filmsSync_` in content.gs § */
 const FILMS_FOLDER_NAME = 'notflix';
 const FILMS_SYNC_PROP = 'FILMS_SYNC';
 const FILMS_SYNC_BUDGET_MS = 20000;
@@ -1988,18 +656,11 @@ const FILMS_RE_DOCS = /^documentar/i;
 const FILMS_RE_SEASON = /^s(?:eason)?\s*0*(\d{1,2})$/i;
 /* A FOLDER INSIDE A FILM THAT IS NOT THE FILM — extras, a sample, the subtitles. */
 const FILMS_RE_EXTRA = /^(extras?|samples?|featurettes?|bonus|subs?|subtitles?|trailers?)$/i;
-/* A VIDEO BY ITS TYPE OR, WHEN DRIVE DID NOT KNOW THE TYPE, BY ITS NAME. Three different video types
-   are in the folder today (two spellings of Matroska and mp4), so the rule is the prefix, never one
-   type — an exact match on one Matroska spelling would have dropped eight films without a word. */
+/* A VIDEO BY ITS TYPE OR, WHEN DRIVE DID NOT KNOW THE TYPE, BY ITS NAME. § */
 const FILMS_RE_VIDEO_EXT = /\.(mkv|mp4|m4v|avi|mov|webm|wmv|mpe?g|ts)$/i;
 const FILMS_MIME_DOC = 'application/vnd.google-apps.document';
 
-/* The option lists the CODE owns. These aren't preferences — the code branches on them, so a
-   value in the sheet that the code doesn't produce is just a dropdown entry nothing can ever set.
-   ensureSchema ADDS any of these values a list is missing and touches no row that is there — it
-   rewrote the whole options tab until 10 Oct (`seedOptions` in setup.gs says what that broke) —
-   and leaves every other list alone, because the rest (subjects, levels, venues, exam boards) are
-   genuinely yours. */
+/* The option lists the CODE owns. § */
 const OPTION_DEFAULTS = {
   participant_status: ['Waiting', 'Agreed', 'Paying', 'Booked'],
   action: ['Request', 'Accept', 'Decline', 'Withdraw', 'Pay'],
@@ -2009,21 +670,7 @@ const OPTION_DEFAULTS = {
   exam_wave: ['First wave', 'Second wave'],
 };
 
-/* ---------- THE CHEAT SHEET COMPONENTS, AS ROWS ---------------------------------------------------
-   THE SEVENTEEN THAT EXIST IN CODE, so the tab arrives filled in rather than empty. An empty tab
-   with nine headers tells you nothing about what may be typed in it; a tab with the real rows in it
-   is its own documentation, and editing one is safer than inventing one.
-
-   `part_id` MATCHES A DRAWING IN js/mat.js. That is the join, and it is the reason these ids are
-   dull: M02 is a name for a function, not for a hundred-square, and renaming the component in the
-   sheet must not move the wire.
-
-   THE TIERS ARE THE COMPONENT-WIDE ONES ONLY. Sphere and cone inside the formulae block, negative
-   and fractional indices, perpendicular gradients, three of the five curves — those are Higher-only
-   ROWS INSIDE a component, and a row of this tab cannot say so. They stay tagged where they are
-   drawn. This column is for a whole component that belongs to one paper.
-
-   Order, name, levels, tier, height, half. */
+/* ---------- THE CHEAT SHEET COMPONENTS, AS ROWS § */
 const CHEATSHEET_DEFAULTS = [
   ['M02', 'Number square',          'SATs, 11+, Y1 Mocks, Y2 Mocks',      '',      94,  true],
   ['M03', 'Times tables',           'SATs, 11+, Y1 Mocks, Y2 Mocks',      '',      100, true],
@@ -2074,114 +721,31 @@ const CHEATSHEET_DEFAULTS = [
   ['M48', 'Numerical methods',      'Alevel',                             '',      23,  false],
 ];
 
-/**
- * RENAME A VALUE EVERYWHERE IT IS USED.
- *
- *     /exec?run=rename&name=…&pin=…&arg=English Lang.>English Language
- *
- * A subject is not stored once. It is on every resource that teaches it, on the options list that
- * offers it, on the pricing row that surcharges it, on every job booked for it and in the columns
- * a tutor lists what they teach in. Rename it in one place and the others stop matching — silently,
- * because a subject nothing matches is not an error, it is a subject with no resources.
- *
- * So it is renamed everywhere or nowhere. The pairs below are every column in the schema that
- * holds one of these values; a column added later that holds one needs adding here too, and the
- * health check will not catch that for you.
- *
- * CASE-INSENSITIVE, punctuation and all. "English Lang." and "english lang" are the same value to
- * everything else in this file — `norm` and `key` see to that — so a rename that only caught the
- * exact spelling would leave the variants behind and they would go on not matching.
- */
+/* RENAME A VALUE EVERYWHERE IT IS USED. § */
 const RENAMEABLE = [
   ['options',   ['value']],
   ['pricing',   ['label']],
-  /* NOT JUST THE SUBJECT. A rename is asked of a VALUE, and a value can be in any of these — the
-     exam board was reachable in none of them, so `edexcel>Edexcel` would have reported success
-     and changed nothing at all. Every column on this tab that holds a name somebody typed. */
-  /* ---------- A RENAME NO LONGER REACHES THE LIBRARY, AND THAT HAS TO BE SAID ------------------
-     `questions` WAS HERE — eight columns of it, every value on a paper that a facet is built from.
-     The tab is gone: those 3,913 rows are `data/questions.json` in this repository, and Apps Script
-     cannot write to a file in git.
-
-     LEAVING THE LINE IN WOULD HAVE BEEN WORSE THAN REMOVING IT. `renameValue` does
-     `read(TAB[name] || name)` and an unrouted name comes back `{ rows: [] }` — so the rename would
-     have reported success, changed the options list and the pricing row, and left every paper in
-     the library spelling it the old way. A subject nothing matches is not an error; it is a subject
-     with no resources, which is the exact fault the paragraph above this list warns about.
-
-     SO A RENAME IS NOW TWO JOBS: `?run=rename` for the sheets, and a find-and-replace over
-     `data/questions.json` committed here. `check-rename.js` does not exist and this note is the
-     only thing that will remind anybody — which is why it is this long. */
+  /* NOT JUST THE SUBJECT. § */
+  /* ---------- A RENAME NO LONGER REACHES THE LIBRARY, AND THAT HAS TO BE SAID § */
   ['jobs',      ['subject', 'level']],
   ['qualifications', ['subject', 'level']],
   ['exams',     ['subject']],
   ['trips',     ['subject']],
 ];
 
-/* ---------- TAB ACCESS ------------------------------------------------------------------------
-   read(name) returns { sheet, headers, rows } where each row is an object keyed by header, plus
-   _row = its sheet row number so writes know where to go. Cached per request: doGet touches
-   seven tabs and would otherwise re-read them. */
+/* ---------- TAB ACCESS § */
 const _cache = {};
-/* ---------- AND WHAT THE PEOPLE TAB SAYS ABOUT CHILDREN, WORKED OUT ONCE PER REQUEST ------------------
-   `kidMemo_` in people.gs: which rows are children, how many share each first name, and the net's
-   pattern (`kidNamesIndex_`). Beside `_cache` because it is made from `_cache`'s people rows, and dropped
-   by any write to that tab (`kidMemoDrop_`) — a reply is built after its writes, and a child renamed
-   by this very request must be recognised under the name the reply is about to carry. */
+/* ---------- AND WHAT THE PEOPLE TAB SAYS ABOUT CHILDREN, WORKED OUT ONCE PER REQUEST § */
 let KID_MEMO_ = null;
-/* ---------- AND WHO THE NET IS WORKING FOR, THIS REQUEST ------------------------------------------------
-   `{ id, admin }` of the person a reply or an email is going to, or null for nobody known (a stranger, a
-   typed address, a reply before anybody signed in). Set by `netViewerSet_` (people.gs) in `doGet` from
-   the token, in `doPost` after the gate, in `loginReplyFor_` to the row signing in, and per email in
-   `mailOut_`. It decides one thing: whether a GROWN-UP'S surname (a parent, a client — not a tutor or an
-   admin) may go to this viewer, which is only themselves, an admin, and a child on their own family row
-   (`netKin_`, docs/history/342). A child's surname goes to nobody whoever is asking, so the 333 half of
-   the net never reads it. RESET AT THE TOP
-   OF `doGet` AND `doPost`, because Apps Script keeps an instance between requests and the last
-   request's viewer must never be the next one's. */
+/* ---------- AND WHO THE NET IS WORKING FOR, THIS REQUEST § */
 let NET_VIEWER_ = null;
-/* HOW MANY EARLIER WHOLE NAMES `name_was` KEEPS. It was "`HANDLE_WAS_KEEP`'s number, for its reason",
-   and that cap went in 342: an old HANDLE is a credential, never trimmed. An old NAME is only what the
-   net recognises in text stored under it — a person renamed eleven times is not a person — so ten stays. */
+/* HOW MANY EARLIER WHOLE NAMES `name_was` KEEPS. § */
 const NAME_WAS_KEEP = 10;
 
-/* ---------- A WRITE THAT GOES NOWHERE -------------------------------------------------------------
-   `setCell` returns false for a column that does not exist, and `addRow` drops a key it has no
-   header for. Both are correct — a write must never shift a row under the wrong headers — and both
-   were SILENT, which is the single most expensive decision in this file.
-
-   It is behind at least four faults already found: the avatar columns that were not in the schema
-   so every wardrobe change was discarded; the four pricing fields written and lost four times over;
-   the `pages` column before it existed. In each case the handler returned `success: true` and the
-   value went nowhere. The person saw "Saved ✓".
-
-   So every miss is recorded, and `jsonOut` — the one exit every reply passes through — turns a
-   request that lost a value into an ERROR rather than a success. Nothing has to remember to check:
-   a handler cannot report success for a save that did not happen, because the reply is rewritten
-   on the way out.
-
-   Cleared at the start of every request. Apps Script reuses an instance across requests, so a miss
-   left lying around would be reported against whoever asked next.
---------------------------------------------------------------------------------------------- */
+/* ---------- A WRITE THAT GOES NOWHERE § */
 let WRITE_MISSES = [];
 
-/* ---------- THE CALLBACK, WHEN THE PAGE CANNOT MAKE AN ORDINARY REQUEST ---------------------------
-   A PAGE OPENED FROM A FILE HAS NO ORIGIN. Double-click index.html and the browser gives it the
-   origin `null`, and `fetch` to anywhere else is refused before a single byte leaves — instantly,
-   with "Failed to fetch" and no network involved. Nothing at this end is asked, so nothing at this
-   end can be wrong, and every symptom looks like a dead backend.
-
-   A <script> TAG IS NOT SUBJECT TO THAT. It has been allowed to load from anywhere since the web
-   began, which is what JSONP is: the same reply, wrapped in a function call, delivered as a script
-   instead of as data. Ancient, and it is the one thing that works from a file.
-
-   ONLY WHEN ASKED FOR BY NAME. Without `?callback=` this changes nothing and the reply is the JSON
-   it always was — so nothing that works today can be broken by it.
-
-   WHAT IT CANNOT DO: a script tag is a GET. Every action — booking, saving, posting — is a POST,
-   and no trick makes a POST leave a file:// page. So this restores READING from a file, and
-   writing still needs the page to be served. That is worth saying plainly rather than discovering
-   at the moment somebody tries to book something. */
+/* ---------- THE CALLBACK, WHEN THE PAGE CANNOT MAKE AN ORDINARY REQUEST § */
 let JSONP_CB = '';
 
 /* ---------- SMALL HELPERS -------------------------------------------------------------------- */
@@ -2190,44 +754,23 @@ const N = v => { const x = parseFloat(String(v ?? '').replace(/[£$,\s]/g, ''));
 const norm = v => S(v).toLowerCase();
 const key = v => S(v).toLowerCase().replace(/[^a-z0-9]/g, '');   // name match that ignores spacing
 const TRUE_ = v => /^(true|yes|1|✓)$/i.test(S(v));
-/* A blank flag means YES. Every `active` column was added after its rows existed, so an empty
-   cell is a row that predates the column rather than a row somebody switched off — and reading it
-   as off would hide everything the moment the column appeared. Written out because the same
-   three-term expression appeared in nine places and one of them will eventually be typed wrong. */
+/* A blank flag means YES. § */
 const ON_ = v => S(v) === '' || TRUE_(v);
 
 /* ---------- AVAILABILITY ---------------------------------------------------------------------
    One cell, "m13,m14,tu09", replacing 77 TRUE/FALSE columns. */
 const AVAIL_DAYS  = [['m','Mon'], ['tu','Tue'], ['w','Wed'], ['th','Thu'], ['f','Fri'], ['sa','Sat'], ['su','Sun']];
-/* ---------- THREE LIBRARY CARDS, AS NINE FORM FIELDS OVER ONE CELL -------------------------------
-   THE NUMBER IS THE ASK — *"so can fit in like 3"* — and it is one constant because everything
-   downstream derives from it: the field list, the form, the packer and the unpacker. A fourth
-   library is this number, and nothing else.
-   FIVE NOW — *"same with library cards (max 5)"* — and the form draws only the cards somebody has
-   filled in, with an `Add another` under them, so five costs nothing on a page
-   holding two. That is what made the number free to raise: the height is what is USED.
-   `lib1_name` RATHER THAN `library_card_1`, so the shape is recognisable at a glance by the form
-   (`isLibrary_` in js/me.js reads the SHAPE of the names, exactly as `isTimetable_` does) and
-   cannot be mistaken for a column: none of these nine is one. They are rows on the `library_cards`
-   tab — `libCardsOut` / `libCardsIn` in core.gs. */
+/* ---------- THREE LIBRARY CARDS, AS NINE FORM FIELDS OVER ONE CELL § */
 const LIBRARY_CARDS = 5;
 const LIBRARY_FIELDS = (() => {
   const out = [];
   for (let i = 1; i <= LIBRARY_CARDS; i++) out.push('lib' + i + '_name', 'lib' + i + '_no', 'lib' + i + '_pin');
   return out;
 })();
-/* ONE TEST, EVERY READER. `updateProfile` uses it to keep these nine out of the column check and
-   out of `wanted`, and `profileOf_` uses it to know they are not columns to read. A second regex
-   is a second chance for one of them to stop recognising a field — the `isTimetable_` argument
-   one file along. */
+/* ONE TEST, EVERY READER. § */
 const LIBRARY_FIELD = /^lib\d+_(name|no|pin)$/;
 
-/* ---------- EIGHT MORE PHOTOGRAPHS, AS EIGHT FORM FIELDS OVER ONE CELL ----------------------------
-   The library shelf's arrangement a third time, and one constant for the same reason: the field
-   list, the form, the packer and the unpacker all derive from it. EIGHT because the card draws them
-   as a grid of squares two to a row (`postMediaHtml_`'s grid, in posts.js), and four rows of
-   thumbnails under a profile is already more than a parent scrolls past. `photos_1` rather than
-   `photo_1`, so no form name is one letter away from the `photo` column it sits beside. */
+/* ---------- EIGHT MORE PHOTOGRAPHS, AS EIGHT FORM FIELDS OVER ONE CELL § */
 const PHOTO_MAX = 8;
 const PHOTO_FIELDS = (() => {
   const out = [];
@@ -2236,31 +779,12 @@ const PHOTO_FIELDS = (() => {
 })();
 const PHOTO_FIELD = /^photos_\d+$/;
 
-/* ---------- YOUR PICTURE CAN BE ONE OF OURS, OR YOUR OWN FIGURE --------------------------------------
-   THE OWNER, 10 Oct: *"everybody profile picture selector should have 10 basic profile pics like xbox
-   dp selector, which allow you to use your avatar as a dp."* So the `photo` cell holds one of three
-   things now: a link (an uploaded photograph, or one pasted by an admin — unchanged), nothing (the
-   initial), or one of the ELEVEN TOKENS below — `pfp:avatar` for your wardrobe figure, `pfp:fox` and
-   the rest for the ten pictures.
-
-   A TOKEN, NOT A PICTURE. The drawings live on the phone (`PFP_ART` in js/links.js), exactly as the
-   wardrobe's shapes do while this file holds the catalogue: a picture can be redrawn without a deploy,
-   and a cell holding SVG would be a public card drawing whatever markup somebody posted into it.
-   `pfp:` because no link starts that way, so a reader can never mistake one for the other.
-
-   THIS LIST IS THE ONLY ONE THE SERVER KEEPS, AND `check-profile.js` HOLDS IT EQUAL TO THE PHONE'S. A
-   picture added here and not drawn there would be a fox nobody can see; drawn there and not here, a
-   tap the server refuses. `photoChoice_` in core.gs is the one reader of it. */
+/* ---------- YOUR PICTURE CAN BE ONE OF OURS, OR YOUR OWN FIGURE § */
 const PFP_PICTURES = ['fox', 'owl', 'cat', 'dino', 'robot', 'rocket', 'planet', 'football', 'guitar', 'palette'];
 const PFP_AVATAR = 'pfp:avatar';
 const PFP_CHOICES = [PFP_AVATAR].concat(PFP_PICTURES.map(p => 'pfp:' + p));
 
-/* ---------- UP TO TEN QUALIFICATIONS, AS FORTY FORM FIELDS OVER ONE CELL -----------------------
-   THE LIBRARY SHELF'S ARRANGEMENT AGAIN, and one constant for the same reason: the field list, the
-   form, the packer and the unpacker all derive from it, so an eleventh is this number and nothing
-   else. The FORM NAMES keep the old `qual_N` spelling on purpose — `qualShelf_` in js/me.js reads
-   the shape of those names, and `qual_1…3` being real columns too is what lets the save mirror
-   them (see `updateProfile`). They are out of `wanted` either way: the cell is `quals`. */
+/* ---------- UP TO TEN QUALIFICATIONS, AS FORTY FORM FIELDS OVER ONE CELL § */
 const QUAL_MAX = 10;
 const QUAL_FIELDS = (() => {
   const out = [];
@@ -2268,42 +792,11 @@ const QUAL_FIELDS = (() => {
     'qual_' + i + '_grade', 'qual_' + i + '_received', 'qual_' + i + '_teach', 'qual_' + i + '_spec');
   return out;
 })();
-/* `_received`, `_teach` AND `_spec` ARE THE THREE THE ITEM GREW, and they replace two pages.
-   ASKED AS *"remove the studying now widget. could be achieved if each qualification has a date of
-   reception and present is an option"* and *"what you teach shouldn't even be a widget. you can just
-   tick which of your qualifications you teach really. and tick which you specialise in."* So the
-   received year (or `Present`, for a course still running) and the two ticks live on the
-   qualification they are about. They are the `teach` and `can_teach` columns of the
-   `qualifications` tab now, and what a tutor teaches is derived from them (`teachesOf_` in core.gs)
-   rather than kept anywhere else. */
+/* `_received`, `_teach` AND `_spec` ARE THE THREE THE ITEM GREW, and they replace two pages. § */
 const QUAL_FIELD = /^qual_\d+(_level|_board|_grade|_received|_teach|_spec)?$/;
 
 
-/* ---------- A DATE OF BIRTH IS THREE NUMBERS SOMEBODY REMEMBERS, NOT A DATE THEY PICK -------------
-   ASKED FOR AS *"date of birth should be 3 boxes. day, month and year. or copy the best practice
-   method."* It was ONE plain text box — `fieldHtml` emits `<input data-me="date_of_birth">` with no
-   type, no inputmode, no placeholder and no caption beyond `date of birth` — so what reached the
-   cell was whatever string somebody typed, with nothing anywhere saying which way round the first
-   two numbers go.
-
-   WHY NOT `type="date"`, WHICH IS THE OBVIOUS "BEST PRACTICE": a birth year is forty years of iOS
-   spinner from a picker that opens on today; its `.value` is ISO only, which is the one format that
-   reaches `sheetDate` through the `new Date(t)` fall-through rather than the anchored branch; it
-   ignores `inputmode` and `maxlength`; and it draws its own chrome that this stylesheet cannot
-   reach, on a black-and-gold app — the argument this repository already makes about Drive's own
-   `/preview` player. What it would have bought is a free calendar, free `autocomplete="bday"` and
-   free rejection of an impossible date, and the last of those is what `dobRefusal_` replaces.
-
-   `dd/mm/yyyy` WITH A FOUR-DIGIT YEAR IS THE ONE FORMAT THE CELL ALREADY SPEAKS, measured against
-   `sheetDate`: `15/09/1985` reads correctly through the anchored branch; `09/15/1985` becomes
-   **1986-03-09**, silently wrong rather than null; and `15/09/85` becomes **2085**, because the
-   two-digit rule below is `2000 + n` — right for a booking and useless for a birthday. So the boxes
-   emit exactly what `fmtDate` already emits, and the year box takes four digits.
-
-   `dob_y` RATHER THAN `dob_year`, and that is not arbitrary: `FIELD_IS_NUMERIC` in js/resource.js
-   matches `pages|year|students`, so a field called `dob_year` would pick up an `inputmode` the
-   other two boxes do not have and two of the three would differ by accident of a regex written for
-   something else. */
+/* ---------- A DATE OF BIRTH IS THREE NUMBERS SOMEBODY REMEMBERS, NOT A DATE THEY PICK § */
 /* THE PHONE AS A COUNTRY CODE AND A NUMBER, one cell (`phone`, "+44 7700 900123") — see
    `phoneOut`/`phoneIn` in core.gs. The list is the codes offered; the first is the default. */
 const PHONE_FIELDS = ['phone_cc', 'phone_no'];
@@ -2315,151 +808,33 @@ const DOB_FIELDS = ['dob_d', 'dob_m', 'dob_y'];
    three out of the column check, out of `wanted`, and out of what `profileOf_` reads as a column. */
 const DOB_FIELD = /^dob_[dmy]$/;
 
-/* ---------- AND THE COLUMNS THAT ARE EDITED AS A DATE PICKER RATHER THAN AS TEXT -----------------
-   ONE LIST, TWO READERS, WHICH IS THE ONLY THING THAT KEEPS THEM IN STEP. `profileOf_` sends these
-   through `isoDate_` so the picker is filled, and `updateProfile` refuses a value `isoRefusal_`
-   cannot read. A column in one and not the other is a picker that opens empty over a cell that has
-   a date in it, or a cell that takes whatever a hand-built request sends.
-
-   THE FORM DECIDES THEIR SHAPE BY NAME, NOT FROM THIS LIST. `FIELD_IS_DATE` in js/me.js is
-   `/_date$/` — derived from the name for the reason written over `FIELD_IS_BOOL`, that the sheet
-   grows columns and a list has to be remembered — so this list is the SERVER's half and the suffix
-   is the phone's. They agree today and the check is what says so.
-
-   `date_of_birth` IS NOT HERE AND MUST NOT BE. It is three boxes and one `dd/mm/yyyy` cell, which
-   is the opposite arrangement and a deliberate one — the long note over `isoDate_` in core.gs says
-   why the same control is wrong for a birthday and right for an exam. */
+/* ---------- AND THE COLUMNS THAT ARE EDITED AS A DATE PICKER RATHER THAN AS TEXT § */
 const DATE_COLS = ['exam_small_date', 'exam_big_date'];
-/* ---------- NINE TILL SIX, THE SAME SPAN AS THE BOOKING GRID -------------------------------------
-   THIS RAN TO 19 AND `SLOT_HOURS` IN js/book.js RUNS TO 18, so a tutor could tick seven o'clock in
-   Settings, see it lit on their own week, and never once be booked for it: the booking grid has no
-   seven o'clock column. One fact in two places that disagreed by an hour — history 125 moved the
-   booking end to six because the owner asked for *"9-6"*, and left this end where it was.
-
-   THE NARROWER ONE WINS, because it is the one the owner chose and the one a family can book. An
-   old `m19` already in somebody's `availability` cell is simply not sent (`availGridOut` walks this
-   list) and goes the next time they save — it could never be booked, so nothing is lost but a tick
-   that promised something false. `check-booking.js` holds the two lists equal now; widen BOTH or
-   neither. */
+/* ---------- NINE TILL SIX, THE SAME SPAN AS THE BOOKING GRID § */
 const AVAIL_HOURS = [9,10,11,12,13,14,15,16,17,18];
 
 /* ---------- PEOPLE --------------------------------------------------------------------------- */
 const ROLE_LABEL = { admin: 'Admin', tutor: 'Tutor', client: 'Client', student: 'Student' };
 
-/* ---------- A TITLE IS A ROLE THAT DECIDES NOTHING, AND SAYING SO IS THE WHOLE POINT -------------
-   ASKED FOR AS *"I want to add a role. For George he is the head of boxing. For now leave this as
-   just a title or something. In the future it will mean something."*
-
-   IT GOES IN THE `role` CELL RATHER THAN A COLUMN OF ITS OWN, and that is safe because the role
-   machinery was already built for it. `rolesOf` splits the cell on commas — "a person may hold
-   SEVERAL roles… one role is not more real than another" — and `mainRole` picks from a DECLARED
-   list, `['admin','tutor','client','student']`, so a value that is not on it can never win. Every
-   gate in this project asks `hasRole(row, 'tutor')`; nothing asks the other way round. So a title
-   sitting beside a real role grants precisely nothing, today, by construction rather than by
-   somebody remembering.
-
-   AND THAT IS WHY IT IS DECLARED HERE RATHER THAN LEFT AS A STRAY STRING IN A CELL. `head of
-   boxing` typed into the sheet with nothing naming it is a value the code has never heard of: it
-   would print in the roster in lower case, mean nothing to any reader of this file, and the day
-   somebody DOES want it to gate something they would have no idea whether it was deliberate. One
-   entry, one written reason — the `ACCEPTED` / `VOCAB` / `RETIRED_FACETS` / `HANDLE_ALLOWED`
-   pattern this file uses for exactly this, an eighth time.
-
-   IT IS AN ADDITION, NOT A REPLACEMENT. The cell must read `tutor, head of boxing` — a row holding
-   only titles has no real role left, and `mainRole` falls back to `client`, which would quietly
-   take George off the tutor list and off the Find screen. The comma is load-bearing.
-
-   WHEN IT STARTS TO MEAN SOMETHING, this is where to look: give it a line in `ACTION_ACCESS`, or
-   ask `hasRole(r, 'head of boxing')` wherever the meaning belongs, and move the entry out of here
-   into `ROLE_LABEL` beside the four that already decide things. */
+/* ---------- A TITLE IS A ROLE THAT DECIDES NOTHING, AND SAYING SO IS THE WHOLE POINT § */
 const ROLE_TITLES = {
   'head of boxing': 'Head of Boxing',
 };
 
-/* ONE READER FOR BOTH MAPS, because the roster prints a person's whole role list and the card
-   prints one of them, and two lookups written separately are two chances for a title to come out
-   as the raw lower-case cell in one place and properly in the other. */
+/* ONE READER FOR BOTH MAPS, because the roster prints a person's whole role list and the card prints one of them, and two lookups written separately are two § */
 const roleLabel_ = x => ROLE_LABEL[x] || ROLE_TITLES[norm(x)] || x;
 
-/* ---------- THE ROLES A PERSON MAY TICK FOR THEMSELVES, AND THE ONE THEY MAY NOT -------------------
-   ASKED FOR AS *"each account should have a widget in account settings which say what the roles
-   are. they can be either a tutor or client or student. they can be tutor and client and student
-   like multiselect."* So three of `ROLE_LABEL`'s four, and `admin` is not one of them: admin decides
-   who sees everybody's records and whose payload carries every child's name, so it is given in the
-   sheet and nowhere else. `setMyRoles` refuses the word by name rather than dropping it quietly, and
-   KEEPS an admin's `admin` (and any `ROLE_TITLES` title) whatever the three ticks say — the widget
-   edits three words of the cell, never the whole cell.
-
-   THE ALIASES ARE THE PHONE'S `ROLE_ALIASES` (js/core.js), read on the way in so a cell somebody
-   typed as `parent` shows as Client ticked, and written back as the canonical word — which is also
-   the word `hasRole(r, 'client')` asks for; `parent` in a cell has never passed that test. */
+/* ---------- THE ROLES A PERSON MAY TICK FOR THEMSELVES, AND THE ONE THEY MAY NOT § */
 const SELF_ROLES = ['tutor', 'client', 'student'];
 const SELF_ROLE_ALIASES = { teacher: 'tutor', parent: 'client', guardian: 'client',
                             kid: 'student', child: 'student', pupil: 'student' };
 
-/* ---------- AND A TICKED TUTOR IS A TUTOR THE BUSINESS HAS NOT SAID YES TO YET ---------------------
-   TICKING A BOX IS NOT VETTING. A tutor on this site is somebody a family books into their home
-   and somebody who can message other families; if a tick made that true, anybody signed up as a
-   parent would be one tap from being on the Find screen. So a self-added Tutor writes this word into
-   `listed`, and it is the admin's existing `Listed` switch on the tutor card (`setListed`, which
-   writes `TRUE`) that says yes. No second column and no second switch.
-
-   WHY A THIRD WORD AND NOT `FALSE`. `FALSE` already means "the admin hid this tutor" and a hidden
-   tutor is still a tutor — they keep the staff view and their sessions. `PENDING` is somebody who
-   asked, and the code has to tell the two apart: `tutorPending_` in people.gs reads it, and every
-   reader that only asks `ON_(listed)` treats it as unlisted already, because it is neither blank
-   nor TRUE — so `doGet` sends a pending tutor to the admin alone, marked, with nothing else changed. */
+/* ---------- AND A TICKED TUTOR IS A TUTOR THE BUSINESS HAS NOT SAID YES TO YET § */
 const LISTED_PENDING = 'PENDING';
 
-/**
- * POSTCODES INTO COORDINATES.
- *
- * postcodes.io, and the choice is deliberate: no key, so nothing secret ends up in a file anybody
- * can read; UK-only, which is the whole estate; and it returns FACTS — a coordinate is not
- * licensed imagery, so nothing here carries a condition about how it may be drawn.
- *
- * BULK, up to a hundred at a time. Eleven venues is one request rather than eleven, which matters
- * less for eleven than for the habit: a per-row fetch is the shape that turns into a rate limit
- * the day somebody adds a hundred rows.
- *
- * ALREADY-PLACED ROWS ARE SKIPPED unless forced, so this is safe to run whenever and after adding
- * a venue. `regeocode` re-reads everything, for when a postcode was wrong.
- */
-/* THE POSTCODES I COULD VERIFY, from each council's own pages. Filled in automatically for any
-   venue that has none, so nobody has to type them — and matched with `key()`, which ignores case
-   and punctuation, so "Colliers Wood library" and "Colliers Wood Library" are the same place.
-
-   NEVER OVERWRITES. A postcode already in the sheet is somebody's decision and wins over this
-   list: the list is a starting point, not an authority, and a venue that moved would otherwise be
-   moved back on every deploy.
-
-   The rest of the estate is not here because I could not verify it, and a guessed postcode puts a
-   venue in the Thames — which looks like a venue rather than a mistake. Add them to the sheet and
-   the geocoder picks them up. */
-/* ---------- `KNOWN_FAMILIES` WAS HERE, AND IT WAS REAL CHILDREN'S NAMES IN A PUBLIC REPOSITORY ----
-   A hand-written map of three real parents to their real children, each written out by first and
-   last name, in a file anybody can read. `seedFamilies` (people.gs) wrote it into the `family` tab
-   as ACCEPTED links, once, as the `seed-the-families` migration.
-
-   WHY IT EXISTED. The family tab was empty and every `children` cell on the people tab was blank,
-   so a booking could not say which child it was for, a parent could not see their own child's exam
-   on the calendar, and `siblingsOf` returned nothing for everybody. `claimChild` — a parent asks,
-   the CHILD accepts — could not fill it, because several of those children had no email address
-   for the invitation to reach. A surname rule was rejected too: one family's mother carries a
-   different surname from her children, so it would have missed them entirely.
-
-   WHY IT COULD GO WITHOUT CHANGING ANYTHING FOR ANYBODY. Nothing ever read the map at request
-   time — only the seeder did, and the seeder has run: the live `family` tab holds accepted rows
-   for all three families, and every reader (`acceptedLinks`, `childrenOf`, `siblingsOf`,
-   `acceptedParents`) reads that tab — `childNamesOf` falls back to the people tab's own `children`
-   cell, never to this file. And the job the map did by hand has an action of its own now: an
-   admin's `linkChild` writes the same accepted row from the app, a parent's `makeChild` writes it
-   for a child with no email, and `claimChild` covers the rest.
-
-   THE RULE IT BROKE, so it does not come back: NO LEARNER'S NAME IN THIS REPOSITORY. A family is a
-   row in the Ledger, which is private; a fact about a real person is never a constant here. The
-   repository's history still holds the old lines — this removes them from the current files, and
-   that is all a commit can do. */
+/* POSTCODES INTO COORDINATES. § */
+/* THE POSTCODES I COULD VERIFY, from each council's own pages. § */
+/* ---------- `KNOWN_FAMILIES` WAS HERE, AND IT WAS REAL CHILDREN'S NAMES IN A PUBLIC REPOSITORY § */
 
 const KNOWN_POSTCODES = {
   'Colliers Wood Library': 'SW19 2HR',
@@ -2468,20 +843,7 @@ const KNOWN_POSTCODES = {
   'York Gardens Library':  'SW11 2UG',
 };
 
-/* ---------- THE MAP, FROM OPENSTREETMAP ----------------------------------------------------------
-   One request per world, run once, kept in the `map` tab.
-
-   WHY OVERPASS AND NOT TILES. Tiles are pictures: they need a key, the key would be public in a
-   GitHub Pages site, their terms forbid restyling, and a photograph of London cannot be drawn in
-   this app's ink. Overpass returns the GEOMETRY — the actual chain of points that IS Wimbledon
-   Common — which can be drawn any way at all. It needs no key and the data is ODbL, which asks for
-   attribution and gets it under the map.
-
-   SIMPLIFIED ON THE WAY IN. A borough's roads are tens of thousands of points and a phone does not
-   need them: at the size this draws, anything under about fifteen metres of detour is invisible.
-   Douglas–Peucker throws those away and keeps every corner that shows, which is the difference
-   between 40KB and 4MB.
---------------------------------------------------------------------------------------------- */
+/* ---------- THE MAP, FROM OPENSTREETMAP § */
 
 /* What each world covers. A box round the borough, generous enough to hold the commons that sit on
    its edge — the map is drawn to about three miles, so the data has to reach at least that far. */
@@ -2492,138 +854,48 @@ const MAP_BOXES = {
   Sutton:     [51.3300, -0.2500, 51.3960, -0.1300],
 };
 
-/* The folder, written in. It is not a secret — that folder is shared with anyone who has the
-   link, or the pictures would not load on a single phone — so there is nothing gained by making
-   it a setup step, and one thing lost: a step that can be forgotten.
-   The config tab still overrides it, for the day the folder moves. */
+/* The folder, written in. § */
 const POSTS_FOLDER = '1piJQHYQ2h3I_f3ullEmDcNn_RGti4VVw';
 
-/* ---------- THE REACTIONS EVERY POST OFFERS ------------------------------------------------------
-   IN THE CODE, with the brand tab overriding it. It was the other way round — the tab and nothing
-   else — so until somebody pasted six characters into one cell, no post on the site offered a
-   single reaction, and what that looked like on a phone was a missing row rather than a missing
-   setting. A feature that is off until somebody remembers a manual step is a feature that is off.
-
-   The `laws` tab has had a fallback for exactly this reason since it was built. This is the same
-   argument, and it should have been made here at the same time.
-
-   WHY THESE SIX. They are the ones nobody has to learn, which matters more than whether they suit
-   tutoring — a set people already know the meaning of is a set they use in the first week. 👏 is
-   the one that carries most of the weight here: a child's work, a result, a finished project.
-
-   AND WHY NOT MORE. 😢 and 😡 give a parent a public way to express disappointment about a child's
-   work, and anybody with a problem should be messaging you rather than leaving a face on it. 🔥
-   reads as ranking, and a class where one child's work gets fire and another's gets a thumb is a
-   comparison you have published. 🤔 lands as criticism about half the time.
-
-   Six is also the number that fits: `.react` is a 38px target, and on a 320px phone seven start
-   looking like a grid rather than a row. */
+/* ---------- THE REACTIONS EVERY POST OFFERS § */
 const HOUSE_REACTIONS = ['👍', '❤️', '😂', '😮', '👏', '🎉'];
 
-/* ---------- HOW MANY SUBMISSIONS ONE `submitAnswer` MAY CARRY ----------------------------------------
-   ONE, NEARLY ALWAYS: the phone sends a press the moment it is made. The batch is for the other case —
-   presses a phone kept while it was offline, or while the deployed backend did not yet have the action,
-   sent up together when it can — and a cap keeps one request from being a term's work written under the
-   lock while every other write waits. Anything over it goes on the next send. See SCHEMA.submissions. */
+/* ---------- HOW MANY SUBMISSIONS ONE `submitAnswer` MAY CARRY § */
 const SUBMISSIONS_PER_POST = 25;
-/* THE WHOLE VOCABULARY OF `submissions.verdict`: right and wrong from a scheme the phone matched, `sent`
-   where nothing could mark it, and Mark with AI's marks as `ai:N/M` — at most three digits a side, M at
-   least 1, because no question in the library is worth more and a cell is not a place for a number
-   somebody typed. Anything else is refused, row and all: a verdict the email cannot read is one it would
-   print as nonsense. */
+/* THE WHOLE VOCABULARY OF `submissions.verdict`: § */
 const SUBMISSION_VERDICT = /^(right|wrong|sent|ai:\d{1,3}\/[1-9]\d{0,2})$/;
 /* AND THE PHONE'S NAME FOR A PRESS — its clock in ms, a dash, a random tail (`subId_` in js/submit.js).
    Checked for its shape so a retried send is recognised and nothing else rides in the column. */
 const SUBMISSION_ID = /^\d{10,16}-[a-z0-9]{3,16}$/;
-/* ---------- AND THE NAME OF A PRESS NOBODY MADE THIS WEEK: WORK CARRIED OVER FROM BEFORE THE SWITCH -----------
-   `subMigrate_` (js/submit.js) sends each question a child had done before 9 Oct as one press, once, the
-   first time they are signed in on the device after the backend can take it — with an id made from the
-   person and the key (`subMigrateId_`: the day of the switch, `-m`, two seven-letter hashes) so two devices
-   write it once. Such a row ARRIVES the week the backend lands and was pressed weeks before. Read by its
-   arrival, the first weekly email after the update listed a term's work as that week's ("Ada worked on 4
-   questions", three from September), and the admin's people column dated every learner's "last" to the day
-   it landed (review of 10 Oct). So a row with this id is history: `digestPlan_` counts it as before the
-   week, and the summary dates it by when it was pressed. No phone's own press has this shape (`subId_`
-   ends in six letters). */
+/* ---------- AND THE NAME OF A PRESS NOBODY MADE THIS WEEK: WORK CARRIED OVER FROM BEFORE THE SWITCH § */
 const SUBMISSION_CARRIED = /^\d{10,16}-m[a-z0-9]{14}$/;
-/* AND HOW LONG A QUESTION'S NAME MAY BE. A paper's name and a question number are fifty-odd
-   characters; this is room for the longest the library has with a margin, and a ceiling on what one
-   request can put in a cell a parent's email prints. See SCHEMA.submissions. The name says ATTEMPT
-   because it was written for the tab before; the rule is the same one. */
+/* AND HOW LONG A QUESTION'S NAME MAY BE. § */
 const ATTEMPT_LABEL_MAX = 120;
-/* AND A QUESTION'S WORDS — SCHEMA.submissions. 99% of the library's questions are under 520 characters
-   with their stem; a stem that is a whole extract (an English insert) is cut, and the email cuts again
-   to what fits a phone's screen (`DIGEST_WORDS_SHOWN`). */
+/* AND A QUESTION'S WORDS — SCHEMA.submissions. § */
 const ATTEMPT_WORDS_MAX = 1200;
 
-/* ---------- HOW MUCH OF AN ANSWER THE SHEET KEEPS — SCHEMA.answers AND SCHEMA.submissions ---------------
-   A TYPED ANSWER, the same ceiling as an answer sent to "Mark with AI" (`AI_ANSWER_MAX`): an essay is an
-   answer now (`ansEssay_` in js/keypad.js, 9 Oct) and this was 2,000 characters, about 350 words -- so a
-   forty-mark essay saved to the account until its fourth paragraph and then said "On this device only —
-   too long for the account" while the pupil was still writing it. 20,000 is three top-band essays and
-   well under the 50,000 a Sheets cell holds. A submission's `answer` is held to it too (note 308), and
-   refused whole over it, never cut: an essay sent for its verdict is the essay the account keeps.
-   THE PEN'S STROKES, under the 50,000 characters a Sheets cell holds, with room. The phone simplifies a
-   stroke before it sends it (a 504-point freehand line is 33 points after), so a whole graph is a few
-   kilobytes; one bigger than this stays on the device that drew it and is never cut — half a JSON list
-   is not a drawing. A value over its ceiling is refused, never truncated.
-   AND HOW MANY ONE REQUEST CARRIES, under the script lock every other write waits on. The phone sends
-   what changed in the last second and a half, which is one or two; the cap is for a backlog. */
+/* ---------- HOW MUCH OF AN ANSWER THE SHEET KEEPS — SCHEMA.answers AND SCHEMA.submissions § */
 const ANSWER_TEXT_MAX = 20000;
 const ANSWER_PAD_MAX = 40000;
 const ANSWERS_PER_POST = 25;
 
-/* ---------- WHAT "MARK WITH AI" SENDS GEMINI — `aiMark` in dopost.gs ----------------------------------
-   THE ANSWER WAS CUT AT 2,000 CHARACTERS, and silently: Gemini marked the first third of a 40-mark essay
-   and the phone drew the mark as the essay's. Now the whole of it, up to 20,000 characters (a top-band
-   GCSE essay is 600–1,000 words, about 6,000), and anything longer is REFUSED with a sentence rather than
-   cut. The question and the scheme to 8,000 each: an English stem can be a source extract, and a levelled
-   scheme with both of its assessment objectives written out is longer than the one-line schemes 3,000
-   was sized for. Together that is under 40,000 characters, about 10,000 tokens -- a small fraction of
-   what the model takes in. THE SAME NUMBERS ARE IN js/keypad.js (`AI_ANSWER_MAX`), because a phone that
-   sends more than this keeps would believe the whole essay was marked. */
+/* ---------- WHAT "MARK WITH AI" SENDS GEMINI — `aiMark` in dopost.gs § */
 const AI_ANSWER_MAX = 20000;
 const AI_QUESTION_MAX = 8000;
 const AI_SCHEME_MAX = 8000;
 
-/* ---------- THE WEEKLY PARENT EMAIL — see backend/digest.gs ------------------------------------------
-   `DIGEST_MODES` is the whole vocabulary of `weekly_digest` on the config tab, OFF FIRST: anything not
-   in it reads as off. `DIGEST_TZ` is whose week it is — London's: a submission's `submitted_at` is an
-   instant, and it is London's calendar that says which Sunday it belongs to. `DIGEST_RUN`
-   is the trigger's handler by name, written once, because the trigger is found and deleted by that
-   string and two spellings of it would leave a Sunday run nobody can remove. */
+/* ---------- THE WEEKLY PARENT EMAIL — see backend/digest.gs § */
 const DIGEST_MODES = ['off', 'preview', 'send'];
 const DIGEST_TZ = 'Europe/London';
 const DIGEST_RUN = 'weeklyDigestRun';
-/* THE HANDLERS OF TRIGGERS NOTHING RUNS ANY MORE, BY NAME — the one place each old name is still written,
-   because a trigger is found by that string and nothing else. `removeWeeklyDigest` (and so
-   `installWeeklyDigest`) deletes every project trigger with one of these handlers, and says how many:
-     `sessionRecapRun`  the hourly check of the email after each session, removed 8 Oct (*"delete daily
-                        email stuff"*), which the owner booked from the editor;
-     `digestMarkRun`    the server's AI marking pass, removed 18 Oct (docs/history/352) — booked nightly at
-                        02:00, on Sunday an hour before the email, and as one-offs in that run-up. The
-                        owner: *"9pm on Sunday should be the only time trigger."*
-   Left booked, each fires into a function that no longer exists, fails, and Google emails the owner the
-   failure. `DIGEST_RETIRED_PROPS` are the Script Properties that marking pass kept (its claim, its tally of
-   replies with no mark, the id of its run-up's one-off), deleted with them. */
+/* THE HANDLERS OF TRIGGERS NOTHING RUNS ANY MORE, BY NAME — the one place each old name is still written, because a trigger is found by that string and nothing § */
 const DIGEST_RETIRED_RUNS = ['sessionRecapRun', 'digestMarkRun'];
 const DIGEST_RETIRED_PROPS = ['DIGEST_MARKING', 'DIGEST_MARK_TRIED', 'DIGEST_MARK_AGAIN'];
-/* `DIGEST_BOOKED`: the hour `installWeeklyDigest` booked the email at, kept in Script Properties. Apps Script
-   cannot read a trigger's hour back, and `weekly_digest_hour` changed after installing moved nothing but the
-   words: the setup check said "installed at 20:00" over a trigger still firing at 18:00. */
+/* `DIGEST_BOOKED`: the hour `installWeeklyDigest` booked the email at, kept in Script Properties. § */
 const DIGEST_BOOKED = 'DIGEST_BOOKED_HOUR';
-/* ---------- WHERE THE EMAIL FINDS EACH QUESTION: THE SITE'S OWN COPY OF THE LIBRARY ---------------------
-   The backend has no library — `data/questions.json` is in git, served by GitHub Pages, and the phone
-   sends the question and the scheme with each Mark with AI press. The Sunday run, with no phone, fetches
-   the same file: `site_url` (or `SITE_URL`) + this path, and raw.githubusercontent.com (`RAW`, sync.gs) when the
-   site does not answer. 14.1 MB, one row per line (`check-library.js` holds that layout), so a row is
-   found by its `"row_id":"…"` and that one line is parsed — never the whole file, which in Node is a
-   quarter of a second and 20 MB more heap, and Apps Script's memory ceiling is not published. */
+/* ---------- WHERE THE EMAIL FINDS EACH QUESTION: THE SITE'S OWN COPY OF THE LIBRARY § */
 const DIGEST_LIBRARY_PATH = 'data/questions.json';
-/* THE ENTITIES THE LIBRARY'S MARKUP USES, AS CHARACTERS — every named one in data/questions.json on 12 Oct,
-   counted. The phone reads a question's markup through DOMParser (`aiPlain_` in js/keypad.js); Apps Script
-   has none, so `digestPlain_` decodes these and any numeric one, and leaves a name it does not know as it
-   is. Gemini reads "x &minus; 3 &le; 7" as noise and "x − 3 ≤ 7" as maths. */
+/* THE ENTITIES THE LIBRARY'S MARKUP USES, AS CHARACTERS — every named one in data/questions.json on 12 Oct, counted. § */
 const DIGEST_ENTITIES = {
   amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', thinsp: ' ', emsp: ' ', ensp: ' ',
   mdash: '—', ndash: '–', minus: '−', times: '×', divide: '÷', frasl: '/', deg: '°', pound: '£',
@@ -2634,34 +906,12 @@ const DIGEST_ENTITIES = {
   nu: 'ν', rho: 'ρ', sigma: 'σ', epsilon: 'ε', omega: 'ω', Omega: 'Ω', Delta: 'Δ', Sigma: 'Σ',
   Lambda: 'Λ', eacute: 'é',
 };
-/* HOW MANY QUESTIONS THE WEEKLY EMAIL LISTS, each with its own words (`digestQuestions_`), before
-   "…and N more." A WEEK'S WORK, NOT A DAY'S: the owner made Sunday's the email parents get — *"all
-   they done that week"* — and the 30 the list held when it was names is one evening of a past paper,
-   so a child who did two papers and their homework would have half the week cut. BUT NOT UNBOUNDED, because Gmail clips a message whose HTML
-   passes about 102 KB: the rest hides behind "[Message clipped] View entire message", and that hides the
-   footer that says how to stop. Measured on 8 Oct with the real render: 80 questions at their longest —
-   each on its own 110-character paper, its own stem cut at `DIGEST_STEM_SHOWN`, its own ask at
-   `DIGEST_WORDS_SHOWN` — is 66 KB of HTML; the library's 80 longest asks under its 80 longest stems (as
-   the phone sends them, escaped — the library has almost nothing `digestEsc_` grows) are 67 KB; a heavy
-   week shaped like a real one, six papers with three parts to a stem, is 36 KB. So 80 keeps a third in
-   hand under the clip, and about 120 would reach it. check-digest.js renders the first case every run
-   and fails it at 102 KB, so raising this, or either cut, past the clip is red. */
+/* HOW MANY QUESTIONS THE WEEKLY EMAIL LISTS, each with its own words (`digestQuestions_`), before "…and N more." § */
 const DIGEST_WEEK_LIST_MAX = 80;
-/* THE SHAPE OF A LIBRARY KEY: `q:Q-9MA031-2206-1`, `q:Q-1GK0-2011-1H-6b(i)`, `pr:PR-PH01`. A short
-   prefix, a colon, and letters, digits, dashes, underscores and brackets — no space, no full stop, no
-   `@`. The email never prints a key; this decides whose WORDS it may print: only a question under a
-   key in the library's own shape, because a "key" that is a sentence or an address (`submitAnswer`
-   takes any 120 characters) is somebody typing into the sheet, and its "question" is whatever they typed.
-   Measured against every row_id in data/questions.json. The slot after a `#` is gone before this is
-   asked. */
+/* THE SHAPE OF A LIBRARY KEY: § */
 const DIGEST_KEY_SHAPE = /^[a-z]{1,4}:[A-Za-z0-9][A-Za-z0-9()_-]{0,100}$/;
 
-/* `digestWordsSafe_` (digest.gs): WHAT A QUESTION NEVER SAYS AND A MESSAGE PRETENDING TO BE FROM THE BUSINESS DOES. Wider than the
-   name's rule because the words are ten times longer and several lines, printed under "@family." in a
-   parent's inbox: a domain with ONE letter before the dot (x.com, t.co), a dot that is not a full stop
-   (．。｡), a phone number, a run of eight or more digits (an account number), a sort code. Each was
-   measured against every question and stem in data/questions.json: not one is refused. A refused text
-   is not printed and the question still is, by its number. */
+/* `digestWordsSafe_` (digest.gs): § */
 const DIGEST_WORDS_REFUSE = [
   /:\/\/|\bwww\.|@/i,
   /\b[a-z0-9-]+\.[a-z]{2,}\b/i,
@@ -2674,55 +924,19 @@ const DIGEST_WORDS_REFUSE = [
   /\b\d\d-\d\d-\d\d\b/,
 ];
 
-/* HOW MUCH OF A QUESTION'S WORDS THE WEEKLY EMAIL PRINTS — its own ask, and the stem it shares with its
-   other parts, printed once above them (`digestQuestions_`). Enough for 95% of the library whole; the
-   rest end in "…" and the link to the site, where the question is drawn with its picture. Written for
-   the daily email under its own prefix, and renamed when that email was removed. SINCE 18 OCT ONLY FOR A
-   QUESTION THE LIBRARY DOES NOT HAVE (a practical's box, a question it dropped): one it has is printed
-   whole, from its row, as the site draws it (`digestPartOut_`). */
+/* HOW MUCH OF A QUESTION'S WORDS THE WEEKLY EMAIL PRINTS — its own ask, and the stem it shares with its other parts, printed once above them (`digestQuestions_`). § */
 const DIGEST_WORDS_SHOWN = 400;
 const DIGEST_STEM_SHOWN = 300;
-/* ---------- EACH QUESTION AS IT IS ON THE SITE, AND ITS PICTURE (18 Oct, docs/history/351) ------------------
-   The owner: *"So each question As is on site."* — and *"No jpgs."*: pictures in the body, never attached.
-   `DIGEST_PNG_DIR` holds the PNG twin of every drawing in the library (`diagram`), written by
-   `tools/diagram_png.js` and named by the first `DIGEST_PNG_HEX` hex digits of the SHA-256 of the drawing's
-   text, so a changed drawing is a new file and an email already sent keeps its picture; `check-diagram-png.js`
-   holds every drawing to its twin and every twin to a drawing. The email shows one from the site
-   (`site_url`), at the drawing's own width — the viewBox's, `DIGEST_PNG_WIDTH` when it states none — and
-   never wider than the message. Gmail and Yahoo Mail show no SVG, which is why there is a twin at all.
-   `DIGEST_CLIP_BYTES`: Gmail clips a message past about 102 KB of HTML and hides the rest, the footer that
-   says how to stop with it; whole words for a week of whole papers can pass that, so `digestRender_` keeps
-   every question and says the longest shared source texts, then the longest parts, as "on the site" until
-   the HTML is under this — a few KB short of the clip, for what MailApp wraps round it. A picture is a link
-   and weighs nothing. */
+/* ---------- EACH QUESTION AS IT IS ON THE SITE, AND ITS PICTURE (18 Oct, docs/history/351) § */
 const DIGEST_PNG_DIR = 'data/diagrams/';
 const DIGEST_PNG_HEX = 12;
 const DIGEST_PNG_WIDTH = 340;
 const DIGEST_CLIP_BYTES = 95000;
 
-/* ---------- WHAT THE BUSINESS IS CALLED, ON THE SERVER --------------------------------------------
-   `brandName()` READ THE `brand` TAB AND THAT TAB IS `data/settings/brand.json` NOW, which the
-   phone reads and Apps Script cannot. This is the string that function always fell back to, so
-   nothing changes for anybody — and it is one place rather than a fallback repeated at each caller,
-   which is the fault this repository records under `childrenOf` and under `MESSAGING`.
-
-   IT IS THE SERVER'S COPY AND THE FILE IS THE APP'S. Two spellings of one name is the shape CLAUDE.md
-   keeps writing about, so if it ever changes it changes in both — the file for every screen, this
-   line for an e-mail's signature. */
+/* ---------- WHAT THE BUSINESS IS CALLED, ON THE SERVER § */
 const BRAND_NAME = '@family.';
 
-/* ---------- WHO MAY MESSAGE WHOM ---------------------------------------------------------------
-   A TABLE, not a set of conditions. One place to read, one place to audit, and a change that has
-   to be made on purpose rather than by adding a clause somewhere.
-
-   The important line is the one that ISN'T here: no adult may message a student privately.
-   A private, unmonitored channel between an adult and a child is the thing every safeguarding
-   policy in education exists to prevent, and it is the first question a school or a parent will
-   ask. A student talks to an admin — that is all, and that channel exists so a child always has
-   somebody to tell.
-
-   Read as: MESSAGING[sender][recipient].
---------------------------------------------------------------------------------------------- */
+/* ---------- WHO MAY MESSAGE WHOM § */
 const MESSAGING = {
   admin:   { admin: true,  tutor: true,  client: true,  student: true  },
   tutor:   { admin: true,  tutor: true,  client: true,  student: false },
@@ -2732,32 +946,14 @@ const MESSAGING = {
   student: { admin: true,  tutor: false, client: false, student: false },
 };
 
-/* How often anybody may send. Five minutes is not about spam — one person cannot flood a sheet by
-   typing. It is about a row per message in a spreadsheet with a quota, and about a conversation
-   that stays a conversation rather than becoming a stream of one-word lines. */
+/* How often anybody may send. § */
 const MESSAGE_GAP_MS = 5 * 60 * 1000;
 
-/* ---------- THE SHEET'S WORDS AND THE APP'S WORDS ----------------------------------------------
-   A spreadsheet a person edits says `student` and `client`, because that is what a person writing
-   in a cell would put. The app says `kid` and `parent`. Both are reasonable, and keeping them
-   apart is fine — but the TRANSLATION has to live in one place.
-   It did not: `toApp` was defined inside one handler and written out inline again in another, so
-   the same rule existed twice and could drift. Named once here, where anything can reach it.
---------------------------------------------------------------------------------------------- */
+/* ---------- THE SHEET'S WORDS AND THE APP'S WORDS § */
 const ROLE_TO_APP = { client: 'parent', student: 'kid' };
 const ROLE_FROM_APP = { parent: 'client', kid: 'student' };
 
-/* ---------- AVATARS ---------------------------------------------------------------------------
-   The catalogue lives HERE, not in the browser, because it decides who may wear what. The site
-   draws the shapes and needs to know the list; it must not be the thing that decides whether you
-   have earned an item, or the answer is whatever a determined student edits it to be.
-
-   free  — appearance basics. Everyone has them from the start: skin, hair, colours.
-   level — earned by ticking off checklist topics, which is what XP counts.
-   cost  — bought with credits, earned the same way.
-
-   `slot` is what it replaces on the figure. One item per slot at a time.
---------------------------------------------------------------------------------------------- */
+/* ---------- AVATARS § */
 const AVATAR_ITEMS = [
   // --- free ---
   { id: 'none',      slot: 'headwear',  name: 'Nothing',    free: true },
@@ -2767,9 +963,7 @@ const AVATAR_ITEMS = [
   { id: 'plain',     slot: 'legs',      name: 'Plain',      free: true },
   { id: 'crop',      slot: 'hair',      name: 'Cropped',    free: true },
 
-  /* --- hairstyles. The SHAPE is the item; the colour is free and set in the profile, so four
-     styles across eight colours is thirty-two looks from four purchases. Selling the colours
-     instead would have been eight cards for one object. --- */
+  /* hairstyles. The SHAPE is the item; the colour is free and set in the profile, so four styles across eight colours is thirty-two looks from four purchases. § */
   { id: 'fringe',    slot: 'hair',      name: 'Fringe',     level: 1 },
   { id: 'long',      slot: 'hair',      name: 'Long hair',  level: 3 },
   { id: 'bunches',   slot: 'hair',      name: 'Bunches',    cost: 15 },
@@ -2804,114 +998,34 @@ const AVATAR_ITEMS = [
   { id: 'skirt',     slot: 'legs',      name: 'Skirt',      level: 3 },
 ];
 
-/* ---------- THE FOUR FIELDS THAT ARE THE QUOTE ---------------------------------------------------
-   ASKED FOR AS *"only let tutors change thier rate, min number of kids and max number of kids
-   willing to work with and fraction extra rate all together."* Between them these four decide what a
-   family is quoted: `priceFrom` builds the price from the rate and the extra-seat fraction, and
-   `seatLimits` offers the seat count. So they are one decision wearing four cells.
-
-   ONE LIST, READ BY THE PAGE AND BY THE RULE. `PROFILE_GROUPS` builds the page from it and
-   `pricingRefusal_` in `people.gs` decides the month from it — so a fifth field added here is on the
-   page and under the cooldown in one edit, and the two can never disagree about which fields are the
-   quote. That is the sentence directly below this one about one list driving the form and the
-   allow-list, applied once more.
-
-   THE ORDER IS THE ORDER OF THE BOXES, and it is the order somebody reads a quote in: what an hour
-   costs, what a second seat is worth, then the range of class sizes it applies to. */
+/* ---------- THE FOUR FIELDS THAT ARE THE QUOTE § */
 const PRICING_FIELDS = ['rate_per_hour', 'extra_seat_rate', 'max_students', 'min_students'];
 
-/* ---------- AND THE BUSINESS'S CUT OF AN EXTRA SEAT, WHICH IS ON THE RATE PAGE AND NOT THE FIFTH OF THEM -----
-   THE OWNER, 12 Oct: *"Your cut off extra child for tutors should be editable on thir card. Like they can edit
-   that small number to the right of their normal rate"* — so the cut that was one config number for everybody
-   is a cell on each tutor's row (docs/history/345), drawn on their card's rate section beside their own share.
-   ON THE PAGE, so `PROFILE_GROUPS` (the layout AND the write allow-list) carries it and the card can draw it.
-   NOT IN `PRICING_FIELDS`, for three reasons each of which would be a bug: `pricingMoved_` compares with `N()`,
-   which reads blank and nought as the same number, and those are two different answers here (the default, and
-   no cut); an admin setting it would stamp `pricing_changed_at` and lock the TUTOR out of their own rate for a
-   month over a number they cannot touch; and the tutor is not the one who moves it. Its own rule is
-   `seatCutRefusal_` in people.gs: an admin's alone, blank, nought, or a share from above 0 to 2. */
+/* ---------- AND THE BUSINESS'S CUT OF AN EXTRA SEAT, WHICH IS ON THE RATE PAGE AND NOT THE FIFTH OF THEM § */
 const SEAT_CUT_FIELD = 'extra_seat_cut';
 
-/* ---------- THE AGES A TUTOR MAY SAY THEY TEACH, AS ONE LIST THE FORM AND THE RULE BOTH READ ------
-   FOUR TO EIGHTEEN, THEN `Adults`. Four is Reception, eighteen is the end of sixth form, and the word
-   is everyone past it — "18" and "Adults" are two answers because a tutor who stops at Year 13 and one
-   who takes a forty-year-old retaking GCSE maths are saying different things.
-
-   A LIST THE CODE OWNS RATHER THAN A ROW OF THE `options` TAB, and that is not the `FIELD_OPTIONS`
-   argument lost — it is the other half of it. Those lists are descriptive and somebody may add
-   "Further Maths" with no deploy; this one is a rule, because `ageRefusal_` in people.gs refuses
-   anything not on it and `ageRank_` orders it. A sheet that could add "Toddlers" to the drop-down
-   would offer an answer the server then refuses. So `doGet` sends it through `validations` exactly
-   as if the tab had it (`FIELD_FIXED` below), and the phone's form needs to know nothing.
-
-   STRINGS, because that is what every list in `validations` is and what a `<select>` compares. */
+/* ---------- THE AGES A TUTOR MAY SAY THEY TEACH, AS ONE LIST THE FORM AND THE RULE BOTH READ § */
 const AGE_FIELDS = ['age_min', 'age_max'];
 const AGE_OPTIONS = ['4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18',
                      'Adults'];
 
-/* ---------- HOW LONG A SESSION WITH THEM IS, SHORTEST TO LONGEST — WRITABLE SINCE docs/history/330 -------
-   THE OWNER, 10 Oct, of a tutor's own card: *"all of this stuff should be editable directly on the tutors
-   card for that respective tutor."* The card's At a glance says `1+ hour` from these two columns, and they
-   were in no group — so nobody could write them through `updateProfile`, and the card editor could only say
-   "kept on the sheet". The review of 330 asked for the box, and `PROFILE_GROUPS` is the allow-list as well
-   as the layout, so the box is these two names in a group. ON THE RATE PAGE, BUT NOT IN `PRICING_FIELDS`:
-   a session's length is part of what a tutor offers, not part of the quote, so changing it starts no
-   month's clock — the age range's argument, one page along.
-   WHOLE HOURS, ONE TO SIX, AS A LIST THE FORM AND THE RULE BOTH READ — `AGE_OPTIONS`' shape and reason. The
-   booking form books whole hours (a run of ticked hours IS the session, book.js), so a half hour here
-   would promise a session nobody can book; and `hoursRefusal_` in people.gs refuses anything off the list
-   and a shortest longer than the longest. Blank longest is no upper limit (`1+ hour`), blank shortest is
-   one (`doGet`'s `N(r.min_hours) || 1`). STRINGS, because `validations` lists are strings. */
+/* ---------- HOW LONG A SESSION WITH THEM IS, SHORTEST TO LONGEST — WRITABLE SINCE docs/history/330 § */
 const SESSION_FIELDS = ['min_hours', 'max_hours'];
 const SESSION_OPTIONS = ['1', '2', '3', '4', '5', '6'];
 
-/* ---------- WHAT A TUTOR/CLIENT MAY EDIT -----------------------------------------------------
-   One list per role drives the edit form AND the write allow-list, so the two cannot drift.
-   Anything not named here is unreachable by updateProfile — pin, role, xp and credits included. */
+/* ---------- WHAT A TUTOR/CLIENT MAY EDIT § */
 const PROFILE_GROUPS = {
-  /* ---------- EIGHT PAGES, NOT TWELVE ---------------------------------------------------------
-     ASKED AS *"look at all of account settings. make it all more efficient and intuitive it looks
-     long right now."* It was twelve groups, so twelve cards with twelve Saves — `Yours` was one box
-     on a page of its own, `Where` and `Where you are` were two pages about one place, and `Studying
-     now` and `More qualifications` were two more for three boxes between them. Merged by what a
-     person thinks of as one question; the phone lays related boxes side by side (`FIELD_ROWS` in
-     me.js), so a merged page is shorter than the two it replaced. */
-  /* THE AGE RANGE IS HERE, AFTER THE YEARS OF EXPERIENCE, and not on the rate page beside the
-     group size it looks like: that page is the quote and moves once a month (`PRICING_FIELDS`), and
-     an age range prices nothing. Drawn as one `[youngest] – [oldest]` row by `FIELD_ROWS` in me.js,
-     exactly as the students range is. */
+  /* ---------- EIGHT PAGES, NOT TWELVE § */
+  /* THE AGE RANGE IS HERE, AFTER THE YEARS OF EXPERIENCE, and not on the rate page beside the group size it looks like: § */
   'About you':   ['first_name','last_name','headline','years_experience'].concat(AGE_FIELDS,
                   ['favourite_colour','adjective_1','adjective_2','adjective_3']),
-  /* ---------- CONTACT IS SECOND NOW, AND THE ORDER OF THIS OBJECT IS THE ORDER OF THE COLUMN ----
-     REPORTED AS *"add email field in account settings"*, and the field was already here — at the
-     BOTTOM. `settingsPages_` maps these keys straight onto pages, so `Contact` was the thirteenth
-     of twenty-three swipes down a column whose first page is About you. A field nobody can find is
-     a field that is not there, which is the sentence this repository writes about the calculator,
-     about `topics` and about the practical guides.
-
-     SECOND RATHER THAN FIRST, because About you is the page somebody arrives on and a name is what
-     they came to change. `CLIENT_GROUPS` and `STUDENT_GROUPS` have always had it second; this is
-     the map that disagreed with them. */
-  /* ---------- CONTACT SECOND, AND FOR A TUTOR IT IS ONE PAGE WITH WHERE NOW --------------------
-     THE CONTACT PAGE IS SECOND because a field nobody can find is a field that is not there, and the
-     e-mail is what somebody signs in with. A parent's and a student's contact page absorbed their
-     address (`CLIENT_GROUPS`, `STUDENT_GROUPS`) when this app's settings were asked to merge "what
-     can be merged". A tutor's was KEPT APART on a measurement — merged it was 661px in a 532px pane
-     at 320x568 — and that measurement no longer holds: the 17px browser margin over every settings
-     title is gone, and a card taller than its pane is now drawn smaller to fit (`paneReach_`) rather
-     than clipped. Asked again as "look at all of account settings and see if there is a better way to
-     have it layout. like more effecient", so one page, the same shape as everybody else's. */
+  /* ---------- CONTACT IS SECOND NOW, AND THE ORDER OF THIS OBJECT IS THE ORDER OF THE COLUMN § */
+  /* ---------- CONTACT SECOND, AND FOR A TUTOR IT IS ONE PAGE WITH WHERE NOW § */
   'Contact & address': ['email','phone','date_of_birth','city','town','borough','postcode','address','travel_km',
                         /* THE VENUES THEY ARE HAPPY AT — a form name over `venues.tutors_happy_here`,
                            not a column here; see `venuesWrites_` in core.gs. */
                         'venues_ok'],
-  /* ---------- THE PHOTOGRAPHS, ON A PAGE OF THEIR OWN ------------------------------------------
-     The face and the clip were two boxes on About you; eight more photograph links there would have
-     made About you the longest page in the column. THIRD, after Contact, whose own note says why it
-     is second. One page for everything that is a picture: the
-     profile photo, the video, then the shelf (`photoShelf_` in me.js), which shows what is filled in
-     and an `Add another` under it. A tutor's only — a parent and a student keep `photo` on About
-     you, because nobody browses their card. */
+  /* ---------- THE PHOTOGRAPHS, ON A PAGE OF THEIR OWN § */
   'Photos': ['photo','video'].concat(PHOTO_FIELDS),
   /* THE QUOTE, THEN HOW LONG A SESSION IS — `SESSION_FIELDS`' note says why they share a page and not a clock. */
   /* AND THE BUSINESS'S CUT OF AN EXTRA SEAT straight after the tutor's own share, as the card reads them — an
@@ -2920,93 +1034,45 @@ const PROFILE_GROUPS = {
                                 .concat(SESSION_FIELDS),
   /* WHAT YOU TEACH, WHAT YOU ARE STUDYING AND ANYTHING ELSE — one page, because they are the
      three answers to "what do you know". `Qualifications` beside it is the graded list. */
-  /* ---------- WHAT YOU SPECIALISE IN, THEN WHAT ELSE YOU TEACH -------------------------------
-     ASKED FOR AS *"should be what you specialise teaching in and what you also teach."* The
-     specialism is one subject and one level (`teaches_1`, unchanged, so nothing that reads it
-     moves); everything else is `teaches_also`, one multi-select of "Subject (Level)" phrases in the
-     anchored panel `extra_quals` already uses. `teaches_2` is not on the form any more —
-     it is mirrored from the first "also" pair on save, and migrated into it on read. */
-  /* ---------- AND THEN THE PAGE WENT ----------------------------------------------------------
-     *"what you teach shouldn't even be a widget. you can just tick which of your qualifications you
-     teach really. and tick which you specialise in."* and *"remove the studying now widget."* Both
-     answers are ticks and a received year on each qualification now (`QUAL_FIELDS`), and the
-     columns this page wrote are derived from them in `updateProfile`. `extra_quals` is gone from the
-     page: a PGCE or a DBS is an ordinary entry on the shelf, and `qualsList_` folds the old cell in. */
-  /* ---------- ONE PAGE FOR ALL THREE, NOT THREE PAGES WITH A SAVE EACH -------------------------
-     ASKED AS *"is there a more efficient way to edit account settings for qualifications?"*. It was
-     three groups, so `settingsPages_` drew three cards and three Saves, twelve captioned boxes and
-     two swipes for what somebody thinks of as one list. One group; the phone draws it as a shelf
-     (`qualShelf_` in me.js), two rows a qualification, and one Save posts all twelve.
-     `updateProfile` writes only what it is sent, so nothing else on the row is touched. */
+  /* ---------- WHAT YOU SPECIALISE IN, THEN WHAT ELSE YOU TEACH § */
+  /* ---------- AND THEN THE PAGE WENT § */
+  /* ---------- ONE PAGE FOR ALL THREE, NOT THREE PAGES WITH A SAVE EACH § */
   'Qualifications': QUAL_FIELDS,
   'Availability': AVAIL_DAYS.reduce((a, [p]) => a.concat(AVAIL_HOURS.map(h => p + String(h).padStart(2,'0'))), []),
-  /* A NOTE TO YOURSELF, not a credential this site issues or checks — see the columns in SCHEMA.
-     It is in all three group maps because a tutor, a parent and a student each have one library
-     card and one set of digits they cannot remember. */
+  /* A NOTE TO YOURSELF, not a credential this site issues or checks — see the columns in SCHEMA. § */
   'Library cards': LIBRARY_FIELDS,
 };
 const CLIENT_GROUPS = {
   'About you': ['first_name','last_name','photo'],
-  /* The address, because a printed copy has to go somewhere. Without it the basket can offer
-     collection and nothing else, and the reason is invisible on a form that never asked. One page
-     with the contact details, for the reason `PROFILE_GROUPS` gives. */
+  /* The address, because a printed copy has to go somewhere. § */
   'Contact & address': ['email','phone','city','town','borough','postcode','address'],
   'Library cards': LIBRARY_FIELDS,
 };
 const STUDENT_GROUPS = {
-  /* ---------- THE TWO EXAMS ARE ON THE FIRST PAGE NOW -------------------------------------------
-     They were a page of their own, third, on the argument that a student opening Settings is most
-     likely there to put a date in. First is better than third for that, and two date pickers side
-     by side (`FIELD_ROWS`) are one row — so they joined About you rather than costing a card and a
-     Save. IN `STUDENT_GROUPS` ALONE: a tutor's exams are their qualifications and a parent does
-     not sit one, which is what makes them appear for a student and for nobody else. */
+  /* ---------- THE TWO EXAMS ARE ON THE FIRST PAGE NOW § */
   'About you': ['first_name','last_name','date_of_birth','photo','exam_small_date','exam_big_date'],
   'Contact & address': ['email','phone','city','town','borough','postcode','address'],
   'Library cards': LIBRARY_FIELDS,
 };
-/* `RESOURCE_GROUPS` WAS HERE — the seven sections of the admin form that relabelled a paper, and
-   `RESOURCE_EDITABLE` was its flattened allow-list. Both are gone with the tab they wrote to. The
-   form was built FROM this object (`resourceFields` on the payload, read by js/resource.js), which
-   is why deleting it here takes the form with it rather than leaving one that offers fields the
-   server would refuse. */
+/* `RESOURCE_GROUPS` WAS HERE — the seven sections of the admin form that relabelled a paper, and `RESOURCE_EDITABLE` was its flattened allow-list. § */
 
-/* ONE map: which list in `options` fills a field's dropdown. Every form on the site reads this —
-   the tutor's profile, the venue editor, the resource relabeller — so a field and a booking
-   dropdown that mean the same thing are filled from the same rows and cannot drift.
-   That's the point of it: `teaches_1` on a tutor and the client's subject picker are both
-   `options -> subject`, so adding "Further Maths" as one row makes it offerable and requestable in
-   the same edit. A field absent from here gets a plain input, which is right for a name or a link.
-
-   This replaced scanning the sheet's data-validation RULES. The centralisation is the same idea
-   and yours; the source is now rows you can see and edit rather than rules attached to cells,
-   which is also what removed the 318,000-object scan that used to time the site out. */
+/* ONE map: which list in `options` fills a field's dropdown. § */
 const FIELD_OPTIONS = {
-  /* NOT ONE PER SHELF SLOT. `qual_4` … `qual_10` offer the same lists as `qual_1…3`, and sending
-     forty copies of the subject list on every payload is weight for nobody — the phone reads a
-     slot's list off its first (`fieldOptions_` in js/me.js). (The subject itself comes from
-     `QUAL_SUBJECTS` in me.js, which is spelt right; the level and grade lists come from here.) */
+  /* NOT ONE PER SHELF SLOT. § */
   qual_1: 'subject', qual_2: 'subject', qual_3: 'subject',
   qual_1_level: 'level', qual_2_level: 'level', qual_3_level: 'level',
   qual_1_grade: 'grade', qual_2_grade: 'grade', qual_3_grade: 'grade',
-  /* `qual_N_board` HAS NO LIST NOW. It was the exam board, off the library's own `exam_board` list;
-     the owner asked for the school, college or university instead, which is free text — see
-     `qualLevel_` in me.js. The slot keeps its old name so saved qualifications are not stranded. */
+  /* `qual_N_board` HAS NO LIST NOW. § */
   borough: 'borough', city: 'city', town: 'town', focus: 'focus',
   // resources
   subject: 'subject', document_type: 'document_type', key_stage: 'key_stage',
   tier: 'tier', exam_board: 'exam_board', exam_wave: 'exam_wave',
   company: 'company', band_type: 'band_type',
 };
-/* ---------- AND THE LISTS THE CODE OWNS, sent in the same `validations` shape -----------------------
-   A field here is drawn as a select from THIS list whatever the `options` tab says, because a rule on
-   the server refuses anything else — see `AGE_OPTIONS`. `doGet` merges these over the tab's lists, so
-   the phone reads one map and cannot tell the two sources apart, which is the point. */
+/* ---------- AND THE LISTS THE CODE OWNS, sent in the same `validations` shape § */
 const FIELD_FIXED = { age_min: AGE_OPTIONS, age_max: AGE_OPTIONS,
                       min_hours: SESSION_OPTIONS, max_hours: SESSION_OPTIONS };
-/* `RESOURCE_OPTIONS` WAS AN ALIAS FOR `FIELD_OPTIONS`, kept because the resource form read it
-   under that name. There is no resource form. `FIELD_OPTIONS` itself stays — it fills the tutor
-   profile, the venue editor and every booking dropdown, and its `subject` / `exam_board` / `tier`
-   entries are still the lists those forms offer. */
+/* `RESOURCE_OPTIONS` WAS AN ALIAS FOR `FIELD_OPTIONS`, kept because the resource form read it under that name. § */
 
 const VENUE_GROUPS = {
   'Details':  ['name','description','photo','link'],
@@ -3025,50 +1091,14 @@ const PROFILE_EDITABLE = [...new Set([].concat(flat(PROFILE_GROUPS), flat(CLIENT
 // comma list, because holding two roles is normal rather than an exception.
 const PROFILE_READONLY = ['dbs_checked', 'role'];
 
-/* ==================================================================================================
-   WHAT A PERSON MAY CALL THEMSELVES
+/* WHAT A PERSON MAY CALL THEMSELVES `handle` IS NOT IN `PROFILE_EDITABLE` AND MUST NOT BE. § */
 
-   `handle` IS NOT IN `PROFILE_EDITABLE` AND MUST NOT BE. Everything in that list is a fact about
-   somebody that only they can know — a headline, a rate, a borough — and a wrong one is wrong for
-   them alone. A handle is different in kind: it is how the rest of this site FINDS them, so it is
-   never typed at all. `handleMake_` builds it — a first name and a virtue — and the one door a
-   person has is `randomiseHandle`, which asks for another word.
+/* `HANDLE_COOLDOWN_DAYS` WAS HERE — a month between handle changes, because a blocklist is a floor and never a ceiling and somebody free to type variations wins § */
 
-   ---------- UNIQUENESS IS THE RULE THAT MATTERS, AND IT IS NOT ABOUT TASTE -----------------------
-
-   `findPerson` resolves a person by `person_id`, then by `first + last`, then `handle`, then e-mail
-   — FIRST MATCH WINS. So a handle that duplicates anybody's existing name
-   or handle makes `changePin` check the PIN you typed against SOMEBODY ELSE'S row and tell you your
-   own PIN is wrong. CLAUDE.md records that denial already; it happened by accident, to one person,
-   because a call forgot to send an id. A generated handle could make the same collision by
-   accident, which is why every candidate is checked against all three columns and not just
-   `handle`.
-
-   ---------- `username` IS GONE ----------------------------------------------------------------------
-   It was `handle` written a second time, which is the one-fact-in-two-columns shape this file keeps
-   recording, and the redesign of the people tab dropped it. `handle` is the only name a person has
-   here besides their own.
-================================================================================================== */
-
-/* `HANDLE_COOLDOWN_DAYS` WAS HERE — a month between handle changes, because a blocklist is a floor
-   and never a ceiling and somebody free to type variations wins eventually. Nobody types a handle
-   now: `handleMake_` builds every one from a first name and a word off a list, and Randomise asks
-   for another word. With nothing to try variations of, the brake had nothing to brake, so it went
-   with the box rather than being left as a constant nothing reads. */
-
-/* ---------- A MONTH ON WHAT A TUTOR CHARGES ------------------------------------------------------
-   ITS OWN NUMBER, and it stayed one when the handle cooldown beside it went: this is about bookings
-   already taken against a stated price and a stated capacity, which are typed and still can be.
-
-   ADMINS ARE EXEMPT AND NOTHING ELSE IS: an admin fixing a tutor's rate or cap is the remedy rather
-   than the thing being braked. */
+/* ---------- A MONTH ON WHAT A TUTOR CHARGES § */
 const PRICING_COOLDOWN_DAYS = 30;
 
-/* THREE TO TWENTY, LOWER CASE, LETTERS DIGITS AND UNDERSCORE, STARTING WITH A LETTER.
-   NO UNICODE, and that is the one rule here that is about safety rather than tidiness: `раul` with a
-   Cyrillic е and `paul` are different strings that look identical, so a handle nobody can tell from
-   somebody else's is impersonation with nothing to point at. ASCII only makes that impossible
-   rather than something to spot. */
+/* THREE TO TWENTY, LOWER CASE, LETTERS DIGITS AND UNDERSCORE, STARTING WITH A LETTER. § */
 const HANDLE_SHAPE = /^[a-z][a-z0-9_]{2,19}$/;
 
 /* NAMES THAT WOULD SPEAK FOR THE BUSINESS. Someone called @office or @admin messaging a parent is
@@ -3079,17 +1109,7 @@ const HANDLE_RESERVED = ['admin', 'administrator', 'family', 'atfamily', 'office
                          'system', 'tutor', 'tutors', 'school', 'official', 'payments', 'billing',
                          'security', 'noreply', 'no_reply', 'contact', 'info'];
 
-/* ---------- THE WORDS, AND WHAT THIS LIST IS AND IS NOT --------------------------------------------
-   IT IS MATCHED AGAINST THE DE-LEETED FORM. `HANDLE_FOLD` below turns `f4gg0t` into `faggot` and
-   `b_i_t_c_h` into `bitch` before anything is compared, because a filter that only catches the
-   plain spelling catches nobody who is trying.
-
-   IT IS DELIBERATELY SHORT. A long list is an arms race this site cannot win and does not need to:
-   there are tens of users, every handle is visible to an admin the moment it is taken, nobody types
-   one — each is a first name and a word off a list — and `handle_was` means a rename can be traced.
-   What it still guards is the first NAME, and a name and a word meeting across the underscore. This
-   is the floor — the words nobody should have to see on a children's tutoring site — and the ceiling
-   is a person looking. */
+/* ---------- THE WORDS, AND WHAT THIS LIST IS AND IS NOT § */
 const HANDLE_BLOCKED = [
   'anal', 'anus', 'arse', 'bastard', 'bitch', 'bollock', 'boner', 'clit', 'cock', 'coon', 'cum',
   'cunt', 'dick', 'dildo', 'dyke', 'fag', 'fanny', 'fuck', 'gash', 'gook', 'incest', 'jizz',
@@ -3099,15 +1119,7 @@ const HANDLE_BLOCKED = [
   'wank', 'whore', 'wog', 'nazi', 'hitler', 'kkk', 'isis', 'suicide', 'selfharm',
 ];
 
-/* ---------- AND THE INNOCENT WORDS THOSE STRINGS ARE INSIDE ---------------------------------------
-   THE SCUNTHORPE PROBLEM, and it is not hypothetical here: `classic` contains `ass` if `ass` were on
-   the list, `analysis` contains `anal`, `cocktail` contains `cock`, `sextet` contains `sex`. A filter
-   that refuses a real name and cannot say why is worse than one that misses a rude one, because the
-   person it refuses has done nothing and has no way to argue.
-
-   ONE WRITTEN REASON EACH, which is the `ACCEPTED` / `VOCAB` / `ACCEPTED_TAP` / `RETIRED_FACETS`
-   pattern for a fifth time: a word here is a decision somebody made on purpose, and a NEW collision
-   fails loudly instead of joining a list nobody reads. */
+/* ---------- AND THE INNOCENT WORDS THOSE STRINGS ARE INSIDE § */
 const HANDLE_ALLOWED = {
   analysis:   'the school subject, and the commonest false positive on any list with "anal" in it',
   analyst:    'a job',
@@ -3151,11 +1163,7 @@ const TRIP_GROUPS = {
 };
 const TRIP_EDITABLE = flat(TRIP_GROUPS);
 
-/* WHAT AN ADMIN MAY CHANGE ON A POST.
-   `post_id` and `posted_by` are not here and must not be: one is the identity every like, vote
-   and reaction points at, and the other is the record of who actually pressed the button — a
-   field somebody can edit is not a record of anything.
-   `poll` is here but guarded separately, because a vote is stored against the option's TEXT. */
+/* WHAT AN ADMIN MAY CHANGE ON A POST. § */
 const POST_GROUPS = {
   'What it says': ['caption', 'body', 'location'],
   'Where it came from': ['author', 'image'],
@@ -3165,11 +1173,7 @@ const POST_GROUPS = {
 };
 const POST_EDITABLE = flat(POST_GROUPS);
 
-/* The rooms every venue is described in terms of. A FIXED list rather than a builder: a venue has
-   the spaces it has, and asking someone to invent names produces "Room 2", "room2" and "Small Rm"
-   across eleven venues. Leave a slot blank and it simply isn't offered.
-   Two of each size because that's what libraries actually have — two small rooms bookable at once
-   is a different thing from one, and a booking has to be able to say which. */
+/* The rooms every venue is described in terms of. § */
 const ROOM_SLOTS = ['Small room 1', 'Small room 2', 'Medium room 1', 'Medium room 2',
                     'Large room 1', 'Large room 2'];
 
@@ -3191,28 +1195,13 @@ const LINK_EDITABLE = flat(LINK_GROUPS);
 const VENUE_EDITABLE = [...new Set(flat(VENUE_GROUPS).concat(
   AVAIL_DAYS.reduce((a, [p]) => a.concat(AVAIL_HOURS.map(h => p + String(h).padStart(2,'0'))), [])))];
 
-/* ================== BOOKING STATE MACHINE ====================================================
-   One machine, both sides. Four statuses, five verbs, and the rule that at most one side is
-   Requested. Leaving REMOVES you: there is no Declined or Withdrawn status, the slot is cleared
-   and the absence is the record. The events tab keeps the history that used to imply.
-============================================================================================== */
-/* The four words a participant's row can say, written from THEIR point of view.
-   Renamed from Requested / Accepted / Paid / Locked, which read as things done TO you: on your own
-   row "Accepted" sounded like someone had approved you, when it meant the two of you agree on the
-   terms. These say what you are doing, and they read the same whichever side you're on:
-     Waiting  you've asked; it's with the other side
-     Agreed   terms are settled — payment is what's left
-     Paying   payment sent, not yet confirmed
-     Booked   confirmed and binding
-   Free to rename because statuses are FOLDED from the events, never stored — there is no column
-   holding an old value anywhere, so this costs no migration. */
+/* BOOKING STATE MACHINE ==================================================== One machine, both sides. § */
+/* The four words a participant's row can say, written from THEIR point of view. § */
 const BM = { NONE:'', WAITING:'Waiting', AGREED:'Agreed', PAYING:'Paying', BOOKED:'Booked' };
 const ACT = { REQUEST:'Request', ACCEPT:'Accept', DECLINE:'Decline', WITHDRAW:'Withdraw',
               PAY:'Pay', EDIT:'Edit', SAY:'Say' };
 
-/* What each verb does to the mover, and who it removes. `clear` is how leaving works without a
-   Declined or Withdrawn status: the person stops appearing, and the event log holds the history
-   that used to be implied by a status nobody could read. */
+/* What each verb does to the mover, and who it removes. § */
 const BM_EFFECT = {
   Request:  { mine: BM.WAITING, theirs: BM.NONE,   clear: ''     },
   Edit:     { mine: BM.WAITING, theirs: BM.WAITING, clear: ''    },   // un-readies everyone
@@ -3223,66 +1212,15 @@ const BM_EFFECT = {
   Pay:      { mine: BM.PAYING,  theirs: BM.AGREED, clear: ''     }
 };
 
-/* ---------- PAGE COUNTS ----------------------------------------------------------------------
-   Apps Script has no page-count API — not DriveApp, not the Drive advanced service, not
-   DocumentApp. Pagination isn't something Drive stores; it's a property of how a file renders. So
-   the only way to know is to read the file and count, which is what this does.
-
-   Honest limits, because "automatically in sync" isn't quite achievable:
-     • PDFs only. A Google Doc has no fixed page count until it's exported, and a Sheet has none
-       at all. Those are skipped rather than guessed at.
-     • It runs when called, not continuously. Nothing tells this script that a PDF changed, so a
-       count is correct as of pages_checked and no fresher than that. A daily trigger is as close
-       to "in sync" as this gets.
-     • Files over 20MB are skipped. Reading one into a string to count pages would blow the
-       execution's memory before it finished.
-     • A page tree hidden inside a compressed object stream (PDF 1.5+) can defeat both methods
-       below. Those come back 0 and are left for you to fill in, rather than being written wrong.
-
-   THIS IS WHAT PRICES A PRINTED COPY. 2p a page needs a page count, and no spreadsheet formula
-   can open a PDF — so `pages` is a CACHED column, filled here, not a computed one. A resource
-   with no count is not free: it is unpriced, and the basket says so rather than offering it at
-   nothing.
---------------------------------------------------------------------------------------------- */
+/* ---------- PAGE COUNTS § */
 const PAGES_MAX_BYTES = 20 * 1024 * 1024;
-/* A CEILING, not a target. The real limit is TIME — a 20MB PDF takes seconds to fetch and a
-   200KB one takes a fraction, so a fixed count is either wasteful on small files or fatal on big
-   ones. The loop below stops when it runs out of minutes; this only stops a single run doing so
-   much that a failure loses all of it. */
+/* A CEILING, not a target. § */
 const PAGES_PER_RUN = 400;
-/* Four minutes of a six-minute allowance. The two spare are for everything else the run does —
-   reading the tab, writing back — and for a last file that turns out to be enormous. A sweep that
-   is killed mid-way loses the writes it had not made, so stopping early is cheaper than being
-   stopped. */
+/* Four minutes of a six-minute allowance. § */
 const PAGES_TIME_BUDGET = 4 * 60 * 1000;
 
 /* ============================== GET ========================================================== */
-/* ---------- RUNNING A JOB FROM A URL -------------------------------------------------------------
-   Picking a function from the editor dropdown and pressing Run works, and is a thing you have to
-   be at a computer with the project open to do. These are the same jobs, reachable from a phone.
-
-   DEPLOYING RUNS NOTHING. It publishes code; it does not execute any of it. That is worth saying
-   plainly because it is the reasonable assumption and it is wrong — and the two are easy to
-   confuse, since both are things you do after pasting a file.
-
-   AND THEY NEED A PIN. `?setup=1` has always been open, and it can only add tabs and columns, so
-   it stays open. These are different: one of them creates an ADMIN ACCOUNT, and a URL that does
-   that with no credentials is a URL anybody who has ever seen the address can use. So the same
-   name and PIN that log you into the site, checked the same way.
-
-   Usage — YOUR OWN name and PIN, not the ones written here:
-     /exec?run=checkEverything&name=Your%20Name&pin=0000
-     /exec?run=makeBrandAccount&name=Your%20Name&pin=0000&arg=4821
-
-   AND NOT A REAL ONE IN THIS FILE. These two lines carried a real admin's real name and real
-   four digits for months, in a repository that is PUBLIC and whose history is permanent — so the
-   PIN was published the moment it was committed and stays published whatever this file says now.
-   An example is a placeholder or it is a credential; there is no third kind. The same rule this
-   file already keeps for `ticks_1/2/3` and for the learner profiles, one comment block along.
-
-   THE CHICKEN AND EGG: if no admin row has a working PIN, nothing here can be reached, and the
-   editor is the only way back. `dataProblems` reports that case for exactly this reason.
---------------------------------------------------------------------------------------------- */
+/* ---------- RUNNING A JOB FROM A URL § */
 const RUNNABLE = {
   /* Forced, and then CHECKED — the report says what it meant to do, and this says what is
      actually on the sheet afterwards. Those had never been the same question. */
@@ -3292,12 +1230,7 @@ const RUNNABLE = {
   migrateLikes:      () => migrateLikes(),
   installTriggers:   () => installTriggers(),
   listTriggers:      () => listTriggers(),
-  /* ---------- THE SPREADSHEET AS THE CONTROL PANEL ----------------------------------------------
-     `installSheetWatch` is what makes an edit typed into a tab reach the site. `sheetWatchStatus`
-     answers the question that used to have no answer at all — "is my sheet actually connected?" —
-     without opening the editor, which is the whole point of these being URLs.
-     `clearPayloadCache` and `warmPayload` are the two halves of it by hand, for the case where you
-     have changed something and do not want to wait even a minute to see it. */
+  /* ---------- THE SPREADSHEET AS THE CONTROL PANEL § */
   installSheetWatch: () => installSheetWatch(),
   sheetWatchStatus:  () => sheetWatchStatus(),
   clearPayloadCache: () => { clearPayloadCache(); return { cleared: true, generation: payloadGen_(),
@@ -3324,36 +1257,15 @@ const RUNNABLE = {
   seedOptions:       () => seedOptions(),
   /* `seedFamilies` WAS HERE, and went with the hand-written map it wrote — see where
      `KNOWN_FAMILIES` used to be. An admin links a child to a parent from the app (`linkChild`). */
-  /* Fill in the wearable prices the code already holds, for a sheet that ran `seedAvatarItems`
-     before it knew which columns the merged tab had. Never overwrites a cell with anything in it,
-     so it is safe to run whenever and tells you how many it left alone. */
+  /* Fill in the wearable prices the code already holds, for a sheet that ran `seedAvatarItems` before it knew which columns the merged tab had. § */
   priceWearables:    () => repairShopPrices(),
-  /* ---------- EVERY PERSON GETS A HANDLE, AND ONLY A BLANK CELL IS TOUCHED ----------------------
-     A URL RATHER THAN A MIGRATION, and that is the difference from the `MIGRATIONS` ledger below:
-     those run once and are remembered by name, which is right for a one-way reshaping of data. This
-     one is safe to run again and gets more useful the more rows there are — it fills what is blank
-     and reports what it left alone, so it is `priceWearables` above rather than a spent id. */
+  /* ---------- EVERY PERSON GETS A HANDLE, AND ONLY A BLANK CELL IS TOUCHED § */
   fillHandles:       () => fillHandles(),
-  /* ---------- AND EVERY HANDLE THAT WAS NEVER THE GENERATED SHAPE, ONCE ---------------------------
-     Unlike `fillHandles` this REPLACES a handle, on the owner's ask ("handles should be their name
-     and a virtuous describing word"). A row already in the shape — any arrangement of first name,
-     virtue and number, or the 1 October `<first>_<virtue>` — is left alone, so a second run changes
-     nothing and nobody who signs in with their handle is moved by it. */
+  /* ---------- AND EVERY HANDLE THAT WAS NEVER THE GENERATED SHAPE, ONCE § */
   renameHandles:     () => renameHandles(),
-  /* ---------- AND EVERY CHILD'S HANDLE INTO INITIALS AND FOUR DIGITS, PREVIEWED FIRST (342) -------------
-     The owner, 11 Oct: *"Change usernames to be more abstract to hide the names of kids. Just use
-     initials..."* `?run=kidHandles&name=…&pin=…` WRITES NOTHING: it counts the children, says which
-     would move and what each would become (`ej····`, the initials — the digits are drawn when it is
-     run for real). `&arg=apply` moves them: every old handle onto `handle_was`, where it goes on signing
-     its child in (`handleWasRows_`), and every `friends` list that named it moved with it. A second run
-     moves nothing — a handle already in the shape is left alone. `previewFromGitHub`'s rule: look,
-     then do. Children only; a grown-up's handle is `renameHandles`'. */
+  /* ---------- AND EVERY CHILD'S HANDLE INTO INITIALS AND FOUR DIGITS, PREVIEWED FIRST (342) § */
   kidHandles:        a => kidHandles(a),
-  /* `seedPastPapers`, `seedALevelPapers`, `dropOldALevelPapers` and `ensureResourceIds` WERE HERE.
-     All four wrote rows into the `questions` tab, and there is no such tab — the papers are
-     `data/questions.json` in this repository, and CLAUDE.md has said "do not seed that tab" since
-     the real rows were found. A seeder pointed at nothing is worse than no seeder: it appends to
-     whatever tab the name happens to resolve to, reports how many it wrote, and is believed. */
+  /* `seedPastPapers`, `seedALevelPapers`, `dropOldALevelPapers` and `ensureResourceIds` WERE HERE. § */
   /* The Colliers Wood landmarks, with their surveyed outlines. Safe to run whenever — a landmark
      already on the tab is left exactly as it is. */
   seedLandmarks:     () => seedLandmarks(),
@@ -3363,10 +1275,7 @@ const RUNNABLE = {
   /* The British holidays of a year, computed. `&arg=2027` for a different one; without an arg it
      does the year we are in. Safe to run whenever — a row already there is left alone. */
   seedHolidays:      a => seedHolidays(a),
-  /* FORGET A ONE-OFF JOB, so it runs again on the next request. For the case where it failed and
-     was marked attempted — which is the right default, and leaves no way back without this.
-       ?run=rerun&name=…&pin=…&arg=likes-to-reactions
-       ?run=rerun&name=…&pin=…&arg=schema */
+  /* FORGET A ONE-OFF JOB, so it runs again on the next request. § */
   rerun: a => {
     const props = PropertiesService.getScriptProperties();
     const id = S(a);
@@ -3379,45 +1288,8 @@ const RUNNABLE = {
   },
 };
 
-/* ---------- THE SHEET CATCHES UP WITH THE CODE, BY ITSELF -----------------------------------------
-   Deploying publishes code and touches nothing else. That is the reasonable expectation and it is
-   wrong, and being wrong about it costs a column that silently does not exist — which is entry
-   after entry on the list in the notes: a field written to a header that is not there, `setCell`
-   returning false, and the value going nowhere with nothing said.
-
-   So the schema brings itself up to date on the FIRST REQUEST AFTER A NEW VERSION. Once, not on
-   every load: the version string is recorded, and a request that finds it already recorded does
-   nothing but read one property.
-
-   THE VERSION IS WRITTEN BEFORE THE WORK, not after. If ensureSchema throws — a tab renamed, a
-   permission withdrawn — recording it afterwards would mean every single request retried and
-   failed, and the site would be permanently slow for a reason nobody could see. One attempt per
-   deploy; a failure is reported in `health` and `?run=ensureSchema` retries it deliberately.
-
-   `BACKEND_VERSION` is therefore not decoration any more. Bumping it is what triggers this, which
-   is the other reason every paste that changes behaviour should change it.
---------------------------------------------------------------------------------------------- */
-/* ---------- THE ONE-OFF JOBS, RUN ONCE, BY THEMSELVES ---------------------------------------------
-   The schema catches up whenever the version changes. These are different: each is a job that has
-   to happen exactly once in the life of the sheet, and once it has, running it again is either
-   pointless or harmful. Turning old likes into reactions is a one-way door. Installing a trigger
-   twice gives you two.
-
-   So they are named, and the name is what is remembered rather than the version — a migration
-   appended six deploys from now still runs, and one that has already run never does again, however
-   many times anything is deployed.
-
-   ADDING ONE IS ADDING A ROW HERE. That is the whole point: the alternative is a function somebody
-   has to be told about, and being told about it is the step that gets missed.
-
-   TWO RULES for anything added:
-     · IT MUST BE FAST. This runs inside somebody's page load. Read a range, change the array,
-       write the range. A loop doing one write per row is what turned the site into an HTML error
-       page the first time the schema check ran on a request.
-     · IF IT CANNOT BE FAST, IT IS A TRIGGER. `closeFinishedJobs` and `geocodeVenues` are the two
-       that qualify: they are not here, `installTriggers` is, and the trigger does the slow work
-       overnight with nobody waiting on it.
---------------------------------------------------------------------------------------------- */
+/* ---------- THE SHEET CATCHES UP WITH THE CODE, BY ITSELF § */
+/* ---------- THE ONE-OFF JOBS, RUN ONCE, BY THEMSELVES § */
 const MIGRATIONS = [
   { id: 'likes-to-reactions',
     what: 'every old like becomes a 👍, keeping the date it was pressed',
@@ -3427,54 +1299,27 @@ const MIGRATIONS = [
     what: 'the page-count sweep and the job closer, on a daily trigger',
     run: () => installTriggers() },
 
-  /* The nightly list gained the geocoder, and `nightly-jobs` has already run — a migration is
-     remembered by its id, so the only way to install a new trigger is a new id. It removes and
-     re-adds all three, so running it cannot leave two of anything. */
+  /* The nightly list gained the geocoder, and `nightly-jobs` has already run — a migration is remembered by its id, so the only way to install a new trigger is a § */
   { id: 'nightly-jobs-with-geocode',
     what: 'the nightly list again, now including the geocoder',
     run: () => installTriggers() },
 
-  /* "English Lang." and "English Language" were two spellings of one subject, on 48 rows and 198
-     rows — and to everything downstream they are two different subjects, so a resource filed under
-     one does not appear when you pick the other.
-     Here rather than as a URL somebody has to assemble, because a rename that has to be
-     remembered is a rename that happens once and then never again for the next pair. Named, so it
-     runs on the next `?setup=1` or `?run=` after this deploy and never a second time. */
+  /* "English Lang." and "English Language" were two spellings of one subject, on 48 rows and 198 rows — and to everything downstream they are two different § */
   { id: 'english-lang-to-english-language',
     what: 'every "English Lang." becomes "English Language"',
     run: () => renameValue('English Lang.>English Language') },
 
-  /* THE SAME RENAME AGAIN, under a new name, because the first one ran before it knew how to
-     merge. "English Language" already existed, so renaming onto it left the subject listed twice
-     in the dropdown and priced twice in the pricing tab — and a subject with two multipliers is
-     priced by whichever row is read first, which is a fault that surfaces on an invoice rather
-     than on a screen.
-     Running it a second time renames nothing, finds the duplicates, and removes them. That is
-     safe precisely because the rename is idempotent: the work is in the cleanup at the end of it.
-     A migration is remembered by its ID, so this is the only way to make one happen again — which
-     is the right shape. The old one is a record of what was done; this is a record of the fix. */
+  /* THE SAME RENAME AGAIN, under a new name, because the first one ran before it knew how to merge. § */
   { id: 'english-language-merge-duplicates',
     what: 'one subject in the dropdown and one row in pricing, not two of each',
     run: () => renameValue('English Lang.>English Language') },
 
-  /* ONE SPELLING OF EACH EXAM BOARD.
-     107 rows say `edexcel`, one says `Edexcel`. To a person that is one board; to the funnel it is
-     two answers to "which exam board", one of which leads to a single resource — and a facet whose
-     values are the same word twice is worse than no facet, because it makes somebody choose
-     between two things that are not different.
-     `renameValue` compares the way the rest of this file compares names — ignoring case and
-     punctuation — so this catches every spelling and settles on the one written here. */
+  /* ONE SPELLING OF EACH EXAM BOARD. § */
   { id: 'exam-board-one-spelling',
     what: 'every spelling of Edexcel becomes "Edexcel"',
     run: () => renameValue('edexcel>Edexcel') },
 
-  /* PUT THE VENUES ON THE MAP, without anybody being asked to do anything.
-     Fills in the postcodes that are known, then turns every postcode into coordinates. Runs on the
-     next `?setup=1` or `?run=` after this deploy and never again — which is right: afterwards the coordinates
-     are in the sheet, and re-deriving them every load would be a network call per visitor for an
-     answer that cannot have changed.
-     A venue added later has no coordinates and sits at the edge of the map saying so. Running
-     `geocodeVenues` from the editor picks it up, and so does `?run=geocode`. */
+  /* PUT THE VENUES ON THE MAP, without anybody being asked to do anything. § */
   { id: 'venue-coordinates',
     /* SAFE TO REPEAT, so it is allowed to fail and try again. It writes only what is missing and
        never overwrites, so running it twice does what running it once did. */
@@ -3483,43 +1328,20 @@ const MIGRATIONS = [
     run: () => {
       const seeded = seedPostcodes();
       const out = geocodeVenues();
-      /* THROWN, so the ledger does not record it.
-         `geocodeVenues` CATCHES its own network failure and returns `{ error }` rather than
-         throwing — which is right for a URL somebody ran by hand, where a message beats a stack
-         trace. It is wrong here: a migration that returns quietly has succeeded as far as the
-         ledger is concerned, so the one thing standing between the venues and the map — an
-         authorisation prompt — was recorded as done and never tried again.
-         The retry flag alone did not fix it, because nothing was failing loudly enough to retry. */
+      /* THROWN, so the ledger does not record it. § */
       if (out.error) throw new Error(out.error);
       out.seeded = seeded;
       return out;
     } },
 
-  /* PUT THE VENUES ON THE MAP. It was a URL somebody had to assemble and run, which is a chore
-     invented by whoever wrote it — the work is entirely mechanical and the machine is right here.
-     Once, on the deploy after the postcodes exist. Anything filled in later is caught by the
-     nightly sweep, so nobody ever runs this by hand unless they want it done in the next minute
-     rather than tonight. */
+  /* PUT THE VENUES ON THE MAP. § */
   { id: 'place-the-venues',
     what: 'every venue with a postcode gets its coordinates',
     run: () => geocodeVenues() },
 
-  /* ---------- `seed-the-families` WAS HERE, AND ITS ID STAYS SPENT ---------------------------------
-     It wrote three families' links into the `family` tab from a hand-written list of real
-     children's names — see where `KNOWN_FAMILIES` used to be for why the list is gone. It has run:
-     the links are on the live tab, and every reader reads them there.
-     THE ID IS NOT REUSED, for the reason the paper migrations below give: a new job under this name
-     would be marked done on every database that ran the old one, and would never run at all. */
+  /* ---------- `seed-the-families` WAS HERE, AND ITS ID STAYS SPENT § */
 
-  /* ---------- THREE PAPER MIGRATIONS WERE HERE, AND THEIR IDS STAY SPENT -------------------------
-     `edexcel-maths-past-papers`, `drop-empty-alevel-papers` and `edexcel-alevel-maths-past-papers`
-     seeded 120 rows into the `questions` tab between them. The tab is gone; the papers they wrote
-     are in `data/questions.json` along with everything else, which is where a bulk edit belongs.
-
-     THE IDS ARE NOT REUSED. A migration is remembered by its id in script properties, so a NEW job
-     given one of these names would be marked already-done on every database that has ever run the
-     old one and would never run at all. That is the fault this whole ledger exists to prevent, and
-     it is invisible — nothing fails, the job simply does not happen. */
+  /* ---------- THREE PAPER MIGRATIONS WERE HERE, AND THEIR IDS STAY SPENT § */
 
   /* THE LANDMARKS TAB HAS BEEN EMPTY SINCE IT WAS ADDED. Five real buildings with their real
      outlines — every corner as surveyed, not a rectangle drawn round them. */
@@ -3528,17 +1350,9 @@ const MIGRATIONS = [
     what: 'the Colliers Wood landmarks get their outlines',
     run: () => seedLandmarks() },
 
-  /* A SECOND `colliers-wood-landmarks` WAS HERE, with the same id as the one above. `pending` is
-     worked out before the loop runs, so both were attempted on the same request — twice the work
-     for one job, and the ledger could only ever remember one of them. Harmless because the seeder
-     is idempotent, which is exactly why it survived: nothing broke and nothing said anything. */
+  /* A SECOND `colliers-wood-landmarks` WAS HERE, with the same id as the one above. § */
 
-  /* EVERY WEARABLE IN THE SHOP HAS BEEN FREE SINCE THE TWO TABS WERE MERGED, and `seedAvatarItems`
-     cannot fix it: its first line returns early once any avatar row exists. So the seven paid
-     wearables have had an empty `price_coins` and — the half that actually breaks it — an empty
-     `acquire`, which is the word `doGet` reads to decide which price column to look in.
-     Safe to repeat, and the reason is the whole of why this is a migration rather than a reset: it
-     writes only into cells that are empty, so a price somebody has typed survives it. */
+  /* EVERY WEARABLE IN THE SHOP HAS BEEN FREE SINCE THE TWO TABS WERE MERGED, and `seedAvatarItems` cannot fix it: § */
   { id: 'price-the-wearables',
     retry: true,
     what: 'the wearables get the prices they have in the code, without touching one anybody typed',
@@ -3546,53 +1360,22 @@ const MIGRATIONS = [
 ];
 
 /* ============================== POST ========================================================= */
-/* ---------- WHO MAY DO WHAT ------------------------------------------------------------------
-   Every action, and the one thing that decides whether it is allowed. Thirteen handlers each
-   wrote their own `if (!isAdminPerson(body.adminName)) return ...` — thirteen chances to forget,
-   and forgetting looks exactly like working.
-   Stated as data, so the answer to "can a student do this?" is one line to read rather than four
-   hundred to search. An action missing from this table is refused, which means a new handler is
-   locked until somebody decides who it is for — the safe way round.
-
-     'admin'  — only an admin
-     'anyone' — no account needed: registering, verifying, logging in
-     'self'   — a signed-in person acting on their own row; the handler checks whose
---------------------------------------------------------------------------------------------- */
+/* ---------- WHO MAY DO WHAT § */
 const ACTION_ACCESS = {
   // Open by necessity — you cannot be signed in to sign in.
   register: 'anyone', verifyEmail: 'anyone', verifyLogin: 'anyone',
-  /* ---------- A FORGOTTEN PIN IS ASKED FOR BY SOMEBODY WHO CANNOT SIGN IN --------------------
-     SO IT CANNOT BE `self`, which is the whole point of it. What stops it being a way in is that
-     the new PIN goes to the address in the sheet (or a child's grown-ups) and nowhere else, so
-     somebody who does not hold that mailbox gains nothing. It used to cost the real owner their PIN
-     — the request overwrote it — and now it does not: the emailed PIN works BESIDE the old one until
-     it is used (`authResetUse_`), so a stranger's press is an email and nothing more. It says which
-     case it was (no such account, nobody to send to, sent), as signing in has since 184. */
+  /* ---------- A FORGOTTEN PIN IS ASKED FOR BY SOMEBODY WHO CANNOT SIGN IN § */
   forgotPin: 'anyone',
   /* AND THE LINK IN THAT MAIL — `anyone`, for `forgotPin`'s reason: whoever opens it cannot sign in. What
      stops it being a way in is the key, two UUIDs long and mailed to the account's own address only. */
   pinLink: 'anyone',
   /* `broadcast: 'admin'` WAS HERE — one message to everybody — and went with its handler and its
      card on "remove the note to everyone button". An entry with no handler is a door onto nothing. */
-  /* SIGNING IN WITH GOOGLE. `anyone` for the same reason as the two beside it — you cannot be
-     signed in to sign in — and the handler proves identity by asking Google rather than by
-     believing the request, which is the difference between this and the entry removed below. */
+  /* SIGNING IN WITH GOOGLE. § */
   googleLogin: 'anyone',
   /* `self`, so the token is resolved and the session ended belongs to whoever holds it. */
   signOut: 'self',
-  /* `relogin` WAS HERE, AND IT WAS THE WAY IN. It reached the same handler as `verifyLogin` with
-     the PIN comparison switched off for it by name — so a request naming somebody came back with
-     their `person_id`, e-mail, handle and role, and `person_id` is the whole of what every `self`
-     action checks. A PIN guarded the front door and this stood beside it handing out keys.
-
-     NOTHING CALLED IT. Not one line in `js/`, not the login screen, not the phone — the same
-     condition this file already applies to `likePost` two entries down: an endpoint nothing calls
-     is an endpoint nobody maintains. The difference is that a dead read is untidy and a dead
-     credential issuer is a way in.
-
-     SIGNING IN AGAIN IS `verifyLogin`, which is what the app has always used, and it asks for the
-     PIN. If a silent re-sign-in is wanted later it needs a token issued at login and checked here,
-     which is a different thing from trusting a name. */
+  /* `relogin` WAS HERE, AND IT WAS THE WAY IN. § */
   imageData: 'anyone',          // proxies a picture for the share canvas; reads nothing private
 
   // A person acting on their own record. Each handler still checks WHOSE row it is.
@@ -3601,31 +1384,18 @@ const ACTION_ACCESS = {
   saveAvatar: 'self', saveFriends: 'self', saveScore: 'self', saveTtHighscore: 'self',
   /* YOUR OWN PICTURE. The handler writes `photo` on the row the token resolved to and nowhere else. */
   savePhoto: 'self',
-  /* YOUR OWN ROLES — the three a person may tick, on the row the token resolved to. The handler
-     refuses `admin`, waits a ticked Tutor for the admin (`LISTED_PENDING`), and will not drop a role
-     somebody is still sitting in a live session as. */
+  /* YOUR OWN ROLES — the three a person may tick, on the row the token resolved to. § */
   setMyRoles: 'self',
   myReferral: 'self',       // your own code, and who came through it
   saveExam: 'self', deleteExam: 'self', redeem: 'self',
-  /* `likePost` was here. A like is a reaction with one option, so the heart and the 👍 were two
-     counts of the same gesture. The action is gone rather than left working-but-unused: an
-     endpoint nothing calls is an endpoint nobody maintains, and this table refuses anything it
-     does not name, so an old phone still trying gets a sentence rather than a silent write to a
-     tab the site no longer reads. */
+  /* `likePost` was here. § */
   votePoll: 'self', reactPost: 'self',
-  /* SAYING SOMETHING UNDER A POST, AND TAKING IT DOWN. Both `self` for the same reason the message
-     actions are: the gate can only check that somebody is signed in, and WHOSE comment it is is a
-     question only the handler can answer — an admin may take down anybody's, an author only their
-     own, and neither of those is a thing this table can see. */
+  /* SAYING SOMETHING UNDER A POST, AND TAKING IT DOWN. § */
   addComment: 'self', deleteComment: 'self',
   /* Reading the folder, to choose a photograph already in it. Admin, because it lists what has not
      been posted yet — which is a view of your Drive rather than of the site. */
   folderFiles: 'admin',
-  /* `orderPrints` WAS HERE and the handler priced a print from the SHEET, deliberately, because a
-     total posted by a browser is a total the client chose. There is no sheet to price it from —
-     the page counts are in `data/questions.json` now, which the backend cannot read — and nothing
-     on the front end ever called it: `cart-send` in js/resource.js has always been a toast saying
-     checkout is the next thing to build. A door with no handle on either side. */
+  /* `orderPrints` WAS HERE and the handler priced a print from the SHEET, deliberately, because a total posted by a browser is a total the client chose. § */
   /* A parent asks; only the named child may answer. Both `self` — the handlers check WHO, which
      is the part that matters and the part a gate cannot see. */
   claimChild: 'self', answerClaim: 'self',
@@ -3633,45 +1403,23 @@ const ACTION_ACCESS = {
      who may write to whom. The gate cannot know either, so it only checks somebody is signed in. */
   listRecords: 'admin', saveRecordsPage: 'admin',
   sendMessage: 'self', messages: 'self', readMessage: 'self', flagMessage: 'self',
-  /* WHETHER A PHOTOGRAPH IN A MESSAGE CAN BE KEPT — the column, the scope, the folder, a test file.
-     Admin: it names the Drive folder and the scopes the deployment holds, which is a view of the
-     business's Google account rather than of the site. */
+  /* WHETHER A PHOTOGRAPH IN A MESSAGE CAN BE KEPT — the column, the scope, the folder, a test file. § */
   checkUploads: 'admin',
-  /* `self`, because it needs the current PIN — the gate cannot check that, only the handler can.
-     Your own PIN only: the gate writes `body.name` and `body.adminName` from the token, so the
-     "admin resetting somebody else's" branch that was inside could never run. That is `resetPin`. */
+  /* `self`, because it needs the current PIN — the gate cannot check that, only the handler can. § */
   changePin: 'self', signAgreement: 'self',
-  /* A PARENT MAKING THEIR CHILD'S ACCOUNT, and a NEW PIN FOR SOMEBODY ELSE. Both `self`, because
-     who may is a question about two people — a parent and the child they have ACCEPTED, or an admin
-     and anybody who is not one — and only the handler can see both rows. The gate only proves who
-     is asking, and writes them into `body.personId`; the child is `targetId` or does not exist yet. */
+  /* A PARENT MAKING THEIR CHILD'S ACCOUNT, and a NEW PIN FOR SOMEBODY ELSE. § */
   makeChild: 'self', resetPin: 'self',
-  /* A FRESH CONFIRMATION LINK TO YOUR OWN ADDRESS. `self`, so where it goes is the row the token
-     resolved to and nothing on the request; the handler sends only to that row's own address while it
-     is PENDING, or to the new address the row is waiting to move to, and once a quarter of an hour. */
+  /* A FRESH CONFIRMATION LINK TO YOUR OWN ADDRESS. § */
   resendLink: 'self',
-  /* A NEW WORD FOR YOUR OWN HANDLE. `self`, and the handler acts on the row the token resolved to
-     rather than on anything posted — the gate writes `body.personId` from the token. `changeHandle`,
-     which took a typed handle, is gone: see `handleTrouble_`. */
+  /* A NEW WORD FOR YOUR OWN HANDLE. § */
   randomiseHandle: 'self',
   /* The shop window is the business talking, so only the business may change it. */
   spotlight: 'admin',
   createCheckout: 'self', finalizePayment: 'self',
   move: 'self', tutorMove: 'self', createJob: 'self',
-  /* JOINING THE LIST. `self` — anybody signed in may put themselves on it, and the handler checks
-     it is their own name they are adding. Creating the session it joins is the same act, because a
-     waitlist nobody has joined is not a thing worth having a row for. */
+  /* JOINING THE LIST. `self` — anybody signed in may put themselves on it, and the handler checks it is their own name they are adding. § */
   joinWaitlist: 'self',
-  /* ---------- OPENING A LIST IS ADMIN, AND HAD TO BE SAID HERE ------------------------------------
-     THIS LINE IS THE WHOLE BUG. `accessDenied` runs before any handler and refuses anything not
-     classified — "an action nobody has classified is refused", which is the right design and
-     exactly what happened: the handler was written, checked, shipped and deployed, and the gate in
-     front of it had never heard of it. The error said "That action is not recognised", which is
-     true and reads as "no such action exists".
-
-     THREE HOURS ON A MISSING LINE IN A TABLE. `check-doors` matches buttons to handlers, and
-     nothing matched handlers to this gate — so a handler could be complete and unreachable and
-     every check passed. See `check-access.js`. */
+  /* ---------- OPENING A LIST IS ADMIN, AND HAD TO BE SAID HERE § */
   openWaitlist: 'admin',
   /* ANYBODY SIGNED IN, FOR THEIR OWN. `self` is the right level: the handler looks the person up
      from the signed-in name and never trusts a person_id off the body, so one person cannot star
@@ -3683,32 +1431,22 @@ const ACTION_ACCESS = {
   /* MARKING A WORDED ANSWER WITH GEMINI. `self`, because every press costs a request and the cap is
      per person — counted against the id the token resolved to, which only a signed-in request has. */
   aiMark: 'self',
-  /* WHAT A CHILD WROTE, KEPT ON THEIR ACCOUNT AND READ BACK ON ANOTHER DEVICE. `self` both ways: the row
-     written and the rows read are the person the token resolved to, whatever `personId` the body
-     claims — the gate overwrites it. Nobody reads another person's answers through these. */
+  /* WHAT A CHILD WROTE, KEPT ON THEIR ACCOUNT AND READ BACK ON ANOTHER DEVICE. § */
   saveAnswers: 'self',
   myAnswers: 'self',
-  /* AN ANSWER SENT, AND ITS VERDICT (SCHEMA.submissions). `self`: the row written is the one for the
-     person the token resolved to, whatever `personId` the body claims — the gate overwrites it before
-     the handler runs. Nobody can send an answer as somebody else. `markDone` WAS HERE, the day a
-     question was done; it went with the `attempts` tab, so an old phone posting it is refused at this
-     gate and keeps its date to itself. */
+  /* AN ANSWER SENT, AND ITS VERDICT (SCHEMA.submissions). § */
   submitAnswer: 'self',
   /* WHAT THE WEEKLY PARENT EMAIL WOULD SAY THIS WEEK. Admin and nobody else: the reply is every
      learner's week and every parent's address. It writes nothing and sends nothing — see
      backend/digest.gs. */
   digestPreview: 'admin',
-  /* THE FILMS, FILLED FROM THE NOTFLIX FOLDER. Admin and nobody else: it walks a folder of the
-     owner's Drive and its reply is the whole films list, which is admin-only before it leaves the
-     server (note 068). The handler asks the role again — see `filmsSync` in dopost.gs. */
+  /* THE FILMS, FILLED FROM THE NOTFLIX FOLDER. § */
   filmsSync: 'admin',
 
   /* YOUR OWN SETTINGS, AS THE SHEET HOLDS THEM. `self`, and the handler reads only the row the token
      resolved to — see `myProfile` in dopost.gs for why it is a POST rather than part of the payload. */
   myProfile: 'self',
-  /* WHICH EMAILS YOU WANT (`NOTIFY_KINDS`). `self`: the handler writes the row the token resolved to,
-     and another row only by `resetPin`'s rule — a parent's ACCEPTED child, or an admin, never an admin's
-     row. See `setNotify` in dopost.gs. */
+  /* WHICH EMAILS YOU WANT (`NOTIFY_KINDS`). § */
   setNotify: 'self',
   // The books, the prices, the rooms, the people list.
   diagnosePeople: 'admin', getProfile: 'admin', listPeople: 'admin',
@@ -3716,15 +1454,10 @@ const ACTION_ACCESS = {
   updateShop: 'admin', deleteShopItem: 'admin',
 
   saveRoom: 'admin', updateTrip: 'admin', addTrip: 'admin',
-  /* `updateResource`, `editResource` and `deleteResource` WERE HERE. All three wrote cells on a
-     document row of the `questions` tab, and the tab is in this repository now — a relabel is a
-     commit to `data/questions.json`, which is the whole reason that tab was the one to move. */
+  /* `updateResource`, `editResource` and `deleteResource` WERE HERE. § */
   editPost: 'admin', deletePost: 'admin',
   setListed: 'admin', scanPosts: 'admin',
-  /* ANYBODY SIGNED IN MAY POST. What differs is what happens next: an admin's goes up, and
-     everybody else's waits for you. The gate cannot express that — it only knows whether somebody
-     is signed in — so the handler decides, which is right: "may they do this" and "does it need
-     checking" are two questions and only the first belongs here. */
+  /* ANYBODY SIGNED IN MAY POST. § */
   addPost: 'self',
   /* Letting one through, or turning it down. Admin, obviously — this is the whole point of the
      waiting. */
@@ -3733,15 +1466,9 @@ const ACTION_ACCESS = {
   /* MARKING A SESSION PAID BY HAND. Admin and nothing else, obviously — it is the one action on
      this site that says money arrived without a payment processor having said so. */
   markPaid: 'admin',
-  /* ENDING A SESSION. Admin only, and deliberately: a client leaving a session is `move` with a
-     Withdraw and removes only themselves. This removes EVERYBODY, which is a decision about other
-     people's booking and belongs to whoever runs the business. */
+  /* ENDING A SESSION. Admin only, and deliberately: § */
   deleteJob: 'admin',
-  /* LINKING A CHILD TO A PARENT WITHOUT ASKING THE CHILD. `claimChild` is the version a parent
-     uses and it needs the child to accept — because a parent claiming a child unilaterally is
-     precisely what the family tab exists to prevent. This is not that: it is the person who runs
-     the business recording a family they know, which is the same act as typing it into the
-     spreadsheet and is the reason it is admin and nothing else. */
+  /* LINKING A CHILD TO A PARENT WITHOUT ASKING THE CHILD. § */
   linkChild: 'admin', unlinkChild: 'admin',
   /* Reports every tab and column in the spreadsheet. It was open to anyone, which hands a
      stranger the shape of the whole database — the thing you would want before attacking it. */

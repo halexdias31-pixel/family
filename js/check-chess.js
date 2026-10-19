@@ -1,17 +1,5 @@
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
-/* ==================================================================================================
-   node js/check-chess.js — THE MOVE GENERATOR, COUNTED RATHER THAN READ.
-
-   The board is two players round one phone now, so the only thing standing between a child and a
-   wrong move is `legalMoves` in chess.js. A move generator is the textbook case of code that reads
-   correctly and is wrong: a king that can castle through check, an en-passant capture that leaves
-   the pawn behind, a promotion that forgets the capture. PERFT is the standard answer — count every
-   leaf of the game tree to a fixed depth and compare against numbers the whole chess-programming
-   world agrees on. One wrong rule anywhere changes a count.
-
-   NOT A SECOND IMPLEMENTATION. The engine is cut out of `price-rows.js` (the board helpers) and
-   `chess.js` (the rules) by marker and run as-is, so what is counted is the code that ships.
-================================================================================================== */
+/* node js/check-chess.js — THE MOVE GENERATOR, COUNTED RATHER THAN READ. § */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const read = f => fs.readFileSync(path.join(__dirname, f), 'utf8');
 

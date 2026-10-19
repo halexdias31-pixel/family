@@ -1,50 +1,9 @@
 #!/usr/bin/env node
-/* ==================================================================================================
-   @family. — check-people.js
-
-   THE CELLS ON THE `people` TAB THAT HOLD MORE THAN ONE FACT, ROUND-TRIPPED.
-
-   THREE COLUMNS ON THIS TAB ARE PACKED, and every one of them exists because the alternative is a
-   numbered column — the fault CLAUDE.md records under `images`, under `needs`, under the practicals'
-   `equipment_1 … equipment_10` and, in writing, over `library_card` itself. So:
-
-     `availability`   77 tickboxes -> "m09,m10,…"           `availGridOut` / `availGridIn`
-     `date_of_birth`   3 boxes     -> "15/09/1985"          `dobOut`       / `dobIn`
-
-   AND TWO SETS OF BOXES THAT ARE ROWS ON TABS OF THEIR OWN since the people tab was redesigned —
-   the qualification shelf on `qualifications` and the library cards on `library_cards`. They go
-   through the same round trip: boxes to rows, rows back to boxes.
-
-   NOTHING HAS EVER TESTED EITHER. They are the one shape where a fault is completely silent: a
-   packer that drops a field writes a shorter cell, the form reloads with an empty box, and the
-   person who typed it assumes they forgot. There is no error, no log and nothing on screen — which
-   is this repository's oldest shape, and the reason `availGridIn` went eighteen months unexamined.
-
-   WHAT THIS ASKS IS ONE QUESTION: pack what was typed, unpack it again, and get the same thing
-   back. Plus the cases where the two halves are NOT symmetrical and the asymmetry is deliberate —
-   a trailing empty card is dropped, a middle gap is kept, and a separator typed into a box is
-   stripped rather than escaped.
-
-     node js/check-people.js
-
-   IT RUNS THE BACKEND'S OWN FUNCTIONS, cut out of the `.gs` by name and run in Node. Not a second
-   implementation: a second implementation would agree with itself and with nothing else, which is
-   the fault this file exists to catch one table along.
-================================================================================================== */
+/* @family. — check-people.js THE CELLS ON THE `people` TAB THAT HOLD MORE THAN ONE FACT, ROUND-TRIPPED. § */
 'use strict';
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 
-/* ---------- EVERY CASE IN THIS FILE RUNS IN A TIMEZONE BEHIND UTC --------------------------------
-   NOT DECORATION, AND MEASURED. `new Date('2027-05-14')` is UTC MIDNIGHT, so it reads back as the
-   13th anywhere west of Greenwich and as the 14th here — this container is UTC. So the ONE mutation
-   that matters most to `isoDate_`, parsing the ISO branch with `new Date(<string>)` instead of
-   matching it, passes every assertion below when the ambient zone is UTC and fails two of them in
-   New York. A case that only fails somewhere else is a case that passes here by luck, which is this
-   repository's own definition of a check that cannot fail.
-
-   Set before the first `Date` is constructed, which is what Node reads it for. It makes the birthday
-   cases stricter too and changes none of their answers: `dobOut`/`dobIn` build from local fields and
-   `dobRefusal_` compares against `Date.now()`, so neither has a string for a zone to get wrong. */
+/* ---------- EVERY CASE IN THIS FILE RUNS IN A TIMEZONE BEHIND UTC § */
 process.env.TZ = 'America/New_York';
 
 const fs = require('fs');
@@ -91,18 +50,12 @@ const SRC = [
   grab(consts, /const PHONE_CODES\s*=[^;]*;/, 'PHONE_CODES'),
   grab(core,   /function phoneOut\([\s\S]*?\n\}/, 'phoneOut'),
   grab(core,   /function phoneIn\([\s\S]*?\n\}/, 'phoneIn'),
-  /* THE THIRD PACKED CELL, and the one whose unpacker has to read TWO different stored shapes:
-     Sheets makes a real Date of a birthday typed into the spreadsheet, and this app writes a
-     `dd/mm/yyyy` string. `sheetDate` is what tells them apart, so it is cut out too. */
+  /* THE THIRD PACKED CELL, and the one whose unpacker has to read TWO different stored shapes: § */
   grab(core,   /function sheetDate\([\s\S]*?\n\}/, 'sheetDate'),
   grab(core,   /function dobOut\([\s\S]*?\n\}/, 'dobOut'),
   grab(core,   /function dobIn\([\s\S]*?\n\}/, 'dobIn'),
   grab(core,   /function dobRefusal_\([\s\S]*?\n\}/, 'dobRefusal_'),
-  /* ---------- AND THE COLUMN THAT IS NOT PACKED AND IS STILL A RE-SPELLING ----------------------
-     `exam_small_date` HOLDS ONE FACT, so it is not a packed cell — and it is here for the same
-     reason the three are: a value goes out in one spelling and comes back in another, and if the two
-     halves disagree the picker opens EMPTY over a cell with a date in it and the next save writes
-     the empty over it. Silent, exactly like a short `availability` cell. */
+  /* ---------- AND THE COLUMN THAT IS NOT PACKED AND IS STILL A RE-SPELLING § */
   grab(core,   /function isoDate_\([\s\S]*?\n\}/, 'isoDate_'),
   grab(core,   /function isoRefusal_\([\s\S]*?\n\}/, 'isoRefusal_'),
   grab(consts, /const DATE_COLS\s*=[^;]*;/, 'DATE_COLS'),
@@ -119,9 +72,7 @@ const SRC = [
   grab(core,   /function venuesWrites_\([\s\S]*?\n\}/, 'venuesWrites_'),
 ].join('\n\n');
 
-/* THE FOUR APPS SCRIPT HELPERS THOSE FIVE REACH FOR, copied rather than imported — the same
-   arrangement `check-handles.js` uses and for its stated reason: if one of them changes meaning in
-   `constants.gs`, a case here fails, which is what a stub is for. */
+/* THE FOUR APPS SCRIPT HELPERS THOSE FIVE REACH FOR, copied rather than imported — the same arrangement `check-handles.js` uses and for its stated reason: § */
 const PRELUDE = `
   const S = v => String(v ?? '').trim();   // constants.gs's own — it TRIMS, and the packers rely on it
   const norm = v => S(v).toLowerCase().replace(/\\s+/g, '').trim();
@@ -152,22 +103,14 @@ const is = (what, got, want) => {
   if (g !== w) { bad++; console.log('  FAIL  ' + what + '\n          got  ' + g + '\n          want ' + w); }
 };
 
-/* ---------- THE FIELD LIST IS DERIVED FROM THE COUNT, so a fourth library is one number -----------
-   WRITTEN OUT HERE WOULD BE THE SECOND COPY. What this asks instead is that the list AGREES with
-   the count — nine names for three cards — which is the thing that breaks if somebody edits one and
-   not the other. */
+/* ---------- THE FIELD LIST IS DERIVED FROM THE COUNT, so a fourth library is one number § */
 is('each card gives three field names', box.FIELDS.length, box.N * 3);
-/* FIVE, BECAUSE THAT IS THE ASK — *"same with library cards (max 5)"*. A number typed into a check
-   is usually the second copy this repository warns about; here it is the requirement itself, so the
-   check fails if somebody lowers the constant back without being asked to. */
+/* FIVE, BECAUSE THAT IS THE ASK — *"same with library cards (max 5)"*. § */
 is('five library cards', box.N, 5);
 is('ten qualifications, seven boxes each — four, the received year and the two ticks', [box.QMAX, box.QFIELDS.length], [10, 70]);
 is('the first card is named lib1_*', box.FIELDS.slice(0, 3), ['lib1_name', 'lib1_no', 'lib1_pin']);
 
-/* ---------- THE ROUND TRIP, WHICH IS THE WHOLE POINT ---------------------------------------------
-   Boxes -> rows (what `updateProfile` writes with `writeOwnRows_`) -> the person's rows read back
-   (`ownRows_`) -> boxes. `person_id` is what ties a row to its person, so rows for somebody else in
-   the same tab must never come back into this person's form. */
+/* ---------- THE ROUND TRIP, WHICH IS THE WHOLE POINT § */
 const cards = (...rows) => {
   const f = {};
   rows.forEach((r, i) => {
@@ -213,10 +156,7 @@ is('no rows unpack to empty boxes', box.libOut(ME), cards(...blanks(box.N)));
 store([], asRows([{ library: 'Theirs', card_number: '9', pin: '0000' }], 'P-SOMEBODY'));
 is('somebody else\'s card never comes into this form', box.libOut(ME), cards(...blanks(box.N)));
 
-/* ---------- THE QUALIFICATIONS -------------------------------------------------------------------
-   `teach` IS THE SPECIALISM (one on the page, the gold chip under "Teaches") and `can_teach` is
-   everything else taught. On the way back a specialism is also taught, so the form's Can teach box
-   comes back ticked beside it. */
+/* ---------- THE QUALIFICATIONS § */
 const q7 = (...rows) => {
   const f = {};
   rows.forEach((r, i) => ['', '_level', '_board', '_grade', '_received', '_teach', '_spec'].forEach((sfx, j) => {
@@ -249,10 +189,7 @@ is('two teach rows are two Teaches — several levels may be taught',
 store(asRows([{ subject: 'Maths', level: 'GCSE' }], 'P-SOMEBODY'));
 is('somebody else\'s qualification never comes into this form', box.qList(ME).length, 0);
 
-/* ---------- WHAT A TUTOR TEACHES IS DERIVED FROM THE TICKS, NOT KEPT ------------------------------
-   The card's "Teaches" and "Can also teach" read this. The specialism first; a subject ticked twice
-   is one phrase; a tutor with no specialism has no "Teaches" rather than their first "can teach"
-   promoted into it. */
+/* ---------- WHAT A TUTOR TEACHES IS DERIVED FROM THE TICKS, NOT KEPT § */
 store(asRows([{ subject: 'English', level: 'KS3', can_teach: 'TRUE' },
               { subject: 'Maths', level: 'GCSE', teach: 'TRUE' },
               { subject: 'english', level: 'ks3', can_teach: 'TRUE' },
@@ -266,12 +203,7 @@ is('Teach on two levels of one subject is two Teaches, and the rest is Can also 
 store(asRows([{ subject: 'English', level: 'KS3', can_teach: 'TRUE' }]));
 is('no specialism is no Teaches', box.teaches(ME).main, []);
 
-/* ---------- A QUALIFICATION AS ITS PARTS, AND AS THE SENTENCE --------------------------------------
-   *"Maths subscript to it is grade and super script is the level."* The card writes each one like an
-   isotope off `qualsParts`, and a phone from before that reads `quals`. Both are written off ONE list
-   by `qualsParts_`, so this follows what was typed into the boxes all the way to both keys: the same
-   length, the same order, the row with no subject dropped from both, and the sentence byte-for-byte
-   what `doGet` wrote inline before it moved — an older phone must not see a single character move. */
+/* ---------- A QUALIFICATION AS ITS PARTS, AND AS THE SENTENCE § */
 store(asRows(box.qIn(q7(['Maths', 'A-Level', 'Edexcel', 'B', '2019', 'TRUE', ''],
                        ['', 'GCSE', '', 'C', ''],
                        ['English', 'GCSE', 'Hill Top School', '7', '2016'],
@@ -298,9 +230,7 @@ store(asRows([{ subject: 'first aid' }, { subject: 'Dofe gold' }, { subject: 'pg
 is('a certificate is a certificate however its name is spaced or cased', box.qParts(ME).map(q => q.kind),
    ['cert', 'cert', 'cert']);
 
-/* THE CERTIFICATES ARE THE TAIL OF THE PHONE'S LISTS, copied — so the copy is held to them. A name
-   here that the shelf does not offer is one the server calls a certificate and nobody can choose;
-   one renamed on the shelf and not here turns a PGCE into notation without anything failing. */
+/* THE CERTIFICATES ARE THE TAIL OF THE PHONE'S LISTS, copied — so the copy is held to them. § */
 const listIn = (src, name) => {
   const body = grab(src, new RegExp('const ' + name + ' = \\[[\\s\\S]*?\\];'), name + ' in js/me.js');
   return [...body.matchAll(/'([^']*)'|"([^"]*)"/g)].map(m => (m[1] !== undefined ? m[1] : m[2]));
@@ -312,9 +242,7 @@ is('every certificate the server knows is a subject the shelf offers',
 is('every certificate level the server knows is a level the shelf offers',
    box.CERT_LEVELS.filter(c => !SHELF_LEVELS.includes(c)), []);
 
-/* AND THE FIXTURE SENDS WHAT doGet SENDS. `check/fixture.json` stands in for the response in every
-   browser check, so its tutor's two keys must be one list in two spellings — a fixture whose
-   sentences and parts disagree measures a card no backend could produce. */
+/* AND THE FIXTURE SENDS WHAT doGet SENDS. § */
 const FX = JSON.parse(fs.readFileSync(path.join(ROOT, 'check', 'fixture.json'), 'utf8'));
 const fxTutors = (FX.tutors || []).filter(t => Array.isArray(t.qualsParts));
 is('the fixture has a tutor carrying qualsParts', fxTutors.length > 0, true);
@@ -322,9 +250,7 @@ fxTutors.forEach(t => is('the fixture\'s ' + (t.title || t.personId) + ' sends q
   t.quals, t.qualsParts.map(box.qSay)));
 store([], []);
 
-/* ---------- THE VENUES: A SAVE THAT MOVES NOTHING WRITES NOTHING ----------------------------------
-   `others.concat(mine)` put this person at the END of the cell on every Save, so a Save with nothing
-   touched rewrote it and retired the payload. */
+/* ---------- THE VENUES: A SAVE THAT MOVES NOTHING WRITES NOTHING § */
 {
   const me = { person_id: 'P-T1', handle: 'tee' };
   const rows = [{ name: 'Sutton Library', tutors_happy_here: 'P-T1, someone-else' },
@@ -364,15 +290,7 @@ is('an empty week packs to an empty cell', box.availIn(box.availOut('')), '');
 is('an hour outside the span is dropped rather than kept',
    box.availIn(box.availOut('m09,m23')), 'm09');
 
-/* ---------- AND THE DATE OF BIRTH, WHOSE UNPACKER HAS TO READ TWO STORED SHAPES -----------------
-   A BIRTHDAY TYPED INTO THE SPREADSHEET IS A REAL DATE and one written by this app is a
-   `dd/mm/yyyy` string, and `dobOut` has to come apart into the same three numbers either way. The
-   Date case is the one that was a live fault: `profileOf_` sent `S(r.date_of_birth)`, so the box
-   rendered `Sun Sep 15 1985 00:00:00 GMT+0100 (British Summer Time)`.
-
-   THE ZERO PADDING IS NOT COSMETIC. `sheetDate`'s anchored branch reads `15/09/1985`; a
-   four-digit year is what keeps it out of the two-digit rule, which is `2000 + n` and would make
-   `85` into 2085. So the packer's output is asserted character for character. */
+/* ---------- AND THE DATE OF BIRTH, WHOSE UNPACKER HAS TO READ TWO STORED SHAPES § */
 const dob = (d, m, y) => ({ dob_d: d, dob_m: m, dob_y: y });
 is('three numbers pack to the one format sheetDate reads',
    box.dobIn(dob('15', '9', '1985')), '15/09/1985');
@@ -403,18 +321,7 @@ is('29 February 2024 is a real day', no(dob('29', '2', '2024')), false);
 is('29 February 2023 is not', no(dob('29', '2', '2023')), true);
 is('a birthday in the future is refused', no(dob('1', '1', '2099')), true);
 
-/* ================================================================================================
-   AN EXAM DATE, WHICH GOES OUT AS ISO AND MAY ARRIVE AS ANYTHING THE SHEET HOLDS.
-
-   `isoDate_` IS THE ONE THING BETWEEN A CELL AND AN EMPTY PICKER. A date input silently rejects any
-   value that is not `yyyy-mm-dd` — so every case below where the answer is NOT empty is a case where
-   getting it wrong loses a date on the next save, with nothing on screen saying so.
-
-   THE TIMEZONE CASE IS THE ONE THAT CANNOT BE SEEN BY READING. `new Date('2027-05-14')` is UTC
-   midnight, so in any timezone behind UTC it reads back as the 13th — the `parseWhen` fault this
-   repository records reading `2026-09-15` as 26 September 2015. `isoDate_` matches and re-spells
-   rather than parsing, so the assertion below holds wherever the script runs.
-================================================================================================ */
+/* AN EXAM DATE, WHICH GOES OUT AS ISO AND MAY ARRIVE AS ANYTHING THE SHEET HOLDS. § */
 is('an ISO cell is already the shape the picker speaks', box.iso('2027-05-14'), '2027-05-14');
 is('A REAL DATE comes back as ISO — Sheets stores a typed-in date as one',
    box.iso(new Date(2027, 4, 14)), '2027-05-14');
@@ -439,26 +346,12 @@ is('29 February 2028 is a real day', isoNo('2028-02-29'), false);
 is('29 February 2027 is not', isoNo('2027-02-29'), true);
 is('a year outside the sensible range is refused', isoNo('0202-05-14'), true);
 
-/* THE LIST IS WHAT KEEPS THE TWO HALVES IN STEP, and a rule that named the columns here would be the
-   second copy. What this asks is that it is not EMPTY — which is what a rename would leave it, with
-   every case above still passing and not one column going through either function. */
+/* THE LIST IS WHAT KEEPS THE TWO HALVES IN STEP, and a rule that named the columns here would be the second copy. § */
 is('the server knows of at least one date column', box.DATE_COLS.length > 0, true);
 is('and `date_of_birth` is NOT one of them — it is three boxes and a dd/mm/yyyy cell',
    box.DATE_COLS.indexOf('date_of_birth'), -1);
 
-/* ---------- AND THE TWO HALVES OF IT LIVE IN DIFFERENT FILES -------------------------------------
-   `DATE_COLS` IN `constants.gs` DECIDES WHAT THE SERVER SENDS AS ISO; `FIELD_IS_DATE` IN `js/me.js`
-   DECIDES WHAT THE FORM DRAWS AS A PICKER. Nothing anywhere makes them agree, and they must: a
-   column in the list whose name does not match the regex gets an ISO value from the server and a
-   plain text box on the phone, so `2027-05-14` is what somebody is asked to edit and `14/05/2027`
-   is what they type — refused by `isoRefusal_`, which is a save that fails on a page that looks
-   fine. The reverse is worse and silent: a column that matches the regex but is NOT in the list
-   draws a picker and is sent whatever the cell holds, so a real Date opens it EMPTY and the next
-   save writes the empty over it.
-
-   THE REGEX IS READ OUT OF THE FILE rather than written again here, which is the whole point — a
-   copy of `/_date$/` in this check would agree with itself and with nothing else, the fault this
-   file's own header names about a second implementation. */
+/* ---------- AND THE TWO HALVES OF IT LIVE IN DIFFERENT FILES § */
 const reSrc = grab(me, /const FIELD_IS_DATE = \/[^\n]*\/;/, 'FIELD_IS_DATE in js/me.js');
 const FIELD_IS_DATE = new RegExp(reSrc.replace(/^.*?=\s*\//, '').replace(/\/;\s*$/, ''));
 box.DATE_COLS.forEach(f => {
@@ -468,10 +361,7 @@ box.DATE_COLS.forEach(f => {
 is('and it does NOT match `date_of_birth`, which is three boxes',
    FIELD_IS_DATE.test('date_of_birth'), false);
 
-/* ---------- THE PHOTOGRAPHS ---------------------------------------------------------------------
-   Every case is a way a gallery goes wrong without anything failing: a link that splits in two on
-   the next read, a picture drawn twice, a blank that becomes a hole in the grid, a note typed into a
-   link box drawn as a broken picture on a public card, and the face repeated under itself. */
+/* ---------- THE PHOTOGRAPHS § */
 const A = 'https://example.org/a.jpg', B = 'https://example.org/b.jpg', C = 'https://example.org/c.jpg';
 const pf = o => { const f = {}; for (let i = 1; i <= box.PMAX; i++) f['photos_' + i] = o[i] || ''; return f; };
 is('three photographs go out as three and come back as three',

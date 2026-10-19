@@ -1,53 +1,6 @@
 #!/usr/bin/env node
 require('./quiet');   // one line when green; -v or VERBOSE=1 for the whole report
-/* ==================================================================================================
-   @family. — check/splash.js
-
-   IS THE LOADING SCREEN STILL MOVING?
-
-   ASKED FOR AS "make animations more stable for loading", and the first thing to find out is what
-   was actually wrong — because there were two candidate answers and the measurement says one of
-   them is not true.
-
-   ---------------------------------------------------------------------------------------------
-   THE ONE THAT IS NOT TRUE: IT DOES NOT STUTTER.
-
-   `index.html`'s case for the splash is that *"the animation is CSS, so it runs even while the main
-   thread is busy parsing eighteen files"*. That is true of `transform` and `opacity`, which the
-   compositor runs on its own thread, and false of a `background`, a `box-shadow`, a colour or a
-   `width`, which the MAIN thread recomputes and repaints — the same thread parsing 566KB of
-   JavaScript and decoding a 3.4MB library at exactly that moment.
-
-   ASKED OF THE BROWSER, 23 of the 39 splashes animate at least one property the compositor cannot
-   run, and the worst of them runs 47 `background`-and-`box-shadow` animations at once. That reads
-   like a diagnosis and is not one. Measured at the moment of boot with the CPU throttled 6x and
-   then 20x, with the payload never answering so the splash stays up: **every splash moved in every
-   frame**, the 47-animation one exactly as much as the pure-`transform` one. There is no stutter to
-   fix, and writing the fix without taking the measurement would have been the `.mat-out` mistake —
-   two rules changed on a reading nobody had checked.
-
-   ---------------------------------------------------------------------------------------------
-   THE ONE THAT IS: SOME OF THEM STOP.
-
-   Measured at full speed, where nothing is competing for anything, four splashes are IDENTICAL from
-   one frame to the next for more than a third of their frames, and hold a single still picture for
-   up to a second at a time. `index.html` has already deleted a splash for exactly this, and its own
-   sentence is the standard: *"it read as a tartan square holding still, which is a picture rather
-   than an animation, and a loading screen that looks frozen reads as an app that has."*
-
-   A HOLD IS NOT AUTOMATICALLY A FAULT. Several of these teach something — standard form, the angle
-   at the centre — and a beat to read the result on is the point. That is why this PRINTS and does
-   not fail: which of them is a rhythm and which is a freeze is a judgement about the animation, and
-   the pool is the sheet's (`splashOff`, read by the picker in index.html). A number is something
-   somebody can act on; a silence is how a frozen loading screen stays in the pool.
-
-   AND IT IS NOT IN `npm run check`, for `check/load.js`'s reason: it drives a real browser and its
-   answer moves with what else the machine is doing, and a check whose result depends on that is a
-   check people learn to ignore.
-
-   RUN IT:  npm run splash          every splash, 8 seconds each — about six minutes
-            npm run splash -- is-sf is-pyth     just these
-================================================================================================== */
+/* @family. — check/splash.js IS THE LOADING SCREEN STILL MOVING? § */
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -65,13 +18,7 @@ const MIME = { '.html':'text/html', '.js':'text/javascript', '.css':'text/css',
 /* THE POOL, READ OFF index.html RATHER THAN LISTED HERE. A checker holding its own copy of the list
    it checks passes for ever the day somebody adds a splash — the sentence `check-spine.js` already
    carries. */
-/* ---------- AND NONE OF IT IS IN index.html ANY MORE ------------------------------------------------
-   THE SPLASHES ARE THE TEXTBOOKS' ANIMATIONS (data/textbooks.json), drawn from the copy a load keeps on
-   the device (`splashSync_` in shell.js). Half of the pool was an inline list in the picker until 10
-   Oct, when every splash that taught nothing was deleted (docs/history/322); the pool is now whatever
-   a REAL boot of the app saved — the app filling its own cache, not this file writing one it hopes
-   looks the same. This only asks that the picker is there to choose from it. A first visit's still
-   name is not in the pool and is not measured: it is meant to hold still (`check/anims.js` holds it). */
+/* ---------- AND NONE OF IT IS IN index.html ANY MORE § */
 function kinds() {
   const src = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   return /<script id="pick-splash">/.test(src) ? [] : null;
@@ -101,9 +48,7 @@ function serve() {
   const exe = ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
                '/opt/pw-browsers/chromium/chrome-linux/chrome'].find(p => fs.existsSync(p));
   const browser = await chromium.launch(exe ? { executablePath: exe } : {});
-  /* ONE CONTEXT FOR THE WHOLE RUN, because the device's copy of the books' drawings lives in its
-     storage. A real boot fills it first — the backend answering with the fixture, so `load()` reads
-     the books and `splashSync_` keeps them — and every page after it is the same device. */
+  /* ONE CONTEXT FOR THE WHOLE RUN, because the device's copy of the books' drawings lives in its storage. § */
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
   {
     const seed = await ctx.newPage();
@@ -134,11 +79,7 @@ function serve() {
     /* THE PAYLOAD NEVER ANSWERS, so the splash stays up for the whole run — which is the state this
        is about: somebody on a bad signal looking at the loading screen. */
     await page.route('**://script.google.com/**', () => {});
-    /* PICKED THE APP'S OWN WAY. `splashOff` is the switch the sheet already has and the picker in
-       index.html reads it BEFORE it picks — so seeding it with everything-but-one is the app
-       choosing rather than a hand on the element afterwards. Setting the class from a
-       DOMContentLoaded handler instead put this measurement wrong once: it runs after index.html's
-       own replay loop, which had already captured the animations of whatever the coin chose. */
+    /* PICKED THE APP'S OWN WAY. § */
     await page.addInitScript(off => {
       try { localStorage.setItem('splashOff', JSON.stringify(off)); } catch (e) {}
     }, ALL.filter(k => k !== kind));
@@ -162,9 +103,7 @@ function serve() {
       try { buf = await box.screenshot(); } catch (e) { break; }
       if (prev) {
         n++;
-        /* IDENTICAL BYTES IS THE WHOLE TEST. A PNG of the same pixels is the same PNG, and it is the
-           only question that can tell a compositor animation from a main-thread one: a page can be
-           busy and still be moving, and a page can be idle and be a photograph. */
+        /* IDENTICAL BYTES IS THE WHOLE TEST. § */
         if (Buffer.compare(prev, buf) === 0) { run++; worst = Math.max(worst, run); }
         else { moved++; run = 0; }
       }
@@ -178,10 +117,7 @@ function serve() {
   }
   await ctx.close();
 
-  /* ---------- WHAT IS WORTH LOOKING AT, AND IT IS A JUDGEMENT RATHER THAN A THRESHOLD ------------
-     A THIRD OF THE FRAMES IS THE LINE THIS PRINTS AT, and it is a place to start reading rather
-     than a rule: a splash that teaches something has earned a beat to read the answer on, and one
-     that is calm has earned a slow cycle. What it is not allowed to be is a picture. */
+  /* ---------- WHAT IS WORTH LOOKING AT, AND IT IS A JUDGEMENT RATHER THAN A THRESHOLD § */
   const dull = rows.filter(r => r.n && (r.n - r.moved) / r.n > 1 / 3)
                    .sort((a, b) => (b.n - b.moved) / b.n - (a.n - a.moved) / a.n);
   console.log(`\nSTILL FOR MORE THAN A THIRD OF THE TIME  (${dull.length})`);

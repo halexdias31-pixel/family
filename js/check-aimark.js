@@ -1,49 +1,5 @@
 #!/usr/bin/env node
-/* ==================================================================================================
-   node js/check-aimark.js — "MARK WITH AI", ASKED OF THE REAL BACKEND
-
-   ASKED FOR AS "add gemini marking system for worded questions." The phone half is `keypad.js` and
-   `check-flow.js` presses it; this is the half that holds a key and spends money, and every rule in
-   it is one that fails quietly if it fails at all:
-
-     · NO KEY IS A SENTENCE AND A CODE. `why: 'ai-off'` is what the phone greys the button on, and a
-       handler that threw instead would put "Backend: TypeError" under a student's answer.
-     · THE KEY NEVER LEAVES IN A URL. Google's examples put it in `?key=`, which writes it into every
-       log that records an address. It goes in `x-goog-api-key`, and this reads the request to see.
-     · THE MARK IS CLAMPED. A model can answer seven out of three; the reply must not.
-     · THE CAP IS PER PERSON PER DAY, against the id the TOKEN resolved to — and 0 is off.
-     · THE MODEL IS THE CONFIG CELL, and a blank cell is the fallback rather than an empty URL.
-     · A REFUSAL FROM GOOGLE DOES NOT CARRY GOOGLE'S WORDS, which for a bad key name the key's
-       project, back to a student.
-     · GOOGLE BEING FULL IS ASKED AGAIN (11 Oct, docs/history/344): *"Ai marking is not working right
-       now Gemini said 503."* A 429, any 5xx or a fetch that threw is asked again, a little later,
-       up to three times; then the fallback model, whose name the reply carries; a 400 or 403 is
-       never asked again; the waits are bounded and no ask starts past the budget; and the pupil
-       reads one sentence with no number in it, whatever went wrong.
-     · A PRESS THAT ENDS WITHOUT A MARK COSTS NO MARK, and two presses at the cap never give three
-       marks -- the count is taken under the lock before Gemini is asked and given back after.
-     · AND WHAT THE REVIEW OF 11 OCT FOUND (note 344, "After review"): a slow first model still leaves
-       the fallback its turn; 502 and 504 are Google's too; no status code reaches a pupil, and a broken
-       fallback behind a busy first model is "busy"; a 429 that says when is believed; the reply's
-       `model` is the one Google says answered; no sampling setting is sent; and a config row still
-       exactly as it was seeded with the alias is brought up to date.
-     · AND WHAT THE SECOND REVIEW (12 Oct) FOUND: nothing showed the day's tally is read and written
-       UNDER the script lock, in one hold. Every read and write of AI_MARKS is now recorded with its
-       hold; a lock that cannot be had is "busy", never "today's marks used"; a give-back that cannot
-       have it leaves the mark spent and logs why; and midnight and a throw during a press are cases.
-     · AND WHAT 12 OCT ADDED (note 350): *"ok the ai marking works but it takes so long. like 30 seconds or
-       whatever"*. Each model is sent the thinking level that is its lowest for a short answer and LOW for
-       an essay, from the two config cells over the defaults, and never `thinkingBudget`; a 400 to a
-       request that carried a level is asked once more at once without it, inside both clocks, and the
-       cell to change is logged; a 429 that says "later" -- a day's quota until midnight in Los Angeles,
-       a minute's for as long as it says -- is remembered between presses, so the next press goes straight
-       to the fallback, and the last model is always asked; and every press writes one timing line, with
-       no answer, name or id in it.
-
-   THROUGH THE REAL `doPost`, gate and all, over `check-gas-load.js` — the harness `check-profile.js`
-   wrote. Gemini is a stub that records what it was sent and answers what each case needs; nothing
-   here touches the network. The people are invented and their PINs are 0000.
-================================================================================================== */
+/* node js/check-aimark.js — "MARK WITH AI", ASKED OF THE REAL BACKEND § */
 'use strict';
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 const { backend } = require('./check-gas-load.js');
@@ -52,16 +8,7 @@ const KEY = 'test-key-not-a-real-one';
 const bad = [];
 let asked = 0;
 
-/* GEMINI, AS A STUB. `queue` is answered first, one reply a request, then `reply` for every request
-   after it; `{ threw: true }` is a fetch that throws, as `UrlFetchApp` does when it gets no answer at
-   all. `sent` is every request it received, with whether the script lock was held as it was sent and
-   the time on `clock` when it was. `during` runs once, inside the next request -- a second press
-   arriving while the first is waiting on Google, which is the only way one thread can be two.
-   `answer`, when set, answers by URL instead of by queue -- "the first model is full, the fallback is
-   not" -- for the cases where how many asks the first model gets is the thing being asked; and
-   `clock.per` may be a function of the URL, for a model that is slow and one that is not.
-   A reply may carry `version` (the response's `modelVersion`, the model Google says answered) and
-   `details` (the error's, where a 429's `RetryInfo` says when to come back). */
+/* GEMINI, AS A STUB. `queue` is answered first, one reply a request, then `reply` for every request after it; `{ threw: true }` is a fetch that throws, as § */
 const gem = { reply: null, queue: [], sent: [], slept: [], during: null, clock: null, log: [], answer: null,
               tally: [], refuse: null, day: null, sleepThrows: false, puts: [], wrong: [] };
 /* WHAT GOOGLE SAYS WITH EACH REFUSAL, as near its real words as a stub needs: the 400's names the key,
@@ -79,9 +26,7 @@ const GOOGLE_SAID = {
 let lockDepth = 0, hold = 0, holds = 0, tries = 0;
 const fetchStub = (url, opts) => {
   gem.sent.push({ url: url, opts: opts, locked: lockDepth > 0, at: gem.clock ? gem.clock.now : 0 });
-  /* EVERY REQUEST, IN EVERY CASE, IS ASKED THIS (12 Oct): never `thinkingBudget`, and a `thinkingConfig`
-     that is exactly one `thinkingLevel` from Google's vocabulary -- a budget beside a level is a
-     documented 400, and 3.5 Flash-Lite answers 400 to a budget of 0 (docs/history/350). */
+  /* EVERY REQUEST, IN EVERY CASE, IS ASKED THIS (12 Oct): § */
   {
     let g = {};
     try { g = JSON.parse(opts.payload).generationConfig || {}; } catch (e) { g = {}; }
@@ -101,12 +46,7 @@ const fetchStub = (url, opts) => {
                                             r.details ? { details: r.details } : {}) });
   return { getResponseCode: () => r.code, getContentText: () => text };
 };
-/* THE SCRIPT LOCK, COUNTED. It grants, as the harness's always did -- what it adds is whether it was
-   HELD when Gemini was asked, because a lock held across the asking is every saved answer on the site
-   waiting behind one pupil's essay. And, since the review of 12 Oct, WHICH HOLD: `hold` numbers each time
-   it is taken from free (0 while nobody has it), so the tally's read and the write worked out from it can
-   be asked to be one hold -- a lock let go between them is no lock. `gem.refuse(n)`, when set, makes the
-   n-th tryLock of a press answer false, as a real one does when somebody else kept it past the wait. */
+/* THE SCRIPT LOCK, COUNTED. § */
 const lockStub = { getScriptLock: () => {
   let mine = false;
   const take = () => {
@@ -135,9 +75,7 @@ function world(config) {
   /* THE DAY, WHEN A CASE SAYS SO: `gem.day` is London's `yyyy-MM-dd` for the tally, so a case can let
      midnight come while a press is with Gemini. Everything else is the harness's. */
   const U = b.ev('Utilities'), fmt = U.formatDate;
-  /* AND THE TIME OF DAY IN A ZONE, AS APPS SCRIPT GIVES IT (12 Oct): `aiPacificMidnight_` asks
-     America/Los_Angeles for `HH:mm:ss` to find when a day's Gemini quota comes back. The harness's own
-     formatDate answers every other pattern with an ISO stamp in UTC, which would test nothing. */
+  /* AND THE TIME OF DAY IN A ZONE, AS APPS SCRIPT GIVES IT (12 Oct): § */
   const hms = (d, tz) => new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).format(new Date(d));
   U.formatDate = (d, tz, f) => (f === 'yyyy-MM-dd' && gem.day ? gem.day : f === 'HH:mm:ss' ? hms(d, tz) : fmt(d, tz, f));
   /* THE SCRIPT CACHE'S PUTS, RECORDED WITH THEIR EXPIRY (12 Oct): the harness's cache keeps what it is given
@@ -147,11 +85,7 @@ function world(config) {
     const c = cacheOf();
     return Object.assign({}, c, { put: (k, v, ttl) => { gem.puts.push({ k: k, v: v, ttl: ttl }); return c.put(k, v, ttl); } });
   };
-  /* AI_MARKS, WATCHED (the review of 12 Oct). Every read and write of the day's tally is recorded with the
-     lock hold it was made in, over the harness's own store -- so `b.props` is still Script Properties.
-     Nothing here showed the tally was changed under the lock: the lock could be taken out of the take or
-     the give-back and every case above stayed green, and in Apps Script that is two presses a second
-     apart both reading 19 and both writing 20. */
+  /* AI_MARKS, WATCHED (the review of 12 Oct). § */
   const P = b.ev('PropertiesService'), store = P.getScriptProperties;
   P.getScriptProperties = () => {
     const s = store();
@@ -184,10 +118,7 @@ function world(config) {
   return { b, ask };
 }
 
-/* EVERY READ AND WRITE OF THE DAY'S TALLY UNDER THE SCRIPT LOCK, AND EACH WRITE IN THE SAME HOLD AS THE READ
-   IT WAS WORKED OUT FROM. `writes`, when given, is how many writes there should have been since the case
-   emptied `gem.tally`: one for a mark (the take), two for a press that ended without one (the take and the
-   give-back). */
+/* EVERY READ AND WRITE OF THE DAY'S TALLY UNDER THE SCRIPT LOCK, AND EACH WRITE IN THE SAME HOLD AS THE READ IT WAS WORKED OUT FROM. § */
 function tallyHeld(what, writes) {
   const ops = gem.tally;
   const loose = ops.filter(x => !x.hold);
@@ -257,9 +188,7 @@ function tallyHeld(what, writes) {
     try { body = JSON.parse(s.opts.payload); } catch (e) { bad.push('the request body was not JSON'); }
     const gc = body.generationConfig || {};
     if (gc.responseMimeType !== 'application/json') bad.push('responseMimeType is ' + gc.responseMimeType + ' — wanted application/json');
-    /* NO SAMPLING SETTING (the review of 11 Oct): Google stopped honouring temperature, topP and topK with
-       3.6 Flash and 3.5 Flash-Lite and says later models will answer 400 to them -- and a 400 is neither
-       asked again nor handed to the fallback, so the line that did nothing would one day stop marking. */
+    /* NO SAMPLING SETTING (the review of 11 Oct): § */
     const sampling = ['temperature', 'topP', 'topK', 'top_p', 'top_k'].filter(k => k in gc);
     if (sampling.length) bad.push('generationConfig carries ' + sampling.join(', ') + ' — current models ignore it and later ones answer 400 to it (aiMarkAsk_)');
     const text = JSON.stringify(body.contents || []);
@@ -283,9 +212,7 @@ function tallyHeld(what, writes) {
   ask('s1@example.org'); ask('s1@example.org');
   const third = ask('s1@example.org');
   if (third.success !== false || third.why !== 'ai-cap') bad.push('a third mark with a cap of 2 answered ' + JSON.stringify(third) + ' — wanted why: "ai-cap"');
-  /* THE OTHER SAM, who shares a display name and has a token of their own: the cap is the id the
-     token resolved to, so their first mark is their first — and the `personId: 'P-S1'` the request
-     claims is overwritten by the gate rather than believed. */
+  /* THE OTHER SAM, who shares a display name and has a token of their own: § */
   const other = ask('s2@example.org');
   if (!other.success) bad.push('a second student who shares a name was refused by the first one’s cap — ' + JSON.stringify(other));
 }
@@ -310,14 +237,7 @@ function tallyHeld(what, writes) {
   if (d.success !== false || d.why !== 'ai-cap' || gem.sent.length) bad.push('a cap of 0 still marked — 0 is how the owner switches it off without the key');
 }
 
-/* ---------- AN ESSAY: THE WHOLE OF IT, MARKED ON ITS LEVELS ----------------------------------------------
-   THE OWNER, 9 Oct: *"i want it to mark with ai. gemini."* -- a forty-mark creative writing answer, which
-   this action used to cut at 2,000 characters and mark as one number and one sentence. Asked here: a
-   6,000-character essay reaches Gemini WHOLE, its last words and all; the question and the scheme go to
-   8,000 rather than 4,000 and 3,000; an essay asks for each strand on its own levels and for two or three
-   points; the strands are clamped to their own ceilings and SUMMED, and believed only when their ceilings
-   add up to the question's; a fourth point is dropped; an answer past the ceiling is refused, not cut,
-   before Gemini is asked or a mark is spent; and the phone's ceilings are the server's. */
+/* ---------- AN ESSAY: THE WHOLE OF IT, MARKED ON ITS LEVELS § */
 {
   const { b, ask } = world({ ai_marks_per_day: 5 });
   b.props.GEMINI_API_KEY = KEY;
@@ -392,11 +312,7 @@ function tallyHeld(what, writes) {
   gem.reply = null;
 }
 
-/* ---------- NO TOTAL AND STRANDS THAT DO NOT ADD UP IS NOT A NOUGHT ------------------------------------
-   A reply that breaks the schema -- no `awarded`, a blank one, a word -- with no breakdown to sum was
-   drawn as "0 of 40 marks · AI"; it is a "try again" (the review of 9 Oct). Its own world, because each
-   of these spent one of the day's marks as a real one would -- until 11 Oct, when a press that ends
-   without a mark gives its count back. So the real nought after them is the FIRST mark of the ten. */
+/* ---------- NO TOTAL AND STRANDS THAT DO NOT ADD UP IS NOT A NOUGHT § */
 {
   const { b, ask } = world({ ai_marks_per_day: 10 });
   b.props.GEMINI_API_KEY = KEY;
@@ -417,11 +333,7 @@ function tallyHeld(what, writes) {
   gem.reply = null;
 }
 
-/* ---------- GOOGLE IS FULL: ASKED AGAIN, THEN ANOTHER MODEL, AND NO MARK SPENT ON IT ---------------------
-   THE OWNER, 11 Oct: *"Ai marking is not working right now Gemini said 503."* A pupil's press on a maths
-   question was asked of Gemini once; its 503 -- "the model is overloaded", Google's capacity and not the
-   key -- was the answer, and the press cost one of the day's marks. Each case below is one world with a
-   cap of 6, so `left` says exactly how many marks the cases before it spent. */
+/* ---------- GOOGLE IS FULL: ASKED AGAIN, THEN ANOTHER MODEL, AND NO MARK SPENT ON IT § */
 {
   const { b, ask } = world({ ai_marks_per_day: 6 });
   b.props.GEMINI_API_KEY = KEY;
@@ -487,9 +399,7 @@ function tallyHeld(what, writes) {
   gem.reply = { threw: true };
   d = ask('s1@example.org');
   if (d.success !== false || !/could not reach gemini/i.test(String(d.message)) || gem.sent.length !== 6) bad.push('six fetches that threw answered ' + JSON.stringify(d).slice(0, 160) + ' after ' + gem.sent.length + ' asks — wanted six asks and "Could not reach Gemini"');
-  /* AFTER ALL OF THAT: the 503 storm and the six throws gave no mark and spent none, and one more storm
-     here spends none either. Five marks given -- the 503-then-200, the fallback, the 500, the 429 and
-     the throw-then-200 -- so the sixth press is marked with nothing left, and the seventh is the cap. */
+  /* AFTER ALL OF THAT: the 503 storm and the six throws gave no mark and spent none, and one more storm here spends none either. § */
   fresh();
   gem.reply = { code: 503 };
   ask('s1@example.org');
@@ -500,10 +410,7 @@ function tallyHeld(what, writes) {
   if (d.success !== false || d.why !== 'ai-cap') bad.push('six marks given and a seventh press answered ' + JSON.stringify(d).slice(0, 160) + ' — wanted the cap');
 }
 {
-  /* A BAD KEY OR A BAD REQUEST IS NOT ASKED AGAIN, AND COSTS NOTHING. SINCE 12 OCT one exception, and only
-     for a 400: a request that carried a thinking level is asked ONCE more, at once, of the same model
-     without it -- the level may be what was refused (docs/history/350) -- and a second 400 stops as
-     before. A 403 is the account, and no level is the matter with it. */
+  /* A BAD KEY OR A BAD REQUEST IS NOT ASKED AGAIN, AND COSTS NOTHING. § */
   const { b, ask } = world({ ai_marks_per_day: 2 });
   b.props.GEMINI_API_KEY = KEY;
   [400, 403].forEach(code => {
@@ -586,11 +493,7 @@ function tallyHeld(what, writes) {
   if (!row('gemini_model') || row('gemini_model')[v] !== b.ev('AI_MODEL')) bad.push('ensureSchema seeded gemini_model as ' + JSON.stringify((row('gemini_model') || [])[v]) + ' — wanted ' + b.ev('AI_MODEL'));
 }
 {
-  /* THE WAITS ARE BOUNDED AND JITTERED, AND NO ASK STARTS PAST THE BUDGET. Two hundred 503 storms:
-     every wait inside its ±30%, the waits not all the same (a jitter of nothing is a hundred phones
-     coming back in the same millisecond), at most 7.28 s in all. Then a Gemini that takes 7 s to say
-     503: the clock moves with each ask and each wait, and no ask may START later than AI_BUDGET_MS
-     after the first. */
+  /* THE WAITS ARE BOUNDED AND JITTERED, AND NO ASK STARTS PAST THE BUDGET. § */
   const { b, ask } = world({ ai_marks_per_day: 1000 });
   b.props.GEMINI_API_KEY = KEY;
   const BUDGET = b.ev('AI_BUDGET_MS');
@@ -622,10 +525,7 @@ function tallyHeld(what, writes) {
   } finally { Date.now = real; gem.clock = null; gem.reply = null; }
 }
 {
-  /* TWO PRESSES AT THE CAP NEVER GIVE THREE MARKS. One thread cannot race itself, so the second press is
-     made from INSIDE the first one's request to Gemini -- exactly where it would land in Apps Script,
-     with the first press's count already taken and the lock already let go. A count taken after the
-     mark would let both through; a lock held across the asking shows up in `locked`. */
+  /* TWO PRESSES AT THE CAP NEVER GIVE THREE MARKS. § */
   const { b, ask } = world({ ai_marks_per_day: 2 });
   b.props.GEMINI_API_KEY = KEY;
   gem.reply = null; gem.queue.length = 0; gem.sent.length = 0; gem.tally.length = 0;
@@ -660,9 +560,7 @@ function tallyHeld(what, writes) {
   tallyHeld('a failed press holding the last mark, with a press inside it', 4);
 }
 
-/* ---------- AFTER REVIEW (11 Oct, note 344): WHAT THE FIRST BUILD STILL GOT WRONG ---------------------
-   Each case here was red against the first build and is the reviewer's reproduction, run through the
-   real `doPost` instead of a probe beside it. */
+/* ---------- AFTER REVIEW (11 Oct, note 344): WHAT THE FIRST BUILD STILL GOT WRONG § */
 {
   const { b, ask } = world({ ai_marks_per_day: 1000 });
   b.props.GEMINI_API_KEY = KEY;
@@ -684,10 +582,7 @@ function tallyHeld(what, writes) {
     try { return ask('s1@example.org'); } finally { Date.now = real; gem.answer = null; }
   };
 
-  /* 1. A SLOW FIRST MODEL STILL LEAVES THE FALLBACK ITS TURN. The first build RETURNED when the next
-     retry's wait would cross the budget, so a first model refusing at 9 s an ask was asked twice and the
-     fallback -- the point of having one -- never; and at 7 s an ask the first model's three asks used
-     the whole 20 s on their own. */
+  /* 1. A SLOW FIRST MODEL STILL LEAVES THE FALLBACK ITS TURN. § */
   if (HANDOFF == null || !(HANDOFF > 0 && HANDOFF < BUDGET)) bad.push('AI_HANDOFF_MS is ' + HANDOFF + ' — wanted a time inside the budget after which the first model is not asked again, so the fallback can still start');
   [9000, 7000].forEach(per => {
     const r = timed(per, url => url === to(BACK) ? MARK : { code: 503 });
@@ -699,9 +594,7 @@ function tallyHeld(what, writes) {
   });
   gem.clock = null;
 
-  /* 2. THE BOUND THE NOTE STATES: no ask starts after the budget, and a press ends inside the budget plus
-     its last ask's own length. A first ask refused at 18.5 s and a fallback that hangs until UrlFetchApp
-     gives up (about a minute) ends near 80 s -- the honest worst case, which "about 21 s" was not. */
+  /* 2. THE BOUND THE NOTE STATES: § */
   const r2 = timed(url => url === to(FIRST) ? 18500 : 60000, url => url === to(FIRST) ? { code: 503 } : { threw: true });
   const starts = gem.sent.map(x => x.at - gem.sent[0].at);
   if (starts.some(t => t > BUDGET)) bad.push('an ask started at ' + starts.join(', ') + ' ms — none may start past ' + BUDGET);
@@ -709,9 +602,7 @@ function tallyHeld(what, writes) {
   if (r2.message !== BUSY) bad.push('a busy first model and a fallback that hung answered ' + JSON.stringify(r2.message) + ' — wanted "' + BUSY + '": the first model was busy, and that will pass');
   gem.clock = null;
 
-  /* 3. 502 AND 504 ARE GOOGLE'S, NOT THE OWNER'S. The first build took any 5xx but 500 and 503 for a bad
-     key: asked once, no fallback, and "Gemini said 504" to the pupil. A 504 is Google's deadline, which
-     the faster fallback may meet; a 502 is a gateway passing. */
+  /* 3. 502 AND 504 ARE GOOGLE'S, NOT THE OWNER'S. § */
   fresh();
   gem.queue.push({ code: 502 }, MARK);
   let r = ask('s1@example.org');
@@ -725,9 +616,7 @@ function tallyHeld(what, writes) {
   r = ask('s1@example.org');
   if (r.message !== BUSY) bad.push('504 from everything answered ' + JSON.stringify(r.message) + ' — wanted "' + BUSY + '"');
 
-  /* 4. NO STATUS CODE REACHES A PUPIL, and a broken fallback behind a busy first model is "busy": the
-     first model will be back, and "Gemini said 404" about a model the pupil never asked for is the
-     owner's news, told loudly in the log. */
+  /* 4. NO STATUS CODE REACHES A PUPIL, and a broken fallback behind a busy first model is "busy": § */
   fresh();
   gem.answer = url => url === to(BACK) ? { code: 404 } : { code: 503 };
   r = ask('s1@example.org');
@@ -742,10 +631,7 @@ function tallyHeld(what, writes) {
     if (/\d/.test(String(x.message))) bad.push('a ' + code + ' from everything told the pupil "' + x.message + '" — a status code is the owner\'s, in the log');
   });
 
-  /* 5. A 429 THAT SAYS WHEN IS BELIEVED. On the Gemini API a 429 is that model's quota -- a minute's or a
-     day's -- and its RetryInfo says when it comes back; a model that will not be back before its next ask
-     is not asked again, and the fallback, whose quota is its own, is asked at once. A 429 that says
-     nothing, or says sooner than the next ask, is asked again as before. */
+  /* 5. A 429 THAT SAYS WHEN IS BELIEVED. § */
   /* A MINUTE'S QUOTA unless a case says otherwise: since 12 Oct a DAY's is never asked again in the press,
      whatever its RetryInfo says, and has its own cases below. */
   const quota = (d, id) => ({ code: 429, details: [
@@ -760,9 +646,7 @@ function tallyHeld(what, writes) {
   r = ask('s1@example.org');
   if (!r.success || urls() !== 'first,first') bad.push('a 429 saying "retry in 0.2s" asked ' + urls() + ' — wanted the first model again, after the usual wait');
 
-  /* 6. THE MODEL THAT ANSWERED, NOT THE NAME THAT WAS ASKED. Google now retires a name by routing it to a
-     newer model rather than refusing it (8 Oct: 3.7 Flash to 3.8 Flash), and a 200 shows only that the
-     name was accepted; `modelVersion` says who marked it. */
+  /* 6. THE MODEL THAT ANSWERED, NOT THE NAME THAT WAS ASKED. § */
   fresh();
   gem.queue.push(Object.assign({ version: 'gemini-9.9-flash' }, MARK));
   r = ask('s1@example.org');
@@ -781,10 +665,7 @@ function tallyHeld(what, writes) {
   gem.reply = null; gem.answer = null;
 }
 {
-  /* 7. A CONFIG ROW STILL EXACTLY AS IT WAS SEEDED IS BROUGHT UP TO DATE -- value and note -- so the sheet
-     says which model marks. `seedConfig` never rewrites a value somebody set; a row whose value AND note
-     are both the old seed's is one nobody set. A row whose note was changed, or whose value was, is left
-     as the owner left it. */
+  /* 7. A CONFIG ROW STILL EXACTLY AS IT WAS SEEDED IS BROUGHT UP TO DATE -- value and note -- so the sheet says which model marks. § */
   const OLD_NOTE = 'the Gemini model that marks worded answers. Blank = gemini-flash-latest. The API KEY never goes here: it is GEMINI_API_KEY in Script Properties';
   const seeded = (value, note) => {
     const { b } = world();
@@ -802,13 +683,7 @@ function tallyHeld(what, writes) {
   if (typed.value !== 'gemini-test-model') bad.push('ensureSchema rewrote a model name the owner typed: ' + JSON.stringify(typed.value));
 }
 
-/* ---------- AFTER REVIEW, ROUND 2 (12 Oct, note 344): THE TALLY IS CHANGED UNDER THE LOCK -------------------
-   The brief asked for proof that presses near the cap never over-spend under LockService. The cases above
-   proved the count is taken before the asking and the lock let go during it -- never that the lock IS held
-   while the tally changes: with LockService taken out of `aiMarkTally_`, or the give-back writing the
-   property itself, every one of them stayed green. Each case here was red against one of those, or
-   against what came with them: a lock that cannot be had read as the day's marks used, a give-back that
-   cannot have it, midnight during a press, and a throw. */
+/* ---------- AFTER REVIEW, ROUND 2 (12 Oct, note 344): THE TALLY IS CHANGED UNDER THE LOCK § */
 {
   const { b, ask } = world({ ai_marks_per_day: 3 });
   b.props.GEMINI_API_KEY = KEY;
@@ -832,9 +707,7 @@ function tallyHeld(what, writes) {
   if (new Set(gem.tally.map(x => x.hold)).size !== 2) bad.push('everything 503 changed the tally in ' + new Set(gem.tally.map(x => x.hold)).size + ' hold(s) of the lock — wanted two: the take and the give-back, and the lock let go between them');
   if (spent() !== 1) bad.push('a mark and a storm and the tally says ' + spent() + ' — wanted 1');
 
-  /* 3. THE LOCK CANNOT BE HAD AT THE TAKE: refused, without Gemini, without touching the tally -- and told
-     it is busy, not that the day's marks are used. Until 12 Oct it was "That is today's 3 AI marks used —
-     they come back tomorrow" with two left. */
+  /* 3. THE LOCK CANNOT BE HAD AT THE TAKE: § */
   fresh();
   gem.refuse = n => n === 1;
   d = ask('s1@example.org');
@@ -862,9 +735,7 @@ function tallyHeld(what, writes) {
     + JSON.stringify([d.success && d.left, over.why]) + ' — wanted a mark with 0 left, then the cap');
 }
 {
-  /* 5. MIDNIGHT WHILE A PRESS IS WITH GEMINI. Taken from the 11th; while it waits the 12th begins and a
-     press on the 12th is marked; then it fails. Its give-back finds the 12th's tally and must leave it
-     alone -- taking it off the 12th's would make that day's cap one wider. */
+  /* 5. MIDNIGHT WHILE A PRESS IS WITH GEMINI. § */
   const { b, ask } = world({ ai_marks_per_day: 2 });
   b.props.GEMINI_API_KEY = KEY;
   const BUSY = b.ev('AI_BUSY');
@@ -888,9 +759,7 @@ function tallyHeld(what, writes) {
   } finally { gem.day = null; gem.reply = null; gem.during = null; }
 }
 {
-  /* 6. A THROW ON THE WAY GIVES THE COUNT BACK TOO -- which is why the give-back is a `finally` and not a
-     line after the call. Here the wait between two asks throws: the one call in the asking that is not
-     inside a try of its own. */
+  /* 6. A THROW ON THE WAY GIVES THE COUNT BACK TOO -- which is why the give-back is a `finally` and not a line after the call. § */
   const { b, ask } = world({ ai_marks_per_day: 2 });
   b.props.GEMINI_API_KEY = KEY;
   gem.sent.length = 0; gem.slept.length = 0; gem.queue.length = 0; gem.log.length = 0; gem.tally.length = 0; gem.refuse = null;
@@ -904,12 +773,7 @@ function tallyHeld(what, writes) {
   if (!next.success || next.left !== 1) bad.push('a press that threw on the way, then a mark, left ' + next.left + ' of 2 — wanted 1: the throw gives its count back');
 }
 
-/* ---------- 12 OCT: AN ANSWER IN SECONDS (docs/history/350) --------------------------------------------------
-   THE OWNER, the day the 503 fix went live: *"ok the ai marking works but it takes so long. like 30 seconds
-   or whatever"*. Sent no thinking level, 3.8 Flash thinks at its own MEDIUM on every press. Three changes,
-   each held here: the level each model is sent, by kind of answer, with a level refused asked again at once
-   without it; a 429 that says "later" remembered between presses, so the next press goes straight to the
-   fallback until Google's day turns over; and one timing line per press, with no learner data in it. */
+/* ---------- 12 OCT: AN ANSWER IN SECONDS (docs/history/350) § */
 const levelOf = x => { try { const tc = (JSON.parse(x.opts.payload).generationConfig || {}).thinkingConfig; return tc ? tc.thinkingLevel : 'none'; } catch (e) { return '?'; } };
 const toModel = m => 'https://generativelanguage.googleapis.com/v1beta/models/' + m + ':generateContent';
 const SHORT_MARK = { code: 200, body: { awarded: 2, feedback: 'You named the faster particles.' } };
@@ -969,9 +833,7 @@ const fresh12 = b => { gem.sent.length = 0; gem.slept.length = 0; gem.queue.leng
   });
 }
 {
-  /* 2. A LEVEL REFUSED DOES NOT STOP MARKING. Until 12 Oct no level was sent BECAUSE a 400 is neither asked
-     again nor handed to the fallback. Now a 400 to a request that carried one is asked once more, at once, of
-     the same model without it: not one of AI_TRIES, no wait, inside both clocks -- and the log names the cell. */
+  /* 2. A LEVEL REFUSED DOES NOT STOP MARKING. § */
   const { b, ask } = world({ ai_marks_per_day: 50 });
   b.props.GEMINI_API_KEY = KEY;
   const FIRST = b.ev('AI_MODEL'), BACK = b.ev('AI_MODEL_FALLBACK'), HANDOFF = b.ev('AI_HANDOFF_MS');
@@ -1028,11 +890,7 @@ const fresh12 = b => { gem.sent.length = 0; gem.slept.length = 0; gem.queue.leng
   gem.answer = null;
 }
 {
-  /* 3. A 429 THAT SAYS "LATER" IS REMEMBERED BETWEEN PRESSES. On a free key the first model's day is about
-     twenty requests, and every press after it asked the spent model first and was refused; a day's 429
-     whose RetryInfo said "1s" was asked twice more, with waits. The clock starts at 13:39:04 UTC on
-     12 Oct 2026 -- the owner's own message -- which is 06:39:04 in Los Angeles, so the day's quota is back
-     at 07:00:00 UTC on the 13th. */
+  /* 3. A 429 THAT SAYS "LATER" IS REMEMBERED BETWEEN PRESSES. § */
   const { b, ask } = world({ ai_marks_per_day: 1000 });
   b.props.GEMINI_API_KEY = KEY;
   const FIRST = b.ev('AI_MODEL'), BACK = b.ev('AI_MODEL_FALLBACK'), BUSY = b.ev('AI_BUSY'), MAX_S = b.ev('AI_SPENT_MAX_S');

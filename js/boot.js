@@ -1,30 +1,7 @@
-/* ==================================================================================================
-   @family. — boot.js
-   ONE FILE, SPLIT. Every file here shares a single global scope, exactly as before: index.html
-   loads them in order and the browser concatenates them. Nothing was renamed, nothing was moved
-   between files, and no import/export exists — which is why this split cannot have changed
-   behaviour. The only thing that changed is where the newlines are.
-
-   THE ONE RULE, and the only way to break it: a file must not be REORDERED against the others.
-   boot.js is number 18 of 18. index.html lists them; the list is the order.
-
-   WHAT REPLACES THE COMPILER. Nothing here fails at load if a name is missing — that is the cost
-   of plain scripts over modules, and it is paid by check.js, which reads every file and reports
-   any name used but never declared. Run it after every change; it is two seconds and it is the
-   whole safety net.
-================================================================================================== */
+/* @family. — boot.js ONE FILE, SPLIT. § */
 
 
-/* ================================================================================================
-   AND GO.
-
-   THE LAST LINES IN THE FILE, deliberately. `go()` draws a screen, and a screen only exists once
-   its `screen(...)` call has run — so starting anywhere above them means drawing a table that has
-   not been filled in yet. It did, for weeks: every tab said "Nothing here yet" until the first
-   fetch returned, which looked like an empty database rather than an app that had not started.
-
-   Everything below a boot line is a thing the boot cannot see. So there is nothing below it.
-================================================================================================ */
+/* AND GO. THE LAST LINES IN THE FILE, deliberately. § */
 try {
 
   go(AT, false);
@@ -34,34 +11,16 @@ try {
      by a network error a moment later. */
   bootFailed(err, 'drawing the first screen');
 
-  /* AND THEN CARRY ON AS FAR AS IT CAN.
-
-     This threw the error onward, which stopped everything after it — `load()` never ran, and the
-     app sat on the message. That is right if the first screen could not be drawn at all: there is
-     nothing to put data into.
-
-     It is wrong when ONE screen threw and the others drew perfectly, which is the ordinary case —
-     a missing file breaks the screen that needed it and leaves the rest working. Stopping there
-     turns one broken tab into a dead app, and everything somebody could still have used goes with
-     it. The message is on screen either way; the difference is whether the parts that work, work.
-
-     So: placed anyway, so the cells that did draw are where they should be and can be swiped and
-     pressed, and the payload is still fetched. Broken in one place beats dead in all of them. */
+  /* AND THEN CARRY ON AS FAR AS IT CAN. § */
   try { placeCells('x', true); } catch (err2) {}
 }
 
 load();
 
-/* ---------- AND FROM HERE ON, WHETHER THIS IS STILL THE CURRENT BUILD ---------------------------
-   AFTER `load()`, because it is a HEAD against the entry point and the payload is what the app
-   actually needs first. See the long note over `watchBuild_`: a phone showed a fifteen-hour-old
-   Reels column an hour after the new one had deployed, and nothing anywhere could say so. */
+/* ---------- AND FROM HERE ON, WHETHER THIS IS STILL THE CURRENT BUILD § */
 try { watchBuild_(); } catch (e) {}
 
-/* ---------- AND AN ACCOUNT ARRIVING FROM ITS CONFIRMATION EMAIL ---------------------------------
-   `?verify=<token>` is the link `register` mails. AFTER `load()` for the same reason as the line
-   above — the payload is what the app needs first — and it needs nothing from it, so it does not
-   wait for it either. See `verifyFromLink_` in me.js. */
+/* ---------- AND AN ACCOUNT ARRIVING FROM ITS CONFIRMATION EMAIL § */
 try { verifyFromLink_(); } catch (e) {}
 /* AND `?signin=<key>`, the link in a forgotten-PIN email — see `pinFromLink_` in me.js. Same reasons. */
 try { pinFromLink_(); } catch (e) {}

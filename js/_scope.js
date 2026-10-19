@@ -95,10 +95,7 @@ function freeVars(nodes){
 }
 module.exports={freeVars,pat};
 
-/* FREE NAMES THAT ACTUALLY EVALUATE NOW — the same walk, except it does not go inside a function
-   or an arrow body. A name mentioned inside `const f = () => USER.name` is not read until f is
-   called; a name in `const n = USER.name` is read this instant. Only the second can be in a
-   temporal dead zone, and treating them alike reported twelve faults that were not there. */
+/* FREE NAMES THAT ACTUALLY EVALUATE NOW — the same walk, except it does not go inside a function or an arrow body. § */
 function eagerFree(nodes){
   const out=new Set();
   const bound=[new Set()];

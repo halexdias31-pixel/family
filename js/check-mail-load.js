@@ -1,37 +1,11 @@
-/* ==================================================================================================
-   @family. — check-mail-load.js   THE BACKEND WITH ITS MAIL, TRIGGERS, LOCK AND CLOCK STUBBED
-
-   NOT A CHECK — a harness, like `check-gas-load.js` underneath it, and not on the roster in
-   check-all.js. LIFTED OUT OF `check-digest.js`, WHICH WROTE IT, the day a second parent email needed
-   it. That email (after each session, then every day of work) was removed on 8 Oct — docs/history/295
-   — and its check with it; check-digest.js is the one user again, and the harness stays a file of its
-   own because it is a world, not a list of rules.
-
-     · THE RECEIPT THE MAIL STUB LOOKS FOR IS A PARAMETER. `world({ receipt: { tab, keyCol } })` —
-       `digest_log` / `week_of` by default, the weekly email's. A send with no row for that address
-       saying `sending`, under a well-formed key, at the moment of sending, is recorded in
-       `mail.unreceipted`; a send while the lock is held, in `mail.locked`.
-     · THE TRIGGER STUB KNOWS `everyHours`, so a check can book the kind of hourly trigger
-       `installWeeklyDigest` must take away (`DIGEST_RETIRED_RUNS`); and `after`, with an id per trigger,
-       so a check can book the one-offs the old marking pass's run-up left (gone since 18 Oct).
-     · `formatDate` ANSWERS `yyyy-MM-dd HH:mm` IN THE ZONE NAMED, as well as `yyyy-MM-dd`, so a London
-       clock is never quietly a UTC one — the whole of the summer question.
-
-   AND THE STATIC READERS check-digest's "nothing starts it" section wrote — `strip`, `calls`,
-   `mentions`, `unquote`. Every person the check invents is invented, and every PIN is 0000.
-================================================================================================== */
+/* @family. — check-mail-load.js THE BACKEND WITH ITS MAIL, TRIGGERS, LOCK AND CLOCK STUBBED § */
 'use strict';
 const path = require('path');
 const { backend } = require('./check-gas-load.js');
 
 const REPO = path.resolve(__dirname, '..');
 
-/* ---------- A CALENDAR THAT KNOWS WHERE LONDON IS --------------------------------------------------
-   THE HARNESS'S `formatDate` IS UTC WHATEVER ZONE IT IS ASKED FOR, which is right for what it was
-   written for and would make these checks unable to tell a London day from a UTC one — the whole of the
-   BST question. So here `yyyy-MM-dd` (and `yyyy-MM-dd HH:mm`) is answered in the zone named, by the
-   same tz database a browser uses. A backend that asked for UTC (or never asked) gets UTC, and the
-   summer cases catch it. */
+/* ---------- A CALENDAR THAT KNOWS WHERE LONDON IS § */
 const dayIn = (d, tz) => {
   try {
     return new Intl.DateTimeFormat('en-CA', { timeZone: tz || 'UTC', year: 'numeric', month: '2-digit', day: '2-digit' })
@@ -54,12 +28,7 @@ function world(opts) {
   opts = opts || {};
   const receipt = opts.receipt || { tab: 'digest_log', keyCol: 'week_of' };
   const mail = { sent: [], quota: opts.quota == null ? 100 : opts.quota, fail: false, unreceipted: [], locked: [] };
-  /* THE RECEIPT IS ASKED FOR AT THE MOMENT OF SENDING. At-most-once is "the log says `sending` before
-     the email goes", and a check that only read the log afterwards could not tell that order from the
-     reverse — sending first and writing `sent` after passed it. So the stub looks at the log itself:
-     a row for this address, under a well-formed key, saying `sending`, or the send is recorded as
-     unreceipted. And the lock: an email sent while the run holds it is the whole mailing holding up
-     the site. */
+  /* THE RECEIPT IS ASKED FOR AT THE MOMENT OF SENDING. § */
   let tabsRef = null;
   const MailApp = {
     sendEmail(m) {
@@ -133,11 +102,7 @@ const rowsOf = (b, tab) => {
 };
 const at = s => new RealDate(s).getTime();
 
-/* ---------- READING THE SOURCE FOR WHO NAMES WHAT ------------------------------------------------------
-   Comments out; strings blanked by `unquote`, because "run weeklyDigestRun again" in a message is an
-   instruction to a person, not a call. `calls` is a name followed by `(`; `mentions` is every
-   word-bounded use, because `sunday: installWeeklyDigest,` in RUNNABLE calls nothing in the text and
-   books the trigger from `?run=sunday`. Both skip the function's own declaration. */
+/* ---------- READING THE SOURCE FOR WHO NAMES WHAT § */
 const strip = t => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
 const calls = (src, name) => [...src.matchAll(new RegExp('(^|[^\\w.])' + name + '\\s*\\(', 'g'))]
   .filter(m => !/function\s+$/.test(src.slice(Math.max(0, m.index - 10), m.index + m[1].length)));

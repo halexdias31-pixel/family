@@ -1,63 +1,5 @@
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
-/* ==================================================================================================
-   @family. — check-handles.js
-
-   A HANDLE IS THE ONE NAME ON A PERSON THAT EVERYBODY ELSE HAS TO LOOK AT.
-
-   NOBODY TYPES ONE ANY MORE. *"handles should be their name and a virtuous describing word. they can
-   randomise it but it will follow that general name."* And on 2 October: *"their first name, a
-   virtuous adjective and random numbers and maybe an underscore. but all random order."* So
-   `handleMake_` builds every handle — the first name, a virtue and a fresh two-digit number, in one
-   of the four orders that do not start with the digits, with an underscore at one join about half
-   the time — and the Settings card's Randomise tile asks it for another. The cases below are in
-   three parts: the GATE every candidate goes through (`handleTrouble_`), the GENERATOR's own rules
-   (two hundred draws all shaped, every order seen, never the handle you already have, every older
-   shape still read as shaped by `handleParts_`), and the two jobs that
-   write handles onto rows that exist. `randomiseHandle` itself is run through the real `doPost` in
-   `check-profile.js`, which is the file here that already loads the whole backend.
-
-   Every other check here measures whether the app WORKS. This one and `check-marking.js` are the two
-   that measure whether it is SAFE to hand to a child, and the failures are not symmetrical:
-
-     a rude handle let through   is on a tutoring site, beside children's names, until somebody sees
-                                 it — and the person who sees it first is a parent
-     a real name refused         is somebody who has done nothing, told no, with no way to argue
-
-   A first name is still something the gate is asked about, and a name and a virtue can meet across
-   the underscore — which is why `HANDLE_ALLOWED` is still here, and why half the gate's cases are
-   words that must be let through rather than words that must not.
-
-   ---------- AND THE RULE THAT IS NOT ABOUT WORDS AT ALL ---------------------------------------------
-
-   `findPerson` resolves a person by id, then `first + last`, then `handle`, then e-mail, FIRST MATCH
-   WINS. A handle that duplicates any of those makes `changePin` check the PIN somebody typed against
-   ANOTHER PERSON'S ROW and tell them their own PIN is wrong — the denial CLAUDE.md already records,
-   which happened by accident to one person. A generator that did not ask would make the same
-   accident on its own, so the uniqueness cases below are the ones that matter most even though the
-   word list is what anybody asks about first.
-
-   IT CUTS THE TWO FUNCTIONS OUT OF `people.gs` AND RUNS THEM, which is `check-marking.js`'s method
-   and is safe for the same reason: they touch nothing else. A second implementation here would be a
-   second thing to keep in step — the fault this repository records under `childrenOf`, under
-   `link`/`source_url` and under `factsNow_`.
-
-   ---------- AND THE ONE THING A PERSON MAY ONLY CHANGE ONCE A MONTH ---------------------------------
-
-   `pricingRefusal_` IS THE SAME MECHANISM OVER FOUR COLUMNS — a tutor's rate, their extra-seat
-   fraction and the two ends of the class sizes they take, which between them are what a family is
-   quoted and what every booking already taken was priced and seated against. It lives beside
-   `handleTrouble_` in `people.gs` *so that this file can run it*: written inside `updateProfile` it
-   would be six lines nothing here can reach, which is the shape this repository records every time a
-   check could not see its subject.
-
-   ITS OWN CASES ARE BELOW THE HANDLES, and two of them are faults that would have been silent.
-   A page that posts the four unchanged must NOT be refused, because that form posts all four on
-   every save whether or not anybody touched one. And ONE CLOCK MEANS ONE CLOCK: a rate changed five
-   days ago must refuse a change to the seat cap today, or the four stamps somebody could walk round
-   a week at a time are back with one name on them.
-
-   RUN IT:  node js/check-handles.js
-================================================================================================== */
+/* @family. — check-handles.js A HANDLE IS THE ONE NAME ON A PERSON THAT EVERYBODY ELSE HAS TO LOOK AT. § */
 
 const fs = require('fs');
 const path = require('path');
@@ -67,9 +9,7 @@ const people = fs.readFileSync(path.join(ROOT, 'backend', 'people.gs'), 'utf8');
 const consts = fs.readFileSync(path.join(ROOT, 'backend', 'constants.gs'), 'utf8');
 const setup  = fs.readFileSync(path.join(ROOT, 'backend', 'setup.gs'), 'utf8');
 
-/* ---------- CUT BY NAME, AND FAIL LOUDLY IF A NAME IS NOT THERE -------------------------------------
-   A check that cannot reach its subject must exit non-zero — `check-booking.js` printed "nothing to
-   check" and exited 0 for months, which read as a pass. */
+/* ---------- CUT BY NAME, AND FAIL LOUDLY IF A NAME IS NOT THERE § */
 function grab(src, re, what) {
   const m = src.match(re);
   if (!m) { console.log('FAILED — could not find ' + what + ' to check.'); process.exit(1); }
@@ -86,13 +26,7 @@ const SRC = [
   grab(people, /function findPerson\([\s\S]*?\n\}\n/, 'findPerson'),
   grab(people, /function emailRefusal_\([\s\S]*?\n\}/, 'emailRefusal_'),
   grab(people, /function handleTrouble_\([\s\S]*?\n\}\n/, 'handleTrouble_'),
-  /* ---------- AND THE GENERATOR, WHICH THE COMMENT OVER IT CANNOT CHECK ITSELF ------------------
-     `handleMake_` PASSES ITS CANDIDATES THROUGH `handleTrouble_`, so it cannot produce a handle that
-     is taken, reserved or the wrong shape — that half is structural. What it CAN produce is a pair
-     that folds onto a banned word: `handleFold_` turns digits into letters, so a word-pair nobody
-     would look at twice can reduce onto something the blocklist refuses, and the generator would
-     then quietly burn tries. That is a fact about the two lists TOGETHER, which is exactly what a
-     person reading one list cannot see. */
+  /* ---------- AND THE GENERATOR, WHICH THE COMMENT OVER IT CANNOT CHECK ITSELF § */
   grab(people, /const HANDLE_ADJ\s*=\s*\[[\s\S]*?\];/, 'HANDLE_ADJ'),
   grab(people, /const HANDLE_FIRST_MAX[^;]*;/, 'HANDLE_FIRST_MAX'),
   grab(people, /const HANDLE_FALLBACK[^;]*;/, 'HANDLE_FALLBACK'),
@@ -101,10 +35,7 @@ const SRC = [
   grab(people, /const HANDLE_UNDERSCORE_ODDS[^;]*;/, 'HANDLE_UNDERSCORE_ODDS'),
   grab(people, /const HANDLE_TRIES[^;]*;/, 'HANDLE_TRIES'),
   grab(people, /const HANDLE_WAS_MAX[^;]*;/, 'HANDLE_WAS_MAX'),
-  /* ---------- A CHILD'S HANDLE (342), AND THE ONE TEST THAT SAYS WHO IS A CHILD ---------------------
-     `handleMake_` ASKS `isChild_` NOW, so the test comes with it — the real one and what it reaches for,
-     cut out the same way, rather than a stub that says "student" and would agree with itself. A second
-     reading of who is a child is the thing 333 refused to have. */
+  /* ---------- A CHILD'S HANDLE (342), AND THE ONE TEST THAT SAYS WHO IS A CHILD § */
   grab(consts, /const SELF_ROLE_ALIASES\s*=\s*\{[\s\S]*?\};/, 'SELF_ROLE_ALIASES'),
   grab(consts, /const LISTED_PENDING[^;]*;/, 'LISTED_PENDING'),
   grab(people, /function rolesOf\([\s\S]*?\n\}/, 'rolesOf'),
@@ -132,11 +63,7 @@ const SRC = [
   grab(people, /const FACE_SKINS[^;]*;/, 'FACE_SKINS'),
   grab(people, /const FACE_HAIRS[^;]*;/, 'FACE_HAIRS'),
   grab(people, /function handleFaceKept_\([\s\S]*?\n\}/, 'handleFaceKept_'),
-  /* ---------- AND THE REPAIR JOB, WHICH IS THE ONE THING HERE THAT WRITES -----------------------
-     `fillHandles` FILLS A BLANK HANDLE ON EVERY EXISTING ROW, and the fault it must never have is
-     overwriting one: a handle is what somebody signs in with and what `findPerson` resolves them
-     by, so a job that replaced one would lock that person out of their own account. That is not a
-     thing reading it can settle — it is a thing you run over rows and then look at the rows. */
+  /* ---------- AND THE REPAIR JOB, WHICH IS THE ONE THING HERE THAT WRITES § */
   grab(setup,  /function fillHandles\([\s\S]*?\n\}/, 'fillHandles'),
   /* AND THE ONE THAT REPLACES A HANDLE ON PURPOSE, into the owner's `<first>_<virtue>`. */
   grab(setup,  /function renameHandles\([\s\S]*?\n\}/, 'renameHandles'),
@@ -145,24 +72,17 @@ const SRC = [
   grab(people, /function namePrivate_\([\s\S]*?\n\}/, 'namePrivate_'),
   grab(setup,  /function handleSurnameIn_\([\s\S]*?\n\}/, 'handleSurnameIn_'),
   grab(consts, /const PRICING_COOLDOWN_DAYS[^;]*;/, 'PRICING_COOLDOWN_DAYS'),
-  /* THE FOUR FIELDS THE RULE IS ABOUT, READ OUT OF `constants.gs` RATHER THAN LISTED HERE. A copy
-     would agree with itself and with nothing else — so a fifth field added there is under these
-     cases the same afternoon, and one deleted there fails them. */
+  /* THE FOUR FIELDS THE RULE IS ABOUT, READ OUT OF `constants.gs` RATHER THAN LISTED HERE. § */
   grab(consts, /const PRICING_FIELDS[^;]*;/, 'PRICING_FIELDS'),
   grab(people, /function pricingMoved_\([\s\S]*?\n\}/, 'pricingMoved_'),
   grab(people, /function pricingRefusal_\([\s\S]*?\n\}/, 'pricingRefusal_'),
-  /* ---------- AND THE BUSINESS'S CUT OF AN EXTRA SEAT, PER TUTOR (docs/history/345) ----------------------
-     Beside the four and NOT one of them — its own rule, an admin's alone, and its own idea of "moved" that
-     knows a blank (the config default) from a nought (no cut). Its constant read out of constants.gs, as
-     `PRICING_FIELDS` is, so the rule here is the one the server runs. */
+  /* ---------- AND THE BUSINESS'S CUT OF AN EXTRA SEAT, PER TUTOR (docs/history/345) § */
   grab(consts, /const SEAT_CUT_FIELD[^;]*;/, 'SEAT_CUT_FIELD'),
   grab(people, /function seatCutRefusal_\([\s\S]*?\n\}/, 'seatCutRefusal_'),
   grab(people, /function seatCutOut_\([\s\S]*?\n\}/, 'seatCutOut_'),
 ].join('\n\n');
 
-/* The eight Apps Script helpers those two reach for, and nothing else. If one of them ever changes
-   meaning, this stops agreeing with the backend and that is the point of stubbing rather than
-   importing: they are the backend's, copied, and a drift shows up as a case failing. */
+/* The eight Apps Script helpers those two reach for, and nothing else. § */
 const PRELUDE = `
   const S = v => (v === undefined || v === null ? '' : String(v));
   /* ---------- THE BACKEND'S OWN, TO THE CHARACTER -----------------------------------------------
@@ -217,11 +137,7 @@ new Function('box', PRELUDE + SRC + '\nbox.trouble = handleTrouble_; box.fold = 
            + ' box.initials = handleInitials_; box.kidShaped = handleKidShaped_; box.isChild = isChild_;'
            + ' box.surnameIn = handleSurnameIn_;'
            + ' box.KID_DIGITS = HANDLE_KID_DIGITS; box.KID_TAIL = HANDLE_KID_TAIL; box.KID_TRIES = HANDLE_KID_TRIES;'
-           /* THE GATE ITSELF, SO THE GENERATOR'S OWN LOOP CAN BE TESTED. `handleTrouble_` is a
-              function DECLARATION in this scope, so it can be rebound — and that is the way to reach
-              `handleMake_`'s retry and its give-up branch deterministically, because the order the
-              words are tried in is random. Restored after each case; nothing outside these lines
-              uses it. */
+           /* THE GATE ITSELF, SO THE GENERATOR'S OWN LOOP CAN BE TESTED. § */
            + ' box.shape = HANDLE_SHAPE;'
            + ' box.realGate = handleTrouble_;'
            + ' box.setGate = f => { handleTrouble_ = f; };'
@@ -244,9 +160,7 @@ const ME    = { person_id: 'P001', handle: 'paul', username: 'paulsmith', full_n
 const MEold = Object.assign({}, ME, { handle_changed_at: ago(200) });
 const MEnew = Object.assign({}, ME, { handle_changed_at: ago(5)  });
 
-/* ---------- EVERY CASE IS A FAULT THAT HAPPENED OR WOULD HAVE ---------------------------------------
-   `no` means "must be refused", `yes` means "must be allowed". The word beside it is the reason,
-   printed when a case fails, because "case 31 failed" tells nobody anything. */
+/* ---------- EVERY CASE IS A FAULT THAT HAPPENED OR WOULD HAVE § */
 const CASES = [
   // --- the shape
   ['no',  'ab',            ME, 'two characters'],
@@ -286,12 +200,7 @@ const CASES = [
   ['yes', 'titan',         ME, 'a moon'],
   ['yes', 'therapist',     ME, 'a job'],
 
-  /* ---------- EVERY COMPARISON FOLDS THE CASE ------------------------------------------------
-     The generator only ever asks in lower case, but rows typed into the sheet by hand do not, and
-     the gate is what stops `halex` being handed out while `HaLeX` already answers to somebody — two
-     accounts that render identically on a site children use. A version that made the matching
-     case sensitive passes none of the four `no`s below, which is why they are cases rather than a
-     sentence in a comment. */
+  /* ---------- EVERY COMPARISON FOLDS THE CASE § */
   ['yes', 'Paul_Smith2',   ME, 'CAPITALS ARE ALLOWED — the shape is tested on the folded form'],
   ['yes', 'PAULSMITH2',    ME, 'and all of them'],
   ['no',  'Ada99',         ME, 'a clash is a clash whatever case it is typed in'],
@@ -307,9 +216,7 @@ const CASES = [
   ['yes', 'paul',          MEold, 'YOUR OWN handle is not a clash with yourself'],
   ['yes', 'paulsmith',     MEold, 'your own first + last is not a clash either'],
 
-  /* --- AND NO MONTH. The cooldown went with the typed box: every handle is a first name and a
-     word off a list, so there is nothing for a brake to brake, and a child pressing Randomise twice
-     is looking for a word they like. Putting `HANDLE_COOLDOWN_DAYS` back fails the first case. */
+  /* AND NO MONTH. The cooldown went with the typed box: § */
   ['yes', 'newname',       MEnew, 'changed five days ago — and there is no cooldown any more'],
   ['yes', 'newname',       MEold, 'changed two hundred days ago'],
   ['yes', 'newname',       ME,    'never changed'],
@@ -324,22 +231,7 @@ function run() {
     if (got !== want) bad.push({ handle, want, why, said: said || '(allowed)' });
   });
 
-  /* ---------- SIGNING IN WITH AN E-MAIL, AND THE COLLISION THAT MADE IT A DIFFERENT FOLD --------
-     ASKED FOR AS *"i want people to be able to sign in with email as well."* `verifyLogin` RESOLVED
-     through `findPerson` when this was written, so the rung there WAS the feature. It reads the
-     `email` column alone now, and the cases for THAT are under `SIGNIN` below — and the case that
-     decides how it is written is `SAME` below.
-
-     `alex@dias.com` AND A PERSON CALLED "Alex Dias Com" REDUCE TO ONE `key()`. That function strips
-     everything that is not a letter or a digit, so an address matched the way every name above it
-     is matched would put two different people on one search term — and `changePin` would then check
-     the PIN somebody typed against the other one's row, which is the denial this repository records
-     happening for real. Matching the address WHOLE, case-folded, makes it impossible rather than
-     unlikely: the four cases below fail on any version that folds an address the way it folds a
-     name, and pass on this one.
-
-     AND THE RUNG IS LAST, which `KEEP` is for: every name that resolved before must go on resolving
-     to the same row. */
+  /* ---------- SIGNING IN WITH AN E-MAIL, AND THE COLLISION THAT MADE IT A DIFFERENT FOLD § */
   const MAILS = [
     { person_id: 'P010', handle: 'alexd', username: 'alexd', full_name: 'Alex Dias',
       first_name: 'Alex', last_name: 'Dias', email: 'alex@dias.com' },
@@ -347,17 +239,8 @@ function run() {
       first_name: 'Alex', last_name: 'Dias Com', email: '' },
     { person_id: 'P012', handle: 'bee',   username: 'bee',   full_name: 'Bee Keeper',
       first_name: 'Bee', last_name: 'Keeper', email: 'BEE@Hive.co.uk' },
-    /* ---------- AND A ROW WHOSE E-MAIL CELL HOLDS A NAME ---------------------------------------
-       WHICH IS WHAT THE `@` GUARD IS FOR, and the only thing that makes it load-bearing: an
-       address is matched WHOLE, so without the guard a cell into which somebody typed a person's
-       name is a second way to reach that string — and the row it reaches is not the row whose name
-       it is. A sheet somebody types into by hand has cells like this in it; the rule is that a rung
-       looking for an address only ever fires on something shaped like one. */
-    /* THE JUNK ROW SITS FIRST, and that is the whole of what makes this a test. `Array.find`
-       returns the first ROW whose predicate is true, so the order of the rungs INSIDE the
-       predicate decides nothing unless the wrong row is reached first. With Grace's own row above
-       it, her name matches before anything looks at anybody's e-mail cell and the case passes
-       whatever the rung does. */
+    /* ---------- AND A ROW WHOSE E-MAIL CELL HOLDS A NAME § */
+    /* THE JUNK ROW SITS FIRST, and that is the whole of what makes this a test. § */
     { person_id: 'P014', handle: 'someone', username: 'someone', full_name: 'Someone Else',
       first_name: 'Someone', last_name: 'Else', email: 'Grace Hopper' },
     { person_id: 'P013', handle: 'gracehop', username: 'gracehop', full_name: 'Grace Hopper',
@@ -376,13 +259,7 @@ function run() {
     ['nobody@here.com', null,  'an address on no row finds nobody'],
     ['Grace Hopper',   'P013', 'A NAME IN AN E-MAIL CELL is not an address: the name wins'],
     ['grace hopper',   'P013', 'whatever case it is asked in'],
-    /* ---------- THE GUARD IS WHAT PROTECTS THIS, AND THE RUNG ORDER IS NOT -----------------------
-       I WROTE THE OPPOSITE FIRST AND THE MUTATION SAID NO. `Array.find` returns the first ROW whose
-       predicate is true, so which rung sits where INSIDE that predicate decides nothing — the row
-       order does. Dropping the `@` guard fires these two cases whether the address rung is first or
-       last; moving the rung with the guard in place fires nothing. So the guard is the rule and the
-       ordering is only about not changing what already resolved. Measured both ways rather than
-       reasoned, which is what this file exists to make possible. */
+    /* ---------- THE GUARD IS WHAT PROTECTS THIS, AND THE RUNG ORDER IS NOT § */
   ];
   FINDS.forEach(([term, want, why]) => {
     const got = box.find(term);
@@ -406,17 +283,7 @@ function run() {
   });
   box.setRows(OTHERS.concat([ME]));
 
-  /* ---------- AND THE TYPED PATH IS GONE, AND THE DOOR THAT REPLACED IT IS THE ASKER'S OWN ---------
-     `changeHandle` TOOK A HANDLE SOMEBODY TYPED, and everything this file used to say about it — the
-     case kept as typed, what was validated being what was written — was about a box that is not
-     there any more. What replaces it is `randomiseHandle`, which takes no handle at all. Two things
-     must hold and both are facts about the files rather than about behaviour, so they are greps:
-     nothing in the backend's code still answers to `changeHandle`, and `randomiseHandle` is `self`
-     — a door for the signed-in person and nobody else. What the action DOES is run through the real
-     `doPost` in `check-profile.js`.
-
-     COMMENTS ARE STRIPPED FIRST, opener to closer, because the prose says `changeHandle` on purpose
-     — it is the history of why this door exists. */
+  /* ---------- AND THE TYPED PATH IS GONE, AND THE DOOR THAT REPLACED IT IS THE ASKER'S OWN § */
   const post = fs.readFileSync(path.join(ROOT, 'backend', 'dopost.gs'), 'utf8');
   const code = src => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
   const stillTyped = [];
@@ -434,22 +301,9 @@ function run() {
   if (!/action === 'randomiseHandle'/.test(code(post))) bad.push({ handle: 'randomiseHandle',
     want: 'a handler', why: 'the Randomise button posts to it', said: 'dopost.gs has no such action' });
 
-  /* ---------- AND `register`, WHICH IS THE WRITER EVERY ACCOUNT GOES THROUGH ONCE ---------------
-     `register` WAS ONCE THE WRITER NOTHING CHECKED: it stored `norm(first + last)` as a username
-     and no handle at all, while the rename box was the only door the gate guarded. It writes a
-     generated handle now, through the same gate, and this asks that it still does — a row written
-     with no handle shows a first name where a handle would be, for ever. */
+  /* ---------- AND `register`, WHICH IS THE WRITER EVERY ACCOUNT GOES THROUGH ONCE § */
   const reg = post.indexOf("action === 'register'");
-  /* ---------- TO THE NEXT HANDLER, NOT FOR 4000 CHARACTERS ---------------------------------------
-     IT WAS `post.slice(reg, reg + 4000)` AND THE HANDLER OUTGREW IT. Adding the generated handle put
-     the `username:` line at 4715 characters from `action === 'register'`, so the window ended before
-     the line it exists to read and the check reported "could not find the username line" — which is
-     the guard doing its job, and about itself rather than about the app.
-
-     A CHARACTER COUNT IS NOT A BOUNDARY. The next `if (action ===` is, and it is what the handler
-     actually ends at — so a comment added above a line cannot move that line out of reach. Same
-     lesson as `objectAfter_` in `check-tabs.js`, where `indexOf('const ' + name)` matched a longer
-     name and handed the check the wrong object. */
+  /* ---------- TO THE NEXT HANDLER, NOT FOR 4000 CHARACTERS § */
   const rEnd = reg < 0 ? -1 : post.indexOf("if (action ===", reg + 20);
   const rblock = reg < 0 ? '' : post.slice(reg, rEnd > reg ? rEnd : undefined);
   if (!rblock) {
@@ -460,11 +314,7 @@ function run() {
     why: 'a row written with no handle shows its squashed name in place of one, for ever',
     said: 'dopost.gs does not write a generated handle at registration' });
 
-  /* ---------- AND NOTHING WRITES A `username` ANY MORE -------------------------------------------
-     THE COLUMN WENT WITH THE PEOPLE TAB'S REDESIGN — it was the handle written a second time — so a
-     write to it is a write to a header that is not there: `missedWrite_` records it and `jsonOut`
-     turns the whole Save into "Nothing was saved". A grep over the backend's code (comments are
-     prose and may say the word) for anything that names it as a cell. */
+  /* ---------- AND NOTHING WRITES A `username` ANY MORE § */
   const writesUser = [];
   fs.readdirSync(path.join(ROOT, 'backend')).filter(f => f.endsWith('.gs')).forEach(f => {
     /* COMMENTS TRACKED OPENER TO CLOSER, not guessed at from how a line starts — prose inside a
@@ -487,13 +337,7 @@ function run() {
     why: 'the people tab has no username column, so a write to it fails the whole save',
     said: 'still named at ' + writesUser.slice(0, 4).join(', ') });
 
-  /* ---------- THE WORD LIST, WHICH IS THE PART A PERSON CHOSE -------------------------------------
-     WHICH WORDS ARE VIRTUES IS A JUDGEMENT AND IS WRITTEN OVER THE LIST, NOT HERE. What a check can
-     settle is the shape of the list: lower-case letters only, nothing twice (a duplicate is a word
-     drawn twice as often, and two Sams one word apart in a list that says it has thirty), and short
-     enough that the longest word, the longest first name kept and a tail still fit `HANDLE_SHAPE`.
-     A word that broke the last rule would make every draw on it refused for length alone, and on a
-     long name the generator would fall to the fallback in silence. */
+  /* ---------- THE WORD LIST, WHICH IS THE PART A PERSON CHOSE § */
   const seenAdj = {};
   box.ADJ.forEach(w => {
     if (!/^[a-z]+$/.test(w)) bad.push({ handle: w, want: 'lower-case letters',
@@ -516,11 +360,7 @@ function run() {
       why: 'first names are cut shorter than the longest word, a number and one underscore require',
       said: String(box.FIRST_MAX) });
 
-  /* ---------- THE ORDERS: EVERY ONE THAT DOES NOT START WITH THE DIGITS, AND NO OTHER ---------------
-     *"their first name, a virtuous adjective and random numbers and maybe an underscore. but all
-     random order."* Three parts have six orders; `HANDLE_SHAPE` refuses a handle that starts with a
-     digit, so the two that lead with the number are out and the other four are in. A list that lost
-     one would still pass every draw below — it is the list itself that has to be all four. */
+  /* ---------- THE ORDERS: EVERY ONE THAT DOES NOT START WITH THE DIGITS, AND NO OTHER § */
   const ORDER_KEYS = box.ORDERS.map(o => o.join('-'));
   const WANT_ORDERS = ['first-virtue-nn', 'virtue-first-nn', 'first-nn-virtue', 'virtue-nn-first'];
   const missingOrder = WANT_ORDERS.filter(o => ORDER_KEYS.indexOf(o) === -1);
@@ -530,14 +370,7 @@ function run() {
       why: 'every order of the three parts that does not start with the number, once each',
       said: ORDER_KEYS.join(', ') });
 
-  /* ---------- EVERY WORD BESIDE A SPREAD OF FIRST NAMES, IN EVERY ORDER, THROUGH THE GATE -------------
-     `handleFold_` turns digits into letters and drops the underscore, so a first name, a number and
-     a word can meet across the joins and reduce onto something the blocklist refuses — `ada` and
-     `55` are `adass` to it. Every such candidate is refused and the generator draws again, so a
-     refusal is not a fault the way it was when every name had exactly thirty candidates; what would
-     be is a share large enough that a name runs out of draws. So this counts them and fails past one
-     in fifty, and prints the count either way. On an empty tab, so only the shape, the reserved
-     list and the blocklist can refuse. */
+  /* ---------- EVERY WORD BESIDE A SPREAD OF FIRST NAMES, IN EVERY ORDER, THROUGH THE GATE § */
   box.setRows([]);
   const names = ['halex', 'ada', 'sam', 'pat', 'jo', 'al', 'mo', 'zo', 'lucy', 'kit', box.FALLBACK];
   let paired = 0;
@@ -556,15 +389,7 @@ function run() {
        + 'passes them through — past one in fifty a short name can run out of draws',
     said: box.trouble(refused[0], null) });
 
-  /* ---------- THE SHAPE THE OWNER ASKED FOR, OVER TWO HUNDRED DRAWS --------------------------------
-     A contract written HERE rather than read from people.gs, because it is the generator being
-     checked and a check that asked `handleParts_` whether `handleMake_` was right would be the code
-     marking its own homework. Every draw, on an empty tab, must be: the first name reduced the way
-     `handleFirst_` says, a virtue, and a two-digit number 10–99, in one of the four orders; at most
-     one underscore and only at a join; never starting with a digit; twenty characters at most; and
-     something the gate itself accepts. Then the two hundred TOGETHER must show all four orders, an
-     underscore and none, and more than one number — a generator that always drew `<first>_<virtue>NN`
-     passes every single-handle rule above and is exactly the fixed order the owner asked to lose. */
+  /* ---------- THE SHAPE THE OWNER ASKED FOR, OVER TWO HUNDRED DRAWS § */
   const WORDS = '(' + box.ADJ.join('|') + ')';
   const shapeOf = head => {
     const H = '(' + head + ')';
@@ -605,9 +430,7 @@ function run() {
     which.forEach(k => { seenOrders[k] = true; });
     seenJoins[unders ? (made.indexOf('_') < made.length / 2 ? 'early' : 'late') : 'none'] = true;
     seenNums[made.match(/[0-9]{2}/)[0]] = true;
-    /* AND THE PARSER READS IT. `renameHandles` leaves alone what `handleParts_` calls shaped, so a
-       handle Randomise made that the parser could not read would be renamed by the next run of the
-       job — the very thing the owner said must not happen to anybody's handle. */
+    /* AND THE PARSER READS IT. § */
     if (!box.shaped(made, first)) {
       bad.push({ handle: made, want: 'shaped', why: 'handleIsShaped_ does not read a handle the '
         + 'generator just made, so ?run=renameHandles would regenerate it', said: 'first "' + first + '"' });
@@ -627,11 +450,7 @@ function run() {
        + DRAWS + ' draws — the number is meant to be random every time, not the smallest free one',
     said: Object.keys(seenNums).slice(0, 8).join(', ') });
 
-  /* ---------- A TAKEN WORD-AND-NUMBER IS NEVER HANDED OUT, IN ANY SPELLING -----------------------------
-     The clash check compares by `key()`, which drops the underscore, so with `ada_kind42` held by
-     somebody else the generator must not hand out `adakind42` either — the pair that reads as the same
-     person. With every word in every one of the first two orders taken at one number, twenty draws
-     must still come back free and never match a held one by `key`. */
+  /* ---------- A TAKEN WORD-AND-NUMBER IS NEVER HANDED OUT, IN ANY SPELLING § */
   const taken = (first, holds) => holds.map((h, i) => ({ person_id: 'T' + i, handle: h,
     first_name: first, last_name: 'Other' + i }));
   const held = box.ADJ.map(w => 'ada_' + w + '42');
@@ -647,16 +466,7 @@ function run() {
     }
   }
 
-  /* ---------- NEVER THE HANDLE YOU ALREADY HAVE -----------------------------------------------------
-     Randomise passes the current handle as `avoid`, and the gate cannot refuse it on its own: a
-     person's own row is not a clash with them, so to the gate `ada_kind42` is FREE for its owner.
-     With a fresh number every press the generator almost never OFFERS the current one, so thirty
-     honest presses would pass a generator that ignored `avoid` entirely. So the dice are fixed:
-     `Math.random` pinned to 0 makes every press draw the same candidates in the same order, the
-     first press on an empty tab says what the first candidate is, and the person is then given
-     exactly that handle — the next press must step past it, and past its spelling without the
-     underscore, which `key()` reads as the same name. Restored in a `finally`, because a pinned
-     `Math.random` left behind would make every later case here deterministic in silence. */
+  /* ---------- NEVER THE HANDLE YOU ALREADY HAVE § */
   const realRandom = Math.random;
   let firstDraw = '', stepped = '', steppedBare = '';
   try {
@@ -688,9 +498,7 @@ function run() {
       said: again || '(nothing)' }); break; }
   }
 
-  /* AND A FIRST NAME THE GATE REFUSES OUTRIGHT FALLS TO THE FALLBACK, rather than giving up and
-     leaving `register` to write a blank. Built from the blocklist at run time rather than written
-     here, because a refused word pasted into this file is the word in one more file. */
+  /* AND A FIRST NAME THE GATE REFUSES OUTRIGHT FALLS TO THE FALLBACK, rather than giving up and leaving `register` to write a blank. § */
   box.setRows([]);
   const blockedName = (consts.match(/HANDLE_BLOCKED\s*=\s*\[\s*'([a-z]+)'/) || [])[1];
   const fallbackShapes = shapeOf(box.FALLBACK);
@@ -703,13 +511,7 @@ function run() {
       said: '(a blocked first name)' });
   }
 
-  /* ---------- `handleIsShaped_` — WHAT `renameHandles` READS AS ALREADY DONE ----------------------
-     EVERY ARRANGEMENT, AND THE ONE BEFORE IT. The 1 October `halex_kind` and its tailed form are
-     still the shape — the owner said existing handles are not regenerated, and this is the line that
-     keeps the job from doing it. All four new orders, with and without an underscore at either join.
-     Not the shape: the older `BrightOtter42`, `halex_bright42` (not a virtue), somebody else's head,
-     a one-digit or three-digit number, a number out of 10–99, the digits first, two underscores,
-     capitals, a trailing underscore. */
+  /* ---------- `handleIsShaped_` — WHAT `renameHandles` READS AS ALREADY DONE § */
   [['halex_kind', true], ['halex_kind' + box.TAIL_MIN, true], [box.FALLBACK + '_brave', true],
    ['halexkind42', true], ['halex_kind42', true], ['halexkind_42', true],
    ['kindhalex42', true], ['kind_halex42', true], ['kindhalex_42', true],
@@ -727,21 +529,14 @@ function run() {
                 : 'renameHandles would leave a handle that is not the generated shape alone',
       said: want ? 'no' : 'yes' });
   });
-  /* A FIRST NAME THAT IS ALSO A VIRTUE. Somebody called True gets `true` as a head and might get
-     `true` as a word; the parser must read `truekind42` and `kindtrue42` both, which it can only do
-     because a regex of alternatives backtracks. */
+  /* A FIRST NAME THAT IS ALSO A VIRTUE. § */
   [['truekind42', 'True'], ['kindtrue42', 'True'], ['truetrue42', 'True']].forEach(([h, first]) => {
     if (!box.shaped(h, first)) bad.push({ handle: h, want: 'shaped',
       why: 'a first name that is also on the word list must still read as the shape',
       said: 'first "' + first + '": no' });
   });
 
-  /* ---------- `handle_was`: NEWEST FIRST, AND EVERY ONE KEPT ---------------------------------------
-     The one just replaced is at the front. A version that overwrote the cell — which is what it did
-     while there was a month between changes — answers "who was @foo" only about the last name. It kept
-     the newest ten until 342, when an old handle became a credential (it still signs its person in) and
-     a reservation (nobody else is given it): the trim retired both at the eleventh press, so nothing
-     falls off now, and Randomise stops at `HANDLE_WAS_MAX` instead (`check-profile.js`). */
+  /* ---------- `handle_was`: NEWEST FIRST, AND EVERY ONE KEPT § */
   const WAS = [
     ['', 'ada_kind', 'ada_kind', 'the first change starts the history'],
     ['ada_brave', 'ada_kind', 'ada_kind, ada_brave', 'the newest goes at the FRONT and the rest stay'],
@@ -757,18 +552,7 @@ function run() {
     if (got !== want) bad.push({ handle: 'handle_was', want: want, why: why, said: got });
   });
 
-  /* ==================================================================================================
-     A CHILD'S HANDLE IS THEIR INITIALS AND FOUR DIGITS, AND NOTHING ELSE ABOUT THEM (docs/history/342)
-
-     THE OWNER, 11 OCT: *"Change usernames to be more abstract to hide the names of kids. Just use
-     initials and some combination which comes from date of birth or something."* The initials, yes;
-     the date of birth, no — a birthday is a fact about a child, and a handle is on every screen. So
-     the contract, written HERE rather than read from people.gs (the generator is what is checked):
-     every child's handle is their initials, exactly, then four digits from 2 to 9; nothing of either
-     name past its first letter; nothing the gate refuses; read back as the shape by the parser the
-     migration asks; and NOT A FUNCTION OF THE BIRTHDAY — two children who differ only in it are given
-     the same handle by the same dice. And who gets one is the one test 333 uses, `isChild_`.
-     ================================================================================================== */
+  /* A CHILD'S HANDLE IS THEIR INITIALS AND FOUR DIGITS, AND NOTHING ELSE ABOUT THEM (docs/history/342) § */
   box.setRows([]);
   let kidN = 0;
   const kidRow = (first, last, extra) => Object.assign({ person_id: 'K' + (++kidN), role: 'student',
@@ -860,11 +644,7 @@ function run() {
     }
   }
 
-  /* NEVER A HANDLE SOMEBODY ELSE USED TO HAVE — an old handle still signs its owner in. Seven in eight
-     of Ella's tails sit in another person's history; twenty draws must find the eighth, never the rest.
-     And with the dice pinned so every candidate is the one old handle, the walk falls to the fallback
-     rather than reissue it. The gate itself: refused for anybody else, free for the person whose
-     history it is. */
+  /* NEVER A HANDLE SOMEBODY ELSE USED TO HAVE — an old handle still signs its owner in. § */
   const takenOld = TAILS.filter((t, i) => i % 8).map(t => 'ej' + t);
   const other = { person_id: 'OTH', role: 'client', first_name: 'Oli', last_name: 'Ther', handle: 'oli_kind42',
                   handle_was: takenOld.join(', ') };
@@ -891,9 +671,7 @@ function run() {
   if (box.trouble(takenOld[0], other)) bad.push({ handle: takenOld[0], want: 'yes',
     why: 'your own old handle is not a clash with yourself — going back to it is a true history', said: box.trouble(takenOld[0], other) });
 
-  /* THE BLOCKLIST AGAINST EVERY PAIR OF INITIALS. Digits fold onto letters (5→s, 7→t), so a pair and a
-     tail can meet as a word and be drawn again — what matters is that no pair loses so many tails that
-     sixty draws could all miss. Every pair, every single letter, the fallback, all 4096 tails. */
+  /* THE BLOCKLIST AGAINST EVERY PAIR OF INITIALS. § */
   box.setRows([]);
   const AZ = 'abcdefghijklmnopqrstuvwxyz'.split('');
   const kidHeads = [box.FALLBACK].concat(AZ, [].concat(...AZ.map(a => AZ.map(b => a + b))));
@@ -930,9 +708,7 @@ function run() {
   if (!/^fb[2-9]{4}$/.test(frow.handle)) bad.push({ handle: 'fillHandles', want: 'fb and four digits',
     why: 'a child typed into the sheet with no handle is given a child\'s, not one with her first name in it', said: frow.handle });
 
-  /* AFTER REVIEW (342): A CHILD'S SHAPE IS ANY INITIALS AND A TAIL — not only the initials of the names on
-     the row today, or a surname corrected after the move moves the child again over a letter. And not a
-     name with digits after it, nor digits that could be a year. */
+  /* AFTER REVIEW (342): A CHILD'S SHAPE IS ANY INITIALS AND A TAIL — not only the initials of the names on the row today, or a surname corrected after the move § */
   [['ej4827', true, 'her own initials'], ['es4827', true, 'initials from before a surname was corrected'],
    ['e4827', true, 'one initial'], [box.FALLBACK + '4827', true, 'the fallback'],
    ['ella4827', false, 'a first name with a tail'], ['ej2016', false, 'a tail with a 0 and a 1 in it'],
@@ -955,12 +731,7 @@ function run() {
     why: 'a private grown-up (a client, a parent who is learning) with their surname in their handle is listed by id; a tutor\'s whole name is public, a child\'s handle is moved to initials anyway, and a two-letter surname is inside too many handles to mean anything',
     said: JSON.stringify(sIn) });
 
-  /* ---------- THE RETRY, AND THE GIVE-UP, WHICH ONLY A STUBBED GATE CAN REACH ---------------------
-     The generator's contract is "keep asking until the gate says yes, and give up rather than loop",
-     and that is a statement about the loop rather than about the words — so the gate is rebound. A
-     gate that refuses everything must make it give up, and within a bound: `HANDLE_TRIES` draws for
-     the name and as many for the fallback. A version that walked every number on every word in every
-     order would ask over forty thousand times before saying no, on a request somebody is waiting for. */
+  /* ---------- THE RETRY, AND THE GIVE-UP, WHICH ONLY A STUBBED GATE CAN REACH § */
   let asked = 0;
   box.setGate(() => { asked++; return 'no'; });
   const gaveUp = box.make(null, 'Halex');
@@ -972,9 +743,7 @@ function run() {
   if (asked > bound) bad.push({ handle: 'handleMake_', want: 'at most ' + bound + ' asks',
     why: 'giving up must be bounded', said: asked + ' asks' });
 
-  /* AND IT RETRIES RATHER THAN TAKING THE FIRST DRAW. A gate that refuses the first four candidates
-     and then allows anything must still produce one — which a generator that asked once would fail
-     and a generator that asked for ever would hang. */
+  /* AND IT RETRIES RATHER THAN TAKING THE FIRST DRAW. § */
   asked = 0;
   box.setGate(() => (++asked <= 4 ? 'taken' : ''));
   const fifth = box.make(null, 'Halex');
@@ -983,9 +752,7 @@ function run() {
     said: 'it asked ' + asked + ' time(s) and returned "' + fifth + '"' });
   box.setGate(box.realGate);
 
-  /* ---------- AND THE REPAIR JOB ONLY EVER FILLS A BLANK ----------------------------------------
-     THE FAULT IT MUST NOT HAVE is overwriting a handle — that is `renameHandles`' job, on purpose and
-     only where the shape is wrong. Every case below is a row shape that exists on the real tab. */
+  /* ---------- AND THE REPAIR JOB ONLY EVER FILLS A BLANK § */
   box.setHeaders(['person_id', 'handle', 'email', 'first_name', 'last_name']);
   const rows = [
     { person_id: 'P1', handle: 'HalexD', email: 'a@b.com',
@@ -1010,9 +777,7 @@ function run() {
   }
   if (box.wrote().indexOf('username') !== -1) bad.push({ handle: 'fillHandles', want: 'no username',
     why: 'the column is gone, so a write to it is a write to nothing', said: box.wrote().join(', ') });
-  /* AND IT INVENTS NEITHER AN EMAIL NOR A NAME, which is the line this job stops at: a generated
-     address is not a blank cell, it is a WRONG one, and `notify` would post into it and report
-     success. P4 has none of the three and must come back NAMED rather than filled. */
+  /* AND IT INVENTS NEITHER AN EMAIL NOR A NAME, which is the line this job stops at: § */
   if (box.wrote().indexOf('email') !== -1 || box.wrote().indexOf('first_name') !== -1) {
     bad.push({ handle: 'fillHandles', want: 'never invented',
       why: 'a generated email address makes every notification silently post into nothing',
@@ -1023,29 +788,14 @@ function run() {
       why: 'a row nobody can be written to has to be reported, or it is a silence',
       said: JSON.stringify(did.noEmail) });
   }
-  /* AND IT REFUSES RATHER THAN RUNNING WHEN THE COLUMN IS NOT THERE. `setCell` writes to a header
-     that is not there and loses the value with no error anywhere — a job that "ran" and changed
-     nothing is the worst outcome available here. */
+  /* AND IT REFUSES RATHER THAN RUNNING WHEN THE COLUMN IS NOT THERE. § */
   box.setHeaders(['person_id', 'email']);
   box.setRows([{ person_id: 'P9', handle: '' }]);
   if (!box.fill().error) bad.push({ handle: 'fillHandles', want: 'a refusal',
     why: 'with no handle column every write is silently lost and the job reports success',
     said: '(it ran)' });
 
-  /* ---------- AND `renameHandles`, WHICH REPLACES ON PURPOSE AND ONLY WHERE THE SHAPE IS WRONG ------
-     It may overwrite where the handle was never the shape. What it must do, row by row:
-
-       R1 `BrightOtter42`     the oldest shape — becomes the new one, old one kept
-       R2 `ada_kind`          the 1 October shape — untouched. *Existing handles are not regenerated*,
-                              and a child with no e-mail signs in with this.
-       R3 blank, no name      the fallback head
-       R4 `sam_steady71`      the 1 October shape with a tail. Until 2 October this job stripped a
-                              tail nobody needed; a number is on every handle now, so it is left
-                              alone — or the job would strip the number off every Randomise press.
-       R5 `kind42zo`          the new shape, digits in the middle, no underscore — untouched
-       R6 a full history      the new handle at the front of `handle_was` and the oldest off the end
-
-     And a second run changes nothing. */
+  /* ---------- AND `renameHandles`, WHICH REPLACES ON PURPOSE AND ONLY WHERE THE SHAPE IS WRONG § */
   box.setHeaders(['person_id', 'handle', 'handle_was', 'handle_changed_at', 'first_name']);
   const full = Array.from({ length: box.WAS_MAX }, (_, i) => 'old' + i).join(', ');
   const rrows = [
@@ -1095,21 +845,7 @@ function run() {
     want: 'nothing on a second run', why: 'the job must be safe to run twice',
     said: again.renamedCount + ' renamed' });
 
-  /* ---------- AND THE FIXTURE CANNOT STATE A HANDLE THE SERVER WOULD NEVER SEND -----------------
-     IT SAID `@ada`, WITH THE `@` IN THE CELL. `doget.gs` sends `S(r.handle) || S(r.username) ||
-     S(r.first_name)` off a sheet whose cells hold `HalexD`, and `HANDLE_SHAPE` refuses a leading
-     `@` outright — so no row anywhere can produce one. The moment a card drew `@` + the handle the
-     lab rendered `@@ada`, and every measurement of that card would have been of a string the app
-     cannot produce.
-
-     SIXTH TIME THAT FILE HAS BEEN FOUND STATING A SHAPE THE SERVER DOES NOT SEND — after `focus` as
-     a string, the receipt's `sessionDates` against `dates`, the job's `students` and `venue`, the
-     availability hour codes, and `studentFields: []`. The other five were each found by a feature
-     failing to draw; this is a rule, so the seventh fails here instead.
-
-     THROUGH `HANDLE_SHAPE` RATHER THAN A REGEX WRITTEN HERE, which is the one thing that makes it
-     honest: the question is whether the server could ever send this value, and that constant is what
-     decides it. */
+  /* ---------- AND THE FIXTURE CANNOT STATE A HANDLE THE SERVER WOULD NEVER SEND § */
   const fixture = JSON.parse(fs.readFileSync(path.join(ROOT, 'check', 'fixture.json'), 'utf8'));
   []. concat(fixture.tutors || [], fixture.students || []).forEach(who => {
     const h = String((who && who.handle) || '');
@@ -1123,17 +859,7 @@ function run() {
   box.setRows(OTHERS.concat([ME]));
 
 
-  /* ---------- AND WHAT A TUTOR CHARGES, WHICH IS THE SAME MONTH OVER FOUR NUMBERS ---------------
-     EVERY CASE HERE IS A FAULT THAT WOULD HAVE HAPPENED. The first two are the ones that would have
-     broken the form without looking broken: that page posts all four fields on every save, touched or
-     not, so a rule firing on a field being PRESENT would refuse a save for a month over a number
-     nobody edited. The cross cases are what makes it ONE clock rather than four — a rate moved five
-     days ago must refuse a seat cap today, in both directions, or the walking-round is back. And the
-     last two are the other end: a tutor who has never changed anything has no cell and is free, and a
-     rule reading a missing date as zero would refuse everybody for ever.
-
-     A FIELD ABSENT FROM THE POSTED OBJECT IS NOT A CHANGE, which is what lets every other page on the
-     column save normally: `About you` sends no pricing field at all, so it must never be refused. */
+  /* ---------- AND WHAT A TUTOR CHARGES, WHICH IS THE SAME MONTH OVER FOUR NUMBERS § */
   const PRI    = { person_id: 'P001', rate_per_hour: 30, extra_seat_rate: 0.3,
                    max_students: 4, min_students: 1 };
   const PRInew = Object.assign({}, PRI, { pricing_changed_at: ago(5)   });
@@ -1169,10 +895,7 @@ function run() {
       + (isAdmin ? ' (admin)' : ''), want, why, said: said || '(allowed)' });
   });
 
-  /* ---------- AND THE FOUR ARE THE FOUR, which no case above can say ----------------------------
-     A rule that had quietly lost a field from its list would pass every case above — each one names
-     the field it moves, so a list of three would simply stop refusing the fourth and there is no
-     case that says the fourth exists. This reads the constant. */
+  /* ---------- AND THE FOUR ARE THE FOUR, which no case above can say § */
   const WANT_FIELDS = ['rate_per_hour', 'extra_seat_rate', 'max_students', 'min_students'];
   WANT_FIELDS.forEach(f => {
     if (box.fields.indexOf(f) === -1) bad.push({ handle: 'PRICING_FIELDS', want: 'yes',
@@ -1185,13 +908,7 @@ function run() {
       said: JSON.stringify(box.fields) });
   });
 
-  /* ---------- THE BUSINESS'S CUT OF AN EXTRA SEAT: AN ADMIN'S, AND BLANK IS NOT NOUGHT (docs/history/345) -----
-     The owner, 12 Oct: *"Your cut off extra child for tutors should be editable on thir card."* The cut moved
-     from one config number to `extra_seat_cut` on each tutor's row, and it is the business's margin, so the
-     one thing this rule must never do is let a tutor set it — while still letting the tutor's own Save of the
-     page it sits on through, which posts every box whether touched or not. And blank and nought are two
-     answers (the usual share; none at all), which the four's `N()` compare cannot tell apart — so a blank
-     made nought must count as a change, and '0.10' over 0.1 must not. */
+  /* ---------- THE BUSINESS'S CUT OF AN EXTRA SEAT: AN ADMIN'S, AND BLANK IS NOT NOUGHT (docs/history/345) § */
   const CUT0 = { person_id: 'P002', rate_per_hour: 30, extra_seat_rate: 0.5, extra_seat_cut: '' };
   const CUTOWN = Object.assign({}, CUT0, { extra_seat_cut: 0.1 });
   const CUTNONE = Object.assign({}, CUT0, { extra_seat_cut: 0 });
@@ -1211,9 +928,7 @@ function run() {
     ['no',  CUT0,   { extra_seat_cut: '15' }, true, '15 is pounds typed into a fraction, refused for an admin too'],
     ['no',  CUT0,   { extra_seat_cut: '-0.1' }, true, 'and a share below nothing'],
     ['no',  CUT0,   { extra_seat_cut: 'ten percent' }, true, 'and words'],
-    /* ONE PARSER, THE PATTERN (the review of 345): the refusal asked `Number()` and `doGet` sent `parseFloat`, which
-       disagree on "0x1" (1 and 0) — so a tutor's "0x1" over an admin's cut of 1 looked unchanged, was written, and
-       went out as no cut. Anything that is not a plain decimal is a change, and no admin's to make either. */
+    /* ONE PARSER, THE PATTERN (the review of 345): § */
     ['no',  CUTONE, { extra_seat_cut: '0x1' }, false, 'a TUTOR writing "0x1" over a cut of 1 — Number() reads 1, parseFloat 0'],
     ['no',  CUTTWO, { extra_seat_cut: '0b10' }, false, 'nor "0b10" over a cut of 2'],
     ['no',  CUTONE, { extra_seat_cut: '1e0' }, false, 'nor another spelling of the same 1 — the cell is not theirs to rewrite'],
@@ -1227,10 +942,7 @@ function run() {
     if (got !== want) bad.push({ handle: 'cut \u2192 ' + JSON.stringify(f)
       + (isAdmin ? ' (admin)' : ''), want, why, said: said || '(allowed)' });
   });
-  /* WHAT `doGet` SENDS FOR IT: '' for blank (the default), nought for nought, the share for a share — and a cell
-     that is not a plain share from 0 to 2 is the default, never a nought that takes the margin away: words, "0x1"
-     (`parseFloat` read it as nought), "10" meant as ten per cent and "-0.1" (both went out as the number, which the
-     price read as no cut), and "£0.10" (priced as 0.1 while the health card and an admin's write said otherwise). */
+  /* WHAT `doGet` SENDS FOR IT: § */
   [['', ''], [null, ''], [0, 0], ['0', 0], [0.1, 0.1], ['0.25', 0.25], [2, 2], ['abc', ''],
    ['0x1', ''], ['0b10', ''], ['10', ''], [15, ''], ['-0.1', ''], [-0.1, ''], ['£0.10', ''], ['10%', '']].forEach(([cell, want]) => {
     const got = box.cutOut(cell);
@@ -1241,17 +953,7 @@ function run() {
   if (box.fields.indexOf(box.CUT_FIELD) !== -1) bad.push({ handle: 'PRICING_FIELDS', want: 'no ' + box.CUT_FIELD,
     why: 'the business\'s cut is an admin\'s and must not start the tutor\'s month', said: JSON.stringify(box.fields) });
 
-  /* ---------- `SIGNIN` — AN E-MAIL ADDRESS AND A PIN, AND NOTHING ELSE ---------------------------
-     ASKED FOR AS *"i want people to be able to sign in only with their email and their pin now. no
-     case sensitive stuff."* `verifyLogin` reads the `email` column alone, and the three rules that
-     make it so had no check at all: `check-flow`'s sign-in journey stubs the POST, and the cases
-     above run `findPerson`, which sign-in no longer calls. Putting `findPerson(body.name)` back
-     would have left every check here green.
-
-     THE HANDLER ITSELF, CUT OUT OF `dopost.gs` AND RUN, not a second implementation of it. The
-     seven helpers it reaches for are stubbed — the PIN check is a plain comparison, because what is
-     under test is WHICH ROW a sign-in lands on rather than the hashing — and `findPerson` is stubbed
-     to answer a username, so a version that went back to it fails the username case. */
+  /* ---------- `SIGNIN` — AN E-MAIL ADDRESS AND A PIN, AND NOTHING ELSE § */
   const vlAt = post.indexOf("if (action === 'verifyLogin')");
   const vlEnd = vlAt < 0 ? -1 : post.indexOf("if (action === '", vlAt + 10);
   if (vlAt < 0 || vlEnd < 0) {
@@ -1265,9 +967,7 @@ function run() {
     { person_id: 'P4', email: '',                pin: '0000', username: 'NoMail', handle: 'sam_kind' },
     { person_id: 'P5', email: '',                pin: '0000', username: 'Twin1',  handle: 'twin_brave' },
     { person_id: 'P6', email: '',                pin: '0000', username: 'Twin2',  handle: 'Twin_Brave' },
-    /* A STUDENT WHO HAS AN ADDRESS, in each shape a handle has had: the 1 October
-       `<first>_<virtue><nn>` and today's shuffled arrangement. *"have the students be able to login
-       with their handles too"* — these two were the ones the handle door turned away. */
+    /* A STUDENT WHO HAS AN ADDRESS, in each shape a handle has had: § */
     { person_id: 'P7', email: 'mia@x.com',       pin: '0000', username: 'MiaS',   handle: 'mia_brave33' },
     { person_id: 'P8', email: 'leo@x.com',       pin: '0000', username: 'LeoS',   handle: 'kind42_leo' },
     { person_id: 'P9', email: 'new@x.com',       pin: '0000', username: 'NewS',   handle: 'nia_calm7', verified: 'PENDING' },
@@ -1279,10 +979,7 @@ function run() {
        long first name does not open a second spelling of it. */
     { person_id: 'P11', email: '',               pin: '0000', username: 'MaxL',   handle: 'maximili_rocks',
       first_name: 'Maximilian' },
-    /* ---------- A CHILD WHOSE HANDLE WAS MOVED (342), and the two ways an old handle could go wrong ------
-       P12 had two handles before her initials; P13 holds today a handle P14 used to have, so the old one
-       must sign in P13 — whoever has it NOW; P15 and P16 both had one handle once, which is two accounts
-       on one old name and is refused, never guessed. */
+    /* ---------- A CHILD WHOSE HANDLE WAS MOVED (342), and the two ways an old handle could go wrong § */
     { person_id: 'P12', email: '',               pin: '0000', username: 'EllaJ',  handle: 'ej2345',
       handle_was: 'ella_kind42, Ella_Bold17', first_name: 'Ella', last_name: 'Jones' },
     { person_id: 'P13', email: '',               pin: '0000', username: 'MoNow',  handle: 'mo_brave33' },
@@ -1411,18 +1108,13 @@ function run() {
       want: c.moved ? 'told ' + c.moved : 'told nothing moved', why: c.why, said: JSON.stringify(got) });
   });
 
-  /* ---------- THE HEADING NAMES BOTH THINGS, because it checks both -------------------------------
-     It read "A USERNAME JUDGED WRONGLY" over a list that has held pricing findings since the cap
-     cooldown went in — a summary naming one of the two subjects it covers, which is the "all 18
-     checks pass" shape this repository records four times. */
+  /* ---------- THE HEADING NAMES BOTH THINGS, because it checks both § */
   console.log('\nJUDGED WRONGLY  (' + bad.length + ')');
   if (!bad.length) console.log('  none');
   bad.forEach(b => console.log('  ' + JSON.stringify(b.handle) + '  wanted ' + b.want
     + ' — ' + b.why + '\n      server said: ' + b.said));
 
-  /* EVERY NUMBER HERE IS READ OFF THE ARRAY IT COUNTS. A figure typed into a sentence is the
-     "all 18 checks pass" fault, which this repository has now recorded four times — including once
-     in its own tally of how often it had recorded it. */
+  /* EVERY NUMBER HERE IS READ OFF THE ARRAY IT COUNTS. § */
   console.log('\nhandles judged by the gate: ' + CASES.length
     + '  ·  virtues: ' + box.ADJ.length + ', each beside ' + names.length + ' first names in '
     + box.ORDERS.length + ' orders, 3 joins and every number: ' + paired + ' candidates, '

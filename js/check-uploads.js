@@ -1,52 +1,5 @@
 #!/usr/bin/env node
-/* ==================================================================================================
-   @family. — check-uploads.js
-
-   A PHOTOGRAPH OR A CLIP SENT IN A MESSAGE IS KEPT, OR THE PERSON IS TOLD WHY — AND THE OWNER HOW.
-
-   ASKED FOR AS *"i cant send images, or videos in the chat to people. i think you need to add
-   something to ledger for that."* Two things were in the way and NO CHECK COULD SEE EITHER:
-
-     · `backend/appsscript.json` listed `drive.readonly`. A written-out `oauthScopes` list is the
-       whole list — Apps Script stops inferring scopes from the code — so `createFile`, `createFolder`
-       and `setSharing` could never be authorised, however many times Allow was pressed. Every
-       harness here stubbed `DriveApp` as a thing that simply works, so the manifest was never read.
-     · the Ledger's `messages` tab had no `attachments` column, which `ensureSchema` adds — and a
-       refusal that told a parent to "run ?setup=1".
-
-   SO THE DRIVE HERE ASKS FOR THE SCOPE GOOGLE ASKS FOR. `driveFor` refuses a write unless the token
-   holds `.../auth/drive` and a read unless it holds that or `drive.readonly`, with Google's own
-   sentence — and the token, by default, holds EXACTLY WHAT THE MANIFEST LISTS. A manifest that
-   cannot write is a red here before it is a parent's photograph that did not arrive.
-
-   THROUGH THE REAL BACKEND (`check-gas-load.js`) AND, FOR WHAT IS DRAWN, THE REAL APP: a jsdom
-   window whose every POST is answered by that same backend, so the bubble that says "Not sent" is
-   reading the sentence `sendMessage` actually wrote, and the `<img>` and `<video>` in the thread are
-   drawn from the cell `msgAttachIn_` actually stored. Two windows on one Ledger, so the clip is
-   asked for on BOTH sides of the conversation.
-
-   WHAT IT ASKS, IN ORDER:
-     1. the manifest holds `drive` while the backend calls Drive's write methods; the tab, its
-        columns and its file are all named (TAB, SCHEMA with `attachments`, WHERE)
-     2. no column: files refused in a sentence a parent can read, the owner told the address; a
-        message of plain words still goes (it used to come back "Not sent" having been sent)
-     3. a token that can only read: nothing sent, nothing left in Drive, the parent told it is the
-        site's side, the admin told the fix — and never "No posts folder"
-     4. the manifest's own token: three files kept and shared, the cell `url#type#name | …`, a file
-        with no type typed by its name, and both sides drawing an `<img>` and a playable `<video>`
-     5. one file of three refused half way: the two already made are binned, nothing is sent
-     6. the phone: a refusal about the files offers Words only, which sends the words and puts the
-        files back in the box; an unreadable file is never dropped in silence; a photograph the
-        browser cannot redraw goes as it is
-     7. Check uploads: admin only, four answers, one test file binned, no folder left behind, and
-        the fix in order when something is missing — pressed from the Tools column
-     8. posts, which the same scope opened: the phone's own caps, photos and videos only, five
-        waiting a person, and every refusal made before a byte reaches Drive
-     9. `authoriseDrive`'s last line: READY only when the whole manifest is allowed and a file was
-        made and shared, DO NOT DEPLOY otherwise — the one safety net before a new version
-
-     node js/check-uploads.js
-================================================================================================== */
+/* @family. — check-uploads.js A PHOTOGRAPH OR A CLIP SENT IN A MESSAGE IS KEPT, OR THE PERSON IS TOLD WHY — AND THE OWNER HOW. § */
 'use strict';
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 const fs = require('fs');
@@ -78,11 +31,7 @@ const SCOPES = (MANIFEST.oauthScopes || []).slice();
 const READONLY = SCOPES.map(s => (s === AUTH + 'drive' ? AUTH + 'drive.readonly' : s))
   .concat(SCOPES.some(s => /\/auth\/drive/.test(s)) ? [] : [AUTH + 'drive.readonly']);
 
-/* ---------- A DRIVE THAT ASKS FOR THE SCOPE GOOGLE ASKS FOR ------------------------------------------
-   Reads need `drive.readonly` or `drive`; `createFile`, `createFolder`, `setSharing` and `setTrashed`
-   need `drive`. The sentences are Google's, because the backend decides what a failure MEANS by
-   reading them (`driveDenied_`). `world.failOn` makes the n-th `createFile` throw an outage instead,
-   for the journey where one file of three does not go. */
+/* ---------- A DRIVE THAT ASKS FOR THE SCOPE GOOGLE ASKS FOR § */
 function driveFor(scopes, world) {
   const has = s => scopes.indexOf(AUTH + s) >= 0;
   const read = m => {
@@ -143,9 +92,7 @@ const PEOPLE = [
 ].map(p => Object.assign({ pin: '0000', verified: 'TRUE', city: 'London' }, p));
 const NAME = { 'P-A1': 'Hal Owner', 'P-T1': 'Ada Tutor', 'P-C1': 'Pat Parent' };
 
-/* ---------- ONE LEDGER, ONE DRIVE, ONE DEPLOYMENT ---------------------------------------------------
-   opts: scopes (default: the manifest's), noColumn, consent (a URL `consentUrl_` may hand over),
-   failOn (the n-th createFile has an outage). */
+/* ---------- ONE LEDGER, ONE DRIVE, ONE DEPLOYMENT § */
 function world(opts) {
   opts = opts || {};
   const scopes = opts.scopes || SCOPES;
@@ -161,9 +108,7 @@ function world(opts) {
       throw new Error('no network');
     } },
   });
-  /* `NOT_REQUIRED` ONLY WHEN THE TOKEN HOLDS EVERY SCOPE THE MANIFEST LISTS, which is what Apps
-     Script answers — a grant with one box unticked is still `REQUIRED`. `authoriseDrive`'s verdict
-     reads this, so a world that said NOT_REQUIRED regardless could never catch a partial Allow. */
+  /* `NOT_REQUIRED` ONLY WHEN THE TOKEN HOLDS EVERY SCOPE THE MANIFEST LISTS, which is what Apps Script answers — a grant with one box unticked is still `REQUIRED`. § */
   const whole = SCOPES.every(s => scopes.indexOf(s) >= 0);
   b.ev(`(function(){
     Utilities.newBlob = (bytes, type, name) => ({ type: type, name: name, size: (bytes || []).length });
@@ -284,9 +229,7 @@ const SCOPE_WORDS = /googleapis\.com|auth\/drive|Deploy|Apps Script/;
   if (!bad.some(x => /^read-only/.test(x))) said.push('read-only token: nothing kept or written, the parent told it is our side, the admin told the fix and the link');
 }
 
-/* ================================================================================================
-   4. THE MANIFEST'S OWN TOKEN — AND 5. ONE OF THREE REFUSED HALF WAY
-   ================================================================================================ */
+/* 4. THE MANIFEST'S OWN TOKEN — AND 5. § */
 const WORKS = world({});
 {
   const W = WORKS;
@@ -322,9 +265,7 @@ const WORKS = world({});
   }
 }
 
-/* ================================================================================================
-   7. CHECK UPLOADS, THROUGH THE BACKEND
-   ================================================================================================ */
+/* 7. CHECK UPLOADS, THROUGH THE BACKEND § */
 {
   const W = world({});
   const no = W.as('P-C1', { action: 'checkUploads' });
@@ -359,14 +300,7 @@ const WORKS = world({});
   if (!bad.some(x => /^check uploads/.test(x))) said.push('check uploads: admin only, four answers, one test file binned, the fix in order when it fails');
 }
 
-/* ================================================================================================
-   8. POSTS, NOW THAT DRIVE CAN BE WRITTEN
-   `addPost` is open to any signed-in account and used to keep any `data:` URL at any size, uploaded
-   before it even asked who was posting. Under `drive.readonly` every such upload failed; under the
-   manifest's `drive` it would have been anybody's file host. The caps are the PHONE'S OWN NUMBERS,
-   read out of posts.js, so the first half asks that nothing the camera card lets through is
-   refused, and the second that what it would not let through is.
-   ================================================================================================ */
+/* 8. POSTS, NOW THAT DRIVE CAN BE WRITTEN `addPost` is open to any signed-in account and used to keep any `data:` URL at any size, uploaded before it even asked § */
 {
   const cam = fs.readFileSync(path.join(ROOT, 'js', 'posts.js'), 'utf8');
   const mib = n => { const m = new RegExp('const ' + n + '\\s*=\\s*(\\d+)\\s*\\*\\s*1048576').exec(cam); return m ? Number(m[1]) * 1048576 : 0; };
@@ -420,13 +354,7 @@ const WORKS = world({});
   }
 }
 
-/* ================================================================================================
-   9. AUTHORISEDRIVE: ITS LAST LINE IS THE GATE FOR DEPLOYING
-   A new version whose manifest lists a permission the deployer has not allowed answers every
-   visitor "Authorization is required", and Check uploads runs on that same deployment so cannot
-   say so. The editor's log is the only safety net — so its last line must be a verdict, and READY
-   only when the WHOLE manifest is allowed, not just Drive (the consent screen ticks per permission).
-   ================================================================================================ */
+/* 9. AUTHORISEDRIVE: ITS LAST LINE IS THE GATE FOR DEPLOYING A new version whose manifest lists a permission the deployer has not allowed answers every visitor § */
 {
   const last = W => { const s = String(W.b.ev('authoriseDrive()')); return s.split('\n').pop(); };
   const full = world({});
@@ -448,9 +376,7 @@ const WORKS = world({});
   if (!bad.some(x => /^authoriseDrive/.test(x))) said.push('authoriseDrive: the last line is READY only with the whole manifest allowed and a file made and shared; DO NOT DEPLOY otherwise, showcase or not');
 }
 
-/* ================================================================================================
-   6 AND 7 ON THE SCREEN — THE REAL APP, EVERY POST ANSWERED BY THE REAL BACKEND
-   ================================================================================================ */
+/* 6 AND 7 ON THE SCREEN — THE REAL APP, EVERY POST ANSWERED BY THE REAL BACKEND § */
 function loadOrder_() {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   const m = /window\.FILES\s*=\s*\[([\s\S]*?)\]/.exec(html);
@@ -560,9 +486,7 @@ async function screens() {
   await until(() => T.u.LOADED(), 45000);
   await both(T, false);
 
-  /* ---------- AN UNREADABLE FILE, AND A PHOTOGRAPH THE BROWSER CANNOT REDRAW ---------------------
-     The tutor writes back. `camItemOf_` answers null, as it does for a HEIC in Chrome; one queued
-     item is not a file at all, so FileReader throws on it. */
+  /* ---------- AN UNREADABLE FILE, AND A PHOTOGRAPH THE BROWSER CANNOT REDRAW § */
   T.u.setCam(() => Promise.resolve(null));
   const heic = fileOn(T.w, 'IMG_0003.HEIC', 'image/heic', 2 * 1048576 + 10);
   const ghost = { file: {}, name: 'gone.jpg', type: 'image/jpeg', size: 10, url: 'blob:gone' };
@@ -586,10 +510,7 @@ async function screens() {
   if (tools.indexOf('uploads') < 0) fail('the tool', 'an admin\'s Tools column has no Check uploads');
   if (T.u.widgetsOf_('tool').some(x => x.id === 'uploads')) fail('the tool', 'a tutor\'s Tools column offers Check uploads');
   A.u.go('tools');
-  /* FORTY-FIVE SECONDS, AS THE LOAD ABOVE: Check uploads is the thirteenth widget on an admin's Tools, and the
-     queue starts them one per task behind the slide (`widgetsLater_`). On a machine shared with other
-     builders that took 4–13s in jsdom on 12 Oct, base and branch alike, and a cap of fifteen failed a
-     drawn tile as a missing one (docs/history/341). It is a wait, not a measurement. */
+  /* FORTY-FIVE SECONDS, AS THE LOAD ABOVE: § */
   await until(() => A.d.querySelector('#s-tools .up-box [data-do="uploads-check"]'), 45000);
   const tile = A.d.querySelector('#s-tools .up-box [data-do="uploads-check"]');
   if (!tile) fail('the tool', 'the Tools column drew no Check uploads tile for an admin');
