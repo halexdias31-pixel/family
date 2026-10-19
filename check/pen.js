@@ -1190,7 +1190,7 @@ const unmoved = (sec, where, r, b) => {
   }
 
   /* A POINT PUT DOWN EXACTLY (docs/history/357): § */
-  const PLACE = ['plot', 'plotfine', 'rulersnap', 'curve', 'loupe', 'samples'];
+  const PLACE = ['plot', 'plotfine', 'rulersnap', 'curve', 'straight', 'zoom', 'loupe', 'samples'];
   /* A SEEDED WOBBLE, so a failure can be run again exactly. */
   const rng = seed => () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
   const SEEDS = [11, 23, 37];
@@ -1462,6 +1462,150 @@ const unmoved = (sec, where, r, b) => {
         if (!(res.turn < 50)) fail('curve', where, `the drawn curve turns ${Math.round(res.turn)} degrees at a vertex — wanted under 50`);
         console.log(`  curve ${where}: ${res.n} of ${res.rawN} samples kept, ${res.far.toFixed(2)}px from the aim, ${res.dotD.toFixed(2)}px from the furthest dot, sharpest turn ${Math.round(res.turn)} degrees`);
         await shot(env.page, `curve-${seed}`);
+        await reset(env, o.k);
+      }
+    }
+
+    /* ---- straight (374): a line paused at its end is straight and on the grid, a ring paused is round, a quick line is kept as drawn,
+       a polygon paused at each corner is its corners -- and is marked right ---- */
+    if (want('straight') && W === 390) {
+      /* A FINGER'S PATH THROUGH WAYPOINTS (px), 2.5px a sample with +-1.5px wobble and a 4px bow; `still` ms of +-2px tremble at each waypoint in `holds` */
+      const drawThrough = async (env, way, holds, still, R) => {
+        const w = () => (R() * 2 - 1) * 1.5;
+        begin(env);
+        await T(env, 'touchStart', [pt(way[0][0], way[0][1])], 0);
+        for (let s = 1; s < way.length; s++) {
+          const a = way[s - 1], b = way[s], L = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.max(2, Math.ceil(L / 2.5)), nx = -(b[1] - a[1]) / L, ny = (b[0] - a[0]) / L;
+          for (let i = 1; i <= n; i++) { const u = i / n, bow = 4 * Math.sin(Math.PI * u); await T(env, 'touchMove', [pt(a[0] + (b[0] - a[0]) * u + nx * bow + (i < n ? w() : 0), a[1] + (b[1] - a[1]) * u + ny * bow + (i < n ? w() : 0))], since(env)); await sleep(8); }
+          if (holds.indexOf(s) !== -1) { const t0 = Date.now(); while (Date.now() - t0 < still) { await T(env, 'touchMove', [pt(b[0] + (R() * 2 - 1) * 2, b[1] + (R() * 2 - 1) * 2)], since(env)); await sleep(40); } }
+        }
+        const e = way[way.length - 1];
+        await T(env, 'touchEnd', [pt(e[0], e[1])], since(env));
+        await sleep(400);
+      };
+      const o = await open(env, Q7, at);
+      const L = o ? await latOf(env) : null;
+      if (o && (!L || L.none)) fail('straight', at, 'no grid on Q7');
+      else if (o) {
+        const i0 = 2, j0 = Math.min(L.yp.length - 3, 9), i1 = Math.min(L.xp.length - 3, 11), j1 = 3;
+        const A = [L.xp[i0], L.yp[j0]], B = [L.xp[i1], L.yp[j1]];
+        const wantU = [Math.round(L.xu[i0]), Math.round(L.yu[j0]), Math.round(L.xu[i1]), Math.round(L.yu[j1])];
+        /* aimed 3px off each intersection, as a finger lands */
+        const A2 = [A[0] + 3, A[1] - 2], B2 = [B[0] - 2, B[1] + 3];
+        for (const seed of SEEDS) {
+          await drawThrough(env, [A2, B2], [1], 700, rng(seed));
+          const r = await look(env, o.k, CARD), st = r.stored[r.stored.length - 1] || [];
+          if (r.stored.length !== 1 || JSON.stringify(st) !== JSON.stringify(wantU)) fail('straight', `${at} line seed ${seed}`, `a bowed line held 700ms at its end stored ${JSON.stringify(r.stored).slice(0, 120)} — wanted the straight line between the two intersections ${JSON.stringify(wantU)}`);
+          if (seed === SEEDS[0]) await shot(env.page, 'straight-line');
+          await reset(env, o.k);
+        }
+        /* THE SAME LINE, LIFTED AT ONCE: kept as the finger drew it */
+        await drawThrough(env, [A2, B2], [], 0, rng(5));
+        let r = await look(env, o.k, CARD), st = r.stored[0] || [];
+        if (r.stored.length !== 1 || st.length / 2 < 20) fail('straight', at + ' quick', `a line lifted without a pause stored ${st.length / 2} points — it was straightened, wanted the finger's own`);
+        console.log(`  straight ${at}: held lines stored as two intersections, a quick line kept ${st.length / 2} points`);
+        await reset(env, o.k);
+        /* A PAUSE THAT IS TOO SHORT (300ms, a child's ordinary hesitation) changes nothing */
+        await drawThrough(env, [A2, B2], [1], 300, rng(6));
+        r = await look(env, o.k, CARD); st = r.stored[0] || [];
+        if (st.length / 2 < 20) fail('straight', at + ' 300ms', `a line paused 300ms at its end was straightened (${st.length / 2} points) — the hold is ${500}ms`);
+        await reset(env, o.k);
+        /* A RING: a wobbly, slightly oval circle, closed and held -- every stored point on one circle, closed */
+        const cx = o.c.ink.l + o.c.ink.w * 0.5, cy = o.c.ink.t + o.c.ink.h * 0.5, rad = Math.min(o.c.ink.w, o.c.ink.h) * 0.3, ring = [];
+        for (let i = 0; i <= 48; i++) { const t = 2 * Math.PI * i / 48; ring.push([cx + rad * 1.05 * Math.cos(t), cy + rad * 0.96 * Math.sin(t)]); }
+        ring.push([ring[0][0] + 4, ring[0][1] + 6]);
+        const Rg = rng(7);
+        begin(env);
+        await T(env, 'touchStart', [pt(ring[0][0], ring[0][1])], 0);
+        for (let i = 1; i < ring.length; i++) { await T(env, 'touchMove', [pt(ring[i][0] + (Rg() * 2 - 1) * 1.5, ring[i][1] + (Rg() * 2 - 1) * 1.5)], since(env)); await sleep(10); }
+        { const e = ring[ring.length - 1], t0 = Date.now(); while (Date.now() - t0 < 700) { await T(env, 'touchMove', [pt(e[0] + (Rg() * 2 - 1) * 2, e[1] + (Rg() * 2 - 1) * 2)], since(env)); await sleep(40); } }
+        await T(env, 'touchEnd', [], since(env)); await sleep(400);
+        r = await look(env, o.k, CARD); st = r.stored[0] || [];
+        const sx = o.c.ink.w / 340, sy = o.c.ink.h / 340, P = []; for (let i = 0; i + 1 < st.length; i += 2) P.push([st[i] * sx, st[i + 1] * sy]);
+        const m = P.reduce((s, p) => [s[0] + p[0] / P.length, s[1] + p[1] / P.length], [0, 0]), ds = P.map(p => Math.hypot(p[0] - m[0], p[1] - m[1]));
+        const spread = ds.length ? Math.max(...ds) - Math.min(...ds) : 99, closed = st.length >= 4 && st[0] === st[st.length - 2] && st[1] === st[st.length - 1];
+        if (r.stored.length !== 1 || P.length < 20 || !closed || spread > 2.5) fail('straight', at + ' ring', `a wobbly oval held at its close stored ${P.length} points, closed ${closed}, radius spread ${spread.toFixed(1)}px — wanted a closed ring within 2.5px`);
+        console.log(`  straight ${at} ring: ${P.length} points, closed ${closed}, radius spread ${spread.toFixed(2)}px`);
+        await shot(env.page, 'straight-ring');
+        await reset(env, o.k);
+      }
+      /* A QUADRILATERAL IN ONE STROKE, paused at each corner, on Corbettmaths coordinates Q8: its corners, closed, and Check marks it right */
+      const POLY = 'Q-CBM-coordinates-8';
+      const q = await open(env, POLY, at);
+      if (q) {
+        const eg = await env.page.evaluate(k => {
+          const pad = [...document.querySelectorAll('#s-stuff .page.on .qpad')].find(p => p.getAttribute('data-k') === k);
+          const row = pad.querySelector('.qpad-send'), art = pad.querySelector('.qpad-art > svg:first-child');
+          return DRAW_MARK.example(row.getAttribute('data-draw'), drawFig_(art.__src || art.outerHTML));
+        }, q.k);
+        const poly = (eg[0] || []).map(Math.round), way = [];
+        for (let i = 0; i + 1 < poly.length; i += 2) way.push([q.c.ink.l + poly[i] / 340 * q.c.ink.w + 2, q.c.ink.t + poly[i + 1] / 340 * q.c.ink.h - 2]);
+        if (way.length < 4) fail('straight', at + ' ' + POLY, 'no example drawing to aim at');
+        else {
+          await drawThrough(env, way, way.map((_, i) => i).slice(1), 650, rng(9));
+          const r = await look(env, q.k, CARD), st = r.stored[0] || [];
+          const v = await env.page.evaluate(k => {
+            const pad = [...document.querySelectorAll('#s-stuff .page.on .qpad')].find(p => p.getAttribute('data-k') === k);
+            const res = padCheck_(pad.querySelector('.qpad-send'), pad);
+            return { got: res && res.got, of: res && res.of, say: pad.querySelector('.qpad-send .qp-verdict').textContent };
+          }, q.k);
+          if (r.stored.length !== 1 || st.length / 2 !== way.length) fail('straight', at + ' ' + POLY, `a quadrilateral paused at each corner stored ${JSON.stringify(r.stored).slice(0, 120)} — wanted its ${way.length} corners`);
+          if (!(v.got >= 1 && v.got === v.of)) fail('straight', at + ' ' + POLY, `the straightened quadrilateral is marked ${v.got}/${v.of} (${v.say}) — wanted right`);
+          console.log(`  straight ${at} ${POLY}: ${st.length / 2} corners stored, marked ${v.got}/${v.of} "${v.say}"`);
+          await shot(env.page, 'straight-poly');
+        }
+        await reset(env, q.k);
+      }
+    }
+
+    /* ---- zoom (374): two fingers pinch the armed figure closer, one finger then puts a point exactly, a line is stored in the
+       picture's own units, and pinching back lets go -- nothing stored by the pinch, the column unmoved ---- */
+    if (want('zoom') && W === 390) {
+      const o = await open(env, Q7, at);
+      if (o) {
+        const c = o.c, mx = c.ink.l + c.ink.w * 0.5, my = c.ink.t + c.ink.h * 0.5;
+        const zoomOf = () => env.page.evaluate(k => { const z = PAD_ZOOM.get(k); const pad = [...document.querySelectorAll('#s-stuff .page.on .qpad')].find(p => p.getAttribute('data-k') === k); return { s: z ? z.s : 1, cls: !!(pad && pad.classList.contains('is-zoomed')) }; }, o.k);
+        const L0 = await latOf(env);
+        const pinch = (d0, d1) => gesture(env, o.k, CARD, () => play(env, plan(track(1, 8, 0, 360, 12, u => [mx - (d0 + (d1 - d0) * mj(u / 360)) / 2, my]), track(2, 8, 20, 360, 12, u => [mx + (d0 + (d1 - d0) * mj(u / 360)) / 2, my]))));
+        let r = await pinch(40, 160);
+        let z = await zoomOf();
+        nothing('zoom', at + ' pinch out', r, { at: c.at, page: c.page });
+        if (!(z.s >= 2.5 && z.cls)) fail('zoom', at + ' pinch out', `two fingers spreading 40px to 160px left the picture at ${z.s.toFixed(2)}x (class ${z.cls}) — wanted about 4x`);
+        await shot(env.page, 'zoom-in');
+        /* A TAP ON AN INTERSECTION OF THE ZOOMED GRID: the point stored is that intersection's own units */
+        const L = await latOf(env);
+        let cell = null;
+        for (let i = 1; i < L.xp.length - 1 && !cell; i++) for (let j = 1; j < L.yp.length - 1 && !cell; j++) {
+          const x = L.xp[i], y = L.yp[j];
+          if (x > c.ink.l + 20 && x < c.ink.r - 20 && y > c.ink.t + 20 && y < c.ink.b - 20) cell = [i, j];
+        }
+        if (!cell) fail('zoom', at, 'no intersection of the zoomed grid is inside the picture');
+        else {
+          await jtap(env, L.xp[cell[0]], L.yp[cell[1]], rng(3), 4);
+          r = await look(env, o.k, CARD);
+          const want1 = [Math.round(L.xu[cell[0]]), Math.round(L.yu[cell[1]])];
+          if (JSON.stringify(r.stored) !== JSON.stringify([want1])) fail('zoom', at + ' tap', `a tap on the zoomed grid stored ${JSON.stringify(r.stored)} — wanted [${want1}], the picture's own units`);
+          if (L.pitch < L0.pitch * 2.4) fail('zoom', at, `the zoomed square is ${L.pitch.toFixed(1)}px, unzoomed ${L0.pitch.toFixed(1)}px — the snap is not reading the zoomed box`);
+          console.log(`  zoom ${at}: ${z.s.toFixed(2)}x, square ${L0.pitch.toFixed(1)}px -> ${L.pitch.toFixed(1)}px, a tap stored ${JSON.stringify(r.stored)} (wanted [${want1}])`);
+        }
+        /* PINCHED BACK IN: whole again, the mark kept */
+        r = await pinch(160, 30);
+        z = await zoomOf();
+        if (z.s !== 1 || z.cls) fail('zoom', at + ' pinch in', `pinching back left the picture at ${z.s.toFixed(2)}x (class ${z.cls}) — wanted whole`);
+        if (r.stored.length !== 1) fail('zoom', at + ' pinch in', `the mark made zoomed was not kept: ${JSON.stringify(r.stored)}`);
+        unmoved('zoom', at + ' pinch in', r, { at: c.at, page: c.page });
+        /* A PALM SLIDING WITH A FINGER (spread unchanged) does not zoom */
+        await reset(env, o.k);
+        r = await gesture(env, o.k, CARD, () => play(env, plan(track(1, 8, 0, 300, 12, u => [mx - 40 + u * 0.15, my]), track(2, 8, 20, 300, 12, u => [mx + 40 + u * 0.15, my + 2]))));
+        z = await zoomOf();
+        if (z.s !== 1) fail('zoom', at + ' pan', `two fingers moving together at 1x zoomed the picture to ${z.s.toFixed(2)}x`);
+        /* ZOOMED, THEN DONE DRAWING: the card is whole again */
+        await pinch(40, 160);
+        const lk = await cardBox(env);
+        begin(env); await T(env, 'touchStart', [pt(lk.lock.x, lk.lock.y)], 0); await sleep(40); await T(env, 'touchEnd', [], 40);
+        await sleep(500);
+        z = await zoomOf();
+        if (z.s !== 1 || z.cls) fail('zoom', at + ' done', 'the picture stayed zoomed after Done drawing');
         await reset(env, o.k);
       }
     }

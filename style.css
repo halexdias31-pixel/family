@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-19-g-quiet";
+  --css-version: "2026-10-19-h-ink";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -5839,6 +5839,12 @@ button.scr-sq { cursor: pointer; }
   pointer-events: none; }
 .qpad.is-drawing .qpad-art { outline: 2px solid var(--gold); outline-offset: 4px;
                              border-radius: var(--r-sm); }
+/* PINCHED CLOSER (374, `padZoomPaint_`): the picture and its ink scaled together inside their own box, so nothing spills over the card */
+.qpad.is-zoomed .qpad-art { overflow: hidden; }
+.qpad.is-zoomed .qpad-art > svg { transform-origin: 0 0; transform: var(--pad-zoom); }
+/* YOUR INK STAYS ITS OWN WIDTH ON THE SCREEN however close the picture is pinched */
+.qpad.is-zoomed :is(.qpad-g, .qpad-was) path { stroke-width: calc(2.5px / var(--pad-zoom-s, 1)); }
+.qpad.is-zoomed .qpad-aid .qpad-pred { stroke-width: calc(2.5px / var(--pad-zoom-s, 1)); }
 /* GOLD, BECAUSE THE PAPER'S OWN INK IS `currentColor`. Your marks have to be visibly yours — a line
    of best fit in the same colour as the axis it crosses is a line you cannot check. */
 .qpad-g path { fill: none; stroke: var(--gold); stroke-width: 2.5;
@@ -5847,6 +5853,8 @@ button.scr-sq { cursor: pointer; }
 .qpad-aid path { fill: none; stroke: var(--gold); stroke-linecap: round; }
 .qpad-aid .qpad-pin { stroke-width: 7; }
 .qpad-aid .qpad-rad { stroke-width: 1.5; stroke-dasharray: 4 5; opacity: .85; }
+.qpad-aid .qpad-pred { stroke-width: 2.5; stroke-linejoin: round; }
+.wb .qpad-aid .qpad-pred { stroke: var(--paper-ink); }
 .qpad-aid .qpad-halo { fill: none; stroke: var(--gold); stroke-width: 1.5; opacity: .6; }
 /* ---------- THE LOUPE (357, `padLoupe_`) § */
 .pad-loupe { position: fixed; left: 0; top: 0; width: 128px; height: 128px; border-radius: 50%; overflow: hidden;

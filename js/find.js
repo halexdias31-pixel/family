@@ -4758,7 +4758,8 @@ function padWrap_(x, svg) {
   const held = PAD_TOOL.get(k);
   const tool = held && tools.indexOf(held) !== -1 ? held : 'pen';
   /* THE OVERLAY TAKES ITS BOX FROM THE PICTURE UNDER IT, by stretching to the same box, rather than by parsing a viewBox out of the drawing's markup. § */
-  return `<div class="qpad${pen ? ' is-drawing' : ''}" data-k="${esc(k)}" data-aspect="${ka}">
+  const zm = pen && PAD_ZOOM.has(k) ? PAD_ZOOM.get(k) : null;
+  return `<div class="qpad${pen ? ' is-drawing' : ''}${zm ? ' is-zoomed' : ''}" data-k="${esc(k)}" data-aspect="${ka}"${zm ? ` style="--pad-zoom: ${padZoomVar_(zm)}; --pad-zoom-s: ${zm.s.toFixed(4)}"` : ''}>
     <div class="qpad-art"${pen ? '' : ` data-do="pad-draw" title="${esc(PAD_TAP)}"`}>${svg}
       <svg class="qpad-ink"${pen ? ' data-noswipe' : ''} viewBox="0 0 340 340" preserveAspectRatio="none" aria-hidden="true">
         ${was.length ? usesInk_(was, ka) : ''}
@@ -5488,6 +5489,7 @@ on('pad-check', el => padCheck_(el.closest('.qpad-send'), el.closest('.qpad')));
 /* ---------- ARMING ONE PAD, EVERY PART OF IT TOGETHER § */
 function padArm_(pad, on) {
   if (!pad) return;
+  if (!on && pad.getAttribute('data-k')) padZoomOff_(pad.getAttribute('data-k'));
   pad.classList.toggle('is-drawing', !!on);
   const ink = pad.querySelector('.qpad-ink');
   if (ink) { if (on) ink.setAttribute('data-noswipe', ''); else ink.removeAttribute('data-noswipe'); }
@@ -5581,6 +5583,9 @@ const PAD_DRAW = {
        finger moves anything visible, and every duplicated point is two more characters in storage
        for a mark nobody can see. */
     move: (g, at, st) => {
+      /* AFTER A HOLD (374): a ring or an arc is done; a line's corner waits until the point leaves where it paused */
+      if (g.frozen) return null;
+      if (g.qz) { if (Math.hypot(at[0] * g.sx - g.qz[0], at[1] * g.sy - g.qz[1]) <= PAD_HOLD_PX) return null; g.qz = null; g.lz = null; }
       if (padSteady_(g)) at = padLazy_(g, at, st);
       if (!at || (st[st.length - 2] === at[0] && st[st.length - 1] === at[1])) return null;
       st.push(at[0], at[1]);
@@ -5588,7 +5593,7 @@ const PAD_DRAW = {
     },
     /* A STEADIED STROKE ENDS WHERE THE POINTER LIFTED: the string's slack is paid out in two steps, so nothing lags */
     end: (g, st) => {
-      if (padSteady_(g) && g.at && st && st.length >= 2) {
+      if (padSteady_(g) && !g.frozen && !g.qz && g.at && st && st.length >= 2) {
         const x = st[st.length - 2], y = st[st.length - 1], a = g.at;
         if (x !== a[0] || y !== a[1]) {
           const m = [Math.round((x + a[0]) / 2), Math.round((y + a[1]) / 2)];
@@ -5621,7 +5626,13 @@ function padAid_(g) {
      is round where it is seen. Shown, never stored -- the aid is emptied at the lift. */
   const h = g.hold;
   const halo = h ? `<ellipse class="qpad-halo" vector-effect="non-scaling-stroke" cx="${h.u[0]}" cy="${h.u[1]}" rx="${30 / g.sx}" ry="${30 / g.sy}"/>` : '';
-  if (g.tool === 'pen') { if (aid.innerHTML !== halo) aid.innerHTML = halo; return; }
+  if (g.tool === 'pen') {
+    /* AND WHERE THE FINGER IS ABOUT TO BE (374): the platform's prediction, one short segment, never stored -- the next frame replaces it */
+    const n = PAD_ST ? PAD_ST.length : 0, q = g.pred;
+    const html = halo + (q && n >= 2 ? `<path class="qpad-pred" vector-effect="non-scaling-stroke" d="M${PAD_ST[n - 2]} ${PAD_ST[n - 1]}L${q[0]} ${q[1]}"/>` : '');
+    if (aid.innerHTML !== html) aid.innerHTML = html;
+    return;
+  }
   const pin = `<path class="qpad-pin" vector-effect="non-scaling-stroke" d="M${c[0]} ${c[1]}L${c[0]} ${c[1]}"/>`;
   const rad = g.tool === 'compass' && g.tip && g.r >= padMinOf_(g)
     ? `<path class="qpad-rad" vector-effect="non-scaling-stroke" d="M${c[0]} ${c[1]}L${Math.round(g.tip[0])} ${Math.round(g.tip[1])}"/>`
@@ -5950,6 +5961,131 @@ function padPlace_(g, at, start) {
   if (start) g.fp = t ? [t.x, t.y] : f;
   return g.at.slice();
 }
+/* ---------- HOLD TO STRAIGHTEN (374): a pen line paused at its end becomes straight, a ring round, an arc an arc -- QuickShape's gesture. A quick stroke is kept as drawn */
+const PAD_HOLD_MS = 500;      // still this long at a stroke's end: iPad's QuickShape waits about as long, past a child's ordinary 100-300ms pause
+const PAD_HOLD_PX = 8;        // "still": within this of where the pause began -- a fingertip's +-4px wobble is inside it
+const PAD_SHAPE_MIN = 20;     // a run shorter than this is a tick, not a line
+let PAD_HOLD_T = 0;
+const padHoldClear_ = () => { if (PAD_HOLD_T) { clearTimeout(PAD_HOLD_T); PAD_HOLD_T = 0; } };
+/* EVERY PEN SAMPLE: the pause's clock restarts whenever the point leaves the zone it began in */
+function padHoldWatch_(g) {
+  if (!g.at || g.frozen) return;
+  const f = [g.at[0] * g.sx, g.at[1] * g.sy];
+  if (g.hz && Math.hypot(f[0] - g.hz[0], f[1] - g.hz[1]) <= PAD_HOLD_PX) return;
+  g.hz = f;
+  padHoldClear_();
+  if (typeof setTimeout === 'function') PAD_HOLD_T = setTimeout(() => { PAD_HOLD_T = 0; padHoldFire_(g); }, PAD_HOLD_MS);
+}
+function padHoldFire_(g) {
+  if (PAD_GO !== g || !PAD_ST || g.tool !== 'pen' || g.dot || g.frozen || g.qz || PAD_HUSH || PAD_DUE || PAD_TWO.size || !padShown_(g)) return;
+  if (!g.ink || !g.ink.isConnected) return;
+  padStraighten_(g);
+}
+/* A LEAST-SQUARES CIRCLE (Kasa) through points in px, about their mean for precision: { c, r } or null */
+function padCircleFit_(P) {
+  const n = P.length;
+  let mx = 0, my = 0;
+  P.forEach(p => { mx += p[0]; my += p[1]; });
+  mx /= n; my /= n;
+  let xx = 0, yy = 0, xy = 0, xz = 0, yz = 0, z = 0;
+  P.forEach(p => { const x = p[0] - mx, y = p[1] - my, q = x * x + y * y; xx += x * x; yy += y * y; xy += x * y; xz += x * q; yz += y * q; z += q; });
+  /* with the mean at 0 the sums of x and y vanish: D, E from a 2x2, F = -z/n */
+  const det = xx * yy - xy * xy;
+  if (!(Math.abs(det) > 1e-9)) return null;
+  const D = (-xz * yy + yz * xy) / det, E = (-yz * xx + xz * xy) / det, F = -z / n;
+  const r2 = (D * D + E * E) / 4 - F;
+  if (!(r2 > 0)) return null;
+  return { c: [mx - D / 2, my - E / 2], r: Math.sqrt(r2) };
+}
+/* WHAT A RUN OF POINTS (px) WAS MEANT TO BE: a line, or -- the whole stroke only -- a ring or an arc; null leaves it as drawn */
+function padShapeOf_(P, whole) {
+  const n = P.length;
+  if (n < 2) return null;
+  let len = 0;
+  for (let i = 1; i < n; i++) len += Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]);
+  if (len < PAD_SHAPE_MIN) return null;
+  const a = P[0], b = P[n - 1], chord = Math.hypot(b[0] - a[0], b[1] - a[1]);
+  let dev = 0;
+  if (chord > 0) P.forEach(p => { dev = Math.max(dev, Math.abs((b[0] - a[0]) * (a[1] - p[1]) - (a[0] - p[0]) * (b[1] - a[1])) / chord); });
+  const tol = Math.max(6, 0.1 * chord);
+  if (chord >= PAD_SHAPE_MIN && dev <= tol && len <= 1.3 * chord) return { kind: 'line' };
+  if (!whole || n < 8) return null;
+  const fit = padCircleFit_(P);
+  if (!fit || fit.r < 10) return null;
+  let sum = 0, worst = 0, turn = 0, prev = null;
+  P.forEach(p => {
+    const d = Math.hypot(p[0] - fit.c[0], p[1] - fit.c[1]) - fit.r, t = Math.atan2(p[1] - fit.c[1], p[0] - fit.c[0]);
+    sum += d * d; worst = Math.max(worst, Math.abs(d));
+    if (prev !== null) { let s = t - prev; if (s > Math.PI) s -= 2 * Math.PI; else if (s < -Math.PI) s += 2 * Math.PI; turn += s; }
+    prev = t;
+  });
+  const rms = Math.sqrt(sum / n), cover = Math.abs(turn) * 180 / Math.PI;
+  const a0 = Math.atan2(a[1] - fit.c[1], a[0] - fit.c[0]);
+  if (cover >= 300 && rms <= 0.1 * fit.r && worst <= 0.25 * fit.r) return { kind: 'ring', c: fit.c, r: fit.r, a0: a0 };
+  /* AN ARC IS HELD TO TIGHTER: a sketched curve (a parabola, a sine) paused at its end must not turn into a circle's piece */
+  if (cover >= 40 && cover < 300 && dev > tol && rms <= 0.05 * fit.r && worst <= 0.12 * fit.r) return { kind: 'arc', c: fit.c, r: fit.r, a0: a0, span: turn };
+  return null;
+}
+/* A STRAIGHTENED END (px): through the grid's snap, the ruler's level/upright lock against the other end, and back onto the stroke's own start to close a shape */
+function padEndAt_(g, p, from, home) {
+  g.hold = null;
+  let f = p, axis = '';
+  if (from) {
+    const dx = f[0] - from[0], dy = f[1] - from[1], ang = Math.abs(Math.atan2(dy, dx)) * 180 / Math.PI;
+    if (ang <= PAD_LOCK_DEG || ang >= 180 - PAD_LOCK_DEG) { f = [f[0], from[1]]; axis = 'x'; }
+    else if (Math.abs(ang - 90) <= PAD_LOCK_DEG) { f = [from[0], f[1]]; axis = 'y'; }
+  }
+  if (home && Math.hypot(f[0] - home[0], f[1] - home[1]) <= PAD_SNAP_OWN) return home.slice();
+  const t = g.board ? null : padSnap_(g, f[0], f[1], axis);
+  g.hold = null;
+  return t ? [t.x, t.y, t.u] : f;
+}
+const padUnit_ = (g, p) => p[2] ? [Math.round(p[2][0]), Math.round(p[2][1])] : [Math.round(p[0] / g.sx), Math.round(p[1] / g.sy)];
+/* THE PAUSE, ACTED ON: the run since the last corner replaced by its shape, shown at once; a line's end is a corner the pen goes on from */
+function padStraighten_(g) {
+  const st = PAD_ST, q0 = g.q0 || 0, sx = g.sx, sy = g.sy, P = [];
+  for (let i = 2 * q0; i + 1 < st.length; i += 2) P.push([st[i] * sx, st[i + 1] * sy]);
+  /* THE TREMBLE OF THE PAUSE ITSELF IS NOT THE SHAPE: the points still inside the pause's zone are left out, the finger's place put back */
+  const tip = [g.at[0] * sx, g.at[1] * sy], hz = g.hz || tip;
+  while (P.length > 1 && Math.hypot(P[P.length - 1][0] - hz[0], P[P.length - 1][1] - hz[1]) <= PAD_HOLD_PX) P.pop();
+  P.push(tip);
+  const sh = padShapeOf_(P, !q0);
+  if (!sh) return false;
+  let out;
+  if (sh.kind === 'line') {
+    const home = q0 ? [st[0] * sx, st[1] * sy] : null;
+    const a = q0 ? P[0] : padEndAt_(g, P[0], null, null);
+    const b = padEndAt_(g, P[P.length - 1], a, home);
+    const ua = padUnit_(g, a), ub = padUnit_(g, b);
+    out = st.slice(0, 2 * q0).concat(ua);
+    if (ub[0] !== ua[0] || ub[1] !== ua[1]) out.push(ub[0], ub[1]);
+    g.q0 = out.length / 2 - 1;
+    g.qz = tip;
+    g.lz = null;
+  } else {
+    const t = g.board ? null : padSnap_(g, sh.c[0], sh.c[1], '');
+    g.hold = null;
+    const c = t ? t.u : [sh.c[0] / sx, sh.c[1] / sy];
+    out = padArc_(c, sh.r, sx, sy, sh.a0, sh.kind === 'ring' ? 2 * Math.PI : sh.span);
+    g.frozen = true;
+  }
+  g.shaped = sh.kind;
+  PAD_ST = out;
+  padLiveShow_();
+  try { if (navigator.vibrate) navigator.vibrate(8); } catch (e) {}
+  return true;
+}
+
+/* ---------- A FINGER'S NEXT FEW MS, PREDICTED (374; 338 section 9's revisit): preview only, at most `PAD_PRED_PX` ahead, a finger's freehand line only */
+const PAD_PRED_PX = 12;
+function padPredict_(g, e, r) {
+  if (g.tool !== 'pen' || g.dot || g.frozen || g.qz || !g.c || g.c.type !== 'touch' || !PAD_ST || PAD_ST.length < 4) return null;
+  const pr = typeof e.getPredictedEvents === 'function' ? e.getPredictedEvents() : null;
+  const q = pr && pr.length ? pr[pr.length - 1] : null;
+  const u = q ? padMap_(r, q.clientX, q.clientY) : null, n = PAD_ST.length;
+  if (!u || (u[0] === PAD_ST[n - 2] && u[1] === PAD_ST[n - 1])) return null;
+  return Math.hypot((u[0] - PAD_ST[n - 2]) * g.sx, (u[1] - PAD_ST[n - 1]) * g.sy) <= PAD_PRED_PX ? u : null;
+}
 /* ---------- EVERY SAMPLE THE FINGER GAVE § */
 function padSamples_(e) {
   const co = typeof e.getCoalescedEvents === 'function' ? e.getCoalescedEvents() : null;
@@ -5998,6 +6134,7 @@ function padStep_(g, at) {
     st = PAD_DRAW[g.tool].move(g, g.tool === 'pen' || g.board || (g.tool === 'compass' && g.held) ? at : padPlace_(g, at, false), PAD_ST);
   }
   padLoupeStep_(g, at);
+  if (g.tool === 'pen' && !g.dot) padHoldWatch_(g);
   if (!st) return;
   PAD_ST = st;
   g.dirty = true;
@@ -6080,6 +6217,7 @@ function padLive_() {
 /* ---------- THE TRANSITIONS --------------------------------------------------------------------- */
 /* NOTHING OF THE STROKE: no preview, no aid, nothing stored. The owner's contact stays (it is still down). */
 function padWithdraw_() {
+  padHoldClear_();
   const g = PAD_GO;
   PAD_ST = null; PAD_GO = null; PAD_HUSH = null; PAD_DUE = null;
   if (g) { padLiveOff_(g); if (g.c && g.c.role === 'owner') g.c.role = 'rest'; }
@@ -6319,6 +6457,92 @@ function padLoupe_(g) {
   el.setAttribute('data-at', at[0] + ',' + at[1]);
   if (!el.classList.contains('on')) el.classList.add('on');
 }
+/* ---------- PINCH TO LOOK CLOSER (374): two fingers on an armed picture zoom and pan it; one finger draws on it zoomed; pinched back under 1.1x it is whole again § */
+const PAD_ZOOM_MAX = 5;       // 338 section 9's ceiling: a 3.3px square becomes 16px, past a fingertip's wobble
+const PAD_ZOOM_SNAP = 1.1;    // let go under this and the picture is whole again -- no near-1 zoom left behind by accident
+const PAD_PINCH_START = 0.15; // the fingers' spread must change this much before an unzoomed picture zooms: a palm sliding with a finger does not
+const PAD_ZOOM = new Map();   // by pad key: { s, x, y }, x and y the shift as a fraction of the picture's box
+let PAD_PINCH = null;
+const padZoomOf_ = k => PAD_ZOOM.get(k) || { s: 1, x: 0, y: 0 };
+const padZoomVar_ = z => `translate(${(z.x * 100).toFixed(3)}%, ${(z.y * 100).toFixed(3)}%) scale(${z.s.toFixed(4)})`;
+/* EVERY COPY OF THE PAD: the picture and its ink move together, so the box `padMap_` reads is where the finger is */
+function padZoomPaint_(k) {
+  const z = PAD_ZOOM.get(k), on = !!z && z.s > 1.001;
+  if (typeof document === 'undefined') return;
+  document.querySelectorAll('.qpad[data-k]').forEach(p => {
+    if (p.getAttribute('data-k') !== k) return;
+    p.classList.toggle('is-zoomed', on);
+    if (on) { p.style.setProperty('--pad-zoom', padZoomVar_(z)); p.style.setProperty('--pad-zoom-s', z.s.toFixed(4)); }
+    else { p.style.removeProperty('--pad-zoom'); p.style.removeProperty('--pad-zoom-s'); }
+  });
+}
+function padZoomOff_(k) {
+  const keys = k ? [k] : [...PAD_ZOOM.keys()];
+  PAD_PINCH = null;
+  keys.forEach(key => { if (PAD_ZOOM.delete(key)) padZoomPaint_(key); });
+}
+const padClamp_ = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+/* ZOOM s ABOUT A SCREEN POINT m, keeping the picture's point u under it, and never showing past the picture's edge */
+function padZoomAt_(k, s, u, m, A) {
+  s = padClamp_(s, 1, PAD_ZOOM_MAX);
+  const x = padClamp_((m[0] - A.left) / A.width - u[0] * s, 1 - s, 0), y = padClamp_((m[1] - A.top) / A.height - u[1] * s, 1 - s, 0);
+  PAD_ZOOM.set(k, { s: s, x: x, y: y });
+}
+const padZoomU_ = (z, m, A) => [(m[0] - A.left - z.x * A.width) / (z.s * A.width), (m[1] - A.top - z.y * A.height) / (z.s * A.height)];
+/* TWO FINGERS ALREADY JUDGED TWO (`padTwo_`), BOTH ON THE ARMED INK: their spread is the zoom, their midpoint the pan */
+function padPinch_() {
+  const two = [];
+  PAD_TOUCH.forEach(x => { if (x.role === 'two' && x.onInk && x.ink && x.ink.isConnected) two.push(x); });
+  if (two.length !== 2 || two[0].ink !== two[1].ink || two[0].k !== PAD_ON) return;
+  const pad = two[0].ink.closest('.qpad'), art = pad && pad.querySelector('.qpad-art');
+  if (!art) return;
+  const A = art.getBoundingClientRect();
+  if (!A.width || !A.height) return;
+  const a = two[0].p, b = two[1].p, m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], d = Math.max(1, Math.hypot(a[0] - b[0], a[1] - b[1]));
+  const P = PAD_PINCH;
+  if (!P || P.a !== two[0] || P.b !== two[1]) {
+    /* MEASURED FROM WHERE THE FINGERS LANDED, so the spread before they were known to be two is not lost */
+    const z = padZoomOf_(PAD_ON), a0 = two[0].p0, b0 = two[1].p0, m0 = [(a0[0] + b0[0]) / 2, (a0[1] + b0[1]) / 2];
+    PAD_PINCH = { a: two[0], b: two[1], k: PAD_ON, d0: Math.max(1, Math.hypot(a0[0] - b0[0], a0[1] - b0[1])), s0: z.s, u: padZoomU_(z, m0, A), on: z.s > 1.001 };
+  }
+  padPinchMove_(PAD_PINCH, d, m, A);
+}
+function padPinchMove_(P, d, m, A) {
+  if (!P.on) { if (Math.abs(d / P.d0 - 1) < PAD_PINCH_START) return; P.on = true; }
+  padZoomAt_(P.k, P.s0 * d / P.d0, P.u, m, A);
+  P.dirty = true;
+  padFrameWant_();
+}
+/* A FINGER OF THE PINCH LIFTED: a zoom near 1 lets go */
+function padPinchEnd_(c) {
+  const P = PAD_PINCH;
+  if (!P || (P.a !== c && P.b !== c)) return;
+  PAD_PINCH = null;
+  const z = PAD_ZOOM.get(P.k);
+  if (z && z.s < PAD_ZOOM_SNAP) PAD_ZOOM.delete(P.k);
+  padZoomPaint_(P.k);
+}
+/* A MOUSE OR A TRACKPAD: ctrl + wheel (a trackpad's pinch) zooms about the pointer; the wheel alone pans a zoomed picture */
+document.addEventListener('wheel', e => {
+  const ink = PAD_ON && e.target && e.target.closest && e.target.closest('.qpad-ink');
+  const pad = ink && ink.closest('.qpad');
+  if (!pad || pad.getAttribute('data-k') !== PAD_ON) return;
+  const k = PAD_ON, z = padZoomOf_(k), art = pad.querySelector('.qpad-art');
+  if (!art || (!e.ctrlKey && z.s <= 1.001)) return;
+  const A = art.getBoundingClientRect();
+  if (!A.width || !A.height) return;
+  e.preventDefault(); e.stopPropagation();
+  const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? A.height : 1;
+  if (e.ctrlKey) {
+    const m = [e.clientX, e.clientY];
+    padZoomAt_(k, z.s * Math.exp(-e.deltaY * unit * 0.01), padZoomU_(z, m, A), m, A);
+    const n = PAD_ZOOM.get(k);
+    if (n && n.s < 1.01) PAD_ZOOM.delete(k);
+  } else {
+    PAD_ZOOM.set(k, { s: z.s, x: padClamp_(z.x - e.deltaX * unit / A.width, 1 - z.s, 0), y: padClamp_(z.y - e.deltaY * unit / A.height, 1 - z.s, 0) });
+  }
+  padZoomPaint_(k);
+}, { passive: false, capture: true });
 /* THE PEN'S FRAME: a decision waiting (`padJudge_`), then the live path's open chunk, written once a frame
    (`padChunks_`). */
 function padFrameWant_() {
@@ -6327,6 +6551,7 @@ function padFrameWant_() {
 }
 function padFrame_() {
   PAD_FRAME = 0;
+  if (PAD_PINCH && PAD_PINCH.dirty) { PAD_PINCH.dirty = false; padZoomPaint_(PAD_PINCH.k); }
   if (PAD_DUE) padJudge_(false);
   if (PAD_GO && PAD_GO.refused) padRace_(PAD_GO, false);
   const g = PAD_GO;
@@ -6398,6 +6623,7 @@ function padLand_(e, ink, k) {
 function padGone_(c, now, how) {
   if (PAD_TOUCH.get(c.id) === c) PAD_TOUCH.delete(c.id);
   if (c.busy && !c.onInk) PAD_RESTED.set(c.busy, performance.now() + PAD_BAR_MS);
+  padPinchEnd_(c);
   if (PAD_TWO.has(c.id)) { PAD_TWO.delete(c.id); return; }
   const g = PAD_GO;
   if (g && g.c === c) {
@@ -6421,6 +6647,7 @@ function padGone_(c, now, how) {
 /* T6: THE STROKE KEPT. Today's lift, unchanged: the tool's end, the board's thinning, `padSave_`. */
 function padCommit_() {
   const g = PAD_GO;
+  padHoldClear_();
   if (!g) return;
   let st = PAD_DRAW[g.tool].end(g, PAD_ST);
   PAD_ST = null; PAD_GO = null; PAD_HUSH = null; PAD_DUE = null;
@@ -6449,7 +6676,9 @@ function padCommit_() {
   padSave_(pad, k, all);
 }
 /* ---------- T8: LEAVING, AND T0: A LIFT THAT NEVER CAME § */
-function padDrop_() {
+function padDrop_(keepZoom) {
+  padHoldClear_();
+  if (!keepZoom) padZoomOff_();
   if (PAD_FRAME && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(PAD_FRAME);
   PAD_FRAME = 0;
   const g = PAD_GO;
@@ -6480,7 +6709,7 @@ function padPrimary_(e) {
   const type = e.pointerType || '';
   let other = false;
   PAD_TOUCH.forEach(c => { if (c.type !== type) other = true; });
-  if (!other) { if (PAD_TOUCH.size || PAD_GO || PAD_TWO.size) padDrop_(); return; }
+  if (!other) { if (PAD_TOUCH.size || PAD_GO || PAD_TWO.size) padDrop_(true); return; }
   const mine = [];
   PAD_TOUCH.forEach(c => { if (c.type === type) mine.push(c); });
   mine.forEach(c => padGone_(c, e.timeStamp, 'lost'));
@@ -6523,11 +6752,12 @@ document.addEventListener('pointermove', e => {
     if (feed) padStep_(g, at); else padKeep_(c.pts, at);
   });
   /* THE BOX THIS EVENT READ, for the loupe's frame to place itself by -- read once, here, as it always was. */
-  if (feed && r) g.box = r;
+  if (feed && r) { g.box = r; g.pred = padPredict_(g, e, r); }
   /* WHICH OF A PIN-RULE PAIR IS DRAWING, asked at the frame after any move while it is not known (`padRace_`) -- the
      refused one's moves too, though it is only a rest now: how far it goes is the evidence. */
   if (PAD_GO && PAD_GO.refused && !PAD_GO.mine && !PAD_GO.never) padFrameWant_();
   padRules_(c);
+  if (c.role === 'two') padPinch_();
   if (feed && PAD_GO === g) padLive_();
 });
 
