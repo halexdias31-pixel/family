@@ -92,7 +92,14 @@ function bizCard_(pg) {
 /* THE PAGES, OR NONE. A card is not a permission — `listRecords` and `saveRecordsPage` are `admin` in `ACTION_ACCESS` — but a page a non-admin cannot use is a § */
 function bizPages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
-  return BIZ_PAGES.map(bizCard_);
+  return BIZ_PAGES.map(bizCard_).concat(verseCard_());
+}
+
+/* THE E-PAPER VERSE SCREEN'S SETUP PAGE, findable by an admin rather than by its address (370). */
+function verseCard_() {
+  const href = location.origin + '/tools/epaper-verse/install.html';
+  return `<div class="card biz"><h3>Verse screen</h3>
+    <div class="tile-row">${tile_({ icon: 'ext', label: 'Verse screen', note: 'set up', href })}</div></div>`;
 }
 
 /* THE COLUMN, AND ITS RECORDS ASKED FOR AS SOON AS IT IS DRAWN FOR AN ADMIN — not when it is arrived at. § */

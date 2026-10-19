@@ -110,7 +110,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-19-f-year-verse";
+const BACKEND_VERSION = "2026-10-19-g-verse-simple";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {

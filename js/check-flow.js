@@ -11276,7 +11276,7 @@ const bizSwipe_ = async (w, from) => {
 };
 const bizApplied_ = ids => ids.indexOf('settings') === ids.indexOf('account') + 1;
 
-check('business: an admin has a Business column last, straight after Progress, holding the five records cards, and Save posts the card', async () => {
+check('business: an admin has a Business column last, straight after Progress, holding the five records cards and the verse screen setup tile, and Save posts the card', async () => {
   const { w, sent } = boot({ serve: BIZ_SERVE_(BIZ_COLS_()),
     before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(BIZ_ADMIN_)); } catch (e) {} },
     reply: body => (body.action === 'listRecords' ? { success: true, records: BIZ_HELD_ }
@@ -11320,7 +11320,10 @@ check('business: an admin has a Business column last, straight after Progress, h
   const cards = [...host.querySelectorAll(':scope > .page > .pane .me-form[data-biz-page]')].map(f => f.dataset.bizPage);
   if (cards.join('|') !== BIZ_TITLES_.join('|')) bad.push('the Business column holds ' + JSON.stringify(cards) + ', wanted the five records cards ' + JSON.stringify(BIZ_TITLES_));
   const n = host.querySelectorAll(':scope > .page').length;
-  if (n !== 5 || t.pageCount('biz') !== n) bad.push('the column draws ' + n + ' pages and the pager counts ' + t.pageCount('biz') + ' — wanted five and five');
+  if (n !== 6 || t.pageCount('biz') !== n) bad.push('the column draws ' + n + ' pages and the pager counts ' + t.pageCount('biz') + ' — wanted six and six (five records, the verse screen)');
+  /* THE LAST PAGE IS THE VERSE SCREEN'S SETUP, A TILE THAT LEAVES FOR ITS PAGE (370). */
+  const vs = host.querySelector(':scope > .page:last-child a.tile[href$="/tools/epaper-verse/install.html"]');
+  if (!vs) bad.push('the last Business page has no "Verse screen · set up" tile to the install page');
   const ins = host.querySelector('.me-form[data-biz-page="Insurance"]');
   if (!ins) return bad.concat(['there is no Insurance card on the Business column']);
   if (ins.querySelector('.loading')) bad.push('the records came back and the Insurance card is still under the loader');

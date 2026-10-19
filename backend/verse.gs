@@ -83,35 +83,10 @@ const VERSES = [
   ["And God shall wipe away all tears from their eyes; and there shall be no more death, neither sorrow, nor crying, neither shall there be any more pain: for the former things are passed away.","Revelation 21:4"]
 ];
 
-/* A LEDGER TAB CALLED `verses` (columns `text`, `ref`) WINS when it has rows; a missing or empty tab falls back to the list above. */
-function verseList_() {
-  try {
-    const sh = SpreadsheetApp.openById(LEDGER_ID).getSheetByName('verses');
-    if (sh && sh.getLastRow() > 1) {
-      const v = sh.getDataRange().getValues(), h = v[0].map(c => String(c).trim().toLowerCase());
-      const t = h.indexOf('text'), r = h.indexOf('ref');
-      const rows = v.slice(1).map(x => [String(x[t] || '').trim(), String(x[r] || '').trim()]).filter(x => x[0]);
-      if (t >= 0 && rows.length) return rows;
-    }
-  } catch (err) {}
-  return VERSES;
-}
-
-/* DAY n SHOWS (n * step) mod N with step coprime to N: every N days in a row are all different, and no day repeats yesterday. */
-function verseFor_(ymd, list) {
-  const N = list.length, m = String(ymd).match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  const day = Math.floor(Date.UTC(+m[1], +m[2] - 1, +m[3]) / 864e5);
-  const gcd = (a, b) => (b ? gcd(b, a % b) : a);
-  let step = 37 % N || 1;
-  while (N > 2 && (gcd(step, N) !== 1 || step === 1)) step = (step + 1) % N;
-  const v = list[((day * step) % N + N) % N];
-  return { text: v[0], ref: v[1], date: ymd };
-}
-
-/* `?verse=today` (or `?verse=2026-10-19`): {text, ref, date}, through `jsonOut` like every other reply. */
+/* `?verse=today` (or `?verse=2026-10-19`): {text, ref, date}. Day n shows verse n mod N, so N days in a row are all different. */
 function verseOut_(p) {
   const asked = String(p.verse || '');
-  const ymd = /^\d{4}-\d{2}-\d{2}$/.test(asked) ? asked
-    : Utilities.formatDate(new Date(), 'Europe/London', 'yyyy-MM-dd');
-  return jsonOut(verseFor_(ymd, verseList_()));
+  const ymd = /^\d{4}-\d{2}-\d{2}$/.test(asked) ? asked : Utilities.formatDate(new Date(), 'Europe/London', 'yyyy-MM-dd');
+  const v = VERSES[Math.floor(Date.parse(ymd + 'T00:00:00Z') / 864e5) % VERSES.length];
+  return jsonOut({ text: v[0], ref: v[1], date: ymd });
 }
