@@ -25744,6 +25744,51 @@ check('every paper has a health score: its cards wear it, Health · Ready narrow
   return bad;
 });
 
+/* ---------- A TABLE'S BLANKS ARE CELLS, TYPED IN WHERE THEY STAND AND MARKED A CELL AT A TIME (docs/history/359) ---------- */
+check('a fill-in table: its blanks are cells in the card, typing keeps them, Check marks each cell, and the paper counts as Answerable', async () => {
+  const base = { active: 'True', subject: 'Maths', document_type: 'Worksheet', key_stage: 'KS2', pages_checked: 'True' };
+  const R_ = o => Object.assign({}, base, o);
+  const rows = [
+    R_({ row_id: 'D-CT', paper_id: 'CT', kind: 'document', name: 'Times grid' }),
+    R_({ row_id: 'CT-1', paper_id: 'CT', kind: 'question', name: 'Times grid', question: '1', marks: '2', answer_type: 'annotate',
+         html: '<p>Complete the table</p><table><tr><th></th><th>2</th><th>3</th></tr><tr><td>2</td><td>4</td><td></td></tr><tr><td>3</td><td></td><td>&nbsp;</td></tr></table>',
+         answer: '6, 6, 9', cells: '- ; 6 ; 6 ; 9' }),
+  ];
+  const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
+  await wait(300);
+  const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  if (typeof w.questionCard_ !== 'function' || !A['qp-cells-check']) return ['questionCard_ or the qp-cells-check handler is not reachable — no cell was checked'];
+  t.STUFF().filters = [];
+  const x = w.stuffItemsAll_().find(i => i.row && i.row.row_id === 'CT-1');
+  if (!x) return ['the fixture row did not reach Find'];
+  const host = d.createElement('div');
+  host.className = 'qcard-host';
+  d.body.appendChild(host);
+  host.innerHTML = w.questionCard_(x, 0);
+  const cells = [...host.querySelectorAll('table[data-cells] .qp-cell')];
+  if (cells.length !== 3) return ['the card\'s table holds ' + cells.length + ' cells, wanted 3 (the corner is not asked)'];
+  if (host.querySelector('.qp-cells')) bad.push('the cells are drawn twice: in the table and in a row under it');
+  const type = (el, v) => { el.value = v; el.dispatchEvent(new w.Event('input', { bubbles: true })); };
+  type(cells[0], '6'); type(cells[1], '7'); type(cells[2], '9');
+  const go = host.querySelector('[data-do="qp-cells-check"]');
+  if (!go) return bad.concat('no Check tile under the table');
+  A['qp-cells-check'](go);
+  const say = host.querySelector('.qp-cells-box .qp-verdict').textContent;
+  if (say !== '2 of 3 cells right') bad.push('one wrong cell of three says ' + JSON.stringify(say));
+  if (!cells[1].classList.contains('is-near') || !cells[0].classList.contains('is-right')) bad.push('the wrong cell and the right one are not told apart');
+  host.innerHTML = w.questionCard_(x, 0);
+  const back = [...host.querySelectorAll('.qp-cell')].map(c => c.value).join(',');
+  if (back !== '6,7,9') bad.push('drawn again, the cells hold ' + JSON.stringify(back) + ' — what was typed is lost');
+  const again = [...host.querySelectorAll('.qp-cell')];
+  type(again[1], '6');
+  A['qp-cells-check'](host.querySelector('[data-do="qp-cells-check"]'));
+  if (host.querySelector('.qp-cells-box .qp-verdict').textContent !== 'Correct — every cell') bad.push('every cell right is not Correct');
+  const h = w.healthOf_(x);
+  if (!h || !h.able || h.able.pct !== 100) bad.push('a paper of one fill-in table with its cells is ' + (h && h.able ? h.able.pct : '?') + '% Answerable, wanted 100');
+  host.remove();
+  return bad;
+});
+
 /* ---------- RUN THEM ---------------------------------------------------------------------------- */
 /* `FLOW_PART=2/4` RUNS THE SECOND QUARTER, in roster order — for a machine where the whole file takes longer than one shell may wait § */
 const FLOW_PART_ = /^(\d+)\/(\d+)$/.exec(process.env.FLOW_PART || '');

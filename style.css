@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-19-a-two-healths";
+  --css-version: "2026-10-19-b-cells";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -6076,3 +6076,14 @@ button.scr-sq { cursor: pointer; }
 /* THE SWATCH IS A CELL, so it is the cell's look by construction and cannot drift from it. `.hr` is
    `flex: 1 1 0` to share a row with nine others; alone in the key it would take the whole line. */
 .prof-week .prof-key .hr { flex: 0 0 1.6rem; }
+
+/* A TABLE'S BLANKS ARE CELLS TO TYPE IN (find.js, `cellsTable_`); a fingertip is px, so the cell is at least 44px. */
+.qp-cell { box-sizing: border-box; width: 100%; min-width: 44px; min-height: 44px; padding: 0 .3rem;
+  border: 1px solid var(--line); border-radius: 6px; background: transparent; color: inherit;
+  font: 600 1rem/1 var(--font); text-align: center; }
+.qp-cell:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
+.qp-cell.is-right { box-shadow: 0 0 0 3px var(--good); }
+.qp-cell.is-near { box-shadow: 0 0 0 3px var(--warn); }
+td.qp-cell-at, th.qp-cell-at { padding: 2px; }
+.qp-cells { display: flex; flex-wrap: wrap; gap: .5rem; }
+.qp-cell-l { display: flex; align-items: center; gap: .3rem; flex: 0 1 6rem; font: 600 .8rem/1 var(--font); color: var(--dim); }

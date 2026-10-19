@@ -345,6 +345,8 @@ function libraryInto_(d, rows) {
       uses: libS(r.uses),
       /* WHAT A STUDENT COULD TYPE AND BE RIGHT. § */
       accept: libS(r.accept),
+      /* THE BLANKS OF A GRID OR TABLE, `;` between cells, `|` between ways, `-` a blank not asked (find.js, `cellsOf_`). */
+      cells: libS(r.cells),
       /* A CLOSED LIST OF OPTIONS, TAPPED RATHER THAN TYPED. § */
       choices: libS(r.choices).split('|').map(t => t.trim()).filter(Boolean),
       /* ---------- AN ORDERING IS THE SAME TWO COLUMNS AND ONE MORE § */

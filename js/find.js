@@ -3368,7 +3368,7 @@ function questionItems() {
       surface: r.surface || '',
       /* AND WHICH EARLIER PART'S DRAWING IT READS -- see `usesOf_`. */
       uses: r.uses || '',
-      accept: r.accept || '',
+      accept: r.accept || '', cells: r.cells || '',
       choices: r.choices || [], choiceRight: r.choiceRight || [],
       /* AN ORDERING'S EVERY RIGHT ORDER AND ITS TWO ENDS -- see `orderBox_` and library.js. */
       choiceWays: r.choiceWays || [], orderEnds: r.orderEnds || [],
@@ -3934,8 +3934,97 @@ on('qp-choose', (el) => {
   /* RIGHT DOES NOT OPEN THE ANSWER PAGE ANY MORE. § */
 });
 
+/* ---------- A GRID OR TABLE WITH BLANKS IS FILLED IN WHERE IT STANDS, A CELL AT A TIME § */
+const CELL_BLANK = /<(td|th)([^>]*)>\s*(?:&nbsp;|\u00a0)?\s*<\/\1>/g;
+/* `cells` READ: one entry a blank, in reading order -- `{ label, ways }`, and `ways` empty for a blank not asked. */
+function cellsOf_(x) {
+  const raw = String((x && x.cells) || '').trim();
+  if (!raw) return [];
+  return raw.split(';').map((c, i) => {
+    const m = /^\s*([^=|]{1,12}?)\s*=\s*(.*)$/.exec(c);
+    const ways = (m ? m[2] : c).trim();
+    return { label: m ? m[1].trim() : String(i + 1), ways: ways === '-' ? '' : ways };
+  });
+}
+/* EACH CELL MARKED ON ITS OWN by `markAnswer_`: `{ right, of, each }`, `each[i]` true, false, or null for nothing typed. */
+function markCells_(vals, cells) {
+  const each = cells.map((c, i) => c.ways ? markAnswer_(vals[i] || '', c.ways) : undefined);
+  const asked = each.filter(v => v !== undefined);
+  return { right: asked.filter(v => v === true).length, of: asked.length, each: each };
+}
+const cellsVals_ = v => String(v == null ? '' : v).split(' ; ');
+function cellInput_(k, c, i, v) {
+  if (!c.ways) return '';
+  const num = /^[-\d.,\s|£$%°/]+$/.test(c.ways);
+  return `<input class="qp-cell" data-k="${esc(k)}" data-n="${i}" aria-label="Blank ${esc(c.label)}" autocomplete="off"
+    inputmode="${num ? 'decimal' : 'text'}" value="${esc(v || '')}">`;
+}
+/* THE QUESTION'S OWN TABLE, ITS BLANKS MADE CELLS -- or '' when it has none with as many blanks as `cells`. */
+function cellsTable_(x, html) {
+  const cells = cellsOf_(x);
+  if (!cells.length) return '';
+  const k = ansKey_(x), vals = cellsVals_(ansRead_(k));
+  let n = 0;
+  const out = String(html || '').replace(/<table[\s\S]*?<\/table>/, t => {
+    const blanks = (t.match(CELL_BLANK) || []).length;
+    if (blanks !== cells.length) return t;
+    return t.replace(CELL_BLANK, (m, tag, at) => {
+      const i = n++;
+      return `<${tag}${at} class="qp-cell-at">${cellInput_(k, cells[i], i, vals[i])}</${tag}>`;
+    }).replace(/^<table/, '<table data-cells="1"');
+  });
+  return n ? out : '';
+}
+/* THE BOX UNDER IT: Check marks every cell; with no table to fill, the cells stand in a row of their own. */
+const cellsHere_ = (x, html) => (cellsOf_(x).length && cellsTable_(x, html)) || html;
+function cellsBox_(x) {
+  const cells = cellsOf_(x), k = ansKey_(x);
+  const inTable = !!cellsTable_(x, x.html);
+  const vals = cellsVals_(ansRead_(k));
+  const row = inTable ? '' : `<div class="qp-cells">${cells.map((c, i) => c.ways
+    ? `<label class="qp-cell-l"><span>${esc(c.label)}</span>${cellInput_(k, c, i, vals[i])}</label>` : '').join('')}</div>`;
+  const said = subBoxSay_(k, ansRead_(k));
+  return `<div class="qp-mark qp-compose qp-cells-box${said.cls ? ' ' + said.cls : ''}" data-k="${esc(k)}">${row}
+    <div class="tile-row">${tile_({ icon: 'send', label: 'Check', note: 'every cell', act: 'qp-cells-check', cls: 'qp-check', tone: 'send' })}${figTile_(x)}</div>
+    <span class="qp-verdict" role="status" aria-live="polite">${esc(said.text)}</span>
+    <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span></div>`;
+}
+const cellsIn_ = el => { const card = el && el.closest('.qcard'); return card ? [].slice.call(card.querySelectorAll('.qp-cell')) : []; };
+function cellsRead_(el) {
+  const vals = [];
+  cellsIn_(el).forEach(c => { vals[+c.getAttribute('data-n')] = c.value; });
+  return vals;
+}
+document.addEventListener('input', e => {
+  const el = e.target && e.target.classList && e.target.classList.contains('qp-cell') ? e.target : null;
+  if (!el) return;
+  const vals = cellsRead_(el);
+  for (let i = 0; i < vals.length; i++) if (vals[i] == null) vals[i] = '';
+  ansStore_(el.getAttribute('data-k') || '', vals.join(' ; '));
+  el.classList.remove('is-right', 'is-near');
+});
+on('qp-cells-check', el => {
+  const box = el.closest('.qp-cells-box');
+  const out = box && box.querySelector('.qp-verdict');
+  const x = box && stuffItemsAll_().find(it => ansKey_(it) === box.getAttribute('data-k'));
+  if (!x || !out) return;
+  const vals = cellsRead_(box), m = markCells_(vals, cellsOf_(x));
+  cellsIn_(box).forEach(c => {
+    const v = m.each[+c.getAttribute('data-n')];
+    c.classList.toggle('is-right', v === true);
+    c.classList.toggle('is-near', v === false);
+  });
+  box.classList.remove('is-right', 'is-near');
+  if (!m.each.some(v => v === true || v === false)) { out.textContent = 'Fill a cell first'; return; }
+  const all = m.right === m.of;
+  box.classList.add(all ? 'is-right' : 'is-near');
+  out.textContent = all ? 'Correct — every cell' : m.right + ' of ' + m.of + ' cells right';
+  subRecord_(box.getAttribute('data-k'), vals.join(' ; '), all ? 'right' : 'wrong');
+});
+
 function ansBox_(x) {
   if (x && Array.isArray(x.choices) && x.choices.length >= 2) return choiceBox_(x);
+  if (cellsOf_(x).length) return cellsBox_(x);
   const k = ansKey_(x);
   /* MARKABLE ONLY WHERE `accept` SAYS SO. § */
   const can = String(x && x.accept || '').trim();
@@ -4083,6 +4172,8 @@ function padSource_(x) {
   if (!x) return null;
   /* A ROW WITH OPTIONS IS ANSWERED BY CHOOSING ONE, and is given nothing to draw on (18 Oct, 356): § */
   if (Array.isArray(x.choices) && x.choices.length) return null;
+  /* AND A ROW WITH CELLS IS ANSWERED IN ITS TABLE (`cellsTable_`), so nothing to draw on either. */
+  if (String(x.cells || '').trim()) return null;
   const surf = padSurface_(x);
   if (!padWanted_(x) && (!surf || surf === 'text')) return null;
   if (x.diagram) return { svg: x.diagram, from: 'part' };
@@ -4095,7 +4186,7 @@ function padSource_(x) {
 /* ---------- WHAT A QUESTION IS ANSWERED WITH: A DRAWING, A VALUE, OR BOTH § */
 function answerKinds_(x) {
   const draw = !!padSource_(x);
-  return { draw: draw, value: !draw || !!String((x && x.accept) || '').trim() };
+  return { draw: draw, value: !draw || !!String((x && x.accept) || '').trim() || cellsOf_(x).length > 0 };
 }
 
 /* ---------- WHICH TOOLS A QUESTION'S PEN COMES WITH § */
@@ -5826,7 +5917,7 @@ function questionCard_(x) {
             ''}
       ${/* THE LAST OF THE WORDS, which is all of them unless the part is too long for one page -- then the pages in front (`questionPreCard_`) hold the rest and this § */
             ''}
-      ${chunkHtml_(partChunks_(x).slice(-1)[0], circOf_(x), x)}
+      ${cellsHere_(x, chunkHtml_(partChunks_(x).slice(-1)[0], circOf_(x), x))}
     </div>
     ${/* YOUR BOX, AND THE MARK SCHEME IS NOT UNDER IT ANY MORE. § */
           ''}
