@@ -4970,15 +4970,15 @@ function drawMarker_() {
       const ring = [comp[0]];
       let prev = -1, cur = comp[0];
       for (;;) { const nx = nb[cur][0] !== prev ? nb[cur][0] : nb[cur][1]; if (nx === comp[0]) break; ring.push(nx); prev = cur; cur = nx; if (ring.length > comp.length) return; }
-      let pts = ring.map(k => nodes[k]);
-      for (let again = true; again && pts.length > 3;) {
+      let cyc = ring.map(k => nodes[k]);
+      for (let again = true; again && cyc.length > 3;) {
         again = false;
-        for (let k = 0; k < pts.length; k++) {
-          const a = pts[(k + pts.length - 1) % pts.length], b = pts[k], c = pts[(k + 1) % pts.length];
-          if (dDir(dirOf(a, b), dirOf(b, c)) < 8) { pts.splice(k, 1); again = true; break; }
+        for (let k = 0; k < cyc.length; k++) {
+          const a = cyc[(k + cyc.length - 1) % cyc.length], b = cyc[k], c = cyc[(k + 1) % cyc.length];
+          if (dDir(dirOf(a, b), dirOf(b, c)) < 8) { cyc.splice(k, 1); again = true; break; }
         }
       }
-      out.push(pts);
+      out.push(cyc);
     });
     return out;
   }

@@ -773,6 +773,38 @@ const DRAW = [
   /* a region shown */
   ['inside', AX, { items: [{ k: 'inside', poly: [[0, 0], [4, 0], [0, 4]] }] }, st(P_([0.5, 0.5], [1.5, 1], [0.6, 1.5], [1.2, 0.5])), 1, 'shading inside the triangle'],
   ['inside', AX, { items: [{ k: 'inside', poly: [[0, 0], [4, 0], [0, 4]] }] }, st(P_([3.5, 3.5], [4.5, 4], [3.6, 4.5], [4.2, 3.5])), 0, 'shading outside it'],
+  /* a histogram bar for bar; and with no numbers up the axis, its bars' proportions */
+  ['hist', AX, { items: [{ k: 'hist', x: [0, 2, 6], h: [3, 1] }] }, st(P_([0, 0], [0, 3], [2, 3], [2, 0]), P_([2, 1], [6, 1], [6, 0])), 1, 'two bars at their heights'],
+  ['hist', AX, { items: [{ k: 'hist', x: [0, 2, 6], h: [3, 1] }] }, st(P_([0, 0], [0, 3], [2, 3], [2, 0]), P_([2, 2], [6, 2], [6, 0])), 0, 'the second bar a square too tall'],
+  ['hist', AX, { items: [{ k: 'hist', x: [0, 2, 6], h: [3, 1], fy: true }] }, st(P_([0, 0], [0, 6], [2, 6], [2, 0]), P_([2, 2], [6, 2], [6, 0])), 1, 'twice the scale, with the scale the drawer\u2019s'],
+  ['hist', AX, { items: [{ k: 'hist', x: [0, 2, 6], h: [3, 1], fy: true }] }, st(P_([0, 0], [0, 6], [2, 6], [2, 0]), P_([2, 3], [6, 3], [6, 0])), 0, 'and out of proportion'],
+  ['hist', AX, { items: [{ k: 'hist', seq: [[3, 1, 2]] }] }, st(P_([1, 0], [1, 3], [2, 3], [2, 0]), P_([3, 0], [3, 1], [4, 1], [4, 0]), P_([5, 0], [5, 2], [6, 2], [6, 0])), 1, 'three bars, read left to right'],
+  /* a box plot, at whatever height it is drawn */
+  ['box', AX, { items: [{ k: 'box', v: [-6, -2, 0, 3, 7] }] }, st(P_([-6, 4], [-2, 4]), P_([-2, 3], [-2, 5], [3, 5], [3, 3], [-2, 3]), P_([0, 3], [0, 5]), P_([3, 4], [7, 4])), 1, 'the five values'],
+  ['box', AX, { items: [{ k: 'box', v: [-6, -2, 0, 3, 7] }] }, st(P_([-6, 4], [-2, 4]), P_([-2, 3], [-2, 5], [3, 5], [3, 3], [-2, 3]), P_([1, 3], [1, 5]), P_([3, 4], [7, 4])), 0, 'the median a square out'],
+  /* an inequality on a number line: the circles open and filled */
+  ['interval', AX, { items: [{ k: 'interval', a: -2, b: 3, ca: true, cb: false }] }, (() => {
+    const ring = (X, r) => Array.from({ length: 13 }, (_, i) => xy(X + r * Math.sin(i * Math.PI / 6), 1 + r * Math.cos(i * Math.PI / 6)));
+    return st(P_([-1.7, 1], [2.7, 1]), ring(-2, 0.3), ring(-2, 0.2), ring(-2, 0.1), P_([-2.25, 1], [-1.75, 1]), P_([-2, 1.25], [-2, 0.75]), ring(3, 0.3));
+  })(), 1, '\u22122 \u2264 x < 3: filled at \u22122, open at 3'],
+  ['interval', AX, { items: [{ k: 'interval', a: -2, b: 3, ca: true, cb: false }] }, (() => {
+    const ring = (X, r) => Array.from({ length: 13 }, (_, i) => xy(X + r * Math.sin(i * Math.PI / 6), 1 + r * Math.cos(i * Math.PI / 6)));
+    return st(P_([-1.7, 1], [2.7, 1]), ring(-2, 0.3), ring(3, 0.3));
+  })(), 0, 'both circles open'],
+  /* the symbols of a pictogram, by their area */
+  ['area', AX, { items: [{ k: 'area', in: [[-8, 8], [8, -8]], want: 2.5 }] }, st(P_([0, 0], [1, 0], [1, 1], [0, 1], [0, 0]), P_([2, 0], [3, 0], [3, 1], [2, 1], [2, 0]), P_([4, 0], [4.5, 0], [4.5, 1], [4, 1], [4, 0])), 1, 'two and a half squares'],
+  ['area', AX, { items: [{ k: 'area', in: [[-8, 8], [8, -8]], want: 2.5 }] }, st(P_([0, 0], [1, 0], [1, 1], [0, 1], [0, 0]), P_([2, 0], [3, 0], [3, 1], [2, 1], [2, 0])), 0, 'two'],
+  /* compass arcs by a construction */
+  ['curves', PL, { frame: 'vb', items: [{ k: 'curves', n: 2, near: [170, 200], r: 80 }] }, st(Array.from({ length: 9 }, (_, i) => at_([170, 60], 150 + i * 7.5, 150)), Array.from({ length: 9 }, (_, i) => at_([170, 340], -30 + i * 7.5, 150))), 1, 'two arcs near the foot'],
+  ['curves', PL, { frame: 'vb', items: [{ k: 'curves', n: 2, near: [170, 200], r: 80 }] }, st([[100, 200], [240, 200]]), 0, 'a ruled line, no arcs'],
+  /* a sketch by its shape */
+  ['sketch', AX, { items: [{ k: 'sketch', test: ['inc', 'above', 'crossy'] }] }, st(P_([-6, 0.1], [-3, 0.2], [-1, 0.6], [0, 1], [1, 2], [2, 4], [3, 8])), 1, 'y = 2\u02e3 rising, above the axis, crossing above the origin'],
+  ['sketch', AX, { items: [{ k: 'sketch', test: ['inc', 'above', 'crossy'] }] }, st(P_([-6, -1], [-3, -0.5], [0, 1], [3, 8])), 0, 'dipping below the axis'],
+  /* a vector's arrowhead; a sketch's height fitted */
+  ['head', AX, { items: [{ k: 'segs', at: [[0, 0, 3, 4]], move: 'xy', head: true }] }, st(P_([1, 1], [4, 5]), P_([3.2, 4.6], [4, 5], [4.1, 4.1])), 1, 'an arrow 3 right and 4 up, anywhere'],
+  ['head', AX, { items: [{ k: 'segs', at: [[0, 0, 3, 4]], move: 'xy', head: true }] }, st(P_([1, 1], [4, 5]), P_([1.6, 1.9], [1, 1], [1.9, 1.4])), 0, 'the head at the wrong end'],
+  ['fity', AX, { items: [{ k: 'segs', path: Array.from({ length: 13 }, (_, i) => [i / 2 - 3, Math.sin(i * Math.PI / 6)]), fity: true }] }, st(P_(...Array.from({ length: 13 }, (_, i) => [i / 2 - 3, 3 * Math.sin(i * Math.PI / 6)]))), 1, 'a sine wave three squares high, on an axis with no numbers'],
+  ['fity', AX, { items: [{ k: 'segs', path: Array.from({ length: 13 }, (_, i) => [i / 2 - 3, Math.sin(i * Math.PI / 6)]), fity: true }] }, st(P_(...Array.from({ length: 13 }, (_, i) => [i / 2 - 3, -3 * Math.sin(i * Math.PI / 6)]))), 0, 'and upside down'],
   /* nothing drawn is not a wrong answer */
   ['empty', AX, { items: [{ k: 'pts', at: [[0, 0]] }] }, [], null, 'nothing drawn'],
 ];
