@@ -1341,7 +1341,7 @@ const STATES = {
         probe.remove();
         return getComputedStyle(field).backgroundColor === paper && !inp.value
                && /Type your answer/.test(getComputedStyle(show, '::before').content)
-               && !!card.querySelector('.qp-bar > .tile.is-send.qp-check[data-do="qp-check"]')
+               && !!card.querySelector('.qp-bar > .tile.qp-check:not(.is-send)[data-do="qp-check"]')
                && !!card.querySelector('.qp-mark.qp-compose > .qp-verdict');
       },
       wants: 'Q0664\'s box empty and at rest: the field the paper colour, "Type your answer" in it, and the gold Send tile beside it',

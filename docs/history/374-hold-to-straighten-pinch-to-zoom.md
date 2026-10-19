@@ -82,3 +82,15 @@ moving together at 1x do not zoom; Done drawing makes it whole. Mutations: no ho
 
 - A device reading of the 500ms hold for children (338 §10's list).
 - Ellipses, rectangles and triangles snapped whole (QuickShape does); here a polygon is made by its corners.
+
+## And, the owner the same day: one kind of tile, and no sound switch
+
+- *"turn the submit button into just another tile. To achieve uniformity."* `checkTile_` (tiles.js) is an ordinary
+  `tile_()` now — the same 44px square, border and ink as its neighbours, last in its row; the gold 48px disc
+  (`.tile.is-send`) is deleted from style.css. check-flow, check/states and check/ui ask for an ordinary tile.
+- *"no sound tile — it should just play sound, no option to get rid of. The user can mute the tab or lower
+  volume."* The marking-sound switch (`markSoundTile_`, `markSoundFace_`, `markSoundShow_`, `on('mark-sound')`, the
+  `storage` listener, `markSoundOn_` and the `mark-sound` device key) is gone; the chime and the buzzer always play
+  where Web Audio exists, and the old key is removed at load. The reels' own video mute is a different control and
+  stays. check-flow's switch journey is now "there is no switch"; check/sounds.js keeps every loudness, click,
+  one-tap-one-sound and rest check, without the switch's presses.

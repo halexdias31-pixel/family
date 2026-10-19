@@ -4731,17 +4731,6 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 /* THE FILLED VERSION IS WITH THE OTHER FILLED RULES, further down. It was declared twice — here
    with a .07 background and there with .09 — and the one you could see was never this one. */
 
-/* ---------- SEND IS A GOLD DISC, THE ANSWER BAR'S ONE ACTION § */
-.tile.is-send { width: 48px; height: 48px; border-radius: 50%;
-  background: var(--gold); border-color: var(--gold); color: var(--bg); }
-.tile.is-send .tile-i { width: 22px; height: 22px; stroke-width: 1.8; }
-.tile.is-send:active, .tile.is-send.is-pressed { background: var(--gold); border-color: var(--gold);
-  filter: brightness(.85); }
-/* SWITCHED OFF (no AI key on the server) IT LOSES THE DISC, like every disabled tile -- "nothing to
-   press here"; WAITING FOR THE MARKER IT KEEPS IT, with the busy ring in its own ink. */
-.tile.is-send[disabled] { background: none; border-color: var(--line); color: var(--dim); }
-.tile.is-send.is-busy { background: var(--gold); border-color: var(--gold); color: var(--bg); }
-
 /* ---------- SILVER MEANS ONLY YOU CAN SEE THIS § */
 /* ---------- AND IT IS YELLOW NOW, NOT SILVER § */
 /* THE TONE IS THE TOKEN, THINNED -- `color-mix` with `transparent` paints exactly what `rgb(242 210 75 / .07)` did, and names which colour it is. § */

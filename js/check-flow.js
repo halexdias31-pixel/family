@@ -13101,7 +13101,7 @@ check('a fraction typed on the maths keypad is drawn stacked, saved, and marked 
   const bar = card.querySelector('.qp-mark.qp-compose > .qp-bar');
   const sendT = card.querySelector('.qp-check');
   if (!bar || !bar.querySelector(':scope > .qp-ans .kp-in')) bad.push('the answer box is not in a chat bar (`.qp-mark.qp-compose > .qp-bar` holding the field)');
-  if (!sendT || !sendT.matches('.qp-bar > .tile.is-send[data-do="qp-check"]') || !sendT.querySelector('.tile-i-send')) bad.push('Send is not a gold tile with the send mark in the bar beside the field: ' + (sendT ? sendT.outerHTML.slice(0, 120) : '(none)'));
+  if (!sendT || !sendT.matches('.qp-bar > .tile:not(.is-send)[data-do="qp-check"]:last-child') || !sendT.querySelector('.tile-i-send')) bad.push('Check is not an ordinary tile with the send mark, last in the bar beside the field: ' + (sendT ? sendT.outerHTML.slice(0, 120) : '(none)'));
   const verdictEl = card.querySelector('.qp-verdict');
   if (!verdictEl || !verdictEl.closest('.qp-mark') || verdictEl.closest('.qp-bar')) bad.push('the verdict is not a line of its own under the bar, inside `.qp-mark`');
   inp.focus();
@@ -13598,7 +13598,7 @@ check('Mark with AI sends a worded answer by person id, draws marks and a senten
   if (!go) return ['a worded question with a scheme and a deployment that has aiMark drew no "Mark with AI"'];
   /* IN THE CHAT BAR, WHERE SEND IS on a box with a scheme: the same gold tile beside the field, with its
      verdict line and its sentence under the bar (`ansBox_`, `aiTile_`). */
-  if (!go.matches('.qp-mark.qp-ai > .qp-bar > .tile.is-send')) bad.push('"Mark with AI" is not the gold tile in the answer bar: ' + go.outerHTML.slice(0, 120));
+  if (!go.matches('.qp-mark.qp-ai > .qp-bar > .tile:not(.is-send)')) bad.push('"Mark with AI" is not an ordinary tile in the answer bar: ' + go.outerHTML.slice(0, 120));
   if (!card.querySelector('.qp-mark.qp-ai > .qp-verdict') || !(card.querySelector('.qp-mark.qp-ai').nextElementSibling || { classList: { contains: () => false } }).classList.contains('qp-ai-why')) bad.push('the AI\'s verdict line and sentence are not under the bar where the handler looks for them');
   const ta = card.querySelector('textarea.qp-ans-in');
   const held = w.stuffItemsAll_;
@@ -16481,9 +16481,6 @@ const earCut_ = out => {
   return i >= 0 && out.gain.ev.slice(i).some(e => e[0] === 'lin' && e[1] === 0);
 };
 /* THE SOUND SWITCH, said the way the reels' Sound and Read aloud are said. */
-const markSoundSays_ = (el, on, where) => switchTileSays_(el, on, where, {
-  what: 'marking Sound', kind: 'a tile', act: 'mark-sound', names: ['Sound off', 'Sound on'],
-  cls: ['tile', 'mark-sound'], lit: true });
 const EAR_BASE_ = { kind: 'question', marks: 1, subject: 'Maths', sub: 'Sounds', row: { paper_id: 'P-EAR', subject: 'Maths', name: 'Sounds' } };
 const earQ_ = (id, more) => Object.assign({}, EAR_BASE_, { key: 'q:' + id, name: 'Q' + id.slice(-1), row: Object.assign({}, EAR_BASE_.row, { row_id: id }) }, more);
 
@@ -16703,12 +16700,6 @@ check('mark sound: Mark with AI wakes the sound at the press, and its marks are 
   const d = w.document, bad = [];
   const held = w.stuffItemsAll_;
   w.stuffItemsAll_ = () => (held() || []).concat([AIQ, NEXT]);
-  /* SIGNED OUT, NO SWITCH ON A CARD ONLY MARK WITH AI CAN MARK: its one press answers "Sign in to have it
-     marked" before anything wakes, so the switch would be one for a noise it cannot make (`markCan_`). */
-  w.__t.USER(null);
-  const anonAi = subDraw_(w, AIQ);
-  if (anonAi.parentNode.querySelector('.tile-row .mark-sound')) bad.push('signed out, a card only Mark with AI can mark carries a sound switch — its one press says "Sign in to have it marked" and can never sound');
-  anonAi.parentNode.remove();
   w.__t.USER(Object.assign({}, ANS_ADA));
   /* THE CARD IN FRONT, IN A COLUMN WITH PAGES TO TURN -- Tools' pages, holding the card as Find and Saved do. § */
   const COL = 'tools';
@@ -16727,7 +16718,7 @@ check('mark sound: Mark with AI wakes the sound at the press, and its marks are 
   const go = c => c.querySelector('.qp-ai-go[data-do="qp-ai"]');
   const slot = c => (subSlotOf_(c) || {}).textContent;
   if (!go(card)) return ['the worded card drew no Mark with AI — nothing was pressed'];
-  if (!card.parentNode.querySelector('.tile-row .mark-sound')) bad.push('signed in, a card Mark with AI can mark has no sound switch in its row');
+  if (card.parentNode.querySelector('.mark-sound, [data-do="mark-sound"]')) bad.push('a card Mark with AI can mark still has a sound switch (374: there is none)');
   let asked = 0;
   /* ONE PRESS AND ITS LANDING. `move` runs while it marks and may hand back the copy of the card that is
      drawn now; what was heard from the press to the landing is returned with it. */
@@ -16806,15 +16797,6 @@ check('mark sound: Mark with AI wakes the sound at the press, and its marks are 
   if (!(await earRests_(rec, 4000))) bad.push('four seconds after the last sound, with nothing waiting, the context is ' + rec.acs.map(a => a.state).join(', ') + ' — left running it holds a phone\'s audio awake');
   card = aiC;
 
-  /* ---- THE SWITCH TURNED OFF AFTER A SOUND HAS PLAYED: the context is there and the press wakes nothing,
-     so the marks landing late are silenced by the switch alone. ---- */
-  earTap_(rec, card.parentNode.querySelector('.tile-row .mark-sound'));
-  await wait(30);
-  /* AWAKE AS THE MARKS LAND -- as it is in the second after any other sound -- so what keeps them silent is
-     the switch, and not the fake refusing to wake a context outside a tap. */
-  r = await ask(card, 'The particles move faster and collide with more energy.', [3, 3], async () => { rec.acs.forEach(a => { a.state = 'running'; }); });
-  if (r.heard.length) bad.push('with the switch off, Mark with AI landing 3 of 3 was heard as [' + r.heard.join(', ') + ']');
-  if (slot(card) !== '3/3') bad.push('with the switch off the marks were not drawn: ' + JSON.stringify(slot(card)));
   if (rec.made.some(m => !m.inPress)) bad.push('an AudioContext was made outside a tap');
   if (rec.made.length > 1) bad.push(rec.made.length + ' AudioContexts were made — one for the visit, woken each press');
   const ai = sent.filter(b => b.action === 'aiMark').length;
@@ -16822,7 +16804,7 @@ check('mark sound: Mark with AI wakes the sound at the press, and its marks are 
   w.stuffItemsAll_ = held;
   w.__t.USER(null);
 
-  /* ---- A DEVICE LEFT OFF: Mark with AI pressed and landing, and no AudioContext at all. ---- */
+  /* ---- A DEVICE LEFT OFF BY THE OLD SWITCH (before 374): forgotten, so Mark with AI landing none is heard. ---- */
   const rec2 = {};
   let land2 = null;
   const b2 = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES.concat(['aiMark']), aiMarking: true }),
@@ -16839,159 +16821,42 @@ check('mark sound: Mark with AI wakes the sound at the press, and its marks are 
   else {
     land2({ success: true, awarded: 0, available: 3, feedback: 'x' });
     await wait(80);
-    if (rec2.made.length || rec2.outs.length) bad.push('a device left off pressed Mark with AI: ' + rec2.made.length + ' AudioContext(s) made, heard [' + earHeard_(rec2).join(', ') + '] — none at all while it is off');
+    if (rec2.made.length !== 1) bad.push('a device the old switch left off pressed Mark with AI: ' + rec2.made.length + ' AudioContext(s) woken at the press, wanted 1 — there is no switch now');
+    let kept2 = 'unread'; try { kept2 = b2.w.localStorage.getItem('mark-sound'); } catch (e) {}
+    if (kept2 !== null) bad.push('the old switch\'s setting is still on the device: mark-sound is ' + JSON.stringify(kept2));
   }
   b2.w.__t.USER(null);
   if (errs.length || b2.errs.length) bad.push('errors: ' + errs.concat(b2.errs).join(' | '));
   return bad;
 });
 
-check('mark sound: the switch is the sound tile on a card that can be marked, off is silence everywhere with no AudioContext at all, and it is remembered on the device', async () => {
+check('mark sound: there is no switch (374) — no sound tile on any card, signed in or out, and a device the old switch left off hears a right Check chime and a wrong one buzz', async () => {
   const rec = {};
   const TYPED = earQ_('Q-EAR-11', { html: '<p>Work out 3 &times; 5.</p>', answer: '<b>15</b>', accept: '15' });
   const PICK = earQ_('Q-EAR-12', { html: '<p>Which is 4?</p>', choices: ['3', '4', '5'], choiceRight: [2], answer: '<b>4</b>' });
   const ORD = earQ_('Q-EAR-13', { answerType: 'order', html: '<p>Smallest first.</p>', choices: ['3', '1', '2'], choiceRight: [2, 3, 1],
     choiceWays: [[2, 3, 1]], orderEnds: ['smallest', 'largest'], answer: '<b>1, 2, 3</b>' });
   const FREE = earQ_('Q-EAR-14', { answerType: 'calculation', accept: '', html: '<p>Work out the area.</p>', answer: '<b>42</b>' });
-  const OPEN = earQ_('Q-EAR-15', { html: '<p>Pick one.</p>', choices: ['a', 'b'], answer: 'either' });
-  const ALL = [TYPED, PICK, ORD, FREE, OPEN];
-  const { w, errs } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES }), before: win => earFake_(win, rec) });
+  const ALL = [TYPED, PICK, ORD, FREE];
+  const { w, errs } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES }), before: win => { earFake_(win, rec); win.localStorage.setItem('mark-sound', '0'); } });
   await wait(300);
   const bad = [];
-  if (typeof w.markSoundTile_ !== 'function') return ['markSoundTile_ is not reachable — renamed? The switch was NOT checked'];
   w.stuffItemsAll_ = () => ALL;
-  const tileOf = card => card.parentNode.querySelector('.tile-row .mark-sound');
-  /* SIGNED IN: on the three cards a press can mark, before the slot; not on the two it cannot. */
-  w.__t.USER(Object.assign({}, ANS_ADA));
-  const cards = ALL.map(x => subDraw_(w, x));
-  cards.forEach((c, i) => {
-    const t = tileOf(c), x = ALL[i];
-    const can = i < 3;
-    if (can && !t) bad.push(x.row.row_id + ' can be marked and its row has no sound switch');
-    if (!can && t) bad.push(x.row.row_id + ' cannot be marked (its press is `sent`) and its row still has a sound switch — a switch for a noise it never makes');
-    if (t) {
-      markSoundSays_(t, true, x.row.row_id + ' as first drawn').forEach(m => bad.push(m));
-    }
-  });
-  /* SIGNED OUT: still there (a signed-out child is marked and hears it), with no slot after it. */
-  w.__t.USER(null);
-  const anon = subDraw_(w, TYPED);
-  if (!tileOf(anon)) bad.push('signed out, a card that can be marked has no sound switch');
-  w.__t.USER(Object.assign({}, ANS_ADA));
-  /* NO WEB AUDIO, NO SWITCH: a tile that can do nothing is not drawn. */
-  const b0 = boot();
-  await wait(300);
-  const h0 = subDraw_(b0.w, TYPED);
-  if (tileOf(h0)) bad.push('a browser with no Web Audio drew the sound switch — a control that can do nothing');
-
-  /* OFF, BEFORE ANYTHING HAS EVER SOUNDED: every copy says so, the device remembers, and turning off is silent. */
-  const tCard = cards[0];
-  earTap_(rec, tileOf(tCard));
-  await wait(30);
-  [tCard, anon].forEach((c, i) => markSoundSays_(tileOf(c), false, (i ? 'the other copy' : 'the card pressed') + ' after Sound off').forEach(m => bad.push(m)));
-  let stored = null;
-  try { stored = w.localStorage.getItem('mark-sound'); } catch (e) {}
-  if (stored !== '0') bad.push('Sound off was not kept on the device: mark-sound is ' + JSON.stringify(stored));
-  ansType_(w, tCard.querySelector('.qp-ans-in'), '16'); earTap_(rec, tCard.querySelector('.qp-check'));
-  ansType_(w, tCard.querySelector('.qp-ans-in'), '15'); earTap_(rec, tCard.querySelector('.qp-check'));
-  earTap_(rec, cards[1].querySelector('.qp-opt[data-n="2"]'));
-  await wait(60);
-  if (rec.outs.length) bad.push('with the switch off, presses were heard as [' + earHeard_(rec).join(', ') + ']');
-  if (rec.made.length) bad.push('with the switch off, ' + rec.made.length + ' AudioContext(s) were made — none at all while it is off');
-  if ((tCard.querySelector('.qp-verdict') || {}).textContent !== 'Correct') bad.push('with the switch off the verdict was not drawn: ' + JSON.stringify((tCard.querySelector('.qp-verdict') || {}).textContent) + ' — the sound is only ever extra');
-
-  /* ON AGAIN: the chime once, so whoever turned it on hears that it works; then a wrong answer buzzes. */
-  earTap_(rec, tileOf(tCard));
-  await wait(30);
-  markSoundSays_(tileOf(tCard), true, 'the card after Sound on').forEach(m => bad.push(m));
-  try { stored = w.localStorage.getItem('mark-sound'); } catch (e) {}
-  if (stored !== '1') bad.push('Sound on was not kept on the device: mark-sound is ' + JSON.stringify(stored));
-  if (earHeard_(rec).join(',') !== 'chime') bad.push('turning the switch on was heard as [' + earHeard_(rec).join(', ') + '], wanted the chime once');
-  rec.frozen = 5;
-  ansType_(w, tCard.querySelector('.qp-ans-in'), '16'); earTap_(rec, tCard.querySelector('.qp-check'));
-  await wait(30);
-  if (earHeard_(rec).join(',') !== 'chime,buzzer') bad.push('a wrong Check after Sound on was heard as [' + earHeard_(rec).slice(1).join(', ') + '], wanted [buzzer]');
-
-  /* OFF WHILE THE BUZZER IS STILL SOUNDING: § */
-  const toastSays = () => ((w.document.getElementById('toast') || {}).textContent || '');
-  const buzzing = rec.outs[rec.outs.length - 1];
-  /* THE BUZZER'S OWN REST, a second after it ends, CANCELLED FIRST: so a rest that comes now is the
-     switch's, and how loaded the machine is cannot make the one pass for the other. */
-  w.markRest_(-1);
-  const restsWere = rec.suspended.length;
-  earTap_(rec, tileOf(tCard));
-  await wait(30);
-  if (!earCut_(buzzing)) bad.push('Sound off pressed while the buzzer played did not stop it (its gain cancelled and ramped to 0): ' + JSON.stringify(buzzing && buzzing.gain.ev));
-  rec.frozen = null;
-  if (!/right and wrong/i.test(toastSays()) || !/\boff\b/i.test(toastSays())) bad.push('Sound off said ' + JSON.stringify(toastSays()) + ' — the toast should say it is the sound for right and wrong answers, and that it is off');
-  /* A NEW `suspend()`, waited for: the context may already be at rest from the buzzer on a loaded machine,
-     and the switch's own rest is 0.1s away. */
-  let restedNow = false;
-  for (let t = 0; t < 30 && !restedNow; t++) { restedNow = rec.suspended.length > restsWere; if (!restedNow) await wait(100); }
-  if (!restedNow || rec.acs.some(a => a.state !== 'suspended')) bad.push('Sound off did not put the context to rest (' + rec.acs.map(a => a.state).join(', ') + ') — nothing can play, so it should rest straight after the fade');
-  earTap_(rec, tileOf(tCard));
-  await wait(30);
-  if (!/right and wrong/i.test(toastSays()) || !/\bon\b/i.test(toastSays())) bad.push('Sound on said ' + JSON.stringify(toastSays()) + ' — the toast should say it is the sound for right and wrong answers, and that it is on');
-  if (earHeard_(rec).join(',') !== 'chime,buzzer,chime') bad.push('Sound on again was heard as [' + earHeard_(rec).slice(2).join(', ') + '], wanted the chime once');
-
-  /* ANOTHER TAB FLIPS THE ONE SWITCH (one per device): § */
-  let heardNow = earHeard_(rec).length;
-  rec.frozen = 9;
-  ansType_(w, tCard.querySelector('.qp-ans-in'), '16'); earTap_(rec, tCard.querySelector('.qp-check'));
-  await wait(30);
-  const playing = rec.outs[rec.outs.length - 1];
-  const otherTab = v => {
-    try { w.localStorage.setItem('mark-sound', v); } catch (e) {}
-    w.dispatchEvent(new w.StorageEvent('storage', { key: 'mark-sound', oldValue: v === '0' ? '1' : '0', newValue: v }));
-  };
-  otherTab('0');
-  await wait(30);
-  [tCard, anon].forEach((c, i) => markSoundSays_(tileOf(c), false, (i ? 'the other copy' : 'the card') + ' after another tab turned the sound off').forEach(m => bad.push(m)));
-  rec.frozen = null;
-  if (!earCut_(playing)) bad.push('another tab turned the sound off and the buzzer playing here went on: ' + JSON.stringify(playing && playing.gain.ev));
-  ansType_(w, tCard.querySelector('.qp-ans-in'), '16'); earTap_(rec, tCard.querySelector('.qp-check'));
-  await wait(30);
-  otherTab('1');
-  await wait(30);
-  markSoundSays_(tileOf(tCard), true, 'the card after another tab turned the sound on').forEach(m => bad.push(m));
-  ansType_(w, tCard.querySelector('.qp-ans-in'), '16'); earTap_(rec, tCard.querySelector('.qp-check'));
-  await wait(30);
-  const tabs = earHeard_(rec).slice(heardNow);
-  if (tabs.join(',') !== 'buzzer,buzzer') bad.push('a wrong Check, another tab turning the sound off, a wrong Check, the other tab turning it on, a wrong Check: heard as [' + tabs.join(', ') + '], wanted [buzzer, buzzer] — the middle one silent');
-
-  /* REMEMBERED: a fresh window on a device left off draws the switch off and makes no sound and no context. */
-  const rec3 = {};
-  const b3 = boot({ before: win => { earFake_(win, rec3); win.localStorage.setItem('mark-sound', '0'); } });
-  await wait(300);
-  b3.w.stuffItemsAll_ = () => ALL;
-  const c3 = subDraw_(b3.w, TYPED);
-  markSoundSays_(tileOf(c3), false, 'a fresh window on a device left off').forEach(m => bad.push(m));
-  ansType_(b3.w, c3.querySelector('.qp-ans-in'), '16'); earTap_(rec3, c3.querySelector('.qp-check'));
-  await wait(30);
-  if (rec3.outs.length || rec3.made.length) bad.push('a device left off, reloaded, made ' + rec3.made.length + ' AudioContext(s) and was heard as [' + earHeard_(rec3).join(', ') + ']');
-
-  /* A STORE THAT REFUSES EVERY WRITE -- a full one: § */
-  for (const kept of ['1', '0']) {
-    const r4 = {};
-    const b4 = boot({ before: win => { earFake_(win, r4); win.localStorage.setItem('mark-sound', kept); } });
-    await wait(300);
-    b4.w.stuffItemsAll_ = () => ALL;
-    const c4 = subDraw_(b4.w, TYPED);
-    const S = b4.w.Storage.prototype, putItem = S.setItem;
-    S.setItem = function () { throw new b4.w.DOMException('The quota has been exceeded.', 'QuotaExceededError'); };
-    try {
-      earTap_(r4, tileOf(c4));
-      await wait(30);
-      const nowOn = kept === '0';
-      markSoundSays_(tileOf(c4), nowOn, 'a full store holding "' + kept + '", the tile pressed').forEach(m => bad.push(m));
-      const n4 = r4.outs.length;
-      ansType_(b4.w, c4.querySelector('.qp-ans-in'), '16'); earTap_(r4, c4.querySelector('.qp-check'));
-      await wait(40);
-      const h4 = earHeard_(r4).slice(n4);
-      if (h4.join(',') !== (nowOn ? 'buzzer' : '')) bad.push('a full store holding "' + kept + '": the tile pressed to Sound ' + (nowOn ? 'on' : 'off') + ', and a wrong Check was heard as [' + h4.join(', ') + '] — the tile says one thing and the device does another');
-    } finally { S.setItem = putItem; }
-    if (b4.errs.length) bad.push('errors (a full store): ' + b4.errs.join(' | '));
+  const sw = c => c.parentNode.querySelector('.mark-sound, [data-do="mark-sound"]');
+  if (typeof w.markSoundTile_ === 'function') bad.push('markSoundTile_ still exists');
+  for (const who of [Object.assign({}, ANS_ADA), null]) {
+    w.__t.USER(who);
+    ALL.forEach(x => { const c = subDraw_(w, x); if (sw(c)) bad.push(x.row.row_id + (who ? ' signed in' : ' signed out') + ' still draws a sound switch'); c.parentNode.remove(); });
   }
+  let kept = 'unread'; try { kept = w.localStorage.getItem('mark-sound'); } catch (e) {}
+  if (kept !== null) bad.push('the old switch\'s setting is still on the device: mark-sound is ' + JSON.stringify(kept));
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  const c = subDraw_(w, TYPED);
+  ansType_(w, c.querySelector('.qp-ans-in'), '15'); earTap_(rec, c.querySelector('.qp-check'));
+  await wait(40);
+  ansType_(w, c.querySelector('.qp-ans-in'), '16'); earTap_(rec, c.querySelector('.qp-check'));
+  await wait(40);
+  if (earHeard_(rec).join(',') !== 'chime,buzzer') bad.push('a device the old switch left off: a right then a wrong Check were heard as [' + earHeard_(rec).join(', ') + '], wanted [chime, buzzer]');
   w.__t.USER(null);
   if (errs.length) bad.push('errors: ' + errs.join(' | '));
   return bad;
@@ -24041,7 +23906,7 @@ check('an ordering: the real 1F Q4 is tapped in order, sent, marked by its order
   if (slots() !== '_ _ _ _ _') bad.push('a fresh card\'s strip reads ' + slots());
   if (verdict() !== '') bad.push('no reserved verdict line under the items before marking — the verdict would arrive as a new line');
   const sendT = box().querySelector('.qp-order-send');
-  if (!sendT || !sendT.matches('.qp-mark > .tile.is-send[data-do="qp-order-send"]') || !sendT.querySelector('.tile-i-send')) bad.push('Send is not the gold send tile on the verdict line');
+  if (!sendT || !sendT.matches('.qp-mark > .tile:not(.is-send)[data-do="qp-order-send"]') || !sendT.querySelector('.tile-i-send')) bad.push('Check is not an ordinary tile with the send mark on the verdict line');
   /* THE QUESTION ABOVE IS NEVER REDRAWN -- the nodes, their markup, and the card's blocks. */
   const sheet = card.querySelector('.qsheet'), tags = card.querySelector('.qcard-tags');
   const sheetHtml = sheet.outerHTML, blocks = [...card.children].map(c => c.classList[0]).join(',');

@@ -116,9 +116,9 @@ function tileIcon_(name) {
 
 
 /* ---------- ONE CONTROL § */
-/* ONE CHECK ON EVERY QUESTION (368): the same gold disc, word and place whatever marks it -- the scheme, the key words, the drawing, the AI or a tutor; the act says which */
+/* ONE CHECK ON EVERY QUESTION (368): the same mark, word and place whatever marks it; an ordinary tile like its neighbours, last in the row (374, the owner: uniformity) */
 function checkTile_(o) {
-  return tile_(Object.assign({ icon: 'send', label: 'Check', tone: 'send' }, o));
+  return tile_(Object.assign({ icon: 'send', label: 'Check' }, o));
 }
 function tile_(o) {
   /* `cls` IS A NAME A CHECK OR A NEIGHBOUR FINDS THE TILE BY (`.qp-check`), never a look: the tile's

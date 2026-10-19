@@ -4451,7 +4451,7 @@ function ansBox_(x) {
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
   </div>${ai ? '<p class="qp-ai-why"></p>' : ''}`;
 }
-/* THE PLAIN SEND, for somebody signed in -- see `ansBox_`. The gold disc every Send on a question's
+/* THE PLAIN SEND, for somebody signed in -- see `ansBox_`. The Check tile every Send on a question's
    pages is, under its own name, so nothing that runs Check runs it. */
 function subSendTile_() {
   if (!(typeof whoIs_ === 'function' && whoIs_())) return '';
@@ -7675,9 +7675,8 @@ function questionTiles_(x) {
   /* `Draw` / `Type` WAS HERE, the switch between the answer's two faces (327, 337). A question answered by
      drawing is drawn on its card now, with nothing to switch (`ansArea_`, 356). */
   /* NO WAY TO THE ANSWER IN THIS ROW ANY MORE -- see where `To the answer` was, above. */
-  /* AND THE SOUND SWITCH, JUST BEFORE THE SLOT, on a card that can be marked -- signed in or out, since a signed-out child is marked and hears it too § */
-  /* NO VERDICT BESIDE THE STAR (368): the box's own line says it once */
-  return fig + (typeof markSoundTile_ === 'function' ? markSoundTile_(x) : '');
+  /* NO VERDICT BESIDE THE STAR (368), AND NO SOUND SWITCH (374): the verdict is always heard */
+  return fig;
 }
 
 /* THE FIGURE, OVER THE CARD, ONE TAP AWAY. § */
