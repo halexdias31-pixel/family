@@ -14,7 +14,8 @@ function ansMaths_(x) {
   if (Array.isArray(x.choices) && x.choices.length >= 2) return false;
   const t = String(x.answerType || '').trim().toLowerCase();
   if (KP_WORDED[t]) return false;
-  const ways = String(x.accept || '').split('|').map(w => w.trim()).filter(Boolean);
+  /* a `rule:` way (markRule_) is a test, not an answer, so it says nothing about the keys */
+  const ways = String(x.accept || '').split('|').map(w => w.trim()).filter(w => w && !/^rule:/i.test(w));
   /* A CALCULATION WITH A SCHEME THAT IS WORDS is a calculation whose answer is a sentence — "Yes,
      because 3 kg covers 45 m²" — and that is the letters' job. */
   if (t === 'calculation') return !ways.length || ways.every(kpMathsy_);

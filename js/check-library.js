@@ -894,7 +894,7 @@ if (MARKS.missing.length) {
   rows.forEach(r => {
     const cell = String((r && r.accept) || '').trim();
     if (!cell) return;
-    const first = cell.split('|')[0].trim();
+    const first = (cell.split('|').map(w => w.trim()).filter(w => !/^rule:/i.test(w))[0] || '');
     if (first && !markOf(first, cell)) {
       fail.push(r.row_id + ' cannot be marked by its own `accept` (' + JSON.stringify(cell)
         + ') \u2014 a child typing exactly that is told they are wrong');

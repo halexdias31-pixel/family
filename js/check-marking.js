@@ -345,7 +345,7 @@ const want = (r, typed, right, why) => {
     lib.bad.push(r.row_id + ': ' + JSON.stringify(typed) + ', ' + why + ', is marked ' + (right ? 'wrong' : 'right'));
 };
 LIB.forEach(r => {
-  const ways = String(r.accept).split('|').map(w => w.trim()).filter(Boolean);
+  const ways = String(r.accept).split('|').map(w => w.trim()).filter(w => w && !/^rule:/i.test(w));
   const norms = ways.map(markNorm_);
   /* the units the cell writes after a number, each as one token */
   const units = [...new Set(norms.map(n => (GLUED.exec(n) || SPACED.exec(n) || [])[2]).filter(Boolean))];
@@ -598,8 +598,41 @@ mwLib.forEach(r => {
   const m = markWords_(head, r.mark_words);
   if (!m || m.got < m.of) { mwBad++; console.log('  WRONG  %s: its own scheme scores %j against mark_words %j', r.row_id, m, r.mark_words); }
 });
+/* AND A `rule:` WAY (360): the numbers typed tested, not matched. typed, accept, wanted, why. */
+const RULES = [
+  ['4, 12, 18', 'rule: count 3, distinct, each factor 36, sum 31..34', true, 'three factors of 36 adding to 34'],
+  ['4, 12, 19', 'rule: count 3, distinct, each factor 36, sum 31..34', false, '19 is not a factor'],
+  ['6, 12, 18', 'rule: count 3, distinct, each factor 36, sum 31..34', false, 'they add to 36, past the band'],
+  ['1/20 + 3/10 + 1/2', 'rule: count 3, distinct, sum 17/20', true, 'fractions summed as values'],
+  ['6/10, 6/10, 9/15', 'rule: count 3, distinct, each eq 3/5', false, 'the same fraction twice is not three'],
+  ['£2, £1, 20p and 1p', 'rule: sum 3.21, from 2/1/1/1/50p/50p/20p/10p/5p/2p/1p/1p/1p/1p/1p', true, 'coins in pounds and pence'],
+  ['£2, £2, 20p and 1p', 'rule: sum 3.21, from 2/1/1/1/50p/50p/20p/10p/5p/2p/1p/1p/1p/1p/1p', false, 'a coin there is only one of, used twice'],
+  ['150 and 154', 'rule: count 2, diff 4, rounddiff 100 100', false, 'both round to 200'],
+  ['-4 and 1', 'rule: count 2, sum -3, diff 5', true, 'a negative number'],
+  ['2 1/3', 'rule: count 1, mixed, each eq 7/3', true, 'a mixed number'],
+  ['7/3', 'rule: count 1, mixed, each eq 7/3', false, 'the top-heavy fraction is not the mixed number asked for'],
+  ['14', 'rule: count 1, each mult 2 notmult 7 over 0', false, 'a multiple of 7 too'],
+  ['Head and 2, H1', 'rule: set head~h+1/head+2', true, 'a list of pairs, in any order, a word or its letter'],
+  ['Head and 2', 'rule: set head~h+1/head+2', false, 'a list with one missing'],
+  ['Soup and Chicken, Beef and Soup', 'rule: set soup+chicken/soup+beef', true, 'each pair either way round'],
+  ['', 'rule: count 1', null, 'nothing typed is not a wrong answer'],
+];
+RULES.forEach(([typed, accept, want, why]) => {
+  const got = markAnswer_(typed, accept);
+  if (got !== want) { mwBad++; console.log('  WRONG  markAnswer_(%j, %j) gave %j, wanted %j — %s', typed, accept, got, want, why); }
+});
+/* EVERY `rule:` IN THE LIBRARY HAS A WORKED EXAMPLE IN FRONT OF IT, AND MARKS IT RIGHT BY THE RULE ALONE. */
+const ruleLib = LIB.filter(r => /(^|\|)\s*rule:/i.test(r.accept));
+ruleLib.forEach(r => {
+  const rules = String(r.accept).split('|').filter(w => /^\s*rule:/i.test(w)).join('|');
+  const eg = String(r.accept).split('|').map(w => w.trim()).filter(w => w && !/^rule:/i.test(w));
+  if (!eg.length) { mwBad++; console.log('  WRONG  %s: a `rule:` with no worked example in front of it to prove it', r.row_id); }
+  eg.forEach(w => {
+    if (markAnswer_(w, rules) !== true) { mwBad++; console.log('  WRONG  %s: its own example %j is marked wrong by %j', r.row_id, w, rules); }
+  });
+});
 if (mwBad) { console.log('\n%d rule-marking cases wrong — a short worded answer is being marked wrongly without AI.', mwBad); process.exit(1); }
-console.log('rule marking: %d key-word cases, the cells, and %d library rules each scoring its own scheme in full', MW.length, mwLib.length);
+console.log('rule marking: %d key-word cases, the cells, %d library rules each scoring its own scheme in full; %d `rule:` cases and %d library rules', MW.length, mwLib.length, RULES.length, ruleLib.length);
 
 if (bad || normBad || lib.bad.length || rowBad || slow || orderBad || orderLib.bad.length || seqBad || seqLib.bad.length) {
   console.log('\n%d of %d marking cases wrong, %d of %d markNorm_ cases, %d in the library sweep, %d of %d\n' +

@@ -3646,9 +3646,111 @@ function markUnitOff_(t) {
   return s;
 }
 
+/* ---------- AN ANSWER WITH MANY RIGHT FORMS, MARKED BY WHAT MAKES IT RIGHT (360) */
+/* `rule: count 3, distinct, each factor 36, sum 31..34` in `accept`: the typed numbers are tested, not matched. */
+/* Clauses: count, distinct, mixed, each <tests>, sum, diff, from a/b/…, rounddiff R V, set a+b/c+d (word groups). */
+function markRuleNums_(typed) {
+  const t = markNorm_(typed).replace(/[,;=+×]/g, ' , ').replace(/(\d)-(?=\d)/g, '$1 , ');
+  const out = [];
+  const re = /(?<![\d.\/a-z^])(-?)(\d+(?:\.\d+)?)(?:\s+(\d+)\/(\d+)|\/(\d+))?(p?)(?![\d.\/a-z^\u00b2\u00b3])/g;
+  let m;
+  while ((m = re.exec(t))) {
+    let v = m[3] ? Number(m[2]) + Number(m[3]) / Number(m[4]) : m[5] ? Number(m[2]) / Number(m[5]) : Number(m[2]);
+    if (m[6]) v /= 100;
+    out.push({ v: m[1] ? -v : v, s: m[0].trim() });
+  }
+  return out;
+}
+function markRuleVal_(s) {
+  const n = markRuleNums_(s);
+  return n.length ? n[0].v : NaN;
+}
+function markRuleIs_(v, test, arg) {
+  const near = (a, b) => Math.abs(a - b) < 1e-9;
+  const whole = near(v, Math.round(v));
+  const a = markRuleVal_(arg);
+  const prime = n => n > 1 && whole && [...Array(Math.floor(Math.sqrt(n)) + 1).keys()].slice(2).every(k => n % k);
+  switch (test) {
+    case 'mult': return whole && near(v % a, 0);
+    case 'notmult': return whole && !near(v % a, 0);
+    case 'factor': return whole && v > 0 && near(a % v, 0);
+    case 'notfactor': return whole && v > 0 && !near(a % v, 0);
+    case 'prime': return prime(v);
+    case 'notprime': return whole && v >= 0 && !prime(v);
+    case 'square': return whole && v >= 0 && near(Math.round(Math.sqrt(v)) ** 2, v);
+    case 'cube': return whole && near(Math.round(Math.cbrt(v)) ** 3, v);
+    case 'odd': return whole && Math.abs(v % 2) === 1;
+    case 'even': return whole && v % 2 === 0;
+    case 'over': return v > a;
+    case 'under': return v < a;
+    case 'eq': return near(v, a);
+    case 'ne': return !near(v, a);
+    default: return false;
+  }
+}
+function markRuleSet_(typed, spec) {
+  const words = s => String(s).toLowerCase().match(/[a-z]+|\d+/g) || [];
+  const fill = /^(and|with|then|a|an|the|on|of)$/;
+  const syn = {};
+  const want = spec.split('/').map(item => item.split('+').map(w => {
+    const ways = w.trim().toLowerCase().split('~');
+    ways.forEach(x => (syn[x] = ways[0]));
+    return ways[0];
+  }).join('+').split('+').sort().join(' ')).sort();
+  const got = String(typed).split(/[,;\n]+/).map(item => words(item).filter(w => !fill.test(w)).map(w => syn[w] || w).sort().join(' '))
+    .filter(Boolean).sort();
+  return got.length === want.length && got.every((g, i) => g === want[i]);
+}
+function markRule_(typed, rule) {
+  const body = String(rule || '').replace(/^\s*rule:\s*/i, '');
+  const set = /(?:^|,)\s*set\s+([^,]+)/.exec(body);
+  if (set) return markRuleSet_(typed, set[1]);
+  const nums = markRuleNums_(typed), vs = nums.map(n => n.v);
+  if (!nums.length) return false;
+  const sum = vs.reduce((s, v) => s + v, 0);
+  const near = (a, b) => Math.abs(a - b) < 1e-9;
+  return body.split(',').map(c => c.trim()).filter(Boolean).every(c => {
+    const w = c.split(/\s+/), k = w[0];
+    if (k === 'count') return vs.length === Number(w[1]);
+    if (k === 'mixed') return nums.every(n => {
+      const q = /^\d+ (\d+)\/(\d+)$/.exec(n.s);
+      return !!q && Number(q[1]) < Number(q[2]);
+    });
+    if (k === 'distinct') return new Set(nums.map(n => n.s)).size === nums.length;
+    if (k === 'each') {
+      const tests = [];
+      for (let i = 1; i < w.length; i++) tests.push(/^(mult|notmult|factor|notfactor|over|under|eq|ne)$/.test(w[i]) ? [w[i], w[++i]] : [w[i]]);
+      return vs.every(v => tests.every(x => markRuleIs_(v, x[0], x[1])));
+    }
+    if (k === 'sum') {
+      const r = w[1].split('..');
+      return r.length === 2 ? sum >= markRuleVal_(r[0]) - 1e-9 && sum <= markRuleVal_(r[1]) + 1e-9 : near(sum, markRuleVal_(r[0]));
+    }
+    if (k === 'diff') return vs.length === 2 && near(Math.abs(vs[0] - vs[1]), markRuleVal_(w[1]));
+    if (k === 'rounddiff') {
+      const r = Number(w[1]), rd = v => Math.round(v / r) * r;
+      return vs.length === 2 && near(Math.abs(rd(vs[0]) - rd(vs[1])), markRuleVal_(w[2]));
+    }
+    if (k === 'from') {
+      const pool = w.slice(1).join(' ').split('/').map(markRuleVal_);
+      return vs.every(v => {
+        const i = pool.findIndex(p => near(p, v));
+        return i >= 0 && pool.splice(i, 1);
+      });
+    }
+    return false;
+  });
+}
+
 function markAnswer_(typed, accept, again) {
   const t = markNorm_(typed);
   if (!t) return null;                              /* nothing typed is not a wrong answer */
+  /* A `rule:` WAY IS TESTED, NOT MATCHED (markRule_); the other ways are matched as before. */
+  const rules = String(accept || '').split('|').filter(w => /^\s*rule:/i.test(w));
+  if (rules.length) {
+    if (rules.some(w => markRule_(typed, w))) return true;
+    accept = String(accept).split('|').filter(w => !/^\s*rule:/i.test(w)).join('|');
+  }
   if (!again) {
     /* A NAME IN FRONT IS THE SENTENCE TOO. § */
     const named = t.replace(/^[a-z]+=(?=-?[\d.])/, '');
@@ -3989,7 +4091,8 @@ function markCells_(vals, cells) {
 const cellsVals_ = v => String(v == null ? '' : v).split(' ; ');
 function cellInput_(k, c, i, v) {
   if (!c.ways) return '';
-  const num = /^[-\d.,\s|£$%°/]+$/.test(c.ways);
+  /* a cell holding a list (`24, 68`) needs the comma, which a phone's number pad does not have */
+  const num = /^[-\d.,\s|£$%°/]+$/.test(c.ways) && !/,\s/.test(c.ways);
   return `<input class="qp-cell" data-k="${esc(k)}" data-n="${i}" aria-label="Blank ${esc(c.label)}" autocomplete="off"
     inputmode="${num ? 'decimal' : 'text'}" value="${esc(v || '')}">`;
 }
