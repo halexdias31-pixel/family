@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-20-i-email-dark";
+const DOGET_VERSION = "2026-10-20-j-who-sees";
 
 
 function doGet(e) {
@@ -211,6 +211,8 @@ function doGet(e) {
     const viewerIsAdmin = !!meAsked && hasRole(meAsked, 'admin');
     /* AND THE NET IS TOLD (342): § */
     netViewerSet_(meAsked);
+    /* WHO THEY MAY SEE (386, `seesWhom_`): null for nobody, a tutor or an admin; else the ids a child or parent is shown. */
+    const vis = seesWhom_(meAsked);
 
     const cfg = config(), opts = allOptions(), sur = surcharges();
     mark('config');
@@ -520,7 +522,7 @@ function doGet(e) {
         });
       }
 
-      if (hasRole(r, 'student') && maySeeChildren) {
+      if (hasRole(r, 'student') && maySeeChildren && (!vis || vis[S(r.person_id)])) {
         payload.students.push({
           /* ---------- `siblings` AND `friends` WERE HERE, AND THEY WENT TO EVERY STUDENT § */
           avatar: S(r.avatar),
@@ -672,7 +674,8 @@ function doGet(e) {
           avatar: kidHid ? '' : face,
           figure: faceFig_(pp).avatar,
         };
-        if (S(pp.person_id)) byId[S(pp.person_id)] = nameFor_(pp);
+        /* ONLY WHOM THEY MAY SEE (386): a hidden reactor is not named, a hidden commenter is "Someone"; signed out, only staff are named. */
+        if (S(pp.person_id) && seesPerson_(meAsked ? vis : {}, pp)) byId[S(pp.person_id)] = nameFor_(pp);
       });
       read(TAB.posts).rows.forEach(r => {
         if (!S(r.post_id)) return;
@@ -805,7 +808,7 @@ function doGet(e) {
         .concat(acceptedChildren(meId).map(x => S(x.person_id)))
         .concat(acceptedParents(meId).map(x => S(x.person_id)))
         .concat(siblingsOf(meId).map(x => S(x.person_id))) : [];
-      const maySee = id => viewerIsAdmin || (S(id) && family.indexOf(S(id)) !== -1);
+      const maySee = id => viewerIsAdmin || (S(id) && family.indexOf(S(id)) !== -1 && (!vis || !!vis[S(id)]));
 
       read(TAB.exams).rows.forEach(r => {
         if (!S(r.person_id) || !S(r.exam_date)) return;
@@ -1104,6 +1107,10 @@ function doGet(e) {
       const iTeach = !!meAskedName && ts.some(t2 => key(t2.name) === key(meAskedName));
       const iPay = !!meAskedName && cs.some(c => key(c.name) === key(meAskedName));
       const tutorOnly = iTeach && !iPay && !viewerIsAdmin;
+      /* A CHILD OR PARENT SEES THEIR OWN SEAT'S NAMES ONLY (386) — another family on a shared class is a seat. */
+      const iBooked = !!meAskedName && cs[0] && key(cs[0].name) === key(meAskedName);
+      const namesOk = !vis || iTeach || iBooked;
+      const seatName = n => (!vis || iTeach || key(n) === key(meAskedName)) ? n : '';
 
       payload.clientClasses.push({
         id: jobId, rowIndex: j._row, type: 'job',
@@ -1141,12 +1148,12 @@ function doGet(e) {
         createdAt: fmtDate(j.created_at),
         /* THE CHILDREN, as a list. The roster puts a name on a seat and says "Child" for the rest,
            so a tutor opening a session knows who to expect. */
-        forChildren: iAmIn
+        forChildren: iAmIn && namesOk
           ? S(j.for_children).split(/[,\n]/).map(x => x.trim()).filter(Boolean) : [],
         /* The TUTOR is not private — who teaches a session is the thing somebody deciding whether
            to join most wants to know, and every tutor is already listed publicly. */
         /* ---------- WHOSE BOOKING IT IS, SAID PLAINLY § */
-        client: iAmIn ? ((cs[0] && cs[0].name) || '') : '',
+        client: iAmIn && namesOk ? ((cs[0] && cs[0].name) || '') : '',
         tutor:  iAmIn ? ((confirmedTutor && confirmedTutor.name)
                          || (ts[0] && ts[0].name) || '') : '',
         requestedTutor: (confirmedTutor && confirmedTutor.name) || 'No preference',
@@ -1163,7 +1170,7 @@ function doGet(e) {
         /* NO NAMES TO SOMEBODY WHO IS NOT IN IT. The seats are still there — the point is how many
            are going — but each is a seat rather than a person. */
         slots: cs.map((c, i) => ({ n: i + 1,
-                                   client: iAmIn ? c.name : '', status: c.status, chat: '' })),
+                                   client: iAmIn ? seatName(c.name) : '', status: c.status, chat: '' })),
         tutorSlots: ts.map((t, i) => ({ key: 'abc'[i] || String(i), name: t.name,
                                         status: t.status === BM.AGREED || t.status === BM.BOOKED
                                           ? 'Confirmed' : 'Applied', chats: {} })),
@@ -1221,12 +1228,15 @@ function familyOf_(me) {
   const meId = S(me.person_id), seen = {};
   /* WHOSE FAMILY THIS IS, said in the payload. § */
   out.familyFor = meId;
-  const add = (rows, rel) => rows.forEach(r => {
+  const addAll = (rows, rel) => rows.forEach(r => {
     const id = S(r.person_id);
     if (!id || id === meId || seen[rel + id]) return;
     seen[rel + id] = true;
     out.family.push(famCard_(r, rel));
   });
+  /* AND ONLY WHOM THEY MAY SEE (386): a child is sent no parent, a parent no co-parent. */
+  const vis = seesWhom_(me);
+  const add = (rows, rel) => addAll(rows.filter(r => !vis || vis[S(r.person_id)]), rel);
   add(acceptedParents(meId), 'parent');
   add(acceptedChildren(meId), 'child');
   /* ---------- AND YOUR BROTHERS AND SISTERS § */

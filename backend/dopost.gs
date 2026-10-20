@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-20-i-email-dark";
+const DOPOST_VERSION = "2026-10-20-j-who-sees";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -1667,7 +1667,7 @@ function doPost(e) {
          not be replied to is a rule that produces a one-sided conversation. */
       /* `actingRole_`, NOT `mainRole`: a Tutor box ticked in Settings and not yet approved is not a
          tutor for this question, or the tick would be a way to reach every family on the site. */
-      if (!mayMessage(actingRole_(me), actingRole_(to))) {
+      if (!mayMessage(actingRole_(me), actingRole_(to)) || !seesPerson_(seesWhom_(me), to)) {
         return jsonOut({ error: 'You cannot message them directly. An admin can pass it on.' });
       }
 
@@ -1743,9 +1743,12 @@ function doPost(e) {
       const me = findPerson(S(body.name), S(body.personId));
       if (!me) return jsonOut({ error: 'Not signed in.' });
       const mine = S(me.person_id);
+      /* A THREAD WITH SOMEBODY THEY MAY NO LONGER SEE IS NOT SENT (386) — staff threads always are (`seesPerson_`). */
+      const vis = seesWhom_(me);
 
       const rows = read(TAB.messages).rows
         .filter(r => S(r.from_id) === mine || S(r.to_id) === mine)
+        .filter(r => seesPerson_(vis, findPerson('', S(r.from_id) === mine ? S(r.to_id) : S(r.from_id))))
         .map(r => {
           /* ---------- WHO THE OTHER PERSON IS § */
           const other = S(r.from_id) === mine ? S(r.to_id) : S(r.from_id);
@@ -2376,7 +2379,20 @@ function doPost(e) {
       return jsonOut({ success: true, avatar: packed, credits, bought,
                        owned: after ? avatarUnlocks(after) : [] });
     }
-    if (action === 'saveFriends') return savePerson('friends', S(body.friends));
+    /* A NEW FRIEND MUST BE A CHILD'S HANDLE (386) — the phone no longer holds every child to look it up in. */
+    if (action === 'saveFriends') {
+      const list = S(body.friends).split(',').map(x => x.trim()).filter(Boolean);
+      let rows = [];
+      try { rows = read(TAB.people).rows; } catch (err) { rows = []; }
+      const meF = findPerson(S(body.name), S(body.personId));
+      const had = S(meF && meF.friends).split(',').map(x => norm(x.trim()));
+      const wrong = list.filter(h => had.indexOf(norm(h)) === -1
+        && !rows.some(r => norm(r.handle) === norm(h.replace(/^@/, '')) && isChild_(r)));
+      if (wrong.length) return jsonOut({ error: 'Nobody has the handle "' + wrong[0] + '".' });
+      const saved = savePerson('friends', list.join(', '));
+      clearCache();
+      return saved;
+    }
 
     if (action === 'saveScore' || action === 'saveTtHighscore') {
       const field = action === 'saveScore' ? 'high_score_flappy' : 'high_score_tables';
@@ -3916,8 +3932,10 @@ function profileOf_(r) {
 /* ---------- THE NAMES OF SOMEBODY'S OWN FAMILY, FOR THE SIGN-IN REPLY AND FOR `myProfile` § */
 function familyNamesOf_(r) {
   const meId = S(r && r.person_id);
+  /* A CHILD IS SENT NO PARENT'S NAME (386); a claim waiting on them still says who asked, or it cannot be answered. */
+  const vis = seesWhom_(r);
   const out = {
-    parents:  acceptedParents(meId).map(x => nameFor_(x)),
+    parents:  acceptedParents(meId).filter(x => !vis || vis[S(x.person_id)]).map(x => nameFor_(x)),
     children: acceptedChildren(meId).map(x => nameFor_(x)),
     siblings: siblingsOf(meId).map(x => nameFor_(x)),
     claims: read(TAB.family).rows
