@@ -107,7 +107,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-20-d-tidy-email";
+const BACKEND_VERSION = "2026-10-20-e-email-simple";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {

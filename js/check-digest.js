@@ -167,7 +167,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
      'Don’t want these any more? Just reply and say so.',
      /* WORDED FOR WHAT THE SHEET KNOWS: a first keystroke is "worked on", not "did"; the run is at 18:00 so
         the week is "up to 6pm"; and the marks the list has are said once, in the lead. */
-     'Here’s what Ada worked on this week: 3 questions', '28 Sep – 4 Oct, up to 6pm on Sunday', 'Beside each one is how it went: ✓ right or ✗ wrong.'].forEach(s => {
+     'Here’s what Ada worked on this week: 3 questions', '28 Sep – 4 Oct, up to 6pm on Sunday', 'Beside each one is how it went: ✓ right or ✗ not right.'].forEach(s => {
       if (pat.text.indexOf(s) === -1) bad.push('Pat’s email does not say "' + s + '"');
     });
     /* CUT ON 12 OCT — the owner: *"all they need to see are the questions their kids have done this week"*.
@@ -324,14 +324,14 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   if (!bo) bad.push('Bo is not sent Ben’s week, so the words in Sunday’s email were NOT asked');
   else {
     if (bo.text.indexOf('\nMaths · Probability\nA bag holds 3 red and 5 blue counters.\nQ4a ✓: Work out the probability of red.\n') === -1
-        || said(bo.html).indexOf('Maths · Probability Q4a A bag holds 3 red and 5 blue counters. Work out the probability of red. ✓ Right first time Their answer: an answer') === -1)
+        || said(bo.html).indexOf('Maths · Probability Q4a A bag holds 3 red and 5 blue counters. Work out the probability of red. ✓ Right Their answer: an answer') === -1)
       bad.push('Sunday’s email does not print a question’s words under its paper — the stem, then "Q4a ✓: <its ask>": ' + bo.text.split('\n').slice(4, 20).join(' / ') + ' — HTML: ' + said(bo.html).slice(0, 900));
     if (bo.text.indexOf('\nChemistry · Required practical · Rates of reaction\nWorksheet ✓: What is the dependent variable?\n') === -1)
       bad.push('a practical’s worksheet is not printed with the first box’s words: ' + bo.text.split('\n').slice(4, 20).join(' / '));
     /* REFUSED WORDS ARE NOT PRINTED, AND THE QUESTION STILL IS — by its number under its paper. */
     asked++;
     if (bo.text.indexOf('\nMaths · Equations\nQ2 ✓, Q3 ✓, Q4 ✓, Q6 ✓\n') === -1 || bo.text.indexOf('\nMaths · Pythagoras\nQ5 ✓\n') === -1
-        || said(bo.html).indexOf('Maths · Equations Q2 ✓ Right first time Their answer: an answer Q3 ✓ Right first time') === -1)
+        || said(bo.html).indexOf('Maths · Equations Q2 ✓ Right Their answer: an answer Q3 ✓ Right Their') === -1)
       bad.push('questions whose words were refused are not still listed by their numbers under their papers: ' + bo.text.split('\n').slice(4, 20).join(' / '));
     ['pay-family', 'office.family', 'family-answers', 'NOTICE', 'www.', 'For the answer', 'diagram shows'].forEach(x => {
       if (bo.text.indexOf(x) !== -1 || bo.html.indexOf(x) !== -1) bad.push('Sunday’s email prints refused words ("' + x + '") — phone text that is a message must not go out under the business’s name');
@@ -452,26 +452,27 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   /* "not marked", NEVER `sent` — the server's word for an answer nothing marked (12 Oct). */
   asked++;
   if (/\bsent\b/i.test(m.subject + m.text + m.html)) bad.push('the email says "sent" — the server’s word; a parent reads "not marked": ' + JSON.stringify(m.text.split('\n').find(x => /\bsent\b/i.test(x))));
-  if (m.text.indexOf('Beside each one is how it went: ✓ right, ✗ wrong, or the marks an AI marker gave a written answer.') === -1)
+  if (m.text.indexOf('Beside each one is how it went: ✓ right, ✗ not right, or the marks an AI marker gave a written answer.') === -1)
     bad.push('the lead does not say what the marks mean — ✓, ✗ and the AI’s marks, once: ' + JSON.stringify(m.text.split('\n')[2]));
   asked++;
   const times = t => t.split(STEM).length - 1;
   if (times(m.text) !== 1 || times(m.html) !== 1
-      || said(m.html).indexOf('Q5a ' + STEM + ' Find P(red). ✗ Not yet right Their answer: an answer Q5b Find P(blue). Not marked yet Their answer: an answer'
+      || said(m.html).indexOf('Q5a ' + STEM + ' Find P(red). ✗ Not right Their answer: an answer Q5b Find P(blue). Not marked yet Their answer: an answer'
         + ' Q5c Two beads are taken. Find P(both red). 2 of 3 marks Their answer: an answer') === -1)
     bad.push('the stem Q5a, Q5b and Q5c share is printed ' + times(m.text) + ' time(s) in the text and ' + times(m.html) + ' in the HTML — wanted once each, above the first of them');
   asked++;
   /* A QUESTION FIRST SENT BEFORE THE WEEK IS STILL A QUESTION DONE THIS WEEK, in the one list, with this
      week's mark — and no "(again)", the site's word and not a parent's (12 Oct). */
-  if (m.text.indexOf('\nQ9 ✓: Expand (x + 2)(x - 3).\n') === -1 || said(m.html).indexOf('Q9 Expand (x + 2)(x - 3). ✓ Right after another go') === -1 || /\(again\)/.test(m.text + m.html))
+  if (m.text.indexOf('\nQ9 ✓: Expand (x + 2)(x - 3).\n') === -1 || said(m.html).indexOf('Q9 Expand (x + 2)(x - 3). ✓ Right Their answer') === -1 || /\(again\)/.test(m.text + m.html))
     bad.push('a question first sent before the week is not "Q9 ✓: <its words>" in the one list, with this week’s mark and not the fortnight-old ✗: ' + JSON.stringify(m.text.split('\n').find(x => /^Q9/.test(x))));
   asked++;
   if (m.html.indexOf('>Solve x &gt; 3 and x &lt; 7 &amp; &quot;y&quot; for whole numbers x.<') === -1 || /x < 7 &|"y"/.test(m.html))
     bad.push('the HTML does not escape a question’s words — "<", ">", "&" and quotes came off a phone: ' + JSON.stringify((m.html.match(/Solve x[^<]*/) || [''])[0]));
-  /* THE SUMMARY ABOVE THE QUESTIONS (380): every way a question can go (Ben's own and Q3 right first time), in a sentence and in figures. */
+  /* THE SUMMARY ABOVE THE QUESTIONS (380): every way a question can go — right or not, never how many goes (20 Oct) — in a sentence and in figures; a paper with no tags is its subject. */
   asked++;
-  const SUM = '2 right first time, 1 right after another go, 1 with part marks, 1 still to get right and 1 not marked yet.';
-  if (m.text.split('\n')[3] !== SUM || said(m.html).indexOf('THE WEEK IN SHORT ' + SUM + ' 6 questions 2 right first time 1 right after another go 1 with part marks 1 still to get right 1 not marked yet Days Thu') === -1
+  const SUM = '3 right, 1 with part marks, 1 not right and 1 not marked yet.';
+  if (m.text.split('\n')[3] !== SUM || m.text.split('\n')[4] !== 'Topics: Maths.'
+      || said(m.html).indexOf('Summary of the week ' + SUM + ' Topics: Maths 6 questions 3 right 1 with part marks 1 not right 1 not marked yet Days Thu') === -1
       || said(m.html).indexOf(SUM) > said(m.html).indexOf('Maths · Paper 7'))
     bad.push('the summary is not above the questions — "' + SUM + '" and its figures, then the days: ' + JSON.stringify(m.text.split('\n')[3]) + ' / ' + said(m.html).slice(0, 400));
 }
@@ -1103,13 +1104,13 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
     /* AND SINCE 20 OCT (380) WHAT THE CHILD LAST SENT, AND THE RIGHT ANSWER WHERE THE LIBRARY HAS ONE. */
     ['Kit’s week: 4 questions', 'Q7 · 1 mark\nWork out 4 × 4.\nKit: ✓\nTheir answer: 16\nAnswer: 16\n',
      'Q9 ✗: Kit buys 3 pens at 40p each. How much does he pay?\nTheir answer: £1.10\n', 'Q11 · 3 marks\nExplain the trend.\nKit: 2 of 3 marks\nTheir answer: It rises.\nAnswer: It rises.\n',
-     'Q6 · 1 mark\nSay anything.\nKit: not marked\nTheir answer: hello\n', '\n1 right first time, 1 with part marks, 1 still to get right and 1 not marked yet.\n', 'Hi Pat,\n\nHere’s what Kit worked on this week: 4 questions (12 Oct – 18 Oct, up to 6pm on Sunday).'].forEach(x => {
+     'Q6 · 1 mark\nSay anything.\nKit: not marked\nTheir answer: hello\n', '\n1 right, 1 with part marks, 1 not right and 1 not marked yet.\nTopics: Maths and Biology.\n', 'Hi Pat,\n\nHere’s what Kit worked on this week: 4 questions (12 Oct – 18 Oct, up to 6pm on Sunday).'].forEach(x => {
       if ((sent.subject + '\n' + sent.body).indexOf(x) === -1) bad.push('the email Pat is sent does not say "' + x + '": ' + sent.body.split('\n').slice(0, 12).join(' / '));
     });
     const H = said(sent.htmlBody);
-    ['Q7 · 1 mark Work out 4 × 4. ✓ Right first time Their answer: 16 Answer: 16', 'Q9 Kit buys 3 pens at 40p each. How much does he pay? ✗ Not yet right Their answer: £1.10',
+    ['Q7 · 1 mark Work out 4 × 4. ✓ Right Their answer: 16 Answer: 16', 'Q9 Kit buys 3 pens at 40p each. How much does he pay? ✗ Not right Their answer: £1.10',
      'Q11 · 3 marks Read the source about the river. Explain the trend. 2 of 3 marks Their answer: It rises. Answer: It rises.', 'Q6 · 1 mark Read the source about the river. Say anything. Not marked yet Their answer: hello',
-     'THE WEEK IN SHORT 1 right first time, 1 with part marks, 1 still to get right and 1 not marked yet.'].forEach(x => {
+     'Summary of the week 1 right, 1 with part marks, 1 not right and 1 not marked yet. Topics: Maths and Biology'].forEach(x => {
       if (H.indexOf(x) === -1) bad.push('the HTML Pat is sent does not carry "' + x + '": ' + H.slice(0, 600));
     });
   }
@@ -1264,7 +1265,7 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
       + ' (wanted only p, br, b, strong, i, em, sup, sub, ul, ol, li, table, thead, tbody, tr, th, td, span, div; no attribute but colspan/rowspan and its own styles)');
   /* A KEY THE LIBRARY DOES NOT HAVE — a question it dropped, a practical's box — goes as its words cell, as before. */
   asked++;
-  if (text.indexOf('\nQ4 ✓: Work out 12 × 3.\n') === -1 || said(html).indexOf('Q4 Work out 12 × 3. ✓ Right first time') === -1
+  if (text.indexOf('\nQ4 ✓: Work out 12 × 3.\n') === -1 || said(html).indexOf('Q4 Work out 12 × 3. ✓ Right') === -1
       || text.indexOf('Worksheet not marked: What is the independent variable?') === -1)
     bad.push('a key missing from the library does not fall back to its words line ("Q4 ✓: <its words>"): ' + JSON.stringify(text.split('\n').filter(l => /Q4|Worksheet/.test(l))));
   /* AND STILL NO LINK A PARENT COULD PRESS: the only address in it is each picture's, on the site's own folder. */
@@ -1443,11 +1444,37 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
   asked++;
   if (ask('digestRightAnswer_', { html: '<p>Say anything.</p>' }) !== null || ask('digestTheirAnswer_', null, '  ') !== null)
     bad.push('a row with no answer, or an empty press, printed an "Answer:" or "Their answer:" line');
-  /* HOW A QUESTION WENT, the summary's five ways: the first press ever decides "first time". */
+  /* HOW A QUESTION WENT, the summary's four ways, by the week's last word only — right or not, never how many goes (20 Oct). */
   asked++;
-  const how = [['right', 'right', 'first'], ['right', 'wrong', 'later'], ['ai:3/3', 'sent', 'later'], ['ai:2/3', 'ai:2/3', 'part'], ['rule:0/2', 'rule:0/2', 'wrong'],
-               ['wrong', 'right', 'wrong'], ['sent', 'sent', 'open']].filter(([v, f, want]) => b.ev('digestHow_(' + JSON.stringify(v) + ', ' + JSON.stringify(f) + ')') !== want);
+  const how = [['right', 'right'], ['ai:3/3', 'right'], ['ai:2/3', 'part'], ['rule:0/2', 'wrong'], ['wrong', 'wrong'], ['sent', 'open'], ['', 'open']]
+    .filter(([v, want]) => b.ev('digestHow_(' + JSON.stringify(v) + ')') !== want);
   if (how.length) bad.push('digestHow_ misreads ' + JSON.stringify(how));
+  /* THE TOPICS LINE WHEN THE LIBRARY HAS NO TAGS (the owner, 20 Oct): a Corbettmaths week is its worksheets' names; a paper is never "Paper …", only its subject. */
+  asked++;
+  const sum = (items, lib) => { G.__i = items; G.__lib = lib; return JSON.parse(JSON.stringify(b.ev('digestSummary_(__i, ["2026-10-14"], __lib, { start: "2026-10-12", end: "2026-10-18" })'))); };
+  const cbm = (sheet, n, v) => ({ key: 'q:Q-CBM-' + sheet.toLowerCase().replace(/ /g, '-') + '-' + n, label: 'Maths · ' + sheet + ' · Q' + n, verdict: v });
+  const week = [cbm('Perimeter', 1, 'right'), cbm('Perimeter', 2, 'wrong'), cbm('Perimeter', 3, 'right'), cbm('Rounding', 1, 'right'),
+                cbm('Rounding', 2, 'right'), cbm('Square Numbers', 1, 'wrong'), Object.assign(cbm('Perimeter', 4, 'right'), { label: 'Maths · Perimeter · Q4 · Worksheet' })];
+  const libOf = rows => ({ rows: rows, pre: [] });
+  const asRow = (id, name, type, extra) => Object.assign({ row_id: id, kind: 'question', active: 'True', html: '<p>A question.</p>', name: name, subject: 'Maths', document_type: type }, extra || {});
+  const C1 = sum(week, null), C2 = sum(week, libOf({ 'Q-CBM-perimeter-1': asRow('Q-CBM-perimeter-1', 'Perimeter', 'Worksheet'), 'Q-CBM-rounding-1': asRow('Q-CBM-rounding-1', 'Rounding', 'Worksheet') }));
+  [['labels only', C1], ['library rows with no topics', C2]].forEach(([how, C]) => {
+    if (C.lines.indexOf('Topics: Perimeter, Rounding and Square Numbers.') === -1 || C.lines[0] !== '5 right and 2 not right.'
+        || said(C.html).indexOf('Summary of the week 5 right and 2 not right. Topics: Perimeter, Rounding and Square Numbers') !== 0)
+      bad.push('a Corbettmaths week (' + how + ') does not say "Topics: Perimeter, Rounding and Square Numbers": ' + JSON.stringify(C.lines) + ' / ' + said(C.html).slice(0, 200));
+  });
+  const papers = [{ key: 'q:Q-PX-7', label: 'Maths · Paper X · Q7', verdict: 'right' }, { key: 'q:Q-1MA1-2406-1F-9a', label: 'Maths · Paper 1F (Non-calculator) — June 2024 · Q9a', verdict: 'wrong' },
+                  { key: 'q:Q-CBM-5AD-F-0726-4', label: 'Maths · 5-a-day Foundation — 26 July · Q4', verdict: 'sent' }];
+  const P1 = sum(papers, null), P2 = sum(papers, libOf({ 'Q-1MA1-2406-1F-9a': asRow('Q-1MA1-2406-1F-9a', 'Paper 1 (Non-calculator) — June 2024', 'Past paper') }));
+  [['labels only', P1], ['a library row with no topics', P2]].forEach(([how, P]) => {
+    if (P.lines.indexOf('Topics: Maths.') === -1 || /paper|june|july|2024|5-a-day/i.test(P.lines.join(' ') + said(P.html)))
+      bad.push('exam papers with no topics (' + how + ') are not "Topics: Maths", or a paper’s name, month or year reached the summary: ' + JSON.stringify(P.lines));
+  });
+  /* A TAGGED QUESTION IS ITS TAGS; THE WEEK'S PAPERS THEN ADD NO BARE SUBJECT; AND A WEEK NOTHING NAMES STILL HAS ITS LINE. */
+  const M = sum(papers.concat([cbm('Perimeter', 1, 'right')]), libOf({ 'Q-PX-7': asRow('Q-PX-7', 'Paper X', 'Past paper', { topics: 'Types of Angle' }) }));
+  const N = sum([{ key: 'q:Q-Z-1', label: '', hidden: true, verdict: 'right' }], null);
+  if (M.lines.indexOf('Topics: Perimeter and Types of Angle.') === -1 || N.lines.indexOf('Topics: not recorded.') === -1)
+    bad.push('a mixed week is not "Topics: Perimeter and Types of Angle", or a week nothing names has no topics line: ' + JSON.stringify([M.lines, N.lines]));
 }
 
 console.log('rules asked: ' + asked);
