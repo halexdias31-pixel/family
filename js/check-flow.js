@@ -24303,11 +24303,15 @@ check('a child is her first name on every screen, and a parent is hers to everyb
     [...new Set(seen)].slice(0, 4).forEach(x => bad.push(who + ' is shown a surname that is not theirs to see on ' + x));
     /* AND THE ADMIN IS SHOWN PIP'S WHOLE NAME — the rule is "to everybody but herself and an admin", not "to nobody". */
     if (pid === 'P-ADM' && !sawWhole) bad.push('an admin: "Pip Ashdown" is nowhere on any screen, so the admin\'s exemption was NOT seen — or the net took her surname from the admin too');
-    if (pid === 'P-KID' && !sawWhole) bad.push('herself: her own parent is not "Pip Ashdown" on any screen — a child sees the whole name of a grown-up on her own family row (342, round 2)');
+    /* (386) A CHILD SEES NO PARENT, her own included — the owner, 20 Oct. */
+    if (pid === 'P-KID' && sawWhole) bad.push('herself: her own parent "Pip Ashdown" is drawn on a screen — a child sees no parent (386)');
     /* AND HER FIRST NAME IS THERE, where a screen names her — a rule that drew nobody would pass the above. */
     const all = w.document.documentElement.outerHTML;
     if (pid !== 'P-TUT' && !/Wren/.test(all)) bad.push(who + ': "Wren" is nowhere on any screen, so the screens that name her were NOT drawn — not a pass');
-    if (!sawJuno) bad.push(who + ': "Juno" is nowhere on any screen, so the screens that name the child who ticked Tutor were NOT drawn — not a pass');
+    /* JUNO IS NOBODY'S FAMILY OR FRIEND, so only staff are sent her (386); everybody else must not be. */
+    const staffSees = pid === 'P-TUT' || pid === 'P-ADM';
+    if (staffSees && !sawJuno) bad.push(who + ': "Juno" is nowhere on any screen, so the screens that name the child who ticked Tutor were NOT drawn — not a pass');
+    if (!staffSees && sawJuno) bad.push(who + ': "Juno" is drawn on a screen — she is not their child, sibling or friend (386)');
     if (pid === 'P-KID' && String((t.whoami() || {}).name) !== String(tk['P-KID'].name)) {
       bad.push('herself: the phone calls her ' + JSON.stringify((t.whoami() || {}).name) + ' after `myProfile`, and the server calls her '
         + JSON.stringify(tk['P-KID'].name) + ' — a session from before 10 Oct keeps the name it was signed in with for thirty days');
