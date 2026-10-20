@@ -196,18 +196,20 @@ async function board(env) {
     const box = el => { if (!el) return null; const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height, l: r.left, t: r.top, r: r.right, b: r.bottom }; };
     const card = pad.closest('.card') || pad.closest('#wgt-whiteboard');
     return { k: pad.getAttribute('data-k'), armed: PAD_ON === pad.getAttribute('data-k'), at: AT, page: PAGE.tools,
-             ink: box(pad.querySelector('.qpad-ink')), art: box(pad.querySelector('.qpad-art')), lock: box(pad.querySelector('.qpad-lock')),
+             ink: box(pad.querySelector('.qpad-ink')), art: box(pad.querySelector('.qpad-art')), lock: !!pad.querySelector('.qpad-lock, [data-do="pad-draw"]'),
              undo: box(pad.querySelector('.qpad-undo')), note: box(pad.querySelector('.qpad-note')), card: box(card) };
   });
 }
+/* NO LOCK SINCE 368: a real tap on the ink gives the pad the pen, and its dot is taken off again -- so a gesture that starts off the ink has a pen to ask about. */
 async function arm(env, b, get) {
   for (let i = 0; i < 4; i++) {
     b = await get(env);
     if (!b) return null;
     if (b.armed) return b;
     begin(env);
-    await T(env, 'touchStart', [pt(b.lock.x, b.lock.y)], 0); await sleep(40); await T(env, 'touchEnd', [], 40);
+    await T(env, 'touchStart', [pt(b.ink.x, b.ink.y)], 0); await sleep(40); await T(env, 'touchEnd', [], 40);
     await sleep(700);
+    await reset(env, b.k);
   }
   b = await get(env);
   return b && b.armed ? b : null;
@@ -286,7 +288,7 @@ const cardBox = env => env.page.evaluate(() => {
   const box = el => { if (!el) return null; const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height, l: r.left, t: r.top, r: r.right, b: r.bottom }; };
   const words = pad.closest('.qcard') && pad.closest('.qcard').querySelector('.qsheet');
   return { k: window.__k, armed: PAD_ON === window.__k, ink: box(pad.querySelector('.qpad-ink')), art: box(pad.querySelector('.qpad-art')),
-           lock: box(pad.querySelector('.qpad-lock')), words: box(words), at: AT, page: PAGE.stuff };
+           lock: !!pad.querySelector('.qpad-lock, [data-do="pad-draw"]'), note: box(pad.querySelector('.qpad-note')), words: box(words), at: AT, page: PAGE.stuff };
 });
 const CARD = '#s-stuff .page.on .qpad';
 
@@ -356,7 +358,7 @@ const unmoved = (sec, where, r, b) => {
     if (!b) { fail('REACH', at, 'no whiteboard on Tools'); await env.ctx.close(); continue; }
     await reset(env, b.k);
     b = await arm(env, b, board);
-    if (!b) { fail('REACH', at, 'the board could not be armed with a real tap on its lock'); await env.ctx.close(); continue; }
+    if (!b) { fail('REACH', at, 'the board could not be armed with a real tap on its ink'); await env.ctx.close(); continue; }
     reached++;
     const k = b.k;
     await env.cdp.send('Emulation.setCPUThrottlingRate', { rate: RATE });
@@ -845,7 +847,7 @@ const unmoved = (sec, where, r, b) => {
     let c = k ? await cardBox(env) : null;
     if (!c) { fail('REACH', at, 'June 2024 1F Q7\'s drawing face is not on the screen'); await env.ctx.close(); continue; }
     c = await arm(env, c, cardBox);
-    if (!c) { fail('REACH', at, 'Q7\'s pad could not be armed with a real tap on its lock'); await env.ctx.close(); continue; }
+    if (!c) { fail('REACH', at, 'Q7\'s pad could not be armed with a real tap on its ink'); await env.ctx.close(); continue; }
     reached++;
     await reset(env, k);
     c = (await cardBox(env)) || c;
@@ -1250,7 +1252,7 @@ const unmoved = (sec, where, r, b) => {
     if (!c) { fail('REACH', at, row + '\'s pen is not on the screen'); return null; }
     await reset(env, k);
     c = await arm(env, c, cardBox);
-    if (!c) { fail('REACH', at, row + '\'s pad could not be armed with a real tap on its lock'); return null; }
+    if (!c) { fail('REACH', at, row + '\'s pad could not be armed with a real tap on its ink'); return null; }
     reached++;
     return { k, c: (await cardBox(env)) || c };
   }
@@ -1625,13 +1627,6 @@ const unmoved = (sec, where, r, b) => {
         r = await gesture(env, o.k, CARD, () => play(env, plan(track(1, 8, 0, 300, 12, u => [mx - 40 + u * 0.15, my]), track(2, 8, 20, 300, 12, u => [mx + 40 + u * 0.15, my + 2]))));
         z = await zoomOf();
         if (z.s !== 1) fail('zoom', at + ' pan', `two fingers moving together at 1x zoomed the picture to ${z.s.toFixed(2)}x`);
-        /* ZOOMED, THEN DONE DRAWING: the card is whole again */
-        await pinch(40, 160);
-        const lk = await cardBox(env);
-        begin(env); await T(env, 'touchStart', [pt(lk.lock.x, lk.lock.y)], 0); await sleep(40); await T(env, 'touchEnd', [], 40);
-        await sleep(500);
-        z = await zoomOf();
-        if (z.s !== 1 || z.cls) fail('zoom', at + ' done', 'the picture stayed zoomed after Done drawing');
         await reset(env, o.k);
       }
     }
@@ -1824,7 +1819,7 @@ const unmoved = (sec, where, r, b) => {
   }
 
   /* ==================== A PHONE'S OWN FINGER: an iPhone and an Android phone, their fingertip's real width ==================== */
-  /* WebKit reports a touch 2 x UITouch's radius wide, 42-63px for a fingertip. On a stem's figure (381), Q7's and the notebook: a tap arms the figure, a stroke inks, a tap leaves a dot */
+  /* WebKit reports a touch 2 x UITouch's radius wide, 42-63px for a fingertip. On a stem's figure (381) and Q7's, nothing pressed first (368): a stroke inks, a tap leaves a dot, a swipe off the figure turns the page */
   if (want('phone')) for (const dev of [
     { name: 'iPhone', W: 390, H: 844, dsf: 3, r: 26, ua: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1' },
     { name: 'Android', W: 412, H: 915, dsf: 2.625, r: 12, ua: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36' }]) {
@@ -1839,26 +1834,43 @@ const unmoved = (sec, where, r, b) => {
       await sleep(500);
     };
     const tapAt = async (x, y) => { begin(env); await T(env, 'touchStart', [F(x, y)], 0); await sleep(50); await T(env, 'touchEnd', [], 50); await sleep(700); };
+    /* NOTHING PRESSED FIRST (368): the pen is put down before each, so the finger lands on a figure nobody has touched. */
+    const unarm = () => env.page.evaluate(() => { padDrop_(); PAD_ON = ''; document.querySelectorAll('.qpad').forEach(p => padArm_(p, false)); });
     for (const [what, row] of [['stem figure', 'Q-CBM-metric-units-1'], ['own figure', Q7]]) {
       const where = `${dev.name} ${what}`;
       const k = await card(env, row);
       let b = k && await cardBox(env);
       if (!b || !b.ink) { fail('phone', where, `the card or its pen was not reached (${row})`); continue; }
       reached++;
-      await reset(env, k);
-      if (b.armed) await env.page.evaluate(() => { PAD_ON = ''; document.querySelectorAll('.qpad').forEach(p => padArm_(p, false)); });
-      await tapAt(b.ink.x, b.ink.y);
-      b = await cardBox(env);
-      let r;
-      if (!b || !b.armed) { fail('phone', where, 'a finger\'s tap on the figure did not arm the pen -- a finger placed on it does nothing'); continue; }
+      if (b.lock) fail('phone', where, 'the card still draws a lock tile -- a step before the first mark');
+      await reset(env, k); await unarm();
+      /* A STROKE, THE FIRST TOUCH: inked, kept, and the column where it was */
       await drag(b.ink.x - 40, b.ink.y - 10, 80, 20, 12);
-      r = await look(env, k, CARD);
-      if (r.stored.length !== 1 || r.paths !== 1) fail('phone', where, `a ${2 * dev.r}px fingertip's stroke on the armed figure stored ${r.stored.length}, drew ${r.paths} -- wanted 1 and 1`);
+      let r = await look(env, k, CARD);
+      if (r.stored.length !== 1 || r.paths !== 1) fail('phone', where, `a ${2 * dev.r}px fingertip's first stroke on the untouched figure stored ${r.stored.length}, drew ${r.paths} -- wanted 1 and 1 (a finger placed on it does nothing)`);
       if (r.axis) fail('phone', where, `the swipe engine took the stroke (${r.axis})`);
+      if (r.at !== b.at || r.page.stuff !== b.page) fail('phone', where, `the stroke moved the column to ${r.at} page ${r.page.stuff}`);
+      /* A TAP, THE FIRST TOUCH: a dot */
+      await reset(env, k); await unarm();
       await tapAt(b.ink.x + 30, b.ink.y + 20);
       r = await look(env, k, CARD);
-      if (r.stored.length !== 2 || r.paths !== 2) fail('phone', where, `a fingertip's tap left ${r.stored.length - 1} mark(s), ${r.paths - 1} drawn -- wanted a dot`);
+      if (r.stored.length !== 1 || r.paths !== 1 || (r.stored[0] || []).length !== 2) fail('phone', where, `a fingertip's first tap on the untouched figure stored ${JSON.stringify(r.stored).slice(0, 80)}, drew ${r.paths} -- wanted one dot`);
       say(`phone ${where}: ${JSON.stringify(r.stored).slice(0, 100)}`);
+      /* AND A SWIPE THAT STARTS OFF THE FIGURE, on the same card's small print, still turns the page */
+      await reset(env, k);
+      b = await cardBox(env);
+      if (!b || !b.note) fail('phone', where, 'the small print under the pen was not found, so a swipe off the figure was NOT checked');
+      else {
+        const x0 = Math.min(dev.W - 30, b.note.l + 40 + 260), y0 = b.note.y;
+        begin(env);
+        await T(env, 'touchStart', [F(x0, y0)], 0);
+        await stream(env, Array.from({ length: 10 }, (_, i) => [F(x0 - 26 * (i + 1), y0)]), 16);
+        await T(env, 'touchEnd', [], 10 * 16 + 8);
+        await sleep(900);
+        r = await look(env, k, CARD);
+        if (r.at === b.at && r.page.stuff === b.page) fail('phone', where, 'a swipe that started off the figure, on its card, did not move the column');
+        if (r.stored.length) fail('phone', where, `a swipe off the figure left ${r.stored.length} mark(s)`);
+      }
       await reset(env, k);
     }
     /* THE TOOLS WHITEBOARD, the notebook (board.js), as a child finds it: no arming, a finger writes */
@@ -1889,7 +1901,7 @@ const unmoved = (sec, where, r, b) => {
         say(`phone ${where}: stroke ${a}, tap ${z - a}`);
       }
     }
-    console.log(`  phone ${dev.name}: a ${2 * dev.r}px fingertip arms the stem's figure and Q7's by a tap and inks them, and writes on the notebook`);
+    console.log(`  phone ${dev.name}: a ${2 * dev.r}px fingertip's first touch inks the stem's figure and Q7's, a swipe off them turns the page, and it writes on the notebook`);
     if (env.errs.length) fail('ERRORS', dev.name + ' phone', env.errs.slice(0, 3).join(' | '));
     await env.ctx.close();
   }

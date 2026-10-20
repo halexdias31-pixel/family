@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-20-c-stem-glides";
+  --css-version: "2026-10-20-d-first-touch-draws";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -5829,9 +5829,9 @@ button.scr-sq { cursor: pointer; }
   position: absolute; inset: 0; width: 100%; height: 100%;
   pointer-events: none; touch-action: auto; overflow: visible;
 }
-/* THE PICTURE IS THE SECOND DOOR, AND IT IS THE ONE A FINGER FINDS. § */
-.qpad-art[data-do] { cursor: pointer; }
-.qpad.is-drawing .qpad-ink { pointer-events: auto; touch-action: none; cursor: crosshair; }
+/* A PEN'S INK TAKES THE FIRST TOUCH (368): no lock, so a swipe between cards starts off the figure. A copy with no pen (`.qseen`) stays inert. */
+.qpad .qpad-ink { pointer-events: auto; touch-action: none; cursor: crosshair;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 /* ---------- A FINGER HELD ON THE ARMED CARD SELECTS NOTHING § */
 .pane:has(.qpad.is-drawing), .qpad.is-drawing {
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
@@ -5842,8 +5842,6 @@ button.scr-sq { cursor: pointer; }
   padding: .3rem .5rem; font: 400 .7rem/1.35 var(--font); white-space: pre;
   color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-sm);
   pointer-events: none; }
-.qpad.is-drawing .qpad-art { outline: 2px solid var(--gold); outline-offset: 4px;
-                             border-radius: var(--r-sm); }
 /* PINCHED CLOSER (374, `padZoomPaint_`): the picture and its ink scaled together inside their own box, so nothing spills over the card */
 .qpad.is-zoomed .qpad-art { overflow: hidden; }
 .qpad.is-zoomed .qpad-art > svg { transform-origin: 0 0; transform: var(--pad-zoom); }

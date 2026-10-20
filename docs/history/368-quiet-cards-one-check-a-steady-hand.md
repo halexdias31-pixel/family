@@ -123,3 +123,53 @@ write a stroke and a tap on the notebook. check/whiteboard.js: lone fingertips 4
 down first then a finger keeps only the finger's stroke; a palm landing beside a writing finger is ignored. Mutation:
 the old board.js fails `phone` (iPhone notebook: 0 items for the stroke and the tap) and whiteboard.js (52 and 62 px
 fingertips: nothing written); the real file is green again.
+
+## The first touch draws: no lock on a question's figure (20 Oct)
+
+The owner, on a phone, after the board was fixed: *"I place finger and nothing happens."* On a question card it was
+still true by design — since 338 a finger on an unarmed figure did nothing until the figure or the lock tile (an icon
+alone on a phone) was tapped, so that a swipe starting on the figure moved the column. The owner wants the simplest
+thing, no hidden step, and fewer tiles.
+
+**The rule now.** A pen's figure (every `.qpad`: a drawing part's own figure, a stem's figure it draws on (381), a
+made-up surface, the pen's blank sheet) takes the first touch. A contact landing on a pad's ink with nothing else down
+gives that pad the pen there and then (`padTake_`, in the pointerdown listener) and goes on to `padLand_` — a tap is
+357's dot, a drag a line, a mouse or stylus the same. `PAD_ON` is now "the pad last touched", one at a time, so 338's
+palm, two-finger, stray and lost-lift rules still have one ink to ask about. Choosing a tool (Pen, Ruler, Compass)
+does the same (`padTake_`). The ink is `pointer-events: auto; touch-action: none; data-noswipe` from the moment it is
+drawn (`.qpad .qpad-ink`); a copy with no pen (`.qseen`, 356's `uses`) stays inert, and a figure in a question
+answered in a box was never a pen (`padSource_`) and is unchanged.
+
+**Removed:** the lock tile (`pad-draw`, `padLockFace_`, `PAD_TAP`), the picture as a door (`.qpad-art[data-do]`),
+and the gold frame that said "armed" — there is no mode left to show. The bar is the tools (where the question has
+more than a pen), Undo and Clear.
+
+**Swiping between cards.** A swipe that starts OFF the figure — the words, the bar's gaps, the small print, the card's
+margin — moves the column exactly as before. A touch that starts ON the figure is the pen's, whether one finger or
+two. Considered and not taken: a fast, mostly horizontal two-finger swipe on the figure moving the column. 338 decided
+two fingers, a palm or a thumb never move the column (`padBusy_`), because the palm under a writing hand was the
+swipe engine's sideways swipe; a two-finger exception would bring that back and is a new gesture to teach. One rule:
+**on the figure is drawing, off it is moving.** The cost: a vertical scroll that starts on a figure does not scroll
+the card either — start it beside the figure.
+
+**What `PAD_ON` no longer means.** With no lock, nothing lets go of `PAD_ON` (a change of person still does). So
+`ansHeld_` (answers.js), which keeps the account's copy from overwriting a key under a finger, now asks `padInUse_` —
+a stroke or a contact on that pad now — instead of "the pad is armed"; otherwise the last pad touched would refuse
+the account's copy for the rest of the visit. Zoom (374) is let go by pinching back, or by touching another pad;
+"Done drawing" is gone with the lock.
+
+`--css-version` `2026-10-20-d-first-touch-draws`.
+
+**Proof.** check/pen.js `phone`, on iPhone-like (52 px fingertip, 3x, iOS UA) and Android-like (24 px, 2.625x)
+emulation with real CDP touch, on Metric Units Q1 (a)'s stem figure and Q7's own figure, the pen put down first
+(`PAD_ON = ''`): no lock tile; a single-finger stroke inks at once (1 stored, 1 drawn, no swipe axis, column and page
+unchanged); a single tap leaves a dot; a swipe starting on the card's small print, off the figure, turns the page and
+leaves no mark. Mutation: the old find.js and style.css fail every one of those cases at both sizes (stroke stored 0,
+the swipe engine took it and the column moved to dm); the real files are green again. pen.js's `arm` is now a real tap
+on the ink, its dot taken off; the zoom section's "Done drawing" step went with the tile. check/press.js: a line of
+best fit dragged across May 2017 1F Q6(i)'s scale with nothing pressed first is kept and the column stays; a swipe
+from the same card's small print moves the column. check-flow: "a drawing question's figure takes the first touch"
+(no lock or door, `data-noswipe` from the start, a first tap a dot, a stroke on a second figure moves the pen there
+and is a line, a repaint keeps it, a typed question's figure is no pen); the tile census now fails a `pad-draw`
+tile; the Ruler and Compass and the answers journeys draw without pressing a lock. check/states.js: Q7's card has
+no lock. check/swipe.js unchanged and green.

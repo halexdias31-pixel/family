@@ -12736,66 +12736,57 @@ check('an admin\'s diagnostic written over the newer-version banner does not rel
   return bad;
 });
 
-/* ---------- THE PICTURE IS A DOOR EXACTLY WHILE THE PEN IS OFF § */
-check('a question diagram is pressable exactly while the pen is off', async () => {
+/* ---------- THE FIRST TOUCH DRAWS (368): no lock, no door on the picture, and a finger on any pen's figure inks at once */
+check('a drawing question\'s figure takes the first touch: no lock, a tap is a dot, a stroke a line, and another figure takes the pen', async () => {
   const { w } = boot();
   await wait(300);
-  const t = w.__t;
-  if (typeof t.padWrap !== 'function' || typeof t.padArm !== 'function') {
-    return ['padWrap_ or padArm_ is not exported, so the pen was NOT checked — not a pass'];
+  const t = w.__t, d = w.document;
+  if (typeof t.padWrap !== 'function' || typeof t.padOn !== 'function' || typeof t.padNow !== 'function' || typeof w.padDrop_ !== 'function') {
+    return ['padWrap_, PAD_ON or padDrop_ is not reachable, so the first touch was NOT checked — not a pass'];
   }
   const bad = [];
   const x = { key: 'q:Q-PEN', answerType: 'drawing', diagram: '<svg viewBox="0 0 340 340"></svg>' };
-  const hold = html => { const d = w.document.createElement('div'); d.innerHTML = html; return d; };
-
-  /* ---------- AS BUILT ------------------------------------------------------------------------ */
-  const off = hold(t.padWrap(x, x.diagram, ''));
-  if (!off.querySelector('.qpad-art[data-do="pad-draw"]'))
-    bad.push('with the pen off the picture carries no action, so the only way to arm it is a button '
-      + 'under a credit line — which is what the report was about');
-  if (!off.querySelector('.qpad-lock[data-do="pad-draw"]'))
-    bad.push('with the pen off there is no lock control in the bar');
-  if (off.querySelector('.qpad-ink[data-noswipe]'))
-    bad.push('an un-armed pad already refuses the grid, so the card cannot be swiped off');
-
-  /* ---------- AND AS THE PRESS LEAVES IT ------------------------------------------------------- */
-  const pad = off.querySelector('.qpad');
-  t.padArm(pad, true);
-  if (pad.querySelector('.qpad-art[data-do]'))
-    bad.push('the picture still carries the action while the pen is ON — the dispatcher walks up '
-      + 'from the ink to it, so the first dot drawn turns the pen off again');
-  if (!pad.classList.contains('is-drawing'))
-    bad.push('arming the pad does not put the frame on, so the mode is invisible');
-  if (!pad.querySelector('.qpad-ink[data-noswipe]'))
-    bad.push('arming the pad does not mark the ink `data-noswipe`, so `axisFree` hands the stroke '
-      + 'to the grid and a line of best fit slides the column');
-  const lockOn = pad.querySelector('.qpad-lock');
-  if (lockOn && lockOn.getAttribute('aria-pressed') !== 'true')
-    bad.push('the armed pad\'s control does not report itself pressed');
-  if (lockOn && !lockOn.querySelector('svg'))
-    bad.push('the control lost its padlock when the press rewrote it — `textContent` would do that, '
-      + 'which is why there is one face builder');
-
-  t.padArm(pad, false);
-  if (!pad.querySelector('.qpad-art[data-do="pad-draw"]'))
-    bad.push('disarming does not give the picture its action back, so the second door works once');
-  if (pad.querySelector('.qpad-ink[data-noswipe]'))
-    bad.push('disarming leaves `data-noswipe` on, so the card can never be swiped off again');
-  if (pad.classList.contains('is-drawing'))
-    bad.push('disarming leaves the gold frame on');
-
-  /* ---------- AND THE REPAINT PATH, ASKED THE SAME QUESTION § */
-  t.padOn('pad:' + x.key);
-  const on = hold(t.padWrap(x, x.diagram, ''));
-  t.padOn('');
-  if (on.querySelector('.qpad-art[data-do]'))
-    bad.push('a card REBUILT with the pen on puts the action back on the picture, so the first dot '
-      + 'after any repaint turns the pen off');
-  if (!on.querySelector('.qpad-ink[data-noswipe]'))
-    bad.push('a card rebuilt with the pen on does not mark the ink, so the pen survives a repaint '
-      + 'in name only and the next stroke slides the column');
-  if (!on.querySelector('.qpad.is-drawing'))
-    bad.push('a card rebuilt with the pen on has no frame');
+  const y = { key: 'q:Q-PEN-2', answerType: 'drawing', diagram: '<svg viewBox="0 0 340 340"></svg>' };
+  const kx = t.padKey(x), ky = t.padKey(y);
+  [kx, ky].forEach(k => { try { w.localStorage.removeItem(k); } catch (e) {} });
+  w.padDrop_(); t.padOn('');
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  host.innerHTML = t.padWrap(x, x.diagram, '') + t.padWrap(y, y.diagram, '');
+  const pads = host.querySelectorAll('.qpad');
+  /* ---------- AS BUILT, NOTHING PRESSED: the figure is the pen already ---------------------------- */
+  if (host.querySelector('[data-do="pad-draw"], .qpad-lock')) bad.push('a lock (or a door on the picture) is still drawn — a step before the first mark');
+  if (host.querySelector('.qpad-art[data-do]')) bad.push('the picture carries an action, so the dispatcher walks up from the ink and a tap acts instead of inking');
+  if (host.querySelectorAll('.qpad-ink[data-noswipe]').length !== 2) bad.push('a pen\'s ink is not `data-noswipe` from the start, so a stroke on it would be taken by the grid and slide the column');
+  [[pads[0], 20], [pads[1], 420]].forEach(([p, top]) => {
+    p.querySelector('.qpad-ink').getBoundingClientRect = () => ({ left: 20, top: top, width: 340, height: 340, right: 360, bottom: top + 340, x: 20, y: top });
+  });
+  const stored = k => { try { return JSON.parse(w.localStorage.getItem(k) || '[]'); } catch (e) { return ['unreadable']; } };
+  const fire = (p, type, px, py, ts) => penEv_(w, p.querySelector('.qpad-ink'), type, { id: 7, x: px, y: py, t: ts, prim: true });
+  /* ---------- A FINGER'S TAP ON THE UNARMED FIGURE: a dot ------------------------------------------ */
+  fire(pads[0], 'pointerdown', 190, 190, 1000);
+  if (t.padNow() !== kx) bad.push('a finger landing on the figure did not give it the pen (PAD_ON is "' + t.padNow() + '")');
+  if (!pads[0].classList.contains('is-drawing')) bad.push('the touched pad is not marked as the one drawing');
+  fire(pads[0], 'pointerup', 190, 190, 1060);
+  if (stored(kx).length !== 1 || stored(kx)[0].length !== 2) bad.push('a first tap on the figure stored ' + JSON.stringify(stored(kx)) + ', wanted one dot');
+  /* ---------- A STROKE ON THE OTHER FIGURE: it takes the pen and inks a line ------------------------- */
+  fire(pads[1], 'pointerdown', 60, 460, 2000);
+  for (let i = 1; i <= 12; i++) fire(pads[1], 'pointermove', 60 + 15 * i, 460 + 5 * i, 2000 + 16 * i);
+  fire(pads[1], 'pointerup', 240, 520, 2250);
+  if (t.padNow() !== ky) bad.push('a finger on the second figure did not move the pen to it');
+  if (pads[0].classList.contains('is-drawing')) bad.push('the first pad still says it is the one drawing');
+  if (stored(ky).length !== 1 || stored(ky)[0].length < 4) bad.push('a first stroke on the second figure stored ' + JSON.stringify(stored(ky)).slice(0, 120) + ', wanted one line');
+  if (stored(kx).length !== 1) bad.push('the stroke on the second figure changed the first one\'s marks');
+  /* ---------- A REPAINT KEEPS IT SO ----------------------------------------------------------------- */
+  const again = d.createElement('div');
+  again.innerHTML = t.padWrap(x, x.diagram, '');
+  if (again.querySelector('[data-do="pad-draw"], .qpad-lock') || !again.querySelector('.qpad-ink[data-noswipe]')) bad.push('a pad drawn again grew a lock or lost `data-noswipe`');
+  /* ---------- A FIGURE IN A QUESTION ANSWERED IN A BOX IS NO PEN AT ALL ------------------------------- */
+  if (typeof w.padSource_ === 'function' && w.padSource_({ key: 'q:Q-TYPED', answerType: 'number', accept: '12', diagram: x.diagram }))
+    bad.push('a typed question\'s figure was given a pen');
+  w.padDrop_(); t.padOn('');
+  [kx, ky].forEach(k => { try { w.localStorage.removeItem(k); } catch (e) {} });
+  host.remove();
   return bad;
 });
 
@@ -12856,7 +12847,7 @@ check('a ruler draws a straight line and a compass a round circle or arc, offere
 
   /* RULER */
   A['pad-tool'](tool('ruler'));
-  if (!pad.classList.contains('is-drawing')) bad.push('pressing Ruler did not lock the card for drawing');
+  if (!pad.classList.contains('is-drawing')) bad.push('pressing Ruler did not give this pad the pen');
   if (!tool('ruler').classList.contains('on') || tool('ruler').getAttribute('aria-pressed') !== 'true') bad.push('the Ruler tile is not lit and pressed once chosen');
   if (tool('pen').classList.contains('on') || tool('compass').classList.contains('on')) bad.push('another tool is lit beside the Ruler');
   /* A (150,100)px is units (50,100); B (300,140)px is units (200,180). The middle of the drag wanders. */
@@ -12931,11 +12922,9 @@ check('a ruler draws a straight line and a compass a round circle or arc, offere
   pad = host.querySelector('.qpad');
   pad.querySelector('.qpad-ink').getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
   if (pad.querySelector('.qpad-tool')) bad.push('a plain drawing question was given tool tiles');
-  A['pad-draw'](pad.querySelector('.qpad-lock'));
   drag([[150, 100], [200, 100], [250, 120]]);
   const ps = (() => { try { return JSON.parse(w.localStorage.getItem(pk) || '[]'); } catch (e) { return []; } })();
   if (ps.length !== 1 || ps[0].length !== 6) bad.push('a pad with no Compass tile drew with a stale compass choice: ' + JSON.stringify(ps).slice(0, 80));
-  A['pad-draw'](pad.querySelector('.qpad-lock'));
   t.padTool().delete(pk);
   try { w.localStorage.removeItem(k); w.localStorage.removeItem(pk); } catch (e) {}
   t.padOn('');
@@ -14706,7 +14695,7 @@ check('June 2024 1F Q7 is one card with its grid under the pen in its words: no 
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? paper : undefined) });
   await wait(300);
   const d = w.document, t = w.__t, A = t.ACTIONS, bad = [];
-  if (typeof w.questionCard_ !== 'function' || !t.padKey || !A['pad-draw']) return ['questionCard_, padKey_ or pad-draw not reachable — NOT checked'];
+  if (typeof w.questionCard_ !== 'function' || !t.padKey) return ['questionCard_ or padKey_ not reachable — NOT checked'];
   const x = w.stuffItemsAll_().find(it => it.row && it.row.row_id === ID);
   if (!x) return ['the real ' + ID + ' did not come through the loader — NOT checked'];
   const parts = JSON.stringify(w.pageParts_(x));
@@ -15148,7 +15137,6 @@ check('every control on a question\'s pages is a tile, bar the options, the keys
     ['button.qp-opt[data-do="qp-choose"]', 'a multiple-choice option'],
     ['button.kp-key[data-do="kp-key"]', 'a key on the maths keypad'],
     ['span.qw[data-do="qw-tap"]', 'a word in a passage to ring'],
-    ['div.qpad-art[data-do="pad-draw"]', 'the picture under the pen, while it is off'],
     ['textarea.qp-ans-in[data-do="qp-ans"], input.qp-ans-in[data-do="qp-ans"]', 'the answer box'],
   ];
   const seen = {};
@@ -15169,13 +15157,15 @@ check('every control on a question\'s pages is a tile, bar the options, the keys
     });
   });
   /* THE ONES THE OWNER NAMED, which must be there for the rule above to mean anything. */
-  [['qp-check', 'Check'], ['qp-ai', 'Mark with AI'], ['pad-draw', 'the pen\'s lock'], ['pad-undo', 'Undo'],
+  [['qp-check', 'Check'], ['qp-ai', 'Mark with AI'], ['pad-undo', 'Undo'],
    ['pad-clear', 'Clear'], ['qa-show', 'Show the answer'], ['qa-hide', 'Hide the answer'],
    ['pad-tool:pen', 'the Pen'], ['pad-tool:ruler', 'the Ruler'], ['pad-tool:compass', 'the Compass'],
    ['fav', 'the star']].forEach(([act, what]) => {
     if (!seen[act]) bad.push('no ' + what + ' tile (' + act + ') was drawn anywhere in the family, so the rule was NOT asked of it');
   });
-  ['a multiple-choice option', 'a word in a passage to ring', 'the picture under the pen, while it is off', 'the answer box'].forEach(what => {
+  /* AND THE ONE 368 TOOK AWAY: the pen's lock -- the first touch on the figure draws. */
+  if (seen['pad-draw']) bad.push('the family still draws ' + seen['pad-draw'] + ' lock tile(s) (pad-draw)');
+  ['a multiple-choice option', 'a word in a passage to ring', 'the answer box'].forEach(what => {
     if (!exempted[what]) bad.push('the family drew no ' + what + ', so its exception was NOT exercised');
   });
   /* AND THE ONE THE OWNER TOOK AWAY: *"there doesnt need to be a scroll down tile on questions"* (8 Oct). */
@@ -21543,9 +21533,7 @@ const ansCards_ = (w, tag) => {
 };
 const ansType_ = (w, el, text) => { el.value = text; el.dispatchEvent(new w.Event('input', { bubbles: true })); };
 const ansStroke_ = (w, c, pts) => {
-  const A = w.__t.ACTIONS;
-  const lock = c.pad().querySelector('.qpad-lock');
-  if (lock && !c.pad().classList.contains('is-drawing')) A['pad-draw'](lock);
+  /* NO LOCK TO PRESS FIRST (368): the pointerdown on the ink gives the pad the pen. */
   const ink = c.pad().querySelector('.qpad-ink');
   ink.getBoundingClientRect = () => ({ left: 0, top: 0, width: 340, height: 340, right: 340, bottom: 340, x: 0, y: 0 });
   const Ev = w.PointerEvent || w.MouseEvent;
@@ -21553,7 +21541,6 @@ const ansStroke_ = (w, c, pts) => {
   fire('pointerdown', pts[0][0], pts[0][1]);
   pts.slice(1).forEach(p => fire('pointermove', p[0], p[1]));
   fire('pointerup', pts[pts.length - 1][0], pts[pts.length - 1][1]);
-  A['pad-draw'](c.pad().querySelector('.qpad-lock'));
 };
 const ansNeed_ = w => ['questionCard_', 'ansStore_', 'answersPush_', 'answersPull_', 'ansSavedSay_', 'ansRead_']
   .filter(n => typeof w[n] !== 'function').concat(typeof (w.__t || {}).padWrap === 'function' ? [] : ['padWrap_']);

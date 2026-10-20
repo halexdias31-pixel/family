@@ -282,12 +282,12 @@ function answersPull_(force) {
   return p;
 }
 
-/* IS THIS KEY UNDER A FINGER — the box with the focus, or the pad taking the pen. Never overwritten. */
+/* IS THIS KEY UNDER A FINGER — the box with the focus, or the pad a stroke is on now (`padInUse_`). Never overwritten. */
 function ansHeld_(k) {
   try {
     const a = document.activeElement;
     if (a && a.getAttribute && a.getAttribute('data-k') === k) return true;
-    if (typeof PAD_ON !== 'undefined' && PAD_ON && (PAD_ON === k || PAD_ON + ':words' === k)) return true;
+    if (typeof padInUse_ === 'function' && PAD_ON && (PAD_ON === k || PAD_ON + ':words' === k) && padInUse_(PAD_ON)) return true;
   } catch (e) {}
   return false;
 }
