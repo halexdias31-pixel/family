@@ -3621,13 +3621,13 @@ function markFrac_(s) {
 /* A MARK SCHEME THAT TAKES A BAND TAKES EVERY NUMBER IN IT, AND THIS ONE WAS TAKING TWO OF THEM. § */
 function markRange_(w) {
   /* ---------- THE SEPARATOR IS READ BEFORE `markNorm_` FLATTENS IT § */
-  const m = /^(-?\d+(?:\.\d+)?)\s*(?:to)\s*(-?\d+(?:\.\d+)?)(?:\s+[a-z\u00b0%].*)?$/
+  const m = /^(-?\d+(?:\.\d+)?)\s*(?:to)\s*(-?\d+(?:\.\d+)?)(?:\s*([a-z\u00b0%].*))?$/
     .exec(markNorm_(String(w == null ? '' : w).replace(/[\u2013\u2014]/g, ' to ')));
   if (!m) return null;
   const lo = markFrac_(m[1]), hi = markFrac_(m[2]);
   if (!lo || !hi) return null;
   if (lo.n * hi.d > hi.n * lo.d) return null;   /* backwards is not a band */
-  return { lo: lo, hi: hi };
+  return { lo: lo, hi: hi, unit: (m[3] || '').trim() };
 }
 
 /* ---------- A UNIT THE CHILD TYPED, AND THE BRACKETS ROUND A COORDINATE § */
@@ -3947,6 +3947,12 @@ function markAnswer_(typed, accept, again) {
     if (p && q && p.n * q.d === q.n * p.d) return true;
     /* anywhere inside a band the scheme prints -- see `markRange_` above */
     const band = markRange_(w);
+    /* A READING WITH ITS UNIT OR DEGREE SIGN (385): the number inside the band, the unit the band's own or a degree */
+    const ru = band && !p && /^(-?\d+(?:\.\d+)?)\s*([a-z\u00b0%]+)\.?$/.exec(t);
+    if (ru && (ru[2] === band.unit || /^(\u00b0|degrees?|deg)$/.test(ru[2]))) {
+      const pv = markFrac_(ru[1]);
+      if (pv && pv.n * band.lo.d >= band.lo.n * pv.d && pv.n * band.hi.d <= band.hi.n * pv.d) return true;
+    }
     if (p && band
       && p.n * band.lo.d >= band.lo.n * p.d
       && p.n * band.hi.d <= band.hi.n * p.d) return true;
@@ -4459,7 +4465,7 @@ function ansBox_(x) {
   const signs = (kpSigns_(x) ? 1 : 0) | (kpVec_(x) ? 2 : 0);
   /* NO CAPTION OVER THE BOX. § */
   /* ---------- THE FIGURE TILE STANDS BESIDE THE BOX, NOT IN THE ROW UNDER IT § */
-  const fig = figTile_(x);
+  const fig = figTile_(x) + measTiles_(x);
   /* ---------- THE ANSWER BOX IS A CHAT BAR, WITH A SEND TILE § */
   const rule = can ? '' : String(x && x.markWords || '').trim();
   const aiNow = can ? '' : aiTile_(x);
@@ -10639,3 +10645,242 @@ function padSend_(keepalive) {
       if (el) el.textContent = String(err.message || 'Not saved — no connection.');
     });
 }
+/* ---------- MEASURING ON THE FIGURE (385): "There needs to be a protocol for this type of question. Like protractor tool." */
+/* WHICH TOOLS A PART NEEDS: a protractor where it asks for an angle or a bearing, a ruler where it asks for a length -- only where it says "measure" and has a figure */
+function measTools_(x) {
+  if (!x || !x.diagram) return [];
+  const r = x.row || x;
+  if (r.subject && !/math/i.test(r.subject)) return [];
+  const words = String((x.html || r.html || '') + ' ' + (r.lead || '')).replace(/<[^>]*>/g, ' ');
+  if (!/\bmeasure\b/i.test(words)) return [];
+  const all = words + ' ' + String(x.accept || r.accept || '');
+  const out = [];
+  if (/\bangle|bearing|°|degrees?\b/i.test(all)) out.push('protractor');
+  if (/\blength|\bline\b|\bside\b|distance|\b(cm|mm)\b|centimet|millimet/i.test(all) && !/°/.test(String(x.accept || r.accept || ''))) out.push('ruler');
+  return out;
+}
+const MEAS_FACE = { protractor: { icon: 'protractor', label: 'Protractor', note: 'on the figure' },
+                    ruler: { icon: 'ruler', label: 'Ruler', note: 'on the figure' } };
+function measTiles_(x) {
+  const k = x && x.key || '';
+  /* A CARD DRAWN AGAIN WHILE ITS TOOL IS OUT gets the tool back on its new figure, once the markup is in */
+  if (MEAS && MEAS.k === k && typeof setTimeout === 'function') setTimeout(measRepaint_, 0);
+  return measTools_(x).map(t => tile_(Object.assign({ act: 'q-measure', cls: 'q-meast', data: { tool: t, key: k },
+    on: !!(MEAS && MEAS.k === k && MEAS.tool === t), pressed: !!(MEAS && MEAS.k === k && MEAS.tool === t) }, MEAS_FACE[t]))).join('');
+}
+/* THE TOOL ON THE GLASS: which card, which tool, its centre (protractor) or zero (ruler) in the figure's own units, its turn in degrees */
+let MEAS = null;
+const MEAS_SNAP_PX = 14;    // nearer than this to a corner, the tool's centre or zero sits on it
+const MEAS_TURN_DEG = 8;    // nearer than this to an arm's direction, the baseline lies along it
+
+/* THE FIGURE'S CORNERS AND ARMS, read from its lines, polygons and paths: { pts: [[x, y]], segs: [[x1, y1, x2, y2]] } */
+function measGeom_(svg) {
+  const segs = [], num = s => String(s || '').trim().split(/[\s,]+/).map(Number).filter(n => !isNaN(n));
+  svg.querySelectorAll('line').forEach(l => segs.push(['x1', 'y1', 'x2', 'y2'].map(a => +l.getAttribute(a) || 0)));
+  svg.querySelectorAll('polygon, polyline').forEach(p => {
+    const v = num(p.getAttribute('points')), P = [];
+    for (let i = 0; i + 1 < v.length; i += 2) P.push([v[i], v[i + 1]]);
+    if (p.tagName.toLowerCase() === 'polygon' && P.length > 2) P.push(P[0]);
+    for (let i = 1; i < P.length; i++) segs.push([P[i - 1][0], P[i - 1][1], P[i][0], P[i][1]]);
+  });
+  svg.querySelectorAll('path').forEach(p => {
+    const d = p.getAttribute('d') || '';
+    if (/[aAcCqQsStT]/.test(d)) return;
+    let at = null;
+    (d.match(/[MLml][^MLmlZz]*/g) || []).forEach(c => {
+      const v = num(c.slice(1));
+      for (let i = 0; i + 1 < v.length; i += 2) {
+        const q = /[ml]/.test(c[0]) && at ? [at[0] + v[i], at[1] + v[i + 1]] : [v[i], v[i + 1]];
+        if (at && !(/[Mm]/.test(c[0]) && i === 0)) segs.push([at[0], at[1], q[0], q[1]]);
+        at = q;
+      }
+    });
+  });
+  const pts = [];
+  segs.forEach(s => [[s[0], s[1]], [s[2], s[3]]].forEach(p => { if (!pts.some(q => Math.hypot(q[0] - p[0], q[1] - p[1]) < 1)) pts.push(p); }));
+  return { pts, segs };
+}
+/* THE OVERLAY, in the figure's own units over its picture -- so a reading on it is a reading on the paper's drawing */
+function measDraw_(fig) {
+  fig.querySelectorAll('.meas').forEach(o => o.remove());
+  if (!MEAS) return;
+  const svg = [...fig.children].find(c => c.tagName.toLowerCase() === 'svg' && !c.classList.contains('meas'));
+  if (!svg) return;
+  const vb = (svg.getAttribute('viewBox') || '0 0 340 340').split(/[\s,]+/).map(Number);
+  const r = svg.getBoundingClientRect(), u = r.width ? vb[2] / r.width : 1;   // figure units per screen px
+  const g = MEAS, R = g.R, T = 'translate(' + g.c[0].toFixed(2) + ' ' + g.c[1].toFixed(2) + ') rotate(' + g.rot.toFixed(2) + ')';
+  let body = '';
+  if (g.tool === 'protractor') {
+    body += `<path class="meas-body" d="M ${-R} 0 A ${R} ${R} 0 0 1 ${R} 0 Z"/>`;
+    for (let a = 0; a <= 180; a += 5) {
+      const t = a * Math.PI / 180, c = Math.cos(t), s = -Math.sin(t), L = a % 10 ? 0.05 : a % 30 ? 0.08 : 0.12;
+      body += `<path class="meas-tick" d="M ${(R * c).toFixed(2)} ${(R * s).toFixed(2)} L ${(R * (1 - L) * c).toFixed(2)} ${(R * (1 - L) * s).toFixed(2)}"/>`;
+      if (!(a % 30)) {
+        const o = R * 0.8, i = R * 0.64;
+        body += `<text class="meas-num" x="${(o * c).toFixed(2)}" y="${(o * s).toFixed(2)}" font-size="${(R * 0.08).toFixed(2)}">${a}</text>`
+          + `<text class="meas-num meas-in" x="${(i * c).toFixed(2)}" y="${(i * s).toFixed(2)}" font-size="${(R * 0.07).toFixed(2)}">${180 - a}</text>`;
+      }
+    }
+    body += `<path class="meas-tick" d="M ${-R} 0 L ${R} 0 M 0 ${-R * 0.06} L 0 ${R * 0.06} M ${-R * 0.06} 0 L ${R * 0.06} 0"/>`;
+  } else {
+    const W = g.L, H = Math.max(8, 30 * u), cm = g.cm;
+    body += `<rect class="meas-body" x="0" y="0" width="${W.toFixed(2)}" height="${H.toFixed(2)}"/>`;
+    for (let mm = 0, x = 0; x <= W + 1e-6; mm++, x = mm * cm / 10) {
+      const L = mm % 10 ? (mm % 5 ? 0.25 : 0.4) : 0.55;
+      body += `<path class="meas-tick" d="M ${x.toFixed(2)} 0 L ${x.toFixed(2)} ${(H * L).toFixed(2)}"/>`;
+      if (!(mm % 10)) body += `<text class="meas-num" x="${x.toFixed(2)}" y="${(H * 0.85).toFixed(2)}" font-size="${(H * 0.32).toFixed(2)}">${mm / 10}</text>`;
+    }
+  }
+  /* THE TURNING HANDLE, a fingertip wide wherever the figure is drawn small, at whichever end of the tool is on the glass */
+  const reach = 30 * u, m = svg.getScreenCTM();
+  /* ONLY WHERE THE FIGURE IS: a handle past the picture's edge cannot be pressed; failing all, it sits on the tool itself */
+  const spots = g.tool === 'protractor' ? [[-R - reach, 0], [R + reach, 0], [0, -R - reach], [-R * 0.45, -R * 0.3], [R * 0.45, -R * 0.3]]
+    : [[g.L + reach, 0], [-reach, 0], [g.L / 2, -reach], [g.L * 0.75, 20 * u]];
+  const box = r;
+  const onGlass = p => {
+    if (!m) return true;
+    const t = g.rot * Math.PI / 180, q = svg.createSVGPoint();
+    q.x = g.c[0] + p[0] * Math.cos(t) - p[1] * Math.sin(t); q.y = g.c[1] + p[0] * Math.sin(t) + p[1] * Math.cos(t);
+    const z = q.matrixTransform(m);
+    return z.x > Math.max(26, box.left + 24) && z.x < Math.min(innerWidth - 26, box.right - 24) && z.y > Math.max(26, box.top + 24) && z.y < Math.min(innerHeight - 26, box.bottom - 24);
+  };
+  if (!g.hold) g.h = spots.find(onGlass) || spots[spots.length - 1];
+  const hx = g.h[0], hy = g.h[1];
+  body += `<circle class="meas-turn" cx="${hx.toFixed(2)}" cy="${hy.toFixed(2)}" r="${(24 * u).toFixed(2)}"/>`
+    + `<path class="meas-turn-i" d="M ${(hx - 8 * u).toFixed(2)} ${hy.toFixed(2)} A ${(8 * u).toFixed(2)} ${(8 * u).toFixed(2)} 0 1 1 ${hx.toFixed(2)} ${(hy + 8 * u).toFixed(2)}"/>`;
+  const o = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  o.setAttribute('class', 'meas');
+  o.setAttribute('viewBox', vb.join(' '));
+  o.setAttribute('data-noswipe', '');
+  o.setAttribute('data-tool', g.tool);
+  o.setAttribute('data-c', g.c.map(v => v.toFixed(2)).join(','));
+  o.setAttribute('data-rot', g.rot.toFixed(2));
+  o.setAttribute('aria-label', g.tool === 'protractor' ? 'Protractor: drag it, turn it with two fingers or the round handle' : 'Ruler: drag it, turn it with two fingers or the round handle');
+  o.innerHTML = `<g transform="${T}">${body}</g>`;
+  fig.classList.add('meas-host');
+  /* EXACTLY OVER THE PICTURE, not the figure's whole box: the same viewBox on the same rectangle is the same units */
+  const hr = fig.getBoundingClientRect();
+  o.style.left = (r.left - hr.left) + 'px'; o.style.top = (r.top - hr.top) + 'px';
+  o.style.width = r.width + 'px'; o.style.height = r.height + 'px';
+  o.setAttribute('preserveAspectRatio', svg.getAttribute('preserveAspectRatio') || 'xMidYMid meet');
+  fig.appendChild(o);
+}
+function measFig_(k) {
+  const card = [...document.querySelectorAll('#screen .page.on .qcard, .qcard')].find(c => c.querySelector(`[data-k="${CSS.escape(k)}"]`) || c.querySelector(`.q-meast[data-key="${CSS.escape(k)}"]`));
+  const pick = c => c && [...c.querySelectorAll('figure svg')].find(s => !s.classList.contains('meas') && !s.closest('svg.meas') && s.parentNode.closest('figure'));
+  let svg = pick(card);
+  /* A PART WHOSE WORDS RAN ON TO A SECOND PAGE has its figure on the page before: the tool goes there */
+  if (!svg && card) {
+    const page = card.closest('.page'), prev = page && page.previousElementSibling;
+    if (prev && prev.classList.contains('page') && /continued on the next page/i.test(prev.textContent)) svg = pick(prev);
+  }
+  return svg ? svg.parentNode : null;
+}
+on('q-measure', el => {
+  const k = el.getAttribute('data-key') || '', tool = el.getAttribute('data-tool');
+  const again = MEAS && MEAS.k === k && MEAS.tool === tool;
+  const was = MEAS && measFig_(MEAS.k);
+  MEAS = null;
+  if (was) measDraw_(was);
+  document.querySelectorAll('.q-meast').forEach(t => tileSet_(t, { on: false, pressed: false }));
+  if (again) return;
+  const fig = measFig_(k), svg = fig && fig.querySelector('svg');
+  if (!svg) return;
+  /* ON ANOTHER PAGE: turned to it, so the tool is where the child can see it */
+  const pg = fig.closest('.page'), here = el.closest('.page');
+  if (pg && here && pg !== here && typeof goPage === 'function') { const all = [...pg.parentNode.children].filter(c => c.classList.contains('page')); goPage('stuff', all.indexOf(pg), true); }
+  const vb = (svg.getAttribute('viewBox') || '0 0 340 340').split(/[\s,]+/).map(Number);
+  const G = measGeom_(svg);
+  let x = null;
+  try { x = stuffItemsAll_().find(i => i && i.key === k) || null; } catch (e) { x = null; }
+  /* THE RULER READS TRUE TO THE PAPER: the longest line is as long as the scheme says it is (the middle of its band), else 1 cm is a tenth of the figure */
+  let cm = vb[2] / 10;
+  const band = /(\d+(?:\.\d+)?)\s*(?:to|-|–)\s*(\d+(?:\.\d+)?)\s*(cm|mm)/i.exec(String(x && (x.accept || (x.row || {}).accept) || ''));
+  if (band && G.segs.length) {
+    const len = Math.max(...G.segs.map(s => Math.hypot(s[2] - s[0], s[3] - s[1])));
+    const want = (+band[1] + +band[2]) / 2 / (band[3].toLowerCase() === 'mm' ? 10 : 1);
+    if (len > 0 && want > 0) cm = len / want;
+  }
+  MEAS = { k, tool, rot: 0, R: Math.min(vb[2], vb[3] * 2) * 0.36, cm, L: Math.min(vb[2] * 0.9, cm * Math.max(5, Math.floor(vb[2] * 0.9 / cm))),
+           c: tool === 'protractor' ? [vb[0] + vb[2] / 2, vb[1] + vb[3] * 0.7] : [vb[0] + vb[2] * 0.05, vb[1] + vb[3] * 0.75], geom: G, vb };
+  el.closest('.tile-row, .qp-bar') && el.parentNode.querySelectorAll(`.q-meast[data-tool="${tool}"]`).forEach(t => tileSet_(t, { on: true, pressed: true }));
+  measDraw_(fig);
+});
+/* THE SNAP: the centre (or zero) onto a corner when near it; then the baseline (or edge) along an arm from that corner when near its direction */
+function measSnap_(svg) {
+  const g = MEAS, r = svg.getBoundingClientRect(), u = r.width ? g.vb[2] / r.width : 1;
+  const near = g.geom.pts.map(p => ({ p, d: Math.hypot(p[0] - g.c[0], p[1] - g.c[1]) })).sort((a, b) => a.d - b.d)[0];
+  if (!near || near.d > MEAS_SNAP_PX * u) return;
+  g.c = near.p.slice();
+  const dirs = [];
+  g.geom.segs.forEach(s => {
+    if (Math.hypot(s[0] - g.c[0], s[1] - g.c[1]) < 1) dirs.push(Math.atan2(s[3] - s[1], s[2] - s[0]) * 180 / Math.PI);
+    if (Math.hypot(s[2] - g.c[0], s[3] - g.c[1]) < 1) dirs.push(Math.atan2(s[1] - s[3], s[0] - s[2]) * 180 / Math.PI);
+  });
+  const diff = (a, b) => { let d = ((a - b) % 360 + 540) % 360 - 180; return d; };
+  /* A PROTRACTOR'S BASELINE IS A LINE BOTH WAYS from its centre; a ruler's edge runs one way from its zero */
+  let best = null;
+  dirs.forEach(a => [0, 180].forEach(f => {
+    if (g.tool === 'ruler' && f) return;
+    const d = Math.abs(diff(g.rot, a + f));
+    if (d <= MEAS_TURN_DEG && (!best || d < best.d)) best = { d, a: a + f };
+  }));
+  if (best) g.rot = ((best.a % 360) + 360) % 360;
+}
+/* THE GESTURES: one finger drags it, a second turns it, the round handle turns it; a mouse drags, turns by the handle or the wheel */
+const MEAS_PT = new Map();
+let MEAS_GO = null;
+const measAt_ = (svg, e) => { const m = svg.getScreenCTM(); if (!m) return [0, 0]; const q = svg.createSVGPoint(); q.x = e.clientX; q.y = e.clientY; const p = q.matrixTransform(m.inverse()); return [p.x, p.y]; };
+document.addEventListener('pointerdown', e => {
+  const o = e.target && e.target.closest && e.target.closest('svg.meas');
+  if (!o || !MEAS) return;
+  const onTool = e.target.closest('.meas-body, .meas-tick, .meas-num, .meas-turn, .meas-turn-i');
+  if (!onTool && !MEAS_PT.size) return;
+  e.preventDefault();
+  try { o.setPointerCapture(e.pointerId); } catch (err) {}
+  MEAS_PT.set(e.pointerId, measAt_(o, e));
+  const turn = !!e.target.closest('.meas-turn, .meas-turn-i');
+  MEAS.hold = turn && MEAS_PT.size === 1;
+  MEAS_GO = { o, turn: turn && MEAS_PT.size === 1, c0: MEAS.c.slice(), rot0: MEAS.rot, p0: measAt_(o, e), pts0: new Map(MEAS_PT) };
+}, true);
+document.addEventListener('pointermove', e => {
+  const G = MEAS_GO;
+  if (!G || !MEAS || !MEAS_PT.has(e.pointerId)) return;
+  if (e.cancelable) e.preventDefault();
+  const p = measAt_(G.o, e);
+  MEAS_PT.set(e.pointerId, p);
+  if (G.turn) MEAS.rot = (Math.atan2(p[1] - MEAS.c[1], p[0] - MEAS.c[0]) - Math.atan2(MEAS.h[1], MEAS.h[0])) * 180 / Math.PI;
+  else if (MEAS_PT.size >= 2) {
+    const [a, b] = [...MEAS_PT.values()], [a0, b0] = [...G.pts0.values()];
+    if (a0 && b0) MEAS.rot = G.rot0 + (Math.atan2(b[1] - a[1], b[0] - a[0]) - Math.atan2(b0[1] - a0[1], b0[0] - a0[0])) * 180 / Math.PI;
+  } else MEAS.c = [G.c0[0] + p[0] - G.p0[0], G.c0[1] + p[1] - G.p0[1]];
+  const fig = G.o.parentNode;
+  measDraw_(fig);
+  MEAS_GO.o = fig.querySelector('svg.meas');
+}, { capture: true, passive: false });
+const measUp_ = e => {
+  if (!MEAS_PT.has(e.pointerId)) return;
+  MEAS_PT.delete(e.pointerId);
+  const G = MEAS_GO;
+  if (MEAS) MEAS.hold = false;
+  if (!G || !MEAS) { MEAS_GO = null; return; }
+  const fig = G.o.parentNode, svg = fig && fig.querySelector('svg:not(.meas)');
+  if (svg) measSnap_(svg);
+  if (fig) measDraw_(fig);
+  /* THE FINGER LEFT ON IT CARRIES ON from where it is now */
+  MEAS_GO = MEAS_PT.size && fig ? { o: fig.querySelector('svg.meas'), turn: false, c0: MEAS.c.slice(), rot0: MEAS.rot, p0: [...MEAS_PT.values()][0], pts0: new Map(MEAS_PT) } : null;
+};
+['pointerup', 'pointercancel'].forEach(ev => document.addEventListener(ev, measUp_, true));
+document.addEventListener('wheel', e => {
+  const o = e.target && e.target.closest && e.target.closest('svg.meas');
+  if (!o || !MEAS) return;
+  e.preventDefault();
+  MEAS.rot += e.deltaY > 0 ? 1 : -1;
+  const fig = o.parentNode, svg = fig.querySelector('svg:not(.meas)');
+  if (svg) measSnap_(svg);
+  measDraw_(fig);
+}, { passive: false });
+/* A REPAINT REBUILDS THE CARD: the tool is drawn again on the new figure */
+function measRepaint_() { if (MEAS) { const f = measFig_(MEAS.k); if (f) measDraw_(f); } }
+/* A TURNED PHONE OR A RESIZED WINDOW moves the picture: the tool is laid over it again */
+if (typeof addEventListener === 'function') addEventListener('resize', () => { if (MEAS) setTimeout(measRepaint_, 120); });

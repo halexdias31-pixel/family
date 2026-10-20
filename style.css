@@ -5708,6 +5708,16 @@ button.scr-sq { cursor: pointer; }
 .kp-key .kp-vc { display: inline-flex; flex-direction: column; gap: 3px; padding: 2px 5px; border-left: 2px solid currentColor;
                  border-right: 2px solid currentColor; border-radius: 6px / 12px; }
 .kp-key .kp-vc i { display: block; width: 9px; height: 9px; border: 1.5px solid currentColor; border-radius: 2px; }
+/* THE MEASURING TOOLS ON A FIGURE (385): a see-through protractor or ruler over the picture, in its own units */
+.meas-host { position: relative; }
+svg.meas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; touch-action: none; pointer-events: none; }
+svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-num, svg.meas .meas-turn-i { pointer-events: auto; cursor: grab; }
+.meas-body { fill: color-mix(in srgb, var(--gold) 14%, transparent); stroke: var(--gold); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.meas-tick { stroke: var(--gold); stroke-width: 1; vector-effect: non-scaling-stroke; fill: none; }
+.meas-num { fill: var(--gold); text-anchor: middle; dominant-baseline: middle; font-family: var(--font); }
+.meas-num.meas-in { opacity: .75; }
+.meas-turn { fill: color-mix(in srgb, var(--gold) 30%, transparent); stroke: var(--gold); stroke-width: 1; vector-effect: non-scaling-stroke; cursor: alias; }
+.meas-turn-i { fill: none; stroke: var(--gold); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 /* EDITING LIKE iOS (385): the loupe over a held finger, and a selection's two ends as handles to drag */
 .kp-loupe { position: fixed; z-index: 60; width: 132px; height: 56px; border-radius: 28px; overflow: hidden;
             background: var(--paper); box-shadow: 0 0 0 1px var(--paper-rule), 0 6px 18px rgba(0, 0, 0, .45); pointer-events: none; }

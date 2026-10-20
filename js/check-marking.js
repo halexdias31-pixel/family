@@ -21,6 +21,15 @@ eval(marks.source);
 
 /* typed, accept, expected. `null` means "nothing typed", which is not a wrong answer. */
 const CASES = [
+  /* A READING OFF THE PROTRACTOR OR RULER (385), inside the scheme's band and out of it */
+  ['67', '65 to 69', true, 'June 2024 Foundation 2, Q7(b): the angle read off the protractor'],
+  ['67°', '65 to 69', true, 'with its degree sign'],
+  ['65', '65 to 69', true, 'the band includes its ends'],
+  ['70', '65 to 69', false, 'one degree past the band'],
+  ['8.7', '8.5 to 8.9 cm', true, 'Q7(a): the length off the ruler'],
+  ['8.7 cm', '8.5 to 8.9 cm', true, 'with its unit'],
+  ['87 mm', '8.5 to 8.9 cm', false, 'in millimetres the scheme does not print -- marked wrong, the unit is the scheme\'s'],
+  ['9.1', '8.5 to 8.9 cm', false, 'past the band'],
   /* THE FRACTION SLASH, which is what the library writes and no keyboard has */
   ['5/9', '5⁄9', true, 'the answer to Q23(b), typed the way a phone types it'],
   ['5⁄9', '5⁄9', true, 'and typed the way the library spells it'],

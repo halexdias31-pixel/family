@@ -27,7 +27,7 @@ const ENVS = [
 /* NOT DRIVEN, with the reason: nothing on the card marks them by machine, so there is no Correct to reach. */
 const UNDRIVEN = { essay: 'marked by AI against the scheme, never by machine', print: 'answered on the printed sheet; nothing on screen' };
 /* THEO'S QUESTION (385): five options, one pair of brackets, and taps that did nothing after the first. */
-const PINNED = { choose1: ['Q-1MA1-2406-1F-11c'] };
+const PINNED = { choose1: ['Q-1MA1-2406-1F-11c'], measure: ['Q-1MA1-2406-2F-7b', 'Q-1MA1-2406-2F-7a', 'Q-CBM-angles-measuring-drawing-13'] };
 const PER_TYPE = 2;
 /* KNOWN, with the reason, and still printed: */
 const ACCEPTED = {
@@ -323,7 +323,7 @@ function fingerRings(eg, ink) {
 }
 
 /* ---------- THE PROTOCOLS: one driver per surface, every type in QTYPE_PROTOCOL reaching one of them */
-const TYPED = ['value', 'unit', 'fraction', 'expr', 'words', 'reason', 'measure', 'multi', 'coords'];
+const TYPED = ['value', 'unit', 'fraction', 'expr', 'words', 'reason', 'multi', 'coords'];
 const CELLS = ['match', 'table'];
 const DRAWN = ['label', 'points', 'line', 'shape', 'shade', 'hand', 'graph', 'construct', 'numline'];
 
@@ -414,6 +414,103 @@ async function driveTyped(env, ctx) {
   await tap(env, ctx, C + ` .qp-mark [data-do="${o.check}"]`, 0, 'Check', { wait: 400 });
   if (process.env.TYPES_DEBUG) console.log('DEBUG', await env.page.evaluate(sel => [...document.querySelectorAll(sel + ' .qp-ans-in, ' + sel + ' .qp-multi-val')].map(e => e.className + '=' + JSON.stringify(e.value)).join(' ; ') + ' accept=' + document.querySelector(sel + ' .qp-mark').getAttribute('data-accept'), C));
   await expectSay(env, ctx, 'right', 'after the right answer (' + right.join(', ') + ')');
+  return '';
+}
+
+/* ---------- MEASURE (385): the Protractor or Ruler tile, the tool dragged onto the figure and turned along an arm, the reading typed, Correct */
+async function driveMeasure(env, ctx) {
+  const has = await env.page.evaluate(sel => [...document.querySelectorAll(sel + ' .q-meast')].map(t => t.getAttribute('data-tool')), C);
+  if (!has.length) {
+    const fig = await env.page.evaluate(sel => !!document.querySelector(sel + ' figure > svg') && /measure/i.test(document.querySelector(sel).textContent), C);
+    if (fig) fail(env.E, ctx.t, ctx.row, 'a "measure" part with a figure has no Protractor or Ruler tile');
+    return driveTyped(env, ctx);
+  }
+  const tool = has[0];
+  /* THE FIGURE READ BY THIS CHECK ITSELF: its corners, where arms meet, in figure units and on the screen */
+  const geo = () => env.page.evaluate(sel => {
+    const o0 = document.querySelector('#s-stuff svg.meas'), svg = o0 ? [...o0.parentNode.children].find(c => c.tagName.toLowerCase() === 'svg' && c !== o0) : document.querySelector(sel + ' figure svg');
+    const G = measGeom_(svg), m = svg.getScreenCTM();
+    const scr = p => { const q = svg.createSVGPoint(); q.x = p[0]; q.y = p[1]; const r = q.matrixTransform(m); return [r.x, r.y]; };
+    const ang = (a, b) => Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI;
+    const arms = p => { const out = []; G.segs.forEach(s => { if (Math.hypot(s[0] - p[0], s[1] - p[1]) < 1) out.push([s[2], s[3]]); if (Math.hypot(s[2] - p[0], s[3] - p[1]) < 1) out.push([s[0], s[1]]); }); return out; };
+    const corners = G.pts.map(p => ({ p, s: scr(p), arms: arms(p).map(q => ({ q, a: ang(p, q), s: scr(q) })) })).filter(c => c.arms.length >= 2);
+    const longest = G.segs.map(s => ({ s, L: Math.hypot(s[2] - s[0], s[3] - s[1]) })).sort((a, b) => b.L - a.L)[0];
+    const o = document.querySelector('#s-stuff svg.meas');
+    return { corners, longest, ends: longest ? [scr([longest.s[0], longest.s[1]]), scr([longest.s[2], longest.s[3]])] : null,
+      c: o ? o.getAttribute('data-c').split(',').map(Number) : null, cs: o ? scr(o.getAttribute('data-c').split(',').map(Number)) : null, rot: o ? +o.getAttribute('data-rot') : null,
+      cm: typeof MEAS !== 'undefined' && MEAS ? MEAS.cm : null, accept: String((stuffItemsAll_().find(it => ansKey_(it) === window.__tk.k) || {}).accept || '') };
+  }, C);
+  const home = await env.page.evaluate(() => PAGE.stuff);
+  await tap(env, ctx, `${C} .q-meast[data-tool="${tool}"]`, 0, tool === 'protractor' ? 'the Protractor tile' : 'the Ruler tile');
+  await sleep(300);
+  let g = await geo();
+  if (!g.c) { fail(env.E, ctx.t, ctx.row, `the ${tool} tile put no ${tool} on the figure`); return ''; }
+  /* WHICH CORNER: the one whose angle the scheme's band holds, for a protractor; the longest line's first end, for a ruler */
+  const band = (() => { const m = /(\d+(?:\.\d+)?)\s*to\s*(\d+(?:\.\d+)?)/.exec(g.accept); if (m) return [+m[1], +m[2]]; const n = g.accept.split('|').map(w => parseFloat(w)).filter(v => !isNaN(v)); return n.length ? [Math.min(...n), Math.max(...n)] : null; })();
+  if (!band) return 'no band in accept to read against';
+  const diff = (a, b) => { const d = Math.abs(((a - b) % 360 + 540) % 360 - 180); return d; };
+  let target, armA, armB;
+  if (tool === 'protractor') {
+    const pick = g.corners.map(c => { let best = null; for (let i = 0; i < c.arms.length; i++) for (let j = i + 1; j < c.arms.length; j++) { const v = diff(c.arms[i].a, c.arms[j].a); if (v >= band[0] - 0.5 && v <= band[1] + 0.5) best = { c, i, j, v }; } return best; }).filter(Boolean)[0];
+    if (!pick) { fail(env.E, ctx.t, ctx.row, `no corner of the figure makes an angle inside the scheme's ${band.join(' to ')}`); return ''; }
+    target = pick.c.s; armA = pick.c.arms[pick.i]; armB = pick.c.arms[pick.j];
+  } else {
+    if (!g.ends) return 'no line to measure';
+    target = g.ends[0];
+  }
+  /* DRAG IT: from a point on its body near its centre (or zero) to a few pixels off the corner -- the snap does the rest */
+  const grab = await env.page.evaluate(([sel, tool]) => { const b = document.querySelector('#s-stuff svg.meas .meas-body').getBoundingClientRect(); return tool === 'protractor' ? [b.left + b.width / 2, b.bottom - Math.min(14, b.height * 0.2)] : [b.left + 12, b.top + b.height / 2]; }, [C, tool]);
+  const off = [grab[0] - g.cs[0], grab[1] - g.cs[1]];
+  const drag = async (from, to) => {
+    const n = 14;
+    if (env.cdp) {
+      const tp = p => [{ x: p[0], y: p[1], radiusX: 6, radiusY: 6, force: 1, id: 1 }];
+      await env.cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: tp(from) });
+      for (let i = 1; i <= n; i++) { await env.cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: tp([from[0] + (to[0] - from[0]) * i / n, from[1] + (to[1] - from[1]) * i / n]) }); await sleep(16); }
+      await env.cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    } else { await env.page.mouse.move(from[0], from[1]); await env.page.mouse.down(); await env.page.mouse.move(to[0], to[1], { steps: n }); await env.page.mouse.up(); }
+    await sleep(250);
+  };
+  const s0 = await env.page.evaluate(() => ({ at: AT, page: PAGE.stuff }));
+  await drag(grab, [target[0] + off[0] + 6, target[1] + off[1] - 5]);
+  g = await geo();
+  steps++;
+  if (process.env.TYPES_DEBUG) console.log('DEBUG meas', JSON.stringify({ grab, target, off, cs: g.cs, c: g.c, corners: g.corners.map(c => c.p) }));
+  if (!g.cs || Math.hypot(g.cs[0] - target[0], g.cs[1] - target[1]) > 0.75) fail(env.E, ctx.t, ctx.row, `the ${tool} dropped 8px from the corner sits at ${g.cs && g.cs.map(Math.round)}, not snapped onto ${target.map(Math.round)}`);
+  const s1 = await env.page.evaluate(() => ({ at: AT, page: PAGE.stuff }));
+  if (s1.at !== s0.at || s1.page !== s0.page) fail(env.E, ctx.t, ctx.row, 'dragging the tool moved the screen');
+  /* TURN IT: by the round handle, to about 5° off the arm -- the snap lays it along */
+  const want = tool === 'protractor' ? armA.a : (() => { const L = g.longest.s; return Math.atan2(L[3] - L[1], L[2] - L[0]) * 180 / Math.PI; })();
+  if (diff(g.rot, want) > 0.5) {
+    const h = await env.page.evaluate(sel => { const b = document.querySelector('#s-stuff svg.meas .meas-turn').getBoundingClientRect(); const x = b.left + b.width / 2, y = b.top + b.height / 2, e = document.elementFromPoint(x, y); return [x, y, e ? String(e.getAttribute('class') || e.tagName) : 'nothing', Math.min(b.width, b.height)]; }, C);
+    steps++;
+    if (!/meas-turn/.test(h[2])) fail(env.E, ctx.t, ctx.row, `the ${tool}'s turning handle: under its centre is ${h[2]}`);
+    if (h[3] < MIN_PX) fail(env.E, ctx.t, ctx.row, `the ${tool}'s turning handle is ${Math.round(h[3])}px, under ${MIN_PX}px`);
+    /* THE HANDLE KEEPS ITS PLACE ON THE TOOL: turned by (want + 5 - rot) about the centre */
+    const r = Math.hypot(h[0] - g.cs[0], h[1] - g.cs[1]), a = Math.atan2(h[1] - g.cs[1], h[0] - g.cs[0]) + (want + 5 - g.rot) * Math.PI / 180;
+    await drag(h, [g.cs[0] + r * Math.cos(a), g.cs[1] + r * Math.sin(a)]);
+    if (process.env.TYPES_DEBUG) console.log('DEBUG turn', JSON.stringify({ h, cs: g.cs, rot0: g.rot, want, a: a * 180 / Math.PI, r, after: await env.page.evaluate(() => [MEAS.rot, MEAS.h, MEAS.c]) }));
+    g = await geo();
+  }
+  steps++;
+  const along = tool === 'protractor' ? [armA.a, armA.a + 180] : [want];
+  if (!along.some(w => diff(g.rot, w) < 0.5)) fail(env.E, ctx.t, ctx.row, `turned to 5° off the arm, the ${tool} lies at ${g.rot.toFixed(1)}°, not snapped along it (${want.toFixed(1)}°)`);
+  /* READ IT, as the child reads the scale: the other arm against the baseline, or the line's far end against the cm marks */
+  const reading = tool === 'protractor' ? Math.round(diff(armB.a, armA.a))
+    : Math.round(g.longest.L / g.cm * 10) / 10;
+  if (!(reading >= band[0] && reading <= band[1])) fail(env.E, ctx.t, ctx.row, `the ${tool} reads ${reading}, outside the scheme's ${band.join(' to ')} -- its scale does not read true to the paper`);
+  /* BACK TO THE BOX, where the tool turned the page to the figure (a part whose words ran on): the swipe back, by the app's own page turn */
+  await env.page.evaluate(h => { if (PAGE.stuff !== h) goPage('stuff', h, true); }, home);
+  await sleep(300);
+  await typeInto(env, ctx, C + ' .qp-ans-in', 0, '1', 'answer box 1', C + ' .kp-field');
+  await tap(env, ctx, C + ' .qp-mark [data-do="qp-check"]', 0, 'Check', { wait: 400 });
+  await expectSay(env, ctx, 'wrong', 'after a wrong reading (1)');
+  await typeInto(env, ctx, C + ' .qp-ans-in', 0, String(reading), 'answer box 1', C + ' .kp-field');
+  await tap(env, ctx, C + ' .qp-mark [data-do="qp-check"]', 0, 'Check', { wait: 400 });
+  await expectSay(env, ctx, 'right', `after the ${tool}'s reading (${reading})`);
+  await tap(env, ctx, `${C} .q-meast[data-tool="${tool}"]`, 0, 'the tile again, to put it away');
+  await sleep(200);
+  if (await env.page.evaluate(() => !!document.querySelector('#s-stuff svg.meas'))) fail(env.E, ctx.t, ctx.row, `the ${tool} tile pressed again left the ${tool} on the figure`);
   return '';
 }
 
@@ -648,7 +745,7 @@ async function vector(env) {
     for (const t of order) {
       if (ONLY_T.length && ONLY_T.indexOf(t) === -1) continue;
       if (UNDRIVEN[t]) { skipped.push(`${t}: ${UNDRIVEN[t]}`); continue; }
-      const drive = t === 'choose1' || t === 'chooseN' ? driveChoice : t === 'order' ? driveOrder
+      const drive = t === 'choose1' || t === 'chooseN' ? driveChoice : t === 'order' ? driveOrder : t === 'measure' ? driveMeasure
         : TYPED.includes(t) ? driveTyped : CELLS.includes(t) ? driveCells : DRAWN.includes(t) ? driveDrawn : null;
       if (!drive) { found.push(`${t}: a type in QTYPE_PROTOCOL with no driver here -- add one`); continue; }
       let done = 0;
@@ -659,7 +756,8 @@ async function vector(env) {
         const o = await open(env, row).catch(e => ({ err: e.message }));
         if (o.err) { tried.push(row + ': ' + o.err); continue; }
         const before = found.length;
-        const why = await drive(env, { t, row }).catch(e => 'the driver threw: ' + String(e.message).slice(0, 200));
+        /* A DRIVER THAT THROWS IS A FAULT, never a row passed over */
+        const why = await drive(env, { t, row }).catch(e => { fail(E, t, row, 'the driver threw: ' + String(e.message).split('\n')[0].slice(0, 200)); return ''; });
         /* A ROW THE DRIVER CANNOT READ IS PASSED OVER FOR THE NEXT ONE, and printed */
         if (why) { tried.push(row + ': ' + why); found.length = before; continue; }
         const acc = ACCEPTED[row] || ACCEPTED[E.id + ' ' + row];
