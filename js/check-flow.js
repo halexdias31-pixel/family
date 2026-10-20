@@ -14927,7 +14927,11 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in its o
     if (padII) A['pad-undo'](padII.querySelector('.qpad-undo'));
     if (paths(padII, '.qpad-was') !== 1 || paths(padII, '.qpad-g') !== 0) bad.push('Undo on (ii) did not take (ii)\'s cross alone');
     if (JSON.parse(LS.getItem(t.padKey(i6)) || '[]').length !== 1) bad.push('Undo on (ii) changed what (i) stored');
-    if (paths(penOf(i6), '.qpad-was') !== 0) bad.push('(i) shows marks from a part that comes after it');
+    /* EVERY OTHER PART'S INK ON THE ONE PICTURE, a later part's too (381): (ii)'s cross is under (i)'s pen */
+    if (paths(penOf(i6), '.qpad-was') !== 0) bad.push('(i) shows marks (ii) no longer has');
+    put(ii6, [[10, 40, 10, 40]]);
+    if (paths(penOf(i6), '.qpad-was') !== 1 || paths(penOf(i6), '.qpad-g') !== 1) bad.push('(i) does not show (ii)\'s cross faint under its own');
+    LS.removeItem(t.padKey(ii6));
     LS.removeItem(t.padKey(i6));
     /* ---------- ONE PICTURE, LOOKED AT: ITS COPY IN THE CARD, NO PEN ------------------------------------ */
     put(f3, [[20, 20, 300, 300]]);
@@ -14939,13 +14943,14 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in its o
     put(sa, [[10, 10, 10, 10], [20, 20, 20, 20]]);
     put(sb, [[5, 70, 330, 10]]);
     put(sc, [[40, 40, 40, 40]]);
-    if (paths(penOf(sb), '.qpad-was') !== 2) bad.push('(b)\'s scatter does not carry (a)\'s points under its pen');
+    if (paths(penOf(sb), '.qpad-was') !== 3) bad.push('(b)\'s scatter does not carry (a)\'s points and (c)\'s mark under its pen (381)');
     if (paths(penOf(sc), '.qpad-was') !== 3) bad.push('(c)\'s scatter does not carry (a)\'s points and (b)\'s line under its pen');
     if (paths(seenIn(sd), '.qpad-was') !== 4) bad.push('(d)\'s card does not carry (a)\'s, (b)\'s and (c)\'s marks together');
     /* ---------- A STEM'S PEN THAT USES THE PART BEFORE IT: THE PICTURE IN FRONT, AND THE MARKS UNDER ITS PEN -- */
     put(g20a, [[20, 20, 300, 300]]);
     if (JSON.stringify(w.pageParts_(g20b, g20a)) !== '[null]') bad.push('Q20(b) has pages ' + JSON.stringify(w.pageParts_(g20b, g20a)) + ', wanted its card alone');
-    if (paths(seenIn(g20b), '.qpad-was') !== 1) bad.push('Q20(b)\'s card does not show (a)\'s line in front of its words');
+    /* ONE FIGURE ON THE CARD (381): (a)'s line is under (b)'s pen, and no marked copy in front of its words as well */
+    if (seenIn(g20b)) bad.push('Q20(b)\'s card shows (a)\'s line twice: a copy in front of its words and under its pen');
     const pen20 = penOf(g20b);
     if (paths(pen20, '.qpad-was') !== 1 || (pen20 && pen20.getAttribute('data-k')) !== t.padKey(g20b)) bad.push('Q20(b)\'s pen does not show (a)\'s line fainter under it, on its own key');
     /* ---------- A LOOP, AND A PART THAT IS NOT THERE ---------------------------------------------------- */
@@ -25633,7 +25638,8 @@ check('a drawn answer is sent: a made-up surface and a figure each have Send und
     const x = w.stuffItemsAll_().find(i => i.row && i.row.row_id === id);
     if (!x) { bad.push(id + ' did not reach Find'); continue; }
     host.innerHTML = w.questionCard_(x, 0);
-    const go = host.querySelector('.qpad .qpad-send [data-do="pad-send"]');
+    /* a made-up surface is the card's foot, so Send is in the pad; a figure among the words has it at the foot, under the words (381) */
+    const go = host.querySelector((id === 'DS-1' ? '.qpad ' : '.qcard > ') + '.qpad-send [data-do="pad-send"]');
     if (!go) { bad.push(id + ': no Send under the pen — drawn, and nothing to submit'); continue; }
     A['pad-send'](go);
     const out = () => host.querySelector('.qpad-send .qp-verdict').textContent;
@@ -25801,6 +25807,121 @@ check('a drawn answer is marked on Check: strokes on a real Corbettmaths figure 
   host.remove();
   if (sets.cbm < 72) bad.push('only ' + sets.cbm + ' Corbettmaths drawn parts are marked by geometry — wanted 72');
   if (sets.gcse < 74) bad.push('only ' + sets.gcse + ' GCSE Maths drawn parts are marked by geometry — wanted 74');
+  return bad.slice(0, 25).concat(bad.length > 25 ? ['… and ' + (bad.length - 25) + ' more'] : []);
+});
+
+/* ---------- A DRAWN PART WHOSE FIGURE IS ON ITS STEM DRAWS ON IT IN PLACE (docs/history/381): Metric Units Q1, by hand ---------- */
+check('Metric Units Q1: the stem\'s words, its dial under the pen and the part\'s words on one card, one figure, no box; an arrow at 450 g is Correct on Check; part b is a box under its own words and nothing for the drawing', async () => {
+  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined) });
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, bad = [];
+  if (typeof w.questionCard_ !== 'function' || !A['pad-check'] || !t.padKey || typeof w.pageParts_ !== 'function') return ['questionCard_, pageParts_, padKey_ or pad-check is not reachable — NOT checked'];
+  t.STUFF().filters = [];
+  const all = w.stuffItemsAll_();
+  const a = all.find(i => i.row && i.row.row_id === 'Q-CBM-metric-units-1'), b = all.find(i => i.row && i.row.row_id === 'Q-CBM-metric-units-1b');
+  if (!a || !b) return ['Metric Units Q1 (a) or (b) did not reach Find'];
+  const host = w.document.createElement('div');
+  w.document.body.appendChild(host);
+  /* (a): no stem page in front -- its words are on the card, over the dial */
+  const pages = w.pageParts_(a, null);
+  if (pages.some(p => /^stem/.test(p || ''))) bad.push('(a) still has the stem on a page of its own: ' + JSON.stringify(pages));
+  host.innerHTML = w.questionCard_(a, 0) + w.questionTiles_(a);
+  const card = host.querySelector('.qcard');
+  const figsIn = el => el.querySelectorAll('.qpad-art > svg:first-child, .qsheet figure > svg, .qseen svg:first-child').length;
+  if (figsIn(host) !== 1) bad.push('(a) card holds ' + figsIn(host) + ' figures — wanted the one dial');
+  if (!host.querySelector('.qpad .qpad-art > svg[aria-label*="scale dial"]')) bad.push('(a) the dial is not under the pen');
+  const text = card.textContent.replace(/\s+/g, ' ');
+  const sAt = text.indexOf('A can of beans'), aAt = text.indexOf('Draw an arrow');
+  if (sAt < 0 || aAt < 0 || sAt > aAt) bad.push('(a) the card does not read stem, then the part: ' + text.slice(0, 160));
+  if (host.querySelector('.qp-ans-in, .qp-ans, .kp, [data-do="q-fig"]')) bad.push('(a) has a box, a keypad or a Figure tile');
+  const checks = host.querySelectorAll('[data-do="pad-check"]');
+  if (checks.length !== 1) bad.push('(a) has ' + checks.length + ' Check tiles');
+  /* Check is at the foot, after the part's words, as every part's is */
+  const words = card.querySelector('.qsheet-part'), row = card.querySelector('.qpad-send');
+  if (!row || !words || !(words.compareDocumentPosition(row) & w.Node.DOCUMENT_POSITION_FOLLOWING) || row.closest('.qpad')) bad.push('(a) Check is not under the part\'s words at the card\'s foot');
+  /* AN ARROW DRAWN BY HAND, centre to 450 g, in the pen's 340 x 340 over the dial's 340 x 168 (its centre at 170, 84 after the translate) */
+  const at = (g, r) => { const th = g / 1000 * 2 * Math.PI; return [170 + r * Math.sin(th), (84 - r * Math.cos(th)) * 340 / 168]; };
+  const stroke = (g) => [].concat(at(g, 2), at(g, 30), at(g + 3, 46), at(g, 64), at(g - 12, 56), at(g, 64), at(g + 12, 56));
+  const draw = strokes => {
+    try { w.localStorage.setItem(t.padKey(a), JSON.stringify(strokes)); } catch (e) {}
+    host.innerHTML = w.questionCard_(a, 0);
+    const go = host.querySelector('.qpad-send [data-do="pad-check"]');
+    if (!go) return null;
+    A['pad-check'](go);
+    return host.querySelector('.qpad-send .qp-verdict').textContent;
+  };
+  const right = draw([stroke(450)]);
+  if (right !== 'Correct') bad.push('an arrow at 450 g says ' + JSON.stringify(right));
+  const latest = w.subLatest_(t.ansKey(a));
+  if (!latest || latest.v !== 'right') bad.push('the 450 g arrow is not recorded as right: ' + JSON.stringify(latest));
+  const wrong = draw([stroke(300)]);
+  if (wrong !== 'Not yet — have another go') bad.push('an arrow at 300 g says ' + JSON.stringify(wrong));
+  try { w.localStorage.removeItem(t.padKey(a)); } catch (e) {}
+  /* (b): its box under its own words, Check beside it, and no pen, no dial, no Figure tile */
+  host.innerHTML = w.questionCard_(b, 0) + w.questionTiles_(b);
+  if (!host.querySelector('.qp-ans-in, .qp-ans')) bad.push('(b) has no box to type 900 g in');
+  if (host.querySelector('.qpad') || figsIn(host)) bad.push('(b) has a pen or a figure on its card');
+  if (host.querySelector('[data-do="q-fig"]')) bad.push('(b) offers the dial again behind a Figure tile');
+  const bw = host.querySelector('.qsheet-part'), box = host.querySelector('.qp-ans-in, .qp-ans');
+  if (bw && box && !(bw.compareDocumentPosition(box) & w.Node.DOCUMENT_POSITION_FOLLOWING)) bad.push('(b) its box is not under its words');
+  if (host.querySelectorAll('[data-do="qp-check"]').length !== 1) bad.push('(b) wants one Check');
+  host.remove();
+  return bad;
+});
+
+/* ---------- AND EVERY PART IN THE LIBRARY THAT DRAWS ON ITS STEM'S FIGURE: one figure, its pen; no box unless it is marked by one; Check at the foot (381) ---------- */
+check('every part that draws on its stem\'s figure has exactly that one figure on its card, under its pen, no box unless its answer is typed, one Check at the foot, and the other parts\' ink faint under its own', async () => {
+  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined) });
+  await wait(300);
+  const t = w.__t, bad = [];
+  if (typeof w.questionCard_ !== 'function' || typeof w.padSource_ !== 'function' || typeof w.stemCarried_ !== 'function') return ['questionCard_, padSource_ or stemCarried_ not reachable — NOT checked'];
+  t.STUFF().filters = [];
+  const host = w.document.createElement('div');
+  w.document.body.appendChild(host);
+  const all = w.stuffItemsAll_();
+  let n = 0, carried = 0, under = 0;
+  for (const x of all) {
+    if (!x || x.kind !== 'question') continue;
+    const p = w.padSource_(x);
+    if (!p || !p.from || typeof p.from !== 'object') continue;
+    n++;
+    const id = x.row.row_id;
+    host.innerHTML = w.questionCard_(x, 0) + w.questionTiles_(x);
+    const svgs = [...host.querySelectorAll('.qpad-art > svg:first-child, .qsheet figure > svg, .qseen svg:first-child')];
+    if (svgs.length !== 1) bad.push(id + ': ' + svgs.length + ' figures on its card');
+    else if (!svgs[0].closest('.qpad')) bad.push(id + ': its figure is not under its pen');
+    const k = w.answerKinds_(x);
+    if (!k.value && host.querySelector('.qp-ans-in, .qp-ans, .qp-cell')) bad.push(id + ': answered by drawing, and shows a box');
+    const marks = host.querySelectorAll('[data-do="pad-check"], [data-do="pad-send"], [data-do="qp-check"], [data-do="qp-rule"], [data-do="qp-cells-check"]');
+    if (marks.length !== 1) bad.push(id + ': ' + marks.length + ' Check tiles');
+    else if (marks[0].closest('.qpad')) bad.push(id + ': Check is inside the pen, not at the foot');
+    if ([...host.querySelectorAll('[data-do="q-fig"]')].length && (w.figsBefore_(x) || []).some(f => f.html.indexOf(p.svg) >= 0)) bad.push(id + ': the Figure tile offers the figure it draws on');
+    if (w.stemCarried_(x)) {
+      carried++;
+      if (w.pageParts_(x, null).some(q => /^stem/.test(q || '') && (x.stems || [])[+String(q).replace(/^stem(\d+).*$/, '$1')] === p.from)) bad.push(id + ': its stem is carried and still has a page');
+      const words = String(p.from.html || '').replace(/<[^>]*>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ').replace(/\s+/g, ' ').trim().slice(0, 20);
+      /* on the card, or -- a long stem -- on the part's pages in front of it */
+      const pre = w.pageParts_(x, null).filter(q => /^pre\d+$/.test(q || '')).map(q => w.questionPreCard_(x, +q.slice(3))).join('');
+      const seen = (pre + host.innerHTML).replace(/<[^>]*>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ').replace(/\s+/g, ' ');
+      if (words && seen.indexOf(words) < 0) bad.push(id + ': its stem is carried and its words are not on its pages: ' + JSON.stringify(words));
+    }
+    /* THE OTHER PARTS ON THIS FIGURE: a stroke each, then this card shows them faint and its own pen empty */
+    const sib = (Object.values(w.questionParts_()).find(g => g.indexOf(x) >= 0) || []).filter(y => y !== x && (q => q && q.svg === p.svg)(w.padSource_(y)));
+    if (sib.length) {
+      sib.forEach(y => { try { w.localStorage.setItem(t.padKey(y), JSON.stringify([[20, 20, 60, 60]])); } catch (e) {} });
+      host.innerHTML = w.questionCard_(x, 0);
+      const was = host.querySelectorAll('.qpad .qpad-was path').length, own = host.querySelectorAll('.qpad .qpad-g path').length;
+      if (was !== sib.length || own) bad.push(id + ': ' + was + ' of ' + sib.length + ' other parts\' strokes under it, ' + own + ' of its own');
+      else under++;
+      sib.forEach(y => { try { w.localStorage.removeItem(t.padKey(y)); } catch (e) {} });
+    }
+  }
+  host.remove();
+  if (n < 80) bad.push('only ' + n + ' parts draw on a stem\'s figure — wanted the library\'s 82');
+  if (carried < 35) bad.push('only ' + carried + ' carry their stem onto the card — wanted the 39 that come first');
+  if (under < 40) bad.push('only ' + under + ' showed the other parts\' ink under their own');
   return bad.slice(0, 25).concat(bad.length > 25 ? ['… and ' + (bad.length - 25) + ' more'] : []);
 });
 

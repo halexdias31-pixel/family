@@ -1559,7 +1559,8 @@ const unmoved = (sec, where, r, b) => {
       if (q) {
         const eg = await env.page.evaluate(k => {
           const pad = [...document.querySelectorAll('#s-stuff .page.on .qpad')].find(p => p.getAttribute('data-k') === k);
-          const row = pad.querySelector('.qpad-send'), art = pad.querySelector('.qpad-art > svg:first-child');
+          /* the Check row is at the card's foot, under the words, and names its pad (381) */
+          const row = document.querySelector(`#s-stuff .page.on .qpad-send[data-pad="${CSS.escape(k)}"]`), art = pad.querySelector('.qpad-art > svg:first-child');
           return DRAW_MARK.example(row.getAttribute('data-draw'), drawFig_(art.__src || art.outerHTML));
         }, q.k);
         const poly = (eg[0] || []).map(Math.round), way = [];
@@ -1570,8 +1571,9 @@ const unmoved = (sec, where, r, b) => {
           const r = await look(env, q.k, CARD), st = r.stored[0] || [];
           const v = await env.page.evaluate(k => {
             const pad = [...document.querySelectorAll('#s-stuff .page.on .qpad')].find(p => p.getAttribute('data-k') === k);
-            const res = padCheck_(pad.querySelector('.qpad-send'), pad);
-            return { got: res && res.got, of: res && res.of, say: pad.querySelector('.qpad-send .qp-verdict').textContent };
+            const row = document.querySelector(`#s-stuff .page.on .qpad-send[data-pad="${CSS.escape(k)}"]`);
+            const res = padCheck_(row, padOfRow_(row));
+            return { got: res && res.got, of: res && res.of, say: row.querySelector('.qp-verdict').textContent };
           }, q.k);
           if (r.stored.length !== 1 || st.length / 2 !== way.length) fail('straight', at + ' ' + POLY, `a quadrilateral paused at each corner stored ${JSON.stringify(r.stored).slice(0, 120)} — wanted its ${way.length} corners`);
           if (!(v.got >= 1 && v.got === v.of)) fail('straight', at + ' ' + POLY, `the straightened quadrilateral is marked ${v.got}/${v.of} (${v.say}) — wanted right`);

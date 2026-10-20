@@ -33,9 +33,12 @@ candidates from the audit's harness, re-scanned against the file -- `scan` below
           cross on (i)'s probability scale, a line of best fit through the points (a) plotted
   NOT     the paper prints a picture per part ("Beside each question is a blank square grid"; the
           three elevations; "two blank pairs of axes"; 2306-2H Q21's two grids "below")
+  NAMED   a later part that reads the stem's figure an earlier part drew on (381): that figure is
+          on the drawing part's card only, under its pen, and no Figure tile offers it again, so a
+          part whose words need it ("Use the histogram", the median from it, "Does the scatter graph
+          support...", a + 2b off the grid) names the drawing part and has it, marked, on its card
   NOT     the words name the graph without needing anything drawn on it (1911-1H Q20(b): "Point A
-          lies on the graph of y = f(x)"; 1705-1H Q1(d): "Does the scatter graph support...", whose
-          scatter graph is the stem's page)
+          lies on the graph of y = f(x)"; Metric Units Q1(b), two cans of beans)
   NOT     7408 1906 3BA Q3.2 on 3.1's scale: the two figures are drawn to different geometry (3.1
           leaves room for the scale), so 3.1's marks would not land on 3.2's axes; and 3.2 needs the
           Sun's temperature, which is printed. Left for whoever redraws the figure as one.
@@ -91,6 +94,22 @@ USES = {
     'Q-AQA-8462-2406-1F-038': '7',  # the reaction shown in Figure 7 (drawn on in 3.7)
     'Q-AQA-8462-2406-2F-025': '4',  # Use Table 1 and Figure 3 (completed in 2.4)
     'Q-AQA-8464B-2406-1H-025': '4', # Determine the concentration of salt in Z. Use Figure 2
+    'Q-1CM-straight-line-graphs-11b': 'a',  # Use your graph to solve (the file had these three; kept)
+    'Q-1CM-straight-line-graphs-12b': 'a',
+    'Q-1CM-straight-line-graphs-13b': 'a',
+    # ---- the stem's figure, drawn on by an earlier part, read by this one (381)
+    'Q-1MA1-2406-2F-6c': 'b',       # May from the pictogram (b) completed
+    'Q-1CM-interpreting-histograms-8b': 'a',   # Use the histogram (a) completed
+    'Q-1CM-interpreting-histograms-9b': 'a',   # the median, off the histogram (a) completed
+    'Q-1CM-interpreting-histograms-9c': 'a',   # the trimmed trees, against the same histogram
+    'Q-1CM-interpreting-histograms-10b': 'a',  # the percentage sold, off the histogram (a) completed
+    'Q-1CM-probability-tree-diagrams-13b': 'a',  # the profit, from the tree (a) completed
+    'Q-1MA1-2306-2H-16b': 'a',      # the total, off the histogram (a) completed
+    'Q-1MA1-1806-2H-10b': 'a',      # a + 2b, read off the grid (a) drew -2a on
+    'Q-1MA1-1705-1H-1d': 'c',       # Does the scatter graph support ... (c) drew on it
+    'Q-1MA1-1706-1F-21d': 'c',      # the same scatter graph question, Foundation
+    'Q-1MA1-1706-3H-9c': 'b',       # the two box plots, (b) drew the second
+    'Q-1MA1-1805-1H-5b': 'a',       # the pyramid's surface area, from the picture (a) drew on
 }
 
 path = 'data/questions.json'
