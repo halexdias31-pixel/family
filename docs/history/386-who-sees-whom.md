@@ -40,5 +40,5 @@ Unchanged and already admin-only: `listPeople`, `getProfile`, `everyone`, `clien
 `js/check-visibility.js` (new, in check-all): two parents and two children, a friend, an unrelated child, an
 unrelated parent, a tutor and an admin — exactly who each is sent in doGet, the sign-in reply, `myProfile`,
 `messages`; the family cards; the threads; friending a child accepted, a parent refused; a DM to a co-parent refused.
-check-surnames, check-profile and check-saved-answers asked for a parent's card or name sent to a child;
+check-surnames, check-profile, check-saved-answers and check-flow's surname walk asked for a parent's card or name sent to a child;
 those now assert the opposite, and the board / "who reacted" are asked of the tutor and the admin.
