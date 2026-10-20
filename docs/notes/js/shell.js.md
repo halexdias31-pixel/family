@@ -5992,3 +5992,11 @@ top level
 --------------------------------------------------------------------------------------------- */
 ```
 
+### AND BEFORE THE PAYLOAD, WHICH TAKES 15–45s FROM THE REAL BACKEND:
+
+top level, before `aheadPreOpen_`
+
+```
+/* AND BEFORE THE PAYLOAD, WHICH TAKES 15–45s FROM THE REAL BACKEND: only what reads no facts. THE OWNER, 20 Oct: "if i load into my web and wait 30 seconds then scroll to, lets say, chess, it still hasn't loaded. it waited for me to arrive near chess to start loading it." The builder opened only when the first payload landed, so for as long as the sheet was being asked nothing beside the column in front was drawn. Now it opens two frames after the boot's first draw for the jobs marked `pre` — a `pure` widget's drawing (chess, the word games, the calculator), which reads no facts, so it is carried across the payload's paint by `widgetsHeld_` rather than drawn again. Everything else waits for `aheadOpen_`, as before. Not under data saver (`saveData`), which keeps the old behaviour. docs/history/382. */
+```
+

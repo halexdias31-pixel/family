@@ -16,6 +16,8 @@ try {
 }
 
 load();
+/* AND WHAT NEEDS NO PAYLOAD IS BUILT WHILE IT IS ASKED FOR — see `aheadPreOpen_`. */
+try { aheadPreOpen_(); } catch (e) {}
 
 /* ---------- AND FROM HERE ON, WHETHER THIS IS STILL THE CURRENT BUILD § */
 try { watchBuild_(); } catch (e) {}

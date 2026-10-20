@@ -18,6 +18,8 @@ const want = k => !ONLY.length || ONLY.indexOf(k) !== -1;
 const SIZES = [[390, 844], [820, 1180]].filter(s => !WIDTH || s[0] === WIDTH);
 const STUDENT = { name: 'Sam Student', personId: 'P9', person_id: 'P9', role: 'student', roles: ['student'], handle: 'sam_quick12' };
 const FLICKS = 15, PERIOD = 200, BURST = 4;
+/* THE IDLE RUN: the backend answers at LATE_MS (the real one takes 15–45s), widgets are asked at PRE_MS, columns jumped to at IDLE_MS. */
+const LATE_MS = 12000, PRE_MS = 8000, IDLE_MS = 30000;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 /* ---------- THE FIXTURE, WITH ENOUGH IN IT TO SHOW A FEED AND A SAVED COLUMN § */
@@ -259,7 +261,8 @@ const found = [];
 const fail = (rule, where, msg) => found.push({ rule, where, msg });
 const note = s => { if (VERBOSE) console.log('  ' + s); };
 
-async function boot(browser, W, H, body, hold) {
+/* `late`: THE BACKEND ANSWERS THAT MANY MS AFTER IT IS ASKED, and the boot is handed back at once — the idle run's. */
+async function boot(browser, W, H, body, hold, late) {
   const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, serviceWorkers: 'block' });
   const page = await ctx.newPage();
   const cdp = await ctx.newCDPSession(page);
@@ -275,11 +278,12 @@ async function boot(browser, W, H, body, hold) {
   const JPG = fs.readFileSync(path.join(ROOT, 'data/reels/archetest.jpg'));
   await ctx.route(/^https?:\/\/(?!localhost|127\.0\.0\.1)/, async r => {
     const u = r.request().url();
-    if (/script\.google(usercontent)?\.com/.test(u)) return r.fulfill({ status: 200, contentType: 'application/json', body }).catch(() => {});
+    if (/script\.google(usercontent)?\.com/.test(u)) { if (late) await sleep(late); return r.fulfill({ status: 200, contentType: 'application/json', body }).catch(() => {}); }
     if (r.request().resourceType() === 'image') { await sleep(120); return r.fulfill({ status: 200, contentType: 'image/jpeg', body: JPG }).catch(() => {}); }
     return r.fulfill({ status: 204, body: '' }).catch(() => {});
   });
   await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'commit' });
+  if (late) return { ctx, page, cdp, errs };
   /* THE PAYLOAD PAINTED, THE LIBRARY IN, AND THE INBOX'S LANDING BEHIND US — then the builder's quiet. */
   await page.waitForFunction(() => typeof FIRST_PAINT_DONE !== 'undefined' && FIRST_PAINT_DONE
     && typeof LIBRARY_ROWS !== 'undefined' && Array.isArray(LIBRARY_ROWS) && LIBRARY_ROWS.length && window.__rc, null, { timeout: 180000, polling: 250 });
@@ -489,6 +493,46 @@ let PORT = 0;
       if (held) await held.ctx.close();
     }
   }
+  /* OPENED, LEFT ALONE FOR 30s, THEN THE FURTHEST COLUMN AND EVERY WIDGET COLUMN JUMPED TO (docs/history/382): § */
+  if (want('idle')) for (const [W, H] of SIZES) {
+    runs++;
+    const where = `${W}x${H} at ${CPU}x, left alone for ${IDLE_MS / 1000}s`;
+    let env;
+    try {
+      const t0 = Date.now();
+      env = await boot(browser, W, H, body, false, LATE_MS);
+      const { page } = env;
+      await page.waitForFunction(() => typeof go === 'function' && window.__rc, null, { timeout: 60000, polling: 100 });
+      /* BEFORE THE PAYLOAD: every widget that reads no facts is drawn on every column but the one in front. */
+      await sleep(Math.max(0, PRE_MS - (Date.now() - t0)));
+      const pre = await page.evaluate(() => ({ loaded: !!LOADED, veiled: WIDGET_COLS.filter(c => c !== AT && TABS.some(t => t.id === c))
+        .flatMap(c => widgetsOn_(c).filter(w => w.pure).map(w => [c, slotOn_(c, String(w.id))]).filter(([, sl]) => !sl || sl.getAttribute('aria-busy')).map(([c, sl]) => c + ' #wgt-' + (sl ? sl.id.slice(4) : '?'))) }));
+      if (pre.loaded) fail('REACH', where, `the payload landed before ${PRE_MS / 1000}s, so nothing was asked of the time before it`);
+      else if (pre.veiled.length) fail('NOT DRAWN BEFORE THE PAYLOAD', where, `${pre.veiled.length} widget(s) that read no facts still under the loader at ${PRE_MS / 1000}s: ${pre.veiled.slice(0, 6).join(', ')}`);
+      note(`${where}: at ${PRE_MS / 1000}s, the payload not in, widgets reading no facts under the loader: ${pre.veiled.length}`);
+      await sleep(Math.max(0, IDLE_MS - (Date.now() - t0)));
+      const home = await page.evaluate(() => LOADED ? AT : null);
+      if (!home) throw new Error(`the payload had not landed at ${IDLE_MS / 1000}s`);
+      const far = await page.evaluate(() => { const i = TABS.findIndex(t => t.id === AT); return (i > TABS.length - 1 - i ? TABS[0] : TABS[TABS.length - 1]).id; });
+      for (const col of [...new Set([far, 'games', 'tools', 'saved', 'shop'])]) {
+        const seg = `${where}, then ${col}`;
+        await page.evaluate(seg => window.__rc.start(seg), seg);
+        await page.evaluate(c => go(c, false, true), col);
+        await sleep(1200);
+        const r = await page.evaluate(() => window.__rc.stop());
+        r.off = [];
+        judge(seg, r, 5);
+        const left = await page.evaluate(c => { const h = document.getElementById('s-' + c);
+          return h ? [...h.querySelectorAll('[aria-busy="true"], .loading')].filter(e => !e.closest('#wgt-reels')).map(e => e.id || e.className).slice(0, 6) : ['no column']; }, col);
+        if (left.length) fail('NOT DRAWN', seg, `still waiting on arrival: ${left.join(', ')}`);
+        note(`${seg}: ${r.frames} frames, waiting on arrival: ${left.length}`);
+        await page.evaluate(h => go(h, false, true), home);
+        await sleep(300);
+      }
+      if (env.errs.length) fail('PAGE ERROR', where, env.errs.slice(0, 3).join(' | '));
+    } catch (e) { fail('REACH', where, 'the run threw: ' + String(e && e.message || e).slice(0, 160)); }
+    if (env) await env.ctx.close();
+  }
   await browser.close();
   server.close();
   const secs = Math.round((Date.now() - t0) / 1000);
@@ -496,7 +540,7 @@ let PORT = 0;
   if (narrowed) console.log(`reach: NARROWED to ${ONLY.join(',') || 'every run'} at ${SIZES.map(s => s[0]).join(' and ')}, ${CPU}x — not the whole check`);
   if (!found.length) {
     console.log(`reach: ${runs} runs at ${SIZES.map(s => s.join('x')).join(' and ')}, ${CPU}x CPU, ${secs}s`);
-    console.log('OK — every card a flick reached was drawn before it got there: no hole, no empty card, no loader, no transparent column, nothing running off the glass.');
+    console.log('OK — every card a flick reached was drawn before it got there: no hole, no empty card, no loader, no transparent column, nothing running off the glass; and 30s after opening, every column is drawn.');
     process.exit(0);
   }
   const by = {};
