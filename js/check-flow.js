@@ -3704,14 +3704,53 @@ check('the LEGO trade-in placeholder comes straight after the calendar on the To
   return bad.concat(placeholderFaults_(slot));
 });
 
-/* ---------- THE WHITEBOARD: LOCK, DRAW, UNDO, KEPT THROUGH A REPAINT, CLEAR -- AND NEVER AN ANSWER § */
-check('the whiteboard locks, draws, undoes, survives a repaint and clears — and is never sent as an answer', async () => {
+/* ---------- THE WHITEBOARD SINCE 377: a maths notebook (board.js), driven here through its own listeners ---------- */
+const nbFire_ = (w, el, type, x, y, id) => {
+  const e = new w.MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y });
+  Object.defineProperty(e, 'pointerId', { value: id || 1 });
+  el.dispatchEvent(e);
+};
+/* ONE STROKE ON THE NOTEBOOK'S PAD. jsdom lays nothing out, so the pad is its 300 x 300 default and pad px are client px. */
+const nbDraw_ = (w, root, pts, id) => {
+  const pad = root.querySelector('.nb-pad');
+  nbFire_(w, pad, 'pointerdown', pts[0][0], pts[0][1], id);
+  pts.slice(1).forEach(p => nbFire_(w, pad, 'pointermove', p[0], p[1], id));
+  nbFire_(w, pad, 'pointerup', pts[pts.length - 1][0], pts[pts.length - 1][1], id);
+};
+/* `n` FINGERS TAPPED TOGETHER ON THE PAD: two undo, three redo. */
+const nbTapN_ = (w, root, n) => {
+  const pad = root.querySelector('.nb-pad');
+  for (let i = 1; i <= n; i++) nbFire_(w, pad, 'pointerdown', 60 + 40 * i, 120, 10 + i);
+  for (let i = 1; i <= n; i++) nbFire_(w, pad, 'pointerup', 60 + 40 * i, 120, 10 + i);
+};
+const nbCount_ = (w, root) => { const el = root && root.querySelector('.nb'); return el ? w.nbState_(el.getAttribute('data-k')).items.length : 0; };
+/* THE BOARD AS TOOLS DRAWS IT, in a host of the check's own: `initBoard_` fills every `.nb-box`, and `boardWhoChanged_` draws it again for whoever signs in. */
+const nbEdge_ = w => {
+  const host = w.document.createElement('div');
+  host.className = 'nb-box';
+  w.document.body.appendChild(host);
+  w.initBoard_();
+  return { host, key: () => { const el = host.querySelector('.nb'); return el ? el.getAttribute('data-k') : ''; },
+           strokes: () => nbCount_(w, host), draw: pts => nbDraw_(w, host, pts) };
+};
+/* THE PEN ON A BLANK SHEET, which the pen's journeys below draw on: mounted in the whiteboard's slot, which holds the notebook since 377. */
+async function penSheet_(w, d) {
+  for (let i = 0; i < 100 && !d.querySelector('#s-tools #wgt-whiteboard'); i++) await wait(100);
+  const slot = d.querySelector('#s-tools #wgt-whiteboard');
+  if (!slot) return false;
+  if (!slot.querySelector('.wb-box')) { const host = d.createElement('div'); host.className = 'wb-box'; slot.appendChild(host); }
+  w.initWhiteboard();
+  return true;
+}
+
+/* ---------- THE WHITEBOARD: WRITTEN ON, UNDONE BY TWO FINGERS, KEPT THROUGH A REPAINT, CLEARED -- AND NEVER AN ANSWER ---------- */
+check('the whiteboard notebook draws, undoes, survives a repaint and clears under a board: key — and is never sent as an answer', async () => {
   const { w } = boot();
   await wait(300);
   const t = w.__t, A = t && t.ACTIONS, d = w.document, bad = [];
-  if (!t || typeof w.initWhiteboard !== 'function' || typeof t.widgetsOf !== 'function' || typeof t.allWidgets !== 'function'
-      || !A['pad-draw'] || !A['pad-undo'] || !A['pad-clear'] || typeof w.answersAdopt_ !== 'function' || typeof w.axisFree !== 'function') {
-    return ['initWhiteboard, the pad-draw / pad-undo / pad-clear handlers, answersAdopt_ or axisFree are not reachable — the whiteboard was NOT checked'];
+  if (!t || typeof w.initBoard_ !== 'function' || typeof w.nbState_ !== 'function' || typeof t.widgetsOf !== 'function' || typeof t.allWidgets !== 'function'
+      || !A['nb-shape'] || !A['nb-clear'] || typeof w.answersAdopt_ !== 'function' || typeof w.axisFree !== 'function') {
+    return ['initBoard_, nbState_, the nb-shape / nb-clear handlers, answersAdopt_ or axisFree are not reachable — the whiteboard was NOT checked'];
   }
   const tools = t.allWidgets().filter(x => x.kind === 'tool').map(x => String(x.id));
   /* THE LIBRARY CARDS ARE APPENDED AFTER IT (docs/history/339, its review) — the same rule kept: nothing above. */
@@ -3727,60 +3766,39 @@ check('the whiteboard locks, draws, undoes, survives a repaint and clears — an
   t.go('tools', false, true);
   await wait(LEAVE_MS); await woken_();
   t.goPage('tools', roster.indexOf('whiteboard'), true);
-  const pad = () => d.querySelector('#s-tools #wgt-whiteboard .qpad');
-  /* THE BOARD IS WAITED FOR, NOT GUESSED AT. § */
-  for (let i = 0; i < 100 && !pad(); i++) await wait(100);
+  const slot = () => d.querySelector('#s-tools #wgt-whiteboard');
+  const nb = () => d.querySelector('#s-tools #wgt-whiteboard .nb');
+  for (let i = 0; i < 100 && !nb(); i++) await wait(100);
   await woken_();
-  if (!pad()) return bad.concat(['the whiteboard did not draw a pad on the Tools column']);
-  const k = pad().getAttribute('data-k');
+  if (!nb()) return bad.concat(['the whiteboard did not draw a notebook on the Tools column']);
+  const k = nb().getAttribute('data-k');
   if (k !== 'board:u:P9:whiteboard') bad.push('the board is kept under ' + JSON.stringify(k) + ', wanted "board:u:P9:whiteboard" — a `pad:` key is a question\'s answer');
   try { w.localStorage.removeItem(k); } catch (e) {}
-  w.initWhiteboard();
+  w.initBoard_();
 
-  /* THE BAR: the padlock, Undo, Clear -- and no Pen, Ruler or Compass. */
-  const bar = [...pad().querySelectorAll('.qpad-bar [data-do]')].map(b => b.getAttribute('data-do')).join(' ');
-  if (bar !== 'pad-draw pad-undo pad-clear') bad.push('the bar offers [' + bar + '], wanted the padlock, Undo and Clear and nothing else');
-  if (!/Kept on this device only/.test((pad().querySelector('.qpad-note') || {}).textContent || '')) {
-    bad.push('the note under the board does not say it is kept on this device — signed in, the pen\'s own note claims the account');
-  }
+  /* THE BAR: the four shapes and Clear, as tiles -- no padlock: the pad is always a pad, and the page lets a swipe through. */
+  const bar = [...nb().querySelectorAll('.nb-bar [data-do]')].map(b => b.getAttribute('data-do') + (b.getAttribute('data-shape') ? ':' + b.getAttribute('data-shape') : '')).join(' ');
+  if (bar !== 'nb-shape:frac nb-shape:pow nb-shape:root nb-shape:int nb-clear') bad.push('the bar offers [' + bar + '], wanted Fraction, Power, Root, Integral and Clear');
+  if (!/Kept on this device only/.test((nb().querySelector('.nb-note') || {}).textContent || '')) bad.push('the note under the board does not say it is kept on this device');
+  const padEl = () => nb().querySelector('.nb-pad'), bookEl = () => nb().querySelector('.nb-book');
+  if (w.axisFree(padEl(), 'x', -1) || w.axisFree(padEl(), 'y', 1)) bad.push('the grid may take a drag that starts on the pad, so a stroke slides the column');
+  if (!w.axisFree(bookEl(), 'x', -1)) bad.push('a swipe that starts on the page is refused the grid — an empty board eating the column\'s swipe, the notepad\'s fault');
 
-  /* A REAL DRAG, through the pen's own listeners, on a 300 x 400 board at (20, 100). */
-  const L = 20, T = 100, W = 300, H = 400;
-  const ink = () => pad().querySelector('.qpad-ink');
-  const fix = () => { ink().getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T }); };
-  const Ev = w.PointerEvent || w.MouseEvent;
-  const fire = (type, px, py) => ink().dispatchEvent(new Ev(type, { bubbles: true, cancelable: true, clientX: px, clientY: py, pointerId: 1 }));
-  const drag = pts => { fire('pointerdown', pts[0][0], pts[0][1]); pts.slice(1).forEach(p => fire('pointermove', p[0], p[1])); fire('pointerup', pts[pts.length - 1][0], pts[pts.length - 1][1]); };
   const stored = () => { try { return JSON.parse(w.localStorage.getItem(k) || '[]'); } catch (e) { return []; } };
-  const paths = () => pad().querySelectorAll('.qpad-g path').length;
-  fix();
-
-  if (!w.axisFree(ink(), 'x', -1)) bad.push('unlocked, the board refuses the grid a sideways swipe — an empty widget eating the swipe, the notepad\'s fault');
-  drag([[60, 200], [160, 220], [260, 240]]);
-  if (stored().length || paths()) bad.push('unlocked, a drag drew ' + stored().length + ' stroke(s) — the pen must be off until the padlock is pressed');
-
-  A['pad-draw'](pad().querySelector('.qpad-lock'));
-  if (!pad().classList.contains('is-drawing') || !ink().hasAttribute('data-noswipe')) bad.push('the padlock did not lock the board: no frame or no `data-noswipe`');
-  if (w.axisFree(ink(), 'x', -1) || w.axisFree(ink(), 'y', 1)) bad.push('locked, the grid may still take a drag that starts on the board, so a stroke slides the column');
-  /* (20+30, 100+40) is units (34, 34); (20+150, 100+200) is (170, 170); (20+270, 100+360) is (306, 306). § */
-  drag([[50, 140], [170, 300], [290, 460]]);
+  nbDraw_(w, slot(), [[60, 150], [110, 165], [160, 180]]);
   let s = stored();
-  if (s.length !== 1 || JSON.stringify(s[0]) !== '[34,34,306,306]') bad.push('a locked drag stored ' + JSON.stringify(s) + ', wanted one stroke [34,34,306,306] -- its two ends, thinned');
-  if (paths() !== 1) bad.push('a locked drag drew ' + paths() + ' path(s), wanted 1');
+  if (s.length !== 1 || !s[0] || !Array.isArray(s[0].p) || nbCount_(w, slot()) !== 1) bad.push('a stroke on the pad stored ' + JSON.stringify(s).slice(0, 120) + ', wanted one stroke in the notebook\'s format');
 
-  A['pad-undo'](pad().querySelector('.qpad-undo'));
-  if (stored().length || paths()) bad.push('Undo left ' + stored().length + ' stroke(s) stored and ' + paths() + ' drawn');
+  nbTapN_(w, slot(), 2);
+  if (stored().length || nbCount_(w, slot())) bad.push('a two-finger tap left ' + stored().length + ' stroke(s) stored and ' + nbCount_(w, slot()) + ' drawn');
+  nbTapN_(w, slot(), 3);
+  if (stored().length !== 1) bad.push('a three-finger tap did not put the stroke back: ' + JSON.stringify(stored()).slice(0, 100));
 
-  drag([[80, 150], [120, 170]]);
-  if (stored().length !== 1) bad.push('the stroke after Undo was not kept: ' + JSON.stringify(stored()));
-
-  /* THE APP'S OWN REPAINT, which rebuilds the column and restarts its widgets -- not a call to
-     `initWhiteboard`, which would pass with a roster entry that had lost its `start`. */
+  /* THE APP'S OWN REPAINT, which rebuilds the column and restarts its widgets. */
   try { t.repaint(); } catch (e) { bad.push('repaint threw: ' + e.message); }
   await wait(50);
-  if (!pad()) return bad.concat(['the whiteboard was not drawn again after a repaint']);
-  if (paths() !== 1) bad.push('after a repaint the board shows ' + paths() + ' mark(s), wanted the one kept');
-  if (!pad().classList.contains('is-drawing') || !ink().hasAttribute('data-noswipe')) bad.push('a repaint unlocked the board while `PAD_ON` still says it is locked — the half-armed pad');
+  if (!nb()) return bad.concat(['the whiteboard was not drawn again after a repaint']);
+  if (nbCount_(w, slot()) !== 1) bad.push('after a repaint the board shows ' + nbCount_(w, slot()) + ' mark(s), wanted the one kept');
 
   /* NEVER AN ANSWER: the backlog sweep is what sends every `pad:<who>:` on the device to the account. */
   w.answersAdopt_('P9', {});
@@ -3794,29 +3812,30 @@ check('the whiteboard locks, draws, undoes, survives a repaint and clears — an
   t.USER(kit);
   try { t.repaint(); } catch (e) {}
   await wait(50);
-  if (pad() && paths()) bad.push('a second person signed in on the phone sees the first one\'s board');
+  if (nb() && nbCount_(w, slot())) bad.push('a second person signed in on the phone sees the first one\'s board');
   t.USER(sam);
   try { t.repaint(); } catch (e) {}
   await wait(50);
-  if (!pad() || paths() !== 1) bad.push('signing back in does not bring the board back');
+  if (!nb() || nbCount_(w, slot()) !== 1) bad.push('signing back in does not bring the board back');
 
-  A['pad-clear'](pad().querySelector('.qpad-clear'));
-  if (w.localStorage.getItem(k) !== null || paths()) bad.push('Clear left ' + stored().length + ' stroke(s) stored and ' + paths() + ' drawn');
+  /* CLEAR, AND TWO FINGERS PUT IT BACK. */
+  A['nb-clear'](nb().querySelector('.nb-clear'));
+  if (w.localStorage.getItem(k) !== null || nbCount_(w, slot())) bad.push('Clear left ' + stored().length + ' stroke(s) stored and ' + nbCount_(w, slot()) + ' drawn');
+  nbTapN_(w, slot(), 2);
+  if (stored().length !== 1) bad.push('two fingers straight after Clear did not put the board back: ' + JSON.stringify(stored()).slice(0, 100));
 
-  if (typeof t.padOn === 'function') t.padOn('');
   try { w.localStorage.removeItem(k); } catch (e) {}
   return bad;
 });
 
-/* ---------- AND WHAT THE TWO REVIEWS OF THE BOARD FOUND, ASKED OF IT § */
-check('the whiteboard keeps one finger to a stroke, is not cut by a repaint, puts a Clear back, owns up to a refused stroke and leaves with whoever signs out', async () => {
+/* ---------- AND WHAT THE REVIEWS OF THE OLD BOARD FOUND, ASKED OF THE NOTEBOOK ---------- */
+check('the whiteboard notebook keeps one finger to a stroke, is not cut by a repaint, owns up to a refused stroke, stops at its ceiling and leaves with whoever signs out', async () => {
   const { w } = boot();
   await wait(300);
-  const t = w.__t, A = t && t.ACTIONS, d = w.document, bad = [];
-  if (!t || typeof w.initWhiteboard !== 'function' || typeof w.padHold_ !== 'function' || typeof w.padWhoChanged_ !== 'function'
-      || typeof w.signedOut_ !== 'function' || typeof w.signedIn_ !== 'function' || typeof t.padOn !== 'function'
-      || !A['pad-undo'] || !A['pad-clear'] || !w.Storage) {
-    return ['padHold_, padWhoChanged_, signedOut_/signedIn_, padOn or the pad handlers are not reachable — the board was NOT checked'];
+  const t = w.__t, d = w.document, bad = [];
+  if (!t || typeof w.initBoard_ !== 'function' || typeof w.boardHold_ !== 'function' || typeof w.boardWhoChanged_ !== 'function'
+      || typeof w.signedOut_ !== 'function' || typeof w.signedIn_ !== 'function' || !w.Storage) {
+    return ['initBoard_, boardHold_, boardWhoChanged_ or signedOut_/signedIn_ are not reachable — the board was NOT checked'];
   }
   const toasts = [];
   const realToast = w.toast;
@@ -3827,143 +3846,96 @@ check('the whiteboard keeps one finger to a stroke, is not cut by a repaint, put
   t.go('tools', false, true);
   await wait(LEAVE_MS); await woken_();
   t.goPage('tools', roster.indexOf('whiteboard'), true);
-  const pad = () => d.querySelector('#s-tools #wgt-whiteboard .qpad');
-  /* WAITED FOR, the journey above's reason. */
-  for (let i = 0; i < 100 && !pad(); i++) await wait(100);
+  const slot = () => d.querySelector('#s-tools #wgt-whiteboard');
+  const nb = () => d.querySelector('#s-tools #wgt-whiteboard .nb');
+  for (let i = 0; i < 100 && !nb(); i++) await wait(100);
   await woken_();
-  if (!pad()) { w.toast = realToast; return ['the whiteboard did not draw a pad on the Tools column']; }
-  const k = pad().getAttribute('data-k');
+  if (!nb()) { w.toast = realToast; return ['the whiteboard did not draw a notebook on the Tools column']; }
+  const k = nb().getAttribute('data-k');
   try { w.localStorage.removeItem(k); } catch (e) {}
-  t.padOn(k);
-  w.initWhiteboard();
-  const L = 20, T = 100, W = 300, H = 400;
-  const ink = () => pad().querySelector('.qpad-ink');
-  const fix = () => { ink().getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T }); };
-  /* A POINTER BY ITS ID. jsdom has no PointerEvent, so the id is put on a mouse event as the browser
-     would carry it -- the one field the pen's listeners tell two fingers apart by. */
-  const fire = (type, px, py, id) => {
-    const e = new w.MouseEvent(type, { bubbles: true, cancelable: true, clientX: px, clientY: py });
-    Object.defineProperty(e, 'pointerId', { value: id });
-    ink().dispatchEvent(e);
-  };
+  w.initBoard_();
+  const pad = () => nb().querySelector('.nb-pad');
+  const fire = (type, px, py, id) => nbFire_(w, pad(), type, px, py, id);
   const stored = () => { try { return JSON.parse(w.localStorage.getItem(k) || '[]'); } catch (e) { return []; } };
-  const paths = () => pad().querySelectorAll('.qpad-g path').length;
-  fix();
+  const count = () => nbCount_(w, slot());
 
-  /* ONE FINGER: finger 1 along the top and down the right; a palm goes down at the bottom, moves and
-     lifts in the middle of it. Units: x 50 -> 34, 170 -> 170, 290 -> 306; y 140 -> 34, 300 -> 170. */
+  /* ONE FINGER: finger 1 draws 120px, then a palm lands, moves and lifts in the middle of it -- a hand settling, not a gesture. */
   fire('pointerdown', 50, 140, 1);
+  fire('pointermove', 110, 140, 1);
   fire('pointermove', 170, 140, 1);
-  fire('pointerdown', 280, 470, 2);
-  fire('pointermove', 270, 460, 2);
-  fire('pointermove', 290, 140, 1);
-  fire('pointerup', 270, 460, 2);
-  fire('pointermove', 290, 300, 1);
-  fire('pointerup', 290, 300, 1);
+  fire('pointerdown', 280, 270, 2);
+  fire('pointermove', 270, 260, 2);
+  fire('pointermove', 230, 140, 1);
+  fire('pointerup', 270, 260, 2);
+  fire('pointermove', 290, 200, 1);
+  fire('pointerup', 290, 200, 1);
   let s = stored();
-  if (s.length !== 1 || JSON.stringify(s[0]) !== '[34,34,306,34,306,170]') {
-    bad.push('a palm mid-stroke left ' + JSON.stringify(s) + ', wanted finger 1\'s one stroke [34,34,306,34,306,170] -- a second pointer took the stroke over');
-  }
-  if (paths() !== s.length || pad().querySelector('[data-live]')) bad.push('after the palm the board draws ' + paths() + ' path(s) for ' + s.length + ' stored, or a live preview was left behind');
+  if (s.length !== 1 || count() !== 1) bad.push('a palm mid-stroke left ' + s.length + ' stroke(s) stored and ' + count() + ' drawn, wanted finger 1\'s one stroke');
 
   /* A REPAINT HALF WAY THROUGH A STROKE -- a payload landing, or the inbox reply after every load. */
   fire('pointerdown', 50, 200, 1);
-  fire('pointermove', 100, 200, 1);
-  const was = ink();
-  /* AND NOT RESTARTED EITHER: `startScreen_` asks `padHold_` too, so the column's widgets are left
-     running rather than stopped and started in one task under the finger. */
+  fire('pointermove', 100, 205, 1);
+  const was = nb();
+  if (!w.boardHold_('tools')) bad.push('a finger on the board does not hold the Tools column against a repaint');
   const realStart = w.toolsStart_, restarted = [];
   w.toolsStart_ = function (kind) { restarted.push(kind); return realStart.apply(this, arguments); };
   try { t.repaint(); } catch (e) { bad.push('repaint threw: ' + e.message); }
   finally { w.toolsStart_ = realStart; }
   if (restarted.indexOf('tool') !== -1) bad.push('a repaint half way through a stroke restarted every widget on the Tools column under the finger');
-  if (ink() !== was) {
-    bad.push('a repaint replaced the board under a stroke being drawn — the rest of the stroke goes into a detached copy');
-    fix();
-  }
-  fire('pointermove', 200, 200, 1);
-  fire('pointerup', 200, 200, 1);
-  s = stored();
-  if (s.length !== 2 || JSON.stringify(s[1]) !== '[34,85,204,85]') bad.push('the stroke a repaint landed in was kept as ' + JSON.stringify(s[1]) + ', wanted it whole: [34,85,204,85]');
-  if (paths() !== s.length) bad.push('after the repaint the board draws ' + paths() + ' path(s) for ' + s.length + ' stored');
+  if (nb() !== was) bad.push('a repaint replaced the board under a stroke being drawn — the rest of the stroke goes into a detached copy');
+  fire('pointermove', 200, 215, 1);
+  fire('pointerup', 200, 215, 1);
+  if (stored().length !== 2 || count() !== 2) bad.push('the stroke a repaint landed in was not kept: ' + stored().length + ' stored');
 
-  /* CLEAR, AND UNDO PUTS IT BACK. */
-  const before = JSON.stringify(stored());
-  A['pad-clear'](pad().querySelector('.qpad-clear'));
-  if (w.localStorage.getItem(k) !== null || paths()) bad.push('Clear left the board with ' + paths() + ' path(s) drawn');
-  A['pad-undo'](pad().querySelector('.qpad-undo'));
-  if (JSON.stringify(stored()) !== before || paths() !== stored().length) bad.push('Undo straight after Clear did not put the board back: ' + JSON.stringify(stored()) + ' against ' + before);
-
-  /* A STROKE THE DEVICE REFUSED: § */
+  /* A STROKE THE DEVICE REFUSED: held for the visit, drawn, and said. */
   const S = w.Storage.prototype, realSet = S.setItem;
   const refuse = () => { S.setItem = function (key, v) {
     if (key === k) { const e = new Error('the quota has been exceeded'); e.name = 'QuotaExceededError'; throw e; }
     return realSet.call(this, key, v);
   }; };
-  const note = () => ((pad().querySelector('.qpad-note') || {}).textContent || '');
+  const note = () => ((nb().querySelector('.nb-note') || {}).textContent || '').trim();
   const held = () => { try { return JSON.parse(w.ansValue_(k) || '[]'); } catch (e) { return []; } };
   const n0 = stored().length;
   toasts.length = 0;
   refuse();
-  try {
-    fire('pointerdown', 60, 400, 1); fire('pointermove', 200, 420, 1); fire('pointerup', 200, 420, 1);
-  } finally { S.setItem = realSet; }
+  try { nbDraw_(w, slot(), [[60, 250], [130, 255], [200, 260]]); } finally { S.setItem = realSet; }
   if (stored().length !== n0) bad.push('the refused write was NOT set up: the device holds ' + stored().length + ' stroke(s), wanted ' + n0);
-  if (paths() !== n0 + 1 || held().length !== n0 + 1) bad.push('a stroke the device refused is not held and drawn: ' + paths() + ' path(s) on the screen, ' + held().length + ' held for the visit, wanted ' + (n0 + 1) + ' of each — it vanished under the finger');
-  if (note() !== 'Not saved — this browser is not keeping it.') bad.push('under a stroke the device refused the board says ' + JSON.stringify(note()) + ' — nothing on the board says it is not kept');
+  if (count() !== n0 + 1 || held().length !== n0 + 1) bad.push('a stroke the device refused is not held and drawn: ' + count() + ' drawn, ' + held().length + ' held for the visit, wanted ' + (n0 + 1));
+  if (note() !== 'Not saved — this browser is not keeping it.') bad.push('under a stroke the device refused the board says ' + JSON.stringify(note()));
   if (!toasts.some(m => /not saving/i.test(m))) bad.push('nothing said the device refused the stroke (toasts: ' + JSON.stringify(toasts) + ')');
-  /* ROOM AGAIN: the next stroke is added to the list on the screen, and the device keeps them all. */
-  fire('pointerdown', 60, 440, 1); fire('pointermove', 200, 460, 1); fire('pointerup', 200, 460, 1);
-  if (stored().length !== n0 + 2 || paths() !== n0 + 2) bad.push('with room again the board stores ' + stored().length + ' and draws ' + paths() + ', wanted ' + (n0 + 2) + ' of each — the held stroke was lost');
+  nbDraw_(w, slot(), [[60, 280], [130, 285], [200, 290]]);
+  if (stored().length !== n0 + 2 || count() !== n0 + 2) bad.push('with room again the board stores ' + stored().length + ' and draws ' + count() + ', wanted ' + (n0 + 2));
   if (!/Kept on this device only/.test(note())) bad.push('with every stroke stored again the board still says ' + JSON.stringify(note()));
 
-  /* AND ONE PAST THE BOARD'S CEILING: a board already holding more than it may. */
+  /* AND ONE PAST THE BOARD'S CEILING: a board already holding more than it may (the pen's old format, 26,000 numbers). */
   const big = []; for (let i = 0; i < 26000; i++) big.push(i % 340, (i * 7) % 340);
   w.localStorage.setItem(k, JSON.stringify([big]));
-  w.initWhiteboard(); fix();
+  w.initBoard_();
   toasts.length = 0;
-  fire('pointerdown', 60, 400, 1); fire('pointermove', 200, 420, 1); fire('pointerup', 200, 420, 1);
-  if (stored().length !== 1 || paths() !== 1) bad.push('a stroke past the board\'s ceiling was kept or left drawn: ' + stored().length + ' stored, ' + paths() + ' drawn');
+  nbDraw_(w, slot(), [[60, 250], [130, 255], [200, 260]]);
+  if (stored().length !== 1 || count() !== 1) bad.push('a stroke past the board\'s ceiling was kept or left drawn: ' + stored().length + ' stored, ' + count() + ' drawn');
   if (!toasts.some(m => /board is full/i.test(m))) bad.push('nothing said the board is full (toasts: ' + JSON.stringify(toasts) + ')');
-  /* AND WITH A HELD COPY IN THE WAY: § */
+  /* AND A BOARD FROM BEFORE 377 IS DRAWN AND KEPT AS IT WAS. */
   w.ansStore_(k, JSON.stringify([[34, 34, 306, 306]]));
-  refuse();
-  try {
-    w.ansStore_(k, JSON.stringify([big]));
-    w.initWhiteboard(); fix();
-    toasts.length = 0;
-    fire('pointerdown', 60, 400, 1); fire('pointermove', 200, 420, 1); fire('pointerup', 200, 420, 1);
-  } finally { S.setItem = realSet; }
-  if (stored().length !== 1 || stored()[0].length !== 4) bad.push('the held board was NOT set up: the device holds ' + JSON.stringify(stored()).slice(0, 60));
-  const h = held();
-  if (h.length !== 1 || h[0].length !== big.length || paths() !== 1) bad.push('a stroke past the ceiling of a board the visit is holding was kept, or the board was rebuilt from the store: ' + h.length + ' stroke(s) held (the first ' + ((h[0] || []).length) + ' numbers long, wanted ' + big.length + '), ' + paths() + ' drawn');
-  if (!toasts.some(m => /board is full/i.test(m))) bad.push('nothing said the board is full while the device was refusing it (toasts: ' + JSON.stringify(toasts) + ')');
-  /* PUT BACK THROUGH THE APP'S OWN WRITER, which lets go of the held copy now that there is room. */
-  w.ansStore_(k, JSON.stringify([[34, 34, 306, 306]]));
-  w.initWhiteboard();
+  w.initBoard_();
+  if (count() !== 1) bad.push('a board in the pen\'s old format draws ' + count() + ' stroke(s), wanted its one');
 
   /* A SIGN-OUT FROM ANOTHER COLUMN: Tools is left STALE by its repaint, and its board must not be Sam's. */
   t.go('feed', false, true);
   await wait(LEAVE_MS); await woken_();
   try { w.signedOut_(); } catch (e) { bad.push('signedOut_ threw: ' + e.message); }
   await wait(50);
-  const out = pad();
-  if (!out) bad.push('after the sign-out there is no board on the Tools column at all');
+  if (!nb()) bad.push('after the sign-out there is no board on the Tools column at all');
   else {
-    if (out.getAttribute('data-k') !== 'board:whiteboard') bad.push('after a sign-out the stale Tools column still holds the board keyed ' + JSON.stringify(out.getAttribute('data-k')) + ' — the last person\'s, on the shared iPad');
-    if (out.classList.contains('is-drawing') || out.querySelector('[data-noswipe]')) bad.push('after a sign-out the board on the stale Tools column is still armed');
-    if (out.querySelectorAll('.qpad-g path').length) bad.push('after a sign-out the last person\'s marks are still drawn on the Tools column');
+    if (nb().getAttribute('data-k') !== 'board:whiteboard') bad.push('after a sign-out the stale Tools column still holds the board keyed ' + JSON.stringify(nb().getAttribute('data-k')) + ' — the last person\'s, on the shared iPad');
+    if (count()) bad.push('after a sign-out the last person\'s marks are still drawn on the Tools column');
   }
-  /* AND A SIGN-IN, still away from Tools, draws the person arriving -- Sam again, whose stroke is kept. */
   try { w.signedIn_(Object.assign({ token: 't-sam' }, sam)); } catch (e) { bad.push('signedIn_ threw: ' + e.message); }
   await wait(50);
-  const back = pad();
-  if (!back || back.getAttribute('data-k') !== k || back.querySelectorAll('.qpad-g path').length !== 1) {
-    bad.push('after signing back in the stale Tools column shows ' + (back ? JSON.stringify(back.getAttribute('data-k')) + ' with ' + back.querySelectorAll('.qpad-g path').length + ' mark(s)' : 'no board') + ', wanted Sam\'s board and its one stroke');
+  if (!nb() || nb().getAttribute('data-k') !== k || count() !== 1) {
+    bad.push('after signing back in the stale Tools column shows ' + (nb() ? JSON.stringify(nb().getAttribute('data-k')) + ' with ' + count() + ' mark(s)' : 'no board') + ', wanted Sam\'s board and its one stroke');
   }
-
   w.toast = realToast;
-  t.padOn('');
   try { w.localStorage.removeItem(k); w.localStorage.removeItem('board:whiteboard'); } catch (e) {}
   t.USER(null);
   return bad;
@@ -4184,6 +4156,7 @@ check('the finger pen on the board: a hand resting on the card never moves the c
   await wait(LEAVE_MS); await woken_();
   t.goPage('tools', roster.indexOf('whiteboard'), true);
   const pad = () => d.querySelector('#s-tools #wgt-whiteboard .qpad');
+  await penSheet_(w, d);
   for (let i = 0; i < 100 && !pad(); i++) await wait(100);
   await woken_();
   if (!pad()) return ['the whiteboard did not draw a pad on the Tools column'];
@@ -4332,6 +4305,7 @@ check('the finger pen after review: a hand left down after two fingers, a thumb 
   await wait(LEAVE_MS); await woken_();
   t.goPage('tools', roster.indexOf('whiteboard'), true);
   const pad = () => d.querySelector('#s-tools #wgt-whiteboard .qpad');
+  await penSheet_(w, d);
   for (let i = 0; i < 100 && !pad(); i++) await wait(100);
   await woken_();
   if (!pad()) return ['the whiteboard did not draw a pad on the Tools column'];
@@ -13241,7 +13215,7 @@ check('a fraction typed on the maths keypad is drawn stacked, saved, and marked 
   const bar = card.querySelector('.qp-mark.qp-compose > .qp-bar');
   const sendT = card.querySelector('.qp-check');
   if (!bar || !bar.querySelector(':scope > .qp-ans .kp-in')) bad.push('the answer box is not in a chat bar (`.qp-mark.qp-compose > .qp-bar` holding the field)');
-  if (!sendT || !sendT.matches('.qp-bar > .tile.is-send[data-do="qp-check"]') || !sendT.querySelector('.tile-i-send')) bad.push('Send is not a gold tile with the send mark in the bar beside the field: ' + (sendT ? sendT.outerHTML.slice(0, 120) : '(none)'));
+  if (!sendT || !sendT.matches('.qp-bar > .tile:not(.is-send)[data-do="qp-check"]:last-child') || !sendT.querySelector('.tile-i-send')) bad.push('Check is not an ordinary tile with the send mark, last in the bar beside the field: ' + (sendT ? sendT.outerHTML.slice(0, 120) : '(none)'));
   const verdictEl = card.querySelector('.qp-verdict');
   if (!verdictEl || !verdictEl.closest('.qp-mark') || verdictEl.closest('.qp-bar')) bad.push('the verdict is not a line of its own under the bar, inside `.qp-mark`');
   inp.focus();
@@ -13738,7 +13712,7 @@ check('Mark with AI sends a worded answer by person id, draws marks and a senten
   if (!go) return ['a worded question with a scheme and a deployment that has aiMark drew no "Mark with AI"'];
   /* IN THE CHAT BAR, WHERE SEND IS on a box with a scheme: the same gold tile beside the field, with its
      verdict line and its sentence under the bar (`ansBox_`, `aiTile_`). */
-  if (!go.matches('.qp-mark.qp-ai > .qp-bar > .tile.is-send')) bad.push('"Mark with AI" is not the gold tile in the answer bar: ' + go.outerHTML.slice(0, 120));
+  if (!go.matches('.qp-mark.qp-ai > .qp-bar > .tile:not(.is-send)')) bad.push('"Mark with AI" is not an ordinary tile in the answer bar: ' + go.outerHTML.slice(0, 120));
   if (!card.querySelector('.qp-mark.qp-ai > .qp-verdict') || !(card.querySelector('.qp-mark.qp-ai').nextElementSibling || { classList: { contains: () => false } }).classList.contains('qp-ai-why')) bad.push('the AI\'s verdict line and sentence are not under the bar where the handler looks for them');
   const ta = card.querySelector('textarea.qp-ans-in');
   const held = w.stuffItemsAll_;
@@ -16621,9 +16595,6 @@ const earCut_ = out => {
   return i >= 0 && out.gain.ev.slice(i).some(e => e[0] === 'lin' && e[1] === 0);
 };
 /* THE SOUND SWITCH, said the way the reels' Sound and Read aloud are said. */
-const markSoundSays_ = (el, on, where) => switchTileSays_(el, on, where, {
-  what: 'marking Sound', kind: 'a tile', act: 'mark-sound', names: ['Sound off', 'Sound on'],
-  cls: ['tile', 'mark-sound'], lit: true });
 const EAR_BASE_ = { kind: 'question', marks: 1, subject: 'Maths', sub: 'Sounds', row: { paper_id: 'P-EAR', subject: 'Maths', name: 'Sounds' } };
 const earQ_ = (id, more) => Object.assign({}, EAR_BASE_, { key: 'q:' + id, name: 'Q' + id.slice(-1), row: Object.assign({}, EAR_BASE_.row, { row_id: id }) }, more);
 
@@ -16843,12 +16814,6 @@ check('mark sound: Mark with AI wakes the sound at the press, and its marks are 
   const d = w.document, bad = [];
   const held = w.stuffItemsAll_;
   w.stuffItemsAll_ = () => (held() || []).concat([AIQ, NEXT]);
-  /* SIGNED OUT, NO SWITCH ON A CARD ONLY MARK WITH AI CAN MARK: its one press answers "Sign in to have it
-     marked" before anything wakes, so the switch would be one for a noise it cannot make (`markCan_`). */
-  w.__t.USER(null);
-  const anonAi = subDraw_(w, AIQ);
-  if (anonAi.parentNode.querySelector('.tile-row .mark-sound')) bad.push('signed out, a card only Mark with AI can mark carries a sound switch — its one press says "Sign in to have it marked" and can never sound');
-  anonAi.parentNode.remove();
   w.__t.USER(Object.assign({}, ANS_ADA));
   /* THE CARD IN FRONT, IN A COLUMN WITH PAGES TO TURN -- Tools' pages, holding the card as Find and Saved do. § */
   const COL = 'tools';
@@ -16867,7 +16832,7 @@ check('mark sound: Mark with AI wakes the sound at the press, and its marks are 
   const go = c => c.querySelector('.qp-ai-go[data-do="qp-ai"]');
   const slot = c => (subSlotOf_(c) || {}).textContent;
   if (!go(card)) return ['the worded card drew no Mark with AI — nothing was pressed'];
-  if (!card.parentNode.querySelector('.tile-row .mark-sound')) bad.push('signed in, a card Mark with AI can mark has no sound switch in its row');
+  if (card.parentNode.querySelector('.mark-sound, [data-do="mark-sound"]')) bad.push('a card Mark with AI can mark still has a sound switch (374: there is none)');
   let asked = 0;
   /* ONE PRESS AND ITS LANDING. `move` runs while it marks and may hand back the copy of the card that is
      drawn now; what was heard from the press to the landing is returned with it. */
@@ -16946,15 +16911,6 @@ check('mark sound: Mark with AI wakes the sound at the press, and its marks are 
   if (!(await earRests_(rec, 4000))) bad.push('four seconds after the last sound, with nothing waiting, the context is ' + rec.acs.map(a => a.state).join(', ') + ' — left running it holds a phone\'s audio awake');
   card = aiC;
 
-  /* ---- THE SWITCH TURNED OFF AFTER A SOUND HAS PLAYED: the context is there and the press wakes nothing,
-     so the marks landing late are silenced by the switch alone. ---- */
-  earTap_(rec, card.parentNode.querySelector('.tile-row .mark-sound'));
-  await wait(30);
-  /* AWAKE AS THE MARKS LAND -- as it is in the second after any other sound -- so what keeps them silent is
-     the switch, and not the fake refusing to wake a context outside a tap. */
-  r = await ask(card, 'The particles move faster and collide with more energy.', [3, 3], async () => { rec.acs.forEach(a => { a.state = 'running'; }); });
-  if (r.heard.length) bad.push('with the switch off, Mark with AI landing 3 of 3 was heard as [' + r.heard.join(', ') + ']');
-  if (slot(card) !== '3/3') bad.push('with the switch off the marks were not drawn: ' + JSON.stringify(slot(card)));
   if (rec.made.some(m => !m.inPress)) bad.push('an AudioContext was made outside a tap');
   if (rec.made.length > 1) bad.push(rec.made.length + ' AudioContexts were made — one for the visit, woken each press');
   const ai = sent.filter(b => b.action === 'aiMark').length;
@@ -16962,7 +16918,7 @@ check('mark sound: Mark with AI wakes the sound at the press, and its marks are 
   w.stuffItemsAll_ = held;
   w.__t.USER(null);
 
-  /* ---- A DEVICE LEFT OFF: Mark with AI pressed and landing, and no AudioContext at all. ---- */
+  /* ---- A DEVICE LEFT OFF BY THE OLD SWITCH (before 374): forgotten, so Mark with AI landing none is heard. ---- */
   const rec2 = {};
   let land2 = null;
   const b2 = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES.concat(['aiMark']), aiMarking: true }),
@@ -16979,159 +16935,42 @@ check('mark sound: Mark with AI wakes the sound at the press, and its marks are 
   else {
     land2({ success: true, awarded: 0, available: 3, feedback: 'x' });
     await wait(80);
-    if (rec2.made.length || rec2.outs.length) bad.push('a device left off pressed Mark with AI: ' + rec2.made.length + ' AudioContext(s) made, heard [' + earHeard_(rec2).join(', ') + '] — none at all while it is off');
+    if (rec2.made.length !== 1) bad.push('a device the old switch left off pressed Mark with AI: ' + rec2.made.length + ' AudioContext(s) woken at the press, wanted 1 — there is no switch now');
+    let kept2 = 'unread'; try { kept2 = b2.w.localStorage.getItem('mark-sound'); } catch (e) {}
+    if (kept2 !== null) bad.push('the old switch\'s setting is still on the device: mark-sound is ' + JSON.stringify(kept2));
   }
   b2.w.__t.USER(null);
   if (errs.length || b2.errs.length) bad.push('errors: ' + errs.concat(b2.errs).join(' | '));
   return bad;
 });
 
-check('mark sound: the switch is the sound tile on a card that can be marked, off is silence everywhere with no AudioContext at all, and it is remembered on the device', async () => {
+check('mark sound: there is no switch (374) — no sound tile on any card, signed in or out, and a device the old switch left off hears a right Check chime and a wrong one buzz', async () => {
   const rec = {};
   const TYPED = earQ_('Q-EAR-11', { html: '<p>Work out 3 &times; 5.</p>', answer: '<b>15</b>', accept: '15' });
   const PICK = earQ_('Q-EAR-12', { html: '<p>Which is 4?</p>', choices: ['3', '4', '5'], choiceRight: [2], answer: '<b>4</b>' });
   const ORD = earQ_('Q-EAR-13', { answerType: 'order', html: '<p>Smallest first.</p>', choices: ['3', '1', '2'], choiceRight: [2, 3, 1],
     choiceWays: [[2, 3, 1]], orderEnds: ['smallest', 'largest'], answer: '<b>1, 2, 3</b>' });
   const FREE = earQ_('Q-EAR-14', { answerType: 'calculation', accept: '', html: '<p>Work out the area.</p>', answer: '<b>42</b>' });
-  const OPEN = earQ_('Q-EAR-15', { html: '<p>Pick one.</p>', choices: ['a', 'b'], answer: 'either' });
-  const ALL = [TYPED, PICK, ORD, FREE, OPEN];
-  const { w, errs } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES }), before: win => earFake_(win, rec) });
+  const ALL = [TYPED, PICK, ORD, FREE];
+  const { w, errs } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES }), before: win => { earFake_(win, rec); win.localStorage.setItem('mark-sound', '0'); } });
   await wait(300);
   const bad = [];
-  if (typeof w.markSoundTile_ !== 'function') return ['markSoundTile_ is not reachable — renamed? The switch was NOT checked'];
   w.stuffItemsAll_ = () => ALL;
-  const tileOf = card => card.parentNode.querySelector('.tile-row .mark-sound');
-  /* SIGNED IN: on the three cards a press can mark, before the slot; not on the two it cannot. */
-  w.__t.USER(Object.assign({}, ANS_ADA));
-  const cards = ALL.map(x => subDraw_(w, x));
-  cards.forEach((c, i) => {
-    const t = tileOf(c), x = ALL[i];
-    const can = i < 3;
-    if (can && !t) bad.push(x.row.row_id + ' can be marked and its row has no sound switch');
-    if (!can && t) bad.push(x.row.row_id + ' cannot be marked (its press is `sent`) and its row still has a sound switch — a switch for a noise it never makes');
-    if (t) {
-      markSoundSays_(t, true, x.row.row_id + ' as first drawn').forEach(m => bad.push(m));
-    }
-  });
-  /* SIGNED OUT: still there (a signed-out child is marked and hears it), with no slot after it. */
-  w.__t.USER(null);
-  const anon = subDraw_(w, TYPED);
-  if (!tileOf(anon)) bad.push('signed out, a card that can be marked has no sound switch');
-  w.__t.USER(Object.assign({}, ANS_ADA));
-  /* NO WEB AUDIO, NO SWITCH: a tile that can do nothing is not drawn. */
-  const b0 = boot();
-  await wait(300);
-  const h0 = subDraw_(b0.w, TYPED);
-  if (tileOf(h0)) bad.push('a browser with no Web Audio drew the sound switch — a control that can do nothing');
-
-  /* OFF, BEFORE ANYTHING HAS EVER SOUNDED: every copy says so, the device remembers, and turning off is silent. */
-  const tCard = cards[0];
-  earTap_(rec, tileOf(tCard));
-  await wait(30);
-  [tCard, anon].forEach((c, i) => markSoundSays_(tileOf(c), false, (i ? 'the other copy' : 'the card pressed') + ' after Sound off').forEach(m => bad.push(m)));
-  let stored = null;
-  try { stored = w.localStorage.getItem('mark-sound'); } catch (e) {}
-  if (stored !== '0') bad.push('Sound off was not kept on the device: mark-sound is ' + JSON.stringify(stored));
-  ansType_(w, tCard.querySelector('.qp-ans-in'), '16'); earTap_(rec, tCard.querySelector('.qp-check'));
-  ansType_(w, tCard.querySelector('.qp-ans-in'), '15'); earTap_(rec, tCard.querySelector('.qp-check'));
-  earTap_(rec, cards[1].querySelector('.qp-opt[data-n="2"]'));
-  await wait(60);
-  if (rec.outs.length) bad.push('with the switch off, presses were heard as [' + earHeard_(rec).join(', ') + ']');
-  if (rec.made.length) bad.push('with the switch off, ' + rec.made.length + ' AudioContext(s) were made — none at all while it is off');
-  if ((tCard.querySelector('.qp-verdict') || {}).textContent !== 'Correct') bad.push('with the switch off the verdict was not drawn: ' + JSON.stringify((tCard.querySelector('.qp-verdict') || {}).textContent) + ' — the sound is only ever extra');
-
-  /* ON AGAIN: the chime once, so whoever turned it on hears that it works; then a wrong answer buzzes. */
-  earTap_(rec, tileOf(tCard));
-  await wait(30);
-  markSoundSays_(tileOf(tCard), true, 'the card after Sound on').forEach(m => bad.push(m));
-  try { stored = w.localStorage.getItem('mark-sound'); } catch (e) {}
-  if (stored !== '1') bad.push('Sound on was not kept on the device: mark-sound is ' + JSON.stringify(stored));
-  if (earHeard_(rec).join(',') !== 'chime') bad.push('turning the switch on was heard as [' + earHeard_(rec).join(', ') + '], wanted the chime once');
-  rec.frozen = 5;
-  ansType_(w, tCard.querySelector('.qp-ans-in'), '16'); earTap_(rec, tCard.querySelector('.qp-check'));
-  await wait(30);
-  if (earHeard_(rec).join(',') !== 'chime,buzzer') bad.push('a wrong Check after Sound on was heard as [' + earHeard_(rec).slice(1).join(', ') + '], wanted [buzzer]');
-
-  /* OFF WHILE THE BUZZER IS STILL SOUNDING: § */
-  const toastSays = () => ((w.document.getElementById('toast') || {}).textContent || '');
-  const buzzing = rec.outs[rec.outs.length - 1];
-  /* THE BUZZER'S OWN REST, a second after it ends, CANCELLED FIRST: so a rest that comes now is the
-     switch's, and how loaded the machine is cannot make the one pass for the other. */
-  w.markRest_(-1);
-  const restsWere = rec.suspended.length;
-  earTap_(rec, tileOf(tCard));
-  await wait(30);
-  if (!earCut_(buzzing)) bad.push('Sound off pressed while the buzzer played did not stop it (its gain cancelled and ramped to 0): ' + JSON.stringify(buzzing && buzzing.gain.ev));
-  rec.frozen = null;
-  if (!/right and wrong/i.test(toastSays()) || !/\boff\b/i.test(toastSays())) bad.push('Sound off said ' + JSON.stringify(toastSays()) + ' — the toast should say it is the sound for right and wrong answers, and that it is off');
-  /* A NEW `suspend()`, waited for: the context may already be at rest from the buzzer on a loaded machine,
-     and the switch's own rest is 0.1s away. */
-  let restedNow = false;
-  for (let t = 0; t < 30 && !restedNow; t++) { restedNow = rec.suspended.length > restsWere; if (!restedNow) await wait(100); }
-  if (!restedNow || rec.acs.some(a => a.state !== 'suspended')) bad.push('Sound off did not put the context to rest (' + rec.acs.map(a => a.state).join(', ') + ') — nothing can play, so it should rest straight after the fade');
-  earTap_(rec, tileOf(tCard));
-  await wait(30);
-  if (!/right and wrong/i.test(toastSays()) || !/\bon\b/i.test(toastSays())) bad.push('Sound on said ' + JSON.stringify(toastSays()) + ' — the toast should say it is the sound for right and wrong answers, and that it is on');
-  if (earHeard_(rec).join(',') !== 'chime,buzzer,chime') bad.push('Sound on again was heard as [' + earHeard_(rec).slice(2).join(', ') + '], wanted the chime once');
-
-  /* ANOTHER TAB FLIPS THE ONE SWITCH (one per device): § */
-  let heardNow = earHeard_(rec).length;
-  rec.frozen = 9;
-  ansType_(w, tCard.querySelector('.qp-ans-in'), '16'); earTap_(rec, tCard.querySelector('.qp-check'));
-  await wait(30);
-  const playing = rec.outs[rec.outs.length - 1];
-  const otherTab = v => {
-    try { w.localStorage.setItem('mark-sound', v); } catch (e) {}
-    w.dispatchEvent(new w.StorageEvent('storage', { key: 'mark-sound', oldValue: v === '0' ? '1' : '0', newValue: v }));
-  };
-  otherTab('0');
-  await wait(30);
-  [tCard, anon].forEach((c, i) => markSoundSays_(tileOf(c), false, (i ? 'the other copy' : 'the card') + ' after another tab turned the sound off').forEach(m => bad.push(m)));
-  rec.frozen = null;
-  if (!earCut_(playing)) bad.push('another tab turned the sound off and the buzzer playing here went on: ' + JSON.stringify(playing && playing.gain.ev));
-  ansType_(w, tCard.querySelector('.qp-ans-in'), '16'); earTap_(rec, tCard.querySelector('.qp-check'));
-  await wait(30);
-  otherTab('1');
-  await wait(30);
-  markSoundSays_(tileOf(tCard), true, 'the card after another tab turned the sound on').forEach(m => bad.push(m));
-  ansType_(w, tCard.querySelector('.qp-ans-in'), '16'); earTap_(rec, tCard.querySelector('.qp-check'));
-  await wait(30);
-  const tabs = earHeard_(rec).slice(heardNow);
-  if (tabs.join(',') !== 'buzzer,buzzer') bad.push('a wrong Check, another tab turning the sound off, a wrong Check, the other tab turning it on, a wrong Check: heard as [' + tabs.join(', ') + '], wanted [buzzer, buzzer] — the middle one silent');
-
-  /* REMEMBERED: a fresh window on a device left off draws the switch off and makes no sound and no context. */
-  const rec3 = {};
-  const b3 = boot({ before: win => { earFake_(win, rec3); win.localStorage.setItem('mark-sound', '0'); } });
-  await wait(300);
-  b3.w.stuffItemsAll_ = () => ALL;
-  const c3 = subDraw_(b3.w, TYPED);
-  markSoundSays_(tileOf(c3), false, 'a fresh window on a device left off').forEach(m => bad.push(m));
-  ansType_(b3.w, c3.querySelector('.qp-ans-in'), '16'); earTap_(rec3, c3.querySelector('.qp-check'));
-  await wait(30);
-  if (rec3.outs.length || rec3.made.length) bad.push('a device left off, reloaded, made ' + rec3.made.length + ' AudioContext(s) and was heard as [' + earHeard_(rec3).join(', ') + ']');
-
-  /* A STORE THAT REFUSES EVERY WRITE -- a full one: § */
-  for (const kept of ['1', '0']) {
-    const r4 = {};
-    const b4 = boot({ before: win => { earFake_(win, r4); win.localStorage.setItem('mark-sound', kept); } });
-    await wait(300);
-    b4.w.stuffItemsAll_ = () => ALL;
-    const c4 = subDraw_(b4.w, TYPED);
-    const S = b4.w.Storage.prototype, putItem = S.setItem;
-    S.setItem = function () { throw new b4.w.DOMException('The quota has been exceeded.', 'QuotaExceededError'); };
-    try {
-      earTap_(r4, tileOf(c4));
-      await wait(30);
-      const nowOn = kept === '0';
-      markSoundSays_(tileOf(c4), nowOn, 'a full store holding "' + kept + '", the tile pressed').forEach(m => bad.push(m));
-      const n4 = r4.outs.length;
-      ansType_(b4.w, c4.querySelector('.qp-ans-in'), '16'); earTap_(r4, c4.querySelector('.qp-check'));
-      await wait(40);
-      const h4 = earHeard_(r4).slice(n4);
-      if (h4.join(',') !== (nowOn ? 'buzzer' : '')) bad.push('a full store holding "' + kept + '": the tile pressed to Sound ' + (nowOn ? 'on' : 'off') + ', and a wrong Check was heard as [' + h4.join(', ') + '] — the tile says one thing and the device does another');
-    } finally { S.setItem = putItem; }
-    if (b4.errs.length) bad.push('errors (a full store): ' + b4.errs.join(' | '));
+  const sw = c => c.parentNode.querySelector('.mark-sound, [data-do="mark-sound"]');
+  if (typeof w.markSoundTile_ === 'function') bad.push('markSoundTile_ still exists');
+  for (const who of [Object.assign({}, ANS_ADA), null]) {
+    w.__t.USER(who);
+    ALL.forEach(x => { const c = subDraw_(w, x); if (sw(c)) bad.push(x.row.row_id + (who ? ' signed in' : ' signed out') + ' still draws a sound switch'); c.parentNode.remove(); });
   }
+  let kept = 'unread'; try { kept = w.localStorage.getItem('mark-sound'); } catch (e) {}
+  if (kept !== null) bad.push('the old switch\'s setting is still on the device: mark-sound is ' + JSON.stringify(kept));
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  const c = subDraw_(w, TYPED);
+  ansType_(w, c.querySelector('.qp-ans-in'), '15'); earTap_(rec, c.querySelector('.qp-check'));
+  await wait(40);
+  ansType_(w, c.querySelector('.qp-ans-in'), '16'); earTap_(rec, c.querySelector('.qp-check'));
+  await wait(40);
+  if (earHeard_(rec).join(',') !== 'chime,buzzer') bad.push('a device the old switch left off: a right then a wrong Check were heard as [' + earHeard_(rec).join(', ') + '], wanted [chime, buzzer]');
   w.__t.USER(null);
   if (errs.length) bad.push('errors: ' + errs.join(' | '));
   return bad;
@@ -22689,19 +22528,13 @@ check('edges: the whiteboard drawn signed out after the server ended a session i
   const b = edgeBoot_(win => { signedInAs_(ANS_ADA)(win); try { win.localStorage.setItem('board:u:P9:whiteboard', '[[5,5,9,9]]'); } catch (e) {} });
   const { w, sent } = b;
   await wait(300);
-  const need = edgeNeed_(w).concat(typeof w.initWhiteboard === 'function' ? [] : ['initWhiteboard']);
+  const need = edgeNeed_(w).concat(typeof w.initBoard_ === 'function' ? [] : ['initBoard_']);
   if (need.length) return [need.join(', ') + ' not reachable — nothing was checked'];
   const bad = [];
-  /* THE REAL BOARD, as Tools draws it: `wbPaint_` fills every `.wb-box`, and draws it again for whoever
-     is signed in (`padWhoChanged_`, from `signedOut_` and `signedIn_`). */
-  const host = w.document.createElement('div');
-  host.className = 'wb-box';
-  w.document.body.appendChild(host);
-  w.initWhiteboard();
-  const board = { pad: () => host.querySelector('.qpad') };
-  const strokes = () => host.querySelectorAll('.qpad-g path').length;
-  const keyNow = () => (board.pad() ? board.pad().getAttribute('data-k') : '');
-  ansStroke_(w, board, [[20, 300], [120, 300]]);
+  /* THE REAL BOARD, as Tools draws it (`nbEdge_`): drawn again for whoever is signed in (`boardWhoChanged_`, from `signedOut_` and `signedIn_`). */
+  const board = nbEdge_(w);
+  const strokes = board.strokes, keyNow = board.key;
+  board.draw([[20, 250], [120, 250]]);
   if (keyNow() !== 'board:u:P7:whiteboard' || strokes() !== 1) return ['setup: Ada\'s board is ' + keyNow() + ' with ' + strokes() + ' stroke(s) — NOT checked'];
   if (!(await b.end('tok-P7'))) return [EDGE_ENDED];
   if (keyNow() !== 'board:whiteboard' || strokes()) bad.push('signed out by the server, the board is ' + keyNow() + ' with ' + strokes() + ' stroke(s), wanted the signed-out board, empty');
@@ -22709,7 +22542,7 @@ check('edges: the whiteboard drawn signed out after the server ended a session i
   const S = w.Storage.prototype, realSet = S.setItem;
   S.setItem = function (k, v) { if (k === 'familyGoneKeys') throw edgeQuota_(); return realSet.call(this, k, v); };
   try {
-    ansStroke_(w, board, [[30, 30], [200, 200]]);
+    board.draw([[30, 30], [200, 200]]);
     if (w.localStorage.getItem('board:whiteboard') !== null) bad.push('the store refused the mark and the board drawn signed out was written without it — anybody\'s after a reload');
     if (strokes() !== 1) bad.push('the board waiting on its mark draws ' + strokes() + ' stroke(s), wanted the one held for the visit');
   } finally { S.setItem = realSet; }
@@ -22738,7 +22571,7 @@ check('edges: the whiteboard drawn signed out after the server ended a session i
   if ([...w.ansDirtySet_('u:P7'), ...w.ansDirtySet_('u:P8')].some(x => /^board:/.test(x))) bad.push('the board is due to go up to an account');
   /* AND A BOARD WITH NO ENDED SESSION BEHIND IT IS STILL THE DEVICE'S (note 310), moved only into an EMPTY board, by opening it: § */
   w.signedOut_();
-  ansStroke_(w, board, [[50, 50], [60, 90]]);
+  board.draw([[50, 50], [60, 90]]);
   const visitor = w.localStorage.getItem('board:whiteboard');
   if (!visitor) return bad.concat(['setup: the visitor\'s board is not under board:whiteboard — the last step was NOT checked']);
   w.signedIn_(Object.assign({}, ANS_BEN, { name: 'Cal Pupil', personId: 'P9', token: 'tok-P9', handle: 'cal_calm9', answers: {} }));
@@ -22968,17 +22801,13 @@ check('edges: what the store refused while signed out is claimed at sign-in like
     const b = edgeBoot_();
     const { w } = b;
     await wait(300);
-    if (typeof w.initWhiteboard !== 'function') return bad.concat(['initWhiteboard not reachable — the board was NOT checked']);
-    const host = w.document.createElement('div');
-    host.className = 'wb-box';
-    w.document.body.appendChild(host);
-    w.initWhiteboard();
-    const board = { pad: () => host.querySelector('.qpad') };
-    const strokes = () => host.querySelectorAll('.qpad-g path').length;
+    if (typeof w.initBoard_ !== 'function') return bad.concat(['initBoard_ not reachable — the board was NOT checked']);
+    const board = nbEdge_(w);
+    const strokes = board.strokes;
     const S = w.Storage.prototype, realSet = S.setItem;
     S.setItem = function (k, v) { if (k === 'board:whiteboard') throw edgeQuota_(); return realSet.call(this, k, v); };
     try {
-      ansStroke_(w, board, [[30, 30], [200, 200]]);
+      board.draw([[30, 30], [200, 200]]);
       if (!w.ansValue_('board:whiteboard') || w.localStorage.getItem('board:whiteboard') !== null) return bad.concat(['setup: the board drawn signed out is not held by the visit alone — NOT checked']);
       w.signedIn_(Object.assign({}, ANS_BEN, { answers: {} }));
       if (strokes() !== 1 || w.ansValue_('board:u:P8:whiteboard') === null) bad.push('Ben signed in, the board opened under him, and it draws ' + strokes() + ' stroke(s) — the signed-out board the store refused did not move to him as a stored one does');
@@ -23109,24 +22938,20 @@ check('edges: Undo puts back whose it was — Clear then Undo on a pad and on th
     const b = edgeBoot_(signedInAs_(ANS_ADA));
     const { w } = b;
     await wait(300);
-    if (typeof w.initWhiteboard !== 'function') return bad.concat(['initWhiteboard not reachable — the board was NOT checked']);
+    if (typeof w.initBoard_ !== 'function') return bad.concat(['initBoard_ not reachable — the board was NOT checked']);
     const A = w.__t.ACTIONS;
-    const host = w.document.createElement('div');
-    host.className = 'wb-box';
-    w.document.body.appendChild(host);
-    w.initWhiteboard();
-    const board = { pad: () => host.querySelector('.qpad') };
+    const board = nbEdge_(w);
     if (!(await b.end('tok-P7'))) return bad.concat([EDGE_ENDED]);
-    ansStroke_(w, board, [[30, 30], [200, 200]]);
+    board.draw([[30, 30], [200, 200]]);
     const ada = w.ansValue_('board:whiteboard');
     if (!ada || mine(w, 'board:whiteboard') !== 'u:P7') return bad.concat(['setup: the board drawn signed out is not marked as Ada\'s — the board was NOT checked']);
     w.ansRecPut_('familyGone', JSON.stringify({ who: 'u:P7', at: Date.now() - 2 * 60 * 60 * 1000 }));
-    A['pad-clear'](board.pad().querySelector('.qpad-clear'));
-    A['pad-undo'](board.pad().querySelector('.qpad-undo'));
+    A['nb-clear'](board.host.querySelector('.nb-clear'));
+    nbTapN_(w, board.host, 2);
     if (w.ansValue_('board:whiteboard') !== ada) return bad.concat(['setup: Undo after Clear put the board back as ' + JSON.stringify(w.ansValue_('board:whiteboard')) + ' — NOT checked']);
     if (mine(w, 'board:whiteboard') !== 'u:P7') bad.push('Clear then Undo put Ada\'s board back marked ' + JSON.stringify(w.ansGoneOf_('board:whiteboard')));
     w.signedIn_(Object.assign({}, ANS_BEN, { answers: {} }));
-    if (w.ansValue_('board:u:P8:whiteboard') !== null || host.querySelectorAll('.qpad-g path').length) bad.push('Ben signed in from nobody and Ada\'s board is on HIS board: ' + JSON.stringify(w.ansValue_('board:u:P8:whiteboard')));
+    if (w.ansValue_('board:u:P8:whiteboard') !== null || board.strokes()) bad.push('Ben signed in from nobody and Ada\'s board is on HIS board: ' + JSON.stringify(w.ansValue_('board:u:P8:whiteboard')));
   }
   /* FIVE — THE KEYPAD'S HISTORY OUTLIVED ITS PERSON. Sam types signed out and signs in from nobody: the words
      are his (318). He signs out, and the next visitor presses Ctrl+Z on the empty signed-out box. */
@@ -23245,17 +23070,11 @@ check('edges: signed in over somebody else, opening a card or the board hands th
   const b = edgeBoot_(signedInAs_(ANS_BEN));
   const { w } = b;
   await wait(300);
-  const need = edgeNeed_(w).concat(typeof w.initWhiteboard === 'function' ? [] : ['initWhiteboard']);
+  const need = edgeNeed_(w).concat(typeof w.initBoard_ === 'function' ? [] : ['initBoard_']);
   if (need.length) return [need.join(', ') + ' not reachable — nothing was checked'];
   const bad = [];
   const c = ansCards_(w, 'S1');
-  const wb = win => {
-    const host = win.document.createElement('div');
-    host.className = 'wb-box';
-    win.document.body.appendChild(host);
-    win.initWhiteboard();
-    return () => host.querySelectorAll('.qpad-g path').length;
-  };
+  const wb = win => nbEdge_(win).strokes;
   const boardStrokes = wb(w);
   const bareM = 'ans:' + c.maths.key, bareP = 'pad:' + c.pen.key, bareR = bareP + ':words';
   const OTHER = [[bareM, '(9)/(10)'], [bareP, '[[1,1,300,300]]'], [bareR, '["0.1"]'], ['board:whiteboard', '[[40,40,90,90]]']];
@@ -23276,7 +23095,7 @@ check('edges: signed in over somebody else, opening a card or the board hands th
   if (c.kp().value) bad.push('Ada signed in over Ben, opened the card, and her empty maths box was given the other tab\'s signed-out answer ' + JSON.stringify(c.kp().value) + ' (`ansRead_`)');
   if (c.pad().querySelectorAll('.qpad-g path').length) bad.push('Ada signed in over Ben and her pad draws the other tab\'s stroke (`padAdopt_`)');
   if (rings.length) bad.push('Ada signed in over Ben and the passage rings the other tab\'s word ' + JSON.stringify(rings) + ' (`circOf_`)');
-  if (boardStrokes() || w.localStorage.getItem('board:u:P7:whiteboard') !== null) bad.push('Ada signed in over Ben and her board holds the other tab\'s scribble (`padAdopt_`, from `wbPaint_`)');
+  if (boardStrokes() || w.localStorage.getItem('board:u:P7:whiteboard') !== null) bad.push('Ada signed in over Ben and her board holds the other tab\'s scribble (`padAdopt_`, from `initBoard_`)');
   if (left(w).length) bad.push('Ada signed in over Ben and the other tab\'s work left the signed-out keys: ' + left(w).join(', '));
   if (Object.keys(b.of('P7')).length) bad.push('the other tab\'s work reached ADA\'S ACCOUNT: ' + JSON.stringify(b.of('P7')).slice(0, 160));
   /* A RELOAD, STILL ADA: the same arrival. */
@@ -24181,7 +24000,7 @@ check('an ordering: the real 1F Q4 is tapped in order, sent, marked by its order
   if (slots() !== '_ _ _ _ _') bad.push('a fresh card\'s strip reads ' + slots());
   if (verdict() !== '') bad.push('no reserved verdict line under the items before marking — the verdict would arrive as a new line');
   const sendT = box().querySelector('.qp-order-send');
-  if (!sendT || !sendT.matches('.qp-mark > .tile.is-send[data-do="qp-order-send"]') || !sendT.querySelector('.tile-i-send')) bad.push('Send is not the gold send tile on the verdict line');
+  if (!sendT || !sendT.matches('.qp-mark > .tile:not(.is-send)[data-do="qp-order-send"]') || !sendT.querySelector('.tile-i-send')) bad.push('Check is not an ordinary tile with the send mark on the verdict line');
   /* THE QUESTION ABOVE IS NEVER REDRAWN -- the nodes, their markup, and the card's blocks. */
   const sheet = card.querySelector('.qsheet'), tags = card.querySelector('.qcard-tags');
   const sheetHtml = sheet.outerHTML, blocks = [...card.children].map(c => c.classList[0]).join(',');

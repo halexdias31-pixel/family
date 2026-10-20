@@ -417,20 +417,8 @@ function subSay_(v) {
 }
 
 /* ---------- THE VERDICT, HEARD § */
-const MARK_SOUND_KEY = 'mark-sound';
-/* ---------- THE SWITCH: ONE PER DEVICE, ON UNTIL SOMEBODY TURNS IT OFF § */
-let MARK_SOUND_HERE = null;
-function markSoundOn_(on) {
-  if (on !== undefined) {
-    MARK_SOUND_HERE = !!on;
-    try { localStorage.setItem(MARK_SOUND_KEY, on ? '1' : '0'); } catch (e) { /* this visit only */ }
-    return !!on;
-  }
-  if (MARK_SOUND_HERE !== null) return MARK_SOUND_HERE;
-  let v = null;
-  try { v = localStorage.getItem(MARK_SOUND_KEY); } catch (e) { v = null; }
-  return v !== '0';
-}
+/* NO SWITCH (374, the owner: "it should just play sound, no option to get rid of"): the tab's mute and the device's volume are the way to quiet it; the old device setting is forgotten */
+try { localStorage.removeItem('mark-sound'); } catch (e) { /* nothing kept */ }
 /* WHETHER THIS DEVICE CAN MAKE A SOUND AT ALL. § */
 function markCanSound_() {
   try { return !!(window.AudioContext || window.webkitAudioContext); } catch (e) { return false; }
@@ -501,7 +489,7 @@ function markTone_(ac, t0, kind, out) {
 /* ---------- THE CONTEXT, WOKEN AT THE PRESS § */
 let MARK_AC = null;
 function markHear_() {
-  if (!markSoundOn_() || !markCanSound_()) return null;
+  if (!markCanSound_()) return null;
   try {
     if (!MARK_AC) MARK_AC = new (window.AudioContext || window.webkitAudioContext)();
     markRest_(-1);
@@ -567,7 +555,7 @@ function markHush_() {
 }
 function markPlay_(v, late) {
   const kind = markKind_(v);
-  if (!kind || !markSoundOn_()) return;
+  if (!kind) return;
   const ac = late ? MARK_AC : markHear_();
   if (!ac) return;
   const asked = Date.now();
@@ -595,42 +583,6 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'hidden' || !MARK_AC) return;
   markRest_(-1);
   try { const p = MARK_AC.suspend(); if (p && typeof p.catch === 'function') p.catch(() => {}); } catch (e) {}
-});
-
-/* ---------- THE TILE § */
-function markSoundFace_(on) {
-  return { icon: on ? 'sound' : 'mute', label: on ? 'Sound on' : 'Sound off', on: !!on, pressed: !!on };
-}
-function markCan_(x) {
-  if (!x || x.kind !== 'question') return false;
-  if (Array.isArray(x.choices) && x.choices.length >= 2) {
-    return typeof orderIs_ === 'function' && orderIs_(x) ? orderWays_(x).length > 0 : (x.choiceRight || []).length > 0;
-  }
-  if (String(x.accept || '').trim()) return true;
-  return typeof aiTile_ === 'function' && !!aiTile_(x) && typeof USER === 'object' && !!USER && !!USER.token;
-}
-function markSoundTile_(x) {
-  if (!markCanSound_() || !markCan_(x)) return '';
-  return tile_(Object.assign({ act: 'mark-sound', cls: 'mark-sound' }, markSoundFace_(markSoundOn_())));
-}
-/* EVERY COPY OF THE TILE AT ONCE -- Find and Saved can both be holding the card, as the star's do -- and,
-   turned off, a sound still playing stops and the context goes to rest. */
-function markSoundShow_(on) {
-  try { document.querySelectorAll('.mark-sound').forEach(el => tileSet_(el, markSoundFace_(on))); } catch (e) {}
-  if (!on) { markHush_(); markRest_(100); }
-}
-/* TURNED ON, IT PLAYS THE CHIME ONCE: § */
-on('mark-sound', () => {
-  const on = markSoundOn_(!markSoundOn_());
-  markSoundShow_(on);
-  toast(on ? 'Sounds for right and wrong answers on' : 'Sounds for right and wrong answers off');
-  if (on) markPlay_('right');
-});
-/* ANOTHER TAB OF THE SITE FLIPPED IT -- the switch is one per device, and its tiles here would otherwise go on saying "Sound on" over presses that make no sound § */
-window.addEventListener('storage', e => {
-  if (!e || (e.key !== MARK_SOUND_KEY && e.key !== null)) return;
-  MARK_SOUND_HERE = e.key === null || e.newValue === null ? null : e.newValue !== '0';
-  markSoundShow_(markSoundOn_());
 });
 
 /* ---------- PAINTED WHERE IT STANDS § */

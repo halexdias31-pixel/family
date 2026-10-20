@@ -351,6 +351,7 @@ function signedOut_(opts) {
   /* AND THE PEN, AND THE WHITEBOARD ON A COLUMN THE REPAINT BELOW LEAVES STALE — the last person's
      board stayed armed under their key until Tools was next arrived at (`padWhoChanged_`, find.js). */
   try { if (typeof padWhoChanged_ === 'function') padWhoChanged_(); } catch (e) {}
+  try { if (typeof boardWhoChanged_ === 'function') boardWhoChanged_(); } catch (e) {}
   /* AND THE DEAD KEY OF THE DRAW/TYPE SWITCH, which face each drawing question was left on (327, 337). § */
   try { localStorage.removeItem('surfaceFace'); } catch (e) {}
   /* AND THE BOOKING FORM, which is the person's draft and not the next family's (`bookFollow_`, book.js;
@@ -387,6 +388,7 @@ function signedIn_(d, typed) {
   try { if (over && typeof ansSwitchedIn_ === 'function') ansSwitchedIn_(pid); } catch (e) {}
   /* EVERY COPY OF THE WHITEBOARD UNDER THE PERSON WHO IS SIGNED IN NOW, stale columns included. */
   try { if (typeof padWhoChanged_ === 'function') padWhoChanged_(); } catch (e) {}
+  try { if (typeof boardWhoChanged_ === 'function') boardWhoChanged_(); } catch (e) {}
   /* THE BOOKING FORM FOLLOWS — filled in signed out and signed in to send, it is theirs (book.js). */
   try { if (typeof bookFollow_ === 'function') bookFollow_(); } catch (e) {}
   try {

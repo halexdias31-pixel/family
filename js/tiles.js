@@ -103,6 +103,11 @@ const TILE_ICONS = {
   /* A PULSE, FOR A PAPER'S HEALTH (`healthTiles_` in find.js): a flat line with one beat in it, open
      paths at the row's stroke — the list of what is wrong with the paper is behind it. */
   pulse: '<path d="M1.5 9h4l1.75-4.5 3 8.5 2-4h4.25"/>',
+  /* ---------- THE WHITEBOARD'S SHAPES (board.js, 377): each the sign and the empty box it brings to write in ---------- */
+  frac:  '<rect x="6" y="1.5" width="6" height="4.5" rx=".8"/><path d="M3 8.5h12"/><rect x="6" y="11" width="6" height="4.5" rx=".8"/>',
+  power: '<rect x="2" y="6.5" width="8" height="8" rx="1"/><rect x="11.5" y="2" width="4.5" height="4.5" rx=".8"/>',
+  root:  '<path d="M1.5 9.5 3.5 8.5 6 14.5 9 2.5h7.5"/><rect x="10" y="6" width="5.5" height="7" rx=".8"/>',
+  integral: '<path d="M3.5 15c1.6.6 2.6-.2 3-2.2l1.6-8.6c.4-2 1.4-2.8 3-2.2"/><rect x="11" y="7" width="5" height="6" rx=".8"/>',
 };
 
 function tileIcon_(name) {
@@ -116,9 +121,9 @@ function tileIcon_(name) {
 
 
 /* ---------- ONE CONTROL § */
-/* ONE CHECK ON EVERY QUESTION (368): the same gold disc, word and place whatever marks it -- the scheme, the key words, the drawing, the AI or a tutor; the act says which */
+/* ONE CHECK ON EVERY QUESTION (368): the same mark, word and place whatever marks it; an ordinary tile like its neighbours, last in the row (374, the owner: uniformity) */
 function checkTile_(o) {
-  return tile_(Object.assign({ icon: 'send', label: 'Check', tone: 'send' }, o));
+  return tile_(Object.assign({ icon: 'send', label: 'Check' }, o));
 }
 function tile_(o) {
   /* `cls` IS A NAME A CHECK OR A NEIGHBOUR FINDS THE TILE BY (`.qp-check`), never a look: the tile's

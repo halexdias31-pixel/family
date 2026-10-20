@@ -209,10 +209,9 @@ const LOUD = (() => {
         const card = inp && inp.closest('.qcard');
         if (!card) continue;
         card.querySelector('.qp-check').setAttribute('data-sounds', 'send');
-        const tile = card.closest('.page').querySelector('.tile-row .mark-sound');
-        if (tile) tile.setAttribute('data-sounds', 'switch');
         window.__soundsBox = inp;
-        return tile ? '' : 'Q0664 is in front with no sound switch in its row';
+        /* NO SWITCH (374): the verdict is always heard */
+        return card.closest('.page').querySelector('.mark-sound, [data-do="mark-sound"]') ? 'Q0664 is in front WITH a sound switch in its row — there is none since 374' : '';
       }
       return 'Q0664 never came in front';
     });
@@ -247,27 +246,7 @@ const LOUD = (() => {
       if (right.outs !== 1 || right.starts.length !== 4 || !right.starts.every(s => s.hz >= 500 && s.type === 'sine' && s.tap)) {
         bad.push('a real tap on Send with 15 made ' + right.outs + ' sound(s) of ' + JSON.stringify(right.starts) + ' — wanted one chime, two notes of two sines, inside the tap');
       }
-      /* THE SWITCH, BY A REAL CLICK -- with the chime's own rest (a second after it ends) cancelled first,
-         so a rest that comes now is the switch's however loaded the machine is. */
-      await page.evaluate(() => markRest_(-1));
-      const restsBefore = (await au()).suspended;
-      await page.click('[data-sounds="switch"]');
-      await page.waitForTimeout(200);
-      const off = await page.evaluate(() => { const t = document.querySelector('[data-sounds="switch"]'); return { name: t.getAttribute('aria-label'), pressed: t.getAttribute('aria-pressed'), kept: localStorage.getItem('mark-sound') }; });
-      if (off.name !== 'Sound off' || off.pressed !== 'false' || off.kept !== '0') bad.push('the switch pressed off says ' + JSON.stringify(off));
-      /* A NEW `suspend()`, waited for -- the context may already be at rest from the chime on a loaded machine,
-         and the switch's own rest is 0.1s away. */
-      let restedNow = false;
-      for (let t = 0; t <= 2000 && !restedNow; t += 100) { restedNow = (await au()).suspended > restsBefore; if (!restedNow) await page.waitForTimeout(100); }
-      if (!restedNow || !(await restsBy(2000))) bad.push('the switch pressed off did not put the AudioContext to rest — nothing can play');
-      const hush = await press('16');
-      if (hush.outs || hush.starts.length) bad.push('with the switch off a real tap made ' + hush.outs + ' sound(s)');
-      const was = await au();
-      await page.click('[data-sounds="switch"]');
-      await page.waitForTimeout(500);
       const on = await au();
-      const preview = on.starts.slice(was.starts.length);
-      if (on.outs - was.outs !== 1 || !preview.every(s => s.type === 'sine' && s.tap)) bad.push('the switch pressed on made ' + (on.outs - was.outs) + ' sound(s) of ' + JSON.stringify(preview) + ' — wanted the chime once');
       /* A REPAINT, AND EVERY SLOT PAINTED AGAIN: nothing. */
       await page.evaluate(() => { repaint(); subPaintAll_(); });
       await page.waitForTimeout(400);
@@ -275,7 +254,6 @@ const LOUD = (() => {
       if (after.outs !== on.outs) bad.push('a repaint made ' + (after.outs - on.outs) + ' sound(s)');
       if (after.made.length !== 1) bad.push(after.made.length + ' AudioContexts were made over the visit — one, woken each press');
       if (!after.resumed.length || !after.resumed.every(x => x.tap)) bad.push('resume() was called outside the tap: ' + JSON.stringify(after.resumed) + ' — an iPad wakes a context only inside one');
-      await page.evaluate(() => { try { localStorage.removeItem('mark-sound'); } catch (e) {} });
     }
     if (said.length) bad.push('Chromium said: ' + said.slice(0, 3).join(' | '));
   } catch (e) {

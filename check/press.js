@@ -909,7 +909,7 @@ for (const who of VISITORS) {
       await page.evaluate(() => { go('stuff', false, true); });
     }
 
-    /* AND THE WHITEBOARD IS THE SAME PEN ON A BOARD THE SIZE OF A PAGE. § */
+    /* AND THE WHITEBOARD, A MATHS NOTEBOOK (377): a swipe on its page is the grid's, a drag on its pad is writing. */
     {
       const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
       const tp = await ctx.newPage();
@@ -936,7 +936,7 @@ for (const who of VISITORS) {
         await tc.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
         await tp.waitForTimeout(420);
       };
-      /* EVERYTHING READ AT ONCE, from the app's own state: § */
+      /* EVERYTHING READ AT ONCE, from the app's own state: where the notebook's page and pad are, and what is stored (377). */
       const wbAt = turn => tp.evaluate(async go_ => {
         if (go_) {
           if (AT !== 'tools') go('tools', false, true);
@@ -950,60 +950,51 @@ for (const who of VISITORS) {
             await new Promise(r => setTimeout(r, 100));
           }
         }
-        const pad = document.querySelector('#s-tools #wgt-whiteboard .qpad');
-        if (!pad) return null;
-        const k = pad.getAttribute('data-k');
+        const nb = document.querySelector('#s-tools #wgt-whiteboard .nb');
+        if (!nb) return null;
+        const k = nb.getAttribute('data-k');
         let n = 0;
         try { n = (JSON.parse(localStorage.getItem(k) || '[]') || []).length; } catch (e) {}
         const c = el => { const r = el.getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2), w: Math.round(r.width), h: Math.round(r.height) }; };
-        return { at: AT, page: PAGE.tools, k, strokes: n,
-                 armed: pad.classList.contains('is-drawing') && !!pad.querySelector('.qpad-ink[data-noswipe]'),
-                 ink: c(pad.querySelector('.qpad-ink')), lock: c(pad.querySelector('.qpad-lock')),
+        return { at: AT, page: PAGE.tools, k, strokes: n, book: c(nb.querySelector('.nb-book')), pad: c(nb.querySelector('.nb-pad')),
                  next: TABS.map(t => t.id)[TABS.map(t => t.id).indexOf('tools') + 1] };
       }, !!turn);
       let b = await wbAt(true);
       const W_ = 'tools · the whiteboard';
-      if (!b || b.ink.w < 120 || b.ink.h < 160) {
-        swipes.push({ from: W_, dir: 'touch', ok: false, got: b ? 'a board ' + b.ink.w + 'x' + b.ink.h + 'px' : 'no board on the Tools column',
-                      want: 'a board at least 120x160px to draw on' });
+      if (!b || b.pad.w < 120 || b.pad.h < 150 || b.book.h < 120) {
+        swipes.push({ from: W_, dir: 'touch', ok: false, got: b ? 'a pad ' + b.pad.w + 'x' + b.pad.h + 'px under a page ' + b.book.w + 'x' + b.book.h + 'px' : 'no board on the Tools column',
+                      want: 'a pad at least 120x150px to write in, under a page at least 120px tall' });
       } else {
-        /* A BLANK BOARD, UNLOCKED, whatever an earlier press left on it. */
-        await tp.evaluate(k => { try { localStorage.removeItem(k); } catch (e) {} PAD_ON = ''; initWhiteboard(); }, b.k);
-        /* BACK ON THE BOARD BEFORE EACH GESTURE -- the one before may have moved the column or the page. */
+        /* A BLANK BOARD, whatever an earlier press left on it. */
+        await tp.evaluate(k => { try { ansStore_(k, null); } catch (e) {} NB_STATE.delete(k); initBoard_(); }, b.k);
         const fresh = () => wbAt(true);
-        /* UNLOCKED, SIDEWAYS: the column moves. */
+        /* ON THE PAGE, SIDEWAYS: the column moves -- the page is read, and a swipe that starts on it is the grid's. */
         b = await fresh();
-        await tt(b.ink.x + Math.round(b.ink.w * 0.35), b.ink.y, -Math.round(b.ink.w * 0.7), 0);
+        await tt(b.book.x + Math.round(b.book.w * 0.35), b.book.y, -Math.round(b.book.w * 0.7), 0);
         let a = await tp.evaluate(() => AT);
-        swipes.push({ from: W_ + ', unlocked', dir: 'touch left', ok: a === b.next, got: a, want: b.next });
-        /* UNLOCKED, DOWN: the page turns back one -- the board is the last page, so up has nowhere to go. */
+        swipes.push({ from: W_ + ', its page', dir: 'touch left', ok: a === b.next, got: a, want: b.next });
+        /* ON THE PAGE, DOWN: the page turns back one -- the board is the last page, so up has nowhere to go. */
         b = await fresh();
-        await tt(b.ink.x, b.ink.y - Math.round(b.ink.h * 0.3), 0, Math.round(b.ink.h * 0.6));
+        await tt(b.book.x, b.book.y - Math.round(b.book.h * 0.3), 0, Math.round(b.book.h * 0.6));
         a = await wbAt(false);
-        swipes.push({ from: W_ + ', unlocked', dir: 'touch down', ok: a.at === 'tools' && a.page === b.page - 1 && a.strokes === 0,
+        swipes.push({ from: W_ + ', its page', dir: 'touch down', ok: a.at === 'tools' && a.page === b.page - 1 && a.strokes === 0,
                       got: a.at + ' page ' + a.page + ', ' + a.strokes + ' stroke(s)', want: 'tools page ' + (b.page - 1) + ', 0 stroke(s)' });
-        /* LOCKED: a tap on the padlock, then a sideways drag and a downward one. */
+        /* ON THE PAD, ACROSS AND DOWN: writing, and the column holds. */
         b = await fresh();
-        await tap(b.lock.x, b.lock.y);
-        b = await wbAt(false);
-        swipes.push({ from: W_ + ', the padlock', dir: 'tap', ok: b.armed,
-                      got: b.armed ? 'locked: the frame on and the ink named' : 'not locked', want: 'locked' });
-        if (b.armed) {
-          await tt(b.ink.x + Math.round(b.ink.w * 0.35), b.ink.y, -Math.round(b.ink.w * 0.7), 0);
-          a = await wbAt(false);
-          swipes.push({ from: W_ + ', locked', dir: 'touch across', ok: a.at === 'tools' && a.page === b.page && a.strokes === 1,
-                        got: a.at + ' page ' + a.page + ', ' + a.strokes + ' stroke(s) kept', want: 'tools page ' + b.page + ', 1 stroke(s) kept' });
-          await tt(b.ink.x, b.ink.y - Math.round(b.ink.h * 0.3), 0, Math.round(b.ink.h * 0.6));
-          a = await wbAt(false);
-          swipes.push({ from: W_ + ', locked', dir: 'touch down', ok: a.at === 'tools' && a.page === b.page && a.strokes === 2,
-                        got: a.at + ' page ' + a.page + ', ' + a.strokes + ' stroke(s) kept', want: 'tools page ' + b.page + ', 2 stroke(s) kept' });
-        }
-        await tp.evaluate(k => { try { localStorage.removeItem(k); } catch (e) {} PAD_ON = ''; }, b.k);
+        await tt(b.pad.x - Math.round(b.pad.w * 0.35), b.pad.y, Math.round(b.pad.w * 0.7), 0);
+        a = await wbAt(false);
+        swipes.push({ from: W_ + ', its pad', dir: 'touch across', ok: a.at === 'tools' && a.page === b.page && a.strokes === 1,
+                      got: a.at + ' page ' + a.page + ', ' + a.strokes + ' stroke(s) kept', want: 'tools page ' + b.page + ', 1 stroke(s) kept' });
+        await tt(b.pad.x + Math.round(b.pad.w * 0.3), b.pad.y - Math.round(b.pad.h * 0.3), 0, Math.round(b.pad.h * 0.6));
+        a = await wbAt(false);
+        swipes.push({ from: W_ + ', its pad', dir: 'touch down', ok: a.at === 'tools' && a.page === b.page && a.strokes === 2,
+                      got: a.at + ' page ' + a.page + ', ' + a.strokes + ' stroke(s) kept', want: 'tools page ' + b.page + ', 2 stroke(s) kept' });
+        await tp.evaluate(k => { try { ansStore_(k, null); } catch (e) {} NB_STATE.delete(k); }, b.k);
       }
       await ctx.close();
     }
 
-    /* ---------- AND ON ITS SIDE, WHERE IT WAS A POSTAGE STAMP § */
+    /* ---------- AND ON ITS SIDE: the page over the pad, the tiles beside them ---------- */
     for (const [sw, sh] of [[568, 320], [844, 390]]) {
       const ctx = await browser.newContext({ viewport: { width: sw, height: sh }, hasTouch: true, isMobile: true });
       const tp = await ctx.newPage();
@@ -1024,46 +1015,45 @@ for (const who of VISITORS) {
             || (typeof AFTER_SLIDE !== 'undefined' && AFTER_SLIDE)
             || (typeof SETTLE_ON !== 'undefined' && SETTLE_ON && performance.now() < SETTLE_ON.until)
             || (typeof aheadBusy_ === 'function' && aheadBusy_());
-          if (!busy && i >= 4 && document.querySelector('#s-tools #wgt-whiteboard .qpad')) break;
+          if (!busy && i >= 4 && document.querySelector('#s-tools #wgt-whiteboard .nb')) break;
           await new Promise(r => setTimeout(r, 100));
         }
-        const pad = document.querySelector('#s-tools #wgt-whiteboard .qpad');
-        if (!pad) return null;
-        const k = pad.getAttribute('data-k');
+        const nb = document.querySelector('#s-tools #wgt-whiteboard .nb');
+        if (!nb) return null;
+        const k = nb.getAttribute('data-k');
         let n = 0;
         try { n = (JSON.parse(localStorage.getItem(k) || '[]') || []).length; } catch (e) {}
         const box = el => { const r = el.getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2), w: Math.round(r.width), h: Math.round(r.height), l: r.left, t: r.top, r: r.right, b: r.bottom }; };
-        const pane = box(pad.closest('.pane'));
-        const card = pad.closest('.card');
+        const pane = box(nb.closest('.pane'));
+        const card = nb.closest('.card');
         const tiles = [...card.querySelectorAll('.tile')].map(box);
         const off = tiles.filter(b => b.w < 44 || b.h < 44 || b.b > pane.b + 0.5 || b.r > pane.r + 0.5 || b.l < pane.l - 0.5).length;
-        return { at: AT, page: PAGE.tools, k, strokes: n, armed: pad.classList.contains('is-drawing'),
-                 ink: box(pad.querySelector('.qpad-ink')), lock: box(pad.querySelector('.qpad-lock')), tiles: tiles.length, off };
+        const pb = box(nb.querySelector('.nb-pad')), bb = box(nb.querySelector('.nb-book'));
+        const out = [pb, bb].filter(b => b.b > pane.b + 0.5 || b.r > pane.r + 0.5 || b.l < pane.l - 0.5).length;
+        return { at: AT, page: PAGE.tools, k, strokes: n, pad: pb, book: bb, tiles: tiles.length, off, out };
       });
       let b = await at();
       if (!b) {
         swipes.push({ from: W_, dir: 'touch', ok: false, got: 'no board on the Tools column', want: 'a board' });
       } else {
-        await tp.evaluate(k => { try { localStorage.removeItem(k); } catch (e) {} PAD_ON = ''; initWhiteboard(); }, b.k);
+        await tp.evaluate(k => { try { ansStore_(k, null); } catch (e) {} NB_STATE.delete(k); initBoard_(); }, b.k);
         b = await at();
-        swipes.push({ from: W_, dir: 'its size', ok: b.ink.w >= 120 && b.ink.h >= 160 && b.tiles >= 3 && !b.off,
-                      got: 'a ' + b.ink.w + 'x' + b.ink.h + 'px board, ' + b.off + ' of ' + b.tiles + ' tiles under 44px or past the pane',
-                      want: 'at least 120x160px, every tile 44px and inside the pane' });
-        await tc.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: b.lock.x, y: b.lock.y }] });
-        await tc.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-        await tp.waitForTimeout(420);
-        const x0 = b.ink.x - Math.round(b.ink.w * 0.35), y0 = b.ink.y;
+        swipes.push({ from: W_, dir: 'its size', ok: b.pad.w >= 120 && b.pad.h >= 96 && b.book.h >= 96 && b.tiles >= 5 && !b.off && !b.out,
+                      got: 'a ' + b.pad.w + 'x' + b.pad.h + 'px pad under a ' + b.book.w + 'x' + b.book.h + 'px page, ' + b.out + ' of them past the pane, '
+                        + b.off + ' of ' + b.tiles + ' tiles under 44px or past the pane',
+                      want: 'a pad and a page at least 96px tall inside the pane, every tile 44px and inside it' });
+        const x0 = b.pad.x - Math.round(b.pad.w * 0.35), y0 = b.pad.y;
         await tc.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: x0, y: y0 }] });
         for (let i = 1; i <= 10; i++) {
-          await tc.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x0 + Math.round(b.ink.w * 0.7) * i / 10, y: y0 }] });
+          await tc.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x0 + Math.round(b.pad.w * 0.7) * i / 10, y: y0 }] });
           await tp.waitForTimeout(12);
         }
         await tc.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
         await tp.waitForTimeout(520);
         const a = await tp.evaluate(k => ({ at: AT, page: PAGE.tools, strokes: (() => { try { return (JSON.parse(localStorage.getItem(k) || '[]') || []).length; } catch (e) { return -1; } })() }), b.k);
-        swipes.push({ from: W_ + ', locked', dir: 'touch across', ok: a.at === 'tools' && a.page === b.page && a.strokes === 1,
+        swipes.push({ from: W_ + ', its pad', dir: 'touch across', ok: a.at === 'tools' && a.page === b.page && a.strokes === 1,
                       got: a.at + ' page ' + a.page + ', ' + a.strokes + ' stroke(s) kept', want: 'tools page ' + b.page + ', 1 stroke(s) kept' });
-        await tp.evaluate(k => { try { localStorage.removeItem(k); } catch (e) {} PAD_ON = ''; }, b.k);
+        await tp.evaluate(k => { try { ansStore_(k, null); } catch (e) {} NB_STATE.delete(k); }, b.k);
       }
       await ctx.close();
     }

@@ -820,7 +820,7 @@ function inspect(opts) {
   /* ---------- 4. AN EDGE YOU CANNOT SEE (WCAG 1.4.11, 3:1) § */
   /* AND AN ESSAY'S SHEET (9 Oct, `ansEssay_`), the same paper field at a page's size: the box a child
      writes forty marks in is the box that has to be findable in the sun. */
-  const EDGE_OF = ['.kp-key', '.qp-bar > .qp-ans', '.qp-essay > .qp-sheet', '.tile.is-send'];
+  const EDGE_OF = ['.kp-key', '.qp-bar > .qp-ans', '.qp-essay > .qp-sheet'];
   const edgeN = {};
   EDGE_OF.forEach(sel => { edgeN[sel] = 0; });
   found.edges = [];

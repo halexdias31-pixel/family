@@ -1341,7 +1341,7 @@ const STATES = {
         probe.remove();
         return getComputedStyle(field).backgroundColor === paper && !inp.value
                && /Type your answer/.test(getComputedStyle(show, '::before').content)
-               && !!card.querySelector('.qp-bar > .tile.is-send.qp-check[data-do="qp-check"]')
+               && !!card.querySelector('.qp-bar > .tile.qp-check:not(.is-send)[data-do="qp-check"]')
                && !!card.querySelector('.qp-mark.qp-compose > .qp-verdict');
       },
       wants: 'Q0664\'s box empty and at rest: the field the paper colour, "Type your answer" in it, and the gold Send tile beside it',
@@ -4304,7 +4304,7 @@ const STATES = {
         initTyping();
       } },
 
-    /* ---------- THE WHITEBOARD, LOCKED, WITH SOMETHING ON IT § */
+    /* ---------- THE WHITEBOARD, A MATHS NOTEBOOK WITH SOMETHING ON IT (377): a line, a triangle and a ring, from the pen's old format ---------- */
     { name: 'a whiteboard with a drawing on it',
       enter: () => {
         const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'whiteboard');
@@ -4314,18 +4314,19 @@ const STATES = {
         const ring = [];
         for (let i = 0; i <= 48; i++) ring.push(Math.round(170 + 60 * Math.cos(i / 24 * Math.PI)), Math.round(255 + 45 * Math.sin(i / 24 * Math.PI)));
         ansStore_(k, JSON.stringify([[0, 20, 340, 20], [70, 190, 170, 50, 270, 190, 70, 190], ring]));
-        PAD_ON = k;
-        initWhiteboard();
+        initBoard_();
       },
-      expect: () => document.querySelectorAll('#s-tools #wgt-whiteboard .qpad.is-drawing .qpad-g path').length === 3
-                    && document.querySelector('#s-tools #wgt-whiteboard .qpad-ink[data-noswipe]')
-                    && document.querySelectorAll('#s-tools #wgt-whiteboard .qpad-bar .tile').length === 3,
-      wants: 'the board locked, three marks on it, and the padlock, Undo and Clear under it',
+      expect: () => {
+        const nb = document.querySelector('#s-tools #wgt-whiteboard .nb');
+        return !!nb && nbState_(nb.getAttribute('data-k')).items.length === 3
+          && !!nb.querySelector('.nb-pad[data-noswipe]') && nb.querySelectorAll('.nb-bar .tile').length === 5;
+      },
+      wants: 'the notebook drawn with three marks on it, its pad named for the grid, and Fraction, Power, Root, Integral and Clear under the page',
       leave: () => {
         const k = padKey_(WB_ITEM);
-        PAD_ON = '';
         ansStore_(k, null);
-        initWhiteboard();
+        NB_STATE.delete(k);
+        initBoard_();
       } },
     /* ---------- THREE, FOUR AND FIVE LIBRARY CARDS, DRAWN AS CARDS — `libraryShelf_` in me.js; docs/history/332 § */
     ...(() => {
