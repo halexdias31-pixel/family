@@ -128,3 +128,53 @@ Rounding and Square Numbers.* check-digest asks it from labels alone and from un
 asks that three untagged papers (Paper X, a June 2024 paper, a 5-a-day) give "Topics: Maths" and no
 paper/month/year, a mixed week, and a week with nothing named. Mutations (no worksheet fallback, no
 paper filter, no "not recorded", marks-right not right) each turned it red. Stamps `2026-10-20-e-email-simple`.
+
+## Each question as the child sees it, with all the tags (20 Oct, later still)
+
+The owner: *"make the questions look like they do when the child is answering them. with the tags. honestly
+it would be best if it looked most like how it looks when kids answer with all the tags."*
+
+Looked at first: the real app at 390 wide, Find opened on Edexcel GCSE June 2024 Paper 1F Q7 and Corbettmaths
+Perimeter Q1. The card is `.qcard` (#0b0b0b, 1px #232323, 3px corners) inside `.pane` (#101010, a faint rim,
+14px corners) on the black page; the row is `tagRow_` — outline pills, 9px radius, each its facet's colour
+(`TAG_OF` → `--tag-*`); the words at ~15px in `--ink`; a drawing white on black; the answer box a cream pill
+ringed green when right, gold when not; the Answers page an `ANSWER` label (faint, spaced capitals) over the result in bold.
+
+- **The paper palette is gone; the email is the black screen.** `digestInk_` is the site's `:root`: page #000,
+  pane #101010, card #0b0b0b, ink #e6e6e6, gold, `--good` green for right, `--bad` red for not right, gold for
+  part marks. Every fill is said (`bgcolor`) so Gmail's apps have nothing half-dark to guess at; inverted they
+  come out as a light copy of the site, still readable (email-390-v3-invert.png). The PNG twins stay cream
+  (351): the one visible difference from the site, where a drawing is white lines on black.
+- **The card:** one table whose 10px #101010 border is the pane round the #0b0b0b card (one box where the site
+  has two — the clip, below), then the tag row, the stem and words and picture as before (`partPlan_`'s order),
+  then the verdict in words and colour, **THEIR ANSWER** in the site's cream answer box ringed in the verdict's
+  colour, and **ANSWER** in bold as the Answers page sets it. No heading over a paper: the site has none, and the
+  tags say the paper. The summary is a `.pane` with a gold title. The library's tables are 11px with dark rules
+  so Q7's four-day table fits a 390 phone inside the card.
+
+**The tags are the card's.** `tagRow_` lives in js/find.js and leans on the whole booted app, so the backend has a
+port of what it does for a question row: `digestCardTags_(row, T)` over `digestTagIndex_(libraryText, paperIds)` —
+one pass over data/questions.json collecting every document row, the first live question of each paper (which
+papers share a folder, for `paperTag_`'s `Paper 1`), and all rows of the week's papers (the part split, what to
+bring, the health score — `paperHealth_` ported whole). `DIGEST_TAG_FACETS` is `facetList()`'s order for a
+question with each facet's colour kind; the dedupe is `tagRow_`'s (a name once, the first facet wins, an id
+once, a bare number never a name). Left off on purpose: the page tags `[1] [of 2]` — they count the site's
+reading pages, and the email draws the part whole. `digestLibraryFind_` hands each row's tags to the render;
+a question the library has not got wears what its label says (subject, sheet, number).
+
+**Held to the app:** check-funnel boots the real app over the real library and asks, for **every** question
+(8,006), that `digestCardTags_` says what `tagRow_` draws, word for word and kind for kind (page tags aside).
+0 differ. Mutation: Ready at 99 instead of 98 → 499 differ.
+
+**Under the clip.** A pill inline is ~85 bytes and a GCSE card wears 15, so the clip has a new move, made after a
+long source and before any question's own words (`DIGEST_CUT_FIRST`): a card may wear only the tags the card
+above it did not (`[Q8] [ii] [1 mark]`). The fixture weeks are 34 KB (11 mixed questions) and 17 KB (7
+Corbettmaths); check-digest's 80-part weeks stay under 95,000 bytes with every question's words.
+
+Rendered: email-390-v3.png / -invert.png (the fixture week), email-390-v3-cbm(-invert).png, site-card-390.png
+and site-card-390-cbm.png from the real app, and compare-390-q7.png / compare-390-cbm.png side by side.
+
+Checks: check-digest reads the new card (tags, then words, verdict, THEIR ANSWER, ANSWER) and gains 11b — two
+real questions' tags from the real library, Q7 a red pill, the sitting purple, marks the plain outline, two
+#0b0b0b cards, no paper heading, the page #000 and the answer box ringed green; mutations (tags off the card,
+the white page back) turned it red. Stamps `2026-10-20-f-email-cards`.

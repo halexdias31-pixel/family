@@ -879,3 +879,30 @@ in `checkSundayEmail`
          (*"ensure that this sunday she will recieve"*): an email goes only for a week with work in it. */
 ```
 
+### NO HEADING OVER A PAPER:
+
+in `digestQuestions_`
+
+```
+/* NO HEADING OVER A PAPER: the site has none, and the tags say the paper. Under the clip a card may wear only the tags the card above it
+     did not ([Q8] [ii] [1 mark]) — `tags:` in `sizes`, given up after a long source and before any question's words. */
+```
+
+### THE LIBRARY FOR THE TAGS, IN ONE PASS OVER THE FILE:
+
+top level, before `digestTagIndex_`
+
+```
+/* THE LIBRARY FOR THE TAGS, IN ONE PASS OVER THE FILE: every document row, the first live question of every paper (for which
+   papers share a folder) and every row of the papers asked for (for the part split, what to bring and the health). */
+```
+
+### EVERY TAG THE SITE'S CARD WEARS FOR THIS QUESTION ROW, in its order, each `{ kind, text }` — `tagRow_`'s walk and its one dedupe:
+
+top level, before `digestCardTags_`
+
+```
+/* EVERY TAG THE SITE'S CARD WEARS FOR THIS QUESTION ROW, in its order, each `{ kind, text }` — `tagRow_`'s walk and its one dedupe: a name
+   is said once, the first facet wins, a bare number is never a name. The page tags ([1] [of 2]) are left off: the email shows the part whole. */
+```
+

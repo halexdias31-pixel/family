@@ -1341,6 +1341,27 @@ boot(f => {
     });
   } else bad.push('the second finder (`inFinder_`, `finderOf_`, `RES_ST`) is not exported, so Find 2 was NOT checked — not a pass');
 
+  /* ---------- THE SUNDAY EMAIL'S TAGS ARE THE CARD'S (docs/history/380): backend/digest.gs ports `tagRow_`, asked of every question § */
+  try {
+    const b = require('./check-gas-load.js').backend();
+    const qs = f.stuffItems().filter(x => x && x.kind === 'question' && x.row);
+    const pids = [...new Set(qs.map(x => String(x.row.paper_id || '')).filter(Boolean))];
+    b.ev('globalThis.__T = digestTagIndex_(' + JSON.stringify(fs.readFileSync(path.join(ROOT, 'data', 'questions.json'), 'utf8')) + ', ' + JSON.stringify(pids) + ')');
+    const differ = [];
+    qs.forEach(x => {
+      /* THE PAGE TAGS ([2] [of 2]) ARE THE SITE'S READING PAGES; the email draws the part whole, so it says none. */
+      const want = f.tagList_(x).filter(t => !/^qPages?$/.test(t.field)).map(t => t.tag + ':' + t.text).join(' ');
+      const got = b.ev('(() => { const pid = ' + JSON.stringify(String(x.row.paper_id || '')) + ', id = ' + JSON.stringify(String(x.row.row_id))
+        + '; const r = (__T.rows[pid] || []).find(o => o.row_id === id); return digestCardTags_(r, __T).map(t => t.kind + ":" + t.text).join(" "); })()');
+      if (got !== want) differ.push(x.row.row_id + ': the card says ' + JSON.stringify(want) + ', the email ' + JSON.stringify(got));
+    });
+    console.log('  Email tags: ' + qs.length + ' questions, ' + differ.length + ' differing from the card');
+    if (qs.length < 1000) bad.push('the email\'s tags were compared over ' + qs.length + ' questions — the library did not load, which is not a pass');
+    if (differ.length) bad.push(differ.length + ' question(s) wear different tags in the Sunday email from their card (`digestCardTags_` vs `tagRow_`) — first: ' + differ.slice(0, 3).join('; '));
+  } catch (e) {
+    bad.push('the email\'s tags could not be compared with the card\'s: ' + e.message + ' — not a pass');
+  }
+
   done();
 });
 
