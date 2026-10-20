@@ -407,6 +407,15 @@ const darkest = (env, y, x0, x1) => env.page.evaluate(([y, x0, x1]) => {
       await fresh(env, true);
       want(n > 0 && (await items(env)).length === n, 'a reload draws the same board from the device', `${n} stored, ${(await items(env)).length} drawn`);
     }
+    /* A FINGER'S SHORT STROKES INK TOO (368): a 5px tick and a tap, each one stroke */
+    for (const [name, pts] of [['tick', [[0, 0], [2, 2], [3, 3], [4, 0], [5, -3]]], ['tap', [[0, 0]]]]) {
+      await fresh(env);
+      const h = await geo(env), X = h.pad.l + 60, Y = h.pad.t + h.py0 - h.xh;
+      await stroke(env, pts.map(q => [X + q[0], Y + q[1]]), { dt: 16 });
+      await sleep(200);
+      const n = (await items(env)).length;
+      want(n === 1, `a finger's short ${name} in the pad is kept`, n + ' items');
+    }
     want(!env.errs.length, 'no page errors on the phone', env.errs.join(' | '));
     await env.ctx.close();
 
@@ -424,6 +433,31 @@ const darkest = (env, y, x0, x1) => env.page.evaluate(([y, x0, x1]) => {
       const u = (await items(dk)).length;
       await dk.page.keyboard.press('Control+Shift+z');
       want(u === 0 && (await items(dk)).length === 1, 'Ctrl+Z undoes it and Ctrl+Shift+Z puts it back', u + ' then ' + (await items(dk)).length);
+      /* SHORT STROKES ALWAYS INK (368): a mouse's and a stylus's 5px tick, 3px cross and click are each kept, and each paints */
+      for (const kind of ['mouse', 'pen']) for (const [name, marks] of [['tick', [[[0, 0], [2, 2], [3, 3], [4, 0], [5, -3]]]], ['cross', [[[0, 0], [1, 1], [2, 2], [3, 3]], [[3, 0], [2, 1], [1, 2], [0, 3]]]], ['dot', [[[0, 0]]]]]) {
+        await fresh(dk);
+        const h = await geo(dk), X = h.pad.l + 60, Y = h.pad.t + h.py0 - h.xh;
+        const MO = (type, x, y, buttons) => dk.cdp.send('Input.dispatchMouseEvent', { type, x, y, button: 'left', buttons, clickCount: 1, pointerType: kind });
+        for (const s of marks) {
+          await MO('mousePressed', X + s[0][0], Y + s[0][1], 1); await sleep(16);
+          for (const q of s.slice(1)) { await MO('mouseMoved', X + q[0], Y + q[1], 1); await sleep(16); }
+          const z = s[s.length - 1];
+          await MO('mouseReleased', X + z[0], Y + z[1], 0); await sleep(120);
+        }
+        await sleep(200);
+        const got = await dk.page.evaluate(() => nbState_(padKey_(WB_ITEM)).items.filter(i => !i.t).map(i => {
+          const c = document.createElement('canvas'); c.width = c.height = 60;
+          const x = c.getContext('2d'), a = 3; x.fillStyle = x.strokeStyle = '#000';
+          inkStroke_(x, i.pts, a, 30 - i.box.l * a, 30 - i.box.t * a);
+          const d = x.getImageData(0, 0, 60, 60).data; let n = 0;
+          for (let j = 3; j < d.length; j += 4) if (d[j] > 128) n++;
+          return { n: i.pts.length, painted: n };
+        }));
+        const moved = marks.every(s => s.length === 1) || got.every(i => i.n >= 2);
+        want(got.length === marks.length && moved && got.every(i => i.painted >= 4), `a ${kind}'s short ${name} is kept, ${marks.length} stroke(s) each from down to up, and painted`, JSON.stringify(got));
+      }
+      await fresh(dk);
+      g = await geo(dk);
       await m.click(g.book.l + g.book.w * 0.6, g.book.t + (2 * 64 + 40) * (g.book.w / 360) - 4);
       await sleep(150);
       g = await geo(dk);

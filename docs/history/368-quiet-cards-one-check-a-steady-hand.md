@@ -64,3 +64,29 @@ is paid out in two points, so the stroke ends where the pointer lifted with no l
 are untouched, as 357 requires. check/pen.js `steady`: a 220px line with ±3px jitter per sample from a mouse and from a
 stylus is stored at 1.06px (phone) / 0.48px (iPad) roughness per sample where the hand was 5.03px, and ends at the
 lift. A finger's same line keeps its jitter.
+
+## Short strokes always ink (20 Oct)
+
+Found testing Corbettmaths Metric Units Q1 with a mouse on the real card: an arrow's shaft was kept, its arrowhead's
+two short lines were not. The cause was not the string. On a question's pad every pen touch was 357's *placement*: a
+dot until it had gone `PAD_DOT_PX` (12px), snapped to a grid intersection, a figure's point or **your own mark's end**
+(24px). A mouse's 8px arrowhead stroke never left the dot, so it was stored as one point, snapped onto the shaft's
+end, and painted on top of it, unseen. A 5px tick, a 3px cross and a decimal point went the same way. The board,
+which never snaps, kept them.
+
+The fix, in the pen only (`padStart_`, `PAD_DRAW.pen`):
+
+- A mouse or a stylus (`padSteady_`) is never a placement. It goes down where it is put, and a short stroke is kept
+  from its down point to its up point.
+- A short stroke is drawn exactly as moved. The lazy string engages only once the pointer is more than
+  `PAD_STRING_PX` from where it went down (`g.slack`), so a tick keeps its corner and a long line is steadied as before.
+- A click that never moved is a plotted point. It snaps to the grid or a figure's point, as a finger's does, but never
+  to your own marks, where it would vanish.
+- A finger is unchanged. Its short touch is still 357's dot, and 338's palm, two-finger and stray rules are untouched.
+
+check/pen.js `short`, at 390 and 820, on Q7's card and on the board, from a mouse and from a stylus: a 5px tick, an
+arrowhead pair after a shaft, a 3px cross and a click are each stored with their own down and up points, drawn,
+and change the screen's pixels round them. A finger's tick on the card is still one point. Before the fix, every card
+case failed and the arrowheads were `[119,153]`, the shaft's end. check/whiteboard.js: board.js (377) already kept
+them. It now proves a mouse's and a stylus's tick, cross and click, and a finger's tick and tap, are each kept and
+painted.

@@ -5623,13 +5623,19 @@ const PAD_DRAW = {
       /* AFTER A HOLD (374): a ring or an arc is done; a line's corner waits until the point leaves where it paused */
       if (g.frozen) return null;
       if (g.qz) { if (Math.hypot(at[0] * g.sx - g.qz[0], at[1] * g.sy - g.qz[1]) <= PAD_HOLD_PX) return null; g.qz = null; g.lz = null; }
-      if (padSteady_(g)) at = padLazy_(g, at, st);
+      /* A SHORT STROKE IS DRAWN EXACTLY AS MOVED: the string engages once the pointer is more than its length from where it went down -- a tick, a cross's arm (368) */
+      if (padSteady_(g) && (g.slack || Math.hypot((at[0] - g.raw[0]) * g.sx, (at[1] - g.raw[1]) * g.sy) > PAD_STRING_PX)) { g.slack = true; at = padLazy_(g, at, st); }
       if (!at || (st[st.length - 2] === at[0] && st[st.length - 1] === at[1])) return null;
       st.push(at[0], at[1]);
       return st;
     },
     /* A STEADIED STROKE ENDS WHERE THE POINTER LIFTED: the string's slack is paid out in two steps, so nothing lags */
     end: (g, st) => {
+      /* A CLICK THAT NEVER MOVED IS A PLOTTED POINT: onto the grid or the figure's point as a finger's is (357), never onto your own mark, where it would vanish */
+      if (padSteady_(g) && !g.board && !g.slack && g.tg && st && st.length === 2) {
+        const t = padSnap_(Object.assign({}, g, { hold: null, tg: { own: [], pts: g.tg.pts } }), st[0] * g.sx, st[1] * g.sy, '');
+        return t ? [Math.round(t.u[0]), Math.round(t.u[1])] : st;
+      }
       if (padSteady_(g) && !g.frozen && !g.qz && g.at && st && st.length >= 2) {
         const x = st[st.length - 2], y = st[st.length - 1], a = g.at;
         if (x !== a[0] || y !== a[1]) {
@@ -6143,8 +6149,9 @@ function padStart_(c, at, r) {
   if (!g.board) {
     g.lat = padLattice_(pad, r);
     g.tg = padTargets_(g, pad);
-    g.dot = g.tool === 'pen';
-    g.from = padPlace_(g, at, true);
+    /* A MOUSE OR A STYLUS IS NOT PLACING A DOT: it lands where it is put, so an arrowhead's 8px stroke stays a stroke and is not snapped onto the shaft (368) */
+    g.dot = g.tool === 'pen' && !padSteady_(g);
+    g.from = g.tool === 'pen' && !g.dot ? at.slice() : padPlace_(g, at, true);
   }
   PAD_ST = g.tool === 'compass' ? [] : g.from.slice();
   c.role = 'owner';
