@@ -98,7 +98,6 @@ const CALLS = {
   'doPost:answerClaim · They accepted':                           ['family'],
   'doPost:resetPin · Your PIN was changed':                       ['security'],
   'doPost:changePin · Your PIN was changed':                      ['security'],
-  'doPost:orderPosted · Your printing is in the post':            ['bookings'],
   'doPost:finalizePayment · Payment received — you are booked in': ['booked'],
   'doPost:finalizePayment · Paid: a place is confirmed':          ['bookings'],
   'doPost:markPaid · You are booked in: ':                        ['booked'],

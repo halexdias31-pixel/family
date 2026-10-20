@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-20-a-send-now";
+const DOGET_VERSION = "2026-10-20-b-tidy";
 
 
 function doGet(e) {
@@ -376,7 +376,7 @@ function doGet(e) {
       festive: [],
       /* THE CLOSED DAYS INSIDE A TERM — filled below by `closures()`. */
       closures: [],
-      trips: [], exams: [], birthdays: [], orders: [], widgets: [], posts: [], laws: [],
+      trips: [], exams: [], birthdays: [], posts: [], laws: [],
       /* AN ADMIN'S DISCOUNT CODES (docs/history/353) — filled below for an admin and nobody else. */
       promoCodes: [],
       facts: [],
@@ -795,21 +795,6 @@ function doGet(e) {
       payload.posts.sort((a, b) => (b.pinned - a.pinned) || (b.at - a.at));
     }
 
-    read(TAB.widgets).rows.forEach(r => {
-      if (!S(r.key)) return;
-      if (!ON_(r.active)) return;
-      payload.widgets.push({
-        key: S(r.key),
-        name: S(r.name) || S(r.key),
-        blurb: S(r.blurb),
-        section: norm(r.section) || 'tools',
-        search: S(r.search),
-        order: N(r.sort_order),
-        roles: S(r.roles),
-        rowIndex: r._row,
-      });
-    });
-    payload.widgets.sort((a, b) => (a.order || 99) - (b.order || 99));
 
     /* EXAMS AND BIRTHDAYS — the two things a calendar has to know about a person. § */
     {
@@ -860,32 +845,6 @@ function doGet(e) {
         payload.birthdays.push({
           name: nameFor_(r),
           day: d.getDate(), month: d.getMonth() + 1,
-        });
-      });
-    }
-
-    /* ORDERS. Yours, or everybody's if you are the admin who has to print them. § */
-    {
-      const meId = meAskedId;
-      read(TAB.orders).rows.forEach(r => {
-        if (!S(r.order_id)) return;
-        if (!viewerIsAdmin && (!meId || S(r.person_id) !== meId)) return;
-        const owner = findPerson(S(r.person_id));
-        payload.orders.push({
-          id: S(r.order_id), rowIndex: r._row,
-          personId: S(r.person_id),
-          who: owner ? nameFor_(owner) : '',
-          item: S(r.item), resource: S(r.resource),
-          ticks: N(r.cost_ticks), pages: N(r.pages),
-          cost: N(r.cost_pence) / 100,
-          delivery: norm(r.delivery) || 'collect',
-          state: norm(r.state) || 'asked',
-          askedOn: fmtDate(r.asked_on), postedOn: fmtDate(r.posted_on),
-          /* Only the admin doing the posting needs the address, and only while it is unposted.
-             It is a child's home address; sending it anywhere it is not needed is the sort of
-             thing that is fine until it is not. */
-          address: viewerIsAdmin ? S(r.address) : '',
-          notes: S(r.notes),
         });
       });
     }
@@ -1019,8 +978,8 @@ function doGet(e) {
       /* SHAPED LIKE A SHEET ROW, so everything below reads the same fields either way. */
       const r = { term_name: c.name, start_date: c.start, end_date: c.end,
                   kind: c.kind, _row: 0 };
-      // A term is bookable if it has a name and an end date. `relative_name` only decides how it's
-      // labelled — using it as the filter hid every term nobody had labelled.
+      // A term is bookable if it has a name and an end date. Where it sits is worked out (`relativeName`);
+      // a typed label once filtered here and hid every term nobody had labelled.
       if (!S(r.term_name) || !(S(r.end_date) || S(r.last_sunday))) return;
       // An interval whose dates leave no room for a session isn't bookable — usually because its
       // start is after its end. Offering it and pricing one session hid that error completely.

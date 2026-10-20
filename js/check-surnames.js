@@ -101,7 +101,6 @@ b.seed('post_reactions', [{ reaction_id: 'R1', post_id: 'PO-1', person_id: 'P-KI
                           { reaction_id: 'R2', post_id: 'PO-1', person_id: 'P-KD2', emoji: '👏', reacted_on: dmy(day(-1)) }]);
 b.seed('post_comments', [{ comment_id: 'C1', post_id: 'PO-1', person_id: 'P-KID', body: 'thank you', said_on: dmy(day(-1)), active: 'TRUE' }]);
 b.seed('exams', [{ exam_id: 'E1', person_id: 'P-KID', subject: 'Maths', label: 'Mock', exam_date: dmy(day(30)), kind: 'mock', active: 'TRUE' }]);
-b.seed('orders', [{ order_id: 'O1', person_id: 'P-KID', item: 'Worksheet', cost_pence: 100, state: 'asked', asked_on: dmy(day(-2)) }]);
 
 const tk = {};
 const signIn = (who, as) => { const d = b.post({ action: 'verifyLogin', email: who, name: who, pin: '0000' }); if (d && d.success) tk[as] = d; return d; };

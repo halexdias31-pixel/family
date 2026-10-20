@@ -119,6 +119,12 @@ function setupWhen_(iso) {
   if (isNaN(d)) return String(iso || '');
   return d.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
+/* A JOB'S LINK — the tidy's backup copy (379) — only when it is an https address, opened beside the app. */
+function setupJobLink_(j) {
+  const url = String((j && j.link) || '');
+  if (url.slice(0, 8) !== 'https://') return '';
+  return ` <a href="https://${esc(url.slice(8))}" target="_blank" rel="noopener">Open the backup</a>`;
+}
 function setupCard_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return '';
   const S_ = DATA && DATA.setup;
@@ -139,7 +145,10 @@ function setupCard_() {
       ? ` · <span class="setup-bad">not deployed: ${odd.map(k => esc(k) + '.gs (' + esc(files[k]) + ')').join(', ')}</span>` : ' · all four files agree'}</p>
     ${failed.map(j => `<p class="setup-bad">${esc(j.id)} failed: ${esc(j.error)} — it tries again on the next page load.</p>`).join('')}
     <ul class="setup-list">${jobs.map(j => `<li><span>${j.ran ? '✓' : j.error ? '✗' : '…'}</span> ${esc(j.id)} <span class="faint">${j.ran
-      ? esc(j.ran === 'yes' ? 'done' : setupWhen_(j.ran)) : j.error ? 'failed' : 'waiting'}</span></li>`).join('')}</ul>
+      ? esc(j.ran === 'yes' ? 'done' : setupWhen_(j.ran)) : j.error ? 'failed' : 'waiting'}</span>${
+      /* WHAT THE JOB LEFT TO SAY — the tidy's backup copy and what it removed (379). */
+      j.said ? `<br><span class="faint">${esc(j.said)}</span>` : ''}${
+      setupJobLink_(j)}</li>`).join('')}</ul>
     <h4>Triggers</h4>
     <ul class="setup-list">${(S_.triggers || []).map(t => `<li>${esc(t.fn)}${t.times > 1 ? ' ×' + esc(t.times) : ''} <span class="faint">${esc(t.when)}</span></li>`).join('')
       || `<li class="faint">${S_.triggersError ? 'could not be listed: ' + esc(S_.triggersError) : 'none yet — they install on the next page load'}</li>`}</ul>
