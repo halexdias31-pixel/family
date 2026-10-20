@@ -178,3 +178,28 @@ Checks: check-digest reads the new card (tags, then words, verdict, THEIR ANSWER
 real questions' tags from the real library, Q7 a red pill, the sitting purple, marks the plain outline, two
 #0b0b0b cards, no paper heading, the page #000 and the answer box ringed green; mutations (tags off the card,
 the white page back) turned it red. Stamps `2026-10-20-f-email-cards`.
+
+## Dark everywhere, pictures included (20 Oct, `2026-10-20-i-email-dark`)
+
+The owner: "the email is not dark theme. i want it dark mode like it is on my website. regardless. with black
+background and white diagram lines".
+
+- **The pictures are the site's now.** `tools/diagram_png.js` draws every twin on the card's #0b0b0b with the
+  screen's ink, so `currentColor` lines are light, as the site draws a figure; opaque RGB, no alpha, so no client
+  shows a box. Same names (the SHA-256 rule), files replaced, not doubled — only the email uses them.
+  `--palette=paper` draws the cream ones back.
+- **The email is a whole document** (`digestDarkDoc_`): `<meta name="color-scheme" content="dark">` and
+  `supported-color-schemes`, `:root{color-scheme:dark}`, `bgcolor="#000"` on body and every frame table and cell,
+  classes `kb`/`kp`/`kc` (page, pane, card) held by Outlook's `[data-ogsb]` / `[data-ogsc]` rules.
+  check/digest-dry.js writes the document as-is (viewport added).
+- **Tried and dropped: Gmail's app gradient.** `u + .body .x{background-image:linear-gradient(#000,#000)}` keeps
+  the black under Gmail iOS's inversion but not the words, which it still turns dark: dark on black. The
+  `mix-blend-mode` screen/difference wrapper that fixes the words also re-inverts the pictures and pills when
+  it wraps a whole card. In an emulation (colours and fills flipped, images kept) both were worse than none.
+- **What is left to the client:** Apple Mail, iOS Mail, Gmail web, Outlook web/new Outlook show it as sent.
+  Gmail's iOS/Android apps in dark mode may still invert a dark email into a light copy (readable; the
+  pictures stay black boxes, email-390-v4-invert.png); classic Outlook on Windows ignores the head styles but
+  keeps every `bgcolor`. Gmail's image proxy may hold a cream twin for a while, the URL being unchanged.
+
+Rendered: email-390-v4.png, email-390-v4-invert.png, email-390-v4-cbm(-invert).png. check-digest 11b now asks for
+the doctype, both metas, the body and frame `bgcolor="#000"`, the `[data-ogsb]` rule and no gradient or blend.

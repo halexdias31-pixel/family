@@ -166,8 +166,10 @@ kept.forEach((m, i) => {
   const n = pad(i + 1);
   fs.writeFileSync(path.join(OUT, n + '.json'), JSON.stringify({ to: m.to, subject: m.subject, text: m.body, html: m.htmlBody }, null, 2));
   fs.writeFileSync(path.join(OUT, n + '.txt'), 'To: ' + m.to + '\nSubject: ' + m.subject + '\n\n' + m.body + '\n');
-  fs.writeFileSync(path.join(OUT, n + '.html'), '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
-    + '<title>' + String(m.subject).replace(/</g, '&lt;') + '</title><body style="margin:16px">' + m.htmlBody + '</body>');
+  const head = '<meta name="viewport" content="width=device-width, initial-scale=1"><title>' + String(m.subject).replace(/</g, '&lt;') + '</title>';
+  /* THE EMAIL IS A WHOLE DOCUMENT NOW (its dark head, 380): the page is it, with a phone's viewport added; an older fragment is wrapped as before. */
+  fs.writeFileSync(path.join(OUT, n + '.html'), /^<!DOCTYPE html>/i.test(m.htmlBody) ? m.htmlBody.replace('<head>', '<head>' + head)
+    : '<!doctype html><meta charset="utf-8">' + head + '<body style="margin:16px">' + m.htmlBody + '</body>');
 });
 
 

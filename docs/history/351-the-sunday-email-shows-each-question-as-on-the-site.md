@@ -171,3 +171,9 @@ The four version stamps move together to `2026-10-18-w-asonsite`.
 4. Run **`checkSundayEmail`**: *THE HOUR BOOKED … 21:00 … The config tab says the same.* No WARNING.
 5. The parent's address goes on the people tab (the owner is adding it): the setup check's NOT REACHED
    lines say whose is still missing.
+
+## The twins go dark (20 Oct, 380)
+
+Every twin is redrawn in the screen's look — light lines on the card's #0b0b0b, opaque — by default
+(`node tools/diagram_png.js --force`); `--palette=paper` for the old cream. The name rule and the folder are unchanged,
+so check-diagram-png and `digestDiagram_` still agree. 1,362 twins, 23.1 MB.

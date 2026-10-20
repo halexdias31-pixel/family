@@ -216,11 +216,11 @@ function digestRender_(L, P, week, look) {
     return {
       text: [hi, '', lead].concat(S0.lines, ['']).concat(Q.lines, [foot]).join('\n'),
       /* ONE TABLE THE WIDTH OF A PHONE, AT MOST 600 — the `width` for Outlook, which reads no max-width; every colour said, so a dark inbox inverts all of it or none (380). */
-      html: '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="' + ink.page + '" style="background:' + ink.page + '">'
-        + '<tr><td align="center" style="padding:12px 8px">'
-        + '<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px">'
-        + '<tr><td style="font-family:' + ink.mono + ';font-size:15px;line-height:1.5;color:' + ink.ink + ';text-align:left">'
-        + body + '</td></tr></table></td></tr></table>',
+      html: digestDarkDoc_(ink, '<table role="presentation" class="kb" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="' + ink.page + '" style="background:' + ink.page + '">'
+        + '<tr><td align="center" class="kb" bgcolor="' + ink.page + '" style="padding:12px 8px;background:' + ink.page + '">'
+        + '<table role="presentation" class="kb" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="' + ink.page + '" style="width:100%;max-width:600px">'
+        + '<tr><td class="kb" bgcolor="' + ink.page + '" style="font-family:' + ink.mono + ';font-size:15px;line-height:1.5;color:' + ink.ink + ';text-align:left">'
+        + body + '</td></tr></table></td></tr></table>'),
     };
   };
   let Q = digestQuestions_(items, DIGEST_WEEK_LIST_MAX, opts), m = make(Q);
@@ -244,6 +244,17 @@ function digestInk_() {
   return { page: '#000', pane: '#101010', paneLine: '#383838', card: '#0b0b0b', line: '#232323', ink: '#e6e6e6', dim: '#9a9a9a',
            faint: '#848484', chip: '#3d3d3d', gold: '#ffb454', right: '#3ddc84', wrong: '#ff5f56',
            paper: '#f4f1e8', paperInk: '#2b2620', mono: 'Menlo,Consolas,monospace' };
+}
+
+/* DARK EVERYWHERE (the owner, 20 Oct): said dark to every client, Outlook's [data-ogsb]/[data-ogsc] held; no Gmail-app gradient, which keeps the black but not the white words (380). */
+function digestDarkDoc_(ink, inner) {
+  const k = '.kb{background:' + ink.page + '}.kp{background:' + ink.pane + '}.kc{background:' + ink.card + '}';
+  return '<!DOCTYPE html><html lang="en" style="background:' + ink.page + '"><head><meta charset="utf-8">'
+    + '<meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark">'
+    + '<style>:root{color-scheme:dark;supported-color-schemes:dark}html,body{background:' + ink.page + '!important;color:' + ink.ink + '}' + k
+    + '[data-ogsb] .kb{background-color:' + ink.page + '!important}[data-ogsb] .kp{background-color:' + ink.pane + '!important}[data-ogsb] .kc{background-color:' + ink.card + '!important}'
+    + '[data-ogsc] .kb{color:' + ink.ink + '!important}</style></head>'
+    + '<body class="body" bgcolor="' + ink.page + '" style="margin:0;padding:0;background:' + ink.page + ';color:' + ink.ink + '">' + inner + '</body></html>';
 }
 
 /* HOW ONE QUESTION WENT, by the week's last word on it: right, part marks, not right, not marked — never how many goes it took (the owner, 20 Oct). */
@@ -325,7 +336,7 @@ function digestSummary_(items, days, lib, week) {
   const small = (label, text) => '<p style="margin:4px 0 0;font-size:13px;line-height:1.45;color:' + ink.ink + '">'
     + '<span style="color:' + ink.dim + '">' + label + '</span> ' + digestEsc_(text) + '</p>';
   /* THE SITE'S PANE — `.pane`, #101010 inside a faint rim, rounded — every fill said, so a dark inbox has nothing to invert into mud. */
-  const html = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="' + ink.pane + '" style="border:1px solid ' + ink.paneLine
+  const html = '<table role="presentation" class="kp" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="' + ink.pane + '" style="border:1px solid ' + ink.paneLine
     + ';border-radius:14px;margin:4px 0 16px"><tr><td style="padding:16px 14px">'
     /* A HEADING NOBODY SCROLLS PAST (the owner missed the first one, 20 Oct): the size of a title, then the topics before any figure. */
     + '<p style="margin:0 0 10px;font-size:19px;line-height:1.3;font-weight:bold;color:' + ink.gold + '">Summary of the week</p>'
@@ -386,7 +397,7 @@ function digestQuestions_(items, max, o) {
   const card = (it, inner, tags) => {
     const w = says.filter(x => x.id === it.how)[0] || says[says.length - 1];
     /* THE PANE IS THE CARD'S OWN BORDER — 10px of `.pane`'s #101010 round `.qcard`'s #0b0b0b, rounded — one table where the site has two boxes. */
-    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="' + ink.card + '" style="border:10px solid ' + ink.pane
+    return '<table role="presentation" class="kc" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="' + ink.card + '" style="border:10px solid ' + ink.pane
       + ';border-radius:14px;margin:0 0 14px"><tr><td style="padding:12px 11px">'
       + (tags ? '<div style="font-size:10px;line-height:24px;margin:0 0 8px">' + tags + '</div>' : '') + inner
       /* THE VERDICT IN WORDS AND ITS COLOUR, the summary's own; THEIR ANSWER in the site's answer box, paper ringed in that colour; the ANSWER as the Answers page sets it. */

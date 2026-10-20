@@ -1229,7 +1229,9 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
   w.setClock(at('2026-10-18T20:00:00Z'));
   const r = run(b, '2026-10-18T20:00:00Z');
   const sent = mail.sent.find(m => m.to === 'pat@example.org') || { body: '', htmlBody: '', subject: '' };
-  const text = sent.body, html = sent.htmlBody, flat = unstyled(html);
+  /* THE ROW'S MARKUP IS THE BODY'S: the dark frame's head and its own classes (380) are the email's, not anything a row brought. */
+  const html = String(sent.htmlBody).replace(/^[\s\S]*?<body\b[^>]*>|<\/body><\/html>$/g, '').replace(/ class="(?:kb|kp|kc)"/g, '');
+  const text = sent.body, flat = unstyled(html);
   asked++;
   if (r.sent !== 1 || !/as it is on the site/.test(String(r.library))) bad.push('the run did not send Kit’s week with the library fetched: ' + JSON.stringify(r).slice(0, 300));
   /* FULL WORDS, NO TRUNCATION — the stem past DIGEST_STEM_SHOWN and the ask past DIGEST_WORDS_SHOWN, whole. */
@@ -1349,9 +1351,12 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
     bad.push('each question is not the site\'s card — two #0b0b0b cards in a #101010 pane, every tag a pill in its facet\'s colour (Q7 red, the sitting purple, marks the plain outline), no health band (383), and no paper heading over them: ' + cards + ' card(s); ' + said(r.html).slice(0, 300));
   asked++;
   /* THE BLACK SCREEN, SAID: the page, the summary's pane and every card fill their own cells, so a dark inbox has nothing to guess. */
-  if (!/^<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#000"/.test(r.html) || r.html.indexOf('bgcolor="#101010"') === -1
+  if (!/^<!DOCTYPE html><html lang="en" style="background:#000"><head><meta charset="utf-8"><meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark"><style>:root\{color-scheme:dark/.test(r.html)
+      || !/<body class="body" bgcolor="#000"[^>]*><table role="presentation" class="kb" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#000"/.test(r.html)
+      || /u\+\.body|linear-gradient|mix-blend/.test(r.html) || r.html.indexOf('[data-ogsb] .kb{background-color:#000!important}') === -1
+      || r.html.indexOf('class="kp" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#101010"') === -1
       || r.html.indexOf('bgcolor="#f4f1e8" style="border:3px solid #3ddc84') === -1 || /#ffffff|#f4f1e8" style="background/.test(r.html))
-    bad.push('the email is not the site\'s black screen — the page #000, the summary\'s pane #101010, their answer in the paper box ringed green when right');
+    bad.push('the email is not the site\'s black screen, said dark to every client — color-scheme dark, the body and every frame cell #000 with Outlook\'s [data-ogsb] defences and no Gmail-app gradient (it leaves the words dark on black), the page #000, the summary\'s pane #101010, their answer in the paper box ringed green when right');
 }
 
 /* ---------- 12. THE DRY RUN (check/digest-dry.js) STILL RUNS, SENDS NOTHING AND WRITES NOWHERE IT MAY NOT § */
