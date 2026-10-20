@@ -99,3 +99,32 @@ no-@, no-surname, no-link checks are unchanged and pass. Mutations: the "Their a
 the summary emptied, each turned check-digest red.
 
 Deploy: backend changed — all four stamps `2026-10-20-c-email`.
+
+## Right or not, and always the topics (20 Oct, later)
+
+The owner, after the real email for a child who did 32 Corbettmaths primary questions (Perimeter,
+Rounding, Square Numbers): *"it doesnt seem to have a summary at the top. like at least the topics he
+worked on in this case. also it doesnt need to say how many turns it took for him to get it right just
+whether he got it right or not"*.
+
+The summary was there, but small-headed ("THE WEEK IN SHORT" at 11 px) and with no Topics line: every
+Corbettmaths worksheet row has an empty `topics` (1,576 of them; 5-a-day 1,794), and the line came only
+from `topics`. Gmail also threaded the email under an earlier test with the same subject, so it was easy to miss.
+
+- **Verdicts:** Right, Not right, part marks (x of y), Not marked yet — in the figures and on every card.
+  "Right first time" / "right after another go" are one "✓ Right"; `digestHow_` takes the week's last
+  verdict only, and the first-press plumbing (`firstAt`, `first`) is gone. The plain body's key says "✗ not right".
+- **Topics (`digestTopicOf_`):** the library's `topics`; else the topic worksheet's own name (a
+  Worksheet/Exercise row's `name`, or with no library row the label's segment before "Q3"; a content card's
+  title); never a paper's name — `DIGEST_NOT_TOPIC` refuses "Paper", mock, specimen, 5-a-day, a year, a month
+  and a board, and a Past paper / Specimen paper / 5-a-day row is never named — so an untagged paper is its
+  subject ("Maths"), shown only when nothing in the week has a topic of its own. Measured on the library:
+  no Worksheet/Exercise name is refused and every paper name is. A week nothing names says "Topics: not recorded."
+  An earlier draft took the label's middle segment for everything and printed "Topics: Paper 7".
+- **The box:** "Summary of the week" at 19 px bold, the sentence, then Topics in 15 px before the figures.
+
+A Corbettmaths week now reads: *Summary of the week — 5 right and 2 not right. Topics: Perimeter,
+Rounding and Square Numbers.* check-digest asks it from labels alone and from untagged library rows,
+asks that three untagged papers (Paper X, a June 2024 paper, a 5-a-day) give "Topics: Maths" and no
+paper/month/year, a mixed week, and a week with nothing named. Mutations (no worksheet fallback, no
+paper filter, no "not recorded", marks-right not right) each turned it red. Stamps `2026-10-20-e-email-simple`.
