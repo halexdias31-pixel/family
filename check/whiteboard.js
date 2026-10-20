@@ -178,9 +178,39 @@ const darkest = (env, y, x0, x1) => env.page.evaluate(([y, x0, x1]) => {
     const afterRedo = (await items(env)).length;
     want(afterUndo === 1 && afterRedo === 2, 'a two-finger tap takes the last stroke off and a three-finger tap puts it back', afterUndo + ' then ' + afterRedo);
 
-    /* A PALM: a contact 60px wide draws nothing. */
-    await stroke(env, line([g.pad.l + 60, g.pad.t + 60], [g.pad.l + 200, g.pad.t + 120], 10), { r: 30 });
-    want((await items(env)).length === 2, 'a palm-sized contact across the pad draws nothing', (await items(env)).length + ' items');
+    /* AN iPHONE'S FINGERTIP, ALONE: WebKit reports 2 x UITouch's radius, 42-63px, as wide as a palm -- it writes (it was refused, and a finger did nothing) */
+    for (const r of [21, 26, 31]) {
+      await stroke(env, line([g.pad.l + 60, g.pad.t + 60], [g.pad.l + 200, g.pad.t + 120], 10), { r });
+      await sleep(150);
+      const n = (await items(env)).length;
+      want(n === 3, 'a lone fingertip ' + 2 * r + 'px wide, as an iPhone reports one, writes', n + ' items');
+      if (n === 3) { await tapN(env, [[g.pad.l + 100, g.pad.t + 80], [g.pad.l + 160, g.pad.t + 90]]); await sleep(150); }
+    }
+    /* A PALM: a 60px contact down first and a finger after it -- the finger writes and the palm draws nothing; and one landing beside a writing finger is ignored */
+    {
+      const pa = [g.pad.l + 220, g.pad.t + 150], f0 = [g.pad.l + 60, g.pad.t + 70];
+      await T(env, 'touchStart', [P(pa[0], pa[1], 2, 30)]);
+      for (let i = 1; i <= 4; i++) { await T(env, 'touchMove', [P(pa[0] - i * 6, pa[1] + i * 2, 2, 30)]); await sleep(16); }
+      await sleep(250);
+      await T(env, 'touchStart', [P(pa[0] - 24, pa[1] + 8, 2, 30), P(f0[0], f0[1], 1)]);
+      for (let i = 1; i <= 12; i++) { await T(env, 'touchMove', [P(pa[0] - 24, pa[1] + 8, 2, 30), P(f0[0] + i * 8, f0[1] + i * 2, 1)]); await sleep(16); }
+      await T(env, 'touchEnd', []);
+      await sleep(200);
+      const it2 = await items(env), g2 = await geo(env);
+      const last = it2[it2.length - 1], fx = l => g2.pad.l + padX(g2, l);
+      want(it2.length === 3 && fx(last.box.r) < pa[0] - 60, 'a palm down first, then a finger: only the finger\'s stroke is kept', it2.length + ' items, last ' + JSON.stringify(last && last.box));
+      if (it2.length === 3) { await tapN(env, [[g.pad.l + 100, g.pad.t + 80], [g.pad.l + 160, g.pad.t + 90]]); await sleep(150); }
+      await T(env, 'touchStart', [P(f0[0], f0[1], 1)]);
+      for (let i = 1; i <= 6; i++) { await T(env, 'touchMove', [P(f0[0] + i * 8, f0[1] + i * 2, 1)]); await sleep(16); }
+      await T(env, 'touchStart', [P(f0[0] + 48, f0[1] + 12, 1), P(pa[0], pa[1], 2, 30)]);
+      for (let i = 7; i <= 12; i++) { await T(env, 'touchMove', [P(f0[0] + i * 8, f0[1] + i * 2, 1), P(pa[0] - i, pa[1], 2, 30)]); await sleep(16); }
+      await T(env, 'touchEnd', []);
+      await sleep(200);
+      const it3 = await items(env);
+      want(it3.length === 3, 'a palm landing beside a writing finger is ignored, and the finger\'s stroke is kept', it3.length + ' items');
+      if (it3.length === 3) { await tapN(env, [[g.pad.l + 100, g.pad.t + 80], [g.pad.l + 160, g.pad.t + 90]]); await sleep(150); }
+    }
+    want((await items(env)).length === 2, 'and after taking those back, the board holds the x again', (await items(env)).length + ' items');
 
     /* RUBBED OUT: a scribble over the x takes it away and is not kept. */
     g = await geo(env);

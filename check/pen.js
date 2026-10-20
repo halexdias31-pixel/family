@@ -58,9 +58,9 @@ const fail = (sec, where, msg) => found.push(`${sec} ${where}: ${msg}`);
 const say = s => { if (VERBOSE) console.log('  ' + s); };
 let reached = 0;
 
-async function boot(browser, W, H, port) {
-  const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
-                                         serviceWorkers: 'block' });
+async function boot(browser, W, H, port, o) {
+  const ctx = await browser.newContext(Object.assign({ viewport: { width: W, height: H }, deviceScaleFactor: (o && o.dsf) || 2, isMobile: true, hasTouch: true,
+                                         serviceWorkers: 'block' }, o && o.ua ? { userAgent: o.ua } : {}));
   const page = await ctx.newPage();
   const errs = [];
   page.on('pageerror', e => errs.push(String(e.message).slice(0, 160)));
@@ -1820,6 +1820,77 @@ const unmoved = (sec, where, r, b) => {
       console.log(`  short ${at} ${surf}: a tick, an arrowhead pair, a cross and a click from a mouse and a stylus, each stored end to end and seen`);
     }
     if (env.errs.length) fail('ERRORS', at + ' short', env.errs.slice(0, 3).join(' | '));
+    await env.ctx.close();
+  }
+
+  /* ==================== A PHONE'S OWN FINGER: an iPhone and an Android phone, their fingertip's real width ==================== */
+  /* WebKit reports a touch 2 x UITouch's radius wide, 42-63px for a fingertip. On a stem's figure (381), Q7's and the notebook: a tap arms the figure, a stroke inks, a tap leaves a dot */
+  if (want('phone')) for (const dev of [
+    { name: 'iPhone', W: 390, H: 844, dsf: 3, r: 26, ua: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1' },
+    { name: 'Android', W: 412, H: 915, dsf: 2.625, r: 12, ua: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36' }]) {
+    const env = await boot(browser, dev.W, dev.H, port, dev);
+    await env.cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 }).catch(() => {});
+    const F = (x, y) => pt(x, y, 1, dev.r);
+    const drag = async (x, y, dx, dy, n) => {
+      begin(env);
+      await T(env, 'touchStart', [F(x, y)], 0);
+      await stream(env, Array.from({ length: n }, (_, i) => [F(x + dx * (i + 1) / n, y + dy * (i + 1) / n)]), 16);
+      await T(env, 'touchEnd', [], n * 16 + 8);
+      await sleep(500);
+    };
+    const tapAt = async (x, y) => { begin(env); await T(env, 'touchStart', [F(x, y)], 0); await sleep(50); await T(env, 'touchEnd', [], 50); await sleep(700); };
+    for (const [what, row] of [['stem figure', 'Q-CBM-metric-units-1'], ['own figure', Q7]]) {
+      const where = `${dev.name} ${what}`;
+      const k = await card(env, row);
+      let b = k && await cardBox(env);
+      if (!b || !b.ink) { fail('phone', where, `the card or its pen was not reached (${row})`); continue; }
+      reached++;
+      await reset(env, k);
+      if (b.armed) await env.page.evaluate(() => { PAD_ON = ''; document.querySelectorAll('.qpad').forEach(p => padArm_(p, false)); });
+      await tapAt(b.ink.x, b.ink.y);
+      b = await cardBox(env);
+      let r;
+      if (!b || !b.armed) { fail('phone', where, 'a finger\'s tap on the figure did not arm the pen -- a finger placed on it does nothing'); continue; }
+      await drag(b.ink.x - 40, b.ink.y - 10, 80, 20, 12);
+      r = await look(env, k, CARD);
+      if (r.stored.length !== 1 || r.paths !== 1) fail('phone', where, `a ${2 * dev.r}px fingertip's stroke on the armed figure stored ${r.stored.length}, drew ${r.paths} -- wanted 1 and 1`);
+      if (r.axis) fail('phone', where, `the swipe engine took the stroke (${r.axis})`);
+      await tapAt(b.ink.x + 30, b.ink.y + 20);
+      r = await look(env, k, CARD);
+      if (r.stored.length !== 2 || r.paths !== 2) fail('phone', where, `a fingertip's tap left ${r.stored.length - 1} mark(s), ${r.paths - 1} drawn -- wanted a dot`);
+      say(`phone ${where}: ${JSON.stringify(r.stored).slice(0, 100)}`);
+      await reset(env, k);
+    }
+    /* THE TOOLS WHITEBOARD, the notebook (board.js), as a child finds it: no arming, a finger writes */
+    {
+      const where = `${dev.name} notebook`;
+      const nb = await env.page.evaluate(async () => {
+        if (AT !== 'tools') go('tools', false, true);
+        goPage('tools', widgetsOf_('tool').findIndex(w => String(w.id) === 'whiteboard'), true);
+        for (let i = 0; i < 60 && !document.querySelector('#s-tools #wgt-whiteboard .nb-pad'); i++) await new Promise(r => setTimeout(r, 100));
+        await new Promise(r => setTimeout(r, 800));
+        const p = document.querySelector('#s-tools #wgt-whiteboard .nb-pad');
+        if (!p) return null;
+        NB_STATE.delete(padKey_(WB_ITEM)); try { ansStore_(padKey_(WB_ITEM), null); } catch (e) {}
+        initBoard_();
+        const r = p.getBoundingClientRect();
+        return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      });
+      const n = () => env.page.evaluate(() => nbState_(padKey_(WB_ITEM)).items.length);
+      if (!nb) fail('phone', where, 'the whiteboard notebook was not reached');
+      else {
+        reached++;
+        await drag(nb.x - 50, nb.y, 90, 25, 12);
+        const a = await n();
+        await tapAt(nb.x + 40, nb.y + 20);
+        const z = await n();
+        if (a !== 1) fail('phone', where, `a ${2 * dev.r}px fingertip's stroke wrote ${a} item(s) -- wanted 1`);
+        if (z !== a + 1) fail('phone', where, `a fingertip's tap wrote ${z - a} item(s) -- wanted 1`);
+        say(`phone ${where}: stroke ${a}, tap ${z - a}`);
+      }
+    }
+    console.log(`  phone ${dev.name}: a ${2 * dev.r}px fingertip arms the stem's figure and Q7's by a tap and inks them, and writes on the notebook`);
+    if (env.errs.length) fail('ERRORS', dev.name + ' phone', env.errs.slice(0, 3).join(' | '));
     await env.ctx.close();
   }
 

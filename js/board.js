@@ -8,7 +8,7 @@ const nbBase_ = line => line * NB.LINE + NB.BASE;
 const nbLineOf_ = y => Math.max(0, Math.floor((y - NB.BASE) / NB.LINE + 0.7));
 
 /* ---------- THE HAND (px, ms) ---------- */
-const NB_PALM_PX = 44;     // a contact wider than this is a palm or a knuckle; a fingertip reports 10-25
+const NB_PALM_PX = 44;     // wider than this is a palm, but only beside a narrower contact: an iPhone fingertip alone reports 42-63 (2 x UITouch radius)
 const NB_EDGE_PX = 12;     // a touch landing this near the screen's side is a grip or the system's back swipe
 const NB_SECOND_MS = 180;  // a second finger this soon is a gesture; later, it is a hand settling while the first one writes
 const NB_SECOND_PX = 16;
@@ -828,14 +828,14 @@ function nbHoldView_(b) {
 }
 
 /* ---------- THE HAND ON THE PAD AND THE PAGE ---------- */
-/* REFUSED AT LANDING: a palm (its contact is wide), or a touch at the screen's side edge (a grip, or the system's back swipe). */
+/* REFUSED AT LANDING: a touch at the screen's side edge (a grip, or the system's back swipe). Never for its size alone: on an iPhone a lone fingertip is as wide as a palm (docs/history/377) */
 function nbRefuse_(e) {
   if (e.pointerType === 'mouse' || e.pointerType === 'pen') return false;
-  const size = Math.max(Number(e.width) || 0, Number(e.height) || 0);
-  if (size > NB_PALM_PX) return true;
   const W = (typeof innerWidth === 'number' && innerWidth) || 0;
   return W > 0 && (e.clientX < NB_EDGE_PX || e.clientX > W - NB_EDGE_PX);
 }
+/* A PALM IS A WIDE CONTACT BESIDE A NARROWER ONE: alone, a wide contact is the finger writing */
+const nbWide_ = e => e.pointerType !== 'mouse' && e.pointerType !== 'pen' && Math.max(Number(e.width) || 0, Number(e.height) || 0) > NB_PALM_PX;
 function nbRect_(S) {
   const r = S.box.getBoundingClientRect ? S.box.getBoundingClientRect() : null;
   return r && r.width ? r : { left: 0, top: 0, width: S.w, height: S.h };
@@ -874,7 +874,11 @@ function nbDown_(b, surf, e) {
   NB_PTR.set(id, { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY });
   try { S.box.setPointerCapture && S.box.setPointerCapture(id); } catch (x) {}
   const now = performance.now();
-  const g = NB_G;
+  const wide = nbWide_(e);
+  let g = NB_G;
+  /* A PALM DOWN FIRST, THEN A FINGER: the palm's half-stroke goes and the finger writes. A wide contact beside a finger is the palm, ignored to its lift */
+  if (g && g.wide && !wide && g.kind !== 'multi') { g.ids.forEach(x => NB_REJ.add(x)); nbEndG_(); g = null; }
+  if (g && wide) { NB_REJ.add(id); return; }
   if (g && (g.b !== b || g.surf !== surf)) { NB_REJ.add(id); return; }
   if (g && g.kind === 'multi') { g.ids.add(id); g.max = Math.max(g.max, g.ids.size); g.c = null; return; }
   if (g) {
@@ -901,7 +905,7 @@ function nbDown_(b, surf, e) {
     const f = euro.step(x, y, e.timeStamp || now);
     const w = 1.6 / m.s;
     NB_G = { b, surf, kind: 'ink', ids: new Set([id]), id, t0: now, r, m, euro, pts: [[f[0], f[1], w]], raw: [[x, y]], len: 0,
-             w: 1.6, last: [f[0], f[1], e.timeStamp || now], hold: [x, y], timers: [], ruled: false };
+             w: 1.6, last: [f[0], f[1], e.timeStamp || now], hold: [x, y], timers: [], ruled: false, wide };
     b.col = nbColours_(b.el);
     nbDrawLive_(b, NB_G);
     return;
@@ -909,7 +913,7 @@ function nbDown_(b, surf, e) {
   /* THE PAGE: a tap moves the caret; a finger that stays puts a loupe over itself; held longer on writing it picks the term up. */
   const a = b.book.w / NB.W * st.nv.z, cx = e.clientX - r.left, cy = e.clientY - r.top;
   const nx = st.nv.x + cx / a, ny = st.nv.y + cy / a;
-  const G = NB_G = { b, surf, kind: 'press', ids: new Set([id]), id, t0: now, r, a, cx, cy, nx, ny, moved: 0, timers: [] };
+  const G = NB_G = { b, surf, kind: 'press', ids: new Set([id]), id, t0: now, r, a, cx, cy, nx, ny, moved: 0, timers: [], wide };
   const sb = nbSelBox_(st);
   if (sb && nx >= sb.l - 6 && nx <= sb.r + 6 && ny >= sb.t - 6 && ny <= sb.b + 6) {
     G.kind = 'drag'; G.off = [0, 0]; b.drag = true; nbNoSwipe_(b, true);
