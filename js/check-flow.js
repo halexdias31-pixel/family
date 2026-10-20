@@ -25372,7 +25372,7 @@ check('a chosen book of the Bible is fetched by the builder before any card of i
 });
 
 /* ---------- EVERY PAPER HAS A HEALTH SCORE, AND EVERYBODY SEES IT (docs/history/354) § */
-check('every paper has a health score: its cards wear it, Health · Ready narrows to Ready papers, and its tile lists what is wrong — for everybody', async () => {
+check('every paper has a health score on its tile and nowhere else — no tag, no door, no finder question — for everybody (383)', async () => {
   const base = { active: 'True', subject: 'Maths', document_type: 'Past paper', key_stage: 'KS4', level: 'GCSE',
                  pages_checked: 'True', company: 'Edexcel', exam_board: 'Edexcel' };
   const R_ = o => Object.assign({}, base, o);
@@ -25409,39 +25409,21 @@ check('every paper has a health score: its cards wear it, Health · Ready narrow
     if (!hx || !hy) { bad.push(who + ': the fixture papers did not come through the loader into Find'); continue; }
     /* ---------- THE TAG, ON THE CARD ---------- */
     host.innerHTML = w.questionCard_(hx, 0);
-    const tag = host.querySelector('.qcard-tags .qtag[data-tag="health"]');
+    const tag = host.querySelector('.qcard-tags [data-f="health"], .qcard-tags [data-f="answerable"], .qcard-tags [data-tag="health"]');
     const hxh = w.healthOf_(hx);
     if (!hxh || hxh.band !== 'Rough') bad.push(who + ': HX scores ' + (hxh ? hxh.pct + '% ' + hxh.band : 'nothing') + ' — three faults on 76 marks must be below Ready');
-    if (!tag) bad.push(who + ' sees no health tag on a card of HX');
-    else if (!hxh || tag.textContent !== hxh.band) bad.push(who + ': the card\'s health tag says ' + JSON.stringify(tag.textContent) + ', wanted the band alone, ' + (hxh && hxh.band));
+    /* NOT A TAG SINCE 383: the band is on the Health tile, never in the card's row. */
+    if (tag) bad.push(who + ' sees a health tag on a card of HX: ' + JSON.stringify(tag.textContent));
+    if (/\b(Ready|Usable|Rough)\b/.test((host.querySelector('.qcard-tags') || {}).textContent || '')) bad.push(who + ': a health band is in HX\'s tag row');
     /* NO PERCENTAGE IN ANY TAG: a tag is a word the finder can pick, and nobody picks `99%` (355). */
     const pct = [...host.querySelectorAll('.qtag')].filter(x => /%/.test(x.textContent));
     if (pct.length) bad.push(who + ': a tag holds a percentage: ' + pct.map(x => x.textContent).join(', '));
-    host.innerHTML = w.questionCard_(hy, 0);
-    const tagY = host.querySelector('.qcard-tags .qtag[data-tag="health"]');
-    if (!tagY || tagY.textContent !== 'Ready') bad.push(who + ': a card of the clean paper HY wears ' + JSON.stringify(tagY ? tagY.textContent : '(no tag)') + ', wanted "Ready"');
-    /* ---------- THE ROW UNDER THE QUESTION, AND NOT A QUESTION OF ITS OWN ---------- */
-    /* WALKED TO THE END over the two papers alone, every question passed with "Doesn't matter": Health
-       splits that list two ways at full coverage, so if the funnel would ever ask it, it asks it here. */
-    const fixture = all.filter(x => x.row && /^H[XY]-/.test(String(x.row.row_id || '')));
-    const walked = [];
-    for (let i = 0; i < 40; i++) {
-      const f = w.nextFacet(fixture);
-      if (!f) break;
-      walked.push(f.field);
-      t.STUFF().filters.push({ field: f.field, any: true });
-    }
-    if (walked.indexOf('health') !== -1) bad.push(who + ': the funnel ASKS Health (' + walked.join(' → ') + ') — it must only be offered, never put in front of a folder');
+    /* ---------- NOT A QUESTION EITHER: no door, no facet ---------- */
     t.STUFF().filters = [];
     host.innerHTML = w.stuffQuestion();
-    const door = host.querySelector('.tag-door[data-field="health"]');
-    const ready = door && door.querySelector('[data-do="facet-pick"][data-field="health"][data-value="Ready"]');
-    if (!door || !ready || !door.querySelector('[data-value="Rough"]')) { bad.push(who + ' is not offered Health · Ready and Health · Rough under the question'); continue; }
-    A['facet-pick'](ready);
-    const left = w.stuffFiltered();
-    const papers = new Set(left.map(x => x.row && x.row.paper_id).filter(Boolean));
-    if (!left.length || !left.every(x => (w.healthOf_(x) || {}).band === 'Ready')) bad.push(who + ': Health · Ready left ' + left.length + ' item(s), not all Ready: ' + [...papers].join(', '));
-    if (papers.has('HX')) bad.push(who + ': Health · Ready still holds the Rough paper HX');
+    if (host.querySelector('.tag-door[data-field="health"], .tag-door[data-field="answerable"]')) bad.push(who + ' is offered a health door under the first question — health has its own rule again');
+    const fset = w.facetList().filter(f => f.field === 'health' || f.field === 'answerable');
+    if (fset.length) bad.push(who + ': health is a finder question again: ' + fset.map(f => f.field).join(', '));
     /* ---------- THE TILE UNDER A CHOSEN PAPER, AND THE LIST BEHIND IT ---------- */
     t.STUFF().filters = [{ field: 'paperId', value: 'HX' }];
     host.innerHTML = w.paperEnd_(w.stuffFiltered());
@@ -25449,14 +25431,14 @@ check('every paper has a health score: its cards wear it, Health · Ready narrow
     if (!tile) { bad.push(who + ' sees no Health tile under the chosen paper HX'); continue; }
     A['paper-health'](tile);
     const lines = [...d.querySelectorAll('#sheet-body .faith-list li')].map(li => li.textContent.replace(/\s+/g, ' ').trim());
-    /* THE SHEET'S HEAD: the band as its tag, the score as the words after it. */
+    /* THE SHEET'S HEAD: the band, then the score. */
     const sum = d.querySelector('#sheet-body .health-sum');
-    const sTag = sum && sum.querySelector('.qtag[data-tag="health"]');
+    const sTag = sum && sum.querySelector('b');
     if (!sTag || sTag.textContent !== hxh.band || !new RegExp('\\b' + hxh.pct + '%').test(sum.textContent)) bad.push(who + ': HX\'s Health sheet heads ' + JSON.stringify(sum && sum.textContent.replace(/\s+/g, ' ').trim()) + ' — wanted the [' + hxh.band + '] tag and ' + hxh.pct + '% in words');
     const want = ['Q2 — no answer', 'Q3 — needs a picture, none drawn', 'Paper — marks add to 76 of 80'];
     if (lines.join(' | ') !== want.join(' | ')) bad.push(who + ': HX\'s Health list says ' + JSON.stringify(lines) + ', wanted exactly ' + JSON.stringify(want));
     /* AND THE SECOND SCORE UNDER IT: HX Q2 has no answer, so it cannot be marked here. */
-    const aSum = d.querySelector('#sheet-body .able-sum .qtag[data-tag="answerable"]');
+    const aSum = d.querySelector('#sheet-body .able-sum b');
     const aLines = [...d.querySelectorAll('#sheet-body .able-list li')].map(li => li.textContent.replace(/\s+/g, ' ').trim());
     if (!aSum || !hxh.able || aSum.textContent !== hxh.able.band || aLines.join(' | ') !== 'Q2 — no answer the app can check') bad.push(who + ': HX\'s Answerable part says ' + JSON.stringify(aLines) + ' under ' + JSON.stringify(aSum && aSum.textContent));
     t.STUFF().filters = [];

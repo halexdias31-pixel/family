@@ -435,9 +435,6 @@ label.field { display: block; margin-bottom: .75rem; }
 input[aria-invalid="true"], input[aria-invalid="true"]:focus { border-color: var(--bad); }
 /* ---------- THE PIN, AS DOTS, WITHOUT BEING A PASSWORD § */
 .pin-dots { -webkit-text-security: disc; text-security: disc; letter-spacing: .2em; }
-/* ---------- THE HANDLES THIS DEVICE HAS SIGNED IN, AS CHIPS § */
-  border: 1px solid var(--line); border-radius: 22px; background: var(--sunk); overflow: hidden; }
-  font: 500 .9rem/1 var(--font); cursor: pointer; -webkit-tap-highlight-color: transparent; }
 /* `.dob-cap` IS IN THIS GROUP RATHER THAN BESIDE IT. § */
 label.field > span, .dob-cap, .reg-cap, .many-cap, .notify-cap {
   display: block; margin-bottom: .3rem;
@@ -1609,8 +1606,6 @@ button.text-drop { color: var(--bad); }
 [data-tag="type"]    { --tag: var(--tag-type); }
 [data-tag="topic"]   { --tag: var(--tag-topic); }
 [data-tag="needs"]   { --tag: var(--tag-needs); }
-[data-tag="health"]  { --tag: var(--tag-health); }
-[data-tag="answerable"] { --tag: var(--tag-health); }
 .chips { display: flex; flex-wrap: wrap; gap: .3rem; margin: 0 0 .45rem; }
 /* ---------- WHAT YOU CHOSE, A RULE, THEN WHAT IS ASKED NEXT § */
 .chips:has(.chip) { padding-bottom: .45rem; border-bottom: 1px solid var(--chip-line); }

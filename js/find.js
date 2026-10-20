@@ -627,14 +627,7 @@ const FACETS = [
     of: x => x.cost == null ? ''
            : x.cost === 0 ? 'Free'
            : x.cost <= (USER ? USER.credits || 0 : 0) ? 'Can afford' : '' },
-  /* ---------- HOW READY A PAPER IS, AS AN ANSWER YOU CAN PICK § */
-  { field: 'health', tag: true,    label: 'Faithful', tagOnly: true,
-    orderOf: v => HEALTH_BANDS.findIndex(b => b[0] === v),
-    of: x => { const h = healthOf_(x); return h ? h.band : ''; } },
-  /* THE SECOND HEALTH: can every part be answered here and marked without AI (library.js, `ableOf_`). */
-  { field: 'answerable', tag: true, label: 'Answerable', tagOnly: true,
-    orderOf: v => HEALTH_BANDS.findIndex(b => b[0] === v),
-    of: x => { const h = healthOf_(x); return h && h.able ? h.able.band : ''; } },
+  /* `health` AND `answerable` WERE HERE (383): a paper's two scores live on its Health tile alone — see `RETIRED_FACETS`. */
 ];
 
 /* ---------- THE FENCE: A CLOSED KIND'S QUESTIONS, AND ONLY ITS QUESTIONS § */
@@ -675,6 +668,8 @@ const facetFromSheet_ = f => ({
 
 /* FIELDS WHOSE CODE FACET WAS DELETED ON PURPOSE, AND WHICH THE SHEET MAY NOT RESURRECT. § */
 const RETIRED_FACETS = {
+  health: 'a paper\'s Faithful score is on its Health tile, not a tag or a question (383): asked, it was the one question after Paper.',
+  answerable: 'a paper\'s Answerable score is on its Health tile, not a tag or a question (383).',
   paper: 'the "Printed?" facet was deleted for reading a literal — and the `paper` COLUMN it would '
        + 'now read means which paper of the set (1, 2, 3), so the sheet\'s old label sits over '
        + 'completely different data. Use `Paper`, which asks the same thing by name.',
@@ -8626,12 +8621,11 @@ function healthTiles_(items) {
     note: 'Faithful ' + h.pct + '% · Answerable ' + (h.able ? h.able.pct : 0) + '%', act: 'paper-health', data: { pid: x.row.paper_id } })}</div>`;
 }
 function healthListHtml_(h, pid) {
-  /* THE BAND IS THE TAG, AS ON EVERY CARD -- the Health answer, [Ready] -- and the exact score is the
-     sentence after it: a tag is a word the finder can pick, and nobody picks `99%`. */
-  const head = `<p class="health-sum"><span class="qtag"${tagAttr_('health')}>${esc(h.band)}</span>
+  /* THE BAND, THEN THE EXACT SCORE. Not a tag since 383: health lives on this tile only. */
+  const head = `<p class="health-sum"><b>${esc(h.band)}</b>
     Faithful ${esc(h.pct + '%')} of its points pass &middot; ${h.questions} question${h.questions === 1 ? '' : 's'}${h.total != null ? ', ' + h.marks + ' of ' + h.total + ' marks' : ''}</p>`;
   const a = h.able || { pct: 0, band: '', fails: [] };
-  const able = `<p class="health-sum able-sum"><span class="qtag"${tagAttr_('answerable')}>${esc(a.band)}</span>
+  const able = `<p class="health-sum able-sum"><b>${esc(a.band)}</b>
     ${esc(a.pct + '%')} answerable here and marked without AI</p>` + (a.fails.length
     ? `<ul class="health-list able-list">${a.fails.map(f => `<li><b class="health-ref">${esc(f.ref)}</b> — ${esc(f.why)}</li>`).join('')}</ul>`
     : '<p class="health-none">Every part can be answered and marked.</p>');
@@ -9508,9 +9502,6 @@ const TAG_OF = {
   /* ---------- THE BIBLE'S SIX, IN KINDS THAT ALREADY HAVE COLOURS § */
   bibleTranslation: 'board', bibleTestament: 'level', bibleGroup: 'topic',
   bibleBook: 'paper', bibleChapter: 'paper', bibleVerse: 'paper',
-  /* A PAPER'S HEALTH IS NOT ANY OTHER KIND — it is about the transcription, not the paper — so it has
-     a token of its own, `--tag-health`. */
-  health: 'health', answerable: 'answerable',
 };
 const tagOf_ = field => TAG_OF[field] || '';
 const tagAttr_ = field => tagOf_(field) ? ` data-tag="${tagOf_(field)}"` : '';
