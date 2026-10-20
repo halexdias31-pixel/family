@@ -13,6 +13,8 @@ const REPO = path.resolve(__dirname, '..');
 const run = (b, s) => JSON.parse(JSON.stringify(b.ev('clearCache(); digestRun_(new Date(' + at(s) + '))')));
 /* THE HTML WITHOUT ITS INLINE STYLES — what the email says, asked apart from how it is dressed. */
 const unstyled = h => String(h || '').replace(/ style="[^"]*"/g, '').replace(/<\/?span>/g, '').replace(/^<div>|<\/div>$/g, '');
+/* WHAT THE HTML SAYS, IN READING ORDER — its tags gone, its spaces one: the cards (380) asked for their words, not their dress. */
+const said = h => String(h || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
 
 /* ---------- THE PEOPLE, THE FAMILIES AND A WEEK OF WORK § */
 const SUN = '2026-10-04T17:00:00Z';
@@ -322,14 +324,14 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   if (!bo) bad.push('Bo is not sent Ben’s week, so the words in Sunday’s email were NOT asked');
   else {
     if (bo.text.indexOf('\nMaths · Probability\nA bag holds 3 red and 5 blue counters.\nQ4a ✓: Work out the probability of red.\n') === -1
-        || unstyled(bo.html).indexOf('<p><b>Maths · Probability</b></p><p><i>A bag holds 3 red and 5 blue counters.</i></p><p><b>Q4a</b> ✓ — Work out the probability of red.</p>') === -1)
-      bad.push('Sunday’s email does not print a question’s words under its paper — the stem, then "Q4a ✓: <its ask>": ' + bo.text.split('\n').slice(4, 20).join(' / '));
+        || said(bo.html).indexOf('Maths · Probability Q4a A bag holds 3 red and 5 blue counters. Work out the probability of red. ✓ Right first time Their answer: an answer') === -1)
+      bad.push('Sunday’s email does not print a question’s words under its paper — the stem, then "Q4a ✓: <its ask>": ' + bo.text.split('\n').slice(4, 20).join(' / ') + ' — HTML: ' + said(bo.html).slice(0, 900));
     if (bo.text.indexOf('\nChemistry · Required practical · Rates of reaction\nWorksheet ✓: What is the dependent variable?\n') === -1)
       bad.push('a practical’s worksheet is not printed with the first box’s words: ' + bo.text.split('\n').slice(4, 20).join(' / '));
     /* REFUSED WORDS ARE NOT PRINTED, AND THE QUESTION STILL IS — by its number under its paper. */
     asked++;
     if (bo.text.indexOf('\nMaths · Equations\nQ2 ✓, Q3 ✓, Q4 ✓, Q6 ✓\n') === -1 || bo.text.indexOf('\nMaths · Pythagoras\nQ5 ✓\n') === -1
-        || unstyled(bo.html).indexOf('<p><b>Maths · Equations</b></p><p><b>Q2</b> ✓, <b>Q3</b> ✓, <b>Q4</b> ✓, <b>Q6</b> ✓</p>') === -1)
+        || said(bo.html).indexOf('Maths · Equations Q2 ✓ Right first time Their answer: an answer Q3 ✓ Right first time') === -1)
       bad.push('questions whose words were refused are not still listed by their numbers under their papers: ' + bo.text.split('\n').slice(4, 20).join(' / '));
     ['pay-family', 'office.family', 'family-answers', 'NOTICE', 'www.', 'For the answer', 'diagram shows'].forEach(x => {
       if (bo.text.indexOf(x) !== -1 || bo.html.indexOf(x) !== -1) bad.push('Sunday’s email prints refused words ("' + x + '") — phone text that is a message must not go out under the business’s name');
@@ -443,7 +445,9 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   const plan = JSON.parse(JSON.stringify(b.ev('clearCache(); digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')), new Date(' + at(SUN) + '))')));
   const m = plan.emails.find(e => e.to === 'bo@example.org') || { text: '', html: '', subject: '' };
   asked++;
-  if (m.text.indexOf('\nMaths · Paper 7\nQ3 ✓: Solve x > 3 and x < 7 & "y" for whole numbers x.\n' + STEM + '\nQ5a ✗: Find P(red).\nQ5b not marked: Find P(blue).\nQ5c 2 of 3 marks: Two beads are taken. Find P(both red).\n') === -1)
+  const TA = '\nTheir answer: an answer';
+  if (m.text.indexOf('\nMaths · Paper 7\nQ3 ✓: Solve x > 3 and x < 7 & "y" for whole numbers x.' + TA + '\n' + STEM + '\nQ5a ✗: Find P(red).' + TA
+      + '\nQ5b not marked: Find P(blue).' + TA + '\nQ5c 2 of 3 marks: Two beads are taken. Find P(both red).' + TA + '\n') === -1)
     bad.push('Paper 7 is not its heading, then "Q3 ✓: <its words>", then the stem its parts share and each part’s own ask, each with its mark — ✓, ✗, not marked, the AI’s 2 of 3 marks: ' + m.text.split('\n').slice(4, 14).join(' / '));
   /* "not marked", NEVER `sent` — the server's word for an answer nothing marked (12 Oct). */
   asked++;
@@ -452,16 +456,24 @@ function S(pid, key, day, label, verdict, words, hh, more) {
     bad.push('the lead does not say what the marks mean — ✓, ✗ and the AI’s marks, once: ' + JSON.stringify(m.text.split('\n')[2]));
   asked++;
   const times = t => t.split(STEM).length - 1;
-  if (times(m.text) !== 1 || times(m.html) !== 1 || unstyled(m.html).indexOf('<p><i>' + STEM + '</i></p><p><b>Q5a</b> ✗ — Find P(red).</p><p><b>Q5b</b> not marked — Find P(blue).</p>') === -1)
+  if (times(m.text) !== 1 || times(m.html) !== 1
+      || said(m.html).indexOf('Q5a ' + STEM + ' Find P(red). ✗ Not yet right Their answer: an answer Q5b Find P(blue). Not marked yet Their answer: an answer'
+        + ' Q5c Two beads are taken. Find P(both red). 2 of 3 marks Their answer: an answer') === -1)
     bad.push('the stem Q5a, Q5b and Q5c share is printed ' + times(m.text) + ' time(s) in the text and ' + times(m.html) + ' in the HTML — wanted once each, above the first of them');
   asked++;
   /* A QUESTION FIRST SENT BEFORE THE WEEK IS STILL A QUESTION DONE THIS WEEK, in the one list, with this
      week's mark — and no "(again)", the site's word and not a parent's (12 Oct). */
-  if (m.text.indexOf('\nQ9 ✓: Expand (x + 2)(x - 3).\n') === -1 || unstyled(m.html).indexOf('<b>Q9</b> ✓ — Expand (x + 2)(x - 3).') === -1 || /\(again\)/.test(m.text + m.html))
+  if (m.text.indexOf('\nQ9 ✓: Expand (x + 2)(x - 3).\n') === -1 || said(m.html).indexOf('Q9 Expand (x + 2)(x - 3). ✓ Right after another go') === -1 || /\(again\)/.test(m.text + m.html))
     bad.push('a question first sent before the week is not "Q9 ✓: <its words>" in the one list, with this week’s mark and not the fortnight-old ✗: ' + JSON.stringify(m.text.split('\n').find(x => /^Q9/.test(x))));
   asked++;
-  if (unstyled(m.html).indexOf('<b>Q3</b> ✓ — Solve x &gt; 3 and x &lt; 7 &amp; &quot;y&quot; for whole numbers x.') === -1 || /x < 7 &|"y"/.test(m.html))
-    bad.push('the HTML does not escape a question’s words — "<", ">", "&" and quotes came off a phone: ' + JSON.stringify((m.html.match(/<b>Q3<\/b>[^<]*/) || [''])[0]));
+  if (m.html.indexOf('>Solve x &gt; 3 and x &lt; 7 &amp; &quot;y&quot; for whole numbers x.<') === -1 || /x < 7 &|"y"/.test(m.html))
+    bad.push('the HTML does not escape a question’s words — "<", ">", "&" and quotes came off a phone: ' + JSON.stringify((m.html.match(/Solve x[^<]*/) || [''])[0]));
+  /* THE SUMMARY ABOVE THE QUESTIONS (380): every way a question can go (Ben's own and Q3 right first time), in a sentence and in figures. */
+  asked++;
+  const SUM = '2 right first time, 1 right after another go, 1 with part marks, 1 still to get right and 1 not marked yet.';
+  if (m.text.split('\n')[3] !== SUM || said(m.html).indexOf('THE WEEK IN SHORT ' + SUM + ' 6 questions 2 right first time 1 right after another go 1 with part marks 1 still to get right 1 not marked yet Days Thu') === -1
+      || said(m.html).indexOf(SUM) > said(m.html).indexOf('Maths · Paper 7'))
+    bad.push('the summary is not above the questions — "' + SUM + '" and its figures, then the days: ' + JSON.stringify(m.text.split('\n')[3]) + ' / ' + said(m.html).slice(0, 400));
 }
 {
   /* THE CAP, THROUGH THE REAL RUN'S PLAN: § */
@@ -482,7 +494,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
     bad.push('87 questions listed ' + listed.length + ' (' + JSON.stringify([listed[0], listed[listed.length - 1]]) + ') — wanted 80, Q1 to Q80 in number order, and none past');
   asked++;
   if (m.subject !== 'Eve’s week: 87 questions' || !/Eve worked on this week: 87 questions/.test(m.text) || m.text.indexOf('\n…and 7 more.\n') === -1
-      || m.html.indexOf('<p>…and 7 more.</p>') === -1 || /q:EVE|Somebody typed|99 × 7/.test(m.text + m.html))
+      || !/<p[^>]*>…and 7 more\.<\/p>/.test(m.html) || /q:EVE|Somebody typed|99 × 7/.test(m.text + m.html))
     bad.push('the cap does not count what it left out — wanted "Eve’s week: 87 questions" and "…and 7 more." (Q81–Q85 and the two with no name, neither printed by key nor by words): subject "' + m.subject + '", ' + JSON.stringify(m.text.split('\n').filter(x => /…and/.test(x))));
 }
 {
@@ -499,7 +511,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   const r = JSON.parse(JSON.stringify(b.ev('digestRender_(__L, { first: "Pat" }, { start: "2026-09-28", end: "2026-10-04" }, { brand: "@family.", site: "https://halexdias31-pixel.github.io/family/", hour: 18 })')));
   const kb = Buffer.byteLength(r.html, 'utf8') / 1024;
   asked++;
-  if (!(kb < 102) || kb < 40 || r.html.indexOf('<p>…and 5 more.</p>') === -1 || !/Just reply and say so/.test(r.html))
+  if (!(kb < 102) || kb < 40 || !/<p[^>]*>…and 5 more\.<\/p>/.test(r.html) || !/Just reply and say so/.test(r.html))
     bad.push('80 of the longest questions make ' + kb.toFixed(1) + ' KB of HTML — wanted under Gmail’s ~102 KB clip (and over 40, the words printed at length), "…and 5 more." and the footer after them');
 }
 
@@ -1088,12 +1100,18 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
     asked++;
     /* SINCE 18 OCT A QUESTION THE LIBRARY HAS IS PRINTED AS THE SITE DRAWS IT — its number and marks, its words,
        then how the child did; Q9 is not in the library and goes as its words cell, as before. */
-    ['Kit’s week: 4 questions', 'Q7 · 1 mark\nWork out 4 × 4.\nKit: ✓', 'Q9 ✗: Kit buys 3 pens at 40p each. How much does he pay?', 'Q11 · 3 marks\nExplain the trend.\nKit: 2 of 3 marks',
-     'Q6 · 1 mark\nSay anything.\nKit: not marked', 'Hi Pat,\n\nHere’s what Kit worked on this week: 4 questions (12 Oct – 18 Oct, up to 6pm on Sunday).'].forEach(x => {
+    /* AND SINCE 20 OCT (380) WHAT THE CHILD LAST SENT, AND THE RIGHT ANSWER WHERE THE LIBRARY HAS ONE. */
+    ['Kit’s week: 4 questions', 'Q7 · 1 mark\nWork out 4 × 4.\nKit: ✓\nTheir answer: 16\nAnswer: 16\n',
+     'Q9 ✗: Kit buys 3 pens at 40p each. How much does he pay?\nTheir answer: £1.10\n', 'Q11 · 3 marks\nExplain the trend.\nKit: 2 of 3 marks\nTheir answer: It rises.\nAnswer: It rises.\n',
+     'Q6 · 1 mark\nSay anything.\nKit: not marked\nTheir answer: hello\n', '\n1 right first time, 1 with part marks, 1 still to get right and 1 not marked yet.\n', 'Hi Pat,\n\nHere’s what Kit worked on this week: 4 questions (12 Oct – 18 Oct, up to 6pm on Sunday).'].forEach(x => {
       if ((sent.subject + '\n' + sent.body).indexOf(x) === -1) bad.push('the email Pat is sent does not say "' + x + '": ' + sent.body.split('\n').slice(0, 12).join(' / '));
     });
-    if (unstyled(sent.htmlBody).indexOf('<b>Q9</b> ✗ — Kit buys 3 pens') === -1 || unstyled(sent.htmlBody).indexOf('<p><b>Q6</b> · 1 mark</p><div><p>Say anything.</p></div><p>Kit: not marked</p>') === -1)
-      bad.push('the HTML Pat is sent does not carry each question with its mark: ' + unstyled(sent.htmlBody).slice(0, 300));
+    const H = said(sent.htmlBody);
+    ['Q7 · 1 mark Work out 4 × 4. ✓ Right first time Their answer: 16 Answer: 16', 'Q9 Kit buys 3 pens at 40p each. How much does he pay? ✗ Not yet right Their answer: £1.10',
+     'Q11 · 3 marks Read the source about the river. Explain the trend. 2 of 3 marks Their answer: It rises. Answer: It rises.', 'Q6 · 1 mark Read the source about the river. Say anything. Not marked yet Their answer: hello',
+     'THE WEEK IN SHORT 1 right first time, 1 with part marks, 1 still to get right and 1 not marked yet.'].forEach(x => {
+      if (H.indexOf(x) === -1) bad.push('the HTML Pat is sent does not carry "' + x + '": ' + H.slice(0, 600));
+    });
   }
 }
 
@@ -1230,23 +1248,23 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
       + JSON.stringify(text.slice(stemAt + longStem.length, stemAt + longStem.length + 900)));
   /* THE PICTURE: the PNG twin by hash, the drawing's width, its aria-label as alt; never an attachment. */
   asked++;
-  const img = (svg, wd, alt) => '<img src="' + SITE + hashOf(svg) + '.png" width="' + wd + '" alt="' + alt + '" style="max-width:100%;height:auto">';
+  const img = (svg, wd, alt) => '<img src="' + SITE + hashOf(svg) + '.png" width="' + wd + '" alt="' + alt + '" style="display:block;width:100%;max-width:' + wd + 'px;height:auto;border:0">';
   if (html.indexOf(img(STEM_SVG, 300, 'A ladder leaning on a wall &amp; a 2 m gap')) === -1 || html.indexOf(img(PART_SVG, 340, 'Triangle ABC with the angle at B marked x')) === -1
       || /<svg/i.test(html) || sent.attachments || sent.inlineImages)
     bad.push('a question’s picture is not its PNG twin on the site — <img src=".../data/diagrams/<12 hex of its SHA-256>.png" width alt>, no SVG, nothing attached: '
       + JSON.stringify((html.match(/<img[^>]*>/g) || []).concat(sent.attachments ? ['attachments'] : [])));
-  /* THE ALLOW-LIST: what the row's markup may bring into an inbox. */
+  /* THE ALLOW-LIST: what the row's markup may bring into an inbox. The email's own frame (380) adds the attributes a mail client's table layout reads, and nothing a row has. */
   asked++;
   const tags = (html.match(/<\/?([a-z0-9]+)/gi) || []).map(t => t.replace(/<\/?/, '').toLowerCase());
   const odd = tags.filter(t => !/^(p|br|b|strong|i|em|sup|sub|ul|ol|li|table|thead|tbody|tr|th|td|span|div|img)$/.test(t));
-  const attrs = (html.match(/\s([a-z-]+)=/gi) || []).map(a => a.trim().slice(0, -1).toLowerCase()).filter(a => !/^(style|colspan|rowspan|src|width|alt)$/.test(a));
-  if (odd.length || attrs.length || /evil\.example|onerror|onclick|steal|scope=|class=|target=/.test(html) || html.indexOf('<th colspan="2" style=') === -1
+  const attrs = (html.match(/\s([a-z-]+)=/gi) || []).map(a => a.trim().slice(0, -1).toLowerCase()).filter(a => !/^(style|colspan|rowspan|src|width|alt|role|cellpadding|cellspacing|border|bgcolor|align|valign)$/.test(a));
+  if (odd.length || attrs.length || /<(?!table\b|td\b)[a-z]+\b[^>]*\s(?:role|cellpadding|cellspacing|border|bgcolor|align|valign)=/i.test(html) || /evil\.example|onerror|onclick|steal|scope=|class=|target=/.test(html) || html.indexOf('<th colspan="2" style=') === -1
       || flat.indexOf('<sup>3</sup>/<sub>4</sub>') === -1 || flat.indexOf('x &lt; 7 &amp; y &gt; 2') === -1)
     bad.push('the row’s markup reached the email past the allow-list — tags ' + JSON.stringify([...new Set(odd)]) + ', attributes ' + JSON.stringify([...new Set(attrs)])
       + ' (wanted only p, br, b, strong, i, em, sup, sub, ul, ol, li, table, thead, tbody, tr, th, td, span, div; no attribute but colspan/rowspan and its own styles)');
   /* A KEY THE LIBRARY DOES NOT HAVE — a question it dropped, a practical's box — goes as its words cell, as before. */
   asked++;
-  if (text.indexOf('\nQ4 ✓: Work out 12 × 3.\n') === -1 || flat.indexOf('<b>Q4</b> ✓ — Work out 12 × 3.') === -1
+  if (text.indexOf('\nQ4 ✓: Work out 12 × 3.\n') === -1 || said(html).indexOf('Q4 Work out 12 × 3. ✓ Right first time') === -1
       || text.indexOf('Worksheet not marked: What is the independent variable?') === -1)
     bad.push('a key missing from the library does not fall back to its words line ("Q4 ✓: <its words>"): ' + JSON.stringify(text.split('\n').filter(l => /Q4|Worksheet/.test(l))));
   /* AND STILL NO LINK A PARENT COULD PRESS: the only address in it is each picture's, on the site's own folder. */
@@ -1286,7 +1304,8 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
     return JSON.parse(JSON.stringify(b.ev('digestRender_(__L, { first: "Pat" }, { start: "2026-10-12", end: "2026-10-18" }, __LOOK)')));
   };
   asked++;
-  const m = make(600, 3000);
+  /* 200 CHARACTERS A PART, NOT 600, SINCE 20 OCT: each question is a card now (380), whose frame weighs about 0.6 KB of the clip. */
+  const m = make(200, 3000);
   const kb = Buffer.byteLength(m.html, 'utf8');
   const marks = m.text.split('\n').filter(l => l === 'Ada: 3 of 4 marks').length;
   if (!(kb <= CLIP) || kb < 40000 || marks !== 80 || m.text.indexOf('(the source text is on the site)') === -1 || !/END79\./.test(m.text)
@@ -1393,11 +1412,49 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
   if (b.ev('digestShortSpan_({ start: "2026-10-12", end: "2026-10-18" })') !== '12–18 Oct') bad.push('the toast’s week is not "12–18 Oct"');
 }
 
+/* ---------- 15. THEIR ANSWER AND THE RIGHT ANSWER, FOR EVERY KIND OF QUESTION (20 Oct, docs/history/380) ------------------- */
+{
+  const { b, G } = world();
+  const ask = (fn, row, a) => { G.__row = row; G.__a = a; return JSON.parse(JSON.stringify(b.ev(fn + '(__row' + (a === undefined ? '' : ', __a') + ')'))); };
+  const KINDS = [
+    ['a typed answer the library accepts', { answer: '<b>0.0197</b> &mdash; B1 for the method.', accept: '0.0197 | 0.01967' }, '0.02', '0.02', '0.0197'],
+    ['the mark scheme up to its dash', { answer: '<b>Yes</b>: the floor is 68&nbsp;m<sup>2</sup> &mdash; M1 for 68.' }, 'yes', 'yes', 'Yes: the floor is 68 m^2'],
+    ['only what it accepts', { accept: '3x(3x + 2) | 3x(2 + 3x)' }, '3x(3x+2)', '3x(3x+2)', '3x(3x + 2)'],
+    ['tapped options', { choices: 'Banana | Plum | Apple | Pear', choice_right: '1,4' }, '1,2', 'Banana and Plum', 'Banana and Pear'],
+    ['an order', { answer_type: 'order', choices: '0.21 | 0.2 | 0.03', choice_right: '3,2,1', order_ends: 'smallest | largest' }, '2,3,1', '0.2, 0.03, 0.21', '0.03, 0.2, 0.21'],
+    ['cells', { cells: 'Top = pentagon ; 2nd = triangle|3 sides' }, 'pentagon ; square', 'Top = pentagon; 2nd = square', 'Top = pentagon; 2nd = triangle'],
+    ['a drawing', { answer_type: 'drawing', draw_answer: '{"items":[]}', answer: 'A straight line through (0, 1) &mdash; B1.' }, 'drawing \u00b7 3 marks \u00b7 #ab12', 'a drawing (it is on the site)', 'A straight line through (0, 1)'],
+    /* A LONG ONE IS CUT AT A WORD, SAID WITH "…": 400 characters of theirs, 280 of the scheme's. */
+    ['a long essay', { answer: 'Any '.repeat(120) }, 'I think '.repeat(80), t => t.length <= 400 && /\S…$/.test(t), t => t.length <= 281 && /\S…$/.test(t)],
+  ];
+  KINDS.forEach(([what, row, a, theirs, right]) => {
+    asked++;
+    const T = ask('digestTheirAnswer_', row, a), R = ask('digestRightAnswer_', row);
+    const okT = T && (typeof theirs === 'function' ? theirs(T.text) : T.text === theirs), okR = R && (typeof right === 'function' ? right(R.text) : R.text.indexOf(right) === 0);
+    if (!okT || !okR || /<b>/.test(R.html))
+      bad.push('for ' + what + ' the email says "Their answer: ' + (T && T.text) + '" and "Answer: ' + (R && R.text) + '" — wanted "' + theirs + '" and "' + right + '…"');
+  });
+  asked++;
+  /* A CHILD'S OWN TYPING THAT IS A LINK OR AN ADDRESS GOES AS "ON THE SITE", as a question's words would. */
+  ['see pay.example.com', 'mail me at x@y.org'].forEach(a => {
+    const T = ask('digestTheirAnswer_', null, a);
+    if (!T || /example|@/.test(T.text + T.html)) bad.push('a typed answer that is a link or an address went into the email: ' + JSON.stringify(T));
+  });
+  asked++;
+  if (ask('digestRightAnswer_', { html: '<p>Say anything.</p>' }) !== null || ask('digestTheirAnswer_', null, '  ') !== null)
+    bad.push('a row with no answer, or an empty press, printed an "Answer:" or "Their answer:" line');
+  /* HOW A QUESTION WENT, the summary's five ways: the first press ever decides "first time". */
+  asked++;
+  const how = [['right', 'right', 'first'], ['right', 'wrong', 'later'], ['ai:3/3', 'sent', 'later'], ['ai:2/3', 'ai:2/3', 'part'], ['rule:0/2', 'rule:0/2', 'wrong'],
+               ['wrong', 'right', 'wrong'], ['sent', 'sent', 'open']].filter(([v, f, want]) => b.ev('digestHow_(' + JSON.stringify(v) + ', ' + JSON.stringify(f) + ')') !== want);
+  if (how.length) bad.push('digestHow_ misreads ' + JSON.stringify(how));
+}
+
 console.log('rules asked: ' + asked);
 if (bad.length) {
   console.log('FAILED — ' + bad.length + ' thing(s) the weekly parent email gets wrong:');
   bad.forEach(x => console.log('  ' + x));
   process.exit(1);
 }
-console.log('OK — a London week, only that week, only accepted parents; each question with its own words and how it went (✓, ✗, the AI’s marks, "not marked"), never a key, a handle or a surname, at most 80 and under Gmail’s clip; off nothing, preview the log, send once each;\n'
+console.log('OK — a London week, only that week, only accepted parents; a summary first, then each question as a card with its own words, how it went (✓, ✗, the AI’s marks, "not marked"), their answer and the right one, never a key, a handle or a surname, at most 80 and under Gmail’s clip; off nothing, preview the log, send once each;\n'
   + '     each verdict as the press recorded it, never a Gemini call or a mark appended by the email’s run; ONE trigger, 9pm on Sunday, booked by nobody but the owner, the old marking passes taken away; a setup check that changes nothing; the dry run sends nothing; the preview an admin’s.');
