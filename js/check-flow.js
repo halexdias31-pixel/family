@@ -13183,7 +13183,7 @@ check('marking, revealing and tapping leave the question where it is, and typing
   w.stuffItemsAll_ = () => [mc];
   try { A['qp-choose'](tapped.querySelector('.qp-opt[data-n="1"]')); } finally { w.stuffItemsAll_ = held; }
   const box = tapped.querySelector('.qp-choices');
-  if (!box || !box.classList.contains('is-done')) bad.push('a settled tapped question does not say so (is-done), so its options still look pressable');
+  if (!box || !box.classList.contains('is-miss') || box.classList.contains('is-done')) bad.push('a wrong tap settled the question (is-done) instead of leaving it open for another try (is-miss, 385)');
   if (!tapped.querySelector('.qp-opt[data-n="1"].is-picked')) bad.push('the tap did not mark the pick');
   /* A MISS DOES NOT SHOW THE ANSWER. § */
   const shownBy = tapped.querySelector('.qp-opt.is-ans');
@@ -13192,8 +13192,12 @@ check('marking, revealing and tapping leave the question where it is, and typing
   if (!/^Not yet/.test(said) || /marked|is 15|\b15\b/.test(said)) bad.push('a wrong tap\'s verdict reads "' + said + '" -- "Not yet", and nothing that gives the right one away');
   /* AND IT POINTS AT THE ANSWERS CHIP, not at "the answer page": with Questions chosen there is no
      answer page after the question to point at (`questionsView_`). */
-  if (said.trim() !== 'Not yet — see Answers') bad.push('a wrong tap\'s verdict reads "' + said.trim() + '", wanted "Not yet — see Answers"');
+  if (said.trim() !== 'Not yet — have another go') bad.push('a wrong tap\'s verdict reads "' + said.trim() + '", wanted "Not yet — have another go"');
   same(m0, tapped, 'after a wrong tap');
+  /* AND THE CHILD TAPS AGAIN: a miss is not final (385). */
+  w.stuffItemsAll_ = () => [mc];
+  try { A['qp-choose'](tapped.querySelector('.qp-opt[data-n="2"]')); } finally { w.stuffItemsAll_ = held; }
+  if (!tapped.querySelector('.qp-choices.is-done .qp-opt[data-n="2"].is-picked.is-ans')) bad.push('a second tap after "Not yet" did not take the new pick and mark it Correct');
   try { w.localStorage.removeItem(w.__t.ansKey(mc)); } catch (e) {}
   /* AND A RIGHT ONE TICKS THE PICK -- the verdict on what you chose, which is not a reveal. */
   const mcR = Object.assign({}, mc, { key: 'q-still-mc-r', row: Object.assign({}, base.row, { row_id: 'Q-STILL-10' }) });
@@ -14750,7 +14754,9 @@ check('no question in the library has a figure page or points at one, and every 
     list.forEach(x => { if (x.diagram) svgs.add(x.diagram); (x.stems || []).forEach(p => { if (p && p.diagram) svgs.add(p.diagram); }); });
     svgs.forEach(s => {
       figs++;
-      const n = html.split(s).length - 1;
+      /* A THIN PICTURE UNDER A PEN IS DRAWN WITH ROOM ABOVE AND BELOW (`padRoom_`, 385): the same figure, its viewBox taller */
+      const roomy = typeof w.padRoom_ === 'function' ? w.padRoom_(s) : s;
+      const n = html.split(s).length - 1 + (roomy !== s ? html.split(roomy).length - 1 : 0);
       /* THE ONLY REPEATS: parts whose rows each carry the same picture as their own (each draws it in its card); a stem's figure under each part whose pen is on it § */
       const owners = list.filter(x => x.diagram === s).length;
       const stemPens = list.filter(x => { const p = w.padSource_(x); return p && p.svg === s && p.from !== 'part'; }).length;
@@ -16733,8 +16739,11 @@ check('mark sound: a right answer chimes once and a wrong one buzzes once, for e
   const pick = subDraw_(w, PICK);
   earTap_(rec, pick.querySelector('.qp-opt[data-n="1"]')); await wait(30);
   expect(['buzzer'], 'a wrong pick');
+  /* A MISS IS NOT FINAL (385): the next pick is marked again and heard; once right, a further tap is ignored */
   earTap_(rec, pick.querySelector('.qp-opt[data-n="2"]')); await wait(30);
-  expect([], 'a tap on a settled pick (ignored)');
+  expect(['chime'], 'a second, right pick after a wrong one');
+  earTap_(rec, (pick.isConnected ? pick : document).querySelector('.qp-choices.is-done .qp-opt[data-n="1"]') || pick.querySelector('.qp-opt[data-n="1"]')); await wait(30);
+  expect([], 'a tap on a settled (right) pick (ignored)');
   const pick2 = subDraw_(w, PICK2);
   earTap_(rec, pick2.querySelector('.qp-opt[data-n="2"]')); await wait(30);
   expect(['chime'], 'a right pick');

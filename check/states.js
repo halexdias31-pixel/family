@@ -1213,7 +1213,7 @@ const STATES = {
         const s = window.__qStable;
         const box = window.__qCard && window.__qCard.querySelector('.qp-choices');
         const mark = box && box.nextElementSibling;
-        return !!s && !!box && box.classList.contains('is-done')
+        return !!s && !!box && box.classList.contains('is-miss')
                /* THE MISS, AND NO TICK ANYWHERE: the right option is the answer, and it waits behind
                   Show on the answer page like every other one (`choiceBox_`). */
                && !!box.querySelector('.qp-opt.is-picked:not(.is-ans)') && !box.querySelector('.qp-opt.is-ans')
