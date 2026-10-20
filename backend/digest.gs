@@ -283,8 +283,8 @@ function digestSummary_(items, days, lib, week) {
   /* THE TOPICS, from the library's own tags on each question (`topics`, comma-separated), the commonest first. */
   const tally = {};
   (items || []).forEach(q => {
-    const row = digestLibRow_(lib && lib.rows ? lib : null, q && q.key);
-    S(row && row.topics).split(',').map(t => t.trim()).forEach(t => {
+    const libRow = digestLibRow_(lib && lib.rows ? lib : null, q && q.key);
+    S(libRow && libRow.topics).split(',').map(t => t.trim()).forEach(t => {
       if (t && t.length <= 60 && digestSafe_(t)) tally[t] = (tally[t] || 0) + 1;
     });
   });
