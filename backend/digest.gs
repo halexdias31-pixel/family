@@ -685,8 +685,9 @@ function digestMail_(emails, o) {
     const claim = digestLocked_(o.readLog, log => {
       const row = o.find(log, m);
       const was = norm(row && row.status);
-      if (was === 'sent' || was === 'sending') return { already: true };
-      const v = { to: m.to, subject: m.subject, questions: m.count, at: new Date(), note: '' };
+      /* `again`: an admin's press (378) sends over a receipt, never over a send still in flight. */
+      if ((was === 'sent' && !o.again) || was === 'sending') return { already: true };
+      const v = { to: m.to, subject: m.subject, questions: m.count, at: new Date(), note: S(o.note) };
       if (o.mode === 'preview') {
         o.put(log, row, m, Object.assign(v, { status: 'preview' }));
         return { previewed: true };
@@ -1038,4 +1039,81 @@ function digestWhyNot_(L) {
   const said = { 'no email address': 'has no email address', 'email not confirmed': 'has not confirmed their email address',
                  'asked not to get it': 'said no to these emails', 'same address as another parent': 'shares an address with another parent' };
   return L.skipped.map(p => 'parent ' + (S(p.first) || 'with no first name') + ' ' + (said[p.why] || p.why)).join('; ');
+}
+
+
+/* ---------- "SEND LAST WEEK": AN ADMIN'S PRESS ON A PARENT'S CARD, AND THE EDITOR'S TWO (378) ---------- */
+/* The last whole Monday–Sunday to the parents named, whatever weekly_digest says — the press is the yes. § */
+function digestSendNow_(parentIds, now) {
+  let cfg = {};
+  try { cfg = config(); } catch (err) { cfg = {}; }
+  const ids = (parentIds || []).map(S).filter(Boolean);
+  const fail = e => ids.map(id => ({ id: id, error: e }));
+  if (!digestLog_().sheet) return fail('The sheet has no digest_log tab. Open the site once as an admin to add it. Nothing was sent.');
+  const noSubmissions = digestNoSubmissions_();
+  if (noSubmissions) return fail(noSubmissions);
+  const week = digestWeekToSend_(now);
+  const span = digestShortSpan_(week);
+  let lib = null;
+  try { lib = digestEmailLibrary_(week, read(TAB.submissions).rows, cfg); }
+  catch (err) { lib = { rows: {}, pre: [], error: S(err && err.message || err) }; }
+  const plan = digestPlanNow_(week, now, lib);
+  const names = list => list.length < 2 ? list.join('') : list.slice(0, -1).join(', ') + ' and ' + list[list.length - 1];
+  return ids.map(id => {
+    const P = findPerson('', id);
+    if (!P || S(P.person_id) !== id) return { id: id, error: 'We could not find that parent — nothing was sent.' };
+    const first = digestSafe_(P.first_name) ? S(P.first_name) : (S(P.handle) ? '@' + S(P.handle) : 'They');
+    if (!S(P.email)) return { id: id, error: first + ' has no email address — add it with Edit' };
+    const kids = childrenOf(id).filter(k => S(k.person_id) !== id);
+    const kidName = k => (digestSafe_(k.first_name) ? S(k.first_name) : 'their child');
+    if (!kids.length) return { id: id, error: first + ' has no child linked — add one with Edit' };
+    const mine = plan.emails.filter(m => S(m.parent_id) === id);
+    if (!mine.length) {
+      /* A CHILD WHO WORKED BUT CANNOT BE SENT TO THIS PARENT says why; otherwise it was a quiet week. */
+      const held = plan.learners.map(L => (L.skipped || []).find(p => p.id === id)).filter(Boolean)[0];
+      const why = { 'email not confirmed': first + '’s email address is not confirmed yet — nothing was sent',
+                    'asked not to get it': first + ' asked not to get these emails (Settings → Notifications) — nothing was sent',
+                    'same address as another parent': first + ' shares an email address with another parent, who gets it — nothing was sent' };
+      if (held) return { id: id, error: why[held.why] || (first + ': ' + held.why + ' — nothing was sent') };
+      return { id: id, success: true, sent: 0, said: 'Nothing to send: ' + names(kids.map(kidName)) + ' did no questions ' + span };
+    }
+    const mailed = digestMail_(mine, {
+      mode: 'send', again: true, note: 'sent by hand', reserve: digestReserve_(cfg), readLog: digestLog_, brand: plan.look.brand,
+      find: (log, m) => digestLogFind_(log, week.start, m.learner_id, m.parent_id),
+      put: (log, row, m, v) => digestLogPut_(log, row, week.start, m.learner_id, m.parent_id, v),
+      heldNote: 'daily mail quota — press Send last week again tomorrow',
+    });
+    const count = mine.reduce((n, m) => n + (Number(m.count) || 0), 0);
+    if (mailed.sent === mine.length) {
+      return { id: id, success: true, sent: mailed.sent, questions: count,
+               said: 'Sent to ' + first + ' — ' + count + ' question' + (count === 1 ? '' : 's') + ' (' + span + ')' };
+    }
+    const part = mailed.sent ? ' (' + mailed.sent + ' of ' + mine.length + ' went)' : '';
+    if (mailed.held) return { id: id, error: 'Not sent to ' + first + ' — today’s mail quota is used up; press again tomorrow' + part };
+    if (mailed.busy) return { id: id, error: 'The log was busy — press again in a minute' + part };
+    return { id: id, error: 'The email to ' + first + ' failed — see the digest_log tab' + part };
+  });
+}
+/* `12–18 Oct`, or `28 Sep – 4 Oct` across a month. */
+function digestShortSpan_(week) {
+  const full = digestSpan_(week);
+  return week.start.slice(0, 7) === week.end.slice(0, 7) ? (+week.start.slice(8, 10)) + '–' + full.split(' – ')[1] : full;
+}
+/* THE EDITOR'S FALLBACK: `sendLastWeekTo('@handle')` or an email or a person id, from a line of your own. */
+function sendLastWeekTo(handleOrEmail) {
+  const want = typeof handleOrEmail === 'string' ? norm(handleOrEmail).replace(/^@/, '') : '';
+  if (!want) throw new Error('sendLastWeekTo needs a parent: write sendLastWeekTo("@handle") in a function of your own and run that, or run sendLastWeekToAll.');
+  const P = read(TAB.people).rows.find(r => norm(r.handle) === want || norm(r.email) === want || norm(r.person_id) === want);
+  if (!P) throw new Error('Nobody on the people tab has the handle, email or id "' + handleOrEmail + '". Nothing was sent.');
+  const got = digestSendNow_([S(P.person_id)], new Date())[0];
+  console.log(got.said || got.error);
+  return got;
+}
+/* EVERY PARENT (role client) WITH A CHILD LINKED, last week, one line each. */
+function sendLastWeekToAll() {
+  const ids = read(TAB.people).rows.filter(r => hasRole(r, 'client') && S(r.person_id) && childrenOf(S(r.person_id)).length)
+    .map(r => S(r.person_id));
+  const out = digestSendNow_(ids, new Date());
+  out.forEach(got => console.log(got.id + ': ' + (got.said || got.error)));
+  return out;
 }

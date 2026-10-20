@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-19-j-people-admin";
+const DOPOST_VERSION = "2026-10-20-a-send-now";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -3113,6 +3113,16 @@ function doPost(e) {
         return jsonOut(digestPreviewOut_(new Date()));
       } catch (err) {
         return jsonOut({ error: 'The preview could not be built: ' + S(err && err.message || err) });
+      }
+    }
+
+    /* ---------- "SEND LAST WEEK" ON A PARENT'S CARD (378): admin only (`ACTION_ACCESS`), sent whatever weekly_digest says. */
+    if (action === 'digestSendNow') {
+      try {
+        const got = digestSendNow_([S(body.targetId)], new Date())[0] || { error: 'No parent was named — nothing was sent.' };
+        return jsonOut(got.error ? { error: got.error } : { success: true, said: got.said, sent: got.sent, questions: got.questions || 0 });
+      } catch (err) {
+        return jsonOut({ error: 'Nothing was sent: ' + S(err && err.message || err) });
       }
     }
 

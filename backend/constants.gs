@@ -110,7 +110,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-19-j-people-admin";
+const BACKEND_VERSION = "2026-10-20-a-send-now";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1462,6 +1462,8 @@ const ACTION_ACCESS = {
      learner's week and every parent's address. It writes nothing and sends nothing — see
      backend/digest.gs. */
   digestPreview: 'admin',
+  /* AN ADMIN'S "SEND LAST WEEK" ON A PARENT'S CARD (378) — it emails a parent, so nobody else. */
+  digestSendNow: 'admin',
   /* THE FILMS, FILLED FROM THE NOTFLIX FOLDER. § */
   filmsSync: 'admin',
 
