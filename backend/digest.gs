@@ -228,7 +228,7 @@ function digestRender_(L, P, week, look) {
   for (let turn = 0; turn < 12 && digestBytes_(m.html) > DIGEST_CLIP_BYTES; turn++) {
     let over = digestBytes_(m.html) - DIGEST_CLIP_BYTES;
     const next = Q.sizes.filter(z => z.bytes && !opts.cut[z.id])
-      .sort((a, b) => (a.kind === b.kind ? b.bytes - a.bytes : a.kind === 'stem' ? -1 : 1));
+      .sort((a, b) => (a.kind === b.kind ? b.bytes - a.bytes : DIGEST_CUT_FIRST.indexOf(a.kind) - DIGEST_CUT_FIRST.indexOf(b.kind)));
     if (!next.length) break;
     for (let k = 0; k < next.length && over > 0; k++) { opts.cut[next[k].id] = 1; over -= next[k].bytes - 80; }
     Q = digestQuestions_(items, DIGEST_WEEK_LIST_MAX, opts);
@@ -237,11 +237,13 @@ function digestRender_(L, P, week, look) {
   return { subject: subject, text: m.text, html: m.html };
 }
 
-/* THE EMAIL'S COLOURS: the site's paper palette (style.css `--paper*`) and its gold for an edge — a light card reads in a light inbox and inverts cleanly in a dark one (380). */
+/* WHAT THE CLIP GIVES UP FIRST: a long source, then a later card's repeat of its paper's tags, then a question's own words. */
+const DIGEST_CUT_FIRST = ['stem', 'tags', 'part'];
+/* THE EMAIL'S COLOURS: the site's black-and-gold screen (style.css `:root`) — page, pane, card, ink, verdicts — and its paper for the answer box (20 Oct, 380). */
 function digestInk_() {
-  return { page: '#ffffff', paper: '#f4f1e8', ink: '#2b2620', dim: '#6a6259', strip: '#e7e2d5', rule: '#cfc7b5',
-           gold: '#ffb454', goldInk: '#8f5300', right: '#1a7f37', wrong: '#b42318',
-           mono: 'Menlo,Consolas,monospace' };
+  return { page: '#000', pane: '#101010', paneLine: '#383838', card: '#0b0b0b', line: '#232323', ink: '#e6e6e6', dim: '#9a9a9a',
+           faint: '#848484', chip: '#3d3d3d', gold: '#ffb454', right: '#3ddc84', wrong: '#ff5f56',
+           paper: '#f4f1e8', paperInk: '#2b2620', mono: 'Menlo,Consolas,monospace' };
 }
 
 /* HOW ONE QUESTION WENT, by the week's last word on it: right, part marks, not right, not marked — never how many goes it took (the owner, 20 Oct). */
@@ -256,7 +258,7 @@ function digestHow_(verdict) {
 function digestHowSay_() {
   const ink = digestInk_();
   return [{ id: 'right', many: 'right', one: '✓ Right', tone: ink.right },
-          { id: 'part', many: 'with part marks', one: '', tone: ink.goldInk },
+          { id: 'part', many: 'with part marks', one: '', tone: ink.gold },
           { id: 'wrong', many: 'not right', one: '✗ Not right', tone: ink.wrong },
           { id: 'open', many: 'not marked yet', one: 'Not marked yet', tone: ink.dim }];
 }
@@ -322,12 +324,13 @@ function digestSummary_(items, days, lib, week) {
     + '<div style="font-size:11px;line-height:1.3;color:' + ink.dim + '">' + digestEsc_(c.say) + '</div></td>';
   const small = (label, text) => '<p style="margin:4px 0 0;font-size:13px;line-height:1.45;color:' + ink.ink + '">'
     + '<span style="color:' + ink.dim + '">' + label + '</span> ' + digestEsc_(text) + '</p>';
-  const html = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="' + ink.paper + '" style="background:' + ink.paper
-    + ';border:1px solid ' + ink.rule + ';border-top:3px solid ' + ink.gold + ';margin:4px 0 8px"><tr><td style="padding:14px 14px 14px 16px;font-family:' + ink.mono + ';color:' + ink.ink + '">'
+  /* THE SITE'S PANE — `.pane`, #101010 inside a faint rim, rounded — every fill said, so a dark inbox has nothing to invert into mud. */
+  const html = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="' + ink.pane + '" style="border:1px solid ' + ink.paneLine
+    + ';border-radius:14px;margin:4px 0 16px"><tr><td style="padding:16px 14px">'
     /* A HEADING NOBODY SCROLLS PAST (the owner missed the first one, 20 Oct): the size of a title, then the topics before any figure. */
-    + '<p style="margin:0 0 10px;font-size:19px;line-height:1.3;font-weight:bold;color:' + ink.ink + '">Summary of the week</p>'
-    + (said ? '<p style="margin:0 0 8px;font-size:15px;line-height:1.45">' + digestEsc_(said) + '</p>' : '')
-    + (topicSay.length ? '<p style="margin:0 0 12px;font-size:15px;line-height:1.45"><b>Topics:</b> ' + digestEsc_(digestAnd_(topicSay)) + '</p>' : '')
+    + '<p style="margin:0 0 10px;font-size:19px;line-height:1.3;font-weight:bold;color:' + ink.gold + '">Summary of the week</p>'
+    + (said ? '<p style="margin:0 0 8px">' + digestEsc_(said) + '</p>' : '')
+    + (topicSay.length ? '<p style="margin:0 0 12px"><b>Topics:</b> ' + digestEsc_(digestAnd_(topicSay)) + '</p>' : '')
     + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">'
     + rows.map(r => '<tr>' + r.map(cell).join('') + (r.length < per ? '<td width="' + wide * (per - r.length) + '%" colspan="' + (per - r.length) + '"></td>' : '') + '</tr>').join('')
     + '</table>'
@@ -359,7 +362,8 @@ function digestQuestions_(items, max, o) {
     const row = digestLibRow_(lib, q && q.key);
     (heads[head] || (heads[head] = [])).push({ mark: digestMark_(q && q.verdict), how: digestHow_(q && q.verdict),
       key: S(q && q.key), row: row, num: num, stem: cutAt ? w.slice(0, cutAt.index) : '', ask: cutAt ? w.slice(cutAt.index + cutAt[0].length) : w,
-      theirs: digestTheirAnswer_(row, q && q.answer), right: digestRightAnswer_(row) });
+      theirs: digestTheirAnswer_(row, q && q.answer), right: digestRightAnswer_(row),
+      tags: digestWornTags_(lib, row, bits, num) });
   });
   /* A CAP THAT IS NOT A NUMBER IS THE WEEK'S, never "all of them": `slice(0, undefined)` is the whole
      list, and the cap is what keeps an email under the size a mail client clips it at. */
@@ -376,29 +380,44 @@ function digestQuestions_(items, max, o) {
   /* A NAME OF ONE SEGMENT HAS NO NUMBER, so no number in its tag: its mark alone, and its words after —
      never ": What is 7 × 8?". */
   const tag = it => (it.num ? it.num + ' ' + it.mark : it.mark);
-  /* THE VERDICT IN WORDS AND ITS COLOUR — green right, red not yet, amber part marks, grey not marked: the summary's own words. */
-  const verdictHtml = it => {
-    const w = says.filter(x => x.id === it.how)[0] || says[says.length - 1];
-    return '<b style="color:' + w.tone + '">' + digestEsc_(w.one || it.mark) + '</b>';
-  };
-  /* ---------- ONE QUESTION AS A CARD, as the site's question card: paper, a gold edge, its tags, its words, then how it went (380) */
-  /* LEAN, BECAUSE IT IS SAID 80 TIMES UNDER GMAIL'S CLIP: `bgcolor` for the fill, the font and ink inherited from the email's own cell. */
+  /* ---------- ONE QUESTION AS THE SITE'S CARD (20 Oct, 380): the pane, the card in it, its tags, its words and picture, then how it went § */
+  /* LEAN, BECAUSE IT IS SAID 80 TIMES UNDER GMAIL'S CLIP: `bgcolor` for every fill, the font and ink inherited from the email's own cell. */
+  const head = (t, top) => '<p style="margin:' + (top || 14) + 'px 0 4px;font-size:10px;letter-spacing:1px;color:' + ink.faint + '">' + t + '</p>';
   const card = (it, inner, tags) => {
-    const row = (label, v) => '<p style="margin:4px 0 0"><span style="color:' + ink.dim + '">' + label + '</span> ' + v + '</p>';
-    return '<table width="100%" cellspacing="0" bgcolor="' + ink.paper + '" style="border:1px solid ' + ink.rule + ';border-left:3px solid ' + ink.gold
-      + ';margin:0 0 12px"><tr><td style="padding:12px 14px;font-size:14px">'
-      + (tags ? '<p style="margin:0 0 8px;font-size:12px;color:' + ink.dim + '">' + tags + '</p>' : '') + inner
-      + '<table width="100%" cellspacing="0" bgcolor="' + ink.strip + '" style="margin:10px 0 0"><tr><td style="padding:8px 10px">'
-      + '<p style="margin:0">' + verdictHtml(it) + '</p>'
-      + (it.theirs ? row('Their answer:', it.theirs.html) : '')
-      + (it.right ? row('Answer:', '<b>' + it.right.html + '</b>') : '')
-      + '</td></tr></table></td></tr></table>';
+    const w = says.filter(x => x.id === it.how)[0] || says[says.length - 1];
+    /* THE PANE IS THE CARD'S OWN BORDER — 10px of `.pane`'s #101010 round `.qcard`'s #0b0b0b, rounded — one table where the site has two boxes. */
+    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="' + ink.card + '" style="border:10px solid ' + ink.pane
+      + ';border-radius:14px;margin:0 0 14px"><tr><td style="padding:12px 11px">'
+      + (tags ? '<div style="font-size:10px;line-height:24px;margin:0 0 8px">' + tags + '</div>' : '') + inner
+      /* THE VERDICT IN WORDS AND ITS COLOUR, the summary's own; THEIR ANSWER in the site's answer box, paper ringed in that colour; the ANSWER as the Answers page sets it. */
+      + '<p style="margin:12px 0 0;font-weight:bold;color:' + w.tone + '">' + digestEsc_(w.one || it.mark) + '</p>'
+      + (it.theirs ? head('THEIR ANSWER', 10) + '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="' + ink.paper
+        + '" style="border:3px solid ' + w.tone + ';border-radius:22px;padding:6px 16px;color:' + ink.paperInk + '">' + it.theirs.html + '</td></tr></table>' : '')
+      + (it.right ? head('ANSWER') + '<p style="margin:0;font-size:18px;font-weight:bold">' + it.right.html + '</p>' : '')
+      + '</td></tr></table>';
   };
-  const tagsOf = (num, marks) => [num ? '<b style="color:' + ink.goldInk + '">' + digestEsc_(num) + '</b>' : '', marks ? digestEsc_(marks) : '']
-    .filter(Boolean).join(' · ');
+  /* THE TAGS AS PILLS, each its facet's colour (`DIGEST_TAG_INK`); the border takes the text's colour, and a facet with none wears the plain outline. */
+  const pill = t => '<span style="color:' + (DIGEST_TAG_INK[t.kind] || ink.dim) + ';border:1px solid' + (DIGEST_TAG_INK[t.kind] ? '' : ' ' + ink.chip)
+    + ';border-radius:9px;padding:0 6px">' + digestEsc_(t.text).replace(/ /g, '\u00a0') + '</span>';
+  const tagsHtml = list => (list || []).map(pill).join(' ');
   const answerLines = it => (it.theirs ? ['Their answer: ' + it.theirs.text] : []).concat(it.right ? ['Answer: ' + it.right.text] : []);
-  const headHtml = h => '<p style="margin:24px 0 10px;padding:0 0 4px;border-bottom:2px solid ' + ink.gold + ';font-size:14px;line-height:1.4;color:' + ink.ink + '"><b>'
-    + digestEsc_(h) + '</b></p>';
+  /* NO HEADING OVER A PAPER: § */
+  let prev = null;
+  const tagsFor = it => {
+    const above = prev;
+    prev = it;
+    if (!above || !said['tags:' + it.key]) return tagsHtml(it.tags);
+    const had = {};
+    (above.tags || []).forEach(t => { had[t.text] = 1; });
+    return tagsHtml((it.tags || []).filter(t => !had[t.text]));
+  };
+  const weigh = it => {
+    if (!prev) return;
+    const had = {};
+    (prev.tags || []).forEach(t => { had[t.text] = 1; });
+    const less = digestBytes_(tagsHtml(it.tags)) - digestBytes_(tagsHtml((it.tags || []).filter(t => !had[t.text])));
+    if (less > 0) sizes.push({ id: 'tags:' + it.key, kind: 'tags', bytes: less + 80 });
+  };
 
   const lines = [];
   const parts = [];
@@ -406,7 +425,7 @@ function digestQuestions_(items, max, o) {
   const sizes = [];
   let fromLib = 0;
   shown.forEach(h => {
-    let html = headHtml(h.head);
+    let html = '';
     if (!h.worded) {
       /* A NAME OF ONE SEGMENT WITH NO WORDS IS ITS HEADING AND NOTHING ELSE, so its mark goes on the heading
          ("Times tables: ✓") rather than alone on a line under it; numbered ones are the line of numbers. */
@@ -414,7 +433,7 @@ function digestQuestions_(items, max, o) {
       lines.push(h.head + (bare.length ? ': ' + bare.map(it => it.mark).join(', ') : ''));
       if (numbered.length) lines.push(numbered.map(tag).join(', '));
       lines.push('');
-      h.items.forEach(it => { html += card(it, '', tagsOf(it.num, '')); });
+      h.items.forEach(it => { weigh(it); html += card(it, '', tagsFor(it)); });
       parts.push(html);
       return;
     }
@@ -422,6 +441,7 @@ function digestQuestions_(items, max, o) {
     let stem = '';
     const done = {};
     h.items.forEach(it => {
+      weigh(it);
       /* ---------- AS IT IS ON THE SITE (18 Oct): the row the card draws, from the library ---------- */
       const P = it.row ? digestPartOut_(it, pre, done, said, site) : null;
       if (P) {
@@ -435,7 +455,7 @@ function digestQuestions_(items, max, o) {
         lines.push(kid + ': ' + it.mark);
         lines.push.apply(lines, answerLines(it));
         lines.push('');
-        html += card(it, inner + P.html, tagsOf(it.num, P.marks));
+        html += card(it, inner + P.html, tagsFor(it));
         stem = '';
         return;
       }
@@ -444,14 +464,14 @@ function digestQuestions_(items, max, o) {
       if (said[wid]) {
         lines.push(tag(it) + ': (the question’s words are on the site)');
         lines.push.apply(lines, answerLines(it));
-        html += card(it, '<p style="margin:0"><i>(the question’s words are on the site)</i></p>', tagsOf(it.num, ''));
+        html += card(it, '<p style="margin:0"><i>(the question’s words are on the site)</i></p>', tagsFor(it));
         stem = it.stem;
         return;
       }
       let inner = '';
       if (it.stem && it.stem !== stem) {
         lines.push(cut(it.stem, DIGEST_STEM_SHOWN));
-        inner += '<p style="margin:0 0 10px;padding:0 0 8px;border-bottom:1px dashed ' + ink.rule + ';color:' + ink.dim + '"><i>' + digestEsc_(cut(it.stem, DIGEST_STEM_SHOWN)) + '</i></p>';
+        inner += '<p style="margin:0 0 10px;padding:0 0 8px;border-bottom:1px dashed ' + ink.chip + ';color:' + ink.dim + '"><i>' + digestEsc_(cut(it.stem, DIGEST_STEM_SHOWN)) + '</i></p>';
       }
       stem = it.stem;
       const said1 = cut(it.ask, DIGEST_WORDS_SHOWN);
@@ -459,7 +479,7 @@ function digestQuestions_(items, max, o) {
       lines.push.apply(lines, answerLines(it));
       if (said1) inner += '<p style="margin:0">' + digestEsc_(said1) + '</p>';
       if (inner) sizes.push({ id: wid, kind: 'part', bytes: digestBytes_(inner) });
-      html += card(it, inner, tagsOf(it.num, ''));
+      html += card(it, inner, tagsFor(it));
     });
     if (lines[lines.length - 1] !== '') lines.push('');
     parts.push(html);
@@ -469,6 +489,22 @@ function digestQuestions_(items, max, o) {
   shown.forEach(h => h.items.forEach(it => marks.push(it.mark)));
   return { lines: lines, html: parts.join('') + (printed && more > 0 ? '<p style="margin:12px 0 0">…and ' + more + ' more.</p>' : ''),
            printed: printed, marks: marks, more: more, fromLib: fromLib, sizes: sizes };
+}
+
+/* A QUESTION THE LIBRARY DOES NOT HAVE WEARS WHAT ITS LABEL SAYS, as the tags would: its subject, its paper or sheet, its number — and its marks where a row gives them. */
+function digestWornTags_(lib, libRow, bits, num) {
+  const id = S(libRow && libRow.row_id);
+  return id && lib && lib.tags && lib.tags[id] ? lib.tags[id] : digestLabelTags_(bits, num, libRow);
+}
+function digestLabelTags_(bits, num, libRow) {
+  const b = (bits || []).map(S).filter(Boolean), out = [];
+  if (num) b.pop();
+  if (b.length > 1) out.push({ kind: 'subject', text: b.shift() });
+  if (b.length) out.push({ kind: 'paper', text: b.join(' · ') });
+  if (num) out.push({ kind: 'paper', text: num });
+  const m = Number(libRow && libRow.marks);
+  if (m > 0) out.push({ kind: '', text: m + ' mark' + (m === 1 ? '' : 's') });
+  return out;
 }
 
 /* ---------- THE RIGHT ANSWER, FROM THE LIBRARY'S ROW (380): the right options, the cells' values, the mark scheme's answer up to its "—", else what it accepts */
@@ -567,7 +603,7 @@ function digestPartOut_(it, pre, done, said, site) {
     /* A STAND-IN FOR A SOURCE THE PAPER PRINTS IN A SEPARATE BOOKLET is in a dashed box, as on the site
        (`.qsheet-stem.is-standin`), so nobody takes it for the exam's own words. */
     const ink = digestInk_();
-    const box = TRUE_(p.placeholder) ? 'border:1px dashed ' + ink.dim + ';padding:6px 8px;' : 'border-bottom:1px dashed ' + ink.rule + ';padding:0 0 6px;';
+    const box = TRUE_(p.placeholder) ? 'border:1px dashed ' + ink.dim + ';padding:6px 8px;' : 'border-bottom:1px dashed ' + ink.chip + ';padding:0 0 6px;';
     const before = pat >= 0 ? ph.slice(0, pat) : ph, after = pat >= 0 ? ph.slice(pat).replace(mark, '') : '';
     const l = S(p.lines) ? [S(p.lines)] : [];
     let h = S(p.lines) ? '<p style="margin:0 0 4px"><i>' + digestEsc_(p.lines) + '</i></p>' : '';
@@ -608,9 +644,9 @@ function digestHtml_(html) {
   const src = digestPrep_(html);
   const KEEP = /^(p|br|b|strong|i|em|sup|sub|ul|ol|li|table|thead|tbody|tr|th|td|span|div)$/;
   const SAY = { p: 'margin:0 0 8px', ul: 'margin:0 0 8px;padding-left:24px', ol: 'margin:0 0 8px;padding-left:24px',
-                table: 'border-collapse:collapse;margin:4px 0 10px;font-size:12px', th: 'border:1px solid #999;padding:3px 5px;text-align:left',
-                td: 'border:1px solid #999;padding:3px 5px' };
-  const AS = { blockquote: ['<div style="margin:0 0 8px 12px;padding-left:10px;border-left:3px solid #ccc">', '</div>'],
+                table: 'border-collapse:collapse;margin:4px 0 10px;font-size:11px', th: 'border:1px solid #3d3d3d;padding:3px 4px;text-align:left',
+                td: 'border:1px solid #3d3d3d;padding:3px 4px' };
+  const AS = { blockquote: ['<div style="margin:0 0 8px 12px;padding-left:10px;border-left:3px solid #3d3d3d">', '</div>'],
                u: ['<span style="text-decoration:underline">', '</span>'], s: ['<span style="text-decoration:line-through">', '</span>'] };
   const VOID = /^(img|hr|input|wbr|col|area|source|meta|link|base|embed|param|track)$/;
   const text = t => t
@@ -1076,6 +1112,378 @@ function digestLibrary_(site) {
   return { error: 'the question library could not be fetched, so each question goes as its words — ' + said.join('; ') };
 }
 
+/* ---------- THE CARD'S TAGS, AS THE SITE DRAWS THEM (20 Oct, docs/history/380): `tagRow_` (js/find.js) for a question, ported § */
+/* THE TAG FACETS A QUESTION ANSWERS, IN `facetList()`'s ORDER, with their `TAG_OF` colour kind; check-funnel holds this to the app's own row. */
+const DIGEST_TAG_FACETS = [['kindLabel', ''], ['subject', 'subject'], ['documentType', 'type'], ['fiveLevel', 'level'], ['fiveMonth', 'sitting'],
+  ['fiveDay', 'paper'], ['level', 'level'], ['keystage', 'level'], ['yearGroup', 'level'], ['bandValue', 'level'], ['examBoard', 'board'],
+  ['tier', 'tier'], ['examYear', 'sitting'], ['examMonth', 'sitting'], ['paperId', 'paper'], ['qNumber', 'paper'], ['qPart', 'paper'],
+  ['qSub', 'paper'], ['marks', ''], ['needs', 'needs'], ['health', 'health'], ['answerable', 'answerable']];
+/* `[data-tag]`'s colours (style.css `--tag-*`); a facet with no kind wears the plain outline, `--chip-line` round `--dim`. */
+const DIGEST_TAG_INK = { paper: '#ff7b72', subject: '#3ddc84', level: '#6cb6ff', sitting: '#c8a2ff', tier: '#ff8fc4', board: '#4fd1c5',
+  type: '#c3e88d', topic: '#ff9e64', needs: '#f0f08a', health: '#cdb69c', answerable: '#cdb69c' };
+const DIGEST_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const DIGEST_ROMAN = /^(i{1,3}|iv|vi{0,3}|ix|xi{0,3})$/i;
+
+/* THE LIBRARY FOR THE TAGS, IN ONE PASS OVER THE FILE: § */
+function digestTagIndex_(text, pids) {
+  const out = { docs: {}, heads: {}, rows: {} }, want = {};
+  (pids || []).forEach(p => { want[S(p)] = 1; });
+  const parse = line => { try { return JSON.parse(line.replace(/,?\s*$/, '')); } catch (err) { return null; } };
+  const live = q => q && q.kind !== 'preamble' && q.kind !== 'document' && digestLibOn_(q.active);
+  S(text).split('\n').forEach(line => {
+    const m = /"paper_id":("(?:[^"\\]|\\.)*")/.exec(line);
+    if (!m) return;
+    let pid;
+    try { pid = JSON.parse(m[1]); } catch (err) { return; }
+    const doc = line.indexOf('"kind":"document"') !== -1;
+    if (doc && out.docs[pid]) return;
+    if (!doc && !want[pid] && (out.heads[pid] || line.indexOf('"kind":"preamble"') !== -1)) return;
+    const q = parse(line);
+    if (!q || S(q.paper_id) !== pid) return;
+    if (doc) out.docs[pid] = q;
+    if (want[pid]) (out.rows[pid] = out.rows[pid] || []).push(q);
+    if (!doc && !out.heads[pid] && live(q)) out.heads[pid] = q;
+  });
+  return out;
+}
+
+/* library.js's readers of a cell: `libS`, `libOn` (blank is on), `libTrue`, `libNum` (absent stays absent), `libN`. */
+const digestLibS_ = v => (v === undefined || v === null ? '' : String(v));
+const digestLibOn_ = v => /^(|true|yes|1|y|on)$/.test(digestLibS_(v).toLowerCase().trim());
+const digestLibTrue_ = v => /^(true|yes|1|y|on)$/.test(digestLibS_(v).toLowerCase().trim());
+const digestLibNum_ = v => {
+  if (v === undefined || v === null || String(v).trim() === '') return null;
+  const n = Number(String(v).replace(/[^0-9.-]/g, ''));
+  return isFinite(n) ? n : null;
+};
+/* find.js's `spellKey_` and `asList_`. */
+const digestSpell_ = v => String(v == null ? '' : v).toLowerCase().replace(/[^a-z0-9]/g, '');
+const digestList_ = v => (Array.isArray(v) ? v : v == null || v === false ? [] : [v]).map(it => String(it == null ? '' : it).trim()).filter(Boolean);
+
+/* A QUESTION ROW AS `questionItems` MAKES IT AN ITEM: the cells the facets read, by the item's names. */
+function digestTagItem_(q) {
+  return { src: q, subject: digestLibS_(q.subject), documentType: digestLibS_(q.document_type), keystage: digestLibS_(q.key_stage),
+           bandType: digestLibS_(q.band_type), bandValue: digestLibS_(q.band_value), tier: digestLibS_(q.tier),
+           examBoard: digestLibS_(q.exam_board), examWave: digestLibS_(q.exam_wave), year: digestLibS_(q.year), sub: digestLibS_(q.name) };
+}
+/* `levelOf_`, `ksFallback_` and the SATs rung of `LEVEL_BUCKET`. */
+function digestTagLevel_(it) {
+  const band = it.bandType === 'stage' && it.bandValue ? String(it.bandValue) : '';
+  let own = band || String(it.src.level || '').trim();
+  if (!own) {
+    const yr = it.bandType === 'year' ? Number(it.bandValue) : NaN;
+    if (yr >= 1 && yr <= 11) own = yr <= 6 ? 'SATs' : yr <= 9 ? 'KS3' : 'GCSE';
+    else {
+      const ks = digestTagStages_(it).filter(k => /^ks[1-5]$/i.test(k)).sort();
+      const k = ks.length ? ks[ks.length - 1] : '';
+      own = k ? ({ ks1: 'SATs', ks2: 'SATs', ks3: 'KS3', ks4: 'GCSE', ks5: 'A-Level' }[digestSpell_(k)] || k) : '';
+    }
+  }
+  if (!own) return '';
+  if (/^as(\s*-?\s*level)?$/i.test(own)) return 'AS';
+  if (/^ks\s*[12](\s*sats)?$/i.test(own)) return 'SATs';
+  return own;
+}
+const digestTagStages_ = it => String(it.keystage || '').split(',').map(s => s.trim()).filter(Boolean);
+/* `satsStagesOf_`, asked only of a SATs row. */
+function digestTagSats_(it) {
+  if (['sats', 'ks1sats', 'ks2sats', 'ks1', 'ks2'].indexOf(digestSpell_(digestTagLevel_(it))) === -1) return [];
+  const yr = it.bandType === 'year' ? Number(it.bandValue) : NaN;
+  if (yr >= 1 && yr <= 6) return [yr <= 2 ? 'KS1' : 'KS2'];
+  const named = /\bks\s*([12])\b/i.exec(String((it.bandType === 'stage' && it.bandValue) || it.src.level || ''));
+  if (named) return ['KS' + named[1]];
+  const out = [];
+  digestTagStages_(it).forEach(k => { const m = /^ks\s*([12])$/i.exec(k); if (m && out.indexOf('KS' + m[1]) < 0) out.push('KS' + m[1]); });
+  return out.sort();
+}
+/* `yearOf`, `seriesOf_`, `waveOf` and `waveFromDoc_`: the sitting as "Summer 2024", read as `sittingOf_` splits it. */
+function digestTagYearOf_(it) {
+  const own = String(it.year || '').trim(), inOwn = own.match(/\b(19|20)\d{2}\b/);
+  if (inOwn) return inOwn[0];
+  if (own && own.length <= 9 && !/\s/.test(own)) return own;
+  const m = String(it.examWave || '').match(/\b(19|20)\d{2}\b/);
+  return m ? m[0] : '';
+}
+function digestTagSeries_(m) {
+  const n = Number(m);
+  if (!isFinite(n) || n < 1 || n > 12) return '';
+  return n >= 5 && n <= 7 ? 'Summer' : n >= 10 && n <= 12 ? 'Autumn' : DIGEST_MONTHS[n - 1];
+}
+const digestTagMonthAt_ = w => DIGEST_MONTHS.findIndex(m => m.toLowerCase().startsWith(String(w).toLowerCase().slice(0, 3)));
+function digestTagWave_(it, T) {
+  const raw = String(it.examWave || '').trim(), q = it.src;
+  if (!raw) {
+    if (String(it.documentType || q.document_type || '').toLowerCase() !== 'past paper') return '';
+    const doc = T.docs[S(q.paper_id)] || {};
+    const named = /\s[—–]\s([A-Za-z]{3,9})\s+((?:19|20)\d{2})\s*$/.exec(String(doc.name || q.name || ''));
+    const mth = Number(q.month || doc.month || 0) || (named ? digestTagMonthAt_(named[1]) + 1 : 0);
+    const yr = digestTagYearOf_(it) || String(doc.year || '').trim() || (named ? named[2] : '');
+    const series = digestTagSeries_(mth);
+    return series && /^(19|20)\d{2}$/.test(yr) ? series + ' ' + yr : '';
+  }
+  const phase = raw.match(/^(first|second|third)\s+wave$/i);
+  if (phase) {
+    const yr = digestTagYearOf_(it);
+    const series = digestTagSeries_(Number(q.month || 0)) || (/^first$/i.test(phase[1]) ? 'Summer' : 'Autumn');
+    return yr ? series + ' ' + yr : raw;
+  }
+  const said = raw.match(/^([A-Za-z]{3,9})\s+((?:19|20)\d{2})$/);
+  if (said) { const i = digestTagMonthAt_(said[1]); return i < 0 ? raw : digestTagSeries_(i + 1) + ' ' + said[2]; }
+  const long = raw.match(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\b[^]*?\b((?:19|20)\d{2})\b/);
+  if (long) { const i = DIGEST_MONTHS.findIndex(m => m.slice(0, 3) === long[1]); return i < 0 ? long[2] : digestTagSeries_(i + 1) + ' ' + long[2]; }
+  const iso = raw.match(/\b((?:19|20)\d{2})-(\d{2})-\d{2}\b/);
+  if (iso) return digestTagSeries_(parseInt(iso[2], 10)) + ' ' + iso[1];
+  const bare = raw.match(/\b(19|20)\d{2}\b/);
+  return bare ? bare[0] : raw;
+}
+function digestTagYear_(it, T) {
+  const w = String(digestTagWave_(it, T) || '').trim();
+  const m = /^(.*\S)\s+((?:19|20)\d{2})$/.exec(w);
+  return m ? m[2] : /^(19|20)\d{2}$/.test(w) ? w : '';
+}
+/* `sittingMonth_`. */
+function digestTagMonth_(it, T) {
+  if (!digestTagYear_(it, T)) return '';
+  const q = it.src, doc = T.docs[S(q.paper_id)] || {};
+  const ofDate = v => { const m = /\b(?:19|20)\d{2}-(\d{2})-\d{2}\b/.exec(String(v || '')); return m ? Number(m[1]) : 0; };
+  const ofWord = v => {
+    const i = DIGEST_MONTHS.findIndex(n => n.slice(0, 3).toLowerCase() === String(v || '').slice(0, 3).toLowerCase());
+    return i < 0 ? 0 : i + 1;
+  };
+  const ofName = v => { const m = /\s[—–]\s(?:\d{1,2}\s+)?([A-Za-z]{3,9})\s+(?:19|20)\d{2}\s*$/.exec(String(v || '')); return m ? ofWord(m[1]) : 0; };
+  const ofWave = v => { const m = /^([A-Za-z]{3,9})\s+(?:19|20)\d{2}$/.exec(String(v || '').trim()); return m ? ofWord(m[1]) : ofDate(v); };
+  const n = ofName(doc.name || q.name || it.sub) || Number(q.month || 0) || ofDate(q.exam_date) || Number(doc.month || 0)
+    || ofDate(doc.exam_date) || ofWave(it.examWave);
+  return n >= 1 && n <= 12 ? DIGEST_MONTHS[n - 1] : '';
+}
+/* A 5-A-DAY's DAY, from its id — `fiveADayOf_`. */
+function digestTagFive_(q) {
+  if (String(q.document_type || '') !== '5-a-day') return null;
+  const m = /^P-CBM-5AD-[A-Z+]+-(\d{2})(\d{2})$/.exec(String(q.paper_id || ''));
+  const month = m ? DIGEST_MONTHS[Number(m[1]) - 1] : '';
+  return month ? { month: month, day: Number(m[2]) } : null;
+}
+/* `nameForms_` and `sittingParts_`/`sittingUnsaid_`: the rungs a paper's name is shortened by, and its date dropped where the Year and Month tags say it. */
+const DIGEST_TAG_CUT = new RegExp('\\s[\\u2014\\u2013]\\s|\\s\\u00b7\\s(?=(?:(?:19|20)\\d{2}|' + DIGEST_MONTHS.join('|') + ')$)');
+function digestTagForms_(s) {
+  const full = String(s == null ? '' : s).trim(), out = [];
+  const cut = re => { const m = re.exec(full); if (!m || !m.index) return; const v = full.slice(0, m.index).trim(); if (v && v !== full && out.indexOf(v) === -1) out.push(v); };
+  cut(DIGEST_TAG_CUT);
+  cut(/\s*[:(]/);
+  out.sort((a, b) => a.length - b.length);
+  const q = /\s*[:(]/.exec(full), d = DIGEST_TAG_CUT.exec(full);
+  if (q && q.index && d && q.index < d.index) { const v = full.slice(0, q.index).trim() + full.slice(d.index); if (v !== full && out.indexOf(v) === -1) out.splice(1, 0, v); }
+  out.push(full);
+  return out;
+}
+function digestTagUnsaid_(label, said) {
+  const s = String(label == null ? '' : label);
+  if (!said.year && !said.month) return s;
+  const dash = /\s[—–]\s/.exec(s);
+  const pm = dash ? /^((?:\d{1,2}\s+)?([A-Za-z]+))\s+((?:19|20)\d{2})$/.exec(s.slice(dash.index + dash[0].length).trim()) : null;
+  if (!pm || !DIGEST_MONTHS.some(n => n.toLowerCase() === pm[2].toLowerCase())) return s;
+  const left = [];
+  if (!(said.year && said.year === pm[3])) left.push(pm[3]);
+  if (!(said.month && digestSpell_(said.month) === digestSpell_(pm[2]))) left.push(pm[1]);
+  if (left.length === 2) return s;
+  return s.slice(0, dash.index) + (left.length ? ' · ' + left[0] : '');
+}
+/* `paperLabels_` over the papers in one folder: a name shared by two says what tells them apart (subject, tier, board). */
+function digestTagLabels_(ids, T) {
+  const map = {}, byName = {}, docs = [];
+  ids.forEach(id => {
+    const q = T.docs[id];
+    if (!q || String(q.kind) !== 'document') return;
+    const name = String(q.name || '').trim();
+    if (!name) return;
+    docs.push({ id: id, name: name, subject: q.subject, tier: q.tier, exam_board: q.exam_board });
+    (byName[digestSpell_(name)] = byName[digestSpell_(name)] || []).push(q);
+  });
+  docs.forEach(q => {
+    const share = byName[digestSpell_(q.name)] || [];
+    if (share.length < 2) { map[q.id] = q.name; return; }
+    const bits = [q.name];
+    let field = share;
+    ['subject', 'tier', 'exam_board'].forEach(col => {
+      if (field.length < 2) return;
+      const mine = String(q[col] || '').trim();
+      if (mine && new Set(field.map(d => String(d[col] || '').trim())).size > 1) bits.push(mine);
+      field = field.filter(d => String(d[col] || '').trim() === mine);
+    });
+    const extra = bits.slice(1).join(' · '), dash = /\s[—–]\s/.exec(q.name);
+    map[q.id] = !extra ? q.name : dash ? q.name.slice(0, dash.index) + ' · ' + extra + q.name.slice(dash.index) : q.name + ' · ' + extra;
+  });
+  return map;
+}
+/* `paperTag_`: the paper as its own folder names it among the papers sharing its level, board, subject, tier, type and sitting — `Paper 1`, `Perimeter`. */
+function digestTagPaper_(it, T) {
+  const pid = S(it.src.paper_id);
+  if (!pid) return '';
+  T.paperSaid = T.paperSaid || {};
+  if (pid in T.paperSaid) return T.paperSaid[pid];
+  const keyOf = i => [digestTagLevel_(i), i.examBoard.trim(), i.subject.trim(), i.tier.trim(), i.documentType.trim(), digestTagYear_(i, T), digestTagMonth_(i, T)].join('|');
+  if (!T.folders) {
+    T.folders = {};
+    Object.keys(T.heads).forEach(p => { const k = keyOf(digestTagItem_(T.heads[p])); (T.folders[k] = T.folders[k] || []).push(p); });
+  }
+  const sib = (T.folders[keyOf(it)] || []).slice();
+  if (sib.indexOf(pid) < 0) sib.push(pid);
+  const said = { year: digestTagYear_(it, T), month: digestTagMonth_(it, T) };
+  const labels = digestTagLabels_(sib, T);
+  const values = sib.map(v => ({ value: v, text: digestTagUnsaid_(labels[v] || v, said) }));
+  /* `shortLabels_`: the first rung at which every name in the folder is told apart. */
+  const forms = values.map(v => digestTagForms_(v.text || v.value));
+  let deepest = 0, show = '';
+  forms.forEach(f => { deepest = Math.max(deepest, f.length); });
+  for (let rung = 0; rung < deepest && !show; rung++) {
+    const at = forms.map(f => f[Math.min(rung, f.length - 1)]);
+    if (new Set(at.map(digestSpell_)).size === at.length) show = at[values.findIndex(v => v.value === pid)];
+  }
+  show = show || (values.filter(v => v.value === pid)[0] || {}).text || digestTagUnsaid_(digestTagLabels_([pid], T)[pid] || pid, {});
+  return (T.paperSaid[pid] = show);
+}
+/* `partSplit_`, with the question's own numeral decision (`partNumerals_`): `ai` is [a] [i], AQA's `1` is [.1], a lone `ii` a numeral when every part of the question is one. */
+function digestTagSplit_(q, T) {
+  const bare = p => String(p == null ? '' : p).trim().toLowerCase().replace(/[()\s]/g, '');
+  const sib = (T.rows[S(q.paper_id)] || [q]).filter(o => o.kind !== 'preamble' && o.kind !== 'document' && digestLibOn_(o.active)
+    && digestLibS_(o.question) === digestLibS_(q.question));
+  const numerals = sib.every(o => { const s = bare(o.part); return !s || DIGEST_ROMAN.test(s); });
+  const split = (part, num) => {
+    const s = bare(part);
+    if (!s) return { part: '', sub: '' };
+    if (/^\d+$/.test(s)) return { part: '.' + Number(s), sub: '' };
+    if (num && DIGEST_ROMAN.test(s)) return { part: '', sub: s };
+    const n = /^(\d+)(i{1,3}|iv|vi{0,3}|ix|xi{0,3})$/i.exec(s);
+    if (n) return { part: '.' + Number(n[1]), sub: n[2] };
+    const m = /^([a-z])(i{1,3}|iv|vi{0,3}|ix|xi{0,3})?$/.exec(s);
+    return m ? { part: m[1], sub: m[2] || '' } : null;
+  };
+  return split(q.part, numerals) || split(q.part, true) || { part: '', sub: '' };
+}
+/* `needsIndex_`/`needsOf_`: the paper's kit, then the question's, then the printed sheet. */
+function digestTagNeeds_(q, T) {
+  const out = [], add = v => { if (v && out.indexOf(v) === -1) out.push(v); };
+  digestList_(String((T.docs[S(q.paper_id)] || {}).needs || '').split(',')).forEach(add);
+  digestList_(digestLibS_(q.needs).split(',')).forEach(add);
+  if (digestLibTrue_(q.needs_print) || digestLibTrue_(q.print_required)) add('Printed sheet');
+  return out;
+}
+/* `paperHealth_` (js/library.js) for one paper: Faithful (the paper reproduced) and Answerable (answered and marked here), each a band. */
+const DIGEST_HEALTH_HURT = { words: 1, answer: 0.5, picture: 0.6, described: 0.25, standin: 0.5, marks: 0.15 };
+const DIGEST_HEALTH_SPACE = ['grid-blank', 'fractions', 'boxes', 'long-method', 'lines', 'working', 'answer-space', 'table-blank'];
+const DIGEST_HEALTH_WORDED = ['explain', 'written', 'proof', 'annotate', 'drawing'];
+const digestHealthBand_ = pct => (pct >= 98 ? 'Ready' : pct >= 85 ? 'Usable' : 'Rough');
+function digestTagHealth_(pid, T) {
+  T.health = T.health || {};
+  if (pid in T.health) return T.health[pid];
+  const s = digestLibS_, num = digestLibNum_, yes = digestLibTrue_;
+  const text = h => s(h).replace(/<[^>]*>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ').replace(/\s+/g, ' ').trim();
+  const DRAWN = /<(svg|img|table)\b/i;
+  const drawn = q => !!(q && (s(q.diagram).trim() || s(q.images).trim() || DRAWN.test(s(q.html)) || DRAWN.test(s(q.lead))));
+  let d = {};
+  const qs = [], pres = [];
+  (T.rows[pid] || []).forEach(q => {
+    if (!q || !s(q.paper_id) || !digestLibOn_(q.active)) return;
+    const kind = s(q.kind).toLowerCase();
+    if (kind === 'document') d = q; else if (kind === 'preamble') pres.push(q); else qs.push(q);
+  });
+  if (!qs.length) return (T.health[pid] = null);
+  const fact = k => s(d[k]) || s((qs[0] || {})[k]);
+  const over = q => pres.filter(p => { const pq = s(p.question), ps = s(p.section); return pq ? pq === s(q.question) : (!ps || ps === s(q.section)); });
+  const hasPdf = !!(s(d.source_url) || yes(d.printable) || qs.some(q => s(q.source_url)));
+  const said = num(d.total_marks);
+  const gcseMaths = fact('exam_board') === 'Edexcel' && fact('subject') === 'Maths' && fact('key_stage') === 'KS4'
+    && fact('document_type') === 'Past paper' && (fact('tier') === 'Higher' || fact('tier') === 'Foundation');
+  const total = said > 0 ? said : (gcseMaths ? 80 : null);
+  const printsMarks = total != null || /paper/i.test(fact('document_type')) || qs.some(q => num(q.marks) > 0);
+  let points = 0, lost = 0, marked = 0, ableLost = 0;
+  qs.forEach(q => {
+    const m = num(q.marks), w = m > 0 ? m : 1;
+    if (m > 0) marked += m;
+    points += w;
+    const type = s(q.answer_type).toLowerCase();
+    /* `ableOf_`: a box the app gives it and a way to mark it with no AI. */
+    const choice = s(q.choices).trim() && s(q.choice_right).trim();
+    if (!(choice || s(q.accept).trim() || s(q.mark_words).trim() || s(q.cells).trim() || s(q.draw_answer).trim())) {
+      ableLost += w * (type === 'drawing' || type === 'annotate' ? 0.6 : yes(q.needs_print) || yes(q.print_required) ? 1 : 0.6);
+    }
+    const hurt = [], words = text(q.html) + ' ' + text(q.lead);
+    if (!words.trim()) hurt.push('words');
+    else if (yes(q.placeholder) || over(q).some(p => yes(p.placeholder))) hurt.push('standin');
+    const scheme = s(q.answer).trim();
+    if (DIGEST_HEALTH_WORDED.indexOf(type) !== -1 ? !scheme : !(scheme || s(q.accept).trim() || choice)) hurt.push('answer');
+    const fig = s(q.figure).trim(), figPic = !!fig && DIGEST_HEALTH_SPACE.indexOf(fig) === -1;
+    const saysPic = /\b(diagram|shown|table below|grid)\b|\b(the|this) graph\b|\bgraph (below|above|shows)\b/i.test(words);
+    if (figPic || saysPic) {
+      const gridOnly = !figPic && type === 'drawing' && !/\b(diagram|shown|graph|table below)\b/i.test(words);
+      const printed = (yes(q.needs_print) || yes(q.print_required)) && hasPdf;
+      const there = drawn(q) || over(q).some(drawn) || s(q.uses).trim() || gridOnly || printed;
+      if (!there) hurt.push(/\bFigure:/.test(s(q.html) + s(q.lead)) ? 'described' : 'picture');
+    }
+    if (printsMarks && !(m > 0)) hurt.push('marks');
+    let keep = 1;
+    hurt.forEach(h => { keep *= 1 - DIGEST_HEALTH_HURT[h]; });
+    lost += w * (1 - keep);
+  });
+  const nums = qs.map(q => s(q.question)).filter(t => /^\d+$/.test(t)).map(Number);
+  const seen = new Set(nums), top = nums.length ? Math.max.apply(null, nums) : 0;
+  let gaps = 0;
+  for (let n = 1; n <= top; n++) if (!seen.has(n)) gaps++;
+  const mean = seen.size ? points / seen.size : 1, short = total != null ? total - marked : 0;
+  let missing = 0;
+  if (gaps && !(total != null && short > 0)) missing += gaps * mean;
+  if (total != null && marked !== total) { if (short > 0) missing += short; else lost += Math.min(-short, Math.max(0, points - lost)); }
+  let pct = points + missing > 0 ? 100 * Math.max(0, points - lost) / (points + missing) : 0;
+  if (!(qs.some(q => s(q.pages_checked)) || !!s(d.pages_checked))) pct -= 1;
+  pct = Math.max(0, Math.floor(pct));
+  const ablePct = points > 0 ? Math.floor(100 * Math.max(0, points - ableLost) / points) : 0;
+  return (T.health[pid] = { band: digestHealthBand_(pct), able: digestHealthBand_(ablePct) });
+}
+
+/* EVERY TAG THE SITE'S CARD WEARS FOR THIS QUESTION ROW, in its order, each `{ kind, text }` — `tagRow_`'s walk and its one dedupe: § */
+function digestCardTags_(q, T) {
+  if (!q || !T) return [];
+  const it = digestTagItem_(q), pid = S(q.paper_id), five = digestTagFive_(q);
+  const lv = digestTagLevel_(it), split = digestTagSplit_(q, T), h = pid ? digestTagHealth_(pid, T) : null;
+  const marks = Number(digestLibS_(q.marks).replace(/[^0-9.-]/g, '')) || 0;
+  const sameAs = v => { const k = digestSpell_(v); return k === 'standardstestingagency' ? 'sta' : k; };
+  /* EACH FACET'S RAW ANSWERS (`facetOwn_`), then how its chip says one (`showOf`, `tagSay`). */
+  const of = {
+    kindLabel: () => 'Questions',
+    subject: () => it.subject, documentType: () => it.documentType,
+    fiveLevel: () => (five ? it.tier : ''), fiveMonth: () => (five ? five.month : ''), fiveDay: () => (five ? pid : ''),
+    level: () => lv, keystage: () => digestTagSats_(it),
+    yearGroup: () => (it.bandValue && it.bandType === 'year' ? 'Year ' + it.bandValue : ''),
+    bandValue: () => (it.bandValue && it.bandType === 'grade' ? 'Grade ' + it.bandValue : ''),
+    examBoard: () => it.examBoard,
+    /* `not: 'level'` — `A-Level` as a tier is the level's word, not a second answer. */
+    tier: () => digestList_(it.tier).filter(v => !lv || sameAs(v) !== sameAs(lv)),
+    examYear: () => digestTagYear_(it, T), examMonth: () => digestTagMonth_(it, T),
+    paperId: () => pid, qNumber: () => digestLibS_(q.question), qPart: () => split.part, qSub: () => split.sub,
+    marks: () => (marks > 0 ? String(marks) : ''), needs: () => digestTagNeeds_(q, T),
+    health: () => (h ? h.band : ''), answerable: () => (h ? h.able : ''),
+  };
+  const say = {
+    fiveDay: () => five.day + ' ' + five.month, paperId: () => digestTagPaper_(it, T), qNumber: v => 'Q' + v,
+    marks: v => v + ' mark' + (v === '1' ? '' : 's'),
+    needs: v => ({ 'no calculator': 'Non-calculator', calculator: 'Calculator allowed' }[v.toLowerCase()] || v),
+  };
+  const out = [], words = Object.create(null), ids = Object.create(null);
+  DIGEST_TAG_FACETS.forEach(f => {
+    let vals;
+    try { vals = digestList_(of[f[0]]()); } catch (err) { vals = []; }
+    vals.forEach(raw => {
+      let text = raw;
+      try { text = String((say[f[0]] ? say[f[0]](raw) : raw) || raw).trim(); } catch (err) { text = raw; }
+      const w = text.toLowerCase();
+      if ((/[A-Za-z]/.test(text) && words[w]) || (/[A-Za-z]/.test(raw) && ids[raw])) return;
+      words[w] = 1; ids[raw] = 1;
+      out.push({ kind: f[1], text: text });
+    });
+  });
+  return out;
+}
+
 /* THE ROWS ASKED FOR, AND THE PREAMBLES OF THEIR PAPERS — one line each, found by its text and parsed alone. § */
 function digestLibraryFind_(text, ids) {
   const bounds = at => {
@@ -1106,7 +1514,13 @@ function digestLibraryFind_(text, ids) {
     }
     at = text.indexOf(mark, ab[1]);
   }
-  return { rows: rows, pre: pre };
+  /* AND EACH ROW'S TAGS, AS ITS CARD WEARS THEM (`digestCardTags_`); a failure costs the tags, never the email. */
+  const worn = {};
+  try {
+    const T = digestTagIndex_(text, papers);
+    Object.keys(rows).forEach(id => { worn[id] = digestCardTags_(rows[id], T); });
+  } catch (err) { /* the cards fall back to what their labels say */ }
+  return { rows: rows, pre: pre, tags: worn };
 }
 
 /* THE PREAMBLES IN FRONT OF A QUESTION, OUTERMOST FIRST — `stemIndex_` and `preamble_` (js/find.js) for one question: § */

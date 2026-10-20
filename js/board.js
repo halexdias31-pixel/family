@@ -16,8 +16,13 @@ const NB_TAP_MS = 450, NB_TAP_PX = 12;
 const NB_STILL_PX = 5, NB_HOLD_MS = 480;  // held this still this long at the end of a line: straighten it
 const NB_SNAP_DEG = 8;                    // and within this of level or upright, make it exactly so
 const NB_AIM_MS = 220, NB_PICK_MS = 520, NB_LASSO_MS = 800;
-const NB_IDLE_MS = 400;                   // a pause this long after a stroke is the end of a glyph: move the pad on
-const NB_AHEAD = 0.62, NB_KEEP = 0.3, NB_EDGE_NOW = 0.88;
+const NB_IDLE_MS = 400;                   // a pause this long after a stroke is the end of a glyph: the pad may move on
+const NB_KEEP = 0.3;                      // a fresh or tapped caret sits this far into the pad
+/* THE PAD MOVES ON ONLY WHEN LITTLE ROOM IS LEFT (under 28% of it, or a stroke reaching 90%), and then just far enough to leave 60% free: the 40% behind keeps the last word, as a ghost. */
+const NB_ROOM_LOW = 0.28, NB_ROOM = 0.6, NB_EDGE_NOW = 0.9;
+const NB_GLIDE_MS = 340;                  // every move of the pad or the page is a glide this long, eased out; a dropped frame slows it, never skips it
+/* A CARRIAGE RETURN: a quick, long, level stroke from right to left. No sign in maths is written that way, so it cannot be writing. */
+const NB_RETURN_PX = 100, NB_RETURN_W = 0.35, NB_RETURN_MS = 400;
 const NB_SUPER_K = 0.62;
 
 /* ---------- THE SHAPES THE TILES PUT DOWN: which boxes each has, and how tall the pad's view of it is (nu) ---------- */
@@ -182,6 +187,7 @@ function nbCaretEnd_(st) {
   st.caret = { line, x: isFinite(R) ? Math.min(R + NB.GAP, NB.RIGHT) : NB.LEFT };
   st.runR = st.caret.x - NB.GAP;
   st.mode = null; st.pv = null; st.sup = null; st.prev = null;
+  st.gx = st.runR;
 }
 
 /* ---------- THE EQUALS COLUMN: the first = of a run of lines that each hold one ---------- */
@@ -252,7 +258,7 @@ function nbSettle_(st) {
 
 /* ---------- THE PAD'S MAPPING: pad px to nu, for the line or for a shape being filled ---------- */
 function nbPadS_(b) { return NB.XH / Math.max(34, Math.min(56, b.pad.h * 0.14)); }
-function nbMap_(b, st, x0) {
+function nbMap_(b, st, x0, y0) {
   const P = b.pad, S = nbPadS_(b);
   if (st.pv === null) st.pv = { x: st.caret.x - NB_KEEP * P.w * S };
   const X = x0 === undefined ? st.pv.x : x0;
@@ -262,7 +268,7 @@ function nbMap_(b, st, x0) {
     const lay = st.lays.get(tm.id);
     return { x0: X, y0: (lay.t + lay.b) / 2, py0: P.h / 2, s: Math.min(S * 0.7, NB_SHAPES[tm.t].h / P.h), tm, S };
   }
-  return { x0: X, y0: nbBase_(st.caret.line), py0: P.h * 0.6, s: S, tm: null, S };
+  return { x0: X, y0: y0 === undefined || y0 === null ? nbBase_(st.caret.line) : y0, py0: P.h * 0.6, s: S, tm: null, S };
 }
 const nbToNu_ = (m, p) => [m.x0 + p[0] * m.s, m.y0 + (p[1] - m.py0) * m.s, (p[2] || 1.4) * m.s];
 
@@ -368,7 +374,7 @@ function nbEquals_(b, st, prev, it) {
   st.prev = null;
   st.caret = { line: to, x: bx.r + dx + NB.GAP };
   st.runR = bx.r + dx;
-  if (to !== line) { st.pv = { x: bx.l + dx - 0.25 * b.pad.w * nbPadS_(b) }; inkTick_(8); nbFollow_(b, st); }
+  if (to !== line) { st.pv = { x: bx.l + dx - 0.25 * b.pad.w * nbPadS_(b) }; st.gx = -Infinity; inkTick_(8); nbFollow_(b, st); }
 }
 /* ---------- RUBBING OUT ---------- */
 function nbErase_(st, nu) {
@@ -388,7 +394,7 @@ function nbErase_(st, nu) {
   return true;
 }
 
-/* ---------- MOVING ON: after a pause, if the writing is past the pad's middle, slide the pad so there is room again ---------- */
+/* ---------- MOVING ON: after a pause, if little room is left in the pad, it glides on just far enough ---------- */
 function nbAdvance_(b) {
   const st = nbState_(b.k);
   if (st.sup) nbShrink_(st);
@@ -397,23 +403,42 @@ function nbAdvance_(b) {
   if (!m.tm && st.runR > NB.RIGHT - 6) {
     /* THE LINE IS FULL: on to the next free one, indented under the working's = when there is one. */
     const col = nbEqCol_(st, st.caret.line);
-    const line = nbFreeLine_(st, st.caret.line + 1), x = col !== null ? Math.min(col + 12, 120) : NB.LEFT;
-    st.caret = { line, x };
-    st.runR = x - NB.GAP;
-    st.pv = { x: x - 0.08 * P.w * m.S };
-    inkTick_(8);
-    nbFollow_(b, st);
-    nbRefresh_(st);
+    nbToLine_(b, st, nbFreeLine_(st, st.caret.line + 1), col !== null ? Math.min(col + 12, 120) : NB.LEFT);
     return;
   }
   const R = m.tm ? st.lays.get(m.tm.id).r : st.runR;
   if (!m.tm) st.caret.x = Math.max(st.caret.x, R + NB.GAP);
-  if ((R - st.pv.x) / m.s > NB_AHEAD * P.w) {
-    st.pv.x = R - NB_KEEP * P.w * m.s;
+  if ((R - st.pv.x) / m.s > (1 - NB_ROOM_LOW) * P.w) {
+    st.pv.x = R - (1 - NB_ROOM) * P.w * m.s;
+    /* WHAT WAS WRITTEN BEFORE THE SLIDE FADES TO A GHOST at the pad's left: where the child is continuing from. */
+    if (!m.tm) st.gx = R;
     inkTick_(6);
   }
   nbFollow_(b, st);
   nbRefresh_(st);
+}
+/* TO THE START OF ANOTHER LINE (a full line, a swipe back, the New line tile): the page scrolls and the pad glides back to its left. */
+function nbToLine_(b, st, line, x) {
+  if (b.idle) { clearTimeout(b.idle); b.idle = 0; }
+  st.caret = { line, x };
+  st.runR = x - NB.GAP;
+  st.pv = { x: x - 0.08 * b.pad.w * nbPadS_(b) };
+  st.gx = -Infinity; st.prev = null; st.sel = null;
+  inkTick_(8);
+  nbFollow_(b, st);
+  nbRefresh_(st);
+}
+function nbNewLine_(b) {
+  const st = nbState_(b.k);
+  nbLeave_(b, st);
+  if (st.sup) nbShrink_(st);
+  nbToLine_(b, st, nbFreeLine_(st, st.caret.line + 1), NB.LEFT);
+}
+/* A QUICK, LONG, LEVEL STROKE FROM RIGHT TO LEFT, measured on the raw finger. */
+function nbReturn_(b, g) {
+  const a = g.raw[0], z = g.raw[g.raw.length - 1], dx = a[0] - z[0], dy = Math.abs(z[1] - a[1]);
+  return dx >= Math.max(NB_RETURN_PX, NB_RETURN_W * b.pad.w) && dy <= 0.35 * dx
+    && performance.now() - g.t0 <= NB_RETURN_MS && inkStray_(g.raw) < 0.15;
 }
 /* THE NOTEBOOK KEEPS THE CARET'S LINE IN VIEW, scrolling only when it would otherwise leave. */
 function nbFollow_(b, st) {
@@ -451,6 +476,7 @@ function nbLeave_(b, st) {
   const lay = st.lays.get(tm.id);
   st.caret = { line: nbLineOf_(tm.y), x: lay.r + NB.GAP };
   st.runR = lay.r;
+  st.gx = -Infinity;
   st.pv = { x: lay.r - NB_KEEP * b.pad.w * nbPadS_(b) };
 }
 function nbClear_(b) {
@@ -458,7 +484,7 @@ function nbClear_(b) {
   if (!st.items.length) return;
   if (!nbDo_(st, [], st.items.slice())) return;
   st.mode = null; st.sel = null; st.sup = null; st.prev = null;
-  st.caret = { line: 0, x: NB.LEFT }; st.runR = NB.LEFT - NB.GAP; st.pv = null; st.nv = { x: 0, y: 0, z: 1 };
+  st.caret = { line: 0, x: NB.LEFT }; st.runR = NB.LEFT - NB.GAP; st.pv = null; st.nv = { x: 0, y: 0, z: 1 }; st.gx = -Infinity;
   nbRefresh_(st);
 }
 
@@ -484,6 +510,7 @@ function nbTap_(b, nx, ny) {
     x = Math.max(NB.LEFT, Math.min(NB.RIGHT - 4, x));
     st.caret = { line, x };
     st.runR = x - NB.GAP;
+    st.gx = st.runR;
     st.pv = { x: x - NB_KEEP * b.pad.w * nbPadS_(b) };
   }
   nbFollow_(b, st);
@@ -556,8 +583,26 @@ function nbColours_(el) {
   let cs = null;
   try { cs = getComputedStyle(el); } catch (e) {}
   const v = (n, or) => { const s = cs && cs.getPropertyValue(n).trim(); return s || or; };
-  return { paper: v('--paper', 'Canvas'), ink: v('--paper-ink', 'CanvasText'), dim: v('--paper-dim', 'GrayText'),
-           faint: v('--paper-faint', 'GrayText'), strip: v('--paper-strip', 'Canvas'), rule: v('--paper-rule', 'GrayText') };
+  const c = { paper: v('--paper', 'Canvas'), ink: v('--paper-ink', 'CanvasText'), dim: v('--paper-dim', 'GrayText'),
+              faint: v('--paper-faint', 'GrayText'), strip: v('--paper-strip', 'Canvas'), rule: v('--paper-rule', 'GrayText') };
+  c.inkRgb = nbRgb_(c.ink); c.paperRgb = nbRgb_(c.paper);
+  return c;
+}
+/* A COLOUR AS [r, g, b], read back from a canvas so any CSS colour works; null when it cannot be. */
+function nbRgb_(col) {
+  try {
+    const x = document.createElement('canvas').getContext('2d');
+    x.fillStyle = '#000'; x.fillStyle = col;
+    const s = String(x.fillStyle);
+    if (/^#[0-9a-f]{6}$/i.test(s)) return [1, 3, 5].map(i => parseInt(s.slice(i, i + 2), 16));
+    const m = s.match(/[\d.]+/g);
+    return m && m.length >= 3 ? m.slice(0, 3).map(Number) : null;
+  } catch (e) { return null; }
+}
+/* INK PART WAY TO PAPER, as one solid colour: an alpha would darken where a stroke's segments overlap. */
+function nbFade_(c, k) {
+  if (!c.inkRgb || !c.paperRgb) return c.faint;
+  return 'rgb(' + c.inkRgb.map((v, i) => Math.round(v * k + c.paperRgb[i] * (1 - k))).join(',') + ')';
 }
 function nbDrawAll_(b) {
   if (!b.el.isConnected) return;
@@ -567,9 +612,12 @@ function nbDrawAll_(b) {
   nbDrawPad_(b, st);
 }
 function nbView_(b, st) {
-  if (!b.view) b.view = { px: st.pv ? st.pv.x : null, ny: st.nv.y };
+  /* A STATE MADE AFRESH UNDER THIS COPY (a change from another tab, a check's reset) starts its view where it is, not where the last one was. */
+  if (!b.view || b.vst !== st) { b.view = nbTarget_(st); b.vst = st; }
   return b.view;
 }
+/* WHERE THE VIEWS ARE GOING: the pad along the line (px) and down the page (py, a line's baseline), and the page's scroll (ny). */
+const nbTarget_ = st => ({ px: st.pv ? st.pv.x : null, ny: st.nv.y, py: st.mode ? null : nbBase_(st.caret.line) });
 function nbDrawBook_(b, st) {
   const B = b.book, ctx = B.ctx;
   if (!ctx) return;
@@ -578,7 +626,7 @@ function nbDrawBook_(b, st) {
   const c = b.col, v = nbView_(b, st), a = B.w / NB.W * st.nv.z, bx = -st.nv.x * a, by = -v.ny * a;
   ctx.fillStyle = c.paper; ctx.fillRect(0, 0, B.w, B.h);
   /* THE PAD'S WINDOW, shaded on the page: where the next stroke will land, before it is written. */
-  const m = nbMap_(b, st, v.px === null ? undefined : v.px);
+  const m = nbMap_(b, st, v.px === null ? undefined : v.px, v.py);
   ctx.fillStyle = c.strip;
   ctx.fillRect(m.x0 * a + bx, (m.y0 - m.py0 * m.s) * a + by, b.pad.w * m.s * a, b.pad.h * m.s * a);
   ctx.strokeStyle = c.rule; ctx.lineWidth = 1;
@@ -633,7 +681,7 @@ function nbDrawPad_(b, st) {
   const P = b.pad, ctx = P.ctx;
   if (!ctx) return;
   inkFit_(P.c, ctx, P.w, P.h);
-  const c = b.col, v = nbView_(b, st), m = nbMap_(b, st, v.px === null ? undefined : v.px);
+  const c = b.col, v = nbView_(b, st), m = nbMap_(b, st, v.px === null ? undefined : v.px, v.py);
   const a = 1 / m.s, bx = -m.x0 / m.s, by = m.py0 - m.y0 / m.s;
   ctx.fillStyle = c.paper; ctx.fillRect(0, 0, P.w, P.h);
   /* PAST THE PAGE'S RIGHT EDGE, shaded: the line is about to wrap. */
@@ -661,14 +709,16 @@ function nbDrawPad_(b, st) {
     ctx.font = '11px ' + font;
     const wide = Math.max(...NB_HOW.map(t => ctx.measureText(t).width)), px = Math.max(6, Math.min(11, 11 * (P.w - 12) / Math.max(1, wide)));
     ctx.fillStyle = c.faint; ctx.textAlign = 'center'; ctx.font = px.toFixed(1) + 'px ' + font;
-    NB_HOW.forEach((t, i) => ctx.fillText(t, P.w / 2, m.py0 + 2 * px + i * px * 1.4));
+    /* AT THE PAD'S TOP, above the tall letters' line: the New line tile has the bottom corner. */
+    NB_HOW.forEach((t, i) => ctx.fillText(t, P.w / 2, 6 + px * 1.2 + i * px * 1.4));
   }
   const vl = m.x0 - 4, vr = m.x0 + P.w * m.s + 4, vt = m.y0 - m.py0 * m.s - 4, vb = m.y0 + (P.h - m.py0) * m.s + 4;
-  const line = st.caret.line;
+  const line = st.caret.line, ghost = nbFade_(c, 1 - 0.55 * (b.gk === undefined ? 1 : b.gk));
   st.inks.forEach(k => {
     if (k.box.r < vl || k.box.l > vr || k.box.b < vt || k.box.t > vb) return;
     const mine = m.tm ? k.tm === m.tm : (k.tm ? nbLineOf_(k.tm.y) === line : k.item.line === line);
-    ctx.fillStyle = ctx.strokeStyle = mine ? c.ink : c.faint;
+    const old = mine && !m.tm && (k.tm ? st.lays.get(k.tm.id).r : k.box.r) <= st.gx + 0.5;
+    ctx.fillStyle = ctx.strokeStyle = old ? ghost : mine ? c.ink : c.faint;
     inkStroke_(ctx, k.pts, a, bx, by);
   });
 }
@@ -735,26 +785,46 @@ function nbRefresh_(st) {
     nbGlide_(b);
   });
 }
-/* THE PAD AND THE PAGE SLIDE TO WHERE THEY ARE GOING rather than jump, so the eye keeps its place in the working. */
+/* THE PAD AND THE PAGE GLIDE TO WHERE THEY ARE GOING, eased out over NB_GLIDE_MS, so the eye keeps its place in the working. */
 function nbGlide_(b) {
   const st = nbState_(b.k), v = nbView_(b, st);
-  const to = () => ({ px: st.pv ? st.pv.x : null, ny: st.nv.y });
-  const step = () => {
-    const T = to();
-    const dx = T.px === null || v.px === null ? 0 : T.px - v.px, dy = T.ny - v.ny;
-    if (Math.abs(dx) < 0.05 && Math.abs(dy) < 0.05) { v.px = T.px; v.ny = T.ny; b.glide = 0; nbDrawAll_(b); return; }
-    v.px = v.px === null ? T.px : v.px + dx * 0.35; v.ny += dy * 0.35;
+  const same = (p, q) => ['px', 'ny', 'py'].every(n => (p[n] === null) === (q[n] === null) && Math.abs((p[n] || 0) - (q[n] || 0)) < 0.01);
+  const step = now => {
+    const T = nbTarget_(st);
+    if (!b.tw || !same(b.tw.T, T)) b.tw = { F: Object.assign({}, v), T, t: 0, line: v.py !== T.py };
+    const w = b.tw;
+    w.t += Math.max(0, Math.min(24, now - b.last));
+    b.last = now;
+    const k = Math.min(1, w.t / NB_GLIDE_MS), e = 1 - (1 - k) * (1 - k);
+    ['px', 'ny', 'py'].forEach(n => { v[n] = w.F[n] === null || w.T[n] === null ? w.T[n] : w.F[n] + (w.T[n] - w.F[n]) * e; });
+    b.gk = e;
     nbDrawAll_(b);
-    b.glide = requestAnimationFrame(step);
+    if (k < 1) b.glide = requestAnimationFrame(step); else { b.glide = 0; b.tw = null; }
   };
-  if (typeof requestAnimationFrame !== 'function' || !b.book.ctx) { const T = to(); v.px = T.px; v.ny = T.ny; nbDrawAll_(b); return; }
-  if (!b.glide) b.glide = requestAnimationFrame(step);
+  if (typeof requestAnimationFrame !== 'function' || !b.book.ctx) { Object.assign(v, nbTarget_(st)); b.gk = 1; nbDrawAll_(b); return; }
+  if (b.glide) return;
+  if (same(v, nbTarget_(st))) { nbDrawAll_(b); return; }
+  b.last = performance.now();
+  b.glide = requestAnimationFrame(step);
 }
-function nbSnapView_(b) {
-  const st = nbState_(b.k), v = nbView_(b, st);
+function nbStopGlide_(b) {
   if (b.glide && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(b.glide);
-  b.glide = 0;
-  v.px = st.pv ? st.pv.x : null; v.ny = st.nv.y;
+  b.glide = 0; b.tw = null; b.gk = 1;
+}
+/* MOVED BY THE FINGERS THEMSELVES (two on the pad, a pinch, a wheel): the view is where they put it. */
+function nbSnapView_(b) {
+  const st = nbState_(b.k);
+  nbStopGlide_(b);
+  Object.assign(nbView_(b, st), nbTarget_(st));
+}
+/* A FINGER LANDS MID-GLIDE: a slide along the line stops where it is, never jumping on under the finger; a change of line is finished, as the stroke is for the new line. */
+function nbHoldView_(b) {
+  const st = nbState_(b.k), v = nbView_(b, st), w = b.tw;
+  if (b.glide && w && !w.line) {
+    if (st.pv && v.px !== null) st.pv.x = v.px;
+    st.nv.y = v.ny;
+  }
+  nbSnapView_(b);
 }
 
 /* ---------- THE HAND ON THE PAD AND THE PAGE ---------- */
@@ -796,6 +866,7 @@ function nbDrop_() {
 
 function nbDown_(b, surf, e) {
   if (e.pointerType === 'mouse' && e.button) return;
+  if (e.target && e.target.closest && e.target.closest('.tile')) return;
   const id = e.pointerId;
   if (nbRefuse_(e)) { NB_REJ.add(id); return; }
   try { e.preventDefault(); } catch (x) {}
@@ -821,7 +892,7 @@ function nbDown_(b, surf, e) {
     return;
   }
   nbSize_(b);
-  nbSnapView_(b);
+  nbHoldView_(b);
   const r = nbRect_(S), st = nbState_(b.k);
   if (b.idle) { clearTimeout(b.idle); b.idle = 0; }
   if (surf === 'pad') {
@@ -984,6 +1055,7 @@ function nbUp_(b, surf, e, cancel) {
       const lr = g.raw[g.raw.length - 1], lf = pts[pts.length - 1];
       if (Math.hypot(lr[0] - lf[0], lr[1] - lf[1]) > 0.5) pts = pts.concat([[lr[0], lr[1], lf[2]]]);
     }
+    if (!g.ruled && nbReturn_(b, g)) { nbNewLine_(b); return; }
     nbCommit_(b, g.m, pts, g.ruled);
     /* AT THE PAD'S VERY EDGE, MOVE ON NOW; otherwise after the pause that ends a glyph, so a two-stroke x is not split by a slide. */
     const right = Math.max(...pts.map(p => p[0]));
@@ -1000,15 +1072,17 @@ function nbUp_(b, surf, e, cancel) {
 }
 
 /* ---------- BUILDING ONE, AND EVERY COPY ON THE PAGE ---------- */
-const NB_HOW = ['Write big here; it lands small above.', 'Tap two fingers: undo. Three: redo.', 'Scribble: rub out. Hold still: straighten.'];
+const NB_HOW = ['Write big here; it lands small above.', 'Swipe back, right to left: a new line.', 'Tap two fingers: undo. Three: redo.', 'Scribble: rub out. Hold still: straighten.'];
 function nbHtml_(k) {
   const tiles = Object.keys(NB_SHAPES).map(t => tile_({ icon: NB_SHAPES[t].icon, label: NB_SHAPES[t].label, note: 'boxes to write in',
     act: 'nb-shape', cls: 'nb-shape', data: { shape: t } })).join('');
   const say = typeof padNoteSay_ === 'function' ? padNoteSay_(k) : 'Kept on this device only.';
+  /* NEW LINE SITS IN THE PAD'S CORNER, under the writing hand: the row above is full at 390px, and a second row would cost the pad its height. */
+  const ret = tile_({ icon: 'newline', label: 'New line', note: 'or swipe back across the pad', act: 'nb-line', cls: 'nb-line' });
   return `<div class="nb" data-k="${esc(k)}">
     <div class="nb-book" aria-label="The page"><canvas class="nb-c"></canvas><canvas class="nb-l"></canvas></div>
     <div class="nb-bar tile-row" role="toolbar" aria-label="Maths">${tiles}${tile_({ icon: 'bin', label: 'Clear', note: 'the whole board', act: 'nb-clear', cls: 'nb-clear' })}</div>
-    <div class="nb-pad" data-noswipe aria-label="Write here"><canvas class="nb-c"></canvas><canvas class="nb-l"></canvas></div>
+    <div class="nb-pad" data-noswipe aria-label="Write here"><canvas class="nb-c"></canvas><canvas class="nb-l"></canvas>${ret}</div>
     <p class="nb-note" data-kept-k="${esc(k)}">${esc(say)}</p>
   </div>`;
 }
@@ -1092,6 +1166,7 @@ function boardHold_(id) {
 const nbOf_ = el => { const h = el && el.closest && el.closest('.nb-box'); return h && h.NB && h.NB.el.isConnected ? h.NB : null; };
 
 on('nb-shape', el => { const b = nbOf_(el); if (b) nbShape_(b, el.getAttribute('data-shape')); });
+on('nb-line', el => { const b = nbOf_(el); if (b) nbNewLine_(b); });
 on('nb-clear', el => { const b = nbOf_(el); if (b) nbClear_(b); });
 
 /* CTRL+Z AND CTRL+SHIFT+Z (OR CTRL+Y) FOR A MOUSE, on the board in view, unless a box is being typed in. */

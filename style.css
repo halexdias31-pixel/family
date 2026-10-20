@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-20-a-notebook";
+  --css-version: "2026-10-20-c-stem-glides";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -4152,6 +4152,8 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .qstem .qsheet-stem { opacity: 1; border-bottom: 0; padding-bottom: 0; margin-bottom: 0; }
 /* BUT A STAND-IN'S DASHED EDGE IS ITS BOX, NOT THAT RULE (`.qsheet-stem.is-standin` above: "the dashed edge all the way round"), so on its own page it keeps the § */
 .qstem .qsheet-stem.is-standin { border-bottom: 1px dashed var(--line); padding-bottom: .7rem; }
+/* ---------- A STEM CARRIED ONTO THE CARD OF THE PART THAT DRAWS ON ITS FIGURE (381) reads as the paper prints it: its words, the figure, the part */
+.qsheet-stem.is-over { opacity: 1; border-bottom: 0; padding-bottom: 0; margin-bottom: .9rem; }
 /* WHICH SPAN OF THE SOURCE A PART COVERS — "Lines 10–19". § */
 .qsheet-lines { margin: 0 0 .35rem; font-size: .74rem; letter-spacing: .06em;
                 text-transform: uppercase; color: var(--gold); opacity: .9; }
@@ -5930,6 +5932,8 @@ button.scr-sq { cursor: pointer; }
 .nb-book { flex: 1 1 0; min-height: 8rem; }
 .nb-pad { flex: 1 1 0; min-height: 10rem; cursor: crosshair; }
 .nb canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.nb-pad .nb-line { position: absolute; right: 6px; bottom: 6px; z-index: 1;
+  background: var(--paper); border-color: var(--paper-rule); color: var(--paper-dim); }
 .nb-bar { justify-content: center; margin: 0; flex: none; }
 .nb-note { text-align: center; margin: 0; flex: none; font: 400 .62rem/1.4 var(--font); color: var(--faint); }
 /* ON ITS SIDE: the page over the pad in the full height, the star, heading, tiles and note beside them (the old board's arrangement). */

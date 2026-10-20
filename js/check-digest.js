@@ -178,7 +178,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
     });
     if (/q:ADA/.test(pat.subject + pat.text + pat.html)) bad.push('Pat’s email prints a raw key — a question with no name is counted in "…and N more", never listed by its key: ' + pat.text.split('\n').slice(4, 12).join(' / '));
     if (/\bdid \d/.test(pat.text) || /See them on the site/.test(pat.text)) bad.push('Pat’s email still says the child "did" N questions, or tells the parent to see them — ' + pat.text.split('\n')[2]);
-    if (pat.html.indexOf('Fractions &amp; decimals') === -1) bad.push('the HTML body does not escape a label’s "&"');
+    if (pat.html.indexOf('Fractions\u00a0&amp;\u00a0decimals') === -1) bad.push('the HTML body does not escape a label’s "&"');
     /* ABOUT ONE CHILD, FROM THE BUSINESS: no other child, no tutor, no price. */
     const other = /\b(Ben|Cal|Dee|Eve|Hal)\b|£|\b[Tt]utor\b/;
     if (other.test(pat.subject + pat.text + pat.html)) bad.push('Pat’s email about Ada names another child, a tutor or a price: ' + (pat.text.split('\n').find(x => other.test(x)) || pat.subject));
@@ -324,14 +324,14 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   if (!bo) bad.push('Bo is not sent Ben’s week, so the words in Sunday’s email were NOT asked');
   else {
     if (bo.text.indexOf('\nMaths · Probability\nA bag holds 3 red and 5 blue counters.\nQ4a ✓: Work out the probability of red.\n') === -1
-        || said(bo.html).indexOf('Maths · Probability Q4a A bag holds 3 red and 5 blue counters. Work out the probability of red. ✓ Right Their answer: an answer') === -1)
+        || said(bo.html).indexOf('Maths Probability Q4a A bag holds 3 red and 5 blue counters. Work out the probability of red. ✓ Right THEIR ANSWER an answer') === -1)
       bad.push('Sunday’s email does not print a question’s words under its paper — the stem, then "Q4a ✓: <its ask>": ' + bo.text.split('\n').slice(4, 20).join(' / ') + ' — HTML: ' + said(bo.html).slice(0, 900));
     if (bo.text.indexOf('\nChemistry · Required practical · Rates of reaction\nWorksheet ✓: What is the dependent variable?\n') === -1)
       bad.push('a practical’s worksheet is not printed with the first box’s words: ' + bo.text.split('\n').slice(4, 20).join(' / '));
     /* REFUSED WORDS ARE NOT PRINTED, AND THE QUESTION STILL IS — by its number under its paper. */
     asked++;
     if (bo.text.indexOf('\nMaths · Equations\nQ2 ✓, Q3 ✓, Q4 ✓, Q6 ✓\n') === -1 || bo.text.indexOf('\nMaths · Pythagoras\nQ5 ✓\n') === -1
-        || said(bo.html).indexOf('Maths · Equations Q2 ✓ Right Their answer: an answer Q3 ✓ Right Their') === -1)
+        || said(bo.html).indexOf('Maths Equations Q2 ✓ Right THEIR ANSWER an answer Maths Equations Q3 ✓ Right THEIR') === -1)
       bad.push('questions whose words were refused are not still listed by their numbers under their papers: ' + bo.text.split('\n').slice(4, 20).join(' / '));
     ['pay-family', 'office.family', 'family-answers', 'NOTICE', 'www.', 'For the answer', 'diagram shows'].forEach(x => {
       if (bo.text.indexOf(x) !== -1 || bo.html.indexOf(x) !== -1) bad.push('Sunday’s email prints refused words ("' + x + '") — phone text that is a message must not go out under the business’s name');
@@ -457,13 +457,13 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   asked++;
   const times = t => t.split(STEM).length - 1;
   if (times(m.text) !== 1 || times(m.html) !== 1
-      || said(m.html).indexOf('Q5a ' + STEM + ' Find P(red). ✗ Not right Their answer: an answer Q5b Find P(blue). Not marked yet Their answer: an answer'
-        + ' Q5c Two beads are taken. Find P(both red). 2 of 3 marks Their answer: an answer') === -1)
+      || said(m.html).indexOf('Q5a ' + STEM + ' Find P(red). ✗ Not right THEIR ANSWER an answer Maths Paper 7 Q5b Find P(blue). Not marked yet THEIR ANSWER an answer'
+        + ' Maths Paper 7 Q5c Two beads are taken. Find P(both red). 2 of 3 marks THEIR ANSWER an answer') === -1)
     bad.push('the stem Q5a, Q5b and Q5c share is printed ' + times(m.text) + ' time(s) in the text and ' + times(m.html) + ' in the HTML — wanted once each, above the first of them');
   asked++;
   /* A QUESTION FIRST SENT BEFORE THE WEEK IS STILL A QUESTION DONE THIS WEEK, in the one list, with this
      week's mark — and no "(again)", the site's word and not a parent's (12 Oct). */
-  if (m.text.indexOf('\nQ9 ✓: Expand (x + 2)(x - 3).\n') === -1 || said(m.html).indexOf('Q9 Expand (x + 2)(x - 3). ✓ Right Their answer') === -1 || /\(again\)/.test(m.text + m.html))
+  if (m.text.indexOf('\nQ9 ✓: Expand (x + 2)(x - 3).\n') === -1 || said(m.html).indexOf('Q9 Expand (x + 2)(x - 3). ✓ Right THEIR ANSWER') === -1 || /\(again\)/.test(m.text + m.html))
     bad.push('a question first sent before the week is not "Q9 ✓: <its words>" in the one list, with this week’s mark and not the fortnight-old ✗: ' + JSON.stringify(m.text.split('\n').find(x => /^Q9/.test(x))));
   asked++;
   if (m.html.indexOf('>Solve x &gt; 3 and x &lt; 7 &amp; &quot;y&quot; for whole numbers x.<') === -1 || /x < 7 &|"y"/.test(m.html))
@@ -473,7 +473,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   const SUM = '3 right, 1 with part marks, 1 not right and 1 not marked yet.';
   if (m.text.split('\n')[3] !== SUM || m.text.split('\n')[4] !== 'Topics: Maths.'
       || said(m.html).indexOf('Summary of the week ' + SUM + ' Topics: Maths 6 questions 3 right 1 with part marks 1 not right 1 not marked yet Days Thu') === -1
-      || said(m.html).indexOf(SUM) > said(m.html).indexOf('Maths · Paper 7'))
+      || said(m.html).indexOf(SUM) > said(m.html).indexOf('Maths Paper 7 Q3'))
     bad.push('the summary is not above the questions — "' + SUM + '" and its figures, then the days: ' + JSON.stringify(m.text.split('\n')[3]) + ' / ' + said(m.html).slice(0, 400));
 }
 {
@@ -1108,8 +1108,9 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
       if ((sent.subject + '\n' + sent.body).indexOf(x) === -1) bad.push('the email Pat is sent does not say "' + x + '": ' + sent.body.split('\n').slice(0, 12).join(' / '));
     });
     const H = said(sent.htmlBody);
-    ['Q7 · 1 mark Work out 4 × 4. ✓ Right Their answer: 16 Answer: 16', 'Q9 Kit buys 3 pens at 40p each. How much does he pay? ✗ Not right Their answer: £1.10',
-     'Q11 · 3 marks Read the source about the river. Explain the trend. 2 of 3 marks Their answer: It rises. Answer: It rises.', 'Q6 · 1 mark Read the source about the river. Say anything. Not marked yet Their answer: hello',
+    /* EACH CARD'S TAGS FIRST (380, 20 Oct) — the fixture's paper has no document row, so its Paper tag is its id, as on the site. */
+    ['Questions PX-1 Q7 1 mark Rough Work out 4 × 4. ✓ Right THEIR ANSWER 16 ANSWER 16', 'Maths Paper X Q9 Kit buys 3 pens at 40p each. How much does he pay? ✗ Not right THEIR ANSWER £1.10',
+     'Questions PX-1 Q11 3 marks Rough Read the source about the river. Explain the trend. 2 of 3 marks THEIR ANSWER It rises. ANSWER It rises.', 'Questions PX-1 Q6 1 mark Rough Read the source about the river. Say anything. Not marked yet THEIR ANSWER hello',
      'Summary of the week 1 right, 1 with part marks, 1 not right and 1 not marked yet. Topics: Maths and Biology'].forEach(x => {
       if (H.indexOf(x) === -1) bad.push('the HTML Pat is sent does not carry "' + x + '": ' + H.slice(0, 600));
     });
@@ -1320,6 +1321,36 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
   if (!(kb2 <= CLIP) || listed !== 80 || m2.text.split('\n').filter(l => l === 'Ada: 3 of 4 marks').length !== 80
       || m2.text.indexOf('(the question’s words are on the site)') === -1 || !/Just reply and say so/.test(m2.html))
     bad.push('80 long parts made ' + (kb2 / 1024).toFixed(1) + ' KB with ' + listed + ' listed — wanted under the clip with every question still listed by number and mark');
+}
+
+/* ---------- 11b. EACH QUESTION IS THE SITE'S CARD (380, 20 Oct): its tags as the card wears them, in its facets' colours, on the black screen § */
+{
+  const { b, G } = world();
+  G.__TXT = fs.readFileSync(path.join(REPO, 'data', 'questions.json'), 'utf8');
+  const lib = JSON.parse(JSON.stringify(b.ev('digestLibraryFind_(__TXT, ["Q-1MA1-2406-1F-7", "Q-CBM-perimeter-1"])')));
+  const said7 = (lib.tags && lib.tags['Q-1MA1-2406-1F-7'] || []).map(t => t.text).join(' ');
+  const saidC = (lib.tags && lib.tags['Q-CBM-perimeter-1'] || []).map(t => t.text).join(' ');
+  asked++;
+  /* THE SCREENSHOT'S ROWS (docs/history/355), less the page tags: the email draws a part whole. check-funnel holds every question to its card. */
+  if (said7 !== 'Questions Maths Past paper GCSE Edexcel Foundation 2024 June Paper 1 Q7 4 marks Non-calculator Printed sheet Ready'
+      || saidC !== 'Questions Maths Worksheet SATs KS2 Year 3 Perimeter Q1 Ready')
+    bad.push('the library\'s tags for two real questions are not the card\'s: ' + JSON.stringify([said7, saidC]));
+  G.__LIB = lib;
+  G.__L = { id: 'P-S1', first: 'Kit', fresh: [
+    { key: 'q:Q-1MA1-2406-1F-7', label: 'Maths · Paper 1F (Non-calculator) — June 2024 · Q7', words: '', verdict: 'rule:3/4', answer: 'drawing · 4 marks · #x' },
+    { key: 'q:Q-CBM-perimeter-1', label: 'Maths · Perimeter · Q1', words: '', verdict: 'right', answer: '16' }], again: [] };
+  const r = JSON.parse(JSON.stringify(b.ev('digestRender_(__L, { first: "Pat" }, { start: "2026-10-12", end: "2026-10-18" }, { site: "https://halexdias31-pixel.github.io/family/", hour: 21, lib: __LIB })')));
+  const cards = r.html.split('bgcolor="#0b0b0b" style="border:10px solid #101010').length - 1;
+  asked++;
+  if (cards !== 2 || r.html.indexOf('<span style="color:#ff7b72;border:1px solid;border-radius:9px;padding:0 6px">Q7</span>') === -1
+      || r.html.indexOf('>Non-calculator</span>') === -1 || r.html.indexOf('color:#c8a2ff') === -1 || r.html.indexOf('border:1px solid #3d3d3d;border-radius:9px;padding:0 6px">4 marks') === -1
+      || said(r.html).indexOf('Questions Maths Worksheet SATs KS2 Year 3 Perimeter Q1 Ready') === -1 || /Maths · Perimeter/.test(said(r.html)))
+    bad.push('each question is not the site\'s card — two #0b0b0b cards in a #101010 pane, every tag a pill in its facet\'s colour (Q7 red, the sitting purple, marks the plain outline), and no paper heading over them: ' + cards + ' card(s); ' + said(r.html).slice(0, 300));
+  asked++;
+  /* THE BLACK SCREEN, SAID: the page, the summary's pane and every card fill their own cells, so a dark inbox has nothing to guess. */
+  if (!/^<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#000"/.test(r.html) || r.html.indexOf('bgcolor="#101010"') === -1
+      || r.html.indexOf('bgcolor="#f4f1e8" style="border:3px solid #3ddc84') === -1 || /#ffffff|#f4f1e8" style="background/.test(r.html))
+    bad.push('the email is not the site\'s black screen — the page #000, the summary\'s pane #101010, their answer in the paper box ringed green when right');
 }
 
 /* ---------- 12. THE DRY RUN (check/digest-dry.js) STILL RUNS, SENDS NOTHING AND WRITES NOWHERE IT MAY NOT § */

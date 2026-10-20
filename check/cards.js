@@ -249,7 +249,9 @@ function outside(svg, row) {
         const own = x.diagram && !(typeof padSource_ === 'function' && padSource_(x) && padSource_(x).from === 'surface');
         if (own && !/<svg/.test(qPic) && !pageParts_(x, items[i - 1]).some(p => p && /<svg/.test(stuffPart_(x, p)))) inline.push(x.row.row_id + ' has a figure and none of its pages draws it');
         if (/on the next page/.test(q) && /Figure on the next page/.test(q)) inline.push(x.row.row_id + ' points at a figure on another page');
-        if (/class="qsheet-stem/.test(q)) inline.push(x.row.row_id + ' prints its stem on the part\'s card');
+        /* ONE STEM IS ON ITS PART'S CARD: the one whose figure the part draws on, carried over it (381, `stemCarried_`) */
+        const carried = typeof stemCarried_ === 'function' && stemCarried_(x);
+        if (/class="qsheet-stem(?! is-over)/.test(q) || (!carried && /class="qsheet-stem/.test(q))) inline.push(x.row.row_id + ' prints its stem on the part\'s card');
         if (/class="qans|qans-body/.test(q)) inline.push(x.row.row_id + ' draws its answer on the question card');
         if (typeof questionHasAns_ === 'function' && questionHasAns_(x)
             && !/class="qcard qans-card/.test(questionAnsCard_(x))) {

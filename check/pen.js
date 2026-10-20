@@ -1559,7 +1559,8 @@ const unmoved = (sec, where, r, b) => {
       if (q) {
         const eg = await env.page.evaluate(k => {
           const pad = [...document.querySelectorAll('#s-stuff .page.on .qpad')].find(p => p.getAttribute('data-k') === k);
-          const row = pad.querySelector('.qpad-send'), art = pad.querySelector('.qpad-art > svg:first-child');
+          /* the Check row is at the card's foot, under the words, and names its pad (381) */
+          const row = document.querySelector(`#s-stuff .page.on .qpad-send[data-pad="${CSS.escape(k)}"]`), art = pad.querySelector('.qpad-art > svg:first-child');
           return DRAW_MARK.example(row.getAttribute('data-draw'), drawFig_(art.__src || art.outerHTML));
         }, q.k);
         const poly = (eg[0] || []).map(Math.round), way = [];
@@ -1570,8 +1571,9 @@ const unmoved = (sec, where, r, b) => {
           const r = await look(env, q.k, CARD), st = r.stored[0] || [];
           const v = await env.page.evaluate(k => {
             const pad = [...document.querySelectorAll('#s-stuff .page.on .qpad')].find(p => p.getAttribute('data-k') === k);
-            const res = padCheck_(pad.querySelector('.qpad-send'), pad);
-            return { got: res && res.got, of: res && res.of, say: pad.querySelector('.qpad-send .qp-verdict').textContent };
+            const row = document.querySelector(`#s-stuff .page.on .qpad-send[data-pad="${CSS.escape(k)}"]`);
+            const res = padCheck_(row, padOfRow_(row));
+            return { got: res && res.got, of: res && res.of, say: row.querySelector('.qp-verdict').textContent };
           }, q.k);
           if (r.stored.length !== 1 || st.length / 2 !== way.length) fail('straight', at + ' ' + POLY, `a quadrilateral paused at each corner stored ${JSON.stringify(r.stored).slice(0, 120)} — wanted its ${way.length} corners`);
           if (!(v.got >= 1 && v.got === v.of)) fail('straight', at + ' ' + POLY, `the straightened quadrilateral is marked ${v.got}/${v.of} (${v.say}) — wanted right`);
@@ -1743,6 +1745,81 @@ const unmoved = (sec, where, r, b) => {
     }
     if (env.errs.length) fail('ERRORS', at + ' placements', env.errs.slice(0, 3).join(' | '));
     await env.cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+    await env.ctx.close();
+  }
+
+  /* SHORT STROKES ALWAYS INK (368): a mouse's and a stylus's tick, arrowhead pair, cross and click, on a card and the board -- each stored down to up and seen. A finger's tick stays 357's dot */
+  if (want('short')) for (const [W, H] of [[390, 844], [820, 1180]]) {
+    const at = `${W}x${H}`;
+    const env = await boot(browser, W, H, port);
+    /* SEEN: the pixels round the mark, before and after, compared in the page */
+    const grab = async q => (await env.page.screenshot({ clip: { x: q[0] - 14, y: q[1] - 14, width: 28, height: 28 } })).toString('base64');
+    const inked = (a, b) => env.page.evaluate(async ([a, b]) => {
+      const px = async s => { const bm = await createImageBitmap(await (await fetch('data:image/png;base64,' + s)).blob()); const c = new OffscreenCanvas(bm.width, bm.height), x = c.getContext('2d'); x.drawImage(bm, 0, 0); return x.getImageData(0, 0, bm.width, bm.height).data; };
+      const A = await px(a), B = await px(b);
+      let n = 0;
+      for (let i = 0; i < A.length; i += 4) if (Math.abs(A[i] - B[i]) + Math.abs(A[i + 1] - B[i + 1]) + Math.abs(A[i + 2] - B[i + 2]) > 60) n++;
+      return n;
+    }, [a, b]);
+    const surfaces = [['card', async () => { const o = await open(env, Q7, at); return o ? { k: o.k, c: o.c, get: cardBox, sel: CARD } : null; }],
+                      ['board', async () => { let b = await board(env); if (b) { await reset(env, b.k); b = await arm(env, b, board); } if (!b) fail('REACH', at, 'the board could not be armed for short'); return b ? { k: b.k, c: b, get: board, sel: BOARD } : null; }]];
+    for (const [surf, get] of surfaces) {
+      const o = await get();
+      if (!o) continue;
+      const ink = o.c.ink, U = q => [Math.round((q[0] - ink.l) / ink.w * 340), Math.round((q[1] - ink.t) / ink.h * 340)];
+      const P0 = [ink.l + ink.w * 0.35, ink.t + ink.h * 0.45];
+      const off = (q, d) => [q[0] + d[0], q[1] + d[1]];
+      const Lsh = Math.round(Math.min(100, ink.w * 0.3));
+      /* each mark: its strokes, each a list of offsets from P0 in px -- the first the press, the last the release */
+      const MARKS = {
+        tick: [[[0, 0], [2, 2], [3, 3], [4, 0], [5, -3]]],
+        arrow: [Array.from({ length: 21 }, (_, i) => [Math.round(-Lsh + Lsh * i / 20), 0]), [[0, 0], [-3, -2], [-6, -5]], [[0, 0], [-3, 2], [-6, 5]]],
+        cross: [[[0, 0], [1, 1], [2, 2], [3, 3]], [[3, 0], [2, 1], [1, 2], [0, 3]]],
+        dot: [[[0, 0]]],
+      };
+      for (const kind of ['mouse', 'pen']) for (const name of Object.keys(MARKS)) {
+        const strokes = MARKS[name], where = `${at} ${surf} ${kind} ${name}`;
+        const before = await grab(P0);
+        for (const s of strokes) {
+          const q = s.map(d => off(P0, d));
+          await MO(env, 'mousePressed', q[0][0], q[0][1], kind, 1); await sleep(16);
+          for (let i = 1; i < q.length; i++) { await MO(env, 'mouseMoved', q[i][0], q[i][1], kind, 1); await sleep(16); }
+          await MO(env, 'mouseReleased', q[q.length - 1][0], q[q.length - 1][1], kind, 0); await sleep(120);
+        }
+        await sleep(300);
+        const r = await look(env, o.k, o.sel), seen = await inked(before, await grab(P0));
+        if (r.stored.length !== strokes.length) fail('short', where, `${strokes.length} stroke(s) drawn, ${r.stored.length} stored: ${JSON.stringify(r.stored).slice(0, 140)}`);
+        else strokes.forEach((s, n) => {
+          const st = r.stored[n], a = U(off(P0, s[0])), z = U(off(P0, s[s.length - 1])), m = st.length;
+          const near = (p, x, y) => Math.abs(p[0] - x) <= 1 && Math.abs(p[1] - y) <= 1;
+          if (s.length > 1 && m < 4) fail('short', where, `stroke ${n + 1} kept ${m / 2} point(s) -- a moved stroke keeps its down and its up point: ${JSON.stringify(st)}`);
+          /* a click on a card's grid is a plotted point, put on the intersection as a finger's is (357) */
+          if (name === 'dot' && surf === 'card') { if (m !== 2 || Math.hypot((st[0] - a[0]) * ink.w / 340, (st[1] - a[1]) * ink.h / 340) > 20) fail('short', where, `a click stored ${JSON.stringify(st)}, clicked at ${a}`); return; }
+          if (!near(a, st[0], st[1])) fail('short', where, `stroke ${n + 1} starts at ${st.slice(0, 2)}, pressed at ${a}`);
+          if (!near(z, st[m - 2], st[m - 1])) fail('short', where, `stroke ${n + 1} ends at ${st.slice(-2)}, released at ${z}`);
+        });
+        if (r.paths !== r.stored.length) fail('short', where, `${r.stored.length} stored, ${r.paths} drawn`);
+        if (seen < 6) fail('short', where, `the mark changed ${seen} screen pixels round it -- not visible`);
+        say(`short ${where}: ${JSON.stringify(r.stored).slice(-80)}, ${seen} px changed`);
+        await reset(env, o.k);
+      }
+      /* THE FINGER, UNCHANGED: on a card its 5px tick is 357's placement, one point; on the board it is kept as the finger went */
+      {
+        const q = MARKS.tick[0].map(d => off(P0, d));
+        begin(env);
+        await T(env, 'touchStart', [pt(q[0][0], q[0][1])], 0);
+        await stream(env, q.slice(1).map(p => [pt(p[0], p[1])]), 16);
+        await T(env, 'touchEnd', [], q.length * 16 + 8);
+        await sleep(400);
+        const r = await look(env, o.k, o.sel), st = r.stored[0] || [];
+        if (r.stored.length !== 1) fail('short', `${at} ${surf} finger tick`, `stored ${JSON.stringify(r.stored).slice(0, 100)} -- wanted one mark`);
+        else if (surf === 'card' && st.length !== 2) fail('short', `${at} card finger tick`, `a finger's 5px tick stored ${st.length / 2} points -- 357 keeps it a placed dot`);
+        say(`short ${at} ${surf} finger tick: ${JSON.stringify(r.stored)}`);
+        await reset(env, o.k);
+      }
+      console.log(`  short ${at} ${surf}: a tick, an arrowhead pair, a cross and a click from a mouse and a stylus, each stored end to end and seen`);
+    }
+    if (env.errs.length) fail('ERRORS', at + ' short', env.errs.slice(0, 3).join(' | '));
     await env.ctx.close();
   }
 

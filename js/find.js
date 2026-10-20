@@ -2183,8 +2183,9 @@ function pageParts_(x, prev) {
   if (x && x.kind === 'question') {
     const had = prev && prev.kind === 'question' ? (prev.stems || []).map(stemId_) : [];
     const out = [];
+    const carried = stemCarried_(x);
     (x.stems || []).forEach((p, i) => {
-      if (!p || had.indexOf(stemId_(p)) >= 0) return;
+      if (!p || had.indexOf(stemId_(p)) >= 0 || p === carried) return;
       /* A LONG STEM IS SEVERAL PAGES, `stemN`, `stemN-1`, `stemN-2` -- see `stemPlan_`. A stem with nothing
          left to show (only a figure, which a part draws on) is no page. */
       stemPlan_(p).chunks.forEach((c, j) => out.push('stem' + i + (j ? '-' + j : '')));
@@ -4764,14 +4765,14 @@ const padBar_ = (pen, tools, tool) => `<div class="qpad-bar tile-row" role="tool
       tile_({ icon: 'bin', label: 'Clear', note: 'every mark', act: 'pad-clear', cls: 'qpad-clear' })}</span>
     </div>`;
 
-function padWrap_(x, svg) {
+function padWrap_(x, svg, foot) {
   const k = padKey_(x);
   /* DRAWING THE PAD IS OPENING IT, so this is where the phone's old marks become this person's. */
   padAdopt_(k, padPrefix_(x) + ':' + padItemKey_(x));
   const marks = padRead_(k);
   /* AND THE MARKS AN EARLIER PART MADE ON THIS SAME PICTURE, under this part's own and out of reach of
      its Undo and Clear -- (ii)'s cross goes on the scale (i) already marked. See `usesOf_`. */
-  const was = usesUnder_(x, svg);
+  const under = padUnderParts_(x, svg), was = [].concat(...under.map(usesMine_));
   /* THE MODE IS READ OFF `PAD_ON`, NOT LEFT ON THE ELEMENT BY THE PRESS THAT SET IT. § */
   const pen = PAD_ON === k;
   /* THE PAD'S SHAPE, written on it for the live path and every repaint to read -- one number for all of them,
@@ -4782,10 +4783,11 @@ function padWrap_(x, svg) {
   const tool = held && tools.indexOf(held) !== -1 ? held : 'pen';
   /* THE OVERLAY TAKES ITS BOX FROM THE PICTURE UNDER IT, by stretching to the same box, rather than by parsing a viewBox out of the drawing's markup. § */
   const zm = pen && PAD_ZOOM.has(k) ? PAD_ZOOM.get(k) : null;
-  return `<div class="qpad${pen ? ' is-drawing' : ''}${zm ? ' is-zoomed' : ''}" data-k="${esc(k)}" data-aspect="${ka}"${zm ? ` style="--pad-zoom: ${padZoomVar_(zm)}; --pad-zoom-s: ${zm.s.toFixed(4)}"` : ''}>
+  return `<div class="qpad${pen ? ' is-drawing' : ''}${zm ? ' is-zoomed' : ''}" data-k="${esc(k)}" data-aspect="${ka}"${
+    under.length ? ` data-under="${esc(under.map(padKey_).join(' '))}"` : ''}${zm ? ` style="--pad-zoom: ${padZoomVar_(zm)}; --pad-zoom-s: ${zm.s.toFixed(4)}"` : ''}>
     <div class="qpad-art"${pen ? '' : ` data-do="pad-draw" title="${esc(PAD_TAP)}"`}>${svg}
       <svg class="qpad-ink"${pen ? ' data-noswipe' : ''} viewBox="0 0 340 340" preserveAspectRatio="none" aria-hidden="true">
-        ${was.length ? usesInk_(was, ka) : ''}
+        ${under.length ? usesInk_(was, ka) : ''}
         <g class="qpad-g" vector-effect="non-scaling-stroke">${marks.map(st =>
           `<path vector-effect="non-scaling-stroke" d="${padPath_(st, ka)}"/>`).join('')}</g>
         <g class="qpad-aid"></g>
@@ -4795,7 +4797,8 @@ function padWrap_(x, svg) {
     ${/* WHERE THE MARKS GO, AND ONLY A `pad:` KEY GOES ANYWHERE: § */
           ''}
     <p class="qpad-note" data-kept-k="${esc(k)}">${esc(padNoteSay_(k))}</p>
-    ${padSendRow_(x, marks)}
+    ${/* CHECK IS AT THE CARD'S FOOT, UNDER THE PART'S OWN WORDS, where every other part has it (381): here only for a pad that is itself the foot */
+          foot ? padSendRow_(x, marks) : ''}
   </div>`;
 }
 
@@ -4816,7 +4819,7 @@ function padSendRow_(x, marks) {
   /* WITH ITS ANSWER AS GEOMETRY (`draw_answer`, 366) it is marked here, on Check, like a typed one; without, it is sent */
   const geo = String(x.drawAnswer || '').trim();
   const tile = geo ? checkTile_({ act: 'pad-check', cls: 'qp-check' }) : checkTile_({ act: 'pad-send', cls: 'qp-check' });
-  return `<div class="qp-mark qpad-send${said.cls ? ' ' + said.cls : ''}" data-k="${esc(k)}"${geo ? ` data-draw="${esc(geo)}" data-marks="${esc(String(Number(x.marks) || ''))}"` : ''}>
+  return `<div class="qp-mark qpad-send${said.cls ? ' ' + said.cls : ''}" data-k="${esc(k)}" data-pad="${esc(padKey_(x))}"${geo ? ` data-draw="${esc(geo)}" data-marks="${esc(String(Number(x.marks) || ''))}"` : ''}>
       <div class="tile-row">${tile}</div>
       <span class="qp-verdict" role="status" aria-live="polite">${esc(padSaid_(said.text))}</span>
     </div>`;
@@ -4824,8 +4827,19 @@ function padSendRow_(x, marks) {
 /* a drawing's verdict line: marks counted by the drawing say so, and a sent one is waiting */
 const padSaid_ = t => t === 'Sent' ? PAD_SENT_SAY : String(t || '').replace(/ \u00b7 by key words$/, ' \u00b7 by the drawing');
 const PAD_SENT_SAY = 'Sent \u2014 waiting to be marked';
+/* THE PAD A CHECK ROW MARKS: its own card's, by key -- the row stands under the words, not inside the pad (381) */
+function padOfRow_(row) {
+  if (!row) return null;
+  const k = row.getAttribute('data-pad');
+  const inPad = row.closest('.qpad');
+  if (inPad || !k) return inPad;
+  const mine = p => p.getAttribute('data-k') === k;
+  const card = row.closest('.qcard');
+  return (card && [].find.call(card.querySelectorAll('.qpad[data-k]'), mine))
+    || [].find.call(document.querySelectorAll('.qpad[data-k]'), mine) || null;
+}
 on('pad-send', el => {
-  const row = el.closest('.qpad-send'), pad = el.closest('.qpad');
+  const row = el.closest('.qpad-send'), pad = padOfRow_(row);
   const out = row && row.querySelector('.qp-verdict');
   if (!row || !pad || !out) return;
   const say = padSay_(padRead_(pad.getAttribute('data-k')));
@@ -5507,7 +5521,7 @@ function padCheck_(row, pad) {
   if (typeof answersPush_ === 'function') answersPush_(true);
   return r;
 }
-on('pad-check', el => padCheck_(el.closest('.qpad-send'), el.closest('.qpad')));
+on('pad-check', el => { const row = el.closest('.qpad-send'); padCheck_(row, padOfRow_(row)); });
 
 /* ---------- ARMING ONE PAD, EVERY PART OF IT TOGETHER § */
 function padArm_(pad, on) {
@@ -5609,13 +5623,19 @@ const PAD_DRAW = {
       /* AFTER A HOLD (374): a ring or an arc is done; a line's corner waits until the point leaves where it paused */
       if (g.frozen) return null;
       if (g.qz) { if (Math.hypot(at[0] * g.sx - g.qz[0], at[1] * g.sy - g.qz[1]) <= PAD_HOLD_PX) return null; g.qz = null; g.lz = null; }
-      if (padSteady_(g)) at = padLazy_(g, at, st);
+      /* A SHORT STROKE IS DRAWN EXACTLY AS MOVED: the string engages once the pointer is more than its length from where it went down -- a tick, a cross's arm (368) */
+      if (padSteady_(g) && (g.slack || Math.hypot((at[0] - g.raw[0]) * g.sx, (at[1] - g.raw[1]) * g.sy) > PAD_STRING_PX)) { g.slack = true; at = padLazy_(g, at, st); }
       if (!at || (st[st.length - 2] === at[0] && st[st.length - 1] === at[1])) return null;
       st.push(at[0], at[1]);
       return st;
     },
     /* A STEADIED STROKE ENDS WHERE THE POINTER LIFTED: the string's slack is paid out in two steps, so nothing lags */
     end: (g, st) => {
+      /* A CLICK THAT NEVER MOVED IS A PLOTTED POINT: onto the grid or the figure's point as a finger's is (357), never onto your own mark, where it would vanish */
+      if (padSteady_(g) && !g.board && !g.slack && g.tg && st && st.length === 2) {
+        const t = padSnap_(Object.assign({}, g, { hold: null, tg: { own: [], pts: g.tg.pts } }), st[0] * g.sx, st[1] * g.sy, '');
+        return t ? [Math.round(t.u[0]), Math.round(t.u[1])] : st;
+      }
       if (padSteady_(g) && !g.frozen && !g.qz && g.at && st && st.length >= 2) {
         const x = st[st.length - 2], y = st[st.length - 1], a = g.at;
         if (x !== a[0] || y !== a[1]) {
@@ -6129,8 +6149,9 @@ function padStart_(c, at, r) {
   if (!g.board) {
     g.lat = padLattice_(pad, r);
     g.tg = padTargets_(g, pad);
-    g.dot = g.tool === 'pen';
-    g.from = padPlace_(g, at, true);
+    /* A MOUSE OR A STYLUS IS NOT PLACING A DOT: it lands where it is put, so an arrowhead's 8px stroke stays a stroke and is not snapped onto the shaft (368) */
+    g.dot = g.tool === 'pen' && !padSteady_(g);
+    g.from = g.tool === 'pen' && !g.dot ? at.slice() : padPlace_(g, at, true);
   }
   PAD_ST = g.tool === 'compass' ? [] : g.from.slice();
   c.role = 'owner';
@@ -6803,20 +6824,31 @@ function padSave_(pad, k, all) {
   ansStore_(k, v);
   padCopies_(k, pad, all);
   /* A VERDICT IS ABOUT THE DRAWING IT WAS FOR: a mark added or taken away says so again under Send. */
-  document.querySelectorAll('.qpad[data-k] .qpad-send').forEach(row => {
-    const p = row.closest('.qpad'), out = row.querySelector('.qp-verdict');
-    if (p.getAttribute('data-k') !== k || !out) return;
+  document.querySelectorAll('.qpad-send[data-pad]').forEach(row => {
+    const out = row.querySelector('.qp-verdict');
+    if (row.getAttribute('data-pad') !== k || !out) return;
     const said = subBoxSay_(row.getAttribute('data-k'), padSay_(all));
     row.classList.remove('is-right', 'is-near');
     out.textContent = padSaid_(said.text);
   });
   return true;
 }
+/* AND EVERY PAD THAT SHOWS THIS PART'S INK UNDER ITS OWN (`data-under`, 381), drawn again from the store */
+function padUnderRepaint_(k) {
+  document.querySelectorAll('.qpad[data-under]').forEach(p => {
+    const keys = String(p.getAttribute('data-under')).split(' ');
+    const g = keys.indexOf(k) >= 0 && p.querySelector('.qpad-was');
+    if (!g) return;
+    const ka = padAspectOf_(p);
+    g.innerHTML = [].concat(...keys.map(padRead_)).map(st => `<path vector-effect="non-scaling-stroke" d="${padPath_(st, ka)}"/>`).join('');
+  });
+}
 /* ---------- AND EVERY OTHER COPY OF THE SAME PAD, FROM THE STORE § */
 function padCopies_(k, pad, all) {
   document.querySelectorAll('.qpad[data-k]').forEach(p => {
     if (p !== pad && p.getAttribute('data-k') === k) padRepaint_(p, all);
   });
+  padUnderRepaint_(k);
 }
 document.addEventListener('pointerup', padEnd_);
 document.addEventListener('pointercancel', padEnd_);
@@ -6968,7 +7000,7 @@ function padWhoChanged_() {
 /* EVERY COPY, BY CLASS -- `tmtPaint_`'s reason: § */
 /* AND EACH SLOT IT DRAWS INTO IS SAID TO BE DRAWN FOR WHOEVER IS SIGNED IN NOW (`slot.WHO`). § */
 function wbPaint_() {
-  const html = `<div class="wb">${padWrap_(WB_ITEM, WB_SURF)}</div>`;
+  const html = `<div class="wb">${padWrap_(WB_ITEM, WB_SURF, true)}</div>`;
   const who = typeof widgetWho_ === 'function' ? widgetWho_() : '';
   document.querySelectorAll('.wb-box').forEach(el => {
     if (PAD_ST && PAD_GO && el.contains(PAD_GO.ink)) return;
@@ -7020,6 +7052,19 @@ function usesChain_(x, svg) {
 }
 /* EVERY MARK THOSE PARTS MADE, earliest part first. */
 const usesUnder_ = (x, svg) => [].concat(...usesChain_(x, svg).map(usesMine_));
+/* ---------- ONE FIGURE, SEVERAL PARTS DRAWING ON IT (381): every other part's ink is under this part's, faint and out of reach of its Undo, Clear and Check: the paper prints one figure, and each part is marked on its own ink */
+function padUnderParts_(x, svg) {
+  const out = usesChain_(x, svg);
+  if (!x || x.prefix) return out;
+  let sib = [];
+  try { sib = (questionParts_()[qId_(x)]) || []; } catch (e) { sib = []; }
+  sib.forEach(y => {
+    if (!y || y === x || y.key === x.key || out.indexOf(y) >= 0) return;
+    const p = padSource_(y);
+    if (p && p.from !== 'surface' && p.svg === svg) out.push(y);
+  });
+  return out;
+}
 /* THE EARLIER MARKS AS AN INK GROUP, beside the pad's own and never inside it: `padRepaint_` rewrites
    `.qpad-g` from this part's storage, so nothing it does can reach these. */
 const usesInk_ = (all, k) => `<g class="qpad-was" vector-effect="non-scaling-stroke">${all.map(st =>
@@ -7042,7 +7087,9 @@ function usesPage_(x, prev) {
   const p = y && padSource_(y);
   if (!p) return false;
   if (x.diagram && x.diagram === p.svg) return false;
-  return true;
+  /* NOR WHEN THIS PART DRAWS ON THAT SAME PICTURE (its stem's): the marks are under its own pen, and a second copy is what 381 ended */
+  const own = padSource_(x);
+  return !(own && own.from !== 'surface' && own.svg === p.svg);
 }
 /* THE PAGE: the earlier part's picture with the marks on it, and nothing said under it -- the lines naming whose marks they were went with every credit on 18 Oct § */
 /* `questionUsesCard_` WAS HERE, that picture as a page in front of the part. It is drawn inside the part's
@@ -7100,8 +7147,9 @@ function ansArea_(x) {
   const p = x && x.key ? padSource_(x) : null;
   if (!p) return ansBox_(x);
   const box = answerKinds_(x).value ? ansBox_(x) : '';
-  if (p.from !== 'surface') return box;
-  return `<div class="qp-area" data-q="${esc(x.key)}">${padWrap_(x, p.svg)}</div>${box}`;
+  /* A FIGURE AMONG THE WORDS IS THE PEN (`figHtml_`); ITS CHECK IS HERE, at the foot, as a typed part's is (381) */
+  if (p.from !== 'surface') return box + padSendRow_(x, padRead_(padKey_(x)));
+  return `<div class="qp-area" data-q="${esc(x.key)}">${padWrap_(x, p.svg, true)}</div>${box}`;
 }
 
 /* ---------- A CARD WITH A FIGURE IN IT GIVES WAY BEFORE IT IS DRAWN SMALLER, AND NEVER WHOLE § */
@@ -7471,6 +7519,19 @@ function stemPenned_(p) {
   }
   return STEM_PEN.svgs.has(p.diagram);
 }
+/* ---------- THE STEM WHOSE FIGURE THIS PART DRAWS ON, CARRIED ONTO ITS CARD (381): the first part to share it, its innermost stem, words and one figure only */
+function stemCarried_(x) {
+  const src = x && x.kind === 'question' ? padSource_(x) : null;
+  const p = src && src.from && typeof src.from === 'object' ? src.from : null;
+  if (!p || p.placeholder || p.lines || figImgs_(p.images).length) return null;
+  const st = x.stems || [];
+  if (st[st.length - 1] !== p) return null;
+  let sib = [];
+  try { sib = (questionParts_()[qId_(x)]) || []; } catch (e) { return null; }
+  const id = stemId_(p);
+  const first = sib.find(y => (y.stems || []).some(q => stemId_(q) === id));
+  return first === x || (first && first.key === x.key) ? p : null;
+}
 function stemChunks_(p) {
   const c = stemPlan_(p).chunks;
   return c.length ? c : [[]];
@@ -7492,6 +7553,13 @@ function partPlan_(x) {
   else if (fb.at >= 0 && f.k === 'fig') seq = lead.concat(pb.slice(0, fb.at), [f], pb.slice(fb.at));
   else if (lead.length) seq = lead.concat([f], pb);
   else seq = [f].concat(pb);
+  /* THE STEM IN FRONT, ITS FIGURE UNDER THIS PART'S PEN AT THE STEM'S OWN PLACE FOR IT (its marker, else after its words) -- the paper's order on one card */
+  const sc = f ? stemCarried_(x) : null;
+  if (sc) {
+    const sb = figBlocks_(sc.html), sw = sb.blocks.map(h => ({ k: 'sb', h: h }));
+    const at = sb.at >= 0 ? sb.at : sw.length;
+    seq = sw.slice(0, at).concat([f], sw.slice(at), lead, pb);
+  }
   const u = usesBlock_(x);
   if (u) seq = [u].concat(seq);
   const plan = { chunks: packBlocks_(seq, CHUNK_PAGE, PART_LAST) };
@@ -7549,7 +7617,12 @@ function chunkHtml_(chunk, circ, x) {
   };
   rest.forEach(b => { if (b.k === 'pb') run.push(b); else { flush(); pb += figHtml_(x, b); } });
   flush();
-  return `${head.map(b => figHtml_(x, b)).join('')}${lead ? `<div class="qsheet-lead">${typeset_(lead)}</div>` : ''}
+  /* A CARRIED STEM'S WORDS (`sb`) ARE TYPESET A RUN AT A TIME in the stem's own wrapper, between its figures */
+  let top = '', sbs = [];
+  const sbFlush = () => { if (sbs.length) top += `<div class="qsheet-stem is-over">${typeset_(sbs.join(''))}</div>`; sbs = []; };
+  head.forEach(b => { if (b.k === 'sb') sbs.push(b.h); else { sbFlush(); top += figHtml_(x, b); } });
+  sbFlush();
+  return `${top}${lead ? `<div class="qsheet-lead">${typeset_(lead)}</div>` : ''}
       <div class="qsheet-part${circ ? ' is-text' : ''}"${circ ? ` data-circ="${esc(circ.k)}"` : ''}>
         <div class="qsheet-pb">${pb}</div>
       </div>${circ && words.length ? `<p class="qpad-note qw-note">Tap a word to ring it, and again to take
@@ -7723,7 +7796,9 @@ function figsBefore_(x) {
   };
   /* NOT THE STEM'S PICTURE THIS PART DRAWS ON: it is under the pen on this very card (356). */
   const penOn = padSource_(x);
-  (x.stems || []).forEach(p => { if (stemHasFig_(p) && !(penOn && penOn.from === p)) pic(p, figLabel_(p.html)); });
+  /* NOR ONE AN EARLIER PART DREW ON (381): a later part that reads it says so (`uses`) and has it, marked, on its card; one that does not has nothing for it */
+  const drawnOn = p => drew.some(y => { const q = padSource_(y); return q && q.from !== 'surface' && q.svg === p.diagram; });
+  (x.stems || []).forEach(p => { if (stemHasFig_(p) && !(penOn && penOn.from === p) && !(p.diagram && drawnOn(p))) pic(p, figLabel_(p.html)); });
   const own = p => !!(p.diagram || figImgs_(p.images).length);
   /* ---------- AND THE PICTURE A `uses` PART READS, ONLY WITH SOMETHING ON IT § */
   const bare = v => String(v == null ? '' : v).toLowerCase().replace(/[^a-z0-9]/g, '');
