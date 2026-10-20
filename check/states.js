@@ -2377,19 +2377,6 @@ const STATES = {
       },
       wants: 'the register sheet with the no-email tick ticked, a whole 44px row under the email box',
       leave: () => { closeSheet(); } },
-    /* ---------- SIGNING IN ON A SHARED iPAD § */
-    { name: 'the handles signed in on this device, as chips',
-      only: () => typeof USER !== 'undefined' && !USER,
-      enter: () => {
-        localStorage.setItem('familyHandles', JSON.stringify(['ada_kind7', 'maximilian_steady42']));
-        paint('account'); paintPager('account', true); goPage('account', 0, true);
-      },
-      expect: () => {
-        const b = [...document.querySelectorAll('#s-account .hchip button')];
-        return b.length === 4 && b.every(x => x.offsetHeight >= 44) ? 4 : 0;
-      },
-      wants: 'two remembered handles as chips over the email box, each with its \u2715, every one a 44px target',
-      leave: () => { try { localStorage.removeItem('familyHandles'); } catch (e) {} paint('account'); paintPager('account', true); } },
     { name: 'signing in, waiting for the answer',
       only: () => typeof USER !== 'undefined' && !USER,
       enter: () => {

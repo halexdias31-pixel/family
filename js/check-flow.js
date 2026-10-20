@@ -23386,7 +23386,7 @@ check('a wrong PIN empties the PIN box, focuses it and marks it, with one toast 
   return bad;
 });
 
-check('the PIN box is not a password the iPad keeps, and handles that signed in here are chips that fill the box — never a PIN', async () => {
+check('the PIN box is not a password the iPad keeps, and nothing about who signed in is kept or offered on the device (383)', async () => {
   const reply = b => b.action === 'verifyLogin' ? Object.assign({ success: true }, ANS_ADA) : { success: true, messages: [] };
   const bad = [];
   /* WHERE THE BROWSER CAN DRAW DOTS ON TEXT (Safari, Chrome): a text box, so Safari has no password to keep. */
@@ -23397,15 +23397,15 @@ check('the PIN box is not a password the iPad keeps, and handles that signed in 
   const pin = d.getElementById('in-pin');
   if (!pin) return ['no PIN box on the account column'];
   if (pin.type !== 'text' || !pin.classList.contains('pin-dots')) bad.push('where dots can be drawn the PIN box is type=' + pin.type + ' — a password field is what Safari offers to keep in the iCloud Keychain');
-  const want = { autocomplete: 'off', maxlength: '8', pattern: '[0-9]*', enterkeyhint: 'go', inputmode: 'numeric' };
+  const want = { autocomplete: 'one-time-code', maxlength: '8', pattern: '[0-9]*', enterkeyhint: 'go', inputmode: 'numeric' };
   Object.keys(want).forEach(a => { if (pin.getAttribute(a) !== want[a]) bad.push('the PIN box has ' + a + '=' + JSON.stringify(pin.getAttribute(a)) + ', wanted ' + JSON.stringify(want[a])); });
   /* AND WHERE IT CANNOT, A PASSWORD BOX STILL NOT OFFERED TO THE KEYCHAIN. */
   const b2 = boot({ reply, before: win => { win.CSS = { supports: () => false }; } });
   await wait(300);
   b2.w.__t.USER(null); b2.w.__t.go('account', false, true); b2.w.paint('account');
   const pin2 = b2.w.document.getElementById('in-pin');
-  if (!pin2 || pin2.type !== 'password' || pin2.getAttribute('autocomplete') !== 'off') bad.push('without dots the PIN box is ' + (pin2 && pin2.type) + ' autocomplete=' + (pin2 && pin2.getAttribute('autocomplete')) + ' — wanted password, off');
-  /* SIGNED IN BY HANDLE AND PIN: the handle is remembered, the PIN is not, anywhere. */
+  if (!pin2 || pin2.type !== 'password' || pin2.getAttribute('autocomplete') !== 'one-time-code') bad.push('without dots the PIN box is ' + (pin2 && pin2.type) + ' autocomplete=' + (pin2 && pin2.getAttribute('autocomplete')) + ' — wanted password, one-time-code');
+  /* SIGNED IN BY HANDLE AND PIN: neither is remembered, anywhere (383). */
   d.getElementById('in-name').value = 'ada_kind7';
   pin.value = ['4', '8', '2', '6'].join('');
   t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
@@ -23413,61 +23413,59 @@ check('the PIN box is not a password the iPad keeps, and handles that signed in 
   if (!sent.some(b => b.action === 'verifyLogin')) return bad.concat(['signing in posted nothing']);
   const all = []; for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); all.push(k + '=' + w.localStorage.getItem(k)); }
   if (all.some(x => /4826/.test(x))) bad.push('THE PIN IS WRITTEN ON THE DEVICE: ' + all.filter(x => /4826/.test(x)).join(' | '));
-  if (w.localStorage.getItem('familyHandles') !== '["ada_kind7"]') bad.push('the handle was not remembered: ' + w.localStorage.getItem('familyHandles'));
+  if (all.some(x => /ada_kind7/.test(x) && !/^familyUser=/.test(x))) bad.push('the handle is kept on the device for next time: ' + all.filter(x => /ada_kind7/.test(x) && !/^familyUser=/.test(x)).join(' | '));
   if (/"answers"|"submissions"|"favourites"/.test(String(w.localStorage.getItem('familyUser')))) bad.push('the sign-in reply’s per-person extras were kept in familyUser for thirty days');
-  /* SIGNED OUT, THE CHIP IS THERE; TAPPING IT FILLS THE BOX AND PUTS THE CARET IN THE PIN. */
+  /* SIGNED OUT, THE BOX IS EMPTY AND NO NAME IS OFFERED. */
   t.ACTIONS.signout(d.createElement('button'));
   t.go('account', false, true); w.paint('account');
-  const chip = d.querySelector('#s-account [data-do="handle-pick"][data-h="ada_kind7"]');
-  if (!chip) return bad.concat(['signed out, there is no chip for the handle that signed in here']);
-  t.ACTIONS['handle-pick'](chip);
-  if (d.getElementById('in-name').value !== 'ada_kind7') bad.push('the chip filled the box with ' + JSON.stringify(d.getElementById('in-name').value));
-  if (d.activeElement !== d.getElementById('in-pin')) bad.push('after the chip the caret is not in the PIN box');
-  if (d.getElementById('in-pin').value) bad.push('the chip filled the PIN');
-  if (!chip.closest('.hchip').classList.contains('is-on')) bad.push('the chip tapped is not lit, so nothing on the card says whose account the PIN is for');
-  const drop = d.querySelector('#s-account [data-do="handle-forget"][data-h="ada_kind7"]');
-  if (!drop) bad.push('the chip has no ✕ to forget it');
-  else {
-    t.ACTIONS['handle-forget'](drop);
-    if (d.querySelector('#s-account [data-do="handle-pick"]')) bad.push('✕ left the chip on the card');
-    if (JSON.parse(w.localStorage.getItem('familyHandles') || '[]').length) bad.push('✕ did not forget the handle on the device');
-  }
+  if (d.querySelector('#s-account .hchips, #s-account [data-do="handle-pick"]')) bad.push('signed out, the card offers handles that signed in here');
+  const nm = d.getElementById('in-name');
+  if (!nm || nm.value || nm.hasAttribute('placeholder')) bad.push('signed out, the sign-in box is not empty: ' + JSON.stringify(nm && (nm.value || nm.getAttribute('placeholder'))));
   return bad;
 });
 
-/* ---------- NO EXAMPLE IN THE SIGN-IN BOX; THE ADMIN'S OWN NAME WHERE THIS DEVICE KNOWS IT § */
-check('the sign-in box has no example; on a device an admin signed in on, it shows what the admin signs in with', async () => {
+/* ---------- THE SIGN-IN BOX STAYS BLANK, EVEN AFTER AN ADMIN (383): no example, no remembered name. */
+check('the sign-in box has no example and no remembered name, even on a device an admin signed in on', async () => {
   const ADMIN = { name: 'Test Admin', personId: 'P1', role: 'admin', roles: ['admin'], token: 'tok-P1', handle: 'test_admin1' };
-  let who = ADMIN;
-  const reply = b => b.action === 'verifyLogin' ? Object.assign({ success: true }, who) : { success: true, messages: [] };
-  const { w } = boot({ reply });
+  const reply = b => b.action === 'verifyLogin' ? Object.assign({ success: true }, ADMIN) : { success: true, messages: [] };
+  const { w } = boot({ reply, before: win => { win.localStorage.setItem('familyHandles', '["old_one1"]'); win.localStorage.setItem('familyAdminHint', '{"s":"old@example.com","h":"old_one1"}'); } });
   await wait(300);
   const t = w.__t, d = w.document, bad = [];
+  if (w.localStorage.getItem('familyHandles') || w.localStorage.getItem('familyAdminHint')) bad.push('the old remembered names were not wiped from the device');
   const box = () => { t.go('account', false, true); w.paint('account'); return d.getElementById('in-name'); };
   t.USER(null);
   if (!box()) return ['no sign-in box on the account column'];
-  if (box().hasAttribute('placeholder')) bad.push('a fresh device\'s sign-in box still shows an example: ' + JSON.stringify(box().getAttribute('placeholder')));
-  if (/ada@x\.com|ada_kind7/.test(d.getElementById('s-account').innerHTML)) bad.push('the old example is still on the card');
-  const signIn = async (name, pin) => {
-    box().value = name; d.getElementById('in-pin').value = pin;
-    t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
-    await wait(300);
-    t.ACTIONS.signout(d.createElement('button'));
-  };
-  await signIn('admin@example.com', '4826');
-  if (box().getAttribute('placeholder') !== 'admin@example.com') bad.push('after an admin signed in by address the box says ' + JSON.stringify(box().getAttribute('placeholder')));
-  who = ANS_ADA;
-  await signIn('ada_kind7', '1239');
-  if (box().getAttribute('placeholder') !== 'admin@example.com') bad.push('a child signing in replaced the admin\'s name with ' + JSON.stringify(box().getAttribute('placeholder')));
-  const all = []; for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); all.push(k + '=' + w.localStorage.getItem(k)); }
-  if (all.some(x => /4826|1239/.test(x))) bad.push('A PIN IS WRITTEN ON THE DEVICE: ' + all.filter(x => /4826|1239/.test(x)).join(' | '));
-  const drop = d.querySelector('#s-account [data-do="handle-forget"][data-h="test_admin1"]');
-  if (!drop) bad.push('the admin has no chip to forget');
-  else {
-    t.ACTIONS['handle-forget'](drop);
-    if (box().hasAttribute('placeholder')) bad.push('✕ on the admin\'s chip left their name in the box: ' + JSON.stringify(box().getAttribute('placeholder')));
-  }
+  const blank = when => { if (box().hasAttribute('placeholder') || box().value) bad.push(when + ' the sign-in box shows ' + JSON.stringify(box().getAttribute('placeholder') || box().value)); };
+  blank('on a fresh device');
+  if (/old_one1|old@example/.test(d.getElementById('s-account').innerHTML)) bad.push('an old remembered name is on the card');
+  box().value = 'admin@example.com'; d.getElementById('in-pin').value = '4826';
+  t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
+  await wait(300);
+  t.ACTIONS.signout(d.createElement('button'));
+  blank('after an admin signed in and out,');
+  if (/test_admin1|admin@example/.test(d.getElementById('s-account').innerHTML)) bad.push('the admin\'s name is offered on the card');
   return bad;
+});
+
+/* ---------- NO FIELD ANYWHERE SUGGESTS (383): every box drawn on every screen is quiet. */
+check('every input and textarea on every screen asks the browser and password managers not to suggest', async () => {
+  const { w } = boot({});
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  const look = where => [].forEach.call(d.querySelectorAll('input,textarea'), el => {
+    const ac = el.getAttribute('autocomplete');
+    const why = [];
+    if (ac !== 'off' && ac !== 'one-time-code') why.push('autocomplete=' + ac);
+    if (el.getAttribute('autocorrect') !== 'off') why.push('autocorrect');
+    if (el.getAttribute('data-lpignore') !== 'true' || !el.hasAttribute('data-1p-ignore')) why.push('password-manager ignore');
+    if (el.hasAttribute('list')) why.push('list=' + el.getAttribute('list'));
+    if (why.length) bad.push(where + ': ' + (el.id || el.className || el.tagName) + ' — ' + why.join(', '));
+  });
+  const tabs = ['feed', 'booking', 'shop', 'stuff', 'res', 'account', 'tools', 'settings'];
+  t.USER(null);
+  for (const id of tabs) { try { t.go(id, false, true); w.paint(id); } catch (e) {} await wait(20); look(id); }
+  if (d.querySelectorAll('datalist').length) bad.push(d.querySelectorAll('datalist').length + ' datalist(s) drawn');
+  return bad.slice(0, 20);
 });
 
 check('signing in brings the submissions, stars, family and answers with the reply, before the payload', async () => {
@@ -24396,7 +24394,7 @@ function movedWorld3_() {
   return b;
 }
 /* SIGNED IN AS ELLA, THE APP OPEN, AND THE `myProfile` IT ASKED AT OPEN HELD until `release()`. */
-async function heldProfileOpen_(b, chips) {
+async function heldProfileOpen_(b) {
   const signed = b.post({ action: 'verifyLogin', email: 'ej2345', name: 'ej2345', pin: '0000' });
   if (!signed.success) throw new Error('she could not sign in on the real backend');
   let release, held = null;
@@ -24406,8 +24404,7 @@ async function heldProfileOpen_(b, chips) {
     return b.post(body);
   };
   const { w, errs } = boot({ payload: b.get({ token: signed.token }), reply,
-    before: win => { win.localStorage.setItem('familyUser', JSON.stringify(signed));
-                     if (chips) win.localStorage.setItem('familyHandles', JSON.stringify(chips)); } });
+    before: win => { win.localStorage.setItem('familyUser', JSON.stringify(signed)); } });
   for (let k = 0; k < 80 && !w.__t; k++) await wait(100);
   if (!w.__t) throw new Error('the app did not finish loading');
   for (let k = 0; k < 60 && !held; k++) await wait(100);
@@ -24416,48 +24413,6 @@ async function heldProfileOpen_(b, chips) {
 }
 const serverCell_ = (b, pid, col) => JSON.parse(b.ev('JSON.stringify(String(read(TAB.people).rows.find(r => r.person_id === '
   + JSON.stringify(pid) + ').' + col + ' || ""))'));
-const chipsOf_ = w => { try { return JSON.parse(w.localStorage.getItem('familyHandles') || '[]'); } catch (e) { return ['(unreadable)']; } };
-
-check('a child who signs in on the family iPad with her moved handle: its chip becomes the new one, so the next tap says nothing', async () => {
-  let b;
-  try { b = movedWorld3_(); } catch (e) { return ['the real backend could not be built — ' + e.message]; }
-  const { w } = boot({ payload: b.get({}), reply: body => b.post(body),
-    before: win => win.localStorage.setItem('familyHandles', JSON.stringify(['ab3456', 'ella_kind42'])) });
-  for (let k = 0; k < 80 && !w.__t; k++) await wait(100);
-  const t = w.__t, d = w.document;
-  if (!t) return ['the app did not finish loading'];
-  await wait(300);
-  t.go('account', false, true); await wait(150);
-  const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
-  if (!name || !pin) return ['there is no sign-in card, so the old chip was NOT asked about'];
-  name.value = 'ella_kind42'; pin.value = '0000';
-  t.ACTIONS['do-signin'](d.querySelector('#s-account [data-do="do-signin"]'));
-  for (let k = 0; k < 40 && !t.whoami(); k++) await wait(100);
-  await wait(400);
-  const u = t.whoami() || {};
-  if (u.personId !== 'P-EJ') return ['the old handle did not sign her in, so the chip was NOT asked about — ' + JSON.stringify(u.personId)];
-  const chips = chipsOf_(w);
-  return chips.indexOf('ella_kind42') !== -1 || chips.indexOf('ej2345') === -1 || chips.indexOf('ab3456') === -1
-    ? ['after signing in by her old handle the device offers ' + JSON.stringify(chips) + ' — the name-bearing chip stays on the shared iPad, and tapping it says "Your handle has changed" every time'] : [];
-});
-check('a phone that learns a moved handle from myProfile swaps the old chip for the new one in its place', async () => {
-  let b;
-  try { b = movedWorld3_(); } catch (e) { return ['the real backend could not be built — ' + e.message]; }
-  const signed = b.post({ action: 'verifyLogin', email: 'ej2345', name: 'ej2345', pin: '0000' });
-  if (!signed.success) return ['she could not sign in on the real backend — ' + JSON.stringify(signed).slice(0, 160)];
-  const stale = Object.assign(JSON.parse(JSON.stringify(signed)), { handle: 'ella_kind42' });
-  const { w } = boot({ payload: b.get({ token: signed.token }), reply: body => b.post(body),
-    before: win => { win.localStorage.setItem('familyUser', JSON.stringify(stale));
-                     win.localStorage.setItem('familyHandles', JSON.stringify(['cd4567', 'ella_kind42', 'ab3456'])); } });
-  for (let k = 0; k < 80 && !w.__t; k++) await wait(100);
-  const t = w.__t;
-  if (!t) return ['the app did not finish loading'];
-  for (let k = 0; k < 40 && (t.whoami() || {}).handle !== 'ej2345'; k++) await wait(100);
-  if ((t.whoami() || {}).handle !== 'ej2345') return ['the phone never took the moved handle from myProfile, so the chip was NOT asked about'];
-  const chips = chipsOf_(w);
-  return JSON.stringify(chips) !== JSON.stringify(['cd4567', 'ej2345', 'ab3456'])
-    ? ['the phone calls her @ej2345 but the device\'s chips are ' + JSON.stringify(chips) + ' — wanted the old one replaced where it was'] : [];
-});
 check('a myProfile asked at open and answered after a friend is added keeps the new friend', async () => {
   let b, o;
   try { b = movedWorld3_(); o = await heldProfileOpen_(b); } catch (e) { return [e.message]; }

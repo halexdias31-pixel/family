@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-20-c-stem-glides";
+  --css-version: "2026-10-20-g-quiet-fields";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -436,16 +436,8 @@ input[aria-invalid="true"], input[aria-invalid="true"]:focus { border-color: var
 /* ---------- THE PIN, AS DOTS, WITHOUT BEING A PASSWORD § */
 .pin-dots { -webkit-text-security: disc; text-security: disc; letter-spacing: .2em; }
 /* ---------- THE HANDLES THIS DEVICE HAS SIGNED IN, AS CHIPS § */
-.hchips { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0 0 .75rem; min-width: 0; }
-.hchip { display: inline-flex; align-items: stretch; min-width: 0; max-width: 100%;
   border: 1px solid var(--line); border-radius: 22px; background: var(--sunk); overflow: hidden; }
-.hchip button { min-height: 44px; border: 0; background: transparent; color: var(--ink);
   font: 500 .9rem/1 var(--font); cursor: pointer; -webkit-tap-highlight-color: transparent; }
-.hchip-pick { padding: 0 .35rem 0 .9rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.hchip-pick b { color: var(--gold); font-weight: 600; }
-.hchip-drop { min-width: 44px; color: var(--dim); font-size: .85rem; }
-.hchip button:active { background: var(--line); }
-.hchip.is-on { border-color: var(--gold); }
 /* `.dob-cap` IS IN THIS GROUP RATHER THAN BESIDE IT. § */
 label.field > span, .dob-cap, .reg-cap, .many-cap, .notify-cap {
   display: block; margin-bottom: .3rem;
