@@ -23,16 +23,15 @@ function signInCard_() {
         <p class="sub">You need an account to book, to keep a checklist, or to spend credits.</p>
         ${/* ---------- NAME, USERNAME OR E-MAIL, AND THE LABEL HAS TO SAY SO § */
              ''}
-        ${handleChips_()}
         <label class="field"><span>email or handle</span>
-          <input id="in-name" type="text" inputmode="email" autocomplete="username" autocapitalize="off"
-                 spellcheck="false"${signInHint_() ? ` placeholder="${esc(signInHint_())}"` : ''}></label>
+          <input id="in-name" type="text" inputmode="email" autocomplete="off" autocapitalize="off"
+                 spellcheck="false"></label>
         ${/* ---------- THE PIN, ON A SHARED iPAD § */
              ''}
         <label class="field"><span>PIN</span>
           <input id="in-pin" ${pinDotsOk_() ? 'type="text" class="pin-dots"' : 'type="password"'}
                  inputmode="numeric" pattern="[0-9]*" maxlength="8" enterkeyhint="go"
-                 autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+                 autocomplete="one-time-code" autocorrect="off" autocapitalize="off" spellcheck="false"
                  data-1p-ignore data-lpignore="true"></label>
         ${/* ---------- THREE TILES, WHERE THERE WERE TWO BUTTONS AND A CARD § */
              ''}
@@ -417,10 +416,6 @@ function signedIn_(d, typed) {
   /* AND THE LATEST ANSWER SENT FOR EACH QUESTION — onto the cards, into the boxes, with "Signed in" — and
      whatever this device has waiting for this person goes up (js/submit.js). */
   try { if (typeof subAdopt_ === 'function') subAdopt_(); } catch (e) {}
-  /* SIGNED IN BY A HANDLE THAT HAS MOVED ON (342): its chip becomes the new one, so the next tap says nothing. */
-  if (d && d.handleMoved) handleRename_(d.handleMoved.was, me.handle);
-  handleRemember_(me.handle);
-  signInHintKeep_(typed, me);
   /* WHO, NOT JUST THAT. *"i feel very insecure when signing into the kids accounts"* — on an iPad passed
      between children, "Signed in" does not say into whose account. */
   const first = String(USER.name || USER.handle || '').trim().split(/\s+/)[0];
@@ -440,91 +435,11 @@ function signedIn_(d, typed) {
   afterSignIn_(d);
 }
 
-/* ---------- THE HANDLES THIS DEVICE HAS SIGNED IN, NEVER THEIR PINS § */
-const HANDLES_KEY = 'familyHandles';
-const HANDLES_MAX = 6;
-function handlesKnown_() {
-  try {
-    const v = JSON.parse(localStorage.getItem(HANDLES_KEY) || '[]');
-    return Array.isArray(v) ? v.map(String).filter(h => /^[\w.-]{1,40}$/.test(h)).slice(0, HANDLES_MAX) : [];
-  } catch (e) { return []; }
+/* NOTHING ABOUT WHO SIGNED IN IS KEPT ON THE DEVICE — the owner did not want recent usernames offered (docs/history/383). Old keys are wiped. */
+function signInForgetOld_() {
+  try { localStorage.removeItem('familyHandles'); localStorage.removeItem('familyAdminHint'); } catch (e) {}
 }
-function handleRemember_(h) {
-  h = String(h || '').trim();
-  if (!/^[\w.-]{1,40}$/.test(h)) return;
-  const list = [h].concat(handlesKnown_().filter(x => x.toLowerCase() !== h.toLowerCase())).slice(0, HANDLES_MAX);
-  try { localStorage.setItem(HANDLES_KEY, JSON.stringify(list)); } catch (e) {}
-}
-/* ---------- A HANDLE THAT MOVED MOVES ON THIS DEVICE TOO (docs/history/342, the review) § */
-function handleRename_(was, now) {
-  was = String(was || '').trim().toLowerCase();
-  now = String(now || '').trim();
-  if (!was || !/^[\w.-]{1,40}$/.test(now) || was === now.toLowerCase()) return;
-  const list = handlesKnown_();
-  if (!list.some(x => x.toLowerCase() === was)) return;
-  const out = [];
-  list.map(x => (x.toLowerCase() === was ? now : x))
-    .forEach(x => { if (!out.some(y => y.toLowerCase() === x.toLowerCase())) out.push(x); });
-  try { localStorage.setItem(HANDLES_KEY, JSON.stringify(out)); } catch (e) {}
-}
-/* ---------- THE ADMIN'S SIGN-IN NAME, AS THIS DEVICE LAST SAW IT § */
-const ADMIN_HINT_KEY = 'familyAdminHint';
-/* `{ s, h }`: `s` what was typed, shown; `h` the account's handle, so that chip's ✕ can find it. */
-const HINT_OK = /^[\w.@+-]{1,80}$/;
-function signInHintRead_() {
-  try {
-    const v = JSON.parse(localStorage.getItem(ADMIN_HINT_KEY) || 'null');
-    return v && typeof v === 'object' && HINT_OK.test(String(v.s || '')) ? v : null;
-  } catch (e) { return null; }
-}
-function signInHint_() {
-  const v = signInHintRead_();
-  return v ? String(v.s) : '';
-}
-function signInHintKeep_(typed, me) {
-  if (!(typeof isAdmin === 'function' && isAdmin())) return;
-  const h = String((me && me.handle) || '').trim();
-  const t = String(typed || '').trim();
-  const s = HINT_OK.test(t) ? t : h;
-  if (!HINT_OK.test(s)) return;
-  try { localStorage.setItem(ADMIN_HINT_KEY, JSON.stringify({ s: s, h: h })); } catch (e) {}
-}
-
-function handleChips_() {
-  const list = handlesKnown_();
-  if (!list.length) return '';
-  return `<div class="hchips" role="group" aria-label="Signed in on this device before">${list.map(h =>
-    `<span class="hchip"><button type="button" class="hchip-pick" data-do="handle-pick" data-h="${esc(h)}"><b>@</b>${esc(h)}</button><button type="button" class="hchip-drop" data-do="handle-forget" data-h="${esc(h)}" aria-label="Forget ${esc(h)} on this device" title="Forget ${esc(h)} on this device">✕</button></span>`
-  ).join('')}</div>`;
-}
-on('handle-pick', el => {
-  const name = $('in-name'), pin = $('in-pin');
-  if (!name || !pin) return;
-  name.value = el.getAttribute('data-h') || '';
-  name.removeAttribute('aria-invalid');
-  pin.value = '';
-  /* THE CHIP CHOSEN STAYS LIT, so whoever is holding the iPad can see whose account the PIN is for before typing it — the one thing on this card that answers § */
-  const row = el.closest('.hchips');
-  if (row) [].forEach.call(row.querySelectorAll('.hchip'), c => {
-    const on = c === el.closest('.hchip');
-    c.classList.toggle('is-on', on);
-    const b = c.querySelector('.hchip-pick');
-    if (b) b.setAttribute('aria-pressed', on ? 'true' : 'false');
-  });
-  try { pin.focus(); } catch (e) {}
-});
-on('handle-forget', el => {
-  const h = String(el.getAttribute('data-h') || '').toLowerCase();
-  try { localStorage.setItem(HANDLES_KEY, JSON.stringify(handlesKnown_().filter(x => x.toLowerCase() !== h))); } catch (e) {}
-  /* THE ADMIN'S CHIP TAKES THE BOX'S GREY TEXT WITH IT — see `signInHint_`. Nothing to repaint: the next
-     time the card is drawn the box is blank. */
-  const hint = signInHintRead_();
-  if (hint && String(hint.h || '').toLowerCase() === h) { try { localStorage.removeItem(ADMIN_HINT_KEY); } catch (e) {} }
-  const chip = el.closest('.hchip');
-  const row = chip && chip.parentNode;
-  if (chip) chip.remove();
-  if (row && !row.querySelector('.hchip')) row.remove();
-});
+signInForgetOld_();
 /* DOTS ON A TEXT BOX, WHERE THE BROWSER CAN DRAW THEM — see `.pin-dots` and the PIN box above. Asked of
    the browser rather than of its name. */
 function pinDotsOk_() {
@@ -700,17 +615,17 @@ function registerSheet_() {
             ''}
       <div class="f-row" style="--n:2">
         <label class="field"><span>first name</span>
-          <input id="reg-first" autocomplete="given-name"${draftAttr_('reg', 'first')} value="${esc(draftVal_('reg', 'first'))}"></label>
+          <input id="reg-first" autocomplete="off"${draftAttr_('reg', 'first')} value="${esc(draftVal_('reg', 'first'))}"></label>
         <label class="field"><span>last name</span>
-          <input id="reg-last" autocomplete="family-name"${draftAttr_('reg', 'last')} value="${esc(draftVal_('reg', 'last'))}"></label>
+          <input id="reg-last" autocomplete="off"${draftAttr_('reg', 'last')} value="${esc(draftVal_('reg', 'last'))}"></label>
       </div>
       <label class="field"><span>email</span>
-        <input id="reg-email" type="email" inputmode="email" autocomplete="email" autocapitalize="off"
+        <input id="reg-email" type="email" inputmode="email" autocomplete="off" autocapitalize="off"
                spellcheck="false" placeholder="you@example.com"${draftAttr_('reg', 'email')} value="${esc(draftVal_('reg', 'email'))}"></label>
       <label class="check reg-kid" hidden><input type="checkbox" id="reg-noemail"><span class="box"></span>
         <span>It's a grown-up's email</span></label>
       <label class="field"><span>PIN — 4 to 8 digits</span>
-        <input id="reg-pin" type="password" inputmode="numeric" autocomplete="new-password"></label>
+        <input id="reg-pin" type="password" inputmode="numeric" autocomplete="one-time-code"></label>
       <button class="btn" data-do="reg-send">Make my account</button>
       ${/* THREE LINES AT 320, MEASURED: § */
             ''}
@@ -1558,7 +1473,7 @@ function kidMakeSec_() {
              value="${esc(draftVal_('kid-new', 'last', kidSurname))}"${draftAttr_('kid-new', 'last', kidSurname)}></label>
     </div>
     <label class="field"><span>a PIN for them — 4 to 8 digits</span>
-      <input data-kid-new="pin" type="password" inputmode="numeric" autocomplete="new-password"></label>
+      <input data-kid-new="pin" type="password" inputmode="numeric" autocomplete="one-time-code"></label>
     <button class="btn quiet" data-do="kid-make">Make their account</button>
     ${mine ? pinSlip_(KID_MADE.name, KID_MADE.handle, KID_MADE.pin)
              + '<p class="faint">Write it down or take a photo — the PIN is not shown again. We have '
@@ -1827,11 +1742,11 @@ function settingsPages_() {
     ${shown && Object.keys(shown).length ? '' : moved}
     <div class="f-row pin-row" style="--n:3">
       <label class="field"><span>current PIN</span>
-        <input id="pin-now" type="password" inputmode="numeric" autocomplete="current-password"></label>
+        <input id="pin-now" type="password" inputmode="numeric" autocomplete="one-time-code"></label>
       <label class="field"><span>new PIN</span>
-        <input id="pin-new" type="password" inputmode="numeric" autocomplete="new-password"></label>
+        <input id="pin-new" type="password" inputmode="numeric" autocomplete="one-time-code"></label>
       <label class="field"><span>again</span>
-        <input id="pin-again" type="password" inputmode="numeric" autocomplete="new-password"></label>
+        <input id="pin-again" type="password" inputmode="numeric" autocomplete="one-time-code"></label>
     </div>
     <button class="btn quiet" data-do="pin-save">Change my PIN</button>
     <p class="faint" id="pin-said" style="margin:.6rem 0 0">4 to 8 numbers, and not 1234.</p>
@@ -2334,10 +2249,7 @@ function fieldHtml(name, value, o) {
              ${ro ? 'disabled' : ''} ${o.extra || ''}${da}></label>`;
   }
 
-  /* WHAT OTHERS SAY IS A SUGGESTION, not a rule — a datalist offers them and still lets somebody
-     type a new one, which is right where the list is descriptive rather than decided. */
-  const seen = (o.suggest || []).filter(Boolean);
-  const listId = seen.length > 1 ? 'fl-' + attr.replace(/\W/g, '') + '-' + name : '';
+  /* NO SUGGESTION LIST (383): the owner wants no field offering past entries, so `o.suggest` is ignored. */
   const pad = FIELD_IS_DECIMAL.test(name) ? 'decimal'
             : FIELD_IS_NUMERIC.test(name) ? 'numeric' : '';
 
@@ -2348,9 +2260,8 @@ function fieldHtml(name, value, o) {
   return `<label class="field">${hint ? '' : `<span>${esc(label)}</span>`}
     <input ${attr}="${esc(name)}" value="${esc(String(v))}" ${ro ? 'disabled' : ''}
            ${hint ? `placeholder="${esc(hint)}"` : ''} ${o.extra || ''}
-           ${listId ? `list="${listId}"` : ''} ${pad ? `inputmode="${pad}"` : ''}${da}>
-    ${listId ? `<datalist id="${listId}">${
-      seen.map(x => `<option value="${esc(x)}">`).join('')}</datalist>` : ''}</label>`;
+           ${pad ? `inputmode="${pad}"` : ''}${da}>
+    </label>`;
 }
 
 /* ---------- WHICH SEVERAL-OF-A-LIST FIELD IS OPEN, KEPT AS STATE RATHER THAN IN THE DOM § */
@@ -2466,17 +2377,17 @@ const isDobBox_ = f => /^dob_[dmy]$/.test(String(f || ''));
 const isDob_ = list => (list || []).some(isDobBox_);
 
 function dobBoxes_(value) {
-  /* `autocomplete` IS THE HALF A PHONE ACTUALLY USES. § */
-  const box = (f, hint, len, ac) => fieldHtml(f, value(f), {
+  /* NO SAVED BIRTHDAY OFFERED (383) — no field suggests; `maxlength` stops a third digit in a two-digit box. */
+  const box = (f, hint, len) => fieldHtml(f, value(f), {
     placeholder: hint,
-    extra: `inputmode="numeric" maxlength="${len}" autocomplete="${ac}" size="${len}"`,
+    extra: `inputmode="numeric" maxlength="${len}" autocomplete="off" size="${len}"`,
   });
   return `<div class="dob-row" role="group" aria-label="Date of birth">
     <span class="dob-cap">date of birth</span>
     <div class="dob-boxes">
-      ${box('dob_d', 'DD', 2, 'bday-day')}
-      ${box('dob_m', 'MM', 2, 'bday-month')}
-      ${box('dob_y', 'YYYY', 4, 'bday-year')}
+      ${box('dob_d', 'DD', 2)}
+      ${box('dob_m', 'MM', 2)}
+      ${box('dob_y', 'YYYY', 4)}
     </div>
   </div>`;
 }
@@ -2952,7 +2863,7 @@ function phoneRow_(value) {
       <label class="field"><select data-me="phone_cc" aria-label="Country code">
         ${codes.map(x => `<option value="${esc(x)}"${x === cc ? ' selected' : ''}>${esc(x)}</option>`).join('')}
       </select></label>
-      <label class="field"><input type="tel" data-me="phone_no" inputmode="tel" autocomplete="tel-national"
+      <label class="field"><input type="tel" data-me="phone_no" inputmode="tel" autocomplete="off"
         placeholder="Number" value="${esc(draftVal_('set', 'phone_no', phoneNo))}"${draftAttr_('set', 'phone_no', phoneNo)}></label>
     </div></div>`;
 }
@@ -3523,7 +3434,6 @@ function profileRefresh_(loud, onOld) {
       /* ---------- AND THE HANDLE, WHICH THE BUSINESS MAY HAVE MOVED UNDER THIS PHONE (342) § */
       if (d.handle && USER.handle && String(d.handle) !== String(USER.handle)) {
         HANDLE_SAID = { pid: String(USER.personId || ''), text: 'You were @' + USER.handle + '.' };
-        handleRename_(USER.handle, d.handle);
         try { toast('Your handle is @' + d.handle + ' now'); } catch (e) {}
         /* AND THE FACE THE OLD ONE DREW (round 2): the move wrote it into a blank look on the server
            (`handleFaceKept_`), and this phone's blank copy would draw the new handle's colours instead. */

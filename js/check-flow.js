@@ -12736,66 +12736,57 @@ check('an admin\'s diagnostic written over the newer-version banner does not rel
   return bad;
 });
 
-/* ---------- THE PICTURE IS A DOOR EXACTLY WHILE THE PEN IS OFF § */
-check('a question diagram is pressable exactly while the pen is off', async () => {
+/* ---------- THE FIRST TOUCH DRAWS (368): no lock, no door on the picture, and a finger on any pen's figure inks at once */
+check('a drawing question\'s figure takes the first touch: no lock, a tap is a dot, a stroke a line, and another figure takes the pen', async () => {
   const { w } = boot();
   await wait(300);
-  const t = w.__t;
-  if (typeof t.padWrap !== 'function' || typeof t.padArm !== 'function') {
-    return ['padWrap_ or padArm_ is not exported, so the pen was NOT checked — not a pass'];
+  const t = w.__t, d = w.document;
+  if (typeof t.padWrap !== 'function' || typeof t.padOn !== 'function' || typeof t.padNow !== 'function' || typeof w.padDrop_ !== 'function') {
+    return ['padWrap_, PAD_ON or padDrop_ is not reachable, so the first touch was NOT checked — not a pass'];
   }
   const bad = [];
   const x = { key: 'q:Q-PEN', answerType: 'drawing', diagram: '<svg viewBox="0 0 340 340"></svg>' };
-  const hold = html => { const d = w.document.createElement('div'); d.innerHTML = html; return d; };
-
-  /* ---------- AS BUILT ------------------------------------------------------------------------ */
-  const off = hold(t.padWrap(x, x.diagram, ''));
-  if (!off.querySelector('.qpad-art[data-do="pad-draw"]'))
-    bad.push('with the pen off the picture carries no action, so the only way to arm it is a button '
-      + 'under a credit line — which is what the report was about');
-  if (!off.querySelector('.qpad-lock[data-do="pad-draw"]'))
-    bad.push('with the pen off there is no lock control in the bar');
-  if (off.querySelector('.qpad-ink[data-noswipe]'))
-    bad.push('an un-armed pad already refuses the grid, so the card cannot be swiped off');
-
-  /* ---------- AND AS THE PRESS LEAVES IT ------------------------------------------------------- */
-  const pad = off.querySelector('.qpad');
-  t.padArm(pad, true);
-  if (pad.querySelector('.qpad-art[data-do]'))
-    bad.push('the picture still carries the action while the pen is ON — the dispatcher walks up '
-      + 'from the ink to it, so the first dot drawn turns the pen off again');
-  if (!pad.classList.contains('is-drawing'))
-    bad.push('arming the pad does not put the frame on, so the mode is invisible');
-  if (!pad.querySelector('.qpad-ink[data-noswipe]'))
-    bad.push('arming the pad does not mark the ink `data-noswipe`, so `axisFree` hands the stroke '
-      + 'to the grid and a line of best fit slides the column');
-  const lockOn = pad.querySelector('.qpad-lock');
-  if (lockOn && lockOn.getAttribute('aria-pressed') !== 'true')
-    bad.push('the armed pad\'s control does not report itself pressed');
-  if (lockOn && !lockOn.querySelector('svg'))
-    bad.push('the control lost its padlock when the press rewrote it — `textContent` would do that, '
-      + 'which is why there is one face builder');
-
-  t.padArm(pad, false);
-  if (!pad.querySelector('.qpad-art[data-do="pad-draw"]'))
-    bad.push('disarming does not give the picture its action back, so the second door works once');
-  if (pad.querySelector('.qpad-ink[data-noswipe]'))
-    bad.push('disarming leaves `data-noswipe` on, so the card can never be swiped off again');
-  if (pad.classList.contains('is-drawing'))
-    bad.push('disarming leaves the gold frame on');
-
-  /* ---------- AND THE REPAINT PATH, ASKED THE SAME QUESTION § */
-  t.padOn('pad:' + x.key);
-  const on = hold(t.padWrap(x, x.diagram, ''));
-  t.padOn('');
-  if (on.querySelector('.qpad-art[data-do]'))
-    bad.push('a card REBUILT with the pen on puts the action back on the picture, so the first dot '
-      + 'after any repaint turns the pen off');
-  if (!on.querySelector('.qpad-ink[data-noswipe]'))
-    bad.push('a card rebuilt with the pen on does not mark the ink, so the pen survives a repaint '
-      + 'in name only and the next stroke slides the column');
-  if (!on.querySelector('.qpad.is-drawing'))
-    bad.push('a card rebuilt with the pen on has no frame');
+  const y = { key: 'q:Q-PEN-2', answerType: 'drawing', diagram: '<svg viewBox="0 0 340 340"></svg>' };
+  const kx = t.padKey(x), ky = t.padKey(y);
+  [kx, ky].forEach(k => { try { w.localStorage.removeItem(k); } catch (e) {} });
+  w.padDrop_(); t.padOn('');
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  host.innerHTML = t.padWrap(x, x.diagram, '') + t.padWrap(y, y.diagram, '');
+  const pads = host.querySelectorAll('.qpad');
+  /* ---------- AS BUILT, NOTHING PRESSED: the figure is the pen already ---------------------------- */
+  if (host.querySelector('[data-do="pad-draw"], .qpad-lock')) bad.push('a lock (or a door on the picture) is still drawn — a step before the first mark');
+  if (host.querySelector('.qpad-art[data-do]')) bad.push('the picture carries an action, so the dispatcher walks up from the ink and a tap acts instead of inking');
+  if (host.querySelectorAll('.qpad-ink[data-noswipe]').length !== 2) bad.push('a pen\'s ink is not `data-noswipe` from the start, so a stroke on it would be taken by the grid and slide the column');
+  [[pads[0], 20], [pads[1], 420]].forEach(([p, top]) => {
+    p.querySelector('.qpad-ink').getBoundingClientRect = () => ({ left: 20, top: top, width: 340, height: 340, right: 360, bottom: top + 340, x: 20, y: top });
+  });
+  const stored = k => { try { return JSON.parse(w.localStorage.getItem(k) || '[]'); } catch (e) { return ['unreadable']; } };
+  const fire = (p, type, px, py, ts) => penEv_(w, p.querySelector('.qpad-ink'), type, { id: 7, x: px, y: py, t: ts, prim: true });
+  /* ---------- A FINGER'S TAP ON THE UNARMED FIGURE: a dot ------------------------------------------ */
+  fire(pads[0], 'pointerdown', 190, 190, 1000);
+  if (t.padNow() !== kx) bad.push('a finger landing on the figure did not give it the pen (PAD_ON is "' + t.padNow() + '")');
+  if (!pads[0].classList.contains('is-drawing')) bad.push('the touched pad is not marked as the one drawing');
+  fire(pads[0], 'pointerup', 190, 190, 1060);
+  if (stored(kx).length !== 1 || stored(kx)[0].length !== 2) bad.push('a first tap on the figure stored ' + JSON.stringify(stored(kx)) + ', wanted one dot');
+  /* ---------- A STROKE ON THE OTHER FIGURE: it takes the pen and inks a line ------------------------- */
+  fire(pads[1], 'pointerdown', 60, 460, 2000);
+  for (let i = 1; i <= 12; i++) fire(pads[1], 'pointermove', 60 + 15 * i, 460 + 5 * i, 2000 + 16 * i);
+  fire(pads[1], 'pointerup', 240, 520, 2250);
+  if (t.padNow() !== ky) bad.push('a finger on the second figure did not move the pen to it');
+  if (pads[0].classList.contains('is-drawing')) bad.push('the first pad still says it is the one drawing');
+  if (stored(ky).length !== 1 || stored(ky)[0].length < 4) bad.push('a first stroke on the second figure stored ' + JSON.stringify(stored(ky)).slice(0, 120) + ', wanted one line');
+  if (stored(kx).length !== 1) bad.push('the stroke on the second figure changed the first one\'s marks');
+  /* ---------- A REPAINT KEEPS IT SO ----------------------------------------------------------------- */
+  const again = d.createElement('div');
+  again.innerHTML = t.padWrap(x, x.diagram, '');
+  if (again.querySelector('[data-do="pad-draw"], .qpad-lock') || !again.querySelector('.qpad-ink[data-noswipe]')) bad.push('a pad drawn again grew a lock or lost `data-noswipe`');
+  /* ---------- A FIGURE IN A QUESTION ANSWERED IN A BOX IS NO PEN AT ALL ------------------------------- */
+  if (typeof w.padSource_ === 'function' && w.padSource_({ key: 'q:Q-TYPED', answerType: 'number', accept: '12', diagram: x.diagram }))
+    bad.push('a typed question\'s figure was given a pen');
+  w.padDrop_(); t.padOn('');
+  [kx, ky].forEach(k => { try { w.localStorage.removeItem(k); } catch (e) {} });
+  host.remove();
   return bad;
 });
 
@@ -12856,7 +12847,7 @@ check('a ruler draws a straight line and a compass a round circle or arc, offere
 
   /* RULER */
   A['pad-tool'](tool('ruler'));
-  if (!pad.classList.contains('is-drawing')) bad.push('pressing Ruler did not lock the card for drawing');
+  if (!pad.classList.contains('is-drawing')) bad.push('pressing Ruler did not give this pad the pen');
   if (!tool('ruler').classList.contains('on') || tool('ruler').getAttribute('aria-pressed') !== 'true') bad.push('the Ruler tile is not lit and pressed once chosen');
   if (tool('pen').classList.contains('on') || tool('compass').classList.contains('on')) bad.push('another tool is lit beside the Ruler');
   /* A (150,100)px is units (50,100); B (300,140)px is units (200,180). The middle of the drag wanders. */
@@ -12931,11 +12922,9 @@ check('a ruler draws a straight line and a compass a round circle or arc, offere
   pad = host.querySelector('.qpad');
   pad.querySelector('.qpad-ink').getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
   if (pad.querySelector('.qpad-tool')) bad.push('a plain drawing question was given tool tiles');
-  A['pad-draw'](pad.querySelector('.qpad-lock'));
   drag([[150, 100], [200, 100], [250, 120]]);
   const ps = (() => { try { return JSON.parse(w.localStorage.getItem(pk) || '[]'); } catch (e) { return []; } })();
   if (ps.length !== 1 || ps[0].length !== 6) bad.push('a pad with no Compass tile drew with a stale compass choice: ' + JSON.stringify(ps).slice(0, 80));
-  A['pad-draw'](pad.querySelector('.qpad-lock'));
   t.padTool().delete(pk);
   try { w.localStorage.removeItem(k); w.localStorage.removeItem(pk); } catch (e) {}
   t.padOn('');
@@ -14706,7 +14695,7 @@ check('June 2024 1F Q7 is one card with its grid under the pen in its words: no 
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? paper : undefined) });
   await wait(300);
   const d = w.document, t = w.__t, A = t.ACTIONS, bad = [];
-  if (typeof w.questionCard_ !== 'function' || !t.padKey || !A['pad-draw']) return ['questionCard_, padKey_ or pad-draw not reachable — NOT checked'];
+  if (typeof w.questionCard_ !== 'function' || !t.padKey) return ['questionCard_ or padKey_ not reachable — NOT checked'];
   const x = w.stuffItemsAll_().find(it => it.row && it.row.row_id === ID);
   if (!x) return ['the real ' + ID + ' did not come through the loader — NOT checked'];
   const parts = JSON.stringify(w.pageParts_(x));
@@ -15148,7 +15137,6 @@ check('every control on a question\'s pages is a tile, bar the options, the keys
     ['button.qp-opt[data-do="qp-choose"]', 'a multiple-choice option'],
     ['button.kp-key[data-do="kp-key"]', 'a key on the maths keypad'],
     ['span.qw[data-do="qw-tap"]', 'a word in a passage to ring'],
-    ['div.qpad-art[data-do="pad-draw"]', 'the picture under the pen, while it is off'],
     ['textarea.qp-ans-in[data-do="qp-ans"], input.qp-ans-in[data-do="qp-ans"]', 'the answer box'],
   ];
   const seen = {};
@@ -15169,13 +15157,15 @@ check('every control on a question\'s pages is a tile, bar the options, the keys
     });
   });
   /* THE ONES THE OWNER NAMED, which must be there for the rule above to mean anything. */
-  [['qp-check', 'Check'], ['qp-ai', 'Mark with AI'], ['pad-draw', 'the pen\'s lock'], ['pad-undo', 'Undo'],
+  [['qp-check', 'Check'], ['qp-ai', 'Mark with AI'], ['pad-undo', 'Undo'],
    ['pad-clear', 'Clear'], ['qa-show', 'Show the answer'], ['qa-hide', 'Hide the answer'],
    ['pad-tool:pen', 'the Pen'], ['pad-tool:ruler', 'the Ruler'], ['pad-tool:compass', 'the Compass'],
    ['fav', 'the star']].forEach(([act, what]) => {
     if (!seen[act]) bad.push('no ' + what + ' tile (' + act + ') was drawn anywhere in the family, so the rule was NOT asked of it');
   });
-  ['a multiple-choice option', 'a word in a passage to ring', 'the picture under the pen, while it is off', 'the answer box'].forEach(what => {
+  /* AND THE ONE 368 TOOK AWAY: the pen's lock -- the first touch on the figure draws. */
+  if (seen['pad-draw']) bad.push('the family still draws ' + seen['pad-draw'] + ' lock tile(s) (pad-draw)');
+  ['a multiple-choice option', 'a word in a passage to ring', 'the answer box'].forEach(what => {
     if (!exempted[what]) bad.push('the family drew no ' + what + ', so its exception was NOT exercised');
   });
   /* AND THE ONE THE OWNER TOOK AWAY: *"there doesnt need to be a scroll down tile on questions"* (8 Oct). */
@@ -21543,9 +21533,7 @@ const ansCards_ = (w, tag) => {
 };
 const ansType_ = (w, el, text) => { el.value = text; el.dispatchEvent(new w.Event('input', { bubbles: true })); };
 const ansStroke_ = (w, c, pts) => {
-  const A = w.__t.ACTIONS;
-  const lock = c.pad().querySelector('.qpad-lock');
-  if (lock && !c.pad().classList.contains('is-drawing')) A['pad-draw'](lock);
+  /* NO LOCK TO PRESS FIRST (368): the pointerdown on the ink gives the pad the pen. */
   const ink = c.pad().querySelector('.qpad-ink');
   ink.getBoundingClientRect = () => ({ left: 0, top: 0, width: 340, height: 340, right: 340, bottom: 340, x: 0, y: 0 });
   const Ev = w.PointerEvent || w.MouseEvent;
@@ -21553,7 +21541,6 @@ const ansStroke_ = (w, c, pts) => {
   fire('pointerdown', pts[0][0], pts[0][1]);
   pts.slice(1).forEach(p => fire('pointermove', p[0], p[1]));
   fire('pointerup', pts[pts.length - 1][0], pts[pts.length - 1][1]);
-  A['pad-draw'](c.pad().querySelector('.qpad-lock'));
 };
 const ansNeed_ = w => ['questionCard_', 'ansStore_', 'answersPush_', 'answersPull_', 'ansSavedSay_', 'ansRead_']
   .filter(n => typeof w[n] !== 'function').concat(typeof (w.__t || {}).padWrap === 'function' ? [] : ['padWrap_']);
@@ -23386,7 +23373,7 @@ check('a wrong PIN empties the PIN box, focuses it and marks it, with one toast 
   return bad;
 });
 
-check('the PIN box is not a password the iPad keeps, and handles that signed in here are chips that fill the box — never a PIN', async () => {
+check('the PIN box is not a password the iPad keeps, and nothing about who signed in is kept or offered on the device (383)', async () => {
   const reply = b => b.action === 'verifyLogin' ? Object.assign({ success: true }, ANS_ADA) : { success: true, messages: [] };
   const bad = [];
   /* WHERE THE BROWSER CAN DRAW DOTS ON TEXT (Safari, Chrome): a text box, so Safari has no password to keep. */
@@ -23397,15 +23384,15 @@ check('the PIN box is not a password the iPad keeps, and handles that signed in 
   const pin = d.getElementById('in-pin');
   if (!pin) return ['no PIN box on the account column'];
   if (pin.type !== 'text' || !pin.classList.contains('pin-dots')) bad.push('where dots can be drawn the PIN box is type=' + pin.type + ' — a password field is what Safari offers to keep in the iCloud Keychain');
-  const want = { autocomplete: 'off', maxlength: '8', pattern: '[0-9]*', enterkeyhint: 'go', inputmode: 'numeric' };
+  const want = { autocomplete: 'one-time-code', maxlength: '8', pattern: '[0-9]*', enterkeyhint: 'go', inputmode: 'numeric' };
   Object.keys(want).forEach(a => { if (pin.getAttribute(a) !== want[a]) bad.push('the PIN box has ' + a + '=' + JSON.stringify(pin.getAttribute(a)) + ', wanted ' + JSON.stringify(want[a])); });
   /* AND WHERE IT CANNOT, A PASSWORD BOX STILL NOT OFFERED TO THE KEYCHAIN. */
   const b2 = boot({ reply, before: win => { win.CSS = { supports: () => false }; } });
   await wait(300);
   b2.w.__t.USER(null); b2.w.__t.go('account', false, true); b2.w.paint('account');
   const pin2 = b2.w.document.getElementById('in-pin');
-  if (!pin2 || pin2.type !== 'password' || pin2.getAttribute('autocomplete') !== 'off') bad.push('without dots the PIN box is ' + (pin2 && pin2.type) + ' autocomplete=' + (pin2 && pin2.getAttribute('autocomplete')) + ' — wanted password, off');
-  /* SIGNED IN BY HANDLE AND PIN: the handle is remembered, the PIN is not, anywhere. */
+  if (!pin2 || pin2.type !== 'password' || pin2.getAttribute('autocomplete') !== 'one-time-code') bad.push('without dots the PIN box is ' + (pin2 && pin2.type) + ' autocomplete=' + (pin2 && pin2.getAttribute('autocomplete')) + ' — wanted password, one-time-code');
+  /* SIGNED IN BY HANDLE AND PIN: neither is remembered, anywhere (383). */
   d.getElementById('in-name').value = 'ada_kind7';
   pin.value = ['4', '8', '2', '6'].join('');
   t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
@@ -23413,61 +23400,59 @@ check('the PIN box is not a password the iPad keeps, and handles that signed in 
   if (!sent.some(b => b.action === 'verifyLogin')) return bad.concat(['signing in posted nothing']);
   const all = []; for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); all.push(k + '=' + w.localStorage.getItem(k)); }
   if (all.some(x => /4826/.test(x))) bad.push('THE PIN IS WRITTEN ON THE DEVICE: ' + all.filter(x => /4826/.test(x)).join(' | '));
-  if (w.localStorage.getItem('familyHandles') !== '["ada_kind7"]') bad.push('the handle was not remembered: ' + w.localStorage.getItem('familyHandles'));
+  if (all.some(x => /ada_kind7/.test(x) && !/^familyUser=/.test(x))) bad.push('the handle is kept on the device for next time: ' + all.filter(x => /ada_kind7/.test(x) && !/^familyUser=/.test(x)).join(' | '));
   if (/"answers"|"submissions"|"favourites"/.test(String(w.localStorage.getItem('familyUser')))) bad.push('the sign-in reply’s per-person extras were kept in familyUser for thirty days');
-  /* SIGNED OUT, THE CHIP IS THERE; TAPPING IT FILLS THE BOX AND PUTS THE CARET IN THE PIN. */
+  /* SIGNED OUT, THE BOX IS EMPTY AND NO NAME IS OFFERED. */
   t.ACTIONS.signout(d.createElement('button'));
   t.go('account', false, true); w.paint('account');
-  const chip = d.querySelector('#s-account [data-do="handle-pick"][data-h="ada_kind7"]');
-  if (!chip) return bad.concat(['signed out, there is no chip for the handle that signed in here']);
-  t.ACTIONS['handle-pick'](chip);
-  if (d.getElementById('in-name').value !== 'ada_kind7') bad.push('the chip filled the box with ' + JSON.stringify(d.getElementById('in-name').value));
-  if (d.activeElement !== d.getElementById('in-pin')) bad.push('after the chip the caret is not in the PIN box');
-  if (d.getElementById('in-pin').value) bad.push('the chip filled the PIN');
-  if (!chip.closest('.hchip').classList.contains('is-on')) bad.push('the chip tapped is not lit, so nothing on the card says whose account the PIN is for');
-  const drop = d.querySelector('#s-account [data-do="handle-forget"][data-h="ada_kind7"]');
-  if (!drop) bad.push('the chip has no ✕ to forget it');
-  else {
-    t.ACTIONS['handle-forget'](drop);
-    if (d.querySelector('#s-account [data-do="handle-pick"]')) bad.push('✕ left the chip on the card');
-    if (JSON.parse(w.localStorage.getItem('familyHandles') || '[]').length) bad.push('✕ did not forget the handle on the device');
-  }
+  if (d.querySelector('#s-account .hchips, #s-account [data-do="handle-pick"]')) bad.push('signed out, the card offers handles that signed in here');
+  const nm = d.getElementById('in-name');
+  if (!nm || nm.value || nm.hasAttribute('placeholder')) bad.push('signed out, the sign-in box is not empty: ' + JSON.stringify(nm && (nm.value || nm.getAttribute('placeholder'))));
   return bad;
 });
 
-/* ---------- NO EXAMPLE IN THE SIGN-IN BOX; THE ADMIN'S OWN NAME WHERE THIS DEVICE KNOWS IT § */
-check('the sign-in box has no example; on a device an admin signed in on, it shows what the admin signs in with', async () => {
+/* ---------- THE SIGN-IN BOX STAYS BLANK, EVEN AFTER AN ADMIN (383): no example, no remembered name. */
+check('the sign-in box has no example and no remembered name, even on a device an admin signed in on', async () => {
   const ADMIN = { name: 'Test Admin', personId: 'P1', role: 'admin', roles: ['admin'], token: 'tok-P1', handle: 'test_admin1' };
-  let who = ADMIN;
-  const reply = b => b.action === 'verifyLogin' ? Object.assign({ success: true }, who) : { success: true, messages: [] };
-  const { w } = boot({ reply });
+  const reply = b => b.action === 'verifyLogin' ? Object.assign({ success: true }, ADMIN) : { success: true, messages: [] };
+  const { w } = boot({ reply, before: win => { win.localStorage.setItem('familyHandles', '["old_one1"]'); win.localStorage.setItem('familyAdminHint', '{"s":"old@example.com","h":"old_one1"}'); } });
   await wait(300);
   const t = w.__t, d = w.document, bad = [];
+  if (w.localStorage.getItem('familyHandles') || w.localStorage.getItem('familyAdminHint')) bad.push('the old remembered names were not wiped from the device');
   const box = () => { t.go('account', false, true); w.paint('account'); return d.getElementById('in-name'); };
   t.USER(null);
   if (!box()) return ['no sign-in box on the account column'];
-  if (box().hasAttribute('placeholder')) bad.push('a fresh device\'s sign-in box still shows an example: ' + JSON.stringify(box().getAttribute('placeholder')));
-  if (/ada@x\.com|ada_kind7/.test(d.getElementById('s-account').innerHTML)) bad.push('the old example is still on the card');
-  const signIn = async (name, pin) => {
-    box().value = name; d.getElementById('in-pin').value = pin;
-    t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
-    await wait(300);
-    t.ACTIONS.signout(d.createElement('button'));
-  };
-  await signIn('admin@example.com', '4826');
-  if (box().getAttribute('placeholder') !== 'admin@example.com') bad.push('after an admin signed in by address the box says ' + JSON.stringify(box().getAttribute('placeholder')));
-  who = ANS_ADA;
-  await signIn('ada_kind7', '1239');
-  if (box().getAttribute('placeholder') !== 'admin@example.com') bad.push('a child signing in replaced the admin\'s name with ' + JSON.stringify(box().getAttribute('placeholder')));
-  const all = []; for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); all.push(k + '=' + w.localStorage.getItem(k)); }
-  if (all.some(x => /4826|1239/.test(x))) bad.push('A PIN IS WRITTEN ON THE DEVICE: ' + all.filter(x => /4826|1239/.test(x)).join(' | '));
-  const drop = d.querySelector('#s-account [data-do="handle-forget"][data-h="test_admin1"]');
-  if (!drop) bad.push('the admin has no chip to forget');
-  else {
-    t.ACTIONS['handle-forget'](drop);
-    if (box().hasAttribute('placeholder')) bad.push('✕ on the admin\'s chip left their name in the box: ' + JSON.stringify(box().getAttribute('placeholder')));
-  }
+  const blank = when => { if (box().hasAttribute('placeholder') || box().value) bad.push(when + ' the sign-in box shows ' + JSON.stringify(box().getAttribute('placeholder') || box().value)); };
+  blank('on a fresh device');
+  if (/old_one1|old@example/.test(d.getElementById('s-account').innerHTML)) bad.push('an old remembered name is on the card');
+  box().value = 'admin@example.com'; d.getElementById('in-pin').value = '4826';
+  t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
+  await wait(300);
+  t.ACTIONS.signout(d.createElement('button'));
+  blank('after an admin signed in and out,');
+  if (/test_admin1|admin@example/.test(d.getElementById('s-account').innerHTML)) bad.push('the admin\'s name is offered on the card');
   return bad;
+});
+
+/* ---------- NO FIELD ANYWHERE SUGGESTS (383): every box drawn on every screen is quiet. */
+check('every input and textarea on every screen asks the browser and password managers not to suggest', async () => {
+  const { w } = boot({});
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  const look = where => [].forEach.call(d.querySelectorAll('input,textarea'), el => {
+    const ac = el.getAttribute('autocomplete');
+    const why = [];
+    if (ac !== 'off' && ac !== 'one-time-code') why.push('autocomplete=' + ac);
+    if (el.getAttribute('autocorrect') !== 'off') why.push('autocorrect');
+    if (el.getAttribute('data-lpignore') !== 'true' || !el.hasAttribute('data-1p-ignore')) why.push('password-manager ignore');
+    if (el.hasAttribute('list')) why.push('list=' + el.getAttribute('list'));
+    if (why.length) bad.push(where + ': ' + (el.id || el.className || el.tagName) + ' — ' + why.join(', '));
+  });
+  const tabs = ['feed', 'booking', 'shop', 'stuff', 'res', 'account', 'tools', 'settings'];
+  t.USER(null);
+  for (const id of tabs) { try { t.go(id, false, true); w.paint(id); } catch (e) {} await wait(20); look(id); }
+  if (d.querySelectorAll('datalist').length) bad.push(d.querySelectorAll('datalist').length + ' datalist(s) drawn');
+  return bad.slice(0, 20);
 });
 
 check('signing in brings the submissions, stars, family and answers with the reply, before the payload', async () => {
@@ -24396,7 +24381,7 @@ function movedWorld3_() {
   return b;
 }
 /* SIGNED IN AS ELLA, THE APP OPEN, AND THE `myProfile` IT ASKED AT OPEN HELD until `release()`. */
-async function heldProfileOpen_(b, chips) {
+async function heldProfileOpen_(b) {
   const signed = b.post({ action: 'verifyLogin', email: 'ej2345', name: 'ej2345', pin: '0000' });
   if (!signed.success) throw new Error('she could not sign in on the real backend');
   let release, held = null;
@@ -24406,8 +24391,7 @@ async function heldProfileOpen_(b, chips) {
     return b.post(body);
   };
   const { w, errs } = boot({ payload: b.get({ token: signed.token }), reply,
-    before: win => { win.localStorage.setItem('familyUser', JSON.stringify(signed));
-                     if (chips) win.localStorage.setItem('familyHandles', JSON.stringify(chips)); } });
+    before: win => { win.localStorage.setItem('familyUser', JSON.stringify(signed)); } });
   for (let k = 0; k < 80 && !w.__t; k++) await wait(100);
   if (!w.__t) throw new Error('the app did not finish loading');
   for (let k = 0; k < 60 && !held; k++) await wait(100);
@@ -24416,48 +24400,6 @@ async function heldProfileOpen_(b, chips) {
 }
 const serverCell_ = (b, pid, col) => JSON.parse(b.ev('JSON.stringify(String(read(TAB.people).rows.find(r => r.person_id === '
   + JSON.stringify(pid) + ').' + col + ' || ""))'));
-const chipsOf_ = w => { try { return JSON.parse(w.localStorage.getItem('familyHandles') || '[]'); } catch (e) { return ['(unreadable)']; } };
-
-check('a child who signs in on the family iPad with her moved handle: its chip becomes the new one, so the next tap says nothing', async () => {
-  let b;
-  try { b = movedWorld3_(); } catch (e) { return ['the real backend could not be built — ' + e.message]; }
-  const { w } = boot({ payload: b.get({}), reply: body => b.post(body),
-    before: win => win.localStorage.setItem('familyHandles', JSON.stringify(['ab3456', 'ella_kind42'])) });
-  for (let k = 0; k < 80 && !w.__t; k++) await wait(100);
-  const t = w.__t, d = w.document;
-  if (!t) return ['the app did not finish loading'];
-  await wait(300);
-  t.go('account', false, true); await wait(150);
-  const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
-  if (!name || !pin) return ['there is no sign-in card, so the old chip was NOT asked about'];
-  name.value = 'ella_kind42'; pin.value = '0000';
-  t.ACTIONS['do-signin'](d.querySelector('#s-account [data-do="do-signin"]'));
-  for (let k = 0; k < 40 && !t.whoami(); k++) await wait(100);
-  await wait(400);
-  const u = t.whoami() || {};
-  if (u.personId !== 'P-EJ') return ['the old handle did not sign her in, so the chip was NOT asked about — ' + JSON.stringify(u.personId)];
-  const chips = chipsOf_(w);
-  return chips.indexOf('ella_kind42') !== -1 || chips.indexOf('ej2345') === -1 || chips.indexOf('ab3456') === -1
-    ? ['after signing in by her old handle the device offers ' + JSON.stringify(chips) + ' — the name-bearing chip stays on the shared iPad, and tapping it says "Your handle has changed" every time'] : [];
-});
-check('a phone that learns a moved handle from myProfile swaps the old chip for the new one in its place', async () => {
-  let b;
-  try { b = movedWorld3_(); } catch (e) { return ['the real backend could not be built — ' + e.message]; }
-  const signed = b.post({ action: 'verifyLogin', email: 'ej2345', name: 'ej2345', pin: '0000' });
-  if (!signed.success) return ['she could not sign in on the real backend — ' + JSON.stringify(signed).slice(0, 160)];
-  const stale = Object.assign(JSON.parse(JSON.stringify(signed)), { handle: 'ella_kind42' });
-  const { w } = boot({ payload: b.get({ token: signed.token }), reply: body => b.post(body),
-    before: win => { win.localStorage.setItem('familyUser', JSON.stringify(stale));
-                     win.localStorage.setItem('familyHandles', JSON.stringify(['cd4567', 'ella_kind42', 'ab3456'])); } });
-  for (let k = 0; k < 80 && !w.__t; k++) await wait(100);
-  const t = w.__t;
-  if (!t) return ['the app did not finish loading'];
-  for (let k = 0; k < 40 && (t.whoami() || {}).handle !== 'ej2345'; k++) await wait(100);
-  if ((t.whoami() || {}).handle !== 'ej2345') return ['the phone never took the moved handle from myProfile, so the chip was NOT asked about'];
-  const chips = chipsOf_(w);
-  return JSON.stringify(chips) !== JSON.stringify(['cd4567', 'ej2345', 'ab3456'])
-    ? ['the phone calls her @ej2345 but the device\'s chips are ' + JSON.stringify(chips) + ' — wanted the old one replaced where it was'] : [];
-});
 check('a myProfile asked at open and answered after a friend is added keeps the new friend', async () => {
   let b, o;
   try { b = movedWorld3_(); o = await heldProfileOpen_(b); } catch (e) { return [e.message]; }
@@ -25417,7 +25359,7 @@ check('a chosen book of the Bible is fetched by the builder before any card of i
 });
 
 /* ---------- EVERY PAPER HAS A HEALTH SCORE, AND EVERYBODY SEES IT (docs/history/354) § */
-check('every paper has a health score: its cards wear it, Health · Ready narrows to Ready papers, and its tile lists what is wrong — for everybody', async () => {
+check('every paper has a health score on its tile and nowhere else — no tag, no door, no finder question — for everybody (383)', async () => {
   const base = { active: 'True', subject: 'Maths', document_type: 'Past paper', key_stage: 'KS4', level: 'GCSE',
                  pages_checked: 'True', company: 'Edexcel', exam_board: 'Edexcel' };
   const R_ = o => Object.assign({}, base, o);
@@ -25454,39 +25396,21 @@ check('every paper has a health score: its cards wear it, Health · Ready narrow
     if (!hx || !hy) { bad.push(who + ': the fixture papers did not come through the loader into Find'); continue; }
     /* ---------- THE TAG, ON THE CARD ---------- */
     host.innerHTML = w.questionCard_(hx, 0);
-    const tag = host.querySelector('.qcard-tags .qtag[data-tag="health"]');
+    const tag = host.querySelector('.qcard-tags [data-f="health"], .qcard-tags [data-f="answerable"], .qcard-tags [data-tag="health"]');
     const hxh = w.healthOf_(hx);
     if (!hxh || hxh.band !== 'Rough') bad.push(who + ': HX scores ' + (hxh ? hxh.pct + '% ' + hxh.band : 'nothing') + ' — three faults on 76 marks must be below Ready');
-    if (!tag) bad.push(who + ' sees no health tag on a card of HX');
-    else if (!hxh || tag.textContent !== hxh.band) bad.push(who + ': the card\'s health tag says ' + JSON.stringify(tag.textContent) + ', wanted the band alone, ' + (hxh && hxh.band));
+    /* NOT A TAG SINCE 383: the band is on the Health tile, never in the card's row. */
+    if (tag) bad.push(who + ' sees a health tag on a card of HX: ' + JSON.stringify(tag.textContent));
+    if (/\b(Ready|Usable|Rough)\b/.test((host.querySelector('.qcard-tags') || {}).textContent || '')) bad.push(who + ': a health band is in HX\'s tag row');
     /* NO PERCENTAGE IN ANY TAG: a tag is a word the finder can pick, and nobody picks `99%` (355). */
     const pct = [...host.querySelectorAll('.qtag')].filter(x => /%/.test(x.textContent));
     if (pct.length) bad.push(who + ': a tag holds a percentage: ' + pct.map(x => x.textContent).join(', '));
-    host.innerHTML = w.questionCard_(hy, 0);
-    const tagY = host.querySelector('.qcard-tags .qtag[data-tag="health"]');
-    if (!tagY || tagY.textContent !== 'Ready') bad.push(who + ': a card of the clean paper HY wears ' + JSON.stringify(tagY ? tagY.textContent : '(no tag)') + ', wanted "Ready"');
-    /* ---------- THE ROW UNDER THE QUESTION, AND NOT A QUESTION OF ITS OWN ---------- */
-    /* WALKED TO THE END over the two papers alone, every question passed with "Doesn't matter": Health
-       splits that list two ways at full coverage, so if the funnel would ever ask it, it asks it here. */
-    const fixture = all.filter(x => x.row && /^H[XY]-/.test(String(x.row.row_id || '')));
-    const walked = [];
-    for (let i = 0; i < 40; i++) {
-      const f = w.nextFacet(fixture);
-      if (!f) break;
-      walked.push(f.field);
-      t.STUFF().filters.push({ field: f.field, any: true });
-    }
-    if (walked.indexOf('health') !== -1) bad.push(who + ': the funnel ASKS Health (' + walked.join(' → ') + ') — it must only be offered, never put in front of a folder');
+    /* ---------- NOT A QUESTION EITHER: no door, no facet ---------- */
     t.STUFF().filters = [];
     host.innerHTML = w.stuffQuestion();
-    const door = host.querySelector('.tag-door[data-field="health"]');
-    const ready = door && door.querySelector('[data-do="facet-pick"][data-field="health"][data-value="Ready"]');
-    if (!door || !ready || !door.querySelector('[data-value="Rough"]')) { bad.push(who + ' is not offered Health · Ready and Health · Rough under the question'); continue; }
-    A['facet-pick'](ready);
-    const left = w.stuffFiltered();
-    const papers = new Set(left.map(x => x.row && x.row.paper_id).filter(Boolean));
-    if (!left.length || !left.every(x => (w.healthOf_(x) || {}).band === 'Ready')) bad.push(who + ': Health · Ready left ' + left.length + ' item(s), not all Ready: ' + [...papers].join(', '));
-    if (papers.has('HX')) bad.push(who + ': Health · Ready still holds the Rough paper HX');
+    if (host.querySelector('.tag-door[data-field="health"], .tag-door[data-field="answerable"]')) bad.push(who + ' is offered a health door under the first question — health has its own rule again');
+    const fset = w.facetList().filter(f => f.field === 'health' || f.field === 'answerable');
+    if (fset.length) bad.push(who + ': health is a finder question again: ' + fset.map(f => f.field).join(', '));
     /* ---------- THE TILE UNDER A CHOSEN PAPER, AND THE LIST BEHIND IT ---------- */
     t.STUFF().filters = [{ field: 'paperId', value: 'HX' }];
     host.innerHTML = w.paperEnd_(w.stuffFiltered());
@@ -25494,14 +25418,14 @@ check('every paper has a health score: its cards wear it, Health · Ready narrow
     if (!tile) { bad.push(who + ' sees no Health tile under the chosen paper HX'); continue; }
     A['paper-health'](tile);
     const lines = [...d.querySelectorAll('#sheet-body .faith-list li')].map(li => li.textContent.replace(/\s+/g, ' ').trim());
-    /* THE SHEET'S HEAD: the band as its tag, the score as the words after it. */
+    /* THE SHEET'S HEAD: the band, then the score. */
     const sum = d.querySelector('#sheet-body .health-sum');
-    const sTag = sum && sum.querySelector('.qtag[data-tag="health"]');
+    const sTag = sum && sum.querySelector('b');
     if (!sTag || sTag.textContent !== hxh.band || !new RegExp('\\b' + hxh.pct + '%').test(sum.textContent)) bad.push(who + ': HX\'s Health sheet heads ' + JSON.stringify(sum && sum.textContent.replace(/\s+/g, ' ').trim()) + ' — wanted the [' + hxh.band + '] tag and ' + hxh.pct + '% in words');
     const want = ['Q2 — no answer', 'Q3 — needs a picture, none drawn', 'Paper — marks add to 76 of 80'];
     if (lines.join(' | ') !== want.join(' | ')) bad.push(who + ': HX\'s Health list says ' + JSON.stringify(lines) + ', wanted exactly ' + JSON.stringify(want));
     /* AND THE SECOND SCORE UNDER IT: HX Q2 has no answer, so it cannot be marked here. */
-    const aSum = d.querySelector('#sheet-body .able-sum .qtag[data-tag="answerable"]');
+    const aSum = d.querySelector('#sheet-body .able-sum b');
     const aLines = [...d.querySelectorAll('#sheet-body .able-list li')].map(li => li.textContent.replace(/\s+/g, ' ').trim());
     if (!aSum || !hxh.able || aSum.textContent !== hxh.able.band || aLines.join(' | ') !== 'Q2 — no answer the app can check') bad.push(who + ': HX\'s Answerable part says ' + JSON.stringify(aLines) + ' under ' + JSON.stringify(aSum && aSum.textContent));
     t.STUFF().filters = [];

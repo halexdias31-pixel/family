@@ -1218,10 +1218,7 @@ on('new-post', () => {
   <label class="field"><span>caption</span>
     <input id="post-cap" placeholder="One line about it"${draftAttr_('post', 'cap')} value="${esc(draftVal_('post', 'cap'))}"></label>
   <label class="field"><span>where</span>
-    <input id="post-loc" placeholder="Colliers Wood Library" list="known-places"${draftAttr_('post', 'loc')} value="${esc(draftVal_('post', 'loc'))}">
-    <datalist id="known-places">
-      ${(DATA.venues || []).map(v => `<option value="${esc(v.title)}">`).join('')}
-    </datalist></label>
+    <input id="post-loc" placeholder="Colliers Wood Library"${draftAttr_('post', 'loc')} value="${esc(draftVal_('post', 'loc'))}"></label>
   <label class="field"><span>more, if you want it</span>
     <textarea id="post-body" placeholder="Optional"${draftAttr_('post', 'body')}>${esc(draftVal_('post', 'body'))}</textarea></label>
   <label class="field"><span>poll, if you want one</span>
@@ -1384,10 +1381,7 @@ on('post-edit', el => {
     <label class="field"><span>more</span>
       <textarea id="pe-body"${draftAttr_('post-edit', p.id + ':body', p.body || '')}>${esc(draftVal_('post-edit', p.id + ':body', p.body || ''))}</textarea></label>
     <label class="field"><span>where</span>
-      <input id="pe-loc" value="${esc(draftVal_('post-edit', p.id + ':loc', p.location || ''))}" list="known-places"${draftAttr_('post-edit', p.id + ':loc', p.location || '')}>
-      <datalist id="known-places">
-        ${(DATA.venues || []).map(v => `<option value="${esc(v.title)}">`).join('')}
-      </datalist></label>
+      <input id="pe-loc" value="${esc(draftVal_('post-edit', p.id + ':loc', p.location || ''))}"${draftAttr_('post-edit', p.id + ':loc', p.location || '')}></label>
     ${/* The date is editable because the feed is ORDERED by it. A post that arrived in the folder
           with the wrong timestamp sits in the wrong place for ever otherwise, and the only way to
           fix it was to open the spreadsheet. */''}

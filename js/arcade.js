@@ -440,13 +440,26 @@ function aheadWidgetJobs_() {
       if (!pages) pages = [...host.querySelectorAll(':scope > .page')];
       const pos = pages.indexOf(slot.closest('.page'));
       const dp = pos < 0 ? 0 : Math.abs(logIndex_(col, pos) - (PAGE[col] || 0));
-      out.push({ key: 'widget:' + col + ':' + id, kind: 'widget', d: aheadDist_(col, null) + Math.min(15, dp) / 16,
+      out.push({ key: 'widget:' + col + ':' + id, kind: 'widget', d: aheadDist_(col, null) + Math.min(15, dp) / 16, pre: !!w.pure,
         run: () => aheadDrawWidget_(w, col) });
     });
   });
   return out;
 }
 AHEAD_KINDS.push(aheadWidgetJobs_);
+
+/* ARRIVING AT A CARD STILL UNDER ITS LOADER: its widget is drawn before the slide, so the card comes in at the height it will keep — not short, then a jump (382). */
+function widgetsBeforeSlide_(col) {
+  if (WIDGET_COLS.indexOf(col) === -1) return;
+  widgetsOn_(col).forEach(w => {
+    const id = String(w.id);
+    if (typeof w.start !== 'function' || (w.stop && typeof w.draw !== 'function')) return;
+    if (TOOLS_ON.some(e => String(e.w.id) === id)) return;
+    const slot = slotOn_(col, id);
+    if (!slot || !slot.getAttribute('aria-busy') || slot.NOAHEAD || widgetDistance_(w, col) !== 0) return;
+    aheadDrawWidget_(w, col);
+  });
+}
 
 
 /* ---------- A WIDGET IS A SCREEN, NOT AN ITEM IN A LIST § */

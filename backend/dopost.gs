@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-20-f-email-cards";
+const DOPOST_VERSION = "2026-10-20-i-email-dark";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the

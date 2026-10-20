@@ -2246,10 +2246,8 @@ function discountRow_(L) {
         opt('%', '% off teaching', BOOKING.discType === '%')}${opt('£', '£ off total', BOOKING.discType === '£')}</select>
       <input ${at('discValue')} type="number" inputmode="decimal" min="0" step="0.01"
         value="${esc(BOOKING.discValue)}" placeholder="How much" aria-label="How much">
-      <input ${at('discCode')} type="text" list="bk-disc-codes"
+      <input ${at('discCode')} type="text"
         value="${esc(BOOKING.discCode)}" placeholder="Code or reason" aria-label="Code or reason">
-      <datalist id="bk-disc-codes">${(DATA.promoCodes || []).map(c => opt(c.code,
-        (c.type === '%' ? c.value + '%' : money(c.value)) + (c.off ? ' · ' + c.off : ''), false)).join('')}</datalist>
       <select ${at('discBy')} aria-label="Who absorbs it">${
         opt('Business', 'Business absorbs', BOOKING.discBy !== 'Shared with tutor')}${
         opt('Shared with tutor', 'Shared with tutor', BOOKING.discBy === 'Shared with tutor')}</select>

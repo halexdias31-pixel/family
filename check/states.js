@@ -308,14 +308,14 @@ const STATES = {
         const side = e => { const r = e.getBoundingClientRect(); return Math.min(r.width, r.height); };
         const taps = [...pad.querySelectorAll('.qpad-bar [data-do]')];
         return !page.querySelector('.qp-ans, .q-drawt') && !/on the next page/i.test(page.textContent)
-               && !pad.classList.contains('is-drawing') && !!pad.querySelector('.qpad-lock') && !!pad.querySelector('.qpad-undo')
+               && !pad.classList.contains('is-drawing') && !pad.querySelector('.qpad-lock') && !!pad.querySelector('.qpad-undo')
                && !!pad.querySelector('.qpad-clear') && !!art && !art.classList.contains('qsurf')
                && taps.length >= 3 && taps.every(e => side(e) >= 43.5)
                && [...pane.children].every(k => !k.style.zoom)
                && art.getBoundingClientRect().width >= Math.min(FIG_FLOOR, art.parentElement.getBoundingClientRect().width) - 0.5
                && !/redrawn|not the paper.s own|drawn (by|for) @family|your marks from|yours from/i.test(pad.textContent);
       },
-      wants: 'June 2024 1F Q7 as one card: its ask and its own grid under the pen, lock, Undo and Clear at 44px, no box, no Draw tile, no "on the next page", nothing drawn smaller whole, the grid no narrower than its floor',
+      wants: 'June 2024 1F Q7 as one card: its ask and its own grid under the pen and ready for the first touch (no lock, 368), its tools, Undo and Clear at 44px, no box, no Draw tile, no "on the next page", nothing drawn smaller whole, the grid no narrower than its floor',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A STEM'S MAP UNDER A PART'S OWN PEN, AND ITS BOX AT THE FOOT § */
     { name: 'a stem\'s map under a part\'s own pen, with its box at the foot',
@@ -556,10 +556,10 @@ const STATES = {
         const pad = [...document.querySelectorAll('#s-stuff .page.on .qcard .qpad')].find(p => p.getAttribute('data-k') === window.__toolKey);
         const lit = pad && [...pad.querySelectorAll('.qpad-tool.on')].map(b => b.getAttribute('data-tool')).join(' ');
         return !!pad && pad.classList.contains('is-drawing') && lit === 'compass'
-               && !!pad.querySelector('.qpad-tool[data-tool="ruler"]') && !!pad.querySelector('.qpad-lock.on')
+               && !!pad.querySelector('.qpad-tool[data-tool="ruler"]') && !pad.querySelector('.qpad-lock')
                && pad.querySelectorAll('.qpad-g path').length === 2;
       },
-      wants: 'Q4\'s figure under the pen on its card, armed, with Pen, Ruler and Compass in its bar, the Compass lit, and a ruler\'s line and a compass\'s ring on it',
+      wants: 'Q4\'s figure under the pen on its card, holding the pen, with Pen, Ruler and Compass in its bar, the Compass lit, and a ruler\'s line and a compass\'s ring on it',
       leave: () => {
         try { localStorage.removeItem(window.__toolKey); } catch (e) {}
         PAD_ON = ''; PAD_TOOL.delete(window.__toolKey);
@@ -2377,19 +2377,6 @@ const STATES = {
       },
       wants: 'the register sheet with the no-email tick ticked, a whole 44px row under the email box',
       leave: () => { closeSheet(); } },
-    /* ---------- SIGNING IN ON A SHARED iPAD § */
-    { name: 'the handles signed in on this device, as chips',
-      only: () => typeof USER !== 'undefined' && !USER,
-      enter: () => {
-        localStorage.setItem('familyHandles', JSON.stringify(['ada_kind7', 'maximilian_steady42']));
-        paint('account'); paintPager('account', true); goPage('account', 0, true);
-      },
-      expect: () => {
-        const b = [...document.querySelectorAll('#s-account .hchip button')];
-        return b.length === 4 && b.every(x => x.offsetHeight >= 44) ? 4 : 0;
-      },
-      wants: 'two remembered handles as chips over the email box, each with its \u2715, every one a 44px target',
-      leave: () => { try { localStorage.removeItem('familyHandles'); } catch (e) {} paint('account'); paintPager('account', true); } },
     { name: 'signing in, waiting for the answer',
       only: () => typeof USER !== 'undefined' && !USER,
       enter: () => {

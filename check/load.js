@@ -11,6 +11,8 @@ const ROOT = path.join(__dirname, '..');
 /* OVERRIDABLE, like every other harness's port: parallel runs in worktrees share one machine. */
 const PORT = Number(process.env.LOAD_PORT || 8153);
 const DETAIL = process.argv.includes('--detail');
+/* --shifts: only the shift rule below; --no-shifts: only the timings. */
+const SHIFTS_ONLY = process.argv.includes('--shifts'), NO_SHIFTS = process.argv.includes('--no-shifts');
 
 /* ---------- THE NETWORK, AS A PHONE HAS IT § */
 const PHONE = { offline: false, latency: 80, downloadThroughput: 1.6e6 / 8, uploadThroughput: 750e3 / 8 };
@@ -144,11 +146,138 @@ async function visit(page, cdp, label, note) {
   return { label, ...marks, loaded, reqs: reqs.length, sent: got.length, same: same.length, bytes };
 }
 
+/* ---------- NOTHING MOVES ONCE IT IS DRAWN (docs/history/382) § */
+function SHIFT_READER() {
+  const S = window.__shift = { moves: [], key: '', armed: false };
+  const mc = new MessageChannel();
+  const cards = host => [...host.querySelectorAll(':scope > .page.on, :scope > .page.on .card')].slice(0, 8);
+  const vis = r => r.height > 4 && r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth;
+  let seen = new Map();
+  mc.port1.onmessage = () => {
+    try {
+      if (typeof AT !== 'undefined' && typeof PAGE !== 'undefined') {
+        const sp = document.getElementById('splash');
+        const key = AT + ':' + (PAGE[AT] || 0);
+        if (key !== S.key || (sp && !sp.classList.contains('done')) || S.arrive) { S.key = key; seen = new Map(); }
+        else {
+          const host = document.getElementById('s-' + AT);
+          if (host && !(typeof SWIPE !== 'undefined' && SWIPE.live)) cards(host).forEach((el, i) => {
+            const r = el.getBoundingClientRect();
+            if (!vis(r)) return;
+            const was = seen.get(el);
+            if (!was) { seen.set(el, r.top); return; }
+            if (Math.abs(r.top - was) > 2 && S.moves.length < 40) {
+              S.moves.push(AT + ' ' + (i ? 'card ' + i : 'page') + ' ' + Math.round(was) + '→' + Math.round(r.top) + 'px at ' + Math.round(performance.now()) + 'ms');
+              seen.set(el, r.top);
+            }
+          });
+        }
+        if (S.arrive) {
+          const host = document.getElementById('s-' + S.arrive.col);
+          const pg = host && host.querySelector(':scope > .page.on');
+          const r = pg && pg.getBoundingClientRect();
+          if (r && vis(r)) S.arrive.tops.push(r.top);
+        }
+      }
+    } catch (e) { S.err = String(e && e.message); }
+    requestAnimationFrame(() => mc.port2.postMessage(0));
+  };
+  requestAnimationFrame(() => mc.port2.postMessage(0));
+  /* EACH FROM THE COLUMN OPENED ON, so no arrival is helped by the one before it drawing its neighbours. */
+  S.go = async (col, home) => {
+    if (AT !== home) { go(home, false, true); await new Promise(r => setTimeout(r, 700)); }
+    S.arrive = { col, tops: [] };
+    go(col);
+    await new Promise(r => setTimeout(r, 1500));
+    const t = S.arrive.tops; S.arrive = null;
+    if (t.length < 3) return { col, err: t.length + ' frame(s) read' };
+    const end = t[t.length - 1];
+    return { col, travel: Math.round(Math.max(...t.map(y => Math.abs(y - end)))), frames: t.length };
+  };
+}
+
+async function shifts(browser) {
+  const found = [];
+  const FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture.json'), 'utf8');
+  for (const [W, H] of [[390, 844], [320, 568], [412, 915]]) {
+    const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    const page = await ctx.newPage();
+    const cdp = await ctx.newCDPSession(page);
+    await cdp.send('Network.enable');
+    await cdp.send('Network.emulateNetworkConditions', PHONE);
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: CPU });
+    await cdp.send('Network.setCacheDisabled', { cacheDisabled: false });
+    /* SIGNED IN AS AN ADMIN, WHO SEES EVERY WIDGET; THE BUILDER HELD, so every arrival is one made before it got there. */
+    await page.addInitScript(() => {
+      try { localStorage.setItem('familyUser', JSON.stringify({ name: 'Sam Student', personId: 'P9', role: 'admin', roles: ['admin'] })); } catch (e) {}
+      if (!window.__noHold) window.__aheadHold = true;
+    });
+    await page.addInitScript(SHIFT_READER);
+    await page.addInitScript(payload => {
+      const real = window.fetch;
+      window.fetch = function (u, o) {
+        if (String((u && u.url) || u).indexOf('script.google.com') !== -1) {
+          return new Promise(done => setTimeout(() => done(new Response(payload, { status: 200, headers: { 'content-type': 'application/json' } })), 700));
+        }
+        return real.apply(this, arguments);
+      };
+    }, FIXTURE);
+    for (const visit of ['cold', 'warm']) {
+      const where = `${W}x${H} ${visit}`;
+      try {
+        if (visit === 'cold') await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'commit' });
+        else await page.reload({ waitUntil: 'commit' });
+        await page.waitForFunction(() => typeof LOADED !== 'undefined' && LOADED && typeof FIRST_PAINT_DONE !== 'undefined' && FIRST_PAINT_DONE, null, { timeout: 120000, polling: 100 });
+        await page.evaluate(() => document.fonts && document.fonts.ready);
+        await new Promise(r => setTimeout(r, 2500));
+        const front = await page.evaluate(() => window.__shift.moves.splice(0));
+        front.forEach(m => found.push(`${where}, the column it opened on: ${m}`));
+        const home = await page.evaluate(() => AT);
+        const cols = await page.evaluate(() => ['shop', 'tools', 'games', 'saved'].filter(c => TABS.some(t => t.id === c)));
+        if (cols.length < 4) found.push(`${where}: only ${cols.join(', ')} of shop, tools, games, saved are columns — nothing was asked of the rest`);
+        for (const col of cols) {
+          const a = await page.evaluate(([c, h]) => window.__shift.go(c, h), [col, home]);
+          if (a.err) found.push(`${where}, arriving at ${col}: ${a.err} — nothing was measured`);
+          else if (a.travel > 2) found.push(`${where}, arriving at ${col}: the card travelled ${a.travel}px up or down while the slide brought it in`);
+          console.log(`   ${where.padEnd(14)} arriving at ${col.padEnd(6)} ${a.err || a.travel + 'px of vertical travel in ' + a.frames + ' frames'}`);
+        }
+        /* AND SAVED AFTER A STAR ON TOOLS: the star makes Saved taller while it is off the glass, and the arrival draws it. */
+        const st = await page.evaluate(async h => {
+          go('tools', false, true);
+          await new Promise(r => setTimeout(r, 700));
+          const k = (allWidgets().find(w => w.kind === 'tool' && w.pure && !isFav(WIDGET_KEY(w))) || {}).id;
+          if (!k) return { err: 'no unstarred tool to star' };
+          toggleFav('w:' + k, 'widget');
+          markStale_(TABS.map(t => t.id).filter(id => id !== AT));
+          const a = await window.__shift.go('saved', 'tools');
+          toggleFav('w:' + k, 'widget');
+          markStale_(TABS.map(t => t.id).filter(id => id !== AT));
+          go(h, false, true);
+          return a;
+        }, home);
+        if (st.err) found.push(`${where}, Saved after a star: ${st.err} — nothing was measured`);
+        else if (st.travel > 2) found.push(`${where}, arriving at saved after a star on tools: the card travelled ${st.travel}px up or down while the slide brought it in`);
+        console.log(`   ${where.padEnd(14)} saved after a star ${st.err || st.travel + 'px of vertical travel in ' + st.frames + ' frames'}`);
+        const after = await page.evaluate(() => window.__shift.moves.splice(0));
+        after.forEach(m => found.push(`${where}, after arriving: ${m}`));
+        const err = await page.evaluate(() => window.__shift.err);
+        if (err) found.push(`${where}: the reader threw — ${err}`);
+      } catch (e) { found.push(`${where}: the run threw — ${String(e && e.message || e).slice(0, 160)}`); }
+    }
+    await ctx.close();
+  }
+  console.log('\nNOTHING MOVED ONCE DRAWN — the column opened on, and shop, tools, games and saved arrived at before the builder'
+            + (found.length ? ' — NOT TRUE:\n' + found.map(f => '   ' + f).join('\n') : ': true at 390, 320 and 412, cold and warm'));
+  if (found.length) process.exitCode = 1;
+}
+
 (async () => {
   const srv = await serve();
   const exe = ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
                '/opt/pw-browsers/chromium/chrome-linux/chrome'].find(p => fs.existsSync(p));
   const browser = await chromium.launch(exe ? { executablePath: exe } : {});
+  if (!NO_SHIFTS) await shifts(browser);
+  if (SHIFTS_ONLY) { await browser.close(); srv.close(); return; }
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await ctx.newPage();
   const FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture.json'), 'utf8');

@@ -254,3 +254,15 @@ top level, before `early`
      chosen fails this run. A load whose page never marked a pick is not a pass either. */
 ```
 
+### ---------- NOTHING MOVES ONCE IT IS DRAWN (docs/history/382)
+
+top level, before `SHIFT_READER`
+
+```
+/* ---------- NOTHING MOVES ONCE IT IS DRAWN (docs/history/382) ------------------------------------------
+   In the page before any app script, read after each frame is painted. FRONT: every card on the column in
+   front, from the moment the splash goes until the run ends, while nobody navigates — a top that moves more
+   than 2px is a shift. ARRIVE: the card a slide brings in, from its first frame on the glass to the end of
+   the slide and a second after — the slide carries it across, so its top must not travel more than 2px. */
+```
+

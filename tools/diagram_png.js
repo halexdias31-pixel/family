@@ -8,6 +8,8 @@ const OUT = path.join(REPO, 'data', 'diagrams');
 const arg = k => { const a = process.argv.find(x => x === '--' + k || x.startsWith('--' + k + '=')); return a ? (a.split('=')[1] || true) : null; };
 const FORCE = !!arg('force');
 const SCALE = Number(arg('scale')) || 2;
+/* THE SCREEN'S LOOK BY DEFAULT — light lines on the card's #0b0b0b, opaque, as the site draws a figure (20 Oct, 380); `--palette=paper` for cream. */
+const PAPER = arg('palette') === 'paper';
 
 /* THE NAME — written once here and once in the backend (`digestDiagram_`), and check-diagram-png.js holds
    the two to each other over every drawing. */
@@ -51,14 +53,14 @@ async function main() {
     .find(p => fs.existsSync(p));
   const browser = await chromium.launch(exe ? { executablePath: exe } : {});
   const css = fs.readFileSync(path.join(REPO, 'style.css'), 'utf8');
-  /* THE CARD'S WRAPPER, AND PAPER UNDER IT. The page, the card and the sheet are all the paper, so what is
-     behind a transparent drawing is cream; the figure is exactly the drawing's width, with nothing round it. */
+  /* THE CARD'S WRAPPER AND ITS GROUND: the card's black and the screen's ink, so `currentColor` lines come out light; nothing transparent, so no client shows a box. */
+  const bg = PAPER ? 'var(--paper)' : '#0b0b0b', fg = PAPER ? 'var(--paper-ink)' : 'var(--ink)';
   const page0 = `<!doctype html><html><head><meta charset="utf-8"><style>${css}</style><style>
-    html, body { background: var(--paper) !important; margin: 0 !important; padding: 0 !important; max-width: none !important; }
-    .qcard.qfig { background: var(--paper) !important; color: var(--paper-ink) !important; border: 0 !important;
+    html, body { background: ${bg} !important; margin: 0 !important; padding: 0 !important; max-width: none !important; }
+    .qcard.qfig { background: ${bg} !important; color: ${fg} !important; border: 0 !important;
                   padding: 0 !important; margin: 0 !important; border-radius: 0 !important; box-shadow: none !important; display: inline-block; }
-    .qcard.qfig .qsheet { color: var(--paper-ink); }
-    .qcard.qfig figure { margin: 0 !important; padding: 0 !important; line-height: 0; display: inline-block; }
+    .qcard.qfig .qsheet { color: ${fg}; }
+    .qcard.qfig figure { margin: 0 !important; padding: 0 !important; line-height: 0; display: inline-block; background: ${bg}; }
     .qcard.qfig figure svg { display: block; height: auto; }
   </style></head><body><div class="qcard qfig"><div class="qsheet"><figure id="fig"></figure></div></div></body></html>`;
   const LANES = 4;
@@ -74,7 +76,7 @@ async function main() {
         f.style.width = width + 'px';
         f.querySelectorAll(':scope > svg').forEach(s => { s.style.width = width + 'px'; s.style.maxWidth = 'none'; });
       }, [svg, w]);
-      await (await page.$('#fig')).screenshot({ path: path.join(OUT, h + '.png') });
+      await (await page.$('#fig')).screenshot({ path: path.join(OUT, h + '.png'), omitBackground: false });
       if (++done % 200 === 0) console.log('  ' + done + ' of ' + todo.length);
     }
     await page.close();

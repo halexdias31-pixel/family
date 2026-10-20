@@ -627,14 +627,7 @@ const FACETS = [
     of: x => x.cost == null ? ''
            : x.cost === 0 ? 'Free'
            : x.cost <= (USER ? USER.credits || 0 : 0) ? 'Can afford' : '' },
-  /* ---------- HOW READY A PAPER IS, AS AN ANSWER YOU CAN PICK § */
-  { field: 'health', tag: true,    label: 'Faithful', tagOnly: true,
-    orderOf: v => HEALTH_BANDS.findIndex(b => b[0] === v),
-    of: x => { const h = healthOf_(x); return h ? h.band : ''; } },
-  /* THE SECOND HEALTH: can every part be answered here and marked without AI (library.js, `ableOf_`). */
-  { field: 'answerable', tag: true, label: 'Answerable', tagOnly: true,
-    orderOf: v => HEALTH_BANDS.findIndex(b => b[0] === v),
-    of: x => { const h = healthOf_(x); return h && h.able ? h.able.band : ''; } },
+  /* `health` AND `answerable` WERE HERE (383): a paper's two scores live on its Health tile alone — see `RETIRED_FACETS`. */
 ];
 
 /* ---------- THE FENCE: A CLOSED KIND'S QUESTIONS, AND ONLY ITS QUESTIONS § */
@@ -675,6 +668,8 @@ const facetFromSheet_ = f => ({
 
 /* FIELDS WHOSE CODE FACET WAS DELETED ON PURPOSE, AND WHICH THE SHEET MAY NOT RESURRECT. § */
 const RETIRED_FACETS = {
+  health: 'a paper\'s Faithful score is on its Health tile, not a tag or a question (383): asked, it was the one question after Paper.',
+  answerable: 'a paper\'s Answerable score is on its Health tile, not a tag or a question (383).',
   paper: 'the "Printed?" facet was deleted for reading a literal — and the `paper` COLUMN it would '
        + 'now read means which paper of the set (1, 2, 3), so the sheet\'s old label sits over '
        + 'completely different data. Use `Paper`, which asks the same thing by name.',
@@ -4735,12 +4730,6 @@ function padAspect_(x, svg) {
 /* AND WHAT A PAD ELEMENT SAYS IT IS. */
 const padAspectOf_ = pad => Number(pad && pad.getAttribute && pad.getAttribute('data-aspect')) || 1;
 
-/* ---------- WHAT THE CONTROL SAYS, IN ONE PLACE § */
-const PAD_TAP = 'Hold the card still and draw on this';
-const padLockFace_ = pen => ({ icon: pen ? 'lock' : 'unlock',
-  label: pen ? 'Done drawing' : 'Lock it to draw', note: pen ? 'the card moves again' : 'holds the card still',
-  on: !!pen, pressed: !!pen });
-
 /* ---------- THE PEN'S BAR IS A ROW OF TILES § */
 /* ---------- AND WHAT THE PEN DRAWS WITH, WHERE THE QUESTION ASKS FOR MORE THAN A PEN § */
 const PAD_TOOL_FACE = {
@@ -4759,8 +4748,7 @@ const padToolsOf_ = (x, svg) => {
 
 /* TWO GROUPS IN THE ROW, so it breaks BETWEEN them and never inside one. § */
 const padBar_ = (pen, tools, tool) => `<div class="qpad-bar tile-row" role="toolbar" aria-label="Drawing">
-      <span class="qpad-group">${tile_(Object.assign({ act: 'pad-draw', cls: 'qpad-lock', tone: 'lead' }, padLockFace_(pen)))}${
-      tools.length > 1 ? tools.map(t => padToolTile_(t, pen && t === tool)).join('') : ''}</span>
+      ${tools.length > 1 ? `<span class="qpad-group">${tools.map(t => padToolTile_(t, t === tool)).join('')}</span>` : ''}
       <span class="qpad-group">${tile_({ icon: 'undo', label: 'Undo', note: 'the last mark', act: 'pad-undo', cls: 'qpad-undo' })}${
       tile_({ icon: 'bin', label: 'Clear', note: 'every mark', act: 'pad-clear', cls: 'qpad-clear' })}</span>
     </div>`;
@@ -4785,8 +4773,8 @@ function padWrap_(x, svg, foot) {
   const zm = pen && PAD_ZOOM.has(k) ? PAD_ZOOM.get(k) : null;
   return `<div class="qpad${pen ? ' is-drawing' : ''}${zm ? ' is-zoomed' : ''}" data-k="${esc(k)}" data-aspect="${ka}"${
     under.length ? ` data-under="${esc(under.map(padKey_).join(' '))}"` : ''}${zm ? ` style="--pad-zoom: ${padZoomVar_(zm)}; --pad-zoom-s: ${zm.s.toFixed(4)}"` : ''}>
-    <div class="qpad-art"${pen ? '' : ` data-do="pad-draw" title="${esc(PAD_TAP)}"`}>${svg}
-      <svg class="qpad-ink"${pen ? ' data-noswipe' : ''} viewBox="0 0 340 340" preserveAspectRatio="none" aria-hidden="true">
+    <div class="qpad-art">${svg}
+      <svg class="qpad-ink" data-noswipe viewBox="0 0 340 340" preserveAspectRatio="none" aria-hidden="true">
         ${under.length ? usesInk_(was, ka) : ''}
         <g class="qpad-g" vector-effect="non-scaling-stroke">${marks.map(st =>
           `<path vector-effect="non-scaling-stroke" d="${padPath_(st, ka)}"/>`).join('')}</g>
@@ -5528,22 +5516,10 @@ function padArm_(pad, on) {
   if (!pad) return;
   if (!on && pad.getAttribute('data-k')) padZoomOff_(pad.getAttribute('data-k'));
   pad.classList.toggle('is-drawing', !!on);
-  const ink = pad.querySelector('.qpad-ink');
-  if (ink) { if (on) ink.setAttribute('data-noswipe', ''); else ink.removeAttribute('data-noswipe'); }
-  /* THE PICTURE IS A DOOR ONLY WHILE THE PEN IS OFF. § */
-  const art = pad.querySelector('.qpad-art');
-  if (art) {
-    if (on) { art.removeAttribute('data-do'); art.removeAttribute('title'); }
-    else { art.setAttribute('data-do', 'pad-draw'); art.setAttribute('title', PAD_TAP); }
-  }
-  /* `.qpad-lock` RATHER THAN THE ACTION, because the art carries the same action when the pen is off and `querySelector` would hand back whichever comes first in § */
-  const b = pad.querySelector('.qpad-lock');
-  if (b) tileSet_(b, padLockFace_(!!on));
-  /* AND THE TOOL IN HAND, lit only while the pen is on -- the same rule `padBar_` draws by, so a
-     repaint and a press cannot disagree about which tile is lit. */
+  /* AND THE TOOL IN HAND, lit whether or not this pad was the last touched -- the rule `padBar_` draws by. */
   const tool = padToolNow_(pad);
   pad.querySelectorAll('.qpad-tool').forEach(t => {
-    const lit = !!on && t.getAttribute('data-tool') === tool;
+    const lit = t.getAttribute('data-tool') === tool;
     tileSet_(t, { on: lit, pressed: lit });
   });
 }
@@ -5721,6 +5697,8 @@ function padBusy_(k) {
   for (const c of PAD_TOUCH.values()) if (c.onInk && c.k === on) return true;
   return false;
 }
+/* A PEN IS IN USE WHILE A STROKE OR A CONTACT IS ON IT, not merely for being the last pad touched: with no lock (368) nothing else ever lets go of it. */
+const padInUse_ = k => !!k && k === PAD_ON && (!!PAD_GO || PAD_TOUCH.size > 0);
 /* ---------- UNDO AND CLEAR UNDER A RESTING HAND § */
 const padRested_ = k => padBusy_(k) || (PAD_RESTED.get(k) || 0) > performance.now();
 
@@ -6765,6 +6743,8 @@ document.addEventListener('pointerdown', e => {
   const ink = e.target && e.target.closest && e.target.closest('.qpad-ink');
   const pad = ink && ink.closest('.qpad');
   const k = pad ? pad.getAttribute('data-k') || '' : '';
+  /* THE FIRST TOUCH DRAWS (368): a contact on a pad's ink with nothing else down takes the pen to that pad; there is no lock. */
+  if (pad && k && k !== PAD_ON && !PAD_TOUCH.size && !PAD_GO && !PAD_TWO.size) padTake_(pad, k);
   if (!pad || !PAD_ON || k !== PAD_ON) {
     if (PAD_ON && e.pointerType === 'touch') padLand_(e, null, '');
     return;
@@ -6863,18 +6843,13 @@ document.addEventListener('visibilitychange', e => { if (document.visibilityStat
 window.addEventListener('pagehide', padAway_);
 window.addEventListener('blur', padAway_);
 
-/* THE BAR'S TILES. `Lock it to draw` is a MODE and not an action, so it says which it is with `aria-pressed` and a class — see the note at the top of this block § */
-on('pad-draw', (el) => {
-  /* TWO DOORS, ONE HANDLER. § */
-  const pad = el.closest('.qpad'); if (!pad) return;
-  const k = pad.getAttribute('data-k') || '';
-  const want = PAD_ON !== k;
+/* WHICH PAD TAKES THE PEN: the one a finger, a stylus or a mouse lands on, or whose tool is chosen. One at a time, so 338's palm and two-finger rules have one ink to ask about. */
+function padTake_(pad, k) {
   [].slice.call(document.querySelectorAll('.qpad')).forEach(p => padArm_(p, false));
-  PAD_ON = want ? k : '';
-  if (want) padArm_(pad, true);
-  /* AND EVERY CONTACT BUT THE ONE DRAWING IS FORGOTTEN, either way: § */
+  PAD_ON = k;
+  padArm_(pad, true);
   padForgetOthers_();
-});
+}
 function padForgetOthers_() {
   const keep = PAD_GO ? PAD_GO.c : null;
   PAD_TOUCH.forEach((c, id) => { if (c !== keep) PAD_TOUCH.delete(id); });
@@ -6883,17 +6858,12 @@ function padForgetOthers_() {
   PAD_DUE = null;
 }
 
-/* ---------- PEN, RULER, COMPASS: CHOOSING ONE IS ALSO LOCKING THE CARD § */
+/* ---------- PEN, RULER, COMPASS: CHOOSING ONE ALSO GIVES THIS PAD THE PEN (368: there is no lock; the first touch does the same) */
 on('pad-tool', (el) => {
   const pad = el.closest('.qpad'); if (!pad) return;
   const k = pad.getAttribute('data-k') || '';
   PAD_TOOL.set(k, el.getAttribute('data-tool') || 'pen');
-  if (PAD_ON !== k) {
-    [].slice.call(document.querySelectorAll('.qpad')).forEach(p => padArm_(p, false));
-    PAD_ON = k;
-    padForgetOthers_();
-  }
-  padArm_(pad, true);
+  if (PAD_ON !== k) padTake_(pad, k); else padArm_(pad, true);
 });
 
 on('pad-undo', (el) => {
@@ -8626,12 +8596,11 @@ function healthTiles_(items) {
     note: 'Faithful ' + h.pct + '% · Answerable ' + (h.able ? h.able.pct : 0) + '%', act: 'paper-health', data: { pid: x.row.paper_id } })}</div>`;
 }
 function healthListHtml_(h, pid) {
-  /* THE BAND IS THE TAG, AS ON EVERY CARD -- the Health answer, [Ready] -- and the exact score is the
-     sentence after it: a tag is a word the finder can pick, and nobody picks `99%`. */
-  const head = `<p class="health-sum"><span class="qtag"${tagAttr_('health')}>${esc(h.band)}</span>
+  /* THE BAND, THEN THE EXACT SCORE. Not a tag since 383: health lives on this tile only. */
+  const head = `<p class="health-sum"><b>${esc(h.band)}</b>
     Faithful ${esc(h.pct + '%')} of its points pass &middot; ${h.questions} question${h.questions === 1 ? '' : 's'}${h.total != null ? ', ' + h.marks + ' of ' + h.total + ' marks' : ''}</p>`;
   const a = h.able || { pct: 0, band: '', fails: [] };
-  const able = `<p class="health-sum able-sum"><span class="qtag"${tagAttr_('answerable')}>${esc(a.band)}</span>
+  const able = `<p class="health-sum able-sum"><b>${esc(a.band)}</b>
     ${esc(a.pct + '%')} answerable here and marked without AI</p>` + (a.fails.length
     ? `<ul class="health-list able-list">${a.fails.map(f => `<li><b class="health-ref">${esc(f.ref)}</b> — ${esc(f.why)}</li>`).join('')}</ul>`
     : '<p class="health-none">Every part can be answered and marked.</p>');
@@ -9508,9 +9477,6 @@ const TAG_OF = {
   /* ---------- THE BIBLE'S SIX, IN KINDS THAT ALREADY HAVE COLOURS § */
   bibleTranslation: 'board', bibleTestament: 'level', bibleGroup: 'topic',
   bibleBook: 'paper', bibleChapter: 'paper', bibleVerse: 'paper',
-  /* A PAPER'S HEALTH IS NOT ANY OTHER KIND — it is about the transcription, not the paper — so it has
-     a token of its own, `--tag-health`. */
-  health: 'health', answerable: 'answerable',
 };
 const tagOf_ = field => TAG_OF[field] || '';
 const tagAttr_ = field => tagOf_(field) ? ` data-tag="${tagOf_(field)}"` : '';

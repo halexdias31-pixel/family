@@ -817,92 +817,46 @@ for (const who of VISITORS) {
         await new Promise(r => setTimeout(r, 650));
         return document.querySelector(window.__penSel) ? { on: true } : null;
       }, { paper: PEN_PAPER, row: PEN_ROW });
-      const box = !draw ? null : await page.evaluate(async () => {
-        /* ---------- `.qpad-lock`, BECAUSE THE PICTURE CARRIES THE SAME ACTION NOW § */
-        const pad0 = document.querySelector(window.__penSel);
-        const btn = pad0 && pad0.querySelector('.qpad-lock');
-        const art = pad0 && pad0.querySelector('.qpad-art');
-        const ink = pad0 && pad0.querySelector('.qpad-ink');
-        if (!btn || !ink) return null;
-        const r = ink.getBoundingClientRect(), b = btn.getBoundingClientRect();
-        return { at: AT, page: PAGE.stuff, door: !!(art && art.getAttribute('data-do')),
-                 ink: { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2),
-                        w: Math.round(r.width), h: Math.round(r.height) },
-                 btn: { x: Math.round(b.left + b.width / 2), y: Math.round(b.top + b.height / 2) } };
+      /* THE PICTURE'S INK, AND A PLACE ON THE SAME CARD OFF IT (the small print under the bar), where a swipe starts. */
+      const measure = () => page.evaluate(() => {
+        const pad = document.querySelector(window.__penSel);
+        const ink = pad && pad.querySelector('.qpad-ink'), note = pad && pad.querySelector('.qpad-note');
+        if (!ink || !note) return null;
+        const r = ink.getBoundingClientRect(), n = note.getBoundingClientRect();
+        return { at: AT, page: PAGE.stuff, lock: !!pad.querySelector('.qpad-lock, [data-do="pad-draw"]'),
+                 ink: { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2), w: Math.round(r.width), h: Math.round(r.height) },
+                 off: { x: Math.round(n.left + Math.min(n.width, 200) / 2), y: Math.round(n.top + n.height / 2) } };
       });
+      const box = !draw ? null : await measure();
       if (!box || box.ink.w < 80) {
         swipes.push({ from: 'stuff · the pen on a diagram', dir: 'touch across', ok: false,
-                      got: box ? 'the pad was ' + box.ink.w + 'px wide' : (draw ? 'touching Draw brought no pen over the figure on that card' : 'no Draw tile on that card'),
-                      want: 'a question card whose Draw brings its figure under the pen' });
+                      got: box ? 'the pad was ' + box.ink.w + 'px wide' : (draw ? 'no pen with its small print on that card' : 'no card'),
+                      want: 'a question card with its figure under the pen' });
       } else {
-        /* A TAP IS `touch(x, y, 0, 0)` AND NOT `el.click()`. § */
-        /* ---------- A DRAG ON THE PICTURE IS A SWIPE, AND IT MUST NOT ARM THE PEN § */
-        const armedByDrag = await (async () => {
-          if (!box.door) return 'the picture carries no action, so the only way to arm the pen is '
-                              + 'a button under the card — which is what the report was about';
-          const k0 = tabs.indexOf('stuff');
-          await touch(box.ink.x + 60, box.ink.y, -140, 0);
-          const r2 = await page.evaluate(() => ({ at: AT,
-            on: !!document.querySelector(window.__penSel + '.is-drawing') }));
-          if (r2.on) return 'a swipe beginning on the picture armed the pen';
-          if (k0 + 1 < tabs.length && r2.at !== tabs[k0 + 1])
-            return 'a swipe beginning on the picture did not change column — it landed on ' + r2.at;
-          await page.evaluate(x => go(x, false, true), 'stuff');
-          await page.waitForTimeout(420);
-          /* AND MEASURED AGAIN, because coming back places the column afresh. § */
-          const again = await page.evaluate(() => {
-            const pad = document.querySelector(window.__penSel);
-            const ink = pad && pad.querySelector('.qpad-ink'), btn = pad && pad.querySelector('.qpad-lock');
-            if (!ink || !btn) return null;
-            const r = ink.getBoundingClientRect(), b = btn.getBoundingClientRect();
-            return { ink: { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2), w: Math.round(r.width), h: Math.round(r.height) },
-                     btn: { x: Math.round(b.left + b.width / 2), y: Math.round(b.top + b.height / 2) } };
-          });
-          if (!again) return 'coming back to Find, the card was no longer on its drawing';
-          box.ink = again.ink; box.btn = again.btn;
-          return '';
-        })();
-        swipes.push({ from: 'stuff · a swipe beginning on the picture', dir: 'touch left',
-                      ok: !armedByDrag,
-                      got: armedByDrag || 'the column moved and the pen stayed off',
-                      want: 'the column moves and nothing is armed' });
-
-        /* THE PICTURE, NOT THE BUTTON, because the picture is the gesture people actually make and
-           the button is already covered by the press pass above. */
-        await touch(box.ink.x, box.ink.y, 0, 0);
-        const on = await page.evaluate(() => {
+        swipes.push({ from: 'stuff · the pen on a diagram', dir: 'look', ok: !box.lock,
+                      got: box.lock ? 'a lock tile is still drawn' : 'no lock', want: 'no lock: the first touch draws (368)' });
+        /* THE FIRST TOUCH DRAWS (368): a line of best fit dragged across the figure, nothing pressed first, inks and keeps the column. Scaled to the pad. */
+        await touch(box.ink.x - Math.round(box.ink.w * 0.35), box.ink.y + Math.round(box.ink.h * 0.3),
+                    Math.round(box.ink.w * 0.7), -Math.round(box.ink.h * 0.6));
+        const drew = await page.evaluate(() => {
           const pad = document.querySelector(window.__penSel);
-          return pad && pad.classList.contains('is-drawing')
-            && !!pad.querySelector('.qpad-ink[data-noswipe]')
-            && !pad.querySelector('.qpad-art[data-do]');
+          const k = pad && pad.getAttribute('data-k');
+          let n = 0;
+          try { n = (JSON.parse(localStorage.getItem(k) || '[]') || []).length; } catch (e) {}
+          return { at: AT, page: PAGE.stuff, strokes: n };
         });
-        swipes.push({ from: 'stuff · a tap on the picture', dir: 'tap', ok: on,
-                      got: on ? 'the pen is on, the pad is named and the picture is no longer a door'
-                              : 'the pen did not come on',
-                      want: 'the pen on' });
-        if (on) {
-          /* SCALED TO THE PAD, NOT IN FIXED PIXELS. § */
-          await touch(box.ink.x - Math.round(box.ink.w * 0.35), box.ink.y + Math.round(box.ink.h * 0.3),
-                      Math.round(box.ink.w * 0.7), -Math.round(box.ink.h * 0.6));
-          const drew = await page.evaluate(() => {
-            const pad = document.querySelector(window.__penSel);
-            const k = pad && pad.getAttribute('data-k');
-            let n = 0;
-            try { n = (JSON.parse(localStorage.getItem(k) || '[]') || []).length; } catch (e) {}
-            return { at: AT, page: PAGE.stuff, strokes: n };
-          });
-          swipes.push({ from: 'stuff · a line of best fit', dir: 'touch across',
-                        ok: drew.at === box.at && drew.page === box.page && drew.strokes >= 1,
-                        got: drew.at + ' page ' + drew.page + ', ' + drew.strokes + ' stroke(s) kept',
-                        want: box.at + ' page ' + box.page + ', 1 stroke(s) kept' });
-          await touch(box.btn.x, box.btn.y, 0, 0);
-          const k = tabs.indexOf('stuff');
-          if (k + 1 < tabs.length) {
-            await touch(box.ink.x, box.ink.y, -170, 0);
-            const off = await page.evaluate(() => AT);
-            swipes.push({ from: 'stuff · the same picture, pen off', dir: 'touch left',
-                          ok: off === tabs[k + 1], got: off, want: tabs[k + 1] });
-          }
+        swipes.push({ from: 'stuff · a line of best fit, the first touch', dir: 'touch across',
+                      ok: drew.at === box.at && drew.page === box.page && drew.strokes >= 1,
+                      got: drew.at + ' page ' + drew.page + ', ' + drew.strokes + ' stroke(s) kept',
+                      want: box.at + ' page ' + box.page + ', 1 stroke(s) kept' });
+        /* AND A SWIPE THAT STARTS OFF THE FIGURE, on the same card, still moves the column. */
+        const k = tabs.indexOf('stuff');
+        if (k + 1 < tabs.length) {
+          const b2 = (await measure()) || box;
+          await touch(b2.off.x + 60, b2.off.y, -170, 0);
+          const off = await page.evaluate(() => AT);
+          swipes.push({ from: 'stuff · the same card, off the figure', dir: 'touch left',
+                        ok: off === tabs[k + 1], got: off, want: tabs[k + 1] });
         }
       }
       /* THE CARD BACK ON ITS BOX FOR WHATEVER IS PRESSED NEXT, and nothing of this one left on the device. */

@@ -216,11 +216,11 @@ function digestRender_(L, P, week, look) {
     return {
       text: [hi, '', lead].concat(S0.lines, ['']).concat(Q.lines, [foot]).join('\n'),
       /* ONE TABLE THE WIDTH OF A PHONE, AT MOST 600 — the `width` for Outlook, which reads no max-width; every colour said, so a dark inbox inverts all of it or none (380). */
-      html: '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="' + ink.page + '" style="background:' + ink.page + '">'
-        + '<tr><td align="center" style="padding:12px 8px">'
-        + '<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px">'
-        + '<tr><td style="font-family:' + ink.mono + ';font-size:15px;line-height:1.5;color:' + ink.ink + ';text-align:left">'
-        + body + '</td></tr></table></td></tr></table>',
+      html: digestDarkDoc_(ink, '<table role="presentation" class="kb" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="' + ink.page + '" style="background:' + ink.page + '">'
+        + '<tr><td align="center" class="kb" bgcolor="' + ink.page + '" style="padding:12px 8px;background:' + ink.page + '">'
+        + '<table role="presentation" class="kb" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="' + ink.page + '" style="width:100%;max-width:600px">'
+        + '<tr><td class="kb" bgcolor="' + ink.page + '" style="font-family:' + ink.mono + ';font-size:15px;line-height:1.5;color:' + ink.ink + ';text-align:left">'
+        + body + '</td></tr></table></td></tr></table>'),
     };
   };
   let Q = digestQuestions_(items, DIGEST_WEEK_LIST_MAX, opts), m = make(Q);
@@ -244,6 +244,17 @@ function digestInk_() {
   return { page: '#000', pane: '#101010', paneLine: '#383838', card: '#0b0b0b', line: '#232323', ink: '#e6e6e6', dim: '#9a9a9a',
            faint: '#848484', chip: '#3d3d3d', gold: '#ffb454', right: '#3ddc84', wrong: '#ff5f56',
            paper: '#f4f1e8', paperInk: '#2b2620', mono: 'Menlo,Consolas,monospace' };
+}
+
+/* DARK EVERYWHERE (the owner, 20 Oct): said dark to every client, Outlook's [data-ogsb]/[data-ogsc] held; no Gmail-app gradient, which keeps the black but not the white words (380). */
+function digestDarkDoc_(ink, inner) {
+  const k = '.kb{background:' + ink.page + '}.kp{background:' + ink.pane + '}.kc{background:' + ink.card + '}';
+  return '<!DOCTYPE html><html lang="en" style="background:' + ink.page + '"><head><meta charset="utf-8">'
+    + '<meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark">'
+    + '<style>:root{color-scheme:dark;supported-color-schemes:dark}html,body{background:' + ink.page + '!important;color:' + ink.ink + '}' + k
+    + '[data-ogsb] .kb{background-color:' + ink.page + '!important}[data-ogsb] .kp{background-color:' + ink.pane + '!important}[data-ogsb] .kc{background-color:' + ink.card + '!important}'
+    + '[data-ogsc] .kb{color:' + ink.ink + '!important}</style></head>'
+    + '<body class="body" bgcolor="' + ink.page + '" style="margin:0;padding:0;background:' + ink.page + ';color:' + ink.ink + '">' + inner + '</body></html>';
 }
 
 /* HOW ONE QUESTION WENT, by the week's last word on it: right, part marks, not right, not marked — never how many goes it took (the owner, 20 Oct). */
@@ -325,7 +336,7 @@ function digestSummary_(items, days, lib, week) {
   const small = (label, text) => '<p style="margin:4px 0 0;font-size:13px;line-height:1.45;color:' + ink.ink + '">'
     + '<span style="color:' + ink.dim + '">' + label + '</span> ' + digestEsc_(text) + '</p>';
   /* THE SITE'S PANE — `.pane`, #101010 inside a faint rim, rounded — every fill said, so a dark inbox has nothing to invert into mud. */
-  const html = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="' + ink.pane + '" style="border:1px solid ' + ink.paneLine
+  const html = '<table role="presentation" class="kp" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="' + ink.pane + '" style="border:1px solid ' + ink.paneLine
     + ';border-radius:14px;margin:4px 0 16px"><tr><td style="padding:16px 14px">'
     /* A HEADING NOBODY SCROLLS PAST (the owner missed the first one, 20 Oct): the size of a title, then the topics before any figure. */
     + '<p style="margin:0 0 10px;font-size:19px;line-height:1.3;font-weight:bold;color:' + ink.gold + '">Summary of the week</p>'
@@ -386,7 +397,7 @@ function digestQuestions_(items, max, o) {
   const card = (it, inner, tags) => {
     const w = says.filter(x => x.id === it.how)[0] || says[says.length - 1];
     /* THE PANE IS THE CARD'S OWN BORDER — 10px of `.pane`'s #101010 round `.qcard`'s #0b0b0b, rounded — one table where the site has two boxes. */
-    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="' + ink.card + '" style="border:10px solid ' + ink.pane
+    return '<table role="presentation" class="kc" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="' + ink.card + '" style="border:10px solid ' + ink.pane
       + ';border-radius:14px;margin:0 0 14px"><tr><td style="padding:12px 11px">'
       + (tags ? '<div style="font-size:10px;line-height:24px;margin:0 0 8px">' + tags + '</div>' : '') + inner
       /* THE VERDICT IN WORDS AND ITS COLOUR, the summary's own; THEIR ANSWER in the site's answer box, paper ringed in that colour; the ANSWER as the Answers page sets it. */
@@ -1117,10 +1128,10 @@ function digestLibrary_(site) {
 const DIGEST_TAG_FACETS = [['kindLabel', ''], ['subject', 'subject'], ['documentType', 'type'], ['fiveLevel', 'level'], ['fiveMonth', 'sitting'],
   ['fiveDay', 'paper'], ['level', 'level'], ['keystage', 'level'], ['yearGroup', 'level'], ['bandValue', 'level'], ['examBoard', 'board'],
   ['tier', 'tier'], ['examYear', 'sitting'], ['examMonth', 'sitting'], ['paperId', 'paper'], ['qNumber', 'paper'], ['qPart', 'paper'],
-  ['qSub', 'paper'], ['marks', ''], ['needs', 'needs'], ['health', 'health'], ['answerable', 'answerable']];
+  ['qSub', 'paper'], ['marks', ''], ['needs', 'needs']];
 /* `[data-tag]`'s colours (style.css `--tag-*`); a facet with no kind wears the plain outline, `--chip-line` round `--dim`. */
 const DIGEST_TAG_INK = { paper: '#ff7b72', subject: '#3ddc84', level: '#6cb6ff', sitting: '#c8a2ff', tier: '#ff8fc4', board: '#4fd1c5',
-  type: '#c3e88d', topic: '#ff9e64', needs: '#f0f08a', health: '#cdb69c', answerable: '#cdb69c' };
+  type: '#c3e88d', topic: '#ff9e64', needs: '#f0f08a' };
 const DIGEST_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const DIGEST_ROMAN = /^(i{1,3}|iv|vi{0,3}|ix|xi{0,3})$/i;
 
@@ -1368,83 +1379,12 @@ function digestTagNeeds_(q, T) {
   if (digestLibTrue_(q.needs_print) || digestLibTrue_(q.print_required)) add('Printed sheet');
   return out;
 }
-/* `paperHealth_` (js/library.js) for one paper: Faithful (the paper reproduced) and Answerable (answered and marked here), each a band. */
-const DIGEST_HEALTH_HURT = { words: 1, answer: 0.5, picture: 0.6, described: 0.25, standin: 0.5, marks: 0.15 };
-const DIGEST_HEALTH_SPACE = ['grid-blank', 'fractions', 'boxes', 'long-method', 'lines', 'working', 'answer-space', 'table-blank'];
-const DIGEST_HEALTH_WORDED = ['explain', 'written', 'proof', 'annotate', 'drawing'];
-const digestHealthBand_ = pct => (pct >= 98 ? 'Ready' : pct >= 85 ? 'Usable' : 'Rough');
-function digestTagHealth_(pid, T) {
-  T.health = T.health || {};
-  if (pid in T.health) return T.health[pid];
-  const s = digestLibS_, num = digestLibNum_, yes = digestLibTrue_;
-  const text = h => s(h).replace(/<[^>]*>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ').replace(/\s+/g, ' ').trim();
-  const DRAWN = /<(svg|img|table)\b/i;
-  const drawn = q => !!(q && (s(q.diagram).trim() || s(q.images).trim() || DRAWN.test(s(q.html)) || DRAWN.test(s(q.lead))));
-  let d = {};
-  const qs = [], pres = [];
-  (T.rows[pid] || []).forEach(q => {
-    if (!q || !s(q.paper_id) || !digestLibOn_(q.active)) return;
-    const kind = s(q.kind).toLowerCase();
-    if (kind === 'document') d = q; else if (kind === 'preamble') pres.push(q); else qs.push(q);
-  });
-  if (!qs.length) return (T.health[pid] = null);
-  const fact = k => s(d[k]) || s((qs[0] || {})[k]);
-  const over = q => pres.filter(p => { const pq = s(p.question), ps = s(p.section); return pq ? pq === s(q.question) : (!ps || ps === s(q.section)); });
-  const hasPdf = !!(s(d.source_url) || yes(d.printable) || qs.some(q => s(q.source_url)));
-  const said = num(d.total_marks);
-  const gcseMaths = fact('exam_board') === 'Edexcel' && fact('subject') === 'Maths' && fact('key_stage') === 'KS4'
-    && fact('document_type') === 'Past paper' && (fact('tier') === 'Higher' || fact('tier') === 'Foundation');
-  const total = said > 0 ? said : (gcseMaths ? 80 : null);
-  const printsMarks = total != null || /paper/i.test(fact('document_type')) || qs.some(q => num(q.marks) > 0);
-  let points = 0, lost = 0, marked = 0, ableLost = 0;
-  qs.forEach(q => {
-    const m = num(q.marks), w = m > 0 ? m : 1;
-    if (m > 0) marked += m;
-    points += w;
-    const type = s(q.answer_type).toLowerCase();
-    /* `ableOf_`: a box the app gives it and a way to mark it with no AI. */
-    const choice = s(q.choices).trim() && s(q.choice_right).trim();
-    if (!(choice || s(q.accept).trim() || s(q.mark_words).trim() || s(q.cells).trim() || s(q.draw_answer).trim())) {
-      ableLost += w * (type === 'drawing' || type === 'annotate' ? 0.6 : yes(q.needs_print) || yes(q.print_required) ? 1 : 0.6);
-    }
-    const hurt = [], words = text(q.html) + ' ' + text(q.lead);
-    if (!words.trim()) hurt.push('words');
-    else if (yes(q.placeholder) || over(q).some(p => yes(p.placeholder))) hurt.push('standin');
-    const scheme = s(q.answer).trim();
-    if (DIGEST_HEALTH_WORDED.indexOf(type) !== -1 ? !scheme : !(scheme || s(q.accept).trim() || choice)) hurt.push('answer');
-    const fig = s(q.figure).trim(), figPic = !!fig && DIGEST_HEALTH_SPACE.indexOf(fig) === -1;
-    const saysPic = /\b(diagram|shown|table below|grid)\b|\b(the|this) graph\b|\bgraph (below|above|shows)\b/i.test(words);
-    if (figPic || saysPic) {
-      const gridOnly = !figPic && type === 'drawing' && !/\b(diagram|shown|graph|table below)\b/i.test(words);
-      const printed = (yes(q.needs_print) || yes(q.print_required)) && hasPdf;
-      const there = drawn(q) || over(q).some(drawn) || s(q.uses).trim() || gridOnly || printed;
-      if (!there) hurt.push(/\bFigure:/.test(s(q.html) + s(q.lead)) ? 'described' : 'picture');
-    }
-    if (printsMarks && !(m > 0)) hurt.push('marks');
-    let keep = 1;
-    hurt.forEach(h => { keep *= 1 - DIGEST_HEALTH_HURT[h]; });
-    lost += w * (1 - keep);
-  });
-  const nums = qs.map(q => s(q.question)).filter(t => /^\d+$/.test(t)).map(Number);
-  const seen = new Set(nums), top = nums.length ? Math.max.apply(null, nums) : 0;
-  let gaps = 0;
-  for (let n = 1; n <= top; n++) if (!seen.has(n)) gaps++;
-  const mean = seen.size ? points / seen.size : 1, short = total != null ? total - marked : 0;
-  let missing = 0;
-  if (gaps && !(total != null && short > 0)) missing += gaps * mean;
-  if (total != null && marked !== total) { if (short > 0) missing += short; else lost += Math.min(-short, Math.max(0, points - lost)); }
-  let pct = points + missing > 0 ? 100 * Math.max(0, points - lost) / (points + missing) : 0;
-  if (!(qs.some(q => s(q.pages_checked)) || !!s(d.pages_checked))) pct -= 1;
-  pct = Math.max(0, Math.floor(pct));
-  const ablePct = points > 0 ? Math.floor(100 * Math.max(0, points - ableLost) / points) : 0;
-  return (T.health[pid] = { band: digestHealthBand_(pct), able: digestHealthBand_(ablePct) });
-}
 
 /* EVERY TAG THE SITE'S CARD WEARS FOR THIS QUESTION ROW, in its order, each `{ kind, text }` — `tagRow_`'s walk and its one dedupe: § */
 function digestCardTags_(q, T) {
   if (!q || !T) return [];
   const it = digestTagItem_(q), pid = S(q.paper_id), five = digestTagFive_(q);
-  const lv = digestTagLevel_(it), split = digestTagSplit_(q, T), h = pid ? digestTagHealth_(pid, T) : null;
+  const lv = digestTagLevel_(it), split = digestTagSplit_(q, T);
   const marks = Number(digestLibS_(q.marks).replace(/[^0-9.-]/g, '')) || 0;
   const sameAs = v => { const k = digestSpell_(v); return k === 'standardstestingagency' ? 'sta' : k; };
   /* EACH FACET'S RAW ANSWERS (`facetOwn_`), then how its chip says one (`showOf`, `tagSay`). */
@@ -1461,7 +1401,6 @@ function digestCardTags_(q, T) {
     examYear: () => digestTagYear_(it, T), examMonth: () => digestTagMonth_(it, T),
     paperId: () => pid, qNumber: () => digestLibS_(q.question), qPart: () => split.part, qSub: () => split.sub,
     marks: () => (marks > 0 ? String(marks) : ''), needs: () => digestTagNeeds_(q, T),
-    health: () => (h ? h.band : ''), answerable: () => (h ? h.able : ''),
   };
   const say = {
     fiveDay: () => five.day + ' ' + five.month, paperId: () => digestTagPaper_(it, T), qNumber: v => 'Q' + v,
