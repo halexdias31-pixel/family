@@ -132,3 +132,11 @@ top level, before `where`
        it none, and the hold is that hand (review, 12 Oct: Reels and Find on the boot's loader at 1280). */
 ```
 
+### OPENED, LEFT ALONE FOR 30s, THEN THE FURTHEST COLUMN AND EVERY WIDGET COLUMN JUMPED TO (docs/history/382):
+
+top level, before `where`
+
+```
+/* OPENED, LEFT ALONE FOR 30s, THEN THE FURTHEST COLUMN AND EVERY WIDGET COLUMN JUMPED TO (docs/history/382): the owner's "wait 30 seconds then scroll to chess, it still hasn't loaded". A fresh load whose backend answers at LATE_MS, as a slow sheet does. At PRE_MS, the payload not yet in, every widget that reads no facts must already be drawn on every column but the one in front (NOT DRAWN BEFORE THE PAYLOAD). At IDLE_MS the furthest column from the one opened on, then Games, Tools, Saved and the Shop, are each jumped to with no slide: the frames read for 1.2s must show no loader on the glass, and nothing on that column may still be waiting (NOT DRAWN) — the reels widget's clip excepted, as in the reader. */
+```
+

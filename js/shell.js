@@ -191,6 +191,7 @@ function go(id, remember, instant) {
   /* OR IF IT IS STALE — something changed while you were elsewhere. See the note on `STALE`. */
   const painted = !screenHasMarkup_(AT) || !!STALE[AT];
   if (painted) paint(AT);
+  if (was !== AT && typeof widgetsBeforeSlide_ === 'function') widgetsBeforeSlide_(AT);
   /* Anything that needs to start running once its markup exists — a canvas, a board, a clock.
      After paint, because none of it can find an element that has not been drawn yet. */
   /* A hoisted FUNCTION, not a const. § */
@@ -987,7 +988,7 @@ function placeGrid(instant, drag) {
   tabs.forEach((id, i) => {
     const host = $('s-' + id);
     if (!host) return;
-    hosts.push({ id: id, i: i, host: host });
+    hosts.push({ id: id, i: i, host: host, wasFront: host.classList.contains('is-front') });
 
     /* A SCREEN IS THE COLUMN, and the column is what moves. § */
     host.classList.remove('hidden');
@@ -1061,10 +1062,15 @@ function placeGrid(instant, drag) {
   });
   /* PUT BACK TO THE GLASS ONCE THE SLIDE HAS ENDED — see `trailEnd_`. */
   if (wider && !drag && typeof afterSlide_ === 'function') afterSlide_(trailEnd_, 'trail');
-  hosts.forEach(({ id, i, host, shift, c, pg }) => {
+  hosts.forEach(({ id, i, host, shift, c, pg, wasFront }) => {
     const dx = i - ti;
     const at = c.at;
     const x = dx * stepX + dxPx;
+    /* A COLUMN ARRIVING ON THE PAGE IT WAS PLACED FOR, WHOSE CARD CHANGED HEIGHT SINCE, TAKES ITS NEW HEIGHT NOW: the slide carries it across, never down (382). */
+    if (!instant && !drag && !wasFront && host.PLACED_P === at) {
+      const was = colPlaced_(host);
+      if (was && Math.abs(shift - was[1]) > 0.5) colShiftNow_(host, shift - was[1]);
+    }
 
     /* EACH AXIS ITS OWN CLOCK — see `colWrite_`. The finger's axis follows the finger; the other
        keeps whatever slide it is in the middle of. */
@@ -1562,7 +1568,7 @@ function afterSlide_(fn, key) {
 }
 
 /* AHEAD: WHAT A FLICK CAN REACH IS DRAWN BEFORE IT GETS THERE § */
-const AHEAD = { open: false, opened: 0, input: 0, booked: 0, timer: 0, dir: { x: 0, y: {} }, stuck: new Set(), running: false };
+const AHEAD = { open: false, pre: false, opened: 0, input: 0, booked: 0, timer: 0, dir: { x: 0, y: {} }, stuck: new Set(), running: false };
 const AHEAD_SLOW = new Set();
 const AHEAD_QUIET = 400, AHEAD_QUIET_SLOW = 1000, AHEAD_SLOW_MS = 150;
 /* ---------- THE SLOW BIT IS KEPT ON THE DEVICE, AND A COLUMN'S FIRST DRAW IS SLOW UNTIL IT HAS BEEN TIMED § */
@@ -1589,10 +1595,17 @@ function aheadOpen_() {
   raf(() => raf(() => { AHEAD.open = true; AHEAD.opened = performance.now(); AHEAD.input = Math.max(AHEAD.input, AHEAD.opened); aheadKick_(); }));
 }
 
+/* AND BEFORE THE PAYLOAD, WHICH TAKES 15–45s FROM THE REAL BACKEND: § */
+function aheadPreOpen_() {
+  try { if (navigator.connection && navigator.connection.saveData) return; } catch (e) {}
+  const raf = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (f => setTimeout(f, 16));
+  raf(() => raf(() => { if (AHEAD.open) return; AHEAD.pre = true; AHEAD.input = Math.max(AHEAD.input, performance.now()); aheadKick_(); }));
+}
+
 /* -1: SHUT UNTIL SOMETHING KICKS IT (not open, hidden, held, somebody writing). >0: shut for about that
    long — looked at again then. 0: open, apart from the quiet, which the caller weighs per job. */
 function aheadGate_() {
-  if (!AHEAD.open || document.hidden || window.__aheadHold) return -1;
+  if (!(AHEAD.open || AHEAD.pre) || document.hidden || window.__aheadHold) return -1;
   const now = performance.now();
   if (typeof SWIPE !== 'undefined' && SWIPE.live) return 100;
   if (SETTLE_ON && now < SETTLE_ON.until) return SETTLE_ON.until - now + 20;
@@ -1675,7 +1688,7 @@ const AHEAD_KINDS = [];
 const AHEAD_RANK = ['paint', 'fill', 'widget', 'pics', 'reels', 'centre', 'bible'];
 function aheadJobs_(all) {
   const out = [];
-  AHEAD_KINDS.forEach(k => { try { (k() || []).forEach(j => out.push(j)); } catch (e) {} });
+  AHEAD_KINDS.forEach(k => { try { (k() || []).forEach(j => { if (AHEAD.open || j.pre) out.push(j); }); } catch (e) {} });
   return all ? out : out.filter(j => !AHEAD.stuck.has(j.key));
 }
 /* HOW FAR, IN MOVES, AND HALF A MOVE NEARER IN THE DIRECTION OF TRAVEL. */
@@ -1704,7 +1717,7 @@ function aheadPick_(slowOk) {
 }
 /* WHETHER ANYTHING IS LEFT TO BUILD — for the checks, which wait for it as they wait for `afterSlide_`. */
 function aheadBusy_() {
-  if (!AHEAD.open || window.__aheadHold) return false;
+  if (!(AHEAD.open || AHEAD.pre) || window.__aheadHold) return false;
   if (AHEAD.booked || AHEAD.running) return true;
   try { return aheadJobs_(false).length > 0; } catch (e) { return false; }
 }
