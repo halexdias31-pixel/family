@@ -3641,7 +3641,7 @@ function markUnitOff_(t) {
 
 /* ---------- AN ANSWER WITH MANY RIGHT FORMS, MARKED BY WHAT MAKES IT RIGHT (360) */
 /* `rule: count 3, distinct, each factor 36, sum 31..34` in `accept`: the typed numbers are tested, not matched. */
-/* Clauses: count, distinct, mixed, each <tests>, at N <tests>, hcf N, sum, diff, from a/b/…, rounddiff R V, set a+b/c+d (word groups). */
+/* Clauses: count, distinct, mixed, decimal, each <tests>, at N <tests>, hcf N, sum, diff, from a/b/…, rounddiff R V, set a+b/c+d (word groups). */
 function markRuleNums_(typed) {
   const t = markNorm_(typed).replace(/[,;=+×]/g, ' , ').replace(/(\d)-(?=\d)/g, '$1 , ');
   const out = [];
@@ -3837,6 +3837,8 @@ function markRule_(typed, rule) {
   return body.split(',').map(c => c.trim()).filter(Boolean).every(c => {
     const w = c.split(/\s+/), k = w[0];
     if (k === 'count') return vs.length === Number(w[1]);
+    /* `decimal`: written as a decimal, where the question asks for one (0.25, not 1/4) */
+    if (k === 'decimal') return nums.every(n => /^-?\d*\.\d+$/.test(n.s));
     if (k === 'mixed') return nums.every(n => {
       const q = /^\d+ (\d+)\/(\d+)$/.exec(n.s);
       return !!q && Number(q[1]) < Number(q[2]);
@@ -3897,8 +3899,11 @@ function markAnswer_(typed, accept, again) {
   if (rules.length) {
     if (rules.some(w => markRule_(typed, w))) return true;
     accept = String(accept).split('|').filter(w => !/^\s*rule:/i.test(w)).join('|');
-    /* a form asked for (`mixed`) is not given by the value: beside it a written way counts only as written, so 28/5 is not 5 3/5 (376) */
-    if (rules.some(w => /(?:^|[:,])\s*mixed\s*(?:,|$)/i.test(w))) return accept.split('|').some(w => markNorm_(w) === t);
+    /* a form asked for (`mixed`, `decimal`) is not given by the value: beside it a written way counts only as written, so 28/5 is not 5 3/5 (376) */
+    if (rules.some(w => /(?:^|[:,])\s*(mixed|decimal)\s*(?:,|$)/i.test(w))) {
+      const tight = v => v.replace(/(\d)\s+(?=[a-z])/g, '$1');   // 0.25 kg is 0.25kg; 5 3/5 stays apart
+      return accept.split('|').some(w => tight(markNorm_(w)) === tight(t));
+    }
   }
   if (!again) {
     /* A NAME IN FRONT IS THE SENTENCE TOO. § */

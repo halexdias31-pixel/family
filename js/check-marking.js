@@ -846,6 +846,14 @@ const pen_ = (vb, pl) => [].concat.apply([], pl.map(p => [(p[0] - vb[0]) / vb[2]
   const r = dialRow_ && dialFig_.vb ? DM.M.mark([pen_(dialFig_.vb, hand_(a, b, 2.5, 24))], dialRow_.draw_answer, dialFig_) : null;
   if (!r || r.got !== want) { drawBad++; console.log('  WRONG  the metric-units dial: %s -- wanted %j, got %j', why, want, r); }
 });
+/* THE OWNER'S TRIANGLE (20 Oct, 384): KS2 2024 Paper 2 Q1's real row and figure -- the reflection right, a copy slid across, and one reflected a square too far */
+const refRow_ = QROWS_.find(x => x.row_id === 'Q-STA-KS2-2024-P2-1') || {}, refFig_ = DM.fig(refRow_.diagram || '');
+const g_ = (x, y) => [14 + x * 26, 28 + (8 - y) * 26];
+[[[[11, 2], [7, 2], [7, 5], [11, 2]], 1, 'the reflection, corner for corner'], [[[7, 2], [11, 2], [11, 5], [7, 2]], 0, 'a copy slid across, not flipped'],
+ [[[12, 2], [8, 2], [8, 5], [12, 2]], 0, 'reflected a square too far from the line']].forEach(([pts, want, why]) => {
+  const r = refFig_.vb && refRow_.draw_answer ? DM.M.mark([pen_(refFig_.vb, pts.map(p => g_(p[0], p[1])))], refRow_.draw_answer, refFig_) : null;
+  if (!r || r.got !== want) { drawBad++; console.log('  WRONG  KS2 2024 P2 Q1: %s -- wanted %j, got %j', why, want, r); }
+});
 /* EVERY RIGHT DRAWING BY HAND: each stroke densified, wobbled by a twentieth of a square and drawn backwards still marks the same */
 let handN = 0;
 DRAW.forEach(([kind, fig, spec, strokes, want, why]) => {
