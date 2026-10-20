@@ -4,7 +4,15 @@
 /* ---------- THE PROTOCOLS, AS DATA. `need` is what makes a row complete: each entry a field, `a|b` either one,
    or a named test from QT_NEED below. Tiles are left to right; Check is the one gold disc of 368, always last. */
 const QT_TYPED = 'One box on the site\'s keypad';
-const QT_PEN = 'Its figure (or a made-up grid) under the pen';
+/* ONE FIGURE, IN PLACE, AND IT IS THE PEN (356, 381): the part's own, or its stem's with the stem's words carried onto the card */
+const QT_PEN = 'Its figure under the pen, in place on the card: its own, or the stem\'s (the stem\'s words carried onto the card '
+  + 'above it), else a made-up grid. One figure, no second copy, no Draw switch, no box or keypad; Check under the part\'s words';
+/* THE SHARED FIGURE (381): what each part of a question round one figure gets, as data for the page and the check */
+const QT_SHARED_FIGURE = {
+  drawn: 'Draws on the one figure on its own card; every other part\'s ink on that figure is under its own, faint, untouched by its Undo, Clear and Check',
+  typed: 'Its own box under its own words, nothing for the drawing; where its words read the drawn figure it names that part (`uses`) and has it, marked, in front of its words',
+  check: 'One Check tile per part, at the card\'s foot under the part\'s words, for a drawn part as for a typed one',
+};
 const QT_PEN_TILES = ['Figure', 'Pen', 'Ruler / Compass / Protractor (as asked)', 'Undo', 'Clear', 'Check'];
 const QT_PEN_PHONE = 'Finger draws, two fingers pan; the loupe follows the finger';
 const QT_PEN_PC = 'Mouse or stylus on a lazy brush (368); the ruler snaps to the grid';
@@ -230,6 +238,23 @@ const QT_NEED = {
 function qtNeedMet_(r, need) {
   if (QT_NEED[need]) return QT_NEED[need](r);
   return need.split('|').some(f => qtS_(r[f]) !== '');
+}
+/* ---------- WHERE A DRAWN PART'S FIGURE IS (381): `own`, `stem`, `surface` (made up), `none` (words point at a figure it lacks), `ambiguous` (two stems' figures) */
+const QT_FIG_NAMED = /\b(on|onto|in) the (grid|diagram|scale|graph|chart|number line|map|axes|pictogram|histogram|shape|net|clock|dial|probability scale|scatter (graph|diagram))\b|\b(diagram|grid|graph) (above|below)\b/;
+function qtDrawn_(x) {
+  const r = (x && x.row) || x || {};
+  const surf = qtS_(r.surface).toLowerCase();
+  if (!(QT_DRAWN[qtS_(r.answer_type).toLowerCase()] || (surf && surf !== 'text'))) return false;
+  return !qtS_(r.choices) && !qtS_(r.cells);
+}
+function qtFigureOf_(x, stems) {
+  const r = (x && x.row) || x || {};
+  if (qtS_(r.diagram) || qtS_(r.images)) return 'own';
+  const st = (stems || []).filter(p => p && qtS_(p.diagram));
+  if (st.length === 1) return 'stem';
+  if (st.length > 1) return 'ambiguous';
+  if (qtS_(r.surface)) return 'surface';
+  return QT_FIG_NAMED.test(qtText_(r)) ? 'none' : 'surface';
 }
 function qtIncomplete_(x) {
   const r = (x && x.row) || x || {};

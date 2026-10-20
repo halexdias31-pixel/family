@@ -15,7 +15,7 @@ const broken = [];
 let Q = null;
 try {
   Q = vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', 'qtypes.js'), 'utf8')
-    + '\n;({ qType_, qtIncomplete_, qtMachine_, QTYPE_PROTOCOL, QTYPE_ORDER })', vm.createContext({}));
+    + '\n;({ qType_, qtIncomplete_, qtMachine_, qtDrawn_, qtFigureOf_, QTYPE_PROTOCOL, QTYPE_ORDER, QT_SHARED_FIGURE })', vm.createContext({}));
 } catch (e) { broken.push('js/qtypes.js did not load alone in a vm: ' + e.message); }
 
 /* ---------- EVERY PROTOCOL SAYS EVERY THING */
@@ -79,10 +79,30 @@ const COLLECTIONS = [
 ];
 const collOf = r => COLLECTIONS.find(c => c[1](r))[0];
 
-let rows = [];
+let rows = [], lib = [];
 try {
-  rows = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'questions.json'), 'utf8')).filter(r => r.kind === 'question');
+  lib = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'questions.json'), 'utf8'));
+  rows = lib.filter(r => r.kind === 'question');
 } catch (e) { broken.push('data/questions.json did not read: ' + e.message); }
+
+/* ---------- EVERY DRAWN PART REACHES ONE FIGURE (381): its own, its stem's, or a made-up grid -- never words pointing at a figure it has not got */
+/* the stems a part sits under, by find.js `stemIndex_`'s scopes: the paper, its section, its question, its part letter */
+const preAt = {}, has = v => v !== undefined && v !== null && v !== '', bareP = v => String(v || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+lib.forEach(r => { if (r.kind === 'preamble') (preAt[r.paper_id] = preAt[r.paper_id] || []).push(r); });
+const stemsOf = r => (preAt[r.paper_id] || []).filter(p => {
+  if (has(p.question)) return String(p.question) === String(r.question) && (!/^[a-z]$/.test(bareP(p.part)) || bareP(r.part)[0] === bareP(p.part));
+  return p.section ? p.section === r.section : true;
+});
+const figs = {};
+if (Q) rows.forEach(r => {
+  if (!Q.qtDrawn_(r)) return;
+  const f = Q.qtFigureOf_(r, stemsOf(r));
+  figs[f] = (figs[f] || 0) + 1;
+  if (f === 'none') broken.push(`${r.row_id} is drawn, its words point at a figure, and it has none and no stem with one`);
+  if (f === 'ambiguous') broken.push(`${r.row_id} is drawn under two stems with a figure each: which one it draws on is not said`);
+});
+if (Q && !(figs.stem > 50)) broken.push('only ' + (figs.stem || 0) + ' drawn parts reach a stem\'s figure — wanted the library\'s 80-odd; is the stem index reading the file?');
+if (Q && Object.keys(Q.QT_SHARED_FIGURE || {}).length !== 3) broken.push('QT_SHARED_FIGURE does not say what a drawn part, a typed part and Check get');
 if (Q && !rows.length) broken.push('no question parts read — the check has nothing to type');
 
 const per = {}, coll = {}, untyped = [], lists = {};
@@ -133,5 +153,6 @@ if (broken.length) {
   broken.forEach(b => console.log('  ✗ ' + b));
   process.exit(1);
 }
+console.log('drawn parts by where their figure is: ' + Object.keys(figs).map(k => k + ' ' + figs[k]).join(', '));
 const all = Q.QTYPE_ORDER.reduce((s, t) => s + per[t].n, 0), done = Q.QTYPE_ORDER.reduce((s, t) => s + per[t].complete, 0);
 console.log(`OK — ${all} parts, each one of ${Q.QTYPE_ORDER.length} types; ${pc(done, all)} meet their protocol (gaps reported, not failed); fixture ${FIX.length} typed right.`);
