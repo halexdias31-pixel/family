@@ -1613,10 +1613,7 @@ button.text-drop { color: var(--bad); }
    `style="margin:.6rem 0 0"` in `--faint`. Its own class now: dim, with the instruction in ink. */
 .find-end { margin: .3rem 0 0; font-size: .8rem; line-height: 1.5; color: var(--dim); }
 .find-end b { color: var(--ink); font-weight: 600; }
-/* ---------- THE OPTIONAL ROWS (`tagDoors_`), A PAPER'S HEALTH TILE AND ITS LIST (354, 355) § */
-.tag-door { margin: .6rem 0 0; padding: .45rem 0 0; border-top: 1px solid var(--line-soft); }
-.tag-door + .tag-door { margin-top: .3rem; }
-.tag-door-k { margin: 0 0 .3rem; font-size: .75rem; color: var(--dim); }
+/* A PAPER'S HEALTH TILE AND ITS LIST (354, 355); the tag-door rows went in 387. */
 /* THE PAPER'S COVER LINE, over its end: the whole name and the day it was sat, which left the tag row
    because nothing could pick them (docs/history/355). Prose, so it is in the find-end's voice. */
 .paper-cover { margin: .3rem 0 0; font-size: .8rem; line-height: 1.45; color: var(--ink); }

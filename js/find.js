@@ -531,7 +531,7 @@ const FACETS = [
   /* ---------- WHAT KIND OF PROJECT OR PRACTICAL, AND WHETHER A BOARD ASKS FOR IT § */
   { field: 'projectType', tag: true, label: 'Project or coursework', of: x => x.projectType || '' },
   { field: 'practicalType', tag: true, label: 'Experiment or build', of: x => x.practicalType || '' },
-  { field: 'required', tag: true, label: 'Required', tagOnly: true,
+  { field: 'required', tag: true, label: 'Required',
     orderOf: v => PRAC_NEED.indexOf(v),
     of: x => x.kind !== 'practical' || !x.row ? ''
       : PRAC_NEED[x.row.excluded ? 2 : x.row.required ? 0 : 1] },
@@ -605,8 +605,8 @@ const FACETS = [
     cmp: (a, b) => Number(a) - Number(b),
     of: x => x.kind === 'question' && x.qNumber != null && String(x.qNumber) !== '' ? String(x.qNumber) : '',
     showOf: v => 'Q' + v },
-  { field: 'qPart', tag: true, label: 'Part', tagOnly: true, of: x => qSplitOf_(x).part },
-  { field: 'qSub', tag: true, label: 'Sub-part', tagOnly: true,
+  { field: 'qPart', tag: true, label: 'Part', tagOnly: true, asIs: true, of: x => qSplitOf_(x).part },
+  { field: 'qSub', tag: true, label: 'Sub-part', tagOnly: true, asIs: true,
     orderOf: v => romanVal_(String(v)), of: x => qSplitOf_(x).sub },
   { field: 'qPage', tag: true, label: 'Page', tagOnly: true, cmp: (a, b) => Number(a) - Number(b),
     of: x => { const n = qPagesOf_(x); return n > 1 ? Array.from({ length: n }, (_, i) => String(i + 1)) : ''; },
@@ -1073,7 +1073,8 @@ function facetTally_(items, facet) {
     folded[k] = { best: best, n: (seen ? seen.n : 0) + by[v] };
   });
   let values = Object.keys(folded)
-    .map(k => ({ value: spellShow_(folded[k].best.value), n: folded[k].n }))
+    /* `asIs`: a part is `a`, a sub-part `ii`, as the paper prints them and the card tag says (387). */
+    .map(k => ({ value: facet.asIs ? String(folded[k].best.value) : spellShow_(folded[k].best.value), n: folded[k].n }))
     .sort((a, b) => order(a.value, b.value));
   /* ---------- AND A QUESTION ASKED INSIDE A BUCKET OFFERS ONLY WHAT IS IN IT § */
   if (within) values = values.filter(v => bucketHas_(facet, within, v.value));
@@ -8575,23 +8576,7 @@ function healthOf_(x) {
   return pid ? healthBy_()[String(pid)] || null : null;
 }
 
-/* ---------- THE OPTIONAL ROWS: EVERY TAG THE FUNNEL DOES NOT ASK, AS A DOOR § */
-function tagDoors_(items) {
-  const filters = STUFF.filters || [];
-  const asked = filters.map(f => f && f.field);
-  return facetList().filter(f => f.tagOnly).map(facet => {
-    if (filters.some(f => f && f.field === facet.field && !f.bucket)) return '';
-    if (!facetNeedsMet_(facet.field, asked)) return '';
-    let vals = [];
-    try { vals = facetValues(items, facet); } catch (e) { vals = []; }
-    if (vals.length < 2) return '';
-    /* `.tag-answers`, NOT `.answers`: § */
-    return `<div class="tag-door" data-field="${esc(facet.field)}"><p class="tag-door-k">${esc(facet.label)}</p><div class="tag-answers">${vals.map(v =>
-      `<div class="counted row tap" data-do="facet-pick"${tagAttr_(facet.field)} data-field="${esc(facet.field)}"
-        data-value="${esc(v.value)}"${v.bucket ? ' data-bucket="1"' : ''}><span class="k">${esc(v.show || v.text || v.value)}</span></div>`).join('')}</div></div>`;
-  }).join('');
-}
-
+/* NO DOOR ROWS (387): a tag the funnel does not ask stays a card tag only; the owner wanted every facet to work like the funnel's. */
 /* ---------- WHAT IS WRONG, ONE TAP AWAY § */
 function healthTiles_(items) {
   const x = (items || []).find(i => healthOf_(i));
@@ -8635,7 +8620,7 @@ function paperEnd_(items) {
   const seq = wholeQuestions_(items);
   const qs = new Set(seq.map(x => qId_(x) || x)).size;
   const searched = !!String(STUFF.q || '').trim();
-  const tail = healthTiles_(items) + tagDoors_(items);
+  const tail = healthTiles_(items);
   if (answersView_()) {
     const a = stuffPages_().length;
     return paperCover_(items) + `<p class="find-end">${searched ? 'The answers it found.' : 'The paper&rsquo;s answers, in order.'}
@@ -10282,7 +10267,7 @@ function stuffQuestion() {
     if (be) return be + adding;
     if (funnelEnded_()) return paperEnd_(items) + adding;
     return `<p class="find-end">Nothing left to narrow.
-      <b>Swipe up for the ${n}.</b></p>` + tagDoors_(items) + adding;
+      <b>Swipe up for the ${n}.</b></p>` + adding;
   }
 
   /* THE FRONT DOOR TO THE BOOKING FORM WAS HERE — a line above the funnel's answers, on the first question only, that filtered to Booking and turned to the form. § */
@@ -10312,7 +10297,7 @@ function stuffQuestion() {
         data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${v.bucket ? ' data-bucket="1"' : ''}${
         grid ? ` aria-label="${esc(facet.label + ' ' + (v.show || v.value))}"` : ''}>
         <span class="k">${mark(v.show || v.value)}</span>
-      </div>`).join('') + skip + '</div>' + tagDoors_(items) + more;
+      </div>`).join('') + skip + '</div>' + more;
 }
 
 /* `stuff-jump` went with the group list. § */
