@@ -82,3 +82,39 @@ the pad when the first stroke lands, two-finger undo and three-finger redo, palm
 advance and wrap, tap-to-caret, `=` alignment, exponent, fraction boxes and leaving the shape, long-press move,
 reload, Ctrl+Z, click, wheel. check-flow's two whiteboard journeys and four edges cases were rewritten for the
 notebook; check/press.js's whiteboard swipes and check/states.js's board state likewise.
+
+## The pad glides, and a new line is one move away (20 Oct)
+
+The owner, after using it on a phone: *"Someone could want to start a new line sooner than later and also the cuts
+are too quick. It should be smoother so it's easy to write on the next space. It teleports to next space."*
+
+What made it teleport: the old glide closed 35% of the remaining gap per frame (a third of the way in the first
+16 ms, done in ~150 ms), and a finger landing mid-glide snapped the view to its end — the ink just written jumped
+out from under the finger. And at 62% after a 400 ms pause it slid often, by a lot.
+
+- **A real glide** (`nbGlide_`): every move of the pad along the line, down the page (`py`, new) and of the page's
+  scroll is one tween of 340 ms, eased out (quadratic), retargeted smoothly if the target changes. A frame's time
+  is capped at 24 ms, so a dropped frame slows the glide rather than skipping it: no frame covers more than ~14%.
+- **Never under a finger** (`nbHoldView_`): a finger landing mid-slide stops the pad where it is, and the stroke maps
+  from there; nothing moves while any finger is down. A change of line is finished at landing instead (the stroke is
+  for the new line). A state made afresh under a copy starts its view where it is (`b.vst`).
+- **Later, and just enough:** after the pause the pad moves only when under 28% of it is free (or at once on lift
+  when a stroke reached 90%), and then so 60% is free (`NB_ROOM_LOW`, `NB_ROOM`, `NB_EDGE_NOW`).
+- **The ghost:** what was written before a slide is drawn in ink faded 55% toward paper at the pad's left
+  (`st.gx`, `nbFade_` — a solid mix, as an alpha darkens where a stroke's segments overlap), fading in with the
+  glide; a tap into a written line ghosts what is before the caret.
+- **New line whenever:** the `↵` New line tile in the pad's bottom-right corner (the tile row is full at 390px and a
+  second row would cost the pad its height); a quick swipe back — right to left, ≥35% of the pad (≥100px),
+  level within 0.35, under 400 ms, nearly straight — which is not kept as ink, since nothing in maths is written that
+  way (`nbReturn_`); or a tap on the next line of the page. All go through `nbToLine_`, as the full line's wrap does,
+  so the page scrolls and the pad glides down and back to the line's start. The empty pad's help now names the swipe
+  and sits at the pad's top, clear of the tile.
+- **Rejected — a pad that pans continuously with the writing** (the free space always under the finger): it moves
+  the ink being written while the finger is on it, which is what the owner disliked. Microsoft's write-large panel
+  and GoodNotes' zoom window both move on between strokes, as this does.
+
+check/whiteboard.js now samples the views frame by frame (`frames`, `glided`): the slide is one way over several
+frames, none past a quarter of the distance, and only after the pause; a pause with room left moves nothing; a finger
+landing mid-glide holds the pad still; a stroke to the edge moves nothing until it lifts; the ghost is lighter than
+fresh ink by its darkest pixel; the tile (44px), the swipe and a tap on the next line each start line 1 with a glide;
+a mouse click on the tile does too. 38 cases.

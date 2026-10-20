@@ -116,6 +116,32 @@ async function writeX(env, g, x, h) {
   await stroke(env, line([L + h * 0.8, B - h], [L, B], 12));
 }
 const padX = (g, nx) => (nx - g.x0) / g.S;
+/* THE VIEWS, FRAME BY FRAME, for `ms`: the pad along the line (px), down the page (py), and the page's scroll (ny). Started before the action it watches. */
+const frames = (env, ms) => env.page.evaluate(ms => new Promise(ok => {
+  const b = document.querySelector('#s-tools #wgt-whiteboard .nb-box').NB, out = [], t0 = performance.now();
+  const f = now => { out.push({ t: now - t0, px: b.view.px, py: b.view.py, ny: b.view.ny, down: !!NB_G }); if (now - t0 < ms) requestAnimationFrame(f); else ok(out); };
+  requestAnimationFrame(f);
+}), ms);
+/* A GLIDE, NOT A JUMP: it goes one way, over several frames, and no frame covers more than a quarter of the way. */
+function glided(fr, key) {
+  const v = fr.map(f => f[key]).filter(x => x !== null), D = v[v.length - 1] - v[0], sg = Math.sign(D);
+  let mono = true, big = 0, mid = 0;
+  for (let i = 1; i < v.length; i++) {
+    const d = v[i] - v[i - 1];
+    if (d * sg < -1e-6) mono = false;
+    big = Math.max(big, Math.abs(d));
+    if (Math.abs(v[i] - v[0]) > 0.02 * Math.abs(D) && Math.abs(v[i] - v[v.length - 1]) > 0.02 * Math.abs(D)) mid++;
+  }
+  return { ok: Math.abs(D) > 1 && mono && big <= 0.25 * Math.abs(D) && mid >= 5, D: +D.toFixed(1), mono, big: +(big / Math.abs(D || 1)).toFixed(3), mid };
+}
+/* THE DARKEST PIXEL ON THE PAD'S CANVAS ALONG ONE ROW, between two x's (css px), as a 0-255 grey. */
+const darkest = (env, y, x0, x1) => env.page.evaluate(([y, x0, x1]) => {
+  const b = document.querySelector('#s-tools #wgt-whiteboard .nb-box').NB, c = b.pad.c, k = c.width / b.pad.w;
+  const d = c.getContext('2d').getImageData(Math.round(x0 * k), Math.round(y * k) - 2, Math.max(1, Math.round((x1 - x0) * k)), 5).data;
+  let m = 255;
+  for (let i = 0; i < d.length; i += 4) m = Math.min(m, (d[i] + d[i + 1] + d[i + 2]) / 3);
+  return m;
+}, [y, x0, x1]);
 
 (async () => {
   const server = await serve();
@@ -185,15 +211,91 @@ const padX = (g, nx) => (nx - g.x0) / g.S;
     if (!(await fresh(env))) throw new Error('stop');
     g = await geo(env);
     const pv0 = g.pv, c0 = g.caret.x;
-    await writeX(env, g, g.pad.w * 0.55);
-    await sleep(700);
+    await writeX(env, g, g.pad.w * 0.5);
+    await sleep(900);
+    want((await geo(env)).pv === pv0, 'writing to the middle of the pad and pausing does not move it: there is room left', `pad ${pv0.toFixed(1)} -> ${(await geo(env)).pv.toFixed(1)}`);
     g = await geo(env);
-    want(g.pv > pv0 + 5 && g.caret.x > c0 + 5, 'writing past the middle of the pad slides it on after the pause, and the caret follows', `pad ${pv0.toFixed(1)} -> ${g.pv.toFixed(1)}, caret ${c0.toFixed(1)} -> ${g.caret.x.toFixed(1)}`);
+    {
+      const watch = frames(env, 1500);
+      await writeX(env, g, g.pad.w * 0.66);
+      const fr = await watch, gl = glided(fr, 'px');
+      want(gl.ok, 'with little room left, the pad glides on after the pause: one way, over frames, no frame more than a quarter of the way', JSON.stringify(gl));
+      const moved = fr.filter(f => Math.abs(f.px - fr[0].px) > 0.01);
+      want(moved.length && moved[0].t > 300, 'and only after the pause, never as the stroke lands', moved.length ? 'first moved at ' + moved[0].t.toFixed(0) + 'ms' : 'never moved');
+    }
+    g = await geo(env);
+    want(g.pv > pv0 + 5 && g.caret.x > c0 + 5, 'the slide gives room again, and the caret follows', `pad ${pv0.toFixed(1)} -> ${g.pv.toFixed(1)}, caret ${c0.toFixed(1)} -> ${g.caret.x.toFixed(1)}`);
+    {
+      const free = 1 - padX(g, g.runR) / g.pad.w;
+      want(free > 0.5 && free < 0.7, 'just far enough: about 60% of the pad is free after the slide, and the last word stays in view behind the caret', 'free ' + free.toFixed(2));
+      /* THE GHOST: the x's behind the caret are drawn, but fainter than the ink of a stroke written now. */
+      const yMid = g.py0 - g.xh * 0.5, cx = padX(g, g.caret.x);
+      const ghost = await darkest(env, yMid, 2, cx - 8);
+      const it0 = await items(env);
+      await stroke(env, line([g.pad.l + cx + 10, g.pad.t + yMid - 6], [g.pad.l + cx + 60, g.pad.t + yMid + 6], 10));
+      await sleep(150);
+      const ink = await darkest(env, yMid, cx + 12, cx + 58);
+      want(ghost < 225 && ghost > ink + 40, 'the words written before the slide are a faint ghost at the pad\'s left, where the child continues from', `ghost grey ${ghost.toFixed(0)}, fresh ink ${ink.toFixed(0)}`);
+      await shot(env.page, '390-ghost');
+      await tapN(env, [[g.pad.l + 100, g.pad.t + 80], [g.pad.l + 160, g.pad.t + 90]]);
+      want((await items(env)).length === it0.length, '(the test stroke is undone)', (await items(env)).length + ' vs ' + it0.length);
+    }
+
+    /* NEVER UNDER A FINGER: a finger landing mid-glide stops it where it is; a stroke crossing the edge moves nothing until it lifts. */
+    if (!(await fresh(env))) throw new Error('stop');
+    g = await geo(env);
+    await writeX(env, g, g.pad.w * 0.66);
+    {
+      const mid = await env.page.waitForFunction(() => { const b = document.querySelector('#s-tools #wgt-whiteboard .nb-box').NB; return b.tw && b.tw.t > 60 && b.tw.t < 250 ? { F: b.tw.F.px, T: b.tw.T.px } : null; }, null, { polling: 'raf', timeout: 3000 }).then(h => h.jsonValue()).catch(() => null);
+      const x = g.pad.l + g.pad.w * 0.3, y = g.pad.t + g.py0 - g.xh;
+      await T(env, 'touchStart', [P(x, y)]);
+      const watch = frames(env, 500);
+      for (let i = 1; i <= 25; i++) { await T(env, 'touchMove', [P(x + i * 0.8, y + i * 0.5)]); await sleep(18); }
+      const fr = await watch;
+      await T(env, 'touchEnd', []);
+      const px = fr.map(f => f.px), spread = Math.max(...px) - Math.min(...px);
+      want(!!mid && spread < 0.01 && px[0] > mid.F + 0.5 && px[0] < mid.T - 0.5,
+           'a finger landing mid-glide stops the pad where it is, and it does not move while the finger is down', JSON.stringify({ mid, held: px[0], spread }));
+    }
+    await sleep(1200);
+    if (!(await fresh(env))) throw new Error('stop');
+    g = await geo(env);
+    {
+      const y = g.pad.t + g.py0 - g.xh * 0.6, watch = frames(env, 2600);
+      await stroke(env, line([g.pad.l + g.pad.w * 0.45, y], [g.pad.l + g.pad.w * 0.95, y + 4], 40), { dt: 16 });
+      const fr = await watch, down = fr.filter(f => f.down), px = down.map(f => f.px);
+      const after = glided(fr.slice(fr.findIndex(f => f.down) + down.length), 'px');
+      want(down.length > 10 && Math.max(...px) - Math.min(...px) < 0.01 && after.ok, 'a stroke running to the pad\'s edge moves nothing under the finger; the pad glides on once it lifts', JSON.stringify({ frames: down.length, spread: Math.max(...px) - Math.min(...px), after }));
+    }
+
+    /* A NEW LINE WHENEVER YOU WANT: the tile, a swipe back, a tap on the next line — each a glide. */
+    for (const how of ['tile', 'swipe', 'tap']) {
+      if (!(await fresh(env))) throw new Error('stop');
+      await (async () => { const q = await geo(env); await writeX(env, q, Math.max(4, padX(q, q.caret.x) + 4)); await sleep(500); })();
+      g = await geo(env);
+      const n0 = (await items(env)).length, watch = frames(env, 900);
+      if (how === 'tile') {
+        const t = await env.page.evaluate(() => { const r = document.querySelector('#s-tools .nb-line').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2, r.width, r.height]; });
+        want(t[2] >= 44 && t[3] >= 44, 'the New line tile is a 44px target', JSON.stringify(t));
+        await tapN(env, [t]);
+      } else if (how === 'swipe') {
+        const y = g.pad.t + g.py0 - g.xh * 0.5;
+        await stroke(env, line([g.pad.l + g.pad.w * 0.85, y], [g.pad.l + g.pad.w * 0.25, y + 6], 8), { dt: 10 });
+      } else {
+        const a = g.book.w / 360 * g.nv.z;
+        await tapN(env, [[g.book.l + 20 * a, g.book.t + (64 + 40 - g.nv.y) * a - 6]]);
+      }
+      const fr = await watch, q = await geo(env), gy = glided(fr, 'py');
+      want(q.caret.line === 1 && q.caret.x < 20 && (await items(env)).length === n0 && gy.ok,
+           `a new line early by ${how === 'tile' ? 'the New line tile' : how === 'swipe' ? 'a quick swipe back, right to left, across the pad (not kept as ink)' : 'a tap on the next line of the page'}: the caret is at its start and the pad glides down to it`,
+           JSON.stringify({ caret: q.caret, n: (await items(env)).length, n0, gy }));
+      if (how === 'tile') await shot(env.page, '390-newline');
+    }
     let wraps = 0;
     for (let i = 0; i < 40 && !wraps; i++) {
       g = await geo(env);
       await writeX(env, g, Math.max(4, padX(g, g.caret.x) + 2));
-      await sleep(520);
+      await sleep(900);
       if ((await geo(env)).caret.line > 0) wraps = i + 1;
     }
     g = await geo(env);
@@ -326,6 +428,10 @@ const padX = (g, nx) => (nx - g.x0) / g.S;
       await sleep(150);
       g = await geo(dk);
       want(g.caret.line === 2, 'a click on the page moves the caret', JSON.stringify(g.caret));
+      await dk.page.click('#s-tools .nb-line');
+      await sleep(500);
+      const nl = await geo(dk);
+      want(nl.caret.line === 3 && nl.caret.x < 20, 'a click on the pad\'s New line tile starts the next line', JSON.stringify(nl.caret));
       /* A WORKING TALLER THAN THE PAGE: the wheel scrolls it, and the column stays where it is until the page is at its end. */
       await dk.page.evaluate(() => { const st = nbState_(padKey_(WB_ITEM)); st.caret = { line: 12, x: 20 }; });
       const page0 = await dk.page.evaluate(() => PAGE.tools);

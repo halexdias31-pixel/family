@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-20-a-notebook";
+  --css-version: "2026-10-20-b-notebook-glides";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -5930,6 +5930,8 @@ button.scr-sq { cursor: pointer; }
 .nb-book { flex: 1 1 0; min-height: 8rem; }
 .nb-pad { flex: 1 1 0; min-height: 10rem; cursor: crosshair; }
 .nb canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.nb-pad .nb-line { position: absolute; right: 6px; bottom: 6px; z-index: 1;
+  background: var(--paper); border-color: var(--paper-rule); color: var(--paper-dim); }
 .nb-bar { justify-content: center; margin: 0; flex: none; }
 .nb-note { text-align: center; margin: 0; flex: none; font: 400 .62rem/1.4 var(--font); color: var(--faint); }
 /* ON ITS SIDE: the page over the pad in the full height, the star, heading, tiles and note beside them (the old board's arrangement). */
