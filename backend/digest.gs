@@ -1117,10 +1117,10 @@ function digestLibrary_(site) {
 const DIGEST_TAG_FACETS = [['kindLabel', ''], ['subject', 'subject'], ['documentType', 'type'], ['fiveLevel', 'level'], ['fiveMonth', 'sitting'],
   ['fiveDay', 'paper'], ['level', 'level'], ['keystage', 'level'], ['yearGroup', 'level'], ['bandValue', 'level'], ['examBoard', 'board'],
   ['tier', 'tier'], ['examYear', 'sitting'], ['examMonth', 'sitting'], ['paperId', 'paper'], ['qNumber', 'paper'], ['qPart', 'paper'],
-  ['qSub', 'paper'], ['marks', ''], ['needs', 'needs'], ['health', 'health'], ['answerable', 'answerable']];
+  ['qSub', 'paper'], ['marks', ''], ['needs', 'needs']];
 /* `[data-tag]`'s colours (style.css `--tag-*`); a facet with no kind wears the plain outline, `--chip-line` round `--dim`. */
 const DIGEST_TAG_INK = { paper: '#ff7b72', subject: '#3ddc84', level: '#6cb6ff', sitting: '#c8a2ff', tier: '#ff8fc4', board: '#4fd1c5',
-  type: '#c3e88d', topic: '#ff9e64', needs: '#f0f08a', health: '#cdb69c', answerable: '#cdb69c' };
+  type: '#c3e88d', topic: '#ff9e64', needs: '#f0f08a' };
 const DIGEST_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const DIGEST_ROMAN = /^(i{1,3}|iv|vi{0,3}|ix|xi{0,3})$/i;
 
@@ -1368,83 +1368,12 @@ function digestTagNeeds_(q, T) {
   if (digestLibTrue_(q.needs_print) || digestLibTrue_(q.print_required)) add('Printed sheet');
   return out;
 }
-/* `paperHealth_` (js/library.js) for one paper: Faithful (the paper reproduced) and Answerable (answered and marked here), each a band. */
-const DIGEST_HEALTH_HURT = { words: 1, answer: 0.5, picture: 0.6, described: 0.25, standin: 0.5, marks: 0.15 };
-const DIGEST_HEALTH_SPACE = ['grid-blank', 'fractions', 'boxes', 'long-method', 'lines', 'working', 'answer-space', 'table-blank'];
-const DIGEST_HEALTH_WORDED = ['explain', 'written', 'proof', 'annotate', 'drawing'];
-const digestHealthBand_ = pct => (pct >= 98 ? 'Ready' : pct >= 85 ? 'Usable' : 'Rough');
-function digestTagHealth_(pid, T) {
-  T.health = T.health || {};
-  if (pid in T.health) return T.health[pid];
-  const s = digestLibS_, num = digestLibNum_, yes = digestLibTrue_;
-  const text = h => s(h).replace(/<[^>]*>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ').replace(/\s+/g, ' ').trim();
-  const DRAWN = /<(svg|img|table)\b/i;
-  const drawn = q => !!(q && (s(q.diagram).trim() || s(q.images).trim() || DRAWN.test(s(q.html)) || DRAWN.test(s(q.lead))));
-  let d = {};
-  const qs = [], pres = [];
-  (T.rows[pid] || []).forEach(q => {
-    if (!q || !s(q.paper_id) || !digestLibOn_(q.active)) return;
-    const kind = s(q.kind).toLowerCase();
-    if (kind === 'document') d = q; else if (kind === 'preamble') pres.push(q); else qs.push(q);
-  });
-  if (!qs.length) return (T.health[pid] = null);
-  const fact = k => s(d[k]) || s((qs[0] || {})[k]);
-  const over = q => pres.filter(p => { const pq = s(p.question), ps = s(p.section); return pq ? pq === s(q.question) : (!ps || ps === s(q.section)); });
-  const hasPdf = !!(s(d.source_url) || yes(d.printable) || qs.some(q => s(q.source_url)));
-  const said = num(d.total_marks);
-  const gcseMaths = fact('exam_board') === 'Edexcel' && fact('subject') === 'Maths' && fact('key_stage') === 'KS4'
-    && fact('document_type') === 'Past paper' && (fact('tier') === 'Higher' || fact('tier') === 'Foundation');
-  const total = said > 0 ? said : (gcseMaths ? 80 : null);
-  const printsMarks = total != null || /paper/i.test(fact('document_type')) || qs.some(q => num(q.marks) > 0);
-  let points = 0, lost = 0, marked = 0, ableLost = 0;
-  qs.forEach(q => {
-    const m = num(q.marks), w = m > 0 ? m : 1;
-    if (m > 0) marked += m;
-    points += w;
-    const type = s(q.answer_type).toLowerCase();
-    /* `ableOf_`: a box the app gives it and a way to mark it with no AI. */
-    const choice = s(q.choices).trim() && s(q.choice_right).trim();
-    if (!(choice || s(q.accept).trim() || s(q.mark_words).trim() || s(q.cells).trim() || s(q.draw_answer).trim())) {
-      ableLost += w * (type === 'drawing' || type === 'annotate' ? 0.6 : yes(q.needs_print) || yes(q.print_required) ? 1 : 0.6);
-    }
-    const hurt = [], words = text(q.html) + ' ' + text(q.lead);
-    if (!words.trim()) hurt.push('words');
-    else if (yes(q.placeholder) || over(q).some(p => yes(p.placeholder))) hurt.push('standin');
-    const scheme = s(q.answer).trim();
-    if (DIGEST_HEALTH_WORDED.indexOf(type) !== -1 ? !scheme : !(scheme || s(q.accept).trim() || choice)) hurt.push('answer');
-    const fig = s(q.figure).trim(), figPic = !!fig && DIGEST_HEALTH_SPACE.indexOf(fig) === -1;
-    const saysPic = /\b(diagram|shown|table below|grid)\b|\b(the|this) graph\b|\bgraph (below|above|shows)\b/i.test(words);
-    if (figPic || saysPic) {
-      const gridOnly = !figPic && type === 'drawing' && !/\b(diagram|shown|graph|table below)\b/i.test(words);
-      const printed = (yes(q.needs_print) || yes(q.print_required)) && hasPdf;
-      const there = drawn(q) || over(q).some(drawn) || s(q.uses).trim() || gridOnly || printed;
-      if (!there) hurt.push(/\bFigure:/.test(s(q.html) + s(q.lead)) ? 'described' : 'picture');
-    }
-    if (printsMarks && !(m > 0)) hurt.push('marks');
-    let keep = 1;
-    hurt.forEach(h => { keep *= 1 - DIGEST_HEALTH_HURT[h]; });
-    lost += w * (1 - keep);
-  });
-  const nums = qs.map(q => s(q.question)).filter(t => /^\d+$/.test(t)).map(Number);
-  const seen = new Set(nums), top = nums.length ? Math.max.apply(null, nums) : 0;
-  let gaps = 0;
-  for (let n = 1; n <= top; n++) if (!seen.has(n)) gaps++;
-  const mean = seen.size ? points / seen.size : 1, short = total != null ? total - marked : 0;
-  let missing = 0;
-  if (gaps && !(total != null && short > 0)) missing += gaps * mean;
-  if (total != null && marked !== total) { if (short > 0) missing += short; else lost += Math.min(-short, Math.max(0, points - lost)); }
-  let pct = points + missing > 0 ? 100 * Math.max(0, points - lost) / (points + missing) : 0;
-  if (!(qs.some(q => s(q.pages_checked)) || !!s(d.pages_checked))) pct -= 1;
-  pct = Math.max(0, Math.floor(pct));
-  const ablePct = points > 0 ? Math.floor(100 * Math.max(0, points - ableLost) / points) : 0;
-  return (T.health[pid] = { band: digestHealthBand_(pct), able: digestHealthBand_(ablePct) });
-}
 
 /* EVERY TAG THE SITE'S CARD WEARS FOR THIS QUESTION ROW, in its order, each `{ kind, text }` — `tagRow_`'s walk and its one dedupe: § */
 function digestCardTags_(q, T) {
   if (!q || !T) return [];
   const it = digestTagItem_(q), pid = S(q.paper_id), five = digestTagFive_(q);
-  const lv = digestTagLevel_(it), split = digestTagSplit_(q, T), h = pid ? digestTagHealth_(pid, T) : null;
+  const lv = digestTagLevel_(it), split = digestTagSplit_(q, T);
   const marks = Number(digestLibS_(q.marks).replace(/[^0-9.-]/g, '')) || 0;
   const sameAs = v => { const k = digestSpell_(v); return k === 'standardstestingagency' ? 'sta' : k; };
   /* EACH FACET'S RAW ANSWERS (`facetOwn_`), then how its chip says one (`showOf`, `tagSay`). */
@@ -1461,7 +1390,6 @@ function digestCardTags_(q, T) {
     examYear: () => digestTagYear_(it, T), examMonth: () => digestTagMonth_(it, T),
     paperId: () => pid, qNumber: () => digestLibS_(q.question), qPart: () => split.part, qSub: () => split.sub,
     marks: () => (marks > 0 ? String(marks) : ''), needs: () => digestTagNeeds_(q, T),
-    health: () => (h ? h.band : ''), answerable: () => (h ? h.able : ''),
   };
   const say = {
     fiveDay: () => five.day + ' ' + five.month, paperId: () => digestTagPaper_(it, T), qNumber: v => 'Q' + v,

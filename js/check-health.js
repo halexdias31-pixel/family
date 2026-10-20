@@ -86,6 +86,19 @@ Object.keys(ableWhy).sort((a, b) => ableWhy[b] - ableWhy[a]).forEach(k => consol
 console.log(`\npapers scored: ${ids.length}   Faithful ` + Object.keys(bands).map(b => b + ' ' + bands[b]).join('   ')
   + '   (Ready 98+, Usable 85–97, Rough under 85)');
 
+/* NOT A TAG, NOT A QUESTION (383): the two healths are on the Health tile alone — no facet, no card tag, no door, no colour. */
+{
+  const find = fs.readFileSync(path.join(ROOT, 'js', 'find.js'), 'utf8');
+  const facets = (find.split('const FACETS')[1] || '').split('\n];')[0];
+  if (!facets) broken.push('no FACETS list found in find.js, so the tag rule was NOT asked');
+  ['health', 'answerable'].forEach(f => {
+    if (new RegExp("field: '" + f + "'").test(facets)) broken.push('`' + f + '` is a finder facet again');
+    if (new RegExp('^\\s*' + f + ": '", 'm').test((find.split('const TAG_OF')[1] || '').split('};')[0])) broken.push('`' + f + '` has its own TAG_OF colour');
+    if (!new RegExp('^\\s*' + f + ':', 'm').test((find.split('const RETIRED_FACETS')[1] || '').split('};')[0])) broken.push('`' + f + '` is not in RETIRED_FACETS, so a sheet row could bring it back');
+  });
+  if (/tagAttr_\('(health|answerable)'\)/.test(find)) broken.push('a health band is still drawn as a tag pill');
+}
+
 if (broken.length) {
   console.log('\nTHE INSTRUMENT IS BROKEN — the numbers above cannot be trusted:');
   broken.forEach(b => console.log('  ✗ ' + b));
