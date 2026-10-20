@@ -1350,6 +1350,49 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
   }
 }
 
+/* ---------- 14. "SEND LAST WEEK" — AN ADMIN'S PRESS ON A PARENT'S CARD (378) ----------------------------------- */
+{
+  const { b, mail, setClock } = seeded();             // weekly_digest is off: the press sends anyway
+  setClock(at('2026-10-06T08:00:00Z'));               // a Tuesday, so last week is 28 Sep – 4 Oct
+  const tok = {};
+  ['a1@example.org', 'pat@example.org'].forEach(e => { tok[e] = b.post({ action: 'verifyLogin', email: e, pin: '0000' }).token; });
+  const press = (t, id) => b.post({ action: 'digestSendNow', token: t, targetId: id });
+  const log = () => rowsOf(b, 'digest_log');
+  asked++;
+  const no = press(tok['pat@example.org'], 'P-C1');
+  if (no.success || !no.error || mail.sent.length || log().length) bad.push('a parent pressed digestSendNow and was answered ' + JSON.stringify(no).slice(0, 160) + ' — it is an admin’s alone');
+  asked++;
+  const ok = press(tok['a1@example.org'], 'P-C1');
+  if (!ok.success || ok.said !== 'Sent to Pat — 3 questions (28 Sep – 4 Oct)') bad.push('the admin’s press for Pat answered ' + JSON.stringify(ok));
+  if (mail.sent.map(m => m.to).join() !== 'pat@example.org' || !/^Ada’s week/.test((mail.sent[0] || {}).subject || '')) bad.push('the press emailed [' + mail.sent.map(m => m.to + ' ' + m.subject) + '], wanted Ada’s week to pat@ only');
+  const row = log().find(r => r.parent_id === 'P-C1');
+  if (!row || row.status !== 'sent' || row.week_of !== '2026-09-28' || row.learner_id !== 'P-S1' || !/by hand/.test(row.note) || log().length !== 1)
+    bad.push('the press logged ' + JSON.stringify(log()) + ' — wanted one row, week 2026-09-28, Ada, sent, "sent by hand"');
+  asked++;
+  const again = press(tok['a1@example.org'], 'P-C1');
+  if (!again.success || mail.sent.length !== 2 || log().length !== 1) bad.push('a second press did not send again over its own receipt (' + mail.sent.length + ' sent, ' + log().length + ' row(s))');
+  /* AND THE SUNDAY RUN, switched on, does not send Pat that week a third time. */
+  cfgSet(b, 'weekly_digest', 'send');
+  const sun = run(b, SUN);
+  if (mail.sent.filter(m => m.to === 'pat@example.org').length !== 2 || sun.already !== 1) bad.push('the Sunday run after a press re-sent Pat’s week: ' + JSON.stringify(sun));
+  asked++;
+  const nomail = press(tok['a1@example.org'], 'P-C6');
+  if (nomail.success || nomail.error !== 'Nan has no email address — add it with Edit') bad.push('a parent with no address answered ' + JSON.stringify(nomail));
+  asked++;
+  const quiet = press(tok['a1@example.org'], 'P-C7');
+  if (!quiet.success || quiet.said !== 'Nothing to send: Eve did no questions 28 Sep – 4 Oct') bad.push('a quiet week answered ' + JSON.stringify(quiet));
+  const sent = mail.sent.length;
+  if (sent !== 3) bad.push('after the presses ' + sent + ' emails went, wanted Pat twice and Bo once (Sunday)');
+  if (b.ev('typeof sendLastWeekTo') !== 'function' || b.ev('typeof sendLastWeekToAll') !== 'function') bad.push('the editor’s sendLastWeekTo / sendLastWeekToAll are missing');
+  else {
+    asked++;
+    const r = JSON.parse(JSON.stringify(b.ev('clearCache(); sendLastWeekTo("@patparent")')));
+    if (!/^Sent to Pat/.test(r.said || '') || mail.sent.length !== sent + 1) bad.push('sendLastWeekTo("@patparent") answered ' + JSON.stringify(r));
+  }
+  /* AND A SHORT SPAN INSIDE ONE MONTH. */
+  if (b.ev('digestShortSpan_({ start: "2026-10-12", end: "2026-10-18" })') !== '12–18 Oct') bad.push('the toast’s week is not "12–18 Oct"');
+}
+
 console.log('rules asked: ' + asked);
 if (bad.length) {
   console.log('FAILED — ' + bad.length + ' thing(s) the weekly parent email gets wrong:');

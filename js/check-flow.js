@@ -10039,6 +10039,44 @@ check('an admin adds a person from the "+" above the people column, edits one an
   return bad;
 });
 
+/* "I NEED TO SEND ASH THE WORK ERNIE DID LAST WEEK" (378): Send last week on a parent's card, for an admin, and on nothing else. */
+check('an admin has "Send last week" on a parent\'s card only, and pressing it posts digestSendNow and toasts the reply; nobody else has it', async () => {
+  const { w, sent } = boot({ reply: b => b.action === 'digestSendNow'
+    ? { success: true, said: 'Sent to Carl — 32 questions (12–18 Oct)', sent: 1, questions: 32 } : { success: true } });
+  await wait(400);
+  const t = w.__t, d = w.document, bad = [];
+  if (!t.accountPages) return ['accountPages_ is not exported — cannot check the people column'];
+  t.DATA().everyone = [{ personId: 'P-E1', title: 'Evie', handle: 'evie_calm31', role: 'Student', image: '' },
+                       { personId: 'P-E2', title: 'Carl Handled', handle: 'carl_kind32', role: 'Client', image: '' }];
+  const page = name => t.accountPages().find(h => h.indexOf('>' + name + '<') !== -1) || '';
+  const door = /data-do="digest-send-now"/;
+  t.USER({ name: 'Tia Tutor', personId: 'P-T', role: 'tutor', roles: ['tutor'], token: 'tk2' });
+  if (door.test(t.accountPages().join(''))) bad.push('a tutor is offered Send last week');
+  sent.length = 0;
+  const fake = d.createElement('button'); fake.setAttribute('data-id', 'P-E2');
+  try { t.ACTIONS['digest-send-now'](fake); } catch (e) {}
+  await wait(150);
+  if (sent.some(b => b.action === 'digestSendNow')) bad.push('a tutor pressing Send last week posted digestSendNow');
+  t.USER({ name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], token: 'tk' });
+  const carl = page('Carl Handled');
+  if (!/data-do="digest-send-now" data-id="P-E2"/.test(carl) || !/aria-label="Send last week/.test(carl)) bad.push('the parent\'s card has no "Send last week" tile for the admin');
+  if (door.test(page('Evie'))) bad.push('a student\'s card offers Send last week');
+  if (door.test(t.accountPages()[0] || '')) bad.push('the admin\'s own card offers Send last week');
+  try { t.go('account', false, true); w.paint('account'); } catch (e) { bad.push('drawing the people column threw: ' + e.message); }
+  await wait(200);
+  const tile = d.querySelector('#s-account [data-do="digest-send-now"][data-id="P-E2"]');
+  if (!tile) return bad.concat(['the Send last week tile is not drawn on the people column']);
+  sent.length = 0;
+  t.ACTIONS['digest-send-now'](tile);
+  await wait(300);
+  const post = sent.find(b => b.action === 'digestSendNow');
+  if (!post || post.targetId !== 'P-E2' || post.personId !== 'P-AD') bad.push('pressing it posted ' + JSON.stringify(post));
+  const said = String((d.getElementById('toast') || {}).textContent || '');
+  if (said.indexOf('Sent to Carl — 32 questions (12–18 Oct)') === -1) bad.push('the toast says "' + said + '", not the server\'s sentence');
+  t.USER(null);
+  return bad;
+});
+
 check('every pager counts the pages its screen actually draws', async () => {
   /* ---------- THE BUG THIS IS WRITTEN FOR, AND IT HAS HAPPENED THREE TIMES § */
   const { w } = boot();

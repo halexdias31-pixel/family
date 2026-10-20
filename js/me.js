@@ -4252,7 +4252,10 @@ function peopleTiles_(p) {
   return tile_({ icon: 'join', label: 'Edit', note: 'name, role, email', act: 'person-edit', tone: 'admin',
                  data: { id: p.personId } })
     + tile_({ icon: 'bin', label: 'Delete', note: 'their account', act: 'person-del', tone: 'danger',
-              data: { id: p.personId, name: first } });
+              data: { id: p.personId, name: first } })
+    /* AND ON A PARENT'S CARD, LAST MONDAY–SUNDAY'S WORK EMAILED NOW (378) — `digestSendNow`, admin only on the server too. */
+    + (/^Client\b/.test(String(p.role || '')) ? tile_({ icon: 'send', label: 'Send last week', note: 'their child’s work, Mon–Sun',
+              act: 'digest-send-now', tone: 'admin', data: { id: p.personId } }) : '');
 }
 
 /* THE TOP OF THE LIST: the "+", or the new person's form, or the slip once they are made. */
@@ -4368,6 +4371,16 @@ on('person-save', el => {
       peopleRedraw_();
       load();
     })
+    .catch(() => {});
+});
+
+/* ONE PRESS SENDS — the owner's word for it (378); the server's sentence is the toast, sent or why not. */
+on('digest-send-now', el => {
+  if (!peopleMay_()) return;
+  const id = el.getAttribute('data-id') || '';
+  if (!id) return;
+  send_({ action: 'digestSendNow', personId: USER.personId || '', targetId: id }, { button: el })
+    .then(d => toast((d && d.said) || 'Sent.'))
     .catch(() => {});
 });
 
