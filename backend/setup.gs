@@ -315,17 +315,16 @@ function makeBrandAccount(pin) {
   return out;
 }
 
-/* EVERY OLD LIKE BECOMES A 👍. § */
-function migrateLikes_() {
-  const likes = read(TAB.post_likes);
+/* EVERY OLD LIKE BECOMES A 👍, keeping the day it was pressed — the `post_likes` rows handed in by `tidyOldTabs_`, which then deletes that tab (379). */
+function migrateLikes_(likeRows) {
   const t = read(TAB.post_reactions);
-  if (!likes.sheet || !t.sheet) return { error: 'a tab is missing — open the site once as an admin' };
+  if (!t.sheet) throw new Error('the post_reactions tab is missing — open the site once as an admin');
 
   const already = {};
   t.rows.forEach(r => { already[S(r.post_id) + '|' + S(r.person_id)] = true; });
 
   let made = 0, had = 0, skipped = 0;
-  likes.rows.forEach(l => {
+  (likeRows || []).forEach(l => {
     const post = S(l.post_id), who = S(l.person_id);
     if (!post || !who) { skipped++; return; }
     if (already[post + '|' + who]) { had++; return; }
@@ -338,12 +337,98 @@ function migrateLikes_() {
     });
     already[post + '|' + who] = true;
     made++;
-    /* No sleep. The id carries `made`, which differs on every row, so two written in the same millisecond were never going to collide — the same thing that was § */
   });
 
   clearCache();
-  const out = { turnedIntoThumbs: made, alreadyReacted: had, unusable: skipped };
-  Logger.log(JSON.stringify(out, null, 2));
+  return { turnedIntoThumbs: made, alreadyReacted: had, unusable: skipped };
+}
+
+/* ---------- THE OLD TABS AND COLUMNS, GONE ONCE, WITH A WHOLE COPY KEPT FIRST (379) ---------- */
+/* Tabs nothing reads or writes any more. `attempts` goes whatever it holds (submissions replaced it, 308); the rest only while they hold no row a person typed. */
+const TIDY_TABS = { attempts: 'always', post_likes: 'after-likes', widgets: 'if-empty', orders: 'if-empty' };
+/* Columns nothing reads, each removed only while every cell under its header is blank. */
+const TIDY_COLUMNS = {
+  people: ['account_number', 'sort_code'],
+  terms: ['relative_name', 'weeks_left'],
+  jobs: ['client_1', 'client_1_status', 'client_2', 'client_2_status', 'client_3', 'client_3_status',
+         'client_4', 'client_4_status', 'tutor_a', 'tutor_a_status', 'tutor_b', 'tutor_b_status',
+         'tutor_c', 'tutor_c_status'],
+};
+/* AND A HEADER WRITTEN TWICE: `read` keeps the last and `setCell` writes the first, so a value typed in one is never seen in the other. The later copy goes, if blank. */
+const TIDY_TWICE = { venues: ['focus'] };
+
+/* A tab's header and rows straight off the sheet — these tabs are out of WHERE, so `read` cannot find them. */
+function tidyRows_(sh) {
+  const n = sh.getLastRow(), c = sh.getLastColumn();
+  if (!n || !c) return { headers: [], rows: [], cells: [] };
+  const v = sh.getRange(1, 1, n, c).getValues();
+  const headers = v[0].map(h => String(h).trim());
+  const cells = v.slice(1).filter(r => r.some(x => String(x == null ? '' : x).trim() !== ''));
+  const rows = cells.map(r => { const o = {}; headers.forEach((h, i) => { if (h) o[h] = r[i]; }); return o; });
+  return { headers: headers, rows: rows, cells: cells };
+}
+
+/* The whole file copied before anything goes; its link is kept (TIDY_BACKUP_<file>) so a retry reuses it rather than making a second. */
+function tidyBackup_(key, ss, props) {
+  const had = S(props.getProperty('TIDY_BACKUP_' + key));
+  if (had) return had;
+  const day = Utilities.formatDate(new Date(), DIGEST_TZ, 'yyyy-MM-dd');
+  const copy = ss.copy(ss.getName() + ' — backup before tidy ' + day);
+  const url = copy.getUrl();
+  if (!url) throw new Error('the backup copy of ' + ss.getName() + ' has no address, so nothing was removed');
+  props.setProperty('TIDY_BACKUP_' + key, url);
+  return url;
+}
+
+function tidyOldTabs_() {
+  const props = PropertiesService.getScriptProperties();
+  const out = { backups: [], removedTabs: [], keptTabs: [], removedColumns: [], keptColumns: [] };
+  Object.keys(FILES).forEach(key => {
+    const ss = SpreadsheetApp.openById(FILES[key]);
+    /* A BACKUP THAT FAILS THROWS HERE, before any tab of this file is touched. */
+    out.backups.push(tidyBackup_(key, ss, props));
+
+    Object.keys(TIDY_TABS).forEach(name => {
+      const sh = ss.getSheetByName(name);
+      if (!sh) return;
+      const got = tidyRows_(sh);
+      const rule = TIDY_TABS[name];
+      if (rule === 'if-empty' && got.cells.length) {
+        out.keptTabs.push(name + ' (' + got.cells.length + (got.cells.length === 1 ? ' row' : ' rows') + ' typed in it)');
+        return;
+      }
+      if (rule === 'after-likes') out.likes = migrateLikes_(got.rows);
+      ss.deleteSheet(sh);
+      out.removedTabs.push(name + (got.cells.length ? ' (' + got.cells.length + (got.cells.length === 1 ? ' row' : ' rows') + ', in the backup)' : ''));
+    });
+
+    const dropCols = (name, pick) => {
+      const sh = ss.getSheetByName(name);
+      if (!sh) return;
+      const got = tidyRows_(sh);
+      const idx = pick(got.headers).sort((a, b) => b - a);
+      idx.forEach(i => {
+        const label = name + '.' + got.headers[i];
+        if (got.cells.some(r => String(r[i] == null ? '' : r[i]).trim() !== '')) { out.keptColumns.push(label + ' (has values)'); return; }
+        sh.deleteColumn(i + 1);
+        out.removedColumns.push(label);
+      });
+    };
+    Object.keys(TIDY_COLUMNS).forEach(name => dropCols(name,
+      h => h.map((x, i) => (TIDY_COLUMNS[name].indexOf(x) !== -1 ? i : -1)).filter(i => i >= 0)));
+    Object.keys(TIDY_TWICE).forEach(name => dropCols(name,
+      h => h.map((x, i) => (TIDY_TWICE[name].indexOf(x) !== -1 && h.indexOf(x) !== i ? i : -1)).filter(i => i >= 0)));
+  });
+  clearCache();
+  /* WHAT THE SETUP CARD SAYS (361): the backup's link and every tab and column that went. */
+  props.setProperty('SAID_tidy-old-tabs', JSON.stringify({
+    link: out.backups[0] || '',
+    said: 'Backup copy made first. Removed tabs: ' + (out.removedTabs.join(', ') || 'none')
+      + '. Removed columns: ' + (out.removedColumns.join(', ') || 'none')
+      + (out.keptTabs.length || out.keptColumns.length ? '. Kept, because they hold something: '
+        + out.keptTabs.concat(out.keptColumns).join(', ') : '') + '.',
+  }).slice(0, 8000));
+  Logger.log('tidy-old-tabs: ' + JSON.stringify(out));
   return out;
 }
 
@@ -772,15 +857,6 @@ function dataProblems(deep) {
     }
   }
 
-  /* Likes that have not been turned into reactions yet. Nothing reads that tab any more, so
-     every row in it is a press that no longer counts anywhere. */
-  const likeRows = read(TAB.post_likes).rows.filter(r => S(r.post_id)).length;
-  if (likeRows) {
-    add('a record is stranded', likeRows + ' like(s) are on the old post_likes tab',
-        'Nothing reads them since the heart was replaced by reactions. Open the site once as an admin '
-        + 'and each becomes a 👍, keeping the date it was pressed.');
-  }
-
   /* `brand!logo_square` IS CHECKED ON THE PHONE OR NOWHERE. § */
   if (!S(logoRow && logoRow.value)) {
     add('looks unfinished', 'brand!logo_square is empty',
@@ -950,7 +1026,7 @@ function checkEverything() {
   /* 5. THE THINGS PEOPLE DO TO POSTS. */
   say('');
   say('ACTIVITY');
-  [['post_likes', 'likes'], ['post_reactions', 'reactions'], ['post_votes', 'votes']]
+  [['post_reactions', 'reactions'], ['post_votes', 'votes']]
     .forEach(([t, name]) => {
       try { say('  ' + (name + '           ').slice(0, 12) + read(TAB[t]).rows.length); }
       catch (err) { say('  ' + name + ': no tab — open the site once as an admin'); }
@@ -1307,8 +1383,17 @@ function setupStatus_() {
   const schemaOk = seen.SCHEMA_VERSION === BACKEND_VERSION;
   out.jobs.push({ id: 'schema', what: 'the sheet gets every tab and column this version uses',
     ran: schemaOk ? S(seen.SCHEMA_AT) || 'yes' : '', error: schemaOk ? '' : S(seen.SCHEMA_FAILED) });
-  MIGRATIONS.forEach(m => out.jobs.push({ id: m.id, what: m.what, ran: S(seen['MIGRATED_' + m.id]),
-    error: seen['MIGRATED_' + m.id] ? '' : S(seen['FAILED_' + m.id]) }));
+  MIGRATIONS.forEach(m => {
+    const job = { id: m.id, what: m.what, ran: S(seen['MIGRATED_' + m.id]),
+      error: seen['MIGRATED_' + m.id] ? '' : S(seen['FAILED_' + m.id]) };
+    /* WHAT A JOB LEFT TO SAY (`SAID_<id>`): the tidy's backup link and what it removed (379). */
+    try {
+      const said = seen['SAID_' + m.id] ? JSON.parse(seen['SAID_' + m.id]) : null;
+      if (said && /^https:\/\//.test(S(said.link))) job.link = S(said.link);
+      if (said && S(said.said)) job.said = S(said.said);
+    } catch (err) { /* a note that will not parse is no note */ }
+    out.jobs.push(job);
+  });
   if (seen['FAILED_sunday-email-hour']) {
     out.jobs.push({ id: 'sunday-email-hour', what: 'the Sunday email kept at weekly_digest_hour', ran: '',
       error: S(seen['FAILED_sunday-email-hour']) });

@@ -10,7 +10,7 @@ const strip=t=>t.replace(/\/\*[\s\S]*?\*\//g,'').replace(/\/\/.*/g,'');
    source and all of them are alive. */
 const KEEP=new Set(['doGet','doPost','missingKeys','layout',
   'ensureSchema_','checkEverything','checkPostsFolder','checkScopes','authoriseDrive',
-  'makeBrandAccount','migrateLikes_','installTriggers_','listTriggers',
+  'makeBrandAccount','installTriggers_','listTriggers',
   'refreshPageCounts','closeFinishedJobs','geocodeVenues','fetchMap','renameValue_',
   'seedOptions','ensureResourceIds','schemaGaps','dataProblems','autoMigrate_',
   'seedConfig_','seedAvatarItems_','seedPostcodes','ensurePersonIds_','gallery','landmarks',

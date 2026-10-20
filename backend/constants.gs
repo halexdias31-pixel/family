@@ -22,13 +22,11 @@ const WHERE = {
   jobs:           { file: 'ledger' },
   events:         { file: 'ledger' },
   receipts:       { file: 'ledger' },
-  orders:         { file: 'ledger' },
   invites:        { file: 'ledger' },
   messages:       { file: 'ledger' },
   records:        { file: 'ledger' },
   exams:          { file: 'ledger' },
   posts:          { file: 'ledger' },
-  post_likes:     { file: 'ledger' },
   post_votes:     { file: 'ledger' },
   post_comments:  { file: 'ledger' },
   post_reactions: { file: 'ledger' },
@@ -53,7 +51,6 @@ const WHERE = {
   pricing:        { file: 'ledger' },
   shop:           { file: 'ledger', alsoTry: 'items&shop' },
   terms:          { file: 'ledger' },
-  widgets:        { file: 'ledger' },
   venues:         { file: 'ledger' },
   rooms:          { file: 'ledger' },
   trips:          { file: 'ledger' },
@@ -110,7 +107,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-20-a-send-now";
+const BACKEND_VERSION = "2026-10-20-b-tidy";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -121,7 +118,7 @@ const TAB = {
   shop: 'shop', pricing: 'pricing',
   config: 'config', options: 'options', trips: 'trips', rooms: 'rooms', invites: 'invites',
   promo_codes: 'promo_codes',
-  exams: 'exams', orders: 'orders', messages: 'messages', widgets: 'widgets',
+  exams: 'exams', messages: 'messages',
   records: 'records',
   herd: 'herd',
   /* The map's own geometry, fetched from OpenStreetMap and kept. Not a tab anybody types into —
@@ -156,7 +153,7 @@ const TAB = {
   /* What the Reels column shows. One row is one slide: a subject, a heading, a line or two, and a
      few words to find a photograph by — see SCHEMA.facts. */
   films: 'films',
-  posts: 'posts', post_likes: 'post_likes', post_votes: 'post_votes',
+  posts: 'posts', post_votes: 'post_votes',
   post_reactions: 'post_reactions', post_comments: 'post_comments',
   family: 'family'
 };
@@ -176,7 +173,7 @@ const SCHEMA = {
     "parent_email",
     /* the account */
     "verified", "verify_token", "listed", "details_confirmed", "joined_on", "came_from",
-    "invited_by", "referral_code", "account_number", "sort_code",
+    "invited_by", "referral_code",
     /* the profile a parent reads */
     "photo", "photos", "video", "headline", "adjective_1", "adjective_2", "adjective_3",
     "years_experience",
@@ -277,7 +274,7 @@ const SCHEMA = {
     /* ---------- WHAT IT COSTS TO SEND SOMEBODY HERE § */
     "travel_cost",
     "max_students", "min_students",
-    "min_hours", "max_hours", "focus", "notice_days",
+    "min_hours", "max_hours", "notice_days",
     "availability", "tutors_happy_here"
   ],
   /* AN INVITATION. One row is one family asked to share one booking — who asked, who was asked, which booking, and what happened. § */
@@ -317,8 +314,8 @@ const SCHEMA = {
     "term_id", "term_name",
     /* WHAT KIND of interval it is: § */
     "kind",
-    "relative_name", "display_name",
-    "start_date", "end_date", "last_sunday", "weeks_left"
+    "display_name",
+    "start_date", "end_date", "last_sunday"
   ],
   /* ---------- HERD MENTALITY'S QUESTIONS § */
   herd: ["question_id", "question", "sort_order", "active", "notes"],
@@ -352,11 +349,7 @@ const SCHEMA = {
   ],
   /* A `feed` tab lived here. § */
 
-  /* THE WIDGETS. One row per tool and per game. § */
-  widgets: [
-    "widget_id", "key", "name", "blurb", "section",
-    "search", "sort_order", "roles", "active", "notes",
-  ],
+  /* `widgets` WAS HERE — a tab nothing read; the tools and games are `WIDGETS` in js/map.js (379). */
 
   /* BRANDING. Key and value, not a column each. § */
 
@@ -399,10 +392,7 @@ const SCHEMA = {
     "pinned", "active",
   ],
 
-  /* LIKES. HISTORICAL — nothing reads this tab any more. § */
-  post_likes: [
-    "like_id", "post_id", "person_id", "liked_on",
-  ],
+  /* `post_likes` WAS HERE — each like became a 👍 and the tab went with `tidy-old-tabs` (379). */
 
   /* A REACTION is a row, like a like and a vote. Same three reasons: you can see who, nobody
      reacts twice, and somebody can change their mind. */
@@ -440,12 +430,7 @@ const SCHEMA = {
     "link_id", "parent_id", "child_id", "child_typed", "state", "asked_on", "answered_on",
   ],
 
-  /* ORDERS. A reward that arrives in the post is not a purchase — it is a request with a state. § */
-  orders: [
-    "order_id", "person_id", "item", "resource", "cost_ticks",
-    "pages", "cost_pence", "delivery",
-    "state", "asked_on", "posted_on", "address", "notes",
-  ],
+  /* `orders` WAS HERE — printing posted to a learner; nothing had made an order since `redeem` went (379). */
 
   /* ---------- HOLIDAYS § */
   /* A `holidays` TAB WAS DECLARED TWICE, and this was the first of the two. § */
@@ -1227,7 +1212,6 @@ const RUNNABLE = {
   ensureSchema:      () => ({ ran: ensureSchema_(), stillMissing: schemaGaps() }),
   schemaGaps:        () => schemaGaps(),
   makeBrandAccount:  a => makeBrandAccount(a),
-  migrateLikes:      () => migrateLikes_(),
   installTriggers:   () => installTriggers_(),
   listTriggers:      () => listTriggers(),
   /* ---------- THE SPREADSHEET AS THE CONTROL PANEL § */
@@ -1290,9 +1274,7 @@ const RUNNABLE = {
 /* ---------- THE SHEET CATCHES UP WITH THE CODE, BY ITSELF § */
 /* ---------- THE ONE-OFF JOBS, RUN ONCE, BY THEMSELVES § */
 const MIGRATIONS = [
-  { id: 'likes-to-reactions',
-    what: 'every old like becomes a 👍, keeping the date it was pressed',
-    run: () => migrateLikes_() },
+  /* `likes-to-reactions` WAS HERE, AND ITS ID STAYS SPENT: `tidy-old-tabs` turns any like still left into a 👍 before the tab goes. */
 
   { id: 'nightly-jobs',
     what: 'the page-count sweep and the job closer, on a daily trigger',
@@ -1380,6 +1362,12 @@ const MIGRATIONS = [
     retry: true,
     what: 'every handle becomes the first and last letter of the first name and the year they joined',
     run: () => { const r = renameHandles_(); if (r && r.error) throw new Error(r.error); return r; } },
+
+  /* THE OWNER (20 Oct): "delete any old bullshit we don't need anymore". A whole copy of the file first, then the tabs and columns nothing reads (379). */
+  { id: 'tidy-old-tabs',
+    retry: true,
+    what: 'a backup copy of the Ledger, then the attempts, post_likes, widgets and orders tabs and the columns nothing reads are removed',
+    run: () => tidyOldTabs_() },
 ];
 
 /* ============================== POST ========================================================= */
@@ -1486,7 +1474,6 @@ const ACTION_ACCESS = {
   /* Letting one through, or turning it down. Admin, obviously — this is the whole point of the
      waiting. */
   approvePost: 'admin',
-  orderPosted: 'admin',
   /* MARKING A SESSION PAID BY HAND. Admin and nothing else, obviously — it is the one action on
      this site that says money arrived without a payment processor having said so. */
   markPaid: 'admin',

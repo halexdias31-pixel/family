@@ -217,7 +217,7 @@ function handleLetters_(v) {
 /* WHERE A PERSON FIRST SHOWS UP when their row has no joined_on: [tab, id column, date column]. */
 const HANDLE_ACTIVITY = [['submissions', 'person_id', 'submitted_at'],
   ['answers', 'person_id', 'saved_at'], ['messages', 'from_id', 'sent_at'], ['receipts', 'person_id', 'issued_on'],
-  ['orders', 'person_id', 'asked_on'], ['post_reactions', 'person_id', 'reacted_on'], ['favourites', 'person_id', 'at'],
+  ['post_reactions', 'person_id', 'reacted_on'], ['favourites', 'person_id', 'at'],
   ['family', 'parent_id', 'asked_on'], ['family', 'child_id', 'asked_on']];
 
 /* EACH PERSON'S EARLIEST RECORDED ACTIVITY, `{ person_id: Date }` — their own dated cells and every tab above. A missing tab is skipped. */

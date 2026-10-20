@@ -74,7 +74,7 @@ function payload() {
         borough: 'Merton', avail: {} },
     ],
     students: [], resources: [], posts: [], shop: [], trips: [], exams: [],
-    birthdays: [], orders: [], widgets: [], laws: [], brand: {}, landmarks: [],
+    birthdays: [], laws: [], brand: {}, landmarks: [],
     intervals: [{ rel: 'Current', term: 'Autumn 1', label: 'Autumn 1', weeks: 6,
                   startDate: '01/09/2026', endDate: '18/10/2026', kind: 'term' }],
     festive: [{ id: 'H1', holiday: 'Christmas Day', name: 'Christmas party',

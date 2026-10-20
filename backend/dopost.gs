@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-20-a-send-now";
+const DOPOST_VERSION = "2026-10-20-b-tidy";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -2092,26 +2092,6 @@ function doPost(e) {
     }
 
     /* ---------- `redeem` WAS HERE — A PRINTED PAPER FOR A THOUSAND TICKS § */
-
-    /* Marking one posted. Admin only, and one direction only. */
-    if (action === 'orderPosted') {
-      const t = read(TAB.orders);
-      const r = rowById_(t, 'order_id', body.id, body.rowIndex);
-      if (!r) return jsonOut({ error: 'Not found.' });
-      setCell(t, r, 'state', 'posted');
-      setCell(t, r, 'posted_on', new Date());
-      clearCache();
-      /* Tell them. The whole reason an order has a state is that the person who asked cannot see
-         your printer, and a thing that arrives with no warning is a thing they had given up on. */
-      const who = findPerson(S(r.person_id));
-      /* `bookings` RATHER THAN A KIND OF ITS OWN: § */
-      if (who) notify(personDisplayName(who),
-        norm(r.delivery) === 'post' ? 'Your printing is in the post' : 'Your printing is ready',
-        norm(r.delivery) === 'post'
-          ? 'It went out today.\n\n  ' + S(r.resource) + '\n\n— @family.'
-          : 'Ready to collect at your next session.\n\n  ' + S(r.resource) + '\n\n— @family.', 'bookings');
-      return jsonOut({ success: true });
-    }
 
     /* exams ------------------------------------------------------------------------------ A student's own dates. § */
     if (action === 'saveExam' || action === 'deleteExam') {
