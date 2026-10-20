@@ -558,7 +558,7 @@ const slow = took > 400;
 if (slow) console.log('  marking %j took %d ms — a unit is being read more than one way again', SLOW, took);
 
 /* ---------- BY RULE: KEY WORDS MARK A SHORT WORDED ANSWER, A MARK A POINT (docs/history/359) ---------- */
-const MW_NAMES = ['MW_STOP', 'mwStem_', 'mwToks_', 'mwHas_', 'markWords_', 'cellsOf_', 'markCells_'];
+const MW_NAMES = ['MW_STOP', 'mwStem_', 'mwToks_', 'mwNum_', 'mwShapes_', 'mwHas_', 'markWords_', 'cellsOf_', 'markCells_'];
 const mwSrc = MW_NAMES.map(n => cutFrom(src, n));
 let mwBad = 0;
 const MW = [
@@ -581,6 +581,17 @@ const MW = [
   ['', 'placebo', null, 'nothing typed is not a wrong answer'],
   ['No. The powers of 10 come first', 'no ; powers', 2, 'an opening No with its full stop is the verdict, not a negation of the next word'],
   ['No placebo was given', 'placebo', 0, 'but a No inside the sentence still negates'],
+  /* A TRANSFORMATION DESCRIBED FULLY (385): the word, and the vector, line or centre read with its signs */
+  ['Translate triangle A (5/-4)', 'translation|translate|translated; (5,-4)', 2, 'Theo\'s answer: the vector as 5 over -4'],
+  ['Translation \u27ee5,\u22124\u27ef', 'translation|translate|translated; (5,-4)', 2, 'the keypad\'s column vector'],
+  ['translated 5 right and 4 down', 'translation|translate|translated; (5,-4)', 2, 'the vector in words'],
+  ['Translation (5, 4)', 'translation|translate|translated; (5,-4)', 1, 'the wrong sign is not the vector'],
+  ['Reflection (5,-4)', 'translation|translate|translated; (5,-4)', 1, 'the wrong transformation is not the word'],
+  ['reflect in y = \u2212x', 'reflection|reflect; y=-x', 2, 'a line with its sign'],
+  ['reflect in y = x', 'reflection|reflect; y=-x', 1, 'and without it, another line'],
+  ['reflection in the x-axis', 'reflection|reflect; y=0', 2, 'the x-axis is y = 0'],
+  ['rotate 90 clockwise about (-4, 1)', 'rotation|rotate; 90+clockwise; (-4,1)', 3, 'a rotation\'s three marks'],
+  ['rotation 90 clockwise about (4, 1)', 'rotation|rotate; 90+clockwise; (-4,1)', 2, 'a centre with a lost sign'],
 ];
 if (mwSrc.some(x => !x)) { console.log('check-marking: cannot find ' + MW_NAMES.filter((n, i) => !mwSrc[i]).join(', ') + ' in find.js — renamed?'); process.exit(1); }
 eval(mwSrc.join('\n'));
@@ -596,7 +607,7 @@ if (cellsAll.right !== 3 || cellsAll.of !== 3) { mwBad++; console.log('  WRONG  
 /* EVERY RULE IN THE LIBRARY GIVES FULL MARKS TO ITS OWN SCHEME'S HEADLINE -- a rule its own answer fails is a wrong rule. */
 const mwLib = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'questions.json'), 'utf8')).filter(r => String(r.mark_words || '').trim());
 mwLib.forEach(r => {
-  const head = String(r.answer || '').replace(/<[^>]*>/g, ' ').replace(/&[a-z]+;/g, ' ');
+  const head = String(r.answer || '').replace(/&minus;/g, '-').replace(/<[^>]*>/g, ' ').replace(/&[a-z]+;/g, ' ');
   const m = markWords_(head, r.mark_words);
   if (!m || m.got < m.of) { mwBad++; console.log('  WRONG  %s: its own scheme scores %j against mark_words %j', r.row_id, m, r.mark_words); }
 });

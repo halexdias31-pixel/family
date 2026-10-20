@@ -561,7 +561,10 @@ function digestCells_(q) {
 function digestTheirAnswer_(q, a) {
   let t = S(a).trim();
   if (!t) return null;
-  const plain = s => ({ text: s, html: digestEsc_(s) });
+  /* A COLUMN VECTOR TYPED ON THE KEYPAD (`⟮5,-4⟯`, 385) stacked in one pair of brackets, as the site draws it */
+  const vec = /\u27ee([^\u27ee\u27ef,]*),([^\u27ee\u27ef]*)\u27ef/g;
+  const plain = s => ({ text: s.replace(vec, '($1 over $2)'), html: digestEsc_(s).replace(vec,
+    '<span style="display:inline-block;vertical-align:middle;text-align:center;line-height:1.15;padding:0 4px;border-left:1.5px solid currentColor;border-right:1.5px solid currentColor;border-radius:7px/16px">$1<br>$2</span>') });
   if (/^drawing · /.test(t)) return { text: 'a drawing (it is on the site)', html: '<i>a drawing (it is on the site)</i>' };
   if (q) {
     const opts = S(q.choices).split('|').map(x => x.trim()).filter(Boolean);

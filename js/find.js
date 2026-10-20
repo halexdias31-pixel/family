@@ -2748,9 +2748,15 @@ function boxerPart_(x, part) {
 }
 
 
+/* A COLUMN VECTOR AS TYPED ON THE KEYPAD (`⟮5,-4⟯`, 385) DRAWN TOP OVER BOTTOM in one pair of brackets -- the box, the card, Saved */
+function vecHtml_(html) {
+  return String(html == null ? '' : html).replace(/\u27ee([^\u27ee\u27ef,]*),([^\u27ee\u27ef]*)\u27ef/g,
+    '<span class="vec"><span class="vec-a">$1</span><span class="vec-b">$2</span></span>');
+}
 /* `typeset_` — A FRACTION IS DRAWN OVER ITS LINE, AND A POWER IS RAISED. § */
 function typeset_(html) {
   let s = String(html == null ? '' : html);
+  if (s.indexOf('\u27ee') !== -1) s = vecHtml_(s);
   /* NOTHING TO DO IS THE COMMON CASE -- most of the library is prose -- so it is the first thing
      asked, before a regex is built or a tag is read. */
   if (s.indexOf('^') === -1 && !/&frasl;|\u2044|&#8260;/.test(s)) return s;
@@ -3953,8 +3959,8 @@ function choiceBox_(x) {
   const picked = String(ansRead_(k) || '').split(',').map(t => parseInt(t, 10)).filter(n => n > 0);
   const done = right.length && picked.length >= need;
   const ok = done && picked.slice().sort((a, b) => a - b).join(',') === right.join(',');
-  /* `is-done` SAYS THE QUESTION IS SETTLED, which `qp-choose` below already enforces by ignoring any further tap. § */
-  return `<div class="qp-ans qp-choices${done ? ' is-done' : ''}" data-k="${esc(k)}" data-need="${need}"
+  /* SETTLED (`is-done`) ONLY WHEN RIGHT; a miss (`is-miss`) stays tappable so the child picks again and is marked again (385). */
+  return `<div class="qp-ans qp-choices${ok ? ' is-done' : done ? ' is-miss' : ''}" data-k="${esc(k)}" data-need="${need}"
       data-right="${esc(right.join(','))}">
     ${/* NO "<NAME>'S ANSWER" OVER THE OPTIONS -- *"remove 'names answer'. that is redundant."* The
           person signed in is on the You column; the only thing worth saying here is how many to pick. */
@@ -3970,7 +3976,7 @@ function choiceBox_(x) {
   </div>${right.length ? `<div class="qp-mark${done ? (ok ? ' is-right' : ' is-near') : ''}">
     <span class="qp-verdict" role="status" aria-live="polite">${done
       /* WHERE THE ANSWER IS, NOT WHAT IT IS -- and short enough for one line at 320px: § */
-      ? (ok ? 'Correct' : 'Not yet — see Answers')
+      ? (ok ? 'Correct' : 'Not yet — have another go')
       : ''}</span>
   </div>` : ''}
   <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>`;
@@ -4171,9 +4177,12 @@ on('qp-choose', (el) => {
   const right = box.getAttribute('data-right');
   const n = +el.getAttribute('data-n');
   let picked = String(ansRead_(k) || '').split(',').map(t => parseInt(t, 10)).filter(v => v > 0);
-  if (right && picked.length >= need) return;
+  const sorted = a => a.slice().sort((p, q) => p - q).join(',');
+  /* ONLY A RIGHT PICK IS FINAL: after "Not yet" any tap is a new try (385, Theo tapping and tapping). */
+  if (right && picked.length >= need && sorted(picked) === right) return;
   if (need === 1) picked = [n];
-  else picked = picked.includes(n) ? picked.filter(v => v !== n) : picked.concat(n);
+  else if (picked.includes(n)) picked = picked.filter(v => v !== n);
+  else picked = picked.concat(n).slice(-need);
   /* THROUGH `ansStore_`, the one writer — kept on this device. */
   ansStore_(k, picked.join(','));
   /* ENOUGH CHOSEN IS A SUBMISSION, marked at once: § */
@@ -4201,7 +4210,25 @@ function mwToks_(t) {
   return String(t || '').toLowerCase().replace(/^\s*no\s*[,.:;!\u2013\u2014]+/, 'no verdict ').replace(/['\u2019]/g, '').replace(/(\d),(?=\d{3}\b)/g, '$1').replace(/[^a-z0-9.\s-]/g, ' ')
     .split(/[\s-]+/).filter(Boolean).map(mwStem_).filter(Boolean);
 }
+/* A PAIR, A VECTOR AND A LINE READ WITH THEIR SIGNS (385), one token each beside the words: `(5, -4)`, `(5/-4)`, `⟮5,-4⟯`,
+   "5 right 4 down" are `pr5nm4`; `x = -2` is `lnxm2`, `y = -x` `lnymx` */
+const mwNum_ = n => (+n < 0 ? 'm' : '') + String(Math.abs(+n));
+function mwShapes_(t) {
+  const s = String(t || '').toLowerCase().replace(/[\u2212\u2013]/g, '-').replace(/&minus;/g, '-');
+  const out = [], N = '(-?\\d+(?:\\.\\d+)?)';
+  const pair = (a, b) => out.push('pr' + mwNum_(a) + 'n' + mwNum_(b));
+  s.replace(new RegExp('[(\u27ee]\\s*' + N + '\\s*(?:[,/]\\s*|\\s(?=\\s*-?\\d))' + N + '\\s*[)\u27ef]', 'g'), (m, a, b) => pair(a, b));
+  const mv = { right: [1, 0], left: [-1, 0], up: [0, 1], down: [0, -1] };
+  const steps = [];
+  s.replace(/(\d+(?:\.\d+)?)\s*(?:squares?|units?)?\s*(?:to\s+the\s+)?(right|left|up|down)\b|\b(right|left|up|down)\s*(\d+(?:\.\d+)?)/g, (m, n1, d1, d2, n2) => { steps.push([mv[d1 || d2], +(n1 || n2)]); });
+  if (steps.length) { let x = 0, y = 0; steps.forEach(([d, n]) => { x += d[0] * n; y += d[1] * n; }); pair(x, y); }
+  s.replace(new RegExp('\\b([xy])\\s*=\\s*(-?)\\s*(x|y|\\d+(?:\\.\\d+)?)\\b', 'g'), (m, v, sg, w) => out.push('ln' + v + (/[xy]/.test(w) ? (sg ? 'm' : '') + w : mwNum_(sg + w))));
+  s.replace(/\b([xy])[\s-]*axis\b/g, (m, v) => out.push('ln' + (v === 'x' ? 'y' : 'x') + '0'));
+  return out;
+}
 function mwHas_(toks, term) {
+  const sh = /^\s*(\(.*\)|[xy]\s*=.*)\s*$/.test(term) ? mwShapes_(term) : [];
+  if (sh.length) return toks.indexOf(sh[0]) !== -1;
   const want = mwToks_(term).filter(w => !MW_STOP.test(w));
   if (!want.length) return false;
   for (let i = 0; i + want.length <= toks.length; i++) {
@@ -4215,7 +4242,7 @@ function mwHas_(toks, term) {
 /* `{ got, of }`, or null for nothing typed. */
 function markWords_(typed, rule) {
   if (!String(typed || '').trim()) return null;
-  const toks = mwToks_(typed);
+  const toks = mwToks_(typed).concat(mwShapes_(typed));
   const points = String(rule || '').split(';').map(p => p.trim()).filter(Boolean);
   const got = points.filter(p => p.split('|').some(way => way.split('+').every(term => mwHas_(toks, term)))).length;
   return { got: got, of: points.length };
@@ -4370,7 +4397,7 @@ function multiBoxes_(x, k, val, m, maths, signs) {
   for (let i = 0; i < n; i++) boxes.push(one(i));
   /* the joined answer, first in the box, is what Check, Send and every verdict painter read in place of `.qp-ans-in` */
   return `<div class="qp-multi${m.wrap ? ' is-pair' : ''}" data-mk="${esc(k)}" data-m="${esc(JSON.stringify(m))}" data-kind="${kind}"${
-    signs ? ' data-signs="1"' : ''}${m.grow ? ' data-grow="1"' : ''}><input type="hidden" class="qp-multi-val" data-k="${esc(k)}" value="${esc(multiJoin_(vals, m))}">${boxes.join('')}</div>`;
+    signs ? ` data-signs="${+signs}"` : ''}${m.grow ? ' data-grow="1"' : ''}><input type="hidden" class="qp-multi-val" data-k="${esc(k)}" value="${esc(multiJoin_(vals, m))}">${boxes.join('')}</div>`;
 }
 const multiIns_ = box => [].slice.call(box.querySelectorAll('.kp-in[data-do="qp-multi"]'));
 /* EVERY KEY IN A BOX: the joined answer kept under the question's own key, and a filled last box grows another where the count is open. */
@@ -4387,7 +4414,7 @@ document.addEventListener('input', e => {
   if (box.hasAttribute('data-grow') && ins.length && ins[ins.length - 1] === el && el.value.trim()) {
     const at = document.createElement('div');
     const kind = box.getAttribute('data-kind');
-    at.innerHTML = `<label class="qp-ans qp-multi-f">${multiField_(box.getAttribute('data-mk'), ins.length, '', kind, box.hasAttribute('data-signs'))}</label>`;
+    at.innerHTML = `<label class="qp-ans qp-multi-f">${multiField_(box.getAttribute('data-mk'), ins.length, '', kind, +box.getAttribute('data-signs') || 0)}</label>`;
     box.appendChild(at.firstChild);
   }
   const mark = box.closest('.qp-mark');
@@ -4423,7 +4450,7 @@ function ansBox_(x) {
   /* EVERY ANSWER IS TYPED ON THE SITE'S OWN PAD, a maths one opening on the maths keys and a worded one on the letters. § */
   const maths = ansMaths_(x);
   /* THE SIGNS ROW GOES BY THE SCHEME, WHATEVER KIND OF BOX IT IS. § */
-  const signs = kpSigns_(x);
+  const signs = (kpSigns_(x) ? 1 : 0) | (kpVec_(x) ? 2 : 0);
   /* NO CAPTION OVER THE BOX. § */
   /* ---------- THE FIGURE TILE STANDS BESIDE THE BOX, NOT IN THE ROW UNDER IT § */
   const fig = figTile_(x);
@@ -4753,14 +4780,28 @@ const padBar_ = (pen, tools, tool) => `<div class="qpad-bar tile-row" role="tool
       tile_({ icon: 'bin', label: 'Clear', note: 'every mark', act: 'pad-clear', cls: 'qpad-clear' })}</span>
     </div>`;
 
+/* A PICTURE TOO THIN TO DRAW ON IS GIVEN ROOM ABOVE AND BELOW (385): a number line 340x35 was a 31px strip at 390, and its circles go above the line */
+const PAD_MIN_ASPECT = 0.3;
+function padRoom_(svg) {
+  const m = /viewBox\s*=\s*(["'])\s*([-\d.eE+]+)[\s,]+([-\d.eE+]+)[\s,]+([\d.eE+]+)[\s,]+([\d.eE+]+)\s*\1/.exec(String(svg || ''));
+  if (!m) return svg;
+  const x0 = +m[2], y0 = +m[3], w = +m[4], h = +m[5];
+  if (!(w > 0 && h > 0) || h / w >= PAD_MIN_ASPECT) return svg;
+  const H = Math.round(w * PAD_MIN_ASPECT * 100) / 100, y = Math.round((y0 - (H - h) / 2) * 100) / 100;
+  return svg.replace(m[0], `viewBox="${x0} ${y} ${w} ${H}"`);
+}
+
 function padWrap_(x, svg, foot) {
+  /* THE PICTURE AS THE LIBRARY HAS IT names the parts that share it; the roomier copy is only what is drawn */
+  const src = svg;
+  if (!(x && padPrefix_(x) === 'board')) svg = padRoom_(svg);
   const k = padKey_(x);
   /* DRAWING THE PAD IS OPENING IT, so this is where the phone's old marks become this person's. */
   padAdopt_(k, padPrefix_(x) + ':' + padItemKey_(x));
   const marks = padRead_(k);
   /* AND THE MARKS AN EARLIER PART MADE ON THIS SAME PICTURE, under this part's own and out of reach of
      its Undo and Clear -- (ii)'s cross goes on the scale (i) already marked. See `usesOf_`. */
-  const under = padUnderParts_(x, svg), was = [].concat(...under.map(usesMine_));
+  const under = padUnderParts_(x, src), was = [].concat(...under.map(usesMine_));
   /* THE MODE IS READ OFF `PAD_ON`, NOT LEFT ON THE ELEMENT BY THE PRESS THAT SET IT. § */
   const pen = PAD_ON === k;
   /* THE PAD'S SHAPE, written on it for the live path and every repaint to read -- one number for all of them,

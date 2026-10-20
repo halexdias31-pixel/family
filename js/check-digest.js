@@ -1334,7 +1334,8 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
   const saidC = (lib.tags && lib.tags['Q-CBM-perimeter-1'] || []).map(t => t.text).join(' ');
   asked++;
   /* THE SCREENSHOT'S ROWS (docs/history/355), less the page tags: the email draws a part whole. check-funnel holds every question to its card. */
-  if (said7 !== 'Questions Maths Past paper GCSE Edexcel Foundation 2024 June Paper 1 Q7 4 marks Non-calculator Printed sheet'
+  /* no "Printed sheet" since 385: Q7 is drawn and marked on screen */
+  if (said7 !== 'Questions Maths Past paper GCSE Edexcel Foundation 2024 June Paper 1 Q7 4 marks Non-calculator'
       || saidC !== 'Questions Maths Worksheet SATs KS2 Year 3 Perimeter Q1')
     bad.push('the library\'s tags for two real questions are not the card\'s: ' + JSON.stringify([said7, saidC]));
   G.__LIB = lib;
