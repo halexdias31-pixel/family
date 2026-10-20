@@ -90,3 +90,36 @@ and change the screen's pixels round them. A finger's tick on the card is still 
 case failed and the arrowheads were `[119,153]`, the shaft's end. check/whiteboard.js: board.js (377) already kept
 them. It now proves a mouse's and a stylus's tick, cross and click, and a finger's tick and tap, are each kept and
 painted.
+
+## A finger on a phone did nothing on the whiteboard (20 Oct)
+
+The owner, on a real phone just after ee42605, 9cb39cb and 95004f2 went live: *"It doesn't work when on mobile,
+like I place finger and nothing happens."*
+
+**Reproduced, with real touch** (Playwright, `isMobile` + `hasTouch`, 390 × 844 at 3x with an iPhone user agent, and
+412 × 915 at 2.625x as Chrome on Android; CDP `Input.dispatchTouchEvent` taps and drags, not a mouse), on Metric Units
+Q1 (a)'s card (the dial carried from its stem, 381), Q7's card (its own grid), a made-up grid and the Tools whiteboard.
+
+- **The question cards were not broken**, at ee42605, at 8df1749 (381), at 95004f2 or at 8a321ed before them: a
+  finger's tap on the figure arms the pen (the art is the door, as the lock tile is), a stroke then inks and a tap
+  leaves 357's dot, for every contact width tried (16–62 px). ee42605's split is `pointerType === 'mouse' || 'pen'`;
+  a finger (`touch`, or `''` from a browser that leaves it empty) falls on the finger's side and is unchanged. A finger
+  placed on an *unarmed* figure still does nothing — by design since 338: a swipe there moves the column.
+- **The whiteboard was.** The notebook (board.js, 377, live since 29ded2a) refused at landing any touch wider than
+  `NB_PALM_PX` = 44 px as a palm (`nbRefuse_`), whatever else was down. WebKit gives a touch pointer
+  `width` = 2 × the UITouch's radius, and an iPhone reports a fingertip's radius in steps of about 5.2 pt from about
+  20.9 — 42, 52, 63 px wide. A light touch passes, an ordinary one does not: put a finger on the pad, and nothing.
+  Chrome emulation and check/whiteboard.js use an 8 px radius (16 px), so every check was green. The commits named
+  above did not cause it; they were the first deploy the owner wrote on the board with.
+
+**The rule, fixed:** a contact is never refused for its size alone. A wide contact is a palm only *beside a narrower
+one* (`nbWide_`): wide and landing while a finger writes, it is ignored to its lift; down first and a narrower finger
+landing after, the palm's half-stroke goes and the finger writes. The edge rule and the late-second-finger rule are
+unchanged. The question pen never had a size rule (338 waits for a reading), so nothing there changes.
+
+**Proof.** check/pen.js `phone`: an iPhone (52 px fingertip, 3x, iOS UA) and an Android phone (24 px, 2.625x) tap the
+stem figure (Metric Units Q1 a) and Q7's figure to arm them, stroke (1 stored, 1 drawn, no swipe) and tap (a dot), and
+write a stroke and a tap on the notebook. check/whiteboard.js: lone fingertips 42, 52 and 62 px wide each write; a palm
+down first then a finger keeps only the finger's stroke; a palm landing beside a writing finger is ignored. Mutation:
+the old board.js fails `phone` (iPhone notebook: 0 items for the stroke and the tap) and whiteboard.js (52 and 62 px
+fingertips: nothing written); the real file is green again.
