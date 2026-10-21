@@ -853,9 +853,9 @@ const WIDGETS = [
     <p class="note" id="tux-licence"></p>
   </div>` },
   /* CONSOLE (389): the jsnes player only. The game file is the person's own, picked on their device and kept there; `stop` pauses. */
-  { id: 'console', kind: 'game', name: 'Console', start: () => nesPaint_?.(),
+  { id: 'console', kind: 'game', name: 'Console', start: () => { nesPaint_?.(); nesPadWatch_?.(); },
     draw: () => nesPaint_?.(),
-    stop: () => { if (typeof nesStop_ === 'function') nesStop_(); },
+    stop: () => { if (typeof nesStop_ === 'function') { nesStop_(); nesPadUnwatch_(); } },
     into: 'nes-box', what: 'The console',
     html: `<div class="card">
     <h3>Console</h3>
