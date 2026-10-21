@@ -4977,3 +4977,324 @@ function tuxPlay_() {
   stage.querySelector('iframe').addEventListener('load', () => loaded_(stage), { once: true });
 }
 on('tux-play', tuxPlay_);
+
+/* ---------- CONSOLE: an NES player, and only the player (docs/history/389) */
+/* The engine is jsnes (Apache-2.0), fetched only when Play is pressed. The game file is the person's own:
+   picked from their device, kept in this device's IndexedDB, never uploaded or sent. */
+const NES_LIB = 'https://cdn.jsdelivr.net/npm/jsnes@2.1.0/dist/jsnes.min.js';
+const NES_LIB_2 = 'https://unpkg.com/jsnes@2.1.0/dist/jsnes.min.js';
+const NES_DB = 'family-console', NES_HZ = 60.0988;
+const NES_ = { nes: null, rom: null, saved: null, running: false, raf: 0, last: 0, acc: 0, ctx: null, img: null,
+  u32: null, audio: null, node: null, ring: null, rd: 0, wr: 0, keys: {}, pads: {}, touch: {}, held: {}, lib: null };
+/* NES buttons in jsnes's numbering, so every input source speaks one language. */
+const NES_B = { a: 0, b: 1, select: 2, start: 3, up: 4, down: 5, left: 6, right: 7 };
+const NES_KEYS = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
+  z: 'b', Z: 'b', x: 'a', X: 'a', Enter: 'start', Shift: 'select' };
+
+/* THE ONE PLACE INDEXEDDB IS TOUCHED. Any failure (private window, blocked storage) is "no file kept". */
+function nesDb_(mode, fn) {
+  return new Promise(res => {
+    try {
+      const rq = indexedDB.open(NES_DB, 1);
+      rq.onupgradeneeded = () => rq.result.createObjectStore('rom');
+      rq.onerror = () => res(null);
+      rq.onsuccess = () => {
+        try {
+          const tx = rq.result.transaction('rom', mode), r = fn(tx.objectStore('rom'));
+          tx.oncomplete = () => { res(r && 'result' in r ? r.result : true); rq.result.close(); };
+          tx.onerror = tx.onabort = () => { res(null); rq.result.close(); };
+        } catch (e) { res(null); }
+      };
+    } catch (e) { res(null); }
+  });
+}
+const nesKept_ = () => nesDb_('readonly', s => s.get('last'));
+const nesKeep_ = bytes => nesDb_('readwrite', s => s.put(bytes, 'last'));
+const nesForgetDb_ = () => nesDb_('readwrite', s => s.delete('last'));
+
+/* iNES: "NES" then 0x1A, and at least one 16 KB bank after the 16-byte header. */
+function nesValid_(u8) {
+  return !!u8 && u8.length >= 16 + 16384 && u8[0] === 0x4e && u8[1] === 0x45 && u8[2] === 0x53 && u8[3] === 0x1a;
+}
+
+function nesPaint_() {
+  const box = $('nes-box');
+  if (!box) return;
+  if (!USER) { box.innerHTML = '<p class="empty">Sign in to use the console.</p>'; return; }
+  if (!box.querySelector('.nes-wrap')) {
+    box.innerHTML = `<div class="nes-wrap" id="nes-wrap">
+      <div class="nes-stage" id="nes-stage"><canvas id="nes-canvas" class="nes-canvas" width="256" height="240"></canvas></div>
+      <div class="nes-pad" id="nes-pad" aria-hidden="true">
+        <div class="nes-dpad" data-k="dpad"></div>
+        <div class="nes-mid"><button type="button" class="nes-key nes-small" data-k="select">Select</button><button type="button" class="nes-key nes-small" data-k="start">Start</button></div>
+        <div class="nes-ab"><button type="button" class="nes-key nes-round" data-k="b">B</button><button type="button" class="nes-key nes-round" data-k="a">A</button></div>
+        <button type="button" class="nes-key nes-exit" data-k="exit" aria-label="Leave full screen">×</button>
+      </div>
+    </div>
+    <div class="tile-row" id="nes-tiles"></div>
+    <p class="note" id="nes-say" role="status"></p>
+    <input type="file" id="nes-file" class="nes-file" accept=".nes,application/octet-stream,*&#47;*">
+    <p class="faint">Use a game file you own. It stays on this device and is never uploaded.</p>`;
+    nesPadWire_($('nes-pad'));
+  }
+  nesBlit_();
+  nesTiles_();
+  if (NES_.saved == null) nesKept_().then(b => { NES_.saved = b ? new Uint8Array(b) : false; nesTiles_(); });
+}
+
+function nesTiles_() {
+  const t = $('nes-tiles');
+  if (!t) return;
+  const have = NES_.rom || NES_.saved;
+  t.innerHTML = (NES_.running
+      ? tile_({ icon: 'pause', label: 'Pause', act: 'nes-pause' })
+      : tile_({ icon: 'play', label: 'Play', act: 'nes-play', note: have ? '' : 'choose a .nes file' }))
+    + tile_({ icon: 'open', label: 'Choose file', act: 'nes-pick' })
+    + (have ? tile_({ icon: 'bin', label: 'Forget file', act: 'nes-forget' }) : '')
+    + tile_({ icon: 'full', label: 'Full screen', act: 'nes-full' });
+  nesPadShow_();
+}
+
+const nesSay_ = s => { const p = $('nes-say'); if (p) p.textContent = s || ''; };
+
+/* THE SCRIPT, ONCE, from the pinned CDN and then its mirror. */
+function nesLib_() {
+  if (window.jsnes && window.jsnes.NES) return Promise.resolve(window.jsnes);
+  if (NES_.lib) return NES_.lib;
+  const one = src => new Promise((ok, no) => {
+    const s = document.createElement('script');
+    s.src = src; s.async = true; s.crossOrigin = 'anonymous';
+    s.onload = () => (window.jsnes && window.jsnes.NES ? ok(window.jsnes) : no(new Error('no engine')));
+    s.onerror = () => { s.remove(); no(new Error('engine did not load')); };
+    document.head.appendChild(s);
+  });
+  NES_.lib = one(NES_LIB).catch(() => one(NES_LIB_2)).catch(e => { NES_.lib = null; throw e; });
+  return NES_.lib;
+}
+
+/* SOUND MUST BE MADE INSIDE THE TAP on iOS, so this runs synchronously in every handler that may start a game. */
+function nesAudio_() {
+  try {
+    if (!NES_.audio) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      NES_.audio = new AC();
+      NES_.ring = new Float32Array(8192 * 2); NES_.rd = NES_.wr = 0;
+      const node = NES_.audio.createScriptProcessor(1024, 0, 2);
+      node.onaudioprocess = e => {
+        const L = e.outputBuffer.getChannelData(0), R = e.outputBuffer.getChannelData(1), n = NES_.ring.length;
+        for (let i = 0; i < L.length; i++) {
+          if (NES_.rd !== NES_.wr && NES_.running) { L[i] = NES_.ring[NES_.rd]; R[i] = NES_.ring[NES_.rd + 1]; NES_.rd = (NES_.rd + 2) % n; }
+          else { L[i] = 0; R[i] = 0; }
+        }
+      };
+      node.connect(NES_.audio.destination);
+      NES_.node = node;
+    }
+    if (NES_.audio.state === 'suspended') NES_.audio.resume();
+  } catch (e) {}
+}
+function nesSample_(l, r) {
+  const n = NES_.ring.length, nx = (NES_.wr + 2) % n;
+  if (nx === NES_.rd) return;   // full: drop rather than lag
+  NES_.ring[NES_.wr] = l; NES_.ring[NES_.wr + 1] = r; NES_.wr = nx;
+}
+
+function nesFrame_(buf) {
+  if (!NES_.u32) return;
+  for (let i = 0; i < 61440; i++) NES_.u32[i] = 0xff000000 | buf[i];
+  nesBlit_();
+}
+function nesBlit_() {
+  const c = $('nes-canvas');
+  if (!c || !NES_.img) return;
+  const g = c.getContext('2d');
+  if (g) g.putImageData(NES_.img, 0, 0);
+}
+
+function nesStart_(bytes) {
+  const stage = $('nes-stage');
+  if (!stage) return;
+  if (!nesValid_(bytes)) { nesSay_('That is not a console game file — it should be a .nes file starting with the iNES header.'); return; }
+  nesSay_('');
+  stage.setAttribute('aria-busy', 'true');
+  stage.insertAdjacentHTML('beforeend', loading_());
+  nesLib_().then(lib => {
+    loaded_(stage);
+    nesStop_();
+    try {
+      NES_.nes = new lib.NES({ onFrame: nesFrame_, onAudioSample: NES_.ring ? nesSample_ : null,
+        emulateSound: !!NES_.ring, sampleRate: NES_.audio ? NES_.audio.sampleRate : 48000 });
+      NES_.nes.loadROM(bytes);
+    } catch (e) { NES_.nes = null; nesSay_('This game file could not be started: ' + (e && e.message || e)); return; }
+    NES_.rom = bytes;
+    NES_.img = $('nes-canvas').getContext('2d').createImageData(256, 240);
+    NES_.u32 = new Uint32Array(NES_.img.data.buffer);
+    nesGo_();
+  }).catch(() => { loaded_(stage); nesSay_('The console could not load. Check the connection and press Play again.'); });
+}
+
+function nesGo_() {
+  if (!NES_.nes || NES_.running) return;
+  NES_.running = true; NES_.last = 0; NES_.acc = 0;
+  const loop = t => {
+    if (!NES_.running) return;
+    NES_.raf = requestAnimationFrame(loop);
+    if (!$('nes-canvas')) { nesStop_(); return; }
+    const dt = NES_.last ? Math.min(100, t - NES_.last) : 1000 / NES_HZ;
+    NES_.last = t; NES_.acc += dt;
+    nesPadsPoll_();
+    let n = 0;
+    while (NES_.acc >= 1000 / NES_HZ && n < 3) {
+      try { NES_.nes.frame(); } catch (e) { nesStop_(); nesSay_('The game stopped: ' + (e && e.message || e)); return; }
+      NES_.acc -= 1000 / NES_HZ; n++;
+    }
+    if (n === 3) NES_.acc = 0;
+  };
+  NES_.raf = requestAnimationFrame(loop);
+  nesTiles_();
+}
+/* PAUSED, NOT ENDED: the game stays in memory and Play carries on from here. */
+function nesStop_() {
+  const was = NES_.running;
+  NES_.running = false;
+  cancelAnimationFrame(NES_.raf);
+  NES_.held = {}; NES_.keys = {}; NES_.touch = {};
+  if (NES_.nes) Object.values(NES_B).forEach(b => { try { NES_.nes.buttonUp(1, b); } catch (e) {} });
+  if (was) nesTiles_();
+}
+
+/* EVERY SOURCE (keys, pad, touch) IS OR-ED, then only changes reach the engine. */
+function nesSync_() {
+  if (!NES_.nes) return;
+  Object.keys(NES_B).forEach(k => {
+    const on = !!(NES_.keys[k] || NES_.pads[k] || NES_.touch[k]);
+    if (on === !!NES_.held[k]) return;
+    NES_.held[k] = on;
+    try { on ? NES_.nes.buttonDown(1, NES_B[k]) : NES_.nes.buttonUp(1, NES_B[k]); } catch (e) {}
+  });
+}
+
+/* STANDARD MAPPING (Chrome Android, Safari iOS/iPadOS): bottom face = A, left face = B, 8/9 Select/Start, 12-15 d-pad, and the left stick. */
+function nesPadsPoll_() {
+  const p = {};
+  let any = false;
+  try {
+    [...(navigator.getGamepads ? navigator.getGamepads() : [])].forEach(g => {
+      if (!g || !g.connected) return;
+      any = true;
+      const b = i => !!(g.buttons[i] && g.buttons[i].pressed), x = g.axes[0] || 0, y = g.axes[1] || 0;
+      if (b(0)) p.a = 1;
+      if (b(2)) p.b = 1;
+      if (b(9)) p.start = 1;
+      if (b(8)) p.select = 1;
+      if (b(12) || y < -0.5) p.up = 1;
+      if (b(13) || y > 0.5) p.down = 1;
+      if (b(14) || x < -0.5) p.left = 1;
+      if (b(15) || x > 0.5) p.right = 1;
+    });
+  } catch (e) {}
+  NES_.pads = p;
+  if (any !== !!NES_.padOn) { NES_.padOn = any; nesPadShow_(); }
+  nesSync_();
+}
+
+/* THE TOUCH PAD only where there is touch and no controller. */
+function nesPadShow_() {
+  const pad = $('nes-pad');
+  if (!pad) return;
+  const touch = (navigator.maxTouchPoints || 0) > 0 || 'ontouchstart' in window;
+  pad.classList.toggle('on', !!(touch && !NES_.padOn && NES_.nes));
+}
+
+function nesPadWire_(pad) {
+  if (!pad) return;
+  const dirs = (el, e) => {
+    const r = el.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+    const dead = r.width * 0.15;
+    return { left: dx < -dead, right: dx > dead, up: dy < -dead, down: dy > dead };
+  };
+  const ptrs = new Map();
+  const redo = () => {
+    const t = {};
+    ptrs.forEach(v => Object.keys(v).forEach(k => { if (v[k]) t[k] = 1; }));
+    NES_.touch = t; nesSync_();
+  };
+  pad.addEventListener('pointerdown', e => {
+    const k = e.target.closest('[data-k]');
+    if (!k) return;
+    e.preventDefault();
+    if (k.dataset.k === 'exit') { nesFullOff_(); return; }
+    try { k.setPointerCapture(e.pointerId); } catch (err) {}
+    ptrs.set(e.pointerId, k.dataset.k === 'dpad' ? dirs(k, e) : { [k.dataset.k]: true });
+    redo();
+  });
+  pad.addEventListener('pointermove', e => {
+    const k = e.target.closest('[data-k="dpad"]');
+    if (k && ptrs.has(e.pointerId)) { ptrs.set(e.pointerId, dirs(k, e)); redo(); }
+  });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(n =>
+    pad.addEventListener(n, e => { if (ptrs.delete(e.pointerId)) redo(); }));
+  pad.addEventListener('contextmenu', e => e.preventDefault());
+}
+
+/* FULL SCREEN: the real thing where the browser has it, and the page-filling class where it does not (iPhone). */
+function nesFullOff_() {
+  const w = $('nes-wrap');
+  if (w) w.classList.remove('nes-full');
+  try { if (document.fullscreenElement) document.exitFullscreen(); else if (document.webkitFullscreenElement) document.webkitExitFullscreen(); } catch (e) {}
+}
+on('nes-full', () => {
+  const w = $('nes-wrap');
+  if (!w) return;
+  const ask = w.requestFullscreen || w.webkitRequestFullscreen;
+  if (ask) {
+    try { const p = ask.call(w); if (p && p.catch) p.catch(() => w.classList.add('nes-full')); return; } catch (e) {}
+  }
+  w.classList.add('nes-full');
+});
+
+on('nes-play', () => {
+  nesAudio_();
+  if (NES_.nes) { nesGo_(); return; }
+  const bytes = NES_.rom || NES_.saved;
+  if (bytes) { nesStart_(bytes); return; }
+  const f = $('nes-file');
+  if (f) f.click();
+});
+on('nes-pick', () => { nesAudio_(); const f = $('nes-file'); if (f) f.click(); });
+on('nes-pause', () => nesStop_());
+on('nes-forget', () => {
+  nesStop_();
+  NES_.nes = null; NES_.rom = null; NES_.saved = false; NES_.img = null; NES_.u32 = null;
+  const c = $('nes-canvas'); if (c) c.getContext('2d').clearRect(0, 0, 256, 240);
+  nesForgetDb_().then(() => { nesTiles_(); nesSay_('Forgotten. The file is no longer kept on this device.'); });
+});
+
+document.addEventListener('change', e => {
+  if (!e.target || e.target.id !== 'nes-file') return;
+  const f = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  f.arrayBuffer().then(ab => {
+    const u8 = new Uint8Array(ab);
+    if (!nesValid_(u8)) { nesSay_('That is not a console game file — it should be a .nes file starting with the iNES header.'); return; }
+    NES_.nes = null; NES_.saved = u8;
+    nesKeep_(ab.slice(0));
+    nesStart_(u8);
+  }).catch(() => nesSay_('That file could not be read.'));
+});
+
+/* KEYS ONLY WHILE A GAME RUNS, and the arrows do not turn the column under it. */
+['keydown', 'keyup'].forEach(type => document.addEventListener(type, e => {
+  if (!NES_.running) return;
+  const k = NES_KEYS[e.key];
+  if (!k) return;
+  if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+  e.preventDefault(); e.stopPropagation();
+  NES_.keys[k] = type === 'keydown'; nesSync_();
+}, true));
+
+document.addEventListener('visibilitychange', () => { if (document.hidden) nesStop_(); });
+window.addEventListener('gamepadconnected', () => { NES_.padOn = true; nesPadShow_(); });
+window.addEventListener('gamepaddisconnected', () => nesPadsPoll_());

@@ -7,6 +7,7 @@ const TILE_CONE_  = '<path d="M2.5 6.5h3l4-3.5v11l-4-3.5h-3z"/>';
 const TILE_WAVES_ = '<path d="M12 6.2a3.2 3.2 0 0 1 0 4.6"/><path d="M14 4a6 6 0 0 1 0 9"/>';
 const TILE_ICONS = {
   play:  '<path d="M5 3.5v11l9-5.5z"/>',
+  pause: '<path d="M6 3.5v10"/><path d="M12 3.5v10"/>',
   doc:   '<path d="M4.5 2.5h6l3 3v10h-9z"/><path d="M10.5 2.5v3.5h3"/>',
   /* A PRINTER: the sheet going in at the top, the body, the sheet coming out at the foot. § */
   print: '<path d="M5.5 6.5v-4h7v4"/><path d="M3.5 6.5h11v4h-11z"/><path d="M5.5 10.5h7v4h-7z"/>',
