@@ -427,8 +427,10 @@ async function gesture(env, o) {
         if (!r.yAfter || r.yLeft < 1) fail('OTHER AXIS KEEPS SLIDING', `${at} up then sideways`, 'a sideways drag stopped the vertical slide dead — the column jumps the rest of the way in one frame');
       }
       /* AND WITH A REAL FINGER: sideways, then up 60ms later, lands one column over and one page down. */
+      /* FROM A COLUMN WHOSE RIGHT NEIGHBOUR HAS A PAGE BELOW: Tools → Games until 392, Games → You since (Book beside Tools is one page). */
+      const from = ['tools', 'games'].find(id => next(id) && (count[next(id)] || 1) >= 2);
       let sp = null;
-      for (const p of TOOLS) { await page.evaluate(p => window.__sw.place('tools', p), p); sp = await page.evaluate(() => window.__sw.spot()); if (sp) break; }
+      for (const p of (from === 'games' ? GAMES : TOOLS)) { if (!from) break; await page.evaluate(([c, p]) => window.__sw.place(c, p), [from, p]); sp = await page.evaluate(() => window.__sw.spot()); if (sp) break; }
       if (sp) {
         const want = await page.evaluate(() => {
           const id = TABS[TABS.findIndex(t => t.id === AT) + 1].id;
@@ -440,7 +442,7 @@ async function gesture(env, o) {
         const s1 = await page.evaluate(() => window.__sw.still());
         note(`${at} sideways then up 60ms later: ${s1.AT}/${s1.P} (wanted ${want})`);
         if (s1.AT + '/' + s1.P !== want) fail('ONE CELL', `${at} sideways then up`, `landed on ${s1.AT}/${s1.P}, wanted ${want}`);
-      } else fail('REACH', `${at} sideways then up`, 'no Tools card had a spot the grid would take');
+      } else fail('REACH', `${at} sideways then up`, from ? 'no ' + from + ' card had a spot the grid would take' : 'neither Tools nor Games has a column with a page below on its right');
     }
 
     /* ---------- 6. THE CARD IN FRONT IS IN THE MIDDLE OF THE SCREEN § */

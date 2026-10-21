@@ -7,7 +7,7 @@ const TABS = [
      question, and a person with no question needs somewhere to land. */
   /* ---------- ONE TAB § */
   { id: 'stuff',   icon: '🔎', label: 'Find',    title: 'Find' },
-  /* ---------- WHO YOU ARE, TO THE RIGHT OF THE QUESTION § */
+  /* ---------- WHO YOU ARE, AT THE START OF THE YOU GROUP (392) § */
   { id: 'account', icon: '👤', label: 'You',     title: 'You' },
 
   /* ---------- AND SEVEN MORE, WHICH IS THIS TABLE GOING BACK THE WAY IT CAME § */
@@ -20,14 +20,14 @@ const TABS = [
   /* ---------- AND THE TWO THE LAYOUT SHEET ASKED FOR § */
   { id: 'reel',    icon: '▶',  label: 'Reels',   title: 'Reels' },
   { id: 'dm',      icon: '✉',  label: 'DMs',     title: 'Messages' },
-  /* ---------- SAVED, WHICH IS RIGHT OF GAMES § */
+  /* ---------- SAVED, RIGHT OF FIND 2 WITH THE LEARNING COLUMNS (392) § */
   { id: 'saved',   icon: '★',  label: 'Saved',   title: 'Saved' },
   { id: 'spotlight', icon: '✦', label: 'Spotlight', title: 'Spotlight' },
-  /* ---------- AND YOUR SETTINGS, AT THE FAR END § */
+  /* ---------- AND YOUR SETTINGS, RIGHT OF YOU § */
   { id: 'settings', icon: '⚙', label: 'Settings', title: 'Settings' },
   /* ---------- AND THE SHOP, RIGHT OF BOOKING § */
   { id: 'shop',    icon: '🛒', label: 'Shop',    title: 'Shop' },
-  /* ---------- AND PROGRESS, AT THE FAR END OF THE ROW, WAITING TO BE BUILT § */
+  /* ---------- AND PROGRESS, RIGHT OF SAVED (392), WAITING TO BE BUILT § */
   { id: 'progress', icon: '📈', label: 'Progress', title: 'Progress' },
   /* ---------- FIND 2: THE SAME FINDER AGAIN, RIGHT OF FIND § */
   { id: 'res',     icon: '🔎', label: 'Find 2', title: 'Find 2' },
@@ -36,12 +36,12 @@ const TABS = [
 ];
 
 /* ---------- LEFT TO RIGHT, WHICH IS NOT THE ORDER THEY ARE WRITTEN IN § */
-/* THE ORDER IS THE LAYOUT SHEET'S ROW, read left to right: § */
-const TAB_ORDER = ['feed', 'booking', 'shop', 'reel', 'dm', 'stuff', 'res', 'account', 'tools', 'games', 'saved',
-                   'spotlight',
-                   'settings',
-                   'progress',
-                   'biz'];
+/* GROUPED BY PURPOSE, read left to right (392). columns.json lists the same order; check-doors fails if they part. § */
+const TAB_ORDER = ['feed', 'spotlight', 'reel', 'dm',                  /* social   (392) */
+                   'stuff', 'res', 'saved', 'progress', 'tools',      /* learning */
+                   'booking', 'shop',                                 /* business */
+                   'games',
+                   'account', 'settings', 'biz'];                     /* you, and an admin's */
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
 
 /* ---------- EVERY COLUMN THE BUILD HAS, AND THE ONES THIS VIEWER IS GIVEN § */

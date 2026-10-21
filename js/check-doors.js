@@ -145,6 +145,14 @@ const noColumnRow = !Array.isArray(colRows) ? ['(data/settings/columns.json coul
   : [...new Set([...tabIds].filter(t => !colNamed.has(t))
        .concat([...colNamed].filter(t => !tabIds.has(t))))].sort();
 
+/* ONE LAYOUT, FILE OR NO FILE: `TAB_ORDER` draws the row until columns.json lands, so any disagreement moves columns under a thumb (392). */
+const fileOrder = !Array.isArray(colRows) ? [] : colRows.filter(r => r && String(r.active).toUpperCase() !== 'FALSE')
+  .map((r, i) => ({ id: String(r.screen || '').trim(), n: Number(r.sort_order), i }))
+  .sort((a, b) => ((isFinite(a.n) ? a.n : 1e9) - (isFinite(b.n) ? b.n : 1e9)) || a.i - b.i).map(r => r.id);
+const codeOrder = tabOrder.filter(t => fileOrder.includes(t));
+const orderDiffers = Array.isArray(colRows) && codeOrder.join() !== fileOrder.filter(t => tabOrder.includes(t)).join()
+  ? ['TAB_ORDER: ' + codeOrder.join(' '), 'file:      ' + fileOrder.join(' ')] : [];
+
 const noDoor = [...handlers.keys()]
   .filter(a => !doors.has(a) && !dynamicDoors.has(a) && !deliberatelyIdle.has(a)).sort();
 const noHandler = [...doors.keys()].filter(a => a !== '${…}' && !handlers.has(a)).sort();
@@ -177,6 +185,9 @@ say('TABS AND data/settings/columns.json NAME DIFFERENT SCREENS — a tab with n
     noColumnRow, t => t.startsWith('(') ? ''
       : tabIds.has(t) ? 'TABS has it, no row in columns.json' : 'a row, and no tab in TABS');
 
+say('TAB_ORDER AND data/settings/columns.json PUT THE COLUMNS IN DIFFERENT ORDERS — the row rearranges itself when the file lands',
+    orderDiffers, t => '');
+
 say('HANDLER WITH NO DOOR — nothing on screen can reach it', noDoor,
     a => 'on(\'' + a + '\') in ' + handlers.get(a) + '.js, no data-do anywhere');
 say('DOOR WITH NO HANDLER — it looks pressable and does nothing', noHandler,
@@ -197,4 +208,4 @@ console.log('handlers: ' + handlers.size + '   doors: ' + (doors.size - (doors.h
 process.exit(noDoor.length + noHandler.length + noScreen.length + strayPageKeys.length
              + noSection.length + adminWritten.length + adminUnmade.length
              + noDraw.length + noPager.length + orderOff.length
-             + noColumnRow.length ? 1 : 0);
+             + noColumnRow.length + orderDiffers.length ? 1 : 0);

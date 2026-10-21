@@ -45,14 +45,17 @@ any name used but never declared. Run it after every change.
 | `js/find.js` | The funnel — the app's main surface, and the engine of both finders (`FINDERS`, `inFinder_`). Biggest file at 1 MB. |
 | `js/book.js` | Sessions, seats, payment. |
 
-Fifteen screens are registered (fourteen for anybody but an admin), in `TAB_ORDER` (js/shell.js):
-`feed`, `booking`, `shop` (things for sale and the basket — Find no longer has a Shop door), `reel`, `dm`, `stuff` (Find, the funnel —
+Fifteen screens are registered (fourteen for anybody but an admin), in `TAB_ORDER` (js/shell.js),
+grouped by purpose since 21 Oct (docs/history/392), and `data/settings/columns.json` lists the same order
+(`check-doors.js` fails if they part). Social: `feed` (where the app opens, `TAB_HOME`), `spotlight`,
+`reel`, `dm`. Learning: `stuff` (Find, the funnel —
 questions, answers, practicals, projects, bundles, the content cards, the boxers and their fights, the
 Bible for an admin — and the root), `res` (**Find 2**: the same finder again, immediately right of Find,
-with a state of its own; the id is `res` from the two days it held the resources), `account`, `tools`,
-`games`, `saved`, `spotlight`, `settings`, `progress` (for a student — and an admin — the "Your journey" card
-that was on Settings until 12 Oct; for anybody else a placeholder saying it is not built), and last, **for an admin only**,
-`biz` — the business records (insurance, tax, legal and data, safeguarding, money and company). A tab
+with a state of its own; the id is `res` from the two days it held the resources), `saved`, `progress`
+(for a student — and an admin — the "Your journey" card that was on Settings until 12 Oct; for anybody
+else a placeholder saying it is not built), `tools`. Business: `booking`, `shop` (things for sale and the
+basket — Find no longer has a Shop door). Then `games`. Then you: `account`, `settings`, and last,
+**for an admin only**, `biz` — the business records (insurance, tax, legal and data, safeguarding, money and company). A tab
 marked `admin: true` is left out of `TABS` for anybody else by `columnsFor_` in shell.js, which also
 makes its `<section>` for an admin and takes it away again — so it has none in index.html, and signing
 in or out adds or removes it without a reload.

@@ -65,12 +65,12 @@ in `TABS`
      and the thing that used to be `go('posts')` is now answering the first question. */
 ```
 
-### ---------- WHO YOU ARE, TO THE RIGHT OF THE QUESTION
+### ---------- WHO YOU ARE, AT THE START OF THE YOU GROUP (392)
 
 in `TABS`
 
 ```
-/* ---------- WHO YOU ARE, TO THE RIGHT OF THE QUESTION -------------------------------------------
+/* ---------- WHO YOU ARE, AT THE START OF THE YOU GROUP (392) -------------------------------------------
      A SECOND COLUMN, AND ON PURPOSE THIS TIME. The others were folded in because each was a second
      route to something the funnel already reached — Posts, You, Book, Basket, all of them findable
      by answering a question. Signing in is not: it is the state the app is in BEFORE any question
@@ -148,12 +148,12 @@ in `TABS`
      layout sheet. */
 ```
 
-### ---------- SAVED, WHICH IS RIGHT OF GAMES
+### ---------- SAVED, RIGHT OF FIND 2 WITH THE LEARNING COLUMNS (392)
 
 in `TABS`
 
 ```
-/* ---------- SAVED, WHICH IS RIGHT OF GAMES ------------------------------------------------
+/* ---------- SAVED, RIGHT OF FIND 2 WITH THE LEARNING COLUMNS (392) ------------------------------------------------
      ASKED FOR AS "add a favourite column so i can see the widgets i favoutited. add the coloumn to
      the right of games." The note above lists Favourites among the columns that were folded into
      the funnel; see `savedCards_` in arcade.js for what has changed since, and why this is not the
@@ -161,12 +161,12 @@ in `TABS`
      and the X axis clamps by index. `TAB_ORDER` is what puts it last. */
 ```
 
-### ---------- AND YOUR SETTINGS, AT THE FAR END
+### ---------- AND YOUR SETTINGS, RIGHT OF YOU
 
 in `TABS`
 
 ```
-/* ---------- AND YOUR SETTINGS, AT THE FAR END ----------------------------------------------
+/* ---------- AND YOUR SETTINGS, RIGHT OF YOU ----------------------------------------------
      ASKED FOR AS "account setting should appear in a new column by itself. For now make that new
      column at the end." It was one sheet off a tile on your own account card; see `settingsPages_`
      in me.js for what moved and why it moved rather than being copied.
@@ -202,12 +202,12 @@ in `TABS`
      what put it second-but-one. */
 ```
 
-### ---------- AND PROGRESS, AT THE FAR END OF THE ROW, WAITING TO BE BUILT
+### ---------- AND PROGRESS, RIGHT OF SAVED (392), WAITING TO BE BUILT
 
 in `TABS`
 
 ```
-/* ---------- AND PROGRESS, AT THE FAR END OF THE ROW, WAITING TO BE BUILT ------------------------
+/* ---------- AND PROGRESS, RIGHT OF SAVED (392), WAITING TO BE BUILT ------------------------
      ASKED FOR AS "i want to add a new column for students to track their progress and everythinh.
      you can leave it at the end of the columns for now. just leave a place holder for now." (9 Oct)
 
@@ -301,15 +301,20 @@ top level, before `TAB_ORDER`
    you have not made yet. Their own instruction files list what is undecided about them. */
 ```
 
-### THE ORDER IS THE LAYOUT SHEET'S ROW, read left to right:
+### GROUPED BY PURPOSE, read left to right (392). columns.json lists the same order; check-doors fails if they part.
 
 top level, before `TAB_ORDER`
 
 ```
-/* THE ORDER IS THE LAYOUT SHEET'S ROW, read left to right:
-     camera · post · booking · reel · DM · search · profile · tools · games
-   `calculator` and `flappy bird` appear on that sheet as the first thing in the last two columns —
-   they are widgets standing for what the column holds, not columns of their own. */
+/* GROUPED BY PURPOSE, read left to right (docs/history/392): the owner asked on 21 Oct for "a more
+   intuitive layout". Social first — Feed (TAB_HOME, where the app opens), Spotlight, Reels, DMs; then
+   learning — Find, Find 2, Saved, Progress, Tools; then business — Book, Shop; then Games; then you —
+   You, Settings, and Business for an admin. This list is the row until data/settings/columns.json
+   lands, and the file is the row after it, so the two must say the same thing or the columns move
+   under a thumb a moment after the boot; check-doors.js compares them.
+
+   Before 392 this was the layout sheet's row (camera · post · booking · reel · DM · search · profile ·
+   tools · games) with each later column appended where it was asked for. */
 ```
 
 ### ---------- EVERY COLUMN THE BUILD HAS, AND THE ONES THIS VIEWER IS GIVEN
