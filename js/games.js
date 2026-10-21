@@ -4978,18 +4978,21 @@ function tuxPlay_() {
 }
 on('tux-play', tuxPlay_);
 
-/* ---------- CONSOLE: an NES player, and only the player (docs/history/389) */
+/* ---------- CONSOLE: an NES player, and only the player (docs/history/389; SNES, Game Boy and N64 files too, 391) */
 /* The engine is jsnes (Apache-2.0), fetched only when Play is pressed. The game file is the person's own:
    picked from their device, kept in this device's IndexedDB, never uploaded or sent. */
 const NES_LIB = 'https://cdn.jsdelivr.net/npm/jsnes@2.1.0/dist/jsnes.min.js';
 const NES_LIB_2 = 'https://unpkg.com/jsnes@2.1.0/dist/jsnes.min.js';
 const NES_DB = 'family-console', NES_HZ = 60.0988;
 const NES_ = { nes: null, rom: null, saved: null, running: false, raf: 0, last: 0, acc: 0, ctx: null, img: null,
-  u32: null, audio: null, node: null, ring: null, rd: 0, wr: 0, keys: {}, pads: {}, touch: {}, held: {}, lib: null };
+  u32: null, audio: null, node: null, ring: null, rd: 0, wr: 0, keys: {}, pads: {}, touch: {}, held: {}, lib: null,
+  sys: 'nes', kind: null, axes: [0, 0, 0, 0] };
 /* NES buttons in jsnes's numbering, so every input source speaks one language. */
 const NES_B = { a: 0, b: 1, select: 2, start: 3, up: 4, down: 5, left: 6, right: 7 };
 const NES_KEYS = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
-  z: 'b', Z: 'b', x: 'a', X: 'a', Enter: 'start', Shift: 'select' };
+  z: 'b', Z: 'b', x: 'a', X: 'a', Enter: 'start', Shift: 'select',
+  a: 'y', A: 'y', s: 'x', S: 'x', q: 'l', Q: 'l', w: 'r', W: 'r', e: 'l2', E: 'l2', r: 'r2', R: 'r2',
+  i: 'cu', I: 'cu', k: 'cd', K: 'cd', j: 'cl', J: 'cl', l: 'cr', L: 'cr' };
 
 /* THE ONE PLACE INDEXEDDB IS TOUCHED. Any failure (private window, blocked storage) is "no file kept". */
 function nesDb_(mode, fn) {
@@ -5009,8 +5012,9 @@ function nesDb_(mode, fn) {
   });
 }
 const nesKept_ = () => nesDb_('readonly', s => s.get('last'));
-const nesKeep_ = bytes => nesDb_('readwrite', s => s.put(bytes, 'last'));
-const nesForgetDb_ = () => nesDb_('readwrite', s => s.delete('last'));
+const nesKeep_ = (bytes, kind) => nesDb_('readwrite', s => { s.put(kind || 'nes', 'kind'); return s.put(bytes, 'last'); });
+const nesForgetDb_ = () => nesDb_('readwrite', s => { s.delete('kind'); return s.delete('last'); });
+const nesKind_ = () => nesDb_('readonly', s => s.get('kind'));
 
 /* iNES: "NES" then 0x1A, and at least one 16 KB bank after the 16-byte header. */
 function nesValid_(u8) {
@@ -5024,24 +5028,26 @@ function nesPaint_() {
   if (!box.querySelector('.nes-wrap') && !NES_.full) {
     box.innerHTML = `<div class="nes-wrap" id="nes-wrap">
       <div class="nes-stage" id="nes-stage"><canvas id="nes-canvas" class="nes-canvas" width="256" height="240"></canvas></div>
-      <div class="nes-pad" id="nes-pad" aria-hidden="true">
-        <div class="nes-dpad" data-k="dpad"></div>
-        <div class="nes-mid"><button type="button" class="nes-key nes-small" data-k="select">Select</button><button type="button" class="nes-key nes-small" data-k="start">Start</button></div>
-        <div class="nes-ab"><button type="button" class="nes-key nes-round" data-k="b">B</button><button type="button" class="nes-key nes-round" data-k="a">A</button></div>
-      </div>
+      <div class="nes-pad" id="nes-pad" aria-hidden="true">${nesPadHtml_(NES_.sys)}</div>
       <button type="button" class="nes-key nes-exit" id="nes-exit" aria-label="Leave full screen">×</button>
     </div>
     <p class="faint" id="nes-padnote" hidden>Controller connected</p>
     <div class="tile-row" id="nes-tiles"></div>
     <p class="note" id="nes-say" role="status"></p>
-    <input type="file" id="nes-file" class="nes-file" accept=".nes,application/octet-stream,*&#47;*">
+    <p class="faint" id="nes-sysnote" hidden></p>
+    <input type="file" id="nes-file" class="nes-file" accept="${NES_ACCEPT}">
     <p class="faint">Use a game file you own. It stays on this device and is never uploaded.</p>`;
     nesPadWire_($('nes-pad'));
     $('nes-exit').addEventListener('click', () => nesFullOff_());
+    /* A REDRAWN SCREEN KEEPS A RUNNING GAME: EmulatorJS's own box moves into the new stage rather than being lost with the old one. */
+    const host = EMU_.ejs && EMU_.ejs.elements && EMU_.ejs.elements.parent;
+    if (host && $('nes-stage')) $('nes-stage').appendChild(host);
   }
+  nesSysSet_(NES_.sys);
   nesBlit_();
   nesTiles_();
-  if (NES_.saved == null) nesKept_().then(b => { NES_.saved = b ? new Uint8Array(b) : false; nesTiles_(); });
+  if (NES_.saved == null) Promise.all([nesKept_(), nesKind_()]).then(([b, k]) => {
+    NES_.saved = b ? new Uint8Array(b) : false; NES_.kind = typeof k === 'string' ? k : null; nesTiles_(); });
 }
 
 function nesTiles_() {
@@ -5050,7 +5056,7 @@ function nesTiles_() {
   const have = NES_.rom || NES_.saved;
   t.innerHTML = (NES_.running
       ? tile_({ icon: 'pause', label: 'Pause', act: 'nes-pause' })
-      : tile_({ icon: 'play', label: 'Play', act: 'nes-play', note: have ? '' : 'choose a .nes file' }))
+      : tile_({ icon: 'play', label: 'Play', act: 'nes-play', note: have ? '' : 'choose a game file' }))
     + tile_({ icon: 'open', label: 'Choose file', act: 'nes-pick' })
     + (have ? tile_({ icon: 'bin', label: 'Forget file', act: 'nes-forget' }) : '')
     + tile_({ icon: NES_.lock ? 'lock' : 'unlock', label: NES_.lock ? 'Locked' : 'Lock', act: 'nes-lock',
@@ -5119,7 +5125,10 @@ function nesBlit_() {
 function nesStart_(bytes) {
   const stage = $('nes-stage');
   if (!stage) return;
-  if (!nesValid_(bytes)) { nesSay_('That is not a console game file — it should be a .nes file starting with the iNES header.'); return; }
+  const sys = nesSys_(bytes, NES_.kind);
+  if (!sys) { nesSay_(NES_NOT); return; }
+  if (sys !== 'nes') { emuStart_(bytes, sys); return; }
+  emuEnd_(); nesSysSet_('nes');
   nesSay_('');
   stage.setAttribute('aria-busy', 'true');
   stage.insertAdjacentHTML('beforeend', loading_());
@@ -5139,6 +5148,7 @@ function nesStart_(bytes) {
 }
 
 function nesGo_() {
+  if (EMU_.ejs) { emuGo_(); return; }
   if (!NES_.nes || NES_.running) return;
   NES_.running = true; NES_.last = 0; NES_.acc = 0;
   const loop = t => {
@@ -5165,11 +5175,13 @@ function nesStop_() {
   cancelAnimationFrame(NES_.raf);
   NES_.held = {}; NES_.keys = {}; NES_.touch = {};
   if (NES_.nes) Object.values(NES_B).forEach(b => { try { NES_.nes.buttonUp(1, b); } catch (e) {} });
+  if (EMU_.ejs) emuPause_();
   if (was) nesTiles_();
 }
 
 /* EVERY SOURCE (keys, pad, touch) IS OR-ED, then only changes reach the engine. */
 function nesSync_() {
+  if (EMU_.ejs) { emuSync_(); return; }
   if (!NES_.nes) return;
   Object.keys(NES_B).forEach(k => {
     const on = !!(NES_.keys[k] || NES_.pads[k] || NES_.touch[k]);
@@ -5181,7 +5193,7 @@ function nesSync_() {
 
 /* EVERY PAD, EVERY FRAME, connected event or not: Safari shows a pad only after a press with the page focused (390). Nintendo positions: right face A, bottom B. */
 function nesPadsPoll_() {
-  const p = {};
+  const p = {}, axes = [0, 0, 0, 0];
   let any = false;
   try {
     [...(navigator.getGamepads ? navigator.getGamepads() : [])].forEach(g => {
@@ -5189,14 +5201,24 @@ function nesPadsPoll_() {
       any = true;
       const b = i => !!(g.buttons && g.buttons[i] && (g.buttons[i].pressed || g.buttons[i].value > 0.5));
       const ax = g.axes || [], x = Math.abs(ax[0] || 0) > 0.25 ? ax[0] : 0, y = Math.abs(ax[1] || 0) > 0.25 ? ax[1] : 0, std = g.mapping === 'standard';
-      if (b(1) || b(3)) p.a = 1;
-      if (b(0) || b(2)) p.b = 1;
+      const four = NES_FOUR[NES_.sys], stick = NES_.sys !== 'n64';
+      if (four) { if (b(1)) p.a = 1; if (b(0)) p.b = 1; if (b(3)) p.x = 1; if (b(2)) p.y = 1; }
+      else { if (b(1) || b(3)) p.a = 1; if (b(0) || b(2)) p.b = 1; }
+      if (b(4)) p.l = 1;
+      if (b(5)) p.r = 1;
+      if (std && b(6)) p.l2 = 1;
+      if (std && b(7)) p.r2 = 1;
+      if (b(10)) p.l3 = 1;
+      if (b(11)) p.r3 = 1;
       if (b(9) || (!std && b(7))) p.start = 1;
       if (b(8) || (!std && b(6))) p.select = 1;
-      if (b(12) || y < -0.5) p.up = 1;
-      if (b(13) || y > 0.5) p.down = 1;
-      if (b(14) || x < -0.5) p.left = 1;
-      if (b(15) || x > 0.5) p.right = 1;
+      if (b(12) || (stick && y < -0.5)) p.up = 1;
+      if (b(13) || (stick && y > 0.5)) p.down = 1;
+      if (b(14) || (stick && x < -0.5)) p.left = 1;
+      if (b(15) || (stick && x > 0.5)) p.right = 1;
+      const dz = v => (Math.abs(v || 0) > 0.25 ? Math.max(-1, Math.min(1, v)) : 0);
+      if (!axes[0] && !axes[1]) { axes[0] = x; axes[1] = y; }
+      if (!axes[2] && !axes[3]) { axes[2] = dz(ax[2]); axes[3] = dz(ax[3]); }
       /* A HAT SWITCH on axis 9 (many non-standard pads): -1 is up, clockwise in steps of 2/7, above 1 is centred. */
       const h = ax[9];
       if (!std && typeof h === 'number' && h >= -1.05 && h <= 1.05) {
@@ -5209,8 +5231,8 @@ function nesPadsPoll_() {
     });
   } catch (e) {}
   const wasStart = !!(NES_.pads && NES_.pads.start), was = Object.keys(NES_.pads || {}).length;
-  NES_.pads = p;
-  if (Object.keys(p).length && !was) nesAudio_();   // any press is a gesture enough to wake the sound
+  NES_.pads = p; NES_.axes = axes;
+  if (Object.keys(p).length && !was) { nesAudio_(); emuWake_(); }   // any press is a gesture enough to wake the sound
 
   if (any !== !!NES_.padOn) { NES_.padOn = any; nesPadShow_(); }
   if (p.start && !wasStart && !NES_.running) nesPadPlay_();
@@ -5219,10 +5241,11 @@ function nesPadsPoll_() {
 
 /* A CONTROLLER'S START BEGINS PLAY with a kept game; with none, it can only say so — a file picker needs a tap. */
 function nesPadPlay_() {
-  if (NES_.nes) { nesAudio_(); nesGo_(); return; }
+  if (NES_.nes || EMU_.ready) { nesAudio_(); nesGo_(); return; }
+  if (EMU_.ejs) return;
   const bytes = NES_.rom || NES_.saved;
   if (bytes) { nesAudio_(); nesStart_(bytes); return; }
-  nesSay_('Controller connected. Choose a .nes file to play.');
+  nesSay_('Controller connected. Choose a game file to play.');
 }
 
 /* WHILE NOTHING RUNS the game loop does not poll, so this does, for as long as the console is drawn. */
@@ -5230,7 +5253,7 @@ function nesPadWatch_() {
   if (NES_.watch) return;
   const tick = () => {
     if (!$('nes-wrap')) { NES_.watch = 0; return; }
-    if (!NES_.running) nesPadsPoll_();
+    if (!NES_.running || EMU_.ejs) nesPadsPoll_();
     NES_.watch = requestAnimationFrame(tick);
   };
   NES_.watch = requestAnimationFrame(tick);
@@ -5242,7 +5265,7 @@ function nesPadShow_() {
   const pad = $('nes-pad');
   if (!pad) return;
   const touch = (navigator.maxTouchPoints || 0) > 0 || 'ontouchstart' in window;
-  pad.classList.toggle('on', !!(touch && !NES_.padOn && NES_.nes));
+  pad.classList.toggle('on', !!(touch && !NES_.padOn && (NES_.nes || EMU_.ejs)));
   const n = $('nes-padnote');
   if (n) n.hidden = !NES_.padOn;
 }
@@ -5263,7 +5286,7 @@ function nesPadWire_(pad) {
   pad.addEventListener('pointerdown', e => {
     const k = e.target.closest('[data-k]');
     if (!k) return;
-    e.preventDefault();
+    e.preventDefault(); emuWake_();
     try { k.setPointerCapture(e.pointerId); } catch (err) {}
     ptrs.set(e.pointerId, k.dataset.k === 'dpad' ? dirs(k, e) : { [k.dataset.k]: true });
     redo();
@@ -5324,15 +5347,16 @@ function nesFullOff_() {
   }
   nesLock_(NES_.lock);
 }
-/* THE BIGGEST WHOLE-NUMBER SCALE when it fills nine tenths of the room, otherwise the plain fit; 256:240 either way. */
+/* THE BIGGEST WHOLE-NUMBER SCALE when it fills nine tenths of the room, otherwise the plain fit; the system's own shape either way. */
 function nesFit_() {
   const w = $('nes-wrap'), s = $('nes-stage');
   if (!NES_.full || !w || !s) return;
   const W = w.clientWidth || innerWidth, H0 = w.clientHeight || innerHeight;
   const portrait = H0 > W, pad = $('nes-pad'), padH = portrait && pad && pad.classList.contains('on') ? pad.offsetHeight + 16 : 0;
-  const H = Math.max(60, H0 - padH - 16), fit = Math.min(W / 256, H / 240), whole = Math.floor(fit);
+  const [dw, dh] = NES_DIMS[NES_.sys] || NES_DIMS.nes;
+  const H = Math.max(60, H0 - padH - 16), fit = Math.min(W / dw, H / dh), whole = Math.floor(fit);
   const k = whole >= 1 && whole / fit >= 0.9 ? whole : fit;
-  s.style.width = Math.floor(256 * k) + 'px'; s.style.height = Math.floor(240 * k) + 'px';
+  s.style.width = Math.floor(dw * k) + 'px'; s.style.height = Math.floor(dh * k) + 'px';
 }
 ['resize', 'orientationchange'].forEach(n => addEventListener(n, () => setTimeout(nesFit_, 50)));
 ['fullscreenchange', 'webkitfullscreenchange'].forEach(n => document.addEventListener(n, () => {
@@ -5342,8 +5366,9 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && NES_.full)
 on('nes-full', () => { if (NES_.full) nesFullOff_(); else nesFullOn_(); });
 
 on('nes-play', () => {
-  nesAudio_();
-  if (NES_.nes) { nesGo_(); return; }
+  nesAudio_(); emuWake_();
+  if (NES_.nes || EMU_.ready) { nesGo_(); return; }
+  if (EMU_.ejs) return;   // still loading: it starts by itself
   const bytes = NES_.rom || NES_.saved;
   if (bytes) { nesStart_(bytes); return; }
   const f = $('nes-file');
@@ -5353,7 +5378,8 @@ on('nes-pick', () => { nesAudio_(); const f = $('nes-file'); if (f) f.click(); }
 on('nes-pause', () => nesStop_());
 on('nes-forget', () => {
   nesStop_();
-  NES_.nes = null; NES_.rom = null; NES_.saved = false; NES_.img = null; NES_.u32 = null;
+  emuEnd_();
+  NES_.nes = null; NES_.rom = null; NES_.saved = false; NES_.kind = null; NES_.img = null; NES_.u32 = null;
   const c = $('nes-canvas'); if (c) c.getContext('2d').clearRect(0, 0, 256, 240);
   nesForgetDb_().then(() => { nesTiles_(); nesSay_('Forgotten. The file is no longer kept on this device.'); });
 });
@@ -5364,10 +5390,11 @@ document.addEventListener('change', e => {
   e.target.value = '';
   if (!f) return;
   f.arrayBuffer().then(ab => {
-    const u8 = new Uint8Array(ab);
-    if (!nesValid_(u8)) { nesSay_('That is not a console game file — it should be a .nes file starting with the iNES header.'); return; }
-    NES_.nes = null; NES_.saved = u8;
-    nesKeep_(ab.slice(0));
+    const u8 = new Uint8Array(ab), sys = nesSys_(u8, f.name);
+    if (!sys) { nesSay_(NES_NOT); return; }
+    nesStop_(); emuEnd_();
+    NES_.nes = null; NES_.rom = null; NES_.saved = u8; NES_.kind = sys;
+    nesKeep_(ab.slice(0), sys);
     nesStart_(u8);
   }).catch(() => nesSay_('That file could not be read.'));
 });
@@ -5385,3 +5412,191 @@ document.addEventListener('change', e => {
 document.addEventListener('visibilitychange', () => { if (document.hidden) nesStop_(); });
 window.addEventListener('gamepadconnected', () => { NES_.padOn = true; nesPadShow_(); nesPadWatch_(); });
 window.addEventListener('gamepaddisconnected', () => nesPadsPoll_());
+
+/* ---------- THE OTHER SYSTEMS (391): SNES, Game Boy / Color / Advance and N64, the person's own files.
+   EmulatorJS (GPL-3.0) and its cores, pinned, fetched only when one is played. */
+const NES_ACCEPT = '.nes,.sfc,.smc,.gb,.gbc,.gba,.z64,.n64,.v64,application/octet-stream,*&#47;*';
+const NES_NOT = 'That is not a console game file — it should be a .nes, .sfc/.smc, .gb/.gbc/.gba or .z64/.n64/.v64 file.';
+/* Each system's picture in pixels, for the stage's shape and the full-screen fit. */
+const NES_DIMS = { nes: [256, 240], snes: [256, 224], gb: [160, 144], gbc: [160, 144], gba: [240, 160], n64: [320, 240] };
+/* Systems with four face buttons read a controller by position (right A, bottom B, top X, left Y); two-button ones fold them onto A and B. */
+const NES_FOUR = { snes: 1, n64: 1 };
+const NES_NAME = { nes: 'NES', snes: 'SNES', gb: 'Game Boy', gbc: 'Game Boy Color', gba: 'Game Boy Advance', n64: 'N64' };
+
+/* WHICH SYSTEM, from the bytes first (header magic and checksums), then the file's extension. Nothing of any game is kept here. */
+function nesSys_(u8, hint) {
+  if (!u8 || u8.length < 512) return null;
+  const ext = String(hint || '').toLowerCase().replace(/^.*\./, '');
+  if (u8[0] === 0x4e && u8[1] === 0x45 && u8[2] === 0x53 && u8[3] === 0x1a) return nesValid_(u8) ? 'nes' : null;
+  const w = (u8[0] << 24 | u8[1] << 16 | u8[2] << 8 | u8[3]) >>> 0;
+  if (w === 0x80371240 || w === 0x37804012 || w === 0x40123780) return 'n64';   // big-endian, byte-swapped, little-endian
+  if (u8.length >= 0xc0 && u8[0xb2] === 0x96 && u8[3] === 0xea) return 'gba';   // fixed byte, and a branch as the first word
+  if (u8.length >= 0x8000) {
+    let x = 0;
+    for (let i = 0x134; i <= 0x14c; i++) x = (x - u8[i] - 1) & 0xff;
+    if (x === u8[0x14d] && (u8[0x100] === 0x00 || u8[0x100] === 0xc3)) return u8[0x143] & 0x80 ? 'gbc' : 'gb';
+    const off = u8.length % 1024 === 512 ? 512 : 0;
+    const ok = at => { const b = off + at; return b + 0x20 <= u8.length && ((u8[b + 0x1c] | u8[b + 0x1d] << 8) ^ (u8[b + 0x1e] | u8[b + 0x1f] << 8)) === 0xffff; };
+    if (ok(0x7fc0) || ok(0xffc0)) return 'snes';
+  }
+  const by = { sfc: 'snes', smc: 'snes', snes: 'snes', gb: 'gb', gbc: 'gbc', gba: 'gba', z64: 'n64', n64: 'n64', v64: 'n64' };
+  return by[ext] || (by[hint] ? hint : null);
+}
+
+/* THE TOUCH PAD per system: shoulders where it has them, four face buttons in a diamond on SNES, and A, B, Z and the C buttons on N64. */
+function nesPadHtml_(sys) {
+  const k = (key, label, cls) => `<button type="button" class="nes-key ${cls || 'nes-round'}" data-k="${key}">${label}</button>`;
+  const mid = `<div class="nes-mid">${k('select', 'Select', 'nes-small')}${k('start', 'Start', 'nes-small')}</div>`;
+  const dpad = '<div class="nes-dpad" data-k="dpad"></div>';
+  let top = '', face;
+  if (sys === 'snes') {
+    top = k('l', 'L', 'nes-small') + k('r', 'R', 'nes-small');
+    face = `<div class="nes-face">${k('x', 'X', 'nes-round nes-n')}${k('y', 'Y', 'nes-round nes-w')}${k('a', 'A', 'nes-round nes-e')}${k('b', 'B', 'nes-round nes-s')}</div>`;
+  } else if (sys === 'n64') {
+    top = k('l', 'L', 'nes-small') + k('l2', 'Z', 'nes-small') + k('r', 'R', 'nes-small');
+    face = `<div class="nes-right"><div class="nes-ab">${k('y', 'B')}${k('b', 'A')}</div>`
+      + `<div class="nes-face nes-c">${k('cu', 'C↑', 'nes-c1 nes-n')}${k('cl', 'C←', 'nes-c1 nes-w')}${k('cr', 'C→', 'nes-c1 nes-e')}${k('cd', 'C↓', 'nes-c1 nes-s')}</div></div>`;
+  } else {
+    if (sys === 'gba') top = k('l', 'L', 'nes-small') + k('r', 'R', 'nes-small');
+    face = `<div class="nes-ab">${k('b', 'B')}${k('a', 'A')}</div>`;
+  }
+  return (top ? `<div class="nes-shoulders">${top}</div>` : '') + dpad + mid + face;
+}
+
+/* ONE SYSTEM AT A TIME on the stage: its shape, its pad, and the N64 line about older phones. */
+function nesSysSet_(sys) {
+  NES_.sys = sys || 'nes';
+  const s = $('nes-stage'), pad = $('nes-pad'), note = $('nes-sysnote');
+  if (s) { const [w, h] = NES_DIMS[NES_.sys]; s.style.aspectRatio = w + ' / ' + h; s.dataset.sys = NES_.sys; }
+  if (pad && pad.dataset.sys !== NES_.sys) {
+    pad.dataset.sys = NES_.sys; pad.innerHTML = nesPadHtml_(NES_.sys);
+    pad.classList.toggle('nes-pad-top', /^(snes|gba|n64)$/.test(NES_.sys));
+  }
+  if (note) { note.hidden = NES_.sys !== 'n64'; note.textContent = 'N64 games need a fast device; older phones may stutter.'; }
+  nesFit_();
+}
+
+/* ---------- EMULATORJS, ONCE, with its menus, start button, own keys and own pad switched off: the Console's tiles and inputs drive it. */
+const EMU_VER = '4.2.3';
+const EMU_CDN = ['https://cdn.jsdelivr.net/npm/', 'https://unpkg.com/'];
+const EMU_SRC = ['storage.js', 'gamepad.js', 'nipplejs.js', 'shaders.js', 'GameManager.js', 'compression.js', 'emulator.js'];
+/* Gambatte for Game Boy and Color, mGBA for Advance (mGBA refused a Game Boy file in the test, 391). Safari on iPhone and iPad gets parallel_n64, as EmulatorJS itself chooses there. */
+const EMU_CORE = { snes: 'snes9x', gb: 'gambatte', gbc: 'gambatte', gba: 'mgba', n64: 'mupen64plus_next' };
+/* RetroPad numbering (libretro): every input source's names land here. 16-23 are the sticks, sent as two half-axes each. */
+const EMU_IDX = { b: 0, y: 1, select: 2, start: 3, up: 4, down: 5, left: 6, right: 7, a: 8, x: 9, l: 10, r: 11, l2: 12, r2: 13, l3: 14, r3: 15 };
+const EMU_ = { ejs: null, ready: false, sys: null, key: '', base: null, lib: null, held: {}, ax: [] };
+
+function emuLib_() {
+  if (window.EmulatorJS && EMU_.base) return Promise.resolve(EMU_.base);
+  if (EMU_.lib) return EMU_.lib;
+  const one = src => new Promise((ok, no) => {
+    const s = document.createElement('script');
+    s.src = src; s.async = false; s.crossOrigin = 'anonymous';
+    s.onload = ok;
+    s.onerror = () => { s.remove(); no(new Error('engine did not load')); };
+    document.head.appendChild(s);
+  });
+  const from = cdn => EMU_SRC.reduce((p, f) => p.then(() => one(cdn + '@emulatorjs/emulatorjs@' + EMU_VER + '/data/src/' + f)), Promise.resolve())
+    .then(() => { if (!window.EmulatorJS) throw new Error('no engine'); EMU_.base = cdn; return cdn; });
+  EMU_.lib = from(EMU_CDN[0]).catch(() => from(EMU_CDN[1])).catch(e => { EMU_.lib = null; throw e; });
+  return EMU_.lib;
+}
+
+/* A NAME FOR THE BATTERY SAVE, from the bytes, so two games never share one; the file's own name is never used. */
+function emuName_(u8, sys) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < u8.length; i += 1 + (u8.length >> 22)) { h ^= u8[i]; h = Math.imul(h, 0x01000193) >>> 0; }
+  return 'game-' + h.toString(16) + '-' + u8.length.toString(16) + '.' + ({ snes: 'sfc', gb: 'gb', gbc: 'gbc', gba: 'gba', n64: 'z64' })[sys];
+}
+
+function emuStart_(bytes, sys) {
+  const stage = $('nes-stage');
+  if (!stage) return;
+  const name = emuName_(bytes, sys);
+  if (EMU_.ejs && EMU_.key === name) { emuGo_(); return; }
+  nesStop_(); NES_.nes = null; emuEnd_();
+  nesSysSet_(sys); nesSay_('');
+  NES_.rom = bytes;
+  stage.setAttribute('aria-busy', 'true');
+  stage.insertAdjacentHTML('beforeend', loading_());
+  emuLib_().then(cdn => {
+    if (!$('nes-stage')) return;
+    const ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const core = sys === 'n64' && ios ? 'parallel_n64' : EMU_CORE[sys], pkg = cdn + '@emulatorjs/core-' + core + '@' + EMU_VER + '/';
+    const files = { [core + '.json']: pkg + 'reports/' + core + '.json' };
+    ['-wasm.data', '-legacy-wasm.data'].forEach(t => { files[core + t] = pkg + core + t; });
+    const host = document.createElement('div');
+    host.id = 'emu-host'; host.className = 'emu-host';
+    $('nes-stage').appendChild(host);
+    const none = { 0: {}, 1: {}, 2: {}, 3: {} };
+    const ejs = new window.EmulatorJS('#emu-host', {
+      gameUrl: bytes, gameName: name, system: core, dataPath: cdn + '@emulatorjs/emulatorjs@' + EMU_VER + '/data/',
+      filePaths: files, startOnLoad: true, defaultControllers: none, noAutoFocus: true, disableLocalStorage: true,
+      volume: 1, threads: false, backgroundColor: '#000', buttonOpts: {}, cheats: [] });
+    EMU_.ejs = ejs; EMU_.sys = sys; EMU_.key = name; EMU_.ready = false; EMU_.held = {}; EMU_.ax = [];
+    const fail = m => { if (EMU_.ejs !== ejs) return; loaded_($('nes-stage')); emuEnd_(); nesTiles_(); nesSay_('This game file could not be started: ' + (m || 'the engine stopped') + '.'); };
+    const said = ejs.startGameError.bind(ejs);
+    ejs.startGameError = m => { try { said(m); } catch (e) {} fail(String(m || '').replace(/\s+/g, ' ')); };
+    ejs['on']('start', () => {   // EmulatorJS's own event, not a tile
+      if (EMU_.ejs !== ejs) return;
+      loaded_($('nes-stage'));
+      EMU_.ready = true;
+      try { ejs.gameManager.setKeyboardEnabled(false); } catch (e) {}
+      if (!$('nes-wrap') || document.hidden) { try { ejs.pause(true); } catch (e) {} NES_.running = false; }
+      else NES_.running = true;
+      emuWake_(); nesTiles_(); nesFit_();
+    });
+  }).catch(() => { loaded_(stage); emuEnd_(); nesTiles_(); nesSay_('The console could not load. Check the connection and press Play again.'); });
+}
+
+function emuGo_() {
+  if (!EMU_.ready || NES_.running) return;
+  try { EMU_.ejs.play(true); } catch (e) { return; }
+  NES_.running = true; emuWake_(); nesTiles_();
+}
+/* PAUSE KEEPS THE BATTERY SAVE: the cartridge's memory is written to this device's IndexedDB (EmulatorJS's own) at every pause. */
+function emuPause_() {
+  if (!EMU_.ready) return;
+  emuSync_(true);
+  try { EMU_.ejs.pause(true); } catch (e) {}
+  try { EMU_.ejs.gameManager.saveSaveFiles(); } catch (e) {}
+}
+/* THE SOUND WAKES INSIDE A TAP: iOS starts EmulatorJS's audio suspended, and its own "click to resume" box is hidden with its menus. */
+function emuWake_() {
+  try {
+    const al = EMU_.ejs && EMU_.ejs.Module && EMU_.ejs.Module.AL;
+    if (al && al.currentCtx) al.currentCtx.sources.forEach(c => { const x = c.gain && c.gain.context; if (x && x.state === 'suspended') x.resume(); });
+    if (al && al.currentCtx && al.currentCtx.audioCtx && al.currentCtx.audioCtx.state === 'suspended') al.currentCtx.audioCtx.resume();
+  } catch (e) {}
+}
+function emuEnd_() {
+  const ejs = EMU_.ejs;
+  EMU_.ejs = null; EMU_.ready = false; EMU_.sys = null; EMU_.key = ''; EMU_.held = {}; EMU_.ax = [];
+  if (ejs) {
+    try { if (ejs.started) ejs.gameManager.saveSaveFiles(); } catch (e) {}
+    try { ejs.callEvent('exit'); } catch (e) {}
+  }
+  const h = $('emu-host'); if (h) h.remove();
+}
+
+/* EVERY SOURCE OR-ED, then only changes reach the core. On N64 the arrows and the touch D-pad steer the stick, which is how its games are driven. */
+function emuSync_(off) {
+  const g = EMU_.ready && EMU_.ejs && EMU_.ejs.gameManager;
+  if (!g) return;
+  const src = k => !off && !!(NES_.keys[k] || NES_.pads[k] || NES_.touch[k]);
+  const n64 = EMU_.sys === 'n64', dig = k => !off && !!(NES_.keys[k] || NES_.touch[k]);
+  Object.keys(EMU_IDX).forEach(k => {
+    const on = n64 && /^(up|down|left|right)$/.test(k) ? !off && !!NES_.pads[k] : src(k);
+    if (on === !!EMU_.held[k]) return;
+    EMU_.held[k] = on;
+    try { g.simulateInput(0, EMU_IDX[k], on ? 1 : 0); } catch (e) {}
+  });
+  const pa = off ? [0, 0, 0, 0] : NES_.axes || [0, 0, 0, 0], one = (p, m) => (dig(p) ? 1 : 0) - (dig(m) ? 1 : 0);
+  const lx = n64 && one('right', 'left') ? one('right', 'left') : pa[0], ly = n64 && one('down', 'up') ? one('down', 'up') : pa[1];
+  const rx = one('cr', 'cl') || pa[2], ry = one('cd', 'cu') || pa[3];
+  [lx, ly, rx, ry].forEach((v, i) => {
+    const plus = Math.round(Math.max(0, v) * 0x7fff), minus = Math.round(Math.max(0, -v) * 0x7fff), at = 16 + i * 2;
+    if (EMU_.ax[at] !== plus) { EMU_.ax[at] = plus; try { g.simulateInput(0, at, plus); } catch (e) {} }
+    if (EMU_.ax[at + 1] !== minus) { EMU_.ax[at + 1] = minus; try { g.simulateInput(0, at + 1, minus); } catch (e) {} }
+  });
+}
