@@ -261,7 +261,7 @@ function qtIncomplete_(x) {
   const p = QTYPE_PROTOCOL[qType_(r)];
   return p ? p.need.filter(n => !qtNeedMet_(r, n)) : ['type'];
 }
-/* MACHINE-MARKED: a way to mark it with no person and no AI — the same reading as library.js `ableOf_` (359). */
+/* MACHINE-MARKED: a way to mark it with no person and no AI (359); with a complete protocol it is the Function verified tag (388). */
 function qtMachine_(x) {
   const r = (x && x.row) || x || {};
   if (qtS_(r.choices) && qtS_(r.choice_right)) return true;

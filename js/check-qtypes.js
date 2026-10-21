@@ -125,6 +125,26 @@ if (Q) {
 }
 untyped.forEach(u => broken.push('a part with no type: ' + u));
 
+/* ---------- EVERY PART CARRIES BOTH VERIFIED TAGS (388): find.js's own `verifyTags_`, run on every row */
+const tags = { acc: 0, fn: 0 };
+if (Q) {
+  const find = fs.readFileSync(path.join(ROOT, 'js', 'find.js'), 'utf8');
+  const lib = fs.readFileSync(path.join(ROOT, 'js', 'library.js'), 'utf8');
+  const src = (/^function verifyTags_\([\s\S]*?\n}\n/m.exec(find) || [])[0], tru = (/^const libTrue = [\s\S]*?\n};\n/m.exec(lib) || [])[0];
+  ['accuracy', 'function'].forEach(f => { if (!new RegExp("\\{ field: '" + f + "', tag: true").test(find)) broken.push('find.js FACETS has no ordinary `' + f + '` tag'); });
+  if (!src || !tru) broken.push('find.js `verifyTags_` or library.js `libTrue` not found — no tag was checked');
+  else {
+    const ctx = vm.createContext({ qtIncomplete_: Q.qtIncomplete_, qtMachine_: Q.qtMachine_ });
+    const vt = vm.runInContext(tru + src + '\n;verifyTags_', ctx);
+    rows.forEach(r => {
+      const t = vt({ kind: 'question', row: r });
+      if (!/^Accuracy (un)?verified$/.test(t.accuracy) || !/^Function (un)?verified$/.test(t.fn)) broken.push(r.row_id + ' lacks a verified tag: ' + JSON.stringify(t));
+      if (t.accuracy === 'Accuracy verified') tags.acc++;
+      if (t.fn === 'Function verified') tags.fn++;
+    });
+  }
+}
+
 const pc = (a, b) => (b ? Math.round(100 * a / b) : 0) + '%';
 if (Q) {
   console.log('type        parts  machine  complete  missing');
@@ -155,4 +175,4 @@ if (broken.length) {
 }
 console.log('drawn parts by where their figure is: ' + Object.keys(figs).map(k => k + ' ' + figs[k]).join(', '));
 const all = Q.QTYPE_ORDER.reduce((s, t) => s + per[t].n, 0), done = Q.QTYPE_ORDER.reduce((s, t) => s + per[t].complete, 0);
-console.log(`OK — ${all} parts, each one of ${Q.QTYPE_ORDER.length} types; ${pc(done, all)} meet their protocol (gaps reported, not failed); fixture ${FIX.length} typed right.`);
+console.log(`OK — ${all} parts, each one of ${Q.QTYPE_ORDER.length} types; ${pc(done, all)} meet their protocol (gaps reported, not failed); fixture ${FIX.length} typed right; tags: accuracy verified ${tags.acc}, function verified ${tags.fn} of ${rows.length}.`);

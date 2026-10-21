@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-20-j-vector-edit";
+  --css-version: "2026-10-21-a-verified-tags";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -41,8 +41,6 @@
   --tag-topic:   #ff9e64;
   /* ---------- AND THE FOUR A QUESTION'S PAGE ADDED § */
   --tag-needs:   #f0f08a;
-  /* A PAPER'S HEALTH (`Ready · 99%`, docs/history/354) is about the transcription, not the paper, so it takes no paper kind's hue. § */
-  --tag-health:  #cdb69c;
 
   /* Everything below is in rem, so it all scales together from the one root above. */
   /* Square, near enough. A terminal has no rounded corners, and this is the single value that
@@ -1613,16 +1611,9 @@ button.text-drop { color: var(--bad); }
    `style="margin:.6rem 0 0"` in `--faint`. Its own class now: dim, with the instruction in ink. */
 .find-end { margin: .3rem 0 0; font-size: .8rem; line-height: 1.5; color: var(--dim); }
 .find-end b { color: var(--ink); font-weight: 600; }
-/* A PAPER'S HEALTH TILE AND ITS LIST (354, 355); the tag-door rows went in 387. */
 /* THE PAPER'S COVER LINE, over its end: the whole name and the day it was sat, which left the tag row
    because nothing could pick them (docs/history/355). Prose, so it is in the find-end's voice. */
 .paper-cover { margin: .3rem 0 0; font-size: .8rem; line-height: 1.45; color: var(--ink); }
-.health-tiles { margin: .5rem 0 0; }
-.health-sum { margin: 0 0 .6rem; font-size: .85rem; color: var(--dim); display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
-.health-list { margin: 0; padding: 0; list-style: none; font-size: .85rem; line-height: 1.5; }
-.health-list li { padding: .3rem 0; border-bottom: 1px solid var(--line-soft); }
-.health-ref { color: var(--tag-health); font-weight: 600; }
-.health-none { margin: 0; font-size: .85rem; color: var(--ink); }
 .chip {
   display: flex; align-items: center; gap: .25rem;
   /* ---------- 44px, AND THIS IS THE FOURTH CONVICTION OF THE SAME RULE § */

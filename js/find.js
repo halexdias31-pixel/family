@@ -627,7 +627,9 @@ const FACETS = [
     of: x => x.cost == null ? ''
            : x.cost === 0 ? 'Free'
            : x.cost <= (USER ? USER.credits || 0 : 0) ? 'Can afford' : '' },
-  /* `health` AND `answerable` WERE HERE (383): a paper's two scores live on its Health tile alone — see `RETIRED_FACETS`. */
+  /* TWO TAGS ON EVERY QUESTION (388), in place of the paper health score: the answer checked against the official scheme (`verified`), and the type's protocol complete and machine-marked (qtypes.js). */
+  { field: 'accuracy', tag: true, label: 'Accuracy', of: x => verifyTags_(x).accuracy },
+  { field: 'function', tag: true, label: 'Function', of: x => verifyTags_(x).fn },
 ];
 
 /* ---------- THE FENCE: A CLOSED KIND'S QUESTIONS, AND ONLY ITS QUESTIONS § */
@@ -668,8 +670,8 @@ const facetFromSheet_ = f => ({
 
 /* FIELDS WHOSE CODE FACET WAS DELETED ON PURPOSE, AND WHICH THE SHEET MAY NOT RESURRECT. § */
 const RETIRED_FACETS = {
-  health: 'a paper\'s Faithful score is on its Health tile, not a tag or a question (383): asked, it was the one question after Paper.',
-  answerable: 'a paper\'s Answerable score is on its Health tile, not a tag or a question (383).',
+  health: 'the paper health score was deleted (388); a question carries Accuracy and Function tags instead.',
+  answerable: 'the paper health score was deleted (388); a question carries Accuracy and Function tags instead.',
   paper: 'the "Printed?" facet was deleted for reading a literal — and the `paper` COLUMN it would '
        + 'now read means which paper of the set (1, 2, 3), so the sheet\'s old label sits over '
        + 'completely different data. Use `Paper`, which asks the same thing by name.',
@@ -8606,55 +8608,14 @@ function questionsView_() {
 }
 
 /* ---------- THE LAST LINE UNDER A CHOSEN PAPER COUNTS WHAT THE STRIP HOLDS § */
-/* A PAPER'S HEALTH, READ BY THE FINDER — the tag, the optional row of answers, and the list. § */
-let HEALTH_MEMO = { from: null, by: {} };
-function healthBy_() {
-  const rows = typeof LIBRARY_ROWS !== 'undefined' ? LIBRARY_ROWS : null;
-  if (!Array.isArray(rows)) return {};
-  if (HEALTH_MEMO.from !== rows) {
-    let by = {};
-    try { by = paperHealth_(rows); } catch (e) { by = {}; }
-    HEALTH_MEMO = { from: rows, by: by };
-  }
-  return HEALTH_MEMO.by;
+/* A QUESTION'S TWO VERIFIED TAGS (388). Accuracy is a stored claim; Function is read off the row by qtypes.js. */
+function verifyTags_(x) {
+  if (!x || x.kind !== 'question' || !x.row) return { accuracy: '', fn: '' };
+  let fn = false;
+  try { fn = !qtIncomplete_(x.row).length && qtMachine_(x.row); } catch (e) { fn = false; }
+  return { accuracy: libTrue(x.row.verified) ? 'Accuracy verified' : 'Accuracy unverified',
+           fn: fn ? 'Function verified' : 'Function unverified' };
 }
-function healthOf_(x) {
-  const pid = x && x.row && x.row.paper_id;
-  return pid ? healthBy_()[String(pid)] || null : null;
-}
-
-/* NO DOOR ROWS (387): a tag the funnel does not ask stays a card tag only; the owner wanted every facet to work like the funnel's. */
-/* ---------- WHAT IS WRONG, ONE TAP AWAY § */
-function healthTiles_(items) {
-  const x = (items || []).find(i => healthOf_(i));
-  const h = x ? healthOf_(x) : null;
-  if (!h) return '';
-  return `<div class="tile-row health-tiles">${tile_({ icon: 'pulse', label: 'Health',
-    note: 'Faithful ' + h.pct + '% · Answerable ' + (h.able ? h.able.pct : 0) + '%', act: 'paper-health', data: { pid: x.row.paper_id } })}</div>`;
-}
-function healthListHtml_(h, pid) {
-  /* THE BAND, THEN THE EXACT SCORE. Not a tag since 383: health lives on this tile only. */
-  const head = `<p class="health-sum"><b>${esc(h.band)}</b>
-    Faithful ${esc(h.pct + '%')} of its points pass &middot; ${h.questions} question${h.questions === 1 ? '' : 's'}${h.total != null ? ', ' + h.marks + ' of ' + h.total + ' marks' : ''}</p>`;
-  const a = h.able || { pct: 0, band: '', fails: [] };
-  const able = `<p class="health-sum able-sum"><b>${esc(a.band)}</b>
-    ${esc(a.pct + '%')} answerable here and marked without AI</p>` + (a.fails.length
-    ? `<ul class="health-list able-list">${a.fails.map(f => `<li><b class="health-ref">${esc(f.ref)}</b> — ${esc(f.why)}</li>`).join('')}</ul>`
-    : '<p class="health-none">Every part can be answered and marked.</p>');
-  if (!h.fails.length) return head + '<p class="health-none">Nothing wrong found.</p>' + able;
-  /* IN THE CARD'S OWN WORDS FOR THE QUESTION. § */
-  const said = {};
-  try {
-    stuffItemsAll_().forEach(i => { if (i && i.row && i.row.paper_id === pid && i.name) said[i.row.row_id] = i.name; });
-  } catch (e) { /* the row's own reference stands */ }
-  return head + `<ul class="health-list faith-list">${h.fails.map(f =>
-    `<li><b class="health-ref">${esc((f.row && said[f.row]) || f.ref)}</b> — ${esc(f.why)}</li>`).join('')}</ul>` + able;
-}
-on('paper-health', el => {
-  const h = healthBy_()[String(el.getAttribute('data-pid') || '')];
-  if (!h) return;
-  openSheet('Health · ' + (h.name || 'this paper'), healthListHtml_(h, String(el.getAttribute('data-pid') || '')));
-});
 
 /* ---------- THE PAPER'S OWN PAGE: ITS COVER, WHERE TO GO, AND ITS DOORS § */
 function paperCover_(items) {
@@ -8667,19 +8628,18 @@ function paperEnd_(items) {
   const seq = wholeQuestions_(items);
   const qs = new Set(seq.map(x => qId_(x) || x)).size;
   const searched = !!String(STUFF.q || '').trim();
-  const tail = healthTiles_(items);
   if (answersView_()) {
     const a = stuffPages_().length;
     return paperCover_(items) + `<p class="find-end">${searched ? 'The answers it found.' : 'The paper&rsquo;s answers, in order.'}
-        <b>Swipe up for ${a === 1 ? 'the one answer' : 'its ' + a + ' answers'}.</b></p>` + tail;
+        <b>Swipe up for ${a === 1 ? 'the one answer' : 'its ' + a + ' answers'}.</b></p>`;
   }
   const first = seq.find(x => qId_(x));
   if (searched) {
     return paperCover_(items) + `<p class="find-end">In this paper:
-        <b>swipe up for ${qs === 1 && first ? esc(qNum_(first)) : 'its ' + qs + ' questions'}.</b></p>` + tail;
+        <b>swipe up for ${qs === 1 && first ? esc(qNum_(first)) : 'its ' + qs + ' questions'}.</b></p>`;
   }
   return paperCover_(items) + `<p class="find-end">That is the paper, in order.
-        <b>Swipe up for ${qs === 1 ? 'its one question' : 'its ' + qs + ' questions'}.</b></p>` + tail;
+        <b>Swipe up for ${qs === 1 ? 'its one question' : 'its ' + qs + ' questions'}.</b></p>`;
 }
 
 /* ---------- A SEARCH HIT ON ONE PART BRINGS THE REST OF ITS QUESTION, IN ORDER § */
