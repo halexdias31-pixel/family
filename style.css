@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-21-c-console-2";
+  --css-version: "2026-10-21-d-console-multi";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -1014,6 +1014,25 @@ a { color: inherit; text-decoration: none; }
     pointer-events: none; background: none; }
   .nes-wrap.nes-full .nes-pad.on > * { pointer-events: auto; }
   .nes-wrap.nes-full .nes-mid { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); }
+}
+/* THE OTHER SYSTEMS (391): EmulatorJS draws into its own canvas; every piece of its own UI is hidden so the Console's tiles drive it. */
+.emu-host { position: absolute; inset: 0; background: #000; overflow: hidden; border-radius: .25rem; }
+.emu-host > :not(.ejs_canvas_parent), .emu-host .ejs_canvas_parent > :not(canvas) { display: none !important; }
+.emu-host .ejs_canvas_parent { width: 100%; height: 100%; }
+.emu-host canvas { width: 100% !important; height: 100% !important; display: block; image-rendering: pixelated; }
+.nes-pad-top { flex-wrap: wrap; row-gap: 8px; }
+.nes-pad-top .nes-mid { order: 5; flex: 1 0 100%; justify-content: center; }
+.nes-shoulders { order: -1; flex: 1 0 100%; display: flex; justify-content: space-between; gap: 8px; }
+.nes-shoulders .nes-key { min-width: 64px; }
+.nes-face { display: grid; grid-template: repeat(3, 48px) / repeat(3, 48px); flex: none; }
+.nes-face .nes-round { width: 48px; height: 48px; font-size: 1rem; }
+.nes-face.nes-c { grid-template: repeat(3, 44px) / repeat(3, 44px); }
+.nes-c1 { width: 44px; height: 44px; border-radius: 50%; font-size: .75rem; padding: 0; }
+.nes-n { grid-area: 1 / 2; } .nes-w { grid-area: 2 / 1; } .nes-e { grid-area: 2 / 3; } .nes-s { grid-area: 3 / 2; }
+.nes-right { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: none; }
+@media (orientation: landscape) {
+  .nes-wrap.nes-full .nes-shoulders { position: absolute; top: max(8px, env(safe-area-inset-top)); left: max(16px, env(safe-area-inset-left));
+    right: max(64px, env(safe-area-inset-right)); width: auto; }
 }
 /* ---------- THE SCREEN § */
 .flappy { width: 100%; aspect-ratio: 4/5; display: block; touch-action: none;

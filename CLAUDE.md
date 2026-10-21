@@ -36,8 +36,9 @@ reports any name used but never declared. **Run it after every change.**
 | `js/find.js` | The funnel — the main surface — and the engine of both finders (`FINDERS`, `inFinder_`). |
 | `js/book.js` | Sessions, seats, payment. |
 
-Screens, in `TAB_ORDER`: `feed booking shop reel dm stuff res account tools games saved spotlight
-settings progress biz`. `stuff` is Find; `res` is Find 2; `biz` is admin-only — a tab marked
+Screens, in `TAB_ORDER`, grouped by purpose (392): `feed spotlight reel dm | stuff res saved progress tools |
+booking shop | games | account settings biz`; `data/settings/columns.json` must list the same order
+(`check-doors`). `feed` is where the app opens (`TAB_HOME`). `stuff` is Find; `res` is Find 2; `biz` is admin-only — a tab marked
 `admin: true` is left out of `TABS` by `columnsFor_` (shell.js), which also makes and removes its `<section>`.
 
 **One finder, twice** (docs/history/329, 347). `stuff` and `res` carry the same list and ask the same

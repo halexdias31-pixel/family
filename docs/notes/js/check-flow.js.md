@@ -2340,14 +2340,15 @@ top level, before `until_`
    seconds once (measured here, 10 Oct): a late start, not a missing one. */
 ```
 
-### TO TOOLS: the copy in front is the one it is running on, so nothing starts again — unless the column was `STALE` and drawn again on the way in
+### TO THE COPY IT RUNS ON: arriving there starts nothing again — unless the column was `STALE` and drawn again on the way in
 
-top level, before `startsAtTools`
+top level, before `NAME_`
 
 ```
-/* TO TOOLS: the copy in front is the one it is running on, so nothing starts again — unless the column
-     was `STALE` and drawn again on the way in (a signed-in visitor's second reply repaints, and marks
-     every other column so), in which case what it ran in has gone and it is started once more, once. */
+/* TO THE COPY IT RUNS ON: arriving there starts nothing again — unless the column was `STALE` and drawn
+     again on the way in (a signed-in visitor's second reply repaints, and marks every other column so), in
+     which case what it ran in has gone and it is started once more, once. Before 392 this was "TO TOOLS",
+     from Games with Tools left of it; with Progress in front the app may run Saved's copy instead. */
 ```
 
 ### THE PAYLOAD'S LANDING EMPTIES EVERY COLUMN AND DRAWS IT AGAIN (`load`), so a widget that started beside the column in front before it landed — drawing the one
@@ -4564,29 +4565,29 @@ top level, before `host`
      is the one answer it has not earned. */
 ```
 
-### ---------- PROGRESS: THE LAST COLUMN, ONE CARD SAYING SO, AND NOTHING ON IT TO PRESS
+### ---------- PROGRESS: BETWEEN SAVED AND TOOLS, ONE CARD SAYING SO, AND NOTHING ON IT TO PRESS
 
 top level, before `cols`
 
 ```
-/* ---------- PROGRESS: THE LAST COLUMN, ONE CARD SAYING SO, AND NOTHING ON IT TO PRESS ---------------
+/* ---------- PROGRESS: BETWEEN SAVED AND TOOLS, ONE CARD SAYING SO, AND NOTHING ON IT TO PRESS -------
    ASKED FOR AS "i want to add a new column for students to track their progress and everythinh. you
    can leave it at the end of the columns for now. just leave a place holder for now." The contest
    journey's two questions, asked of a column — arriving anywhere but LAST, and growing a control
    before there is anything behind it — and a third a column has and a widget does not: can a person
    get there.
 
-   LAST IN THE ORDER A PHONE GETS, which is `data/settings/columns.json`, so the real file is served —
-   last for everybody but an admin, whose row has Business after it (the `business:` journeys below;
-   docs/history/334). This one boots signed out, so its row is everybody else's.
-   Without it this stub answers that file with the payload, `settingsInto_` skips a thing with no
-   `length`, and the app runs on `TAB_ORDER` — where Settings is last and Spotlight's neighbour is
-   Settings. A journey asking about the code's order would be asking about an order no phone has.
+   MOVED ON 21 OCT (docs/history/392): the owner's "more intuitive layout" put the columns in groups,
+   and Progress went in with the learning ones, between Saved and Tools. So the journey now asks for
+   the whole signed-out row as decided (`ORDER_392_`, Business left out), served from the real
+   `data/settings/columns.json`; whether the file was read is asked of `DATA.columns`, because since
+   392 `TAB_ORDER` says the same order and the row can no longer tell them apart.
 
    A SWIPE AS A TRACKPAD SENDS IT. Two fingers sideways is a `wheel` event, and `overworld.js` answers
    it with `ax.go(ax.at() + 1)` — the same call a finger's release makes — so this is the app's own
    gesture rather than `go('progress')`, which would reach the column whether or not anything sat
-   next to it. And one more past the end stays put: the last column is an end, not a wrap.
+   next to it. Off Saved lands on Progress, and one more off Progress lands on Tools. The end that
+   stays put is asked by the `business:` journey, on Settings, the last column a visitor has.
 
    THE SAME CARD FOR EVERYBODY until it was built — UNTIL 12 OCT, when "Your journey" came here off
    Settings for a student and an admin (docs/history/346). So all five are still asked, each for
@@ -4664,7 +4665,8 @@ top level, before `BIZ_COLS_`
 
    THE REAL columns.json IS SERVED, for the Progress journey's reason: the stub otherwise answers that
    file with the payload and the app runs on `TAB_ORDER`, an order no phone has. Each journey refuses to
-   pass if the file was not applied — Settings straight after You is the file's order and not the code's. */
+   pass if the file was not applied — asked of `DATA.columns` since 392, when the code's order and the
+   file's became the same row, with Business after Settings at the end of the You group. */
 ```
 
 ### THE RECORDS ARE ASKED BEFORE ANYBODY GOES THERE.
@@ -4673,7 +4675,7 @@ top level, before `n`
 
 ```
 /* THE RECORDS ARE ASKED BEFORE ANYBODY GOES THERE. The column is drawn for an admin at boot, and on a
-     wide screen it is on the glass beside Progress; asked only on arrival, its first card sat under the
+     wide screen it is on the glass beside Settings (Progress before 392); asked only on arrival, its first card sat under the
      loader until somebody swiped to it (*"these remain loading untill i scroll to them"*, 10 Oct). */
 ```
 

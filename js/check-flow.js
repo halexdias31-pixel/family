@@ -5981,30 +5981,30 @@ check('a wide window starts the widgets on the glass beside the column in front,
   let stops = 0;
   const realStop = calc.stop;
   calc.stop = function () { stops++; return realStop ? realStop.apply(this, arguments) : undefined; };
-  t.go('settings', false, true);
+  t.go('booking', false, true);
   await settle_();
   await until_(() => toolsSlots_(w).filter(x => x.lit).every(x => x.on && !x.veiled));
   const bad = [];
   const g = t.glass();
-  if (t.AT() !== 'settings') return ['Settings did not come in front, so nothing was asked'];
-  if (g.cols.indexOf('tools') === -1) return ['at 1194 with Settings in front the glass is ' + JSON.stringify(g.cols) + ' — Tools is not on it, so nothing was asked (is the window wide? are the columns in the sheet\'s order?)'];
+  if (t.AT() !== 'booking') return ['Book did not come in front, so nothing was asked'];
+  if (g.cols.indexOf('tools') === -1) return ['at 1194 with Book in front the glass is ' + JSON.stringify(g.cols) + ' — Tools is not on it, so nothing was asked (is the window wide? are the columns in the sheet\'s order?)'];
   let s = toolsSlots_(w);
   const lit = s.filter(x => x.lit), dark = s.filter(x => !x.lit);
-  if (!lit.length) return ['no Tools card is on the glass beside Settings, so nothing was asked'];
-  lit.filter(x => x.veiled).forEach(x => bad.push('#wgt-' + x.id + ' is on the glass beside Settings and still holds the loader — it was never started'));
-  lit.filter(x => !x.on).forEach(x => bad.push('#wgt-' + x.id + ' is on the glass beside Settings and is not running on Tools'));
+  if (!lit.length) return ['no Tools card is on the glass beside Book, so nothing was asked'];
+  lit.filter(x => x.veiled).forEach(x => bad.push('#wgt-' + x.id + ' is on the glass beside Book and still holds the loader — it was never started'));
+  lit.filter(x => !x.on).forEach(x => bad.push('#wgt-' + x.id + ' is on the glass beside Book and is not running on Tools'));
   /* AND ONLY THOSE. A column beside you is not a column you arrived at; what is off the glass on it waits. */
   if (!dark.length) bad.push('every Tools card counted as on the glass, so whether it starts ONLY what is on it was not asked');
-  dark.filter(x => x.on).forEach(x => bad.push('#wgt-' + x.id + ' is off the glass on a column beside Settings and was started anyway'));
+  dark.filter(x => x.on).forEach(x => bad.push('#wgt-' + x.id + ' is off the glass on a column beside Book and was started anyway'));
   if (!lit.some(x => x.id === 'calculator')) bad.push('the calculator — the first Tools card — is not among the cards on the glass');
-  if (t.AT() !== 'settings') bad.push('the column in front moved to ' + t.AT() + ' — nobody went to Tools');
+  if (t.AT() !== 'booking') bad.push('the column in front moved to ' + t.AT() + ' — nobody went to Tools');
   /* NARROWED TO A PHONE: the column beside is a 23px edge again, and what ran on it stops. */
   const before = stops;
   w.__width(390);
   await wait(400); await woken_();
   await until_(() => !t.running().some(r => r.col === 'tools'), 5000);
   const g2 = t.glass();
-  if (g2.cols.join() !== 'settings') bad.push('narrowed to 390 the glass is still ' + JSON.stringify(g2.cols) + ' — only Settings is on a phone\'s');
+  if (g2.cols.join() !== 'booking') bad.push('narrowed to 390 the glass is still ' + JSON.stringify(g2.cols) + ' — only Book is on a phone\'s');
   const still = t.running().filter(r => r.col === 'tools').map(r => r.id);
   if (still.length) bad.push('narrowed to 390, ' + still.join(', ') + ' went on running on Tools, which is no longer on the glass');
   if (stops === before) bad.push('narrowed to 390, the calculator\'s stop was never called');
@@ -6013,16 +6013,16 @@ check('a wide window starts the widgets on the glass beside the column in front,
   await wait(400); await woken_();
   await until_(() => t.running().some(r => r.id === 'calculator' && r.col === 'tools'));
   s = toolsSlots_(w);
-  if (!s.some(x => x.id === 'calculator' && x.on)) bad.push('widened back to 1194, the calculator beside Settings is not running again');
-  /* SWIPED OFF THE GLASS: You in front puts Tools two columns away, an 8px edge at 1194. */
+  if (!s.some(x => x.id === 'calculator' && x.on)) bad.push('widened back to 1194, the calculator beside Book is not running again');
+  /* SWIPED OFF THE GLASS: Shop in front puts Tools two columns away, an 8px edge at 1194. */
   const before2 = stops;
-  t.go('account', false, true);
+  t.go('shop', false, true);
   await settle_();
   await until_(() => !t.running().some(r => r.col === 'tools'), 5000);
   const still2 = t.running().filter(r => r.col === 'tools').map(r => r.id);
-  if (t.glass().cols.indexOf('tools') !== -1) bad.push('with You in front, Tools still counts as on the glass at 1194: ' + JSON.stringify(t.glass().cols));
-  if (still2.length) bad.push('with You in front, ' + still2.join(', ') + ' went on running on Tools, two columns away and off the glass');
-  if (stops === before2) bad.push('going to You, the calculator\'s stop was never called');
+  if (t.glass().cols.indexOf('tools') !== -1) bad.push('with Shop in front, Tools still counts as on the glass at 1194: ' + JSON.stringify(t.glass().cols));
+  if (still2.length) bad.push('with Shop in front, ' + still2.join(', ') + ' went on running on Tools, two columns away and off the glass');
+  if (stops === before2) bad.push('going to Shop, the calculator\'s stop was never called');
   return bad;
 });
 
@@ -6049,12 +6049,12 @@ check('a starred widget on Tools and Saved is one widget: started once, and neve
   const drawn = col => !!d.querySelector('#s-' + col + ' #wgt-calculator #mc-display .mc-caret');
   const bad = [];
   if (t.running().some(r => r.id === 'calculator')) return ['the calculator was already running with Find in front, so nothing was asked'];
-  /* GAMES IN FRONT: Tools on one side and Saved on the other, both whole, both with the calculator on the glass. */
-  t.go('games', false, true);
+  /* PROGRESS IN FRONT: Tools on one side and Saved on the other, both whole, both with the calculator on the glass. */
+  t.go('progress', false, true);
   await settle_();
   await until_(() => t.running().some(r => r.id === 'calculator'));
   const g = t.glass();
-  if (g.cols.indexOf('tools') === -1 || g.cols.indexOf('saved') === -1) return ['with Games in front at 1194 the glass is ' + JSON.stringify(g.cols) + ' — Tools and Saved are not both on it, so nothing was asked'];
+  if (g.cols.indexOf('tools') === -1 || g.cols.indexOf('saved') === -1) return ['with Progress in front at 1194 the glass is ' + JSON.stringify(g.cols) + ' — Tools and Saved are not both on it, so nothing was asked'];
   let on = copies();
   if (starts !== 1) bad.push('with both of its copies on the glass the calculator was started ' + starts + ' time(s), not once');
   if (on.length !== 1) bad.push('the calculator is running ' + on.length + ' time(s) at once: ' + JSON.stringify(on));
@@ -6062,34 +6062,39 @@ check('a starred widget on Tools and Saved is one widget: started once, and neve
     .map(sl => sl.closest('.screen').id);
   if (veiled.length) bad.push('the calculator has started and its copy on ' + veiled.join(', ') + ' still holds the loader');
   if (on[0] && !drawn(on[0].col)) bad.push('the calculator is running on ' + on[0].col + '\'s copy and that copy\'s display was never drawn');
-  /* TO TOOLS: the copy in front is the one it is running on, so nothing starts again — unless the column was `STALE` and drawn again on the way in § */
-  const startsAtTools = starts;
-  const slotWas = d.querySelector('#s-tools #wgt-calculator');
-  t.go('tools', false, true);
+  /* TO THE COPY IT RUNS ON: arriving there starts nothing again — unless the column was `STALE` and drawn again on the way in § */
+  /* SINCE 392 Saved and Tools sit either side of Progress, so which copy runs first is the app's to choose; the journey follows it. */
+  const NAME_ = { tools: 'Tools', saved: 'Saved', res: 'Find 2', booking: 'Book' };
+  const ran = on[0] ? on[0].col : 'tools', other = ran === 'tools' ? 'saved' : 'tools';
+  const away = other === 'saved' ? 'res' : 'booking';
+  const startsAtRan = starts;
+  const slotWas = d.querySelector('#s-' + ran + ' #wgt-calculator');
+  t.go(ran, false, true);
   await settle_();
-  await until_(() => t.running().some(r => r.id === 'calculator' && r.col === 'tools'));
+  await until_(() => t.running().some(r => r.id === 'calculator' && r.col === ran));
   on = copies();
-  const redrawn = d.querySelector('#s-tools #wgt-calculator') !== slotWas;
-  if (on.length !== 1 || on[0].col !== 'tools') bad.push('with Tools in front the calculator runs on ' + JSON.stringify(on) + ', not once on Tools');
-  if (!redrawn && starts !== startsAtTools) bad.push('arriving at Tools started the calculator again although it was already running on Tools\' copy, which was not redrawn');
-  if (redrawn && starts !== startsAtTools + 1) bad.push('arriving at Tools redrew its copy and started the calculator ' + (starts - startsAtTools) + ' time(s), not once');
-  /* TO SPOTLIGHT: Tools is three columns away, Saved beside — the copy that ran has left the glass and
-     the other is still on it, so it is started there, once. */
+  const redrawn = d.querySelector('#s-' + ran + ' #wgt-calculator') !== slotWas;
+  if (on.length !== 1 || on[0].col !== ran) bad.push('with ' + NAME_[ran] + ' in front the calculator runs on ' + JSON.stringify(on) + ', not once on ' + NAME_[ran]);
+  if (!redrawn && starts !== startsAtRan) bad.push('arriving at ' + NAME_[ran] + ' started the calculator again although it was already running on its copy, which was not redrawn');
+  if (redrawn && starts !== startsAtRan + 1) bad.push('arriving at ' + NAME_[ran] + ' redrew its copy and started the calculator ' + (starts - startsAtRan) + ' time(s), not once');
+  /* TO THE FAR SIDE OF THE OTHER COPY: the copy that ran is three columns away and the other is beside —
+     the copy that ran has left the glass and the other is still on it, so it is started there, once. */
   const s0 = starts, x0 = stops;
-  t.go('spotlight', false, true);
+  t.go(away, false, true);
   await settle_();
-  await until_(() => t.running().some(r => r.id === 'calculator' && r.col === 'saved'));
+  await until_(() => t.running().some(r => r.id === 'calculator' && r.col === other));
+  if (t.glass().cols.indexOf(ran) !== -1 || t.glass().cols.indexOf(other) === -1) bad.push('with ' + NAME_[away] + ' in front the glass is ' + JSON.stringify(t.glass().cols) + ' — wanted ' + NAME_[other] + ' on it and ' + NAME_[ran] + ' off it');
   on = copies();
-  if (on.length !== 1 || on[0].col !== 'saved') bad.push('with Spotlight in front (Saved beside, Tools off the glass) the calculator runs on ' + JSON.stringify(on) + ', not on Saved');
-  if (starts - s0 !== 1 || stops - x0 !== 1) bad.push('moving to Spotlight stopped it ' + (stops - x0) + ' and started it ' + (starts - s0) + ' time(s) — once each, from the copy that left to the copy still there');
-  if (!drawn('saved')) bad.push('the calculator started on Saved\'s copy and that copy\'s display was never drawn — it drew into another copy');
-  /* BACK TO GAMES: Saved is still beside, so the copy it is running on never left — nothing stops. */
+  if (on.length !== 1 || on[0].col !== other) bad.push('with ' + NAME_[away] + ' in front (' + NAME_[other] + ' beside, ' + NAME_[ran] + ' off the glass) the calculator runs on ' + JSON.stringify(on) + ', not on ' + NAME_[other]);
+  if (starts - s0 !== 1 || stops - x0 !== 1) bad.push('moving to ' + NAME_[away] + ' stopped it ' + (stops - x0) + ' and started it ' + (starts - s0) + ' time(s) — once each, from the copy that left to the copy still there');
+  if (!drawn(other)) bad.push('the calculator started on ' + NAME_[other] + '\'s copy and that copy\'s display was never drawn — it drew into another copy');
+  /* BACK TO PROGRESS: the other copy is still beside, so the copy it is running on never left — nothing stops. */
   const s1 = starts, x1 = stops;
-  t.go('games', false, true);
+  t.go('progress', false, true);
   await settle_();
   on = copies();
-  if (stops !== x1) bad.push('back at Games the calculator was stopped although its copy on Saved never left the glass');
-  if (starts !== s1) bad.push('back at Games the calculator was started again although it was running on a copy still on the glass');
+  if (stops !== x1) bad.push('back at Progress the calculator was stopped although its copy on ' + NAME_[other] + ' never left the glass');
+  if (starts !== s1) bad.push('back at Progress the calculator was started again although it was running on a copy still on the glass');
   if (most > 1) bad.push('at one point the calculator was running ' + most + ' times at once');
   calc.start = realStart; calc.stop = realStop;
   return bad;
@@ -6100,12 +6105,12 @@ check('arriving at a column on a wide window leaves what already runs on it, and
   for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
   const t = w.__t;
   await wait(300);
-  t.go('settings', false, true);
+  t.go('booking', false, true);
   await settle_();
   const bad = [];
   const ws = t.widgetsOf('tool').filter(x => typeof x.start === 'function');
   const runningBefore = new Set(t.running().filter(r => r.col === 'tools').map(r => r.id));
-  if (!runningBefore.size) return ['nothing was running on Tools beside Settings, so nothing was asked'];
+  if (!runningBefore.size) return ['nothing was running on Tools beside Book, so nothing was asked'];
   /* THE SLOTS AS THEY ARE, because a column marked `STALE` is drawn again on the way in and what ran in
      the old markup is rightly started again; only a widget whose slot is the same element must not be. */
   const slotWas = {};
@@ -6127,7 +6132,7 @@ check('arriving at a column on a wide window leaves what already runs on it, and
   await wait(50);
   const kept = [...runningBefore].filter(id => w.document.querySelector('#s-tools #wgt-' + id) === slotWas[id]);
   if (!kept.length) bad.push('Tools was drawn again on the way in, so leaving what already ran was not asked');
-  kept.filter(id => seen[id]).forEach(id => bad.push('#wgt-' + id + ' was running beside Settings and arriving at Tools started it again (' + seen[id] + 'x) in the same slot'));
+  kept.filter(id => seen[id]).forEach(id => bad.push('#wgt-' + id + ' was running beside Book and arriving at Tools started it again (' + seen[id] + 'x) in the same slot'));
   const never = ws.filter(x => !t.running().some(r => r.id === String(x.id) && r.col === 'tools')).map(x => x.id);
   if (never.length) bad.push('arriving at Tools left ' + never.join(', ') + ' never started');
   if (most > 3) bad.push(most + ' widgets started in one task on arrival — a swipe would wait behind every one');
@@ -6142,23 +6147,23 @@ check('a widget beside the column in front that waits for the payload is drawn w
   let release = null;
   const admin = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 't' };
   /* THE WRITTEN COLUMN ORDER, NOT THE SHEET'S: the payload is what carries the sheet's, and it is held. In
-     the written order Tools sits beside You. */
+     the written order Tools sits beside Book. */
   const { w } = wideBoot_({ payload: payload(),
     serve: u => (u.indexOf('script.google.com') === -1 ? undefined : new Promise(r => { release = () => r(payload()); })),
     before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(admin)); } catch (e) {} } });
   for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
   const t = w.__t;
   await wait(300);
-  t.go('account', false, true);
+  t.go('booking', false, true);
   await settle_();
   const bad = [];
   if (!release) return ['the payload was never asked for, so nothing was held'];
-  if (t.glass().cols.indexOf('tools') === -1) return ['with You in front and the payload held the glass is ' + JSON.stringify(t.glass().cols) + ' — Tools is not beside it, so nothing was asked'];
+  if (t.glass().cols.indexOf('tools') === -1) return ['with Book in front and the payload held the glass is ' + JSON.stringify(t.glass().cols) + ' — Tools is not beside it, so nothing was asked'];
   const card = () => w.document.querySelector('#s-tools #wgt-flyers');
   if (!card()) return ['an admin\'s Tools has no flyer maker, so nothing was asked'];
   await until_(() => t.running().some(r => r.id === 'flyers' && r.col === 'tools'));
-  if (!t.running().some(r => r.id === 'flyers' && r.col === 'tools')) return ['the flyer maker beside You was never started, so its wait for the payload was not asked'];
-  if (!card().querySelector('.loading')) return ['the flyer maker beside You shows no loader with the payload held, so nothing was waiting'];
+  if (!t.running().some(r => r.id === 'flyers' && r.col === 'tools')) return ['the flyer maker beside Book was never started, so its wait for the payload was not asked'];
+  if (!card().querySelector('.loading')) return ['the flyer maker beside Book shows no loader with the payload held, so nothing was waiting'];
   if (card().getAttribute('aria-busy') === 'true') bad.push('the flyer maker still holds the "not started" veil after it started');
   const was = card();
   /* AND NEVER BARE ON THE WAY. § */
@@ -6172,14 +6177,14 @@ check('a widget beside the column in front that waits for the payload is drawn w
   await until_(() => card() && card() !== was && !!card().querySelector('#fm-wrap .widget-squeeze'));
   await woken_();
   mo.disconnect();
-  if (bare) bad.push('the payload landed and the new flyer maker beside You was shown without its veil and with nothing running in it, ' + bare + ' time(s) — markup nobody had started, unveiled because the one in the thrown-away markup still counted as running');
+  if (bare) bad.push('the payload landed and the new flyer maker beside Book was shown without its veil and with nothing running in it, ' + bare + ' time(s) — markup nobody had started, unveiled because the one in the thrown-away markup still counted as running');
   if (card() === was) bad.push('the payload landed and Tools was not drawn again, so starting the new markup was not asked');
-  if (card() && card().getAttribute('aria-busy') === 'true') bad.push('the payload landed, Tools was drawn again beside You, and the new flyer maker sits under the "not started" veil — only going to Tools would have started it');
-  else if (card() && card().querySelector('.loading')) bad.push('the payload landed and the flyer maker beside You still shows the loader');
+  if (card() && card().getAttribute('aria-busy') === 'true') bad.push('the payload landed, Tools was drawn again beside Book, and the new flyer maker sits under the "not started" veil — only going to Tools would have started it');
+  else if (card() && card().querySelector('.loading')) bad.push('the payload landed and the flyer maker beside Book still shows the loader');
   /* AND DRAWN, NOT ONLY UNVEILED: § */
-  if (card() && !card().querySelector('#fm-wrap .widget-squeeze')) bad.push('the payload landed and the new flyer maker beside You was never started — its box is the empty markup');
+  if (card() && !card().querySelector('#fm-wrap .widget-squeeze')) bad.push('the payload landed and the new flyer maker beside Book was never started — its box is the empty markup');
   if (t.running().filter(r => r.id === 'flyers').length !== 1) bad.push('after the payload the flyer maker is running ' + t.running().filter(r => r.id === 'flyers').length + ' time(s), not once');
-  if (t.AT() !== 'account') bad.push('the column in front moved to ' + t.AT());
+  if (t.AT() !== 'booking') bad.push('the column in front moved to ' + t.AT());
   return bad;
 });
 
@@ -6189,16 +6194,16 @@ check('a repaint and then an arrival keep the widget running beside the column i
   for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
   const t = w.__t;
   await wait(300);
-  t.go('settings', false, true);
+  t.go('booking', false, true);
   await settle_();
   const d = w.document;
   const slot = () => d.querySelector('#s-tools #wgt-calculator');
   const shown = () => { const el = d.querySelector('#s-tools #wgt-calculator #mc-display'); return el ? el.textContent : null; };
   await until_(() => t.running().some(r => r.id === 'calculator' && r.col === 'tools') && slot() && !slot().getAttribute('aria-busy'));
-  if (!t.running().some(r => r.id === 'calculator' && r.col === 'tools')) return ['the calculator beside Settings never started, so nothing was asked'];
+  if (!t.running().some(r => r.id === 'calculator' && r.col === 'tools')) return ['the calculator beside Book never started, so nothing was asked'];
   if (typeof w._mcClick !== 'function') return ['the calculator set no `_mcClick`, so nothing could be typed into it'];
   ['7', '+', '5'].forEach(k => w._mcClick(k));
-  if (shown() !== '7+5') return ['typed 7+5 into the calculator beside Settings and it reads ' + JSON.stringify(shown()) + ', so nothing was asked'];
+  if (shown() !== '7+5') return ['typed 7+5 into the calculator beside Book and it reads ' + JSON.stringify(shown()) + ', so nothing was asked'];
   const calc = t.widgetsOf('tool').find(x => String(x.id) === 'calculator');
   let starts = 0;
   const realStart = calc.start;
@@ -6225,7 +6230,7 @@ check('a repaint and then an arrival keep the widget running beside the column i
   else if (star() === starWas) bad.push('the calculator\'s star is the element it was before the arrival — the column was not drawn again, so keeping the slot through a paint was not asked');
   if (slot() !== was) bad.push('arriving at Tools after a repaint threw away the slot the calculator was running in and drew a new one');
   if (veiled) bad.push('between the repaint and arriving at Tools the calculator\'s slot was gone or held the loader ' + veiled + ' time(s): drawn, the dots, drawn');
-  if (shown() !== '7+5') bad.push('the sum typed beside Settings reads ' + JSON.stringify(shown()) + ' once Tools is in front — the calculator was started again from nothing');
+  if (shown() !== '7+5') bad.push('the sum typed beside Book reads ' + JSON.stringify(shown()) + ' once Tools is in front — the calculator was started again from nothing');
   if (starts) bad.push('arriving at Tools started the calculator ' + starts + ' time(s) more, though it was running on Tools\' own copy');
   const on = t.running().filter(r => r.id === 'calculator');
   if (on.length !== 1 || on[0].col !== 'tools') bad.push('with Tools in front the calculator runs ' + JSON.stringify(on.map(r => r.col)) + ', not once on Tools');
@@ -6239,28 +6244,28 @@ check('a sign-out stops what its column no longer draws beside the column in fro
   for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
   const t = w.__t;
   await wait(300);
-  t.go('settings', false, true);
+  t.go('booking', false, true);
   await settle_();
   const runs = id => t.running().find(r => r.id === id && r.col === 'tools');
   await until_(() => runs('calculator') && runs('flyers'));
-  if (!runs('flyers') || !runs('calculator')) return ['with the admin signed in, the calculator and the flyer maker are not both running beside Settings (' + JSON.stringify(t.running().map(r => r.id + '@' + r.col)) + '), so nothing was asked'];
-  if (runs('calculator').who !== 'P001') return ['the calculator beside Settings says it was started for ' + JSON.stringify(runs('calculator').who) + ', not for the admin, so nothing was asked'];
+  if (!runs('flyers') || !runs('calculator')) return ['with the admin signed in, the calculator and the flyer maker are not both running beside Book (' + JSON.stringify(t.running().map(r => r.id + '@' + r.col)) + '), so nothing was asked'];
+  if (runs('calculator').who !== 'P001') return ['the calculator beside Book says it was started for ' + JSON.stringify(runs('calculator').who) + ', not for the admin, so nothing was asked'];
   const bad = [];
   if (typeof w.signedOut_ !== 'function' || typeof w.signedIn_ !== 'function') return ['signedOut_ / signedIn_ are not globals, so a change of person was NOT asked'];
-  /* SIGNED OUT WITH SETTINGS IN FRONT, and nobody goes anywhere. */
+  /* SIGNED OUT WITH BOOK IN FRONT, and nobody goes anywhere. */
   try { w.signedOut_(); } catch (e) { return ['signedOut_ threw: ' + e.message]; }
   await settle_();
   await until_(() => !runs('flyers') && runs('calculator') && runs('calculator').who === '');
-  if (!t.stale('tools')) bad.push('the sign-out did not leave Tools stale, so nothing beside Settings was running in markup it would not draw now');
-  if (runs('flyers')) bad.push('signed out with Settings in front, the admin\'s flyer maker went on running on Tools beside it — a signed-out Tools does not draw it');
-  if (!runs('calculator')) bad.push('signed out with Settings in front, the calculator on Tools beside it stopped and was not started again');
-  else if (runs('calculator').who !== '') bad.push('signed out with Settings in front, the calculator beside it is still the one started for ' + JSON.stringify(runs('calculator').who));
-  /* SIGNED IN AGAIN, then out and STRAIGHT to Tools — before anything beside Settings has been started
+  if (!t.stale('tools')) bad.push('the sign-out did not leave Tools stale, so nothing beside Book was running in markup it would not draw now');
+  if (runs('flyers')) bad.push('signed out with Book in front, the admin\'s flyer maker went on running on Tools beside it — a signed-out Tools does not draw it');
+  if (!runs('calculator')) bad.push('signed out with Book in front, the calculator on Tools beside it stopped and was not started again');
+  else if (runs('calculator').who !== '') bad.push('signed out with Book in front, the calculator beside it is still the one started for ' + JSON.stringify(runs('calculator').who));
+  /* SIGNED IN AGAIN, then out and STRAIGHT to Tools — before anything beside Book has been started
      again — so the arrival's paint meets a slot started for the admin. It must not carry it. */
   try { w.signedIn_(Object.assign({}, admin)); } catch (e) { return bad.concat(['signedIn_ threw: ' + e.message]); }
   await settle_();
   await until_(() => runs('calculator') && runs('calculator').who === 'P001');
-  if (!runs('calculator') || runs('calculator').who !== 'P001') return bad.concat(['signed in again, the calculator beside Settings was not started for the admin (' + JSON.stringify(runs('calculator') && runs('calculator').who) + '), so carrying a slot across a change of person was not asked']);
+  if (!runs('calculator') || runs('calculator').who !== 'P001') return bad.concat(['signed in again, the calculator beside Book was not started for the admin (' + JSON.stringify(runs('calculator') && runs('calculator').who) + '), so carrying a slot across a change of person was not asked']);
   const adminSlot = runs('calculator').slot;
   try { w.signedOut_(); t.go('tools', false, true); } catch (e) { return bad.concat(['signing out and going to Tools threw: ' + e.message]); }
   const now = w.document.querySelector('#s-tools #wgt-calculator');
@@ -11186,8 +11191,8 @@ check('each column opens on the page worth reading', async () => {
   return bad;
 });
 
-/* ---------- PROGRESS: THE LAST COLUMN, ONE CARD SAYING SO, AND NOTHING ON IT TO PRESS § */
-check('progress is the last column, one card with nothing to press — the placeholder, or a student\'s journey — and a swipe off Spotlight lands on it', async () => {
+/* ---------- PROGRESS: BETWEEN SAVED AND TOOLS, ONE CARD SAYING SO, AND NOTHING ON IT TO PRESS § */
+check('progress sits between Saved and Tools (392), one card with nothing to press — the placeholder, or a student\'s journey — and a swipe off Saved lands on it', async () => {
   const cols = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'columns.json'), 'utf8'));
   const { w } = boot({ serve: u => (/(^|\/)data\/settings\/columns\.json(\?|$)/.test(u) ? cols : undefined) });
   await wait(600);
@@ -11195,11 +11200,8 @@ check('progress is the last column, one card with nothing to press — the place
   const bad = [];
   const ids = () => t.TABS.map(x => x.id);
   if (ids().indexOf('progress') < 0) return ['there is no `progress` column on the phone — the order reads ' + ids().join(', ')];
-  if (ids()[ids().length - 1] === 'settings') {
-    return ['columns.json was not applied (Settings is last, which is the code\'s own order) — the order a phone gets was NOT checked'];
-  }
-  if (ids()[ids().length - 1] !== 'progress') bad.push('Progress is not the last column — the order reads ' + ids().join(', '));
-  if (ids().indexOf('progress') !== ids().indexOf('spotlight') + 1) bad.push('Progress is not straight after Spotlight — the order reads ' + ids().join(', '));
+  if (!bizApplied_(t)) return ['columns.json was not applied — the order a phone gets was NOT checked: ' + ids().join(', ')];
+  if (ids().join(' ') !== ORDER_392_.filter(id => id !== 'biz').join(' ')) bad.push('signed out, the row reads ' + ids().join(' ') + ' — wanted ' + ORDER_392_.filter(id => id !== 'biz').join(' '));
 
   /* THE SWIPE. */
   const swipe = async from => {
@@ -11207,14 +11209,14 @@ check('progress is the last column, one card with nothing to press — the place
     at.dispatchEvent(new w.WheelEvent('wheel', { deltaX: 120, deltaY: 0, bubbles: true, cancelable: true }));
     await wait(LEAVE_MS); await woken_();
   };
-  t.go('spotlight', false, true);
+  t.go('saved', false, true);
   await wait(LEAVE_MS); await woken_();
-  if (t.AT() !== 'spotlight') return bad.concat(['go("spotlight") left the app on ' + t.AT() + ' — the swipe was NOT checked']);
-  await swipe('spotlight');
-  if (t.AT() !== 'progress') bad.push('a sideways swipe off Spotlight landed on ' + t.AT() + ', wanted Progress');
+  if (t.AT() !== 'saved') return bad.concat(['go("saved") left the app on ' + t.AT() + ' — the swipe was NOT checked']);
+  await swipe('saved');
+  if (t.AT() !== 'progress') bad.push('a sideways swipe off Saved landed on ' + t.AT() + ', wanted Progress');
   else {
     await swipe('progress');
-    if (t.AT() !== 'progress') bad.push('a sideways swipe past the last column moved off Progress, to ' + t.AT());
+    if (t.AT() !== 'tools') bad.push('a sideways swipe off Progress landed on ' + t.AT() + ', wanted Tools');
   }
 
   /* THE CARD, FOR EVERY VISITOR — the third field is whether it is theirs to see their journey. */
@@ -11282,7 +11284,7 @@ check('your journey: on Progress for a student and not on Settings, the placehol
   const t = w.__t, d = w.document;
   if (!t) return ['the app did not finish loading'];
   if (t.whoami()) return ['the journey meant to start signed out and somebody is signed in — NOT checked'];
-  if (!bizApplied_(t.TABS.map(x => x.id))) return ['columns.json was not applied — NOT checked: ' + t.TABS.map(x => x.id).join(', ')];
+  if (!bizApplied_(t)) return ['columns.json was not applied — NOT checked: ' + t.TABS.map(x => x.id).join(', ')];
   const doc = d.documentElement;
   hold = true;
   const bad = [];
@@ -11433,9 +11435,13 @@ const bizSwipe_ = async (w, from) => {
   at.dispatchEvent(new w.WheelEvent('wheel', { deltaX: 120, deltaY: 0, bubbles: true, cancelable: true }));
   await wait(LEAVE_MS); await woken_();
 };
-const bizApplied_ = ids => ids.indexOf('settings') === ids.indexOf('account') + 1;
+/* THE FILE WAS READ: since 392 TAB_ORDER and columns.json agree, so the order cannot tell them apart and the payload is asked. */
+const bizApplied_ = t => !!(t.DATA() && (t.DATA().columns || []).length);
+/* THE ROW THE OWNER DECIDED ON 21 OCT, by purpose: social, learning, business, games, you (docs/history/392). */
+const ORDER_392_ = ['feed', 'spotlight', 'reel', 'dm', 'stuff', 'res', 'saved', 'progress', 'tools',
+                    'booking', 'shop', 'games', 'account', 'settings', 'biz'];
 
-check('business: an admin has a Business column last, straight after Progress, holding the five records cards and the verse screen setup tile, and Save posts the card', async () => {
+check('business: an admin has a Business column last, straight after Settings, holding the five records cards and the verse screen setup tile, and Save posts the card', async () => {
   const { w, sent } = boot({ serve: BIZ_SERVE_(BIZ_COLS_()),
     before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(BIZ_ADMIN_)); } catch (e) {} },
     reply: body => (body.action === 'listRecords' ? { success: true, records: BIZ_HELD_ }
@@ -11447,27 +11453,26 @@ check('business: an admin has a Business column last, straight after Progress, h
   const bad = [];
   const ids = () => t.TABS.map(x => x.id);
   if (!t.whoami() || t.whoami().role !== 'admin') return ['the admin seeded before boot is not signed in — nothing was checked'];
-  if (!bizApplied_(ids())) return ['columns.json was not applied (Settings is not straight after You) — the order a phone gets was NOT checked: ' + ids().join(', ')];
-  if (ids()[ids().length - 1] !== 'biz') bad.push('Business is not the last column for an admin — the order reads ' + ids().join(', '));
-  if (ids().indexOf('biz') !== ids().indexOf('progress') + 1) bad.push('Business is not straight after Progress — the order reads ' + ids().join(', '));
+  if (!bizApplied_(t)) return ['columns.json was not applied — the order a phone gets was NOT checked: ' + ids().join(', ')];
+  if (ids().join(' ') !== ORDER_392_.join(' ')) bad.push('an admin\'s row reads ' + ids().join(' ') + ' — wanted ' + ORDER_392_.join(' ') + ', Business last');
   const host = d.getElementById('s-biz');
   if (!host || host.parentElement !== d.getElementById('screen') || host.tagName !== 'SECTION') return bad.concat(['an admin has no <section id="s-biz"> in #screen to draw the column into']);
 
   /* THE RECORDS ARE ASKED BEFORE ANYBODY GOES THERE. § */
   for (let n = 0; n < 40 && !sent.some(b => b.action === 'listRecords'); n++) await wait(100);
   if (t.AT() === 'biz') return bad.concat(['the admin booted onto Business, so asking before arrival was NOT checked']);
-  if (!sent.some(b => b.action === 'listRecords')) bad.push('the records were not asked until somebody went to the Business column — the card beside Progress stays under the loader');
+  if (!sent.some(b => b.action === 'listRecords')) bad.push('the records were not asked until somebody went to the Business column — the card beside Settings stays under the loader');
   else if (host.querySelector('.me-form[data-biz-page="Insurance"] .loading')) {
     for (let n = 0; n < 30 && host.querySelector('.me-form[data-biz-page="Insurance"] .loading'); n++) await wait(100);
     if (host.querySelector('.me-form[data-biz-page="Insurance"] .loading')) bad.push('the records were asked and answered, and the Insurance card is still under the loader without anybody going there');
   }
 
-  /* A SWIPE OFF PROGRESS, as a trackpad sends it, lands on Business; one more stays — the last column. */
-  t.go('progress', false, true);
+  /* A SWIPE OFF SETTINGS, as a trackpad sends it, lands on Business; one more stays — the last column. */
+  t.go('settings', false, true);
   await wait(LEAVE_MS); await woken_();
-  if (t.AT() !== 'progress') return bad.concat(['go("progress") left the app on ' + t.AT() + ' — the swipe was NOT checked']);
-  await bizSwipe_(w, 'progress');
-  if (t.AT() !== 'biz') return bad.concat(['a sideways swipe off Progress landed on ' + t.AT() + ', wanted Business']);
+  if (t.AT() !== 'settings') return bad.concat(['go("settings") left the app on ' + t.AT() + ' — the swipe was NOT checked']);
+  await bizSwipe_(w, 'settings');
+  if (t.AT() !== 'biz') return bad.concat(['a sideways swipe off Settings landed on ' + t.AT() + ', wanted Business']);
   await bizSwipe_(w, 'biz');
   if (t.AT() !== 'biz') bad.push('a sideways swipe past the last column moved off Business, to ' + t.AT());
 
@@ -11554,20 +11559,20 @@ check('business: a student, a parent, a tutor and a visitor have no Business col
     if (!t) { bad.push(as + ': the app did not finish loading'); continue; }
     if (u && (!t.whoami() || t.whoami().role !== u.role)) { bad.push(as + ': the visitor seeded before boot is not signed in — NOT checked'); continue; }
     const ids = t.TABS.map(x => x.id);
-    if (!bizApplied_(ids)) { bad.push(as + ': columns.json was not applied — NOT checked: ' + ids.join(', ')); continue; }
+    if (!bizApplied_(t)) { bad.push(as + ': columns.json was not applied — NOT checked: ' + ids.join(', ')); continue; }
     if (ids.indexOf('biz') !== -1) bad.push(as + ': the row of columns has Business in it: ' + ids.join(', '));
-    if (ids[ids.length - 1] !== 'progress') bad.push(as + ': the last column is ' + ids[ids.length - 1] + ', wanted Progress');
+    if (ids[ids.length - 1] !== 'settings') bad.push(as + ': the last column is ' + ids[ids.length - 1] + ', wanted Settings');
     /* A REMEMBERED `biz` (an admin's, on a shared phone) IS NOT A PLACE FOR THEM: § */
     const home = typeof t.TAB_HOME === 'function' ? t.TAB_HOME() : '';
-    if (!home || home === 'progress') bad.push(as + ': TAB_HOME is ' + JSON.stringify(home) + ' — the front door cannot be told from the column left of Business, NOT checked');
-    else if (t.AT() !== home) bad.push(as + ': a remembered Business column opened them on ' + t.AT() + ', wanted ' + home + ', where a visitor with nothing remembered opens' + (t.AT() === 'progress' ? ' — they were moved left off a column they should never have been put on' : ''));
+    if (!home || home === 'settings') bad.push(as + ': TAB_HOME is ' + JSON.stringify(home) + ' — the front door cannot be told from the column left of Business, NOT checked');
+    else if (t.AT() !== home) bad.push(as + ': a remembered Business column opened them on ' + t.AT() + ', wanted ' + home + ', where a visitor with nothing remembered opens' + (t.AT() === 'settings' ? ' — they were moved left off a column they should never have been put on' : ''));
     /* EVERY COLUMN ARRIVED AT, so every neighbour has been painted, and the page asked after. */
     for (const id of ids) { try { t.go(id, false, true); } catch (e) { bad.push(as + ': ' + id + ' threw: ' + e.message); } }
     await wait(LEAVE_MS); await woken_();
-    t.go('progress', false, true);
+    t.go('settings', false, true);
     await wait(LEAVE_MS); await woken_();
-    await bizSwipe_(w, 'progress');
-    if (t.AT() !== 'progress') bad.push(as + ': a swipe past Progress moved to ' + t.AT() + ' — wanted to stay on the last column');
+    await bizSwipe_(w, 'settings');
+    if (t.AT() !== 'settings') bad.push(as + ': a swipe past Settings moved to ' + t.AT() + ' — wanted to stay on the last column');
     t.go('biz', false, true);
     await wait(300);
     if (t.AT() === 'biz') bad.push(as + ': go("biz") reached a Business column');
@@ -11594,13 +11599,13 @@ check('business: signing in as an admin adds the column and signing out takes it
   const bad = [];
   const ids = () => t.TABS.map(x => x.id);
   if (t.whoami()) return ['the journey meant to start signed out and somebody is signed in — NOT checked'];
-  if (!bizApplied_(ids())) return ['columns.json was not applied — NOT checked: ' + ids().join(', ')];
+  if (!bizApplied_(t)) return ['columns.json was not applied — NOT checked: ' + ids().join(', ')];
   if (ids().indexOf('biz') !== -1 || d.getElementById('s-biz')) return ['signed out, the Business column is already there — the sign-in was NOT checked'];
   const doc = d.documentElement;
 
-  /* IN, THROUGH THE SIGN-IN CARD, from Progress by way of You — and back on Progress afterwards
+  /* IN, THROUGH THE SIGN-IN CARD, from Settings by way of You — and back on Settings afterwards
      (`signedIn_` returns you to the column you came from), with Business beside it. */
-  t.go('progress', false, true); await wait(LEAVE_MS); await woken_();
+  t.go('settings', false, true); await wait(LEAVE_MS); await woken_();
   t.go('account', false, true); await wait(LEAVE_MS); await woken_();
   const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
   const btn = d.querySelector('[data-do="do-signin"]');
@@ -11616,9 +11621,9 @@ check('business: signing in as an admin adds the column and signing out takes it
   if (d.documentElement !== doc) bad.push('the page was reloaded');
   if (ids()[ids().length - 1] !== 'biz') bad.push('signed in as an admin, the last column is ' + ids()[ids().length - 1] + ', wanted Business, without a reload');
   if (!d.getElementById('s-biz')) bad.push('signed in as an admin, there is no <section id="s-biz"> to swipe to');
-  if (t.AT() !== 'progress') bad.push('signing in moved the admin to ' + t.AT() + ' — they came to You from Progress and go back there');
-  await bizSwipe_(w, 'progress');
-  if (t.AT() !== 'biz') bad.push('signed in, a swipe off Progress landed on ' + t.AT() + ', wanted Business');
+  if (t.AT() !== 'settings') bad.push('signing in moved the admin to ' + t.AT() + ' — they came to You from Settings and go back there');
+  await bizSwipe_(w, 'settings');
+  if (t.AT() !== 'biz') bad.push('signed in, a swipe off Settings landed on ' + t.AT() + ', wanted Business');
   else {
     for (let n = 0; n < 50 && d.querySelector('#s-biz .loading'); n++) await wait(100);
     const cards = [...d.querySelectorAll('#s-biz .me-form[data-biz-page]')].map(f => f.dataset.bizPage);
@@ -11659,8 +11664,8 @@ check('business: signing in as an admin adds the column and signing out takes it
   await wait(LEAVE_MS); await woken_();
   if (t2.whoami()) return bad.concat(['a Save refused as signed-out did not end the session — NOT checked']);
   if (d2.getElementById('s-biz')) bad.push('the session ended on Business and its section is still in the page');
-  if (t2.AT() !== 'progress') bad.push('the session ended on Business and the person was put on ' + t2.AT() + ', wanted Progress, the column left of it');
-  if (!d2.querySelector('#s-progress > .page.on')) bad.push('the session ended on Business and Progress, where they were put, shows no page');
+  if (t2.AT() !== 'settings') bad.push('the session ended on Business and the person was put on ' + t2.AT() + ', wanted Settings, the column left of it');
+  if (!d2.querySelector('#s-settings > .page.on')) bad.push('the session ended on Business and Settings, where they were put, shows no page');
   return bad;
 });
 
@@ -11677,7 +11682,7 @@ check('business: an admin reloading on Business is put back on it, its section i
   const bad = [];
   const ids = t.TABS.map(x => x.id);
   if (!t.whoami() || t.whoami().role !== 'admin') return ['the admin seeded before boot is not signed in — NOT checked'];
-  if (!bizApplied_(ids)) return ['columns.json was not applied — NOT checked: ' + ids.join(', ')];
+  if (!bizApplied_(t)) return ['columns.json was not applied — NOT checked: ' + ids.join(', ')];
   if (t.AT() !== 'biz') return ['an admin reloading on Business opened on ' + t.AT() + ' — the remembered column an admin IS given was let go'];
   const host = d.getElementById('s-biz');
   if (!host || host.parentElement !== d.getElementById('screen')) return ['an admin reloading on Business is on it with no <section id="s-biz"> in #screen'];
@@ -18448,6 +18453,8 @@ check('Find 2: a column immediately right of Find, called Find 2 with Find\'s ic
   if (bare.w.__t) {
     const T0 = bare.w.__t.TABS, ids0 = T0.map(x => x.id);
     if (ids0.indexOf('res') !== ids0.indexOf('stuff') + 1) bad.push('without the file, TAB_ORDER puts Find 2 at ' + ids0.indexOf('res') + ' and Find at ' + ids0.indexOf('stuff') + ': ' + ids0.join(' '));
+    /* AND THE SAME ROW THE FILE GIVES (392): the code's order is what shows until the file lands, so a difference moves columns under a thumb. */
+    if (ids0.join(' ') !== ids.join(' ')) bad.push('without the file the row is ' + ids0.join(' ') + ', with it ' + ids.join(' ') + ' — TAB_ORDER and columns.json disagree');
     /* AND THE CODE'S OWN NAME, which is the name whenever the file is not read. */
     const r0 = T0.find(x => x.id === 'res') || {}, f0 = T0.find(x => x.id === 'stuff') || {};
     if (r0.label !== 'Find 2' || r0.icon !== f0.icon) bad.push('without the file the column is ' + JSON.stringify(r0.label) + ' ' + JSON.stringify(r0.icon) + ' — wanted Find 2 with Find\'s icon ' + JSON.stringify(f0.icon));
@@ -25343,17 +25350,19 @@ check('a column\'s widget slots are drawn before any column further out is paint
   const { w } = await aheadBoot_();
   const t = w.__t, bad = [];
   if (!t || typeof t.aheadLog !== 'function') return ['the builder is not reachable — NOT checked'];
-  t.USER(SAM_); t.go('saved', false, true); t.go('tools', false, true);
+  /* SHOP IN FRONT, GAMES BESIDE IT since 392 (Tools before, when Games was its neighbour). */
+  t.USER(SAM_); t.go('saved', false, true); t.go('shop', false, true);
   await aheadQuiet_(t);
   const a = w.performance.now();
   t.repaint();
   await aheadQuiet_(t);
-  const ids = t.TABS.map(x => x.id), ti = ids.indexOf('tools');
+  const ids = t.TABS.map(x => x.id), ti = ids.indexOf('shop');
+  if (Math.abs(ids.indexOf('games') - ti) !== 1) return ['Games is not beside Shop: ' + ids.join(' ') + ' — NOT checked'];
   const log = t.aheadLog().filter(x => x.t >= a);
   const lastGames = log.map(x => x.key).lastIndexOf(log.filter(x => /^widget:games:/.test(x.key)).map(x => x.key).pop());
   if (lastGames < 0) return ['no widget on Games was drawn by the builder after the repaint — NOT checked'];
   const far = log.findIndex(x => /^paint:/.test(x.key) && Math.abs(ids.indexOf(x.key.slice(6)) - ti) >= 3);
-  if (far >= 0 && far < lastGames) bad.push('the builder painted ' + log[far].key.slice(6) + ', three or more columns from Tools, before it had drawn every widget on Games beside it (' + log[lastGames].key + ' came after)');
+  if (far >= 0 && far < lastGames) bad.push('the builder painted ' + log[far].key.slice(6) + ', three or more columns from Shop, before it had drawn every widget on Games beside it (' + log[lastGames].key + ' came after)');
   t.USER(null);
   return bad;
 });

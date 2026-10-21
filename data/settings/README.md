@@ -114,7 +114,7 @@ rather than a commit.
 | `screen` | must be one the build has — `feed`, `booking`, `shop`, `reel`, `dm`, `stuff`, `account`, `settings`, `tools`, `games`, `saved`, `spotlight`, `progress`, `biz`. **`biz` is an admin's**: whatever its row says, nobody else is given the column (`columnsFor_` in `js/shell.js`) — the row decides where it sits and whether an admin has it, never who does. A name the code does not know is ignored rather than drawn, because **a column that swipes to a blank is worse than a column that is not there**. **And a screen with no row is on no phone** — the rows are the list, not only its order — so a new column needs its row here as well as its five places in the code; `check-doors.js` fails on either half missing |
 | `label`, `icon` | blank means "keep what the code says", which is the rule every other tab here follows |
 | `active` | `FALSE` takes the column out. **Every row off leaves the code's list exactly as it is** — a spreadsheet must not be able to make the app unusable by being blank |
-| `sort_order` | left to right. The sort happens where the rows are read; `applyColumns_` uses the array order it is handed |
+| `sort_order` | left to right. The sort happens where the rows are read; `applyColumns_` uses the array order it is handed. **`TAB_ORDER` in `js/shell.js` lists the same order** — it is the layout before this file lands, so the two disagreeing is a phone whose columns move under it (`check-doors.js`, 392) |
 
 **Switching off `stuff` is the one with a consequence worth knowing.** It is `TAB_HOME`, and
 `go('stuff')` is called from several places — with it gone you land on the first column in the file
