@@ -21,6 +21,15 @@ eval(marks.source);
 
 /* typed, accept, expected. `null` means "nothing typed", which is not a wrong answer. */
 const CASES = [
+  /* A READING OFF THE PROTRACTOR OR RULER (385), inside the scheme's band and out of it */
+  ['67', '65 to 69', true, 'June 2024 Foundation 2, Q7(b): the angle read off the protractor'],
+  ['67°', '65 to 69', true, 'with its degree sign'],
+  ['65', '65 to 69', true, 'the band includes its ends'],
+  ['70', '65 to 69', false, 'one degree past the band'],
+  ['8.7', '8.5 to 8.9 cm', true, 'Q7(a): the length off the ruler'],
+  ['8.7 cm', '8.5 to 8.9 cm', true, 'with its unit'],
+  ['87 mm', '8.5 to 8.9 cm', false, 'in millimetres the scheme does not print -- marked wrong, the unit is the scheme\'s'],
+  ['9.1', '8.5 to 8.9 cm', false, 'past the band'],
   /* THE FRACTION SLASH, which is what the library writes and no keyboard has */
   ['5/9', '5⁄9', true, 'the answer to Q23(b), typed the way a phone types it'],
   ['5⁄9', '5⁄9', true, 'and typed the way the library spells it'],
@@ -558,7 +567,7 @@ const slow = took > 400;
 if (slow) console.log('  marking %j took %d ms — a unit is being read more than one way again', SLOW, took);
 
 /* ---------- BY RULE: KEY WORDS MARK A SHORT WORDED ANSWER, A MARK A POINT (docs/history/359) ---------- */
-const MW_NAMES = ['MW_STOP', 'mwStem_', 'mwToks_', 'mwHas_', 'markWords_', 'cellsOf_', 'markCells_'];
+const MW_NAMES = ['MW_STOP', 'mwStem_', 'mwToks_', 'mwNum_', 'mwShapes_', 'mwHas_', 'markWords_', 'cellsOf_', 'markCells_'];
 const mwSrc = MW_NAMES.map(n => cutFrom(src, n));
 let mwBad = 0;
 const MW = [
@@ -581,6 +590,17 @@ const MW = [
   ['', 'placebo', null, 'nothing typed is not a wrong answer'],
   ['No. The powers of 10 come first', 'no ; powers', 2, 'an opening No with its full stop is the verdict, not a negation of the next word'],
   ['No placebo was given', 'placebo', 0, 'but a No inside the sentence still negates'],
+  /* A TRANSFORMATION DESCRIBED FULLY (385): the word, and the vector, line or centre read with its signs */
+  ['Translate triangle A (5/-4)', 'translation|translate|translated; (5,-4)', 2, 'Theo\'s answer: the vector as 5 over -4'],
+  ['Translation \u27ee5,\u22124\u27ef', 'translation|translate|translated; (5,-4)', 2, 'the keypad\'s column vector'],
+  ['translated 5 right and 4 down', 'translation|translate|translated; (5,-4)', 2, 'the vector in words'],
+  ['Translation (5, 4)', 'translation|translate|translated; (5,-4)', 1, 'the wrong sign is not the vector'],
+  ['Reflection (5,-4)', 'translation|translate|translated; (5,-4)', 1, 'the wrong transformation is not the word'],
+  ['reflect in y = \u2212x', 'reflection|reflect; y=-x', 2, 'a line with its sign'],
+  ['reflect in y = x', 'reflection|reflect; y=-x', 1, 'and without it, another line'],
+  ['reflection in the x-axis', 'reflection|reflect; y=0', 2, 'the x-axis is y = 0'],
+  ['rotate 90 clockwise about (-4, 1)', 'rotation|rotate; 90+clockwise; (-4,1)', 3, 'a rotation\'s three marks'],
+  ['rotation 90 clockwise about (4, 1)', 'rotation|rotate; 90+clockwise; (-4,1)', 2, 'a centre with a lost sign'],
 ];
 if (mwSrc.some(x => !x)) { console.log('check-marking: cannot find ' + MW_NAMES.filter((n, i) => !mwSrc[i]).join(', ') + ' in find.js — renamed?'); process.exit(1); }
 eval(mwSrc.join('\n'));
@@ -596,7 +616,7 @@ if (cellsAll.right !== 3 || cellsAll.of !== 3) { mwBad++; console.log('  WRONG  
 /* EVERY RULE IN THE LIBRARY GIVES FULL MARKS TO ITS OWN SCHEME'S HEADLINE -- a rule its own answer fails is a wrong rule. */
 const mwLib = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'questions.json'), 'utf8')).filter(r => String(r.mark_words || '').trim());
 mwLib.forEach(r => {
-  const head = String(r.answer || '').replace(/<[^>]*>/g, ' ').replace(/&[a-z]+;/g, ' ');
+  const head = String(r.answer || '').replace(/&minus;/g, '-').replace(/<[^>]*>/g, ' ').replace(/&[a-z]+;/g, ' ');
   const m = markWords_(head, r.mark_words);
   if (!m || m.got < m.of) { mwBad++; console.log('  WRONG  %s: its own scheme scores %j against mark_words %j', r.row_id, m, r.mark_words); }
 });
@@ -845,6 +865,14 @@ const pen_ = (vb, pl) => [].concat.apply([], pl.map(p => [(p[0] - vb[0]) / vb[2]
   const c = [170, 84], tip = at_(c, gr * 0.36, 66), a = from || tip, b = from ? tip : [171, 85];
   const r = dialRow_ && dialFig_.vb ? DM.M.mark([pen_(dialFig_.vb, hand_(a, b, 2.5, 24))], dialRow_.draw_answer, dialFig_) : null;
   if (!r || r.got !== want) { drawBad++; console.log('  WRONG  the metric-units dial: %s -- wanted %j, got %j', why, want, r); }
+});
+/* THE OWNER'S TRIANGLE (20 Oct, 384): KS2 2024 Paper 2 Q1's real row and figure -- the reflection right, a copy slid across, and one reflected a square too far */
+const refRow_ = QROWS_.find(x => x.row_id === 'Q-STA-KS2-2024-P2-1') || {}, refFig_ = DM.fig(refRow_.diagram || '');
+const g_ = (x, y) => [14 + x * 26, 28 + (8 - y) * 26];
+[[[[11, 2], [7, 2], [7, 5], [11, 2]], 1, 'the reflection, corner for corner'], [[[7, 2], [11, 2], [11, 5], [7, 2]], 0, 'a copy slid across, not flipped'],
+ [[[12, 2], [8, 2], [8, 5], [12, 2]], 0, 'reflected a square too far from the line']].forEach(([pts, want, why]) => {
+  const r = refFig_.vb && refRow_.draw_answer ? DM.M.mark([pen_(refFig_.vb, pts.map(p => g_(p[0], p[1])))], refRow_.draw_answer, refFig_) : null;
+  if (!r || r.got !== want) { drawBad++; console.log('  WRONG  KS2 2024 P2 Q1: %s -- wanted %j, got %j', why, want, r); }
 });
 /* EVERY RIGHT DRAWING BY HAND: each stroke densified, wobbled by a twentieth of a square and drawn backwards still marks the same */
 let handN = 0;

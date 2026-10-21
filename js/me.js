@@ -828,8 +828,8 @@ on('friend-add', () => {
   if (!want) { box && box.focus(); return; }
   /* EXACT, and it has to be. A search that guesses adds the wrong person, and the wrong person is
      harder to notice than nobody — they simply appear on a list somebody scrolls past. */
-  const found = (DATA.students || []).find(s2 => norm(s2.handle) === norm(want));
-  if (!found) { if (said) said.textContent = 'Nobody has the handle "' + want + '".'; return; }
+  /* NOT ON THE PHONE IS NOT NOBODY (386): a child is sent only siblings and friends, so the server says whether the handle is a child's. */
+  const found = (DATA.students || []).find(s2 => norm(s2.handle) === norm(want)) || { handle: want.replace(/^@/, '') };
   if (norm(found.handle) === norm(USER.handle)) {
     if (said) said.textContent = 'That is you.'; return;
   }
@@ -873,6 +873,7 @@ function friendsSave(list, said) {
       friendsForget_();
       const el = $('fr-said');
       if (el) el.textContent = String(err.message || 'Not saved — no connection.');
+      else toast(String(err.message || 'Not saved — no connection.'));
     });
 }
 

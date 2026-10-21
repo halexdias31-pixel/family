@@ -610,6 +610,38 @@ function siblingsOf(personId) {
   return ids.map(id => findPerson(id)).filter(Boolean);
 }
 
+/* ---------- WHO A SIGNED-IN PERSON MAY SEE (386) — the owner, 20 Oct: a child sees siblings and friends, never parents; a parent sees their children, never a co-parent. */
+/* null is "no rule": nobody signed in (public lists only), an admin, a tutor. Otherwise a set of ids. */
+function seesWhom_(me) {
+  if (!me || !S(me.person_id)) return null;
+  const a = actingRole_(me);
+  if (a === 'admin' || a === 'tutor') return null;
+  const meId = S(me.person_id), ids = {};
+  ids[meId] = true;
+  const put = rows => rows.forEach(r => { if (S(r.person_id)) ids[S(r.person_id)] = true; });
+  if (hasRole(me, 'client') || hasRole(me, 'parent')) put(childrenOf(meId));
+  if (a === 'student' || hasRole(me, 'student')) {
+    put(siblingsOf(meId));
+    /* WHO THEY FRIENDED, by handle — and only a child: a parent's handle on the list is not a door to the parent. */
+    const want = {};
+    S(me.friends).split(',').map(x => norm(x.trim().replace(/^@/, ''))).filter(Boolean).forEach(h => { want[h] = true; });
+    if (Object.keys(want).length) {
+      let rows = [];
+      try { rows = read(TAB.people).rows; } catch (err) { rows = []; }
+      put(rows.filter(r => want[norm(r.handle)] && isChild_(r)));
+    }
+  }
+  return ids;
+}
+/* MAY THIS VIEWER SEE THIS PERSON — in their set, or staff (a tutor or admin is the business, not a family). */
+function seesPerson_(vis, row) {
+  if (!vis) return true;
+  if (!row) return false;
+  if (vis[S(row.person_id)]) return true;
+  const a = actingRole_(row);
+  return a === 'tutor' || a === 'admin';
+}
+
 /* THE CHILDREN ON SOMEBODY'S ACCOUNT. § */
 function childrenOf(parentId) {
   const ids = [...new Set(acceptedLinks()

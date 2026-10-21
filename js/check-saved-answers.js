@@ -222,7 +222,8 @@ const T1 = T0 + 60000, T2 = T0 + 120000;
     if (d.submissions && d.submissions.mine && d.submissions.mine['q:Q-BEN']) bad.push('THE SIGN-IN REPLY CARRIES ANOTHER CHILD’S SUBMISSION');
     if ('attempts' in d) bad.push('the sign-in reply still carries `attempts` — the tab is read by nothing since 9 Oct');
     if (JSON.stringify(d.favourites) !== '["q:Q-STAR"]') bad.push('the sign-in reply’s favourites are ' + JSON.stringify(d.favourites) + ' — wanted Ada’s one star and nobody else’s');
-    if (d.familyFor !== 'P-S1' || !Array.isArray(d.family) || d.family.length !== 1 || d.family[0].personId !== 'P-M1' || d.family[0].relation !== 'parent') bad.push('the sign-in reply’s family is ' + JSON.stringify({ familyFor: d.familyFor, family: d.family }) + ' — wanted Mo as Ada’s parent, stamped for P-S1');
+    /* NO PARENT CARD (386): a child is sent siblings and friends, never a parent — Ada has neither, so an empty list stamped for her. */
+    if (d.familyFor !== 'P-S1' || !Array.isArray(d.family) || d.family.length !== 0) bad.push('the sign-in reply’s family is ' + JSON.stringify({ familyFor: d.familyFor, family: d.family }) + ' — wanted an empty list stamped for P-S1 (a child is sent no parent)');
     if (d.family && d.family[0] && (d.family[0].email || d.family[0].phone)) bad.push('a family card in the sign-in reply carries private fields: ' + JSON.stringify(d.family[0]));
     /* THE SAME SHAPES AS THE PAYLOAD — one builder each, so the two cannot disagree. */
     b.cache.clear();

@@ -94,6 +94,8 @@ const SUITE = [
   { file: 'check-signin.js', what: 'a child with no email: made, registered, signed in by handle, a new PIN' },
   /* "also side note dont show children's last name."* — the owner, 10 Oct. § */
   { file: 'check-surnames.js', what: 'a child is her first name: no surname in any payload, reply or email, for anybody' },
+  /* WHO SEES WHOM (386): a child siblings and friends, a parent her children — nobody else in the payload. */
+  { file: 'check-visibility.js', what: 'a child sees siblings and friends, never a parent; a parent her children, never a co-parent' },
   /* "MARK WITH AI", THROUGH THE SAME BACKEND. The one action that holds a key and spends money per
      press: no key is a sentence, the key goes in a header, the mark is clamped, the cap holds. */
   { file: 'check-aimark.js', what: 'AI marking: the key, the clamp, the daily cap, and a full Gemini asked again then the fallback, through the real doPost' },
@@ -139,6 +141,8 @@ const SUITE = [
   { file: 'check/swipe.js',   what: 'a swipe lands one card away or back, centred, the rest out of focus', slow: true },
   /* ---------- AND A FINGER ON THE PEN § */
   { file: 'check/pen.js',     what: 'a finger on the pen: two fingers, a palm or a thumb leave nothing, and the column holds', slow: true },
+  /* ---------- AND EVERY INTERACTION TYPE ANSWERED WRONG, CHANGED, AND RIGHT (385) ---------- */
+  { file: 'check/types.js',   what: 'every interaction type answered wrong, changed and right by touch and mouse; boxes edit like iOS', slow: true },
   /* ---------- AND THE WHITEBOARD, A MATHS NOTEBOOK (377) ---------- */
   { file: 'check/whiteboard.js', what: 'the whiteboard notebook: written big it lands small, the pad moves on, gestures undo, rub out, straighten and move', slow: true },
   /* ---------- AND WHAT A RUN OF FAST FLICKS REACHES IS ALREADY DRAWN WHEN IT GETS THERE § */

@@ -204,9 +204,12 @@ const ola = get('P-OTH');
 const post = (ola.posts || []).find(p => p.id === 'PO-1') || {};
 rule(post.author === 'Wren (@wren_kind43)', 'her post is not signed with her first name and handle for another parent — ' + JSON.stringify(post.author));
 rule(post.caption === 'Wren (@wren_kind43) and the volcano', 'her whole name typed into a caption was not taken out — ' + JSON.stringify(post.caption));
-const by = ((post.reactions || {}).by || []).map(x => x.name).sort();
+/* WHO REACTED, AND THE BOARD, ASKED OF THE TUTOR AND THE ADMIN — another parent is sent no child who is not hers (386). */
+const tutPost = (tut.posts || []).find(p => p.id === 'PO-1') || {};
+const by = ((tutPost.reactions || {}).by || []).map(x => x.name).sort();
 rule(JSON.stringify(by) === JSON.stringify(['Wren (@wren_bold44)', 'Wren (@wren_kind43)']), '"who reacted" does not tell the two Wrens apart — ' + JSON.stringify(by));
-const board = (ola.students || []).filter(s => /^Wren/.test(S(s.name))).map(s => s.name + ' ' + s.handle).sort();
+const admB = get('P-ADM');
+const board = (admB.students || []).filter(s => /^Wren/.test(S(s.name))).map(s => s.name + ' ' + s.handle).sort();
 rule(JSON.stringify(board) === JSON.stringify(['Wren wren_bold44', 'Wren wren_kind43']),
   'the score board does not carry the two Wrens by first name, each with the handle the card prints — ' + JSON.stringify(board));
 const pip = get('P-PAR');
@@ -223,11 +226,11 @@ rule(every.title === 'Wren', 'the admin\'s people column does not draw her as "W
 
 /* THE ONES THE FIRST NET MISSED ARE CALLED BY THEIR FIRST NAMES — not left out. */
 const boardOf = (pay, h) => ((pay.students || []).find(s => s.handle === h) || {}).name;
-rule(boardOf(ola, 'juno_kind49') === 'Juno', 'the score board does not call the child who ticked Tutor "Juno" — ' + JSON.stringify(boardOf(ola, 'juno_kind49')));
-rule(boardOf(ola, 'gus_kind51') === 'Gus', 'the score board calls a grown-up who is learning ' + JSON.stringify(boardOf(ola, 'gus_kind51'))
+rule(boardOf(admB, 'juno_kind49') === 'Juno', 'the score board does not call the child who ticked Tutor "Juno" — ' + JSON.stringify(boardOf(admB, 'juno_kind49')));
+rule(boardOf(admB, 'gus_kind51') === 'Gus', 'the score board calls a grown-up who is learning ' + JSON.stringify(boardOf(admB, 'gus_kind51'))
   + ' — it has always said the first name, for everybody on it');
-const juno = ((ola.posts || []).find(p => p.id === 'PO-1') || {}).comments || [];
-rule(JSON.stringify(juno).indexOf('Juno') !== -1, 'her comment is not under the post by her first name for another parent — ' + JSON.stringify(juno).slice(0, 200));
+const juno = tutPost.comments || [];
+rule(JSON.stringify(juno).indexOf('Juno') !== -1, 'her comment is not under the post by her first name for her tutor — ' + JSON.stringify(juno).slice(0, 200));
 const tutorSeats = [].concat(...(tut.clientClasses || []).map(j => (j.slots || []).map(x => S(x.client))));
 ['Juno', 'Kit', 'Ivo'].forEach(n => rule(tutorSeats.indexOf(n) !== -1, 'the tutor\'s roster does not name ' + n + ' by first name — ' + JSON.stringify(tutorSeats)));
 rule(kids.indexOf('Sol') !== -1 && kids.indexOf('Sol Fennimore') === -1,
@@ -449,14 +452,14 @@ rule(tamInbox.indexOf('Ola') !== -1, 'the tutor\'s inbox does not call Ola "Ola"
 /* UNDER THE POST BY HER FIRST NAME FOR A CHILD WHO IS NOT HERS (Ned) — and whole for her own child, Wren, as
    every other place Wren is sent her (round 2: one rule for a child's own family, not one per screen). */
 const kidPost = ((get('P-STU').posts || []).find(p => p.id === 'PO-1') || {});
-rule(JSON.stringify(kidPost.comments || []).indexOf('"Pip"') !== -1 && ((kidPost.reactions || {}).by || []).some(x => x.name === 'Pip'),
-  'Pip\'s comment and reaction are not under the post by her first name for another family\'s child — ' + JSON.stringify([kidPost.comments, (kidPost.reactions || {}).by]).slice(0, 300));
+/* (386) NOT AT ALL, now: a child is sent no parent, hers or anybody's — "Someone" said it, nobody reacted by name. */
+rule(!/Pip/.test(JSON.stringify(kidPost.comments || [])) && !((kidPost.reactions || {}).by || []).some(x => /Pip/.test(x.name)),
+  'Pip\'s comment or reaction is under the post by name for another family\'s child — ' + JSON.stringify([kidPost.comments, (kidPost.reactions || {}).by]).slice(0, 300));
 const wrenPost = ((get('P-KID').posts || []).find(p => p.id === 'PO-1') || {});
-rule(JSON.stringify(wrenPost.comments || []).indexOf('"Pip Ashdown"') !== -1,
-  'Pip\'s comment is not under the post by her whole name for her own child — ' + JSON.stringify(wrenPost.comments || []).slice(0, 300));
+rule(!/Pip/.test(JSON.stringify(wrenPost.comments || [])),
+  'Pip\'s comment is under the post by name for her own child — a child sees no parent (386): ' + JSON.stringify(wrenPost.comments || []).slice(0, 300));
 const wrenFam = (get('P-KID').family || []).find(x => x.personId === 'P-PAR') || {};
-rule(wrenFam.title === 'Pip Ashdown', 'Wren\'s family card for her own parent is not "Pip Ashdown" — a child sees the whole name of a '
-  + 'grown-up on her own family row (342, round 2): ' + JSON.stringify(wrenFam));
+rule(!wrenFam.personId, 'Wren is sent a family card for her own parent — a child sees no parent (386): ' + JSON.stringify(wrenFam));
 rule(S(tk['P-PAR'].name) === 'Pip Ashdown' && S(as('P-PAR', { action: 'myProfile' }).name) === 'Pip Ashdown',
   'Pip\'s own sign-in reply or myProfile does not carry her whole name — the phone asks "is this mine?" against it');
 const pipOwn = (get('P-PAR').posts || []).find(p => p.id === 'PO-1') || {};
@@ -629,8 +632,8 @@ const kinRule = (ok, what) => { kinAsked++; return rule(ok, what); };
       kinRule(fromOf(seen[where]).indexOf('Pip Ollerton') !== -1,
         where + ' does not name the grown-up asking to be her parent whole — ' + JSON.stringify(fromOf(seen[where])) + ' — the card reads like her own parent\'s');
     });
-    kinRule((tk['P-KID'].parents || []).indexOf('Pip Ashdown') !== -1,
-      'her sign-in reply does not name her own parent whole, so the claim cannot be told from her — ' + JSON.stringify(tk['P-KID'].parents));
+    kinRule(!(tk['P-KID'].parents || []).length,
+      'her sign-in reply names her parents — a child is sent no parent (386); only a claim says who asked — ' + JSON.stringify(tk['P-KID'].parents));
     const toHer = MAIL.slice(mk).find(m => m.to === 'wren@example.org' && S(m.subject) === CLAIM_MAIL);
     kinRule(toHer && /Pip Ollerton says/.test(S(toHer.body)), 'the email telling her somebody asked does not name them whole — ' + JSON.stringify(toHer && toHer.body));
     /* NOBODY ELSE: a stranger, another student, the other Wren, her own parent, another parent, the tutor. */
@@ -651,7 +654,7 @@ const kinRule = (ok, what) => { kinAsked++; return rule(ok, what); };
     kinRule(!/Ollerton/.test(JSON.stringify([wrenAfter, as('P-KID', { action: 'myProfile' })])),
       'after Wren said no, what she is sent still names the second Pip whole — a refused row is nobody\'s family');
     const piCom = (((wrenAfter.posts || []).find(p => p.id === 'PO-1') || {}).comments || {});
-    kinRule(/"Pip \(@pip_bold55\)"/.test(JSON.stringify(piCom)), 'his comment is not under her post as "Pip (@pip_bold55)" for Wren once she said no, so the rule above asked nothing — '
+    kinRule(!/Pip/.test(JSON.stringify(piCom)) && /Someone/.test(JSON.stringify(piCom)), 'his comment is under her post by name for Wren once she said no — a grown-up who is not staff is "Someone" to a child (386): '
       + JSON.stringify(piCom).slice(0, 200));
   }
 }

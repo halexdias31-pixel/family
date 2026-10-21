@@ -13183,7 +13183,7 @@ check('marking, revealing and tapping leave the question where it is, and typing
   w.stuffItemsAll_ = () => [mc];
   try { A['qp-choose'](tapped.querySelector('.qp-opt[data-n="1"]')); } finally { w.stuffItemsAll_ = held; }
   const box = tapped.querySelector('.qp-choices');
-  if (!box || !box.classList.contains('is-done')) bad.push('a settled tapped question does not say so (is-done), so its options still look pressable');
+  if (!box || !box.classList.contains('is-miss') || box.classList.contains('is-done')) bad.push('a wrong tap settled the question (is-done) instead of leaving it open for another try (is-miss, 385)');
   if (!tapped.querySelector('.qp-opt[data-n="1"].is-picked')) bad.push('the tap did not mark the pick');
   /* A MISS DOES NOT SHOW THE ANSWER. § */
   const shownBy = tapped.querySelector('.qp-opt.is-ans');
@@ -13192,8 +13192,12 @@ check('marking, revealing and tapping leave the question where it is, and typing
   if (!/^Not yet/.test(said) || /marked|is 15|\b15\b/.test(said)) bad.push('a wrong tap\'s verdict reads "' + said + '" -- "Not yet", and nothing that gives the right one away');
   /* AND IT POINTS AT THE ANSWERS CHIP, not at "the answer page": with Questions chosen there is no
      answer page after the question to point at (`questionsView_`). */
-  if (said.trim() !== 'Not yet — see Answers') bad.push('a wrong tap\'s verdict reads "' + said.trim() + '", wanted "Not yet — see Answers"');
+  if (said.trim() !== 'Not yet — have another go') bad.push('a wrong tap\'s verdict reads "' + said.trim() + '", wanted "Not yet — have another go"');
   same(m0, tapped, 'after a wrong tap');
+  /* AND THE CHILD TAPS AGAIN: a miss is not final (385). */
+  w.stuffItemsAll_ = () => [mc];
+  try { A['qp-choose'](tapped.querySelector('.qp-opt[data-n="2"]')); } finally { w.stuffItemsAll_ = held; }
+  if (!tapped.querySelector('.qp-choices.is-done .qp-opt[data-n="2"].is-picked.is-ans')) bad.push('a second tap after "Not yet" did not take the new pick and mark it Correct');
   try { w.localStorage.removeItem(w.__t.ansKey(mc)); } catch (e) {}
   /* AND A RIGHT ONE TICKS THE PICK -- the verdict on what you chose, which is not a reveal. */
   const mcR = Object.assign({}, mc, { key: 'q-still-mc-r', row: Object.assign({}, base.row, { row_id: 'Q-STILL-10' }) });
@@ -14750,7 +14754,9 @@ check('no question in the library has a figure page or points at one, and every 
     list.forEach(x => { if (x.diagram) svgs.add(x.diagram); (x.stems || []).forEach(p => { if (p && p.diagram) svgs.add(p.diagram); }); });
     svgs.forEach(s => {
       figs++;
-      const n = html.split(s).length - 1;
+      /* A THIN PICTURE UNDER A PEN IS DRAWN WITH ROOM ABOVE AND BELOW (`padRoom_`, 385): the same figure, its viewBox taller */
+      const roomy = typeof w.padRoom_ === 'function' ? w.padRoom_(s) : s;
+      const n = html.split(s).length - 1 + (roomy !== s ? html.split(roomy).length - 1 : 0);
       /* THE ONLY REPEATS: parts whose rows each carry the same picture as their own (each draws it in its card); a stem's figure under each part whose pen is on it § */
       const owners = list.filter(x => x.diagram === s).length;
       const stemPens = list.filter(x => { const p = w.padSource_(x); return p && p.svg === s && p.from !== 'part'; }).length;
@@ -15331,17 +15337,17 @@ check('every tag on every kind of card is a finder answer: its facet, its word, 
   return bad;
 });
 
-/* ---------- THE QUESTION'S OWN TAGS ARE NEVER ASKED, AND ARE DOORS ON ITS PAPER (2 Oct, 355) § */
-check('the question\'s own tags are never asked on the way to a paper, and are doors on its page: picking [Q7] narrows it and the funnel stays ended', async () => {
+/* ---------- NO DOOR ROWS: EVERY FACET IS A FUNNEL QUESTION OR A CARD TAG, NOTHING BETWEEN (20 Oct, 387) */
+check('no tag-door rows anywhere: a chosen paper ends on its questions, Required is asked only after Practicals, and a sub-part reads ii as its card tag does', async () => {
   const PID = 'RS1786302107764-415';
   const rows = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8')).filter(r => r.paper_id === PID || r.paper_id === 'P-CBM-5AD-F-0601');
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
   for (let i = 0; i < 60 && !(typeof w.stuffItemsAll_ === 'function' && w.stuffItemsAll_().some(x => x.row && x.row.paper_id === PID)); i++) await wait(50);
-  const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  const t = w.__t, d = w.document, bad = [];
   const OWN = ['qNumber', 'qPart', 'qSub', 'qPage', 'qPages', 'marks'];
-  if (typeof w.tagDoors_ !== 'function' || typeof w.paperEnd_ !== 'function' || !A['facet-pick']) return ['tagDoors_, paperEnd_ or facet-pick not reachable — the doors were NOT checked'];
+  if (typeof w.paperEnd_ !== 'function' || typeof w.stuffQuestion !== 'function') return ['paperEnd_ or stuffQuestion not reachable — the doors were NOT checked'];
+  if (typeof w.tagDoors_ === 'function') bad.push('tagDoors_ is back — the owner asked for no door rows (387)');
   OWN.forEach(f => { const facet = t.facetBy(f); if (!facet || !facet.tagOnly) bad.push('`' + f + '` is not a tagOnly facet — it can be asked on the way to a paper'); });
-  /* WALKED FROM NOTHING: every question the funnel asks, its first answer pressed, until it stops. */
   const S = t.STUFF();
   S.filters = []; S.q = '';
   const asked = [];
@@ -15357,38 +15363,62 @@ check('the question\'s own tags are never asked on the way to a paper, and are d
   const wrong = asked.filter(f => OWN.indexOf(f) >= 0);
   if (wrong.length) bad.push('the funnel walked from nothing ASKED ' + wrong.join(', ') + ' (' + asked.join(' → ') + ')');
   if (!asked.length) bad.push('the funnel asked nothing, so the walk proves nothing');
-  /* AND NOTHING OF THEM IS OFFERED BEFORE A PAPER: the doors under the first question hold none of them. */
-  S.filters = [];
   const h = d.createElement('div');
   d.body.appendChild(h);
-  h.innerHTML = w.stuffQuestion();
-  const early = [...h.querySelectorAll('.tag-door')].map(e => e.getAttribute('data-field')).filter(f => OWN.indexOf(f) >= 0);
-  if (early.length) bad.push('before any paper is chosen the doors offer ' + early.join(', '));
-  /* THE PAPER, CHOSEN: its end offers the doors. */
-  S.filters = [{ field: 'paperId', value: PID }];
-  const paper = w.stuffFiltered();
-  h.innerHTML = w.stuffQuestion();
-  const doors = [...h.querySelectorAll('.tag-door')].map(e => e.getAttribute('data-field'));
-  ['qNumber', 'marks'].forEach(f => { if (doors.indexOf(f) < 0) bad.push('the chosen paper\'s page offers no ' + f + ' door (it offers ' + doors.join(', ') + ')'); });
+  const look = (filters, who) => {
+    S.filters = filters;
+    h.innerHTML = w.stuffQuestion();
+    if (h.querySelector('.tag-door, .tag-answers')) bad.push(who + ' draws a door row');
+    const fields = [...h.querySelectorAll('[data-do="facet-pick"]')].map(e => e.getAttribute('data-field'));
+    if (new Set(fields).size > 1) bad.push(who + ' offers ' + [...new Set(fields)].join(', ') + ' at once — one question at a time');
+    return fields;
+  };
+  if (look([], 'the first screen').indexOf('required') >= 0) bad.push('the first screen asks Required before Practicals is chosen');
+  look([{ field: 'paperId', value: PID }], 'the chosen paper');
   if (!/That is the paper/.test(h.textContent)) bad.push('with the paper chosen the page does not end the funnel: ' + h.textContent.replace(/\s+/g, ' ').trim().slice(0, 80));
-  const q7 = h.querySelector('.tag-door[data-field="qNumber"] [data-do="facet-pick"][data-value="7"]');
-  if (!q7) bad.push('the Question door offers no [Q7]');
-  else {
-    if (q7.textContent.trim() !== 'Q7') bad.push('the [Q7] door reads "' + q7.textContent.trim() + '" — it must be the word the card\'s tag says');
-    A['facet-pick'](q7);
-    const left = w.stuffFiltered();
-    if (!left.length || left.some(x => String(x.qNumber) !== '7') || left.length >= paper.length) bad.push('picking [Q7] left ' + left.length + ' item(s) of ' + paper.length + ': ' + left.map(x => x.name).join(', '));
-    if (w.nextFacet(left) || w.overFacet_(left)) bad.push('after [Q7] the funnel asks ' + (w.nextFacet(left) || w.overFacet_(left)).field + ' — a paper ends the funnel');
-    const card = d.createElement('div');
-    card.innerHTML = w.tagRow_(left[0]);
-    if (!card.querySelector('.qtag[data-f="qNumber"]') || card.querySelector('.qtag[data-f="qNumber"]').textContent !== 'Q7') bad.push('the card picked by [Q7] wears no [Q7] tag');
-  }
-  /* A 5-A-DAY'S PAPER IS ITS DAY: the doors open behind `fiveDay` as behind `paperId`. */
-  S.filters = [{ field: 'fiveDay', value: 'P-CBM-5AD-F-0601' }];
-  h.innerHTML = w.stuffQuestion();
-  if (!h.querySelector('.tag-door[data-field="qNumber"]')) bad.push('a 5-a-day chosen by its Day offers no Question door — FACET_NEEDS_FIRST must take paperId OR fiveDay');
+  look([{ field: 'fiveDay', value: 'P-CBM-5AD-F-0601' }], 'a 5-a-day chosen by its Day');
+  /* THE WORD ON THE CARD: a sub-part's answer is `ii`, never `Ii`. */
   S.filters = [];
+  const items = w.stuffItemsAll_().filter(x => x.kind === 'question');
+  const subs = w.facetValues(items, t.facetBy('qSub')).map(v => v.value);
+  const parts = w.facetValues(items, t.facetBy('qPart')).map(v => v.value);
+  subs.concat(parts).forEach(v => { if (v !== String(v).toLowerCase() && !/^\./.test(v)) bad.push('a part/sub-part answer reads "' + v + '" — the card tag says it lower-case'); });
   h.remove();
+  return bad;
+});
+
+/* ---------- REQUIRED IS AN ORDINARY QUESTION, ASKED ONLY ONCE PRACTICALS IS CHOSEN (387) */
+check('Required is never on the first screen, and is the funnel\'s own question once Practicals is chosen', async () => {
+  const one = boot({});
+  await wait(300);
+  if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable — Required was NOT checked'];
+  const prac = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'practicals.json'), 'utf8'));
+  const p = payload();
+  p.practicals = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, { practicals: prac }))).practicals || [];
+  const { w } = boot({ payload: p });
+  for (let i = 0; i < 100 && !(typeof w.stuffItemsAll_ === 'function' && w.stuffItemsAll_().some(x => x.kind === 'practical')); i++) await wait(50);
+  const t = w.__t, S = t.STUFF(), bad = [];
+  if (!w.stuffItemsAll_().some(x => x.kind === 'practical')) return ['no practicals loaded — Required was NOT checked'];
+  const f = t.facetBy('required');
+  if (!f || f.tagOnly) bad.push('`required` is missing or tagOnly — it must be an ordinary funnel question');
+  S.filters = []; S.q = '';
+  const first = w.nextFacet(w.stuffFiltered());
+  if (first && first.field === 'required') bad.push('the first screen asks Required');
+  {
+    S.filters = [{ field: 'kindLabel', value: 'Practicals' }];
+    if (!w.stuffFiltered().length) bad.push('the Practicals chip leaves nothing');
+    const seen = [];
+    for (let i = 0; i < 10; i++) {
+      const list = w.stuffFiltered(), n = w.nextFacet(list);
+      if (!n) break;
+      seen.push(n.field);
+      if (n.field === 'required') break;
+      /* "Doesn't matter" to each question before it, as a tutor after every practical would answer. */
+      S.filters.push({ field: n.field, any: true });
+    }
+    if (seen.indexOf('required') < 0) bad.push('after Practicals the funnel never asks Required (' + seen.join(' → ') + ')');
+  }
+  S.filters = [];
   return bad;
 });
 
@@ -16709,8 +16739,11 @@ check('mark sound: a right answer chimes once and a wrong one buzzes once, for e
   const pick = subDraw_(w, PICK);
   earTap_(rec, pick.querySelector('.qp-opt[data-n="1"]')); await wait(30);
   expect(['buzzer'], 'a wrong pick');
+  /* A MISS IS NOT FINAL (385): the next pick is marked again and heard; once right, a further tap is ignored */
   earTap_(rec, pick.querySelector('.qp-opt[data-n="2"]')); await wait(30);
-  expect([], 'a tap on a settled pick (ignored)');
+  expect(['chime'], 'a second, right pick after a wrong one');
+  earTap_(rec, (pick.isConnected ? pick : document).querySelector('.qp-choices.is-done .qp-opt[data-n="1"]') || pick.querySelector('.qp-opt[data-n="1"]')); await wait(30);
+  expect([], 'a tap on a settled (right) pick (ignored)');
   const pick2 = subDraw_(w, PICK2);
   earTap_(rec, pick2.querySelector('.qp-opt[data-n="2"]')); await wait(30);
   expect(['chime'], 'a right pick');
@@ -24279,11 +24312,15 @@ check('a child is her first name on every screen, and a parent is hers to everyb
     [...new Set(seen)].slice(0, 4).forEach(x => bad.push(who + ' is shown a surname that is not theirs to see on ' + x));
     /* AND THE ADMIN IS SHOWN PIP'S WHOLE NAME — the rule is "to everybody but herself and an admin", not "to nobody". */
     if (pid === 'P-ADM' && !sawWhole) bad.push('an admin: "Pip Ashdown" is nowhere on any screen, so the admin\'s exemption was NOT seen — or the net took her surname from the admin too');
-    if (pid === 'P-KID' && !sawWhole) bad.push('herself: her own parent is not "Pip Ashdown" on any screen — a child sees the whole name of a grown-up on her own family row (342, round 2)');
+    /* (386) A CHILD SEES NO PARENT, her own included — the owner, 20 Oct. */
+    if (pid === 'P-KID' && sawWhole) bad.push('herself: her own parent "Pip Ashdown" is drawn on a screen — a child sees no parent (386)');
     /* AND HER FIRST NAME IS THERE, where a screen names her — a rule that drew nobody would pass the above. */
     const all = w.document.documentElement.outerHTML;
     if (pid !== 'P-TUT' && !/Wren/.test(all)) bad.push(who + ': "Wren" is nowhere on any screen, so the screens that name her were NOT drawn — not a pass');
-    if (!sawJuno) bad.push(who + ': "Juno" is nowhere on any screen, so the screens that name the child who ticked Tutor were NOT drawn — not a pass');
+    /* JUNO IS NOBODY'S FAMILY OR FRIEND, so only staff are sent her (386); everybody else must not be. */
+    const staffSees = pid === 'P-TUT' || pid === 'P-ADM';
+    if (staffSees && !sawJuno) bad.push(who + ': "Juno" is nowhere on any screen, so the screens that name the child who ticked Tutor were NOT drawn — not a pass');
+    if (!staffSees && sawJuno) bad.push(who + ': "Juno" is drawn on a screen — she is not their child, sibling or friend (386)');
     if (pid === 'P-KID' && String((t.whoami() || {}).name) !== String(tk['P-KID'].name)) {
       bad.push('herself: the phone calls her ' + JSON.stringify((t.whoami() || {}).name) + ' after `myProfile`, and the server calls her '
         + JSON.stringify(tk['P-KID'].name) + ' — a session from before 10 Oct keeps the name it was signed in with for thirty days');
@@ -25375,7 +25412,7 @@ check('every paper has a health score on its tile and nowhere else — no tag, n
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
   await wait(300);
   const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
-  const need = ['paperHealth_', 'healthOf_', 'tagDoors_', 'paperEnd_', 'questionCard_', 'stuffItemsAll_', 'stuffQuestion', 'stuffFiltered']
+  const need = ['paperHealth_', 'healthOf_', 'paperEnd_', 'questionCard_', 'stuffItemsAll_', 'stuffQuestion', 'stuffFiltered']
     .filter(n => typeof w[n] !== 'function');
   if (need.length || !A['facet-pick'] || !A['paper-health']) return [need.join(', ') + ' or the facet-pick / paper-health handlers not reachable — no health was checked'];
   const host = d.createElement('div');

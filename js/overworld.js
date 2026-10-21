@@ -281,6 +281,8 @@ addEventListener('pointermove', e => {
     if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
     /* ---------- NOT WHILE A FINGER IS ON THE ARMED DRAWING § */
     if (typeof padBusy_ === 'function' && padBusy_()) { SWIPE.live = false; return; }
+    /* NOR WHILE A FINGER IS MOVING A CARET OR A SELECTION IN A BOX (385, `kpBusy_`) */
+    if (typeof kpBusy_ === 'function' && kpBusy_()) { SWIPE.live = false; return; }
     /* ONE COUNT FOR THE WHOLE DECISION — `countHold_` in shell.js. § */
     countHold_(true);
     try {

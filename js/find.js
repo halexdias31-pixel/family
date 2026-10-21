@@ -531,7 +531,7 @@ const FACETS = [
   /* ---------- WHAT KIND OF PROJECT OR PRACTICAL, AND WHETHER A BOARD ASKS FOR IT § */
   { field: 'projectType', tag: true, label: 'Project or coursework', of: x => x.projectType || '' },
   { field: 'practicalType', tag: true, label: 'Experiment or build', of: x => x.practicalType || '' },
-  { field: 'required', tag: true, label: 'Required', tagOnly: true,
+  { field: 'required', tag: true, label: 'Required',
     orderOf: v => PRAC_NEED.indexOf(v),
     of: x => x.kind !== 'practical' || !x.row ? ''
       : PRAC_NEED[x.row.excluded ? 2 : x.row.required ? 0 : 1] },
@@ -605,8 +605,8 @@ const FACETS = [
     cmp: (a, b) => Number(a) - Number(b),
     of: x => x.kind === 'question' && x.qNumber != null && String(x.qNumber) !== '' ? String(x.qNumber) : '',
     showOf: v => 'Q' + v },
-  { field: 'qPart', tag: true, label: 'Part', tagOnly: true, of: x => qSplitOf_(x).part },
-  { field: 'qSub', tag: true, label: 'Sub-part', tagOnly: true,
+  { field: 'qPart', tag: true, label: 'Part', tagOnly: true, asIs: true, of: x => qSplitOf_(x).part },
+  { field: 'qSub', tag: true, label: 'Sub-part', tagOnly: true, asIs: true,
     orderOf: v => romanVal_(String(v)), of: x => qSplitOf_(x).sub },
   { field: 'qPage', tag: true, label: 'Page', tagOnly: true, cmp: (a, b) => Number(a) - Number(b),
     of: x => { const n = qPagesOf_(x); return n > 1 ? Array.from({ length: n }, (_, i) => String(i + 1)) : ''; },
@@ -1073,7 +1073,8 @@ function facetTally_(items, facet) {
     folded[k] = { best: best, n: (seen ? seen.n : 0) + by[v] };
   });
   let values = Object.keys(folded)
-    .map(k => ({ value: spellShow_(folded[k].best.value), n: folded[k].n }))
+    /* `asIs`: a part is `a`, a sub-part `ii`, as the paper prints them and the card tag says (387). */
+    .map(k => ({ value: facet.asIs ? String(folded[k].best.value) : spellShow_(folded[k].best.value), n: folded[k].n }))
     .sort((a, b) => order(a.value, b.value));
   /* ---------- AND A QUESTION ASKED INSIDE A BUCKET OFFERS ONLY WHAT IS IN IT § */
   if (within) values = values.filter(v => bucketHas_(facet, within, v.value));
@@ -2748,9 +2749,15 @@ function boxerPart_(x, part) {
 }
 
 
+/* A COLUMN VECTOR AS TYPED ON THE KEYPAD (`⟮5,-4⟯`, 385) DRAWN TOP OVER BOTTOM in one pair of brackets -- the box, the card, Saved */
+function vecHtml_(html) {
+  return String(html == null ? '' : html).replace(/\u27ee([^\u27ee\u27ef,]*),([^\u27ee\u27ef]*)\u27ef/g,
+    '<span class="vec"><span class="vec-a">$1</span><span class="vec-b">$2</span></span>');
+}
 /* `typeset_` — A FRACTION IS DRAWN OVER ITS LINE, AND A POWER IS RAISED. § */
 function typeset_(html) {
   let s = String(html == null ? '' : html);
+  if (s.indexOf('\u27ee') !== -1) s = vecHtml_(s);
   /* NOTHING TO DO IS THE COMMON CASE -- most of the library is prose -- so it is the first thing
      asked, before a regex is built or a tag is read. */
   if (s.indexOf('^') === -1 && !/&frasl;|\u2044|&#8260;/.test(s)) return s;
@@ -3614,13 +3621,13 @@ function markFrac_(s) {
 /* A MARK SCHEME THAT TAKES A BAND TAKES EVERY NUMBER IN IT, AND THIS ONE WAS TAKING TWO OF THEM. § */
 function markRange_(w) {
   /* ---------- THE SEPARATOR IS READ BEFORE `markNorm_` FLATTENS IT § */
-  const m = /^(-?\d+(?:\.\d+)?)\s*(?:to)\s*(-?\d+(?:\.\d+)?)(?:\s+[a-z\u00b0%].*)?$/
+  const m = /^(-?\d+(?:\.\d+)?)\s*(?:to)\s*(-?\d+(?:\.\d+)?)(?:\s*([a-z\u00b0%].*))?$/
     .exec(markNorm_(String(w == null ? '' : w).replace(/[\u2013\u2014]/g, ' to ')));
   if (!m) return null;
   const lo = markFrac_(m[1]), hi = markFrac_(m[2]);
   if (!lo || !hi) return null;
   if (lo.n * hi.d > hi.n * lo.d) return null;   /* backwards is not a band */
-  return { lo: lo, hi: hi };
+  return { lo: lo, hi: hi, unit: (m[3] || '').trim() };
 }
 
 /* ---------- A UNIT THE CHILD TYPED, AND THE BRACKETS ROUND A COORDINATE § */
@@ -3641,7 +3648,7 @@ function markUnitOff_(t) {
 
 /* ---------- AN ANSWER WITH MANY RIGHT FORMS, MARKED BY WHAT MAKES IT RIGHT (360) */
 /* `rule: count 3, distinct, each factor 36, sum 31..34` in `accept`: the typed numbers are tested, not matched. */
-/* Clauses: count, distinct, mixed, each <tests>, at N <tests>, hcf N, sum, diff, from a/b/…, rounddiff R V, set a+b/c+d (word groups). */
+/* Clauses: count, distinct, mixed, decimal, each <tests>, at N <tests>, hcf N, sum, diff, from a/b/…, rounddiff R V, set a+b/c+d (word groups). */
 function markRuleNums_(typed) {
   const t = markNorm_(typed).replace(/[,;=+×]/g, ' , ').replace(/(\d)-(?=\d)/g, '$1 , ');
   const out = [];
@@ -3837,6 +3844,8 @@ function markRule_(typed, rule) {
   return body.split(',').map(c => c.trim()).filter(Boolean).every(c => {
     const w = c.split(/\s+/), k = w[0];
     if (k === 'count') return vs.length === Number(w[1]);
+    /* `decimal`: written as a decimal, where the question asks for one (0.25, not 1/4) */
+    if (k === 'decimal') return nums.every(n => /^-?\d*\.\d+$/.test(n.s));
     if (k === 'mixed') return nums.every(n => {
       const q = /^\d+ (\d+)\/(\d+)$/.exec(n.s);
       return !!q && Number(q[1]) < Number(q[2]);
@@ -3897,8 +3906,11 @@ function markAnswer_(typed, accept, again) {
   if (rules.length) {
     if (rules.some(w => markRule_(typed, w))) return true;
     accept = String(accept).split('|').filter(w => !/^\s*rule:/i.test(w)).join('|');
-    /* a form asked for (`mixed`) is not given by the value: beside it a written way counts only as written, so 28/5 is not 5 3/5 (376) */
-    if (rules.some(w => /(?:^|[:,])\s*mixed\s*(?:,|$)/i.test(w))) return accept.split('|').some(w => markNorm_(w) === t);
+    /* a form asked for (`mixed`, `decimal`) is not given by the value: beside it a written way counts only as written, so 28/5 is not 5 3/5 (376) */
+    if (rules.some(w => /(?:^|[:,])\s*(mixed|decimal)\s*(?:,|$)/i.test(w))) {
+      const tight = v => v.replace(/(\d)\s+(?=[a-z])/g, '$1');   // 0.25 kg is 0.25kg; 5 3/5 stays apart
+      return accept.split('|').some(w => tight(markNorm_(w)) === tight(t));
+    }
   }
   if (!again) {
     /* A NAME IN FRONT IS THE SENTENCE TOO. § */
@@ -3935,6 +3947,12 @@ function markAnswer_(typed, accept, again) {
     if (p && q && p.n * q.d === q.n * p.d) return true;
     /* anywhere inside a band the scheme prints -- see `markRange_` above */
     const band = markRange_(w);
+    /* A READING WITH ITS UNIT OR DEGREE SIGN (385): the number inside the band, the unit the band's own or a degree */
+    const ru = band && !p && /^(-?\d+(?:\.\d+)?)\s*([a-z\u00b0%]+)\.?$/.exec(t);
+    if (ru && (ru[2] === band.unit || /^(\u00b0|degrees?|deg)$/.test(ru[2]))) {
+      const pv = markFrac_(ru[1]);
+      if (pv && pv.n * band.lo.d >= band.lo.n * pv.d && pv.n * band.hi.d <= band.hi.n * pv.d) return true;
+    }
     if (p && band
       && p.n * band.lo.d >= band.lo.n * p.d
       && p.n * band.hi.d <= band.hi.n * p.d) return true;
@@ -3953,8 +3971,8 @@ function choiceBox_(x) {
   const picked = String(ansRead_(k) || '').split(',').map(t => parseInt(t, 10)).filter(n => n > 0);
   const done = right.length && picked.length >= need;
   const ok = done && picked.slice().sort((a, b) => a - b).join(',') === right.join(',');
-  /* `is-done` SAYS THE QUESTION IS SETTLED, which `qp-choose` below already enforces by ignoring any further tap. § */
-  return `<div class="qp-ans qp-choices${done ? ' is-done' : ''}" data-k="${esc(k)}" data-need="${need}"
+  /* SETTLED (`is-done`) ONLY WHEN RIGHT; a miss (`is-miss`) stays tappable so the child picks again and is marked again (385). */
+  return `<div class="qp-ans qp-choices${ok ? ' is-done' : done ? ' is-miss' : ''}" data-k="${esc(k)}" data-need="${need}"
       data-right="${esc(right.join(','))}">
     ${/* NO "<NAME>'S ANSWER" OVER THE OPTIONS -- *"remove 'names answer'. that is redundant."* The
           person signed in is on the You column; the only thing worth saying here is how many to pick. */
@@ -3970,7 +3988,7 @@ function choiceBox_(x) {
   </div>${right.length ? `<div class="qp-mark${done ? (ok ? ' is-right' : ' is-near') : ''}">
     <span class="qp-verdict" role="status" aria-live="polite">${done
       /* WHERE THE ANSWER IS, NOT WHAT IT IS -- and short enough for one line at 320px: § */
-      ? (ok ? 'Correct' : 'Not yet — see Answers')
+      ? (ok ? 'Correct' : 'Not yet — have another go')
       : ''}</span>
   </div>` : ''}
   <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>`;
@@ -4171,9 +4189,12 @@ on('qp-choose', (el) => {
   const right = box.getAttribute('data-right');
   const n = +el.getAttribute('data-n');
   let picked = String(ansRead_(k) || '').split(',').map(t => parseInt(t, 10)).filter(v => v > 0);
-  if (right && picked.length >= need) return;
+  const sorted = a => a.slice().sort((p, q) => p - q).join(',');
+  /* ONLY A RIGHT PICK IS FINAL: after "Not yet" any tap is a new try (385, Theo tapping and tapping). */
+  if (right && picked.length >= need && sorted(picked) === right) return;
   if (need === 1) picked = [n];
-  else picked = picked.includes(n) ? picked.filter(v => v !== n) : picked.concat(n);
+  else if (picked.includes(n)) picked = picked.filter(v => v !== n);
+  else picked = picked.concat(n).slice(-need);
   /* THROUGH `ansStore_`, the one writer — kept on this device. */
   ansStore_(k, picked.join(','));
   /* ENOUGH CHOSEN IS A SUBMISSION, marked at once: § */
@@ -4201,7 +4222,25 @@ function mwToks_(t) {
   return String(t || '').toLowerCase().replace(/^\s*no\s*[,.:;!\u2013\u2014]+/, 'no verdict ').replace(/['\u2019]/g, '').replace(/(\d),(?=\d{3}\b)/g, '$1').replace(/[^a-z0-9.\s-]/g, ' ')
     .split(/[\s-]+/).filter(Boolean).map(mwStem_).filter(Boolean);
 }
+/* A PAIR, A VECTOR AND A LINE READ WITH THEIR SIGNS (385), one token each beside the words: `(5, -4)`, `(5/-4)`, `⟮5,-4⟯`,
+   "5 right 4 down" are `pr5nm4`; `x = -2` is `lnxm2`, `y = -x` `lnymx` */
+const mwNum_ = n => (+n < 0 ? 'm' : '') + String(Math.abs(+n));
+function mwShapes_(t) {
+  const s = String(t || '').toLowerCase().replace(/[\u2212\u2013]/g, '-').replace(/&minus;/g, '-');
+  const out = [], N = '(-?\\d+(?:\\.\\d+)?)';
+  const pair = (a, b) => out.push('pr' + mwNum_(a) + 'n' + mwNum_(b));
+  s.replace(new RegExp('[(\u27ee]\\s*' + N + '\\s*(?:[,/]\\s*|\\s(?=\\s*-?\\d))' + N + '\\s*[)\u27ef]', 'g'), (m, a, b) => pair(a, b));
+  const mv = { right: [1, 0], left: [-1, 0], up: [0, 1], down: [0, -1] };
+  const steps = [];
+  s.replace(/(\d+(?:\.\d+)?)\s*(?:squares?|units?)?\s*(?:to\s+the\s+)?(right|left|up|down)\b|\b(right|left|up|down)\s*(\d+(?:\.\d+)?)/g, (m, n1, d1, d2, n2) => { steps.push([mv[d1 || d2], +(n1 || n2)]); });
+  if (steps.length) { let x = 0, y = 0; steps.forEach(([d, n]) => { x += d[0] * n; y += d[1] * n; }); pair(x, y); }
+  s.replace(new RegExp('\\b([xy])\\s*=\\s*(-?)\\s*(x|y|\\d+(?:\\.\\d+)?)\\b', 'g'), (m, v, sg, w) => out.push('ln' + v + (/[xy]/.test(w) ? (sg ? 'm' : '') + w : mwNum_(sg + w))));
+  s.replace(/\b([xy])[\s-]*axis\b/g, (m, v) => out.push('ln' + (v === 'x' ? 'y' : 'x') + '0'));
+  return out;
+}
 function mwHas_(toks, term) {
+  const sh = /^\s*(\(.*\)|[xy]\s*=.*)\s*$/.test(term) ? mwShapes_(term) : [];
+  if (sh.length) return toks.indexOf(sh[0]) !== -1;
   const want = mwToks_(term).filter(w => !MW_STOP.test(w));
   if (!want.length) return false;
   for (let i = 0; i + want.length <= toks.length; i++) {
@@ -4215,7 +4254,7 @@ function mwHas_(toks, term) {
 /* `{ got, of }`, or null for nothing typed. */
 function markWords_(typed, rule) {
   if (!String(typed || '').trim()) return null;
-  const toks = mwToks_(typed);
+  const toks = mwToks_(typed).concat(mwShapes_(typed));
   const points = String(rule || '').split(';').map(p => p.trim()).filter(Boolean);
   const got = points.filter(p => p.split('|').some(way => way.split('+').every(term => mwHas_(toks, term)))).length;
   return { got: got, of: points.length };
@@ -4370,7 +4409,7 @@ function multiBoxes_(x, k, val, m, maths, signs) {
   for (let i = 0; i < n; i++) boxes.push(one(i));
   /* the joined answer, first in the box, is what Check, Send and every verdict painter read in place of `.qp-ans-in` */
   return `<div class="qp-multi${m.wrap ? ' is-pair' : ''}" data-mk="${esc(k)}" data-m="${esc(JSON.stringify(m))}" data-kind="${kind}"${
-    signs ? ' data-signs="1"' : ''}${m.grow ? ' data-grow="1"' : ''}><input type="hidden" class="qp-multi-val" data-k="${esc(k)}" value="${esc(multiJoin_(vals, m))}">${boxes.join('')}</div>`;
+    signs ? ` data-signs="${+signs}"` : ''}${m.grow ? ' data-grow="1"' : ''}><input type="hidden" class="qp-multi-val" data-k="${esc(k)}" value="${esc(multiJoin_(vals, m))}">${boxes.join('')}</div>`;
 }
 const multiIns_ = box => [].slice.call(box.querySelectorAll('.kp-in[data-do="qp-multi"]'));
 /* EVERY KEY IN A BOX: the joined answer kept under the question's own key, and a filled last box grows another where the count is open. */
@@ -4387,7 +4426,7 @@ document.addEventListener('input', e => {
   if (box.hasAttribute('data-grow') && ins.length && ins[ins.length - 1] === el && el.value.trim()) {
     const at = document.createElement('div');
     const kind = box.getAttribute('data-kind');
-    at.innerHTML = `<label class="qp-ans qp-multi-f">${multiField_(box.getAttribute('data-mk'), ins.length, '', kind, box.hasAttribute('data-signs'))}</label>`;
+    at.innerHTML = `<label class="qp-ans qp-multi-f">${multiField_(box.getAttribute('data-mk'), ins.length, '', kind, +box.getAttribute('data-signs') || 0)}</label>`;
     box.appendChild(at.firstChild);
   }
   const mark = box.closest('.qp-mark');
@@ -4423,10 +4462,10 @@ function ansBox_(x) {
   /* EVERY ANSWER IS TYPED ON THE SITE'S OWN PAD, a maths one opening on the maths keys and a worded one on the letters. § */
   const maths = ansMaths_(x);
   /* THE SIGNS ROW GOES BY THE SCHEME, WHATEVER KIND OF BOX IT IS. § */
-  const signs = kpSigns_(x);
+  const signs = (kpSigns_(x) ? 1 : 0) | (kpVec_(x) ? 2 : 0);
   /* NO CAPTION OVER THE BOX. § */
   /* ---------- THE FIGURE TILE STANDS BESIDE THE BOX, NOT IN THE ROW UNDER IT § */
-  const fig = figTile_(x);
+  const fig = figTile_(x) + measTiles_(x);
   /* ---------- THE ANSWER BOX IS A CHAT BAR, WITH A SEND TILE § */
   const rule = can ? '' : String(x && x.markWords || '').trim();
   const aiNow = can ? '' : aiTile_(x);
@@ -4753,14 +4792,28 @@ const padBar_ = (pen, tools, tool) => `<div class="qpad-bar tile-row" role="tool
       tile_({ icon: 'bin', label: 'Clear', note: 'every mark', act: 'pad-clear', cls: 'qpad-clear' })}</span>
     </div>`;
 
+/* A PICTURE TOO THIN TO DRAW ON IS GIVEN ROOM ABOVE AND BELOW (385): a number line 340x35 was a 31px strip at 390, and its circles go above the line */
+const PAD_MIN_ASPECT = 0.3;
+function padRoom_(svg) {
+  const m = /viewBox\s*=\s*(["'])\s*([-\d.eE+]+)[\s,]+([-\d.eE+]+)[\s,]+([\d.eE+]+)[\s,]+([\d.eE+]+)\s*\1/.exec(String(svg || ''));
+  if (!m) return svg;
+  const x0 = +m[2], y0 = +m[3], w = +m[4], h = +m[5];
+  if (!(w > 0 && h > 0) || h / w >= PAD_MIN_ASPECT) return svg;
+  const H = Math.round(w * PAD_MIN_ASPECT * 100) / 100, y = Math.round((y0 - (H - h) / 2) * 100) / 100;
+  return svg.replace(m[0], `viewBox="${x0} ${y} ${w} ${H}"`);
+}
+
 function padWrap_(x, svg, foot) {
+  /* THE PICTURE AS THE LIBRARY HAS IT names the parts that share it; the roomier copy is only what is drawn */
+  const src = svg;
+  if (!(x && padPrefix_(x) === 'board')) svg = padRoom_(svg);
   const k = padKey_(x);
   /* DRAWING THE PAD IS OPENING IT, so this is where the phone's old marks become this person's. */
   padAdopt_(k, padPrefix_(x) + ':' + padItemKey_(x));
   const marks = padRead_(k);
   /* AND THE MARKS AN EARLIER PART MADE ON THIS SAME PICTURE, under this part's own and out of reach of
      its Undo and Clear -- (ii)'s cross goes on the scale (i) already marked. See `usesOf_`. */
-  const under = padUnderParts_(x, svg), was = [].concat(...under.map(usesMine_));
+  const under = padUnderParts_(x, src), was = [].concat(...under.map(usesMine_));
   /* THE MODE IS READ OFF `PAD_ON`, NOT LEFT ON THE ELEMENT BY THE PRESS THAT SET IT. § */
   const pen = PAD_ON === k;
   /* THE PAD'S SHAPE, written on it for the live path and every repaint to read -- one number for all of them,
@@ -8570,23 +8623,7 @@ function healthOf_(x) {
   return pid ? healthBy_()[String(pid)] || null : null;
 }
 
-/* ---------- THE OPTIONAL ROWS: EVERY TAG THE FUNNEL DOES NOT ASK, AS A DOOR § */
-function tagDoors_(items) {
-  const filters = STUFF.filters || [];
-  const asked = filters.map(f => f && f.field);
-  return facetList().filter(f => f.tagOnly).map(facet => {
-    if (filters.some(f => f && f.field === facet.field && !f.bucket)) return '';
-    if (!facetNeedsMet_(facet.field, asked)) return '';
-    let vals = [];
-    try { vals = facetValues(items, facet); } catch (e) { vals = []; }
-    if (vals.length < 2) return '';
-    /* `.tag-answers`, NOT `.answers`: § */
-    return `<div class="tag-door" data-field="${esc(facet.field)}"><p class="tag-door-k">${esc(facet.label)}</p><div class="tag-answers">${vals.map(v =>
-      `<div class="counted row tap" data-do="facet-pick"${tagAttr_(facet.field)} data-field="${esc(facet.field)}"
-        data-value="${esc(v.value)}"${v.bucket ? ' data-bucket="1"' : ''}><span class="k">${esc(v.show || v.text || v.value)}</span></div>`).join('')}</div></div>`;
-  }).join('');
-}
-
+/* NO DOOR ROWS (387): a tag the funnel does not ask stays a card tag only; the owner wanted every facet to work like the funnel's. */
 /* ---------- WHAT IS WRONG, ONE TAP AWAY § */
 function healthTiles_(items) {
   const x = (items || []).find(i => healthOf_(i));
@@ -8630,7 +8667,7 @@ function paperEnd_(items) {
   const seq = wholeQuestions_(items);
   const qs = new Set(seq.map(x => qId_(x) || x)).size;
   const searched = !!String(STUFF.q || '').trim();
-  const tail = healthTiles_(items) + tagDoors_(items);
+  const tail = healthTiles_(items);
   if (answersView_()) {
     const a = stuffPages_().length;
     return paperCover_(items) + `<p class="find-end">${searched ? 'The answers it found.' : 'The paper&rsquo;s answers, in order.'}
@@ -10277,7 +10314,7 @@ function stuffQuestion() {
     if (be) return be + adding;
     if (funnelEnded_()) return paperEnd_(items) + adding;
     return `<p class="find-end">Nothing left to narrow.
-      <b>Swipe up for the ${n}.</b></p>` + tagDoors_(items) + adding;
+      <b>Swipe up for the ${n}.</b></p>` + adding;
   }
 
   /* THE FRONT DOOR TO THE BOOKING FORM WAS HERE — a line above the funnel's answers, on the first question only, that filtered to Booking and turned to the form. § */
@@ -10307,7 +10344,7 @@ function stuffQuestion() {
         data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${v.bucket ? ' data-bucket="1"' : ''}${
         grid ? ` aria-label="${esc(facet.label + ' ' + (v.show || v.value))}"` : ''}>
         <span class="k">${mark(v.show || v.value)}</span>
-      </div>`).join('') + skip + '</div>' + tagDoors_(items) + more;
+      </div>`).join('') + skip + '</div>' + more;
 }
 
 /* `stuff-jump` went with the group list. § */
@@ -10608,3 +10645,242 @@ function padSend_(keepalive) {
       if (el) el.textContent = String(err.message || 'Not saved — no connection.');
     });
 }
+/* ---------- MEASURING ON THE FIGURE (385): "There needs to be a protocol for this type of question. Like protractor tool." */
+/* WHICH TOOLS A PART NEEDS: a protractor where it asks for an angle or a bearing, a ruler where it asks for a length -- only where it says "measure" and has a figure */
+function measTools_(x) {
+  if (!x || !x.diagram) return [];
+  const r = x.row || x;
+  if (r.subject && !/math/i.test(r.subject)) return [];
+  const words = String((x.html || r.html || '') + ' ' + (r.lead || '')).replace(/<[^>]*>/g, ' ');
+  if (!/\bmeasure\b/i.test(words)) return [];
+  const all = words + ' ' + String(x.accept || r.accept || '');
+  const out = [];
+  if (/\bangle|bearing|°|degrees?\b/i.test(all)) out.push('protractor');
+  if (/\blength|\bline\b|\bside\b|distance|\b(cm|mm)\b|centimet|millimet/i.test(all) && !/°/.test(String(x.accept || r.accept || ''))) out.push('ruler');
+  return out;
+}
+const MEAS_FACE = { protractor: { icon: 'protractor', label: 'Protractor', note: 'on the figure' },
+                    ruler: { icon: 'ruler', label: 'Ruler', note: 'on the figure' } };
+function measTiles_(x) {
+  const k = x && x.key || '';
+  /* A CARD DRAWN AGAIN WHILE ITS TOOL IS OUT gets the tool back on its new figure, once the markup is in */
+  if (MEAS && MEAS.k === k && typeof setTimeout === 'function') setTimeout(measRepaint_, 0);
+  return measTools_(x).map(t => tile_(Object.assign({ act: 'q-measure', cls: 'q-meast', data: { tool: t, key: k },
+    on: !!(MEAS && MEAS.k === k && MEAS.tool === t), pressed: !!(MEAS && MEAS.k === k && MEAS.tool === t) }, MEAS_FACE[t]))).join('');
+}
+/* THE TOOL ON THE GLASS: which card, which tool, its centre (protractor) or zero (ruler) in the figure's own units, its turn in degrees */
+let MEAS = null;
+const MEAS_SNAP_PX = 14;    // nearer than this to a corner, the tool's centre or zero sits on it
+const MEAS_TURN_DEG = 8;    // nearer than this to an arm's direction, the baseline lies along it
+
+/* THE FIGURE'S CORNERS AND ARMS, read from its lines, polygons and paths: { pts: [[x, y]], segs: [[x1, y1, x2, y2]] } */
+function measGeom_(svg) {
+  const segs = [], num = s => String(s || '').trim().split(/[\s,]+/).map(Number).filter(n => !isNaN(n));
+  svg.querySelectorAll('line').forEach(l => segs.push(['x1', 'y1', 'x2', 'y2'].map(a => +l.getAttribute(a) || 0)));
+  svg.querySelectorAll('polygon, polyline').forEach(p => {
+    const v = num(p.getAttribute('points')), P = [];
+    for (let i = 0; i + 1 < v.length; i += 2) P.push([v[i], v[i + 1]]);
+    if (p.tagName.toLowerCase() === 'polygon' && P.length > 2) P.push(P[0]);
+    for (let i = 1; i < P.length; i++) segs.push([P[i - 1][0], P[i - 1][1], P[i][0], P[i][1]]);
+  });
+  svg.querySelectorAll('path').forEach(p => {
+    const d = p.getAttribute('d') || '';
+    if (/[aAcCqQsStT]/.test(d)) return;
+    let at = null;
+    (d.match(/[MLml][^MLmlZz]*/g) || []).forEach(c => {
+      const v = num(c.slice(1));
+      for (let i = 0; i + 1 < v.length; i += 2) {
+        const q = /[ml]/.test(c[0]) && at ? [at[0] + v[i], at[1] + v[i + 1]] : [v[i], v[i + 1]];
+        if (at && !(/[Mm]/.test(c[0]) && i === 0)) segs.push([at[0], at[1], q[0], q[1]]);
+        at = q;
+      }
+    });
+  });
+  const pts = [];
+  segs.forEach(s => [[s[0], s[1]], [s[2], s[3]]].forEach(p => { if (!pts.some(q => Math.hypot(q[0] - p[0], q[1] - p[1]) < 1)) pts.push(p); }));
+  return { pts, segs };
+}
+/* THE OVERLAY, in the figure's own units over its picture -- so a reading on it is a reading on the paper's drawing */
+function measDraw_(fig) {
+  fig.querySelectorAll('.meas').forEach(o => o.remove());
+  if (!MEAS) return;
+  const svg = [...fig.children].find(c => c.tagName.toLowerCase() === 'svg' && !c.classList.contains('meas'));
+  if (!svg) return;
+  const vb = (svg.getAttribute('viewBox') || '0 0 340 340').split(/[\s,]+/).map(Number);
+  const r = svg.getBoundingClientRect(), u = r.width ? vb[2] / r.width : 1;   // figure units per screen px
+  const g = MEAS, R = g.R, T = 'translate(' + g.c[0].toFixed(2) + ' ' + g.c[1].toFixed(2) + ') rotate(' + g.rot.toFixed(2) + ')';
+  let body = '';
+  if (g.tool === 'protractor') {
+    body += `<path class="meas-body" d="M ${-R} 0 A ${R} ${R} 0 0 1 ${R} 0 Z"/>`;
+    for (let a = 0; a <= 180; a += 5) {
+      const t = a * Math.PI / 180, c = Math.cos(t), s = -Math.sin(t), L = a % 10 ? 0.05 : a % 30 ? 0.08 : 0.12;
+      body += `<path class="meas-tick" d="M ${(R * c).toFixed(2)} ${(R * s).toFixed(2)} L ${(R * (1 - L) * c).toFixed(2)} ${(R * (1 - L) * s).toFixed(2)}"/>`;
+      if (!(a % 30)) {
+        const o = R * 0.8, i = R * 0.64;
+        body += `<text class="meas-num" x="${(o * c).toFixed(2)}" y="${(o * s).toFixed(2)}" font-size="${(R * 0.08).toFixed(2)}">${a}</text>`
+          + `<text class="meas-num meas-in" x="${(i * c).toFixed(2)}" y="${(i * s).toFixed(2)}" font-size="${(R * 0.07).toFixed(2)}">${180 - a}</text>`;
+      }
+    }
+    body += `<path class="meas-tick" d="M ${-R} 0 L ${R} 0 M 0 ${-R * 0.06} L 0 ${R * 0.06} M ${-R * 0.06} 0 L ${R * 0.06} 0"/>`;
+  } else {
+    const W = g.L, H = Math.max(8, 30 * u), cm = g.cm;
+    body += `<rect class="meas-body" x="0" y="0" width="${W.toFixed(2)}" height="${H.toFixed(2)}"/>`;
+    for (let mm = 0, x = 0; x <= W + 1e-6; mm++, x = mm * cm / 10) {
+      const L = mm % 10 ? (mm % 5 ? 0.25 : 0.4) : 0.55;
+      body += `<path class="meas-tick" d="M ${x.toFixed(2)} 0 L ${x.toFixed(2)} ${(H * L).toFixed(2)}"/>`;
+      if (!(mm % 10)) body += `<text class="meas-num" x="${x.toFixed(2)}" y="${(H * 0.85).toFixed(2)}" font-size="${(H * 0.32).toFixed(2)}">${mm / 10}</text>`;
+    }
+  }
+  /* THE TURNING HANDLE, a fingertip wide wherever the figure is drawn small, at whichever end of the tool is on the glass */
+  const reach = 30 * u, m = svg.getScreenCTM();
+  /* ONLY WHERE THE FIGURE IS: a handle past the picture's edge cannot be pressed; failing all, it sits on the tool itself */
+  const spots = g.tool === 'protractor' ? [[-R - reach, 0], [R + reach, 0], [0, -R - reach], [-R * 0.45, -R * 0.3], [R * 0.45, -R * 0.3]]
+    : [[g.L + reach, 0], [-reach, 0], [g.L / 2, -reach], [g.L * 0.75, 20 * u]];
+  const box = r;
+  const onGlass = p => {
+    if (!m) return true;
+    const t = g.rot * Math.PI / 180, q = svg.createSVGPoint();
+    q.x = g.c[0] + p[0] * Math.cos(t) - p[1] * Math.sin(t); q.y = g.c[1] + p[0] * Math.sin(t) + p[1] * Math.cos(t);
+    const z = q.matrixTransform(m);
+    return z.x > Math.max(26, box.left + 24) && z.x < Math.min(innerWidth - 26, box.right - 24) && z.y > Math.max(26, box.top + 24) && z.y < Math.min(innerHeight - 26, box.bottom - 24);
+  };
+  if (!g.hold) g.h = spots.find(onGlass) || spots[spots.length - 1];
+  const hx = g.h[0], hy = g.h[1];
+  body += `<circle class="meas-turn" cx="${hx.toFixed(2)}" cy="${hy.toFixed(2)}" r="${(24 * u).toFixed(2)}"/>`
+    + `<path class="meas-turn-i" d="M ${(hx - 8 * u).toFixed(2)} ${hy.toFixed(2)} A ${(8 * u).toFixed(2)} ${(8 * u).toFixed(2)} 0 1 1 ${hx.toFixed(2)} ${(hy + 8 * u).toFixed(2)}"/>`;
+  const o = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  o.setAttribute('class', 'meas');
+  o.setAttribute('viewBox', vb.join(' '));
+  o.setAttribute('data-noswipe', '');
+  o.setAttribute('data-tool', g.tool);
+  o.setAttribute('data-c', g.c.map(v => v.toFixed(2)).join(','));
+  o.setAttribute('data-rot', g.rot.toFixed(2));
+  o.setAttribute('aria-label', g.tool === 'protractor' ? 'Protractor: drag it, turn it with two fingers or the round handle' : 'Ruler: drag it, turn it with two fingers or the round handle');
+  o.innerHTML = `<g transform="${T}">${body}</g>`;
+  fig.classList.add('meas-host');
+  /* EXACTLY OVER THE PICTURE, not the figure's whole box: the same viewBox on the same rectangle is the same units */
+  const hr = fig.getBoundingClientRect();
+  o.style.left = (r.left - hr.left) + 'px'; o.style.top = (r.top - hr.top) + 'px';
+  o.style.width = r.width + 'px'; o.style.height = r.height + 'px';
+  o.setAttribute('preserveAspectRatio', svg.getAttribute('preserveAspectRatio') || 'xMidYMid meet');
+  fig.appendChild(o);
+}
+function measFig_(k) {
+  const card = [...document.querySelectorAll('#screen .page.on .qcard, .qcard')].find(c => c.querySelector(`[data-k="${CSS.escape(k)}"]`) || c.querySelector(`.q-meast[data-key="${CSS.escape(k)}"]`));
+  const pick = c => c && [...c.querySelectorAll('figure svg')].find(s => !s.classList.contains('meas') && !s.closest('svg.meas') && s.parentNode.closest('figure'));
+  let svg = pick(card);
+  /* A PART WHOSE WORDS RAN ON TO A SECOND PAGE has its figure on the page before: the tool goes there */
+  if (!svg && card) {
+    const page = card.closest('.page'), prev = page && page.previousElementSibling;
+    if (prev && prev.classList.contains('page') && /continued on the next page/i.test(prev.textContent)) svg = pick(prev);
+  }
+  return svg ? svg.parentNode : null;
+}
+on('q-measure', el => {
+  const k = el.getAttribute('data-key') || '', tool = el.getAttribute('data-tool');
+  const again = MEAS && MEAS.k === k && MEAS.tool === tool;
+  const was = MEAS && measFig_(MEAS.k);
+  MEAS = null;
+  if (was) measDraw_(was);
+  document.querySelectorAll('.q-meast').forEach(t => tileSet_(t, { on: false, pressed: false }));
+  if (again) return;
+  const fig = measFig_(k), svg = fig && fig.querySelector('svg');
+  if (!svg) return;
+  /* ON ANOTHER PAGE: turned to it, so the tool is where the child can see it */
+  const pg = fig.closest('.page'), here = el.closest('.page');
+  if (pg && here && pg !== here && typeof goPage === 'function') { const all = [...pg.parentNode.children].filter(c => c.classList.contains('page')); goPage('stuff', all.indexOf(pg), true); }
+  const vb = (svg.getAttribute('viewBox') || '0 0 340 340').split(/[\s,]+/).map(Number);
+  const G = measGeom_(svg);
+  let x = null;
+  try { x = stuffItemsAll_().find(i => i && i.key === k) || null; } catch (e) { x = null; }
+  /* THE RULER READS TRUE TO THE PAPER: the longest line is as long as the scheme says it is (the middle of its band), else 1 cm is a tenth of the figure */
+  let cm = vb[2] / 10;
+  const band = /(\d+(?:\.\d+)?)\s*(?:to|-|–)\s*(\d+(?:\.\d+)?)\s*(cm|mm)/i.exec(String(x && (x.accept || (x.row || {}).accept) || ''));
+  if (band && G.segs.length) {
+    const len = Math.max(...G.segs.map(s => Math.hypot(s[2] - s[0], s[3] - s[1])));
+    const want = (+band[1] + +band[2]) / 2 / (band[3].toLowerCase() === 'mm' ? 10 : 1);
+    if (len > 0 && want > 0) cm = len / want;
+  }
+  MEAS = { k, tool, rot: 0, R: Math.min(vb[2], vb[3] * 2) * 0.36, cm, L: Math.min(vb[2] * 0.9, cm * Math.max(5, Math.floor(vb[2] * 0.9 / cm))),
+           c: tool === 'protractor' ? [vb[0] + vb[2] / 2, vb[1] + vb[3] * 0.7] : [vb[0] + vb[2] * 0.05, vb[1] + vb[3] * 0.75], geom: G, vb };
+  el.closest('.tile-row, .qp-bar') && el.parentNode.querySelectorAll(`.q-meast[data-tool="${tool}"]`).forEach(t => tileSet_(t, { on: true, pressed: true }));
+  measDraw_(fig);
+});
+/* THE SNAP: the centre (or zero) onto a corner when near it; then the baseline (or edge) along an arm from that corner when near its direction */
+function measSnap_(svg) {
+  const g = MEAS, r = svg.getBoundingClientRect(), u = r.width ? g.vb[2] / r.width : 1;
+  const near = g.geom.pts.map(p => ({ p, d: Math.hypot(p[0] - g.c[0], p[1] - g.c[1]) })).sort((a, b) => a.d - b.d)[0];
+  if (!near || near.d > MEAS_SNAP_PX * u) return;
+  g.c = near.p.slice();
+  const dirs = [];
+  g.geom.segs.forEach(s => {
+    if (Math.hypot(s[0] - g.c[0], s[1] - g.c[1]) < 1) dirs.push(Math.atan2(s[3] - s[1], s[2] - s[0]) * 180 / Math.PI);
+    if (Math.hypot(s[2] - g.c[0], s[3] - g.c[1]) < 1) dirs.push(Math.atan2(s[1] - s[3], s[0] - s[2]) * 180 / Math.PI);
+  });
+  const diff = (a, b) => { let d = ((a - b) % 360 + 540) % 360 - 180; return d; };
+  /* A PROTRACTOR'S BASELINE IS A LINE BOTH WAYS from its centre; a ruler's edge runs one way from its zero */
+  let best = null;
+  dirs.forEach(a => [0, 180].forEach(f => {
+    if (g.tool === 'ruler' && f) return;
+    const d = Math.abs(diff(g.rot, a + f));
+    if (d <= MEAS_TURN_DEG && (!best || d < best.d)) best = { d, a: a + f };
+  }));
+  if (best) g.rot = ((best.a % 360) + 360) % 360;
+}
+/* THE GESTURES: one finger drags it, a second turns it, the round handle turns it; a mouse drags, turns by the handle or the wheel */
+const MEAS_PT = new Map();
+let MEAS_GO = null;
+const measAt_ = (svg, e) => { const m = svg.getScreenCTM(); if (!m) return [0, 0]; const q = svg.createSVGPoint(); q.x = e.clientX; q.y = e.clientY; const p = q.matrixTransform(m.inverse()); return [p.x, p.y]; };
+document.addEventListener('pointerdown', e => {
+  const o = e.target && e.target.closest && e.target.closest('svg.meas');
+  if (!o || !MEAS) return;
+  const onTool = e.target.closest('.meas-body, .meas-tick, .meas-num, .meas-turn, .meas-turn-i');
+  if (!onTool && !MEAS_PT.size) return;
+  e.preventDefault();
+  try { o.setPointerCapture(e.pointerId); } catch (err) {}
+  MEAS_PT.set(e.pointerId, measAt_(o, e));
+  const turn = !!e.target.closest('.meas-turn, .meas-turn-i');
+  MEAS.hold = turn && MEAS_PT.size === 1;
+  MEAS_GO = { o, turn: turn && MEAS_PT.size === 1, c0: MEAS.c.slice(), rot0: MEAS.rot, p0: measAt_(o, e), pts0: new Map(MEAS_PT) };
+}, true);
+document.addEventListener('pointermove', e => {
+  const G = MEAS_GO;
+  if (!G || !MEAS || !MEAS_PT.has(e.pointerId)) return;
+  if (e.cancelable) e.preventDefault();
+  const p = measAt_(G.o, e);
+  MEAS_PT.set(e.pointerId, p);
+  if (G.turn) MEAS.rot = (Math.atan2(p[1] - MEAS.c[1], p[0] - MEAS.c[0]) - Math.atan2(MEAS.h[1], MEAS.h[0])) * 180 / Math.PI;
+  else if (MEAS_PT.size >= 2) {
+    const [a, b] = [...MEAS_PT.values()], [a0, b0] = [...G.pts0.values()];
+    if (a0 && b0) MEAS.rot = G.rot0 + (Math.atan2(b[1] - a[1], b[0] - a[0]) - Math.atan2(b0[1] - a0[1], b0[0] - a0[0])) * 180 / Math.PI;
+  } else MEAS.c = [G.c0[0] + p[0] - G.p0[0], G.c0[1] + p[1] - G.p0[1]];
+  const fig = G.o.parentNode;
+  measDraw_(fig);
+  MEAS_GO.o = fig.querySelector('svg.meas');
+}, { capture: true, passive: false });
+const measUp_ = e => {
+  if (!MEAS_PT.has(e.pointerId)) return;
+  MEAS_PT.delete(e.pointerId);
+  const G = MEAS_GO;
+  if (MEAS) MEAS.hold = false;
+  if (!G || !MEAS) { MEAS_GO = null; return; }
+  const fig = G.o.parentNode, svg = fig && fig.querySelector('svg:not(.meas)');
+  if (svg) measSnap_(svg);
+  if (fig) measDraw_(fig);
+  /* THE FINGER LEFT ON IT CARRIES ON from where it is now */
+  MEAS_GO = MEAS_PT.size && fig ? { o: fig.querySelector('svg.meas'), turn: false, c0: MEAS.c.slice(), rot0: MEAS.rot, p0: [...MEAS_PT.values()][0], pts0: new Map(MEAS_PT) } : null;
+};
+['pointerup', 'pointercancel'].forEach(ev => document.addEventListener(ev, measUp_, true));
+document.addEventListener('wheel', e => {
+  const o = e.target && e.target.closest && e.target.closest('svg.meas');
+  if (!o || !MEAS) return;
+  e.preventDefault();
+  MEAS.rot += e.deltaY > 0 ? 1 : -1;
+  const fig = o.parentNode, svg = fig.querySelector('svg:not(.meas)');
+  if (svg) measSnap_(svg);
+  measDraw_(fig);
+}, { passive: false });
+/* A REPAINT REBUILDS THE CARD: the tool is drawn again on the new figure */
+function measRepaint_() { if (MEAS) { const f = measFig_(MEAS.k); if (f) measDraw_(f); } }
+/* A TURNED PHONE OR A RESIZED WINDOW moves the picture: the tool is laid over it again */
+if (typeof addEventListener === 'function') addEventListener('resize', () => { if (MEAS) setTimeout(measRepaint_, 120); });

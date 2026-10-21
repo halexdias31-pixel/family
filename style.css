@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-20-h-quiet-touch";
+  --css-version: "2026-10-20-j-vector-edit";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -1613,10 +1613,7 @@ button.text-drop { color: var(--bad); }
    `style="margin:.6rem 0 0"` in `--faint`. Its own class now: dim, with the instruction in ink. */
 .find-end { margin: .3rem 0 0; font-size: .8rem; line-height: 1.5; color: var(--dim); }
 .find-end b { color: var(--ink); font-weight: 600; }
-/* ---------- THE OPTIONAL ROWS (`tagDoors_`), A PAPER'S HEALTH TILE AND ITS LIST (354, 355) § */
-.tag-door { margin: .6rem 0 0; padding: .45rem 0 0; border-top: 1px solid var(--line-soft); }
-.tag-door + .tag-door { margin-top: .3rem; }
-.tag-door-k { margin: 0 0 .3rem; font-size: .75rem; color: var(--dim); }
+/* A PAPER'S HEALTH TILE AND ITS LIST (354, 355); the tag-door rows went in 387. */
 /* THE PAPER'S COVER LINE, over its end: the whole name and the day it was sat, which left the tag row
    because nothing could pick them (docs/history/355). Prose, so it is in the find-end's voice. */
 .paper-cover { margin: .3rem 0 0; font-size: .8rem; line-height: 1.45; color: var(--ink); }
@@ -4399,8 +4396,10 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
                                                box-shadow: inset 0 0 0 1px var(--good); }
 .qp-choices.is-done .qp-opt.is-ans::before { content: "\2713"; border-color: var(--good);
                                                        background: var(--good); }
+.qp-choices.is-miss .qp-opt.is-picked,
 .qp-choices.is-done .qp-opt.is-picked:not(.is-ans) { border-color: var(--warn);
                                                                box-shadow: inset 0 0 0 1px var(--warn); }
+.qp-choices.is-miss .qp-opt.is-picked::before,
 .qp-choices.is-done .qp-opt.is-picked:not(.is-ans)::before { border-color: var(--warn);
                                                                        background: var(--warn); }
 
@@ -5701,6 +5700,36 @@ button.scr-sq { cursor: pointer; }
             background: var(--paper-ink); animation: kp-blink 1.1s steps(1) infinite; }
 @keyframes kp-blink { 50% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .kp-caret { animation: none; } }
+/* A COLUMN VECTOR (385): top over bottom between one pair of round brackets, wherever an answer is drawn */
+.vec { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; line-height: 1.15;
+       padding: 0 .3em; margin: 0 .1em; border-left: 1.5px solid currentColor; border-right: 1.5px solid currentColor;
+       border-radius: .55em / 1.3em; }
+.vec-a, .vec-b { display: block; min-width: .6em; text-align: center; }
+.kp-key .kp-vc { display: inline-flex; flex-direction: column; gap: 3px; padding: 2px 5px; border-left: 2px solid currentColor;
+                 border-right: 2px solid currentColor; border-radius: 6px / 12px; }
+.kp-key .kp-vc i { display: block; width: 9px; height: 9px; border: 1.5px solid currentColor; border-radius: 2px; }
+/* THE MEASURING TOOLS ON A FIGURE (385): a see-through protractor or ruler over the picture, in its own units */
+.meas-host { position: relative; }
+svg.meas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; touch-action: none; pointer-events: none; }
+svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-num, svg.meas .meas-turn-i { pointer-events: auto; cursor: grab; }
+.meas-body { fill: color-mix(in srgb, var(--gold) 14%, transparent); stroke: var(--gold); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.meas-tick { stroke: var(--gold); stroke-width: 1; vector-effect: non-scaling-stroke; fill: none; }
+.meas-num { fill: var(--gold); text-anchor: middle; dominant-baseline: middle; font-family: var(--font); }
+.meas-num.meas-in { opacity: .75; }
+.meas-turn { fill: color-mix(in srgb, var(--gold) 30%, transparent); stroke: var(--gold); stroke-width: 1; vector-effect: non-scaling-stroke; cursor: alias; }
+.meas-turn-i { fill: none; stroke: var(--gold); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+/* EDITING LIKE iOS (385): the loupe over a held finger, and a selection's two ends as handles to drag */
+.kp-loupe { position: fixed; z-index: 60; width: 132px; height: 56px; border-radius: 28px; overflow: hidden;
+            background: var(--paper); box-shadow: 0 0 0 1px var(--paper-rule), 0 6px 18px rgba(0, 0, 0, .45); pointer-events: none; }
+.kp-loupe[hidden] { display: none; }
+.kp-loupe-in { position: absolute; inset: 0; }
+.kp-handle { position: absolute; width: 2px; margin-left: -1px; background: var(--paper-ink); z-index: 2; touch-action: none; }
+.kp-handle::before { content: ""; position: absolute; left: -21px; width: 44px; height: 44px; }
+.kp-handle-a::before { top: -36px; }
+.kp-handle-b::before { bottom: -36px; }
+.kp-handle::after { content: ""; position: absolute; left: -5px; width: 12px; height: 12px; border-radius: 50%; background: var(--paper-ink); }
+.kp-handle-a::after { top: -11px; }
+.kp-handle-b::after { bottom: -11px; }
 
 /* ---------- THE PAD § */
 /* ---------- LIGHT KEYS ON THE BLACK PAD, FOR SUNLIGHT § */
