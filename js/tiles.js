@@ -7,6 +7,7 @@ const TILE_CONE_  = '<path d="M2.5 6.5h3l4-3.5v11l-4-3.5h-3z"/>';
 const TILE_WAVES_ = '<path d="M12 6.2a3.2 3.2 0 0 1 0 4.6"/><path d="M14 4a6 6 0 0 1 0 9"/>';
 const TILE_ICONS = {
   play:  '<path d="M5 3.5v11l9-5.5z"/>',
+  pause: '<path d="M6 3.5v10"/><path d="M12 3.5v10"/>',
   doc:   '<path d="M4.5 2.5h6l3 3v10h-9z"/><path d="M10.5 2.5v3.5h3"/>',
   /* A PRINTER: the sheet going in at the top, the body, the sheet coming out at the foot. § */
   print: '<path d="M5.5 6.5v-4h7v4"/><path d="M3.5 6.5h11v4h-11z"/><path d="M5.5 10.5h7v4h-7z"/>',
@@ -101,9 +102,6 @@ const TILE_ICONS = {
   /* ---------- THE REELS' SOUND, AND THE TWO DIFFER BY WHAT COMES OUT OF THE CONE § */
   sound: TILE_CONE_ + TILE_WAVES_,
   mute:  TILE_CONE_ + '<path d="M2.5 2.5 15.5 14.5"/>',
-  /* A PULSE, FOR A PAPER'S HEALTH (`healthTiles_` in find.js): a flat line with one beat in it, open
-     paths at the row's stroke — the list of what is wrong with the paper is behind it. */
-  pulse: '<path d="M1.5 9h4l1.75-4.5 3 8.5 2-4h4.25"/>',
   /* ---------- THE WHITEBOARD'S SHAPES (board.js, 377): each the sign and the empty box it brings to write in ---------- */
   frac:  '<rect x="6" y="1.5" width="6" height="4.5" rx=".8"/><path d="M3 8.5h12"/><rect x="6" y="11" width="6" height="4.5" rx=".8"/>',
   power: '<rect x="2" y="6.5" width="8" height="8" rx="1"/><rect x="11.5" y="2" width="4.5" height="4.5" rx=".8"/>',

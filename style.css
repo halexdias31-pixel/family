@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-20-j-vector-edit";
+  --css-version: "2026-10-21-b-console";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -41,8 +41,6 @@
   --tag-topic:   #ff9e64;
   /* ---------- AND THE FOUR A QUESTION'S PAGE ADDED § */
   --tag-needs:   #f0f08a;
-  /* A PAPER'S HEALTH (`Ready · 99%`, docs/history/354) is about the transcription, not the paper, so it takes no paper kind's hue. § */
-  --tag-health:  #cdb69c;
 
   /* Everything below is in rem, so it all scales together from the one root above. */
   /* Square, near enough. A terminal has no rounded corners, and this is the single value that
@@ -981,6 +979,38 @@ a { color: inherit; text-decoration: none; }
 #tt-answer { text-align: center; font-size: 1.2rem; }
 .tux-stage:not(:empty) { position: relative; width: 100%; aspect-ratio: 4/3; margin: .5rem 0; }
 .tux-frame { width: 100%; height: 100%; border: 0; display: block; background: var(--bg); }
+/* ---------- CONSOLE (389): 256x240 scaled by whole look, pixels kept square and crisp § */
+.nes-wrap { position: relative; display: flex; flex-direction: column; align-items: center; background: var(--bg);
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.nes-stage { position: relative; width: 100%; max-width: 48rem; aspect-ratio: 256 / 240; margin: .5rem 0; }
+.nes-canvas { width: 100%; height: 100%; display: block; background: #000; image-rendering: pixelated;
+  border: 1px solid var(--line); border-radius: .25rem; }
+.nes-file { display: none; }
+.nes-pad { display: none; width: 100%; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0;
+  touch-action: none; }
+.nes-pad.on { display: flex; }
+.nes-dpad { width: 132px; height: 132px; border-radius: 50%; border: 1px solid var(--line); flex: none;
+  background: radial-gradient(circle, var(--line) 18%, transparent 19%),
+    linear-gradient(var(--sunk), var(--sunk)) center / 44px 100% no-repeat,
+    linear-gradient(var(--sunk), var(--sunk)) center / 100% 44px no-repeat; touch-action: none; }
+.nes-mid { display: flex; gap: 8px; }
+.nes-ab { display: flex; gap: 12px; flex: none; }
+.nes-key { min-width: 44px; min-height: 44px; border: 1px solid var(--line); background: var(--sunk); color: var(--gold);
+  font: inherit; touch-action: none; }
+.nes-round { width: 64px; height: 64px; border-radius: 50%; font-size: 1.25rem; }
+.nes-small { border-radius: 22px; padding: 0 12px; font-size: .8rem; }
+.nes-exit { display: none; position: absolute; top: 8px; right: 8px; border-radius: 50%; width: 44px; height: 44px; }
+.nes-wrap.nes-full { position: fixed; inset: 0; z-index: 1000; justify-content: center; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+.nes-wrap.nes-full .nes-exit { display: block; }
+.nes-wrap:fullscreen { justify-content: center; }
+.nes-wrap:-webkit-full-screen { justify-content: center; width: 100%; height: 100%; }
+.nes-wrap.nes-full .nes-stage, .nes-wrap:fullscreen .nes-stage { width: auto; max-width: 100%; height: 100%; max-height: calc(100% - 160px); }
+@media (orientation: landscape) {
+  .nes-wrap.nes-full, .nes-wrap:fullscreen { flex-direction: row; }
+  .nes-wrap.nes-full .nes-stage, .nes-wrap:fullscreen .nes-stage { max-height: 100%; order: 2; }
+  .nes-wrap.nes-full .nes-pad.on, .nes-wrap:fullscreen .nes-pad.on { position: absolute; inset: auto 0 8px 0; padding: 0 16px; pointer-events: none; }
+  .nes-wrap.nes-full .nes-pad.on > *, .nes-wrap:fullscreen .nes-pad.on > * { pointer-events: auto; }
+}
 /* ---------- THE SCREEN § */
 .flappy { width: 100%; aspect-ratio: 4/5; display: block; touch-action: none;
           background: var(--sunk); border: 1px solid var(--line); border-radius: .5rem; }
@@ -1613,16 +1643,9 @@ button.text-drop { color: var(--bad); }
    `style="margin:.6rem 0 0"` in `--faint`. Its own class now: dim, with the instruction in ink. */
 .find-end { margin: .3rem 0 0; font-size: .8rem; line-height: 1.5; color: var(--dim); }
 .find-end b { color: var(--ink); font-weight: 600; }
-/* A PAPER'S HEALTH TILE AND ITS LIST (354, 355); the tag-door rows went in 387. */
 /* THE PAPER'S COVER LINE, over its end: the whole name and the day it was sat, which left the tag row
    because nothing could pick them (docs/history/355). Prose, so it is in the find-end's voice. */
 .paper-cover { margin: .3rem 0 0; font-size: .8rem; line-height: 1.45; color: var(--ink); }
-.health-tiles { margin: .5rem 0 0; }
-.health-sum { margin: 0 0 .6rem; font-size: .85rem; color: var(--dim); display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
-.health-list { margin: 0; padding: 0; list-style: none; font-size: .85rem; line-height: 1.5; }
-.health-list li { padding: .3rem 0; border-bottom: 1px solid var(--line-soft); }
-.health-ref { color: var(--tag-health); font-weight: 600; }
-.health-none { margin: 0; font-size: .85rem; color: var(--ink); }
 .chip {
   display: flex; align-items: center; gap: .25rem;
   /* ---------- 44px, AND THIS IS THE FOURTH CONVICTION OF THE SAME RULE § */

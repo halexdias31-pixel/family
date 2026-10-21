@@ -69,7 +69,7 @@ when it was not told it could", never "is this past the right edge".
   `galton.py`, `orbit` is `solar.py`; all through `tools/anim_row.py`): change the script and re-run it,
   never hand-edit the row. For the rest the row is the source. Never in `index.html` or `style.css`; the
   splash draws a device-kept copy (`splashSync_`). `check-anims.js`, `check-loading.js`. See 304, 322.
-- **Health:** every paper has a score (`paperHealth_`, js/library.js), its band is a tag (`[Ready]`), the Health tile holds the %, for everybody; `check-health.js`. See 354, 355.
+- **Verified tags:** every question carries two ordinary funnel tags, `Accuracy verified/unverified` (row `verified: "True"` = answer checked against the official scheme) and `Function verified/unverified` (qtypes.js protocol complete and machine-marked); `verifyTags_`, find.js; `check-qtypes.js`. See 388.
 - **Diagram PNG twins:** every `diagram` in `data/questions.json` has `data/diagrams/<12 hex of SHA-256>.png`
   for the Sunday email, written by `tools/diagram_png.js` — re-run it after changing a drawing, never draw
   one by hand; `check-diagram-png.js`. See 351.

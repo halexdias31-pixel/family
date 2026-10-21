@@ -6,7 +6,7 @@ const fs = require('fs');
 const argv = process.argv;
 const VERBOSE = argv.includes('-v') || argv.includes('--verbose')
   || /^(1|true|yes)$/i.test(process.env.VERBOSE || '');
-// -v is taken out so a check that reads a bare argument as a file or an id (check-library, check-health,
+// -v is taken out so a check that reads a bare argument as a file or an id (check-library,
 // check/anims.js) never sees it. --verbose stays: pen, press, reach and swipe read it themselves.
 for (let i = argv.length - 1; i >= 2; i--) if (argv[i] === '-v') argv.splice(i, 1);
 if (VERBOSE) process.env.VERBOSE = '1';

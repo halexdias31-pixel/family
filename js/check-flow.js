@@ -25395,83 +25395,55 @@ check('a chosen book of the Bible is fetched by the builder before any card of i
   return bad;
 });
 
-/* ---------- EVERY PAPER HAS A HEALTH SCORE, AND EVERYBODY SEES IT (docs/history/354) § */
-check('every paper has a health score on its tile and nowhere else — no tag, no door, no finder question — for everybody (383)', async () => {
+/* EVERY QUESTION CARRIES TWO VERIFIED TAGS, ORDINARY FUNNEL TAGS (388); the paper health score is gone. */
+check('every question has an Accuracy and a Function tag on its card and as funnel answers; no health tile, no health facet (388)', async () => {
   const base = { active: 'True', subject: 'Maths', document_type: 'Past paper', key_stage: 'KS4', level: 'GCSE',
-                 pages_checked: 'True', company: 'Edexcel', exam_board: 'Edexcel' };
+                 company: 'Edexcel', exam_board: 'Edexcel' };
   const R_ = o => Object.assign({}, base, o);
   const rows = [
     R_({ row_id: 'D-HX', paper_id: 'HX', kind: 'document', name: 'Paper 1 — June 2031', total_marks: '80' }),
-    R_({ row_id: 'HX-1', paper_id: 'HX', kind: 'question', name: 'Paper 1 — June 2031', question: '1', marks: '40', html: '<p>Work out 3 + 4.</p>', answer: '7', accept: '7', answer_type: 'calculation' }),
-    R_({ row_id: 'HX-2', paper_id: 'HX', kind: 'question', name: 'Paper 1 — June 2031', question: '2', marks: '30', html: '<p>Work out 6 × 7.</p>', answer_type: 'calculation' }),
-    R_({ row_id: 'HX-3', paper_id: 'HX', kind: 'question', name: 'Paper 1 — June 2031', question: '3', marks: '6', html: '<p>Find the angle x in the triangle shown.</p>', answer: '40', accept: '40', answer_type: 'calculation' }),
-    R_({ row_id: 'D-HY', paper_id: 'HY', kind: 'document', name: 'Paper 2 — June 2031', total_marks: '5' }),
-    R_({ row_id: 'HY-1', paper_id: 'HY', kind: 'question', name: 'Paper 2 — June 2031', question: '1', marks: '2', html: '<p>Work out 3 + 4.</p>', answer: '7', accept: '7', answer_type: 'calculation' }),
-    R_({ row_id: 'HY-2', paper_id: 'HY', kind: 'question', name: 'Paper 2 — June 2031', question: '2', marks: '3', html: '<p>Work out 5 + 4.</p>', answer: '9', accept: '9', answer_type: 'calculation' }),
+    R_({ row_id: 'HX-1', paper_id: 'HX', kind: 'question', name: 'Paper 1 — June 2031', question: '1', marks: '4', html: '<p>Work out 3 + 4.</p>', answer: '7', accept: '7', answer_type: 'calculation', verified: 'True' }),
+    R_({ row_id: 'HX-2', paper_id: 'HX', kind: 'question', name: 'Paper 1 — June 2031', question: '2', marks: '3', html: '<p>Work out 6 × 7.</p>', answer_type: 'calculation' }),
   ];
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
   await wait(300);
-  const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
-  const need = ['paperHealth_', 'healthOf_', 'paperEnd_', 'questionCard_', 'stuffItemsAll_', 'stuffQuestion', 'stuffFiltered']
+  const t = w.__t, d = w.document, bad = [];
+  const need = ['verifyTags_', 'qtIncomplete_', 'qtMachine_', 'paperEnd_', 'questionCard_', 'stuffItemsAll_', 'stuffFiltered', 'facetList']
     .filter(n => typeof w[n] !== 'function');
-  if (need.length || !A['facet-pick'] || !A['paper-health']) return [need.join(', ') + ' or the facet-pick / paper-health handlers not reachable — no health was checked'];
+  if (need.length) return [need.join(', ') + ' not reachable — no tag was checked'];
+  if (typeof w.paperHealth_ === 'function' || t.ACTIONS['paper-health']) bad.push('the paper health score or its tile handler is back');
   const host = d.createElement('div');
   d.body.appendChild(host);
-  const PEOPLE = [
-    ['nobody signed in', null],
-    ['a student', { name: 'Sam Student', personId: 'P-S1', token: 'tok-1', role: 'student', roles: ['student'] }],
-    ['a parent', { name: 'Pat Parent', personId: 'P1', token: 'tok-2', role: 'parent', roles: ['parent'] }],
-    ['a tutor', { name: 'Tia Tutor', personId: 'T1', token: 'tok-3', role: 'tutor', roles: ['tutor'] }],
-  ];
-  for (const [who, u] of PEOPLE) {
-    t.USER(u);
-    t.STUFF().filters = [];
-    t.STUFF().q = '';
-    const all = w.stuffItemsAll_();
-    const hx = all.find(x => x.row && x.row.row_id === 'HX-2');
-    const hy = all.find(x => x.row && x.row.row_id === 'HY-1');
-    if (!hx || !hy) { bad.push(who + ': the fixture papers did not come through the loader into Find'); continue; }
-    /* ---------- THE TAG, ON THE CARD ---------- */
-    host.innerHTML = w.questionCard_(hx, 0);
-    const tag = host.querySelector('.qcard-tags [data-f="health"], .qcard-tags [data-f="answerable"], .qcard-tags [data-tag="health"]');
-    const hxh = w.healthOf_(hx);
-    if (!hxh || hxh.band !== 'Rough') bad.push(who + ': HX scores ' + (hxh ? hxh.pct + '% ' + hxh.band : 'nothing') + ' — three faults on 76 marks must be below Ready');
-    /* NOT A TAG SINCE 383: the band is on the Health tile, never in the card's row. */
-    if (tag) bad.push(who + ' sees a health tag on a card of HX: ' + JSON.stringify(tag.textContent));
-    if (/\b(Ready|Usable|Rough)\b/.test((host.querySelector('.qcard-tags') || {}).textContent || '')) bad.push(who + ': a health band is in HX\'s tag row');
-    /* NO PERCENTAGE IN ANY TAG: a tag is a word the finder can pick, and nobody picks `99%` (355). */
-    const pct = [...host.querySelectorAll('.qtag')].filter(x => /%/.test(x.textContent));
-    if (pct.length) bad.push(who + ': a tag holds a percentage: ' + pct.map(x => x.textContent).join(', '));
-    /* ---------- NOT A QUESTION EITHER: no door, no facet ---------- */
-    t.STUFF().filters = [];
-    host.innerHTML = w.stuffQuestion();
-    if (host.querySelector('.tag-door[data-field="health"], .tag-door[data-field="answerable"]')) bad.push(who + ' is offered a health door under the first question — health has its own rule again');
-    const fset = w.facetList().filter(f => f.field === 'health' || f.field === 'answerable');
-    if (fset.length) bad.push(who + ': health is a finder question again: ' + fset.map(f => f.field).join(', '));
-    /* ---------- THE TILE UNDER A CHOSEN PAPER, AND THE LIST BEHIND IT ---------- */
-    t.STUFF().filters = [{ field: 'paperId', value: 'HX' }];
-    host.innerHTML = w.paperEnd_(w.stuffFiltered());
-    const tile = host.querySelector('.tile-row > .tile[data-do="paper-health"][data-pid="HX"]');
-    if (!tile) { bad.push(who + ' sees no Health tile under the chosen paper HX'); continue; }
-    A['paper-health'](tile);
-    const lines = [...d.querySelectorAll('#sheet-body .faith-list li')].map(li => li.textContent.replace(/\s+/g, ' ').trim());
-    /* THE SHEET'S HEAD: the band, then the score. */
-    const sum = d.querySelector('#sheet-body .health-sum');
-    const sTag = sum && sum.querySelector('b');
-    if (!sTag || sTag.textContent !== hxh.band || !new RegExp('\\b' + hxh.pct + '%').test(sum.textContent)) bad.push(who + ': HX\'s Health sheet heads ' + JSON.stringify(sum && sum.textContent.replace(/\s+/g, ' ').trim()) + ' — wanted the [' + hxh.band + '] tag and ' + hxh.pct + '% in words');
-    const want = ['Q2 — no answer', 'Q3 — needs a picture, none drawn', 'Paper — marks add to 76 of 80'];
-    if (lines.join(' | ') !== want.join(' | ')) bad.push(who + ': HX\'s Health list says ' + JSON.stringify(lines) + ', wanted exactly ' + JSON.stringify(want));
-    /* AND THE SECOND SCORE UNDER IT: HX Q2 has no answer, so it cannot be marked here. */
-    const aSum = d.querySelector('#sheet-body .able-sum b');
-    const aLines = [...d.querySelectorAll('#sheet-body .able-list li')].map(li => li.textContent.replace(/\s+/g, ' ').trim());
-    if (!aSum || !hxh.able || aSum.textContent !== hxh.able.band || aLines.join(' | ') !== 'Q2 — no answer the app can check') bad.push(who + ': HX\'s Answerable part says ' + JSON.stringify(aLines) + ' under ' + JSON.stringify(aSum && aSum.textContent));
-    t.STUFF().filters = [];
-  }
+  t.STUFF().filters = [];
+  t.STUFF().q = '';
+  const all = w.stuffItemsAll_();
+  const h1 = all.find(x => x.row && x.row.row_id === 'HX-1'), h2 = all.find(x => x.row && x.row.row_id === 'HX-2');
+  if (!h1 || !h2) return ['the fixture paper did not come through the loader into Find'];
+  const fnOf = x => (!w.qtIncomplete_(x.row).length && w.qtMachine_(x.row)) ? 'Function verified' : 'Function unverified';
+  [[h1, 'Accuracy verified'], [h2, 'Accuracy unverified']].forEach(([x, acc]) => {
+    host.innerHTML = w.questionCard_(x, 0);
+    const said = (host.querySelector('.qcard-tags') || {}).textContent || '';
+    if (said.indexOf(acc) === -1) bad.push(x.row.row_id + '\'s tag row lacks ' + acc + ': ' + JSON.stringify(said.replace(/\s+/g, ' ').trim()));
+    if (said.indexOf(fnOf(x)) === -1) bad.push(x.row.row_id + '\'s tag row lacks ' + fnOf(x));
+    if (/\b(Ready|Usable|Rough)\b/.test(said)) bad.push('a health band is in ' + x.row.row_id + '\'s tag row');
+  });
+  if (fnOf(h2) !== 'Function unverified') bad.push('HX-2 has no answer and still reads Function verified');
+  const fields = w.facetList().map(f => f.field);
+  ['accuracy', 'function'].forEach(f => { if (fields.indexOf(f) === -1) bad.push('the funnel has no ' + f + ' question'); });
+  if (fields.indexOf('health') !== -1 || fields.indexOf('answerable') !== -1) bad.push('health is a finder question again');
+  t.STUFF().filters = [{ field: 'accuracy', value: 'Accuracy verified' }];
+  const hit = w.stuffFiltered().filter(x => x.kind === 'question').map(x => x.row.row_id);
+  if (hit.join() !== 'HX-1') bad.push('picking Accuracy verified leaves ' + JSON.stringify(hit) + ', wanted HX-1');
+  t.STUFF().filters = [{ field: 'paperId', value: 'HX' }];
+  host.innerHTML = w.paperEnd_(w.stuffFiltered());
+  if (host.querySelector('[data-do="paper-health"]')) bad.push('a Health tile is under the chosen paper');
+  t.STUFF().filters = [];
+  host.remove();
   return bad;
 });
 
 /* ---------- A TABLE'S BLANKS ARE CELLS, TYPED IN WHERE THEY STAND AND MARKED A CELL AT A TIME (docs/history/359) ---------- */
-check('a fill-in table: its blanks are cells in the card, typing keeps them, Check marks each cell, and the paper counts as Answerable', async () => {
+check('a fill-in table: its blanks are cells in the card, typing keeps them, Check marks each cell, and it is machine-marked', async () => {
   const base = { active: 'True', subject: 'Maths', document_type: 'Worksheet', key_stage: 'KS2', pages_checked: 'True' };
   const R_ = o => Object.assign({}, base, o);
   const rows = [
@@ -25509,8 +25481,7 @@ check('a fill-in table: its blanks are cells in the card, typing keeps them, Che
   type(again[1], '6');
   A['qp-cells-check'](host.querySelector('[data-do="qp-cells-check"]'));
   if (host.querySelector('.qp-cells-box .qp-verdict').textContent !== 'Correct — every cell') bad.push('every cell right is not Correct');
-  const h = w.healthOf_(x);
-  if (!h || !h.able || h.able.pct !== 100) bad.push('a paper of one fill-in table with its cells is ' + (h && h.able ? h.able.pct : '?') + '% Answerable, wanted 100');
+  if (typeof w.qtMachine_ !== 'function' || !w.qtMachine_(x.row)) bad.push('a fill-in table with its cells is not machine-marked, so not Function verified');
   host.remove();
   return bad;
 });

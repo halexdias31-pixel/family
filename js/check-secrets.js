@@ -70,6 +70,30 @@ function run() {
     ? 'a Google API key. Revoke it at aistudio.google.com and put the new one in Script Properties'
     : b.digits.length + ' digits beside the word "pin", and they are not ' + PLACEHOLDER)));
 
+  /* ---------- AND NO CONSOLE GAME FILE (389): the site ships the player, never a game. Every file, any extension, by name and by the iNES magic. */
+  const roms = [];
+  let looked = 0;
+  (function every(dir) {
+    let names;
+    try { names = fs.readdirSync(dir, { withFileTypes: true }); } catch (e) { return; }
+    names.forEach(e => {
+      if (e.name === 'node_modules' || e.name === '.git' || e.name === 'worktrees') return;
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) return void every(full);
+      looked++;
+      if (/\.(nes|fds|unf|unif)$/i.test(e.name)) return void roms.push(path.relative(ROOT, full) + '  — a console game file by name');
+      try {
+        const fd = fs.openSync(full, 'r'), b = Buffer.alloc(4);
+        fs.readSync(fd, b, 0, 4, 0); fs.closeSync(fd);
+        if (b[0] === 0x4e && b[1] === 0x45 && b[2] === 0x53 && b[3] === 0x1a) roms.push(path.relative(ROOT, full) + '  — starts with the iNES header');
+      } catch (err) {}
+    });
+  })(ROOT);
+  console.log('\nA CONSOLE GAME FILE IN THE REPOSITORY  (' + roms.length + ' of ' + looked + ' files)');
+  roms.forEach(r => console.log('  ' + r));
+  if (!looked) { console.log('FAILED — no files found to look through for game files.'); process.exitCode = 1; }
+  if (roms.length) { console.log('FAILED — the Console ships only the player; a game file is the person\'s own and stays on their device.'); process.exitCode = 1; }
+
   console.log('\nfiles read: ' + files.length + ', PIN literals found: ' + seen);
   if (bad.length) {
     console.log('FAILED — this repository is public and its history is permanent, so a PIN here is '

@@ -45,6 +45,7 @@ const VOCAB = {
   trackable:     ['True', 'False'],
   print_required:['True', 'False'],
   pages_checked: ['True', '2026-08-06'],
+  verified:      ['True'],
   currency:      ['GBP'],
 };
 
