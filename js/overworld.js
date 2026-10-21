@@ -161,12 +161,14 @@ const SWIPE = {
   /* Whether the one-off setup for this drag has been done — the cells taken off their transition,
      and the measurements held still. Once per gesture, not once per frame. */
   held: false,
+  lock: false,         // the console's padlock (games.js `nesLock_`): no swipe, wheel or arrow turns
 };
 
 /* DOES THIS DRAG BELONG TO THE GRID, OR TO WHAT IS UNDER THE FINGER? § */
 function axisFree(target, axis, dir) {
   /* ---------- THE SHEET NO LONGER BLOCKS EVERYTHING, ONLY THE GRID § */
   if (!$('sheet').classList.contains('hidden')) return false;   // the sheet is over everything
+  if (SWIPE.lock) return false;
   /* ---------- A SELECT IS NOT NAMED, AND A TEXTAREA IS MEASURED § */
   if (target.closest?.('[data-noswipe]')) return false;
   /* A cell is not a scroll container any more, so the walk below stops at anything genuinely inside one — the docket's list, the notepad — and hands everything § */

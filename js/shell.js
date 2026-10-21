@@ -2279,6 +2279,7 @@ addEventListener('keydown', e => {
 
   const arrow = ARROWS[e.key];
   if (!arrow) return;
+  if (typeof SWIPE !== 'undefined' && SWIPE.lock) return;   // the console's padlock
   /* A modifier means the key belongs to the browser — ⌘← is back, alt+arrow is word-by-word. */
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   /* Typing, or anywhere a caret could be. `isContentEditable` catches the cases a tag name does

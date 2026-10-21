@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-21-b-console";
+  --css-version: "2026-10-21-c-console-2";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -999,17 +999,21 @@ a { color: inherit; text-decoration: none; }
   font: inherit; touch-action: none; }
 .nes-round { width: 64px; height: 64px; border-radius: 50%; font-size: 1.25rem; }
 .nes-small { border-radius: 22px; padding: 0 12px; font-size: .8rem; }
-.nes-exit { display: none; position: absolute; top: 8px; right: 8px; border-radius: 50%; width: 44px; height: 44px; }
-.nes-wrap.nes-full { position: fixed; inset: 0; z-index: 1000; justify-content: center; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+.nes-exit { display: none; position: absolute; top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right));
+  border-radius: 50%; width: 44px; height: 44px; z-index: 2; }
+.nes-locked { touch-action: none; overscroll-behavior: contain; }
+/* ONE CLASS FOR BOTH FULL SCREENS; JS (`nesFit_`) sets the stage's size. No `:fullscreen` in a selector list: a Safari that cannot parse it drops the whole rule. */
+.nes-wrap.nes-full { position: fixed; inset: 0; z-index: 1000; width: 100%; height: 100%; margin: 0; background: #000;
+  justify-content: center; touch-action: none; box-sizing: border-box;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
 .nes-wrap.nes-full .nes-exit { display: block; }
-.nes-wrap:fullscreen { justify-content: center; }
-.nes-wrap:-webkit-full-screen { justify-content: center; width: 100%; height: 100%; }
-.nes-wrap.nes-full .nes-stage, .nes-wrap:fullscreen .nes-stage { width: auto; max-width: 100%; height: 100%; max-height: calc(100% - 160px); }
+.nes-wrap.nes-full .nes-stage { max-width: none; aspect-ratio: auto; margin: 0; flex: none; }
+.nes-wrap.nes-full .nes-canvas { border: 0; border-radius: 0; }
 @media (orientation: landscape) {
-  .nes-wrap.nes-full, .nes-wrap:fullscreen { flex-direction: row; }
-  .nes-wrap.nes-full .nes-stage, .nes-wrap:fullscreen .nes-stage { max-height: 100%; order: 2; }
-  .nes-wrap.nes-full .nes-pad.on, .nes-wrap:fullscreen .nes-pad.on { position: absolute; inset: auto 0 8px 0; padding: 0 16px; pointer-events: none; }
-  .nes-wrap.nes-full .nes-pad.on > *, .nes-wrap:fullscreen .nes-pad.on > * { pointer-events: auto; }
+  .nes-wrap.nes-full .nes-pad.on { position: absolute; inset: 0; padding: 0 max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
+    pointer-events: none; background: none; }
+  .nes-wrap.nes-full .nes-pad.on > * { pointer-events: auto; }
+  .nes-wrap.nes-full .nes-mid { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); }
 }
 /* ---------- THE SCREEN § */
 .flappy { width: 100%; aspect-ratio: 4/5; display: block; touch-action: none;

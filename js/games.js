@@ -5021,21 +5021,23 @@ function nesPaint_() {
   const box = $('nes-box');
   if (!box) return;
   if (!USER) { box.innerHTML = '<p class="empty">Sign in to use the console.</p>'; return; }
-  if (!box.querySelector('.nes-wrap')) {
+  if (!box.querySelector('.nes-wrap') && !NES_.full) {
     box.innerHTML = `<div class="nes-wrap" id="nes-wrap">
       <div class="nes-stage" id="nes-stage"><canvas id="nes-canvas" class="nes-canvas" width="256" height="240"></canvas></div>
       <div class="nes-pad" id="nes-pad" aria-hidden="true">
         <div class="nes-dpad" data-k="dpad"></div>
         <div class="nes-mid"><button type="button" class="nes-key nes-small" data-k="select">Select</button><button type="button" class="nes-key nes-small" data-k="start">Start</button></div>
         <div class="nes-ab"><button type="button" class="nes-key nes-round" data-k="b">B</button><button type="button" class="nes-key nes-round" data-k="a">A</button></div>
-        <button type="button" class="nes-key nes-exit" data-k="exit" aria-label="Leave full screen">×</button>
       </div>
+      <button type="button" class="nes-key nes-exit" id="nes-exit" aria-label="Leave full screen">×</button>
     </div>
+    <p class="faint" id="nes-padnote" hidden>Controller connected</p>
     <div class="tile-row" id="nes-tiles"></div>
     <p class="note" id="nes-say" role="status"></p>
     <input type="file" id="nes-file" class="nes-file" accept=".nes,application/octet-stream,*&#47;*">
     <p class="faint">Use a game file you own. It stays on this device and is never uploaded.</p>`;
     nesPadWire_($('nes-pad'));
+    $('nes-exit').addEventListener('click', () => nesFullOff_());
   }
   nesBlit_();
   nesTiles_();
@@ -5051,7 +5053,9 @@ function nesTiles_() {
       : tile_({ icon: 'play', label: 'Play', act: 'nes-play', note: have ? '' : 'choose a .nes file' }))
     + tile_({ icon: 'open', label: 'Choose file', act: 'nes-pick' })
     + (have ? tile_({ icon: 'bin', label: 'Forget file', act: 'nes-forget' }) : '')
-    + tile_({ icon: 'full', label: 'Full screen', act: 'nes-full' });
+    + tile_({ icon: NES_.lock ? 'lock' : 'unlock', label: NES_.lock ? 'Locked' : 'Lock', act: 'nes-lock',
+      note: NES_.lock ? 'tap to let the page move' : 'keep the console in place' })
+    + tile_({ icon: NES_.full ? 'unfull' : 'full', label: 'Full screen', act: 'nes-full' });
   nesPadShow_();
 }
 
@@ -5175,29 +5179,63 @@ function nesSync_() {
   });
 }
 
-/* STANDARD MAPPING (Chrome Android, Safari iOS/iPadOS): bottom face = A, left face = B, 8/9 Select/Start, 12-15 d-pad, and the left stick. */
+/* EVERY PAD, EVERY FRAME, connected event or not: Safari shows a pad only after a press with the page focused (390). Nintendo positions: right face A, bottom B. */
 function nesPadsPoll_() {
   const p = {};
   let any = false;
   try {
     [...(navigator.getGamepads ? navigator.getGamepads() : [])].forEach(g => {
-      if (!g || !g.connected) return;
+      if (!g || g.connected === false) return;
       any = true;
-      const b = i => !!(g.buttons[i] && g.buttons[i].pressed), x = g.axes[0] || 0, y = g.axes[1] || 0;
-      if (b(0)) p.a = 1;
-      if (b(2)) p.b = 1;
-      if (b(9)) p.start = 1;
-      if (b(8)) p.select = 1;
+      const b = i => !!(g.buttons && g.buttons[i] && (g.buttons[i].pressed || g.buttons[i].value > 0.5));
+      const ax = g.axes || [], x = Math.abs(ax[0] || 0) > 0.25 ? ax[0] : 0, y = Math.abs(ax[1] || 0) > 0.25 ? ax[1] : 0, std = g.mapping === 'standard';
+      if (b(1) || b(3)) p.a = 1;
+      if (b(0) || b(2)) p.b = 1;
+      if (b(9) || (!std && b(7))) p.start = 1;
+      if (b(8) || (!std && b(6))) p.select = 1;
       if (b(12) || y < -0.5) p.up = 1;
       if (b(13) || y > 0.5) p.down = 1;
       if (b(14) || x < -0.5) p.left = 1;
       if (b(15) || x > 0.5) p.right = 1;
+      /* A HAT SWITCH on axis 9 (many non-standard pads): -1 is up, clockwise in steps of 2/7, above 1 is centred. */
+      const h = ax[9];
+      if (!std && typeof h === 'number' && h >= -1.05 && h <= 1.05) {
+        const s = Math.round((h + 1) * 3.5) % 8;
+        if (s === 7 || s <= 1) p.up = 1;
+        if (s >= 1 && s <= 3) p.right = 1;
+        if (s >= 3 && s <= 5) p.down = 1;
+        if (s >= 5 && s <= 7) p.left = 1;
+      }
     });
   } catch (e) {}
+  const wasStart = !!(NES_.pads && NES_.pads.start), was = Object.keys(NES_.pads || {}).length;
   NES_.pads = p;
+  if (Object.keys(p).length && !was) nesAudio_();   // any press is a gesture enough to wake the sound
+
   if (any !== !!NES_.padOn) { NES_.padOn = any; nesPadShow_(); }
+  if (p.start && !wasStart && !NES_.running) nesPadPlay_();
   nesSync_();
 }
+
+/* A CONTROLLER'S START BEGINS PLAY with a kept game; with none, it can only say so — a file picker needs a tap. */
+function nesPadPlay_() {
+  if (NES_.nes) { nesAudio_(); nesGo_(); return; }
+  const bytes = NES_.rom || NES_.saved;
+  if (bytes) { nesAudio_(); nesStart_(bytes); return; }
+  nesSay_('Controller connected. Choose a .nes file to play.');
+}
+
+/* WHILE NOTHING RUNS the game loop does not poll, so this does, for as long as the console is drawn. */
+function nesPadWatch_() {
+  if (NES_.watch) return;
+  const tick = () => {
+    if (!$('nes-wrap')) { NES_.watch = 0; return; }
+    if (!NES_.running) nesPadsPoll_();
+    NES_.watch = requestAnimationFrame(tick);
+  };
+  NES_.watch = requestAnimationFrame(tick);
+}
+function nesPadUnwatch_() { cancelAnimationFrame(NES_.watch); NES_.watch = 0; }
 
 /* THE TOUCH PAD only where there is touch and no controller. */
 function nesPadShow_() {
@@ -5205,6 +5243,8 @@ function nesPadShow_() {
   if (!pad) return;
   const touch = (navigator.maxTouchPoints || 0) > 0 || 'ontouchstart' in window;
   pad.classList.toggle('on', !!(touch && !NES_.padOn && NES_.nes));
+  const n = $('nes-padnote');
+  if (n) n.hidden = !NES_.padOn;
 }
 
 function nesPadWire_(pad) {
@@ -5224,7 +5264,6 @@ function nesPadWire_(pad) {
     const k = e.target.closest('[data-k]');
     if (!k) return;
     e.preventDefault();
-    if (k.dataset.k === 'exit') { nesFullOff_(); return; }
     try { k.setPointerCapture(e.pointerId); } catch (err) {}
     ptrs.set(e.pointerId, k.dataset.k === 'dpad' ? dirs(k, e) : { [k.dataset.k]: true });
     redo();
@@ -5238,21 +5277,69 @@ function nesPadWire_(pad) {
   pad.addEventListener('contextmenu', e => e.preventDefault());
 }
 
-/* FULL SCREEN: the real thing where the browser has it, and the page-filling class where it does not (iPhone). */
-function nesFullOff_() {
-  const w = $('nes-wrap');
-  if (w) w.classList.remove('nes-full');
-  try { if (document.fullscreenElement) document.exitFullscreen(); else if (document.webkitFullscreenElement) document.webkitExitFullscreen(); } catch (e) {}
+/* THE PADLOCK: no column swipe, wheel or arrow turn (`SWIPE.lock`, overworld.js) and no page scroll on the console. */
+function nesLock_(on) {
+  NES_.lock = !!on;
+  try { SWIPE.lock = NES_.lock || !!NES_.full; } catch (e) {}
+  const box = $('nes-box');
+  if (box) box.classList.toggle('nes-locked', SWIPE.lock);
+  nesTiles_();
 }
-on('nes-full', () => {
+['touchmove', 'wheel'].forEach(n => document.addEventListener(n, e => {
+  if ((NES_.lock || NES_.full) && e.target && e.target.closest && e.target.closest('#nes-box, #nes-wrap') && e.cancelable) e.preventDefault();
+}, { passive: false }));
+on('nes-lock', () => nesLock_(!NES_.lock));
+
+/* FULL SCREEN (390). The wrapper moves to <body> while full: a sliding column is transformed, and a transformed ancestor pins `fixed` to itself. */
+const nesFsEl_ = () => document.fullscreenElement || document.webkitFullscreenElement || null;
+function nesFullOn_() {
   const w = $('nes-wrap');
-  if (!w) return;
-  const ask = w.requestFullscreen || w.webkitRequestFullscreen;
-  if (ask) {
-    try { const p = ask.call(w); if (p && p.catch) p.catch(() => w.classList.add('nes-full')); return; } catch (e) {}
-  }
+  if (!w || NES_.full) return;
+  NES_.full = { parent: w.parentNode, next: w.nextSibling, real: false };
+  document.body.appendChild(w);
   w.classList.add('nes-full');
-});
+  nesLock_(NES_.lock);
+  nesFit_();
+  const ask = w.requestFullscreen || w.webkitRequestFullscreen || w.webkitRequestFullScreen;
+  if (ask) {
+    try {
+      const p = ask.call(w);
+      NES_.full.real = true;
+      if (p && p.catch) p.catch(() => { if (NES_.full) NES_.full.real = false; });
+    } catch (e) {}
+  }
+}
+function nesFullOff_() {
+  const w = $('nes-wrap'), f = NES_.full;
+  NES_.full = null;
+  try {
+    if (document.exitFullscreen && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    else if (document.webkitExitFullscreen && document.webkitFullscreenElement) document.webkitExitFullscreen();
+  } catch (e) {}
+  if (w) {
+    w.classList.remove('nes-full');
+    if (f && f.parent && f.parent.isConnected) f.parent.insertBefore(w, f.next && f.next.parentNode === f.parent ? f.next : null);
+    else w.remove();
+    const s = $('nes-stage'); if (s) { s.style.width = ''; s.style.height = ''; }
+  }
+  nesLock_(NES_.lock);
+}
+/* THE BIGGEST WHOLE-NUMBER SCALE when it fills nine tenths of the room, otherwise the plain fit; 256:240 either way. */
+function nesFit_() {
+  const w = $('nes-wrap'), s = $('nes-stage');
+  if (!NES_.full || !w || !s) return;
+  const W = w.clientWidth || innerWidth, H0 = w.clientHeight || innerHeight;
+  const portrait = H0 > W, pad = $('nes-pad'), padH = portrait && pad && pad.classList.contains('on') ? pad.offsetHeight + 16 : 0;
+  const H = Math.max(60, H0 - padH - 16), fit = Math.min(W / 256, H / 240), whole = Math.floor(fit);
+  const k = whole >= 1 && whole / fit >= 0.9 ? whole : fit;
+  s.style.width = Math.floor(256 * k) + 'px'; s.style.height = Math.floor(240 * k) + 'px';
+}
+['resize', 'orientationchange'].forEach(n => addEventListener(n, () => setTimeout(nesFit_, 50)));
+['fullscreenchange', 'webkitfullscreenchange'].forEach(n => document.addEventListener(n, () => {
+  if (NES_.full && NES_.full.real && !nesFsEl_()) nesFullOff_(); else setTimeout(nesFit_, 50);
+}));
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && NES_.full) nesFullOff_(); });
+on('nes-full', () => { if (NES_.full) nesFullOff_(); else nesFullOn_(); });
 
 on('nes-play', () => {
   nesAudio_();
@@ -5296,5 +5383,5 @@ document.addEventListener('change', e => {
 }, true));
 
 document.addEventListener('visibilitychange', () => { if (document.hidden) nesStop_(); });
-window.addEventListener('gamepadconnected', () => { NES_.padOn = true; nesPadShow_(); });
+window.addEventListener('gamepadconnected', () => { NES_.padOn = true; nesPadShow_(); nesPadWatch_(); });
 window.addEventListener('gamepaddisconnected', () => nesPadsPoll_());

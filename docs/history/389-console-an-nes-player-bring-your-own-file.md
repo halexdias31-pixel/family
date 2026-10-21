@@ -38,3 +38,29 @@ paused on Pause and on sliding away.
 
 **The `*/*` in `accept`** is written `*&#47;*`: check-doors and check-dead strip comments with a regex,
 and a literal `*/*` opened one that swallowed the rest of games.js.
+
+## 390 — full screen, a padlock, and controllers that work (2026-10-21)
+
+The owner (iPhone Safari + an Xbox pad over Bluetooth; wants any device × any pad): "Full screen feature isn't
+really working", "needs a padlock tile to keep it in the same place", "controller doesn't seem to work".
+
+Root causes:
+- **Controller:** pads were polled only inside the game loop, so nothing read them before Play, and the
+  "controller connected" state never appeared. Safari exposes a pad only after a button press while the page
+  is focused and fires no reliable `gamepadconnected`. A controller's Start could not begin play. The mapping
+  read A from button 0 and B from button 2, so an Xbox pad's B (1) did nothing.
+- **Full screen:** the fallback `position: fixed` sat inside a sliding column; a transformed ancestor pins
+  `fixed` to itself, so the "full" player filled the column, not the window. The stage rules shared a
+  selector list with `:fullscreen`, which an older Safari drops whole. No `webkitfullscreenchange` handling.
+
+Fix (games.js, end): `nesPadWatch_` polls `navigator.getGamepads()` every frame while the console widget is
+started (draw-ahead runs nothing — check-widgets); the game loop polls while playing. Nintendo positions:
+right face (1, and 3) = NES A, bottom face (0, and 2) = NES B, 9/8 Start/Select (7/6 too on non-standard),
+d-pad 12–15, left stick (deadzone 0.25 for drift; 0.5 to count), and a hat on axis 9 for non-standard pads. Start with a kept game begins play; the first press of any button wakes the audio. Keyboard, touch and pad are OR'd in `nesSync_`, so none overwrites another.
+"Controller connected" shows and the touch pad hides. Full screen moves `#nes-wrap` to `<body>` (put back
+on exit), tries `requestFullscreen`/`webkitRequestFullscreen` on the wrapper, and otherwise stays the fixed
+full-window mode (iPhone). Black, canvas sized by `nesFit_` (whole-number scale when it fills 90%, else fit;
+256:240), recomputed on resize/rotate/fullscreenchange; × or Escape exits. The Lock tile sets `SWIPE.lock`,
+which `axisFree` (overworld.js: swipes and wheel) and the arrow-key turn (shell.js) honour, and stops
+touchmove/wheel on the console; full screen locks too. Tested with Playwright stubbing `getGamepads`
+(standard and non-standard with a hat), full screen at 390×844, 844×390 and 1280×800 including rotation.
