@@ -26,14 +26,13 @@ function settingsInto_(d, extra) {
     });
   }
 
-  /* what the funnel asks ------------------------------------------------------------------- `order` and `minCoverage` are THREE-STATE: § */
+  /* what the funnel asks ------------------------------------------------------------------- `order` is THREE-STATE: § */
   const facets = extra['settings/facets'];
   if (facets && facets.length) {
     d.facets = facets.filter(r => libS(r.field).trim()).map(r => ({
       field: libS(r.field).trim(),
       label: libS(r.label),
       order: libS(r.sort_order) === '' ? null : Number(r.sort_order),
-      minCoverage: libS(r.min_coverage) === '' ? null : Number(r.min_coverage),
       active: libOn(r.active),
     }));
   }

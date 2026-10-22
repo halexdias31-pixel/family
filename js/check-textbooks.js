@@ -40,19 +40,8 @@ tree.forEach(t => {
   String(t.aliases || '').split(',').forEach(a => { if (a.trim()) known.add(key(a)); });
 });
 
-/* ---------- THE SOURCE, AND THE THREE TABLES THAT GROUP THE FUNNEL ------------------------------
-   `check-projects.js`'s reader, for its reason: a copy here is a second list. */
+/* ---------- THE SOURCE. The grouping tables went in 396: every facet's answers are drawn as they are. */
 const findSrc = fs.readFileSync(path.join(root, 'js', 'find.js'), 'utf8');
-function table(name) {
-  const m = new RegExp('const ' + name + ' = bucketTable_\\(\\[([\\s\\S]*?)\\]\\);').exec(findSrc);
-  if (!m) { fail.push(name + ' is not in js/find.js any more — this check cannot see what groups the funnel'); return null; }
-  const out = new Set();
-  m[1].replace(/\/\*[\s\S]*?\*\//g, '').replace(/'([^']*)'/g, (_, v) => { out.add(v); return _; });
-  return out;
-}
-const SUBJECTS = table('SUBJECT_BUCKET');
-const LEVELS = table('LEVEL_BUCKET');
-const KINDS_PLACED = table('KIND_BUCKET');
 
 /* THE REAL `typeset_`, and `tbMath_`'s one line in front of it, which is the whole of how a cell
    becomes markup. If `tbMath_` changes its recipe this check has to change with it — so it is
@@ -89,17 +78,10 @@ if (!kindM) {
   if (kindM[1] !== 'Learning') fail.push('the content kind is in group "' + kindM[1] + '", not Learning');
   /* THE CODE'S OWN LABEL, so an empty `kinds` tab still says it — the owner's word, "content card". */
   if (kindM[2] !== 'Content') fail.push('the content kind is labelled "' + kindM[2] + '" — it is its own answer, `Content`, under What kind');
-  if (KINDS_PLACED && !KINDS_PLACED.has(kindM[2])) {
-    fail.push('"' + kindM[2] + '" is not in KIND_BUCKET — one unplaced kind stands `What kind` down to the alphabet');
-  }
 }
-/* THE DOOR, which the Bible still needs against the boxing: without `always` the balance rule refuses
-   a 1-against-260 split. The textbooks' shelf on it went with the books. */
+/* THE SHELF, AN ORDINARY QUESTION (396): asked by the one rule like every facet. The textbooks' shelf on it went with the books. */
 const shelfM = /\{\s*field:\s*'shelf',[^}]*\}/.exec(findSrc);
-if (!shelfM) fail.push('FACETS has no `shelf` entry — Resources has no third rung, so the Bible is under 260 rows of boxing');
-else if (!/always:\s*true/.test(shelfM[0])) {
-  fail.push('the `shelf` facet is not `always` — FACET_MIN_MINORITY will refuse one Bible against the boxing, and the door never opens');
-}
+if (!shelfM) fail.push('FACETS has no `shelf` entry — Resources has no shelf question');
 /* A CONTENT CARD IS ON NO SHELF. A shelf only the cards carried would be the old textbooks' door back,
    asked over a list of questions and cards where it says nothing about the questions. */
 const itemM = /function contentItem_\([^)]*\)\s*\{([\s\S]*?)\n\}/.exec(findSrc);
@@ -191,8 +173,6 @@ rows.forEach((r, line) => {
       if (!String(r[col] || '').trim()) fail.push(id + "'s title page has no " + col);
     });
     const subj = String(r.subject || '').trim(), lvl = String(r.level || '').trim();
-    if (subj && SUBJECTS && !SUBJECTS.has(subj)) fail.push(id + ' has subject "' + subj + '", which SUBJECT_BUCKET does not place — one unplaced subject stands the whole Subject grouping down');
-    if (lvl && LEVELS && !LEVELS.has(lvl)) fail.push(id + ' has level "' + lvl + '", which LEVEL_BUCKET does not place');
     ['words', 'formulas', 'points', 'topics', 'tier'].forEach(col => {
       if (String(r[col] || '').trim()) fail.push(id + "'s title page carries " + col + ' — that belongs to a chapter');
     });

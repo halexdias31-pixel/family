@@ -130,11 +130,12 @@ const STATES = {
         const rows = [...document.querySelectorAll('#stuff-groups .answers > .row[data-do="facet-pick"]')];
         const txt = r => r.textContent.replace(/\s+/g, ' ').trim();
         if (rows.length < 2 || !rows.every(r => r.dataset.field === 'paperId')) return false;
-        if (rows.some(r => /\bMay\b/i.test(txt(r)))) return false;
-        return rows.every(r => /· (19|20)\d{2}\b/.test(txt(r)));
+        /* THE SHORTEST NAME EACH PAPER HAS THAT NO OTHER ANSWER SHARES (`shortLabels_`, 396): its number, and its date where two sittings share it. */
+        const said = rows.map(txt);
+        return new Set(said).size === said.length && said.every(t => /^Paper \d+/.test(t));
       },
-      wants: 'the Paper question, each answer its number and its year, and no answer saying May again' },
-    /* ---------- A PAPER CHOSEN, AND NOTHING MORE ASKED § */
+      wants: 'the Paper question, each answer its number (and its date where two share it), no two alike' },
+    /* ---------- A PAPER CHOSEN, AND THE ONE RULE ASKS ITS QUESTION NEXT (396) § */
     { name: 'a paper chosen',
       enter: () => {
         STUFF.q = '';
@@ -152,31 +153,31 @@ const STATES = {
       },
       /* AND THE CARD'S SITTING IS TWO TAGS, `2017` THEN `June` — *"Fix this why it say June and year in same chip"* was a screenshot of one purple `June 2024` pill on § */
       expect: () => {
-        const rows = document.querySelectorAll('#stuff-groups .answers > .row[data-do="facet-pick"]');
+        const rows = [...document.querySelectorAll('#stuff-groups .answers > .row[data-do="facet-pick"]')];
         const groups = document.querySelector('#stuff-groups');
         const card = document.querySelector('#s-stuff .page.on .qcard') || document.querySelector('#s-stuff .qcard');
         const sit = card ? [...card.querySelectorAll('.qtag[data-tag="sitting"]')].map(t => t.textContent.trim()) : [];
-        const cover = groups && groups.querySelector('.paper-cover');
-        return !!groups && rows.length === 0 && /That is the paper, in order/.test(groups.textContent)
-               && !!card && sit.join('|') === '2017|June'
-               && !!cover && /sat [A-Z][a-z]+ \d{1,2} [A-Z][a-z]+ \d{4}/.test(cover.textContent);
+        return !!groups && rows.length >= 2 && rows.every(r => r.dataset.field === 'qNumber')
+               && !!card && sit.join('|') === '2017|June';
       },
-      wants: 'a funnel page asking nothing after Paper, with the paper\'s first question on the page after it, its sitting tagged 2017 then June (then the day it was sat, with no year)',
+      wants: 'the Question question after Paper, Q1 onwards, with the paper\'s first question on the page after it, its sitting tagged 2017 then June',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A LONG LIST, DRAWN WHOLE § */
     { name: 'a long list, drawn whole',
       enter: () => {
         STUFF.q = '';
         STUFF.filters = [{ field: 'kindLabel', value: 'Questions' },
-                         { field: 'subject', value: 'Maths', bucket: true },
+                         { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Worksheet' },
                          { field: 'keystage', value: 'KS2' },
-                         { field: 'yearGroup', value: 'Year 5' }];
+                         { field: 'yearGroup', value: 'Year 5' },
+                         /* SATs, since 396 asks Level here (a Year 5 sheet filed GCSE makes two answers); then Paper, 13 sheets. */
+                         { field: 'level', value: 'SATs' }];
         paintStuff(); goPage('stuff', 0, true);
       },
       expect: () => {
         const rows = [...document.querySelectorAll('#stuff-groups .answers > .row[data-do="facet-pick"]')];
-        return rows.length >= 10 && rows.every(r => !r.getAttribute('data-bucket'));
+        return rows.length >= 10;
       },
       wants: 'ten or more answer chips on one question, none of them a range',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
@@ -623,10 +624,10 @@ const STATES = {
       expect: () => {
         const c = document.querySelector('#s-stuff .page.on .qcard.qpre');
         return !!c && !c.querySelector('.qp-ans') && /Continued on the next page/.test(c.textContent)
-               && ((c.querySelector('.qcard-tags [data-f="qPage"]') || {}).textContent || '') === '1'
-               && /^of \d+$/.test((c.querySelector('.qcard-tags [data-f="qPages"]') || {}).textContent || '');
+               && ((c.querySelector('.qcard-tags [data-f="qPage"]') || {}).textContent || '') === 'Page 1'
+               && /^\d+ pages$/.test((c.querySelector('.qcard-tags [data-f="qPages"]') || {}).textContent || '');
       },
-      wants: 'the first page of a long part: its reading, no box, tagged [1] [of N], saying it continues',
+      wants: 'the first page of a long part: its reading, no box, tagged [Page 1] [N pages], saying it continues',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- HOW YOUR LAST ANSWER WENT, BESIDE THE STAR § */
     { name: 'a question you last got right',
@@ -744,12 +745,12 @@ const STATES = {
       expect: () => {
         const row = document.querySelector('#s-stuff .page.on .qcard .qcard-tags');
         const tags = row ? [...row.querySelectorAll('.qtag')].map(t => (t.getAttribute('data-tag') || '') + ':' + t.textContent.trim()) : [];
-        return tags[0] === ':Questions' && tags.indexOf('paper:Q1') >= 0 && tags.indexOf('board:STA') >= 0 && tags.indexOf('level:SATs') >= 0
+        return tags[0] === 'kind:Learning' && tags[1] === 'kind:Questions' && tags.indexOf('paper:Q1') >= 0 && tags.indexOf('board:STA') >= 0 && tags.indexOf('level:SATs') >= 0
                && tags.indexOf('level:KS2') === tags.indexOf('level:SATs') + 1
                && !tags.some(t => /KS\s*\d\s*SATs/i.test(t)) && tags.indexOf('needs:Ruler') >= 0
                && !document.querySelector('#s-stuff .page.on .qcard-needs, #s-stuff .page.on .qcard-top');
       },
-      wants: 'a KS2 SATs question tagged Questions first, then SATs and KS2 side by side, its board STA, Q1, its mark and Ruler as what to bring -- no header line, no needs line',
+      wants: 'a KS2 SATs question tagged Learning and Questions first, then SATs and KS2 side by side, its board STA, Q1, its mark and Ruler as what to bring -- no header line, no needs line',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- THE ANSWER PAGE: HIDDEN, TURNED TO, AND SHOWN § */
     /* THE RESULT EXPECTED IS THE ONE THE APP SAYS, not a word copied in here. § */

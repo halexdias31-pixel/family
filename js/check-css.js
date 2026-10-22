@@ -680,15 +680,27 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
   say('A FIGURE\'S INK A MADE-UP SURFACE ON THE CARD DOES NOT GET (356)', inkBad);
 }
 
-/* ---------- NO TAG IS STYLED AS A KIND OF ITS OWN (docs/history/355) § */
+/* ---------- EVERY TAG KIND `TAG_OF` NAMES HAS ONE COLOUR, AND NO COLOUR IS FOR A KIND IT DOES NOT NAME (355, 396) § */
 {
   const tagBad = [];
-  rules.forEach(r => {
-    if (/\[data-tag=["']?(kind|number|marks)["']?\]/.test(r.sel)) tagBad.push('line ' + r.line + '  ' + r.sel + '  →  a tag kind with a look of its own');
-    if (/\.fc-flags?\b|\.qcard-top\b/.test(r.sel)) tagBad.push('line ' + r.line + '  ' + r.sel + '  →  a card-head pill beside the tag row');
-    r.decls.forEach(d => { if (/^--tag-(kind|number|marks)$/.test(d.prop)) tagBad.push('line ' + r.line + '  ' + d.prop + '  →  a token for a tag kind no facet has'); });
-  });
-  say('A TAG STYLED AS A KIND OF ITS OWN -- every tag is a facet answer in one outline (355)', tagBad);
+  const findSrc = fs.readFileSync(path.join(dir, 'js', 'find.js'), 'utf8');
+  const tbl = /const TAG_OF = \{([\s\S]*?)\n\};/.exec(findSrc);
+  const dflt = /const tagOf_ = field => TAG_OF\[field\] \|\| '([a-z]+)'/.exec(findSrc);
+  if (!tbl || !dflt) tagBad.push('TAG_OF or its default in tagOf_ is not readable in js/find.js — the tag colours were NOT checked');
+  else {
+    const kinds = new Set([...tbl[1].replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/:\s*'([a-z]+)'/g)].map(m => m[1]).concat([dflt[1]]));
+    const drawn = new Set();
+    rules.forEach(r => {
+      const m = /\[data-tag=["']?([a-z]+)["']?\]/.exec(r.sel);
+      if (m && /^\[data-tag=/.test(r.sel.trim())) {
+        drawn.add(m[1]);
+        if (!kinds.has(m[1])) tagBad.push('line ' + r.line + '  ' + r.sel + '  →  a colour for a tag kind TAG_OF never gives');
+      }
+      if (/\.fc-flags?\b|\.qcard-top\b/.test(r.sel)) tagBad.push('line ' + r.line + '  ' + r.sel + '  →  a card-head pill beside the tag row');
+    });
+    kinds.forEach(k => { if (!drawn.has(k)) tagBad.push('TAG_OF gives `' + k + '` and no `[data-tag="' + k + '"]` rule colours it'); });
+  }
+  say('A TAG KIND WITHOUT ONE COLOUR, OR A COLOUR WITHOUT A KIND -- every facet\'s tag is coloured (396)', tagBad);
 }
 
 console.log('');

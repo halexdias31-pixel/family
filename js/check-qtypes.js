@@ -131,7 +131,7 @@ if (Q) {
   const find = fs.readFileSync(path.join(ROOT, 'js', 'find.js'), 'utf8');
   const lib = fs.readFileSync(path.join(ROOT, 'js', 'library.js'), 'utf8');
   const src = (/^function verifyTags_\([\s\S]*?\n}\n/m.exec(find) || [])[0], tru = (/^const libTrue = [\s\S]*?\n};\n/m.exec(lib) || [])[0];
-  ['accuracy', 'function'].forEach(f => { if (!new RegExp("\\{ field: '" + f + "', tag: true").test(find)) broken.push('find.js FACETS has no ordinary `' + f + '` tag'); });
+  ['accuracy', 'function'].forEach(f => { if (!new RegExp("\\{ field: '" + f + "',").test(find)) broken.push('find.js FACETS has no ordinary `' + f + '` tag'); });
   if (!src || !tru) broken.push('find.js `verifyTags_` or library.js `libTrue` not found — no tag was checked');
   else {
     const ctx = vm.createContext({ qtIncomplete_: Q.qtIncomplete_, qtMachine_: Q.qtMachine_ });

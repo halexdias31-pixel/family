@@ -60,6 +60,8 @@ when it was not told it could", never "is this past the right edge".
   tab still renders. **The pattern to copy for anything new.**
 - **`config` tab** — numbers and switches, reaching the site as `DATA.constants.vars`.
 - **`facets` / `kinds` tabs** — what the funnel asks and what answers are called; editorial, so not in code.
+- **One rule for every facet** (396): a facet is a field, a label and its readers (`FACET_KEYS`) — asked by `facetWhy_`,
+  sorted by `answerCmp_`, said by `facetSay_`, coloured by `TAG_OF`, and a tag on every card. Never a per-facet flag (check-funnel).
 - **Every other tab** is listed in `TAB`, `SCHEMA` and `WHERE` in `backend/constants.gs`. **All three must
   name it** (`check-tabs.js`, which runs before `check-columns.js`).
 - **Content cards:** each chapter row of `data/textbooks.json` is a content card (kind `content`); nothing a

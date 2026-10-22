@@ -1127,14 +1127,15 @@ function digestLibrary_(site) {
 }
 
 /* ---------- THE CARD'S TAGS, AS THE SITE DRAWS THEM (20 Oct, docs/history/380): `tagRow_` (js/find.js) for a question, ported § */
-/* THE TAG FACETS A QUESTION ANSWERS, IN `facetList()`'s ORDER, with their `TAG_OF` colour kind; check-funnel holds this to the app's own row. */
-const DIGEST_TAG_FACETS = [['kindLabel', ''], ['subject', 'subject'], ['documentType', 'type'], ['fiveLevel', 'level'], ['fiveMonth', 'sitting'],
-  ['fiveDay', 'paper'], ['level', 'level'], ['keystage', 'level'], ['yearGroup', 'level'], ['bandValue', 'level'], ['examBoard', 'board'],
-  ['tier', 'tier'], ['examYear', 'sitting'], ['examMonth', 'sitting'], ['paperId', 'paper'], ['qNumber', 'paper'], ['qPart', 'paper'],
-  ['qSub', 'paper'], ['marks', ''], ['needs', 'needs']];
-/* `[data-tag]`'s colours (style.css `--tag-*`); a facet with no kind wears the plain outline, `--chip-line` round `--dim`. */
+/* THE TAG FACETS A QUESTION ANSWERS, IN `facetList()`'s ORDER (the facets tab's sort_order), with their `TAG_OF` colour kind; check-funnel holds this to the app's own row (396). */
+/* `function` is not here: Function verified is read off the question type's protocol by qtypes.js, in the browser, and the email says no Function tag. */
+const DIGEST_TAG_FACETS = [['forLabel', 'kind'], ['kindLabel', 'kind'], ['subject', 'subject'], ['documentType', 'type'], ['fiveLevel', 'level'],
+  ['fiveMonth', 'sitting'], ['fiveDay', 'paper'], ['level', 'level'], ['keystage', 'level'], ['yearGroup', 'level'], ['bandValue', 'level'],
+  ['examBoard', 'board'], ['tier', 'tier'], ['examYear', 'sitting'], ['examMonth', 'sitting'], ['paperId', 'paper'], ['qNumber', 'paper'],
+  ['qPart', 'paper'], ['qSub', 'paper'], ['marks', 'paper'], ['needs', 'needs'], ['accuracy', 'check'], ['company', 'board']];
+/* `[data-tag]`'s colours (style.css `--tag-*`), one for every kind `TAG_OF` gives. */
 const DIGEST_TAG_INK = { paper: '#ff7b72', subject: '#3ddc84', level: '#6cb6ff', sitting: '#c8a2ff', tier: '#ff8fc4', board: '#4fd1c5',
-  type: '#c3e88d', topic: '#ff9e64', needs: '#f0f08a' };
+  type: '#c3e88d', topic: '#ff9e64', needs: '#f0f08a', kind: '#e2cfa6', check: '#9ec5e8', other: '#bdbdbd' };
 const DIGEST_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const DIGEST_ROMAN = /^(i{1,3}|iv|vi{0,3}|ix|xi{0,3})$/i;
 
@@ -1180,7 +1181,7 @@ function digestTagItem_(q) {
            bandType: digestLibS_(q.band_type), bandValue: digestLibS_(q.band_value), tier: digestLibS_(q.tier),
            examBoard: digestLibS_(q.exam_board), examWave: digestLibS_(q.exam_wave), year: digestLibS_(q.year), sub: digestLibS_(q.name) };
 }
-/* `levelOf_`, `ksFallback_` and the SATs rung of `LEVEL_BUCKET`. */
+/* `levelOf_` and `ksFallback_`. */
 function digestTagLevel_(it) {
   const band = it.bandType === 'stage' && it.bandValue ? String(it.bandValue) : '';
   let own = band || String(it.src.level || '').trim();
@@ -1277,7 +1278,7 @@ function digestTagFive_(q) {
   const month = m ? DIGEST_MONTHS[Number(m[1]) - 1] : '';
   return month ? { month: month, day: Number(m[2]) } : null;
 }
-/* `nameForms_` and `sittingParts_`/`sittingUnsaid_`: the rungs a paper's name is shortened by, and its date dropped where the Year and Month tags say it. */
+/* `nameForms_`: the rungs a paper's name is shortened by. */
 const DIGEST_TAG_CUT = new RegExp('\\s[\\u2014\\u2013]\\s|\\s\\u00b7\\s(?=(?:(?:19|20)\\d{2}|' + DIGEST_MONTHS.join('|') + ')$)');
 function digestTagForms_(s) {
   const full = String(s == null ? '' : s).trim(), out = [];
@@ -1290,71 +1291,42 @@ function digestTagForms_(s) {
   out.push(full);
   return out;
 }
-function digestTagUnsaid_(label, said) {
-  const s = String(label == null ? '' : label);
-  if (!said.year && !said.month) return s;
-  const dash = /\s[—–]\s/.exec(s);
-  const pm = dash ? /^((?:\d{1,2}\s+)?([A-Za-z]+))\s+((?:19|20)\d{2})$/.exec(s.slice(dash.index + dash[0].length).trim()) : null;
-  if (!pm || !DIGEST_MONTHS.some(n => n.toLowerCase() === pm[2].toLowerCase())) return s;
-  const left = [];
-  if (!(said.year && said.year === pm[3])) left.push(pm[3]);
-  if (!(said.month && digestSpell_(said.month) === digestSpell_(pm[2]))) left.push(pm[1]);
-  if (left.length === 2) return s;
-  return s.slice(0, dash.index) + (left.length ? ' · ' + left[0] : '');
+/* `facetSay_`'s one way of saying a value: its first letter capitalised, unless it is a single lower-case letter or a roman numeral. */
+const digestSay_ = v => { const t = String(v == null ? '' : v).trim(); return /^(?:[a-z]|[ivx]+)$/.test(t) ? t : t.charAt(0).toUpperCase() + t.slice(1); };
+/* THE ANSWERS OF THE FACETS ASKED BEFORE Paper that a paper's head row gives — `cardList_`'s chips, read off one row a paper. */
+function digestTagBefore_(it, T) {
+  const five = digestTagFive_(it.src);
+  return { subject: digestList_(it.subject), documentType: digestList_(it.documentType),
+           fiveLevel: digestList_(five ? it.tier : ''), fiveMonth: digestList_(five ? five.month : ''), fiveDay: digestList_(five ? five.day + ' ' + five.month : ''),
+           level: digestList_(digestTagLevel_(it)), keystage: digestTagKeystage_(it),
+           yearGroup: digestList_(it.bandValue && it.bandType === 'year' ? 'Year ' + it.bandValue : ''),
+           bandValue: digestList_(it.bandValue && it.bandType === 'grade' ? 'Grade ' + it.bandValue : ''),
+           examBoard: digestList_(it.examBoard), tier: digestList_(it.tier), examYear: digestList_(digestTagYear_(it, T)), examMonth: digestList_(digestTagMonth_(it, T)) };
 }
-/* `paperLabels_` over the papers in one folder: a name shared by two says what tells them apart (subject, tier, board). */
-function digestTagLabels_(ids, T) {
-  const map = {}, byName = {}, docs = [];
-  ids.forEach(id => {
-    const q = T.docs[id];
-    if (!q || String(q.kind) !== 'document') return;
-    const name = String(q.name || '').trim();
-    if (!name) return;
-    docs.push({ id: id, name: name, subject: q.subject, tier: q.tier, exam_board: q.exam_board });
-    (byName[digestSpell_(name)] = byName[digestSpell_(name)] || []).push(q);
-  });
-  docs.forEach(q => {
-    const share = byName[digestSpell_(q.name)] || [];
-    if (share.length < 2) { map[q.id] = q.name; return; }
-    const bits = [q.name];
-    let field = share;
-    ['subject', 'tier', 'exam_board'].forEach(col => {
-      if (field.length < 2) return;
-      const mine = String(q[col] || '').trim();
-      if (mine && new Set(field.map(d => String(d[col] || '').trim())).size > 1) bits.push(mine);
-      field = field.filter(d => String(d[col] || '').trim() === mine);
-    });
-    const extra = bits.slice(1).join(' · '), dash = /\s[—–]\s/.exec(q.name);
-    map[q.id] = !extra ? q.name : dash ? q.name.slice(0, dash.index) + ' · ' + extra + q.name.slice(dash.index) : q.name + ' · ' + extra;
-  });
-  return map;
-}
-/* `paperTag_`: the paper as its own folder names it among the papers sharing its level, board, subject, tier, type and sitting — `Paper 1`, `Perimeter`. */
+const digestTagKeystage_ = it => { const s = digestTagSats_(it); return s.length ? s : digestTagStages_(it); };
+/* `cardList_` + `facetShort_`: the paper said as its Paper button would be once every question before it was answered the card's way — `Paper 1`. */
 function digestTagPaper_(it, T) {
   const pid = S(it.src.paper_id);
   if (!pid) return '';
   T.paperSaid = T.paperSaid || {};
   if (pid in T.paperSaid) return T.paperSaid[pid];
-  const keyOf = i => [digestTagLevel_(i), i.examBoard.trim(), i.subject.trim(), i.tier.trim(), i.documentType.trim(), digestTagYear_(i, T), digestTagMonth_(i, T)].join('|');
-  if (!T.folders) {
-    T.folders = {};
-    Object.keys(T.heads).forEach(p => { const k = keyOf(digestTagItem_(T.heads[p])); (T.folders[k] = T.folders[k] || []).push(p); });
-  }
-  const sib = (T.folders[keyOf(it)] || []).slice();
+  const nameOf = id => digestSay_(String((T.docs[id] || {}).name || id).trim());
+  const forms0 = digestTagForms_(nameOf(pid));
+  if (forms0.length < 2) return (T.paperSaid[pid] = nameOf(pid));
+  if (!T.before) { T.before = {}; Object.keys(T.heads).forEach(p => { T.before[p] = digestTagBefore_(digestTagItem_(T.heads[p]), T); }); }
+  const mine = digestTagBefore_(it, T);
+  const sib = Object.keys(T.heads).filter(p => Object.keys(mine).every(k => !mine[k].length
+    || (T.before[p][k] || []).some(v => mine[k].some(w => digestSpell_(v) === digestSpell_(w)))));
   if (sib.indexOf(pid) < 0) sib.push(pid);
-  const said = { year: digestTagYear_(it, T), month: digestTagMonth_(it, T) };
-  const labels = digestTagLabels_(sib, T);
-  const values = sib.map(v => ({ value: v, text: digestTagUnsaid_(labels[v] || v, said) }));
-  /* `shortLabels_`: the first rung at which every name in the folder is told apart. */
-  const forms = values.map(v => digestTagForms_(v.text || v.value));
+  /* `shortLabels_`: the first rung at which every name among them is told apart. */
+  const forms = sib.map(v => digestTagForms_(nameOf(v)));
   let deepest = 0, show = '';
   forms.forEach(f => { deepest = Math.max(deepest, f.length); });
   for (let rung = 0; rung < deepest && !show; rung++) {
     const at = forms.map(f => f[Math.min(rung, f.length - 1)]);
-    if (new Set(at.map(digestSpell_)).size === at.length) show = at[values.findIndex(v => v.value === pid)];
+    if (new Set(at.map(digestSpell_)).size === at.length) show = at[sib.indexOf(pid)];
   }
-  show = show || (values.filter(v => v.value === pid)[0] || {}).text || digestTagUnsaid_(digestTagLabels_([pid], T)[pid] || pid, {});
-  return (T.paperSaid[pid] = show);
+  return (T.paperSaid[pid] = show || nameOf(pid));
 }
 /* `partSplit_`, with the question's own numeral decision (`partNumerals_`): `ai` is [a] [i], AQA's `1` is [.1], a lone `ii` a numeral when every part of the question is one. */
 function digestTagSplit_(q, T) {
@@ -1374,9 +1346,9 @@ function digestTagSplit_(q, T) {
   };
   return split(q.part, numerals) || split(q.part, true) || { part: '', sub: '' };
 }
-/* `needsIndex_`/`needsOf_`: the paper's kit, then the question's, then the printed sheet. */
+/* `needsIndex_`/`needsOf_`: the paper's kit, then the question's, then the printed sheet — the calculator in `NEED_WORDS`' words. */
 function digestTagNeeds_(q, T) {
-  const out = [], add = v => { if (v && out.indexOf(v) === -1) out.push(v); };
+  const out = [], add = v => { v = ({ 'no calculator': 'Non-calculator', calculator: 'Calculator allowed' })[String(v || '').trim().toLowerCase()] || v; if (v && out.indexOf(v) === -1) out.push(v); };
   digestList_(String((T.docs[S(q.paper_id)] || {}).needs || '').split(',')).forEach(add);
   digestList_(digestLibS_(q.needs).split(',')).forEach(add);
   if (digestLibTrue_(q.needs_print) || digestLibTrue_(q.print_required)) add('Printed sheet');
@@ -1389,37 +1361,37 @@ function digestCardTags_(q, T) {
   const it = digestTagItem_(q), pid = S(q.paper_id), five = digestTagFive_(q);
   const lv = digestTagLevel_(it), split = digestTagSplit_(q, T);
   const marks = Number(digestLibS_(q.marks).replace(/[^0-9.-]/g, '')) || 0;
-  const sameAs = v => { const k = digestSpell_(v); return k === 'standardstestingagency' ? 'sta' : k; };
-  /* EACH FACET'S RAW ANSWERS (`facetOwn_`), then how its chip says one (`showOf`, `tagSay`). */
+  /* EACH FACET'S ANSWERS (`facetOwn_`, `tagOf` for the card's own page), in the words the value is. */
   const of = {
-    kindLabel: () => 'Questions',
+    forLabel: () => 'Learning', kindLabel: () => 'Questions',
     subject: () => it.subject, documentType: () => it.documentType,
-    fiveLevel: () => (five ? it.tier : ''), fiveMonth: () => (five ? five.month : ''), fiveDay: () => (five ? pid : ''),
-    level: () => lv, keystage: () => digestTagSats_(it),
+    fiveLevel: () => (five ? it.tier : ''), fiveMonth: () => (five ? five.month : ''), fiveDay: () => (five ? five.day + ' ' + five.month : ''),
+    level: () => lv, keystage: () => digestTagKeystage_(it),
     yearGroup: () => (it.bandValue && it.bandType === 'year' ? 'Year ' + it.bandValue : ''),
     bandValue: () => (it.bandValue && it.bandType === 'grade' ? 'Grade ' + it.bandValue : ''),
-    examBoard: () => it.examBoard,
-    /* `not: 'level'` — `A-Level` as a tier is the level's word, not a second answer. */
-    tier: () => digestList_(it.tier).filter(v => !lv || sameAs(v) !== sameAs(lv)),
+    examBoard: () => it.examBoard, tier: () => it.tier,
     examYear: () => digestTagYear_(it, T), examMonth: () => digestTagMonth_(it, T),
-    paperId: () => pid, qNumber: () => digestLibS_(q.question), qPart: () => split.part, qSub: () => split.sub,
-    marks: () => (marks > 0 ? String(marks) : ''), needs: () => digestTagNeeds_(q, T),
+    paperId: () => pid, qNumber: () => (digestLibS_(q.question) ? 'Q' + digestLibS_(q.question) : ''), qPart: () => split.part, qSub: () => split.sub,
+    marks: () => (marks > 0 ? marks + ' mark' + (marks === 1 ? '' : 's') : ''), needs: () => digestTagNeeds_(q, T),
+    accuracy: () => (digestLibTrue_(q.verified) ? 'Accuracy verified' : 'Accuracy unverified'), company: () => digestLibS_(q.company),
   };
-  const say = {
-    fiveDay: () => five.day + ' ' + five.month, paperId: () => digestTagPaper_(it, T), qNumber: v => 'Q' + v,
-    marks: v => v + ' mark' + (v === '1' ? '' : 's'),
-    needs: v => ({ 'no calculator': 'Non-calculator', calculator: 'Calculator allowed' }[v.toLowerCase()] || v),
+  const say = { paperId: () => digestTagPaper_(it, T) };
+  /* `tagRow_`'s dedupe: a word already said, an id already said, or a tag that is only earlier tags side by side (`tagMadeOf_`). */
+  const madeOf = (text, said) => {
+    const t = text.toLowerCase(), parts = said.map(w => w.toLowerCase()).filter(Boolean);
+    const from = i => i === t.length || parts.some(p => t.startsWith(p, i) && (i + p.length === t.length || (t[i + p.length] === ' ' && from(i + p.length + 1))));
+    return parts.length > 1 && t.indexOf(' ') > 0 && from(0);
   };
-  const out = [], words = Object.create(null), ids = Object.create(null);
+  const out = [], words = Object.create(null), ids = Object.create(null), said = [];
   DIGEST_TAG_FACETS.forEach(f => {
     let vals;
     try { vals = digestList_(of[f[0]]()); } catch (err) { vals = []; }
     vals.forEach(raw => {
       let text = raw;
-      try { text = String((say[f[0]] ? say[f[0]](raw) : raw) || raw).trim(); } catch (err) { text = raw; }
+      try { text = String((say[f[0]] ? say[f[0]](raw) : digestSay_(raw)) || raw).trim(); } catch (err) { text = raw; }
       const w = text.toLowerCase();
-      if ((/[A-Za-z]/.test(text) && words[w]) || (/[A-Za-z]/.test(raw) && ids[raw])) return;
-      words[w] = 1; ids[raw] = 1;
+      if ((/[A-Za-z]/.test(text) && (words[w] || madeOf(text, said))) || (/[A-Za-z]/.test(raw) && ids[raw])) return;
+      words[w] = 1; ids[raw] = 1; said.push(text);
       out.push({ kind: f[1], text: text });
     });
   });

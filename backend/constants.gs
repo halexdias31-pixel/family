@@ -109,7 +109,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-22-a-report-question";
+const BACKEND_VERSION = "2026-10-22-b-uniform-tags";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {

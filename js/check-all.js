@@ -74,7 +74,7 @@ const SUITE = [
   /* ---------- THE PRACTICALS, AND WHETHER THEIR TOPICS NAME ANYTHING REAL § */
   { file: 'check-practicals.js', what: 'the practicals, and the topics they join to' },
   /* ---------- AND THEIR SIBLING, WHICH IS NOT ONE OF THEM § */
-  { file: 'check-projects.js', what: 'the projects: topics, the funnel tables, nothing sent online' },
+  { file: 'check-projects.js', what: 'the projects: topics, the funnel, nothing sent online' },
   /* ---------- AND THE @family. TEXTBOOKS, WHICH ARE RESOURCES § */
   { file: 'check-textbooks.js', what: 'the textbooks: chapter order, the bones, the join, the Shelf door' },
   /* ---------- AND THE ANIMATIONS IN THEM, WHICH THE LOADING SCREEN DRAWS FROM A COPY § */

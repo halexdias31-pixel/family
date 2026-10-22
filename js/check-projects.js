@@ -39,20 +39,8 @@ tree.forEach(t => {
   String(t.aliases || '').split(',').forEach(a => { if (a.trim()) known.add(key(a)); });
 });
 
-/* ---------- THE THREE TABLES, READ OUT OF THE FILE THAT USES THEM § */
+/* THE GROUPING TABLES WENT IN 396 — every facet's answers are drawn as they are — so a subject or level needs no row anywhere. */
 const findSrc = fs.readFileSync(path.join(root, 'js', 'find.js'), 'utf8');
-function table(name) {
-  const m = new RegExp('const ' + name + ' = bucketTable_\\(\\[([\\s\\S]*?)\\]\\);').exec(findSrc);
-  if (!m) { fail.push(name + ' is not in js/find.js any more — this check cannot see what groups the funnel'); return null; }
-  const out = new Set();
-  /* COMMENTS OUT FIRST. `KIND_BUCKET`'s rows sit under prose that quotes kinds by name, and a
-     quoted word in a comment is not a placed answer. */
-  m[1].replace(/\/\*[\s\S]*?\*\//g, '').replace(/'([^']*)'/g, (_, v) => { out.add(v); return _; });
-  return out;
-}
-const SUBJECTS = table('SUBJECT_BUCKET');
-const LEVELS = table('LEVEL_BUCKET');
-const KINDS_PLACED = table('KIND_BUCKET');
 
 /* THE KIND ITSELF, AND THE WORD THE OWNER ASKED FOR. The label is what `What kind` prints, so it is
    read off the `KINDS` entry and then looked for in the table that groups it. */
@@ -62,10 +50,6 @@ if (!kindM) {
 } else {
   if (kindM[1] !== 'Learning') fail.push('the project kind is in group "' + kindM[1] + '", not Learning beside the practicals');
   if (kindM[2] !== 'Projects') fail.push('the project kind is labelled "' + kindM[2] + '" — the owner asked for "Projects"');
-  if (KINDS_PLACED && !KINDS_PLACED.has(kindM[2])) {
-    fail.push('"' + kindM[2] + '" is not in KIND_BUCKET — one unplaced kind stands the whole '
-      + '`What kind` grouping down to the alphabet');
-  }
 }
 /* AND THE FILE IS FETCHED AT ALL. A kind with a mapper and no fetch is a door to an empty room —
    `DATA.projects` would be `undefined`, `|| []` would make it nothing, and nothing would say so. */
@@ -103,7 +87,6 @@ catch (e) { fail.push('data/settings/facets.json does not parse — the Project 
 /* THE FACETS FILE'S CELLS, READ THE WAY THE PHONE READS THEM. § */
 const cellNum = v => (v === null || v === undefined || String(v).trim() === '' || !isFinite(Number(v)) ? null : Number(v));
 const cellOn = v => /^(true|yes|1|y|on|)$/i.test(String(v === undefined || v === null ? '' : v).trim());
-const cellMin = v => { const n = cellNum(v); const m = n === null ? 0.5 : n; return m > 1 ? Math.min(m / 100, 1) : Math.max(m, 0); };
 const typeRow = facetRows.find(f => f && f.field === 'projectType');
 const subjRow = facetRows.find(f => f && f.field === 'subject');
 if (facetRows.length && !typeRow) {
@@ -118,11 +101,9 @@ if (facetRows.length && !typeRow) {
     fail.push('`projectType` is at sort_order ' + at + ', not before Subject (' + subjAt
       + ') — Subject would split the courseworks from the projects first and the question would never have two answers');
   }
-  /* ONLY OF A LIST THAT IS ALL PROJECTS. § */
-  const min = cellMin(typeRow.min_coverage);
-  if (min < 1) {
-    fail.push('`projectType` has min_coverage ' + JSON.stringify(typeRow.min_coverage) + ', read as ' + min
-      + ' — it must be 1, or a search holding projects AND textbooks or practicals asks Project or coursework, and either answer drops the rest without a word');
+  /* ONE COVERAGE BAR FOR EVERY FACET (396): a per-facet min_coverage cell is gone, and one back would be read by nothing. */
+  if (Object.prototype.hasOwnProperty.call(typeRow, 'min_coverage')) {
+    fail.push('`projectType` has a min_coverage cell again — the funnel asks every facet by one bar (FACET_COVERAGE) and reads no such column');
   }
 }
 
@@ -193,20 +174,13 @@ rows.forEach(r => {
   const pageChars = String(r.steps || '').replace(/\|/g, '').length + String(r.safety || '').length;
   if (pageChars > STEPS_PAGE_FITS) note.push(id + '\'s steps and safety are ' + pageChars + ' characters; at 320px about ' + STEPS_PAGE_FITS + ' fit on the page whole, so this one probably scrolls inside its card');
 
-  /* THE TWO TABLES. Blank is allowed by the funnel and refused here: a project nobody has put in a
+  /* A SUBJECT AND A LEVEL. Blank is allowed by the funnel and refused here: a project nobody has put in a
      subject is a project the Subject question cannot reach. */
   const subj = String(r.subject || '').trim();
   if (!subj) fail.push(id + ' has no subject');
-  else if (SUBJECTS && !SUBJECTS.has(subj)) {
-    fail.push(id + ' has subject "' + subj + '", which SUBJECT_BUCKET in js/find.js does not place — '
-      + 'one unplaced subject stands the whole Subject grouping down. Add a row there deliberately, or use one it has.');
-  }
   bySubject[subj] = (bySubject[subj] || 0) + 1;
   const lvl = String(r.level || '').trim();
   if (!lvl) fail.push(id + ' has no level');
-  else if (LEVELS && !LEVELS.has(lvl)) {
-    fail.push(id + ' has level "' + lvl + '", which LEVEL_BUCKET in js/find.js does not place');
-  }
   byLevel[lvl] = (byLevel[lvl] || 0) + 1;
 
   /* NUMBERS, NOT STRINGS. An empty string is a blank wearing a number's clothes — the `cost: 0`
@@ -280,7 +254,7 @@ console.log('by subject: ' + Object.keys(bySubject).map(k => k + ' ' + bySubject
 console.log('materials: ' + kitQty + ' of ' + kitItems + ' items carry a quantity');
 console.log('live by type: ' + byType.project + ' project(s) · ' + byType.coursework + ' coursework'
   + (typeRow ? '   asked as "' + typeRow.label + '" at ' + typeRow.sort_order
-    + ', of lists that are ' + Math.round(cellMin(typeRow.min_coverage) * 100) + '% projects' : ''));
+    + ', by the one coverage bar every facet has' : ''));
 note.forEach(n => console.log('note: ' + n));
 
 if (fail.length) {
