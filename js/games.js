@@ -2517,9 +2517,7 @@ function impCount_(n) {
 }
 
 /* ---------- READ ALOUD, FOR THE ONES WHO CANNOT READ YET § */
-function impCanSay_() {
-  try { return !!(window.speechSynthesis && window.SpeechSynthesisUtterance); } catch (e) { return false; }
-}
+function impCanSay_() { return canSay_(); }
 function impAloud_(on) {
   if (on !== undefined) {
     try { localStorage.setItem('imp-aloud', on ? '1' : '0'); } catch (e) {}
@@ -2529,23 +2527,11 @@ function impAloud_(on) {
   try { v = localStorage.getItem('imp-aloud') === '1'; } catch (e) {}
   return v && impCanSay_();
 }
-function impHush_() {
-  try { if (impCanSay_()) window.speechSynthesis.cancel(); } catch (e) {}
-}
-/* `lang` AS WELL AS `voice`, because Chrome hands back no voices at all until its list has loaded — the first round of the day would get whatever the phone § */
+function impHush_() { hush_(); }
+/* THE VOICE IS `say_`'s (shell.js), shared with a question's Read aloud since 394; quieter here, because the phone is passed round a table. */
 function impSay_(text) {
   if (!impAloud_()) return;
-  try {
-    const ss = window.speechSynthesis;
-    const u = new window.SpeechSynthesisUtterance(text);
-    u.lang = 'en-GB';
-    const gb = (typeof ss.getVoices === 'function' ? ss.getVoices() || [] : [])
-      .find(v => /^en[-_]GB/i.test(String(v.lang || '')));
-    if (gb) u.voice = gb;
-    u.rate = 0.9;
-    u.volume = 0.6;
-    ss.speak(u);
-  } catch (e) {}
+  say_(text, { rate: 0.9, volume: 0.6 });
 }
 
 /* `phase` IS ONE OF idle · deal · play · reveal, and `at` is whose turn it is to look while dealing. § */

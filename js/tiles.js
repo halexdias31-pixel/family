@@ -368,7 +368,9 @@ function cardTiles_(x) {
   /* ---------- ONE ROW OF MARKS, UNDER THE CARD § */
   /* AND `Open`, to Find, under a kept card that Saved or the Spotlight cannot draw whole — a practical's method, a project's steps, a textbook's chapters, a § */
   /* `more` IS WHAT ONE COLUMN ADDS TO THE ROW — the people column's Edit and Delete for an admin (373). */
-  const mine = favTile_(x) + cardActions_(x) + finderOpenTile_(x) + (x.more || '');
+  /* AND `Read aloud` ON A PRIMARY QUESTION OR CONTENT CARD (394) -- `readAloudTile_`, find.js. */
+  const mine = favTile_(x) + cardActions_(x) + (typeof readAloudTile_ === 'function' ? readAloudTile_(x) : '')
+    + finderOpenTile_(x) + (x.more || '');
   const admin = adminTiles_(x, x.topic || null);
   if (!mine && !admin) return '';
   return `<div class="tile-row">${mine}${admin}</div>`;
