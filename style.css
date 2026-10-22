@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-22-b-read-aloud";
+  --css-version: "2026-10-22-c-read-report";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -6167,6 +6167,23 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 .biz-item.is-overdue .biz-flag { color: var(--bad); }
 .biz-item label.field { margin-bottom: .3rem; } /* min-width comes from `.lib-row label.field` */
 .biz-item input { min-width: 0; }
+
+/* ---------- REPORTING A QUESTION (395): the sheet's reasons, its note, and the Business column's list — js/submit.js, js/records.js. */
+.rep-what { margin: 0 0 .5rem; font-size: .74rem; }
+.rep-opts { display: flex; flex-direction: column; gap: .35rem; margin: 0 0 .6rem; }
+.rep-opt { display: block; width: 100%; min-height: 44px; text-align: left; padding: .5rem .7rem;
+           border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--sunk); color: var(--ink);
+           font: inherit; font-size: .8rem; line-height: 1.35; cursor: pointer; }
+.rep-opt:active { transform: translateY(1px); }
+.rep-opt.is-picked { border-color: var(--gold); color: var(--gold); }
+.rep-note { display: block; margin-bottom: .5rem; }
+.rep-note-in { display: block; width: 100%; box-sizing: border-box; min-height: 44px; padding: .55rem .7rem;
+               background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-sm);
+               color: var(--ink); font: inherit; font-size: .85rem; line-height: 1.4; resize: none; }
+.rep-note-in:focus { outline: 0; border-color: var(--gold); }
+.rep-count { margin: 0 0 .5rem; color: var(--gold); font-weight: 700; font-size: .85rem; }
+.rep-note-said { margin: 0 0 .2rem; font-size: .78rem; color: var(--ink); overflow-wrap: anywhere; }
+.rep-who { margin: 0 0 .3rem; font-size: .7rem; }
 
 /* ---------- PROFIT, THE BUSINESS COLUMN'S FIRST CARD (393): the sum, its figures, two charts, a control per term. */
 .profit { --pf-cost: var(--dim); }

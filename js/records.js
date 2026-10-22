@@ -92,8 +92,76 @@ function bizCard_(pg) {
 /* THE PAGES, OR NONE. A card is not a permission — `listRecords` and `saveRecordsPage` are `admin` in `ACTION_ACCESS` — but a page a non-admin cannot use is a § */
 function bizPages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
-  return profitCards_().concat(BIZ_PAGES.map(bizCard_), verseCard_());
+  return profitCards_().concat(reportsCard_(), BIZ_PAGES.map(bizCard_), verseCard_());
 }
+
+/* ---------- REPORTS: QUESTIONS SOMEBODY SAID ARE WRONG (395) ----------
+   Asked with `listReports`, admin at the gate, so nobody else is ever sent one; `null` is "not asked yet", as `BIZ.list` is. */
+const REPS = { list: null, open: 0, asking: false, error: '' };
+const REPS_DRAWN = 20;
+
+function reportsCard_() {
+  const wait = !REPS.list && !REPS.error && typeof loading_ === 'function';
+  return `<div class="card biz reports" data-reports>${reportsInner_(wait)}</div>`;
+}
+function reportsInner_(wait) {
+  const list = REPS.list || [];
+  const when = ms => { try { return ms ? new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''; } catch (e) { return ''; } };
+  const item = r => `<div class="biz-item rep-item" data-id="${esc(r.id)}">
+      <p class="biz-cap"><b>${esc(r.label || r.questionId)}</b> <span class="biz-when">· ${esc(r.reason)}</span></p>
+      ${r.note ? `<p class="rep-note-said">“${esc(r.note)}”</p>` : ''}
+      <p class="faint rep-who">${esc([r.handle ? '@' + r.handle : '', when(r.at), r.finder, r.device].filter(Boolean).join(' · '))}</p>
+      <div class="tile-row">${tile_({ icon: 'open', label: 'Open', note: 'the question', act: 'rep-open', data: { q: r.questionId } })}${
+        tile_({ icon: 'tick', label: 'Fixed', act: 'rep-status', data: { id: r.id, status: 'fixed' } })}${
+        tile_({ icon: 'close', label: 'Not a problem', act: 'rep-status', data: { id: r.id, status: 'not a problem' } })}</div>
+    </div>`;
+  const more = REPS.open > Math.min(list.length, REPS_DRAWN) ? REPS.open - Math.min(list.length, REPS_DRAWN) : 0;
+  return `<h3>Reports</h3>
+    <div class="biz-body rep-body"${wait ? ' aria-busy="true"' : ''}>
+      ${REPS.list ? `<p class="rep-count">${REPS.open ? REPS.open + ' open' : 'None open'}</p>` : ''}
+      ${list.slice(0, REPS_DRAWN).map(item).join('')}
+      ${more ? `<p class="faint">And ${more} more in the reports tab.</p>` : ''}
+    ${wait ? loading_() : ''}</div>
+    <p class="faint me-said rep-said">${esc(REPS.error)}</p>`;
+}
+const reportsDraw_ = () => document.querySelectorAll('[data-reports]').forEach(c => { c.innerHTML = reportsInner_(false); });
+
+function reportsStart_() {
+  if (!(typeof isAdmin === 'function' && isAdmin()) || REPS.asking) return;
+  REPS.asking = true;
+  api({ action: 'listReports' })
+    .then(d => {
+      REPS.asking = false;
+      if (!d || d.error) { REPS.error = String((d && d.error) || 'The reports did not come.'); return; }
+      REPS.error = ''; REPS.list = Array.isArray(d.reports) ? d.reports : []; REPS.open = Number(d.open) || 0;
+    })
+    .catch(() => { REPS.asking = false; REPS.error = 'The reports could not be fetched — check the connection.'; })
+    .then(reportsDraw_);
+}
+
+on('rep-status', el => {
+  if (!(typeof isAdmin === 'function' && isAdmin())) return;
+  const id = el.getAttribute('data-id'), status = el.getAttribute('data-status') || '';
+  const card = el.closest('[data-reports]');
+  send_({ action: 'setReportStatus', id, status }, { button: el, where: card && card.querySelector('.rep-said') })
+    .then(() => {
+      const was = (REPS.list || []).length;
+      REPS.list = (REPS.list || []).filter(r => r.id !== id);
+      if (REPS.list.length < was) REPS.open = Math.max(0, REPS.open - 1);
+      reportsDraw_();
+      toast(status === 'fixed' ? 'Marked fixed' : 'Marked not a problem');
+    })
+    .catch(() => {});
+});
+
+/* OPEN TAKES THE ADMIN TO THE QUESTION IN FIND, by its key — `find-open`'s route. */
+on('rep-open', el => {
+  const k = 'q:' + (el.getAttribute('data-q') || '');
+  let x = null;
+  try { x = typeof stuffItemsAll_ === 'function' ? stuffItemsAll_().find(i => i && i.key === k) : null; } catch (e) { x = null; }
+  if (!x) { toast('That question is not in the list any more.'); return; }
+  finderOpen_(x, null, FINDERS.stuff);
+});
 
 /* THE E-PAPER VERSE SCREEN'S SETUP PAGE, findable by an admin rather than by its address (370). */
 function verseCard_() {
@@ -382,7 +450,7 @@ on('profit-reset', el => {
 
 /* THE COLUMN, AND ITS RECORDS ASKED FOR AS SOON AS IT IS DRAWN FOR AN ADMIN — not when it is arrived at. § */
 screen('biz', () => {
-  if (typeof isAdmin === 'function' && isAdmin()) setTimeout(() => { try { bizStart_(); } catch (e) {} }, 0);
+  if (typeof isAdmin === 'function' && isAdmin()) setTimeout(() => { try { bizStart_(); } catch (e) {} try { if (!REPS.list) reportsStart_(); } catch (e) {} }, 0);
   return pages('biz', bizPages_());
 });
 
