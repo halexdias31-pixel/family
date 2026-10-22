@@ -92,8 +92,76 @@ function bizCard_(pg) {
 /* THE PAGES, OR NONE. A card is not a permission — `listRecords` and `saveRecordsPage` are `admin` in `ACTION_ACCESS` — but a page a non-admin cannot use is a § */
 function bizPages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
-  return BIZ_PAGES.map(bizCard_).concat(verseCard_());
+  return profitCards_().concat(reportsCard_(), BIZ_PAGES.map(bizCard_), verseCard_());
 }
+
+/* ---------- REPORTS: QUESTIONS SOMEBODY SAID ARE WRONG (395) ----------
+   Asked with `listReports`, admin at the gate, so nobody else is ever sent one; `null` is "not asked yet", as `BIZ.list` is. */
+const REPS = { list: null, open: 0, asking: false, error: '' };
+const REPS_DRAWN = 20;
+
+function reportsCard_() {
+  const wait = !REPS.list && !REPS.error && typeof loading_ === 'function';
+  return `<div class="card biz reports" data-reports>${reportsInner_(wait)}</div>`;
+}
+function reportsInner_(wait) {
+  const list = REPS.list || [];
+  const when = ms => { try { return ms ? new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''; } catch (e) { return ''; } };
+  const item = r => `<div class="biz-item rep-item" data-id="${esc(r.id)}">
+      <p class="biz-cap"><b>${esc(r.label || r.questionId)}</b> <span class="biz-when">· ${esc(r.reason)}</span></p>
+      ${r.note ? `<p class="rep-note-said">“${esc(r.note)}”</p>` : ''}
+      <p class="faint rep-who">${esc([r.handle ? '@' + r.handle : '', when(r.at), r.finder, r.device].filter(Boolean).join(' · '))}</p>
+      <div class="tile-row">${tile_({ icon: 'open', label: 'Open', note: 'the question', act: 'rep-open', data: { q: r.questionId } })}${
+        tile_({ icon: 'tick', label: 'Fixed', act: 'rep-status', data: { id: r.id, status: 'fixed' } })}${
+        tile_({ icon: 'close', label: 'Not a problem', act: 'rep-status', data: { id: r.id, status: 'not a problem' } })}</div>
+    </div>`;
+  const more = REPS.open > Math.min(list.length, REPS_DRAWN) ? REPS.open - Math.min(list.length, REPS_DRAWN) : 0;
+  return `<h3>Reports</h3>
+    <div class="biz-body rep-body"${wait ? ' aria-busy="true"' : ''}>
+      ${REPS.list ? `<p class="rep-count">${REPS.open ? REPS.open + ' open' : 'None open'}</p>` : ''}
+      ${list.slice(0, REPS_DRAWN).map(item).join('')}
+      ${more ? `<p class="faint">And ${more} more in the reports tab.</p>` : ''}
+    ${wait ? loading_() : ''}</div>
+    <p class="faint me-said rep-said">${esc(REPS.error)}</p>`;
+}
+const reportsDraw_ = () => document.querySelectorAll('[data-reports]').forEach(c => { c.innerHTML = reportsInner_(false); });
+
+function reportsStart_() {
+  if (!(typeof isAdmin === 'function' && isAdmin()) || REPS.asking) return;
+  REPS.asking = true;
+  api({ action: 'listReports' })
+    .then(d => {
+      REPS.asking = false;
+      if (!d || d.error) { REPS.error = String((d && d.error) || 'The reports did not come.'); return; }
+      REPS.error = ''; REPS.list = Array.isArray(d.reports) ? d.reports : []; REPS.open = Number(d.open) || 0;
+    })
+    .catch(() => { REPS.asking = false; REPS.error = 'The reports could not be fetched — check the connection.'; })
+    .then(reportsDraw_);
+}
+
+on('rep-status', el => {
+  if (!(typeof isAdmin === 'function' && isAdmin())) return;
+  const id = el.getAttribute('data-id'), status = el.getAttribute('data-status') || '';
+  const card = el.closest('[data-reports]');
+  send_({ action: 'setReportStatus', id, status }, { button: el, where: card && card.querySelector('.rep-said') })
+    .then(() => {
+      const was = (REPS.list || []).length;
+      REPS.list = (REPS.list || []).filter(r => r.id !== id);
+      if (REPS.list.length < was) REPS.open = Math.max(0, REPS.open - 1);
+      reportsDraw_();
+      toast(status === 'fixed' ? 'Marked fixed' : 'Marked not a problem');
+    })
+    .catch(() => {});
+});
+
+/* OPEN TAKES THE ADMIN TO THE QUESTION IN FIND, by its key — `find-open`'s route. */
+on('rep-open', el => {
+  const k = 'q:' + (el.getAttribute('data-q') || '');
+  let x = null;
+  try { x = typeof stuffItemsAll_ === 'function' ? stuffItemsAll_().find(i => i && i.key === k) : null; } catch (e) { x = null; }
+  if (!x) { toast('That question is not in the list any more.'); return; }
+  finderOpen_(x, null, FINDERS.stuff);
+});
 
 /* THE E-PAPER VERSE SCREEN'S SETUP PAGE, findable by an admin rather than by its address (370). */
 function verseCard_() {
@@ -102,9 +170,287 @@ function verseCard_() {
     <div class="tile-row">${tile_({ icon: 'ext', label: 'Verse screen', note: 'set up', href })}</div></div>`;
 }
 
+/* ---------- PROFIT: THE BUSINESS'S SUM, WRITTEN OUT, EVERY TERM A CONTROL (docs/history/393) ----------
+   The terms are `priceFrom`'s and `bookMoney_`'s (core.js): the tutor keeps the first seat's rate and c of each extra seat. */
+const PROFIT_KEY = 'profit:whatif';
+const PROFIT_PERIODS = { week: { w: 1, m: 12 / 52, say: 'a week' },
+                         month: { w: 52 / 12, m: 1, say: 'a month' },
+                         year: { w: 52, m: 12, say: 'a year' } };
+const PROFIT_VARS = [
+  { k: 'S',  sym: 'S',  label: 'Sessions a week',                 min: 0, max: 60,   step: 1 },
+  { k: 'h',  sym: 'h',  label: 'Hours a session',                 min: 0.5, max: 4,  step: 0.25 },
+  { k: 'n',  sym: 'n',  label: 'Seats a session',                 min: 1, max: 12,   step: 1 },
+  { k: 'P',  sym: 'P',  label: 'Rate an hour, first seat',        min: 0, max: 80,   step: 0.5, cash: true },
+  { k: 'c',  sym: 'c',  label: 'Tutor’s share of each extra seat', min: 0, max: 2, step: 0.05 },
+  { k: 'B',  sym: 'B',  label: 'Business’s share of each extra seat', min: 0, max: 2, step: 0.05 },
+  { k: 'V',  sym: 'V',  label: 'Room hire an hour',               min: 0, max: 60,   step: 0.5, cash: true },
+  { k: 'd',  sym: 'd',  label: 'Discount, % of teaching',         min: 0, max: 50,   step: 1, pct: true },
+  { k: 'f',  sym: 'f',  label: 'Card fee, % of what is charged',  min: 0, max: 5,    step: 0.1, pct: true },
+  { k: 'f0', sym: 'f₀', label: 'Card fee per payment',            min: 0, max: 2,    step: 0.05, cash: true },
+  { k: 'q',  sym: 'q',  label: 'Payments a week',                 min: 0, max: 30,   step: 1 },
+  { k: 'O',  sym: 'O',  label: 'Other costs a month',             min: 0, max: 3000, step: 5, cash: true },
+];
+/* WHAT THE ADMIN HAS MOVED, ON THIS DEVICE ONLY — a what-if is never written to the sheet. */
+const PROFIT = (() => {
+  let o = {};
+  try { o = JSON.parse(localStorage.getItem(PROFIT_KEY) || '{}') || {}; } catch (e) { o = {}; }
+  return { vals: o.vals && typeof o.vals === 'object' ? o.vals : {}, period: PROFIT_PERIODS[o.period] ? o.period : 'month',
+           x: PROFIT_VARS.some(v => v.k === o.x) ? o.x : 'n' };
+})();
+const profitKeep_ = () => {
+  const v = JSON.stringify({ vals: PROFIT.vals, period: PROFIT.period, x: PROFIT.x });
+  try { if (typeof keepPut_ === 'function') keepPut_(PROFIT_KEY, v, true); else localStorage.setItem(PROFIT_KEY, v); } catch (e) {}
+};
+
+/* THIS CALENDAR MONTH OF BOOKINGS, each job's figures shared over its dates — admins alone are sent `tutorPay`/`adminKeeps` (doget.gs). */
+function profitActual_() {
+  const now = new Date(), y = now.getFullYear(), mo = now.getMonth();
+  const out = { sessions: 0, seats: 0, hours: 0, charged: 0, tutor: 0, kept: 0, paid: 0, jobs: 0, priced: 0 };
+  ((typeof DATA !== 'undefined' && DATA && DATA.clientClasses) || []).forEach(j => {
+    if (!j || norm(j.kind) === 'waitlist' || norm(j.status) === 'cancelled') return;
+    let ds = [];
+    try { ds = jobDates_(j); } catch (e) { ds = []; }
+    const here = ds.filter(d => d.getFullYear() === y && d.getMonth() === mo);
+    if (!ds.length || !here.length) return;
+    const share = here.length / ds.length, num_ = v => (v === '' || v == null || !isFinite(Number(v)) ? null : Number(v));
+    out.jobs++;
+    out.sessions += here.length;
+    out.seats += here.length * Math.max(1, Number(j.currentKids) || 1);
+    out.hours += here.length * (Number(j.hours) || 0);
+    if (ds[0].getFullYear() === y && ds[0].getMonth() === mo) out.paid++;
+    const pr = num_(j.price), tp = num_(j.tutorPay), ak = num_(j.adminKeeps);
+    if (pr == null || tp == null) return;
+    out.priced++;
+    out.charged += pr * share; out.tutor += tp * share; out.kept += (ak || 0) * share;
+  });
+  return out.sessions ? out : null;
+}
+
+/* EACH TERM'S STARTING VALUE AND WHERE IT CAME FROM: this month's bookings, then config, then the tutors' and venues' own rows, then a placeholder. */
+function profitDefaults_() {
+  const v = ((typeof DATA !== 'undefined' && DATA && DATA.constants) || {}).vars || {};
+  const cfg = (k, or) => { const x = num(v[k]); return isFinite(x) ? x : or; };
+  const avg = xs => xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : NaN;
+  const r2 = x => Math.round(x * 100) / 100;
+  const A = profitActual_();
+  const weeks = (() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate() / 7; })();
+  const out = {}, from = {};
+  const put = (k, x, src) => { out[k] = x; from[k] = src; };
+  put('c', cfg('c', 0), isFinite(num(v.c)) ? 'config' : 'placeholder');
+  put('B', cfg('B', 0), isFinite(num(v.B)) ? 'config' : 'placeholder');
+  put('f', cfg('card_fee_pct', 0), isFinite(num(v.card_fee_pct)) ? 'config' : 'placeholder');
+  put('f0', cfg('card_fee_fixed', 0), isFinite(num(v.card_fee_fixed)) ? 'config' : 'placeholder');
+  put('d', 0, 'placeholder');
+  put('O', 0, 'placeholder');
+  if (A) {
+    put('S', r2(A.sessions / weeks), 'this month');
+    put('n', Math.max(1, Math.round(A.seats / A.sessions)), 'this month');
+    put('h', A.hours > 0 ? r2(A.hours / A.sessions) : cfg('h', 2), A.hours > 0 ? 'this month' : 'config');
+    put('q', r2(A.paid / weeks), 'this month');
+  } else {
+    put('S', 0, 'placeholder'); put('n', 1, 'placeholder'); put('h', cfg('h', 2), isFinite(num(v.h)) ? 'config' : 'placeholder');
+    put('q', 0, 'placeholder');
+  }
+  /* P AND V BACK OUT OF WHAT WAS BOOKED: tutor £/h = P(1 + c(n−1)), and what is left after the tutor and the business is the room. */
+  const hrs = A ? A.hours * (A.priced / Math.max(1, A.jobs)) : 0;
+  if (A && A.priced && hrs > 0 && A.tutor > 0) {
+    put('P', r2(A.tutor / hrs / (1 + out.c * (out.n - 1))), 'this month');
+    put('V', r2(Math.max(0, (A.charged - A.tutor - A.kept) / hrs)), 'this month');
+  } else {
+    const rates = ((typeof DATA !== 'undefined' && DATA && DATA.tutors) || []).map(t => Number(t.rate)).filter(x => x > 0);
+    const rooms = ((typeof DATA !== 'undefined' && DATA && DATA.venues) || []).map(t => parseFloat(t.bestRate)).filter(x => x > 0);
+    put('P', rates.length ? r2(avg(rates)) : OPEN_RATE, rates.length ? 'tutors’ rates' : 'open rate');
+    put('V', rooms.length ? r2(avg(rooms)) : 0, rooms.length ? 'venues’ rates' : 'placeholder');
+  }
+  return { vals: out, from, actual: A };
+}
+
+const profitVals_ = D => {
+  const o = {};
+  PROFIT_VARS.forEach(p => { const x = Number(PROFIT.vals[p.k]); o[p.k] = isFinite(x) && PROFIT.vals[p.k] !== '' && PROFIT.vals[p.k] != null ? x : D.vals[p.k]; });
+  return o;
+};
+/* THE SUM. Kept in one place so the bars, the line and the figures can never disagree. */
+function profitSum_(x, period) {
+  const pe = PROFIT_PERIODS[period] || PROFIT_PERIODS.month;
+  const N = x.S * pe.w, extra = Math.max(0, x.n - 1);
+  const teach = x.P * (1 + (x.c + x.B) * extra);
+  const revenue = N * x.h * (teach * (1 - x.d / 100) + x.V);
+  const tutor = N * x.h * x.P * (1 + x.c * extra);
+  const room = N * x.h * x.V;
+  const fees = revenue * x.f / 100 + x.f0 * x.q * pe.w;
+  const other = x.O * pe.m;
+  return { N, revenue, tutor, room, fees, other, profit: revenue - tutor - room - fees - other };
+}
+
+const profitMoney_ = x => (x < 0 ? '−' : '') + '£' + Math.abs(x).toLocaleString('en-GB', { maximumFractionDigits: Math.abs(x) >= 1000 ? 0 : 2, minimumFractionDigits: Math.abs(x) >= 1000 ? 0 : 2 });
+const profitShort_ = x => { const a = Math.abs(x), s = x < 0 ? '−' : '';
+  return s + '£' + (a >= 1e4 ? Math.round(a / 1000) + 'k' : a >= 1000 ? (a / 1000).toFixed(1) + 'k' : Math.round(a)); };
+
+/* THE BARS: revenue up, each cost down from where the last left off, profit what is left. */
+function profitBars_(r) {
+  const W = 340, H = 168, top = 18, base = 132, L = 6, R = 6;
+  const steps = [['Revenue', r.revenue, 'rev'], ['Tutor', -r.tutor, 'cost'], ['Room', -r.room, 'cost'],
+                 ['Fees', -r.fees, 'cost'], ['Other', -r.other, 'cost']];
+  let run = 0;
+  const bars = steps.map(([k, v, cls]) => { const from = run; run += v; return { k, v, cls, a: from, b: run }; });
+  bars.push({ k: 'Profit', v: r.profit, cls: r.profit < 0 ? 'loss' : 'gain', a: 0, b: r.profit });
+  const hi = Math.max(0, ...bars.map(b => Math.max(b.a, b.b))), lo = Math.min(0, ...bars.map(b => Math.min(b.a, b.b)));
+  const span = (hi - lo) || 1, Y = y => top + (hi - y) / span * (base - top);
+  const slot = (W - L - R) / bars.length, bw = Math.min(34, slot * .56);
+  const g = bars.map((b, i) => {
+    const x = L + slot * i + (slot - bw) / 2, y1 = Y(Math.max(b.a, b.b)), y2 = Y(Math.min(b.a, b.b));
+    const h = Math.max(1, y2 - y1), say = b.k + ': ' + profitMoney_(b.v);
+    return `<g class="pf-bar is-${b.cls}"><title>${esc(say)}</title>
+      <rect x="${x.toFixed(1)}" y="${y1.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="2"/>
+      <text class="pf-val" x="${(x + bw / 2).toFixed(1)}" y="${(y1 - 4).toFixed(1)}">${esc(profitShort_(b.v))}</text>
+      <text class="pf-lab" x="${(x + bw / 2).toFixed(1)}" y="${H - 18}">${esc(b.k)}</text></g>`;
+  }).join('');
+  return `<svg class="pf-chart" viewBox="0 0 ${W} ${H - 10}" role="img" aria-label="${esc('Revenue ' + profitMoney_(r.revenue)
+    + ', less tutor, room, fees and other costs, leaves ' + profitMoney_(r.profit))}">
+    <line class="pf-zero" x1="${L}" x2="${W - R}" y1="${Y(0).toFixed(1)}" y2="${Y(0).toFixed(1)}"/>${g}</svg>`;
+}
+
+/* THE LINE: profit as one term runs over its whole slider, everything else held, today's value marked. */
+function profitLine_(x, period) {
+  const p = PROFIT_VARS.find(v => v.k === PROFIT.x) || PROFIT_VARS[0];
+  const W = 340, H = 160, L = 40, R = 10, top = 12, base = 128, K = 48;
+  const pts = Array.from({ length: K + 1 }, (_, i) => {
+    const t = p.min + (p.max - p.min) * i / K;
+    return [t, profitSum_(Object.assign({}, x, { [p.k]: t }), period).profit];
+  });
+  const cur = profitSum_(x, period).profit;
+  const ys = pts.map(q => q[1]).concat(cur, 0);
+  const hi = Math.max(...ys), lo = Math.min(...ys), span = (hi - lo) || 1;
+  const X = t => L + (t - p.min) / ((p.max - p.min) || 1) * (W - L - R), Y = y => top + (hi - y) / span * (base - top);
+  const d = pts.map((q, i) => (i ? 'L' : 'M') + X(q[0]).toFixed(1) + ' ' + Y(q[1]).toFixed(1)).join('');
+  const cx = X(Math.min(p.max, Math.max(p.min, x[p.k]))), cy = Y(cur);
+  const fmt = t => p.cash ? '£' + t : p.pct ? t + '%' : String(t);
+  return `<svg class="pf-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc('Profit against ' + p.label + '; now ' + profitMoney_(cur) + ' at ' + fmt(x[p.k]))}">
+    <line class="pf-zero" x1="${L}" x2="${W - R}" y1="${Y(0).toFixed(1)}" y2="${Y(0).toFixed(1)}"/>
+    <text class="pf-axis" x="${L - 4}" y="${(top + 4).toFixed(1)}" text-anchor="end">${esc(profitShort_(hi))}</text>
+    <text class="pf-axis" x="${L - 4}" y="${(base + 4).toFixed(1)}" text-anchor="end">${esc(profitShort_(lo))}</text>
+    <line class="pf-now-rule" x1="${cx.toFixed(1)}" x2="${cx.toFixed(1)}" y1="${top}" y2="${base}"/>
+    <path class="pf-line" d="${d}"/>
+    <circle class="pf-now" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="4.5"><title>${esc(p.sym + ' = ' + fmt(x[p.k]) + ' → ' + profitMoney_(cur))}</title></circle>
+    <text class="pf-axis" x="${L}" y="${H - 14}">${esc(fmt(p.min))}</text>
+    <text class="pf-axis" x="${W - R}" y="${H - 14}" text-anchor="end">${esc(fmt(p.max))}</text>
+    <text class="pf-axis pf-xname" x="${((L + W - R) / 2).toFixed(1)}" y="${H - 2}" text-anchor="middle">${esc(p.sym + ' · ' + p.label)}</text>
+  </svg>`;
+}
+
+/* THE FIGURES UNDER THE FORMULA, one line per term of the sum. */
+function profitRows_(r, period) {
+  const row = (k, sum, t, cls) => `<div class="pf-row${cls ? ' ' + cls : ''}"><span class="pf-k">${k}</span><span class="pf-sum">${sum}</span><span class="pf-v">${esc(t)}</span></div>`;
+  const m = profitMoney_;
+  return row('N', 'S × weeks', (Math.round(r.N * 10) / 10) + ' sessions', 'is-count')
+    + row('Revenue', 'N·h·(P(1 + (c+B)(n−1))(1 − d%) + V)', m(r.revenue))
+    + row('− Tutor', 'N·h·P(1 + c(n−1))', m(-r.tutor))
+    + row('− Room', 'N·h·V', m(-r.room))
+    + row('− Fees', 'f%·Revenue + f₀·q·weeks', m(-r.fees))
+    + row('− Other', 'O', m(-r.other))
+    + row('Profit', PROFIT_PERIODS[period].say, m(r.profit), 'is-total' + (r.profit < 0 ? ' is-bad' : ''));
+}
+
+/* ONE ROW A TERM: what it is and where its value came from, its slider, its box. */
+function profitControl_(p, x, from) {
+  const id = 'pf-' + p.k, v = x[p.k], moved = PROFIT.vals[p.k] != null && PROFIT.vals[p.k] !== '';
+  const max = Math.max(p.max, v), min = Math.min(p.min, v);
+  return `<div class="pf-var${moved ? ' is-moved' : ''}" data-pf-var="${p.k}">
+    <p class="pf-name" id="${id}-name"><b class="pf-sym">${esc(p.sym)}</b> ${esc(p.label)}${p.cash ? ' (£)' : ''}
+      <span class="pf-from">${esc(moved ? 'what-if' : from[p.k] || '')}</span></p>
+    <input type="range" id="${id}" data-pf="${p.k}" data-noswipe min="${min}" max="${max}" step="${p.step}" value="${v}" aria-label="${esc(p.label)}">
+    <input type="number" class="pf-num" data-pf="${p.k}" min="0" step="${p.step}" value="${v}" inputmode="decimal" aria-label="${esc(p.label + ', typed')}">
+  </div>`;
+}
+/* THE RESULT, ON THE TERMS' OWN PAGE, so a value moved there is seen to move it. */
+const profitHead_ = r => `<span class="pf-k">Profit ${esc(PROFIT_PERIODS[PROFIT.period].say)}</span>
+  <b class="pf-v${r.profit < 0 ? ' is-bad' : ''}">${esc(profitMoney_(r.profit))}</b>
+  <span class="pf-sum">revenue ${esc(profitMoney_(r.revenue))} · costs ${esc(profitMoney_(r.revenue - r.profit))}</span>`;
+
+/* TWO PAGES — the sum and its charts, then the terms — so neither is taller than a phone. An admin's only; `bizPages_` asks too. */
+function profitCards_() {
+  if (!(typeof isAdmin === 'function' && isAdmin())) return [];
+  const D = profitDefaults_(), x = profitVals_(D), r = profitSum_(x, PROFIT.period);
+  const A = D.actual;
+  const opt = (v, t, on) => `<option value="${esc(v)}"${on ? ' selected' : ''}>${esc(t)}</option>`;
+  const waiting = typeof awaiting_ === 'function' && awaiting_();
+  const sum = `<div class="card biz profit" data-profit="sum">
+    <h3>Profit</h3>
+    <p class="pf-formula">
+      <span>Profit = Revenue − Tutor − Room − Fees − Other</span>
+      <span>Revenue = N·h·(P·(1 + (c + B)(n − 1))·(1 − d%) + V)</span>
+      <span>Tutor = N·h·P·(1 + c(n − 1)) · Room = N·h·V</span>
+      <span>Fees = f%·Revenue + f₀·q·weeks · N = S × weeks</span></p>
+    <label class="field pf-period"><span>Period</span><select data-pf-period aria-label="Period">${
+      Object.keys(PROFIT_PERIODS).map(k => opt(k, 'Per ' + k, k === PROFIT.period)).join('')}</select></label>
+    <div class="pf-rows">${profitRows_(r, PROFIT.period)}</div>
+    <div class="pf-bars">${profitBars_(r)}</div>
+    <label class="field pf-against"><span>Profit against</span><select data-pf-x aria-label="Profit against">${
+      PROFIT_VARS.map(p => opt(p.k, p.sym + ' · ' + p.label, p.k === PROFIT.x)).join('')}</select></label>
+    <div class="pf-lines">${profitLine_(x, PROFIT.period)}</div>
+  </div>`;
+  const terms = `<div class="card biz profit" data-profit="terms">
+    <h3>Profit · the terms</h3>
+    <p class="pf-head">${profitHead_(r)}</p>
+    <div class="pf-vars">${PROFIT_VARS.map(p => profitControl_(p, x, D.from)).join('')}</div>
+    <div class="tile-row">${tile_({ icon: 'undo', label: 'Reset to actual', act: 'profit-reset' })}</div>
+    <p class="faint pf-said">${A
+      ? esc('This month’s bookings so far: ' + A.sessions + ' sessions, ' + profitMoney_(A.charged) + ' charged, '
+        + profitMoney_(A.tutor) + ' to tutors, ' + profitMoney_(A.kept) + ' kept. ')
+      : esc(waiting ? '' : 'No bookings this month, so the starting values are config and placeholders. ')}${
+      esc('What you move here stays on this device; nothing is written to the sheet.')}</p>
+  </div>`;
+  return [sum, terms];
+}
+
+/* REDRAWN IN PLACE as a value moves — not a repaint of the column, which would take the slider from under the finger. */
+function profitRedraw_(skip) {
+  if (!(typeof isAdmin === 'function' && isAdmin())) return;
+  const D = profitDefaults_(), x = profitVals_(D), r = profitSum_(x, PROFIT.period);
+  document.querySelectorAll('[data-profit]').forEach(card => {
+    const put = (sel, html) => { const el = card.querySelector(sel); if (el) el.innerHTML = html; };
+    put('.pf-rows', profitRows_(r, PROFIT.period));
+    put('.pf-bars', profitBars_(r));
+    put('.pf-lines', profitLine_(x, PROFIT.period));
+    put('.pf-head', profitHead_(r));
+    card.querySelectorAll('select[data-pf-period]').forEach(el => { el.value = PROFIT.period; });
+    card.querySelectorAll('[data-pf-var]').forEach(box => {
+      const k = box.dataset.pfVar, moved = PROFIT.vals[k] != null && PROFIT.vals[k] !== '';
+      box.classList.toggle('is-moved', moved);
+      const f = box.querySelector('.pf-from'); if (f) f.textContent = moved ? 'what-if' : D.from[k] || '';
+      box.querySelectorAll('[data-pf]').forEach(inp => { if (inp !== skip) inp.value = x[k]; });
+    });
+  });
+}
+document.addEventListener('input', e => {
+  const el = e.target && e.target.closest && e.target.closest('[data-profit] [data-pf]');
+  if (!el) return;
+  const x = Number(el.value);
+  if (el.value === '' || !isFinite(x) || x < 0) return;
+  PROFIT.vals[el.dataset.pf] = x;
+  profitKeep_();
+  profitRedraw_(el);
+});
+document.addEventListener('change', e => {
+  const el = e.target && e.target.closest && e.target.closest('[data-profit] select');
+  if (!el) return;
+  if (el.hasAttribute('data-pf-period') && PROFIT_PERIODS[el.value]) PROFIT.period = el.value;
+  if (el.hasAttribute('data-pf-x') && PROFIT_VARS.some(p => p.k === el.value)) PROFIT.x = el.value;
+  profitKeep_();
+  profitRedraw_();
+});
+on('profit-reset', el => {
+  if (!(typeof isAdmin === 'function' && isAdmin())) return;
+  PROFIT.vals = {};
+  profitKeep_();
+  profitRedraw_();
+  toast('Back to this month’s figures');
+});
+
 /* THE COLUMN, AND ITS RECORDS ASKED FOR AS SOON AS IT IS DRAWN FOR AN ADMIN — not when it is arrived at. § */
 screen('biz', () => {
-  if (typeof isAdmin === 'function' && isAdmin()) setTimeout(() => { try { bizStart_(); } catch (e) {} }, 0);
+  if (typeof isAdmin === 'function' && isAdmin()) setTimeout(() => { try { bizStart_(); } catch (e) {} try { if (!REPS.list) reportsStart_(); } catch (e) {} }, 0);
   return pages('biz', bizPages_());
 });
 

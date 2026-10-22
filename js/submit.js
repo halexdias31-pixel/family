@@ -639,3 +639,92 @@ function subForget_() {
   SUB_BACKOFF = 0;
   SUB_AGAIN = false;
 }
+
+/* ---------- REPORTING A QUESTION (395) ----------
+   The owner: "a tile so kids can report a question". One row in the `reports` tab (`reportQuestion`, dopost.gs); the reasons are `REPORT_REASONS` there, by id. */
+const REPORT_WHY = [
+  ['answer-wrong', 'The answer is wrong'],
+  ['marked-wrong', 'It marked me wrong but I was right'],
+  ['unreadable', 'Can’t read it / picture missing'],
+  ['broken', 'Doesn’t work'],
+  ['other', 'Something else'],
+];
+const REPORT_NOTE_MAX = 300;
+
+/* THE TILE, under every question for anybody signed in — signed out it is not drawn, as the star is not. */
+function reportTile_(x) {
+  if (!x || x.kind !== 'question' || !x.key || typeof USER === 'undefined' || !USER) return '';
+  return tile_({ icon: 'flag', label: 'Report', note: 'something wrong', act: 'q-report', data: { key: x.key } });
+}
+
+/* WHAT KIND OF SCREEN IT WAS SEEN ON — enough for the owner to try it on the same, and nothing that names a device. */
+function reportDevice_() {
+  try {
+    /* `screen` IS shell.js's column maker in this scope, so the window's size, not the display's. */
+    const w = Math.min(innerWidth, innerHeight);
+    const touch = matchMedia('(pointer: coarse)').matches;
+    return !touch ? 'computer' : w < 600 ? 'phone' : 'tablet';
+  } catch (e) { return ''; }
+}
+
+function reportForm_(x, finder) {
+  const label = [x.name, x.sub].filter(Boolean).join(' · ');
+  return `<div class="me-form rep-form" data-key="${esc(x.key)}" data-finder="${esc(finder || '')}">
+    <p class="faint rep-what">${esc(label)}</p>
+    <div class="rep-opts" role="radiogroup" aria-label="What is wrong">${REPORT_WHY.map(([id, say]) =>
+      `<button type="button" class="rep-opt" role="radio" aria-checked="false" data-do="rep-why" data-why="${esc(id)}">${esc(say)}</button>`).join('')}</div>
+    <label class="field rep-note"><span>Anything else? (optional)</span>
+      <textarea class="rep-note-in" rows="2" maxlength="${REPORT_NOTE_MAX}" autocomplete="off"
+        placeholder="A few words" aria-label="Anything else about this question"${draftAttr_('rep', x.key)}>${esc(draftVal_('rep', x.key))}</textarea></label>
+    <div class="tile-row">${tile_({ icon: 'send', label: 'Send', note: 'the report', act: 'rep-send', cls: 'rep-send' })}</div>
+    <p class="faint me-said rep-said" aria-live="polite"></p>
+  </div>`;
+}
+
+on('q-report', el => {
+  if (!USER) { toast('Sign in to report a question.'); return; }
+  const k = el && el.getAttribute('data-key');
+  let x = null;
+  try { x = k ? stuffItemsAll_().find(i => i && i.key === k) : null; } catch (e) { x = null; }
+  if (!x) { toast('That question is not loaded — try again in a moment.'); return; }
+  let finder = '';
+  try { finder = (finderAt_(el) || {}).id || ''; } catch (e) {}
+  openSheet('Report this question', reportForm_(x, finder));
+});
+
+on('rep-why', el => {
+  const form = el.closest('.rep-form');
+  if (!form) return;
+  form.querySelectorAll('.rep-opt').forEach(b => {
+    const on = b === el;
+    b.classList.toggle('is-picked', on);
+    b.setAttribute('aria-checked', on ? 'true' : 'false');
+  });
+  form.dataset.why = el.getAttribute('data-why') || '';
+  const said = form.querySelector('.rep-said');
+  if (said) said.textContent = '';
+});
+
+on('rep-send', el => {
+  const form = el.closest('.rep-form');
+  if (!form || form.classList.contains('is-sending')) return;
+  const said = form.querySelector('.rep-said');
+  if (!form.dataset.why) { if (said) said.textContent = 'Choose what is wrong first.'; return; }
+  const k = form.dataset.key;
+  let x = null;
+  try { x = stuffItemsAll_().find(i => i && i.key === k) || null; } catch (e) { x = null; }
+  const box = form.querySelector('.rep-note-in');
+  send_({ action: 'reportQuestion', personId: (USER && USER.personId) || '', questionId: String(k || '').replace(/^q:/, ''),
+          paperId: x && typeof paperIdOf_ === 'function' ? paperIdOf_(x.row) : '',
+          part: (x && x.qPart) || '', label: x ? [x.name, x.sub].filter(Boolean).join(' · ') : '',
+          reason: form.dataset.why, note: String((box && box.value) || '').slice(0, REPORT_NOTE_MAX),
+          finder: form.dataset.finder || '', device: reportDevice_() },
+        { button: el, where: said })
+    .then(d => {
+      /* SENT, SO THE NOTE'S DRAFT GOES — a reload must not bring back words already in the sheet. */
+      try { draftDrop_('rep', k); } catch (e) {}
+      closeSheet();
+      toast(d && d.already ? 'Thanks — you already sent that one today' : 'Thanks — sent');
+    })
+    .catch(() => {});
+});

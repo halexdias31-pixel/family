@@ -11426,7 +11426,8 @@ const BIZ_HELD_ = [{ id: 'pub_liability', title: 'Public liability insurance', c
                      provider: 'Example Insure', reference: 'PL-000000', due_on: '2030-01-01' }];
 /* WHAT NAMES THE COLUMN IN A PAGE: its section, the cards' own attributes and classes. Asked of the whole
    serialised document, so a comment, a hidden copy or a stray attribute is found as well as an element. */
-const BIZ_NAMED_ = /\bs-biz\b|data-biz|\bbiz-(body|item|cap|when|flag|said|save)\b|class="card biz"/;
+/* AND THE PROFIT CARD (393): its attribute, its classes, its controls and its tile. */
+const BIZ_NAMED_ = /\bs-biz\b|data-biz|\bbiz-(body|item|cap|when|flag|said|save)\b|class="card biz|data-profit|data-pf\b|\bpf-[a-z]|profit-reset/;
 const bizNamed_ = d => { const m = d.documentElement.outerHTML.match(new RegExp('.{0,50}(' + BIZ_NAMED_.source + ').{0,30}'));
   return m ? m[0].replace(/\s+/g, ' ') : ''; };
 const bizSwipe_ = async (w, from) => {
@@ -11484,7 +11485,7 @@ check('business: an admin has a Business column last, straight after Settings, h
   const cards = [...host.querySelectorAll(':scope > .page > .pane .me-form[data-biz-page]')].map(f => f.dataset.bizPage);
   if (cards.join('|') !== BIZ_TITLES_.join('|')) bad.push('the Business column holds ' + JSON.stringify(cards) + ', wanted the five records cards ' + JSON.stringify(BIZ_TITLES_));
   const n = host.querySelectorAll(':scope > .page').length;
-  if (n !== 6 || t.pageCount('biz') !== n) bad.push('the column draws ' + n + ' pages and the pager counts ' + t.pageCount('biz') + ' — wanted six and six (five records, the verse screen)');
+  if (n !== 9 || t.pageCount('biz') !== n) bad.push('the column draws ' + n + ' pages and the pager counts ' + t.pageCount('biz') + ' — wanted nine and nine (Profit and its terms, Reports (395), five records, the verse screen)');
   /* THE LAST PAGE IS THE VERSE SCREEN'S SETUP, A TILE THAT LEAVES FOR ITS PAGE (370). */
   const vs = host.querySelector(':scope > .page:last-child a.tile[href$="/tools/epaper-verse/install.html"]');
   if (!vs) bad.push('the last Business page has no "Verse screen · set up" tile to the install page');
@@ -11540,6 +11541,73 @@ check('business: an admin has a Business column last, straight after Settings, h
   if (t.PAGE().settings !== last) bad.push('an admin coming back to Settings past its last page is on page ' + t.PAGE().settings + ' of ' + (last + 1));
   const on = set.querySelectorAll(':scope > .page')[t.PAGE().settings];
   if (!on || !on.querySelector('.pane .card')) bad.push('an admin coming back to Settings past its last page is on a page with no card');
+  return bad;
+});
+
+/* ---------- PROFIT, THE BUSINESS COLUMN'S FIRST CARD (393) ---------- */
+check('profit: an admin\'s Business column opens on Profit — the formula and two charts, then a page with a control per term starting from this month\'s bookings and config; a moved value recomputes, stays on the device, sends nothing; Reset goes back; nobody else is drawn it', async () => {
+  const now = new Date(), y = now.getFullYear(), mo = now.getMonth();
+  const dmy = day => String(day).padStart(2, '0') + '/' + String(mo + 1).padStart(2, '0') + '/' + y;
+  const p = payload();
+  p.constants = p.constants || {}; p.constants.vars = Object.assign({}, p.constants.vars, { c: '0.25', B: '0.25', card_fee_pct: '0', card_fee_fixed: '0' });
+  /* ONE JOB OF FOUR SESSIONS, ALL THIS MONTH, two seats, an hour each: £100 charged, £50 to the tutor, £25 kept — so P = 50/4/1.25 = 10, V = 25/4. */
+  p.clientClasses = [{ id: 'J-PF', jobId: 'J-PF', type: 'job', kind: '', status: 'active', subject: 'Maths', level: 'GCSE',
+    price: 100, tutorPay: 50, adminKeeps: 25, weeks: 4, hours: 1, currentKids: 2, maxKids: 4,
+    dates: [1, 2, 3, 4].map(dmy).join(', '), slots: [], tutorSlots: [], events: [] }];
+  const { w, sent } = boot({ payload: p, serve: BIZ_SERVE_(BIZ_COLS_()),
+    before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(BIZ_ADMIN_)); } catch (e) {} },
+    reply: body => (body.action === 'listRecords' ? { success: true, records: [] } : undefined) });
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  await wait(600);
+  const t = w.__t, d = w.document;
+  if (!t) return ['the app did not finish loading'];
+  if (!t.whoami() || t.whoami().role !== 'admin') return ['the admin seeded before boot is not signed in — nothing was checked'];
+  const bad = [];
+  t.go('biz', false, true); await wait(LEAVE_MS); await woken_();
+  if (t.AT() !== 'biz') return ['go("biz") left the admin on ' + t.AT() + ' — the Profit card was NOT checked'];
+  const pgs = [...d.querySelectorAll('#s-biz > .page')];
+  const sum = pgs[0] && pgs[0].querySelector('[data-profit="sum"]'), card = pgs[1] && pgs[1].querySelector('[data-profit="terms"]');
+  if (!sum || !card) return ['the Business column\'s first two pages are not Profit and its terms: ' + pgs.slice(0, 2).map(g => (g.querySelector('h3') || {}).textContent).join(' | ')];
+  if (!/Profit = Revenue − Tutor − Room − Fees − Other/.test(sum.textContent)) bad.push('the Profit card does not write the formula out');
+  if (sum.querySelectorAll('svg.pf-chart').length !== 2) bad.push('the Profit card has ' + sum.querySelectorAll('svg.pf-chart').length + ' charts, wanted the bars and the line');
+  if (card.querySelectorAll('[data-pf-var]').length !== 12) bad.push('the terms page has ' + card.querySelectorAll('[data-pf-var]').length + ' controls, wanted 12');
+  const val = k => Number((card.querySelector('input.pf-num[data-pf="' + k + '"]') || {}).value);
+  const from = k => ((card.querySelector('[data-pf-var="' + k + '"] .pf-from') || {}).textContent || '').trim();
+  const want = { n: 2, h: 1, P: 10, V: 6.25, c: 0.25, B: 0.25 };
+  for (const k of Object.keys(want)) if (Math.abs(val(k) - want[k]) > 0.01) bad.push(k + ' starts at ' + val(k) + ', wanted ' + want[k] + ' from this month\'s booking and config');
+  if (from('P') !== 'this month') bad.push('P says it came from ' + JSON.stringify(from('P')) + ', wanted "this month"');
+  if (from('B') !== 'config') bad.push('B says it came from ' + JSON.stringify(from('B')) + ', wanted "config"');
+  if (!card.querySelector('.tile[data-do="profit-reset"]')) bad.push('there is no Reset to actual tile');
+  const profit = () => ((sum.querySelector('.pf-row.is-total .pf-v') || {}).textContent || '').trim();
+  const head = () => ((card.querySelector('.pf-head .pf-v') || {}).textContent || '').trim();
+  /* PER MONTH, THE BOOKING ITSELF COMES BACK: S·w = 4 sessions → revenue 4·(10·1.5 + 6.25) = 85, tutor 50, room 25, profit 10. Shown as the figures, not trusted from them. */
+  const sel = sum.querySelector('select[data-pf-period]');
+  if (sel) { sel.value = 'month'; sel.dispatchEvent(new w.Event('change', { bubbles: true })); }
+  const before = profit();
+  const nBox = card.querySelector('input[type="range"][data-pf="n"]');
+  if (!nBox) return bad.concat(['there is no slider for n']);
+  if (!nBox.hasAttribute('data-noswipe')) bad.push('the n slider does not keep the finger from the column swipe (`data-noswipe`)');
+  const posted = sent.length;
+  nBox.value = '4'; nBox.dispatchEvent(new w.Event('input', { bubbles: true }));
+  const after = profit();
+  if (!before || after === before) bad.push('moving n from 2 to 4 left Profit at ' + JSON.stringify(after));
+  if (head() !== after) bad.push('the terms page says Profit is ' + JSON.stringify(head()) + ' and the sum page ' + JSON.stringify(after));
+  if (val('n') !== 4) bad.push('moving the n slider did not move its number box (' + val('n') + ')');
+  let kept = {};
+  try { kept = JSON.parse(w.localStorage.getItem('profit:whatif') || '{}'); } catch (e) {}
+  if (!kept.vals || kept.vals.n !== 4) bad.push('the moved n was not kept on the device: ' + JSON.stringify(kept));
+  await wait(300);
+  if (sent.length !== posted) bad.push('moving a value sent ' + JSON.stringify(sent.slice(posted).map(b => b.action)) + ' — a what-if is never written');
+  try { t.ACTIONS['profit-reset'](card.querySelector('.tile[data-do="profit-reset"]')); } catch (e) { bad.push('profit-reset threw: ' + e.message); }
+  if (val('n') !== 2) bad.push('Reset to actual left n at ' + val('n'));
+  if (profit() !== before) bad.push('Reset to actual left Profit at ' + profit() + ', wanted ' + before);
+  /* NOBODY ELSE: the function that draws it answers nothing, whoever else is signed in or nobody. */
+  for (const u of [null, { name: 'T', role: 'tutor', roles: ['tutor'] }, { name: 'P', role: 'client', roles: ['client'] }, { name: 'S', role: 'student', roles: ['student'] }]) {
+    t.USER(u);
+    const html = w.profitCards_().join('') + (w.bizPages_() || []).join('');
+    if (html) bad.push((u ? u.role : 'signed out') + ': profitCards_/bizPages_ drew ' + html.slice(0, 60));
+  }
+  t.USER(null);
   return bad;
 });
 
@@ -15012,7 +15080,8 @@ check('Find and Find 2 draw the same question family, practical, project and con
   const norm = html => {
     const h = w.document.createElement('div');
     h.innerHTML = html;
-    h.querySelectorAll('[data-do="fav"], .tile-row .qcard-verdict, [data-do="qp-send"]').forEach(n => n.remove());
+    /* `q-report` IS THE PERSON'S TOO, like the star: drawn for anybody signed in (395). */
+    h.querySelectorAll('[data-do="fav"], [data-do="q-report"], .tile-row .qcard-verdict, [data-do="qp-send"]').forEach(n => n.remove());
     /* A WORKSHEET BOX WITH ITS SEND IS THE BOX, wrapped (`guideBox_`): the wrapper goes, the box stays. */
     h.querySelectorAll('.qp-mark.gd-mark').forEach(m => { const l = m.querySelector('.gd-box'); if (l) m.replaceWith(l); else m.remove(); });
     /* AND A BOX NOTHING MARKS IS A `.qp-mark` WITH A VERDICT LINE ONLY WHEN IT HAS THAT SEND: put back to the
@@ -25898,6 +25967,177 @@ check('marked by rule first: a 2-mark worded answer with mark_words gets Check, 
   const latest = typeof w.subLatest_ === 'function' ? w.subLatest_(inp.getAttribute('data-k')) : null;
   if (latest && latest.v !== 'rule:2/2') bad.push('the mark was recorded as ' + JSON.stringify(latest.v) + ', wanted rule:2/2 — which way it was made is lost');
   host.remove();
+  return bad;
+});
+
+/* ---------- READ ALOUD ON A PRIMARY QUESTION: THE TILE, WHAT IT SAYS, AND WHEN IT STOPS (docs/history/394) ---------- */
+check('read aloud: a KS2 question has the tile and a GCSE one does not; it says the question in words, stops on a second tap and on leaving', async () => {
+  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const PIDS = ['P-STA-KS2-2024-P1', 'P-STA-KS2-2024-P2', 'P-STA-KS2-2024-P3', 'RS1786302107764-416'];
+  const rows = LIB.filter(r => PIDS.indexOf(r.paper_id) >= 0);
+  const said = [];
+  const voiced = w => {
+    w.SpeechSynthesisUtterance = function (txt) { this.text = String(txt); this.lang = ''; this.voice = null; this.rate = 1; };
+    w.speechSynthesis = { speak: u => said.push(u), cancel: () => said.push({ cancel: true }),
+                          getVoices: () => [{ name: 'American', lang: 'en-US' }, { name: 'British', lang: 'en-GB' }] };
+  };
+  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const one = boot();
+  await wait(300);
+  if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable — NOT checked'];
+  const p = payload();
+  p.textbooks = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, { textbooks: read('textbooks') }))).textbooks || [];
+  const { w } = boot({ payload: p, before: voiced, serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
+  const ready = () => typeof w.stuffItemsAll_ === 'function' && w.stuffItemsAll_().some(x => x.row && x.row.paper_id === PIDS[0]);
+  for (let i = 0; i < 80 && !ready(); i++) await wait(50);
+  const t = w.__t, d = w.document, bad = [];
+  if (!ready() || typeof w.readAloudLines_ !== 'function') return ['the real rows or readAloudLines_ did not arrive — NOT checked'];
+  const all = w.stuffItemsAll_();
+  const q = id => all.find(x => x.row && x.row.row_id === id);
+  const ks2 = q('Q-STA-KS2-2024-P1-28'), shop = q('Q-STA-KS2-2024-P2-2'), gcse = q('Q-1MA1-2406-1H-1');
+  if (!ks2 || !shop || !gcse) return ['a fixture row is missing from data/questions.json — NOT checked'];
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  const tileOf = x => { host.innerHTML = w.stuffCard(x); return host.querySelector('[data-do="read-aloud"]'); };
+  if (tileOf(gcse)) bad.push('a GCSE question carries the Read aloud tile');
+  const ct = all.filter(x => x.kind === 'content');
+  const ctKs2 = ct.find(x => /KS2/.test(x.level || '') || /KS2/.test(x.keystage || '')), ctGcse = ct.find(x => x.level === 'GCSE');
+  if (!ctKs2 || !ctGcse) bad.push('no KS2 and GCSE content cards to hold the tile against');
+  else {
+    if (!tileOf(ctKs2)) bad.push('the KS2 content card "' + ctKs2.name + '" has no Read aloud tile');
+    if (tileOf(ctGcse)) bad.push('the GCSE content card "' + ctGcse.name + '" carries the Read aloud tile');
+  }
+  let tile = tileOf(ks2);
+  if (!tile) return bad.concat(['the KS2 question Q-STA-KS2-2024-P1-28 has no Read aloud tile']);
+  if (!tile.querySelector('.tile-i-speak')) bad.push('the Read aloud tile does not carry the speaker mark');
+  /* WHAT IT SAYS: the fraction sum in words, said in the British voice, a little slow. */
+  t.ACTIONS['read-aloud'](tile);
+  const spoken = said.filter(u => u.text).map(u => u.text);
+  const WANT = '2 and three eighths minus five eighths equals what?';
+  if (spoken.join(' | ') !== WANT) bad.push('Q-STA-KS2-2024-P1-28 is read as ' + JSON.stringify(spoken) + ', wanted ' + JSON.stringify(WANT));
+  const u0 = said.find(u => u.text);
+  if (u0 && (u0.lang !== 'en-GB' || !u0.voice || u0.voice.lang !== 'en-GB' || !(u0.rate < 1))) bad.push('the voice is ' + u0.lang + '/' + (u0.voice && u0.voice.lang) + ' at rate ' + u0.rate + ', wanted the British voice a little slow');
+  tile = host.querySelector('[data-do="read-aloud"]');
+  if (tile.getAttribute('aria-pressed') !== 'true' || !tile.classList.contains('on') || !/Stop/.test(tile.getAttribute('aria-label'))) bad.push('the tile does not show it is reading: ' + tile.getAttribute('aria-label'));
+  /* A SECOND TAP STOPS IT, and says nothing more. */
+  said.length = 0;
+  t.ACTIONS['read-aloud'](tile);
+  if (!said.some(u => u.cancel) || said.some(u => u.text)) bad.push('a second tap did not just stop: ' + JSON.stringify(said));
+  if (tile.getAttribute('aria-pressed') !== 'false' || tile.classList.contains('on')) bad.push('after the second tap the tile still shows it is reading');
+  /* THE SHOP QUESTION: the table, the money, the options as A to D, and never the answer. */
+  tile = tileOf(shop);
+  said.length = 0;
+  if (tile) t.ACTIONS['read-aloud'](tile);
+  const lines = said.filter(u => u.text).map(u => u.text);
+  ['Banana, 12p.', 'He pays with a 2 pounds coin. He gets 1 pound 50 change.', 'Choose 2.', 'A: Banana.', 'D: Pear.'].forEach(l => {
+    if (lines.indexOf(l) < 0 && !lines.some(s => s.indexOf(l) >= 0)) bad.push('Q-STA-KS2-2024-P2-2 is not read with "' + l + '": ' + JSON.stringify(lines));
+  });
+  if (lines.some(l => /mark/i.test(l))) bad.push('the marks are read out: ' + JSON.stringify(lines));
+  /* LEAVING THE COLUMN STOPS IT. */
+  said.length = 0;
+  t.go('stuff', false, true);
+  for (let i = 0; i < 20 && !said.some(u => u.cancel); i++) await wait(20);
+  if (!said.some(u => u.cancel)) bad.push('going to another column did not stop the reading');
+  tile = host.querySelector('[data-do="read-aloud"]');
+  if (tile && tile.getAttribute('aria-pressed') === 'true') bad.push('after leaving the column the tile still shows it is reading');
+  /* THE MATHS IN WORDS, on real KS2 rows: what each one's first line is said as. */
+  const CASES = [
+    ['Q-STA-KS2-2024-P1-1', '689 plus 38 equals what?'],
+    ['Q-STA-KS2-2024-P1-2', '72 divided by 3 equals what?'],
+    ['Q-STA-KS2-2024-P1-3', '23 times 6 equals what?'],
+    ['Q-STA-KS2-2024-P1-31', '99 percent of 600 equals what?'],
+    ['Q-STA-KS2-2024-P1-34', '2 and one sixth minus two thirds equals what?'],
+    ['Q-STA-KS2-2024-P2-20', 'Each day, a school has break from 10 15 a.m. to 10 30 a.m. and lunchtime from 12 40 p.m. to 1 30 p.m.'],
+    ['Q-STA-KS2-2024-P3-2', 'The temperature in a freezer is minus 40 degrees Celsius. The temperature increases by 10 degrees Celsius.'],
+  ];
+  CASES.forEach(([id, want]) => {
+    const x = q(id);
+    if (!x) { bad.push(id + ' is not in data/questions.json — NOT checked'); return; }
+    const got = w.readAloudLines_(x)[0];
+    if (got !== want) bad.push(id + ' is said as ' + JSON.stringify(got) + ', wanted ' + JSON.stringify(want));
+  });
+  const box = q('Q-STA-KS2-2024-P3-16');
+  if (box && w.readAloudLines_(box).indexOf('Three fifths is less than how many hundredths is less than 0 point 7.') < 0) bad.push('the box in a fraction is not "how many hundredths": ' + JSON.stringify(w.readAloudLines_(box)));
+  /* NO VOICE, NO TILE. */
+  const quiet = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) }).w;
+  for (let i = 0; i < 80 && !(typeof quiet.stuffItemsAll_ === 'function' && quiet.stuffItemsAll_().some(x => x.row && x.row.row_id === 'Q-STA-KS2-2024-P1-28')); i++) await wait(50);
+  const qx = quiet.stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-STA-KS2-2024-P1-28');
+  if (!qx) bad.push('the second boot did not load the row — the no-voice case was NOT checked');
+  else if (quiet.readAloudTile_(qx)) bad.push('with no speechSynthesis the Read aloud tile is still drawn');
+  host.remove();
+  return bad;
+});
+
+/* ---------- REPORTING A QUESTION (395): the tile, the sheet, the send, the toast — and the admin's card. */
+check('a signed-in child reports a question from its tile row: a reason, a note, one send, "Thanks — sent"; an admin sees the count', async () => {
+  const reply = b => b.action === 'reportQuestion' ? { success: true }
+    : b.action === 'listReports' ? { success: true, open: 1, total: 3, reports: [{ id: 'R-1-1', at: Date.now(), handle: 'aa2026',
+        questionId: 'Q-REP-1', label: 'Q1 · Paper 1', reason: 'The answer is wrong', note: 'it is 15', finder: 'stuff', device: 'phone' }] }
+    : { success: true, messages: [] };
+  const { w, sent } = boot({ reply });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  const lib = mpLibrary_(w, [mpRow_('P-REP', 'Paper 1', 1, 'a')]);
+  const x = lib.items.find(i => i && i.kind === 'question' && i.key);
+  if (!x) { lib.put(); return ['the one-question library made no question, so the Report tile was NOT checked']; }
+  t.USER(null);
+  if (/data-do="q-report"/.test(w.cardTiles_(x))) bad.push('signed out, the question row offers Report');
+  t.USER({ name: 'Ada Pupil', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7', handle: 'aa2026' });
+  const host = d.createElement('div');
+  host.className = 'card';
+  host.innerHTML = w.cardTiles_(x);
+  d.body.appendChild(host);
+  const tile = host.querySelector('.tile-row [data-do="q-report"]');
+  if (!tile) { host.remove(); lib.put(); return bad.concat(['a signed-in child’s question row has no Report tile']); }
+  if (!tile.classList.contains('tile') || !tile.querySelector('.tile-i-flag')) bad.push('Report is not a tile with the flag mark');
+  t.ACTIONS['q-report'](tile);
+  await wait(20);
+  if (!sheetOpen_(d)) { host.remove(); lib.put(); return bad.concat(['pressing Report opened no sheet']); }
+  const form = d.querySelector('#sheet-body .rep-form');
+  const opts = form ? [].map.call(form.querySelectorAll('.rep-opt'), b => b.textContent.trim()) : [];
+  const WANT = ['The answer is wrong', 'It marked me wrong but I was right', 'Can’t read it / picture missing', 'Doesn’t work', 'Something else'];
+  if (JSON.stringify(opts) !== JSON.stringify(WANT)) bad.push('the reasons are ' + JSON.stringify(opts));
+  const note = form && form.querySelector('textarea.rep-note-in');
+  if (!note || note.getAttribute('autocomplete') !== 'off' || note.getAttribute('maxlength') !== '300') bad.push('the note box is missing, suggests, or has no 300 cap');
+  /* SEND WITH NO REASON IS REFUSED ON THE PHONE, and nothing goes. */
+  const sendT = form && form.querySelector('[data-do="rep-send"]');
+  if (!sendT || !sendT.classList.contains('tile')) { lib.put(); return bad.concat(['the sheet has no Send tile']); }
+  t.ACTIONS['rep-send'](sendT);
+  await wait(20);
+  if (sent.some(b => b.action === 'reportQuestion')) bad.push('Send with no reason chosen still sent');
+  if (!/Choose what is wrong/.test(form.querySelector('.rep-said').textContent)) bad.push('Send with no reason said nothing');
+  t.ACTIONS['rep-why'](form.querySelectorAll('.rep-opt')[1]);
+  if (form.querySelectorAll('.rep-opt')[1].getAttribute('aria-checked') !== 'true') bad.push('the chosen reason is not marked chosen');
+  note.value = 'I put 15';
+  t.ACTIONS['rep-send'](sendT);
+  await wait(300);
+  const went = sent.filter(b => b.action === 'reportQuestion');
+  if (went.length !== 1) bad.push(went.length + ' reportQuestion requests went — wanted one');
+  else {
+    const b = went[0];
+    if (b.questionId !== x.key.replace(/^q:/, '') || b.reason !== 'marked-wrong' || b.note !== 'I put 15' || b.token !== 'tok-P7') bad.push('the request carried ' + JSON.stringify(b));
+    if ('personId' in b && b.personId !== 'P7') bad.push('the request named somebody else');
+  }
+  if (toastOf_(d) !== 'Thanks — sent') bad.push('the toast says ' + JSON.stringify(toastOf_(d)) + ' — wanted "Thanks — sent"');
+  if (sheetOpen_(d)) bad.push('the sheet stayed open after the report went');
+  host.remove();
+  /* THE BUSINESS COLUMN: a child is never drawn the card; an admin is, with the count, once `listReports` answers. */
+  if (/data-reports/.test((w.bizPages_() || []).join(''))) bad.push('a child’s Business column draws the Reports card');
+  if (sent.some(b => b.action === 'listReports')) bad.push('a child’s phone asked for listReports');
+  t.USER({ name: 'Hal Admin', personId: 'P1', role: 'admin', roles: ['admin'], token: 'tok-P1', handle: 'hl2026' });
+  const biz = d.createElement('div');
+  biz.innerHTML = w.bizPages_().join('');
+  d.body.appendChild(biz);
+  w.reportsStart_();
+  await wait(300);
+  const card = biz.querySelector('[data-reports]');
+  if (!card) bad.push('an admin’s Business column has no Reports card');
+  else {
+    if (!/1 open/.test(card.textContent)) bad.push('the Reports card says ' + JSON.stringify(card.textContent.replace(/\s+/g, ' ').slice(0, 120)) + ' — wanted "1 open"');
+    if (!card.querySelector('[data-do="rep-status"][data-status="fixed"]') || !card.querySelector('[data-do="rep-open"]')) bad.push('a listed report has no Fixed or Open tile');
+  }
+  biz.remove();
+  lib.put();
   return bad;
 });
 

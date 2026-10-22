@@ -1296,6 +1296,8 @@ function placeCells(which, instant, dragPx, id) {
   /* A DRAG IS NOT A REQUEST. It is already once-per-frame — `pointermove` books its own frame —
      and it must land now rather than next frame. Straight through. */
   if (dragPx) return placeNow_(which, instant, dragPx, id);
+  /* A QUESTION BEING READ ALOUD STOPS WHEN ITS PAGE OR COLUMN IS LEFT (394). */
+  if (typeof readAloudStray_ === 'function') readAloudStray_();
 
   /* THE FIRST ONE IS NOT DEFERRED. § */
   if (!PLACED_ONCE) { PLACED_ONCE = true; return placeNow_(which, instant, 0, id); }
@@ -2055,6 +2057,34 @@ function toast(msg) {
   el.textContent = msg;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.remove(), 2600);
+}
+
+/* ---------- SPEAKING, ONE VOICE FOR THE WHOLE APP (394) ---------------------------------------- */
+/* Imposter's Listen and a question's Read aloud both speak through these three, so the British voice
+   and the Chrome no-voices-yet fallback (`lang` as well as `voice`) are written once. */
+function canSay_() {
+  try { return !!(window.speechSynthesis && window.SpeechSynthesisUtterance); } catch (e) { return false; }
+}
+function hush_() {
+  try { if (canSay_()) window.speechSynthesis.cancel(); } catch (e) {}
+}
+/* ONE UTTERANCE, QUEUED. Called inside the tap's own handler, which is what iPhone Safari needs to speak at all; `o` = { rate, volume, onend }. */
+function say_(text, o) {
+  o = o || {};
+  try {
+    const ss = window.speechSynthesis;
+    const u = new window.SpeechSynthesisUtterance(String(text));
+    u.lang = 'en-GB';
+    const gb = (typeof ss.getVoices === 'function' ? ss.getVoices() || [] : [])
+      .find(v => /^en[-_]GB/i.test(String(v.lang || '')));
+    if (gb) u.voice = gb;
+    u.rate = o.rate || 0.9;
+    u.volume = o.volume == null ? 1 : o.volume;
+    if (o.onend) { u.onend = o.onend; u.onerror = o.onend; }
+    if (o.onstart) u.onstart = o.onstart;
+    ss.speak(u);
+    return u;
+  } catch (e) { return null; }
 }
 
 /* ---------- ONE CLICK HANDLER § */

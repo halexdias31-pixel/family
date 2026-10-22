@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-20-l-who-sees-retry";
+const DOPOST_VERSION = "2026-10-22-a-report-question";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -3103,6 +3103,87 @@ function doPost(e) {
       return jsonOut({ success: true, for: S(me.person_id), answers: answersFor_(S(me.person_id)) });
     }
 
+    /* ---------- A QUESTION REPORTED (395): one row in `reports`, as the token's person, once a day per question ---------- */
+    if (action === 'reportQuestion') {
+      const me = findPerson('', S(body.personId));
+      if (!me || !S(me.person_id)) return jsonOut({ error: 'Sign in first.' });
+      /* THE ID AS SENT, not as cleaned — a tag around one is not a question id. */
+      const qid = S(body.questionId).trim();
+      if (qid.length > REPORT_FIELD_MAX || !/^[A-Za-z0-9][A-Za-z0-9_.:|-]*$/.test(qid)) return jsonOut({ error: 'Which question? Nothing was sent.' });
+      const reason = Object.prototype.hasOwnProperty.call(REPORT_REASONS, S(body.reason)) ? REPORT_REASONS[S(body.reason)] : '';
+      if (!reason) return jsonOut({ error: 'Choose what is wrong first.' });
+      const lock = LockService.getScriptLock();
+      if (!lock.tryLock(5000)) return jsonOut({ error: 'Busy — try again in a moment.', why: 'busy' });
+      let out = {};
+      const wroteBefore = POST_WROTE;
+      try {
+        /* FRESH ROWS UNDER THE LOCK, `submitAnswer`'s rule: two taps at once must not both find "not yet today". */
+        clearCache();
+        const t = read(TAB.reports);
+        if (!t.sheet) out = { error: 'Reports are not set up yet — an admin opening the site sets them up.', why: 'no-tab' };
+        else {
+          const pid = S(me.person_id), today = reportDay_(new Date());
+          const had = t.rows.find(r => S(r.person_id) === pid && S(r.question_id) === qid && reportDay_(r.at) === today);
+          if (had) out = { success: true, already: true };
+          else {
+            addRow(t, {
+              report_id: 'R-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+              at: new Date(), person_id: pid, handle: S(me.handle),
+              question_id: qid, paper_id: reportCut_(body.paperId, REPORT_FIELD_MAX),
+              part: reportCut_(body.part, 20), label: reportCut_(body.label, REPORT_FIELD_MAX),
+              reason: reason, note: reportCut_(body.note, REPORT_NOTE_MAX),
+              finder: reportCut_(body.finder, 20), device: reportCut_(body.device, 20), status: '',
+            });
+            out = { success: true };
+          }
+        }
+      } finally {
+        lock.releaseLock();
+      }
+      /* NOTHING IN THE PAYLOAD CHANGED — no viewer is sent `reports` with it — so the stored payload stands. */
+      if (POST_WROTE && !wroteBefore) POST_WROTE = false;
+      return jsonOut(out);
+    }
+
+    /* ---------- THE OPEN REPORTS, FOR THE BUSINESS COLUMN (395). Admin only, at the gate. ---------- */
+    if (action === 'listReports') {
+      clearCache();
+      const t = read(TAB.reports);
+      if (!t.sheet) return jsonOut({ success: true, open: 0, total: 0, reports: [], missing: true });
+      const open = t.rows.filter(r => !S(r.status))
+        .map(r => ({ id: S(r.report_id), at: r.at instanceof Date ? r.at.getTime() : (Date.parse(S(r.at)) || 0),
+                     handle: S(r.handle), questionId: S(r.question_id), paperId: S(r.paper_id), part: S(r.part),
+                     label: S(r.label), reason: S(r.reason), note: S(r.note), finder: S(r.finder), device: S(r.device) }))
+        /* NEWEST FIRST, and the later row first where two share a millisecond. */
+        .map((r, i) => Object.assign(r, { _i: i })).sort((a, b) => (b.at - a.at) || (b._i - a._i))
+        .map(r => { delete r._i; return r; });
+      return jsonOut({ success: true, open: open.length, total: t.rows.length, reports: open.slice(0, REPORTS_LIST_MAX) });
+    }
+
+    /* ---------- AND ONE CLOSED: `fixed` or `not a problem`; blank opens it again ---------- */
+    if (action === 'setReportStatus') {
+      const status = norm(body.status);
+      if (REPORT_STATUSES.indexOf(status) < 0) return jsonOut({ error: 'Not a status a report can have.' });
+      const lock = LockService.getScriptLock();
+      if (!lock.tryLock(5000)) return jsonOut({ error: 'Busy — try again in a moment.', why: 'busy' });
+      let out = {};
+      const wroteBefore = POST_WROTE;
+      try {
+        clearCache();
+        const t = read(TAB.reports);
+        const row = t.sheet ? t.rows.find(r => S(r.report_id) && S(r.report_id) === S(body.id)) : null;
+        if (!row) out = { error: 'That report is not there any more.' };
+        else {
+          setCells(t, row, { status: status, status_at: status ? new Date() : '' });
+          out = { success: true, id: S(row.report_id), status: status };
+        }
+      } finally {
+        lock.releaseLock();
+      }
+      if (POST_WROTE && !wroteBefore) POST_WROTE = false;
+      return jsonOut(out);
+    }
+
     /* ---------- WHAT THE WEEKLY PARENT EMAIL WOULD SAY THIS WEEK § */
     if (action === 'digestPreview') {
       try {
@@ -4145,3 +4226,15 @@ function attemptWords_(v) {
 
 /* `adminIds_` WAS HERE — every admin's person id, for `markDone` (the action `submitAnswer` replaced) to
    retire their payloads by key. Nothing is retired any more (see `submitAnswer`), so nothing asks. */
+
+/* A REPORT'S FIELD AS THE SHEET KEEPS IT (395): one line, no tags, capped — whatever the phone sent. */
+function reportCut_(v, max) {
+  return S(v).slice(0, max * 4).replace(/<[^>]*>?/g, ' ').replace(/[\u0000-\u001f\u007f]+/g, ' ')
+    .replace(/\s+/g, ' ').trim().slice(0, max).trim();
+}
+/* THE LONDON DAY A REPORT WAS MADE ON — one a day per person per question; a cell typed as text reads as its own date. */
+function reportDay_(v) {
+  if (v instanceof Date && !isNaN(v)) return Utilities.formatDate(v, DIGEST_TZ, 'yyyy-MM-dd');
+  const m = S(v).match(/^\d{4}-\d{2}-\d{2}/);
+  return m ? m[0] : '';
+}

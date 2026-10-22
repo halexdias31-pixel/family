@@ -40,6 +40,8 @@ const WHERE = {
   /* WHAT THE WEEKLY PARENT EMAIL SENT, OR WOULD HAVE — see SCHEMA.digest_log. The Ledger beside
      `submissions`, which is what it reports on, and because the app writes it. */
   digest_log:     { file: 'ledger' },
+  /* A QUESTION A LEARNER SAYS IS WRONG OR BROKEN (395) — the Ledger, because the app writes it. Admin-only to read. */
+  reports:        { file: 'ledger' },
   /* WRITTEN BY AN ADMIN FROM THE PHONE, so it is the Ledger rather than a settings file: § */
   spotlight:      { file: 'ledger' },
   /* ---------- THE FILMS, AND WHY THEY ARE IN `Ledger` RATHER THAN IN THE REPOSITORY § */
@@ -107,7 +109,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-20-l-who-sees-retry";
+const BACKEND_VERSION = "2026-10-22-a-report-question";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -144,6 +146,8 @@ const TAB = {
   submissions: 'submissions',
   /* What the weekly parent email sent, or would have — see SCHEMA.digest_log. */
   digest_log: 'digest_log',
+  /* A question somebody reported — see SCHEMA.reports. */
+  reports: 'reports',
   /* What the BUSINESS has chosen to put in front of everybody — see SCHEMA.spotlight. */
   spotlight: 'spotlight',
   /* `questions`, `boxers` AND `fights` WERE HERE. All three tabs are gone — see the notes where
@@ -466,6 +470,15 @@ const SCHEMA = {
     "person_id", "key", "label", "words",
     "answer", "verdict", "submitted_at",
     "event_id", "pressed_at",
+  ],
+
+  /* ---------- REPORTS: A QUESTION SOMEBODY SAYS IS WRONG OR BROKEN (395) ----------
+     `handle`, never a surname; `status` is blank (open), `fixed` or `not a problem`, set from the Business column. */
+  reports: [
+    "report_id", "at", "person_id", "handle",
+    "question_id", "paper_id", "part", "label",
+    "reason", "note", "finder", "device",
+    "status", "status_at",
   ],
 
   /* ---------- THE WEEKLY PARENT EMAIL'S RECEIPTS § */
@@ -858,6 +871,21 @@ const SUBMISSION_CARRIED = /^\d{10,16}-m[a-z0-9]{14}$/;
 const ATTEMPT_LABEL_MAX = 120;
 /* AND A QUESTION'S WORDS — SCHEMA.submissions. § */
 const ATTEMPT_WORDS_MAX = 1200;
+
+/* ---------- A REPORTED QUESTION (395): the reasons a child can choose, by the id the phone sends; the sheet keeps the words. */
+const REPORT_REASONS = {
+  'answer-wrong': 'The answer is wrong',
+  'marked-wrong': 'It marked me wrong but I was right',
+  'unreadable': "Can't read it / picture missing",
+  'broken': "Doesn't work",
+  'other': 'Something else',
+};
+/* AND WHAT AN ADMIN MAY CALL ONE — blank is open. */
+const REPORT_STATUSES = ['', 'fixed', 'not a problem'];
+const REPORT_NOTE_MAX = 300;
+const REPORT_FIELD_MAX = 120;
+/* THE OPEN ONES AN ADMIN IS SENT AT ONCE, newest first; the count is of all of them. */
+const REPORTS_LIST_MAX = 100;
 
 /* ---------- HOW MUCH OF AN ANSWER THE SHEET KEEPS — SCHEMA.answers AND SCHEMA.submissions § */
 const ANSWER_TEXT_MAX = 20000;
@@ -1446,6 +1474,9 @@ const ACTION_ACCESS = {
   myAnswers: 'self',
   /* AN ANSWER SENT, AND ITS VERDICT (SCHEMA.submissions). § */
   submitAnswer: 'self',
+  /* A QUESTION REPORTED (395): anybody signed in, as the token's person. Reading and closing them is the business's alone — a report is somebody else's words. */
+  reportQuestion: 'self',
+  listReports: 'admin', setReportStatus: 'admin',
   /* WHAT THE WEEKLY PARENT EMAIL WOULD SAY THIS WEEK. Admin and nobody else: the reply is every
      learner's week and every parent's address. It writes nothing and sends nothing — see
      backend/digest.gs. */

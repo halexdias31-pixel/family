@@ -20,6 +20,7 @@ const TILE_ICONS = {
        + '<path d="M15.5 3.5h-5a2 2 0 0 0-2 2v9a2 2 0 0 1 2-2h5z"/>',
   wear:  '<path d="M6 2.5 3 4v4h2v6h6V8h2V4l-3-1.5a2.2 2.2 0 0 1-4 0z"/>',
   star:  '<path d="m9 2.5 2 4.3 4.5.6-3.3 3.2.8 4.6L9 13l-4 2.2.8-4.6L2.5 7.4 7 6.8z"/>',
+  flag:  '<path d="M4 15.5v-13"/><path d="M4 3h9l-2 3 2 3H4"/>',
   spot:  '<path d="M9 1.5v2.5"/><path d="M9 14v2.5"/><path d="M2.2 8.5h2.4"/>'
        + '<path d="M13.4 8.5h2.4"/><circle cx="9" cy="8.5" r="3"/>',
   edit:  '<path d="M11.5 2.8 14.2 5.5 6 13.7l-3.4.7.7-3.4z"/><path d="m10.2 4.1 2.7 2.7"/>',
@@ -368,7 +369,9 @@ function cardTiles_(x) {
   /* ---------- ONE ROW OF MARKS, UNDER THE CARD § */
   /* AND `Open`, to Find, under a kept card that Saved or the Spotlight cannot draw whole — a practical's method, a project's steps, a textbook's chapters, a § */
   /* `more` IS WHAT ONE COLUMN ADDS TO THE ROW — the people column's Edit and Delete for an admin (373). */
-  const mine = favTile_(x) + cardActions_(x) + finderOpenTile_(x) + (x.more || '');
+  /* AND `Read aloud` ON A PRIMARY QUESTION OR CONTENT CARD (394) -- `readAloudTile_`, find.js. */
+  const mine = favTile_(x) + cardActions_(x) + (typeof readAloudTile_ === 'function' ? readAloudTile_(x) : '')
+    + finderOpenTile_(x) + (x.more || '');
   const admin = adminTiles_(x, x.topic || null);
   if (!mine && !admin) return '';
   return `<div class="tile-row">${mine}${admin}</div>`;
@@ -396,7 +399,9 @@ function cardActions_(x) {
   if (x.kind === 'receipt') return jobTiles_(x);
   /* A QUESTION'S ROW HOLDS THE STAR AND THE DAY YOU DID IT -- `questionTiles_` in find.js. § */
   /* AND, WHERE THE QUESTION HAS A FIGURE BEHIND THIS PART AND IT IS ANSWERED BY TAPPING AN OPTION, `Figure` -- which opens it over the card. § */
-  if (x.kind === 'question') return typeof questionTiles_ === 'function' ? questionTiles_(x) : '';
+  if (x.kind === 'question') return (typeof questionTiles_ === 'function' ? questionTiles_(x) : '')
+    /* AND `Report`, for anybody signed in (395) — `reportTile_` in submit.js. */
+    + (typeof reportTile_ === 'function' ? reportTile_(x) : '');
   /* THE `group` TILE WAS HERE — "Open", on a card standing for a whole paper. § */
   return '';
 }

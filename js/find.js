@@ -7859,6 +7859,171 @@ on('q-fig', el => {
     `${figs.length > 1 ? `<p class="qfig-sheet-k">${esc(f.label)}</p>` : ''}<div class="qsheet">${f.html}</div>`).join('')}</div>`);
 });
 
+/* ---------- READ ALOUD, ON EVERY PRIMARY QUESTION (394) ---------------------------------------- */
+/* PRIMARY IS THE SATs LEVEL (`levelOf_`, `ksFallback_` behind it) or a school year 1 to 6, whatever the level cell says;
+   the owner's words are in docs/history/394. */
+function readAloudFor_(x) {
+  if (!x || (x.kind !== 'question' && x.kind !== 'content')) return false;
+  const yr = x.bandType === 'year' ? Number(x.bandValue) : NaN;
+  if (yr >= 1 && yr <= 6) return true;
+  return LEVEL_BUCKET(levelOf_(x)) === 'SATs';
+}
+/* WHAT IS BEING READ, AND WHERE IT WAS PRESSED: a slide to another column or page stops it (`readAloudStray_`, from `placeCells`). */
+let READ_NOW = null;
+const readAloudLook_ = on => ({ icon: 'speak', label: on ? 'Stop reading' : 'Read aloud', note: on ? 'one tap' : 'reads the question out',
+                                 on: !!on, pressed: !!on });
+function readAloudTile_(x) {
+  if (!readAloudFor_(x) || !canSay_() || !x.key) return '';
+  const on = !!READ_NOW && READ_NOW.key === x.key;
+  return tile_(Object.assign(readAloudLook_(on), { act: 'read-aloud', cls: 'read-aloud', data: { key: x.key } }));
+}
+function readAloudPaint_(k) {
+  const on = !!READ_NOW && READ_NOW.key === k;
+  document.querySelectorAll('.read-aloud').forEach(el => { if (el.getAttribute('data-key') === k) tileSet_(el, readAloudLook_(on)); });
+}
+function readAloudStop_() {
+  if (!READ_NOW) return;
+  const k = READ_NOW.key;
+  READ_NOW = null;
+  hush_();
+  readAloudPaint_(k);
+}
+function readAloudStray_() {
+  if (READ_NOW && (AT !== READ_NOW.at || (PAGE[AT] || 0) !== READ_NOW.page)) readAloudStop_();
+}
+/* EVERY LINE QUEUED INSIDE THE TAP, because iPhone Safari speaks only from a tap's own handler; a line at a time, because Chrome cuts one long utterance off at about fifteen seconds. */
+on('read-aloud', el => {
+  const k = el && el.getAttribute('data-key');
+  const was = READ_NOW && READ_NOW.key;
+  readAloudStop_();
+  if (!k || was === k) return;
+  let x = null;
+  try { x = stuffItemsAll_().find(i => i && i.key === k) || null; } catch (e) { x = null; }
+  const lines = readAloudLines_(x);
+  if (!lines.length || !canSay_()) return;
+  const me = READ_NOW = { key: k, at: AT, page: PAGE[AT] || 0 };
+  readAloudPaint_(k);
+  const done = () => { if (READ_NOW === me) { READ_NOW = null; readAloudPaint_(k); } };
+  lines.forEach((l, i) => say_(l, { rate: 0.85, onend: i === lines.length - 1 ? done : null }));
+});
+
+/* ---------- WHAT IS SAID: THE QUESTION AS THE CARD SHOWS IT, NEVER THE ANSWER OR THE MARKS ---------- */
+/* In the card's order (`partChunks_`): a stem carried onto the card, the lead, the part's words, "Look at the picture." where
+   a figure stands; then the options as A, B, C, or the cards to order, and how many answers to give. */
+function readAloudLines_(x) {
+  if (!x) return [];
+  const out = [];
+  const add = h => speakLines_(h).forEach(l => out.push(l));
+  if (x.kind === 'content') {
+    const c = x.row || {};
+    add(x.name || c.title);
+    [].concat(c.words || [], c.formulas || [], c.points || []).forEach(i => {
+      if (i && (i.name || i.text)) add([i.name, i.text].filter(Boolean).join(': '));
+    });
+    return out;
+  }
+  let pic = false;
+  const look = () => { if (!pic) { out.push('Look at the picture.'); pic = true; } };
+  [].concat(...partChunks_(x)).forEach(b => {
+    if (b.k === 'sb' || b.k === 'lead' || b.k === 'pb') {
+      if (/<(svg|img)\b/i.test(b.h)) look();
+      add(b.h);
+    } else if (b.k === 'fig' || b.k === 'use') look();
+  });
+  if (!pic && (questionHasFig_(x) || figsBefore_(x).length)) look();
+  const ch = Array.isArray(x.choices) ? x.choices : [];
+  const said = ch.map(c => speakLines_(c).join(' ').replace(/\.$/, ''));
+  /* AN ORDERING WHOSE WORDS ALREADY LIST ITS CARDS IS NOT READ THE LIST TWICE. */
+  const listed = said.every(c => out.join(' ').indexOf(c) >= 0);
+  if (ch.length >= 2 && orderIs_(x)) {
+    if (!listed) out.push('Put these in order: ' + said.join(', ') + '.');
+  } else if (ch.length >= 2) {
+    const need = (x.choiceRight || []).length;
+    if (need > 1) out.push('Choose ' + need + '.');
+    said.forEach((c, i) => out.push(String.fromCharCode(65 + i) + ': ' + c + (/[?!:]$/.test(c) ? '' : '.')));
+  } else {
+    let m = null;
+    try { m = String(x.accept || '').trim() ? multiOf_(x) : null; } catch (e) { m = null; }
+    if (m && m.n >= 2) out.push('Give ' + m.n + ' answers.');
+  }
+  return out;
+}
+
+/* ---------- MATHS, SAID THE WAY A TEACHER SAYS IT -------------------------------------------- */
+const SAY_NUM = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
+const SAY_NTH = { 2: ['half', 'halves'], 3: ['third', 'thirds'], 4: ['quarter', 'quarters'], 5: ['fifth', 'fifths'],
+  6: ['sixth', 'sixths'], 7: ['seventh', 'sevenths'], 8: ['eighth', 'eighths'], 9: ['ninth', 'ninths'], 10: ['tenth', 'tenths'],
+  11: ['eleventh', 'elevenths'], 12: ['twelfth', 'twelfths'], 100: ['hundredth', 'hundredths'], 1000: ['thousandth', 'thousandths'] };
+const SAY_UNIT = { mm: 'millimetre', cm: 'centimetre', m: 'metre', km: 'kilometre', g: 'gram', kg: 'kilogram',
+  ml: 'millilitre', l: 'litre' };
+const SAY_ENT = { times: '×', divide: '÷', minus: '−', pound: '£', nbsp: ' ', thinsp: '', frasl: '/', deg: '°', sup2: '²',
+  sup3: '³', lt: '<', gt: '>', le: '≤', ge: '≥', ndash: ' – ', mdash: ' – ', hellip: '…', amp: '&', radic: '√', pi: 'π',
+  rsquo: "'", lsquo: "'", ldquo: '', rdquo: '', quot: '', eacute: 'é', percnt: '%', plus: '+', equals: '=' };
+const isBox_ = s => /^\s*(\?|□|☐|)\s*$/.test(s);
+/* "three quarters" where the words are plain, "17 over 40" where they are not; a box to fill is "how many twelfths". */
+function sayFrac_(n, d) {
+  n = String(n).trim(); d = String(d).trim();
+  const nth = /^\d+$/.test(d) ? SAY_NTH[+d] : null;
+  if (nth && /^\d+$/.test(n) && +n <= 12) return SAY_NUM[+n] + ' ' + nth[+n === 1 ? 0 : 1];
+  if (nth && isBox_(n)) return 'how many ' + nth[1];
+  return (isBox_(n) ? 'what' : n) + ' over ' + (isBox_(d) ? 'what' : d);
+}
+function sayMoney_(p, d) {
+  const pounds = Number(String(p).replace(/,/g, '')), pence = d ? Number(d) : 0;
+  if (!pounds && d) return pence + (pence === 1 ? ' penny' : ' pence');
+  return String(p) + (pounds === 1 ? ' pound' : ' pounds') + (pence ? ' ' + (pence < 10 ? 'oh ' + pence : pence) : '');
+}
+function sayTime_(h, m) {
+  return +m === 0 ? String(+h) + " o'clock" : String(+h) + ' ' + (+m < 10 ? 'oh ' + +m : m);
+}
+/* HTML IN, SENTENCES OUT: one per paragraph or line, table cells read across with commas. */
+function speakLines_(html) {
+  let s = String(html == null ? '' : html)
+    .replace(/<svg[\s\S]*?<\/svg>/gi, ' ').replace(/<img\b[^>]*>/gi, ' ')
+    .replace(/<span\b[^>]*class=['"][^'"]*\bbox\b[^'"]*['"][^>]*>[\s\S]*?<\/span>/gi, '□')
+    .replace(/&#(\d+);/g, (m, n) => String.fromCharCode(+n))
+    .replace(/&([a-z]+\d?);/gi, (m, n) => (SAY_ENT[n.toLowerCase()] != null ? SAY_ENT[n.toLowerCase()] : ' '));
+  /* A FRACTION AS THE CARD SETS IT, <sup>a</sup>⁄<sub>b</sub>, with a whole number in front making it mixed. */
+  s = s.replace(/(\d+)?\s?<sup[^>]*>([^<]*)<\/sup>\s*[\/⁄]\s*<sub[^>]*>([^<]*)<\/sub>/gi,
+    (m, w, n, d) => ' ' + (w ? w + ' and ' : '') + sayFrac_(n, d) + ' ')
+    .replace(/<sup[^>]*>\s*2\s*<\/sup>/gi, '²').replace(/<sup[^>]*>\s*3\s*<\/sup>/gi, '³')
+    .replace(/<sup[^>]*>([^<]*)<\/sup>/gi, ' to the power of $1 ')
+    .replace(/<\/(p|li|tr|h\d|div)>|<br\s*\/?>/gi, '\n').replace(/<\/t[dh]>/gi, ', ')
+    .replace(/<[^>]*>/g, '');
+  return s.split('\n').map(sayLine_).filter(Boolean);
+}
+function sayLine_(t) {
+  t = String(t)
+    .replace(/[“”"]/g, '').replace(/[‘’]/g, "'")
+    /* THE ANSWER LINE AND THE MARKS ARE NOT THE QUESTION. */
+    .replace(/\.{3,}|_{3,}|…+/g, ' ')
+    .replace(/[\[(]\s*\d+\s*marks?\s*[\])]|^\s*\d+\s*marks?\s*$|^\s*\(?total for question\b.*$/gi, ' ')
+    .replace(/(^|[^\d])(\d{1,2})\s*\/\s*(\d{1,3})(?![\d\/])/g, (m, a, n, d) => a + sayFrac_(n, d))
+    .replace(/£\s?(\d[\d,]*)(?:\.(\d\d))?/g, (m, p, d) => sayMoney_(p, d))
+    .replace(/\b([01]?\d|2[0-3]):([0-5]\d)(?!\d)/g, (m, h, mm) => sayTime_(h, mm))
+    .replace(/(\d)\s?([ap])m\b/g, '$1 $2.m.')
+    .replace(/(\d)\s*:\s*(\d)/g, '$1 to $2')
+    .replace(/(\d)\.(\d+)/g, (m, a, b) => a + ' point ' + b.split('').join(' '))
+    .replace(/(\d)\s*(mm|cm|km|kg|ml|m|g|l)([²³])?(?![a-zA-Z])/g, (m, n, u, p) =>
+      n + ' ' + (p === '²' ? 'square ' : p === '³' ? 'cubic ' : '') + SAY_UNIT[u] + 's')
+    .replace(/\b1 ((?:square |cubic )?[a-z]+metre|gram|kilogram|millilitre|litre)s\b/g, '1 $1')
+    .replace(/\b(mm|cm|km|kg|ml)\b/g, u => SAY_UNIT[u] + 's')
+    .replace(/°\s?C\b/g, ' degrees Celsius').replace(/°\s?F\b/g, ' degrees Fahrenheit').replace(/°/g, ' degrees')
+    .replace(/%/g, ' percent').replace(/²/g, ' squared').replace(/³/g, ' cubed')
+    .replace(/√\s*/g, ' the square root of ').replace(/π/g, ' pi ')
+    .replace(/(\S)\s*=\s*(□|☐|\?)?\s*$/, '$1 equals what?')
+    .replace(/(^|\s)[?□☐](?=\s|$)/g, '$1box').replace(/[□☐]/g, ' box ')
+    .replace(/×/g, ' times ').replace(/÷/g, ' divided by ').replace(/\+/g, ' plus ').replace(/−/g, ' minus ')
+    .replace(/(\d|\s)-(?=\s|\d)/g, '$1 minus ').replace(/=/g, ' equals ')
+    .replace(/≤/g, ' is less than or equal to ').replace(/≥/g, ' is greater than or equal to ')
+    .replace(/</g, ' is less than ').replace(/>/g, ' is greater than ')
+    .replace(/✓/g, ' tick ').replace(/✗/g, ' cross ').replace(/△/g, ' triangle ')
+    .replace(/\s+([,.?!:;)])/g, '$1').replace(/\.{2,}/g, '.').replace(/\(\s+/g, '(').replace(/,\s*$/, '').replace(/\s+/g, ' ').trim();
+  if (!t || !/[a-z0-9]/i.test(t)) return '';
+  t = t.charAt(0).toUpperCase() + t.slice(1);
+  return /[.?!:]$/.test(t) ? t : t + '.';
+}
+
 /* `on('qa-go')` WAS HERE -- the ↓ tile's handler, which turned forward by the answer's place among its
    question's pages. It went with the tile (see where `To the answer` was, above). */
 

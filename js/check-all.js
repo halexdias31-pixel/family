@@ -102,6 +102,7 @@ const SUITE = [
   { file: 'check-choice.js', what: 'a reaction and a vote set to what the phone asked, once, under the lock' },
   /* EVERY ANSWER SENT IS AN EVENT. § */
   { file: 'check-submissions.js', what: 'submissions: a row per press, the token’s person, the latest per question, whose' },
+  { file: 'check-reports.js', what: 'a reported question: one row as the token’s person, once a day, admin-only to read or close' },
   /* THE FILMS ARE WHAT IS IN THE NOTFLIX FOLDER. § */
   { file: 'check-films.js', what: 'the films from the Notflix folder: the upsert, admin only, no id sent, the clock' },
   /* WHAT A CHILD WROTE, ON THEIR ACCOUNT. § */
