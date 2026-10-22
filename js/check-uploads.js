@@ -415,7 +415,7 @@ function app(W, pid) {
     }
     posted.push('GET ' + String(url).slice(0, 60));
     const f = /(data\/[a-z0-9_\-\/]+\.json)/.exec(String(url));
-    if (f) { try { return reply(JSON.parse(fs.readFileSync(path.join(ROOT, f[1]), 'utf8'))); } catch (e) {} }
+    if (f) { try { return reply(JSON.parse(require('../check/lib-full.js').serve(path.join(ROOT, f[1])) || fs.readFileSync(path.join(ROOT, f[1]), 'utf8'))); } catch (e) {} }
     return reply(FIXTURE);
   };
   const errs = [];
