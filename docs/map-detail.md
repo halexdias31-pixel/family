@@ -92,6 +92,13 @@ almost never writes to it directly.
 - **`config` tab** — key/value numbers and switches, reaching the site as `DATA.constants.vars`.
 - **`facets` / `kinds` tabs** — what the funnel asks and what the answers are called. These moved out
   of `find.js` deliberately: editorial, changes often, changing it should not be a deploy.
+- **The library is two halves** (docs/history/397, docs/library.md). The four library files in `data/` are the
+  cards — every column the funnel asks, sorts, counts and tags by — plus `lib_has` (the private fields the Ledger
+  holds for the row) and a question's `function_verified`. The words, answers, figures and method text are rows
+  of `lib_questions`, `lib_content`, `lib_practicals` and `lib_projects` in the Ledger (`LIB_FILES` in
+  constants.gs), copied once by `library-to-ledger` and fetched a card at a time by `libItems` (signed in,
+  `library_items_per_day`). A card whose words have not come is one waiting page (`libWaitHtml_`). The teaching
+  animation rows stay public whole. Tools: `tools/lib-private.js`; checks: `check/lib-full.js`.
 - **There are no textbooks on screen: each chapter row of `data/textbooks.json` is a CONTENT CARD**
   (kind `content`, `What kind · Content`; docs/history/347, part 2). *"Forget the whole concept of it
   being a text book. It's just a "content card""* — the owner, 12 Oct. A card wears the question
@@ -176,6 +183,8 @@ node js/check-anims.js           # the content cards' animations: rows, anchorin
 node js/check-diagram-png.js     # every library drawing has its PNG twin for the Sunday email, none orphaned
 node js/check-textbooks.js       # data/textbooks.json: the bones, and every content topic spelled as the library spells it
 node js/check-funnel.js          # the real funnel over the real library: can each question narrow?
+node js/check-library-ledger.js  # the library's words in the Ledger: the copy checked row by row, libItems signed-in and capped (--full: all of it)
+node tools/lib-private.js status # where the library's words are: data/, data-private/ (docs/library.md)
 node js/check-const.js           # nothing declared `const` is assigned to. Two seconds.
 node js/check-loading.js         # every wait is `loading_()`: no phrase, class or keyframe of its own
 node check/deploy.js             # after a push, does a browser that has the site run the new code

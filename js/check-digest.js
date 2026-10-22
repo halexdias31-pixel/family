@@ -408,7 +408,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
     }
   } catch (e) { plain = null; }
   let qs = [];
-  try { qs = JSON.parse(fs.readFileSync(path.join(REPO, 'data', 'questions.json'), 'utf8')); } catch (e) { qs = []; }
+  try { qs = require('../check/lib-full.js').rows('questions'); } catch (e) { qs = []; }
   const texts = [];
   if (plain) qs.filter(q => q && (q.kind === 'question' || q.kind === 'preamble')).forEach(q => ['html', 'lead'].forEach(f => {
     if (q[f]) texts.push({ id: q.row_id + ' ' + f, text: plain(q[f]) });
@@ -1281,7 +1281,7 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
      data/diagrams/ — the email's picture and the twin the tool drew are one file. */
   asked++;
   let real = '';
-  try { real = fs.readFileSync(path.join(REPO, 'data', 'questions.json'), 'utf8'); } catch (e) { real = ''; }
+  try { real = require('../check/lib-full.js').text('questions'); } catch (e) { real = ''; }
   const rw = markWorld({ site: real || LIB_TEXT });
   rw.b.seed('submissions', [MS('P-K1', 'q:Q-9MA031-2206-5c', 'right', 'Maths · Paper 31: Statistics — June 2022 · Q5c(i)', '', '481')]);
   rw.setClock(at('2026-10-18T20:00:00Z'));
@@ -1329,7 +1329,7 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
 /* ---------- 11b. EACH QUESTION IS THE SITE'S CARD (380, 20 Oct): its tags as the card wears them, in its facets' colours, on the black screen § */
 {
   const { b, G } = world();
-  G.__TXT = fs.readFileSync(path.join(REPO, 'data', 'questions.json'), 'utf8');
+  G.__TXT = require('../check/lib-full.js').text('questions');
   const lib = JSON.parse(JSON.stringify(b.ev('digestLibraryFind_(__TXT, ["Q-1MA1-2406-1F-7", "Q-CBM-perimeter-1"])')));
   const said7 = (lib.tags && lib.tags['Q-1MA1-2406-1F-7'] || []).map(t => t.text).join(' ');
   const saidC = (lib.tags && lib.tags['Q-CBM-perimeter-1'] || []).map(t => t.text).join(' ');

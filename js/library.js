@@ -95,6 +95,81 @@ async function libraryExtraRows_() {
   return LIBRARY_EXTRA;
 }
 
+/* ONE PRACTICAL, AS THE CARD READS IT — a function so a row whose words arrive later (397) is mapped again in place. */
+function libPractical_(r) {
+  const id = libS(r.practical_id).trim();
+  return {
+    id: id, name: libS(r.name), subject: libS(r.subject), level: libS(r.level),
+    board: libS(r.exam_board), specRef: libS(r.spec_ref),
+    compliance: libS(r.compliance),
+    /* AN EXACT MATCH, NOT A SUBSTRING, AND THE DIFFERENCE IS FIVE PRACTICALS. § */
+    required: libS(r.compliance) === 'AQA required practical',
+    /* ---------- AN EXPERIMENT OR A THING YOU MAKE § */
+    practicalType: libS(r.practical_type),
+    topics: libS(r.topics), aim: libS(r.aim), outcome: libS(r.outcome),
+    venue: libS(r.venue), feasible: libS(r.feasible),
+    groupSize: libN(r.group_size), minutes: libN(r.minutes),
+    safety: libS(r.safety), mathsLink: libS(r.maths_link),
+    /* ---------- THE KIT, AS A NAME AND A QUANTITY § */
+    equipment: kitParse_(libS(r.equipment)),
+    steps: libS(r.steps).split('|').map(s => s.trim()).filter(Boolean),
+    /* THE SHOP JOIN, BY ID, AND NOTHING READS IT YET. § */
+    itemIds: libS(r.item_ids),
+    notes: libS(r.notes),
+    order: libS(r.sort_order) === '' ? null : libN(r.sort_order),
+
+    /* ---------- THE TEN COLUMNS THE HOME EXPERIMENTS BROUGHT WITH THEM § */
+    ageMin: libNum(r.age_min), hazard: libS(r.hazard), wow: libS(r.wow),
+    science: libS(r.science),
+    log: libS(r.log).split('|').map(t => t.trim()).filter(Boolean),
+    variables: libS(r.variables).split('|').map(t => t.trim()).filter(Boolean),
+    /* ---------- THE APPARATUS, AS INLINE SVG § */
+    diagram: libS(r.diagram),
+    /* ---------- THE RISK ASSESSMENT, ONE SENTENCE PER HAZARD § */
+    risks: libS(r.risks).split('|').map(t => t.trim()).filter(Boolean),
+    /* ---------- A COST OF NOTHING IS NOT THE SAME FACT AS NO COST § */
+    costPerRun: libNum(r.cost_per_run_gbp), setupCost: libNum(r.setup_cost_gbp),
+    /* AND WHY IT IS NOT DONE, WHERE IT IS NOT DONE. § */
+    excluded: libS(r.excluded_reason),
+    reconsiderAt: libNum(r.reconsider_at_age),
+    /* WHICH PRIVATE FIELDS THE LEDGER HOLDS FOR IT (397) — blank once they are here, or when the file held them all along. */
+    libHas: libS(r.lib_has).trim(),
+  };
+}
+
+/* ONE PROJECT, THE SAME WAY. */
+function libProject_(r) {
+  const id = libS(r.project_id).trim();
+  return {
+    id: id, name: libS(r.name), summary: libS(r.summary),
+    subject: libS(r.subject), level: libS(r.level),
+    ageMin: libNum(r.age_min), ageMax: libNum(r.age_max), sessions: libNum(r.sessions),
+    makes: libS(r.makes), topics: libS(r.topics),
+    materials: kitParse_(libS(r.materials)),
+    steps: libS(r.steps).split('|').map(s => s.trim()).filter(Boolean),
+    safety: libS(r.safety), share: libS(r.share),
+    order: libS(r.sort_order) === '' ? null : libN(r.sort_order),
+    /* ---------- A PROJECT OR A COURSEWORK, ONE COLUMN § */
+    projectType: libS(r.project_type).trim().toLowerCase() || 'project',
+    board: libS(r.exam_board).trim(), specRef: libS(r.spec_ref).trim(),
+    libHas: libS(r.lib_has).trim(),
+  };
+}
+
+/* A CHAPTER'S THREE LISTS — `name — text`, `[H]` marking a higher-tier line — and which of them the Ledger still holds (397). */
+function libTbItem_(s) {
+  const t = libS(s).trim(), higher = /^\[H\]\s*/.test(t), body = t.replace(/^\[H\]\s*/, '');
+  const at = body.indexOf(' — ');
+  return at < 0 ? { name: '', text: body, higher: higher }
+                : { name: body.slice(0, at).trim(), text: body.slice(at + 3).trim(), higher: higher };
+}
+function libChapterBody_(r) {
+  const list = v => libS(v).split('|').map(s => s.trim()).filter(Boolean).map(libTbItem_);
+  return { words: list(r.words), formulas: list(r.formulas),
+           points: list(r.points).map(p => ({ text: (p.name ? p.name + ' — ' : '') + p.text, higher: p.higher })),
+           libHas: libS(r.lib_has).trim() };
+}
+
 /* ---------- THE THREE BLOCKS, MOVED OUT OF `doget.gs` § */
 function libraryExtras_(d, extra) {
   if (!d || !extra) return d;
@@ -128,41 +203,7 @@ function libraryExtras_(d, extra) {
     extra.practicals.forEach(r => {
       const id = libS(r.practical_id).trim();
       if (!id || !libOn(r.active)) return;
-      out.push({
-        id: id, name: libS(r.name), subject: libS(r.subject), level: libS(r.level),
-        board: libS(r.exam_board), specRef: libS(r.spec_ref),
-        compliance: libS(r.compliance),
-        /* AN EXACT MATCH, NOT A SUBSTRING, AND THE DIFFERENCE IS FIVE PRACTICALS. § */
-        required: libS(r.compliance) === 'AQA required practical',
-        /* ---------- AN EXPERIMENT OR A THING YOU MAKE § */
-        practicalType: libS(r.practical_type),
-        topics: libS(r.topics), aim: libS(r.aim), outcome: libS(r.outcome),
-        venue: libS(r.venue), feasible: libS(r.feasible),
-        groupSize: libN(r.group_size), minutes: libN(r.minutes),
-        safety: libS(r.safety), mathsLink: libS(r.maths_link),
-        /* ---------- THE KIT, AS A NAME AND A QUANTITY § */
-        equipment: kitParse_(libS(r.equipment)),
-        steps: libS(r.steps).split('|').map(s => s.trim()).filter(Boolean),
-        /* THE SHOP JOIN, BY ID, AND NOTHING READS IT YET. § */
-        itemIds: libS(r.item_ids),
-        notes: libS(r.notes),
-        order: libS(r.sort_order) === '' ? null : libN(r.sort_order),
-
-        /* ---------- THE TEN COLUMNS THE HOME EXPERIMENTS BROUGHT WITH THEM § */
-        ageMin: libNum(r.age_min), hazard: libS(r.hazard), wow: libS(r.wow),
-        science: libS(r.science),
-        log: libS(r.log).split('|').map(t => t.trim()).filter(Boolean),
-        variables: libS(r.variables).split('|').map(t => t.trim()).filter(Boolean),
-        /* ---------- THE APPARATUS, AS INLINE SVG § */
-        diagram: libS(r.diagram),
-        /* ---------- THE RISK ASSESSMENT, ONE SENTENCE PER HAZARD § */
-        risks: libS(r.risks).split('|').map(t => t.trim()).filter(Boolean),
-        /* ---------- A COST OF NOTHING IS NOT THE SAME FACT AS NO COST § */
-        costPerRun: libNum(r.cost_per_run_gbp), setupCost: libNum(r.setup_cost_gbp),
-        /* AND WHY IT IS NOT DONE, WHERE IT IS NOT DONE. § */
-        excluded: libS(r.excluded_reason),
-        reconsiderAt: libNum(r.reconsider_at_age),
-      });
+      out.push(libPractical_(r));
     });
     d.practicals = out;
   }
@@ -173,34 +214,14 @@ function libraryExtras_(d, extra) {
     extra.projects.forEach(r => {
       const id = libS(r.project_id).trim();
       if (!id || !libOn(r.active)) return;
-      out.push({
-        id: id, name: libS(r.name), summary: libS(r.summary),
-        subject: libS(r.subject), level: libS(r.level),
-        ageMin: libNum(r.age_min), ageMax: libNum(r.age_max), sessions: libNum(r.sessions),
-        makes: libS(r.makes), topics: libS(r.topics),
-        materials: kitParse_(libS(r.materials)),
-        steps: libS(r.steps).split('|').map(s => s.trim()).filter(Boolean),
-        safety: libS(r.safety), share: libS(r.share),
-        order: libS(r.sort_order) === '' ? null : libN(r.sort_order),
-        /* ---------- A PROJECT OR A COURSEWORK, ONE COLUMN § */
-        projectType: libS(r.project_type).trim().toLowerCase() || 'project',
-        board: libS(r.exam_board).trim(), specRef: libS(r.spec_ref).trim(),
-      });
+      out.push(libProject_(r));
     });
     d.projects = out;
   }
-
   /* the textbooks --------------------------------------------------------------------------- ONE ROW PER CHAPTER, GROUPED HERE INTO ONE OBJECT PER BOOK, because a § */
   /* ---------- AND THE CHAPTER'S ANIMATIONS, WHICH ARE ROWS OF THEIR OWN § */
   if (extra.textbooks && extra.textbooks.length) {
     const books = {}, order = [], anims = [];
-    const item = s => {
-      const t = libS(s).trim(), higher = /^\[H\]\s*/.test(t), body = t.replace(/^\[H\]\s*/, '');
-      const at = body.indexOf(' — ');
-      return at < 0 ? { name: '', text: body, higher: higher }
-                    : { name: body.slice(0, at).trim(), text: body.slice(at + 3).trim(), higher: higher };
-    };
-    const list = v => libS(v).split('|').map(s => s.trim()).filter(Boolean).map(item);
     extra.textbooks.forEach(r => {
       const id = libS(r.book_id).trim();
       if (!id || !libOn(r.active)) return;
@@ -215,11 +236,8 @@ function libraryExtras_(d, extra) {
         Object.assign(b, own, { name: libS(r.title), summary: libS(r.summary) });
         return;
       }
-      b.chapters.push({ n: n, title: libS(r.title), higher: /^higher$/i.test(libS(r.tier).trim()), own: own,
-                        topics: libS(r.topics), words: list(r.words), formulas: list(r.formulas),
-                        points: list(r.points).map(p => ({ text: (p.name ? p.name + ' — ' : '') + p.text,
-                                                           higher: p.higher })),
-                        animations: [] });
+      b.chapters.push(Object.assign({ n: n, title: libS(r.title), higher: /^higher$/i.test(libS(r.tier).trim()), own: own,
+                                      topics: libS(r.topics) }, libChapterBody_(r), { animations: [] }));
     });
     /* IN FILE ORDER, which is page order: § */
     anims.forEach(r => {
@@ -304,6 +322,68 @@ function libraryExtras_(d, extra) {
   return d;
 }
 
+/* ONE QUESTION ROW, AS THE APP READS IT — a function so a row whose words arrive later (397) is mapped again in place. */
+function libQuestion_(r) {
+  /* ---------- A DOCUMENT IS NOT A QUESTION, AND IT COMES THROUGH ANYWAY § */
+  const docRow = norm(r.kind) === 'document';
+  return {
+    id: libS(r.row_id), paper: libS(r.paper_id),
+    sourceId: libS(r.source_id),
+    q: libS(r.question), part: libS(r.part), kind: norm(r.kind) || 'question',
+    section: libS(r.section), marks: libN(r.marks),
+    /* A ROW STANDING IN FOR SOMETHING NOT YET TYPED — see `placeholder` in check-library.js and
+       `.qsheet-stem.is-standin` in the stylesheet. A boolean the card reads, not prose it has to
+       match against. */
+    placeholder: String(r.placeholder) === 'True',
+    /* `figure` SAYS WHICH KIND OF PICTURE; `diagram` IS THE PICTURE. § */
+    figure: libS(r.figure), diagram: libS(r.diagram),
+    /* WHAT YOU HAVE TO HAVE IN FRONT OF YOU — a comma-list, the way `topics` and `keystage` are. § */
+    needs: libS(r.needs),
+    isDoc: docRow,
+    /* ---------- PICTURES THAT ARE PHOTOGRAPHS OR SCANS, NOT DRAWINGS § */
+    images: libS(r.images),
+    /* `diagramBy` WAS HERE, read for the credit line under a redrawn picture. The line went on 18 Oct
+       (docs/history/355); `diagram_by` stays on the row as provenance and nothing on screen reads it. */
+    lead: libS(r.lead), html: libS(r.html),
+    /* ---------- AN INSERT IS SEVERAL THINGS, AND IT USED TO BE ONE § */
+    lines: libS(r.lines), order: libN(r.sort_order),
+    company: libS(r.company),
+    answer: libS(r.answer), answerType: norm(r.answer_type),
+    /* ---------- WHAT A MARK IS MADE ON, WHEN THE ANSWER IS A MARK § */
+    surface: norm(r.surface),
+    /* WHICH EARLIER PART'S DRAWING THIS ONE NEEDS IN FRONT OF IT -- `b` on "Use your graph to find estimates" after (b) drew the graph. § */
+    uses: libS(r.uses),
+    /* WHAT A STUDENT COULD TYPE AND BE RIGHT. § */
+    accept: libS(r.accept),
+    /* THE BLANKS OF A GRID OR TABLE, `;` between cells, `|` between ways, `-` a blank not asked (find.js, `cellsOf_`). */
+    cells: libS(r.cells),
+    /* KEY WORDS THAT MARK A SHORT WORDED ANSWER WITHOUT AI (find.js, `markWords_`). */
+    markWords: libS(r.mark_words),
+    /* THE EXPECTED DRAWING AS GEOMETRY (find.js, `drawMarker_`, 366). */
+    drawAnswer: libS(r.draw_answer),
+    /* A CLOSED LIST OF OPTIONS, TAPPED RATHER THAN TYPED. § */
+    choices: libS(r.choices).split('|').map(t => t.trim()).filter(Boolean),
+    /* ---------- AN ORDERING IS THE SAME TWO COLUMNS AND ONE MORE § */
+    choiceRight: libS(r.choice_right).split('|')[0].split(',').map(t => parseInt(t, 10)).filter(n => n > 0),
+    choiceWays: libS(r.choice_right).split('|')
+      .map(w => w.split(',').map(t => parseInt(t, 10)).filter(n => n > 0)).filter(w => w.length),
+    orderEnds: libS(r.order_ends).split('|').map(t => t.trim()).filter(Boolean),
+    /* TWO COLUMNS, ONE FACT, AND THEY ARE DISJOINT. § */
+    needsPrint: libTrue(r.needs_print) || libTrue(r.print_required),
+    examinerNote: libS(r.examiner_note), examinerReport: libS(r.examiner_report),
+    guide: libS(r.guide),
+    name: libS(r.name), subject: libS(r.subject),
+    documentType: libS(r.document_type), keystage: libS(r.key_stage),
+    bandType: libS(r.band_type), bandValue: libS(r.band_value),
+    tier: libS(r.tier), examBoard: libS(r.exam_board),
+    examWave: libS(r.exam_wave), year: libS(r.year),
+    /* ---------- AND THE ROW ITSELF, WHICH COSTS A POINTER § */
+    row: r,
+    /* WHICH PRIVATE FIELDS THE LEDGER STILL HOLDS FOR THIS ROW (397): blank once they are here, or when the file held them. */
+    libHas: libS(r.lib_has).trim(),
+  };
+}
+
 /* ---------- THE TWO BLOCKS, MOVED OUT OF `doget.gs` § */
 function libraryInto_(d, rows) {
   if (!d || !Array.isArray(rows)) return d;
@@ -314,62 +394,7 @@ function libraryInto_(d, rows) {
   const qs = [];
   rows.forEach(r => {
     if (!libS(r.row_id) || !libOn(r.active)) return;
-    /* ---------- A DOCUMENT IS NOT A QUESTION, AND IT COMES THROUGH ANYWAY § */
-    const docRow = norm(r.kind) === 'document';
-    qs.push({
-      id: libS(r.row_id), paper: libS(r.paper_id),
-      sourceId: libS(r.source_id),
-      q: libS(r.question), part: libS(r.part), kind: norm(r.kind) || 'question',
-      section: libS(r.section), marks: libN(r.marks),
-      /* A ROW STANDING IN FOR SOMETHING NOT YET TYPED — see `placeholder` in check-library.js and
-         `.qsheet-stem.is-standin` in the stylesheet. A boolean the card reads, not prose it has to
-         match against. */
-      placeholder: String(r.placeholder) === 'True',
-      /* `figure` SAYS WHICH KIND OF PICTURE; `diagram` IS THE PICTURE. § */
-      figure: libS(r.figure), diagram: libS(r.diagram),
-      /* WHAT YOU HAVE TO HAVE IN FRONT OF YOU — a comma-list, the way `topics` and `keystage` are. § */
-      needs: libS(r.needs),
-      isDoc: docRow,
-      /* ---------- PICTURES THAT ARE PHOTOGRAPHS OR SCANS, NOT DRAWINGS § */
-      images: libS(r.images),
-      /* `diagramBy` WAS HERE, read for the credit line under a redrawn picture. The line went on 18 Oct
-         (docs/history/355); `diagram_by` stays on the row as provenance and nothing on screen reads it. */
-      lead: libS(r.lead), html: libS(r.html),
-      /* ---------- AN INSERT IS SEVERAL THINGS, AND IT USED TO BE ONE § */
-      lines: libS(r.lines), order: libN(r.sort_order),
-      company: libS(r.company),
-      answer: libS(r.answer), answerType: norm(r.answer_type),
-      /* ---------- WHAT A MARK IS MADE ON, WHEN THE ANSWER IS A MARK § */
-      surface: norm(r.surface),
-      /* WHICH EARLIER PART'S DRAWING THIS ONE NEEDS IN FRONT OF IT -- `b` on "Use your graph to find estimates" after (b) drew the graph. § */
-      uses: libS(r.uses),
-      /* WHAT A STUDENT COULD TYPE AND BE RIGHT. § */
-      accept: libS(r.accept),
-      /* THE BLANKS OF A GRID OR TABLE, `;` between cells, `|` between ways, `-` a blank not asked (find.js, `cellsOf_`). */
-      cells: libS(r.cells),
-      /* KEY WORDS THAT MARK A SHORT WORDED ANSWER WITHOUT AI (find.js, `markWords_`). */
-      markWords: libS(r.mark_words),
-      /* THE EXPECTED DRAWING AS GEOMETRY (find.js, `drawMarker_`, 366). */
-      drawAnswer: libS(r.draw_answer),
-      /* A CLOSED LIST OF OPTIONS, TAPPED RATHER THAN TYPED. § */
-      choices: libS(r.choices).split('|').map(t => t.trim()).filter(Boolean),
-      /* ---------- AN ORDERING IS THE SAME TWO COLUMNS AND ONE MORE § */
-      choiceRight: libS(r.choice_right).split('|')[0].split(',').map(t => parseInt(t, 10)).filter(n => n > 0),
-      choiceWays: libS(r.choice_right).split('|')
-        .map(w => w.split(',').map(t => parseInt(t, 10)).filter(n => n > 0)).filter(w => w.length),
-      orderEnds: libS(r.order_ends).split('|').map(t => t.trim()).filter(Boolean),
-      /* TWO COLUMNS, ONE FACT, AND THEY ARE DISJOINT. § */
-      needsPrint: libTrue(r.needs_print) || libTrue(r.print_required),
-      examinerNote: libS(r.examiner_note), examinerReport: libS(r.examiner_report),
-      guide: libS(r.guide),
-      name: libS(r.name), subject: libS(r.subject),
-      documentType: libS(r.document_type), keystage: libS(r.key_stage),
-      bandType: libS(r.band_type), bandValue: libS(r.band_value),
-      tier: libS(r.tier), examBoard: libS(r.exam_board),
-      examWave: libS(r.exam_wave), year: libS(r.year),
-      /* ---------- AND THE ROW ITSELF, WHICH COSTS A POINTER § */
-      row: r,
-    });
+    qs.push(libQuestion_(r));
   });
   d.questions = qs;
 
@@ -379,3 +404,155 @@ function libraryInto_(d, rows) {
 }
 
 /* `paperHealth_` WAS HERE: the paper health score went in 388; a question carries Accuracy and Function tags (find.js `verifyTags_`). */
+
+/* ================= THE LIBRARY'S PRIVATE HALF, ASKED FOR AS IT IS OPENED (397) =================
+   `lib_has` names a row's fields the Ledger holds; they arrive onto the row, kept for the visit, gone at sign-out. */
+const LIB = { pending: new Set(), flying: new Set(), gone: new Set(), refused: new Set(), failed: '',
+              timer: 0, filled: new Set(), gen: 0, ahead: 0 };
+/* AT MOST THIS MANY IN ONE ASK — the backend's `LIB_PER_CALL`. */
+const LIB_PER_ASK = 60;
+/* THE PAGES PAST THE ONE IN FRONT THAT ARE ASKED FOR WITH IT, so the next few cards are whole when they are reached. */
+const LIB_AHEAD = 4;
+
+/* STILL WAITING: a file row (`lib_has`) or a mapped object (`libHas`) whose private fields have not arrived. */
+const libWaits_ = o => !!o && libS(o.lib_has !== undefined ? o.lib_has : o.libHas).trim() !== '';
+/* WHETHER A FIELD IS THERE OR ON ITS WAY — the test a card's shape is decided by before its words come. */
+function libHasField_(o, f) {
+  if (!o) return false;
+  if (libS(o[f]).trim()) return true;
+  return (' ' + libS(o.lib_has !== undefined ? o.lib_has : o.libHas) + ' ').indexOf(' ' + f + ' ') !== -1;
+}
+/* A ROW'S ID ON THE WIRE (backend LIB_FILES): `q:` a question row, `ct:` a content card, `pr:` a practical, `pj:` a project. */
+const libWireQ_ = r => 'q:' + libS(r && (r.row_id || r.id)).trim();
+
+/* THE FILE'S ROWS AND THE MAPPED OBJECTS, BY ID — built once per list, because a merge looks up a few dozen of ten thousand. */
+const LIB_INDEX = new WeakMap();
+function libIndexOf_(list, idOf) {
+  if (!Array.isArray(list)) return new Map();
+  let m = LIB_INDEX.get(list);
+  if (!m) { m = new Map(); list.forEach(o => { const k = idOf(o); if (k && !m.has(k)) m.set(k, o); }); LIB_INDEX.set(list, m); }
+  return m;
+}
+
+/* ASK FOR THESE (typed ids), a moment from now, with whatever else is asked in the same turn. Nobody signed in: nothing. */
+function libAsk_(ids) {
+  if (typeof USER === 'undefined' || !USER || !USER.token) return;
+  (ids || []).forEach(t => { if (t && !LIB.flying.has(t) && !LIB.gone.has(t) && !LIB.refused.has(t)) LIB.pending.add(t); });
+  if (!LIB.pending.size || LIB.timer || LIB.failed) return;
+  LIB.timer = setTimeout(libPump_, 0);
+}
+function libPump_() {
+  LIB.timer = 0;
+  if (typeof USER === 'undefined' || !USER || !USER.token || !LIB.pending.size) return;
+  const ids = [...LIB.pending].slice(0, LIB_PER_ASK);
+  ids.forEach(t => { LIB.pending.delete(t); LIB.flying.add(t); });
+  const who = USER.token;
+  send({ action: 'libItems', personId: USER.personId || '', ids: ids })
+    .then(d => {
+      if (!USER || USER.token !== who) return;
+      libMerge_((d && d.items) || {});
+      ((d && d.missing) || []).forEach(t => LIB.gone.add(t));
+      ((d && d.refused) || []).forEach(t => LIB.refused.add(t));
+      if (d && d.refused && d.refused.length) LIB.failed = 'That is today’s ' + (d.cap || 'share') + ' — the rest open tomorrow.';
+    })
+    .catch(err => {
+      if (!USER || USER.token !== who) return;
+      LIB.failed = String((err && err.message) || err || '') || 'the library did not answer';
+      if (err && err.reply && err.reply.why === 'lib-cap') ids.forEach(t => LIB.refused.add(t));
+      else ids.forEach(t => LIB.pending.add(t));
+    })
+    .then(() => {
+      ids.forEach(t => LIB.flying.delete(t));
+      libLanded_();
+      if (LIB.pending.size && !LIB.failed) LIB.timer = setTimeout(libPump_, 0);
+    });
+}
+
+/* ONE ROW'S FIELDS, BACK ON THE FILE'S ROW — remembered, so a sign-out can take them off again. */
+function libFill_(r, c) {
+  if (!r || !c) return;
+  const keys = Object.keys(c);
+  keys.forEach(k => { r[k] = c[k]; });
+  if (!LIB.filled.has(r)) { r.__libHas = r.lib_has; r.__libKeys = keys; }
+  else r.__libKeys = [...new Set((r.__libKeys || []).concat(keys))];
+  delete r.lib_has;
+  LIB.filled.add(r);
+}
+/* WHAT ARRIVED, ON THE ROWS AND ON EVERY OBJECT MADE FROM THEM — in place, so every list and memo holding them sees it. */
+function libMerge_(items) {
+  const ids = Object.keys(items || {});
+  if (!ids.length) return;
+  const ex = (typeof LIBRARY_EXTRA !== 'undefined' && LIBRARY_EXTRA) || {};
+  const D = (typeof DATA !== 'undefined' && DATA) || {};
+  ids.forEach(t => {
+    const c = items[t], m = /^(q|ct|pr|pj):(.+)$/.exec(t);
+    if (!m || !c || typeof c !== 'object') return;
+    const id = m[2];
+    if (m[1] === 'q') {
+      const r = libIndexOf_(LIBRARY_ROWS, o => libS(o.row_id)).get(id);
+      if (!r) return;
+      libFill_(r, c);
+      const q = libIndexOf_(D.questions, o => libS(o.id)).get(id);
+      if (q) Object.assign(q, libQuestion_(r));
+      if (typeof questionContent_ === 'function' && typeof libItemByKey_ === 'function') {
+        const it = libItemByKey_('q:' + id);
+        if (it && q) Object.assign(it, questionContent_(q));
+      }
+    } else if (m[1] === 'pr' || m[1] === 'pj') {
+      const col = m[1] === 'pr' ? 'practical_id' : 'project_id';
+      const r = libIndexOf_(ex[m[1] === 'pr' ? 'practicals' : 'projects'], o => libS(o[col]).trim()).get(id);
+      if (!r) return;
+      libFill_(r, c);
+      const p = libIndexOf_(D[m[1] === 'pr' ? 'practicals' : 'projects'], o => libS(o.id)).get(id);
+      if (p) Object.assign(p, m[1] === 'pr' ? libPractical_(r) : libProject_(r));
+    } else {
+      const r = libIndexOf_(ex.textbooks, o => (libS(o.anim).trim() ? '' : libS(o.book_id).trim() + '#' + libS(o.chapter).trim())).get(id);
+      if (!r) return;
+      libFill_(r, c);
+      const at = id.lastIndexOf('#');
+      const b = (D.textbooks || []).find(x => x.id === id.slice(0, at));
+      const ch = b && (b.chapters || []).find(x => String(x.n) === String(libN(id.slice(at + 1))));
+      if (ch) Object.assign(ch, libChapterBody_(r));
+    }
+  });
+  LIB.gen++;
+}
+
+/* ---------- SIGNED OUT: THE WORDS GO WITH THE PERSON ---------- */
+function libForget_() {
+  const D = (typeof DATA !== 'undefined' && DATA) || {};
+  LIB.filled.forEach(r => {
+    (r.__libKeys || []).forEach(k => { delete r[k]; });
+    r.lib_has = r.__libHas;
+    delete r.__libHas; delete r.__libKeys;
+    try {
+      if (r.row_id !== undefined) {
+        const q = libIndexOf_(D.questions, o => libS(o.id)).get(libS(r.row_id));
+        if (q) Object.assign(q, libQuestion_(r));
+      } else if (r.practical_id !== undefined) {
+        const p = libIndexOf_(D.practicals, o => libS(o.id)).get(libS(r.practical_id).trim());
+        if (p) Object.assign(p, libPractical_(r));
+      } else if (r.project_id !== undefined) {
+        const p = libIndexOf_(D.projects, o => libS(o.id)).get(libS(r.project_id).trim());
+        if (p) Object.assign(p, libProject_(r));
+      } else if (r.book_id !== undefined) {
+        const b = (D.textbooks || []).find(x => x.id === libS(r.book_id).trim());
+        const ch = b && (b.chapters || []).find(x => x.n === libN(r.chapter));
+        if (ch) Object.assign(ch, libChapterBody_(r));
+      }
+    } catch (e) {}
+  });
+  LIB.filled.clear(); LIB.pending.clear(); LIB.flying.clear(); LIB.gone.clear(); LIB.refused.clear();
+  LIB.failed = '';
+  clearTimeout(LIB.timer); LIB.timer = 0;
+  LIB.gen++;
+}
+
+/* TRY AGAIN: whatever failed is asked for again, and the cards waiting say so. Online again is a Try again by itself. */
+function libRetry_() {
+  LIB.failed = '';
+  LIB.refused.clear();
+  if (typeof libLanded_ === 'function') libLanded_();
+  if (LIB.pending.size && !LIB.timer) LIB.timer = setTimeout(libPump_, 0);
+}
+try { window.addEventListener('online', () => { if (LIB.failed) libRetry_(); }); } catch (e) {}

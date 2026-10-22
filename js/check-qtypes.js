@@ -81,7 +81,7 @@ const collOf = r => COLLECTIONS.find(c => c[1](r))[0];
 
 let rows = [], lib = [];
 try {
-  lib = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'questions.json'), 'utf8'));
+  lib = require('../check/lib-full.js').rows('questions');
   rows = lib.filter(r => r.kind === 'question');
 } catch (e) { broken.push('data/questions.json did not read: ' + e.message); }
 
@@ -131,13 +131,20 @@ if (Q) {
   const find = fs.readFileSync(path.join(ROOT, 'js', 'find.js'), 'utf8');
   const lib = fs.readFileSync(path.join(ROOT, 'js', 'library.js'), 'utf8');
   const src = (/^function verifyTags_\([\s\S]*?\n}\n/m.exec(find) || [])[0], tru = (/^const libTrue = [\s\S]*?\n};\n/m.exec(lib) || [])[0];
+  /* AND WHAT IT READS WHILE A ROW'S WORDS ARE STILL IN THE LEDGER (397): `libWaits_` and the `libS` under it. */
+  const waits = ['libS', 'libWaits_'].map(n => (new RegExp('^const ' + n + ' = .*\\n', 'm').exec(lib) || [''])[0]).join('');
   ['accuracy', 'function'].forEach(f => { if (!new RegExp("\\{ field: '" + f + "',").test(find)) broken.push('find.js FACETS has no ordinary `' + f + '` tag'); });
   if (!src || !tru) broken.push('find.js `verifyTags_` or library.js `libTrue` not found — no tag was checked');
   else {
     const ctx = vm.createContext({ qtIncomplete_: Q.qtIncomplete_, qtMachine_: Q.qtMachine_ });
-    const vt = vm.runInContext(tru + src + '\n;verifyTags_', ctx);
+    const vt = vm.runInContext(waits + tru + src + '\n;verifyTags_', ctx);
     rows.forEach(r => {
       const t = vt({ kind: 'question', row: r });
+      /* THE FILE'S `function_verified` (397), what the card says before its words arrive, is what the whole row says. */
+      if (r.function_verified !== undefined) {
+        const early = vt({ kind: 'question', row: Object.assign({}, r, { lib_has: 'html' }) }).fn;
+        if (early !== t.fn) broken.push(r.row_id + ': function_verified says ' + early + ' but the whole row is ' + t.fn + ' — run node tools/lib-private.js split');
+      }
       if (!/^Accuracy (un)?verified$/.test(t.accuracy) || !/^Function (un)?verified$/.test(t.fn)) broken.push(r.row_id + ' lacks a verified tag: ' + JSON.stringify(t));
       if (t.accuracy === 'Accuracy verified') tags.acc++;
       if (t.fn === 'Function verified') tags.fn++;

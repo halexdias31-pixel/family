@@ -65,6 +65,14 @@ const WHERE = {
   map:            { file: 'ledger' },
   herd:           { file: 'ledger' },
 
+  /* ---- the library's private half (397): the words, answers and figures, filled by `library-to-ledger` ---- */
+  lib_questions:  { file: 'ledger' },
+  lib_content:    { file: 'ledger' },
+  lib_practicals: { file: 'ledger' },
+  lib_projects:   { file: 'ledger' },
+  /* WHO OPENED HOW MANY TODAY — one row per person per London day; the daily cap is counted here. */
+  lib_log:        { file: 'ledger' },
+
   /* ---- subject content, edited in bulk ---- */
   /* NOTHING IS ROUTED HERE ANY MORE, and the section is kept so that is visible rather than merely absent. § */
 };
@@ -109,7 +117,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-22-b-uniform-tags";
+const BACKEND_VERSION = "2026-10-22-c-library-ledger";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -159,9 +167,38 @@ const TAB = {
   films: 'films',
   posts: 'posts', post_votes: 'post_votes',
   post_reactions: 'post_reactions', post_comments: 'post_comments',
-  family: 'family'
+  family: 'family',
+  /* THE LIBRARY'S PRIVATE HALF (397) — read a row at a time by `libContent_`, never through `read()`: see LIB_FILES. */
+  libQuestions: 'lib_questions', libContent: 'lib_content', libPracticals: 'lib_practicals',
+  libProjects: 'lib_projects', libLog: 'lib_log'
 };
 
+
+/* ---------- THE LIBRARY'S PRIVATE HALF, IN THE LEDGER (397) ----------
+   These fields live only in the Ledger, a tab per file; `library-to-ledger` copied them from LIB_SOURCE_COMMIT. */
+const LIB_SOURCE_COMMIT = 'a237c8a7e4005e72ca22419579d3ff92722921dd';
+const LIB_SOURCE_RAW = 'https://raw.githubusercontent.com/halexdias31-pixel/family/' + LIB_SOURCE_COMMIT + '/';
+/* `prefix` is the item's id on the wire (`q:<row_id>`); `id` the columns that make it; `skip` a column whose rows stay
+   public whole (a teaching animation draws the splash for everybody). Order here is the copy's order. */
+const LIB_FILES = {
+  questions:  { tab: 'lib_questions', file: 'data/questions.json', prefix: 'q', id: ['row_id'],
+                private: ['html', 'lead', 'diagram', 'answer', 'accept', 'choices', 'choice_right', 'order_ends', 'cells',
+                          'mark_words', 'draw_answer', 'examiner_note', 'examiner_report', 'guide'] },
+  textbooks:  { tab: 'lib_content', file: 'data/textbooks.json', prefix: 'ct', id: ['book_id', 'chapter'], skip: 'anim',
+                private: ['words', 'points', 'formulas'] },
+  practicals: { tab: 'lib_practicals', file: 'data/practicals.json', prefix: 'pr', id: ['practical_id'],
+                private: ['aim', 'outcome', 'safety', 'maths_link', 'equipment', 'steps', 'notes', 'science', 'log',
+                          'variables', 'diagram', 'risks'] },
+  projects:   { tab: 'lib_projects', file: 'data/projects.json', prefix: 'pj', id: ['project_id'],
+                private: ['materials', 'steps', 'safety', 'share'] },
+};
+/* A CELL HOLDS 50,000 CHARACTERS; an item's JSON is cut at 40,000 into up to six cells (the largest is 87,440). */
+const LIB_PARTS = 6;
+const LIB_CELL = 40000;
+/* AT MOST THIS MANY ITEMS IN ONE `libItems` CALL — one question with its stems and parts, and the next few. */
+const LIB_PER_CALL = 60;
+/* AND A DAY'S DEFAULT CAP PER PERSON, when the config tab's `library_items_per_day` is blank. Admins are not capped. */
+const LIB_DAILY_CAP = 400;
 
 /* ---------- SCHEMA, AND KEEPING IT IN STEP § */
 const SCHEMA = {
@@ -481,6 +518,16 @@ const SCHEMA = {
     "status", "status_at",
   ],
 
+  /* ---------- THE LIBRARY'S PRIVATE HALF (397): one row per item, its private fields as JSON § */
+  lib_questions: ["id", "checksum", "parts", "content_1", "content_2", "content_3", "content_4", "content_5", "content_6"],
+  lib_content: ["id", "checksum", "parts", "content_1", "content_2", "content_3", "content_4", "content_5", "content_6"],
+  lib_practicals: ["id", "checksum", "parts", "content_1", "content_2", "content_3", "content_4", "content_5", "content_6"],
+  lib_projects: ["id", "checksum", "parts", "content_1", "content_2", "content_3", "content_4", "content_5", "content_6"],
+  /* `ids` is every item served that day (so a second look is free), `refused` what the cap turned away. */
+  lib_log: [
+    "day", "person_id", "handle", "served", "ids", "refused", "last_at",
+  ],
+
   /* ---------- THE WEEKLY PARENT EMAIL'S RECEIPTS § */
   digest_log: [
     "week_of", "learner_id", "parent_id",
@@ -585,6 +632,7 @@ const CONFIG_DEFAULTS = [
   /* ---------- AI MARKING § */
   ['gemini_model', AI_MODEL, 'the Gemini model that marks worded answers. Blank (or the old gemini-flash-latest) = ' + AI_MODEL + '. The API KEY never goes here: it is GEMINI_API_KEY in Script Properties'],
   ['gemini_model_fallback', AI_MODEL_FALLBACK, 'the model asked when the first one is full, out of reach or retired (Gemini 429, 5xx or 404). Blank = ' + AI_MODEL_FALLBACK + '. none = no second model'],
+  ['library_items_per_day', LIB_DAILY_CAP, 'how many questions, practicals and content cards one person may open in a day (a part, its opening and its answer count as one each; opening one again is free). Blank = ' + LIB_DAILY_CAP + '. Admins are not counted'],
   ['ai_marks_per_day', 20, 'how many answers one person may have marked by AI in a day. Blank = 20. 0 switches AI marking off'],
   /* HOW HARD GEMINI THINKS BEFORE IT MARKS, ONE CELL FOR EACH KIND OF ANSWER (12 Oct) -- the note over `AI_THINKING_LEVELS` above, and docs/history/350. § */
   ['ai_thinking', '', 'how hard Gemini thinks before marking a SHORT answer: minimal, low, medium or high (each slower and deeper than the last), or none for the model\'s own default. A model that does not offer a level gets the next one up. Blank = the lowest each model offers ('
@@ -1254,6 +1302,9 @@ const RUNNABLE = {
      `syncFilms` is in the function dropdown. The report is counts and the folder's name, never a
      title. */
   syncFilms:         () => syncFilms(),
+  /* THE LIBRARY'S COPY INTO THE LEDGER (397): one more step now, and where it has got to. Both safe to run whenever. */
+  libraryCopyStep:   () => libraryCopyStep(),
+  libraryStatus:     () => libMigState_(),
   /* Reachable from a URL like everything else — but note that a URL CANNOT grant a scope. This
      will report what the deployment's existing token can do; raising the consent screen has to be
      a run from the editor. */
@@ -1396,6 +1447,13 @@ const MIGRATIONS = [
     retry: true,
     what: 'a backup copy of the Ledger, then the attempts, post_likes, widgets and orders tabs and the columns nothing reads are removed',
     run: () => tidyOldTabs_() },
+
+  /* THE LIBRARY MOVES INTO THE LEDGER (397): copied from LIB_SOURCE_COMMIT a few minutes at a time by a trigger, then every row checked against its source. */
+  { id: 'library-to-ledger',
+    retry: true,
+    what: 'the questions, answers, practicals and content cards are copied into the Ledger and checked row by row',
+    run: () => libMigrate_(),
+    progress: () => libSetupSays_() },
 ];
 
 /* ============================== POST ========================================================= */
@@ -1477,6 +1535,9 @@ const ACTION_ACCESS = {
   /* A QUESTION REPORTED (395): anybody signed in, as the token's person. Reading and closing them is the business's alone — a report is somebody else's words. */
   reportQuestion: 'self',
   listReports: 'admin', setReportStatus: 'admin',
+  /* THE LIBRARY'S WORDS AND ANSWERS (397): anybody signed in, a day's cap each; the tools' copy in and out is the admin's. */
+  libItems: 'self',
+  libExport: 'admin', libImport: 'admin',
   /* WHAT THE WEEKLY PARENT EMAIL WOULD SAY THIS WEEK. Admin and nobody else: the reply is every
      learner's week and every parent's address. It writes nothing and sends nothing — see
      backend/digest.gs. */

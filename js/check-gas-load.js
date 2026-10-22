@@ -30,6 +30,8 @@ function backend(extra) {
     const maxRows = () => Math.max(rows(), (gridOf[name] || {}).rows || 1000);
     return {
       getName: () => name, getLastRow: rows, getLastColumn: cols, getMaxRows: maxRows, getMaxColumns: maxCols,
+      /* A TALLER GRID, as a sheet grows when rows are added past its foot (the library's copy, 397). */
+      insertRowsAfter(after, n) { gridOf[name] = { cols: maxCols(), rows: maxRows() + n }; return this; },
       insertColumnsAfter(after, n) {
         const wide = maxCols() + n;                    // measured before the cells move, or n is counted twice
         grid.forEach(row => { if (row.length > after) row.splice(after, 0, ...new Array(n).fill('')); });

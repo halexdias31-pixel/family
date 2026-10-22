@@ -19,7 +19,7 @@ function loadOrder_() {
 function boot(cb) {
   const fixture = JSON.parse(fs.readFileSync(path.join(ROOT, 'check', 'fixture.json'), 'utf8'));
   const library = LIBRARY;
-  const practicals = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'practicals.json'), 'utf8'));
+  const practicals = require('../check/lib-full.js').rows('practicals');
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')
     .replace(/<script[\s\S]*?<\/script>/g, '');
   const dom = new JSDOM(html, { runScripts: 'outside-only', pretendToBeVisual: true,
@@ -81,7 +81,7 @@ function boot(cb) {
 
 /* THE RAW FILE, NOT THE MAPPED ITEMS. `stuffItems` drops every `kind: 'document'` row, and a
    paper-level fact — the code on the cover, the total, the link — lives on exactly those. */
-const LIBRARY = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'questions.json'), 'utf8'));
+const LIBRARY = require('../check/lib-full.js').rows('questions');
 
 /* A value the funnel would draw on a button, reduced to the thing a person would say it is. § */
 const norm_ = v => String(v).toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -1116,7 +1116,7 @@ boot(f => {
     const b = require('./check-gas-load.js').backend();
     const qs = f.stuffItems().filter(x => x && x.kind === 'question' && x.row);
     const pids = [...new Set(qs.map(x => String(x.row.paper_id || '')).filter(Boolean))];
-    b.ev('globalThis.__T = digestTagIndex_(' + JSON.stringify(fs.readFileSync(path.join(ROOT, 'data', 'questions.json'), 'utf8')) + ', ' + JSON.stringify(pids) + ')');
+    b.ev('globalThis.__T = digestTagIndex_(' + JSON.stringify(require('../check/lib-full.js').text('questions')) + ', ' + JSON.stringify(pids) + ')');
     const differ = [];
     qs.forEach(x => {
       /* THE PAGE TAGS ([2] [of 2]) ARE THE SITE'S READING PAGES; the email draws the part whole, so it says none. And no

@@ -16,7 +16,7 @@ function loadOrder_() {
   return [...m[1].matchAll(/'([^']+)'/g)].map(x => x[1]);
 }
 
-const LIBRARY = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'questions.json'), 'utf8'));
+const LIBRARY = require('../check/lib-full.js').rows('questions');
 
 /* ---------- THE BACKEND, STOOD IN FOR — WITH SOMEBODY TO SEND AN ORDER TO § */
 const OWNER = { title: 'Owner Person', role: 'Admin', personId: 'P-OWNER', handle: 'owner',

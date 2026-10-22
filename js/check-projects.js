@@ -12,7 +12,9 @@ const note = [];
 function readLines(rel) {
   const p = path.join(root, rel);
   if (!fs.existsSync(p)) { fail.push(rel + ' does not exist'); return []; }
-  const lines = fs.readFileSync(p, 'utf8').replace(/\n$/, '').split('\n');
+  /* A LIBRARY FILE WITH ITS WORDS PUT BACK (397, check/lib-full.js) — the repository's copy is card metadata only. */
+  const lib = /^data\/([a-z]+)\.json$/.exec(rel), LF = require('../check/lib-full.js');
+  const lines = (lib && LF.isLib(lib[1]) ? LF.text(lib[1]) : fs.readFileSync(p, 'utf8')).replace(/\n$/, '').split('\n');
   if (lines[0].trim() !== '[') fail.push(rel + ' line 1 is not a bare [');
   if (lines[lines.length - 1].trim() !== ']') fail.push(rel + ' does not end with a bare ]');
   const rows = [];

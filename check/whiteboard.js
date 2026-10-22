@@ -23,6 +23,9 @@ function serve() {
     const s = http.createServer((req, res) => {
       const rel = decodeURIComponent(req.url.split('?')[0]);
       const p = path.join(ROOT, rel === '/' ? 'index.html' : rel);
+      /* THE LIBRARY WITH ITS WORDS (397): the repository's copy is card metadata, check/lib-full.js puts them back. */
+      const libBody = require('./lib-full.js').serve(p);
+      if (libBody !== null) { res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' }); return res.end(libBody); }
       if (!p.startsWith(ROOT) || !fs.existsSync(p) || fs.statSync(p).isDirectory()) { res.writeHead(404); return res.end('not here'); }
       res.writeHead(200, { 'Content-Type': MIME[path.extname(p)] || 'application/octet-stream' });
       fs.createReadStream(p).pipe(res);

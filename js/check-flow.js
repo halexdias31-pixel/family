@@ -6,6 +6,8 @@ const path = require('path');
 const { JSDOM } = require('jsdom');
 
 const dir = __dirname;
+/* THE LIBRARY WITH ITS WORDS (397): data/*.json is card metadata, and the private half comes back from data-private/. */
+const LIB_FULL = require('../check/lib-full.js');
 /* ---------- THE ORDER IS READ FROM index.html, NOT KEPT HERE § */
 function loadOrder_() {
   const html = require('fs').readFileSync(
@@ -5172,7 +5174,7 @@ check('a placement snaps to the grid the picture draws and a line never does: Q7
   if (!t || typeof w.padGrid_ !== 'function' || typeof t.padWrap !== 'function' || typeof t.padOn !== 'function' || typeof w.padDrop_ !== 'function') {
     return ['padGrid_, padWrap_ or padDrop_ are not reachable — snapping was NOT checked'];
   }
-  const rows = JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '..', 'data', 'questions.json'), 'utf8'));
+  const rows = LIB_FULL.rows('questions');
   const q7 = rows.find(r => r.row_id === 'Q-1MA1-2406-1F-7');
   const G = q7 && w.padGrid_(q7.diagram);
   if (!G || G.xs.length !== 14 || G.ys.length !== 17) bad.push('Q7\'s grid read as ' + (G ? G.xs.length + ' x ' + G.ys.length : 'nothing') + ' lines — wanted 14 x 17');
@@ -13469,7 +13471,7 @@ check('no answer box on a question\'s pages can bring up the phone\'s keyboard �
   await wait(300);
   if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so no practical could be drawn — nothing was checked'];
   const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({},
-    { practicals: JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'practicals.json'), 'utf8')) })));
+    { practicals: LIB_FULL.rows('practicals') })));
   const { w, errs } = boot({ payload: Object.assign(payload(), { practicals: made.practicals || [] }) });
   await wait(300);
   const d = w.document, A = w.__t.ACTIONS, bad = [];
@@ -13875,7 +13877,7 @@ check('Mark with AI sends a worded answer by person id, draws marks and a senten
 /* ---------- AN ESSAY IS WRITTEN ON A SHEET, IN PARAGRAPHS, AND MARKED WHOLE § */
 check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragraphs, the words are counted, and Mark with AI sends all of it', async () => {
   const ID = 'Q-R0398-5';
-  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const LIB = LIB_FULL.rows('questions');
   const row = LIB.find(r => r.row_id === ID);
   if (!row) return [ID + ' is not in data/questions.json — no essay was written'];
   const paper = LIB.filter(r => r.paper_id === row.paper_id);
@@ -14112,7 +14114,7 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
 /* ---------- A BACKEND NOT YET PULLED IS SENT NO ESSAY IT WOULD CUT § */
 check('a backend without aiMarkWhole is sent no essay over its old 2,000-character cut, and the pupil is told why', async () => {
   const ID = 'Q-R0398-5';
-  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const LIB = LIB_FULL.rows('questions');
   const row = LIB.find(r => r.row_id === ID);
   if (!row) return [ID + ' is not in data/questions.json — nothing was sent'];
   const paper = LIB.filter(r => r.paper_id === row.paper_id);
@@ -14766,7 +14768,7 @@ check('a drawing and a ringed word are kept for whoever is signed in, and the ph
 /* ---------- A DRAWN ANSWER IS DRAWN ON ITS OWN FIGURE, IN ITS OWN CARD (docs/history/356) § */
 check('June 2024 1F Q7 is one card with its grid under the pen in its words: no box, no switch, no figure page', async () => {
   const ID = 'Q-1MA1-2406-1F-7';
-  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const LIB = LIB_FULL.rows('questions');
   const row = LIB.find(r => r.row_id === ID);
   if (!row) return [ID + ' is not in data/questions.json — NOT checked'];
   const paper = LIB.filter(r => r.paper_id === row.paper_id);
@@ -14799,7 +14801,7 @@ check('June 2024 1F Q7 is one card with its grid under the pen in its words: no 
 
 /* ---------- AND OVER THE WHOLE LIBRARY: NO FIGURE PAGE, NO POINTER, EVERY FIGURE ONCE § */
 check('no question in the library has a figure page or points at one, and every figure is drawn once', async () => {
-  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const LIB = LIB_FULL.rows('questions');
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined) });
   await wait(300);
   const bad = [];
@@ -14850,7 +14852,7 @@ check('no question in the library has a figure page or points at one, and every 
 /* ---------- WHAT A QUESTION IS ANSWERED WITH: A DRAWING, A VALUE, OR BOTH (`answerKinds_`) § */
 check('the hexagon shows its surface and its box, a question with options shows them and no pen, and the triangle is a pen with ruler and protractor', async () => {
   const IDS = ['Q-CBM-2d-shapes-2', 'Q-STA-KS2-2025-GPS1-2', 'Q-STA-KS2-2019-P2-13'];
-  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const LIB = LIB_FULL.rows('questions');
   const rows = IDS.map(id => LIB.find(r => r.row_id === id));
   if (rows.some(r => !r)) return ['a row is missing from data/questions.json — NOT checked'];
   const papers = new Set(rows.map(r => r.paper_id));
@@ -15039,7 +15041,7 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in its o
 
 /* ---------- FIND DRAWS THE SAME THING FOR A TUTOR, AN ADMIN, A STUDENT AND SOMEBODY SIGNED OUT § */
 check('Find and Find 2 draw the same question family, practical, project and content card for a tutor, an admin, a student and nobody', async () => {
-  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const read = n => (LIB_FULL.isLib(n) ? LIB_FULL.rows(n) : JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8')));
   const one = boot();
   await wait(300);
   if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so the real kinds were NOT checked — not a pass'];
@@ -15345,9 +15347,9 @@ check('every fact about a page of a question is a tag in one row at the top: wha
 /* ---------- EVERY TAG ON EVERY KIND OF CARD IS A FINDER ANSWER (docs/history/355) § */
 check('every tag on every kind of card is a finder answer: its facet, its word, its colour, and a pick that keeps the card', async () => {
   const PIDS = ['RS1786302107764-415', 'P-AQA-8461-2406-1F', 'P-CBM-5AD-F-0601', 'P-STA-KS2-2024-P1', 'P-1CM-LINEQ1'];
-  const rows = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8')).filter(r => PIDS.indexOf(r.paper_id) >= 0);
+  const rows = LIB_FULL.rows('questions').filter(r => PIDS.indexOf(r.paper_id) >= 0);
   /* THE OTHER KINDS FROM THEIR OWN FILES, through the loader's own mapper, as the shared-parts journey does. */
-  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const read = n => (LIB_FULL.isLib(n) ? LIB_FULL.rows(n) : JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8')));
   const one = boot();
   await wait(300);
   if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so the other kinds were NOT checked'];
@@ -15415,7 +15417,7 @@ check('every tag on every kind of card is a finder answer: its facet, its word, 
 /* ---------- NO DOOR ROWS (387), AND SINCE 396 NO TAG THAT IS NEVER ASKED: one question at a time, by one rule, all the way down */
 check('no tag-door rows anywhere: a chosen paper goes on to ask Question by the same rule, Question and Part wait for a paper, and a sub-part reads ii as its card tag does', async () => {
   const PID = 'RS1786302107764-415';
-  const rows = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8')).filter(r => r.paper_id === PID || r.paper_id === 'P-CBM-5AD-F-0601');
+  const rows = LIB_FULL.rows('questions').filter(r => r.paper_id === PID || r.paper_id === 'P-CBM-5AD-F-0601');
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
   for (let i = 0; i < 60 && !(typeof w.stuffItemsAll_ === 'function' && w.stuffItemsAll_().some(x => x.row && x.row.paper_id === PID)); i++) await wait(50);
   const t = w.__t, d = w.document, bad = [];
@@ -15472,7 +15474,7 @@ check('Required is never on the first screen, and is the funnel\'s own question 
   const one = boot({});
   await wait(300);
   if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable — Required was NOT checked'];
-  const prac = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'practicals.json'), 'utf8'));
+  const prac = LIB_FULL.rows('practicals');
   const p = payload();
   p.practicals = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, { practicals: prac }))).practicals || [];
   const { w } = boot({ payload: p });
@@ -15504,7 +15506,7 @@ check('Required is never on the first screen, and is the funnel\'s own question 
 
 /* ---------- NO LINE UNDER ANY DRAWING SAYS WHO DREW IT, ON ANY PAGE OF THE LIBRARY (docs/history/355) § */
 check('no line under any drawing says who drew it: not on one page of the library, and the code that said it is gone', async () => {
-  const rows = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const rows = LIB_FULL.rows('questions');
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
   for (let i = 0; i < 200 && !(typeof w.stuffItemsAll_ === 'function' && w.stuffItemsAll_().filter(x => x.kind === 'question').length > 5000); i++) await wait(50);
   const bad = [];
@@ -16129,7 +16131,7 @@ check('submission: the keypad’s gold Send and a laptop’s Enter send the box�
 
 /* ---------- WHAT WAS DONE BEFORE THE SWITCH BECOMES A SUBMISSION, ONCE, FOR ITS OWN PERSON (decided 10 Oct) § */
 check('submission: what a child had done before the switch becomes one submission each, marked as its press would be — once, on any device, and never another person’s', async () => {
-  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const LIB = LIB_FULL.rows('questions');
   const IDS = ['Q-1MA1-2406-1F-4', 'Q-1MA1-2406-2F-1', 'Q-STA-KS2-2024-P2-2', 'Q-STA-KS2-2024-P2-10', 'Q-9MA031-2206-1a', 'Q-9MA031-2206-1aii', 'Q0109', 'Q0110'];
   const lib = LIB.filter(r => IDS.indexOf(r.row_id) !== -1);
   if (lib.length !== IDS.length) return ['data/questions.json no longer has ' + IDS.filter(id => !lib.some(r => r.row_id === id)).join(', ') + ' — nothing was migrated'];
@@ -16292,7 +16294,7 @@ check('submission: an empty answer on the account is nobody’s latest and never
 const SUB_PRE_ = (() => {
   const K = 'q:Q-9MA031-2206-1a';
   const OCT5 = new Date(2026, 9, 5, 15, 0, 0).getTime();
-  const row = () => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8')).filter(r => r.row_id === 'Q-9MA031-2206-1a');
+  const row = () => LIB_FULL.rows('questions').filter(r => r.row_id === 'Q-9MA031-2206-1a');
   const seed = (outToo, me) => win => {
     if (me) win.localStorage.setItem('familyUser', JSON.stringify(me));
     win.localStorage.setItem('done:u:P7:' + K, '2026-10-05');
@@ -18099,12 +18101,12 @@ check('the shop is its own column with the basket on top, and Find no longer has
 
 /* ---------- PROJECTS, A KIND OF ITS OWN BESIDE THE PRACTICALS § */
 check('Projects is a kind in Find beside Practicals: card, materials, steps, and a share page to Messages', async () => {
-  const rows = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'projects.json'), 'utf8'));
+  const rows = LIB_FULL.rows('projects');
   const one = boot();
   await wait(300);
   if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so the projects were NOT checked — not a pass'];
   /* THE PRACTICALS TOO, so `What kind` has both siblings to name — the fixture has no library. */
-  const prac = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'practicals.json'), 'utf8'));
+  const prac = LIB_FULL.rows('practicals');
   const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, { projects: rows, practicals: prac })));
   const mapped = made.projects || [];
   if (!mapped.length) return ['the mapper made nothing of ' + rows.length + ' rows in data/projects.json'];
@@ -18162,12 +18164,12 @@ check('Projects is a kind in Find beside Practicals: card, materials, steps, and
 
 /* ---------- COURSEWORK, A TYPE OF PROJECT § */
 check('Coursework is a type of project: Projects asks Project or coursework, which narrows to it; tagged, its board, Stages, found by name', async () => {
-  const rows = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'projects.json'), 'utf8'));
+  const rows = LIB_FULL.rows('projects');
   const sheet = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'facets.json'), 'utf8'));
   const one = boot();
   await wait(300);
   if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so the coursework was NOT checked — not a pass'];
-  const prac = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'practicals.json'), 'utf8'));
+  const prac = LIB_FULL.rows('practicals');
   const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, { projects: rows, practicals: prac })));
   const mapped = made.projects || [];
   const cws = mapped.filter(p => p.projectType === 'coursework');
@@ -18320,7 +18322,7 @@ check('Coursework is a type of project: Projects asks Project or coursework, whi
 /* ON FIND 2, WHICH CARRIES WHAT FIND CARRIES (docs/history/347): the route is Find's own, run in the
    second column. */
 check('a content card, on Find 2 and on Find: What kind · Content, Statistics — the card whole, its animations, its tags, search, star, and a book\'s old star dropped', async () => {
-  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const read = n => (LIB_FULL.isLib(n) ? LIB_FULL.rows(n) : JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8')));
   const one = boot();
   await wait(300);
   if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so the content cards were NOT checked — not a pass'];
@@ -18470,7 +18472,7 @@ const resPayload_ = async () => {
     const one = boot();
     for (let i = 0; i < 80 && typeof one.w.libraryExtras_ !== 'function'; i++) await wait(25);
     if (typeof one.w.libraryExtras_ !== 'function') return null;
-    const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+    const read = n => (LIB_FULL.isLib(n) ? LIB_FULL.rows(n) : JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8')));
     RES_MADE_.v = JSON.parse(JSON.stringify(one.w.libraryExtras_({},
       { textbooks: read('textbooks'), boxers: read('boxers'), fights: read('fights'), projects: read('projects') })));
   }
@@ -19105,7 +19107,7 @@ check('a retired splash stays retired: the file\'s list reaches the device, and 
     .map(r => r.splash_id === 'pyth' ? Object.assign({}, r, { active: false }) : r);
   /* AND THE BOOKS, because Pythagoras lives in one: the picker could only draw it from the copy a load
      of data/textbooks.json kept, so without them the retirement would be proved of nothing. */
-  const books = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'textbooks.json'), 'utf8'));
+  const books = LIB_FULL.rows('textbooks');
   const { w } = boot({ serve: u => /(^|\/)data\/settings\/splashes\.json(\?|$)/.test(u) ? rows
     : /(^|\/)data\/textbooks\.json(\?|$)/.test(u) ? books : undefined });
   if (!w.__t) return ['the app did not finish loading'];
@@ -19131,7 +19133,7 @@ check('a retired splash stays retired: the file\'s list reaches the device, and 
 /* ---------- A CHAPTER PLAYS ITS ANIMATION § */
 /* ON FIND 2 (docs/history/329), a page after the Pythagoras content card (347, part 2). */
 check('a content card plays its animation on Find 2: Pythagoras after the Pythagoras and trigonometry card, drawn from its row', async () => {
-  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const read = n => (LIB_FULL.isLib(n) ? LIB_FULL.rows(n) : JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8')));
   const one = boot();
   await wait(300);
   if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable — NOT checked'];
@@ -19229,7 +19231,7 @@ check('the owner\'s test, on Find and Find 2: Maths · GCSE · Topic Surds, Pyth
   if (!p) return ['libraryExtras_ is not reachable — the owner\'s test was NOT run'];
   const TOPICS = ['Surds', 'Pythagoras\' Theorem', 'Standard Form', 'Simultaneous Equations', 'Histograms'];
   const key = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-  const lib = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const lib = LIB_FULL.rows('questions');
   const tops = r => String(r.topics || '').split(',').map(key);
   const rows = lib.filter(r => r.subject === 'Maths' && /^gcse$/i.test(String(r.level || '')) && TOPICS.some(T => tops(r).indexOf(key(T)) !== -1));
   const missing = TOPICS.filter(T => !rows.some(r => tops(r).indexOf(key(T)) !== -1));
@@ -19274,7 +19276,7 @@ check('the owner\'s test, on Find and Find 2: Maths · GCSE · Topic Surds, Pyth
 
 /* ---------- THE SPLASH IS DRAWN FROM THE TEXTBOOKS' COPY § */
 check('the splash is drawn from the textbooks\' copy: a load keeps it, the next one draws it, and it comes off with the splash', async () => {
-  const books = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'textbooks.json'), 'utf8'));
+  const books = LIB_FULL.rows('textbooks');
   const sheet = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'splashes.json'), 'utf8'));
   const serve = u => /(^|\/)data\/textbooks\.json(\?|$)/.test(u) ? books : /(^|\/)data\/settings\/splashes\.json(\?|$)/.test(u) ? sheet : undefined;
   const one = boot({ serve });
@@ -19339,7 +19341,7 @@ check('the books and the settings files are fetched with the deploy stamp', asyn
 
 /* ---------- THE BIBLE: SIX QUESTIONS AND A CARD A VERSE, AND NOBODY ELSE IS SHOWN IT OR SENT IT § */
 check('the Bible, on Find 2 (and on Find): its cover in Resources → Open → testament → group → book → chapter → verse, a card each, asked by the one rule; nobody else is shown it or fetches a byte of it', async () => {
-  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const read = n => (LIB_FULL.isLib(n) ? LIB_FULL.rows(n) : JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8')));
   const one = boot();
   await wait(300);
   if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so the shelves were NOT built — not a pass'];
@@ -20038,7 +20040,7 @@ check('the funnel asks an admin exactly what it asks a parent, the Books shelf a
 
 /* ---------- EVERY FIND KIND THAT IS NOT A QUESTION IS BUILT FROM THE SAME FIVE PARTS § */
 check('every Find kind that is not a question is made of the shared parts: head, kicker, meta, section, list', async () => {
-  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const read = n => (LIB_FULL.isLib(n) ? LIB_FULL.rows(n) : JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8')));
   const one = boot();
   await wait(300);
   if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so the cards were NOT checked — not a pass'];
@@ -20102,7 +20104,7 @@ check('every Find kind that is not a question is made of the shared parts: head,
 
 /* THE FIGHTER'S PROFILE — FOUR JOURNEYS OVER THE REAL FILES ASKED FOR AS § */
 const boxerApp_ = async (edit) => {
-  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const read = n => (LIB_FULL.isLib(n) ? LIB_FULL.rows(n) : JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8')));
   const raw = { boxers: read('boxers'), fights: read('fights') };
   if (edit) edit(raw);
   const one = boot();
@@ -21458,7 +21460,7 @@ check('multipart: What kind offers Questions first and Answers next to it, by th
 /* ---------- FILMS ARE NOT IN FIND, FOR ANYBODY — AN ADMIN WITH THE FILMS IN HAND INCLUDED § */
 check('films are not in Find for an admin with films in the payload — not by title, not under What kind — and the videos card still finds one', async () => {
   /* THE PROJECTS AND THE PRACTICALS, REAL, so `What kind` has answers of its own to draw — the fixture has no library, and a Learning holding nothing but films § */
-  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const read = n => (LIB_FULL.isLib(n) ? LIB_FULL.rows(n) : JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8')));
   const one = boot();
   await wait(300);
   if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so Find had nothing to ask — NOT checked'];
@@ -22267,7 +22269,7 @@ check('a session the server ended on the reload: the box drawn signed out says t
 });
 
 check('a reload puts Find back on the question: the column, the paper\'s chip and the essay\'s page, with the box holding what was typed', async () => {
-  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const LIB = LIB_FULL.rows('questions');
   const ID = 'Q-R0398-5';
   const row = LIB.find(r => r.row_id === ID);
   if (!row) return [ID + ' is not in data/questions.json — nothing was reloaded'];
@@ -23656,7 +23658,7 @@ check('signing in on the account column goes back where you came from — and Fi
 
 /* ---------- SIGNING IN FROM SIGNED OUT IS THE SAME SEAT, SO FIND KEEPS ITS PLACE § */
 const KEEP_SOL_ = { name: 'Sol Pupil', personId: 'P12', role: 'student', roles: ['student'], token: 'tok-P12', handle: 'sol_calm12' };
-const keepRows_ = () => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'))
+const keepRows_ = () => LIB_FULL.rows('questions')
   .filter(r => /^P-1MA1-2306-[123]H$/.test(r.paper_id) || r.paper_id === 'W-CBM-addition');
 /* PRESS THE CHIPS A CHILD WOULD, to the row's card: at each question the first answer that keeps the
    card of `id` on the strip, through the app's own click dispatcher. Returns the answers pressed. */
@@ -24099,7 +24101,7 @@ check('a second payload repaints the column in front and leaves the others for w
 /* ---------- AN ORDERING IS TAPPED IN ORDER, ON THE REAL CARD § */
 check('an ordering: the real 1F Q4 is tapped in order, sent, marked by its order, kept on the account and drawn back', async () => {
   const ID = 'Q-1MA1-2406-1F-4';
-  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const LIB = LIB_FULL.rows('questions');
   const row = LIB.find(r => r.row_id === ID);
   if (!row) return [ID + ' is not in data/questions.json — nothing was tapped'];
   const TIE = 'Q-1MA1-2406-1F-4-TIE';
@@ -24918,7 +24920,7 @@ check('a column\'s page count follows its pages: a reel appended and a paint are
 /* THE 76-QUESTION PAPER the swipe checks run Find down (check/swipe.js), served as the library — a window of
    results long enough to have pages either side of the one in front, past the window's edge. */
 const paper2F_ = () => {
-  const lib = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const lib = LIB_FULL.rows('questions');
   const rows = lib.filter(r => r.paper_id === 'P-AQA-8461-2406-2F');
   return { rows, serve: url => (/data\/questions\.json/.test(url) ? rows : undefined), ask: [{ field: 'paperId', value: 'P-AQA-8461-2406-2F' }] };
 };
@@ -25407,7 +25409,7 @@ check('the reels are kept six ahead at every turn and twelve ahead after the qui
 
 check('the quiet puts a finder\'s window where a run needs it: the card in front thirteen or fourteen from the end it is leaving', async () => {
   /* REVIEW, 12 Oct: the builder's `centre` job could be dropped with every check green — the release's slide by six kept BUILT AHEAD satisfied. § */
-  const lib = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const lib = LIB_FULL.rows('questions');
   const rows = lib.filter(r => r.paper_id === 'P-AQA-8461-2406-2F');
   const { w } = await aheadBoot_({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
   const t = w.__t, bad = [];
@@ -25694,7 +25696,7 @@ check('a drawn answer is sent: a made-up surface and a figure each have Send und
 
 /* ---------- AND OVER THE WHOLE LIBRARY: EVERY QUESTION ANSWERED BY DRAWING ALONE CAN BE SENT (docs/history/362) ---------- */
 check('every question in the library answered by drawing alone has a Send or a Check under its pen', async () => {
-  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const LIB = LIB_FULL.rows('questions');
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined) });
   await wait(300);
   const bad = [];
@@ -25718,7 +25720,7 @@ check('every question in the library answered by drawing alone has a Send or a C
 
 /* ---------- CORBETTMATHS PRIMARY, EVERY PART: SOMETHING TO ANSWER WITH AND SOMETHING THAT SENDS IT (docs/history/362) ---------- */
 check('every part of the 71 Corbettmaths primary worksheets has an answer and a tile that marks or sends it', async () => {
-  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const LIB = LIB_FULL.rows('questions');
   const papers = new Set(LIB.filter(r => r.company === 'Corbettmaths' && /KS[12]/.test(r.key_stage || '')).map(r => r.paper_id));
   const rows = LIB.filter(r => papers.has(r.paper_id));
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
@@ -25748,7 +25750,7 @@ check('every part of the 71 Corbettmaths primary worksheets has an answer and a 
 
 /* ---------- A DRAWN ANSWER IS MARKED BY ITS GEOMETRY (docs/history/366): drawn on a real Corbettmaths figure in the real card, and every row's own example ---------- */
 check('a drawn answer is marked on Check: strokes on a real Corbettmaths figure get Correct, a near miss Not yet, and every drawn Corbettmaths and GCSE part marks its own right drawing in full', async () => {
-  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const LIB = LIB_FULL.rows('questions');
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined) });
   await wait(300);
   const t = w.__t, A = t.ACTIONS, bad = [];
@@ -25846,7 +25848,7 @@ check('a drawn answer is marked on Check: strokes on a real Corbettmaths figure 
 
 /* ---------- A DRAWN PART WHOSE FIGURE IS ON ITS STEM DRAWS ON IT IN PLACE (docs/history/381): Metric Units Q1, by hand ---------- */
 check('Metric Units Q1: the stem\'s words, its dial under the pen and the part\'s words on one card, one figure, no box; an arrow at 450 g is Correct on Check; part b is a box under its own words and nothing for the drawing', async () => {
-  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const LIB = LIB_FULL.rows('questions');
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined) });
   await wait(300);
   const t = w.__t, A = t.ACTIONS, bad = [];
@@ -25906,7 +25908,7 @@ check('Metric Units Q1: the stem\'s words, its dial under the pen and the part\'
 
 /* ---------- AND EVERY PART IN THE LIBRARY THAT DRAWS ON ITS STEM'S FIGURE: one figure, its pen; no box unless it is marked by one; Check at the foot (381) ---------- */
 check('every part that draws on its stem\'s figure has exactly that one figure on its card, under its pen, no box unless its answer is typed, one Check at the foot, and the other parts\' ink faint under its own', async () => {
-  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const LIB = LIB_FULL.rows('questions');
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined) });
   await wait(300);
   const t = w.__t, bad = [];
@@ -25996,7 +25998,7 @@ check('marked by rule first: a 2-mark worded answer with mark_words gets Check, 
 
 /* ---------- READ ALOUD ON A PRIMARY QUESTION: THE TILE, WHAT IT SAYS, AND WHEN IT STOPS (docs/history/394) ---------- */
 check('read aloud: a KS2 question has the tile and a GCSE one does not; it says the question in words, stops on a second tap and on leaving', async () => {
-  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const LIB = LIB_FULL.rows('questions');
   const PIDS = ['P-STA-KS2-2024-P1', 'P-STA-KS2-2024-P2', 'P-STA-KS2-2024-P3', 'RS1786302107764-416'];
   const rows = LIB.filter(r => PIDS.indexOf(r.paper_id) >= 0);
   const said = [];
@@ -26005,7 +26007,7 @@ check('read aloud: a KS2 question has the tile and a GCSE one does not; it says 
     w.speechSynthesis = { speak: u => said.push(u), cancel: () => said.push({ cancel: true }),
                           getVoices: () => [{ name: 'American', lang: 'en-US' }, { name: 'British', lang: 'en-GB' }] };
   };
-  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const read = n => (LIB_FULL.isLib(n) ? LIB_FULL.rows(n) : JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8')));
   const one = boot();
   await wait(300);
   if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable — NOT checked'];
@@ -26162,6 +26164,137 @@ check('a signed-in child reports a question from its tile row: a reason, a note,
   }
   biz.remove();
   lib.put();
+  return bad;
+});
+
+/* ---------- THE LIBRARY'S WORDS COME FROM THE LEDGER (397) ----------------------------------------------- */
+/* A PAPER AS THE REPOSITORY HOLDS IT NOW: each row's private fields taken off and named in `lib_has` (tools/lib-private.js's split). */
+const LIB_PID = 'RS1786302107764-503';
+function libSlimRows_(rows) {
+  const def = LIB_FULL.defs().files.questions;
+  return rows.map(r => {
+    const c = LIB_FULL.privateOf(def, r);
+    if (!c) return r;
+    const out = {};
+    Object.keys(r).forEach(k => { if (!(k in c)) out[k] = r[k]; });
+    out.lib_has = def.private.filter(f => String(c[f] == null ? '' : c[f]).trim() !== '').join(' ');
+    return out;
+  });
+}
+/* `libItems` ANSWERED FROM THE WHOLE ROWS, as the backend answers from the Ledger. */
+function libReply_(full, ids) {
+  const def = LIB_FULL.defs().files.questions, items = {}, missing = [];
+  (ids || []).forEach(t => {
+    const r = full.find(x => 'q:' + x.row_id === t);
+    const c = r && LIB_FULL.privateOf(def, r);
+    if (c) items[t] = c; else missing.push(t);
+  });
+  return { success: true, items: items, missing: missing, refused: [], left: 390, cap: 400 };
+}
+async function libFindAt_(W, rowId) {
+  for (let i = 0; i < 100 && !(typeof W.stuffItemsAll_ === 'function' && W.stuffItemsAll_().some(x => x.row && x.row.row_id === rowId)); i++) await wait(50);
+  const x = W.stuffItemsAll_().find(it => it.row && it.row.row_id === rowId);
+  if (!x) return null;
+  const S = W.__t.STUFF();
+  S.filters = [{ field: 'paperId', value: LIB_PID }];
+  W.__t.go('stuff');
+  W.paintStuff();
+  const i = W.stuffPages_().findIndex(pg => pg.x === x);
+  W.__t.goPage('stuff', W.stuffFirstResult_() + i, true);
+  await wait(250);
+  return x;
+}
+const libFront_ = W => {
+  const host = W.document.getElementById('s-stuff');
+  return host && host.querySelectorAll(':scope > .page')[W.__t.domIndex('stuff', pg_(W.__t).stuff || 0)];
+};
+
+check('a question whose words are in the Ledger: drawn waiting, asked for with its stems and parts, then whole on its first page — and the next few asked for ahead', async () => {
+  const full = LIB_FULL.rows('questions').filter(r => r.paper_id === LIB_PID);
+  if (full.length < 10) return ['the paper ' + LIB_PID + ' is not in the library — nothing was checked'];
+  const slim = libSlimRows_(full);
+  let release = null;
+  const held = [];
+  const one = boot({ serve: url => (/data\/questions\.json/.test(url) ? slim : undefined), before: signedInAs_(ANS_ADA),
+    reply: b => (b.action === 'libItems' ? new Promise(ok => { held.push(() => ok(libReply_(full, b.ids))); if (release) release(); }) : undefined) });
+  const W = one.w, bad = [];
+  const x = await libFindAt_(W, 'Q-9MA031-2206-1a');
+  if (!x) return ['Q-9MA031-2206-1a did not come through the loader into Find — nothing was checked'];
+  const front = libFront_(W);
+  if (!front || !front.querySelector('.lib-wait .loading')) bad.push('the card in front is not drawn waiting with the one loader: ' + (front ? front.textContent.replace(/\s+/g, ' ').slice(0, 120) : 'no page'));
+  if (front && /George throws a ball/.test(front.textContent)) bad.push('the stem\'s words are on the page before they were sent');
+  const asks = one.sent.filter(b => b.action === 'libItems');
+  if (!asks.length) bad.push('no libItems request went for the card in front');
+  else {
+    const ids = asks[0].ids || [];
+    ['q:Q-9MA031-2206-1a', 'q:Q-9MA031-2206-1', 'q:Q-9MA031-2206-1b'].forEach(id => { if (ids.indexOf(id) === -1) bad.push('the first ask did not carry ' + id + ' (it carried ' + ids.join(', ') + ')'); });
+    if (ids.length > 60) bad.push('one ask carried ' + ids.length + ' ids — the backend refuses more than 60');
+    if (asks[0].token !== 'tok-P7') bad.push('the ask went without the token');
+  }
+  held.splice(0).forEach(f => f());
+  await wait(400);
+  held.splice(0).forEach(f => f());
+  await wait(400);
+  const pages = W.stuffPages_().filter(pg => pg.x === x).map(pg => pg.part || 'card');
+  if (pages.join() !== 'stem0,card,ans') bad.push('Q1(a)\'s pages once its words came are ' + pages.join() + ' — wanted stem0,card,ans');
+  const now = libFront_(W);
+  const at = W.stuffPages_()[(pg_(W.__t).stuff || 0) - W.stuffFirstResult_()];
+  if (!at || at.x !== x || at.part !== 'stem0') bad.push('the column did not land on Q1(a)\'s first page, its stem (on ' + (at ? (at.x.name + ' ' + at.part) : 'nothing') + ')');
+  if (!now || !/George throws a ball/.test(now.textContent) || now.querySelector('.lib-wait')) bad.push('the page in front does not show the stem\'s words: ' + (now ? now.textContent.replace(/\s+/g, ' ').slice(0, 120) : 'no page'));
+  const row = full.find(r => r.row_id === 'Q-9MA031-2206-1a');
+  if (x.accept !== row.accept || x.answer !== row.answer || x.html !== row.html) bad.push('the item was not given its words, answer and marking rules in place');
+  const later = one.sent.filter(b => b.action === 'libItems').some(b => (b.ids || []).some(id => /^q:Q-9MA031-2206-[2-9]/.test(id)));
+  if (!later) bad.push('nothing past Q1 was asked for ahead');
+  if (one.errs.length) bad.push('errors: ' + one.errs.join(' | '));
+  /* SIGNED OUT, THE WORDS GO WITH THE PERSON. */
+  W.signedOut_();
+  /* `x.row` IS THE FILE'S OWN ROW, which the words were put back on — and taken off again. */
+  const raw = x.row;
+  if (!raw || raw.html || !raw.lib_has) bad.push('after sign-out the row still holds its words: ' + JSON.stringify(raw).slice(0, 160));
+  return bad;
+});
+
+check('signed out, a question whose words are in the Ledger shows its tags and how to see it, and nothing is asked for', async () => {
+  const full = LIB_FULL.rows('questions').filter(r => r.paper_id === LIB_PID);
+  const one = boot({ serve: url => (/data\/questions\.json/.test(url) ? libSlimRows_(full) : undefined) });
+  const W = one.w, bad = [];
+  const x = await libFindAt_(W, 'Q-9MA031-2206-2a');
+  if (!x) return ['Q-9MA031-2206-2a did not come into Find — nothing was checked'];
+  await wait(300);
+  const front = libFront_(W);
+  const wait_ = front && front.querySelector('.lib-wait');
+  if (!wait_) bad.push('the card in front is not the waiting card');
+  else {
+    if (!/Sign in to see this/.test(wait_.textContent)) bad.push('it does not say how to see it: ' + wait_.textContent.replace(/\s+/g, ' ').slice(0, 120));
+    if (wait_.querySelector('.loading')) bad.push('it shows the loader to somebody who will never be sent anything');
+    if (!wait_.querySelector('.tag, [data-tag]')) bad.push('it does not show the question\'s tags');
+  }
+  if (one.sent.some(b => b.action === 'libItems')) bad.push('a signed-out phone asked for libItems');
+  return bad;
+});
+
+check('the Ledger not answering keeps the card\'s words — "Couldn’t load this" and Try again — and Try again draws it whole', async () => {
+  const full = LIB_FULL.rows('questions').filter(r => r.paper_id === LIB_PID);
+  let fail = true;
+  const one = boot({ serve: url => (/data\/questions\.json/.test(url) ? libSlimRows_(full) : undefined), before: signedInAs_(ANS_ADA),
+    reply: b => (b.action === 'libItems' ? (fail ? { error: 'The library is still being copied into the Ledger — try again in a few minutes.', why: 'lib-not-ready' } : libReply_(full, b.ids)) : undefined) });
+  const W = one.w, bad = [];
+  const x = await libFindAt_(W, 'Q-9MA031-2206-2a');
+  if (!x) return ['Q-9MA031-2206-2a did not come into Find — nothing was checked'];
+  await wait(300);
+  let front = libFront_(W);
+  const said = front && front.querySelector('.lib-wait .lib-say');
+  if (!said || !/Couldn’t load this/.test(said.textContent) || !/still being copied/.test(said.textContent)) bad.push('the waiting card does not say why: ' + (said ? said.textContent.replace(/\s+/g, ' ') : 'none'));
+  const n = one.sent.filter(b => b.action === 'libItems').length;
+  await wait(300);
+  if (one.sent.filter(b => b.action === 'libItems').length !== n) bad.push('a failed ask was asked again by itself, without Try again');
+  fail = false;
+  const again = front && front.querySelector('[data-do="lib-retry"]');
+  if (!again) bad.push('there is no Try again on the card');
+  else again.click();
+  await wait(600);
+  front = libFront_(W);
+  if (!front || front.querySelector('.lib-wait') || !/manufacturer/i.test(front.textContent)) bad.push('Try again did not draw the question whole: ' + (front ? front.textContent.replace(/\s+/g, ' ').slice(0, 120) : 'no page'));
   return bad;
 });
 

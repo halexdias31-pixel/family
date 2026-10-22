@@ -8,7 +8,7 @@ const DIR = path.join(REPO, 'data', 'diagrams');
 const bad = [];
 
 let rows = [];
-try { rows = JSON.parse(fs.readFileSync(path.join(REPO, 'data', 'questions.json'), 'utf8')); }
+try { rows = require('../check/lib-full.js').rows('questions'); }
 catch (e) { console.log('data/questions.json could not be read (' + e.message + '), so NOTHING was checked — not a pass.'); process.exit(1); }
 
 const nameOf = svg => crypto.createHash('sha256').update(String(svg), 'utf8').digest('hex').slice(0, 12);

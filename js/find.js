@@ -1828,6 +1828,8 @@ function pageParts_(x, prev) {
    kept here once, because the cover was a card with no other way into the book. */
 /* `prev` IS THE KEPT THING IN FRONT, as on Find -- see `keptPages_`. */
 function cardPages_(x, credits, prev) {
+  /* ONE WAITING PAGE UNTIL ITS WORDS COME (397), as on Find. */
+  if (libSlim_(x)) { libWant_(x); return [libWaitHtml_(x)]; }
   return pageParts_(x, prev).filter(keptPart_)
     .map(p => (p ? stuffPart_(x, p) : stuffCard(x, credits)));
 }
@@ -1852,6 +1854,7 @@ function keptPages_(items, credits) {
   finally { KEPT_DRAW = was; }
 }
 function stuffPart_(x, part) {
+  if (libSlim_(x)) { libWant_(x); return libWaitHtml_(x); }
   if (x && x.kind === 'project') return projectPart_(x, part);
   if (x && x.kind === 'content') return textbookAnimPart_(x, part);
   if (x && x.kind === 'boxer') return boxerPart_(x, part);
@@ -2874,7 +2877,8 @@ function preamble_(r, at) {
   /* EACH SCOPE IS A LIST NOW — see `stemIndex_` above for what a single row cost. `|| []` rather
      than a guard, because a scope nothing wrote has no key at all and every caller below already
      handles an empty list. */
-  const add = xs => (xs || []).forEach(x => { if (x && (x.html || x.diagram)) out.push(x); });
+  /* A STEM WHOSE WORDS ARE STILL IN THE LEDGER COUNTS (397): `libHasField_` reads `libHas` as well as the field. */
+  const add = xs => (xs || []).forEach(x => { if (x && (x.html || x.diagram || libHasField_(x, 'html') || libHasField_(x, 'diagram'))) out.push(x); });
   add(at.paper[pid]);
   if (r.section) add(at.section[pid + '|' + r.section]);
   if (r.q !== undefined && r.q !== null && r.q !== '') {
@@ -2964,22 +2968,14 @@ function questionItems() {
       /* THE TOPICS, RESOLVED ONCE. § */
       topic: topicOf_({ row: r.row || r }),
       marks: r.marks, section: r.section,
-      lead: r.lead, html: r.html, diagram: r.diagram || '',
+      /* THE WORDS, THE FIGURE AND THE MARK SCHEME — `questionContent_`, so a row whose words come later (397) is given them in place. */
+      ...questionContent_(r),
       /* THE SAME SPLIT `topics` AND `keystage` GET — one helper, because a comma is a comma. */
       images: topicAtoms_(r.images || (r.row && r.row.images)),
-      /* THE MARK SCHEME, WHICH THE BACKEND SENT TO NOBODY FOR MONTHS. § */
-      answer: r.answer || '', answerType: r.answerType || '',
-      /* THE EXPECTED DRAWING AS GEOMETRY, which Check marks the strokes against (366). */
-      drawAnswer: r.drawAnswer || '',
       /* WHAT TO ANSWER ON when the answer is a mark rather than words -- see `padSurface_`. */
       surface: r.surface || '',
       /* AND WHICH EARLIER PART'S DRAWING IT READS -- see `usesOf_`. */
       uses: r.uses || '',
-      accept: r.accept || '', cells: r.cells || '', markWords: r.markWords || '',
-      choices: r.choices || [], choiceRight: r.choiceRight || [],
-      /* AN ORDERING'S EVERY RIGHT ORDER AND ITS TWO ENDS -- see `orderBox_` and library.js. */
-      choiceWays: r.choiceWays || [], orderEnds: r.orderEnds || [],
-      examinerNote: r.examinerNote || '',
       /* EVERY PREAMBLE THIS PART SITS UNDER, OUTERMOST FIRST — see `preamble_`. § */
       stems: lead,
       /* THE STEM'S WORDS TOO. § */
@@ -2999,6 +2995,149 @@ function questionItems() {
     };
   });
 }
+
+/* A QUESTION ITEM'S PRIVATE HALF (397): what the Ledger sends, off the mapped row. Spread into the item when it is built,
+   and assigned onto it again when the words arrive (`libMerge_`, library.js). */
+function questionContent_(r) {
+  return {
+    lead: r.lead, html: r.html, diagram: r.diagram || '',
+    /* THE MARK SCHEME, WHICH THE BACKEND SENT TO NOBODY FOR MONTHS. § */
+    answer: r.answer || '', answerType: r.answerType || '',
+    /* THE EXPECTED DRAWING AS GEOMETRY, which Check marks the strokes against (366). */
+    drawAnswer: r.drawAnswer || '',
+    accept: r.accept || '', cells: r.cells || '', markWords: r.markWords || '',
+    choices: r.choices || [], choiceRight: r.choiceRight || [],
+    /* AN ORDERING'S EVERY RIGHT ORDER AND ITS TWO ENDS -- see `orderBox_` and library.js. */
+    choiceWays: r.choiceWays || [], orderEnds: r.orderEnds || [],
+    examinerNote: r.examinerNote || '',
+  };
+}
+
+/* ================= A CARD WHOSE WORDS ARE IN THE LEDGER (397) =================
+   Its title and tags, waiting, until `libItems` brings its words; a question comes with its stems and its other parts. */
+function libSlim_(x) {
+  if (!x) return false;
+  if (x.kind === 'question') return libWaits_(x.row) || (x.stems || []).some(p => libWaits_(p));
+  if (x.kind === 'practical' || x.kind === 'project' || x.kind === 'content') return libWaits_(x.row);
+  return false;
+}
+function libIdsFor_(x) {
+  if (!x || !x.row) return [];
+  if (x.kind === 'practical') return ['pr:' + x.row.id];
+  if (x.kind === 'project') return ['pj:' + x.row.id];
+  if (x.kind === 'content') return ['ct:' + x.row.bookId + '#' + x.row.n];
+  if (x.kind !== 'question') return [];
+  const rows = [x.row].concat((x.stems || []).map(p => p.row || p));
+  const k = qId_(x);
+  try { if (k) (questionParts_()[k] || []).forEach(s => rows.push(s.row)); } catch (e) {}
+  return [...new Set(rows.filter(libWaits_).map(libWireQ_))];
+}
+/* ASK FOR ONE CARD'S WORDS (nothing, signed out — the card says so). */
+function libWant_(x) { if (libSlim_(x)) libAsk_(libIdsFor_(x)); }
+/* AN ITEM BY ITS KEY, off the list both finders are built from — for a merge to give the item its words in place. */
+const LIB_ITEMS = new WeakMap();
+function libItemByKey_(k) {
+  let all;
+  try { all = typeof ALL_MEMO !== 'undefined' && ALL_MEMO.items; } catch (e) { all = null; }
+  if (!Array.isArray(all)) return null;
+  let m = LIB_ITEMS.get(all);
+  if (!m) { m = new Map(); all.forEach(x => { if (x && x.key) m.set(x.key, x); }); LIB_ITEMS.set(all, m); }
+  return m.get(k) || null;
+}
+/* WHAT A WAITING CARD SAYS UNDER ITS TAGS: sign in, the dots, or why it did not come and Try again. */
+function libSay_(x) {
+  if (typeof USER === 'undefined' || !USER || !USER.token) {
+    return '<p class="sub lib-sign">Sign in to see this — your account is a few screens to the right.</p>';
+  }
+  if (libIdsFor_(x).some(t => LIB.gone.has(t))) return '<p class="empty">This one is not in the library yet.</p>';
+  if (LIB.failed) {
+    return `<p class="empty">Couldn’t load this.<br><span class="faint">${esc(LIB.failed)}</span><br>
+      <span class="text-action" data-do="lib-retry">Try again</span></p>`;
+  }
+  return loading_();
+}
+function libWaitHtml_(x) {
+  const q = x && x.kind === 'question';
+  return `<div class="${q ? 'qcard' : 'card fc'} lib-wait" data-lib="${esc((x && x.key) || '')}">
+    ${q ? '' : `<div class="fc-head"><h3>${esc((x && x.name) || '')}</h3></div>`}
+    ${tagRow_(x)}
+    <div class="lib-say">${libSay_(x)}</div>
+  </div>`;
+}
+/* THE PAGES ARE COUNTED AGAIN ONLY WHERE THEY ARE DRAWN AGAIN — counting them anywhere else would move every page under a column already drawn. */
+function libPagesFresh_() {
+  if (STUFF_PAGES && STUFF_PAGES.gen !== undefined && STUFF_PAGES.gen !== LIB.gen) STUFF_PAGES = { from: null, pages: [] };
+}
+/* THE CARD IN FRONT AND THE NEXT LIB_AHEAD, asked for; on the question page, only the first result, once the typing stops. */
+function libAhead_() {
+  const F = FINDER;
+  let pages, at;
+  try { pages = stuffPages_(); at = (PAGE[F.id] || 0) - stuffFirstResult_(); } catch (e) { return; }
+  if (!pages.length) return;
+  if (at < 0) {
+    clearTimeout(LIB.ahead);
+    if (pages[0].slim && libSlim_(pages[0].x)) {
+      const x = pages[0].x;
+      LIB.ahead = setTimeout(() => inFinder_(F, () => { const p0 = stuffPages_()[0]; if (p0 && p0.x === x) libWant_(x); }), 700);
+    }
+    return;
+  }
+  for (let i = at; i < pages.length && i <= at + LIB_AHEAD; i++) {
+    const pg = pages[i];
+    if (!pg || !pg.slim) continue;
+    if (libSlim_(pg.x)) libWant_(pg.x);
+    /* THE CARD IN FRONT WAS COUNTED BEFORE ITS WORDS CAME, and they are here: drawn again, a moment from now. */
+    else if (i === at) setTimeout(() => libRepaintFinder_(F), 0);
+  }
+}
+/* THE FINDER DRAWN AGAIN WHERE IT STANDS, and onto the first page of the card that was waiting in front. */
+function libRepaintFinder_(F) {
+  if (!F || typeof AT === 'undefined') return;
+  if (AT !== F.id || (typeof findKeep_ === 'function' && findKeep_(F.id))) { markStale_(F.id); return; }
+  inFinder_(F, () => {
+    const pg = stuffPages_()[(PAGE[F.id] || 0) - stuffFirstResult_()];
+    const key = pg && pg.slim && pg.x ? pg.x.key : '';
+    paintStuff(true);
+    if (!key) return;
+    const pages = stuffPages_(), first = stuffFirstResult_();
+    const now = pages[(PAGE[F.id] || 0) - first];
+    const i = pages.findIndex(p => p && p.x && p.x.key === key);
+    if (i >= 0 && now && now.x && now.x.key === key && (now.part || null) !== (pages[i].part || null)) goPage(F.id, first + i, true);
+  });
+}
+/* AN ANSWER CAME BACK (or did not): the card in front, if it was waiting, is drawn again; every other waiting card says
+   where things stand without being rebuilt. */
+function libLanded_() {
+  try {
+    document.querySelectorAll('.lib-wait').forEach(el => {
+      const x = libItemByKey_(el.getAttribute('data-lib') || '');
+      const say = el.querySelector('.lib-say');
+      if (say && x && libSlim_(x)) say.innerHTML = libSay_(x);
+    });
+  } catch (e) {}
+  if (typeof AT === 'undefined') return;
+  const F = finderOf_(AT);
+  if (F) {
+    inFinder_(F, () => {
+      const pg = stuffPages_()[(PAGE[F.id] || 0) - stuffFirstResult_()];
+      if (pg && pg.slim && !libSlim_(pg.x)) libRepaintFinder_(F);
+    });
+    return;
+  }
+  /* SAVED, THE SPOTLIGHT, ANY COLUMN THAT DREW A WAITING CARD: drawn again where it stands once one of them is whole. */
+  const host = $('s-' + AT);
+  const ready = host && [].some.call(host.querySelectorAll('.lib-wait'), el => {
+    const x = libItemByKey_(el.getAttribute('data-lib') || '');
+    return x && !libSlim_(x);
+  });
+  if (ready) { try { repaint(true); } catch (e) {} }
+}
+on('lib-retry', el => {
+  libRetry_();
+  const card = el && el.closest ? el.closest('.lib-wait') : null;
+  const x = card ? libItemByKey_(card.getAttribute('data-lib') || '') : null;
+  if (x) libWant_(x);
+});
 
 /* ---------- THE WHOLE QUESTION, NOT A PEEK § */
 /* ---------- SOMEWHERE TO WRITE THE ANSWER § */
@@ -7295,7 +7434,8 @@ function figMissing_(x) {
 
 /* THE ANSWER IS ITS OWN CARD, THE PAGE AFTER ITS QUESTION (AND AFTER ITS FIGURE). § */
 function questionHasAns_(x) {
-  return !!(x && x.kind === 'question' && String(x.answer || '').trim());
+  /* OR AN ANSWER THE LEDGER HOLDS FOR IT (397), so `Answers` is still asked, and counted, before any words arrive. */
+  return !!(x && x.kind === 'question' && (String(x.answer || '').trim() || libHasField_(x.row, 'answer')));
 }
 
 /* ---------- WHO SEES IT OPEN: WHOEVER ASKED, AND NOBODY ELSE § */
@@ -8322,10 +8462,15 @@ function stuffPages_() {
     try { v = asList_(facetBy(f.field).tagOf(x, part)); } catch (e) { v = []; }
     return !v.length || v.some(t => spellKey_(t) === spellKey_(f.value));
   });
-  seq.forEach((x, i) => pageParts_(x, seq[i - 1]).forEach(part => {
-    if (kept(x, part)) pages.push({ x: x, part: part });
-  }));
-  STUFF_PAGES = { from: items, pages: pages };
+  seq.forEach((x, i) => {
+    /* A CARD WHOSE WORDS ARE STILL IN THE LEDGER (397) IS ONE PAGE, kept whatever the chips say: its shape is decided by its
+       words, so it is drawn waiting (`slim`) and the column drawn again when they come (`libLanded_`). */
+    if (libSlim_(x)) { pages.push({ x: x, part: null, slim: true }); return; }
+    pageParts_(x, seq[i - 1]).forEach(part => {
+      if (kept(x, part)) pages.push({ x: x, part: part });
+    });
+  });
+  STUFF_PAGES = { from: items, pages: pages, gen: LIB.gen };
   return pages;
 }
 
@@ -8339,7 +8484,9 @@ function answersAsked_() {
 function verifyTags_(x) {
   if (!x || x.kind !== 'question' || !x.row) return { accuracy: '', fn: '' };
   let fn = false;
-  try { fn = !qtIncomplete_(x.row).length && qtMachine_(x.row); } catch (e) { fn = false; }
+  /* WORDS STILL IN THE LEDGER (397): the file's `function_verified`, worked out from the whole row when it was split off. */
+  if (libWaits_(x.row)) fn = libTrue(x.row.function_verified);
+  else try { fn = !qtIncomplete_(x.row).length && qtMachine_(x.row); } catch (e) { fn = false; }
   return { accuracy: libTrue(x.row.verified) ? 'Accuracy verified' : 'Accuracy unverified',
            fn: fn ? 'Function verified' : 'Function unverified' };
 }
@@ -8951,6 +9098,8 @@ function stuffPageHtml(n) {
   /* ONE PAGE IS ONE ENTRY OF `stuffPages_`, which is the results with each practical expanded into its four parts. § */
   const pg = stuffPages_()[n];
   if (!pg) return '';
+  /* COUNTED BEFORE ITS WORDS CAME (397): waiting, whether or not they have come since — the column is drawn again for them. */
+  if (pg.slim) return libWaitHtml_(pg.x);
   return pg.part ? stuffPart_(pg.x, pg.part) : stuffCard(pg.x, credits);
 }
 
@@ -9022,6 +9171,8 @@ on('fav', el => {
 });
 
 function stuffCard(x, credits) {
+  /* ITS WORDS ARE STILL IN THE LEDGER (397): its title and tags, waiting — and asked for, wherever it is drawn. */
+  if (libSlim_(x)) { libWant_(x); return libWaitHtml_(x); }
   /* `credits` is passed IN rather than read from `USER` here, because the page works it out once and hands it to every card — reading it per card would be the same § */
   /* A kind with no card of its own falls back to the shared one — a new row type appears on the
      screen as SOMETHING rather than as nothing, which is the failure that is easy to miss. */
@@ -9235,6 +9386,8 @@ function stuffKeepPlace_(host, d) {
 }
 
 function paintStuff(keepPage) {
+  /* WORDS THAT CAME SINCE THE PAGES WERE COUNTED change how many pages a card is (397) — counted again as the pages are rebuilt. */
+  libPagesFresh_();
   const chips = $(FINDER.id + '-chips');
   if (chips) chips.innerHTML = filterChips();
   /* THE BIN BESIDE THE BOX, in its own slot so the box itself is never rewritten — see `filterClear_`. */
@@ -9763,6 +9916,8 @@ function fillStuffPages(all) {
      after the pages near you are filled, because a stage that was not on the page a moment ago is
      on it now. */
   tbAnimWatch_();
+  /* AND THE WORDS OF THE CARD IN FRONT AND THE NEXT FEW, from the Ledger (397) — asked here, where a turn lands. */
+  libAhead_();
 
   /* AND START THE ONE YOU ARE LOOKING AT — if it is one that runs. § */
   if (!FINDER.widgets) { settle_(changed); return; }
@@ -9948,6 +10103,7 @@ function finderScreen_() {
   /* ---------- SPOTLIGHT WAS THE FIRST GROUP HERE AND IT IS A COLUMN NOW § */
   /* ---------- THE DRAW BUILDS THE WINDOW, NOT ONE EMPTY PAGE PER RESULT § */
   /* ---------- AND THE CARD YOU WERE ON, BY NAME, NOT BY NUMBER § */
+  libPagesFresh_();
   const held = stuffHeld_();
   const front = frontPages_();
   const keep = 1 + front.length;

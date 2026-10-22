@@ -30,7 +30,7 @@ if (!(rel === '..' || rel.startsWith('..' + path.sep) || path.isAbsolute(rel))) 
 }
 let dump, libText;
 try { dump = JSON.parse(fs.readFileSync(SHEETS, 'utf8')); } catch (e) { stop('could not read --sheets ' + SHEETS + ': ' + e.message); }
-try { libText = fs.readFileSync(LIBRARY, 'utf8'); } catch (e) { stop('could not read the library ' + LIBRARY + ': ' + e.message); }
+try { libText = arg('library') ? fs.readFileSync(LIBRARY, 'utf8') : require('./lib-full.js').text('questions'); } catch (e) { stop('could not read the library ' + LIBRARY + ': ' + e.message); }
 const ledger = dump && (dump.ledger || dump);
 if (!ledger || typeof ledger !== 'object' || !Array.isArray(ledger.submissions)) stop('the dump has no ledger.submissions tab — is it check/live.js’s shape?');
 

@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-22-d-uniform-tags";
+  --css-version: "2026-10-22-e-library-ledger";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -6292,3 +6292,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 
 /* IN THE CARD a long maths answer stops at four lines and scrolls, where it used to push the card taller. */
 .qp-bar .kp-field.kp-maths > .kp-show { max-height: 9.5rem; overflow-y: auto; }
+
+/* A CARD WHOSE WORDS ARE STILL IN THE LEDGER (397, `libWaitHtml_`): its tags, then the dots, the sign-in line or Try again. */
+.lib-wait .lib-say { margin-top: 1rem; min-height: 3rem; }

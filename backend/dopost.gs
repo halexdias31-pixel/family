@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-22-b-uniform-tags";
+const DOPOST_VERSION = "2026-10-22-c-library-ledger";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -3615,10 +3615,40 @@ function doPost(e) {
                        who: before.map(x => x.name) });
     }
 
+    /* ---------- THE LIBRARY'S WORDS AND ANSWERS (397): a few items at a time, to the token's person, a day's cap each ---------- */
+    if (action === 'libItems') {
+      const me = findPerson('', S(body.personId));
+      if (!me || !S(me.person_id)) return jsonOut({ error: 'Sign in first.' });
+      const asked = Array.isArray(body.ids) ? body.ids : [];
+      const ids = [];
+      asked.forEach(v => { const t = S(v); if (/^(q|ct|pr|pj):[A-Za-z0-9][A-Za-z0-9 _.:#|()-]{0,159}$/.test(t) && ids.indexOf(t) === -1) ids.push(t); });
+      if (!ids.length) return jsonOut({ error: 'Which items? Nothing was asked for.' });
+      if (ids.length > LIB_PER_CALL) return jsonOut({ error: 'At most ' + LIB_PER_CALL + ' items at a time.' });
+      if (!libReady_()) return jsonOut({ error: 'The library is still being copied into the Ledger — try again in a few minutes.', why: 'lib-not-ready' });
+      const cap = hasRole(me, 'admin') ? Infinity : libCapOf_();
+      const tally = cap === Infinity ? { allowed: ids, refused: [], left: null } : libTally_(me, ids, cap);
+      if (tally.busy) return jsonOut({ error: 'Busy — try again in a moment.', why: 'busy' });
+      if (!tally.allowed.length) {
+        return jsonOut({ error: 'That is today’s ' + cap + ' — the rest open tomorrow.', why: 'lib-cap', refused: tally.refused, left: 0 });
+      }
+      const got = libContent_(tally.allowed);
+      return jsonOut({ success: true, items: got.items, missing: got.missing, refused: tally.refused,
+                       left: tally.left, cap: cap === Infinity ? null : cap });
+    }
+    /* THE TOOLS' COPY OF THE PRIVATE HALF — a page out, rows back in (tools/lib-private.js). Admin only, at the gate. */
+    if (action === 'libExport') return jsonOut(libExport_(body.file, body.from, body.count));
+    if (action === 'libImport') return jsonOut(libImport_(body.file, body.rows));
+
     /* --- diagnostics ------------------------------------------------------------------------- */
     if (action === 'debugTabs') {
       const out = {};
       Object.keys(TAB).forEach(k => {
+        /* A LIBRARY TAB IS COUNTED, NOT READ: it is megabytes of JSON, and `read` would hold it all. */
+        if (/^lib_(questions|content|practicals|projects)$/.test(TAB[k])) {
+          const sh = findSheet_(sheetFor_(TAB[k]));
+          out[TAB[k]] = sh ? { rows: Math.max(0, sh.getLastRow() - 1), columns: sh.getLastColumn() } : 'MISSING TAB';
+          return;
+        }
         const t = read(TAB[k]);
         out[TAB[k]] = t.sheet ? { rows: t.rows.length, columns: t.headers.length } : 'MISSING TAB';
       });

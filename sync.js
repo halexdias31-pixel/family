@@ -15,7 +15,7 @@ const FORCE = process.argv.includes('--force');
    that also watched node_modules would spend its life committing somebody else's code. */
 const WATCH_DIRS = ['.', 'js'];
 const KEEP = /\.(js|css|html|json|gs|svg|png|ico|webmanifest)$/i;
-const SKIP = /(^|[\/\\])(\.git|node_modules|\.DS_Store)([\/\\]|$)|~$|\.swp$|^\.#/;
+const SKIP = /(^|[\/\\])(\.git|node_modules|data-private|\.DS_Store)([\/\\]|$)|~$|\.swp$|^\.#/;
 
 const QUIET_MS      = 2500;  // long enough that a save and its editor's temp files land as one commit
 const DELETE_ALARM  = 6;     // this many files vanishing at once is an accident, not an edit

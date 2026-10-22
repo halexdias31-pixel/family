@@ -56,7 +56,7 @@ CASES.forEach(([inp, want, why]) => {
 });
 
 /* ---------- THE LIBRARY, AS DRAWN --------------------------------------------------------------- */
-const rows = fs.readFileSync(path.join(ROOT, 'data', 'questions.json'), 'utf8').split('\n')
+const rows = require('../check/lib-full.js').text('questions').split('\n')
   .filter(l => l.startsWith('{')).map(l => JSON.parse(l.replace(/,\s*$/, '')));
 const KEEP = JSON.parse(fs.readFileSync(path.join(ROOT, 'tools', 'data', 'typeset-keep.json'), 'utf8'));
 delete KEEP._;

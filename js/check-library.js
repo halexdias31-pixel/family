@@ -56,7 +56,9 @@ const fail = [];
 const note = [];
 
 /* ---------- THE SHAPE, READ AS TEXT § */
-const raw = fs.readFileSync(FILE, 'utf8').replace(/\n$/, '').split('\n');
+/* THE FILE WITH ITS WORDS PUT BACK (397, check/lib-full.js) unless a path was passed in — the repository's copy is card metadata. */
+const FILE_TEXT = process.argv[2] ? fs.readFileSync(FILE, 'utf8') : require('../check/lib-full.js').text('questions');
+const raw = FILE_TEXT.replace(/\n$/, '').split('\n');
 
 if (raw[0] !== '[') fail.push(`line 1 is ${JSON.stringify(raw[0].slice(0, 40))}, not a bare [`);
 if (raw[raw.length - 1] !== ']') fail.push('the last line is not a bare ]');
@@ -81,7 +83,7 @@ body.forEach((line, i) => {
 
 let rows = [];
 try {
-  rows = JSON.parse(fs.readFileSync(FILE, 'utf8'));
+  rows = JSON.parse(FILE_TEXT);
   if (!Array.isArray(rows)) fail.push('the file is not a JSON array');
 } catch (e) {
   fail.push('the file does not parse: ' + e.message);

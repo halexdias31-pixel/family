@@ -42,7 +42,9 @@ function diagrams() {
   const files = {};
   fs.readdirSync(path.join(ROOT, 'data')).filter(f => f.endsWith('.json')).sort().forEach(f => {
     let rows;
-    try { rows = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', f), 'utf8')); } catch (e) {
+    /* A LIBRARY FILE WITH ITS WORDS PUT BACK (397) — the figures are among them. */
+    const LF = require('./lib-full.js'), lib = f.replace(/\.json$/, '');
+    try { rows = LF.isLib(lib) ? LF.rows(lib) : JSON.parse(fs.readFileSync(path.join(ROOT, 'data', f), 'utf8')); } catch (e) {
       console.log('check/diagrams.js: data/' + f + ' does not parse — ' + e.message);
       process.exit(1);
     }
@@ -72,6 +74,9 @@ function serve() {
   return new Promise(done => {
     const srv = http.createServer((rq, rs) => {
       const f = path.join(ROOT, decodeURI(rq.url.split('?')[0]));
+      /* THE LIBRARY WITH ITS WORDS (397): the repository's copy is card metadata, check/lib-full.js puts them back. */
+      const libBody = require('./lib-full.js').serve(f);
+      if (libBody !== null) { rs.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' }); return rs.end(libBody); }
       if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) {
         rs.writeHead(404); return rs.end();
       }

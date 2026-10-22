@@ -26,6 +26,9 @@ function serve() {
     const srv = http.createServer((rq, rs) => {
       const url = rq.url.split('?')[0];
       const f = path.join(ROOT, decodeURI(url));
+      /* THE LIBRARY WITH ITS WORDS (397): the repository's copy is card metadata, check/lib-full.js puts them back. */
+      const libBody = require('./lib-full.js').serve(f);
+      if (libBody !== null) { rs.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' }); return rs.end(libBody); }
       if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) {
         rs.writeHead(404); return rs.end();
       }

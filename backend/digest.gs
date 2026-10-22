@@ -784,7 +784,27 @@ function digestEmailLibrary_(week, subRows, cfg) {
   if (!want.length) return { rows: {}, pre: [] };
   const got = digestLibrary_(S(cfg && cfg.site_url) || SITE_URL);
   if (got.error) return { rows: {}, pre: [], error: got.error };
-  return digestLibraryFind_(got.text, want);
+  const found = digestLibraryFind_(got.text, want);
+  /* THE WORDS ARE IN THE LEDGER NOW (397): the file gives the card, `lib_questions` the question. A miss costs the words, never the email. */
+  try { digestLibraryFill_(found); } catch (err) { found.fillError = S(err && err.message || err); }
+  return found;
+}
+
+/* EACH ROW THE EMAIL PRINTS, WITH ITS PRIVATE FIELDS PUT BACK — a row whose file copy says `lib_has` has words in the Ledger. */
+function digestLibraryFill_(found) {
+  const rows = Object.keys(found.rows || {}).map(k => found.rows[k]).concat(found.pre || []);
+  const want = rows.filter(one => one && S(one.lib_has));
+  for (let i = 0; i < want.length; i += 200) {
+    const part = want.slice(i, i + 200);
+    const got = libContent_(part.map(one => 'q:' + S(one.row_id))).items;
+    part.forEach(one => {
+      const c = got['q:' + S(one.row_id)];
+      if (!c) return;
+      Object.keys(c).forEach(k => { one[k] = c[k]; });
+      delete one.lib_has;
+    });
+  }
+  return found;
 }
 
 /* A VERDICT AS THE EMAIL MARKS IT — ✓ right, ✗ wrong (the site says "Not yet"; in a list of numbers a cross is the mark a parent reads at a glance), the AI's § */

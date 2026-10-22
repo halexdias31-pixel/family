@@ -1392,6 +1392,10 @@ function setupStatus_() {
       if (said && /^https:\/\//.test(S(said.link))) job.link = S(said.link);
       if (said && S(said.said)) job.said = S(said.said);
     } catch (err) { /* a note that will not parse is no note */ }
+    /* A JOB THAT REPORTS ITS OWN PROGRESS (`progress`, the library's copy, 397): still working is waiting, not failed. */
+    if (!job.ran && typeof m.progress === 'function') {
+      try { const p = m.progress() || {}; if (p.working) job.error = ''; if (S(p.said)) job.said = S(p.said); } catch (err) {}
+    }
     out.jobs.push(job);
   });
   if (seen['FAILED_sunday-email-hour']) {

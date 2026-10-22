@@ -346,6 +346,8 @@ function signedOut_(opts) {
   } catch (e) {}
   /* ---------- AND THE FILMS, WHICH HAVE NO `for` CHECK AT ALL § */
   try { DATA.films = []; delete DATA.filmsSync; } catch (e) {}
+  /* AND THE LIBRARY'S WORDS AND ANSWERS THIS VISIT FETCHED (397) — the next person signs in for their own. */
+  try { if (typeof libForget_ === 'function') libForget_(); } catch (e) {}
   try { if (typeof stuffForget_ === 'function') stuffForget_(); } catch (e) {}
   try {
     if (typeof FILMSYNC !== 'undefined') { FILMSYNC.asking = null; FILMSYNC.autoFor = ''; FILMSYNC.err = ''; }
