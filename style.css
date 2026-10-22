@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-21-d-console-multi";
+  --css-version: "2026-10-22-a-profit";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -6167,6 +6167,53 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 .biz-item.is-overdue .biz-flag { color: var(--bad); }
 .biz-item label.field { margin-bottom: .3rem; } /* min-width comes from `.lib-row label.field` */
 .biz-item input { min-width: 0; }
+
+/* ---------- PROFIT, THE BUSINESS COLUMN'S FIRST CARD (393): the sum, its figures, two charts, a control per term. */
+.profit { --pf-cost: var(--dim); }
+.pf-formula { display: flex; flex-direction: column; gap: .2rem; margin: .2rem 0 .8rem; font-family: var(--font); font-size: .8rem; color: var(--ink); line-height: 1.35; overflow-wrap: anywhere; }
+.pf-formula span:first-child { color: var(--gold); font-weight: 700; }
+.pf-period, .pf-against { margin-bottom: .6rem; }
+.pf-rows { display: grid; gap: .15rem; margin-bottom: .6rem; }
+.pf-row { display: grid; grid-template-columns: 5.2rem minmax(0, 1fr) auto; gap: .5rem; align-items: baseline; font-size: .78rem; }
+.pf-k { color: var(--ink); }
+.pf-sum { color: var(--faint); overflow-wrap: anywhere; }
+.pf-v { color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pf-row.is-total { border-top: 1px solid var(--line); padding-top: .25rem; margin-top: .15rem; font-weight: 700; }
+.pf-row.is-total .pf-v { color: var(--good); }
+.pf-row.is-total.is-bad .pf-v { color: var(--bad); }
+.pf-bars, .pf-lines { margin: 0 0 .7rem; }
+.pf-chart { display: block; width: 100%; height: auto; max-width: 36rem; overflow: visible; }
+.pf-chart text { font: 10px var(--font); fill: var(--dim); }
+.pf-chart .pf-val { fill: var(--ink); text-anchor: middle; }
+.pf-chart .pf-lab { text-anchor: middle; }
+.pf-bar.is-rev rect { fill: var(--gold); }
+.pf-bar.is-cost rect { fill: var(--pf-cost); }
+.pf-bar.is-gain rect { fill: var(--good); }
+.pf-bar.is-loss rect { fill: var(--bad); }
+.pf-zero { stroke: var(--line); stroke-width: 1; }
+.pf-line { fill: none; stroke: var(--gold); stroke-width: 2; stroke-linejoin: round; }
+.pf-now-rule { stroke: var(--faint); stroke-width: 1; stroke-dasharray: 2 3; }
+.pf-now { fill: var(--gold); stroke: var(--bg); stroke-width: 2; }
+.pf-vars { display: grid; gap: .3rem; margin-bottom: .4rem; }
+.pf-var { display: grid; grid-template-columns: minmax(0, 7.6rem) minmax(0, 1fr) 4.8rem; gap: .5rem; align-items: center; }
+.pf-name { font-size: .68rem; color: var(--dim); line-height: 1.25; margin: 0; overflow-wrap: anywhere; }
+.pf-sym { color: var(--gold); font-weight: 700; margin-right: .15rem; }
+.pf-from { display: block; color: var(--faint); }
+.pf-var.is-moved .pf-from { color: var(--gold); }
+.pf-var input.pf-num { min-width: 0; padding: .4rem .5rem; text-align: right; font-variant-numeric: tabular-nums; }
+/* A SLIDER, which the field rule above draws as a box: a hairline track and a gold thumb a fingertip can hold. */
+.pf-var input[type="range"] { -webkit-appearance: none; appearance: none; min-height: 44px; padding: 0; border: 0; background: none; cursor: pointer; }
+.pf-var input[type="range"]::-webkit-slider-runnable-track { height: 2px; background: var(--faint); }
+.pf-var input[type="range"]::-moz-range-track { height: 2px; background: var(--faint); }
+.pf-var input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; margin-top: -9px; border-radius: 50%; background: var(--gold); border: 2px solid var(--bg); }
+.pf-var input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: var(--gold); border: 2px solid var(--bg); }
+.pf-var input[type="range"]:focus-visible { outline: 1px solid var(--gold); outline-offset: 2px; }
+.pf-said { margin-top: .4rem; font-size: .72rem; }
+.pf-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .6rem; margin: 0 0 .7rem; padding-bottom: .5rem; border-bottom: 1px solid var(--line); }
+.pf-head .pf-k { color: var(--dim); font-size: .78rem; }
+.pf-head .pf-v { color: var(--good); font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+.pf-head .pf-v.is-bad { color: var(--bad); }
+.pf-head .pf-sum { flex-basis: 100%; color: var(--faint); font-size: .72rem; }
 
 /* ---------- CHECK UPLOADS: AN ADMIN TOOL — see `uploadsHtml_` in me.js § */
 .up-list { list-style: none; margin: .7rem 0 .4rem; padding: 0; }

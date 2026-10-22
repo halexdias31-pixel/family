@@ -11426,7 +11426,8 @@ const BIZ_HELD_ = [{ id: 'pub_liability', title: 'Public liability insurance', c
                      provider: 'Example Insure', reference: 'PL-000000', due_on: '2030-01-01' }];
 /* WHAT NAMES THE COLUMN IN A PAGE: its section, the cards' own attributes and classes. Asked of the whole
    serialised document, so a comment, a hidden copy or a stray attribute is found as well as an element. */
-const BIZ_NAMED_ = /\bs-biz\b|data-biz|\bbiz-(body|item|cap|when|flag|said|save)\b|class="card biz"/;
+/* AND THE PROFIT CARD (393): its attribute, its classes, its controls and its tile. */
+const BIZ_NAMED_ = /\bs-biz\b|data-biz|\bbiz-(body|item|cap|when|flag|said|save)\b|class="card biz|data-profit|data-pf\b|\bpf-[a-z]|profit-reset/;
 const bizNamed_ = d => { const m = d.documentElement.outerHTML.match(new RegExp('.{0,50}(' + BIZ_NAMED_.source + ').{0,30}'));
   return m ? m[0].replace(/\s+/g, ' ') : ''; };
 const bizSwipe_ = async (w, from) => {
@@ -11484,7 +11485,7 @@ check('business: an admin has a Business column last, straight after Settings, h
   const cards = [...host.querySelectorAll(':scope > .page > .pane .me-form[data-biz-page]')].map(f => f.dataset.bizPage);
   if (cards.join('|') !== BIZ_TITLES_.join('|')) bad.push('the Business column holds ' + JSON.stringify(cards) + ', wanted the five records cards ' + JSON.stringify(BIZ_TITLES_));
   const n = host.querySelectorAll(':scope > .page').length;
-  if (n !== 6 || t.pageCount('biz') !== n) bad.push('the column draws ' + n + ' pages and the pager counts ' + t.pageCount('biz') + ' — wanted six and six (five records, the verse screen)');
+  if (n !== 8 || t.pageCount('biz') !== n) bad.push('the column draws ' + n + ' pages and the pager counts ' + t.pageCount('biz') + ' — wanted eight and eight (Profit and its terms, five records, the verse screen)');
   /* THE LAST PAGE IS THE VERSE SCREEN'S SETUP, A TILE THAT LEAVES FOR ITS PAGE (370). */
   const vs = host.querySelector(':scope > .page:last-child a.tile[href$="/tools/epaper-verse/install.html"]');
   if (!vs) bad.push('the last Business page has no "Verse screen · set up" tile to the install page');
@@ -11540,6 +11541,73 @@ check('business: an admin has a Business column last, straight after Settings, h
   if (t.PAGE().settings !== last) bad.push('an admin coming back to Settings past its last page is on page ' + t.PAGE().settings + ' of ' + (last + 1));
   const on = set.querySelectorAll(':scope > .page')[t.PAGE().settings];
   if (!on || !on.querySelector('.pane .card')) bad.push('an admin coming back to Settings past its last page is on a page with no card');
+  return bad;
+});
+
+/* ---------- PROFIT, THE BUSINESS COLUMN'S FIRST CARD (393) ---------- */
+check('profit: an admin\'s Business column opens on Profit — the formula and two charts, then a page with a control per term starting from this month\'s bookings and config; a moved value recomputes, stays on the device, sends nothing; Reset goes back; nobody else is drawn it', async () => {
+  const now = new Date(), y = now.getFullYear(), mo = now.getMonth();
+  const dmy = day => String(day).padStart(2, '0') + '/' + String(mo + 1).padStart(2, '0') + '/' + y;
+  const p = payload();
+  p.constants = p.constants || {}; p.constants.vars = Object.assign({}, p.constants.vars, { c: '0.25', B: '0.25', card_fee_pct: '0', card_fee_fixed: '0' });
+  /* ONE JOB OF FOUR SESSIONS, ALL THIS MONTH, two seats, an hour each: £100 charged, £50 to the tutor, £25 kept — so P = 50/4/1.25 = 10, V = 25/4. */
+  p.clientClasses = [{ id: 'J-PF', jobId: 'J-PF', type: 'job', kind: '', status: 'active', subject: 'Maths', level: 'GCSE',
+    price: 100, tutorPay: 50, adminKeeps: 25, weeks: 4, hours: 1, currentKids: 2, maxKids: 4,
+    dates: [1, 2, 3, 4].map(dmy).join(', '), slots: [], tutorSlots: [], events: [] }];
+  const { w, sent } = boot({ payload: p, serve: BIZ_SERVE_(BIZ_COLS_()),
+    before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(BIZ_ADMIN_)); } catch (e) {} },
+    reply: body => (body.action === 'listRecords' ? { success: true, records: [] } : undefined) });
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  await wait(600);
+  const t = w.__t, d = w.document;
+  if (!t) return ['the app did not finish loading'];
+  if (!t.whoami() || t.whoami().role !== 'admin') return ['the admin seeded before boot is not signed in — nothing was checked'];
+  const bad = [];
+  t.go('biz', false, true); await wait(LEAVE_MS); await woken_();
+  if (t.AT() !== 'biz') return ['go("biz") left the admin on ' + t.AT() + ' — the Profit card was NOT checked'];
+  const pgs = [...d.querySelectorAll('#s-biz > .page')];
+  const sum = pgs[0] && pgs[0].querySelector('[data-profit="sum"]'), card = pgs[1] && pgs[1].querySelector('[data-profit="terms"]');
+  if (!sum || !card) return ['the Business column\'s first two pages are not Profit and its terms: ' + pgs.slice(0, 2).map(g => (g.querySelector('h3') || {}).textContent).join(' | ')];
+  if (!/Profit = Revenue − Tutor − Room − Fees − Other/.test(sum.textContent)) bad.push('the Profit card does not write the formula out');
+  if (sum.querySelectorAll('svg.pf-chart').length !== 2) bad.push('the Profit card has ' + sum.querySelectorAll('svg.pf-chart').length + ' charts, wanted the bars and the line');
+  if (card.querySelectorAll('[data-pf-var]').length !== 12) bad.push('the terms page has ' + card.querySelectorAll('[data-pf-var]').length + ' controls, wanted 12');
+  const val = k => Number((card.querySelector('input.pf-num[data-pf="' + k + '"]') || {}).value);
+  const from = k => ((card.querySelector('[data-pf-var="' + k + '"] .pf-from') || {}).textContent || '').trim();
+  const want = { n: 2, h: 1, P: 10, V: 6.25, c: 0.25, B: 0.25 };
+  for (const k of Object.keys(want)) if (Math.abs(val(k) - want[k]) > 0.01) bad.push(k + ' starts at ' + val(k) + ', wanted ' + want[k] + ' from this month\'s booking and config');
+  if (from('P') !== 'this month') bad.push('P says it came from ' + JSON.stringify(from('P')) + ', wanted "this month"');
+  if (from('B') !== 'config') bad.push('B says it came from ' + JSON.stringify(from('B')) + ', wanted "config"');
+  if (!card.querySelector('.tile[data-do="profit-reset"]')) bad.push('there is no Reset to actual tile');
+  const profit = () => ((sum.querySelector('.pf-row.is-total .pf-v') || {}).textContent || '').trim();
+  const head = () => ((card.querySelector('.pf-head .pf-v') || {}).textContent || '').trim();
+  /* PER MONTH, THE BOOKING ITSELF COMES BACK: S·w = 4 sessions → revenue 4·(10·1.5 + 6.25) = 85, tutor 50, room 25, profit 10. Shown as the figures, not trusted from them. */
+  const sel = sum.querySelector('select[data-pf-period]');
+  if (sel) { sel.value = 'month'; sel.dispatchEvent(new w.Event('change', { bubbles: true })); }
+  const before = profit();
+  const nBox = card.querySelector('input[type="range"][data-pf="n"]');
+  if (!nBox) return bad.concat(['there is no slider for n']);
+  if (!nBox.hasAttribute('data-noswipe')) bad.push('the n slider does not keep the finger from the column swipe (`data-noswipe`)');
+  const posted = sent.length;
+  nBox.value = '4'; nBox.dispatchEvent(new w.Event('input', { bubbles: true }));
+  const after = profit();
+  if (!before || after === before) bad.push('moving n from 2 to 4 left Profit at ' + JSON.stringify(after));
+  if (head() !== after) bad.push('the terms page says Profit is ' + JSON.stringify(head()) + ' and the sum page ' + JSON.stringify(after));
+  if (val('n') !== 4) bad.push('moving the n slider did not move its number box (' + val('n') + ')');
+  let kept = {};
+  try { kept = JSON.parse(w.localStorage.getItem('profit:whatif') || '{}'); } catch (e) {}
+  if (!kept.vals || kept.vals.n !== 4) bad.push('the moved n was not kept on the device: ' + JSON.stringify(kept));
+  await wait(300);
+  if (sent.length !== posted) bad.push('moving a value sent ' + JSON.stringify(sent.slice(posted).map(b => b.action)) + ' — a what-if is never written');
+  try { t.ACTIONS['profit-reset'](card.querySelector('.tile[data-do="profit-reset"]')); } catch (e) { bad.push('profit-reset threw: ' + e.message); }
+  if (val('n') !== 2) bad.push('Reset to actual left n at ' + val('n'));
+  if (profit() !== before) bad.push('Reset to actual left Profit at ' + profit() + ', wanted ' + before);
+  /* NOBODY ELSE: the function that draws it answers nothing, whoever else is signed in or nobody. */
+  for (const u of [null, { name: 'T', role: 'tutor', roles: ['tutor'] }, { name: 'P', role: 'client', roles: ['client'] }, { name: 'S', role: 'student', roles: ['student'] }]) {
+    t.USER(u);
+    const html = w.profitCards_().join('') + (w.bizPages_() || []).join('');
+    if (html) bad.push((u ? u.role : 'signed out') + ': profitCards_/bizPages_ drew ' + html.slice(0, 60));
+  }
+  t.USER(null);
   return bad;
 });
 
