@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-22-c-library-ledger";
+const DOPOST_VERSION = "2026-10-23-a-kid-prices";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -126,6 +126,11 @@ function doPost(e) {
     {
       const need = ACTION_ACCESS[action];
       netViewerSet_(need === 'self' || need === 'admin' ? findPerson('', S(body.personId)) : authWhoIs_(body.token));
+    }
+    /* ---------- A CHILD DOES NOT SPEND MONEY (398): she is sent no price, so a parent books and pays. */
+    if (netViewerIsChild_() && (KID_MONEY_ACTIONS.indexOf(action) !== -1
+        || (action === 'move' && KID_MONEY_MOVES.indexOf(norm(body.move)) !== -1))) {
+      return jsonOut({ error: KID_ASK_PARENT, why: 'ask-a-parent' });
     }
 
     /* invitations -------------------------------------------------------------------------- Sending: § */

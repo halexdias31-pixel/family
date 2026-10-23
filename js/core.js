@@ -208,6 +208,8 @@ function atClientHome_(loc) {
 function isHome(loc) {
   const name = String(loc || '');
   if (/\b(home|house|client\s*(house|home|place)|your venue)\b/i.test(name)) return true;
+  /* A CHILD IS SENT NO RATES (398), so "no rate" is not "a home" to her phone. */
+  if (childView_()) return false;
   const sp = (typeof spaceFor === 'function') ? spaceFor(name) : null;
   if (sp) return !(Number(sp.rate) > 0);
   const v = (DATA.venues || []).find(x => norm(x.title) === norm(name));
@@ -259,6 +261,12 @@ const canTrack = () => hasRole('kid') || hasRole('student') || hasRole('tutor') 
 /* AND NOT A TUTOR WHO HAS ONLY TICKED THE BOX. § */
 const tutorHeld_ = () => hasRole('tutor');
 const isTutorRole = () => (tutorHeld_() && !(USER && USER.tutorPending)) || hasRole('admin');
+
+/* ---------- A CHILD IS SHOWN NO PRICE (398) — the owner: "Kids' profiles shouldn't be able to see tutors' prices." */
+/* The phone's half of `isChild_` (people.gs): a student who is not also a parent, an admin or a tutor somebody said yes to. */
+const childView_ = () => !!USER && hasRole('student') && !hasRole('client') && !isTutorRole();
+/* WHAT SHE IS TOLD WHERE A PRICE OR A PAY BUTTON WOULD BE — the backend's `KID_ASK_PARENT` says the same. */
+const KID_ASK_PARENT = 'A parent books and pays for sessions — ask yours to book this one.';
 
 /* THE FOUR WORDS A JOB'S STATUS CAN BE, and nothing else. § */
 const JOB_STATUSES = ['Unsent', 'Unconfirmed', 'Active', 'Cancelled'];

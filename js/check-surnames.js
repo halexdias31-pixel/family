@@ -118,14 +118,19 @@ const get = pid => b.get(pid ? { token: tk[pid].token } : {});
 
 /* SHE BOOKS THE TUTOR HERSELF — and her phone, which calls her `Wren` now, says so in `clientName`. § */
 const slotDay = 'Saturday';
-const own = as('P-KID', { action: 'createJob', clientName: 'Wren (@wren_kind43)', requestedTutor: 'Tam Tutor', subject: 'Maths',
+/* SINCE 398 A CHILD IS SENT NO PRICE AND DOES NOT BOOK: her own ask is refused, and the admin books it for her under her whole name. */
+const ownAsk = as('P-KID', { action: 'createJob', clientName: 'Wren (@wren_kind43)', requestedTutor: 'Tam Tutor', subject: 'Maths',
   level: 'GCSE', day: slotDay, time: '10:00', slots: 'sa10', location: 'Online', dates: dmy(day(40)), hours: 1, price: 30,
   openToOthers: true });
-rule(own && own.success, 'the child could not book the tutor herself, so her seat on a roster was not checked — ' + JSON.stringify(own));
+rule(ownAsk && !ownAsk.success && /ask yours to book/.test(S(ownAsk.error)), 'a child\'s own createJob was not refused with the ask-a-parent sentence (398) — ' + JSON.stringify(ownAsk));
+const own = as('P-ADM', { action: 'createJob', clientName: 'Wren ' + SUR, requestedTutor: 'Tam Tutor', subject: 'Maths',
+  level: 'GCSE', day: slotDay, time: '10:00', slots: 'sa10', location: 'Online', dates: dmy(day(40)), hours: 1, price: 30,
+  openToOthers: true });
+rule(own && own.success, 'the admin could not book the tutor for the child, so her seat on a roster was not checked — ' + JSON.stringify(own));
 const evH = b.tabs.events[0];
 const actors = b.tabs.events.slice(1).map(r => S(r[evH.indexOf('actor')]));
 rule(actors.indexOf('Wren ' + SUR) !== -1 && actors.indexOf('Wren (@wren_kind43)') === -1 && actors.indexOf('Wren') === -1,
-  'a child\'s own booking did not go into the events under her whole name (the phone\'s `clientName` was taken) — actors: ' + JSON.stringify(actors));
+  'the booking made for her did not go into the events under her whole name — actors: ' + JSON.stringify(actors));
 /* SHE INVITES A FRIEND TO SHARE IT. § */
 const m2 = MAIL.length;
 const inv = as('P-KID', { action: 'sendInvites', jobId: own && (own.jobId || own.id), emails: ['friend@example.org'] });
@@ -152,15 +157,17 @@ const slotB = (time, slot, d) => ({ action: 'createJob', requestedTutor: 'Tam Tu
 const ticked = as('P-PEN', { action: 'setMyRoles', roles: ['student', 'tutor'] });
 rule(ticked && ticked.success && ticked.tutorPending === true && /tutor/.test(S(b.row('P-PEN').role)) && S(b.row('P-PEN').listed) === 'PENDING',
   'the child could not tick Tutor and be left waiting, so a pending tick was not asked — ' + JSON.stringify(ticked) + ' ' + JSON.stringify(b.row('P-PEN').role));
-const junoB = as('P-PEN', slotB('12:00', 'sa12', 42));
-rule(junoB && junoB.success, 'the child who ticked Tutor could not book, so her seat was not asked — ' + JSON.stringify(junoB));
+/* EACH BOOKED BY THE ADMIN UNDER THE WHOLE NAME, as a child no longer books (398). */
+const forKid = (slot, whole) => as('P-ADM', Object.assign(slot, { clientName: whole }));
+const junoB = forKid(slotB('12:00', 'sa12', 42), 'Juno Vandersloot');
+rule(junoB && junoB.success, 'the child who ticked Tutor could not be booked, so her seat was not asked — ' + JSON.stringify(junoB));
 const said = as('P-PEN', { action: 'addComment', postId: 'PO-1', body: 'great volcano' });
 rule(said && said.success, 'the child who ticked Tutor could not comment, so a comment\'s author was not asked — ' + JSON.stringify(said));
-const kitB = as('P-PUP', slotB('13:00', 'sa13', 43));
-rule(kitB && kitB.success, 'the `pupil` could not book, so a pupil\'s seat was not asked — ' + JSON.stringify(kitB));
+const kitB = forKid(slotB('13:00', 'sa13', 43), 'Kit Marchbanks');
+rule(kitB && kitB.success, 'the `pupil` could not be booked, so a pupil\'s seat was not asked — ' + JSON.stringify(kitB));
 /* IVO BOOKS AS IVO BRACKENRIDGE, THEN CORRECTS IT — the events keep the name he booked under. */
-const ivoB = as('P-REN', slotB('14:00', 'sa14', 44));
-rule(ivoB && ivoB.success, 'Ivo could not book, so a seat under a surname since corrected was not asked — ' + JSON.stringify(ivoB));
+const ivoB = forKid(slotB('14:00', 'sa14', 44), 'Ivo Brackenridge');
+rule(ivoB && ivoB.success, 'Ivo could not be booked, so a seat under a surname since corrected was not asked — ' + JSON.stringify(ivoB));
 const ivoR = as('P-REN', { action: 'updateProfile', targetId: 'P-REN', fields: { last_name: 'Brack' } });
 rule(ivoR && ivoR.success && S(b.row('P-REN').last_name) === 'Brack', 'Ivo could not correct his surname — ' + JSON.stringify(ivoR));
 rule(/Ivo Brackenridge/.test(S(b.row('P-REN').name_was)), 'the name Ivo had before is not on `name_was`, so nothing can recognise what was stored under it — '
@@ -375,8 +382,9 @@ rule(thiS && thiS.success && S(b.row('P-SUR').last_name) === 'Thistlebrook' && S
    the name is what picks her out (one client alone is the target without anybody naming them). */
 if (own && own.success) {
   const jobId = own.jobId || own.id;
-  const ned = as('P-STU', { action: 'move', jobId: jobId, role: 'client', move: 'Request', requestId: 'ned-1' });
-  rule(ned && ned.success, 'Ned could not ask to join her session, so naming her among two was not asked — ' + JSON.stringify(ned));
+  /* OLA, A PARENT: a child (Ned) does not ask to join a paid session (398). */
+  const ned = as('P-OTH', { action: 'move', jobId: jobId, role: 'client', move: 'Request', requestId: 'ned-1' });
+  rule(ned && ned.success, 'Ola could not ask to join her session, so naming her among two was not asked — ' + JSON.stringify(ned));
   const say = as('P-TUT', { action: 'move', jobId: jobId, role: 'tutor', move: 'Decline', counterpart: 'Wren (@wren_kind43)', requestId: 'dec-1' });
   const after = b.tabs.events.slice(1).filter(r => S(r[evH.indexOf('job_id')]) === S(jobId) && S(r[evH.indexOf('action')]) === 'Decline');
   rule(say && say.success && after.some(r => S(r[evH.indexOf('target')]) === 'Wren ' + SUR),

@@ -706,7 +706,8 @@ let roleRules = 0;
     const claim = f.post({ action: 'move', token: tk['P-C1'].token, name: 'Pat Parent', personId: 'P-C1', jobId: 'J-OPEN', role: 'tutor', move: 'Request' });
     rule(!(claim && claim.success), 'a pending tutor took an open session as its tutor');
     rule(!f.ev('read(TAB.events).rows').some(e => e.job_id === 'J-OPEN' && e.actor === 'Pat Parent'), 'a refused claim still wrote an event');
-    const book = f.post({ action: 'createJob', token: tk['P-S1'].token, name: 'Sam Student', personId: 'P-S1', requestedTutor: 'Pat Parent',
+    /* BOOKED BY THE ADMIN: a child does not book (398) — her phone has no price to send. */
+    const book = f.post({ action: 'createJob', token: tk['P-A1'].token, name: tk['P-A1'].name, personId: 'P-A1', requestedTutor: 'Pat Parent',
       subject: 'Maths', level: 'GCSE', day: 'Monday', time: '16:00', location: 'Online', dates: ddmm(future), hours: 2, price: 40 });
     rule(!(book && book.success) && /not taking bookings/.test(String(book && book.error)), 'a pending tutor could be booked by name — ' + JSON.stringify(book));
     /* MESSAGING AS WHAT THEY ARE, NOT AS WHAT THEY TICKED: Kit (only a student) ticks Tutor and is still
@@ -776,7 +777,10 @@ let hoursRules = 0;
   const f = backend();
   const nia = Object.assign({}, tutor, { person_id: 'P-T2', first_name: 'Nia', last_name: 'Nohours',
     handle: 'nianohours', email: 'nia@example.org', availability: '' });
-  f.seed('people', [admin, tutor, parent, student, nia]);
+  /* THE BOOKER IS A SECOND PARENT, who is on none of these sessions: a child does not book (398). */
+  const booker = Object.assign({}, parent, { person_id: 'P-C2', first_name: 'Quinn', last_name: 'Booker',
+    handle: 'quinnbooker', email: 'quinn@example.org' });
+  f.seed('people', [admin, tutor, parent, student, nia, booker]);
   f.seed('config', [{ key: 'max_open_requests', value: 20 }]);
   const day = n => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + n); return d; };
   const mondayAfter = n => { const d = day(n); while (d.getDay() !== 1) d.setDate(d.getDate() + 1); return d; };
@@ -789,16 +793,16 @@ let hoursRules = 0;
   f.seed('events', [
     { event_id: 'E1', job_id: 'J-ADA', actor: 'Pat Parent', role: 'client', action: 'Request' },
     { event_id: 'E2', job_id: 'J-ADA', actor: 'Ada Tutor', role: 'tutor', action: 'Accept', target: 'Pat Parent' }]);
-  const tk = f.post({ action: 'verifyLogin', email: student.email, pin: '0000' });
+  const tk = f.post({ action: 'verifyLogin', email: booker.email, pin: '0000' });
   const jobs = () => f.ev('read(TAB.jobs).rows.length');
   const ask = (tutorName, extra) => {
     const was = jobs();
-    const d = f.post(Object.assign({ action: 'createJob', token: tk.token, name: 'Sam Student', personId: 'P-S1',
+    const d = f.post(Object.assign({ action: 'createJob', token: tk.token, name: 'Quinn Booker', personId: 'P-C2',
       requestedTutor: tutorName, subject: 'Maths', level: 'GCSE', location: 'Online', hours: 1, price: 30 }, extra));
     return { d, wrote: jobs() - was };
   };
   const rule = (ok, said) => { if (ok) hoursRules++; else bad.push('tutor hours: ' + said); };
-  if (!tk || !tk.success) bad.push('tutor hours: the student could not sign in — ' + JSON.stringify(tk));
+  if (!tk || !tk.success) bad.push('tutor hours: the booking parent could not sign in — ' + JSON.stringify(tk));
   else {
     let r = ask('Nia Nohours', { day: 'Saturday', time: '11:00', slots: 'sa11', dates: dmy(day(40)) });
     rule(!r.d.success && /hasn.t set their hours/.test(String(r.d.error)) && !r.wrote,

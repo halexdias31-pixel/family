@@ -95,6 +95,7 @@ const SUITE = [
   { file: 'check-surnames.js', what: 'a child is her first name: no surname in any payload, reply or email, for anybody' },
   /* WHO SEES WHOM (386): a child siblings and friends, a parent her children — nobody else in the payload. */
   { file: 'check-visibility.js', what: 'a child sees siblings and friends, never a parent; a parent her children, never a co-parent' },
+  { file: 'check-kid-prices.js', what: 'a child is sent no rate, price or £, and her money actions ask a parent (398)' },
   /* "MARK WITH AI", THROUGH THE SAME BACKEND. The one action that holds a key and spends money per
      press: no key is a sentence, the key goes in a header, the mark is clamped, the cap holds. */
   { file: 'check-aimark.js', what: 'AI marking: the key, the clamp, the daily cap, and a full Gemini asked again then the fallback, through the real doPost' },

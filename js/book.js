@@ -1778,7 +1778,9 @@ function bookBreakdown(L, foot) {
 
   /* ---------- ONE LIST, AND IT IS THE FORM § */
   const steps = stepRows_();
-  const priced = L ? breakdownRows(L) : [];
+  /* A CHILD'S FORM HAS THE QUESTIONS AND NO FIGURES (398) — no priced rows, no figure columns, no total. */
+  const kid = childView_();
+  const priced = L && !kid ? breakdownRows(L) : [];
 
   /* ---------- WHICH PRICED LINES BELONG TO A QUESTION § */
   /* ONE RULE, ASKED TWICE. § */
@@ -1851,8 +1853,9 @@ function bookBreakdown(L, foot) {
        from the booking rather than assumed to be whoever is looking. */
     client: BOOKING.client || (USER && USER.name) || '',
     /* DRAW THE COLUMN HEADER. § */
-    cols: true,
+    cols: !kid,
     rows: out,
+    noTotal: kid,
     /* ---------- £0.00 IS NOT A PRICE, IT IS AN ANSWER NOBODY GAVE § */
     total: (L && L.total > 0) ? money(L.total) : '—',
     /* AN ADMIN'S DISCOUNT LINE, DIRECTLY ABOVE COST — `discountRow_`; nothing for anybody else. */
@@ -1952,14 +1955,14 @@ function receiptHtml(r) {
          ''}
     ${/* ---------- `r.more`: WHO GETS WHAT, FOR THE ONE PERSON ALLOWED TO KNOW § */
          ''}
-    <div class="bk">${spineHead_(r)}${(r.rows || []).join('')}${r.before || ''}<div class="bk-row rc-total">
+    <div class="bk">${spineHead_(r)}${(r.rows || []).join('')}${r.before || ''}${r.noTotal ? '' : `<div class="bk-row rc-total">
       <span class="bk-n"></span>
       <span class="bk-k">${esc(r.totalLabel || 'Cost')}</span>
       <span class="bk-v"></span>
       <span class="bk-m"></span>
       <span class="bk-r"></span>
       <span class="bk-t">${esc(r.total || '')}</span>
-    </div>${(r.more || []).map(m => `<div class="bk-row rc-total rc-more${m.cls ? ' ' + esc(m.cls) : ''}">
+    </div>`}${(r.more || []).map(m => `<div class="bk-row rc-total rc-more${m.cls ? ' ' + esc(m.cls) : ''}">
       <span class="bk-n"></span>
       <span class="bk-k">${esc(m.k)}</span>
       <span class="bk-v"></span>
@@ -2088,7 +2091,7 @@ function jobRows(j) {
     /* `Running` AND `Weeks left` WERE TWO PUSHES HERE and went with the form's — see the note by the waiting-list branch above. § */
     /* AND ONLY WHERE THERE IS A PRICE. `doGet` withholds it from a tutor who is not also paying —
        see `jobMoney_` — and "6 × £0.00" would print the hole as a figure. */
-    if (iv && iv.weeks && j.price) {
+    if (iv && iv.weeks && j.price && !childView_()) {
       /* "ABOUT", because the weeks are what is LEFT and nothing runs until the seats fill. A
          precise total here would be a promise the list cannot keep. */
       push('About', iv.weeks + ' × ' + money(j.price || 0), money((j.price || 0) * iv.weeks));
@@ -2107,7 +2110,7 @@ function jobRows(j) {
        { free: true, dates: true, mul: dates.length > 1 ? '× ' + dates.length : '' });
 
   /* WHAT THE MONEY DOES, for whoever is allowed to see it. § */
-  if (j.price) push('Total', '', money(j.price), { free: true });
+  if (j.price && !childView_()) push('Total', '', money(j.price), { free: true });
   /* `Tutor is paid` AND `Left over` WERE ROWS HERE. § */
 
   /* ---------- WHERE IT IS, AND WHERE IT IS GOING § */
@@ -2189,6 +2192,8 @@ function jobMoney_(j) {
              more: [{ k: 'Tutor earns', t: say(j.tutorPay) },
                     { k: 'Admin earns', t: say(j.adminKeeps) }] };
   }
+  /* A CHILD'S SESSION HAS NO FIGURE ON IT (398) — `jobReceipt` draws no total row. */
+  if (childView_()) return { label: null, total: '', more: [], none: true };
   const me = USER ? norm(USER.name) : '';
   const teaches = !!me && (norm(j.tutor) === me
     || (j.tutorSlots || []).some(t => norm(t.name) === me));
@@ -2325,7 +2330,7 @@ function jobReceipt(j, foot) {
       .filter(Boolean),
     /* AND THE RECEIPT DRAWS IT TOO. This said `Detail` where the form said `Answer`, because nothing
        on a receipt is being asked; both are `A` now and the distinction has nowhere to show. */
-    cols: true,
+    cols: !pay.none,
     rows: rows.map(receiptRow),
     /* WHAT THE FIGURE IS, and it is not the same sentence at every stage. § */
     totalLabel: pay.label
@@ -2333,6 +2338,7 @@ function jobReceipt(j, foot) {
         : stage === 'waitlist' ? 'Your seat'
         : 'Cost'),
     total: pay.total,
+    noTotal: !!pay.none,
     more: pay.more,
     /* ---------- THE SESSION'S ACTIONS ARE PRINTED ON IT, LIKE THE FORM'S § */
     foot: foot || '',
@@ -2357,12 +2363,14 @@ function festiveCard(f) {
     ${f.blurb ? `<p class="fest-say">${mark(f.blurb)}</p>` : ''}
     <div class="fest-rows">
       ${row('Where', f.venue)}
-      ${row('Per child', money(f.price))}
+      ${childView_() ? '' : row('Per child', money(f.price))}
       ${row('Places', full ? 'Full' : f.left + ' left of ' + f.seats)}
     </div>
     ${USER
       ? (full
           ? '<p class="faint">This one is full.</p>'
+          /* A PLACE IS PAID FOR, so a child asks a parent (398). */
+          : childView_() ? '<p class="faint">Ask a parent to sign you up.</p>'
           : `<button class="btn" data-do="fest-join" data-id="${esc(f.id)}">Come along</button>`)
       : '<p class="faint">Sign in to come along.</p>'}
   </div>`;

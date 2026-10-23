@@ -312,7 +312,7 @@ function findCard(x) {
           ${t.activity ? `<span class="prof-act">${esc(t.activity)}</span>` : ''}
           ${/* ---------- THE RATE, UP HERE AND BIGGER § */
                 ''}
-          ${t.rate ? `<span class="prof-price"><span class="prof-rate">${esc(money(t.rate))}<small>/h</small></span>${
+          ${t.rate && !childView_() ? `<span class="prof-price"><span class="prof-rate">${esc(money(t.rate))}<small>/h</small></span>${
               profSeat_(t) ? `<span class="prof-seat">+${esc(money(profSeat_(t)))}/h a seat</span>` : ''}</span>` : ''}
           ${/* ---------- NO CITY AND NO DBS STAMP UP HERE § */
                 ''}
@@ -366,15 +366,18 @@ function findCard(x) {
 
   /* ---------- A VENUE IS AN ORDINARY CARD § */
   if (x.kind === 'venue') {
-    const say = (max, rate) => [max ? 'up to ' + max : '', rate ? money(rate) + '/h' : 'free']
+    /* A CHILD IS TOLD THE SEATS AND NOT THE PRICE (398), and a room with neither says nothing. */
+    const kid = childView_();
+    const say = (max, rate) => [max ? 'up to ' + max : '', kid ? '' : rate ? money(rate) + '/h' : 'free']
       .filter(Boolean).join(' · ');
+    const roomRow = (label, max, rate) => say(max, rate) ? row(label, say(max, rate)) : '';
     return `
     <div class="card">
       <h3>${esc(t.title)}</h3>
       ${t.subtitle ? `<p class="sub">${mark(t.subtitle)}</p>` : ''}
       ${(t.rooms || []).length
-        ? (t.rooms || []).slice(0, 4).map(r => row(r.name || 'Room', say(r.max, r.rate))).join('')
-        : row('The room', say(t.maxCapacity, t.bestRate))}
+        ? (t.rooms || []).slice(0, 4).map(r => roomRow(r.name || 'Room', r.max, r.rate)).join('')
+        : roomRow('The room', t.maxCapacity, t.bestRate)}
       ${row('Notice', t.minNoticeDays ? t.minNoticeDays + ' days' : 'Book any time')}
     </div>`;
   }

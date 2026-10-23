@@ -206,6 +206,8 @@ function jsonOut(obj) {
   }
   /* NO CHILD'S SURNAME LEAVES BY THIS DOOR — the owner, 10 Oct: § */
   try { if (obj && typeof obj === 'object') kidNamesOff_(obj); } catch (err) {}
+  /* AND NO PRICE TO A CHILD (398, `kidPricesOff_`, people.gs). */
+  try { if (obj && typeof obj === 'object') kidPricesOff_(obj); } catch (err) {}
   const body = JSON.stringify(obj);
   /* WRAPPED AND SERVED AS A SCRIPT, when a callback was asked for. § */
   if (JSONP_CB && /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(JSONP_CB)) {
