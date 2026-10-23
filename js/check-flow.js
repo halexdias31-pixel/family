@@ -19938,7 +19938,7 @@ check('the funnel asks an admin exactly what it asks a parent, the Books shelf a
     const m = /(?:^|\/)(data\/[a-z0-9_\-\/]+\.json)(?:\?|$)/.exec(url);
     if (!m) return undefined;
     const p = path.join(dir, '..', m[1]);
-    try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch (e) { return undefined; }
+    try { return JSON.parse(LIB_FULL.serve(p) || fs.readFileSync(p, 'utf8')); } catch (e) { return undefined; }
   };
   const seed = u => w => { try { w.localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} };
   const who = [['a parent', { name: 'Pat Parent', personId: 'P004', role: 'parent', roles: ['parent'] }],

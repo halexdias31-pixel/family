@@ -62,7 +62,7 @@ function boot() {
     const file_ = /(data\/[a-z0-9_\-\/]+\.json)/.exec(String(url));
     if (file_) {
       try {
-        return Promise.resolve(body_(JSON.parse(fs.readFileSync(path.join(ROOT, file_[1]), 'utf8'))));
+        return Promise.resolve(body_(JSON.parse(require('../check/lib-full.js').serve(path.join(ROOT, file_[1])) || fs.readFileSync(path.join(ROOT, file_[1]), 'utf8'))));
       } catch (e) { /* not a file on disk — the fixture answers below */ }
     }
     return Promise.resolve(body_(FIXTURE));
