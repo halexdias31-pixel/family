@@ -14,7 +14,7 @@ const PLACEHOLDER = '0000';
 
 /* WHAT IS READ. Source and prose — the two places a person types an example. § */
 const EXT = ['.gs', '.js', '.html', '.css', '.md', '.json', '.py', '.sh', '.yml', '.yaml'];
-const SKIP = new Set(['node_modules', '.git', 'data', 'shots', 'worktrees']);
+const SKIP = new Set(['node_modules', '.git', 'data', 'data-private', 'shots', 'worktrees']);
 
 /* `pin` then four or more digits, with up to six characters of punctuation between them — which covers `pin=0000`, `pin: '0000'`, `"pin": "0000"` and § */
 const RE = /\bpins?\b[^A-Za-z0-9]{0,6}(\d{4,})/gi;
@@ -77,7 +77,7 @@ function run() {
     let names;
     try { names = fs.readdirSync(dir, { withFileTypes: true }); } catch (e) { return; }
     names.forEach(e => {
-      if (e.name === 'node_modules' || e.name === '.git' || e.name === 'worktrees') return;
+      if (e.name === 'node_modules' || e.name === '.git' || e.name === 'worktrees' || e.name === 'data-private') return;
       const full = path.join(dir, e.name);
       if (e.isDirectory()) return void every(full);
       looked++;
@@ -96,6 +96,35 @@ function run() {
   roms.forEach(r => console.log('  ' + r));
   if (!looked) { console.log('FAILED — no files found to look through for game files.'); process.exitCode = 1; }
   if (roms.length) { console.log('FAILED — the Console ships only the player; a game file is the person\'s own and stays on their device.'); process.exitCode = 1; }
+
+  /* ---------- AND NO WORD OF THE LIBRARY (397): the four files in data/ are cards; their words are the Ledger's alone. */
+  const LF = require('../check/lib-full.js');
+  const words = [];
+  let cards = 0;
+  LF.NAMES().forEach(n => {
+    const def = LF.defs().files[n];
+    let rows = null;
+    try { rows = JSON.parse(fs.readFileSync(path.join(ROOT, def.file), 'utf8')); } catch (e) { words.push(def.file + '  — could not be read (' + e.message + '), so it was NOT checked'); return; }
+    rows.forEach((r, i) => {
+      cards++;
+      const c = LF.privateOf(def, r);
+      if (c) words.push(def.file + ' row ' + (i + 1) + ' (' + (LF.idOf(def, r) || 'no id') + ')  — carries ' + Object.keys(c).join(', '));
+    });
+  });
+  const ignore = (() => { try { return fs.readFileSync(path.join(ROOT, '.gitignore'), 'utf8'); } catch (e) { return ''; } })();
+  if (!/^data-private\/?$/m.test(ignore)) words.push('.gitignore  — does not name data-private/, so the words could be committed');
+  let tracked = '';
+  try { tracked = require('child_process').execFileSync('git', ['ls-files', '--', 'data-private'], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); } catch (e) { tracked = ''; }
+  if (tracked) words.push('data-private/ is tracked by git: ' + tracked.split('\n').slice(0, 3).join(', '));
+  console.log('\nTHE LIBRARY\'S WORDS IN THE REPOSITORY  (' + words.length + ' of ' + cards + ' cards)');
+  words.slice(0, 20).forEach(w => console.log('  ' + w));
+  if (words.length > 20) console.log('  … and ' + (words.length - 20) + ' more');
+  if (!cards) { console.log('FAILED — no library card was read, so nothing was checked.'); process.exitCode = 1; }
+  if (words.length) {
+    console.log('FAILED — the repository is public: a question\'s words, answers and figures live in the Ledger only. '
+      + 'Run `node tools/lib-private.js split` (docs/library.md), then commit.');
+    process.exitCode = 1;
+  }
 
   console.log('\nfiles read: ' + files.length + ', PIN literals found: ' + seen);
   if (bad.length) {

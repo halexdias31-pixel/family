@@ -121,7 +121,7 @@ const SUITE = [
   /* THE ROOMS INSIDE A VENUE, THROUGH THE SAME BACKEND. § */
   { file: 'check-rooms.js', what: 'rooms: a blank cell is the venue’s, an explicit 0 stays 0, the caps, the floor, a booking, the waiting list' },
   /* ---------- AND WHETHER A CREDENTIAL IS SITTING IN THE SOURCE § */
-  { file: 'check-secrets.js', what: 'no PIN written into the source' },
+  { file: 'check-secrets.js', what: 'no PIN in the source, and no word of the library in data/' },
   /* ---------- AND WHETHER THE QUESTIONS IT ASKS ARE WORTH ASKING § */
   /* ---------- AND THE NINE TABS THAT BECAME FILES § */
   { file: 'check-settings.js', what: 'the settings files, against what the app reads off them' },
