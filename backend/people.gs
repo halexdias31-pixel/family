@@ -659,8 +659,56 @@ function personDisplayName(r) {
 /* A CHILD IS CALLED BY THEIR FIRST NAME — TO EVERYBODY, IN EVERYTHING THE SERVER SAYS THE OWNER, 10 OCT: § */
 /* ---------- WHO THE NET IS WORKING FOR (342) § */
 function netViewerSet_(row) {
-  NET_VIEWER_ = row ? { id: key(row.person_id), admin: hasRole(row, 'admin') } : null;
+  NET_VIEWER_ = row ? { id: key(row.person_id), admin: hasRole(row, 'admin'), child: isChild_(row) } : null;
   return NET_VIEWER_;
+}
+
+/* ---------- NO PRICE REACHES A CHILD (398) — the owner, 23 Oct: "Kids' profiles shouldn't be able to see tutors' prices." */
+/* Every reply meets it in `jsonOut`, and the kept doGet body before it is kept. A key here is emptied
+   wherever it sits (an array to [], an object to {}, a figure deleted), so every `|| []` still holds. */
+const KID_PRICE_KEYS = ['rate', 'extraSeat', 'extraSeatCut', 'bestRate', 'concession', 'price', 'tutorPay',
+  'adminKeeps', 'pricePerChild', 'ticketChild', 'ticketAdult', 'travelPerChild', 'perHour', 'perSession',
+  'baseRate', 'perSeat', 'perSeatHour', 'perSeatSession', 'chargePerHour', 'hourlyWhole',
+  'multipliers', 'pricingRows', 'promoCodes', 'waitlistSeat',
+  'cost_per_hour', 'rate_per_hour', 'extra_seat_rate', 'extra_seat_cut', 'price_per_child', 'ticket_child',
+  'ticket_adult', 'travel_per_child', 'price_total', 'tutor_pay', 'admin_profit', 'surcharge_per_hour'];
+/* THE SHOP IS COINS AND THE BUSINESS'S OWN STOCK, NOT A TUTOR'S PRICE — left whole (398). */
+const KID_PRICE_SKIP = ['shop'];
+/* THE CONFIG ROWS THAT PRICE A BOOKING — config.vars reaches every phone (`configPublic_`). */
+const KID_PRICE_VARS = ['M', 's', 'c', 'B', 'b', 'a', 'open_tutor_rate', 'waitlist_extra_seat',
+  'travel_on_client', 'card_fee_pct', 'card_fee_fixed', 'materials_markup'];
+/* WHAT A CHILD IS TOLD INSTEAD OF A PRICE, by a refused action and by the phone (`KID_ASK_PARENT`, core.js). */
+const KID_ASK_PARENT = 'A parent books and pays for sessions — ask yours to book this one. Nothing was booked.';
+/* THE ACTIONS THAT SPEND MONEY. A child's phone has no price to send, so these are a parent's. */
+const KID_MONEY_ACTIONS = ['createJob', 'createCheckout', 'finalizePayment', 'joinWaitlist', 'joinFestive'];
+const KID_MONEY_MOVES = ['request', 'pay'];
+
+function netViewerIsChild_() { return !!(NET_VIEWER_ && NET_VIEWER_.child); }
+
+function kidPricesOff_(obj) {
+  if (!netViewerIsChild_() || !obj || typeof obj !== 'object') return obj;
+  const walk = o => {
+    if (Array.isArray(o)) { o.forEach(walk); return; }
+    if (!o || typeof o !== 'object') return;
+    Object.keys(o).forEach(k => {
+      const v = o[k];
+      if (KID_PRICE_KEYS.indexOf(k) !== -1) {
+        if (Array.isArray(v)) o[k] = [];
+        else if (v && typeof v === 'object') o[k] = {};
+        else delete o[k];
+        return;
+      }
+      if (KID_PRICE_SKIP.indexOf(k) !== -1) return;
+      /* HER OWN SETTINGS STAY WHOLE (sign-in reply, myProfile): a form opened without a field writes it back blank on Save. */
+      if (k === 'profile' && key(o.personId) === NET_VIEWER_.id) return;
+      /* A VENUE'S `+£15/h` IS A TAG, so a tag with a pound sign goes. */
+      if (k === 'tags' && Array.isArray(v)) { o[k] = v.filter(t => !/£/.test(String(t))); return; }
+      if (k === 'vars' && v && typeof v === 'object') KID_PRICE_VARS.forEach(x => { delete v[x]; });
+      walk(v);
+    });
+  };
+  walk(obj);
+  return obj;
 }
 /* MAY THIS VIEWER SEE THIS GROWN-UP'S WHOLE NAME — themselves, an admin, or a CHILD THIS GROWN-UP IS ON
    THE FAMILY TAB WITH (`netKin_`). Nobody known is nobody. */

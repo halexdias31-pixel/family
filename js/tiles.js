@@ -413,12 +413,13 @@ function jobTiles_(x) {
   const id = String(j.id || j.jobId || '');
   if (!id || !USER) return '';
   const mine = (j.slots || []).some(sl => norm(sl.client) === norm(USER.name));
-  if (!mine) return joinTile_(j, id);
+  /* A CHILD JOINS AND PAYS THROUGH A PARENT (398) — no join tile, no Pay tile, no figure. */
+  if (!mine) return childView_() ? '' : joinTile_(j, id);
   const paid = (j.slots || []).some(sl =>
     norm(sl.client) === norm(USER.name) && /^(paying|booked)$/i.test(String(sl.status || '')));
   const owed = typeof jobAccepted_ === 'function' && jobAccepted_(j) && !paid;
   return `
-    ${owed ? tile_({ icon: 'cart', label: 'Pay and confirm', tone: 'buy',
+    ${owed && !childView_() ? tile_({ icon: 'cart', label: 'Pay and confirm', tone: 'buy',
                      note: typeof money === 'function' ? money(j.price || 0) : '',
                      act: 'job-pay', data: { id: id } }) : ''}
     ${tile_({ icon: 'undo', label: 'Withdraw from this',

@@ -24319,13 +24319,14 @@ function surnameWorld_() {
   /* HER SEAT, BOOKED BY HER PARENT FOR HER AS AN OLD PHONE DID (her whole name ticked), AND HER OWN. */
   if (tk['P-PAR']) as('P-PAR', { action: 'createJob', requestedTutor: 'Tam Tutor', subject: 'English', level: 'GCSE', day: 'Saturday',
     time: '11:00', slots: 'sa11', location: 'Online', dates: dmy(day(41)), hours: 1, price: 30, kids: 'Wren ' + SUR_ });
-  if (tk['P-KID']) as('P-KID', { action: 'createJob', requestedTutor: 'Tam Tutor', subject: 'Maths', level: 'GCSE', day: 'Saturday',
+  /* AND ONE THE ADMIN BOOKED FOR HER under her whole name — a child does not book herself since 398. */
+  if (tk['P-ADM']) as('P-ADM', { action: 'createJob', clientName: 'Wren ' + SUR_, requestedTutor: 'Tam Tutor', subject: 'Maths', level: 'GCSE', day: 'Saturday',
     time: '10:00', slots: 'sa10', location: 'Online', dates: dmy(day(40)), hours: 1, price: 30 });
   if (tk['P-KID']) as('P-KID', { action: 'sendMessage', to: 'Hal Admin', toId: 'P-ADM', body: 'Can we do fractions?' });
-  /* JUNO TICKS TUTOR, AND IS LEFT WAITING — then books her own session and says a word on Wren's post. */
+  /* JUNO TICKS TUTOR, AND IS LEFT WAITING — then the admin books her a session (398) and she says a word on Wren's post. */
   if (tk['P-PEN']) {
     const t1 = as('P-PEN', { action: 'setMyRoles', roles: ['student', 'tutor'] });
-    const t2 = as('P-PEN', { action: 'createJob', requestedTutor: 'Tam Tutor', subject: 'Maths', level: 'GCSE', day: 'Saturday',
+    const t2 = as('P-ADM', { action: 'createJob', clientName: 'Juno Vandersloot', requestedTutor: 'Tam Tutor', subject: 'Maths', level: 'GCSE', day: 'Saturday',
       time: '12:00', slots: 'sa12', location: 'Online', dates: dmy(day(42)), hours: 1, price: 30 });
     const t3 = as('P-PEN', { action: 'addComment', postId: 'PO-1', body: 'great volcano' });
     if (!(t1 && t1.tutorPending) || !(t2 && t2.success) || !(t3 && t3.success)) tk.junoFailed = JSON.stringify([t1, t2, t3]).slice(0, 300);
@@ -26295,6 +26296,60 @@ check('the Ledger not answering keeps the card\'s words — "Couldn’t load thi
   await wait(600);
   front = libFront_(W);
   if (!front || front.querySelector('.lib-wait') || !/manufacturer/i.test(front.textContent)) bad.push('Try again did not draw the question whole: ' + (front ? front.textContent.replace(/\s+/g, ' ').slice(0, 120) : 'no page'));
+  return bad;
+});
+
+check('a child sees a tutor card, the booking form and her session without any £, and is told to ask a parent (398)', async () => {
+  /* THE OWNER, 23 Oct: "Kids' profiles shouldn't be able to see tutors' prices." The payload already sends her none (`kidPricesOff_`, check-kid-prices.js); this is the phone drawing none even when a figure is in hand. */
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t, d = w.document;
+  if (!w.findCard || !t.bookerCard || !t.jobPage || !t.jobTiles || !w.festiveCard) return ['findCard, bookerCard, jobPage, jobTiles or festiveCard is not exported — cannot check'];
+  const KID = { name: 'Mo Learner', personId: 'P-MO', role: 'kid', roles: ['kid'], token: 'tk-mo' };
+  const PARENT = { name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] };
+  const tutor = Object.assign({}, t.DATA().tutors[0], { rate: 22, extraSeat: 3, personId: 'P-GP' });
+  const venue = t.DATA().venues[0];
+  const job = { id: 'J-K', jobId: 'J-K', kind: '', subject: 'Maths', level: 'GCSE', price: 240, tutor: 'GeorgePovey',
+    location: 'Colliers Wood Library', dates: '06/10/26, 13/10/26', status: 'unconfirmed',
+    slots: [{ n: 1, client: 'Mo Learner', status: 'Agreed' }], tutorSlots: [{ key: 'a', name: 'GeorgePovey', status: 'Confirmed' }], events: [] };
+  const other = Object.assign({}, job, { id: 'J-O', jobId: 'J-O', slots: [{ n: 1, client: '', status: 'Agreed' }], canAsk: true, openToOthers: true });
+  const draw = () => {
+    const B = t.BOOKING;
+    B.how = 'Instant class'; B.loc = 'Colliers Wood Library'; B.subjects = ['Maths']; B.level = 'GCSE'; B.tutor = 'GeorgePovey';
+    return {
+      card: String(w.findCard({ kind: 'tutor', row: tutor }) || ''),
+      venue: String(w.findCard({ kind: 'venue', row: venue }) || ''),
+      paper: String(t.bookerCard() || ''),
+      job: String(t.jobPage(job) || ''),
+      tiles: String(t.jobTiles({ row: job }) || '') + String(t.jobTiles({ row: other }) || ''),
+      fest: String(w.festiveCard(t.DATA().festive[0]) || ''),
+    };
+  };
+  const bad = [];
+  /* THE PARENT FIRST — the proof that every surface below draws a price at all. */
+  t.USER(PARENT);
+  const p = draw();
+  Object.keys(p).filter(k => k !== 'tiles').forEach(k => { if (!/£/.test(p[k])) bad.push('the parent\'s ' + k + ' shows no £, so the child\'s cannot prove anything'); });
+  t.USER(KID);
+  const k = draw();
+  Object.keys(k).forEach(s => {
+    const m = /[^<>]{0,30}£[^<>]{0,20}/.exec(k[s].replace(/<[^>]*>/g, ' '));
+    if (m) bad.push('the child\'s ' + s + ' shows a price: "' + m[0].trim() + '"');
+  });
+  if (/prof-price|prof-rate|prof-seat/.test(k.card)) bad.push('the child\'s tutor card still holds the price box (an empty one is still a hole)');
+  if (!/GeorgePovey/.test(k.card)) bad.push('the child is not drawn the tutor card at all');
+  if (/class="bk-row rc-total"/.test(k.paper) || /class="bk-row rc-total"/.test(k.job)) bad.push('the child\'s form or session still draws a total row');
+  if (/<span class="bk-r">\+\/h<\/span>/.test(k.paper)) bad.push('the child\'s form still draws the figure columns\' header');
+  if (/data-do="book-send"/.test(k.paper)) bad.push('the child\'s form still offers "Ask for it" — she has no price to send, so a parent books');
+  if (!/ask yours to book/i.test(k.paper)) bad.push('the child\'s form does not say a parent books it');
+  if (/job-pay|job-join|job-take-seat/.test(k.tiles)) bad.push('the child is offered Pay or Join on a session: ' + (k.tiles.match(/job-(pay|join|take-seat)/g) || []).join(', '));
+  if (/fest-join/.test(k.fest) || !/Ask a parent/.test(k.fest)) bad.push('the child\'s festive card offers Come along rather than asking a parent');
+  /* AND THE SCREEN ITSELF: the booking column, drawn whole, has no £. */
+  try { t.repaint(true); t.go('booking', false, true); } catch (e) { return bad.concat(['go("booking") threw: ' + e.message]); }
+  await wait(150);
+  const col = (d.getElementById('s-booking') || {}).textContent || '';
+  if (!col.trim()) bad.push('the booking column drew nothing for the child');
+  if (/£/.test(col)) bad.push('the child\'s booking column shows a price: "' + /.{0,30}£.{0,20}/.exec(col)[0] + '"');
   return bad;
 });
 

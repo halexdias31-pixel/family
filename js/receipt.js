@@ -294,8 +294,10 @@ function drawBooker_() {
   const foot = `
     ${/* ---------- TWO MARKS, NOT A BUTTON AND A MARK § */
           ''}
+    ${/* A CHILD ASKS A PARENT, NOT THE BUSINESS (398): no price reaches her, so the parent books it. Share stays — it is how she shows them. */
+      childView_() ? `<p class="note rc-kid">${esc(KID_ASK_PARENT)}</p>` : ''}
     <div class="tile-row rc-tiles">
-      ${tile_({ icon: 'send', label: 'Ask for it', tone: 'buy', act: 'book-send' })}
+      ${childView_() ? '' : tile_({ icon: 'send', label: 'Ask for it', tone: 'buy', act: 'book-send' })}
       ${tile_({ icon: 'share', label: 'Share this booking',
                 /* `data: { stage: 'screen' }` WAS HERE and it was the second half of a choice this document made twice, back when sharing drew the receipt again onto a canvas. § */
                 act: 'book-share' })}

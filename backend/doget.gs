@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-22-c-library-ledger";
+const DOGET_VERSION = "2026-10-23-a-kid-prices";
 
 
 function doGet(e) {
@@ -122,6 +122,8 @@ function doGet(e) {
       if (!who) return jsonOut({ error: 'Please sign in again.' });
       /* THEIR OWN, SO THEIR OWN NAME STAYS WHOLE IN THEM (342). */
       netViewerSet_(who);
+      /* A RECEIPT IS NOTHING BUT MONEY, so a child is sent none (398). */
+      if (netViewerIsChild_()) return jsonOut({ version: BACKEND_VERSION, receipts: [] });
       const mine = read(TAB.receipts).rows.filter(r =>
         (S(r.person_id) && S(r.person_id) === S(who.person_id))
         || key(S(r.person_name)) === key(personDisplayName(who)));
@@ -1202,6 +1204,8 @@ function doGet(e) {
          `jsonOut` (`kidNamesOff_`, people.gs — no child's surname leaves). The fresh half meets it in
          `freshFor_`. */
       try { kidNamesOff_(payload); } catch (err) {}
+      /* AND NO PRICE TO A CHILD (398) — kept per viewer, so a child's kept body is a child's. */
+      try { kidPricesOff_(payload); } catch (err) {}
       const fresh = {};
       ['submissions', 'films', 'filmsSync', 'setup'].forEach(k => { fresh[k] = payload[k]; delete payload[k]; });
       const body = JSON.stringify(payload);
