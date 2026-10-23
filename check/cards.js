@@ -30,6 +30,9 @@ function serve() {
   return new Promise(done => {
     const srv = http.createServer((rq, rs) => {
       const f = path.join(ROOT, decodeURI(rq.url.split('?')[0]));
+      /* THE LIBRARY WITH ITS WORDS (397): the repository's copy is card metadata, check/lib-full.js puts them back. */
+      const libBody = require('./lib-full.js').serve(f);
+      if (libBody !== null) { rs.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' }); return rs.end(libBody); }
       if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) {
         rs.writeHead(404); return rs.end();
       }
@@ -115,7 +118,7 @@ function outside(svg, row) {
 }
 
 (async () => {
-  const rows = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'questions.json'), 'utf8'));
+  const rows = require('./lib-full.js').rows('questions');
   const parts = rows.filter(r => r && r.kind === 'question');
   /* THE SAME INDEX `stemIndex_` BUILDS, by the same rule: a stem naming a question belongs to that
      question, one naming only a section to the section, one naming neither to the paper. */

@@ -43,10 +43,9 @@
 | topicstuff | parent_id | text | row | no | a topic_id | geom | Blank means it is an area — the top of the tree. |
 | topicstuff | aliases | list | row | no |  | SOHCAHTOA, sig figs | Other names that should find this topic. |
 | topicstuff | active | bool | row | yes | TRUE \| FALSE | TRUE |  |
-| facets | field | text | row | yes | must match a field in FACETS | keystage | Names a facet declared in find.js. This tab overrides it; it does not create new ones. |
+| facets | field | text | row | yes |  | keystage | Names a facet. One declared in find.js takes this row's label and order; any other field becomes a question read off that column (`facetFromSheet_`), unless it is in RETIRED_FACETS. |
 | facets | label | text | row | yes |  | Key stage | The question as asked. |
-| facets | sort_order | number | row | yes |  | 30 | Lower is asked earlier. This is the funnel's order — see finder rule SR-03. |
-| facets | min_coverage | number | row | no | 0 to 1 | 0.3 | Blank uses 0.5. Lower it for a question worth asking even when thin. |
+| facets | sort_order | number | row | yes |  | 30 | Lower is asked earlier. This is the funnel's whole order, What for and What kind included — see search rule SR-03. |
 | facets | note | text | row | no |  |  |  |
 | facets | active | bool | row | yes | TRUE \| FALSE | TRUE |  |
 | terms | docid | text | doc | yes |  | tutor-terms | Groups sections into one document. |

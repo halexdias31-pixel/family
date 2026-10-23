@@ -60,8 +60,15 @@ when it was not told it could", never "is this past the right edge".
   tab still renders. **The pattern to copy for anything new.**
 - **`config` tab** — numbers and switches, reaching the site as `DATA.constants.vars`.
 - **`facets` / `kinds` tabs** — what the funnel asks and what answers are called; editorial, so not in code.
+- **One rule for every facet** (396): a facet is a field, a label and its readers (`FACET_KEYS`) — asked by `facetWhy_`,
+  sorted by `answerCmp_`, said by `facetSay_`, coloured by `TAG_OF`, and a tag on every card. Never a per-facet flag (check-funnel).
 - **Every other tab** is listed in `TAB`, `SCHEMA` and `WHERE` in `backend/constants.gs`. **All three must
   name it** (`check-tabs.js`, which runs before `check-columns.js`).
+- **The library is two halves** (397): `data/questions|textbooks|practicals|projects.json` are the CARDS (ids, facet
+  columns, `lib_has`, `function_verified`); words, answers and figures are in the Ledger (`LIB_FILES`, `lib_*` tabs)
+  and reach a phone by `libItems` when a card opens. Never commit a private field to `data/` (`check-secrets`); a
+  row-writing tool runs between `node tools/lib-private.js join` and `split`; checks read the whole library through
+  `check/lib-full.js`. See docs/library.md.
 - **Content cards:** each chapter row of `data/textbooks.json` is a content card (kind `content`); nothing a
   person sees says textbook, book or chapter. The file name, row shape, `DATA.textbooks` and `tb*` names
   stay. Topics are spelled exactly as `data/questions.json`/`data/topics.json` spell them (`check-textbooks.js`). See 347.
@@ -71,7 +78,7 @@ when it was not told it could", never "is this past the right edge".
   never hand-edit the row. For the rest the row is the source. Never in `index.html` or `style.css`; the
   splash draws a device-kept copy (`splashSync_`). `check-anims.js`, `check-loading.js`. See 304, 322.
 - **Verified tags:** every question carries two ordinary funnel tags, `Accuracy verified/unverified` (row `verified: "True"` = answer checked against the official scheme) and `Function verified/unverified` (qtypes.js protocol complete and machine-marked); `verifyTags_`, find.js; `check-qtypes.js`. See 388.
-- **Diagram PNG twins:** every `diagram` in `data/questions.json` has `data/diagrams/<12 hex of SHA-256>.png`
+- **Diagram PNG twins:** every `diagram` (the whole library, `check/lib-full.js`) has `data/diagrams/<12 hex of SHA-256>.png`
   for the Sunday email, written by `tools/diagram_png.js` — re-run it after changing a drawing, never draw
   one by hand; `check-diagram-png.js`. See 351.
 

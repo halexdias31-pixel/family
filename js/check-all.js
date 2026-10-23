@@ -74,7 +74,7 @@ const SUITE = [
   /* ---------- THE PRACTICALS, AND WHETHER THEIR TOPICS NAME ANYTHING REAL § */
   { file: 'check-practicals.js', what: 'the practicals, and the topics they join to' },
   /* ---------- AND THEIR SIBLING, WHICH IS NOT ONE OF THEM § */
-  { file: 'check-projects.js', what: 'the projects: topics, the funnel tables, nothing sent online' },
+  { file: 'check-projects.js', what: 'the projects: topics, the funnel, nothing sent online' },
   /* ---------- AND THE @family. TEXTBOOKS, WHICH ARE RESOURCES § */
   { file: 'check-textbooks.js', what: 'the textbooks: chapter order, the bones, the join, the Shelf door' },
   /* ---------- AND THE ANIMATIONS IN THEM, WHICH THE LOADING SCREEN DRAWS FROM A COPY § */
@@ -103,6 +103,8 @@ const SUITE = [
   /* EVERY ANSWER SENT IS AN EVENT. § */
   { file: 'check-submissions.js', what: 'submissions: a row per press, the token’s person, the latest per question, whose' },
   { file: 'check-reports.js', what: 'a reported question: one row as the token’s person, once a day, admin-only to read or close' },
+  /* THE LIBRARY'S WORDS IN THE LEDGER (397): the copy checked row by row, libItems signed-in and capped, the tools' copy the admin's. */
+  { file: 'check-library-ledger.js', what: 'the library in the Ledger: copied and checked a step at a time, served signed-in with a day\'s cap' },
   /* THE FILMS ARE WHAT IS IN THE NOTFLIX FOLDER. § */
   { file: 'check-films.js', what: 'the films from the Notflix folder: the upsert, admin only, no id sent, the clock' },
   /* WHAT A CHILD WROTE, ON THEIR ACCOUNT. § */

@@ -69,6 +69,9 @@ function serve(base) {
     let rel = url.slice(base.length) || '/';
     if (rel === '/') rel = '/index.html';
     const f = path.join(ROOT, decodeURI(rel));
+    /* THE LIBRARY WITH ITS WORDS (397): the repository's copy is card metadata, check/lib-full.js puts them back. */
+    const libBody = require('./lib-full.js').serve(f);
+    if (libBody !== null) { rs.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' }); return rs.end(libBody); }
     if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) {
       rs.writeHead(404); return rs.end();
     }

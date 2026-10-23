@@ -20,6 +20,20 @@ and read-only checks such as `checkSundayEmail`, `checkEverything`, `checkScopes
 `sheetWatchStatus`. The installers and one-off jobs end in `_` now, which hides them from the list
 (docs/history/361).
 
+## The library moved into the Ledger (397): two pushes, in order
+
+1. **The code, with the files still whole** (`fix-library-ledger`'s first commit). Push, then the three steps
+   above. Nothing changes on screen. The Setup card shows `library-to-ledger` copying in the background — a
+   trigger, `libraryCopyStep`, a few minutes at a time — until it says ✓ *copied from a237c8a and checked*
+   with the four counts. If it says STOPPED, the words say which row; fix that, then
+   `?run=rerun&arg=library-to-ledger` (or `?run=libraryStatus` to see where it is).
+2. **Only after that ✓**: push the commit that takes the words out of `data/` (its message says so). From then
+   on a card asks the Ledger for its words when it is opened. Pushed early, every card says "Couldn't load
+   this — the library is still being copied" until the copy is checked, and nothing is lost: the copy reads the
+   pinned commit, never the live files.
+
+Afterwards, changing a question is `docs/library.md`: pull, join, the tool, split, push.
+
 Moved out of CLAUDE.md on 18 Oct 2026, verbatim; CLAUDE.md keeps the table and a pointer.
 
 ## Deploying — they are not the same thing

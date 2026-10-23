@@ -106,9 +106,8 @@ on('cart-add', el => {
 function cartAddBundle_(el) {
   const ids = String(el.dataset.ids || '').split(',').map(s => s.trim()).filter(Boolean);
   const from = String(el.dataset.key || '');
-  /* EITHER THE ONE BUNDLE THE FUNNEL OFFERS, OR ONE OF THE SITTINGS `Bundles` LISTS — see find.js. */
-  const offered = [].concat(typeof bundleOf_ === 'function' ? bundleOf_() || [] : [],
-    typeof bundlesBySitting_ === 'function' && bundlesView_() ? bundlesBySitting_() : []);
+  /* THE ONE BUNDLE THE FUNNEL OFFERS — see `bundleOf_` in find.js. */
+  const offered = [].concat(typeof bundleOf_ === 'function' ? bundleOf_() || [] : []);
   const b = offered.find(x => x && x.ids.join(',') === ids.join(',')) || null;
   const shortOf = {};
   if (b && b.ids.join(',') === ids.join(',')) {

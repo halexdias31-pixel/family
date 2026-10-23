@@ -16,7 +16,7 @@ function loadOrder_() {
   return [...m[1].matchAll(/'([^']+)'/g)].map(x => x[1]);
 }
 
-const LIBRARY = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'questions.json'), 'utf8'));
+const LIBRARY = require('../check/lib-full.js').rows('questions');
 
 /* ---------- THE BACKEND, STOOD IN FOR — WITH SOMEBODY TO SEND AN ORDER TO § */
 const OWNER = { title: 'Owner Person', role: 'Admin', personId: 'P-OWNER', handle: 'owner',
@@ -73,7 +73,7 @@ function boot() {
   try {
     w.eval(src + '\n;window.__b = { STUFF, stuffFiltered, bundleOf_, paintStuff, stuffFirstResult_,' +
       ' stuffPageCount, frontPages_, pageCount, go, goPage, initCart, cartCard_, orderText_,' +
-      ' printPrice, laminatePrice, money, docById_, bundlesBySitting_, stuffPages_, facetBy, facetValues,' +
+      ' printPrice, laminatePrice, money, docById_, placeChipDead_, stuffPages_, facetBy, facetValues,' +
       ' CART: () => CART, setCart: v => { CART = v; }, USER: () => USER };');
   } catch (e) {
     return { err: 'the app did not load: ' + e.message };
@@ -285,200 +285,15 @@ const tick = ms => new Promise(ok => setTimeout(ok, ms));
   }
   b.setCart(had);
 
-  /* ---------- 4b. `Bundles` IS A KIND, AND ITS RESULTS ARE BUNDLES § */
+  /* ---------- 4b. `Bundles` IS NOT A KIND TO ASK FOR (396) — the bundle is the card in front of whole papers, above § */
   {
+    narrow([{ field: 'forLabel', value: 'Learning' }]);
     const kind = b.facetBy('kindLabel');
-    narrow(DOORS.map(f => f.field === 'kindLabel' ? { field: 'kindLabel', value: 'Bundles' } : f));
-    const sits = b.bundlesBySitting_();
-    if (!kind) bad.push('there is no `What kind` facet to find `Bundles` under');
-    if (!sits.length) bad.push('`Bundles` under Edexcel · Maths · GCSE drew no bundle at all');
-    if (b.stuffPages_().length) bad.push('`Bundles` still draws ' + b.stuffPages_().length + ' question pages under its bundles');
-    const front = b.frontPages_().filter(h => /class="card bundle/.test(h)).length;
-    if (front !== sits.length) bad.push('`Bundles` found ' + sits.length + ' sittings and drew ' + front + ' bundle cards');
-    const june = papersIn(r => MATHS(r) && r.tier === 'Higher' && JUNE(r));
-    const hit = sits.find(x => [...june].every(id => x.ids.includes(id)));
-    if (!hit) bad.push('no bundle under `Bundles` holds the June 2017 Higher papers');
-    else if (hit.ids.some(id => { const d = b.docById_(id) || {}; return String(d.year) !== '2017' || String(d.month) !== '6'; })) {
-      bad.push('the June 2017 bundle under `Bundles` also holds papers from another sitting: ' + hit.ids.join(', '));
-    }
-    for (let i = 1; i < sits.length; i++) {
-      const y = s => +((b.docById_(s.ids[0]) || {}).year || 0);
-      if (y(sits[i]) > y(sits[i - 1])) { bad.push('`Bundles` are not newest first'); break; }
-    }
-  }
-
-  /* ---------- 4c. ONE PAPER IS A SITTING TOO, AND IT GETS ITS CARD § */
-  {
-    const BUNDLES = DOORS.map(f => f.field === 'kindLabel' ? { field: 'kindLabel', value: 'Bundles' } : f);
-    const Y2019 = r => MATHS(r) && r.level === 'GCSE' && String(r.year) === '2019';
-    /* BY ITS TITLE — the dead-end card is a `.card.bundle` too, and has none. */
-    const cardsDrawn = () => w.document.querySelectorAll('#s-stuff .card.bundle .bundle-title').length;
-    const deadEnd = () => /No whole/.test((w.document.querySelector('#s-stuff') || {}).textContent || '');
-
-    narrow(BUNDLES.concat([{ field: 'examYear', value: '2019' }]));
-    const wantMonths = new Set();
-    LIBRARY.forEach(r => {
-      if (r.kind === 'question' && ON(r.active) && Y2019(r) && !OFF(r.paper_id)) wantMonths.add(String(r.month));
-    });
-    const gotMonths = new Set(b.bundlesBySitting_().map(s => String((b.docById_(s.ids[0]) || {}).month)));
-    if (wantMonths.size < 2) {
-      bad.push('Bundles · GCSE · 2019: the file holds ' + wantMonths.size + ' month(s), so this case measures '
-               + 'nothing — NOT a pass');
-    } else if (!sameSet(gotMonths, wantMonths)) {
-      bad.push('Bundles · GCSE · 2019 draws bundles for month(s) [' + list(gotMonths) + '] where the file '
-               + 'sat it in [' + list(wantMonths) + '] — a one-paper sitting has no card');
-    }
-
-    const one = [
-      { name: 'Bundles · GCSE · May 2019',
-        filters: BUNDLES.concat([{ field: 'examYear', value: '2019' }, { field: 'examMonth', value: 'May' }]),
-        want: papersIn(r => Y2019(r) && String(r.month) === '5') },
-      /* THE END OF EVERY JOURNEY: the Paper question answered, which leaves one paper. */
-      { name: 'Bundles · GCSE · Higher · June 2019 · Paper 2',
-        filters: BUNDLES.concat([{ field: 'tier', value: 'Higher' }, { field: 'examYear', value: '2019' },
-                                 { field: 'examMonth', value: 'June' },
-                                 { field: 'paperId', value: 'P-1MA1-1906-2H' }]),
-        want: papersIn(r => r.paper_id === 'P-1MA1-1906-2H') },
-    ];
-    one.forEach(c => {
-      if (c.want.size !== 1) {
-        bad.push(c.name + ': the file holds ' + c.want.size + ' printable paper(s), not one, so this case '
-                 + 'measures nothing — NOT a pass');
-        return;
-      }
-      narrow(c.filters);
-      const sits = b.bundlesBySitting_();
-      if (sits.length !== 1 || !sameSet(new Set(sits[0].ids), c.want)) {
-        bad.push(c.name + ': one whole printable paper (' + list(c.want) + ') gives ' + sits.length
-                 + ' bundle(s)' + (sits.length ? ' [' + sits.map(s => s.ids.join(' + ')).join(' | ') + ']' : ''));
-      }
-      if (cardsDrawn() !== 1 || deadEnd()) {
-        bad.push(c.name + ': the screen draws ' + cardsDrawn() + ' bundle card(s)'
-                 + (deadEnd() ? ' and the "No whole sitting" dead end' : '') + ' for one whole paper');
-      }
-    });
-  }
-
-  /* ---------- 4d. A PAPER THAT CANNOT BE PRINTED IS NOT A BUNDLE'S QUESTION § */
-  {
-    narrow([{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Bundles' }]);
-    const items = b.stuffFiltered();
-    const off = items.filter(x => x && x.kind === 'question' && OFF(String((x.row || x).paper_id || '')));
-    if (!items.length) bad.push('`What kind · Bundles` holds nothing, so 4d measures nothing — NOT a pass');
-    if (off.length) {
-      bad.push('`Bundles` holds ' + off.length + ' question(s) on papers whose document row says not printable, '
-               + 'from [' + [...new Set(off.map(x => (x.row || x).subject))].join(', ') + ']');
-    }
-    const onPaper = new Set();
-    const canPrint = new Set();
-    LIBRARY.forEach(r => {
-      if (r.kind !== 'question' || !ON(r.active) || !/paper/i.test(String(r.document_type || ''))) return;
-      onPaper.add(r.subject);
-      if (!OFF(r.paper_id)) canPrint.add(r.subject);
-    });
-    const never = [...onPaper].filter(s => !canPrint.has(s));
-    const missing = ['Religious Studies', 'Greek'].filter(s => never.indexOf(s) === -1);
-    if (missing.length) {
-      bad.push('the file now has a printable paper for ' + missing.join(' and ') + ', so 4d no longer '
-               + 'measures the case it was written for — NOT a pass');
-    }
-    const facet = b.facetBy('subject');
-    const offered = facet ? b.facetValues(items, facet).map(v => String(v.value)) : [];
-    if (!offered.length) bad.push('`Bundles` offers no Subject answers at all, so 4d measures nothing — NOT a pass');
-    const dead = never.filter(s => offered.indexOf(s) !== -1);
-    if (dead.length) {
-      bad.push('`Bundles` offers ' + dead.join(', ') + ' under Subject, and not one of its papers can be printed');
-    }
-  }
-
-  /* ---------- 4e. THE LAST LINE UNDER THE FUNNEL SAYS BUNDLES WHEN BUNDLES ARE WHAT IS BELOW § */
-  /* ---------- AND ALL THREE OF ITS BRANCHES, NOT ONLY THE ONE THAT HAS ONE BUNDLE § */
-  {
-    const BUNDLES = DOORS.map(f => f.field === 'kindLabel' ? { field: 'kindLabel', value: 'Bundles' } : f);
-    const JUNE19 = BUNDLES.concat([{ field: 'tier', value: 'Higher' }, { field: 'examYear', value: '2019' },
-                                   { field: 'examMonth', value: 'June' }]);
-    const NOV19 = BUNDLES.concat([{ field: 'tier', value: 'Higher' }, { field: 'examYear', value: '2019' },
-                                  { field: 'examMonth', value: 'November' }, { field: 'paperId', any: true }]);
-    /* THE NONE CASE, FOUND BY A SEARCH. § */
-    narrow(NOV19);
-    const askedNeeds = [...w.document.querySelectorAll('#s-stuff [data-do="facet-pick"][data-field="needs"]')].length;
-    if (askedNeeds) bad.push('Bundles, Higher · November 2019: ' + askedNeeds + ' `What you need` answer(s) offered — it is tagOnly and never asked in Bundles (355)');
-    narrow(NOV19, 'work out');
-    const none = !b.bundlesBySitting_().length && b.stuffFiltered().length ? NOV19 : null;
-    if (!none) {
-      bad.push('Bundles, Higher · November 2019, searched "work out": ' + b.bundlesBySitting_().length
-               + ' bundle(s) over ' + b.stuffFiltered().length + ' item(s), so the no-bundle line was NOT asked — not a pass');
-    }
-    [{ name: 'a paper chosen', paper: true, filters: JUNE19.concat([{ field: 'paperId', value: 'P-1MA1-1906-2H' }]),
-       want: 1 },
-     { name: '`Doesn\'t matter` on Paper', filters: JUNE19.concat([{ field: 'paperId', any: true }]), want: 1 },
-     /* SEVERAL: a year with every month, every paper and every need left open. */
-     { name: '2019, every month, paper and need', want: 'several',
-       filters: BUNDLES.concat([{ field: 'examYear', value: '2019' }, { field: 'examMonth', any: true },
-                                { field: 'paperId', any: true }, { field: 'needs', any: true }]) },
-     ...(none ? [{ name: 'Higher · November 2019, searched "work out"', want: 0, filters: none, q: 'work out' }] : []),
-    ].forEach(t => {
-      narrow(t.filters, t.q);
-      const end = w.document.querySelector('#stuff-groups .find-end');
-      const text = end ? end.textContent.replace(/\s+/g, ' ').trim() : '';
-      const n = b.bundlesBySitting_().length;
-      const items = b.stuffFiltered().length;
-      if (!end) { bad.push('Bundles, ' + t.name + ': the funnel draws no last line at all'); return; }
-      const shape = t.want === 'several' ? n >= 2 : n === t.want;
-      if (!shape) {
-        bad.push('Bundles, ' + t.name + ': ' + n + ' bundle(s) formed where the case is for '
-                 + (t.want === 'several' ? 'several' : t.want) + ', so it measures nothing — NOT a pass');
-      }
-      const repeats = items !== n && new RegExp('\\b' + items + '\\b').test(text);
-      if (/question/i.test(text) || !/bundle/i.test(text) || repeats) {
-        bad.push('Bundles, ' + t.name + ': the last line reads "' + text + '" over ' + n + ' bundle card(s), '
-                 + items + ' item(s) and ' + b.stuffPages_().length + ' question pages');
-      }
-      /* NONE IS NOT A COUNT. § */
-      if (n === 0 && (!/\bno bundles?\b/i.test(text) || /\d/.test(text) || /the bundles?\b/i.test(text))) {
-        bad.push('Bundles, ' + t.name + ': the last line reads "' + text + '" over no bundle card — it must '
-                 + 'say there is none, and promise nothing to swipe to');
-      }
-      if (n >= 2 && !new RegExp('\\b' + n + ' bundles\\b').test(text)) {
-        bad.push('Bundles, ' + t.name + ': the last line reads "' + text + '" over ' + n + ' bundle cards — it '
-                 + 'does not say how many');
-      }
-      if (/That is the paper/i.test(text) !== !!t.paper) {
-        bad.push('Bundles, ' + t.name + ': the last line reads "' + text + '" and a paper was '
-                 + (t.paper ? '' : 'NOT ') + 'chosen');
-      }
-      said.push('Bundles, ' + t.name + ': ' + text);
-    });
-
-    /* ---------- THE DEAD END SAYS WHICH ANSWER TOOK THE PAPERS APART § */
-    /* AND ONLY WHAT WAS CHOSEN. § */
-    const dead = () => [...w.document.querySelectorAll('#s-stuff .card.bundle')].find(x => /No whole/.test(x.textContent));
-    const deadEnds = [];
-    deadEnds.push({ name: 'a search, "work out"', filters: NOV19, q: 'work out', named: [], search: true });
-    deadEnds.forEach(t => {
-      narrow(t.filters, t.q);
-      if (b.bundlesBySitting_().length || !b.stuffFiltered().length) {
-        bad.push('Bundles dead end, ' + t.name + ': ' + b.bundlesBySitting_().length + ' bundle(s) over '
-                 + b.stuffFiltered().length + ' item(s), so this case measures nothing — NOT a pass');
-        return;
-      }
-      const card = dead();
-      if (!card) { bad.push('Bundles dead end, ' + t.name + ': no "No whole sitting" card is drawn'); return; }
-      const text = card.textContent.replace(/\s+/g, ' ').trim();
-      const named = [...card.querySelectorAll('.bundle-sub b')].map(x => x.textContent.trim());
-      const faults = [];
-      if (named.join(' | ') !== t.named.join(' | ')) {
-        faults.push('it names [' + named.join(', ') + '] where the answer that broke the papers is ['
-                    + t.named.join(', ') + ']');
-      }
-      if (/search/i.test(text) !== !!t.search) {
-        faults.push(t.search ? 'it does not name the search that was typed' : 'it blames a search nobody typed');
-      }
-      if (/topic/i.test(text)) faults.push('it blames a topic, and `Bundles` asks none');
-      if (faults.length) bad.push('Bundles dead end, ' + t.name + ': the card reads "' + text + '" — ' + faults.join('; '));
-      said.push('Bundles dead end, ' + t.name + ': ' + text);
-    });
-    narrow([]);
+    const answers = kind ? b.facetValues(b.stuffFiltered(), kind).map(v => v.value) : [];
+    if (!kind) bad.push('there is no `What kind` facet, so whether it offers `Bundles` was NOT checked');
+    else if (!answers.length) bad.push('`What kind` offers nothing over Learning, so whether it offers `Bundles` was NOT checked');
+    else if (answers.indexOf('Bundles') !== -1) bad.push('`What kind` offers `Bundles` again (' + answers.join(', ') + ') — a bundle is the card in front of whole papers, not a kind');
+    if (!b.placeChipDead_({ field: 'kindLabel', value: 'Bundles' })) bad.push('a kept `What kind · Bundles` chip is not dropped — it would hold an empty list');
   }
 
   /* ---------- 5. A BASKET SAVED BEFORE BUNDLES STILL DRAWS, AND AN UNCOUNTED PAPER IS NOT FREE § */

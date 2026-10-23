@@ -19,7 +19,7 @@ function loadOrder_() {
 function boot(cb) {
   const fixture = JSON.parse(fs.readFileSync(path.join(ROOT, 'check', 'fixture.json'), 'utf8'));
   const library = LIBRARY;
-  const practicals = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'practicals.json'), 'utf8'));
+  const practicals = require('../check/lib-full.js').rows('practicals');
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')
     .replace(/<script[\s\S]*?<\/script>/g, '');
   const dom = new JSDOM(html, { runScripts: 'outside-only', pretendToBeVisual: true,
@@ -50,8 +50,9 @@ function boot(cb) {
   try {
     w.eval(src + '\n;window.__f = { stuffItems, facetList, facetValues, facetCoverage,' +
       ' facetSplit_, nextFacet, FACET_MIN_MINORITY, FACET_MAX_ANSWERS, FACET_MAX_SHOWN, asList_,' +
-      ' filterHit, facetOwn_, bucketHas_, bucketDeclares_, STUFF, paperLabels_, stuffHay_, norm,' +
-      ' stuffNarrow_, stuffWords_, FACET_NEEDS_FIRST, fiveDayLabel_, tagOf_,' +
+      ' filterHit, facetOwn_, STUFF, stuffHay_, norm,' +
+      ' stuffNarrow_, stuffWords_, tagOf_, TAG_OF, FACET_KEYS, FACET_COVERAGE, facetWhy_, facetSay_,' +
+      ' answerCmp_, placeChipDead_, NEED_WORDS,' +
       /* THE LIST THE APP DRAWS, SORTED, AND THE LAST-RESORT QUESTION -- so 4e can ask what a person
          is shown once a paper is chosen, through the same two functions the screen asks. */
       ' stuffFiltered, overFacet_,' +
@@ -67,9 +68,7 @@ function boot(cb) {
          it — see the note where rule 8 was. `levelOf_` stays: the key-stage rule reads it. */
       ' levelOf: levelOf_,' +
       ' facetsLive: () => (DATA && DATA.facets) || [], FACETS,' +
-      /* THE FENCE AND THE TALLIES IT SPARES — so the rule below can ask what was TALLIED, not only
-         what was asked. */
-      ' listKind_, FACET_TALLY,' +
+      ' FACET_TALLY,' +
       /* THE SECOND FINDER (docs/history/329, 347): its binding, its record and its state, so the pass at
          the end asks Find 2's questions the way the app asks them. */
       ' inFinder_, finderOf_, kindOf_, stuffItemsAll_, RES_ST: typeof RES_ST !== "undefined" ? RES_ST : null };');
@@ -82,7 +81,7 @@ function boot(cb) {
 
 /* THE RAW FILE, NOT THE MAPPED ITEMS. `stuffItems` drops every `kind: 'document'` row, and a
    paper-level fact — the code on the cover, the total, the link — lives on exactly those. */
-const LIBRARY = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'questions.json'), 'utf8'));
+const LIBRARY = require('../check/lib-full.js').rows('questions');
 
 /* A value the funnel would draw on a button, reduced to the thing a person would say it is. § */
 const norm_ = v => String(v).toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -128,22 +127,68 @@ boot(f => {
     ['content', 'boxer', 'fight'].forEach(k => { if (!kindsHeld[k]) bad.push('Find holds no ' + k + ' — the content cards and the resources are Find\'s too (347)'); });
   } else bad.push('`kindOf_` or `stuffItemsAll_` is not exported, so Find holding everything was NOT checked');
 
+  /* ---------- 1. EVERY FACET IS THE SAME KIND OF THING, ASKED, SORTED, SAID AND COLOURED BY ONE RULE (396) § */
+  {
+    const keys = f.FACET_KEYS || [];
+    if (!keys.length) bad.push('FACET_KEYS is not exported, so the facets\' shape was NOT checked — not a pass');
+    f.FACETS.forEach(x => {
+      const extra = Object.keys(x).filter(k => keys.indexOf(k) === -1);
+      if (extra.length) bad.push('`' + x.field + '` carries ' + extra.join(', ') + ' — a facet is a field, a label and its readers (' + keys.join(', ') + '); a behaviour of its own is the special case the owner asked to be rid of');
+    });
+    facets.forEach(x => {
+      ['min', 'always', 'folder', 'grid', 'only', 'tagOnly'].forEach(k => { if (k in x) bad.push('the live `' + x.field + '` carries `' + k + '` — the sheet or the code gave one facet a rule of its own'); });
+      if (!f.tagOf_(x.field)) bad.push('`' + x.field + '` has no tag colour — TAG_OF and its default must colour every facet');
+    });
+    if (f.tagOf_('aFacetTheSheetInvented') !== f.tagOf_('another')) bad.push('two unlisted facets get different colours — a facet nobody listed takes the one default');
+    if (!f.tagOf_('aFacetTheSheetInvented')) bad.push('a facet the sheet invents gets no colour');
+    /* ONE BAR: the tab has no coverage column, and the sort is the tab's order alone. */
+    const rows = f.facetsLive();
+    if (rows.some(r => r && 'minCoverage' in r)) bad.push('the facets reach the app with a minCoverage — one coverage bar (FACET_COVERAGE) is the only one');
+    try {
+      const sheet = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'settings', 'facets.json'), 'utf8'));
+      const cols = sheet.filter(r => r && 'min_coverage' in r).map(r => r.field);
+      if (cols.length) bad.push('data/settings/facets.json has a min_coverage cell on ' + cols.join(', ') + ' — nothing reads it, and a cell that does nothing misleads whoever types in it');
+    } catch (e) { bad.push('data/settings/facets.json could not be read — its columns were NOT checked'); }
+    for (let i = 1; i < facets.length; i++) {
+      if (facets[i].at < facets[i - 1].at) { bad.push('the live facets are not in the tab\'s sort_order: `' + facets[i - 1].field + '` (' + facets[i - 1].at + ') before `' + facets[i].field + '` (' + facets[i].at + ')'); break; }
+    }
+  }
+  /* AND ASKED BY THE ONE TEST: the first facet in the tab's order that `facetWhy_` passes, whatever it is. */
+  if (f.facetWhy_) {
+    const first = facets.find(x => !f.facetWhy_(items, x));
+    const asked = f.nextFacet(items);
+    if ((first && first.field) !== (asked && asked.field)) bad.push('nextFacet asks `' + (asked && asked.field) + '` where the one rule picks `' + (first && first.field) + '`');
+  }
+  /* ---------- 1b. ONE ORDER FOR ANSWERS, BY WHAT THEY ARE; ONE WAY TO SAY THEM § */
+  if (f.answerCmp_ && f.facetSay_) {
+    const order = (texts, want, say) => {
+      const got = texts.slice().sort(f.answerCmp_(texts));
+      if (got.join('|') !== want.join('|')) bad.push(say + ' sorts as ' + got.join(', ') + ', wanted ' + want.join(', '));
+    };
+    order(['2019', '2024', '2017'], ['2024', '2019', '2017'], 'years');
+    order(['May 2019', 'June 2024', 'November 2019'], ['June 2024', 'November 2019', 'May 2019'], 'dates');
+    order(['10', '2', '1'], ['1', '2', '10'], 'numbers');
+    order(['November', 'June', 'May'], ['May', 'June', 'November'], 'months');
+    order(['iv', 'ii', 'i', 'iii'], ['i', 'ii', 'iii', 'iv'], 'roman numerals');
+    order(['Q10', 'Q2', 'Q1'], ['Q1', 'Q2', 'Q10'], 'names with numbers');
+    order(['Higher', 'Foundation'], ['Foundation', 'Higher'], 'words');
+    const say = (v, want) => { const got = f.facetSay_({}, v); if (got !== want) bad.push('"' + v + '" is said "' + got + '", wanted "' + want + '"'); };
+    say('a', 'a'); say('ii', 'ii'); say('past paper', 'Past paper'); say('AQA', 'AQA'); say('.1', '.1');
+    /* AND EVERY FACET OVER THE LIBRARY SAYS ITS ANSWERS THAT WAY, in that order. */
+    facets.forEach(x => {
+      const vals = f.facetValues(items, x);
+      const texts = vals.map(v => v.text);
+      const cmp = f.answerCmp_(texts);
+      for (let i = 1; i < texts.length; i++) {
+        if (cmp(texts[i - 1], texts[i]) > 0) { bad.push('`' + x.field + '` draws "' + texts[i - 1] + '" before "' + texts[i] + '" — not the one order its answers\' kind has'); break; }
+      }
+      vals.forEach(v => { if (v.text !== f.facetSay_(x, v.value)) bad.push('`' + x.field + '` says "' + v.value + '" as "' + v.text + '" — not the one way'); });
+    });
+  } else bad.push('`answerCmp_` or `facetSay_` is not exported, so the one order and the one way of saying were NOT checked — not a pass');
+
   facets.forEach(facet => {
     const vals = f.facetValues(items, facet);
     const cov = f.facetCoverage(items, facet);
-    const offered = !facet.collect && vals.length >= 2 && vals.length <= f.FACET_MAX_ANSWERS
-                    && cov >= facet.min;
-
-    /* ---------- 1. A QUESTION EVERYBODY ANSWERS THE SAME WAY § */
-    if (offered && !facet.always) {
-      const split = f.facetSplit_(items, facet);
-      if (split < f.FACET_MIN_MINORITY) {
-        bad.push('`' + facet.field + '` (' + facet.label + ') is offered but cannot narrow: '
-                 + 'pressing its commonest answer would leave ' + (split * 100).toFixed(2)
-                 + '% of the list standing. A question whose obvious answer changes nothing is a '
-                 + 'tap that does nothing.');
-      }
-    }
 
     /* ---------- 2. ONE ANSWER WEARING TWO COATS ---------------------------------------------------
        The `Alevel` / `A-Level` fault, caught inside a single facet. */
@@ -186,9 +231,6 @@ boot(f => {
     bad.push('the sitting is not asked as two questions — `examYear` ' + (syear ? 'is' : 'is NOT')
              + ' live and `examMonth` ' + (smonth ? 'is' : 'is NOT') + ' — so "2018 then June" '
              + 'has nothing to measure: not a pass');
-  } else if (!syear.folder || !smonth.folder) {
-    bad.push('`examYear` and `examMonth` must both be `folder: true` -- asked even with one answer, '
-             + 'the way the owner opens a year folder that holds one paper. See nextFacet().');
   } else if (f.facetOwn_ && f.waveOf) {
     const waves = {}, monthsSeen = {}, yearsSeen = {};
     let dated = 0, monthless = 0;
@@ -282,7 +324,7 @@ boot(f => {
              + 'the column — not a pass');
   }
 
-  /* ---------- 4a. YEAR, MONTH, PAPER -- ASKED LIKE FOLDERS, EVEN WITH ONE INSIDE § */
+  /* ---------- 4a. YEAR, MONTH, PAPER -- ASKED LIKE EVERY OTHER QUESTION, SO NEVER WITH ONE ANSWER (396) § */
   if (f.nextFacet && f.stuffNarrow_ && smonth && syear) {
     const MATHS_PAST = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Questions' },
                         { field: 'subject', value: 'Maths' }, { field: 'documentType', value: 'Past paper' }];
@@ -300,11 +342,11 @@ boot(f => {
     let walked = 0;
     try {
       const levelF = facets.find(x => x.field === 'level');
-      const levels = levelF ? valuesAt(MATHS_PAST, levelF).filter(v => !v.bucket) : [];
+      const levels = levelF ? valuesAt(MATHS_PAST, levelF) : [];
       levels.forEach(lv => {
         const at = MATHS_PAST.concat([{ field: 'level', value: lv.value }]);
         const years = valuesAt(at, syear);
-        if (years.length !== 1 || years[0].bucket) return;
+        if (years.length !== 1) return;
         /* Tier and anything else the level still splits on come first, as a thumb would meet them. */
         let chips = at.slice();
         for (let i = 0; i < 6 && asks(chips) !== 'examYear'; i++) {
@@ -312,29 +354,28 @@ boot(f => {
           const facet = facets.find(x => x.field === q);
           const v = facet && valuesAt(chips, facet)[0];
           if (!v) break;
-          chips = chips.concat([{ field: q, value: v.value, bucket: v.bucket }]);
+          chips = chips.concat([{ field: q, value: v.value }]);
         }
         walked++;
         const steps = [['examYear', syear], ['examMonth', smonth], ['paperId', paperF]];
         steps.forEach(([field, facet]) => {
-          const got = asks(chips);
-          if (got !== field) {
-            bad.push(lv.value + ' maths past papers: the funnel asks `' + got + '` where the `' + field
-                     + '` folder belongs -- ' + valuesAt(chips, facet).length + ' answer(s) in it, and '
-                     + 'a folder is asked even with one. See `folder` and nextFacet().');
+          const got = asks(chips), n = valuesAt(chips, facet).length;
+          if (got === field && n < 2) {
+            bad.push(lv.value + ' maths past papers: the funnel asks `' + field + '` with ' + n + ' answer(s) -- '
+                     + 'a question with one answer is not asked, Year, Month and Paper included. See facetWhy_().');
           }
           const v = facet && valuesAt(chips, facet)[0];
-          if (v) chips = chips.concat([{ field: field, value: v.value, bucket: v.bucket }]);
+          if (v) chips = chips.concat([{ field: field, value: v.value }]);
         });
       });
-      /* AND A MONTH THAT HOLDS ONE PAPER, which is the Paper folder asked with one answer. */
+      /* AND A MONTH THAT HOLDS ONE PAPER, whose Paper question has one answer and is not asked. */
       const tierF = facets.find(x => x.field === 'tier');
       const gcse = MATHS_PAST.concat([{ field: 'level', value: 'GCSE' }]);
       const single = [];
       (tierF ? valuesAt(gcse, tierF) : []).forEach(t => {
         const at = gcse.concat([{ field: 'tier', value: t.value }]);
         const ys = valuesAt(at, syear);
-        ys.filter(y => !y.bucket).forEach(y => {
+        ys.forEach(y => {
           const ay = at.concat([{ field: 'examYear', value: y.value }]);
           valuesAt(ay, smonth).forEach(m => {
             const am = ay.concat([{ field: 'examMonth', value: m.value }]);
@@ -345,16 +386,16 @@ boot(f => {
       if (single.length) {
         walked++;
         const got = asks(single[0]);
-        if (got !== 'paperId') {
+        if (got === 'paperId') {
           bad.push('one paper in ' + single[0].slice(-3).map(c => c.value).join(' · ') + ' and the funnel '
-                   + 'asks `' + got + '` instead of the Paper folder that holds it. See nextFacet().');
+                   + 'asks Paper with that one answer. See facetWhy_().');
         }
       }
     } finally { f.STUFF.filters = was; }
-    console.log('  Folders: ' + walked + ' single-answer walk(s) through Year, Month and Paper');
+    console.log('  One answer: ' + walked + ' single-answer walk(s) through Year, Month and Paper, none asked');
     if (!walked) {
-      bad.push('nothing in the library is a year folder or a month folder holding one thing, so the '
-               + 'folder rule has nothing to measure: not a pass');
+      bad.push('nothing in the library is a year or a month holding one thing, so the '
+               + 'one-answer rule has nothing to measure: not a pass');
     }
   }
 
@@ -378,14 +419,12 @@ boot(f => {
     facets.forEach(facet => {
       if (facet.collect) return;
       f.facetValues(list, facet).forEach(v => {
-        /* ---------- PRESSED THE WAY THE APP PRESSES IT, WHICH NOW INCLUDES `bucket` § */
-        const got = list.filter(x => f.filterHit(x,
-          { field: facet.field, value: v.value, bucket: v.bucket })).length;
+        const got = list.filter(x => f.filterHit(x, { field: facet.field, value: v.value })).length;
         if (got !== v.n) {
           bad.push('`' + facet.field + '` draws the answer "' + (v.show || v.value) + '" saying it '
             + 'holds ' + v.n + ' item(s) ' + label + ', and pressing it returns ' + got
             + ' — the row and `filterHit` disagree, so that chip empties the list with nothing '
-            + 'on screen saying why. See shortLabels_, spellShow_ and bucketValues_.');
+            + 'on screen saying why. See facetTally_ and filterHit.');
         }
       });
     });
@@ -394,57 +433,15 @@ boot(f => {
   const onePaper = items.filter(x => x.row && x.row.paper_id === 'P-1MA1-1705-1H');
   if (onePaper.length) promises('inside one paper', onePaper);
 
-  /* ---------- 4d. AND AN ANSWER INSIDE A BUCKET, PRESSED THROUGH THE WHOLE CHAIN § */
-  let chained = 0;
-  const chains = (label, base, doors) => {
-    const was = f.STUFF.filters.slice();
-    try {
-      facets.forEach(facet => {
-        if (facet.collect) return;
-        /* ONLY WHERE THE FUNNEL WOULD ASK IT. § */
-        const first = (f.FACET_NEEDS_FIRST || {})[facet.field];
-        if (first && !doors.some(d => d.field === first)) return;
-        f.STUFF.filters = doors.slice();
-        f.facetValues(base, facet).filter(v => v.bucket).forEach(b => {
-          const outer = doors.concat([{ field: facet.field, value: b.value, bucket: true }]);
-          f.STUFF.filters = outer.slice();
-          const inside = f.stuffNarrow_(items, outer, [], null);
-          f.facetValues(inside, facet).forEach(v => {
-            const chain = outer.concat([{ field: facet.field, value: v.value, bucket: v.bucket }]);
-            const got = f.stuffNarrow_(items, chain, [], null).length;
-            chained++;
-            if (got !== v.n) {
-              bad.push('`' + facet.field + '` opens "' + b.value + '" ' + label + ' onto "'
-                + (v.show || v.value) + '", which says it holds ' + v.n + ' item(s), and pressing '
-                + 'it there returns ' + got + ' — the bucket above it stands down once the answer '
-                + 'inside it arrives, so that answer has to mean the same thing on its own. See '
-                + 'bucketLabels_ and stuffNarrow_.');
-            }
-            f.STUFF.filters = outer.slice();
-          });
-        });
-      });
-    } finally { f.STUFF.filters = was; }
-  };
-  if (f.stuffNarrow_) {
-    chains('in the whole library', items, []);
-    /* ---------- AND NOT INSIDE ONE PAPER ANY MORE, WHICH IS SAID RATHER THAN SKIPPED § */
-    console.log('  ' + chained + ' answer(s) pressed inside their bucket, through the whole chain'
-                + ' (none inside one paper: a paper ends the funnel, see 4e)');
-    /* NOTHING IS GROUPED SINCE 6 OCT (*"No more of these artificial categories like grade 1-3"*), so there is no answer inside a bucket to press and this proves § */
-    if (!chained) console.log('  no answer is drawn inside a bucket -- the funnel groups nothing any more');
-  } else {
-    bad.push('`stuffNarrow_` is not declared, so an answer inside a bucket cannot be pressed — not a pass');
+  /* ---------- 4d. NO ANSWER IS A RANGE, AND A RANGE CHIP KEPT FROM BEFORE IS DROPPED (290, 396) § */
+  {
+    const ranged = [];
+    facets.forEach(x => f.facetValues(items, x).forEach(v => { if (v.bucket) ranged.push(x.field + ' ' + v.value); }));
+    if (ranged.length) bad.push('answers drawn as ranges: ' + ranged.slice(0, 5).join(', '));
+    if (!f.placeChipDead_ || !f.placeChipDead_({ field: 'subject', value: 'Science', bucket: true })) bad.push('a kept range chip (`bucket`) is not dropped — nothing answers one since the tables went');
   }
 
-  /* ---------- 4e. AFTER PAPER, THE PAPER -- ITS QUESTIONS, IN ORDER, AND NOTHING MORE ASKED § */
-  ['qNumber', 'qPart', 'qSub', 'qPage', 'qPages', 'marks'].forEach(own => {
-    const live = facets.find(x => x.field === own);
-    if (live && !live.tagOnly) {
-      bad.push('`' + own + '` is an ASKED question — the owner asked for "no more asking for questions 1-10 or '
-               + 'question part 1 or b." It must be tagOnly: a door on the paper, never asked (355).');
-    }
-  });
+  /* ---------- 4e. AFTER PAPER, THE PAPER -- ITS QUESTIONS, IN ORDER, AND THE FUNNEL GOES ON BY THE SAME RULE (396) § */
   ['question', 'part'].forEach(old => {
     if (facets.find(x => x.field === old)) {
       bad.push('`' + old + '` is a live question again — the owner asked for "no more asking for '
@@ -469,10 +466,12 @@ boot(f => {
         const list = f.stuffFiltered();
         walkedP++;
         const next = f.nextFacet(list) || (f.overFacet_ && f.overFacet_(list));
-        if (next) {
-          after[next.field] = (after[next.field] || 0) + 1;
-          if (out.length < 6) out.push(id + ' asks `' + next.field + '`: ' + f.facetValues(list, next)
-            .map(v => (v.show || v.value) + ' ' + v.n).join(' | '));
+        if (next) after[next.field] = (after[next.field] || 0) + 1;
+        /* A PAPER IS NOT AN END (396): the one rule still asks — Question, when it has two numbers or more. */
+        const qF = facets.find(x => x.field === 'qNumber');
+        const nums = qF ? f.facetValues(list, qF).length : 0;
+        if (nums >= 2 && nums <= f.FACET_MAX_ANSWERS && !next && out.length < 6) {
+          out.push(id + ' has ' + nums + ' question numbers and the funnel asks nothing');
         }
         const want = byPaper[id].length;
         if (list.length !== want || list.some(x => !x.row || x.row.paper_id !== id)) {
@@ -490,13 +489,12 @@ boot(f => {
       });
     } finally { f.STUFF.q = was.q; f.STUFF.filters = was.filters; }
     const askedAfter = Object.keys(after);
-    if (askedAfter.length) {
-      bad.push(askedAfter.map(k => after[k] + ' paper(s) ask `' + k + '`').join(', ') + ' once the paper '
-               + 'is chosen — after Paper the list is the answer. See FACET_ENDS. ' + out.join('; '));
+    if (out.length) {
+      bad.push('a chosen paper ends the funnel where the one rule would still ask: ' + out.join('; '));
     }
-    console.log('  After Paper: ' + walkedP + ' paper(s) chosen through Year and Month; '
-                + (askedAfter.length ? askedAfter.length + ' question(s) still asked' : 'nothing more asked')
-                + ', each the whole paper in question order');
+    if (!after.qNumber) bad.push('no chosen paper goes on to ask Question, so the after-Paper rule proves nothing');
+    console.log('  After Paper: ' + walkedP + ' paper(s) chosen through Year and Month, each the whole paper in question order; '
+                + 'next asked: ' + askedAfter.map(k => k + ' ' + after[k]).join(', '));
     if (walkedP < 100) bad.push('only ' + walkedP + ' paper(s) could be chosen, so the after-Paper rule '
                                 + 'measures almost nothing — not a pass');
   } else {
@@ -508,10 +506,8 @@ boot(f => {
   const answers = {};
   facets.forEach(facet => {
     /* A QUESTION NOBODY IS ASKED CANNOT BE CONFUSED WITH ONE THAT IS. § */
-    if (facet.collect || facet.tagOnly) return;
+    if (facet.collect) return;
     f.facetValues(items, facet).forEach(v => {
-      /* ---------- A RANGE IS NOT A NAME § */
-      if (v.bucket) return;
       const k = norm_(v.value);
       if (!k) return;
       (answers[k] = answers[k] || []).push({ field: facet.field, value: v.value, n: v.n });
@@ -620,7 +616,8 @@ boot(f => {
     const mine = items.filter(x => x.kind === 'question' && x.row && x.row.paper_id === pid);
     if (!mine.length) return;
     needsChecked += mine.length;
-    const want = f.asList_(String(docNeeds[pid]).split(','));
+    /* IN THE WORDS THE ITEM CARRIES (`NEED_WORDS`): `No calculator` on the cover is `Non-calculator` on the question. */
+    const want = f.asList_(String(docNeeds[pid]).split(',')).map(w => (f.NEED_WORDS || {})[String(w).trim().toLowerCase()] || w);
     const short = mine.filter(x => {
       const got = f.asList_(x.needs).map(v => String(v).toLowerCase());
       return !want.every(w => got.indexOf(String(w).toLowerCase()) !== -1);
@@ -649,10 +646,7 @@ boot(f => {
     const qs = items.filter(x => x && x.row && x.row.paper_id);
     const vals = f.facetValues(qs, paperFacet);
     const ids = new Set(qs.map(x => x.row.paper_id));
-    /* ---------- A LEAF ANSWER IS ONE PAPER; A BUCKET IS MEANT TO HOLD MANY § */
-    const leaves = vals.filter(v => !v.bucket);
     vals.forEach(v => {
-      if (v.bucket) return;
       const held = new Set(qs.filter(x => f.filterHit(x, { field: 'paperId', value: v.value }))
                              .map(x => x.row.paper_id));
       if (held.size > 1) {
@@ -660,31 +654,23 @@ boot(f => {
                  + ' different papers: ' + [...held].join(', '));
       }
     });
-    /* ONE ANSWER PER PAPER, AND ONLY WHERE THE ANSWERS ARE PAPERS. § */
-    const bucketed = vals.length !== leaves.length;
-    console.log('\nTHE PAPER QUESTION: ' + vals.length + (bucketed ? ' bucket(s)' : ' answer(s)')
-                + ' over ' + ids.size + ' papers'
-                + (!bucketed && vals.length === ids.size ? ' — one each' : ''));
-    if (!bucketed && vals.length !== ids.size) {
+    console.log('\nTHE PAPER QUESTION: ' + vals.length + ' answer(s) over ' + ids.size + ' papers'
+                + (vals.length === ids.size ? ' — one each' : ''));
+    if (vals.length !== ids.size) {
       bad.push('the Paper question offers ' + vals.length + ' answers for ' + ids.size + ' papers');
     }
   }
 
-  /* ---------- AND THE PAPERS THE RULE ABOVE CANNOT REACH § */
-  if (typeof f.paperLabels_ === 'function') {
-    const labels = f.paperLabels_();
-    const byLabel = {};
-    Object.keys(labels).forEach(id => {
-      (byLabel[labels[id]] = byLabel[labels[id]] || []).push(id);
-    });
-    const shared = Object.keys(byLabel).filter(l => byLabel[l].length > 1);
-    console.log('\nPAPERS DRAWN UNDER ONE LABEL: ' + shared.length
-                + (shared.length ? ' \u2014 rows to repair, not a rule' : ''));
-    shared.slice(0, 10).forEach(l => console.log('  ' + JSON.stringify(l) + '  '
-                                                 + byLabel[l].join(', ')));
-    if (shared.length > 10) console.log('  \u2026 and ' + (shared.length - 10) + ' more');
-  } else {
-    bad.push('`paperLabels_` is not declared, so paper labels cannot be checked \u2014 not a pass');
+  /* ---------- AND TWO PAPERS ARE NEVER DRAWN THE SAME, OVER THE WHOLE LIBRARY: a shared name says what tells them apart (`tellApart_`) § */
+  if (paperFacet) {
+    const qs = items.filter(x => x && x.row && x.row.paper_id);
+    const byShow = {};
+    f.facetValues(qs, paperFacet).forEach(v => { (byShow[v.show] = byShow[v.show] || []).push(v.value); });
+    const shared = Object.keys(byShow).filter(l => byShow[l].length > 1);
+    const told = Object.keys(byShow).filter(l => / \u00b7 /.test(l));
+    console.log('\nPAPERS TOLD APART BY ANOTHER FACET: ' + told.length + (told.length ? ', e.g. ' + told.slice(0, 3).map(l => JSON.stringify(l)).join(', ') : ''));
+    if (shared.length) bad.push(shared.length + ' paper label(s) still stand for two papers over the whole library, so nothing on the screen tells them apart: '
+      + shared.slice(0, 5).map(l => JSON.stringify(l) + ' ' + byShow[l].join(', ')).join('; '));
   }
 
   /* ---------- A PAPER'S LABEL SAYS NOTHING THE SCREEN HAS ALREADY ANSWERED § */
@@ -724,12 +710,12 @@ boot(f => {
     bad.push('`facetValues` is not declared, so the paper labels cannot be checked — not a pass');
   }
 
-  /* ---------- 4f. A CHIP'S HALF OF THE DATE IS NOT SAID AGAIN, AND NO ANSWER FUSES THE TWO § */
+  /* ---------- 4f. UNDER A YEAR OR MONTH CHIP, EVERY PAPER ANSWER IS ONE NAME, AND ITS CHIP SAYS WHAT IT SAID (396) § */
   if (f.nextFacet && f.stuffNarrow_ && f.chipShow_ && syear && smonth) {
     const paperF = facets.find(x => x.field === 'paperId');
     const was = { q: f.STUFF.q, filters: f.STUFF.filters.slice() };
     const listAt = chips => { f.STUFF.q = ''; f.STUFF.filters = chips.slice(); return f.stuffNarrow_(items, chips, [], null); };
-    const chipOf = (v, field) => Object.assign({ field: field, value: v.value }, v.bucket ? { bucket: true } : {});
+    const chipOf = (v, field) => ({ field: field, value: v.value });
     const folders = [];
     const seenAt = new Set();
     const find = (chips, depth) => {
@@ -750,11 +736,7 @@ boot(f => {
       const labelsAt = chips => {
         const out = [];
         const list = listAt(chips);
-        f.facetValues(list, paperF).forEach(v => {
-          if (!v.bucket) { out.push({ chips: chips, v: v }); return; }
-          const inside = chips.concat([chipOf(v, 'paperId')]);
-          f.facetValues(listAt(inside), paperF).filter(w => !w.bucket).forEach(w => out.push({ chips: inside, v: w }));
-        });
+        f.facetValues(list, paperF).forEach(v => out.push({ chips: chips, v: v }));
         return out;
       };
       folders.forEach(at => {
@@ -772,21 +754,11 @@ boot(f => {
         Object.keys(months).forEach(m => routes.push([{ field: 'examYear', any: true }, { field: 'examMonth', value: m }]));
         routes.forEach(route => {
           const chips = at.concat(route);
-          const sayY = route[0].any ? '' : route[0].value, sayM = route[1].any ? '' : route[1].value;
           labelsAt(chips).forEach(({ chips: c, v }) => {
             const show = String(v.show || v.value);
             read++;
             const where = c.filter(x => x.field !== 'forLabel' && x.field !== 'kindLabel')
               .map(x => x.any ? x.field + ' skipped' : x.value).join(' · ');
-            if (sayY && new RegExp('\\b' + sayY + '\\b').test(show)) {
-              bad.push(where + ': the Paper answer "' + show + '" says the year the Year chip above it already said. See sittingUnsaid_().');
-            }
-            if (sayM && new RegExp('\\b' + sayM + '\\b', 'i').test(show)) {
-              bad.push(where + ': the Paper answer "' + show + '" says the month the Month chip above it already said. See sittingUnsaid_().');
-            }
-            if (fusedDate_(show)) {
-              bad.push(where + ': the Paper answer "' + show + '" holds a month and a year together — the funnel asks them as two folders.');
-            }
             const pressed = c.concat([{ field: 'paperId', value: v.value }]);
             f.STUFF.filters = pressed.slice();
             const chip = f.chipShow_(pressed[pressed.length - 1], pressed.length - 1);
@@ -795,14 +767,16 @@ boot(f => {
             }
           });
         });
-        /* AND THE ROUTE THAT KEEPS THE PRINTED DATE, counted. */
-        labelsAt(at.concat([{ field: 'examYear', any: true }, { field: 'examMonth', any: true }]))
-          .forEach(({ v }) => { if (fusedDate_(v.show || v.value)) unsaid++; });
+        /* AND NO TWO ANSWERS UNDER ONE ROUTE READ THE SAME. */
+        routes.forEach(route => {
+          const shows = labelsAt(at.concat(route)).map(({ v }) => String(v.show || v.value));
+          if (new Set(shows).size !== shows.length) bad.push('two Paper answers read the same under ' + route.map(c => c.any ? c.field + ' skipped' : c.value).join(' · ') + ': ' + shows.join(' | '));
+          unsaid += shows.length;
+        });
       });
     } finally { f.STUFF.q = was.q; f.STUFF.filters = was.filters; }
-    console.log('  Paper answers under a Year or Month chip: ' + read + ' read at ' + folders.length
-                + ' year folder(s), none repeating a chip or fusing the date; ' + unsaid
-                + ' keep the printed date with both folders skipped');
+    console.log('  Paper answers under a Year or Month chip: ' + read + ' read and pressed at ' + folders.length
+                + ' year folder(s); ' + unsaid + ' compared, none reading the same as another');
     if (!read) bad.push('no Paper answer was read under a Year or Month chip, so the half-a-date rule proves nothing');
   } else {
     bad.push('`chipShow_`, `nextFacet` or `stuffNarrow_` is not declared, or the sitting is not two '
@@ -861,7 +835,7 @@ boot(f => {
         });
       });
       /* ---------- AND WITH THE YEAR SKIPPED § */
-      const months = f.facetValues(kept, byField('examMonth') || yearF).filter(v => !v.bucket);
+      const months = f.facetValues(kept, byField('examMonth') || yearF);
       const routes = [[{ field: 'examYear', any: true }, { field: 'examMonth', any: true }]]
         .concat(months.map(m => [{ field: 'examYear', any: true }, { field: 'examMonth', value: m.value }]));
       routes.forEach(route => {
@@ -874,12 +848,11 @@ boot(f => {
           f.facetValues(list, paperF).forEach(a => {
             skipped++;
             const show = String(a.show || a.value);
-            const shape = route[1].any ? /^Paper \d+( [\u2014\u2013] [A-Za-z]+ (19|20)\d{2})?$/
-                                       : /^Paper \d+( \u00b7 (19|20)\d{2})?$/;
+            /* THE SHORTEST NAME THAT IS STILL ONE PAPER (396): the number, and its date where two sittings share the number. */
+            const shape = /^Paper \d+( [\u2014\u2013] [A-Za-z]+ (19|20)\d{2})?$/;
             if (!shape.test(show)) {
               bad.push(say + ': the Paper answer reads ' + JSON.stringify(show) + ' — the number, and the '
-                       + 'half of the date no chip has said where two years share it, and nothing else. '
-                       + 'See nameForms_() and sittingUnsaid_().');
+                       + 'date where two sittings share it, and nothing else. See nameForms_() and shortLabels_().');
             }
             f.STUFF.filters = doors.concat([{ field: 'paperId', value: a.value }]);
             const chip = f.chipShow_(f.STUFF.filters[f.STUFF.filters.length - 1], f.STUFF.filters.length - 1);
@@ -911,9 +884,10 @@ boot(f => {
                    + 'Subject answer (' + JSON.stringify(own) + ') — see tagRow_().');
         }
       });
-      if (String(x.row.document_type || '') === '5-a-day' && f.fiveDayLabel_ && f.tagOf_) {
+      const dayF = byField('fiveDay');
+      if (String(x.row.document_type || '') === '5-a-day' && dayF && f.tagOf_) {
         fives++;
-        const day = f.fiveDayLabel_(pid);
+        const day = f.facetSay_(dayF, f.asList_(dayF.of(x))[0] || '');
         if (!tags.some(t => t.tag === f.tagOf_('fiveDay') && t.text === day)) {
           bad.push(pid + ': the 5-a-day card has no ' + JSON.stringify(f.tagOf_('fiveDay')) + ' tag reading '
                    + JSON.stringify(day) + ', which is what its Day answer says — its tags are '
@@ -968,270 +942,69 @@ boot(f => {
   }
 
 
-  /* AND NO QUESTION IS CUT INTO RANGES -- THE SEVEN-ANSWER CAP BELOW IS HISTORY. § */
-  if (f.facetValues && f.filterHit && f.FACET_MAX_SHOWN) {
-    const CAP = f.FACET_MAX_SHOWN;
-    const keep = (list, facet, v) =>
-      list.filter(x => f.filterHit(x, { field: facet.field, value: v.value, bucket: v.bucket }));
-    const over = [];
-    const seenState = {};
-    /* ---------- AND WHAT THE GROUPS ACTUALLY SAY, WHICH IS THE HALF A RULE CANNOT JUDGE § */
-    const groups = {};
-    const look = (say, list) => {
-      if (seenState[say] || !list.length) return;
-      seenState[say] = 1;
-      f.facetList().forEach(facet => {
-        let vals = [];
-        try { vals = f.facetValues(list, facet); } catch (e) { return; }
-        /* A RANGE IS ANY BUCKET THE FACET'S OWN TABLE DID NOT NAME -- `C–E`, `1–10`, `2023 & 2024`. */
-        const ranged = vals.filter(v => v.bucket && !(f.bucketDeclares_ && f.bucketDeclares_(facet, v.value)));
-        if (ranged.length) {
-          over.push('`' + facet.field + '` (' + facet.label + ') draws ' + ranged.map(v => v.value).slice(0, 4).join(', ')
-                    + ' at ' + (say || 'the top of the funnel'));
-        }
-        if (vals.length && vals[0].bucket && !groups[facet.field]) {
-          groups[facet.field] = { label: facet.label, at: say || 'the top of the funnel',
-                                  says: vals.map(v => (v.show || v.value) + ' (' + v.n + ')') };
-        }
-      });
-    };
-    /* AND THE QUESTION ACTUALLY ASKED IS ONE THAT FITS: drawn whole, so never past FACET_MAX_ANSWERS. */
-    const tooLong = [];
+  /* ---------- AT EVERY STATE OF THE REAL FUNNEL: NO QUESTION ASKED PAST FACET_MAX_ANSWERS, NONE ASKED OF A LIST THAT CANNOT
+     ANSWER IT, AND THE LAST RESORT THE FEWEST (396) — one rule where the fence, the grids and the doors were § */
+  if (f.facetValues && f.filterHit) {
+    const keep = (list, facet, v) => list.filter(x => f.filterHit(x, { field: facet.field, value: v.value }));
+    const tooLong = [], strays = [], resort = [];
+    let states = 0, resorts = 0;
     const lookAsk = (say, list) => {
+      if (!list.length) return;
+      states++;
       let facet = null;
-      try { facet = f.nextFacet(list, {}); } catch (e) { facet = null; }
-      if (!facet) return;
-      const n = f.facetValues(list, facet).length;
-      /* A GRID IS A NUMBERED RUN AND IS DRAWN AS ONE — the Bible's chapters and verses — so it is not
-         held to the cap; the static rule below keeps a grid inside a closed kind. */
-      if (n > f.FACET_MAX_ANSWERS && !facet.grid) tooLong.push('`' + facet.field + '` asks with ' + n + ' answers at ' + (say || 'the top'));
+      try { facet = f.nextFacet(list); } catch (e) { tooLong.push(say + ': nextFacet threw ' + e.message); return; }
+      if (facet) {
+        const n = f.facetValues(list, facet).length;
+        if (n > f.FACET_MAX_ANSWERS) tooLong.push('`' + facet.field + '` asks with ' + n + ' answers at ' + (say || 'the top'));
+        if (/^bible/.test(facet.field) && !list.every(x => x.kind === 'bible')) strays.push('`' + facet.field + '` asked at ' + (say || 'the top'));
+        return;
+      }
+      const over = f.overFacet_(list);
+      if (!over) return;
+      resorts++;
+      const n = f.facetValues(list, over).length;
+      const fewer = f.facetList().filter(x => x.field !== over.field && !f.STUFF.filters.some(c => c.field === x.field)
+        && f.facetValues(list, x).length > f.FACET_MAX_ANSWERS && !f.facetWhy_(list, x, true)
+        && f.facetValues(list, x).length < n);
+      if (fewer.length) resort.push((say || 'the top') + ': the last resort asks `' + over.field + '` (' + n + ') where `' + fewer[0].field + '` has fewer');
     };
     const all = f.stuffItems();
-    look('', all);
     lookAsk('', all);
-    /* THE TWO DOORS, EVERY ANSWER. `What for` and `What kind` take somebody from the whole app into
-       one department, and the departments hold very different shapes of answer. */
     ['forLabel', 'kindLabel'].forEach(field => {
       const facet = f.facetList().find(x => x.field === field);
       if (!facet) return;
-      f.facetValues(all, facet).forEach(v =>
-        look(facet.label + ' · ' + (v.show || v.value), keep(all, facet, v)));
+      f.facetValues(all, facet).forEach(v => lookAsk(facet.label + ' · ' + (v.show || v.value), keep(all, facet, v)));
     });
     /* AND THE GREEDY PATH THROUGH THE LIBRARY, which is where the complaint came from. */
     let list = all;
     const said = [];
-    for (let step = 0; step < 10 && list.length > 4; step++) {
-      const facet = f.nextFacet(list, {});
+    for (let step = 0; step < 12 && list.length > 1; step++) {
+      const facet = f.nextFacet(list);
       if (!facet) break;
       const vals = f.facetValues(list, facet);
       if (!vals.length) break;
       let best = vals[0];
-      vals.forEach(v => {
-        if (keep(list, facet, v).length > keep(list, facet, best).length) best = v;
-      });
+      vals.forEach(v => { if (v.n > best.n) best = v; });
       said.push(facet.label + ' · ' + (best.show || best.value));
       list = keep(list, facet, best);
-      look(said.join(' → '), list);
       lookAsk(said.join(' → '), list);
     }
-    /* AND THE BOXING'S OWN SHELF, from Find's top. § */
-    {
-      const kindF = f.facetList().find(x => x.field === 'kindLabel');
-      const shelfF = f.facetList().find(x => x.field === 'shelf');
-      const resV = kindF ? f.facetValues(all, kindF).find(v => String(v.value) === 'Resources') : null;
-      if (!resV || !shelfF) bad.push('What kind offers no Resources over Find\'s list, so the boxing questions were NOT measured for ranges — not a pass');
-      else {
-        const rl = keep(all, kindF, resV);
-        f.facetValues(rl, shelfF).forEach(v => {
-          const l = keep(rl, shelfF, v);
-          look('What kind · Resources → Shelf · ' + (v.show || v.value), l);
-          lookAsk('What kind · Resources → Shelf · ' + (v.show || v.value), l);
-        });
-      }
-    }
+    /* AND EVERY KIND ALONE, which is where a question made for one kind would show itself. */
+    const kinds = {};
+    all.forEach(x => { (kinds[x.kind] = kinds[x.kind] || []).push(x); });
+    Object.keys(kinds).forEach(k => lookAsk('every ' + k, kinds[k]));
     if (!(f.inFinder_ && f.finderOf_ && f.finderOf_('res'))) bad.push('the second finder is not exported, so whether it holds Find\'s list was NOT checked — not a pass');
-    if (over.length) {
-      bad.push('a question is drawn as letter or number ranges rather than as its answers -- the owner, '
-               + '6 Oct: "I no longer want to have that a-g method or h-n. Just display": '
-               + over.slice(0, 8).join('; ') + (over.length > 8 ? '; and ' + (over.length - 8) + ' more' : ''));
-    } else {
-      console.log('\nNO QUESTION IS CUT INTO RANGES -- every group drawn is a category its own table names, at '
-                  + Object.keys(seenState).length + ' states of the real funnel');
-    }
     if (tooLong.length) {
       bad.push('a question is ASKED with more answers than FACET_MAX_ANSWERS, so the whole list is drawn '
                + 'where the other questions should have narrowed it first: ' + tooLong.slice(0, 6).join('; '));
     }
-
-    /* A CLOSED KIND'S QUESTIONS COST EVERYBODY ELSE NOTHING — THE FENCE, MEASURED BY WHAT WAS TALLIED. § */
-    f.facetList().filter(x => x.grid && !x.only).forEach(x => {
-      bad.push('`' + x.field + '` is a grid without `only` — a grid is exempt from FACET_MAX_ANSWERS, and only a '
-               + 'closed kind may be (see `grid` on the Bible\'s Chapter and Verse in find.js)');
-    });
-    if (f.FACET_TALLY && f.listKind_) {
-      const fenced = f.facetList().filter(x => x.only).map(x => x.field);
-      const states = [['the top', all]];
-      ['forLabel', 'kindLabel'].forEach(field => {
-        const facet = f.facetList().find(x => x.field === field);
-        if (facet) f.facetValues(all, facet).forEach(v => states.push([facet.label + ' · ' + (v.show || v.value), keep(all, facet, v)]));
-      });
-      const kinds = {};
-      all.forEach(x => { if (!kinds[x.kind]) { kinds[x.kind] = 1; states.push(['one ' + x.kind + ' alone', [x]]); } });
-      let leaked = [], overRan = 0;
-      states.forEach(([say, list]) => {
-        if (!list.length) return;
-        const copy = list.slice();
-        let asked = null;
-        try { asked = f.nextFacet(copy); } catch (e) { leaked.push(say + ': nextFacet threw ' + e.message); return; }
-        if (!asked) { overRan++; try { f.overFacet_(copy); } catch (e) { leaked.push(say + ': overFacet_ threw ' + e.message); return; } }
-        const keys = Object.keys(f.FACET_TALLY.get(copy) || {}).filter(k => fenced.indexOf(k.split('|')[0]) >= 0 || /^bible/.test(k));
-        if (keys.length) leaked.push(say + ' tallied ' + keys.map(k => k.split('|')[0]).join(', '));
-      });
-      if (!fenced.length) bad.push('no facet carries `only` — the Bible\'s six questions are missing, so the fence was NOT checked');
-      else if (!overRan) bad.push('no state reached `overFacet_`, so its fence was NOT checked — not a pass');
-      else if (leaked.length) {
-        bad.push('a question kept to one kind (`only`) was tallied over a list that is not that kind — the fence '
-                 + 'is not holding, and every list pays for questions it can never be asked: ' + leaked.slice(0, 5).join('; '));
-      } else {
-        console.log('\nTHE FENCE HOLDS: ' + fenced.length + ' closed-kind questions (' + fenced.join(', ') + ') tallied over none of '
-                    + states.length + ' lists, ' + overRan + ' of them through overFacet_');
-      }
-    } else bad.push('listKind_ or FACET_TALLY is not exported, so the fence was NOT checked');
-    /* ---------- AND A DECLARED BUCKET HOLDS EXACTLY WHAT ITS TABLE SAYS § */
-    const leaks = [];
-    f.facetList().forEach(facet => {
-      const g = groups[facet.field];
-      if (!g || !f.bucketDeclares_ || typeof facet.bucketOf !== 'function') return;
-      const labels = g.says.map(t => t.replace(/ \(\d+\)$/, ''));
-      /* ---------- THROUGH THE ENGINE'S OWN TEST, NOT A SECOND COPY OF IT § */
-      if (!labels.every(b => f.bucketDeclares_(facet, b))) return;
-      let said = 0;
-      all.forEach(x => {
-        let mine;
-        try { mine = f.facetOwn_(facet, x).map(v => facet.bucketOf(v)).filter(Boolean); }
-        catch (e) { return; }
-        labels.forEach(b => {
-          const kept = f.filterHit(x, { field: facet.field, value: b, bucket: true });
-          const named = mine.indexOf(b) >= 0;
-          if (kept !== named && said < 3) {
-            said += 1;
-            leaks.push('`' + facet.field + '` ' + (kept ? 'keeps' : 'drops') + ' an item in the '
-                       + '"' + b + '" bucket that its own table ' + (kept ? 'does not put' : 'puts')
-                       + ' there — its values are ' + JSON.stringify(mine));
-          }
-        });
-      });
-    });
-    if (leaks.length) {
-      bad.push('a bucket holds something its own table does not put in it: ' + leaks.slice(0, 5).join('; '));
-    }
-
-    /* ---------- AND A LISTED TABLE PLACES EVERY ANSWER THE LIBRARY GIVES § */
-    const unplaced = [];
-    f.facetList().forEach(facet => {
-      const of = facet.bucketOf;
-      if (typeof of !== 'function' || !Array.isArray(of.order) || !of.order.length) return;
-      const lost = {};
-      all.forEach(x => {
-        let vs = [];
-        try { vs = f.facetOwn_(facet, x).filter(Boolean); } catch (e) { return; }
-        vs.forEach(v => { if (!of(v)) lost[v] = (lost[v] || 0) + 1; });
-      });
-      Object.keys(lost).forEach(v => unplaced.push('`' + facet.field + '` "' + v + '" (' + lost[v] + ')'));
-    });
-    console.log('  values a written-out grouping has no row for: ' + unplaced.length);
-    if (unplaced.length) {
-      bad.push(unplaced.length + ' answer(s) have no row in their facet\'s bucket table, so that whole '
-               + 'question is drawn as letter ranges instead of its own groups: '
-               + unplaced.slice(0, 6).join(', ') + ' — add the value to the table (LEVEL_BUCKET and '
-               + 'its neighbours in find.js).');
-    }
-
-    /* ---------- AND A QUESTION ASKED INSIDE A BUCKET OFFERS ONLY WHAT IS IN IT § */
-    const outside = [];
-    f.facetList().forEach(facet => {
-      if (!groups[facet.field] || !f.bucketHas_ || !f.STUFF) return;
-      let vals = [];
-      try { vals = f.facetValues(all, facet); } catch (e) { return; }
-      const b = vals.find(v => v.bucket);
-      if (!b) return;
-      const kept = all.filter(x => f.filterHit(x, { field: facet.field, value: b.value, bucket: true }));
-      const held = f.STUFF.filters;
-      f.STUFF.filters = held.concat([{ field: facet.field, value: b.value, bucket: true }]);
-      let inside = [];
-      try { inside = f.facetValues(kept, facet); } catch (e) { /* reported below as empty */ }
-      f.STUFF.filters = held;
-      /* ---------- ON THE RAW VALUES, BECAUSE AN INNER ANSWER IS OFTEN A BUCKET TOO § */
-      const raw = {};
-      kept.forEach(x => { try { f.facetOwn_(facet, x).forEach(v => { raw[v] = 1; }); } catch (e) {} });
-      const strays = Object.keys(raw).filter(v => !f.bucketHas_(facet, b.value, v));
-      inside.forEach(v => {
-        const holds = strays.filter(sv => v.bucket ? f.bucketHas_(facet, v.value, sv)
-                                                  : f.norm(sv) === f.norm(v.value));
-        if (holds.length) {
-          outside.push('`' + facet.field + '` is inside "' + b.value + '" and still offers "'
-                       + (v.show || v.value) + '", which holds ' + JSON.stringify(holds.slice(0, 3)));
-        }
-      });
-      if (!inside.length) {
-        outside.push('`' + facet.field + '` offers nothing at all inside "' + b.value + '"');
-      }
-    });
-    if (outside.length) {
-      bad.push('a question asked inside a bucket offers an answer that is not in it, so the screen '
-               + 'says the opposite of the chip above it: ' + outside.slice(0, 6).join('; ')
-               + (outside.length > 6 ? '; and ' + (outside.length - 6) + ' more' : ''));
-    }
-
-    /* ---------- AND A LIST NO TABLE CAN SPLIT IS DRAWN WHOLE § */
-    const collapse = { field: '__collapse', label: 'Collapse', of: x => x.__v || '',
-                       bucketOf: () => 'One thing', bucketOrder: ['One thing'] };
-    const ten = 'alpha bravo charlie delta echo foxtrot golf hotel india juliet'
-      .split(' ').map(v => ({ __v: v }));
-    let drew = [];
-    try { drew = f.facetValues(ten, collapse); } catch (e) { drew = []; }
-    if (drew.length !== 10 || drew.some(v => v.bucket)) {
-      bad.push('a list no table can split is not drawn whole: ' + drew.length + ' answers, '
-               + drew.filter(v => v.bucket).length + ' of them buckets -- see `bucketValues_`');
-    }
-
-    /* ---------- AND A TABLE PLACES EVERY SPELLING OF A VALUE IT LISTS § */
-    const unfolded = [];
-    f.facetList().forEach(facet => {
-      const order = facet.bucketOrder;
-      if (!order || !order.length || typeof facet.bucketOf !== 'function') return;
-      let vals = [];
-      try { vals = f.facetValues(all, facet); } catch (e) { return; }
-      vals.forEach(v => {
-        const raw = String(v.value);
-        let got = '';
-        try { got = facet.bucketOf(raw); } catch (e) { got = ''; }
-        if (!got) return;                       /* unplaced is rule 1's business, not this one */
-        const bare = raw.replace(/[^A-Za-z0-9]+/g, '');
-        let same = '';
-        try { same = facet.bucketOf(bare); } catch (e) { same = ''; }
-        if (same !== got) {
-          unfolded.push('`' + facet.field + '` places "' + raw + '" in "' + got + '" and "'
-                        + bare + '" in "' + (same || 'nothing') + '"');
-        }
-      });
-    });
-    if (unfolded.length) {
-      bad.push('a grouping is keyed more tightly than the fold that decided its answers, so one '
-               + 'typed cell would stand it down to letter ranges: ' + unfolded.slice(0, 5).join('; ')
-               + (unfolded.length > 5 ? '; and ' + (unfolded.length - 5) + ' more' : ''));
-    }
-
-    const grouped = Object.keys(groups);
-    if (grouped.length) {
-      console.log('\nWHAT A LONG QUESTION IS ASKED AS — read these, a rule cannot judge them:');
-      grouped.forEach(k => {
-        console.log('  ' + k.padEnd(11) + ' ' + groups[k].says.join(' | '));
-      });
-    }
+    if (strays.length) bad.push('a Bible question is asked of a list that is not the Bible — the coverage rule should hold it: ' + strays.slice(0, 5).join('; '));
+    if (resort.length) bad.push(resort.slice(0, 5).join('; '));
+    if (states < 10) bad.push('only ' + states + ' states of the funnel were read — not a pass');
+    console.log('\nTHE ONE RULE AT ' + states + ' STATES OF THE REAL FUNNEL: nothing asked past ' + f.FACET_MAX_ANSWERS
+                + ' answers, no Bible question off the Bible, ' + resorts + ' last resort(s), each the fewest');
   } else {
-    bad.push('`facetValues`, `filterHit` or `FACET_MAX_SHOWN` is not declared, so the seven-answer '
-             + 'cap cannot be checked - not a pass');
+    bad.push('`facetValues` or `filterHit` is not declared, so the funnel\'s states cannot be read - not a pass');
   }
 
   /* RULE 8 WAS HERE — A BRANCH A ROW CANNOT HONESTLY BE IN § */
@@ -1263,10 +1036,11 @@ boot(f => {
         const vals = f.facetValues(levels[l], ksF).map(v => String(v.value)).sort();
         if (l === 'SATs') {
           if (vals.join('|') !== 'KS1|KS2') bad.push('inside Level SATs Key stage asks ' + JSON.stringify(vals) + ', wanted KS1 | KS2');
-        } else if (vals.length) bad.push('inside Level ' + l + ' Key stage answers ' + vals.join(' | ') + ' — it is asked inside SATs only');
+        }
         if (vals.length > 1) askedIn.push(l);
       });
       if (!levels.SATs) bad.push('no item has the level SATs, so Key stage inside SATs was NOT checked — not a pass');
+      /* KEY STAGE IS AN ORDINARY QUESTION (396): asked wherever it splits a list, by the one rule. */
       console.log('Level against Key stage: ' + all.filter(x => ksOf(x).length).length + ' items with a key stage, '
         + Object.keys(levels).length + ' levels, Key stage asked inside ' + askedIn.length + ' of them ('
         + askedIn.join(', ') + ')');
@@ -1286,7 +1060,6 @@ boot(f => {
     const nextOf = list => { const q = f.nextFacet(list.slice()); return show(q, q ? f.facetValues(list, q) : []); };
     const rung = fFirst ? fFirstVals.map(v => {
       const chip = { field: fFirst.field, value: v.value };
-      if (v.bucket) chip.bucket = true;
       f.STUFF.filters = [chip];
       const l = fItems.filter(x => f.filterHit(x, chip));
       const said = nextOf(l);
@@ -1324,20 +1097,17 @@ boot(f => {
         states.push(['Find 2 → ' + say, l, [chip]]);
       });
       if (rung.length < 2) bad.push('Find\'s first question has ' + rung.length + ' answer(s), so the rung below it was NOT compared — not a pass');
-      /* d. */
-      const fenced = f.facetList().filter(x => x.only).map(x => x.field);
+      /* d. THE SAME ONE RULE ON FIND 2: no Bible question over a list without the Bible. */
       const leaked = [];
       states.forEach(([say, list, chips]) => {
         if (!list.length || list.some(x => x.kind === 'bible')) return;
         S.filters = chips.map(c => Object.assign({}, c));
-        const copy = list.slice();
-        if (!f.nextFacet(copy)) f.overFacet_(copy);
-        const keys = Object.keys(f.FACET_TALLY.get(copy) || {}).filter(k => fenced.indexOf(k.split('|')[0]) >= 0);
-        if (keys.length) leaked.push(say + ' tallied ' + keys.map(k => k.split('|')[0]).join(', '));
+        const q = f.nextFacet(list.slice()) || f.overFacet_(list.slice());
+        if (q && /^bible/.test(q.field)) leaked.push(say + ' asks ' + q.field);
       });
-      if (leaked.length) bad.push('a closed-kind question was tallied on Find 2 over a list without its kind: ' + leaked.join('; '));
+      if (leaked.length) bad.push('a Bible question is asked on Find 2 over a list without the Bible: ' + leaked.join('; '));
       S.filters = []; S.q = '';
-      console.log('  compared: ' + rung.length + ' answers of the first question, the next question after each; the fence over ' + states.length + ' lists');
+      console.log('  compared: ' + rung.length + ' answers of the first question, the next question after each; the one rule over ' + states.length + ' lists');
     });
   } else bad.push('the second finder (`inFinder_`, `finderOf_`, `RES_ST`) is not exported, so Find 2 was NOT checked — not a pass');
 
@@ -1346,11 +1116,12 @@ boot(f => {
     const b = require('./check-gas-load.js').backend();
     const qs = f.stuffItems().filter(x => x && x.kind === 'question' && x.row);
     const pids = [...new Set(qs.map(x => String(x.row.paper_id || '')).filter(Boolean))];
-    b.ev('globalThis.__T = digestTagIndex_(' + JSON.stringify(fs.readFileSync(path.join(ROOT, 'data', 'questions.json'), 'utf8')) + ', ' + JSON.stringify(pids) + ')');
+    b.ev('globalThis.__T = digestTagIndex_(' + JSON.stringify(require('../check/lib-full.js').text('questions')) + ', ' + JSON.stringify(pids) + ')');
     const differ = [];
     qs.forEach(x => {
-      /* THE PAGE TAGS ([2] [of 2]) ARE THE SITE'S READING PAGES; the email draws the part whole, so it says none. */
-      const want = f.tagList_(x).filter(t => !/^qPages?$/.test(t.field)).map(t => t.tag + ':' + t.text).join(' ');
+      /* THE PAGE TAGS ([2] [of 2]) ARE THE SITE'S READING PAGES; the email draws the part whole, so it says none. And no
+         Function tag: qtypes.js reads it in the browser (DIGEST_TAG_FACETS says so). */
+      const want = f.tagList_(x).filter(t => !/^(qPages?|function)$/.test(t.field)).map(t => t.tag + ':' + t.text).join(' ');
       const got = b.ev('(() => { const pid = ' + JSON.stringify(String(x.row.paper_id || '')) + ', id = ' + JSON.stringify(String(x.row.row_id))
         + '; const r = (__T.rows[pid] || []).find(o => o.row_id === id); return digestCardTags_(r, __T).map(t => t.kind + ":" + t.text).join(" "); })()');
       if (got !== want) differ.push(x.row.row_id + ': the card says ' + JSON.stringify(want) + ', the email ' + JSON.stringify(got));
@@ -1378,8 +1149,7 @@ function done() {
     console.log('');
     process.exit(1);
   }
-  console.log('OK — every question the funnel asks can be answered more than one way except the '
-              + 'Year, Month and Paper folders, which are asked even with one; no answer is spelled '
-              + 'twice, and the sitting is asked in months.');
+  console.log('OK — every facet is asked, sorted, said and coloured by one rule: no question with one '
+              + 'answer, no answer spelled twice, and the sitting asked in months.');
   process.exit(0);
 }

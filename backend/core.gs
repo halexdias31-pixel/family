@@ -410,6 +410,8 @@ const WARM_BOOKING_MS = EDIT_WARM_DELAY_MS + 4 * 60 * 1000;
 /* SOMEBODY CHANGED THE SPREADSHEET BY HAND. § */
 function onSheetChange(e) {
   try { clearPayloadCache(); } catch (err) {}
+  /* AN EDIT BY HAND TO A LIBRARY TAB (397): the cached items are forgotten, so the next card opened is the edit. */
+  try { if (e && e.source && /^lib_/.test(e.source.getActiveSheet().getName())) libGenBump_(); } catch (err) {}
   try { scheduleWarmAfterEdit_(); } catch (err) {}
 }
 

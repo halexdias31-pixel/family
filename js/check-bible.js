@@ -118,7 +118,7 @@ books.forEach((b, i) => {
 });
 if (books.length && seenGroups.length !== 10) fail.push('index.json has ' + seenGroups.length + ' groups, not the ten: ' + seenGroups.join(', '));
 const bookNames = books.map(b => b.book);
-seenGroups.filter(g => bookNames.indexOf(g) >= 0).forEach(g => fail.push('the group "' + g + '" is named like a book — `folderOpened_` would skip its Book question and strand Chapter and Verse'));
+seenGroups.filter(g => bookNames.indexOf(g) >= 0).forEach(g => fail.push('the group "' + g + '" is named like a book — its Group chip and the Book tag on a verse would say the same word for two answers'));
 /* THE FOUR DECISIONS, BY NAME — the ones somebody could argue the other way, pinned so that the
    argument happens in a commit and not in a re-run. */
 const PINNED = { Hebrews: 'General Epistles', Lamentations: 'Major Prophets', Daniel: 'Major Prophets',
@@ -323,23 +323,17 @@ const declared = [...facetsSrc.matchAll(/\{ field: '(bible\w+)',([^\n]*)/g)].map
 if (declared.map(d => d.field).join(',') !== SIX.join(',')) {
   fail.push('FACETS declares ' + (declared.map(d => d.field).join(', ') || 'no Bible questions') + ' — not the six, in the owner\'s order: ' + SIX.join(', '));
 }
+/* ORDINARY QUESTIONS (396): a field, a label and a reader each — the one rule asks them, in the facets tab's order, and
+   only the Bible's own list (admin-only, `bibleFor_`) can answer them. */
 declared.forEach(d => {
-  if (!/only: 'bible'/.test(d.line)) fail.push('`' + d.field + '` is not `only: \'bible\'` — it would be asked of lists that are not the Bible, and they of it');
-  if (!/folder: true/.test(d.line)) fail.push('`' + d.field + '` is not a folder — a rung with one answer (KJV, Acts, Jude 1) would be skipped');
-  const grid = /grid: true/.test(d.line), want = d.field === 'bibleChapter' || d.field === 'bibleVerse';
-  if (grid !== want) fail.push('`' + d.field + '` is ' + (grid ? '' : 'not ') + 'a grid — only Chapter and Verse are numbered runs');
-});
-/* THE CHAIN, WHICH IS WHAT ACTUALLY HOLDS THE ORDER (see `FACET_NEEDS_FIRST`). */
-const needsSrc = cutFrom(findSrc, 'FACET_NEEDS_FIRST') || '';
-SIX.slice(1).forEach((f, i) => {
-  if (!new RegExp('\\b' + f + ":\\s*'" + SIX[i] + "'").test(needsSrc)) fail.push('FACET_NEEDS_FIRST does not hold `' + f + '` behind `' + SIX[i] + '` — the rungs can be asked out of order');
+  const flags = (d.line.match(/\b(only|folder|grid|always|tagOnly|asIs|orderOf|cmp|not|min)\s*:/g) || []);
+  if (flags.length) fail.push('`' + d.field + '` carries ' + flags.join(' ') + ' — a Bible question is an ordinary facet, asked by the one rule');
 });
 /* AND A COLOUR EACH, so a chip and the card's tag say the same thing the same way. */
 const tagSrc = (() => { const i = findSrc.indexOf('const TAG_OF = {'); const j = findSrc.indexOf('\n};', i); return i < 0 || j < 0 ? '' : findSrc.slice(i, j); })();
 SIX.forEach(f => { if (!new RegExp('\\b' + f + ":\\s*'\\w+'").test(tagSrc)) fail.push('TAG_OF does not name `' + f + '` — its chip would be the plain outline beside the card\'s coloured tag'); });
 /* AND THE SHEET: a live row for each, in order, between the shelf they are asked after and the
-   textbook's question they come before. A row switched off strands every rung below it, because the
-   chain holds them behind it. */
+   textbook's question they come before — the tab's sort_order is the only thing that orders them. */
 let sheet = [];
 try { sheet = JSON.parse(fs.readFileSync(path.join(root, 'data', 'settings', 'facets.json'), 'utf8')); }
 catch (e) { fail.push('data/settings/facets.json does not parse — the sheet\'s rows were NOT checked'); }

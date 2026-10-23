@@ -79,7 +79,7 @@ CASES.forEach(([inp, head, why, what]) => {
 });
 
 /* ---------- 2 AND 3. THE LIBRARY, DRAWN ------------------------------------------------------------ */
-const rows = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'questions.json'), 'utf8'));
+const rows = require('../check/lib-full.js').rows('questions');
 const answered = rows.filter(r => r && String(r.answer || '').trim());
 const lens = [];
 const over = [];

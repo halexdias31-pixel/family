@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-22-c-read-report";
+  --css-version: "2026-10-22-e-library-ledger";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -41,6 +41,10 @@
   --tag-topic:   #ff9e64;
   /* ---------- AND THE FOUR A QUESTION'S PAGE ADDED § */
   --tag-needs:   #f0f08a;
+  /* AND THE REST, SO EVERY FACET HAS A COLOUR (396): what it is, a claim about it, and any facet the sheet invents. */
+  --tag-kind:    #e2cfa6;
+  --tag-check:   #9ec5e8;
+  --tag-other:   #bdbdbd;
 
   /* Everything below is in rem, so it all scales together from the one root above. */
   /* Square, near enough. A terminal has no rounded corners, and this is the single value that
@@ -1659,6 +1663,9 @@ button.text-drop { color: var(--bad); }
 [data-tag="type"]    { --tag: var(--tag-type); }
 [data-tag="topic"]   { --tag: var(--tag-topic); }
 [data-tag="needs"]   { --tag: var(--tag-needs); }
+[data-tag="kind"]    { --tag: var(--tag-kind); }
+[data-tag="check"]   { --tag: var(--tag-check); }
+[data-tag="other"]   { --tag: var(--tag-other); }
 .chips { display: flex; flex-wrap: wrap; gap: .3rem; margin: 0 0 .45rem; }
 /* ---------- WHAT YOU CHOSE, A RULE, THEN WHAT IS ASKED NEXT § */
 .chips:has(.chip) { padding-bottom: .45rem; border-bottom: 1px solid var(--chip-line); }
@@ -1666,9 +1673,6 @@ button.text-drop { color: var(--bad); }
    `style="margin:.6rem 0 0"` in `--faint`. Its own class now: dim, with the instruction in ink. */
 .find-end { margin: .3rem 0 0; font-size: .8rem; line-height: 1.5; color: var(--dim); }
 .find-end b { color: var(--ink); font-weight: 600; }
-/* THE PAPER'S COVER LINE, over its end: the whole name and the day it was sat, which left the tag row
-   because nothing could pick them (docs/history/355). Prose, so it is in the find-end's voice. */
-.paper-cover { margin: .3rem 0 0; font-size: .8rem; line-height: 1.45; color: var(--ink); }
 .chip {
   display: flex; align-items: center; gap: .25rem;
   /* ---------- 44px, AND THIS IS THE FOURTH CONVICTION OF THE SAME RULE § */
@@ -6288,3 +6292,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 
 /* IN THE CARD a long maths answer stops at four lines and scrolls, where it used to push the card taller. */
 .qp-bar .kp-field.kp-maths > .kp-show { max-height: 9.5rem; overflow-y: auto; }
+
+/* A CARD WHOSE WORDS ARE STILL IN THE LEDGER (397, `libWaitHtml_`): its tags, then the dots, the sign-in line or Try again. */
+.lib-wait .lib-say { margin-top: 1rem; min-height: 3rem; }

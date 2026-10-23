@@ -1,0 +1,289 @@
+#!/usr/bin/env node
+/* node js/check-library-ledger.js — THE LIBRARY'S PRIVATE HALF IN THE LEDGER (397), asked of the real backend.
+   The copy, `libItems` and its cap, the tools' export and import, the Sunday email. `--full` copies the whole library. */
+'use strict';
+require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
+const { backend } = require('./check-gas-load.js');
+const LF = require('../check/lib-full.js');
+
+const bad = [];
+let asked = 0;
+const FULL = process.argv.includes('--full');
+const D = LF.defs();
+
+/* ---------- THE SOURCE: the real files, whole (check/lib-full.js), cut to a few papers unless --full ---------- */
+const whole = {};
+LF.NAMES().forEach(n => { whole[n] = LF.rows(n); });
+const sizeOf = r => JSON.stringify(LF.privateOf(D.files.questions, r) || {}).length;
+const biggest = whole.questions.reduce((a, r) => (sizeOf(r) > sizeOf(a) ? r : a), whole.questions[0]);
+const papers = [...new Set(whole.questions.map(r => r.paper_id))].slice(0, 3).concat([biggest.paper_id]);
+const src = {
+  questions: FULL ? whole.questions : whole.questions.filter(r => papers.indexOf(r.paper_id) !== -1),
+  textbooks: whole.textbooks, practicals: whole.practicals, projects: whole.projects,
+};
+const srcText = {};
+LF.NAMES().forEach(n => { srcText[D.files[n].file] = LF.fileText(src[n], 'compact'); });
+const expected = {};
+LF.NAMES().forEach(n => {
+  expected[n] = {};
+  src[n].forEach(r => { const c = LF.privateOf(D.files[n], r); if (c) expected[n][LF.idOf(D.files[n], r)] = c; });
+});
+const prefix = n => D.files[n].prefix;
+if (sizeOf(biggest) <= 40000) bad.push('the largest question is ' + sizeOf(biggest) + ' characters — nothing exercises a JSON cut across cells');
+
+/* A FAKE NETWORK: raw.githubusercontent.com at the pinned commit answers with the source, and nothing else is reachable. */
+function world(o) {
+  o = o || {};
+  const fetched = [];
+  const triggers = [];
+  /* A FILE WRITTEN AND NOT YET CHECKED — where a check can spoil a cell, as a sheet that did not keep it would. */
+  let spoilNext = 0;
+  const b = backend({
+    __afterWrite: key => { if (key === 'practicals' && spoilNext > 0) { spoilNext--; const t = b.tabs.lib_practicals; if (t && t[2]) t[2][3] = '~{"aim":"spoilt"}'; } },
+    UrlFetchApp: { fetch: url => {
+      fetched.push(url);
+      const at = String(url).indexOf(D.commit + '/');
+      const file = at === -1 ? '' : String(url).slice(at + D.commit.length + 1);
+      if (String(url).indexOf('https://raw.githubusercontent.com/') !== 0 || !srcText[file]) return { getResponseCode: () => 404, getContentText: () => 'nope' };
+      return { getResponseCode: () => 200, getContentText: () => srcText[file] };
+    } },
+    ScriptApp: { getScriptId: () => 'local', getProjectTriggers: () => triggers.slice(),
+      newTrigger: fn => ({ timeBased: () => ({ after: ms => ({ create() { triggers.push({ fn: fn, ms: ms, getHandlerFunction: () => fn }); } }),
+                                              everyMinutes: () => ({ create() {} }) }) }),
+      deleteTrigger: t => { const i = triggers.indexOf(t); if (i !== -1) triggers.splice(i, 1); } },
+  });
+  const base = { pin: '0000', verified: 'TRUE', city: 'London' };
+  b.seed('people', [
+    Object.assign({ person_id: 'P-S1', first_name: 'Ada', last_name: 'Pupil', handle: 'aa2026', email: 's1@example.org', role: 'student' }, base),
+    Object.assign({ person_id: 'P-S2', first_name: 'Ben', last_name: 'Pupil', handle: 'bn2026', email: 's2@example.org', role: 'student' }, base),
+    Object.assign({ person_id: 'P-A1', first_name: 'Hal', last_name: 'Admin', handle: 'hl2026', email: 'a1@example.org', role: 'admin' }, base),
+  ]);
+  if (o.cap !== undefined) b.seed('config', [{ key: 'library_items_per_day', value: String(o.cap) }]);
+  const tok = {};
+  ['s1@example.org', 's2@example.org', 'a1@example.org'].forEach(e => {
+    const d = b.post({ action: 'verifyLogin', email: e, pin: '0000' });
+    if (!d.success) bad.push('could not sign in ' + e + ' — ' + d.error);
+    tok[e] = d.token;
+  });
+  const ask = (who, body) => { asked++; return b.post(Object.assign({ token: tok[who] || '' }, body)); };
+  /* A STEP WITH A CLOCK THAT TICKS ONCE PER LOOK, so `budget` ticks is a step cut short exactly where a slow sheet would cut it. */
+  const step = budget => {
+    let t = 0;
+    return JSON.parse(b.ev('JSON.stringify(libCopy_({ noBook: true, force: true, batch: 10, afterWrite: __afterWrite, budgetMs: ' + (budget || 1e9)
+      + ', clock: () => (globalThis.__tick = (globalThis.__tick || 0) + 1) }))'));
+  };
+  const spoil = n => { spoilNext = n; };
+  const state = () => JSON.parse(b.ev('JSON.stringify(libMigState_())'));
+  const tab = n => (b.tabs[D.files[n].tab] || []);
+  return { b, ask, step, state, tab, fetched, triggers, spoil };
+}
+const ADA = 's1@example.org', BEN = 's2@example.org', HAL = 'a1@example.org';
+const strip = v => { const s = String(v == null ? '' : v); return s.charAt(0) === '~' ? s.slice(1) : s; };
+/* A TAB'S ROWS AS { id: content }, read the way the backend reads them back. */
+function tabItems(w, n) {
+  const out = {};
+  w.tab(n).slice(1).forEach(r => {
+    if (!r || !strip(r[0])) return;
+    let json = '';
+    for (let i = 0; i < (Number(r[2]) || 1); i++) json += strip(r[3 + i]);
+    try { out[strip(r[0])] = JSON.parse(json); } catch (e) { out[strip(r[0])] = '(not JSON)'; }
+  });
+  return out;
+}
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+/* ---------- 0. THE TABS, THE DOORS AND THE JOB: named three times, made by setup ---------- */
+{
+  const { b } = world();
+  asked++;
+  ['lib_questions', 'lib_content', 'lib_practicals', 'lib_projects', 'lib_log'].forEach(t => {
+    if (!b.tabs[t]) bad.push('there is no `' + t + '` tab in TAB/SCHEMA');
+    if (b.ev('WHERE.' + t + ' && WHERE.' + t + '.file') !== 'ledger') bad.push('WHERE.' + t + ' is not the Ledger');
+  });
+  const acc = b.ev('JSON.stringify([ACTION_ACCESS.libItems, ACTION_ACCESS.libExport, ACTION_ACCESS.libImport])');
+  if (acc !== '["self","admin","admin"]') bad.push('ACTION_ACCESS libItems/libExport/libImport is ' + acc + ' — wanted self, admin, admin');
+  const job = b.ev('JSON.stringify(MIGRATIONS.filter(m => m.id === "library-to-ledger").map(m => ({ retry: !!m.retry, progress: typeof m.progress })))');
+  if (job !== '[{"retry":true,"progress":"function"}]') bad.push('MIGRATIONS has no retrying library-to-ledger job with a progress line: ' + job);
+  delete b.tabs.lib_questions;
+  b.ev('ensureSchema_()');
+  if (!b.tabs.lib_questions || b.tabs.lib_questions[0].join() !== 'id,checksum,parts,content_1,content_2,content_3,content_4,content_5,content_6') bad.push('ensureSchema_ did not make lib_questions with its header');
+  if (!/^[0-9a-f]{40}$/.test(D.commit)) bad.push('LIB_SOURCE_COMMIT is not a whole commit hash: ' + D.commit);
+}
+
+/* ---------- 1. THE JOB ON AN ADMIN'S LOAD BOOKS THE COPY AND NEVER COPIES; NOTHING IS SERVED UNTIL EVERY ROW IS CHECKED ---------- */
+{
+  const w = world();
+  asked++;
+  let threw = '';
+  try { w.b.ev('libMigrate_()'); } catch (e) { threw = String(e && e.message || e); }
+  if (!/copying in the background/.test(threw)) bad.push('libMigrate_ did not say it is copying in the background (said ' + JSON.stringify(threw) + ')');
+  if (w.triggers.length !== 1 || w.triggers[0].fn !== 'libraryCopyStep') bad.push('libMigrate_ booked ' + JSON.stringify(w.triggers.map(t => t.fn)) + ' — wanted one libraryCopyStep');
+  if (w.tab('questions').length > 1) bad.push('libMigrate_ copied rows itself — an admin page load would wait for it');
+  const says = JSON.parse(w.b.ev('JSON.stringify(setupStatus_().jobs.filter(j => j.id === "library-to-ledger")[0] || null)'));
+  if (!says || says.error || !/copying/.test(says.said || '')) bad.push('the Setup card does not show the copy as waiting with its progress: ' + JSON.stringify(says));
+  const d = w.ask(ADA, { action: 'libItems', ids: ['q:' + biggest.row_id] });
+  if (d.why !== 'lib-not-ready' || d.items) bad.push('libItems before the copy was checked answered ' + JSON.stringify(d).slice(0, 200));
+}
+
+/* ---------- 2. THE COPY: cut short, resumed, every row checked against its source, then done once and only once ---------- */
+let done = null;
+{
+  const w = world();
+  asked++;
+  let st = w.step(5);
+  const f0 = st.files.questions || {};
+  if (st.done || !f0.next || f0.next >= f0.total) bad.push('a step cut short after 5 ticks still finished (or wrote nothing): ' + JSON.stringify(f0));
+  const wrote = f0.next;
+  /* THE ROWS SO FAR ARE THE SOURCE'S FIRST ROWS, in order — row 2 + n is item n. */
+  const ids = Object.keys(expected.questions);
+  const have = w.tab('questions').slice(1, 1 + wrote).map(r => strip(r[0]));
+  if (!same(have, ids.slice(0, wrote))) bad.push('the first step\'s rows are not the source\'s first ' + wrote + ' items in order');
+  let n = 0;
+  while (!(st = w.step(5)).done && n++ < 400) { if (st.stuck) break; }
+  if (!st.done) bad.push('the copy never finished: ' + JSON.stringify(st).slice(0, 300));
+  if (n < 2) bad.push('the copy finished in ' + (n + 1) + ' steps — the cut was not exercised');
+  LF.NAMES().forEach(k => {
+    const got = tabItems(w, k);
+    if (!same(Object.keys(got), Object.keys(expected[k]))) bad.push(D.files[k].tab + ' holds ' + Object.keys(got).length + ' items in some order — the source has ' + Object.keys(expected[k]).length);
+    const wrong = Object.keys(expected[k]).filter(id => !same(got[id], expected[k][id]));
+    if (wrong.length) bad.push(D.files[k].tab + ': ' + wrong.length + ' item(s) differ from the source, e.g. ' + wrong[0]);
+    if (st.files[k].rows !== Object.keys(expected[k]).length || !st.files[k].verified) bad.push(k + ' is not recorded as checked with its count: ' + JSON.stringify(st.files[k]));
+  });
+  const row = w.tab('questions').find(r => strip(r[0]) === biggest.row_id);
+  if (!row || Number(row[2]) < 3 || row.slice(3).some(c => String(c).length > 50000)) bad.push('the largest question is not cut into three or more cells under 50,000 characters');
+  if (w.tab('questions').slice(1).some(r => r.slice(0, 2).concat(r.slice(3)).some(c => c !== '' && String(c).charAt(0) !== '~'))) bad.push('a text cell does not start ~ — the sheet could read it as a number, a date or a formula');
+  /* AGAIN, ONCE DONE: nothing is written, nothing fetched. */
+  const writes = w.b.log.writes, got = w.fetched.length;
+  w.step(30);
+  if (w.b.log.writes !== writes || w.fetched.length !== got) bad.push('a step after the copy was done wrote or fetched again');
+  let said = '';
+  try { said = w.b.ev('libMigrate_()'); } catch (e) { said = 'threw ' + e.message; }
+  if (!/copied from a237c8a/.test(said)) bad.push('libMigrate_ once done says ' + JSON.stringify(said));
+  if (!/^https:\/\/raw\.githubusercontent\.com\/halexdias31-pixel\/family\/[0-9a-f]{40}\/data\/questions\.json$/.test(w.fetched[0] || '')) bad.push('the source was fetched from ' + w.fetched[0]);
+  done = w;
+}
+
+/* ---------- 3. A ROW THAT DOES NOT READ BACK IS COPIED AGAIN; THREE TIMES AND IT STOPS — and nothing is served meanwhile ---------- */
+{
+  const w = world();
+  asked++;
+  w.spoil(1);
+  let st = w.step(1e9);
+  if (st.done) bad.push('a spoilt row passed the check — verify does not compare checksums');
+  if (!/^practicals: .*(checksum|does not read back)/.test(st.error || '')) bad.push('the failed check did not say which row: ' + JSON.stringify(st.error));
+  if (!st.files.questions.verified || st.files.practicals.verified || st.files.practicals.next !== 0) bad.push('a failed check did not start that file again from its first row: ' + JSON.stringify(st.files.practicals));
+  const d = w.ask(ADA, { action: 'libItems', ids: ['pr:' + whole.practicals[0].practical_id] });
+  if (d.why !== 'lib-not-ready') bad.push('libItems served while the copy had failed its check: ' + JSON.stringify(d).slice(0, 160));
+  /* AND A CLEAN COPY THE NEXT TIME ROUND. */
+  st = w.step(1e9);
+  if (!st.done) bad.push('the copy after a failed check did not finish clean: ' + JSON.stringify(st).slice(0, 200));
+  if (!same(tabItems(w, 'practicals'), expected.practicals)) bad.push('the practicals copied again are not the source');
+  /* STUCK: spoilt after every write, three times. */
+  const w2 = world();
+  w2.spoil(3);
+  for (let i = 0; i < 3; i++) st = w2.step(1e9);
+  if (!st.stuck || st.done) bad.push('three failed checks did not stop the copy: ' + JSON.stringify({ stuck: st.stuck, done: st.done }));
+  let threw = '';
+  try { w2.b.ev('libMigrate_()'); } catch (e) { threw = e.message; }
+  if (!/rerun/.test(threw)) bad.push('a stopped copy does not say how to run it again: ' + threw);
+}
+
+/* ---------- 4. libItems: signed in, a day's cap, the cache ---------- */
+{
+  const w = done;
+  const q = 'q:' + biggest.row_id;
+  const anyQ = Object.keys(expected.questions).slice(0, 6).map(id => 'q:' + id);
+  const ct = 'ct:' + Object.keys(expected.textbooks)[1], pr = 'pr:' + Object.keys(expected.practicals)[0], pj = 'pj:' + Object.keys(expected.projects)[0];
+  /* SIGNED OUT. */
+  asked++;
+  const out = w.b.post({ action: 'libItems', ids: [q] });
+  if (!out.error || out.items) bad.push('libItems signed out answered ' + JSON.stringify(out).slice(0, 160));
+  /* EVERY KIND, AS THE SOURCE HAS IT. */
+  const d = w.ask(ADA, { action: 'libItems', ids: [q, ct, pr, pj, 'q:NOT-A-ROW'] });
+  if (!d.success) bad.push('libItems for a student answered ' + JSON.stringify(d).slice(0, 200));
+  else {
+    if (!same(d.items[q], expected.questions[biggest.row_id])) bad.push('the largest question came back different from its source');
+    if (!same(d.items[ct], expected.textbooks[ct.slice(3)])) bad.push('a content card came back different');
+    if (!same(d.items[pr], expected.practicals[pr.slice(3)]) || !same(d.items[pj], expected.projects[pj.slice(3)])) bad.push('a practical or a project came back different');
+    if (!same(d.missing, ['q:NOT-A-ROW'])) bad.push('an id with no row is not reported missing: ' + JSON.stringify(d.missing));
+    if (d.cap !== 400 || d.left !== 395) bad.push('the default cap is ' + d.cap + ' with ' + d.left + ' left — wanted 400 and 395 after five');
+  }
+  asked++;
+  if (!w.ask(ADA, { action: 'libItems', ids: ['<script>'] }).error) bad.push('a malformed id was answered');
+  if (!w.ask(ADA, { action: 'libItems', ids: Array.from({ length: 61 }, (_, i) => 'q:X' + i) }).error) bad.push('61 ids at once were answered — the cap per call is 60');
+  /* THE CACHE: a cell spoilt in the tab after the first read is not what the second read gets. */
+  const t = w.tab('practicals');
+  const keep = t[2][3];
+  t[2][3] = '~{"aim":"edited by hand"}';
+  const again = w.ask(BEN, { action: 'libItems', ids: [pr] });
+  if (!again.success || !same(again.items[pr], expected.practicals[pr.slice(3)])) bad.push('a second read did not come from the cache');
+  t[2][3] = keep;
+  const log = (w.b.tabs.lib_log || []);
+  const h = log[0] || [];
+  const rows = log.slice(1).map(r => { const o = {}; h.forEach((c, i) => { o[c] = r[i]; }); return o; });
+  const ada = rows.find(r => r.person_id === 'P-S1');
+  if (!ada || Number(ada.served) !== 5 || ada.handle !== 'aa2026') bad.push('lib_log does not hold Ada\'s 5 under her handle: ' + JSON.stringify(ada));
+  if (rows.some(r => Object.values(r).some(v => /Pupil/.test(String(v))))) bad.push('lib_log carries a surname');
+
+  /* THE CAP, ON A FRESH LEDGER AT 5 A DAY. */
+  const c = world({ cap: 5 });
+  while (!c.step(1e9).done) {}
+  const qs = Object.keys(expected.questions).map(id => 'q:' + id);
+  asked++;
+  const a1 = c.ask(ADA, { action: 'libItems', ids: qs.slice(0, 4) });
+  const a2 = c.ask(ADA, { action: 'libItems', ids: qs.slice(2, 7) });
+  if (!a2.success || Object.keys(a2.items).length !== 3 || !same(a2.refused, qs.slice(5, 7)) || a2.left !== 0) bad.push('at 5 a day, 4 then 5 more (2 seen) gave ' + JSON.stringify({ n: Object.keys(a2.items || {}).length, refused: a2.refused, left: a2.left }));
+  const a3 = c.ask(ADA, { action: 'libItems', ids: qs.slice(0, 2) });
+  if (!a3.success || Object.keys(a3.items).length !== 2) bad.push('asking again for two already opened today was not free: ' + JSON.stringify(a3).slice(0, 160));
+  const a4 = c.ask(ADA, { action: 'libItems', ids: qs.slice(8, 9) });
+  if (a4.why !== 'lib-cap' || a4.items) bad.push('a new item past the cap answered ' + JSON.stringify(a4).slice(0, 160));
+  const b1 = c.ask(BEN, { action: 'libItems', ids: qs.slice(8, 9) });
+  if (!b1.success) bad.push('Ada\'s cap stopped Ben');
+  const hal = c.ask(HAL, { action: 'libItems', ids: qs.slice(0, 20) });
+  if (!hal.success || Object.keys(hal.items).length !== Math.min(20, qs.length) || hal.cap !== null) bad.push('an admin was capped: ' + JSON.stringify({ n: Object.keys(hal.items || {}).length, cap: hal.cap }));
+  /* THE CACHE FORGETS A DAY'S TALLY (six hours): the lib_log row remembers it. */
+  c.b.cache.clear();
+  const a5 = c.ask(ADA, { action: 'libItems', ids: qs.slice(9, 10) });
+  if (a5.why !== 'lib-cap') bad.push('with the cache emptied, the cap was forgotten — lib_log is not read back: ' + JSON.stringify(a5).slice(0, 160));
+  void a1;
+}
+
+/* ---------- 5. THE TOOLS' COPY: export a page, import replaces and adds, refuses what is not private, admin only ---------- */
+{
+  const w = done;
+  asked++;
+  const ex = w.ask(HAL, { action: 'libExport', file: 'practicals', from: 0, count: 10 });
+  if (!ex.success || ex.rows.length !== 10 || ex.total !== Object.keys(expected.practicals).length) bad.push('libExport answered ' + JSON.stringify(ex).slice(0, 200));
+  else if (!same(ex.rows[0].content, expected.practicals[ex.rows[0].id])) bad.push('libExport\'s first row is not the source\'s');
+  if (!w.ask(ADA, { action: 'libExport', file: 'practicals' }).error) bad.push('a student could export the private half');
+  if (!w.ask(ADA, { action: 'libImport', file: 'practicals', rows: [] }).error) bad.push('a student could import');
+  const pid = Object.keys(expected.practicals)[0];
+  const im = w.ask(HAL, { action: 'libImport', file: 'practicals', rows: [
+    { id: pid, content: Object.assign({}, expected.practicals[pid], { aim: 'A new aim.' }) },
+    { id: 'P-NEW-1', content: { aim: 'Brand new', steps: 'one|two' } }] });
+  if (!im.success || im.added !== 1 || im.replaced !== 1) bad.push('libImport answered ' + JSON.stringify(im));
+  const back = w.ask(ADA, { action: 'libItems', ids: ['pr:' + pid, 'pr:P-NEW-1'] });
+  if (!back.success || (back.items['pr:' + pid] || {}).aim !== 'A new aim.' || (back.items['pr:P-NEW-1'] || {}).aim !== 'Brand new') bad.push('an import was not served next (the cache outlived it?): ' + JSON.stringify(back).slice(0, 200));
+  const odd = w.ask(HAL, { action: 'libImport', file: 'practicals', rows: [{ id: pid, content: { name: 'Public field' } }] });
+  if (!odd.error) bad.push('libImport took a field that is not private: ' + JSON.stringify(odd));
+}
+
+/* ---------- 6. THE SUNDAY EMAIL PUTS THE WORDS BACK ON A METADATA-ONLY ROW ---------- */
+{
+  const w = done;
+  asked++;
+  const r = whole.questions.find(x => x.paper_id === papers[0] && x.kind === 'question' && x.html);
+  const slim = {};
+  Object.keys(r).forEach(k => { if (D.files.questions.private.indexOf(k) === -1) slim[k] = r[k]; });
+  slim.lib_has = 'html';
+  const got = JSON.parse(w.b.ev('JSON.stringify(digestLibraryFill_({ rows: { a: ' + JSON.stringify(slim) + ' }, pre: [] }))'));
+  if (!got.rows || got.rows.a.html !== r.html || 'lib_has' in got.rows.a) bad.push('digestLibraryFill_ did not put the question\'s words back from the Ledger');
+}
+
+if (bad.length) {
+  console.log('\nFAILED — the library in the Ledger:');
+  bad.forEach(b => console.log('  ' + b));
+  process.exit(1);
+}
+console.log('OK — the library copies into the Ledger a step at a time and only counts once every row reads back as its source (' + asked
+  + ' questions asked' + (FULL ? ', the whole library' : ', ' + src.questions.length + ' question rows') + '); libItems is signed-in, capped per day, cached; the tools\' copy is the admin\'s; the Sunday email gets its words.');

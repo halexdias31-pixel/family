@@ -6,6 +6,8 @@ const path = require('path');
 const { JSDOM } = require('jsdom');
 
 const dir = __dirname;
+/* THE LIBRARY WITH ITS WORDS (397): data/*.json is card metadata, and the private half comes back from data-private/. */
+const LIB_FULL = require('../check/lib-full.js');
 /* ---------- THE ORDER IS READ FROM index.html, NOT KEPT HERE § */
 function loadOrder_() {
   const html = require('fs').readFileSync(
@@ -5172,7 +5174,7 @@ check('a placement snaps to the grid the picture draws and a line never does: Q7
   if (!t || typeof w.padGrid_ !== 'function' || typeof t.padWrap !== 'function' || typeof t.padOn !== 'function' || typeof w.padDrop_ !== 'function') {
     return ['padGrid_, padWrap_ or padDrop_ are not reachable — snapping was NOT checked'];
   }
-  const rows = JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '..', 'data', 'questions.json'), 'utf8'));
+  const rows = LIB_FULL.rows('questions');
   const q7 = rows.find(r => r.row_id === 'Q-1MA1-2406-1F-7');
   const G = q7 && w.padGrid_(q7.diagram);
   if (!G || G.xs.length !== 14 || G.ys.length !== 17) bad.push('Q7\'s grid read as ' + (G ? G.xs.length + ' x ' + G.ys.length : 'nothing') + ' lines — wanted 14 x 17');
@@ -13164,10 +13166,11 @@ check('an answer draws its result and nothing else: no Why, no working, no exami
 /* WHAT A PAGE OF A QUESTION SAYS IT IS, read back off its tags. § */
 const tagF = (root, field) => [...(root ? root.querySelectorAll('.qcard-tags .qtag[data-f="' + field + '"]') : [])]
   .map(t => t.textContent.replace(/\s+/g, ' ').trim()).join(' ');
+/* `Page 2` AND `2 pages` ARE THE TAGS' OWN WORDS SINCE 396 — the value is the words — so the numbers are read out of them. */
 const pageNum = root => {
-  const q = tagF(root, 'qNumber'), i = tagF(root, 'qPage');
+  const q = tagF(root, 'qNumber'), i = tagF(root, 'qPage'), num = v => (/\d+/.exec(v) || [''])[0];
   return q ? q + tagF(root, 'qPart') + (tagF(root, 'qSub') ? '(' + tagF(root, 'qSub') + ')' : '')
-    + (i ? ' · ' + i + ' ' + tagF(root, 'qPages') : '') : '';
+    + (i ? ' · ' + num(i) + ' of ' + num(tagF(root, 'qPages')) : '') : '';
 };
 const tagText = (root, kind) => kind === 'number' ? pageNum(root) : tagF(root, kind === 'kind' ? 'kindLabel' : kind);
 const pageHead = root => [tagF(root, 'kindLabel'), pageNum(root)].filter(Boolean).join(' ');
@@ -13468,7 +13471,7 @@ check('no answer box on a question\'s pages can bring up the phone\'s keyboard �
   await wait(300);
   if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so no practical could be drawn — nothing was checked'];
   const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({},
-    { practicals: JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'practicals.json'), 'utf8')) })));
+    { practicals: LIB_FULL.rows('practicals') })));
   const { w, errs } = boot({ payload: Object.assign(payload(), { practicals: made.practicals || [] }) });
   await wait(300);
   const d = w.document, A = w.__t.ACTIONS, bad = [];
@@ -13874,7 +13877,7 @@ check('Mark with AI sends a worded answer by person id, draws marks and a senten
 /* ---------- AN ESSAY IS WRITTEN ON A SHEET, IN PARAGRAPHS, AND MARKED WHOLE § */
 check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragraphs, the words are counted, and Mark with AI sends all of it', async () => {
   const ID = 'Q-R0398-5';
-  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const LIB = LIB_FULL.rows('questions');
   const row = LIB.find(r => r.row_id === ID);
   if (!row) return [ID + ' is not in data/questions.json — no essay was written'];
   const paper = LIB.filter(r => r.paper_id === row.paper_id);
@@ -14111,7 +14114,7 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
 /* ---------- A BACKEND NOT YET PULLED IS SENT NO ESSAY IT WOULD CUT § */
 check('a backend without aiMarkWhole is sent no essay over its old 2,000-character cut, and the pupil is told why', async () => {
   const ID = 'Q-R0398-5';
-  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const LIB = LIB_FULL.rows('questions');
   const row = LIB.find(r => r.row_id === ID);
   if (!row) return [ID + ' is not in data/questions.json — nothing was sent'];
   const paper = LIB.filter(r => r.paper_id === row.paper_id);
@@ -14765,7 +14768,7 @@ check('a drawing and a ringed word are kept for whoever is signed in, and the ph
 /* ---------- A DRAWN ANSWER IS DRAWN ON ITS OWN FIGURE, IN ITS OWN CARD (docs/history/356) § */
 check('June 2024 1F Q7 is one card with its grid under the pen in its words: no box, no switch, no figure page', async () => {
   const ID = 'Q-1MA1-2406-1F-7';
-  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const LIB = LIB_FULL.rows('questions');
   const row = LIB.find(r => r.row_id === ID);
   if (!row) return [ID + ' is not in data/questions.json — NOT checked'];
   const paper = LIB.filter(r => r.paper_id === row.paper_id);
@@ -14798,7 +14801,7 @@ check('June 2024 1F Q7 is one card with its grid under the pen in its words: no 
 
 /* ---------- AND OVER THE WHOLE LIBRARY: NO FIGURE PAGE, NO POINTER, EVERY FIGURE ONCE § */
 check('no question in the library has a figure page or points at one, and every figure is drawn once', async () => {
-  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const LIB = LIB_FULL.rows('questions');
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined) });
   await wait(300);
   const bad = [];
@@ -14849,7 +14852,7 @@ check('no question in the library has a figure page or points at one, and every 
 /* ---------- WHAT A QUESTION IS ANSWERED WITH: A DRAWING, A VALUE, OR BOTH (`answerKinds_`) § */
 check('the hexagon shows its surface and its box, a question with options shows them and no pen, and the triangle is a pen with ruler and protractor', async () => {
   const IDS = ['Q-CBM-2d-shapes-2', 'Q-STA-KS2-2025-GPS1-2', 'Q-STA-KS2-2019-P2-13'];
-  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const LIB = LIB_FULL.rows('questions');
   const rows = IDS.map(id => LIB.find(r => r.row_id === id));
   if (rows.some(r => !r)) return ['a row is missing from data/questions.json — NOT checked'];
   const papers = new Set(rows.map(r => r.paper_id));
@@ -15038,7 +15041,7 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in its o
 
 /* ---------- FIND DRAWS THE SAME THING FOR A TUTOR, AN ADMIN, A STUDENT AND SOMEBODY SIGNED OUT § */
 check('Find and Find 2 draw the same question family, practical, project and content card for a tutor, an admin, a student and nobody', async () => {
-  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const read = n => (LIB_FULL.isLib(n) ? LIB_FULL.rows(n) : JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8')));
   const one = boot();
   await wait(300);
   if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so the real kinds were NOT checked — not a pass'];
@@ -15278,7 +15281,8 @@ check('every fact about a page of a question is a tag in one row at the top: wha
   const svg = '<svg viewBox="0 0 10 10"><text>FIG</text></svg>';
   const gcse = { kind: 'question', name: 'Q4a', qNumber: '4', qPart: 'a', marks: 2, key: 'q-tags-4a',
     sub: 'Paper 1 (Non-Calculator) — November 2018', subject: 'Maths', level: 'GCSE', keystage: 'KS4',
-    tier: 'Higher', examBoard: 'Edexcel', documentType: 'Past paper', needs: ['No calculator', 'Protractor'],
+    /* THE CELL AS THE LIBRARY HOLDS IT, through the app's own reader (`needsOf_`), which says the calculator in words (396). */
+    tier: 'Higher', examBoard: 'Edexcel', documentType: 'Past paper', needs: w.needsOf_({ needs: 'No calculator, Protractor' }),
     row: { row_id: 'Q-TAGS-4a', paper_id: 'P-TAGS-1H', name: 'Paper 1 (Non-Calculator) — November 2018' },
     stems: [{ id: 'S-TAGS-4', html: '<p>A shape is drawn on a grid.</p>', diagram: svg }],
     html: '<p>Work out the size of angle x.</p>', diagram: svg, answer: '<b>40</b>', accept: '40' };
@@ -15292,7 +15296,9 @@ check('every fact about a page of a question is a tag in one row at the top: wha
     if (!r.card) return bad.push('the ' + k + ' page drew no card');
     if (!r.first || !r.first.classList.contains('qcard-tags')) bad.push('the ' + k + ' page\'s first block is ' + (r.first ? '.' + r.first.className : 'nothing') + ', not the tag row');
     ['.qcard-top', '.qcard-sub', '.qcard-needs', '.qcard-sat'].forEach(c => { if (r.card.querySelector(c)) bad.push('the ' + k + ' page still draws ' + c); });
-    if (!r.tags.length || r.tags[0].f !== 'kindLabel' || r.tags[0].text !== kind[k]) bad.push('the ' + k + ' page\'s row starts ' + say(r.tags.slice(0, 1)) + ', wanted the What kind answer ' + kind[k]);
+    /* EVERY FACET A TAG (396): What for, then What kind — this page's own kind. */
+    const kt = r.tags.find(x => x.f === 'kindLabel');
+    if (!r.tags.length || r.tags[0].f !== 'forLabel' || !kt || kt.text !== kind[k]) bad.push('the ' + k + ' page\'s row starts ' + say(r.tags.slice(0, 2)) + ', wanted What for and then the What kind answer ' + kind[k]);
     /* ONE ITEM, ONE ROW: everything but What kind and the page's own number reads the same on every page. */
     const facts = say(r.tags.filter(x => ['kindLabel', 'qPage', 'qPages'].indexOf(x.f) < 0));
     if (itemFacts === null) itemFacts = facts;
@@ -15304,21 +15310,20 @@ check('every fact about a page of a question is a tag in one row at the top: wha
   });
   if (itemFacts !== null) {
     const chipPaper = w.chipShow_({ field: 'paperId', value: 'P-TAGS-1H' });
-    ['level:GCSE', 'board:Edexcel', 'subject:Maths', 'tier:Higher', 'sitting:2018', 'sitting:November', 'paper:Q4', 'paper:a', '-:2 marks', 'needs:Protractor']
+    ['level:GCSE', 'level:KS4', 'board:Edexcel', 'subject:Maths', 'tier:Higher', 'sitting:2018', 'sitting:November', 'paper:Q4', 'paper:a', 'paper:2 marks', 'needs:Protractor', 'kind:Learning']
       .forEach(f => { if (itemFacts.split(' | ').indexOf(f) < 0) bad.push('the item\'s tags lack ' + f + ': ' + itemFacts); });
     if (!itemFacts.split(' | ').some(f => f === 'paper:' + chipPaper)) bad.push('no paper tag reads what its chip reads (' + chipPaper + '): ' + itemFacts);
-    if (/KS4/.test(itemFacts)) bad.push('a GCSE page says its key stage -- Key stage is asked inside SATs only: ' + itemFacts);
   }
   /* A CALCULATOR PAPER, AND A ROW WITH NO MARKS. */
-  const calcQ = Object.assign({}, gcse, { key: 'q-tags-c', name: 'Q3', qNumber: '3', qPart: '', marks: '', sub: 'Paper 2 (Calculator) — June 2017', needs: ['Calculator'],
+  const calcQ = Object.assign({}, gcse, { key: 'q-tags-c', name: 'Q3', qNumber: '3', qPart: '', marks: '', sub: 'Paper 2 (Calculator) — June 2017', needs: w.needsOf_({ needs: 'Calculator' }),
     row: Object.assign({}, gcse.row, { row_id: 'Q-TAGS-C', name: 'Paper 2 (Calculator) — June 2017' }), stems: [], diagram: '' });
   const c = row(w.questionCard_(calcQ));
   if (c.tags.filter(x => /calculator/i.test(x.text)).map(x => x.tag + ':' + x.text).join() !== 'needs:Calculator allowed') bad.push('a calculator paper says ' + say(c.tags.filter(x => /calculator/i.test(x.text))) + ', wanted one needs tag, Calculator allowed');
   if (c.tags.some(x => x.f === 'marks' || /\b0 marks?\b/.test(x.text))) bad.push('a row with no marks has a marks tag: ' + say(c.tags));
-  /* THE FUNNEL SAYS THE SAME WORD: the answer and the chip, through the facet's `showOf`. */
+  /* THE FUNNEL SAYS THE SAME WORD, BECAUSE THE WORD IS THE VALUE (396): no `showOf` on What you need, and its chip reads its value. */
   const nf = t.facetBy('needs');
-  const chip = w.chipShow_({ field: 'needs', value: 'No calculator' });
-  if (!nf || !nf.showOf || nf.showOf('No calculator') !== 'Non-calculator' || chip !== 'Non-calculator') bad.push('the funnel says the calculator as "' + (nf && nf.showOf ? nf.showOf('No calculator') : '?') + '" / chip "' + chip + '", the card as Non-calculator');
+  const chip = w.chipShow_({ field: 'needs', value: 'Non-calculator' });
+  if (!nf || nf.showOf || chip !== 'Non-calculator') bad.push('the funnel says the calculator through ' + (nf && nf.showOf ? 'a showOf of its own' : 'its value') + ', chip "' + chip + '", the card as Non-calculator');
   /* SATs, AND THE KEY STAGE BESIDE IT: a primary worksheet (a school year, a key-stage cell, no level)
      and an STA paper (`band_value: KS2 SATs`). */
   const sheet = { kind: 'question', name: 'Q1', qNumber: '1', key: 'q-tags-ws', sub: 'Adding Fractions', subject: 'Maths',
@@ -15342,9 +15347,9 @@ check('every fact about a page of a question is a tag in one row at the top: wha
 /* ---------- EVERY TAG ON EVERY KIND OF CARD IS A FINDER ANSWER (docs/history/355) § */
 check('every tag on every kind of card is a finder answer: its facet, its word, its colour, and a pick that keeps the card', async () => {
   const PIDS = ['RS1786302107764-415', 'P-AQA-8461-2406-1F', 'P-CBM-5AD-F-0601', 'P-STA-KS2-2024-P1', 'P-1CM-LINEQ1'];
-  const rows = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8')).filter(r => PIDS.indexOf(r.paper_id) >= 0);
+  const rows = LIB_FULL.rows('questions').filter(r => PIDS.indexOf(r.paper_id) >= 0);
   /* THE OTHER KINDS FROM THEIR OWN FILES, through the loader's own mapper, as the shared-parts journey does. */
-  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const read = n => (LIB_FULL.isLib(n) ? LIB_FULL.rows(n) : JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8')));
   const one = boot();
   await wait(300);
   if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so the other kinds were NOT checked'];
@@ -15375,7 +15380,6 @@ check('every tag on every kind of card is a finder answer: its facet, its word, 
     ['a fight', find(x => x.kind === 'fight'), null], ['the Bible\'s cover', w.stuffItems().find(x => x.kind === 'bible'), null],
     ['a Bible verse', verse, null], ['a bundle', { kind: 'bundle', kindLabel: 'Bundles' }, null],
   ];
-  const FOLDER = ['level', 'examBoard', 'subject', 'tier', 'documentType', 'examYear', 'examMonth'];
   let tags = 0;
   CASES.forEach(([what, x, page]) => {
     if (!x) { bad.push(what + ': no such item reached Find, so its tags were NOT checked'); return; }
@@ -15388,16 +15392,15 @@ check('every tag on every kind of card is a finder answer: its facet, its word, 
       const field = el.getAttribute('data-f') || '', text = el.textContent.trim();
       const facet = t.facetList().find(f => f.field === field);
       const at = what + ' (' + (x.name || x.kind) + ') [' + text + ']';
-      if (!facet || !facet.tag) { bad.push(at + ' is no live facet\'s tag (data-f="' + field + '")'); return; }
+      if (!facet) { bad.push(at + ' is no live facet\'s tag (data-f="' + field + '")'); return; }
       if ((el.getAttribute('data-tag') || '') !== t.tagOf(field)) bad.push(at + ' wears "' + (el.getAttribute('data-tag') || 'the outline') + '", its chip "' + (t.tagOf(field) || 'the outline') + '"');
       const vals = t.asList(facet.tagOf ? facet.tagOf(x, page) : w.facetOwn_(facet, x)).map(String);
+      /* THE CHIP A PRESS MAKES once every question before this one was answered as the card answers it (`cardList_`, 396). */
       const chipOf = v => {
-        if (field !== 'paperId') return String((facet.showOf ? facet.showOf(v) : v) || v).trim();
-        /* THE PAPER CHIP, AS A PRESS INSIDE ITS OWN FOLDER MAKES IT. */
-        const S = t.STUFF(), held = S.filters;
+        const S = t.STUFF(), held = S.filters, live = t.facetList(), stop = live.findIndex(f => f.field === field);
         try {
-          S.filters = FOLDER.map(f => ({ field: f, value: t.asList(w.facetOwn_(t.facetBy(f), x))[0] })).filter(c => c.value)
-            .concat([{ field: 'paperId', value: v }]);
+          S.filters = [].concat(...live.slice(0, stop).map(f => t.asList(w.facetOwn_(f, x)).map(one => ({ field: f.field, value: one }))))
+            .concat([{ field: field, value: v }]);
           return String(w.chipShow_(S.filters[S.filters.length - 1], S.filters.length - 1)).trim();
         } finally { S.filters = held; }
       };
@@ -15411,31 +15414,36 @@ check('every tag on every kind of card is a finder answer: its facet, its word, 
   return bad;
 });
 
-/* ---------- NO DOOR ROWS: EVERY FACET IS A FUNNEL QUESTION OR A CARD TAG, NOTHING BETWEEN (20 Oct, 387) */
-check('no tag-door rows anywhere: a chosen paper ends on its questions, Required is asked only after Practicals, and a sub-part reads ii as its card tag does', async () => {
+/* ---------- NO DOOR ROWS (387), AND SINCE 396 NO TAG THAT IS NEVER ASKED: one question at a time, by one rule, all the way down */
+check('no tag-door rows anywhere: a chosen paper goes on to ask Question by the same rule, Question and Part wait for a paper, and a sub-part reads ii as its card tag does', async () => {
   const PID = 'RS1786302107764-415';
-  const rows = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8')).filter(r => r.paper_id === PID || r.paper_id === 'P-CBM-5AD-F-0601');
+  const rows = LIB_FULL.rows('questions').filter(r => r.paper_id === PID || r.paper_id === 'P-CBM-5AD-F-0601');
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
   for (let i = 0; i < 60 && !(typeof w.stuffItemsAll_ === 'function' && w.stuffItemsAll_().some(x => x.row && x.row.paper_id === PID)); i++) await wait(50);
   const t = w.__t, d = w.document, bad = [];
   const OWN = ['qNumber', 'qPart', 'qSub', 'qPage', 'qPages', 'marks'];
-  if (typeof w.paperEnd_ !== 'function' || typeof w.stuffQuestion !== 'function') return ['paperEnd_ or stuffQuestion not reachable — the doors were NOT checked'];
+  if (typeof w.stuffQuestion !== 'function') return ['stuffQuestion not reachable — the doors were NOT checked'];
   if (typeof w.tagDoors_ === 'function') bad.push('tagDoors_ is back — the owner asked for no door rows (387)');
-  OWN.forEach(f => { const facet = t.facetBy(f); if (!facet || !facet.tagOnly) bad.push('`' + f + '` is not a tagOnly facet — it can be asked on the way to a paper'); });
+  if (typeof w.paperEnd_ === 'function' || typeof w.funnelEnded_ === 'function') bad.push('a paper ends the funnel again (paperEnd_/funnelEnded_) — since 396 the one rule goes on asking inside it');
+  /* ORDINARY FACETS: a field, a label and the readers, nothing that says "never ask me". */
+  OWN.forEach(f => { const facet = t.facetBy(f); const extra = facet ? Object.keys(facet).filter(k => ['field', 'label', 'of', 'tagOf', 'showOf', 'at'].indexOf(k) < 0) : ['(missing)']; if (extra.length) bad.push('`' + f + '` carries ' + extra.join(', ') + ' — it must be an ordinary facet'); });
   const S = t.STUFF();
   S.filters = []; S.q = '';
-  const asked = [];
+  const asked = [], papersAt = [];
   for (let i = 0; i < 30; i++) {
     const list = w.stuffFiltered();
     const f = w.nextFacet(list) || w.overFacet_(list);
     if (!f) break;
     asked.push(f.field);
+    papersAt.push([f.field, new Set(list.map(x => x.row && x.row.paper_id).filter(Boolean)).size]);
     const v = w.facetValues(list, f)[0];
     if (!v) break;
-    S.filters.push(Object.assign({ field: f.field, value: v.value }, v.bucket ? { bucket: true } : {}));
+    S.filters.push({ field: f.field, value: v.value });
   }
-  const wrong = asked.filter(f => OWN.indexOf(f) >= 0);
-  if (wrong.length) bad.push('the funnel walked from nothing ASKED ' + wrong.join(', ') + ' (' + asked.join(' → ') + ')');
+  /* THE ONE RULE HOLDS A QUESTION'S OWN FACTS BACK UNTIL THE LIST IS ONE PAPER — chosen, or the only one left. */
+  const early = papersAt.filter(([f, n]) => OWN.indexOf(f) >= 0 && n !== 1);
+  if (early.length) bad.push('the funnel walked from nothing asked ' + early.map(([f, n]) => f + ' over ' + n + ' papers').join(', ') + ' (' + asked.join(' → ') + ')');
+  if (!asked.some(f => OWN.indexOf(f) >= 0)) bad.push('the walk never reached a question\'s own facts, so they were NOT shown to be asked inside a paper (' + asked.join(' → ') + ')');
   if (!asked.length) bad.push('the funnel asked nothing, so the walk proves nothing');
   const h = d.createElement('div');
   d.body.appendChild(h);
@@ -15448,9 +15456,9 @@ check('no tag-door rows anywhere: a chosen paper ends on its questions, Required
     return fields;
   };
   if (look([], 'the first screen').indexOf('required') >= 0) bad.push('the first screen asks Required before Practicals is chosen');
-  look([{ field: 'paperId', value: PID }], 'the chosen paper');
-  if (!/That is the paper/.test(h.textContent)) bad.push('with the paper chosen the page does not end the funnel: ' + h.textContent.replace(/\s+/g, ' ').trim().slice(0, 80));
-  look([{ field: 'fiveDay', value: 'P-CBM-5AD-F-0601' }], 'a 5-a-day chosen by its Day');
+  const inPaper = look([{ field: 'paperId', value: PID }], 'the chosen paper');
+  if (inPaper[0] !== 'qNumber') bad.push('with the paper chosen the funnel asks ' + (inPaper[0] || 'nothing') + ', not Question — a paper is not an end since 396: ' + h.textContent.replace(/\s+/g, ' ').trim().slice(0, 80));
+  look([{ field: 'fiveDay', value: '1 June' }], 'a 5-a-day chosen by its Day');
   /* THE WORD ON THE CARD: a sub-part's answer is `ii`, never `Ii`. */
   S.filters = [];
   const items = w.stuffItemsAll_().filter(x => x.kind === 'question');
@@ -15466,7 +15474,7 @@ check('Required is never on the first screen, and is the funnel\'s own question 
   const one = boot({});
   await wait(300);
   if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable — Required was NOT checked'];
-  const prac = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'practicals.json'), 'utf8'));
+  const prac = LIB_FULL.rows('practicals');
   const p = payload();
   p.practicals = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, { practicals: prac }))).practicals || [];
   const { w } = boot({ payload: p });
@@ -15498,7 +15506,7 @@ check('Required is never on the first screen, and is the funnel\'s own question 
 
 /* ---------- NO LINE UNDER ANY DRAWING SAYS WHO DREW IT, ON ANY PAGE OF THE LIBRARY (docs/history/355) § */
 check('no line under any drawing says who drew it: not on one page of the library, and the code that said it is gone', async () => {
-  const rows = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const rows = LIB_FULL.rows('questions');
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
   for (let i = 0; i < 200 && !(typeof w.stuffItemsAll_ === 'function' && w.stuffItemsAll_().filter(x => x.kind === 'question').length > 5000); i++) await wait(50);
   const bad = [];
@@ -16123,7 +16131,7 @@ check('submission: the keypad’s gold Send and a laptop’s Enter send the box�
 
 /* ---------- WHAT WAS DONE BEFORE THE SWITCH BECOMES A SUBMISSION, ONCE, FOR ITS OWN PERSON (decided 10 Oct) § */
 check('submission: what a child had done before the switch becomes one submission each, marked as its press would be — once, on any device, and never another person’s', async () => {
-  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const LIB = LIB_FULL.rows('questions');
   const IDS = ['Q-1MA1-2406-1F-4', 'Q-1MA1-2406-2F-1', 'Q-STA-KS2-2024-P2-2', 'Q-STA-KS2-2024-P2-10', 'Q-9MA031-2206-1a', 'Q-9MA031-2206-1aii', 'Q0109', 'Q0110'];
   const lib = LIB.filter(r => IDS.indexOf(r.row_id) !== -1);
   if (lib.length !== IDS.length) return ['data/questions.json no longer has ' + IDS.filter(id => !lib.some(r => r.row_id === id)).join(', ') + ' — nothing was migrated'];
@@ -16286,7 +16294,7 @@ check('submission: an empty answer on the account is nobody’s latest and never
 const SUB_PRE_ = (() => {
   const K = 'q:Q-9MA031-2206-1a';
   const OCT5 = new Date(2026, 9, 5, 15, 0, 0).getTime();
-  const row = () => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8')).filter(r => r.row_id === 'Q-9MA031-2206-1a');
+  const row = () => LIB_FULL.rows('questions').filter(r => r.row_id === 'Q-9MA031-2206-1a');
   const seed = (outToo, me) => win => {
     if (me) win.localStorage.setItem('familyUser', JSON.stringify(me));
     win.localStorage.setItem('done:u:P7:' + K, '2026-10-05');
@@ -18093,12 +18101,12 @@ check('the shop is its own column with the basket on top, and Find no longer has
 
 /* ---------- PROJECTS, A KIND OF ITS OWN BESIDE THE PRACTICALS § */
 check('Projects is a kind in Find beside Practicals: card, materials, steps, and a share page to Messages', async () => {
-  const rows = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'projects.json'), 'utf8'));
+  const rows = LIB_FULL.rows('projects');
   const one = boot();
   await wait(300);
   if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so the projects were NOT checked — not a pass'];
   /* THE PRACTICALS TOO, so `What kind` has both siblings to name — the fixture has no library. */
-  const prac = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'practicals.json'), 'utf8'));
+  const prac = LIB_FULL.rows('practicals');
   const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, { projects: rows, practicals: prac })));
   const mapped = made.projects || [];
   if (!mapped.length) return ['the mapper made nothing of ' + rows.length + ' rows in data/projects.json'];
@@ -18117,13 +18125,9 @@ check('Projects is a kind in Find beside Practicals: card, materials, steps, and
   const kindFacet = w.facetList().find(f => f.field === 'kindLabel');
   const shown = items => w.facetValues(items, kindFacet).map(v => String(v.show || v.value));
   const learning = w.stuffItems().filter(x => w.kindOf_(x).group === 'Learning');
-  /* PLACED IN THE GROUPING, because one unplaced kind stands the whole question down to the
-     alphabet — and in the same group as the practicals, which is where the owner will look. */
-  const grp = k => { try { return kindFacet.bucketOf(k); } catch (e) { return ''; } };
-  if (grp('Projects') !== 'Work through it' || grp('Practicals') !== grp('Projects')) {
-    bad.push('`What kind` files Projects under "' + grp('Projects') + '" and Practicals under "' + grp('Practicals') + '"');
-  }
+  /* BESIDE THE PRACTICALS, in the kinds tab's order (`answerCmp_`, 396) — where the owner will look. */
   const inner = shown(learning);
+  if (Math.abs(inner.indexOf('Projects') - inner.indexOf('Practicals')) !== 1) bad.push('`What kind` does not put Projects next to Practicals — it reads ' + inner.join(' | '));
   if (inner.indexOf('Projects') < 0 || inner.indexOf('Practicals') < 0) bad.push('`What kind` does not offer Projects beside Practicals — it reads ' + inner.join(' | '));
 
   const x = found[0];
@@ -18160,12 +18164,12 @@ check('Projects is a kind in Find beside Practicals: card, materials, steps, and
 
 /* ---------- COURSEWORK, A TYPE OF PROJECT § */
 check('Coursework is a type of project: Projects asks Project or coursework, which narrows to it; tagged, its board, Stages, found by name', async () => {
-  const rows = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'projects.json'), 'utf8'));
+  const rows = LIB_FULL.rows('projects');
   const sheet = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'facets.json'), 'utf8'));
   const one = boot();
   await wait(300);
   if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so the coursework was NOT checked — not a pass'];
-  const prac = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'practicals.json'), 'utf8'));
+  const prac = LIB_FULL.rows('practicals');
   const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, { projects: rows, practicals: prac })));
   const mapped = made.projects || [];
   const cws = mapped.filter(p => p.projectType === 'coursework');
@@ -18238,7 +18242,7 @@ check('Coursework is a type of project: Projects asks Project or coursework, whi
       + ' — not the ' + cwItems.length + ' coursework(s)');
   }
 
-  /* ---------- AND NOT OF A LIST THAT IS ONLY PARTLY PROJECTS § */
+  /* ---------- AND OF A MIXED LIST BY THE ONE BAR EVERY FACET HAS (396): asked once half the list is projects, not before § */
   const projs = w.stuffItems().filter(i => i.kind === 'project');
   const others = [];
   w.stuffItems().forEach(i => { if (i.kind !== 'project' && others.length < 2 && !others.some(o => o.kind === i.kind)) others.push(i); });
@@ -18247,11 +18251,17 @@ check('Coursework is a type of project: Projects asks Project or coursework, whi
     const held = t.STUFF().filters.slice();
     t.STUFF().filters.length = 0;
     t.STUFF().filters.push({ field: 'forLabel', any: true }, { field: 'kindLabel', any: true });
+    const few = w.stuffItems().filter(i => i.kind !== 'project').slice(0, projs.length * 2);
+    const thin = projs.concat(few);
+    const nfThin = w.nextFacet(thin);
+    if (few.length >= projs.length && nfThin && nfThin.field === 'projectType') {
+      bad.push('Project or coursework is asked of ' + projs.length + ' projects among ' + thin.length + ' things — under half the list, which the one coverage bar refuses');
+    }
     const mixed = projs.concat(others);
     const nfMixed = w.nextFacet(mixed);
-    if (nfMixed && nfMixed.field === 'projectType') {
-      bad.push('Project or coursework is asked of ' + projs.length + ' projects with ' + others.map(o => 'a ' + o.kind).join(' and ')
-        + ' — either answer drops ' + (others.length === 1 ? 'it' : 'them') + ' without a word; the facets row needs min_coverage 1');
+    if (!nfMixed || nfMixed.field !== 'projectType') {
+      bad.push('Project or coursework is not asked of ' + projs.length + ' projects with ' + others.map(o => 'a ' + o.kind).join(' and ')
+        + ' — the list is mostly projects, and the one bar asks it (it asks ' + (nfMixed ? nfMixed.field : 'nothing') + ')');
     }
     const nfAlone = w.nextFacet(projs);
     if (!nfAlone || nfAlone.field !== 'projectType') bad.push('with the doors skipped, the projects alone ask ' + (nfAlone ? nfAlone.field : 'nothing') + ', not Project or coursework — so the mixed list above proves nothing');
@@ -18312,7 +18322,7 @@ check('Coursework is a type of project: Projects asks Project or coursework, whi
 /* ON FIND 2, WHICH CARRIES WHAT FIND CARRIES (docs/history/347): the route is Find's own, run in the
    second column. */
 check('a content card, on Find 2 and on Find: What kind · Content, Statistics — the card whole, its animations, its tags, search, star, and a book\'s old star dropped', async () => {
-  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const read = n => (LIB_FULL.isLib(n) ? LIB_FULL.rows(n) : JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8')));
   const one = boot();
   await wait(300);
   if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so the content cards were NOT checked — not a pass'];
@@ -18392,8 +18402,9 @@ check('a content card, on Find 2 and on Find: What kind · Content, Statistics �
   if (!card.querySelector('.card.ct')) bad.push('the card is not drawn as a content card');
   if (!card.querySelector('.tb-an-stage') && !box(w.stuffPart_(x, 'an8-mean')).querySelector('.tb-an-stage')) bad.push('the mean\'s animation has no stage on its page');
   /* WHAT IT IS, FIRST IN THE ONE ROW EVERY CARD WEARS: § */
-  const first = card.querySelector('.qtags .qtag');
-  if (!first || first.getAttribute('data-f') !== 'kindLabel' || first.textContent.trim() !== 'Content') bad.push('the card\'s row does not open on [Content]: ' + (first ? first.textContent : 'no tag'));
+  /* EVERY FACET A TAG SINCE 396, in the tab's order: What for, then What kind. */
+  const lead = [...card.querySelectorAll('.qtags .qtag')].slice(0, 2).map(e => e.getAttribute('data-f') + ':' + e.textContent.trim());
+  if (lead.join(' ') !== 'forLabel:Learning kindLabel:Content') bad.push('the card\'s row does not open on [Learning] [Content]: ' + (lead.join(' ') || 'no tag'));
   if (card.querySelector('.fc-flag')) bad.push('the card still wears a head pill of its own');
   const tags = [...card.querySelectorAll('.qtags .qtag')].map(e => e.textContent.trim());
   ['GCSE', 'Statistics', 'Mean', 'Median'].forEach(v => { if (tags.indexOf(v) < 0) bad.push('the Averages card has no "' + v + '" tag: ' + tags.join(' | ')); });
@@ -18461,7 +18472,7 @@ const resPayload_ = async () => {
     const one = boot();
     for (let i = 0; i < 80 && typeof one.w.libraryExtras_ !== 'function'; i++) await wait(25);
     if (typeof one.w.libraryExtras_ !== 'function') return null;
-    const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+    const read = n => (LIB_FULL.isLib(n) ? LIB_FULL.rows(n) : JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8')));
     RES_MADE_.v = JSON.parse(JSON.stringify(one.w.libraryExtras_({},
       { textbooks: read('textbooks'), boxers: read('boxers'), fights: read('fights'), projects: read('projects') })));
   }
@@ -19096,7 +19107,7 @@ check('a retired splash stays retired: the file\'s list reaches the device, and 
     .map(r => r.splash_id === 'pyth' ? Object.assign({}, r, { active: false }) : r);
   /* AND THE BOOKS, because Pythagoras lives in one: the picker could only draw it from the copy a load
      of data/textbooks.json kept, so without them the retirement would be proved of nothing. */
-  const books = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'textbooks.json'), 'utf8'));
+  const books = LIB_FULL.rows('textbooks');
   const { w } = boot({ serve: u => /(^|\/)data\/settings\/splashes\.json(\?|$)/.test(u) ? rows
     : /(^|\/)data\/textbooks\.json(\?|$)/.test(u) ? books : undefined });
   if (!w.__t) return ['the app did not finish loading'];
@@ -19122,7 +19133,7 @@ check('a retired splash stays retired: the file\'s list reaches the device, and 
 /* ---------- A CHAPTER PLAYS ITS ANIMATION § */
 /* ON FIND 2 (docs/history/329), a page after the Pythagoras content card (347, part 2). */
 check('a content card plays its animation on Find 2: Pythagoras after the Pythagoras and trigonometry card, drawn from its row', async () => {
-  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const read = n => (LIB_FULL.isLib(n) ? LIB_FULL.rows(n) : JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8')));
   const one = boot();
   await wait(300);
   if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable — NOT checked'];
@@ -19220,7 +19231,7 @@ check('the owner\'s test, on Find and Find 2: Maths · GCSE · Topic Surds, Pyth
   if (!p) return ['libraryExtras_ is not reachable — the owner\'s test was NOT run'];
   const TOPICS = ['Surds', 'Pythagoras\' Theorem', 'Standard Form', 'Simultaneous Equations', 'Histograms'];
   const key = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-  const lib = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const lib = LIB_FULL.rows('questions');
   const tops = r => String(r.topics || '').split(',').map(key);
   const rows = lib.filter(r => r.subject === 'Maths' && /^gcse$/i.test(String(r.level || '')) && TOPICS.some(T => tops(r).indexOf(key(T)) !== -1));
   const missing = TOPICS.filter(T => !rows.some(r => tops(r).indexOf(key(T)) !== -1));
@@ -19265,7 +19276,7 @@ check('the owner\'s test, on Find and Find 2: Maths · GCSE · Topic Surds, Pyth
 
 /* ---------- THE SPLASH IS DRAWN FROM THE TEXTBOOKS' COPY § */
 check('the splash is drawn from the textbooks\' copy: a load keeps it, the next one draws it, and it comes off with the splash', async () => {
-  const books = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'textbooks.json'), 'utf8'));
+  const books = LIB_FULL.rows('textbooks');
   const sheet = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'splashes.json'), 'utf8'));
   const serve = u => /(^|\/)data\/textbooks\.json(\?|$)/.test(u) ? books : /(^|\/)data\/settings\/splashes\.json(\?|$)/.test(u) ? sheet : undefined;
   const one = boot({ serve });
@@ -19329,8 +19340,8 @@ check('the books and the settings files are fetched with the deploy stamp', asyn
 });
 
 /* ---------- THE BIBLE: SIX QUESTIONS AND A CARD A VERSE, AND NOBODY ELSE IS SHOWN IT OR SENT IT § */
-check('the Bible, on Find 2 (and on Find): Books → KJV → testament → group → book → chapter → verse, a card each; nobody else is shown it or fetches a byte of it', async () => {
-  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+check('the Bible, on Find 2 (and on Find): its cover in Resources → Open → testament → group → book → chapter → verse, a card each, asked by the one rule; nobody else is shown it or fetches a byte of it', async () => {
+  const read = n => (LIB_FULL.isLib(n) ? LIB_FULL.rows(n) : JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8')));
   const one = boot();
   await wait(300);
   if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so the shelves were NOT built — not a pass'];
@@ -19456,57 +19467,42 @@ check('the Bible, on Find 2 (and on Find): Books → KJV → testament → group
   const setTo = list => { t.RES().q = ''; t.RES().filters = list.map(f => Object.assign({}, f)); w.paintFinder_('res'); };
   const same = (got, want, say) => { if (got.join('|') !== want.join('|')) bad.push(say + ' offers ' + (got.slice(0, 8).join(', ') || 'nothing') + (got.length > 8 ? '… (' + got.length + ')' : '') + ' — not ' + want.slice(0, 8).join(', ') + (want.length > 8 ? '… (' + want.length + ')' : '')); };
   const run = n => Array.from({ length: n }, (_, i) => String(i + 1));
-  /* WHAT THE FUNNEL TALLIED, not only what it asked: on a fresh copy of the list, `nextFacet` may tally
-     one Bible question — or none, once nothing is left — and nothing that is not the Bible's. */
+  /* WHAT THE FUNNEL ASKS OF THE VERSES IS A BIBLE QUESTION OR NOTHING — the one rule's coverage, where a fence was (396). */
   const tallies = say => {
     const list = R.stuffFiltered();
     if (!list.length || !list[0].bb) return;
-    const copy = list.slice();
-    const nf = R.nextFacet(copy);
-    const keys = Object.keys(t.FACET_TALLY().get(copy) || {}).map(k => k.split('|')[0]);
-    if (keys.some(k => !/^bible/.test(k)) || keys.length > 1 || (nf && keys.length !== 1)) {
-      bad.push(say + ': a fresh nextFacet over the verses tallied ' + (keys.join(', ') || 'nothing')
-               + ' — inside the Bible a tap tallies its one question, and nothing that is not the Bible\'s');
-    }
+    const nf = R.nextFacet(list.slice()) || R.overFacet_(list.slice());
+    if (nf && !/^bible/.test(nf.field)) bad.push(say + ': the funnel asks ' + nf.field + ' of the verses — only a Bible question can split them');
   };
 
   t.go('res');
   t.RES().filters.length = 0; t.RES().q = '';
   w.paintFinder_('res');
-  const route = ['Learning', 'Resources', 'Books'];
-  const rungs = ['forLabel', 'kindLabel', 'shelf'];
-  const kindFacet = w.facetList().find(f => f.field === 'kindLabel');
+  /* ---------- 1. RESOURCES: THE COVER AMONG THEM, AND NO SHELF QUESTION (396) — one Bible against the boxing is a split the
+     one rule's balance refuses, so the cover is found as a result (or by search), and its Open tile goes in. */
+  const route = ['Learning', 'Resources'];
   const pressed = [];
-  for (let guard = 0; route.length && guard < 8; guard++) {
+  for (let guard = 0; route.length && guard < 6; guard++) {
     const btns = answersOn();
-    let el = btns.find(b => b.dataset.value === route[0]);
-    const rung = w.facetList().find(f => f.field === rungs[rungs.length - route.length]);
-    const only = rung ? R.facetValues(R.stuffFiltered(), rung).map(v => String(v.value)) : [];
-    if (!el && only.length === 1 && only[0] === route[0]) { pressed.push('(' + route.shift() + ')'); continue; }
+    const el = btns.find(b => b.dataset.value === route[0]);
+    const only = w.facetList().filter(f => f.field === 'forLabel' || f.field === 'kindLabel')
+      .some(f => { const v = R.facetValues(R.stuffFiltered(), f).map(x => String(x.value)); return v.length === 1 && v[0] === route[0]; });
+    if (!el && only) { pressed.push('(' + route.shift() + ')'); continue; }
     if (!el) {
-      const grp = (() => { try { return rung.bucketOf(route[0]); } catch (e) { return ''; } })();
-      el = grp && btns.find(b => b.dataset.value === grp && b.dataset.bucket);
-      if (!el) {
-        bad.push('the funnel did not offer "' + route[0] + '" to an admin after ' + (pressed.join(' → ') || 'nothing') + ' — it offered '
-          + (btns.map(b => b.dataset.field + ':' + b.dataset.value).join(' | ') || 'no answers'));
-        break;
-      }
-    } else route.shift();
+      bad.push('the funnel did not offer "' + route[0] + '" to an admin after ' + (pressed.join(' → ') || 'nothing') + ' — it offered '
+        + (btns.map(b => b.dataset.field + ':' + b.dataset.value).join(' | ') || 'no answers'));
+      return bad;
+    }
+    route.shift();
     pressed.push(el.dataset.value);
     t.ACTIONS['facet-pick'](el);
     await wait(20);
   }
-  if (route.length) return bad;
-  if (pressed.indexOf('Books') < 0) bad.push('the Books shelf was never a question for an admin — ' + pressed.join(' → '));
-
-  /* ---------- 1. BOOKS: THE COVER, AND ONE QUESTION WITH ONE ANSWER --------------------------------- */
+  if (asked().field === 'shelf') bad.push('Resources asks Shelf (' + asked().vals.join(' | ') + ') — one Bible against the boxing is lopsided, and the one rule does not ask it');
   const left = R.stuffFiltered();
-  const x = left[0];
-  if (left.length !== 1 || !x || x.kind !== 'bible' || x.bb) return bad.concat(['after ' + pressed.join(' → ') + ' the list is ' + left.length + ' item(s): '
-    + left.slice(0, 4).map(i => i.kind + ' ' + i.name).join(', ') + ' — not the Bible\'s cover']);
-  let q = asked();
-  if (q.field !== 'bibleTranslation' || q.vals.join('|') !== 'KJV') bad.push('on the Books shelf the question is ' + (q.field || 'nothing') + ' ' + JSON.stringify(q.vals) + ' — it should be Translation, with KJV its one answer (a folder is asked with one)');
-  if (ofBible(a.gets).length !== 1) bad.push('a book was fetched before KJV was pressed: ' + ofBible(a.gets).join(', '));
+  const x = left.find(i => i.kind === 'bible' && !i.bb);
+  if (!x) return bad.concat(['after ' + pressed.join(' → ') + ' the Bible\'s cover is not among the ' + left.length + ' resources']);
+  if (ofBible(a.gets).length !== 1) bad.push('a book was fetched before the Bible was opened: ' + ofBible(a.gets).join(', '));
   const coverBox = box(R.stuffCard(x));
   const cover = coverBox.querySelector('.favwrap > .card') || coverBox.firstElementChild;
   if (!cover || !cover.classList.contains('bible') || !cover.classList.contains('fc')) bad.push('the cover is not a `.card.fc.bible`');
@@ -19517,13 +19513,18 @@ check('the Bible, on Find 2 (and on Find): Books → KJV → testament → group
     if (!/31,102 verses/.test(cover.textContent)) bad.push('the cover does not count the verses — the index did not reach it');
     if (!cover.querySelector('.bb-who')) bad.push('the cover does not say only admins are shown it');
     if (cover.querySelector('.tile-row')) bad.push('the cover carries a tile row inside the card');
-    if (!coverBox.querySelector(':scope > .tile-row [data-do="bible-go"]:not([data-key])')) bad.push('the cover has no Open tile under it');
   }
   if (JSON.stringify(w.pageParts_(x)) !== '[null]') bad.push('the cover is pages ' + JSON.stringify(w.pageParts_(x)) + ' — it is one page now, the reader\'s lists are gone');
+  const open = coverBox.querySelector(':scope > .tile-row [data-do="bible-go"]:not([data-key])');
+  if (!open) return bad.concat(['the cover has no Open tile under it, so the Bible cannot be opened from it']);
+  d.body.appendChild(coverBox);
+  t.ACTIONS['bible-go'](open);
+  coverBox.remove();
+  await wait(80);
 
-  /* ---------- 2. KJV: EVERY VERSE, AND THE TESTAMENTS IN THEIR ORDER -------------------------------- */
-  if (!(await pick('bibleTranslation', 'KJV'))) return bad;
+  /* ---------- 2. OPEN: EVERY VERSE, AND THE TESTAMENTS A–Z, like every facet's answers (396) ------------- */
   await wait(150);
+  if (JSON.stringify(t.RES().filters.map(f => f.field + '=' + f.value)) !== JSON.stringify(['shelf=Books', 'bibleTranslation=KJV'])) bad.push('Open set the chips to ' + JSON.stringify(t.RES().filters));
   const verses = R.stuffFiltered();
   if (verses.length !== index.totals.verses) bad.push('KJV leaves ' + verses.length + ' verses, not ' + index.totals.verses);
   if (verses !== w.bibleVerses_()) bad.push('KJV\'s list is not the verse list itself — every verse answers KJV, so nothing should have been copied');
@@ -19531,7 +19532,7 @@ check('the Bible, on Find 2 (and on Find): Books → KJV → testament → group
     bad.push('the verses run ' + (verses[0] && verses[0].name) + ' to ' + (verses.length && verses[verses.length - 1].name) + ' — not Genesis 1:1 to Revelation 22:21');
   }
   q = asked();
-  same(q.vals, ['Old Testament', 'New Testament'], 'after KJV the Testament question');
+  same(q.vals, ['New Testament', 'Old Testament'], 'after KJV the Testament question');
   if (q.field !== 'bibleTestament') bad.push('after KJV the question is ' + q.field + ', not Testament');
   tallies('KJV');
   const gen = () => ofBible(a.gets).filter(u => /01-genesis\.json/.test(u)).length;
@@ -19552,18 +19553,18 @@ check('the Bible, on Find 2 (and on Find): Books → KJV → testament → group
   if (!(await pick('bibleTestament', 'Old Testament'))) return bad;
   q = asked();
   if (q.field !== 'bibleGroup') bad.push('after Old Testament the question is ' + q.field + ', not Group');
-  same(q.vals, ['Torah', 'History', 'Poetry & Wisdom', 'Major Prophets', 'Minor Prophets'], 'the Old Testament\'s Group question');
+  same(q.vals, ['History', 'Major Prophets', 'Minor Prophets', 'Poetry & Wisdom', 'Torah'], 'the Old Testament\'s Group question');
   tallies('Old Testament');
   setTo(DOORS.concat([KJV, { field: 'bibleTestament', value: 'New Testament' }]));
-  same(asked().vals, ['Gospels', 'Church History', 'Pauline Epistles', 'General Epistles', 'Prophecy'], 'the New Testament\'s Group question');
+  same(asked().vals, ['Church History', 'General Epistles', 'Gospels', 'Pauline Epistles', 'Prophecy'], 'the New Testament\'s Group question');
   tallies('New Testament');
   setTo(DOORS.concat([KJV, { field: 'bibleTestament', value: 'Old Testament' }]));
   if (!(await pick('bibleGroup', 'Torah'))) return bad;
   q = asked();
-  same(q.vals, ['Genesis', 'Exodus', 'Leviticus', 'Numbers', 'Deuteronomy'], 'Torah\'s Book question');
+  same(q.vals, ['Deuteronomy', 'Exodus', 'Genesis', 'Leviticus', 'Numbers'], 'Torah\'s Book question');
   tallies('Torah');
 
-  /* ---------- 4. GENESIS: ITS CHAPTERS AS A GRID; CHAPTER 1: ITS VERSES, EVERY ONE DRAWN FROM THE FILE --- */
+  /* ---------- 4. GENESIS: ITS 50 CHAPTERS AS A GRID (past the cap, so the last resort, the fewest); CHAPTER 1: ITS VERSES --- */
   if (!(await pick('bibleBook', 'Genesis'))) return bad;
   q = asked();
   if (q.field !== 'bibleChapter' || !q.grid) bad.push('after Genesis the question is ' + q.field + (q.grid ? '' : ', not drawn as a grid'));
@@ -19592,7 +19593,7 @@ check('the Bible, on Find 2 (and on Find): Books → KJV → testament → group
     const tags = [...card.querySelectorAll('.qcard-tags .qtag')].map(s => s.textContent);
     /* EVERY TAG A BIBLE ANSWER, IN THE ORDER THE FINDER ASKS (355): the book, chapter and verse three tags
        -- [Genesis] [1] [1], both ones kept, a number being a position and not a name -- and no `Verse`. */
-    if (i === 0 && tags.join('|') !== 'Resources|Books|KJV|Old Testament|Torah|Genesis|1|1') bad.push('Genesis 1:1\'s tags are ' + tags.join(', '));
+    if (i === 0 && tags.join('|') !== 'Learning|Resources|Books|KJV|Old Testament|Torah|Genesis|1|1') bad.push('Genesis 1:1\'s tags are ' + tags.join(', '));
   });
   const v2 = box(R.stuffCard(ch1[1])).querySelector('.bb-v');
   if (!v2 || v2.innerHTML.indexOf('darkness <i>was</i> upon') < 0) bad.push('Genesis 1:2 does not draw "[was]" as italics');
@@ -19630,13 +19631,14 @@ check('the Bible, on Find 2 (and on Find): Books → KJV → testament → group
   q = asked();
   same(q.vals, run(150), 'Psalms\'s Chapter question');
   if (!q.grid) bad.push('Psalms\'s 150 chapters are not drawn as a grid');
-  const nfPs = R.nextFacet(R.stuffFiltered());
-  if (!nfPs || nfPs.field !== 'bibleChapter') bad.push('nextFacet asks ' + (nfPs ? nfPs.field : 'nothing') + ' of Psalms — a grid is exempt from the answer cap, so it should be Chapter, not left to overFacet_');
+  /* NO GRID IS EXEMPT FROM THE CAP (396): 150 chapters is the last resort's, the fewest answers past it. */
+  const nfPs = R.nextFacet(R.stuffFiltered()) || R.overFacet_(R.stuffFiltered());
+  if (!nfPs || nfPs.field !== 'bibleChapter') bad.push('the funnel asks ' + (nfPs ? nfPs.field : 'nothing') + ' of Psalms — Chapter, the last resort with the fewest answers');
   if (!(await pick('bibleChapter', '119'))) return bad;
   q = asked();
   same(q.vals, run(176), 'Psalm 119\'s Verse question');
-  const nf119 = R.nextFacet(R.stuffFiltered());
-  if (!nf119 || nf119.field !== 'bibleVerse') bad.push('nextFacet asks ' + (nf119 ? nf119.field : 'nothing') + ' of Psalm 119 — Verse, its 176 as a grid');
+  const nf119 = R.nextFacet(R.stuffFiltered()) || R.overFacet_(R.stuffFiltered());
+  if (!nf119 || nf119.field !== 'bibleVerse') bad.push('the funnel asks ' + (nf119 ? nf119.field : 'nothing') + ' of Psalm 119 — Verse, its 176 as a grid');
   tallies('Psalm 119');
   if (!(await pick('bibleVerse', '105'))) return bad;
   let lamp = null;
@@ -19648,24 +19650,26 @@ check('the Bible, on Find 2 (and on Find): Books → KJV → testament → group
     bad.push('Psalm 119:105 reads "' + (lamp ? lamp.textContent.trim() : 'nothing') + '"');
   }
 
-  /* ---------- 7. ONE-ANSWER RUNGS ARE STILL ASKED — EVERY RUNG IS A FOLDER ---------------------------- */
+  /* ---------- 7. A RUNG WITH ONE ANSWER IS NOT ASKED, LIKE ANY QUESTION (396): the next one is ---------- */
   const nt = { field: 'bibleTestament', value: 'New Testament' };
   setTo(DOORS.concat([KJV, nt, { field: 'bibleGroup', value: 'Church History' }]));
-  same(asked().vals, ['Acts'], 'Church History\'s Book question');
+  q = asked();
+  if (q.field !== 'bibleChapter') bad.push('Church History (Acts alone) asks ' + (q.field || 'nothing') + ', not Chapter — Book has one answer');
+  same(q.vals, run(28), 'Acts\'s Chapter question');
   setTo(DOORS.concat([KJV, nt, { field: 'bibleGroup', value: 'Prophecy' }]));
-  same(asked().vals, ['Revelation'], 'Prophecy\'s Book question');
+  if (asked().field !== 'bibleChapter') bad.push('Prophecy (Revelation alone) asks ' + (asked().field || 'nothing') + ', not Chapter');
   setTo(DOORS.concat([KJV, nt, { field: 'bibleGroup', value: 'General Epistles' }, { field: 'bibleBook', value: 'Jude' }]));
   q = asked();
-  if (q.field !== 'bibleChapter') bad.push('Jude asks ' + (q.field || 'nothing') + ', not Chapter');
-  same(q.vals, ['1'], 'Jude\'s Chapter question');
+  if (q.field !== 'bibleVerse') bad.push('Jude (one chapter) asks ' + (q.field || 'nothing') + ', not Verse');
+  same(q.vals, run(25), 'Jude\'s Verse question');
 
   /* ---------- 8. EVERY RUNG SKIPPED: BOOK BEFORE CHAPTER, DRAWN WHOLE; THEN THE LONGEST RUNS ---------- */
   setTo(DOORS.concat([KJV]));
   if (await skip('bibleTestament') && await skip('bibleGroup')) {
     const list = R.stuffFiltered();
     q = asked();
-    if (q.field !== 'bibleBook' || q.vals.length !== index.books.length) bad.push('with Testament and Group skipped the question is ' + q.field + ' with ' + q.vals.length + ' answers — Book, all 66, before any chapter');
-    else same(q.vals, index.books.map(b => b.book), 'Book over the whole Bible');
+    if (q.field !== 'bibleBook' || q.vals.length !== index.books.length) bad.push('with Testament and Group skipped the question is ' + q.field + ' with ' + q.vals.length + ' answers — Book, all 66, the last resort with the fewest');
+    else same(q.vals, index.books.map(b => b.book).sort((m, n) => m.localeCompare(n, 'en', { sensitivity: 'base', numeric: true })), 'Book over the whole Bible, A–Z');
     if (R.nextFacet(list)) bad.push('nextFacet asks ' + R.nextFacet(list).field + ' with Testament and Group skipped — Book is over the cap, and nothing else may go before it');
     tallies('Testament and Group skipped');
     if (await skip('bibleBook')) {
@@ -19685,7 +19689,7 @@ check('the Bible, on Find 2 (and on Find): Books → KJV → testament → group
   else {
     t.ACTIONS['filter-drop'](kjvChip);
     q = asked();
-    if (q.field !== 'bibleTranslation' || q.vals.join('|') !== 'KJV') bad.push('KJV dropped with the other rungs on asks ' + q.field + ' ' + JSON.stringify(q.vals) + ' — Translation again, like any dropped chip');
+    if (q.field !== 'bibleBook') bad.push('KJV dropped with the other rungs on asks ' + q.field + ' ' + JSON.stringify(q.vals) + ' — Translation has one answer, so the next question, Book');
     if (R.stuffFiltered().length !== 5852) bad.push('KJV dropped leaves ' + R.stuffFiltered().length + ' verses, not the Torah\'s 5,852');
   }
   setTo(DOORS.concat([{ field: 'subject', value: 'Maths' }, KJV]));
@@ -19716,13 +19720,14 @@ check('the Bible, on Find 2 (and on Find): Books → KJV → testament → group
   });
   if (crossBad.length) bad.push('a search on the Books shelf and the same search inside the Bible disagree: ' + crossBad.join(' | '));
   if (crossKept < index.books.length) bad.push('only ' + crossKept + ' of ' + crossWords.length + ' searches kept the cover — the comparison above was NOT reached for the books, so it is not a pass');
-  /* AND ONE OF THEM BY THE SCREEN: a citation typed on the shelf, Translation asked, KJV pressed. */
+  /* AND ONE OF THEM BY THE SCREEN: a citation typed on the shelf keeps the cover — no Translation asked, KJV is its one
+     answer (396) — and inside the Bible it holds the verse. */
   setTo(DOORS); t.RES().q = 'psalm 23'; w.paintFinder_('res');
   q = asked();
-  if (q.field !== 'bibleTranslation') bad.push('"psalm 23" typed on the Books shelf asks ' + (q.field || 'nothing') + ' — the cover, and Translation, because Psalm 23 is a verse of it');
-  else if (await pick('bibleTranslation', 'KJV')) {
-    if (!R.stuffFiltered().some(i => i.key === 'bible:kjv:19:23:1')) bad.push('"psalm 23" with KJV pressed does not hold Psalm 23:1 — it leaves ' + R.stuffFiltered().slice(0, 3).map(i => i.name).join(', '));
-  }
+  if (!R.stuffFiltered().some(i => i.kind === 'bible' && !i.bb)) bad.push('"psalm 23" typed on the Books shelf does not keep the cover, though Psalm 23 is a verse of it');
+  if (q.field === 'bibleTranslation') bad.push('"psalm 23" on the Books shelf asks Translation with its one answer');
+  setTo(DOORS.concat([KJV])); t.RES().q = 'psalm 23'; w.paintFinder_('res');
+  if (!R.stuffFiltered().some(i => i.key === 'bible:kjv:19:23:1')) bad.push('"psalm 23" inside the Bible does not hold Psalm 23:1 — it leaves ' + R.stuffFiltered().slice(0, 3).map(i => i.name).join(', '));
   t.RES().q = '';
 
   /* ---------- 10. EVERY BOOK AND EVERY CHAPTER, WALKED § */
@@ -19734,16 +19739,21 @@ check('the Bible, on Find 2 (and on Find): Books → KJV → testament → group
                                { field: 'bibleGroup', value: b.group }, { field: 'bibleBook', value: b.book }]);
     t.RES().filters = head.map(f => Object.assign({}, f));
     const list = w.stuffNarrow_(all, [{ field: 'bibleBook', value: b.book }], [], 0);
-    const nf = R.nextFacet(list);
+    /* THE ONE RULE: a book of 40 chapters or fewer is asked them; past the cap, the last resort asks the fewest — still Chapter. */
+    const nf = R.nextFacet(list) || R.overFacet_(list);
     const vals = nf ? R.facetValues(list, nf).map(v => String(v.value)) : [];
-    if (!nf || nf.field !== 'bibleChapter' || vals.join('|') !== run(b.chapters).join('|')) {
+    /* CHAPTER WHERE IT HAS TWO TO FORTY ANSWERS OR IS THE FEWEST PAST THE CAP; a one-chapter book, or one whose verse
+       numbers are fewer than its chapters (Isaiah: 66 chapters, verses to 38), is asked Verse first — the one rule, said. */
+    const chOk = nf && nf.field === 'bibleChapter' && vals.join('|') === run(b.chapters).join('|');
+    const vOk = nf && nf.field === 'bibleVerse' && (b.chapters === 1 || vals.length < b.chapters);
+    if (!chOk && !vOk) {
       if (walkBad.length < 4) walkBad.push(b.book + ' asks ' + (nf ? nf.field : 'nothing') + ' with ' + vals.length + ' answers');
       return;
     }
     b.chapterVerses.forEach((n, ci) => {
       t.RES().filters = head.concat([{ field: 'bibleChapter', value: String(ci + 1) }]).map(f => Object.assign({}, f));
       const cl = w.stuffNarrow_(list, [{ field: 'bibleChapter', value: String(ci + 1) }], [], 0);
-      const vf = R.nextFacet(cl);
+      const vf = R.nextFacet(cl) || R.overFacet_(cl);
       const vv = vf ? R.facetValues(cl, vf).map(v => String(v.value)) : [];
       const keys = cl.map(i => i.key).join('|');
       const want = run(n).map(v => 'bible:kjv:' + b.n + ':' + (ci + 1) + ':' + v).join('|');
@@ -19817,11 +19827,12 @@ check('the Bible, on Find 2 (and on Find): Books → KJV → testament → group
   else if (!resView_(slow.w).stuffFiltered().some(i => i.kind === 'bible')) bad.push('typing "psalms" while the index was on its way still misses the Bible after it lands — the cached search was not told');
   if (!earlyF && !slow.w.stuffFiltered().some(i => i.kind === 'bible')) bad.push('"psalms" typed into Find while the index was on its way still misses the Bible after it lands — the landing told one finder\'s memo, not both');
   st.STUFF().q = '';
-  if (!sd.querySelector('#res-groups [data-do="facet-pick"][data-field="bibleTranslation"][data-value="KJV"]')) bad.push('when the index landed the Books shelf was not drawn again — it does not ask Translation until something else repaints it');
-  if (waitingAt()) bad.push('the index landed and the Books shelf still shows its loader');
-  const kjvLate = sd.querySelector('#res-groups [data-do="facet-pick"][data-field="bibleTranslation"]');
-  if (kjvLate) {
-    st.ACTIONS['facet-pick'](kjvLate);
+  if (waitingAt()) bad.push('the index landed and the Books shelf still shows its loader — it was not drawn again');
+  /* KJV IS THE ONE TRANSLATION, so it is not asked (396); its chip, set as the cover's Open sets it, holds the Psalms. */
+  if (sd.querySelector('#res-groups [data-do="facet-pick"][data-field="bibleTranslation"]')) bad.push('when the index landed the Books shelf asks Translation with its one answer');
+  st.RES().filters = DOORS.concat([KJV]).map(f => Object.assign({}, f));
+  st.RES().q = 'psalms';
+  {
     const n = resView_(slow.w).stuffFiltered().length;
     if (n !== 2461) bad.push('KJV with "psalms" typed leaves ' + n + ' verses, not the Psalms\' 2,461');
   }
@@ -20029,7 +20040,7 @@ check('the funnel asks an admin exactly what it asks a parent, the Books shelf a
 
 /* ---------- EVERY FIND KIND THAT IS NOT A QUESTION IS BUILT FROM THE SAME FIVE PARTS § */
 check('every Find kind that is not a question is made of the shared parts: head, kicker, meta, section, list', async () => {
-  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const read = n => (LIB_FULL.isLib(n) ? LIB_FULL.rows(n) : JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8')));
   const one = boot();
   await wait(300);
   if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so the cards were NOT checked — not a pass'];
@@ -20093,7 +20104,7 @@ check('every Find kind that is not a question is made of the shared parts: head,
 
 /* THE FIGHTER'S PROFILE — FOUR JOURNEYS OVER THE REAL FILES ASKED FOR AS § */
 const boxerApp_ = async (edit) => {
-  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const read = n => (LIB_FULL.isLib(n) ? LIB_FULL.rows(n) : JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8')));
   const raw = { boxers: read('boxers'), fights: read('fights') };
   if (edit) edit(raw);
   const one = boot();
@@ -21425,18 +21436,19 @@ check('multipart: with Questions chosen, no page of a two-part paper is an answe
 });
 
 /* ---------- WHAT KIND: QUESTIONS FIRST, ANSWERS BESIDE IT § */
-check('multipart: What kind offers Questions first and Answers next to it, not the alphabet', async () => {
+check('multipart: What kind offers Questions first and Answers next to it, by the kinds tab\'s order, not the alphabet', async () => {
   const { w } = boot();
   await wait(300);
   const bad = [];
   const kind = w.facetList().find(f => f.field === 'kindLabel');
-  if (!kind || typeof w.facetValues !== 'function') return ['the What kind facet or facetValues is not reachable — the order was NOT checked'];
-  if (typeof kind.orderOf !== 'function') return ['What kind has no `orderOf`, so its chips fall back to the alphabet -- Answers first'];
-  const all = ['Resources', 'Answers', 'Bundles', 'Projects', 'Practicals', 'Questions'];
-  const o = v => { const i = kind.orderOf(v); return i < 0 ? 1e6 : i; };
-  const got = all.slice().sort((a, b) => o(a) - o(b)).join(' ');
-  if (got !== 'Questions Answers Practicals Projects Bundles Resources') bad.push('What kind orders its answers "' + got + '"');
-  if (kind.orderOf('Films') >= 0) bad.push('What kind still has a place for "Films" in its order (' + kind.orderOf('Films') + ') — films are not in Find');
+  if (!kind || typeof w.facetValues !== 'function' || typeof w.answerCmp_ !== 'function') return ['the What kind facet, facetValues or answerCmp_ is not reachable — the order was NOT checked'];
+  /* ONE SORT FOR EVERY FACET (396): answers that are all kinds go in the kinds tab's order — data, not a table in What kind. */
+  const all = ['Resources', 'Answers', 'Content', 'Projects', 'Practicals', 'Questions'];
+  const got = all.slice().sort(w.answerCmp_(all)).join(' ');
+  if (got !== 'Questions Answers Practicals Projects Content Resources') bad.push('What kind orders its answers "' + got + '"');
+  if (Object.keys(kind).some(k => ['orderOf', 'cmp', 'bucketOf'].indexOf(k) >= 0)) bad.push('What kind carries an order of its own again: ' + Object.keys(kind).join(', '));
+  const labels = Object.values(w.kindMap_()).map(k => k.label);
+  if (labels.indexOf('Films') >= 0 || labels.indexOf('Bundles') >= 0) bad.push('the kinds name ' + labels.filter(l => /Films|Bundles/.test(l)).join(', ') + ' — neither is a kind in Find');
   const lib = mpLibrary_(w, mpBank_());
   try {
     const chips = w.facetValues(lib.items, kind).map(v => String(v.show || v.value));
@@ -21448,7 +21460,7 @@ check('multipart: What kind offers Questions first and Answers next to it, not t
 /* ---------- FILMS ARE NOT IN FIND, FOR ANYBODY — AN ADMIN WITH THE FILMS IN HAND INCLUDED § */
 check('films are not in Find for an admin with films in the payload — not by title, not under What kind — and the videos card still finds one', async () => {
   /* THE PROJECTS AND THE PRACTICALS, REAL, so `What kind` has answers of its own to draw — the fixture has no library, and a Learning holding nothing but films § */
-  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const read = n => (LIB_FULL.isLib(n) ? LIB_FULL.rows(n) : JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8')));
   const one = boot();
   await wait(300);
   if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so Find had nothing to ask — NOT checked'];
@@ -21563,26 +21575,34 @@ check('multipart: a "use your graph" part has no "not drawn yet" page and no bla
 
 /* THE REVIEW, FINDING 6: the line above the strip counts what the strip holds -- questions, not the parts
    that matched -- and names the question when a search found one inside a paper. */
-check('multipart: the line under a chosen paper counts questions, names a searched one, and counts answers in that view', async () => {
+check('multipart: inside a chosen paper the funnel goes on by the one rule — Question, then Part — and Answers keeps the answer pages', async () => {
   const { w } = boot();
   await wait(300);
   const bad = [];
-  if (typeof w.paperEnd_ !== 'function' || typeof w.stuffFiltered !== 'function') return ['paperEnd_ or stuffFiltered not reachable — the count was NOT checked'];
+  if (typeof w.stuffQuestion !== 'function' || typeof w.stuffFiltered !== 'function' || typeof w.stuffPages_ !== 'function') return ['stuffQuestion, stuffFiltered or stuffPages_ not reachable — the paper was NOT checked'];
   const lib = mpLibrary_(w, mpBank_());
   const S = w.__t.STUFF();
-  const say = (q, more) => {
+  const ask = (q, more) => {
     S.q = q; S.filters = [{ field: 'paperId', value: 'P-MP-W' }].concat(more || []);
-    return String(w.paperEnd_(w.stuffFiltered())).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+    const h = w.document.createElement('div');
+    h.innerHTML = w.stuffQuestion();
+    const btns = [...h.querySelectorAll('[data-do="facet-pick"]')];
+    return { field: btns.length ? btns[0].dataset.field : '', vals: btns.map(b => b.textContent.trim()), end: h.textContent.replace(/\s+/g, ' ').trim() };
   };
   try {
-    [['q8', [], /swipe up for Q8\./, '"q8" in the paper -- one question with two parts'],
-     ['reasonword', [], /swipe up for Q8\./, 'a word found in Q8(ii) alone -- the strip holds Q8 whole'],
-     ['', [], /Swipe up for its 6 questions\./, 'the whole paper -- Q1, Q8, Q14, Q18, Q20, Q21, each counted once however many parts'],
-     ['', [{ field: 'kindLabel', value: 'Answers' }], /Swipe up for its 2 answers\./, 'the Answers view'],
-    ].forEach(([q, more, want, what]) => {
-      const got = say(q, more);
-      if (!want.test(got)) bad.push(what + ': "' + got + '"');
-    });
+    /* THE WHOLE PAPER: its six questions, each once however many parts — asked, not an end (396). */
+    const all = ask('');
+    if (all.field !== 'qNumber' || all.vals.join(' ') !== 'Q1 Q8 Q14 Q18 Q20 Q21') bad.push('the chosen paper asks ' + (all.field || 'nothing') + ' ' + JSON.stringify(all.vals) + ' — Question, Q1 Q8 Q14 Q18 Q20 Q21');
+    /* "q8": Q8's two parts, so the next question splits them. */
+    const q8 = ask('q8');
+    if (q8.field === 'qNumber') bad.push('"q8" in the paper still asks Question — it has one answer');
+    if (w.stuffFiltered().some(x => x.qNumber !== '8' && String(x.qNumber) !== '8')) bad.push('"q8" keeps a part that is not Q8');
+    /* ANSWERS: the answer pages, and only those, through the page's own tag. */
+    ask('', [{ field: 'kindLabel', value: 'Answers' }]);
+    const pages = w.stuffPages_();
+    if (!pages.length || pages.some(p => p.part !== 'ans')) bad.push('with Answers chosen the strip holds ' + pages.map(p => p.part || 'card').join(', ') + ' — wanted the answer pages alone');
+    ask('', [{ field: 'kindLabel', value: 'Questions' }]);
+    if (w.stuffPages_().some(p => p.part === 'ans')) bad.push('with Questions chosen the strip still holds an answer page');
   } finally { lib.put(); S.q = ''; S.filters = []; }
   return bad;
 });
@@ -22249,7 +22269,7 @@ check('a session the server ended on the reload: the box drawn signed out says t
 });
 
 check('a reload puts Find back on the question: the column, the paper\'s chip and the essay\'s page, with the box holding what was typed', async () => {
-  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const LIB = LIB_FULL.rows('questions');
   const ID = 'Q-R0398-5';
   const row = LIB.find(r => r.row_id === ID);
   if (!row) return [ID + ' is not in data/questions.json — nothing was reloaded'];
@@ -23638,7 +23658,7 @@ check('signing in on the account column goes back where you came from — and Fi
 
 /* ---------- SIGNING IN FROM SIGNED OUT IS THE SAME SEAT, SO FIND KEEPS ITS PLACE § */
 const KEEP_SOL_ = { name: 'Sol Pupil', personId: 'P12', role: 'student', roles: ['student'], token: 'tok-P12', handle: 'sol_calm12' };
-const keepRows_ = () => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'))
+const keepRows_ = () => LIB_FULL.rows('questions')
   .filter(r => /^P-1MA1-2306-[123]H$/.test(r.paper_id) || r.paper_id === 'W-CBM-addition');
 /* PRESS THE CHIPS A CHILD WOULD, to the row's card: at each question the first answer that keeps the
    card of `id` on the strip, through the app's own click dispatcher. Returns the answers pressed. */
@@ -23646,8 +23666,7 @@ const keepWalk_ = async (w, id) => {
   const d = w.document, S = w.__t.STUFF(), said = [];
   const cardOn = () => w.stuffPages_().some(pg => pg.x && pg.x.row && pg.x.row.row_id === id && !pg.part);
   for (let step = 0; step < 16; step++) {
-    /* THE QUESTION BEING ASKED, not the optional rows under it: a chosen paper's doors (`tagDoors_`, 355)
-       offer [Q13] itself, and a child walking the funnel answers what it asks. */
+    /* THE QUESTION BEING ASKED, and a child walking the funnel answers what it asks. */
     const picks = [...d.querySelectorAll('#s-stuff #stuff-groups .answers [data-do="facet-pick"]')];
     if (!picks.length) break;
     const keeps = picks.find(b => {
@@ -23658,6 +23677,8 @@ const keepWalk_ = async (w, id) => {
     said.push(keeps.dataset.field + '=' + keeps.dataset.value);
     keeps.click();
     await wait(20);
+    /* THE PAPER CHOSEN, A CHILD SWIPES UP THROUGH IT: the funnel would go on to ask Question (396), and the card is found by its page. */
+    if (keeps.dataset.field === 'paperId') break;
   }
   return said;
 };
@@ -23687,7 +23708,8 @@ check('signing in from signed out keeps Find’s chips, the card and its page �
     return pg && pg.x && pg.x.row ? pg.x.row.row_id + (pg.part ? ':' + pg.part : '') : '(page ' + t.PAGE().stuff + ', no result)';
   };
   const idx = w.stuffPages_().findIndex(pg => pg.x && pg.x.row && pg.x.row.row_id === ID && !pg.part);
-  if (walked.length < 3 || idx < 0) return ['the funnel walk pressed ' + JSON.stringify(walked) + ' and did not reach ' + ID + '’s card — nothing was checked'];
+  /* TWO PRESSES SINCE 396 — Type, then Paper: a Year or Month with one answer is not asked. */
+  if (walked.length < 2 || idx < 0) return ['the funnel walk pressed ' + JSON.stringify(walked) + ' and did not reach ' + ID + '’s card — nothing was checked'];
   const x = w.stuffPages_()[idx].x;
   const page = w.stuffFirstResult_() + idx;
   if (idx < 5) bad.push('the card is result page ' + idx + ' — too near the first to prove the page is kept');
@@ -23822,7 +23844,7 @@ const keepDead_ = async (more) => {
   await wait(50);
   const walked = await keepWalk_(w, ID);
   const idx = w.stuffPages_().findIndex(pg => pg.x && pg.x.row && pg.x.row.row_id === ID && !pg.part);
-  if (walked.length < 3 || idx < 0) return { fail: 'the funnel walk pressed ' + JSON.stringify(walked) + ' and did not reach ' + ID + ' — nothing was checked' };
+  if (walked.length < 2 || idx < 0) return { fail: 'the funnel walk pressed ' + JSON.stringify(walked) + ' and did not reach ' + ID + ' — nothing was checked' };
   const x = w.stuffPages_()[idx].x;
   const page = w.stuffFirstResult_() + idx;
   t.goPage('stuff', page, true);
@@ -24079,7 +24101,7 @@ check('a second payload repaints the column in front and leaves the others for w
 /* ---------- AN ORDERING IS TAPPED IN ORDER, ON THE REAL CARD § */
 check('an ordering: the real 1F Q4 is tapped in order, sent, marked by its order, kept on the account and drawn back', async () => {
   const ID = 'Q-1MA1-2406-1F-4';
-  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const LIB = LIB_FULL.rows('questions');
   const row = LIB.find(r => r.row_id === ID);
   if (!row) return [ID + ' is not in data/questions.json — nothing was tapped'];
   const TIE = 'Q-1MA1-2406-1F-4-TIE';
@@ -24898,7 +24920,7 @@ check('a column\'s page count follows its pages: a reel appended and a paint are
 /* THE 76-QUESTION PAPER the swipe checks run Find down (check/swipe.js), served as the library — a window of
    results long enough to have pages either side of the one in front, past the window's edge. */
 const paper2F_ = () => {
-  const lib = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const lib = LIB_FULL.rows('questions');
   const rows = lib.filter(r => r.paper_id === 'P-AQA-8461-2406-2F');
   return { rows, serve: url => (/data\/questions\.json/.test(url) ? rows : undefined), ask: [{ field: 'paperId', value: 'P-AQA-8461-2406-2F' }] };
 };
@@ -25387,7 +25409,7 @@ check('the reels are kept six ahead at every turn and twelve ahead after the qui
 
 check('the quiet puts a finder\'s window where a run needs it: the card in front thirteen or fourteen from the end it is leaving', async () => {
   /* REVIEW, 12 Oct: the builder's `centre` job could be dropped with every check green — the release's slide by six kept BUILT AHEAD satisfied. § */
-  const lib = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const lib = LIB_FULL.rows('questions');
   const rows = lib.filter(r => r.paper_id === 'P-AQA-8461-2406-2F');
   const { w } = await aheadBoot_({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
   const t = w.__t, bad = [];
@@ -25486,7 +25508,7 @@ check('every question has an Accuracy and a Function tag on its card and as funn
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
   await wait(300);
   const t = w.__t, d = w.document, bad = [];
-  const need = ['verifyTags_', 'qtIncomplete_', 'qtMachine_', 'paperEnd_', 'questionCard_', 'stuffItemsAll_', 'stuffFiltered', 'facetList']
+  const need = ['verifyTags_', 'qtIncomplete_', 'qtMachine_', 'stuffQuestion', 'questionCard_', 'stuffItemsAll_', 'stuffFiltered', 'facetList']
     .filter(n => typeof w[n] !== 'function');
   if (need.length) return [need.join(', ') + ' not reachable — no tag was checked'];
   if (typeof w.paperHealth_ === 'function' || t.ACTIONS['paper-health']) bad.push('the paper health score or its tile handler is back');
@@ -25513,8 +25535,12 @@ check('every question has an Accuracy and a Function tag on its card and as funn
   const hit = w.stuffFiltered().filter(x => x.kind === 'question').map(x => x.row.row_id);
   if (hit.join() !== 'HX-1') bad.push('picking Accuracy verified leaves ' + JSON.stringify(hit) + ', wanted HX-1');
   t.STUFF().filters = [{ field: 'paperId', value: 'HX' }];
-  host.innerHTML = w.paperEnd_(w.stuffFiltered());
+  host.innerHTML = w.stuffQuestion();
   if (host.querySelector('[data-do="paper-health"]')) bad.push('a Health tile is under the chosen paper');
+  /* AND THE TWO TAGS ARE ORDINARY ANSWERS INSIDE THE PAPER TOO (396): asked there by the one rule when they split it. */
+  const accAt = [...host.querySelectorAll('[data-do="facet-pick"]')].map(b => b.dataset.field);
+  const asks = w.facetList().filter(f => f.field === 'accuracy' && !w.facetWhy_(w.stuffFiltered(), f)).length;
+  if (asks && accAt.indexOf('accuracy') < 0 && accAt.length === 0) bad.push('Accuracy splits the paper and nothing is asked');
   t.STUFF().filters = [];
   host.remove();
   return bad;
@@ -25670,7 +25696,7 @@ check('a drawn answer is sent: a made-up surface and a figure each have Send und
 
 /* ---------- AND OVER THE WHOLE LIBRARY: EVERY QUESTION ANSWERED BY DRAWING ALONE CAN BE SENT (docs/history/362) ---------- */
 check('every question in the library answered by drawing alone has a Send or a Check under its pen', async () => {
-  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const LIB = LIB_FULL.rows('questions');
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined) });
   await wait(300);
   const bad = [];
@@ -25694,7 +25720,7 @@ check('every question in the library answered by drawing alone has a Send or a C
 
 /* ---------- CORBETTMATHS PRIMARY, EVERY PART: SOMETHING TO ANSWER WITH AND SOMETHING THAT SENDS IT (docs/history/362) ---------- */
 check('every part of the 71 Corbettmaths primary worksheets has an answer and a tile that marks or sends it', async () => {
-  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const LIB = LIB_FULL.rows('questions');
   const papers = new Set(LIB.filter(r => r.company === 'Corbettmaths' && /KS[12]/.test(r.key_stage || '')).map(r => r.paper_id));
   const rows = LIB.filter(r => papers.has(r.paper_id));
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
@@ -25724,7 +25750,7 @@ check('every part of the 71 Corbettmaths primary worksheets has an answer and a 
 
 /* ---------- A DRAWN ANSWER IS MARKED BY ITS GEOMETRY (docs/history/366): drawn on a real Corbettmaths figure in the real card, and every row's own example ---------- */
 check('a drawn answer is marked on Check: strokes on a real Corbettmaths figure get Correct, a near miss Not yet, and every drawn Corbettmaths and GCSE part marks its own right drawing in full', async () => {
-  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const LIB = LIB_FULL.rows('questions');
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined) });
   await wait(300);
   const t = w.__t, A = t.ACTIONS, bad = [];
@@ -25822,7 +25848,7 @@ check('a drawn answer is marked on Check: strokes on a real Corbettmaths figure 
 
 /* ---------- A DRAWN PART WHOSE FIGURE IS ON ITS STEM DRAWS ON IT IN PLACE (docs/history/381): Metric Units Q1, by hand ---------- */
 check('Metric Units Q1: the stem\'s words, its dial under the pen and the part\'s words on one card, one figure, no box; an arrow at 450 g is Correct on Check; part b is a box under its own words and nothing for the drawing', async () => {
-  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const LIB = LIB_FULL.rows('questions');
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined) });
   await wait(300);
   const t = w.__t, A = t.ACTIONS, bad = [];
@@ -25882,7 +25908,7 @@ check('Metric Units Q1: the stem\'s words, its dial under the pen and the part\'
 
 /* ---------- AND EVERY PART IN THE LIBRARY THAT DRAWS ON ITS STEM'S FIGURE: one figure, its pen; no box unless it is marked by one; Check at the foot (381) ---------- */
 check('every part that draws on its stem\'s figure has exactly that one figure on its card, under its pen, no box unless its answer is typed, one Check at the foot, and the other parts\' ink faint under its own', async () => {
-  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const LIB = LIB_FULL.rows('questions');
   const { w } = boot({ serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined) });
   await wait(300);
   const t = w.__t, bad = [];
@@ -25972,7 +25998,7 @@ check('marked by rule first: a 2-mark worded answer with mark_words gets Check, 
 
 /* ---------- READ ALOUD ON A PRIMARY QUESTION: THE TILE, WHAT IT SAYS, AND WHEN IT STOPS (docs/history/394) ---------- */
 check('read aloud: a KS2 question has the tile and a GCSE one does not; it says the question in words, stops on a second tap and on leaving', async () => {
-  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const LIB = LIB_FULL.rows('questions');
   const PIDS = ['P-STA-KS2-2024-P1', 'P-STA-KS2-2024-P2', 'P-STA-KS2-2024-P3', 'RS1786302107764-416'];
   const rows = LIB.filter(r => PIDS.indexOf(r.paper_id) >= 0);
   const said = [];
@@ -25981,7 +26007,7 @@ check('read aloud: a KS2 question has the tile and a GCSE one does not; it says 
     w.speechSynthesis = { speak: u => said.push(u), cancel: () => said.push({ cancel: true }),
                           getVoices: () => [{ name: 'American', lang: 'en-US' }, { name: 'British', lang: 'en-GB' }] };
   };
-  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const read = n => (LIB_FULL.isLib(n) ? LIB_FULL.rows(n) : JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8')));
   const one = boot();
   await wait(300);
   if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable — NOT checked'];
@@ -26138,6 +26164,137 @@ check('a signed-in child reports a question from its tile row: a reason, a note,
   }
   biz.remove();
   lib.put();
+  return bad;
+});
+
+/* ---------- THE LIBRARY'S WORDS COME FROM THE LEDGER (397) ----------------------------------------------- */
+/* A PAPER AS THE REPOSITORY HOLDS IT NOW: each row's private fields taken off and named in `lib_has` (tools/lib-private.js's split). */
+const LIB_PID = 'RS1786302107764-503';
+function libSlimRows_(rows) {
+  const def = LIB_FULL.defs().files.questions;
+  return rows.map(r => {
+    const c = LIB_FULL.privateOf(def, r);
+    if (!c) return r;
+    const out = {};
+    Object.keys(r).forEach(k => { if (!(k in c)) out[k] = r[k]; });
+    out.lib_has = def.private.filter(f => String(c[f] == null ? '' : c[f]).trim() !== '').join(' ');
+    return out;
+  });
+}
+/* `libItems` ANSWERED FROM THE WHOLE ROWS, as the backend answers from the Ledger. */
+function libReply_(full, ids) {
+  const def = LIB_FULL.defs().files.questions, items = {}, missing = [];
+  (ids || []).forEach(t => {
+    const r = full.find(x => 'q:' + x.row_id === t);
+    const c = r && LIB_FULL.privateOf(def, r);
+    if (c) items[t] = c; else missing.push(t);
+  });
+  return { success: true, items: items, missing: missing, refused: [], left: 390, cap: 400 };
+}
+async function libFindAt_(W, rowId) {
+  for (let i = 0; i < 100 && !(typeof W.stuffItemsAll_ === 'function' && W.stuffItemsAll_().some(x => x.row && x.row.row_id === rowId)); i++) await wait(50);
+  const x = W.stuffItemsAll_().find(it => it.row && it.row.row_id === rowId);
+  if (!x) return null;
+  const S = W.__t.STUFF();
+  S.filters = [{ field: 'paperId', value: LIB_PID }];
+  W.__t.go('stuff');
+  W.paintStuff();
+  const i = W.stuffPages_().findIndex(pg => pg.x === x);
+  W.__t.goPage('stuff', W.stuffFirstResult_() + i, true);
+  await wait(250);
+  return x;
+}
+const libFront_ = W => {
+  const host = W.document.getElementById('s-stuff');
+  return host && host.querySelectorAll(':scope > .page')[W.__t.domIndex('stuff', pg_(W.__t).stuff || 0)];
+};
+
+check('a question whose words are in the Ledger: drawn waiting, asked for with its stems and parts, then whole on its first page — and the next few asked for ahead', async () => {
+  const full = LIB_FULL.rows('questions').filter(r => r.paper_id === LIB_PID);
+  if (full.length < 10) return ['the paper ' + LIB_PID + ' is not in the library — nothing was checked'];
+  const slim = libSlimRows_(full);
+  let release = null;
+  const held = [];
+  const one = boot({ serve: url => (/data\/questions\.json/.test(url) ? slim : undefined), before: signedInAs_(ANS_ADA),
+    reply: b => (b.action === 'libItems' ? new Promise(ok => { held.push(() => ok(libReply_(full, b.ids))); if (release) release(); }) : undefined) });
+  const W = one.w, bad = [];
+  const x = await libFindAt_(W, 'Q-9MA031-2206-1a');
+  if (!x) return ['Q-9MA031-2206-1a did not come through the loader into Find — nothing was checked'];
+  const front = libFront_(W);
+  if (!front || !front.querySelector('.lib-wait .loading')) bad.push('the card in front is not drawn waiting with the one loader: ' + (front ? front.textContent.replace(/\s+/g, ' ').slice(0, 120) : 'no page'));
+  if (front && /George throws a ball/.test(front.textContent)) bad.push('the stem\'s words are on the page before they were sent');
+  const asks = one.sent.filter(b => b.action === 'libItems');
+  if (!asks.length) bad.push('no libItems request went for the card in front');
+  else {
+    const ids = asks[0].ids || [];
+    ['q:Q-9MA031-2206-1a', 'q:Q-9MA031-2206-1', 'q:Q-9MA031-2206-1b'].forEach(id => { if (ids.indexOf(id) === -1) bad.push('the first ask did not carry ' + id + ' (it carried ' + ids.join(', ') + ')'); });
+    if (ids.length > 60) bad.push('one ask carried ' + ids.length + ' ids — the backend refuses more than 60');
+    if (asks[0].token !== 'tok-P7') bad.push('the ask went without the token');
+  }
+  held.splice(0).forEach(f => f());
+  await wait(400);
+  held.splice(0).forEach(f => f());
+  await wait(400);
+  const pages = W.stuffPages_().filter(pg => pg.x === x).map(pg => pg.part || 'card');
+  if (pages.join() !== 'stem0,card,ans') bad.push('Q1(a)\'s pages once its words came are ' + pages.join() + ' — wanted stem0,card,ans');
+  const now = libFront_(W);
+  const at = W.stuffPages_()[(pg_(W.__t).stuff || 0) - W.stuffFirstResult_()];
+  if (!at || at.x !== x || at.part !== 'stem0') bad.push('the column did not land on Q1(a)\'s first page, its stem (on ' + (at ? (at.x.name + ' ' + at.part) : 'nothing') + ')');
+  if (!now || !/George throws a ball/.test(now.textContent) || now.querySelector('.lib-wait')) bad.push('the page in front does not show the stem\'s words: ' + (now ? now.textContent.replace(/\s+/g, ' ').slice(0, 120) : 'no page'));
+  const row = full.find(r => r.row_id === 'Q-9MA031-2206-1a');
+  if (x.accept !== row.accept || x.answer !== row.answer || x.html !== row.html) bad.push('the item was not given its words, answer and marking rules in place');
+  const later = one.sent.filter(b => b.action === 'libItems').some(b => (b.ids || []).some(id => /^q:Q-9MA031-2206-[2-9]/.test(id)));
+  if (!later) bad.push('nothing past Q1 was asked for ahead');
+  if (one.errs.length) bad.push('errors: ' + one.errs.join(' | '));
+  /* SIGNED OUT, THE WORDS GO WITH THE PERSON. */
+  W.signedOut_();
+  /* `x.row` IS THE FILE'S OWN ROW, which the words were put back on — and taken off again. */
+  const raw = x.row;
+  if (!raw || raw.html || !raw.lib_has) bad.push('after sign-out the row still holds its words: ' + JSON.stringify(raw).slice(0, 160));
+  return bad;
+});
+
+check('signed out, a question whose words are in the Ledger shows its tags and how to see it, and nothing is asked for', async () => {
+  const full = LIB_FULL.rows('questions').filter(r => r.paper_id === LIB_PID);
+  const one = boot({ serve: url => (/data\/questions\.json/.test(url) ? libSlimRows_(full) : undefined) });
+  const W = one.w, bad = [];
+  const x = await libFindAt_(W, 'Q-9MA031-2206-2a');
+  if (!x) return ['Q-9MA031-2206-2a did not come into Find — nothing was checked'];
+  await wait(300);
+  const front = libFront_(W);
+  const wait_ = front && front.querySelector('.lib-wait');
+  if (!wait_) bad.push('the card in front is not the waiting card');
+  else {
+    if (!/Sign in to see this/.test(wait_.textContent)) bad.push('it does not say how to see it: ' + wait_.textContent.replace(/\s+/g, ' ').slice(0, 120));
+    if (wait_.querySelector('.loading')) bad.push('it shows the loader to somebody who will never be sent anything');
+    if (!wait_.querySelector('.tag, [data-tag]')) bad.push('it does not show the question\'s tags');
+  }
+  if (one.sent.some(b => b.action === 'libItems')) bad.push('a signed-out phone asked for libItems');
+  return bad;
+});
+
+check('the Ledger not answering keeps the card\'s words — "Couldn’t load this" and Try again — and Try again draws it whole', async () => {
+  const full = LIB_FULL.rows('questions').filter(r => r.paper_id === LIB_PID);
+  let fail = true;
+  const one = boot({ serve: url => (/data\/questions\.json/.test(url) ? libSlimRows_(full) : undefined), before: signedInAs_(ANS_ADA),
+    reply: b => (b.action === 'libItems' ? (fail ? { error: 'The library is still being copied into the Ledger — try again in a few minutes.', why: 'lib-not-ready' } : libReply_(full, b.ids)) : undefined) });
+  const W = one.w, bad = [];
+  const x = await libFindAt_(W, 'Q-9MA031-2206-2a');
+  if (!x) return ['Q-9MA031-2206-2a did not come into Find — nothing was checked'];
+  await wait(300);
+  let front = libFront_(W);
+  const said = front && front.querySelector('.lib-wait .lib-say');
+  if (!said || !/Couldn’t load this/.test(said.textContent) || !/still being copied/.test(said.textContent)) bad.push('the waiting card does not say why: ' + (said ? said.textContent.replace(/\s+/g, ' ') : 'none'));
+  const n = one.sent.filter(b => b.action === 'libItems').length;
+  await wait(300);
+  if (one.sent.filter(b => b.action === 'libItems').length !== n) bad.push('a failed ask was asked again by itself, without Try again');
+  fail = false;
+  const again = front && front.querySelector('[data-do="lib-retry"]');
+  if (!again) bad.push('there is no Try again on the card');
+  else again.click();
+  await wait(600);
+  front = libFront_(W);
+  if (!front || front.querySelector('.lib-wait') || !/manufacturer/i.test(front.textContent)) bad.push('Try again did not draw the question whole: ' + (front ? front.textContent.replace(/\s+/g, ' ').slice(0, 120) : 'no page'));
   return bad;
 });
 

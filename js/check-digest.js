@@ -408,7 +408,7 @@ function S(pid, key, day, label, verdict, words, hh, more) {
     }
   } catch (e) { plain = null; }
   let qs = [];
-  try { qs = JSON.parse(fs.readFileSync(path.join(REPO, 'data', 'questions.json'), 'utf8')); } catch (e) { qs = []; }
+  try { qs = require('../check/lib-full.js').rows('questions'); } catch (e) { qs = []; }
   const texts = [];
   if (plain) qs.filter(q => q && (q.kind === 'question' || q.kind === 'preamble')).forEach(q => ['html', 'lead'].forEach(f => {
     if (q[f]) texts.push({ id: q.row_id + ' ' + f, text: plain(q[f]) });
@@ -1109,8 +1109,9 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
     });
     const H = said(sent.htmlBody);
     /* EACH CARD'S TAGS FIRST (380, 20 Oct) — the fixture's paper has no document row, so its Paper tag is its id, as on the site. */
-    ['Questions PX-1 Q7 1 mark Work out 4 × 4. ✓ Right THEIR ANSWER 16 ANSWER 16', 'Maths Paper X Q9 Kit buys 3 pens at 40p each. How much does he pay? ✗ Not right THEIR ANSWER £1.10',
-     'Questions PX-1 Q11 3 marks Read the source about the river. Explain the trend. 2 of 3 marks THEIR ANSWER It rises. ANSWER It rises.', 'Questions PX-1 Q6 1 mark Read the source about the river. Say anything. Not marked yet THEIR ANSWER hello',
+    /* EVERY FACET A TAG SINCE 396: What for and What kind first, and the Accuracy tag after the marks. */
+    ['Learning Questions PX-1 Q7 1 mark Accuracy unverified Work out 4 × 4. ✓ Right THEIR ANSWER 16 ANSWER 16', 'Maths Paper X Q9 Kit buys 3 pens at 40p each. How much does he pay? ✗ Not right THEIR ANSWER £1.10',
+     'Learning Questions PX-1 Q11 3 marks Accuracy unverified Read the source about the river. Explain the trend. 2 of 3 marks THEIR ANSWER It rises. ANSWER It rises.', 'Learning Questions PX-1 Q6 1 mark Accuracy unverified Read the source about the river. Say anything. Not marked yet THEIR ANSWER hello',
      'Summary of the week 1 right, 1 with part marks, 1 not right and 1 not marked yet. Topics: Maths and Biology'].forEach(x => {
       if (H.indexOf(x) === -1) bad.push('the HTML Pat is sent does not carry "' + x + '": ' + H.slice(0, 600));
     });
@@ -1280,7 +1281,7 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
      data/diagrams/ — the email's picture and the twin the tool drew are one file. */
   asked++;
   let real = '';
-  try { real = fs.readFileSync(path.join(REPO, 'data', 'questions.json'), 'utf8'); } catch (e) { real = ''; }
+  try { real = require('../check/lib-full.js').text('questions'); } catch (e) { real = ''; }
   const rw = markWorld({ site: real || LIB_TEXT });
   rw.b.seed('submissions', [MS('P-K1', 'q:Q-9MA031-2206-5c', 'right', 'Maths · Paper 31: Statistics — June 2022 · Q5c(i)', '', '481')]);
   rw.setClock(at('2026-10-18T20:00:00Z'));
@@ -1328,15 +1329,15 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
 /* ---------- 11b. EACH QUESTION IS THE SITE'S CARD (380, 20 Oct): its tags as the card wears them, in its facets' colours, on the black screen § */
 {
   const { b, G } = world();
-  G.__TXT = fs.readFileSync(path.join(REPO, 'data', 'questions.json'), 'utf8');
+  G.__TXT = require('../check/lib-full.js').text('questions');
   const lib = JSON.parse(JSON.stringify(b.ev('digestLibraryFind_(__TXT, ["Q-1MA1-2406-1F-7", "Q-CBM-perimeter-1"])')));
   const said7 = (lib.tags && lib.tags['Q-1MA1-2406-1F-7'] || []).map(t => t.text).join(' ');
   const saidC = (lib.tags && lib.tags['Q-CBM-perimeter-1'] || []).map(t => t.text).join(' ');
   asked++;
   /* THE SCREENSHOT'S ROWS (docs/history/355), less the page tags: the email draws a part whole. check-funnel holds every question to its card. */
   /* no "Printed sheet" since 385: Q7 is drawn and marked on screen */
-  if (said7 !== 'Questions Maths Past paper GCSE Edexcel Foundation 2024 June Paper 1 Q7 4 marks Non-calculator'
-      || saidC !== 'Questions Maths Worksheet SATs KS2 Year 3 Perimeter Q1')
+  if (said7 !== 'Learning Questions Maths Past paper GCSE KS4 Edexcel Foundation 2024 June Paper 1 Q7 4 marks Non-calculator Accuracy verified'
+      || saidC !== 'Learning Questions Maths Worksheet SATs KS2 Year 3 Perimeter Q1 Accuracy unverified Corbettmaths')
     bad.push('the library\'s tags for two real questions are not the card\'s: ' + JSON.stringify([said7, saidC]));
   G.__LIB = lib;
   G.__L = { id: 'P-S1', first: 'Kit', fresh: [
@@ -1346,10 +1347,10 @@ const MS = (pid, key, verdict, label, words, answer, day, hh, more) => Object.as
   const cards = r.html.split('bgcolor="#0b0b0b" style="border:10px solid #101010').length - 1;
   asked++;
   if (cards !== 2 || r.html.indexOf('<span style="color:#ff7b72;border:1px solid;border-radius:9px;padding:0 6px">Q7</span>') === -1
-      || r.html.indexOf('>Non-calculator</span>') === -1 || r.html.indexOf('color:#c8a2ff') === -1 || r.html.indexOf('border:1px solid #3d3d3d;border-radius:9px;padding:0 6px">4 marks') === -1
-      || said(r.html).indexOf('Questions Maths Worksheet SATs KS2 Year 3 Perimeter Q1') === -1 || /Maths · Perimeter/.test(said(r.html))
+      || r.html.indexOf('>Non-calculator</span>') === -1 || r.html.indexOf('color:#c8a2ff') === -1 || r.html.indexOf('color:#ff7b72;border:1px solid;border-radius:9px;padding:0 6px">4 marks') === -1
+      || said(r.html).indexOf('Learning Questions Maths Worksheet SATs KS2 Year 3 Perimeter Q1') === -1 || /Maths · Perimeter/.test(said(r.html))
       || /\b(Ready|Usable|Rough)\b/.test(said(r.html)))
-    bad.push('each question is not the site\'s card — two #0b0b0b cards in a #101010 pane, every tag a pill in its facet\'s colour (Q7 red, the sitting purple, marks the plain outline), no health band (383), and no paper heading over them: ' + cards + ' card(s); ' + said(r.html).slice(0, 300));
+    bad.push('each question is not the site\'s card — two #0b0b0b cards in a #101010 pane, every tag a pill in its facet\'s colour (Q7 and its marks red, the sitting purple — every facet coloured since 396), no health band (383), and no paper heading over them: ' + cards + ' card(s); ' + said(r.html).slice(0, 300));
   asked++;
   /* THE BLACK SCREEN, SAID: the page, the summary's pane and every card fill their own cells, so a dark inbox has nothing to guess. */
   if (!/^<!DOCTYPE html><html lang="en" style="background:#000"><head><meta charset="utf-8"><meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark"><style>:root\{color-scheme:dark/.test(r.html)

@@ -337,7 +337,7 @@ NORMS.forEach(([s, want, why]) => {
 });
 
 /* ---------- THE WHOLE LIBRARY, MARKED § */
-const LIB = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'questions.json'), 'utf8'))
+const LIB = require('../check/lib-full.js').rows('questions')
   .filter(r => r && r.kind === 'question' && String(r.accept || '').trim());
 /* a way written with a space between the value and its unit — typed GLUED by the CLOSED UP sweep */
 const GLUED = /^(-?[\d.\/]*(?:√[\d.]*\d|π|\d))\s+([a-z°%][a-z0-9°%²³^\/]*)$/;
@@ -499,7 +499,7 @@ ORDERS.forEach(([seq, ways, want, why]) => {
   console.log('  markOrder_(%j, %j) — marked %s, should be %s   (%s)', seq, ways, String(got), String(want), why);
 });
 /* EVERY ORDERING IN THE LIBRARY, three ways: § */
-const ORDER_ROWS = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'questions.json'), 'utf8'))
+const ORDER_ROWS = require('../check/lib-full.js').rows('questions')
   .filter(r => r && r.kind === 'question' && String(r.answer_type || '').trim() === 'order');
 const orderLib = { ways: 0, wrong: 0, bad: [] };
 ORDER_ROWS.forEach(r => {
@@ -614,7 +614,7 @@ if (cellsGot.right !== 1 || cellsGot.of !== 3 || cellsGot.each[1] !== false || c
 const cellsAll = markCells_(['x', '6', 'six', '9'], cellsOf_({ cells: '- ; 6 ; 6 | six ; 9' }));
 if (cellsAll.right !== 3 || cellsAll.of !== 3) { mwBad++; console.log('  WRONG  a full table with its corner not asked gave %j', cellsAll); }
 /* EVERY RULE IN THE LIBRARY GIVES FULL MARKS TO ITS OWN SCHEME'S HEADLINE -- a rule its own answer fails is a wrong rule. */
-const mwLib = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'questions.json'), 'utf8')).filter(r => String(r.mark_words || '').trim());
+const mwLib = require('../check/lib-full.js').rows('questions').filter(r => String(r.mark_words || '').trim());
 mwLib.forEach(r => {
   const head = String(r.answer || '').replace(/&minus;/g, '-').replace(/<[^>]*>/g, ' ').replace(/&[a-z]+;/g, ' ');
   const m = markWords_(head, r.mark_words);
@@ -856,7 +856,7 @@ DRAW.forEach(([kind, fig, spec, strokes, want, why]) => {
 const fr = DM.M.frameOf({}, AX);
 if (Math.abs(fr.o[0] - 170) > 0.5 || Math.abs(fr.o[1] - 170) > 0.5 || Math.abs(fr.u[0] - 20) > 0.01 || Math.abs(fr.u[1] + 20) > 0.01) { drawBad++; console.log('  WRONG  the axes’ numbers give the frame %j, not the origin at (170, 170) and 20 a unit', [fr.o, fr.u]); }
 /* THE OWNER'S DIAL (19 Oct): Metric Units Q1a's real figure, drawn in a translated group, and a hand's line from near its centre to 450 g -- wobbly, a little off the centre, either way round */
-const QROWS_ = (() => { const q = require('../data/questions.json'); return q.rows || q; })();
+const QROWS_ = require('../check/lib-full.js').rows('questions');
 const dialRow_ = QROWS_.find(x => x.row_id === 'Q-CBM-metric-units-1'), dialFig_ = DM.fig((QROWS_.find(x => x.row_id === 'S-Q-CBM-metric-units-1') || {}).diagram);
 const hand_ = (a, b, wob, n) => Array.from({ length: n + 1 }, (_, i) => { const t = i / n, w = wob * Math.sin(i * 2.1) * Math.sin(t * Math.PI); return [a[0] + (b[0] - a[0]) * t - w * (b[1] - a[1]) / 70, a[1] + (b[1] - a[1]) * t + w * (b[0] - a[0]) / 70]; });
 const pen_ = (vb, pl) => [].concat.apply([], pl.map(p => [(p[0] - vb[0]) / vb[2] * 340, (p[1] - vb[1]) / vb[3] * 340]));

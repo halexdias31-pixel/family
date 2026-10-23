@@ -124,20 +124,24 @@ const KINDS = {
 
   } },
 
+  /* THE KEY ORDER IS THE DEFAULT ORDER OF What kind's ANSWERS (`answerCmp_`), so the work comes first; the kinds tab can move any. */
+  question: { group: 'Learning', label: 'Questions', card: (x, c) => thingCard_(x, c) },
+  /* `answer` NAMES NO ITEM: it is the label of a question's answer page (`kindLabel`'s `tagOf`), placed here so the kinds tab orders it too. */
+  answer: { group: 'Learning', label: 'Answers', card: (x, c) => thingCard_(x, c) },
   /* A widget's card is its name and nothing else — the thing itself is the page it opens. */
-  /* ---------- BOXING IS A SUBJECT, NOT A DEPARTMENT § */
-  /* LABELLED `Resources`, LIKE A TOPIC AND A PAST PAPER, because that is what the second question is asking: § */
-  boxer: { group: 'Learning', label: 'Resources', card: x => boxerCard_(x) },
   /* A PRACTICAL IS A THING YOU FIND, which is why it is in the funnel at all and tools and games are not. § */
   practical: { group: 'Learning', label: 'Practicals', card: x => practicalCard_(x) },
   /* ---------- A PROJECT IS THE PRACTICAL'S SIBLING, NOT ONE OF ITS SHAPES § */
   project: { group: 'Learning', label: 'Projects', card: x => projectCard_(x) },
   /* ---------- `film` WAS A KIND HERE, AND THE FILMS ARE OFF FIND § */
+  /* ---------- `textbook` WAS HERE, AND EACH OF ITS CHAPTERS IS A CONTENT CARD NOW § */
+  content: { group: 'Learning', label: 'Content', card: x => contentCard_(x) },
+  /* ---------- BOXING IS A SUBJECT, NOT A DEPARTMENT § */
+  /* LABELLED `Resources`, LIKE A TOPIC AND A PAST PAPER, because that is what the second question is asking: § */
+  boxer: { group: 'Learning', label: 'Resources', card: x => boxerCard_(x) },
   /* THE BOUTS. `boxers` is who; this is what happened. 157 of them sat in the sheet unread,
      because nothing in the app had ever been told the tab existed. */
   fight: { group: 'Learning', label: 'Resources', card: x => fightCard_(x) },
-  /* ---------- `textbook` WAS HERE, AND EACH OF ITS CHAPTERS IS A CONTENT CARD NOW § */
-  content: { group: 'Learning', label: 'Content', card: x => contentCard_(x) },
   /* ---------- THE BIBLE, AND THE ONE KIND THE PHONE ITSELF KEEPS FROM ALL BUT AN ADMIN § */
   bible: { group: 'Learning', label: 'Resources', card: x => bibleCard_(x) },
 
@@ -152,12 +156,14 @@ const KINDS = {
      thing — a picture, a name, what it belongs to, and what it costs if it costs anything. */
   /* `topic` WAS HERE — the documents, labelled `Resources`. The funnel lists the questions inside
      them now and not the boxes; see the note above `questionItems`. */
-  question: { group: 'Learning', label: 'Questions', card: (x, c) => thingCard_(x, c) },
   /* ---------- A QUESTION IS NOT A DIFFERENT KIND OF THING FROM ITS PAPER § */
   /* ---------- `question` WAS A KIND AND IS NOT ANY MORE § */
   /* ---------- THE SHOP HAS A COLUMN OF ITS OWN, AND THIS IS NOT A DOOR ANY MORE § */
   shop:  { group: 'Shop',     label: 'Things',    card: (x, c) => thingCard_(x, c) },
 };
+
+/* WHAT A QUESTION'S ANSWER PAGE IS CALLED, as the kinds tab names it. */
+const ansKind_ = () => (kindMap_().answer || {}).label || 'Answers';
 
 function widgetCard_(x) {
   /* NO LONGER A TAP TARGET. § */
@@ -313,39 +319,19 @@ function priced_(v) {
   return isFinite(n) ? n : undefined;
 }
 
-/* ONE WORD, ONE QUESTION — AND TWELVE WORDS WERE ANSWERS TO TWO. § */
-const FACET_SAME_AS = {
-  /* The Standards & Testing Agency publishes the KS2 SATs papers AND is the board on them, so its own name is in both columns on all 228 rows — spelled out in one § */
-  standardstestingagency: 'sta',
-};
-
-const facetSame_ = v => {
-  const k = spellKey_(v);
-  return FACET_SAME_AS[k] || k;
-};
-
-/* The raw reader of another facet, off `FACETS` rather than off `facetList()`: § */
-/* A MAP, BUILT ON FIRST USE — this is asked once per item per deferring facet while a question is tallied, and `FACETS` is a fixed array, so a `find` along it § */
+/* The raw reader of a facet, off `FACETS` rather than off `facetList()`, built on first use. */
 let FACET_RAW = null;
 const facetRaw_ = field => {
   if (!FACET_RAW) { FACET_RAW = new Map(); FACETS.forEach(f => { if (!FACET_RAW.has(f.field)) FACET_RAW.set(f.field, f); }); }
   return FACET_RAW.get(field);
 };
 
-/* Every value of one facet that the facet it defers to does NOT already give this item. */
+/* EVERY VALUE ONE FACET GIVES THIS ITEM — the one reader the funnel, the filter and the card all ask. No facet hides
+   behind another any more (396): a repeat on a card is the tag row's duplicate rule. */
 function facetOwn_(facet, x) {
-  const mine = asList_(facet.of(x));
-  if (!facet.not || !mine.length) return mine;
-  const other = facetRaw_(facet.not);
-  if (!other) return mine;
-  const theirs = new Set(asList_(other.of(x)).map(facetSame_));
-  if (!theirs.size) return mine;
-  const out = mine.filter(v => !theirs.has(facetSame_(v)));
-  return out;
+  return asList_(facet.of(x));
 }
 
-/* ---------- WHY THESE ARE UP HERE AND NOT BESIDE `bucketValues_` § */
-/* THE GROUPINGS THEMSELVES — "grouping many subtopics into first larger topics", written out. § */
 /* ---------- THE SAME FIFTY WORDS, FIVE THOUSAND TIMES EACH § */
 const SPELL_KEYS = new Map();
 const spellKey_ = v => {
@@ -358,306 +344,89 @@ const spellKey_ = v => {
   return k;
 };
 
-/* ---------- A VALUE -> LABEL TABLE, INVERTED ONCE SO THE LOOKUP IS A MAP RATHER THAN A SCAN § */
-function bucketTable_(pairs) {
-  const at = {};
-  pairs.forEach(row => row[1].forEach(v => { at[norm(v)] = row[0]; }));
-  const spelt = {};
-  Object.keys(at).forEach(k => { spelt[spellKey_(k)] = at[k]; });
-  const of = v => at[norm(v)] || spelt[spellKey_(v)] || '';
-  of.order = pairs.map(row => row[0]);
-  /* AND THE ANSWERS IN THE ORDER THE TABLE LISTS THEM, for a facet whose answers have an order of
-     their own that the alphabet does not give -- see `orderOf` on What kind. */
-  of.within = [].concat(...pairs.map(row => row[1]));
-  return of;
-}
-
-/* WHAT YOU ARE HERE TO DO WITH IT. The six kinds are three errands, and which errand somebody is
-   on is the thing they know before they know anything else. */
-/* `People & places` (Tutors, Venues) WAS A THIRD ROW, and nothing could answer it: § */
-/* `Links` left `Read or watch it` with the links themselves — see the note where `link` was in
-   `KINDS`. */
-/* `Projects` JOINS `Work through it`, BESIDE `Practicals`, and it has to be in this table at all: § */
-/* `Bundles` IS AN ERRAND OF ITS OWN — printed papers, ordered — so it is placed beside the other two
-   rather than filed under working through something; see `bundlesView_`. */
-/* ---------- `Films` LEFT `Read or watch it`, AND THE ROW STAYS, HOLDING `Resources` ALONE § */
-const KIND_BUCKET = bucketTable_([
-  ['Work through it',  ['Questions', 'Answers', 'Practicals', 'Projects']],
-  ['Order it',         ['Bundles']],
-  /* `Content` FIRST, then the boxing and the Bible: a chapter is read, and it is the one a student
-     reaches for beside a question, so it stands next to the work and ahead of the shelves. */
-  ['Read or watch it', ['Content', 'Resources']],
-]);
-
-/* THE FOUR SCIENCES ARE ONE ANSWER UNTIL SOMEBODY WANTS ONE OF THEM. § */
-const SUBJECT_BUCKET = bucketTable_([
-  /* `Statistics` IS GCSE STATISTICS — the @family. § */
-  ['Maths',             ['Maths', 'Statistics']],
-  ['English',           ['English Language', 'English Literature']],
-  ['Science',           ['Biology', 'Chemistry', 'Physics', 'Combined Science']],
-  /* ---------- THE REST OF THE GCSE TIMETABLE, ONE @family. TEXTBOOK EACH § */
-  ['Humanities',        ['Geography', 'History', 'Religious Studies']],
-  /* A LANGUAGE IS NOT ENGLISH, which is the bucket it would otherwise have been guessed into. Greek
-     was the first; the next language joins this row rather than getting one of its own. */
-  ['Languages',         ['Greek', 'French', 'Spanish', 'German']],
-  ['Social sciences',   ['Psychology', 'Sociology']],
-  ['Business',          ['Business']],
-  ['Technology',        ['Computer Science', 'Design and Technology', 'Food Preparation and Nutrition']],
-  ['Arts',              ['Art and Design', 'Music', 'Drama', 'Media Studies']],
-  ['Physical Education', ['Physical Education']],
-  ['Boxing',            ['Boxing']],
-]);
-
-/* `AREA_BUCKET` WAS HERE — the national curriculum's strands, `Topic area`'s seven buckets, with A-level pure maths filed under Algebra. § */
-
-/* GRADES IN THREES, which is how a tutor talks about them — "a grade 4 to 6 question" is a sentence somebody says and "Grade 4" alone is a precision nobody has § */
-const GRADE_BUCKET = bucketTable_([
-  ['Grades 1–3', ['Grade 1', 'Grade 2', 'Grade 3']],
-  ['Grades 4–6', ['Grade 4', 'Grade 5', 'Grade 6']],
-  ['Grades 7–9', ['Grade 7', 'Grade 8', 'Grade 9']],
-]);
-
-/* WHAT YOU HAVE TO HAVE IN FRONT OF YOU, by where you get it from: § */
-const NEEDS_BUCKET = bucketTable_([
-  ['Calculator allowed', ['Calculator']],
-  ['Non-calculator',     ['No calculator']],
-  ['Drawing kit',     ['Ruler', 'Protractor', 'Compass']],
-  ['A sheet with it', ['Printed sheet', 'Equation booklet', 'Periodic table']],
-  ['A lab',           ['Lab']],
-]);
-
-/* `PART_BUCKET` WAS HERE — Numbered, Lettered and Roman, the grouping for the `Question part`
-   answers. The question is retired (see `RETIRED_FACETS`), so the table had nothing left to group. */
-
-/* THE WEIGHT CLASSES, GROUPED THE WAY BOXING GROUPS THEM. § */
-const DIVISION_BUCKET = bucketTable_([
-  ['Heavyweight',          ['Heavyweight', 'Cruiserweight', 'Light heavyweight']],
-  ['Middleweight',         ['Super middleweight', 'Middleweight', 'Light middleweight']],
-  ['Welterweight',         ['Super welterweight', 'Welterweight', 'Light welterweight']],
-  ['Lightweight',          ['Super lightweight', 'Lightweight', 'Super featherweight']],
-  ['Featherweight',        ['Featherweight', 'Super bantamweight']],
-  ['Bantamweight & below', ['Bantamweight', 'Super flyweight', 'Flyweight',
-                            'Light flyweight', 'Minimumweight']],
-]);
-
-/* A SPAN IS FILED UNDER THE LEVEL IT GOES UP TO, and that is a decision rather than an observation. § */
-const LEVEL_BUCKET = bucketTable_([
-  /* `SATs`, ONE ANSWER, WHERE THIS WAS `KS1 SATs` AND `KS2 SATs` -- and before that `KS1` and `KS2`. § */
-  ['SATs',    ['SATs', 'KS1 SATs', 'KS2 SATs', 'KS1', 'KS2']],
-  ['KS3',     ['KS3', 'KS2–KS3']],
-  ['GCSE',    ['GCSE', 'KS2–GCSE', 'KS3–GCSE']],
-  /* FUNCTIONAL SKILLS IS ITS OWN QUALIFICATION, NOT A RUNG OF THIS ONE. § */
-  ['Functional Skills', ['Functional Skills Entry Level', 'Functional Skills L1', 'Functional Skills L2']],
-  ['A-Level', ['A-Level', 'AS', 'GCSE–A-level']],
-]);
-
-/* ---------- AND THE TWO THAT ARE COMPUTED RATHER THAN LISTED § */
-
-
-function decadeBucket_(v) {
-  const n = Number((String(v).match(/\d{4}/) || [])[0]);
-  if (!n) return '';
-  if (n < 1930) return 'Before 1930';
-  if (n < 1950) return '1930s & 1940s';
-  if (n < 1970) return '1950s & 1960s';
-  if (n < 1990) return '1970s & 1980s';
-  if (n < 2010) return '1990s & 2000s';
-  return '2010s onwards';
-}
-decadeBucket_.order = ['Before 1930', '1930s & 1940s', '1950s & 1960s',
-                       '1970s & 1980s', '1990s & 2000s', '2010s onwards'];
-
-/* The 5-a-day levels and weeks, above `FACETS` because it is built as the file loads — see
-   `fiveADayOf_` for the rest. */
-const FIVE_LEVELS = ['Foundation', 'Foundation Plus', 'Higher', 'Higher Plus'];
-
+/* THE FUNNEL'S QUESTIONS (396): a field, a label and a reader (`of`) each, asked by `facetWhy_`, sorted by `answerCmp_`,
+   said by `facetSay_`, coloured by `TAG_OF`. */
+/* Two optional readers, both about the value: `tagOf` is what one PAGE carries (the answer page says Answers), `showOf`
+   the name of a value that is an id (a paper). */
+/* The order here is only the fallback for a facet the facets tab does not place; the tab's sort_order is the order. */
 const FACETS = [
-  /* What sort of thing, first. It is the one question that changes which of the others make any
-     sense at all — a wearable has a slot and no exam board, a paper the reverse. */
-  /* WHAT FOR, before what kind. § */
-  /* ---------- AN ITEM MAY OVERRIDE THE GROUP ITS KIND PUTS IT IN § */
-  /* ---------- A DOOR IS NOT A FILTER, AND THE BALANCE RULE HAD TO BE TOLD § */
-  { field: 'forLabel',  label: 'What for',    always: true,
-    of: x => x.groups || kindOf_(x).group },
-  /* `kindLabel` ON THE ITEM WINS, the same way `groups` does on the line above — so a thing placed
-     under a group its kind does not belong to can also say what it is called there. */
-  /* ---------- `Answers` IS A KIND, BESIDE `Questions` § */
-  /* ---------- AND `Questions` MEANS QUESTIONS, NOT QUESTIONS AND THEIR ANSWERS § */
-  { field: 'kindLabel', tag: true, orderOf: v => KIND_BUCKET.within.indexOf(v),
-    bucketOf: KIND_BUCKET, bucketOrder: KIND_BUCKET.order, label: 'What kind',   always: true,
+  { field: 'forLabel',  label: 'What for',    of: x => x.groups || kindOf_(x).group },
+  /* `Answers` BESIDE THE ITEM'S OWN KIND: a question with an answer is found by either, and its answer page carries the tag. */
+  { field: 'kindLabel', label: 'What kind',
     of: x => {
       const k = x.kindLabel || kindOf_(x).label;
-      if (!x || x.kind !== 'question') return k;
-      const out = [k];
-      if (questionHasAns_(x)) out.push('Answers');
-      if (bundleable_(x)) out.push('Bundles');
-      return out.length > 1 ? out : k;
+      return x && x.kind === 'question' && questionHasAns_(x) ? [k, ansKind_()] : k;
     },
-    /* THE TAG IS WHAT THIS PAGE IS, NOT EVERY DOOR THE ITEM STANDS BEHIND. § */
-    tagOf: (x, page) => page === 'ans' ? 'Answers' : (x.kindLabel || kindOf_(x).label) },
-  /* ---------- THE THIRD DOOR: WHICH SHELF OF THE RESOURCES § */
-  { field: 'shelf', tag: true,     label: 'Shelf',       always: true, of: x => x.shelf || '' },
-  /* ---------- THE BIBLE'S SIX QUESTIONS, IN THE OWNER'S ORDER § */
-  { field: 'bibleTranslation', tag: true, label: 'Translation', only: 'bible', folder: true,
+    tagOf: (x, page) => page === 'ans' ? ansKind_() : (x.kindLabel || kindOf_(x).label) },
+  { field: 'shelf',     label: 'Shelf',       of: x => x.shelf || '' },
+  /* THE BIBLE'S SIX: admin-only data (`bibleFor_`), and ordinary questions about it. */
+  { field: 'bibleTranslation', label: 'Translation',
     of: x => x.kind !== 'bible' ? '' : x.bb ? x.bb.translation : (BIBLE.index ? BIBLE.index.translation : '') },
-  { field: 'bibleTestament', tag: true, label: 'Testament', only: 'bible', folder: true,
-    of: x => (x.bb ? x.bb.testament : ''), orderOf: v => bibleRank_('t', v) },
-  { field: 'bibleGroup', tag: true, label: 'Group', only: 'bible', folder: true,
-    of: x => (x.bb ? x.bb.group : ''), orderOf: v => bibleRank_('g', v) },
-  { field: 'bibleBook', tag: true, label: 'Book', only: 'bible', folder: true,
-    of: x => (x.bb ? x.bb.book : ''), orderOf: v => bibleRank_('b', v) },
-  /* NO ORDER NEEDED: `cmpText` is numeric, so 2 comes before 10 and 100. */
-  { field: 'bibleChapter', tag: true, label: 'Chapter', only: 'bible', folder: true, grid: true,
-    of: x => (x.bb ? x.ch : '') },
-  { field: 'bibleVerse', tag: true, label: 'Verse', only: 'bible', folder: true, grid: true,
-    of: x => (x.bb ? x.v : '') },
-  /* Only venues have one, so it is only ever asked once you are looking at venues — which is the coverage rule doing the work that a per-kind filter list would § */
-  { field: 'borough',   label: 'Where',       of: x => x.borough || '' },
-  /* `category` WAS HERE — `Category`, the links' own question. It went with the links; see
-     `RETIRED_FACETS`, which stops a sheet row reading the column back off whatever else has one. */
-  { field: 'subject', tag: true,
-    bucketOf: SUBJECT_BUCKET, bucketOrder: SUBJECT_BUCKET.order,   label: 'Subject',     of: x => x.subject },
-  /* `book` WAS HERE — `Book`, which @family. § */
-  /* ---------- THE QUESTION THE FUNNEL HAD NEVER ASKED § */
-  /* ---------- A QUESTION ANSWERS THESE ONLY IF IT IS A 1ST CLASS MATHS WORKSHEET § */
-  /* ---------- `topicArea` WAS HERE — `Topic area`, the branch above the topic § */
-  { field: 'topic', tag: true,     label: 'Topic',
-    of: x => topicShown_(x) ? (x.topic || topicOf_(x)) : [] },
-  /* Only boxers and bouts carry one, so the coverage rule keeps it out of the way of everything
-     else — the same rule that hides `borough` unless you are looking at venues. */
-  /* BEFORE THE WEIGHT, because "a boxer or a bout" is the question somebody has first and there
-     are two answers to it, not twenty. */
-  { field: 'boxKind', tag: true,   label: 'Boxers or fights', of: x => x.boxKind || '' },
-  /* ---------- WHAT KIND OF PROJECT OR PRACTICAL, AND WHETHER A BOARD ASKS FOR IT § */
-  { field: 'projectType', tag: true, label: 'Project or coursework', of: x => x.projectType || '' },
-  { field: 'practicalType', tag: true, label: 'Experiment or build', of: x => x.practicalType || '' },
-  { field: 'required', tag: true, label: 'Required',
-    orderOf: v => PRAC_NEED.indexOf(v),
-    of: x => x.kind !== 'practical' || !x.row ? ''
-      : PRAC_NEED[x.row.excluded ? 2 : x.row.required ? 0 : 1] },
-  /* ---------- THE DECADE COMES BEFORE THE WEIGHT § */
-  { field: 'decade', tag: true,
-    bucketOf: decadeBucket_, bucketOrder: decadeBucket_.order,    label: 'Decade',      of: x => decadesOf_(x) },
-  { field: 'division', tag: true,
-    bucketOf: DIVISION_BUCKET, bucketOrder: DIVISION_BUCKET.order,  label: 'Division',    of: x => x.division || '' },
-  /* THIRD, and it was seventh. § */
-  { field: 'documentType', tag: true, label: 'Type',     of: x => x.documentType },
-  /* ---------- THREE BANDS, THREE QUESTIONS, BECAUSE THEY ARE NOT THE SAME QUESTION § */
-  { field: 'bandValue', tag: true,
-    bucketOf: GRADE_BUCKET, bucketOrder: GRADE_BUCKET.order, label: 'Grade',       of: x => x.bandValue && x.bandType === 'grade'
-                                                    ? 'Grade ' + x.bandValue : '' },
-  /* `School year`, NOT `Year`. § */
-  { field: 'yearGroup', tag: true, label: 'School year',        of: x => x.bandValue && x.bandType === 'year'
-                                                    ? 'Year ' + x.bandValue : '' },
-  /* ---------- ONE LADDER, NOT TWO, AND THE SPELLING IS PART OF THE FAULT § */
-  /* `not: keystage` WAS HERE — 27 rows had `KS3` typed into the level column and Key stage asked it first. § */
-  { field: 'level', tag: true,
-    bucketOf: LEVEL_BUCKET, bucketOrder: LEVEL_BUCKET.order,     label: 'Level',       of: x => levelOf_(x) },
-  /* ---------- A RESOURCE CAN BELONG TO MORE THAN ONE KEY STAGE § */
-  { field: 'keystage', tag: true,  label: 'Key stage', of: x =>
-      (LEVEL_BUCKET(levelOf_(x)) === 'SATs' ? satsStagesOf_(x) : []) },
-  { field: 'examBoard', tag: true, label: 'Exam board',  of: x => x.examBoard },
-  /* ---------- `A-Level` IS NOT A TIER, AND IT WAS AN ANSWER TO THIS QUESTION § */
-  { field: 'tier', tag: true,      label: 'Tier',        not: 'level', of: x => x.tier },
-  /* Through `waveOf`, for the same reason `year` goes through `yearOf` one line below: § */
-  /* `Sitting`, NOT `Exam wave`. "Wave" is the column's name and nobody outside this repo says it.
-     The facets tab can still relabel it. */
-  /* ---------- A SITTING IS TWO QUESTIONS: THE SERIES, THEN THE YEAR § */
-  /* ---------- THE YEAR, THEN THE MONTH, THEN THE PAPER — LIKE THE FOLDERS THEY CAME FROM § */
-  /* NO LONGER PAIRED INTO `2023 & 2024` -- the years are drawn as they are (see `bucketLabels_`). */
-  { field: 'examYear', tag: true, folder: true,
-    label: 'Year', cmp: (a, b) => Number(b) - Number(a), of: x => sittingOf_(x).year },
-  { field: 'examMonth', tag: true, folder: true, label: 'Month',
-    cmp: (a, b) => MONTH_NAMES.indexOf(a) - MONTH_NAMES.indexOf(b), of: x => sittingMonth_(x) },
-  /* Through `yearOf`, so a paper whose year lives only inside "June 2024" is filterable by year
-     without anybody having to type it into a second column to make the filter work. */
-  { field: 'year',      label: 'Year',        of: x => yearOf(x) },
-  /* ---------- `Publisher`, AND IT WAS LABELLED `Paper code` OVER PUBLISHERS § */
-  { field: 'company',   label: 'Publisher',   not: 'examBoard', of: x => x.company },
-  /* ---------- WHAT YOU NEED IN FRONT OF YOU § */
-  /* `showOf` SAYS THE CALCULATOR THE WAY THE CARD'S TAG DOES -- `Non-calculator`, `Calculator allowed`
-     -- and matches by the cell's own value, which is what `showOf` is for. See `needsSay_`. */
-  /* `tagOnly` SINCE 18 Oct: § */
-  { field: 'needs', tag: true, tagOnly: true,
-    bucketOf: NEEDS_BUCKET, bucketOrder: NEEDS_BUCKET.order,     label: 'What you need', of: x => asList_(x.needs),
-    showOf: v => needsSay_(v) },
-  /* ---------- `paper` — "PRINTED?" — WAS HERE, AND IT WAS NOT A QUESTION § */
-  /* ---------- `paperName` — "WHICH PAPER" — WAS HERE § */
-  /* ---------- TWO MORE RUNGS ON THE SAME LADDER § */
-  /* ---------- ONLY WHERE A QUESTION NUMBER MEANS SOMETHING § */
-  /* ---------- THE FACET THAT IS ALWAYS TOO BIG TO ASK, DELIBERATELY § */
-  /* ---------- A PAPER IS AN ANSWER, NOT A SECOND WAY OF ASKING § */
-  /* ---------- A 5-A-DAY IS FOUND BY ITS LEVEL, ITS MONTH AND ITS DAY § */
-  { field: 'fiveLevel', tag: true, label: 'Level',       of: x => fiveADay_(x) ? x.tier || '' : '',
-    orderOf: v => FIVE_LEVELS.indexOf(v) },
-  { field: 'fiveMonth', tag: true, label: 'Month',       of: x => { const d = fiveADay_(x); return d ? d.month : ''; },
-    orderOf: v => MONTH_NAMES.indexOf(v) },
-  { field: 'fiveDay', tag: true,   label: 'Day',         of: x => fiveADay_(x) ? x.row.paper_id : '',
-    showOf: (id, ids) => fiveDayLabel_(id, ids) },
-  { field: 'paperId', tag: true,   label: 'Paper', folder: true,
-    of: x => (x.row && x.row.paper_id) || '',
-    /* `said` IS WHAT THE YEAR AND MONTH CHIPS HAVE ALREADY SAID, and the label drops it — see `sittingUnsaid_`. § */
-    showOf: (id, ids, said) => sittingUnsaid_(paperLabel_(id, ids), said),
-    /* THE TAG IS THE ANSWER AS ITS OWN FOLDER DRAWS IT -- `Paper 1`, not the library-unique `Paper 1 (Non-Calculator) · Foundation — June 2024`: § */
-    tagSay: (id, x) => paperTag_(x) },
-  /* ---------- WHICH QUESTION, WHICH PART, WHICH PAGE, HOW MANY MARKS § */
-  { field: 'qNumber', tag: true, label: 'Question', tagOnly: true,
-    cmp: (a, b) => Number(a) - Number(b),
-    of: x => x.kind === 'question' && x.qNumber != null && String(x.qNumber) !== '' ? String(x.qNumber) : '',
-    showOf: v => 'Q' + v },
-  { field: 'qPart', tag: true, label: 'Part', tagOnly: true, asIs: true, of: x => qSplitOf_(x).part },
-  { field: 'qSub', tag: true, label: 'Sub-part', tagOnly: true, asIs: true,
-    orderOf: v => romanVal_(String(v)), of: x => qSplitOf_(x).sub },
-  { field: 'qPage', tag: true, label: 'Page', tagOnly: true, cmp: (a, b) => Number(a) - Number(b),
-    of: x => { const n = qPagesOf_(x); return n > 1 ? Array.from({ length: n }, (_, i) => String(i + 1)) : ''; },
+  { field: 'bibleTestament', label: 'Testament', of: x => (x.bb ? x.bb.testament : '') },
+  { field: 'bibleGroup',     label: 'Group',     of: x => (x.bb ? x.bb.group : '') },
+  { field: 'bibleBook',      label: 'Book',      of: x => (x.bb ? x.bb.book : '') },
+  { field: 'bibleChapter',   label: 'Chapter',   of: x => (x.bb ? x.ch : '') },
+  { field: 'bibleVerse',     label: 'Verse',     of: x => (x.bb ? x.v : '') },
+  { field: 'projectType',   label: 'Project or coursework', of: x => x.projectType || '' },
+  { field: 'subject',   label: 'Subject',     of: x => x.subject },
+  { field: 'boxKind',   label: 'Boxers or fights', of: x => x.boxKind || '' },
+  { field: 'decade',    label: 'Decade',      of: x => decadesOf_(x) },
+  { field: 'division',  label: 'Division',    of: x => x.division || '' },
+  { field: 'practicalType', label: 'Experiment or build', of: x => x.practicalType || '' },
+  { field: 'required',  label: 'Required',
+    of: x => x.kind !== 'practical' || !x.row ? '' : PRAC_NEED[x.row.excluded ? 2 : x.row.required ? 0 : 1] },
+  { field: 'documentType', label: 'Type',     of: x => x.documentType },
+  /* A 5-A-DAY IS FOUND BY ITS LEVEL, ITS MONTH AND ITS DAY, each read off its paper id. */
+  { field: 'fiveLevel', label: 'Level',       of: x => fiveADay_(x) ? x.tier || '' : '' },
+  { field: 'fiveMonth', label: 'Month',       of: x => { const d = fiveADay_(x); return d ? d.month : ''; } },
+  { field: 'fiveDay',   label: 'Day',         of: x => { const d = fiveADay_(x); return d ? d.day + ' ' + d.month : ''; } },
+  { field: 'level',     label: 'Level',       of: x => levelOf_(x) },
+  /* A RESOURCE CAN BELONG TO MORE THAN ONE KEY STAGE; a SATs row's is read off its year when the cell is blank. */
+  { field: 'keystage',  label: 'Key stage',   of: x => { const s = satsStagesOf_(x); return s.length ? s : keyStagesOf_(x); } },
+  { field: 'yearGroup', label: 'School year', of: x => x.bandValue && x.bandType === 'year' ? 'Year ' + x.bandValue : '' },
+  { field: 'bandValue', label: 'Grade',       of: x => x.bandValue && x.bandType === 'grade' ? 'Grade ' + x.bandValue : '' },
+  { field: 'topic',     label: 'Topic',       of: x => topicShown_(x) ? (x.topic || topicOf_(x)) : [] },
+  { field: 'examBoard', label: 'Exam board',  of: x => x.examBoard },
+  { field: 'tier',      label: 'Tier',        of: x => x.tier },
+  /* THE YEAR, THEN THE MONTH, THEN THE PAPER — like the folders they came from. */
+  { field: 'examYear',  label: 'Year',        of: x => sittingOf_(x).year },
+  { field: 'examMonth', label: 'Month',       of: x => sittingMonth_(x) },
+  /* THE ID DECIDES WHO ANSWERS and the document row's name is what is said, shortened against the names beside it. */
+  { field: 'paperId',   label: 'Paper',       of: x => (x.row && x.row.paper_id) || '',
+    showOf: id => paperLabel_(id) },
+  /* WHICH QUESTION, WHICH PART, WHICH PAGE, HOW MANY MARKS: the words are the value, so the card and the button agree. */
+  { field: 'qNumber',   label: 'Question',
+    of: x => x.kind === 'question' && x.qNumber != null && String(x.qNumber) !== '' ? 'Q' + x.qNumber : '' },
+  { field: 'qPart',     label: 'Part',        of: x => qSplitOf_(x).part },
+  { field: 'qSub',      label: 'Sub-part',    of: x => qSplitOf_(x).sub },
+  { field: 'qPage',     label: 'Page',
+    of: x => { const n = qPagesOf_(x); return n > 1 ? Array.from({ length: n }, (_, i) => 'Page ' + (i + 1)) : ''; },
     /* THE ONE PAGE THIS IS, of the pages above. */
-    tagOf: (x, page) => { const i = qPageAt_(x, page); return i && qPagesOf_(x) > 1 ? String(i) : ''; } },
-  { field: 'qPages', tag: true, label: 'Pages', tagOnly: true, cmp: (a, b) => Number(a) - Number(b),
-    of: x => { const n = qPagesOf_(x); return n > 1 ? String(n) : ''; },
-    showOf: v => 'of ' + v,
-    /* `of 2` IS HALF OF `2`: drawn where the page number is, because alone, on the answer or the
-       opening, it is a count of nothing on the screen. */
-    tagOf: (x, page) => { const n = qPagesOf_(x); return n > 1 && qPageAt_(x, page) ? String(n) : ''; } },
-  { field: 'marks', tag: true, label: 'Marks', tagOnly: true, cmp: (a, b) => Number(a) - Number(b),
-    of: x => Number(x && x.marks) > 0 ? String(Number(x.marks)) : '',
-    showOf: v => v + ' mark' + (String(v) === '1' ? '' : 's') },
-  { field: 'slot',      label: 'Goes on',     of: x => x.slot },
-  /* ---------- "FREE" AND "NOT PRICED" ARE DIFFERENT ANSWERS, AND THIS SAID FREE TO BOTH § */
-  { field: 'afford',    label: 'Price',
-    of: x => x.cost == null ? ''
-           : x.cost === 0 ? 'Free'
-           : x.cost <= (USER ? USER.credits || 0 : 0) ? 'Can afford' : '' },
-  /* TWO TAGS ON EVERY QUESTION (388), in place of the paper health score: the answer checked against the official scheme (`verified`), and the type's protocol complete and machine-marked (qtypes.js). */
-  { field: 'accuracy', tag: true, label: 'Accuracy', of: x => verifyTags_(x).accuracy },
-  { field: 'function', tag: true, label: 'Function', of: x => verifyTags_(x).fn },
+    tagOf: (x, page) => { const i = qPageAt_(x, page); return i && qPagesOf_(x) > 1 ? 'Page ' + i : ''; } },
+  { field: 'qPages',    label: 'Pages',
+    of: x => { const n = qPagesOf_(x); return n > 1 ? n + ' pages' : ''; },
+    tagOf: (x, page) => { const n = qPagesOf_(x); return n > 1 && qPageAt_(x, page) ? n + ' pages' : ''; } },
+  { field: 'marks',     label: 'Marks',
+    of: x => Number(x && x.marks) > 0 ? Number(x.marks) + ' mark' + (Number(x.marks) === 1 ? '' : 's') : '' },
+  { field: 'company',   label: 'Publisher',   of: x => x.company },
+  { field: 'needs',     label: 'What you need', of: x => asList_(x.needs) },
+  /* TWO TAGS ON EVERY QUESTION (388): the answer checked against the official scheme, and the type machine-marked. */
+  { field: 'accuracy',  label: 'Accuracy',    of: x => verifyTags_(x).accuracy },
+  { field: 'function',  label: 'Function',    of: x => verifyTags_(x).fn },
 ];
 
-/* ---------- THE FENCE: A CLOSED KIND'S QUESTIONS, AND ONLY ITS QUESTIONS § */
-const FACET_ONLY = new Set(FACETS.map(f => f.only).filter(Boolean));
-const LIST_KIND = new WeakMap();
-function listKind_(items) {
-  const k = items && items.length ? items[0].kind : '';
-  if (!k || !FACET_ONLY.has(k)) return '';
-  let out = LIST_KIND.get(items);
-  if (out === undefined) { out = items.every(x => x && x.kind === k) ? k : ''; LIST_KIND.set(items, out); }
-  return out;
-}
-const facetFenced_ = (items, facet) => (facet.only ? facet.only !== listKind_(items) : !!listKind_(items));
+/* THE ONLY KEYS A FACET MAY CARRY (396) — `check-funnel` fails on any other, so a behaviour flag cannot creep back in. */
+const FACET_KEYS = ['field', 'label', 'of', 'tagOf', 'showOf'];
 
 /* THE FUNNEL'S QUESTIONS, AS THE SHEET WANTS THEM. § */
 /* ---------- KEYED ON THE PAYLOAD, THE WAY `allTopics` DOES IT § */
 let FACET_LIVE = null, FACET_FROM = null;
 
 /* ---------- A QUESTION THE SHEET INVENTED § */
-/* ---------- A GROUPING FOR A QUESTION THE SHEET INVENTED § */
-const SHEET_BUCKETS = {};
-
 const facetFromSheet_ = f => ({
   field: f.field,
   label: f.label || String(f.field).replace(/_/g, ' '),
   fromSheet: true,
-  bucketOf: SHEET_BUCKETS[f.field],
-  bucketOrder: SHEET_BUCKETS[f.field] && SHEET_BUCKETS[f.field].order,
   of: x => {
     const v = (x && x[f.field] !== undefined && x[f.field] !== null && x[f.field] !== '')
       ? x[f.field]
@@ -670,6 +439,10 @@ const facetFromSheet_ = f => ({
 
 /* FIELDS WHOSE CODE FACET WAS DELETED ON PURPOSE, AND WHICH THE SHEET MAY NOT RESURRECT. § */
 const RETIRED_FACETS = {
+  borough: 'venues only, and venues left Find; nothing else answers it (396 took the dead facet out).',
+  slot: 'where a wearable goes; nothing in Find carries one since the shop left it (396 took the dead facet out).',
+  afford: 'the price question; nothing in Find is priced (396 took the dead facet out).',
+  year: 'the year a paper was sat is asked as `examYear`, so asking both narrowed twice (396 took the dead facet out).',
   health: 'the paper health score was deleted (388); a question carries Accuracy and Function tags instead.',
   answerable: 'the paper health score was deleted (388); a question carries Accuracy and Function tags instead.',
   paper: 'the "Printed?" facet was deleted for reading a literal — and the `paper` COLUMN it would '
@@ -707,27 +480,17 @@ function facetList() {
   FACET_LIVE = FACETS
     .map((f, i) => {
       const s = said[f.field];
-      if (!s) return Object.assign({}, f, { at: (i + 1) * 10, min: FACET_COVERAGE });
+      if (!s) return Object.assign({}, f, { at: (i + 1) * 10 });
       if (s.active === false) return null;
-      return Object.assign({}, f, {
-        label: s.label || f.label,
-        at:    facetNum_(s.order, (i + 1) * 10),
-        /* A THRESHOLD OF ZERO IS A REAL ANSWER — "ask this however few can answer it" — so it
-           cannot be treated as absent the way an empty cell is. `null` means the cell was blank;
-           0 means somebody typed it. */
-        min:   facetMin_(s.minCoverage),
-      });
+      return Object.assign({}, f, { label: s.label || f.label, at: facetNum_(s.order, (i + 1) * 10) });
     })
     /* ---------- AND THE ONES THE CODE HAS NEVER HEARD OF § */
     .concat((src || [])
       .filter(f => f && f.field && !known[f.field] && f.active !== false && !RETIRED_FACETS[f.field])
-      .map((f, i) => Object.assign(facetFromSheet_(f), {
-        at:  facetNum_(f.order, 1000 + i),
-        min: facetMin_(f.minCoverage),
-      })))
+      .map((f, i) => Object.assign(facetFromSheet_(f), { at: facetNum_(f.order, 1000 + i) })))
     .filter(Boolean)
-    /* ---------- A DOOR IS ASKED BEFORE A FILTER, AND THE SHEET CANNOT REORDER THAT § */
-    .sort((a, b) => (b.always ? 1 : 0) - (a.always ? 1 : 0) || a.at - b.at);
+    /* THE TAB'S sort_order IS THE ORDER, ALL OF IT (396): no facet is held in front of the others. */
+    .sort((a, b) => a.at - b.at);
   return FACET_LIVE;
 }
 
@@ -738,11 +501,6 @@ const facetNum_ = (v, fallback) => {
   return v === null || v === undefined || v === '' || !isFinite(n) ? fallback : n;
 };
 
-const facetMin_ = v => {
-  const n = facetNum_(v, FACET_COVERAGE);
-  if (n > 1) return Math.min(n / 100, 1);   /* typed as a percentage */
-  return n < 0 ? 0 : n;
-};
 
 /* A MAP OVER THE LIVE LIST, rebuilt only when `facetList` hands back a different array. § */
 let FACET_BY_FROM = null, FACET_BY = null;
@@ -763,40 +521,7 @@ function filterHit(x, f) {
   const facet = facetBy(f.field);
   if (!facet) return true;
   /* ANY OF THEM COUNTS. A tutor is in Booking and in People, and choosing either has to keep them — an `===` against a joined string would have matched neither. § */
-  /* ---------- A BAND MATCHES BY MEMBERSHIP, NOT BY LETTERS § */
-  /* `facetOwn_` HERE TOO, OR THE FILTER DISAGREES WITH THE BUTTON. § */
-  /* ---------- A BUCKET MATCHES BY MEMBERSHIP, AND IT SAYS SO RATHER THAN LOOKING LIKE IT § */
-  if (f.bucket) return facetOwn_(facet, x).some(v => bucketHas_(facet, f.value, v));
   return facetOwn_(facet, x).some(v => spellKey_(v) === spellKey_(f.value));
-}
-
-/* THE SHORTEST FORM OF A NAME THAT IS STILL UNIQUE AMONG THE NAMES BESIDE IT. § */
-/* A SITTING IS A YEAR AND A MONTH, AND THE FUNNEL ASKS THEM APART. § */
-function sittingParts_(date) {
-  const m = /^((?:\d{1,2}\s+)?([A-Za-z]+))\s+((?:19|20)\d{2})$/.exec(String(date == null ? '' : date).trim());
-  if (!m || !MONTH_NAMES.some(n => n.toLowerCase() === m[2].toLowerCase())) return null;
-  return { year: m[3], month: m[1], word: m[2] };
-}
-function sittingSaid_(filters) {
-  const said = { year: '', month: '' };
-  (filters || []).forEach(c => {
-    if (!c || c.any || c.bucket) return;
-    if (c.field === 'examYear') said.year = String(c.value == null ? '' : c.value);
-    else if (c.field === 'examMonth') said.month = String(c.value == null ? '' : c.value);
-  });
-  return said;
-}
-function sittingUnsaid_(label, said) {
-  const s = String(label == null ? '' : label);
-  if (!said || (!said.year && !said.month)) return s;
-  const dash = /\s[—–]\s/.exec(s);
-  const parts = dash ? sittingParts_(s.slice(dash.index + dash[0].length)) : null;
-  if (!parts) return s;
-  const left = [];
-  if (!(said.year && said.year === parts.year)) left.push(parts.year);
-  if (!(said.month && spellKey_(said.month) === spellKey_(parts.word))) left.push(parts.month);
-  if (left.length === 2) return s;
-  return s.slice(0, dash.index) + (left.length ? ' · ' + left[0] : '');
 }
 
 /* WHERE A NAME'S DATE STARTS: § */
@@ -827,11 +552,6 @@ function nameForms_(s) {
   return out;
 }
 
-/* Sets `show` on each value in place. Ascending rungs, first one where every label is distinct —
-   and the last rung is always the full name, which is distinct by construction because these are
-   the keys of a tally. */
-/* WHAT A PAPER IS CALLED ON A BUTTON, AND WHY IT IS NOT JUST ITS NAME. § */
-/* ---------- AND THE RUNGS STAYED ON AFTER THE QUESTION THEY NAME HAD BEEN ANSWERED § */
 /* ---------- THE FILE, NOT THE MAPPED LIST — AND THIS IS THE THIRD FUNCTION THAT NEEDED IT § */
 function libDocRows_() {
   return (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS && LIBRARY_ROWS.length)
@@ -841,62 +561,14 @@ function libDocRows_() {
 /* A DOCUMENT ROW IN EITHER SPELLING. § */
 const libIsDoc_ = r => !!r && (String(r.kind || '').toLowerCase() === 'document' || !!r.isDoc);
 
-const PAPER_LABEL = new WeakMap();
-/* ---------- AND ONE MAP PER ANSWER LIST, NOT ONE PER ANSWER § */
-const PAPER_LABEL_FOR = new WeakMap();
+/* WHAT A PAPER ID IS CALLED: its document row's name, or the id itself — an unreadable button beats a blank one. */
+const paperLabel_ = id => {
+  const d = typeof docById_ === 'function' ? docById_(id) : null;
+  return String((d && d.name) || id || '').trim();
+};
 
-function paperLabels_(ids) {
-  const rows = libDocRows_();
-  if (ids && ids.length && typeof ids === 'object') {
-    const hit = PAPER_LABEL_FOR.get(ids);
-    if (hit && hit.rows === rows) return hit.map;
-  }
-  const only = ids && ids.length ? new Set(ids.map(String)) : null;
-  let map = only ? null : PAPER_LABEL.get(rows);
-  if (map) return map;
-  map = {};
-  const byName = {};
-  const docs = [];
-  rows.forEach(r => {
-    const id = r && (r.paper_id || r.paper);
-    if (!r || String(r.kind) !== 'document' || !id) return;
-    /* THE FIELD IS THE ANSWERS ON SCREEN WHERE THERE ARE ANY. A paper not in the list cannot make
-       one that is ambiguous, so it must not add a rung to it. */
-    if (only && !only.has(String(id))) return;
-    const name = String(r.name || '').trim();
-    if (!name) return;
-    docs.push({ id: id, name: name, subject: r.subject, tier: r.tier, exam_board: r.exam_board });
-    const k = spellKey_(name);
-    (byName[k] = byName[k] || []).push(r);
-  });
-  docs.forEach(r => {
-    const name = r.name;
-    const share = byName[spellKey_(name)] || [];
-    if (share.length < 2) { map[r.id] = name; return; }
-    /* ONLY WHAT DIFFERS, AND ONLY WHERE IT SEPARATES. § */
-    const bits = [name];
-    let field = share;
-    ['subject', 'tier', 'exam_board'].forEach(col => {
-      if (field.length < 2) return;
-      const mine = String(r[col] || '').trim();
-      if (mine && new Set(field.map(d => String(d[col] || '').trim())).size > 1) bits.push(mine);
-      field = field.filter(d => String(d[col] || '').trim() === mine);
-    });
-    /* ---------- THE RUNGS GO BEFORE THE DATE, NOT AFTER IT § */
-    const extra = bits.slice(1).join(' \u00b7 ');
-    const dash = /\s[\u2014\u2013]\s/.exec(name);
-    map[r.id] = !extra ? name
-      : dash ? name.slice(0, dash.index) + ' \u00b7 ' + extra + name.slice(dash.index)
-      : name + ' \u00b7 ' + extra;
-  });
-  if (!only) PAPER_LABEL.set(rows, map);
-  else if (typeof ids === 'object') PAPER_LABEL_FOR.set(ids, { rows: rows, map: map });
-  return map;
-}
-
-/* AN ID WITH NO DOCUMENT ROW IS DRAWN AS ITSELF rather than as nothing — an unreadable button beats a blank one, and `check-library.js` already fails on a § */
-const paperLabel_ = (id, ids) => paperLabels_(ids)[id] || paperLabels_()[id] || String(id || '');
-
+/* THE SHORTEST FORM OF A NAME THAT IS STILL UNIQUE AMONG THE NAMES BESIDE IT — for every facet, on the button, the chip
+   and the card alike (396). Sets `show` on each value in place; the last rung is the full name. */
 function shortLabels_(values) {
   /* `text` IS THE DISPLAY STRING WHERE THE VALUE IS AN IDENTITY. § */
   const forms = values.map(v => nameForms_(v.text || v.value));
@@ -914,76 +586,6 @@ function shortLabels_(values) {
   return values;
 }
 
-/* A LONG LIST OF PLAIN NUMBERS IS ASKED IN TENS. § */
-
-/* AND THE SAME MOVE FOR EVERY OTHER KIND OF ANSWER — NEVER MORE THAN SEVEN, EVER. § */
-/* AT MOST SEVEN, WHICH IS `FACET_MAX_SHOWN` RATHER THAN A SECOND NUMBER. The cap on what fits on a
-   card and the cap on when to group are the same fact about the same card, and two constants for it
-   is two things to keep in step. */
-
-/* ---------- THE SEVEN LETTER RANGES ARE BUILT, NOT DECLARED § */
-function alphaKey_(v) { return String(v == null ? '' : v).trim().toLowerCase(); }
-
-/* ---------- AND A RANGE IS MEASURED ON WHAT IS READ, NOT ON WHAT IS MATCHED § */
-function bucketKeyOf_(facet, v) {
-  if (facet && typeof facet.showOf === 'function') {
-    try { const s = facet.showOf(v); if (s) return String(s); } catch (e) { /* fall through */ }
-  }
-  return String(v == null ? '' : v);
-}
-
-/* ---------- IS THIS LABEL ONE THE FACET'S OWN GROUPING MADE? § */
-function bucketDeclares_(facet, b) {
-  if (!facet || typeof facet.bucketOf !== 'function') return false;
-  const order = facet.bucketOrder;
-  if (order && order.indexOf(b) >= 0) return true;
-  try { return facet.bucketOf(b) === b; } catch (e) { return false; }
-}
-
-
-/* ---------- IS THIS VALUE INSIDE THAT BUCKET § */
-function bucketHas_(facet, bucket, v) {
-  const b = String(bucket || '');
-  if (!b) return false;
-  /* ---------- A DECLARED LABEL IS THE TABLE'S, BOTH WAYS § */
-  if (bucketDeclares_(facet, b)) {
-    try { return facet.bucketOf(v) === b; } catch (e) { return false; }
-  }
-  /* A TENS BAND. Both ends have to be digits, so `9–A` is not one and falls through to the prefix test below — which is the branch that was refusing it. § */
-  const num = /^(\d+)–(\d+)$/.exec(b);
-  /* ONLY FOR A VALUE THAT IS ITSELF AN INTEGER. § */
-  if (num && intAnswer_(v)) {
-    return Number(v) >= Number(num[1]) && Number(v) <= Number(num[2]);
-  }
-  /* ---------- A PREFIX RANGE, AND IT MUST NOT INSIST ON A LETTER § */
-  const ends = b.split('–');
-  const lo = alphaKey_(ends[0]);
-  const hi = alphaKey_(ends.length > 1 ? ends[1] : ends[0]);
-  if (!lo) return false;
-  /* THE SAME STRING THE RANGE WAS BUILT FROM — see `bucketKeyOf_`. § */
-  const k = alphaKey_(bucketKeyOf_(facet, v));
-  return k.slice(0, lo.length) >= lo && k.slice(0, hi.length) <= hi;
-}
-
-/* ---------- AND THE ANSWERS, REPLACED BY THE BUCKETS THEY FALL IN § */
-/* ---------- AND NOW NOTHING IS GROUPED AT ALL § */
-function bucketValues_(values) {
-  return values;
-}
-
-
-/* A plain non-negative integer and nothing else. § */
-const intAnswer_ = v => /^\d+$/.test(String(v == null ? '' : v).trim());
-
-
-/* ---------- `FACET_BAND_AT` AND `bandNumbers_` WERE HERE § */
-
-/** The distinct values of one facet across a set, with how many each would leave. */
-/* ---------- THE FIRST QUESTION IS NOT ALPHABETICAL § */
-
-/* ONE ANSWER, ONE BUTTON, WHATEVER IT IS SPELLED LIKE. § */
-/* `SPELL_KEYS` AND `spellKey_` WERE HERE, and they are above `bucketTable_` now because that function keys its second index on them and is CALLED AT LOAD. § */
-
 /* HOW MANY PIECES THE WRITER BROKE IT INTO. Not a score out of ten — just "did a person put gaps in
    this", which is what tells a name from a slug. */
 const spellGaps_ = v => (String(v).match(/[\s\-_/&.,()]/g) || []).length;
@@ -997,29 +599,150 @@ function spellBetter_(a, b) {
   return cmpText(a.value, b.value) <= 0 ? a : b;
 }
 
-const spellShow_ = v => String(v).charAt(0).toUpperCase() + String(v).slice(1);
+/* ONE WAY TO SAY A VALUE, FOR EVERY FACET (396): its first letter capitalised, unless it is a single lower-case letter or a
+   roman numeral — a part `a` and a sub-part `ii` as the paper prints them. */
+const SAY_AS_IS = /^(?:[a-z]|[ivx]+)$/;
+const sayCase_ = v => {
+  const s = String(v == null ? '' : v).trim();
+  return SAY_AS_IS.test(s) ? s : s.charAt(0).toUpperCase() + s.slice(1);
+};
+function facetSay_(facet, v) {
+  let s = v;
+  if (facet && typeof facet.showOf === 'function') { try { s = facet.showOf(v) || v; } catch (e) { s = v; } }
+  return sayCase_(s);
+}
+/* THE SAME WORDS THE BUTTON WOULD SAY FOR THIS VALUE OVER `items` — the shortest unique form among its neighbours. Only a
+   name that has a shorter form is looked up, so a card's ordinary tags cost nothing. */
+function facetShort_(facet, v, items) {
+  const say = facetSay_(facet, v);
+  if (nameForms_(say).length < 2) return say;
+  try {
+    const hit = facetTally_(items || stuffFiltered(), facet).values.find(w => spellKey_(w.value) === spellKey_(v));
+    if (hit) return hit.show || hit.text || say;
+  } catch (e) { /* the full name, below */ }
+  return say;
+}
+
+/* A CARD'S TAG IS SAID AS ITS BUTTON WOULD BE ONCE EVERY QUESTION BEFORE IT WAS ANSWERED THE CARD'S WAY (396) — the
+   paper among the papers sharing its level, board, tier and sitting is `Paper 1`, wherever the card is drawn. */
+let CARD_LISTS = { from: null, at: new Map() };
+function cardList_(facet, x) {
+  if (CARD_LISTS.from !== DATA) CARD_LISTS = { from: DATA, at: new Map() };
+  const chips = [];
+  for (const g of facetList()) {
+    if (g.field === facet.field) break;
+    let vals = [];
+    try { vals = asList_(g.of(x)); } catch (e) { vals = []; }
+    vals.forEach(v => chips.push({ field: g.field, value: v }));
+  }
+  /* EACH PREFIX OF THE ANSWERS IS NARROWED ONCE, from the one before it — the cards of one paper share all of them. */
+  let list = stuffItems(), key = '';
+  const byField = [];
+  chips.forEach(c => { const last = byField[byField.length - 1]; if (last && last[0].field === c.field) last.push(c); else byField.push([c]); });
+  for (const same of byField) {
+    key += '\u0001' + same.map(c => c.field + '=' + spellKey_(c.value)).join('|');
+    let hit = CARD_LISTS.at.get(key);
+    if (!hit) { hit = stuffNarrow_(list, same, [], 0); CARD_LISTS.at.set(key, hit); }
+    list = hit;
+  }
+  return list;
+}
+
+/* ONE ORDER FOR EVERY FACET'S ANSWERS, BY WHAT THEY ARE (396): years and dates newest first, numbers by size, months
+   by the calendar, roman numerals by value, kinds by the kinds tab, the rest A–Z with numbers as numbers. */
+const ROMAN_SAY = /^(x{0,3})(ix|iv|v?i{0,3})$/i;
+const yearKey_ = v => (/^(?:19|20)\d{2}$/.test(v) ? Number(v) : null);
+const dateKey_ = v => {
+  const m = /^([A-Za-z]+)\s+((?:19|20)\d{2})$/.exec(String(v));
+  if (!m) return null;
+  /* A SEASON IS A POSITION IN THE YEAR TOO. */
+  const i = SERIES_AT[m[1]] !== undefined ? SERIES_AT[m[1]] - 1 : MONTH_NAMES.indexOf(m[1]);
+  return i === -1 ? null : Number(m[2]) * 12 + i;
+};
+/* THE KINDS TAB'S ORDER, for answers that are all kinds (What kind) or all groups of them (What for). */
+function kindRank_() {
+  const m = kindMap_(), labels = new Map();
+  Object.keys(m).sort((a, b) => m[a].at - m[b].at).forEach(k => { if (!labels.has(m[k].label)) labels.set(m[k].label, labels.size); });
+  const groups = new Map(groupOrder_().map((g, i) => [g, i]));
+  return { labels, groups };
+}
+function answerCmp_(texts) {
+  const every = test => texts.length > 0 && texts.every(test);
+  if (every(t => yearKey_(t) !== null)) return (a, b) => yearKey_(b) - yearKey_(a);
+  if (every(t => dateKey_(t) !== null)) return (a, b) => dateKey_(b) - dateKey_(a);
+  if (every(t => /^-?\d+(?:\.\d+)?$/.test(t))) return (a, b) => Number(a) - Number(b);
+  if (every(t => MONTH_NAMES.indexOf(t) !== -1)) return (a, b) => MONTH_NAMES.indexOf(a) - MONTH_NAMES.indexOf(b);
+  if (every(t => !!t && ROMAN_SAY.test(t))) return (a, b) => romanVal_(a.toLowerCase()) - romanVal_(b.toLowerCase());
+  const k = kindRank_();
+  for (const by of [k.labels, k.groups]) {
+    if (every(t => by.has(t))) return (a, b) => by.get(a) - by.get(b);
+  }
+  return cmpText;
+}
+
+/* TWO ANSWERS THAT WOULD BE DRAWN THE SAME SAY WHAT TELLS THEM APART (396): the other facets, in the tab's order, added
+   until each reads differently — `Paper 1 · Higher` beside `Paper 1 · Foundation`. */
+function tellApart_(items, facet, values) {
+  const by = {}, told = [];
+  values.forEach(v => { const k = spellKey_(v.show || v.text || v.value); (by[k] = by[k] || []).push(v); });
+  const groups = Object.keys(by).map(k => by[k]).filter(g => g.length > 1);
+  if (!groups.length) return;
+  /* ONE WALK FOR EVERY COLLISION: the items of each colliding answer. */
+  const of = new Map();
+  groups.forEach(g => g.forEach(v => of.set(spellKey_(v.value), [])));
+  items.forEach(x => facetOwn_(facet, x).forEach(w => { const l = of.get(spellKey_(w)); if (l) l.push(x); }));
+  const one = (g, list) => {
+    const seen = new Set();
+    list.forEach(x => { let v = []; try { v = asList_(g.of(x)); } catch (e) { v = []; } seen.add(v.length === 1 ? v[0] : ''); });
+    return seen.size === 1 ? [...seen][0] : '';
+  };
+  const facets = facetList().filter(g => g.field !== facet.field);
+  /* A FACET THAT SPLITS WHAT STILL COLLIDES IS SAID, and each part goes on to the facets after it. */
+  const part = (sub, from, tails) => {
+    for (let i = from; i < facets.length && sub.length > 1; i++) {
+      const said = sub.map(k => one(facets[i], k.list));
+      if (!said.every(Boolean) || new Set(said.map(spellKey_)).size < 2) continue;
+      sub.forEach((k, j) => tails.get(k).push(facetSay_(facets[i], said[j])));
+      const by2 = {};
+      sub.forEach((k, j) => { (by2[spellKey_(said[j])] = by2[spellKey_(said[j])] || []).push(k); });
+      Object.keys(by2).forEach(w => part(by2[w], i + 1, tails));
+      return;
+    }
+  };
+  groups.forEach(same => {
+    const sub = same.map(v => ({ v: v, list: of.get(spellKey_(v.value)) || [] }));
+    const tails = new Map(sub.map(k => [k, []]));
+    part(sub, 0, tails);
+    sub.forEach(k => {
+      const t = tails.get(k);
+      if (!t.length) return;
+      const tail = t.map(w => ' \u00b7 ' + w).join('');
+      told.push({ v: k.v, full: (k.v.text || k.v.value) + tail });
+      k.v.show = nameForms_(k.v.text || k.v.value)[0] + tail;
+    });
+  });
+  /* THE SHORT NAME WITH WHAT TELLS IT APART, unless that collides with another answer — then the whole name with it. */
+  if (told.length && new Set(values.map(v => spellKey_(v.show))).size !== values.length) told.forEach(t => { t.v.show = t.full; });
+  /* AND AN ANSWER NOTHING COLLIDED WITH IS SAID SHORT TOO, when no other answer's short name is the same. */
+  if (!told.length) return;
+  const isTold = new Set(told.map(t => t.v));
+  const shortOf = v => nameForms_(v.text || v.value)[0];
+  const taken = new Map();
+  values.forEach(v => { [spellKey_(v.show), spellKey_(shortOf(v))].forEach(k => taken.set(k, (taken.get(k) || 0) + 1)); });
+  values.forEach(v => {
+    if (isTold.has(v) || v.show !== (v.text || v.value)) return;
+    const k = spellKey_(shortOf(v));
+    if (k !== spellKey_(v.show) && (taken.get(k) || 0) === 1) v.show = shortOf(v);
+  });
+}
 
 /* `facetTally_` — ONE WALK OF THE LIST PER QUESTION, NOT THREE. § */
 const FACET_TALLY = new WeakMap();
 
-/* ---------- THE BUCKET THIS QUESTION IS ALREADY INSIDE, IF ANY § */
-function facetWithin_(facet) {
-  let at = '';
-  (STUFF.filters || []).forEach(c => {
-    if (c && c.bucket && c.field === facet.field) at = String(c.value);
-  });
-  return at;
-}
-
 function facetTally_(items, facet) {
   let perList = FACET_TALLY.get(items);
   if (!perList) { perList = {}; FACET_TALLY.set(items, perList); }
-  /* ---------- KEYED ON THE BUCKET TOO, OR THE SECOND ASK READS A TALLY FROM THE FIRST § */
-  const within = facetWithin_(facet);
-  /* AND ON WHAT THE YEAR AND MONTH CHIPS HAVE SAID, which a Paper answer's LABEL now depends on (`sittingUnsaid_`). § */
-  const said = sittingSaid_(STUFF.filters);
-  const tallyKey = facet.field + '|' + within + (facet.showOf ? '|' + said.year + '|' + said.month : '');
-  const had = perList[tallyKey];
+  const had = perList[facet.field];
   /* KEYED ON THE FACET OBJECT AS WELL AS ITS NAME. § */
   if (had && had.facet === facet) return had;
 
@@ -1027,8 +750,6 @@ function facetTally_(items, facet) {
   let answered = 0;
   items.forEach(x => {
     /* COUNTED ONCE PER VALUE, NOT ONCE PER ITEM. § */
-    /* THROUGH `facetOwn_`, so a facet that defers to another never counts a value that other
-       question already owns for this item — see the block above `FACETS`. */
     const vals = facetOwn_(facet, x);
     if (!vals.length) return;
     answered++;
@@ -1037,34 +758,6 @@ function facetTally_(items, facet) {
     new Set(vals).forEach(v => { by[v] = (by[v] || 0) + 1; });
   });
 
-  const rank = v => {
-    const ord = groupOrder_();
-    const i = ord.indexOf(v);
-    return i === -1 ? ord.length : i;
-  };
-  /* ---------- AND AN ANSWER THAT IS A DATE SORTS AS A DATE § */
-  const dateKey_ = v => {
-    const m = /^([A-Za-z]+)\s+((?:19|20)\d{2})$/.exec(String(v));
-    if (!m) return null;
-    /* A SEASON IS A POSITION IN THE YEAR TOO. § */
-    const i = SERIES_AT[m[1]] !== undefined ? SERIES_AT[m[1]] - 1 : MONTH_NAMES.indexOf(m[1]);
-    return i === -1 ? null : Number(m[2]) * 12 + i;
-  };
-  const answers = Object.keys(by);
-  const allDates = answers.length > 1 && answers.every(v => dateKey_(v) !== null);
-
-  /* `cmp` IS A FACET SAYING ITS OWN ORDER, for an answer that HAS one and is not a date the test above can read: § */
-  const order = facet.field === 'forLabel'
-    ? (a, b) => (rank(a) - rank(b)) || cmpText(a, b)
-    : typeof facet.cmp === 'function' ? facet.cmp
-    /* A FACET MAY SAY ITS OWN ORDER when its answers have one their letters do not give — a month
-       name is the case: alphabetical puts August first. An answer the facet does not know sorts last. */
-    : typeof facet.orderOf === 'function'
-    ? (a, b) => { const o = v => { const i = facet.orderOf(v); return i < 0 ? 1e6 : i; };
-                  return (o(a) - o(b)) || cmpText(a, b); }
-    : allDates
-    ? (a, b) => dateKey_(b) - dateKey_(a)
-    : cmpText;
   /* ---------- THE VARIANTS ARE FOLDED HERE, BEFORE ANYTHING COUNTS THEM § */
   const folded = {};
   Object.keys(by).forEach(v => {
@@ -1074,39 +767,26 @@ function facetTally_(items, facet) {
     const best = spellBetter_(seen && seen.best, { value: v, n: by[v] });
     folded[k] = { best: best, n: (seen ? seen.n : 0) + by[v] };
   });
-  let values = Object.keys(folded)
-    /* `asIs`: a part is `a`, a sub-part `ii`, as the paper prints them and the card tag says (387). */
-    .map(k => ({ value: facet.asIs ? String(folded[k].best.value) : spellShow_(folded[k].best.value), n: folded[k].n }))
-    .sort((a, b) => order(a.value, b.value));
-  /* ---------- AND A QUESTION ASKED INSIDE A BUCKET OFFERS ONLY WHAT IS IN IT § */
-  if (within) values = values.filter(v => bucketHas_(facet, within, v.value));
-  /* ---------- AN IDENTITY IS NOT A SPELLING, AND ONE FACET HAD BEEN USING A NAME AS BOTH § */
-  /* THE WHOLE ANSWER LIST GOES TO `showOf`, so a facet whose label has to be disambiguated can do
-     it against the answers beside it rather than against the library — see `paperLabels_`. */
-  if (facet.showOf) {
-    const ids = values.map(v => v.value);
-    /* AND WHAT THE CHIPS HAVE SAID, so a Paper answer under a `June` chip does not say June again.
-       See `sittingUnsaid_`; `said` is in the memo key above for the same reason. */
-    values.forEach(v => { v.text = facet.showOf(v.value, ids, said); });
-  }
-  /* ---------- AND THE LABEL IS THE SHORTEST FORM THAT IS STILL UNIQUE ---------------------------
-     `show` IS WHAT IS DRAWN; `value` GOES ON STILL BEING WHAT IS MATCHED. See `shortLabels_`. */
+  /* `value` IS WHAT IS MATCHED, `text` WHAT IT IS CALLED, `show` WHAT IS DRAWN — the shortest unique form (`shortLabels_`). */
+  const values = Object.keys(folded)
+    .map(k => ({ value: String(folded[k].best.value), n: folded[k].n }));
+  values.forEach(v => { v.text = facetSay_(facet, v.value); });
+  const cmp = answerCmp_(values.map(v => v.text));
+  values.sort((a, b) => cmp(a.text, b.text) || cmpText(a.value, b.value));
   shortLabels_(values);
-  /* ---------- AND NO QUESTION EVER DRAWS MORE THAN SEVEN ANSWERS § */
-  values = bucketValues_(values, facet, items);
+  tellApart_(items, facet, values);
 
   let top = 0;
   values.forEach(v => { if (v.n > top) top = v.n; });
 
   const out = {
     facet: facet,
-    within: within,
     values: values,
     coverage: items.length ? answered / items.length : 0,
     /* ---------- HOW MUCH OF THE LIST THE COMMONEST ANSWER DOES *NOT* KEEP § */
     split: values.length < 2 || !items.length ? 0 : (items.length - top) / items.length,
   };
-  perList[tallyKey] = out;
+  perList[facet.field] = out;
   return out;
 }
 
@@ -1121,7 +801,7 @@ function facetCoverage(items, facet) {
   return facetTally_(items, facet).coverage;
 }
 
-/* HOW MUCH OF THE SET A QUESTION HAS TO COVER BEFORE IT IS WORTH ASKING. */
+/* HOW MUCH OF THE SET A QUESTION HAS TO COVER BEFORE IT IS WORTH ASKING — one bar for every facet (396). */
 const FACET_COVERAGE = 0.5;
 
 /* ---------- A QUESTION WITH FORTY ANSWERS IS NOT A QUESTION, IT IS THE LIST § */
@@ -1137,8 +817,6 @@ function facetSplit_(items, facet) {
   return facetTally_(items, facet).split;
 }
 
-/* THE NEXT QUESTION WORTH ASKING, or nothing. § */
-/* A QUESTION WHOSE ANSWERS ARE ONLY UNIQUE INSIDE ANOTHER QUESTION'S ANSWER. § */
 /* ---------- A 5-A-DAY'S DATE, READ OFF ITS PAPER ID § */
 function fiveADayOf_(id) {
   const m = /^P-CBM-5AD-[A-Z+]+-(\d{2})(\d{2})$/.exec(String(id || ''));
@@ -1149,93 +827,42 @@ function fiveADayOf_(id) {
 function fiveADay_(x) {
   return x && x.row && String(x.row.document_type || '') === '5-a-day' ? fiveADayOf_(x.row.paper_id) : null;
 }
-/* `1 June`, and the level beside it only where the answers on screen span two levels — the same
-   rule `paperLabels_` applies: say only what differs. */
-function fiveDayLabel_(id, ids) {
-  const d = fiveADayOf_(id);
-  if (!d) return '';
-  const lvl = i => { const m = /^P-CBM-5AD-([A-Z+]+)-/.exec(String(i)); return m ? m[1] : ''; };
-  const mixed = Array.isArray(ids) && new Set(ids.map(lvl)).size > 1;
-  const name = { F: 'Foundation', FP: 'Foundation Plus', H: 'Higher', HP: 'Higher Plus' }[lvl(id)] || lvl(id);
-  return d.day + ' ' + d.month + (mixed ? ' · ' + name : '');
+
+/* THE ONE RULE EVERY FACET IS ASKED BY (396), as a reason it is NOT asked, or '' when it may be: two answers at least,
+   half the list able to answer, a split worth making. `over` lets a question past FACET_MAX_ANSWERS through. */
+function facetWhy_(items, facet, over) {
+  const vals = facetValues(items, facet).length;
+  if (vals < 2) return (vals ? 'one answer' : 'nobody can answer it') + ' — nothing to decide';
+  if (!over && vals > FACET_MAX_ANSWERS) return 'too many answers — that is a list, not a question (max ' + FACET_MAX_ANSWERS + ')';
+  const cov = facetCoverage(items, facet);
+  if (cov < FACET_COVERAGE) return 'thin — needs ' + Math.round(FACET_COVERAGE * 100) + '%';
+  const split = facetSplit_(items, facet);
+  if (split < FACET_MIN_MINORITY) {
+    return 'lopsided — pressing its commonest answer would leave ' + Math.round(split * 1000) / 10
+         + '% of the list, needs ' + Math.round(FACET_MIN_MINORITY * 100) + '%';
+  }
+  return '';
 }
 
-/* ---------- THE QUESTION'S OWN DOORS WAIT FOR A PAPER § */
-const PAPER_FIRST = ['paperId', 'fiveDay'];
-const FACET_NEEDS_FIRST = {
-  fiveDay:  'fiveMonth',
-  /* ---------- THE BIBLE'S RUNGS, EACH BEHIND THE ONE ABOVE IT § */
-  bibleTestament: 'bibleTranslation', bibleGroup: 'bibleTestament', bibleBook: 'bibleGroup',
-  bibleChapter: 'bibleBook', bibleVerse: 'bibleChapter',
-  qNumber: PAPER_FIRST, qPart: PAPER_FIRST, qSub: PAPER_FIRST, qPage: PAPER_FIRST, qPages: PAPER_FIRST,
-  marks: PAPER_FIRST, needs: PAPER_FIRST,
-};
-/* HAS WHAT THIS FACET WAITS FOR BEEN ASKED? A name, or a list of which any one will do. */
-const facetNeedsMet_ = (field, asked) => {
-  const first = FACET_NEEDS_FIRST[field];
-  return !first || [].concat(first).some(f => asked.indexOf(f) !== -1);
-};
-
-/* ---------- A PAPER IS THE LAST FOLDER, AND WHAT IS INSIDE IT IS THE LIST § */
-const FACET_ENDS = { paperId: true, fiveDay: true };
-const funnelEnded_ = () => (STUFF.filters || []).some(f => f && FACET_ENDS[f.field] && !f.any && !f.bucket);
-
-/* ---------- A FOLDER WITH ONE ANSWER THAT A CHIP ALREADY OPENED IS NOT ASKED AGAIN § */
-function folderOpened_(items, facet) {
-  if (!facet || !facet.folder) return false;
-  const vals = facetValues(items, facet);
-  if (vals.length !== 1) return false;
-  const only = String(vals[0].value || '');
-  return STUFF.filters.some(f => !f.any && String(f.value) === only);
-}
-
+/* THE NEXT QUESTION WORTH ASKING, or nothing: the first in the tab's order that the one rule lets through. */
 function nextFacet(items) {
-  if (funnelEnded_()) return null;
   const asked = STUFF.filters.map(f => f.field);
-  /* ---------- A BUCKET IS HALF AN ANSWER, SO THE QUESTION IS ASKED AGAIN § */
-  const settled = STUFF.filters
-    .filter(f => !f.bucket)
-    .map(f => f.field);
-
   for (const facet of facetList()) {
-    if (facet.tagOnly) continue;
-    if (settled.indexOf(facet.field) !== -1) continue;
-    /* ---------- A CLOSED KIND'S QUESTIONS, AND ONLY TO ITS OWN LIST § */
-    if (facetFenced_(items, facet)) continue;
-    /* ---------- NOT UNTIL THE QUESTION IT HANGS OFF HAS BEEN ANSWERED § */
-    if (!facetNeedsMet_(facet.field, asked)) continue;
-    const vals = facetValues(items, facet).length;
-    /* A GRID IS A NUMBERED RUN AND IS NOT CAPPED — see `grid` on the Bible's Chapter and Verse. */
-    if (vals < (facet.folder ? 1 : 2) || (vals > FACET_MAX_ANSWERS && !facet.grid)) continue;
-    if (folderOpened_(items, facet)) continue;
-    /* THE THRESHOLD IS THE FACET'S OWN, falling back to the one below. A question the sheet has
-       given a lower bar to is one somebody decided is worth asking early even though it is thin. */
-    const min = isFinite(facet.min) ? facet.min : FACET_COVERAGE;
-    if (facetCoverage(items, facet) < min) continue;
-    /* AND IT HAS TO SPLIT SOMETHING. § */
-    /* A FOLDER IS ASKED WHETHER OR NOT IT NARROWS -- that is what makes it a folder. See `examYear`. */
-    if (!facet.always && !facet.folder && facetSplit_(items, facet) < FACET_MIN_MINORITY) continue;
-    return facet;
+    if (asked.indexOf(facet.field) !== -1) continue;
+    if (!facetWhy_(items, facet)) return facet;
   }
   return null;
 }
 
-/* AND WHEN NOTHING QUALIFIES, THE CLOSEST THING TO A QUESTION RATHER THAN A DEAD END. § */
+/* AND WHEN NOTHING QUALIFIES, THE CLOSEST THING TO A QUESTION RATHER THAN A DEAD END: of those held back only for having
+   too many answers, the one with fewest. § */
 function overFacet_(items) {
-  /* THE LAST RESORT DOES NOT REOPEN A PAPER. See `FACET_ENDS`: inside one paper the list is the
-     answer, and a question this function found would be the same tap `nextFacet` just refused. */
-  if (funnelEnded_()) return null;
   const asked = STUFF.filters.map(f => f.field);
   let best = null;
   for (const facet of facetList()) {
-    if (facet.tagOnly || asked.indexOf(facet.field) !== -1) continue;
-    /* THE FENCE HERE TOO. This runs when `nextFacet` found nothing, and a Bible list nextFacet has finished with would otherwise tally every one of the other § */
-    if (facetFenced_(items, facet)) continue;
+    if (asked.indexOf(facet.field) !== -1) continue;
     const vals = facetValues(items, facet).length;
-    if (vals <= FACET_MAX_ANSWERS) continue;
-    const min = isFinite(facet.min) ? facet.min : FACET_COVERAGE;
-    if (facetCoverage(items, facet) < min) continue;
-    if (!facet.always && facetSplit_(items, facet) < FACET_MIN_MINORITY) continue;
+    if (vals <= FACET_MAX_ANSWERS || facetWhy_(items, facet, true)) continue;
     if (!best || vals < best.n) best = { facet: facet, n: vals };
   }
   return best ? best.facet : null;
@@ -1256,36 +883,12 @@ function whyThisQuestion(all) {
               + num('answers', 8) + num('cover', 7) + '  why');
   let chosen = null;
   facetList().forEach(f => {
-    /* A FENCED QUESTION IS NOT TALLIED HERE EITHER — it is not tallied by the funnel, and this prints
-       what the funnel did. Its columns read `-`. */
-    const fenced = facetFenced_(items, f);
-    const vals = fenced ? [] : facetValues(items, f);
-    const cov = fenced ? 0 : facetCoverage(items, f);
-    const min = isFinite(f.min) ? f.min : FACET_COVERAGE;
-    const first = FACET_NEEDS_FIRST[f.field];
-    let why;
-    if (asked.indexOf(f.field) !== -1) why = 'asked already';
-    else if (fenced) why = f.only ? 'kept to lists that are all ' + f.only + ' (only)'
-                                  : 'this list is all ' + listKind_(items) + ': only its own questions';
-    else if (!facetNeedsMet_(f.field, asked)) why = 'waits for ' + [].concat(first).join(' or ') + ' (FACET_NEEDS_FIRST)';
-    else if (!all && funnelEnded_()) why = 'a paper is chosen — its questions are the list (FACET_ENDS)';
-    else if (vals.length < (f.folder ? 1 : 2)) why = (vals.length ? 'one answer' : 'nobody can answer it')
-                                    + ' — nothing to decide';
-    else if (folderOpened_(items, f)) why = 'one answer, and a chip already opened that folder';
-    else if (vals.length > FACET_MAX_ANSWERS && !f.grid)
-      why = 'too many answers — that is a list, not a question (max ' + FACET_MAX_ANSWERS + ')';
-    else if (cov < min) why = 'thin — needs ' + Math.round(min * 100) + '%';
-    /* THE NEW RULE HAS TO BE VISIBLE HERE OR IT IS THE OLD FAULT WEARING A HAT. A question that
-       vanishes for a reason nothing prints is exactly what `whyThisQuestion` was written for. */
-    else if (!f.always && !f.folder && facetSplit_(items, f) < FACET_MIN_MINORITY)
-      why = 'lopsided — pressing its commonest answer would leave '
-            + Math.round(facetSplit_(items, f) * 1000) / 10 + '% of the list, needs '
-            + Math.round(FACET_MIN_MINORITY * 100) + '%';
-    else if (!chosen) { why = '← THIS ONE'; chosen = f.field; }
-    else why = 'would do, but comes after ' + chosen;
+    const vals = facetValues(items, f);
+    const cov = facetCoverage(items, f);
+    let why = asked.indexOf(f.field) !== -1 ? 'asked already' : facetWhy_(items, f);
+    if (!why) { why = chosen ? 'would do, but comes after ' + chosen : '← THIS ONE'; chosen = chosen || f.field; }
     console.log('  ' + pad(f.field + (f.fromSheet ? ' *' : ''), 14) + pad(f.label, 18)
-                + num(fenced ? '-' : vals.length, 8) + num(fenced ? '-' : Math.round(cov * 100) + '%', 7)
-                + '  ' + why);
+                + num(vals.length, 8) + num(Math.round(cov * 100) + '%', 7) + '  ' + why);
   });
   if (!chosen) console.log('\n  nothing left to ask — the list is the answer');
   if (facetList().some(f => f.fromSheet)) {
@@ -1297,7 +900,7 @@ function whyThisQuestion(all) {
   if (chosen) {
     const f = facetList().find(x => x.field === chosen);
     console.log('  ' + f.label + ': ' + facetValues(items, f)
-      .map(v => v.value + ' (' + v.n + ')').join(', '));
+      .map(v => (v.show || v.value) + ' (' + v.n + ')').join(', '));
     console.log('');
   }
   return chosen;
@@ -1727,7 +1330,7 @@ const BIBLE = { index: null, asking: null, failed: false, books: {}, loading: {}
 /* THE SIX FIELDS, read off `FACETS` rather than written out a second time, so a chip on any of them is
    a Bible chip without this file keeping a list in step with that one. */
 const BIBLE_FIELDS = {};
-FACETS.forEach(f => { if (f.only === 'bible') BIBLE_FIELDS[f.field] = 1; });
+FACETS.forEach(f => { if (/^bible[A-Z]/.test(f.field)) BIBLE_FIELDS[f.field] = 1; });
 
 /* ---------- WHO IS SHOWN IT § */
 const bibleFor_ = () => typeof isAdmin === 'function' && isAdmin();
@@ -1812,11 +1415,6 @@ function bibleRankOf_(ix) {
   });
   return r;
 }
-const bibleRank_ = (k, v) => {
-  const r = BIBLE.rank && BIBLE.rank[k];
-  const i = r ? r[spellKey_(v)] : undefined;
-  return i == null ? -1 : i;
-};
 
 /* ONE BOOK, ONCE A VISIT. Held to the index's own count of every chapter's verses, so a file that came
    back half-written is a failure said on the card rather than a verse drawn from the wrong place. */
@@ -1916,7 +1514,7 @@ function bibleByKey_(k) {
 /* ---------- IS THE BIBLE OPEN? § */
 function bibleInside_() {
   return bibleFor_() && !!BIBLE.index
-    && (STUFF.filters || []).some(f => f && BIBLE_FIELDS[f.field] && !f.bucket);
+    && (STUFF.filters || []).some(f => f && BIBLE_FIELDS[f.field]);
 }
 
 /* ---------- THE BIBLE'S RESULTS § */
@@ -1928,7 +1526,7 @@ function bibleFind_(verses, words, credits) {
   const tr = spellKey_(BIBLE.index ? BIBLE.index.translation : '');
   (STUFF.filters || []).forEach(f => {
     if (!BIBLE_FIELDS[f.field]) rest.push(f);
-    else if (!(f.field === 'bibleTranslation' && !f.any && !f.bucket && spellKey_(f.value) === tr)) own.push(f);
+    else if (!(f.field === 'bibleTranslation' && !f.any && spellKey_(f.value) === tr)) own.push(f);
   });
   if (!stuffNarrow_([x], rest, [], credits).length) return [];
   return stuffNarrow_(verses, own.slice().reverse(), words, credits);
@@ -1936,7 +1534,7 @@ function bibleFind_(verses, words, credits) {
 
 /* ---------- THE LAST LINE UNDER THE QUESTION, ONCE NOTHING IS LEFT TO ASK § */
 function bibleEnd_(items) {
-  if (listKind_(items) !== 'bible') return '';
+  if (!items.length || !items.every(x => x && x.kind === 'bible')) return '';
   const first = items[0], last = items[items.length - 1];
   if (!first.bb) {
     if (BIBLE.index) return '';
@@ -2028,7 +1626,7 @@ function bibleTiles_(x) {
    narrowing the chapter — the strip is the chapter, so the tile would land where you are. */
 function bibleHere_(x) {
   if (String(STUFF.q || '').trim()) return false;
-  const leaf = f => f && !f.any && !f.bucket;
+  const leaf = f => f && !f.any;
   const fs = STUFF.filters || [];
   if (fs.some(f => leaf(f) && f.field === 'bibleVerse')) return false;
   return fs.some(f => leaf(f) && f.field === 'bibleBook' && spellKey_(f.value) === spellKey_(x.bb.book))
@@ -2230,6 +1828,8 @@ function pageParts_(x, prev) {
    kept here once, because the cover was a card with no other way into the book. */
 /* `prev` IS THE KEPT THING IN FRONT, as on Find -- see `keptPages_`. */
 function cardPages_(x, credits, prev) {
+  /* ONE WAITING PAGE UNTIL ITS WORDS COME (397), as on Find. */
+  if (libSlim_(x)) { libWant_(x); return [libWaitHtml_(x)]; }
   return pageParts_(x, prev).filter(keptPart_)
     .map(p => (p ? stuffPart_(x, p) : stuffCard(x, credits)));
 }
@@ -2254,6 +1854,7 @@ function keptPages_(items, credits) {
   finally { KEPT_DRAW = was; }
 }
 function stuffPart_(x, part) {
+  if (libSlim_(x)) { libWant_(x); return libWaitHtml_(x); }
   if (x && x.kind === 'project') return projectPart_(x, part);
   if (x && x.kind === 'content') return textbookAnimPart_(x, part);
   if (x && x.kind === 'boxer') return boxerPart_(x, part);
@@ -3276,7 +2877,8 @@ function preamble_(r, at) {
   /* EACH SCOPE IS A LIST NOW — see `stemIndex_` above for what a single row cost. `|| []` rather
      than a guard, because a scope nothing wrote has no key at all and every caller below already
      handles an empty list. */
-  const add = xs => (xs || []).forEach(x => { if (x && (x.html || x.diagram)) out.push(x); });
+  /* A STEM WHOSE WORDS ARE STILL IN THE LEDGER COUNTS (397): `libHasField_` reads `libHas` as well as the field. */
+  const add = xs => (xs || []).forEach(x => { if (x && (x.html || x.diagram || libHasField_(x, 'html') || libHasField_(x, 'diagram'))) out.push(x); });
   add(at.paper[pid]);
   if (r.section) add(at.section[pid + '|' + r.section]);
   if (r.q !== undefined && r.q !== null && r.q !== '') {
@@ -3302,9 +2904,11 @@ function needsIndex_(all) {
   return at;
 }
 
+/* THE CELL'S CALCULATOR, IN THE WORDS A PERSON SAYS — the value itself, so the button, the chip and the tag agree (396). */
+const NEED_WORDS = { 'no calculator': 'Non-calculator', 'calculator': 'Calculator allowed' };
 function needsOf_(r, at) {
   const out = [];
-  const add = v => { if (v && out.indexOf(v) === -1) out.push(v); };
+  const add = v => { v = NEED_WORDS[String(v || '').trim().toLowerCase()] || v; if (v && out.indexOf(v) === -1) out.push(v); };
   ((at && at[paperIdOf_(r)]) || []).forEach(add);
   asList_(String((r && r.needs) || '').split(',')).forEach(add);
   /* ---------- AND THE PRINTED SHEET, WHICH IS READ RATHER THAN RE-TYPED § */
@@ -3364,22 +2968,14 @@ function questionItems() {
       /* THE TOPICS, RESOLVED ONCE. § */
       topic: topicOf_({ row: r.row || r }),
       marks: r.marks, section: r.section,
-      lead: r.lead, html: r.html, diagram: r.diagram || '',
+      /* THE WORDS, THE FIGURE AND THE MARK SCHEME — `questionContent_`, so a row whose words come later (397) is given them in place. */
+      ...questionContent_(r),
       /* THE SAME SPLIT `topics` AND `keystage` GET — one helper, because a comma is a comma. */
       images: topicAtoms_(r.images || (r.row && r.row.images)),
-      /* THE MARK SCHEME, WHICH THE BACKEND SENT TO NOBODY FOR MONTHS. § */
-      answer: r.answer || '', answerType: r.answerType || '',
-      /* THE EXPECTED DRAWING AS GEOMETRY, which Check marks the strokes against (366). */
-      drawAnswer: r.drawAnswer || '',
       /* WHAT TO ANSWER ON when the answer is a mark rather than words -- see `padSurface_`. */
       surface: r.surface || '',
       /* AND WHICH EARLIER PART'S DRAWING IT READS -- see `usesOf_`. */
       uses: r.uses || '',
-      accept: r.accept || '', cells: r.cells || '', markWords: r.markWords || '',
-      choices: r.choices || [], choiceRight: r.choiceRight || [],
-      /* AN ORDERING'S EVERY RIGHT ORDER AND ITS TWO ENDS -- see `orderBox_` and library.js. */
-      choiceWays: r.choiceWays || [], orderEnds: r.orderEnds || [],
-      examinerNote: r.examinerNote || '',
       /* EVERY PREAMBLE THIS PART SITS UNDER, OUTERMOST FIRST — see `preamble_`. § */
       stems: lead,
       /* THE STEM'S WORDS TOO. § */
@@ -3399,6 +2995,149 @@ function questionItems() {
     };
   });
 }
+
+/* A QUESTION ITEM'S PRIVATE HALF (397): what the Ledger sends, off the mapped row. Spread into the item when it is built,
+   and assigned onto it again when the words arrive (`libMerge_`, library.js). */
+function questionContent_(r) {
+  return {
+    lead: r.lead, html: r.html, diagram: r.diagram || '',
+    /* THE MARK SCHEME, WHICH THE BACKEND SENT TO NOBODY FOR MONTHS. § */
+    answer: r.answer || '', answerType: r.answerType || '',
+    /* THE EXPECTED DRAWING AS GEOMETRY, which Check marks the strokes against (366). */
+    drawAnswer: r.drawAnswer || '',
+    accept: r.accept || '', cells: r.cells || '', markWords: r.markWords || '',
+    choices: r.choices || [], choiceRight: r.choiceRight || [],
+    /* AN ORDERING'S EVERY RIGHT ORDER AND ITS TWO ENDS -- see `orderBox_` and library.js. */
+    choiceWays: r.choiceWays || [], orderEnds: r.orderEnds || [],
+    examinerNote: r.examinerNote || '',
+  };
+}
+
+/* ================= A CARD WHOSE WORDS ARE IN THE LEDGER (397) =================
+   Its title and tags, waiting, until `libItems` brings its words; a question comes with its stems and its other parts. */
+function libSlim_(x) {
+  if (!x) return false;
+  if (x.kind === 'question') return libWaits_(x.row) || (x.stems || []).some(p => libWaits_(p));
+  if (x.kind === 'practical' || x.kind === 'project' || x.kind === 'content') return libWaits_(x.row);
+  return false;
+}
+function libIdsFor_(x) {
+  if (!x || !x.row) return [];
+  if (x.kind === 'practical') return ['pr:' + x.row.id];
+  if (x.kind === 'project') return ['pj:' + x.row.id];
+  if (x.kind === 'content') return ['ct:' + x.row.bookId + '#' + x.row.n];
+  if (x.kind !== 'question') return [];
+  const rows = [x.row].concat((x.stems || []).map(p => p.row || p));
+  const k = qId_(x);
+  try { if (k) (questionParts_()[k] || []).forEach(s => rows.push(s.row)); } catch (e) {}
+  return [...new Set(rows.filter(libWaits_).map(libWireQ_))];
+}
+/* ASK FOR ONE CARD'S WORDS (nothing, signed out — the card says so). */
+function libWant_(x) { if (libSlim_(x)) libAsk_(libIdsFor_(x)); }
+/* AN ITEM BY ITS KEY, off the list both finders are built from — for a merge to give the item its words in place. */
+const LIB_ITEMS = new WeakMap();
+function libItemByKey_(k) {
+  let all;
+  try { all = typeof ALL_MEMO !== 'undefined' && ALL_MEMO.items; } catch (e) { all = null; }
+  if (!Array.isArray(all)) return null;
+  let m = LIB_ITEMS.get(all);
+  if (!m) { m = new Map(); all.forEach(x => { if (x && x.key) m.set(x.key, x); }); LIB_ITEMS.set(all, m); }
+  return m.get(k) || null;
+}
+/* WHAT A WAITING CARD SAYS UNDER ITS TAGS: sign in, the dots, or why it did not come and Try again. */
+function libSay_(x) {
+  if (typeof USER === 'undefined' || !USER || !USER.token) {
+    return '<p class="sub lib-sign">Sign in to see this — your account is a few screens to the right.</p>';
+  }
+  if (libIdsFor_(x).some(t => LIB.gone.has(t))) return '<p class="empty">This one is not in the library yet.</p>';
+  if (LIB.failed) {
+    return `<p class="empty">Couldn’t load this.<br><span class="faint">${esc(LIB.failed)}</span><br>
+      <span class="text-action" data-do="lib-retry">Try again</span></p>`;
+  }
+  return loading_();
+}
+function libWaitHtml_(x) {
+  const q = x && x.kind === 'question';
+  return `<div class="${q ? 'qcard' : 'card fc'} lib-wait" data-lib="${esc((x && x.key) || '')}">
+    ${q ? '' : `<div class="fc-head"><h3>${esc((x && x.name) || '')}</h3></div>`}
+    ${tagRow_(x)}
+    <div class="lib-say">${libSay_(x)}</div>
+  </div>`;
+}
+/* THE PAGES ARE COUNTED AGAIN ONLY WHERE THEY ARE DRAWN AGAIN — counting them anywhere else would move every page under a column already drawn. */
+function libPagesFresh_() {
+  if (STUFF_PAGES && STUFF_PAGES.gen !== undefined && STUFF_PAGES.gen !== LIB.gen) STUFF_PAGES = { from: null, pages: [] };
+}
+/* THE CARD IN FRONT AND THE NEXT LIB_AHEAD, asked for; on the question page, only the first result, once the typing stops. */
+function libAhead_() {
+  const F = FINDER;
+  let pages, at;
+  try { pages = stuffPages_(); at = (PAGE[F.id] || 0) - stuffFirstResult_(); } catch (e) { return; }
+  if (!pages.length) return;
+  if (at < 0) {
+    clearTimeout(LIB.ahead);
+    if (pages[0].slim && libSlim_(pages[0].x)) {
+      const x = pages[0].x;
+      LIB.ahead = setTimeout(() => inFinder_(F, () => { const p0 = stuffPages_()[0]; if (p0 && p0.x === x) libWant_(x); }), 700);
+    }
+    return;
+  }
+  for (let i = at; i < pages.length && i <= at + LIB_AHEAD; i++) {
+    const pg = pages[i];
+    if (!pg || !pg.slim) continue;
+    if (libSlim_(pg.x)) libWant_(pg.x);
+    /* THE CARD IN FRONT WAS COUNTED BEFORE ITS WORDS CAME, and they are here: drawn again, a moment from now. */
+    else if (i === at) setTimeout(() => libRepaintFinder_(F), 0);
+  }
+}
+/* THE FINDER DRAWN AGAIN WHERE IT STANDS, and onto the first page of the card that was waiting in front. */
+function libRepaintFinder_(F) {
+  if (!F || typeof AT === 'undefined') return;
+  if (AT !== F.id || (typeof findKeep_ === 'function' && findKeep_(F.id))) { markStale_(F.id); return; }
+  inFinder_(F, () => {
+    const pg = stuffPages_()[(PAGE[F.id] || 0) - stuffFirstResult_()];
+    const key = pg && pg.slim && pg.x ? pg.x.key : '';
+    paintStuff(true);
+    if (!key) return;
+    const pages = stuffPages_(), first = stuffFirstResult_();
+    const now = pages[(PAGE[F.id] || 0) - first];
+    const i = pages.findIndex(p => p && p.x && p.x.key === key);
+    if (i >= 0 && now && now.x && now.x.key === key && (now.part || null) !== (pages[i].part || null)) goPage(F.id, first + i, true);
+  });
+}
+/* AN ANSWER CAME BACK (or did not): the card in front, if it was waiting, is drawn again; every other waiting card says
+   where things stand without being rebuilt. */
+function libLanded_() {
+  try {
+    document.querySelectorAll('.lib-wait').forEach(el => {
+      const x = libItemByKey_(el.getAttribute('data-lib') || '');
+      const say = el.querySelector('.lib-say');
+      if (say && x && libSlim_(x)) say.innerHTML = libSay_(x);
+    });
+  } catch (e) {}
+  if (typeof AT === 'undefined') return;
+  const F = finderOf_(AT);
+  if (F) {
+    inFinder_(F, () => {
+      const pg = stuffPages_()[(PAGE[F.id] || 0) - stuffFirstResult_()];
+      if (pg && pg.slim && !libSlim_(pg.x)) libRepaintFinder_(F);
+    });
+    return;
+  }
+  /* SAVED, THE SPOTLIGHT, ANY COLUMN THAT DREW A WAITING CARD: drawn again where it stands once one of them is whole. */
+  const host = $('s-' + AT);
+  const ready = host && [].some.call(host.querySelectorAll('.lib-wait'), el => {
+    const x = libItemByKey_(el.getAttribute('data-lib') || '');
+    return x && !libSlim_(x);
+  });
+  if (ready) { try { repaint(true); } catch (e) {} }
+}
+on('lib-retry', el => {
+  libRetry_();
+  const card = el && el.closest ? el.closest('.lib-wait') : null;
+  const x = card ? libItemByKey_(card.getAttribute('data-lib') || '') : null;
+  if (x) libWant_(x);
+});
 
 /* ---------- THE WHOLE QUESTION, NOT A PEEK § */
 /* ---------- SOMEWHERE TO WRITE THE ANSWER § */
@@ -7284,25 +7023,20 @@ const pics_ = list => (list || []).map(src =>
   `<figure class="qpic"><img src="${esc(src)}" alt="Picture printed with this question"
      loading="lazy" decoding="async"></figure>`).join('');
 
-/* THE DAY A PAPER WAS SAT, WHEN THE ROW SAYS — "Thursday 25 May 2017". § */
-function satOn_(x) {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String((x && x.row && x.row.exam_date) || ''));
-  if (!m) return '';
-  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
-  if (!isFinite(d.getTime()) || d.getUTCMonth() !== Number(m[2]) - 1) return '';
-  /* `WEEKDAYS` RUNS MONDAY-FIRST — it is the booking grid's list, and a week that starts on Monday
-     is what every UK timetable in this app already assumes. `getUTCDay()` counts from Sunday. */
-  return `${WEEKDAYS[(d.getUTCDay() + 6) % 7]} ${d.getUTCDate()} `
-       + `${MONTH_NAMES[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
-}
 
 /* EVERY TAG ON A CARD IS AN ANSWER YOU CAN PICK IN THE FINDER: § */
 const TAG_NAME = /[A-Za-z]/;
+/* A TAG THAT IS ONLY TAGS ALREADY ON THE ROW, SIDE BY SIDE — `5-a-day Foundation` after `5-a-day` and `Foundation` — says nothing new. */
+function tagMadeOf_(text, said) {
+  const t = String(text).toLowerCase(), parts = said.map(w => String(w).toLowerCase()).filter(Boolean);
+  const from = i => i === t.length || parts.some(p => t.startsWith(p, i) && (i + p.length === t.length || (t[i + p.length] === ' ' && from(i + p.length + 1))));
+  return parts.length > 1 && t.indexOf(' ') > 0 && from(0);
+}
 function tagRow_(x, page) {
-  const out = [], words = new Set(), ids = new Set();
+  const out = [], words = new Set(), ids = new Set(), said = [];
   if (!x) return '';
+  /* EVERY FACET IS A TAG (396), said as its button would say it (`cardList_`); a word already on the row is not said twice. */
   facetList().forEach(facet => {
-    if (!facet.tag) return;
     let vals;
     try { vals = asList_(facet.tagOf ? facet.tagOf(x, page) : facetOwn_(facet, x)); } catch (e) { vals = []; }
     vals.forEach(v => {
@@ -7310,46 +7044,18 @@ function tagRow_(x, page) {
       if (!raw) return;
       let text = raw;
       try {
-        text = String((facet.tagSay ? facet.tagSay(raw, x) : facet.showOf ? facet.showOf(raw) : raw) || raw).trim();
+        const say = facetSay_(facet, raw);
+        text = String((nameForms_(say).length > 1 ? facetShort_(facet, raw, cardList_(facet, x)) : say) || raw).trim();
       } catch (e) { text = raw; }
       const w = norm(text);
-      if ((TAG_NAME.test(text) && words.has(w)) || (TAG_NAME.test(raw) && ids.has(raw))) return;
-      words.add(w); ids.add(raw);
+      if ((TAG_NAME.test(text) && (words.has(w) || tagMadeOf_(text, said))) || (TAG_NAME.test(raw) && ids.has(raw))) return;
+      words.add(w); ids.add(raw); said.push(text);
       out.push(`<span class="qtag"${tagAttr_(facet.field)} data-f="${esc(facet.field)}">${esc(text)}</span>`);
     });
   });
   return `<div class="qtags qcard-tags">${out.join('')}</div>`;
 }
 
-/* ---------- THE PAPER TAG, AS ITS OWN FOLDER NAMES IT § */
-let PAPER_TAG = { from: null, by: {} };
-function paperTag_(x) {
-  const pid = String((x && x.row && x.row.paper_id) || '');
-  if (!pid) return '';
-  if (PAPER_TAG.from !== DATA) PAPER_TAG = { from: DATA, by: {} };
-  if (pid in PAPER_TAG.by) return PAPER_TAG.by[pid];
-  const facet = facetRaw_('paperId');
-  let show = '';
-  try {
-    const FOLDER = ['level', 'examBoard', 'subject', 'tier', 'documentType', 'examYear', 'examMonth'];
-    const key = i => FOLDER.map(f => { try { return asList_(facetRaw_(f).of(i)).join(','); } catch (e) { return ''; } }).join('|');
-    const mine = key(x);
-    const sib = [];
-    stuffItemsAll_().forEach(i => {
-      const id = String((i && i.row && i.row.paper_id) || '');
-      if (id && sib.indexOf(id) < 0 && key(i) === mine) sib.push(id);
-    });
-    if (sib.indexOf(pid) < 0) sib.push(pid);
-    const said = { year: String(asList_(facetRaw_('examYear').of(x))[0] || ''),
-                   month: String(asList_(facetRaw_('examMonth').of(x))[0] || '') };
-    const values = sib.map(v => ({ value: v, text: facet.showOf(v, sib, said) }));
-    shortLabels_(values);
-    const me = values.find(v => v.value === pid);
-    show = me ? (me.show || me.text) : '';
-  } catch (e) { show = ''; }
-  if (!show) { try { show = facet.showOf(pid); } catch (e) { show = pid; } }
-  return (PAPER_TAG.by[pid] = show);
-}
 
 /* ---------- A PART'S READING PAGES, FOR THE PAGE TAGS § */
 const qPagesOf_ = x => (x && x.kind === 'question' ? partChunks_(x).length : 0);
@@ -7360,9 +7066,6 @@ function qPageAt_(x, page) {
   return m ? Number(m[1]) + 1 : 0;
 }
 
-/* ---------- WHAT TO BRING, IN ONE SPELLING § */
-const NEEDS_SAY = { 'no calculator': 'Non-calculator', 'calculator': 'Calculator allowed' };
-const needsSay_ = v => NEEDS_SAY[String(v == null ? '' : v).trim().toLowerCase()] || String(v == null ? '' : v).trim();
 
 function questionCard_(x) {
   return `<div class="qcard">
@@ -7731,7 +7434,8 @@ function figMissing_(x) {
 
 /* THE ANSWER IS ITS OWN CARD, THE PAGE AFTER ITS QUESTION (AND AFTER ITS FIGURE). § */
 function questionHasAns_(x) {
-  return !!(x && x.kind === 'question' && String(x.answer || '').trim());
+  /* OR AN ANSWER THE LEDGER HOLDS FOR IT (397), so `Answers` is still asked, and counted, before any words arrive. */
+  return !!(x && x.kind === 'question' && (String(x.answer || '').trim() || libHasField_(x.row, 'answer')));
 }
 
 /* ---------- WHO SEES IT OPEN: WHOEVER ASKED, AND NOBODY ELSE § */
@@ -7742,7 +7446,7 @@ const ANS_HID = new Set();
 function ansOpen_(x) {
   if (!x) return false;
   const k = ansKey_(x);
-  return ANS_SHOWN.has(k) || (answersView_() && !ANS_HID.has(k));
+  return ANS_SHOWN.has(k) || (answersAsked_() && !ANS_HID.has(k));
 }
 
 function questionAnsCard_(x) {
@@ -7866,7 +7570,7 @@ function readAloudFor_(x) {
   if (!x || (x.kind !== 'question' && x.kind !== 'content')) return false;
   const yr = x.bandType === 'year' ? Number(x.bandValue) : NaN;
   if (yr >= 1 && yr <= 6) return true;
-  return LEVEL_BUCKET(levelOf_(x)) === 'SATs';
+  return levelOf_(x) === 'SATs';
 }
 /* WHAT IS BEING READ, AND WHERE IT WAS PRESSED: a slide to another column or page stops it (`readAloudStray_`, from `placeCells`). */
 let READ_NOW = null;
@@ -8180,12 +7884,16 @@ function findPlaceBack_(F) {
 }
 /* ---------- A KEPT CHIP NOTHING WILL EVER ANSWER § */
 const RETIRED_SHELVES = ['@family. textbooks'];
+/* AN ANSWER THAT WENT, by its facet: the textbooks shelf (347), and `Bundles`, which stopped being a kind to ask for (396). */
+const RETIRED_ANSWERS = { shelf: RETIRED_SHELVES, kindLabel: ['Bundles'] };
 function placeChipDead_(f) {
   if (!f || typeof f.field !== 'string') return true;
   if (BIBLE_FIELDS[f.field] || (f.field === 'shelf' && f.value === BIBLE_SHELF)) return !bibleFor_();
   if (RETIRED_FACETS[f.field]) return true;
+  /* A RANGE CHIP (`bucket`) — the groupings went in 290 and their tables in 396, so nothing answers one. */
+  if (f.bucket) return true;
   /* A SHELF THAT WENT. `@family. textbooks` held the books, and each chapter is a content card now with no shelf at all — so a kept place standing on it would come § */
-  if (f.field === 'shelf' && RETIRED_SHELVES.indexOf(f.value) !== -1) return true;
+  if ((RETIRED_ANSWERS[f.field] || []).indexOf(f.value) !== -1) return true;
   return !facetBy(f.field) && Array.isArray(DATA.facets) && DATA.facets.length > 0;
 }
 
@@ -8411,7 +8119,7 @@ function satsStagesOf_(x) {
 function levelSaid_(x) {
   const lv = levelOf_(x);
   if (!lv) return [];
-  return LEVEL_BUCKET(lv) === 'SATs' ? [lv].concat(satsStagesOf_(x)) : [lv];
+  return lv === 'SATs' ? [lv].concat(satsStagesOf_(x)) : [lv];
 }
 
 /* ---------- A KEY STAGE, SAID AS THE QUALIFICATION AT THE END OF IT § */
@@ -8628,9 +8336,8 @@ function stuffNarrow_(out, filters, words, credits) {
     if (f.any) return;
     (byField[f.field] = byField[f.field] || []).push(f);
   });
-  /* ---------- AN ANSWER GIVEN INSIDE A BUCKET REFINES IT, IT DOES NOT SIT BESIDE IT § */
   Object.keys(byField).forEach(field => {
-    const list = byField[field].filter((f, i, all) => !(f.bucket && i < all.length - 1));
+    const list = byField[field];
     out = out.filter(x => list.some(f => filterHit(x, f, credits)));
   });
   /* ---------- "q8", "8ii", "1dii", "1d(ii)", "Q 8" IS A QUESTION, NOT FOUR LETTERS § */
@@ -8747,29 +8454,29 @@ function stuffPages_() {
      its parts, as the paper prints it -- see `pageParts_`. */
   /* AND A PART FOUND ON ITS OWN BRINGS ITS WHOLE QUESTION -- see `wholeQuestions_`. § */
   const seq = wholeQuestions_(items);
-  /* AND ONLY THE ANSWERS when `Answers` is the kind chosen -- see `kindLabel`. Built in full and then
-     kept, so every page that is drawn is the page it would have been. */
-  const only = answersView_();
-  /* AND NO ANSWER AT ALL when `Questions` is -- *"answers shouldnt even be showing up when all ive done is clicked questions"* (8 Oct; see `kindLabel`). § */
-  const qOnly = !only && questionsView_();
-  /* AND NONE AT ALL when `Bundles` is -- the bundles are the results, drawn in front (`bundlePages_`). */
-  if (bundlesView_()) { STUFF_PAGES = { from: items, pages: pages }; return pages; }
-  seq.forEach((x, i) => pageParts_(x, seq[i - 1]).forEach(part => {
-    if (only && part !== 'ans') return;
-    if (qOnly && part === 'ans') return;
-    pages.push({ x: x, part: part });
-  }));
-  STUFF_PAGES = { from: items, pages: pages };
+  /* A PAGE IS KEPT WHEN ITS OWN TAGS AGREE WITH THE CHIPS (396): a chip on a facet with a page reader (`tagOf`) keeps
+     the pages carrying it — `Answers` the answer pages, `Questions` the rest. */
+  const byPage = (STUFF.filters || []).filter(f => f && !f.any && (facetBy(f.field) || {}).tagOf);
+  const kept = (x, part) => byPage.every(f => {
+    let v = [];
+    try { v = asList_(facetBy(f.field).tagOf(x, part)); } catch (e) { v = []; }
+    return !v.length || v.some(t => spellKey_(t) === spellKey_(f.value));
+  });
+  seq.forEach((x, i) => {
+    /* A CARD WHOSE WORDS ARE STILL IN THE LEDGER (397) IS ONE PAGE, kept whatever the chips say: its shape is decided by its
+       words, so it is drawn waiting (`slim`) and the column drawn again when they come (`libLanded_`). */
+    if (libSlim_(x)) { pages.push({ x: x, part: null, slim: true }); return; }
+    pageParts_(x, seq[i - 1]).forEach(part => {
+      if (kept(x, part)) pages.push({ x: x, part: part });
+    });
+  });
+  STUFF_PAGES = { from: items, pages: pages, gen: LIB.gen };
   return pages;
 }
 
-/* IS `Answers` THE KIND CHOSEN? -- the one switch the answers view hangs on. */
-function answersView_() {
-  return (STUFF.filters || []).some(f => f && f.field === 'kindLabel' && !f.any && f.value === 'Answers');
-}
-/* IS `Questions` THE KIND CHOSEN? -- its pair: question pages, and never an answer page. */
-function questionsView_() {
-  return (STUFF.filters || []).some(f => f && f.field === 'kindLabel' && !f.any && f.value === 'Questions');
+/* THE ANSWERS WERE ASKED FOR — a chip on the answer pages' own tag — so they are drawn open (`ansOpen_`). */
+function answersAsked_() {
+  return (STUFF.filters || []).some(f => f && f.field === 'kindLabel' && !f.any && spellKey_(f.value) === spellKey_(ansKind_()));
 }
 
 /* ---------- THE LAST LINE UNDER A CHOSEN PAPER COUNTS WHAT THE STRIP HOLDS § */
@@ -8777,35 +8484,13 @@ function questionsView_() {
 function verifyTags_(x) {
   if (!x || x.kind !== 'question' || !x.row) return { accuracy: '', fn: '' };
   let fn = false;
-  try { fn = !qtIncomplete_(x.row).length && qtMachine_(x.row); } catch (e) { fn = false; }
+  /* WORDS STILL IN THE LEDGER (397): the file's `function_verified`, worked out from the whole row when it was split off. */
+  if (libWaits_(x.row)) fn = libTrue(x.row.function_verified);
+  else try { fn = !qtIncomplete_(x.row).length && qtMachine_(x.row); } catch (e) { fn = false; }
   return { accuracy: libTrue(x.row.verified) ? 'Accuracy verified' : 'Accuracy unverified',
            fn: fn ? 'Function verified' : 'Function unverified' };
 }
 
-/* ---------- THE PAPER'S OWN PAGE: ITS COVER, WHERE TO GO, AND ITS DOORS § */
-function paperCover_(items) {
-  const x = (items || []).find(i => i && i.kind === 'question' && i.sub);
-  if (!x) return '';
-  const day = satOn_(x);
-  return `<p class="paper-cover">${esc(x.sub)}${day ? ' &middot; sat ' + esc(day) : ''}</p>`;
-}
-function paperEnd_(items) {
-  const seq = wholeQuestions_(items);
-  const qs = new Set(seq.map(x => qId_(x) || x)).size;
-  const searched = !!String(STUFF.q || '').trim();
-  if (answersView_()) {
-    const a = stuffPages_().length;
-    return paperCover_(items) + `<p class="find-end">${searched ? 'The answers it found.' : 'The paper&rsquo;s answers, in order.'}
-        <b>Swipe up for ${a === 1 ? 'the one answer' : 'its ' + a + ' answers'}.</b></p>`;
-  }
-  const first = seq.find(x => qId_(x));
-  if (searched) {
-    return paperCover_(items) + `<p class="find-end">In this paper:
-        <b>swipe up for ${qs === 1 && first ? esc(qNum_(first)) : 'its ' + qs + ' questions'}.</b></p>`;
-  }
-  return paperCover_(items) + `<p class="find-end">That is the paper, in order.
-        <b>Swipe up for ${qs === 1 ? 'its one question' : 'its ' + qs + ' questions'}.</b></p>`;
-}
 
 /* ---------- A SEARCH HIT ON ONE PART BRINGS THE REST OF ITS QUESTION, IN ORDER § */
 const qId_ = x => (x && x.kind === 'question' && x.qNumber != null && String(x.qNumber) !== ''
@@ -9140,7 +8825,7 @@ const typePlural_ = t => /(s|day)$/i.test(String(t)) ? String(t) : String(t) + '
 /* ---------- WHAT THE BUNDLE IS CALLED, BUILT FROM THE CHIPS AND THE DATA § */
 const BUNDLE_TITLE_FIELDS = ['examBoard', 'company', 'subject', 'level', 'keystage', 'yearGroup',
                              'bandValue', 'tier', 'documentType', 'sitting', 'examYear',
-                             'examMonth', 'year'];
+                             'examMonth'];
 /* `sitting` IS NOT A FUNNEL QUESTION ANY MORE — the funnel asks the year and then the month — and it is still the right TITLE word: § */
 const SITTING_READER_ = { field: 'sitting', label: 'Sitting', of: x => {
   const m = sittingMonth_(x), y = sittingOf_(x).year;
@@ -9152,7 +8837,6 @@ function bundleTitle_(items) {
   BUNDLE_TITLE_FIELDS.forEach(field => {
     /* `if (field === 'keystage' && said.level) return;` WAS HERE. § */
     /* THE YEAR ONLY WHERE THE SITTING DID NOT SAY IT. § */
-    if (field === 'year' && (said.sitting || said.examYear)) return;
     if ((field === 'examMonth' || field === 'examYear') && said.sitting) return;
     const n = parts.length;
     try { titlePart_(field); } finally { if (parts.length > n) said[field] = true; }
@@ -9169,7 +8853,7 @@ function bundleTitle_(items) {
     let t = null;
     try { t = facetTally_(items, facet); } catch (e) { t = null; }
     const vals = (t && t.values) || [];
-    if (vals.length === 1 && t.coverage >= 1 && !vals[0].bucket) {
+    if (vals.length === 1 && t.coverage >= 1) {
       const w = String(vals[0].show || vals[0].value || '');
       if (w) parts.push(field === 'documentType' ? typePlural_(w) : w);
       return;
@@ -9190,7 +8874,7 @@ function bundleNoun_(papers, n) {
 
 const BUNDLE_MEMO = new WeakMap();
 function bundleOf_() {
-  if (!stuffAsked() || !printOffered_() || bundlesView_()) return null;
+  if (!stuffAsked() || !printOffered_()) return null;
   const items = stuffFiltered();
   if (BUNDLE_MEMO.has(items)) return BUNDLE_MEMO.get(items);
   let out = null;
@@ -9199,12 +8883,10 @@ function bundleOf_() {
   return out;
 }
 
-/* `min` IS ONE FOR A SITTING ASKED FOR BY NAME (`bundlesBySitting_`): somebody who chose `Bundles`
-   came to order, and the friction `BUNDLE_MIN` keeps off a working journey is the errand here. */
 /* ---------- ONE FLOOR, READ BY BOTH GATES § */
-function bundleBuild_(items, min) {
+function bundleBuild_(items) {
   if (!items.length) return null;
-  const floor = min || BUNDLE_MIN;
+  const floor = BUNDLE_MIN;
   /* ---------- WHICH PAPERS ARE WHOLE ON THIS LIST, AND WHAT IS LEFT OVER § */
   const count = {};
   const first = {};
@@ -9251,8 +8933,7 @@ function bundleBuild_(items, min) {
   const groupOf = i => [bySit ? sits[i] : '', byTier ? tiers[i] : ''].filter(Boolean).join(' · ');
 
   /* THE SHORTEST NAME THAT IS STILL UNIQUE — among the whole bundle when it is one list, among its own group when it is grouped. § */
-  const labels = paperLabels_(kept);
-  const shortIn = ids => shortLabels_(ids.map(id => ({ value: id, text: labels[id] || id })));
+  const shortIn = ids => shortLabels_(ids.map(id => ({ value: id, text: paperLabel_(id) })));
   const label = {};
   const groupAt = {};
   const groups = [];
@@ -9363,97 +9044,11 @@ function bundleCard_(b) {
       tile_({ icon: 'open', label: 'See your basket', act: 'cart-open' })}</div>`;
 }
 
-/* ---------- WHICH OF THE ANSWERS ABOVE TOOK PART OF A PAPER AWAY § */
-const BUNDLE_CUT_MEMO = new WeakMap();
-function bundleCutBy_() {
-  const items = stuffFiltered();
-  if (BUNDLE_CUT_MEMO.has(items)) return BUNDLE_CUT_MEMO.get(items);
-  const idOf = x => (x && x.kind === 'question' ? String(paperIdOf_(x.row || x) || '') : '');
-  const listed = new Set(items.map(idOf).filter(Boolean));
-  const papers = stuffItems().filter(x => listed.has(idOf(x)));
-  const credits = USER ? (USER.credits || 0) : 0;
-  const byField = {};
-  (STUFF.filters || []).forEach(f => {
-    if (f && !f.any) (byField[f.field] = byField[f.field] || []).push(f);
-  });
-  const cut = [];
-  Object.keys(byField).forEach(field => {
-    if (stuffNarrow_(papers, byField[field], [], credits).length < papers.length) {
-      const facet = facetBy(field);
-      cut.push(facet && facet.label ? facet.label : field);
-    }
-  });
-  const words = stuffWords_(STUFF.q);
-  if (words.length && stuffNarrow_(papers, [], words, credits).length < papers.length) cut.push('the search');
-  BUNDLE_CUT_MEMO.set(items, cut);
-  return cut;
-}
 
-/* THE DEAD END'S SENTENCE, from `bundleCutBy_` — each answer by the name its question has above it. § */
-function bundleDeadEnd_() {
-  const cut = bundleCutBy_();
-  const names = cut.map((n, i) => n === 'the search' ? (i ? 'the search' : 'The search')
-                                                      : `<b>${esc(n)}</b>`);
-  const said = names.length > 1
-    ? names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1] : names[0];
-  const undo = cut.length === 1 && cut[0] === 'the search' ? 'Clear it'
-             : names.length > 1 ? 'Take them back' : 'Take it back';
-  const why = !names.length
-    ? 'Take an answer back above — a bundle is whole papers, and nothing on this list is one.'
-    : `${said} ${names.length > 1 ? 'keep' : 'keeps'} only some of a paper's questions, and a bundle
-        is whole papers. ${undo} above.`;
-  return `<div class="card bundle qcard">${tagRow_(BUNDLE_ITEM)}
-        <p class="bundle-sub">No whole sitting left on this list to bundle. ${why}</p></div>`;
-}
-
+/* THE ONE BUNDLE A LIST OF WHOLE PAPERS OFFERS, in front of its questions. `Bundles` is not a kind to ask for (396). */
 function bundlePages_() {
-  if (bundlesView_()) {
-    const all = bundlesBySitting_();
-    /* "A SINGLE PAPER" WAS IN THIS SENTENCE, and it was true only because of the fault over `bundleBuild_`'s floor: § */
-    if (!all.length) return [bundleDeadEnd_()];
-    return all.map(bundleCard_);
-  }
   const b = bundleOf_();
   return b ? [bundleCard_(b)] : [];
-}
-
-/* ---------- THE FUNNEL'S LAST LINE, WHEN THE RESULTS ARE BUNDLES § */
-function bundlesEnd_() {
-  const n = bundlesBySitting_().length;
-  if (!n) return `<p class="find-end">No bundle on this list. <b>Swipe up for why.</b></p>`;
-  return `<p class="find-end">${funnelEnded_() ? 'That is the paper.' : 'Nothing left to narrow.'}
-      <b>Swipe up for ${n === 1 ? 'the bundle' : 'the ' + n + ' bundles'}.</b></p>`;
-}
-
-/* ---------- `Bundles` IS A KIND, BESIDE `Questions` AND `Answers` § */
-/* ---------- PRINTABLE IS A FACT ABOUT THE PAPER, SO IT IS READ OFF THE PAPER § */
-function bundleable_(x) {
-  const r = (x && x.row) || x || {};
-  const doc = docById_(paperIdOf_(r));
-  return canPrint_(doc) && /paper/i.test(String(doc.document_type || '')) && printOffered_();
-}
-function bundlesView_() {
-  return (STUFF.filters || []).some(f => f && f.field === 'kindLabel' && !f.any && f.value === 'Bundles');
-}
-const BUNDLES_MEMO = new WeakMap();
-function bundlesBySitting_() {
-  if (!printOffered_()) return [];
-  const items = stuffFiltered();
-  if (BUNDLES_MEMO.has(items)) return BUNDLES_MEMO.get(items);
-  const groups = new Map();
-  items.forEach(x => {
-    const r = (x && x.row) || x || {};
-    if (!x || x.kind !== 'question') return;
-    const k = [r.exam_board || r.company, r.subject, r.level, r.year, r.month].join('|');
-    if (!groups.has(k)) groups.set(k, { year: +r.year || 0, month: +r.month || 0, items: [] });
-    groups.get(k).items.push(x);
-  });
-  const out = [...groups.values()]
-    .sort((a, b) => b.year - a.year || b.month - a.month)
-    .map(g => { try { return bundleBuild_(g.items, 1); } catch (e) { return null; } })
-    .filter(Boolean);
-  BUNDLES_MEMO.set(items, out);
-  return out;
 }
 
 /* WHICH PAGE THE QUESTION IS ON. Saved things sit in front of it and their number changes with a
@@ -9503,6 +9098,8 @@ function stuffPageHtml(n) {
   /* ONE PAGE IS ONE ENTRY OF `stuffPages_`, which is the results with each practical expanded into its four parts. § */
   const pg = stuffPages_()[n];
   if (!pg) return '';
+  /* COUNTED BEFORE ITS WORDS CAME (397): waiting, whether or not they have come since — the column is drawn again for them. */
+  if (pg.slim) return libWaitHtml_(pg.x);
   return pg.part ? stuffPart_(pg.x, pg.part) : stuffCard(pg.x, credits);
 }
 
@@ -9574,6 +9171,8 @@ on('fav', el => {
 });
 
 function stuffCard(x, credits) {
+  /* ITS WORDS ARE STILL IN THE LEDGER (397): its title and tags, waiting — and asked for, wherever it is drawn. */
+  if (libSlim_(x)) { libWant_(x); return libWaitHtml_(x); }
   /* `credits` is passed IN rather than read from `USER` here, because the page works it out once and hands it to every card — reading it per card would be the same § */
   /* A kind with no card of its own falls back to the shared one — a new row type appears on the
      screen as SOMETHING rather than as nothing, which is the failure that is easy to miss. */
@@ -9583,15 +9182,14 @@ function stuffCard(x, credits) {
   return `<div class="favwrap${isFav(x.key) ? ' is-fav' : ''}">${html}</div>${cardTiles_(x)}`;
 }
 
-/* WHAT A CHIP READS. The facet's own `showOf` where it has one, so the chip says the same words
-   the answer row said; the value itself otherwise, which is every facet but `paperId`. */
-/* ---------- AND THE SAME WORDS, WHICH MEANS THE SAME SHORTENING § */
+/* WHAT A CHIP READS: the words its button said (`facetShort_`), memoised per finder. */
 let CHIP_SHOW = { key: null, from: null, out: {} };   /* a `let`: one per finder, see `inFinder_` */
 function chipShow_(f, i) {
   const facet = facetBy(f.field);
-  if (!facet || !facet.showOf) return f.value;
-  const fallback = () => { try { return facet.showOf(f.value) || f.value; } catch (e) { return f.value; } };
-  if (typeof i !== 'number') return fallback();
+  if (!facet) return f.value;
+  const say = facetSay_(facet, f.value);
+  /* THE WORDS ITS BUTTON SAID (396): shortened against the answers it was chosen from, and only a name with a shorter form is looked up. */
+  if (typeof i !== 'number' || nameForms_(say).length < 2) return say;
   const key = JSON.stringify([STUFF.q || '', STUFF.filters.slice(0, i + 1)]);
   if (CHIP_SHOW.from !== DATA) { CHIP_SHOW.from = DATA; CHIP_SHOW.out = {}; }
   if (key in CHIP_SHOW.out) return CHIP_SHOW.out[key];
@@ -9599,49 +9197,35 @@ function chipShow_(f, i) {
   try {
     const before = STUFF.filters.slice(0, i).filter(g => g.field !== f.field);
     const credits = USER ? (USER.credits || 0) : 0;
-    const items = stuffNarrow_(stuffItems(), before, stuffWords_(STUFF.q), credits);
-    const ids = [];
-    const seen = new Set();
-    items.forEach(x => {
-      let v;
-      try { v = facet.of(x); } catch (e) { v = ''; }
-      asList_(v).forEach(one => { if (one && !seen.has(String(one))) { seen.add(String(one)); ids.push(String(one)); } });
-    });
-    if (!seen.has(String(f.value))) ids.push(String(f.value));
-    /* WHAT THE CHIPS BEFORE IT SAID, the same `said` the answer row was drawn with — so a Paper chip
-       pressed under `June` reads `Paper 1 · 2023` exactly as its button did. */
-    const said = sittingSaid_(before);
-    const values = ids.map(v => ({ value: v, text: facet.showOf(v, ids, said) }));
-    shortLabels_(values);
-    const mine = values.find(v => v.value === String(f.value));
-    show = mine ? (mine.show || mine.text) : '';
+    show = facetShort_(facet, f.value, stuffNarrow_(stuffItems(), before, stuffWords_(STUFF.q), credits));
   } catch (e) { show = ''; }
-  return (CHIP_SHOW.out[key] = show || fallback());
+  return (CHIP_SHOW.out[key] = show || say);
 }
 
 /* ---------- WHAT KIND OF TAG THIS IS, WHICH IS ITS COLOUR § */
 const TAG_OF = {
   /* WHICH ONE: the paper, and inside it the question, part, sub-part and page -- all red, because each names one thing of several as `Paper 1` does. § */
   paperId: 'paper', fiveDay: 'paper',
-  qNumber: 'paper', qPart: 'paper', qSub: 'paper', qPage: 'paper', qPages: 'paper',
+  qNumber: 'paper', qPart: 'paper', qSub: 'paper', qPage: 'paper', qPages: 'paper', marks: 'paper',
   subject: 'subject',
   level: 'level', keystage: 'level', yearGroup: 'level', bandValue: 'level', fiveLevel: 'level',
-  examMonth: 'sitting', examYear: 'sitting', year: 'sitting', fiveMonth: 'sitting', decade: 'sitting',
-  documentType: 'type', practicalType: 'type', boxKind: 'type',
-  /* A COURSEWORK OR A PROJECT IS WHAT KIND OF THING IT IS, as experiment-or-build is: the same colour. */
-  projectType: 'type',
+  examMonth: 'sitting', examYear: 'sitting', fiveMonth: 'sitting', decade: 'sitting',
+  documentType: 'type', practicalType: 'type', boxKind: 'type', projectType: 'type',
   examBoard: 'board', company: 'board',
   tier: 'tier', division: 'tier',
-  /* `topicArea` was `topic` too, and is retired — see `RETIRED_FACETS`. */
   topic: 'topic',
-  /* ---------- `needs` IS A KIND AGAIN, AND STILL NOT GOLD § */
   needs: 'needs',
+  /* WHAT IT IS AND WHERE IT IS KEPT (396): the first questions, a colour of their own. */
+  forLabel: 'kind', kindLabel: 'kind', shelf: 'kind',
+  /* A CLAIM ABOUT THE THING — checked, machine-marked, required by a board. */
+  accuracy: 'check', function: 'check', required: 'check',
   /* ---------- THE BIBLE'S SIX, IN KINDS THAT ALREADY HAVE COLOURS § */
   bibleTranslation: 'board', bibleTestament: 'level', bibleGroup: 'topic',
   bibleBook: 'paper', bibleChapter: 'paper', bibleVerse: 'paper',
 };
-const tagOf_ = field => TAG_OF[field] || '';
-const tagAttr_ = field => tagOf_(field) ? ` data-tag="${tagOf_(field)}"` : '';
+/* A FACET NOBODY LISTED — one the facets tab invented — is still coloured: `other` (396). */
+const tagOf_ = field => TAG_OF[field] || 'other';
+const tagAttr_ = field => ` data-tag="${tagOf_(field)}"`;
 
 /* `chipKeyIn_` WAS HERE, and the small grey field name in front of every chosen answer with it (`.chip-k`). § */
 /* ---------- WHAT A CHOSEN CHIP SAYS: THE VALUE, AND ONLY WHERE THE VALUE IS NOT ENOUGH, MORE § */
@@ -9690,11 +9274,7 @@ function filterClear_() {
 /* EACH ON THE FINDER IT WAS PRESSED IN (`finderAt_`): an answer in the second finder is a chip there,
    and never one on Find. */
 on('facet-pick', el => inFinder_(finderAt_(el), () => {
-  /* A BUCKET IS HALF AN ANSWER — see `bucketValues_`. The flag rides on the chip so `filterHit`
-     knows to test membership and `nextFacet` knows the question is not finished with. */
-  const f = { field: el.dataset.field, value: el.dataset.value };
-  if (el.dataset.bucket) f.bucket = true;
-  STUFF.filters.push(f);
+  STUFF.filters.push({ field: el.dataset.field, value: el.dataset.value });
   paintStuff();
   /* A BOOK OF THE BIBLE CHOSEN WAS FETCHED HERE TOO (docs/history/341), and the review of 12 Oct found nothing could tell: § */
 }));
@@ -9806,6 +9386,8 @@ function stuffKeepPlace_(host, d) {
 }
 
 function paintStuff(keepPage) {
+  /* WORDS THAT CAME SINCE THE PAGES WERE COUNTED change how many pages a card is (397) — counted again as the pages are rebuilt. */
+  libPagesFresh_();
   const chips = $(FINDER.id + '-chips');
   if (chips) chips.innerHTML = filterChips();
   /* THE BIN BESIDE THE BOX, in its own slot so the box itself is never rewritten — see `filterClear_`. */
@@ -10334,6 +9916,8 @@ function fillStuffPages(all) {
      after the pages near you are filled, because a stage that was not on the page a moment ago is
      on it now. */
   tbAnimWatch_();
+  /* AND THE WORDS OF THE CARD IN FRONT AND THE NEXT FEW, from the Ledger (397) — asked here, where a turn lands. */
+  libAhead_();
 
   /* AND START THE ONE YOU ARE LOOKING AT — if it is one that runs. § */
   if (!FINDER.widgets) { settle_(changed); return; }
@@ -10433,11 +10017,9 @@ function stuffQuestion() {
     const n = items.length === 1 ? 'one' : items.length;
     /* AND WHEN A PAPER ENDED IT, IT SAYS SO. § */
     /* ---------- ONE CLASS FOR THE LAST LINE, NOT AN INLINE MARGIN ON EACH § */
-    if (bundlesView_()) return bundlesEnd_() + adding;
     /* AND OVER THE BIBLE, WHICH VERSES — or why there is no question over its cover yet. */
     const be = bibleEnd_(items);
     if (be) return be + adding;
-    if (funnelEnded_()) return paperEnd_(items) + adding;
     return `<p class="find-end">Nothing left to narrow.
       <b>Swipe up for the ${n}.</b></p>` + adding;
   }
@@ -10459,14 +10041,13 @@ function stuffQuestion() {
   /* THE "and N more" LINE WENT WITH THE TRIM. § */
   /* `data-value` IS THE FULL NAME AND THE TEXT IS THE SHORT ONE — see `shortLabels_`. The chip this
      row creates has to find the rows it names, and `filterHit` matches on what is in `data-value`. */
-  /* `data-bucket` SAYS WHICH KIND OF ANSWER THIS IS, and it is carried rather than worked out later: § */
   /* `.answers` IS WHAT MAKES THEM CHIPS ON A LINE rather than rows down the card — see the block of that name in style.css. § */
-  /* ---------- A NUMBERED RUN IS A GRID § */
-  const grid = !!facet.grid;
+  /* ---------- A NUMBERED RUN IS A GRID — any facet whose answers are all bare numbers (396) § */
+  const grid = values.length > 1 && values.every(v => /^\d+$/.test(String(v.show || v.value)));
   /* ---------- AND WHILE THE PAYLOAD IS ON ITS WAY, MORE ANSWERS ARE COMING § */
   const more = typeof awaiting_ === 'function' && awaiting_() ? loading_() : '';
   return '<div class="answers' + (grid ? ' is-grid' : '') + '">' + values.map(v => `<div class="counted row tap" data-do="facet-pick"${tagAttr_(facet.field)}
-        data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${v.bucket ? ' data-bucket="1"' : ''}${
+        data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${
         grid ? ` aria-label="${esc(facet.label + ' ' + (v.show || v.value))}"` : ''}>
         <span class="k">${mark(v.show || v.value)}</span>
       </div>`).join('') + skip + '</div>' + more;
@@ -10522,6 +10103,7 @@ function finderScreen_() {
   /* ---------- SPOTLIGHT WAS THE FIRST GROUP HERE AND IT IS A COLUMN NOW § */
   /* ---------- THE DRAW BUILDS THE WINDOW, NOT ONE EMPTY PAGE PER RESULT § */
   /* ---------- AND THE CARD YOU WERE ON, BY NAME, NOT BY NUMBER § */
+  libPagesFresh_();
   const held = stuffHeld_();
   const front = frontPages_();
   const keep = 1 + front.length;
