@@ -19496,16 +19496,20 @@ check('a content card, on Find 2 and on Find: What kind · Content, Statistics �
   if (unshelved.length) bad.push(unshelved.length + ' of ' + resources.length + ' Resources are on no shelf — pressing a shelf hides them');
   if (cards.some(i => R.facetValues([i], shelfFacet).length)) bad.push('a content card is on a shelf — the textbooks\' shelf went');
 
-  /* THE CARD, THEN A PAGE PER ANIMATION, in the file's order. "Averages" teaches the mean. */
+  /* THE CARD, THEN A PAGE PER ANIMATION, in the file's order. "Averages" has none since the mean went to KS2 (436); "Probability" has Bayes. */
   const x = left.find(i => i.name === 'Averages') || cards.find(i => i.key === 'ct:TB-GCSE-STATS-8');
   if (!x) return bad.concat(['no Averages card among the Statistics cards']);
   const parts = w.pageParts_(x);
-  const want = [null].concat((x.row.animations || []).map(a => 'an' + x.row.n + '-' + a.id));
-  if (JSON.stringify(parts) !== JSON.stringify(want) || parts.indexOf('an8-mean') < 0) bad.push('the Averages card is pages ' + JSON.stringify(parts) + ', not the card and the mean\'s animation');
+  /* AND THEN ITS FORMULAS AND ITS WORKED LINES, A TITLED PAGE EACH (408). */
+  const want = [null].concat((x.row.animations || []).map(a => 'an' + x.row.n + '-' + a.id), ['formulas', 'worked']);
+  if (JSON.stringify(parts) !== JSON.stringify(want)) bad.push('the Averages card is pages ' + JSON.stringify(parts) + ', not the card, its animations, Formulas and Worked examples');
+  const xp = left.find(i => i.key === 'ct:TB-GCSE-STATS-15');
+  if (!xp || w.pageParts_(xp).indexOf('an15-bayes') < 0) bad.push('the Probability card has no page for Bayes\'s animation: ' + (xp ? JSON.stringify(w.pageParts_(xp)) : 'no card'));
   const box = html => { const d = w.document.createElement('div'); d.innerHTML = html; return d; };
   const card = box(w.stuffCard(x));
   if (!card.querySelector('.card.ct')) bad.push('the card is not drawn as a content card');
-  if (!card.querySelector('.tb-an-stage') && !box(w.stuffPart_(x, 'an8-mean')).querySelector('.tb-an-stage')) bad.push('the mean\'s animation has no stage on its page');
+  if (card.querySelector('.tb-an-stage')) bad.push('a drawing is on the card itself — each has a page of its own');
+  if (xp && !box(w.stuffPart_(xp, 'an15-bayes')).querySelector('.tb-an-stage')) bad.push('Bayes\'s animation has no stage on its page');
   /* WHAT IT IS, FIRST IN THE ONE ROW EVERY CARD WEARS: § */
   /* EVERY FACET A TAG SINCE 396, in the tab's order: What for, then What kind. */
   const lead = [...card.querySelectorAll('.qtags .qtag')].slice(0, 2).map(e => e.getAttribute('data-f') + ':' + e.textContent.trim());
@@ -19519,7 +19523,8 @@ check('a content card, on Find 2 and on Find: What kind · Content, Statistics �
   if (!mac || [...box(w.stuffCard(mac)).querySelectorAll('.qtag')].map(e => e.textContent).indexOf('AQA') < 0) bad.push('the Macbeth card does not say AQA — a set text is the board\'s');
   /* A CARD WITH FORMULAS, WHOLE, AND THE ONE THAT IS HIGHER ALL THROUGH. */
   const withMath = cards.find(i => i.row.formulas.some(f => /\//.test(f.text)));
-  const pg = box(w.stuffCard(withMath));
+  /* ITS EVERY PAGE TOGETHER: the key words on the card, Formulas and Worked examples a page each (408). */
+  const pg = box(w.stuffCard(withMath) + w.stuffPart_(withMath, 'formulas') + w.stuffPart_(withMath, 'worked'));
   const c = withMath.row;
   if (pg.querySelectorAll('.tb-words li').length !== c.words.length) bad.push(withMath.name + ' does not list every key word');
   if (pg.querySelectorAll('.tb-math li').length !== c.formulas.length) bad.push(withMath.name + ' does not list every formula');
@@ -19611,6 +19616,80 @@ const resType_ = (w, id, v) => {
   el.dispatchEvent(new w.Event('input', { bubbles: true }));
   return true;
 };
+
+/* ---------- ONE WIDGET PER THING (408) ----------
+   "If a thing needs more than one widget (page), each must have a title that distinguishes it, so it earns its place." */
+check('one widget per thing: every page of every content card, practical and project is titled, no title twice in one card, one drawing a page, and a waiting card is one titled page', async () => {
+  const read = n => (LIB_FULL.isLib(n) ? LIB_FULL.rows(n) : JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8')));
+  const one = boot();
+  await wait(300);
+  if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so the pages were NOT checked — not a pass'];
+  const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({},
+    { practicals: read('practicals'), projects: read('projects'), textbooks: read('textbooks') })));
+  const p = payload();
+  Object.assign(p, { practicals: made.practicals || [], projects: made.projects || [], textbooks: made.textbooks || [] });
+  const { w } = boot({ member: true, payload: p });
+  await wait(300);
+  const need = ['pageParts_', 'stuffPart_', 'stuffCard', 'contentPageTitle_', 'libWaitHtml_', 'stuffItemsAll_'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — renamed? The titles were NOT checked'];
+  const bad = [];
+  const KINDS = ['content', 'practical', 'project'];
+  const items = w.stuffItemsAll_().filter(x => x && KINDS.indexOf(x.kind) !== -1);
+  KINDS.forEach(k => { if (!items.some(x => x.kind === k)) bad.push('no ' + k + ' reached the finder, so its pages were NOT checked'); });
+  const box = html => { const d = w.document.createElement('div'); d.innerHTML = html; return d; };
+  const kids = (el, tag) => [...el.children].filter(e => e.tagName === tag);
+  /* THE PAGE'S TITLE: the card's own name on its first page, the `h3` straight under the card on every other. */
+  const titleOf = (el, part) => {
+    const card = el.querySelector('.card');
+    if (!card) return '';
+    const h = part ? kids(card, 'H3')[0] : card.querySelector('.fc-head h3');
+    return h ? h.textContent.trim() : '';
+  };
+  let pages = 0, anims = 0;
+  items.forEach(x => {
+    if (w.libSlim_(x)) { bad.push(x.key + ' is still waiting for its words with the whole library loaded'); return; }
+    const seen = {};
+    w.pageParts_(x).forEach(part => {
+      pages++;
+      const el = box(part ? w.stuffPart_(x, part) : w.stuffCard(x));
+      const name = x.name + ' (' + x.kind + ') page ' + (part || 'card');
+      const t = titleOf(el, part);
+      if (!t) { bad.push(name + ' has no title'); return; }
+      if (seen[t]) bad.push(x.name + ' (' + x.kind + '): pages ' + seen[t] + ' and ' + (part || 'card') + ' are both titled "' + t + '"');
+      seen[t] = part || 'card';
+      const stages = el.querySelectorAll('.tb-an-stage').length;
+      const isAn = /^an\d+-/.test(String(part || ''));
+      if (isAn) anims++;
+      if (stages !== (isAn ? 1 : 0)) bad.push(name + ' holds ' + stages + ' drawing(s) — one on its own page, none anywhere else');
+      if (x.kind !== 'content') return;
+      if (part && t !== w.contentPageTitle_(x, part)) bad.push(name + ' is titled "' + t + '", not "' + w.contentPageTitle_(x, part) + '"');
+      if (isAn && !/^Watch: \S/.test(t)) bad.push(name + ' is titled "' + t + '" — a drawing\'s page says Watch and its name');
+      /* NO SECOND WIDGET INSIDE A PAGE: the card holds its key words only; a page past it has no heading of its own inside. */
+      if (!part && el.querySelector('.tb-math, .tb-points')) bad.push(name + ' still carries its formulas or worked lines — each is a page of its own');
+      if (part && el.querySelector('h4')) bad.push(name + ' has a heading inside it, "' + el.querySelector('h4').textContent + '" — a second widget on one page');
+      /* A DRAWING'S PAGE IS NOT EMPTY: its caption may be absent (a `lib_pending` chapter, 411); check-textbooks holds `about`. */
+      if (part && !isAn && !el.querySelector('li')) bad.push(name + ' is titled and empty');
+    });
+    if (x.kind === 'content') {
+      const c = x.row, parts = w.pageParts_(x);
+      if ((c.formulas || []).length && parts.indexOf('formulas') < 0) bad.push(x.name + ' has formulas and no Formulas page');
+      if ((c.points || []).length && parts.indexOf('worked') < 0) bad.push(x.name + ' has worked lines and no Worked examples page');
+      if (!(c.formulas || []).length && parts.indexOf('formulas') >= 0) bad.push(x.name + ' has a Formulas page and no formulas');
+    }
+  });
+  if (!anims) bad.push('no drawing\'s page was met among ' + pages + ' pages — the one-drawing rule was NOT exercised');
+  /* AND WAITING (397): before its words come a card is ONE page, its title over the loader's dots. */
+  const ct = items.find(x => x.kind === 'content');
+  if (ct) {
+    const slim = Object.assign({}, ct, { row: Object.assign({}, ct.row, { lib_has: 'words points formulas' }) });
+    const el = box(w.libWaitHtml_(slim));
+    if (titleOf(el, null) !== ct.name) bad.push('a waiting content card is titled "' + titleOf(el, null) + '", not its name');
+    const say = el.querySelector('.lib-say');
+    if (!say || say.innerHTML.trim() !== w.loading_().trim()) bad.push('a waiting content card does not show loading_()\'s dots, signed in: ' + (say ? say.textContent.trim().slice(0, 120) : 'no .lib-say'));
+    if (el.querySelectorAll('.card').length !== 1) bad.push('a waiting content card is ' + el.querySelectorAll('.card').length + ' cards — one page until its words come');
+  }
+  return bad;
+});
 
 check('Find 2: a column immediately right of Find, called Find 2 with Find\'s icon — the tab row, data/settings/columns.json, one swipe from Find, its own search box, and Find\'s first question', async () => {
   const file = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'columns.json'), 'utf8'));
@@ -19806,13 +19885,13 @@ check('Find 2 keeps its own place across a reload — the column, its chips and 
   /* REMEMBERED, as a finger's swipe is (`familyTab`): the column is half of where you were. */
   T.go('res');
   await wait(80);
-  /* A CONTENT CARD'S ANIMATION, a page past its card: the mean's, under Averages. */
+  /* A CONTENT CARD'S ANIMATION, a page past its card: Bayes's, under Probability. */
   const chips = [{ field: 'kindLabel', value: 'Content' }, { field: 'subject', value: 'Statistics' }];
   T.RES().filters = chips.map(f => Object.assign({}, f));
   W.paintFinder_('res');
   const pages = inRes_(W, () => W.stuffPages_());
-  const at = pages.findIndex(pg => pg.x && pg.x.kind === 'content' && pg.part === 'an8-mean');
-  if (at < 0) return ['What kind · Content, Subject · Statistics has no page for the mean\'s animation — nothing was reloaded'];
+  const at = pages.findIndex(pg => pg.x && pg.x.kind === 'content' && pg.part === 'an15-bayes');
+  if (at < 0) return ['What kind · Content, Subject · Statistics has no page for Bayes\'s animation — nothing was reloaded'];
   T.goPage('res', inRes_(W, () => W.stuffFirstResult_()) + at, true);
   await wait(150);
   const want = pg_(T).res;
@@ -19832,9 +19911,9 @@ check('Find 2 keeps its own place across a reload — the column, its chips and 
   await wait(200);
   if (t.AT() !== 'res') bad.push('the reload opened on ' + t.AT() + ', not Find 2');
   if (JSON.stringify(t.RES().filters) !== JSON.stringify(chips)) bad.push('the reload brought Find 2 back with the chips ' + JSON.stringify(t.RES().filters));
-  if (pg_(t).res !== want) bad.push('the reload put Find 2 on page ' + pg_(t).res + ', not the mean animation\'s ' + want);
-  const shown = w.document.querySelector('#s-res .card.is-an8-mean');
-  if (!shown) bad.push('after the reload the mean\'s animation is not drawn on Find 2');
+  if (pg_(t).res !== want) bad.push('the reload put Find 2 on page ' + pg_(t).res + ', not Bayes\'s animation\'s ' + want);
+  const shown = w.document.querySelector('#s-res .card.is-an15-bayes');
+  if (!shown) bad.push('after the reload Bayes\'s animation is not drawn on Find 2');
   if ((t.STUFF().filters || []).length) bad.push('the reload put Find 2\'s place on Find: ' + JSON.stringify(t.STUFF().filters));
   /* AND FIND'S OWN, FROM FIND: kept under its own name and brought back to Find, Find 2 untouched. */
   const t2 = two.w;
@@ -19944,11 +20023,11 @@ check('a kept card Saved cannot draw whole opens in Find: Saved\'s Open under a 
   const { w } = b, t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
   const all = w.stuffItemsAll_();
   /* A CONTENT CARD WITH AN ANIMATION: its words are on the card, the drawing is a page after it. */
-  const book = all.find(x => x.kind === 'content' && x.key === 'ct:TB-GCSE-STATS-8');
+  const book = all.find(x => x.kind === 'content' && x.key === 'ct:TB-GCSE-STATS-15');
   const boxer = all.find(x => x.kind === 'boxer' && w.pageParts_(x).length > 1);
   const fight = all.find(x => x.kind === 'fight');
   const proj = all.find(x => x.kind === 'project');
-  if (!book || !boxer || !fight || !proj) return ['no Averages content card, boxer with fights, fight or project in the whole list — NOT checked'];
+  if (!book || !boxer || !fight || !proj) return ['no Probability content card, boxer with fights, fight or project in the whole list — NOT checked'];
   const onCard = (x, when, next) => {
     if (t.AT() !== 'stuff') bad.push(when + ': the column in front is ' + t.AT() + ', not Find');
     const pg = w.stuffPages_()[pg_(t).stuff - w.stuffFirstResult_()];
@@ -19982,7 +20061,7 @@ check('a kept card Saved cannot draw whole opens in Find: Saved\'s Open under a 
   if (/Find 2|Resources/.test(forBook.getAttribute('aria-label') || '')) bad.push('the Open tile names the wrong column: ' + JSON.stringify(forBook.getAttribute('aria-label')));
   A['find-open'](forBook);
   await wait(150);
-  onCard(book, 'a content card opened from Saved', 'an8-mean');
+  onCard(book, 'a content card opened from Saved', 'an15-bayes');
   if (JSON.stringify([t.RES().filters, t.RES().q]) !== r0) bad.push('opening from Saved changed Find 2\'s place: ' + JSON.stringify([t.RES().filters, t.RES().q]));
   for (const [x, tile, next] of [[boxer, forBoxer, w.pageParts_(boxer)[1]], [proj, forProj, w.pageParts_(proj)[1]]]) {
     if (!tile) { bad.push('the ' + x.kind + ' kept on Saved has no Open tile'); continue; }
@@ -27105,6 +27184,25 @@ check('read aloud: a KS2 question has the tile and a GCSE one does not; it says 
   else {
     if (!tileOf(ctKs2)) bad.push('the KS2 content card "' + ctKs2.name + '" has no Read aloud tile');
     if (tileOf(ctGcse)) bad.push('the GCSE content card "' + ctGcse.name + '" carries the Read aloud tile');
+    /* HEAR IT (427): a French card says its worked lines' French halves, each in fr-FR; a maths card has no Hear it. */
+    const ctFr = ct.find(x => x.subject === 'French' && x.row && (x.row.points || []).length);
+    const ctMaths = ct.find(x => x.subject === 'Maths');
+    if (!ctFr || !ctMaths) bad.push('no French or no Maths content card with worked lines — Hear it was NOT checked');
+    else {
+      host.innerHTML = w.stuffCard(ctFr);
+      const ht = host.querySelector('[data-do="hear-it"]');
+      if (!ht) bad.push('the French content card "' + ctFr.name + '" has no Hear it tile');
+      else {
+        said.length = 0;
+        t.ACTIONS['hear-it'](ht);
+        const fr = said.filter(u => u.text), want = ctFr.row.points.map(p => p.text.split(' — ')[0].trim());
+        if (fr.map(u => u.text).join(' | ') !== want.join(' | ')) bad.push('Hear it on "' + ctFr.name + '" said ' + JSON.stringify(fr.map(u => u.text)) + ', wanted ' + JSON.stringify(want));
+        if (!fr.length || fr.some(u => u.lang !== 'fr-FR')) bad.push('Hear it spoke in ' + JSON.stringify(fr.map(u => u.lang)) + ', wanted fr-FR');
+      }
+      host.innerHTML = w.stuffCard(ctMaths);
+      if (host.querySelector('[data-do="hear-it"]')) bad.push('the Maths content card "' + ctMaths.name + '" carries Hear it');
+      said.length = 0;
+    }
   }
   let tile = tileOf(ks2);
   if (!tile) return bad.concat(['the KS2 question Q-STA-KS2-2024-P1-28 has no Read aloud tile']);
@@ -27422,6 +27520,63 @@ check('a part with an answer box, its words landed from the Ledger, shows them o
     if (!(await open_(W, 'Q-1MA1-2211-2H-1a'))) return bad.concat(['Q1(a) did not come into Find for the admin']);
     const front = libFront_(W), say = front && front.querySelector('.lib-say');
     if (!say || !/needs the latest backend — deploy it/.test(say.textContent) || !say.querySelector('[data-do="lib-retry"]')) bad.push('an old backend is not said plainly to an admin with Try again: ' + strip(say || front).slice(0, 140));
+  }
+  return bad;
+});
+
+/* A NEW CHAPTER PUBLIC BEFORE ITS WORDS ARE IMPORTED (`lib_pending`, 417; one rule with 411's since 436): asked for like any card; whole if the Ledger has the words, "Coming soon" if it answers missing. */
+check('a new content card (lib_pending) is asked for, drawn whole when the Ledger has its words, and says Coming soon over its title when the Ledger answers missing', async () => {
+  const def = LIB_FULL.defs().files.textbooks, full = LIB_FULL.rows('textbooks');
+  const pend = full.filter(r => /^true$/i.test(String(r.lib_pending || '')) && !Object.prototype.hasOwnProperty.call(r, 'anim') && +r.chapter > 0);
+  if (!pend.length) return ['no lib_pending chapter in data/textbooks.json — nothing was checked'];
+  /* ITS WORDS AS THE LEDGER WOULD SEND THEM: this machine's, or a stand-in when a fresh clone has none (the rule is the same either way). */
+  const target = pend.find(r => LIB_FULL.privateOf(def, r)) || pend[0];
+  const words = LIB_FULL.privateOf(def, target) || { words: 'Stand-in word — sent by the Ledger in this check', points: 'Stand-in word: one worked line' };
+  const slim = full.map(r => {
+    const c = r === target ? words : LIB_FULL.privateOf(def, r);
+    if (!c) return r;
+    const out = {};
+    Object.keys(r).forEach(k => { if (!(k in c)) out[k] = r[k]; });
+    out.lib_has = def.private.filter(f => String(c[f] == null ? '' : c[f]).trim() !== '').join(' ');
+    return out;
+  });
+  const wire = 'ct:' + target.book_id + '#' + target.chapter;
+  const word = String(words.words || '').split('|')[0].split(' — ')[0].replace(/^\[H\] /, '').trim();
+  const bad = [];
+  for (const has of [true, false]) {
+    const held = [];
+    /* A COPY PER BOOT: `libFill_` writes the words back onto the row it was served, which would hand the second boot the first's. */
+    const one = boot({ serve: url => (/data\/textbooks\.json/.test(url) ? JSON.parse(JSON.stringify(slim)) : undefined), before: signedInAs_(ANS_ADA),
+      reply: b => (b.action === 'libItems' ? new Promise(ok => held.push(() => {
+        const items = {}, missing = [];
+        (b.ids || []).forEach(t => { if (t === wire && has) items[t] = words; else missing.push(t); });
+        ok({ success: true, items: items, missing: missing, refused: [], left: 390, cap: 400 });
+      })) : undefined) });
+    const W = one.w, as = has ? 'with its words in the Ledger' : 'with the Ledger answering missing';
+    for (let i = 0; i < 100 && !(typeof W.stuffItemsAll_ === 'function' && W.stuffItemsAll_().some(x => x.kind === 'content' && x.row && x.row.pending)); i++) await wait(50);
+    const x = W.stuffItemsAll_().find(it => it.kind === 'content' && it.row && it.row.bookId === target.book_id && it.row.n === +target.chapter);
+    if (!x) return [target.book_id + ' chapter ' + target.chapter + ' did not come into Find as a content card — nothing was checked'];
+    if (!x.row.pending) bad.push('the chapter row says lib_pending and its content card is not marked pending');
+    W.__t.STUFF().filters = [{ field: 'kindLabel', value: 'Content' }];
+    W.__t.go('stuff');
+    W.paintStuff();
+    const i = W.stuffPages_().findIndex(pg => pg.x === x);
+    if (i < 0) return ['the pending card is not among the pages of Content — nothing was checked'];
+    W.__t.goPage('stuff', W.stuffFirstResult_() + i, true);
+    await wait(300);
+    let front = libFront_(W);
+    const waiting = front && front.querySelector('.lib-wait');
+    if (!waiting) bad.push(as + ': the pending card in front is not the waiting card before the answer: ' + (front ? front.textContent.replace(/\s+/g, ' ').slice(0, 120) : 'no page'));
+    else if (waiting.textContent.indexOf(target.title) === -1) bad.push(as + ': the waiting card does not carry its title, ' + target.title);
+    if (!one.sent.some(b => b.action === 'libItems' && (b.ids || []).indexOf(wire) !== -1)) bad.push(as + ': no libItems request went for ' + wire);
+    held.splice(0).forEach(f => f());
+    await wait(500);
+    front = libFront_(W);
+    const txt = front ? front.textContent.replace(/\s+/g, ' ') : '';
+    if (has && (!front || front.querySelector('.lib-wait') || txt.indexOf(word) === -1)) bad.push(as + ': the card is not drawn whole (wanted the key word "' + word + '"): ' + txt.slice(0, 120));
+    if (!has && !/Coming soon\./.test(txt)) bad.push(as + ': it does not say Coming soon: ' + txt.slice(0, 120));
+    if (!has && /not in the library yet/.test(txt)) bad.push(as + ': a pending card says "not in the library yet"');
+    if (one.errs.length) bad.push(as + ': errors: ' + one.errs.join(' | '));
   }
   return bad;
 });

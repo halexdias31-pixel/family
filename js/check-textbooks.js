@@ -109,6 +109,10 @@ const chapterRows = [];
 let higherItems = 0, formulas = 0, words = 0, points = 0, live = 0;
 
 /* ---------- AN ANIMATION IS A ROW TOO, AND IT IS NOT A CHAPTER § */
+/* A CARD WHOSE WORDS THIS MACHINE HAS NOT GOT: marked pending and holding none of the three lists. */
+const LFp = require('../check/lib-full.js');
+const wordless = r => LFp.pending(r) && !['words', 'points', 'formulas'].some(c => String(r[c] || '').trim());
+let pendingCards = 0, pendingAbout = 0;
 const ANIM_FIELDS = ['book_id', 'chapter', 'anim', 'title', 'about', 'html', 'css', 'active'];
 const isAnim = r => !!(r && Object.prototype.hasOwnProperty.call(r, 'anim'));
 const on_ = v => /^(true|yes|1|y|on|)$/i.test(String(v == null ? '' : v).trim());
@@ -142,6 +146,7 @@ let animCount = 0;
     /* WHAT IT IS ABOUT, FOUND IN ITS CHAPTER. */
     const about = String(r.about || '').split('|').map(t => t.trim()).filter(Boolean);
     if (!about.length) fail.push(where + ' is about nothing — `about` names at least one key word, formula or worked line of its chapter');
+    if (wordless(ch)) { pendingAbout++; return; }
     const names = ['words', 'formulas'].flatMap(col => String(ch[col] || '').split('|').map(t => t.trim().replace(/^\[H\] /, ''))
       .filter(Boolean).map(t => { const at = t.indexOf(' — '); return at > 0 ? t.slice(0, at).trim() : ''; }).filter(Boolean));
     const lines = String(ch.points || '').split('|').map(t => t.trim().replace(/^\[H\] /, '')).filter(Boolean);
@@ -212,6 +217,8 @@ rows.forEach((r, line) => {
 
   const w = items('words', true);
   words += w.length;
+  /* WORDS NEWER THAN THE PINNED SEED (lib_pending, docs/library.md): on a machine without them the card is all there is. */
+  if (wordless(r)) { pendingCards++; return; }
   if (w.length < WORDS_MIN) fail.push(where + ' has ' + w.length + ' key words — the bones are key words, at least ' + WORDS_MIN);
   w.forEach(i => {
     /* A DEFINITION IS DRAWN AS TEXT, NOT TYPESET, so maths in one is maths nobody draws. */
@@ -333,6 +340,7 @@ console.log('key words: ' + words + '   formulas: ' + formulas + '   worked line
   + '   items marked Higher: ' + higherItems + '   animations: ' + animCount);
 note.push('GCSE Statistics (1ST0) questions in the library: ' + stats1st0
   + '. The ' + alevelStats + ' "Statistics" paper rows are A-level 9MA0 — a different qualification, not joined.');
+if (pendingCards || pendingAbout) note.push(pendingCards + ' pending card(s) and ' + pendingAbout + ' animation(s) on them were NOT checked for words — data-private/ has not got them (`node tools/lib-private.js pull`)');
 note.forEach(n => console.log('note: ' + n));
 
 if (fail.length) {

@@ -2128,16 +2128,18 @@ function canSay_() {
 function hush_() {
   try { if (canSay_()) window.speechSynthesis.cancel(); } catch (e) {}
 }
-/* ONE UTTERANCE, QUEUED. Called inside the tap's own handler, which is what iPhone Safari needs to speak at all; `o` = { rate, volume, onend }. */
+/* ONE UTTERANCE, QUEUED. Called inside the tap's own handler, which is what iPhone Safari needs to speak at all; `o` = { rate, volume, onend, lang }. */
+/* `o.lang` (427): a language card's Hear it speaks es-ES or fr-FR; British English when it is not given. */
 function say_(text, o) {
   o = o || {};
   try {
     const ss = window.speechSynthesis;
     const u = new window.SpeechSynthesisUtterance(String(text));
-    u.lang = 'en-GB';
-    const gb = (typeof ss.getVoices === 'function' ? ss.getVoices() || [] : [])
-      .find(v => /^en[-_]GB/i.test(String(v.lang || '')));
-    if (gb) u.voice = gb;
+    const lang = /^[a-z]{2}-[A-Z]{2}$/.test(String(o.lang || '')) ? o.lang : 'en-GB';
+    u.lang = lang;
+    const voice = (typeof ss.getVoices === 'function' ? ss.getVoices() || [] : [])
+      .find(v => String(v.lang || '').replace('_', '-').toLowerCase().indexOf(lang.toLowerCase()) === 0);
+    if (voice) u.voice = voice;
     u.rate = o.rate || 0.9;
     u.volume = o.volume == null ? 1 : o.volume;
     if (o.onend) { u.onend = o.onend; u.onerror = o.onend; }
@@ -2904,7 +2906,8 @@ function splashWaitWatch_() {
 }
 /* ---------- WHAT THE NEXT LOAD'S SPLASH IS CHOSEN FROM § */
 const SPLASH_CACHE_F = 1;
-const SPLASH_CACHE_MAX = 200000;
+/* 1 500 000 FOR ALL 172 DRAWINGS' 1 377 437 CHARACTERS (436): set once, room for about fifteen more; a refused write still gives the whole copy back. */
+const SPLASH_CACHE_MAX = 1500000;
 function splashSync_(d, extra) {
   const rows = extra && extra['settings/splashes'];
   if (rows && rows.length) {
