@@ -114,4 +114,4 @@ css = '''.nl-svg { display: block; width: min(88vw, 21rem); max-width: 100%; hei
 ''' + L.css()
 
 anim_row.write_anim('line', html=html, css=css, whole=True, place=dict(
-    book_id='TB-GCSE-MATHS', chapter=3, title='Fractions on a number line', about='Equivalent|On a number line'))
+    book_id='TB-KS2-MATHS', chapter=7, title='Fractions on a number line', about='Equivalent fractions'))

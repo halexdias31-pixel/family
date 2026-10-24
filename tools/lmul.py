@@ -157,4 +157,4 @@ css = '''.an-lmul { --lm-u: #6fa8dc; }
 ''' + L.css()
 
 anim_row.write_anim('lmul', html=html, css=css, whole=True, place=dict(
-    book_id='TB-GCSE-MATHS', chapter=1, title='Long multiplication', about='Multiple'))
+    book_id='TB-KS2-MATHS', chapter=6, title='Long multiplication', about='Long multiplication'))

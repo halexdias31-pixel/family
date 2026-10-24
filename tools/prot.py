@@ -105,4 +105,4 @@ css = '''.pt-svg { display: block; width: min(88vw, 21rem); max-width: 100%; hei
 ''' + L.css()
 
 anim_row.write_anim('prot', html=html, css=css, whole=True, place=dict(
-    book_id='TB-GCSE-MATHS', chapter=13, title='Protractor', about='Protractor'))
+    book_id='TB-KS2-MATHS', chapter=15, title='Protractor', about='Protractor'))

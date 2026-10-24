@@ -135,4 +135,4 @@ css = '''.an-peri { --pm-u: #6fa8dc; }
 ''' + L.css()
 
 anim_row.write_anim('peri', html=html, css=css, whole=True, place=dict(
-    book_id='TB-GCSE-MATHS', chapter=16, title='Area and perimeter', about='Triangle and trapezium|1 m²'))
+    book_id='TB-KS2-MATHS', chapter=14, title='Area and perimeter', about='Perimeter|Area'))

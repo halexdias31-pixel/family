@@ -114,4 +114,4 @@ css = '''.an-mean { --mn-u: #6fa8dc; }
 ''' + L.css()
 
 anim_row.write_anim('mean', html=html, css=css, whole=True, place=dict(
-    book_id='TB-GCSE-STATS', chapter=8, title='The mean', about='Mean|4, 7, 7, 9, 13'))
+    book_id='TB-KS2-MATHS', chapter=19, title='The mean', about='Mean'))

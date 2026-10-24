@@ -88,4 +88,4 @@ css = '''.an-fdp { --pc-u: #6fa8dc; }
 ''' + L.css()
 
 anim_row.write_anim('fdp', html=html, css=css, whole=True, place=dict(
-    book_id='TB-GCSE-MATHS', chapter=3, title='Fractions, decimals, percentages', about='Equivalent'))
+    book_id='TB-KS2-MATHS', chapter=10, title='Fractions, decimals, percentages', about='Per cent'))

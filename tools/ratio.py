@@ -119,4 +119,4 @@ css = '''.an-ratio { --rt-u: #6fa8dc; }
 ''' + L.css()
 
 anim_row.write_anim('ratio', html=html, css=css, whole=True, place=dict(
-    book_id='TB-GCSE-MATHS', chapter=11, title='Ratio', about='Ratio|Share £60 in the ratio 2 : 3'))
+    book_id='TB-KS2-MATHS', chapter=11, title='Ratio', about='Ratio'))

@@ -136,4 +136,4 @@ css = '''.an-fadd { --fa-u: #6fa8dc; }
 ''' + L.css()
 
 anim_row.write_anim('fadd', html=html, css=css, whole=True, place=dict(
-    book_id='TB-GCSE-MATHS', chapter=3, title='Adding fractions', about='3/4 + 1/6'))
+    book_id='TB-KS2-MATHS', chapter=8, title='Adding fractions', about='Common denominator'))

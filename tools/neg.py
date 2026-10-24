@@ -120,4 +120,4 @@ css = '''.an-neg { --ng-u: #6fa8dc; }
 ''' + L.css()
 
 anim_row.write_anim('neg', html=html, css=css, whole=True, place=dict(
-    book_id='TB-GCSE-MATHS', chapter=1, title='Negative numbers', about='−3 × −5'))
+    book_id='TB-KS2-MATHS', chapter=3, title='Negative numbers', about='Negative number'))

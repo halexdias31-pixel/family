@@ -19334,17 +19334,20 @@ check('a content card, on Find 2 and on Find: What kind · Content, Statistics �
   if (unshelved.length) bad.push(unshelved.length + ' of ' + resources.length + ' Resources are on no shelf — pressing a shelf hides them');
   if (cards.some(i => R.facetValues([i], shelfFacet).length)) bad.push('a content card is on a shelf — the textbooks\' shelf went');
 
-  /* THE CARD, THEN A PAGE PER ANIMATION, in the file's order. "Averages" teaches the mean. */
+  /* THE CARD, THEN A PAGE PER ANIMATION, in the file's order. "Averages" has none since the mean went to KS2 (436); "Probability" has Bayes. */
   const x = left.find(i => i.name === 'Averages') || cards.find(i => i.key === 'ct:TB-GCSE-STATS-8');
   if (!x) return bad.concat(['no Averages card among the Statistics cards']);
   const parts = w.pageParts_(x);
   /* AND THEN ITS FORMULAS AND ITS WORKED LINES, A TITLED PAGE EACH (408). */
   const want = [null].concat((x.row.animations || []).map(a => 'an' + x.row.n + '-' + a.id), ['formulas', 'worked']);
-  if (JSON.stringify(parts) !== JSON.stringify(want) || parts.indexOf('an8-mean') < 0) bad.push('the Averages card is pages ' + JSON.stringify(parts) + ', not the card, the mean\'s animation, Formulas and Worked examples');
+  if (JSON.stringify(parts) !== JSON.stringify(want)) bad.push('the Averages card is pages ' + JSON.stringify(parts) + ', not the card, its animations, Formulas and Worked examples');
+  const xp = left.find(i => i.key === 'ct:TB-GCSE-STATS-15');
+  if (!xp || w.pageParts_(xp).indexOf('an15-bayes') < 0) bad.push('the Probability card has no page for Bayes\'s animation: ' + (xp ? JSON.stringify(w.pageParts_(xp)) : 'no card'));
   const box = html => { const d = w.document.createElement('div'); d.innerHTML = html; return d; };
   const card = box(w.stuffCard(x));
   if (!card.querySelector('.card.ct')) bad.push('the card is not drawn as a content card');
-  if (!card.querySelector('.tb-an-stage') && !box(w.stuffPart_(x, 'an8-mean')).querySelector('.tb-an-stage')) bad.push('the mean\'s animation has no stage on its page');
+  if (card.querySelector('.tb-an-stage')) bad.push('a drawing is on the card itself — each has a page of its own');
+  if (xp && !box(w.stuffPart_(xp, 'an15-bayes')).querySelector('.tb-an-stage')) bad.push('Bayes\'s animation has no stage on its page');
   /* WHAT IT IS, FIRST IN THE ONE ROW EVERY CARD WEARS: § */
   /* EVERY FACET A TAG SINCE 396, in the tab's order: What for, then What kind. */
   const lead = [...card.querySelectorAll('.qtags .qtag')].slice(0, 2).map(e => e.getAttribute('data-f') + ':' + e.textContent.trim());
@@ -19720,13 +19723,13 @@ check('Find 2 keeps its own place across a reload — the column, its chips and 
   /* REMEMBERED, as a finger's swipe is (`familyTab`): the column is half of where you were. */
   T.go('res');
   await wait(80);
-  /* A CONTENT CARD'S ANIMATION, a page past its card: the mean's, under Averages. */
+  /* A CONTENT CARD'S ANIMATION, a page past its card: Bayes's, under Probability. */
   const chips = [{ field: 'kindLabel', value: 'Content' }, { field: 'subject', value: 'Statistics' }];
   T.RES().filters = chips.map(f => Object.assign({}, f));
   W.paintFinder_('res');
   const pages = inRes_(W, () => W.stuffPages_());
-  const at = pages.findIndex(pg => pg.x && pg.x.kind === 'content' && pg.part === 'an8-mean');
-  if (at < 0) return ['What kind · Content, Subject · Statistics has no page for the mean\'s animation — nothing was reloaded'];
+  const at = pages.findIndex(pg => pg.x && pg.x.kind === 'content' && pg.part === 'an15-bayes');
+  if (at < 0) return ['What kind · Content, Subject · Statistics has no page for Bayes\'s animation — nothing was reloaded'];
   T.goPage('res', inRes_(W, () => W.stuffFirstResult_()) + at, true);
   await wait(150);
   const want = pg_(T).res;
@@ -19746,9 +19749,9 @@ check('Find 2 keeps its own place across a reload — the column, its chips and 
   await wait(200);
   if (t.AT() !== 'res') bad.push('the reload opened on ' + t.AT() + ', not Find 2');
   if (JSON.stringify(t.RES().filters) !== JSON.stringify(chips)) bad.push('the reload brought Find 2 back with the chips ' + JSON.stringify(t.RES().filters));
-  if (pg_(t).res !== want) bad.push('the reload put Find 2 on page ' + pg_(t).res + ', not the mean animation\'s ' + want);
-  const shown = w.document.querySelector('#s-res .card.is-an8-mean');
-  if (!shown) bad.push('after the reload the mean\'s animation is not drawn on Find 2');
+  if (pg_(t).res !== want) bad.push('the reload put Find 2 on page ' + pg_(t).res + ', not Bayes\'s animation\'s ' + want);
+  const shown = w.document.querySelector('#s-res .card.is-an15-bayes');
+  if (!shown) bad.push('after the reload Bayes\'s animation is not drawn on Find 2');
   if ((t.STUFF().filters || []).length) bad.push('the reload put Find 2\'s place on Find: ' + JSON.stringify(t.STUFF().filters));
   /* AND FIND'S OWN, FROM FIND: kept under its own name and brought back to Find, Find 2 untouched. */
   const t2 = two.w;
@@ -19858,11 +19861,11 @@ check('a kept card Saved cannot draw whole opens in Find: Saved\'s Open under a 
   const { w } = b, t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
   const all = w.stuffItemsAll_();
   /* A CONTENT CARD WITH AN ANIMATION: its words are on the card, the drawing is a page after it. */
-  const book = all.find(x => x.kind === 'content' && x.key === 'ct:TB-GCSE-STATS-8');
+  const book = all.find(x => x.kind === 'content' && x.key === 'ct:TB-GCSE-STATS-15');
   const boxer = all.find(x => x.kind === 'boxer' && w.pageParts_(x).length > 1);
   const fight = all.find(x => x.kind === 'fight');
   const proj = all.find(x => x.kind === 'project');
-  if (!book || !boxer || !fight || !proj) return ['no Averages content card, boxer with fights, fight or project in the whole list — NOT checked'];
+  if (!book || !boxer || !fight || !proj) return ['no Probability content card, boxer with fights, fight or project in the whole list — NOT checked'];
   const onCard = (x, when, next) => {
     if (t.AT() !== 'stuff') bad.push(when + ': the column in front is ' + t.AT() + ', not Find');
     const pg = w.stuffPages_()[pg_(t).stuff - w.stuffFirstResult_()];
@@ -19896,7 +19899,7 @@ check('a kept card Saved cannot draw whole opens in Find: Saved\'s Open under a 
   if (/Find 2|Resources/.test(forBook.getAttribute('aria-label') || '')) bad.push('the Open tile names the wrong column: ' + JSON.stringify(forBook.getAttribute('aria-label')));
   A['find-open'](forBook);
   await wait(150);
-  onCard(book, 'a content card opened from Saved', 'an8-mean');
+  onCard(book, 'a content card opened from Saved', 'an15-bayes');
   if (JSON.stringify([t.RES().filters, t.RES().q]) !== r0) bad.push('opening from Saved changed Find 2\'s place: ' + JSON.stringify([t.RES().filters, t.RES().q]));
   for (const [x, tile, next] of [[boxer, forBoxer, w.pageParts_(boxer)[1]], [proj, forProj, w.pageParts_(proj)[1]]]) {
     if (!tile) { bad.push('the ' + x.kind + ' kept on Saved has no Open tile'); continue; }

@@ -138,4 +138,4 @@ css = '''.an-trans { --tf-u: #6fa8dc; }
 ''' + L.css()
 
 anim_row.write_anim('trans', html=html, css=css, whole=True, place=dict(
-    book_id='TB-GCSE-MATHS', chapter=14, title='Translation and reflection', about='Translation|Reflection'))
+    book_id='TB-KS2-MATHS', chapter=17, title='Translation and reflection', about='Translation|Reflection'))
