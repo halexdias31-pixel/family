@@ -27,5 +27,22 @@
 {"splash_id": "half3", "name": "Half, three ways", "kind": "tool", "shows": "½ = 0.5 = 50%", "note": "", "active": true},
 {"splash_id": "mxc", "name": "y = mx + c", "kind": "proof", "shows": "the line turning as m changes", "note": "", "active": true},
 {"splash_id": "orbit", "name": "The solar system", "kind": "proof", "shows": "eight planets round the Sun, each at its real period", "note": "Kepler", "active": true},
-{"splash_id": "fit", "name": "How many fit?", "kind": "proof", "shows": "how many 3s fit into 4: one, and a third of the next", "note": "", "active": true}
+{"splash_id": "fit", "name": "How many fit?", "kind": "proof", "shows": "how many 3s fit into 4: one, and a third of the next", "note": "", "active": true},
+{"splash_id":"gexp","name":"Expanding brackets","kind":"proof","shows":"(x + 3)(x + 2) as an area: four cells, then like terms","note":"","active":true},
+{"splash_id":"gfac","name":"Factorising with tiles","kind":"proof","shows":"x² + 5x + 6 slid together into (x + 2)(x + 3)","note":"","active":true},
+{"splash_id":"gbal","name":"The balance","kind":"proof","shows":"5x − 3 = 2x + 9 solved on a level balance: same to both sides","note":"","active":true},
+{"splash_id":"gsim","name":"Two lines meet","kind":"proof","shows":"3x + 2y = 16 and x − 2y = 0 drawn, meeting at (4, 2)","note":"","active":true},
+{"splash_id":"gquad","name":"Roots and turning point","kind":"proof","shows":"y = x² − 4x + 3 traced: roots, y-intercept, symmetry, turning point","note":"","active":true},
+{"splash_id":"gsemi","name":"Angle in a semicircle","kind":"proof","shows":"C moves round the circle and angle ACB stays 90°, then why","note":"","active":true},
+{"splash_id":"gsimi","name":"Scale factor k, k², k³","kind":"proof","shows":"a square and a cube scaled by 2 and 3: area × k², volume × k³","note":"","active":true},
+{"splash_id":"gsoh","name":"SOH CAH TOA","kind":"proof","shows":"a right-angled triangle naming hyp, opp and adj, then each ratio","note":"","active":true},
+{"splash_id":"gvec","name":"Tip to tail","kind":"proof","shows":"a = (3, 2) then b = (1, −4) from its tip: a + b = (4, −2), and b + a too","note":"","active":true},
+{"splash_id":"gtree","name":"Probability tree","kind":"proof","shows":"two balls taken without replacement: branches, then multiply along","note":"","active":true},
+{"splash_id":"gcf","name":"Cumulative frequency","kind":"proof","shows":"a cumulative frequency curve read for the median and quartiles, then a box plot","note":"","active":true},
+{"splash_id":"grot","name":"Rotation","kind":"proof","shows":"a triangle turned 90° clockwise about (0, 0), then described fully","note":"","active":true},
+{"splash_id":"genl","name":"Enlargement","kind":"proof","shows":"rays from a centre through each corner, twice as far: scale factor 2","note":"","active":true},
+{"splash_id":"gcomp","name":"Compound interest","kind":"proof","shows":"£2000 at 3% for 4 years, a bar a year: interest on the interest","note":"","active":true},
+{"splash_id":"gsurd","name":"Simplifying a surd","kind":"proof","shows":"48 squares regrouped as three 4 by 4: √48 = 4√3","note":"","active":true},
+{"splash_id":"gpyr","name":"Pythagoras, rearranged","kind":"proof","shows":"four triangles in a square slide to show c² = a² + b²","note":"","active":true},
+{"splash_id":"grule","name":"Sine and cosine rules","kind":"proof","shows":"sides paired with the angles they face, then A opened from 60° to 120°","note":"","active":true}
 ]
