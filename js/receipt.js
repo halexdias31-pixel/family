@@ -671,16 +671,15 @@ on('job-delete', el => {
 
 /* The state the games keep between frames — the board, the clock, the deck, which month the calendar is showing. § */
 /* ---------- ARE YOU SURE, WITHOUT A DIALOG § */
-/* A TILE'S MARK IS MARKUP, so what goes back is the markup — `textContent` gave a tile back as the word "Confirm" (413). */
-const SURE_WAS_ = new WeakMap();
 function sure_(el, ask) {
   if (!el) return true;                       // called from somewhere with no button: nothing to arm
-  if (el.dataset.sure) { delete el.dataset.sure; return true; }
+  if (el.dataset.sure) { delete el.dataset.sure; sureBack_(el); return true; }
   el.dataset.sure = '1';
-  SURE_WAS_.set(el, el.innerHTML);
-  el.dataset.was = el.textContent;
-  if (el.classList && el.classList.contains('tile')) el.innerHTML = `<span class="tile-k">${esc(ask)}</span>`;
-  else el.textContent = ask;
+  /* THE WHOLE FACE IS KEPT, not its text: a tile is a drawn mark, and its text is nothing (420). */
+  el._sureWas = { html: el.innerHTML, label: el.getAttribute('aria-label') };
+  el.classList.add('is-sure');
+  el.textContent = ask;
+  if (el.hasAttribute('aria-label')) el.setAttribute('aria-label', ask);
   setTimeout(() => {
     if (!el.dataset.sure) return;
     delete el.dataset.sure;
@@ -688,11 +687,12 @@ function sure_(el, ask) {
   }, 4000);
   return false;
 }
-/* THE CONTROL AS IT WAS, after the timeout or a refusal. */
 function sureBack_(el) {
-  if (!el) return;
-  const was = SURE_WAS_.get(el);
-  if (was != null) el.innerHTML = was; else el.textContent = el.dataset.was || 'Confirm';
+  const w = el._sureWas; el._sureWas = null;
+  el.classList.remove('is-sure');
+  if (!w) return;
+  el.innerHTML = w.html;
+  if (w.label != null) el.setAttribute('aria-label', w.label);
 }
 
 let FEED_AT = null;

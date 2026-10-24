@@ -1889,41 +1889,10 @@ const PER_PAGE = { library: 12 };
 
 /* The dot's handler is registered further down, WITH the other actions. § */
 
-/* ---------- THE SHEET § */
+/* ---------- THE SHEET IS A PAGE (420) ---------- */
+/* "remove all pop up menus I DONT LIKE POP UP MENUS": no backdrop, nothing floats. While it is open
+   the sheet is the page — the grid steps aside (`body.sheet-open`) and Back brings it back. */
 let sheetOnClose = null;
-
-/* THE CARD THAT WAS PRESSED, caught on its way past. § */
-let SHEET_FROM = null;
-
-/* The four numbers that say where the panel starts: § */
-function setSheetOrigin_(el) {
-  const root = $('sheet');
-  if (!root) return;
-  const st = root.style;
-  if (!el || !el.getBoundingClientRect) {
-    /* From the middle, at nearly full size — a small, quiet arrival rather than nothing at all. */
-    st.setProperty('--from-x', '0px');
-    st.setProperty('--from-y', '0px');
-    st.setProperty('--from-s', '.94');
-    return;
-  }
-  const r = el.getBoundingClientRect();
-  if (!r.width || !r.height) { st.setProperty('--from-s', '.94'); return; }
-
-  const panel = root.getBoundingClientRect();
-  const px = panel.left + panel.width / 2;
-  const py = panel.top + panel.height / 2;
-  const cx = r.left + r.width / 2;
-  const cy = r.top + r.height / 2;
-
-  /* HOW SMALL IT STARTS: the card's width against the panel's. Floored, because a very small card
-     — a chip, an arrow — would otherwise start as a dot and read as an explosion rather than as
-     something opening. */
-  const scale = Math.max(.25, Math.min(1, r.width / (panel.width || r.width)));
-  st.setProperty('--from-x', Math.round(cx - px) + 'px');
-  st.setProperty('--from-y', Math.round(cy - py) + 'px');
-  st.setProperty('--from-s', scale.toFixed(3));
-}
 
 /* ---------- WHAT THE SHEET IS ONE OF § */
 let sheetStep = null;
@@ -1935,42 +1904,28 @@ function openSheet(title, html, onClose, step) {
   /* SET AFTER the old sheet's `onClose` above, which may itself open a sheet. */
   sheetStep = typeof step === 'function' ? step : null;
 
-  /* ---------- WHERE IT GROWS FROM § */
-  /* ---------- ALREADY OPEN? THEN IT DOES NOT MOVE § */
-  const wasOpen = !$('sheet').classList.contains('hidden');
-  if (!wasOpen) setSheetOrigin_(SHEET_FROM);
-  SHEET_FROM = null;
-
   $('sheet-title').textContent = title;
   $('sheet-body').innerHTML = html;
+  $('sheet-body').scrollTop = 0;
   $('sheet').classList.remove('hidden');
-  $('sheet-back').classList.remove('hidden');
+  document.body.classList.add('sheet-open');
+  if ($('screen')) $('screen').inert = true;
   sheetOnClose = onClose || null;
-  /* The page behind must not scroll while a sheet is open — two scrolling things at once is the
-     thing that makes a phone feel broken. */
-  document.body.style.overflow = 'hidden';
 }
 
-/* ---------- CLOSING IT § */
-let sheetClear = 0;
-
+/* ---------- CLOSING IT: BACK TO THE GRID, WHERE IT STOOD ---------- */
 function closeSheet() {
   sheetStep = null;
+  const was = !$('sheet').classList.contains('hidden');
   $('sheet').classList.add('hidden');
-  $('sheet-back').classList.add('hidden');
-  document.body.style.overflow = '';
+  document.body.classList.remove('sheet-open');
+  if ($('screen')) $('screen').inert = false;
   const f = sheetOnClose; sheetOnClose = null;
   if (f) { try { f(); } catch (err) { console.error('[sheet onClose]', err); } }
-
-  /* Emptied after it has gone. A second close before the first has finished cancels the pending
-     one rather than stacking another — otherwise a fast double-close empties the sheet somebody
-     has just reopened. */
-  clearTimeout(sheetClear);
-  sheetClear = setTimeout(() => {
-    /* Only if it is still closed. Reopened in the meantime and there is nothing to tidy — the new
-       contents are somebody's, not the old sheet's to throw away. */
-    if ($('sheet') && $('sheet').classList.contains('hidden')) $('sheet-body').innerHTML = '';
-  }, 300);
+  /* EMPTIED AFTER `onClose` has read it, and only if that did not open another. */
+  if ($('sheet').classList.contains('hidden')) $('sheet-body').innerHTML = '';
+  /* THE GRID WAS ONLY HIDDEN, so it kept its sizes; placed again anyway, in case the window turned meanwhile. */
+  if (was) { try { placeCells(undefined, true); } catch (err) {} }
 }
 
 /* ---------- ONE WAY TO POST § */
@@ -2170,7 +2125,7 @@ let PRESSED_OFF = 0;
 function pressMark_(t) {
   pressClear_();
   /* THE NEAREST THING THAT ACTS, not the exact target — pressing a word inside a card lights the
-     card, which is the same rule `SHEET_FROM` follows for where a sheet grows from. */
+     card. */
   const el = t && t.closest && t.closest('[data-do], .tab');
   /* NOT A DISABLED CONTROL. § */
   if (!el || el.disabled || el.getAttribute('aria-disabled') === 'true') return;
@@ -2312,13 +2267,9 @@ document.addEventListener('click', e => {
   const tab = e.target.closest('.tab');
   if (tab) { go(tab.dataset.tab); return; }
 
-  if (e.target.closest('#sheet-close') || e.target.id === 'sheet-back') { closeSheet(); return; }
+  if (e.target.closest('#sheet-close')) { closeSheet(); return; }
 
   const doer = e.target.closest('[data-do]');
-  /* THE CARD, remembered for the length of this press. § */
-  /* `.pass` WAS IN THIS LIST and the class no longer exists — a person is `.card.is-widget` now,
-     which the first entry already catches. See `findCard`. */
-  SHEET_FROM = e.target.closest('.card, .rc, .rc-stub, .paper, .slip, .post, .thing') || doer;
   /* A SELECT AND A CHECKBOX SPEAK THROUGH `change`, NOT `click`. § */
   if (doer && (doer.tagName === 'SELECT' || doer.type === 'checkbox')) return;
   if (doer && ACTIONS[doer.dataset.do]) {
@@ -2354,7 +2305,7 @@ addEventListener('keydown', e => {
   const t = e.target;
   if (t && (t.isContentEditable
     || /^(input|textarea|select)$/i.test(t.tagName || ''))) return;
-  /* The sheet is over the grid; while it is open the grid is not what these are for. */
+  /* The sheet is the page; while it is open the grid is not what these are for. */
   if (!$('sheet').classList.contains('hidden')) return;
 
   const ax = AXES[arrow[0]];

@@ -857,7 +857,7 @@ function inspect(opts) {
     }
   }
 
-  /* ---------- A TILE ALONE ON A SECOND LINE (414) — at a phone's width a row of tiles is one line, or its overflow is behind "Admin"/"More" (`tileRow_`, tiles.js) */
+  /* ---------- A TILE ALONE ON ANY LINE (414, 420) — every tile is shown and a row past six breaks into even lines (`tileRow_`, tiles.js): 4+3, never 6+1 */
   found.orphans = [];
   if (vw <= 430) {
     inside.filter(el => el.classList && el.classList.contains('tile-row')).forEach(row => {
@@ -869,12 +869,29 @@ function inspect(opts) {
         const ln = lines.find(l => Math.abs(l.top - top) <= 4);
         if (ln) ln.n++; else lines.push({ top, n: 1 });
       });
-      if (lines.length > 1 && lines.sort((a, b) => a.top - b.top)[lines.length - 1].n === 1) {
+      if (lines.length > 1 && lines.some(l => l.n === 1)) {
         found.orphans.push({ cls: String(row.className || ''), lines: lines.map(l => l.n).join('+'),
           acts: tiles.map(k => k.getAttribute('data-do') || k.getAttribute('aria-label') || '').join(' ') });
       }
     });
   }
+
+  /* ---------- NOTHING FLOATS (420): "remove all pop up menus I DONT LIKE POP UP MENUS". A visible fixed or
+     top-layer box holding a control is a pop-up, unless it is one of the few things that are not menus. */
+  found.floating = [];
+  const NOT_MENUS = '#kp, #banner, #toast, #reconnect, #splash, .biz-dot, .nes-wrap.nes-full, .vid-watch.is-fs, .kp-loupe, .pad-loupe, .pad-sizes';
+  [...document.querySelectorAll('body *')].forEach(el => {
+    const s = getComputedStyle(el);
+    let top = false;
+    try { top = el.matches(':popover-open') || el.matches('dialog[open]') || el.matches(':modal'); } catch (e) {}
+    if (s.position !== 'fixed' && !top) return;
+    if (el.closest(NOT_MENUS) || !vis(el)) return;
+    if (!el.matches('[data-do], button, a, input, select, textarea') && !el.querySelector('[data-do], button, a, input, select, textarea')) return;
+    found.floating.push((el.id ? '#' + el.id : el.tagName.toLowerCase()) + (el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).join('.') : '')
+      + ' (' + (top ? 'top layer' : 'position: fixed') + ')');
+  });
+  const sh = document.getElementById('sheet');
+  if (sh && getComputedStyle(sh).position !== 'static') found.floating.push('#sheet is position: ' + getComputedStyle(sh).position + ' — the sheet is a page in the flow (420)');
 
   return { found, guessed, edgeN,
            pane: live === document.body ? 'body' : (live.id || live.className || live.tagName),
@@ -1522,7 +1539,8 @@ function inspect(opts) {
       `${f} still holds the loader that stands for "not started", 3s after the screen settled`, at));
     (r.offGlass || []).forEach(f => add('A WIDGET OFF THE GLASS STARTED',
       `${f} is running beside the column in front, 3s after the screen settled`, at));
-    (r.orphans || []).forEach(o => add('A TILE ALONE ON A SECOND LINE',
+    (r.floating || []).forEach(f => add('A POP-UP: SOMETHING FLOATS OVER THE APP (420)', f, at));
+    (r.orphans || []).forEach(o => add('A TILE ALONE ON A LINE',
       `.${o.cls.replace(/\s+/g, '.')} wraps ${o.lines} tiles (${o.acts.slice(0, 120)})`, at));
     (r.overflow || []).forEach(o => add('SIDEWAYS SCROLL',
       `${o.tag}.${o.cls.split(/\s+/)[0] || ''} overflows by ${o.by}px`, at));
