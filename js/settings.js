@@ -76,6 +76,8 @@ function settingsInto_(d, extra) {
         body: libS(x.r.body),
         pic: libS(x.r.pic),
         clip: libS(x.r.clip),
+        /* THE MINIMUM AGE TO WATCH ITS CLIP, in whole years; blank is everyone (406). */
+        age: libS(x.r.age),
         order: libN(x.r.sort_order) || 0,
         row: setRow_(x.i),
       }))

@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-24-e-smooth-icons";
+  --css-version: "2026-10-24-f-media-age";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -3245,6 +3245,16 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .media-pic { width: 4rem; aspect-ratio: 4 / 3; object-fit: cover; border-radius: .3rem; background: var(--line); }
 .media-name { min-width: 0; overflow-wrap: anywhere; }
 .media-thumb { display: block; width: 100%; max-width: 20rem; border-radius: .4rem; }
+/* HOW OLD YOU HAVE TO BE (406): the form's quick picks, and the badge on a reel or a video's picture. */
+.media-age-picks { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+.media-age { display: block; margin-bottom: .75rem; }
+.media-age-picks .btn { width: auto; flex: 1 1 3rem; min-height: 44px; min-width: 44px; padding: 0 .5rem; }
+.media-age-picks .btn.is-on { border-color: var(--gold); color: var(--gold); }
+.media-age-picks input { width: 5.5rem; min-height: 44px; }
+.media-age-badge { position: absolute; z-index: 3; left: .3rem; top: .3rem; padding: .08rem .35rem; border-radius: 4px;
+  background: var(--over-wash); color: var(--over-ink); font-size: .68rem; font-weight: 700; line-height: 1.35;
+  pointer-events: none; }
+.media-age-badge.is-reel { left: .6rem; top: .6rem; font-size: .8rem; }
 .add-card .add-plus .tile-i { width: 16px; height: 16px; }
 /* ITS FORM, AND THE PEOPLE COLUMN'S EDIT — `personFormHtml_` in me.js. */
 .person-form .pf-roles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: .5rem; }

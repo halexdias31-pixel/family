@@ -31,7 +31,9 @@ it, stopping when you leave, with nothing on it but the app's own sound button.
 - **Keep them small.** GitHub refuses a file over 100 MB and warns over 50; more to the point, every
   byte is a byte somebody's phone downloads. Under about 10 MB each is comfortable.
 - **One file, one row.** `FEED_FACTS` in `js/chess.js` is the built-in list — the fifth field is the
-  clip. A row in the `facts` tab of the Settings spreadsheet wins over it the moment there is one,
+  clip, and an optional **sixth field is the minimum age** to watch it in whole years (`'12'`; blank is
+  everyone; an `age` column does the same in `settings/facts`). It is a static file, so the age hides
+  the reel from the column, not from somebody reading the file (docs/history/406). A row in the `facts` tab of the Settings spreadsheet wins over it the moment there is one,
   which is where new reels should go once the tab exists.
 - **A missing file is a dark reel.** `node js/check-reels.js` is the check, written the day the
   first two clips landed. It asks four things of every row: the file is there, spelled exactly as

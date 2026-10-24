@@ -101,6 +101,7 @@ const EXEMPT = [
   { file: 'me.js', fn: 'personFormHtml_', has: 'data-pf-parent', why: PEOPLE_FORM },
   /* AN ADMIN'S REEL OR VIDEO FORM (404): kept in `MEDIA_FORM` as typed, and one link pasted and saved there and then. */
   { file: 'games.js', fn: 'box', has: 'data-mf="${k}"', why: 'an admin adding a reel or video — kept in `MEDIA_FORM` as typed, a paste and a Save, not work left on a device' },
+  { file: 'games.js', fn: 'mediaAgeBoxHtml_', has: 'data-mf="age"', why: 'the minimum age on that same form (406), kept in `MEDIA_FORM` as typed — one number, saved there and then' },
   { file: 'games.js', fn: 'mediaFormHtml_', has: 'data-mf="url"', why: 'one pasted YouTube link, looked up and saved there and then' },
   /* APPLY TO TEACH (400): one sheet filled and sent in a sitting; a reload starts the application again. */
   { file: 'me.js', fn: 'box', has: 'data-app="${k}"', why: 'the application to teach (400) — filled and sent in one sitting from its sheet' },

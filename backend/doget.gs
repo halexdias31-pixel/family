@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-24-c-ranks-media";
+const DOGET_VERSION = "2026-10-24-d-media-age";
 
 
 function doGet(e) {
@@ -388,7 +388,8 @@ function doGet(e) {
       /* ---------- EMPTY FOR EVERYBODY, AND FILLED FOR ONE PERSON § */
       films: filmsOut,
       /* AN ADMIN'S REELS AND VIDEOS (404), the same for everybody; the site merges them over the repository's. */
-      media: mediaOut_(),
+      /* PER VIEWER (406) — the kept body is per viewer too (`payloadKey_`). */
+      media: mediaOut_(mediaAgeCap_(meAsked)),
       cheatsheet: [],
       /* `topicTree: []` WAS THE FOURTH OF THESE, declared so `check-payload.js` would not report a key the phone filled from `data/topics.json` as read-and-never-sent. § */
       /* AND `practicals` IS THE FIFTH, for exactly the same reason. § */
@@ -1287,16 +1288,20 @@ function payloadWithFresh_(body, fresh, cached) {
 }
 
 /* `payload.media` (404): every row, a hidden one as its id alone — it is there to hide a repository item with that id. */
-function mediaOut_() {
+/* `cap` IS THE OLDEST RATING THE VIEWER MAY SEE (`mediaAgeCap_`, 406): a row rated above it goes as its veil alone. */
+function mediaOut_(cap) {
   const out = [];
+  const most = typeof cap === 'number' ? cap : MEDIA_AGE_UNKNOWN;
   try {
     read(TAB.media).rows.forEach(function (r) {
       const kind = S(r.kind), id = S(r.yt_id);
       if (MEDIA_KINDS.indexOf(kind) === -1 || !MEDIA_YT_RE.test(id)) return;
       if (TRUE_(r.hidden)) { out.push({ kind: kind, id: id, hidden: true }); return; }
+      const age = mediaAgeOf_(r.age);
+      if (age > most) { out.push({ kind: kind, veil: mediaVeil_(kind, id), hidden: true }); return; }
       out.push({ kind: kind, id: id, url: S(r.url), title: S(r.title), channel: S(r.channel),
         thumb: S(r.thumb), subject: S(r.subject), tags: S(r.tags), vkind: S(r.vkind),
-        age: S(r.age), notes: S(r.notes) });
+        age: age ? String(age) : '', notes: S(r.notes) });
     });
   } catch (err) {}
   return out;

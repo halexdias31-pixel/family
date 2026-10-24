@@ -4442,11 +4442,13 @@ function videosAll_() {
   (typeof mediaVideosOver_ === 'function' ? mediaVideosOver_(VIDEOS_LIST || []) : (VIDEOS_LIST || [])).forEach((r, i) => {
     if (!r || typeof r !== 'object') return;
     if (r.active !== undefined && typeof libOn === 'function' && !libOn(r.active)) return;
+    /* TOO OLD FOR THIS VIEWER (406) — the file's row is static, so this hides it from the list, not from a determined viewer. */
+    if (!mediaAgeOk_(r.age)) return;
     const url = String(r.url || '').trim();
     const kind = VID_KINDS.indexOf(String(r.kind || '').toLowerCase()) !== -1
       ? String(r.kind).toLowerCase() : 'clip';
     add({ key: 'v' + i, title: String(r.title || '').trim(), url, kind, how: vidHow_(url),
-          tags: String(r.tags || ''), age: String(r.age || '').trim(), notes: String(r.notes || '') });
+          tags: String(r.tags || ''), age: mediaAgeSay_(r.age), notes: String(r.notes || '') });
   });
   /* THE REELS WERE HERE, numbered by address and listed as "Reel 1", "Reel 2". § */
   /* ---------- A FILM, A SERIES OR A DOCUMENTARY — AND ONE THAT IS NOT IN THE DRIVE YET § */
@@ -4585,7 +4587,7 @@ function vidNow_(r) {
 function vidRow_(r) {
   const flag = vidFlag_(r);
   /* THE DIM LINE: what the row already said after its kind, which has moved to the badge — a placeholder's reason, the year, a series' seasons, the age. § */
-  const sub = [r.how === 'none' ? r.none : '', r.year, r.seasons, r.age].filter(Boolean).join(' · ');
+  const sub = [r.how === 'none' ? r.none : '', r.year, r.seasons].filter(Boolean).join(' · ');
   const src = vidThumb_(r);
   /* `loading="lazy"`: a picture for a row somebody may scroll past, on a column most of which is parked
      off the glass. `decoding="async"` keeps the decode off the keystroke that drew it. */
@@ -4597,7 +4599,8 @@ function vidRow_(r) {
     ? `<span class="vid-out" role="img" aria-label="opens in a new tab">${tileIcon_('ext')}</span>` : '';
   const badge = word || out ? `<span class="vid-badge">${esc(word)}${out}</span>` : '';
   /* THE WORDS COME FIRST IN THE MARKUP, AND THE PICTURE IS DRAWN FIRST (`order` on `.vid-th`). § */
-  const th = `<span class="vid-th">${vidPoster_(r)}${img}${badge}</span>`;
+  const aged = r.age ? `<span class="media-age-badge" aria-label="for ages ${esc(r.age)}">${esc(r.age)}</span>` : '';
+  const th = `<span class="vid-th">${vidPoster_(r)}${img}${badge}${aged}</span>`;
   const inner = `<span class="vid-txt"><span class="vid-t">${esc(r.title)}</span>${
     sub ? `<span class="vid-k">${esc(sub)}</span>` : ''}</span>${th}`;
   /* NOTHING TO OPEN, AND IT SAYS SO — not a button that does nothing when pressed. */
@@ -5627,36 +5630,79 @@ function emuSync_(off) {
 const MEDIA_SAY = { reel: 'Add a reel', video: 'Add a video' };
 let MEDIA_FORM = null;   // { kind, id (the YouTube id when editing), url, title, channel, thumb, subject, tags, vkind, age, notes, err, asking }
 
-const mediaRows_ = kind => ((typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.media)) ? DATA.media : [])
-  .filter(m => m && m.kind === kind && /^[A-Za-z0-9_-]{11}$/.test(String(m.id || '')));
+const mediaAll_ = () => ((typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.media)) ? DATA.media : []);
+const mediaRows_ = kind => mediaAll_().filter(m => m && m.kind === kind && /^[A-Za-z0-9_-]{11}$/.test(String(m.id || '')));
 const mediaMay_ = () => typeof isAdmin === 'function' && isAdmin();
+
+/* ---------- HOW OLD YOU HAVE TO BE TO WATCH IT (406) ----------
+   Whole years; blank, 0, U, PG or words = everyone. The backend's `mediaAgeOf_`/`mediaAgeCap_` (content.gs) are the same rule. */
+const MEDIA_AGE_MAX = 21;
+const MEDIA_AGE_UNKNOWN = 12;
+const MEDIA_AGE_PICKS = [['U/PG', 0], ['7', 7], ['12', 12], ['15', 15], ['18', 18]];
+function mediaAgeOf_(v) {
+  const m = String(v == null ? '' : v).match(/\d+/);
+  return m ? Math.min(MEDIA_AGE_MAX, Number(m[0])) : 0;
+}
+const mediaAgeSay_ = v => (mediaAgeOf_(v) ? mediaAgeOf_(v) + '+' : '');
+/* WHOLE YEARS FROM A PROFILE'S DATE OF BIRTH (or an `age` field), or null when it says neither. */
+function profileAge_(p) {
+  const q = p || {};
+  const y = Number(q.dob_y), m = Number(q.dob_m) || 1, d = Number(q.dob_d) || 1;
+  if (y > 1900) {
+    const now = new Date();
+    return now.getFullYear() - y - ((now.getMonth() + 1 < m || (now.getMonth() + 1 === m && now.getDate() < d)) ? 1 : 0);
+  }
+  const a = String(q.age == null ? '' : q.age).match(/^\s*(\d{1,3})\s*$/);
+  return a ? Number(a[1]) : null;
+}
+/* THE OLDEST RATING THIS VIEWER SEES: an admin everything; a known age that age; unknown, 12 signed out or a Student, else everything. */
+function viewerAgeCap_() {
+  if (mediaMay_()) return Infinity;
+  const age = typeof USER !== 'undefined' && USER ? profileAge_(USER.profile) : null;
+  if (age !== null) return age;
+  return typeof USER === 'undefined' || !USER || (typeof childView_ === 'function' && childView_()) ? MEDIA_AGE_UNKNOWN : Infinity;
+}
+const mediaAgeOk_ = v => mediaAgeOf_(v) <= viewerAgeCap_();
+/* THE SAME FNV-1a AS `mediaVeil_` in content.gs: a row too old for this viewer comes as this hash, which still hides a repository copy. */
+function mediaVeil_(kind, id) {
+  let h = 0x811c9dc5;
+  const s = kind + ':' + id;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return ('0000000' + h.toString(16)).slice(-8);
+}
+/* EVERY ID THE SHEET SPEAKS FOR, as an id or as a veil — a repository item it names is replaced or hidden. */
+function mediaTaken_(kind) {
+  const ids = new Set(mediaRows_(kind).map(m => m.id));
+  const veils = new Set(mediaAll_().filter(m => m && m.kind === kind && m.veil).map(m => String(m.veil)));
+  return id => !!id && (ids.has(id) || veils.has(mediaVeil_(kind, id)));
+}
 
 /* THE REELS, WITH THE SHEET OVER THE REPOSITORY: a sheet row (shown or hidden) replaces a repository clip of the same video. */
 function mediaReelsOver_(list) {
   const rows = mediaRows_('reel');
-  const ids = new Set(rows.map(m => m.id));
-  return list.filter(f => !ids.has(clipYt_(f.clip)))
+  const taken = mediaTaken_('reel');
+  return list.filter(f => !taken(clipYt_(f.clip)))
     .concat(rows.filter(m => !m.hidden).map(m => ({ subject: m.subject || '@family.', heading: '', body: '', pic: '',
-      clip: 'https://youtube.com/shorts/' + m.id, media: m.id })));
+      clip: 'https://youtube.com/shorts/' + m.id, media: m.id, age: m.age || '' })));
 }
 
 /* THE VIDEOS LIST, THE SAME WAY: the sheet's rows first, and a repository row of the same video left out. */
 function mediaVideosOver_(list) {
   const rows = mediaRows_('video');
-  const ids = new Set(rows.map(m => m.id));
+  const taken = mediaTaken_('video');
   return rows.filter(m => !m.hidden).map(m => ({ title: m.title || 'Untitled', url: 'https://www.youtube.com/watch?v=' + m.id,
       kind: m.vkind || 'clip', tags: [m.tags, m.subject, m.channel].filter(Boolean).join(' '), age: m.age || '', notes: m.notes || '' }))
-    .concat((list || []).filter(r => !(r && ids.has(vidYouTubeId_(r.url)))));
+    .concat((list || []).filter(r => !(r && taken(vidYouTubeId_(r.url)))));
 }
 
 /* WHAT THE ADMIN CAN CHANGE: every YouTube item of that kind, the repository's and the sheet's, hidden ones too. */
 function mediaManaged_(kind) {
-  const rows = mediaRows_(kind).map(m => ({ id: m.id, title: m.title || (m.hidden ? 'Hidden' : 'Untitled'), hidden: !!m.hidden, sheet: true }));
+  const rows = mediaRows_(kind).map(m => ({ id: m.id, title: m.title || (m.hidden ? 'Hidden' : 'Untitled'), hidden: !!m.hidden, sheet: true, age: m.age || '' }));
   const have = new Set(rows.map(r => r.id));
   const repo = kind === 'reel'
-    ? (sheetFacts_().length ? sheetFacts_() : factsBuilt_()).map(f => clipYt_(f.clip))
+    ? (sheetFacts_().length ? sheetFacts_() : factsBuilt_()).map(f => ({ id: clipYt_(f.clip), age: f.age || '' }))
     : [];
-  repo.forEach(id => { if (id && !have.has(id)) { have.add(id); rows.push({ id, title: 'From the repository', hidden: false, sheet: false }); } });
+  repo.forEach(f => { if (f.id && !have.has(f.id)) { have.add(f.id); rows.push({ id: f.id, title: 'From the repository', hidden: false, sheet: false, age: f.age }); } });
   return rows;
 }
 
@@ -5665,8 +5711,8 @@ function mediaHtml_(kind) {
   const F = MEDIA_FORM && MEDIA_FORM.kind === kind ? MEDIA_FORM : null;
   const list = mediaManaged_(kind).map(r => `<li class="media-row">
       <img class="media-pic" alt="" loading="lazy" src="https://i.ytimg.com/vi/${esc(r.id)}/default.jpg">
-      <span class="media-name">${esc(r.title)}${r.hidden ? ' <span class="faint">· hidden</span>' : ''}</span>
-      <div class="tile-row">${tile_({ icon: 'edit', label: 'Edit', note: 'title and tags', act: 'media-edit', tone: 'admin', data: { kind, id: r.id } })
+      <span class="media-name">${esc(r.title)} <span class="faint">· ${esc(mediaAgeSay_(r.age) || 'all ages')}</span>${r.hidden ? ' <span class="faint">· hidden</span>' : ''}</span>
+      <div class="tile-row">${tile_({ icon: 'edit', label: 'Edit', note: 'title, tags, age', act: 'media-edit', tone: 'admin', data: { kind, id: r.id } })
         + tile_({ icon: r.hidden ? 'show' : 'hide', label: r.hidden ? 'Show' : 'Hide', note: r.hidden ? 'put it back' : 'from everybody',
                   act: 'media-hide', tone: 'admin', data: { kind, id: r.id, on: r.hidden ? '0' : '1' } })
         + (r.sheet ? tile_({ icon: 'bin', label: 'Delete', note: 'the row you added', act: 'media-del', tone: 'danger', data: { kind, id: r.id } }) : '')}</div>
@@ -5688,12 +5734,22 @@ function mediaFormHtml_(F) {
       ${box('title', 'Title')}
       ${F.kind === 'reel' ? box('subject', 'Subject (the word on the slide)')
         : box('tags', 'Tags (words a search finds it by)') + `<label class="field"><span>Kind</span><select data-mf="vkind">${VID_KINDS.map(k =>
-            `<option value="${k}"${(F.vkind || 'clip') === k ? ' selected' : ''}>${k}</option>`).join('')}</select></label>`
-          + box('age', 'Age (e.g. kids)') + box('notes', 'Notes')}` : ''}
+            `<option value="${k}"${(F.vkind || 'clip') === k ? ' selected' : ''}>${k}</option>`).join('')}</select></label>`}
+      ${mediaAgeBoxHtml_(F)}${F.kind === 'reel' ? '' : box('notes', 'Notes')}` : ''}
     <p class="faint media-said" aria-live="polite">${esc(F.err || '')}</p>
     <div class="pf-go">${got ? '<button class="btn" data-do="media-save">Save</button>' : '<button class="btn" data-do="media-look">Look it up</button>'}
       <button class="btn quiet" data-do="media-cancel">Cancel</button></div>
   </div>`;
+}
+
+/* HOW OLD YOU HAVE TO BE (406): UK-style quick picks and a number; blank or 0 is everyone. */
+function mediaAgeBoxHtml_(F) {
+  const now = mediaAgeOf_(F.age);
+  return `<div class="field media-age" role="group" aria-label="Minimum age"><span class="dob-cap">Minimum age to watch</span>
+    <div class="media-age-picks">${MEDIA_AGE_PICKS.map(([say, n]) =>
+      `<button type="button" class="btn quiet${now === n ? ' is-on' : ''}" aria-pressed="${now === n}" data-do="media-age" data-age="${n}">${esc(say)}</button>`).join('')}
+      <input data-mf="age" type="number" inputmode="numeric" min="0" max="${MEDIA_AGE_MAX}" step="1" aria-label="Minimum age in years"
+        value="${now ? now : ''}" placeholder="years"></div></div>`;
 }
 
 function mediaRedraw_(kind) {
@@ -5751,6 +5807,12 @@ on('media-edit', el => {
                  subject: m.subject || '', tags: m.tags || '', vkind: m.vkind || 'clip', age: m.age || '', notes: m.notes || '' };
   if (!MEDIA_FORM.title) mediaLook_(MEDIA_FORM); else mediaRedraw_(kind);
 });
+on('media-age', el => {
+  if (!MEDIA_FORM || !mediaMay_()) return;
+  const n = mediaAgeOf_(el.getAttribute('data-age'));
+  MEDIA_FORM.age = n ? String(n) : '';
+  mediaRedraw_(MEDIA_FORM.kind);
+});
 on('media-cancel', () => { const k = MEDIA_FORM && MEDIA_FORM.kind; MEDIA_FORM = null; if (k) mediaRedraw_(k); });
 on('media-look', () => { if (MEDIA_FORM && mediaMay_()) mediaLook_(MEDIA_FORM); });
 
@@ -5767,7 +5829,7 @@ on('media-save', el => {
   if (!String(F.title || '').trim()) { if (said) said.textContent = 'It needs a title.'; return; }
   send_({ action: 'mediaSave', personId: USER.personId || '', kind: F.kind, url: F.url, title: String(F.title).trim(),
           channel: F.channel || '', thumb: F.thumb || '', subject: F.subject || '', tags: F.tags || '',
-          vkind: F.kind === 'video' ? (F.vkind || 'clip') : '', age: F.age || '', notes: F.notes || '' },
+          vkind: F.kind === 'video' ? (F.vkind || 'clip') : '', age: mediaAgeOf_(F.age) ? String(mediaAgeOf_(F.age)) : '', notes: F.notes || '' },
         { button: el, where: said, lock: form })
     .then(d => { MEDIA_FORM = null; toast('Saved.'); mediaAdopt_(d, F.kind); })
     .catch(() => {});

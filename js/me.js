@@ -169,12 +169,8 @@ const APP_STATUS_LINE = {
   declined: 'Your application to teach was not taken further this time. You can apply again.',
 };
 function applyAdult_() {
-  const p = (USER && USER.profile) || {};
-  const y = Number(p.dob_y), m = Number(p.dob_m) || 1, d = Number(p.dob_d) || 1;
-  if (!y) return true;
-  const now = new Date();
-  const age = now.getFullYear() - y - ((now.getMonth() + 1 < m || (now.getMonth() + 1 === m && now.getDate() < d)) ? 1 : 0);
-  return age >= 18;
+  const age = profileAge_(USER && USER.profile);
+  return age === null || age >= 18;
 }
 function applyCard_() {
   if (!USER || rankAtLeast_('staff') || !applyAdult_()) return '';

@@ -10216,6 +10216,50 @@ check('an admin adds a reel from the "+" that leads the Reels column — a paste
   return bad;
 });
 
+/* "ADD AGE RESTRICTION FOR VIDEOS AND REELS — HOW OLD THEY HAVE TO BE TO WATCH IT" (406): the phone hides what the viewer is too young for. */
+check('a ten-year-old student sees no 12+ reel or video, an unknown-age student or nobody sees 12 and under, an adult and the admin see all with an age badge', async () => {
+  const { w } = boot({});
+  await wait(400);
+  const t = w.__t, d = w.document, bad = [];
+  const ALL = 'AAAAAAAAAAA', TWELVE = 'BBBBBBBBBBB', FIFTEEN = 'CCCCCCCCCCC', V18 = 'DDDDDDDDDDD', V0 = 'EEEEEEEEEEE';
+  t.DATA().media = [{ kind: 'reel', id: ALL, title: 'All', age: '' }, { kind: 'reel', id: TWELVE, title: 'Twelve', age: '12' },
+                    { kind: 'reel', id: FIFTEEN, title: 'Fifteen', age: '15' },
+                    { kind: 'video', id: V18, title: 'Eighteen video', age: '18' }, { kind: 'video', id: V0, title: 'Everyone video', age: '' }];
+  const y = new Date().getFullYear();
+  const col = () => d.querySelector('#s-reel');
+  const look = (who, say) => {
+    t.USER(who);
+    try { w.eval('REEL_CLIPS = null'); t.go('reel', false, true); w.paint('reel'); } catch (e) { bad.push(say + ': drawing Reels threw ' + e.message); }
+    const html = [...((col() && col().querySelectorAll('.reel')) || [])].map(r => r.outerHTML).join('');
+    const vids = (typeof w.videosAll_ === 'function' ? w.videosAll_() : []).map(r => r.url).join(' ');
+    return { html, vids, has: id => html.indexOf(id) !== -1, video: id => vids.indexOf(id) !== -1 };
+  };
+  if (typeof w.videosAll_ !== 'function') return ['videosAll_ is not reachable, so nothing about videos can be asked'];
+  let s = look({ name: 'Kit Young', personId: 'P-K', role: 'student', roles: ['student'], rank: 'student', token: 'tk1', profile: { dob_d: '1', dob_m: '1', dob_y: String(y - 10) } }, 'a ten-year-old');
+  if (!s.has(ALL)) bad.push('a ten-year-old does not see the reel for everyone, so the question below is empty');
+  if (s.has(TWELVE) || s.has(FIFTEEN)) bad.push('a ten-year-old student is shown a 12+ or 15+ reel');
+  if (s.video(V18) || !s.video(V0)) bad.push('a ten-year-old sees the 18 video, or not the one for everyone: ' + s.vids);
+  /* A SHEET ROW TOO OLD FOR HER COMES AS A VEIL (the server's `mediaVeil_`, 957cb7b5 for this repository Short) AND HIDES THE REPOSITORY COPY. */
+  if (!s.has('jD2Yy_wCBLE')) bad.push('the repository Short is not in a ten-year-old\'s column before any veil, so the veil question is empty');
+  t.DATA().media.push({ kind: 'reel', veil: '957cb7b5', hidden: true });
+  s = look(t.whoami(), 'a ten-year-old, veiled');
+  if (s.has('jD2Yy_wCBLE')) bad.push('a veiled repository Short still shows to the ten-year-old');
+  t.DATA().media.pop();
+  s = look({ name: 'Ada Pupil', personId: 'P-S', role: 'student', roles: ['student'], rank: 'student', token: 'tk2', profile: {} }, 'an unknown-age student');
+  if (!s.has(TWELVE) || s.has(FIFTEEN) || s.video(V18)) bad.push('a student with no date of birth is not shown exactly 12 and under');
+  s = look(null, 'nobody');
+  if (!s.has(TWELVE) || s.has(FIFTEEN) || s.video(V18)) bad.push('a signed-out visitor is not shown exactly 12 and under');
+  s = look({ name: 'Cal Parent', personId: 'P-C', role: 'client', roles: ['client'], rank: 'client', token: 'tk3', profile: { dob_d: '2', dob_m: '3', dob_y: String(y - 30) } }, 'an adult');
+  if (!s.has(TWELVE) || !s.has(FIFTEEN) || !s.video(V18)) bad.push('an adult is not shown the 12+, 15+ reels and the 18 video');
+  if (!/class="media-age-badge[^"]*"[^>]*>15\+</.test(s.html)) bad.push('the 15+ reel has no "15+" badge for the adult');
+  s = look({ name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], rank: 'admin', token: 'tk', profile: { dob_y: String(y - 9) } }, 'the admin');
+  if (!s.has(FIFTEEN) || !s.video(V18)) bad.push('the admin is not shown everything');
+  if (!col().querySelector('.media-list') || col().querySelector('.media-list').textContent.indexOf('15+') === -1) bad.push('the admin\'s list does not say 15+');
+  t.DATA().media = [];
+  t.USER(null);
+  return bad;
+});
+
 /* "I NEED TO SEND ASH THE WORK ERNIE DID LAST WEEK" (378): Send last week on a parent's card, for an admin, and on nothing else. */
 check('an admin has "Send last week" on a parent\'s card only, and pressing it posts digestSendNow and toasts the reply; nobody else has it', async () => {
   const { w, sent } = boot({ reply: b => b.action === 'digestSendNow'
