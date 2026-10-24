@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-24-i-delete-dead";
+const DOPOST_VERSION = "2026-10-24-j-race-map";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -3313,6 +3313,15 @@ function doPost(e) {
       catch (err) { return jsonOut({ error: 'The films could not be synced: ' + S(err && err.message || err) }); }
       if (out.error) return jsonOut({ error: out.error, why: out.why });
       return jsonOut(Object.assign({ success: true }, out, { films: filmsFor_(true), sync: filmsSyncSays_() }));
+    }
+
+    /* THE RACER'S MAP (426) — the gate already refused anybody not an admin. */
+    if (action === 'raceBuild') {
+      let out;
+      try { out = buildRaceMap_(''); }
+      catch (err) { return jsonOut({ error: 'The map could not be built: ' + S(err && err.message || err) }); }
+      if (out.error) return jsonOut({ error: out.error, more: !!out.more, tried: out.tried || [], notes: out.notes || [] });
+      return jsonOut(Object.assign({ success: true }, out));
     }
 
     /* ---------- AN ADMIN'S REELS AND VIDEOS (404) — the gate already refused anybody not an admin. */

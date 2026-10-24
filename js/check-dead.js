@@ -16,7 +16,9 @@ const KEEP=new Set(['doGet','doPost','missingKeys','layout',
   'seedConfig_','seedAvatarItems_','seedPostcodes','ensurePersonIds_',
   /* THE CHECKS' QUESTION "is the builder done?" (docs/history/341) — asked by check-flow, swipe, reach, press
      and ui through the page, and by nothing in the app, which never needs to wait for itself. */
-  'aheadBusy_']);
+  'aheadBusy_',
+  /* THE RACER'S STATE FOR ITS JOURNEYS (426): `RACE` is a const a second evaluation cannot reach, so check-flow and the screenshots ask this. */
+  'racer_']);
 const files=(dir,filter)=>fs.readdirSync(dir).filter(filter).map(f=>({f,p:dir+f}));
 const jsF=files(O+'js/',f=>f.endsWith('.js')&&!f.startsWith('check')&&f!=='_scope.js');
 /* THE BACKEND FILES, UNDER WHATEVER THEY ARE CALLED. § */
