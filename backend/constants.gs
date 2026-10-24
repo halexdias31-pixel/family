@@ -121,7 +121,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-24-g-staff-hub";
+const BACKEND_VERSION = "2026-10-24-h-library-import";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1340,6 +1340,8 @@ const RUNNABLE = {
   /* THE LIBRARY'S COPY INTO THE LEDGER (397): one more step now, and where it has got to. Both safe to run whenever. */
   libraryCopyStep:   () => libraryCopyStep(),
   libraryStatus:     () => libMigState_(),
+  /* LIBRARY UPDATES WAITING IN THE OWNER'S DRIVE (407), imported as the Business card's tile does. */
+  libImportDrive:    () => libImportDrive_(null),
   /* Reachable from a URL like everything else — but note that a URL CANNOT grant a scope. This
      will report what the deployment's existing token can do; raising the consent screen has to be
      a run from the editor. */
@@ -1577,6 +1579,8 @@ const ACTION_ACCESS = {
   /* THE LIBRARY'S WORDS AND ANSWERS (397): anybody signed in, a day's cap each; the tools' copy in and out is the admin's. */
   libItems: 'self',
   libExport: 'admin', libImport: 'admin',
+  /* AND UPDATES LEFT IN THE OWNER'S DRIVE BY A SESSION (407): the count and the import, the admin's alone. */
+  libImportList: 'admin', libImportDrive: 'admin',
   /* WHAT THE WEEKLY PARENT EMAIL WOULD SAY THIS WEEK. Admin and nobody else: the reply is every
      learner's week and every parent's address. It writes nothing and sends nothing — see
      backend/digest.gs. */

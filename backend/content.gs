@@ -1585,6 +1585,242 @@ function libImport_(fileKey, rows) {
 }
 
 
+/* ---------- LIBRARY UPDATES FROM DRIVE (407): a session leaves lib-import-*.json in the owner's Drive; an admin's tile imports them ----------
+   A session reaches Drive, not this script. docs/library.md. */
+const LIB_DRIVE_FOLDER = 'family-library-imports';
+const LIB_DRIVE_DONE = 'imported';
+const LIB_DRIVE_NAME = /^lib-import-[A-Za-z0-9._:-]{1,80}\.json$/;
+/* ONE FILE AT MOST THIS MANY ITEMS, and a press stops starting files after this long, inside Apps Script's six minutes. */
+const LIB_DRIVE_MAX = 3000;
+const LIB_DRIVE_MS = 4 * 60 * 1000;
+const LIB_DRIVE_LAST = 'LIB_IMPORT_LAST';
+
+/* WHO OWNS IT, '' WHEN DRIVE WILL NOT SAY — only this account's own folder and files are read, never one shared with it. */
+const libDriveOwner_ = f => { try { const o = f.getOwner && f.getOwner(); return o ? norm(o.getEmail()) : ''; } catch (err) { return ''; } };
+function libDriveMine_(f) {
+  if (f.isTrashed && f.isTrashed()) return false;
+  let me = '';
+  try { me = norm(Session.getEffectiveUser().getEmail()); } catch (err) { me = ''; }
+  const owner = libDriveOwner_(f);
+  return !me || !owner || owner === me;
+}
+function libDriveFind_(it) { while (it && it.hasNext()) { const f = it.next(); if (libDriveMine_(f)) return f; } return null; }
+/* THE FOLDER, MADE IF IT IS MISSING (so a session finds it the first time), and its `imported` subfolder. */
+function libDriveFolder_() {
+  return libDriveFind_(DriveApp.getFoldersByName(LIB_DRIVE_FOLDER)) || DriveApp.createFolder(LIB_DRIVE_FOLDER);
+}
+function libDriveDone_(folder) {
+  return libDriveFind_(folder.getFoldersByName(LIB_DRIVE_DONE)) || folder.createFolder(LIB_DRIVE_DONE);
+}
+/* THE FILES WAITING: in the folder itself (not `imported`), named lib-import-<timestamp>.json, oldest name first. */
+function libDrivePending_(folder) {
+  const out = [];
+  const it = folder.getFiles();
+  while (it.hasNext()) { const f = it.next(); if (LIB_DRIVE_NAME.test(S(f.getName())) && libDriveMine_(f)) out.push(f); }
+  return out.sort((a, b) => (S(a.getName()) < S(b.getName()) ? -1 : S(a.getName()) > S(b.getName()) ? 1 : 0));
+}
+/* A FILE'S TEXT. Drive may have made a Google Doc of an upload; that is exported as plain text rather than refused. */
+function libDriveText_(f) {
+  const mime = S(f.getMimeType && f.getMimeType());
+  if (mime === 'application/vnd.google-apps.document') {
+    const res = UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + encodeURIComponent(f.getId()) + '/export?mimeType=text%2Fplain',
+      { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }, muteHttpExceptions: true });
+    if (res.getResponseCode() !== 200) throw new Error('Drive would not export it as text (' + res.getResponseCode() + ')');
+    return String(res.getContentText('UTF-8')).replace(/^﻿/, '');
+  }
+  return String(f.getBlob().getDataAsString('UTF-8')).replace(/^﻿/, '');
+}
+function libDriveMove_(f, folder, to) {
+  if (typeof f.moveTo === 'function') { f.moveTo(to); return; }
+  to.addFile(f); folder.removeFile(f);
+}
+
+/* WHAT THE CARD ASKS: how many files wait, and what the last press did. Admin only, at the gate. */
+function libImportList_() {
+  let folder;
+  try { folder = libDriveFolder_(); } catch (err) { return { error: 'Drive could not be read — ' + S(err && err.message || err).slice(0, 160) + '. Run authoriseDrive once from the Apps Script editor.' }; }
+  const pending = libDrivePending_(folder).map(f => ({ name: S(f.getName()), size: Number(f.getSize && f.getSize()) || 0 }));
+  let last = null;
+  try { last = JSON.parse(PropertiesService.getScriptProperties().getProperty(LIB_DRIVE_LAST) || 'null'); } catch (err) { last = null; }
+  return { success: true, folder: LIB_DRIVE_FOLDER, pending: pending, last: last };
+}
+
+/* THE PUBLIC CARDS' IDS FOR A FILE, from the site (or GitHub) — asked only for an id the tab has no row for. */
+function libPublicIds_(def, memo) {
+  if (memo[def.file]) return memo[def.file];
+  const urls = [S(SITE_URL).replace(/\/*$/, '/') + def.file];
+  try { urls.push(RAW + def.file); } catch (err) { /* sync.gs is not in this scope */ }
+  let got = null;
+  for (let i = 0; i < urls.length && !got; i++) {
+    try {
+      const res = UrlFetchApp.fetch(urls[i] + '?v=' + Date.now(), { muteHttpExceptions: true, followRedirects: true });
+      if (res.getResponseCode() !== 200) continue;
+      const rows = JSON.parse(String(res.getContentText('UTF-8')));
+      if (!Array.isArray(rows)) continue;
+      got = {};
+      rows.forEach(r => { const id = libIdOf_(def, r); if (id) got[id] = 1; });
+    } catch (err) { got = null; }
+  }
+  memo[def.file] = got || {};
+  return memo[def.file];
+}
+
+/* ONE FILE'S WORDS, CHECKED BEFORE A CELL IS TOUCHED: its shape, every field private, every value text, a number or null. */
+function libDriveParse_(text) {
+  let d;
+  try { d = JSON.parse(text); } catch (err) { return { error: 'it is not whole JSON' }; }
+  if (!d || typeof d !== 'object' || Number(d.version) !== 1) return { error: 'it is not version 1 (`{version: 1, files: {...}}`)' };
+  if (!d.files || typeof d.files !== 'object' || Array.isArray(d.files)) return { error: 'it has no `files` object' };
+  const plan = {};
+  let n = 0;
+  const keys = Object.keys(d.files);
+  for (let k = 0; k < keys.length; k++) {
+    const key = keys[k], def = LIB_FILES[key], list = d.files[key];
+    if (!def) return { error: '`' + key + '` is not a library file — one of ' + Object.keys(LIB_FILES).join(', ') };
+    if (!Array.isArray(list)) return { error: '`files.' + key + '` is not a list' };
+    const seen = {};
+    plan[key] = [];
+    for (let i = 0; i < list.length; i++) {
+      const one = list[i];
+      if (!one || typeof one !== 'object' || Array.isArray(one)) return { error: key + ' item ' + (i + 1) + ' is not an object' };
+      const id = S(one.id);
+      if (!id || id.length > 160) return { error: key + ' item ' + (i + 1) + ' has no id' };
+      if (seen[id]) return { error: key + ' has ' + id + ' twice' };
+      seen[id] = 1;
+      const fields = Object.keys(one).filter(f => f !== 'id');
+      const odd = fields.filter(f => def.private.indexOf(f) === -1 || (one[f] !== null && typeof one[f] === 'object') || typeof one[f] === 'boolean');
+      if (odd.length) return { error: id + ' carries ' + odd.join(', ') + ' — not a private field of ' + def.file + ', or not text' };
+      const set = {};
+      fields.forEach(f => { set[f] = one[f]; });
+      plan[key].push({ id: id, set: set });
+      n++;
+    }
+  }
+  if (!n) return { error: 'it has no items' };
+  if (n > LIB_DRIVE_MAX) return { error: 'it has ' + n + ' items — at most ' + LIB_DRIVE_MAX + ' a file' };
+  /* NEW PUBLIC CARDS STILL COME BY GIT; `cards` only vouches that an id the site has not got yet is meant. */
+  const cards = {};
+  const c = d.cards && typeof d.cards === 'object' ? d.cards : {};
+  Object.keys(c).forEach(key => {
+    const def = LIB_FILES[key];
+    if (!def || !Array.isArray(c[key])) return;
+    cards[key] = {};
+    c[key].forEach(r => { const id = (r && libIdOf_(def, r)) || S(r && r.id); if (id) cards[key][id] = 1; });
+  });
+  return { plan: plan, cards: cards, n: n, note: S(d.note).slice(0, 300) };
+}
+
+/* ONE FILE INTO THE LEDGER: merge per id, write, read every row back; any row that does not read back puts every row of the file back as it was. */
+function libDriveApply_(parsed, memo) {
+  const counts = {}, writes = [];
+  const keys = Object.keys(parsed.plan);
+  /* PLAN EVERYTHING FIRST, so a refusal leaves the Ledger untouched. */
+  for (let k = 0; k < keys.length; k++) {
+    const key = keys[k], def = LIB_FILES[key];
+    const sh = libSheet_(def, 0);
+    const at = libIndex_(def, sh, '', null);
+    let foot = Math.max(1, sh.getLastRow());
+    const c = counts[key] = { added: 0, replaced: 0, same: 0, deleted: 0 };
+    for (let i = 0; i < parsed.plan[key].length; i++) {
+      const one = parsed.plan[key][i];
+      let row = at[one.id], prevCells = null, prev = {};
+      if (row) {
+        prevCells = sh.getRange(row, 1, 1, 3 + LIB_PARTS).getValues()[0];
+        const have = libRowIn_(prevCells);
+        try { prev = JSON.parse(have.json) || {}; } catch (err) { return { error: key + ' ' + one.id + ': the row in ' + def.tab + ' is not readable JSON — nothing was written' }; }
+      } else if (!(parsed.cards[key] && parsed.cards[key][one.id]) && !libPublicIds_(def, memo)[one.id]) {
+        return { error: one.id + ' is not a card in ' + def.file + ' (nor in this file\'s `cards`) — nothing was written' };
+      }
+      const next = {};
+      def.private.forEach(f => {
+        if (Object.prototype.hasOwnProperty.call(one.set, f)) { if (one.set[f] === null) { if (f in prev) c.deleted++; } else next[f] = one.set[f]; }
+        else if (Object.prototype.hasOwnProperty.call(prev, f)) next[f] = prev[f];
+      });
+      const json = JSON.stringify(next);
+      try { libCells_(json); } catch (err) { return { error: one.id + ': ' + err.message + ' — nothing was written' }; }
+      if (row && libRowIn_(prevCells).json === json) { c.same++; continue; }
+      if (row) c.replaced++;
+      else { foot++; row = foot; at[one.id] = row; c.added++; }
+      writes.push({ key: key, sh: sh, row: row, prevCells: prevCells, item: { id: one.id, json: json, sum: libSum_(json) } });
+    }
+  }
+  /* WRITE, THEN READ BACK — the copy's own check (libCopy_): the id, the stored checksum, the checksum of what the cells hold. */
+  let bad = '';
+  try {
+    writes.forEach(w => { libSheet_(LIB_FILES[w.key], w.row); w.sh.getRange(w.row, 1, 1, 3 + LIB_PARTS).setValues([libRowOut_(w.item)]); });
+    try { SpreadsheetApp.flush(); } catch (err) {}
+    for (let i = 0; i < writes.length && !bad; i++) {
+      const w = writes[i], have = libRowIn_(w.sh.getRange(w.row, 1, 1, 3 + LIB_PARTS).getValues()[0]);
+      if (have.id !== w.item.id) bad = 'row ' + w.row + ' of ' + LIB_FILES[w.key].tab + ' is ' + have.id + ', not ' + w.item.id;
+      else if (have.sum !== w.item.sum) bad = w.item.id + ' has the wrong checksum';
+      else if (libSum_(have.json) !== w.item.sum) bad = w.item.id + ' does not read back as it was written';
+    }
+  } catch (err) { bad = 'writing failed (' + S(err && err.message || err).slice(0, 160) + ')'; }
+  if (bad) {
+    const blank = new Array(3 + LIB_PARTS).fill('');
+    let restored = true;
+    writes.forEach(w => {
+      try { w.sh.getRange(w.row, 1, 1, 3 + LIB_PARTS).setValues([w.prevCells || blank]); } catch (err) { restored = false; }
+    });
+    return { error: bad + (restored ? ' — every row of this file was put back as it was' : ' — AND PUTTING THE ROWS BACK FAILED: check the lib_ tabs') };
+  }
+  return { counts: counts, written: writes.length };
+}
+
+/* THE PRESS (and `?run=libImportDrive`): every waiting file, oldest first, each whole or not at all; a done file moves to `imported`. */
+function libImportDrive_(by) {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(30000)) return { error: 'Busy — another import or write is running. Try again in a moment.', why: 'busy' };
+  const wroteBefore = POST_WROTE;
+  const t0 = Date.now();
+  const report = { success: true, at: new Date().toISOString(), files: [], imported: 0, failed: 0, left: 0 };
+  try {
+    let folder, done;
+    try { folder = libDriveFolder_(); done = libDriveDone_(folder); }
+    catch (err) { return { error: 'Drive could not be read — ' + S(err && err.message || err).slice(0, 160) + '. Run authoriseDrive once from the Apps Script editor.' }; }
+    const files = libDrivePending_(folder);
+    const memo = {};
+    let any = false;
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i], name = S(f.getName());
+      if (Date.now() - t0 > LIB_DRIVE_MS) { report.left = files.length - i; break; }
+      let one;
+      try {
+        const parsed = libDriveParse_(libDriveText_(f));
+        one = parsed.error ? { error: parsed.error + ' — nothing was written' } : libDriveApply_(parsed, memo);
+        if (!one.error) one.note = parsed.note;
+      } catch (err) { one = { error: S(err && err.message || err).slice(0, 200) }; }
+      if (one.error) { report.failed++; report.files.push({ name: name, error: one.error }); continue; }
+      if (one.written) any = true;
+      let moved = true;
+      try { libDriveMove_(f, folder, done); } catch (err) { moved = false; }
+      report.imported++;
+      report.files.push({ name: name, counts: one.counts, written: one.written, note: one.note, moved: moved });
+      libDriveLog_(by, name, one);
+    }
+    /* EVERY CACHED ITEM AND INDEX IS KEYED BY THE GENERATION: a new one and nobody is served the old words. */
+    if (any) libGenBump_();
+    if (report.failed) report.success = report.imported > 0;
+    if (report.failed && !report.imported) report.error = report.files.filter(x => x.error).map(x => x.name + ': ' + x.error).join('; ');
+    try { PropertiesService.getScriptProperties().setProperty(LIB_DRIVE_LAST, JSON.stringify(report).slice(0, 8000)); } catch (err) {}
+    return report;
+  } finally {
+    lock.releaseLock();
+    /* NO PAYLOAD CARRIES THE LIBRARY'S WORDS OR THE LOG, so the stored payload stands. */
+    if (POST_WROTE && !wroteBefore) POST_WROTE = false;
+  }
+}
+/* A LINE IN `lib_log` PER FILE IMPORTED — `person_id` is `library-import`, never a person, so the day's cap never reads it as anybody's tally. */
+function libDriveLog_(by, name, one) {
+  try {
+    const t = read(TAB.libLog);
+    if (!t.sheet) return;
+    const said = Object.keys(one.counts).map(k => { const c = one.counts[k]; return k + ' +' + c.added + ' ~' + c.replaced + ' =' + c.same + (c.deleted ? ' -' + c.deleted + ' field(s)' : ''); }).join('; ');
+    addRow(t, { day: reportDay_(new Date()), person_id: 'library-import', handle: S(by && by.handle), served: one.written,
+                ids: (name + ': ' + said + (one.note ? ' — ' + one.note : '')).slice(0, 2000), refused: 0, last_at: new Date() });
+  } catch (err) { /* the log costs a line, never the import */ }
+}
+
 /* ---------- REELS AND VIDEOS AN ADMIN ADDS FROM THE PHONE (404) ---------- */
 const MEDIA_KINDS = ['reel', 'video'];
 const MEDIA_YT_RE = /^[A-Za-z0-9_-]{11}$/;

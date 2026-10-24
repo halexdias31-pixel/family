@@ -124,7 +124,7 @@ function bizPages_() {
   const setup = typeof setupCard_ === 'function' ? [setupCard_()].filter(Boolean) : [];
   /* STAFF (405) after applications: who has agreed to the tutor terms, and any tutor's statement — `staffCard_` in staff.js. */
   const staff = typeof staffCard_ === 'function' ? [staffCard_()].filter(Boolean) : [];
-  return profitCards_().concat(setup, appsCard_(), staff, reportsCard_(), BIZ_PAGES.map(bizCard_), verseCard_());
+  return profitCards_().concat(setup, appsCard_(), staff, reportsCard_(), libImpCard_(), BIZ_PAGES.map(bizCard_), verseCard_());
 }
 
 /* ---------- APPLICATIONS TO TEACH (400) ----------
@@ -255,6 +255,62 @@ on('rep-open', el => {
   try { x = typeof stuffItemsAll_ === 'function' ? stuffItemsAll_().find(i => i && i.key === k) : null; } catch (e) { x = null; }
   if (!x) { toast('That question is not in the list any more.'); return; }
   finderOpen_(x, null, FINDERS.stuff);
+});
+
+/* ---------- LIBRARY UPDATES A SESSION LEFT IN DRIVE (407) ----------
+   `libImportList` counts the lib-import-*.json files in the owner's family-library-imports folder; the tile imports them (`libImportDrive`). */
+const LIBIMP = { list: null, last: null, asking: false, error: '' };
+function libImpCard_() {
+  const wait = !LIBIMP.list && !LIBIMP.error && typeof loading_ === 'function';
+  return `<div class="card biz libimp" data-libimp data-need="libimp">${libImpInner_(wait)}</div>`;
+}
+/* WHAT THE LAST PRESS DID, a line a file: its counts per library file, or why nothing of it was written. */
+function libImpSaid_(r) {
+  if (!r || !Array.isArray(r.files) || !r.files.length) return '';
+  const counts = c => Object.keys(c || {}).map(k => `${k} ${c[k].added} new, ${c[k].replaced} changed${c[k].same ? ', ' + c[k].same + ' unchanged' : ''}`).join('; ');
+  return r.files.map(f => `<p class="faint libimp-file"><b>${esc(f.name)}</b> — ${esc(f.error ? 'not imported: ' + f.error : counts(f.counts) || 'nothing to change')}</p>`).join('');
+}
+function libImpInner_(wait) {
+  const n = (LIBIMP.list || []).length;
+  return `<h3>Library updates</h3>
+    ${bizNeed_('libimp', LIBIMP.list ? n : 0, n + (n === 1 ? ' file waits' : ' files wait') + ' in Drive')}
+    <div class="biz-body libimp-body"${wait ? ' aria-busy="true"' : ''}>
+      ${LIBIMP.list ? `<p class="faint">${n ? n + ' in' : 'Nothing waiting in'} the Drive folder family-library-imports.</p>` : ''}
+      ${libImpSaid_(LIBIMP.last)}
+      <div class="tile-row">${tile_({ icon: 'in', label: 'Import library updates (' + n + ')', note: 'into the Ledger', act: 'lib-import', off: !n })}</div>
+    ${wait ? loading_() : ''}</div>
+    <p class="faint me-said libimp-said">${esc(LIBIMP.error)}</p>`;
+}
+const libImpDraw_ = () => { document.querySelectorAll('[data-libimp]').forEach(c => { c.innerHTML = libImpInner_(false); }); bizNeedsPaint_(); };
+function libImpStart_() {
+  if (!(typeof isAdmin === 'function' && isAdmin()) || LIBIMP.asking) return;
+  LIBIMP.asking = true;
+  api({ action: 'libImportList' })
+    .then(d => {
+      LIBIMP.asking = false;
+      if (!d || d.error) { LIBIMP.error = String((d && d.error) || 'The Drive folder did not answer.'); return; }
+      LIBIMP.error = ''; LIBIMP.list = Array.isArray(d.pending) ? d.pending : []; LIBIMP.last = d.last || null;
+    })
+    .catch(() => { LIBIMP.asking = false; LIBIMP.error = 'Drive could not be asked — check the connection.'; })
+    .then(libImpDraw_);
+}
+on('lib-import', el => {
+  if (!(typeof isAdmin === 'function' && isAdmin())) return;
+  const card = el.closest('[data-libimp]');
+  send_({ action: 'libImportDrive', personId: (USER && USER.personId) || '' }, { button: el, where: card && card.querySelector('.libimp-said') })
+    .then(d => {
+      LIBIMP.last = d;
+      LIBIMP.error = '';
+      const out = {};
+      (d.files || []).forEach(f => { if (!f.error) out[f.name] = 1; });
+      LIBIMP.list = (LIBIMP.list || []).filter(f => !out[f.name]);
+      libImpDraw_();
+      toast(d.failed ? d.imported + ' imported, ' + d.failed + ' not — see the card' : d.imported + (d.imported === 1 ? ' file imported' : ' files imported'));
+      /* WORDS ALREADY ON THIS PHONE ARE THE OLD ONES — forgotten, so an opened card asks again. */
+      try { if (d.imported && typeof libForget_ === 'function') libForget_(); } catch (e) {}
+    })
+    /* A REFUSAL IS ALREADY SAID ON THE CARD'S LINE BY send_; the next list carries the press's report. */
+    .catch(() => {});
 });
 
 /* THE E-PAPER VERSE SCREEN'S SETUP PAGE, findable by an admin rather than by its address (370). */
@@ -545,6 +601,7 @@ on('profit-reset', el => {
 /* THE COLUMN, AND ITS RECORDS ASKED FOR AS SOON AS IT IS DRAWN FOR AN ADMIN — not when it is arrived at. § */
 screen('biz', () => {
   if (typeof isAdmin === 'function' && isAdmin()) setTimeout(() => { try { bizStart_(); } catch (e) {} try { if (!REPS.list) reportsStart_(); } catch (e) {}
+    try { if (!LIBIMP.list) libImpStart_(); } catch (e) {}
     try { if (!APPS.list) appsStart_(); } catch (e) {} try { if (typeof staffStart_ === 'function' && !STAFF.list) staffStart_(); } catch (e) {}
     try { bizNeedsPaint_(); } catch (e) {} }, 0);
   return pages('biz', bizPages_());
