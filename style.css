@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-24-h-tidy-widgets";
+  --css-version: "2026-10-24-i-one-line-per-thing";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -2197,14 +2197,7 @@ button.text-drop { color: var(--bad); }
 .rc-total.rc-money.rc-net .bk-k, .rc-total.rc-money.rc-net .bk-t { font-weight: 700; color: var(--ink); }
 .rc-total.rc-money.rc-net.is-bad .bk-k, .rc-total.rc-money.rc-net.is-bad .bk-t { color: var(--bad); }
 .bk > .bk-say.rc-money-say { color: var(--bad); text-align: right; }
-/* THE DISCOUNT LINE'S CONTROLS, under its row and the width of the card: four in a 390px column will not
-   sit beside a label, so they wrap two by two. A tap target is a fingertip, so 44px whatever the root. */
-.bk > .rc-disc-ctl { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; margin: .2rem 0 .1rem; }
-.rc-disc-in {
-  flex: 1 1 40%; min-width: 0; min-height: 44px; padding: 0 8px;
-  font: inherit; font-size: .8rem; color: var(--ink);
-  background: var(--sunk); border: 1px solid var(--line); border-radius: 8px;
-}
+/* THE DISCOUNT'S CONTROLS ARE ORDINARY ROWS NOW, one line per thing (421) — `discountRow_` draws them with `receiptRow`. */
 /* ---------- A TOTAL'S LABEL RUNS ACROSS THE ROW, SO IT CANNOT WIDEN THE QUESTION COLUMN § */
 .rc-total .bk-k { grid-column: 1 / -2; }
 .rc-total .bk-v, .rc-total .bk-m, .rc-total .bk-r { display: none; }

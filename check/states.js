@@ -5618,6 +5618,36 @@ const STATES = {
       wants: 'Ada\'s four days (Mon, Tue, Wed, Sat) and no other, with her Tuesday 10 and 11 ticked',
       leave: () => { if (typeof resetBooking_ === 'function') resetBooking_(); drawBooker(); } },
 
+    /* ---------- ONE LINE PER THING (421): AN ADMIN'S DISCOUNT IS FOUR ROWS, NOT FOUR BOXES IN A GRID */
+    { name: 'an admin\'s discount chosen, one line per thing',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => {
+        /* NO TERM, SO NO MONEY BLOCK: this asks the rule, and the money block's own figures are 353's to measure. */
+        Object.assign(BOOKING, { how: 'Instant class', level: 'GCSE', subjects: ['Maths'], n: '2', hosting: 'No',
+          slots: ['m16', 'm17'], discType: '£', discValue: '5', discCode: 'Sibling', discBy: 'Business' });
+        drawBooker();
+      },
+      expect: () => (window.oneLineFaults_ = (() => {
+        const bk = document.querySelector('#s-booking #bookr .bk');
+        if (!bk) return ['no booking card'];
+        const out = [];
+        const keys = [...bk.querySelectorAll('.bk-row.rc-disc, .bk-row.rc-disc-more')].map(r => r.querySelector('.bk-k').textContent.trim());
+        if (keys.join('|') !== 'Discount|How much|Code or reason|Absorbed by') out.push('discount rows: ' + keys.join('|'));
+        [...bk.children].forEach(c => {
+          const what = (c.className || c.tagName) + ' "' + ((c.querySelector('.bk-k') || c).textContent || '').trim().slice(0, 24) + '"';
+          if (!c.matches('.bk-row, p.bk-say, .bk-many-list')) { out.push('a box that is not a row: ' + what); return; }
+          if (!c.matches('.bk-row')) return;
+          const ctls = c.querySelectorAll('select, input:not([type="hidden"]), textarea');
+          if (ctls.length > 1) out.push(ctls.length + ' controls on one line: ' + what);
+          const k = c.querySelector('.bk-k'), lh = k ? parseFloat(getComputedStyle(k).lineHeight) || 20 : 20;
+          if (ctls.length && c.getBoundingClientRect().height > lh * 1.8) out.push('a control row taller than a line: ' + what);
+        });
+        return out;
+      })()).length === 0 ? 1 : 0,
+      why: () => (window.oneLineFaults_ || []).join('; '),
+      wants: 'the admin\'s discount as four one-line rows and every control row of the card one line',
+      leave: () => { delete window.oneLineFaults_; if (typeof resetBooking_ === 'function') resetBooking_(); drawBooker(); } },
+
     { name: 'a session receipt',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {

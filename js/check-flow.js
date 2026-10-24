@@ -10793,14 +10793,14 @@ check('each person sees their own figure on a session, and its tiles are on the 
     const fa = w.__t.formMoney(L);
     const said = fa.more.map(m => m.k + ' ' + m.t).join(' | ');
     const wantRows = [/^Charged £113\.25/, /^Materials · charged £11\.25 − £9\.00/, /^Tutor payout − £90\.00/,
-                      /^Card fees £0\.00/, /^Net profit £14\.25 · 12\.6%/];
+                      /^Card fees £0\.00/, /^Net profit · 12\.6% £14\.25$/];
     if (wantRows.some(re => !fa.more.some(m => re.test(m.k + ' ' + m.t)))) {
       bad.push('an admin pricing a practical is not shown the Money block as summed: ' + said);
     }
     /* A NEGATIVE NET IS RED AND SAYS SO: a £20 business-absorbed discount on the same booking. */
     const lossEarn = w.bookMoney_({ sessions: 1, n: 1, tutorPay: 60, profit: 0, discount: { type: '£', value: 20 } });
     const loss = w.__t.formMoney({ total: lossEarn.charged, tutorPay: 60, profitTotal: 0, format: 'Tutoring', earn: lossEarn });
-    const netRow = loss.more.find(m => m.k === 'Net profit') || {};
+    const netRow = loss.more.find(m => m.k.indexOf('Net profit') === 0) || {};
     if (!/is-bad/.test(netRow.cls || '') || loss.say !== 'This booking costs you £20.00.') {
       bad.push('a booking that loses money does not say so in red: ' + JSON.stringify([netRow, loss.say]));
     }
@@ -10839,21 +10839,34 @@ check('the booking form shows an admin what a booking earns, and a parent nothin
   seed();
   const a = doc(w.__t.paper());
   const keys = [...a.querySelectorAll('.bk-row .bk-k')].map(x => x.textContent.trim());
-  if (!a.querySelector('.rc-disc-ctl select[data-field="discType"]')) bad.push('an admin is not given the discount line');
-  const disc = a.querySelector('.rc-disc'), cost = disc && disc.nextElementSibling && disc.nextElementSibling.nextElementSibling;
+  if (!a.querySelector('.bk-row.rc-disc .bk-v select[data-field="discType"]')) bad.push('an admin is not given the discount line');
+  /* ONE LINE PER THING (421): Discount, then How much, Code or reason, Absorbed by — each its own row with its control as the value. */
+  ['discValue', 'discCode', 'discBy'].forEach(f => {
+    if (!a.querySelector('.bk-row.rc-disc-more .bk-v [data-do="book-disc"][data-field="' + f + '"]')) bad.push('the discount\'s ' + f + ' is not its own row');
+  });
+  const discRows = [...a.querySelectorAll('.bk-row.rc-disc, .bk-row.rc-disc-more')].map(r => r.querySelector('.bk-k').textContent.trim());
+  if (discRows.join('|') !== 'Discount|How much|Code or reason|Absorbed by') bad.push('the discount rows read ' + JSON.stringify(discRows));
+  if (a.querySelector('.rc-disc-ctl')) bad.push('the discount\'s controls are boxed under its row again (421)');
+  const lastDisc = [...a.querySelectorAll('.rc-disc, .rc-disc-more')].pop(), cost = lastDisc && lastDisc.nextElementSibling;
   if (!cost || !cost.classList.contains('rc-total') || cost.classList.contains('rc-more')) bad.push('the discount line is not directly above COST');
-  const costSays = cost ? cost.querySelector('.bk-k').textContent + ' ' + cost.querySelector('.bk-t').textContent : '';
+  const costSays = cost ? ((cost.querySelector('.bk-k') || {}).textContent || '') + ' ' + ((cost.querySelector('.bk-t') || {}).textContent || '') : '';
   if (!/£[\d.]+ − £5\.00 = £[\d.]+$/.test(costSays)) bad.push('COST does not read £X − £5.00 = £Y: ' + JSON.stringify(costSays));
   ['Materials', 'Charged', 'Discount', 'Tutor payout', 'Card fees', 'Net profit'].forEach(k => {
     if (!keys.some(x => x === k || x.indexOf(k + ' · ') === 0)) bad.push('an admin pricing a practical has no "' + k + '" row: ' + keys.join(', '));
   });
   if (keys.indexOf('Format') === -1) bad.push('the form has no Format row');
+  /* NO DISCOUNT CHOSEN, NO DISCOUNT DETAIL: the three rows under Discount come only with a type (421). */
+  seed({ discType: '', discValue: '', discBy: '' });
+  const none = doc(w.__t.paper());
+  if (!none.querySelector('.bk-row.rc-disc select[data-field="discType"]') || none.querySelector('.rc-disc-more')) {
+    bad.push('with no discount chosen the form should show the Discount row alone');
+  }
 
   /* THE PARENT, WITH THE ADMIN'S DISCOUNT STILL IN THE DRAFT. */
   w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   seed();
   const p = doc(w.__t.paper());
-  if (p.querySelector('.rc-money, .rc-disc, .rc-disc-ctl, .rc-money-say')) bad.push('a parent is shown the Money block or the discount line');
+  if (p.querySelector('.rc-money, .rc-disc, .rc-disc-more, .rc-money-say')) bad.push('a parent is shown the Money block or the discount line');
   const pCost = [...p.querySelectorAll('.rc-total .bk-t')].map(x => x.textContent);
   if (pCost.some(t => /−/.test(t))) bad.push('a parent\'s COST carries the admin\'s discount: ' + pCost.join(' | '));
   if (!/Materials/.test(p.textContent)) bad.push('a parent booking a practical is not shown its materials line');
