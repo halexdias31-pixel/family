@@ -130,6 +130,7 @@ Each check's header says what it proves, its flags and its port variable. The fu
   Show answer, the pen's tools, Mark with AI) except the keypad keys and multiple-choice options. Tiles
   win any tie. A real warning is one paragraph under the row, not one per tile (`jobAdminTiles_`).
   `check-doors` pairs every `act` with a handler.
+- **One line per thing:** a form is label/value rows, one thing each; never several controls boxed in a grid (421).
 - **Two palettes.** The screen is black and gold (`--bg`, `--gold`, `--ink`, `--line`). Anything standing in
   for paper (receipt, stubs, roster, print sheet, calendar, splash) is `--paper`, `--paper-ink`,
   `--paper-dim`, `--paper-faint`, `--paper-strip`, `--paper-rule`. **Never write a paper colour as a literal.**
