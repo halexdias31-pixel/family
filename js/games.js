@@ -4980,8 +4980,10 @@ const NES_KEYS = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRig
   a: 'y', A: 'y', s: 'x', S: 'x', q: 'l', Q: 'l', w: 'r', W: 'r', e: 'l2', E: 'l2', r: 'r2', R: 'r2',
   i: 'cu', I: 'cu', k: 'cd', K: 'cd', j: 'cl', J: 'cl', l: 'cr', L: 'cr' };
 
-/* THE ONE PLACE INDEXEDDB IS TOUCHED. Any failure (private window, blocked storage) is "no file kept". */
+/* THE ONE PLACE INDEXEDDB IS TOUCHED. Any failure (private window, blocked storage) is "no file kept"; a full device is remembered as `NES_.fullDb` (399). */
 function nesDb_(mode, fn) {
+  NES_.fullDb = false;
+  const quota = e => { if (e && /quota/i.test(e.name || '')) NES_.fullDb = true; };
   return new Promise(res => {
     try {
       const rq = indexedDB.open(NES_DB, 1);
@@ -4991,8 +4993,8 @@ function nesDb_(mode, fn) {
         try {
           const tx = rq.result.transaction('rom', mode), r = fn(tx.objectStore('rom'));
           tx.oncomplete = () => { res(r && 'result' in r ? r.result : true); rq.result.close(); };
-          tx.onerror = tx.onabort = () => { res(null); rq.result.close(); };
-        } catch (e) { res(null); }
+          tx.onerror = tx.onabort = () => { quota(tx.error); res(null); rq.result.close(); };
+        } catch (e) { quota(e); res(null); }
       };
     } catch (e) { res(null); }
   });
@@ -5380,7 +5382,8 @@ document.addEventListener('change', e => {
     if (!sys) { nesSay_(NES_NOT); return; }
     nesStop_(); emuEnd_();
     NES_.nes = null; NES_.rom = null; NES_.saved = u8; NES_.kind = sys;
-    nesKeep_(ab.slice(0), sys);
+    /* put() copies the bytes as it is called, so no second copy is made first: a DS file can be 256 MB (399). */
+    nesKeep_(ab, sys).then(ok => { if (ok || !NES_.fullDb) return; nesSay_(NES_ROOM); nesForgetDb_(); });
     nesStart_(u8);
   }).catch(() => nesSay_('That file could not be read.'));
 });
@@ -5399,21 +5402,23 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) nesSt
 window.addEventListener('gamepadconnected', () => { NES_.padOn = true; nesPadShow_(); nesPadWatch_(); });
 window.addEventListener('gamepaddisconnected', () => nesPadsPoll_());
 
-/* ---------- THE OTHER SYSTEMS (391): SNES, Game Boy / Color / Advance and N64, the person's own files.
+/* ---------- THE OTHER SYSTEMS (391): SNES, Game Boy / Color / Advance, N64 and DS (399), the person's own files.
    EmulatorJS (GPL-3.0) and its cores, pinned, fetched only when one is played. */
-const NES_ACCEPT = '.nes,.sfc,.smc,.gb,.gbc,.gba,.z64,.n64,.v64,application/octet-stream,*&#47;*';
-const NES_NOT = 'That is not a console game file — it should be a .nes, .sfc/.smc, .gb/.gbc/.gba or .z64/.n64/.v64 file.';
-/* Each system's picture in pixels, for the stage's shape and the full-screen fit. */
-const NES_DIMS = { nes: [256, 240], snes: [256, 224], gb: [160, 144], gbc: [160, 144], gba: [240, 160], n64: [320, 240] };
+const NES_ACCEPT = '.nes,.sfc,.smc,.gb,.gbc,.gba,.z64,.n64,.v64,.nds,application/octet-stream,*&#47;*';
+const NES_ROOM = "This device hasn't room to keep the file — pick it each time.";
+const NES_NOT = 'That is not a console game file — it should be a .nes, .sfc/.smc, .gb/.gbc/.gba, .z64/.n64/.v64 or .nds file.';
+/* Each system's picture in pixels, for the stage's shape and the full-screen fit. DS: its two 256x192 screens stacked, top above bottom. */
+const NES_DIMS = { nes: [256, 240], snes: [256, 224], gb: [160, 144], gbc: [160, 144], gba: [240, 160], n64: [320, 240], nds: [256, 384] };
 /* Systems with four face buttons read a controller by position (right A, bottom B, top X, left Y); two-button ones fold them onto A and B. */
-const NES_FOUR = { snes: 1, n64: 1 };
-const NES_NAME = { nes: 'NES', snes: 'SNES', gb: 'Game Boy', gbc: 'Game Boy Color', gba: 'Game Boy Advance', n64: 'N64' };
+const NES_FOUR = { snes: 1, n64: 1, nds: 1 };
+const NES_NAME = { nes: 'NES', snes: 'SNES', gb: 'Game Boy', gbc: 'Game Boy Color', gba: 'Game Boy Advance', n64: 'N64', nds: 'DS' };
 
 /* WHICH SYSTEM, from the bytes first (header magic and checksums), then the file's extension. Nothing of any game is kept here. */
 function nesSys_(u8, hint) {
   if (!u8 || u8.length < 512) return null;
   const ext = String(hint || '').toLowerCase().replace(/^.*\./, '');
   if (u8[0] === 0x4e && u8[1] === 0x45 && u8[2] === 0x53 && u8[3] === 0x1a) return nesValid_(u8) ? 'nes' : null;
+  if (nesDs_(u8)) return 'nds';
   const w = (u8[0] << 24 | u8[1] << 16 | u8[2] << 8 | u8[3]) >>> 0;
   if (w === 0x80371240 || w === 0x37804012 || w === 0x40123780) return 'n64';   // big-endian, byte-swapped, little-endian
   if (u8.length >= 0xc0 && u8[0xb2] === 0x96 && u8[3] === 0xea) return 'gba';   // fixed byte, and a branch as the first word
@@ -5425,8 +5430,16 @@ function nesSys_(u8, hint) {
     const ok = at => { const b = off + at; return b + 0x20 <= u8.length && ((u8[b + 0x1c] | u8[b + 0x1d] << 8) ^ (u8[b + 0x1e] | u8[b + 0x1f] << 8)) === 0xffff; };
     if (ok(0x7fc0) || ok(0xffc0)) return 'snes';
   }
-  const by = { sfc: 'snes', smc: 'snes', snes: 'snes', gb: 'gb', gbc: 'gbc', gba: 'gba', z64: 'n64', n64: 'n64', v64: 'n64' };
+  const by = { sfc: 'snes', smc: 'snes', snes: 'snes', gb: 'gb', gbc: 'gbc', gba: 'gba', z64: 'n64', n64: 'n64', v64: 'n64', nds: 'nds' };
   return by[ext] || (by[hint] ? hint : null);
+}
+
+/* A DS CARTRIDGE HEADER: the logo's fixed checksum 0xCF56 at 0x15C, and the header's own CRC-16 (over 0-0x15D) at 0x15E. */
+function nesDs_(u8) {
+  if (u8.length < 0x200 || u8[0x15c] !== 0x56 || u8[0x15d] !== 0xcf) return false;
+  let c = 0xffff;
+  for (let i = 0; i < 0x15e; i++) { c ^= u8[i]; for (let j = 0; j < 8; j++) c = c & 1 ? (c >>> 1) ^ 0xa001 : c >>> 1; }
+  return c === (u8[0x15e] | u8[0x15f] << 8);
 }
 
 /* THE TOUCH PAD per system: shoulders where it has them, four face buttons in a diamond on SNES, and A, B, Z and the C buttons on N64. */
@@ -5435,7 +5448,7 @@ function nesPadHtml_(sys) {
   const mid = `<div class="nes-mid">${k('select', 'Select', 'nes-small')}${k('start', 'Start', 'nes-small')}</div>`;
   const dpad = '<div class="nes-dpad" data-k="dpad"></div>';
   let top = '', face;
-  if (sys === 'snes') {
+  if (sys === 'snes' || sys === 'nds') {
     top = k('l', 'L', 'nes-small') + k('r', 'R', 'nes-small');
     face = `<div class="nes-face">${k('x', 'X', 'nes-round nes-n')}${k('y', 'Y', 'nes-round nes-w')}${k('a', 'A', 'nes-round nes-e')}${k('b', 'B', 'nes-round nes-s')}</div>`;
   } else if (sys === 'n64') {
@@ -5456,7 +5469,7 @@ function nesSysSet_(sys) {
   if (s) { const [w, h] = NES_DIMS[NES_.sys]; s.style.aspectRatio = w + ' / ' + h; s.dataset.sys = NES_.sys; }
   if (pad && pad.dataset.sys !== NES_.sys) {
     pad.dataset.sys = NES_.sys; pad.innerHTML = nesPadHtml_(NES_.sys);
-    pad.classList.toggle('nes-pad-top', /^(snes|gba|n64)$/.test(NES_.sys));
+    pad.classList.toggle('nes-pad-top', /^(snes|gba|n64|nds)$/.test(NES_.sys));
   }
   if (note) { note.hidden = NES_.sys !== 'n64'; note.textContent = 'N64 games need a fast device; older phones may stutter.'; }
   nesFit_();
@@ -5467,7 +5480,7 @@ const EMU_VER = '4.2.3';
 const EMU_CDN = ['https://cdn.jsdelivr.net/npm/', 'https://unpkg.com/'];
 const EMU_SRC = ['storage.js', 'gamepad.js', 'nipplejs.js', 'shaders.js', 'GameManager.js', 'compression.js', 'emulator.js'];
 /* Gambatte for Game Boy and Color, mGBA for Advance (mGBA refused a Game Boy file in the test, 391). Safari on iPhone and iPad gets parallel_n64, as EmulatorJS itself chooses there. */
-const EMU_CORE = { snes: 'snes9x', gb: 'gambatte', gbc: 'gambatte', gba: 'mgba', n64: 'mupen64plus_next' };
+const EMU_CORE = { snes: 'snes9x', gb: 'gambatte', gbc: 'gambatte', gba: 'mgba', n64: 'mupen64plus_next', nds: 'melonds' };
 /* RetroPad numbering (libretro): every input source's names land here. 16-23 are the sticks, sent as two half-axes each. */
 const EMU_IDX = { b: 0, y: 1, select: 2, start: 3, up: 4, down: 5, left: 6, right: 7, a: 8, x: 9, l: 10, r: 11, l2: 12, r2: 13, l3: 14, r3: 15 };
 const EMU_ = { ejs: null, ready: false, sys: null, key: '', base: null, lib: null, held: {}, ax: [] };
@@ -5492,7 +5505,7 @@ function emuLib_() {
 function emuName_(u8, sys) {
   let h = 0x811c9dc5;
   for (let i = 0; i < u8.length; i += 1 + (u8.length >> 22)) { h ^= u8[i]; h = Math.imul(h, 0x01000193) >>> 0; }
-  return 'game-' + h.toString(16) + '-' + u8.length.toString(16) + '.' + ({ snes: 'sfc', gb: 'gb', gbc: 'gbc', gba: 'gba', n64: 'z64' })[sys];
+  return 'game-' + h.toString(16) + '-' + u8.length.toString(16) + '.' + ({ snes: 'sfc', gb: 'gb', gbc: 'gbc', gba: 'gba', n64: 'z64', nds: 'nds' })[sys];
 }
 
 function emuStart_(bytes, sys) {
@@ -5528,11 +5541,29 @@ function emuStart_(bytes, sys) {
       loaded_($('nes-stage'));
       EMU_.ready = true;
       try { ejs.gameManager.setKeyboardEnabled(false); } catch (e) {}
+      ejs.enableMouseLock = false;   // a DS screen is touched where it is, so a mouse click must not capture the pointer (399)
+      if (sys === 'nds') emuTouch_(ejs.canvas);
       if (!$('nes-wrap') || document.hidden) { try { ejs.pause(true); } catch (e) {} NES_.running = false; }
       else NES_.running = true;
       emuWake_(); nesTiles_(); nesFit_();
     });
   }).catch(() => { loaded_(stage); emuEnd_(); nesTiles_(); nesSay_('The console could not load. Check the connection and press Play again.'); });
+}
+
+/* A FINGER IS THE DS PEN: the core reads only the mouse, so the first finger on its picture is passed on as one (399). */
+function emuTouch_(c) {
+  if (!c || c.dataset.touch) return;
+  c.dataset.touch = '1';
+  let id = null;
+  const as = (type, t) => c.dispatchEvent(new window.MouseEvent(type, { bubbles: true, cancelable: true, clientX: t.clientX, clientY: t.clientY, button: 0, buttons: type === 'mouseup' ? 0 : 1 }));
+  const mine = e => [...e.changedTouches].find(t => t.identifier === id);
+  c.addEventListener('touchstart', e => {
+    e.preventDefault(); emuWake_();
+    if (id !== null) return;
+    const t = e.changedTouches[0]; id = t.identifier; as('mousemove', t); as('mousedown', t);
+  }, { passive: false });
+  c.addEventListener('touchmove', e => { e.preventDefault(); const t = mine(e); if (t) as('mousemove', t); }, { passive: false });
+  ['touchend', 'touchcancel'].forEach(n => c.addEventListener(n, e => { const t = mine(e); if (t) { id = null; as('mouseup', t); } }));
 }
 
 function emuGo_() {

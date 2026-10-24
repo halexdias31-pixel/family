@@ -859,7 +859,7 @@ const WIDGETS = [
     into: 'nes-box', what: 'The console',
     html: `<div class="card">
     <h3>Console</h3>
-    <p class="sub">Plays NES, SNES, Game Boy, Game Boy Color, Game Boy Advance and N64 files. Bring your own game file.</p>
+    <p class="sub">Plays NES, SNES, Game Boy, Game Boy Color, Game Boy Advance, N64 and DS files. Bring your own game file.</p>
     <div id="nes-box" class="nes-box"></div>
   </div>` },
   /* THE BOARD, NOT THE DRAWING. § */
