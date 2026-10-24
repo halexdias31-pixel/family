@@ -115,10 +115,6 @@ function world(opts) {
     ScriptApp.getAuthorizationInfo = () => ({ getAuthorizationStatus: () => ${JSON.stringify(whole ? 'NOT_REQUIRED' : 'REQUIRED')},
       getAuthorizationUrl: () => ${JSON.stringify(opts.consent || '')} });
   })()`);
-  if (opts.showcase) {
-    w.folders['SHOWCASE-1'] = { id: 'SHOWCASE-1', name: 'showcase', files: [], kids: [] };
-    b.seed('config', [{ key: 'showcase_folder_id', value: 'SHOWCASE-1' }]);
-  }
   if (opts.noColumn) {
     const g = b.tabs.messages; const at = g[0].indexOf('attachments'); if (at >= 0) g[0].splice(at, 1);
   }
@@ -370,10 +366,7 @@ const WORKS = world({});
   const p = last(part);
   if (!/^DO NOT DEPLOY/.test(p)) fail('authoriseDrive', 'a partial Allow (Drive yes, e-mail no) ends "' + p + '" — the write passing is not the whole manifest');
   if (!/Select all|tick every box/.test(p) || !/Advanced/.test(p)) fail('authoriseDrive', 'the refusal does not say how to get through Google\'s two screens: "' + p + '"');
-  /* THE SHOWCASE LINE USED TO COME LAST, after "Can write: yes". */
-  const show = last(world({ showcase: true }));
-  if (!/^READY/.test(show)) fail('authoriseDrive', 'with showcase_folder_id set the last line is "' + show + '"');
-  if (!bad.some(x => /^authoriseDrive/.test(x))) said.push('authoriseDrive: the last line is READY only with the whole manifest allowed and a file made and shared; DO NOT DEPLOY otherwise, showcase or not');
+  if (!bad.some(x => /^authoriseDrive/.test(x))) said.push('authoriseDrive: the last line is READY only with the whole manifest allowed and a file made and shared; DO NOT DEPLOY otherwise');
 }
 
 /* 6 AND 7 ON THE SCREEN — THE REAL APP, EVERY POST ANSWERED BY THE REAL BACKEND § */

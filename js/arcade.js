@@ -16,16 +16,6 @@ const CALC_KEYS = [
 ];
 
 /* THE WIDGETS — nine things you USE rather than things you find. § */
-/* THE OVERWORLD. Your venues as a map you move across, and the point of it is the thing a real map cannot do: § */
-
-/* Somewhere you can stand. § */
-const mapPlaces = () => (DATA.venues || []).filter(v => {
-  if (!v.title) return false;
-  /* BY NAME, NOT BY RATE. § */
-  return !/^online$/i.test(String(v.title).trim())
-      && !/\b(home|house|client\s*(house|home|place)|your venue)\b/i.test(v.title);
-});
-
 /* TOOLS AND GAMES, AS COLUMNS THEY WERE ALREADY REACHABLE — `What for · Tools` and `What for · Games` are answers in the funnel and always have been. § */
 
 /* ---------- WHAT THIS PERSON MAY OPEN § */
