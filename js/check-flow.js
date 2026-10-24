@@ -4008,14 +4008,15 @@ const placeholderFaults_ = box => {
 };
 
 /* ---------- CONTEST: THE LAST CARD ON THE GAMES COLUMN, AND NOTHING ON IT TO PRESS § */
-check('the contest placeholder comes straight after One more thing on the Games column, says so, and has nothing to press', async () => {
+check('the contest placeholder is the last card on the Games column, says so, and has nothing to press', async () => {
   const { w } = boot();
   await wait(300);
   const t = w.__t;
   const bad = [];
   const roster = t.widgetsOf('game').map(x => String(x.id));
   if (roster.indexOf('contest') === -1) return ['there is no contest widget on the Games column'];
-  if (roster.indexOf('contest') !== roster.indexOf('reels') + 1) bad.push('contest does not come straight after reels: ' + roster.join(', '));
+  /* ONE MORE THING LEADS THE REELS NOW (414), so the contest closes the Games column. */
+  if (roster.indexOf('contest') !== roster.length - 1) bad.push('contest is not the last game: ' + roster.join(', '));
   t.go('games', false, true);
   await wait(LEAVE_MS); await woken_();
   const slot = w.document.querySelector('#s-games #wgt-contest');
@@ -4026,19 +4027,20 @@ check('the contest placeholder comes straight after One more thing on the Games 
   return bad.concat(placeholderFaults_(slot));
 });
 
-/* ---------- LEGO TRADE-IN: APPENDED AFTER THE CALENDAR, AND NOTHING ON IT TO PRESS § */
-check('the LEGO trade-in placeholder comes straight after the calendar on the Tools column, says so, and has nothing to press', async () => {
+/* ---------- LEGO TRADE-IN: ON THE SHOP COLUMN UNDER THE BASKET (414), AND NOTHING ON IT TO PRESS */
+check('the LEGO trade-in placeholder is on the Shop column straight after the basket, says so, and has nothing to press', async () => {
   const { w } = boot();
   await wait(300);
   const t = w.__t;
   const bad = [];
-  const roster = t.widgetsOf('tool').map(x => String(x.id));
-  if (roster.indexOf('legotrade') === -1) return ['there is no legotrade widget on the Tools column'];
-  if (roster.indexOf('legotrade') !== roster.indexOf('calendar') + 1) bad.push('legotrade does not come straight after calendar: ' + roster.join(', '));
-  t.go('tools', false, true);
+  if (t.widgetsOf('tool').some(x => String(x.id) === 'legotrade')) bad.push('legotrade is still a tool');
+  const roster = t.widgetsOf('shop').map(x => String(x.id));
+  if (roster.indexOf('legotrade') === -1) return bad.concat(['there is no legotrade widget on the Shop column']);
+  if (roster.indexOf('legotrade') !== roster.indexOf('cart') + 1) bad.push('legotrade does not come straight after the basket: ' + roster.join(', '));
+  t.go('shop', false, true);
   await wait(LEAVE_MS); await woken_();
-  const slot = w.document.querySelector('#s-tools #wgt-legotrade');
-  if (!slot) return bad.concat(['the LEGO trade-in card did not draw on the Tools column']);
+  const slot = w.document.querySelector('#s-shop #wgt-legotrade');
+  if (!slot) return bad.concat(['the LEGO trade-in card did not draw on the Shop column']);
   const h = slot.querySelector('h3');
   if (!h || h.textContent.trim() !== 'LEGO trade-in') bad.push('the card is not headed LEGO trade-in');
   if (!/Not built yet/.test(slot.textContent)) bad.push('the card does not say it is not built yet');
@@ -5775,7 +5777,7 @@ const vidFound_ = box => {
   const m = /^(\d+) more — keep typing to narrow$/.exec(((box && box.querySelector('.vid-results .vid-more')) || {}).textContent || '');
   return rows + (m ? Number(m[1]) : 0);
 };
-check('the videos widget is last on Games: the bar alone, at most four results as you type, a tap plays in their place, an edit goes back, full screen fills the glass', async () => {
+check('the videos widget leads the Reels column: the bar alone, at most four results as you type, a tap plays in their place, an edit goes back, full screen fills the glass', async () => {
   const rows = [
     { title: 'How volcanoes erupt', url: 'https://www.youtube.com/watch?v=abcdefghijk', kind: 'clip',
       tags: 'science earth', age: '7+', notes: '', active: true },
@@ -5814,16 +5816,17 @@ check('the videos widget is last on Games: the bar alone, at most four results a
   const t = w.__t;
   const d = w.document;
   const bad = [];
-  const roster = t.widgetsOf('game').map(x => String(x.id));
-  if (roster.indexOf('videos') === -1) return ['there is no videos widget on the Games column'];
-  if (roster[roster.length - 1] !== 'videos') bad.push('videos is not the last game: ' + roster.join(', '));
-  t.go('games', false, true);
+  /* ON THE REELS COLUMN (414), before the first reel — and on Games no longer. */
+  if (t.widgetsOf('game').some(x => String(x.id) === 'videos')) bad.push('videos is still a widget of the Games column');
+  const roster = t.widgetsOf('reel').map(x => String(x.id));
+  if (roster.indexOf('videos') === -1) return ['there is no videos widget on the Reels column'];
+  t.go('reel', false, true);
   await wait(LEAVE_MS); await woken_();
   /* AND THE CARD ITSELF IS WAITED FOR, `partyBoot_`'s rule below: § */
-  for (let n = 0; n < 150 && !(asked && d.querySelector('#s-games #wgt-videos .vid-box .vid-q')); n++) await wait(100);
+  for (let n = 0; n < 150 && !(asked && d.querySelector('#s-reel #wgt-videos .vid-box .vid-q')); n++) await wait(100);
   await wait(50);
-  const box = d.querySelector('#s-games #wgt-videos .vid-box');
-  if (!box) return bad.concat(['the videos card did not draw on the Games column']);
+  const box = d.querySelector('#s-reel #wgt-videos .vid-box');
+  if (!box) return bad.concat(['the videos card did not draw on the Reels column']);
   if (!asked) bad.push('the card never asked for data/videos.json');
   const q = box.querySelector('input.vid-q');
   if (!q) return bad.concat(['there is no search box on the videos card']);
@@ -5851,7 +5854,7 @@ check('the videos widget is last on Games: the bar alone, at most four results a
   if (box.querySelector('.vid-more')) bad.push('four results drew a "more" line with nothing more to find');
   /* AND NOT THE REELS: *"the video widget shouldn't acknowledge reels."* They were a third list here. */
   if (titles().some(x => /^Reel \d/.test(x))) bad.push('the videos widget lists the app\'s reels, which it was told not to: ' + titles().join(' | '));
-  if (d.querySelector('#s-games #wgt-videos input.vid-q') !== q) bad.push('typing rebuilt the search box, which drops a phone\'s keyboard');
+  if (d.querySelector('#s-reel #wgt-videos input.vid-q') !== q) bad.push('typing rebuilt the search box, which drops a phone\'s keyboard');
 
   /* ---------- AND IT LOOKS LIKE YOUTUBE (note 311): A PICTURE ON EVERY ROW, AND A POSTER UNDER IT § */
   const rowOf = title => [...box.querySelectorAll('.vid-results .vid-row')]
@@ -5956,7 +5959,7 @@ check('the videos widget is last on Games: the bar alone, at most four results a
   if (!nowK || nowK.textContent !== 'Clip · 7+') bad.push('the line under the title is "' + (nowK ? nowK.textContent : 'not there') + '" — wanted the kind and the age');
   if (box.querySelector('.vid-results .vid-row') || (box.querySelector('.vid-results') || {}).innerHTML)
     bad.push('the results are still drawn under the player — the watch view replaces them');
-  if (q.value !== 'volc' || d.querySelector('#s-games #wgt-videos input.vid-q') !== q) bad.push('the bar did not keep what was typed over the player: ' + JSON.stringify(q.value));
+  if (q.value !== 'volc' || d.querySelector('#s-reel #wgt-videos input.vid-q') !== q) bad.push('the bar did not keep what was typed over the player: ' + JSON.stringify(q.value));
   if (!box.querySelector('.vid-acts .tile[data-do="vid-full"]')) bad.push('there is no Full screen tile beside the title');
 
   /* ---------- ANY EDIT GOES BACK TO THE RESULTS, AND THE FILM STOPS § */
@@ -6083,15 +6086,15 @@ check('the videos card starred into Saved: one tap is one player, in the copy th
   /* AND EVERY COLUMN DRAWN AGAIN FOR THE PERSON NOW SIGNED IN, as a sign-in draws them. */
   t.repaint(true);
   await wait(50);
-  t.go('games', false, true);
+  t.go('reel', false, true);
   await wait(LEAVE_MS); await woken_();
-  for (let n = 0; n < 150 && !(asked && d.querySelector('#s-games #wgt-videos .vid-box .vid-q')); n++) await wait(100);
+  for (let n = 0; n < 150 && !(asked && d.querySelector('#s-reel #wgt-videos .vid-box .vid-q')); n++) await wait(100);
   t.go('saved', false, true);
   await wait(LEAVE_MS); await woken_();
   for (let n = 0; n < 150 && !d.querySelector('#s-saved .vid-box .vid-q'); n++) await wait(100);
-  const games = d.querySelector('#s-games #wgt-videos .vid-box');
+  const reels = d.querySelector('#s-reel #wgt-videos .vid-box');
   const saved = d.querySelector('#s-saved .vid-box');
-  if (!games) return ['the videos card did not draw on the Games column'];
+  if (!reels) return ['the videos card did not draw on the Reels column'];
   if (!saved) return ['the starred videos card did not draw on the Saved column, so this asks nothing'];
   const bad = [];
   const q = saved.querySelector('input.vid-q');
@@ -6099,16 +6102,16 @@ check('the videos card starred into Saved: one tap is one player, in the copy th
   q.dispatchEvent(new w.Event('input', { bubbles: true }));
   const players = () => [...d.querySelectorAll('.vid-player')].map(p => (p.closest('.screen') || {}).id || '?');
   const rowsIn = box => box.querySelectorAll('.vid-results .vid-row').length;
-  if (rowsIn(saved) !== 2 || rowsIn(games) !== 2) bad.push('"volc" drew ' + rowsIn(saved) + ' result(s) on Saved and ' + rowsIn(games) + ' on Games — wanted both rows in both copies');
+  if (rowsIn(saved) !== 2 || rowsIn(reels) !== 2) bad.push('"volc" drew ' + rowsIn(saved) + ' result(s) on Saved and ' + rowsIn(reels) + ' on Reels — wanted both rows in both copies');
   const tap = box => {
     const r = box.querySelector('.vid-results .vid-row[data-do="vid-play"]');
-    if (!r) { bad.push('there is no result to tap in the ' + (box === saved ? 'Saved' : 'Games') + ' copy'); return false; }
+    if (!r) { bad.push('there is no result to tap in the ' + (box === saved ? 'Saved' : 'Reels') + ' copy'); return false; }
     t.ACTIONS['vid-play'](r);
     return true;
   };
   const watching = (box, other, said) => {
     const p = players();
-    if (p.length !== 1 || p[0] !== (box === saved ? 's-saved' : 's-games'))
+    if (p.length !== 1 || p[0] !== (box === saved ? 's-saved' : 's-reel'))
       bad.push(said + ' built ' + p.length + ' player(s), in ' + (p.join(', ') || 'none') + ' — wanted one, in the copy tapped');
     if (!box.querySelector('.vid-watch.on .vid-stage iframe.vid-player') || !box.querySelector('.vid-acts [data-do="vid-full"]'))
       bad.push(said + ': the copy tapped is not the watch view with its Full screen tile');
@@ -6116,9 +6119,9 @@ check('the videos card starred into Saved: one tap is one player, in the copy th
       bad.push(said + ': the copy NOT tapped still draws a player, a stage or a Full screen tile');
     if (rowsIn(other) !== 2) bad.push(said + ': the copy not tapped shows ' + rowsIn(other) + ' result(s) — wanted the results for "volc"');
   };
-  if (tap(saved)) watching(saved, games, 'a tap in the Saved copy');
+  if (tap(saved)) watching(saved, reels, 'a tap in the Saved copy');
   /* AND A TAP IN THE OTHER COPY MOVES THE ONE PLAYER THERE. */
-  if (tap(games)) watching(games, saved, 'then a tap in the Games copy');
+  if (tap(reels)) watching(reels, saved, 'then a tap in the Reels copy');
   /* AN EDIT IN EITHER COPY STOPS IT EVERYWHERE — an edit is an edit of the one search. */
   q.value = 'volca';
   q.dispatchEvent(new w.Event('input', { bubbles: true }));
@@ -6142,7 +6145,7 @@ check('the videos card ranks what it finds — the title first, a row that plays
   ];
   const { w } = boot({ serve: u => (/data\/videos\.json/.test(u) ? rows : undefined) });
   const { box, type, titles } = await vidCard_(w);
-  if (!box) return ['the videos card did not draw on the Games column'];
+  if (!box) return ['the videos card did not draw on the Reels column'];
   for (let n = 0; n < 50 && box.querySelector('.loading'); n++) await wait(50);
   const bad = [];
   const more = () => ((box.querySelector('.vid-results .vid-more') || {}).textContent || '');
@@ -6200,16 +6203,16 @@ check('a widget waiting on its fetch shows the one loader and nothing else, and 
   const late = new Promise(r => { release = r; });
   const a = boot({ serve: url => (/data\/videos\.json/.test(url) ? late.then(() => rows) : undefined) });
   await wait(300);
-  a.w.__t.go('games', false, true);
+  a.w.__t.go('reel', false, true);
   await wait(LEAVE_MS); await woken_();
   /* AND TURNED TO, as a finger turns to it. § */
-  const vn = a.w.__t.widgetsOf('game').findIndex(x => String(x.id) === 'videos');
-  a.w.__t.goPage('games', vn, true);
+  const vn = a.w.__t.widgetsOf('reel').findIndex(x => String(x.id) === 'videos');
+  a.w.__t.goPage('reel', vn, true);
   /* AND THE CARD ITSELF WAITED FOR, the videos journey's rule above: § */
-  for (let n = 0; n < 150 && !a.w.document.querySelector('#s-games #wgt-videos .vid-box .vid-q'); n++) await wait(100);
+  for (let n = 0; n < 150 && !a.w.document.querySelector('#s-reel #wgt-videos .vid-box .vid-q'); n++) await wait(100);
   await wait(50);
-  const vid = a.w.document.querySelector('#s-games #wgt-videos');
-  if (!vid) return ['the videos card did not draw on the Games column'];
+  const vid = a.w.document.querySelector('#s-reel #wgt-videos');
+  if (!vid) return ['the videos card did not draw on the Reels column'];
   const vbox = vid.querySelector('.vid-box');
   const vq = vbox && vbox.querySelector('input.vid-q');
   if (!vq) return ['the videos card has no search box while its file is out — nothing to type into'];
@@ -6679,12 +6682,12 @@ const vidCard_ = async (w, who) => {
   const t = w.__t;
   for (let n = 0; n < 80 && !t; n++) await wait(100);
   if (who) t.USER(who);
-  t.go('games', false, true);
+  t.go('reel', false, true);
   await wait(LEAVE_MS); await woken_();
   const d = w.document;
   /* THE CARD ITSELF, WAITED FOR — see the first videos journey. */
-  for (let n = 0; n < 150 && !d.querySelector('#s-games #wgt-videos .vid-box .vid-q'); n++) await wait(100);
-  const box = d.querySelector('#s-games #wgt-videos .vid-box');
+  for (let n = 0; n < 150 && !d.querySelector('#s-reel #wgt-videos .vid-box .vid-q'); n++) await wait(100);
+  const box = d.querySelector('#s-reel #wgt-videos .vid-box');
   const q = box && box.querySelector('input.vid-q');
   const type = v => { q.value = v; q.dispatchEvent(new w.Event('input', { bubbles: true })); };
   const titles = () => [...box.querySelectorAll('.vid-results .vid-list .vid-row .vid-t')].map(e => e.textContent.trim());
@@ -6699,7 +6702,7 @@ check('the videos card finds an admin’s films by title, year, kids, series and
                      found: { films: 4, series: 1, documentaries: 1, placeholders: 1 } };
   const { w, sent } = boot({ payload: data, serve: u => (/data\/videos\.json/.test(u) ? [] : undefined) });
   const { t, box, type, titles } = await vidCard_(w, vidAdmin_);
-  if (!box) return ['the videos card did not draw on the Games column'];
+  if (!box) return ['the videos card did not draw on the Reels column'];
   const bad = [];
   /* THE ADMIN TOO OPENS ON THE BAR ALONE (note 321): no list of every film, and no Sync row. */
   const idle = vidIdle_(box);
@@ -6819,7 +6822,7 @@ check('the videos card syncs an admin’s films from Drive on its own when never
     },
   });
   const { t, box, type, titles } = await vidCard_(w, vidAdmin_);
-  if (!box) return ['the videos card did not draw on the Games column'];
+  if (!box) return ['the videos card did not draw on the Reels column'];
   const bad = [];
   for (let n = 0; n < 40 && calls < 2; n++) await wait(50);
   await wait(50);
@@ -6877,7 +6880,7 @@ check('the videos card says a failed sync in the admin’s line and does not ask
   const { w, sent } = boot({ payload: data, serve: u => (/data\/videos\.json/.test(u) ? [] : undefined),
     reply: b => (b.action === 'filmsSync' ? { error: 'No folder named Notflix is visible to this script.' } : undefined) });
   const { t, box, type } = await vidCard_(w, vidAdmin_);
-  if (!box) return ['the videos card did not draw on the Games column'];
+  if (!box) return ['the videos card did not draw on the Reels column'];
   const bad = [];
   await wait(120);
   /* THE ADMIN'S ROW IS UNDER A SEARCH'S ANSWER (note 321) — "No videos listed yet.", with no film and no
@@ -6920,10 +6923,10 @@ check('a student’s and a stranger’s videos card has no film, no Sync tile an
   t.USER(null);
   t.repaint && t.repaint(true);
   t.go('tools', false, true); await wait(LEAVE_MS); await woken_();
-  t.go('games', false, true); await wait(LEAVE_MS); await woken_();
-  look('a stranger', w.document.querySelector('#s-games #wgt-videos .vid-box'));
+  t.go('reel', false, true); await wait(LEAVE_MS); await woken_();
+  look('a stranger', w.document.querySelector('#s-reel #wgt-videos .vid-box'));
   if (sent.some(b => b.action === 'filmsSync')) bad.push('a student’s or a stranger’s phone posted filmsSync');
-  const name = String((t.widgetsOf('game').find(x => String(x.id) === 'videos') || {}).name || '');
+  const name = String((t.widgetsOf('reel').find(x => String(x.id) === 'videos') || {}).name || '');
   if (/film/i.test(name)) bad.push('the videos card is called "' + name + '" on everybody’s roster');
   return bad;
 });
@@ -6935,7 +6938,7 @@ check('signing out takes an admin’s films off the device, and a student signin
   const bad = [];
   const filmsIn = w => { try { return w.stuffItemsAll_().filter(x => x.kind === 'film').length; } catch (e) { return -1; } };
   const shown = w => {
-    const box = w.document.querySelector('#s-games #wgt-videos .vid-box');
+    const box = w.document.querySelector('#s-reel #wgt-videos .vid-box');
     const html = w.document.body.innerHTML;
     return { rows: box ? box.querySelectorAll('.vid-list .vid-row').length : -1,
              drive: box ? box.querySelectorAll('.vid-list a[href*="drive.google.com"]').length : -1,
@@ -6943,14 +6946,14 @@ check('signing out takes an admin’s films off the device, and a student signin
   };
   const away = async t => {
     t.go('tools', false, true); await wait(LEAVE_MS); await woken_();
-    t.go('games', false, true); await wait(LEAVE_MS); await woken_();
+    t.go('reel', false, true); await wait(LEAVE_MS); await woken_();
   };
   /* ---- THE SIGN OUT TILE ---- */
   {
     const { w } = boot({ payload: Object.assign(payload(), { films: FILMS_, filmsSync: stamp() }),
                          serve: u => (/data\/videos\.json/.test(u) ? [] : undefined) });
     const { t, box, type } = await vidCard_(w, vidAdmin_);
-    if (!box) return ['the videos card did not draw on the Games column'];
+    if (!box) return ['the videos card did not draw on the Reels column'];
     type('film');
     if (vidFound_(box) !== FILMS_.length)
       return ['the setup: the admin’s card finds ' + vidFound_(box) + ' of ' + FILMS_.length + ' films, so Sign out was NOT checked'];
@@ -6972,14 +6975,14 @@ check('signing out takes an admin’s films off the device, and a student signin
     if (filmsIn(w) !== 0) bad.push('after Sign out Find still has ' + filmsIn(w) + ' films');
     if ((t.DATA().films || []).length) bad.push('DATA.films still holds ' + t.DATA().films.length + ' after Sign out');
     if ('filmsSync' in t.DATA()) bad.push('DATA.filmsSync — the folder’s name and its counts — outlived Sign out');
-    const q = w.document.querySelector('#s-games #wgt-videos .vid-q');
+    const q = w.document.querySelector('#s-reel #wgt-videos .vid-q');
     if (q && q.value) bad.push('what the admin typed is still in the videos box: ' + JSON.stringify(q.value));
     /* AND A SEARCH AFTER IT FINDS NONE OF THEM — the card opens on the bar alone, so "no rows" above is
        true of an idle card whatever the device still holds; this asks the list itself. */
     if (q) {
       q.value = 'film';
       q.dispatchEvent(new w.Event('input', { bubbles: true }));
-      const left = w.document.querySelectorAll('#s-games #wgt-videos .vid-results .vid-row').length;
+      const left = w.document.querySelectorAll('#s-reel #wgt-videos .vid-results .vid-row').length;
       if (left) bad.push('after Sign out, "film" still finds ' + left + ' row(s) on the device');
       q.value = '';
       q.dispatchEvent(new w.Event('input', { bubbles: true }));
@@ -7016,11 +7019,11 @@ check('signing out takes an admin’s films off the device, and a student signin
     const { t, box } = await vidCard_(w, vidAdmin_);
     /* THE SYNC ROW IS UNDER A SEARCH'S ANSWER (note 321), so each admin types before looking for it. */
     const typeIn = v => {
-      const q = w.document.querySelector('#s-games #wgt-videos .vid-q');
+      const q = w.document.querySelector('#s-reel #wgt-videos .vid-q');
       if (q) { q.value = v; q.dispatchEvent(new w.Event('input', { bubbles: true })); }
     };
     typeIn('film');
-    const tile = () => w.document.querySelector('#s-games #wgt-videos .vid-admin [data-do="vid-sync"]');
+    const tile = () => w.document.querySelector('#s-reel #wgt-videos .vid-admin [data-do="vid-sync"]');
     if (!box || !tile()) return bad.concat(['the setup: the first admin has no Sync tile, so a sync in flight was NOT checked']);
     t.ACTIONS['vid-sync'](tile());
     await wait(20);
@@ -7059,7 +7062,7 @@ check('the videos card syncs an admin’s films on its own once the last whole p
       reply: b => (b.action === 'filmsSync' ? { success: true, done: true, more: false, films: FILMS_,
         sync: { at: new Date().toISOString(), more: false, folder: 'Notflix', found: { films: 4, series: 1, documentaries: 1, placeholders: 1 } } } : undefined) });
     const { box, type } = await vidCard_(w, vidAdmin_);
-    if (!box) { bad.push('the videos card did not draw on the Games column'); return null; }
+    if (!box) { bad.push('the videos card did not draw on the Reels column'); return null; }
     for (let n = 0; n < 20 && !sent.some(b => b.action === 'filmsSync'); n++) await wait(25);
     await wait(80);
     /* ASKED BY A SEARCH — the card opens on the bar alone (note 321); every film's kind is "film". */
@@ -7105,39 +7108,34 @@ check('a Space typed into the videos search box is not eaten by Flappy Bird, and
   return bad;
 });
 
-/* ---------- SUPERTUX: AN ENTRY THAT FETCHES NOTHING UNTIL PLAY, THEN FRAMES THE CONFIGURED URL (docs/history/363) */
-check('supertux is on the Games column, loads nothing until Play, then frames the configured URL beside a source link', async () => {
+/* ---------- BOARD GAMES: CONNECT 4, OTHELLO AND SCRABBLE ARE ONE WIDGET WITH A PICKER (414) */
+check('the board games are one widget: three games in its picker, each drawing only its own board, the choice remembered', async () => {
   const { w } = boot();
   await wait(300);
   const t = w.__t, d = w.document;
+  const bad = [];
+  const ids = t.allWidgets().map(x => String(x.id));
+  ['connect4', 'othello', 'scrabble'].forEach(id => { if (ids.indexOf(id) !== -1) bad.push(id + ' is still a widget of its own'); });
   t.go('games', false, true);
   await wait(LEAVE_MS); await woken_();
-  const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'supertux');
-  if (at < 0) return ['there is no SuperTux on the Games column'];
+  const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'boardgames');
+  if (at < 0) return bad.concat(['there is no Board games widget on the Games column']);
   t.goPage('games', at, true);
   await woken_();
-  const bad = [];
-  const q = sel => d.querySelector('#s-games ' + sel);
-  for (let k = 0; k < 30 && !q('#tux-tiles .tile'); k++) await wait(100);
-  if (!q('#tux-tiles .tile')) return ['the SuperTux entry drew no tiles'];
-  if (d.querySelector('.tux-frame')) bad.push('a SuperTux frame exists before anybody tapped Play');
-  const get = q('#tux-tiles a.tile');
-  if (!get || !/github\.com\/SuperTux\/supertux\/releases/.test(get.href)) bad.push('with no web build set, the entry does not offer the official downloads');
-  const src = q('#tux-licence a.tux-src');
-  if (!src || !/github\.com\/SuperTux\/supertux\/tree\/v\d/.test(src.href)) bad.push('the source-and-licence link to an exact upstream version is missing');
-  if (!/GPL/.test((q('#tux-licence') || {}).textContent || '')) bad.push('the licence line does not name the GPL');
-  const URL_ = 'https://example.org/supertux/';
-  const D = t.DATA(); D.brand = Object.assign({}, D.brand, { supertux_url: URL_ });
-  w.tuxPaint_();
-  if (d.querySelector('.tux-frame')) bad.push('setting the URL alone created the frame');
-  const play = q('#tux-tiles [data-do="tux-play"]');
-  if (!play) return bad.concat(['with a web build set, there is no Play tile']);
-  t.ACTIONS['tux-play'](play);
-  const f = q('#tux-stage iframe.tux-frame');
-  if (!f || f.getAttribute('src') !== URL_) bad.push('Play did not frame the configured URL');
-  if (!q('#tux-stage[aria-busy="true"] > .loading')) bad.push('the wait for the frame is not loading_()');
-  const full = q('#tux-tiles a.tile[href="' + URL_ + '"]');
-  if (!full) bad.push('there is no full-screen tile to the configured URL');
+  const pick = d.querySelector('#s-games #bg-pick');
+  if (!pick) return bad.concat(['the Board games widget has no picker']);
+  const opts = [...pick.options].map(o => o.textContent.trim());
+  if (opts.join('|') !== 'Connect 4|Othello|Scrabble') bad.push('the picker offers ' + JSON.stringify(opts));
+  const boards = { c4: '#c4-board', oth: '#oth-board', scr: '#scr-board' };
+  for (const k of Object.keys(boards)) {
+    pick.value = k; t.ACTIONS['bg-pick'](pick);
+    await wait(50);
+    const here = Object.keys(boards).filter(b => d.querySelector('#s-games ' + boards[b]));
+    if (here.join() !== k) bad.push('choosing ' + k + ' drew ' + JSON.stringify(here));
+    let kept = ''; try { kept = w.localStorage.getItem('bg-game'); } catch (e) {}
+    if (kept !== k) bad.push('choosing ' + k + ' remembered ' + JSON.stringify(kept));
+  }
+  if (!d.querySelector('#s-games #wgt-boardgames h3') || d.querySelector('#s-games #wgt-boardgames h3').textContent.trim() !== 'Board games') bad.push('the widget is not headed Board games');
   return bad;
 });
 
@@ -7150,12 +7148,16 @@ check('connect 4 drops exactly the counter just played into the lowest empty squ
   const W = 7, H = 6;
   t.go('games', false, true);
   await wait(LEAVE_MS); await woken_();
-  const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'connect4');
-  if (at < 0) return ['there is no Connect 4 on the Games column'];
+  /* CONNECT 4 IS A GAME INSIDE BOARD GAMES (414), reached through its picker. */
+  const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'boardgames');
+  if (at < 0) return ['there is no Board games widget on the Games column'];
   t.goPage('games', at, true);
   const cells = () => [...d.querySelectorAll('#s-games #c4-board .c4-cell')];
   /* TURNING TO THE PAGE STARTS THE WIDGET, IT DOES NOT FINISH IT — `woken_()` above says why. § */
   await woken_();
+  const pick = d.querySelector('#s-games #bg-pick');
+  if (!pick) return ['the Board games widget has no picker'];
+  pick.value = 'c4'; t.ACTIONS['bg-pick'](pick);
   for (let k = 0; k < 30 && cells().length !== W * H; k++) await wait(100);
   if (cells().length !== W * H) return ['the board did not draw ' + (W * H) + ' squares'];
   const bad = [];
@@ -10394,8 +10396,71 @@ check('an admin adds a person from the "+" above the people column, edits one an
   return bad;
 });
 
+/* ---------- AN EMPTY WIDGET IS ITS TITLE AND NOTHING ELSE (414) */
+check('an empty Spotlight, Saved, shop and basket draw their title alone, for a visitor and an admin alike', async () => {
+  const { w } = boot();
+  await wait(400);
+  const t = w.__t, d = w.document, bad = [];
+  const only = (html, title, who) => {
+    const box = d.createElement('div'); box.innerHTML = html;
+    const card = box.firstElementChild;
+    const kids = card ? [...card.querySelectorAll('*')] : [];
+    if (!card || kids.length !== 1 || kids[0].tagName !== 'H3' || kids[0].textContent.trim() !== title || card.textContent.trim() !== title) {
+      bad.push(who + '’s empty ' + title + ' draws more than its title: ' + JSON.stringify(box.textContent.replace(/\s+/g, ' ').trim().slice(0, 100)));
+    }
+  };
+  for (const who of [null, { name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], token: 'tk' }]) {
+    t.USER(who);
+    const name = who ? 'an admin' : 'a visitor';
+    if (w.spotPages().length) return bad.concat(['the fixture has something spotlit, so the empty Spotlight was NOT checked']);
+    const sp = w.spotlightCards_();
+    if (sp.length !== 1) bad.push(name + '’s empty Spotlight is ' + sp.length + ' cards'); else only(sp[0], 'Spotlight', name);
+    if (!who) only(w.savedCards_()[0], 'Saved', name);
+  }
+  if (w.cartCard_ && t.setCart) { t.setCart([]); if (String(w.cartCard_()).trim()) bad.push('an empty basket draws words under its title: ' + w.cartCard_()); }
+  t.USER(null);
+  return bad;
+});
+
+/* ---------- A TUTOR'S TILE ROW IS ONE LINE (414): viewer tiles first, the admin's behind one "Admin" tile once the row would pass six, and each trait said once */
+check('an admin sees a tutor card\'s tiles as one row — Message, Share, Save, then one Admin tile opening the rest — and a trait typed twice is said once', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  if (typeof w.cardTiles_ !== 'function' || typeof w.tileRow_ !== 'function') return ['the tile row is not reachable — NOT checked'];
+  t.USER({ name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], token: 'tk' });
+  const row = { personId: 'P-G', title: 'George Tutor', handle: 'george', listed: true, role: 'Tutor', tags: 'patient, driven, driven' };
+  const item = { kind: 'tutor', name: row.title, key: row.title, row, account: true,
+                 more: typeof w.peopleTiles_ === 'function' ? w.peopleTiles_(row) : '' };
+  const box = d.createElement('div');
+  box.innerHTML = w.cardTiles_(item);
+  d.body.appendChild(box);
+  const r = box.querySelector('.tile-row');
+  if (!r) return ['the tutor card drew no tile row'];
+  const front = [...r.querySelectorAll('.tile')].filter(el => !el.closest('.tile-sheet'));
+  const acts = front.map(el => el.getAttribute('data-do'));
+  if (front.length > 6) bad.push('the row shows ' + front.length + ' tiles: ' + acts.join(' '));
+  if (acts.slice(0, 3).join(' ') !== 'msg-open tutor-share fav') bad.push('the viewer\'s tiles do not lead in the order Message, Share, Save: ' + acts.join(' '));
+  const more = r.querySelector('.tile-group.is-admin [data-do="tile-more"]');
+  if (!more) bad.push('the admin\'s tiles are not behind one Admin tile in the admin group: ' + acts.join(' '));
+  const sheet = r.querySelector(':scope > .tile-sheet');
+  if (!sheet || !sheet.hidden) bad.push('the admin sheet is missing or open before it is asked for');
+  const inSheet = sheet ? [...sheet.querySelectorAll('.tile')].map(el => el.getAttribute('data-do')) : [];
+  ['spot', 'person-edit', 'person-del'].forEach(a => { if (inSheet.indexOf(a) === -1) bad.push('the admin sheet has no ' + a + ': ' + inSheet.join(' ')); });
+  if (inSheet[inSheet.length - 1] !== 'person-del') bad.push('Delete is not last in the admin sheet: ' + inSheet.join(' '));
+  if (more) { t.ACTIONS['tile-more'](more); if (sheet && sheet.hidden) bad.push('the Admin tile did not open its sheet'); t.ACTIONS['tile-more'](more); if (sheet && !sheet.hidden) bad.push('a second press did not close it'); }
+  /* A SHORT ROW IS LEFT AS IT IS: a visitor's two tiles are not put behind anything. */
+  const plain = w.tileRow_(w.tile_({ icon: 'chat', label: 'Message', act: 'msg-open' }) + w.tile_({ icon: 'share', label: 'Share', act: 'tutor-share' }));
+  if (/tile-more|tile-sheet/.test(plain)) bad.push('a row of two tiles grew a More tile');
+  const words = w.profList_(row.tags);
+  if (words.join('|') !== 'patient|driven') bad.push('the traits "patient, driven, driven" read ' + JSON.stringify(words));
+  box.remove();
+  t.USER(null);
+  return bad;
+});
+
 /* "I WANT TO USE CLAUDE LESS FOR ADDING STUFF … A PLUS WIDGET ON REELS LIKE YOU DID FOR PEOPLE" (404): the "+" leads Reels for an admin, a pasted Short is looked up (oEmbed stubbed), saved, and shown. */
-check('an admin adds a reel from the "+" that leads the Reels column — a pasted Short looked up, saved as mediaSave, and in the column without a reload; a student has no "+"', async () => {
+check('an admin adds a reel from the "+" just before the first reel, where the column stands — a pasted Short looked up, saved as mediaSave, and in the column without a reload; a student has no "+"', async () => {
   const ID = 'Ab3_dEfGh-1';
   let hold = false;
   /* THE PAYLOAD `load()` ASKS FOR AFTER A SAVE IS HELD, so what the column shows is the reply's doing. */
@@ -10417,6 +10482,12 @@ check('an admin adds a reel from the "+" that leads the Reels column — a paste
   draw(); await wait(200);
   if (!col() || !col().querySelector('.reel')) return bad.concat(['the Reels column drew no reel for a student, so nothing below can be asked']);
   if (col().querySelector('[data-do="media-add"], .media-add')) bad.push('a student is drawn the admin\'s "+" on Reels');
+  /* THE FIRST REEL IS WHERE THE COLUMN STANDS (414), the widgets before it — Videos among them. */
+  const pagesNow = () => [...col().querySelectorAll(':scope > .page')];
+  const reelAt = () => pagesNow().findIndex(p => p.querySelector('.reel'));
+  if (t.PAGE().reel !== reelAt()) bad.push('a student\'s Reels stands on page ' + t.PAGE().reel + ', not on the first reel (page ' + reelAt() + ')');
+  const vidAt = pagesNow().findIndex(p => p.querySelector('#wgt-videos'));
+  if (vidAt < 0 || vidAt > reelAt()) bad.push('the Videos widget is not a page before the first reel (at ' + vidAt + ', first reel ' + reelAt() + ')');
   sent.length = 0;
   const fake = d.createElement('button'); fake.setAttribute('data-kind', 'reel'); fake.setAttribute('data-id', ID);
   ['media-add', 'media-hide', 'media-del-go'].forEach(a => { try { t.ACTIONS[a](fake); } catch (e) {} });
@@ -10425,9 +10496,13 @@ check('an admin adds a reel from the "+" that leads the Reels column — a paste
 
   t.USER({ name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], token: 'tk' });
   draw(); await wait(200);
-  const first = col() && col().querySelector('.page');
+  /* THE "+" IS THE PAGE JUST BEFORE THE FIRST REEL, AND NOT WHERE THE COLUMN STANDS (414): the first reel is, the "+" one swipe back. */
+  const plusAt = pagesNow().findIndex(p => p.querySelector('[data-do="media-add"][data-kind="reel"]'));
+  const first = plusAt >= 0 ? pagesNow()[plusAt] : null;
   const plus = first && first.querySelector('[data-do="media-add"][data-kind="reel"]');
-  if (!plus) return bad.concat(['the admin\'s Reels column does not open on the "+"']);
+  if (!plus) return bad.concat(['the admin\'s Reels column has no "+" page']);
+  if (plusAt !== reelAt() - 1) bad.push('the "+" is page ' + plusAt + ', not the one just before the first reel (' + reelAt() + ')');
+  if (t.PAGE().reel !== reelAt()) bad.push('an admin\'s Reels stands on page ' + t.PAGE().reel + ', not the first reel (' + reelAt() + ') — the "+" is the default again');
   if (first.querySelector('.reel')) bad.push('the "+" page also carries a reel');
   t.ACTIONS['media-add'](plus);
   await wait(200);
@@ -22003,7 +22078,7 @@ check('films are not in Find for an admin with films in the payload — not by t
 
   /* ---- AND THE VIDEOS CARD STILL FINDS IT ---- */
   const v = await vidCard_(w, vidAdmin_);
-  if (!v.box) return bad.concat(['the videos card did not draw on the Games column, so where films ARE found was NOT checked']);
+  if (!v.box) return bad.concat(['the videos card did not draw on the Reels column, so where films ARE found was NOT checked']);
   v.type('paper moon');
   await wait(30);
   if (v.titles().indexOf(title) === -1) bad.push('the videos card does not find "' + title + '" for "paper moon" — it lists ' + (v.titles().join(' | ') || 'nothing'));
@@ -25157,9 +25232,10 @@ check('every widget with a stop is drawn ahead by its draw and runs nothing: no 
   if (t.running().length) bad.push('drawn-ahead widgets are entered as running: ' + t.running().map(e => e.id).join(', '));
   /* DRAWN: each slot with a stop is out from under its loader — but Flabby Pird, whose still drawing needs a
      box and jsdom has none, and the reels card when its fact is a clip (`feedPaint_`). */
-  ['tables', 'wordgames', 'videos'].forEach(id => {
-    const sl = t.slotOn('games', id);
-    if (!sl) bad.push('no ' + id + ' slot on Games');
+  /* VIDEOS LEADS THE REELS NOW (414), and is drawn ahead there. */
+  [['games', 'tables'], ['games', 'wordgames'], ['reel', 'videos']].forEach(([col, id]) => {
+    const sl = t.slotOn(col, id);
+    if (!sl) bad.push('no ' + id + ' slot on ' + col);
     else if (sl.getAttribute('aria-busy')) bad.push(id + ' is still under its loader after the quiet — its draw did not draw it');
   });
   t.USER(null);
@@ -25379,7 +25455,9 @@ check('a landing never deals a reel twice: the reels topped up in the quiet and 
     const got = reels();
     const dup = got.filter((v, i) => got.indexOf(v) !== i);
     if (dup.length) { bad.push('after landing ' + (k + 1) + ' the column deals reel(s) ' + [...new Set(dup)].join(', ') + ' twice: ' + got.join(',')); break; }
-    if (got.some((v, i) => v !== i)) { bad.push('after landing ' + (k + 1) + ' the reels run ' + got.join(',') + ' — not one after another from nought'); break; }
+    /* `data-reel` IS THE PAGE, so the first reel is numbered by the pages that lead it (414: the column's widgets). */
+    const lead = [...w.document.querySelectorAll('#s-reel > .page')].findIndex(p => p.querySelector('.reel'));
+    if (got.some((v, i) => v !== i + lead)) { bad.push('after landing ' + (k + 1) + ' the reels run ' + got.join(',') + ' — not one after another from the first reel\'s page (' + lead + ')'); break; }
     const pages = w.document.querySelectorAll('#s-reel > .page').length;
     if (t.pageCount('reel') !== pages) { bad.push('after landing ' + (k + 1) + ' the count says ' + t.pageCount('reel') + ' and the column holds ' + pages + ' pages'); break; }
   }

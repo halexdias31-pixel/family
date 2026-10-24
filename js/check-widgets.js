@@ -129,6 +129,9 @@ const ACCEPTED_ENGINE = {
                     + 'still needs.',
   initRound: 'Articulate and Charades are games inside the Word games widget; WORD_GAMES in '
            + 'games.js starts them from initWordGames, which is the starter a widget names.',
+  initConnect4: 'Connect 4 is a game inside the Board games widget (414); BOARD_GAMES in games.js starts it from initBoardGames, the starter a widget names.',
+  initOthello: 'Othello is a game inside the Board games widget (414); BOARD_GAMES in games.js starts it from initBoardGames, the starter a widget names.',
+  initScrabble: 'Scrabble is a game inside the Board games widget (414); BOARD_GAMES in games.js starts it from initBoardGames, the starter a widget names.',
   initImposter: 'Imposter is a game inside the Word games widget; WORD_GAMES in games.js starts it '
               + 'from initWordGames, which is the starter a widget names.',
   initHerd: 'Herd Mentality is a game inside the Word games widget since the owner moved it there '

@@ -54,6 +54,8 @@ const TILE_ICONS = {
   /* SAVE IS A TICK, not a floppy disk: nobody who uses this app has held one, and a tick is what
      every form here already means by "done". */
   save:  '<path d="M3.5 9.5 7.3 13.3 14.8 4.8"/>',
+  /* MORE IS THREE DOTS (414): the tile a row's overflow sits behind — "Admin" or "More", `tileRow_`. */
+  more:  '<circle cx="4" cy="9" r=".9"/><circle cx="9" cy="9" r=".9"/><circle cx="14" cy="9" r=".9"/>',
   /* ADD IS A PLUS, the one mark every phone already puts on "one more of these" — the qualifications
      card's `+` under its list (see `qualShelf_` in me.js). Two strokes, open, the set's 1.4. */
   plus:  '<path d="M9 3.5v11"/><path d="M3.5 9h11"/>',
@@ -376,13 +378,66 @@ function cardTiles_(x) {
   /* AND `Open`, to Find, under a kept card that Saved or the Spotlight cannot draw whole — a practical's method, a project's steps, a textbook's chapters, a § */
   /* `more` IS WHAT ONE COLUMN ADDS TO THE ROW — the people column's Edit and Delete for an admin (373). */
   /* AND `Read aloud` ON A PRIMARY QUESTION OR CONTENT CARD (394) -- `readAloudTile_`, find.js. */
-  const mine = favTile_(x) + cardActions_(x) + (typeof readAloudTile_ === 'function' ? readAloudTile_(x) : '')
+  /* A TUTOR'S ROW LEADS WITH WHAT A VISITOR CAME FOR (414): Message, Share, then the star. */
+  const lead = x.kind === 'tutor' ? cardActions_(x) + favTile_(x) : favTile_(x) + cardActions_(x);
+  const mine = lead + (typeof readAloudTile_ === 'function' ? readAloudTile_(x) : '')
     + (typeof speedTile_ === 'function' ? speedTile_(x) : '')
     + finderOpenTile_(x) + (x.more || '');
   const admin = adminTiles_(x, x.topic || null);
   if (!mine && !admin) return '';
-  return `<div class="tile-row">${mine}${admin}</div>`;
+  /* YOUR OWN CARD IS ALL YOURS: nothing on it is split off as an admin's (the hub's gold means "terms to agree" there). */
+  return tileRow_(mine + admin, '', x.kind === 'me');
 }
+
+/* ---------- ONE ROW, NEVER AN ORPHAN (414) ---------- */
+/* SIX 44px TILES FIT A CARD AT 390px; a seventh wrapped one tile onto a line of its own. Past six, the admin tiles go behind one "Admin" tile, or the tail behind "More". */
+const TILE_ROW_MAX = 6;
+const TILE_RE_ = /<(button|a)\b[^>]*\bclass="tile\b[^"]*"[^>]*>[\s\S]*?<\/\1>/g;
+/* AN ADMIN'S OR OWNER'S TILE is one drawn in the admin or danger tone; these lead their group in this order, a danger tile last. */
+const TILE_ADMIN_ORDER_ = ['card-edit', 'person-edit', 'spot', 'set-listed'];
+const tileIsAdmin_ = t => /\bclass="tile\b[^"]*\bis-(admin|danger)\b/.test(t);
+const tileAct_ = t => (t.match(/\bdata-do="([^"]*)"/) || [])[1] || '';
+function tileAdminRank_(t) {
+  if (/\bclass="tile\b[^"]*\bis-danger\b/.test(t)) return 99;
+  const i = TILE_ADMIN_ORDER_.indexOf(tileAct_(t));
+  return i === -1 ? TILE_ADMIN_ORDER_.length : i;
+}
+function tileRow_(html, cls, own) {
+  const src = String(html || '');
+  const wrap = inner => `<div class="tile-row${cls ? ' ' + cls : ''}">${inner}</div>`;
+  const all = src.match(TILE_RE_) || [];
+  const admin = own ? [] : all.filter(tileIsAdmin_);
+  if (!admin.length && all.length <= TILE_ROW_MAX) return wrap(src);
+  const viewer = all.filter(t => admin.indexOf(t) === -1);
+  /* WHAT IS NOT A TILE (a verdict, a note) stays, after the viewer's tiles; the old admin wrapper goes, regrouped below. */
+  const rest = all.reduce((s, t) => s.replace(t, ''), src)
+    .replace(/<span class="tile-group is-admin"[^>]*>\s*<\/span>/g, '').trim();
+  const sorted = admin.map((t, i) => [t, i]).sort((a, b) => tileAdminRank_(a[0]) - tileAdminRank_(b[0]) || a[1] - b[1]).map(p => p[0]);
+  const group = inner => `<span class="tile-group is-admin" role="group" aria-label="Admin">${inner}</span>`;
+  const sheet = (list, say) => `<div class="tile-sheet" role="group" aria-label="${esc(say)}" hidden>${list.join('')}</div>`;
+  if (all.length <= TILE_ROW_MAX) return wrap(viewer.join('') + rest + group(sorted.join('')));
+  if (sorted.length && viewer.length < TILE_ROW_MAX) {
+    return wrap(viewer.join('') + rest
+      + group(tile_({ icon: 'more', label: 'Admin', note: sorted.length + ' more', tone: 'admin', act: 'tile-more', pressed: false }))
+      + sheet(sorted, 'Admin'));
+  }
+  const keep = viewer.slice(0, TILE_ROW_MAX - 1), over = viewer.slice(TILE_ROW_MAX - 1).concat(sorted);
+  return wrap(keep.join('') + rest
+    + tile_({ icon: 'more', label: 'More', note: over.length + ' more', act: 'tile-more', pressed: false })
+    + sheet(over, 'More'));
+}
+/* THE SHEET OPENS UNDER ITS ROW and the same tile closes it. */
+on('tile-more', el => {
+  const row = el.closest('.tile-row');
+  const sh = row && row.querySelector(':scope > .tile-sheet');
+  if (!sh) return;
+  const open = sh.hidden;
+  sh.hidden = !open;
+  tileSet_(el, { on: open, pressed: open });
+  /* THE CARD GREW OR SHRANK BY A ROW: its pane is fitted again, as an opened card's is (`paneReach_`, find.js). */
+  const pane = el.closest('.pane');
+  if (pane && typeof paneReach_ === 'function') { try { paneReach_([pane]); } catch (e) {} }
+});
 
 function cardActions_(x) {
   /* `topic` WAS HERE, routing to `topicTiles_`. No documents, no row. */
@@ -493,7 +548,7 @@ function postTiles_(p) {
       }
     }
   }
-  return `<div class="tile-row">${rows.join('')}</div>`;
+  return tileRow_(rows.join(''));
 }
 
 on('noop', () => {});

@@ -8603,7 +8603,7 @@ function jobPage_(j) {
     /* ---------- AND SHARE, WHICH THE FORM HAD AND THE BOOKING ITSELF DID NOT § */
     + tile_({ icon: 'share', label: 'Share this booking', act: 'book-share' })
     + (admin && typeof jobAdminTiles_ === 'function' ? jobAdminTiles_(j, stage, yes) : '');
-  const foot = tiles.trim() ? `<div class="tile-row rc-tiles">${tiles}</div>` : '';
+  const foot = tiles.trim() ? tileRow_(tiles, 'rc-tiles') : '';
   return typeof jobReceipt === 'function' ? jobReceipt(j, foot) : '';
 }
 
@@ -8730,7 +8730,7 @@ function accountPages_() {
     /* ---------- "NEW PIN" WAS HERE, ON YOUR CHILD'S CARD § */
     const more = typeof peopleTiles_ === 'function' ? peopleTiles_(row) : '';
     return asTutor ? withTiles_(row) : personForm_(row) || (typeof findCard === 'function' ? findCard({ kind: 'tutor', row }) : '')
-      + (more ? `<div class="tile-row">${more}</div>` : '');
+      + (more ? tileRow_(more) : '');
   });
 
   const others = (DATA.tutors || [])
