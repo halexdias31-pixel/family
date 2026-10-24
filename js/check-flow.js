@@ -10046,6 +10046,72 @@ check('an admin adds a person from the "+" above the people column, edits one an
   return bad;
 });
 
+/* "I WANT TO USE CLAUDE LESS FOR ADDING STUFF … A PLUS WIDGET ON REELS LIKE YOU DID FOR PEOPLE" (404): the "+" leads Reels for an admin, a pasted Short is looked up (oEmbed stubbed), saved, and shown. */
+check('an admin adds a reel from the "+" that leads the Reels column — a pasted Short looked up, saved as mediaSave, and in the column without a reload; a student has no "+"', async () => {
+  const ID = 'Ab3_dEfGh-1';
+  let hold = false;
+  /* THE PAYLOAD `load()` ASKS FOR AFTER A SAVE IS HELD, so what the column shows is the reply's doing. */
+  const { w, sent } = boot({ serve: () => hold ? new Promise(() => {}) : undefined, before: w => {
+      const real = w.fetch;
+      w.fetch = (url, o) => /youtube\.com\/oembed/.test(String(url))
+        ? Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ title: 'Fractions in a minute', author_name: 'A Channel',
+            thumbnail_url: 'https://i.ytimg.com/vi/' + ID + '/hqdefault.jpg' }) })
+        : real(url, o);
+    },
+    reply: b => b.action === 'mediaSave'
+      ? { success: true, kind: 'reel', id: ID, media: [{ kind: 'reel', id: ID, url: 'https://youtube.com/shorts/' + ID, title: b.title, subject: b.subject }] }
+      : { success: true } });
+  await wait(400);
+  const t = w.__t, d = w.document, bad = [];
+  const draw = () => { try { t.go('reel', false, true); w.paint('reel'); } catch (e) { bad.push('drawing Reels threw: ' + e.message); } };
+  const col = () => d.querySelector('#s-reel');
+  t.USER({ name: 'Sam Student', personId: 'P-S', role: 'student', roles: ['student'], token: 'tk1' });
+  draw(); await wait(200);
+  if (!col() || !col().querySelector('.reel')) return bad.concat(['the Reels column drew no reel for a student, so nothing below can be asked']);
+  if (col().querySelector('[data-do="media-add"], .media-add')) bad.push('a student is drawn the admin\'s "+" on Reels');
+  sent.length = 0;
+  const fake = d.createElement('button'); fake.setAttribute('data-kind', 'reel'); fake.setAttribute('data-id', ID);
+  ['media-add', 'media-hide', 'media-del-go'].forEach(a => { try { t.ACTIONS[a](fake); } catch (e) {} });
+  await wait(150);
+  if (sent.some(b => /^media/.test(b.action))) bad.push('a student pressing the admin\'s doors posted ' + sent.map(b => b.action).join(', '));
+
+  t.USER({ name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], token: 'tk' });
+  draw(); await wait(200);
+  const first = col() && col().querySelector('.page');
+  const plus = first && first.querySelector('[data-do="media-add"][data-kind="reel"]');
+  if (!plus) return bad.concat(['the admin\'s Reels column does not open on the "+"']);
+  if (first.querySelector('.reel')) bad.push('the "+" page also carries a reel');
+  t.ACTIONS['media-add'](plus);
+  await wait(200);
+  let form = col().querySelector('.media-form');
+  if (!form) return bad.concat(['pressing + drew no form']);
+  const url = form.querySelector('[data-mf="url"]');
+  url.value = 'https://youtube.com/shorts/' + ID + '?feature=share';
+  url.dispatchEvent(new w.Event('input', { bubbles: true }));
+  await wait(300);
+  form = col().querySelector('.media-form');
+  const title = form && form.querySelector('[data-mf="title"]');
+  if (!title || title.value !== 'Fractions in a minute') return bad.concat(['the pasted Short was not looked up: title ' + JSON.stringify(title && title.value)]);
+  if (!form.querySelector('img.media-thumb[src*="i.ytimg.com"]')) bad.push('the form shows no preview picture');
+  const subj = form.querySelector('[data-mf="subject"]');
+  subj.value = 'Maths'; subj.dispatchEvent(new w.Event('input', { bubbles: true }));
+  sent.length = 0;
+  hold = true;
+  t.ACTIONS['media-save'](form.querySelector('[data-do="media-save"]'));
+  await wait(300);
+  const sv = sent.find(b => b.action === 'mediaSave');
+  if (!sv || sv.kind !== 'reel' || sv.title !== 'Fractions in a minute' || sv.subject !== 'Maths' || sv.personId !== 'P-AD'
+      || !/shorts\/Ab3_dEfGh-1/.test(sv.url)) bad.push('saving posted ' + JSON.stringify(sv));
+  draw(); await wait(200);
+  const clips = [...col().querySelectorAll('.reel')].map(r => r.innerHTML).join('');
+  if (clips.indexOf(ID) === -1) bad.push('the new reel is not in the Reels column after Save');
+  if (col().querySelector('.media-form')) bad.push('the form stayed open after Save');
+  if (!col().querySelector('.media-list [data-do="media-edit"][data-id="' + ID + '"]')) bad.push('the added reel has no Edit tile on the "+" page');
+  t.DATA().media = [];
+  t.USER(null);
+  return bad;
+});
+
 /* "I NEED TO SEND ASH THE WORK ERNIE DID LAST WEEK" (378): Send last week on a parent's card, for an admin, and on nothing else. */
 check('an admin has "Send last week" on a parent\'s card only, and pressing it posts digestSendNow and toasts the reply; nobody else has it', async () => {
   const { w, sent } = boot({ reply: b => b.action === 'digestSendNow'

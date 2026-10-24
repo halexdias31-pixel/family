@@ -4438,7 +4438,8 @@ function videosAll_() {
   };
   /* THE OWNER'S LIST FIRST, so a video they typed in that is also a film is shown with their title
      and tags rather than the film's — theirs is the one somebody wrote on purpose. */
-  (VIDEOS_LIST || []).forEach((r, i) => {
+  /* AN ADMIN'S OWN VIDEOS FIRST, from the `media` tab, over the file's row of the same video (404). */
+  (typeof mediaVideosOver_ === 'function' ? mediaVideosOver_(VIDEOS_LIST || []) : (VIDEOS_LIST || [])).forEach((r, i) => {
     if (!r || typeof r !== 'object') return;
     if (r.active !== undefined && typeof libOn === 'function' && !libOn(r.active)) return;
     const url = String(r.url || '').trim();
@@ -4688,7 +4689,7 @@ function vidPaint_() {
   boxes.forEach(box => {
     if (!box.querySelector('.vid-q')) {
       /* THE PILL IS A `<label>` ROUND THE BOX, so a tap on the magnifier is a tap on the box. § */
-      box.innerHTML = `<label class="vid-search">${tileIcon_('search')}<input class="vid-q" type="search" placeholder="Search"
+      box.innerHTML = `<div class="vid-add"></div><label class="vid-search">${tileIcon_('search')}<input class="vid-q" type="search" placeholder="Search"
         autocomplete="off" enterkeyhint="search" aria-label="Search videos"></label>
       <div class="vid-watch">
         <div class="vid-stage"></div>
@@ -4727,6 +4728,8 @@ function vidPaint_() {
         + (playing.how === 'drive' ? tile_({ icon: 'ext', label: 'Open in Drive', note: 'in a new tab', href: playing.url }) : ''));
     vidSet_(box.querySelector('.vid-results'), here ? '' : results);
     vidSet_(box.querySelector('.vid-admin'), here ? '' : admin);
+    /* THE ADMIN'S "+" (404), beside Sync once a search is typed — the idle card stays the bar alone; nobody else is drawn it. */
+    vidSet_(box.querySelector('.vid-add'), here || !(mine || (MEDIA_FORM && MEDIA_FORM.kind === 'video')) ? '' : mediaHtml_('video'));
     vidHold_(box, view, was, before);
     box.dataset.view = view;
   });
@@ -5617,3 +5620,177 @@ function emuSync_(off) {
     if (EMU_.ax[at + 1] !== minus) { EMU_.ax[at + 1] = minus; try { g.simulateInput(0, at + 1, minus); } catch (e) {} }
   });
 }
+
+
+/* ---------- AN ADMIN ADDS A REEL OR A VIDEO FROM THE PHONE (404) ---------- */
+/* A pasted YouTube link, titled by oEmbed (no key), saved to the `media` tab; `DATA.media` is merged over the repository's lists. */
+const MEDIA_SAY = { reel: 'Add a reel', video: 'Add a video' };
+let MEDIA_FORM = null;   // { kind, id (the YouTube id when editing), url, title, channel, thumb, subject, tags, vkind, age, notes, err, asking }
+
+const mediaRows_ = kind => ((typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.media)) ? DATA.media : [])
+  .filter(m => m && m.kind === kind && /^[A-Za-z0-9_-]{11}$/.test(String(m.id || '')));
+const mediaMay_ = () => typeof isAdmin === 'function' && isAdmin();
+
+/* THE REELS, WITH THE SHEET OVER THE REPOSITORY: a sheet row (shown or hidden) replaces a repository clip of the same video. */
+function mediaReelsOver_(list) {
+  const rows = mediaRows_('reel');
+  const ids = new Set(rows.map(m => m.id));
+  return list.filter(f => !ids.has(clipYt_(f.clip)))
+    .concat(rows.filter(m => !m.hidden).map(m => ({ subject: m.subject || '@family.', heading: '', body: '', pic: '',
+      clip: 'https://youtube.com/shorts/' + m.id, media: m.id })));
+}
+
+/* THE VIDEOS LIST, THE SAME WAY: the sheet's rows first, and a repository row of the same video left out. */
+function mediaVideosOver_(list) {
+  const rows = mediaRows_('video');
+  const ids = new Set(rows.map(m => m.id));
+  return rows.filter(m => !m.hidden).map(m => ({ title: m.title || 'Untitled', url: 'https://www.youtube.com/watch?v=' + m.id,
+      kind: m.vkind || 'clip', tags: [m.tags, m.subject, m.channel].filter(Boolean).join(' '), age: m.age || '', notes: m.notes || '' }))
+    .concat((list || []).filter(r => !(r && ids.has(vidYouTubeId_(r.url)))));
+}
+
+/* WHAT THE ADMIN CAN CHANGE: every YouTube item of that kind, the repository's and the sheet's, hidden ones too. */
+function mediaManaged_(kind) {
+  const rows = mediaRows_(kind).map(m => ({ id: m.id, title: m.title || (m.hidden ? 'Hidden' : 'Untitled'), hidden: !!m.hidden, sheet: true }));
+  const have = new Set(rows.map(r => r.id));
+  const repo = kind === 'reel'
+    ? (sheetFacts_().length ? sheetFacts_() : factsBuilt_()).map(f => clipYt_(f.clip))
+    : [];
+  repo.forEach(id => { if (id && !have.has(id)) { have.add(id); rows.push({ id, title: 'From the repository', hidden: false, sheet: false }); } });
+  return rows;
+}
+
+function mediaHtml_(kind) {
+  if (!mediaMay_()) return '';
+  const F = MEDIA_FORM && MEDIA_FORM.kind === kind ? MEDIA_FORM : null;
+  const list = mediaManaged_(kind).map(r => `<li class="media-row">
+      <img class="media-pic" alt="" loading="lazy" src="https://i.ytimg.com/vi/${esc(r.id)}/default.jpg">
+      <span class="media-name">${esc(r.title)}${r.hidden ? ' <span class="faint">· hidden</span>' : ''}</span>
+      <div class="tile-row">${tile_({ icon: 'edit', label: 'Edit', note: 'title and tags', act: 'media-edit', tone: 'admin', data: { kind, id: r.id } })
+        + tile_({ icon: r.hidden ? 'show' : 'hide', label: r.hidden ? 'Show' : 'Hide', note: r.hidden ? 'put it back' : 'from everybody',
+                  act: 'media-hide', tone: 'admin', data: { kind, id: r.id, on: r.hidden ? '0' : '1' } })
+        + (r.sheet ? tile_({ icon: 'bin', label: 'Delete', note: 'the row you added', act: 'media-del', tone: 'danger', data: { kind, id: r.id } }) : '')}</div>
+    </li>`).join('');
+  return `<div class="media-add" data-media-kind="${kind}">${F ? mediaFormHtml_(F) : addCard_({ act: 'media-add', label: MEDIA_SAY[kind], data: { kind } })}
+    ${list ? `<ul class="media-list">${list}</ul>` : ''}</div>`;
+}
+
+function mediaFormHtml_(F) {
+  const box = (k, ph) => `<label class="field"><span>${esc(ph)}</span><input data-mf="${k}" autocomplete="off" value="${esc(F[k] || '')}"></label>`;
+  const got = !!F.title || !!F.id;
+  return `<div class="card media-form" data-kind="${esc(F.kind)}">
+    <h3>${F.id ? 'Edit' : F.kind === 'reel' ? 'A new reel' : 'A new video'}</h3>
+    ${F.id ? '' : `<label class="field"><span>YouTube link (a Short or a video)</span><input data-mf="url" type="url" inputmode="url"
+      autocomplete="off" placeholder="https://youtube.com/shorts/…" value="${esc(F.url || '')}"></label>`}
+    ${F.asking ? loading_() : ''}
+    ${got ? `<div class="media-preview">${F.thumb ? `<img class="media-thumb" alt="" src="${esc(F.thumb)}">` : ''}
+      <p class="faint">${esc(F.channel || '')}</p></div>
+      ${box('title', 'Title')}
+      ${F.kind === 'reel' ? box('subject', 'Subject (the word on the slide)')
+        : box('tags', 'Tags (words a search finds it by)') + `<label class="field"><span>Kind</span><select data-mf="vkind">${VID_KINDS.map(k =>
+            `<option value="${k}"${(F.vkind || 'clip') === k ? ' selected' : ''}>${k}</option>`).join('')}</select></label>`
+          + box('age', 'Age (e.g. kids)') + box('notes', 'Notes')}` : ''}
+    <p class="faint media-said" aria-live="polite">${esc(F.err || '')}</p>
+    <div class="pf-go">${got ? '<button class="btn" data-do="media-save">Save</button>' : '<button class="btn" data-do="media-look">Look it up</button>'}
+      <button class="btn quiet" data-do="media-cancel">Cancel</button></div>
+  </div>`;
+}
+
+function mediaRedraw_(kind) {
+  if (kind === 'reel') {
+    REEL_CLIPS = null;
+    if (typeof AT !== 'undefined' && AT === 'reel') repaint(true); else markStale_('reel');
+  }
+  document.querySelectorAll('.media-add[data-media-kind="' + kind + '"]').forEach(el => { el.outerHTML = mediaHtml_(kind); });
+  if (kind === 'video' && typeof vidPaint_ === 'function') vidPaint_();
+}
+
+/* WHAT YOUTUBE SAYS THE VIDEO IS — oEmbed, asked from the browser with no key. A failure leaves the boxes to fill by hand. */
+function mediaLook_(F) {
+  const id = vidYouTubeId_(F.url);
+  if (!id) { F.err = 'That is not a YouTube link.'; mediaRedraw_(F.kind); return Promise.resolve(); }
+  F.err = ''; F.asking = true; mediaRedraw_(F.kind);
+  const fallback = 'https://i.ytimg.com/vi/' + id + '/hqdefault.jpg';
+  return fetch('https://www.youtube.com/oembed?format=json&url=' + encodeURIComponent('https://www.youtube.com/watch?v=' + id))
+    .then(r => (r && r.ok ? r.json() : {})).catch(() => ({}))
+    .then(o => {
+      if (MEDIA_FORM !== F) return;
+      F.asking = false;
+      F.title = String((o && o.title) || F.title || '').slice(0, 200);
+      F.channel = String((o && o.author_name) || '').slice(0, 120);
+      const t = String((o && o.thumbnail_url) || '');
+      F.thumb = /^https:\/\/i\.ytimg\.com\//.test(t) ? t : fallback;
+      if (!F.title) { F.title = ' '; F.err = 'YouTube did not say its title — type one.'; }
+      mediaRedraw_(F.kind);
+    });
+}
+
+/* EVERY BOX KEPT AS IT IS TYPED, so a repaint draws what was typed. */
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (!t || !t.matches || !t.matches('.media-form [data-mf]') || !MEDIA_FORM) return;
+  MEDIA_FORM[t.getAttribute('data-mf')] = t.value;
+  if (t.getAttribute('data-mf') === 'url' && !MEDIA_FORM.title && vidYouTubeId_(t.value)) mediaLook_(MEDIA_FORM);
+});
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t && t.matches && t.matches('.media-form select[data-mf]') && MEDIA_FORM) MEDIA_FORM[t.getAttribute('data-mf')] = t.value;
+});
+
+on('media-add', el => {
+  if (!mediaMay_()) return;
+  const kind = el.getAttribute('data-kind') === 'video' ? 'video' : 'reel';
+  MEDIA_FORM = { kind, id: '', url: '', vkind: 'clip' };
+  mediaRedraw_(kind);
+});
+on('media-edit', el => {
+  if (!mediaMay_()) return;
+  const kind = el.getAttribute('data-kind') === 'video' ? 'video' : 'reel', id = el.getAttribute('data-id') || '';
+  const m = mediaRows_(kind).find(x => x.id === id) || {};
+  MEDIA_FORM = { kind, id, url: 'https://youtu.be/' + id, title: m.title || '', channel: m.channel || '', thumb: m.thumb || 'https://i.ytimg.com/vi/' + id + '/hqdefault.jpg',
+                 subject: m.subject || '', tags: m.tags || '', vkind: m.vkind || 'clip', age: m.age || '', notes: m.notes || '' };
+  if (!MEDIA_FORM.title) mediaLook_(MEDIA_FORM); else mediaRedraw_(kind);
+});
+on('media-cancel', () => { const k = MEDIA_FORM && MEDIA_FORM.kind; MEDIA_FORM = null; if (k) mediaRedraw_(k); });
+on('media-look', () => { if (MEDIA_FORM && mediaMay_()) mediaLook_(MEDIA_FORM); });
+
+function mediaAdopt_(d, kind) {
+  if (d && Array.isArray(d.media) && typeof DATA !== 'undefined' && DATA) DATA.media = d.media;
+  mediaRedraw_(kind);
+  if (typeof load === 'function') load();
+}
+
+on('media-save', el => {
+  const F = MEDIA_FORM, form = el.closest('.media-form');
+  if (!F || !form || !mediaMay_()) return;
+  const said = form.querySelector('.media-said');
+  if (!String(F.title || '').trim()) { if (said) said.textContent = 'It needs a title.'; return; }
+  send_({ action: 'mediaSave', personId: USER.personId || '', kind: F.kind, url: F.url, title: String(F.title).trim(),
+          channel: F.channel || '', thumb: F.thumb || '', subject: F.subject || '', tags: F.tags || '',
+          vkind: F.kind === 'video' ? (F.vkind || 'clip') : '', age: F.age || '', notes: F.notes || '' },
+        { button: el, where: said, lock: form })
+    .then(d => { MEDIA_FORM = null; toast('Saved.'); mediaAdopt_(d, F.kind); })
+    .catch(() => {});
+});
+on('media-hide', el => {
+  if (!mediaMay_()) return;
+  const kind = el.getAttribute('data-kind') === 'video' ? 'video' : 'reel';
+  const on_ = el.getAttribute('data-on') === '1';
+  send_({ action: 'mediaHide', personId: USER.personId || '', kind, id: el.getAttribute('data-id') || '', hidden: on_ }, { button: el })
+    .then(d => { toast(on_ ? 'Hidden.' : 'Shown again.'); mediaAdopt_(d, kind); })
+    .catch(() => {});
+});
+on('media-del', el => {
+  if (!mediaMay_()) return;
+  const kind = el.getAttribute('data-kind') || 'reel', id = el.getAttribute('data-id') || '';
+  openSheet('Delete it?', `<p class="sub">The row you added goes; a copy in the repository would show again.</p>
+    <div class="pf-go"><button class="btn" data-do="media-del-go" data-kind="${esc(kind)}" data-id="${esc(id)}">Delete</button>
+    <button class="btn quiet" data-do="sheet-done">Cancel</button></div>`);
+});
+on('media-del-go', el => {
+  if (!mediaMay_()) return;
+  const kind = el.getAttribute('data-kind') === 'video' ? 'video' : 'reel';
+  send_({ action: 'mediaDelete', personId: USER.personId || '', kind, id: el.getAttribute('data-id') || '' }, { button: el })
+    .then(d => { closeSheet(); toast('Deleted.'); mediaAdopt_(d, kind); })
+    .catch(() => {});
+});

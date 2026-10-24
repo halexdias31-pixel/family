@@ -108,6 +108,8 @@ const SUITE = [
   { file: 'check-library-ledger.js', what: 'the library in the Ledger: copied and checked a step at a time, served signed-in with a day\'s cap' },
   /* THE FILMS ARE WHAT IS IN THE NOTFLIX FOLDER. § */
   { file: 'check-films.js', what: 'the films from the Notflix folder: the upsert, admin only, no id sent, the clock' },
+  /* AN ADMIN'S REELS AND VIDEOS (404), through the real doPost and doGet. */
+  { file: 'check-media.js', what: 'an admin adds, edits, hides and deletes a reel or video; others and bad links refused; the payload carries it' },
   /* WHAT A CHILD WROTE, ON THEIR ACCOUNT. § */
   { file: 'check-saved-answers.js', what: 'answers on the account: the token’s person, the later edit wins, text in and text out' },
   /* THE WEEKLY PARENT EMAIL, BUILT AND SWITCHED OFF. § */

@@ -1556,8 +1556,11 @@ screen('reel', () => {
   /* ONE SNAPSHOT PER DRAW, and everything below reads it. § */
   const facts = REEL_CLIPS = clipsNow_();
   const rows = factsNow_().length;
+  /* AN ADMIN'S "+" IS THE FIRST PAGE (404), so every reel's page is its index plus `REEL_LEAD`. */
+  const add = typeof mediaHtml_ === 'function' ? mediaHtml_('reel') : '';
+  REEL_LEAD = add ? 1 : 0;
   if (!facts.length) {
-    return `<section class="page"><div class="pane"><div class="card">
+    return `<section class="page"><div class="pane">${add}<div class="card">
       <h3>Reels</h3>
       <p class="sub">No clips yet. Add a row to the <b>facts</b> tab with a <b>clip</b> — a Google
         Drive file id, or a link to a video. The words are optional.</p>
@@ -1573,7 +1576,7 @@ screen('reel', () => {
   /* ---------- ONE WIDGET PER REEL, WHICH IS WHAT EVERY OTHER COLUMN IN THE APP IS § */
   /* ---------- A REDRAW MUST NOT LOSE THE PAGE YOU ARE ON § */
   REEL_SHOWN = 0;
-  return pages('reel', reelCards_(Math.max(REEL_FIRST, (PAGE.reel || 0) + 1 + REEL_AHEAD)));
+  return pages('reel', (add ? [add] : []).concat(reelCards_(Math.max(REEL_FIRST, (PAGE.reel || 0) + 1 + REEL_AHEAD - REEL_LEAD))));
 });
 
 /* ---------- IT GOES DOWN FOR EVER, AND THE DECK IT DRAWS FROM ALREADY DID § */
@@ -1584,6 +1587,8 @@ const REEL_AHEAD = 6;      // how far ahead of you the column is kept — the to
                            // read the same number, or one of them builds a page short of the other.
 const REEL_MAX   = 60;     // the ceiling, in slides. See above.
 let REEL_SHOWN = 0;
+/* PAGES BEFORE THE FIRST REEL: 1 when an admin's "+" page leads the column (404), else 0. `data-reel` is the page. */
+let REEL_LEAD = 0;
 /* WHICH REEL SOMEBODY HAS DELIBERATELY STOPPED, by index, or −1 for none. § */
 let REEL_HELD = -1;
 
@@ -1609,8 +1614,8 @@ function reelCards_(count) {
     if (!it) break;
     /* THE WHOLE SLIDE IS THE PAUSE, which is what a video is everywhere else. § */
     out.push(`<div class="card is-widget"><div class="widget-slot">
-      <div class="reel${REEL_SHOWN === REEL_HELD ? ' is-held' : ''}"
-           data-reel="${REEL_SHOWN}" data-do="reel-tap">${feedSlide(it)}` +
+      <div class="reel${REEL_SHOWN + REEL_LEAD === REEL_HELD ? ' is-held' : ''}"
+           data-reel="${REEL_SHOWN + REEL_LEAD}" data-do="reel-tap">${feedSlide(it)}` +
       `${reelSoundTile_(false)}</div>
     </div></div>`);
     REEL_SHOWN++;
@@ -1620,7 +1625,7 @@ function reelCards_(count) {
 
 /* HOW MANY PAGES THIS COLUMN HAS, asked by `PAGER.reel` in shell.js — and it is the same counter the markup is built from, so the pager and the screen cannot § */
 function reelPages_() {
-  const n = reelClips_().length ? REEL_SHOWN : 1;
+  const n = reelClips_().length ? REEL_SHOWN + REEL_LEAD : 1;
   return new Array(Math.max(1, n)).fill('');
 }
 
@@ -1636,7 +1641,7 @@ function reelTurn_(n) {
 
   /* MORE REELS BEFORE THE BOTTOM RATHER THAN AT IT. § */
   /* AND NOT WHILE THE COLUMN IS STILL WAITING. § */
-  if (LOADED && n >= REEL_SHOWN - REEL_AHEAD) reelMore_(host);
+  if (LOADED && n - REEL_LEAD >= REEL_SHOWN - REEL_AHEAD) reelMore_(host);
 
   /* THE ONE BEING WATCHED PLAYS AND THE REST DO NOT — and the rest are two pixels off the screen rather than gone, because the column peeks above and below. § */
   host.querySelectorAll('.reel').forEach(el => {
@@ -1686,14 +1691,14 @@ function reelMore_(host, n) {
 /* IN THE RELEASE: ONE SLIDE, when fewer than `REEL_AHEAD` are left past the page being turned to — markup, amortised as Find's window is, so a run of flicks § */
 function reelAhead_(n) {
   const host = $('s-reel');
-  if (!host || !LOADED || n < REEL_SHOWN - REEL_AHEAD) return;
+  if (!host || !LOADED || n - REEL_LEAD < REEL_SHOWN - REEL_AHEAD) return;
   const cards = reelCards_(1);
   if (cards.length) { host.insertAdjacentHTML('beforeend', pages('reel', cards)); host.DRAWN = null; }
 }
 /* AND IN THE QUIET, UP TO TWELVE AHEAD — the builder's `reels` job. */
 function reelJobs_() {
   if (!LOADED || STALE.reel || !$('s-reel') || !$('s-reel').firstElementChild) return [];
-  const want = (PAGE.reel || 0) + 1 + REEL_AHEAD + REEL_MORE;
+  const want = (PAGE.reel || 0) - REEL_LEAD + 1 + REEL_AHEAD + REEL_MORE;
   if (REEL_SHOWN >= want || REEL_SHOWN >= REEL_MAX || !reelItem_(REEL_SHOWN)) return [];
   return [{ key: 'reels', kind: 'reels', d: aheadDist_('reel', null), run: () => reelMore_($('s-reel'), want - REEL_SHOWN) }];
 }

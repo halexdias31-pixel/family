@@ -1583,3 +1583,66 @@ function libImport_(fileKey, rows) {
     lock.releaseLock();
   }
 }
+
+
+/* ---------- REELS AND VIDEOS AN ADMIN ADDS FROM THE PHONE (404) ---------- */
+const MEDIA_KINDS = ['reel', 'video'];
+const MEDIA_YT_RE = /^[A-Za-z0-9_-]{11}$/;
+const MEDIA_CAP = { title: 200, channel: 120, subject: 60, tags: 300, vkind: 20, age: 20, notes: 500, url: 300, thumb: 300 };
+
+/* THE ID A PASTED LINK NAMES — watch, shorts, embed, live, youtu.be — or '' for anything else. */
+function mediaYtId_(url) {
+  const m = S(url).match(/^https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?(?:[^#]*&)?v=|shorts\/|embed\/|live\/)|youtube-nocookie\.com\/embed\/|youtu\.be\/)([A-Za-z0-9_-]{11})(?![A-Za-z0-9_-])/i);
+  return m ? m[1] : '';
+}
+
+function mediaRowOf_(t, kind, id) {
+  return t.rows.find(function (r) { return S(r.kind) === kind && S(r.yt_id) === id; }) || null;
+}
+
+/* ONE WRITER FOR ALL THREE ACTIONS, under the script lock with the rows read fresh. Returns the reply object. */
+function mediaWrite_(action, body) {
+  const kind = S(body.kind);
+  if (MEDIA_KINDS.indexOf(kind) === -1) return { error: 'Is it a reel or a video? Nothing was saved.' };
+  const id = action === 'mediaSave' ? mediaYtId_(body.url) : S(body.id);
+  if (!MEDIA_YT_RE.test(id)) return { error: 'That is not a YouTube link. Nothing was saved.' };
+  const put = {};
+  if (action === 'mediaSave') {
+    const too = Object.keys(MEDIA_CAP).filter(function (k) { return S(body[k]).length > MEDIA_CAP[k]; });
+    if (too.length) return { error: 'Too long: ' + too.join(', ') + '. Nothing was saved.' };
+    if (!S(body.title)) return { error: 'It needs a title. Nothing was saved.' };
+    const thumb = S(body.thumb);
+    if (thumb && !/^https:\/\/i\.ytimg\.com\//.test(thumb)) return { error: 'The picture must be YouTube\'s own. Nothing was saved.' };
+    Object.keys(MEDIA_CAP).forEach(function (k) { put[k] = S(body[k]); });
+    put.url = kind === 'reel' ? 'https://youtube.com/shorts/' + id : 'https://www.youtube.com/watch?v=' + id;
+    put.hidden = 'FALSE';
+  } else if (action === 'mediaHide') {
+    put.hidden = body.hidden === false ? 'FALSE' : 'TRUE';
+  }
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(5000)) return { error: 'Busy — try again in a moment.', why: 'busy' };
+  try {
+    clearCache();
+    const t = read(TAB.media);
+    if (!t.sheet) return { error: 'The media tab is not there yet — open the site once as an admin so setup makes it. Nothing was saved.' };
+    const r = mediaRowOf_(t, kind, id);
+    const by = S(body.personId), now = new Date();
+    if (action === 'mediaDelete') {
+      if (!r) return { error: 'Nothing to delete — that one came from the repository. Hide it instead.' };
+      if (!delRow(t, r)) return { error: 'The media tab could not be changed — nothing was deleted.' };
+    } else if (r) {
+      put.updated_on = now;
+      setCells(t, r, put);
+    } else {
+      if (action === 'mediaHide' && put.hidden === 'FALSE') return { error: 'Nothing to show again.' };
+      if (!addRow(t, Object.assign({ media_id: kind + ':' + id, kind: kind, yt_id: id, added_by: by, added_on: now, updated_on: now }, put))) {
+        return { error: 'The media tab could not be opened — nothing was saved.' };
+      }
+    }
+    try { SpreadsheetApp.flush(); } catch (err) {}
+  } finally {
+    lock.releaseLock();
+  }
+  clearCache();
+  return { success: true, kind: kind, id: id, media: mediaOut_() };
+}

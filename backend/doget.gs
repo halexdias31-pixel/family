@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-23-a-kid-prices";
+const DOGET_VERSION = "2026-10-24-a-media-admin";
 
 
 function doGet(e) {
@@ -387,6 +387,8 @@ function doGet(e) {
       questions: [], boxers: [], fights: [], herd: [],
       /* ---------- EMPTY FOR EVERYBODY, AND FILLED FOR ONE PERSON § */
       films: filmsOut,
+      /* AN ADMIN'S REELS AND VIDEOS (404), the same for everybody; the site merges them over the repository's. */
+      media: mediaOut_(),
       cheatsheet: [],
       /* `topicTree: []` WAS THE FOURTH OF THESE, declared so `check-payload.js` would not report a key the phone filled from `data/topics.json` as read-and-never-sent. § */
       /* AND `practicals` IS THE FIFTH, for exactly the same reason. § */
@@ -1282,6 +1284,22 @@ function payloadWithFresh_(body, fresh, cached) {
     + (f.filmsSync ? ',"filmsSync":' + JSON.stringify(f.filmsSync) : '')
     + (f.setup ? ',"setup":' + JSON.stringify(f.setup) : '')
     + (cached ? ',"cached":true' : '') + '}';
+}
+
+/* `payload.media` (404): every row, a hidden one as its id alone — it is there to hide a repository item with that id. */
+function mediaOut_() {
+  const out = [];
+  try {
+    read(TAB.media).rows.forEach(function (r) {
+      const kind = S(r.kind), id = S(r.yt_id);
+      if (MEDIA_KINDS.indexOf(kind) === -1 || !MEDIA_YT_RE.test(id)) return;
+      if (TRUE_(r.hidden)) { out.push({ kind: kind, id: id, hidden: true }); return; }
+      out.push({ kind: kind, id: id, url: S(r.url), title: S(r.title), channel: S(r.channel),
+        thumb: S(r.thumb), subject: S(r.subject), tags: S(r.tags), vkind: S(r.vkind),
+        age: S(r.age), notes: S(r.notes) });
+    });
+  } catch (err) {}
+  return out;
 }
 
 /* ---------- `payload.films`, FOR AN ADMIN AND AN EMPTY LIST FOR EVERYBODY ELSE § */

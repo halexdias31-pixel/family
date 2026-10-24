@@ -46,6 +46,8 @@ const WHERE = {
   spotlight:      { file: 'ledger' },
   /* ---------- THE FILMS, AND WHY THEY ARE IN `Ledger` RATHER THAN IN THE REPOSITORY § */
   films:          { file: 'ledger' },
+  /* REELS AND VIDEOS AN ADMIN ADDED FROM THE PHONE (404) — merged over the repository's lists by the site. */
+  media:          { file: 'ledger' },
 
   /* ---- you write these, the app reads them ---- */
   config:         { file: 'ledger' },
@@ -117,7 +119,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-23-a-kid-prices";
+const BACKEND_VERSION = "2026-10-24-a-media-admin";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -165,6 +167,8 @@ const TAB = {
   /* What the Reels column shows. One row is one slide: a subject, a heading, a line or two, and a
      few words to find a photograph by — see SCHEMA.facts. */
   films: 'films',
+  /* YouTube reels and videos an admin pasted in from the phone — see SCHEMA.media (404). */
+  media: 'media',
   posts: 'posts', post_votes: 'post_votes',
   post_reactions: 'post_reactions', post_comments: 'post_comments',
   family: 'family',
@@ -404,6 +408,12 @@ const SCHEMA = {
     "film_id", "title", "year", "kind", "audience", "director", "lead", "seasons",
     "drive_id", "drive_url", "file_kind", "size_gb", "placeholder", "notes", "active",
     "drive_name"
+  ],
+
+  /* ONE ROW PER (kind, YouTube id): `kind` reel or video; `hidden` TRUE also hides a repository item with that id (404). */
+  media: [
+    "media_id", "kind", "yt_id", "url", "title", "channel", "thumb", "subject", "tags",
+    "vkind", "age", "notes", "hidden", "added_by", "added_on", "updated_on"
   ],
 
   posts: [
@@ -1546,6 +1556,8 @@ const ACTION_ACCESS = {
   digestSendNow: 'admin',
   /* THE FILMS, FILLED FROM THE NOTFLIX FOLDER. § */
   filmsSync: 'admin',
+  /* AN ADMIN ADDS, EDITS, HIDES OR DELETES A REEL OR A VIDEO (404). */
+  mediaSave: 'admin', mediaHide: 'admin', mediaDelete: 'admin',
 
   /* YOUR OWN SETTINGS, AS THE SHEET HOLDS THEM. `self`, and the handler reads only the row the token
      resolved to — see `myProfile` in dopost.gs for why it is a POST rather than part of the payload. */

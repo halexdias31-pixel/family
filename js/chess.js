@@ -351,7 +351,9 @@ function clipDealt_(list) {
 function clipsNow_() {
   const ok = f => f && f.clip && (typeof clipPlayable_ !== 'function' || clipPlayable_(f.clip));
   const said = sheetFacts_().filter(ok);
-  return clipDealt_(said.length ? said : factsBuilt_().filter(ok));
+  /* AND AN ADMIN'S OWN REELS OVER THEM, from the `media` tab (404). */
+  const base = said.length ? said : factsBuilt_().filter(ok);
+  return clipDealt_(typeof mediaReelsOver_ === 'function' ? mediaReelsOver_(base) : base);
 }
 
 /* THE COMPUTED GENERATORS lived here — times tables, factors, squares, percentages. § */
