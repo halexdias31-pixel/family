@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-24-u-one-rank";
+  --css-version: "2026-10-24-v-console-bodies";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -1006,33 +1006,63 @@ a { color: inherit; text-decoration: none; }
 #tt-answer { text-align: center; font-size: 1.2rem; }
 /* ---------- CONSOLE (389): 256x240 scaled by whole look, pixels kept square and crisp § */
 /* THE ROOM LEFT FOR THE REST (419): the stage is never taller than the screen less this, so picture and pad fit one screen. `--nes-pad-h` is each system's pad. */
-.nes-wrap { position: relative; display: flex; flex-direction: column; align-items: center; background: var(--bg);
+/* EACH SYSTEM IS ITS OWN CONSOLE (437): a thing, so its colours are its own tokens here, never the screen's gold or the paper's. */
+.nes-wrap { position: relative; display: flex; flex-direction: column; align-items: center; isolation: isolate; overflow: clip;
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation; --nes-pad-h: 188px; --nes-room: 15rem; }
+  touch-action: manipulation; --nes-pad-h: 188px; --nes-room: 17rem; --nes-deco-h: 0px; --nes-flank: 0px;
+  --nes-body: transparent; --nes-px: 0px; --nes-pt: 0px; --nes-r: 0; --nes-hi: rgba(255, 255, 255, .3); --nes-lo: rgba(0, 0, 0, .32);
+  --nes-bezel: #141416; --nes-rim: transparent; --nes-rim-w: 0px; --nes-bz: 8px; --nes-bz-r: .35rem; --nes-ctl: transparent; --nes-well: transparent;
+  --nes-dp: #1b1b1d; --nes-dp-hi: #38383c; --nes-key: #2a2a2e; --nes-ink: #f2f2f2; --nes-mid: #3a3a40; --nes-mid-ink: #e6e6e6;
+  --nes-sh: var(--nes-mid); --nes-sh-ink: var(--nes-mid-ink); --nes-a: var(--nes-key); --nes-b: var(--nes-key); --nes-x: var(--nes-key); --nes-y: var(--nes-key);
+  --nes-c: var(--nes-key); --nes-c-ink: var(--nes-ink); --nes-knob: #c8c9ce; --nes-knob-lo: #75767c;
+  --k-dpad: 120px; --k-btn: 56px; --k-cell: 44px; --k-h: 44px; --k-gap: 8px; --k-font: 1rem; --k-small: .8rem;
+  background: var(--nes-body); border-radius: var(--nes-r); padding: var(--nes-pt) var(--nes-px) 0; box-sizing: border-box; }
 .nes-wrap[data-sys="snes"], .nes-wrap[data-sys="gba"], .nes-wrap[data-sys="nds"] { --nes-pad-h: 252px; }
 .nes-wrap[data-sys="n64"] { --nes-pad-h: 320px; }
-.nes-wrap.nes-has-pad { --nes-room: calc(15rem + var(--nes-pad-h)); }
+.nes-wrap.nes-has-pad { --nes-room: calc(17rem + var(--nes-pt) + var(--nes-pad-h)); }
 /* WITH THE KEY LIST SHOWN, room for it and the tiles under it too: on a laptop the whole console is on the screen at once. */
-.nes-wrap.nes-has-legend { --nes-room: 26rem; }
-.nes-wrap.nes-has-legend.nes-has-pad { --nes-room: calc(26rem + var(--nes-pad-h)); }
+.nes-wrap.nes-has-legend { --nes-room: calc(26rem + var(--nes-pt) + var(--nes-deco-h)); }
+.nes-wrap.nes-has-legend.nes-has-pad { --nes-room: calc(26rem + var(--nes-pt) + var(--nes-pad-h)); }
 /* `svh`, not `dvh`: the smallest screen height, so the stage does not change size as a phone's address bar comes and goes. */
-.nes-stage { position: relative; max-width: 48rem; aspect-ratio: 256 / 240; margin: .5rem 0; flex: none; touch-action: none;
-  width: min(100%, calc((100svh - var(--nes-room)) * var(--nes-ar, 1.0667))); min-width: min(100%, 160px); }
-.nes-canvas { width: 100%; height: 100%; display: block; background: #000; image-rendering: pixelated;
-  border: 1px solid var(--line); border-radius: .25rem; }
+/* `min-height: 0` lets the system's own shape win over the 256x240 canvas inside it. */
+.nes-stage { position: relative; max-width: 48rem; aspect-ratio: 256 / 240; flex: none; touch-action: none; min-height: 0;
+  margin: calc(var(--nes-bz) + .4rem) 0 calc(var(--nes-bz) + .5rem);
+  width: min(100% - 2 * var(--nes-bz) - 2 * var(--nes-flank), calc((100svh - var(--nes-room)) * var(--nes-ar, 1.0667))); min-width: min(100% - 2 * var(--nes-bz), 160px);
+  container-type: inline-size; }
+.nes-wrap.nes-has-deco .nes-stage { margin-bottom: calc(var(--nes-bz) + .5rem + var(--nes-deco-h)); }
+/* THE SCREEN'S SURROUND, behind the picture: the glass, and on a home console the casing's rim round it. */
+.nes-stage::before { content: ''; position: absolute; z-index: -1; inset: calc(-1 * var(--nes-bz)); background: var(--nes-bezel);
+  border: var(--nes-rim-w) solid var(--nes-rim); border-radius: var(--nes-bz-r); box-sizing: border-box; box-shadow: 0 2px 0 var(--nes-hi), inset 0 2px 4px var(--nes-lo); }
+.nes-canvas { width: 100%; height: 100%; display: block; background: #000; image-rendering: pixelated; border-radius: .15rem; }
+.nes-hinge { position: absolute; left: 0; right: 0; height: 0; z-index: 2; pointer-events: none; }
+.nes-wrap[data-sys="nds"] .nes-hinge { left: -50vw; right: -50vw; }
+/* TOO NARROW A CARD for buttons beside the screen (a 320px phone on keys): the screen keeps its width and the picture of them goes. */
+.nes-wrap { container: nes-body / inline-size; }
+@container nes-body (max-width: 18rem) {
+  .nes-wrap[data-sys="nds"].nes-has-deco .nes-stage, .nes-wrap[data-sys="gba"].nes-has-deco .nes-stage { --nes-flank: 0px; }
+  .nes-wrap[data-sys="nds"] .nes-deco > :not(.nes-shoulders), .nes-wrap[data-sys="gba"] .nes-deco > :not(.nes-shoulders) { display: none; }
+}
 .nes-file { display: none; }
 /* A FIXED HEIGHT PER SYSTEM, the same before and after a game starts: nothing under it moves (419). */
-/* EVERY SYSTEM IN THE SAME THREE ROWS — shoulders, D-pad and face buttons, Select and Start — so the widest row, 120 + 140px, fits a phone's card. */
-.nes-pad { display: none; width: 100%; align-items: center; align-content: center; justify-content: space-between; gap: 8px;
-  flex-wrap: wrap; padding: 8px 0; touch-action: none; box-sizing: border-box; height: var(--nes-pad-h); flex: none; overscroll-behavior: contain; }
+/* EVERY SYSTEM IN THE SAME THREE ROWS — shoulders, D-pad and face buttons, Select and Start — so the widest row fits a phone's card at 44px keys. */
+.nes-pad { display: none; width: 100%; align-items: center; align-content: center; justify-content: space-between; gap: var(--k-gap);
+  flex-wrap: wrap; padding: 8px 6px; touch-action: none; box-sizing: border-box; height: var(--nes-pad-h); flex: none; overscroll-behavior: contain; }
 .nes-pad .nes-mid { order: 5; flex: 1 0 100%; justify-content: center; }
 .nes-pad.on { display: flex; }
+/* THE SAME BUTTONS DRAWN SMALL beside the screen while keys or a controller play (437): a picture, lit by what is held, never pressed. */
+.nes-deco { display: none; position: absolute; left: 0; right: 0; top: calc(100% + var(--nes-bz) + .3rem); height: calc(var(--nes-deco-h) - .3rem);
+  align-items: center; justify-content: space-between; gap: var(--k-gap); padding: .25rem .5rem; box-sizing: border-box; pointer-events: none;
+  --k-dpad: 2.6em; --k-btn: 1.35em; --k-cell: .95em; --k-h: 1em; --k-gap: .35em; --k-font: .62em; --k-small: .5em; font-size: min(1rem, 5.4cqw); }
+.nes-wrap.nes-has-deco .nes-deco { display: flex; }
+.nes-deco .nes-key { min-width: 0; padding: 0 .3em; }
+.nes-deco .nes-small { min-width: 2.1em; }
+.nes-deco .nes-mid { flex-direction: row; }
 /* HELD IS A COLOUR, never a size: a key that grew or shrank under a thumb would move its neighbours. */
-.nes-key.is-down, .nes-dpad.is-down { background-color: var(--gold); color: var(--bg); border-color: var(--gold); }
-.nes-dpad.is-down { background-color: transparent; border-color: var(--gold); }
-/* THE KEY LIST (419): the current system's keys under the picture, small, in the screen's own gold. */
-.nes-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: .3rem .9rem; width: 100%; margin: 0 0 .4rem;
-  font: .72rem/1.3 var(--mono); color: var(--dim); }
+.nes-key.is-down { background: var(--gold); color: var(--bg); }
+.nes-dpad.is-down { --nes-dp: var(--gold); --nes-knob: var(--gold); }
+/* THE KEY LIST (419): the current system's keys under the picture, small, in the screen's own gold — on a dark plate, whatever the console's colour. */
+.nes-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: .3rem .9rem; width: 100%; margin: 0 0 .5rem; padding: .35rem .4rem;
+  box-sizing: border-box; border-radius: .4rem; background: var(--bg); font: .72rem/1.3 var(--mono); color: var(--dim); }
 .nes-legend[hidden] { display: none; }
 .nes-lg { display: inline-flex; align-items: center; gap: .3rem; white-space: nowrap; }
 .nes-lg-k { display: inline-flex; gap: .2rem; }
@@ -1043,49 +1073,148 @@ a { color: inherit; text-decoration: none; }
    are still drawn, and a slow laptop needs those frames for the game. */
 body.nes-on *, body.nes-on *::before, body.nes-on *::after { animation-play-state: paused !important; }
 body.nes-on .nes-wrap *, body.nes-on .nes-wrap *::before, body.nes-on .nes-wrap *::after { animation-play-state: running !important; }
-.nes-dpad { width: 120px; height: 120px; border-radius: 50%; border: 1px solid var(--line); flex: none;
-  background: radial-gradient(circle, var(--line) 18%, transparent 19%),
-    linear-gradient(var(--sunk), var(--sunk)) center / 44px 100% no-repeat,
-    linear-gradient(var(--sunk), var(--sunk)) center / 100% 44px no-repeat; touch-action: none; }
-.nes-mid { display: flex; gap: 8px; }
-.nes-ab { display: flex; gap: 12px; flex: none; }
-.nes-key { min-width: 44px; min-height: 44px; border: 1px solid var(--line); background: var(--sunk); color: var(--gold);
-  font: inherit; touch-action: none; }
-.nes-round { width: 64px; height: 64px; border-radius: 50%; font-size: 1.25rem; }
-.nes-small { border-radius: 22px; padding: 0 12px; font-size: .8rem; }
+/* A CROSS on a shallow well; N64's is a stick (`.nes-stick`), the same four directions. */
+.nes-dpad { width: var(--k-dpad); height: var(--k-dpad); border-radius: 50%; flex: none; touch-action: none;
+  background: radial-gradient(circle, var(--nes-dp-hi) 0 8%, transparent 9%),
+    linear-gradient(var(--nes-dp), var(--nes-dp)) center / 36% 100% no-repeat,
+    linear-gradient(var(--nes-dp), var(--nes-dp)) center / 100% 36% no-repeat, var(--nes-well); }
+.nes-stick { background: radial-gradient(circle, var(--nes-knob) 0 24%, var(--nes-knob-lo) 25% 29%, transparent 30%),
+  radial-gradient(circle, var(--nes-dp) 0 58%, transparent 59%), var(--nes-well); }
+.nes-mid { display: flex; gap: var(--k-gap); }
+.nes-ab { display: flex; gap: 12px; flex: none; align-items: center; }
+.nes-key { min-width: var(--k-h); min-height: var(--k-h); border: 0; background: var(--nes-key); color: var(--nes-ink);
+  font: 700 var(--k-font) var(--font); touch-action: none; box-shadow: inset 0 -2px 0 var(--nes-lo), 0 1px 0 var(--nes-hi); }
+.nes-round { width: var(--k-btn); height: var(--k-btn); border-radius: 50%; font-size: calc(var(--k-font) * 1.15); padding: 0; }
+.nes-small { border-radius: 22px; padding: 0 12px; font-size: var(--k-small); background: var(--nes-mid); color: var(--nes-mid-ink); }
+.nes-a { background: var(--nes-a); } .nes-b { background: var(--nes-b); } .nes-x { background: var(--nes-x); } .nes-y { background: var(--nes-y); }
+.nes-c1 { background: var(--nes-c); color: var(--nes-c-ink); }
+.nes-shoulders .nes-key { background: var(--nes-sh); color: var(--nes-sh-ink); }
+.nes-wrap .nes-key.is-down { background: var(--gold); color: var(--bg); }
 .nes-exit { display: none; position: absolute; top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right));
-  border-radius: 50%; width: 44px; height: 44px; z-index: 2; }
+  border-radius: 50%; width: 44px; height: 44px; z-index: 3; }
 .nes-locked { touch-action: none; overscroll-behavior: contain; }
 /* ONE CLASS FOR BOTH FULL SCREENS; JS (`nesFit_`) sets the stage's size. No `:fullscreen` in a selector list: a Safari that cannot parse it drops the whole rule. */
-.nes-wrap.nes-full { position: fixed; inset: 0; z-index: 1000; width: 100%; height: 100%; margin: 0; background: #000;
-  justify-content: center; touch-action: none; box-sizing: border-box;
+.nes-wrap.nes-full { position: fixed; inset: 0; z-index: 1000; width: 100%; height: 100%; margin: 0; background: #000; border-radius: 0; overflow: visible;
+  justify-content: center; touch-action: none; box-sizing: border-box; --nes-bz: 0px; --nes-flank: 0px;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
 .nes-wrap.nes-full .nes-exit { display: block; }
 .nes-wrap.nes-full .nes-stage { max-width: none; aspect-ratio: auto; margin: 0; flex: none; }
-.nes-wrap.nes-full .nes-canvas { border: 0; border-radius: 0; }
+.nes-wrap.nes-full .nes-stage::before, .nes-wrap.nes-full .nes-deco { display: none; }
+.nes-wrap.nes-full .nes-canvas { border-radius: 0; }
 @media (orientation: landscape) {
   .nes-wrap.nes-full .nes-pad.on { position: absolute; inset: 0; height: auto; flex-wrap: nowrap; padding: 0 max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
-    pointer-events: none; background: none; }
+    pointer-events: none; background: none; border: 0; }
   .nes-wrap.nes-full .nes-pad.on > * { pointer-events: auto; }
   .nes-wrap.nes-full .nes-mid { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); }
+  /* OVER THE PICTURE the controller's outline goes, and the dark parts lighten so they show on black. */
+  .nes-wrap.nes-full .nes-ctl::before { display: none; }
+  .nes-wrap.nes-full[data-sys] { --nes-dp: #55555c; --nes-dp-hi: #77777e; --nes-key: #3c3c43; --nes-ink: #f2f2f2; --nes-mid: #3c3c43; --nes-mid-ink: #eee; --nes-well: transparent; }
 }
 /* THE OTHER SYSTEMS (391): EmulatorJS draws into its own canvas; every piece of its own UI is hidden so the Console's tiles drive it. */
-.emu-host { position: absolute; inset: 0; background: #000; overflow: hidden; border-radius: .25rem; }
+.emu-host { position: absolute; inset: 0; background: #000; overflow: hidden; border-radius: .15rem; }
 .emu-host > :not(.ejs_canvas_parent), .emu-host .ejs_canvas_parent > :not(canvas) { display: none !important; }
 .emu-host .ejs_canvas_parent { width: 100%; height: 100%; }
 .emu-host canvas { width: 100% !important; height: 100% !important; display: block; image-rendering: pixelated; }
-.nes-shoulders { order: -1; flex: 1 0 100%; display: flex; justify-content: space-between; gap: 8px; }
-.nes-shoulders .nes-key { min-width: 64px; }
-.nes-face { display: grid; grid-template: repeat(3, 44px) / repeat(3, 44px); flex: none; }
-.nes-face .nes-round { width: 44px; height: 44px; font-size: 1rem; }
-.nes-face.nes-c { grid-template: repeat(3, 44px) / repeat(3, 44px); }
-.nes-c1 { width: 44px; height: 44px; border-radius: 50%; font-size: .75rem; padding: 0; }
+.nes-shoulders { order: -1; flex: 1 0 100%; display: flex; justify-content: space-between; gap: var(--k-gap); }
+.nes-shoulders .nes-key { min-width: calc(var(--k-h) * 1.45); }
+.nes-face { display: grid; grid-template: repeat(3, var(--k-cell)) / repeat(3, var(--k-cell)); flex: none; }
+.nes-face .nes-round { width: var(--k-cell); height: var(--k-cell); font-size: var(--k-font); }
+.nes-c1 { width: var(--k-cell); height: var(--k-cell); border-radius: 50%; font-size: calc(var(--k-font) * .75); padding: 0; }
 .nes-n { grid-area: 1 / 2; } .nes-w { grid-area: 2 / 1; } .nes-e { grid-area: 2 / 3; } .nes-s { grid-area: 3 / 2; }
 .nes-right { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: none; }
+.nes-deco .nes-shoulders { position: absolute; left: 0; right: 0; top: -.45em; order: 0; }
+.nes-deco .nes-right { flex-direction: row; gap: .3em; }
 @media (orientation: landscape) {
   .nes-wrap.nes-full .nes-shoulders { position: absolute; top: max(8px, env(safe-area-inset-top)); left: max(16px, env(safe-area-inset-left));
     right: max(64px, env(safe-area-inset-right)); width: auto; }
 }
+/* A HOME CONSOLE'S CONTROLLER is drawn as its own object under the screen (`.nes-ctl::before`, its outline); a handheld's buttons sit on its body. */
+.nes-wrap[data-sys="nes"] .nes-ctl, .nes-wrap[data-sys="snes"] .nes-ctl, .nes-wrap[data-sys="n64"] .nes-ctl { position: relative; isolation: isolate; }
+.nes-wrap[data-sys="nes"] .nes-deco, .nes-wrap[data-sys="snes"] .nes-deco, .nes-wrap[data-sys="n64"] .nes-deco { position: absolute; }
+.nes-ctl::before { content: none; position: absolute; z-index: -1; inset: var(--nes-ctl-top, 0px) 0 0; background: var(--nes-ctl); border-radius: var(--nes-ctl-r, .5rem);
+  box-shadow: inset 0 2px 0 var(--nes-hi), inset 0 -3px 0 var(--nes-lo); }
+.nes-wrap[data-sys="nes"] .nes-ctl::before, .nes-wrap[data-sys="snes"] .nes-ctl::before, .nes-wrap[data-sys="n64"] .nes-ctl::before { content: ''; }
+
+/* NES: a grey box round the picture, and the oblong grey-and-black controller — D-pad, Select and Start on grey stripes, B and A red on a pale plate. */
+.nes-wrap[data-sys="nes"] { --nes-rim: #c6c6c1; --nes-rim-w: 7px; --nes-bz: 15px; --nes-bezel: #121212; --nes-ctl: #1c1c1c; --nes-ctl-edge: #c6c6c1;
+  --nes-dp: #0b0b0b; --nes-dp-hi: #262626; --nes-mid: #222; --nes-mid-ink: #e8e8e8; --nes-a: #c8102e; --nes-b: #c8102e; --nes-plate: #d9d9d3;
+  --nes-stripe: #8e8e8a; --nes-deco-h: 4.2rem; --k-dpad: 112px; --k-btn: 52px; }
+.nes-wrap[data-sys="nes"] .nes-ctl::before { border: 7px solid var(--nes-ctl-edge); border-radius: .45rem; box-sizing: border-box; }
+.nes-wrap[data-sys="nes"] .nes-pad { padding: 12px 10px; }
+.nes-wrap[data-sys="nes"] .nes-mid { background: repeating-linear-gradient(var(--nes-stripe) 0 5px, transparent 5px 9px); border-radius: .3rem; padding: 6px 10px; }
+.nes-wrap[data-sys="nes"] .nes-pad .nes-mid { flex: 0 0 auto; margin: 0 auto; }
+.nes-wrap[data-sys="nes"] .nes-ab { background: var(--nes-plate); border-radius: .4rem; padding: 6px; gap: 8px; }
+.nes-wrap[data-sys="nes"] .nes-deco { padding: .55em .75em; }
+.nes-wrap[data-sys="nes"] .nes-deco .nes-ctl, .nes-wrap[data-sys="nes"] .nes-deco .nes-ab { padding: .2em; gap: .25em; }
+.nes-wrap[data-sys="nes"] .nes-deco .nes-mid { padding: .2em .35em; }
+
+/* SNES: the rounded grey controller, shoulders on its top edge, the D-pad dark, A red, B yellow, X blue and Y green in a diamond. */
+.nes-wrap[data-sys="snes"] { --nes-rim: #c5c6cc; --nes-rim-w: 7px; --nes-bz: 15px; --nes-bezel: #1d1d21; --nes-ctl: #cfd0d6; --nes-ctl-top: 24px; --nes-ctl-r: 999px / 50%;
+  --nes-dp: #2b2b31; --nes-dp-hi: #4a4a52; --nes-well: transparent; --nes-mid: #65656e; --nes-mid-ink: #f0f0f0; --nes-sh: #b3b4bc; --nes-sh-ink: #3a3a40;
+  --nes-a: #d1312c; --nes-b: #e3b20b; --nes-x: #2b5fc4; --nes-y: #2a984b; --k-dpad: 112px; --nes-deco-h: 4.6rem; }
+.nes-wrap[data-sys="snes"] .nes-pad { padding: 4px 6px 10px; }
+.nes-wrap[data-sys="snes"] .nes-shoulders .nes-key { border-radius: 22px 22px 8px 8px; }
+.nes-wrap[data-sys="snes"] .nes-mid .nes-key { transform: rotate(-24deg); }
+.nes-wrap[data-sys="snes"] .nes-deco { --nes-ctl-top: .45em; padding: .7em 1em .4em; }
+
+/* N64: the three-pronged grey pad, simplified — stick on the left prong, Start red in the middle, A blue, B green and yellow C buttons on the right; L, Z and R along the top. */
+.nes-wrap[data-sys="n64"] { --nes-rim: #34343a; --nes-rim-w: 7px; --nes-bz: 15px; --nes-bezel: #141417; --nes-ctl: #a7a8ae; --nes-ctl-top: 22px; --nes-ctl-r: 0;
+  --nes-dp: #8b8c93; --nes-well: transparent; --nes-knob: #cbccd2; --nes-knob-lo: #707177; --nes-mid: #c8102e; --nes-mid-ink: #fff;
+  --nes-sh: #8b8c93; --nes-sh-ink: #f4f4f4; --nes-a: #2357c0; --nes-b: #28923f; --nes-c: #e9b300; --nes-c-ink: #2a2a2a; --k-dpad: 112px; --nes-deco-h: 4.8rem; }
+.nes-wrap[data-sys="n64"] .nes-ctl::before { -webkit-mask: var(--nes-n64-shape) 0 0 / 100% 100% no-repeat; mask: var(--nes-n64-shape) 0 0 / 100% 100% no-repeat;
+  --nes-n64-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cg%3E%3Crect width='100' height='56' rx='16' ry='12'/%3E%3Crect y='28' width='47' height='66' rx='22' ry='12'/%3E%3Crect x='51' y='28' width='49' height='66' rx='22' ry='12'/%3E%3Crect x='34' y='28' width='32' height='72' rx='15' ry='9'/%3E%3C/g%3E%3C/svg%3E"); }
+.nes-wrap[data-sys="n64"] .nes-pad { padding: 2px 8px 12px; }
+.nes-wrap[data-sys="n64"] .nes-shoulders .nes-key { border-radius: 22px 22px 8px 8px; }
+.nes-wrap[data-sys="n64"] .nes-deco { --nes-ctl-top: .5em; padding: .8em .6em .7em; }
+
+/* HANDHELDS: the body is the console — the screen set in its glass, the buttons on the casing. */
+.nes-wrap[data-sys="gb"], .nes-wrap[data-sys="gbc"], .nes-wrap[data-sys="gba"], .nes-wrap[data-sys="nds"] { --nes-px: 12px; --nes-pt: 10px; padding-bottom: 6px;
+  box-shadow: inset 0 2px 0 var(--nes-hi), inset 0 -4px 0 var(--nes-lo); }
+.nes-wrap[data-sys="gb"] .nes-pad, .nes-wrap[data-sys="gbc"] .nes-pad, .nes-wrap[data-sys="gba"] .nes-pad, .nes-wrap[data-sys="nds"] .nes-pad {
+  width: calc(100% + 2 * var(--nes-px) - 4px); margin: 0 calc(2px - var(--nes-px)); padding: 8px 2px; --k-dpad: 112px; }
+/* GAME BOY: off-white, portrait, the glass grey-blue with its one round corner bottom right; D-pad, then B and A on a slant in deep pink; Select and Start under. */
+.nes-wrap[data-sys="gb"] { --nes-body: #cac7bd; --nes-r: .7rem .7rem 3.2rem .7rem; --nes-bezel: #5c5e70; --nes-bz: 14px; --nes-bz-r: .45rem .45rem 2rem .45rem;
+  --nes-dp: #1c1c1e; --nes-dp-hi: #3c3c40; --nes-a: #9c1d4c; --nes-b: #9c1d4c; --nes-mid: #8e8d96; --nes-mid-ink: #2a2a33; --nes-deco-h: 3.6rem; }
+/* GAME BOY COLOR: the same, in grape, the glass black and the buttons dark. */
+.nes-wrap[data-sys="gbc"] { --nes-body: #5a3c9c; --nes-r: 1rem 1rem 3.2rem 1rem; --nes-bezel: #242429; --nes-bz: 14px; --nes-bz-r: .6rem .6rem 1.8rem .6rem;
+  --nes-dp: #1e1e22; --nes-dp-hi: #3e3e44; --nes-a: #34343b; --nes-b: #34343b; --nes-mid: #34343b; --nes-mid-ink: #e8e8f0; --nes-deco-h: 3.6rem; }
+.nes-wrap[data-sys="gb"] .nes-ab, .nes-wrap[data-sys="gbc"] .nes-ab { transform: rotate(-24deg); }
+.nes-wrap[data-sys="gba"] .nes-pad .nes-ab { transform: rotate(-16deg); }
+.nes-wrap[data-sys="gb"] .nes-mid .nes-key, .nes-wrap[data-sys="gbc"] .nes-mid .nes-key { transform: rotate(-24deg); }
+/* GAME BOY ADVANCE: landscape in indigo, wide round ends, the screen between the D-pad and A/B while keys play; L and R on its top corners. */
+.nes-wrap[data-sys="gba"] { --nes-body: #4a3e97; --nes-r: 3rem / 2.4rem; --nes-bezel: #222228; --nes-bz: 12px; --nes-bz-r: .5rem;
+  --nes-dp: #1f1f26; --nes-dp-hi: #45454f; --nes-a: #c9c5e2; --nes-b: #c9c5e2; --nes-ink: #2b2560; --nes-mid: #2e2a66; --nes-mid-ink: #e4e2f6;
+  --nes-sh: #6a5fc0; --nes-sh-ink: #f2f0ff; --nes-pt: 18px; }
+/* DS: a clamshell — two screens in black glass, the hinge across the whole body between them, L and R on its top corners. */
+.nes-wrap[data-sys="nds"] { --nes-body: #e3e4e8; --nes-r: 1.1rem; --nes-bezel: #1a1a1f; --nes-bz: 10px; --nes-bz-r: .5rem; --nes-ink: #33343a;
+  --nes-key: #c3c4cc; --nes-dp: #babbc3; --nes-dp-hi: #e8e9ee; --nes-well: radial-gradient(circle, #d3d4da 0 60%, transparent 61%); --nes-mid: #c3c4cc; --nes-mid-ink: #33343a;
+  --nes-sh: #c3c4cc; --nes-sh-ink: #33343a; --nes-hinge: #c4c5cc; --nes-hinge-hi: #f1f2f5; --nes-pt: 18px; --k-dpad: 112px; --nes-pad-h: 200px; }
+.nes-wrap[data-sys="nds"] .nes-deco { --nes-key: #a8a9b2; --nes-dp: #a8a9b2; --nes-mid: #a8a9b2; --nes-sh: #b4b5bd; }
+.nes-wrap[data-sys="nds"] .nes-hinge { background: linear-gradient(var(--nes-hinge-hi), var(--nes-hinge) 45%, var(--nes-lo)); box-shadow: 0 -1px 0 var(--nes-lo), 0 1px 0 var(--nes-lo); }
+.nes-wrap.nes-full[data-sys="nds"] .nes-hinge { left: 0; right: 0; }
+/* L AND R ON THE BODY'S TOP CORNERS (DS, GBA), out of the pad's rows: still the pad's own buttons, so each finger is still the pad's. */
+.nes-wrap[data-sys="nds"]:not(.nes-full) .nes-pad .nes-shoulders, .nes-wrap[data-sys="gba"]:not(.nes-full) .nes-pad .nes-shoulders { position: absolute; top: 0; left: 0; right: 0; height: 0; }
+.nes-wrap[data-sys="nds"] .nes-pad .nes-shoulders .nes-key, .nes-wrap[data-sys="gba"] .nes-pad .nes-shoulders .nes-key { border-radius: 0 0 14px 14px; height: 44px; }
+.nes-wrap[data-sys="nds"].nes-has-pad, .nes-wrap[data-sys="gba"].nes-has-pad { --nes-pt: 52px; }
+.nes-wrap[data-sys="gba"].nes-has-pad { --nes-pad-h: 200px; }
+/* WHILE KEYS PLAY, the DS and GBA hold their buttons either side of the screen, as the real ones do; the screen gives up the width for them. */
+.nes-wrap[data-sys="nds"].nes-has-deco, .nes-wrap[data-sys="gba"].nes-has-deco { --nes-flank: 2.4rem; --nes-px: 8px; }
+.nes-wrap[data-sys="nds"] .nes-deco, .nes-wrap[data-sys="gba"] .nes-deco { inset: 0; height: auto; padding: 0; --k-dpad: 2rem; --k-cell: .72rem; --k-btn: .95rem; --k-font: .5rem; --k-small: .42rem; --k-h: .8rem; }
+.nes-wrap[data-sys="nds"] .nes-deco > *, .nes-wrap[data-sys="gba"] .nes-deco > * { position: absolute; }
+.nes-wrap[data-sys="nds"] .nes-deco .nes-dpad, .nes-wrap[data-sys="gba"] .nes-deco .nes-dpad { right: calc(100% + var(--nes-bz) + .25rem); top: 50%; transform: translateY(-50%); }
+.nes-wrap[data-sys="nds"] .nes-deco .nes-face, .nes-wrap[data-sys="gba"] .nes-deco .nes-ab { left: calc(100% + var(--nes-bz) + .2rem); top: 50%; transform: translateY(-50%); }
+.nes-wrap[data-sys="nds"] .nes-deco .nes-dpad, .nes-wrap[data-sys="nds"] .nes-deco .nes-face { top: 72%; }
+.nes-wrap[data-sys="gba"] .nes-deco .nes-ab { gap: .15rem; transform: translateY(-50%) rotate(-28deg); }
+.nes-wrap[data-sys="nds"] .nes-deco .nes-mid, .nes-wrap[data-sys="gba"] .nes-deco .nes-mid { flex-direction: column; gap: .25rem; top: auto; bottom: .3rem; }
+.nes-wrap[data-sys="nds"] .nes-deco .nes-mid { left: calc(100% + var(--nes-bz) + .3rem); }
+.nes-wrap[data-sys="gba"] .nes-deco .nes-mid { right: calc(100% + var(--nes-bz) + .3rem); }
+.nes-wrap[data-sys="nds"] .nes-deco .nes-small, .nes-wrap[data-sys="gba"] .nes-deco .nes-small { min-width: 1.6rem; padding: 0 .15rem; }
+.nes-wrap[data-sys="nds"] .nes-deco .nes-shoulders, .nes-wrap[data-sys="gba"] .nes-deco .nes-shoulders { top: calc(-1 * var(--nes-bz) - var(--nes-pt));
+  left: calc(-1 * var(--nes-bz) - var(--nes-flank) - var(--nes-px) + 1rem); right: calc(-1 * var(--nes-bz) - var(--nes-flank) - var(--nes-px) + 1rem); }
+.nes-wrap[data-sys="nds"] .nes-deco .nes-shoulders .nes-key, .nes-wrap[data-sys="gba"] .nes-deco .nes-shoulders .nes-key { height: .95rem; min-width: 2.6rem; border-radius: 0 0 .5rem .5rem; font-size: .5rem; }
+/* FULL SCREEN IS THE PICTURE ALONE on black: no casing round it, whichever console. */
+.nes-wrap.nes-full[data-sys] { --nes-px: 0px; --nes-pt: 0px; --nes-bz: 0px; --nes-flank: 0px; --nes-body: #000; box-shadow: none; }
+.nes-wrap.nes-full[data-sys="nds"], .nes-wrap.nes-full[data-sys="gba"] { --nes-pad-h: 252px; }
 /* ---------- THE SCREEN § */
 .flappy { width: 100%; aspect-ratio: 4/5; display: block; touch-action: none;
           background: var(--sunk); border: 1px solid var(--line); border-radius: .5rem; }
