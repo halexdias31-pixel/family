@@ -1199,16 +1199,453 @@ function openSharedPost() {
    Prices follow the card's own rule (398): a child's phone has none to draw. */
 const tutorLink_ = t => location.origin + location.pathname + '?tutor=' + encodeURIComponent(String((t && t.handle) || ''));
 /* BY THE HANDLE ON THE TILE, so your own card's "Share my profile" works before the tutor list has you. */
+/* A PICTURE OF THE CARD, NOT ONLY THE LINK (412) — the owner: "I meant it would share a PNG", to answer a parent on WhatsApp. */
+let TUTOR_PNG_BUSY = false;
 on('tutor-share', el => {
   const handle = String(el.dataset.handle || '');
-  if (!handle) return;
-  const t = (DATA.tutors || []).find(x => x && String(x.handle || '') === handle);
-  const title = (t && t.title) || (USER && USER.name) || brand('name', '@family.');
+  if (!handle || TUTOR_PNG_BUSY) return;
+  const t = (DATA.tutors || []).find(x => x && String(x.handle || '') === handle)
+    || (USER && USER.handle === handle ? tutorPngMe_() : { handle, title: '@' + handle });
   const url = tutorLink_({ handle });
-  if (navigator.share) { navigator.share({ title, text: title + ' on ' + brand('name', '@family.'), url }).catch(() => {}); return; }
-  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(() => toast('Link copied')).catch(() => toast(url));
-  else toast(url);
+  TUTOR_PNG_BUSY = true;
+  toast('Making a picture of this profile…');
+  tutorPng_(t, url)
+    .then(blob => tutorPngHand_(blob, handle + '-profile.png', url, t.title || '@' + handle))
+    /* NO CANVAS (an old browser, a test page): the link alone, as before 412. */
+    .catch(() => tutorLinkOnly_(t.title || '@' + handle, url))
+    .then(() => { TUTOR_PNG_BUSY = false; }, () => { TUTOR_PNG_BUSY = false; });
 });
+
+/* YOUR OWN CARD BEFORE THE TUTOR LIST HAS YOU: what the sign-in reply knows. */
+function tutorPngMe_() {
+  const p = (USER && USER.profile) || {};
+  return { handle: USER.handle, title: USER.name, image: p.photo || USER.photo || '', avatar: USER.avatar || '',
+           personId: USER.personId, role: 'Tutor', description: p.headline ? '"' + p.headline + '"' : '' };
+}
+
+function tutorLinkOnly_(title, url) {
+  if (navigator.share) return navigator.share({ title, text: title + ' on ' + brand('name', '@family.'), url }).catch(() => {});
+  if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(url).then(() => toast('Link copied')).catch(() => toast(url));
+  toast(url);
+}
+
+/* THE SHARE SHEET WITH THE FILE AND THE LINK; ELSE THE FILE DOWNLOADED AND THE LINK COPIED. */
+function tutorPngHand_(blob, name, url, title) {
+  const file = typeof File === 'function' ? new File([blob], name, { type: 'image/png' }) : null;
+  const can = !!(file && navigator.share && navigator.canShare
+                 && (() => { try { return navigator.canShare({ files: [file] }); } catch (e) { return false; } })());
+  const save = () => {
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = href; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(href), 60000);   // not at once: a download can start after the click returns
+    const copy = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(url) : Promise.reject();
+    return copy.then(() => toast('Image saved · link copied'), () => toast('Image saved · ' + url));
+  };
+  if (!can) return save();
+  return navigator.share({ files: [file], title, text: url }).catch(e => { if (!e || e.name !== 'AbortError') return save(); });
+}
+
+/* ---------- THE PROFILE AS A 1080×1350 PNG (412), drawn on a canvas — no library, no HTML snapshot ---------- */
+const TPNG_W = 1080, TPNG_H = 1350, TPNG_M = 84;
+
+/* AN IMAGE, OR NULL: crossOrigin so a photo cannot taint the canvas, and a 1px trial draw in case it would. */
+function tpngImg_(src) {
+  return new Promise(ok => {
+    if (!src) return ok(null);
+    const img = new Image();
+    let done = false;
+    const end = v => { if (!done) { done = true; ok(v); } };
+    setTimeout(() => end(null), 4000);
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const c = document.createElement('canvas'); c.width = c.height = 1;
+        const g = c.getContext('2d'); g.drawImage(img, 0, 0, 1, 1); g.getImageData(0, 0, 1, 1);
+        end(img);
+      } catch (e) { end(null); }
+    };
+    img.onerror = () => end(null);
+    img.src = src;
+  });
+}
+/* AN SVG FACE AS AN IMAGE SOURCE. The page's `#av-clip` is not inside it, so the canvas does the circle instead. */
+const tpngSvg_ = s => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(String(s)
+  .replace(/<svg(?![^>]*xmlns=)/, '<svg xmlns="http://www.w3.org/2000/svg"').replace(/\sclip-path="url\(#av-clip\)"/g, ''));
+
+/* THE FACE BY `personFace_`'s ORDER: their photo, else their figure or one of the ten, else nothing (initials are drawn). */
+function tpngFace_(t) {
+  const v = String(t.image || '').trim(), kind = picKind_(v);
+  if (kind === 'photo') return tpngImg_(pic(v)).then(img => img || tpngFigure_(t, 'avatar'));
+  return tpngFigure_(t, kind);
+}
+function tpngFigure_(t, kind) {
+  try {
+    if (kind === 'basic') return tpngImg_(tpngSvg_(pfpArt_(pfpChoice_(t.image), 560)));
+    if (typeof t.avatar === 'string' && t.avatar) return tpngImg_(tpngSvg_(avatarFor(t.handle || t.title, 560, t.avatar, { bust: true })));
+  } catch (e) {}
+  return Promise.resolve(null);
+}
+
+/* THE PALETTE AND THE FACE OFF THE STYLESHEET'S OWN TOKENS, so the picture changes when `:root` does. */
+function tpngTokens_() {
+  let cs = null;
+  try { cs = getComputedStyle(document.documentElement); } catch (e) {}
+  const v = (k, or) => { const s = cs ? String(cs.getPropertyValue(k) || '').trim() : ''; return s || or; };
+  return { bg: v('--bg', '#000'), raised: v('--raised', '#0b0b0b'), line: v('--line', '#232323'), ink: v('--ink', '#e6e6e6'),
+           dim: v('--dim', '#9a9a9a'), gold: v('--gold', '#ffb454'), good: v('--good', '#3ddc84'),
+           paper: v('--paper', '#f4f1e8'), paperInk: v('--paper-ink', '#2b2620'),
+           font: v('--font', 'ui-monospace, monospace') };
+}
+
+/* EVERYTHING THE PICTURE SAYS, as plain lines — the same readers the card uses, so the two never disagree. */
+function tpngFacts_(t) {
+  const groups = typeof teachGroups_ === 'function' ? teachGroups_(profList_(t.teachesSpec || t.teachesMain).concat(profList_(t.teaches))) : [];
+  const teaches = groups.map(g => g.subject + (g.levels.length ? ' (' + g.levels.join(', ') + ')' : ''));
+  const parts = Array.isArray(t.qualsParts) ? t.qualsParts.filter(p => p && String(p.subject || '').trim()) : [];
+  const quals = parts.length
+    ? parts.map(p => [p.subject, p.level, p.grade && 'grade ' + p.grade].map(x => String(x || '').trim()).filter(Boolean).join(' '))
+    : profList_(t.quals);
+  const venues = profList_(t.venues);
+  return { teaches, quals, venues, facts: typeof profFacts_ === 'function' ? profFacts_(t) : [] };
+}
+
+/* A CHILD'S PHONE DRAWS NO PRICE (398) — the same rule as the card's `prof-rate`. */
+const tpngRate_ = t => (Number(t.rate) > 0 && !childView_()) ? money(t.rate).replace(/\.00$/, '') + '/h' : '';
+
+function tutorPng_(t, url) {
+  const fontsReady = (document.fonts && document.fonts.load)
+    ? Promise.race([Promise.all(['700 64px', '400 32px'].map(f => document.fonts.load(f + ' "Family Code"'))).catch(() => {}),
+                    new Promise(r => setTimeout(r, 2500))])
+    : Promise.resolve();
+  const logoSrc = brand('logo_square', '') || brand('logo_circle', '');
+  return Promise.all([tpngFace_(t), logoSrc ? tpngImg_(pic(logoSrc)) : null, fontsReady]).then(([face, logo]) => {
+    const draw = (face, logo) => {
+      const cv = document.createElement('canvas');
+      cv.width = TPNG_W; cv.height = TPNG_H;
+      const g = cv.getContext('2d');
+      if (!g) throw new Error('no canvas');
+      tpngDraw_(g, t, url, face, logo);
+      return new Promise((ok, no) => cv.toBlob(b => b ? ok(b) : no(new Error('empty picture')), 'image/png'));
+    };
+    /* A PICTURE THAT TAINTED THE CANVAS ANYWAY: drawn again with the initials and no logo. */
+    try { return draw(face, logo).catch(() => draw(null, null)); } catch (e) { if (face || logo) return draw(null, null); throw e; }
+  });
+}
+
+/* ONE LINE AT `size`, SHRUNK TO `min` AND THEN CUT WITH AN ELLIPSIS, so nothing runs past the margin. */
+function tpngFit_(g, text, maxW, size, min, weight, font) {
+  let s = size;
+  const set = () => { g.font = (weight || 400) + ' ' + s + 'px ' + font; };
+  set();
+  while (s > min && g.measureText(text).width > maxW) { s -= 2; set(); }
+  let out = String(text);
+  while (out.length > 1 && g.measureText(out).width > maxW) out = out.slice(0, -2) + '…';
+  return { text: out, size: s };
+}
+/* WORDS (or a list's items, joined by `sep`) INTO AT MOST `lines` LINES OF `maxW`; a piece wider than a line is broken where it must be. */
+function tpngWrap_(g, text, maxW, lines, sep) {
+  const words = Array.isArray(text) ? text.map(String).filter(Boolean) : String(text).split(/\s+/).filter(Boolean), out = [];
+  const join = sep == null ? ' ' : sep;
+  let cur = '';
+  const push = w => {
+    /* A LIST'S ITEM IS CUT WITH AN ELLIPSIS, not split mid-word; a link is split. */
+    if (Array.isArray(text) && join) { while (w.length > 1 && g.measureText(w).width > maxW) w = w.slice(0, -2) + '…'; return w; }
+    while (g.measureText(w).width > maxW && w.length > 1) {
+      let k = w.length - 1;
+      while (k > 1 && g.measureText(w.slice(0, k)).width > maxW) k--;
+      out.push(w.slice(0, k)); w = w.slice(k);
+    }
+    return w;
+  };
+  words.forEach(w => {
+    const next = cur ? cur + join + w : w;
+    if (g.measureText(next).width <= maxW) { cur = next; return; }
+    if (cur) out.push(cur);
+    cur = push(w);
+  });
+  if (cur) out.push(cur);
+  if (out.length > lines) {
+    const kept = out.slice(0, lines);
+    let last = kept[lines - 1] + '…';
+    while (last.length > 1 && g.measureText(last).width > maxW) last = last.slice(0, -2) + '…';
+    kept[lines - 1] = last;
+    return kept;
+  }
+  return out;
+}
+
+function tpngRound_(g, x, y, w, h, r) {
+  g.beginPath();
+  g.moveTo(x + r, y); g.lineTo(x + w - r, y); g.arcTo(x + w, y, x + w, y + r, r);
+  g.lineTo(x + w, y + h - r); g.arcTo(x + w, y + h, x + w - r, y + h, r);
+  g.lineTo(x + r, y + h); g.arcTo(x, y + h, x, y + h - r, r);
+  g.lineTo(x, y + r); g.arcTo(x, y, x + r, y, r);
+  g.closePath();
+}
+
+function tpngDraw_(g, t, url, face, logo) {
+  const C = tpngTokens_(), F = C.font, W = TPNG_W, H = TPNG_H, M = TPNG_M, inner = W - 2 * M;
+  const name = String(t.title || ('@' + (t.handle || ''))).trim();
+  const text = (s, x, y, size, colour, weight, align) => {
+    g.font = (weight || 400) + ' ' + size + 'px ' + F; g.fillStyle = colour; g.textAlign = align || 'left'; g.fillText(s, x, y);
+  };
+  g.textBaseline = 'alphabetic';
+  g.fillStyle = C.bg; g.fillRect(0, 0, W, H);
+  /* A WARM LIGHT BEHIND THE FACE, and a thin gold frame — the black and gold of the screen. */
+  try {
+    const glow = g.createRadialGradient(W / 2, 360, 40, W / 2, 360, 620);
+    glow.addColorStop(0, C.gold + '2e'); glow.addColorStop(1, C.gold + '00');
+    g.fillStyle = glow; g.fillRect(0, 0, W, H);
+  } catch (e) {}
+  g.strokeStyle = C.gold; g.lineWidth = 3; g.globalAlpha = .55;
+  tpngRound_(g, 30, 30, W - 60, H - 60, 28); g.stroke();
+  g.globalAlpha = 1;
+
+  /* THE BRAND, TOP LEFT; WHAT THIS IS, TOP RIGHT. */
+  let bx = M;
+  if (logo) {
+    g.save(); g.beginPath(); g.arc(M + 32, 112, 32, 0, Math.PI * 2); g.clip();
+    g.drawImage(logo, M, 80, 64, 64); g.restore();
+    bx = M + 84;
+  }
+  const bn = tpngFit_(g, brand('name', '@family.'), 560, 44, 28, 700, F);
+  text(bn.text, bx, 128, bn.size, C.gold, 700);
+  text('TUTOR PROFILE', W - M, 124, 24, C.dim, 400, 'right');
+  g.fillStyle = C.line; g.fillRect(M, 178, inner, 2);
+
+  /* THE FACE: a photo, a figure, or their initial on gold. */
+  const fx = W / 2, fy = 322, fr = 118;
+  g.save(); g.beginPath(); g.arc(fx, fy, fr, 0, Math.PI * 2); g.closePath(); g.clip();
+  if (face) {
+    const iw = face.naturalWidth || face.width || 1, ih = face.naturalHeight || face.height || 1, s = Math.min(iw, ih);
+    g.fillStyle = C.raised; g.fillRect(fx - fr, fy - fr, fr * 2, fr * 2);
+    g.drawImage(face, (iw - s) / 2, (ih - s) / 2, s, s, fx - fr, fy - fr, fr * 2, fr * 2);
+  } else {
+    g.fillStyle = C.raised; g.fillRect(fx - fr, fy - fr, fr * 2, fr * 2);
+    g.textBaseline = 'middle';
+    text(initial(name), fx, fy + 6, 130, C.gold, 700, 'center');
+    g.textBaseline = 'alphabetic';
+  }
+  g.restore();
+  g.beginPath(); g.arc(fx, fy, fr + 5, 0, Math.PI * 2); g.strokeStyle = C.gold; g.lineWidth = 6; g.stroke();
+
+  /* NAME AS THE SITE SHOWS IT (`title`, the server's public name); handle and role under it. */
+  let y = 538;
+  const nm = tpngFit_(g, name, inner, 68, 52, 700, F);
+  if (g.measureText(name).width <= inner) text(nm.text, W / 2, y, nm.size, C.ink, 700, 'center');
+  else {
+    /* A LONG NAME GOES ONTO TWO LINES rather than losing its end. */
+    g.font = '700 52px ' + F;
+    tpngWrap_(g, name, inner, 2).forEach((l, i) => { if (i) y += 60; text(l, W / 2, y, 52, C.ink, 700, 'center'); });
+  }
+  const sub = [t.handle ? '@' + t.handle : '', [t.role || 'Tutor'].concat(profList_(t.titles)).join(' · ')].filter(Boolean).join(' · ');
+  y += 52;
+  const sb = tpngFit_(g, sub, inner, 30, 22, 400, F);
+  text(sb.text, W / 2, y, sb.size, C.dim, 400, 'center');
+
+  /* THE BADGES: the rate (never to a child), DBS, experience — pills centred, the last dropped if they do not fit. */
+  const facts = tpngFacts_(t);
+  const rate = tpngRate_(t);
+  const pills = [];
+  if (rate) pills.push({ s: rate, solid: true });
+  if (t.dbs) pills.push({ s: '✓ DBS checked' });
+  if (facts.facts[0]) pills.push({ s: facts.facts[0] });
+  const pillW = p => { g.font = (p.solid ? 700 : 400) + ' 30px ' + F; return g.measureText(p.s).width + 52; };
+  while (pills.length && pills.reduce((a, p) => a + pillW(p), 0) + 20 * (pills.length - 1) > inner) pills.pop();
+  y += 36;
+  if (pills.length) {
+    let px = W / 2 - (pills.reduce((a, p) => a + pillW(p), 0) + 20 * (pills.length - 1)) / 2;
+    pills.forEach(p => {
+      const w = pillW(p);
+      tpngRound_(g, px, y, w, 62, 31);
+      if (p.solid) { g.fillStyle = C.gold; g.fill(); }
+      else { g.strokeStyle = C.gold; g.lineWidth = 2; g.stroke(); }
+      text(p.s, px + w / 2, y + 42, 30, p.solid ? C.bg : C.gold, p.solid ? 700 : 400, 'center');
+      px += w + 20;
+    });
+    y += 62;
+  }
+
+  /* THEIR OWN LINE, as they wrote it — at most two lines, so what they teach keeps its room. */
+  const bio = String(t.description || '').trim();
+  if (bio) {
+    g.font = '400 30px ' + F;
+    const lines = tpngWrap_(g, bio, inner - 40, 2);
+    y += 18;
+    lines.forEach(l => { y += 42; text(l, W / 2, y, 30, C.ink, 400, 'center'); });
+  }
+
+  /* THE FOOTER IS FIXED; THE SECTIONS FILL WHAT IS LEFT ABOVE IT AND STOP — nothing runs under it. */
+  const footTop = H - 276, LH = 40;
+  const sections = [['TEACHES', facts.teaches, 2], ['TUTORS AT', facts.venues, 1], ['QUALIFICATIONS', facts.quals, 2]];
+  y += 22;
+  sections.forEach(([cap, list, max]) => {
+    if (!list.length) return;
+    g.font = '400 28px ' + F;
+    /* AS MANY LINES AS FIT ABOVE THE FOOTER: caption 30 + 10, then a line every LH, the last baseline 26 clear of the rule. */
+    const room = Math.min(max, Math.floor((footTop - 26 - (y + 40)) / LH));
+    if (room < 1) return;
+    const lines = tpngWrap_(g, list, inner, room, '  ·  ');
+    y += 30; text(cap, M, y, 22, C.gold, 700);
+    y += 10;
+    lines.forEach(l => { y += LH; text(l, M, y, 28, C.ink, 400); });
+    y += 18;
+  });
+
+  /* THE LINK, PRINTED, and a QR code to it on a paper square — a phone camera reads it off a screen. */
+  g.fillStyle = C.line; g.fillRect(M, footTop, inner, 2);
+  const qr = (() => { try { return qr_(url); } catch (e) { return null; } })();
+  const qs = 196, qy = footTop + 34;
+  let tx = M;
+  if (qr) {
+    g.fillStyle = C.paper; tpngRound_(g, M, qy, qs, qs, 10); g.fill();
+    const cell = Math.floor((qs - 24) / qr.size), off = (qs - cell * qr.size) / 2;
+    g.fillStyle = C.paperInk;
+    for (let r = 0; r < qr.size; r++) for (let c = 0; c < qr.size; c++)
+      if (qr.at(c, r)) g.fillRect(M + off + c * cell, qy + off + r * cell, cell, cell);
+    tx = M + qs + 40;
+  }
+  const tw = W - M - tx;
+  text('See the whole profile and book:', tx, qy + 40, 26, C.dim, 400);
+  g.font = '700 30px ' + F;
+  const shownUrl = String(url).replace(/^https?:\/\//, '');
+  /* A LINK BREAKS AFTER / ? = & — never inside a word unless a word alone is wider than the line. */
+  tpngWrap_(g, shownUrl.split(/(?<=[/?=&])/), tw, 3, '').forEach((l, i) => text(l, tx, qy + 92 + i * 42, 30, C.gold, 700));
+}
+
+/* ---------- A SMALL QR ENCODER (412): byte mode, level M, versions 1–10 — enough for a profile link ---------- */
+const QR_ECC_M = [10, 16, 26, 18, 24, 16, 18, 22, 22, 26], QR_BLOCKS_M = [1, 1, 1, 2, 2, 4, 4, 4, 5, 5];
+function qrMul_(x, y) {
+  let z = 0;
+  for (let i = 7; i >= 0; i--) { z = (z << 1) ^ ((z >>> 7) * 0x11D); z ^= ((y >>> i) & 1) * x; }
+  return z & 0xFF;
+}
+function qrEcc_(data, n) {
+  const div = new Array(n).fill(0); div[n - 1] = 1;
+  let root = 1;
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) { div[j] = qrMul_(div[j], root); if (j + 1 < n) div[j] ^= div[j + 1]; }
+    root = qrMul_(root, 2);
+  }
+  const out = new Array(n).fill(0);
+  data.forEach(b => { const f = b ^ out.shift(); out.push(0); div.forEach((d, i) => { out[i] ^= qrMul_(d, f); }); });
+  return out;
+}
+const qrRaw_ = v => { let r = (16 * v + 128) * v + 64; if (v >= 2) { const a = Math.floor(v / 7) + 2; r -= (25 * a - 10) * a - 55; if (v >= 7) r -= 36; } return r; };
+function qrAlign_(v, size) {
+  if (v === 1) return [];
+  const n = Math.floor(v / 7) + 2, step = Math.ceil((v * 4 + 4) / (n * 2 - 2)) * 2, out = [6];
+  for (let p = size - 7; out.length < n; p -= step) out.splice(1, 0, p);
+  return out;
+}
+function qr_(text) {
+  const bytes = Array.from(new TextEncoder().encode(String(text)));
+  let v = 0;
+  for (let k = 1; k <= 10 && !v; k++) {
+    const cap = Math.floor(qrRaw_(k) / 8) - QR_ECC_M[k - 1] * QR_BLOCKS_M[k - 1];
+    if (4 + (k < 10 ? 8 : 16) + bytes.length * 8 <= cap * 8) v = k;
+  }
+  if (!v) return null;
+  const size = v * 4 + 17, eccN = QR_ECC_M[v - 1], nb = QR_BLOCKS_M[v - 1];
+  const raw = Math.floor(qrRaw_(v) / 8), cap = raw - eccN * nb;
+  /* THE BITS: mode 0100, the count, the bytes, a terminator, then the two pad bytes in turn. */
+  const bits = [];
+  const put = (x, n) => { for (let i = n - 1; i >= 0; i--) bits.push((x >>> i) & 1); };
+  put(4, 4); put(bytes.length, v < 10 ? 8 : 16); bytes.forEach(b => put(b, 8));
+  put(0, Math.min(4, cap * 8 - bits.length));
+  while (bits.length % 8) bits.push(0);
+  const data = [];
+  for (let i = 0; i < bits.length; i += 8) data.push(parseInt(bits.slice(i, i + 8).join(''), 2));
+  for (let p = 0; data.length < cap; p ^= 1) data.push(p ? 0x11 : 0xEC);
+  /* BLOCKS, EACH WITH ITS ERROR CORRECTION, INTERLEAVED. */
+  const short = nb - raw % nb, shortLen = Math.floor(raw / nb), blocks = [];
+  for (let i = 0, k = 0; i < nb; i++) {
+    const d = data.slice(k, k + shortLen - eccN + (i < short ? 0 : 1));
+    k += d.length;
+    const e = qrEcc_(d, eccN);
+    if (i < short) d.push(0);
+    blocks.push(d.concat(e));
+  }
+  const words = [];
+  for (let i = 0; i < blocks[0].length; i++) blocks.forEach((b, j) => { if (i !== shortLen - eccN || j >= short) words.push(b[i]); });
+  /* THE FIXED PATTERNS. */
+  const m = [], fn = [];
+  for (let i = 0; i < size; i++) { m.push(new Array(size).fill(false)); fn.push(new Array(size).fill(false)); }
+  const set = (x, y, dark) => { m[y][x] = !!dark; fn[y][x] = true; };
+  for (let i = 0; i < size; i++) { set(6, i, i % 2 === 0); set(i, 6, i % 2 === 0); }
+  [[3, 3], [size - 4, 3], [3, size - 4]].forEach(([cx, cy]) => {
+    for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) {
+      const x = cx + dx, y = cy + dy, d = Math.max(Math.abs(dx), Math.abs(dy));
+      if (x >= 0 && x < size && y >= 0 && y < size) set(x, y, d !== 2 && d !== 4);
+    }
+  });
+  const al = qrAlign_(v, size), last = al.length - 1;
+  al.forEach((ax, i) => al.forEach((ay, j) => {
+    if ((i === 0 && j === 0) || (i === 0 && j === last) || (i === last && j === 0)) return;
+    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) set(ax + dx, ay + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1);
+  }));
+  const format = mask => {
+    const d = (0 << 3) | mask;   // level M is 00
+    let r = d;
+    for (let i = 0; i < 10; i++) r = (r << 1) ^ ((r >>> 9) * 0x537);
+    const b = ((d << 10) | r) ^ 0x5412, bit = i => (b >>> i) & 1;
+    for (let i = 0; i <= 5; i++) set(8, i, bit(i));
+    set(8, 7, bit(6)); set(8, 8, bit(7)); set(7, 8, bit(8));
+    for (let i = 9; i < 15; i++) set(14 - i, 8, bit(i));
+    for (let i = 0; i < 8; i++) set(size - 1 - i, 8, bit(i));
+    for (let i = 8; i < 15; i++) set(8, size - 15 + i, bit(i));
+    set(8, size - 8, 1);
+  };
+  format(0);
+  if (v >= 7) {
+    let r = v;
+    for (let i = 0; i < 12; i++) r = (r << 1) ^ ((r >>> 11) * 0x1F25);
+    const b = (v << 12) | r;
+    for (let i = 0; i < 18; i++) { const a = size - 11 + i % 3, c = Math.floor(i / 3), on = (b >>> i) & 1; set(a, c, on); set(c, a, on); }
+  }
+  /* THE DATA, IN THE ZIGZAG. */
+  let i = 0;
+  for (let right = size - 1; right >= 1; right -= 2) {
+    if (right === 6) right = 5;
+    for (let vert = 0; vert < size; vert++) for (let j = 0; j < 2; j++) {
+      const x = right - j, up = ((right + 1) & 2) === 0, y = up ? size - 1 - vert : vert;
+      if (!fn[y][x] && i < words.length * 8) { m[y][x] = ((words[i >>> 3] >>> (7 - (i & 7))) & 1) === 1; i++; }
+    }
+  }
+  /* THE MASK WITH THE LOWEST PENALTY, by the standard's four rules. */
+  const rule = [(x, y) => (x + y) % 2 === 0, (x, y) => y % 2 === 0, x => x % 3 === 0, (x, y) => (x + y) % 3 === 0,
+                (x, y) => (Math.floor(x / 3) + Math.floor(y / 2)) % 2 === 0, (x, y) => x * y % 2 + x * y % 3 === 0,
+                (x, y) => (x * y % 2 + x * y % 3) % 2 === 0, (x, y) => ((x + y) % 2 + x * y % 3) % 2 === 0];
+  const flip = k => { for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) if (!fn[y][x] && rule[k](x, y)) m[y][x] = !m[y][x]; };
+  const penalty = () => {
+    let p = 0, dark = 0;
+    const lines = [];
+    for (let a = 0; a < size; a++) {
+      let row = '', col = '';
+      for (let b = 0; b < size; b++) { row += m[a][b] ? 1 : 0; col += m[b][a] ? 1 : 0; if (m[a][b]) dark++; }
+      lines.push(row, col);
+    }
+    lines.forEach(l => {
+      (l.match(/0{5,}|1{5,}/g) || []).forEach(r => { p += r.length - 2; });
+      const pad = '0000' + l + '0000';
+      for (let k = pad.indexOf('1011101'); k >= 0; k = pad.indexOf('1011101', k + 1)) {
+        if (pad.slice(k - 4, k) === '0000' || pad.slice(k + 7, k + 11) === '0000') p += 40;
+      }
+    });
+    for (let y = 0; y + 1 < size; y++) for (let x = 0; x + 1 < size; x++) {
+      const c = m[y][x];
+      if (c === m[y][x + 1] && c === m[y + 1][x] && c === m[y + 1][x + 1]) p += 3;
+    }
+    return p + (Math.ceil(Math.abs(dark * 20 - size * size * 10) / (size * size)) - 1) * 10;
+  };
+  let best = 0, bestP = Infinity;
+  for (let k = 0; k < 8; k++) { flip(k); format(k); const p = penalty(); if (p < bestP) { bestP = p; best = k; } flip(k); }
+  flip(best); format(best);
+  return { size, version: v, mask: best, at: (x, y) => m[y][x] };
+}
+
 /* ONCE A VISIT, on the first payload that has them — `openSharedPost`'s place in the landing. */
 let TUTOR_LINK_DONE = false;
 function openSharedTutor() {

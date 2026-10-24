@@ -2494,8 +2494,84 @@ check('?tutor=<handle> opens that tutor\'s card signed out, prices and a Share t
   if (a.err) return bad.concat([a.err]);
   const mine = [...a.d.querySelectorAll('#s-account [data-do="tutor-share"]')].find(x => x.dataset.handle === 'haladmin' && /Share my profile/.test(x.textContent + ' ' + (x.getAttribute('aria-label') || '') + ' ' + (x.title || '')));
   if (!mine) return bad.concat(['the admin\'s own card has no "Share my profile" tile: ' + [...a.d.querySelectorAll('#s-account [data-do]')].slice(0, 12).map(x => x.dataset.do).join(',')]);
-  a.A('tutor-share', mine); await wait(100);
-  if (!/\?tutor=haladmin/.test(a.toast())) bad.push('"Share my profile" did not give the admin\'s own link: ' + a.toast());
+  const r = profilePng_(a.w);
+  a.A('tutor-share', mine);
+  await r.till(() => r.shared.length);
+  const got = r.shared[0] || {};
+  if (!/\?tutor=haladmin/.test(String(got.text || ''))) bad.push('"Share my profile" did not hand over the admin\'s own link: ' + JSON.stringify(got.text));
+  if (!((got.files || [])[0] || {}).type) bad.push('"Share my profile" handed over no picture');
+  return bad;
+});
+
+/* ---------- THE PROFILE AS A PICTURE (412) ----------
+   No canvas in jsdom: a recording one stands in, so the journey asks what was DRAWN (the words) and what was shared. */
+const profilePng_ = (w, o) => {
+  o = o || {};
+  const r = { texts: [], images: [], canvases: [], shared: [], clicks: [], copied: [] };
+  const ctx = new Proxy({ measureText: s => ({ width: String(s).length * 16 }), fillText: s => { r.texts.push(String(s)); },
+    drawImage: img => { r.images.push(img); }, createRadialGradient: () => ({ addColorStop() {} }), getImageData: () => ({ data: [0, 0, 0, 0] }) },
+    { get: (x, k) => (k in x ? x[k] : () => {}), set: (x, k, v) => { x[k] = v; return true; } });
+  w.HTMLCanvasElement.prototype.getContext = function () { r.canvases.push(this); return ctx; };
+  w.HTMLCanvasElement.prototype.toBlob = function (cb, type) {
+    const b = new w.Blob(['\x89PNG'], { type }); b.__w = this.width; b.__h = this.height; r.blob = b; setTimeout(() => cb(b), 0); };
+  /* A PHOTO LOADS, or (`o.photoFails`) refuses — the face then falls back to the initial. */
+  w.Image = class { set src(v) { this._src = v; const no = o.photoFails && /^https?:/.test(v);
+    setTimeout(() => (no ? this.onerror && this.onerror() : this.onload && this.onload()), 0); }
+    get src() { return this._src; } get naturalWidth() { return 100; } get naturalHeight() { return 100; } };
+  w.navigator.canShare = x => !o.noFiles && !!(x && x.files && x.files.length && x.files[0].type === 'image/png');
+  w.navigator.share = x => { r.shared.push(x); return Promise.resolve(); };
+  Object.defineProperty(w.navigator, 'clipboard', { configurable: true, value: { writeText: s => { r.copied.push(s); return Promise.resolve(); } } });
+  w.URL.createObjectURL = () => 'blob:profile'; w.URL.revokeObjectURL = () => {};
+  w.HTMLAnchorElement.prototype.click = function () { r.clicks.push({ href: this.href, download: this.download }); };
+  r.till = async ok => { const t0 = Date.now(); while (!ok() && Date.now() - t0 < 6000) await wait(20); };
+  return r;
+};
+check('Share on a tutor card (412) hands over a 1080×1350 PNG of the profile and the link; a child\'s phone draws no price on it; without file sharing the PNG is saved and the link copied', async () => {
+  const W = cardWorld_();
+  const bad = [];
+  const open = async before => {
+    const b = boot({ payload: W.GET(), serve: W.serve, url: 'https://example.org/?tutor=adatutor', before });
+    for (let k = 0; k < 80 && !b.w.__t; k++) await wait(100);
+    await wait(800);
+    return { w: b.w, tile: b.w.document.querySelector('#sheet-body [data-do="tutor-share"]') };
+  };
+  /* ---------- 1. A VISITOR ON A PHONE: one PNG and the link, to the share sheet ---------- */
+  const v = await open();
+  if (!v.tile) return ['?tutor=adatutor opened no card with a Share tile'];
+  let r = profilePng_(v.w);
+  v.w.__t.ACTIONS['tutor-share'](v.tile);
+  await r.till(() => r.shared.length);
+  if (r.shared.length !== 1) return ['Share handed ' + r.shared.length + ' shares to the share sheet, not 1'];
+  const f = (r.shared[0].files || [])[0];
+  if (!f || f.type !== 'image/png' || !/\.png$/.test(f.name) || !(f instanceof v.w.File)) bad.push('the share was not one PNG File: ' + (f ? f.type + ' ' + f.name : 'no file'));
+  if (!/\?tutor=adatutor$/.test(String(r.shared[0].text || ''))) bad.push('the share\'s text is not Ada\'s link: ' + r.shared[0].text);
+  const cv = r.canvases.find(c => c.width === 1080 && c.height === 1350);
+  if (!cv || !r.blob || r.blob.__w !== 1080 || r.blob.__h !== 1350) bad.push('the picture is not 1080×1350');
+  const said = r.texts.join(' | ');
+  console.log('          drawn: ' + said.slice(0, 160));
+  ['Ada Tutor', '@adatutor', 'TEACHES', 'adatutor'].forEach(s => { if (said.indexOf(s) < 0) bad.push('the picture does not say "' + s + '"'); });
+  if (!/£20\/h/.test(said)) bad.push('a visitor\'s picture has no rate on it: ' + said.slice(0, 200));
+  if (!r.images.some(i => /ada\.jpg/.test(i._src || '') && i.crossOrigin === 'anonymous')) bad.push('Ada\'s photo was not drawn, or was asked for without crossOrigin');
+  /* ---------- 2. A LAPTOP: no file sharing, so the PNG is downloaded and the link copied ---------- */
+  r = profilePng_(v.w, { noFiles: true });
+  v.w.__t.ACTIONS['tutor-share'](v.tile);
+  await r.till(() => r.clicks.length && /saved/i.test(toastOf_(v.w.document)));
+  if (r.shared.length) bad.push('a browser that cannot share files was still sent to navigator.share');
+  if (!r.clicks.length || !/\.png$/.test(r.clicks[0].download || '')) bad.push('no PNG was downloaded: ' + JSON.stringify(r.clicks));
+  if (!r.copied.some(s => /\?tutor=adatutor$/.test(s))) bad.push('the link was not copied: ' + JSON.stringify(r.copied));
+  if (!/Image saved/.test(toastOf_(v.w.document))) bad.push('the toast said "' + toastOf_(v.w.document) + '", not "Image saved"');
+  /* ---------- 3. A CHILD'S PHONE (398): no price anywhere on the picture; a photo that will not load is the initial ---------- */
+  const kid = W.user('student@example.org');
+  if (!kid) return bad.concat(['Sam could not sign in']);
+  const k = await open(signedInAs_(kid));
+  if (!k.tile) return bad.concat(['a child opening ?tutor=adatutor saw no Share tile']);
+  r = profilePng_(k.w, { photoFails: true });
+  k.w.__t.ACTIONS['tutor-share'](k.tile);
+  await r.till(() => r.shared.length);
+  const kidSaid = r.texts.join(' | ');
+  if (!/Ada Tutor/.test(kidSaid)) bad.push('the child\'s picture was not drawn: ' + kidSaid.slice(0, 120));
+  if (/£|\/h\b/.test(kidSaid)) bad.push('a child\'s phone drew a price on the picture: ' + kidSaid);
+  if (r.texts.indexOf('A') < 0) bad.push('a photo that would not load did not fall back to the initial');
   return bad;
 });
 
