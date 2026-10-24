@@ -60,17 +60,23 @@ function writePrivate(name, map) {
 
 /* A MACHINE WITH NO PRIVATE COPY GETS ONE FROM THE PINNED COMMIT — the last that held every file whole. Its words are the
    Ledger's as copied; anything edited in the Ledger since comes with `node tools/lib-private.js pull`. */
-function seedFromGit(name) {
+function pinnedMap(name) {
   const def = defs().files[name];
   let text = '';
   const show = () => cp.execFileSync('git', ['show', defs().commit + ':' + def.file], { cwd: ROOT, maxBuffer: 256 * 1024 * 1024, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
   try { text = show(); } catch (e) {
     /* A SHALLOW CLONE HAS NOT GOT IT: that one commit is fetched, once. */
     try { cp.execFileSync('git', ['fetch', '--quiet', '--depth=1', 'origin', defs().commit], { cwd: ROOT, stdio: 'ignore', timeout: 120000 }); text = show(); }
-    catch (e2) { return false; }
+    catch (e2) { return null; }
   }
   const map = {};
   JSON.parse(text).forEach(r => { const c = privateOf(def, r); const id = idOf(def, r); if (c && id) map[id] = c; });
+  return map;
+}
+/* THE SAME, WRITTEN AS data-private/<name>.json. */
+function seedFromGit(name) {
+  const map = pinnedMap(name);
+  if (!map) return false;
   writePrivate(name, map);
   return true;
 }
@@ -122,4 +128,4 @@ function serve(p) {
 }
 
 module.exports = { ROOT, PRIVATE_DIR, defs, NAMES, isLib, idOf, privateOf, styleOf, rowText, fileText,
-                   privatePath, readPrivate, writePrivate, seedFromGit, text, rows, serve };
+                   privatePath, readPrivate, writePrivate, pinnedMap, seedFromGit, text, rows, serve };
