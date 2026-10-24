@@ -7,16 +7,16 @@
 # device keeps (see `splashSync_` in js/shell.js). The scripts in tools/ that generate those drawings
 # wrote into index.html and style.css; they write the row through here instead.
 #
-# FOR A ROW A SCRIPT WRITES, THE SCRIPT IS THE SOURCE, AND THE ROW IS ITS OUTPUT. Fourteen of them:
+# FOR A ROW A SCRIPT WRITES, THE SCRIPT IS THE SOURCE, AND THE ROW IS ITS OUTPUT. Twenty-seven of them:
 #
-# WRITTEN BY A SCRIPT: area bayes cent coin fib fit gal index mxc orbit pyth sieve sine venn
+# WRITTEN BY A SCRIPT: area bal bayes bus cent coin fadd fdp fib fit gal index line lmul mean mxc neg orbit peri prot pv pyth ratio sieve sine trans venn
 #
 # (`gal` is tools/galton.py and `orbit` tools/solar.py; every other one is tools/<id>.py.) Change one of
 # those in its script and re-run it; never edit its row by hand. Everything a script writes replaces its
 # namesake in the row, so a hand edit to anything the script writes — Pythagoras's colours, Bayes's
 # markup, y = mx + c's rules — passes every check and is quietly undone the next time anybody runs the
 # script for any reason. `check-anims.js` runs each one against a copy of the books and fails if the
-# copy changes, and it holds the line above to the scripts that call `write_anim`. The other fifteen
+# copy changes, and it holds the line above to the scripts that call `write_anim`. The other eleven
 # rows have no script: for them the row IS the source, and it is edited in place.
 #
 # THE SCRIPTS ARE UNCHANGED IN WHAT THEY COMPUTE AND HOW THEY WRITE IT — markup indented as it stood in
@@ -186,12 +186,47 @@ def read_anim(anim_id):
     raise SystemExit('data/textbooks.json has no row with "anim":"%s"' % anim_id)
 
 
-def write_anim(anim_id, html=None, css=None, fragments=(), run=None):
+def _place(anim_id, place):
+    """A drawing that owns its whole row (409) says where it hangs: book_id, chapter, title, about. The row
+    is made, or moved, straight under that chapter, after the chapter's other drawings."""
+    text = BOOKS.read_text(encoding='utf-8')
+    head, body = text.split('\n', 1)
+    lines = body.rstrip('\n').split('\n')
+    assert head == '[' and lines[-1] == ']', 'data/textbooks.json is not one row a line'
+    rows = [l.rstrip(',') for l in lines[:-1]]
+    objs = [json.loads(l) for l in rows]
+    at = [k for k, o in enumerate(objs) if o.get('anim') == anim_id]
+    if len(at) > 1: raise SystemExit('%d rows carry "anim":"%s"' % (len(at), anim_id))
+    row = objs[at[0]] if at else {'html': '', 'css': ''}
+    new = {'book_id': place['book_id'], 'chapter': place['chapter'], 'anim': anim_id, 'title': place['title'],
+           'about': place['about'], 'html': row.get('html', ''), 'css': row.get('css', ''), 'active': row.get('active', 'True')}
+    line = json.dumps(new, ensure_ascii=False, separators=(',', ':'))
+    if at and objs[at[0]].get('book_id') == new['book_id'] and objs[at[0]].get('chapter') == new['chapter']:
+        rows[at[0]] = line
+    else:
+        if at: del rows[at[0]]; del objs[at[0]]
+        ch = [k for k, o in enumerate(objs) if 'anim' not in o and o.get('book_id') == new['book_id'] and o.get('chapter') == new['chapter']]
+        if len(ch) != 1: raise SystemExit('%s: %s chapter %s is not one chapter row' % (anim_id, new['book_id'], new['chapter']))
+        k = ch[0] + 1
+        while k < len(objs) and 'anim' in objs[k] and objs[k].get('book_id') == new['book_id'] and objs[k].get('chapter') == new['chapter']:
+            k += 1
+        rows.insert(k, line)
+    BOOKS.write_text(head + '\n' + ',\n'.join(rows) + '\n]\n', encoding='utf-8')
+
+
+def write_anim(anim_id, html=None, css=None, fragments=(), run=None, place=None, whole=False):
     """html: the whole root as the script writes it (`<div id="splash-…"` … `  </div>`).
     fragments: pieces of markup, each replacing the element in the row that opens the same way.
     run: (opening, markup) — a run of sibling elements that all open the same way, replaced together.
-    css: rules and @keyframes, each replacing its namesake in the row."""
+    css: rules and @keyframes, each replacing its namesake in the row.
+    whole, place: a script written after the move (409) owns its whole row — where it hangs, its markup as
+    the row keeps it and its whole stylesheet, written as given — so it can make the row as well as rewrite it."""
+    if place is not None:
+        _place(anim_id, place)
     row = read_anim(anim_id)
+    if whole:
+        row['html'], row['css'] = html, css
+        html = css = None
     if html is not None:
         row['html'] = _norm_html(html, anim_id)
     for frag in fragments:
@@ -218,3 +253,96 @@ def write_anim(anim_id, html=None, css=None, fragments=(), run=None):
     lines[k] = json.dumps(row, ensure_ascii=False, separators=(',', ':')) + comma
     BOOKS.write_text('\n'.join(lines), encoding='utf-8')
     return row
+
+
+# ---------- ONE CLOCK FOR A DRAWING OF SCENES (409) ---------------------------------------------------------
+# How Many Fit's way of moving (tools/fit.py), shared by the drawings written after it: scenes cross-fade on
+# one loop of T seconds, and every moving part shares one of a few keyframes that switch at H, carrying
+# `--d`, the negative delay that puts that switch at the moment it should happen. A part then keeps its new
+# state for HOLD seconds — past the end of its scene — and snaps back while its scene is hidden, so no reset
+# is ever seen. Transform and opacity only (check-css). With less movement every animation is off and the
+# base styles are the still: the first scene, finished — `-in` parts shown, `-out` parts gone, every `-mv`
+# part where it ends up.
+#   -in / -out   fade in / out at the switch          -pop   a count arriving: up from small, a touch too big
+#   -mv / -mvs   from `--t0` (any transform) to where it is drawn, in MV / MVS seconds; -fly fades in as it goes
+def num(v):
+    s = ('%.2f' % v).rstrip('0').rstrip('.')
+    return '0' if s in ('-0', '') else s
+
+
+class Loop:
+    MV, MVS = .9, 1.8
+
+    def __init__(self, pre, lengths, fade=.5):
+        self.pre, self.L, self.fade = pre, list(lengths), fade
+        self.T = sum(self.L)
+        mx = max(self.L)
+        self.HOLD = self.T / 2.0
+        assert mx + fade < self.HOLD < self.T - mx - fade, '%s: a scene is too long for its loop — each must be under half of it' % pre
+        self.H = self.T - self.HOLD
+        assert self.H + self.MVS < self.T
+        self.S = [sum(self.L[:k]) for k in range(len(self.L))]
+        self.k = 0
+
+    def at(self, k):
+        """Scene k from here on; its start, in seconds."""
+        self.k = k
+        return self.S[k]
+
+    def pct(self, t):
+        return num(100.0 * t / self.T) + '%'
+
+    def st(self, a, **v):
+        """The style that switches a shared keyframe at time a (seconds from the scene's start), with any
+        custom properties: t0='translate(0px,-20px)', o='0px 10px'."""
+        assert 0 <= a <= self.L[self.k] - self.fade, '%s scene %d: a switch at %ss is past its end' % (self.pre, self.k + 1, a)
+        a += self.S[self.k]
+        out = ['--d:%ss' % num(-((self.H - a) % self.T))]
+        out += ['--%s:%s' % (k, x) for k, x in v.items()]
+        return ' style="%s"' % ';'.join(out)
+
+    def g(self, cls, a, inner, **v):
+        return '<g class="%s-%s"%s>%s</g>' % (self.pre, cls, self.st(a, **v), inner)
+
+    def step(self, a, b, inner):
+        """Shown from a until b (None: to the scene's end)."""
+        x = self.g('in', a, inner)
+        return x if b is None else self.g('out', b, x)
+
+    def scene(self, k, inner):
+        return '<g class="%s-s" style="--kf:%s-s%d">%s</g>' % (self.pre, self.pre, k + 1, inner)
+
+    def css(self):
+        p, H, P = self.pre, self.H, self.pct
+        f = []
+        for k, n in enumerate(self.L):
+            a, e = self.S[k], self.S[k] + n
+            if k == 0:
+                f.append('@keyframes %s-s1 { 0%%, %s { opacity: 1; } %s, %s { opacity: 0; } 100%% { opacity: 1; } }' % (p, P(e - self.fade), P(e), P(self.T - self.fade)))
+            else:
+                f.append('@keyframes %s-s%d { 0%%, %s { opacity: 0; } %s, %s { opacity: 1; } %s, 100%% { opacity: 0; } }' % (p, k + 1, P(a - self.fade), P(a), P(e - self.fade), P(e)))
+        f += [
+            '@keyframes %s-in { 0%%, %s { opacity: 0; } %s, 100%% { opacity: 1; } }' % (p, P(H), P(H + .4)),
+            '@keyframes %s-out { 0%%, %s { opacity: 1; } %s, 100%% { opacity: 0; } }' % (p, P(H), P(H + .4)),
+            '@keyframes %s-mv { 0%%, %s { transform: var(--t0); } %s, 100%% { transform: none; } }' % (p, P(H), P(H + self.MV)),
+            '@keyframes %s-mvs { 0%%, %s { transform: var(--t0); } %s, 100%% { transform: none; } }' % (p, P(H), P(H + self.MVS)),
+            '@keyframes %s-fly { 0%%, %s { opacity: 0; transform: var(--t0); } %s { opacity: 1; } %s, 100%% { opacity: 1; transform: none; } }' % (p, P(H), P(H + .3), P(H + self.MV)),
+            '@keyframes %s-pop { 0%%, %s { opacity: 0; transform: scale(.3); } %s { opacity: 1; transform: scale(1.25); } %s, 100%% { opacity: 1; transform: none; } }' % (p, P(H), P(H + .25), P(H + .45)),
+        ]
+        kinds = ['in', 'out', 'mv', 'mvs', 'fly', 'pop']
+        allk = ', '.join('.%s-%s' % (p, k) for k in kinds)
+        rules = [
+            '.%s-s { animation: %ss linear infinite; animation-name: var(--kf); }' % (p, num(self.T)),
+            '.%s-s ~ .%s-s, .%s-out { opacity: 0; }' % (p, p, p),
+            '%s { animation: %ss cubic-bezier(.3, .7, .4, 1) infinite; animation-delay: var(--d); transform-box: fill-box; transform-origin: var(--o, center); }' % (allk, num(self.T)),
+        ] + ['.%s-%s { animation-name: %s-%s; }' % (p, k, p, k) for k in kinds]
+        rules.append('@media (prefers-reduced-motion: reduce) {\n  .%s-s, %s { animation: none; }\n}' % (p, allk))
+        return '\n'.join(rules + f)
+
+    def frac(self, cx, ybar, n, d, fs, cls=''):
+        """A fraction as a child writes one, over a line, its line at ybar; `fs` the font size its class sets.
+        The font's own ½ and ¼ are specks at this size (349)."""
+        half = max(len(str(n)), len(str(d))) * .6 * fs / 2 + 1.5
+        return ('<g class="%s-fr%s"><text x="%s" y="%s">%s</text><path d="M%s %sH%s"/><text x="%s" y="%s">%s</text></g>'
+                % (self.pre, ' ' + cls if cls else '', num(cx), num(ybar - fs * .24), n, num(cx - half), num(ybar),
+                   num(cx + half), num(cx), num(ybar + fs * .94), d))
