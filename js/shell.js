@@ -2819,6 +2819,7 @@ async function loadOnce_(again, n) {
     aheadOpen_();
   }
   openSharedPost();     // if the app was opened on a shared link, go to that post
+  try { openSharedTutor(); } catch (e) {}   // or on a tutor's own link (400)
   /* AND BACK TO THE QUESTION A RELOAD TOOK YOU AWAY FROM — once a visit, on the first payload that
      arrived, when the column came back too. See `findPlaceBack_` in find.js and docs/history/317. */
   if (!LOAD_FAILED && typeof findPlaceBack_ === 'function') findPlaceBack_();

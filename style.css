@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-24-b-media-admin";
+  --css-version: "2026-10-24-c-ranks-media";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -31,6 +31,8 @@
   --warn:      #ffb454;
   --good:      #3ddc84;
   --bad:       #ff5f56;
+  /* SOMETHING IN THE BUSINESS COLUMN NEEDS YOU (400) — the glow, the count line and the dot. */
+  --alert:     #ff3b30;
 
   /* ---------- A COLOUR PER KIND OF TAG § */
   --tag-paper:   var(--coral);
@@ -6303,3 +6305,17 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 
 /* A CARD WHOSE WORDS ARE STILL IN THE LEDGER (397, `libWaitHtml_`): its tags, then the dots, the sign-in line or Try again. */
 .lib-wait .lib-say { margin-top: 1rem; min-height: 3rem; }
+
+/* ---------- WHAT NEEDS YOU (400): a Business card with something to act on glows, says how many, and the dot carries the total ---------- */
+.card.needs-you { border-color: var(--alert); box-shadow: 0 0 0 1px var(--alert), 0 0 1.1rem -.2rem var(--alert); }
+.biz-need { color: var(--alert); font-weight: 700; margin: .2rem 0 .4rem; }
+.biz-dot { position: fixed; top: 10px; right: 10px; z-index: 40; min-width: 24px; height: 24px; padding: 0 6px;
+  border-radius: 12px; border: 0; background: var(--alert); color: var(--bg); font: 700 .75rem/24px var(--mono); cursor: pointer; }
+
+/* ---------- THE FINDER IS FOR MEMBERS (400) ---------- */
+.members-only h3 { margin-bottom: .3rem; }
+
+/* ---------- APPLY TO TEACH (400) ---------- */
+.app-form h4 { margin: 1rem 0 .4rem; }
+.app-line { margin: .15rem 0; font-size: .85rem; }
+.app-line b { color: var(--dim); font-weight: 600; margin-right: .3rem; }

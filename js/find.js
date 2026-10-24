@@ -8739,11 +8739,12 @@ function accountPages_() {
   /* ---------- THE WRAPPER WENT WHEN THE PASS DID, AND LEAVING IT WOULD HAVE NESTED TWO CARDS § */
   /* ---------- AND WHILE THE PAYLOAD IS ON ITS WAY, THE COLUMN SAYS MORE IS COMING § */
   const coming = typeof awaiting_ === 'function' && awaiting_() ? [loading_()] : [];
-  /* THE SETUP CARD, second, for an admin only (361) — `setupCard_` in me.js returns '' for anybody else. */
-  const setup = typeof setupCard_ === 'function' ? [setupCard_()].filter(Boolean) : [];
+  /* THE SETUP CARD MOVED TO THE BUSINESS COLUMN (400) — `bizPages_` in records.js. */
+  /* "APPLY TO TEACH", or where your application stands (400) — `applyCard_` in me.js; '' for staff and children. */
+  const apply = typeof applyCard_ === 'function' ? [applyCard_()].filter(Boolean) : [];
   /* "+ ADD A PERSON", above everybody but you, for an admin only (373) — `peopleAddPage_` in me.js. */
   const add = typeof peopleAddPage_ === 'function' ? [peopleAddPage_()].filter(Boolean) : [];
-  return [me].concat(setup, add, claimPages, famPages, others, everyone, coming);
+  return [me].concat(apply, add, claimPages, famPages, others, everyone, coming);
 }
 
 /* ---------- HOW A LEARNER IS GETTING ON, IN ONE LINE UNDER THEIR NAME § */
@@ -10068,8 +10069,25 @@ function stuffQuestion() {
 
 
 /* ---------- ONE DRAW FOR BOTH FINDERS § */
+/* ---------- THE FINDER IS FOR MEMBERS (400): signed out, Find and Find 2 are one card, Sign in or Join ----------
+   Find's booking and feed pages stay (they are not results); the bundle is made of results, so it goes. */
+function finderMembersCard_(F) {
+  return `<div class="card members-only" id="${F.id}-members"><h3>Members only</h3>
+    <p class="sub">The finder is for members. Sign in, or join free as a student or a client.</p>
+    <div class="tile-row">${tile_({ icon: 'in', label: 'Sign in', tone: 'buy', act: 'members-signin' })}${
+      tile_({ icon: 'join', label: 'Join', note: 'free', act: 'members-join' })}</div></div>`;
+}
+function finderMembersOnly_(F) {
+  const front = F.id === 'stuff' ? [].concat(bookingPages_(), feedPages_()) : [];
+  PAGE_KEEP[F.id] = 1 + front.length;
+  return pages(F.id, [finderMembersCard_(F)].concat(front));
+}
+on('members-signin', () => go('account'));
+on('members-join', () => { if (typeof registerSheet_ === 'function') registerSheet_(); });
+
 function finderScreen_() {
   const F = FINDER;
+  if (!USER) return finderMembersOnly_(F);
   const credits = USER ? (USER.credits || 0) : 0;
   /* The control must SAY what it is doing. § */
   const sel = (what, v) => STUFF[what] === v ? ' selected' : '';

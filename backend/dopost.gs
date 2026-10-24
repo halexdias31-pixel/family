@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-24-a-media-admin";
+const DOPOST_VERSION = "2026-10-24-c-ranks-media";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -599,7 +599,7 @@ function doPost(e) {
                        agreementSignedAt: S(me.agreement_signed_at),
                        agreementVersion: S(me.agreement_version),
                        role: toAppRole(mainRole(me)), roles: rolesOf(me).map(toAppRole),
-                       tutorPending: tutorPending_(me),
+                       tutorPending: tutorPending_(me), rank: rankOf(me), application: applicationOf_(me),
                        /* AND WHETHER THE ADDRESS IS PROVED YET — stale on the phone exactly as the role was: § */
                        pendingEmail: pendingEmailOf_(me) }, familyNamesOf_(me)));
     }
@@ -1356,21 +1356,16 @@ function doPost(e) {
       }
       const r = hits[0];
 
-      /* ---------- WHERE IT GOES: THE ACCOUNT'S OWN ADDRESS, OR ITS GROWN-UPS § */
+      /* ---------- WHERE IT GOES (400): THE ACCOUNT'S OWN ADDRESS, OR WITH NONE THE OWNER'S, never a parent's ----------
+         The owner, 24 Oct: a child's forgotten PIN goes to the business (`owner_email`, else the first admin). */
       const own = S(r.email);
-      const tos = own ? [own] : authGrownUps_(r);
-      /* A GROWN-UP'S ADDRESS THAT IS THERE AND NOT YET OPENED is said as itself: § */
-      if (!tos.length && !own && S(r.parent_email) && addressPending_(r)) {
-        return jsonOut({ why: 'grown-up-pending',
-          error: 'Your grown-up has not opened the link we emailed them yet, so a new PIN cannot go to them. '
-               + 'Ask them to open it, then try again — or ask your tutor, who can give you one straight away.' });
-      }
+      const ownerTo = own ? '' : ownerEmail_();
+      const tos = own ? [own] : ownerTo ? [ownerTo] : [];
       if (!tos.length) {
         return jsonOut({ why: 'no-inbox',
-          error: 'We have no email for this account, so we could not send a new PIN. Ask your parent or '
-               + 'your tutor — they can give you one straight away.' });
+          error: 'We have no email to send a new PIN to. Ask your tutor — they can give you one straight away.' });
       }
-      const where = own ? 'your inbox' : 'your parent\'s inbox';
+      const where = own ? 'your inbox' : BRAND_NAME + ', who will pass it on to you';
 
       /* ONE A QUARTER OF AN HOUR. Eight presses were eight emails, and the daily mail quota they spend
          is the same one every booking notice is sent from. */
@@ -1413,11 +1408,12 @@ function doPost(e) {
                   + 'If this was not you, do nothing — your PIN has not changed, and whoever asked '
                   + 'cannot read this email.' }
           : { to: tos.join(','), name: BRAND_NAME,
-              subject: 'A new ' + BRAND_NAME + ' PIN for ' + (S(r.first_name) || 'your child'),
-              body: (S(r.first_name) || 'Your child') + ' asked for a new PIN.\n\nThe new PIN is ' + fresh + '\n\n'
-                  + 'They sign in with their handle' + (handleSaid ? ', ' + handleSaid + ',' : '')
-                  + ' and this PIN. It works for a day; their old PIN keeps working too until they use '
-                  + 'this one.\n\nIf they did not ask, do nothing — nothing has changed.' });
+              subject: 'A forgotten PIN: ' + (handleSaid || S(r.first_name) || 'a learner'),
+              body: (S(r.first_name) || 'A learner') + (handleSaid ? ' (' + handleSaid + ')' : '')
+                  + ' has no email of their own and asked for a new PIN.\n\nThe new PIN is ' + fresh + '\n\n'
+                  + 'Pass it on to them. They sign in with their handle and this PIN; it works for a day, and their '
+                  + 'old PIN keeps working until they use this one. "New PIN" on their card in the people column '
+                  + 'gives a fresh one at once.\n\nIf they did not ask, do nothing — nothing has changed.' });
       } catch (err) { return jsonOut(cannot); }
 
       /* `to` IS THE ACCOUNT'S OWN ADDRESS WHEN THAT IS WHERE IT WENT — typing this PIN back is then proof of that inbox, and a PENDING row is confirmed by it § */
@@ -1428,7 +1424,7 @@ function doPost(e) {
       }
       return jsonOut({ success: true,
         message: 'A new PIN is on its way to ' + where + '. Your old PIN still works until you use the new '
-               + 'one. If nothing arrives, ask ' + (own ? 'your tutor.' : 'your parent or your tutor.') });
+               + 'one. If nothing arrives, ask your tutor.' });
     }
 
     /* ---------- THE SIGN-IN LINK IN A FORGOTTEN-PIN MAIL § */
@@ -2303,10 +2299,9 @@ function doPost(e) {
           + ' not finished. Leave ' + (s.n === 1 ? 'it' : 'them') + ', or ask @family. to hand '
           + (s.n === 1 ? 'it' : 'them') + ' over, first. Nothing was changed.' });
       }
-      const gate = adding.indexOf('tutor') !== -1 && !iAmAdmin;
-      if (gate && t.headers.indexOf('listed') < 0) {
-        return jsonOut({ error: 'The people tab has no `listed` column, so a new tutor could not be '
-          + 'held for approval. Open the site once as an admin — nothing was saved.' });
+      /* STAFF ONLY BY APPLICATION (400): the Tutor tick is no longer a way in — "Apply to teach" on You is. */
+      if (adding.indexOf('tutor') !== -1 && !iAmAdmin) {
+        return jsonOut({ error: 'Teaching here starts with an application — "Apply to teach" on You. Nothing was changed.', why: 'apply' });
       }
 
       if (adding.length || dropping.length) {
@@ -2315,13 +2310,12 @@ function doPost(e) {
         const rest = rolesOf(r).filter(x => SELF_ROLES.indexOf(SELF_ROLE_ALIASES[x] || x) === -1);
         const admin = rest.filter(x => x === 'admin'), other = rest.filter(x => x !== 'admin');
         setCell(t, r, 'role', admin.concat(want, other).join(', '));
-        if (gate) setCell(t, r, 'listed', LISTED_PENDING);
         /* THE TUTOR LIST IS IN THE STORED PAYLOAD — the same reason `setListed` clears it. */
         clearCache();
       }
       /* `notify` RIDES WITH THE ROLES: § */
       return jsonOut({ success: true, role: toAppRole(mainRole(r)), roles: rolesOf(r).map(toAppRole),
-                       tutorPending: tutorPending_(r), changed: !!(adding.length || dropping.length),
+                       tutorPending: tutorPending_(r), rank: rankOf(r), changed: !!(adding.length || dropping.length),
                        notify: notifyOf_(r) });
     }
 
@@ -3186,6 +3180,116 @@ function doPost(e) {
         lock.releaseLock();
       }
       if (POST_WROTE && !wroteBefore) POST_WROTE = false;
+      return jsonOut(out);
+    }
+
+    /* ---------- APPLYING TO TEACH (400): Staff only by application and an admin's yes ---------- */
+    if (action === 'applyTeach') {
+      const me = findPerson('', S(body.personId));
+      if (!me || !S(me.person_id)) return jsonOut({ error: 'Sign in first.' });
+      if (rankAtLeast_(me, 'staff')) return jsonOut({ error: 'You teach here already.' });
+      if (!adultOk_(me)) return jsonOut({ error: 'Applications to teach are for adults (18 and over).' });
+      const cut = (v, n) => S(v).trim().slice(0, n || APPLICATION_FIELD_MAX);
+      const f = {
+        subjects: cut(body.subjects, APPLICATION_TEXT_MAX), qualifications: cut(body.qualifications, APPLICATION_TEXT_MAX),
+        dbs_number: cut(body.dbsNumber, 40), dbs_issued: cut(body.dbsIssued, 20), dbs_needed: TRUE_(body.dbsNeeded) ? 'TRUE' : 'FALSE',
+        right_to_work: norm(body.rightToWork) === 'yes' ? 'yes' : norm(body.rightToWork) === 'no' ? 'no' : '',
+        experience: cut(body.experience, APPLICATION_TEXT_MAX), availability: cut(body.availability, APPLICATION_TEXT_MAX),
+        area: cut(body.area), ref1_name: cut(body.ref1Name), ref1_contact: cut(body.ref1Contact),
+        ref2_name: cut(body.ref2Name), ref2_contact: cut(body.ref2Contact),
+        statement: cut(body.statement, APPLICATION_TEXT_MAX), cv_link: cut(body.cvLink, 300),
+        consent: TRUE_(body.consent) ? 'TRUE' : 'FALSE',
+      };
+      const missing = [];
+      if (!f.subjects) missing.push('the subjects and levels you teach');
+      if (!f.right_to_work) missing.push('whether you have the right to work in the UK');
+      if (f.dbs_needed !== 'TRUE' && !(f.dbs_number && f.dbs_issued)) missing.push('your DBS number and issue date, or "I need one"');
+      if (!(f.ref1_name && f.ref1_contact && f.ref2_name && f.ref2_contact)) missing.push('two references, each with a name and a contact');
+      if (!f.statement) missing.push('a short statement');
+      if (f.consent !== 'TRUE') missing.push('the consent tick');
+      if (missing.length) return jsonOut({ error: 'Please add ' + missing.join(', ') + '. Nothing was sent.', why: 'missing' });
+      if (f.cv_link && !/^https:\/\//i.test(f.cv_link)) return jsonOut({ error: 'The CV link must start with https://. Nothing was sent.' });
+      const lock = LockService.getScriptLock();
+      if (!lock.tryLock(5000)) return jsonOut({ error: 'Busy — try again in a moment.', why: 'busy' });
+      let out = {};
+      try {
+        clearCache();
+        const t = read(TAB.applications);
+        if (!t.sheet) out = { error: 'Applications are not set up yet — an admin opening the site sets them up.', why: 'no-tab' };
+        else if (t.rows.some(x => S(x.person_id) === S(me.person_id) && APPLICATION_OPEN.indexOf(norm(x.status) || 'new') !== -1)) {
+          out = { error: 'Your application is already with us — we will be in touch.', why: 'already' };
+        } else {
+          addRow(t, Object.assign({ application_id: 'A-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+            at: new Date(), person_id: S(me.person_id), handle: S(me.handle), status: 'new', status_at: '' }, f));
+          out = { success: true };
+        }
+      } finally {
+        lock.releaseLock();
+      }
+      if (!out.success) return jsonOut(out);
+      /* THE OWNER IS TOLD — the application itself is read in the Business column, so the mail carries no references or DBS number. */
+      const owner = ownerEmail_();
+      if (owner) {
+        try {
+          mailOut_({ to: owner, name: BRAND_NAME, subject: 'A new application to teach',
+            body: personDisplayName(me) + (S(me.handle) ? ' (@' + S(me.handle) + ')' : '') + ' has applied to teach: '
+                + f.subjects + '.\n\nRead it and say yes, interview or no in the Business column:\n\n' + SITE_URL + '\n' });
+        } catch (err) {}
+      }
+      return jsonOut({ success: true, application: applicationOf_(me) });
+    }
+
+    if (action === 'listApplications') {
+      clearCache();
+      const t = read(TAB.applications);
+      if (!t.sheet) return jsonOut({ success: true, open: 0, applications: [], missing: true });
+      const people = read(TAB.people).rows;
+      const list = t.rows.map(r => {
+        const p = people.find(x => S(x.person_id) === S(r.person_id));
+        const o = { id: S(r.application_id), at: appMs_(r.at), status: norm(r.status) || 'new', statusAt: appMs_(r.status_at),
+                    personId: S(r.person_id), handle: S(r.handle), name: p ? personDisplayName(p) : S(r.handle) };
+        SCHEMA.applications.slice(6).forEach(k => { o[k] = S(r[k]); });
+        return o;
+      }).sort((a, b) => b.at - a.at);
+      return jsonOut({ success: true, open: list.filter(a => APPLICATION_OPEN.indexOf(a.status) !== -1).length,
+                       applications: list.slice(0, REPORTS_LIST_MAX) });
+    }
+
+    if (action === 'decideApplication') {
+      const status = norm(body.status);
+      if (APPLICATION_STATUSES.indexOf(status) < 0 || status === 'new') return jsonOut({ error: 'Not a decision an application can have.' });
+      const lock = LockService.getScriptLock();
+      if (!lock.tryLock(5000)) return jsonOut({ error: 'Busy — try again in a moment.', why: 'busy' });
+      let out = {}, who = null;
+      try {
+        clearCache();
+        const t = read(TAB.applications);
+        const row = t.sheet ? t.rows.find(r => S(r.application_id) && S(r.application_id) === S(body.id)) : null;
+        const tp = read(TAB.people);
+        who = row ? tp.rows.find(x => S(x.person_id) === S(row.person_id)) : null;
+        if (!row) out = { error: 'That application is not there any more.' };
+        else if (!who) out = { error: 'The person who applied is not on the people tab any more.' };
+        else {
+          if (status === 'approved' && !applicationApprove_(tp, who).length) {
+            out = { error: 'Their role could not be written — the people tab needs a `role` and a `listed` column. Nothing was changed.' };
+          } else {
+            setCells(t, row, { status: status, status_at: new Date() });
+            out = { success: true, id: S(row.application_id), status: status };
+          }
+        }
+      } finally {
+        lock.releaseLock();
+      }
+      if (!out.success) return jsonOut(out);
+      /* THE TUTOR LIST IS IN THE STORED PAYLOAD — `setListed`'s reason. */
+      if (status === 'approved') clearCache();
+      const said = { approved: 'Good news — your application to teach with ' + BRAND_NAME + ' has been approved. You are listed as a tutor now: sign in to fill in your card.',
+                     interview: 'Thank you for applying to teach with ' + BRAND_NAME + '. We would like to talk to you — we will be in touch to arrange a time.',
+                     declined: 'Thank you for applying to teach with ' + BRAND_NAME + '. We are not able to take your application further this time.' }[status];
+      if (who && S(who.email) && !addressPending_(who)) {
+        try { mailOut_({ to: S(who.email), name: BRAND_NAME, subject: 'Your application to teach', body: 'Hello ' + (S(who.first_name) || '') + ',\n\n' + said + '\n\n' + SITE_URL + '\n' }); out.emailed = true; } catch (err) {}
+      }
+      out.rank = rankOf(who);
       return jsonOut(out);
     }
 
@@ -4084,6 +4188,8 @@ function loginReplyFor_(r, token, extra) {
                 /* A TUTOR TICK THE BUSINESS HAS NOT SAID YES TO — see `LISTED_PENDING`. The phone
                    reads it for its staff test (`isTutorRole`) and for the line on the roles card. */
                 tutorPending: tutorPending_(r),
+                /* ONE RANK (400) — student, client, staff or admin — and their application to teach, if any. */
+                rank: rankOf(r), application: applicationOf_(r),
                 /* THE ADDRESS NOBODY HAS PROVED YET, or blank — see `pendingEmailOf_`. The phone draws
                    "we will email you once you open the link" and the held child card from it. */
                 pendingEmail: pendingEmailOf_(r),

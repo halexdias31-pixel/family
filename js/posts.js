@@ -1195,6 +1195,35 @@ function openSharedPost() {
   }));
 }
 
+/* ---------- A TUTOR'S OWN ADDRESS (400): `?tutor=<handle>` opens their card, signed out or in ----------
+   Prices follow the card's own rule (398): a child's phone has none to draw. */
+const tutorLink_ = t => location.origin + location.pathname + '?tutor=' + encodeURIComponent(String((t && t.handle) || ''));
+/* BY THE HANDLE ON THE TILE, so your own card's "Share my profile" works before the tutor list has you. */
+on('tutor-share', el => {
+  const handle = String(el.dataset.handle || '');
+  if (!handle) return;
+  const t = (DATA.tutors || []).find(x => x && String(x.handle || '') === handle);
+  const title = (t && t.title) || (USER && USER.name) || brand('name', '@family.');
+  const url = tutorLink_({ handle });
+  if (navigator.share) { navigator.share({ title, text: title + ' on ' + brand('name', '@family.'), url }).catch(() => {}); return; }
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(() => toast('Link copied')).catch(() => toast(url));
+  else toast(url);
+});
+/* ONCE A VISIT, on the first payload that has them — `openSharedPost`'s place in the landing. */
+let TUTOR_LINK_DONE = false;
+function openSharedTutor() {
+  if (TUTOR_LINK_DONE) return;
+  let h = '';
+  try { h = String(new URLSearchParams(location.search).get('tutor') || '').replace(/^@+/, '').toLowerCase(); } catch (e) { h = ''; }
+  if (!h) { TUTOR_LINK_DONE = true; return; }
+  const t = (DATA.tutors || []).find(x => x && x.listed !== false && String(x.handle || '').toLowerCase() === h);
+  if (!t) return;
+  TUTOR_LINK_DONE = true;
+  const item = { kind: 'tutor', name: t.title, key: t.title, row: t };
+  openSheet(t.title, `<div class="tutor-link">${typeof findCard === 'function' ? findCard(item) : ''}
+    <div class="tile-row">${tutorTiles_(item)}</div></div>`);
+}
+
 /* ---------- POSTING § */
 /* `shrink` lived here — it resized a chosen photograph in the browser before uploading it, so a 4MB camera picture did not become a 4MB row. § */
 

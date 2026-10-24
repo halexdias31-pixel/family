@@ -93,6 +93,11 @@ const EXEMPT = [
   /* AN ADMIN'S REEL OR VIDEO FORM (404): kept in `MEDIA_FORM` as typed, and one link pasted and saved there and then. */
   { file: 'games.js', fn: 'box', has: 'data-mf="${k}"', why: 'an admin adding a reel or video — kept in `MEDIA_FORM` as typed, a paste and a Save, not work left on a device' },
   { file: 'games.js', fn: 'mediaFormHtml_', has: 'data-mf="url"', why: 'one pasted YouTube link, looked up and saved there and then' },
+  /* APPLY TO TEACH (400): one sheet filled and sent in a sitting; a reload starts the application again. */
+  { file: 'me.js', fn: 'box', has: 'data-app="${k}"', why: 'the application to teach (400) — filled and sent in one sitting from its sheet' },
+  { file: 'me.js', fn: 'area', has: 'data-app="${k}"', why: 'the application to teach (400) — filled and sent in one sitting from its sheet' },
+  { file: 'me.js', fn: 'applyFormHtml_', has: 'data-app="dbsNeeded"', why: 'the application to teach (400) — a tick in the sheet sent with it' },
+  { file: 'me.js', fn: 'applyFormHtml_', has: 'data-app="consent"', why: 'the application to teach (400) — a tick in the sheet sent with it' },
   { file: 'me.js', fn: 'agreementCard_', has: 'agree-sign', why: 'acts the moment it is ticked (`agree-sign`) — nothing waits between the tick and the server' },
   { file: 'me.js', fn: 'notifyCard_', has: 'notify-pick', why: 'a Notifications tick is a `setNotify` the moment it is ticked, and a failure puts it back to what the server has — the agreement\'s reason: there is no Save to wait for, so nothing is half-made on the device, and a reload draws the server\'s answer (docs/history/309)' },
   { file: 'posts.js', fn: 'cameraCard', has: 'id="cam-cap"', why: 'the caption of photographs held in memory (`CAM_ITEMS`), which a reload loses with it — keeping those needs IndexedDB (317)' },
