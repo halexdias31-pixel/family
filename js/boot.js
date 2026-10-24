@@ -26,3 +26,5 @@ try { watchBuild_(); } catch (e) {}
 try { verifyFromLink_(); } catch (e) {}
 /* AND `?signin=<key>`, the link in a forgotten-PIN email — see `pinFromLink_` in me.js. Same reasons. */
 try { pinFromLink_(); } catch (e) {}
+/* AND `?paid=1&ref=…`, a card payment coming back from Stripe — see `paidFromLink_` in me.js (430). */
+try { paidFromLink_(); } catch (e) {}
