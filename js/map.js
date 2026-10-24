@@ -839,19 +839,6 @@ const WIDGETS = [
     ${rowLive('Best', '0', 'flappy-best')}
     <div id="flappy-board" class="board"></div>
   </div>` },
-  /* SUPERTUX (GPL), NOT OURS: nothing is fetched until Play is tapped (`tuxPlay_`, games.js); the page it
-     frames is `brand('supertux_url')`, since upstream hosts no web build we can rely on (docs/history/363). */
-  { id: 'supertux', kind: 'game', name: 'SuperTux', start: () => tuxPaint_?.(),
-    pure: true, draw: () => tuxPaint_?.(),
-    stop: () => { const s = document.getElementById('tux-stage'); if (s) s.innerHTML = ''; },
-    into: 'tux-stage', what: 'The game',
-    html: `<div class="card">
-    <h3>SuperTux</h3>
-    <p class="sub">The open-source penguin platformer.</p>
-    <div id="tux-stage" class="tux-stage"></div>
-    <div id="tux-tiles" class="tile-row"></div>
-    <p class="note" id="tux-licence"></p>
-  </div>` },
   /* CONSOLE (389, 391): jsnes for NES, EmulatorJS for SNES, Game Boy and N64. The game file is the person's own, picked on their device and kept there; `stop` pauses. */
   { id: 'console', kind: 'game', name: 'Console', start: () => { nesPaint_?.(); nesPadWatch_?.(); },
     draw: () => nesPaint_?.(),
@@ -867,31 +854,21 @@ const WIDGETS = [
      and leaves nothing running when the widget closes. */
   /* `The Overworld` WAS A WIDGET HERE and is gone on request: § */
 
-  /* ---------- THREE THAT NEED NO `stop` § */
-  /* ---------- BOTH BOARDS ARE TWO PLAYERS ON ONE PHONE § */
-  { id: 'connect4', kind: 'game', name: 'Connect 4', start: () => initConnect4?.(),
+  /* ---------- BOARD GAMES (414): Connect 4, Othello and Scrabble in one widget with a picker — the word games' shape (238); `BOARD_GAMES`, games.js */
+  { id: 'boardgames', kind: 'game', name: 'Board games', start: () => initBoardGames?.(),
     pure: true,
-    into: 'c4-board', what: 'The board',
-    html: `<div class="card">
-    <h3>Connect 4</h3>
-    <p class="sub">Two players, one phone. Red starts. Tap a column; four in a line, any direction.</p>
-    <div id="c4-board" class="c4"></div>
-    <p class="note" id="c4-said" style="text-align:center;margin:.5rem 0 0"></p>
-    <button class="btn quiet" data-do="c4-again">New game</button>
-  </div>` },
-
-  { id: 'othello', kind: 'game', name: 'Othello', start: () => initOthello?.(),
-    pure: true,
-    into: 'oth-board', what: 'The board',
-    html: `<div class="card">
-    <h3>Othello</h3>
-    <p class="sub">Two players, one phone. Red starts. Trap a line of the other colour between two
-       of yours.</p>
-    <div id="oth-board" class="oth"></div>
-    ${rowLive('Red \u2013 Blue', '2 \u2013 2', 'oth-score')}
-    <p class="note" id="oth-said" style="text-align:center;margin:.5rem 0 0"></p>
-    <button class="btn quiet" data-do="oth-again">New game</button>
-  </div>` },
+    draw: () => bgPaint_?.(),
+    stop: () => { if (typeof boardGamesStop_ === 'function') boardGamesStop_(); },
+    into: 'bg-slot', what: 'The board',
+    /* A GETTER, so the chosen game's board is in the markup `paint` puts down (238's reason). */
+    get html() {
+      return `<div class="card">
+    <h3>Board games</h3>
+    <label class="mat-sel ws-top"><select id="bg-pick" data-do="bg-pick"
+      aria-label="Which game">${typeof bgOptions_ === 'function' ? bgOptions_() : ''}</select></label>
+    <div id="bg-slot">${typeof bgSlot_ === 'function' ? bgSlot_() : ''}</div>
+  </div>`;
+    } },
 
   /* A PAD, NOT A SWIPE. Up, down, left and right are the four gestures this app navigates by, so a maze that read them would fight the pager on the one screen it § */
   /* ---------- WORD GAMES — EIGHT GAMES, ONE WIDGET § */
@@ -911,41 +888,6 @@ const WIDGETS = [
     <div id="wg-slot">${typeof wgSlot_ === 'function' ? wgSlot_() : ''}</div>
   </div>`;
     } },
-
-  /* ---------- AND THIS ONE KEEPS ITS GAME § */
-  { id: 'scrabble', kind: 'game', name: 'Scrabble', start: () => initScrabble?.(),
-    pure: true,
-    into: 'scr-board', what: 'The board',
-    html: `<div class="card">
-    <h3>Scrabble</h3>
-    <!-- THE HAND-OVER IS NOT EXPLAINED HERE, because the card says it at the moment it happens:
-         "Hand the phone to Player 2" is on screen with the one button that answers it. A sentence
-         under the heading describing a thing the screen will say for itself is the fault this
-         repository records where every widget printed its own name twice — and on this card it was
-         five lines, which took the rack past the pane's fold at 768 and 1280. -->
-    <p class="sub">Two to four players, one phone. Words stand unless somebody challenges them —
-       that part is yours.</p>
-    <div id="scr-who" class="scr-who"></div>
-    <div id="scr-board" class="scr"></div>
-    <div id="scr-rack-box" class="scr-box"></div>
-    <!-- THE ACTION ROW IS BUILT BY scrabblePaint AND IS EMPTY UNTIL THERE IS A TURN TO TAKE.
-         It was static markup with "hidden" on the container, which is the same thing to look at and
-         not the same thing to press: check/press.js found Pass and New game on the screen before
-         any game existed, pressed them, and reported — correctly — that they did nothing. A
-         control that cannot do anything should not be on the page.
-         (No backticks in here: this comment is inside a template literal, and one ends it — see
-         CLAUDE.md, where that cost a syntax error reported four files away.)
-         NEW GAME LIVES IN THAT ROW rather than under the card, and only while a game is running,
-         which is the only time it means anything the 2/3/4 buttons do not already mean. As a button
-         of its own it was a fifth 44px row on the tallest card in this column. -->
-    <div id="scr-acts" class="scr-acts"></div>
-    <p class="note" id="scr-said" style="text-align:center;margin:.5rem 0 0"></p>
-    <div id="scr-start" class="btn-row">
-      <button class="btn" data-do="scr-new" data-n="2">2 players</button>
-      <button class="btn" data-do="scr-new" data-n="3">3</button>
-      <button class="btn" data-do="scr-new" data-n="4">4</button>
-    </div>
-  </div>` },
 
   /* `alibi` WAS HERE, a card of its own between Scrabble and the maze, and is deleted on request ("delete alibi game.") — the note where its engine was in games.js § */
   { id: 'maze', kind: 'game', name: 'Maze', start: () => initMaze?.(),
@@ -997,7 +939,8 @@ const WIDGETS = [
   /* `herd` WAS HERE, Herd Mentality's own card, and it is a game inside Word games now — see the note over the `wordgames` entry above. § */
 
   /* `stop` IS THE CLIP. This card deals a fact on a tap and some of those facts are videos, so leaving the column with one playing left it playing — the same fault § */
-  { id: 'reels', kind: 'game', name: 'One more thing', start: () => initFeed?.(),
+  /* `reel` (414): with Videos it leads the Reels column — things to watch sit with the reels, not the games. */
+  { id: 'reels', kind: 'reel', name: 'One more thing', start: () => initFeed?.(),
     /* DRAWN AHEAD AS THE FACT'S CARD AND NOTHING ELSE (`feedPaint_`, overworld.js): § */
     draw: () => feedPaint_?.(),
     stop: () => clipsStop_($('feed-screen')),
@@ -1021,7 +964,7 @@ const WIDGETS = [
     } },
 
   /* ---------- VIDEOS — TYPE, TAP, WATCH § */
-  { id: 'videos', kind: 'game', name: 'Videos', start: () => initVideos?.(),
+  { id: 'videos', kind: 'reel', name: 'Videos', start: () => initVideos?.(),
     /* DRAWN AHEAD FROM WHAT IS ALREADY HERE (`vidPaint_`): `initVideos` asks the network for the list and,
        for an admin, the films' sync. */
     draw: () => vidPaint_?.(),
@@ -1177,7 +1120,8 @@ const WIDGETS = [
   </div>` },
 
   /* ---------- LEGO TRADE-IN — A PLACEHOLDER, AND IT SAYS SO § */
-  { id: 'legotrade', kind: 'tool', name: 'LEGO trade-in', what: 'LEGO trade-in',
+  /* `shop` (414): trading sets in is buying and selling, so it sits on the Shop column under the basket, not among the tools. */
+  { id: 'legotrade', kind: 'shop', name: 'LEGO trade-in', what: 'LEGO trade-in',
     html: `<div class="card">
     <h3>LEGO trade-in</h3>
     <p class="sub">Coming soon: trade in the LEGO sets you have finished with.</p>

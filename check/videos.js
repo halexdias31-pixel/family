@@ -112,20 +112,20 @@ async function boot(browser, W, H, who, opts = {}) {
   await page.waitForFunction(() => typeof LOADED !== 'undefined' && LOADED
     && typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS !== null, null, { timeout: 30000 }).catch(() => {});
   const n = await page.evaluate(() => {
-    go('games', false, true);
-    return widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
+    go('reel', false, true);
+    return widgetsOf_('reel').findIndex(w => String(w.id) === 'videos');
   }).catch(() => -1);
   await settled(page, 500);
-  if (n >= 0) await page.evaluate(n => goPage('games', n, true), n);
+  if (n >= 0) await page.evaluate(n => goPage('reel', n, true), n);
   /* THE CARD IS THE LAST OF A LONG COLUMN AND WAKES LAST — waited for, bounded (`partyBoot_`'s rule). */
-  await page.waitForFunction(() => !!document.querySelector('#s-games #wgt-videos .vid-q')
+  await page.waitForFunction(() => !!document.querySelector('#s-reel #wgt-videos .vid-q')
     && typeof VIDEOS_LIST !== 'undefined' && VIDEOS_LIST !== null, null, { timeout: 20000 }).catch(() => {});
   await settled(page, 500);
-  const ok = n >= 0 && await page.evaluate(() => !!document.querySelector('#s-games #wgt-videos .vid-q'));
+  const ok = n >= 0 && await page.evaluate(() => !!document.querySelector('#s-reel #wgt-videos .vid-q'));
   return { ctx, page, errs, loads, ok, n };
 }
 
-const CARD = '#s-games #wgt-videos';
+const CARD = '#s-reel #wgt-videos';
 const barTop = (page, card = CARD) => page.evaluate(c => {
   const b = document.querySelector(c + ' .vid-search');
   return b ? Math.round(b.getBoundingClientRect().top) : null;
@@ -229,10 +229,10 @@ async function one(browser) {
   await settled(page, 700);
   const got = await page.evaluate(() => ({
     frames: [...document.querySelectorAll('.vid-player')].map(f => (f.closest('.screen') || {}).id || '?'),
-    gamesRows: document.querySelectorAll('#s-games .vid-results .vid-row').length,
-    gamesWatch: !!document.querySelector('#s-games .vid-watch.on'),
+    gamesRows: document.querySelectorAll('#s-reel .vid-results .vid-row').length,
+    gamesWatch: !!document.querySelector('#s-reel .vid-watch.on'),
   }));
-  said.push(`ONE ${at}: players in ${JSON.stringify(got.frames)}, ${loads.length} load(s) of the player's host, Games copy ${got.gamesRows} result(s)`);
+  said.push(`ONE ${at}: players in ${JSON.stringify(got.frames)}, ${loads.length} load(s) of the player's host, Reels copy ${got.gamesRows} result(s)`);
   if (got.frames.length !== 1 || got.frames[0] !== 's-saved')
     fail('ONE', at, `one tap in the Saved copy built ${got.frames.length} player(s), in ${got.frames.join(', ') || 'none'} — wanted one, in s-saved`);
   if (loads.length !== 1) fail('ONE', at, `one tap asked the player's host ${loads.length} times`);

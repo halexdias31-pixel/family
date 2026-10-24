@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-24-g-staff-hub";
+  --css-version: "2026-10-24-h-tidy-widgets";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -983,8 +983,6 @@ a { color: inherit; text-decoration: none; }
 
 /* ---------- TIMES TABLES AND FLAPPY --------------------------------------------------------------- */
 #tt-answer { text-align: center; font-size: 1.2rem; }
-.tux-stage:not(:empty) { position: relative; width: 100%; aspect-ratio: 4/3; margin: .5rem 0; }
-.tux-frame { width: 100%; height: 100%; border: 0; display: block; background: var(--bg); }
 /* ---------- CONSOLE (389): 256x240 scaled by whole look, pixels kept square and crisp § */
 .nes-wrap { position: relative; display: flex; flex-direction: column; align-items: center; background: var(--bg);
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
@@ -4760,6 +4758,13 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 
 /* ---------- THE ADMIN MARKS SIT AT THE FAR END § */
 .tile-group.is-admin { display: inline-flex; gap: .3rem; margin-left: auto; }
+/* ---------- THE SHEET BEHIND "ADMIN" OR "MORE" (414): a row of its own under the tiles, opened by the tile that names it */
+.tile-sheet { flex: 1 0 100%; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .3rem; padding: .3rem;
+  border: 1px solid var(--line-soft); border-radius: var(--r); background: rgb(255 255 255 / .03); }
+.tile-sheet[hidden] { display: none; }
+.tile.on .tile-i-more { fill: currentColor; }
+/* AN EMPTY WIDGET IS ITS TITLE ALONE (414, `emptyCard_`), so the heading keeps no space for a body under it. */
+.card.is-empty > h3 { margin: 0; }
 /* `.tile-row.is-admin` WAS ALSO DECLARED HERE, setting a margin the block further down immediately
    overrode. Stated once, where the rest of the admin row is described. */
 
@@ -6019,6 +6024,10 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 .nb-pad .nb-line { position: absolute; right: 6px; bottom: 6px; z-index: 1;
   background: var(--paper); border-color: var(--paper-rule); color: var(--paper-dim); }
 .nb-bar { justify-content: center; margin: 0; flex: none; }
+/* SIX TOOLS DO NOT FIT THE WHITEBOARD'S 272px AT A PHONE'S WIDTH; two even rows of three rather than five and an orphan (414, check/ui.js). */
+@media (max-width: 430px) and (orientation: portrait) {
+  .nb-bar { display: grid; grid-template-columns: repeat(3, 44px); justify-content: center; }
+}
 .nb-note { text-align: center; margin: 0; flex: none; font: 400 .62rem/1.4 var(--font); color: var(--faint); }
 /* ON ITS SIDE: the page over the pad in the full height, the star, heading, tiles and note beside them (the old board's arrangement). */
 @media (orientation: landscape) and (max-height: 500px) {

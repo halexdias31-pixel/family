@@ -124,13 +124,8 @@ function spotlightCards_() {
   if (typeof awaiting_ === 'function' && awaiting_()) return [loading_()];
   const cards = spotPages();
   if (cards.length) return cards;
-  /* AN ADMIN IS TOLD HOW TO FILL IT, because they are the only person who can — and a column that says "nothing here" to the one person able to change that is the § */
-  const admin = typeof isAdmin === 'function' && isAdmin();
-  return [`<div class="card"><h3>Spotlight</h3><p class="note">${admin
-    ? `Nothing in the window yet.<br><span class="faint">Press <b>Spotlight</b> on a card — a
-       tutor, a class, a thing in the shop — and it turns up here for everybody.</span>`
-    : `Nothing is being featured just now.<br><span class="faint">This is where @family. puts the
-       things worth a look.</span>`}</p></div>`];
+  /* EMPTY IS THE TITLE ALONE (414), for an admin too: `emptyCard_`, shell.js. */
+  return [emptyCard_('Spotlight')];
 }
 
 
@@ -208,14 +203,8 @@ function cartGroups_(lines) {
 }
 
 function cartCard_() {
-  /* ---------- NOTHING IN IT IS A STATE, NOT AN ABSENCE § */
-  if (!CART.length) {
-    /* AND A BUNDLE OF PAPERS, which is the second way in and the one somebody is likelier to be
-       looking for — see `bundleOf_` in find.js. */
-    /* "BELOW", BECAUSE THE SHOP IS UNDER IT NOW. § */
-    return `<p class="empty">Nothing in your basket yet.<br><span class="faint">The trolley on a
-      shop card below, or on a bundle of papers in Find, puts something in it.</span></p>`;
-  }
+  /* AN EMPTY BASKET IS ITS TITLE ALONE (414) — the card's own <h3>, nothing under it. */
+  if (!CART.length) return '';
 
   /* ---------- THE BASKET IS A RECEIPT, BECAUSE IT IS ONE § */
   /* A PENCIL SAVED AS "30 cr" BEFORE PENCE WERE READ AS MONEY is re-read first — see `cartUnits_`. */
@@ -357,8 +346,7 @@ function shopCards_() {
     }
   });
   if (out.length > wgts.length) return out;
-  return out.concat([`<div class="card"><h3>Shop</h3><p class="note">Nothing in the shop yet.<br>
-    <span class="faint">Things for sale turn up here as they are added.</span></p></div>`]);
+  return out.concat([emptyCard_('Shop')]);
 }
 
 screen('shop', () => pages('shop', shopCards_()));

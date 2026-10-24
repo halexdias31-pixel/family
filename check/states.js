@@ -4487,9 +4487,11 @@ const STATES = {
     /* ---------- AND A SCRABBLE GAME PART-WAY THROUGH § */
     { name: 'a game of scrabble',
       enter: () => {
-        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'scrabble');
-        if (n < 0) throw new Error('no scrabble widget in the roster');
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'boardgames');
+        if (n < 0) throw new Error('no board games widget in the roster');
         goPage('games', n, true);
+        try { localStorage.setItem('bg-game', 'scr'); } catch (e) {}
+        bgPaint_();
         scrabble = scrNew_(2);
         scrabble.handover = false;
         /* A BLANK ON THE RACK ON PURPOSE: it is the one tile with no letter and no value, so it is
@@ -4509,9 +4511,11 @@ const STATES = {
     /* THE HAND-OVER IS ITS OWN STATE because it is the one that draws NO rack: § */
     { name: 'handing the phone over',
       enter: () => {
-        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'scrabble');
-        if (n < 0) throw new Error('no scrabble widget in the roster');
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'boardgames');
+        if (n < 0) throw new Error('no board games widget in the roster');
         goPage('games', n, true);
+        try { localStorage.setItem('bg-game', 'scr'); } catch (e) {}
+        bgPaint_();
         scrabble = scrNew_(3);
         scrabble.handover = true;
         scrabblePaint();
@@ -4799,9 +4803,11 @@ const STATES = {
     /* ---------- A CONNECT 4 GAME, WON § */
     { name: 'a connect 4 game, won',
       enter: () => {
-        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'connect4');
-        if (n < 0) throw new Error('no connect 4 widget in the roster');
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'boardgames');
+        if (n < 0) throw new Error('no board games widget in the roster');
         goPage('games', n, true);
+        try { localStorage.setItem('bg-game', 'c4'); } catch (e) {}
+        bgPaint_();
         initConnect4();
         [0, 1, 0, 1, 0, 1, 0].forEach(x => {
           const b = document.createElement('button');
@@ -4818,24 +4824,29 @@ const STATES = {
       wants: 'four counters ringed, a red disc beside Red wins, and the last counter under the drop',
       leave: () => { initConnect4(); } },
 
+  ],
+
+  /* ---------- REELS: VIDEOS LEADS THE COLUMN (414), so its states are measured here; the widget's page is its index among the column's widgets */
+  reel: [
+    { name: '' },
     /* ---------- THE VIDEOS CARD: THE BAR, FOUR RESULTS, A FILM PLAYING, AND THE GLASS FILLED § */
     { name: 'the videos card, idle',
       enter: () => {
-        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
+        const n = widgetsOf_('reel').findIndex(w => String(w.id) === 'videos');
         if (n < 0) throw new Error('no videos widget in the roster');
         VID.q = ''; VID.at = '';
         vidPaint_();
-        goPage('games', n, true);
+        goPage('reel', n, true);
       },
       expect: () => {
-        const box = document.querySelector('#s-games #wgt-videos .vid-box');
+        const box = document.querySelector('#s-reel #wgt-videos .vid-box');
         return !!box && !!box.querySelector('input.vid-q') && !box.querySelector('.vid-row, .vid-player, .vid-watch.on, .loading')
           && !(box.querySelector('.vid-results') || {}).innerHTML && !(box.querySelector('.vid-admin') || {}).innerHTML;
       },
       wants: 'the search bar and nothing else — no count, no list, no admin row, no player' },
     { name: 'a video search, four and how many more',
       enter: () => {
-        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
+        const n = widgetsOf_('reel').findIndex(w => String(w.id) === 'videos');
         if (n < 0) throw new Error('no videos widget in the roster');
         window.__seedVid = VIDEOS_LIST;
         VIDEOS_LIST = [
@@ -4851,10 +4862,10 @@ const STATES = {
         VID.q = 'photo'; VID.at = '';
         /* PAINTED, THEN TURNED TO, so the pager settles on a card that already has its height. */
         vidPaint_();
-        goPage('games', n, true);
+        goPage('reel', n, true);
       },
       expect: () => {
-        const box = document.querySelector('#s-games #wgt-videos .vid-box');
+        const box = document.querySelector('#s-reel #wgt-videos .vid-box');
         if (!box || box.querySelectorAll('.vid-results .vid-list .vid-row').length !== 4) return false;
         if (!/^2 more — keep typing to narrow$/.test(((box.querySelector('.vid-results .vid-more') || {}).textContent || ''))) return false;
         /* AN ADMIN'S SYNC ROW AT THE FOOT, UNDER THE RESULTS; NOBODY ELSE'S. */
@@ -4867,7 +4878,7 @@ const STATES = {
       leave: () => { VIDEOS_LIST = window.__seedVid || null; VID.q = ''; VID.at = ''; vidPaint_(); } },
     { name: 'a video search, one playing',
       enter: () => {
-        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
+        const n = widgetsOf_('reel').findIndex(w => String(w.id) === 'videos');
         if (n < 0) throw new Error('no videos widget in the roster');
         window.__seedVid = VIDEOS_LIST;
         VIDEOS_LIST = [
@@ -4879,20 +4890,20 @@ const STATES = {
         VID.q = 'photo';
         VID.at = 'v0';
         vidPaint_();
-        goPage('games', n, true);
+        goPage('reel', n, true);
       },
-      expect: () => !!document.querySelector('#s-games .vid-stage.on video.vid-player')
-                 && !!document.querySelector('#s-games .vid-acts .tile[data-do="vid-full"]:not([disabled])')
-                 && !document.querySelector('#s-games .vid-results .vid-row')
-                 && !(document.querySelector('#s-games .vid-admin') || {}).innerHTML
-                 && (document.querySelector('#s-games .vid-q') || {}).value === 'photo',
+      expect: () => !!document.querySelector('#s-reel .vid-stage.on video.vid-player')
+                 && !!document.querySelector('#s-reel .vid-acts .tile[data-do="vid-full"]:not([disabled])')
+                 && !document.querySelector('#s-reel .vid-results .vid-row')
+                 && !(document.querySelector('#s-reel .vid-admin') || {}).innerHTML
+                 && (document.querySelector('#s-reel .vid-q') || {}).value === 'photo',
       wants: 'the player holding the chosen clip in place of the results, the Full screen tile beside its title, and the bar still holding "photo"',
       leave: () => { VIDEOS_LIST = window.__seedVid || null; VID.q = ''; VID.at = ''; vidPaint_(); } },
     /* ---------- A FILM FROM THE FOLDER, PLAYING IN DRIVE'S PLAYER, WITH THE DOOR BESIDE IT § */
     { name: 'a film from the folder playing, with Open in Drive',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => {
-        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
+        const n = widgetsOf_('reel').findIndex(w => String(w.id) === 'videos');
         if (n < 0) throw new Error('no videos widget in the roster');
         window.__seedFilms = DATA.films;
         DATA.films = (DATA.films || []).concat([{ id: 'FXD01', title: 'An Invented Film Kept In Drive For Measuring', year: '1999',
@@ -4900,18 +4911,18 @@ const STATES = {
         VID.q = 'invented film kept';
         VID.at = 'fFXD01';
         vidPaint_();
-        goPage('games', n, true);
+        goPage('reel', n, true);
       },
       expect: () => /^https:\/\/drive\.google\.com\/file\/d\/example-fx-drive-001\/preview$/.test(
-                     (document.querySelector('#s-games .vid-stage iframe.vid-player') || {}).src || '')
-                 && !!document.querySelector('#s-games .vid-acts .tile[data-do="vid-full"]')
-                 && !!document.querySelector('#s-games .vid-acts a.tile[href*="example-fx-drive-001"]'),
+                     (document.querySelector('#s-reel .vid-stage iframe.vid-player') || {}).src || '')
+                 && !!document.querySelector('#s-reel .vid-acts .tile[data-do="vid-full"]')
+                 && !!document.querySelector('#s-reel .vid-acts a.tile[href*="example-fx-drive-001"]'),
       wants: 'Drive\'s player of the film, and Full screen and Open in Drive beside its title',
       leave: () => { DATA.films = window.__seedFilms || []; VID.q = ''; VID.at = ''; vidPaint_(); } },
     /* ---------- AND THE APP'S OWN FULL SCREEN, WHERE THE BROWSER HAS NONE § */
     { name: 'the videos card, its own full screen',
       enter: () => {
-        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
+        const n = widgetsOf_('reel').findIndex(w => String(w.id) === 'videos');
         if (n < 0) throw new Error('no videos widget in the roster');
         window.__seedVid = VIDEOS_LIST;
         window.__fsApi = { r: Element.prototype.requestFullscreen, w: Element.prototype.webkitRequestFullscreen };
@@ -4922,15 +4933,15 @@ const STATES = {
         VID.q = 'photo';
         VID.at = 'v0';
         vidPaint_();
-        goPage('games', n, true);
+        goPage('reel', n, true);
         setTimeout(() => {
-          const t = document.querySelector('#s-games #wgt-videos .vid-acts [data-do="vid-full"]');
+          const t = document.querySelector('#s-reel #wgt-videos .vid-acts [data-do="vid-full"]');
           if (t) ACTIONS['vid-full'](t);
         }, 150);
       },
       /* AND WHAT "FULL SCREEN" MEANS, ASKED IN PIXELS AT EVERY WIDTH: § */
       expect: () => {
-        const w = document.querySelector('#s-games #wgt-videos .vid-watch.is-fs');
+        const w = document.querySelector('#s-reel #wgt-videos .vid-watch.is-fs');
         let open = false;
         try { open = !!w && w.matches(':popover-open'); } catch (e) { open = false; }
         const x = w && w.querySelector('.vid-acts .tile[data-do="vid-unfull"]');
@@ -4966,31 +4977,31 @@ const STATES = {
     { name: 'the films in the videos card, an admin’s',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => {
-        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
+        const n = widgetsOf_('reel').findIndex(w => String(w.id) === 'videos');
         if (n < 0) throw new Error('no videos widget in the roster');
         VID.q = 'film'; VID.at = '';
         vidPaint_();
-        goPage('games', n, true);
+        goPage('reel', n, true);
       },
-      expect: () => !!document.querySelector('#s-games .vid-admin .tile.is-admin[data-do="vid-sync"]')
-                 && !!document.querySelector('#s-games .vid-admin .vid-synced')
-                 && document.querySelectorAll('#s-games .vid-results .vid-row').length >= 3
-                 && !!document.querySelector('#s-games .vid-results .vid-row.is-off'),
+      expect: () => !!document.querySelector('#s-reel .vid-admin .tile.is-admin[data-do="vid-sync"]')
+                 && !!document.querySelector('#s-reel .vid-admin .vid-synced')
+                 && document.querySelectorAll('#s-reel .vid-results .vid-row').length >= 3
+                 && !!document.querySelector('#s-reel .vid-results .vid-row.is-off'),
       wants: 'the films "film" finds, the one not in the Drive yet dimmed, and the silver Sync from Drive tile and when it last ran under them',
       leave: () => { VID.q = ''; VID.at = ''; vidPaint_(); } },
     { name: 'the videos card, nobody’s films',
       only: () => !(typeof isAdmin === 'function' && isAdmin()),
       enter: () => {
-        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
+        const n = widgetsOf_('reel').findIndex(w => String(w.id) === 'videos');
         if (n < 0) throw new Error('no videos widget in the roster');
         VID.q = 'film'; VID.at = '';
         vidPaint_();
-        goPage('games', n, true);
+        goPage('reel', n, true);
       },
-      expect: () => !document.querySelector('#s-games .vid-admin *')
-                 && !document.querySelector('#s-games [data-do="vid-sync"]')
-                 && !!document.querySelector('#s-games .vid-results .vid-none')
-                 && !/film|drive|sync/i.test((document.querySelector('#s-games .vid-box') || {}).textContent || 'film'),
+      expect: () => !document.querySelector('#s-reel .vid-admin *')
+                 && !document.querySelector('#s-reel [data-do="vid-sync"]')
+                 && !!document.querySelector('#s-reel .vid-results .vid-none')
+                 && !/film|drive|sync/i.test((document.querySelector('#s-reel .vid-box') || {}).textContent || 'film'),
       wants: 'a search for "film" answered without a film, no Sync tile, nothing in the admin row, and no word on the card that says films exist',
       leave: () => { VID.q = ''; VID.at = ''; vidPaint_(); } },
 
@@ -4999,7 +5010,7 @@ const STATES = {
       only: () => !(typeof isAdmin === 'function' && isAdmin()),
       grows: 'the results — how many rows are coming is not known until they come (see `vidPaint_`)',
       enter: () => {
-        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
+        const n = widgetsOf_('reel').findIndex(w => String(w.id) === 'videos');
         if (n < 0) throw new Error('no videos widget in the roster');
         const held = window.__vidHeld = { list: VIDEOS_LIST, fetch: window.fetch, go: null };
         const real = held.fetch;
@@ -5012,18 +5023,18 @@ const STATES = {
               { status: 200, headers: { 'Content-Type': 'application/json' } })); })
           : real(url, o));
         VIDEOS_LIST = null; VIDEOS_ASKED = null; VID.q = 'held'; VID.at = '';
-        goPage('games', n, true);
+        goPage('reel', n, true);
         initVideos();
       },
       expect: () => {
-        const box = document.querySelector('#s-games #wgt-videos .vid-box');
+        const box = document.querySelector('#s-reel #wgt-videos .vid-box');
         return !!box && !box.getAttribute('aria-busy') && !!box.querySelector('.vid-results > .loading')
-          && document.querySelectorAll('#s-games #wgt-videos .loading').length === 1 && !!box.querySelector('input.vid-q');
+          && document.querySelectorAll('#s-reel #wgt-videos .loading').length === 1 && !!box.querySelector('input.vid-q');
       },
       wants: 'the bar, usable, and the one loader where the results will be while data/videos.json is held',
       release: () => { const h = window.__vidHeld; if (h) { window.fetch = h.fetch; if (h.go) { h.go(); h.go = null; } } },
       landed: () => {
-        const box = document.querySelector('#s-games #wgt-videos .vid-box');
+        const box = document.querySelector('#s-reel #wgt-videos .vid-box');
         return !!box && !box.querySelector('.loading')
           && box.querySelectorAll('.vid-results .vid-row').length === 3;
       },
