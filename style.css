@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-24-k-console";
+  --css-version: "2026-10-24-l-posts";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -3085,6 +3085,15 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 
 /* ---------- A POST THAT IS WAITING § */
 .post-wait { color: var(--gold); font-weight: 600; }
+/* WAITING FOR APPROVAL (413): dotted, inset so a picture that bleeds to the edge cannot cover it; the line says what the dots mean. */
+.post.is-pending { outline: 2px dotted var(--gold); outline-offset: -2px; border-radius: 4px; padding-top: .5rem; }
+.post-pending { margin: 0 0 .5rem; font-size: .78rem; color: var(--gold); font-weight: 600; letter-spacing: .02em; }
+/* A RECEIVED MESSAGE AND ITS REPORT TILE, side by side (413); the tile is quiet until it is wanted. */
+.msg-line { display: flex; align-items: flex-end; gap: .35rem; width: 100%; }
+.msg-line .msg-flag { opacity: .5; flex: 0 0 auto; }
+.msg-line .msg-flag:hover, .msg-line .msg-flag:focus-visible { opacity: 1; }
+/* THE COMPOSER'S PICKER (413): a file, never a link — the label is the control, so it carries the gap the box above it would have. */
+.post-files-btn { display: block; text-align: center; margin-bottom: .8rem; }
 
 /* THREE THINGS THAT ARE WHAT THEY ARE The receipt works because a booking genuinely produces a receipt — the form is not a costume, it is the honest shape of the § */
 

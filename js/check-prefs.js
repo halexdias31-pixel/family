@@ -390,7 +390,7 @@ both('referrals', 'P-C1', 'parent@example.org', () => {
     email: 'new' + regN + '@example.org', pin: FRESH, ref: 'PATPARENT10' });
 }, /joined through you/);
 /* APPROVALS: a tutor posts; the admin is told it waits. */
-both('approvals', 'P-A1', 'admin@example.org', () => W.as('P-T1', { action: 'addPost', image: 'https://example.org/t.jpg', caption: 'A worksheet' }), /waiting for you/);
+both('approvals', 'P-A1', 'admin@example.org', () => W.as('P-T1', { action: 'addPost', data: 'data:image/jpeg;base64,/9j/4AAQSkZJRg==', caption: 'A worksheet' }), /waiting for you/);
 /* BOOKINGS — a note on a session (`move` Say), from the parent to the tutor already on it. */
 const book = W.as('P-C1', { action: 'createJob', requestedTutor: 'Ada Tutor', subject: 'Maths', level: 'GCSE', day: 'Saturday',
   time: '11:00', slots: 'sa11', location: 'Online', dates: dmy(day(40)), hours: 1, price: 30 });

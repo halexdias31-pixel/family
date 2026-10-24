@@ -539,21 +539,23 @@ function jobAdminTiles_(j, stage, accepted) {
 function postTiles_(p) {
   const id = String((p && p.id) || '');
   if (!id) return '';
-  const rows = [tile_({ icon: 'share', label: 'Share', act: 'share', data: { id: id } })];
-  if (typeof isAdmin === 'function' && isAdmin()) {
-    rows.push(tile_({ icon: 'edit', label: 'Edit', act: 'post-edit', data: { id: id } }));
-    /* THE DECISION, ON THE POST ITSELF — the same argument the old button row carried and worth keeping: § */
-    if (p.waiting || p.refused) {
-      rows.push(tile_({ icon: 'show', label: 'Put it up', tone: 'buy', note: 'everyone sees it',
-                        act: 'post-approve', data: { id: id, on: '1' } }));
-      /* ALREADY REFUSED MEANS THERE IS NOTHING LEFT TO REFUSE. Offering it again is offering a
-         control that does nothing, which is how somebody learns not to trust the row. */
-      if (!p.refused) {
-        rows.push(tile_({ icon: 'hide', label: 'Not this one', note: 'stays hidden',
-                          act: 'post-approve', data: { id: id, on: '' } }));
-      }
-    }
+  const admin = typeof isAdmin === 'function' && isAdmin();
+  const rows = [tile_({ icon: 'share', label: 'Share', note: 'as a picture', act: 'share', data: { id: id } })];
+  /* WAITING (413): the admin decides on the post itself; its author may still change the words or take it back. */
+  if (p.waiting && admin) {
+    rows.push(tile_({ icon: 'tick', label: 'Approve', tone: 'buy', note: 'everyone sees it',
+                      act: 'post-approve', data: { id: id, on: '1' } }));
+    rows.push(tile_({ icon: 'close', label: 'Decline', note: 'stays hidden',
+                      act: 'post-approve', data: { id: id, on: '' } }));
+  } else if (p.refused && admin) {
+    /* ALREADY DECLINED: only the way back; declining again is a control that does nothing. */
+    rows.push(tile_({ icon: 'tick', label: 'Approve', tone: 'buy', note: 'everyone sees it',
+                      act: 'post-approve', data: { id: id, on: '1' } }));
   }
+  if (p.waiting && p.mine && !admin) rows.push(tile_({ icon: 'edit', label: 'Edit', note: 'until it is approved', act: 'post-edit', data: { id: id } }));
+  /* UP IS FINAL (413): nobody changes the words; an admin still pins it or fixes its date. */
+  if (admin && !p.waiting && !p.refused) rows.push(tile_({ icon: 'edit', label: 'Pin or date', act: 'post-edit', data: { id: id } }));
+  if (admin || p.mine) rows.push(tile_({ icon: 'bin', label: 'Delete', tone: 'danger', note: 'takes it off the feed', act: 'post-delete', data: { id: id } }));
   return tileRow_(rows.join(''));
 }
 

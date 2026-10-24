@@ -162,15 +162,16 @@ function postCard_(p, i) {
     const actsHtml = acts ? `<div class="post-acts">${acts}</div>` : '';
 
     /* The order is Instagram's, and it is right: § */
-    return `<article class="post" data-post="${esc(p.id)}">
+    /* WAITING FOR APPROVAL (413): a dotted outline and a line saying so — only its author and an admin are ever sent one. */
+    return `<article class="post${p.waiting ? ' is-pending' : ''}" data-post="${esc(p.id)}">
+      ${p.waiting ? `<p class="post-pending" role="status">Waiting for approval${isAdmin() ? '' : ' · only you and the admin can see it'}</p>` : ''}
       <header class="post-by">
         ${faceHtml}
         <span class="post-nm">
           ${/* No "· deleted" any more: a deleted post is not drawn at all, so nothing reaching
                  here can be one. */''}
           <span class="post-who">${esc(who)}${p.pinned
-            ? ' <span class="faint">· pinned</span>' : ''}${p.waiting
-            ? ' <span class="post-wait">· waiting</span>' : ''}${p.refused
+            ? ' <span class="faint">· pinned</span>' : ''}${p.refused
             ? ' <span class="post-wait">· not put up</span>' : ''}</span>
           ${p.location ? `<span class="post-where">${esc(p.location)}</span>` : ''}
         </span>
@@ -197,7 +198,6 @@ function postCard_(p, i) {
       ${/* WHAT YOU CAN DO ABOUT IT, IN ONE ROW. § */
             ''}
       ${postTiles_(p)}
-      ${p.waiting && !isAdmin() ? `<p class="faint">Waiting to be checked. Only you can see it.</p>` : ''}
       ${commentsHtml_(p)}
     </article>`;
 }
@@ -411,12 +411,13 @@ function cameraCard() {
 
     ${/* ---------- WHO IT GOES UP AS, WHICH IS THE SAME QUESTION THE COMPOSER ASKS § */
           ''}
-    <span class="btn-row cam-as" id="cam-as" data-as="brand" hidden>
+    ${/* AN ADMIN'S QUESTION ONLY (413): anybody else's post is their own. */
+          typeof isAdmin === 'function' && isAdmin() ? `<span class="btn-row cam-as" id="cam-as" data-as="brand" hidden>
       <button class="btn quiet on" data-do="as" data-for="cam-as" data-as="brand"
-        >${esc(brand('name', '@family.'))}</button>
+        >${esc(brand('name', '@family.'))} <span class="faint">business</span></button>
       <button class="btn quiet" data-do="as" data-for="cam-as" data-as="me"
-        >${esc(USER ? USER.name : 'me')}</button>
-    </span>
+        >me <span class="faint">personal</span></button>
+    </span>` : ''}
     <div class="btn-row cam-row">
       <button class="btn quiet" data-do="cam-again" id="cam-again" hidden>Again</button>
       ${/* KEEP THIS ONE AND TAKE ANOTHER. The picture goes into the tray and the viewfinder comes
@@ -697,7 +698,9 @@ function camItemOf_(file) {
       return;
     }
     if (!/^image\//i.test(type)) { done(null); return; }
-    const url = URL.createObjectURL(file);
+    /* NO OBJECT URLS (an old browser, a test page): nothing redrawn, and the caller sends the file as it is. */
+    let url = '';
+    try { url = URL.createObjectURL(file); } catch (e) { done(null); return; }
     const img = new Image();
     img.onload = () => {
       const k = Math.min(1, 1600 / Math.max(img.naturalWidth || 1, img.naturalHeight || 1));
@@ -886,19 +889,18 @@ on('cam-post', el => {
   }
   const data = list[0];
 
-  const as = ($('cam-as') || {}).dataset;
   /* `send_` RATHER THAN `api`, WHICH IS THE WHOLE OF `check-replies.js`. § */
   send_({
     action: 'addPost',
     name: USER.name, adminName: USER.name, personId: (USER && USER.personId) || '',
     data: data,
     media: list.slice(1),
-    postAs: (as && as.as) || 'brand',
+    postAs: postAsOf_('cam-as'),
     caption: ($('cam-cap') || {}).value || '',
     body: '', location: '', poll: '',
   }, { button: el, busy: 'Posting…', where: 'cam-said' })
-    .then(() => {
-      toast('Posted'); CAM_ITEMS = []; camAgain_(); load();
+    .then(d => {
+      toast(d && d.pending ? 'Posted — waiting for approval' : 'Posted'); CAM_ITEMS = []; camAgain_(); load();
     })
     /* `send_` HAS ALREADY WRITTEN THE REASON into `cam-said` and marked the error handled; this
        catch exists so the rejection does not reach the console as an unhandled one. */
@@ -1215,12 +1217,25 @@ function voteMove_(q, to) {
 /* SHARING. A post needs an address of its own or there is nothing to send — so each one gets
    `?post=` and the app opens on it. Without that, sharing sends somebody to the top of a feed to
    hunt for a photograph they were shown. */
+/* A PICTURE OF THE WHOLE POST (413) — `postPng_` below; the link alone when no canvas can be drawn. */
+let POST_PNG_BUSY = false;
 on('share', el => {
   const id = el.dataset.id;
   const post = (DATA.posts || []).find(p => p.id === id);
   const url = location.origin + location.pathname + '?post=' + encodeURIComponent(id);
   const text = post && post.caption ? post.caption : '@family.';
-
+  if (post && !POST_PNG_BUSY && typeof document.createElement('canvas').getContext === 'function') {
+    POST_PNG_BUSY = true;
+    el.classList.add('is-busy');
+    const done = () => { POST_PNG_BUSY = false; el.classList.remove('is-busy'); };
+    postPng_(post, url)
+      .then(cv => shareCanvasPng_(cv, 'family-post-' + String(id).replace(/[^\w-]/g, '') + '.png', text + ' ' + url))
+      .then(done, () => { done(); postShareLink_(text, url); });
+    return;
+  }
+  postShareLink_(text, url);
+});
+function postShareLink_(text, url) {
   if (navigator.share) {
     navigator.share({ title: '@family.', text, url }).catch(() => {});
     return;
@@ -1230,7 +1245,7 @@ on('share', el => {
   navigator.clipboard?.writeText(url)
     .then(() => toast('Link copied'))
     .catch(() => toast(url));
-});
+}
 
 /* Arriving on a shared post. Read once at start-up and cleared, so a refresh later does not drag
    somebody back to a photograph they have finished with. */
@@ -1240,15 +1255,24 @@ function openSharedPost() {
   if (!id) return;
 
   /* TURN THE DIAL TO IT, rather than scrolling. § */
+  postGo_(id);
+}
+/* THE FEED'S PAGE FOR ONE POST: the festive cards, then the camera, then the posts (`feedColumn_`) — the index alone landed short by the camera and the festive cards (413). */
+function feedPageOf_(id) {
   const n = feedPosts().findIndex(p => String(p.id) === String(id));
+  return n < 0 ? -1 : feedCamAt_() + 1 + n;
+}
+function postGo_(id) {
+  const n = feedPageOf_(id);
   /* ---------- THE FEED IS A COLUMN AND THIS WAS ASKING THE FUNNEL FOR IT § */
   if (n < 0) { go('feed'); return; }
   PAGE.feed = n;                 // the screen is `feed`; `PAGE.posts` went nowhere — see PAGER
   go('feed');
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    document.querySelector(`[data-post="${CSS.escape(id)}"]`)?.classList.add('post-lit');
+    document.querySelector(`[data-post="${CSS.escape(String(id))}"]`)?.classList.add('post-lit');
   }));
 }
+on('post-open', el => postGo_(el.dataset.id));
 
 /* ---------- A TUTOR'S OWN ADDRESS (400): `?tutor=<handle>` opens their card, signed out or in ----------
    Prices follow the card's own rule (398): a child's phone has none to draw. */
@@ -1720,21 +1744,31 @@ function openSharedTutor() {
 /* `shrink` lived here — it resized a chosen photograph in the browser before uploading it, so a 4MB camera picture did not become a 4MB row. § */
 
 /* ---------- THE SHEET'S BOXES ARE DRAFTS (data.js; docs/history/317) § */
-const POST_DRAFT_FIELDS = ['link', 'cap', 'loc', 'body', 'poll'];
+const POST_DRAFT_FIELDS = ['cap', 'loc', 'body', 'poll'];
+/* THE PICTURES CHOSEN FOR THE POST BEING WRITTEN, already redrawn at 1600px (`camItemOf_`) — files, never links (413). */
+let POST_FILES = [];
+/* ANY PICTURE, written in two pieces so no source reader takes the slash and star for a comment opening (check-doors did). */
+const POST_PICK_ACCEPT = 'image/' + '*';
+/* WHO MAY CHOOSE A PICTURE AT ALL: not a child (413) — the server refuses one too (`CHILD_NO_UPLOAD`). */
+const mayUpload_ = () => rankAtLeast_('client');
+/* POST AS THE BUSINESS OR AS ME — an admin's question only; anybody else's post is theirs (413). */
+function postAsRow_(id) {
+  if (!(typeof isAdmin === 'function' && isAdmin())) return '';
+  return `<label class="field"><span>post as</span>
+    <span class="btn-row post-as" id="${id}" data-as="brand">
+      <button class="btn quiet on" data-do="as" data-for="${id}" data-as="brand">${esc(brand('name', '@family.'))} <span class="faint">business</span></button>
+      <button class="btn quiet" data-do="as" data-for="${id}" data-as="me">me <span class="faint">personal</span></button>
+    </span></label>`;
+}
+const postAsOf_ = id => (typeof isAdmin === 'function' && isAdmin()) ? ((($(id) || {}).dataset || {}).as || 'brand') : 'me';
 on('new-post', () => {
+  if (!USER) return;
+  if (!mayUpload_()) { toast('Pictures are put up by a grown-up — ask your parent or tutor.'); return; }
+  POST_FILES = [];
   openSheet('New post', `
-  ${/* CHOOSE ONE THAT IS ALREADY THERE, before being offered the upload. § */
-       ''}
-  ${/* WHILE THE FOLDER IS READ, THE ONE LOADER — it said "Looking in the folder…" in faint ink, a wait of its own on a sheet; the owner, 9 Oct § */
-       ''}
-  <div id="post-from-folder">${loading_()}</div>
-  ${/* A LINK, not a file. Uploading meant this app had to be allowed to write to your Drive, which is a large permission to hold for the sake of one button — and the § */
-       ''}
-  ${/* SEVERAL LINKS, ONE PER LINE — "more then one photo … and also videos". § */
-       ''}
-  <label class="field"><span>links to the pictures or clips — one per line</span>
-    <textarea id="post-link" rows="2" placeholder="https://…" inputmode="url"
-              autocomplete="off"${draftAttr_('post', 'link')}>${esc(draftVal_('post', 'link'))}</textarea></label>
+  ${/* A FILE, NOT A LINK (413): posts no longer take image links. The phone offers the camera or the library for image files. */''}
+  <label class="btn quiet post-files-btn" for="post-files">Choose pictures</label>
+  <input type="file" id="post-files" accept="${POST_PICK_ACCEPT}" multiple hidden>
   <div id="post-preview"></div>
   <label class="field"><span>caption</span>
     <input id="post-cap" placeholder="One line about it"${draftAttr_('post', 'cap')} value="${esc(draftVal_('post', 'cap'))}"></label>
@@ -1744,44 +1778,9 @@ on('new-post', () => {
     <textarea id="post-body" placeholder="Optional"${draftAttr_('post', 'body')}>${esc(draftVal_('post', 'body'))}</textarea></label>
   <label class="field"><span>poll, if you want one</span>
     <input id="post-poll" placeholder="Yes, No, Maybe"${draftAttr_('post', 'poll')} value="${esc(draftVal_('post', 'poll'))}"></label>
-  <label class="field"><span>posting as</span>
-    <span class="btn-row" id="post-as" data-as="brand">
-      <button class="btn quiet on" data-do="as" data-as="brand">
-        ${esc(brand('name', '@family.'))}</button>
-      <button class="btn quiet" data-do="as" data-as="me">${esc(USER ? USER.name : 'me')}</button>
-    </span></label>
+  ${postAsRow_('post-as')}
   <button class="btn" data-do="post-send">Post it</button>
-  <p class="faint" id="post-said" style="margin:.6rem 0 0"></p>`);
-
-  /* A LINK KEPT FROM BEFORE A RELOAD (a draft, data.js) is previewed as a typed one is. */
-  if (($('post-link') || {}).value) showPostPreview();
-  /* Fetched after the sheet is up, so the form is usable while the folder is being read. */
-  send_({ action: 'folderFiles', name: USER.name, adminName: USER.name })
-    .then(d => {
-      const box = $('post-from-folder');
-      if (!box) return;                                   // the sheet was closed
-      if (!(d.files || []).length) {
-        /* Nothing to choose, or no permission to look. Either way the upload below is the only
-           route, and a picker with nothing in it is worse than no picker. */
-        box.innerHTML = d.error
-          ? `<p class="faint">Could not look in the folder: ${esc(d.error)}</p>`
-          : `<p class="faint">Nothing new in the folder. Put a photograph in it from Drive and it
-               will appear here.</p>`;
-        return;
-      }
-      box.innerHTML = `<p class="faint">In the folder — tap one</p>
-        <div class="pickers">${d.files.map(f => `
-          <button class="picker" data-do="post-pick" data-id="${esc(f.id)}"
-                  data-caption="${esc(f.caption)}" title="${esc(f.name)}">
-            <img src="${esc(pic('https://drive.google.com/file/d/' + f.id + '/view'))}" decoding="async" alt=""
-                 loading="lazy">
-            <span>${esc(f.caption)}</span>
-          </button>`).join('')}</div>`;
-    })
-    .catch(() => {
-      const box = $('post-from-folder');
-      if (box) box.innerHTML = '';
-    });
+  <p class="faint" id="post-said" style="margin:.6rem 0 0">${isAdmin() ? '' : 'An admin approves it before anybody else sees it.'}</p>`);
 });
 
 /* WHO THE POST IS FROM. § */
@@ -1793,146 +1792,108 @@ on('as', el => {
   row.querySelectorAll('[data-do="as"]').forEach(b => b.classList.toggle('on', b === el));
 });
 
-/* Choosing one. It does not upload anything — the picture is already in Drive and already shared,
-   so all that is missing is the row. */
-/* EVERY ADDRESS IN THE LINK BOX, in the order they were written, once each. */
-function postLinks_(v) {
-  return String(v || '').split(/[\s,|]+/).map(x => x.trim())
-    .filter((x, i, a) => x && a.indexOf(x) === i);
-}
-on('post-pick', el => {
-  /* Straight into the link box, not into a hidden field beside it. § */
-  /* ADDED TO THE LIST RATHER THAN REPLACING IT, now that a post takes several. A second tap on one
-     already in the list takes it back out, which is what the ring round it says. */
-  const box = $('post-link');
-  const url = 'https://drive.google.com/file/d/' + el.dataset.id + '/view';
-  if (box) {
-    const had = postLinks_(box.value);
-    const next = had.indexOf(url) < 0 ? had.concat(url) : had.filter(x => x !== url);
-    box.value = next.join('\n');
-    el.classList.toggle('on', next.indexOf(url) >= 0);
-    /* A VALUE SET HERE FIRES NO `input`, so the draft is told by hand (data.js). */
-    try { draftFrom_(box); } catch (e) {}
-  }
-  /* The caption comes from the file's name, and only while the box is empty — somebody who has
-     already typed one meant it. */
-  const cap = $('post-cap');
-  if (cap && !cap.value) { cap.value = el.dataset.caption || ''; try { draftFrom_(cap); } catch (e) {} }
-  showPostPreview();
-});
-
-/* A PREVIEW OF WHATEVER THE LINK POINTS AT. § */
+/* THE CHOSEN PICTURES, DRAWN THE WAY THE POST WILL DRAW THEM — `postMediaHtml_` is the card's own renderer. A tap on a thumbnail takes it out. */
 function showPostPreview() {
   const box = $('post-preview');
-  const url = ($('post-link') || {}).value || '';
   if (!box) return;
-  if (!url.trim()) { box.innerHTML = ''; return; }
-
-  /* EVERY LINK, DRAWN THE WAY THE POST WILL DRAW IT — `postMediaHtml_` is the card's own renderer, so the preview cannot disagree with what goes up. § */
-  const links = postLinks_(url);
-  box.innerHTML = `<div class="post-preview">${postMediaHtml_(links, 0)}</div>`;
-  const said = $('post-said');
-  if (said) said.textContent = '';
-  box.querySelectorAll('img').forEach((img, k) => {
-    img.onerror = () => {
-      if (said) said.textContent = (links.length > 1 ? 'Link ' + (k + 1) + ' does' : 'That link does')
-        + ' not show a picture. If it is in Drive, it needs to be shared with anyone who has the link.';
-    };
-  });
+  box.innerHTML = POST_FILES.length ? `<div class="post-preview">${postMediaHtml_(POST_FILES.map(x => x.data), 0)}</div>
+    <div class="cam-thumbs">${POST_FILES.map((x, k) => `<button class="cam-thumb" data-do="post-unpick" data-i="${k}"
+      aria-label="Take this one out of the post" title="Take this one out"><img src="${esc(x.data)}" alt="" decoding="async"></button>`).join('')}</div>` : '';
 }
-
-document.addEventListener('input', e => {
-  if (e.target.id === 'post-link') showPostPreview();
+on('post-unpick', el => {
+  const k = Number(el.dataset.i);
+  if (k >= 0 && k < POST_FILES.length) POST_FILES.splice(k, 1);
+  showPostPreview();
+});
+/* `change` IS NOT A `data-do` EVENT, so the picker is heard here. Each picture is redrawn before it is kept. */
+document.addEventListener('change', e => {
+  const inp = e.target;
+  if (!inp || inp.id !== 'post-files') return;
+  const said = $('post-said');
+  const files = [].slice.call(inp.files || []).filter(f => /^image\//i.test(f.type || ''));
+  inp.value = '';
+  if (!mayUpload_()) return;
+  Promise.all(files.map(camItemOf_)).then(items => {
+    const got = items.filter(x => x && x.kind === 'image');
+    POST_FILES = POST_FILES.concat(got).slice(0, 6);
+    if (said) said.textContent = got.length < files.length ? 'One of those would not open as a picture.' : '';
+    showPostPreview();
+  });
 });
 
 on('post-send', el => {
-  const links = postLinks_(($('post-link') || {}).value);
-  const link = links[0] || '';
   const said = $('post-said');
-  if (!link) { if (said) said.textContent = 'A link to the picture, first.'; return; }
-  el.disabled = true;
-  if (said) said.textContent = 'Posting…';
+  if (!POST_FILES.length) { if (said) said.textContent = 'Choose a picture first.'; return; }
+  const list = POST_FILES.map(x => x.data);
+  const size = list.reduce((n, x) => n + x.length, 0);
+  if (size > CAM_POST_MAX) { if (said) said.textContent = 'That is too much for one post — take a picture or two out.'; return; }
   /* SENT, SO NOT A DRAFT ON ANY OTHER PAGE — a reload while the server answered opened the sheet holding
      the post that had just gone up, for a second one (`draftSent_`, data.js). */
   POST_DRAFT_FIELDS.forEach(f => { try { draftSent_('post', f); } catch (e) {} });
 
-  api({ action: 'addPost',
+  send_({ action: 'addPost',
     name: USER.name, adminName: USER.name, personId: (USER && USER.personId) || '',
-    /* THE ADDRESS OF THE PICTURE, and nothing else. No bytes go anywhere: the picture stays where
-       it already is, which is the only reason this app no longer needs permission to write to your
-       Drive at all. */
-    image: link,
-    /* THE REST, AS A LIST — see `addPost`. A backend older than the `media` column ignores it and
-       posts the first, which is what this form always did. */
-    media: links.slice(1),
+    /* THE PICTURES THEMSELVES, as data — kept in the business's posts folder by `addPost`, never a link. */
+    data: list[0],
+    media: list.slice(1),
     caption: ($('post-cap') || {}).value || '',
     location: ($('post-loc') || {}).value || '',
     poll: ($('post-poll') || {}).value || '',
-    postAs: ($('post-as') || {}).dataset?.as || 'brand',
-    body: ($('post-body') || {}).value || '' })
+    postAs: postAsOf_('post-as'),
+    body: ($('post-body') || {}).value || '' }, { button: el, busy: 'Posting…', where: 'post-said' })
     .then(d => {
-      if (d && d.error) throw new Error(d.error);
       /* ON THE SHEET, SO THE SHEET'S DRAFTS GO — see the note over `new-post`'s boxes. */
       POST_DRAFT_FIELDS.forEach(f => { try { draftDrop_('post', f); } catch (e) {} });
-      closeSheet(); toast('Posted'); load();
+      POST_FILES = [];
+      closeSheet(); toast(d && d.pending ? 'Posted — waiting for approval' : 'Posted'); load();
     })
-    .catch(err => {
-      el.disabled = false;
-      POST_DRAFT_FIELDS.forEach(f => { try { draftSentBack_('post', f); } catch (e) {} });
-      if (said) said.textContent = String(err.message || 'Could not post that');
-    });
+    .catch(() => { POST_DRAFT_FIELDS.forEach(f => { try { draftSentBack_('post', f); } catch (e) {} }); });
 });
 
 /* ---------- EDITING A POST § */
+/* TWO SHEETS (413): its author's words while it waits; once it is up only an admin's pin and date — the words are final. */
 on('post-edit', el => {
   const p = (DATA.posts || []).find(x => x.id === el.dataset.id);
   if (!p) return;
+  const words = !!(p.waiting && p.mine);
   /* The options only, not the counts. What the site holds is what a phone was sent; the sheet's
      cell is the source, and the two are the same list while nobody has voted. */
   const opts = p.poll ? (p.poll.options || []).join(', ') : '';
   const voted = !!(p.poll && p.poll.total);
 
-  openSheet('Edit post', `
+  openSheet(words ? 'Edit post' : 'Pin or date', `
     ${p.image ? `<img src="${esc(pic(p.image))}" decoding="async" alt=""
          style="width:100%;margin-bottom:.7rem">` : ''}
     ${/* EACH BOX A DRAFT OF THE EDIT (data.js; 317), drawn from the saved post when there is none and
           dropped on Save — so a reload mid-edit reopens the sheet holding the edit, not the post. */''}
-    <label class="field"><span>caption</span>
+    ${words ? `<label class="field"><span>caption</span>
       <input id="pe-cap" value="${esc(draftVal_('post-edit', p.id + ':cap', p.caption || ''))}"${draftAttr_('post-edit', p.id + ':cap', p.caption || '')}></label>
     <label class="field"><span>more</span>
       <textarea id="pe-body"${draftAttr_('post-edit', p.id + ':body', p.body || '')}>${esc(draftVal_('post-edit', p.id + ':body', p.body || ''))}</textarea></label>
     <label class="field"><span>where</span>
       <input id="pe-loc" value="${esc(draftVal_('post-edit', p.id + ':loc', p.location || ''))}"${draftAttr_('post-edit', p.id + ':loc', p.location || '')}></label>
-    ${/* The date is editable because the feed is ORDERED by it. A post that arrived in the folder
-          with the wrong timestamp sits in the wrong place for ever otherwise, and the only way to
-          fix it was to open the spreadsheet. */''}
-    <label class="field"><span>posted on</span>
-      <input id="pe-when" value="${esc(draftVal_('post-edit', p.id + ':when', p.when || ''))}" placeholder="DD/MM/YYYY HH:MM:SS"${draftAttr_('post-edit', p.id + ':when', p.when || '')}></label>
     ${/* A VOTE IS STORED AGAINST THE WORDS. § */
           ''}
     <label class="field"><span>poll</span>
       <input id="pe-poll" value="${esc(voted ? opts : draftVal_('post-edit', p.id + ':poll', opts))}" placeholder="Yes, No, Maybe" ${voted ? 'disabled' : draftAttr_('post-edit', p.id + ':poll', opts)}>
       ${voted ? `<span class="faint">${p.poll.total} vote${p.poll.total === 1 ? '' : 's'} cast —
-        the options are fixed now. A vote is stored against the words, so changing them would
-        strand it.</span>` : ''}</label>
-
+        the options are fixed now.</span>` : ''}</label>` : `
+    ${/* The date is editable because the feed is ORDERED by it — a post from the folder with the wrong timestamp sits in the wrong place for ever otherwise. */''}
+    <label class="field"><span>posted on</span>
+      <input id="pe-when" value="${esc(draftVal_('post-edit', p.id + ':when', p.when || ''))}" placeholder="DD/MM/YYYY HH:MM:SS"${draftAttr_('post-edit', p.id + ':when', p.when || '')}></label>
     <label class="check">
       <input type="checkbox" id="pe-pin" ${p.pinned ? 'checked' : ''}>
       <span class="box"></span>
       <span>Pin to the top<br><span class="faint">Above everything, whatever its date.</span></span>
-    </label>
+    </label>`}
 
     <button class="btn" data-do="post-save" data-id="${esc(p.id)}">Save</button>
     <div class="btn-row" style="margin-top:.5rem">
-      ${/* Only Delete. The button used to say "Restore" on a post that was already deleted — and a deleted post is not in the feed now, so there is no card to open to § */
-             ''}
-      <button class="btn danger" data-do="post-delete"
-              data-id="${esc(p.id)}" data-on="">Delete</button>
+      <button class="btn danger" data-do="post-delete" data-id="${esc(p.id)}" data-on="">Delete</button>
     </div>
-    <p class="faint" id="pe-said" style="margin:.6rem 0 0">
-      It disappears from the feed. Nothing is destroyed — the picture stays in Drive, the
-      reactions stay counted, and the row stays on the posts tab. To bring one back, set its
-      <code>active</code> cell to TRUE.</p>`);
+    <p class="faint" id="pe-said" style="margin:.6rem 0 0">${words
+      ? 'You can change it until it is approved. After that it stays as it is — you can still delete it.'
+      : 'Once a post is up its words and pictures stay as they are. To change them, delete it and post again.'}</p>`);
 });
 
 /* LETTING ONE THROUGH, or turning it down. `data-on` carries which — an empty string is false to
@@ -1942,7 +1903,7 @@ on('post-approve', el => {
   /* TWO PRESSES, NOT A confirm() — the same pattern as `post-delete` below, and for the same reason: § */
   if (!on && !sure_(el, 'Turn it down?')) return;
   el.disabled = true;
-  api({ action: 'approvePost', adminName: USER.name, name: USER.name,
+  api({ action: 'approvePost', adminName: USER.name, name: USER.name, personId: USER.personId || '',
         id: el.dataset.id, on: on ? 'TRUE' : 'FALSE' })
     .then(d => {
       if (d && d.error) { el.disabled = false; toast(d.error); return; }
@@ -1954,6 +1915,7 @@ on('post-approve', el => {
 
 on('post-save', el => {
   const v = id => (($(id) || {}).value || '').trim();
+  const has = id => !!$(id);
   const said = $('pe-said');
   const p = (DATA.posts || []).find(x => x.id === el.dataset.id);
   const voted = !!(p && p.poll && p.poll.total);
@@ -1965,18 +1927,18 @@ on('post-save', el => {
     return;
   }
 
-  const fields = {
-    caption: v('pe-cap'), body: v('pe-body'), location: v('pe-loc'),
-    posted_on: v('pe-when'), pinned: ($('pe-pin') || {}).checked,
-  };
+  /* ONLY WHAT THIS SHEET SHOWS — the server refuses a field this person may not change on this post (413). */
+  const fields = {};
+  if (has('pe-cap')) Object.assign(fields, { caption: v('pe-cap'), body: v('pe-body'), location: v('pe-loc') });
   /* Left out ENTIRELY rather than sent unchanged — the server tests whether the field was sent at
      all, and sending it back identical would still count as an attempt to change it. */
-  if (!voted) fields.poll = v('pe-poll');
+  if (has('pe-poll') && !voted) fields.poll = v('pe-poll');
+  if (has('pe-pin')) Object.assign(fields, { posted_on: v('pe-when'), pinned: ($('pe-pin') || {}).checked });
 
   el.disabled = true;
   if (said) said.textContent = 'Saving…';
   api({ action: 'editPost',
-    name: USER.name, adminName: USER.name, id: el.dataset.id, fields })
+    name: USER.name, adminName: USER.name, personId: USER.personId || '', id: el.dataset.id, fields })
     .then(d => {
       if (d && d.error) throw new Error(d.error);
       ['cap', 'body', 'loc', 'when', 'poll'].forEach(f => { try { draftDrop_('post-edit', el.dataset.id + ':' + f); } catch (e) {} });
@@ -1988,31 +1950,27 @@ on('post-save', el => {
     });
 });
 
-/* TWO PRESSES. Not a browser confirm() — it is the one dialogue on a phone that looks like the page has been taken over by something else, and it cannot say what § */
+/* TWO PRESSES, not a confirm() — `sure_` (receipt.js), the tile's and the sheet's alike. An author takes their own down; an admin any (413). */
 on('post-delete', el => {
   const restoring = !!el.dataset.on;
-  if (!el.dataset.sure && !restoring) {
-    el.dataset.sure = '1';
-    el.textContent = 'Really delete?';
-    setTimeout(() => { if (el.dataset.sure) { delete el.dataset.sure; el.textContent = 'Delete'; } }, 4000);
-    return;
-  }
+  if (!restoring && !sure_(el, 'Really delete?')) return;
   const said = $('pe-said');
   el.disabled = true;
   if (said) said.textContent = restoring ? 'Restoring…' : 'Deleting…';
 
   api({ action: 'deletePost',
-    name: USER.name, adminName: USER.name, id: el.dataset.id, on: restoring })
+    name: USER.name, adminName: USER.name, personId: USER.personId || '', id: el.dataset.id, on: restoring })
     .then(d => {
       if (d && d.error) throw new Error(d.error);
-      closeSheet();
-      toast(restoring ? 'Back on the feed' : 'Deleted — still there, switched off');
+      if (el.closest && el.closest('#sheet')) closeSheet();
+      toast(restoring ? 'Back on the feed' : 'Deleted');
       load();
     })
     .catch(err => {
-      el.disabled = false; delete el.dataset.sure;
-      el.textContent = restoring ? 'Restore' : 'Delete';
-      if (said) said.textContent = String(err.message || 'Could not do that');
+      el.disabled = false;
+      delete el.dataset.sure; sureBack_(el);
+      const why = String(err.message || 'Could not do that');
+      if (said) said.textContent = why; else toast(why);
     });
 });
 
@@ -2023,6 +1981,11 @@ on('post-delete', el => {
 /* ONE PAGE, AND IT IS THE CAMERA. § */
 /* ---------- IT WAS A COLUMN, AND IT IS ONE PAGE OF THE FEED NOW § */
 function feedCamCard_() {
+  /* A CHILD HAS NO CAMERA HERE AND NO PICKER (413): nothing on this card could upload, and the server would refuse it. */
+  if (USER && !mayUpload_()) {
+    return `<div class="card cam-kid"><h3>Camera</h3>
+      <p class="sub">Pictures go up from a grown-up's account — ask your parent or tutor to post one.</p></div>`;
+  }
   return USER
     ? cameraCard()
     : `<div class="card"><h3>Camera</h3>
@@ -2601,8 +2564,12 @@ function dmFace_(t) {
     .concat(famMine && Array.isArray(DATA.family) ? DATA.family : [])
     .concat(typeof isAdmin === 'function' && isAdmin() && DATA && Array.isArray(DATA.everyone) ? DATA.everyone : []);
   const id = String(t.id || '');
-  const who = (id && rows.find(r => r && String(r.personId || '') === id))
+  /* THE SERVER'S WORD FIRST (413): `messages` sends each correspondent's chosen picture, or their figure when none is chosen — a parent or a child too, not only a tutor. */
+  const sent = (t.msgs || []).map(m => m && m.withFace).filter(f => f && typeof f === 'object').pop();
+  const listed = (id && rows.find(r => r && String(r.personId || '') === id))
     || rows.find(r => r && t.name && norm(r.title || '') === norm(t.name));
+  const who = sent ? { image: String(sent.pic || ''), avatar: typeof sent.avatar === 'string' ? sent.avatar : (listed || {}).avatar,
+                       handle: (listed || {}).handle || t.name, title: t.name, personId: id } : listed;
   if (!who) return `<span class="dm-av" aria-hidden="true">${letter}</span>`;
   const face = personFace_({ pic: who.image, avatar: who.avatar, handle: who.handle, name: t.name || who.title,
                              personId: who.personId }, { cls: 'dm-pic', size: 32 });
@@ -2672,3 +2639,152 @@ function dmFoot_() {
 /* THE ONLY WAY BACK TO THE SERVER ONCE THE SCREEN IS UP. The fetch above runs once, so without this
    a message that arrived after the tab was first opened would not appear until a reload. */
 on('dm-refresh', () => { loadMessages().then(() => { paint('dm'); setTimeout(dmFoot_, 0); }); });
+
+
+/* ---------- A POST AS A PNG (413): "share a post as a PNG of the full post widget" ----------
+   On a canvas in the stylesheet's own black and gold: face, name, picture, words, reactions, brand, link. */
+const PPNG_W = 1080, PPNG_M = 72;
+function ppngTokens_() {
+  let cs = null;
+  try { cs = getComputedStyle(document.documentElement); } catch (e) {}
+  const v = (k, or) => { const s = cs ? String(cs.getPropertyValue(k) || '').trim() : ''; return s || or; };
+  return { bg: v('--bg', '#000'), raised: v('--raised', '#0b0b0b'), line: v('--line', '#232323'), ink: v('--ink', '#e6e6e6'),
+           dim: v('--dim', '#9a9a9a'), gold: v('--gold', '#ffb454'), font: v('--font', 'ui-monospace, monospace') };
+}
+/* AN IMAGE THE CANVAS MAY EXPORT, OR NULL: straight, with CORS; else through `imageData` (the backend's proxy); else nothing. */
+function ppngImg_(src) {
+  const load = (u, cors) => new Promise(ok => {
+    if (!u) return ok(null);
+    const img = new Image();
+    let over = false;
+    const end = v => { if (!over) { over = true; ok(v); } };
+    setTimeout(() => end(null), 5000);
+    if (cors) img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try { const c = document.createElement('canvas'); c.width = c.height = 1; const g = c.getContext('2d'); g.drawImage(img, 0, 0, 1, 1); g.getImageData(0, 0, 1, 1); end(img); }
+      catch (e) { end(null); }
+    };
+    img.onerror = () => end(null);
+    img.src = u;
+  });
+  if (!src) return Promise.resolve(null);
+  if (/^data:/i.test(src)) return load(src, false);
+  return load(src, true).then(img => img || (typeof api === 'function'
+    ? api({ action: 'imageData', url: src }).then(d => (d && d.dataUri ? load(d.dataUri, false) : null), () => null)
+    : null));
+}
+const ppngSvg_ = s => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(String(s)
+  .replace(/<svg(?![^>]*xmlns=)/, '<svg xmlns="http://www.w3.org/2000/svg"').replace(/\sclip-path="url\(#av-clip\)"/g, ''));
+/* THE AUTHOR'S FACE BY THE CARD'S OWN ORDER (`postCard_`): their photo or picture or figure, else the brand's mark, else the initial. */
+function ppngFace_(p) {
+  const v = picKind_(p.avatar) ? String(p.avatar) : (brand('logo_square') || brand('logo_circle') || '');
+  const kind = picKind_(v);
+  try {
+    if (kind === 'photo') return ppngImg_(pic(v));
+    if (kind === 'basic') return ppngImg_(ppngSvg_(pfpArt_(pfpChoice_(v), 240)));
+    if (kind === 'avatar' && typeof p.figure === 'string') return ppngImg_(ppngSvg_(avatarFor(p.handle || p.author, 240, p.figure, { bust: true })));
+  } catch (e) {}
+  return Promise.resolve(null);
+}
+/* WORDS INTO AT MOST `max` LINES OF `w` PIXELS, the last cut with an ellipsis. */
+function ppngWrap_(g, text, w, max) {
+  const out = [];
+  String(text || '').split(/\n+/).forEach(par => {
+    let cur = '';
+    par.split(/\s+/).filter(Boolean).forEach(word => {
+      while (g.measureText(word).width > w && word.length > 1) {
+        let k = word.length - 1;
+        while (k > 1 && g.measureText(word.slice(0, k)).width > w) k--;
+        if (cur) { out.push(cur); cur = ''; }
+        out.push(word.slice(0, k)); word = word.slice(k);
+      }
+      const next = cur ? cur + ' ' + word : word;
+      if (g.measureText(next).width <= w) cur = next; else { out.push(cur); cur = word; }
+    });
+    if (cur) out.push(cur);
+  });
+  if (out.length > max) {
+    const kept = out.slice(0, max);
+    let last = kept[max - 1] + '…';
+    while (last.length > 1 && g.measureText(last).width > w) last = last.slice(0, -2) + '…';
+    kept[max - 1] = last;
+    return kept;
+  }
+  return out;
+}
+function postPng_(p, url) {
+  const media = postMedia_(p).filter(u => !postIsVideo_(u));
+  const fonts = document.fonts && document.fonts.load
+    ? Promise.race([Promise.all(['700 40px', '400 30px'].map(f => document.fonts.load(f + ' "Family Code"'))).catch(() => {}), new Promise(r => setTimeout(r, 2000))])
+    : Promise.resolve();
+  const logoSrc = brand('logo_square', '') || brand('logo_circle', '');
+  return Promise.all([ppngFace_(p), media[0] ? ppngImg_(pic(media[0])) : null, logoSrc ? ppngImg_(pic(logoSrc)) : null, fonts])
+    .then(([face, photo, logo]) => {
+      const C = ppngTokens_(), F = C.font, W = PPNG_W, M = PPNG_M, inner = W - 2 * M;
+      const probe = document.createElement('canvas').getContext('2d');
+      if (!probe) throw new Error('no canvas');
+      const who = String(p.handle || p.author || brand('name', '@family.'));
+      probe.font = '400 32px ' + F;
+      const cap = p.caption ? ppngWrap_(probe, who + '  ' + p.caption, inner, 8) : [];
+      probe.font = '400 28px ' + F;
+      const body = p.body ? ppngWrap_(probe, p.body, inner, 8) : [];
+      const r = p.reactions || {};
+      const total = (Array.isArray(r.counts) ? r.counts : []).reduce((n, x) => n + (Number(x) || 0), 0);
+      const iw = photo ? (photo.naturalWidth || photo.width || 1) : 0, ih = photo ? (photo.naturalHeight || photo.height || 1) : 0;
+      /* THE PICTURE'S OWN SHAPE, between 16:9 and 4:5 — the card's own limits. */
+      const ph = photo ? Math.round(inner * Math.min(1.25, Math.max(0.5625, ih / iw))) : 0;
+      const H = 60 + 150 + (ph ? ph + 40 : 0) + cap.length * 46 + (cap.length ? 16 : 0) + body.length * 40 + (body.length ? 16 : 0)
+              + (total ? 56 : 0) + 190;
+      const cv = document.createElement('canvas');
+      cv.width = W; cv.height = H;
+      const g = cv.getContext('2d');
+      const text = (t, x, y, size, colour, weight, align) => { g.font = (weight || 400) + ' ' + size + 'px ' + F; g.fillStyle = colour; g.textAlign = align || 'left'; g.fillText(t, x, y); };
+      g.fillStyle = C.bg; g.fillRect(0, 0, W, H);
+      g.strokeStyle = C.gold; g.globalAlpha = .55; g.lineWidth = 3;
+      g.beginPath(); if (g.roundRect) g.roundRect(24, 24, W - 48, H - 48, 26); else g.rect(24, 24, W - 48, H - 48); g.stroke();
+      g.globalAlpha = 1;
+      /* THE HEAD: the face in a gold ring, the name, where. */
+      let y = 60;
+      const fx = M + 46, fy = y + 56, fr = 46;
+      g.save(); g.beginPath(); g.arc(fx, fy, fr, 0, Math.PI * 2); g.clip();
+      g.fillStyle = C.raised; g.fillRect(fx - fr, fy - fr, fr * 2, fr * 2);
+      if (face) {
+        const w0 = face.naturalWidth || face.width || 1, h0 = face.naturalHeight || face.height || 1, sq = Math.min(w0, h0);
+        g.drawImage(face, (w0 - sq) / 2, (h0 - sq) / 2, sq, sq, fx - fr, fy - fr, fr * 2, fr * 2);
+      } else { g.textBaseline = 'middle'; text(initial(who), fx, fy + 2, 46, C.gold, 700, 'center'); g.textBaseline = 'alphabetic'; }
+      g.restore();
+      g.beginPath(); g.arc(fx, fy, fr + 3, 0, Math.PI * 2); g.strokeStyle = C.gold; g.lineWidth = 4; g.stroke();
+      probe.font = '700 38px ' + F;
+      text(ppngWrap_(probe, who, inner - 130, 1)[0] || who, fx + fr + 26, fy + (p.location ? -4 : 13), 38, C.ink, 700);
+      if (p.location) { probe.font = '400 26px ' + F; text(ppngWrap_(probe, p.location, inner - 130, 1)[0], fx + fr + 26, fy + 34, 26, C.dim); }
+      y += 150;
+      if (photo) {
+        const want = inner / ph, have = iw / ih;
+        let sx = 0, sy = 0, sw = iw, sh = ih;
+        if (have > want) { sw = ih * want; sx = (iw - sw) / 2; } else { sh = iw / want; sy = (ih - sh) / 2; }
+        g.save(); g.beginPath(); if (g.roundRect) g.roundRect(M, y, inner, ph, 14); else g.rect(M, y, inner, ph); g.clip();
+        g.drawImage(photo, sx, sy, sw, sh, M, y, inner, ph); g.restore();
+        if (media.length > 1) text('+' + (media.length - 1) + ' more', W - M - 14, y + ph - 18, 26, C.ink, 700, 'right');
+        y += ph + 40;
+      }
+      cap.forEach((line, i) => {
+        y += 38;
+        if (i === 0 && line.indexOf(who) === 0) { text(who, M, y, 32, C.ink, 700); probe.font = '700 32px ' + F; text(line.slice(who.length), M + probe.measureText(who).width, y, 32, C.ink); }
+        else text(line, M, y, 32, C.ink);
+        y += 8;
+      });
+      if (cap.length) y += 16;
+      body.forEach(line => { y += 34; text(line, M, y, 28, C.dim); y += 6; });
+      if (body.length) y += 16;
+      if (total) { y += 40; text((Array.isArray(r.emoji) ? r.emoji.slice(0, 3).join(' ') + '  ' : '') + total + (total === 1 ? ' reaction' : ' reactions'), M, y, 28, C.dim); y += 16; }
+      /* THE FOOT: the brand and the link back to this post. */
+      const fy2 = H - 150;
+      g.fillStyle = C.line; g.fillRect(M, fy2, inner, 2);
+      let bx = M;
+      if (logo) { g.save(); g.beginPath(); g.arc(M + 28, fy2 + 62, 28, 0, Math.PI * 2); g.clip(); g.drawImage(logo, M, fy2 + 34, 56, 56); g.restore(); bx = M + 74; }
+      text(brand('name', '@family.'), bx, fy2 + 60, 36, C.gold, 700);
+      probe.font = '400 22px ' + F;
+      text(ppngWrap_(probe, String(url || '').replace(/^https?:\/\//, ''), inner - (bx - M), 1)[0] || '', bx, fy2 + 96, 22, C.dim);
+      return cv;
+    });
+}
