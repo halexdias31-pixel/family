@@ -7,9 +7,9 @@
 # device keeps (see `splashSync_` in js/shell.js). The scripts in tools/ that generate those drawings
 # wrote into index.html and style.css; they write the row through here instead.
 #
-# FOR A ROW A SCRIPT WRITES, THE SCRIPT IS THE SOURCE, AND THE ROW IS ITS OUTPUT. One hundred and twenty-seven of them:
+# FOR A ROW A SCRIPT WRITES, THE SCRIPT IS THE SOURCE, AND THE ROW IS ITS OUTPUT. One hundred and forty-nine of them:
 #
-# WRITTEN BY A SCRIPT: abinom achain aexp afirst ageom ahyp aincline amoment anormal aparam apascal aproj apulley area ariemann aroot2 asch aunit avec3 bayes bin bubble bus cent coin eapos earc eforest emetre epeel escrooge esent ezoom fadd fde fdp fib fit gal gates gbal gcf gcomp genl gexp gfac ggcoast ggcontour ggdtm gggreen gggrid ggmeander ggplate ggquake ggstorm ggwater gquad grot grule gsemi gsim gsimi gsoh gsurd gtree gvec hbal hcur hex hexp hinf hmed hnop hweb hweim index insert ivdv lens line lmul mean merge milg msm mxc neg orbit packet pcause pcave pdoubt peri pfall phcirc phdrop phem phfiss phforce phhalf phheat phiv phmom phmotor phrefr phsank phstate phvt phwave piag pixel prot psyll ptrolley pv pwatch pyth ratio rle samp search sieve sine stack syn trans venn
+# WRITTEN BY A SCRIPT: abinom achain aexp afirst ageom ahyp aincline amoment anormal aparam apascal aproj apulley area ariemann aroot2 asch atom aunit avec3 balance bayes bin bubble bus carbon cell cent coin covalent dna eapos earc eforest electro emetre enzyme epeel equil escrooge esent ezoom fadd fde fdp fib fit frac gal gates gbal gcf gcomp genl gexp gfac ggcoast ggcontour ggdtm gggreen gggrid ggmeander ggplate ggquake ggstorm ggwater gquad grot groups grule gsemi gsim gsimi gsoh gsurd gtree gvec hbal hcur heart hex hexp hinf hmed hnop hweb hweim index insert ionic ivdv lens line lmul mean merge milg mitosis moles msm mxc natsel neg orbit osmosis packet pcause pcave pdoubt peri pfall phcirc phdrop phem phfiss phforce phhalf phheat phiv phmom phmotor photo phrefr phsank phstate phvt phwave piag pixel prot psyll ptrolley punnett pv pwatch pyth rates ratio reflex rle samp search sieve sine stack syn titrate trans venn
 #
 # (`gal` is tools/galton.py, `orbit` tools/solar.py, the GCSE Maths sixteen whose ids start with g are
 # tools/g_<topic>.py — `gexp` is g_expand.py — and an A-level `a<name>` is tools/a_<name>.py; every other
