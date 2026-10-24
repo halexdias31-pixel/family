@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-24-j-stripe-dead";
+const DOGET_VERSION = "2026-10-24-k-booked-hours";
 
 
 function doGet(e) {
@@ -555,6 +555,8 @@ function doGet(e) {
               min: t.min, max: t.max, notes: S(x.notes),
               /* A room's own opening hours. § */
               avail: availGridOut(t.availability),
+              /* WHAT IS ALREADY BOOKED IN IT (434), as `m16` codes, so the grid greys a taken room the way it greys a busy tutor. */
+              busy: spaceBusy(S(r.name) + ' \u2014 ' + S(x.name)),
               fields: ROOM_EDITABLE.reduce((a, f) => { a[f] = S(x[f]); return a; }, {})
             };
           }),

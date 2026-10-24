@@ -348,8 +348,10 @@ function slotGrid() {
   /* NOTHING SET WAS READ AS EVERYTHING FREE, and for a TUTOR that is over. § */
   /* ---------- AND WHAT THE TUTOR IS ALREADY TEACHING § */
   const tBusy = (t && t.busy) || {};
+  /* AND WHAT THE ROOM ALREADY HOLDS (434): the server refuses a clash, so the grid says so first. */
+  const sBusy = (sp && sp.busy) || {};
   const tNone = !!t && !haveT;
-  const open = code => !tNone && (!haveT || tAvail[code]) && (!haveV || vAvail[code]) && !tBusy[code];
+  const open = code => !tNone && (!haveT || tAvail[code]) && (!haveV || vAvail[code]) && !tBusy[code] && !sBusy[code];
   /* WHY it is not free, so the grid can say. A tutor who does not work Tuesdays and a tutor who is
      already teaching that Tuesday look identical greyed out, and only one of them is worth asking
      about a different week. */
@@ -358,6 +360,7 @@ function slotGrid() {
      apart from being the same variable. */
   const whyShut = code => tNone ? 'no hours set'
     : tBusy[code] ? 'teaching ' + tBusy[code]
+    : sBusy[code] ? 'room booked'
     : (haveT && !tAvail[code]) ? 'not available'
     : (haveV && !vAvail[code]) ? 'venue closed' : '';
 
