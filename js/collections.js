@@ -124,13 +124,8 @@ function spotlightCards_() {
   if (typeof awaiting_ === 'function' && awaiting_()) return [loading_()];
   const cards = spotPages();
   if (cards.length) return cards;
-  /* AN ADMIN IS TOLD HOW TO FILL IT, because they are the only person who can — and a column that says "nothing here" to the one person able to change that is the § */
-  const admin = typeof isAdmin === 'function' && isAdmin();
-  return [`<div class="card"><h3>Spotlight</h3><p class="note">${admin
-    ? `Nothing in the window yet.<br><span class="faint">Press <b>Spotlight</b> on a card — a
-       tutor, a class, a thing in the shop — and it turns up here for everybody.</span>`
-    : `Nothing is being featured just now.<br><span class="faint">This is where @family. puts the
-       things worth a look.</span>`}</p></div>`];
+  /* THE EMPTY STATE IS ITS TITLE AND ONE LINE (432); the admin's how-to went with the faint sentences. */
+  return [`<div class="card"><h3>Spotlight</h3><p class="note">Nothing is being featured just now.</p></div>`];
 }
 
 

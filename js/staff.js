@@ -102,23 +102,23 @@ on('agree-sign', el => {
 });
 
 /* ---------- ON YOUR OWN CARD: THE TILE BESIDE "SHARE MY PROFILE", AND ONE LINE UNDER THE ROW UNTIL THE TERMS ARE AGREED ---------- */
-const hubTile_ = () => hubFor_() ? tile_({ icon: 'key', label: 'Staff hub', note: termsAgreed_() ? 'terms, pricing, statement' : 'terms to agree',
+const hubTile_ = () => hubFor_() ? tile_({ icon: 'key', label: 'Staff hub', note: termsAgreed_() ? 'terms, hours, pricing, statement' : 'terms to agree',
   act: 'hub-open', tone: termsAgreed_() ? '' : 'admin' }) : '';
 const hubWarn_ = () => hubFor_() && !termsAgreed_()
   ? `<p class="hub-warn" role="status">${USER.agreementSignedAt ? 'The tutor terms have changed.' : 'You have not agreed to the tutor terms yet.'}
      Open Staff hub to read them and tick I agree — until then @family. sees you as not agreed.</p>` : '';
 
-/* ---------- THE HUB: ONE SHEET, THREE PARTS ---------- */
+/* ---------- THE HUB: ONE SHEET, FOUR PARTS — Hours joined in 432, the one place a tutor sets the week they teach ---------- */
 const HUB = { part: 'terms' };
-const HUB_PARTS = [['terms', 'doc', 'Terms'], ['pricing', 'edit', 'Pricing'], ['statement', 'print', 'Statement']];
+const HUB_PARTS = [['terms', 'doc', 'Terms'], ['hours', 'tick', 'Hours'], ['pricing', 'edit', 'Pricing'], ['statement', 'print', 'Statement']];
 function hubTilesHtml_() {
   return `<div class="tile-row hub-tabs">${HUB_PARTS.map(([k, icon, label]) => tile_({ icon, label, act: 'hub-part', data: { part: k },
     on: HUB.part === k, pressed: HUB.part === k,
-    note: k === 'terms' ? (termsAgreed_() ? 'agreed' : 'to agree') : k === 'pricing' ? 'what you charge' : 'each month' })).join('')}</div>`;
+    note: k === 'terms' ? (termsAgreed_() ? 'agreed' : 'to agree') : k === 'hours' ? 'when you teach' : k === 'pricing' ? 'what you charge' : 'each month' })).join('')}</div>`;
 }
 const hubTilesRedraw_ = () => { const r = document.querySelector('#sheet-body .hub-tabs'); if (r) r.outerHTML = hubTilesHtml_(); };
 function hubHtml_() {
-  const body = HUB.part === 'pricing' ? priceHtml_() : HUB.part === 'statement' ? stmtHtml_() : agreementCard_();
+  const body = HUB.part === 'hours' ? hoursHtml_() : HUB.part === 'pricing' ? priceHtml_() : HUB.part === 'statement' ? stmtHtml_() : agreementCard_();
   return `<div class="hub" data-hub="${esc(HUB.part)}">${hubTilesHtml_()}<div class="hub-body">${body}</div></div>`;
 }
 function hubOpen_(part) {
@@ -131,6 +131,17 @@ function hubOpen_(part) {
 }
 on('hub-open', () => hubOpen_(termsAgreed_() ? '' : 'terms'));
 on('hub-part', el => hubOpen_(el.dataset.part));
+
+/* ---------- HOURS: THE WEEK YOU CAN TEACH, `availGrid_` (me.js) over your own row, saved by `me-save` like every profile field ---------- */
+function hoursHtml_() {
+  const codes = typeof availCodes_ === 'function' ? availCodes_() : [];
+  if (!codes.length && typeof awaiting_ === 'function' && awaiting_()) return loading_();
+  if (!codes.length) return '<p class="note hub-hours-none">This server sends no hours to set.</p>';
+  return `<div class="me-form hub-hours"><p class="sub">A family booking a session only sees the hours you have ticked.</p>
+    ${availGrid_(codes, USER.profile || {}, (DATA && DATA.profileReadonly) || [], true)}
+    <div class="tile-row">${tile_({ icon: 'save', label: 'Save my hours', act: 'me-save' })}</div>
+    <p class="faint me-said" aria-live="polite"></p></div>`;
+}
 
 /* ---------- PRICING: YOUR RATE AND EXTRA SEAT, AND WHERE A BOOKING'S MONEY GOES ----------
    Every figure is `priceFrom` → `bookMoney_` (core.js) over the row being typed — the booking's own sum, never a second one. */

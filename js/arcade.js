@@ -98,9 +98,8 @@ function savedCards_() {
     || (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null && !LIBRARY_FAILED);
   const cards = wgts.concat(rest, coming ? [loading_()] : []);
   if (cards.length) return cards;
-  return [`<div class="card"><h3>Saved</h3><p class="note">Nothing kept yet.<br>
-    <span class="faint">Press <b>Save</b> on a tool, a game or anything you find and it turns up
-    here.</span></p></div>`];
+  /* THE EMPTY STATE IS ITS TITLE AND ONE LINE (432) — no faint sentence explaining the column under it. */
+  return [`<div class="card"><h3>Saved</h3><p class="note">Nothing kept yet.</p></div>`];
 }
 
 /* STARTED AND STOPPED LIKE THE OTHER TWO COLUMNS. A starred timer is a running timer, and a canvas
@@ -468,9 +467,10 @@ screen('saved', () => pages('saved', savedCards_()));
 screen('spotlight', () => pages('spotlight', spotlightCards_()));
 /* ---------- PROGRESS: A COLUMN WAITING TO BE BUILT, AND IT SAYS SO § */
 /* ---------- YOUR JOURNEY, MOVED HERE FROM THE SETTINGS COLUMN § */
+/* A STUDENT'S CARD, AND THE ADMIN'S TO SEE IT — by rank (400), never the role string. */
 function mayJourney_() {
-  if (typeof hasRole !== 'function') return false;
-  return hasRole('student') || hasRole('admin');
+  if (typeof rank_ !== 'function') return false;
+  return rank_() === 'student' || rankAtLeast_('admin');
 }
 function journeyCard_() {
   const prof = (USER && USER.profile) || {};

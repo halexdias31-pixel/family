@@ -280,7 +280,7 @@ function drawBooker_() {
   /* AND NO CHILDREN NOTE AT ALL WHEN THERE IS NO CLIENT. § */
   const noKids = USER && forWhom && !isWaiting_()
     && !bookStep_('kids').options().length
-    && norm(USER.role) !== 'tutor' && norm(USER.role) !== 'kid';
+    && rank_() !== 'staff' && rank_() !== 'student';
   const kidsNote = noKids
     ? `<p class="note" style="margin:.2rem 0 .6rem">No children are on
          ${mine ? 'your account' : esc(forWhom) + '&rsquo;s account'}, so we cannot ask which of

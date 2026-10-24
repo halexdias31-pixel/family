@@ -2347,6 +2347,14 @@ const STATES = {
       expect: () => document.querySelectorAll('#sheet-body .pb-row .pb-bar').length === 3
         && !!document.querySelector('#sheet-body input[type="range"][data-pv="rate"]') ? 1 : 0,
       wants: 'the pricing part: rate and seat controls and three bars, for 1, 2 and 3 students' },
+    { name: 'the Staff hub, hours',
+      only: () => typeof USER !== 'undefined' && !!USER && (isAdmin() || hubFor_()),
+      enter: () => { window.STATE_HUB_WAS = { roles: USER.roles }; USER.roles = (USER.roles || []).concat(['tutor']); hubOpen_('hours'); },
+      leave: () => { USER.roles = (window.STATE_HUB_WAS || {}).roles; closeSheet(); },
+      /* SEVENTY: seven days of `AVAIL_HOURS`, nine to six — the week the `avail` tool drew before 432. */
+      expect: () => document.querySelectorAll('#sheet-body .hub-hours .hr').length >= 70
+        && !!document.querySelector('#sheet-body .hub-hours [data-do="me-save"]') ? 1 : 0,
+      wants: 'the Hours part: the week of hours to tick and a Save my hours tile' },
     { name: 'the Staff hub, a statement',
       only: () => typeof USER !== 'undefined' && !!USER && (isAdmin() || hubFor_()),
       enter: () => {
@@ -3412,12 +3420,12 @@ const STATES = {
         const c = document.querySelector('#s-settings .page.on .roles-card');
         if (!c) return 0;
         const on = r => { const b = c.querySelector(`[data-role-pick="${r}"]`); return b ? b.checked : null; };
-        return on('tutor') === true && on('client') === true && on('student') === false
+        return on('tutor') === null && on('client') === true && on('student') === false
           && !c.querySelector('[data-role-pick="admin"]') && !c.querySelector('.role-admin')
           && /waiting for @family/.test((c.querySelector('.roles-said') || {}).textContent || '')
           && !!c.querySelector('.tile[data-do="roles-save"]') ? 1 : 0;
       },
-      wants: 'three role ticks, Tutor and Client ticked, no Admin tick, the waiting line and a Save tile' },
+      wants: 'one choice of two (432), Client chosen, no Tutor or Admin choice, the waiting line and a Save tile' },
 
     /* ---------- THE WEEKLY PARENT EMAIL'S CARD AND ITS PREVIEW WERE TWO STATES HERE § */
 
@@ -4181,18 +4189,7 @@ const STATES = {
       wants: 'the Check uploads tile, two ticks, two crosses, three numbered steps and an Allow tile',
       leave: () => { UPLOADS_SAID = null; uploadsPaint_(); } },
 
-    /* ---------- A TUTOR'S TEACHING HOURS § */
-    { name: 'a tutor\'s teaching hours',
-      only: () => typeof isTutorRole === 'function' && isTutorRole(),
-      enter: () => {
-        const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'avail');
-        if (n < 0) throw new Error('no availability widget in the roster');
-        goPage('tools', n, true);
-      },
-      /* SEVENTY: seven days of `AVAIL_HOURS`, nine to six — it was seventy-seven while that span
-         ran to seven o'clock, an hour the booking grid never offered. */
-      expect: () => document.querySelectorAll('#s-tools #avail-box .hr').length >= 70,
-      wants: 'the week of hours drawn on screen' },
+    /* A TUTOR'S TEACHING HOURS WERE A STATE HERE — the `avail` tool is gone; they are the Staff hub's Hours, a state on `account` (432). */
 
     /* ---------- A TIMETABLE WITH A WEEK IN IT § */
     { name: 'a timetable',

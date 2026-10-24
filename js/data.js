@@ -354,7 +354,7 @@ const isWearable = x => {
 };
 
 /* Whether the person signed in is an admin. § */
-const isAdmin = () => !!USER && roleOf(USER.role || '') === 'admin';
+const isAdmin = () => !!USER && rankAtLeast_('admin');
 
 /* ---------- THE LAWS § */
 
