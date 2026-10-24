@@ -82,6 +82,7 @@ when it was not told it could", never "is this past the right edge".
   - A-level Philosophy and RS `pcause pcave pdoubt pfall psyll ptrolley pwatch` (`tools/p_<name>.py`, 418)
   - GCSE Geography `ggcoast ggcontour ggdtm gggreen gggrid ggmeander ggplate ggquake ggstorm ggwater` (`tools/gg_<topic>.py`, 423)
   - GCSE Computer Science `bin bubble fde gates hex insert merge packet pixel rle search stack` (`tools/cs_<id>.py`, 424; a new one makes its row with `--init`)
+  - GCSE Psychology and Sociology `asch ivdv lens milg msm piag samp syn` (`tools/ps_<topic>.py`: `ivdv` ps_variables, `lens` ps_lenses, `milg` ps_milgram, `msm` ps_memory, `piag` ps_piaget, `samp` ps_sampling, `syn` ps_synapse; 426)
 
   For the rest the row is the source. Never in `index.html` or `style.css`; the splash draws a device-kept copy
   (`splashSync_`). `check-anims.js`, `check-loading.js`. A new one is a script on `anim_row.Loop` that writes its whole

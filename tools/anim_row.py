@@ -7,9 +7,9 @@
 # device keeps (see `splashSync_` in js/shell.js). The scripts in tools/ that generate those drawings
 # wrote into index.html and style.css; they write the row through here instead.
 #
-# FOR A ROW A SCRIPT WRITES, THE SCRIPT IS THE SOURCE, AND THE ROW IS ITS OUTPUT. One hundred and three of them:
+# FOR A ROW A SCRIPT WRITES, THE SCRIPT IS THE SOURCE, AND THE ROW IS ITS OUTPUT. One hundred and eleven of them:
 #
-# WRITTEN BY A SCRIPT: abinom achain aexp afirst ageom ahyp aincline amoment anormal aparam apascal aproj apulley area ariemann aroot2 aunit avec3 bayes bin bubble bus cent coin fadd fde fdp fib fit gal gates gbal gcf gcomp genl gexp gfac ggcoast ggcontour ggdtm gggreen gggrid ggmeander ggplate ggquake ggstorm ggwater gquad grot grule gsemi gsim gsimi gsoh gsurd gtree gvec hex index insert line lmul mean merge mxc neg orbit packet pcause pcave pdoubt peri pfall phcirc phdrop phem phfiss phforce phhalf phheat phiv phmom phmotor phrefr phsank phstate phvt phwave pixel prot psyll ptrolley pv pwatch pyth ratio rle search sieve sine stack trans venn
+# WRITTEN BY A SCRIPT: abinom achain aexp afirst ageom ahyp aincline amoment anormal aparam apascal aproj apulley area ariemann aroot2 asch aunit avec3 bayes bin bubble bus cent coin fadd fde fdp fib fit gal gates gbal gcf gcomp genl gexp gfac ggcoast ggcontour ggdtm gggreen gggrid ggmeander ggplate ggquake ggstorm ggwater gquad grot grule gsemi gsim gsimi gsoh gsurd gtree gvec hex index insert ivdv lens line lmul mean merge milg msm mxc neg orbit packet pcause pcave pdoubt peri pfall phcirc phdrop phem phfiss phforce phhalf phheat phiv phmom phmotor phrefr phsank phstate phvt phwave piag pixel prot psyll ptrolley pv pwatch pyth ratio rle samp search sieve sine stack syn trans venn
 #
 # (`gal` is tools/galton.py, `orbit` tools/solar.py, the GCSE Maths sixteen whose ids start with g are
 # tools/g_<topic>.py — `gexp` is g_expand.py — and an A-level `a<name>` is tools/a_<name>.py; every other
