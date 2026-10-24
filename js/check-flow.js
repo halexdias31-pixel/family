@@ -11726,8 +11726,9 @@ check('each column opens on the page worth reading', async () => {
   return bad;
 });
 
-/* ---------- PROGRESS: BETWEEN SAVED AND TOOLS, ONE CARD SAYING SO, AND NOTHING ON IT TO PRESS § */
-check('progress sits between Saved and Tools (392), one card with nothing to press — the placeholder, or a student\'s journey — and a swipe off Saved lands on it', async () => {
+/* ---------- PROGRESS: BETWEEN SAVED AND TOOLS, AND WITH NOTHING TO COUNT, EVERY WIDGET ITS TITLE ALONE (435) ---------- */
+const PROG_TITLES_ = ['Countdowns', 'Questions', 'Recent activity', 'Work on next', 'Grade estimate', 'Papers and worksheets', 'Sessions'];
+check('progress sits between Saved and Tools (392), and with nothing answered or booked every widget is its title alone with nothing to press — but a signed-in visitor\'s countdown to the next holiday — and a swipe off Saved lands on it', async () => {
   const cols = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'columns.json'), 'utf8'));
   const { w } = boot({ serve: u => (/(^|\/)data\/settings\/columns\.json(\?|$)/.test(u) ? cols : undefined) });
   await wait(600);
@@ -11754,39 +11755,34 @@ check('progress sits between Saved and Tools (392), one card with nothing to pre
     if (t.AT() !== 'tools') bad.push('a sideways swipe off Progress landed on ' + t.AT() + ', wanted Tools');
   }
 
-  /* THE CARD, FOR EVERY VISITOR — the third field is whether it is theirs to see their journey. */
-  const who = [['signed out', null, false],
-    ['a student', { name: 'Test Student', personId: 'P9', role: 'student', roles: ['student'], token: 'tk' }, true],
-    ['a parent', { name: 'Test Parent', personId: 'P8', role: 'parent', roles: ['parent'], token: 'tk' }, false],
-    ['a tutor', { name: 'Test Tutor', personId: 'P7', role: 'tutor', roles: ['tutor'], token: 'tk' }, false],
-    ['an admin', { name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk' }, true]];
-  for (const [as, u, journey] of who) {
+  /* EVERY WIDGET, FOR EVERY VISITOR: none has answered or booked anything, so each is `emptyCard_(title)` — a signed-in one's Countdowns aside, which always has the next holiday. */
+  const who = [['signed out', null],
+    ['a student', { name: 'Test Student', personId: 'P9', role: 'student', roles: ['student'], token: 'tk' }],
+    ['a parent', { name: 'Test Parent', personId: 'P8', role: 'parent', roles: ['parent'], token: 'tk' }],
+    ['a tutor', { name: 'Test Tutor', personId: 'P7', role: 'tutor', roles: ['tutor'], token: 'tk' }],
+    ['an admin', { name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk' }]];
+  for (const [as, u] of who) {
     t.USER(u);
     w.paint('progress');
     const host = d.getElementById('s-progress');
     if (!host) return bad.concat(['there is no #s-progress to draw into']);
+    const cards = [...host.querySelectorAll(':scope > .page .card')];
+    const titles = cards.map(c => ((c.querySelector('h3') || {}).textContent || '').trim());
+    if (titles.join('|') !== PROG_TITLES_.join('|')) bad.push(as + ': the widgets read ' + JSON.stringify(titles) + ', wanted ' + JSON.stringify(PROG_TITLES_));
     const n = host.querySelectorAll(':scope > .page').length;
-    if (n !== 1) bad.push(as + ': the column draws ' + n + ' pages, wanted the one card');
     if (t.pageCount('progress') !== n) bad.push(as + ': the pager counts ' + t.pageCount('progress') + ' pages over ' + n + ' drawn');
-    const h = host.querySelector('h3');
-    /* A STUDENT'S AND AN ADMIN'S CARD IS THEIR JOURNEY: § */
-    if (journey) {
-      if (!host.querySelector('.card.journey')) bad.push(as + ': Progress has no journey card');
-      if (!h || h.textContent.trim() !== 'Your journey') bad.push(as + ': the card is headed ' + JSON.stringify(h && h.textContent.trim()) + ', wanted Your journey');
-      if (/Not built yet/.test(host.textContent)) bad.push(as + ': the placeholder is drawn as well as the journey card');
-      const live = [...host.querySelectorAll(PLACEHOLDER_KEYS_)];
-      if (live.length) bad.push(as + ': the journey card has ' + live.length + ' control(s) on it: ' + live.map(e => e.outerHTML.slice(0, 60)).join(' | '));
-      continue;
-    }
-    if (host.querySelector('.card.journey')) bad.push(as + ': is shown a journey card — it is a student\'s, and an admin\'s to see');
-    if (!h || h.textContent.trim() !== 'Progress') bad.push(as + ': the card is not headed Progress');
-    if (!/Not built yet/.test(host.textContent)) bad.push(as + ': the card does not say it is not built yet');
-    /* THE PANE, NOT THE COLUMN: § */
-    const pane = host.querySelector(':scope > .page > .pane');
-    if (!pane) bad.push(as + ': the column has no pane — the card was NOT checked');
-    else for (const f of placeholderFaults_(pane)) bad.push(as + ': ' + f);
-    const outside = [...host.querySelectorAll(PLACEHOLDER_KEYS_)].filter(e => !pane || !pane.contains(e));
-    if (outside.length) bad.push(as + ': the column has ' + outside.length + ' control(s) outside its card: ' + outside.map(e => e.outerHTML.slice(0, 60)).join(' | '));
+    cards.forEach((c, k) => {
+      const title = titles[k];
+      if (u && title === 'Countdowns') {
+        const rows = [...c.querySelectorAll('.row')].map(r => [...r.children].map(x => x.textContent.trim()).join(' '));
+        if (rows.length !== 1 || !/(half-term|holidays?)\b.*\d+ days?|today/i.test(rows[0] || '')) bad.push(as + ': Countdowns reads ' + JSON.stringify(rows) + ', wanted the next holiday alone');
+        return;
+      }
+      if (!c.classList.contains('is-empty') || c.children.length !== 1) bad.push(as + ': ' + title + ' is not its title alone: ' + c.textContent.replace(/\s+/g, ' ').trim().slice(0, 80));
+    });
+    if (/Not built yet|Coming soon/.test(host.textContent)) bad.push(as + ': the placeholder words are still drawn');
+    const live = [...host.querySelectorAll(PLACEHOLDER_KEYS_)];
+    if (live.length) bad.push(as + ': the empty column has ' + live.length + ' control(s) on it: ' + live.map(e => e.outerHTML.slice(0, 60)).join(' | '));
   }
   t.USER(null);
   return bad;
@@ -11795,7 +11791,7 @@ check('progress sits between Saved and Tools (392), one card with nothing to pre
 /* ---------- YOUR JOURNEY IS PROGRESS'S CARD, IT FOLLOWS WHOEVER SIGNS IN, AND THE WEEKLY EMAIL'S CARD IS GONE § */
 const JOURNEY_DAY_ = n => { const t = new Date(Date.now() + n * 864e5);
   return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); };
-check('your journey: on Progress for a student and not on Settings, the placeholder for a parent, drawn again by a sign-in, a sign-out, a role and a saved exam date without a reload — and no weekly parent email card anywhere', async () => {
+check('your exams: the big exam on Progress\'s Countdowns for a student and not on Settings, not for a parent, drawn again by a sign-in, a sign-out, a role and a saved exam date without a reload — and no weekly parent email card anywhere', async () => {
   const cols = BIZ_COLS_();
   /* `phone_cc` IS WHAT `profileShapeOk_` asks for before a Save is sent from a copy of your details. */
   const STUDENT = { name: 'Sam Student', personId: 'P-S9', role: 'student', roles: ['student'], token: 'tk-s9', handle: 'samstudent',
@@ -11830,8 +11826,9 @@ check('your journey: on Progress for a student and not on Settings, the placehol
      the function the column is drawn from rather than whether it was drawn again. */
   const seen = () => {
     const h = prog(), j = h && h.querySelector('.card.journey');
-    return { journey: !!j, held: !!(h && /Not built yet/.test(h.textContent)),
-             count: j ? ((j.textContent.match(/(\d+) days? to go/) || [])[1] || '') : '',
+    const big = j ? /Big exam\s*(\d+) days?/.exec(j.textContent) : null;
+    return { journey: !!big, held: !big,
+             count: big ? big[1] : '',
              pages: h ? h.querySelectorAll(':scope > .page').length : 0 };
   };
   const signIn = async (u, as) => {
@@ -11864,8 +11861,8 @@ check('your journey: on Progress for a student and not on Settings, the placehol
   s1 = seen();
   if (!s1.journey || s1.held) bad.push('a student signed in, and Progress is ' + JSON.stringify(s1) + ' — wanted their journey, without a reload');
   if (s1.count !== '14') bad.push('the student\'s journey counts "' + s1.count + '" days to their big exam, wanted 14');
-  if (s1.pages !== 1 || t.pageCount('progress') !== 1) bad.push('a student\'s Progress draws ' + s1.pages + ' page(s) and its pager counts ' + t.pageCount('progress') + ' — wanted the one card');
-  if (prog().querySelector(PLACEHOLDER_KEYS_)) bad.push('the student\'s journey card has a control on it: ' + prog().querySelector(PLACEHOLDER_KEYS_).outerHTML.slice(0, 80));
+  if (s1.pages !== t.pageCount('progress')) bad.push('a student\'s Progress draws ' + s1.pages + ' page(s) and its pager counts ' + t.pageCount('progress'));
+  if (prog().querySelector('.card.journey ' + PLACEHOLDER_KEYS_.split(', ').join(', .card.journey '))) bad.push('the student\'s countdown card has a control on it');
   await go('settings');
   if (d.querySelector('#s-settings .card.journey')) bad.push('a student\'s Settings still holds the journey card — it is Progress\'s now');
   if (/card journey/.test(w.settingsPages_().join(''))) bad.push('`settingsPages_` still builds the journey card');
@@ -11897,7 +11894,7 @@ check('your journey: on Progress for a student and not on Settings, the placehol
   await go('progress');
   s1 = seen();
   if (s1.journey || !s1.held) bad.push('a parent signed in, and Progress is ' + JSON.stringify(s1) + ' — wanted the placeholder');
-  if (d.querySelector('.card.journey')) bad.push('a parent has a journey card somewhere in the page');
+  if ([...d.querySelectorAll('.card.journey')].some(c => /Big exam|Small exam/.test(c.textContent))) bad.push('a parent is shown an exam date of About you somewhere in the page');
 
   /* 5. THE PARENT SIGNS OUT ON PROGRESS, THE STUDENT IN AGAIN: the journey, on the same document. */
   if ((no = await signOut())) return bad.concat([no]);
@@ -11932,7 +11929,7 @@ check('your journey: on Progress for a student and not on Settings, the placehol
     }
   }
 
-  /* 7. AN ADMIN: the journey on Progress and not on Settings, and the weekly email's card nowhere. */
+  /* 7. AN ADMIN: no exams card on Settings, and the weekly email's card nowhere. */
   if ((no = await signOut())) return bad.concat([no]);
   if ((no = await signIn(ADMIN, 'the admin'))) return bad.concat([no]);
   for (const id of t.TABS.map(x => x.id)) { try { t.go(id, false, true); } catch (e) { bad.push('the admin: ' + id + ' threw: ' + e.message); } await wait(50); }
@@ -11941,7 +11938,8 @@ check('your journey: on Progress for a student and not on Settings, the placehol
   if (d.querySelector('#s-settings .card.journey')) bad.push('an admin\'s Settings still holds the journey card');
   await go('progress');
   s1 = seen();
-  if (!s1.journey || s1.held) bad.push('an admin signed in, and Progress is ' + JSON.stringify(s1) + ' — wanted the journey, so the owner can see it');
+  /* NO EXAM DATE ON THE ADMIN'S PROFILE (435): no Big exam line. */
+  if (s1.journey) bad.push('an admin with no exam date signed in, and Progress is ' + JSON.stringify(s1) + ' — wanted no Big exam line');
   const gone = d.querySelectorAll('.card.digest, [data-do="digest-preview"], .digest-mode, .digest-said');
   if (gone.length) bad.push('the weekly parent email card is still drawn for an admin: ' + [...gone].map(e => e.outerHTML.slice(0, 60)).join(' | '));
   if (/digest-preview|Weekly parent email/.test(d.documentElement.outerHTML)) bad.push('the page still names the weekly parent email card or its Preview');
@@ -11949,6 +11947,226 @@ check('your journey: on Progress for a student and not on Settings, the placehol
   if (/digest/i.test(w.settingsPages_().join(''))) bad.push('`settingsPages_` still builds something of the weekly email\'s card');
   if (sent.some(b => b.action === 'digestPreview')) bad.push('something on the phone still asks the server for digestPreview');
   if (d.documentElement !== doc) bad.push('the page was reloaded');
+  return bad;
+});
+
+/* ---------- PROGRESS, BUILT (435): EMPTY IS EACH TITLE ALONE, AND ONE PRESS FILLS IT ---------- */
+const PROG_Q_ = (id, n, topic, marks, extra) => Object.assign({ kind: 'question', key: 'q:' + id, name: 'Q' + n, qNumber: String(n), sub: 'Paper 1H — June 2024',
+  subject: 'Maths', marks: marks, topic: [topic], documentType: 'Past paper', company: 'Edexcel', tier: 'Higher', keystage: 'KS4',
+  row: { row_id: id, paper_id: 'P-PROG', subject: 'Maths', topics: topic, name: 'Paper 1H — June 2024', document_type: 'Past paper', key_stage: 'KS4' },
+  html: '<p>Question ' + n + '.</p>' }, extra || {});
+const PROG_ITEMS_ = () => [
+  PROG_Q_('Q-PA', 1, 'Fractions', 1, { html: '<p>Half of 8.</p>', answer: '4', accept: '4' }),
+  PROG_Q_('Q-PB', 2, 'Fractions', 1, { html: '<p>A third of 9.</p>', answer: '3', accept: '3' }),
+  PROG_Q_('Q-PC', 3, 'Standard Form', 3, { html: '<p>Write 3000 in standard form.</p>' }),
+  PROG_Q_('Q-PD', 4, 'Standard Form', 2),
+  /* A GRADE 4 WORKSHEET OF A WORKSHEET SERIES, and one of its grade 5 siblings nobody has started. */
+  PROG_Q_('Q-W4', 1, 'Ratio', 1, { sub: 'Ratio', documentType: 'Worksheet', company: '1st Class Maths', tier: 'Foundation', bandType: 'grade', bandValue: '4',
+    row: { row_id: 'Q-W4', paper_id: 'P-W4', subject: 'Maths', topics: 'Ratio', name: 'Ratio (grade 4)', document_type: 'Worksheet', band_type: 'grade', band_value: '4' } }),
+  PROG_Q_('Q-W5', 1, 'Ratio', 1, { sub: 'Ratio', documentType: 'Worksheet', company: '1st Class Maths', tier: 'Foundation', bandType: 'grade', bandValue: '5',
+    row: { row_id: 'Q-W5', paper_id: 'P-W5', subject: 'Maths', topics: 'Ratio', name: 'Ratio (grade 5)', document_type: 'Worksheet', band_type: 'grade', band_value: '5' } })];
+const progCard_ = (d, title) => [...d.querySelectorAll('#s-progress .card')].find(c => ((c.querySelector('h3') || {}).textContent || '').trim() === title) || null;
+const progTxt_ = el => (el ? el.textContent.replace(/\s+/g, ' ').trim() : '');
+/* A ROW AS ITS LABEL AND ITS VALUE, a space between — `textContent` runs the two spans together. */
+const progRow_ = el => (el ? [...el.children].map(c => c.textContent.replace(/\s+/g, ' ').trim()).join(' ') : '');
+check('progress, empty: a signed-in learner with nothing answered sees each widget\'s title alone, and one press marks the column to be drawn again with it counted', async () => {
+  const { w } = boot({ payload: Object.assign(payload(), { submissions: { for: 'P7', mine: {} } }), before: signedInAs_(ANS_ADA) });
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  await wait(400);
+  const t = w.__t, d = w.document;
+  if (!t || !t.whoami() || t.whoami().personId !== 'P7') return ['the learner is not signed in — NOT checked'];
+  const items = PROG_ITEMS_();
+  w.stuffItemsAll_ = () => items;
+  const bad = [];
+  t.go('progress', false, true);
+  await wait(LEAVE_MS); await woken_();
+  w.paint('progress');
+  for (const title of ['Questions', 'Recent activity', 'Work on next', 'Grade estimate', 'Papers and worksheets', 'Sessions']) {
+    const c = progCard_(d, title);
+    if (!c) bad.push('nothing answered, and Progress has no ' + title + ' widget');
+    else if (!c.classList.contains('is-empty') || c.children.length !== 1) bad.push(title + ' is not its title alone with nothing answered: ' + progTxt_(c).slice(0, 80));
+  }
+  if (d.querySelector('#s-progress [data-do]')) bad.push('the empty Progress has a control on it');
+  if (d.querySelector('#s-progress .loading')) bad.push('the empty Progress is still waiting with the payload in');
+  t.go('tools', false, true);
+  await wait(LEAVE_MS); await woken_();
+  const rec = w.subRecord_('ans:u:P7:q:Q-PA', '4', 'right', 'none');
+  if (!rec) return bad.concat(['subRecord_ recorded nothing — the press was NOT checked']);
+  t.go('progress', false, true);
+  await wait(LEAVE_MS); await woken_();
+  const card = d.querySelector('#s-progress .card.prog-answered');
+  if (!card) bad.push('a press was made and Progress, visited again, still has no Questions card');
+  else if (!/Fractions\s*1 of 1 right/.test(progTxt_(card))) bad.push('the Questions card does not count the press under Fractions: ' + progTxt_(card).slice(0, 120));
+  if (!d.querySelector('#s-progress .card.prog-series')) bad.push('a press on a past paper drew no series card');
+  const weak = progCard_(d, 'Work on next');
+  if (!weak || !weak.classList.contains('is-empty')) bad.push('everything is right and Work on next is not its title alone');
+  t.USER(null);
+  return bad;
+});
+
+/* THE POPULATED LEARNER: three presses on the account, two on the device (one older than the account's, one the library does not hold). */
+const progPopulated_ = async (more) => {
+  const DAY = 864e5, now = Date.now();
+  const p = payload();
+  const mine = Object.assign({}, p.jobs[2], { id: 'J-ADA', jobId: 'J-ADA', client: 'Ada Pupil', day: 'Mon', time: '16:00', title: 'A-Level Maths', status: 'active' });
+  p.jobs = p.jobs.concat([mine]); p.liveJobs = p.jobs;
+  p.submissions = { for: 'P7', mine: {
+    'q:Q-PA': { answer: '4', verdict: 'right', at: now - 60000, id: '1760000000401-pr0001' },
+    'q:Q-PB': { answer: '2', verdict: 'wrong', at: now - DAY, id: '1760000000402-pr0002' },
+    'q:Q-PC': { answer: '3x10^3', verdict: 'ai:1/3', at: now - 120000, id: '1760000000403-pr0003' },
+    'q:Q-W4': { answer: '2:3', verdict: 'right', at: now - 180000, id: '1760000000406-pr0006' } } };
+  if (more) more(p);
+  const seed = win => {
+    signedInAs_(ANS_ADA)(win);
+    win.localStorage.setItem('subLast:u:P7', JSON.stringify({
+      'q:Q-PA': { a: '5', v: 'wrong', at: now - 3 * DAY, id: '1760000000404-pr0004' },
+      'q:Q-GONE': { a: 'x', v: 'sent', at: now - 30000, id: '1760000000405-pr0005' } }));
+  };
+  const { w } = boot({ payload: p, before: seed });
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  await wait(400);
+  const t = w.__t;
+  if (!t || !t.whoami() || t.whoami().personId !== 'P7') return { w: null };
+  const items = PROG_ITEMS_();
+  w.stuffItemsAll_ = () => items;
+  t.go('progress', false, true);
+  await wait(LEAVE_MS); await woken_();
+  w.paint('progress');
+  return { w, t, d: w.document };
+};
+check('progress, populated: counts by topic from the account and the device, a streak, the weakest topic\'s Practise opening Find, and sessions past and to come', async () => {
+  const { w, t, d } = await progPopulated_();
+  if (!w) return ['the learner is not signed in — NOT checked'];
+  const bad = [];
+  const host = d.getElementById('s-progress');
+  const q = host.querySelector('.card.prog-answered');
+  if (!q) return bad.concat(['Progress has no Questions card: ' + progTxt_(host).slice(0, 120)]);
+  const tot = [...q.querySelectorAll('.row.prog-tot')].map(progRow_);
+  if (tot.join(' | ') !== 'Answered 5 | Right 2 | Marks 3 of 6 (50%)') bad.push('the totals read ' + JSON.stringify(tot) + ', wanted Answered 5, Right 2, Marks 3 of 6 (50%)');
+  if (q.querySelector('.prog-sum, .prog-big')) bad.push('the totals are boxes in a grid, not one line each');
+  if (!/Fractions\s*1 of 2 right/.test(progTxt_(q))) bad.push('Fractions is not 1 of 2 right — the account\'s later press did not win over the device\'s: ' + progTxt_(q));
+  if (!/Standard Form\s*0 of 1 right/.test(progTxt_(q))) bad.push('Standard Form is not 0 of 1 right: ' + progTxt_(q));
+  if (t.pageCount('progress') !== host.querySelectorAll(':scope > .page').length) bad.push('the pager counts ' + t.pageCount('progress') + ' pages over ' + host.querySelectorAll(':scope > .page').length + ' drawn');
+  const act = host.querySelector('.card.prog-activity');
+  if (!act || !/Streak\s*2 days/.test(progTxt_(act))) bad.push('the activity card does not say a 2-day streak: ' + progTxt_(act).slice(0, 100));
+  if (!act || !/Last 7 days\s*5 on 2 days/.test(progTxt_(act))) bad.push('the activity card does not say 5 on 2 days this week: ' + progTxt_(act).slice(0, 100));
+  const weak = host.querySelector('.card.prog-weakest');
+  const tiles = weak ? [...weak.querySelectorAll('.tile[data-do="prog-practise"]')] : [];
+  if (tiles.map(b => b.dataset.topic).join('|') !== 'Standard Form|Fractions') bad.push('Work on next reads ' + JSON.stringify(tiles.map(b => b.dataset.topic)) + ', wanted Standard Form then Fractions');
+  if (weak && weak.querySelector('button:not(.tile)')) bad.push('Work on next has a button that is not a tile');
+  const ss = host.querySelector('.card.prog-sessions');
+  if (!ss) bad.push('the learner has a Monday session and Progress has no Sessions card');
+  else {
+    if (!/Coming up/.test(progTxt_(ss)) || !/Done/.test(progTxt_(ss))) bad.push('the Sessions card does not show sessions to come and done: ' + progTxt_(ss).slice(0, 120));
+    if (ss.querySelectorAll('.row').length !== 6) bad.push('the Sessions card has ' + ss.querySelectorAll('.row').length + ' rows, wanted the next three and the last three');
+  }
+  if (/Not built yet|Coming soon/.test(progTxt_(host))) bad.push('the placeholder words are still drawn');
+  if (tiles[0]) {
+    try { t.ACTIONS['prog-practise'](tiles[0]); } catch (e) { bad.push('prog-practise threw: ' + e.message); }
+    await wait(LEAVE_MS); await woken_();
+    if (t.AT() !== 'stuff') bad.push('Practise left the app on ' + t.AT() + ', wanted Find');
+    /* THE TOPIC CHIP, OR — questions not answering Topic (`topicShown_`) — the question last got wrong, open in front. Never the whole library from the top. */
+    const f = (t.STUFF().filters || []).slice();
+    const on = d.querySelectorAll('#s-stuff > .page')[t.PAGE().stuff || 0];
+    const chip = f.some(x => x.field === 'topic' && x.value === 'Standard Form');
+    if (!chip && !(on && /3000 in standard form/.test(on.textContent))) bad.push('Practise on Standard Form opened Find on neither its chip nor the question got wrong: ' + JSON.stringify(f) + ' / ' + progTxt_(on).slice(0, 80));
+  }
+  const back = d.querySelector('#s-progress .tile[data-do="prog-sessions"]');
+  if (back) {
+    try { t.ACTIONS['prog-sessions'](back); } catch (e) { bad.push('prog-sessions threw: ' + e.message); }
+    await wait(LEAVE_MS); await woken_();
+    if (t.AT() !== 'booking') bad.push('the Sessions tile left the app on ' + t.AT() + ', wanted Book');
+  }
+  t.USER(null);
+  return bad;
+});
+
+/* ---------- PROGRESS IN A FIELD: A CARD PER SERIES, A LINE PER PAPER, OPENED IN PLACE AND NEVER IN A POP-UP ---------- */
+check('progress, papers: one card per series, one line per paper with its marks and what is left, a line opened in place (no sheet) that stays open through a redraw, and a count of papers not started', async () => {
+  const { w, t, d } = await progPopulated_();
+  if (!w) return ['the learner is not signed in — NOT checked'];
+  const bad = [];
+  const past = progCard_(d, 'Maths past papers'), ws = progCard_(d, '1st Class Maths worksheets');
+  if (!past) return ['no "Maths past papers" card: ' + [...d.querySelectorAll('#s-progress .card h3')].map(h => h.textContent).join(' | ')];
+  if (!ws) bad.push('no "1st Class Maths worksheets" card');
+  const line = past.querySelector('details.prog-paper');
+  const sum = line && line.querySelector('summary');
+  if (!sum || !/Paper 1H — June 2024\s*2\/5 marks · 1 left/.test(progTxt_(sum))) bad.push('the past paper line reads ' + JSON.stringify(progTxt_(sum)) + ', wanted "Paper 1H — June 2024 · 2/5 marks · 1 left"');
+  if (line && line.open) bad.push('the paper line is open before anybody opened it');
+  if (ws && !/Not started\s*1/.test(progTxt_(ws))) bad.push('the worksheet series does not count its one sibling not started: ' + progTxt_(ws));
+  if (line) {
+    line.open = true;
+    line.dispatchEvent(new w.Event('toggle'));
+    await wait(50);
+    const qs = [...line.querySelectorAll('.prog-qs .row')].map(progRow_);
+    if (qs.join(' | ') !== 'Q1 right | Q2 wrong | Q3 1/3 | Q4 not done') bad.push('opened, the paper lists ' + JSON.stringify(qs) + ', wanted Q1 right, Q2 wrong, Q3 1/3, Q4 not done');
+    if (sheetOpen_(d)) bad.push('opening a paper opened a sheet — it opens in place');
+    w.paint('progress');
+    const again = progCard_(d, 'Maths past papers');
+    const l2 = again && again.querySelector('details.prog-paper');
+    if (!l2 || !l2.open) bad.push('a redraw shut the paper that was open');
+  }
+  if (d.querySelector('#s-progress select, #s-progress [role="menu"], #s-progress [aria-haspopup]')) bad.push('Progress has a pop-up menu on it');
+  t.USER(null);
+  return bad;
+});
+
+/* ---------- GRADE ESTIMATE ---------- */
+check('progress, grade estimate: a GCSE grade from the share of marks on past papers and a "working at" grade from graded worksheets, each with how many papers, said as an estimate', async () => {
+  const { w, t, d } = await progPopulated_();
+  if (!w) return ['the learner is not signed in — NOT checked'];
+  const bad = [];
+  const g = progCard_(d, 'Grade estimate');
+  if (!g || g.classList.contains('is-empty')) return ['the Grade estimate widget is empty with a past paper and a worksheet marked'];
+  const tx = progTxt_(g);
+  /* 2 OF 5 ON THE PAST PAPER IS 40%: grade 5 by PROG_GCSE_STEPS. The grade 4 worksheet all right is "working at grade 4". */
+  if (!/Maths GCSE\s*grade 5\s*from 1 paper, 40% of marks/.test(tx)) bad.push('the GCSE line reads ' + JSON.stringify(tx));
+  if (!/Maths worksheets\s*working at grade 4\s*from 1 paper, 100% of marks/.test(tx)) bad.push('the worksheet line reads ' + JSON.stringify(tx));
+  if (!/estimate/i.test(tx)) bad.push('the card does not say it is an estimate');
+  t.USER(null);
+  return bad;
+});
+
+/* ---------- COUNTDOWNS ---------- */
+check('progress, countdowns: a Year 11\'s GCSEs and the next holiday, one line each; the config tab moves the exam and the sheet\'s holiday row wins over the defaults; signed out, the title alone', async () => {
+  const day = d0 => { const x = new Date(); x.setHours(0, 0, 0, 0); return Math.round((d0 - x) / 864e5); };
+  const now = new Date();
+  /* A BIRTHDAY THAT MAKES YEAR 11 NOW: 15 on the 1st of September this school year began. */
+  const began = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
+  const dob = (began - 15) + '-03-01';
+  const gcse = new Date(began + 1, 4, 4);
+  const hol = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 9);
+  const dmy = x => String(x.getDate()).padStart(2, '0') + '/' + String(x.getMonth() + 1).padStart(2, '0') + '/' + x.getFullYear();
+  const p = payload();
+  p.constants.vars.exam_gcse_start = (began + 1) + '-05-04';
+  p.intervals = p.intervals.concat([{ rel: 'Next', term: 'Half term', label: 'Half term', kind: 'holiday', startDate: dmy(hol), endDate: dmy(new Date(hol.getTime() + 6 * 864e5)) }]);
+  const U = Object.assign({}, ANS_ADA, { profile: { date_of_birth: dob } });
+  const { w } = boot({ payload: p, before: signedInAs_(U) });
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  await wait(400);
+  const t = w.__t, d = w.document;
+  if (!t || !t.whoami()) return ['the learner is not signed in — NOT checked'];
+  t.USER(Object.assign({}, t.whoami(), { profile: { date_of_birth: dob } }));
+  const bad = [];
+  t.go('progress', false, true);
+  await wait(LEAVE_MS); await woken_();
+  w.paint('progress');
+  const c = progCard_(d, 'Countdowns');
+  const rows = c ? [...c.querySelectorAll('.row')].map(progRow_) : [];
+  const want = ['GCSE exams ' + day(gcse) + ' days', 'Half term ' + day(hol) + ' days'];
+  if (rows.join(' | ') !== want.join(' | ')) bad.push('Countdowns reads ' + JSON.stringify(rows) + ', wanted ' + JSON.stringify(want));
+  if (c && c.querySelector('.prog-sum, .prog-big, [data-do]')) bad.push('Countdowns has a box grid or a control on it');
+  /* NO ROW IN THE SHEET AND NO CONFIG: the built-in exam date and the next default holiday. */
+  t.DATA().intervals = [];
+  delete t.DATA().constants.vars.exam_gcse_start;
+  w.paint('progress');
+  const rows2 = [...(progCard_(d, 'Countdowns') || d).querySelectorAll('.row')].map(progRow_);
+  if (!/^GCSE exams \d+ days$/.test(rows2[0] || '') || rows2[0] === want[0]) bad.push('with the config cleared the GCSE line reads ' + JSON.stringify(rows2[0]) + ' — wanted the built-in 11 May, not the override');
+  if (!/(half-term|holidays) (\d+ days?|today)$/.test(rows2[1] || '')) bad.push('with no holiday row the holiday line reads ' + JSON.stringify(rows2[1]) + ' — wanted a default holiday');
+  t.USER(null);
+  w.paint('progress');
+  const out = progCard_(d, 'Countdowns');
+  if (!out || !out.classList.contains('is-empty') || out.children.length !== 1) bad.push('signed out, Countdowns is not its title alone');
   return bad;
 });
 

@@ -125,6 +125,8 @@ function subRecord_(k, answer, verdict, sound) {
   all[key] = e;
   subAllKeep_(who, all);
   subPaint_(k);
+  /* PROGRESS COUNTS THESE PRESSES (435), so its column is drawn again before anybody next arrives. */
+  if (typeof markStale_ === 'function' && typeof AT !== 'undefined' && AT !== 'progress') markStale_('progress');
   if (e.q) subPush_(true);
   /* LAST, AFTER EVERYTHING ELSE THE PRESS DOES, so a sound that cannot play costs nothing it was for. */
   if (sound !== 'none') markPlay_(e.v, sound === 'late');

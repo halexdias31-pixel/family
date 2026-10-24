@@ -466,33 +466,11 @@ function widgetsBeforeSlide_(col) {
 screen('saved', () => pages('saved', savedCards_()));
 /* THE SHOP WINDOW. Built like Saved and for the same reason — one card per thing, a pager that counts the same array the screen is built from, and a sentence § */
 screen('spotlight', () => pages('spotlight', spotlightCards_()));
-/* ---------- PROGRESS: A COLUMN WAITING TO BE BUILT, AND IT SAYS SO § */
+/* ---------- PROGRESS (435): ONE WIDGET PER THING, ONE LINE PER THING, EACH ITS TITLE ALONE WITH NOTHING TO SAY ---------- */
 /* ---------- YOUR JOURNEY, MOVED HERE FROM THE SETTINGS COLUMN § */
 function mayJourney_() {
   if (typeof hasRole !== 'function') return false;
   return hasRole('student') || hasRole('admin');
-}
-function journeyCard_() {
-  const prof = (USER && USER.profile) || {};
-  /* `Math.round`, NOT `Math.ceil`: § */
-  const days = iso => {
-    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''));
-    if (!m) return null;
-    const t = new Date(+m[1], +m[2] - 1, +m[3]), now = new Date();
-    return Math.round((t - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 864e5);
-  };
-  const exams = [['Small exam', prof.exam_small_date], ['Big exam', prof.exam_big_date]]
-    .map(([k, v]) => [k, days(v)]).filter(([, d]) => d !== null && d >= 0)
-    .map(([k, d]) => `<div class="row"><span class="k">${esc(k)}</span><span>${d === 0 ? 'today'
-      : d + (d === 1 ? ' day' : ' days') + ' to go'}</span></div>`).join('');
-  return `<div class="card journey">
-    <h3>Your journey</h3>
-    <p class="sub">Where you are, where you are going, and what you have done on the way. Coming soon.</p>
-    ${exams}
-    <div class="row"><span class="k">Goals</span><span class="faint">what you are aiming for</span></div>
-    <div class="row"><span class="k">Milestones</span><span class="faint">the steps on the way</span></div>
-    <div class="row"><span class="k">Worked through</span><span class="faint">papers and topics you have done</span></div>
-  </div>`;
 }
 /* THE EXAM DATES CHANGED UNDER THE COLUMN, so it is REDRAWN IF IT IS DRAWN — the rule `profileRefresh_` keeps for Settings, whose About you holds the same two § */
 function progressRedraw_() {
@@ -502,15 +480,428 @@ function progressRedraw_() {
     paintPager('progress', true);
   } catch (e) {}
 }
-function progressCards_() {
-  if (mayJourney_()) return [journeyCard_()];
-  return [`<div class="card">
-    <h3>Progress</h3>
-    <p class="sub">Coming soon: everything you have done in one place — the questions you have
-      answered, what you got right, and what to work on next.</p>
-    <p class="empty">Not built yet.</p>
-  </div>`];
+
+/* ---------- COUNTDOWNS ---------- */
+/* WHEN EACH BIG EXAM SEASON STARTS, as MM-DD (or a whole YYYY-MM-DD for one year): the config tab's `exam_*_start` wins, these are the usual second week of May and mid-September. */
+const PROG_EXAMS = [
+  { id: 'sats', name: 'SATs', key: 'exam_sats_start', at: '05-11' },
+  { id: 'elevenplus', name: '11+', key: 'exam_11plus_start', at: '09-12' },
+  { id: 'gcse', name: 'GCSE exams', key: 'exam_gcse_start', at: '05-11' },
+  { id: 'alevel', name: 'A-level exams', key: 'exam_alevel_start', at: '05-11' }];
+/* SCHOOL HOLIDAYS WHEN THE SHEET'S `intervals` NAME NONE AHEAD: config `holiday_starts` ("MM-DD Name, …") wins; these are the usual London starts. */
+const PROG_HOLIDAYS = '10-26 October half-term, 12-19 Christmas holidays, 02-13 February half-term, 03-27 Easter holidays, 05-22 May half-term, 07-22 Summer holidays';
+const progressVars_ = () => { try { return (DATA && DATA.constants && DATA.constants.vars) || {}; } catch (e) { return {}; } };
+const progressToday_ = () => { const t = new Date(); t.setHours(0, 0, 0, 0); return t; };
+const progressDaysTo_ = d => Math.round((d - progressToday_()) / 864e5);
+/* THE NEXT TIME `MM-DD` (or a fixed YYYY-MM-DD) COMES ROUND, today included; `year` asks for that year's. */
+function progressWhen_(spec, year) {
+  const s = String(spec || '').trim();
+  let m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+  m = /^(\d{1,2})-(\d{1,2})$/.exec(s);
+  if (!m) return null;
+  const t = progressToday_();
+  let d = new Date(year || t.getFullYear(), +m[1] - 1, +m[2]);
+  if (!year && d < t) d = new Date(t.getFullYear() + 1, +m[1] - 1, +m[2]);
+  return d;
 }
+const progressExamAt_ = (e, year) => progressWhen_(String(progressVars_()[e.key] || '').trim() || e.at, year)
+  || progressWhen_(e.at, year);
+/* THE SCHOOL YEAR OFF A DATE OF BIRTH (England): Year N is N + 4 on the 1st of September the year began. */
+function progressSchoolYear_(dob) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dob || ''));
+  if (!m) return null;
+  const t = progressToday_();
+  const began = t.getMonth() >= 8 ? t.getFullYear() : t.getFullYear() - 1;
+  let age = began - +m[1];
+  if (+m[2] > 9 || (+m[2] === 9 && +m[3] > 1)) age--;
+  const y = age - 4;
+  return y >= 1 && y <= 13 ? { year: y, began: began } : null;
+}
+/* THE ONE BIG EXAM AHEAD: off the school year when there is a birthday, else off the level of a session booked. */
+function progressBigExam_() {
+  const prof = (USER && USER.profile) || {};
+  const sy = progressSchoolYear_(prof.date_of_birth);
+  const E = id => PROG_EXAMS.find(e => e.id === id);
+  const t = progressToday_();
+  if (sy) {
+    const y = sy.year, began = sy.began;
+    if (y >= 12) return { e: E('alevel'), d: progressExamAt_(E('alevel'), began + (13 - y) + 1) };
+    if (y >= 7) return { e: E('gcse'), d: progressExamAt_(E('gcse'), began + (11 - y) + 1) };
+    if (y === 6) {
+      const eleven = progressExamAt_(E('elevenplus'), began);
+      if (eleven && eleven >= t) return { e: E('elevenplus'), d: eleven };
+      return { e: E('sats'), d: progressExamAt_(E('sats'), began + 1) };
+    }
+    if (y >= 3) return { e: E('elevenplus'), d: progressExamAt_(E('elevenplus'), began + (6 - y)) };
+    return null;
+  }
+  const lv = (typeof myJobs_ === 'function' ? myJobs_() : []).map(j => String(j.level || '')).join(' ');
+  const id = /a-?level/i.test(lv) ? 'alevel' : /gcse/i.test(lv) ? 'gcse' : /11\s*\+|eleven/i.test(lv) ? 'elevenplus' : /sats|ks2/i.test(lv) ? 'sats' : '';
+  return id ? { e: E(id), d: progressExamAt_(E(id)) } : null;
+}
+/* THE NEXT HOLIDAY: a holiday row of the sheet's `intervals` ahead, else the day after a term ends, else `holiday_starts`. */
+function progressHoliday_() {
+  const t = progressToday_();
+  const ivs = (DATA && DATA.intervals) || [];
+  const at = [];
+  ivs.forEach(x => {
+    const from = typeof parseDMY === 'function' ? parseDMY(x.startDate) : null, to = typeof parseDMY === 'function' ? parseDMY(x.endDate) : null;
+    if (/holiday|half/i.test(String(x.kind || '')) && from && from >= t) at.push({ name: x.label || x.term || 'Holiday', d: from });
+    else if (to) { const n = new Date(to.getTime()); n.setDate(n.getDate() + 1); if (n >= t) at.push({ name: 'Holiday after ' + (x.label || x.term || 'term'), d: n }); }
+  });
+  if (!at.length) {
+    const list = String(progressVars_().holiday_starts || '').trim() || PROG_HOLIDAYS;
+    list.split(',').forEach(bit => {
+      const m = /^\s*(\d{1,2}-\d{1,2}|\d{4}-\d{2}-\d{2})\s+(.+?)\s*$/.exec(bit);
+      const d = m && progressWhen_(m[1]);
+      if (d) at.push({ name: m[2], d: d });
+    });
+  }
+  at.sort((a, b) => a.d - b.d);
+  return at[0] || null;
+}
+const progressDaysSaid_ = n => (n === 0 ? 'today' : n + (n === 1 ? ' day' : ' days'));
+function progressCountdownCard_() {
+  const rows = [];
+  if (USER) {
+    const prof = USER.profile || {};
+    /* THE TWO DATES TYPED ON ABOUT YOU, for a student or an admin, as before (`mayJourney_`). */
+    if (mayJourney_()) {
+      [['Small exam', prof.exam_small_date], ['Big exam', prof.exam_big_date]].forEach(([k, v]) => {
+        const d = progressWhen_(/^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? v : '');
+        if (d && progressDaysTo_(d) >= 0) rows.push([k, progressDaysTo_(d)]);
+      });
+    }
+    const big = progressBigExam_();
+    if (big && big.d && progressDaysTo_(big.d) >= 0) rows.push([big.e.name, progressDaysTo_(big.d)]);
+    const hol = progressHoliday_();
+    if (hol) rows.push([hol.name, progressDaysTo_(hol.d)]);
+  }
+  if (!rows.length) return emptyCard_('Countdowns');
+  return `<div class="card journey prog-count">
+    <h3>Countdowns</h3>
+    ${rows.map(([k, n]) => `<div class="row"><span class="k">${esc(k)}</span><span class="v">${progressDaysSaid_(n)}</span></div>`).join('')}
+  </div>`;
+}
+
+/* ---------- WHAT WAS ANSWERED ---------- */
+/* THE LATEST PRESS PER QUESTION: the account's (`DATA.submissions`, this person's only) and this device's (`subAll_`), the later winning, as `subAdopt_` decides. */
+function progressPresses_() {
+  const who = typeof whoIs_ === 'function' ? whoIs_() : '';
+  if (!who) return [];
+  const pid = USER && USER.personId ? String(USER.personId) : '';
+  const out = {};
+  try {
+    const s = DATA && DATA.submissions;
+    if (pid && s && String(s.for || '') === pid && s.mine && typeof s.mine === 'object') {
+      Object.keys(s.mine).forEach(k => {
+        const e = s.mine[k];
+        if (e && String(e.answer || '').trim()) out[k] = { v: String(e.verdict || ''), at: Number(e.at) || 0 };
+      });
+    }
+  } catch (e) {}
+  try {
+    const all = typeof subAll_ === 'function' ? subAll_(who) : {};
+    Object.keys(all).forEach(k => {
+      const e = all[k];
+      if (!e || typeof e.a !== 'string' || !e.a.trim()) return;
+      const at = Number(e.at) || 0;
+      if (!out[k] || out[k].at <= at) out[k] = { v: String(e.v || ''), at: at };
+    });
+  } catch (e) {}
+  return Object.keys(out).map(k => ({ key: k, v: out[k].v, at: out[k].at }));
+}
+/* A VERDICT AS MARKS — SUBMISSION_VERDICT's vocabulary; `sent` is attempted and not marked, so it counts as tried and never as right or wrong. */
+function progressScore_(v) {
+  if (v === 'right') return { got: 1, of: 1 };
+  if (v === 'wrong') return { got: 0, of: 1 };
+  const m = /^(?:ai|rule):(\d{1,3})\/(\d{1,3})$/.exec(String(v || ''));
+  return m && +m[2] > 0 ? { got: Math.min(+m[1], +m[2]), of: +m[2] } : null;
+}
+const progressDay_ = ms => { const d = new Date(ms); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); };
+const progressPaperOf_ = x => String((x && x.row && x.row.paper_id) || (x && x.sub) || '');
+/* WHICH SERIES A QUESTION BELONGS TO: past papers by subject; worksheets by who made them and subject. */
+function progressSeries_(x) {
+  const type = String(x.documentType || (x.row && x.row.document_type) || ''), subj = String(x.subject || '');
+  const co = String(x.company || (x.row && x.row.company) || '');
+  if (/past|specimen/i.test(type)) return (subj ? subj + ' ' : '') + 'past papers';
+  if (/5-a-day/i.test(type)) return (co ? co + ' ' : '') + '5-a-day';
+  return [co, co.toLowerCase().indexOf(subj.toLowerCase()) === -1 ? subj : '', /exercise/i.test(type) ? 'exercises' : 'worksheets'].filter(Boolean).join(' ');
+}
+/* EVERYTHING THE COLUMN SAYS, counted once per draw. A key the library does not hold still counts in the totals; it has no topic or paper to file under. */
+function progressStats_() {
+  const presses = progressPresses_();
+  const index = new Map();
+  let items = [];
+  try { items = (typeof stuffItemsAll_ === 'function' ? stuffItemsAll_() : []) || []; } catch (e) { items = []; }
+  items.forEach(x => { if (x && x.kind === 'question') index.set(String(x.key || x.name), x); });
+  const topics = {}, days = {}, papers = {};
+  let right = 0, got = 0, of = 0;
+  const recent = [];
+  presses.forEach(p => {
+    const x = index.get(p.key.replace(/#[^#]*$/, ''));
+    const sc = progressScore_(p.v);
+    const ok = !!(sc && sc.got === sc.of);
+    if (sc) { got += sc.got; of += sc.of; if (ok) right++; }
+    if (p.at > 0) { const d = progressDay_(p.at); days[d] = (days[d] || 0) + 1; }
+    recent.push({ x: x, p: p, sc: sc, ok: ok });
+    if (!x) return;
+    const pid = progressPaperOf_(x);
+    if (pid) {
+      const pp = papers[pid] || (papers[pid] = { id: pid, x: x, done: {}, got: 0, of: 0, at: 0 });
+      pp.done[String(x.key || x.name)] = sc || { sent: 1 };
+      if (sc) { pp.got += sc.got; pp.of += sc.of; }
+      if (p.at > pp.at) pp.at = p.at;
+    }
+    let ts = Array.isArray(x.topic) ? x.topic : topicAtoms_(x.topic || (x.row && x.row.topics) || '');
+    if (!ts.length) ts = [String(x.subject || 'Other')];
+    ts.forEach(t => {
+      const o = topics[t] || (topics[t] = { topic: t, n: 0, right: 0, marked: 0, got: 0, of: 0, miss: null });
+      o.n++;
+      if (sc) { o.marked++; o.got += sc.got; o.of += sc.of; if (ok) o.right++; else if (!o.miss || p.at > o.miss.at) o.miss = { key: p.key, at: p.at }; }
+    });
+  });
+  recent.sort((a, b) => b.p.at - a.p.at);
+  /* THE STREAK: days in a row with a press, ending today — or yesterday, so a streak is not lost before today's first question. */
+  let streak = 0;
+  const t0 = new Date(); t0.setHours(12, 0, 0, 0);
+  for (let i = days[progressDay_(t0.getTime())] ? 0 : 1; i < 400; i++) {
+    if (!days[progressDay_(t0.getTime() - i * 864e5)]) break;
+    streak++;
+  }
+  let week = 0, weekDays = 0;
+  for (let i = 0; i < 7; i++) { const n = days[progressDay_(t0.getTime() - i * 864e5)] || 0; week += n; if (n) weekDays++; }
+  const list = Object.keys(topics).map(k => topics[k]).sort((a, b) => b.n - a.n || a.topic.localeCompare(b.topic));
+  const weak = list.filter(o => o.of > 0 && o.got < o.of)
+    .sort((a, b) => a.got / a.of - b.got / b.of || b.of - a.of || a.topic.localeCompare(b.topic)).slice(0, 3);
+  /* EVERY PAPER'S WHOLE LIST OF QUESTIONS, so a paper says what is left — and each series how many papers nobody has started. */
+  const inPaper = {}, inSeries = {};
+  const started = new Set(Object.keys(papers));
+  items.forEach(x => {
+    if (!x || x.kind !== 'question') return;
+    const pid = progressPaperOf_(x);
+    if (!pid) return;
+    (inPaper[pid] = inPaper[pid] || []).push(x);
+    const sr = progressSeries_(x);
+    (inSeries[sr] = inSeries[sr] || new Set()).add(pid);
+  });
+  const series = {};
+  Object.keys(papers).forEach(pid => {
+    const pp = papers[pid];
+    pp.all = (inPaper[pid] || [pp.x]).slice().sort((a, b) => String(a.qNumber || a.name).localeCompare(String(b.qNumber || b.name), undefined, { numeric: true })
+      || String(a.qPart || '').localeCompare(String(b.qPart || '')));
+    const sr = progressSeries_(pp.x);
+    (series[sr] = series[sr] || { name: sr, papers: [], at: 0 }).papers.push(pp);
+    if (pp.at > series[sr].at) series[sr].at = pp.at;
+  });
+  const seriesList = Object.keys(series).map(k => {
+    const sr = series[k];
+    sr.papers.sort((a, b) => b.at - a.at);
+    sr.untouched = [...(inSeries[k] || [])].filter(pid => !started.has(pid)).length;
+    return sr;
+  }).sort((a, b) => b.at - a.at);
+  return { n: presses.length, right: right, got: got, of: of, topics: list, weak: weak, papers: papers,
+           series: seriesList, recent: recent.slice(0, 3), streak: streak, week: week, weekDays: weekDays };
+}
+const progressPct_ = (a, b) => (b > 0 ? Math.round(100 * a / b) : 0);
+function progressAnsweredCard_(st) {
+  if (!st.n) return emptyCard_('Questions');
+  const rows = st.topics.slice(0, 12).map(o => `<div class="prog-topic">
+      <div class="row"><span class="k">${esc(o.topic)}</span><span class="v">${o.marked ? o.right + ' of ' + o.marked + ' right' : o.n + ' tried'}</span></div>
+      <div class="prog-bar" aria-hidden="true"><span style="width:${o.marked ? progressPct_(o.right, o.marked) : 0}%"></span></div>
+    </div>`).join('');
+  const more = st.topics.length > 12 ? `<p class="faint">and ${st.topics.length - 12} more topics</p>` : '';
+  return `<div class="card prog-answered">
+    <h3>Questions</h3>
+    <div class="row prog-tot"><span class="k">Answered</span><span class="v">${st.n}</span></div>
+    <div class="row prog-tot"><span class="k">Right</span><span class="v">${st.right}</span></div>
+    <div class="row prog-tot"><span class="k">Marks</span><span class="v">${st.of ? st.got + ' of ' + st.of + ' (' + progressPct_(st.got, st.of) + '%)' : 'none marked yet'}</span></div>
+    ${rows}${more}
+  </div>`;
+}
+function progressActivityCard_(st) {
+  if (!st.n) return emptyCard_('Recent activity');
+  const said = p => !p.sc ? 'sent' : p.ok ? 'right' : p.sc.of > 1 ? p.sc.got + '/' + p.sc.of : 'wrong';
+  const last = st.recent.map(r => `<div class="row"><span class="k">${esc((r.x && (r.x.sub ? r.x.sub + ' · ' : '') + (r.x.name || '')) || 'A question')}</span>
+      <span class="v prog-v${r.ok ? ' is-good' : r.sc ? ' is-bad' : ''}">${esc(said(r))}</span></div>`).join('');
+  return `<div class="card prog-activity">
+    <h3>Recent activity</h3>
+    <div class="row"><span class="k">Streak</span><span class="v">${st.streak ? progressDaysSaid_(st.streak) : 'none yet'}</span></div>
+    <div class="row"><span class="k">Last 7 days</span><span class="v">${st.week} on ${progressDaysSaid_(st.weekDays)}</span></div>
+    ${last}
+  </div>`;
+}
+function progressWeakCard_(st) {
+  if (!st.weak.length) return emptyCard_('Work on next');
+  const items = st.weak.map(o => `<div class="prog-weak">
+      <div class="row"><span class="k">${esc(o.topic)}</span><span class="v">${progressPct_(o.got, o.of)}% of marks</span></div>
+      <div class="tile-row">${tile_({ icon: 'search', label: 'Practise', note: o.topic + ' in Find', act: 'prog-practise',
+        data: { topic: o.topic, key: (o.miss && o.miss.key) || '' } })}</div>
+    </div>`).join('');
+  return `<div class="card prog-weakest">
+    <h3>Work on next</h3>
+    ${items}
+  </div>`;
+}
+
+/* ---------- PROGRESS IN A FIELD: ONE CARD PER SERIES, ONE LINE PER PAPER, OPENED IN PLACE ---------- */
+/* WHICH PAPERS ARE OPEN, so a redraw does not shut what was opened (no pop-up: a <details> grows the line where it is). */
+const PROG_OPEN = new Set();
+document.addEventListener('toggle', e => {
+  const el = e.target;
+  if (!el || !el.classList || !el.classList.contains('prog-paper')) return;
+  const k = el.getAttribute('data-paper') || '';
+  if (el.open) PROG_OPEN.add(k); else PROG_OPEN.delete(k);
+}, true);
+function progressPaperName_(x) {
+  return String((x.row && x.row.name) || x.sub || x.name || 'A paper');
+}
+function progressSeriesCard_(sr) {
+  const lines = sr.papers.slice(0, 15).map(pp => {
+    const total = pp.all.length, done = Object.keys(pp.done).length, left = Math.max(0, total - done);
+    const sums = (pp.of ? pp.got + '/' + pp.of + ' marks · ' : '') + (left ? left + ' left' : 'all done');
+    const qs = pp.all.map(q => {
+      const k = String(q.key || q.name), sc = pp.done[k];
+      const v = !sc ? 'not done' : sc.sent ? 'sent' : sc.of > 1 ? sc.got + '/' + sc.of : sc.got ? 'right' : 'wrong';
+      const tone = !sc || sc.sent ? '' : sc.got === sc.of ? ' is-good' : ' is-bad';
+      return `<div class="row"><span class="k">${esc('Q' + (q.qNumber != null && q.qNumber !== '' ? q.qNumber + (q.qPart || '') : q.name))}</span><span class="v prog-v${tone}">${esc(v)}</span></div>`;
+    }).join('');
+    return `<details class="prog-paper" data-paper="${esc(pp.id)}"${PROG_OPEN.has(pp.id) ? ' open' : ''}>
+      <summary class="row"><span class="k">${esc(progressPaperName_(pp.x))}</span><span class="v">${esc(sums)}</span></summary>
+      <div class="prog-qs">${qs}</div>
+    </details>`;
+  }).join('');
+  const more = sr.papers.length > 15 ? `<p class="faint">and ${sr.papers.length - 15} more started</p>` : '';
+  const untouched = sr.untouched ? `<div class="row"><span class="k">Not started</span><span class="v">${sr.untouched}</span></div>` : '';
+  return `<div class="card prog-series">
+    <h3>${esc(sr.name.charAt(0).toUpperCase() + sr.name.slice(1))}</h3>
+    ${lines}${more}${untouched}
+  </div>`;
+}
+
+/* ---------- GRADE ESTIMATE ---------- */
+/* NO BOUNDARIES IN THE LIBRARY, so a share of the marks reads as a grade by these steps — said as an estimate on the card, every time. */
+const PROG_GCSE_STEPS = [[80, '9'], [70, '8'], [60, '7'], [50, '6'], [40, '5'], [30, '4'], [20, '3'], [12, '2'], [5, '1']];
+const PROG_ALEVEL_STEPS = [[80, 'A*'], [70, 'A'], [60, 'B'], [50, 'C'], [40, 'D'], [30, 'E']];
+const PROG_SATS_STEPS = [[75, 'greater depth'], [55, 'expected standard']];
+function progressLevel_(x) {
+  const r = x.row || {};
+  const said = [x.tier, x.bandValue, r.band_value, r.level, r.key_stage, x.keystage].map(v => String(v || '')).join(' ');
+  if (/a-?level|\bas\b/i.test(said)) return 'alevel';
+  if (/ks2|sats/i.test(said) || /standards & testing/i.test(String(x.company || r.company || ''))) return 'sats';
+  if (/ks4|gcse|foundation|higher/i.test(said)) return 'gcse';
+  return '';
+}
+function progressGrade_(steps, pct, low) {
+  const s = steps.find(([at]) => pct >= at);
+  return s ? s[1] : low;
+}
+function progressGradeCard_(st) {
+  const by = {};
+  Object.keys(st.papers).forEach(pid => {
+    const pp = st.papers[pid];
+    if (!pp.of) return;
+    const x = pp.x, subj = String(x.subject || 'Other');
+    const type = String(x.documentType || (x.row && x.row.document_type) || '');
+    const lv = /past|specimen/i.test(type) ? progressLevel_(x) : '';
+    const grade = x.bandType === 'grade' && x.bandValue ? String(x.bandValue) : '';
+    if (!lv && !grade) return;
+    const k = subj + '|' + (lv || 'grade');
+    const o = by[k] || (by[k] = { subj: subj, lv: lv, got: 0, of: 0, n: 0, best: 0 });
+    o.got += pp.got; o.of += pp.of; o.n++;
+    /* A GRADED WORKSHEET COUNTS TOWARDS "WORKING AT" WHEN SEVEN IN TEN OF ITS MARKS WERE GOT. */
+    if (!lv && pp.got / pp.of >= 0.7 && +grade > o.best) o.best = +grade;
+  });
+  const rows = Object.keys(by).map(k => by[k]).filter(o => o.lv || o.best).map(o => {
+    const pct = progressPct_(o.got, o.of);
+    const g = o.lv === 'gcse' ? 'grade ' + progressGrade_(PROG_GCSE_STEPS, pct, 'U')
+      : o.lv === 'alevel' ? progressGrade_(PROG_ALEVEL_STEPS, pct, 'U')
+      : o.lv === 'sats' ? progressGrade_(PROG_SATS_STEPS, pct, 'working towards')
+      : 'working at grade ' + o.best;
+    const label = o.subj + (o.lv === 'gcse' ? ' GCSE' : o.lv === 'alevel' ? ' A-level' : o.lv === 'sats' ? ' SATs' : ' worksheets');
+    return `<div class="row"><span class="k">${esc(label)}</span><span class="v">${esc(g)}</span></div>
+      <p class="faint prog-from">from ${o.n} ${o.n === 1 ? 'paper' : 'papers'}, ${pct}% of marks</p>`;
+  }).join('');
+  if (!rows) return emptyCard_('Grade estimate');
+  return `<div class="card prog-grade">
+    <h3>Grade estimate</h3>
+    ${rows}
+    <p class="faint">An estimate from your marks, not a prediction from your school.</p>
+  </div>`;
+}
+
+/* ---------- SESSIONS ---------- */
+/* SESSIONS FROM `myJobs_`, the Booking column's own list: four weeks either side of today, the next three and the last three. */
+function progressSessions_() {
+  const jobs = typeof myJobs_ === 'function' ? myJobs_() : [];
+  const ahead = [], past = [];
+  const t0 = progressToday_();
+  jobs.forEach(j => {
+    if (/cancel/i.test(String(j.status || '')) || typeof jobOn_ !== 'function') return;
+    for (let i = -28; i <= 28; i++) {
+      const d = new Date(t0.getTime()); d.setDate(d.getDate() + i);
+      let on = false;
+      try { on = jobOn_(j, d); } catch (e) { on = false; }
+      if (on) (i >= 0 ? ahead : past).push({ d: d, j: j });
+    }
+  });
+  ahead.sort((a, b) => a.d - b.d); past.sort((a, b) => b.d - a.d);
+  return { ahead: ahead.slice(0, 3), past: past.slice(0, 3) };
+}
+function progressSessionsCard_(ss) {
+  if (!ss.ahead.length && !ss.past.length) return emptyCard_('Sessions');
+  const when = s => s.d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) + (s.j.time ? ' · ' + s.j.time : '');
+  const row = s => `<div class="row"><span class="k">${esc(when(s))}</span><span class="v">${esc(s.j.title || s.j.subject || 'Session')}</span></div>`;
+  return `<div class="card prog-sessions">
+    <h3>Sessions</h3>
+    ${ss.ahead.length ? '<p class="sub">Coming up</p>' + ss.ahead.map(row).join('') : ''}
+    ${ss.past.length ? '<p class="sub">Done</p>' + ss.past.map(row).join('') : ''}
+    <div class="tile-row">${tile_({ icon: 'book', label: 'Sessions', note: 'on Book', act: 'prog-sessions' })}</div>
+  </div>`;
+}
+
+/* ---------- THE COLUMN: every widget, always, so each is where it was; one with nothing to say is its title alone (414). ---------- */
+function progressCards_() {
+  const signed = typeof USER !== 'undefined' && !!USER;
+  const st = signed ? progressStats_() : { n: 0, weak: [], series: [], papers: {}, topics: [], recent: [] };
+  const cards = [progressCountdownCard_(), progressAnsweredCard_(st), progressActivityCard_(st), progressWeakCard_(st),
+    progressGradeCard_(st)];
+  if (st.series.length) st.series.slice(0, 6).forEach(sr => cards.push(progressSeriesCard_(sr)));
+  else cards.push(emptyCard_('Papers and worksheets'));
+  cards.push(progressSessionsCard_(signed ? progressSessions_() : { ahead: [], past: [] }));
+  const coming = signed && ((typeof awaiting_ === 'function' && awaiting_())
+    || (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null && !LIBRARY_FAILED));
+  if (coming) cards.push(loading_());
+  return cards;
+}
+/* PRACTISE A TOPIC: Find with that Topic chip. Questions do not answer Topic (`topicShown_`), so a chip that finds nothing opens the question last got wrong instead. */
+on('prog-practise', el => {
+  const topic = String((el && el.dataset.topic) || ''), key = String((el && el.dataset.key) || '');
+  if (!topic || typeof FINDERS === 'undefined') return;
+  const F = FINDERS.stuff;
+  let n = 0;
+  inFinder_(F, () => {
+    STUFF.q = '';
+    const box = $(F.id + '-q');
+    if (box) box.value = '';
+    STUFF.filters = [{ field: 'topic', value: topic }];
+    try { n = stuffFiltered().length; } catch (e) { n = 0; }
+    if (!n) STUFF.filters = [];
+  });
+  if (!n) {
+    const x = key ? (stuffItemsAll_() || []).find(y => y && y.kind === 'question' && String(y.key || y.name) === key.replace(/#[^#]*$/, '')) : null;
+    if (x && typeof finderOpen_ === 'function') { finderOpen_(x, null, F); return; }
+    toast('Nothing in Find on ' + topic + ' yet.');
+    return;
+  }
+  inFinder_(F, () => {
+    paintStuff();
+    if (AT !== F.id) go(F.id);
+    goPage(F.id, stuffFirstResult_());
+  });
+});
+on('prog-sessions', () => { go('booking'); });
 screen('progress', () => pages('progress', progressCards_()));
 screen('tools', () => pages('tools', widgetColumn_('tool')));
 screen('games', () => pages('games', widgetColumn_('game')));

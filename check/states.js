@@ -3928,42 +3928,42 @@ const STATES = {
 
   ],
 
-  /* ---------- PROGRESS: THE PLACEHOLDER, OR A STUDENT'S JOURNEY — EITHER WAY ASSERTED § */
+  /* ---------- PROGRESS (435): THE TITLE ALONE WITH NOTHING TO COUNT, OR THE LEARNER'S CARDS — EITHER WAY ASSERTED ---------- */
   progress: [
     { name: '',
       expect: () => {
         const h = document.getElementById('s-progress');
         const pane = h && h.querySelector(':scope > .page > .pane');
-        if (!pane || !pane.querySelector('.card h3')) return false;
-        if (h.querySelector('button, [data-do], input, select, textarea, a[href], summary, details, label, '
-          + '[tabindex], [onclick], [role], [contenteditable]')) return false;
-        if (typeof mayJourney_ === 'function' && mayJourney_()) {
-          return h.querySelectorAll(':scope > .page').length === 1 && !!pane.querySelector('.card.journey')
-            && pane.querySelector('h3').textContent.trim() === 'Your journey' && !/Not built yet/.test(pane.textContent);
-        }
-        if (pane.querySelector('.card.journey') || !/Not built yet/.test(pane.textContent)) return false;
-        if ([...pane.querySelectorAll('*')].some(e => !e.matches('div.card, h3, p.sub, p.empty, br, span.faint'))) return false;
-        return !/\d/.test(pane.textContent);
+        if (!pane || !pane.querySelector('.card h3, .loading')) return false;
+        const acts = [...h.querySelectorAll('[data-do]')].map(e => e.dataset.do);
+        if (acts.some(a => a !== 'prog-practise' && a !== 'prog-sessions')) return false;
+        if (/Not built yet/.test(h.textContent)) return false;
+        /* EVERY WIDGET, ALWAYS (435): seven titles at least, each empty one its title alone. */
+        const cards = [...h.querySelectorAll(':scope > .page .card')];
+        if (cards.length < 7 || cards.some(c => !c.querySelector('h3'))) return false;
+        return cards.filter(c => c.classList.contains('is-empty')).every(c => c.children.length === 1);
       },
-      wants: 'signed out, the Progress placeholder (drill\'s markup only, no number, nothing to press); a student or an admin, Your journey and nothing to press' },
-    /* ---------- YOUR JOURNEY, WITH THE ONE LIVE LINE DRAWN § */
-    { name: 'your journey',
+      wants: 'every Progress widget drawn, each with nothing to say its title alone; the only controls Practise and Sessions' },
+    /* ---------- YOUR EXAMS, WITH THE ONE LIVE LINE DRAWN ---------- */
+    { name: 'your exams',
       only: () => typeof USER !== 'undefined' && !!USER && typeof mayJourney_ === 'function' && mayJourney_(),
       enter: () => {
         const t = new Date(Date.now() + 14 * 864e5);
         USER.profile = Object.assign({}, USER.profile || {},
           { exam_big_date: t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0') });
         progressRedraw_();
-        if (!document.querySelector('#s-progress .card.journey')) throw new Error('no journey card on the progress column');
-        goPage('progress', 0, true);
+        const c = document.querySelector('#s-progress .card.journey');
+        if (!c) throw new Error('no countdowns card on the progress column');
+        const pages = [...document.querySelectorAll('#s-progress > .page')];
+        goPage('progress', Math.max(0, pages.indexOf(c.closest('.page'))), true);
       },
       expect: () => {
         const c = document.querySelector('#s-progress .page.on .card.journey');
-        return !!c && /days? to go/.test(c.textContent) && !document.querySelector('#s-progress button, #s-progress [data-do]')
+        return !!c && /Big exam\s*\d+ days?/.test(c.textContent) && !c.querySelector('button, [data-do]')
           && !document.querySelector('#s-settings .card.journey')
           && !document.querySelector('.card.digest, [data-do="digest-preview"]');
       },
-      wants: 'the journey card on Progress, with the exam countdown and no control that does nothing — none on Settings, and no weekly parent email card anywhere',
+      wants: 'the Countdowns card on Progress, with the Big exam line and no control on it — none on Settings, and no weekly parent email card anywhere',
       leave: () => { if (USER && USER.profile) delete USER.profile.exam_big_date; progressRedraw_(); } },
   ],
 
