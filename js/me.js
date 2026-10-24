@@ -417,6 +417,8 @@ function signedOut_(opts) {
   /* WHAT THE LAST PERSON SENT, AS THIS DEVICE HELD IT FOR THE VISIT, AND ANYTHING OPEN OVER THE SCREEN. § */
   try { if (typeof subForget_ === 'function') subForget_(); } catch (e) {}
   try { if (typeof kpClose_ === 'function') kpClose_(); } catch (e) {}
+  /* AND THE CAMERA, which is kept parked while the app is open (427) — the next person's phone light is not this one's. */
+  try { if (typeof camStop_ === 'function') camStop_(); } catch (e) {}
   /* AND THE KEYPAD'S UNDO (`KP_UNDO`, keypad.js), as the pen's held Clears go (`padWhoChanged_`). § */
   try { if (typeof KP_UNDO !== 'undefined') KP_UNDO.clear(); } catch (e) {}
   try { if (typeof closeSheet === 'function') closeSheet(); } catch (e) {}

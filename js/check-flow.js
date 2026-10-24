@@ -10952,7 +10952,9 @@ check('the camera card starts itself and offers the gallery', async () => {
 const NO_REACTIONS_ = () => ({ emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [0, 0, 0, 0, 0, 0],
                                total: 0, yours: '', by: [] });
 const camBoot_ = o => {
-  const gum = { asks: 0, open: 0, hold: null };
+  const gum = { asks: 0, open: 0, hold: null, tracks: [] };
+  /* HOW MANY OPEN STREAMS HAVE THEIR TRACK SWITCHED ON — a parked one is open and dark (427). */
+  gum.live = () => gum.tracks.filter(t => t.on && t.enabled !== false).length;
   const p = payload();
   if (!o.festive) p.festive = [];
   /* TWO POSTS UNDER THE CAMERA, because the front door is "the newest post" and `payload()` has
@@ -10965,10 +10967,17 @@ const camBoot_ = o => {
   }
   const b = boot({ payload: p, before: w => {
     try { if (o.user) w.localStorage.setItem('familyUser', JSON.stringify(o.user)); } catch (e) {}
+    /* WHAT THE DEVICE KEPT FROM AN EARLIER VISIT — a reload is a new window with the same storage. */
+    try { Object.keys(o.store || {}).forEach(k => w.localStorage.setItem(k, o.store[k])); } catch (e) {}
+    if (o.perm) {
+      Object.defineProperty(w.navigator, 'permissions', { configurable: true, value: {
+        query: () => Promise.resolve({ state: o.perm }) } });
+    }
     const stream = () => {
-      let on = true;
       gum.open++;
-      const track = { kind: 'video', stop() { if (on) { on = false; gum.open--; } } };
+      const track = { kind: 'video', on: true, enabled: true,
+        stop() { if (this.on) { this.on = false; gum.open--; } } };
+      gum.tracks.push(track);
       return { getTracks: () => [track], getVideoTracks: () => [track] };
     };
     Object.defineProperty(w.navigator, 'mediaDevices', { configurable: true, value: {
@@ -11019,7 +11028,10 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
     if (b.gum.asks !== before + 1) bad.push(`swiping up to the camera asked ${b.gum.asks - before} time(s), not once`);
     if (b.gum.open !== 1) bad.push(`swiping up to the camera left ${b.gum.open} stream(s) open, not one`);
     b.w.__t.goPage('feed', b.cam() + 1); await wait(CAM_SLIDE); await woken_();
-    if (b.gum.open) bad.push('swiping back down to the newest post left the camera running');
+    if (b.gum.live()) bad.push('swiping back down to the newest post left the camera looking');
+    /* PARKED, NOT STOPPED (427): a stop makes the next swipe a new getUserMedia, which an iPhone asks about every time. */
+    if (b.gum.open !== 1) bad.push(`swiping back down to the newest post left ${b.gum.open} stream(s) open, not the one parked`);
+    if (b.w.localStorage.getItem('family:cam') !== 'granted') bad.push('a granted camera was not remembered on the device');
 
     /* AWAY AND BACK, ON A POST: the column remembers where it was, and that is not the camera. */
     b.w.__t.go('stuff'); await wait(CAM_SLIDE); await woken_();
@@ -11028,12 +11040,19 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
 
     /* AWAY AND BACK, ON THE CAMERA PAGE: that IS arriving at it, and it starts — the camera has
        started on arrival rather than on a tap since the note over `camStart_` was written. */
-    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE); await woken_();
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE); await woken_(); await camAsked_(() => b.gum.live() === 1);
+    if (b.gum.asks !== before + 1) bad.push(`swiping back up to the camera asked again (${b.gum.asks - before} asks) — the answer was yes and the stream was kept`);
+    if (b.gum.live() !== 1) bad.push('swiping back up to the camera did not switch the kept stream back on');
     b.w.__t.go('stuff'); await wait(CAM_SLIDE); await woken_();
-    if (b.gum.open) bad.push('leaving the feed from the camera page left the camera running');
-    b.w.__t.go('feed'); await wait(CAM_SLIDE); await woken_(); await camAsked_(() => b.gum.asks === before + 3);
-    if (b.gum.asks !== before + 3) bad.push(`coming back to the feed on the camera page asked ${b.gum.asks - before - 2} time(s), not once`);
-    if (b.gum.open !== 1) bad.push(`coming back to the camera page left ${b.gum.open} stream(s) open, not one`);
+    if (b.gum.live()) bad.push('leaving the feed from the camera page left the camera looking');
+    b.w.__t.go('feed'); await wait(CAM_SLIDE); await woken_(); await camAsked_(() => b.gum.live() === 1);
+    if (b.gum.asks !== before + 1) bad.push(`coming back to the feed on the camera page asked ${b.gum.asks - before - 1} more time(s) — it should wake the kept stream`);
+    if (b.gum.open !== 1 || b.gum.live() !== 1) bad.push(`coming back to the camera page left ${b.gum.open} stream(s) open and ${b.gum.live()} looking, not one`);
+    const shoot = b.w.document.getElementById('cam-shoot');
+    if (!shoot || shoot.disabled) bad.push('the woken camera left the shutter greyed');
+    /* THE PAGE GOING LETS IT GO FOR REAL. */
+    b.w.dispatchEvent(new b.w.Event('pagehide')); await wait(50);
+    if (b.gum.open) bad.push(`the page going left ${b.gum.open} stream(s) open`);
   }
 
   /* ---------- SIGNED OUT ------------------------------------------------------------------------ */
@@ -11078,11 +11097,49 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
     if (!on || on.hidden) bad.push('refused: after a repaint the card has no `Try the camera again`');
     const said = (b.w.document.getElementById('cam-said') || {}).textContent || '';
     if (!said.trim()) bad.push('refused: after a repaint the card no longer says why the camera did not start');
+    if (b.w.localStorage.getItem('family:cam') !== 'refused') bad.push('refused: the refusal was not remembered on the device');
     if (on) { b.w.__t.ACTIONS['cam-on'](on); await wait(50); }
     if (b.gum.asks !== 2) bad.push('refused: `Try the camera again` did not ask again');
+    /* A NO IS KEPT (427): swiping away and back is not somebody asking, only the retry is. */
     b.w.__t.goPage('feed', b.cam() + 1); await wait(CAM_SLIDE); await woken_();
-    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE); await woken_(); await camAsked_(() => b.gum.asks === 3);
-    if (b.gum.asks !== 3) bad.push('refused: swiping down and back up to the camera did not ask again');
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE); await woken_(); await wait(300);
+    if (b.gum.asks !== 2) bad.push(`refused: swiping down and back up asked again (${b.gum.asks} asks) — a no is remembered`);
+    const on2 = b.w.document.getElementById('cam-on');
+    if (!on2 || on2.hidden) bad.push('refused: back on the camera page there is no `Try the camera again`');
+  }
+
+  /* ---------- A REFUSAL SURVIVES A RELOAD, AND THE RETRY IS THE ONLY WAY PAST IT (427) ---------- */
+  {
+    const b = camBoot_({ user: pat, store: { 'family:cam': 'refused' } });
+    await wait(400);
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE); await woken_(); await wait(300);
+    if (b.gum.asks) bad.push(`reloaded after a refusal: swiping up asked ${b.gum.asks} time(s), not none`);
+    const off = (b.w.document.getElementById('cam-off') || {}).textContent || '';
+    if (!/did not start/.test(off)) bad.push('reloaded after a refusal: the viewfinder does not say the camera did not start');
+    const on = b.w.document.getElementById('cam-on');
+    if (!on || on.hidden) bad.push('reloaded after a refusal: no `Try the camera again`');
+    if (on) { b.w.__t.ACTIONS['cam-on'](on); await camAsked_(() => b.gum.open === 1); }
+    if (b.gum.asks !== 1) bad.push(`reloaded after a refusal: \`Try the camera again\` asked ${b.gum.asks} time(s), not once`);
+    if (b.gum.open !== 1) bad.push('reloaded after a refusal: the retry was granted and no stream opened');
+    if (b.w.localStorage.getItem('family:cam') !== 'granted') bad.push('reloaded after a refusal: the granted retry did not replace the kept no');
+  }
+
+  /* ---------- THE BROWSER'S OWN ANSWER, WHERE IT GIVES ONE ---------------------------------------- */
+  {
+    const b = camBoot_({ user: pat, perm: 'denied' });
+    await wait(400);
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE); await woken_(); await wait(300);
+    if (b.gum.asks) bad.push(`permissions say denied: swiping up asked ${b.gum.asks} time(s), not none`);
+    const on = b.w.document.getElementById('cam-on');
+    if (!on || on.hidden) bad.push('permissions say denied: no `Try the camera again`');
+    if (on) { b.w.__t.ACTIONS['cam-on'](on); await camAsked_(() => b.gum.asks === 1); }
+    if (b.gum.asks !== 1) bad.push('permissions say denied: `Try the camera again` did not ask');
+  }
+  {
+    const b = camBoot_({ user: pat, perm: 'granted', store: { 'family:cam': 'refused' } });
+    await wait(400);
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE); await woken_(); await camAsked_(() => b.gum.asks === 1);
+    if (b.gum.asks !== 1 || b.gum.open !== 1) bad.push(`permissions say granted: swiping up asked ${b.gum.asks} time(s) and opened ${b.gum.open}, not once each — a kept no is overruled`);
   }
 
   /* ---------- THE PROMPT STILL UP WHEN A REPAINT LANDS § */
