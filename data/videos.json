@@ -7,5 +7,32 @@
     "age": "",
     "notes": "",
     "active": false
+  },
+  {
+    "title": "Lesson video 1",
+    "url": "https://youtu.be/UIYzc1ALhVY",
+    "kind": "clip",
+    "tags": "lesson long video",
+    "age": "",
+    "notes": "Long-form video from the owner (402). Title to fill in: YouTube could not be reached from here.",
+    "active": true
+  },
+  {
+    "title": "Lesson video 2",
+    "url": "https://youtu.be/N5i3UsiSoYY",
+    "kind": "clip",
+    "tags": "lesson long video",
+    "age": "",
+    "notes": "Long-form video from the owner (402). Title to fill in: YouTube could not be reached from here.",
+    "active": true
+  },
+  {
+    "title": "Lesson video 3",
+    "url": "https://youtu.be/ckcdqlo3pYc",
+    "kind": "clip",
+    "tags": "lesson long video",
+    "age": "",
+    "notes": "Long-form video from the owner (402). Title to fill in: YouTube could not be reached from here.",
+    "active": true
   }
 ]

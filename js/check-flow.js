@@ -3780,7 +3780,14 @@ check('the whiteboard notebook draws, undoes, survives a repaint and clears unde
 
   /* THE BAR: the four shapes and Clear, as tiles -- no padlock: the pad is always a pad, and the page lets a swipe through. */
   const bar = [...nb().querySelectorAll('.nb-bar [data-do]')].map(b => b.getAttribute('data-do') + (b.getAttribute('data-shape') ? ':' + b.getAttribute('data-shape') : '')).join(' ');
-  if (bar !== 'nb-shape:frac nb-shape:pow nb-shape:root nb-shape:int nb-clear') bad.push('the bar offers [' + bar + '], wanted Fraction, Power, Root, Integral and Clear');
+  if (bar !== 'nb-shape:frac nb-shape:pow nb-shape:root nb-shape:int nb-pic nb-clear') bad.push('the bar offers [' + bar + '], wanted Fraction, Power, Root, Integral, Picture and Clear');
+  /* A PICTURE (402) COMES BACK FROM THE STORE AS IT WENT IN, moved keeps its size, and an older element beside it survives. */
+  try {
+    const el = { im: 1, i: 'p1', x: 56, y: 40, w: 800, h: 400, s: 'data:image/jpeg;base64,AAAA' };
+    const it = w.nbItem_(el), mv = w.nbPicItem_(it, it.x + 10, it.y, it.w, it.h);
+    if (!it.im || it.w !== 200 || it.h !== 100 || it.enc !== el) bad.push('a stored picture did not decode to a 200 by 100 picture item');
+    if (mv.enc.x !== 96 || mv.enc.w !== 800 || mv.enc.s !== el.s) bad.push('a moved picture changed its size or its picture: ' + JSON.stringify(mv.enc));
+  } catch (e) { bad.push('the picture item threw: ' + e.message); }
   if (!/Kept on this device only/.test((nb().querySelector('.nb-note') || {}).textContent || '')) bad.push('the note under the board does not say it is kept on this device');
   const padEl = () => nb().querySelector('.nb-pad'), bookEl = () => nb().querySelector('.nb-book');
   if (w.axisFree(padEl(), 'x', -1) || w.axisFree(padEl(), 'y', 1)) bad.push('the grid may take a drag that starts on the pad, so a stroke slides the column');

@@ -5150,6 +5150,17 @@ function drawMarker_() {
       ink.forEach(s => s.pl.forEach((p, k) => { if (k && inside(p, P) && inside(s.pl[k - 1], P)) L += near(p, s.pl[k - 1]); }));
       return { ok: L >= F.sq * (it.min || 0.5), ex: q => inside(q, P) };
     },
+    /* `join` (402): a matching line — one stroke from inside box `a` to inside box `b`, either way. Boxes [x, y, w, h] in figure units, padded by `pad`. */
+    join(it, ink, F) {
+      const pad = it.pad == null ? 10 : it.pad;
+      const box = r => { const p = F.v([r[0], r[1]]), q = F.v([r[0] + r[2], r[1] + r[3]]);
+        return [Math.min(p[0], q[0]) - pad, Math.min(p[1], q[1]) - pad, Math.max(p[0], q[0]) + pad, Math.max(p[1], q[1]) + pad]; };
+      const A = box(it.a), B = box(it.b), inB = (q, X) => q[0] >= X[0] && q[0] <= X[2] && q[1] >= X[1] && q[1] <= X[3];
+      const ca = [(A[0] + A[2]) / 2, (A[1] + A[3]) / 2], cb = [(B[0] + B[2]) / 2, (B[1] + B[3]) / 2];
+      const ok = ink.some(s => { const e0 = s.pl[0], e1 = s.pl[s.pl.length - 1]; return (inB(e0, A) && inB(e1, B)) || (inB(e0, B) && inB(e1, A)); });
+      const band = Math.max(A[3] - A[1], B[3] - B[1]) / 2;
+      return { ok: ok, ex: q => inB(q, A) || inB(q, B) || dSeg(q, ca, cb) <= band };
+    },
   };
   /* a dotted grid as two steps from one dot, so the row does not list every dot */
   function latSnap(q, L) {
@@ -5250,6 +5261,7 @@ function drawMarker_() {
         [[a, it.ca], [b, it.cb]].forEach(e => { const c = [e[0][0], y], ring = []; for (let g = 0; g <= 360; g += 30) ring.push(at(c, g, r)); put(ring); if (e[1]) { put(ring.map(p => [c[0] + (p[0] - c[0]) * 0.5, c[1] + (p[1] - c[1]) * 0.5])); put([at(c, 0, r * 0.8), at(c, 180, r * 0.8)]); put([at(c, 90, r * 0.8), at(c, 270, r * 0.8)]); put(ring.map(p => [c[0] + (p[0] - c[0]) * 0.75, c[1] + (p[1] - c[1]) * 0.75])); } });
       }
       if (it.k === 'line') put(it.thru.map(F.v));
+      if (it.k === 'join') put([it.a, it.b].map(r => F.v([r[0] + r[2] / 2, r[1] + r[3] / 2])));
       if (it.k === 'cells') {
         const C = (it.cells || []).concat((it.rects || []).map(r => [[r[0], r[1]], [r[0] + r[2], r[1]], [r[0] + r[2], r[1] + r[3]], [r[0], r[1] + r[3]]]));
         const pick = it.set ? it.set[0] : C.map((c, i) => i).filter(i => (it.given || []).indexOf(i) === -1).slice(0, it.need);
