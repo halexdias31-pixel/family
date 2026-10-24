@@ -26720,6 +26720,58 @@ check('the Ledger not answering keeps the card\'s words — "Couldn’t load thi
   return bad;
 });
 
+/* A NEW CHAPTER PUBLIC BEFORE ITS WORDS ARE IMPORTED (`lib_pending`, 417): its tags and "Coming soon", never the loader; whole when they come. */
+check('a new content card whose words are not in the Ledger yet (lib_pending) says Coming soon over its tags, is asked for, and is drawn whole when they come', async () => {
+  const def = LIB_FULL.defs().files.textbooks, full = LIB_FULL.rows('textbooks');
+  const target = full.find(r => /^true$/i.test(String(r.lib_pending || '')) && !r.anim && LIB_FULL.privateOf(def, r));
+  if (!target) return ['no lib_pending chapter with words on this machine in data/textbooks.json — nothing was checked'];
+  const slim = full.map(r => {
+    const c = LIB_FULL.privateOf(def, r);
+    if (!c) return r;
+    const out = {};
+    Object.keys(r).forEach(k => { if (!(k in c)) out[k] = r[k]; });
+    out.lib_has = def.private.filter(f => String(c[f] == null ? '' : c[f]).trim() !== '').join(' ');
+    return out;
+  });
+  const wire = 'ct:' + target.book_id + '#' + target.chapter;
+  const held = [];
+  const one = boot({ serve: url => (/data\/textbooks\.json/.test(url) ? slim : undefined), before: signedInAs_(ANS_ADA),
+    reply: b => (b.action === 'libItems' ? new Promise(ok => held.push(() => {
+      const items = {}, missing = [];
+      (b.ids || []).forEach(t => { if (t === wire) items[t] = LIB_FULL.privateOf(def, target); else missing.push(t); });
+      ok({ success: true, items: items, missing: missing, refused: [], left: 390, cap: 400 });
+    })) : undefined) });
+  const W = one.w, bad = [];
+  for (let i = 0; i < 100 && !(typeof W.stuffItemsAll_ === 'function' && W.stuffItemsAll_().some(x => x.kind === 'content' && x.row && x.row.pending)); i++) await wait(50);
+  const x = W.stuffItemsAll_().find(it => it.kind === 'content' && it.row && it.row.bookId === target.book_id && it.row.n === target.chapter);
+  if (!x) return [target.book_id + ' chapter ' + target.chapter + ' did not come into Find as a content card — nothing was checked'];
+  if (!x.row.pending) bad.push('the chapter row says lib_pending and its content card is not marked pending');
+  const S = W.__t.STUFF();
+  S.filters = [{ field: 'kindLabel', value: 'Content' }, { field: 'subject', value: String(target.subject || 'History') || 'History' }];
+  W.__t.go('stuff');
+  W.paintStuff();
+  const i = W.stuffPages_().findIndex(pg => pg.x === x);
+  if (i < 0) return ['the pending card is not among the pages of Content · History — nothing was checked'];
+  W.__t.goPage('stuff', W.stuffFirstResult_() + i, true);
+  await wait(300);
+  let front = libFront_(W);
+  const waiting = front && front.querySelector('.lib-wait');
+  if (!waiting) bad.push('the pending card in front is not the waiting card: ' + (front ? front.textContent.replace(/\s+/g, ' ').slice(0, 120) : 'no page'));
+  else {
+    if (!/Coming soon/.test(waiting.textContent)) bad.push('it does not say Coming soon: ' + waiting.textContent.replace(/\s+/g, ' ').slice(0, 120));
+    if (waiting.querySelector('.loading')) bad.push('it shows the loader — a pending card says Coming soon instead');
+    if (waiting.textContent.indexOf(target.title) === -1) bad.push('it does not carry its title, ' + target.title);
+  }
+  if (!one.sent.some(b => b.action === 'libItems' && (b.ids || []).indexOf(wire) !== -1)) bad.push('no libItems request went for ' + wire);
+  held.splice(0).forEach(f => f());
+  await wait(500);
+  front = libFront_(W);
+  const word = String(target.words || '').split('|')[0].split(' — ')[0].trim();
+  if (!front || front.querySelector('.lib-wait') || front.textContent.indexOf(word) === -1) bad.push('the words came and the card is not drawn whole (wanted the key word "' + word + '"): ' + (front ? front.textContent.replace(/\s+/g, ' ').slice(0, 120) : 'no page'));
+  if (one.errs.length) bad.push('errors: ' + one.errs.join(' | '));
+  return bad;
+});
+
 check('a child sees a tutor card, the booking form and her session without any £, and is told to ask a parent (398)', async () => {
   /* THE OWNER, 23 Oct: "Kids' profiles shouldn't be able to see tutors' prices." The payload already sends her none (`kidPricesOff_`, check-kid-prices.js); this is the phone drawing none even when a figure is in hand. */
   const { w } = boot();

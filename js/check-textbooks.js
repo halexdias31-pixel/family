@@ -108,6 +108,10 @@ const unknownTopics = new Map();
 const chapterRows = [];
 let higherItems = 0, formulas = 0, words = 0, points = 0, live = 0;
 
+/* A NEW CHAPTER WHOSE WORDS ARE NOT ON THIS MACHINE (`lib_pending`, docs/library.md): a card only, so its lists are not counted. */
+const cardOnly = r => /^true$/i.test(String((r && r.lib_pending) || '').trim()) && !['words', 'points', 'formulas'].some(k => String(r[k] || '').trim());
+let cardOnlyN = 0;
+
 /* ---------- AN ANIMATION IS A ROW TOO, AND IT IS NOT A CHAPTER § */
 const ANIM_FIELDS = ['book_id', 'chapter', 'anim', 'title', 'about', 'html', 'css', 'active'];
 const isAnim = r => !!(r && Object.prototype.hasOwnProperty.call(r, 'anim'));
@@ -141,6 +145,7 @@ let animCount = 0;
     if (k < 0 || rows[k] !== ch) fail.push(where + ' is not directly under ' + b + ' chapter ' + n + ' — file order is page order, so it would be drawn after ' + (k >= 0 ? (isAnim(rows[k]) ? 'animation ' + rows[k].anim : rows[k].book_id + ' chapter ' + rows[k].chapter) : 'nothing'));
     /* WHAT IT IS ABOUT, FOUND IN ITS CHAPTER. */
     const about = String(r.about || '').split('|').map(t => t.trim()).filter(Boolean);
+    if (cardOnly(ch)) return;
     if (!about.length) fail.push(where + ' is about nothing — `about` names at least one key word, formula or worked line of its chapter');
     const names = ['words', 'formulas'].flatMap(col => String(ch[col] || '').split('|').map(t => t.trim().replace(/^\[H\] /, ''))
       .filter(Boolean).map(t => { const at = t.indexOf(' — '); return at > 0 ? t.slice(0, at).trim() : ''; }).filter(Boolean));
@@ -188,6 +193,7 @@ rows.forEach((r, line) => {
   if (tier && tier !== 'Higher') fail.push(where + ' has tier "' + tier + '" — blank (both tiers) or Higher');
   chapterRows.push({ id: id, n: n, r: r, where: where });
   const wholeHigher = tier === 'Higher';
+  if (cardOnly(r)) { cardOnlyN++; return; }
 
   /* ONE LIST, ITS ITEMS AS THE MAPPER READS THEM. */
   const items = (col, needName) => {
@@ -318,7 +324,7 @@ chapterRows.forEach(({ id, n, r, where }) => {
 console.log('\nTHE CONTENT CARDS\' TAGS  —  ' + chapterRows.length + ' cards, ' + mathsCards + ' maths cards carrying '
   + mathsTags + ' topics, every one spelled as the library or the tree spells it');
 
-console.log('\nTHE TEXTBOOKS  —  ' + books.size + ' book(s)');
+console.log('\nTHE TEXTBOOKS  —  ' + books.size + ' book(s)' + (cardOnlyN ? ', ' + cardOnlyN + ' new chapter(s) (lib_pending) with no words on this machine, read as cards only' : ''));
 books.forEach((b, id) => {
   console.log('  ' + id + '  ' + ((b.title && b.title.title) || '(no title page)') + '  ·  '
     + b.chapters.length + ' chapters, ' + b.chapters.filter(c => c.tier === 'Higher').length + ' Higher all through');

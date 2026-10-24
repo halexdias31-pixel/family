@@ -105,7 +105,8 @@ function text(name) {
       if (!r || !Object.prototype.hasOwnProperty.call(r, 'lib_has')) return;
       const id = idOf(def, r), c = map[id];
       if (c) Object.keys(c).forEach(k => { r[k] = c[k]; });
-      else if (String(r.lib_has || '').trim()) lost.push(id);
+      /* A `lib_pending` ROW IS A NEW CARD WHOSE WORDS GO IN BY A DRIVE IMPORT: a machine without them reads it as a card only. */
+      else if (String(r.lib_has || '').trim() && !/^true$/i.test(String(r.lib_pending || '').trim())) lost.push(id);
       delete r.lib_has;
     });
     if (lost.length) {

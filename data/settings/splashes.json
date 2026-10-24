@@ -27,5 +27,13 @@
 {"splash_id": "half3", "name": "Half, three ways", "kind": "tool", "shows": "½ = 0.5 = 50%", "note": "", "active": true},
 {"splash_id": "mxc", "name": "y = mx + c", "kind": "proof", "shows": "the line turning as m changes", "note": "", "active": true},
 {"splash_id": "orbit", "name": "The solar system", "kind": "proof", "shows": "eight planets round the Sun, each at its real period", "note": "Kepler", "active": true},
-{"splash_id": "fit", "name": "How many fit?", "kind": "proof", "shows": "how many 3s fit into 4: one, and a third of the next", "note": "", "active": true}
+{"splash_id": "fit", "name": "How many fit?", "kind": "proof", "shows": "how many 3s fit into 4: one, and a third of the next", "note": "", "active": true},
+{"splash_id":"hinf","name":"The price of a loaf, 1918–23","kind":"proof","shows":"a loaf in Berlin from 0.63 marks to 201 billion, a bar per date on a ×10 scale","note":"","active":true},
+{"splash_id":"hweim","name":"Weimar to Hitler, 1919–33","kind":"proof","shows":"crises, golden years, depression, Nazi seats rising, then 30 January 1933","note":"","active":true},
+{"splash_id":"hexp","name":"Germany grows, 1935–39","kind":"proof","shows":"the Saar, the Rhineland, Austria, the Sudetenland, the Czech lands, then Poland","note":"","active":true},
+{"splash_id":"hnop","name":"Reading a source: NOP","kind":"proof","shows":"a 1919 Punch cartoon read for its nature, origin and purpose, then judged","note":"","active":true},
+{"splash_id":"hbal","name":"Weighing it: how far?","kind":"proof","shows":"factors for and against on a balance, a criterion, then a judgement","note":"","active":true},
+{"splash_id":"hweb","name":"A web of causes, 1914","kind":"proof","shows":"Militarism, Alliances, Imperialism, Nationalism, then the Sarajevo spark","note":"","active":true},
+{"splash_id":"hcur","name":"The Iron Curtain, 1945–61","kind":"proof","shows":"Europe split: satellites, Churchill's line, NATO, the Warsaw Pact, the Wall","note":"","active":true},
+{"splash_id":"hmed","name":"Turning points, 1348–1948","kind":"proof","shows":"eleven turning points in medicine, each tagged with the factor behind it","note":"","active":true}
 ]

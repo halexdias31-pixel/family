@@ -73,3 +73,23 @@ from `data/` and `data-private/`. With no `data-private/` it rebuilds one from t
 (`LIB_SOURCE_COMMIT`), which is what a fresh clone gets; a row the Ledger has and `data-private/` has not fails
 loudly ("run pull"). Every check's own static server serves the whole file in place of the card-only one, so the
 browser checks draw the cards with their words; `check-flow` has its own journeys for the card-only path.
+
+## A new card before its words are imported: `lib_pending` (417)
+
+A session that adds a new item commits its public card by git and sends its words by a Drive import; the site can get
+the card before the owner taps Import. Such a card row carries **`lib_pending: "True"`** (with `lib_has` as `split`
+wrote it), and:
+
+- **The site** marks the content card `pending` (`libraryExtras_`, library.js); while it waits for its
+  words its page is its title and tags and **Coming soon.** (`libSay_`, find.js), not the loader, signed in or out. It is
+  still asked for (`libWant_`), so once the import has gone in the words arrive and it is drawn whole as any card.
+- **`check/lib-full.js`** does not fail a `lib_pending` row that has no words in `data-private/` (a fresh clone, or any
+  machine but the one that wrote it): it is read as a card only. **`check-textbooks`** counts such a chapter
+  ("N new chapter(s) … read as cards only") instead of holding it to the key-word and worked-line rules, and does not
+  look for an animation's `about` in it. Where the words are present, every rule applies as usual.
+- The words live in `data-private/` on the machine that wrote them (between `join` and `split` as above) and in the
+  import file from `drive-pack --ids …`, written outside the repository and handed to the owner.
+- Once the import has gone in, `lib_pending` may stay: a card with its words is drawn whole whatever it says. Taking it
+  off is tidiness, not a fix.
+
+`check-flow`'s journey "a new content card whose words are not in the Ledger yet (lib_pending)…" holds the site to it.

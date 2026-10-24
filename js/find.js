@@ -3051,6 +3051,8 @@ function libItemByKey_(k) {
 }
 /* WHAT A WAITING CARD SAYS UNDER ITS TAGS: sign in, the dots, or why it did not come and Try again. */
 function libSay_(x) {
+  /* A NEW CARD MAY BE PUBLIC BEFORE THE OWNER HAS IMPORTED ITS WORDS (`lib_pending`, docs/library.md): it says so, whoever is asking. */
+  if (x && x.row && x.row.pending) return '<p class="empty lib-soon">Coming soon.</p>';
   if (typeof USER === 'undefined' || !USER || !USER.token) {
     return '<p class="sub lib-sign">Sign in to see this — your account is a few screens to the right.</p>';
   }
