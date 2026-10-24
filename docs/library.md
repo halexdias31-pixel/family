@@ -38,6 +38,25 @@ words. A row written whole is the truth for that row.
 A teaching animation row (`anim` in `data/textbooks.json`) is public whole and is never split — its script writes
 it straight into `data/textbooks.json` as before.
 
+## A card newer than its words — `lib_pending` (415)
+
+A row added after the Ledger copy (a new past paper, a new book) has its card in `data/` at once and its words only in
+the machine that wrote them, until an import puts them in the Ledger. Such a row carries **`lib_pending: "True"`**:
+
+- `check/lib-full.js` does not fail on it when `data-private/` lacks its words (a fresh clone seeds from the pinned commit,
+  which is older than the row): the row stays a card, and `LF.pending(row)` says so. Checks that hold the words to the
+  card skip it then (`check-qtypes` for `function_verified`); with
+  `data-private/` they read it whole like any other row.
+- On the phone, a pending card whose words the Ledger has not got (`libItems` answers it missing) says **Coming soon.**
+  under its title and tags, instead of "This one is not in the library yet" (`libSay_`, find.js).
+- The flag can stay after the import — a card whose words came is drawn whole, and the flag only changes what a
+  missing item says — and goes when the pinned seed is next moved past it.
+
+New past papers: `tools/add-past-paper.js <rows.json>` (rows written by a paper script through `tools/paperspec.py`,
+figures through `tools/pdf_figure.py`; the script with the words stays outside the repository) puts a paper's rows in
+after its cover row, splits them, and marks them pending. Their words reach the Ledger by `push`, or as an import file
+(`{version: 1, files: {questions: [{id, …private fields}]}, cards: {…}}`) through the Drive import (407).
+
 ## The checks
 
 `check/lib-full.js` is the one place the halves are joined: `rows(name)` and `text(name)` give the library whole,
