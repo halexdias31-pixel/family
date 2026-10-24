@@ -443,6 +443,10 @@ function glide_(el, v) {
 
 /* THE SAME GESTURE ON A TRACKPAD. § */
 let wheelAt = 0, wheelStop = null, wheelDone = false;
+/* A NEW FLICK INSIDE THE LAST ONE'S MOMENTUM: the tail only decays and never turns round, so a reversal or a sharp rise is fingers again (401). */
+let wheelLast = 0, wheelSign = 0, wheelTurned = 0;
+const wheelWin = [];
+const WHEEL_RISE = 3, WHEEL_FRESH = 30, WHEEL_GAP_MS = 300;
 
 addEventListener('wheel', e => {
   const axis = Math.abs(e.deltaX) > Math.abs(e.deltaY) * 1.4 ? 'x' : 'y';
@@ -450,10 +454,19 @@ addEventListener('wheel', e => {
   if (!AXES[axis].count()) return;
   if (!axisFree(e.target, axis, -delta)) return;
 
+  /* PIXELS OVER THE LAST 60ms, NOT PER EVENT: input folded or bunched by a slow page keeps the same sum, so only real fingers rise (401). */
+  const mag = Math.abs(delta), sign = Math.sign(delta), now = e.timeStamp || performance.now();
+  wheelWin.push([now, mag]);
+  while (wheelWin.length && wheelWin[0][0] < now - 60) wheelWin.shift();
+  const rate = wheelWin.reduce((n, w) => n + w[1], 0);
+  if (wheelDone && sign && now - wheelTurned > WHEEL_GAP_MS
+      && (sign !== wheelSign || (rate >= WHEEL_FRESH && rate > wheelLast * WHEEL_RISE))) { wheelAt = 0; wheelDone = false; }
+  if (sign) { wheelLast = sign === wheelSign ? Math.min(wheelLast * 0.8 + rate * 0.2, rate) : rate; wheelSign = sign; }
   wheelAt += delta;
   /* ONE NOTCH IS ONE WIDGET. § */
   if (!wheelDone && Math.abs(wheelAt) > 40) {
     wheelDone = true;
+    wheelTurned = now;
     const ax = AXES[axis];
     const to = ax.at() + (wheelAt > 0 ? 1 : -1);
     if (to >= 0 && to < ax.count()) ax.go(to);
@@ -461,7 +474,7 @@ addEventListener('wheel', e => {
   /* A gap of 140ms means the fingers have stopped: long enough to outlast the momentum, short
      enough that a second deliberate flick is a second gesture. */
   clearTimeout(wheelStop);
-  wheelStop = setTimeout(() => { wheelAt = 0; wheelDone = false; }, 140);
+  wheelStop = setTimeout(() => { wheelAt = 0; wheelDone = false; wheelLast = 0; wheelSign = 0; wheelWin.length = 0; }, 140);
 }, { passive: true });
 
 /* A finger interrupted — a call arriving, the app going to the background. Put the screen back,

@@ -1121,6 +1121,15 @@ const WIDGETS = [
     <textarea id="notepad" placeholder="Jot something down…"></textarea>
     <p class="faint" id="pad-said" style="margin:.35rem 0 0">Saves as you type.</p>
   </div>` },
+  /* ---------- SPEED READ (403): paste, then one word at a time — reader.js ---------- */
+  { id: 'speedread', kind: 'tool', name: 'Speed reader (one word at a time)', solid: true, pure: true, start: () => initSpeedRead?.(),
+    into: 'sr-text', what: 'The speed reader',
+    html: `<div class="card">
+    <h3>Speed reader</h3>
+    <p class="sub">Paste anything; it is shown a word at a time, the eye kept still on the gold letter.</p>
+    <textarea id="sr-text" placeholder="Paste text to read…"></textarea>
+    <button class="btn" data-do="sr-read">Read it</button>
+  </div>` },
   /* ---------- `Your week` WAS HERE, AND IS IN THE TIMETABLE NOW § */
   /* ---------- THE `live` WIDGET WAS HERE § */
 

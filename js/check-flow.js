@@ -162,6 +162,8 @@ function boot(opts) {
   /* ---------- AND WHAT A JOURNEY NEEDS IN PLACE BEFORE THE FIRST LINE OF THE APP RUNS § */
   /* ---------- THE BUILDER IS HELD, UNLESS A JOURNEY ASKS FOR IT § */
   w.__aheadHold = !opts.ahead;
+  /* THE FINDER IS FOR MEMBERS (400): `member: true` arrives signed in as a client, so a journey about the funnel has one. */
+  if (opts.member && typeof opts.before !== 'function') signedInAs_(MEMBER_)(w);
   if (typeof opts.before === 'function') opts.before(w);
   const src = ORDER.map(n => fs.readFileSync(path.join(dir, n + '.js'), 'utf8')).join('\n');
   try {
@@ -2376,7 +2378,7 @@ check('Sign out stays under a tutor\'s card while they edit it, keeps the typing
 
 /* ---------- SETTINGS HOLDS WHAT IS NOT ON YOUR CARD, FOR EVERYBODY (docs/history/330, 339) § */
 /* THE SETUP CARD (361): the owner's "open the site once" ends here — an admin sees what ran; nobody else sees it, or is sent it. */
-check('the Setup card on You is an admin\'s alone: the admin\'s payload carries the run-once jobs and triggers, the card lists them with no button, and a tutor gets neither', async () => {
+check('the Setup card is in the Business column, an admin\'s alone (moved from You, 400): the admin\'s payload carries the run-once jobs and triggers, the card lists them with no button, glows while a job failed and not once it ran, and a tutor gets neither', async () => {
   const W = cardWorld_();
   const bad = [];
   const a = await cardOpen_(W, 'admin@example.org');
@@ -2385,22 +2387,283 @@ check('the Setup card on You is an admin\'s alone: the admin\'s payload carries 
   const asAdmin = W.real.get({ token: a.u && a.u.token });
   if (!asAdmin.setup || !Array.isArray(asAdmin.setup.jobs)) bad.push('doGet with the admin\'s token sent no setup report: ' + JSON.stringify(asAdmin.setup));
   if (W.real.get({}).setup) bad.push('doGet with no token sent the setup report');
-  try { a.t.DATA().setup = asAdmin.setup; } catch (e) { return ['could not lay the setup report on: ' + e.message]; }
-  try { a.t.go('account', false, true); a.w.paint('account'); } catch (e) { return ['redrawing You threw: ' + e.message]; }
-  await wait(250);
-  const card = a.d.querySelector('#s-account .setup-card');
-  const text = String(card ? card.textContent : '');
-  if (!card) bad.push('the admin\'s You column has no Setup card');
-  else {
-    if (!/sunday-email/.test(text) || !/schema/.test(text)) bad.push('the Setup card does not list the run-once jobs (schema, sunday-email): ' + text.slice(0, 200));
-    if (!/Backend live: \S+/.test(text) || !/Sunday email:/.test(text) || !/Triggers/.test(text)) bad.push('the Setup card does not say the live backend, the triggers and the Sunday email: ' + text.slice(0, 200));
-    if (card.querySelector('button, [data-do]')) bad.push('the Setup card has something to press — every job runs by itself, so nothing may be pressed twice');
-  }
+  if (a.d.querySelector('#s-account .setup-card')) bad.push('the Setup card is still on You');
+  const lay = setup => { a.t.DATA().setup = setup; a.t.go('biz', false, true); a.w.paint('biz'); };
+  /* A JOB THAT FAILED: the card glows, says so, and the dot carries it. */
+  const failed = JSON.parse(JSON.stringify(asAdmin.setup || {}));
+  (failed.jobs || []).unshift({ id: 'tidy', error: 'the backup could not be written' });
+  try { lay(failed); } catch (e) { return bad.concat(['drawing Business threw: ' + e.message]); }
+  await wait(300);
+  const card = () => a.d.querySelector('#s-biz .setup-card');
+  const text = String(card() ? card().textContent : '');
+  if (!card()) return bad.concat(['the admin\'s Business column has no Setup card']);
+  if (!/sunday-email/.test(text) || !/schema/.test(text)) bad.push('the Setup card does not list the run-once jobs (schema, sunday-email): ' + text.slice(0, 200));
+  if (!/Backend live: \S+/.test(text) || !/Sunday email:/.test(text) || !/Triggers/.test(text)) bad.push('the Setup card does not say the live backend, the triggers and the Sunday email: ' + text.slice(0, 200));
+  if (card().querySelector('button, [data-do]')) bad.push('the Setup card has something to press — every job runs by itself, so nothing may be pressed twice');
+  if (!card().classList.contains('needs-you') || !/to fix/.test(text)) bad.push('a failed job did not make the Setup card glow and say what to fix');
+  const dot = () => a.d.getElementById('biz-dot');
+  const fix = (/(\d+) things? to fix/.exec(text) || [])[1];
+  if (!dot() || !fix || dot().textContent !== fix) bad.push('the Business dot does not carry what the Setup card says needs fixing (' + fix + '): ' + (dot() ? dot().textContent : 'no dot'));
+  /* ALL RAN: no glow, no dot. */
+  const fine = JSON.parse(JSON.stringify(asAdmin.setup || {}));
+  (fine.jobs || []).forEach(j => { delete j.error; });
+  fine.files = {};
+  try { lay(fine); } catch (e) { return bad.concat(['drawing Business again threw: ' + e.message]); }
+  await wait(300);
+  if (!card() || card().classList.contains('needs-you')) bad.push('the Setup card still glows with nothing wrong');
+  if (dot()) bad.push('the Business dot is still drawn with nothing to do: ' + dot().textContent);
   const t = await cardOpen_(W, 'tutor@example.org');
   if (t.err) return bad.concat([t.err]);
   await wait(400);
-  if (t.d.querySelector('#s-account .setup-card')) bad.push('a tutor\'s You column draws the Setup card');
+  if (t.d.querySelector('.setup-card')) bad.push('a tutor is drawn the Setup card');
   if (W.real.get({ token: t.u && t.u.token }).setup) bad.push('doGet with a tutor\'s token sent the setup report');
+  return bad;
+});
+
+/* ---------- APPLY TO TEACH → THE ADMIN SAYS YES → LISTED (400) ---------- */
+check('a client applies to teach from You, the admin\'s Business column glows "1 to approve" with the application, Approve makes them Staff on the tutor list, and the glow goes', async () => {
+  const W = cardWorld_();
+  const bad = [];
+  const real = ['applyTeach', 'listApplications', 'decideApplication'];
+  const reply = b => (real.indexOf(b.action) !== -1 ? W.real.post(b) : W.reply(b));
+  const p = await cardOpen_(W, 'parent@example.org', { reply });
+  if (p.err) return [p.err];
+  const card = p.d.querySelector('#s-account .apply-card');
+  const open = card && card.querySelector('[data-do="apply-open"]');
+  if (!open) return ['a client\'s You column has no "Apply to teach" tile'];
+  p.A('apply-open', open); await wait(100);
+  const f = p.d.querySelector('#sheet .app-form');
+  if (!f) return ['"Apply to teach" opened no form'];
+  const set = (sel, v) => { const el = f.querySelector(sel); if (!el) { bad.push('the form has no ' + sel); return; }
+    if (el.type === 'checkbox') el.checked = !!v; else el.value = v; };
+  set('[data-app-subj="0"]', 'Maths'); set('[data-app-level="0"]', 'GCSE');
+  set('[data-app="dbsNeeded"]', true); set('[data-app="rightToWork"]', 'yes');
+  set('[data-app="ref1Name"]', 'Ref One'); set('[data-app="ref1Contact"]', 'ref1@example.org');
+  set('[data-app="ref2Name"]', 'Ref Two'); set('[data-app="ref2Contact"]', 'ref2@example.org');
+  set('[data-app="statement"]', 'I like explaining things.');
+  /* WITHOUT THE CONSENT TICK: refused, nothing written. */
+  p.A('apply-send', f.querySelector('[data-do="apply-send"]')); await wait(300);
+  const rows = () => (W.real.tabs.applications || [[]]).length - 1;
+  if (rows()) bad.push('an application without the consent tick was written');
+  set('[data-app="consent"]', true);
+  p.A('apply-send', f.querySelector('[data-do="apply-send"]')); await wait(400);
+  if (rows() !== 1) return bad.concat(['the application was not written: ' + rows() + ' rows']);
+  const st = p.d.querySelector('#s-account .apply-card .apply-status');
+  if (!st || !/with us/.test(st.textContent) || p.d.querySelector('#s-account .apply-card [data-do="apply-open"]')) bad.push('You does not say the application is with us: ' + (st ? st.textContent : 'no card'));
+  /* THE ADMIN: the card glows, the dot says 1, Approve. */
+  const a = await cardOpen_(W, 'admin@example.org', { reply });
+  if (a.err) return bad.concat([a.err]);
+  /* A SETUP WITH NOTHING WRONG, so the dot counts the application alone. */
+  const clean = JSON.parse(JSON.stringify(W.real.get({ token: a.u && a.u.token }).setup || {}));
+  (clean.jobs || []).forEach(j => { delete j.error; }); clean.files = {};
+  a.t.DATA().setup = clean;
+  a.t.go('biz', false, true); a.w.paint('biz'); await wait(500);
+  const apps = () => a.d.querySelector('#s-biz .apps');
+  if (!apps() || !/Pat Parent/.test(apps().textContent) || !/Maths \(GCSE\)/.test(apps().textContent)) return bad.concat(['the Business column does not show Pat\'s application: ' + (apps() ? apps().textContent.slice(0, 200) : 'no card')]);
+  if (!apps().classList.contains('needs-you') || !/1 to approve/.test(apps().textContent)) bad.push('the applications card does not glow "1 to approve"');
+  const dot = () => a.d.getElementById('biz-dot');
+  if (!dot() || dot().textContent !== '1') bad.push('the Business dot does not say 1: ' + (dot() ? dot().textContent : 'no dot'));
+  const yes = apps().querySelector('[data-do="app-decide"][data-status="approved"]');
+  if (!yes) return bad.concat(['no Approve tile']);
+  a.A('app-decide', yes); await wait(500);
+  if (!/tutor/.test(W.real.row('P-C1').role)) bad.push('Approve did not make Pat a tutor: ' + W.real.row('P-C1').role);
+  W.real.ev('clearCache()');
+  if (!(W.real.get({}).tutors || []).some(t => t.personId === 'P-C1')) bad.push('Pat is not on the public tutor list after Approve');
+  /* THE APPROVAL ASKS FOR THE PAYLOAD AGAIN, and this world's is the anonymous one — the clean setup is laid back on. */
+  a.t.DATA().setup = clean; a.w.paint('biz'); await wait(300);
+  if (!apps() || apps().classList.contains('needs-you')) bad.push('the applications card still glows after Approve');
+  if (dot()) bad.push('the Business dot is still drawn after Approve: ' + dot().textContent);
+  return bad;
+});
+
+/* ---------- A TUTOR'S OWN LINK (400) ---------- */
+check('?tutor=<handle> opens that tutor\'s card signed out, prices and a Share tile on it; an admin who teaches has "Share my profile" on their own card, which gives their link', async () => {
+  const W = cardWorld_();
+  const bad = [];
+  const b = boot({ payload: W.GET(), serve: W.serve, url: 'https://example.org/?tutor=adatutor' });
+  for (let k = 0; k < 80 && !b.w.__t; k++) await wait(100);
+  await wait(800);
+  const d = b.w.document;
+  const body = d.getElementById('sheet-body');
+  const text = String(body ? body.textContent : '');
+  if (!/Ada/.test(text)) return ['?tutor=adatutor did not open Ada\'s card: ' + text.slice(0, 120)];
+  if (!/£\s?20/.test(text)) bad.push('the shared card shows no price to a visitor: ' + text.slice(0, 200));
+  const share = body.querySelector('[data-do="tutor-share"]');
+  if (!share || share.dataset.handle !== 'adatutor') bad.push('the shared card has no Share tile with Ada\'s handle');
+  const a = await cardOpen_(W, 'admin@example.org');
+  if (a.err) return bad.concat([a.err]);
+  const mine = [...a.d.querySelectorAll('#s-account [data-do="tutor-share"]')].find(x => x.dataset.handle === 'haladmin' && /Share my profile/.test(x.textContent + ' ' + (x.getAttribute('aria-label') || '') + ' ' + (x.title || '')));
+  if (!mine) return bad.concat(['the admin\'s own card has no "Share my profile" tile: ' + [...a.d.querySelectorAll('#s-account [data-do]')].slice(0, 12).map(x => x.dataset.do).join(',')]);
+  a.A('tutor-share', mine); await wait(100);
+  if (!/\?tutor=haladmin/.test(a.toast())) bad.push('"Share my profile" did not give the admin\'s own link: ' + a.toast());
+  return bad;
+});
+
+/* ---------- THE STAFF HUB (405) ----------
+   Ada (a tutor) through the real doPost: the terms by version, pricing drawn by `priceFrom`, her own statement; the admin's Staff card. */
+const HUB_ACTIONS_ = ['signAgreement', 'payStatement', 'listStaff', 'updateProfile', 'myProfile', 'getProfile', 'savePhoto'];
+const hubWorld_ = () => {
+  const W = cardWorld_({ vars: { c: 0.5, B: 0.25, card_fee_pct: 2, card_fee_fixed: 0.2 } });
+  /* `seed` ADDS ROWS: one more venue, the only one with a rate, so it is the room the bars start at. */
+  W.real.seed('venues', [{ name: 'Merton Hall', postcode: 'SW19 1AA', lat: 51.41, lng: -0.19, cost_per_hour: 15, tutors_happy_here: 'P-T1' }]);
+  /* THIS MONTH'S TWO DATES AND ONE NEXT MONTH, on a booking a family has paid for — so the default month has rows whenever it runs. */
+  const now = new Date(), dmy = (m, d) => { const x = new Date(now.getFullYear(), now.getMonth() + m, d); return x.getDate() + '/' + (x.getMonth() + 1) + '/' + x.getFullYear(); };
+  W.real.seed('jobs', [{ job_id: 'J-HUB', subject: 'Maths', level: 'GCSE', hours_per_session: 1, venue: 'Online', price_total: 90, tutor_pay: 60,
+    admin_profit: 15, session_dates: [dmy(0, 2), dmy(0, 9), dmy(1, 2)].join(', '), for_children: 'Kit' }]);
+  const ev = (id, actor, role, action, target) => ({ event_id: id, at: '01/10/2026', job_id: 'J-HUB', actor, role, action, target: target || '' });
+  W.real.seed('events', [ev('HE1', 'Ada Tutor', 'tutor', 'Request'), ev('HE2', 'Pat Parent', 'client', 'Request'),
+    ev('HE3', 'Pat Parent', 'client', 'Accept', 'Ada Tutor'), ev('HE4', 'Pat Parent', 'client', 'Confirm')]);
+  W.hubReply = b => HUB_ACTIONS_.indexOf(b.action) !== -1 ? W.real.post(b) : { success: true, messages: [] };
+  return W;
+};
+const hubBoot_ = async (W, who) => {
+  const a = await cardOpen_(W, who, { reply: W.hubReply });
+  if (a.err) return a;
+  a.sheet = () => a.d.getElementById('sheet-body');
+  a.part = async k => { const t = a.sheet().querySelector('[data-do="hub-part"][data-part="' + k + '"]'); if (t) a.A('hub-part', t); await wait(250); return !!t; };
+  return a;
+};
+
+check('Staff hub (405): "Staff hub" sits beside "Share my profile" and a line says the terms are not agreed; I agree records the version on the server; a new version asks again; a client has no hub', async () => {
+  const W = hubWorld_();
+  const a = await hubBoot_(W, 'tutor@example.org');
+  if (a.err) return [a.err];
+  const bad = [];
+  const tile = a.d.querySelector('#s-account [data-do="hub-open"]');
+  const share = a.d.querySelector('#s-account [data-do="tutor-share"][data-handle="adatutor"]');
+  if (!tile) return ['Ada\'s own card has no Staff hub tile: ' + [...a.d.querySelectorAll('#s-account .page:first-child [data-do]')].map(x => x.dataset.do).join(',')];
+  if (!share || share.parentNode !== tile.parentNode) bad.push('Staff hub is not in the row beside Share my profile');
+  const warn = () => String((a.d.querySelector('#s-account .hub-warn') || {}).textContent || '');
+  if (!/not agreed to the tutor terms/.test(warn())) bad.push('no line under Ada\'s card saying the terms are not agreed: ' + JSON.stringify(warn()));
+  a.A('hub-open', tile); await wait(200);
+  const text = String(a.sheet().textContent);
+  if (!a.sheet().querySelector('.hub-terms')) return bad.concat(['Staff hub did not open on the terms: ' + text.slice(0, 120)]);
+  ['self-employed', 'Bookings', 'Cancellations', 'Pay and the business', 'Safeguarding and DBS', 'Conduct', 'Data protection', 'Ending the arrangement', 'Changes to these terms']
+    .filter(h => ![...a.sheet().querySelectorAll('.doc h4')].some(x => x.textContent.indexOf(h) !== -1)).forEach(h => bad.push('the terms have no section on ' + h));
+  if (!/National Insurance/.test(text) || !/Version v1-2026-10-24/.test(text)) bad.push('the terms do not say tax and NI are the tutor\'s, or carry no version');
+  let box = a.sheet().querySelector('[data-do="agree-sign"]');
+  box.checked = true; a.A('agree-sign', box); await wait(400);
+  const post = a.sent.filter(x => x.action === 'signAgreement').pop();
+  if (!post || post.version !== 'v1-2026-10-24') bad.push('I agree posted ' + JSON.stringify(post) + ', not the version v1-2026-10-24');
+  if (W.sheet("read(TAB.people).rows.find(r => r.person_id === 'P-T1').agreement_version") !== 'v1-2026-10-24') bad.push('the server did not record the version');
+  if (warn()) bad.push('the not-agreed line is still under the card after I agree: ' + warn());
+  if (/terms to agree/.test(String((a.d.querySelector('#s-account [data-do="hub-open"]') || {}).title))) bad.push('the Staff hub tile still says terms to agree');
+  /* A NEW VERSION ON THE BRAND TAB — a bare date, which the sheet would turn into one, so it is sent as v2026-11-01: asked again, the old record replaced. */
+  a.t.DATA().brand = Object.assign({}, a.t.DATA().brand, { tutor_terms_version: '2026-11-01' });
+  a.w.paint('account'); await wait(200);
+  if (!/terms have changed/.test(warn())) bad.push('a new terms version did not bring the line back: ' + JSON.stringify(warn()));
+  a.A('hub-open', a.d.querySelector('#s-account [data-do="hub-open"]')); await wait(200);
+  box = a.sheet().querySelector('[data-do="agree-sign"]');
+  if (!box || box.checked || box.disabled) bad.push('the new version\'s box is not open to tick');
+  if (!/changed since you agreed to version v1-2026-10-24/.test(a.sheet().textContent)) bad.push('the hub does not say which version was agreed before');
+  box.checked = true; a.A('agree-sign', box); await wait(400);
+  if (W.sheet("read(TAB.people).rows.find(r => r.person_id === 'P-T1').agreement_version") !== 'v2026-11-01') bad.push('agreeing to the new version did not replace the old on the server');
+  const c = await hubBoot_(W, 'parent@example.org');
+  if (c.err) return bad.concat([c.err]);
+  if (c.d.querySelector('#s-account [data-do="hub-open"], #s-account .hub-warn')) bad.push('a client has a Staff hub tile or the terms line');
+  return bad;
+});
+
+check('Staff hub pricing (405): an hour for 1, 2 and 3 students split into tutor, room, card fees and @family. by `priceFrom` itself; the bars slide under a held slider; a rate past £200 is refused; Save writes through updateProfile', async () => {
+  const W = hubWorld_();
+  const a = await hubBoot_(W, 'tutor@example.org');
+  if (a.err) return [a.err];
+  const bad = [];
+  a.A('hub-open', a.d.querySelector('#s-account [data-do="hub-open"]')); await wait(150);
+  if (!(await a.part('pricing'))) return ['the hub has no Pricing tile'];
+  const S = a.sheet();
+  const row = n => S.querySelector('.pb-row[data-n="' + n + '"]');
+  if (![1, 2, 3].every(row)) return ['the pricing part does not draw a bar for 1, 2 and 3 students'];
+  const say = n => String(row(n).textContent).replace(/\s+/g, ' ');
+  /* RATE 20, SEAT 0.5 OF IT, B 0.25, ROOM 15, FEES 2% + 20p: two students pay 50; Ada 30, room 15, fees 1.20, @family. 3.80. */
+  ['family pays £50.00', 'You £30.00', 'Room £15.00', 'Card fees £1.20', '@family. £3.80'].forEach(x => { if (say(2).indexOf(x) === -1) bad.push('two students do not show ' + x + ': ' + say(2)); });
+  if (say(1).indexOf('@family. −£0.90') === -1 || !S.querySelector('.pb-note')) bad.push('one student does not show the business paying the card fee: ' + say(1));
+  const ada = a.t.DATA().tutors.find(t => t.personId === 'P-T1');
+  const p = a.w.priceFrom({ tutorRow: Object.assign({}, ada, { rate: 20, extraSeat: 0.5 }), n: 3, slots: 1, hoursPerWeek: 1, loc: 'Merton Hall' }).earn;
+  if (say(3).indexOf('family pays ' + '£' + p.charged.toFixed(2)) === -1 || say(3).indexOf('@family. £' + p.net.toFixed(2)) === -1) bad.push('three students are not what priceFrom says (' + p.charged + ', ' + p.net + '): ' + say(3));
+  const slider = S.querySelector('input[type="range"][data-pv="rate"]');
+  const seg = () => row(3).querySelector('.pb-seg.is-tutor').style.width;
+  const was = seg();
+  a.type(slider, '30'); await wait(100);
+  if (S.querySelector('input[type="range"][data-pv="rate"]') !== slider) bad.push('moving the rate redrew the slider out from under the thumb');
+  if (seg() === was) bad.push('the tutor\'s part of the bar did not move with the rate');
+  if (say(1).indexOf('family pays £45.00') === -1) bad.push('the rate at £30 does not make one student £45.00: ' + say(1));
+  if (S.querySelector('input.pf-num[data-pv="rate"]').value !== '30') bad.push('the number box did not follow the slider');
+  const save = S.querySelector('[data-do="price-save"]');
+  a.type(S.querySelector('input.pf-num[data-pv="rate"]'), '500'); await wait(50);
+  const n0 = a.sent.filter(x => x.action === 'updateProfile').length;
+  a.A('price-save', save); await wait(200);
+  if (a.sent.filter(x => x.action === 'updateProfile').length !== n0) bad.push('a rate of £500 was posted');
+  if (!/at most £200/.test(S.querySelector('.hub-said').textContent)) bad.push('a rate of £500 is not refused in words: ' + S.querySelector('.hub-said').textContent);
+  a.type(S.querySelector('input.pf-num[data-pv="rate"]'), '24'); await wait(50);
+  a.A('price-save', save); await wait(500);
+  const post = a.sent.filter(x => x.action === 'updateProfile').pop();
+  if (!post || post.fields.rate_per_hour !== 24 || Math.abs(Number(post.fields.extra_seat_rate) - 10 / 24) > 1e-5) bad.push('Save posted ' + JSON.stringify(post && post.fields) + ', wanted rate 24 and the £10 seat as 10/24');
+  if (Number(W.sheet("read(TAB.people).rows.find(r => r.person_id === 'P-T1').rate_per_hour")) !== 24) bad.push('the server row was not written');
+  return bad;
+});
+
+check('Staff hub statement (405): Ada\'s month, session by session with totals, from the real doPost; another month asks again; Download PDF prints a paper copy; the admin opens any tutor\'s from Business, where the Staff card glows for terms not agreed', async () => {
+  const W = hubWorld_();
+  const a = await hubBoot_(W, 'tutor@example.org');
+  if (a.err) return [a.err];
+  const bad = [];
+  a.A('hub-open', a.d.querySelector('#s-account [data-do="hub-open"]')); await wait(150);
+  if (!(await a.part('statement'))) return ['the hub has no Statement tile'];
+  await wait(300);
+  const S = a.sheet();
+  const now = new Date(), ym = d => d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2);
+  const ask = a.sent.filter(x => x.action === 'payStatement').pop();
+  if (!ask || ask.month !== ym(now) || ask.tutorId) bad.push('the statement asked ' + JSON.stringify(ask) + ', wanted this month and no tutorId');
+  const rows = () => S.querySelectorAll('.stmt .stmt-t tbody tr').length;
+  if (rows() !== 2) bad.push('this month\'s statement has ' + rows() + ' rows, wanted the two paid sessions');
+  const foot = String((S.querySelector('.stmt tfoot') || {}).textContent || '').replace(/\s+/g, ' ');
+  if (!/2 sessions/.test(foot) || foot.indexOf('£60.00') === -1 || foot.indexOf('£40.00') === -1 || foot.indexOf('£10.00') === -1) bad.push('the totals are not 2 sessions, £60 paid, £10 business, £40 tutor: ' + foot);
+  if (!/not a payslip/.test(S.textContent)) bad.push('the statement does not say it is not a payslip');
+  const sel = S.querySelector('select[data-stmt="month"]');
+  const next = ym(new Date(now.getFullYear(), now.getMonth() + 1, 1));
+  if (sel.querySelector('option[value="' + next + '"]')) bad.push('next month is offered');
+  sel.value = ym(new Date(now.getFullYear(), now.getMonth() - 1, 1)); sel.dispatchEvent(new a.w.Event('change', { bubbles: true })); await wait(300);
+  if ((a.sent.filter(x => x.action === 'payStatement').pop() || {}).month !== sel.value) bad.push('choosing last month did not ask for it');
+  if (rows() || !/No paid sessions/.test(S.textContent)) bad.push('last month (no sessions) does not say so');
+  sel.value = ym(now); sel.dispatchEvent(new a.w.Event('change', { bubbles: true })); await wait(300);
+  let printed = null;
+  a.w.print = () => { printed = a.d.body.classList.contains('printing-stmt') && !!a.d.querySelector('body > .stmt-paper .stmt-t'); };
+  a.A('stmt-print', S.querySelector('[data-do="stmt-print"]'));
+  if (printed !== true) bad.push('Download PDF did not print a paper copy of the statement (printing-stmt and .stmt-paper)');
+  a.w.dispatchEvent(new a.w.Event('afterprint'));
+  if (a.d.querySelector('.stmt-paper') || a.d.body.classList.contains('printing-stmt')) bad.push('the paper copy was left behind after printing');
+  /* THE ADMIN: the Staff card glows for Ada and Ben not agreed, and opens Ada's statement by her id. */
+  const ad = await hubBoot_(W, 'admin@example.org');
+  if (ad.err) return bad.concat([ad.err]);
+  try { ad.t.go('biz', false, true); ad.w.paint('biz'); } catch (e) { return bad.concat(['drawing Business threw: ' + e.message]); }
+  await wait(600);
+  const card = ad.d.querySelector('#s-biz [data-staff]');
+  if (!card) return bad.concat(['Business has no Staff card']);
+  if (!card.classList.contains('needs-you') || !/2 not agreed/.test(card.textContent)) bad.push('the Staff card does not glow "2 not agreed": ' + card.textContent.replace(/\s+/g, ' ').slice(0, 160));
+  const st = card.querySelector('[data-do="stmt-for"][data-id="P-T1"]');
+  if (!st) return bad.concat(['the Staff card has no Statement tile for Ada']);
+  ad.A('stmt-for', st); await wait(400);
+  const aAsk = ad.sent.filter(x => x.action === 'payStatement').pop();
+  if (!aAsk || aAsk.tutorId !== 'P-T1') bad.push('the admin\'s statement did not name Ada: ' + JSON.stringify(aAsk));
+  if (ad.d.getElementById('sheet-body').querySelectorAll('.stmt-t tbody tr').length !== 2) bad.push('the admin was not shown Ada\'s two sessions');
+  return bad;
+});
+
+check('Message a tutor (405): a signed-in client has a Message tile on a tutor\'s card that opens the conversation with them; a child has none for a tutor (the server refuses it), only for the admin', async () => {
+  const W = hubWorld_();
+  const bad = [];
+  const c = await hubBoot_(W, 'parent@example.org');
+  if (c.err) return [c.err];
+  const msg = (x, id) => x.d.querySelector('#s-account [data-do="msg-open"][data-id="' + id + '"]');
+  const m = msg(c, 'P-T1');
+  if (!m) return ['a client has no Message tile on Ada\'s card'];
+  c.A('msg-open', m); await wait(150);
+  if (!/Message Ada Tutor/.test(String((c.d.getElementById('sheet-title') || {}).textContent)) || !c.sheet().querySelector('textarea, [contenteditable], input')) bad.push('Message did not open the conversation with Ada');
+  const s = await hubBoot_(W, 'student@example.org');
+  if (s.err) return bad.concat([s.err]);
+  if (msg(s, 'P-T1') || msg(s, 'P-T2')) bad.push('a child has a Message tile on a tutor\'s card, which the server refuses');
+  if (!msg(s, 'P-A1')) bad.push('a child has lost the Message tile on the admin\'s card, which the server allows');
   return bad;
 });
 
@@ -3780,7 +4043,14 @@ check('the whiteboard notebook draws, undoes, survives a repaint and clears unde
 
   /* THE BAR: the four shapes and Clear, as tiles -- no padlock: the pad is always a pad, and the page lets a swipe through. */
   const bar = [...nb().querySelectorAll('.nb-bar [data-do]')].map(b => b.getAttribute('data-do') + (b.getAttribute('data-shape') ? ':' + b.getAttribute('data-shape') : '')).join(' ');
-  if (bar !== 'nb-shape:frac nb-shape:pow nb-shape:root nb-shape:int nb-clear') bad.push('the bar offers [' + bar + '], wanted Fraction, Power, Root, Integral and Clear');
+  if (bar !== 'nb-shape:frac nb-shape:pow nb-shape:root nb-shape:int nb-pic nb-clear') bad.push('the bar offers [' + bar + '], wanted Fraction, Power, Root, Integral, Picture and Clear');
+  /* A PICTURE (402) COMES BACK FROM THE STORE AS IT WENT IN, moved keeps its size, and an older element beside it survives. */
+  try {
+    const el = { im: 1, i: 'p1', x: 56, y: 40, w: 800, h: 400, s: 'data:image/jpeg;base64,AAAA' };
+    const it = w.nbItem_(el), mv = w.nbPicItem_(it, it.x + 10, it.y, it.w, it.h);
+    if (!it.im || it.w !== 200 || it.h !== 100 || it.enc !== el) bad.push('a stored picture did not decode to a 200 by 100 picture item');
+    if (mv.enc.x !== 96 || mv.enc.w !== 800 || mv.enc.s !== el.s) bad.push('a moved picture changed its size or its picture: ' + JSON.stringify(mv.enc));
+  } catch (e) { bad.push('the picture item threw: ' + e.message); }
   if (!/Kept on this device only/.test((nb().querySelector('.nb-note') || {}).textContent || '')) bad.push('the note under the board does not say it is kept on this device');
   const padEl = () => nb().querySelector('.nb-pad'), bookEl = () => nb().querySelector('.nb-book');
   if (w.axisFree(padEl(), 'x', -1) || w.axisFree(padEl(), 'y', 1)) bad.push('the grid may take a drag that starts on the pad, so a stroke slides the column');
@@ -8476,6 +8746,8 @@ check('signing in with Google on an unconfirmed account says the PIN has gone, i
 /* ROUND THREE OF THE PR #130 REVIEW, ON THE PHONE. § */
 const JO_PENDING = { name: 'Jo Smith', personId: 'P-JO', role: 'parent', roles: ['parent'], token: 'tk-jo', handle: 'jo_kind94',
                      pendingEmail: 'jsmith1@example.org', profile: { first_name: 'Jo', last_name: 'Smith' } };
+/* A CLIENT, signed in — the member a funnel journey browses as (400); a client sees prices, as a visitor did. */
+const MEMBER_ = { name: 'Mo Member', personId: 'P-MEMBER', role: 'parent', roles: ['parent'], rank: 'client', token: 't-member', handle: 'momember' };
 const signedInAs_ = u => w => { try { w.localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} };
 const toastOf_ = d => String((d.getElementById('toast') || {}).textContent || '');
 const sheetOpen_ = d => { const s = d.getElementById('sheet'), b = d.getElementById('sheet-body');
@@ -10046,6 +10318,116 @@ check('an admin adds a person from the "+" above the people column, edits one an
   return bad;
 });
 
+/* "I WANT TO USE CLAUDE LESS FOR ADDING STUFF … A PLUS WIDGET ON REELS LIKE YOU DID FOR PEOPLE" (404): the "+" leads Reels for an admin, a pasted Short is looked up (oEmbed stubbed), saved, and shown. */
+check('an admin adds a reel from the "+" that leads the Reels column — a pasted Short looked up, saved as mediaSave, and in the column without a reload; a student has no "+"', async () => {
+  const ID = 'Ab3_dEfGh-1';
+  let hold = false;
+  /* THE PAYLOAD `load()` ASKS FOR AFTER A SAVE IS HELD, so what the column shows is the reply's doing. */
+  const { w, sent } = boot({ serve: () => hold ? new Promise(() => {}) : undefined, before: w => {
+      const real = w.fetch;
+      w.fetch = (url, o) => /youtube\.com\/oembed/.test(String(url))
+        ? Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ title: 'Fractions in a minute', author_name: 'A Channel',
+            thumbnail_url: 'https://i.ytimg.com/vi/' + ID + '/hqdefault.jpg' }) })
+        : real(url, o);
+    },
+    reply: b => b.action === 'mediaSave'
+      ? { success: true, kind: 'reel', id: ID, media: [{ kind: 'reel', id: ID, url: 'https://youtube.com/shorts/' + ID, title: b.title, subject: b.subject }] }
+      : { success: true } });
+  await wait(400);
+  const t = w.__t, d = w.document, bad = [];
+  const draw = () => { try { t.go('reel', false, true); w.paint('reel'); } catch (e) { bad.push('drawing Reels threw: ' + e.message); } };
+  const col = () => d.querySelector('#s-reel');
+  t.USER({ name: 'Sam Student', personId: 'P-S', role: 'student', roles: ['student'], token: 'tk1' });
+  draw(); await wait(200);
+  if (!col() || !col().querySelector('.reel')) return bad.concat(['the Reels column drew no reel for a student, so nothing below can be asked']);
+  if (col().querySelector('[data-do="media-add"], .media-add')) bad.push('a student is drawn the admin\'s "+" on Reels');
+  sent.length = 0;
+  const fake = d.createElement('button'); fake.setAttribute('data-kind', 'reel'); fake.setAttribute('data-id', ID);
+  ['media-add', 'media-hide', 'media-del-go'].forEach(a => { try { t.ACTIONS[a](fake); } catch (e) {} });
+  await wait(150);
+  if (sent.some(b => /^media/.test(b.action))) bad.push('a student pressing the admin\'s doors posted ' + sent.map(b => b.action).join(', '));
+
+  t.USER({ name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], token: 'tk' });
+  draw(); await wait(200);
+  const first = col() && col().querySelector('.page');
+  const plus = first && first.querySelector('[data-do="media-add"][data-kind="reel"]');
+  if (!plus) return bad.concat(['the admin\'s Reels column does not open on the "+"']);
+  if (first.querySelector('.reel')) bad.push('the "+" page also carries a reel');
+  t.ACTIONS['media-add'](plus);
+  await wait(200);
+  let form = col().querySelector('.media-form');
+  if (!form) return bad.concat(['pressing + drew no form']);
+  const url = form.querySelector('[data-mf="url"]');
+  url.value = 'https://youtube.com/shorts/' + ID + '?feature=share';
+  url.dispatchEvent(new w.Event('input', { bubbles: true }));
+  await wait(300);
+  form = col().querySelector('.media-form');
+  const title = form && form.querySelector('[data-mf="title"]');
+  if (!title || title.value !== 'Fractions in a minute') return bad.concat(['the pasted Short was not looked up: title ' + JSON.stringify(title && title.value)]);
+  if (!form.querySelector('img.media-thumb[src*="i.ytimg.com"]')) bad.push('the form shows no preview picture');
+  const subj = form.querySelector('[data-mf="subject"]');
+  subj.value = 'Maths'; subj.dispatchEvent(new w.Event('input', { bubbles: true }));
+  sent.length = 0;
+  hold = true;
+  t.ACTIONS['media-save'](form.querySelector('[data-do="media-save"]'));
+  await wait(300);
+  const sv = sent.find(b => b.action === 'mediaSave');
+  if (!sv || sv.kind !== 'reel' || sv.title !== 'Fractions in a minute' || sv.subject !== 'Maths' || sv.personId !== 'P-AD'
+      || !/shorts\/Ab3_dEfGh-1/.test(sv.url)) bad.push('saving posted ' + JSON.stringify(sv));
+  draw(); await wait(200);
+  const clips = [...col().querySelectorAll('.reel')].map(r => r.innerHTML).join('');
+  if (clips.indexOf(ID) === -1) bad.push('the new reel is not in the Reels column after Save');
+  if (col().querySelector('.media-form')) bad.push('the form stayed open after Save');
+  if (!col().querySelector('.media-list [data-do="media-edit"][data-id="' + ID + '"]')) bad.push('the added reel has no Edit tile on the "+" page');
+  t.DATA().media = [];
+  t.USER(null);
+  return bad;
+});
+
+/* "ADD AGE RESTRICTION FOR VIDEOS AND REELS — HOW OLD THEY HAVE TO BE TO WATCH IT" (406): the phone hides what the viewer is too young for. */
+check('a ten-year-old student sees no 12+ reel or video, an unknown-age student or nobody sees 12 and under, an adult and the admin see all with an age badge', async () => {
+  const { w } = boot({});
+  await wait(400);
+  const t = w.__t, d = w.document, bad = [];
+  const ALL = 'AAAAAAAAAAA', TWELVE = 'BBBBBBBBBBB', FIFTEEN = 'CCCCCCCCCCC', V18 = 'DDDDDDDDDDD', V0 = 'EEEEEEEEEEE';
+  t.DATA().media = [{ kind: 'reel', id: ALL, title: 'All', age: '' }, { kind: 'reel', id: TWELVE, title: 'Twelve', age: '12' },
+                    { kind: 'reel', id: FIFTEEN, title: 'Fifteen', age: '15' },
+                    { kind: 'video', id: V18, title: 'Eighteen video', age: '18' }, { kind: 'video', id: V0, title: 'Everyone video', age: '' }];
+  const y = new Date().getFullYear();
+  const col = () => d.querySelector('#s-reel');
+  const look = (who, say) => {
+    t.USER(who);
+    try { w.eval('REEL_CLIPS = null'); t.go('reel', false, true); w.paint('reel'); } catch (e) { bad.push(say + ': drawing Reels threw ' + e.message); }
+    const html = [...((col() && col().querySelectorAll('.reel')) || [])].map(r => r.outerHTML).join('');
+    const vids = (typeof w.videosAll_ === 'function' ? w.videosAll_() : []).map(r => r.url).join(' ');
+    return { html, vids, has: id => html.indexOf(id) !== -1, video: id => vids.indexOf(id) !== -1 };
+  };
+  if (typeof w.videosAll_ !== 'function') return ['videosAll_ is not reachable, so nothing about videos can be asked'];
+  let s = look({ name: 'Kit Young', personId: 'P-K', role: 'student', roles: ['student'], rank: 'student', token: 'tk1', profile: { dob_d: '1', dob_m: '1', dob_y: String(y - 10) } }, 'a ten-year-old');
+  if (!s.has(ALL)) bad.push('a ten-year-old does not see the reel for everyone, so the question below is empty');
+  if (s.has(TWELVE) || s.has(FIFTEEN)) bad.push('a ten-year-old student is shown a 12+ or 15+ reel');
+  if (s.video(V18) || !s.video(V0)) bad.push('a ten-year-old sees the 18 video, or not the one for everyone: ' + s.vids);
+  /* A SHEET ROW TOO OLD FOR HER COMES AS A VEIL (the server's `mediaVeil_`, 957cb7b5 for this repository Short) AND HIDES THE REPOSITORY COPY. */
+  if (!s.has('jD2Yy_wCBLE')) bad.push('the repository Short is not in a ten-year-old\'s column before any veil, so the veil question is empty');
+  t.DATA().media.push({ kind: 'reel', veil: '957cb7b5', hidden: true });
+  s = look(t.whoami(), 'a ten-year-old, veiled');
+  if (s.has('jD2Yy_wCBLE')) bad.push('a veiled repository Short still shows to the ten-year-old');
+  t.DATA().media.pop();
+  s = look({ name: 'Ada Pupil', personId: 'P-S', role: 'student', roles: ['student'], rank: 'student', token: 'tk2', profile: {} }, 'an unknown-age student');
+  if (!s.has(TWELVE) || s.has(FIFTEEN) || s.video(V18)) bad.push('a student with no date of birth is not shown exactly 12 and under');
+  s = look(null, 'nobody');
+  if (!s.has(TWELVE) || s.has(FIFTEEN) || s.video(V18)) bad.push('a signed-out visitor is not shown exactly 12 and under');
+  s = look({ name: 'Cal Parent', personId: 'P-C', role: 'client', roles: ['client'], rank: 'client', token: 'tk3', profile: { dob_d: '2', dob_m: '3', dob_y: String(y - 30) } }, 'an adult');
+  if (!s.has(TWELVE) || !s.has(FIFTEEN) || !s.video(V18)) bad.push('an adult is not shown the 12+, 15+ reels and the 18 video');
+  if (!/class="media-age-badge[^"]*"[^>]*>15\+</.test(s.html)) bad.push('the 15+ reel has no "15+" badge for the adult');
+  s = look({ name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], rank: 'admin', token: 'tk', profile: { dob_y: String(y - 9) } }, 'the admin');
+  if (!s.has(FIFTEEN) || !s.video(V18)) bad.push('the admin is not shown everything');
+  if (!col().querySelector('.media-list') || col().querySelector('.media-list').textContent.indexOf('15+') === -1) bad.push('the admin\'s list does not say 15+');
+  t.DATA().media = [];
+  t.USER(null);
+  return bad;
+});
+
 /* "I NEED TO SEND ASH THE WORK ERNIE DID LAST WEEK" (378): Send last week on a parent's card, for an admin, and on nothing else. */
 check('an admin has "Send last week" on a parent\'s card only, and pressing it posts digestSendNow and toasts the reply; nobody else has it', async () => {
   const { w, sent } = boot({ reply: b => b.action === 'digestSendNow'
@@ -11487,7 +11869,7 @@ check('business: an admin has a Business column last, straight after Settings, h
   const cards = [...host.querySelectorAll(':scope > .page > .pane .me-form[data-biz-page]')].map(f => f.dataset.bizPage);
   if (cards.join('|') !== BIZ_TITLES_.join('|')) bad.push('the Business column holds ' + JSON.stringify(cards) + ', wanted the five records cards ' + JSON.stringify(BIZ_TITLES_));
   const n = host.querySelectorAll(':scope > .page').length;
-  if (n !== 9 || t.pageCount('biz') !== n) bad.push('the column draws ' + n + ' pages and the pager counts ' + t.pageCount('biz') + ' — wanted nine and nine (Profit and its terms, Reports (395), five records, the verse screen)');
+  if (n !== 12 || t.pageCount('biz') !== n) bad.push('the column draws ' + n + ' pages and the pager counts ' + t.pageCount('biz') + ' — wanted twelve and twelve (Profit and its terms, Setup and Applications (400), Staff (405), Reports (395), five records, the verse screen)');
   /* THE LAST PAGE IS THE VERSE SCREEN'S SETUP, A TILE THAT LEAVES FOR ITS PAGE (370). */
   const vs = host.querySelector(':scope > .page:last-child a.tile[href$="/tools/epaper-verse/install.html"]');
   if (!vs) bad.push('the last Business page has no "Verse screen · set up" tile to the install page');
@@ -17662,9 +18044,9 @@ check('before the backend is pulled, tapping a picture says the server\'s refusa
 });
 
 /* ---------- YOUR ROLES, TICKED IN SETTINGS § */
-check('the roles card ticks what you hold, posts setMyRoles, and a waiting Tutor is not staff', async () => {
+check('the roles card ticks what you hold, posts setMyRoles, and a waiting Tutor is not staff — and Tutor is no tick for somebody who has not applied (400)', async () => {
   const { w, sent } = boot({ reply: b => b.action === 'setMyRoles'
-    ? { success: true, role: 'tutor', roles: ['tutor', 'parent'], tutorPending: true, changed: true }
+    ? { success: true, role: 'parent', roles: ['parent', 'kid'], rank: 'client', tutorPending: false, changed: true }
     : { success: true } });
   await wait(300);
   const t = w.__t, d = w.document;
@@ -17676,12 +18058,13 @@ check('the roles card ticks what you hold, posts setMyRoles, and a waiting Tutor
   const card = () => d.querySelector('#s-settings .roles-card');
   if (!card()) return ['Settings has no Your roles card'];
   const tick = r => card().querySelector(`[data-role-pick="${r}"]`);
-  ['tutor', 'client', 'student'].forEach(r => { if (!tick(r)) bad.push('the roles card has no ' + r + ' tick'); });
+  ['client', 'student'].forEach(r => { if (!tick(r)) bad.push('the roles card has no ' + r + ' tick'); });
+  /* STAFF ONLY BY APPLICATION (400): no Tutor tick for a parent who has not been approved. */
+  if (tick('tutor')) bad.push('a parent is offered a Tutor tick — teaching starts with "Apply to teach"');
   if (card().querySelector('[data-role-pick="admin"]')) bad.push('Admin is a tick on the roles card — it is given, not chosen');
   if (bad.length) return bad;
-  if (!tick('client').checked || tick('tutor').checked || tick('student').checked) {
-    bad.push('a parent signed in sees tutor=' + tick('tutor').checked + ' client=' + tick('client').checked
-      + ' student=' + tick('student').checked + ', wanted only Client ticked');
+  if (!tick('client').checked || tick('student').checked) {
+    bad.push('a parent signed in sees client=' + tick('client').checked + ' student=' + tick('student').checked + ', wanted only Client ticked');
   }
   if (card().querySelector('.role-admin')) bad.push('a parent is told they are also Admin');
   const save = () => card().querySelector('[data-do="roles-save"]');
@@ -17693,23 +18076,26 @@ check('the roles card ticks what you hold, posts setMyRoles, and a waiting Tutor
   await wait(200);
   if (sent.some(b => b.action === 'setMyRoles')) bad.push('a Save with nothing ticked was posted');
   if (!/at least one/i.test(card().querySelector('.roles-said').textContent)) bad.push('a Save with nothing ticked did not say to keep one');
-  /* TUTOR AND CLIENT: posted, with the id. */
-  tick('client').checked = true; tick('tutor').checked = true;
+  /* CLIENT AND STUDENT: posted, with the id. */
+  tick('client').checked = true; tick('student').checked = true;
   sent.length = 0;
   t.ACTIONS['roles-save'](save());
   await wait(400);
   const post = sent.find(b => b.action === 'setMyRoles');
   if (!post) bad.push('Save posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no setMyRoles');
   else {
-    if (JSON.stringify(post.roles) !== '["tutor","client"]') bad.push('setMyRoles carried ' + JSON.stringify(post.roles) + ', wanted ["tutor","client"]');
+    if (JSON.stringify(post.roles) !== '["client","student"]') bad.push('setMyRoles carried ' + JSON.stringify(post.roles) + ', wanted ["client","student"]');
     if (post.personId !== 'P-C1') bad.push('setMyRoles did not name the signed-in person by id');
   }
-  const me = t.whoami();
-  if (!me.tutorPending || JSON.stringify(me.roles) !== '["tutor","parent"]') bad.push('USER was not given the server\'s answer — ' + JSON.stringify({ roles: me.roles, tutorPending: me.tutorPending }));
+  if (t.whoami().rank !== 'client') bad.push('USER was not given the server\'s rank — ' + JSON.stringify(t.whoami().rank));
+  /* A TUTOR STILL WAITING FROM BEFORE (an old row): ticked, said to be waiting, and not staff. */
+  t.USER({ name: 'Pat Parent', personId: 'P-C1', role: 'tutor', roles: ['tutor', 'parent'], token: 'tk', tutorPending: true, profile: {} });
+  try { w.paint('settings'); } catch (e) { return bad.concat(['drawing settings for a waiting tutor threw: ' + e.message]); }
   if (t.isTutorRole()) bad.push('a Tutor tick the server says is waiting already passes the staff test');
-  if (!card() || !card().querySelector('[data-role-pick="tutor"]').checked) bad.push('after the save the card does not show Tutor ticked');
+  if (!card() || !tick('tutor') || !tick('tutor').checked) bad.push('a waiting tutor\'s card does not show Tutor ticked');
   if (!card() || !/waiting for @family/.test(card().querySelector('.roles-said').textContent)) bad.push('the card does not say the Tutor tick is waiting for approval');
-  if (!d.querySelector('#s-settings .card.agree')) bad.push('a waiting tutor is not offered the tutor agreement to sign');
+  /* THE TERMS ARE IN THE STAFF HUB ON YOU NOW (405), for staff: Settings carries no agreement, and a waiting tutor has no hub yet. */
+  if (d.querySelector('#s-settings .agree')) bad.push('Settings still carries the old tutor agreement — the terms are in the Staff hub (405)');
   /* AND THE ADMIN: told, not ticked. */
   t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin', 'tutor'], token: 'tk', profile: {} });
   try { w.paint('settings'); } catch (e) { return bad.concat(['drawing settings for the admin threw: ' + e.message]); }
@@ -17968,7 +18354,7 @@ const shopRow_ = (n, name, kindRaw, audience, inStock, extra) => Object.assign({
   image: '', inStock: inStock, fields: {} }, extra || {});
 /* ---------- A CHOSEN ANSWER IS ONLY ITS VALUE, AND CLEAR IS A TILE BESIDE THE BOX § */
 check('a chosen answer is only its value, and Clear is a tile beside the search box that keeps its focus', async () => {
-  const { w } = boot({ payload: payload() });
+  const { w } = boot({ member: true, payload: payload() });
   await wait(300);
   const t = w.__t, d = w.document;
   if (!t.STUFF || typeof w.filterChips !== 'function') return ['Find\'s state is not exported to the journey'];
@@ -18177,7 +18563,7 @@ check('Coursework is a type of project: Projects asks Project or coursework, whi
   const p = payload();
   p.projects = mapped;
   p.practicals = made.practicals || [];
-  const { w } = boot({ payload: p, serve: u => (/(^|\/)data\/settings\/facets\.json(\?|$)/.test(u) ? sheet : undefined) });
+  const { w } = boot({ member: true, payload: p, serve: u => (/(^|\/)data\/settings\/facets\.json(\?|$)/.test(u) ? sheet : undefined) });
   const t = w.__t;
   const hasRow = () => ((t.DATA() || {}).facets || []).some(f => f.field === 'projectType');
   for (let i = 0; i < 120 && !hasRow(); i++) await wait(25);
@@ -18333,7 +18719,7 @@ check('a content card, on Find 2 and on Find: What kind · Content, Statistics �
   if (!(made.boxers || []).length) return ['the mapper made no boxers, so the cards were not found among anything — NOT a pass'];
   const p = payload();
   Object.assign(p, { textbooks: books, boxers: made.boxers, fights: made.fights || [], projects: made.projects || [] });
-  const { w } = boot({ payload: p });
+  const { w } = boot({ member: true, payload: p });
   await wait(300);
   const t = w.__t;
   if (!t.RES || !t.RES()) return ['Find 2\'s state is not exported to the journey'];
@@ -18487,7 +18873,7 @@ const resView_ = w => new Proxy({}, { get: (_, k) => (...a) => inRes_(w, () => w
 const resBoot_ = async (opts) => {
   const p = await resPayload_();
   if (!p) return null;
-  const b = boot(Object.assign({ payload: p }, opts || {}));
+  const b = boot(Object.assign({ payload: p, member: true }, opts || {}));
   for (let i = 0; i < 80 && !b.w.__t; i++) await wait(25);
   await wait(250);
   return b.w.__t ? b : null;
@@ -18778,32 +19164,21 @@ check('Find 2 keeps its own place across a reload — the column, its chips and 
   return bad;
 });
 
-check('Find 2 across a sign-in: kept from signed out, kept for the child whose session ended, cleared when an admin signs out or another child signs in', async () => {
+check('Find 2 across a sign-in: signed out it is the members card, signed in it is the finder; kept for the child whose session ended, cleared when an admin signs out or another child signs in', async () => {
   const bad = [];
-  const where = t => JSON.stringify([t.RES().filters, t.RES().q, pg_(t).res]);
-  /* ---- SIGNED OUT, ON A CHAPTER, THEN SIGNED IN ---- */
+  /* ---- SIGNED OUT: ONE CARD, MEMBERS ONLY (400); SIGNED IN: THE FINDER ---- */
   {
-    const b = await resBoot_();
+    const b = await resBoot_({ member: false });
     if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
-    const { w } = b, t = w.__t;
-    if (t.whoami()) return ['the app opened signed in — signing in from signed OUT was NOT checked'];
+    const { w } = b, t = w.__t, d = w.document;
+    if (t.whoami()) return ['the app opened signed in — signed OUT was NOT checked'];
     t.go('res', false, true); await wait(100);
-    /* WHAT KIND · CONTENT — Find's own first question, which Find 2 asks too (347). It was Resources while
-       the textbooks were on that shelf; the probability pages are content cards now (347, part 2). */
-    const btn = resPick_(w, 'res', 'Content');
-    if (!btn) return ['Find 2 does not offer What kind · Content — NOT checked: ' + resAnswers_(w, 'res').join(' | ')];
-    t.ACTIONS['facet-pick'](btn);
-    resType_(w, 'res', 'probability');
-    await wait(260);
-    const n = inRes_(w, () => w.stuffPages_().length);
-    if (n < 3) return ['the content cards searched for "probability" left ' + n + ' page(s) — the page was NOT checked'];
-    t.goPage('res', inRes_(w, () => w.stuffFirstResult_()) + 2, true);
-    await wait(80);
-    const before = where(t);
+    if (!d.querySelector('#s-res .members-only') || d.getElementById('res-q')) bad.push('signed out, Find 2 is not the members card alone');
     w.signedIn_(Object.assign({ success: true }, KEEP_SOL_), 'sol');
     await wait(80);
+    t.go('res', false, true); w.paint('res'); await wait(100);
     if ((t.whoami() || {}).personId !== 'P12') return ['the child did not sign in: ' + JSON.stringify(t.whoami())];
-    if (where(t) !== before) bad.push('signing in from signed out changed Find 2 from ' + before + ' to ' + where(t));
+    if (!d.getElementById('res-q') || d.querySelector('#s-res .members-only')) bad.push('signed in, Find 2 is not the finder');
   }
   /* ---- AN ADMIN, ON THE BOOKS SHELF IN FIND 2 (both finders hold it), SIGNS OUT ---- */
   {
@@ -19931,7 +20306,7 @@ check('the Bible, on Find 2 (and on Find): its cover in Resources → Open → t
 });
 
 /* ---------- THE FUNNEL ASKS AN ADMIN WHAT IT ASKS A PARENT, THE BOOKS SHELF APART § */
-check('the funnel asks an admin exactly what it asks a parent, the Books shelf apart — the Bible costs nobody else a question', async () => {
+check('the funnel asks an admin exactly what it asks a parent, the Books shelf and the Icons kind apart — the Bible and the icons cost nobody else a question', async () => {
   /* EVERY `data/` FILE FROM DISK, the library included — `check-funnel.js`'s rule, so the walk is over
      the questions a phone holds rather than over a payload of two tutors. */
   const serveAll = url => {
@@ -20022,7 +20397,9 @@ check('the funnel asks an admin exactly what it asks a parent, the Books shelf a
         if (show(ps) !== show(as)) { bad.push('from ' + say + ', step ' + (i + 1) + ': a parent is asked ' + show(ps) + ', an admin ' + show(as)); break; }
         continue;
       }
-      const avals = ps.field === 'shelf' ? as.vals.filter(v => v !== 'Books') : as.vals;
+      /* AND `Icons`, THE ADMIN'S OWN KIND (403): one answer more at What kind, asked of nobody else. */
+      const avals = ps.field === 'shelf' ? as.vals.filter(v => v !== 'Books')
+        : ps.field === 'kindLabel' ? as.vals.filter(v => v !== 'Icons') : as.vals;
       if (ps.field !== as.field || ps.vals.join('|') !== avals.join('|')) {
         const onlyAdmin = avals.filter(v => ps.vals.indexOf(v) < 0), onlyParent = ps.vals.filter(v => avals.indexOf(v) < 0);
         bad.push('from ' + say + ', step ' + (i + 1) + ': a parent is asked ' + show(ps) + ', an admin ' + show(as)
@@ -23682,85 +24059,30 @@ const keepWalk_ = async (w, id) => {
   }
   return said;
 };
-check('signing in from signed out keeps Find’s chips, the card and its page — and the typed answer moves to the child', async () => {
-  const ID = 'Q-1MA1-2306-1H-13';
-  const rows = keepRows_();
-  if (!rows.some(r => r.row_id === ID)) return [ID + ' is not in data/questions.json — nothing was walked'];
-  const server = {};
-  /* THE PAYLOAD AFTER SIGNING IN IS HELD, so what is drawn the moment "Signed in" says so can be looked
-     at on its own, and then released with a longer list. */
-  let hold = false, release = null;
-  const { w, sent } = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES }),
-    reply: ansBackend_(server, b => (b.action === 'verifyLogin' ? Object.assign({ success: true }, KEEP_SOL_) : undefined)),
-    serve: url => (/data\/questions\.json/.test(url) ? rows
-      : hold ? new Promise(r => { release = () => r(Object.assign(payload(), { features: ANS_FEATURES })); }) : undefined) });
-  for (let i = 0; i < 80 && !(typeof w.stuffItemsAll_ === 'function' && w.stuffItemsAll_().some(x => x.row && x.row.row_id === ID)); i++) await wait(50);
+/* ---------- THE FINDER IS FOR MEMBERS (400) — the owner, 24 Oct: signed out, Find and Find 2 are one card, Sign in or Join ---------- */
+check('signed out, Find is one "Members only" card with Sign in and Join and no search box; Join opens the sign-up with Student and Client; signed in, Find is the finder again', async () => {
+  const { w } = boot({ payload: payload() });
+  for (let i = 0; i < 80 && !w.__t; i++) await wait(25);
+  await wait(300);
   const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
-  if (!w.stuffItemsAll_().some(x => x.row && x.row.row_id === ID)) return ['the library did not bring ' + ID + ' into Find — nothing was walked'];
-  if (t.whoami()) return ['the app opened signed in — signing in from signed OUT was NOT checked'];
-  if (typeof w.signedIn_ !== 'function' || typeof w.stuffPages_ !== 'function') return ['signedIn_ or stuffPages_ not reachable — nothing was checked'];
-  t.go('stuff', false, true);
-  await wait(50);
-  /* ---- SIGNED OUT: the funnel, the card, the answer ---- */
-  const walked = await keepWalk_(w, ID);
-  const at = () => {
-    const pg = w.stuffPages_()[t.PAGE().stuff - w.stuffFirstResult_()];
-    return pg && pg.x && pg.x.row ? pg.x.row.row_id + (pg.part ? ':' + pg.part : '') : '(page ' + t.PAGE().stuff + ', no result)';
-  };
-  const idx = w.stuffPages_().findIndex(pg => pg.x && pg.x.row && pg.x.row.row_id === ID && !pg.part);
-  /* TWO PRESSES SINCE 396 — Type, then Paper: a Year or Month with one answer is not asked. */
-  if (walked.length < 2 || idx < 0) return ['the funnel walk pressed ' + JSON.stringify(walked) + ' and did not reach ' + ID + '’s card — nothing was checked'];
-  const x = w.stuffPages_()[idx].x;
-  const page = w.stuffFirstResult_() + idx;
-  if (idx < 5) bad.push('the card is result page ' + idx + ' — too near the first to prove the page is kept');
-  t.goPage('stuff', page, true);
-  await wait(400);
-  const box = who => d.querySelector('#s-stuff .qp-ans-in[data-k="ans:' + (who ? 'u:' + who + ':' : '') + x.key + '"]');
-  if (!box('')) return bad.concat(['no keypad box for ' + ID + ' on its page, signed out — nothing was typed']);
-  box('').focus();
-  const pad = d.getElementById('kp');
-  if (!pad || pad.hidden) return bad.concat(['focusing the box did not open the keypad']);
-  ['8', '0'].forEach(v => { const k = pad.querySelector('.kp-key[data-v="' + v + '"]'); if (k) A['kp-key'](k); else bad.push('no key ' + v); });
-  if (w.localStorage.getItem('ans:' + x.key) !== '80') return bad.concat(['"80" typed signed out was stored as ' + JSON.stringify(w.localStorage.getItem('ans:' + x.key)) + ' — nothing to carry']);
-  const chips = JSON.stringify(t.STUFF().filters), q = t.STUFF().q;
-  /* ---- ACROSS TO THE ACCOUNT COLUMN, AND SIGNED IN ---- */
-  t.go('account');
-  await wait(50);
-  const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
-  if (!name || !pin) return bad.concat(['no sign-in card on the account column']);
-  name.focus(); name.value = KEEP_SOL_.handle; pin.value = '0000';
-  await wait(20);
-  hold = true;
-  A['do-signin'](d.querySelector('#s-account [data-do="do-signin"]'));
-  for (let i = 0; i < 40 && !release; i++) await wait(25);
-  await wait(150);
-  if ((t.whoami() || {}).personId !== 'P12') return bad.concat(['the student did not sign in: ' + JSON.stringify(t.whoami())]);
-  const look = when => {
-    if (t.AT() !== 'stuff') bad.push(when + ': the child is on ' + t.AT() + ', not back on Find');
-    if (JSON.stringify(t.STUFF().filters) !== chips) bad.push(when + ': Find’s chips are ' + JSON.stringify(t.STUFF().filters) + ', were ' + chips + ' — the funnel was thrown away');
-    if (t.STUFF().q !== q) bad.push(when + ': the search is "' + t.STUFF().q + '", was "' + q + '"');
-    if (at() !== ID) bad.push(when + ': Find is on ' + at() + ', not ' + ID + '’s card');
-    const b = box('P12');
-    if (!b) bad.push(when + ': no box under the student’s key on Find' + (box('') ? ' (the signed-out one is still drawn)' : ''));
-    else if (b.value !== '80') bad.push(when + ': the student’s box holds ' + JSON.stringify(b.value) + ', not the "80" typed before signing in');
-    if (w.localStorage.getItem('ans:u:P12:' + x.key) !== '80') bad.push(when + ': the answer is not stored under the student: ' + JSON.stringify(w.localStorage.getItem('ans:u:P12:' + x.key)));
-    if (w.localStorage.getItem('ans:' + x.key) !== null) bad.push(when + ': the signed-out copy is still on the device — moved, not copied, or the next child reads it');
-  };
-  look('signed in, before the payload');
-  if (t.PAGE().stuff !== page) bad.push('signed in, Find is on page ' + t.PAGE().stuff + ', was ' + page);
-  /* ---- THE STUDENT'S PAYLOAD, WITH ONE MORE ROW IN FRONT OF THE CARD ---- */
-  if (!release) return bad.concat(['the payload after signing in was never asked for, so its landing was NOT checked']);
-  const q7 = rows.find(r => r.row_id === 'Q-1MA1-2306-1H-7');
-  rows.push(Object.assign({}, q7, { row_id: 'Q-1MA1-2306-1H-7-MORE', part: 'b' }));
-  release();
-  await wait(400);
-  const moved = w.stuffPages_().findIndex(pg => pg.x && pg.x.row && pg.x.row.row_id === ID && !pg.part);
-  if (moved <= idx) bad.push('the payload’s extra row did not land in front of the card (it is result page ' + moved + ', was ' + idx + ') — the move was NOT checked');
-  look('after the student’s payload landed');
-  if (!sent.some(b => b.action === 'saveAnswers' && (b.items || []).some(it => it.key === 'ans:' + x.key && it.v === '80'))) {
-    await wait(1700);
-    if (!sent.some(b => b.action === 'saveAnswers' && (b.items || []).some(it => it.key === 'ans:' + x.key && it.v === '80'))) bad.push('the moved answer never went up to the student’s account');
-  }
+  if (t.whoami()) return ['the app opened signed in — signed OUT was NOT checked'];
+  t.go('stuff', false, true); w.paint('stuff'); await wait(100);
+  const card = d.querySelector('#s-stuff .members-only');
+  if (!card) return ['signed out, Find draws no Members only card'];
+  if (!/Members only/.test(card.textContent)) bad.push('the card does not say Members only: ' + card.textContent.trim().slice(0, 80));
+  if (d.getElementById('stuff-q') || d.getElementById('stuff-chips')) bad.push('signed out, Find still draws the search box or the chips');
+  if (d.querySelectorAll('#s-stuff .page.is-res').length) bad.push('signed out, Find still holds result pages');
+  const signin = card.querySelector('[data-do="members-signin"]'), join = card.querySelector('[data-do="members-join"]');
+  if (!signin || !join) return bad.concat(['the card has no Sign in and Join tiles']);
+  A['members-join'](join); await wait(50);
+  const who = [...d.querySelectorAll('#sheet [data-do="reg-who"]')].map(b => b.textContent.trim());
+  if (!who.some(x => /Student/.test(x)) || !who.some(x => /Client/.test(x))) bad.push('Join did not open the sign-up asking Student or Client: ' + JSON.stringify(who));
+  A['members-signin'](signin); await wait(50);
+  if (t.AT() !== 'account') bad.push('Sign in did not go to the You column, it is on ' + t.AT());
+  w.signedIn_(Object.assign({ success: true }, MEMBER_), 'momember');
+  await wait(80);
+  t.go('stuff', false, true); w.paint('stuff'); await wait(150);
+  if (!d.getElementById('stuff-q') || d.querySelector('#s-stuff .members-only')) bad.push('signed in, Find is not the finder again');
   return bad;
 });
 
@@ -24301,7 +24623,8 @@ function surnameWorld_() {
     P('P-KD2', 'student', 'Wren', 'Ollerby', '', 'wren_bold44'),
     P('P-STU', 'student', 'Ned', 'Pell', 'ned@example.org', 'ned_kind45'),
     P('P-OTH', 'client', 'Ola', 'Brisk', 'ola@example.org', 'ola_kind46'),
-    P('P-PEN', 'student', 'Juno', 'Vandersloot', 'juno@example.org', 'juno_kind47', { high_score_flappy: 12 }),
+    /* A TUTOR TICK STILL WAITING FROM BEFORE 400 — the tick is no longer a way in, so her row is seeded already waiting. */
+    P('P-PEN', 'student, tutor', 'Juno', 'Vandersloot', 'juno@example.org', 'juno_kind47', { high_score_flappy: 12, listed: 'PENDING' }),
   ]);
   b.seed('family', [{ link_id: 'L1', parent_id: 'P-PAR', child_id: 'P-KID', child_typed: 'Wren ' + SUR_, state: 'accepted' }]);
   b.seed('config', [{ key: 'max_open_requests', value: 20 }]);
@@ -24323,9 +24646,9 @@ function surnameWorld_() {
   if (tk['P-ADM']) as('P-ADM', { action: 'createJob', clientName: 'Wren ' + SUR_, requestedTutor: 'Tam Tutor', subject: 'Maths', level: 'GCSE', day: 'Saturday',
     time: '10:00', slots: 'sa10', location: 'Online', dates: dmy(day(40)), hours: 1, price: 30 });
   if (tk['P-KID']) as('P-KID', { action: 'sendMessage', to: 'Hal Admin', toId: 'P-ADM', body: 'Can we do fractions?' });
-  /* JUNO TICKS TUTOR, AND IS LEFT WAITING — then the admin books her a session (398) and she says a word on Wren's post. */
+  /* JUNO IS A TUTOR LEFT WAITING — then the admin books her a session (398) and she says a word on Wren's post. */
   if (tk['P-PEN']) {
-    const t1 = as('P-PEN', { action: 'setMyRoles', roles: ['student', 'tutor'] });
+    const t1 = as('P-PEN', { action: 'myProfile' });
     const t2 = as('P-ADM', { action: 'createJob', clientName: 'Juno Vandersloot', requestedTutor: 'Tam Tutor', subject: 'Maths', level: 'GCSE', day: 'Saturday',
       time: '12:00', slots: 'sa12', location: 'Online', dates: dmy(day(42)), hours: 1, price: 30 });
     const t3 = as('P-PEN', { action: 'addComment', postId: 'PO-1', body: 'great volcano' });
@@ -24598,7 +24921,7 @@ const aheadQuiet_ = async (t, cap) => {
   return false;
 };
 const aheadBoot_ = async (opts) => {
-  const b = boot(Object.assign({ ahead: true }, opts || {}));
+  const b = boot(Object.assign({ ahead: true, member: true }, opts || {}));
   for (let i = 0; i < 80 && !b.w.__t; i++) await wait(25);
   await wait(400);
   return b;
@@ -25115,7 +25438,7 @@ check('a landing that brings a fact draws it: a new post is in the Feed once the
 check('a window drawn afresh in front is filled as far as the glass shows, both ways — not only the card in front and one either side', async () => {
   /* REVIEW, 12 Oct: a repaint drew Find in front from nothing and filled three cards; on an iPad the pages above the card in front sat on the glass as empty shells § */
   const P = paper2F_();
-  const { w } = boot({ serve: P.serve });
+  const { w } = boot({ member: true, serve: P.serve });
   for (let i = 0; i < 80 && !w.__t; i++) await wait(25);
   await wait(600);
   const t = w.__t, bad = [];
@@ -25344,7 +25667,7 @@ check('a card the builder fills ahead of the card in front asks for its pictures
   if (!p) return ['the resources payload could not be made — NOT checked'];
   const reflect = x => { try { Object.defineProperty(x.HTMLImageElement.prototype, 'loading', { configurable: true,
     get() { return this.getAttribute('loading') || 'auto'; }, set(v) { this.setAttribute('loading', String(v)); } }); } catch (e) {} };
-  const { w } = await aheadBoot_({ payload: p, before: reflect });
+  const { w } = await aheadBoot_({ payload: p, before: x => { signedInAs_(MEMBER_)(x); reflect(x); } });
   const t = w.__t, bad = [];
   if (!t || typeof t.domIndex !== 'function') return ['the builder is not reachable — NOT checked'];
   if (!resAsk_(w)) return ['the Resources column has no boxing shelf to fill — NOT checked'];

@@ -260,11 +260,25 @@ const canTrack = () => hasRole('kid') || hasRole('student') || hasRole('tutor') 
 /* An admin is a tutor with extra powers, so everywhere gated on "tutor" admits an admin too. § */
 /* AND NOT A TUTOR WHO HAS ONLY TICKED THE BOX. § */
 const tutorHeld_ = () => hasRole('tutor');
-const isTutorRole = () => (tutorHeld_() && !(USER && USER.tutorPending)) || hasRole('admin');
+
+/* ---------- ONE RANK PER ACCOUNT (400): student < client < staff < admin, as `rankOf` (people.gs) ----------
+   The server's word when the sign-in reply carried one; worked out from the roles for a copy kept before it did. */
+const RANKS = ['student', 'client', 'staff', 'admin'];
+const rank_ = () => {
+  if (!USER) return '';
+  if (RANKS.indexOf(String(USER.rank || '')) !== -1) return USER.rank;
+  if (hasRole('admin')) return 'admin';
+  if (tutorHeld_() && !USER.tutorPending) return 'staff';
+  if (hasRole('client')) return 'client';
+  return hasRole('student') ? 'student' : 'client';
+};
+/* AT LEAST THIS RANK; nobody signed in holds none. */
+const rankAtLeast_ = want => !!USER && RANKS.indexOf(rank_()) >= RANKS.indexOf(want);
+const isTutorRole = () => rankAtLeast_('staff');
 
 /* ---------- A CHILD IS SHOWN NO PRICE (398) — the owner: "Kids' profiles shouldn't be able to see tutors' prices." */
-/* The phone's half of `isChild_` (people.gs): a student who is not also a parent, an admin or a tutor somebody said yes to. */
-const childView_ = () => !!USER && hasRole('student') && !hasRole('client') && !isTutorRole();
+/* Rank Student (400), the phone's half of `isChild_` (people.gs). */
+const childView_ = () => rank_() === 'student';
 /* WHAT SHE IS TOLD WHERE A PRICE OR A PAY BUTTON WOULD BE — the backend's `KID_ASK_PARENT` says the same. */
 const KID_ASK_PARENT = 'A parent books and pays for sessions — ask yours to book this one.';
 
@@ -462,7 +476,8 @@ function priceFrom(spec) {
   // open_rate falls back to the HIGHEST rate any tutor charges, because whoever ends up taking an
   // open job has to be covered by the price already agreed. Set it below the dearest tutor and the
   // difference comes out of your margin every time they're the one who applies.
-  const tutorRow = tutor ? (DATA.tutors || []).find(t => norm(t.title) === norm(tutor)) : null;
+  /* `spec.tutorRow`: a row not yet saved — the Staff hub's pricing (405) asks this same sum of the figures being typed. */
+  const tutorRow = spec.tutorRow || (tutor ? (DATA.tutors || []).find(t => norm(t.title) === norm(tutor)) : null);
   const tutorRate = Number(tutorRow && tutorRow.rate) || 0;
   // Named tutor: their own charge-out rate. No preference: the open rate, which is fixed because a
   // job nobody has claimed can't be priced on the rate of a tutor who hasn't taken it yet.

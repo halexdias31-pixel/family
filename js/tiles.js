@@ -110,6 +110,8 @@ const TILE_ICONS = {
   integral: '<path d="M3.5 15c1.6.6 2.6-.2 3-2.2l1.6-8.6c.4-2 1.4-2.8 3-2.2"/><rect x="11" y="7" width="5" height="6" rx=".8"/>',
   /* THE RETURN KEY'S ARROW: down the right and back to the left, where the next line starts. */
   newline: '<path d="M15 2.5v7H3.5"/><path d="M7 6 3.5 9.5 7 13"/>',
+  /* SPEED READ (403): the reader's two guide ticks, and a line of words running through them. */
+  speed: '<path d="M9 1.5v3.5"/><path d="M9 12v3.5"/><path d="M2 8.5h4.5"/><path d="M8 8.5h2"/><path d="M11.5 8.5h4.5"/>',
 };
 
 function tileIcon_(name) {
@@ -245,11 +247,15 @@ function tutorTiles_(x) {
           ''}
     ${/* ---------- WRITE TO THEM, FROM THE ONE PLACE YOU ARE LOOKING AT THEM § */
           ''}
-    ${(USER && !isMe_(x)) ? tile_({ icon: 'chat', label: 'Message',
+    ${/* NOT FOR A CHILD, unless they are the business (405): `MESSAGING` lets a student write to an admin only — no tile the server refuses. */
+          (USER && !isMe_(x) && (!childView_() || /admin/i.test(String(t.role || '')))) ? tile_({ icon: 'chat', label: 'Message',
               note: 'a note to them', act: 'msg-open',
               data: { to: x.name, id: (x.row && x.row.personId) || '' } }) : ''}
     ${/* EDIT, FOR AN ADMIN, ON SOMEBODY ELSE'S CARD ON THE YOU COLUMN — `updateProfile` lets an admin write another person's row, so the card turns into its form for § */
           ''}
+    ${/* SHARE, ON A LISTED TUTOR WITH A HANDLE (400) — their own `?tutor=` address (`tutorLink_`, posts.js). */
+          (t.handle && t.listed !== false) ? tile_({ icon: 'share', label: 'Share', note: 'their link',
+              act: 'tutor-share', data: { handle: t.handle } }) : ''}
     ${typeof cardEditTile_ === 'function' ? cardEditTile_(x) : ''}
     ${isAdmin() ? tile_({ icon: t.listed === false ? 'hide' : 'show',
               label: t.listed === false ? 'Not listed' : 'Listed', tone: 'admin',
@@ -371,6 +377,7 @@ function cardTiles_(x) {
   /* `more` IS WHAT ONE COLUMN ADDS TO THE ROW — the people column's Edit and Delete for an admin (373). */
   /* AND `Read aloud` ON A PRIMARY QUESTION OR CONTENT CARD (394) -- `readAloudTile_`, find.js. */
   const mine = favTile_(x) + cardActions_(x) + (typeof readAloudTile_ === 'function' ? readAloudTile_(x) : '')
+    + (typeof speedTile_ === 'function' ? speedTile_(x) : '')
     + finderOpenTile_(x) + (x.more || '');
   const admin = adminTiles_(x, x.topic || null);
   if (!mine && !admin) return '';
@@ -394,6 +401,11 @@ function cardActions_(x) {
   /* AND "SEND THE LINK AGAIN" BESIDE IT while your own address is unproved — the paragraph under the row says why § */
   /* AND EDIT FIRST, on your own card — the owner, 10 Oct: § */
   if (x.kind === 'me') return (typeof cardEditTile_ === 'function' ? cardEditTile_(x) : '')
+    /* SHARE MY PROFILE (400), for staff and an admin who teaches: their own `?tutor=` link, to send a family. */
+    + (rankAtLeast_('staff') && USER.handle ? tile_({ icon: 'share', label: 'Share my profile', note: 'your link',
+        act: 'tutor-share', data: { handle: USER.handle } }) : '')
+    /* AND THE STAFF HUB BESIDE IT (405): the tutor terms, pricing, the monthly statement — `hubTile_` in staff.js. */
+    + (typeof hubTile_ === 'function' ? hubTile_() : '')
     + tile_({ icon: 'out', label: 'Sign out', act: 'signout' })
     + (typeof pendingAddr_ === 'function' && pendingAddr_() && typeof resendTile_ === 'function' ? resendTile_() : '');
   if (x.kind === 'receipt') return jobTiles_(x);
@@ -485,3 +497,71 @@ function postTiles_(p) {
 }
 
 on('noop', () => {});
+
+/* ================= THE ICONS, ON FIND 2 FOR AN ADMIN (403) =================
+   Each `TILE_ICONS` mark is an ordinary item: shelf `Icons`, a group, found by its name. Same gate as the Bible (`bibleFor_`). */
+const ICON_SHELF = 'Icons';
+/* THE GROUP A MARK IS ASKED BY — by what it is for; a mark nobody placed is `Other`, never missing. */
+const ICON_GROUPS = {
+  Media: 'play pause film sound mute speak photo speed',
+  Documents: 'doc print book open code figure',
+  Actions: 'edit bin undo send save plus share search sync tick close ext full unfull show hide',
+  Marks: 'star flag spot spark lock unlock',
+  Account: 'out in key join chat',
+  Shop: 'cart wear',
+  'Pen and drawing': 'pen ruler protractor compass',
+  'Maths keys': 'frac power root integral newline',
+};
+const iconGroup_ = n => Object.keys(ICON_GROUPS).find(g => (' ' + ICON_GROUPS[g] + ' ').indexOf(' ' + n + ' ') !== -1) || 'Other';
+const iconFor_ = () => typeof bibleFor_ === 'function' && bibleFor_();
+function iconItems_() {
+  if (!iconFor_()) return [];
+  return Object.keys(TILE_ICONS).map(n => ({
+    kind: 'icon', name: n, key: 'icon:' + n, sub: iconGroup_(n), image: '', shelf: ICON_SHELF,
+    iconGroup: iconGroup_(n), text: n + ' icon mark symbol ' + iconGroup_(n), row: null,
+  }));
+}
+/* WHERE EACH MARK IS USED: `icon: 'name'` counted across the app's own scripts, fetched once from the cache the page loaded them into. */
+const ICON_USE = { counts: null, asking: null };
+function iconUses_() {
+  if (ICON_USE.counts || ICON_USE.asking || !iconFor_()) return ICON_USE.counts;
+  const files = (typeof window !== 'undefined' && Array.isArray(window.FILES)) ? window.FILES : [];
+  const t = (typeof window !== 'undefined' && window.LOAD) || '';
+  ICON_USE.asking = Promise.all(files.map(f => fetch('js/' + f + '.js?t=' + t, { cache: 'default' })
+    .then(r => (r && r.ok ? r.text() : '')).catch(() => '').then(s => [f, s])))
+    .then(all => {
+      const c = {};
+      all.forEach(([f, s]) => {
+        const re = /icon:\s*'([a-z]+)'/g;
+        let m;
+        while ((m = re.exec(s))) { c[m[1]] = c[m[1]] || {}; c[m[1]][f] = (c[m[1]][f] || 0) + 1; }
+      });
+      ICON_USE.counts = c; ICON_USE.asking = null;
+      try { document.querySelectorAll('.icon-use[data-icon]').forEach(el => { el.innerHTML = iconUseSay_(el.getAttribute('data-icon')); }); } catch (e) {}
+    });
+  return null;
+}
+function iconUseSay_(n) {
+  const c = ICON_USE.counts;
+  if (!c) return loading_();
+  const by = c[n] || {}, fs = Object.keys(by).sort((a, b) => by[b] - by[a]);
+  const total = fs.reduce((s, f) => s + by[f], 0);
+  if (!total) return 'Not named as <code>icon: \'' + esc(n) + '\'</code> anywhere — it may be drawn by name.';
+  return 'Used ' + total + (total === 1 ? ' time' : ' times') + ': ' + fs.map(f => esc(f) + '.js ' + by[f]).join(', ');
+}
+function iconCard_(x) {
+  iconUses_();
+  return `<div class="card fc icon-card" data-key="${esc(x.key)}">
+    <div class="fc-head"><h3>${esc(x.name)}</h3></div>
+    ${tagRow_(x)}
+    <div class="icon-show">
+      <span class="icon-big">${tileIcon_(x.name)}</span>
+      <span class="icon-small">${tile_({ icon: x.name, label: x.name, act: 'icon-none' })}</span>
+    </div>
+    <p class="fc-meta">In code: <code>tile_({ icon: '${esc(x.name)}', … })</code></p>
+    <div class="fc-note icon-use" data-icon="${esc(x.name)}">${iconUseSay_(x.name)}</div>
+    <p class="fc-meta bb-who">Only admins are shown the icons</p>
+  </div>`;
+}
+/* THE SMALL ONE IS A REAL TILE, so it is the size a tile is; pressing it does nothing. */
+on('icon-none', () => {});

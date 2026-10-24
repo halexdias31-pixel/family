@@ -75,6 +75,11 @@ function nbItem_(el) {
     }
     return pts.length ? nbMeta_({ pts, b: String(el.b || ''), e: el.e ? 1 : 0, enc: el }) : { other: 1, enc: el };
   }
+  /* A PICTURE (402): { im: 1, i, x, y, w, h in quarter units, s: a JPEG data URL }. Not a shape (`t`): it has no boxes, only a frame. */
+  if (el && typeof el === 'object' && el.im && typeof el.s === 'string') {
+    const x = (+el.x || 0) / NB.Q, y = (+el.y || 0) / NB.Q, w = Math.max(8, (+el.w || 0) / NB.Q), h = Math.max(8, (+el.h || 0) / NB.Q);
+    return { im: 1, id: String(el.i || ''), x, y, w, h, src: el.s, box: { l: x, t: y, r: x + w, b: y + h }, enc: el };
+  }
   if (el && typeof el === 'object' && NB_SHAPES[el.t]) return { t: el.t, id: String(el.i || ''), x: (+el.x || 0) / NB.Q, y: (+el.y || 0) / NB.Q, enc: el };
   /* ANYTHING ELSE IS KEPT AS IT IS AND NOT DRAWN: a newer board's element must survive an older page saving over it. */
   return { other: 1, enc: el };
@@ -562,6 +567,7 @@ function nbLasso_(st, poly) {
   if (poly.length < 3) return null;
   const sel = st.items.filter(i => {
     if (i.t) { const l = st.lays.get(i.id); return inkInside_(poly, (l.l + l.r) / 2, (l.t + l.b) / 2); }
+    if (i.im) return inkInside_(poly, i.x + i.w / 2, i.y + i.h / 2);
     if (!i.pts || i.b) return false;
     return i.pts.filter(p => inkInside_(poly, p[0], p[1])).length >= i.pts.length * 0.6;
   });
@@ -571,6 +577,7 @@ function nbMoveSel_(st, dx, dy) {
   if (!st.sel || (!dx && !dy)) return;
   const add = st.sel.map(i => {
     if (i.t) return nbShapeItem_(i.t, i.id, i.x + dx, i.y + dy);
+    if (i.im) return nbPicItem_(i, i.x + dx, i.y + dy, i.w, i.h);
     const n = nbStroke_(i.pts.map(p => [p[0] + dx, p[1] + dy, p[2]]), '', i.e);
     return n;
   });
@@ -645,6 +652,8 @@ function nbDrawBook_(b, st) {
   }
   nbDrawBoxes_(ctx, st, a, bx, by, c);
   const hide = b.drag ? new Set(st.sel || []) : null;
+  /* PICTURES FIRST, SO WHAT IS WRITTEN LANDS ON TOP OF THEM. */
+  st.items.forEach(i => { if (i.im && !(hide && hide.has(i))) nbPicDraw_(b, ctx, i, i.x * a + bx, i.y * a + by, i.w * a, i.h * a); });
   ctx.fillStyle = ctx.strokeStyle = c.ink;
   const vt = v.ny - 20, vb = v.ny + B.h / a + 20;
   st.inks.forEach(k => {
@@ -762,6 +771,12 @@ function nbDrawLoupe_(b, g) {
     ctx.fillStyle = ctx.strokeStyle = c.ink;
     nbCache_(st);
     const sel = new Set(st.sel || []);
+    if (g.resize) {
+      const p = g.resize, w = nbPicW_(p, g.off[0]);
+      nbPicDraw_(b, ctx, p, (p.x - st.nv.x) * a, (p.y - v.ny) * a, w * a, w * p.h / p.w * a);
+      return;
+    }
+    st.items.forEach(i => { if (i.im && sel.has(i)) nbPicDraw_(b, ctx, i, (i.x + g.off[0] - st.nv.x) * a, (i.y + g.off[1] - v.ny) * a, i.w * a, i.h * a); });
     st.inks.forEach(k => { if (sel.has(k.tm || k.item)) inkStroke_(ctx, k.pts, a, (g.off[0] - st.nv.x) * a, (g.off[1] - v.ny) * a); });
     return;
   }
@@ -917,6 +932,9 @@ function nbDown_(b, surf, e) {
   const sb = nbSelBox_(st);
   if (sb && nx >= sb.l - 6 && nx <= sb.r + 6 && ny >= sb.t - 6 && ny <= sb.b + 6) {
     G.kind = 'drag'; G.off = [0, 0]; b.drag = true; nbNoSwipe_(b, true);
+    /* A LONE PICTURE'S BOTTOM-RIGHT CORNER RESIZES IT, keeping its shape; anywhere else on the selection moves it. */
+    const one = st.sel.length === 1 && st.sel[0].im ? st.sel[0] : null;
+    if (one && Math.abs(nx - one.box.r) < 16 && Math.abs(ny - one.box.b) < 16) G.resize = one;
     nbDrawAll_(b); nbDrawLoupe_(b, G);
     return;
   }
@@ -926,9 +944,9 @@ function nbDown_(b, surf, e) {
   }, NB_AIM_MS));
   G.timers.push(setTimeout(() => {
     if (NB_G !== G || G.kind !== 'aim' || G.moved > 8) return;
-    const hit = nbHit_(st, G.nx, G.ny, 6);
-    if (!hit) return;
-    st.sel = nbCluster_(st, hit);
+    const hit = nbHit_(st, G.nx, G.ny, 6), pic = hit ? null : nbPicAt_(st, G.nx, G.ny);
+    if (!hit && !pic) return;
+    st.sel = pic ? [pic] : nbCluster_(st, hit);
     G.kind = 'drag'; G.off = [0, 0]; b.drag = true;
     inkTick_(12);
     nbDrawAll_(b); nbDrawLoupe_(b, G);
@@ -1071,6 +1089,7 @@ function nbUp_(b, surf, e, cancel) {
   nbEndG_();
   if (cancel) { nbDrawAll_(b); return; }
   if (g.kind === 'press' || g.kind === 'aim') { nbTap_(b, g.nx, g.ny); return; }
+  if (g.kind === 'drag' && g.resize) { nbPicResize_(st, g.resize, g.off[0]); nbRefresh_(st); return; }
   if (g.kind === 'drag') { nbMoveSel_(st, g.off[0], g.off[1]); nbRefresh_(st); return; }
   if (g.kind === 'lasso') { st.sel = nbLasso_(st, g.poly); if (st.sel) inkTick_(8); nbRefresh_(st); }
 }
@@ -1085,7 +1104,7 @@ function nbHtml_(k) {
   const ret = tile_({ icon: 'newline', label: 'New line', note: 'or swipe back across the pad', act: 'nb-line', cls: 'nb-line' });
   return `<div class="nb" data-k="${esc(k)}">
     <div class="nb-book" aria-label="The page"><canvas class="nb-c"></canvas><canvas class="nb-l"></canvas></div>
-    <div class="nb-bar tile-row" role="toolbar" aria-label="Maths">${tiles}${tile_({ icon: 'bin', label: 'Clear', note: 'the whole board', act: 'nb-clear', cls: 'nb-clear' })}</div>
+    <div class="nb-bar tile-row" role="toolbar" aria-label="Maths">${tiles}${tile_({ icon: 'figure', label: 'Picture', note: 'a photo, a screenshot, or paste one', act: 'nb-pic', cls: 'nb-pic' })}${tile_({ icon: 'bin', label: 'Clear', note: 'the whole board', act: 'nb-clear', cls: 'nb-clear' })}</div>
     <div class="nb-pad" data-noswipe aria-label="Write here"><canvas class="nb-c"></canvas><canvas class="nb-l"></canvas>${ret}</div>
     <p class="nb-note" data-kept-k="${esc(k)}">${esc(say)}</p>
   </div>`;
@@ -1171,6 +1190,7 @@ const nbOf_ = el => { const h = el && el.closest && el.closest('.nb-box'); retur
 
 on('nb-shape', el => { const b = nbOf_(el); if (b) nbShape_(b, el.getAttribute('data-shape')); });
 on('nb-line', el => { const b = nbOf_(el); if (b) nbNewLine_(b); });
+on('nb-pic', el => { const b = nbOf_(el); if (b) nbPicAsk_(b); });
 on('nb-clear', el => { const b = nbOf_(el); if (b) nbClear_(b); });
 
 /* CTRL+Z AND CTRL+SHIFT+Z (OR CTRL+Y) FOR A MOUSE, on the board in view, unless a box is being typed in. */
@@ -1193,3 +1213,101 @@ document.addEventListener('keydown', e => {
 document.addEventListener('contextmenu', e => { if (e.target && e.target.closest && e.target.closest('.nb')) e.preventDefault(); });
 /* THE PAGE HIDDEN MID-STROKE: dropped, as the pen does (`padAway_`). */
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && NB_G) nbDrop_(); });
+
+/* ---------- PICTURES ON THE BOARD (402): "Add screenshot to my whiteboard" ---------- */
+/* SHRUNK TO FIT THE BOARD'S STORE: the longest side at most this many px, and the JPEG's quality lowered until it is under NB_PIC_MAX characters. */
+const NB_PIC_PX = 900, NB_PIC_MAX = 60000;
+const NB_PIC_IMG = new Map();   // data URL -> a decoded <img>, shared by every copy of the board
+function nbPicItem_(p, x, y, w, h) {
+  return nbItem_({ im: 1, i: p.id || nbId_(), x: Math.round(x * NB.Q), y: Math.round(y * NB.Q), w: Math.round(w * NB.Q), h: Math.round(h * NB.Q), s: p.src || p.s });
+}
+function nbPicAt_(st, nx, ny) {
+  for (let n = st.items.length - 1; n >= 0; n--) {
+    const i = st.items[n];
+    if (i.im && nx >= i.box.l && nx <= i.box.r && ny >= i.box.t && ny <= i.box.b) return i;
+  }
+  return null;
+}
+const nbPicW_ = (p, dx) => Math.max(24, Math.min(NB.W - p.x, p.w + dx));
+function nbPicResize_(st, p, dx) {
+  const w = nbPicW_(p, dx);
+  if (Math.abs(w - p.w) < 0.5) return;
+  const n = nbPicItem_(p, p.x, p.y, w, w * p.h / p.w);
+  if (nbDo_(st, [n], [p])) st.sel = [n];
+}
+function nbPicDraw_(b, ctx, p, x, y, w, h) {
+  let img = NB_PIC_IMG.get(p.src);
+  if (!img) {
+    try {
+      img = new Image();
+      img.onload = () => NB_LIVE.forEach(x => { if (x.el.isConnected) nbDrawAll_(x); });
+      img.src = p.src;
+      NB_PIC_IMG.set(p.src, img);
+    } catch (e) { return; }
+  }
+  if (img.complete && img.naturalWidth) { try { ctx.drawImage(img, x, y, w, h); } catch (e) {} }
+  else { ctx.save(); ctx.strokeStyle = b.col ? b.col.rule : '#888'; ctx.setLineDash([3, 3]); ctx.strokeRect(x, y, w, h); ctx.restore(); }
+}
+/* THE DEVICE'S OWN PICKER: on a phone it offers the camera and the photo library ("Take photo / choose"), on a computer a file. */
+function nbPicAsk_(b) {
+  try {
+    const inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = 'image/*';
+    inp.addEventListener('change', () => { const f = inp.files && inp.files[0]; if (f) nbPicAdd_(b, f); });
+    inp.click();
+  } catch (e) { try { toast('This device cannot choose a picture here.'); } catch (x) {} }
+}
+function nbPicShrink_(file) {
+  return new Promise((ok, no) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      try {
+        let k = Math.min(1, NB_PIC_PX / Math.max(img.naturalWidth, img.naturalHeight, 1)), out = '', q = 0.8;
+        for (let tries = 0; tries < 8; tries++) {
+          const c = document.createElement('canvas');
+          c.width = Math.max(1, Math.round(img.naturalWidth * k)); c.height = Math.max(1, Math.round(img.naturalHeight * k));
+          const x = c.getContext('2d');
+          x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
+          x.drawImage(img, 0, 0, c.width, c.height);
+          out = c.toDataURL('image/jpeg', q);
+          if (out.length <= NB_PIC_MAX) break;
+          if (q > 0.5) q -= 0.15; else k *= 0.75;
+        }
+        URL.revokeObjectURL(url);
+        ok({ src: out, w: img.naturalWidth, h: img.naturalHeight });
+      } catch (e) { URL.revokeObjectURL(url); no(e); }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); no(new Error('not a picture')); };
+    img.src = url;
+  });
+}
+/* PUT DOWN ON THE CARET'S LINE, at most most of the page wide, picked up so it can be moved at once; the caret goes on below it. */
+function nbPicAdd_(b, file) {
+  return nbPicShrink_(file).then(r => {
+    if (!b.el.isConnected) return;
+    const st = nbState_(b.k);
+    const w = Math.min(NB.RIGHT - NB.LEFT, 220), h = w * r.h / Math.max(1, r.w);
+    const y = nbBase_(st.caret.line) - NB.LINE * 0.6;
+    const p = nbPicItem_({ src: r.src }, NB.LEFT, y, w, h);
+    if (!nbDo_(st, [p], [])) return;
+    st.mode = null; st.sel = [p];
+    st.caret = { line: nbLineOf_(y + h) + 1, x: NB.LEFT }; st.runR = NB.LEFT - NB.GAP; st.pv = null;
+    nbRefresh_(st);
+  }).catch(() => { try { toast('That picture could not be read.'); } catch (e) {} });
+}
+/* PASTE ON A COMPUTER: a screenshot on the clipboard lands on the board in view, unless a box is being typed in. */
+document.addEventListener('paste', e => {
+  const t = e.target;
+  if (t && t.closest && t.closest('input, textarea, select, [contenteditable="true"]')) return;
+  const items = (e.clipboardData && e.clipboardData.items) || [];
+  const it = [...items].find(i => i.kind === 'file' && /^image\//.test(i.type));
+  if (!it) return;
+  const b = [...NB_LIVE].find(x => {
+    if (!x.el.isConnected) return false;
+    const r = x.el.getBoundingClientRect();
+    return r.width > 0 && r.left >= -1 && r.right <= (innerWidth || 0) + 1 && r.bottom > 0 && r.top < (innerHeight || 0);
+  });
+  if (!b) return;
+  e.preventDefault();
+  nbPicAdd_(b, it.getAsFile());
+});

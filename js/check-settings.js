@@ -99,6 +99,8 @@ const ACCEPTED_GONE = {
         + 'per LIST rather than per tab: one ordinary fact typed into the sheet must not take the '
         + 'Reels column dark. The read is what makes the fall-through work, and it is also the door: '
         + 'add a `clip` column and a row wins over the code.',
+    age: 'THE MINIMUM AGE TO WATCH A ROW\'S CLIP (406), read beside `clip` for the same reason: the exported tab has '
+        + 'no clips, so it has no ages; add the column with the clips and blank stays everyone.',
   },
 };
 

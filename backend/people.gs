@@ -32,6 +32,21 @@ function tutorPending_(row) {
     && norm(row.listed) === norm(LISTED_PENDING);
 }
 
+/* ---------- ONE RANK PER ACCOUNT (400): Student < Client < Staff < Admin, each holding everything below ----------
+   Read from the `role` cell, so old rows keep working (docs/accounts.md). A pending tutor keeps their other rank. */
+const RANKS = ['student', 'client', 'staff', 'admin'];
+function rankOf(row) {
+  if (!row) return '';
+  const held = rolesOf(row).map(x => SELF_ROLE_ALIASES[x] || x);
+  if (held.indexOf('admin') !== -1) return 'admin';
+  if (held.indexOf('tutor') !== -1 && norm(row.listed) !== norm(LISTED_PENDING)) return 'staff';
+  if (held.indexOf('client') !== -1) return 'client';
+  if (held.indexOf('student') !== -1) return 'student';
+  return 'client';
+}
+/* AT LEAST THIS RANK — the one comparison every gate asks. */
+function rankAtLeast_(row, want) { return RANKS.indexOf(rankOf(row)) >= RANKS.indexOf(want) && !!row; }
+
 /* ---------- WHAT A PERSON IS ALLOWED TO ACT AS, WHICH IS NOT ALWAYS WHAT THE CELL SAYS § */
 function actingRole_(row) {
   const r = rolesOf(row).filter(x => !(x === 'tutor' && tutorPending_(row)));
@@ -364,6 +379,11 @@ function pricingRefusal_(me, fields, isAdmin) {
   if (!pricingMoved_(me, fields).length) return '';   // nothing moved: not a change at all
   /* TWO SHAPES THE PRICE CANNOT USE, refused for an admin too. § */
   const got = f => Object.prototype.hasOwnProperty.call(fields, f) ? fields[f] : me[f];
+  /* A RATE THAT IS NOT A PRICE (405): a word, a minus, or past `RATE_MAX`. Blank stays allowed — it is the open rate. */
+  const rate = S(got('rate_per_hour'));
+  if (rate !== '' && !(/^\d*\.?\d+$/.test(rate) && Number(rate) <= RATE_MAX)) {
+    return 'The rate is pounds an hour, 0 to ' + RATE_MAX + ' — "' + rate.slice(0, 12) + '" is not one. Nothing was saved.';
+  }
   const seat = S(got('extra_seat_rate'));
   if (seat !== '' && !(N(seat) >= 0 && N(seat) <= 2 && !isNaN(Number(seat)))) {
     /* "THE" RATE, NOT "YOUR" RATE: an admin on somebody else's row is told this too (the review of 345). */
@@ -614,13 +634,13 @@ function siblingsOf(personId) {
 /* null is "no rule": nobody signed in (public lists only), an admin, a tutor. Otherwise a set of ids. */
 function seesWhom_(me) {
   if (!me || !S(me.person_id)) return null;
-  const a = actingRole_(me);
-  if (a === 'admin' || a === 'tutor') return null;
+  /* STAFF AND ADMIN SEE EVERYBODY (400); a client sees their linked children, a student their siblings and friends. */
+  if (rankAtLeast_(me, 'staff')) return null;
   const meId = S(me.person_id), ids = {};
   ids[meId] = true;
   const put = rows => rows.forEach(r => { if (S(r.person_id)) ids[S(r.person_id)] = true; });
-  if (hasRole(me, 'client') || hasRole(me, 'parent')) put(childrenOf(meId));
-  if (a === 'student' || hasRole(me, 'student')) {
+  if (rankOf(me) === 'client') put(childrenOf(meId));
+  if (hasRole(me, 'student') || rankOf(me) === 'student') {
     put(siblingsOf(meId));
     /* WHO THEY FRIENDED, by handle — and only a child: a parent's handle on the list is not a door to the parent. */
     const want = {};
@@ -638,8 +658,7 @@ function seesPerson_(vis, row) {
   if (!vis) return true;
   if (!row) return false;
   if (vis[S(row.person_id)]) return true;
-  const a = actingRole_(row);
-  return a === 'tutor' || a === 'admin';
+  return rankAtLeast_(row, 'staff');
 }
 
 /* THE CHILDREN ON SOMEBODY'S ACCOUNT. § */
@@ -755,11 +774,8 @@ function mailViewer_(to) {
 /* ---------- A WHOLE NAME TYPED TO SEE WHETHER IT IS SOMEBODY'S ACCOUNT (342, the review) § */
 
 function isChild_(r) {
-  if (!r) return false;
-  const held = rolesOf(r).map(x => SELF_ROLE_ALIASES[x] || x);
-  if (held.indexOf('student') === -1) return false;
-  /* `actingRole_` READS THE ALIASED WORDS, so `pupil, teacher` with a PENDING tick is the same child as `student, tutor`. § */
-  return actingRole_({ role: held.join(','), listed: r.listed }) === 'student';
+  /* RANK STUDENT (400) — a student who is not also a client, a staff member or an admin; a pending tutor tick changes nothing. */
+  return !!r && rankOf(r) === 'student';
 }
 
 /* THE FIRST NAME, or the handle when the row has none (a hand-typed row with only a surname must not
@@ -1225,4 +1241,48 @@ function adminPersonDelete_(t, r) {
   }
   authEndSession_(t, r);
   return delRow(t, r);
+}
+
+/* ---------- THE OWNER'S ADDRESS (400): `owner_email` on the config tab, or the first admin with a proved address ---------- */
+function ownerEmail_() {
+  let v = '';
+  try { v = S(config()[OWNER_EMAIL_KEY]); } catch (err) { v = ''; }
+  if (v.indexOf('@') > 0) return v;
+  let rows = [];
+  try { rows = read(TAB.people).rows; } catch (err) { rows = []; }
+  const a = rows.find(r => hasRole(r, 'admin') && S(r.email) && !addressPending_(r));
+  return a ? S(a.email) : '';
+}
+
+/* ---------- AN ADULT MAY APPLY TO TEACH (400): no date of birth is no age data, so any signed-in account may ---------- */
+function adultOk_(r) {
+  const d = parseDate(r && r.date_of_birth);
+  if (!d) return true;
+  const now = new Date();
+  const age = now.getFullYear() - d.getFullYear() - ((now.getMonth() < d.getMonth()
+    || (now.getMonth() === d.getMonth() && now.getDate() < d.getDate())) ? 1 : 0);
+  return age >= 18;
+}
+
+/* ---------- THEIR LATEST APPLICATION, AS THE APPLICANT MAY SEE IT — the status and the day, nothing an admin wrote ---------- */
+function applicationOf_(r) {
+  if (!r || !S(r.person_id)) return null;
+  let t;
+  try { t = read(TAB.applications); } catch (err) { return null; }
+  if (!t || !t.sheet) return null;
+  const mine = t.rows.filter(x => S(x.person_id) === S(r.person_id));
+  if (!mine.length) return null;
+  const last = mine[mine.length - 1];
+  return { id: S(last.application_id), status: norm(last.status) || 'new', at: appMs_(last.at), statusAt: appMs_(last.status_at) };
+}
+
+/* A CELL'S TIME AS MILLISECONDS — a Date from the sheet or the text a hand typed; 0 for neither. */
+function appMs_(v) { return v instanceof Date ? v.getTime() : (Date.parse(S(v)) || 0); }
+
+/* ---------- APPROVED: THE TUTOR ROLE, LISTED — the role cell keeps everything else they hold ---------- */
+function applicationApprove_(t, r) {
+  const roles = rolesOf(r);
+  const want = roles.indexOf('tutor') === -1 ? roles.concat(['tutor']) : roles;
+  const admin = want.filter(x => x === 'admin'), other = want.filter(x => x !== 'admin');
+  return setCells(t, r, { role: admin.concat(other).join(', '), listed: 'TRUE' });
 }

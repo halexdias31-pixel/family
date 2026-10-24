@@ -68,11 +68,28 @@ for i, c in enumerate(SEQ):
                 % (i, pct(land[i] + 0.05), pct(land[i] + 0.12), end, pct(T * FADE / 100) if last else pct(land[i + 1] + 0.01)))
     says.append('<span style="--kf: cn-s%d">%s</span>' % (i, text))
 
-# twelve edge discs before the faces: the coin's thickness, and a tilt round it so the edge always
-# shows (style.css says why)
+# THE EDGE IS A CYLINDER, NOT A STACK: forty-eight reeded strips stood round the rim, each lit by its angle
+# to a light at the upper left, so an edge-on coin reads as a solid milled band rather than striped discs.
+N, R, TH = 48, 1.66, 0.46          # strips, rim radius (rem, just inside the face), thickness (rem)
+import math
+W = 2 * math.pi * R / N * 1.12     # a touch wider than its share, so neighbours overlap and no seam shows
+def mix(a, b, k): return '#%02x%02x%02x' % tuple(round(a[j] + (b[j] - a[j]) * k) for j in range(3))
+DARK, MID, HI = (0x5a, 0x3f, 0x0e), (0xc9, 0x9a, 0x3a), (0xff, 0xf0, 0xbf)
+edge = ['.cn-coin i { position: absolute; left: 50%%; top: 50%%; width: %.3frem; height: %.2frem; '
+        'margin: -%.3frem 0 0 -%.3frem; backface-visibility: visible; background-color: var(--cn-mid); '
+        'background-image: repeating-linear-gradient(90deg, rgb(255 255 255 / .22) 0 .03rem, '
+        'rgb(0 0 0 / .18) .03rem .06rem, transparent .06rem .09rem), linear-gradient(rgb(0 0 0 / .3), '
+        'transparent 30%%, transparent 70%%, rgb(0 0 0 / .3)); }' % (W, TH, TH / 2, W / 2)]
+for k in range(N):
+    a = 360 * k / N
+    lit = math.cos(math.radians(a - 315))          # 1 facing the light (upper left), -1 away
+    c = mix(MID, HI, lit * .85) if lit > 0 else mix(MID, DARK, -lit * .9)
+    edge.append('.cn-coin i:nth-child(%d) { transform: rotateZ(%gdeg) translateY(-%grem) rotateX(90deg); background-color: %s; }'
+                % (k + 1, a, R, c))
+keys += edge
 # INTO ITS ROW IN data/textbooks.json — see tools/anim_row.py. It printed text to paste before.
 anim_row.write_anim('coin', fragments=[
-    '<div class="cn-stage"><div class="cn-tilt"><div class="cn-coin">' + '<i></i>' * 12 + '<b class="cn-h">H</b><b class="cn-t">T</b></div></div><i class="cn-shadow"></i></div>',
+    '<div class="cn-stage"><div class="cn-tilt"><div class="cn-coin">' + '<i></i>' * N + '<b class="cn-h">H</b><b class="cn-t">T</b></div></div><i class="cn-shadow"></i></div>',
     '<div class="cn-row">' + ''.join(marks) + '</div>',
     '<div class="cn-bar"><i></i></div>',
     '<div class="cn-say">' + ''.join(says) + '</div>'], css='\n'.join(keys))

@@ -42,10 +42,14 @@ const WHERE = {
   digest_log:     { file: 'ledger' },
   /* A QUESTION A LEARNER SAYS IS WRONG OR BROKEN (395) — the Ledger, because the app writes it. Admin-only to read. */
   reports:        { file: 'ledger' },
+  /* AN APPLICATION TO TEACH (400) — the Ledger, because the app writes it. Admin-only to read; the applicant sees only their own status. */
+  applications:   { file: 'ledger' },
   /* WRITTEN BY AN ADMIN FROM THE PHONE, so it is the Ledger rather than a settings file: § */
   spotlight:      { file: 'ledger' },
   /* ---------- THE FILMS, AND WHY THEY ARE IN `Ledger` RATHER THAN IN THE REPOSITORY § */
   films:          { file: 'ledger' },
+  /* REELS AND VIDEOS AN ADMIN ADDED FROM THE PHONE (404) — merged over the repository's lists by the site. */
+  media:          { file: 'ledger' },
 
   /* ---- you write these, the app reads them ---- */
   config:         { file: 'ledger' },
@@ -117,7 +121,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-23-a-kid-prices";
+const BACKEND_VERSION = "2026-10-24-g-staff-hub";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -156,6 +160,8 @@ const TAB = {
   digest_log: 'digest_log',
   /* A question somebody reported — see SCHEMA.reports. */
   reports: 'reports',
+  /* An application to teach — see SCHEMA.applications. */
+  applications: 'applications',
   /* What the BUSINESS has chosen to put in front of everybody — see SCHEMA.spotlight. */
   spotlight: 'spotlight',
   /* `questions`, `boxers` AND `fights` WERE HERE. All three tabs are gone — see the notes where
@@ -165,6 +171,8 @@ const TAB = {
   /* What the Reels column shows. One row is one slide: a subject, a heading, a line or two, and a
      few words to find a photograph by — see SCHEMA.facts. */
   films: 'films',
+  /* YouTube reels and videos an admin pasted in from the phone — see SCHEMA.media (404). */
+  media: 'media',
   posts: 'posts', post_votes: 'post_votes',
   post_reactions: 'post_reactions', post_comments: 'post_comments',
   family: 'family',
@@ -406,6 +414,12 @@ const SCHEMA = {
     "drive_name"
   ],
 
+  /* ONE ROW PER (kind, YouTube id): `kind` reel or video; `hidden` TRUE also hides a repository item with that id (404). */
+  media: [
+    "media_id", "kind", "yt_id", "url", "title", "channel", "thumb", "subject", "tags",
+    "vkind", "age", "notes", "hidden", "added_by", "added_on", "updated_on"
+  ],
+
   posts: [
     /* `file_name` is what the caption was taken FROM. § */
     /* WHETHER IT MAY BE SEEN, and it is NOT the same question as `active` below. § */
@@ -516,6 +530,15 @@ const SCHEMA = {
     "question_id", "paper_id", "part", "label",
     "reason", "note", "finder", "device",
     "status", "status_at",
+  ],
+
+  /* ---------- APPLICATIONS TO TEACH (400) ----------
+     `status` is new, interview, approved or declined, set from the Business column; Approve makes the person Staff. */
+  applications: [
+    "application_id", "at", "person_id", "handle", "status", "status_at",
+    "subjects", "qualifications", "dbs_number", "dbs_issued", "dbs_needed", "right_to_work",
+    "experience", "availability", "area", "ref1_name", "ref1_contact", "ref2_name", "ref2_contact",
+    "statement", "cv_link", "consent",
   ],
 
   /* ---------- THE LIBRARY'S PRIVATE HALF (397): one row per item, its private fields as JSON § */
@@ -673,6 +696,8 @@ const CONFIG_DEFAULTS = [
   /* LAMINATING IS OFF BY DEFAULT, and that is the honest default rather than a cautious one: § */
   ['laminate_rate_per_page', 0, 'what laminating one page costs. 0 = laminating is not offered'],
   ['laminate_minimum', 0, 'the least a laminating job can cost, whatever the page count. 0 = none'],
+  /* WHO HEARS ABOUT A CHILD'S FORGOTTEN PIN AND A NEW STAFF APPLICATION (400). Blank = the first admin with a proved address. Never sent to a phone (`CONFIG_PRIVATE`). */
+  ['owner_email', '', "the business owner's address: a child's forgotten-PIN link and new tutor applications go here. Blank = the first admin's own email"],
   ['postage_flat', 0, 'one stamp and one envelope for a whole order, not per item. 0 = you do not post, and only collection is offered'],
   // Documentation rows. Read by nobody — written so the sheet explains its own arithmetic.
   /* The formula_* rows lived here. § */
@@ -685,7 +710,8 @@ const CONFIG_RESEEDED = [
 
 /* ---------- THE CONFIG KEYS NO PHONE IS SENT § */
 const FILMS_FOLDER_KEY = 'films_folder';
-const CONFIG_PRIVATE = [FILMS_FOLDER_KEY];
+const OWNER_EMAIL_KEY = 'owner_email';
+const CONFIG_PRIVATE = [FILMS_FOLDER_KEY, OWNER_EMAIL_KEY];
 
 /* ---------- THE FILMS SYNC — see `filmsSync_` in content.gs § */
 const FILMS_FOLDER_NAME = 'notflix';
@@ -935,6 +961,13 @@ const REPORT_FIELD_MAX = 120;
 /* THE OPEN ONES AN ADMIN IS SENT AT ONCE, newest first; the count is of all of them. */
 const REPORTS_LIST_MAX = 100;
 
+/* ---------- APPLYING TO TEACH (400) ---------- */
+const APPLICATION_STATUSES = ['new', 'interview', 'approved', 'declined'];
+/* THE ONES STILL WAITING ON THE ADMIN — what the Business column counts as "needs you". */
+const APPLICATION_OPEN = ['new', 'interview'];
+const APPLICATION_FIELD_MAX = 120;
+const APPLICATION_TEXT_MAX = 1500;
+
 /* ---------- HOW MUCH OF AN ANSWER THE SHEET KEEPS — SCHEMA.answers AND SCHEMA.submissions § */
 const ANSWER_TEXT_MAX = 20000;
 const ANSWER_PAD_MAX = 40000;
@@ -1061,6 +1094,8 @@ const AVATAR_ITEMS = [
 
 /* ---------- THE FOUR FIELDS THAT ARE THE QUOTE § */
 const PRICING_FIELDS = ['rate_per_hour', 'extra_seat_rate', 'max_students', 'min_students'];
+/* THE MOST AN HOUR MAY BE, so a slip of the thumb (2500 for 25.00) is refused, not published (405). The phone's `STAFF_RATE_MAX` is the same. */
+const RATE_MAX = 200;
 
 /* ---------- AND THE BUSINESS'S CUT OF AN EXTRA SEAT, WHICH IS ON THE RATE PAGE AND NOT THE FIFTH OF THEM § */
 const SEAT_CUT_FIELD = 'extra_seat_cut';
@@ -1535,6 +1570,10 @@ const ACTION_ACCESS = {
   /* A QUESTION REPORTED (395): anybody signed in, as the token's person. Reading and closing them is the business's alone — a report is somebody else's words. */
   reportQuestion: 'self',
   listReports: 'admin', setReportStatus: 'admin',
+  /* APPLYING TO TEACH (400): your own application, and the admin's list and decision. */
+  applyTeach: 'self', listApplications: 'admin', decideApplication: 'admin',
+  /* THE STAFF HUB (405): a statement is the asker's own unless they are an admin (the handler says so); the terms register is the admin's. */
+  payStatement: 'self', listStaff: 'admin',
   /* THE LIBRARY'S WORDS AND ANSWERS (397): anybody signed in, a day's cap each; the tools' copy in and out is the admin's. */
   libItems: 'self',
   libExport: 'admin', libImport: 'admin',
@@ -1546,6 +1585,8 @@ const ACTION_ACCESS = {
   digestSendNow: 'admin',
   /* THE FILMS, FILLED FROM THE NOTFLIX FOLDER. § */
   filmsSync: 'admin',
+  /* AN ADMIN ADDS, EDITS, HIDES OR DELETES A REEL OR A VIDEO (404). */
+  mediaSave: 'admin', mediaHide: 'admin', mediaDelete: 'admin',
 
   /* YOUR OWN SETTINGS, AS THE SHEET HOLDS THEM. `self`, and the handler reads only the row the token
      resolved to — see `myProfile` in dopost.gs for why it is a POST rather than part of the payload. */

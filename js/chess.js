@@ -323,8 +323,9 @@ let FACTS_FROM = null;
 function factsBuilt_() {
   const from = (typeof DATA !== 'undefined') ? DATA : null;
   if (FACTS_NOW && FACTS_FROM === from) return FACTS_NOW;
+  /* A SIXTH FIELD IS THE MINIMUM AGE TO WATCH THE CLIP, in whole years (406); blank is everyone. */
   FACTS_NOW = FEED_FACTS.map(f => ({ subject: f[0], heading: f[1], body: f[2], pic: f[3],
-                                     clip: f[4] || '' }));
+                                     clip: f[4] || '', age: f[5] || '' }));
   FACTS_FROM = from;
   return FACTS_NOW;
 }
@@ -351,7 +352,11 @@ function clipDealt_(list) {
 function clipsNow_() {
   const ok = f => f && f.clip && (typeof clipPlayable_ !== 'function' || clipPlayable_(f.clip));
   const said = sheetFacts_().filter(ok);
-  return clipDealt_(said.length ? said : factsBuilt_().filter(ok));
+  /* AND AN ADMIN'S OWN REELS OVER THEM, from the `media` tab (404). */
+  const base = said.length ? said : factsBuilt_().filter(ok);
+  const all = typeof mediaReelsOver_ === 'function' ? mediaReelsOver_(base) : base;
+  /* AND ONLY WHAT THIS VIEWER IS OLD ENOUGH FOR (406). */
+  return clipDealt_(typeof mediaAgeOk_ === 'function' ? all.filter(f => mediaAgeOk_(f.age)) : all);
 }
 
 /* THE COMPUTED GENERATORS lived here — times tables, factors, squares, percentages. § */

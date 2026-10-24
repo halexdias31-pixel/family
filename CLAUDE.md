@@ -78,6 +78,7 @@ when it was not told it could", never "is this past the right edge".
   never hand-edit the row. For the rest the row is the source. Never in `index.html` or `style.css`; the
   splash draws a device-kept copy (`splashSync_`). `check-anims.js`, `check-loading.js`. See 304, 322.
 - **Verified tags:** every question carries two ordinary funnel tags, `Accuracy verified/unverified` (row `verified: "True"` = answer checked against the official scheme) and `Function verified/unverified` (qtypes.js protocol complete and machine-marked); `verifyTags_`, find.js; `check-qtypes.js`. See 388.
+- **Ranks** (400): one per account, Student < Client < Staff < Admin, read from `people.role` by `rankOf`/`rank_()` — gate on `rankAtLeast_`, never a new role check; Staff only by an approved application; family links stay on `family`. See docs/accounts.md.
 - **Diagram PNG twins:** every `diagram` (the whole library, `check/lib-full.js`) has `data/diagrams/<12 hex of SHA-256>.png`
   for the Sunday email, written by `tools/diagram_png.js` — re-run it after changing a drawing, never draw
   one by hand; `check-diagram-png.js`. See 351.

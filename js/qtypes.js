@@ -44,9 +44,9 @@ const QTYPE_PROTOCOL = {
   order:    { label: 'Put in order', surface: 'The items, and slots between the two ends (order_ends)', tiles: ['Clear', 'Check'],
               marked: 'choice_right as the permutation', tolerance: 'none', wrong: 'Not yet', right: 'Correct',
               phone: 'Tap item, it takes the next slot', pc: 'Click', need: ['choices', 'choice_right', 'order_ends'] },
-  match:    { label: 'Match or sort into groups', surface: 'Labelled cells (Venn regions, pairs)', tiles: ['Figure', 'Check'],
-              marked: 'cells, each by markAnswer_', tolerance: 'a cell holding a list is a set', wrong: 'n of m cells right, each coloured', right: 'Correct — every cell',
-              phone: 'Text keyboard where a cell holds words', pc: 'Tab between cells', need: ['cells'] },
+  match:    { label: 'Match or sort into groups', surface: 'Labelled cells (Venn regions, pairs), or lines drawn on the figure in place (402)', tiles: ['Figure', 'Check'],
+              marked: 'cells, each by markAnswer_; or draw_answer `join` (a stroke from one box to its partner)', tolerance: 'a cell holding a list is a set', wrong: 'n of m cells right, each coloured', right: 'Correct — every cell',
+              phone: 'Text keyboard where a cell holds words', pc: 'Tab between cells', need: ['cells|draw_answer'] },
   table:    { label: 'Fill table cells', surface: 'The question\'s own table, its blanks as cells (359)', tiles: ['Figure', 'Check'],
               marked: 'cells, each by markAnswer_', tolerance: 'per cell, as value', wrong: 'n of m cells right', right: 'Correct — every cell',
               phone: 'Number pad where every way is a number', pc: 'Tab between cells', need: ['cells'] },
@@ -163,7 +163,7 @@ const QT_DRAW_WORDS = [
 const QT_DRAW_KINDS = [['curves', 'construct'], ['clock', 'hand'], ['dial', 'hand'], ['scale', 'hand'], ['interval', 'numline'],
   ['hist', 'graph'], ['box', 'graph'], ['pie', 'graph'], ['sketch', 'graph'], ['area', 'graph'], ['cells', 'shade'], ['inside', 'shade'],
   ['polygon', 'shape'], ['cuboid', 'shape'], ['line', 'line'], ['pair', 'line'], ['dir', 'line'], ['radius', 'line'], ['angle', 'line'],
-  ['segs', 'line'], ['pts', 'points']];
+  ['segs', 'line'], ['pts', 'points'], ['join', 'match']];
 const QT_DRAWN = { drawing: 1, annotate: 1 };
 /* MEASURED off the figure: "measure the length of this line", not "the student used a balance to measure" */
 const QT_MEASURE = /\bmeasure (the |this |each |angle |accurately )?(size|length|angle|distance|width|height|line|side|perimeter|bearing)s?\b|\buse (a|your) (ruler|protractor|angle measurer) to (find|measure)\b/;

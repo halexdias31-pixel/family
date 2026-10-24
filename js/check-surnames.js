@@ -154,7 +154,9 @@ rule(MAIL.slice(m0).some(m => m.to === 'admin@example.org'), 'no email told the 
 const slotB = (time, slot, d) => ({ action: 'createJob', requestedTutor: 'Tam Tutor', subject: 'Maths', level: 'GCSE', day: slotDay,
   time: time, slots: slot, location: 'Online', dates: dmy(day(d)), hours: 1, price: 30, openToOthers: true });
 /* JUNO TICKS TUTOR IN HER OWN SETTINGS. § */
-const ticked = as('P-PEN', { action: 'setMyRoles', roles: ['student', 'tutor'] });
+/* SINCE 400 THE TICK IS AN APPLICATION, so her row is written as the old tick left it: tutor, waiting. */
+b.ev("(function(){ const t = read(TAB.people); setCells(t, findPerson('', 'P-PEN'), { role: 'student, tutor', listed: 'PENDING' }); clearCache(); })()");
+const ticked = as('P-PEN', { action: 'myProfile' });
 rule(ticked && ticked.success && ticked.tutorPending === true && /tutor/.test(S(b.row('P-PEN').role)) && S(b.row('P-PEN').listed) === 'PENDING',
   'the child could not tick Tutor and be left waiting, so a pending tick was not asked — ' + JSON.stringify(ticked) + ' ' + JSON.stringify(b.row('P-PEN').role));
 /* EACH BOOKED BY THE ADMIN UNDER THE WHOLE NAME, as a child no longer books (398). */
@@ -398,7 +400,8 @@ const growRe = sur => new RegExp('\\b' + sur + '\\b');
 const KIN = { 'P-KID': ['P-PAR'] };
 const CLAIM_MAIL = 'Someone has added you to their account';
 /* TESS TICKS TUTOR AND IS LEFT WAITING (after review, round 1) — a Tutor tick nobody has said yes to is not a public card § */
-const tessTick = as('P-TYP', { action: 'setMyRoles', roles: ['client', 'tutor'] });
+b.ev("(function(){ const t = read(TAB.people); setCells(t, findPerson('', 'P-TYP'), { role: 'client, tutor', listed: 'PENDING' }); clearCache(); })()");
+const tessTick = as('P-TYP', { action: 'myProfile' });
 rule(tessTick && tessTick.success && tessTick.tutorPending === true && S(b.row('P-TYP').listed) === 'PENDING',
   'Tess could not tick Tutor and be left waiting, so a grown-up with a pending tick was NOT asked — ' + JSON.stringify(tessTick));
 b.ev('clearCache(); clearPayloadCache()');

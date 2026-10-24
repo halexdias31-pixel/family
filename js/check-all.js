@@ -103,11 +103,17 @@ const SUITE = [
   { file: 'check-choice.js', what: 'a reaction and a vote set to what the phone asked, once, under the lock' },
   /* EVERY ANSWER SENT IS AN EVENT. § */
   { file: 'check-submissions.js', what: 'submissions: a row per press, the token’s person, the latest per question, whose' },
+  /* ONE RANK PER ACCOUNT, STAFF ONLY BY APPLICATION (400): ranks from old cells, sign-up, the application flow, a child's PIN to the owner. */
+  { file: 'check-accounts.js', what: 'ranks, sign-up as Student or Client, Staff only by an approved application, a child\'s PIN to the owner' },
+  { file: 'check-staff.js', what: 'the Staff hub: tutor terms by version, pricing refusals, a statement only for its own tutor (any for an admin)' },
   { file: 'check-reports.js', what: 'a reported question: one row as the token’s person, once a day, admin-only to read or close' },
   /* THE LIBRARY'S WORDS IN THE LEDGER (397): the copy checked row by row, libItems signed-in and capped, the tools' copy the admin's. */
   { file: 'check-library-ledger.js', what: 'the library in the Ledger: copied and checked a step at a time, served signed-in with a day\'s cap' },
   /* THE FILMS ARE WHAT IS IN THE NOTFLIX FOLDER. § */
   { file: 'check-films.js', what: 'the films from the Notflix folder: the upsert, admin only, no id sent, the clock' },
+  /* AN ADMIN'S REELS AND VIDEOS (404), through the real doPost and doGet. */
+  { file: 'check-media.js', what: 'an admin adds, edits, hides and deletes a reel or video; others and bad links refused; the payload carries it' },
+  { file: 'check-media-age.js', what: 'a reel or video rated above a viewer\'s age (from their date of birth; 12 when unknown for a student or nobody) is not sent; adults and the admin get all' },
   /* WHAT A CHILD WROTE, ON THEIR ACCOUNT. § */
   { file: 'check-saved-answers.js', what: 'answers on the account: the token’s person, the later edit wins, text in and text out' },
   /* THE WEEKLY PARENT EMAIL, BUILT AND SWITCHED OFF. § */
@@ -122,6 +128,7 @@ const SUITE = [
   { file: 'check-rooms.js', what: 'rooms: a blank cell is the venue’s, an explicit 0 stays 0, the caps, the floor, a booking, the waiting list' },
   /* ---------- AND WHETHER A CREDENTIAL IS SITTING IN THE SOURCE § */
   { file: 'check-secrets.js', what: 'no PIN in the source, and no word of the library in data/' },
+  { file: 'check-markers.js', what: 'no merge-conflict line left in any tracked file' },
   /* ---------- AND WHETHER THE QUESTIONS IT ASKS ARE WORTH ASKING § */
   /* ---------- AND THE NINE TABS THAT BECAME FILES § */
   { file: 'check-settings.js', what: 'the settings files, against what the app reads off them' },

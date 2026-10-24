@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-24-a-console-ds";
+  --css-version: "2026-10-24-g-staff-hub";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -31,6 +31,8 @@
   --warn:      #ffb454;
   --good:      #3ddc84;
   --bad:       #ff5f56;
+  /* SOMETHING IN THE BUSINESS COLUMN NEEDS YOU (400) — the glow, the count line and the dot. */
+  --alert:     #ff3b30;
 
   /* ---------- A COLOUR PER KIND OF TAG § */
   --tag-paper:   var(--coral);
@@ -3235,6 +3237,24 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .add-card:hover, .add-card:focus-visible { border-color: var(--gold); color: var(--ink); }
 .add-card .add-plus { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%;
   border: 1px solid var(--gold); color: var(--gold); flex: none; }
+/* AN ADMIN'S REELS AND VIDEOS (404): the "+" card, its form, and the list of what can be changed. */
+.media-add { display: flex; flex-direction: column; gap: .6rem; margin-bottom: .8rem; }
+.media-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
+.media-row { display: grid; grid-template-columns: 4rem 1fr; gap: .3rem .6rem; align-items: center; }
+.media-row .tile-row { grid-column: 1 / -1; }
+.media-pic { width: 4rem; aspect-ratio: 4 / 3; object-fit: cover; border-radius: .3rem; background: var(--line); }
+.media-name { min-width: 0; overflow-wrap: anywhere; }
+.media-thumb { display: block; width: 100%; max-width: 20rem; border-radius: .4rem; }
+/* HOW OLD YOU HAVE TO BE (406): the form's quick picks, and the badge on a reel or a video's picture. */
+.media-age-picks { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+.media-age { display: block; margin-bottom: .75rem; }
+.media-age-picks .btn { width: auto; flex: 1 1 3rem; min-height: 44px; min-width: 44px; padding: 0 .5rem; }
+.media-age-picks .btn.is-on { border-color: var(--gold); color: var(--gold); }
+.media-age-picks input { width: 5.5rem; min-height: 44px; }
+.media-age-badge { position: absolute; z-index: 3; left: .3rem; top: .3rem; padding: .08rem .35rem; border-radius: 4px;
+  background: var(--over-wash); color: var(--over-ink); font-size: .68rem; font-weight: 700; line-height: 1.35;
+  pointer-events: none; }
+.media-age-badge.is-reel { left: .6rem; top: .6rem; font-size: .8rem; }
 .add-card .add-plus .tile-i { width: 16px; height: 16px; }
 /* ITS FORM, AND THE PEOPLE COLUMN'S EDIT — `personFormHtml_` in me.js. */
 .person-form .pf-roles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: .5rem; }
@@ -6156,8 +6176,6 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
   padding: .15rem .45rem; border-radius: 999px; border: 1px dashed var(--gold); color: var(--gold);
   vertical-align: middle; margin-left: .3rem; font-weight: 400;
 }
-.agree-list { margin: .5rem 0 .2rem; padding-left: 1.1rem; font-size: .74rem; line-height: 1.4; color: var(--dim); }
-.agree-list li + li { margin-top: .25rem; }
 .agree .check input:disabled ~ span:last-child { color: var(--dim); }
 .agree .check:has(input:disabled) { cursor: default; }
 
@@ -6236,6 +6254,69 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 .pf-head .pf-v.is-bad { color: var(--bad); }
 .pf-head .pf-sum { flex-basis: 100%; color: var(--faint); font-size: .72rem; }
 
+/* ---------- THE STAFF HUB (405): terms, pricing with where an hour's money goes, the monthly statement — staff.js ---------- */
+.hub { --pb-tutor: var(--gold); --pb-room: #6f8fb3; --pb-fees: var(--dim); --pb-business: var(--good); }
+.hub-tabs { margin-bottom: .8rem; }
+.hub-body h3 { margin: 0 0 .3rem; }
+.hub-ver, .hub-lead, .hub-note { margin: 0 0 .6rem; font-size: .74rem; }
+.hub-terms .doc { font-size: .78rem; line-height: 1.45; color: var(--ink); }
+.hub-terms .doc h4 { margin: .9rem 0 .25rem; font-size: .8rem; color: var(--gold); }
+.hub-terms .doc ul { margin: .2rem 0; padding-left: 1.1rem; }
+.hub-terms .doc li + li { margin-top: .25rem; }
+.hub-terms .doc p { margin: .2rem 0; }
+.hub-terms .check { margin-top: .6rem; border-top: 1px solid var(--line); }
+.hub-warn { margin: .6rem 0 0; font-size: .78rem; color: var(--alert); line-height: 1.4; }
+.hub-room { display: block; margin: .3rem 0 .7rem; }
+/* THE BARS: four parts of one hour's booking, sliding as a value moves — the width is the only thing that changes. */
+.pb { display: grid; gap: .7rem; margin: 0 0 .7rem; }
+.pb-cap { margin: 0 0 .25rem; font-size: .78rem; color: var(--ink); display: flex; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
+.pb-paid { color: var(--dim); font-variant-numeric: tabular-nums; }
+.pb-bar { display: flex; height: 1.1rem; border-radius: .3rem; overflow: hidden; background: var(--line-soft); }
+.pb-seg { display: block; height: 100%; transition: width .35s ease; }
+.pb-seg.is-tutor { background: var(--pb-tutor); }
+.pb-seg.is-room { background: var(--pb-room); }
+.pb-seg.is-fees { background: var(--pb-fees); }
+.pb-seg.is-business { background: var(--pb-business); }
+.pb-say { margin: .3rem 0 0; display: flex; flex-wrap: wrap; gap: .15rem .7rem; font-size: .68rem; color: var(--dim); }
+.pb-k::before { content: ''; display: inline-block; width: .55rem; height: .55rem; border-radius: 50%; margin-right: .25rem; vertical-align: baseline; }
+.pb-k.is-tutor::before { background: var(--pb-tutor); }
+.pb-k.is-room::before { background: var(--pb-room); }
+.pb-k.is-fees::before { background: var(--pb-fees); }
+.pb-k.is-business::before { background: var(--pb-business); }
+.pb-k b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.pb-note { margin: 0; font-size: .7rem; }
+@media (prefers-reduced-motion: reduce) { .pb-seg { transition: none; } }
+/* THE STATEMENT IS PAPER: the paper palette, a table that fits a phone, and the same sheet printed. */
+.stmt-out { margin: .5rem 0 .6rem; }
+.stmt { background: var(--paper); color: var(--paper-ink); border-radius: .4rem; padding: .9rem .8rem; }
+.stmt-head { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid var(--paper-rule); padding-bottom: .35rem; }
+.stmt-head b { font-size: .95rem; }
+.stmt-head span { font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--paper-dim); }
+.stmt-who { margin: .4rem 0 .6rem; font-size: .8rem; color: var(--paper-dim); }
+.stmt-t { width: 100%; border-collapse: collapse; font-size: .66rem; font-variant-numeric: tabular-nums; table-layout: fixed; }
+.stmt-t th { text-align: right; font-weight: 600; color: var(--paper-dim); padding: .2rem .1rem; border-bottom: 1px solid var(--paper-rule); }
+.stmt-t td { text-align: right; padding: .3rem .1rem; border-bottom: 1px solid var(--paper-strip); vertical-align: top; overflow-wrap: anywhere; }
+.stmt-t th:first-child, .stmt-t td:first-child { text-align: left; width: 25%; }
+/* A SUM IS NEVER BROKEN ACROSS TWO LINES: £135.00 split at 320px read as two numbers. */
+.stmt-t td:not(:first-child) { white-space: nowrap; overflow-wrap: normal; }
+.stmt-t td:first-child span { display: block; color: var(--paper-dim); }
+.stmt-t tfoot td { font-weight: 700; border-top: 1px solid var(--paper-ink); border-bottom: 0; }
+.stmt-none { font-size: .78rem; color: var(--paper-dim); }
+.stmt-note { margin: .7rem 0 0; font-size: .62rem; line-height: 1.4; color: var(--paper-dim); }
+@media print {
+  body.printing-stmt { max-width: none !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; }
+  body.printing-stmt * { visibility: hidden !important; }
+  body.printing-stmt .stmt-paper, body.printing-stmt .stmt-paper * { visibility: visible !important; }
+  body.printing-stmt .stmt-paper { position: absolute; left: 0; top: 0; width: 190mm; margin: 10mm; }
+  body.printing-stmt .stmt { border-radius: 0; padding: 0; font-size: 11pt; }
+  body.printing-stmt .stmt-t { font-size: 9pt; }
+  @page { size: A4 portrait; margin: 0; }
+}
+.stmt-paper { display: none; }
+@media print { body.printing-stmt .stmt-paper { display: block; } }
+.staff-terms { margin: 0 0 .3rem; font-size: .72rem; }
+.staff-item .biz-flag { color: var(--alert); }
+
 /* ---------- CHECK UPLOADS: AN ADMIN TOOL — see `uploadsHtml_` in me.js § */
 .up-list { list-style: none; margin: .7rem 0 .4rem; padding: 0; }
 .up-row { display: flex; gap: .55rem; align-items: baseline; }
@@ -6295,3 +6376,42 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 
 /* A CARD WHOSE WORDS ARE STILL IN THE LEDGER (397, `libWaitHtml_`): its tags, then the dots, the sign-in line or Try again. */
 .lib-wait .lib-say { margin-top: 1rem; min-height: 3rem; }
+
+/* ---------- WHAT NEEDS YOU (400): a Business card with something to act on glows, says how many, and the dot carries the total ---------- */
+.card.needs-you { border-color: var(--alert); box-shadow: 0 0 0 1px var(--alert), 0 0 1.1rem -.2rem var(--alert); }
+.biz-need { color: var(--alert); font-weight: 700; margin: .2rem 0 .4rem; }
+.biz-dot { position: fixed; top: 10px; right: 10px; z-index: 40; min-width: 24px; height: 24px; padding: 0 6px;
+  border-radius: 12px; border: 0; background: var(--alert); color: var(--bg); font: 700 .75rem/24px var(--mono); cursor: pointer; }
+
+/* ---------- THE FINDER IS FOR MEMBERS (400) ---------- */
+.members-only h3 { margin-bottom: .3rem; }
+
+/* ---------- APPLY TO TEACH (400) ---------- */
+.app-form h4 { margin: 1rem 0 .4rem; }
+.app-line { margin: .15rem 0; font-size: .85rem; }
+.app-line b { color: var(--dim); font-weight: 600; margin-right: .3rem; }
+/* ================= THE ICONS ON FIND 2 (403) — one mark large, and the same mark as a tile ================= */
+.icon-show { display: flex; align-items: center; gap: 1.5rem; margin: 1rem 0; }
+.icon-big { display: inline-flex; padding: 1rem; border: 1px solid var(--line); border-radius: .6rem; color: var(--gold); }
+.icon-big .tile-i { width: 7rem; height: 7rem; }
+
+/* ================= SPEED READ (403): the word on a fixed guide, its recognition letter in gold ================= */
+.rsvp-stage { position: relative; padding: 1.25rem 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.rsvp-tick { position: absolute; left: 50%; width: 2px; height: .9rem; margin-left: -1px; background: var(--gold); }
+.rsvp-tick-t { top: 0; }
+.rsvp-tick-b { bottom: 0; }
+.rsvp-word { display: grid; grid-template-columns: 1fr auto 1fr; align-items: baseline; min-height: 3rem;
+  font-family: var(--mono, monospace); font-size: 2rem; line-height: 1.5; color: var(--ink); white-space: pre; }
+.rsvp-word > [aria-busy], .rsvp-word > .empty, .rsvp-word > p { grid-column: 1 / -1; white-space: normal; font-size: 1rem; text-align: center; }
+.rsvp-pre { text-align: right; overflow: hidden; }
+.rsvp-orp { color: var(--gold); font-weight: 700; }
+.rsvp-post { text-align: left; overflow: hidden; }
+.rsvp-at { text-align: center; margin: .5rem 0; }
+.rsvp-speed { display: flex; flex-direction: column; gap: .35rem; margin-top: .75rem; }
+.rsvp-speed input[type=range] { width: 100%; height: 44px; padding: 0; border: 0; background: none; accent-color: var(--gold); }
+.rsvp-speed input[type=range] { -webkit-appearance: none; appearance: none; }
+.rsvp-speed input[type=range]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: var(--line); }
+.rsvp-speed input[type=range]::-moz-range-track { height: 4px; border-radius: 2px; background: var(--line); }
+.rsvp-speed input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; margin-top: -10px;
+  border-radius: 50%; background: var(--gold); border: 0; }
+.rsvp-speed input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: var(--gold); border: 0; }

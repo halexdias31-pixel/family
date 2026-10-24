@@ -36,6 +36,32 @@ const BIZ_PAGES = [
    asked yet", which Save has to know. */
 const BIZ = { list: null, asking: false, error: '' };
 
+/* ---------- WHAT NEEDS YOU (400): "maybe the business widgets glow red" — the owner, 24 Oct ----------
+   Each Business card registers its count by key (`bizNeed_`) and carries `data-need`; `bizNeedsPaint_` glows it and fills the dot. */
+const BIZ_NEEDS = {};
+function bizNeed_(key, n, say) {
+  n = Math.max(0, Math.floor(Number(n) || 0));
+  BIZ_NEEDS[key] = n;
+  return n ? `<p class="biz-need" role="status">${esc(say)}</p>` : '';
+}
+const bizNeedsTotal_ = () => Object.keys(BIZ_NEEDS).reduce((t, k) => t + (BIZ_NEEDS[k] || 0), 0);
+function bizNeedsPaint_() {
+  document.querySelectorAll('#s-biz [data-need]').forEach(c => c.classList.toggle('needs-you', (BIZ_NEEDS[c.dataset.need] || 0) > 0));
+  const n = (typeof isAdmin === 'function' && isAdmin()) ? bizNeedsTotal_() : 0;
+  let dot = document.getElementById('biz-dot');
+  if (!n) { if (dot) dot.remove(); return; }
+  if (!dot) {
+    dot = document.createElement('button');
+    dot.id = 'biz-dot'; dot.type = 'button'; dot.className = 'biz-dot'; dot.setAttribute('data-do', 'biz-dot');
+    document.body.appendChild(dot);
+  }
+  dot.textContent = String(n);
+  dot.setAttribute('aria-label', n + (n === 1 ? ' thing needs you' : ' things need you') + ' in Business');
+}
+on('biz-dot', () => go('biz'));
+/* THE RECORDS DUE ON ONE CARD: soon or overdue, counted only once the sheet has answered. */
+const bizDueCount_ = pg => !BIZ.list ? 0 : pg.items.filter(item => bizState_(item, bizRow_(item.id).due_on)).length;
+
 const recDays_ = iso => {
   const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!m) return null;
@@ -79,8 +105,10 @@ function bizItem_(item) {
 /* ---------- UNTIL THE SHEET HAS ANSWERED, THE BOXES ARE UNDER THE ONE LOADER § */
 function bizCard_(pg) {
   const wait = bizWaiting_() && typeof loading_ === 'function';
-  return `<div class="card biz"><div class="me-form" data-biz-page="${esc(pg.title)}">
+  const due = bizDueCount_(pg);
+  return `<div class="card biz" data-need="rec:${esc(pg.title)}"><div class="me-form" data-biz-page="${esc(pg.title)}">
     <h3>${esc(pg.title)}</h3>
+    <div class="biz-need-slot">${bizNeed_('rec:' + pg.title, due, due + (due === 1 ? ' record due' : ' records due'))}</div>
     <div class="biz-body"${wait ? ' aria-busy="true"' : ''}>
       ${pg.items.map(bizItem_).join('')}
       <div class="tile-row">${tile_({ icon: 'save', label: 'Save', act: 'biz-save' })}</div>
@@ -92,8 +120,73 @@ function bizCard_(pg) {
 /* THE PAGES, OR NONE. A card is not a permission — `listRecords` and `saveRecordsPage` are `admin` in `ACTION_ACCESS` — but a page a non-admin cannot use is a § */
 function bizPages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
-  return profitCards_().concat(reportsCard_(), BIZ_PAGES.map(bizCard_), verseCard_());
+  /* PROFIT FIRST, as the column opens; then Setup (400, moved from You), applications, reports, the records. */
+  const setup = typeof setupCard_ === 'function' ? [setupCard_()].filter(Boolean) : [];
+  /* STAFF (405) after applications: who has agreed to the tutor terms, and any tutor's statement — `staffCard_` in staff.js. */
+  const staff = typeof staffCard_ === 'function' ? [staffCard_()].filter(Boolean) : [];
+  return profitCards_().concat(setup, appsCard_(), staff, reportsCard_(), BIZ_PAGES.map(bizCard_), verseCard_());
 }
+
+/* ---------- APPLICATIONS TO TEACH (400) ----------
+   Asked with `listApplications`, admin at the gate. Approve makes the person Staff and lists them; Interview and Decline only say so, by email. */
+const APPS = { list: null, open: 0, asking: false, error: '' };
+const APP_STATUS_SAID = { new: 'New', interview: 'Interview', approved: 'Approved', declined: 'Declined' };
+function appsCard_() {
+  const wait = !APPS.list && !APPS.error && typeof loading_ === 'function';
+  return `<div class="card biz apps" data-apps data-need="apps">${appsInner_(wait)}</div>`;
+}
+function appsInner_(wait) {
+  const list = (APPS.list || []).filter(a => a.status === 'new' || a.status === 'interview');
+  const when = ms => { try { return ms ? new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''; } catch (e) { return ''; } };
+  const line = (k, v) => v ? `<p class="app-line"><b>${esc(k)}</b> ${esc(v)}</p>` : '';
+  const item = a => `<div class="biz-item app-item" data-id="${esc(a.id)}">
+      <p class="biz-cap"><b>${esc(a.name || a.handle)}</b> <span class="biz-when">· ${esc(APP_STATUS_SAID[a.status] || a.status)} · ${esc(when(a.at))}</span></p>
+      ${line('Teaches', a.subjects)}${line('Qualifications', a.qualifications)}
+      ${line('DBS', a.dbs_needed === 'TRUE' ? 'needs one' : [a.dbs_number, a.dbs_issued].filter(Boolean).join(', issued '))}
+      ${line('Right to work in the UK', a.right_to_work)}${line('Experience', a.experience)}${line('Available', a.availability)}
+      ${line('Area', a.area)}${line('References', [a.ref1_name + ' (' + a.ref1_contact + ')', a.ref2_name + ' (' + a.ref2_contact + ')'].join('; '))}
+      ${line('Statement', a.statement)}
+      ${/^https:\/\//.test(a.cv_link || '') ? `<p class="app-line"><a href="${esc(a.cv_link)}" target="_blank" rel="noopener">Open the CV</a></p>` : ''}
+      <div class="tile-row">${tile_({ icon: 'tick', label: 'Approve', tone: 'buy', note: 'lists them as staff', act: 'app-decide', data: { id: a.id, status: 'approved' } })}${
+        a.status === 'new' ? tile_({ icon: 'chat', label: 'Interview', note: 'emails them', act: 'app-decide', data: { id: a.id, status: 'interview' } }) : ''}${
+        tile_({ icon: 'close', label: 'Decline', act: 'app-decide', data: { id: a.id, status: 'declined' } })}</div>
+    </div>`;
+  const n = list.filter(a => a.status === 'new').length;
+  return `<h3>Applications to teach</h3>
+    ${bizNeed_('apps', APPS.list ? n : 0, n + ' to approve')}
+    <div class="biz-body app-body"${wait ? ' aria-busy="true"' : ''}>
+      ${APPS.list && !list.length ? '<p class="faint">None waiting.</p>' : ''}
+      ${list.map(item).join('')}
+    ${wait ? loading_() : ''}</div>
+    <p class="faint me-said app-said">${esc(APPS.error)}</p>`;
+}
+const appsDraw_ = () => { document.querySelectorAll('[data-apps]').forEach(c => { c.innerHTML = appsInner_(false); }); bizNeedsPaint_(); };
+function appsStart_() {
+  if (!(typeof isAdmin === 'function' && isAdmin()) || APPS.asking) return;
+  APPS.asking = true;
+  api({ action: 'listApplications' })
+    .then(d => {
+      APPS.asking = false;
+      if (!d || d.error) { APPS.error = String((d && d.error) || 'The applications did not come.'); return; }
+      APPS.error = ''; APPS.list = Array.isArray(d.applications) ? d.applications : []; APPS.open = Number(d.open) || 0;
+    })
+    .catch(() => { APPS.asking = false; APPS.error = 'The applications could not be fetched — check the connection.'; })
+    .then(appsDraw_);
+}
+on('app-decide', el => {
+  if (!isAdmin()) return;
+  const id = el.dataset.id, status = el.dataset.status;
+  send_({ action: 'decideApplication', id, status }, { button: el, where: el.closest('.card').querySelector('.app-said'), busy: 'Saving…' })
+    .then(d => {
+      const a = (APPS.list || []).find(x => x.id === id);
+      if (a) a.status = d.status || status;
+      appsDraw_();
+      toast(status === 'approved' ? 'Approved — they are staff now' : status === 'interview' ? 'Marked for interview' : 'Declined');
+      /* THE TUTOR LIST IS IN THE PAYLOAD, so an approval asks for it again. */
+      if (status === 'approved') { try { load(); } catch (e) {} }
+    })
+    .catch(() => {});
+});
 
 /* ---------- REPORTS: QUESTIONS SOMEBODY SAID ARE WRONG (395) ----------
    Asked with `listReports`, admin at the gate, so nobody else is ever sent one; `null` is "not asked yet", as `BIZ.list` is. */
@@ -102,7 +195,7 @@ const REPS_DRAWN = 20;
 
 function reportsCard_() {
   const wait = !REPS.list && !REPS.error && typeof loading_ === 'function';
-  return `<div class="card biz reports" data-reports>${reportsInner_(wait)}</div>`;
+  return `<div class="card biz reports" data-reports data-need="reports">${reportsInner_(wait)}</div>`;
 }
 function reportsInner_(wait) {
   const list = REPS.list || [];
@@ -117,6 +210,7 @@ function reportsInner_(wait) {
     </div>`;
   const more = REPS.open > Math.min(list.length, REPS_DRAWN) ? REPS.open - Math.min(list.length, REPS_DRAWN) : 0;
   return `<h3>Reports</h3>
+    ${bizNeed_('reports', REPS.list ? REPS.open : 0, REPS.open + ' open to look at')}
     <div class="biz-body rep-body"${wait ? ' aria-busy="true"' : ''}>
       ${REPS.list ? `<p class="rep-count">${REPS.open ? REPS.open + ' open' : 'None open'}</p>` : ''}
       ${list.slice(0, REPS_DRAWN).map(item).join('')}
@@ -124,7 +218,7 @@ function reportsInner_(wait) {
     ${wait ? loading_() : ''}</div>
     <p class="faint me-said rep-said">${esc(REPS.error)}</p>`;
 }
-const reportsDraw_ = () => document.querySelectorAll('[data-reports]').forEach(c => { c.innerHTML = reportsInner_(false); });
+const reportsDraw_ = () => { document.querySelectorAll('[data-reports]').forEach(c => { c.innerHTML = reportsInner_(false); }); bizNeedsPaint_(); };
 
 function reportsStart_() {
   if (!(typeof isAdmin === 'function' && isAdmin()) || REPS.asking) return;
@@ -450,7 +544,9 @@ on('profit-reset', el => {
 
 /* THE COLUMN, AND ITS RECORDS ASKED FOR AS SOON AS IT IS DRAWN FOR AN ADMIN — not when it is arrived at. § */
 screen('biz', () => {
-  if (typeof isAdmin === 'function' && isAdmin()) setTimeout(() => { try { bizStart_(); } catch (e) {} try { if (!REPS.list) reportsStart_(); } catch (e) {} }, 0);
+  if (typeof isAdmin === 'function' && isAdmin()) setTimeout(() => { try { bizStart_(); } catch (e) {} try { if (!REPS.list) reportsStart_(); } catch (e) {}
+    try { if (!APPS.list) appsStart_(); } catch (e) {} try { if (typeof staffStart_ === 'function' && !STAFF.list) staffStart_(); } catch (e) {}
+    try { bizNeedsPaint_(); } catch (e) {} }, 0);
   return pages('biz', bizPages_());
 });
 
@@ -475,11 +571,14 @@ function bizFill_(form) {
   });
   const said = form.querySelector('.biz-said');
   if (said) said.textContent = bizSaid_();
+  const due = bizDueCount_(pg), slot = form.querySelector('.biz-need-slot');
+  if (slot) slot.innerHTML = bizNeed_('rec:' + pg.title, due, due + (due === 1 ? ' record due' : ' records due'));
   /* AND THE LOADER COMES OFF, with the values already in the boxes under it — so they appear filled
      rather than empty and then filled. A refusal takes it off too: it is an answer, not a wait. */
   if (!bizWaiting_() && typeof loaded_ === 'function') loaded_(form.querySelector('.biz-body'));
 }
-const bizFillAll_ = () => document.querySelectorAll('.me-form[data-biz-page]')
+const bizFillAll_ = () => { bizFillEach_(); bizNeedsPaint_(); };
+const bizFillEach_ = () => document.querySelectorAll('.me-form[data-biz-page]')
   .forEach(f => {
     if (!f.dataset.dirty && !f.classList.contains('is-sending')) bizFill_(f);
     /* A CARD KEPT FOR WHAT IS TYPED IN IT IS NOT FILLED, AND IT STOPS WAITING ALL THE SAME — the loader

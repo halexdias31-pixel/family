@@ -144,6 +144,9 @@ const KINDS = {
   fight: { group: 'Learning', label: 'Resources', card: x => fightCard_(x) },
   /* ---------- THE BIBLE, AND THE ONE KIND THE PHONE ITSELF KEEPS FROM ALL BUT AN ADMIN § */
   bible: { group: 'Learning', label: 'Resources', card: x => bibleCard_(x) },
+  /* THE ICONS (403): each `TILE_ICONS` mark, for an admin, behind the Bible's gate — `iconItems_`, tiles.js. A group of
+     their own, so fifty-odd marks never change what Learning or Resources asks anybody (check-flow's Bible journeys). */
+  icon: { group: 'Icons', label: 'Icons', card: x => iconCard_(x) },
 
   /* ---------- TWO GROUPS, NOT ONE GROUP AND THEN THE SAME QUESTION AGAIN § */
   /* ---------- THESE TWO STAY IN THE TABLE AND NO LONGER ANSWER THE FIRST QUESTION § */
@@ -367,6 +370,8 @@ const FACETS = [
   { field: 'bibleBook',      label: 'Book',      of: x => (x.bb ? x.bb.book : '') },
   { field: 'bibleChapter',   label: 'Chapter',   of: x => (x.bb ? x.ch : '') },
   { field: 'bibleVerse',     label: 'Verse',     of: x => (x.bb ? x.v : '') },
+  /* THE ICONS' GROUP (403): what a mark is for, an ordinary question once `Icons` is the shelf. */
+  { field: 'iconGroup',     label: 'Group',     of: x => x.iconGroup || '' },
   { field: 'projectType',   label: 'Project or coursework', of: x => x.projectType || '' },
   { field: 'subject',   label: 'Subject',     of: x => x.subject },
   { field: 'boxKind',   label: 'Boxers or fights', of: x => x.boxKind || '' },
@@ -5150,6 +5155,17 @@ function drawMarker_() {
       ink.forEach(s => s.pl.forEach((p, k) => { if (k && inside(p, P) && inside(s.pl[k - 1], P)) L += near(p, s.pl[k - 1]); }));
       return { ok: L >= F.sq * (it.min || 0.5), ex: q => inside(q, P) };
     },
+    /* `join` (402): a matching line — one stroke from inside box `a` to inside box `b`, either way. Boxes [x, y, w, h] in figure units, padded by `pad`. */
+    join(it, ink, F) {
+      const pad = it.pad == null ? 10 : it.pad;
+      const box = r => { const p = F.v([r[0], r[1]]), q = F.v([r[0] + r[2], r[1] + r[3]]);
+        return [Math.min(p[0], q[0]) - pad, Math.min(p[1], q[1]) - pad, Math.max(p[0], q[0]) + pad, Math.max(p[1], q[1]) + pad]; };
+      const A = box(it.a), B = box(it.b), inB = (q, X) => q[0] >= X[0] && q[0] <= X[2] && q[1] >= X[1] && q[1] <= X[3];
+      const ca = [(A[0] + A[2]) / 2, (A[1] + A[3]) / 2], cb = [(B[0] + B[2]) / 2, (B[1] + B[3]) / 2];
+      const ok = ink.some(s => { const e0 = s.pl[0], e1 = s.pl[s.pl.length - 1]; return (inB(e0, A) && inB(e1, B)) || (inB(e0, B) && inB(e1, A)); });
+      const band = Math.max(A[3] - A[1], B[3] - B[1]) / 2;
+      return { ok: ok, ex: q => inB(q, A) || inB(q, B) || dSeg(q, ca, cb) <= band };
+    },
   };
   /* a dotted grid as two steps from one dot, so the row does not list every dot */
   function latSnap(q, L) {
@@ -5250,6 +5266,7 @@ function drawMarker_() {
         [[a, it.ca], [b, it.cb]].forEach(e => { const c = [e[0][0], y], ring = []; for (let g = 0; g <= 360; g += 30) ring.push(at(c, g, r)); put(ring); if (e[1]) { put(ring.map(p => [c[0] + (p[0] - c[0]) * 0.5, c[1] + (p[1] - c[1]) * 0.5])); put([at(c, 0, r * 0.8), at(c, 180, r * 0.8)]); put([at(c, 90, r * 0.8), at(c, 270, r * 0.8)]); put(ring.map(p => [c[0] + (p[0] - c[0]) * 0.75, c[1] + (p[1] - c[1]) * 0.75])); } });
       }
       if (it.k === 'line') put(it.thru.map(F.v));
+      if (it.k === 'join') put([it.a, it.b].map(r => F.v([r[0] + r[2] / 2, r[1] + r[3] / 2])));
       if (it.k === 'cells') {
         const C = (it.cells || []).concat((it.rects || []).map(r => [[r[0], r[1]], [r[0] + r[2], r[1]], [r[0] + r[2], r[1] + r[3]], [r[0], r[1] + r[3]]]));
         const pick = it.set ? it.set[0] : C.map((c, i) => i).filter(i => (it.given || []).indexOf(i) === -1).slice(0, it.need);
@@ -7889,6 +7906,7 @@ const RETIRED_ANSWERS = { shelf: RETIRED_SHELVES, kindLabel: ['Bundles'] };
 function placeChipDead_(f) {
   if (!f || typeof f.field !== 'string') return true;
   if (BIBLE_FIELDS[f.field] || (f.field === 'shelf' && f.value === BIBLE_SHELF)) return !bibleFor_();
+  if (f.field === 'iconGroup' || (f.field === 'shelf' && f.value === ICON_SHELF)) return !bibleFor_();
   if (RETIRED_FACETS[f.field]) return true;
   /* A RANGE CHIP (`bucket`) — the groupings went in 290 and their tables in 396, so nothing answers one. */
   if (f.bucket) return true;
@@ -8062,6 +8080,8 @@ function stuffItemsRaw_() {
 
     /* ---------- THE BIBLE, FOR AN ADMIN AND NOBODY ELSE § */
     ...bibleItems_(),
+    /* AND THE ICONS, BEHIND THE SAME GATE (403). */
+    ...(typeof iconItems_ === 'function' ? iconItems_() : []),
 
     /* ---------- `DATA.films` WAS MAPPED HERE, ONE ITEM PER FILM OR SERIES, AND IS NOT ANY MORE § */
 
@@ -8682,6 +8702,8 @@ function accountPages_() {
         : `<div class="tile-row">${tile_({ icon: 'out', label: 'Sign out', act: 'signout' })}</div>`),
     /* "WE WILL EMAIL YOU ONCE YOU OPEN THE LINK" — one line under the row while your own address is unproved, because `notify` sends it nothing until then and a § */
     typeof mailHeldNote_ === 'function' ? mailHeldNote_() : '',
+    /* AND, FOR STAFF, "NOT AGREED TO THE TUTOR TERMS" until they are (405) — `hubWarn_` in staff.js. */
+    typeof hubWarn_ === 'function' ? hubWarn_() : '',
   ].join('');
 
   /* ---------- AND AN UNLISTED TUTOR WAS DELETED FROM THE ONE SCREEN THAT CAN SWITCH HIM BACK ON -- § */
@@ -8739,11 +8761,12 @@ function accountPages_() {
   /* ---------- THE WRAPPER WENT WHEN THE PASS DID, AND LEAVING IT WOULD HAVE NESTED TWO CARDS § */
   /* ---------- AND WHILE THE PAYLOAD IS ON ITS WAY, THE COLUMN SAYS MORE IS COMING § */
   const coming = typeof awaiting_ === 'function' && awaiting_() ? [loading_()] : [];
-  /* THE SETUP CARD, second, for an admin only (361) — `setupCard_` in me.js returns '' for anybody else. */
-  const setup = typeof setupCard_ === 'function' ? [setupCard_()].filter(Boolean) : [];
+  /* THE SETUP CARD MOVED TO THE BUSINESS COLUMN (400) — `bizPages_` in records.js. */
+  /* "APPLY TO TEACH", or where your application stands (400) — `applyCard_` in me.js; '' for staff and children. */
+  const apply = typeof applyCard_ === 'function' ? [applyCard_()].filter(Boolean) : [];
   /* "+ ADD A PERSON", above everybody but you, for an admin only (373) — `peopleAddPage_` in me.js. */
   const add = typeof peopleAddPage_ === 'function' ? [peopleAddPage_()].filter(Boolean) : [];
-  return [me].concat(setup, add, claimPages, famPages, others, everyone, coming);
+  return [me].concat(apply, add, claimPages, famPages, others, everyone, coming);
 }
 
 /* ---------- HOW A LEARNER IS GETTING ON, IN ONE LINE UNDER THEIR NAME § */
@@ -9222,6 +9245,7 @@ const TAG_OF = {
   /* ---------- THE BIBLE'S SIX, IN KINDS THAT ALREADY HAVE COLOURS § */
   bibleTranslation: 'board', bibleTestament: 'level', bibleGroup: 'topic',
   bibleBook: 'paper', bibleChapter: 'paper', bibleVerse: 'paper',
+  iconGroup: 'topic',
 };
 /* A FACET NOBODY LISTED — one the facets tab invented — is still coloured: `other` (396). */
 const tagOf_ = field => TAG_OF[field] || 'other';
@@ -9649,11 +9673,16 @@ function paneReach_(panes) {
 /* ---------- AND IT MEASURES A FRAME LATER, NOT INSIDE THE OBSERVER'S OWN CALLBACK § */
 let PANE_WATCH = null;
 let PANE_WATCH_DUE = null;
+/* THE WINDOW'S SIZE, KEPT UNTIL IT RESIZES: reading `innerWidth` straight after a placement forced a whole-app layout on every release (401). */
+let PANE_VP_NOW = '';
+const paneVp_ = () => PANE_VP_NOW || (PANE_VP_NOW = innerWidth + 'x' + innerHeight);
+addEventListener('resize', () => { PANE_VP_NOW = ''; }, { passive: true });
+if (window.visualViewport) visualViewport.addEventListener('resize', () => { PANE_VP_NOW = ''; }, { passive: true });
 function paneWatch_(host) {
   if (!host || !host.querySelectorAll) return;
   const panes = host.querySelectorAll('.pane');
   /* ---------- ONLY THE PANES IT HAS NOT ALREADY MEASURED § */
-  const vp = innerWidth + 'x' + innerHeight;
+  const vp = paneVp_();
   const all = host.PANE_VP !== vp;
   host.PANE_VP = vp;
   paneReach_(all ? panes : [].filter.call(panes, p =>
@@ -10068,8 +10097,25 @@ function stuffQuestion() {
 
 
 /* ---------- ONE DRAW FOR BOTH FINDERS § */
+/* ---------- THE FINDER IS FOR MEMBERS (400): signed out, Find and Find 2 are one card, Sign in or Join ----------
+   Find's booking and feed pages stay (they are not results); the bundle is made of results, so it goes. */
+function finderMembersCard_(F) {
+  return `<div class="card members-only" id="${F.id}-members"><h3>Members only</h3>
+    <p class="sub">The finder is for members. Sign in, or join free as a student or a client.</p>
+    <div class="tile-row">${tile_({ icon: 'in', label: 'Sign in', tone: 'buy', act: 'members-signin' })}${
+      tile_({ icon: 'join', label: 'Join', note: 'free', act: 'members-join' })}</div></div>`;
+}
+function finderMembersOnly_(F) {
+  const front = F.id === 'stuff' ? [].concat(bookingPages_(), feedPages_()) : [];
+  PAGE_KEEP[F.id] = 1 + front.length;
+  return pages(F.id, [finderMembersCard_(F)].concat(front));
+}
+on('members-signin', () => go('account'));
+on('members-join', () => { if (typeof registerSheet_ === 'function') registerSheet_(); });
+
 function finderScreen_() {
   const F = FINDER;
+  if (!USER) return finderMembersOnly_(F);
   const credits = USER ? (USER.credits || 0) : 0;
   /* The control must SAY what it is doing. § */
   const sel = (what, v) => STUFF[what] === v ? ' selected' : '';
