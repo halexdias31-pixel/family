@@ -7,9 +7,9 @@
 # device keeps (see `splashSync_` in js/shell.js). The scripts in tools/ that generate those drawings
 # wrote into index.html and style.css; they write the row through here instead.
 #
-# FOR A ROW A SCRIPT WRITES, THE SCRIPT IS THE SOURCE, AND THE ROW IS ITS OUTPUT. Eighty-one of them:
+# FOR A ROW A SCRIPT WRITES, THE SCRIPT IS THE SOURCE, AND THE ROW IS ITS OUTPUT. Ninety-one of them:
 #
-# WRITTEN BY A SCRIPT: abinom achain aexp afirst ageom ahyp aincline amoment anormal aparam apascal aproj apulley area ariemann aroot2 aunit avec3 bayes bus cent coin fadd fdp fib fit gal gbal gcf gcomp genl gexp gfac gquad grot grule gsemi gsim gsimi gsoh gsurd gtree gvec index line lmul mean mxc neg orbit pcause pcave pdoubt peri pfall phcirc phdrop phem phfiss phforce phhalf phheat phiv phmom phmotor phrefr phsank phstate phvt phwave prot psyll ptrolley pv pwatch pyth ratio sieve sine trans venn
+# WRITTEN BY A SCRIPT: abinom achain aexp afirst ageom ahyp aincline amoment anormal aparam apascal aproj apulley area ariemann aroot2 aunit avec3 bayes bus cent coin fadd fdp fib fit gal gbal gcf gcomp genl gexp gfac ggcoast ggcontour ggdtm gggreen gggrid ggmeander ggplate ggquake ggstorm ggwater gquad grot grule gsemi gsim gsimi gsoh gsurd gtree gvec index line lmul mean mxc neg orbit pcause pcave pdoubt peri pfall phcirc phdrop phem phfiss phforce phhalf phheat phiv phmom phmotor phrefr phsank phstate phvt phwave prot psyll ptrolley pv pwatch pyth ratio sieve sine trans venn
 #
 # (`gal` is tools/galton.py, `orbit` tools/solar.py, the GCSE Maths sixteen whose ids start with g are
 # tools/g_<topic>.py — `gexp` is g_expand.py — and an A-level `a<name>` is tools/a_<name>.py; every other

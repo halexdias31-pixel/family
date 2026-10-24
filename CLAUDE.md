@@ -80,6 +80,7 @@ when it was not told it could", never "is this past the right edge".
   - A-level Maths `abinom achain aexp afirst ageom ahyp aincline amoment anormal aparam apascal aproj apulley ariemann aroot2 aunit avec3` (`tools/a_<name>.py`, 411)
   - GCSE Physics `phcirc phdrop phem phfiss phforce phhalf phheat phiv phmom phmotor phrefr phsank phstate phvt phwave` (`tools/ph_<topic>.py`, 419)
   - A-level Philosophy and RS `pcause pcave pdoubt pfall psyll ptrolley pwatch` (`tools/p_<name>.py`, 418)
+  - GCSE Geography `ggcoast ggcontour ggdtm gggreen gggrid ggmeander ggplate ggquake ggstorm ggwater` (`tools/gg_<topic>.py`, 423)
 
   For the rest the row is the source. Never in `index.html` or `style.css`; the splash draws a device-kept copy
   (`splashSync_`). `check-anims.js`, `check-loading.js`. A new one is a script on `anim_row.Loop` that writes its whole
