@@ -156,5 +156,14 @@
 {"splash_id": "dna", "name": "DNA to protein", "kind": "proof", "shows": "bases read in threes, each triplet an amino acid; a mutation changes one", "note": "", "active": true},
 {"splash_id": "punnett", "name": "Punnett square", "kind": "proof", "shows": "Bb × Bb gives BB, Bb, Bb, bb: three to one", "note": "", "active": true},
 {"splash_id": "natsel", "name": "Natural selection", "kind": "proof", "shows": "pale moths eaten on dark bark: dark moths 1, 4, 8 in ten over three generations", "note": "", "active": true},
-{"splash_id": "carbon", "name": "The carbon cycle", "kind": "proof", "shows": "one carbon atom round photosynthesis, feeding, respiration, decay and burning", "note": "", "active": true}
+{"splash_id": "carbon", "name": "The carbon cycle", "kind": "proof", "shows": "one carbon atom round photosynthesis, feeding, respiration, decay and burning", "note": "", "active": true},
+{"splash_id": "ecppf", "name": "The production possibility frontier", "kind": "tool", "shows": "a point sliding along the PPF, the wheat given up for barley, and the frontier shifting out", "note": "GCSE Economics", "active": true},
+{"splash_id": "ecsupply", "name": "Demand and supply shifting", "kind": "tool", "shows": "demand shifting right, then supply shifting left, each with its new equilibrium", "note": "GCSE Economics", "active": true},
+{"splash_id": "ecped", "name": "Elastic and inelastic revenue", "kind": "tool", "shows": "a price rise growing the revenue box on inelastic demand and shrinking it on elastic", "note": "GCSE Economics", "active": true},
+{"splash_id": "ecextern", "name": "A negative externality", "kind": "tool", "shows": "MSC above MPC, Q* left of Qm and the welfare loss between them", "note": "GCSE Economics", "active": true},
+{"splash_id": "ecflow", "name": "The circular flow of income", "kind": "tool", "shows": "spending and incomes going round, withdrawals out and injections in", "note": "GCSE Economics", "active": true},
+{"splash_id": "ecrates", "name": "How a rate rise works through", "kind": "tool", "shows": "a base-rate rise passing down to spending and inflation", "note": "GCSE Economics", "active": true},
+{"splash_id": "ecfx", "name": "The pound, exports and imports", "kind": "tool", "shows": "a shirt and a game repriced as the pound rises to $1.50 and falls to $1.00", "note": "GCSE Economics", "active": true},
+{"splash_id": "ecbreakeven", "name": "Building a break-even chart", "kind": "tool", "shows": "FC, TC and TR drawn in, break-even at 500 units and the margin of safety", "note": "GCSE Business", "active": true},
+{"splash_id": "eccashflow", "name": "A cash-flow forecast, month by month", "kind": "tool", "shows": "six months of balances, each closing balance carried to the next", "note": "GCSE Business", "active": true}
 ]
