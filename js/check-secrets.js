@@ -70,9 +70,11 @@ function run() {
     ? 'a Google API key. Revoke it at aistudio.google.com and put the new one in Script Properties'
     : b.digits.length + ' digits beside the word "pin", and they are not ' + PLACEHOLDER)));
 
-  /* ---------- AND NO CONSOLE GAME FILE (389, 391): the site ships the player, never a game. Every file by name (NES, SNES, Game Boy, N64) and by the iNES, N64 and GBA magic. */
+  /* ---------- AND NO CONSOLE GAME FILE (389, 391, 399): the site ships the player, never a game. Every file by name (NES, SNES, Game Boy, N64, DS) and by the iNES, N64, GBA and DS headers. */
   const roms = [];
   let looked = 0;
+  /* The DS header's own CRC-16 over 0-0x15D; with the logo's fixed 0xCF56 it is a cartridge, not a coincidence. */
+  const dsCrc = b => { let c = 0xffff; for (let i = 0; i < 0x15e; i++) { c ^= b[i]; for (let j = 0; j < 8; j++) c = c & 1 ? (c >>> 1) ^ 0xa001 : c >>> 1; } return c; };
   (function every(dir) {
     let names;
     try { names = fs.readdirSync(dir, { withFileTypes: true }); } catch (e) { return; }
@@ -81,14 +83,15 @@ function run() {
       const full = path.join(dir, e.name);
       if (e.isDirectory()) return void every(full);
       looked++;
-      if (/\.(nes|fds|unf|unif|sfc|smc|fig|swc|gb|gbc|sgb|gba|agb|z64|n64|v64)$/i.test(e.name)) return void roms.push(path.relative(ROOT, full) + '  — a console game file by name');
+      if (/\.(nes|fds|unf|unif|sfc|smc|fig|swc|gb|gbc|sgb|gba|agb|z64|n64|v64|nds|srl|dsi)$/i.test(e.name)) return void roms.push(path.relative(ROOT, full) + '  — a console game file by name');
       try {
-        const fd = fs.openSync(full, 'r'), b = Buffer.alloc(0xc0);
-        const n = fs.readSync(fd, b, 0, 0xc0, 0); fs.closeSync(fd);
+        const fd = fs.openSync(full, 'r'), b = Buffer.alloc(0x160);
+        const n = fs.readSync(fd, b, 0, 0x160, 0); fs.closeSync(fd);
         const w = b.readUInt32BE(0);
         if (b[0] === 0x4e && b[1] === 0x45 && b[2] === 0x53 && b[3] === 0x1a) roms.push(path.relative(ROOT, full) + '  — starts with the iNES header');
         else if (w === 0x80371240 || w === 0x37804012 || w === 0x40123780) roms.push(path.relative(ROOT, full) + '  — starts with an N64 cartridge header');
-        else if (n === 0xc0 && b[3] === 0xea && b[0xb2] === 0x96) roms.push(path.relative(ROOT, full) + '  — has a GBA cartridge header');
+        else if (n >= 0xc0 && b[3] === 0xea && b[0xb2] === 0x96) roms.push(path.relative(ROOT, full) + '  — has a GBA cartridge header');
+        else if (n === 0x160 && b[0x15c] === 0x56 && b[0x15d] === 0xcf && dsCrc(b) === b.readUInt16LE(0x15e)) roms.push(path.relative(ROOT, full) + '  — has a DS cartridge header');
       } catch (err) {}
     });
   })(ROOT);
