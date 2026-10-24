@@ -457,12 +457,14 @@ on('book-send', el => {
 
 /* THE WHOLE RECEIPT, on tap. § */
 /* ---------- A SESSION OPENS ON ITS OWN PAGE, NOT OVER THE TOP OF THE APP § */
-on('job', el => {
+on('job', el => { openJob_(el.dataset.id); });
+/* `quiet`: the way back from Stripe opens the receipt it paid for and says nothing of its own when the list has not caught up (`paidFromLink_`, me.js). */
+function openJob_(id, quiet) {
   const jobs = DATA.liveJobs || DATA.jobs || [];
-  const want = String(el.dataset.id || '');
+  const want = String(id || '');
   const j = jobs.find(x => String(x.id || x.jobId || '') === want);
-  if (!j) { toast('That session is not in this list any more'); return; }
-  if (!USER) { toast('Sign in to open a session'); go('account'); return; }
+  if (!j) { if (!quiet) toast('That session is not in this list any more'); return false; }
+  if (!USER) { if (!quiet) { toast('Sign in to open a session'); go('account'); } return false; }
 
   OPEN_JOB = want;
   /* ---------- AND THE COLUMN HAS TO BE TOLD IT IS OUT OF DATE § */
@@ -471,7 +473,8 @@ on('job', el => {
   const n = typeof jobPageAt_ === 'function' ? jobPageAt_(want) : -1;
   if (n >= 0) PAGE.booking = n;
   go('booking');
-});
+  return true;
+}
 
 /* PAYING. `createCheckout` builds a Stripe session and hands back a URL; nothing about the booking is recorded by it, because a client who opens the payment page § */
 on('job-pay', el => {

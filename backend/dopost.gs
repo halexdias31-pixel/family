@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-24-h-library-import";
+const DOPOST_VERSION = "2026-10-24-j-stripe-dead";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -2097,40 +2097,7 @@ function doPost(e) {
 
     /* ---------- `redeem` WAS HERE — A PRINTED PAPER FOR A THOUSAND TICKS § */
 
-    /* exams ------------------------------------------------------------------------------ A student's own dates. § */
-    if (action === 'saveExam' || action === 'deleteExam') {
-      const me = findPerson(S(body.name), S(body.personId));
-      if (!me) return jsonOut({ error: 'Not signed in.' });
-      const mine = S(me.person_id);
-      const t = read(TAB.exams);
-
-      if (action === 'deleteExam') {
-        const r = t.rows.find(x => x._row === Number(body.rowIndex));
-        if (!r) return jsonOut({ error: 'Not found.' });
-        // Your own, or an admin's to remove. Anything else is somebody else's diary.
-        if (S(r.person_id) !== mine && !isAdminPerson(S(body.name))) {
-          return jsonOut({ error: 'Not yours to remove.' });
-        }
-        delRow(t, r);
-        clearCache();
-        return jsonOut({ success: true });
-      }
-
-      const when = sheetDate(body.date);
-      if (!when) return jsonOut({ error: 'That date did not make sense.' });
-      addRow(t, {
-        exam_id: 'X' + Date.now(),
-        person_id: mine,
-        subject: S(body.subject),
-        label: S(body.label),
-        exam_date: when,
-        kind: norm(body.kind) === 'mock' ? 'mock' : 'exam',
-        board: S(body.board),
-        active: 'TRUE',
-      });
-      clearCache();
-      return jsonOut({ success: true });
-    }
+    /* `saveExam` AND `deleteExam` WERE HERE — no screen posted either; exam dates live on the profile (Settings) (431). */
 
     if (action === 'saveTodo')    return savePerson('todo', S(body.todo));
     /* ---------- THE TIMETABLE, KEPT ON THE ACCOUNT § */
@@ -2530,47 +2497,58 @@ function doPost(e) {
     if (action === 'finalizePayment') {
       const props = PropertiesService.getScriptProperties();
       const ref = S(body.ref);
-      const raw = props.getProperty(ref);
-      // Already handled, or never issued. Either way there's nothing to do, and saying "success"
-      // stops a refresh of the return page from looking like a failure.
-      if (!raw) return jsonOut({ success: true, alreadyDone: true });
-      const parsed = JSON.parse(raw);
-      const jobId = parsed.jobId, payer = parsed.payer;
-      const sessionId = props.getProperty(ref + '_session');
-      const stripeKey = props.getProperty('STRIPE_TEST_KEY');
-
-      // ASK STRIPE. Landing on the success URL proves only that a browser visited a URL; anyone
-      // could type it. This is the check that makes the payment real.
-      let paid = false;
+      if (!ref) return jsonOut({ error: 'That payment link has no reference, so nothing was booked.' });
+      /* ONE RETURN AT A TIME (430): a refresh and the first load racing each read the ref before either deleted it, and both wrote Confirm and mailed twice. */
+      const lock = LockService.getScriptLock();
+      if (!lock.tryLock(10000)) return jsonOut({ error: 'Busy — open the site again in a moment to finish.', why: 'busy' });
       try {
-        const res = UrlFetchApp.fetch('https://api.stripe.com/v1/checkout/sessions/' + sessionId, {
-          method: 'get', headers: { Authorization: 'Bearer ' + stripeKey }, muteHttpExceptions: true
-        });
-        const d = JSON.parse(res.getContentText());
-        paid = S(d.payment_status) === 'paid';
-      } catch (err) {
-        return jsonOut({ error: 'Could not confirm the payment with Stripe: ' + err });
-      }
-      if (!paid) return jsonOut({ error: 'Stripe says that session has not been paid.' });
+        clearCache();
+        /* ALREADY HANDLED IS THE CONFIRM EVENT THIS REF WROTE, not a missing property — so a refresh answers with the job to open (430). */
+        const done = read(TAB.events).rows.find(r => S(r.request_id) === ref && S(r.action) === 'Confirm');
+        const raw = props.getProperty(ref);
+        if (done) {
+          if (raw) { props.deleteProperty(ref); props.deleteProperty(ref + '_session'); }
+          return jsonOut({ success: true, alreadyDone: true, jobId: S(done.job_id) });
+        }
+        if (!raw) return jsonOut({ error: 'We have no payment with that reference. If you were charged, message us and we will put it right.', why: 'unknown-ref' });
+        const parsed = JSON.parse(raw);
+        const jobId = parsed.jobId, payer = parsed.payer;
+        const sessionId = props.getProperty(ref + '_session');
+        const stripeKey = props.getProperty('STRIPE_TEST_KEY');
 
-      // Confirm is the only action that reaches Booked, and only this path writes it.
-      logEvent({ jobId, actor: payer, role: 'client', action: 'Confirm',
-                 message: 'payment confirmed by Stripe', requestId: ref });
-      clearCache();
-      const t = read(TAB.jobs);
-      const j = t.rows.find(x => S(x.job_id) === S(jobId));
-      if (j) setCell(t, j, 'status', jobStatusOf(jobId));
-      props.deleteProperty(ref);
-      props.deleteProperty(ref + '_session');
+        // ASK STRIPE. Landing on the success URL proves only that a browser visited a URL; anyone
+        // could type it. This is the check that makes the payment real.
+        let paid = false;
+        try {
+          const res = UrlFetchApp.fetch('https://api.stripe.com/v1/checkout/sessions/' + sessionId, {
+            method: 'get', headers: { Authorization: 'Bearer ' + stripeKey }, muteHttpExceptions: true
+          });
+          const d = JSON.parse(res.getContentText());
+          paid = S(d.payment_status) === 'paid';
+        } catch (err) {
+          return jsonOut({ error: 'Could not confirm the payment with Stripe: ' + err });
+        }
+        if (!paid) return jsonOut({ error: 'Stripe says that session has not been paid.' });
 
-      /* THE PAYER'S IS THEIR RECEIPT — `booked`, essential. THE TUTOR'S IS NEWS about somebody else's
-         money on a session already theirs — `bookings`, which they may turn off. */
-      notify(payer, 'Payment received — you are booked in',
-        'Your place is confirmed. See you there.\n\n— @family.', 'booked');
-      const tutor = (tutorsIn(jobId).find(x => x.status === BM.AGREED || x.status === BM.BOOKED) || {}).name;
-      if (tutor) notify(tutor, 'Paid: a place is confirmed',
-        payer + ' has paid and is confirmed in the class.\n\n— @family.', 'bookings');
-      return jsonOut({ success: true });
+        // Confirm is the only action that reaches Booked, and only this path writes it.
+        logEvent({ jobId, actor: payer, role: 'client', action: 'Confirm',
+                   message: 'payment confirmed by Stripe', requestId: ref });
+        clearCache();
+        const t = read(TAB.jobs);
+        const j = t.rows.find(x => S(x.job_id) === S(jobId));
+        if (j) setCell(t, j, 'status', jobStatusOf(jobId));
+        props.deleteProperty(ref);
+        props.deleteProperty(ref + '_session');
+
+        /* THE PAYER'S IS THEIR RECEIPT — `booked`, essential. THE TUTOR'S IS NEWS about somebody else's
+           money on a session already theirs — `bookings`, which they may turn off. */
+        notify(payer, 'Payment received — you are booked in',
+          'Your place is confirmed. See you there.\n\n— @family.', 'booked');
+        const tutor = (tutorsIn(jobId).find(x => x.status === BM.AGREED || x.status === BM.BOOKED) || {}).name;
+        if (tutor) notify(tutor, 'Paid: a place is confirmed',
+          payer + ' has paid and is confirmed in the class.\n\n— @family.', 'bookings');
+        return jsonOut({ success: true, jobId: S(jobId) });
+      } finally { lock.releaseLock(); }
     }
 
     /* MARKING A SESSION PAID, BY HAND ------------------------------------------------------- PEOPLE PAY IN CASH. § */

@@ -181,7 +181,7 @@ console.log('  version   : ' + payload.version);
 console.log('  keys      : ' + Object.keys(payload).length);
 /* `boxers`, `fights`, `cheatsheet` and `questions` are deliberately NOT in this list. § */
 for (const k of ['people', 'venues', 'shop', 'links', 'posts', 'intervals',
-                 'facts', 'landmarks', 'jobs']) {
+                 'facts', 'jobs']) {
   if (k in payload) console.log('  %s: %s', (k + '           ').slice(0, 10), n(k));
 }
 const cl = payload.dropdowns && payload.dropdowns.checklists;

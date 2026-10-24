@@ -279,7 +279,7 @@ on('cmt-del', el => {
 });
 
 function feedPosts() {
-  return [...(DATA.posts || DATA.gallery || [])]
+  return [...(DATA.posts || [])]
     /* A DELETED POST IS GONE FROM THE FEED, for everybody including the admin who deleted it. § */
     .filter(p => p.active !== false)
     .sort((a, b) => {
@@ -1658,7 +1658,7 @@ function openSharedTutor() {
   TUTOR_LINK_DONE = true;
   const item = { kind: 'tutor', name: t.title, key: t.title, row: t };
   openSheet(t.title, `<div class="tutor-link">${typeof findCard === 'function' ? findCard(item) : ''}
-    <div class="tile-row">${tutorTiles_(item)}</div></div>`);
+    ${tileRow_(tutorTiles_(item))}</div>`);
 }
 
 /* ---------- POSTING § */
@@ -2021,29 +2021,30 @@ screen('reel', () => {
   /* ---------- CLIPS ONLY, AND THE FACTS ARE NOT A FALLBACK § */
   /* ONE SNAPSHOT PER DRAW, and everything below reads it. § */
   const facts = REEL_CLIPS = clipsNow_();
-  const rows = factsNow_().length;
-  /* AN ADMIN'S "+" IS THE FIRST PAGE (404), so every reel's page is its index plus `REEL_LEAD`. */
-  const add = typeof mediaHtml_ === 'function' ? mediaHtml_('reel') : '';
-  REEL_LEAD = add ? 1 : 0;
+  /* THE PAGES BEFORE THE FIRST REEL (414): the column's widgets, then an admin's "+" (404). Every reel's page is its index plus `REEL_LEAD`. */
+  const lead = reelLead_();
+  reelLeadSet_(lead.length);
   if (!facts.length) {
-    return `<section class="page"><div class="pane">${add}<div class="card">
-      <h3>Reels</h3>
-      <p class="sub">No clips yet. Add a row to the <b>facts</b> tab with a <b>clip</b> — a Google
-        Drive file id, or a link to a video. The words are optional.</p>
-      ${/* ---------- WHICH OF TWO VERY DIFFERENT THINGS THIS IS § */
-            ''}
-      <p class="faint">${rows
-        ? `Looked at ${rows} reel row${rows === 1 ? '' : 's'} and none of them has a clip.`
-        : 'There are no reel rows at all — not even the built-in ones. That is this page\'s own '
-          + 'code missing rather than an empty sheet, so open the site with <b>?dev</b>, which '
-          + 'clears the held copies and fetches every file fresh.'}</p>
-    </div></div></section>`;
+    /* NO CLIPS: the one empty state (`emptyCard_`, shell.js) — the title alone. */
+    return pages('reel', lead.concat([emptyCard_('Reels')]));
   }
   /* ---------- ONE WIDGET PER REEL, WHICH IS WHAT EVERY OTHER COLUMN IN THE APP IS § */
   /* ---------- A REDRAW MUST NOT LOSE THE PAGE YOU ARE ON § */
   REEL_SHOWN = 0;
-  return pages('reel', (add ? [add] : []).concat(reelCards_(Math.max(REEL_FIRST, (PAGE.reel || 0) + 1 + REEL_AHEAD - REEL_LEAD))));
+  return pages('reel', lead.concat(reelCards_(Math.max(REEL_FIRST, (PAGE.reel || 0) + 1 + REEL_AHEAD - REEL_LEAD))));
 });
+
+/* WHAT LEADS THE COLUMN (414): its widgets (kind `reel`, map.js) and an admin's "+", in that order, so the "+" sits next to the reels it adds to and the first reel is where the column opens (`PAGE_HOME.reel`). */
+function reelLead_() {
+  const wgts = typeof widgetColumn_ === 'function' ? widgetColumn_('reel') : [];
+  const add = typeof mediaHtml_ === 'function' ? mediaHtml_('reel') : '';
+  return wgts.concat(add ? [add] : []);
+}
+/* A LEAD THAT GREW OR SHRANK (an admin signing in) MOVES THE PAGE WITH IT, so the reel in front stays in front. */
+function reelLeadSet_(n) {
+  if (n !== REEL_LEAD) PAGE.reel = Math.max(0, (PAGE.reel || 0) + n - REEL_LEAD);
+  REEL_LEAD = n;
+}
 
 /* ---------- IT GOES DOWN FOR EVER, AND THE DECK IT DRAWS FROM ALREADY DID § */
 /* ---------- SEVEN, SIX AND SIX SINCE 11 OCT (docs/history/341) § */
@@ -2053,7 +2054,7 @@ const REEL_AHEAD = 6;      // how far ahead of you the column is kept — the to
                            // read the same number, or one of them builds a page short of the other.
 const REEL_MAX   = 60;     // the ceiling, in slides. See above.
 let REEL_SHOWN = 0;
-/* PAGES BEFORE THE FIRST REEL: 1 when an admin's "+" page leads the column (404), else 0. `data-reel` is the page. */
+/* PAGES BEFORE THE FIRST REEL: the lead widgets plus an admin's "+" (404, 414). `data-reel` is the page. */
 let REEL_LEAD = 0;
 /* WHICH REEL SOMEBODY HAS DELIBERATELY STOPPED, by index, or −1 for none. § */
 let REEL_HELD = -1;
@@ -2093,7 +2094,7 @@ function reelCards_(count) {
 
 /* HOW MANY PAGES THIS COLUMN HAS, asked by `PAGER.reel` in shell.js — and it is the same counter the markup is built from, so the pager and the screen cannot § */
 function reelPages_() {
-  const n = reelClips_().length ? REEL_SHOWN + REEL_LEAD : 1;
+  const n = reelClips_().length ? REEL_SHOWN + REEL_LEAD : REEL_LEAD + 1;
   return new Array(Math.max(1, n)).fill('');
 }
 

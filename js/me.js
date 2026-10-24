@@ -869,6 +869,8 @@ function afterSignIn_(d) {
   let waiting = '';
   try { waiting = sessionStorage.getItem('familyVerify') || ''; sessionStorage.removeItem('familyVerify'); } catch (e) {}
   if (waiting) verifyFromLink_(waiting);
+  /* AND A CARD PAYMENT THAT CAME BACK BEFORE ANYBODY WAS SIGNED IN — see `paidFromLink_`. */
+  try { if (sessionStorage.getItem(PAID_KEY_)) paidFromLink_(); } catch (e) {}
 }
 
 /* ---------- AND THE SIGN-IN LINK IN A FORGOTTEN-PIN MAIL § */
@@ -889,6 +891,56 @@ function pinFromLink_() {
       signedIn_(d);
     })
     .catch(() => {});      // `send_` has already toasted the server's sentence
+}
+
+/* ---------- AND THE WAY BACK FROM STRIPE (430) ----------------------------------------------------
+   `createCheckout` sends a card payment back to `?paid=1&ref=…`; `finalizePayment` asks Stripe and writes the Confirm that books it. */
+/* KEPT FOR THE VISIT until the server has answered, so a sign-in, a reload or a dropped connection still finishes it. */
+const PAID_KEY_ = 'familyPaid';
+/* THE REF IN THE AIR — boot and a sign-in landing together ask once. The server's own guard is the Confirm event for the ref. */
+let PAID_ASKING_ = '';
+function paidFromLink_() {
+  let ref = '';
+  try {
+    const q = new URLSearchParams(location.search);
+    const paid = q.get('paid');
+    ref = (q.get('ref') || '').trim();
+    if (paid !== null || ref) {
+      q.delete('paid'); q.delete('ref');
+      const rest = q.toString();
+      history.replaceState(null, '', location.pathname + (rest ? '?' + rest : '') + location.hash);
+      if (paid !== '1' || !ref) { toast('Payment cancelled — nothing was charged. Your booking is still waiting.'); return; }
+      try { sessionStorage.setItem(PAID_KEY_, ref); } catch (e) {}
+    }
+  } catch (e) {}
+  if (!ref) try { ref = sessionStorage.getItem(PAID_KEY_) || ''; } catch (e) {}
+  if (!ref || PAID_ASKING_ === ref) return;
+  if (!USER || !USER.token) {
+    toast('Sign in to finish your booking — your payment is safe.');
+    try { go('account'); } catch (e) {}
+    return;
+  }
+  /* A CHILD NEVER PAYS (398), so a child's phone does not ask — the parent who paid signs in and it finishes. */
+  if (childView_()) { toast('A parent paid for this — they sign in to finish the booking.'); return; }
+  PAID_ASKING_ = ref;
+  const forget = () => { try { sessionStorage.removeItem(PAID_KEY_); } catch (e) {} };
+  api({ action: 'finalizePayment', ref })
+    .then(d => {
+      PAID_ASKING_ = '';
+      /* KEPT: the next sign-in or visit asks again. `api` has already said signed out. */
+      if (d && d.why === 'signed-out') return;
+      if (d && d.why === 'busy') { toast(d.error || 'Busy — open the site again in a moment to finish.'); return; }
+      if (!d || !d.success) {
+        forget();
+        toast('Payment not confirmed — ' + ((d && d.error) || 'the server did not say why') + ' Nothing was booked.');
+        return;
+      }
+      forget();
+      toast(d.alreadyDone ? 'Payment already received — you\'re booked' : 'Payment received — you\'re booked');
+      const open = () => { if (!(d.jobId && openJob_(d.jobId, true))) go('booking'); };
+      load().then(open, open);
+    })
+    .catch(err => { PAID_ASKING_ = ''; toast(why_(err) + ' Your payment is safe — open the site again to finish booking.'); });
 }
 
 /* ---------- FRIENDS § */

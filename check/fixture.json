@@ -370,7 +370,6 @@
  "boxers": [],
  "fights": [],
  "cheatsheet": [],
- "landmarks": [],
  "favourites": [],
  "submissions": {
   "for": "P001",
@@ -407,7 +406,6 @@
   {"date":"28/12/2027","name":"Boxing Day","kind":"bank"}
  ],
  "birthdays": [],
- "gallery": [],
  "spotlight": [],
  "promotions": [],
  "claims": [],
@@ -890,7 +888,6 @@
   ]
  },
  "profileReadonly": [],
- "termsAccepted": false,
  "googleClientId": "",
  "aiMarking": false,
  "films": [

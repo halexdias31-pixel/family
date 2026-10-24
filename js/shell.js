@@ -258,8 +258,10 @@ function startScreen_(id, arriving) {
   /* AND THE SHOP, whose first page is the basket — a widget, with a `start` that draws its lines.
      Without this the basket arrived as a heading over an empty box. */
   else if (id === 'shop' && typeof toolsStart_ === 'function') { toolsStart_('shop', arriving); }
+  /* AND THE WIDGETS LEADING THE REELS (414) — Videos and One more thing, the pages before the first reel. */
+  else if (id === 'reel' && typeof toolsStart_ === 'function') { toolsStart_('reel', arriving); }
   /* ---------- AND A COLUMN WHOSE CARDS JUST GREW IS PLACED AGAIN § */
-  if ((id === 'saved' || id === 'tools' || id === 'games' || id === 'shop') && id === AT) {
+  if ((id === 'saved' || id === 'tools' || id === 'games' || id === 'shop' || id === 'reel') && id === AT) {
     placeCells('y', true, 0, id);
   }
   /* THE CAMERA STARTS ON ARRIVAL rather than on a tap. § */
@@ -1357,8 +1359,7 @@ const PAGER = {
   /* ---------- THESE KEYS ARE SCREEN IDS, AND TWO OF THEM NAMED SCREENS THAT DO NOT EXIST § */
   /* ---------- THE PAGER COUNTED A LIST THE SCREEN DOES NOT DRAW § */
   account: () => {
-    const n = (typeof accountPages_ === 'function' ? accountPages_().length : 0)
-            + (typeof termsPages_ === 'function' ? termsPages_().length : 0);
+    const n = typeof accountPages_ === 'function' ? accountPages_().length : 0;
     return Array.from({ length: n }, (_, i) => (n > 1 ? (i + 1) + ' of ' + n : ''));
   },
   /* `book` WAS HERE — a pager for a column that no longer exists. Find has its own count. */
@@ -1447,6 +1448,8 @@ const PAGE_HOME = {
   },
   /* ---------- AND `account` HAS BEEN OPENING ON SOMEBODY ELSE § */
   account: () => 0,
+  /* THE FIRST REEL (414), past the pages that lead it — the widgets and an admin's "+" (`REEL_LEAD`, posts.js). */
+  reel: () => (typeof REEL_LEAD === 'number' ? REEL_LEAD : 0),
   /* `dm` WAS HERE, AT 1, TO SKIP THE HEAD CARD — and the head card is gone, so page 0 is the newest conversation by construction § */
 };
 /* `book` WAS HERE — a column that no longer exists. */
@@ -1844,6 +1847,10 @@ function adoptMarks_() {
 
 const pages = (id, cards) =>
   cards.map(c => `<section class="page"><div class="pane">${c}</div></section>`).join('');
+
+/* ---------- AN EMPTY WIDGET IS ITS TITLE AND NOTHING ELSE (414) ---------- */
+/* One empty state for every list with nothing in it — Spotlight, Saved, the shop, the reels: no sentence explaining the emptiness, the owner's ask. */
+const emptyCard_ = title => `<div class="card is-empty"><h3>${esc(String(title || ''))}</h3></div>`;
 
 /* ---------- ALL OF THEM ON ONE, WHICH IS WHAT A LIST IS § */
 const stack = (id, cards) =>

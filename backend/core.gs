@@ -338,7 +338,7 @@ function testCache() {
 /* ---------- WHO GETS WHOSE COPY § */
 /* ---------- KEYED ON WHO THE TOKEN SAYS, NEVER ON WHO THE URL SAYS § */
 function payloadKey_(p, viewer) {
-  const special = ['run', 'setup', 'pages', 'map', 'receipts', 'galleryOnly',
+  const special = ['run', 'setup', 'pages', 'receipts',
                    'triggers', 'debugTiming', 'health'];
   for (let i = 0; i < special.length; i++) if (S(p[special[i]])) return '';
   /* THE VERSION AND THE GENERATION ARE BOTH IN IT. § */

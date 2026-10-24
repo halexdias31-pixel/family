@@ -8,16 +8,6 @@ const path = require('path');
 
 /* ---------- ACCEPTED, WITH A REASON EACH § */
 const ACCEPTED = {
-  /* ---------- THE LEGAL DOCUMENTS, AND A NAME COLLISION THAT WOULD SURVIVE THE OBVIOUS FIX § */
-  terms: 'terms.js wants legal documents (docid/version/mustsign); TAB.terms is SCHOOL terms and is '
-       + 'already sent as `intervals`. Needs its own tab under another name — sending TAB.terms here '
-       + 'would silence this line without making the feature work.',
-
-  /* The other half of the same unbuilt feature, and both are already named in CLAUDE.md. § */
-  termsAccepted: 'no acceptTerms handler and no tab; the signature half of the terms feature was '
-               + 'never built. See CLAUDE.md.',
-  termsAcceptedWhen: 'the timestamp half of the same unbuilt signature feature.',
-
   /* ---------- THE ONE WORTH BUILDING § */
   columns: 'applyColumns_ decides which screens the app has and in what order, and `doGet` does not '
          + 'send the key — `data/settings/columns.json` does, through settingsInto_, like the other '

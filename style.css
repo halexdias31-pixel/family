@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-24-g-staff-hub";
+  --css-version: "2026-10-24-i-tidy-dead";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -983,8 +983,6 @@ a { color: inherit; text-decoration: none; }
 
 /* ---------- TIMES TABLES AND FLAPPY --------------------------------------------------------------- */
 #tt-answer { text-align: center; font-size: 1.2rem; }
-.tux-stage:not(:empty) { position: relative; width: 100%; aspect-ratio: 4/3; margin: .5rem 0; }
-.tux-frame { width: 100%; height: 100%; border: 0; display: block; background: var(--bg); }
 /* ---------- CONSOLE (389): 256x240 scaled by whole look, pixels kept square and crisp § */
 .nes-wrap { position: relative; display: flex; flex-direction: column; align-items: center; background: var(--bg);
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
@@ -1873,80 +1871,6 @@ button.text-drop { color: var(--bad); }
    as a list with nothing on it. */
 .page .empty { margin: auto 0; text-align: center; }
 
-/* ---------- THE OVERWORLD § */
-.map { position: relative; width: 100%; aspect-ratio: 3/4; }
-.map-svg { width: 100%; height: 100%; display: block; overflow: hidden; }
-
-/* THE PLANE, SEEN AT AN ANGLE. § */
-/* ---------- THE GROUND § */
-/* The ground itself, filling the frame. */
-.map-land { fill: #10160f; }
-
-/* GREEN AS A REAL BOUNDARY. Filled and edged, so a common has a shape you could walk round rather
-   than a patch of tint — the edge is what tells you which side of it a road runs down. */
-.map-green { fill: #1c3a22; stroke: #2c5533; stroke-width: .4; stroke-linejoin: round; }
-
-/* WATER, under the roads because the roads bridge it. */
-.map-water { fill: none; stroke: #24405c; stroke-width: 2.6;
-             stroke-linejoin: round; stroke-linecap: round; }
-/* The Wandle is narrower than the Thames because it is, and in Merton it is the one you walk
-   beside. */
-.map-wandle { stroke-width: 1.4; stroke: #2b4a63; }
-/* The Beverley Brook and the Crane: narrower again. They are streams, and a stream drawn as wide
-   as a river makes the river look like nothing in particular. */
-.map-brook { stroke-width: 1; stroke: #2b4a63; opacity: .8; }
-/* A B-road: real, and thinner than an A. */
-.map-road-b { stroke: #403d38; }
-
-/* ROADS ARE CARRIAGEWAYS. § */
-.map-case { fill: none; stroke: #05080a; stroke-linejoin: round; stroke-linecap: round; }
-.map-street { fill: none; stroke-linejoin: round; stroke-linecap: round; }
-.map-road-a { stroke: #4a4740; }
-/* The tube and the tram are not roads and must not look like them: dashed, thinner, and their
-   own colours. */
-.map-rail { stroke: #3c3c46; stroke-dasharray: 3 1.4; }
-.map-tram { stroke: #5c5230; stroke-dasharray: 2 1.6; }
-
-/* ---------- BUILDINGS § */
-.map-bld { stroke: #05080a; stroke-width: .3; }
-/* Ordinary built things: pale grey, the colour every map uses, because they are the background a
-   place is made of rather than anything to look at. */
-.map-bld-civic   { fill: #55534e; }
-.map-bld-retail  { fill: #5e564c; }
-/* A station is the one kind anybody looks FOR, so it is the one kind with a colour. */
-.map-bld-station { fill: #7a5a4a; }
-.map-bld-sport   { fill: #33513c; }
-/* The tower stands alone: it is the thing people navigate by round here and it should be findable
-   without reading a label. */
-.map-bld-tower   { fill: #8a8378; stroke: #c9c2b6; stroke-width: .4; }
-
-/* ---------- THE VENUES, which are the only thing here that is not scenery ----------------------- */
-/* A venue is a building too — drawn as a footprint like the rest so it sits IN the world rather than floating over it as a pin — and the only one that is § */
-.map-venue { fill: var(--gold); stroke: #05080a; stroke-width: .4; }
-.map-node:active .map-venue { fill: var(--ink); }
-.map-node { cursor: pointer; }
-/* `.map-pin` went when a venue became a footprint. `.open` and `.here` went with the progression. */
-/* THE NAME UNDER EACH. A board with no words on it is not a map of anywhere. Outlined in the
-   ground colour so it survives crossing a park or a road — a label that vanishes where the map is
-   busiest is a label for the empty parts. */
-.map-name { fill: var(--ink); font-size: 3.4px; text-anchor: middle; font-family: var(--font);
-            paint-order: stroke; stroke: #10160f; stroke-width: 1.4; stroke-linejoin: round; }
-.map-node.here .map-name { fill: var(--gold); }
-
-/* `.map-road` and `.map-road-done` went with the path between the venues — a line drawn in the order the sheet happened to hold them, and a gold stretch of it § */
-
-/* WHICH WORLD, in the shape an overworld names them: a number and a place. */
-.map-world { display: flex; align-items: center; justify-content: center; gap: .8rem;
-             margin: .5rem 0 0; }
-.map-world-name { font-size: .72rem; letter-spacing: .1em; text-transform: uppercase;
-                  color: var(--gold); }
-.map-arrow { color: var(--dim); font-size: 1.2rem; padding: .1rem .5rem; cursor: pointer; }
-.map-arrow:active { color: var(--gold); }
-
-/* How many places are on this world's map. `.map-next` — "five more ticks to reach Mitcham" —
-   went with the progression. */
-.map-where { text-align: center; margin: .2rem 0 0; font-size: .82rem; color: var(--dim); }
-
 /* ---------- AN INSTRUMENT, NOT A CARD § */
 .widget-full.solid > .card {
   background: #14161a;
@@ -2806,45 +2730,6 @@ label.bk-k { cursor: pointer; }
 #s-dm .card:has(> .msg-body) > * { flex: 0 0 auto; }
 #s-dm .card:has(> .msg-body) > .msg-body { flex: 0 1 auto; min-height: 4rem; max-height: none; }
 
-/* ---------- THE ARCADE CABINET § */
-.widget-full:has(.map) > .card {
-  background: linear-gradient(#191a1f, #0e0f12);
-  border: 1px solid #2a2d34;
-  border-radius: 14px 14px 6px 6px;
-  padding: 2.1rem .8rem 1.6rem;
-  position: relative;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / .07), 0 18px 40px rgb(0 0 0 / .6);
-}
-/* THE MARQUEE — the lit panel across the top of every cabinet, with the game's name on it. */
-.widget-full:has(.map) > .card::before {
-  content: 'THE OVERWORLD';
-  position: absolute; left: .8rem; right: .8rem; top: .55rem; height: 1.1rem;
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--mono);
-  font-size: .58rem; letter-spacing: .3em;
-  color: #16121b;
-  background: linear-gradient(#ffd76a, #f0a93c);
-  border-radius: 2px;
-  box-shadow: 0 0 14px rgb(240 169 60 / .45);
-}
-.widget-full:has(.map) h3, .widget-full:has(.map) .sub { display: none; }
-/* THE SCREEN, sunk into the shell. */
-.widget-full:has(.map) .map {
-  border: 6px solid #08090b;
-  border-radius: 4px;
-  box-shadow: inset 0 3px 12px rgb(0 0 0 / .7);
-  background: #0a0c10;
-}
-/* The control panel along the bottom: a lip of lighter plastic, the way the shell juts out under
-   the screen to hold the stick and the buttons. */
-.widget-full:has(.map) > .card::after {
-  content: '';
-  position: absolute; left: 0; right: 0; bottom: 0; height: 1.1rem;
-  background: linear-gradient(#22242a, #17181c);
-  border-top: 1px solid #33363d;
-  border-radius: 0 0 6px 6px;
-}
-
 /* ---------- THE SPRINT, IN NEON § */
 .widget-full:has(#tt-idle) > .card {
   background:
@@ -3000,9 +2885,6 @@ label.bk-k { cursor: pointer; }
 /* ---------- A TEXTAREA IS NOT A DIV, AND `touch-action` IS THE ONLY THING THAT SETTLES IT § */
 textarea { touch-action: none; }
 
-/* The map is dragged and pinched in both directions by its own code, so it wants the lot. */
-.map, .map-svg { touch-action: none; }
-
 /* `.pane.scrolls` was here — the class that gave a pane back its vertical gesture once it had overflowed. § */
 
 /* ---------- NO SCROLLBAR ANYWHERE, ON ANYTHING § */
@@ -3093,7 +2975,7 @@ textarea { touch-action: none; }
 /* ---------- THE ONES INSIDE A LINE OF TEXT § */
 /* `.post-edit` WAS IN THIS EXCEPTION LIST and there is no `.post-edit` — the post's ⋯ became a tile with everything else you can do to a post. § */
 /* `.qw` IS NOT UNDERLINED EITHER: § */
-span[data-do]:not(.act):not(.chip):not(.react):not(.map-arrow):not(.cal-arrow):not(.qw),
+span[data-do]:not(.act):not(.chip):not(.react):not(.cal-arrow):not(.qw),
 .text-action, .text-drop {
   text-decoration: underline;
   text-decoration-style: dotted;
@@ -3104,7 +2986,7 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 
 /* ---------- AND THE ONES THAT ARE ALREADY OBVIOUS § */
 .btn::after, .chip::after, .react::after, button.tap::after { content: none; }
-.map-arrow, .cal-arrow, .act, .av-sw, .av-opt, .picker { text-decoration: none; }
+.cal-arrow, .act, .av-sw, .av-opt, .picker { text-decoration: none; }
 
 /* ---------- A POST THAT IS WAITING § */
 .post-wait { color: var(--gold); font-weight: 600; }
@@ -3314,29 +3196,6 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .pane:has(.paper) .paper + .paper { margin-top: .7rem; }
 
 /* The styling for a card opened in place was here, and has gone with the mechanism — see the note in shell.js. § */
-/* ---------- THE OVERWORLD BOARD § */
-/* ---------- THE FRAME, WHICH SCROLLS SIDEWAYS § */
-.map.ow {
-  position: relative;
-  /* `.map` SETS `aspect-ratio: 3/4` — A PORTRAIT BOX, for the old flat map that filled it. § */
-  /* `.map` SETS `aspect-ratio: 3/4` for the flat map. The board is a view through a camera, so it
-     wants a landscape window — a tall thin one shows a strip of street and a lot of sky. */
-  aspect-ratio: 4/3;
-  height: auto;
-  overflow: hidden;
-  /* THE FINGER BELONGS TO THE BOARD. Without this a hold-and-drag to walk is read as a scroll and
-     the tab carousel takes it — which is the one thing that would make walking feel broken. */
-  touch-action: none;
-  border-radius: var(--r);
-  background: #0e1420;
-}
-/* No scrollbar on a board — the content going off the edge is the affordance, and a bar across the
-   bottom of a picture is furniture. */
-.map.ow::-webkit-scrollbar { display: none; }
-.map.ow { scrollbar-width: none; }
-
-/* `.ow-name` AND `.ow-say` STOOD HERE — a floating plate naming whatever the walker was standing on, and a red box for a landmark that would not fit. § */
-
 /* FOUR OBJECTS BECAME ONE, AND THIS IS WHERE THE OTHER THREE LIVED. § */
 
 /* A FESTIVE EVENT IS AN INVITATION. § */
@@ -3375,53 +3234,6 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    word (6 Oct); see me.js. */
 
 /* `.wk` AND ITS PARTS WERE HERE — the grid `Your week` drew. § */
-
-/* THE OVERWORLD. ONE STREET, SEEN FROM THE SIDE, drawn as SVG. § */
-/* ---------- THE SVG KEEPS ITS OWN SIZE § */
-/* THE CANVAS FILLS THE FRAME. Unlike the SVG version there is nothing to scroll — the camera moves
-   through the world instead, which is what 3D is for. */
-.ow-c { display: block; width: 100%; height: 100%; }
-/* One line, once, over the bottom of the board. Somebody who has walked once does not need telling
-   again, and a button over a picture is a button in the way of the picture. */
-.ow-hint {
-  position: absolute; left: 0; right: 0; bottom: 8px;
-  text-align: center; margin: 0;
-  font: 500 .68rem var(--mono); color: rgb(255 255 255 / .38);
-  pointer-events: none;
-}
-.ow {
-  display: block;
-  flex: none;
-  /* Dusk, because the windows are lit and a lit window at noon is a smudge. The gradient is the sky
-     meeting the ground rather than a decoration — it is what puts a horizon behind the buildings
-     without drawing one. */
-  background: linear-gradient(#141b2a 0%, #24242a 62%, #17150f 100%);
-  touch-action: pan-x;
-}
-/* THE SVG BOARD'S RULES STOOD HERE — `.ow-b` for a wall, `.ow-w` for a lit window band, `.ow-n` for a node on the street, `.ow-leg` for the walker's legs. § */
-/* The windows are lit rather than drawn — a fill would be a rectangle on a wall, and a glow is a
-   room with somebody in it. */
-
-/* ---------- THE NAMES ON THE BOARD § */
-.ow-tags { position: absolute; inset: 0; pointer-events: none; }
-.ow-tag {
-  position: absolute; left: 0; top: 0;
-  pointer-events: auto;
-  white-space: nowrap;
-  font: 700 .66rem/1 var(--mono);
-  letter-spacing: .02em;
-  color: #f4ecd8;
-  background: rgb(20 24 18 / .72);
-  border: 1px solid rgb(255 255 255 / .16);
-  border-radius: 5px;
-  padding: .22rem .45rem;
-  /* A label is a thing on top of a board, and a shadow is what says so — without it the type sits
-     inside the picture and reads as painted on the roof. */
-  box-shadow: 0 2px 0 rgb(0 0 0 / .35);
-  transition: opacity .12s linear;
-}
-/* A venue is somewhere you can be taught, which is the one thing on this board worth acting on. */
-.ow-tag.is-venue { color: #17130b; background: var(--gold); border-color: rgb(0 0 0 / .3); }
 
 /* THE SIGNATURE UNDER A BOOK'S DRAWING ON THE SPLASH. § */
 .sp-sig { margin-top: .7rem; font: 600 .72rem/1 var(--mono); letter-spacing: .16em;
@@ -4760,6 +4572,13 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 
 /* ---------- THE ADMIN MARKS SIT AT THE FAR END § */
 .tile-group.is-admin { display: inline-flex; gap: .3rem; margin-left: auto; }
+/* ---------- THE SHEET BEHIND "ADMIN" OR "MORE" (414): a row of its own under the tiles, opened by the tile that names it */
+.tile-sheet { flex: 1 0 100%; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .3rem; padding: .3rem;
+  border: 1px solid var(--line-soft); border-radius: var(--r); background: rgb(255 255 255 / .03); }
+.tile-sheet[hidden] { display: none; }
+.tile.on .tile-i-more { fill: currentColor; }
+/* AN EMPTY WIDGET IS ITS TITLE ALONE (414, `emptyCard_`), so the heading keeps no space for a body under it. */
+.card.is-empty > h3 { margin: 0; }
 /* `.tile-row.is-admin` WAS ALSO DECLARED HERE, setting a margin the block further down immediately
    overrode. Stated once, where the rest of the admin row is described. */
 
@@ -6019,6 +5838,10 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 .nb-pad .nb-line { position: absolute; right: 6px; bottom: 6px; z-index: 1;
   background: var(--paper); border-color: var(--paper-rule); color: var(--paper-dim); }
 .nb-bar { justify-content: center; margin: 0; flex: none; }
+/* SIX TOOLS DO NOT FIT THE WHITEBOARD'S 272px AT A PHONE'S WIDTH; two even rows of three rather than five and an orphan (414, check/ui.js). */
+@media (max-width: 430px) and (orientation: portrait) {
+  .nb-bar { display: grid; grid-template-columns: repeat(3, 44px); justify-content: center; }
+}
 .nb-note { text-align: center; margin: 0; flex: none; font: 400 .62rem/1.4 var(--font); color: var(--faint); }
 /* ON ITS SIDE: the page over the pad in the full height, the star, heading, tiles and note beside them (the old board's arrangement). */
 @media (orientation: landscape) and (max-height: 500px) {

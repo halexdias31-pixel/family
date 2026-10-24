@@ -4099,6 +4099,75 @@ on('wg-pick', el => {
   initWordGames();
 });
 
+/* BOARD GAMES (414) — Connect 4, Othello and Scrabble in one widget, built as the word games are (238). Two players or more on one phone, so none needs a `stop`. */
+const BOARD_GAMES = [
+  { k: 'c4', name: 'Connect 4', start: () => initConnect4(),
+    body: `<p class="sub">Two players, one phone. Red starts. Tap a column; four in a line, any direction.</p>
+    <div id="c4-board" class="c4"></div>
+    <p class="note" id="c4-said" style="text-align:center;margin:.5rem 0 0"></p>
+    <button class="btn quiet" data-do="c4-again">New game</button>` },
+  { k: 'oth', name: 'Othello', start: () => initOthello(),
+    body: `<p class="sub">Two players, one phone. Red starts. Trap a line of the other colour between two
+       of yours.</p>
+    <div id="oth-board" class="oth"></div>
+    ${rowLive('Red \u2013 Blue', '2 \u2013 2', 'oth-score')}
+    <p class="note" id="oth-said" style="text-align:center;margin:.5rem 0 0"></p>
+    <button class="btn quiet" data-do="oth-again">New game</button>` },
+  /* SCRABBLE KEEPS ITS GAME across a switch: its state is `scrabble`, and `initScrabble` only paints it. The action row is built by `scrabblePaint`, empty until there is a turn. */
+  { k: 'scr', name: 'Scrabble', start: () => initScrabble(),
+    body: `<p class="sub">Two to four players, one phone. Words stand unless somebody challenges them —
+       that part is yours.</p>
+    <div id="scr-who" class="scr-who"></div>
+    <div id="scr-board" class="scr"></div>
+    <div id="scr-rack-box" class="scr-box"></div>
+    <div id="scr-acts" class="scr-acts"></div>
+    <p class="note" id="scr-said" style="text-align:center;margin:.5rem 0 0"></p>
+    <div id="scr-start" class="btn-row">
+      <button class="btn" data-do="scr-new" data-n="2">2 players</button>
+      <button class="btn" data-do="scr-new" data-n="3">3</button>
+      <button class="btn" data-do="scr-new" data-n="4">4</button>
+    </div>` },
+];
+function bgGame_(k) { return BOARD_GAMES.find(g => g.k === k) || BOARD_GAMES[0]; }
+/* REMEMBERED ON THE DEVICE under `bg-game`, `wg-game`'s rule. */
+function bgChosen_() {
+  let k = '';
+  try { k = localStorage.getItem('bg-game') || ''; } catch (e) {}
+  return bgGame_(k).k;
+}
+function bgOptions_() {
+  const k = bgChosen_();
+  return BOARD_GAMES.map(x =>
+    `<option value="${esc(x.k)}"${x.k === k ? ' selected' : ''}>${esc(x.name)}</option>`).join('');
+}
+function bgSlot_() {
+  const g = bgGame_(bgChosen_());
+  return `<div data-g="${esc(g.k)}" class="bg-game">${g.body}</div>`;
+}
+/* THE PICKER AND THE CHOSEN BOARD'S MARKUP — the widget's `draw`; rebuilt only when the game changed. */
+function bgPaint_() {
+  const slot = $('bg-slot'), sel = $('bg-pick');
+  if (!slot) return false;
+  const g = bgGame_(bgChosen_());
+  if (sel && sel.value !== g.k) sel.innerHTML = bgOptions_();
+  const now = slot.firstElementChild;
+  if (!now || now.getAttribute('data-g') !== g.k) slot.innerHTML = bgSlot_();
+  return g;
+}
+function initBoardGames() {
+  const g = bgPaint_();
+  if (g) g.start();
+}
+/* NOTHING RUNS BETWEEN MOVES, so leaving stops nothing; declared so the widget has the word games' shape. */
+function boardGamesStop_() {}
+on('bg-pick', el => {
+  const k = bgGame_(el.value).k;
+  try { localStorage.setItem('bg-game', k); } catch (e) {}
+  const slot = $('bg-slot');
+  if (slot) slot.innerHTML = '';
+  initBoardGames();
+});
+
 /* TOUCH TYPING — the `typing` widget on the Tools column. § */
 
 /* THE LADDER. `keys` is every letter the lesson may use; `fresh` is what it adds, and a line leans towards words that hold one, because a home-row word in the § */
@@ -4943,32 +5012,6 @@ document.addEventListener('keydown', e => {
   }
   if (/^Arrow/.test(e.key || '')) e.stopPropagation();
 }, true);
-
-/* ---------- SUPERTUX: someone else's game, framed only on request (docs/history/363) */
-const TUX_VERSION = 'v0.7.0';
-const TUX_SOURCE = 'https://github.com/SuperTux/supertux/tree/' + TUX_VERSION;
-const TUX_GET = 'https://github.com/SuperTux/supertux/releases/tag/' + TUX_VERSION;
-/* The web build to frame; empty means none is set, and Play leaves for the official downloads. */
-const tuxUrl_ = () => String(brand('supertux_url', '') || '').trim();
-function tuxPaint_() {
-  const tiles = $('tux-tiles'), lic = $('tux-licence');
-  if (!tiles || !lic) return;
-  const url = tuxUrl_();
-  tiles.innerHTML = url
-    ? tile_({ icon: 'play', label: 'Play', act: 'tux-play' }) + tile_({ icon: 'full', label: 'Full screen', href: url })
-    : tile_({ icon: 'ext', label: 'Get SuperTux', href: TUX_GET });
-  lic.innerHTML = `SuperTux ${TUX_VERSION} · code GPL-3.0, art CC-BY-SA / GPL ·
-    <a href="${esc(TUX_SOURCE)}" target="_blank" rel="noopener" class="tux-src">source and licences</a>`;
-}
-function tuxPlay_() {
-  const stage = $('tux-stage'), url = tuxUrl_();
-  if (!stage || !url) return;
-  stage.setAttribute('aria-busy', 'true');
-  stage.innerHTML = loading_() + `<iframe class="tux-frame" title="SuperTux" src="${esc(url)}"
-    allow="fullscreen; gamepad; autoplay" allowfullscreen></iframe>`;
-  stage.querySelector('iframe').addEventListener('load', () => loaded_(stage), { once: true });
-}
-on('tux-play', tuxPlay_);
 
 /* ---------- CONSOLE: an NES player, and only the player (docs/history/389; SNES, Game Boy and N64 files too, 391) */
 /* The engine is jsnes (Apache-2.0), fetched only when Play is pressed. The game file is the person's own:

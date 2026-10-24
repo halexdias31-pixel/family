@@ -11,9 +11,9 @@ const strip=t=>t.replace(/\/\*[\s\S]*?\*\//g,'').replace(/\/\/.*/g,'');
 const KEEP=new Set(['doGet','doPost','missingKeys','layout',
   'ensureSchema_','checkEverything','checkPostsFolder','checkScopes','authoriseDrive',
   'makeBrandAccount','installTriggers_','listTriggers',
-  'refreshPageCounts','closeFinishedJobs','geocodeVenues','fetchMap','renameValue_',
+  'refreshPageCounts','closeFinishedJobs','geocodeVenues','renameValue_',
   'seedOptions','ensureResourceIds','schemaGaps','dataProblems','autoMigrate_',
-  'seedConfig_','seedAvatarItems_','seedPostcodes','ensurePersonIds_','gallery','landmarks',
+  'seedConfig_','seedAvatarItems_','seedPostcodes','ensurePersonIds_',
   /* THE CHECKS' QUESTION "is the builder done?" (docs/history/341) — asked by check-flow, swipe, reach, press
      and ui through the page, and by nothing in the app, which never needs to wait for itself. */
   'aheadBusy_']);

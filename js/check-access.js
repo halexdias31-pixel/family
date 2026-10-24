@@ -37,9 +37,6 @@ const asked = [...new Set([...front.matchAll(/action:\s*'(\w+)'/g)].map(m => m[1
 
 /* ---------- ACTIONS WITH NO HANDLER, KNOWN ABOUT, WITH A REASON EACH § */
 const ACCEPTED_MISSING = {
-  acceptTerms: 'terms.js posts it; no handler anywhere in backend/, and the payload has no '
-             + 'termsAccepted or termsAcceptedWhen to read back. The signature half of the terms '
-             + 'feature was never built. See CLAUDE.md.',
 };
 
 const unclassified = handlers.filter(a => !classified.has(a));

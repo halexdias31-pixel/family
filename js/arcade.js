@@ -16,16 +16,6 @@ const CALC_KEYS = [
 ];
 
 /* THE WIDGETS — nine things you USE rather than things you find. § */
-/* THE OVERWORLD. Your venues as a map you move across, and the point of it is the thing a real map cannot do: § */
-
-/* Somewhere you can stand. § */
-const mapPlaces = () => (DATA.venues || []).filter(v => {
-  if (!v.title) return false;
-  /* BY NAME, NOT BY RATE. § */
-  return !/^online$/i.test(String(v.title).trim())
-      && !/\b(home|house|client\s*(house|home|place)|your venue)\b/i.test(v.title);
-});
-
 /* TOOLS AND GAMES, AS COLUMNS THEY WERE ALREADY REACHABLE — `What for · Tools` and `What for · Games` are answers in the funnel and always have been. § */
 
 /* ---------- WHAT THIS PERSON MAY OPEN § */
@@ -78,7 +68,8 @@ function savedWidgets_() {
      whoever is signed in next. */
   /* `shop` TOO, since the basket moved there: a basket starred while it was a tool is the same
      `w:cart` key, and it would have dropped off Saved the day it changed column. */
-  return allWidgets().filter(w => (w.kind === 'tool' || w.kind === 'game' || w.kind === 'shop')
+  /* `reel` TOO (414): Videos and One more thing lead the Reels column now, and their stars are the same `w:` keys. */
+  return allWidgets().filter(w => (w.kind === 'tool' || w.kind === 'game' || w.kind === 'shop' || w.kind === 'reel')
                                && isFav(WIDGET_KEY(w)))
     .filter(widgetFor_);
 }
@@ -87,8 +78,7 @@ function savedCards_() {
   /* SIGNED OUT THERE IS NO LIST, because `FAVS` is this device's and `savedPages_` has always said
      so. One sentence rather than an empty column — the `nothingHere` rule. */
   if (typeof USER === 'undefined' || !USER) {
-    return [`<div class="card"><h3>Saved</h3><p class="note">Sign in and the things you star are
-      kept here.</p></div>`];
+    return [emptyCard_('Saved')];
   }
   const wgts = savedWidgets_().map(widgetOnColumn_);
   const rest = typeof savedPages_ === 'function' ? savedPages_() : [];
@@ -98,9 +88,7 @@ function savedCards_() {
     || (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null && !LIBRARY_FAILED);
   const cards = wgts.concat(rest, coming ? [loading_()] : []);
   if (cards.length) return cards;
-  return [`<div class="card"><h3>Saved</h3><p class="note">Nothing kept yet.<br>
-    <span class="faint">Press <b>Save</b> on a tool, a game or anything you find and it turns up
-    here.</span></p></div>`];
+  return [emptyCard_('Saved')];
 }
 
 /* STARTED AND STOPPED LIKE THE OTHER TWO COLUMNS. A starred timer is a running timer, and a canvas
@@ -175,9 +163,11 @@ function toolsStart_(kind, arriving) {
 }
 
 /* WHICH WIDGETS A COLUMN HOLDS, by its id — the lists `toolsStart_` and `savedStart_` start from, asked by `widgetsGlass_` of a column beside the one in front. § */
-const WIDGET_COLS = ['shop', 'tools', 'games', 'saved'];
+/* `reel` (414): the widgets leading the Reels column, before the admin's "+" and the first reel (`reelLead_`, posts.js). */
+const WIDGET_COLS = ['shop', 'tools', 'games', 'saved', 'reel'];
 function widgetsOn_(col) {
   if (col === 'saved') return savedWidgets_();
+  if (col === 'reel') return widgetsOf_('reel');
   if (col === 'tools') return widgetsOf_('tool');
   if (col === 'games') return widgetsOf_('game');
   if (col === 'shop') return widgetsOf_('shop');

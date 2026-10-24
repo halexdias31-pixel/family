@@ -849,6 +849,25 @@ function inspect(opts) {
     }
   }
 
+  /* ---------- A TILE ALONE ON A SECOND LINE (414) — at a phone's width a row of tiles is one line, or its overflow is behind "Admin"/"More" (`tileRow_`, tiles.js) */
+  found.orphans = [];
+  if (vw <= 430) {
+    inside.filter(el => el.classList && el.classList.contains('tile-row')).forEach(row => {
+      const tiles = [...row.children].flatMap(k => (k.classList.contains('tile-group') ? [...k.children] : [k]))
+        .filter(k => k.classList.contains('tile') && vis(k));
+      const lines = [];
+      tiles.forEach(k => {
+        const top = Math.round(k.getBoundingClientRect().top);
+        const ln = lines.find(l => Math.abs(l.top - top) <= 4);
+        if (ln) ln.n++; else lines.push({ top, n: 1 });
+      });
+      if (lines.length > 1 && lines.sort((a, b) => a.top - b.top)[lines.length - 1].n === 1) {
+        found.orphans.push({ cls: String(row.className || ''), lines: lines.map(l => l.n).join('+'),
+          acts: tiles.map(k => k.getAttribute('data-do') || k.getAttribute('aria-label') || '').join(' ') });
+      }
+    });
+  }
+
   return { found, guessed, edgeN,
            pane: live === document.body ? 'body' : (live.id || live.className || live.tagName),
            counted: inside.length };
@@ -1250,7 +1269,8 @@ function inspect(opts) {
             });
           });
           if (!n) out.push('the reel column drew no Sound tile to measure');
-          else if (!hitN) out.push('no Sound tile on the reel column was in view to hit-test — the reel in front always has one');
+          /* NOT WHEN A WIDGET LEADING THE COLUMN IS IN FRONT (414): Videos and One more thing are pages before the first reel. */
+          else if (!hitN && !(typeof REEL_LEAD === 'number' && (PAGE.reel || 0) < REEL_LEAD)) out.push('no Sound tile on the reel column was in view to hit-test — the reel in front always has one');
           return { out, n, hitN };
         }, { sid: id, minTap: MIN_TAP });
         soundMeasured += sound.n;
@@ -1494,6 +1514,8 @@ function inspect(opts) {
       `${f} still holds the loader that stands for "not started", 3s after the screen settled`, at));
     (r.offGlass || []).forEach(f => add('A WIDGET OFF THE GLASS STARTED',
       `${f} is running beside the column in front, 3s after the screen settled`, at));
+    (r.orphans || []).forEach(o => add('A TILE ALONE ON A SECOND LINE',
+      `.${o.cls.replace(/\s+/g, '.')} wraps ${o.lines} tiles (${o.acts.slice(0, 120)})`, at));
     (r.overflow || []).forEach(o => add('SIDEWAYS SCROLL',
       `${o.tag}.${o.cls.split(/\s+/)[0] || ''} overflows by ${o.by}px`, at));
     (r.hidden || []).forEach(o => add(o.tol ? 'OUT OF REACH, INSIDE THE APP\'S OWN FLOOR (known)'

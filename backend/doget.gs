@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-24-h-library-import";
+const DOGET_VERSION = "2026-10-24-j-stripe-dead";
 
 
 function doGet(e) {
@@ -90,29 +90,6 @@ function doGet(e) {
 
     /* `?pages=1` AND `?pages=all` WERE HERE. § */
 
-    // The showcase on its own. Listing a Drive folder is a round-trip to another Google service
-    // and by far the slowest thing here — everything else is sheet reads. Fetched separately by
-    // the site AFTER the page has drawn, so a slow or unauthorised Drive can no longer hold up
-    // eleven sections that have nothing to do with it. That was the whole 45-second timeout: one
-    // optional picture gallery blocking the entire site.
-    /* ONE WORLD'S GROUND, on its own. § */
-    if (p.map) {
-      const want = S(p.map);
-      const shapes = read(TAB.map).rows
-        .filter(r => key(S(r.world)) === key(want) && S(r.points))
-        .map(r => ({ kind: S(r.kind), name: S(r.name),
-          /* Parsed here rather than on the phone: a malformed cell should be one shape without a
-             height, not an exception in the middle of drawing a map. */
-          meta: (function () { try { return JSON.parse(S(r.meta) || '{}'); } catch (e) { return {}; } })(),
-          points: S(r.points).split(',').map(q => {
-            const b = q.trim().split(/\s+/);
-            return [Number(b[0]), Number(b[1])];
-          }).filter(q => q[0] && q[1]) }));
-      return jsonOut({ version: BACKEND_VERSION, world: want, shapes: shapes,
-        /* ODbL asks for this, and the map shows it. */
-        attribution: 'Map data © OpenStreetMap contributors' });
-    }
-
     /* SOMEBODY'S OWN RECEIPTS. Their own only — a receipt names what a family paid, and the list of
        them is the shape of a household's year. */
     if (p.receipts) {
@@ -137,11 +114,6 @@ function doGet(e) {
           try { return JSON.parse(S(r.lines) || '[]'); } catch (e) { return []; }
         })(),
       })) });
-    }
-
-    if (p.galleryOnly) {
-      const gal = gallery();
-      return jsonOut({ version: BACKEND_VERSION, gallery: gal.files, galleryError: gal.error });
     }
 
     // ?triggers=1 installs the nightly jobs; ?triggers=list shows what's scheduled.
@@ -315,13 +287,12 @@ function doGet(e) {
       /* ---------- `claims` WAS NEVER IN THIS LITERAL, AND `payload.claims.push` THREW § */
       claims: [],
       /* `links: []` WAS FIRST ON THIS LINE. See "`links` IS NOT SENT AT ALL NOW" below. */
-      shop: [], promotions: [], intervals: [], landmarks: [],
+      shop: [], promotions: [], intervals: [],
       campaigns: [],
       /* What the search funnel asks and what it calls it — see SCHEMA.facets. */
       facets: [],
       /* And what its first two questions answer — see SCHEMA.kinds. */
       kinds: [],
-      gallery: [], galleryError: '',
       profileFields: PROFILE_GROUPS, clientFields: CLIENT_GROUPS, phoneCodes: PHONE_CODES,
       studentFields: STUDENT_GROUPS, venueFields: VENUE_GROUPS,
       /* `resourceFields` AND `resourceOptions` WERE HERE — the admin form that relabelled a document, built from the server's own allow-list so it could not offer a § */
@@ -961,11 +932,6 @@ function doGet(e) {
     payload.splashOff = [];
 
     /* WHATEVER CAMPAIGN IS RUNNING TODAY. § */
-    /* --- landmarks: buildings measured by hand ------------------------------------------------
-       Small enough to ride here — a name and six numbers each — where the fetched OSM geometry is
-       megabytes and stays behind `?map=`. */
-    payload.landmarks = landmarks();
-
     // --- terms -> intervals -------------------------------------------------------------------
     /* ---------- FROM THE COMPUTED YEAR, NOT STRAIGHT OFF THE TAB § */
     const yNow = (new Date()).getMonth() >= 7
