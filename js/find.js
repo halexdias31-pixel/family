@@ -1201,31 +1201,57 @@ const tbSub_ = html => String(html).replace(/[₀-₉ₐₑₒₓₙₛₜ]+/g,
 const tbHigher_ = on => on ? '<span class="tb-h" title="Higher tier only">H</span>' : '';
 
 /* ---------- A CONTENT CARD: ONE CHAPTER, WHOLE, WITH THE QUESTIONS' TAGS ON IT § */
+/* ONE WIDGET PER THING (408): the card is its title, its tags and its key words; formulas, worked lines and each drawing are
+   pages of their own, each titled (`contentPart_`). */
 function contentCard_(x) {
   const c = x.row;
   return `<div class="card fc prac tb ct">
     <div class="fc-head"><h3>${esc(x.name)}</h3></div>
     ${tagRow_(x)}
-    ${tbSections_(c)}
+    ${tbSections_(c, null, { only: 'words' })}
+  </div>`;
+}
+
+/* A CONTENT CARD'S OTHER PAGES AND THEIR TITLES, ONE PLACE (408): `check-flow`'s one-widget journey reads the same table. */
+const CONTENT_PAGE = { formulas: 'Formulas', worked: 'Worked examples' };
+function contentPageTitle_(x, part) {
+  if (!part) return String((x && x.name) || '');
+  if (CONTENT_PAGE[part]) return CONTENT_PAGE[part];
+  const m = /^an(\d+)-([a-z0-9]+)$/.exec(String(part));
+  const a = m && x && x.row && ((x.row.animations || []).find(y => y.id === m[2]));
+  return a ? 'Watch: ' + a.title : '';
+}
+function contentPart_(x, part) {
+  if (!CONTENT_PAGE[part]) return textbookAnimPart_(x, part);
+  const c = x.row;
+  return `<div class="card fc prac prac-part tb tb-page is-${part}">
+    <p class="fc-kick">${esc([c.subject, c.title].filter(Boolean).join(' · '))}${tbHigher_(c.higher)}</p>
+    <h3>${esc(CONTENT_PAGE[part])}</h3>
+    ${tbSections_(c, null, { only: part === 'worked' ? 'points' : 'formulas', bare: true })}
   </div>`;
 }
 
 /* ---------- A CHAPTER'S KEY WORDS, FORMULAS AND WORKED LINES — ALL OF THEM, OR THE ONES ASKED FOR § */
-function tbSections_(c, keep) {
+/* `opt.only` draws one section ('words' | 'formulas' | 'points'); `opt.bare` drops its heading, as the page's own title says it (408). */
+function tbSections_(c, keep, opt) {
+  opt = opt || {};
+  const want = s => !opt.only || opt.only === s;
+  const h4 = t => (opt.bare ? '' : `<h4>${t}</h4>`);
   const line = (i, body) => `<li>${body}${tbHigher_(i.higher)}</li>`;
   const named = i => !keep || keep.indexOf(i.name) !== -1;
   /* A WORKED LINE IS NAMED BY HOW IT OPENS — "Exact values: sin 30° …" is about Exact values — and the
      next character must not carry the word on: "Mean" is not the opening of "Meanwhile". */
   const opens = p => !keep || keep.some(k => p.text.indexOf(k) === 0 && !/[A-Za-z0-9]/.test(p.text.charAt(k.length)));
-  const words = c.words.filter(named), formulas = c.formulas.filter(named), points = c.points.filter(opens);
-  return `${words.length ? `<section class="fc-sec tb-words"><h4>Key words</h4><ul class="fc-list">${
+  const words = want('words') ? c.words.filter(named) : [], formulas = want('formulas') ? c.formulas.filter(named) : [];
+  const points = want('points') ? c.points.filter(opens) : [];
+  return `${words.length ? `<section class="fc-sec tb-words">${h4('Key words')}<ul class="fc-list">${
       words.map(w => line(w, `<b>${esc(w.name)}</b> — ${tbSub_(esc(w.text))}`)).join('')}</ul></section>` : ''}
     ${/* THE MARK ON THE FORMULA'S NAME, not after the formula: a stacked fraction is two lines tall
          and an `H` trailing it sat alone on a third, measured at 320px. */''}
-    ${formulas.length ? `<section class="fc-sec tb-math"><h4>Formulas</h4><ul>${
+    ${formulas.length ? `<section class="fc-sec tb-math">${h4('Formulas')}<ul>${
       formulas.map(f => `<li><span class="tb-fn">${esc(f.name)}${tbHigher_(f.higher)}</span><span class="tb-fm">${
         tbMath_(f.text)}</span></li>`).join('')}</ul></section>` : ''}
-    ${points.length ? `<section class="fc-sec tb-points"><h4>Worked</h4><ul class="fc-list">${
+    ${points.length ? `<section class="fc-sec tb-points">${h4('Worked')}<ul class="fc-list">${
       points.map(p => line(p, tbMath_(p.text))).join('')}</ul></section>` : ''}`;
 }
 
@@ -1240,10 +1266,11 @@ function textbookAnimPart_(x, part) {
   animStyle_(a);
   return `<div class="card fc prac prac-part tb tb-an is-${esc(part)}">
     <p class="fc-kick">${esc([c.subject, c.title].filter(Boolean).join(' · '))}${tbHigher_(c.higher)}</p>
-    <h3>${esc(a.title)}</h3>
+    <h3>${esc(contentPageTitle_(x, part))}</h3>
     <div class="tb-an-stage" data-anim="${esc(a.id)}">${animIds_(a.html, ++TB_AN_SEQ)}</div>
+    ${/* ITS CAPTION, NOT A SECOND WIDGET (408): the lines `about` names, under the drawing with no headings, then its tile. */''}
+    <section class="tb-about">${tbSections_(c, a.about, { bare: true })}</section>
     <div class="tile-row">${tile_({ icon: 'undo', label: 'Play again', note: 'from the start', act: 'tb-an-again' })}</div>
-    <section class="tb-about">${tbSections_(c, a.about)}</section>
   </div>`;
 }
 
@@ -1807,9 +1834,12 @@ function pageParts_(x, prev) {
     out.push('share');
     return out;
   }
-  /* A CONTENT CARD IS ITSELF AND A PAGE PER ANIMATION, in the file's order: § */
+  /* A CONTENT CARD IS ITSELF, A PAGE PER ANIMATION in the file's order, then its Formulas and its Worked examples (408):
+     one titled page per thing, and a page only where the row has the thing. */
   if (x && x.kind === 'content' && x.row) {
-    return [null].concat((x.row.animations || []).map(a => 'an' + x.row.n + '-' + a.id));
+    const c = x.row;
+    return [null].concat((c.animations || []).map(a => 'an' + c.n + '-' + a.id),
+      (c.formulas || []).length ? ['formulas'] : [], (c.points || []).length ? ['worked'] : []);
   }
   /* THE BIBLE HAS NO BRANCH HERE ANY MORE. Its cover and each of its verses are one page, the
      default below; the cover's three lists of books and the open book's pages went with the reader
@@ -1861,7 +1891,7 @@ function keptPages_(items, credits) {
 function stuffPart_(x, part) {
   if (libSlim_(x)) { libWant_(x); return libWaitHtml_(x); }
   if (x && x.kind === 'project') return projectPart_(x, part);
-  if (x && x.kind === 'content') return textbookAnimPart_(x, part);
+  if (x && x.kind === 'content') return contentPart_(x, part);
   if (x && x.kind === 'boxer') return boxerPart_(x, part);
   if (x && x.kind === 'question' && part === 'ans') return questionAnsCard_(x);
   if (x && x.kind === 'question' && /^stem\d+(-\d+)?$/.test(part)) {
