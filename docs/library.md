@@ -81,8 +81,8 @@ commit, and `check/lib-full.js` would call the row lost ("run pull"). Such a row
   library yet." (`libSay_`, `pending` on the chapter in `library.js`).
 
 Its words reach the Ledger by an import file (`lib-import-*.json`, `{version: 1, files: {textbooks: [{id, …private
-fields}]}}`, which the owner imports in Business) or by `push`. The marker stays on afterwards: a fresh clone's seed still
-lacks the words. First used by `TB-ALEVEL-MATHS` (docs/history/411).
+fields}]}, cards: […]}`, which the owner imports in Business) or by `push`. The marker stays on afterwards: a fresh clone's seed still
+lacks the words. Used by the content batch — `TB-ALEVEL-MATHS` (411), the philosophy chapters `TB-PHIL` (418).
 
 ## The checks
 

@@ -83,5 +83,12 @@
 {"splash_id":"phwave","name":"Two kinds of wave","kind":"proof","shows":"a transverse and a longitudinal wave side by side; one particle stays put","note":"","active":true},
 {"splash_id":"phem","name":"The electromagnetic spectrum","kind":"proof","shows":"a window sliding from radio to gamma, naming each group and a use","note":"","active":true},
 {"splash_id":"phrefr","name":"Refraction in a glass block","kind":"proof","shows":"a ray slows and bends towards the normal in glass, and leaves parallel","note":"","active":true},
-{"splash_id":"phmotor","name":"The motor effect","kind":"proof","shows":"a current across a magnetic field is pushed; reversed, pushed back; Fleming","note":"","active":true}
+{"splash_id":"phmotor","name":"The motor effect","kind":"proof","shows":"a current across a magnetic field is pushed; reversed, pushed back; Fleming","note":"","active":true},
+{"splash_id": "psyll", "name": "Syllogisms in circles", "kind": "proof", "shows": "a valid and an invalid syllogism tested with circles", "note": "Philosophy", "active": true},
+{"splash_id": "pfall", "name": "A gallery of fallacies", "kind": "tool", "shows": "straw man, ad hominem and false dilemma, each with why it fails", "note": "Philosophy", "active": true},
+{"splash_id": "pcause", "name": "A chain of causes", "kind": "proof", "shows": "causes regressing to a first cause, and Hume's reply", "note": "Philosophy", "active": true},
+{"splash_id": "pwatch", "name": "Paley's watch", "kind": "proof", "shows": "a stone, a watch and the eye; then the reply from natural selection", "note": "Philosophy", "active": true},
+{"splash_id": "ptrolley", "name": "The trolley problem", "kind": "tool", "shows": "one scene, a utilitarian and a Kantian verdict", "note": "Philosophy", "active": true},
+{"splash_id": "pcave", "name": "Plato's cave", "kind": "tool", "shows": "shadows on the wall, the turn to the fire, the climb to the sun", "note": "Philosophy", "active": true},
+{"splash_id": "pdoubt", "name": "Doubting down to the cogito", "kind": "proof", "shows": "the senses, dreams and the demon doubted away to I think, therefore I am", "note": "Philosophy", "active": true}
 ]
