@@ -27,5 +27,22 @@
 {"splash_id": "half3", "name": "Half, three ways", "kind": "tool", "shows": "½ = 0.5 = 50%", "note": "", "active": true},
 {"splash_id": "mxc", "name": "y = mx + c", "kind": "proof", "shows": "the line turning as m changes", "note": "", "active": true},
 {"splash_id": "orbit", "name": "The solar system", "kind": "proof", "shows": "eight planets round the Sun, each at its real period", "note": "Kepler", "active": true},
-{"splash_id": "fit", "name": "How many fit?", "kind": "proof", "shows": "how many 3s fit into 4: one, and a third of the next", "note": "", "active": true}
+{"splash_id": "fit", "name": "How many fit?", "kind": "proof", "shows": "how many 3s fit into 4: one, and a third of the next", "note": "", "active": true},
+{"splash_id": "aroot2", "name": "√2 is irrational", "kind": "proof", "shows": "√2 = a ÷ b in lowest terms, then a and b both even", "note": "A-level", "active": true},
+{"splash_id": "aparam", "name": "A curve from a parameter", "kind": "tool", "shows": "x = 2 cos t, y = sin 2t tracing a figure of eight", "note": "A-level", "active": true},
+{"splash_id": "apascal", "name": "Pascal and (a + b)ⁿ", "kind": "proof", "shows": "Pascal's triangle giving (a + b)⁴", "note": "A-level", "active": true},
+{"splash_id": "ageom", "name": "Summing to infinity", "kind": "proof", "shows": "½ + ¼ + ⅛ + … closing in on 1", "note": "A-level", "active": true},
+{"splash_id": "aunit", "name": "Radians and the unit circle", "kind": "tool", "shows": "the unit circle laying out sin θ against θ in radians", "note": "A-level", "active": true},
+{"splash_id": "aexp", "name": "eˣ and its mirror, ln x", "kind": "proof", "shows": "eˣ with gradient equal to height, folded into ln x", "note": "A-level", "active": true},
+{"splash_id": "afirst", "name": "From chord to tangent", "kind": "proof", "shows": "the chord PQ turning into the tangent as h → 0", "note": "A-level", "active": true},
+{"splash_id": "achain", "name": "The chain rule", "kind": "proof", "shows": "a nudge stretched ×3 then ×8", "note": "A-level", "active": true},
+{"splash_id": "ariemann", "name": "Rectangles to an integral", "kind": "proof", "shows": "4, 8, 16, 32 rectangles closing in on ∫₀² x² dx", "note": "A-level", "active": true},
+{"splash_id": "avec3", "name": "A vector in three dimensions", "kind": "tool", "shows": "3i + 2j + 4k as the diagonal of a box", "note": "A-level", "active": true},
+{"splash_id": "abinom", "name": "The shape of B(n, p)", "kind": "tool", "shows": "B(10, p) as p goes 0.2, 0.5, 0.8", "note": "A-level", "active": true},
+{"splash_id": "anormal", "name": "Area under the normal curve", "kind": "tool", "shows": "the area to the left of z under N(0, 1)", "note": "A-level", "active": true},
+{"splash_id": "ahyp", "name": "Finding the critical region", "kind": "tool", "shows": "the upper tail of B(20, 0.5) built to 5%", "note": "A-level", "active": true},
+{"splash_id": "aproj", "name": "A projectile, in two parts", "kind": "tool", "shows": "a projectile's two velocity components", "note": "A-level", "active": true},
+{"splash_id": "aincline", "name": "Resolving on a slope", "kind": "tool", "shows": "mg resolved along and into a 30° slope", "note": "A-level", "active": true},
+{"splash_id": "apulley", "name": "Two masses, one string", "kind": "tool", "shows": "5 kg and 3 kg over a pulley, a = 2.45 m/s²", "note": "A-level", "active": true},
+{"splash_id": "amoment", "name": "Balancing moments", "kind": "tool", "shows": "20 N slid out until it balances 30 N at 2 m", "note": "A-level", "active": true}
 ]
