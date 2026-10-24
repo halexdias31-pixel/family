@@ -27019,6 +27019,25 @@ check('read aloud: a KS2 question has the tile and a GCSE one does not; it says 
   else {
     if (!tileOf(ctKs2)) bad.push('the KS2 content card "' + ctKs2.name + '" has no Read aloud tile');
     if (tileOf(ctGcse)) bad.push('the GCSE content card "' + ctGcse.name + '" carries the Read aloud tile');
+    /* HEAR IT (427): a French card says its worked lines' French halves, each in fr-FR; a maths card has no Hear it. */
+    const ctFr = ct.find(x => x.subject === 'French' && x.row && (x.row.points || []).length);
+    const ctMaths = ct.find(x => x.subject === 'Maths');
+    if (!ctFr || !ctMaths) bad.push('no French or no Maths content card with worked lines — Hear it was NOT checked');
+    else {
+      host.innerHTML = w.stuffCard(ctFr);
+      const ht = host.querySelector('[data-do="hear-it"]');
+      if (!ht) bad.push('the French content card "' + ctFr.name + '" has no Hear it tile');
+      else {
+        said.length = 0;
+        t.ACTIONS['hear-it'](ht);
+        const fr = said.filter(u => u.text), want = ctFr.row.points.map(p => p.text.split(' — ')[0].trim());
+        if (fr.map(u => u.text).join(' | ') !== want.join(' | ')) bad.push('Hear it on "' + ctFr.name + '" said ' + JSON.stringify(fr.map(u => u.text)) + ', wanted ' + JSON.stringify(want));
+        if (!fr.length || fr.some(u => u.lang !== 'fr-FR')) bad.push('Hear it spoke in ' + JSON.stringify(fr.map(u => u.lang)) + ', wanted fr-FR');
+      }
+      host.innerHTML = w.stuffCard(ctMaths);
+      if (host.querySelector('[data-do="hear-it"]')) bad.push('the Maths content card "' + ctMaths.name + '" carries Hear it');
+      said.length = 0;
+    }
   }
   let tile = tileOf(ks2);
   if (!tile) return bad.concat(['the KS2 question Q-STA-KS2-2024-P1-28 has no Read aloud tile']);

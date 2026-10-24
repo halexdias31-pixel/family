@@ -165,5 +165,10 @@
 {"splash_id": "ecrates", "name": "How a rate rise works through", "kind": "tool", "shows": "a base-rate rise passing down to spending and inflation", "note": "GCSE Economics", "active": true},
 {"splash_id": "ecfx", "name": "The pound, exports and imports", "kind": "tool", "shows": "a shirt and a game repriced as the pound rises to $1.50 and falls to $1.00", "note": "GCSE Economics", "active": true},
 {"splash_id": "ecbreakeven", "name": "Building a break-even chart", "kind": "tool", "shows": "FC, TC and TR drawn in, break-even at 500 units and the margin of safety", "note": "GCSE Business", "active": true},
-{"splash_id": "eccashflow", "name": "A cash-flow forecast, month by month", "kind": "tool", "shows": "six months of balances, each closing balance carried to the next", "note": "GCSE Business", "active": true}
+{"splash_id": "eccashflow", "name": "A cash-flow forecast, month by month", "kind": "tool", "shows": "six months of balances, each closing balance carried to the next", "note": "GCSE Business", "active": true},
+{"splash_id": "laconj", "name": "Endings onto the stem", "kind": "proof", "shows": "hablar's endings sliding onto the stem habl-", "note": "", "active": true},
+{"splash_id": "lagend", "name": "The adjective follows the noun", "kind": "proof", "shows": "el chico alto turning feminine and plural, ending by ending", "note": "", "active": true},
+{"splash_id": "labuild", "name": "Build a sentence", "kind": "proof", "shows": "a time phrase, a verb, a connective and an opinion dropping into place", "note": "", "active": true},
+{"splash_id": "latime", "name": "Hier, aujourd’hui, demain", "kind": "proof", "shows": "one verb walked along a timeline: past, present, future", "note": "", "active": true},
+{"splash_id": "laetre", "name": "The DR MRS VANDERTRAMP house", "kind": "proof", "shows": "the sixteen être verbs, letter by letter, round a house", "note": "", "active": true}
 ]
