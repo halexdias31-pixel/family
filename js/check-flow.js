@@ -11906,7 +11906,12 @@ check('business: an admin has a Business column last, straight after Settings, h
   const { w, sent } = boot({ serve: BIZ_SERVE_(BIZ_COLS_()),
     before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(BIZ_ADMIN_)); } catch (e) {} },
     reply: body => (body.action === 'listRecords' ? { success: true, records: BIZ_HELD_ }
-      : body.action === 'saveRecordsPage' ? { success: true, records: body.records } : undefined) });
+      : body.action === 'saveRecordsPage' ? { success: true, records: body.records }
+      /* TWO LIBRARY UPDATES WAITING IN DRIVE (407), and the press that imports them. */
+      : body.action === 'libImportList' ? { success: true, pending: [{ name: 'lib-import-a.json' }, { name: 'lib-import-b.json' }] }
+      : body.action === 'libImportDrive' ? { success: true, imported: 2, failed: 0, files: [
+          { name: 'lib-import-a.json', counts: { questions: { added: 0, replaced: 5, same: 0 } } },
+          { name: 'lib-import-b.json', counts: { practicals: { added: 1, replaced: 0, same: 0 } } }] } : undefined) });
   for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
   await wait(600);
   const t = w.__t, d = w.document;
@@ -11945,7 +11950,24 @@ check('business: an admin has a Business column last, straight after Settings, h
   const cards = [...host.querySelectorAll(':scope > .page > .pane .me-form[data-biz-page]')].map(f => f.dataset.bizPage);
   if (cards.join('|') !== BIZ_TITLES_.join('|')) bad.push('the Business column holds ' + JSON.stringify(cards) + ', wanted the five records cards ' + JSON.stringify(BIZ_TITLES_));
   const n = host.querySelectorAll(':scope > .page').length;
-  if (n !== 12 || t.pageCount('biz') !== n) bad.push('the column draws ' + n + ' pages and the pager counts ' + t.pageCount('biz') + ' — wanted twelve and twelve (Profit and its terms, Setup and Applications (400), Staff (405), Reports (395), five records, the verse screen)');
+  if (n !== 13 || t.pageCount('biz') !== n) bad.push('the column draws ' + n + ' pages and the pager counts ' + t.pageCount('biz') + ' — wanted thirteen and thirteen (Profit and its terms, Setup and Applications (400), Staff (405), Reports (395), Library updates (407), five records, the verse screen)');
+  /* LIBRARY UPDATES (407): two files wait, so the card glows and its tile counts them; the press posts as the admin and empties it. */
+  const lib = host.querySelector('[data-libimp]');
+  const libTile = () => lib && lib.querySelector('.tile[data-do="lib-import"]');
+  if (!lib) bad.push('the Business column has no Library updates card');
+  else {
+    if (!lib.classList.contains('needs-you') || !/2 files wait/.test(lib.textContent)) bad.push('two files waiting in Drive did not make the Library updates card glow "2 files wait": ' + lib.textContent.replace(/\s+/g, ' ').slice(0, 160));
+    if (!libTile() || libTile().getAttribute('aria-label').indexOf('Import library updates (2)') !== 0 || libTile().disabled) bad.push('the Library updates tile is not a live "Import library updates (2)"');
+    const at = sent.length;
+    try { t.ACTIONS['lib-import'](libTile()); } catch (e) { bad.push('lib-import threw: ' + e.message); }
+    for (let k = 0; k < 30 && !sent.slice(at).some(b => b.action === 'libImportDrive'); k++) await wait(100);
+    await wait(300);
+    const imp = sent.slice(at).find(b => b.action === 'libImportDrive');
+    if (!imp || imp.personId !== 'P001') bad.push('pressing Import library updates posted ' + JSON.stringify(imp) + ' — wanted libImportDrive as the admin');
+    const lib2 = host.querySelector('[data-libimp]');
+    if (!lib2 || lib2.classList.contains('needs-you') || !/lib-import-a\.json.*5 changed/.test(lib2.textContent) || !/Import library updates \(0\)/.test((lib2.querySelector('.tile[data-do="lib-import"]') || {}).getAttribute('aria-label') || '')) bad.push('after the import the card still glows, or does not say what each file did: ' + (lib2 ? lib2.textContent.replace(/\s+/g, ' ').slice(0, 200) : 'no card'));
+  }
+  if (sent.filter(b => b.action === 'libImportList').length !== 1) bad.push('the Business column asked libImportList ' + sent.filter(b => b.action === 'libImportList').length + ' time(s), wanted once');
   /* THE LAST PAGE IS THE VERSE SCREEN'S SETUP, A TILE THAT LEAVES FOR ITS PAGE (370). */
   const vs = host.querySelector(':scope > .page:last-child a.tile[href$="/tools/epaper-verse/install.html"]');
   if (!vs) bad.push('the last Business page has no "Verse screen · set up" tile to the install page');

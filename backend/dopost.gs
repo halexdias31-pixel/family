@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-24-g-staff-hub";
+const DOPOST_VERSION = "2026-10-24-h-library-import";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -3777,6 +3777,9 @@ function doPost(e) {
     /* THE TOOLS' COPY OF THE PRIVATE HALF — a page out, rows back in (tools/lib-private.js). Admin only, at the gate. */
     if (action === 'libExport') return jsonOut(libExport_(body.file, body.from, body.count));
     if (action === 'libImport') return jsonOut(libImport_(body.file, body.rows));
+    /* UPDATES A SESSION LEFT IN THE OWNER'S DRIVE (407): how many wait, and the press that imports them. Admin only, at the gate. */
+    if (action === 'libImportList') return jsonOut(libImportList_());
+    if (action === 'libImportDrive') return jsonOut(libImportDrive_(findPerson('', S(body.personId))));
 
     /* --- diagnostics ------------------------------------------------------------------------- */
     if (action === 'debugTabs') {

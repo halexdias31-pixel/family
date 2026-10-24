@@ -38,10 +38,13 @@ function world(o) {
   const triggers = [];
   /* A FILE WRITTEN AND NOT YET CHECKED — where a check can spoil a cell, as a sheet that did not keep it would. */
   let spoilNext = 0;
-  const b = backend({
+  const b = backend(Object.assign({
     __afterWrite: key => { if (key === 'practicals' && spoilNext > 0) { spoilNext--; const t = b.tabs.lib_practicals; if (t && t[2]) t[2][3] = '~{"aim":"spoilt"}'; } },
     UrlFetchApp: { fetch: url => {
       fetched.push(url);
+      /* THE SITE'S OWN CARD FILES, when a check hands some in (`o.site`), for an import's "is it a public card" question (407). */
+      const site = Object.keys(o.site || {}).find(f => String(url).split('?')[0] === 'https://halexdias31-pixel.github.io/family/' + f);
+      if (site) return { getResponseCode: () => 200, getContentText: () => o.site[site] };
       const at = String(url).indexOf(D.commit + '/');
       const file = at === -1 ? '' : String(url).slice(at + D.commit.length + 1);
       if (String(url).indexOf('https://raw.githubusercontent.com/') !== 0 || !srcText[file]) return { getResponseCode: () => 404, getContentText: () => 'nope' };
@@ -51,7 +54,7 @@ function world(o) {
       newTrigger: fn => ({ timeBased: () => ({ after: ms => ({ create() { triggers.push({ fn: fn, ms: ms, getHandlerFunction: () => fn }); } }),
                                               everyMinutes: () => ({ create() {} }) }) }),
       deleteTrigger: t => { const i = triggers.indexOf(t); if (i !== -1) triggers.splice(i, 1); } },
-  });
+  }, o.extra || {}));
   const base = { pin: '0000', verified: 'TRUE', city: 'London' };
   b.seed('people', [
     Object.assign({ person_id: 'P-S1', first_name: 'Ada', last_name: 'Pupil', handle: 'aa2026', email: 's1@example.org', role: 'student' }, base),
@@ -280,10 +283,140 @@ let done = null;
   if (!got.rows || got.rows.a.html !== r.html || 'lib_has' in got.rows.a) bad.push('digestLibraryFill_ did not put the question\'s words back from the Ledger');
 }
 
+/* ---------- 7. UPDATES LEFT IN THE OWNER'S DRIVE (407): admin only, merge per field, null deletes, all-or-nothing per file, moved, caches gone ---------- */
+/* A FAKE DRIVE: folders and files with owners. Only the script's own account's folder and files may be read. */
+function fakeDrive(me) {
+  let n = 0;
+  const folders = [], files = [];
+  const iter = list => { let i = 0; return { hasNext: () => i < list.length, next: () => list[i++] }; };
+  const who = email => ({ getEmail: () => email });
+  function folderObj(name, parent, owner) {
+    const f = { id: 'F' + (++n), name, parent, owner,
+      getName: () => f.name, getId: () => f.id, isTrashed: () => false, getOwner: () => who(f.owner),
+      getFiles: () => iter(files.filter(x => x.parent === f)),
+      getFoldersByName: nm => iter(folders.filter(x => x.parent === f && x.name === nm)),
+      createFolder: nm => folderObj(nm, f, me),
+      addFile: x => { x.parent = f; return f; }, removeFile: () => f };
+    folders.push(f);
+    return f;
+  }
+  function fileObj(name, text, parent, owner, mime) {
+    const x = { id: 'D' + (++n), name, text, parent, owner, mime: mime || 'application/json',
+      getName: () => x.name, getId: () => x.id, getMimeType: () => x.mime, getSize: () => x.text.length, isTrashed: () => false,
+      getOwner: () => who(x.owner), getBlob: () => ({ getDataAsString: () => x.text }), moveTo: to => { x.parent = to; return x; } };
+    files.push(x);
+    return x;
+  }
+  const DriveApp = { getFoldersByName: nm => iter(folders.filter(x => x.name === nm)), createFolder: nm => folderObj(nm, null, me),
+    getFolderById: () => null, getFileById: () => null };
+  return { DriveApp, folders, files, folderObj, fileObj };
+}
+{
+  const OWNER = 'owner@example.org';
+  const drive = fakeDrive(OWNER);
+  const qIds = Object.keys(expected.questions);
+  const qid = qIds.find(id => expected.questions[id].answer && expected.questions[id].html && expected.questions[id].accept);
+  const ctId = Object.keys(expected.textbooks)[0], pid = Object.keys(expected.practicals)[1];
+  const site = { 'data/questions.json': JSON.stringify(src.questions.map(r => ({ row_id: r.row_id })).concat([{ row_id: 'Q-ON-THE-SITE-1' }])) };
+  const w = world({ site, extra: { DriveApp: drive.DriveApp,
+    Session: { getActiveUser: () => ({ getEmail: () => OWNER }), getEffectiveUser: () => ({ getEmail: () => OWNER }), getScriptTimeZone: () => 'Europe/London' } } });
+  while (!w.step(1e9).done) {}
+  asked++;
+  /* THE GATE. */
+  if (!w.ask(ADA, { action: 'libImportList' }).error) bad.push('a student could list the Drive imports');
+  if (!w.ask(ADA, { action: 'libImportDrive' }).error) bad.push('a student could import from Drive');
+  const acc = w.b.ev('JSON.stringify([ACTION_ACCESS.libImportList, ACTION_ACCESS.libImportDrive, typeof RUNNABLE.libImportDrive])');
+  if (acc !== '["admin","admin","function"]') bad.push('ACTION_ACCESS libImportList/libImportDrive and RUNNABLE.libImportDrive are ' + acc);
+  /* FIRST LOOK MAKES THE FOLDER. */
+  const l0 = w.ask(HAL, { action: 'libImportList' });
+  const home = drive.folders.find(f => f.name === 'family-library-imports' && !f.parent);
+  if (!l0.success || !home || (l0.pending || []).length !== 0) bad.push('the first libImportList did not make the folder and say nothing waits: ' + JSON.stringify(l0));
+  /* A STRANGER'S FOLDER OF THE SAME NAME, a stranger's file in ours, and a file not named lib-import-*.json: none of them read. */
+  const theirs = drive.folderObj('family-library-imports', null, 'stranger@example.org');
+  drive.fileObj('lib-import-2026-10-24T09-00-00Z.json', JSON.stringify({ version: 1, files: { practicals: [{ id: pid, aim: 'STRANGER' }] } }), theirs, 'stranger@example.org');
+  drive.fileObj('lib-import-2026-10-24T09-30-00Z.json', JSON.stringify({ version: 1, files: { practicals: [{ id: pid, aim: 'STRANGER' }] } }), home, 'stranger@example.org');
+  drive.fileObj('notes.txt', 'hello', home, OWNER, 'text/plain');
+  /* THE GOOD FILE: a question's html replaced and its answer deleted, a content card's words, a new practical vouched for by `cards`, one already on the site. */
+  const good = drive.fileObj('lib-import-2026-10-24T10-00-00Z.json', JSON.stringify({ version: 1, note: 'drawn matching',
+    files: { questions: [{ id: qid, html: '<p>New words</p>', answer: null }, { id: 'Q-ON-THE-SITE-1', html: '<p>On the site</p>' }],
+             textbooks: [{ id: ctId, words: 'fresh words' }],
+             practicals: [{ id: 'P-DRIVE-NEW', aim: 'From Drive', steps: 'a|b' }] },
+    cards: { practicals: [{ practical_id: 'P-DRIVE-NEW', name: 'A new practical' }] } }), home, OWNER);
+  const l1 = w.ask(HAL, { action: 'libImportList' });
+  if (!l1.success || JSON.stringify((l1.pending || []).map(p => p.name)) !== '["lib-import-2026-10-24T10-00-00Z.json"]') bad.push('libImportList should list only our own lib-import file: ' + JSON.stringify(l1.pending));
+  /* THE OLD WORDS IN THE CACHE, so the import has to make them stale. */
+  const before = w.ask(ADA, { action: 'libItems', ids: ['q:' + qid] });
+  if (!before.success || before.items['q:' + qid].html !== expected.questions[qid].html) bad.push('libItems before the import did not give the copied question');
+  const d = w.ask(HAL, { action: 'libImportDrive' });
+  const f0 = (d.files || [])[0] || {};
+  if (!d.success || d.imported !== 1 || d.failed !== 0 || !f0.counts || f0.counts.questions.replaced !== 1 || f0.counts.questions.added !== 1
+      || f0.counts.questions.deleted !== 1 || f0.counts.practicals.added !== 1 || f0.counts.textbooks.replaced !== 1) bad.push('libImportDrive answered ' + JSON.stringify(d).slice(0, 400));
+  const qNow = tabItems(w, 'questions')[qid] || {};
+  if (qNow.html !== '<p>New words</p>' || 'answer' in qNow || qNow.accept !== expected.questions[qid].accept) bad.push('the question was not merged per field (html replaced, answer deleted, accept kept): ' + JSON.stringify(qNow).slice(0, 200));
+  const ctNow = tabItems(w, 'textbooks')[ctId] || {};
+  if (ctNow.words !== 'fresh words' || ctNow.points !== expected.textbooks[ctId].points) bad.push('the content card was not merged per field');
+  if (!same(tabItems(w, 'practicals')['P-DRIVE-NEW'], { aim: 'From Drive', steps: 'a|b' })) bad.push('the new practical was not added');
+  if (tabItems(w, 'practicals')[pid].aim === 'STRANGER') bad.push('a stranger\'s file was imported');
+  const done7 = drive.folders.find(f => f.name === 'imported' && f.parent === home);
+  if (!done7 || good.parent !== done7) bad.push('the imported file was not moved to family-library-imports/imported');
+  const after = w.ask(ADA, { action: 'libItems', ids: ['q:' + qid, 'pr:P-DRIVE-NEW'] });
+  if (!after.success || after.items['q:' + qid].html !== '<p>New words</p>' || !after.items['pr:P-DRIVE-NEW']) bad.push('libItems after the import still served the cached words: ' + JSON.stringify(after).slice(0, 200));
+  const lh = (w.b.tabs.lib_log || [])[0] || [];
+  const logged = (w.b.tabs.lib_log || []).slice(1).map(r => { const o = {}; lh.forEach((c, i) => { o[c] = r[i]; }); return o; }).filter(r => r.person_id === 'library-import');
+  if (logged.length !== 1 || !/lib-import-2026-10-24T10-00-00Z\.json/.test(logged[0].ids) || logged[0].handle !== 'hl2026') bad.push('lib_log has no line for the imported file under the admin\'s handle: ' + JSON.stringify(logged));
+  const l2 = w.ask(HAL, { action: 'libImportList' });
+  if ((l2.pending || []).length !== 0 || !l2.last || l2.last.imported !== 1) bad.push('after the import the list still waits, or has no last report: ' + JSON.stringify(l2).slice(0, 200));
+
+  /* REFUSED WHOLE: an id that is no card anywhere, beside one that would be fine — nothing written, the file stays. */
+  const snap = () => JSON.stringify(['questions', 'practicals'].map(k => w.tab(k)));
+  const s0 = snap();
+  const odd = drive.fileObj('lib-import-2026-10-24T11-00-00Z.json', JSON.stringify({ version: 1, files: {
+    practicals: [{ id: pid, aim: 'Would be fine' }], questions: [{ id: 'Q-NOBODY-1', html: 'x' }] } }), home, OWNER);
+  const e1 = w.ask(HAL, { action: 'libImportDrive' });
+  if (!e1.error || !/Q-NOBODY-1/.test(e1.error) || snap() !== s0 || odd.parent !== home) bad.push('an unknown id did not refuse its whole file untouched: ' + JSON.stringify(e1).slice(0, 200));
+  odd.parent = theirs;
+  /* A PUBLIC FIELD, A WRONG VERSION: refused, untouched. */
+  const pub = drive.fileObj('lib-import-2026-10-24T11-10-00Z.json', JSON.stringify({ version: 1, files: { practicals: [{ id: pid, name: 'Public' }] } }), home, OWNER);
+  const e2 = w.ask(HAL, { action: 'libImportDrive' });
+  if (!e2.error || !/not a private field/.test(e2.error) || snap() !== s0) bad.push('a public field was not refused: ' + JSON.stringify(e2).slice(0, 200));
+  pub.parent = theirs;
+
+  /* WRITE, READ BACK, PUT BACK: a cell the sheet did not keep undoes every row of that file, the new row too. */
+  const g = w.b.ev('globalThis'), realSA = g.SpreadsheetApp;
+  let spoil = pid;
+  g.SpreadsheetApp = Object.assign({}, realSA, { openById: id => {
+    const book = realSA.openById(id);
+    return Object.assign({}, book, { getSheetByName: nm => {
+      const sh = book.getSheetByName(nm);
+      if (!sh || nm !== 'lib_practicals') return sh;
+      return Object.assign({}, sh, { getRange: (...a) => {
+        const r = sh.getRange(...a);
+        return Object.assign({}, r, { setValues: vals => {
+          r.setValues(vals);
+          if (spoil && strip(vals[0][0]) === spoil) { spoil = null; w.b.tabs.lib_practicals[a[0] - 1][3] = '~{"aim":"spoilt"}'; }
+          return r;
+        } });
+      } });
+    } });
+  } });
+  const s1 = JSON.stringify(tabItems(w, 'practicals'));
+  const roll = drive.fileObj('lib-import-2026-10-24T12-00-00Z.json', JSON.stringify({ version: 1, files: {
+    practicals: [{ id: 'P-DRIVE-NEW-2', aim: 'Second' }, { id: pid, aim: 'Changed' }] },
+    cards: { practicals: [{ practical_id: 'P-DRIVE-NEW-2' }] } }), home, OWNER);
+  const e3 = w.ask(HAL, { action: 'libImportDrive' });
+  if (!e3.error || !/put back/.test(e3.error)) bad.push('a row that did not read back was not reported as put back: ' + JSON.stringify(e3).slice(0, 300));
+  if (JSON.stringify(tabItems(w, 'practicals')) !== s1) bad.push('after a failed read-back the practicals are not as they were (half-written)');
+  if (roll.parent !== home) bad.push('a file that failed its read-back was moved anyway');
+  g.SpreadsheetApp = realSA;
+  /* AND THE SAME FILE CLEAN, BY `?run=libImportDrive` — the admin's URL. */
+  const r = w.b.get({ run: 'libImportDrive', name: 'Hal Admin', pin: '0000' });
+  if (!r.result || r.result.imported !== 1 || tabItems(w, 'practicals')[pid].aim !== 'Changed' || roll.parent !== done7) bad.push('?run=libImportDrive did not import the file once clean: ' + JSON.stringify(r).slice(0, 300));
+}
+
 if (bad.length) {
   console.log('\nFAILED — the library in the Ledger:');
   bad.forEach(b => console.log('  ' + b));
   process.exit(1);
 }
 console.log('OK — the library copies into the Ledger a step at a time and only counts once every row reads back as its source (' + asked
-  + ' questions asked' + (FULL ? ', the whole library' : ', ' + src.questions.length + ' question rows') + '); libItems is signed-in, capped per day, cached; the tools\' copy is the admin\'s; the Sunday email gets its words.');
+  + ' questions asked' + (FULL ? ', the whole library' : ', ' + src.questions.length + ' question rows') + '); libItems is signed-in, capped per day, cached; the tools\' copy is the admin\'s; the Sunday email gets its words; Drive updates import whole or not at all.');
