@@ -2848,7 +2848,8 @@ function splashWaitWatch_() {
 }
 /* ---------- WHAT THE NEXT LOAD'S SPLASH IS CHOSEN FROM § */
 const SPLASH_CACHE_F = 1;
-const SPLASH_CACHE_MAX = 200000;
+/* 480 000 SINCE GCSE CHEMISTRY AND BIOLOGY'S 22 DRAWINGS (420): 51 rows, about 415 000. Under a tenth of the store, and a refused write gives it all back. */
+const SPLASH_CACHE_MAX = 480000;
 function splashSync_(d, extra) {
   const rows = extra && extra['settings/splashes'];
   if (rows && rows.length) {

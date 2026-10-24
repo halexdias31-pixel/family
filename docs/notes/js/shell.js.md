@@ -5724,6 +5724,8 @@ top level, before `SPLASH_CACHE_F`
    before the rows were real, and it was not. The room left is a few drawings, not twenty-eight; a
    drawing past the ceiling is left off the splash (never out of its chapter), and `check-anims.js`
    fails before the books get there, so raising it is a decision made in the open.
+   RAISED TO 480 000 (420): GCSE Chemistry and Biology's 22 drawings took the 29 rows' 192 000 to about
+   416 000. Still under a tenth of a 5 MB store, and `splashGiveWay_` still gives it all back on a refusal.
    `SPLASH_CACHE_F` IS THE SHAPE. The picker in index.html reads `f === 1` written out, because it runs
    before any of this file exists; `check-anims.js` holds the two to the same number. Change the shape
    and both move, and every device starts again from an empty copy. */
