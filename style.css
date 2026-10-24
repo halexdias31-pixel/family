@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-24-p-one-line";
+  --css-version: "2026-10-24-q-arrive";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -84,6 +84,7 @@
   --app: 26.5rem;
 
   --quick: .13s;         /* how long anything takes to respond to a touch */
+  --arrive: .28s;        /* how long what replaces the loader takes to fade in (428) */
 
   /* ---------- A CONTROL LAID OVER A MOVING PICTURE § */
   --over-wash: rgb(0 0 0 / .55);
@@ -1307,6 +1308,8 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 .loading {
   display: flex; align-items: center; justify-content: center; gap: .5rem;
   width: 100%; min-height: 3rem; margin: 0; padding: 0;
+  /* FADED UP after a beat (428), so a wait shorter than that never flashes three dots and is gone. */
+  animation: arrive var(--arrive) ease-out .12s both;
 }
 .loading > span {
   flex: none; width: .55rem; height: .55rem; border-radius: 50%;
@@ -1323,10 +1326,10 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 /* STILL, NOT GONE, for somebody who asked for less movement: three dots at one strength are still a
    thing on its way, and taking them away would take the state with them — the busy ring's argument. */
 @media (prefers-reduced-motion: reduce) {
-  .loading > span { animation: none; opacity: .7; transform: none; }
+  .loading, .loading > span { animation: none; opacity: .7; transform: none; }
 }
 /* ONLY THE CARD IN FRONT MOVES. § */
-.page:not(.on) .loading > span { animation: none; }
+.page:not(.on) .loading, .page:not(.on) .loading > span { animation: none; }
 /* A WHOLE PAGE WAITING: § */
 .pane:has(> .loading:only-child) {
   min-height: 6rem;
@@ -1337,6 +1340,13 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 [aria-busy="true"]:has(> .loading) { position: relative; min-height: 3rem; }
 [aria-busy="true"]:has(> .loading) > :not(.loading) { visibility: hidden; }
 [aria-busy="true"] > .loading { position: absolute; inset: 0; min-height: 0; }
+
+/* ---------- WHAT ARRIVES WHERE THE DOTS WERE FADES IN (docs/history/428) */
+.arrive { animation: arrive var(--arrive) ease-out both; }
+@keyframes arrive { from { opacity: 0; } }
+/* ONLY THE COLUMN IN FRONT FADES (306's rule for the dots): the builder fills the others in the quiet, unseen. */
+.screen:not(.is-front) .arrive { animation: none; }
+@media (prefers-reduced-motion: reduce) { .arrive { animation: none; } }
 
 /* ---------- A POLL § */
 .poll { margin: .6rem 0 .2rem; display: flex; flex-direction: column; gap: .3rem; }
