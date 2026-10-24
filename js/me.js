@@ -1859,8 +1859,8 @@ function settingsPages_() {
   return pages;
 }
 
-/* ---------- YOUR ROLE: ONE RANK (400), SO ONE CHOICE — CLIENT OR STUDENT, AND ONLY FOR A CLIENT (432) ----------
-   Tutor is reached by "Apply to teach" and Admin is given; a student's account changes only by @family. (dopost.gs refuses it). */
+/* ---------- YOUR ROLE: ONE RANK (400), SO ONE CHOICE, CLIENT OR STUDENT, FOR A CLIENT ONLY (432) ----------
+   Tutor comes by "Apply to teach", Admin is given, and dopost.gs refuses a student becoming a client. */
 const ROLE_PICKS = [
   ['tutor', 'Tutor', 'You teach here. Teaching starts with "Apply to teach" on You.'],
   ['client', 'Client', 'A parent or payer. You book and pay for sessions.'],
