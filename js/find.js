@@ -3084,7 +3084,8 @@ function libSay_(x) {
   if (typeof USER === 'undefined' || !USER || !USER.token) {
     return '<p class="sub lib-sign">Sign in to see this — your account is a few screens to the right.</p>';
   }
-  if (libIdsFor_(x).some(t => LIB.gone.has(t))) return '<p class="empty">This one is not in the library yet.</p>';
+  /* A CARD NEWER THAN ITS WORDS (`lib_pending`, docs/library.md): the Ledger has not had them imported yet. */
+  if (libIdsFor_(x).some(t => LIB.gone.has(t))) return '<p class="empty">' + (x && x.row && x.row.pending ? 'Coming soon.' : 'This one is not in the library yet.') + '</p>';
   if (LIB.failed) {
     return `<p class="empty">Couldn’t load this.<br><span class="faint">${esc(LIB.failed)}</span><br>
       <span class="text-action" data-do="lib-retry">Try again</span></p>`;

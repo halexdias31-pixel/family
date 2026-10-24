@@ -5721,11 +5721,12 @@ top level, before `SPLASH_CACHE_F`
    answer or a drawing and the store. Other writes (`favs`, the signed-in user) are not covered.
    `SPLASH_CACHE_MAX` is the ceiling on the lot, in a 5 MB store shared with everything else this app
    keeps. THE 28 CAME TO ABOUT 173 000 OF ITS FIRST 200 000 — "about twice", it said when it was
-   written, before the rows were real, and it was not. 409 (KS2) and 410 (GCSE) each raised it to
-   400 000 on its own; together the 55 came to about 448 000, so the merge made it 450 000, the smallest
-   round number above them, in the open (one widget per thing then took two out: 53, about 430 000). The copy already gives way whole to a child's write (above), so
-   the ceiling bounds a decoration's share of the store — under a tenth of it — not whether an answer
-   fits. A drawing past the ceiling is left off the splash (never out of its chapter), and
+   written, before the rows were real, and it was not. 409 (KS2), 410 (GCSE) and 411 (A level) each raised it on its own
+   (400 000, 400 000, 500 000). Merged, and after one widget per thing took two out, the 70 came to about
+   590 000, so it is 600 000, the smallest round number above them, in the open. That is about an eighth
+   of the store, and the copy already gives way whole to a child's write (above), so the ceiling bounds
+   a decoration's share of the store, not whether an answer fits. A drawing past the ceiling is left off
+   the splash (never out of its chapter), and
    `check-anims.js` fails before the books get there, so raising it again is a decision made in the open.
    `SPLASH_CACHE_F` IS THE SHAPE. The picker in index.html reads `f === 1` written out, because it runs
    before any of this file exists; `check-anims.js` holds the two to the same number. Change the shape

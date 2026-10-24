@@ -74,9 +74,10 @@ when it was not told it could", never "is this past the right edge".
   stay. Topics are spelled exactly as `data/questions.json`/`data/topics.json` spell them (`check-textbooks.js`). See 347.
 - **Teaching animations are rows of `data/textbooks.json`**, one source each. Script-written —
   `area bayes bus cent coin fadd fdp fib fit gal index line lmul mean mxc neg orbit peri prot pv pyth ratio sieve sine trans venn` (`tools/<id>.py`; `gal` is
-  `galton.py`, `orbit` is `solar.py`) and GCSE Maths' `gbal gcf gcomp genl gexp gfac gquad grot
-  grule gsemi gsim gsimi gsoh gsurd gtree gvec` (`tools/g_<topic>.py`, 410), all through
-  `tools/anim_row.py`: change the script and re-run it,
+  `galton.py`, `orbit` is `solar.py`), GCSE Maths' `gbal gcf gcomp genl gexp gfac gquad grot
+  grule gsemi gsim gsimi gsoh gsurd gtree gvec` (`tools/g_<topic>.py`, 410) and the A-level `abinom achain aexp
+  afirst ageom ahyp aincline amoment anormal aparam apascal aproj apulley ariemann aroot2 aunit avec3`
+  (`tools/a_<name>.py`, 411), all through `tools/anim_row.py`: change the script and re-run it,
   never hand-edit the row. For the rest the row is the source. Never in `index.html` or `style.css`; the
   splash draws a device-kept copy (`splashSync_`). `check-anims.js`, `check-loading.js`. A new one is a script on `anim_row.Loop` that writes its whole row (`whole=True, place=…`). See 304, 322, 409.
 - **Verified tags:** every question carries two ordinary funnel tags, `Accuracy verified/unverified` (row `verified: "True"` = answer checked against the official scheme) and `Function verified/unverified` (qtypes.js protocol complete and machine-marked); `verifyTags_`, find.js; `check-qtypes.js`. See 388.
