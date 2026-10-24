@@ -355,6 +355,8 @@ function boot(opts) {
       'WS_THEMES: WS_THEMES, WS_DIRS: WS_DIRS, WS_FORWARD: WS_FORWARD, wsPaint: wsPaint,' +
       'allWidgets: typeof allWidgets === "function" ? allWidgets : null,' +
       'widgetsOf: typeof widgetsOf_ === "function" ? widgetsOf_ : null,' +
+      /* AN EXPRESSION READ INSIDE THE APP'S OWN SCOPE, where its `const`s are — the Console's state for its journey (419). */
+      'inApp: s => eval(s),' +
       'savedWidgets: typeof savedWidgets_ === "function" ? savedWidgets_ : null,' +
       'star: k => FAVS.add(String(k)),' +
       /* WHICH WIDGETS ARE RUNNING AND ON WHICH COLUMN'S COPY, WHICH ARE WAITING THEIR TURN, AND WHAT THE LAST PLACEMENT SAID IS ON THE GLASS — three `let`s in § */
@@ -7086,6 +7088,83 @@ check('the board games are one widget: three games in its picker, each drawing o
     if (kept !== k) bad.push('choosing ' + k + ' remembered ' + JSON.stringify(kept));
   }
   if (!d.querySelector('#s-games #wgt-boardgames h3') || d.querySelector('#s-games #wgt-boardgames h3').textContent.trim() !== 'Board games') bad.push('the widget is not headed Board games');
+  return bad;
+});
+
+/* ---------- THE CONSOLE ON A LAPTOP (419): keys per system, a key list, nothing scrolled, and the app held still while it plays */
+check('console keys: arrows and WASD steer, Z/X/Space/Enter/Shift and Q/E per system, a Keys tile shows the list, the page does not scroll, and the rest of the app holds still while a game plays', async () => {
+  const { w } = boot({ member: true });
+  await wait(300);
+  const t = w.__t, d = w.document, ev = s => t.inApp(s);
+  const bad = [];
+  t.go('games', false, true);
+  await wait(LEAVE_MS); await woken_();
+  const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'console');
+  if (at < 0) return ['there is no Console widget on the Games column'];
+  t.goPage('games', at, true);
+  await woken_();
+  if (!d.querySelector('#s-games #nes-wrap')) return ['the console was not drawn'];
+  /* A FINE POINTER STARTS ON KEYS: the list is shown and the touch pad is not, before any game. */
+  if (ev('NES_.mode') !== 'keys') bad.push('a mouse-and-keyboard device started in ' + ev('NES_.mode') + ' mode');
+  if (d.querySelector('#nes-legend').hidden) bad.push('the key list is hidden on a keyboard device');
+  if (d.querySelector('#nes-pad').classList.contains('on')) bad.push('the touch pad shows on a keyboard device');
+  const acts = [...d.querySelectorAll('#nes-tiles [data-do]')].map(b => b.getAttribute('data-do'));
+  if (acts.join() !== 'nes-play,nes-pick,nes-forget,nes-full,nes-keys') bad.push('on keys the tiles are ' + JSON.stringify(acts));
+  const forget = d.querySelector('#nes-tiles [data-do="nes-forget"]');
+  if (!forget || !forget.disabled) bad.push('Forget file is not greyed with nothing kept');
+  /* THE MAP, system by system. */
+  const want = {
+    nes: { ArrowUp: 'up', KeyW: 'up', KeyA: 'left', KeyS: 'down', KeyD: 'right', KeyZ: 'b', KeyX: 'a', Space: 'a', Enter: 'start', ShiftLeft: 'select', KeyQ: null },
+    gb: { KeyZ: 'b', KeyX: 'a', KeyE: null }, gba: { KeyQ: 'l', KeyE: 'r', KeyC: null },
+    snes: { KeyQ: 'l', KeyE: 'r', KeyC: 'y', KeyV: 'x', KeyJ: 'y', KeyI: 'x', KeyK: 'b', KeyL: 'a', ArrowRight: 'right' },
+    nds: { KeyQ: 'l', KeyE: 'r', KeyC: 'y', KeyV: 'x', ShiftRight: 'select', KeyW: 'up' },
+    n64: { KeyX: 'b', KeyZ: 'y', KeyC: 'l2', KeyI: 'cu', KeyL: 'cr', Enter: 'start', KeyW: 'up', ShiftLeft: 'l2' } };
+  Object.keys(want).forEach(sys => Object.keys(want[sys]).forEach(code => {
+    const got = ev('nesKeyFor_(' + JSON.stringify({ code }) + ', ' + JSON.stringify(sys) + ')');
+    if (got !== want[sys][code]) bad.push(sys + ': ' + code + ' gives ' + JSON.stringify(got) + ', not ' + JSON.stringify(want[sys][code]));
+  }));
+  if (ev('nesKeyFor_({ key: "z" }, "nes")') !== 'b') bad.push('a browser with no e.code: "z" is not B');
+  const say = sys => ev('nesKeyRows_(' + JSON.stringify(sys) + ').map(r => r[0] + ":" + r[1].join("/")).join(" ")');
+  if (say('nes') !== 'Move:↑ ↓ ← →/W A S D A:X/L/Space B:Z/K Start:Enter Select:Shift') bad.push('the NES key list says ' + say('nes'));
+  if (!/L:Q R:E/.test(say('nds')) || !/Y:C\/J/.test(say('nds'))) bad.push('the DS key list says ' + say('nds'));
+  if (/Select/.test(say('n64')) || !/Z:C\/Shift/.test(say('n64')) || !/C↑:I/.test(say('n64'))) bad.push('the N64 key list says ' + say('n64'));
+  /* PLAYING, with a stand-in engine: the keys reach it, the page does not scroll, and the rest of the app holds still. */
+  ev('window.__pressed = []; NES_.nes = { buttonDown: (p, b) => __pressed.push("d" + b), buttonUp: (p, b) => __pressed.push("u" + b), frame() {} };');
+  w.__aheadHold = false;
+  const key = (type, code, k, more) => { const e = new w.KeyboardEvent(type, Object.assign({ code, key: k, bubbles: true, cancelable: true }, more || {})); d.body.dispatchEvent(e); return e.defaultPrevented; };
+  if (key('keydown', 'KeyW', 'w')) bad.push('a key was taken while no game ran');
+  ev('nesRun_(true)');
+  if (!d.body.classList.contains('nes-on')) bad.push('the body is not marked while a game plays');
+  if (w.__aheadHold !== true) bad.push('the builder is not held while a game plays');
+  if (t.TOOLS_ON().some(e => String(e.w.id) !== 'console')) bad.push('other widgets still run while a game plays: ' + t.TOOLS_ON().map(e => e.w.id).join());
+  if (!key('keydown', 'KeyW', 'w')) bad.push('W did not take its keydown');
+  if (!ev('NES_.held.up')) bad.push('W did not hold up');
+  key('keyup', 'KeyW', 'w');
+  if (ev('NES_.held.up')) bad.push('W let go did not let go of up');
+  ['ArrowDown', 'Space'].forEach(c => { if (!key('keydown', c, c === 'Space' ? ' ' : c)) bad.push(c + ' was left to scroll the page'); key('keyup', c, c === 'Space' ? ' ' : c); });
+  if (key('keydown', 'KeyW', 'w', { ctrlKey: true })) bad.push('Ctrl+W was taken from the browser');
+  key('keyup', 'KeyW', 'w');
+  key('keydown', 'KeyZ', 'z'); key('keydown', 'KeyK', 'k'); key('keyup', 'KeyZ', 'z');
+  if (!ev('NES_.held.b')) bad.push('Z let go while K still held let go of B');
+  key('keyup', 'KeyK', 'k');
+  if (ev('NES_.held.b')) bad.push('B stayed held with both keys up');
+  if (ev('__pressed.join()').indexOf('d' + ev('NES_B.up')) === -1) bad.push('the engine never heard up pressed');
+  /* THE KEYS TILE hides the list and shows it again, and remembers. */
+  t.ACTIONS['nes-keys']();
+  if (!d.querySelector('#nes-legend').hidden) bad.push('the Keys tile did not hide the key list');
+  t.ACTIONS['nes-keys']();
+  if (d.querySelector('#nes-legend').hidden) bad.push('the Keys tile did not show the key list again');
+  let kept = null; try { kept = w.localStorage.getItem('nes-keys'); } catch (e) {}
+  if (kept !== '1') bad.push('the key list choice was not kept: ' + JSON.stringify(kept));
+  /* A FINGER ON THE CONSOLE swaps the key list for the touch pad, and Keys for Lock: still five tiles. */
+  d.querySelector('#nes-wrap').dispatchEvent(Object.assign(new w.Event('pointerdown', { bubbles: true }), { pointerType: 'touch' }));
+  if (ev('NES_.mode') !== 'touch' || !d.querySelector('#nes-pad').classList.contains('on') || !d.querySelector('#nes-legend').hidden) bad.push('a finger did not bring the touch pad back in place of the key list');
+  const acts2 = [...d.querySelectorAll('#nes-tiles [data-do]')].map(b => b.getAttribute('data-do'));
+  if (acts2.join() !== 'nes-pause,nes-pick,nes-forget,nes-lock,nes-full') bad.push('on touch, playing, the tiles are ' + JSON.stringify(acts2));
+  ev('nesStop_()');
+  if (d.body.classList.contains('nes-on')) bad.push('the body is still marked after Pause');
+  if (w.__aheadHold !== false) bad.push('the builder is still held after Pause');
+  ev('NES_.nes = null;');
   return bad;
 });
 

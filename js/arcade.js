@@ -279,6 +279,8 @@ function widgetsLater_() {
   TOOLS_WAKE = setTimeout(function step() {
     TOOLS_WAKE = 0;
     if (!TOOLS_WAIT.length) return;
+    /* NOTHING STARTS WHILE THE CONSOLE PLAYS (`nesQuiet_`, games.js, 419): a game on a slow laptop needs every frame. */
+    if (typeof NES_ !== 'undefined' && NES_.quiet) { TOOLS_WAKE = setTimeout(step, 500); return; }
     const now = performance.now();
     /* A FINGER DOWN AT ALL, NOT ONLY ONE WHOSE DIRECTION IS DECIDED: § */
     /* AND A COLUMN CHANGE NOT YET PLACED (`GLASS.at`). § */

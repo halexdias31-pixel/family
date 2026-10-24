@@ -69,6 +69,8 @@ const TILE_ICONS = {
   in:    '<path d="M9.5 2.5h5v13h-5"/><path d="M2 9h8.5"/><path d="m7.5 6 3 3-3 3"/>',
   key:   '<circle cx="5.5" cy="9" r="3"/><path d="M8.5 9h7"/><path d="M13.5 9v2.5"/>'
        + '<path d="M11.2 9v1.8"/>',
+  /* A KEYBOARD: its outline, two rows of keys and the space bar — the Console's key list (419). */
+  keys:  '<path d="M1.5 4.5h15v9h-15z"/><path d="M4 7h1M7 7h1M10 7h1M13 7h1M4 9.5h1M7 9.5h1M10 9.5h1M13 9.5h1"/><path d="M5.5 11.5h7"/>',
   join:  '<circle cx="7" cy="5.5" r="2.6"/><path d="M2 15.5a5 5 0 0 1 10 0"/>'
        + '<path d="M14 6v5"/><path d="M11.5 8.5h5"/>',
   /* FULL SCREEN: four corners pushed outward, the mark every video player puts on the button that

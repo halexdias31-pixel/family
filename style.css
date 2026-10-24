@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-24-j-chess";
+  --css-version: "2026-10-24-k-console";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -1047,16 +1047,45 @@ a { color: inherit; text-decoration: none; }
 /* ---------- TIMES TABLES AND FLAPPY --------------------------------------------------------------- */
 #tt-answer { text-align: center; font-size: 1.2rem; }
 /* ---------- CONSOLE (389): 256x240 scaled by whole look, pixels kept square and crisp § */
+/* THE ROOM LEFT FOR THE REST (419): the stage is never taller than the screen less this, so picture and pad fit one screen. `--nes-pad-h` is each system's pad. */
 .nes-wrap { position: relative; display: flex; flex-direction: column; align-items: center; background: var(--bg);
-  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
-.nes-stage { position: relative; width: 100%; max-width: 48rem; aspect-ratio: 256 / 240; margin: .5rem 0; }
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation; --nes-pad-h: 188px; --nes-room: 15rem; }
+.nes-wrap[data-sys="snes"], .nes-wrap[data-sys="gba"], .nes-wrap[data-sys="nds"] { --nes-pad-h: 252px; }
+.nes-wrap[data-sys="n64"] { --nes-pad-h: 320px; }
+.nes-wrap.nes-has-pad { --nes-room: calc(15rem + var(--nes-pad-h)); }
+/* WITH THE KEY LIST SHOWN, room for it and the tiles under it too: on a laptop the whole console is on the screen at once. */
+.nes-wrap.nes-has-legend { --nes-room: 26rem; }
+.nes-wrap.nes-has-legend.nes-has-pad { --nes-room: calc(26rem + var(--nes-pad-h)); }
+/* `svh`, not `dvh`: the smallest screen height, so the stage does not change size as a phone's address bar comes and goes. */
+.nes-stage { position: relative; max-width: 48rem; aspect-ratio: 256 / 240; margin: .5rem 0; flex: none; touch-action: none;
+  width: min(100%, calc((100svh - var(--nes-room)) * var(--nes-ar, 1.0667))); min-width: min(100%, 160px); }
 .nes-canvas { width: 100%; height: 100%; display: block; background: #000; image-rendering: pixelated;
   border: 1px solid var(--line); border-radius: .25rem; }
 .nes-file { display: none; }
-.nes-pad { display: none; width: 100%; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0;
-  touch-action: none; }
+/* A FIXED HEIGHT PER SYSTEM, the same before and after a game starts: nothing under it moves (419). */
+/* EVERY SYSTEM IN THE SAME THREE ROWS — shoulders, D-pad and face buttons, Select and Start — so the widest row, 120 + 140px, fits a phone's card. */
+.nes-pad { display: none; width: 100%; align-items: center; align-content: center; justify-content: space-between; gap: 8px;
+  flex-wrap: wrap; padding: 8px 0; touch-action: none; box-sizing: border-box; height: var(--nes-pad-h); flex: none; overscroll-behavior: contain; }
+.nes-pad .nes-mid { order: 5; flex: 1 0 100%; justify-content: center; }
 .nes-pad.on { display: flex; }
-.nes-dpad { width: 132px; height: 132px; border-radius: 50%; border: 1px solid var(--line); flex: none;
+/* HELD IS A COLOUR, never a size: a key that grew or shrank under a thumb would move its neighbours. */
+.nes-key.is-down, .nes-dpad.is-down { background-color: var(--gold); color: var(--bg); border-color: var(--gold); }
+.nes-dpad.is-down { background-color: transparent; border-color: var(--gold); }
+/* THE KEY LIST (419): the current system's keys under the picture, small, in the screen's own gold. */
+.nes-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: .3rem .9rem; width: 100%; margin: 0 0 .4rem;
+  font: .72rem/1.3 var(--mono); color: var(--dim); }
+.nes-legend[hidden] { display: none; }
+.nes-lg { display: inline-flex; align-items: center; gap: .3rem; white-space: nowrap; }
+.nes-lg-k { display: inline-flex; gap: .2rem; }
+.nes-lg kbd { font: inherit; color: var(--gold); border: 1px solid var(--line); border-radius: .25rem; padding: .05rem .3rem; background: var(--sunk); }
+.nes-lg-v { color: var(--ink); }
+.nes-wrap.nes-full .nes-legend { display: none; }
+/* WHILE A GAME PLAYS EVERY LOOPING ANIMATION ELSEWHERE IN THE APP HOLDS STILL (`nesQuiet_`, games.js): the parked columns
+   are still drawn, and a slow laptop needs those frames for the game. */
+body.nes-on *, body.nes-on *::before, body.nes-on *::after { animation-play-state: paused !important; }
+body.nes-on .nes-wrap *, body.nes-on .nes-wrap *::before, body.nes-on .nes-wrap *::after { animation-play-state: running !important; }
+.nes-dpad { width: 120px; height: 120px; border-radius: 50%; border: 1px solid var(--line); flex: none;
   background: radial-gradient(circle, var(--line) 18%, transparent 19%),
     linear-gradient(var(--sunk), var(--sunk)) center / 44px 100% no-repeat,
     linear-gradient(var(--sunk), var(--sunk)) center / 100% 44px no-repeat; touch-action: none; }
@@ -1077,7 +1106,7 @@ a { color: inherit; text-decoration: none; }
 .nes-wrap.nes-full .nes-stage { max-width: none; aspect-ratio: auto; margin: 0; flex: none; }
 .nes-wrap.nes-full .nes-canvas { border: 0; border-radius: 0; }
 @media (orientation: landscape) {
-  .nes-wrap.nes-full .nes-pad.on { position: absolute; inset: 0; padding: 0 max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
+  .nes-wrap.nes-full .nes-pad.on { position: absolute; inset: 0; height: auto; flex-wrap: nowrap; padding: 0 max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
     pointer-events: none; background: none; }
   .nes-wrap.nes-full .nes-pad.on > * { pointer-events: auto; }
   .nes-wrap.nes-full .nes-mid { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); }
@@ -1087,12 +1116,10 @@ a { color: inherit; text-decoration: none; }
 .emu-host > :not(.ejs_canvas_parent), .emu-host .ejs_canvas_parent > :not(canvas) { display: none !important; }
 .emu-host .ejs_canvas_parent { width: 100%; height: 100%; }
 .emu-host canvas { width: 100% !important; height: 100% !important; display: block; image-rendering: pixelated; }
-.nes-pad-top { flex-wrap: wrap; row-gap: 8px; }
-.nes-pad-top .nes-mid { order: 5; flex: 1 0 100%; justify-content: center; }
 .nes-shoulders { order: -1; flex: 1 0 100%; display: flex; justify-content: space-between; gap: 8px; }
 .nes-shoulders .nes-key { min-width: 64px; }
-.nes-face { display: grid; grid-template: repeat(3, 48px) / repeat(3, 48px); flex: none; }
-.nes-face .nes-round { width: 48px; height: 48px; font-size: 1rem; }
+.nes-face { display: grid; grid-template: repeat(3, 44px) / repeat(3, 44px); flex: none; }
+.nes-face .nes-round { width: 44px; height: 44px; font-size: 1rem; }
 .nes-face.nes-c { grid-template: repeat(3, 44px) / repeat(3, 44px); }
 .nes-c1 { width: 44px; height: 44px; border-radius: 50%; font-size: .75rem; padding: 0; }
 .nes-n { grid-area: 1 / 2; } .nes-w { grid-area: 2 / 1; } .nes-e { grid-area: 2 / 3; } .nes-s { grid-area: 3 / 2; }
