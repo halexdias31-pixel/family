@@ -3032,7 +3032,11 @@ check('every role\'s own card has Edit, with the sections their card prints: a t
         || h.querySelector('[data-do="handle-shuffle"], input, .btn'))
       bad.push(who + '\'s handle section is not their handle shown with nothing to press or type (364: no Randomise)');
     if (h && !/first and last letter of your first name and the year you joined/.test(h.textContent)) bad.push(who + '\'s handle section does not say how the handle is made, so nobody can work theirs out');
-    if (!c.form().querySelector('.ce-sec[data-sec="picture"] .pfp [data-do="pfp-pick"]')) bad.push(who + ' is not offered the picture chooser on their own card');
+    /* A CHILD CHOOSES FROM THE GRID AND IS OFFERED NO FILE (413); everybody else has Choose photo as well. */
+    const kidPfp = /^student@/.test(who);
+    if (!c.form().querySelector('.ce-sec[data-sec="picture"] .pfp [data-do="pfp-choose"]')) bad.push(who + ' is not offered the picture grid on their own card');
+    if (!kidPfp && !c.form().querySelector('.ce-sec[data-sec="picture"] .pfp [data-do="pfp-pick"]')) bad.push(who + ' is not offered Choose photo on their own card');
+    if (kidPfp && c.form().querySelector('.ce-sec[data-sec="picture"] .pfp [data-do="pfp-pick"], .ce-sec[data-sec="picture"] .pfp-in')) bad.push(who + ', a child, is offered a photo upload on their own card');
     if (!c.box('first_name') || !c.box('last_name')) bad.push(who + ' cannot change their name on their own card');
     if (order === bare && c.form().querySelector('[data-me="date_of_birth"], [data-me="dob_d"], [data-me="email"], [data-me^="lib"]')) bad.push(who + '\'s card offers a box their card does not print');
     if (who === 'parent@example.org') {
@@ -11869,7 +11873,7 @@ check('business: an admin has a Business column last, straight after Settings, h
   const cards = [...host.querySelectorAll(':scope > .page > .pane .me-form[data-biz-page]')].map(f => f.dataset.bizPage);
   if (cards.join('|') !== BIZ_TITLES_.join('|')) bad.push('the Business column holds ' + JSON.stringify(cards) + ', wanted the five records cards ' + JSON.stringify(BIZ_TITLES_));
   const n = host.querySelectorAll(':scope > .page').length;
-  if (n !== 12 || t.pageCount('biz') !== n) bad.push('the column draws ' + n + ' pages and the pager counts ' + t.pageCount('biz') + ' — wanted twelve and twelve (Profit and its terms, Setup and Applications (400), Staff (405), Reports (395), five records, the verse screen)');
+  if (n !== 13 || t.pageCount('biz') !== n) bad.push('the column draws ' + n + ' pages and the pager counts ' + t.pageCount('biz') + ' — wanted thirteen and thirteen (Profit and its terms, Setup, Posts waiting (413) and Applications (400), Staff (405), Reports (395), five records, the verse screen)');
   /* THE LAST PAGE IS THE VERSE SCREEN'S SETUP, A TILE THAT LEAVES FOR ITS PAGE (370). */
   const vs = host.querySelector(':scope > .page:last-child a.tile[href$="/tools/epaper-verse/install.html"]');
   if (!vs) bad.push('the last Business page has no "Verse screen · set up" tile to the install page');
@@ -17858,7 +17862,10 @@ async function pfpRoleJourney(key) {
   if (opts().some(b => b.classList.contains('on'))) bad.push('a ring is on a picture before any is yours');
   const fig0 = opts()[0] && opts()[0].querySelector('svg.avatar.is-bust');
   if (!fig0 || fig0.outerHTML.indexOf(AV_SHIRT_T[Number(/shirt:(\d)/.exec(P.avatar)[1])]) === -1) bad.push('the first choice is not your own figure in your own shirt');
-  if (!box().querySelector('[data-do="pfp-pick"]') || !box().querySelector('[data-do="pfp-remove"]')) bad.push('Choose photo or Remove has gone from the card');
+  /* A CHILD UPLOADS NO PHOTO (413): the grid and Remove, and no Choose photo or file input. */
+  const kid = key === 'student';
+  if ((!kid && !box().querySelector('[data-do="pfp-pick"]')) || !box().querySelector('[data-do="pfp-remove"]')) bad.push('Choose photo or Remove has gone from the card');
+  if (kid && box().querySelector('[data-do="pfp-pick"], input.pfp-in')) bad.push('a child is offered Choose photo, a file upload');
   const ground = n => (/<circle cx="24" cy="24" r="24" fill="(#[0-9a-f]{6})"/.exec(w.pfpArt_(n, 40)) || [])[1];
   /* WHAT A FACE IS, ASKED OF THE ELEMENT THE SURFACE DREW. */
   const faceIs = (el, want) => {
@@ -17987,19 +17994,19 @@ async function pfpRoleJourney(key) {
     if (sent.some(b => b.action === 'savePhoto')) bad.push('a tap on the figure already in use posted savePhoto again');
     await step('the ' + P.basic, choose(P.basic), { choice: 'pfp:' + P.basic },
       { kind: 'basic', name: P.basic, stored: 'pfp:' + P.basic, said: new RegExp('Saved\\. The ' + P.basic + ' is your picture') });
-    await step('a photograph', async () => {
+    if (!kid) await step('a photograph', async () => {
       w.pfpPrepare_ = () => Promise.resolve('data:image/jpeg;base64,' + Buffer.from('square').toString('base64'));
       const inp = box().querySelector('input.pfp-in[type="file"]');
       Object.defineProperty(inp, 'files', { value: [new w.File(['x'], 'me.png', { type: 'image/png' })], configurable: true });
       inp.dispatchEvent(new w.Event('change', { bubbles: true }));
     }, {}, { kind: 'photo', stored: URL_, said: /Saved\. Your photo is your picture/ });
-    if (!(sent.find(b => b.action === 'savePhoto') || {}).data) bad.push('the photograph was not posted as data');
+    if (!kid && !(sent.find(b => b.action === 'savePhoto') || {}).data) bad.push('the photograph was not posted as data');
     await step('Remove', () => { t.ACTIONS['pfp-remove'](box().querySelector('[data-do="pfp-remove"]')); }, { remove: true },
       { kind: 'none', stored: '', said: /Removed\. No picture yet/ });
   } catch (e) { bad.push('the journey threw: ' + e.message); }
   return bad;
 }
-check('a student chooses their figure, the fox, a photo and Remove — each saved, on their card and on their parent\'s', () => pfpRoleJourney('student'));
+check('a student chooses their figure, the fox and Remove, and is offered no photo upload (413) — each saved, on their card and on their parent\'s', () => pfpRoleJourney('student'));
 check('a parent chooses their figure, the cat, a photo and Remove — each saved, on their card and in their child\'s messages', () => pfpRoleJourney('parent'));
 check('a tutor chooses their figure, the robot, a photo and Remove — each saved, on their card and on a visitor\'s people column', () => pfpRoleJourney('tutor'));
 check('an admin chooses their figure, the rocket, a photo and Remove — each saved, on their card and on the feed', () => pfpRoleJourney('admin'));
@@ -22410,7 +22417,8 @@ check('a reload keeps every answer — words, maths, a 3,000-character essay, a 
 });
 
 check('a reload keeps what was typed and not yet sent: the composer, a comment, the booking note, a settings box, the new-post sheet and the make-an-account names — and never a PIN', async () => {
-  const one = boot({ before: signedInAs_(ANS_ADA) });
+  /* A GROWN-UP, because a child is offered no new-post sheet at all (413). */
+  const one = boot({ before: signedInAs_({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'], token: 'tok-P1', handle: 'pat_par1' }) });
   await wait(300);
   const W = one.w;
   const fns = ['msgForm_', 'commentsHtml_', 'fieldHtml', 'registerSheet_', 'draftRead_', 'draftKeep_'].filter(n => typeof W[n] !== 'function');
@@ -26673,6 +26681,201 @@ check('a child sees a tutor card, the booking form and her session without any �
   const col = (d.getElementById('s-booking') || {}).textContent || '';
   if (!col.trim()) bad.push('the booking column drew nothing for the child');
   if (/£/.test(col)) bad.push('the child\'s booking column shows a price: "' + /.{0,30}£.{0,20}/.exec(col)[0] + '"');
+  return bad;
+});
+
+/* ---------- POSTS WAIT FOR APPROVAL, PICTURES ARE FILES, A POST SHARES AS A PNG (413) ----------
+   Through the real doPost and doGet: Ada's waiting post as she, a parent and the admin see it; Approve; a child's columns. */
+const POST_ACTIONS_ = ['approvePost', 'editPost', 'deletePost', 'addPost', 'savePhoto', 'myProfile', 'messages', 'flagMessage', 'listReports', 'setReportStatus', 'readMessage'];
+const postWorld_ = () => {
+  const W = cardWorld_();
+  W.real.seed('posts', [
+    { post_id: 'PO-UP1', author: W.real.ev('brandName()'), posted_by: 'Hal Admin', image: 'https://drive.google.com/file/d/UPxxxxxxxxxxxxxxxxxxxxxx/view',
+      caption: 'Open day on Saturday', approved: '', active: 'TRUE', posted_on: '01/10/2026' },
+    { post_id: 'PO-W1', author: 'Ada Tutor', posted_by: 'Ada Tutor', image: 'https://drive.google.com/file/d/WAITxxxxxxxxxxxxxxxxxxxx/view',
+      caption: 'Our volcano worksheet', approved: 'PENDING', active: 'TRUE', posted_on: '20/10/2026' },
+  ]);
+  return W;
+};
+const postOpen_ = async (W, who, more) => {
+  more = more || {};
+  const u = who ? W.user(who) : null;
+  if (who && !u) return { err: who + ' could not sign in to the real backend' };
+  /* THE POSTS AS `doGet` SENDS THEM TO THIS VIEWER, laid over the card world's payload, on every load. */
+  const G = () => { W.real.ev('clearCache()'); const g = W.real.get(u ? { token: u.token } : {}); return Object.assign(W.GET(), { posts: g.posts, festive: [] }); };
+  const b = boot({ payload: G(), before: w => { if (u) signedInAs_(u)(w); if (more.before) more.before(w); },
+    serve: url => (/script\.google\.com/.test(url) ? G() : undefined),
+    reply: bd => (POST_ACTIONS_.indexOf(bd.action) !== -1 ? W.real.post(bd) : { success: true, messages: [] }) });
+  for (let k = 0; k < 80 && !b.w.__t; k++) await wait(100);
+  if (!b.w.__t) return { err: 'the app did not finish loading' };
+  await wait(600);
+  const t = b.w.__t, d = b.w.document;
+  try { t.go('feed', false, true); b.w.paint('feed'); } catch (e) { return { err: 'drawing the feed threw: ' + e.message }; }
+  await wait(250);
+  return { b, w: b.w, t, d, u, sent: b.sent, A: (act, el) => t.ACTIONS[act](el),
+    post: id => d.querySelector('#s-feed [data-post="' + id + '"]'),
+    tiles: id => { const p = d.querySelector('#s-feed [data-post="' + id + '"]'); return p ? [...p.querySelectorAll('.tile-row [data-do]')].map(x => x.dataset.do + (x.dataset.on !== undefined ? ':' + x.dataset.on : '')) : []; },
+    errs: b.errs };
+};
+
+check('a waiting post (413): dotted with "Waiting for approval" for its author and the admin only; the admin\'s Approve puts it up for everyone, and Business glows until then', async () => {
+  const W = postWorld_(), bad = [];
+  const ada = await postOpen_(W, 'tutor@example.org');
+  if (ada.err) return [ada.err];
+  const mine = ada.post('PO-W1');
+  if (!mine) return ['Ada is not drawn her own waiting post'];
+  if (!mine.classList.contains('is-pending')) bad.push('Ada\'s waiting post has no dotted outline (is-pending)');
+  const line = mine.querySelector('.post-pending');
+  if (!line || !/Waiting for approval/.test(line.textContent) || !/only you and the admin/.test(line.textContent)) bad.push('Ada\'s waiting post does not say it waits and who sees it: ' + (line ? line.textContent : 'no line'));
+  const at = ada.tiles('PO-W1');
+  if (at.some(x => /^post-approve/.test(x))) bad.push('Ada is offered Approve on her own post: ' + at.join(','));
+  if (!at.includes('post-edit') || !at.includes('post-delete') || !at.includes('share')) bad.push('Ada\'s waiting post lacks Edit, Delete or Share: ' + at.join(','));
+  const ut = ada.tiles('PO-UP1');
+  if (ut.includes('post-edit') || ut.includes('post-delete')) bad.push('Ada is offered Edit or Delete on the business\'s post: ' + ut.join(','));
+
+  const pat = await postOpen_(W, 'parent@example.org');
+  if (pat.err) return bad.concat([pat.err]);
+  if (pat.post('PO-W1')) bad.push('a parent is drawn somebody else\'s waiting post');
+  if (!pat.post('PO-UP1')) bad.push('a parent is not drawn the post that is up, so the rule above proves nothing');
+
+  const hal = await postOpen_(W, 'admin@example.org');
+  if (hal.err) return bad.concat([hal.err]);
+  const waits = hal.post('PO-W1');
+  if (!waits || !waits.classList.contains('is-pending') || !/Waiting for approval/.test((waits.querySelector('.post-pending') || {}).textContent || '')) bad.push('the admin is not drawn the waiting post dotted, with its line');
+  const ht = hal.tiles('PO-W1');
+  if (!ht.includes('post-approve:1') || !ht.includes('post-approve:')) bad.push('the admin has no Approve and Decline tiles on the waiting post: ' + ht.join(','));
+  if (ht.includes('post-edit')) bad.push('the admin is offered Edit on somebody\'s waiting post: ' + ht.join(','));
+  /* BUSINESS GLOWS: the posts card needs you, and the dot counts it. */
+  try { hal.t.go('biz', false, true); hal.w.paint('biz'); } catch (e) { bad.push('drawing Business threw: ' + e.message); }
+  await wait(300);
+  const card = hal.d.querySelector('#s-biz [data-need="posts"]');
+  if (!card || !card.classList.contains('needs-you')) bad.push('the Business posts card does not glow with a post waiting');
+  const dot = hal.d.getElementById('biz-dot');
+  if (!dot || !/\d/.test(dot.textContent)) bad.push('no red dot counts what Business needs');
+  try { hal.t.go('feed', false, true); hal.w.paint('feed'); } catch (e) {}
+  await wait(200);
+  const yes = hal.d.querySelector('#s-feed [data-post="PO-W1"] [data-do="post-approve"][data-on="1"]');
+  if (yes) { hal.A('post-approve', yes); await wait(900); }
+  if (String(W.sheet('S(read(TAB.posts).rows.find(r => r.post_id === "PO-W1").approved)')) !== '') bad.push('Approve did not put it up on the sheet');
+  const upNow = hal.post('PO-W1');
+  if (!upNow || upNow.classList.contains('is-pending')) bad.push('after Approve the admin\'s feed still draws it waiting');
+  else if (hal.tiles('PO-W1').some(x => /^post-approve/.test(x))) bad.push('after Approve the post still offers Approve');
+  const pat2 = await postOpen_(W, 'parent@example.org');
+  if (!pat2.err && !pat2.post('PO-W1')) bad.push('after Approve a parent is still not drawn it');
+  /* UP IS FINAL: its author has Delete and no Edit now. */
+  const ada2 = await postOpen_(W, 'tutor@example.org');
+  if (!ada2.err) { const t2 = ada2.tiles('PO-W1'); if (t2.includes('post-edit') || !t2.includes('post-delete')) bad.push('once up, Ada\'s post should offer Delete and no Edit: ' + t2.join(',')); }
+  [ada, pat, hal].forEach(x => { if (x.errs.length) bad.push('errors: ' + x.errs.join(' | ')); });
+  return bad;
+});
+
+check('a child (413) is drawn no picker anywhere: no camera on the feed, no + in a message, no Choose photo; a parent has all three', async () => {
+  const W = postWorld_(), bad = [];
+  const kid = await postOpen_(W, 'student@example.org');
+  if (kid.err) return [kid.err];
+  const feedFiles = kid.d.querySelectorAll('#s-feed input[type="file"]').length;
+  if (feedFiles) bad.push('the child\'s feed has ' + feedFiles + ' file picker(s)');
+  if (!kid.d.querySelector('#s-feed .cam-kid')) bad.push('the child\'s feed does not say a grown-up puts pictures up');
+  if (/msg-file-in|msg-attach/.test(String(kid.w.msgForm_('Hal Admin', 'P-A1')))) bad.push('the child\'s message box offers to attach a file');
+  try { kid.t.ACTIONS['new-post'](); } catch (e) { bad.push('Write a post threw for the child: ' + e.message); }
+  await wait(100);
+  if (kid.d.querySelector('#sheet-body #post-files')) bad.push('the child opened a post sheet with a picture picker');
+  const kidPfp = String(kid.w.photoPicker_ ? kid.w.photoPicker_(() => '', '') : '');
+  if (kidPfp && /pfp-pick|pfp-in/.test(kidPfp)) bad.push('the child\'s picture card offers Choose photo');
+  const pat = await postOpen_(W, 'parent@example.org');
+  if (pat.err) return bad.concat([pat.err]);
+  if (!pat.d.querySelector('#s-feed input#cam-pick[type="file"]')) bad.push('a parent\'s feed has no Photos picker, so the child rule proves nothing');
+  if (!/msg-file-in/.test(String(pat.w.msgForm_('Ada Tutor', 'P-T1')))) bad.push('a parent\'s message box has no attach');
+  if (pat.d.querySelector('#s-feed #cam-as')) bad.push('a parent is asked whether to post as the business');
+  const hal = await postOpen_(W, 'admin@example.org');
+  if (!hal.err && !hal.d.querySelector('#s-feed #cam-as')) bad.push('the admin is not asked to post as the business or as themselves');
+  return bad;
+});
+
+check('Share on a post (413) draws the whole post on a canvas and hands a PNG to the share sheet; with no file sharing it downloads it', async () => {
+  const W = postWorld_(), bad = [];
+  const drawn = [], clicks = [];
+  const a = await postOpen_(W, 'parent@example.org', { before: w => {
+    w.Image = class { set src(v) { this._src = v; this.naturalWidth = 1200; this.naturalHeight = 900; setTimeout(() => this.onload && this.onload(), 0); }
+                      get src() { return this._src; } };
+    const ctx = new Proxy({ measureText: s => ({ width: String(s).length * 18 }), fillText: (s) => drawn.push(String(s)),
+      getImageData: () => ({ data: [0, 0, 0, 0] }), createRadialGradient: () => ({ addColorStop() {} }) },
+      { get: (o, k) => (k in o ? o[k] : () => {}), set: () => true });
+    w.HTMLCanvasElement.prototype.getContext = function () { return ctx; };
+    w.HTMLCanvasElement.prototype.toBlob = function (cb, type) { const b = new w.Blob(['\x89PNG'], { type }); setTimeout(() => cb(b), 0); };
+    w.URL.createObjectURL = () => 'blob:post'; w.URL.revokeObjectURL = () => {};
+    w.HTMLAnchorElement.prototype.click = function () { clicks.push({ href: this.href, download: this.download }); };
+  } });
+  if (a.err) return [a.err];
+  const tile = a.d.querySelector('#s-feed [data-post="PO-UP1"] [data-do="share"]');
+  if (!tile) return ['the post has no Share tile'];
+  const shared = [];
+  a.w.navigator.canShare = x => !!(x && x.files && x.files.length);
+  a.w.navigator.share = x => { shared.push(x); return Promise.resolve(); };
+  a.A('share', tile);
+  for (let k = 0; k < 60 && !shared.length; k++) await wait(50);
+  const f = shared[0] && (shared[0].files || [])[0];
+  if (!f) bad.push('navigator.share was not handed a file: ' + JSON.stringify(shared[0] || null));
+  else {
+    if (f.type !== 'image/png' || !/\.png$/.test(f.name)) bad.push('the file shared is ' + f.type + ' "' + f.name + '", not a .png');
+    if (!/\?post=PO-UP1/.test(shared[0].text || '')) bad.push('the share does not carry the post\'s link: ' + shared[0].text);
+  }
+  const words = drawn.join(' ');
+  if (!/Open day on Saturday/.test(words)) bad.push('the picture does not carry the caption: ' + words.slice(0, 160));
+  if (!words.includes(String(W.real.ev('brandName()')))) bad.push('the picture does not carry the brand at its foot');
+  /* NO FILE SHARING: the picture is downloaded instead. */
+  a.w.navigator.canShare = () => false;
+  a.A('share', tile);
+  for (let k = 0; k < 60 && !clicks.length; k++) await wait(50);
+  if (!clicks.length || !/\.png$/.test(clicks[0].download || '')) bad.push('with no file sharing the PNG was not downloaded: ' + JSON.stringify(clicks));
+  if (a.errs.length) bad.push('errors: ' + a.errs.join(' | '));
+  return bad;
+});
+
+check('a child reports a message she was sent (413): a Report tile on received messages only, five reasons, "Thanks — sent"; it waits on Business → Reports, glowing, until Dealt with', async () => {
+  const W = postWorld_(), bad = [];
+  W.real.seed('messages', [
+    { message_id: 'M-IN1', from_id: 'P-A1', to_id: 'P-S1', sent_at: '23/10/2026 10:00', body: 'Homework is due Friday' },
+    { message_id: 'M-OUT1', from_id: 'P-S1', to_id: 'P-A1', sent_at: '23/10/2026 10:05', body: 'OK thanks' },
+  ]);
+  const kid = await postOpen_(W, 'student@example.org');
+  if (kid.err) return [kid.err];
+  try { kid.t.go('dm', false, true); kid.w.paint('dm'); } catch (e) { return ['opening Messages threw: ' + e.message]; }
+  for (let k = 0; k < 40 && !kid.d.querySelector('#s-dm .msg'); k++) { await wait(100); try { kid.w.paint('dm'); } catch (e) {} }
+  const flags = [...kid.d.querySelectorAll('#s-dm [data-do="msg-report"]')].map(x => x.dataset.id);
+  if (JSON.stringify(flags) !== JSON.stringify(['M-IN1'])) return ['the Report tiles are on ' + JSON.stringify(flags) + ' — wanted the received message only'];
+  kid.A('msg-report', kid.d.querySelector('#s-dm [data-do="msg-report"]'));
+  await wait(150);
+  const form = kid.d.querySelector('#sheet-body .msg-rep-form');
+  if (!form) return ['Report did not open a sheet'];
+  const opts = form.querySelectorAll('[data-do="rep-why"]');
+  if (opts.length !== 5) bad.push('the sheet offers ' + opts.length + ' reasons, not five');
+  kid.A('msg-report-send', form.querySelector('[data-do="msg-report-send"]'));
+  await wait(150);
+  if (kid.sent.some(b => b.action === 'flagMessage')) bad.push('Send went with no reason chosen');
+  kid.A('rep-why', opts[1]);
+  const note = form.querySelector('.rep-note-in'); note.value = 'it was scary';
+  kid.A('msg-report-send', form.querySelector('[data-do="msg-report-send"]'));
+  for (let k = 0; k < 30 && !/Thanks — sent/.test((kid.d.getElementById('toast') || {}).textContent || ''); k++) await wait(50);
+  const post = kid.sent.find(b => b.action === 'flagMessage');
+  if (!post || post.messageId !== 'M-IN1' || !/unsafe/.test(post.reason) || !/it was scary/.test(post.reason)) bad.push('flagMessage did not carry the message and the reason: ' + JSON.stringify(post));
+  if (!/Thanks — sent/.test((kid.d.getElementById('toast') || {}).textContent || '')) bad.push('no "Thanks — sent"');
+  if (!/^true$/i.test(String(W.sheet('S(read(TAB.messages).rows.find(r => r.message_id === "M-IN1").flagged)')))) bad.push('the message was not flagged on the sheet');
+  const hal = await postOpen_(W, 'admin@example.org');
+  if (hal.err) return bad.concat([hal.err]);
+  try { hal.t.go('biz', false, true); hal.w.paint('biz'); } catch (e) {}
+  for (let k = 0; k < 40 && !hal.d.querySelector('#s-biz .rep-msg'); k++) await wait(100);
+  await wait(300);   // the glow is painted just after the column (`bizNeedsPaint_`)
+  const item = hal.d.querySelector('#s-biz .rep-msg[data-id="M-IN1"]');
+  if (!item || !/unsafe/.test(item.textContent) || !/Homework is due Friday/.test(item.textContent)) bad.push('the Reports card does not show the reported message and why');
+  const card = hal.d.querySelector('#s-biz [data-need="reports"]');
+  if (!card || !card.classList.contains('needs-you')) bad.push('the Reports card does not glow with a message reported');
+  const done = item && item.querySelector('[data-do="rep-status"][data-kind="message"]');
+  if (!done) bad.push('no Dealt with tile on the reported message');
+  else { hal.A('rep-status', done); await wait(400); }
+  if (hal.d.querySelector('#s-biz .rep-msg[data-id="M-IN1"]')) bad.push('Dealt with left the message on the card');
+  if (String(W.sheet('S(read(TAB.messages).rows.find(r => r.message_id === "M-IN1").flagged)')) !== 'CLEARED') bad.push('Dealt with did not clear the flag on the sheet');
+  [kid, hal].forEach(x => { if (x.errs.length) bad.push('errors: ' + x.errs.join(' | ')); });
   return bad;
 });
 

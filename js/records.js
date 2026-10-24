@@ -124,7 +124,30 @@ function bizPages_() {
   const setup = typeof setupCard_ === 'function' ? [setupCard_()].filter(Boolean) : [];
   /* STAFF (405) after applications: who has agreed to the tutor terms, and any tutor's statement — `staffCard_` in staff.js. */
   const staff = typeof staffCard_ === 'function' ? [staffCard_()].filter(Boolean) : [];
-  return profitCards_().concat(setup, appsCard_(), staff, reportsCard_(), BIZ_PAGES.map(bizCard_), verseCard_());
+  return profitCards_().concat(setup, postsWaitCard_(), appsCard_(), staff, reportsCard_(), BIZ_PAGES.map(bizCard_), verseCard_());
+}
+
+/* ---------- POSTS WAITING FOR APPROVAL (413) ----------
+   From the payload — an admin is sent every waiting post — so no request of its own; each is decided here or opened on the feed. */
+function postsWaitCard_() {
+  const list = (typeof feedPosts === 'function' ? feedPosts() : []).filter(p => p && p.waiting);
+  const wait = typeof awaiting_ === 'function' && awaiting_();
+  const n = wait ? 0 : list.length;
+  const item = p => `<div class="biz-item post-wait-item" data-id="${esc(p.id)}">
+      <p class="biz-cap"><b>${esc(p.author || p.handle || '')}</b> <span class="biz-when">· ${esc(p.when || '')}</span></p>
+      ${p.caption ? `<p class="app-line">${esc(p.caption)}</p>` : ''}
+      <div class="tile-row">${tile_({ icon: 'open', label: 'Open', note: 'on the feed', act: 'post-open', data: { id: p.id } })}${
+        tile_({ icon: 'tick', label: 'Approve', tone: 'buy', note: 'everyone sees it', act: 'post-approve', data: { id: p.id, on: '1' } })}${
+        tile_({ icon: 'close', label: 'Decline', note: 'stays hidden', act: 'post-approve', data: { id: p.id, on: '' } })}</div>
+    </div>`;
+  return `<div class="card biz posts-wait" data-need="posts">
+    <h3>Posts waiting</h3>
+    ${bizNeed_('posts', n, n + (n === 1 ? ' post to approve' : ' posts to approve'))}
+    <div class="biz-body"${wait ? ' aria-busy="true"' : ''}>
+      ${!wait && !list.length ? '<p class="faint">None waiting.</p>' : ''}
+      ${list.map(item).join('')}
+      ${wait ? loading_() : ''}</div>
+  </div>`;
 }
 
 /* ---------- APPLICATIONS TO TEACH (400) ----------
@@ -190,7 +213,7 @@ on('app-decide', el => {
 
 /* ---------- REPORTS: QUESTIONS SOMEBODY SAID ARE WRONG (395) ----------
    Asked with `listReports`, admin at the gate, so nobody else is ever sent one; `null` is "not asked yet", as `BIZ.list` is. */
-const REPS = { list: null, open: 0, asking: false, error: '' };
+const REPS = { list: null, open: 0, msgs: [], asking: false, error: '' };
 const REPS_DRAWN = 20;
 
 function reportsCard_() {
@@ -209,10 +232,20 @@ function reportsInner_(wait) {
         tile_({ icon: 'close', label: 'Not a problem', act: 'rep-status', data: { id: r.id, status: 'not a problem' } })}</div>
     </div>`;
   const more = REPS.open > Math.min(list.length, REPS_DRAWN) ? REPS.open - Math.min(list.length, REPS_DRAWN) : 0;
+  /* MESSAGES SOMEBODY REPORTED (413), first: a person may be upset or unsafe, a question only wrong. */
+  const msgs = REPS.msgs || [];
+  const mItem = r => `<div class="biz-item rep-item rep-msg" data-id="${esc(r.id)}">
+      <p class="biz-cap"><b>Message from ${esc(r.from || 'someone')} to ${esc(r.to || 'someone')}</b> <span class="biz-when">· ${esc(when(r.at))}</span></p>
+      <p class="rep-note-said">${esc(r.reason || 'No reason given')}</p>
+      ${r.body ? `<p class="faint rep-who">“${esc(r.body)}”</p>` : ''}${r.files ? `<p class="faint rep-who">${r.files} attachment${r.files === 1 ? '' : 's'} — in the messages tab</p>` : ''}
+      <div class="tile-row">${tile_({ icon: 'tick', label: 'Dealt with', act: 'rep-status', data: { id: r.id, status: 'fixed', kind: 'message' } })}</div>
+    </div>`;
+  const n = REPS.list ? REPS.open + msgs.length : 0;
   return `<h3>Reports</h3>
-    ${bizNeed_('reports', REPS.list ? REPS.open : 0, REPS.open + ' open to look at')}
+    ${bizNeed_('reports', n, n + ' open to look at')}
     <div class="biz-body rep-body"${wait ? ' aria-busy="true"' : ''}>
-      ${REPS.list ? `<p class="rep-count">${REPS.open ? REPS.open + ' open' : 'None open'}</p>` : ''}
+      ${REPS.list ? `<p class="rep-count">${n ? n + ' open' : 'None open'}${msgs.length ? ' · ' + msgs.length + (msgs.length === 1 ? ' message' : ' messages') : ''}</p>` : ''}
+      ${msgs.map(mItem).join('')}
       ${list.slice(0, REPS_DRAWN).map(item).join('')}
       ${more ? `<p class="faint">And ${more} more in the reports tab.</p>` : ''}
     ${wait ? loading_() : ''}</div>
@@ -228,6 +261,7 @@ function reportsStart_() {
       REPS.asking = false;
       if (!d || d.error) { REPS.error = String((d && d.error) || 'The reports did not come.'); return; }
       REPS.error = ''; REPS.list = Array.isArray(d.reports) ? d.reports : []; REPS.open = Number(d.open) || 0;
+      REPS.msgs = Array.isArray(d.messages) ? d.messages : [];
     })
     .catch(() => { REPS.asking = false; REPS.error = 'The reports could not be fetched — check the connection.'; })
     .then(reportsDraw_);
@@ -236,9 +270,11 @@ function reportsStart_() {
 on('rep-status', el => {
   if (!(typeof isAdmin === 'function' && isAdmin())) return;
   const id = el.getAttribute('data-id'), status = el.getAttribute('data-status') || '';
+  const kind = el.getAttribute('data-kind') || '';
   const card = el.closest('[data-reports]');
-  send_({ action: 'setReportStatus', id, status }, { button: el, where: card && card.querySelector('.rep-said') })
+  send_({ action: 'setReportStatus', id, status, kind }, { button: el, where: card && card.querySelector('.rep-said') })
     .then(() => {
+      if (kind === 'message') { REPS.msgs = (REPS.msgs || []).filter(r => r.id !== id); reportsDraw_(); toast('Marked dealt with'); return; }
       const was = (REPS.list || []).length;
       REPS.list = (REPS.list || []).filter(r => r.id !== id);
       if (REPS.list.length < was) REPS.open = Math.max(0, REPS.open - 1);

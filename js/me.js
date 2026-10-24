@@ -1025,11 +1025,11 @@ function msgRead_(q) {
     r.onerror = () => done(null);
     try { r.readAsDataURL(f); } catch (e) { done(null); }
   });
-  if (/^image\/(jpeg|png|webp|heic|heif)$/i.test(f.type) && f.size > 2 * 1048576
-      && typeof camItemOf_ === 'function') {
+  /* EVERY PHOTOGRAPH, NOT ONLY ONE OVER 2MB (413): a message's picture is drawn inline at phone width, and 1600px is plenty. */
+  if (/^image\/(jpeg|png|webp|heic|heif)$/i.test(f.type) && typeof camItemOf_ === 'function') {
     return camItemOf_(f).then(it => it && it.data
       ? { name: String(f.name || 'photo').replace(/\.\w+$/, '') + '.jpg', type: 'image/jpeg', data: it.data }
-      : asIs());
+      : asIs(), asIs);
   }
   return asIs();
 }
@@ -1219,6 +1219,49 @@ on('msg-drop', el => {
   }, 0);
 });
 
+/* ---------- REPORTING A MESSAGE (413): the question Report's sheet (395), with reasons a message has ----------
+   `flagMessage` marks the row and emails the admin; it shows on Business → Reports. Only a message sent to you. */
+const MSG_REPORT_WHY = [
+  ['unkind', 'Unkind or bullying'],
+  ['unsafe', 'It makes me feel unsafe'],
+  ['rude', 'Rude, or a picture that should not be there'],
+  ['stranger', 'Spam, or I don\u2019t know them'],
+  ['other', 'Something else'],
+];
+on('msg-report', el => {
+  if (!USER) return;
+  const id = el.getAttribute('data-id') || '';
+  const m = (MESSAGES || []).find(x => x && x.id === id);
+  if (!m) { toast('That message is not loaded — try again in a moment.'); return; }
+  openSheet('Report this message', `<div class="me-form rep-form msg-rep-form" data-id="${esc(id)}">
+    <p class="faint rep-what">From ${esc(m.fromName || m.withName || 'someone')}${m.body ? ': “' + esc(String(m.body).slice(0, 80)) + (String(m.body).length > 80 ? '…' : '') + '”' : ''}</p>
+    <div class="rep-opts" role="radiogroup" aria-label="What is wrong">${MSG_REPORT_WHY.map(([k, say]) =>
+      `<button type="button" class="rep-opt" role="radio" aria-checked="false" data-do="rep-why" data-why="${esc(k)}">${esc(say)}</button>`).join('')}</div>
+    <label class="field rep-note"><span>Anything else? (optional)</span>
+      <textarea class="rep-note-in" rows="2" maxlength="300" autocomplete="off" placeholder="A few words"
+        aria-label="Anything else about this message"${draftAttr_('msg-rep', id)}>${esc(draftVal_('msg-rep', id))}</textarea></label>
+    <div class="tile-row">${tile_({ icon: 'send', label: 'Send', note: 'to the admin', act: 'msg-report-send', cls: 'rep-send' })}</div>
+    <p class="faint me-said rep-said" aria-live="polite">Only the admin sees a report. The message stays where it is.</p>
+  </div>`);
+});
+on('msg-report-send', el => {
+  const form = el.closest('.msg-rep-form');
+  if (!form || !USER) return;
+  const said = form.querySelector('.rep-said');
+  if (!form.dataset.why) { if (said) said.textContent = 'Choose what is wrong first.'; return; }
+  const id = form.dataset.id;
+  const say = (MSG_REPORT_WHY.find(r => r[0] === form.dataset.why) || [])[1] || form.dataset.why;
+  const note = String((form.querySelector('.rep-note-in') || {}).value || '').trim().slice(0, 300);
+  send_({ action: 'flagMessage', name: USER.name, personId: USER.personId || '', messageId: id,
+          reason: say + (note ? ' — ' + note : '') }, { button: el, where: said })
+    .then(() => {
+      try { draftDrop_('msg-rep', id); } catch (e) {}
+      closeSheet();
+      toast('Thanks — sent');
+    })
+    .catch(() => {});
+});
+
 /* ---------- AND MARKING THEM READ, WHICH NOTHING HAS EVER DONE § */
 function markRead_(msgs) {
   if (!USER) return;
@@ -1375,8 +1418,10 @@ const messagesHtml_ = ms => {
       <div class="msg${mine ? ' mine' : ''}${runTop ? ' run-top' : ''}${
         runEnd ? ' run-end' : ''}${!mine && (!m.read || m.fresh) ? ' unread' : ''}${
         m.state ? ' is-' + m.state : ''}">
-      <div class="msg-bub${words ? '' : ' is-bare'}">${msgAttachHtml_(m.attachments)}${
-        words ? `<p class="msg-body-text">${mark(words)}</p>` : ''}</div>
+      ${/* A MESSAGE YOU WERE SENT CAN BE REPORTED (413) — beside its bubble, for a child as much as anybody (`flagMessage`). */''}
+      ${!mine && m.id && !m.tmp ? '<div class="msg-line">' : ''}<div class="msg-bub${words ? '' : ' is-bare'}">${msgAttachHtml_(m.attachments)}${
+        words ? `<p class="msg-body-text">${mark(words)}</p>` : ''}</div>${!mine && m.id && !m.tmp
+        ? tile_({ icon: 'flag', label: 'Report', note: 'this message', act: 'msg-report', cls: 'msg-flag', data: { id: m.id } }) + '</div>' : ''}
       ${state || (runEnd ? `<p class="faint msg-when">${esc(mine ? 'you' : (m.fromName || 'them'))} · ${
         esc(msgClock_(t, m.at))}</p>` : '')}
     </div>`;
@@ -1394,9 +1439,10 @@ function msgForm_(to, toId, note, rows) {
   const k = msgKey_(to, toId);
   return `<div class="msg-form" data-k="${esc(k)}">
     <div class="msg-queue">${msgQueueHtml_(k)}</div>
-    <button class="btn quiet msg-clip" data-do="msg-attach"
+    ${/* A CHILD SENDS WORDS ONLY (413) — no picker, and `sendMessage` refuses their files too. */
+      rankAtLeast_('client') ? `<button class="btn quiet msg-clip" data-do="msg-attach"
       aria-label="Attach a photo, video or file">＋</button>
-    <input type="file" class="msg-file-in" multiple hidden aria-label="Choose files to send">
+    <input type="file" class="msg-file-in" multiple hidden aria-label="Choose files to send">` : ''}
     <textarea class="msg-text" rows="${rows || 1}" maxlength="2000"
       placeholder="Message…" aria-label="Message ${esc(to)}"${draftAttr_('msg', k)}>${esc(msgDraft_(k))}</textarea>
     <button class="btn msg-go" data-do="msg-send"
@@ -3032,13 +3078,14 @@ function photoPicker_(value, said) {
     <span class="pfp-face">${pfpFace_(v)}</span>
     <div class="pfp-side">
       <div class="tile-row">
-        ${tile_({ icon: 'photo', label: 'Choose photo', act: 'pfp-pick' })}
+        ${/* A CHILD CHOOSES FROM THE GRID, NEVER A FILE (413) — `savePhoto` refuses one too. */
+          rankAtLeast_('client') ? tile_({ icon: 'photo', label: 'Choose photo', act: 'pfp-pick' }) : ''}
         ${tile_({ icon: 'bin', label: 'Remove', act: 'pfp-remove', off: !v })}
       </div>
     </div>
     <div class="pfp-grid" role="group" aria-label="Or choose a picture">${['avatar'].concat(Object.keys(PFP_ART)).map(opt).join('')}</div>
     <p class="faint pfp-said">${esc(said || pfpSaid_(v))}</p>
-    <input type="file" class="pfp-in" accept="image/*" hidden>
+    ${rankAtLeast_('client') ? '<input type="file" class="pfp-in" accept="image/*" hidden>' : ''}
   </div>`;
 }
 /* WHAT THE PICTURE IS, IN A SENTENCE — the line's words at rest and after a save. */

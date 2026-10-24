@@ -176,6 +176,7 @@ node js/check-backend.js         # one Apps Script scope: every name declared ex
 node js/check-tabs.js            # every tab routed to one of the three files, and the ids look sane
 node js/check-rows.js            # each column read, against the tab that row actually came from
 node js/check-post.js            # an action that names a person by a cell they can edit
+node js/check-posts.js           # posts wait for approval, final once up, no links, a child uploads nothing (413)
 node js/check-library.js         # data/questions.json: ids, 80 marks, the closed facet vocabulary
 node js/check-marking.js         # a right answer marked right, a wrong one wrong
 node js/check-practicals.js      # the 41 practicals, and whether their topics join to anything

@@ -121,7 +121,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-24-g-staff-hub";
+const BACKEND_VERSION = "2026-10-24-p-posts-approval";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1600,7 +1600,8 @@ const ACTION_ACCESS = {
 
   saveRoom: 'admin', updateTrip: 'admin', addTrip: 'admin',
   /* `updateResource`, `editResource` and `deleteResource` WERE HERE. § */
-  editPost: 'admin', deletePost: 'admin',
+  /* `self` (413): an author edits their own post while it waits and deletes it any time; each handler checks whose it is. */
+  editPost: 'self', deletePost: 'self',
   setListed: 'admin', scanPosts: 'admin',
   /* ANYBODY SIGNED IN MAY POST. § */
   addPost: 'self',

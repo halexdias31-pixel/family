@@ -322,7 +322,10 @@ const WORKS = world({});
     ['application/pdf', 'image/svg+xml', 'text/html', 'application/octet-stream'].forEach(t => {
       if (!/photos and videos only/.test(ask([dataUrl(t, 100)]))) fail('posts', 'a ' + t + ' is let into a post');
     });
-    if (ask(['https://drive.google.com/file/d/abc/view', dataUrl('image/jpeg', 100)])) fail('posts', 'an address already in the folder, or a photograph, is refused');
+    /* NO LINKS (413): a post's pictures are files the author chose; an address, even one in the folder, is refused. */
+    if (ask([dataUrl('image/jpeg', 100)])) fail('posts', 'a photograph is refused: "' + ask([dataUrl('image/jpeg', 100)]) + '"');
+    if (!/not links/.test(ask(['https://drive.google.com/file/d/abc/view']))) fail('posts', 'a link is let into a post — posts take uploaded files only');
+    if (!ask([dataUrl('image/jpeg', 8 * 1048576 + 300)])) fail('posts', 'a picture over 8MB is let through — the phone redraws one at 1600px');
 
     /* THROUGH THE ACTION: refused BEFORE anything is made. */
     const pdf = W.as('P-C1', { action: 'addPost', data: dataUrl('application/pdf', 2000), caption: 'x' });

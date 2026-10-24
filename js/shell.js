@@ -2059,6 +2059,35 @@ function toast(msg) {
   toastTimer = setTimeout(() => el.remove(), 2600);
 }
 
+/* ---------- A CANVAS SHARED AS A PNG (413) ----------
+   The share sheet with the file; else a download, the link copied. Resolves shared, saved or cancelled.
+   fix-profile-png's `tutorPngHand_` does the same: keep one at the merge. */
+function shareCanvasPng_(canvas, filename, text) {
+  const name = String(filename || 'family.png');
+  const words = String(text || '');
+  const blobOf = () => new Promise((ok, no) => {
+    try { canvas.toBlob(b => (b ? ok(b) : no(new Error('empty picture'))), 'image/png'); } catch (e) { no(e); }
+  });
+  return blobOf().then(blob => {
+    const file = typeof File === 'function' ? new File([blob], name, { type: 'image/png' }) : null;
+    let can = false;
+    try { can = !!(file && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })); } catch (e) { can = false; }
+    const url = (words.match(/https?:\/\/\S+/) || [])[0] || '';
+    const save = () => {
+      const href = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = href; a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(href), 60000);   // a download can start after the click returns
+      const copy = url && navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(url) : Promise.reject();
+      return copy.then(() => toast('Picture saved · link copied'), () => toast('Picture saved')).then(() => 'saved');
+    };
+    if (!can) return save();
+    return navigator.share({ files: [file], text: words })
+      .then(() => 'shared', e => (e && e.name === 'AbortError' ? 'cancelled' : save()));
+  });
+}
+
 /* ---------- SPEAKING, ONE VOICE FOR THE WHOLE APP (394) ---------------------------------------- */
 /* Imposter's Listen and a question's Read aloud both speak through these three, so the British voice
    and the Chrome no-voices-yet fallback (`lang` as well as `voice`) are written once. */

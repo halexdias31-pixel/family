@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-24-g-staff-hub";
+const DOGET_VERSION = "2026-10-24-p-posts-approval";
 
 
 function doGet(e) {
@@ -692,8 +692,8 @@ function doGet(e) {
         const state = norm(r.approved);
         const waiting = state === 'pending';
         const refused = state === 'refused';
-        const mine = !!meAskedId && S(r.author) && findPerson(S(r.author))
-          && S(findPerson(S(r.author)).person_id) === meAskedId;
+        /* WHO PRESSED POST, not only the name on it — an admin's business post carries the brand's name (413). */
+        const mine = !!meAskedId && postIsBy_(r, { person_id: meAskedId });
         if (refused && !viewerIsAdmin) return;
         if (waiting && !viewerIsAdmin && !mine) return;
         /* An author who is not in the people list still gets a name — the one typed in the row. § */
@@ -734,6 +734,8 @@ function doGet(e) {
              leak one. */
           waiting: waiting,
           refused: refused,
+          /* YOURS, so the phone offers Edit while it waits and Delete always — the server checks again (`editPost`, `deletePost`). */
+          mine: !!mine,
           approvedBy: S(r.approved_by),
           /* THE POLL. Options split from the cell, counts from the votes tab, and which one is
              yours — everything the phone needs to draw it without a second request. */

@@ -274,6 +274,7 @@
    "active": true,
    "waiting": false,
    "refused": false,
+   "mine": false,
    "approvedBy": "",
    "poll": null,
    "reactions": {
@@ -336,6 +337,7 @@
    "active": true,
    "waiting": true,
    "refused": false,
+   "mine": true,
    "approvedBy": "",
    "poll": null,
    "reactions": {

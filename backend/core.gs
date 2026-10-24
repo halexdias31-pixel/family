@@ -734,6 +734,15 @@ function photoRefusal_(v) {
 function faceFig_(r) {
   return photoChoice_(r && r.photo) === PFP_AVATAR ? { avatar: S(r.avatar) } : {};
 }
+/* THE FACE A MESSAGE HEAD DRAWS (413): their chosen picture; none chosen, their figure if they dressed one; else nothing (the initial). */
+function msgFace_(r) {
+  if (!r) return { pic: '' };
+  const photo = S(r.photo).trim(), fig = S(r.avatar);
+  /* A CHILD'S OWN PHOTOGRAPH STAYS OFF OTHER PEOPLE'S SCREENS WHEN THEY HAVE A FIGURE — the post face's rule (doGet). */
+  const kidHid = photo && !photoChoice_(photo) && isChild_(r) && !!fig;
+  const pic = photo && !kidHid ? photo : (fig ? PFP_AVATAR : '');
+  return photoChoice_(pic) === PFP_AVATAR ? { pic: pic, avatar: fig } : { pic: pic };
+}
 
 /* ---------- THE VENUES A TUTOR IS HAPPY TO TEACH AT, WHICH THE VENUES TAB ALREADY RECORDED § */
 function venuesPersonIs_(entry, p) {

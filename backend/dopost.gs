@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-24-g-staff-hub";
+const DOPOST_VERSION = "2026-10-24-p-posts-approval";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -1011,13 +1011,30 @@ function doPost(e) {
 
     /* ---------- THREE RESOURCE HANDLERS WERE HERE § */
 
-    /* --- admin edits a post ------------------------------------------------------------------- */
+    /* --- a post edited: its author while it waits; once up, only an admin's pin and date (413) --- */
     if (action === 'editPost') {
       const t = read(TAB.posts);
       const r = rowById_(t, 'post_id', body.id, body.rowIndex);
       if (!r) return jsonOut({ error: 'No post with that id — it may have been deleted.' });
-
-      const fields = body.fields || {};
+      const me = findPerson(S(body.name), S(body.personId));
+      if (!me) return jsonOut({ error: 'Not signed in.' });
+      const admin = rankAtLeast_(me, 'admin');
+      const state = postState_(r);
+      const fields0 = body.fields || {};
+      /* WHAT THIS PERSON MAY CHANGE ON THIS POST, NOW: the words while it waits and is theirs; the pin and the date for an admin. */
+      const may = [];
+      if (state === 'pending' && postIsBy_(r, me)) may.push('caption', 'body', 'location', 'poll');
+      if (admin) may.push('pinned', 'posted_on', 'creation_date');
+      const asked = Object.keys(fields0).filter(f => POST_EDITABLE.indexOf(f) !== -1);
+      const barred = asked.filter(f => may.indexOf(f) === -1);
+      if (barred.length) {
+        return jsonOut({ error: state === 'up'
+          ? 'A post cannot be changed once it is up. Delete it and post again. Nothing was changed.'
+          : state === 'refused' ? 'That post was not put up, so it cannot be changed. Nothing was changed.'
+          : 'Only the person who posted it can change it while it waits. Nothing was changed.' });
+      }
+      const fields = {};
+      asked.forEach(f => { fields[f] = fields0[f]; });
 
       /* THE POLL IS NOT FREELY EDITABLE. § */
       if (fields.poll !== undefined) {
@@ -1099,7 +1116,13 @@ function doPost(e) {
       const t = read(TAB.posts);
       const r = rowById_(t, 'post_id', body.id, body.rowIndex);
       if (!r) return jsonOut({ error: 'No post with that id.' });
+      /* AN ADMIN, ANY POST; ANYBODY ELSE, THEIR OWN — and only to take it down; putting one back is the admin's (413). */
+      const me = findPerson(S(body.name), S(body.personId));
+      if (!me) return jsonOut({ error: 'Not signed in.' });
       const on = TRUE_(body.on);
+      if (!rankAtLeast_(me, 'admin') && (on || !postIsBy_(r, me))) {
+        return jsonOut({ error: 'Only the person who posted it, or an admin, can delete a post.' });
+      }
       setCell(t, r, 'active', on ? 'TRUE' : 'FALSE');
       clearCache();
       return jsonOut({ success: true, active: on });
@@ -1127,7 +1150,8 @@ function doPost(e) {
       /* WHO IT IS, FIRST — BEFORE A BYTE GOES INTO DRIVE. § */
       const me = findPerson(S(body.name), S(body.personId));
       if (!me) return jsonOut({ error: 'Not signed in.' });
-      const iAmAdmin = hasRole(me, 'admin');
+      const iAmAdmin = rankAtLeast_(me, 'admin');
+      if (!rankAtLeast_(me, 'client')) return jsonOut({ error: CHILD_NO_UPLOAD, why: 'child' });
       const folder = getPostFolder();
       if (!folder) {
         return jsonOut({ error: 'No posts folder. Add a row to the config tab: '
@@ -1147,7 +1171,7 @@ function doPost(e) {
           + 'be kept. Run ?setup=1 once, then post again.' });
       }
       /* THE CAPS AND THE QUEUE, BEFORE ANYTHING IS KEPT — `postMediaRefusal_` and `postsWaitingFor_` in content.gs say why each exists. § */
-      const refused = postMediaRefusal_([S(body.data)].concat(rest));
+      const refused = postMediaRefusal_([S(body.data), S(body.image)].concat(rest));
       if (refused) return jsonOut({ error: refused });
       if (!iAmAdmin && postsWaitingFor_(tp, me) >= POST_WAITING_MAX) {
         return jsonOut({ error: 'You have ' + POST_WAITING_MAX + ' posts waiting to be approved. '
@@ -1156,7 +1180,7 @@ function doPost(e) {
       let url = '';
       const more = [];
       try {
-        url = keep_(S(body.data)) || S(body.image).trim();
+        url = keep_(S(body.data));
         rest.forEach(x => { const u = keep_(x); if (u) more.push(u); });
       } catch (err) {
         return jsonOut({ error: 'Could not save the picture. ' + driveTrouble_(err, iAmAdmin) });
@@ -1677,6 +1701,7 @@ function doPost(e) {
          something sent. Only a message with neither is refused. */
       const files = (Array.isArray(body.files) ? body.files : []).filter(f => f && S(f.data));
       if (!text && !files.length) return jsonOut({ error: 'Nothing to send.' });
+      if (files.length && !rankAtLeast_(me, 'client')) return jsonOut({ error: CHILD_NO_UPLOAD, why: 'files' });
       if (text.length > 2000) {
         return jsonOut({ error: 'That is longer than a message should be — 2,000 characters.' });
       }
@@ -1762,6 +1787,8 @@ function doPost(e) {
             /* `nameFor_`: a child in somebody's inbox is their first name, and two children called
                Sam are two threads told apart by their handles (the owner, 10 Oct). */
             withName: who ? nameFor_(who) : '',
+            /* THEIR FACE, from the people tab — so a parent's or a child's head is their picture, not only a tutor's (413). */
+            withFace: msgFace_(who),
             fromName: S(r.from_id) === mine ? nameFor_(me)
                                             : (who ? nameFor_(who) : ''),
             at: fmtDateTime(r.sent_at),
@@ -2237,6 +2264,7 @@ function doPost(e) {
         return jsonOut(Object.assign({ success: true, photo: choice }, faceFig_(r)));
       }
       const raw = S(body.data).trim();
+      if (!rankAtLeast_(r, 'client')) return jsonOut({ error: CHILD_NO_UPLOAD + ' Choose one of the pictures instead.' });
       if (!/^data:image\/[\w.+-]+;base64,/i.test(raw)) {
         return jsonOut({ error: 'That is not a picture. Choose a photo from your phone.' });
       }
@@ -3156,13 +3184,23 @@ function doPost(e) {
         /* NEWEST FIRST, and the later row first where two share a millisecond. */
         .map((r, i) => Object.assign(r, { _i: i })).sort((a, b) => (b.at - a.at) || (b._i - a._i))
         .map(r => { delete r._i; return r; });
-      return jsonOut({ success: true, open: open.length, total: t.rows.length, reports: open.slice(0, REPORTS_LIST_MAX) });
+      return jsonOut({ success: true, open: open.length, total: t.rows.length, reports: open.slice(0, REPORTS_LIST_MAX),
+                       messages: flaggedMessages_() });
     }
 
     /* ---------- AND ONE CLOSED: `fixed` or `not a problem`; blank opens it again ---------- */
     if (action === 'setReportStatus') {
       const status = norm(body.status);
       if (REPORT_STATUSES.indexOf(status) < 0) return jsonOut({ error: 'Not a status a report can have.' });
+      /* A REPORTED MESSAGE (413) is closed on its own row: `flagged` CLEARED, kept for the record, never deleted. */
+      if (norm(body.kind) === 'message') {
+        const tm = read(TAB.messages);
+        const mr = tm.rows.find(r => S(r.message_id) && S(r.message_id) === S(body.id));
+        if (!mr) return jsonOut({ error: 'That message is not there any more.' });
+        setCell(tm, mr, 'flagged', status ? 'CLEARED' : 'TRUE');
+        clearCache();
+        return jsonOut({ success: true, id: S(mr.message_id), status: status, kind: 'message' });
+      }
       const lock = LockService.getScriptLock();
       if (!lock.tryLock(5000)) return jsonOut({ error: 'Busy — try again in a moment.', why: 'busy' });
       let out = {};
