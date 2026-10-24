@@ -144,6 +144,9 @@ const KINDS = {
   fight: { group: 'Learning', label: 'Resources', card: x => fightCard_(x) },
   /* ---------- THE BIBLE, AND THE ONE KIND THE PHONE ITSELF KEEPS FROM ALL BUT AN ADMIN § */
   bible: { group: 'Learning', label: 'Resources', card: x => bibleCard_(x) },
+  /* THE ICONS (403): each `TILE_ICONS` mark, for an admin, behind the Bible's gate — `iconItems_`, tiles.js. A group of
+     their own, so fifty-odd marks never change what Learning or Resources asks anybody (check-flow's Bible journeys). */
+  icon: { group: 'Icons', label: 'Icons', card: x => iconCard_(x) },
 
   /* ---------- TWO GROUPS, NOT ONE GROUP AND THEN THE SAME QUESTION AGAIN § */
   /* ---------- THESE TWO STAY IN THE TABLE AND NO LONGER ANSWER THE FIRST QUESTION § */
@@ -367,6 +370,8 @@ const FACETS = [
   { field: 'bibleBook',      label: 'Book',      of: x => (x.bb ? x.bb.book : '') },
   { field: 'bibleChapter',   label: 'Chapter',   of: x => (x.bb ? x.ch : '') },
   { field: 'bibleVerse',     label: 'Verse',     of: x => (x.bb ? x.v : '') },
+  /* THE ICONS' GROUP (403): what a mark is for, an ordinary question once `Icons` is the shelf. */
+  { field: 'iconGroup',     label: 'Group',     of: x => x.iconGroup || '' },
   { field: 'projectType',   label: 'Project or coursework', of: x => x.projectType || '' },
   { field: 'subject',   label: 'Subject',     of: x => x.subject },
   { field: 'boxKind',   label: 'Boxers or fights', of: x => x.boxKind || '' },
@@ -7889,6 +7894,7 @@ const RETIRED_ANSWERS = { shelf: RETIRED_SHELVES, kindLabel: ['Bundles'] };
 function placeChipDead_(f) {
   if (!f || typeof f.field !== 'string') return true;
   if (BIBLE_FIELDS[f.field] || (f.field === 'shelf' && f.value === BIBLE_SHELF)) return !bibleFor_();
+  if (f.field === 'iconGroup' || (f.field === 'shelf' && f.value === ICON_SHELF)) return !bibleFor_();
   if (RETIRED_FACETS[f.field]) return true;
   /* A RANGE CHIP (`bucket`) — the groupings went in 290 and their tables in 396, so nothing answers one. */
   if (f.bucket) return true;
@@ -8062,6 +8068,8 @@ function stuffItemsRaw_() {
 
     /* ---------- THE BIBLE, FOR AN ADMIN AND NOBODY ELSE § */
     ...bibleItems_(),
+    /* AND THE ICONS, BEHIND THE SAME GATE (403). */
+    ...(typeof iconItems_ === 'function' ? iconItems_() : []),
 
     /* ---------- `DATA.films` WAS MAPPED HERE, ONE ITEM PER FILM OR SERIES, AND IS NOT ANY MORE § */
 
@@ -9222,6 +9230,7 @@ const TAG_OF = {
   /* ---------- THE BIBLE'S SIX, IN KINDS THAT ALREADY HAVE COLOURS § */
   bibleTranslation: 'board', bibleTestament: 'level', bibleGroup: 'topic',
   bibleBook: 'paper', bibleChapter: 'paper', bibleVerse: 'paper',
+  iconGroup: 'topic',
 };
 /* A FACET NOBODY LISTED — one the facets tab invented — is still coloured: `other` (396). */
 const tagOf_ = field => TAG_OF[field] || 'other';
