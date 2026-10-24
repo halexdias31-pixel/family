@@ -131,12 +131,6 @@ const evH = b.tabs.events[0];
 const actors = b.tabs.events.slice(1).map(r => S(r[evH.indexOf('actor')]));
 rule(actors.indexOf('Wren ' + SUR) !== -1 && actors.indexOf('Wren (@wren_kind43)') === -1 && actors.indexOf('Wren') === -1,
   'the booking made for her did not go into the events under her whole name — actors: ' + JSON.stringify(actors));
-/* SHE INVITES A FRIEND TO SHARE IT. § */
-const m2 = MAIL.length;
-const inv = as('P-KID', { action: 'sendInvites', jobId: own && (own.jobId || own.id), emails: ['friend@example.org'] });
-const invM = MAIL.slice(m2).find(m => m.to === 'friend@example.org');
-rule(inv && inv.success && invM && /Wren/.test(S(invM.htmlBody)),
-  'her invitation to a friend was not caught with her first name in its HTML, so the HTML was not asked — ' + JSON.stringify(inv));
 /* HER PARENT BOOKS FOR HER, AS AN OLD PHONE DID — her whole name in the children ticked. */
 const forHer = as('P-PAR', { action: 'createJob', requestedTutor: 'Tam Tutor', subject: 'English', level: 'GCSE', day: slotDay,
   time: '11:00', slots: 'sa11', location: 'Online', dates: dmy(day(41)), hours: 1, price: 30, kids: 'Wren ' + SUR });
@@ -194,9 +188,7 @@ Object.keys(WHO).forEach(label => {
   none(as(pid, { action: 'myProfile' }), 'myProfile for ' + label);
   none(as(pid, { action: 'messages' }), 'the inbox of ' + label);
 });
-/* THE ADMIN'S OWN TOOLS — the people list and the weekly email's preview name every child there is. */
-none(as('P-ADM', { action: 'listPeople' }), 'the admin\'s listPeople');
-none(as('P-ADM', { action: 'diagnosePeople' }), 'the admin\'s diagnosePeople');
+/* THE ADMIN'S OWN TOOL — the weekly email's preview names every child there is. */
 none(as('P-ADM', { action: 'digestPreview' }), 'the admin\'s digestPreview');
 
 /* AND WHAT IS SENT IS HER FIRST NAME, NOT A BLANK — a rule that took every name out would pass the above. */
@@ -511,33 +503,6 @@ if (pipJob) {
 /* 8. AFTER REVIEW, ROUND 1 (docs/history/342, "After review") — the doors section 7 did not walk § */
 let revAsked = 0;
 const revRule = (ok, what) => { revAsked++; return rule(ok, what); };
-
-/* ---- AN OPEN ACTION, SIGNED OUT, CLAIMING TO BE THE ADMIN: the stranger's answer, not the admin's ---- */
-{
-  const jid = tessB && (tessB.jobId || tessB.id);
-  const sent = as('P-TYP', { action: 'sendInvites', jobId: jid, emails: ['stranger@example.org'] });
-  const ih = b.tabs.invites[0];
-  const irow = b.tabs.invites.slice(1).reverse().find(r => S(r[ih.indexOf('to_email')]) === 'stranger@example.org');
-  const itok = irow ? S(irow[ih.indexOf('token')]) : '';
-  revRule(sent && sent.success && itok, 'Tess could not invite a stranger, so an open action\'s viewer was NOT asked — ' + JSON.stringify(sent));
-  if (itok) {
-    const plain = b.post({ action: 'openInvite', token: itok });
-    const forged = b.post({ action: 'openInvite', token: itok, personId: 'P-ADM', name: 'Hal Admin' });
-    revRule(S(plain.from) === 'Tess' && S(forged.from) === 'Tess',
-      'an invitation opened by a stranger names the inviter by more than her first name when the request claims the admin\'s id — the viewer came off the request: '
-      + JSON.stringify([plain.from, forged.from]));
-  }
-}
-
-/* ---- A REFERRAL CODE CARRIES NO SURNAME: a parent's, and a child's ---- */
-{
-  const pipRef = as('P-PAR', { action: 'myReferral' });
-  revRule(pipRef && /^[A-Z]+\d+$/.test(S(pipRef.code)) && !/ASH/.test(S(pipRef.code)),
-    'Pip\'s referral code carries the start of her surname — a code is handed round: ' + JSON.stringify(pipRef && pipRef.code));
-  const kidRef = as('P-KID', { action: 'myReferral' });
-  revRule(kidRef && /^[A-Z]+\d+$/.test(S(kidRef.code)) && !/QUO/.test(S(kidRef.code)),
-    'Wren\'s referral code carries the start of her surname: ' + JSON.stringify(kidRef && kidRef.code));
-}
 
 /* ---- A FESTIVE JOIN: the typed surname cut on the way in, and the log only to the people on the job ---- */
 {

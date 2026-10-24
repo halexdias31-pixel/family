@@ -13,7 +13,9 @@ const KEEP=new Set(['doGet','doPost','missingKeys','layout',
   'makeBrandAccount','installTriggers_','listTriggers',
   'refreshPageCounts','closeFinishedJobs','geocodeVenues','renameValue_',
   'seedOptions','ensureResourceIds','schemaGaps','dataProblems','autoMigrate_',
-  'seedConfig_','seedAvatarItems_','seedPostcodes','ensurePersonIds_',
+  'seedConfig_','seedAvatarItems_','seedPostcodes','ensurePersonIds_','gallery','landmarks',
+  /* Run from the editor's dropdown and say what they found in words (core.gs, setup.gs). */
+  'testCache','checkTabs',
   /* THE CHECKS' QUESTION "is the builder done?" (docs/history/341) — asked by check-flow, swipe, reach, press
      and ui through the page, and by nothing in the app, which never needs to wait for itself. */
   'aheadBusy_',

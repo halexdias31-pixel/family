@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-10-24-s-racer";
+const BOOKING_VERSION = "2026-10-24-t-backend-dead";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -392,48 +392,6 @@ function rowById_(t, idColumn, id, fallbackRow) {
 function confirmedTutorOf_(jobId) {
   const t = tutorsIn(jobId).find(x => x.status === BM.AGREED || x.status === BM.BOOKED);
   return t ? t.name : '';
-}
-
-/** Send one invitation. Returns the token, which is the link. */
-function sendInvite(jobId, fromName, toEmail, toName) {
-  const t = read(TAB.invites);
-  const token = Utilities.getUuid().replace(/-/g, '').slice(0, 20);
-  /* ---------- AN INVITATION TO SOMEBODY WHO IS ALREADY A MEMBER IS A `bookings` EMAIL § */
-  const member = norm(toEmail) ? read(TAB.people).rows.find(r => norm(r.email) === norm(toEmail)) : null;
-  const held = !!member && !wants_(member, 'bookings');
-  addRow(t, Object.assign({
-    invite_id: 'I' + Date.now() + Math.floor(Math.random() * 99),
-    job_id: S(jobId), from_person: S(fromName), to_email: S(toEmail), to_name: S(toName),
-    sent_on: new Date(), token,
-  }, held ? { notes: 'not emailed: bookings_email on their row says no (Settings → Notifications)' } : {}));
-  if (held) { notifyHeld_(member, 'bookings', S(fromName) + ' would like to share a tutoring session with you'); return token; }
-
-  /* `cfg` is not a function — `config()` is. This line threw a ReferenceError the moment anybody
-     sent an invitation, which is why the whole mechanism has never once run to completion. */
-  const site = S(config().site_url) || SITE_URL;
-  const link = site + (site.indexOf('?') === -1 ? '?' : '&') + 'invite=' + token;
-  const job = read(TAB.jobs).rows.find(j => S(j.job_id) === S(jobId)) || {};
-
-  /* Written as the INVITING PARENT, because that is who it is from. § */
-  try {
-    mailOut_({
-      to: S(toEmail),
-      subject: S(fromName) + ' would like to share a tutoring session with you',
-      htmlBody:
-        '<p>Hello' + (S(toName) ? ' ' + S(toName) : '') + ',</p>'
-        + '<p>' + S(fromName) + ' has booked tutoring through @family. and asked whether you would '
-        + 'like to share the sessions — which brings the cost down for both of you.</p>'
-        + '<p><b>' + S(job.subject || 'Tuition') + '</b>'
-        + (S(job.venue) ? ' at ' + S(job.venue) : '')
-        /* THE TUTOR IS NOT A COLUMN. § */
-        + (confirmedTutorOf_(jobId) ? ', with ' + confirmedTutorOf_(jobId) : '') + '</p>'
-        + '<p><a href="' + link + '">See the details and decide</a></p>'
-        + '<p style="color:#666;font-size:13px">You were sent this because '
-        + S(fromName) + ' entered your address. If that is a mistake, ignore this and '
-        + 'nothing further will be sent.</p>',
-    });
-  } catch (err) { /* no mail quota, or a bad address — the row is still written */ }
-  return token;
 }
 
 /* ---------- THE HOURS SOMEBODY IS ALREADY TEACHING § */
@@ -1092,7 +1050,6 @@ function authWaitMins_(r) {
   return left > 0 ? Math.ceil(left / 60000) : 0;
 }
 
-function authLocked_(r) { return authWaitMins_(r) > 0; }
 
 function authWrong_(t, r) {
   const was = authThrottle_(r);

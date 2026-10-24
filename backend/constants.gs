@@ -118,7 +118,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-24-s-racer";
+const BACKEND_VERSION = "2026-10-24-t-backend-dead";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1215,10 +1215,6 @@ const POST_GROUPS = {
 };
 const POST_EDITABLE = flat(POST_GROUPS);
 
-/* The rooms every venue is described in terms of. § */
-const ROOM_SLOTS = ['Small room 1', 'Small room 2', 'Medium room 1', 'Medium room 2',
-                    'Large room 1', 'Large room 2'];
-
 const ROOM_GROUPS = {
   'Room':     ['venue', 'name'],
   'Rates':    ['rate_per_hour', 'concession_rate'],
@@ -1227,15 +1223,6 @@ const ROOM_GROUPS = {
 };
 const ROOM_EDITABLE = flat(ROOM_GROUPS);
 
-const LINK_GROUPS = {
-  'Link':  ['name', 'url'],
-  'Where': ['category', 'colour'],
-  'More':  ['description', 'photo'],
-};
-const LINK_EDITABLE = flat(LINK_GROUPS);
-
-const VENUE_EDITABLE = [...new Set(flat(VENUE_GROUPS).concat(
-  AVAIL_DAYS.reduce((a, [p]) => a.concat(AVAIL_HOURS.map(h => p + String(h).padStart(2,'0'))), [])))];
 
 /* BOOKING STATE MACHINE ==================================================== One machine, both sides. § */
 /* The four words a participant's row can say, written from THEIR point of view. § */
@@ -1452,22 +1439,19 @@ const ACTION_ACCESS = {
   imageData: 'anyone',          // proxies a picture for the share canvas; reads nothing private
 
   // A person acting on their own record. Each handler still checks WHOSE row it is.
-  updateProfile: 'self', saveNotepad: 'self', saveTodo: 'self', confirmDetails: 'self',
+  updateProfile: 'self', saveNotepad: 'self', saveTodo: 'self',
   saveTimetable: 'self',
   saveAvatar: 'self', saveFriends: 'self', saveScore: 'self', saveTtHighscore: 'self',
   /* YOUR OWN PICTURE. The handler writes `photo` on the row the token resolved to and nowhere else. */
   savePhoto: 'self',
   /* YOUR OWN ROLES — the three a person may tick, on the row the token resolved to. § */
   setMyRoles: 'self',
-  myReferral: 'self',       // your own code, and who came through it
-  redeem: 'self',
   /* `likePost` was here. § */
   votePoll: 'self', reactPost: 'self',
   /* SAYING SOMETHING UNDER A POST, AND TAKING IT DOWN. § */
   addComment: 'self', deleteComment: 'self',
   /* Reading the folder, to choose a photograph already in it. Admin, because it lists what has not
      been posted yet — which is a view of your Drive rather than of the site. */
-  folderFiles: 'admin',
   /* `orderPrints` WAS HERE and the handler priced a print from the SHEET, deliberately, because a total posted by a browser is a total the client chose. § */
   /* A parent asks; only the named child may answer. Both `self` — the handlers check WHO, which
      is the part that matters and the part a gate cannot see. */
@@ -1488,7 +1472,7 @@ const ACTION_ACCESS = {
   /* The shop window is the business talking, so only the business may change it. */
   spotlight: 'admin',
   createCheckout: 'self', finalizePayment: 'self',
-  move: 'self', tutorMove: 'self', createJob: 'self',
+  move: 'self', createJob: 'self',
   /* JOINING THE LIST. `self` — anybody signed in may put themselves on it, and the handler checks it is their own name they are adding. § */
   joinWaitlist: 'self',
   /* ---------- OPENING A LIST IS ADMIN, AND HAD TO BE SAID HERE § */
@@ -1538,16 +1522,12 @@ const ACTION_ACCESS = {
   myProfile: 'self',
   /* WHICH EMAILS YOU WANT (`NOTIFY_KINDS`). § */
   setNotify: 'self',
-  // The books, the prices, the rooms, the people list.
-  diagnosePeople: 'admin', getProfile: 'admin', listPeople: 'admin',
-  updateVenue: 'admin', updateConfig: 'admin', updatePricing: 'admin',
-  updateShop: 'admin', deleteShopItem: 'admin',
-
-  saveRoom: 'admin', updateTrip: 'admin', addTrip: 'admin',
+  /* One person's sheet row, for an admin. The books, prices, rooms, invitations and people-list handlers went in 433: nothing called them. */
+  getProfile: 'admin',
   /* `updateResource`, `editResource` and `deleteResource` WERE HERE. § */
   /* `self` (413): an author edits their own post while it waits and deletes it any time; each handler checks whose it is. */
   editPost: 'self', deletePost: 'self',
-  setListed: 'admin', scanPosts: 'admin',
+  setListed: 'admin',
   /* ANYBODY SIGNED IN MAY POST. § */
   addPost: 'self',
   /* Letting one through, or turning it down. Admin, obviously — this is the whole point of the
@@ -1559,14 +1539,7 @@ const ACTION_ACCESS = {
   /* ENDING A SESSION. Admin only, and deliberately: § */
   deleteJob: 'admin',
   /* LINKING A CHILD TO A PARENT WITHOUT ASKING THE CHILD. § */
-  linkChild: 'admin', unlinkChild: 'admin',
+  linkChild: 'admin',
   /* PEOPLE MADE, CHANGED AND REMOVED FROM THE PEOPLE COLUMN (373). */
   personGet: 'admin', personSave: 'admin', personDelete: 'admin',
-  /* Reports every tab and column in the spreadsheet. It was open to anyone, which hands a
-     stranger the shape of the whole database — the thing you would want before attacking it. */
-  debugTabs: 'admin',
-  /* Invitations. Opening one needs no account — that is the entire point, since the person being
-     invited does not have one yet. */
-  openInvite: 'anyone', acceptInvite: 'anyone',
-  sendInvites: 'self',
 };
