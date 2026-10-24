@@ -8682,6 +8682,8 @@ function accountPages_() {
         : `<div class="tile-row">${tile_({ icon: 'out', label: 'Sign out', act: 'signout' })}</div>`),
     /* "WE WILL EMAIL YOU ONCE YOU OPEN THE LINK" — one line under the row while your own address is unproved, because `notify` sends it nothing until then and a § */
     typeof mailHeldNote_ === 'function' ? mailHeldNote_() : '',
+    /* AND, FOR STAFF, "NOT AGREED TO THE TUTOR TERMS" until they are (405) — `hubWarn_` in staff.js. */
+    typeof hubWarn_ === 'function' ? hubWarn_() : '',
   ].join('');
 
   /* ---------- AND AN UNLISTED TUTOR WAS DELETED FROM THE ONE SCREEN THAT CAN SWITCH HIM BACK ON -- § */

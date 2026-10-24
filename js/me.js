@@ -1852,8 +1852,7 @@ function settingsPages_() {
 
   /* AFTER THE ROLES, for the reason above. Each is gated on the role it is about, and the server gates it
      again — a card is not a permission. */
-  /* `tutorHeld_`, NOT `isTutorRole`: § */
-  if (tutorHeld_() || isAdmin()) pages.push(agreementCard_());
+  /* THE TUTOR AGREEMENT WAS HERE; the tutor terms are in the Staff hub on You now (405, staff.js). */
   /* ---------- YOUR JOURNEY AND THE WEEKLY PARENT EMAIL WERE HERE, AND NEITHER IS A SETTING § */
   /* AND WHICH EMAILS YOU WANT, LAST OF ALL AND FOR EVERYBODY SIGNED IN — see `notifyCard_`. Appended,
      for the rule above. */
@@ -2034,52 +2033,7 @@ on('notify-pick', el => {
 
 /* ---------- YOUR JOURNEY WAS HERE, AND IS THE PROGRESS COLUMN'S CARD NOW § */
 
-/* ---------- THE TUTOR AGREEMENT (DRAFT), AND A TICK THAT CANNOT BE TAKEN BACK § */
-const AGREEMENT_VERSION = 'draft-2026-09';
-const AGREEMENT_POINTS = [
-  'You work as a self-employed tutor, not as an employee. You are responsible for your own tax and National Insurance.',
-  'You hold an enhanced DBS check, and you tell us straight away if anything about it changes.',
-  'Safeguarding comes first. You report any concern about a child to us the same day, and you never meet a student alone somewhere that has not been agreed.',
-  'You arrive on time and prepared. If you cannot make a session you give at least 24 hours\u2019 notice, except in a real emergency.',
-  'Families pay through this platform. You do not take payment directly, and you are paid for the sessions you teach, on the schedule we agree.',
-  'You keep what you learn about students and families private, and you only use their details to teach them.',
-  'You are polite and professional with students, parents and staff, in person and in messages.',
-  'You do not take on a family you met through us privately while you work with us, or for 6 months after.',
-  'Either side can end this with 2 weeks\u2019 written notice, or straight away for a serious breach such as a safeguarding failure.',
-  'This is a DRAFT and may change. If it does, you will be asked to agree to the new version.',
-];
-function agreementCard_() {
-  const at = USER && USER.agreementSignedAt;
-  return `<div class="card agree">
-    <h3>Tutor agreement <span class="agree-draft">Draft</span></h3>
-    <ol class="agree-list">${AGREEMENT_POINTS.map(t => `<li>${esc(t)}</li>`).join('')}</ol>
-    <label class="check"><input type="checkbox" data-do="agree-sign"${at ? ' checked disabled' : ''}>
-      <span class="box"></span><span>I have read this and I agree</span></label>
-    <p class="faint agree-said">${at
-      ? 'Agreed on ' + esc(at) + (USER.agreementVersion ? ' \u00b7 ' + esc(USER.agreementVersion) : '') + '. This cannot be undone.'
-      : 'Once ticked it stays ticked \u2014 it cannot be undone.'}</p>
-  </div>`;
-}
-
-on('agree-sign', el => {
-  if (!USER || el.disabled) return;
-  /* A click on an unticked box has already ticked it by the time this runs. § */
-  el.disabled = true;
-  const said = el.closest('.card') && el.closest('.card').querySelector('.agree-said');
-  send({ action: 'signAgreement', name: USER.name, personId: USER.personId, version: AGREEMENT_VERSION })
-    .then(d => {
-      USER.agreementSignedAt = (d && d.signedAt) || 'today';
-      USER.agreementVersion = (d && d.version) || AGREEMENT_VERSION;
-      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
-      el.checked = true;
-      if (said) said.textContent = 'Agreed on ' + USER.agreementSignedAt + '. This cannot be undone.';
-      toast('Agreed');
-    })
-    .catch(err => {
-      el.checked = false; el.disabled = false;
-      toast(String((err && err.message) || 'Not saved.'));
-    });
-});
+/* THE TUTOR AGREEMENT (DRAFT) WAS HERE — ten points and a tick for good. It is the Tutor Terms & Conditions in the Staff hub now, versioned (405, staff.js). */
 
 screen('settings', () => pages('settings', settingsPages_()));
 

@@ -121,7 +121,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-24-c-ranks-media";
+const BACKEND_VERSION = "2026-10-24-d-staff-hub";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1094,6 +1094,8 @@ const AVATAR_ITEMS = [
 
 /* ---------- THE FOUR FIELDS THAT ARE THE QUOTE § */
 const PRICING_FIELDS = ['rate_per_hour', 'extra_seat_rate', 'max_students', 'min_students'];
+/* THE MOST AN HOUR MAY BE, so a slip of the thumb (2500 for 25.00) is refused, not published (405). The phone's `STAFF_RATE_MAX` is the same. */
+const RATE_MAX = 200;
 
 /* ---------- AND THE BUSINESS'S CUT OF AN EXTRA SEAT, WHICH IS ON THE RATE PAGE AND NOT THE FIFTH OF THEM § */
 const SEAT_CUT_FIELD = 'extra_seat_cut';
@@ -1570,6 +1572,8 @@ const ACTION_ACCESS = {
   listReports: 'admin', setReportStatus: 'admin',
   /* APPLYING TO TEACH (400): your own application, and the admin's list and decision. */
   applyTeach: 'self', listApplications: 'admin', decideApplication: 'admin',
+  /* THE STAFF HUB (405): a statement is the asker's own unless they are an admin (the handler says so); the terms register is the admin's. */
+  payStatement: 'self', listStaff: 'admin',
   /* THE LIBRARY'S WORDS AND ANSWERS (397): anybody signed in, a day's cap each; the tools' copy in and out is the admin's. */
   libItems: 'self',
   libExport: 'admin', libImport: 'admin',

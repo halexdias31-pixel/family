@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-24-c-ranks-media";
+  --css-version: "2026-10-24-d-staff-hub";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -6166,8 +6166,6 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
   padding: .15rem .45rem; border-radius: 999px; border: 1px dashed var(--gold); color: var(--gold);
   vertical-align: middle; margin-left: .3rem; font-weight: 400;
 }
-.agree-list { margin: .5rem 0 .2rem; padding-left: 1.1rem; font-size: .74rem; line-height: 1.4; color: var(--dim); }
-.agree-list li + li { margin-top: .25rem; }
 .agree .check input:disabled ~ span:last-child { color: var(--dim); }
 .agree .check:has(input:disabled) { cursor: default; }
 
@@ -6245,6 +6243,69 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 .pf-head .pf-v { color: var(--good); font-size: 1.15rem; font-variant-numeric: tabular-nums; }
 .pf-head .pf-v.is-bad { color: var(--bad); }
 .pf-head .pf-sum { flex-basis: 100%; color: var(--faint); font-size: .72rem; }
+
+/* ---------- THE STAFF HUB (405): terms, pricing with where an hour's money goes, the monthly statement — staff.js ---------- */
+.hub { --pb-tutor: var(--gold); --pb-room: #6f8fb3; --pb-fees: var(--dim); --pb-business: var(--good); }
+.hub-tabs { margin-bottom: .8rem; }
+.hub-body h3 { margin: 0 0 .3rem; }
+.hub-ver, .hub-lead, .hub-note { margin: 0 0 .6rem; font-size: .74rem; }
+.hub-terms .doc { font-size: .78rem; line-height: 1.45; color: var(--ink); }
+.hub-terms .doc h4 { margin: .9rem 0 .25rem; font-size: .8rem; color: var(--gold); }
+.hub-terms .doc ul { margin: .2rem 0; padding-left: 1.1rem; }
+.hub-terms .doc li + li { margin-top: .25rem; }
+.hub-terms .doc p { margin: .2rem 0; }
+.hub-terms .check { margin-top: .6rem; border-top: 1px solid var(--line); }
+.hub-warn { margin: .6rem 0 0; font-size: .78rem; color: var(--alert); line-height: 1.4; }
+.hub-room { display: block; margin: .3rem 0 .7rem; }
+/* THE BARS: four parts of one hour's booking, sliding as a value moves — the width is the only thing that changes. */
+.pb { display: grid; gap: .7rem; margin: 0 0 .7rem; }
+.pb-cap { margin: 0 0 .25rem; font-size: .78rem; color: var(--ink); display: flex; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
+.pb-paid { color: var(--dim); font-variant-numeric: tabular-nums; }
+.pb-bar { display: flex; height: 1.1rem; border-radius: .3rem; overflow: hidden; background: var(--line-soft); }
+.pb-seg { display: block; height: 100%; transition: width .35s ease; }
+.pb-seg.is-tutor { background: var(--pb-tutor); }
+.pb-seg.is-room { background: var(--pb-room); }
+.pb-seg.is-fees { background: var(--pb-fees); }
+.pb-seg.is-business { background: var(--pb-business); }
+.pb-say { margin: .3rem 0 0; display: flex; flex-wrap: wrap; gap: .15rem .7rem; font-size: .68rem; color: var(--dim); }
+.pb-k::before { content: ''; display: inline-block; width: .55rem; height: .55rem; border-radius: 50%; margin-right: .25rem; vertical-align: baseline; }
+.pb-k.is-tutor::before { background: var(--pb-tutor); }
+.pb-k.is-room::before { background: var(--pb-room); }
+.pb-k.is-fees::before { background: var(--pb-fees); }
+.pb-k.is-business::before { background: var(--pb-business); }
+.pb-k b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.pb-note { margin: 0; font-size: .7rem; }
+@media (prefers-reduced-motion: reduce) { .pb-seg { transition: none; } }
+/* THE STATEMENT IS PAPER: the paper palette, a table that fits a phone, and the same sheet printed. */
+.stmt-out { margin: .5rem 0 .6rem; }
+.stmt { background: var(--paper); color: var(--paper-ink); border-radius: .4rem; padding: .9rem .8rem; }
+.stmt-head { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid var(--paper-rule); padding-bottom: .35rem; }
+.stmt-head b { font-size: .95rem; }
+.stmt-head span { font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--paper-dim); }
+.stmt-who { margin: .4rem 0 .6rem; font-size: .8rem; color: var(--paper-dim); }
+.stmt-t { width: 100%; border-collapse: collapse; font-size: .66rem; font-variant-numeric: tabular-nums; table-layout: fixed; }
+.stmt-t th { text-align: right; font-weight: 600; color: var(--paper-dim); padding: .2rem .1rem; border-bottom: 1px solid var(--paper-rule); }
+.stmt-t td { text-align: right; padding: .3rem .1rem; border-bottom: 1px solid var(--paper-strip); vertical-align: top; overflow-wrap: anywhere; }
+.stmt-t th:first-child, .stmt-t td:first-child { text-align: left; width: 25%; }
+/* A SUM IS NEVER BROKEN ACROSS TWO LINES: £135.00 split at 320px read as two numbers. */
+.stmt-t td:not(:first-child) { white-space: nowrap; overflow-wrap: normal; }
+.stmt-t td:first-child span { display: block; color: var(--paper-dim); }
+.stmt-t tfoot td { font-weight: 700; border-top: 1px solid var(--paper-ink); border-bottom: 0; }
+.stmt-none { font-size: .78rem; color: var(--paper-dim); }
+.stmt-note { margin: .7rem 0 0; font-size: .62rem; line-height: 1.4; color: var(--paper-dim); }
+@media print {
+  body.printing-stmt { max-width: none !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; }
+  body.printing-stmt * { visibility: hidden !important; }
+  body.printing-stmt .stmt-paper, body.printing-stmt .stmt-paper * { visibility: visible !important; }
+  body.printing-stmt .stmt-paper { position: absolute; left: 0; top: 0; width: 190mm; margin: 10mm; }
+  body.printing-stmt .stmt { border-radius: 0; padding: 0; font-size: 11pt; }
+  body.printing-stmt .stmt-t { font-size: 9pt; }
+  @page { size: A4 portrait; margin: 0; }
+}
+.stmt-paper { display: none; }
+@media print { body.printing-stmt .stmt-paper { display: block; } }
+.staff-terms { margin: 0 0 .3rem; font-size: .72rem; }
+.staff-item .biz-flag { color: var(--alert); }
 
 /* ---------- CHECK UPLOADS: AN ADMIN TOOL — see `uploadsHtml_` in me.js § */
 .up-list { list-style: none; margin: .7rem 0 .4rem; padding: 0; }

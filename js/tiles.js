@@ -245,7 +245,8 @@ function tutorTiles_(x) {
           ''}
     ${/* ---------- WRITE TO THEM, FROM THE ONE PLACE YOU ARE LOOKING AT THEM § */
           ''}
-    ${(USER && !isMe_(x)) ? tile_({ icon: 'chat', label: 'Message',
+    ${/* NOT FOR A CHILD, unless they are the business (405): `MESSAGING` lets a student write to an admin only — no tile the server refuses. */
+          (USER && !isMe_(x) && (!childView_() || /admin/i.test(String(t.role || '')))) ? tile_({ icon: 'chat', label: 'Message',
               note: 'a note to them', act: 'msg-open',
               data: { to: x.name, id: (x.row && x.row.personId) || '' } }) : ''}
     ${/* EDIT, FOR AN ADMIN, ON SOMEBODY ELSE'S CARD ON THE YOU COLUMN — `updateProfile` lets an admin write another person's row, so the card turns into its form for § */
@@ -400,6 +401,8 @@ function cardActions_(x) {
     /* SHARE MY PROFILE (400), for staff and an admin who teaches: their own `?tutor=` link, to send a family. */
     + (rankAtLeast_('staff') && USER.handle ? tile_({ icon: 'share', label: 'Share my profile', note: 'your link',
         act: 'tutor-share', data: { handle: USER.handle } }) : '')
+    /* AND THE STAFF HUB BESIDE IT (405): the tutor terms, pricing, the monthly statement — `hubTile_` in staff.js. */
+    + (typeof hubTile_ === 'function' ? hubTile_() : '')
     + tile_({ icon: 'out', label: 'Sign out', act: 'signout' })
     + (typeof pendingAddr_ === 'function' && pendingAddr_() && typeof resendTile_ === 'function' ? resendTile_() : '');
   if (x.kind === 'receipt') return jobTiles_(x);

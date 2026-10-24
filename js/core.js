@@ -476,7 +476,8 @@ function priceFrom(spec) {
   // open_rate falls back to the HIGHEST rate any tutor charges, because whoever ends up taking an
   // open job has to be covered by the price already agreed. Set it below the dearest tutor and the
   // difference comes out of your margin every time they're the one who applies.
-  const tutorRow = tutor ? (DATA.tutors || []).find(t => norm(t.title) === norm(tutor)) : null;
+  /* `spec.tutorRow`: a row not yet saved — the Staff hub's pricing (405) asks this same sum of the figures being typed. */
+  const tutorRow = spec.tutorRow || (tutor ? (DATA.tutors || []).find(t => norm(t.title) === norm(tutor)) : null);
   const tutorRate = Number(tutorRow && tutorRow.rate) || 0;
   // Named tutor: their own charge-out rate. No preference: the open rate, which is fixed because a
   // job nobody has claimed can't be priced on the rate of a tutor who hasn't taken it yet.

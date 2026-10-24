@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-10-24-c-ranks-media";
+const BOOKING_VERSION = "2026-10-24-d-staff-hub";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -310,6 +310,40 @@ function capacityFor(kind, name) {
   }
   const p = findPerson(name);
   return p ? N(p.max_students) : 0;
+}
+
+/* ---------- A TUTOR'S MONTH, SESSION BY SESSION (405) ----------
+   Paid bookings (`active`) this tutor is confirmed on; each booking's money shared evenly over its dates, as `profitActual_` does on the phone. */
+function payStatement_(tutor, ym) {
+  const m = /^(\d{4})-(\d{2})$/.exec(S(ym));
+  if (!tutor || !m) return null;
+  const y = Number(m[1]), mo = Number(m[2]) - 1, me = key(personDisplayName(tutor));
+  const cfg = config();
+  const r2 = x => Math.round(x * 100) / 100;
+  /* THE FIRST FIGURE WRITTEN WINS: the booking's own price, else the money frozen when it was agreed (353). */
+  const cash = (j, a, b) => S(j[a]) !== '' ? N(j[a]) : N(j[b]);
+  const rows = [];
+  read(TAB.jobs).rows.forEach(j => {
+    const jobId = S(j.job_id) || String(j._row);
+    if (norm(j.kind) === 'waitlist' || jobStatusOf(jobId) !== 'active') return;
+    const t = tutorsIn(jobId).find(p => p.status === BM.AGREED || p.status === BM.BOOKED);
+    if (!t || key(t.name) !== me) return;
+    const all = sessionDatesOf(j).map(sheetDate).filter(Boolean);
+    const here = all.filter(d => d.getFullYear() === y && d.getMonth() === mo);
+    if (!here.length) return;
+    const kids = S(j.for_children).split(/[,\n]/).map(x => x.trim()).filter(Boolean).length;
+    const students = kids || clientsIn(jobId).filter(c => c.status !== 'Withdrawn').length || 1;
+    const paid = cash(j, 'price_total', 'gross'), pay = cash(j, 'tutor_pay', 'tutor_payout'), kept = cash(j, 'admin_profit', 'net_profit');
+    here.forEach(d => rows.push({
+      date: d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2), job: jobId,
+      what: (S(j.level) + ' ' + S(j.subject)).trim() || 'Session',
+      hours: N(j.hours_per_session) || N(cfg.h) || 2, students,
+      paid: r2(paid / all.length), business: r2(kept / all.length), tutor: r2(pay / all.length) }));
+  });
+  rows.sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+  const sum = k => r2(rows.reduce((t, r) => t + r[k], 0));
+  return { month: S(ym), tutor: personDisplayName(tutor), tutorId: S(tutor.person_id), sessions: rows,
+           totals: { sessions: rows.length, hours: sum('hours'), paid: sum('paid'), business: sum('business'), tutor: sum('tutor') } };
 }
 
 function sessionDatesOf(j) {
