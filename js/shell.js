@@ -2906,6 +2906,7 @@ function splashWaitWatch_() {
 }
 /* ---------- WHAT THE NEXT LOAD'S SPLASH IS CHOSEN FROM § */
 const SPLASH_CACHE_F = 1;
+/* 1 500 000 FOR ALL 172 DRAWINGS' 1 377 437 CHARACTERS (436): set once, room for about fifteen more; a refused write still gives the whole copy back. */
 const SPLASH_CACHE_MAX = 1500000;
 function splashSync_(d, extra) {
   const rows = extra && extra['settings/splashes'];

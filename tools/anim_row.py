@@ -11,14 +11,22 @@
 #
 # WRITTEN BY A SCRIPT: abinom achain aexp afirst ageom ahyp aincline amoment anormal aparam apascal aproj apulley area ariemann aroot2 asch atom aunit avec3 balance bayes bin bubble bus carbon cell cent coin covalent dna eapos earc ecbreakeven eccashflow ecextern ecflow ecfx ecped ecppf ecrates ecsupply eforest electro emetre enzyme epeel equil escrooge esent ezoom fadd fde fdp fib fit frac gal gates gbal gcf gcomp genl gexp gfac ggcoast ggcontour ggdtm gggreen gggrid ggmeander ggplate ggquake ggstorm ggwater gquad grot groups grule gsemi gsim gsimi gsoh gsurd gtree gvec hbal hcur heart hex hexp hinf hmed hnop hweb hweim index insert ionic ivdv labuild laconj laetre lagend latime lens line lmul mean merge milg mitosis moles msm mxc natsel neg orbit osmosis packet pcause pcave pdoubt peri pfall phcirc phdrop phem phfiss phforce phhalf phheat phiv phmom phmotor photo phrefr phsank phstate phvt phwave piag pixel prot psyll ptrolley punnett pv pwatch pyth rates ratio reflex rle samp search sieve sine stack syn titrate trans venn
 #
-# (`gal` is tools/galton.py, `orbit` tools/solar.py, the GCSE Maths sixteen whose ids start with g are
-# tools/g_<topic>.py — `gexp` is g_expand.py — and an A-level `a<name>` is tools/a_<name>.py; every other
-# one is tools/<id>.py.) Change one of those in its script and re-run it; never edit its row by hand. Everything a script writes replaces its
+# Where each one's script is (436 brought them together): `gal` is tools/galton.py and `orbit` tools/solar.py; by prefix,
+# GCSE Maths `g<topic>` is tools/g_<topic>.py (`gexp` g_expand.py), A-level Maths `a<name>` tools/a_<name>.py, Physics
+# `ph<topic>` tools/ph_<topic>.py, Geography `gg<topic>` tools/gg_<topic>.py (`ggplate` gg_plates.py), History
+# `h<topic>` tools/h_<topic>.py (`hbal` h_balance.py), English `e<topic>` tools/e_<topic>.py, Philosophy `p<name>`
+# tools/p_<name>.py, Economics and Business `ec<topic>` tools/ec_<topic>.py, Spanish and French `la<name>`
+# tools/la_<name>.py; Computer Science (bin bubble fde gates hex insert merge packet pixel rle search stack) is
+# tools/cs_<id>.py, Chemistry and Biology (atom balance … titrate) tools/cb_<id>.py with tools/cb_kit.py, and
+# Psychology and Sociology tools/ps_<topic>.py (asch ps_asch, ivdv ps_variables, lens ps_lenses, milg ps_milgram,
+# msm ps_memory, piag ps_piaget, samp ps_sampling, syn ps_synapse); every other one is tools/<id>.py. `grep -l
+# "write_anim('<id>'" tools/*.py` finds any of them. Change one of those in its script and re-run it; never edit its
+# row by hand. Everything a script writes replaces its
 # namesake in the row, so a hand edit to anything the script writes — Pythagoras's colours, Bayes's
 # markup, y = mx + c's rules — passes every check and is quietly undone the next time anybody runs the
 # script for any reason. `check-anims.js` runs each one against a copy of the books and fails if the
-# copy changes, and it holds the line above to the scripts that call `write_anim`. The other eleven
-# rows have no script: for them the row IS the source, and it is edited in place.
+# copy changes, and it holds the line above to the scripts that call `write_anim`. The other nine
+# rows (ang clock half mult odds pas sf tri trick) have no script: for them the row IS the source, and it is edited in place.
 #
 # THE SCRIPTS ARE UNCHANGED IN WHAT THEY COMPUTE AND HOW THEY WRITE IT — markup indented as it stood in
 # index.html, rules with their comments and `#splash-<id>` as they stood in style.css. This applies the
@@ -37,9 +45,12 @@
 # writes that the row does not have is an error, not an addition: a new rule or a renamed element is
 # a change to the drawing to make on purpose, in the row, and then here.
 #
-# THE ONES BORN IN THE BOOKS (`a_*.py`, the A-level drawings, docs/history/411) were never in index.html: each writes
-# its whole row through `whole=`, markup and CSS as given, and creates it under its chapter the first time. The
-# helpers at the end (`kf`, `fade`) are theirs: a loop's keyframes from times in seconds.
+# THE ONES BORN IN THE BOOKS were never in index.html, and each makes its own row the first time, one of three ways:
+# `whole=` a dict {book_id, chapter, title, about} (the A-level, philosophy, economics and languages scripts, 411),
+# `whole=True, place=dict(...)` (the KS2 ones on `Loop`, 409; `place` also moves the row), or `place=` a tuple
+# (the English ones, 416: the row is made once, with its CSS whole, and the tuple changes nothing after). The
+# Computer Science scripts make theirs with their own `--init` (424). The helpers at the end (`kf`, `fade`,
+# `captions`, `Loop`) are theirs: a loop's keyframes from times in seconds.
 import json, math, pathlib, re
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent

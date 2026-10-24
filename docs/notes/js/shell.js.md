@@ -5721,13 +5721,16 @@ top level, before `SPLASH_CACHE_F`
    answer or a drawing and the store. Other writes (`favs`, the signed-in user) are not covered.
    `SPLASH_CACHE_MAX` is the ceiling on the lot, in a 5 MB store shared with everything else this app
    keeps. THE 28 CAME TO ABOUT 173 000 OF ITS FIRST 200 000 — "about twice", it said when it was
-   written, before the rows were real, and it was not. 409 (KS2), 410 (GCSE) and 411 (A level) each raised it on its own
-   (400 000, 400 000, 500 000). Merged, and after one widget per thing took two out, the 70 came to about
-   590 000, so it is 600 000, the smallest round number above them, in the open. That is about an eighth
-   of the store, and the copy already gives way whole to a child's write (above), so the ceiling bounds
-   a decoration's share of the store, not whether an answer fits. A drawing past the ceiling is left off
-   the splash (never out of its chapter), and
-   `check-anims.js` fails before the books get there, so raising it again is a decision made in the open.
+   written, before the rows were real, and it was not. Then twelve branches each raised it on their
+   own (300 000 to 600 000) for their own drawings alone. 436 MERGED THEM ALL AND SET IT ONCE: the 172
+   drawings come to 1 377 437 characters of `html` + `css` (measured over every `anim` row of
+   data/textbooks.json after the last merge), so it is 1 500 000 — the smallest round number above them
+   with room for about fifteen more drawings of the usual 8 000. That is a little over a quarter of a
+   5 MB store, which is a lot for a decoration; it is bearable because the copy already gives way whole
+   to any refused write (above, and `check-anims.js` fills a device to prove it), so the ceiling bounds
+   a decoration's share of the store, never whether an answer fits. A drawing past the ceiling is left
+   off the splash (never out of its chapter), and `check-anims.js` fails before the books get there, so
+   raising it again is a decision made in the open — or the splash keeps a chosen few instead of all.
    `SPLASH_CACHE_F` IS THE SHAPE. The picker in index.html reads `f === 1` written out, because it runs
    before any of this file exists; `check-anims.js` holds the two to the same number. Change the shape
    and both move, and every device starts again from an empty copy. */
