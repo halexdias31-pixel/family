@@ -5723,7 +5723,8 @@ top level, before `SPLASH_CACHE_F`
    keeps. THE 28 COME TO ABOUT 173 000 OF ITS 200 000 — this said "about twice" when it was written,
    before the rows were real, and it was not. The room left is a few drawings, not twenty-eight; a
    drawing past the ceiling is left off the splash (never out of its chapter), and `check-anims.js`
-   fails before the books get there, so raising it is a decision made in the open.
+   fails before the books get there, so raising it is a decision made in the open. RAISED TO 250 000 IN 424, when
+   twelve Computer Science drawings took the 39 to about 242 000 (docs/history/424).
    `SPLASH_CACHE_F` IS THE SHAPE. The picker in index.html reads `f === 1` written out, because it runs
    before any of this file exists; `check-anims.js` holds the two to the same number. Change the shape
    and both move, and every device starts again from an empty copy. */

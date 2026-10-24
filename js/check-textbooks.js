@@ -188,6 +188,8 @@ rows.forEach((r, line) => {
   if (tier && tier !== 'Higher') fail.push(where + ' has tier "' + tier + '" — blank (both tiers) or Higher');
   chapterRows.push({ id: id, n: n, r: r, where: where });
   const wholeHigher = tier === 'Higher';
+  /* A NEW CHAPTER MARKED `lib_pending` (424) on a machine without its words has none to count; with them it is held to every rule. */
+  if (/^true$/i.test(String(r.lib_pending || '').trim()) && !String(r.words || '').trim() && !String(r.points || '').trim()) { note.push(where + ' is coming soon (lib_pending) and its words are not on this machine'); return; }
 
   /* ONE LIST, ITS ITEMS AS THE MAPPER READS THEM. */
   const items = (col, needName) => {

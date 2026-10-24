@@ -3030,7 +3030,7 @@ function libIdsFor_(x) {
   if (!x || !x.row) return [];
   if (x.kind === 'practical') return ['pr:' + x.row.id];
   if (x.kind === 'project') return ['pj:' + x.row.id];
-  if (x.kind === 'content') return ['ct:' + x.row.bookId + '#' + x.row.n];
+  if (x.kind === 'content') return x.row.libPending ? [] : ['ct:' + x.row.bookId + '#' + x.row.n];
   if (x.kind !== 'question') return [];
   const rows = [x.row].concat((x.stems || []).map(p => p.row || p));
   const k = qId_(x);
@@ -3051,6 +3051,7 @@ function libItemByKey_(k) {
 }
 /* WHAT A WAITING CARD SAYS UNDER ITS TAGS: sign in, the dots, or why it did not come and Try again. */
 function libSay_(x) {
+  if (x && x.kind === 'content' && x.row && x.row.libPending) return '<p class="empty">Coming soon.</p>';
   if (typeof USER === 'undefined' || !USER || !USER.token) {
     return '<p class="sub lib-sign">Sign in to see this — your account is a few screens to the right.</p>';
   }

@@ -68,15 +68,16 @@ when it was not told it could", never "is this past the right edge".
   columns, `lib_has`, `function_verified`); words, answers and figures are in the Ledger (`LIB_FILES`, `lib_*` tabs)
   and reach a phone by `libItems` when a card opens. Never commit a private field to `data/` (`check-secrets`); a
   row-writing tool runs between `node tools/lib-private.js join` and `split`; checks read the whole library through
-  `check/lib-full.js`. See docs/library.md.
+  `check/lib-full.js`; a new card whose words await import carries `lib_pending` (424). See docs/library.md.
 - **Content cards:** each chapter row of `data/textbooks.json` is a content card (kind `content`); nothing a
   person sees says textbook, book or chapter. The file name, row shape, `DATA.textbooks` and `tb*` names
   stay. Topics are spelled exactly as `data/questions.json`/`data/topics.json` spell them (`check-textbooks.js`). See 347.
 - **Teaching animations are rows of `data/textbooks.json`**, one source each. Script-written —
-  `area bayes cent coin fib fit gal index mxc orbit pyth sieve sine venn` (`tools/<id>.py`; `gal` is
-  `galton.py`, `orbit` is `solar.py`; all through `tools/anim_row.py`): change the script and re-run it,
+  `area bayes bin bubble cent coin fde fib fit gal gates hex index insert merge mxc orbit packet pixel pyth rle search
+  sieve sine stack venn` (`tools/<id>.py`; `gal` is `galton.py`, `orbit` is `solar.py`, the Computer Science twelve are
+  `tools/cs_<id>.py`; all through `tools/anim_row.py`): change the script and re-run it,
   never hand-edit the row. For the rest the row is the source. Never in `index.html` or `style.css`; the
-  splash draws a device-kept copy (`splashSync_`). `check-anims.js`, `check-loading.js`. See 304, 322.
+  splash draws a device-kept copy (`splashSync_`). `check-anims.js`, `check-loading.js`. See 304, 322, 424.
 - **Verified tags:** every question carries two ordinary funnel tags, `Accuracy verified/unverified` (row `verified: "True"` = answer checked against the official scheme) and `Function verified/unverified` (qtypes.js protocol complete and machine-marked); `verifyTags_`, find.js; `check-qtypes.js`. See 388.
 - **Ranks** (400): one per account, Student < Client < Staff < Admin, read from `people.role` by `rankOf`/`rank_()` — gate on `rankAtLeast_`, never a new role check; Staff only by an approved application; family links stay on `family`. See docs/accounts.md.
 - **Diagram PNG twins:** every `diagram` (the whole library, `check/lib-full.js`) has `data/diagrams/<12 hex of SHA-256>.png`

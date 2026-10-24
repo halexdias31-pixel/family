@@ -66,6 +66,14 @@ shows what each file did or why it was refused. Only the script account's own fo
 
 A file that has gone in is not undone by deleting it: send another file with the old values (`pull`, then `drive-pack`).
 
+## A new chapter whose words are on their way — `lib_pending` (424)
+
+A content card added from a session (new public row in `data/textbooks.json`, its words in `data-private/` and in an import
+file) carries `lib_pending: "True"` until the owner's import is in. The phone draws it as a waiting card that says *Coming
+soon.* and asks `libItems` for nothing; `check/lib-full.js` does not call its missing words lost, and `check-textbooks` skips
+its word and worked-line minimums when the words are not on the machine. Hang no animation on a pending chapter (its `about`
+could not be found on a fresh clone). After the import, a commit removes `lib_pending` from the row.
+
 ## The checks
 
 `check/lib-full.js` is the one place the halves are joined: `rows(name)` and `text(name)` give the library whole,
