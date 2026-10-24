@@ -232,6 +232,8 @@ function boot(opts) {
       /* AND WHICH COLUMN IS IN FRONT — a `let` in shell.js, so a second eval cannot read it; the videos
          journey asks that an arrow key did not turn it under a full-screen film. */
       'screenAt: () => AT,' +
+      /* WHICH SESSION'S RECEIPT IS OPEN — a `let` in book.js; the way back from Stripe opens the one it paid for (430). */
+      'openJob: () => OPEN_JOB,' +
       'impStack: (c, wd) => { IMP_PILE.push(impCards_().find(x => x[0] === c && x[1] === wd) || [c, wd, ""]); },' +
       /* THE ACCOUNT COLUMN'S PAGES, so a journey can ask who is drawn on it. */
       'accountPages: () => accountPages_(),' +
@@ -8924,6 +8926,77 @@ check('proof: the sign-in link in a forgotten-PIN email signs its owner in once,
   const plain = boot({});
   await wait(300);
   if (plain.sent.some(b => b.action === 'pinLink')) bad.push('an ordinary start posted pinLink');
+  return bad;
+});
+
+/* THE WAY BACK FROM STRIPE (430): `createCheckout` sends a card payment to `?paid=1&ref=…`, and before this nothing on the site read it, so a card payment never booked. */
+const PAY_REPLY_ = (calls, jobId) => b => {
+  if (b.action !== 'finalizePayment') return { success: true, messages: [] };
+  calls.push(b);
+  return calls.length === 1 ? { success: true, jobId } : { success: true, alreadyDone: true, jobId };
+};
+check('a fake Stripe return finalizes the payment once, says you are booked and opens that receipt', async () => {
+  const calls = [];
+  const { w } = boot({ url: 'https://example.org/?paid=1&ref=PAY-111-7&post=P9', reply: PAY_REPLY_(calls, 'J-PAID'), member: true });
+  await wait(900);
+  const t = w.__t, d = w.document, bad = [];
+  if (calls.length !== 1) return ['booting on ?paid=1&ref= posted finalizePayment ' + calls.length + ' time(s), wanted once'];
+  if (calls[0].ref !== 'PAY-111-7') bad.push('finalizePayment carried ref ' + JSON.stringify(calls[0].ref));
+  if (calls[0].token !== MEMBER_.token) bad.push('finalizePayment went without the signed-in token, so the gate refuses it');
+  const q = String(w.location.search);
+  if (/paid=|ref=/.test(q)) bad.push('the payment is still in the address (' + q + '), so a refresh asks again');
+  if (!/post=P9/.test(q)) bad.push('taking the payment out also took the rest of the address (' + q + ')');
+  if (!/Payment received — you're booked/.test(toastOf_(d))) bad.push('the toast says ' + JSON.stringify(toastOf_(d)) + ', not "Payment received — you\'re booked"');
+  if (t.openJob() !== 'J-PAID' || t.screenAt() !== 'booking') bad.push('the receipt opened is ' + JSON.stringify(t.openJob()) + ' on ' + t.screenAt() + ', not J-PAID on booking');
+  /* A SIGN-IN AFTER IT DOES NOT ASK AGAIN: the kept ref went with the answer. */
+  w.eval('afterSignIn_({})');
+  await wait(300);
+  if (calls.length !== 1) bad.push('a sign-in after the payment finished asked finalizePayment again (' + calls.length + ' times)');
+  /* A CANCELLED CHECKOUT POSTS NOTHING AND SAYS SO; AN ORDINARY START POSTS NOTHING. */
+  const gone = []; const c = boot({ url: 'https://example.org/?paid=0', reply: PAY_REPLY_(gone, 'J-PAID'), member: true });
+  await wait(400);
+  if (gone.length) bad.push('a cancelled checkout posted finalizePayment');
+  if (!/cancelled/i.test(toastOf_(c.w.document))) bad.push('a cancelled checkout says ' + JSON.stringify(toastOf_(c.w.document)));
+  if (/paid=/.test(String(c.w.location.search))) bad.push('?paid=0 was left in the address');
+  const none = []; boot({ reply: PAY_REPLY_(none, 'J-PAID'), member: true });
+  await wait(300);
+  if (none.length) bad.push('an ordinary start posted finalizePayment');
+  return bad;
+});
+
+check('a Stripe return before signing in waits for the sign-in, and a refused one says why and books nothing', async () => {
+  const calls = [];
+  const reply = b => b.action === 'verifyLogin'
+    ? { success: true, name: 'Mo Member', personId: 'P-MEMBER', handle: 'momember', token: 't-member', role: 'parent', roles: ['parent'], rank: 'client', pendingEmail: '', profile: {} }
+    : PAY_REPLY_(calls, 'J-PAID')(b);
+  const { w } = boot({ url: 'https://example.org/?paid=1&ref=PAY-222-8', reply });
+  await wait(500);
+  const t = w.__t, d = w.document, bad = [];
+  if (calls.length) bad.push('signed out, the return posted finalizePayment with no token — the gate refuses it and the ref is lost');
+  if (!/sign in/i.test(toastOf_(d))) bad.push('signed out, the return says ' + JSON.stringify(toastOf_(d)) + ', nothing about signing in');
+  if (/paid=|ref=/.test(String(w.location.search))) bad.push('signed out, the payment was left in the address');
+  t.go('account', false, true);
+  await wait(150);
+  const fill = (id, v) => { const el = d.getElementById(id); if (el) el.value = v; return !!el; };
+  if (!fill('in-name', 'mo@example.org') || !fill('in-pin', ['2', '9', '1', '7'].join(''))) return bad.concat(['there is no sign-in card']);
+  t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
+  await wait(900);
+  if (calls.length !== 1 || calls[0].ref !== 'PAY-222-8') bad.push('after signing in finalizePayment was posted ' + JSON.stringify(calls.map(c => c.ref)) + ', wanted PAY-222-8 once');
+  else if (calls[0].token !== 't-member') bad.push('after signing in finalizePayment went without the new token');
+  if (t.openJob() !== 'J-PAID') bad.push('after signing in the paid receipt did not open (' + JSON.stringify(t.openJob()) + ')');
+  /* REFUSED: the server's words, "nothing was booked", and no receipt. */
+  const r = boot({ url: 'https://example.org/?paid=1&ref=PAY-333-9', member: true,
+    reply: b => b.action === 'finalizePayment' ? { error: 'Stripe says that session has not been paid.' } : { success: true, messages: [] } });
+  await wait(700);
+  const said = toastOf_(r.w.document);
+  if (!/not been paid/.test(said) || !/nothing was booked/i.test(said)) bad.push('a refused payment says ' + JSON.stringify(said));
+  if (r.w.__t.openJob()) bad.push('a refused payment opened a receipt (' + r.w.__t.openJob() + ')');
+  /* A CHILD'S PHONE NEVER ASKS (398). */
+  const kidCalls = [];
+  boot({ url: 'https://example.org/?paid=1&ref=PAY-444-1', reply: PAY_REPLY_(kidCalls, 'J-PAID'),
+    before: signedInAs_({ name: 'Kit Young', personId: 'P-K', role: 'student', roles: ['student'], rank: 'student', token: 'tk-kit', handle: 'kit_y' }) });
+  await wait(500);
+  if (kidCalls.length) bad.push('a child\'s phone posted finalizePayment');
   return bad;
 });
 
