@@ -466,8 +466,22 @@ const CH_NAME = { p: 'pawn', n: 'knight', b: 'bishop', r: 'rook', q: 'queen', k:
 const chSide_ = s => s === CH_WHITE ? 'White' : 'Black';
 const chSq_ = i => CH_FILES[file(i)] + (8 - rank(i));
 
+/* ---------- THE BOARD MOVES LIKE A BOARD (429, "make it more cinematic") ---------- */
+/* WHAT THE LAST PRESS DID, for the next draw to show ONCE: a glide, a capture, a check, an ending. A draw for any other reason (a pick, a note) shows the position still. */
+let CHESS_FX = null;
+/* THE BOARD TURNS TO FACE WHOEVER IS TO MOVE, if asked; per device, a convenience (`chess-turns`). Off, White stays at the foot as it always did. */
+let CHESS_TURNS = (() => { try { return localStorage.getItem('chess-turns') === '1'; } catch (e) { return false; } })();
+let CHESS_FACE_T = 0;
+/* REDUCED MOTION MOVES INSTANTLY: no glide, no shake, no fall — the ending is drawn as it ends. */
+const chessMotion_ = () => { try { return !matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return true; } };
+/* A GLIDE TAKES LONGER THE FURTHER IT GOES, but never long enough to wait for: a rook across the board is 380ms. */
+const chessGlideMs_ = (a, b) => Math.min(380, 170 + 32 * Math.hypot(file(a) - file(b), rank(a) - rank(b)));
+const CH_ROOK = { K: [63, 61], Q: [56, 59], k: [7, 5], q: [0, 3] };
+const CH_END_SAID = { mate: 'Checkmate', stalemate: 'Stalemate', fifty: 'Draw', material: 'Draw' };
+
 function chessReset_() {
   CHESS = newGame(); CHESS_HIST = []; CHESS_PICK = -1; CHESS_PROMO = null; CHESS_LAST = null; CHESS_ARM = 0;
+  CHESS_FX = null;
 }
 
 function initChess() {
@@ -497,8 +511,19 @@ function chessStatus_() {
   return inCheck(CHESS, CHESS.turn) ? `${side} to move — check!` : `${side} to move`;
 }
 
+/* THE ROW UNDER THE BOARD IS TILES — the board is a thing. Drawn here and not in the widget's markup because tiles.js loads after map.js. */
+function chessTiles_() {
+  return tile_({ icon: 'undo', label: 'Undo', note: 'take back the last move', act: 'chess-undo', off: !CHESS_HIST.length })
+    + tile_({ icon: 'turn', label: chessTurnSaid_(), act: 'chess-turn', on: CHESS_TURNS, pressed: CHESS_TURNS })
+    + tile_({ icon: 'again', label: 'New game', act: 'chess-new' });
+}
+const chessTurnSaid_ = () => CHESS_TURNS ? 'The board turns to face each player' : 'The board stays with White at the foot';
+
 function drawChess(note) {
   if (!CHESS) return;
+  const fx = CHESS_FX; CHESS_FX = null;
+  const moving = !!fx && chessMotion_();
+  const end = chessEnd_(CHESS);
   const mine = CHESS_PICK >= 0 ? legalMoves(CHESS).filter(m => m.from === CHESS_PICK) : [];
   const checked = inCheck(CHESS, CHESS.turn) ? kingSquare(CHESS, CHESS.turn) : -1;
   const board = CHESS.board.map((p, i) => {
@@ -509,11 +534,16 @@ function drawChess(note) {
     const hit = mine.find(m => m.to === i);
     if (hit) cls.push(p !== '_' || hit.enpassant ? 'take' : 'can');
     if (CHESS_LAST && (i === CHESS_LAST.from || i === CHESS_LAST.to)) cls.push('last');
+    if (i === CHESS_LAST?.to) cls.push('last-to');
     if (i === checked) cls.push('chk');
+    if (i === checked && moving && fx.check) cls.push('is-new');
+    const fell = end === 'mate' && i === checked;
+    if (fell) cls.push('fell');
     if (p !== '_') cls.push(isWhite(p) ? 'wp' : 'bp');
     const who = p === '_' ? '' : ', ' + (isWhite(p) ? 'white ' : 'black ') + CH_NAME[p.toLowerCase()];
+    /* THE PIECE IS ITS OWN BOX so it can travel over the squares without the square going with it. */
     return `<button type="button" class="${cls.join(' ')}" data-do="chess-sq" data-sq="${i}"
-      aria-label="${chSq_(i)}${who}">${p === '_' ? '' : GLYPH[p]}</button>`;
+      aria-label="${chSq_(i)}${who}">${p === '_' ? '' : `<span class="pc${fell ? ' fallen' : ''}">${GLYPH[p]}</span>`}</button>`;
   }).join('');
   /* PROMOTION IS ASKED, NOT ASSUMED. § */
   const promo = CHESS_PROMO ? 'QRBN'.split('').map(q => {
@@ -523,22 +553,167 @@ function drawChess(note) {
   }).join('') : '';
   const armed = Date.now() - CHESS_ARM < 3000;
   document.querySelectorAll('.chess-game').forEach(root => {
-    const b = root.querySelector('.chess'); if (b) b.innerHTML = board;
+    const b = root.querySelector('.chess');
+    if (b) {
+      b.innerHTML = board;
+      /* THE ENDING IS THE BOARD'S OWN LAYERS (`data-end`, ::before and ::after), not a child: every child of a board is a square (check/ui.js). */
+      b.classList.toggle('is-over', !!end);
+      b.classList.toggle('is-mate', end === 'mate');
+      if (end) b.setAttribute('data-end', CH_END_SAID[end] || 'Draw'); else b.removeAttribute('data-end');
+      b.classList.toggle('is-fresh', moving && !!fx.end);
+      if (moving) chessShow_(b, fx);
+    }
     const s = root.querySelector('.chess-say');
     if (s) { s.textContent = note || chessStatus_(); s.classList.toggle('is-note', !!note); }
     const pr = root.querySelector('.chess-promo'); if (pr) { pr.innerHTML = promo; pr.hidden = !promo; }
-    const ctl = root.querySelector('.chess-ctl'); if (ctl) ctl.hidden = !!promo;
-    const u = root.querySelector('[data-do="chess-undo"]'); if (u) u.disabled = !CHESS_HIST.length;
-    const n = root.querySelector('[data-do="chess-new"]'); if (n) n.textContent = armed ? 'Tap again to start over' : 'New game';
+    const ctl = root.querySelector('.chess-ctl');
+    if (ctl) {
+      ctl.hidden = !!promo;
+      if (!ctl.querySelector('.tile')) ctl.innerHTML = chessTiles_();
+      tileSet_(ctl.querySelector('[data-do="chess-undo"]'), { off: !CHESS_HIST.length });
+      tileSet_(ctl.querySelector('[data-do="chess-turn"]'), { label: chessTurnSaid_(), on: CHESS_TURNS, pressed: CHESS_TURNS });
+      tileSet_(ctl.querySelector('[data-do="chess-new"]'), { label: armed ? 'Tap again to start over' : 'New game', on: armed });
+    }
   });
+  chessFace_(moving && fx.glides ? Math.max(...fx.glides.map(g => chessGlideMs_(g[0], g[1]))) + 90 : 0);
+}
+
+/* THE SCALE AT EACH STEP OF THE TURN: a square turned by θ fits its old box at 1 / (|cos θ| + |sin θ|). Same easing as the stylesheet's turn, so they keep step. */
+const CHESS_TURN_KEYS = Array.from({ length: 13 }, (_, k) => {
+  const th = Math.PI * k / 12;
+  return { transform: `scale(${(1 / (Math.abs(Math.cos(th)) + Math.abs(Math.sin(th)))).toFixed(3)})`, offset: k / 12 };
+});
+/* ---------- THE BOARD TURNS AFTER THE PIECE HAS LANDED, never under it. A game that is over stays as it ended. ---------- */
+function chessFace_(wait) {
+  clearTimeout(CHESS_FACE_T);
+  const turn = () => {
+    const end = CHESS && chessEnd_(CHESS);
+    const flip = !!(CHESS && CHESS_TURNS && CHESS.turn === CH_BLACK);
+    document.querySelectorAll('.chess-game .chess').forEach(b => {
+      if (b.classList.contains('is-flipped') === flip || (end && CHESS_TURNS)) return;
+      b.classList.toggle('is-flipped', flip);
+      /* DRAWN BACK AS IT TURNS, exactly as far as keeps a turned square inside its own footprint, so no corner covers the words or leaves the screen. */
+      if (chessMotion_() && typeof b.animate === 'function') {
+        b.animate(CHESS_TURN_KEYS, { duration: 700, easing: 'cubic-bezier(.65, 0, .35, 1)' });
+      }
+    });
+  };
+  /* A BOARD JUST REDRAWN IS STYLED FIRST, so its new pieces turn with it rather than starting the turn already turned. */
+  if (wait > 0) CHESS_FACE_T = setTimeout(turn, wait);
+  else { document.querySelectorAll('.chess-game .chess').forEach(b => void b.offsetWidth); turn(); }
+}
+
+/* ---------- WHAT A MOVE LOOKS LIKE: transforms and opacity only, so a phone composites it and paints nothing. ---------- */
+function chessShow_(b, fx) {
+  if (typeof b.animate !== 'function') return;
+  const sq = i => b.querySelector(`[data-sq="${i}"]`);
+  let land = 0;
+  (fx.glides || []).forEach(([a, z]) => {
+    const from = sq(a), to = sq(z), pc = to && to.querySelector('.pc');
+    if (!from || !pc) return;
+    const ra = from.getBoundingClientRect(), rz = to.getBoundingClientRect();
+    if (!ra.width) return;                                   // a copy that is not drawn has nothing to see
+    const dx = ra.left - rz.left, dy = ra.top - rz.top, ms = chessGlideMs_(a, z);
+    land = Math.max(land, ms);
+    to.classList.add('mv');
+    /* LIFTED, CARRIED, SET DOWN: a little bigger in the middle of the journey, as a hand lifts a piece. */
+    const an = pc.animate([
+      { transform: `translate(${dx}px, ${dy}px)` },
+      { transform: `translate(${dx / 2}px, ${dy / 2}px) scale(1.14)`, offset: 0.5 },
+      { transform: 'none' }], { duration: ms, easing: 'cubic-bezier(.3, .7, .25, 1)' });
+    const done = () => to.classList.remove('mv');
+    an.onfinish = done; an.oncancel = done;
+  });
+  /* A CAPTURE: the taken piece holds its square until the taker arrives, then is knocked away, and the board jolts once. */
+  if (fx.took >= 0 && fx.gone && !fx.back) {
+    const at = sq(fx.took);
+    if (at) {
+      const g = document.createElement('span');
+      g.className = 'pc ghost ' + (isWhite(fx.gone) ? 'wp' : 'bp');
+      g.setAttribute('aria-hidden', 'true');
+      g.textContent = GLYPH[fx.gone];
+      at.prepend(g);
+      const hit = land ? Math.max(0.5, (land - 40) / (land + 240)) : 0;
+      const an = g.animate([
+        { opacity: 1, transform: 'none' },
+        { opacity: 1, transform: 'none', offset: hit },
+        { opacity: 0, transform: 'scale(.5) rotate(-18deg)' }], { duration: land + 240, easing: 'ease-in', fill: 'forwards' });
+      const gone = () => g.remove();
+      an.onfinish = gone; an.oncancel = gone;
+      b.animate([
+        { transform: 'none' }, { transform: 'translate(-3px, 1px)' }, { transform: 'translate(3px, -1px)' },
+        { transform: 'translate(-1px, 0)' }, { transform: 'none' }], { duration: 220, delay: Math.max(0, land - 30) });
+    }
+  }
+  /* AN UNDONE CAPTURE COMES BACK, faded up where it stood. */
+  if (fx.back && fx.took >= 0) {
+    const pc = sq(fx.took)?.querySelector('.pc');
+    if (pc) pc.animate([{ opacity: 0, transform: 'scale(.6)' }, { opacity: 1, transform: 'none' }],
+                       { duration: 260, delay: land * 0.5, easing: 'ease-out', fill: 'backwards' });
+  }
+  /* CHECK: the king flinches as the threat lands; the ring that pulses round it is the stylesheet's (`.chk.is-new`). */
+  if (fx.check) {
+    const k = b.querySelector('.chk .pc');
+    if (k) k.animate([
+      { transform: 'none' }, { transform: 'translateX(-.06em) rotate(-6deg)' }, { transform: 'translateX(.06em) rotate(5deg)' },
+      { transform: 'translateX(-.03em) rotate(-2deg)' }, { transform: 'none' }], { duration: 420, delay: land });
+  }
+}
+
+/* ---------- AND WHAT IT SOUNDS LIKE, through the marking sounds' own context (`markHear_`, submit.js), woken by this press. ---------- */
+/* A KNOCK OF WOOD for a move, a deeper one for a capture, two rising notes for check, three falling for mate. Quiet: two people are talking over this board. */
+const CHESS_TONES = {
+  move:  [['triangle', 196, 0, 0.09, 0.07]],
+  take:  [['triangle', 131, 0, 0.16, 0.09], ['triangle', 262, 0, 0.06, 0.04]],
+  check: [['sine', 659, 0, 0.12, 0.03], ['sine', 988, 0.1, 0.2, 0.03]],
+  mate:  [['sine', 523, 0, 0.22, 0.035], ['sine', 392, 0.18, 0.26, 0.035], ['sine', 262, 0.4, 0.6, 0.04]],
+};
+function chessSound_(kind, wait) {
+  const notes = CHESS_TONES[kind];
+  if (!notes || typeof markHear_ !== 'function') return;
+  const ac = markHear_();
+  if (!ac) return;
+  const go = () => {
+    try {
+      if (ac.state !== 'running') return;
+      const t0 = ac.currentTime + 0.02 + (wait || 0) / 1000;
+      let end = t0;
+      notes.forEach(([type, f, at, len, peak]) => {
+        const a = t0 + at, z = a + len;
+        const g = ac.createGain();
+        g.gain.setValueAtTime(0, a);
+        g.gain.linearRampToValueAtTime(peak, a + 0.006);
+        g.gain.exponentialRampToValueAtTime(peak / 1000, z);
+        g.connect(ac.destination);
+        const o = ac.createOscillator();
+        o.type = type;
+        o.frequency.setValueAtTime(f, a);
+        o.connect(g);
+        o.start(a);
+        o.stop(z + 0.02);
+        end = Math.max(end, z);
+      });
+      if (typeof markRest_ === 'function') markRest_(Math.max(0, end - ac.currentTime) * 1000 + MARK_REST_MS);
+    } catch (e) {}
+  };
+  if (ac.state === 'running') { go(); return; }
+  try { const p = ac.resume(); if (p && typeof p.then === 'function') p.then(go, () => {}); } catch (e) {}
 }
 
 function chessPlay_(m) {
-  CHESS_HIST.push({ pos: CHESS, last: CHESS_LAST });
+  const took = m.enpassant ? idx(file(m.to), rank(m.from)) : (CHESS.board[m.to] !== '_' ? m.to : -1);
+  const fx = { glides: [[m.from, m.to]].concat(m.castle ? [CH_ROOK[m.castle]] : []),
+               took: took, gone: took >= 0 ? CHESS.board[took] : '' };
+  CHESS_HIST.push({ pos: CHESS, last: CHESS_LAST, fx: fx });
   CHESS = play(CHESS, m);
   CHESS_LAST = { from: m.from, to: m.to };
   CHESS_PICK = -1; CHESS_PROMO = null; CHESS_ARM = 0;
+  const end = chessEnd_(CHESS), check = !end && inCheck(CHESS, CHESS.turn);
+  CHESS_FX = Object.assign({}, fx, { end: end, check: check });
   drawChess();
+  /* HEARD AS THE PIECE LANDS, not as the finger lifts. */
+  const land = chessMotion_() ? Math.max(...fx.glides.map(g => chessGlideMs_(g[0], g[1]))) : 0;
+  chessSound_(end === 'mate' ? 'mate' : check ? 'check' : took >= 0 ? 'take' : 'move', land);
 }
 
 /* A TAP. Three things it can mean and they are tried in the order a player means them: § */
@@ -580,19 +755,31 @@ on('chess-undo', () => {
   if (!CHESS) return;
   if (CHESS_PROMO) { CHESS_PROMO = null; CHESS_PICK = -1; return drawChess(); }
   const h = CHESS_HIST.pop();
-  if (h) { CHESS = h.pos; CHESS_LAST = h.last; }
+  /* THE MOVE GOES BACK THE WAY IT CAME, and what it took is put back on its square. */
+  if (h) {
+    CHESS = h.pos; CHESS_LAST = h.last;
+    if (h.fx) CHESS_FX = { glides: h.fx.glides.map(([a, z]) => [z, a]), took: h.fx.took, back: true };
+  }
   CHESS_PICK = -1; CHESS_ARM = 0;
   drawChess();
 });
 
-/* NEW GAME THROWS A GAME AWAY, so a game in progress asks twice — the label says so and goes back
+/* TURN THE BOARD: a switch, saying the state it is in. On, the board turns now if it is Black's move, and after every move from here. */
+on('chess-turn', () => {
+  CHESS_TURNS = !CHESS_TURNS;
+  if (typeof keepPut_ === 'function') keepPut_('chess-turns', CHESS_TURNS ? '1' : null, true);
+  if (!CHESS) chessReset_();
+  drawChess(CHESS_TURNS ? 'The board turns with each move.' : 'White stays at the foot.');
+});
+
+/* NEW GAME THROWS A GAME AWAY, so a game in progress asks twice — the line above the board says so and goes back
    by itself. A finished game or an empty board starts over at once: there is nothing to lose. */
 on('chess-new', () => {
   const live = CHESS && CHESS_HIST.length && !chessEnd_(CHESS);
   if (live && Date.now() - CHESS_ARM >= 3000) {
     CHESS_ARM = Date.now();
     setTimeout(() => drawChess(), 3100);
-    return drawChess();
+    return drawChess('Tap New game again to start over.');
   }
   chessReset_();
   drawChess();

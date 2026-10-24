@@ -66,10 +66,7 @@ const WIDGETS = [
     <p class="chess-say" id="chess-say" aria-live="polite">White to move</p>
     <div id="chess-board" class="chess"></div>
     <div class="btn-row chess-promo" hidden></div>
-    <div class="btn-row chess-ctl">
-      <button type="button" class="btn quiet" data-do="chess-undo" disabled>Undo</button>
-      <button type="button" class="btn quiet" data-do="chess-new">New game</button>
-    </div>
+    <div class="tile-row chess-ctl"></div>
   </div>` },
   { id: 'tables', kind: 'game', name: 'Times Tables', start: () => initTables?.(),
     /* DRAWN AHEAD BY ITS OWN START (`draw`, docs/history/341): § */

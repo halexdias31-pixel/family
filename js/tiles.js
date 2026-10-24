@@ -112,6 +112,10 @@ const TILE_ICONS = {
   integral: '<path d="M3.5 15c1.6.6 2.6-.2 3-2.2l1.6-8.6c.4-2 1.4-2.8 3-2.2"/><rect x="11" y="7" width="5" height="6" rx=".8"/>',
   /* THE RETURN KEY'S ARROW: down the right and back to the left, where the next line starts. */
   newline: '<path d="M15 2.5v7H3.5"/><path d="M7 6 3.5 9.5 7 13"/>',
+  /* TURN THE BOARD (chess, 429): one side going up and the other coming down, the mark for changing ends. */
+  turn:  '<path d="M6 15V3"/><path d="M3 6l3-3 3 3"/><path d="M12 3v12"/><path d="M9 12l3 3 3-3"/>',
+  /* NEW GAME (chess, 429): one arrow coming round to where it began. */
+  again: '<path d="M14.8 9.5A5.8 5.8 0 1 1 13 5"/><path d="M13.4 1.6v3.6H9.8"/>',
   /* SPEED READ (403): the reader's two guide ticks, and a line of words running through them. */
   speed: '<path d="M9 1.5v3.5"/><path d="M9 12v3.5"/><path d="M2 8.5h4.5"/><path d="M8 8.5h2"/><path d="M11.5 8.5h4.5"/>',
 };

@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-24-i-tidy-dead";
+  --css-version: "2026-10-24-j-chess";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -890,6 +890,15 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
   --chess-frame: #1b1815;
   --chess-last:  rgb(214 180 60 / .38);
   --chess-check: rgb(214 52 40 / .85);
+  /* THE LIGHT ON IT (429): a warm pool in the middle, the corners in shade, and the shadow a piece casts. */
+  --chess-glow:  rgb(255 236 190 / .10);
+  --chess-shade: rgb(0 0 0 / .34);
+  --chess-drop:  rgb(0 0 0 / .5);
+  --chess-dim:   rgb(6 5 4 / .74);
+  --chess-turn:  .7s;
+  --chess-ease:  cubic-bezier(.65, 0, .35, 1);
+  position: relative;
+  transition: rotate var(--chess-turn) var(--chess-ease);
 }
 /* The promotion row sits OUTSIDE the board, so it needs the board's palette on the card too. */
 .chess-game { --chess-light: #f4f4f2; --chess-white: #ffffff; --chess-black: #111111; }
@@ -900,10 +909,12 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
 /* THE OUTLINE IS THE OTHER SIDE'S COLOUR, which is what makes a white piece readable on a light square and a black one on a dark square. § */
 .chess .wp { color: var(--chess-white);
              text-shadow: 0 1px 0 var(--chess-black), 0 -1px 0 var(--chess-black),
-                          1px 0 0 var(--chess-black), -1px 0 0 var(--chess-black); }
+                          1px 0 0 var(--chess-black), -1px 0 0 var(--chess-black),
+                          0 .07em .09em var(--chess-drop); }
 .chess .bp { color: var(--chess-black);
              text-shadow: 0 1px 0 var(--chess-white), 0 -1px 0 var(--chess-white),
-                          1px 0 0 var(--chess-white), -1px 0 0 var(--chess-white); }
+                          1px 0 0 var(--chess-white), -1px 0 0 var(--chess-white),
+                          0 .07em .09em var(--chess-drop); }
 .chess .pick { box-shadow: inset 0 0 0 3px var(--good); }
 /* A LEGAL MOVE, in the accent rather than in black — a dark dot vanished on a dark square, which
    is the same fault the pieces had. */
@@ -915,9 +926,61 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
 /* A KING IN CHECK is red under the piece, which is the one square the whole position is about. */
 .chess .chk { background-image: radial-gradient(circle, var(--chess-check) 0 40%, transparent 72%); }
 .chess .sq:active, .chess .sq.is-pressed { filter: brightness(.9); }
+/* THE LANDING SQUARE OF THE LAST MOVE a shade stronger than where it left, so the eye reads which way it went. */
+.chess .last-to { background-image: linear-gradient(var(--chess-last), var(--chess-last)),
+                                    linear-gradient(var(--chess-last), var(--chess-last)); }
 
-/* WHOSE MOVE, above the board, in words — the board does not flip, so this line is the only thing
-   that says it. Big enough to read at arm's length from the other side of a table. */
+/* ---------- THE BOARD MOVES LIKE A BOARD (429) ---------- */
+/* THE PIECE IS ITS OWN BOX (games.js `drawChess`), so a glide moves it over the squares and leaves the square behind. */
+.chess .pc { display: block; position: relative; pointer-events: none;
+             transition: rotate var(--chess-turn) var(--chess-ease); }
+/* A PIECE IN FLIGHT is above every square it crosses; a taken piece fades under the one arriving. */
+.chess .sq.mv { z-index: 3; }
+.chess .pc.ghost { position: absolute; }
+/* TURNING THE BOARD: the board goes round and every piece turns back the other way, so none is ever upside down. */
+.chess.is-flipped { rotate: 180deg; }
+.chess.is-flipped .pc, .chess.is-flipped::before { rotate: -180deg; }
+/* THE LIGHT: one layer over the whole board, centred so it reads the same whichever way the board faces. */
+.chess::after { content: ''; position: absolute; inset: 0; z-index: 4; pointer-events: none;
+                background: radial-gradient(circle at 50% 50%, var(--chess-glow) 0, transparent 48%, var(--chess-shade) 100%); }
+/* CHECK: a ring goes out from the king three times as the threat lands, then the red under it stays. */
+.chess .chk { z-index: 2; }
+.chess .chk::before { content: ''; position: absolute; inset: 6%; border-radius: 50%; pointer-events: none;
+                      box-shadow: 0 0 0 .14em var(--chess-check); opacity: 0; }
+.chess .chk.is-new::before { animation: chess-ring .9s ease-out .25s 3; }
+@keyframes chess-ring { from { opacity: .95; transform: scale(.7); } to { opacity: 0; transform: scale(1.3); } }
+
+/* ---------- THE ENDING: the board goes dark, the beaten king falls, and the word comes up out of the dark ---------- */
+/* AT REST, the ending as it stands — what a redraw, reduced motion or a second look shows. `is-fresh` plays it, once. */
+.chess.is-over::after { background: radial-gradient(circle at 50% 50%, rgb(0 0 0 / .42) 0, var(--chess-dim) 100%); }
+.chess.is-over::before { content: attr(data-end); position: absolute; inset: 0; z-index: 7; pointer-events: none;
+  display: flex; align-items: center; justify-content: center;
+  font: 700 10cqw/1 var(--font); letter-spacing: .06em; text-transform: uppercase;
+  color: var(--gold); text-shadow: 0 .04em .4em rgb(0 0 0 / .9), 0 0 .12em rgb(0 0 0 / .8); }
+.chess.is-over:not(.is-mate)::before { color: var(--ink); font-size: 8cqw; }
+/* THE BEATEN KING lies above the dark, so the fall is the thing you see. */
+.chess .sq.fell { z-index: 6; }
+.chess .pc.fallen { transform-origin: 50% 90%; transform: rotate(84deg); }
+.chess.is-fresh::after { animation: chess-dark .7s ease-out .3s both; }
+.chess.is-fresh .pc.fallen { animation: chess-fall 1s .55s both; }
+.chess.is-fresh::before { animation: chess-word .7s cubic-bezier(.2, .8, .2, 1) 1.15s both; }
+@keyframes chess-dark { from { opacity: .35; } to { opacity: 1; } }
+@keyframes chess-fall {
+  0%   { transform: none; animation-timing-function: ease-out; }
+  18%  { transform: rotate(-9deg); animation-timing-function: cubic-bezier(.55, 0, .9, .4); }
+  72%  { transform: rotate(90deg); animation-timing-function: ease-out; }
+  86%  { transform: rotate(78deg); animation-timing-function: ease-in; }
+  100% { transform: rotate(84deg); } }
+@keyframes chess-word { from { opacity: 0; transform: scale(1.35); } to { opacity: 1; transform: none; } }
+
+/* REDUCED MOTION: the board turns, pieces move and the ending lands at once (games.js does not glide or set `is-fresh`). */
+@media (prefers-reduced-motion: reduce) {
+  .chess, .chess .pc, .widget-full:has(.chess) .chess { transition: none; }
+  .chess .chk.is-new::before { animation: none; }
+}
+
+/* WHOSE MOVE, above the board, in words — the board turns only if asked (429), so this line is what
+   always says it. Big enough to read at arm's length from the other side of a table. */
 .chess-say { text-align: center; margin: .2rem 0 .35rem; font-size: .95rem; font-weight: 600; }
 .chess-say.is-note { color: var(--dim); font-weight: 400; }
 .chess-ctl, .chess-promo { margin-top: .1rem; }
@@ -2626,6 +2689,11 @@ label.bk-k { cursor: pointer; }
   border: 6px solid var(--chess-frame);
   border-radius: 4px;
   box-shadow: 0 14px 34px rgb(0 0 0 / .55), inset 0 0 0 1px rgb(255 255 255 / .06);
+  transition: rotate var(--chess-turn) var(--chess-ease), box-shadow var(--chess-turn) var(--chess-ease);
+}
+/* TURNED, THE SHADOW IS WRITTEN UPSIDE DOWN so it still falls below the board; eased with the turn, it passes under the middle. */
+.widget-full:has(.chess) .chess.is-flipped {
+  box-shadow: 0 -14px 34px rgb(0 0 0 / .55), inset 0 0 0 1px rgb(255 255 255 / .06);
 }
 /* The board IS the object here, so the surface under it steps aside and the board carries the
    edge and the shadow itself — see the rule above. */
