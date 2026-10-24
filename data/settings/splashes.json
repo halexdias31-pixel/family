@@ -27,5 +27,13 @@
 {"splash_id": "half3", "name": "Half, three ways", "kind": "tool", "shows": "½ = 0.5 = 50%", "note": "", "active": true},
 {"splash_id": "mxc", "name": "y = mx + c", "kind": "proof", "shows": "the line turning as m changes", "note": "", "active": true},
 {"splash_id": "orbit", "name": "The solar system", "kind": "proof", "shows": "eight planets round the Sun, each at its real period", "note": "Kepler", "active": true},
-{"splash_id": "fit", "name": "How many fit?", "kind": "proof", "shows": "how many 3s fit into 4: one, and a third of the next", "note": "", "active": true}
+{"splash_id": "fit", "name": "How many fit?", "kind": "proof", "shows": "how many 3s fit into 4: one, and a third of the next", "note": "", "active": true},
+{"splash_id": "msm", "name": "Multi-store model", "kind": "proof", "shows": "three memory stores: rehearsed, decayed, displaced", "note": "", "active": true},
+{"splash_id": "piag", "name": "Conservation of liquid", "kind": "proof", "shows": "the same water in a tall thin glass", "note": "", "active": true},
+{"splash_id": "ivdv", "name": "IV and DV", "kind": "tool", "shows": "the IV changed, the DV measured, the rest kept the same", "note": "", "active": true},
+{"splash_id": "samp", "name": "Sampling", "kind": "tool", "shows": "random, stratified and opportunity samples from one population", "note": "", "active": true},
+{"splash_id": "asch", "name": "Asch's lines", "kind": "proof", "shows": "a group all giving the same wrong answer", "note": "", "active": true},
+{"splash_id": "milg", "name": "Milgram's dial", "kind": "proof", "shows": "the switches from 15 to 450 volts, and please continue", "note": "", "active": true},
+{"splash_id": "syn", "name": "Synapse", "kind": "proof", "shows": "neurotransmitter crossing the gap to the next neuron", "note": "", "active": true},
+{"splash_id": "lens", "name": "Two lenses", "kind": "proof", "shows": "one school through functionalist and Marxist eyes", "note": "", "active": true}
 ]

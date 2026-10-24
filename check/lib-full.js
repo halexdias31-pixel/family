@@ -83,6 +83,7 @@ function seedFromGit(name) {
 
 /* THE MERGED TEXT, kept per process and per change of either file. */
 const MEMO = {};
+const pending = r => /^(true|yes|1|y|on)$/i.test(String((r && r.lib_pending) || '').trim());
 function stamp(p) { try { const s = fs.statSync(p); return s.mtimeMs + ':' + s.size; } catch (e) { return '-'; } }
 function text(name) {
   const def = defs().files[name];
@@ -105,7 +106,8 @@ function text(name) {
       if (!r || !Object.prototype.hasOwnProperty.call(r, 'lib_has')) return;
       const id = idOf(def, r), c = map[id];
       if (c) Object.keys(c).forEach(k => { r[k] = c[k]; });
-      else if (String(r.lib_has || '').trim()) lost.push(id);
+      /* A NEW CARD MARKED `lib_pending` HAS ITS WORDS ON THE WAY (an import file), so a machine without them is not missing any. */
+      else if (String(r.lib_has || '').trim() && !pending(r)) lost.push(id);
       delete r.lib_has;
     });
     if (lost.length) {
@@ -127,5 +129,5 @@ function serve(p) {
   return name ? text(name) : null;
 }
 
-module.exports = { ROOT, PRIVATE_DIR, defs, NAMES, isLib, idOf, privateOf, styleOf, rowText, fileText,
+module.exports = { pending, ROOT, PRIVATE_DIR, defs, NAMES, isLib, idOf, privateOf, styleOf, rowText, fileText,
                    privatePath, readPrivate, writePrivate, pinnedMap, seedFromGit, text, rows, serve };

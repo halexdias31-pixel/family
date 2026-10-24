@@ -106,7 +106,7 @@ const NUMBERED = /^(word|formula|point|topic)s?_\d+$/;
 const books = new Map();
 const unknownTopics = new Map();
 const chapterRows = [];
-let higherItems = 0, formulas = 0, words = 0, points = 0, live = 0;
+let higherItems = 0, formulas = 0, words = 0, points = 0, live = 0, pendingCards = 0;
 
 /* ---------- AN ANIMATION IS A ROW TOO, AND IT IS NOT A CHAPTER § */
 const ANIM_FIELDS = ['book_id', 'chapter', 'anim', 'title', 'about', 'html', 'css', 'active'];
@@ -212,6 +212,8 @@ rows.forEach((r, line) => {
 
   const w = items('words', true);
   words += w.length;
+  /* A NEW CARD MARKED `lib_pending` WITH NO WORDS ON THIS MACHINE: its words come by an import file (docs/library.md); nothing to count. */
+  if (!w.length && !String(r.points || '').trim() && require('../check/lib-full.js').pending(r)) { pendingCards++; return; }
   if (w.length < WORDS_MIN) fail.push(where + ' has ' + w.length + ' key words — the bones are key words, at least ' + WORDS_MIN);
   w.forEach(i => {
     /* A DEFINITION IS DRAWN AS TEXT, NOT TYPESET, so maths in one is maths nobody draws. */
@@ -330,7 +332,7 @@ books.forEach((b, id) => {
   });
 });
 console.log('key words: ' + words + '   formulas: ' + formulas + '   worked lines: ' + points
-  + '   items marked Higher: ' + higherItems + '   animations: ' + animCount);
+  + '   items marked Higher: ' + higherItems + '   animations: ' + animCount + '   coming soon (words not here): ' + pendingCards);
 note.push('GCSE Statistics (1ST0) questions in the library: ' + stats1st0
   + '. The ' + alevelStats + ' "Statistics" paper rows are A-level 9MA0 — a different qualification, not joined.');
 note.forEach(n => console.log('note: ' + n));

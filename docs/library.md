@@ -66,6 +66,20 @@ shows what each file did or why it was refused. Only the script account's own fo
 
 A file that has gone in is not undone by deleting it: send another file with the old values (`pull`, then `drive-pack`).
 
+## A new card whose words are on their way: `lib_pending` (426)
+
+A session that adds a new item commits its public card and sends its words by an import file (above). Until the owner
+taps Import, the Ledger has no row for it, so the card carries **`lib_pending: "True"`** beside its `lib_has`:
+
+- **the site** draws its title and tags and *Coming soon*, and asks `libItems` for nothing (`libSay_`, `libIdsFor_` in
+  find.js; `libPending` from `libChapterBody_`, library.js) — content cards for now, the only kind added this way so far;
+- **`check/lib-full.js`** does not count it as lost when `data-private/` has no words for it (a fresh clone), and
+  **`check-textbooks`** skips its word and worked-line counts then, saying how many it skipped; with the words on the
+  machine, it is checked like any other card;
+- once the import has gone in, a commit takes the `lib_pending` off and the card opens as usual.
+
+`split` keeps the column (it is public). Never use it to hide a card that has words in the Ledger.
+
 ## The checks
 
 `check/lib-full.js` is the one place the halves are joined: `rows(name)` and `text(name)` give the library whole,
