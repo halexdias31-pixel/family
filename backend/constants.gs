@@ -638,6 +638,12 @@ const CONFIG_DEFAULTS = [
   ['laminate_minimum', 0, 'the least a laminating job can cost, whatever the page count. 0 = none'],
   /* WHO HEARS ABOUT A CHILD'S FORGOTTEN PIN AND A NEW STAFF APPLICATION (400). Blank = the first admin with a proved address. Never sent to a phone (`CONFIG_PRIVATE`). */
   ['owner_email', '', "the business owner's address: a child's forgotten-PIN link and new tutor applications go here. Blank = the first admin's own email"],
+  /* ---------- THE PROGRESS COLUMN'S COUNTDOWNS (435): blank keeps the defaults in js/arcade.js (`PROG_EXAMS`, `PROG_HOLIDAYS`). */
+  ['exam_gcse_start', '', 'the day GCSE exams start, as MM-DD (every year) or YYYY-MM-DD (one year). Blank = 05-11'],
+  ['exam_alevel_start', '', 'the day A-level exams start, as MM-DD or YYYY-MM-DD. Blank = 05-11'],
+  ['exam_sats_start', '', 'the day Year 6 SATs start, as MM-DD or YYYY-MM-DD. Blank = 05-11'],
+  ['exam_11plus_start', '', 'the day the 11+ is sat, as MM-DD or YYYY-MM-DD. Blank = 09-12'],
+  ['holiday_starts', '', 'school holidays when the intervals tab names none ahead: "MM-DD Name" separated by commas, e.g. 10-26 October half-term, 12-19 Christmas holidays. Blank = the usual London dates'],
   ['postage_flat', 0, 'one stamp and one envelope for a whole order, not per item. 0 = you do not post, and only collection is offered'],
   // Documentation rows. Read by nobody — written so the sheet explains its own arithmetic.
   /* The formula_* rows lived here. § */

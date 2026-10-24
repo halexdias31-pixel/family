@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-24-m-own-card";
+  --css-version: "2026-10-24-n-progress";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -6404,3 +6404,27 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .rsvp-speed input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; margin-top: -10px;
   border-radius: 50%; background: var(--gold); border: 0; }
 .rsvp-speed input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: var(--gold); border: 0; }
+
+/* ================= PROGRESS (435): one line per thing on the black and gold; a paper opens in place ================= */
+.prog-topic .row { border-bottom: 0; padding-bottom: .2rem; }
+.prog-bar { height: .3rem; margin-bottom: .45rem; border-radius: var(--r-sm); background: var(--line); overflow: hidden; }
+.prog-bar > span { display: block; height: 100%; background: var(--gold); }
+.prog-tot .v { color: var(--gold); font-weight: 620; }
+.prog-v.is-good { color: var(--good); }
+.prog-v.is-bad { color: var(--bad); }
+.prog-weak + .prog-weak { margin-top: .5rem; }
+.prog-weak .row { border-bottom: 0; }
+.prog-sessions .sub { margin: .5rem 0 0; }
+.prog-from { margin: -.2rem 0 .4rem; font-size: .75rem; }
+.prog-paper > summary { min-height: 44px; cursor: pointer; list-style: none; align-items: center; }
+.prog-paper > summary::-webkit-details-marker { display: none; }
+.prog-paper > summary .k::before { content: "▸"; display: inline-block; width: 1rem; color: var(--gold); }
+.prog-paper[open] > summary .k::before { content: "▾"; }
+.prog-qs { padding-left: 1rem; border-bottom: 1px solid var(--line); }
+.prog-qs .row { font-size: .85rem; }
+.prog-topic .v, .prog-weak .v, .prog-paper > summary .v, .prog-count .v, .prog-activity .prog-v { white-space: nowrap; }
+/* A LONG PAPER OR TOPIC NAME WRAPS ON ITS OWN SIDE; the value keeps its line and never leaves the card. */
+.prog-count .row .k, .prog-answered .row .k, .prog-activity .row .k, .prog-weakest .row .k, .prog-grade .row .k,
+.prog-series .row .k, .prog-sessions .row .k { flex: 1 1 auto; min-width: 0; }
+.prog-count .row .v, .prog-answered .row .v, .prog-activity .row .v, .prog-weakest .row .v, .prog-grade .row .v,
+.prog-series .row .v, .prog-sessions .row .v { flex: 0 0 auto; }
