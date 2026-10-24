@@ -68,5 +68,20 @@
 {"splash_id": "aproj", "name": "A projectile, in two parts", "kind": "tool", "shows": "a projectile's two velocity components", "note": "A-level", "active": true},
 {"splash_id": "aincline", "name": "Resolving on a slope", "kind": "tool", "shows": "mg resolved along and into a 30° slope", "note": "A-level", "active": true},
 {"splash_id": "apulley", "name": "Two masses, one string", "kind": "tool", "shows": "5 kg and 3 kg over a pulley, a = 2.45 m/s²", "note": "A-level", "active": true},
-{"splash_id": "amoment", "name": "Balancing moments", "kind": "tool", "shows": "20 N slid out until it balances 30 N at 2 m", "note": "A-level", "active": true}
+{"splash_id": "amoment", "name": "Balancing moments", "kind": "tool", "shows": "20 N slid out until it balances 30 N at 2 m", "note": "A-level", "active": true},
+{"splash_id":"phsank","name":"Energy in, energy out","kind":"proof","shows":"600 J in, 450 J useful, 150 J wasted: efficiency 75%","note":"","active":true},
+{"splash_id":"phdrop","name":"Falling: Ep into Ek","kind":"proof","shows":"a 0.5 kg ball dropped from 5 m: Ep into Ek, total 24.5 J, and back","note":"","active":true},
+{"splash_id":"phcirc","name":"Series and parallel","kind":"proof","shows":"2 Ω and 4 Ω in series on 12 V, then two branches on 6 V; current flows as dots","note":"","active":true},
+{"splash_id":"phiv","name":"I–V graphs","kind":"proof","shows":"I against V for a resistor (straight, 6 Ω) and a filament lamp (curving, R rising)","note":"","active":true},
+{"splash_id":"phstate","name":"States of matter","kind":"proof","shows":"sixteen particles: solid, melting, liquid, boiling, gas, and back; mass conserved","note":"","active":true},
+{"splash_id":"phheat","name":"A heating curve","kind":"proof","shows":"ice heated to steam: sloped where it warms, flat where it melts and boils","note":"","active":true},
+{"splash_id":"phhalf","name":"Half-life","kind":"proof","shows":"64 nuclei decaying at random, halving each half-life: 800 → 400 → 200 → 100","note":"","active":true},
+{"splash_id":"phfiss","name":"A chain reaction","kind":"proof","shows":"a neutron splits uranium-235; its neutrons split two more, then four","note":"","active":true},
+{"splash_id":"phforce","name":"Forces and Newton's laws","kind":"proof","shows":"balanced forces on a still and a moving box, then 60 N resultant: a = 3 m/s²","note":"","active":true},
+{"splash_id":"phvt","name":"Area under a velocity–time graph","kind":"proof","shows":"5 to 25 m/s in 4 s: gradient 5 m/s², area 20 + 40 = 60 m as a car drives it","note":"","active":true},
+{"splash_id":"phmom","name":"Momentum is conserved","kind":"proof","shows":"2 kg at 3 m/s sticks to 1 kg: 2 m/s; then pushed apart from rest, total 0","note":"","active":true},
+{"splash_id":"phwave","name":"Two kinds of wave","kind":"proof","shows":"a transverse and a longitudinal wave side by side; one particle stays put","note":"","active":true},
+{"splash_id":"phem","name":"The electromagnetic spectrum","kind":"proof","shows":"a window sliding from radio to gamma, naming each group and a use","note":"","active":true},
+{"splash_id":"phrefr","name":"Refraction in a glass block","kind":"proof","shows":"a ray slows and bends towards the normal in glass, and leaves parallel","note":"","active":true},
+{"splash_id":"phmotor","name":"The motor effect","kind":"proof","shows":"a current across a magnetic field is pushed; reversed, pushed back; Fleming","note":"","active":true}
 ]
