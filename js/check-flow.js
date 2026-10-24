@@ -19043,7 +19043,8 @@ check('one widget per thing: every page of every content card, practical and pro
       /* NO SECOND WIDGET INSIDE A PAGE: the card holds its key words only; a page past it has no heading of its own inside. */
       if (!part && el.querySelector('.tb-math, .tb-points')) bad.push(name + ' still carries its formulas or worked lines — each is a page of its own');
       if (part && el.querySelector('h4')) bad.push(name + ' has a heading inside it, "' + el.querySelector('h4').textContent + '" — a second widget on one page');
-      if (part && !el.querySelector('li')) bad.push(name + ' is titled and empty');
+      /* A DRAWING'S PAGE IS NOT EMPTY: its caption may be absent (a `lib_pending` chapter, 411); check-textbooks holds `about`. */
+      if (part && !isAn && !el.querySelector('li')) bad.push(name + ' is titled and empty');
     });
     if (x.kind === 'content') {
       const c = x.row, parts = w.pageParts_(x);
