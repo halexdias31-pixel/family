@@ -71,6 +71,8 @@ const SRC = [
   grab(consts, /const PRICING_COOLDOWN_DAYS[^;]*;/, 'PRICING_COOLDOWN_DAYS'),
   /* THE FOUR FIELDS THE RULE IS ABOUT, READ OUT OF `constants.gs` RATHER THAN LISTED HERE. § */
   grab(consts, /const PRICING_FIELDS[^;]*;/, 'PRICING_FIELDS'),
+  /* AND THE MOST AN HOUR MAY BE, which `pricingRefusal_` asks first (405). */
+  grab(consts, /const RATE_MAX[^;]*;/, 'RATE_MAX'),
   grab(people, /function pricingMoved_\([\s\S]*?\n\}/, 'pricingMoved_'),
   grab(people, /function pricingRefusal_\([\s\S]*?\n\}/, 'pricingRefusal_'),
   /* ---------- AND THE BUSINESS'S CUT OF AN EXTRA SEAT, PER TUTOR (docs/history/345) § */

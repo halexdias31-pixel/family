@@ -122,7 +122,9 @@ function bizPages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
   /* PROFIT FIRST, as the column opens; then Setup (400, moved from You), applications, reports, the records. */
   const setup = typeof setupCard_ === 'function' ? [setupCard_()].filter(Boolean) : [];
-  return profitCards_().concat(setup, appsCard_(), reportsCard_(), BIZ_PAGES.map(bizCard_), verseCard_());
+  /* STAFF (405) after applications: who has agreed to the tutor terms, and any tutor's statement — `staffCard_` in staff.js. */
+  const staff = typeof staffCard_ === 'function' ? [staffCard_()].filter(Boolean) : [];
+  return profitCards_().concat(setup, appsCard_(), staff, reportsCard_(), BIZ_PAGES.map(bizCard_), verseCard_());
 }
 
 /* ---------- APPLICATIONS TO TEACH (400) ----------
@@ -543,7 +545,8 @@ on('profit-reset', el => {
 /* THE COLUMN, AND ITS RECORDS ASKED FOR AS SOON AS IT IS DRAWN FOR AN ADMIN — not when it is arrived at. § */
 screen('biz', () => {
   if (typeof isAdmin === 'function' && isAdmin()) setTimeout(() => { try { bizStart_(); } catch (e) {} try { if (!REPS.list) reportsStart_(); } catch (e) {}
-    try { if (!APPS.list) appsStart_(); } catch (e) {} try { bizNeedsPaint_(); } catch (e) {} }, 0);
+    try { if (!APPS.list) appsStart_(); } catch (e) {} try { if (typeof staffStart_ === 'function' && !STAFF.list) staffStart_(); } catch (e) {}
+    try { bizNeedsPaint_(); } catch (e) {} }, 0);
   return pages('biz', bizPages_());
 });
 

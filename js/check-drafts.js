@@ -84,6 +84,9 @@ const KEPT = [
 const PIN = 'a PIN — never written to the device, by a draft or anything else';
 const PEOPLE_FORM = 'an admin making or changing somebody else\'s account — a decision made and saved there and then, not left half-made on a device';
 const EXEMPT = [
+  /* THE STAFF HUB'S PRICING (405): a what-if moved and saved in one sitting; the saved rate is what a reload draws. */
+  { file: 'staff.js', fn: 'ctl', has: 'type="range" data-pv', why: 'the Staff hub\'s rate and seat sliders (405) — moved and saved in one sitting; a reload draws the saved rate' },
+  { file: 'staff.js', fn: 'ctl', has: 'class="pf-num" data-pv', why: 'the Staff hub\'s rate and seat boxes (405) — typed and saved in one sitting; a reload draws the saved rate' },
   { file: 'me.js', fn: 'signInCard_', has: 'id="in-name"', why: 'the sign-in box — half a handle is not work, and none is kept after (383)' },
   { file: 'me.js', fn: 'signInCard_', has: 'id="in-pin"', why: PIN },
   { file: 'me.js', fn: 'registerSheet_', has: 'id="reg-pin"', why: PIN },
@@ -108,7 +111,7 @@ const EXEMPT = [
   { file: 'me.js', fn: 'area', has: 'data-app="${k}"', why: 'the application to teach (400) — filled and sent in one sitting from its sheet' },
   { file: 'me.js', fn: 'applyFormHtml_', has: 'data-app="dbsNeeded"', why: 'the application to teach (400) — a tick in the sheet sent with it' },
   { file: 'me.js', fn: 'applyFormHtml_', has: 'data-app="consent"', why: 'the application to teach (400) — a tick in the sheet sent with it' },
-  { file: 'me.js', fn: 'agreementCard_', has: 'agree-sign', why: 'acts the moment it is ticked (`agree-sign`) — nothing waits between the tick and the server' },
+  { file: 'staff.js', fn: 'agreementCard_', has: 'agree-sign', why: 'acts the moment it is ticked (`agree-sign`) — nothing waits between the tick and the server' },
   { file: 'me.js', fn: 'notifyCard_', has: 'notify-pick', why: 'a Notifications tick is a `setNotify` the moment it is ticked, and a failure puts it back to what the server has — the agreement\'s reason: there is no Save to wait for, so nothing is half-made on the device, and a reload draws the server\'s answer (docs/history/309)' },
   { file: 'posts.js', fn: 'cameraCard', has: 'id="cam-cap"', why: 'the caption of photographs held in memory (`CAM_ITEMS`), which a reload loses with it — keeping those needs IndexedDB (317)' },
   { file: 'posts.js', has: 'id="pe-pin"', why: 'one tick, pinning a post that is already up' },

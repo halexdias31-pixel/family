@@ -379,6 +379,11 @@ function pricingRefusal_(me, fields, isAdmin) {
   if (!pricingMoved_(me, fields).length) return '';   // nothing moved: not a change at all
   /* TWO SHAPES THE PRICE CANNOT USE, refused for an admin too. § */
   const got = f => Object.prototype.hasOwnProperty.call(fields, f) ? fields[f] : me[f];
+  /* A RATE THAT IS NOT A PRICE (405): a word, a minus, or past `RATE_MAX`. Blank stays allowed — it is the open rate. */
+  const rate = S(got('rate_per_hour'));
+  if (rate !== '' && !(/^\d*\.?\d+$/.test(rate) && Number(rate) <= RATE_MAX)) {
+    return 'The rate is pounds an hour, 0 to ' + RATE_MAX + ' — "' + rate.slice(0, 12) + '" is not one. Nothing was saved.';
+  }
   const seat = S(got('extra_seat_rate'));
   if (seat !== '' && !(N(seat) >= 0 && N(seat) <= 2 && !isNaN(Number(seat)))) {
     /* "THE" RATE, NOT "YOUR" RATE: an admin on somebody else's row is told this too (the review of 345). */

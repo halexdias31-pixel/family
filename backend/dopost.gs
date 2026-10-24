@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-24-d-media-age";
+const DOPOST_VERSION = "2026-10-24-g-staff-hub";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -1919,12 +1919,12 @@ function doPost(e) {
       if (!me) return jsonOut({ error: 'We could not find your account.' });
       if (!hasRole(me, 'tutor') && !hasRole(me, 'admin'))
         return jsonOut({ error: 'The tutor agreement is for tutors.' });
-      /* ALREADY SIGNED IS AN ANSWER, NOT A FAILURE. § */
-      if (S(me.agreement_signed_at))
-        return jsonOut({ success: true, already: true,
-                         signedAt: S(me.agreement_signed_at), version: S(me.agreement_version) });
       const version = S(body.version).slice(0, 40);
       if (!version) return jsonOut({ error: 'Which version of the agreement was this?' });
+      /* ALREADY SIGNED IS AN ANSWER, NOT A FAILURE — for THIS version. New terms (405) are a new tick, the old record replaced. */
+      if (S(me.agreement_signed_at) && S(me.agreement_version) === version)
+        return jsonOut({ success: true, already: true,
+                         signedAt: S(me.agreement_signed_at), version: S(me.agreement_version) });
       const t = read(TAB.people);
       /* BOTH COLUMNS BEFORE EITHER IS WRITTEN. § */
       const lacking = ['agreement_signed_at', 'agreement_version'].filter(c => t.headers.indexOf(c) === -1);
@@ -3253,6 +3253,31 @@ function doPost(e) {
       }).sort((a, b) => b.at - a.at);
       return jsonOut({ success: true, open: list.filter(a => APPLICATION_OPEN.indexOf(a.status) !== -1).length,
                        applications: list.slice(0, REPORTS_LIST_MAX) });
+    }
+
+    /* ---------- A TUTOR'S MONTHLY STATEMENT (405): their own, or — for an admin — any tutor's. Asked of the token's row, never the body's id. */
+    if (action === 'payStatement') {
+      clearCache();
+      const me = findPerson('', S(body.personId));
+      if (!me) return jsonOut({ error: 'Please sign in again.' });
+      const admin = hasRole(me, 'admin');
+      const want = S(body.tutorId);
+      if (!admin && !rankAtLeast_(me, 'staff')) return jsonOut({ error: 'Statements are for tutors.', why: 'staff' });
+      if (!admin && want && want !== S(me.person_id)) return jsonOut({ error: 'You can see only your own statement.', why: 'own' });
+      const who = want && admin ? findPerson('', want) : me;
+      if (!who || !(hasRole(who, 'tutor') || hasRole(who, 'admin'))) return jsonOut({ error: 'No tutor with that id.' });
+      const st = payStatement_(who, S(body.month));
+      if (!st) return jsonOut({ error: 'Which month? Send it as 2026-10.' });
+      return jsonOut(Object.assign({ success: true }, st));
+    }
+
+    /* ---------- WHO TEACHES (Staff, and admins holding Tutor; not a waiting applicant), AND WHICH TERMS EACH AGREED TO (405) — admin only. */
+    if (action === 'listStaff') {
+      clearCache();
+      const staff = read(TAB.people).rows.filter(r => hasRole(r, 'tutor') && rankAtLeast_(r, 'staff') && personDisplayName(r))
+        .map(r => ({ personId: S(r.person_id), name: personDisplayName(r), handle: S(r.handle), rank: rankOf(r),
+                     termsVersion: S(r.agreement_version), termsAt: r.agreement_signed_at instanceof Date ? fmtDateTime(r.agreement_signed_at) : S(r.agreement_signed_at) }));
+      return jsonOut({ success: true, staff: staff });
     }
 
     if (action === 'decideApplication') {

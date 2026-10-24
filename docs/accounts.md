@@ -53,7 +53,9 @@ anybody (`personSave`'s parents, `linkChild`).
 - A decision → the applicant, if their address is proved.
 - A **child's** forgotten PIN (an account with no email of its own) → the owner, never a parent. An adult's goes to their own inbox.
 
-## Hooks for the Staff hub
+## The Staff hub (405)
 
-The Staff hub (pricing setup, T&Cs, payslips) is to come. It gates on `rankAtLeast_('staff')` on the phone and
-`rankAtLeast_(row, 'staff')` on the server, and can sit beside "Share my profile" on a staff member's own card.
+On a staff member's own card on You, beside "Share my profile": the Tutor Terms & Conditions (agreed per version;
+`brand` keys `tutor_terms`, `tutor_terms_version`), pricing with where each booking's money goes, and the monthly
+statement (`payStatement`: the tutor's own; an admin any tutor's, from Business → Staff). Gated on `hubFor_()` (staff, or an
+admin who holds Tutor) on the phone and in each handler on the server. See docs/history/405.

@@ -2499,6 +2499,174 @@ check('?tutor=<handle> opens that tutor\'s card signed out, prices and a Share t
   return bad;
 });
 
+/* ---------- THE STAFF HUB (405) ----------
+   Ada (a tutor) through the real doPost: the terms by version, pricing drawn by `priceFrom`, her own statement; the admin's Staff card. */
+const HUB_ACTIONS_ = ['signAgreement', 'payStatement', 'listStaff', 'updateProfile', 'myProfile', 'getProfile', 'savePhoto'];
+const hubWorld_ = () => {
+  const W = cardWorld_({ vars: { c: 0.5, B: 0.25, card_fee_pct: 2, card_fee_fixed: 0.2 } });
+  /* `seed` ADDS ROWS: one more venue, the only one with a rate, so it is the room the bars start at. */
+  W.real.seed('venues', [{ name: 'Merton Hall', postcode: 'SW19 1AA', lat: 51.41, lng: -0.19, cost_per_hour: 15, tutors_happy_here: 'P-T1' }]);
+  /* THIS MONTH'S TWO DATES AND ONE NEXT MONTH, on a booking a family has paid for — so the default month has rows whenever it runs. */
+  const now = new Date(), dmy = (m, d) => { const x = new Date(now.getFullYear(), now.getMonth() + m, d); return x.getDate() + '/' + (x.getMonth() + 1) + '/' + x.getFullYear(); };
+  W.real.seed('jobs', [{ job_id: 'J-HUB', subject: 'Maths', level: 'GCSE', hours_per_session: 1, venue: 'Online', price_total: 90, tutor_pay: 60,
+    admin_profit: 15, session_dates: [dmy(0, 2), dmy(0, 9), dmy(1, 2)].join(', '), for_children: 'Kit' }]);
+  const ev = (id, actor, role, action, target) => ({ event_id: id, at: '01/10/2026', job_id: 'J-HUB', actor, role, action, target: target || '' });
+  W.real.seed('events', [ev('HE1', 'Ada Tutor', 'tutor', 'Request'), ev('HE2', 'Pat Parent', 'client', 'Request'),
+    ev('HE3', 'Pat Parent', 'client', 'Accept', 'Ada Tutor'), ev('HE4', 'Pat Parent', 'client', 'Confirm')]);
+  W.hubReply = b => HUB_ACTIONS_.indexOf(b.action) !== -1 ? W.real.post(b) : { success: true, messages: [] };
+  return W;
+};
+const hubBoot_ = async (W, who) => {
+  const a = await cardOpen_(W, who, { reply: W.hubReply });
+  if (a.err) return a;
+  a.sheet = () => a.d.getElementById('sheet-body');
+  a.part = async k => { const t = a.sheet().querySelector('[data-do="hub-part"][data-part="' + k + '"]'); if (t) a.A('hub-part', t); await wait(250); return !!t; };
+  return a;
+};
+
+check('Staff hub (405): "Staff hub" sits beside "Share my profile" and a line says the terms are not agreed; I agree records the version on the server; a new version asks again; a client has no hub', async () => {
+  const W = hubWorld_();
+  const a = await hubBoot_(W, 'tutor@example.org');
+  if (a.err) return [a.err];
+  const bad = [];
+  const tile = a.d.querySelector('#s-account [data-do="hub-open"]');
+  const share = a.d.querySelector('#s-account [data-do="tutor-share"][data-handle="adatutor"]');
+  if (!tile) return ['Ada\'s own card has no Staff hub tile: ' + [...a.d.querySelectorAll('#s-account .page:first-child [data-do]')].map(x => x.dataset.do).join(',')];
+  if (!share || share.parentNode !== tile.parentNode) bad.push('Staff hub is not in the row beside Share my profile');
+  const warn = () => String((a.d.querySelector('#s-account .hub-warn') || {}).textContent || '');
+  if (!/not agreed to the tutor terms/.test(warn())) bad.push('no line under Ada\'s card saying the terms are not agreed: ' + JSON.stringify(warn()));
+  a.A('hub-open', tile); await wait(200);
+  const text = String(a.sheet().textContent);
+  if (!a.sheet().querySelector('.hub-terms')) return bad.concat(['Staff hub did not open on the terms: ' + text.slice(0, 120)]);
+  ['self-employed', 'Bookings', 'Cancellations', 'Pay and the business', 'Safeguarding and DBS', 'Conduct', 'Data protection', 'Ending the arrangement', 'Changes to these terms']
+    .filter(h => ![...a.sheet().querySelectorAll('.doc h4')].some(x => x.textContent.indexOf(h) !== -1)).forEach(h => bad.push('the terms have no section on ' + h));
+  if (!/National Insurance/.test(text) || !/Version v1-2026-10-24/.test(text)) bad.push('the terms do not say tax and NI are the tutor\'s, or carry no version');
+  let box = a.sheet().querySelector('[data-do="agree-sign"]');
+  box.checked = true; a.A('agree-sign', box); await wait(400);
+  const post = a.sent.filter(x => x.action === 'signAgreement').pop();
+  if (!post || post.version !== 'v1-2026-10-24') bad.push('I agree posted ' + JSON.stringify(post) + ', not the version v1-2026-10-24');
+  if (W.sheet("read(TAB.people).rows.find(r => r.person_id === 'P-T1').agreement_version") !== 'v1-2026-10-24') bad.push('the server did not record the version');
+  if (warn()) bad.push('the not-agreed line is still under the card after I agree: ' + warn());
+  if (/terms to agree/.test(String((a.d.querySelector('#s-account [data-do="hub-open"]') || {}).title))) bad.push('the Staff hub tile still says terms to agree');
+  /* A NEW VERSION ON THE BRAND TAB — a bare date, which the sheet would turn into one, so it is sent as v2026-11-01: asked again, the old record replaced. */
+  a.t.DATA().brand = Object.assign({}, a.t.DATA().brand, { tutor_terms_version: '2026-11-01' });
+  a.w.paint('account'); await wait(200);
+  if (!/terms have changed/.test(warn())) bad.push('a new terms version did not bring the line back: ' + JSON.stringify(warn()));
+  a.A('hub-open', a.d.querySelector('#s-account [data-do="hub-open"]')); await wait(200);
+  box = a.sheet().querySelector('[data-do="agree-sign"]');
+  if (!box || box.checked || box.disabled) bad.push('the new version\'s box is not open to tick');
+  if (!/changed since you agreed to version v1-2026-10-24/.test(a.sheet().textContent)) bad.push('the hub does not say which version was agreed before');
+  box.checked = true; a.A('agree-sign', box); await wait(400);
+  if (W.sheet("read(TAB.people).rows.find(r => r.person_id === 'P-T1').agreement_version") !== 'v2026-11-01') bad.push('agreeing to the new version did not replace the old on the server');
+  const c = await hubBoot_(W, 'parent@example.org');
+  if (c.err) return bad.concat([c.err]);
+  if (c.d.querySelector('#s-account [data-do="hub-open"], #s-account .hub-warn')) bad.push('a client has a Staff hub tile or the terms line');
+  return bad;
+});
+
+check('Staff hub pricing (405): an hour for 1, 2 and 3 students split into tutor, room, card fees and @family. by `priceFrom` itself; the bars slide under a held slider; a rate past £200 is refused; Save writes through updateProfile', async () => {
+  const W = hubWorld_();
+  const a = await hubBoot_(W, 'tutor@example.org');
+  if (a.err) return [a.err];
+  const bad = [];
+  a.A('hub-open', a.d.querySelector('#s-account [data-do="hub-open"]')); await wait(150);
+  if (!(await a.part('pricing'))) return ['the hub has no Pricing tile'];
+  const S = a.sheet();
+  const row = n => S.querySelector('.pb-row[data-n="' + n + '"]');
+  if (![1, 2, 3].every(row)) return ['the pricing part does not draw a bar for 1, 2 and 3 students'];
+  const say = n => String(row(n).textContent).replace(/\s+/g, ' ');
+  /* RATE 20, SEAT 0.5 OF IT, B 0.25, ROOM 15, FEES 2% + 20p: two students pay 50; Ada 30, room 15, fees 1.20, @family. 3.80. */
+  ['family pays £50.00', 'You £30.00', 'Room £15.00', 'Card fees £1.20', '@family. £3.80'].forEach(x => { if (say(2).indexOf(x) === -1) bad.push('two students do not show ' + x + ': ' + say(2)); });
+  if (say(1).indexOf('@family. −£0.90') === -1 || !S.querySelector('.pb-note')) bad.push('one student does not show the business paying the card fee: ' + say(1));
+  const ada = a.t.DATA().tutors.find(t => t.personId === 'P-T1');
+  const p = a.w.priceFrom({ tutorRow: Object.assign({}, ada, { rate: 20, extraSeat: 0.5 }), n: 3, slots: 1, hoursPerWeek: 1, loc: 'Merton Hall' }).earn;
+  if (say(3).indexOf('family pays ' + '£' + p.charged.toFixed(2)) === -1 || say(3).indexOf('@family. £' + p.net.toFixed(2)) === -1) bad.push('three students are not what priceFrom says (' + p.charged + ', ' + p.net + '): ' + say(3));
+  const slider = S.querySelector('input[type="range"][data-pv="rate"]');
+  const seg = () => row(3).querySelector('.pb-seg.is-tutor').style.width;
+  const was = seg();
+  a.type(slider, '30'); await wait(100);
+  if (S.querySelector('input[type="range"][data-pv="rate"]') !== slider) bad.push('moving the rate redrew the slider out from under the thumb');
+  if (seg() === was) bad.push('the tutor\'s part of the bar did not move with the rate');
+  if (say(1).indexOf('family pays £45.00') === -1) bad.push('the rate at £30 does not make one student £45.00: ' + say(1));
+  if (S.querySelector('input.pf-num[data-pv="rate"]').value !== '30') bad.push('the number box did not follow the slider');
+  const save = S.querySelector('[data-do="price-save"]');
+  a.type(S.querySelector('input.pf-num[data-pv="rate"]'), '500'); await wait(50);
+  const n0 = a.sent.filter(x => x.action === 'updateProfile').length;
+  a.A('price-save', save); await wait(200);
+  if (a.sent.filter(x => x.action === 'updateProfile').length !== n0) bad.push('a rate of £500 was posted');
+  if (!/at most £200/.test(S.querySelector('.hub-said').textContent)) bad.push('a rate of £500 is not refused in words: ' + S.querySelector('.hub-said').textContent);
+  a.type(S.querySelector('input.pf-num[data-pv="rate"]'), '24'); await wait(50);
+  a.A('price-save', save); await wait(500);
+  const post = a.sent.filter(x => x.action === 'updateProfile').pop();
+  if (!post || post.fields.rate_per_hour !== 24 || Math.abs(Number(post.fields.extra_seat_rate) - 10 / 24) > 1e-5) bad.push('Save posted ' + JSON.stringify(post && post.fields) + ', wanted rate 24 and the £10 seat as 10/24');
+  if (Number(W.sheet("read(TAB.people).rows.find(r => r.person_id === 'P-T1').rate_per_hour")) !== 24) bad.push('the server row was not written');
+  return bad;
+});
+
+check('Staff hub statement (405): Ada\'s month, session by session with totals, from the real doPost; another month asks again; Download PDF prints a paper copy; the admin opens any tutor\'s from Business, where the Staff card glows for terms not agreed', async () => {
+  const W = hubWorld_();
+  const a = await hubBoot_(W, 'tutor@example.org');
+  if (a.err) return [a.err];
+  const bad = [];
+  a.A('hub-open', a.d.querySelector('#s-account [data-do="hub-open"]')); await wait(150);
+  if (!(await a.part('statement'))) return ['the hub has no Statement tile'];
+  await wait(300);
+  const S = a.sheet();
+  const now = new Date(), ym = d => d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2);
+  const ask = a.sent.filter(x => x.action === 'payStatement').pop();
+  if (!ask || ask.month !== ym(now) || ask.tutorId) bad.push('the statement asked ' + JSON.stringify(ask) + ', wanted this month and no tutorId');
+  const rows = () => S.querySelectorAll('.stmt .stmt-t tbody tr').length;
+  if (rows() !== 2) bad.push('this month\'s statement has ' + rows() + ' rows, wanted the two paid sessions');
+  const foot = String((S.querySelector('.stmt tfoot') || {}).textContent || '').replace(/\s+/g, ' ');
+  if (!/2 sessions/.test(foot) || foot.indexOf('£60.00') === -1 || foot.indexOf('£40.00') === -1 || foot.indexOf('£10.00') === -1) bad.push('the totals are not 2 sessions, £60 paid, £10 business, £40 tutor: ' + foot);
+  if (!/not a payslip/.test(S.textContent)) bad.push('the statement does not say it is not a payslip');
+  const sel = S.querySelector('select[data-stmt="month"]');
+  const next = ym(new Date(now.getFullYear(), now.getMonth() + 1, 1));
+  if (sel.querySelector('option[value="' + next + '"]')) bad.push('next month is offered');
+  sel.value = ym(new Date(now.getFullYear(), now.getMonth() - 1, 1)); sel.dispatchEvent(new a.w.Event('change', { bubbles: true })); await wait(300);
+  if ((a.sent.filter(x => x.action === 'payStatement').pop() || {}).month !== sel.value) bad.push('choosing last month did not ask for it');
+  if (rows() || !/No paid sessions/.test(S.textContent)) bad.push('last month (no sessions) does not say so');
+  sel.value = ym(now); sel.dispatchEvent(new a.w.Event('change', { bubbles: true })); await wait(300);
+  let printed = null;
+  a.w.print = () => { printed = a.d.body.classList.contains('printing-stmt') && !!a.d.querySelector('body > .stmt-paper .stmt-t'); };
+  a.A('stmt-print', S.querySelector('[data-do="stmt-print"]'));
+  if (printed !== true) bad.push('Download PDF did not print a paper copy of the statement (printing-stmt and .stmt-paper)');
+  a.w.dispatchEvent(new a.w.Event('afterprint'));
+  if (a.d.querySelector('.stmt-paper') || a.d.body.classList.contains('printing-stmt')) bad.push('the paper copy was left behind after printing');
+  /* THE ADMIN: the Staff card glows for Ada and Ben not agreed, and opens Ada's statement by her id. */
+  const ad = await hubBoot_(W, 'admin@example.org');
+  if (ad.err) return bad.concat([ad.err]);
+  try { ad.t.go('biz', false, true); ad.w.paint('biz'); } catch (e) { return bad.concat(['drawing Business threw: ' + e.message]); }
+  await wait(600);
+  const card = ad.d.querySelector('#s-biz [data-staff]');
+  if (!card) return bad.concat(['Business has no Staff card']);
+  if (!card.classList.contains('needs-you') || !/2 not agreed/.test(card.textContent)) bad.push('the Staff card does not glow "2 not agreed": ' + card.textContent.replace(/\s+/g, ' ').slice(0, 160));
+  const st = card.querySelector('[data-do="stmt-for"][data-id="P-T1"]');
+  if (!st) return bad.concat(['the Staff card has no Statement tile for Ada']);
+  ad.A('stmt-for', st); await wait(400);
+  const aAsk = ad.sent.filter(x => x.action === 'payStatement').pop();
+  if (!aAsk || aAsk.tutorId !== 'P-T1') bad.push('the admin\'s statement did not name Ada: ' + JSON.stringify(aAsk));
+  if (ad.d.getElementById('sheet-body').querySelectorAll('.stmt-t tbody tr').length !== 2) bad.push('the admin was not shown Ada\'s two sessions');
+  return bad;
+});
+
+check('Message a tutor (405): a signed-in client has a Message tile on a tutor\'s card that opens the conversation with them; a child has none for a tutor (the server refuses it), only for the admin', async () => {
+  const W = hubWorld_();
+  const bad = [];
+  const c = await hubBoot_(W, 'parent@example.org');
+  if (c.err) return [c.err];
+  const msg = (x, id) => x.d.querySelector('#s-account [data-do="msg-open"][data-id="' + id + '"]');
+  const m = msg(c, 'P-T1');
+  if (!m) return ['a client has no Message tile on Ada\'s card'];
+  c.A('msg-open', m); await wait(150);
+  if (!/Message Ada Tutor/.test(String((c.d.getElementById('sheet-title') || {}).textContent)) || !c.sheet().querySelector('textarea, [contenteditable], input')) bad.push('Message did not open the conversation with Ada');
+  const s = await hubBoot_(W, 'student@example.org');
+  if (s.err) return bad.concat([s.err]);
+  if (msg(s, 'P-T1') || msg(s, 'P-T2')) bad.push('a child has a Message tile on a tutor\'s card, which the server refuses');
+  if (!msg(s, 'P-A1')) bad.push('a child has lost the Message tile on the admin\'s card, which the server allows');
+  return bad;
+});
+
 check('Settings holds only what is not on your card — a tutor\'s and an admin\'s lose the card\'s pages, a parent\'s About you goes, a student\'s keeps their dates — and nobody\'s draws the library cards, the handle or the figure', async () => {
   const W = cardWorld_();
   const bad = [];
@@ -11701,7 +11869,7 @@ check('business: an admin has a Business column last, straight after Settings, h
   const cards = [...host.querySelectorAll(':scope > .page > .pane .me-form[data-biz-page]')].map(f => f.dataset.bizPage);
   if (cards.join('|') !== BIZ_TITLES_.join('|')) bad.push('the Business column holds ' + JSON.stringify(cards) + ', wanted the five records cards ' + JSON.stringify(BIZ_TITLES_));
   const n = host.querySelectorAll(':scope > .page').length;
-  if (n !== 11 || t.pageCount('biz') !== n) bad.push('the column draws ' + n + ' pages and the pager counts ' + t.pageCount('biz') + ' — wanted eleven and eleven (Profit and its terms, Setup and Applications (400), Reports (395), five records, the verse screen)');
+  if (n !== 12 || t.pageCount('biz') !== n) bad.push('the column draws ' + n + ' pages and the pager counts ' + t.pageCount('biz') + ' — wanted twelve and twelve (Profit and its terms, Setup and Applications (400), Staff (405), Reports (395), five records, the verse screen)');
   /* THE LAST PAGE IS THE VERSE SCREEN'S SETUP, A TILE THAT LEAVES FOR ITS PAGE (370). */
   const vs = host.querySelector(':scope > .page:last-child a.tile[href$="/tools/epaper-verse/install.html"]');
   if (!vs) bad.push('the last Business page has no "Verse screen · set up" tile to the install page');
@@ -17926,7 +18094,8 @@ check('the roles card ticks what you hold, posts setMyRoles, and a waiting Tutor
   if (t.isTutorRole()) bad.push('a Tutor tick the server says is waiting already passes the staff test');
   if (!card() || !tick('tutor') || !tick('tutor').checked) bad.push('a waiting tutor\'s card does not show Tutor ticked');
   if (!card() || !/waiting for @family/.test(card().querySelector('.roles-said').textContent)) bad.push('the card does not say the Tutor tick is waiting for approval');
-  if (!d.querySelector('#s-settings .card.agree')) bad.push('a waiting tutor is not offered the tutor agreement to sign');
+  /* THE TERMS ARE IN THE STAFF HUB ON YOU NOW (405), for staff: Settings carries no agreement, and a waiting tutor has no hub yet. */
+  if (d.querySelector('#s-settings .agree')) bad.push('Settings still carries the old tutor agreement — the terms are in the Staff hub (405)');
   /* AND THE ADMIN: told, not ticked. */
   t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin', 'tutor'], token: 'tk', profile: {} });
   try { w.paint('settings'); } catch (e) { return bad.concat(['drawing settings for the admin threw: ' + e.message]); }

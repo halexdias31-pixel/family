@@ -2316,6 +2316,51 @@ const STATES = {
   /* ---------- AN UNLISTED TUTOR, WHICH ONLY AN ADMIN IS SENT § */
   account: [
     { name: '' },
+    /* ---------- THE STAFF HUB (405): its three parts, as an admin who teaches (the fixture's admin, given Tutor for the visit). */
+    { name: 'your own card, the Staff hub tile and the terms not agreed',
+      only: () => typeof USER !== 'undefined' && !!USER && (isAdmin() || hubFor_()),
+      enter: () => {
+        window.STATE_HUB_WAS = { roles: USER.roles, at: USER.agreementSignedAt, v: USER.agreementVersion };
+        USER.roles = (USER.roles || []).concat(['tutor']); delete USER.agreementSignedAt; delete USER.agreementVersion;
+        paint('account'); goPage('account', 0, true);
+      },
+      leave: () => { const w = window.STATE_HUB_WAS || {}; USER.roles = w.roles; USER.agreementSignedAt = w.at; USER.agreementVersion = w.v; paint('account'); },
+      expect: () => document.querySelector('#s-account .page.on [data-do="hub-open"]') && document.querySelector('#s-account .page.on .hub-warn') ? 1 : 0,
+      wants: 'your own card with a Staff hub tile in its row and the red line saying the terms are not agreed' },
+    { name: 'the Staff hub, terms agreed',
+      only: () => typeof USER !== 'undefined' && !!USER && (isAdmin() || hubFor_()),
+      enter: () => {
+        window.STATE_HUB_WAS = { roles: USER.roles, at: USER.agreementSignedAt, v: USER.agreementVersion };
+        USER.roles = (USER.roles || []).concat(['tutor']); USER.agreementSignedAt = '24/10/26 18:20'; USER.agreementVersion = termsVersion_();
+        hubOpen_('terms');
+      },
+      leave: () => { const w = window.STATE_HUB_WAS || {}; USER.roles = w.roles; USER.agreementSignedAt = w.at; USER.agreementVersion = w.v; closeSheet(); },
+      expect: () => {
+        const b = document.querySelector('#sheet-body [data-do="agree-sign"]');
+        return b && b.checked && b.disabled && document.querySelectorAll('#sheet-body .hub-terms .doc h4').length >= 8 ? 1 : 0;
+      },
+      wants: 'the tutor terms in the Staff hub, ticked and locked, with their sections' },
+    { name: 'the Staff hub, pricing',
+      only: () => typeof USER !== 'undefined' && !!USER && (isAdmin() || hubFor_()),
+      enter: () => { window.STATE_HUB_WAS = { roles: USER.roles }; USER.roles = (USER.roles || []).concat(['tutor']); hubOpen_('pricing'); },
+      leave: () => { USER.roles = (window.STATE_HUB_WAS || {}).roles; closeSheet(); },
+      expect: () => document.querySelectorAll('#sheet-body .pb-row .pb-bar').length === 3
+        && !!document.querySelector('#sheet-body input[type="range"][data-pv="rate"]') ? 1 : 0,
+      wants: 'the pricing part: rate and seat controls and three bars, for 1, 2 and 3 students' },
+    { name: 'the Staff hub, a statement',
+      only: () => typeof USER !== 'undefined' && !!USER && (isAdmin() || hubFor_()),
+      enter: () => {
+        window.STATE_HUB_WAS = { roles: USER.roles }; USER.roles = (USER.roles || []).concat(['tutor']);
+        const r = (d, what, n) => ({ date: d, job: 'J1', what, hours: 1.5, students: n, paid: 45, business: 7.5, tutor: 30 });
+        STMT.asking = false; STMT.error = ''; STMT.tutorId = ''; STMT.tutorName = '';
+        STMT.data = { month: STMT.month, tutor: 'Test Admin', sessions: [r(STMT.month + '-06', 'GCSE Maths', 2), r(STMT.month + '-13', 'GCSE Maths', 2),
+          r(STMT.month + '-20', 'A-Level Further Maths', 3)], totals: { sessions: 3, hours: 4.5, paid: 135, business: 22.5, tutor: 90 } };
+        HUB.part = 'statement';
+        openSheet('Staff hub', hubHtml_());
+      },
+      leave: () => { USER.roles = (window.STATE_HUB_WAS || {}).roles; STMT.data = null; closeSheet(); },
+      expect: () => document.querySelectorAll('#sheet-body .stmt-t tbody tr').length === 3 ? 1 : 0,
+      wants: 'a month\'s statement on paper: three sessions and the totals' },
     /* ---------- THE SHEET THAT MAKES AN ACCOUNT § */
     /* IT OPENS ON ONE QUESTION NOW — "who is the account for?" § */
     /* `offsetHeight`, NOT `getBoundingClientRect`, IN BOTH EXPECTATIONS BELOW. § */
@@ -3342,28 +3387,7 @@ const STATES = {
       },
       wants: 'the ages as one [youngest] – [oldest] row of two selects, 8 and Adults chosen, on a page without the rate' },
 
-    /* ---------- THE TUTOR AGREEMENT, BOTH OF ITS STATES § */
-    { name: 'the tutor agreement, signed',
-      only: () => typeof USER !== 'undefined' && !!USER,
-      enter: () => {
-        USER.agreementSignedAt = '28/09/26 18:20'; USER.agreementVersion = AGREEMENT_VERSION;
-        /* A CLEAN COLUMN FIRST. § */
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings');
-        const at = [...document.querySelectorAll('#s-settings .page')]
-          .findIndex(pg => pg.querySelector('[data-do="agree-sign"]'));
-        if (at < 0) throw new Error('no agreement card on the settings column');
-        goPage('settings', at, true);
-      },
-      leave: () => { delete USER.agreementSignedAt; delete USER.agreementVersion;
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings'); },
-      expect: () => {
-        const b = document.querySelector('#s-settings .page.on [data-do="agree-sign"]');
-        return b && b.checked && b.disabled
-          && document.querySelectorAll('#s-settings .page.on .agree-list li').length >= 8;
-      },
-      wants: 'the agreement, ticked and locked, with its points' },
+    /* THE TUTOR AGREEMENT'S STATE WAS HERE — the terms are in the Staff hub on You now (405); its states are on `account`. */
 
     /* ---------- YOUR ROLES, WITH A TUTOR TICK WAITING — `rolesCard_` in me.js § */
     { name: 'your roles, a Tutor tick waiting',
