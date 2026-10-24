@@ -342,6 +342,33 @@ let CAM_ASKING = false;
 let CAM_FAILED = null;
 /* ---------- WHICH WAY IT IS POINTING, AND WHY IT IS A VARIABLE NOW § */
 let CAM_FACE = 'environment';
+/* THE ANSWER IS KEPT ON THE DEVICE (427): 'granted' or 'refused'. A refusal is never asked again by arriving — only `Try the camera again` asks. */
+const CAM_KEY = 'family:cam';
+function camMinded_() { try { return localStorage.getItem(CAM_KEY) || ''; } catch (e) { return ''; } }
+function camMind_(v) { try { if (v) localStorage.setItem(CAM_KEY, v); else localStorage.removeItem(CAM_KEY); } catch (e) {} }
+/* WHAT THE BROWSER ITSELF SAYS, where it will say: 'granted', 'denied', 'prompt' or '' (no answer within a second). */
+async function camPermission_() {
+  try {
+    if (!navigator.permissions || !navigator.permissions.query) return '';
+    const s = await Promise.race([navigator.permissions.query({ name: 'camera' }),
+      new Promise(ok => setTimeout(() => ok(null), 1000))]);
+    return (s && s.state) || '';
+  } catch (e) { return ''; }
+}
+/* PARKED, NOT STOPPED (427): every new getUserMedia after a stop re-prompts on an iPhone, so off its page the stream stays and its track is switched off. */
+function camPark_() {
+  try { recStop_(); } catch (e) {}
+  try { if (CAM_STREAM) CAM_STREAM.getTracks().forEach(t => { t.enabled = false; }); } catch (e) {}
+  const v = $('cam-view'); if (v) { try { v.pause(); } catch (e) {} }
+  camLive_(false);
+}
+function camWake_() {
+  try { if (CAM_STREAM) CAM_STREAM.getTracks().forEach(t => { t.enabled = true; }); } catch (e) {}
+}
+/* IS A CAMERA ACTUALLY LOOKING — a parked stream is not. */
+function camOn_() {
+  try { return !!CAM_STREAM && CAM_STREAM.getTracks().some(t => t.enabled !== false); } catch (e) { return !!CAM_STREAM; }
+}
 
 function cameraCard() {
   return `<div class="card cam-card">
@@ -427,21 +454,27 @@ function camWhy_(err) {
 }
 
 /* ---------- STARTING IT, FROM THE COLUMN ARRIVING OR FROM A RETRY § */
-async function camStart_() {
+/** @param {boolean} [asked] a tap asked for it (`Try the camera again`, Switch): a remembered refusal does not stand in the way. */
+async function camStart_(asked) {
   const v = $('cam-view');
   if (!v) return;
   /* A REBUILT CARD HAS AN EMPTY TRAY while `CAM_ITEMS` still holds the post being made — `repaint` replaces the markup and keeps the state — so the tray is drawn § */
   camHold_();
 
+  /* A STREAM THE SYSTEM ENDED while it was parked (a phone call, a long time away) is let go, and asked for afresh below. */
+  try { if (CAM_STREAM && CAM_STREAM.getTracks().some(t => t.readyState === 'ended')) camStop_(true); } catch (e) {}
+
   /* ---------- THE MARKUP CAN BE REPLACED UNDER A LIVE STREAM § */
+  /* AND A PARKED ONE IS WOKEN, with no new ask (427) — unless a picture is being held, when it stays off until `Again`. */
   if (CAM_STREAM) {
-    if (v.srcObject !== CAM_STREAM) {
-      v.srcObject = CAM_STREAM;
-      try { await v.play(); } catch (e) {}
-      $('cam-off')   && ($('cam-off').hidden = true);
-      camLive_(true);
-      camWays_();
-    }
+    const held = $('cam-still');
+    if (held && !held.hidden) return;
+    camWake_();
+    if (v.srcObject !== CAM_STREAM) v.srcObject = CAM_STREAM;
+    try { await v.play(); } catch (e) {}
+    $('cam-off')   && ($('cam-off').hidden = true);
+    camLive_(true);
+    camWays_();
     return;
   }
 
@@ -464,6 +497,20 @@ async function camStart_() {
     camSettle_();
     return;
   }
+  /* A NO KEPT ON THE DEVICE, OR ONE THE BROWSER REPORTS, IS NOT ASKED AGAIN BY ARRIVING (427). A 'granted' from the browser overrules a kept no. */
+  if (!asked) {
+    CAM_ASKING = true;
+    const perm = await camPermission_();
+    CAM_ASKING = false;
+    if (perm === 'granted' && camMinded_() === 'refused') camMind_('');
+    if (perm === 'denied' || (perm !== 'granted' && camMinded_() === 'refused')) {
+      if (perm === 'denied') camMind_('refused');
+      camFailed_({ name: 'NotAllowedError' });
+      return;
+    }
+    if (CAM_ASKING || CAM_STREAM || !$('cam-view')) return;
+  }
+  said = $('cam-said'); retry = $('cam-on');
   if (retry) retry.disabled = true;
   /* ---------- A NEW ASK IS A WAIT AGAIN, AND IT LOOKS LIKE ONE § */
   const off = $('cam-off');
@@ -481,13 +528,16 @@ async function camStart_() {
     /* REMEMBERED ONLY IF IT IS STILL THE PAGE IN FRONT. A refusal that lands after the page was left
        belongs to a visit that is over, and the next swipe up is a fresh ask. */
     CAM_FAILED = feedCamHere_() ? err : null;
+    /* BUT A REFUSAL IS THE PERSON'S ANSWER WHENEVER IT LANDS, and it is kept on the device (427). */
+    if (/NotAllowedError|SecurityError/i.test(String((err && err.name) || err || ''))) camMind_('refused');
     camFailed_(err);
     return;
   }
   CAM_ASKING = false;
+  camMind_('granted');
 
   /* THE COLUMN MAY HAVE LEFT WHILE THE PROMPT WAS UP. § */
-  if (!feedCamHere_()) { camStop_(true); camRest_(); return; }
+  if (!feedCamHere_()) { camStop_(true, true); camRest_(); return; }
 
   /* ---------- AND THE CARD MAY HAVE BEEN DRAWN AGAIN WHILE IT WAS UP § */
   const now = $('cam-view');
@@ -547,12 +597,12 @@ async function camFlip_() {
   }
   CAM_FACE = CAM_FACE === 'environment' ? 'user' : 'environment';
   camStop_(true);
-  await camStart_();
+  await camStart_(true);
 }
 
 on('cam-flip', () => camFlip_());
 /* THE ONE DOOR THAT ASKS AGAIN ON THE SPOT. § */
-on('cam-on', () => { CAM_FAILED = null; camStart_(); });
+on('cam-on', () => { CAM_FAILED = null; camMind_(''); camStart_(true); });
 
 /* ---------- A PICTURE OUT OF THE GALLERY § */
 document.addEventListener('change', e => {
@@ -600,7 +650,8 @@ document.addEventListener('change', e => {
     camSettle_();
     if (said) said.textContent = '';
     /* THE CAMERA IS LET GO, not left running behind the picture. § */
-    camStop_(true);
+    /* Parked, not stopped (427): `Again` wakes it without a second prompt. */
+    camStop_(true, true);
   };
   img.onerror = () => {
     URL.revokeObjectURL(url);
@@ -869,16 +920,20 @@ on('cam-save', () => {
   }
 });
 
-/** Let the camera go. Called when the column leaves — see `go` in shell.js.
- *  @param {boolean} [keepShown] release the stream and leave the card exactly as it looks. */
+/** Let the camera go, or park it (427). Called when the column leaves — see `go` in shell.js.
+ *  @param {boolean} [keepShown] leave the card exactly as it looks.
+ *  @param {boolean} [park] track off, stream kept. */
 /* EVERY BUTTON BACK TO ITS STARTING STATE TOO, not just the stream. § */
-function camStop_(keepShown) {
+function camStop_(keepShown, park) {
   /* ---------- A RECORDING IN PROGRESS IS STOPPED FIRST, AND THAT ORDER MATTERS § */
   try { recStop_(); } catch (e) {}
-  try { if (CAM_STREAM) CAM_STREAM.getTracks().forEach(t => t.stop()); } catch (e) {}
-  CAM_STREAM = null;
   const v = $('cam-view');
-  if (v) { try { v.srcObject = null; } catch (e) {} }
+  if (park) camPark_();
+  else {
+    try { if (CAM_STREAM) CAM_STREAM.getTracks().forEach(t => t.stop()); } catch (e) {}
+    CAM_STREAM = null;
+    if (v) { try { v.srcObject = null; } catch (e) {} }
+  }
   if (keepShown) return;
   /* LEAVING THE COLUMN FORGETS A REFUSAL, like swiping off the page does in `feedCamWatch_`. § */
   CAM_FAILED = null;
@@ -2001,9 +2056,22 @@ function feedCamWatch_() {
   /* OFF ITS PAGE, A REFUSAL IS FORGOTTEN. Coming back up to it is a swipe, and a swipe is somebody
      asking for the camera — see `CAM_FAILED`. */
   CAM_FAILED = null;
-  if (CAM_STREAM || (CAM_REC && CAM_REC.state === 'recording')) camStop_(true);
+  if (CAM_STREAM || (CAM_REC && CAM_REC.state === 'recording')) camStop_(true, true);
   camRest_();
 }
+/* LET GO FOR REAL when the page goes, or has been out of sight a minute; parked at once when it is hidden (427). */
+let CAM_AWAY = 0;
+document.addEventListener('visibilitychange', () => {
+  clearTimeout(CAM_AWAY); CAM_AWAY = 0;
+  if (document.visibilityState === 'hidden') {
+    if (!CAM_STREAM) return;
+    camStop_(true, true);
+    CAM_AWAY = setTimeout(() => { CAM_AWAY = 0; if (document.visibilityState === 'hidden') camStop_(true); }, 60000);
+    return;
+  }
+  try { if (feedCamHere_()) camStart_(); } catch (e) {}
+});
+window.addEventListener('pagehide', () => { try { if (CAM_STREAM) camStop_(true); } catch (e) {} });
 /* ---------- OFF ITS PAGE THE VIEWFINDER IS AT REST, WHATEVER THE ASK IS DOING (docs/history/341) § */
 function camRest_() {
   const off = $('cam-off');

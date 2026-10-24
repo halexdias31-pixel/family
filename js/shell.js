@@ -207,8 +207,9 @@ function go(id, remember, instant) {
      within the feed is the other half, and it is `feedCamWatch_` — booked from `goPage` and from
      `startScreen_` below. */
   /* ---------- ONLY WHEN LEAVING THE FEED, OR WITH A CAMERA ACTUALLY OPEN § */
+  /* PARKED, NOT STOPPED (427): coming back must not ask again, and a parked stream is no reason to run this on other columns. */
   if (typeof camStop_ === 'function' && AT !== 'feed'
-      && (was === 'feed' || (typeof CAM_STREAM !== 'undefined' && CAM_STREAM))) camStop_();
+      && (was === 'feed' || (typeof camOn_ === 'function' && camOn_()))) camStop_(false, true);
   /* AND THE REEL, which is the third of these and was the one nobody had written. § */
   if (typeof reelsStop_ === 'function' && AT !== 'reel') reelsStop_();
   /* AND THE MESSAGE POLL, which is the fourth. § */

@@ -5100,7 +5100,8 @@ const STATES = {
           try { camStop_(); } catch (e) {}
           CAM_FAILED = null; CAM_ASKING = false;
           goPage('feed', feedCamAt_(), true);
-          camStart_();
+          /* `true`: an ask on the spot, so a refusal this browser kept earlier (427) does not stand in for the wait. */
+          camStart_(true);
         };
         ask();
       },
