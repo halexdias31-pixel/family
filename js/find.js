@@ -9605,7 +9605,8 @@ function paneReach_(panes) {
     /* ---------- NOR "MANAGE YOUR CHILD" (`childManageCard_`, me.js; the review of docs/history/339) § */
     const forms = list.map(p => !!p.querySelector('.card-ed .me-form, .kid-manage'));
     /* ---------- NOR A CARD ANSWERED BY TAPPING ITS OPTIONS, ITS ORDER OR ITS CELLS (374): drawn smaller they fell to 39-41px at 320; it scrolls and they stay 44 */
-    const picks = list.map(p => !!p.querySelector('.qcard .qp-opts, .qcard .qp-order, .qcard .qp-cells-box'));
+    /* AND THE CONSOLE (419) THE SAME WAY: drawn smaller its pad keys fell to 31px, and every line it showed or hid re-zoomed the whole console under a thumb. */
+    const picks = list.map(p => !!p.querySelector('.qcard .qp-opts, .qcard .qp-order, .qcard .qp-cells-box, .nes-wrap'));
     const want = list.map((p, i) => {
       const room = p.clientHeight - pad(p);
       const used = p.scrollHeight - pad(p);
