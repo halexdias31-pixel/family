@@ -457,7 +457,7 @@ function libPump_() {
     })
     .catch(err => {
       if (!USER || USER.token !== who) return;
-      LIB.failed = String((err && err.message) || err || '') || 'the library did not answer';
+      LIB.failed = libWhyNot_(err);
       if (err && err.reply && err.reply.why === 'lib-cap') ids.forEach(t => LIB.refused.add(t));
       else ids.forEach(t => LIB.pending.add(t));
     })
@@ -468,6 +468,15 @@ function libPump_() {
     });
 }
 
+/* WHY THE WORDS DID NOT COME, said plainly (432): a live backend older than `libItems` is a deploy for an admin, a wait for anyone else. */
+function libWhyNot_(err) {
+  const why = String((err && err.message) || err || '');
+  if (/does not have `libItems`|unknown action/i.test(why)) {
+    return (typeof rankAtLeast_ === 'function' && rankAtLeast_('admin'))
+      ? 'The library needs the latest backend — deploy it.' : 'The library is being updated — try again later.';
+  }
+  return why || 'the library did not answer';
+}
 /* ONE ROW'S FIELDS, BACK ON THE FILE'S ROW — remembered, so a sign-out can take them off again. */
 function libFill_(r, c) {
   if (!r || !c) return;
