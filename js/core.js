@@ -44,7 +44,7 @@ function bookableSpaces() {
       v.rooms.forEach(r => out.push({
         label: v.title + ' \u2014 ' + r.name, venue: v.title, room: r.name,
         rate: r.rate, concession: r.concession, min: r.min, max: r.max, image: v.image,
-        avail: r.avail, rowIndex: r.rowIndex, fields: r.fields,
+        avail: r.avail, busy: r.busy || {}, rowIndex: r.rowIndex, fields: r.fields,
         minHours: v.minHours, maxHours: v.maxHours
       }));
     } else {

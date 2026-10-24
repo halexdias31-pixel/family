@@ -121,7 +121,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-24-h-library-import";
+const BACKEND_VERSION = "2026-10-24-i-booked-hours";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -352,7 +352,9 @@ const SCHEMA = {
     /* ---------- WHAT THE BOOKING EARNS, KEPT AS IT WAS AGREED (docs/history/353) § */
     "gross", "tutor_payout", "venue_cost", "materials_charge", "materials_cost", "tickets_cost",
     "card_fees", "discount_type", "discount_value", "discount_code", "discount_absorbed_by",
-    "net_profit", "priced_at", "format", "practical_id", "trip_id"
+    "net_profit", "priced_at", "format", "practical_id", "trip_id",
+    /* EVERY BOOKED HOUR as grid codes, `m16,m17,f10` (434) — `weekday`/`start_time` kept only the first run. */
+    "slot_codes"
   ],
   events: [
     "event_id", "at", "job_id", "actor",
@@ -1491,6 +1493,12 @@ const MIGRATIONS = [
     what: 'the questions, answers, practicals and content cards are copied into the Ledger and checked row by row',
     run: () => libMigrate_(),
     progress: () => libSetupSays_() },
+
+  /* EVERY OLD JOB GETS ITS BOOKED HOURS (434): blank `slot_codes` filled from weekday + start + length; only blanks, so safe to repeat. */
+  { id: 'jobs-slot-codes',
+    retry: true,
+    what: 'every booking gets its booked hours in slot_codes, so busy hours read one column',
+    run: () => backfillSlotCodes_() },
 ];
 
 /* ============================== POST ========================================================= */

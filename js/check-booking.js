@@ -85,6 +85,9 @@ try {
     + fn(booking, 'bmApply')
     + fn(core, 'sheetDate')
     + fn(booking, 'sessionDatesOf')
+    + block(booking, 'const DAY_CODE_ = ', '};')
+    + fn(booking, 'slotCodes_')
+    + fn(booking, 'jobCodes_')
     + fn(booking, 'busyHours')
     + `; module.exports = { BM, ACT, set: e => { EVENTS = e },
          setJobs: (j, t) => { JOBS = j; TUTOR_OF = t || {}; },
@@ -337,6 +340,25 @@ RULES.push({
     if (Object.keys(api.busyHours('George')).length) {
       bad.push('a cancelled session still held its hours');
     }
+    return bad;
+  },
+});
+
+/* ---------- EVERY BOOKED HOUR, NOT THE FIRST RUN'S (434) ---------- */
+RULES.push({
+  what: 'a booking of Mon 10–12 and Fri 16–18 is busy exactly there, off slot_codes',
+  check: () => {
+    const bad = [];
+    api.set([REQUEST('Pat'), REQUEST('George', 'tutor')]);
+    /* THE ROW createJob WRITES: weekday + start + length say the first run only; slot_codes says both. */
+    api.setJobs([{ job_id: 'J', weekday: 'Monday, Friday', start_time: '10:00', hours_per_session: 2,
+                   subject: 'Maths', slot_codes: 'm10,m11,f16,f17' }], { J: 'George' });
+    const got = Object.keys(api.busyHours('George')).sort().join(' ');
+    if (got !== 'f16 f17 m10 m11') bad.push('busy [' + got + '], wanted [f16 f17 m10 m11] — Friday 10–12 was never booked and 16–18 was');
+    /* AN OLD ROW WITH NO slot_codes still reads as it always did, until the backfill fills it. */
+    api.setJobs([{ job_id: 'J', weekday: 'Monday', start_time: '16:00', hours_per_session: 2, subject: 'Maths' }], { J: 'George' });
+    const old = Object.keys(api.busyHours('George')).sort().join(' ');
+    if (old !== 'm16 m17') bad.push('an old row (no slot_codes) is busy [' + old + '], wanted [m16 m17]');
     return bad;
   },
 });

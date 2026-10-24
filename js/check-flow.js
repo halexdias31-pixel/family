@@ -21236,6 +21236,32 @@ check('a tutor with no hours is greyed, shuts the grid and is not sent for; No p
   return bad;
 });
 
+/* ---------- A ROOM ALREADY BOOKED IS GREYED ON THE GRID (434) ---------- */
+check('a room already booked at an hour greys that hour on the grid, for that room only', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (typeof w.slotGrid !== 'function' || typeof w.spaceFor !== 'function') return ['slotGrid / spaceFor are not reachable, so this was NOT checked — not a pass'];
+  const D = t.DATA();
+  const cw = (D.venues || []).find(v => v.title === 'Colliers Wood Library');
+  if (!cw) return ['the flow payload has no Colliers Wood Library, so nothing was asked'];
+  /* TWO ROOMS AS doGet SENDS THEM, the first holding a two-hour booking (`spaceBusy`, booking.gs). */
+  const room = (name, busy) => ({ rowIndex: 2, name, rate: 15, concession: 0, min: 1, max: 4, notes: '', avail: {}, busy, fields: {} });
+  cw.rooms = [room('Small room 1', { m16: 'Maths', m17: 'Maths' }), room('Small room 2', {})];
+  const B = t.BOOKING;
+  B.tutor = 'No preference'; B.slots = [];
+  const bad = [];
+  const cell = (loc, code) => { B.loc = loc; return w.slotGrid().rows.flatMap(r => r.hours).find(h => h.code === code) || {}; };
+  const r1 = 'Colliers Wood Library — ' + cw.rooms[0].name, r2 = 'Colliers Wood Library — ' + cw.rooms[1].name;
+  ['m16', 'm17'].forEach(c => {
+    const h = cell(r1, c);
+    if (h.open || h.why !== 'room booked') bad.push(r1 + ' at ' + c + ' is ' + (h.open ? 'open' : 'shut') + ' saying "' + (h.why || '') + '", wanted shut saying "room booked"');
+  });
+  if (!cell(r1, 'm18').open) bad.push(r1 + ' at m18 (not booked) is shut');
+  if (!cell(r2, 'm16').open) bad.push(r2 + ' at m16 is shut — only ' + cw.rooms[0].name + ' is booked then');
+  return bad;
+});
+
 /* ---------- THE WEEK OF YOUR SESSIONS: YOURS, EVERY DAY OF THEM, AND ONLY WHILE THEY RUN § */
 check('your week holds your sessions only, on every day they run, while their dates are live', async () => {
   const { w } = boot();
