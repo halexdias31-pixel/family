@@ -73,3 +73,18 @@ from `data/` and `data-private/`. With no `data-private/` it rebuilds one from t
 (`LIB_SOURCE_COMMIT`), which is what a fresh clone gets; a row the Ledger has and `data-private/` has not fails
 loudly ("run pull"). Every check's own static server serves the whole file in place of the card-only one, so the
 browser checks draw the cards with their words; `check-flow` has its own journeys for the card-only path.
+
+## A card on its way: `lib_pending` (416)
+
+A NEW card made in a session reaches the site by git before its words reach the Ledger by an import file, so for a while
+`libItems` has nothing for it. Such a card row carries `"lib_pending": "True"` beside its `lib_has`:
+
+- `check/lib-full.js` does not count it lost when `data-private/` has no words for it (a fresh clone, another machine);
+  where `data-private/` has them, it joins them as for any row, so every check still reads them.
+- `js/check-textbooks.js` checks a pending chapter with no words on this machine for everything but its lists.
+- The site draws its title and tags, and when `libItems` answers that it has not got it, **Coming soon** in place of
+  "This one is not in the library yet" (`libSay_`, find.js; `pending` from `libChapterBody_`, library.js).
+
+The words go into `data-private/` with `join` and `split` as usual, and into an import file with
+`node tools/lib-private.js drive-pack <file> --ids <ids>`. Once the owner has imported it, a later change may drop the
+flag; leaving it is harmless, because a card whose words have arrived never shows Coming soon.

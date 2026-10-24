@@ -105,7 +105,8 @@ function text(name) {
       if (!r || !Object.prototype.hasOwnProperty.call(r, 'lib_has')) return;
       const id = idOf(def, r), c = map[id];
       if (c) Object.keys(c).forEach(k => { r[k] = c[k]; });
-      else if (String(r.lib_has || '').trim()) lost.push(id);
+      /* A CARD MARKED `lib_pending` (416) has its words on their way to the Ledger by an import file: none here is not a loss. */
+      else if (String(r.lib_has || '').trim() && String(r.lib_pending || '').trim() !== 'True') lost.push(id);
       delete r.lib_has;
     });
     if (lost.length) {

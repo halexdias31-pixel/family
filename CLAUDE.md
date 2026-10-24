@@ -68,13 +68,15 @@ when it was not told it could", never "is this past the right edge".
   columns, `lib_has`, `function_verified`); words, answers and figures are in the Ledger (`LIB_FILES`, `lib_*` tabs)
   and reach a phone by `libItems` when a card opens. Never commit a private field to `data/` (`check-secrets`); a
   row-writing tool runs between `node tools/lib-private.js join` and `split`; checks read the whole library through
-  `check/lib-full.js`. See docs/library.md.
+  `check/lib-full.js`. A new card whose words are still on their way by import file carries `lib_pending: "True"`
+  (416). See docs/library.md.
 - **Content cards:** each chapter row of `data/textbooks.json` is a content card (kind `content`); nothing a
   person sees says textbook, book or chapter. The file name, row shape, `DATA.textbooks` and `tb*` names
   stay. Topics are spelled exactly as `data/questions.json`/`data/topics.json` spell them (`check-textbooks.js`). See 347.
 - **Teaching animations are rows of `data/textbooks.json`**, one source each. Script-written —
-  `area bayes cent coin fib fit gal index mxc orbit pyth sieve sine venn` (`tools/<id>.py`; `gal` is
-  `galton.py`, `orbit` is `solar.py`; all through `tools/anim_row.py`): change the script and re-run it,
+  `area bayes cent coin eapos earc eforest emetre epeel escrooge esent ezoom fib fit gal index mxc orbit pyth
+  sieve sine venn` (`tools/<id>.py`; `gal` is `galton.py`, `orbit` is `solar.py`, each `e<topic>` is
+  `e_<topic>.py`; all through `tools/anim_row.py`, whose `place` makes a new one's row): change the script and re-run it,
   never hand-edit the row. For the rest the row is the source. Never in `index.html` or `style.css`; the
   splash draws a device-kept copy (`splashSync_`). `check-anims.js`, `check-loading.js`. See 304, 322.
 - **Verified tags:** every question carries two ordinary funnel tags, `Accuracy verified/unverified` (row `verified: "True"` = answer checked against the official scheme) and `Function verified/unverified` (qtypes.js protocol complete and machine-marked); `verifyTags_`, find.js; `check-qtypes.js`. See 388.

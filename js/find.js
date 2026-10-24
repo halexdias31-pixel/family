@@ -3054,7 +3054,7 @@ function libSay_(x) {
   if (typeof USER === 'undefined' || !USER || !USER.token) {
     return '<p class="sub lib-sign">Sign in to see this — your account is a few screens to the right.</p>';
   }
-  if (libIdsFor_(x).some(t => LIB.gone.has(t))) return '<p class="empty">This one is not in the library yet.</p>';
+  if (libIdsFor_(x).some(t => LIB.gone.has(t))) return x.row && x.row.pending ? '<p class="empty">Coming soon.</p>' : '<p class="empty">This one is not in the library yet.</p>';
   if (LIB.failed) {
     return `<p class="empty">Couldn’t load this.<br><span class="faint">${esc(LIB.failed)}</span><br>
       <span class="text-action" data-do="lib-retry">Try again</span></p>`;

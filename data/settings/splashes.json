@@ -27,5 +27,13 @@
 {"splash_id": "half3", "name": "Half, three ways", "kind": "tool", "shows": "½ = 0.5 = 50%", "note": "", "active": true},
 {"splash_id": "mxc", "name": "y = mx + c", "kind": "proof", "shows": "the line turning as m changes", "note": "", "active": true},
 {"splash_id": "orbit", "name": "The solar system", "kind": "proof", "shows": "eight planets round the Sun, each at its real period", "note": "Kepler", "active": true},
-{"splash_id": "fit", "name": "How many fit?", "kind": "proof", "shows": "how many 3s fit into 4: one, and a third of the next", "note": "", "active": true}
+{"splash_id": "fit", "name": "How many fit?", "kind": "proof", "shows": "how many 3s fit into 4: one, and a third of the next", "note": "", "active": true},
+{"splash_id": "esent", "name": "Building a sentence", "kind": "tool", "shows": "simple, compound and complex sentences assembled clause by clause", "note": "", "active": true},
+{"splash_id": "eapos", "name": "Apostrophes", "kind": "tool", "shows": "omission, possession, and its or it's", "note": "", "active": true},
+{"splash_id": "epeel", "name": "A paragraph that analyses", "kind": "tool", "shows": "PEEL built block by block, then read as What, How, Why", "note": "", "active": true},
+{"splash_id": "earc", "name": "The story arc", "kind": "tool", "shows": "Freytag's pyramid drawn as a six-line story is told", "note": "", "active": true},
+{"splash_id": "eforest", "name": "AFOREST", "kind": "tool", "shows": "seven persuasive devices at work on one argument", "note": "", "active": true},
+{"splash_id": "ezoom", "name": "Zooming in on a quotation", "kind": "tool", "shows": "three words of 'Vaulting ambition' read one at a time", "note": "", "active": true},
+{"splash_id": "emetre", "name": "Iambic pentameter", "kind": "tool", "shows": "da-DUM beaten out, then the witches' trochees", "note": "", "active": true},
+{"splash_id": "escrooge", "name": "Scrooge's change", "kind": "tool", "shows": "a character arc across the five staves", "note": "", "active": true}
 ]

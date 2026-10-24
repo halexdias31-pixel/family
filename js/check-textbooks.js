@@ -188,6 +188,8 @@ rows.forEach((r, line) => {
   if (tier && tier !== 'Higher') fail.push(where + ' has tier "' + tier + '" — blank (both tiers) or Higher');
   chapterRows.push({ id: id, n: n, r: r, where: where });
   const wholeHigher = tier === 'Higher';
+  /* A CARD ON ITS WAY (`lib_pending`, 416) with no words on this machine yet: its lists are checked where they are, not missed. */
+  const bare = String(r.lib_pending || '').trim() === 'True' && !String(r.words || '').trim() && !String(r.points || '').trim();
 
   /* ONE LIST, ITS ITEMS AS THE MAPPER READS THEM. */
   const items = (col, needName) => {
@@ -212,7 +214,7 @@ rows.forEach((r, line) => {
 
   const w = items('words', true);
   words += w.length;
-  if (w.length < WORDS_MIN) fail.push(where + ' has ' + w.length + ' key words — the bones are key words, at least ' + WORDS_MIN);
+  if (w.length < WORDS_MIN && !bare) fail.push(where + ' has ' + w.length + ' key words — the bones are key words, at least ' + WORDS_MIN);
   w.forEach(i => {
     /* A DEFINITION IS DRAWN AS TEXT, NOT TYPESET, so maths in one is maths nobody draws. */
     if (/[\/^]/.test(i.text)) fail.push(where + ' key word "' + i.name + '" has a / or ^ in its definition, which is drawn as plain text — put the maths in formulas');
@@ -222,7 +224,7 @@ rows.forEach((r, line) => {
   formulas += f.length;
   const p = items('points', false);
   points += p.length;
-  if (p.length < POINTS_MIN || p.length > POINTS_MAX) {
+  if ((p.length < POINTS_MIN && !bare) || p.length > POINTS_MAX) {
     fail.push(where + ' has ' + p.length + ' worked lines — bare bones is ' + POINTS_MIN + ' to ' + POINTS_MAX);
   }
   p.forEach((i, k) => {

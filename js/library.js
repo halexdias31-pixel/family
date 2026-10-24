@@ -167,7 +167,9 @@ function libChapterBody_(r) {
   const list = v => libS(v).split('|').map(s => s.trim()).filter(Boolean).map(libTbItem_);
   return { words: list(r.words), formulas: list(r.formulas),
            points: list(r.points).map(p => ({ text: (p.name ? p.name + ' — ' : '') + p.text, higher: p.higher })),
-           libHas: libS(r.lib_has).trim() };
+           libHas: libS(r.lib_has).trim(),
+           /* ITS WORDS ARE ON THEIR WAY BY AN IMPORT FILE (416): until `libItems` has them, the card says Coming soon. */
+           pending: libS(r.lib_pending).trim() === 'True' };
 }
 
 /* ---------- THE THREE BLOCKS, MOVED OUT OF `doget.gs` § */

@@ -7,11 +7,12 @@
 # device keeps (see `splashSync_` in js/shell.js). The scripts in tools/ that generate those drawings
 # wrote into index.html and style.css; they write the row through here instead.
 #
-# FOR A ROW A SCRIPT WRITES, THE SCRIPT IS THE SOURCE, AND THE ROW IS ITS OUTPUT. Fourteen of them:
+# FOR A ROW A SCRIPT WRITES, THE SCRIPT IS THE SOURCE, AND THE ROW IS ITS OUTPUT. Twenty-two of them:
 #
-# WRITTEN BY A SCRIPT: area bayes cent coin fib fit gal index mxc orbit pyth sieve sine venn
+# WRITTEN BY A SCRIPT: area bayes cent coin eapos earc eforest emetre epeel escrooge esent ezoom fib fit gal index mxc orbit pyth sieve sine venn
 #
-# (`gal` is tools/galton.py and `orbit` tools/solar.py; every other one is tools/<id>.py.) Change one of
+# (`gal` is tools/galton.py, `orbit` tools/solar.py, and each English `e<topic>` tools/e_<topic>.py, 416; every
+# other one is tools/<id>.py.) Change one of
 # those in its script and re-run it; never edit its row by hand. Everything a script writes replaces its
 # namesake in the row, so a hand edit to anything the script writes — Pythagoras's colours, Bayes's
 # markup, y = mx + c's rules — passes every check and is quietly undone the next time anybody runs the
@@ -186,11 +187,35 @@ def read_anim(anim_id):
     raise SystemExit('data/textbooks.json has no row with "anim":"%s"' % anim_id)
 
 
-def write_anim(anim_id, html=None, css=None, fragments=(), run=None):
+def _place(anim_id, place, css):
+    """A NEW DRAWING (416): its row, made under (book_id, chapter, title, about) — after that chapter's other drawings —
+    with its CSS whole, so the merge below has every item to rewrite. Once the row exists, `place` changes nothing."""
+    book, chapter, title, about = place
+    lines = BOOKS.read_text(encoding='utf-8').split('\n')
+    at = None
+    for k, l in enumerate(lines):
+        s = l.strip().rstrip(',')
+        if not s.startswith('{'): continue
+        r = json.loads(s)
+        if r.get('book_id') == book and r.get('chapter') == chapter: at = k
+        elif at is not None: break
+    if at is None: raise SystemExit('%s: data/textbooks.json has no %s chapter %s to put it under' % (anim_id, book, chapter))
+    row = {'book_id': book, 'chapter': chapter, 'anim': anim_id, 'title': title, 'about': about,
+           'html': '', 'css': _norm(css or '', anim_id), 'active': 'True'}
+    if not lines[at].rstrip().endswith(','): lines[at] = lines[at].rstrip() + ','
+    lines.insert(at + 1, json.dumps(row, ensure_ascii=False, separators=(',', ':')) + (',' if lines[at + 1].strip() != ']' else ''))
+    BOOKS.write_text('\n'.join(lines), encoding='utf-8')
+
+
+def write_anim(anim_id, html=None, css=None, fragments=(), run=None, place=None):
     """html: the whole root as the script writes it (`<div id="splash-…"` … `  </div>`).
     fragments: pieces of markup, each replacing the element in the row that opens the same way.
     run: (opening, markup) — a run of sibling elements that all open the same way, replaced together.
-    css: rules and @keyframes, each replacing its namesake in the row."""
+    css: rules and @keyframes, each replacing its namesake in the row.
+    place: (book_id, chapter, title, about) — where a drawing with no row yet gets one (see `_place`)."""
+    if place is not None and not any(l.strip().startswith('{') and '"anim":"%s"' % anim_id in l
+                                     for l in BOOKS.read_text(encoding='utf-8').split('\n')):
+        _place(anim_id, place, css)
     row = read_anim(anim_id)
     if html is not None:
         row['html'] = _norm_html(html, anim_id)
