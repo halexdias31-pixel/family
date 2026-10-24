@@ -5720,10 +5720,12 @@ top level, before `SPLASH_CACHE_F`
    anything but its own keys, never keeps a part-copy after a refusal, and never stands between an
    answer or a drawing and the store. Other writes (`favs`, the signed-in user) are not covered.
    `SPLASH_CACHE_MAX` is the ceiling on the lot, in a 5 MB store shared with everything else this app
-   keeps. THE 28 COME TO ABOUT 173 000 OF ITS 200 000 — this said "about twice" when it was written,
-   before the rows were real, and it was not. The room left is a few drawings, not twenty-eight; a
+   keeps. THE 28 CAME TO ABOUT 173 000 OF ITS FIRST 200 000 — "about twice", it said when it was
+   written, before the rows were real, and it was not. 409 RAISED IT TO 400 000, in the open: the KS2
+   drawings took the 38 to about 300 000, and the copy already gives way whole to a child's write
+   (above), so the ceiling bounds a decoration's share of the store, not whether an answer fits. A
    drawing past the ceiling is left off the splash (never out of its chapter), and `check-anims.js`
-   fails before the books get there, so raising it is a decision made in the open.
+   fails before the books get there, so raising it again is a decision made in the open.
    `SPLASH_CACHE_F` IS THE SHAPE. The picker in index.html reads `f === 1` written out, because it runs
    before any of this file exists; `check-anims.js` holds the two to the same number. Change the shape
    and both move, and every device starts again from an empty copy. */
