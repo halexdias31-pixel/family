@@ -7,9 +7,9 @@
 # device keeps (see `splashSync_` in js/shell.js). The scripts in tools/ that generate those drawings
 # wrote into index.html and style.css; they write the row through here instead.
 #
-# FOR A ROW A SCRIPT WRITES, THE SCRIPT IS THE SOURCE, AND THE ROW IS ITS OUTPUT. One hundred and eleven of them:
+# FOR A ROW A SCRIPT WRITES, THE SCRIPT IS THE SOURCE, AND THE ROW IS ITS OUTPUT. One hundred and nineteen of them:
 #
-# WRITTEN BY A SCRIPT: abinom achain aexp afirst ageom ahyp aincline amoment anormal aparam apascal aproj apulley area ariemann aroot2 asch aunit avec3 bayes bin bubble bus cent coin fadd fde fdp fib fit gal gates gbal gcf gcomp genl gexp gfac ggcoast ggcontour ggdtm gggreen gggrid ggmeander ggplate ggquake ggstorm ggwater gquad grot grule gsemi gsim gsimi gsoh gsurd gtree gvec hex index insert ivdv lens line lmul mean merge milg msm mxc neg orbit packet pcause pcave pdoubt peri pfall phcirc phdrop phem phfiss phforce phhalf phheat phiv phmom phmotor phrefr phsank phstate phvt phwave piag pixel prot psyll ptrolley pv pwatch pyth ratio rle samp search sieve sine stack syn trans venn
+# WRITTEN BY A SCRIPT: abinom achain aexp afirst ageom ahyp aincline amoment anormal aparam apascal aproj apulley area ariemann aroot2 asch aunit avec3 bayes bin bubble bus cent coin eapos earc eforest emetre epeel escrooge esent ezoom fadd fde fdp fib fit gal gates gbal gcf gcomp genl gexp gfac ggcoast ggcontour ggdtm gggreen gggrid ggmeander ggplate ggquake ggstorm ggwater gquad grot grule gsemi gsim gsimi gsoh gsurd gtree gvec hex index insert ivdv lens line lmul mean merge milg msm mxc neg orbit packet pcause pcave pdoubt peri pfall phcirc phdrop phem phfiss phforce phhalf phheat phiv phmom phmotor phrefr phsank phstate phvt phwave piag pixel prot psyll ptrolley pv pwatch pyth ratio rle samp search sieve sine stack syn trans venn
 #
 # (`gal` is tools/galton.py, `orbit` tools/solar.py, the GCSE Maths sixteen whose ids start with g are
 # tools/g_<topic>.py — `gexp` is g_expand.py — and an A-level `a<name>` is tools/a_<name>.py; every other
@@ -244,6 +244,27 @@ def _put_whole(anim_id, whole, html, css):
     return row
 
 
+def _place_new(anim_id, place, css):
+    """A NEW DRAWING (416, the English `e_*.py`): `place` as a tuple (book_id, chapter, title, about). Its row is made under
+    that chapter — after the chapter's other drawings — with its CSS whole, so the merge has every item to rewrite. Once the
+    row exists, the tuple changes nothing (unlike the dict form, which owns the row's place, title and about)."""
+    book, chapter, title, about = place
+    lines = BOOKS.read_text(encoding='utf-8').split('\n')
+    at = None
+    for k, l in enumerate(lines):
+        s = l.strip().rstrip(',')
+        if not s.startswith('{'): continue
+        r = json.loads(s)
+        if r.get('book_id') == book and r.get('chapter') == chapter: at = k
+        elif at is not None: break
+    if at is None: raise SystemExit('%s: data/textbooks.json has no %s chapter %s to put it under' % (anim_id, book, chapter))
+    row = {'book_id': book, 'chapter': chapter, 'anim': anim_id, 'title': title, 'about': about,
+           'html': '', 'css': _norm(css or '', anim_id), 'active': 'True'}
+    if not lines[at].rstrip().endswith(','): lines[at] = lines[at].rstrip() + ','
+    lines.insert(at + 1, json.dumps(row, ensure_ascii=False, separators=(',', ':')) + (',' if lines[at + 1].strip() != ']' else ''))
+    BOOKS.write_text('\n'.join(lines), encoding='utf-8')
+
+
 def write_anim(anim_id, html=None, css=None, fragments=(), run=None, place=None, whole=False):
     """html: the whole root as the script writes it (`<div id="splash-…"` … `  </div>`).
     fragments: pieces of markup, each replacing the element in the row that opens the same way.
@@ -251,10 +272,14 @@ def write_anim(anim_id, html=None, css=None, fragments=(), run=None, place=None,
     css: rules and @keyframes, each replacing its namesake in the row.
     whole, place: a script written after the move (409) owns its whole row — where it hangs, its markup as
     the row keeps it and its whole stylesheet, written as given — so it can make the row as well as rewrite it.
-    whole as a dict, {book_id, chapter, title, about} (411's a_*.py): the same ownership, the place given in it."""
+    whole as a dict, {book_id, chapter, title, about} (411's a_*.py): the same ownership, the place given in it.
+    place as a tuple (book_id, chapter, title, about) (416's e_*.py): where a drawing with no row yet gets one (`_place_new`)."""
     if isinstance(whole, dict):
         return _put_whole(anim_id, whole, html, css)
-    if place is not None:
+    if isinstance(place, (tuple, list)):
+        if not any(l.strip().startswith('{') and '"anim":"%s"' % anim_id in l for l in BOOKS.read_text(encoding='utf-8').split('\n')):
+            _place_new(anim_id, place, css)
+    elif place is not None:
         _place(anim_id, place)
     row = read_anim(anim_id)
     if whole:
