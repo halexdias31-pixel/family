@@ -68,7 +68,7 @@ when it was not told it could", never "is this past the right edge".
   columns, `lib_has`, `function_verified`); words, answers and figures are in the Ledger (`LIB_FILES`, `lib_*` tabs)
   and reach a phone by `libItems` when a card opens. Never commit a private field to `data/` (`check-secrets`); a
   row-writing tool runs between `node tools/lib-private.js join` and `split`; checks read the whole library through
-  `check/lib-full.js`. See docs/library.md.
+  `check/lib-full.js`; a new card whose words await import carries `lib_pending` (411). See docs/library.md.
 - **Content cards:** each chapter row of `data/textbooks.json` is a content card (kind `content`); nothing a
   person sees says textbook, book or chapter. The file name, row shape, `DATA.textbooks` and `tb*` names
   stay. Topics are spelled exactly as `data/questions.json`/`data/topics.json` spell them (`check-textbooks.js`). See 347.
@@ -81,6 +81,7 @@ when it was not told it could", never "is this past the right edge".
   - GCSE Physics `phcirc phdrop phem phfiss phforce phhalf phheat phiv phmom phmotor phrefr phsank phstate phvt phwave` (`tools/ph_<topic>.py`, 419)
   - A-level Philosophy and RS `pcause pcave pdoubt pfall psyll ptrolley pwatch` (`tools/p_<name>.py`, 418)
   - GCSE Geography `ggcoast ggcontour ggdtm gggreen gggrid ggmeander ggplate ggquake ggstorm ggwater` (`tools/gg_<topic>.py`, 423)
+  - GCSE Computer Science `bin bubble fde gates hex insert merge packet pixel rle search stack` (`tools/cs_<id>.py`, 424; a new one makes its row with `--init`)
 
   For the rest the row is the source. Never in `index.html` or `style.css`; the splash draws a device-kept copy
   (`splashSync_`). `check-anims.js`, `check-loading.js`. A new one is a script on `anim_row.Loop` that writes its whole
