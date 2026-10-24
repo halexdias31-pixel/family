@@ -27,5 +27,15 @@
 {"splash_id": "half3", "name": "Half, three ways", "kind": "tool", "shows": "½ = 0.5 = 50%", "note": "", "active": true},
 {"splash_id": "mxc", "name": "y = mx + c", "kind": "proof", "shows": "the line turning as m changes", "note": "", "active": true},
 {"splash_id": "orbit", "name": "The solar system", "kind": "proof", "shows": "eight planets round the Sun, each at its real period", "note": "Kepler", "active": true},
-{"splash_id": "fit", "name": "How many fit?", "kind": "proof", "shows": "how many 3s fit into 4: one, and a third of the next", "note": "", "active": true}
+{"splash_id": "fit", "name": "How many fit?", "kind": "proof", "shows": "how many 3s fit into 4: one, and a third of the next", "note": "", "active": true},
+{"splash_id":"ggplate","name":"The three plate margins","kind":"proof","shows":"plates pulling apart, one sliding under another, and two sliding past","note":"","active":true},
+{"splash_id":"ggquake","name":"Earthquake waves","kind":"proof","shows":"P, S and surface waves leaving the focus, and the seismograph they draw","note":"","active":true},
+{"splash_id":"ggstorm","name":"How a tropical storm forms","kind":"proof","shows":"warm sea, rising air, towering cloud, then the spin and the eye","note":"","active":true},
+{"splash_id":"gggreen","name":"The greenhouse effect","kind":"proof","shows":"sunlight in, heat out, some trapped — and more trapped with more gas","note":"","active":true},
+{"splash_id":"ggcoast","name":"Erosion and longshore drift","kind":"proof","shows":"waves wearing a cliff back, then a pebble zigzagging along a beach","note":"","active":true},
+{"splash_id":"ggmeander","name":"From meander to ox-bow lake","kind":"proof","shows":"a bend growing loop by loop until the river cuts through and leaves a lake","note":"","active":true},
+{"splash_id":"ggdtm","name":"The demographic transition model","kind":"proof","shows":"birth and death rates across five stages, and the population between them","note":"","active":true},
+{"splash_id":"ggwater","name":"The water cycle and lag time","kind":"proof","shows":"evaporation, cloud, rain and runoff, and the river peaking later","note":"","active":true},
+{"splash_id":"gggrid","name":"Four and six-figure grid references","kind":"proof","shows":"along the corridor, up the stairs: 4572, then zoomed in to 456 723","note":"","active":true},
+{"splash_id":"ggcontour","name":"Contours to a cross-section","kind":"proof","shows":"a hill's contours lifted into 3D, then a section drawn from them","note":"","active":true}
 ]
