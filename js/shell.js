@@ -383,6 +383,7 @@ function paint(id, fresh, o) {
     return 'kept';
   }
   const held = !fresh && typeof widgetsHeld_ === 'function' ? widgetsHeld_(id, pre) : [];
+  const waited = waitingPages_(el);
   el.innerHTML = html !== null
     ? html
     : '<p class="empty">Nothing here yet.</p>';
@@ -390,6 +391,7 @@ function paint(id, fresh, o) {
   PRE_PAYLOAD.delete(id);
   PAINT_N[id] = (PAINT_N[id] || 0) + 1;
   if (held.length) widgetsBack_(id, held);
+  arrivePages_(el, waited);
   /* NEW MARKUP IS NEW PAGES, so the next placement walks this column's pages whatever its signature says
      (`placePages_`). */
   el.PG_SIG = null;
@@ -440,7 +442,73 @@ function loading_() {
 function loaded_(el) {
   if (!el || !el.removeAttribute) return;
   el.removeAttribute('aria-busy');
-  el.querySelectorAll(':scope > .loading').forEach(l => l.remove());
+  const dots = el.querySelectorAll(':scope > .loading');
+  if (!dots.length) return;
+  dots.forEach(l => l.remove());
+  /* WHAT WAS UNDER THE DOTS FADES IN where it already stood (428). */
+  [].forEach.call(el.children, arrive_);
+}
+
+/* ---------- AND WHAT ARRIVES, ARRIVES: ONE FADE FOR EVERYTHING THAT TOOK THE DOTS’ PLACE (docs/history/428) */
+function arrive_(el) {
+  if (!el || !el.classList || el.classList.contains('loading') || el.classList.contains('arrive')) return;
+  el.classList.add('arrive');
+  /* TAKEN OFF AGAIN, so a slot moved to another column later (`widgetsBack_`) is not faded a second time. */
+  setTimeout(() => el.classList.remove('arrive'), 700);
+}
+/* EVERY OTHER WAY THE DOTS ARE REPLACED (`box.innerHTML = …` over a `loading_()`), and an image that took its time. */
+function arriveWatch_() {
+  if (typeof MutationObserver !== 'function' || !document.body) return;
+  new MutationObserver(ms => {
+    const t = performance.now();
+    ms.forEach(m => {
+      let was = false;
+      m.removedNodes.forEach(n => { if (n.nodeType === 1 && n.classList.contains('loading')) was = true; });
+      let words = false;
+      m.addedNodes.forEach(n => {
+        if (n.nodeType === 3 && was && n.textContent.trim()) words = true;
+        if (n.nodeType !== 1) return;
+        if (was && !m.target.classList.contains('pane')) arrive_(n);
+        if (n.tagName === 'IMG') n.arriveT = t;
+        else if (n.firstElementChild) n.querySelectorAll('img').forEach(i => { i.arriveT = t; });
+      });
+      /* A PANE THAT WAS ONLY THE DOTS had no frame (306), so the pane fades in, frame and all. */
+      if (was && m.target.classList.contains('pane') && !m.target.querySelector(':scope > .loading')) arrive_(m.target);
+      else if (words && !m.target.classList.contains('screen')) arrive_(m.target);
+    });
+  }).observe(document.body, { childList: true, subtree: true });
+  /* A PICTURE THAT CAME FROM THE CACHE (inside 80ms) is shown as it is: fading it on every redraw would be a flicker. */
+  document.addEventListener('load', e => {
+    const i = e.target;
+    if (i && i.tagName === 'IMG' && i.arriveT && performance.now() - i.arriveT > 80) arrive_(i);
+  }, true);
+}
+if (document.body) arriveWatch_(); else document.addEventListener('DOMContentLoaded', arriveWatch_);
+/* A COLUMN DRAWN AGAIN OVER PAGES THAT WERE WAITING (`paint`): what is new on them fades in; what was already there stays put. */
+function arrivePages_(el, was) {
+  if (!was) return;
+  const pages = el.querySelectorAll(':scope > .page > .pane');
+  was.forEach((html, i) => {
+    const pane = pages[i];
+    if (!pane) return;
+    if (html === null) { if (!pane.querySelector(':scope > .loading')) arrive_(pane); return; }
+    [].forEach.call(pane.children, card => {
+      /* A WIDGET'S SLOT IS LEFT TO `loaded_`: one carried across the redraw is running, and fading it would flicker. */
+      if (slotIn_(card) || html.indexOf(card.outerHTML) !== -1) return;
+      if (!card.children.length) { arrive_(card); return; }
+      [].forEach.call(card.children, k => { if (!slotIn_(k) && html.indexOf(k.outerHTML) === -1) arrive_(k); });
+    });
+  });
+}
+const slotIn_ = el => el.classList.contains('widget-slot') || !!el.querySelector('.widget-slot');
+function waitingPages_(el) {
+  if (!el.querySelector('.loading')) return null;
+  const was = new Map();
+  el.querySelectorAll(':scope > .page > .pane').forEach((pane, i) => {
+    if (!pane.querySelector('.loading')) return;
+    was.set(i, pane.querySelector(':scope > .loading:only-child') ? null : pane.innerHTML);
+  });
+  return was.size ? was : null;
 }
 
 /* ---------- AND WHEN IS THE PAYLOAD STILL ON ITS WAY: ONE ANSWER, ASKED BY EVERY CARD § */
