@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-24-h-library-import";
+const DOPOST_VERSION = "2026-10-24-i-delete-dead";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -2097,40 +2097,7 @@ function doPost(e) {
 
     /* ---------- `redeem` WAS HERE — A PRINTED PAPER FOR A THOUSAND TICKS § */
 
-    /* exams ------------------------------------------------------------------------------ A student's own dates. § */
-    if (action === 'saveExam' || action === 'deleteExam') {
-      const me = findPerson(S(body.name), S(body.personId));
-      if (!me) return jsonOut({ error: 'Not signed in.' });
-      const mine = S(me.person_id);
-      const t = read(TAB.exams);
-
-      if (action === 'deleteExam') {
-        const r = t.rows.find(x => x._row === Number(body.rowIndex));
-        if (!r) return jsonOut({ error: 'Not found.' });
-        // Your own, or an admin's to remove. Anything else is somebody else's diary.
-        if (S(r.person_id) !== mine && !isAdminPerson(S(body.name))) {
-          return jsonOut({ error: 'Not yours to remove.' });
-        }
-        delRow(t, r);
-        clearCache();
-        return jsonOut({ success: true });
-      }
-
-      const when = sheetDate(body.date);
-      if (!when) return jsonOut({ error: 'That date did not make sense.' });
-      addRow(t, {
-        exam_id: 'X' + Date.now(),
-        person_id: mine,
-        subject: S(body.subject),
-        label: S(body.label),
-        exam_date: when,
-        kind: norm(body.kind) === 'mock' ? 'mock' : 'exam',
-        board: S(body.board),
-        active: 'TRUE',
-      });
-      clearCache();
-      return jsonOut({ success: true });
-    }
+    /* `saveExam` AND `deleteExam` WERE HERE — no screen posted either; exam dates live on the profile (Settings) (431). */
 
     if (action === 'saveTodo')    return savePerson('todo', S(body.todo));
     /* ---------- THE TIMETABLE, KEPT ON THE ACCOUNT § */

@@ -279,7 +279,7 @@ on('cmt-del', el => {
 });
 
 function feedPosts() {
-  return [...(DATA.posts || DATA.gallery || [])]
+  return [...(DATA.posts || [])]
     /* A DELETED POST IS GONE FROM THE FEED, for everybody including the admin who deleted it. § */
     .filter(p => p.active !== false)
     .sort((a, b) => {

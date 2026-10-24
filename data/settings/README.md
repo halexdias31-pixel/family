@@ -5,9 +5,9 @@
 comparison is the whole reason this commit exists on its own — the `libraryExtras_` rule this
 repository already records twice, *prove it identical first, then make it*.
 
-**Nothing reads these files yet.** The site still asks `doGet`, `doGet` still reads the
-spreadsheet, and this commit changes no behaviour at all. What it changes is that the spreadsheet
-is now safe to delete without losing anything, which was the thing that had to be true first.
+**These files are read now.** The phone fetches the ones in `SETTINGS_TABS` (js/settings.js) and
+`settingsInto_` lays them over the payload; the backend reads `brand.json` and others off the
+repository. The export below describes the day they were written, not who reads them today.
 
 **The sheet's own column names are kept** — `list_name`, `surcharge_per_hour`, `mustsign` — not the
 camelCase the phone reads. A faithful export is one you can paste a row back into without
@@ -32,10 +32,9 @@ The three-question test in CLAUDE.md decides it, and the first question that ans
 
 `brand` carries the business's own e-mail and phone. **Both are already published**: every row of
 that tab goes into `payload.brand` and out to every anonymous visitor, `brand('phone')` is printed
-on the flyer the app makes, and `halex.dias.31@gmail.com` is the author address on every commit in
-this repository's public history already. So committing them publishes nothing that was not
-published. Worth knowing rather than worth hiding — and `brand.email` is read by **nothing** in the
-app, so it is a dead key as well as a personal one.
+on the flyer the app makes. `brand.email` was read by **nothing** in the app — a dead key as well as
+a personal one — and 431 took it out of `brand.json`; the owner's address for notices is the
+`owner_email` config key.
 
 ### 2. Does the app write to it? — eleven handlers say yes and not one of them is called
 
@@ -67,7 +66,6 @@ That is the question that actually splits the list, and it is not the same as qu
 | `brand` 16 | two keys are read at WRITE time — `brandName()` when an e-mail goes out, `reactionSet()` when a post is written. Both already fall back to code (`'@family.'`, `HOUSE_REACTIONS`), so the fallback is the answer and the tab can go |
 | `options` 145 | `allOptions()` and `optionFocus()` shape it into `DATA.dropdowns`. Pure reshaping, no decision — but `check-payload.js` reports `options` itself as **sent and never read**, so some of this is already weight |
 | `holidays` 36 | `festiveOffers()` applies date arithmetic — `opens_days`, `trail_days` — against today. Moving it means porting that to JS, which is real work rather than a copy |
-| `landmarks` 31 | `landmarks()` converts metres to degrees and assembles the map. Same: a transform, not a forward |
 | `shop` 62 | `avatarCatalogue()` reads shop rows for the wardrobe. `avatar` (27 rows) is read by **nothing at all** — it is the wardrobe's colours, and `AVATAR_ITEMS` in code is the live copy |
 
 ---
@@ -88,6 +86,9 @@ SCHEMA and wrong about the sheet: **the sheet holds exactly what `terms.js` is a
 `termsFor()` has been reading the same tab for school terms, finding no `term_name`, and falling
 back to computed defaults. One tab, two readers, and the one with real content in front of it is
 the one that was never wired up.
+
+*Since 431:* `terms.js` is deleted and so is that accepted-dead entry. The Staff hub (405) draws the
+tutor terms from the brand key `tutor_terms`; `terms.json` stays here as the export it always was.
 
 ---
 

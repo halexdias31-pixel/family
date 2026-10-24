@@ -1359,8 +1359,7 @@ const PAGER = {
   /* ---------- THESE KEYS ARE SCREEN IDS, AND TWO OF THEM NAMED SCREENS THAT DO NOT EXIST § */
   /* ---------- THE PAGER COUNTED A LIST THE SCREEN DOES NOT DRAW § */
   account: () => {
-    const n = (typeof accountPages_ === 'function' ? accountPages_().length : 0)
-            + (typeof termsPages_ === 'function' ? termsPages_().length : 0);
+    const n = typeof accountPages_ === 'function' ? accountPages_().length : 0;
     return Array.from({ length: n }, (_, i) => (n > 1 ? (i + 1) + ' of ' + n : ''));
   },
   /* `book` WAS HERE — a pager for a column that no longer exists. Find has its own count. */

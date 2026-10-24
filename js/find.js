@@ -99,9 +99,6 @@ const KINDS = {
   /* ---------- BACK UNDER `People`, AND THERE IS NO `You` ANSWER § */
   /* `me` WAS HERE — you, under `People`, found the way every other person is found. § */
 
-  /* ---------- THE PAPERWORK, AND IT IS A DEPARTMENT § */
-  doc: { group: 'Paperwork', label: 'Documents', card: x => docCard_(x) },
-
   /* ---------- POSTS ARE A THING YOU LOOK FOR § */
   /* `post` WAS HERE — the real post card, reactions and all, answering under `Posts`. § */
 
@@ -7944,10 +7941,6 @@ function stuffItemsBuild_() {
 function stuffItemsRaw_() {
   return [
     /* ---------- PEOPLE, PLACES AND SUBJECTS § */
-    /* THE DOCUMENTS THE BUSINESS PUBLISHES. Built in terms.js from the `terms` tab, so a clause
-       changes in a spreadsheet rather than in a file — and an empty tab is an empty list rather
-       than a group with nothing in it. */
-    ...(typeof docItems_ === 'function' ? docItems_() : []),
     ...(DATA.tutors || []).filter(t => t.title).map(t => ({
       kind: 'tutor', name: t.title, key: t.title, sub: t.subtitle || '', image: t.image,
       cost: priced_(t.rate), off: t.listed === false, row: t,
@@ -8791,11 +8784,7 @@ function subDayText_(iso) {
 }
 
 /* THE COLUMN ITSELF. One page when signed out — the sign-in card — and one when signed in. § */
-/* ANYTHING UNSIGNED RIDES WITH THE ACCOUNT. The library is in the funnel, which is where somebody
-   goes to CHECK a document; this is where somebody is TOLD about one. See the long note at the top
-   of terms.js on why both exist. */
-screen('account', () => pages('account',
-  accountPages_().concat(typeof termsPages_ === 'function' ? termsPages_() : [])));
+screen('account', () => pages('account', accountPages_()));
 
 /** Everything spliced between the question and the results, whichever answer is showing. */
 /* THE BUNDLE IS THE LAST OF THEM — see `bundlePages_`. § */

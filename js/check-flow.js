@@ -76,7 +76,7 @@ function payload() {
         borough: 'Merton', avail: {} },
     ],
     students: [], resources: [], posts: [], shop: [], trips: [], exams: [],
-    birthdays: [], laws: [], brand: {}, landmarks: [],
+    birthdays: [], laws: [], brand: {},
     intervals: [{ rel: 'Current', term: 'Autumn 1', label: 'Autumn 1', weeks: 6,
                   startDate: '01/09/2026', endDate: '18/10/2026', kind: 'term' }],
     festive: [{ id: 'H1', holiday: 'Christmas Day', name: 'Christmas party',
@@ -414,19 +414,7 @@ function boot(opts) {
       'narrow: (items, filters) => stuffNarrow_(items, filters, [], null),' +
       /* THE MESSAGES COLUMN'S STATE, SEEDED AS AN ANSWER JUST ARRIVED — the same five lets `check/states.js` sets in a browser, and for the same reason they are set § */
       'dmSeed: (msgs, pending) => { MESSAGES = msgs; MSG_PENDING = pending || []; DM_ASKED = true;' +
-      '  DM_DONE = true; MSG_FAILED = false; DM_LAST = Date.now(); },' +
-      /* A landmark rasterised at one bearing, so the test above can compare four of them. */
-      'tiles: (ring, bearing) => {' +
-      '  if (typeof owWorld !== "function") return 0;' +
-      '  const was = DATA.landmarks;' +
-      '  DATA.landmarks = [{ name: "t", kind: "retail", lat: 51.4174, lng: -0.1784,' +
-      '    plots: 6, bearing, outline: ring,' +
-      '    parts: [{ kind: "building", outline: ring, height: 10, x: 0, z: 0, w: 1, d: 1 }] }];' +
-      '  const wd = owWorld();' +
-      '  const n = wd ? owTilesOf(wd.items[0], wd.items[0].l.parts[0], owSiteBox(wd.items[0].l)).length : 0;' +
-      '  DATA.landmarks = was;' +
-      '  return n;' +
-      '} };');
+      '  DM_DONE = true; MSG_FAILED = false; DM_LAST = Date.now(); } };');
   } catch (e) {
     errs.push('LOAD THREW: ' + e.message);
   }
@@ -4006,46 +3994,6 @@ const placeholderFaults_ = box => {
   if (nums) bad.push('a placeholder shows a number with nothing behind it: ' + nums.join(', '));
   return bad;
 };
-
-/* ---------- CONTEST: THE LAST CARD ON THE GAMES COLUMN, AND NOTHING ON IT TO PRESS § */
-check('the contest placeholder is the last card on the Games column, says so, and has nothing to press', async () => {
-  const { w } = boot();
-  await wait(300);
-  const t = w.__t;
-  const bad = [];
-  const roster = t.widgetsOf('game').map(x => String(x.id));
-  if (roster.indexOf('contest') === -1) return ['there is no contest widget on the Games column'];
-  /* ONE MORE THING LEADS THE REELS NOW (414), so the contest closes the Games column. */
-  if (roster.indexOf('contest') !== roster.length - 1) bad.push('contest is not the last game: ' + roster.join(', '));
-  t.go('games', false, true);
-  await wait(LEAVE_MS); await woken_();
-  const slot = w.document.querySelector('#s-games #wgt-contest');
-  if (!slot) return bad.concat(['the contest card did not draw on the Games column']);
-  const h = slot.querySelector('h3');
-  if (!h || h.textContent.trim() !== 'Contest') bad.push('the card is not headed Contest');
-  if (!/Not built yet/.test(slot.textContent)) bad.push('the card does not say it is not built yet');
-  return bad.concat(placeholderFaults_(slot));
-});
-
-/* ---------- LEGO TRADE-IN: ON THE SHOP COLUMN UNDER THE BASKET (414), AND NOTHING ON IT TO PRESS */
-check('the LEGO trade-in placeholder is on the Shop column straight after the basket, says so, and has nothing to press', async () => {
-  const { w } = boot();
-  await wait(300);
-  const t = w.__t;
-  const bad = [];
-  if (t.widgetsOf('tool').some(x => String(x.id) === 'legotrade')) bad.push('legotrade is still a tool');
-  const roster = t.widgetsOf('shop').map(x => String(x.id));
-  if (roster.indexOf('legotrade') === -1) return bad.concat(['there is no legotrade widget on the Shop column']);
-  if (roster.indexOf('legotrade') !== roster.indexOf('cart') + 1) bad.push('legotrade does not come straight after the basket: ' + roster.join(', '));
-  t.go('shop', false, true);
-  await wait(LEAVE_MS); await woken_();
-  const slot = w.document.querySelector('#s-shop #wgt-legotrade');
-  if (!slot) return bad.concat(['the LEGO trade-in card did not draw on the Shop column']);
-  const h = slot.querySelector('h3');
-  if (!h || h.textContent.trim() !== 'LEGO trade-in') bad.push('the card is not headed LEGO trade-in');
-  if (!/Not built yet/.test(slot.textContent)) bad.push('the card does not say it is not built yet');
-  return bad.concat(placeholderFaults_(slot));
-});
 
 /* ---------- THE WHITEBOARD SINCE 377: a maths notebook (board.js), driven here through its own listeners ---------- */
 const nbFire_ = (w, el, type, x, y, id) => {
@@ -12319,19 +12267,6 @@ check('business: an admin reloading on Business is put back on it, its section i
   return bad;
 });
 
-check('a landmark is the same shape whichever way it is turned', async () => {
-  /* THE FAULT THIS PREVENTS. § */
-  const { w } = boot();
-  await wait(300);
-  if (typeof w.__t.tiles !== 'function') return [];     // only checkable where it is exported
-  const ring = [[51.4174, -0.1781], [51.4173, -0.1782], [51.4174, -0.1787], [51.4175, -0.1786]];
-  const counts = [0, 90, 180, 270].map(b => w.__t.tiles(ring, b));
-  const same = counts.every(c => c === counts[0]);
-  return same ? []
-    : ['a landmark covers ' + counts.join('/') + ' tiles at 0/90/180/270 — turning it changes '
-       + 'its shape, which means the polygon is being re-sampled rather than the tiles turned'];
-});
-
 /* ---------- WHAT A TUTOR TEACHES: ONE CHIP A SUBJECT, ITS LEVELS RAISED § */
 check('what a tutor teaches is one chip a subject, its levels raised and no brackets', async () => {
   const { w } = boot();
@@ -12671,7 +12606,7 @@ check('the library cards are on Tools for a parent, a student, a tutor and an ad
                                      profile: Object.assign({ phone_cc: '+44' }, LIB_PROFILE_) });
     const list = ids();
     if (!form) { bad.push('a ' + role + ' has no library cards on Tools (' + JSON.stringify(list) + ')'); continue; }
-    /* LAST — appended, for `legotrade`'s reason (map.js): its gate is signing in, and above another tool it moved
+    /* LAST — appended, because its gate is signing in, and above another tool it moved
        that tool's page under somebody on Tools when they signed in (the review of 339). */
     if (list[list.length - 1] !== 'libcards') bad.push('a ' + role + '\'s library cards are tool ' + list.indexOf('libcards') + ' of ' + JSON.stringify(list) + ', wanted the last');
     if (form.querySelectorAll('.lib-card:not([hidden]) .lib-face').length !== 3) bad.push('a ' + role + '\'s library cards widget draws ' + form.querySelectorAll('.lib-card:not([hidden]) .lib-face').length + ' cards for three saved');

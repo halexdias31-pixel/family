@@ -64,9 +64,6 @@ const WHERE = {
      by `createJob` as a code is spent and the job that spent it is in the same file. */
   promo_codes:    { file: 'ledger' },
   holidays:       { file: 'ledger' },
-  landmarks:      { file: 'ledger' },
-  landmark_parts: { file: 'ledger' },
-  map:            { file: 'ledger' },
   herd:           { file: 'ledger' },
 
   /* ---- the library's private half (397): the words, answers and figures, filled by `library-to-ledger` ---- */
@@ -121,7 +118,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-24-h-library-import";
+const BACKEND_VERSION = "2026-10-24-i-delete-dead";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -135,15 +132,8 @@ const TAB = {
   exams: 'exams', messages: 'messages',
   records: 'records',
   herd: 'herd',
-  /* The map's own geometry, fetched from OpenStreetMap and kept. Not a tab anybody types into —
-     see `fetchMap`. */
-  map: 'map',
   /* Every receipt ever issued, kept as it was issued. See the schema below. */
   receipts: 'receipts',
-  /* Buildings measured by hand off satellite imagery. See the schema below. */
-  landmarks: 'landmarks',
-  /* The pieces each landmark is made of — see SCHEMA.landmark_parts. */
-  landmarkParts: 'landmark_parts',
   /* The calendar of festivals, as rules rather than dates — see the schema. */
   holidays: 'holidays',
   /* When a particular message is worth putting out — see SCHEMA.campaigns. */
@@ -257,61 +247,10 @@ const SCHEMA = {
   library_cards: [
     "person_id", "library", "card_number", "pin"
   ],
-  /* ---------- THE MAP § */
-  /* ---------- LANDMARKS § */
-  landmarks: [
-    /* ---------- THESE ARE THE TAB'S OWN NAMES, AND THEY DID NOT USED TO BE § */
-    "id", "parent", "name", "world", "kind",
-    "lat", "lng",
-    /* ---------- WHICH WAY ROUND IT STANDS ON THE BOARD § */
-    "bearing",
-    /* `x` and `z` are the board position when one is set by hand, and `active` is how a landmark
-       is retired without deleting the row. All three are on the tab and none was declared. */
-    "x", "z", "active",
-    "w", "d", "points",
-    "height", "storeys", "wall_colour", "note",
-    /* ---------- WHAT THE SHEET ALREADY HAD AND THE SCHEMA DID NOT § */
-    "label", "icon", "role", "marker", "roof_colour", "address",
-    /* ---------- WHAT MAKES A LANDMARK RECOGNISABLE ON THE BOARD § */
-    "form", "roof_shape", "feature", "plots",
-    /* HOW DEEP THE PLOT IS, in tiles. Width is `plots`; this is the other side of it, and it exists
-       because a retail park is wide AND deep while a house is neither. */
-    "plot_depth",
-  ],
-
-  /* ---------- THE PARTS OF A LANDMARK § */
-  landmark_parts: [
-    "part_id", "landmark_id", "name",
-    /* WHAT IT IS, and this decides everything about how it draws: § */
-    "kind",
-    /* ---------- THE SHAPE, TWO WAYS, AND ONE OF THEM IS BETTER § */
-    "points",
-    "x", "z", "w", "d",
-    /* HOW TALL, in metres — 0 for anything flat. The board squashes the range so a tower and a shed
-       are both readable, so this is the real height and the drawing decides what to do with it. */
-    "height",
-    /* THE SHAPE OF IT, for the parts that are buildings. Same vocabulary as the landmark's own
-       `form` and `roof_shape`, because a part IS a building and there is no reason for a second
-       set of words. */
-    "form", "roof_shape",
-    /* AND WHAT COLOUR. Walls and roof separately — a grey building with a blue roof is a thing you
-       can only say if they are two columns. */
-    "wall_colour", "roof_colour",
-    /* ONE FEATURE: chimney, spire, clock, mast, sign. Per part, so the barn gets the chimney and
-       the paddock does not. */
-    "feature",
-    "note", "active",
-  ],
-
   /* ---------- RECEIPTS § */
   receipts: [
     "receipt_id", "kind", "job_id", "order_id", "person_id", "person_name",
     "issued_on", "total_pence", "currency", "lines", "note",
-  ],
-
-  map: [
-    /* `meta` carries whatever the shape needs beyond its outline — a building's storeys, a road's classification. § */
-    "world", "kind", "name", "points", "meta",
   ],
 
   venues: [
@@ -649,7 +588,6 @@ const CONFIG_DEFAULTS = [
   /* ---------- A VISIT TO SOMEBODY'S HOUSE HAS A FLOOR, AND IT IS EDITORIAL § */
   ['min_seats_at_home', 4, 'chairs a session at the client\'s own home must be booked for, yours included'],
   ['max_open_requests', 2, 'how many live requests one family may hold at once'],
-  ['showcase_folder_id', '', 'Drive folder the Showcase reads'],
 
   /* ---------- GOOGLE SIGN-IN, WHICH HAD NO ROW TO SET IT IN § */
   /* ---------- AI MARKING § */
@@ -1350,8 +1288,6 @@ const RUNNABLE = {
   /* Turn postcodes into coordinates. Run it after adding a venue; it skips anything already
      placed, so running it twice costs one request and changes nothing. */
   geocode:           () => geocodeVenues(),
-  /* The ground itself, from OpenStreetMap. Once per world; name one to fetch it again. */
-  fetchMap:          a => fetchMap(a),
   regeocode:         () => geocodeVenues(true),
   rename:            a => renameValue_(a),
   seedOptions:       () => seedOptions(),
@@ -1365,12 +1301,6 @@ const RUNNABLE = {
   renameHandles:     () => renameHandles_(),
   /* ---------- AND EVERY CHILD'S HANDLE INTO INITIALS AND FOUR DIGITS, PREVIEWED FIRST (342) § */
   /* `seedPastPapers`, `seedALevelPapers`, `dropOldALevelPapers` and `ensureResourceIds` WERE HERE. § */
-  /* The Colliers Wood landmarks, with their surveyed outlines. Safe to run whenever — a landmark
-     already on the tab is left exactly as it is. */
-  seedLandmarks:     () => seedLandmarks(),
-  /* The Colliers Wood landmarks, with their real outlines. Safe to run again — anything already on
-     the tab is left as it is. */
-  seedLandmarks:     () => seedLandmarks(),
   /* The British holidays of a year, computed. `&arg=2027` for a different one; without an arg it
      does the year we are in. Safe to run whenever — a row already there is left alone. */
   seedHolidays:      a => seedHolidays(a),
@@ -1440,14 +1370,7 @@ const MIGRATIONS = [
 
   /* ---------- THREE PAPER MIGRATIONS WERE HERE, AND THEIR IDS STAY SPENT § */
 
-  /* THE LANDMARKS TAB HAS BEEN EMPTY SINCE IT WAS ADDED. Five real buildings with their real
-     outlines — every corner as surveyed, not a rectangle drawn round them. */
-  { id: 'colliers-wood-landmarks',
-    retry: true,
-    what: 'the Colliers Wood landmarks get their outlines',
-    run: () => seedLandmarks() },
-
-  /* A SECOND `colliers-wood-landmarks` WAS HERE, with the same id as the one above. § */
+  /* `colliers-wood-landmarks` WAS HERE, AND ITS ID STAYS SPENT: the landmarks went with the map that never drew (431). */
 
   /* EVERY WEARABLE IN THE SHOP HAS BEEN FREE SINCE THE TWO TABS WERE MERGED, and `seedAvatarItems` cannot fix it: § */
   { id: 'price-the-wearables',
@@ -1521,7 +1444,7 @@ const ACTION_ACCESS = {
   /* YOUR OWN ROLES — the three a person may tick, on the row the token resolved to. § */
   setMyRoles: 'self',
   myReferral: 'self',       // your own code, and who came through it
-  saveExam: 'self', deleteExam: 'self', redeem: 'self',
+  redeem: 'self',
   /* `likePost` was here. § */
   votePoll: 'self', reactPost: 'self',
   /* SAYING SOMETHING UNDER A POST, AND TAKING IT DOWN. § */

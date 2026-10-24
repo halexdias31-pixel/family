@@ -123,10 +123,6 @@ widgets.forEach(w => {
 /* ---------- AN ENGINE WITH NO WIDGET, WHICH IS HOW THREE GAMES VANISHED § */
 /* KEPT ON PURPOSE, WITH A REASON EACH — the same arrangement check-payload.js and check-access.js use, and for the same reason: § */
 const ACCEPTED_ENGINE = {
-  initOverworldBoard: 'The Overworld widget was removed on request; the board renderer stays because '
-                    + 'the map it draws is used elsewhere in overworld.js. Deleting a working '
-                    + 'renderer because one entry point closed is how a codebase loses things it '
-                    + 'still needs.',
   initRound: 'Articulate and Charades are games inside the Word games widget; WORD_GAMES in '
            + 'games.js starts them from initWordGames, which is the starter a widget names.',
   initConnect4: 'Connect 4 is a game inside the Board games widget (414); BOARD_GAMES in games.js starts it from initBoardGames, the starter a widget names.',

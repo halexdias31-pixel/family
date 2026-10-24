@@ -51,7 +51,23 @@ const TERMS_DRAFT = [
 const termsVersion_ = () => { const v = String(brand('tutor_terms_version', TERMS_VERSION)).trim(); return /^\d{4}-\d{1,2}(-\d{1,2})?$/.test(v) ? 'v' + v : v; };
 const termsDraft_ = () => !(typeof DATA !== 'undefined' && DATA && DATA.brand && DATA.brand.tutor_terms);
 const termsAgreed_ = () => !!(USER && USER.agreementSignedAt && String(USER.agreementVersion || '') === termsVersion_());
-/* "## Heading" STARTS A SECTION; what follows is `termsProse_`'s (terms.js): paragraphs, "- " lists, **bold**. */
+/* PARAGRAPHS, "- " LISTS AND **bold** — moved here from terms.js when that file went (431); the agreement is its only reader. */
+function termsProse_(s) {
+  const src = String(s || '').replace(/\r/g, '');
+  return src.split(/\n{2,}/).map(block => {
+    const lines = block.split('\n').filter(l => l.trim());
+    if (!lines.length) return '';
+    if (lines.every(l => /^\s*[-•]\s+/.test(l))) {
+      return '<ul>' + lines.map(l =>
+        '<li>' + termsMarks_(l.replace(/^\s*[-•]\s+/, '')) + '</li>').join('') + '</ul>';
+    }
+    return '<p>' + lines.map(l => termsMarks_(l)).join('<br>') + '</p>';
+  }).join('');
+}
+function termsMarks_(s) {
+  return esc(s).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+}
+/* "## Heading" STARTS A SECTION; what follows is `termsProse_`'s: paragraphs, "- " lists, **bold**. */
 function termsSections_(src) {
   const out = [];
   String(src || '').replace(/\r/g, '').split('\n').forEach(line => {
@@ -69,7 +85,7 @@ function termsSections_(src) {
 }
 function agreementCard_() {
   const at = USER && USER.agreementSignedAt, now = termsAgreed_(), was = String((USER && USER.agreementVersion) || '');
-  const prose = s => typeof termsProse_ === 'function' ? termsProse_(s) : `<p>${esc(s)}</p>`;
+  const prose = termsProse_;
   return `<div class="hub-terms agree">
     <h3>Tutor Terms &amp; Conditions${termsDraft_() ? ' <span class="agree-draft">Draft</span>' : ''}</h3>
     <p class="faint hub-ver">Version ${esc(termsVersion_())}</p>

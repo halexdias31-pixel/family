@@ -9,7 +9,6 @@
 {"key": "h", "value": 2, "what_it_does": "hours per session"},
 {"key": "max_students_per_job", "value": 4, "what_it_does": "seat cap when neither tutor nor venue sets one"},
 {"key": "max_open_requests", "value": 2, "what_it_does": "how many live requests one family may hold at once"},
-{"key": "showcase_folder_id", "value": "1piJQHYQ2h3I_f3ullEmDcNn_RGti4VVw", "what_it_does": ""},
 {"key": "open_rate", "value": 12, "what_it_does": "pay per hour used when a client books with No preference. Blank = the highest rate any tutor charges, so whoever applies is covered"},
 {"key": "formula_per_hour", "value": "(pay x w) + subject + level + day + time + (extra subjects x s) + (extra students x (c + B)), then x bulk x advance, then + venue", "what_it_does": "HOW A PRICE IS REACHED per hour. Every name in it is a row in this tab or the pricing tab"},
 {"key": "formula_total", "value": "per hour x h x number of sessions", "what_it_does": "the client total"},
