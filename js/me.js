@@ -1888,7 +1888,7 @@ function rolesCard_() {
     + `<div class="tile-row">${tile_({ icon: 'save', label: 'Save', act: 'roles-save' })}</div>` : '';
   const said = rolesSaid_();
   return `<div class="card roles-card">
-    <h3>Your role</h3>
+    <h3>Your roles</h3>
     ${rankAtLeast_('admin') ? `<p class="faint role-admin">You are Admin. That is given by ${esc(name)} and is not changed here.</p>` : ''}
     ${picks}
     ${picks || said ? `<p class="faint roles-said" aria-live="polite">${esc(said)}</p>` : ''}

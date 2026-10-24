@@ -2,7 +2,7 @@
 
 From a structural review after 400 (ranks) and 405 (the Staff hub), 24 Oct.
 
-## 1. "Your roles" became "Your role"
+## 1. "Your roles": one choice, and only for a Client
 
 The card in Settings still said "Tick every one that is you. You can be more than one." and offered three tick boxes — the
 pre-400 model. Under one rank it promised things the server refuses: a Student ticking Client is refused by `setMyRoles`
@@ -19,7 +19,9 @@ Now (`rolesCard_`, me.js), by rank:
 - **A waiting Tutor from an old row** (rank Client): the Client choice, the waiting line, and the post carries `tutor`
   alongside the choice so the waiting row is kept, not dropped (`rolesPicked_`). Adding Tutor stays refused server side.
 
-`ROLE_PICKS` stays for its labels (`peopleRolePicks_`, the admin's people editor).
+`ROLE_PICKS` stays for its labels (`peopleRolePicks_`, the admin's people editor; check-signin reads them). The card's
+title stays "Your roles": `makeChild`'s refusal (dopost.gs) names it. That refusal tells a tutor to "Tick Client under
+Your roles", which Staff can no longer do from the card — left for a backend change, not made here.
 
 ## 2. Role checks that bypassed the rank
 
