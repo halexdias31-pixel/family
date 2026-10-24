@@ -131,12 +131,6 @@ const evH = b.tabs.events[0];
 const actors = b.tabs.events.slice(1).map(r => S(r[evH.indexOf('actor')]));
 rule(actors.indexOf('Wren ' + SUR) !== -1 && actors.indexOf('Wren (@wren_kind43)') === -1 && actors.indexOf('Wren') === -1,
   'the booking made for her did not go into the events under her whole name — actors: ' + JSON.stringify(actors));
-/* SHE INVITES A FRIEND TO SHARE IT. § */
-const m2 = MAIL.length;
-const inv = as('P-KID', { action: 'sendInvites', jobId: own && (own.jobId || own.id), emails: ['friend@example.org'] });
-const invM = MAIL.slice(m2).find(m => m.to === 'friend@example.org');
-rule(inv && inv.success && invM && /Wren/.test(S(invM.htmlBody)),
-  'her invitation to a friend was not caught with her first name in its HTML, so the HTML was not asked — ' + JSON.stringify(inv));
 /* HER PARENT BOOKS FOR HER, AS AN OLD PHONE DID — her whole name in the children ticked. */
 const forHer = as('P-PAR', { action: 'createJob', requestedTutor: 'Tam Tutor', subject: 'English', level: 'GCSE', day: slotDay,
   time: '11:00', slots: 'sa11', location: 'Online', dates: dmy(day(41)), hours: 1, price: 30, kids: 'Wren ' + SUR });
@@ -194,9 +188,7 @@ Object.keys(WHO).forEach(label => {
   none(as(pid, { action: 'myProfile' }), 'myProfile for ' + label);
   none(as(pid, { action: 'messages' }), 'the inbox of ' + label);
 });
-/* THE ADMIN'S OWN TOOLS — the people list and the weekly email's preview name every child there is. */
-none(as('P-ADM', { action: 'listPeople' }), 'the admin\'s listPeople');
-none(as('P-ADM', { action: 'diagnosePeople' }), 'the admin\'s diagnosePeople');
+/* THE ADMIN'S OWN TOOL — the weekly email's preview names every child there is. */
 none(as('P-ADM', { action: 'digestPreview' }), 'the admin\'s digestPreview');
 
 /* AND WHAT IS SENT IS HER FIRST NAME, NOT A BLANK — a rule that took every name out would pass the above. */
@@ -340,19 +332,18 @@ const poH = b.tabs.posts[0];
 rule(S(b.tabs.posts[1][poH.indexOf('author')]) === 'Wren ' + SUR, 'the post\'s author cell was rewritten');
 
 /* 6b. WHAT COMES BACK IS NOT WRITTEN BACK SHORT § */
-/* THE ADMIN PINS HER POST. The editor is filled from the payload — the caption as the net left it — and
-   Save sends caption and body with the pin. The cell must still hold her whole name. */
+/* THE ADMIN PINS HER POST. A post that is up keeps its words (413), so the sheet sends the pin alone — and the cell still holds her whole name. */
 const admPost = (adm.posts || []).find(p => p.id === 'PO-1') || {};
-rule(S(admPost.caption) === 'Wren (@wren_kind43) and the volcano', 'the admin\'s post editor is not filled with the caption as the net says it — ' + JSON.stringify(admPost.caption));
-const pinned = as('P-ADM', { action: 'editPost', id: 'PO-1', fields: { caption: admPost.caption, body: S(admPost.body), pinned: true } });
+rule(S(admPost.caption) === 'Wren (@wren_kind43) and the volcano', 'the admin\'s post is not sent with the caption as the net says it — ' + JSON.stringify(admPost.caption));
+const pinned = as('P-ADM', { action: 'editPost', id: 'PO-1', fields: { pinned: true } });
 rule(pinned && pinned.success, 'the admin could not pin her post — ' + JSON.stringify(pinned));
 rule(S(b.tabs.posts[1][poH.indexOf('caption')]) === 'Wren ' + SUR + ' and the volcano',
-  'pinning her post wrote the shortened caption over the sheet\'s — ' + JSON.stringify(b.tabs.posts[1][poH.indexOf('caption')]));
+  'pinning her post changed the sheet\'s caption — ' + JSON.stringify(b.tabs.posts[1][poH.indexOf('caption')]));
 rule(S(b.tabs.posts[1][poH.indexOf('pinned')]).toUpperCase() === 'TRUE', 'the pin itself did not go in');
-/* AND AN EDIT KEEPS THE NAMES IT DID NOT TOUCH. */
-const edited = as('P-ADM', { action: 'editPost', id: 'PO-1', fields: { caption: admPost.caption + '!' } });
-rule(edited && edited.success && S(b.tabs.posts[1][poH.indexOf('caption')]) === 'Wren ' + SUR + ' and the volcano!',
-  'an edit at the end of the caption took her surname out of the start — ' + JSON.stringify(b.tabs.posts[1][poH.indexOf('caption')]));
+/* AND THE SHORTENED CAPTION SENT BACK AT A POST THAT IS UP IS REFUSED, not written over her whole name. */
+const upEdit = as('P-ADM', { action: 'editPost', id: 'PO-1', fields: { caption: admPost.caption + '!' } });
+rule(upEdit && !upEdit.success && S(b.tabs.posts[1][poH.indexOf('caption')]) === 'Wren ' + SUR + ' and the volcano',
+  'a caption edit on a post that is up was not refused, or changed the cell — ' + JSON.stringify(upEdit));
 /* HER PARENT'S NOTEPAD — her sign-in reply carries it as the net says it, and one line is added. */
 const pad = S(tk['P-PAR'].notepad);
 rule(pad === 'Wren (@wren_kind43): dentist on Tuesday', 'her parent\'s notepad does not come back with her first name — ' + JSON.stringify(pad));
@@ -422,6 +413,15 @@ if (olaIn && olaIn.success) tk['P-OTH'] = olaIn;
 const wrenIn = b.post({ action: 'verifyLogin', email: 'wren_kind43', pin: S(pin && pin.pin) });
 rule(wrenIn && wrenIn.success, 'Wren could not sign in again with her new PIN, so a child\'s view of the grown-ups was not asked — ' + JSON.stringify(wrenIn && wrenIn.error));
 if (wrenIn && wrenIn.success) tk['P-KID'] = wrenIn;
+/* AN EDIT KEEPS THE NAMES IT DID NOT TOUCH: her own post, still waiting, edited by her from the caption as she was sent it. */
+b.seed('posts', [{ post_id: 'PO-2', author: 'Wren ' + SUR, posted_by: 'Wren ' + SUR, image: 'https://example.org/k.jpg',
+  caption: 'Wren ' + SUR + ' and the kite', approved: 'PENDING', active: 'TRUE', posted_on: dmy(day(-1)) }]);
+b.ev('clearCache()');
+const kite = ((get('P-KID').posts || []).find(p => p.id === 'PO-2') || {});
+const kiteRow = () => b.tabs.posts.slice(1).find(r => r[poH.indexOf('post_id')] === 'PO-2') || [];
+const edited = as('P-KID', { action: 'editPost', id: 'PO-2', fields: { caption: S(kite.caption) + '!' } });
+rule(edited && edited.success && S(kiteRow()[poH.indexOf('caption')]) === 'Wren ' + SUR + ' and the kite!',
+  'an edit at the end of her waiting post\'s caption took her surname out of the start — ' + JSON.stringify(edited) + ' ' + JSON.stringify(kiteRow()[poH.indexOf('caption')]));
 const growWho = { 'a stranger (signed out)': null, 'another student': 'P-STU', 'a child (Wren)': 'P-KID', 'another parent (Ola)': 'P-OTH',
                   'a parent (Pip)': 'P-PAR', 'the tutor': 'P-TUT', 'an admin': 'P-ADM', 'Tess': 'P-TYP', 'Gus': 'P-GUS' };
 let grownAsked = 0;
@@ -503,33 +503,6 @@ if (pipJob) {
 /* 8. AFTER REVIEW, ROUND 1 (docs/history/342, "After review") — the doors section 7 did not walk § */
 let revAsked = 0;
 const revRule = (ok, what) => { revAsked++; return rule(ok, what); };
-
-/* ---- AN OPEN ACTION, SIGNED OUT, CLAIMING TO BE THE ADMIN: the stranger's answer, not the admin's ---- */
-{
-  const jid = tessB && (tessB.jobId || tessB.id);
-  const sent = as('P-TYP', { action: 'sendInvites', jobId: jid, emails: ['stranger@example.org'] });
-  const ih = b.tabs.invites[0];
-  const irow = b.tabs.invites.slice(1).reverse().find(r => S(r[ih.indexOf('to_email')]) === 'stranger@example.org');
-  const itok = irow ? S(irow[ih.indexOf('token')]) : '';
-  revRule(sent && sent.success && itok, 'Tess could not invite a stranger, so an open action\'s viewer was NOT asked — ' + JSON.stringify(sent));
-  if (itok) {
-    const plain = b.post({ action: 'openInvite', token: itok });
-    const forged = b.post({ action: 'openInvite', token: itok, personId: 'P-ADM', name: 'Hal Admin' });
-    revRule(S(plain.from) === 'Tess' && S(forged.from) === 'Tess',
-      'an invitation opened by a stranger names the inviter by more than her first name when the request claims the admin\'s id — the viewer came off the request: '
-      + JSON.stringify([plain.from, forged.from]));
-  }
-}
-
-/* ---- A REFERRAL CODE CARRIES NO SURNAME: a parent's, and a child's ---- */
-{
-  const pipRef = as('P-PAR', { action: 'myReferral' });
-  revRule(pipRef && /^[A-Z]+\d+$/.test(S(pipRef.code)) && !/ASH/.test(S(pipRef.code)),
-    'Pip\'s referral code carries the start of her surname — a code is handed round: ' + JSON.stringify(pipRef && pipRef.code));
-  const kidRef = as('P-KID', { action: 'myReferral' });
-  revRule(kidRef && /^[A-Z]+\d+$/.test(S(kidRef.code)) && !/QUO/.test(S(kidRef.code)),
-    'Wren\'s referral code carries the start of her surname: ' + JSON.stringify(kidRef && kidRef.code));
-}
 
 /* ---- A FESTIVE JOIN: the typed surname cut on the way in, and the log only to the people on the job ---- */
 {

@@ -466,8 +466,22 @@ const CH_NAME = { p: 'pawn', n: 'knight', b: 'bishop', r: 'rook', q: 'queen', k:
 const chSide_ = s => s === CH_WHITE ? 'White' : 'Black';
 const chSq_ = i => CH_FILES[file(i)] + (8 - rank(i));
 
+/* ---------- THE BOARD MOVES LIKE A BOARD (429, "make it more cinematic") ---------- */
+/* WHAT THE LAST PRESS DID, for the next draw to show ONCE: a glide, a capture, a check, an ending. A draw for any other reason (a pick, a note) shows the position still. */
+let CHESS_FX = null;
+/* THE BOARD TURNS TO FACE WHOEVER IS TO MOVE, if asked; per device, a convenience (`chess-turns`). Off, White stays at the foot as it always did. */
+let CHESS_TURNS = (() => { try { return localStorage.getItem('chess-turns') === '1'; } catch (e) { return false; } })();
+let CHESS_FACE_T = 0;
+/* REDUCED MOTION MOVES INSTANTLY: no glide, no shake, no fall — the ending is drawn as it ends. */
+const chessMotion_ = () => { try { return !matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return true; } };
+/* A GLIDE TAKES LONGER THE FURTHER IT GOES, but never long enough to wait for: a rook across the board is 380ms. */
+const chessGlideMs_ = (a, b) => Math.min(380, 170 + 32 * Math.hypot(file(a) - file(b), rank(a) - rank(b)));
+const CH_ROOK = { K: [63, 61], Q: [56, 59], k: [7, 5], q: [0, 3] };
+const CH_END_SAID = { mate: 'Checkmate', stalemate: 'Stalemate', fifty: 'Draw', material: 'Draw' };
+
 function chessReset_() {
   CHESS = newGame(); CHESS_HIST = []; CHESS_PICK = -1; CHESS_PROMO = null; CHESS_LAST = null; CHESS_ARM = 0;
+  CHESS_FX = null;
 }
 
 function initChess() {
@@ -497,8 +511,19 @@ function chessStatus_() {
   return inCheck(CHESS, CHESS.turn) ? `${side} to move — check!` : `${side} to move`;
 }
 
+/* THE ROW UNDER THE BOARD IS TILES — the board is a thing. Drawn here and not in the widget's markup because tiles.js loads after map.js. */
+function chessTiles_() {
+  return tile_({ icon: 'undo', label: 'Undo', note: 'take back the last move', act: 'chess-undo', off: !CHESS_HIST.length })
+    + tile_({ icon: 'turn', label: chessTurnSaid_(), act: 'chess-turn', on: CHESS_TURNS, pressed: CHESS_TURNS })
+    + tile_({ icon: 'again', label: 'New game', act: 'chess-new' });
+}
+const chessTurnSaid_ = () => CHESS_TURNS ? 'The board turns to face each player' : 'The board stays with White at the foot';
+
 function drawChess(note) {
   if (!CHESS) return;
+  const fx = CHESS_FX; CHESS_FX = null;
+  const moving = !!fx && chessMotion_();
+  const end = chessEnd_(CHESS);
   const mine = CHESS_PICK >= 0 ? legalMoves(CHESS).filter(m => m.from === CHESS_PICK) : [];
   const checked = inCheck(CHESS, CHESS.turn) ? kingSquare(CHESS, CHESS.turn) : -1;
   const board = CHESS.board.map((p, i) => {
@@ -509,11 +534,16 @@ function drawChess(note) {
     const hit = mine.find(m => m.to === i);
     if (hit) cls.push(p !== '_' || hit.enpassant ? 'take' : 'can');
     if (CHESS_LAST && (i === CHESS_LAST.from || i === CHESS_LAST.to)) cls.push('last');
+    if (i === CHESS_LAST?.to) cls.push('last-to');
     if (i === checked) cls.push('chk');
+    if (i === checked && moving && fx.check) cls.push('is-new');
+    const fell = end === 'mate' && i === checked;
+    if (fell) cls.push('fell');
     if (p !== '_') cls.push(isWhite(p) ? 'wp' : 'bp');
     const who = p === '_' ? '' : ', ' + (isWhite(p) ? 'white ' : 'black ') + CH_NAME[p.toLowerCase()];
+    /* THE PIECE IS ITS OWN BOX so it can travel over the squares without the square going with it. */
     return `<button type="button" class="${cls.join(' ')}" data-do="chess-sq" data-sq="${i}"
-      aria-label="${chSq_(i)}${who}">${p === '_' ? '' : GLYPH[p]}</button>`;
+      aria-label="${chSq_(i)}${who}">${p === '_' ? '' : `<span class="pc${fell ? ' fallen' : ''}">${GLYPH[p]}</span>`}</button>`;
   }).join('');
   /* PROMOTION IS ASKED, NOT ASSUMED. § */
   const promo = CHESS_PROMO ? 'QRBN'.split('').map(q => {
@@ -523,22 +553,167 @@ function drawChess(note) {
   }).join('') : '';
   const armed = Date.now() - CHESS_ARM < 3000;
   document.querySelectorAll('.chess-game').forEach(root => {
-    const b = root.querySelector('.chess'); if (b) b.innerHTML = board;
+    const b = root.querySelector('.chess');
+    if (b) {
+      b.innerHTML = board;
+      /* THE ENDING IS THE BOARD'S OWN LAYERS (`data-end`, ::before and ::after), not a child: every child of a board is a square (check/ui.js). */
+      b.classList.toggle('is-over', !!end);
+      b.classList.toggle('is-mate', end === 'mate');
+      if (end) b.setAttribute('data-end', CH_END_SAID[end] || 'Draw'); else b.removeAttribute('data-end');
+      b.classList.toggle('is-fresh', moving && !!fx.end);
+      if (moving) chessShow_(b, fx);
+    }
     const s = root.querySelector('.chess-say');
     if (s) { s.textContent = note || chessStatus_(); s.classList.toggle('is-note', !!note); }
     const pr = root.querySelector('.chess-promo'); if (pr) { pr.innerHTML = promo; pr.hidden = !promo; }
-    const ctl = root.querySelector('.chess-ctl'); if (ctl) ctl.hidden = !!promo;
-    const u = root.querySelector('[data-do="chess-undo"]'); if (u) u.disabled = !CHESS_HIST.length;
-    const n = root.querySelector('[data-do="chess-new"]'); if (n) n.textContent = armed ? 'Tap again to start over' : 'New game';
+    const ctl = root.querySelector('.chess-ctl');
+    if (ctl) {
+      ctl.hidden = !!promo;
+      if (!ctl.querySelector('.tile')) ctl.innerHTML = chessTiles_();
+      tileSet_(ctl.querySelector('[data-do="chess-undo"]'), { off: !CHESS_HIST.length });
+      tileSet_(ctl.querySelector('[data-do="chess-turn"]'), { label: chessTurnSaid_(), on: CHESS_TURNS, pressed: CHESS_TURNS });
+      tileSet_(ctl.querySelector('[data-do="chess-new"]'), { label: armed ? 'Tap again to start over' : 'New game', on: armed });
+    }
   });
+  chessFace_(moving && fx.glides ? Math.max(...fx.glides.map(g => chessGlideMs_(g[0], g[1]))) + 90 : 0);
+}
+
+/* THE SCALE AT EACH STEP OF THE TURN: a square turned by θ fits its old box at 1 / (|cos θ| + |sin θ|). Same easing as the stylesheet's turn, so they keep step. */
+const CHESS_TURN_KEYS = Array.from({ length: 13 }, (_, k) => {
+  const th = Math.PI * k / 12;
+  return { transform: `scale(${(1 / (Math.abs(Math.cos(th)) + Math.abs(Math.sin(th)))).toFixed(3)})`, offset: k / 12 };
+});
+/* ---------- THE BOARD TURNS AFTER THE PIECE HAS LANDED, never under it. A game that is over stays as it ended. ---------- */
+function chessFace_(wait) {
+  clearTimeout(CHESS_FACE_T);
+  const turn = () => {
+    const end = CHESS && chessEnd_(CHESS);
+    const flip = !!(CHESS && CHESS_TURNS && CHESS.turn === CH_BLACK);
+    document.querySelectorAll('.chess-game .chess').forEach(b => {
+      if (b.classList.contains('is-flipped') === flip || (end && CHESS_TURNS)) return;
+      b.classList.toggle('is-flipped', flip);
+      /* DRAWN BACK AS IT TURNS, exactly as far as keeps a turned square inside its own footprint, so no corner covers the words or leaves the screen. */
+      if (chessMotion_() && typeof b.animate === 'function') {
+        b.animate(CHESS_TURN_KEYS, { duration: 700, easing: 'cubic-bezier(.65, 0, .35, 1)' });
+      }
+    });
+  };
+  /* A BOARD JUST REDRAWN IS STYLED FIRST, so its new pieces turn with it rather than starting the turn already turned. */
+  if (wait > 0) CHESS_FACE_T = setTimeout(turn, wait);
+  else { document.querySelectorAll('.chess-game .chess').forEach(b => void b.offsetWidth); turn(); }
+}
+
+/* ---------- WHAT A MOVE LOOKS LIKE: transforms and opacity only, so a phone composites it and paints nothing. ---------- */
+function chessShow_(b, fx) {
+  if (typeof b.animate !== 'function') return;
+  const sq = i => b.querySelector(`[data-sq="${i}"]`);
+  let land = 0;
+  (fx.glides || []).forEach(([a, z]) => {
+    const from = sq(a), to = sq(z), pc = to && to.querySelector('.pc');
+    if (!from || !pc) return;
+    const ra = from.getBoundingClientRect(), rz = to.getBoundingClientRect();
+    if (!ra.width) return;                                   // a copy that is not drawn has nothing to see
+    const dx = ra.left - rz.left, dy = ra.top - rz.top, ms = chessGlideMs_(a, z);
+    land = Math.max(land, ms);
+    to.classList.add('mv');
+    /* LIFTED, CARRIED, SET DOWN: a little bigger in the middle of the journey, as a hand lifts a piece. */
+    const an = pc.animate([
+      { transform: `translate(${dx}px, ${dy}px)` },
+      { transform: `translate(${dx / 2}px, ${dy / 2}px) scale(1.14)`, offset: 0.5 },
+      { transform: 'none' }], { duration: ms, easing: 'cubic-bezier(.3, .7, .25, 1)' });
+    const done = () => to.classList.remove('mv');
+    an.onfinish = done; an.oncancel = done;
+  });
+  /* A CAPTURE: the taken piece holds its square until the taker arrives, then is knocked away, and the board jolts once. */
+  if (fx.took >= 0 && fx.gone && !fx.back) {
+    const at = sq(fx.took);
+    if (at) {
+      const g = document.createElement('span');
+      g.className = 'pc ghost ' + (isWhite(fx.gone) ? 'wp' : 'bp');
+      g.setAttribute('aria-hidden', 'true');
+      g.textContent = GLYPH[fx.gone];
+      at.prepend(g);
+      const hit = land ? Math.max(0.5, (land - 40) / (land + 240)) : 0;
+      const an = g.animate([
+        { opacity: 1, transform: 'none' },
+        { opacity: 1, transform: 'none', offset: hit },
+        { opacity: 0, transform: 'scale(.5) rotate(-18deg)' }], { duration: land + 240, easing: 'ease-in', fill: 'forwards' });
+      const gone = () => g.remove();
+      an.onfinish = gone; an.oncancel = gone;
+      b.animate([
+        { transform: 'none' }, { transform: 'translate(-3px, 1px)' }, { transform: 'translate(3px, -1px)' },
+        { transform: 'translate(-1px, 0)' }, { transform: 'none' }], { duration: 220, delay: Math.max(0, land - 30) });
+    }
+  }
+  /* AN UNDONE CAPTURE COMES BACK, faded up where it stood. */
+  if (fx.back && fx.took >= 0) {
+    const pc = sq(fx.took)?.querySelector('.pc');
+    if (pc) pc.animate([{ opacity: 0, transform: 'scale(.6)' }, { opacity: 1, transform: 'none' }],
+                       { duration: 260, delay: land * 0.5, easing: 'ease-out', fill: 'backwards' });
+  }
+  /* CHECK: the king flinches as the threat lands; the ring that pulses round it is the stylesheet's (`.chk.is-new`). */
+  if (fx.check) {
+    const k = b.querySelector('.chk .pc');
+    if (k) k.animate([
+      { transform: 'none' }, { transform: 'translateX(-.06em) rotate(-6deg)' }, { transform: 'translateX(.06em) rotate(5deg)' },
+      { transform: 'translateX(-.03em) rotate(-2deg)' }, { transform: 'none' }], { duration: 420, delay: land });
+  }
+}
+
+/* ---------- AND WHAT IT SOUNDS LIKE, through the marking sounds' own context (`markHear_`, submit.js), woken by this press. ---------- */
+/* A KNOCK OF WOOD for a move, a deeper one for a capture, two rising notes for check, three falling for mate. Quiet: two people are talking over this board. */
+const CHESS_TONES = {
+  move:  [['triangle', 196, 0, 0.09, 0.07]],
+  take:  [['triangle', 131, 0, 0.16, 0.09], ['triangle', 262, 0, 0.06, 0.04]],
+  check: [['sine', 659, 0, 0.12, 0.03], ['sine', 988, 0.1, 0.2, 0.03]],
+  mate:  [['sine', 523, 0, 0.22, 0.035], ['sine', 392, 0.18, 0.26, 0.035], ['sine', 262, 0.4, 0.6, 0.04]],
+};
+function chessSound_(kind, wait) {
+  const notes = CHESS_TONES[kind];
+  if (!notes || typeof markHear_ !== 'function') return;
+  const ac = markHear_();
+  if (!ac) return;
+  const go = () => {
+    try {
+      if (ac.state !== 'running') return;
+      const t0 = ac.currentTime + 0.02 + (wait || 0) / 1000;
+      let end = t0;
+      notes.forEach(([type, f, at, len, peak]) => {
+        const a = t0 + at, z = a + len;
+        const g = ac.createGain();
+        g.gain.setValueAtTime(0, a);
+        g.gain.linearRampToValueAtTime(peak, a + 0.006);
+        g.gain.exponentialRampToValueAtTime(peak / 1000, z);
+        g.connect(ac.destination);
+        const o = ac.createOscillator();
+        o.type = type;
+        o.frequency.setValueAtTime(f, a);
+        o.connect(g);
+        o.start(a);
+        o.stop(z + 0.02);
+        end = Math.max(end, z);
+      });
+      if (typeof markRest_ === 'function') markRest_(Math.max(0, end - ac.currentTime) * 1000 + MARK_REST_MS);
+    } catch (e) {}
+  };
+  if (ac.state === 'running') { go(); return; }
+  try { const p = ac.resume(); if (p && typeof p.then === 'function') p.then(go, () => {}); } catch (e) {}
 }
 
 function chessPlay_(m) {
-  CHESS_HIST.push({ pos: CHESS, last: CHESS_LAST });
+  const took = m.enpassant ? idx(file(m.to), rank(m.from)) : (CHESS.board[m.to] !== '_' ? m.to : -1);
+  const fx = { glides: [[m.from, m.to]].concat(m.castle ? [CH_ROOK[m.castle]] : []),
+               took: took, gone: took >= 0 ? CHESS.board[took] : '' };
+  CHESS_HIST.push({ pos: CHESS, last: CHESS_LAST, fx: fx });
   CHESS = play(CHESS, m);
   CHESS_LAST = { from: m.from, to: m.to };
   CHESS_PICK = -1; CHESS_PROMO = null; CHESS_ARM = 0;
+  const end = chessEnd_(CHESS), check = !end && inCheck(CHESS, CHESS.turn);
+  CHESS_FX = Object.assign({}, fx, { end: end, check: check });
   drawChess();
+  /* HEARD AS THE PIECE LANDS, not as the finger lifts. */
+  const land = chessMotion_() ? Math.max(...fx.glides.map(g => chessGlideMs_(g[0], g[1]))) : 0;
+  chessSound_(end === 'mate' ? 'mate' : check ? 'check' : took >= 0 ? 'take' : 'move', land);
 }
 
 /* A TAP. Three things it can mean and they are tried in the order a player means them: § */
@@ -580,19 +755,31 @@ on('chess-undo', () => {
   if (!CHESS) return;
   if (CHESS_PROMO) { CHESS_PROMO = null; CHESS_PICK = -1; return drawChess(); }
   const h = CHESS_HIST.pop();
-  if (h) { CHESS = h.pos; CHESS_LAST = h.last; }
+  /* THE MOVE GOES BACK THE WAY IT CAME, and what it took is put back on its square. */
+  if (h) {
+    CHESS = h.pos; CHESS_LAST = h.last;
+    if (h.fx) CHESS_FX = { glides: h.fx.glides.map(([a, z]) => [z, a]), took: h.fx.took, back: true };
+  }
   CHESS_PICK = -1; CHESS_ARM = 0;
   drawChess();
 });
 
-/* NEW GAME THROWS A GAME AWAY, so a game in progress asks twice — the label says so and goes back
+/* TURN THE BOARD: a switch, saying the state it is in. On, the board turns now if it is Black's move, and after every move from here. */
+on('chess-turn', () => {
+  CHESS_TURNS = !CHESS_TURNS;
+  if (typeof keepPut_ === 'function') keepPut_('chess-turns', CHESS_TURNS ? '1' : null, true);
+  if (!CHESS) chessReset_();
+  drawChess(CHESS_TURNS ? 'The board turns with each move.' : 'White stays at the foot.');
+});
+
+/* NEW GAME THROWS A GAME AWAY, so a game in progress asks twice — the line above the board says so and goes back
    by itself. A finished game or an empty board starts over at once: there is nothing to lose. */
 on('chess-new', () => {
   const live = CHESS && CHESS_HIST.length && !chessEnd_(CHESS);
   if (live && Date.now() - CHESS_ARM >= 3000) {
     CHESS_ARM = Date.now();
     setTimeout(() => drawChess(), 3100);
-    return drawChess();
+    return drawChess('Tap New game again to start over.');
   }
   chessReset_();
   drawChess();
@@ -5024,10 +5211,46 @@ const NES_ = { nes: null, rom: null, saved: null, running: false, raf: 0, last: 
   sys: 'nes', kind: null, axes: [0, 0, 0, 0] };
 /* NES buttons in jsnes's numbering, so every input source speaks one language. */
 const NES_B = { a: 0, b: 1, select: 2, start: 3, up: 4, down: 5, left: 6, right: 7 };
-const NES_KEYS = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
-  z: 'b', Z: 'b', x: 'a', X: 'a', Enter: 'start', Shift: 'select',
-  a: 'y', A: 'y', s: 'x', S: 'x', q: 'l', Q: 'l', w: 'r', W: 'r', e: 'l2', E: 'l2', r: 'r2', R: 'r2',
-  i: 'cu', I: 'cu', k: 'cd', K: 'cd', j: 'cl', J: 'cl', l: 'cr', L: 'cr' };
+/* KEYS BY WHERE THEY ARE (`e.code`), per system (419): arrows and WASD steer, Z/X are B/A, Q/E the shoulders, I/J/K/L a diamond of face buttons (N64: the C buttons). */
+const NES_KEY_MOVE = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', KeyW: 'up', KeyS: 'down', KeyA: 'left', KeyD: 'right' };
+const NES_KEY_MID = { Enter: 'start', NumpadEnter: 'start', ShiftLeft: 'select', ShiftRight: 'select' };
+const NES_KEY_TWO = { KeyZ: 'b', KeyK: 'b', KeyX: 'a', KeyL: 'a', Space: 'a' };
+const NES_KEY_LR = { KeyQ: 'l', KeyE: 'r' };
+const NES_KEY_FOUR = { KeyZ: 'b', KeyK: 'b', KeyX: 'a', KeyL: 'a', Space: 'a', KeyC: 'y', KeyJ: 'y', KeyV: 'x', KeyI: 'x' };
+/* N64 in RetroPad names: its A is RetroPad B and its B is RetroPad Y (391); Z is L2; the right stick is the C buttons. No Select. */
+const NES_KEY_N64 = { KeyX: 'b', Space: 'b', KeyZ: 'y', KeyC: 'l2', ShiftLeft: 'l2', ShiftRight: 'l2', KeyQ: 'l', KeyE: 'r',
+  KeyI: 'cu', KeyK: 'cd', KeyJ: 'cl', KeyL: 'cr', Enter: 'start', NumpadEnter: 'start' };
+const NES_KEYMAP = {
+  nes: Object.assign({}, NES_KEY_MOVE, NES_KEY_TWO, NES_KEY_MID), gb: Object.assign({}, NES_KEY_MOVE, NES_KEY_TWO, NES_KEY_MID),
+  gbc: Object.assign({}, NES_KEY_MOVE, NES_KEY_TWO, NES_KEY_MID), gba: Object.assign({}, NES_KEY_MOVE, NES_KEY_TWO, NES_KEY_LR, NES_KEY_MID),
+  snes: Object.assign({}, NES_KEY_MOVE, NES_KEY_FOUR, NES_KEY_LR, NES_KEY_MID), nds: Object.assign({}, NES_KEY_MOVE, NES_KEY_FOUR, NES_KEY_LR, NES_KEY_MID),
+  n64: Object.assign({}, NES_KEY_MOVE, NES_KEY_N64) };
+/* A BROWSER THAT SENDS NO `code` is read by the letter instead. */
+const NES_KEY_OF = { ' ': 'Space', Spacebar: 'Space', Enter: 'Enter', Shift: 'ShiftLeft', ArrowUp: 'ArrowUp', ArrowDown: 'ArrowDown', ArrowLeft: 'ArrowLeft', ArrowRight: 'ArrowRight' };
+function nesKeyFor_(e, sys) {
+  const map = NES_KEYMAP[sys] || NES_KEYMAP.nes;
+  const code = (e && e.code) || NES_KEY_OF[e && e.key] || (/^[a-z]$/i.test((e && e.key) || '') ? 'Key' + e.key.toUpperCase() : '');
+  return map[code] || null;
+}
+/* WHAT THE LEGEND CALLS EACH BUTTON on that system, in the order it lists them. */
+const NES_KEY_SAY = { a: 'A', b: 'B', x: 'X', y: 'Y', l: 'L', r: 'R', start: 'Start', select: 'Select' };
+const NES_KEY_SAY_N64 = { b: 'A', y: 'B', l2: 'Z', l: 'L', r: 'R', cu: 'C↑', cd: 'C↓', cl: 'C←', cr: 'C→', start: 'Start' };
+const NES_KEY_NAME = { Space: 'Space', Enter: 'Enter', ShiftLeft: 'Shift', ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→' };
+/* [what it does, the keys] for the legend: the steering first, then each button with every key that presses it. */
+function nesKeyRows_(sys) {
+  const map = NES_KEYMAP[sys] || NES_KEYMAP.nes, say = sys === 'n64' ? NES_KEY_SAY_N64 : NES_KEY_SAY;
+  const rows = [[sys === 'n64' ? 'Stick' : 'Move', ['↑ ↓ ← →', 'W A S D']]];
+  Object.keys(say).forEach(btn => {
+    const keys = Object.keys(map).filter(c => map[c] === btn && !NES_KEY_MOVE[c] && c !== 'NumpadEnter' && c !== 'ShiftRight')
+      .map(c => NES_KEY_NAME[c] || c.replace(/^Key/, ''));
+    if (keys.length) rows.push([say[btn], keys]);
+  });
+  return rows;
+}
+function nesLegendHtml_(sys) {
+  return nesKeyRows_(sys).map(([what, keys]) =>
+    `<span class="nes-lg"><span class="nes-lg-k">${keys.map(k => `<kbd>${esc(k)}</kbd>`).join('')}</span><span class="nes-lg-v">${esc(what)}</span></span>`).join('');
+}
 
 /* THE ONE PLACE INDEXEDDB IS TOUCHED. Any failure (private window, blocked storage) is "no file kept"; a full device is remembered as `NES_.fullDb` (399). */
 function nesDb_(mode, fn) {
@@ -5065,6 +5288,7 @@ function nesPaint_() {
   if (!box.querySelector('.nes-wrap') && !NES_.full) {
     box.innerHTML = `<div class="nes-wrap" id="nes-wrap">
       <div class="nes-stage" id="nes-stage"><canvas id="nes-canvas" class="nes-canvas" width="256" height="240"></canvas></div>
+      <div class="nes-legend" id="nes-legend" aria-label="Keys"></div>
       <div class="nes-pad" id="nes-pad" aria-hidden="true">${nesPadHtml_(NES_.sys)}</div>
       <button type="button" class="nes-key nes-exit" id="nes-exit" aria-label="Leave full screen">×</button>
     </div>
@@ -5075,6 +5299,7 @@ function nesPaint_() {
     <input type="file" id="nes-file" class="nes-file" accept="${NES_ACCEPT}">
     <p class="faint">Use a game file you own. It stays on this device and is never uploaded.</p>`;
     nesPadWire_($('nes-pad'));
+    nesModeWire_($('nes-wrap'));
     $('nes-exit').addEventListener('click', () => nesFullOff_());
     /* A REDRAWN SCREEN KEEPS A RUNNING GAME: EmulatorJS's own box moves into the new stage rather than being lost with the old one. */
     const host = EMU_.ejs && EMU_.ejs.elements && EMU_.ejs.elements.parent;
@@ -5084,21 +5309,28 @@ function nesPaint_() {
   nesBlit_();
   nesTiles_();
   if (NES_.saved == null) Promise.all([nesKept_(), nesKind_()]).then(([b, k]) => {
-    NES_.saved = b ? new Uint8Array(b) : false; NES_.kind = typeof k === 'string' ? k : null; nesTiles_(); });
+    NES_.saved = b ? new Uint8Array(b) : false; NES_.kind = typeof k === 'string' ? k : null;
+    /* THE KEPT GAME'S SHAPE AND PAD NOW, not when Play is pressed: the stage changes shape once, before anyone is looking at a game (419). */
+    if (NES_.saved && NES_DIMS[NES_.kind] && !NES_.rom && !EMU_.ejs) nesSysSet_(NES_.kind);
+    nesTiles_(); });
 }
 
 function nesTiles_() {
   const t = $('nes-tiles');
   if (!t) return;
   const have = NES_.rom || NES_.saved;
+  /* FIVE TILES ALWAYS (419): a row that grows moves what is under it, and six wrap on a phone's card. Forget is greyed with nothing kept.
+     Lock is a finger's (a swipe turning the column); on keys the Keys tile takes its place. */
+  const keys = nesLegendOn_(), touch = nesMode_() === 'touch';
   t.innerHTML = (NES_.running
       ? tile_({ icon: 'pause', label: 'Pause', act: 'nes-pause' })
       : tile_({ icon: 'play', label: 'Play', act: 'nes-play', note: have ? '' : 'choose a game file' }))
     + tile_({ icon: 'open', label: 'Choose file', act: 'nes-pick' })
-    + (have ? tile_({ icon: 'bin', label: 'Forget file', act: 'nes-forget' }) : '')
-    + tile_({ icon: NES_.lock ? 'lock' : 'unlock', label: NES_.lock ? 'Locked' : 'Lock', act: 'nes-lock',
-      note: NES_.lock ? 'tap to let the page move' : 'keep the console in place' })
-    + tile_({ icon: NES_.full ? 'unfull' : 'full', label: 'Full screen', act: 'nes-full' });
+    + tile_({ icon: 'bin', label: 'Forget file', act: 'nes-forget', off: !have, note: have ? '' : 'nothing kept' })
+    + (touch ? tile_({ icon: NES_.lock ? 'lock' : 'unlock', label: NES_.lock ? 'Locked' : 'Lock', act: 'nes-lock',
+      note: NES_.lock ? 'tap to let the page move' : 'keep the console in place' }) : '')
+    + tile_({ icon: NES_.full ? 'unfull' : 'full', label: 'Full screen', act: 'nes-full' })
+    + (touch ? '' : tile_({ icon: 'keys', label: 'Keys', act: 'nes-keys', on: keys, pressed: keys, note: keys ? 'hide the key list' : 'show the key list' }));
   nesPadShow_();
 }
 
@@ -5187,7 +5419,7 @@ function nesStart_(bytes) {
 function nesGo_() {
   if (EMU_.ejs) { emuGo_(); return; }
   if (!NES_.nes || NES_.running) return;
-  NES_.running = true; NES_.last = 0; NES_.acc = 0;
+  nesRun_(true); NES_.last = 0; NES_.acc = 0;
   const loop = t => {
     if (!NES_.running) return;
     NES_.raf = requestAnimationFrame(loop);
@@ -5208,9 +5440,9 @@ function nesGo_() {
 /* PAUSED, NOT ENDED: the game stays in memory and Play carries on from here. */
 function nesStop_() {
   const was = NES_.running;
-  NES_.running = false;
+  nesRun_(false);
   cancelAnimationFrame(NES_.raf);
-  NES_.held = {}; NES_.keys = {}; NES_.touch = {};
+  NES_.held = {}; NES_.keys = {}; NES_.codes = {}; NES_.touch = {};
   if (NES_.nes) Object.values(NES_B).forEach(b => { try { NES_.nes.buttonUp(1, b); } catch (e) {} });
   if (EMU_.ejs) emuPause_();
   if (was) nesTiles_();
@@ -5297,12 +5529,50 @@ function nesPadWatch_() {
 }
 function nesPadUnwatch_() { cancelAnimationFrame(NES_.watch); NES_.watch = 0; }
 
-/* THE TOUCH PAD only where there is touch and no controller. */
+/* TOUCH OR KEYS (419): a coarse pointer starts on the touch pad, a fine one on keys; a finger on the console or a key while it plays changes it. */
+function nesMode_() {
+  if (!NES_.mode) {
+    let coarse = false;
+    try { coarse = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches); } catch (e) {}
+    const touch = (navigator.maxTouchPoints || 0) > 0 || 'ontouchstart' in window;
+    NES_.mode = coarse && touch ? 'touch' : 'keys';
+  }
+  return NES_.mode;
+}
+function nesModeSet_(m) {
+  if (nesMode_() === m) return;
+  NES_.mode = m;
+  /* ON KEYS THE LOCK TILE IS NOT DRAWN, so a page locked by a finger is let go rather than left locked with nothing to undo it. */
+  if (m === 'keys' && NES_.lock) nesLock_(false);
+  nesPadShow_(); nesTiles_();
+}
+function nesModeWire_(w) {
+  if (!w) return;
+  w.addEventListener('pointerdown', e => { if (e.pointerType === 'touch') nesModeSet_('touch'); }, true);
+}
+/* THE KEY LIST: shown on keys unless the Keys tile turned it off (kept on the device). */
+function nesLegendOn_() {
+  if (NES_.legend == null) { try { const v = localStorage.getItem('nes-keys'); NES_.legend = v === '1' ? true : v === '0' ? false : null; } catch (e) { NES_.legend = null; } }
+  return nesMode_() === 'keys' && NES_.legend !== false;
+}
+on('nes-keys', () => {
+  NES_.legend = !nesLegendOn_();
+  try { localStorage.setItem('nes-keys', NES_.legend ? '1' : '0'); } catch (e) {}
+  nesPadShow_(); nesTiles_();
+});
+
+/* THE TOUCH PAD on touch with no controller, from the first paint, so nothing moves when a game starts (419); the key list beside it. */
 function nesPadShow_() {
-  const pad = $('nes-pad');
+  const pad = $('nes-pad'), lg = $('nes-legend'), w = $('nes-wrap');
   if (!pad) return;
-  const touch = (navigator.maxTouchPoints || 0) > 0 || 'ontouchstart' in window;
-  pad.classList.toggle('on', !!(touch && !NES_.padOn && (NES_.nes || EMU_.ejs)));
+  const on = nesMode_() === 'touch' && !NES_.padOn;
+  pad.classList.toggle('on', on);
+  if (w) w.classList.toggle('nes-has-pad', on);
+  if (lg) {
+    if (lg.dataset.sys !== NES_.sys) { lg.dataset.sys = NES_.sys; lg.innerHTML = nesLegendHtml_(NES_.sys); }
+    lg.hidden = !nesLegendOn_();
+    if (w) w.classList.toggle('nes-has-legend', !lg.hidden);
+  }
   const n = $('nes-padnote');
   if (n) n.hidden = !NES_.padOn;
 }
@@ -5314,27 +5584,37 @@ function nesPadWire_(pad) {
     const dead = r.width * 0.15;
     return { left: dx < -dead, right: dx > dead, up: dy < -dead, down: dy > dead };
   };
+  /* ONE ENTRY PER FINGER, so two held buttons stay held while a third comes and goes; each finger is captured by the pad itself (419). */
   const ptrs = new Map();
   const redo = () => {
     const t = {};
-    ptrs.forEach(v => Object.keys(v).forEach(k => { if (v[k]) t[k] = 1; }));
+    ptrs.forEach(v => Object.keys(v.keys).forEach(k => { if (v.keys[k]) t[k] = 1; }));
     NES_.touch = t; nesSync_();
+    pad.querySelectorAll('[data-k]').forEach(el => el.classList.toggle('is-down', el.dataset.k === 'dpad'
+      ? ['up', 'down', 'left', 'right'].some(d => t[d]) : !!t[el.dataset.k]));
   };
+  /* A FINGER SLID FROM ONE FACE BUTTON ONTO ANOTHER presses the one it is on now; the D-pad keeps the finger that started on it. */
+  const under = e => { const el = document.elementFromPoint(e.clientX, e.clientY); const k = el && el.closest && el.closest('[data-k]'); return k && pad.contains(k) ? k : null; };
   pad.addEventListener('pointerdown', e => {
     const k = e.target.closest('[data-k]');
     if (!k) return;
     e.preventDefault(); emuWake_();
-    try { k.setPointerCapture(e.pointerId); } catch (err) {}
-    ptrs.set(e.pointerId, k.dataset.k === 'dpad' ? dirs(k, e) : { [k.dataset.k]: true });
+    try { pad.setPointerCapture(e.pointerId); } catch (err) {}
+    ptrs.set(e.pointerId, { el: k, keys: k.dataset.k === 'dpad' ? dirs(k, e) : { [k.dataset.k]: true } });
     redo();
   });
   pad.addEventListener('pointermove', e => {
-    const k = e.target.closest('[data-k="dpad"]');
-    if (k && ptrs.has(e.pointerId)) { ptrs.set(e.pointerId, dirs(k, e)); redo(); }
+    const p = ptrs.get(e.pointerId);
+    if (!p) return;
+    if (p.el.dataset.k === 'dpad') { p.keys = dirs(p.el, e); redo(); return; }
+    const k = under(e);
+    if (k && k !== p.el && k.dataset.k !== 'dpad') { p.el = k; p.keys = { [k.dataset.k]: true }; redo(); }
   });
   ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(n =>
     pad.addEventListener(n, e => { if (ptrs.delete(e.pointerId)) redo(); }));
   pad.addEventListener('contextmenu', e => e.preventDefault());
+  /* NO SELECTING, MAGNIFYING OR DOUBLE-TAP ZOOM under a held thumb (iOS starts those from touch events, not pointer ones). */
+  pad.addEventListener('touchstart', e => { if (e.cancelable) e.preventDefault(); }, { passive: false });
 }
 
 /* THE PADLOCK: no column swipe, wheel or arrow turn (`SWIPE.lock`, overworld.js) and no page scroll on the console. */
@@ -5343,11 +5623,19 @@ function nesLock_(on) {
   try { SWIPE.lock = NES_.lock || !!NES_.full; } catch (e) {}
   const box = $('nes-box');
   if (box) box.classList.toggle('nes-locked', SWIPE.lock);
+  nesHoldPage_(NES_.lock || !!NES_.full);
   nesTiles_();
 }
-['touchmove', 'wheel'].forEach(n => document.addEventListener(n, e => {
-  if ((NES_.lock || NES_.full) && e.target && e.target.closest && e.target.closest('#nes-box, #nes-wrap') && e.cancelable) e.preventDefault();
-}, { passive: false }));
+/* LISTENING ONLY WHILE LOCKED OR FULL: a blocking touchmove/wheel listener on the document makes every scroll in the app wait for the page's thread (419). */
+function nesHoldStop_(e) {
+  if (e.target && e.target.closest && e.target.closest('#nes-box, #nes-wrap') && e.cancelable) e.preventDefault();
+}
+function nesHoldPage_(on) {
+  if (!!on === !!NES_.holding) return;
+  NES_.holding = !!on;
+  ['touchmove', 'wheel'].forEach(n => (on ? document.addEventListener : document.removeEventListener)
+    .call(document, n, nesHoldStop_, { passive: false }));
+}
 on('nes-lock', () => nesLock_(!NES_.lock));
 
 /* FULL SCREEN (390). The wrapper moves to <body> while full: a sliding column is transformed, and a transformed ancestor pins `fixed` to itself. */
@@ -5437,15 +5725,49 @@ document.addEventListener('change', e => {
   }).catch(() => nesSay_('That file could not be read.'));
 });
 
-/* KEYS ONLY WHILE A GAME RUNS, and the arrows do not turn the column under it. */
+/* KEYS ONLY WHILE A GAME RUNS, and the arrows and Space neither turn the column nor scroll the page under it; a shortcut with Ctrl, Alt or Cmd is the browser's. */
 ['keydown', 'keyup'].forEach(type => document.addEventListener(type, e => {
   if (!NES_.running) return;
-  const k = NES_KEYS[e.key];
+  const k = nesKeyFor_(e, NES_.sys);
   if (!k) return;
   if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+  const down = type === 'keydown';
+  if (down && (e.ctrlKey || e.metaKey || e.altKey)) return;
   e.preventDefault(); e.stopPropagation();
-  NES_.keys[k] = type === 'keydown'; nesSync_();
+  if (down && nesMode_() !== 'keys') nesModeSet_('keys');
+  /* BY KEY, so Z let go while K still holds B leaves B held. */
+  const code = e.code || e.key, codes = NES_.codes || (NES_.codes = {});
+  if (!!codes[code] === down) return;   // a held key repeating
+  if (down) codes[code] = k; else delete codes[code];
+  const keys = {};
+  Object.keys(codes).forEach(c => { keys[codes[c]] = true; });
+  NES_.keys = keys; nesSync_();
 }, true));
+/* A KEY LET GO WHILE THE WINDOW HAD NO FOCUS never sends its keyup: nothing stays held after a switch away. */
+window.addEventListener('blur', () => { NES_.codes = {}; if (Object.keys(NES_.keys).length) { NES_.keys = {}; nesSync_(); } });
+
+/* ---------- THE REST OF THE APP HOLDS STILL WHILE A GAME PLAYS (419): the builder, every other widget, and the looping animations. */
+function nesRun_(on) {
+  NES_.running = !!on;
+  nesQuiet_(NES_.running);
+}
+function nesQuiet_(on) {
+  if (!!on === !!NES_.quiet) return;
+  NES_.quiet = !!on;
+  try { document.body.classList.toggle('nes-on', NES_.quiet); } catch (e) {}
+  if (NES_.quiet) {
+    /* THE BUILDER'S OWN HOLD (shell.js), taken only if nobody else holds it, and given back the same way. */
+    if (!window.__aheadHold) { window.__aheadHold = true; NES_.aheadHeld = true; }
+    try { toolsStop_(e => String(e.w.id) === 'console', () => false); } catch (e) {}
+    return;
+  }
+  if (NES_.aheadHeld) { NES_.aheadHeld = false; window.__aheadHold = false; try { aheadKick_(); } catch (e) {} }
+  /* AFTER THIS TASK: a pause can come from inside `toolsStop_` (the column being left), which must finish first. */
+  setTimeout(() => {
+    if (NES_.quiet) return;
+    try { if (WIDGET_COLS.indexOf(AT) !== -1) widgetsWake_(widgetsOn_(AT), AT, true); widgetsGlass_(true); } catch (e) {}
+  }, 0);
+}
 
 document.addEventListener('visibilitychange', () => { if (document.hidden) nesStop_(); });
 window.addEventListener('gamepadconnected', () => { NES_.padOn = true; nesPadShow_(); nesPadWatch_(); });
@@ -5460,6 +5782,9 @@ const NES_NOT = 'That is not a console game file — it should be a .nes, .sfc/.
 const NES_DIMS = { nes: [256, 240], snes: [256, 224], gb: [160, 144], gbc: [160, 144], gba: [240, 160], n64: [320, 240], nds: [256, 384] };
 /* Systems with four face buttons read a controller by position (right A, bottom B, top X, left Y); two-button ones fold them onto A and B. */
 const NES_FOUR = { snes: 1, n64: 1, nds: 1 };
+/* THE ONE LINE UNDER A HEAVY SYSTEM, said plainly: these run on the page's one thread, and a slow laptop or an older phone shows it (419). */
+const NES_SLOW = { n64: 'N64 games need a fast device; older phones may stutter.',
+  nds: 'DS games need a fast device; on an older laptop or phone they may run slow. Closing other tabs helps.' };
 const NES_NAME = { nes: 'NES', snes: 'SNES', gb: 'Game Boy', gbc: 'Game Boy Color', gba: 'Game Boy Advance', n64: 'N64', nds: 'DS' };
 
 /* WHICH SYSTEM, from the bytes first (header magic and checksums), then the file's extension. Nothing of any game is kept here. */
@@ -5514,13 +5839,15 @@ function nesPadHtml_(sys) {
 /* ONE SYSTEM AT A TIME on the stage: its shape, its pad, and the N64 line about older phones. */
 function nesSysSet_(sys) {
   NES_.sys = sys || 'nes';
-  const s = $('nes-stage'), pad = $('nes-pad'), note = $('nes-sysnote');
-  if (s) { const [w, h] = NES_DIMS[NES_.sys]; s.style.aspectRatio = w + ' / ' + h; s.dataset.sys = NES_.sys; }
+  const s = $('nes-stage'), pad = $('nes-pad'), note = $('nes-sysnote'), wrap = $('nes-wrap');
+  if (wrap) wrap.dataset.sys = NES_.sys;   // its pad's height, style.css
+  /* `--nes-ar` too: the stage's width is capped by the screen's height through it (style.css), so a tall DS picture fits a laptop's screen. */
+  if (s) { const [w, h] = NES_DIMS[NES_.sys]; s.style.aspectRatio = w + ' / ' + h; s.style.setProperty('--nes-ar', String(w / h)); s.dataset.sys = NES_.sys; }
   if (pad && pad.dataset.sys !== NES_.sys) {
     pad.dataset.sys = NES_.sys; pad.innerHTML = nesPadHtml_(NES_.sys);
-    pad.classList.toggle('nes-pad-top', /^(snes|gba|n64|nds)$/.test(NES_.sys));
   }
-  if (note) { note.hidden = NES_.sys !== 'n64'; note.textContent = 'N64 games need a fast device; older phones may stutter.'; }
+  if (note) { note.hidden = !EMU_HEAVY[NES_.sys]; note.textContent = NES_SLOW[NES_.sys] || ''; }
+  nesPadShow_();
   nesFit_();
 }
 
@@ -5545,10 +5872,34 @@ function emuLib_() {
     document.head.appendChild(s);
   });
   const from = cdn => EMU_SRC.reduce((p, f) => p.then(() => one(cdn + '@emulatorjs/emulatorjs@' + EMU_VER + '/data/src/' + f)), Promise.resolve())
-    .then(() => { if (!window.EmulatorJS) throw new Error('no engine'); EMU_.base = cdn; return cdn; });
+    .then(() => { if (!window.EmulatorJS) throw new Error('no engine'); emuQuiet_(); EMU_.base = cdn; return cdn; });
   EMU_.lib = from(EMU_CDN[0]).catch(() => from(EMU_CDN[1])).catch(e => { EMU_.lib = null; throw e; });
   return EMU_.lib;
 }
+
+/* TWO EMULATORJS COSTS ON A SLOW LAPTOP (419): its controller poll, a 10 ms timer though its controls are off (the Console polls
+   each frame), and 64 ms of sound, which crackles at a DS or N64 game's first slow frame: 128. */
+function emuQuiet_() {
+  try {
+    const G = window.GamepadHandler;
+    if (G && !G.quiet_) { G.quiet_ = true; G.prototype.loop = function () {}; }
+  } catch (e) {}
+  try {
+    const M = window.EJS_GameManager;
+    if (M && !M.quiet_ && typeof M.prototype.getRetroArchCfg === 'function') {
+      M.quiet_ = true;
+      const cfg = M.prototype.getRetroArchCfg;
+      M.prototype.getRetroArchCfg = function () {
+        const s = cfg.call(this);
+        return EMU_HEAVY[EMU_.sys] ? String(s).replace(/audio_latency = \d+/, 'audio_latency = 128') : s;
+      };
+    }
+  } catch (e) {}
+}
+const EMU_HEAVY = { nds: 1, n64: 1 };
+/* THREADS NEED A CROSS-ORIGIN-ISOLATED PAGE, and GitHub Pages sends no COOP/COEP headers: the core runs on the page's one thread.
+   On an isolated page the threaded build is taken, and melonDS draws 3D on its own thread. */
+const emuThreads_ = () => !!(window.crossOriginIsolated && typeof SharedArrayBuffer === 'function');
 
 /* A NAME FOR THE BATTERY SAVE, from the bytes, so two games never share one; the file's own name is never used. */
 function emuName_(u8, sys) {
@@ -5572,7 +5923,8 @@ function emuStart_(bytes, sys) {
     const ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     const core = sys === 'n64' && ios ? 'parallel_n64' : EMU_CORE[sys], pkg = cdn + '@emulatorjs/core-' + core + '@' + EMU_VER + '/';
     const files = { [core + '.json']: pkg + 'reports/' + core + '.json' };
-    ['-wasm.data', '-legacy-wasm.data'].forEach(t => { files[core + t] = pkg + core + t; });
+    const threads = emuThreads_();
+    (threads ? ['-thread-wasm.data', '-thread-legacy-wasm.data'] : ['-wasm.data', '-legacy-wasm.data']).forEach(t => { files[core + t] = pkg + core + t; });
     const host = document.createElement('div');
     host.id = 'emu-host'; host.className = 'emu-host';
     $('nes-stage').appendChild(host);
@@ -5580,7 +5932,8 @@ function emuStart_(bytes, sys) {
     const ejs = new window.EmulatorJS('#emu-host', {
       gameUrl: bytes, gameName: name, system: core, dataPath: cdn + '@emulatorjs/emulatorjs@' + EMU_VER + '/data/',
       filePaths: files, startOnLoad: true, defaultControllers: none, noAutoFocus: true, disableLocalStorage: true,
-      volume: 1, threads: false, backgroundColor: '#000', buttonOpts: {}, cheats: [] });
+      volume: 1, threads, backgroundColor: '#000', buttonOpts: {}, cheats: [],
+      defaultOptions: threads && sys === 'nds' ? { melonds_threaded_renderer: 'enabled' } : {} });
     EMU_.ejs = ejs; EMU_.sys = sys; EMU_.key = name; EMU_.ready = false; EMU_.held = {}; EMU_.ax = [];
     const fail = m => { if (EMU_.ejs !== ejs) return; loaded_($('nes-stage')); emuEnd_(); nesTiles_(); nesSay_('This game file could not be started: ' + (m || 'the engine stopped') + '.'); };
     const said = ejs.startGameError.bind(ejs);
@@ -5592,8 +5945,8 @@ function emuStart_(bytes, sys) {
       try { ejs.gameManager.setKeyboardEnabled(false); } catch (e) {}
       ejs.enableMouseLock = false;   // a DS screen is touched where it is, so a mouse click must not capture the pointer (399)
       if (sys === 'nds') emuTouch_(ejs.canvas);
-      if (!$('nes-wrap') || document.hidden) { try { ejs.pause(true); } catch (e) {} NES_.running = false; }
-      else NES_.running = true;
+      if (!$('nes-wrap') || document.hidden) { try { ejs.pause(true); } catch (e) {} nesRun_(false); }
+      else nesRun_(true);
       emuWake_(); nesTiles_(); nesFit_();
     });
   }).catch(() => { loaded_(stage); emuEnd_(); nesTiles_(); nesSay_('The console could not load. Check the connection and press Play again.'); });
@@ -5618,7 +5971,7 @@ function emuTouch_(c) {
 function emuGo_() {
   if (!EMU_.ready || NES_.running) return;
   try { EMU_.ejs.play(true); } catch (e) { return; }
-  NES_.running = true; emuWake_(); nesTiles_();
+  nesRun_(true); emuWake_(); nesTiles_();
 }
 /* PAUSE KEEPS THE BATTERY SAVE: the cartridge's memory is written to this device's IndexedDB (EmulatorJS's own) at every pause. */
 function emuPause_() {
@@ -5885,17 +6238,12 @@ on('media-hide', el => {
     .then(d => { toast(on_ ? 'Hidden.' : 'Shown again.'); mediaAdopt_(d, kind); })
     .catch(() => {});
 });
+/* TAP AGAIN TO CONFIRM (420): asked on the Delete tile itself, never in a pop-up. */
 on('media-del', el => {
   if (!mediaMay_()) return;
-  const kind = el.getAttribute('data-kind') || 'reel', id = el.getAttribute('data-id') || '';
-  openSheet('Delete it?', `<p class="sub">The row you added goes; a copy in the repository would show again.</p>
-    <div class="pf-go"><button class="btn" data-do="media-del-go" data-kind="${esc(kind)}" data-id="${esc(id)}">Delete</button>
-    <button class="btn quiet" data-do="sheet-done">Cancel</button></div>`);
-});
-on('media-del-go', el => {
-  if (!mediaMay_()) return;
   const kind = el.getAttribute('data-kind') === 'video' ? 'video' : 'reel';
+  if (!sure_(el, 'Tap again to confirm')) return;
   send_({ action: 'mediaDelete', personId: USER.personId || '', kind, id: el.getAttribute('data-id') || '' }, { button: el })
-    .then(d => { closeSheet(); toast('Deleted.'); mediaAdopt_(d, kind); })
+    .then(d => { toast('Deleted.'); mediaAdopt_(d, kind); })
     .catch(() => {});
 });

@@ -5,7 +5,7 @@ const fs = require('fs'), path = require('path');
 const acorn = require('acorn');
 const dir = __dirname;
 const ORDER = ['core','price-rows','chess','data','shell','cards','me','posts','links','find',
-               'resource','arcade','map','book','receipt','flyer','mat','games','overworld',
+               'resource','arcade','map','book','receipt','flyer','mat','games','racer','overworld',
                /* `select`, `collections` AND `tiles` WERE MISSING. § */
                'select','collections','tiles','boot'];
 

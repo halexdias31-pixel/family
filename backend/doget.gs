@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-24-j-stripe-dead";
+const DOGET_VERSION = "2026-10-24-t-backend-dead";
 
 
 function doGet(e) {
@@ -116,6 +116,9 @@ function doGet(e) {
       })) });
     }
 
+    /* THE RACER'S MAP (426), on its own and never in the payload: half a megabyte nobody else needs. */
+    if (p.race) return raceServe_();
+
     // ?triggers=1 installs the nightly jobs; ?triggers=list shows what's scheduled.
     if (p.triggers) return jsonOut({ version: BACKEND_VERSION,
       triggers: String(p.triggers).toLowerCase() === 'list' ? listTriggers() : installTriggers_() });
@@ -226,12 +229,8 @@ function doGet(e) {
       },
       features: [/* ---------- THE NEW ONES, DECLARED SO THE SITE CAN TELL YOU § */
                  'openWaitlist', 'claimChild', 'answerClaim', 'joinWaitlist',
-                 'move', 'events', 'tabs', 'getProfile', 'myProfile', 'listPeople', 'createJob',
-                 'updateConfig', 'updatePricing', 'updateShop',
-                 'deleteShopItem', 'updateTrip', 'addTrip', 'imageData',
-                 'saveRoom',
-
-                 'saveTodo', 'saveAvatar', 'register', 'verifyEmail', 'diagnosePeople',
+                 'move', 'events', 'tabs', 'getProfile', 'myProfile', 'createJob',
+                 'saveTodo', 'saveAvatar', 'register', 'verifyEmail',
                  /* The Timetable widget's week, kept on the account. */
                  'saveTimetable',
                  'listRecords', 'saveRecordsPage',
@@ -246,18 +245,18 @@ function doGet(e) {
                  'checkUploads',
                  /* The videos card's Sync from Drive, for an admin — the films from the Notflix folder. */
                  'filmsSync',
+                 /* The Colliers Wood racer's Build the map tile, for an admin (426). */
+                 'raceBuild',
                  /* The site checks for this to decide whether it may offer the picker. */
-                 'folderFiles',
                  /* `likePost` is deliberately absent. The site checks this list, so a stale copy
                     of it in somebody's browser cache finds out rather than failing quietly. */
-                 'confirmDetails',
                  // Admin editing, by id rather than by row number.
                  /* `editResource`, `deleteResource` and `orderPrints` WERE HERE and are gone with the questions tab. § */
                  'editPost', 'deletePost',
                  'createCheckout', 'finalizePayment',
                  /* The site checks this before it offers the button, so an old deployment says so
                     rather than failing when it is pressed. */
-                 'deleteJob', 'linkChild', 'unlinkChild',
+                 'deleteJob', 'linkChild',
                  /* The site checks this before it offers the waitlist at all, so a phone running against an older deployment says so rather than posting an action that comes back § */
                  'joinWaitlist',
                  /* The site checks this before offering the button, so an older deployment says so
@@ -294,16 +293,11 @@ function doGet(e) {
       /* And what its first two questions answer — see SCHEMA.kinds. */
       kinds: [],
       profileFields: PROFILE_GROUPS, clientFields: CLIENT_GROUPS, phoneCodes: PHONE_CODES,
-      studentFields: STUDENT_GROUPS, venueFields: VENUE_GROUPS,
+      studentFields: STUDENT_GROUPS,
       /* `resourceFields` AND `resourceOptions` WERE HERE — the admin form that relabelled a document, built from the server's own allow-list so it could not offer a § */
-      postFields: POST_GROUPS,
-      shopFields: SHOP_GROUPS, tripFields: TRIP_GROUPS, roomFields: ROOM_GROUPS,
-      roomSlots: ROOM_SLOTS,
-      linkFields: LINK_GROUPS,
-      options: opts,
+      /* The admin forms' field lists (venue, post, shop, trip, room, link), `options`, `availGrid`, `multiSelect`, `pricingRows` and `galleryError` went in 433: nothing read them. */
       /* `resourceInUse` WAS HERE. § */
       profileReadonly: PROFILE_READONLY,
-      availGrid: { days: AVAIL_DAYS, hours: AVAIL_HOURS },
       // field -> its option list, in the shape the edit forms already read. Built from the
       // `options` tab, so every form and every booking dropdown share one source. Editing a list
       // there takes effect on the next load: nothing to rebuild, nothing to go stale.
@@ -318,7 +312,6 @@ function doGet(e) {
         Object.keys(FIELD_FIXED).forEach(f => { out[f] = FIELD_FIXED[f]; });
         return out;
       })(),
-      multiSelect: [],
       dropdowns: {
         levels: opts.level || [], subjects: opts.subject || [], days: opts.weekday || [],
         // What kind each option is, so a subject can be academic or sporty the way a tutor already
@@ -338,14 +331,6 @@ function doGet(e) {
       /* THE TAB LESS ITS SECRETS — `configPublic_` in core.gs. `films_folder` is the Notflix
          folder's id, and that id is the folder's only lock; this payload goes to everybody. */
       constants: { vars: configPublic_(cfg) },
-      // Every per-option surcharge as a flat list, so the pricing card can offer each one for
-      // editing rather than saying "set this somewhere else". Venues come from their own tab, but
-      // they behave identically here — a rate attached to a choice.
-      pricingRows: read(TAB.pricing).rows
-        .filter(r => S(r.kind) && S(r.label))
-        .map(r => ({ kind: norm(r.kind), label: S(r.label), value: N(r.surcharge_per_hour) }))
-        .concat(venuesTab.filter(r => S(r.name))
-          .map(r => ({ kind: 'venue', label: S(r.name), value: N(r.cost_per_hour) }))),
       /* Sent, but nothing displays them yet — the shape is settled and the presentation isn't. § */
       /* WHAT THE CALENDAR IS OFFERING TODAY. § */
       festive: [],
@@ -555,6 +540,8 @@ function doGet(e) {
               min: t.min, max: t.max, notes: S(x.notes),
               /* A room's own opening hours. § */
               avail: availGridOut(t.availability),
+              /* WHAT IS ALREADY BOOKED IN IT (434), as `m16` codes, so the grid greys a taken room the way it greys a busy tutor. */
+              busy: spaceBusy(S(r.name) + ' \u2014 ' + S(x.name)),
               fields: ROOM_EDITABLE.reduce((a, f) => { a[f] = S(x[f]); return a; }, {})
             };
           }),
@@ -663,8 +650,8 @@ function doGet(e) {
         const state = norm(r.approved);
         const waiting = state === 'pending';
         const refused = state === 'refused';
-        const mine = !!meAskedId && S(r.author) && findPerson(S(r.author))
-          && S(findPerson(S(r.author)).person_id) === meAskedId;
+        /* WHO PRESSED POST, not only the name on it — an admin's business post carries the brand's name (413). */
+        const mine = !!meAskedId && postIsBy_(r, { person_id: meAskedId });
         if (refused && !viewerIsAdmin) return;
         if (waiting && !viewerIsAdmin && !mine) return;
         /* An author who is not in the people list still gets a name — the one typed in the row. § */
@@ -705,6 +692,8 @@ function doGet(e) {
              leak one. */
           waiting: waiting,
           refused: refused,
+          /* YOURS, so the phone offers Edit while it waits and Delete always — the server checks again (`editPost`, `deletePost`). */
+          mine: !!mine,
           approvedBy: S(r.approved_by),
           /* THE POLL. Options split from the cell, counts from the votes tab, and which one is
              yours — everything the phone needs to draw it without a second request. */
@@ -927,9 +916,7 @@ function doGet(e) {
     try { payload.closures = closures(); }
     catch (err) { payload.closures = []; }
 
-    /* WHICH LOADING SPLASHES HAVE BEEN RETIRED. § */
-    /* ---------- `splashes` IS READ OFF THE REPOSITORY NOW § */
-    payload.splashOff = [];
+    /* `payload.splashOff` WAS HERE, always []: the splashes are read off the repository (data/settings) and nothing read this key (433). */
 
     /* WHATEVER CAMPAIGN IS RUNNING TODAY. § */
     // --- terms -> intervals -------------------------------------------------------------------
@@ -1163,7 +1150,7 @@ function doGet(e) {
       counts: { people: people.length, venues: venuesTab.length, jobs: jobsTab.length,
                 options: read(TAB.options).rows.length } });
 
-    payload.timings = timings;
+    /* `payload.timings` WAS HERE on every load, read by nothing; `?debugTiming=1` above is how the timings are asked for (433). */
     /* ---------- KEPT, AND THEN SENT § */
     /* ---------- WITHOUT `submissions` OR THE FILMS, WHICH GO ON FRESH EVERY TIME § */
     /* BY NAME IN A LIST, not `payload.films` here: `check-payload.js` counts every `payload.<key>` as a

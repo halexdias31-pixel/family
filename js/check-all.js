@@ -42,6 +42,8 @@ const SUITE = [
   /* ---------- I DELETED THREE GAMES AND EVERY CHECK STAYED GREEN § */
   { file: 'check-widgets.js', what: 'the widget contract, and the roster' },
   { file: 'check-access.js', what: 'every action past the permissions gate' },
+  /* AND WHETHER ANYTHING ASKS FOR IT (433): a handler nothing calls is a door onto nothing from the other side. */
+  { file: 'check-actions.js', what: 'every doPost action has a caller or a written reason' },
   /* AND WHO THE ACTION IS ABOUT. `check-access` asks whether an action may be performed; this asks
      whether the person it names can be found again tomorrow. */
   /* ---------- AND WHETHER A REFUSAL IS REPORTED AS ONE § */
@@ -107,11 +109,14 @@ const SUITE = [
   /* ONE RANK PER ACCOUNT, STAFF ONLY BY APPLICATION (400): ranks from old cells, sign-up, the application flow, a child's PIN to the owner. */
   { file: 'check-accounts.js', what: 'ranks, sign-up as Student or Client, Staff only by an approved application, a child\'s PIN to the owner' },
   { file: 'check-staff.js', what: 'the Staff hub: tutor terms by version, pricing refusals, a statement only for its own tutor (any for an admin)' },
+  { file: 'check-posts.js', what: 'posts wait for approval (author and admin only), final once up, no links, a child uploads nothing, message faces' },
   { file: 'check-reports.js', what: 'a reported question: one row as the token’s person, once a day, admin-only to read or close' },
   /* THE LIBRARY'S WORDS IN THE LEDGER (397): the copy checked row by row, libItems signed-in and capped, the tools' copy the admin's. */
   { file: 'check-library-ledger.js', what: 'the library in the Ledger: copied and checked a step at a time, served signed-in with a day\'s cap' },
   /* THE FILMS ARE WHAT IS IN THE NOTFLIX FOLDER. § */
   { file: 'check-films.js', what: 'the films from the Notflix folder: the upsert, admin only, no id sent, the clock' },
+  /* THE COLLIERS WOOD RACER'S MAP (426), built over a fake Overpass, DEM and Drive. */
+  { file: 'check-race.js', what: 'the racer\'s map: crossings shared, roads every 15 m, the box, DEM fallbacks and cache, ?race=1, an admin builds' },
   /* AN ADMIN'S REELS AND VIDEOS (404), through the real doPost and doGet. */
   { file: 'check-media.js', what: 'an admin adds, edits, hides and deletes a reel or video; others and bad links refused; the payload carries it' },
   { file: 'check-media-age.js', what: 'a reel or video rated above a viewer\'s age (from their date of birth; 12 when unknown for a student or nobody) is not sent; adults and the admin get all' },

@@ -33,11 +33,12 @@ in `js/core.js` (the sign-in reply and `myProfile` carry `rank`; an old kept cop
 ## How each rank is reached
 
 - **Student or Client:** anybody makes an account and chooses one at sign-up ("Client — I book and pay" / "Student — I'm
-  learning"). Both are free. Settings → Your roles still moves between them (a Student account cannot make itself a Client).
+  learning"). Both are free. Settings → Your roles offers a Client one choice, Client or Student; a Student has no picker
+  (only an admin makes a Student a Client), Staff and Admin none (432).
 - **Staff:** only by **Apply to teach** on You (a signed-in adult; with no date of birth on the row, anybody signed in).
   The application goes to the Ledger tab `applications`; the admin sees it in the Business column and presses Approve,
-  Interview or Decline. Approve adds `tutor` to the role cell and sets `listed` TRUE. The Tutor tick in Settings is refused
-  for anybody but an admin.
+  Interview or Decline. Approve adds `tutor` to the role cell and sets `listed` TRUE. Settings offers no Tutor choice, and
+  `setMyRoles` refuses adding Tutor for anybody but an admin.
 - **Admin:** only given by an admin (the people form, 373).
 
 ## Family links are not rank

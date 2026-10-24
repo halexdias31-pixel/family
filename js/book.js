@@ -348,8 +348,10 @@ function slotGrid() {
   /* NOTHING SET WAS READ AS EVERYTHING FREE, and for a TUTOR that is over. § */
   /* ---------- AND WHAT THE TUTOR IS ALREADY TEACHING § */
   const tBusy = (t && t.busy) || {};
+  /* AND WHAT THE ROOM ALREADY HOLDS (434): the server refuses a clash, so the grid says so first. */
+  const sBusy = (sp && sp.busy) || {};
   const tNone = !!t && !haveT;
-  const open = code => !tNone && (!haveT || tAvail[code]) && (!haveV || vAvail[code]) && !tBusy[code];
+  const open = code => !tNone && (!haveT || tAvail[code]) && (!haveV || vAvail[code]) && !tBusy[code] && !sBusy[code];
   /* WHY it is not free, so the grid can say. A tutor who does not work Tuesdays and a tutor who is
      already teaching that Tuesday look identical greyed out, and only one of them is worth asking
      about a different week. */
@@ -358,6 +360,7 @@ function slotGrid() {
      apart from being the same variable. */
   const whyShut = code => tNone ? 'no hours set'
     : tBusy[code] ? 'teaching ' + tBusy[code]
+    : sBusy[code] ? 'room booked'
     : (haveT && !tAvail[code]) ? 'not available'
     : (haveV && !vAvail[code]) ? 'venue closed' : '';
 
@@ -1998,7 +2001,7 @@ function receiptRow(r) {
                r.strip ? 'bk-wk' : '', r.strip && r.shut ? 'is-shut' : '',
                r.strip && r.off ? 'is-off' : '',
                /* AND THE LIST'S TALLY, whose bars take the empty figure tracks — see `.bk-tally`. */
-               r.tally ? 'bk-tally' : '']
+               r.tally ? 'bk-tally' : '', r.cls || '']
     .filter(Boolean).join(' ');
   /* A DAY SHOWS ITS HOURS, drawn rather than written — the same row of boxes the picker uses, so a day on the receipt and a day in the grid are visibly the same § */
   /* A DROPDOWN WHERE THERE IS ONE, and it replaces the value rather than sitting beside it: § */
@@ -2237,26 +2240,23 @@ function discountRow_(L) {
   if (!(typeof isAdmin === 'function' && isAdmin()) || isWaiting_() || !L || !L.earn) return '';
   const e = L.earn;
   const opt = (v, label, on) => `<option value="${esc(v)}"${on ? ' selected' : ''}>${esc(label)}</option>`;
-  const at = f => `class="rc-disc-in" data-do="book-disc" data-field="${f}"`;
-  return `<div class="bk-row rc-total rc-more rc-money rc-disc">
-      <span class="bk-n"></span>
-      <span class="bk-k">Discount</span>
-      <span class="bk-v"></span>
-      <span class="bk-m"></span>
-      <span class="bk-r"></span>
-      <span class="bk-t">${e.discount > 0 ? '− ' + esc(money(e.discount / (L.splitShares || 1))) : '—'}</span>
-    </div>
-    <div class="rc-disc-ctl">
-      <select ${at('discType')} aria-label="Discount in">${opt('', 'No discount', !BOOKING.discType)}${
-        opt('%', '% off teaching', BOOKING.discType === '%')}${opt('£', '£ off total', BOOKING.discType === '£')}</select>
-      <input ${at('discValue')} type="number" inputmode="decimal" min="0" step="0.01"
-        value="${esc(BOOKING.discValue)}" placeholder="How much" aria-label="How much">
-      <input ${at('discCode')} type="text"
-        value="${esc(BOOKING.discCode)}" placeholder="Code or reason" aria-label="Code or reason">
-      <select ${at('discBy')} aria-label="Who absorbs it">${
-        opt('Business', 'Business absorbs', BOOKING.discBy !== 'Shared with tutor')}${
-        opt('Shared with tutor', 'Shared with tutor', BOOKING.discBy === 'Shared with tutor')}</select>
-    </div>`;
+  const at = f => `class="bk-${f === 'discType' || f === 'discBy' ? 'sel' : 'in'}" id="${bkCtl_(f)}" data-do="book-disc" data-field="${f}"`;
+  /* ONE LINE PER THING (421): each control is its own row, label left, value right, like Level or Format. */
+  const row = (cls, k, f, sel, total) => receiptRow({ n: '', k, v: '', mul: '', rate: '', total: total || '',
+    cls, ctl: bkCtl_(f), sel });
+  const out = [row('rc-disc', 'Discount', 'discType',
+    `<select ${at('discType')} aria-label="Discount">${opt('', 'No discount', !BOOKING.discType)}${
+      opt('%', '% off teaching', BOOKING.discType === '%')}${opt('£', '£ off total', BOOKING.discType === '£')}</select>`,
+    e.discount > 0 ? '− ' + money(e.discount / (L.splitShares || 1)) : '—')];
+  if (!BOOKING.discType) return out.join('');
+  out.push(row('rc-disc-more', 'How much', 'discValue', `<input ${at('discValue')} type="number" inputmode="decimal" min="0"
+      step="0.01" value="${esc(BOOKING.discValue)}" placeholder="—" aria-label="How much">`));
+  out.push(row('rc-disc-more', 'Code or reason', 'discCode', `<input ${at('discCode')} type="text"
+      value="${esc(BOOKING.discCode)}" placeholder="—" aria-label="Code or reason">`));
+  out.push(row('rc-disc-more', 'Absorbed by', 'discBy', `<select ${at('discBy')} aria-label="Absorbed by">${
+    opt('Business', 'Business', BOOKING.discBy !== 'Shared with tutor')}${
+    opt('Shared with tutor', 'Shared with tutor', BOOKING.discBy === 'Shared with tutor')}</select>`));
+  return out.join('');
 }
 /* KEPT AS IT IS TYPED, REDRAWN ON A CHANGE. § */
 document.addEventListener('input', e => {
@@ -2304,7 +2304,8 @@ function formMoney_(L) {
      session) is £0.00 in ink rather than "−£0.00" in red with a sentence saying it costs you nothing. */
   const net = Math.round(e.net * 100) / 100;
   const pct = e.charged > 0 ? Math.round(net / e.charged * 1000) / 10 : 0;
-  more.push({ k: 'Net profit', t: (net < 0 ? '\u2212 ' : '') + money(Math.abs(net)) + ' · ' + pct + '%',
+  /* THE PERCENTAGE IN THE LABEL, THE MONEY IN THE FIGURE: one figure per figure column (421) — both at 390 ran past the card. */
+  more.push({ k: 'Net profit · ' + pct + '%', t: (net < 0 ? '\u2212 ' : '') + money(Math.abs(net)),
               cls: 'rc-money rc-net' + (net < 0 ? ' is-bad' : '') });
   return { label: 'Client pays', more,
            say: net < 0 ? 'This booking costs you ' + money(-net) + '.' : '' };

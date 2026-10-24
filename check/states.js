@@ -2347,6 +2347,14 @@ const STATES = {
       expect: () => document.querySelectorAll('#sheet-body .pb-row .pb-bar').length === 3
         && !!document.querySelector('#sheet-body input[type="range"][data-pv="rate"]') ? 1 : 0,
       wants: 'the pricing part: rate and seat controls and three bars, for 1, 2 and 3 students' },
+    { name: 'the Staff hub, hours',
+      only: () => typeof USER !== 'undefined' && !!USER && (isAdmin() || hubFor_()),
+      enter: () => { window.STATE_HUB_WAS = { roles: USER.roles }; USER.roles = (USER.roles || []).concat(['tutor']); hubOpen_('hours'); },
+      leave: () => { USER.roles = (window.STATE_HUB_WAS || {}).roles; closeSheet(); },
+      /* SEVENTY: seven days of `AVAIL_HOURS`, nine to six — the week the `avail` tool drew before 432. */
+      expect: () => document.querySelectorAll('#sheet-body .hub-hours .hr').length >= 70
+        && !!document.querySelector('#sheet-body .hub-hours [data-do="me-save"]') ? 1 : 0,
+      wants: 'the Hours part: the week of hours to tick and a Save my hours tile' },
     { name: 'the Staff hub, a statement',
       only: () => typeof USER !== 'undefined' && !!USER && (isAdmin() || hubFor_()),
       enter: () => {
@@ -2866,9 +2874,12 @@ const STATES = {
              untill i scroll to them"), and the session length boxes in At a glance. */
           && pg.querySelectorAll('[data-do="signout"]').length === 1
           && !form.querySelector('img[loading="lazy"]')
-          && !!form.querySelector('.ce-sec[data-sec="glance"] [data-me="min_hours"]') ? 1 : 0;
+          && !!form.querySelector('.ce-sec[data-sec="glance"] [data-me="min_hours"]')
+          /* ON ONE PHONE SCREEN (docs/history/425): at 390x844 the whole form, every fold shut, is within its budget —
+             2856px before; the owner: "condense this so it can all apear on a phone screen". */
+          && (innerWidth !== 390 || innerHeight !== 844 || form.closest('.card-ed').getBoundingClientRect().height <= 760) ? 1 : 0;
       },
-      wants: 'your card as its own form at full size in a pane that scrolls: every section in the card\'s order (the figure and the handle among them), the picture chooser, three photographs fetched at once, three qualifications, the session length, the map, all seven days of the week, Save and Cancel as tiles in reach at the foot of the pane, and Sign out under them' },
+      wants: 'your card as its own form at full size in a pane that scrolls, no taller than 760px at 390x844: every section in the card\'s order (the figure and the handle among them), the picture chooser, three photographs fetched at once, three qualifications, the session length, the map, all seven days of the week, Save and Cancel as tiles in reach at the foot of the pane, and Sign out under them' },
     /* ---------- AND ANOTHER TUTOR'S CARD, EDITED BY AN ADMIN § */
     { name: 'another tutor\'s card, being edited by an admin',
       only: () => typeof USER !== 'undefined' && !!USER && typeof isAdmin === 'function' && isAdmin(),
@@ -3080,6 +3091,8 @@ const STATES = {
            it, and the copy it is drawn from shaped as `myProfile` sends it (`phone_cc`). */
         document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         CARD_EDIT = cardEditFresh_(USER.personId);
+        /* THE PICKER IS ONE LINE UNTIL OPENED (docs/history/425) — opened here, as a tap on "Picture" does. */
+        CE_OPEN.add('picture');
         paint('account');
         const at = [...document.querySelectorAll('#s-account .page')].findIndex(pg => pg.querySelector('.card-ed .pfp'));
         if (at < 0) throw new Error('no picture picker on your own card\'s Edit');
@@ -3087,7 +3100,7 @@ const STATES = {
       },
       leave: () => {
         USER.profile = window.STATE_PFP_WAS; delete window.STATE_PFP_WAS;
-        CARD_EDIT = null;
+        CARD_EDIT = null; CE_OPEN.delete('picture');
         document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
         repaint(true);
       },
@@ -3115,6 +3128,8 @@ const STATES = {
            it, and the copy it is drawn from shaped as `myProfile` sends it (`phone_cc`). */
         document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         CARD_EDIT = cardEditFresh_(USER.personId);
+        /* THE PICKER IS ONE LINE UNTIL OPENED (docs/history/425) — opened here, as a tap on "Picture" does. */
+        CE_OPEN.add('picture');
         paint('account');
         const at = [...document.querySelectorAll('#s-account .page')].findIndex(pg => pg.querySelector('.card-ed .pfp'));
         if (at < 0) throw new Error('no picture picker on your own card\'s Edit');
@@ -3122,7 +3137,7 @@ const STATES = {
       },
       leave: () => {
         USER.profile = window.STATE_PFP_WAS; delete window.STATE_PFP_WAS;
-        CARD_EDIT = null;
+        CARD_EDIT = null; CE_OPEN.delete('picture');
         document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
         repaint(true);
       },
@@ -3160,6 +3175,8 @@ const STATES = {
            it, and the copy it is drawn from shaped as `myProfile` sends it (`phone_cc`). */
         document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         CARD_EDIT = cardEditFresh_(USER.personId);
+        /* THE PICKER IS ONE LINE UNTIL OPENED (docs/history/425) — opened here, as a tap on "Picture" does. */
+        CE_OPEN.add('picture');
         paint('account');
         const at = [...document.querySelectorAll('#s-account .page')].findIndex(pg => pg.querySelector('.card-ed .pfp'));
         if (at < 0) throw new Error('no picture picker on your own card\'s Edit');
@@ -3167,7 +3184,7 @@ const STATES = {
       },
       leave: () => {
         USER.profile = window.STATE_PFP_WAS; delete window.STATE_PFP_WAS;
-        CARD_EDIT = null;
+        CARD_EDIT = null; CE_OPEN.delete('picture');
         document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
         repaint(true);
       },
@@ -3412,12 +3429,12 @@ const STATES = {
         const c = document.querySelector('#s-settings .page.on .roles-card');
         if (!c) return 0;
         const on = r => { const b = c.querySelector(`[data-role-pick="${r}"]`); return b ? b.checked : null; };
-        return on('tutor') === true && on('client') === true && on('student') === false
+        return on('tutor') === null && on('client') === true && on('student') === false
           && !c.querySelector('[data-role-pick="admin"]') && !c.querySelector('.role-admin')
           && /waiting for @family/.test((c.querySelector('.roles-said') || {}).textContent || '')
           && !!c.querySelector('.tile[data-do="roles-save"]') ? 1 : 0;
       },
-      wants: 'three role ticks, Tutor and Client ticked, no Admin tick, the waiting line and a Save tile' },
+      wants: 'one choice of two (432), Client chosen, no Tutor or Admin choice, the waiting line and a Save tile' },
 
     /* ---------- THE WEEKLY PARENT EMAIL'S CARD AND ITS PREVIEW WERE TWO STATES HERE § */
 
@@ -3928,42 +3945,42 @@ const STATES = {
 
   ],
 
-  /* ---------- PROGRESS: THE PLACEHOLDER, OR A STUDENT'S JOURNEY — EITHER WAY ASSERTED § */
+  /* ---------- PROGRESS (435): THE TITLE ALONE WITH NOTHING TO COUNT, OR THE LEARNER'S CARDS — EITHER WAY ASSERTED ---------- */
   progress: [
     { name: '',
       expect: () => {
         const h = document.getElementById('s-progress');
         const pane = h && h.querySelector(':scope > .page > .pane');
-        if (!pane || !pane.querySelector('.card h3')) return false;
-        if (h.querySelector('button, [data-do], input, select, textarea, a[href], summary, details, label, '
-          + '[tabindex], [onclick], [role], [contenteditable]')) return false;
-        if (typeof mayJourney_ === 'function' && mayJourney_()) {
-          return h.querySelectorAll(':scope > .page').length === 1 && !!pane.querySelector('.card.journey')
-            && pane.querySelector('h3').textContent.trim() === 'Your journey' && !/Not built yet/.test(pane.textContent);
-        }
-        if (pane.querySelector('.card.journey') || !/Not built yet/.test(pane.textContent)) return false;
-        if ([...pane.querySelectorAll('*')].some(e => !e.matches('div.card, h3, p.sub, p.empty, br, span.faint'))) return false;
-        return !/\d/.test(pane.textContent);
+        if (!pane || !pane.querySelector('.card h3, .loading')) return false;
+        const acts = [...h.querySelectorAll('[data-do]')].map(e => e.dataset.do);
+        if (acts.some(a => a !== 'prog-practise' && a !== 'prog-sessions')) return false;
+        if (/Not built yet/.test(h.textContent)) return false;
+        /* EVERY WIDGET, ALWAYS (435): seven titles at least, each empty one its title alone. */
+        const cards = [...h.querySelectorAll(':scope > .page .card')];
+        if (cards.length < 7 || cards.some(c => !c.querySelector('h3'))) return false;
+        return cards.filter(c => c.classList.contains('is-empty')).every(c => c.children.length === 1);
       },
-      wants: 'signed out, the Progress placeholder (drill\'s markup only, no number, nothing to press); a student or an admin, Your journey and nothing to press' },
-    /* ---------- YOUR JOURNEY, WITH THE ONE LIVE LINE DRAWN § */
-    { name: 'your journey',
+      wants: 'every Progress widget drawn, each with nothing to say its title alone; the only controls Practise and Sessions' },
+    /* ---------- YOUR EXAMS, WITH THE ONE LIVE LINE DRAWN ---------- */
+    { name: 'your exams',
       only: () => typeof USER !== 'undefined' && !!USER && typeof mayJourney_ === 'function' && mayJourney_(),
       enter: () => {
         const t = new Date(Date.now() + 14 * 864e5);
         USER.profile = Object.assign({}, USER.profile || {},
           { exam_big_date: t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0') });
         progressRedraw_();
-        if (!document.querySelector('#s-progress .card.journey')) throw new Error('no journey card on the progress column');
-        goPage('progress', 0, true);
+        const c = document.querySelector('#s-progress .card.journey');
+        if (!c) throw new Error('no countdowns card on the progress column');
+        const pages = [...document.querySelectorAll('#s-progress > .page')];
+        goPage('progress', Math.max(0, pages.indexOf(c.closest('.page'))), true);
       },
       expect: () => {
         const c = document.querySelector('#s-progress .page.on .card.journey');
-        return !!c && /days? to go/.test(c.textContent) && !document.querySelector('#s-progress button, #s-progress [data-do]')
+        return !!c && /Big exam\s*\d+ days?/.test(c.textContent) && !c.querySelector('button, [data-do]')
           && !document.querySelector('#s-settings .card.journey')
           && !document.querySelector('.card.digest, [data-do="digest-preview"]');
       },
-      wants: 'the journey card on Progress, with the exam countdown and no control that does nothing — none on Settings, and no weekly parent email card anywhere',
+      wants: 'the Countdowns card on Progress, with the Big exam line and no control on it — none on Settings, and no weekly parent email card anywhere',
       leave: () => { if (USER && USER.profile) delete USER.profile.exam_big_date; progressRedraw_(); } },
   ],
 
@@ -4181,18 +4198,7 @@ const STATES = {
       wants: 'the Check uploads tile, two ticks, two crosses, three numbered steps and an Allow tile',
       leave: () => { UPLOADS_SAID = null; uploadsPaint_(); } },
 
-    /* ---------- A TUTOR'S TEACHING HOURS § */
-    { name: 'a tutor\'s teaching hours',
-      only: () => typeof isTutorRole === 'function' && isTutorRole(),
-      enter: () => {
-        const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'avail');
-        if (n < 0) throw new Error('no availability widget in the roster');
-        goPage('tools', n, true);
-      },
-      /* SEVENTY: seven days of `AVAIL_HOURS`, nine to six — it was seventy-seven while that span
-         ran to seven o'clock, an hour the booking grid never offered. */
-      expect: () => document.querySelectorAll('#s-tools #avail-box .hr').length >= 70,
-      wants: 'the week of hours drawn on screen' },
+    /* A TUTOR'S TEACHING HOURS WERE A STATE HERE — the `avail` tool is gone; they are the Staff hub's Hours, a state on `account` (432). */
 
     /* ---------- A TIMETABLE WITH A WEEK IN IT § */
     { name: 'a timetable',
@@ -5100,7 +5106,8 @@ const STATES = {
           try { camStop_(); } catch (e) {}
           CAM_FAILED = null; CAM_ASKING = false;
           goPage('feed', feedCamAt_(), true);
-          camStart_();
+          /* `true`: an ask on the spot, so a refusal this browser kept earlier (427) does not stand in for the wait. */
+          camStart_(true);
         };
         ask();
       },
@@ -5617,6 +5624,36 @@ const STATES = {
       },
       wants: 'Ada\'s four days (Mon, Tue, Wed, Sat) and no other, with her Tuesday 10 and 11 ticked',
       leave: () => { if (typeof resetBooking_ === 'function') resetBooking_(); drawBooker(); } },
+
+    /* ---------- ONE LINE PER THING (421): AN ADMIN'S DISCOUNT IS FOUR ROWS, NOT FOUR BOXES IN A GRID */
+    { name: 'an admin\'s discount chosen, one line per thing',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => {
+        /* NO TERM, SO NO MONEY BLOCK: this asks the rule, and the money block's own figures are 353's to measure. */
+        Object.assign(BOOKING, { how: 'Instant class', level: 'GCSE', subjects: ['Maths'], n: '2', hosting: 'No',
+          slots: ['m16', 'm17'], discType: '£', discValue: '5', discCode: 'Sibling', discBy: 'Business' });
+        drawBooker();
+      },
+      expect: () => (window.oneLineFaults_ = (() => {
+        const bk = document.querySelector('#s-booking #bookr .bk');
+        if (!bk) return ['no booking card'];
+        const out = [];
+        const keys = [...bk.querySelectorAll('.bk-row.rc-disc, .bk-row.rc-disc-more')].map(r => r.querySelector('.bk-k').textContent.trim());
+        if (keys.join('|') !== 'Discount|How much|Code or reason|Absorbed by') out.push('discount rows: ' + keys.join('|'));
+        [...bk.children].forEach(c => {
+          const what = (c.className || c.tagName) + ' "' + ((c.querySelector('.bk-k') || c).textContent || '').trim().slice(0, 24) + '"';
+          if (!c.matches('.bk-row, p.bk-say, .bk-many-list')) { out.push('a box that is not a row: ' + what); return; }
+          if (!c.matches('.bk-row')) return;
+          const ctls = c.querySelectorAll('select, input:not([type="hidden"]), textarea');
+          if (ctls.length > 1) out.push(ctls.length + ' controls on one line: ' + what);
+          const k = c.querySelector('.bk-k'), lh = k ? parseFloat(getComputedStyle(k).lineHeight) || 20 : 20;
+          if (ctls.length && c.getBoundingClientRect().height > lh * 1.8) out.push('a control row taller than a line: ' + what);
+        });
+        return out;
+      })()).length === 0 ? 1 : 0,
+      why: () => (window.oneLineFaults_ || []).join('; '),
+      wants: 'the admin\'s discount as four one-line rows and every control row of the card one line',
+      leave: () => { delete window.oneLineFaults_; if (typeof resetBooking_ === 'function') resetBooking_(); drawBooker(); } },
 
     { name: 'a session receipt',
       only: () => typeof USER !== 'undefined' && !!USER,

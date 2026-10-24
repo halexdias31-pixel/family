@@ -417,6 +417,8 @@ function signedOut_(opts) {
   /* WHAT THE LAST PERSON SENT, AS THIS DEVICE HELD IT FOR THE VISIT, AND ANYTHING OPEN OVER THE SCREEN. § */
   try { if (typeof subForget_ === 'function') subForget_(); } catch (e) {}
   try { if (typeof kpClose_ === 'function') kpClose_(); } catch (e) {}
+  /* AND THE CAMERA, which is kept parked while the app is open (427) — the next person's phone light is not this one's. */
+  try { if (typeof camStop_ === 'function') camStop_(); } catch (e) {}
   /* AND THE KEYPAD'S UNDO (`KP_UNDO`, keypad.js), as the pen's held Clears go (`padWhoChanged_`). § */
   try { if (typeof KP_UNDO !== 'undefined') KP_UNDO.clear(); } catch (e) {}
   try { if (typeof closeSheet === 'function') closeSheet(); } catch (e) {}
@@ -579,7 +581,6 @@ function wardrobeBody_() {
       ${figure}
       <div class="av-stats">
         <p><b>Level ${esc(String(levelFromXp(USER.xp)))}</b> · ${esc(String(USER.credits || 0))} credits</p>
-        <p class="faint">Colours are free. Things unlock with a level or a few credits.</p>
       </div>
     </div>
     ${line('Skin', swatches('skin', AV_SKIN))}
@@ -624,6 +625,7 @@ function avatarDraw_() {
   document.querySelectorAll('.pfp-opt[data-pic="avatar"]').forEach(b => {
     b.innerHTML = avatarFor(USER.handle || USER.name, 40, USER.avatar || '', { bust: true });
   });
+  document.querySelectorAll('.ce-figv').forEach(el => { el.innerHTML = ceFigSay_(); });
   const pic = String((USER.profile && USER.profile.photo) || '').trim();
   if (picKind_(pic) === 'avatar') document.querySelectorAll('.pfp .pfp-face').forEach(f => { f.innerHTML = pfpFace_(pic); });
 }
@@ -1077,11 +1079,11 @@ function msgRead_(q) {
     r.onerror = () => done(null);
     try { r.readAsDataURL(f); } catch (e) { done(null); }
   });
-  if (/^image\/(jpeg|png|webp|heic|heif)$/i.test(f.type) && f.size > 2 * 1048576
-      && typeof camItemOf_ === 'function') {
+  /* EVERY PHOTOGRAPH, NOT ONLY ONE OVER 2MB (413): a message's picture is drawn inline at phone width, and 1600px is plenty. */
+  if (/^image\/(jpeg|png|webp|heic|heif)$/i.test(f.type) && typeof camItemOf_ === 'function') {
     return camItemOf_(f).then(it => it && it.data
       ? { name: String(f.name || 'photo').replace(/\.\w+$/, '') + '.jpg', type: 'image/jpeg', data: it.data }
-      : asIs());
+      : asIs(), asIs);
   }
   return asIs();
 }
@@ -1271,6 +1273,49 @@ on('msg-drop', el => {
   }, 0);
 });
 
+/* ---------- REPORTING A MESSAGE (413): the question Report's sheet (395), with reasons a message has ----------
+   `flagMessage` marks the row and emails the admin; it shows on Business → Reports. Only a message sent to you. */
+const MSG_REPORT_WHY = [
+  ['unkind', 'Unkind or bullying'],
+  ['unsafe', 'It makes me feel unsafe'],
+  ['rude', 'Rude, or a picture that should not be there'],
+  ['stranger', 'Spam, or I don\u2019t know them'],
+  ['other', 'Something else'],
+];
+on('msg-report', el => {
+  if (!USER) return;
+  const id = el.getAttribute('data-id') || '';
+  const m = (MESSAGES || []).find(x => x && x.id === id);
+  if (!m) { toast('That message is not loaded — try again in a moment.'); return; }
+  openSheet('Report this message', `<div class="me-form rep-form msg-rep-form" data-id="${esc(id)}">
+    <p class="faint rep-what">From ${esc(m.fromName || m.withName || 'someone')}${m.body ? ': “' + esc(String(m.body).slice(0, 80)) + (String(m.body).length > 80 ? '…' : '') + '”' : ''}</p>
+    <div class="rep-opts" role="radiogroup" aria-label="What is wrong">${MSG_REPORT_WHY.map(([k, say]) =>
+      `<button type="button" class="rep-opt" role="radio" aria-checked="false" data-do="rep-why" data-why="${esc(k)}">${esc(say)}</button>`).join('')}</div>
+    <label class="field rep-note"><span>Anything else? (optional)</span>
+      <textarea class="rep-note-in" rows="2" maxlength="300" autocomplete="off" placeholder="A few words"
+        aria-label="Anything else about this message"${draftAttr_('msg-rep', id)}>${esc(draftVal_('msg-rep', id))}</textarea></label>
+    <div class="tile-row">${tile_({ icon: 'send', label: 'Send', note: 'to the admin', act: 'msg-report-send', cls: 'rep-send' })}</div>
+    <p class="faint me-said rep-said" aria-live="polite">Only the admin sees a report. The message stays where it is.</p>
+  </div>`);
+});
+on('msg-report-send', el => {
+  const form = el.closest('.msg-rep-form');
+  if (!form || !USER) return;
+  const said = form.querySelector('.rep-said');
+  if (!form.dataset.why) { if (said) said.textContent = 'Choose what is wrong first.'; return; }
+  const id = form.dataset.id;
+  const say = (MSG_REPORT_WHY.find(r => r[0] === form.dataset.why) || [])[1] || form.dataset.why;
+  const note = String((form.querySelector('.rep-note-in') || {}).value || '').trim().slice(0, 300);
+  send_({ action: 'flagMessage', name: USER.name, personId: USER.personId || '', messageId: id,
+          reason: say + (note ? ' — ' + note : '') }, { button: el, where: said })
+    .then(() => {
+      try { draftDrop_('msg-rep', id); } catch (e) {}
+      closeSheet();
+      toast('Thanks — sent');
+    })
+    .catch(() => {});
+});
+
 /* ---------- AND MARKING THEM READ, WHICH NOTHING HAS EVER DONE § */
 function markRead_(msgs) {
   if (!USER) return;
@@ -1427,8 +1472,10 @@ const messagesHtml_ = ms => {
       <div class="msg${mine ? ' mine' : ''}${runTop ? ' run-top' : ''}${
         runEnd ? ' run-end' : ''}${!mine && (!m.read || m.fresh) ? ' unread' : ''}${
         m.state ? ' is-' + m.state : ''}">
-      <div class="msg-bub${words ? '' : ' is-bare'}">${msgAttachHtml_(m.attachments)}${
-        words ? `<p class="msg-body-text">${mark(words)}</p>` : ''}</div>
+      ${/* A MESSAGE YOU WERE SENT CAN BE REPORTED (413) — beside its bubble, for a child as much as anybody (`flagMessage`). */''}
+      ${!mine && m.id && !m.tmp ? '<div class="msg-line">' : ''}<div class="msg-bub${words ? '' : ' is-bare'}">${msgAttachHtml_(m.attachments)}${
+        words ? `<p class="msg-body-text">${mark(words)}</p>` : ''}</div>${!mine && m.id && !m.tmp
+        ? tile_({ icon: 'flag', label: 'Report', note: 'this message', act: 'msg-report', cls: 'msg-flag', data: { id: m.id } }) + '</div>' : ''}
       ${state || (runEnd ? `<p class="faint msg-when">${esc(mine ? 'you' : (m.fromName || 'them'))} · ${
         esc(msgClock_(t, m.at))}</p>` : '')}
     </div>`;
@@ -1446,9 +1493,10 @@ function msgForm_(to, toId, note, rows) {
   const k = msgKey_(to, toId);
   return `<div class="msg-form" data-k="${esc(k)}">
     <div class="msg-queue">${msgQueueHtml_(k)}</div>
-    <button class="btn quiet msg-clip" data-do="msg-attach"
+    ${/* A CHILD SENDS WORDS ONLY (413) — no picker, and `sendMessage` refuses their files too. */
+      rankAtLeast_('client') ? `<button class="btn quiet msg-clip" data-do="msg-attach"
       aria-label="Attach a photo, video or file">＋</button>
-    <input type="file" class="msg-file-in" multiple hidden aria-label="Choose files to send">
+    <input type="file" class="msg-file-in" multiple hidden aria-label="Choose files to send">` : ''}
     <textarea class="msg-text" rows="${rows || 1}" maxlength="2000"
       placeholder="Message…" aria-label="Message ${esc(to)}"${draftAttr_('msg', k)}>${esc(msgDraft_(k))}</textarea>
     <button class="btn msg-go" data-do="msg-send"
@@ -1842,6 +1890,8 @@ function settingsPages_() {
 
   /* ---------- WHAT IS ABOUT YOUR CARD IS EDITED ON YOUR CARD, SO THOSE BOXES ARE NOT DRAWN HERE § */
   const shown = notLibrary_(cardSettingsGroups_(groups, ownCardFields_()));
+  /* AND STAFF SET THEIR WEEK IN THE STAFF HUB'S HOURS (432), so the week group is not drawn here a second time. */
+  if (typeof hubFor_ === 'function' && hubFor_()) Object.keys(shown).forEach(g => { if (isTimetable_(shown[g])) delete shown[g]; });
 
   /* WHERE THE REST WENT, said once on the first card, because a page somebody used yesterday is a page
      they will look for today — on the first group's card, or on the next card there is if no group is left. */
@@ -1909,44 +1959,54 @@ function settingsPages_() {
   return pages;
 }
 
-/* ---------- YOUR ROLES: TUTOR, CLIENT, STUDENT — TICK EVERY ONE THAT IS YOU § */
+/* ---------- YOUR ROLE: ONE RANK (400), SO ONE CHOICE, CLIENT OR STUDENT, FOR A CLIENT ONLY (432) ----------
+   Tutor comes by "Apply to teach", Admin is given, and dopost.gs refuses a student becoming a client. */
 const ROLE_PICKS = [
-  ['tutor', 'Tutor', 'You teach here. Teaching starts with "Apply to teach" on You, and @family. says yes.'],
+  ['tutor', 'Tutor', 'You teach here. Teaching starts with "Apply to teach" on You.'],
   ['client', 'Client', 'A parent or payer. You book and pay for sessions.'],
-  ['student', 'Student', 'You are the one learning.'],
+  ['student', 'Student', 'You are the one learning. Only @family. can change a student account back.'],
 ];
-/* WHAT THE LINE UNDER THE TILE SAYS WHEN NOTHING HAS JUST HAPPENED — the waiting Tutor, said where
-   the tick is, because the tick alone would look like a yes. */
+/* WHAT THE LINE UNDER THE CARD SAYS WHEN NOTHING HAS JUST HAPPENED, by rank. */
 function rolesSaid_() {
-  if (USER && USER.tutorPending && tutorHeld_() && !isAdmin())
-    return 'Tutor is waiting for @family. to approve you. Until then you are not on the site and '
+  if (!USER) return '';
+  if (rankAtLeast_('admin')) return '';
+  if (USER.tutorPending && tutorHeld_())
+    return 'Tutor is waiting for ' + brand('name', '@family.') + ' to approve you. Until then you are not on the site and '
          + 'cannot be booked — fill in your teaching pages meanwhile.';
-  return 'Tick every one that is you. You can be more than one.';
+  if (rankAtLeast_('staff')) return 'You teach here. Your hours, pricing and terms are in the Staff hub on You.';
+  if (rank_() === 'student') return 'A parent links you to their account from theirs.';
+  return '';
 }
+/* THE CHOICE THE CARD OFFERS: only a Client has one. A waiting Tutor keeps the old row's tutor alongside it (`rolesPicked_`). */
+const rolesPickable_ = () => !!USER && rank_() === 'client';
 function rolesCard_() {
-  const held = heldRoles().map(roleOf);
+  const name = brand('name', '@family.');
+  const picks = rolesPickable_() ? ROLE_PICKS.filter(([r]) => r !== 'tutor').map(([r, label, note]) => `<label class="check role-pick">
+      <input type="radio" name="role-pick" data-role-pick="${r}"${r === 'client' ? ' checked' : ''}>
+      <span class="box"></span><span class="role-pick-say"><b>${esc(label)}</b>
+        <span class="faint">${esc(note)}</span></span></label>`).join('')
+    + `<div class="tile-row">${tile_({ icon: 'save', label: 'Save', act: 'roles-save' })}</div>` : '';
+  const said = rolesSaid_();
   return `<div class="card roles-card">
     <h3>Your roles</h3>
-    ${ROLE_PICKS.filter(([r]) => r !== 'tutor' || held.indexOf('tutor') !== -1 || isAdmin()).map(([r, label, note]) => `<label class="check role-pick">
-      <input type="checkbox" data-role-pick="${r}"${held.indexOf(r) !== -1 ? ' checked' : ''}>
-      <span class="box"></span><span class="role-pick-say"><b>${esc(label)}</b>
-        <span class="faint">${esc(note)}</span></span></label>`).join('')}
-    ${isAdmin() ? '<p class="faint role-admin">You are also Admin. That is given by @family. and '
-                + 'is not changed here.</p>' : ''}
-    <div class="tile-row">${tile_({ icon: 'save', label: 'Save', act: 'roles-save' })}</div>
-    <p class="faint roles-said" aria-live="polite">${esc(rolesSaid_())}</p>
+    ${rankAtLeast_('admin') ? `<p class="faint role-admin">You are Admin. That is given by ${esc(name)} and is not changed here.</p>` : ''}
+    ${picks}
+    ${picks || said ? `<p class="faint roles-said" aria-live="polite">${esc(said)}</p>` : ''}
   </div>`;
 }
+/* WHAT A SAVE POSTS: the one choice, and a waiting Tutor's `tutor`, which is kept, not added (the server refuses adding it). */
+const rolesPicked_ = card => {
+  const b = card.querySelector('[data-role-pick]:checked');
+  if (!b) return [];
+  return [b.dataset.rolePick].concat(USER && USER.tutorPending && tutorHeld_() ? ['tutor'] : []);
+};
 
 on('roles-save', el => {
   const card = el.closest('.card');
   if (!USER || !card) return;
   const said = card.querySelector('.roles-said');
-  const roles = [].filter.call(card.querySelectorAll('[data-role-pick]'), b => b.checked)
-    .map(b => b.dataset.rolePick);
-  /* THE ONE RULE THE CARD CAN KNOW WITHOUT ASKING. The server refuses it too — this saves a round
-     trip to be told what the screen already shows. */
-  if (!roles.length) { if (said) said.textContent = 'Keep at least one ticked.'; return; }
+  const roles = rolesPicked_(card);
+  if (!roles.length) return;
   send_({ action: 'setMyRoles', name: USER.name, personId: USER.personId || '', roles },
         { button: el, where: said || undefined, saying: 'Saving…', lock: card })
     .then(d => {
@@ -1961,24 +2021,20 @@ on('roles-save', el => {
          is redrawn from the server's list with them. An older backend sends none and the card keeps its own. */
       if (d.notify) USER.profile = Object.assign({}, USER.profile || {}, { notify: d.notify });
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
-      toast(d.changed ? 'Roles saved' : 'Nothing changed');
+      toast(d.changed ? 'Role saved' : 'Nothing changed');
       /* THE COLUMN IS DRAWN FROM THE ROLE — which pages of fields, the agreement card — so it is
          drawn again; then the payload, because who is a tutor is in it. */
       if (d.changed) { try { repaint(true); } catch (e) {} try { load(); } catch (e) {} }
       const now = document.querySelector('.roles-card .roles-said');
-      if (now) now.textContent = d.changed && USER.tutorPending ? rolesSaid_()
-                               : d.changed ? 'Saved.' : rolesSaid_();
+      if (now) now.textContent = d.changed && rolesPickable_() && !USER.tutorPending ? 'Saved.' : rolesSaid_();
     })
-    /* A REFUSAL PUTS THE TICKS BACK TO WHAT YOU HOLD. § */
+    /* A REFUSAL PUTS THE CHOICE BACK TO WHAT YOU HOLD — Client, the only rank the card is drawn with a choice for. */
     .catch(err => {
       if (!err || !err.refused) return;
-      const held = heldRoles().map(roleOf);
       /* THE CARD ON THE PAGE NOW, as the success path asks: the payload arriving mid-request
          repaints the column, and the card held from the press would then be a detached copy. */
       const live = document.querySelector('#s-settings .roles-card') || card;
-      [].forEach.call(live.querySelectorAll('[data-role-pick]'), b => {
-        b.checked = held.indexOf(b.dataset.rolePick) !== -1;
-      });
+      [].forEach.call(live.querySelectorAll('[data-role-pick]'), b => { b.checked = b.dataset.rolePick === 'client'; });
     });
 });
 
@@ -2112,7 +2168,6 @@ function availGrid_(codes, p, readonly, mine) {
   if (!days.length) return '';
   /* ---------- `.me-week`, BECAUSE THIS WEEK IS READ AT LEISURE AND THE BOOKING ONE IS NOT § */
   return `<div class="me-week" style="--hours:${days[0].hours.length}">
-    <p class="faint me-week-say">Tap the hours you can teach. Tap again to clear one.</p>
     ${weekGrid_(days, (h, d) => `<label class="hr${on(h.code) ? ' on' : ''}${
       ro(h.code) ? ' shut' : ''}" aria-label="${esc(d.label)} ${h.h}:00">
       <input type="checkbox" data-me="${esc(h.code)}" ${on(h.code) ? 'checked' : ''}
@@ -2543,11 +2598,7 @@ function qualShelf_(list, value) {
       g.slots.map((i, n) => qualSlot_(i, value, { first: n === 0, mine })).join('')}</div>`).join('')}</div>
     <div class="q-pool" hidden>${pool.map(i => qualSlot_(i, value, { mine })).join('')}</div>
     <div class="tile-row q-adds">${tile_({ icon: 'plus', label: 'Add a qualification', act: 'qual-add', off: !pool.length, data: { unlocked: '' },
-      note: pool.length ? pool.length + ' more fit' : 'ten is the most' })}${
-      /* HOW THE CARD WORKS, IN THE ROOM BESIDE THE `+` — a line of text that costs no line of its own.
-         There is no `Edit` on the card any more, and a list of plain lines does not say by itself
-         that a line can be pressed. */
-      empty ? '' : '<span class="q-tip">Tap a line to change it.</span>'}</div>
+      note: pool.length ? pool.length + ' more fit' : 'ten is the most' })}</div>
     ${pool.length ? '' : `<p class="faint q-full">Ten is the most this card holds — remove one to add another.</p>`}
   </div>`;
 }
@@ -3068,7 +3119,8 @@ document.addEventListener('input', e => {
 });
 
 /* ---------- YOUR PICTURE, CHOSEN RATHER THAN LINKED § */
-function photoPicker_(value, said) {
+/* `o.fold`: ON YOUR CARD'S EDIT THE PICKER IS ONE LINE, the face beside "Picture", opening in place (docs/history/425). */
+function photoPicker_(value, said, o) {
   const v = String(value('photo') || '').trim();
   const kind = picKind_(v);
   const chosen = (kind === 'basic' || kind === 'avatar') ? pfpChoice_(v) : '';
@@ -3080,18 +3132,21 @@ function photoPicker_(value, said) {
         ? avatarFor(me.handle || me.name, 40, me.avatar || '', { bust: true })
         : pfpArt_(n, 40)}</button>`;
   };
-  return `<div class="pfp">
-    <span class="pfp-face">${pfpFace_(v)}</span>
+  const face = `<span class="pfp-face">${pfpFace_(v)}</span>`;
+  const fold = !!(o && o.fold);
+  return `${fold ? `<details class="pfp ce-fold" data-fold="picture"${CE_OPEN.has('picture') ? ' open' : ''}>
+    <summary class="ce-line"><span class="ce-k">Picture</span>${face}</summary>` : `<div class="pfp">${face}`}
     <div class="pfp-side">
       <div class="tile-row">
-        ${tile_({ icon: 'photo', label: 'Choose photo', act: 'pfp-pick' })}
+        ${/* A CHILD CHOOSES FROM THE GRID, NEVER A FILE (413) — `savePhoto` refuses one too. */
+          rankAtLeast_('client') ? tile_({ icon: 'photo', label: 'Choose photo', act: 'pfp-pick' }) : ''}
         ${tile_({ icon: 'bin', label: 'Remove', act: 'pfp-remove', off: !v })}
       </div>
     </div>
     <div class="pfp-grid" role="group" aria-label="Or choose a picture">${['avatar'].concat(Object.keys(PFP_ART)).map(opt).join('')}</div>
     <p class="faint pfp-said">${esc(said || pfpSaid_(v))}</p>
-    <input type="file" class="pfp-in" accept="image/*" hidden>
-  </div>`;
+    ${rankAtLeast_('client') ? '<input type="file" class="pfp-in" accept="image/*" hidden>' : ''}
+  ${fold ? '</details>' : '</div>'}`;
 }
 /* WHAT THE PICTURE IS, IN A SENTENCE — the line's words at rest and after a save. */
 function pfpSaid_(v) {
@@ -3165,7 +3220,7 @@ function pfpTake_(box, url, said) {
     }
   }));
   const onCard = !!(box && box.closest && box.closest('.card-ed'));
-  if (box && box.parentNode) box.outerHTML = photoPicker_(f => (f === 'photo' ? url : ''), said);
+  if (box && box.parentNode) box.outerHTML = photoPicker_(f => (f === 'photo' ? url : ''), said, { fold: onCard });
   /* NOT WHILE THE PICKER IS ON YOUR OWN CARD'S EDIT (docs/history/339) — which is where it is now, for everybody. § */
   if (onCard) return;
   try { if (typeof paint === 'function') paint('account'); } catch (e) {}
@@ -3292,29 +3347,7 @@ function fieldsHtml(groups, o) {
    versions send neither consistently. One reader for all three. */
 const TRUEish_ = v => v === true || /^(true|yes|1|✓)$/i.test(String(v ?? '').trim());
 
-/* THE HOURS YOU CAN TEACH, AS A THING YOU OPEN. § */
-function initAvail() {
-  const into = $('avail-box');
-  if (!into) return;
-  if (!USER) { into.innerHTML = `<p class="note">Sign in to set your hours.</p>`; return; }
-
-  const codes = availCodes_();
-  /* THE BACKEND HAS NOT SENT THE HOURS, WHICH IS NOT THE SAME FACT AS A TUTOR WHO HAS TICKED NOTHING — and drawing an empty week for the first would be this § */
-  /* ---------- AND WHILE THE PAYLOAD IS ON ITS WAY, THAT IS A WAIT, NOT THE OLD SERVER § */
-  if (!codes.length && typeof awaiting_ === 'function' && awaiting_()) {
-    into.innerHTML = loading_();
-    return;
-  }
-  if (!codes.length) {
-    into.innerHTML = `<p class="note">The hours have not arrived from the server yet.<br>
-      <span class="faint">Settings → the week grid is there when they do.</span></p>`;
-    return;
-  }
-
-  into.innerHTML = availGrid_(codes, USER.profile || {}, DATA.profileReadonly || [], true)
-    + `<div class="tile-row">${tile_({ icon: 'save', label: 'Save my hours', act: 'me-save' })}</div>
-       <p class="faint me-said"></p>`;
-}
+/* `initAvail` WAS HERE — the `avail` tool's week; the hours are the Staff hub's Hours now (432, staff.js `hoursHtml_`). */
 
 /* YOUR LIBRARY CARDS, A TOOL (docs/history/339) § */
 function libCardsDraw_(into) {
@@ -3867,6 +3900,52 @@ function cardEditTiles_(pid, saveOff) {
     off: !!saveOff, data: { pid } })}${tile_({ icon: 'close', label: 'Cancel', note: 'put it back', act: 'card-cancel',
     data: { pid } })}</div>`;
 }
+/* ---------- ONE LINE A THING, OPENING IN PLACE (docs/history/425) § */
+/* WHICH FOLDS ARE OPEN, as state and not in the DOM, so a repaint (a save, a figure pick) draws them as they were. */
+const CE_OPEN = new Set();
+document.addEventListener('toggle', e => {
+  const d = e.target;
+  if (!d || !d.matches || !d.matches('details.ce-fold')) return;
+  const k = d.dataset.fold || '';
+  if (d.open) CE_OPEN.add(k); else if (d.isConnected) CE_OPEN.delete(k);
+}, true);
+/* `val` IS MARKUP (a face, a live line); the label is text. */
+const ceFold_ = (key, label, val, body) => `<details class="ce-fold" data-fold="${esc(key)}"${CE_OPEN.has(key) ? ' open' : ''}>
+  <summary class="ce-line"><span class="ce-k">${esc(label)}</span><span class="ce-v">${val}</span></summary>
+  <div class="ce-body">${body}</div></details>`;
+/* THE FIGURE'S LINE: a small copy of it, its level and credits — redrawn by `avatarDraw_` after a pick. */
+const ceFigSay_ = () => !USER ? '' : `<span class="ce-fig" aria-hidden="true">${avatarFor(USER.handle || USER.name, 26, USER.avatar || '', { bust: true })}</span>`
+  + `Lv ${esc(String(levelFromXp(USER.xp)))} · ${esc(String(USER.credits || 0))} cr`;
+/* HOW MANY, for a fold's line — photographs filled, venues ticked, qualifications held. */
+const ceCount_ = (n, one, many) => n ? n + ' ' + (n === 1 ? one : many) : 'none';
+function ceSums_(form) {
+  const sec = id => form.querySelector('.ce-sec[data-sec="' + id + '"]');
+  const ph = sec('photos'), v = ph && ph.querySelector('details[data-fold="photos"] > summary .ce-v');
+  if (v) v.textContent = cePhotoSay_([...ph.querySelectorAll('.ph-slot input')].filter(i => String(i.value).trim()).length,
+    String((ph.querySelector('[data-me="video"]') || {}).value || '').trim());
+  const q = sec('quals'), qv = q && q.querySelector('details[data-fold="quals"] > summary .ce-v');
+  const gl = sec('glance'), gv = gl && gl.querySelector('details[data-fold="glance"] > summary .ce-v');
+  if (gv) gv.textContent = ceGlanceSay_(f => (gl.querySelector('[data-me="' + f + '"]') || {}).value);
+  const wh = sec('where'), wv = wh && wh.querySelector('details[data-fold="where"] > summary .ce-v');
+  if (wv) wv.textContent = ceCount_(profList_((wh.querySelector('[data-me="venues_ok"]') || {}).value).length, 'venue', 'venues');
+  if (qv) qv.textContent = ceCount_(q.querySelectorAll('.q-list .q-slot:not([data-new])').length, 'held', 'held');
+}
+/* AT A GLANCE IN ONE LINE: every answer in it, short, so nothing has to be opened to be read. */
+function ceGlanceSay_(get) {
+  const g = f => String(get(f) == null ? '' : get(f)).trim();
+  const range = (a, b, unit) => (g(a) || g(b)) ? (g(a) || '?') + '–' + (g(b) || '?') + unit : '';
+  return [g('years_experience') ? g('years_experience') + ' yrs' : '', g('favourite_colour'),
+    range('age_min', 'age_max', ''), range('min_hours', 'max_hours', ' h')].filter(Boolean).join(' · ') || 'none';
+}
+/* THE VENUES OPEN ON THEIR TICKS AT ONCE — the fold is the one tap; the map is under them, following them. */
+function ceWhere_(L, val, box) {
+  const n = profList_(val('venues_ok')).length;
+  const ticks = L.indexOf('venues_ok') !== -1 ? box('venues_ok', {}).replace('<details class="many-d"', '<details open class="many-d"') : '';
+  return ceFold_('where', 'Venues', esc(ceCount_(n, 'venue', 'venues')),
+      ticks + `<div class="ce-heat">${profHeat_(profList_(val('venues_ok')))}</div>`)
+    + fieldRows_(L.filter(f => f !== 'venues_ok'), box);
+}
+const cePhotoSay_ = (n, video) => ceCount_(n, 'photo', 'photos') + (video ? ' · video' : '');
 /* EACH SECTION THROUGH THE WIDGET SETTINGS DREW IT WITH: § */
 function cardEditForm_(t, e, vals) {
   const val = f => (vals[f] == null ? '' : vals[f]);
@@ -3877,20 +3956,22 @@ function cardEditForm_(t, e, vals) {
      somebody else's are the tutor's card, as an admin has always edited it. */
   return (e.own ? ownCardSections_() : cardSections_()).map(s => {
     const L = s.list;
-    const body = s.id === 'picture' ? (e.own ? photoPicker_(val) : cardFaceOnly_(t))
+    const filled = re => L.filter(f => re.test(f) && String(val(f)).trim() !== '').length;
+    const body = s.id === 'picture' ? (e.own ? photoPicker_(val, '', { fold: true }) : cardFaceOnly_(t))
       /* THE WARDROBE, saved a pick at a time (`avatarSave`), which redraws every `.av-card` from
-         `wardrobeBody_` — so the section's inside carries that class, and the picture above follows. */
-      : s.id === 'figure' ? `<div class="av-card">${wardrobeBody_()}</div>`
+         `wardrobeBody_` — so the fold's inside carries that class, and the picture above follows. */
+      : s.id === 'figure' ? ceFold_('figure', 'Figure', `<span class="ce-figv">${ceFigSay_()}</span>`, `<div class="av-card">${wardrobeBody_()}</div>`)
       : s.id === 'handle' ? cardHandleHtml_()
-      : s.id === 'photos' ? fieldRows_(L.filter(f => !isPhotoField_(f)), box) + (isPhotos_(L) ? photoShelf_(L, val, { draft: false }) : '')
-      : s.id === 'quals' ? qualShelf_(L, val)
+      : s.id === 'photos' ? ceFold_('photos', 'Photos', esc(cePhotoSay_(filled(/^photos_\d+$/), String(val('video')).trim())),
+          fieldRows_(L.filter(f => !isPhotoField_(f)), box) + (isPhotos_(L) ? photoShelf_(L, val, { draft: false }) : ''))
+      : s.id === 'quals' ? ceFold_('quals', 'Qualifications', esc(ceCount_(filled(/^qual_\d+$/), 'held', 'held')), qualShelf_(L, val))
       : s.id === 'week' ? availGrid_(L, vals, ro, false)
       : s.id === 'rate' ? cardRateHtml_(L, val, box, e)
+      : s.id === 'glance' ? ceFold_('glance', 'At a glance', esc(ceGlanceSay_(val)), fieldRows_(L, box))
+      : s.id === 'where' ? ceWhere_(L, val, box)
       : fieldRows_(L, box);
-    /* THE MAP REDRAWN FROM THE TICKS as they are ticked (the listener below), so the place a parent
-       will see is the place being chosen. */
-    const more = s.id === 'where' ? `<div class="ce-heat">${profHeat_(profList_(val('venues_ok')))}</div>` : '';
-    return `<div class="ce-sec" data-sec="${esc(s.id)}">${s.cap ? `<div class="prof-cap">${esc(s.cap)}</div>` : ''}${body}${more}</div>`;
+    /* NO CAPTION OVER A SECTION: every line names itself, and the week's days and hours name it (425). */
+    return `<div class="ce-sec" data-sec="${esc(s.id)}">${body}</div>`;
   }).join('');
 }
 /* ---------- THE RATE, AND WHAT AN EXTRA SEAT ADDS IN POUNDS BESIDE IT (docs/history/345) § */
@@ -3952,15 +4033,14 @@ function cardRateHtml_(L, val, box, e) {
   const hidden = f => has(f) ? `<input type="hidden" data-me="${f}" value="${esc(String(val(f)))}"${
     f === 'extra_seat_cut' && !mayCut ? ' disabled' : ''}>` : '';
   const own = !!(e && e.own);
-  const boxes = [pound('extra_seat_rate', own ? 'yours' : 'theirs')]
-    .concat(mayCut ? [pound('extra_seat_cut', "@family.'s")] : []);
+  const boxes = [pound('extra_seat_rate', own ? 'yours, £/h' : 'theirs, £/h')]
+    .concat(mayCut ? [pound('extra_seat_cut', "@family.'s, £/h")] : []);
+  /* THE SEAT IS ONE LINE — what it adds, live — opening on its parts in pounds and what a blank is (425). */
   return box('rate_per_hour', {})
-    + `<div class="f-rowwrap"><span class="dob-cap">an extra seat adds, £ an hour</span>
-         <div class="f-row" style="--n:${boxes.length}">${boxes.join('')}</div></div>
-       ${hidden('extra_seat_rate')}${hidden('extra_seat_cut')}
-       <p class="ce-seat" aria-live="polite">${cardSeatSay_(rate, val('extra_seat_rate'), val('extra_seat_cut'))}</p>
+    + ceFold_('seat', 'Extra seat', `<span class="ce-seat" aria-live="polite">${cardSeatSay_(rate, val('extra_seat_rate'), val('extra_seat_cut'))}</span>`,
+      `${boxes.join('')}${hidden('extra_seat_rate')}${hidden('extra_seat_cut')}
        <p class="faint ce-note ce-seat-note" data-own="${own ? '1' : ''}">${esc(cardSeatNote_(rate, val('extra_seat_cut'),
-         { own, mayCut, hasCut: has('extra_seat_cut') }))}</p>`
+         { own, mayCut, hasCut: has('extra_seat_cut') }))}</p>`)
     + fieldRows_(L.filter(f => ['rate_per_hour', 'extra_seat_rate', 'extra_seat_cut'].indexOf(f) === -1), box);
 }
 /* ---------- AND AS IT IS TYPED: POUNDS INTO THE HIDDEN SHARE, THE SEAT REDRAWN § */
@@ -4011,9 +4091,9 @@ function cardHandleHtml_() {
   const said = (HANDLE_SAID.pid && HANDLE_SAID.pid === String(USER.personId || '') && HANDLE_SAID.text)
     || 'Your handle is the first and last letter of your first name and the year you joined. If somebody '
      + 'had it already, more letters of your first name were added, and then a number.';
-  return `<p class="handle-now" aria-live="polite"><b aria-hidden="true">@</b><span class="handle-shown">${
-      esc((USER && USER.handle) || '')}</span></p>
-    <p class="faint handle-said">${esc(said)}</p>`;
+  /* ONE LINE, AND THE RULE ONE TAP UNDER IT (425) — the handle is read here, never typed. */
+  return ceFold_('handle', 'Handle', `<span class="handle-now" aria-live="polite"><b aria-hidden="true">@</b><span class="handle-shown">${
+      esc((USER && USER.handle) || '')}</span></span>`, `<p class="faint handle-said">${esc(said)}</p>`);
 }
 /* SOMEBODY ELSE'S PICTURE, SHOWN AND NOT OFFERED — `savePhoto` writes the asker's own row. § */
 function cardFaceOnly_(t) {
@@ -4244,6 +4324,7 @@ on('card-cancel', el => {
   form.dataset.dirty = '1';
   cardSeatSync_(form, t, ev);
   cardKeep_(form);
+  ceSums_(form);
   if (t.matches && t.matches('[data-many-of="venues_ok"]')) {
     const box = form.querySelector('[data-me="venues_ok"]'), heat = form.querySelector('.ce-heat');
     if (box && heat) heat.innerHTML = profHeat_(profList_(box.value));
@@ -4398,23 +4479,16 @@ on('digest-send-now', el => {
     .catch(() => {});
 });
 
-/* ONE STEP: the sheet asks, Delete does it. */
+/* TAP AGAIN TO CONFIRM (420): the Delete tile asks on itself, never in a pop-up; the second press deletes. */
 on('person-del', el => {
   if (!peopleMay_()) return;
-  const id = el.getAttribute('data-id') || '', who = el.getAttribute('data-name') || 'them';
-  if (!id) return;
-  openSheet('Delete ' + who + '?', `<p class="sub">This can't be undone.</p>
-    <div class="pf-go"><button class="btn" data-do="person-del-go" data-id="${esc(id)}" data-name="${esc(who)}">Delete</button>
-    <button class="btn quiet" data-do="sheet-done">Cancel</button></div>`);
-});
-on('person-del-go', el => {
-  if (!peopleMay_()) return;
   const id = el.getAttribute('data-id') || '';
+  if (!id) return;
+  if (!sure_(el, 'Tap again to confirm')) return;
   send_({ action: 'personDelete', personId: USER.personId || '', targetId: id }, { button: el })
     .then(() => {
       peoplePut_(null, id);
       if (PEOPLE_FORM_ && PEOPLE_FORM_.id === id) PEOPLE_FORM_ = null;
-      closeSheet();
       toast((el.getAttribute('data-name') || 'They') + ' is deleted.');
       peopleRedraw_();
       load();

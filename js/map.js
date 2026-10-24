@@ -66,10 +66,7 @@ const WIDGETS = [
     <p class="chess-say" id="chess-say" aria-live="polite">White to move</p>
     <div id="chess-board" class="chess"></div>
     <div class="btn-row chess-promo" hidden></div>
-    <div class="btn-row chess-ctl">
-      <button type="button" class="btn quiet" data-do="chess-undo" disabled>Undo</button>
-      <button type="button" class="btn quiet" data-do="chess-new">New game</button>
-    </div>
+    <div class="tile-row chess-ctl"></div>
   </div>` },
   { id: 'tables', kind: 'game', name: 'Times Tables', start: () => initTables?.(),
     /* DRAWN AHEAD BY ITS OWN START (`draw`, docs/history/341): § */
@@ -210,6 +207,16 @@ const WIDGETS = [
     <p class="note" id="ss-said" style="text-align:center;margin:.4rem 0 0"></p>
   </div>` },
 
+  /* ---------- THE COLLIERS WOOD RACER (426): real roads and heights from `?race=1`, driven in WebGL (racer.js); `stop` pauses the loop. */
+  { id: 'racer', kind: 'game', name: 'Colliers Wood racer', start: () => initRacer?.(),
+    draw: () => raceStill_?.(),
+    stop: () => racerStop_?.(),
+    into: 'race-box', what: 'The street',
+    html: `<div class="card race">
+    <h3>Colliers Wood racer</h3>
+    <div id="race-box" class="race-box"></div>
+  </div>` },
+
   /* `herd` WAS HERE, Herd Mentality's own card, and it is a game inside Word games now — see the note over the `wordgames` entry above. § */
 
   /* `stop` IS THE CLIP. This card deals a fact on a tap and some of those facts are videos, so leaving the column with one playing left it playing — the same fault § */
@@ -266,18 +273,7 @@ const WIDGETS = [
     <div id="fm-wrap"></div>
   </div>` },
 
-  /* THE HOURS A TUTOR CAN TEACH. § */
-  { id: 'avail', kind: 'tool', name: 'My teaching hours (availability)', solid: true, tutor: true,
-    start: () => initAvail?.(),
-    into: 'avail-box', what: 'Your hours',
-    html: `<div class="card">
-    <h3>My teaching hours</h3>
-    ${/* NOT "TICK THE HOURS YOU CAN TEACH". § */
-          ''}
-    <p class="sub">A family booking a session only sees the hours you have ticked — everything
-      else comes up greyed, with the reason why.</p>
-    <div id="avail-box"></div>
-  </div>` },
+  /* THE `avail` TOOL (My teaching hours) WAS HERE — the hours are the Staff hub's Hours now (432). */
 
   { id: 'mat', kind: 'tool', name: 'Cheat sheet maker (maths mat)', solid: true,
     start: () => initMat?.(),

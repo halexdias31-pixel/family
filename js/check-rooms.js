@@ -184,6 +184,74 @@ function make() {
   });
 })();
 
+/* ---------- 7. EVERY BOOKED HOUR HOLDS ITS ROOM AND ITS TUTOR (434) ------------------------------- */
+(() => {
+  const b = make();
+  b.ev("(function(){ const t = read(TAB.people); const r = t.rows.find(x => x.person_id === 'P-T1'); setCell(t, r, 'availability', 'm16,m17,m18,f16,f17'); })()");
+  const tk = b.post({ action: 'verifyLogin', email: 'parent@example.org', pin: '0000' });
+  if (!tk || !tk.token) { rule('7. sign in', false, 'the invented parent could not sign in, so nothing was booked'); return; }
+  /* RUNNING NOW (a week ago to a fortnight on), so the payload's today-window sees it. */
+  const at = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear(); };
+  const dates = [at(-7), at(7), at(14)].join(', ');
+  let n = 0;
+  const book = (where, day, time, hours, slots, tutor) => b.post({ action: 'createJob', token: tk.token, clientName: tk.name,
+    personId: 'P-C1', subject: 'Maths', level: 'GCSE', day, time, hours, slots, dates, n: 1, location: where, price: 200,
+    requestedTutor: tutor || 'No preference', requestId: 'rq7-' + (++n) });
+  const rows = () => b.tabs.jobs.length - 1;
+  const S1 = label(CW, 'Small room 1'), S2 = label(CW, 'Small room 2'), L1 = label(CW, 'Large room 1');
+
+  const two = book(S1, 'Monday', '16:00', 2, 'm16,m17');
+  rule('7. a two-hour booking is taken', !!two.success, 'Monday 16–18 in ' + S1 + ' was answered ' + J(two).slice(0, 200));
+  const h = b.tabs.jobs[0], last = () => b.tabs.jobs[b.tabs.jobs.length - 1];
+  rule('7. slot_codes holds both hours', last()[h.indexOf('slot_codes')] === 'm16,m17',
+    'the job row\'s slot_codes is ' + J(last()[h.indexOf('slot_codes')]) + ', wanted "m16,m17"');
+  const busy = Object.keys(b.ev('spaceBusy(' + J(S1) + ')')).sort().join(' ');
+  rule('7. the room is busy both hours', busy === 'm16 m17', S1 + ' is busy [' + busy + '], wanted [m16 m17]');
+  b.ev('clearCache()');
+  const room = ((((b.get({}).venues || []).find(x => x.title === CW) || {}).rooms) || []).find(r => r.name === 'Small room 1') || {};
+  rule('7. doGet sends the room\'s busy hours', J(Object.keys(room.busy || {}).sort()) === J(['m16', 'm17']),
+    S1 + ' was sent busy ' + J(room.busy));
+
+  const before = rows();
+  const clash = book(S1, 'Monday', '17:00', 2, 'm17,m18');
+  rule('7. a booking over the second hour is refused', !clash.success && /already booked at Monday 17:00/.test(String(clash.error || '')),
+    'Monday 17–19 in ' + S1 + ' (17:00 already taken) was answered ' + J(clash).slice(0, 200));
+  rule('7. and nothing is written', rows() === before, 'the refused booking left ' + (rows() - before) + ' job row(s)');
+  const other = book(S2, 'Monday', '17:00', 2, 'm17,m18');
+  rule('7. the same hours in another room are taken', !!other.success, S2 + ' at Monday 17–19 was answered ' + J(other).slice(0, 200));
+
+  /* TWO DAYS AT TWO TIMES: the old row read Mon 16 + Fri 16, so Friday 17 was sold twice. */
+  const runs = book(L1, 'Monday, Friday', '16:00', 1, 'm16,f17', 'Ada Tutor');
+  rule('7. Mon 16 + Fri 17 with Ada is taken', !!runs.success, J(runs).slice(0, 200));
+  rule('7. slot_codes holds both runs', last()[h.indexOf('slot_codes')] === 'm16,f17',
+    'slot_codes is ' + J(last()[h.indexOf('slot_codes')]) + ', wanted "m16,f17"');
+  const fri = book(L1, 'Friday', '17:00', 1, 'f17');
+  rule('7. the room\'s Friday 17:00 is refused', !fri.success && /Friday 17:00/.test(String(fri.error || '')), J(fri).slice(0, 200));
+  const ada = book(CW, 'Friday', '17:00', 1, 'f17', 'Ada Tutor');
+  rule('7. Ada\'s Friday 17:00 is refused', !ada.success && /already teaching at Friday 17:00/.test(String(ada.error || '')), J(ada).slice(0, 200));
+  const adaFree = book(CW, 'Friday', '16:00', 1, 'f16', 'Ada Tutor');
+  rule('7. Ada\'s Friday 16:00 (never booked) is free', !!adaFree.success, J(adaFree).slice(0, 200));
+})();
+
+/* ---------- 8. THE BACKFILL, TWICE (434) ------------------------------------------------------------- */
+(() => {
+  const b = make();
+  b.seed('jobs', [
+    { job_id: 'J-OLD', weekday: 'Monday, Wednesday', start_time: '10:00', hours_per_session: 2, venue: label(CW, 'Small room 1') },
+    { job_id: 'J-NEW', weekday: 'Monday', start_time: '10:00', hours_per_session: 1, slot_codes: 'm10,f16' },
+    { job_id: 'J-NONE', weekday: '', start_time: '' },
+  ]);
+  const first = b.ev('backfillSlotCodes_()'), second = b.ev('backfillSlotCodes_()');
+  const h = b.tabs.jobs[0], cell = id => b.tabs.jobs.find(r => r[h.indexOf('job_id')] === id)[h.indexOf('slot_codes')];
+  rule('8. an old row is filled', cell('J-OLD') === 'm10,m11,w10,w11', 'J-OLD\'s slot_codes became ' + J(cell('J-OLD')));
+  rule('8. a row that has them is left alone', cell('J-NEW') === 'm10,f16', 'J-NEW\'s slot_codes became ' + J(cell('J-NEW')));
+  rule('8. a row with no hours is left blank', cell('J-NONE') === '', 'J-NONE\'s slot_codes became ' + J(cell('J-NONE')));
+  rule('8. the first run wrote one row', first && first.wrote === 1 && first.noHours === 1, 'the first run said ' + J(first));
+  rule('8. the second run writes nothing', second && second.wrote === 0, 'the second run said ' + J(second));
+  rule('8. it is a migration', /id: 'jobs-slot-codes'[\s\S]{0,300}backfillSlotCodes_\(\)/.test(fs.readFileSync(path.join(__dirname, '..', 'backend', 'constants.gs'), 'utf8')),
+    'no MIGRATIONS entry runs backfillSlotCodes_, so the setup an admin\'s page load runs (361) never fills old jobs');
+})();
+
 console.log('');
 if (bad.length) {
   bad.forEach(x => console.log('  FAIL  ' + x));
@@ -193,4 +261,4 @@ if (bad.length) {
 }
 console.log('OK — ' + asked + ' rules hold: a room\'s blank rate, minimum, capacity and hours are its venue\'s and an explicit 0 '
   + 'stays 0, in the payload, the seat cap (4, 4 and 10), the price floor, a real booking, the travel and the waiting list; '
-  + 'and the fixture\'s rooms are what doGet sends.');
+  + 'and the fixture\'s rooms are what doGet sends; every booked hour holds its room and tutor, and the backfill fills old jobs once.');

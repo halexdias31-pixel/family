@@ -207,8 +207,9 @@ function go(id, remember, instant) {
      within the feed is the other half, and it is `feedCamWatch_` — booked from `goPage` and from
      `startScreen_` below. */
   /* ---------- ONLY WHEN LEAVING THE FEED, OR WITH A CAMERA ACTUALLY OPEN § */
+  /* PARKED, NOT STOPPED (427): coming back must not ask again, and a parked stream is no reason to run this on other columns. */
   if (typeof camStop_ === 'function' && AT !== 'feed'
-      && (was === 'feed' || (typeof CAM_STREAM !== 'undefined' && CAM_STREAM))) camStop_();
+      && (was === 'feed' || (typeof camOn_ === 'function' && camOn_()))) camStop_(false, true);
   /* AND THE REEL, which is the third of these and was the one nobody had written. § */
   if (typeof reelsStop_ === 'function' && AT !== 'reel') reelsStop_();
   /* AND THE MESSAGE POLL, which is the fourth. § */
@@ -385,6 +386,7 @@ function paint(id, fresh, o) {
     return 'kept';
   }
   const held = !fresh && typeof widgetsHeld_ === 'function' ? widgetsHeld_(id, pre) : [];
+  const waited = waitingPages_(el);
   el.innerHTML = html !== null
     ? html
     : '<p class="empty">Nothing here yet.</p>';
@@ -392,6 +394,7 @@ function paint(id, fresh, o) {
   PRE_PAYLOAD.delete(id);
   PAINT_N[id] = (PAINT_N[id] || 0) + 1;
   if (held.length) widgetsBack_(id, held);
+  arrivePages_(el, waited);
   /* NEW MARKUP IS NEW PAGES, so the next placement walks this column's pages whatever its signature says
      (`placePages_`). */
   el.PG_SIG = null;
@@ -442,7 +445,73 @@ function loading_() {
 function loaded_(el) {
   if (!el || !el.removeAttribute) return;
   el.removeAttribute('aria-busy');
-  el.querySelectorAll(':scope > .loading').forEach(l => l.remove());
+  const dots = el.querySelectorAll(':scope > .loading');
+  if (!dots.length) return;
+  dots.forEach(l => l.remove());
+  /* WHAT WAS UNDER THE DOTS FADES IN where it already stood (428). */
+  [].forEach.call(el.children, arrive_);
+}
+
+/* ---------- AND WHAT ARRIVES, ARRIVES: ONE FADE FOR EVERYTHING THAT TOOK THE DOTS’ PLACE (docs/history/428) */
+function arrive_(el) {
+  if (!el || !el.classList || el.classList.contains('loading') || el.classList.contains('arrive')) return;
+  el.classList.add('arrive');
+  /* TAKEN OFF AGAIN, so a slot moved to another column later (`widgetsBack_`) is not faded a second time. */
+  setTimeout(() => el.classList.remove('arrive'), 700);
+}
+/* EVERY OTHER WAY THE DOTS ARE REPLACED (`box.innerHTML = …` over a `loading_()`), and an image that took its time. */
+function arriveWatch_() {
+  if (typeof MutationObserver !== 'function' || !document.body) return;
+  new MutationObserver(ms => {
+    const t = performance.now();
+    ms.forEach(m => {
+      let was = false;
+      m.removedNodes.forEach(n => { if (n.nodeType === 1 && n.classList.contains('loading')) was = true; });
+      let words = false;
+      m.addedNodes.forEach(n => {
+        if (n.nodeType === 3 && was && n.textContent.trim()) words = true;
+        if (n.nodeType !== 1) return;
+        if (was && !m.target.classList.contains('pane')) arrive_(n);
+        if (n.tagName === 'IMG') n.arriveT = t;
+        else if (n.firstElementChild) n.querySelectorAll('img').forEach(i => { i.arriveT = t; });
+      });
+      /* A PANE THAT WAS ONLY THE DOTS had no frame (306), so the pane fades in, frame and all. */
+      if (was && m.target.classList.contains('pane') && !m.target.querySelector(':scope > .loading')) arrive_(m.target);
+      else if (words && !m.target.classList.contains('screen')) arrive_(m.target);
+    });
+  }).observe(document.body, { childList: true, subtree: true });
+  /* A PICTURE THAT CAME FROM THE CACHE (inside 80ms) is shown as it is: fading it on every redraw would be a flicker. */
+  document.addEventListener('load', e => {
+    const i = e.target;
+    if (i && i.tagName === 'IMG' && i.arriveT && performance.now() - i.arriveT > 80) arrive_(i);
+  }, true);
+}
+if (document.body) arriveWatch_(); else document.addEventListener('DOMContentLoaded', arriveWatch_);
+/* A COLUMN DRAWN AGAIN OVER PAGES THAT WERE WAITING (`paint`): what is new on them fades in; what was already there stays put. */
+function arrivePages_(el, was) {
+  if (!was) return;
+  const pages = el.querySelectorAll(':scope > .page > .pane');
+  was.forEach((html, i) => {
+    const pane = pages[i];
+    if (!pane) return;
+    if (html === null) { if (!pane.querySelector(':scope > .loading')) arrive_(pane); return; }
+    [].forEach.call(pane.children, card => {
+      /* A WIDGET'S SLOT IS LEFT TO `loaded_`: one carried across the redraw is running, and fading it would flicker. */
+      if (slotIn_(card) || html.indexOf(card.outerHTML) !== -1) return;
+      if (!card.children.length) { arrive_(card); return; }
+      [].forEach.call(card.children, k => { if (!slotIn_(k) && html.indexOf(k.outerHTML) === -1) arrive_(k); });
+    });
+  });
+}
+const slotIn_ = el => el.classList.contains('widget-slot') || !!el.querySelector('.widget-slot');
+function waitingPages_(el) {
+  if (!el.querySelector('.loading')) return null;
+  const was = new Map();
+  el.querySelectorAll(':scope > .page > .pane').forEach((pane, i) => {
+    if (!pane.querySelector('.loading')) return;
+    was.set(i, pane.querySelector(':scope > .loading:only-child') ? null : pane.innerHTML);
+  });
+  return was.size ? was : null;
 }
 
 /* ---------- AND WHEN IS THE PAYLOAD STILL ON ITS WAY: ONE ANSWER, ASKED BY EVERY CARD § */
@@ -1888,41 +1957,10 @@ const PER_PAGE = { library: 12 };
 
 /* The dot's handler is registered further down, WITH the other actions. § */
 
-/* ---------- THE SHEET § */
+/* ---------- THE SHEET IS A PAGE (420) ---------- */
+/* "remove all pop up menus I DONT LIKE POP UP MENUS": no backdrop, nothing floats. While it is open
+   the sheet is the page — the grid steps aside (`body.sheet-open`) and Back brings it back. */
 let sheetOnClose = null;
-
-/* THE CARD THAT WAS PRESSED, caught on its way past. § */
-let SHEET_FROM = null;
-
-/* The four numbers that say where the panel starts: § */
-function setSheetOrigin_(el) {
-  const root = $('sheet');
-  if (!root) return;
-  const st = root.style;
-  if (!el || !el.getBoundingClientRect) {
-    /* From the middle, at nearly full size — a small, quiet arrival rather than nothing at all. */
-    st.setProperty('--from-x', '0px');
-    st.setProperty('--from-y', '0px');
-    st.setProperty('--from-s', '.94');
-    return;
-  }
-  const r = el.getBoundingClientRect();
-  if (!r.width || !r.height) { st.setProperty('--from-s', '.94'); return; }
-
-  const panel = root.getBoundingClientRect();
-  const px = panel.left + panel.width / 2;
-  const py = panel.top + panel.height / 2;
-  const cx = r.left + r.width / 2;
-  const cy = r.top + r.height / 2;
-
-  /* HOW SMALL IT STARTS: the card's width against the panel's. Floored, because a very small card
-     — a chip, an arrow — would otherwise start as a dot and read as an explosion rather than as
-     something opening. */
-  const scale = Math.max(.25, Math.min(1, r.width / (panel.width || r.width)));
-  st.setProperty('--from-x', Math.round(cx - px) + 'px');
-  st.setProperty('--from-y', Math.round(cy - py) + 'px');
-  st.setProperty('--from-s', scale.toFixed(3));
-}
 
 /* ---------- WHAT THE SHEET IS ONE OF § */
 let sheetStep = null;
@@ -1934,42 +1972,28 @@ function openSheet(title, html, onClose, step) {
   /* SET AFTER the old sheet's `onClose` above, which may itself open a sheet. */
   sheetStep = typeof step === 'function' ? step : null;
 
-  /* ---------- WHERE IT GROWS FROM § */
-  /* ---------- ALREADY OPEN? THEN IT DOES NOT MOVE § */
-  const wasOpen = !$('sheet').classList.contains('hidden');
-  if (!wasOpen) setSheetOrigin_(SHEET_FROM);
-  SHEET_FROM = null;
-
   $('sheet-title').textContent = title;
   $('sheet-body').innerHTML = html;
+  $('sheet-body').scrollTop = 0;
   $('sheet').classList.remove('hidden');
-  $('sheet-back').classList.remove('hidden');
+  document.body.classList.add('sheet-open');
+  if ($('screen')) $('screen').inert = true;
   sheetOnClose = onClose || null;
-  /* The page behind must not scroll while a sheet is open — two scrolling things at once is the
-     thing that makes a phone feel broken. */
-  document.body.style.overflow = 'hidden';
 }
 
-/* ---------- CLOSING IT § */
-let sheetClear = 0;
-
+/* ---------- CLOSING IT: BACK TO THE GRID, WHERE IT STOOD ---------- */
 function closeSheet() {
   sheetStep = null;
+  const was = !$('sheet').classList.contains('hidden');
   $('sheet').classList.add('hidden');
-  $('sheet-back').classList.add('hidden');
-  document.body.style.overflow = '';
+  document.body.classList.remove('sheet-open');
+  if ($('screen')) $('screen').inert = false;
   const f = sheetOnClose; sheetOnClose = null;
   if (f) { try { f(); } catch (err) { console.error('[sheet onClose]', err); } }
-
-  /* Emptied after it has gone. A second close before the first has finished cancels the pending
-     one rather than stacking another — otherwise a fast double-close empties the sheet somebody
-     has just reopened. */
-  clearTimeout(sheetClear);
-  sheetClear = setTimeout(() => {
-    /* Only if it is still closed. Reopened in the meantime and there is nothing to tidy — the new
-       contents are somebody's, not the old sheet's to throw away. */
-    if ($('sheet') && $('sheet').classList.contains('hidden')) $('sheet-body').innerHTML = '';
-  }, 300);
+  /* EMPTIED AFTER `onClose` has read it, and only if that did not open another. */
+  if ($('sheet').classList.contains('hidden')) $('sheet-body').innerHTML = '';
+  /* THE GRID WAS ONLY HIDDEN, so it kept its sizes; placed again anyway, in case the window turned meanwhile. */
+  if (was) { try { placeCells(undefined, true); } catch (err) {} }
 }
 
 /* ---------- ONE WAY TO POST § */
@@ -2066,6 +2090,35 @@ function toast(msg) {
   toastTimer = setTimeout(() => el.remove(), 2600);
 }
 
+/* ---------- A CANVAS SHARED AS A PNG (413) ----------
+   The share sheet with the file; else a download, the link copied. Resolves shared, saved or cancelled.
+   fix-profile-png's `tutorPngHand_` does the same: keep one at the merge. */
+function shareCanvasPng_(canvas, filename, text) {
+  const name = String(filename || 'family.png');
+  const words = String(text || '');
+  const blobOf = () => new Promise((ok, no) => {
+    try { canvas.toBlob(b => (b ? ok(b) : no(new Error('empty picture'))), 'image/png'); } catch (e) { no(e); }
+  });
+  return blobOf().then(blob => {
+    const file = typeof File === 'function' ? new File([blob], name, { type: 'image/png' }) : null;
+    let can = false;
+    try { can = !!(file && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })); } catch (e) { can = false; }
+    const url = (words.match(/https?:\/\/\S+/) || [])[0] || '';
+    const save = () => {
+      const href = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = href; a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(href), 60000);   // a download can start after the click returns
+      const copy = url && navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(url) : Promise.reject();
+      return copy.then(() => toast('Picture saved · link copied'), () => toast('Picture saved')).then(() => 'saved');
+    };
+    if (!can) return save();
+    return navigator.share({ files: [file], text: words })
+      .then(() => 'shared', e => (e && e.name === 'AbortError' ? 'cancelled' : save()));
+  });
+}
+
 /* ---------- SPEAKING, ONE VOICE FOR THE WHOLE APP (394) ---------------------------------------- */
 /* Imposter's Listen and a question's Read aloud both speak through these three, so the British voice
    and the Chrome no-voices-yet fallback (`lang` as well as `voice`) are written once. */
@@ -2140,7 +2193,7 @@ let PRESSED_OFF = 0;
 function pressMark_(t) {
   pressClear_();
   /* THE NEAREST THING THAT ACTS, not the exact target — pressing a word inside a card lights the
-     card, which is the same rule `SHEET_FROM` follows for where a sheet grows from. */
+     card. */
   const el = t && t.closest && t.closest('[data-do], .tab');
   /* NOT A DISABLED CONTROL. § */
   if (!el || el.disabled || el.getAttribute('aria-disabled') === 'true') return;
@@ -2282,13 +2335,9 @@ document.addEventListener('click', e => {
   const tab = e.target.closest('.tab');
   if (tab) { go(tab.dataset.tab); return; }
 
-  if (e.target.closest('#sheet-close') || e.target.id === 'sheet-back') { closeSheet(); return; }
+  if (e.target.closest('#sheet-close')) { closeSheet(); return; }
 
   const doer = e.target.closest('[data-do]');
-  /* THE CARD, remembered for the length of this press. § */
-  /* `.pass` WAS IN THIS LIST and the class no longer exists — a person is `.card.is-widget` now,
-     which the first entry already catches. See `findCard`. */
-  SHEET_FROM = e.target.closest('.card, .rc, .rc-stub, .paper, .slip, .post, .thing') || doer;
   /* A SELECT AND A CHECKBOX SPEAK THROUGH `change`, NOT `click`. § */
   if (doer && (doer.tagName === 'SELECT' || doer.type === 'checkbox')) return;
   if (doer && ACTIONS[doer.dataset.do]) {
@@ -2324,7 +2373,7 @@ addEventListener('keydown', e => {
   const t = e.target;
   if (t && (t.isContentEditable
     || /^(input|textarea|select)$/i.test(t.tagName || ''))) return;
-  /* The sheet is over the grid; while it is open the grid is not what these are for. */
+  /* The sheet is the page; while it is open the grid is not what these are for. */
   if (!$('sheet').classList.contains('hidden')) return;
 
   const ax = AXES[arrow[0]];

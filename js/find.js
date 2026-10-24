@@ -7081,6 +7081,12 @@ function qPageAt_(x, page) {
 }
 
 
+/* A QUESTION'S BODY IS NEVER BLANK (432): no words, figure or picture in it says why — the library's reason, or that it is missing. */
+function qWordsOr_(x, html) {
+  if (/<(img|svg|figure|canvas|input|table)\b/i.test(html) || String(html).replace(/<[^>]*>|&nbsp;|\s/g, '')) return html;
+  if (libSlim_(x)) return `<div class="lib-say">${libSay_(x)}</div>`;
+  return '<p class="empty">This question’s words are missing — flag it and we will put them back.</p>';
+}
 function questionCard_(x) {
   return `<div class="qcard">
     ${/* THE ROW, AND NOTHING ELSE ABOVE THE QUESTION: every fact is a tag (`tagRow_`), and every tag
@@ -7092,7 +7098,7 @@ function questionCard_(x) {
             ''}
       ${/* THE LAST OF THE WORDS, which is all of them unless the part is too long for one page -- then the pages in front (`questionPreCard_`) hold the rest and this § */
             ''}
-      ${cellsHere_(x, chunkHtml_(partChunks_(x).slice(-1)[0], circOf_(x), x))}
+      ${qWordsOr_(x, cellsHere_(x, chunkHtml_(partChunks_(x).slice(-1)[0], circOf_(x), x)))}
     </div>
     ${/* YOUR BOX, AND THE MARK SCHEME IS NOT UNDER IT ANY MORE. § */
           ''}
@@ -7223,8 +7229,11 @@ function figBlocks_(html) {
 }
 
 /* MEMOISED ON THE OBJECT, because `pageParts_` asks for every result on every new filter and the
-   library is seven thousand rows; the html of a row does not change under it. */
+   library is seven thousand rows; a row's words change only when the Ledger's land (`LIB.gen`). */
 const CHUNK_MEMO = new WeakMap();
+/* A PLAN HOLDS FOR ONE LIBRARY GENERATION (432): planned while the words were in the Ledger, it was a page with none in it. */
+const chunkGen_ = () => (typeof LIB !== 'undefined' && LIB ? LIB.gen : 0);
+const chunkHad_ = o => { const had = CHUNK_MEMO.get(o); return had && had.gen === chunkGen_() ? had : null; };
 /* AN EMPTY STEM IS NO PAGE AT ALL (`packBlocks_` alone would hand back one empty page, which is right for a
    card that must exist and wrong for a stem with nothing left on it). */
 const packSeg_ = (blocks, page, last) => (blocks.length ? packBlocks_(blocks, page, last) : []);
@@ -7232,7 +7241,7 @@ const packSeg_ = (blocks, page, last) => (blocks.length ? packBlocks_(blocks, pa
 /* ---------- A STEM'S PAGES, WITH ITS FIGURE AMONG ITS WORDS § */
 function stemPlan_(p) {
   if (!p || typeof p !== 'object') return { chunks: [] };
-  const had = CHUNK_MEMO.get(p);
+  const had = chunkHad_(p);
   if (had) return had;
   const fb = figBlocks_(p.html);
   const pb = fb.blocks.map(h => ({ k: 'pb', h: h }));
@@ -7240,7 +7249,7 @@ function stemPlan_(p) {
   const fig = stemHasFig_(p) && !stemPenned_(p)
     ? [{ k: 'fig', h: '', w: (p.diagram ? figWeight_(p.diagram) : 0) + picsWeight_(figImgs_(p.images)) }] : [];
   const at = fb.at >= 0 ? fb.at : pb.length;
-  const plan = { chunks: packSeg_(pb.slice(0, at).concat(fig, pb.slice(at)), CHUNK_PAGE, CHUNK_PAGE) };
+  const plan = { chunks: packSeg_(pb.slice(0, at).concat(fig, pb.slice(at)), CHUNK_PAGE, CHUNK_PAGE), gen: chunkGen_() };
   CHUNK_MEMO.set(p, plan);
   return plan;
 }
@@ -7282,7 +7291,7 @@ function stemChunks_(p) {
 /* ---------- A PART'S PAGES, WITH ITS FIGURE AMONG ITS WORDS § */
 function partPlan_(x) {
   if (!x || typeof x !== 'object') return { chunks: [[]] };
-  const had = CHUNK_MEMO.get(x);
+  const had = chunkHad_(x);
   if (had) return had;
   const lead = x.lead ? [{ k: 'lead', h: String(x.lead).replace(FIG_MARK, '') }] : [];
   const fb = figBlocks_(x.html);
@@ -7304,7 +7313,7 @@ function partPlan_(x) {
   }
   const u = usesBlock_(x);
   if (u) seq = [u].concat(seq);
-  const plan = { chunks: packBlocks_(seq, CHUNK_PAGE, PART_LAST) };
+  const plan = { chunks: packBlocks_(seq, CHUNK_PAGE, PART_LAST), gen: chunkGen_() };
   CHUNK_MEMO.set(x, plan);
   return plan;
 }
@@ -9594,7 +9603,8 @@ function paneReach_(panes) {
     /* ---------- NOR "MANAGE YOUR CHILD" (`childManageCard_`, me.js; the review of docs/history/339) § */
     const forms = list.map(p => !!p.querySelector('.card-ed .me-form, .kid-manage'));
     /* ---------- NOR A CARD ANSWERED BY TAPPING ITS OPTIONS, ITS ORDER OR ITS CELLS (374): drawn smaller they fell to 39-41px at 320; it scrolls and they stay 44 */
-    const picks = list.map(p => !!p.querySelector('.qcard .qp-opts, .qcard .qp-order, .qcard .qp-cells-box'));
+    /* AND THE CONSOLE (419) THE SAME WAY: drawn smaller its pad keys fell to 31px, and every line it showed or hid re-zoomed the whole console under a thumb. */
+    const picks = list.map(p => !!p.querySelector('.qcard .qp-opts, .qcard .qp-order, .qcard .qp-cells-box, .nes-wrap'));
     const want = list.map((p, i) => {
       const room = p.clientHeight - pad(p);
       const used = p.scrollHeight - pad(p);

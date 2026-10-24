@@ -156,6 +156,14 @@ const ACCEPTED_TAP = [
   + '        THE OLD ENTRY REFUSED THIS for the colours alone, on the grounds that splitting them '
   + 'across three pages to get the 44px would make changing a look three swipes — which is the '
   + 'same argument, now answered the other way round because the owner asked for the one card.' },
+  /* A LINE OF THE CARD'S EDIT — its label, its box, a fold's summary: 32px, on the owner's asking (docs/history/425). */
+  { cls: /^(|field|ce-line)$/, onCardEdit: true, why:
+    'YOUR CARD\'S EDIT IS ONE PHONE SCREEN, AND A 44px LINE CANNOT MAKE IT ONE. The owner, 24 Oct, pasting the whole '
+  + 'editor: *"please try your best to condense this so it can all apear on a phone screen"*. It was 2856px at 390x844. '
+  + 'Sixteen lines and the week at 44px are 900px before a caption, against a pane of about 730 above Save; at 32px the '
+  + 'form is about 710 (the state "your own card, being edited" holds it to 760). What was done instead of the height: '
+  + 'each line is the whole width — label and box are one target 32px tall and the full card wide — and every fold '
+  + 'opens on a tap anywhere on its line. A wrong tap costs nothing: a box gains focus, a fold opens and shuts again.' },
   { cls: /^scr-sq\b/, why:
     'A SCRABBLE BOARD IS FIFTEEN SQUARES ACROSS AND THAT IS THE GAME, not a layout choice. Fifteen '
   + '44px cells need 660px, which is wider than any phone made; at 320px they are 13px each and at '
@@ -849,7 +857,7 @@ function inspect(opts) {
     }
   }
 
-  /* ---------- A TILE ALONE ON A SECOND LINE (414) — at a phone's width a row of tiles is one line, or its overflow is behind "Admin"/"More" (`tileRow_`, tiles.js) */
+  /* ---------- A TILE ALONE ON ANY LINE (414, 420) — every tile is shown and a row past six breaks into even lines (`tileRow_`, tiles.js): 4+3, never 6+1 */
   found.orphans = [];
   if (vw <= 430) {
     inside.filter(el => el.classList && el.classList.contains('tile-row')).forEach(row => {
@@ -861,12 +869,29 @@ function inspect(opts) {
         const ln = lines.find(l => Math.abs(l.top - top) <= 4);
         if (ln) ln.n++; else lines.push({ top, n: 1 });
       });
-      if (lines.length > 1 && lines.sort((a, b) => a.top - b.top)[lines.length - 1].n === 1) {
+      if (lines.length > 1 && lines.some(l => l.n === 1)) {
         found.orphans.push({ cls: String(row.className || ''), lines: lines.map(l => l.n).join('+'),
           acts: tiles.map(k => k.getAttribute('data-do') || k.getAttribute('aria-label') || '').join(' ') });
       }
     });
   }
+
+  /* ---------- NOTHING FLOATS (420): "remove all pop up menus I DONT LIKE POP UP MENUS". A visible fixed or
+     top-layer box holding a control is a pop-up, unless it is one of the few things that are not menus. */
+  found.floating = [];
+  const NOT_MENUS = '#kp, #banner, #toast, #reconnect, #splash, .biz-dot, .nes-wrap.nes-full, .vid-watch.is-fs, .kp-loupe, .pad-loupe, .pad-sizes';
+  [...document.querySelectorAll('body *')].forEach(el => {
+    const s = getComputedStyle(el);
+    let top = false;
+    try { top = el.matches(':popover-open') || el.matches('dialog[open]') || el.matches(':modal'); } catch (e) {}
+    if (s.position !== 'fixed' && !top) return;
+    if (el.closest(NOT_MENUS) || !vis(el)) return;
+    if (!el.matches('[data-do], button, a, input, select, textarea') && !el.querySelector('[data-do], button, a, input, select, textarea')) return;
+    found.floating.push((el.id ? '#' + el.id : el.tagName.toLowerCase()) + (el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).join('.') : '')
+      + ' (' + (top ? 'top layer' : 'position: fixed') + ')');
+  });
+  const sh = document.getElementById('sheet');
+  if (sh && getComputedStyle(sh).position !== 'static') found.floating.push('#sheet is position: ' + getComputedStyle(sh).position + ' — the sheet is a page in the flow (420)');
 
   return { found, guessed, edgeN,
            pane: live === document.body ? 'body' : (live.id || live.className || live.tagName),
@@ -1514,7 +1539,8 @@ function inspect(opts) {
       `${f} still holds the loader that stands for "not started", 3s after the screen settled`, at));
     (r.offGlass || []).forEach(f => add('A WIDGET OFF THE GLASS STARTED',
       `${f} is running beside the column in front, 3s after the screen settled`, at));
-    (r.orphans || []).forEach(o => add('A TILE ALONE ON A SECOND LINE',
+    (r.floating || []).forEach(f => add('A POP-UP: SOMETHING FLOATS OVER THE APP (420)', f, at));
+    (r.orphans || []).forEach(o => add('A TILE ALONE ON A LINE',
       `.${o.cls.replace(/\s+/g, '.')} wraps ${o.lines} tiles (${o.acts.slice(0, 120)})`, at));
     (r.overflow || []).forEach(o => add('SIDEWAYS SCROLL',
       `${o.tag}.${o.cls.split(/\s+/)[0] || ''} overflows by ${o.by}px`, at));

@@ -1,7 +1,7 @@
 /* @family. — 30_booking.gs (4 of 8) THE BOOKING MACHINE, and everything that decides who is in a session. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const BOOKING_VERSION = "2026-10-24-j-stripe-dead";
+const BOOKING_VERSION = "2026-10-24-t-backend-dead";
 
 
 /* WHEN THE BUSINESS ACTUALLY OPERATES within an interval. § */
@@ -394,48 +394,6 @@ function confirmedTutorOf_(jobId) {
   return t ? t.name : '';
 }
 
-/** Send one invitation. Returns the token, which is the link. */
-function sendInvite(jobId, fromName, toEmail, toName) {
-  const t = read(TAB.invites);
-  const token = Utilities.getUuid().replace(/-/g, '').slice(0, 20);
-  /* ---------- AN INVITATION TO SOMEBODY WHO IS ALREADY A MEMBER IS A `bookings` EMAIL § */
-  const member = norm(toEmail) ? read(TAB.people).rows.find(r => norm(r.email) === norm(toEmail)) : null;
-  const held = !!member && !wants_(member, 'bookings');
-  addRow(t, Object.assign({
-    invite_id: 'I' + Date.now() + Math.floor(Math.random() * 99),
-    job_id: S(jobId), from_person: S(fromName), to_email: S(toEmail), to_name: S(toName),
-    sent_on: new Date(), token,
-  }, held ? { notes: 'not emailed: bookings_email on their row says no (Settings → Notifications)' } : {}));
-  if (held) { notifyHeld_(member, 'bookings', S(fromName) + ' would like to share a tutoring session with you'); return token; }
-
-  /* `cfg` is not a function — `config()` is. This line threw a ReferenceError the moment anybody
-     sent an invitation, which is why the whole mechanism has never once run to completion. */
-  const site = S(config().site_url) || SITE_URL;
-  const link = site + (site.indexOf('?') === -1 ? '?' : '&') + 'invite=' + token;
-  const job = read(TAB.jobs).rows.find(j => S(j.job_id) === S(jobId)) || {};
-
-  /* Written as the INVITING PARENT, because that is who it is from. § */
-  try {
-    mailOut_({
-      to: S(toEmail),
-      subject: S(fromName) + ' would like to share a tutoring session with you',
-      htmlBody:
-        '<p>Hello' + (S(toName) ? ' ' + S(toName) : '') + ',</p>'
-        + '<p>' + S(fromName) + ' has booked tutoring through @family. and asked whether you would '
-        + 'like to share the sessions — which brings the cost down for both of you.</p>'
-        + '<p><b>' + S(job.subject || 'Tuition') + '</b>'
-        + (S(job.venue) ? ' at ' + S(job.venue) : '')
-        /* THE TUTOR IS NOT A COLUMN. § */
-        + (confirmedTutorOf_(jobId) ? ', with ' + confirmedTutorOf_(jobId) : '') + '</p>'
-        + '<p><a href="' + link + '">See the details and decide</a></p>'
-        + '<p style="color:#666;font-size:13px">You were sent this because '
-        + S(fromName) + ' entered your address. If that is a mistake, ignore this and '
-        + 'nothing further will be sent.</p>',
-    });
-  } catch (err) { /* no mail quota, or a bad address — the row is still written */ }
-  return token;
-}
-
 /* ---------- THE HOURS SOMEBODY IS ALREADY TEACHING § */
 /* ---------- AND ONLY WHILE THE SESSION IS RUNNING § */
 function busyHours(tutorName, from, to) {
@@ -443,9 +401,6 @@ function busyHours(tutorName, from, to) {
   if (!S(tutorName)) return out;
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const lo = from || today, hi = to || lo;
-  const DAY = { monday: 'm', mon: 'm', tuesday: 'tu', tue: 'tu', wednesday: 'w', wed: 'w',
-                thursday: 'th', thu: 'th', friday: 'f', fri: 'f',
-                saturday: 'sa', sat: 'sa', sunday: 'su', sun: 'su' };
   read(TAB.jobs).rows.forEach(j => {
     const id = S(j.job_id) || String(j._row);
     if (!id) return;
@@ -460,16 +415,8 @@ function busyHours(tutorName, from, to) {
     const when = sessionDatesOf(j).map(sheetDate).filter(Boolean).sort((a, b) => a - b);
     if (when.length && (when[when.length - 1] < lo || when[0] > hi)) return;
 
-    const days = String(S(j.weekday)).split(',').map(x => DAY[norm(x)]).filter(Boolean);
-    if (!days.length) return;
-    const from = Number(String(fmtTime(j.start_time)).split(':')[0]);
-    if (!from && from !== 0) return;
-    const hours = Math.max(1, N(j.hours_per_session) || N(config().h) || 2);
-    days.forEach(d => {
-      for (let h = from; h < from + hours; h++) {
-        out[d + String(h).padStart(2, '0')] = S(j.subject) || 'Booked';
-      }
-    });
+    /* EVERY BOOKED HOUR, off `slot_codes` (434) — the old weekday + start + length read Mon 10–12 + Fri 16–18 as Fri 10–12. */
+    jobCodes_(j).forEach(c => { out[c] = S(j.subject) || 'Booked'; });
   });
   return out;
 }
@@ -499,6 +446,66 @@ function slotCodes_(v) {
     seen[x] = 1;
     return true;
   });
+}
+
+/* ---------- A JOB'S BOOKED HOURS, AS CODES (434) ---------- */
+/* `slot_codes` when the row has it; an older row's weekday + start + length otherwise — what the backfill writes, so both read alike. */
+function jobCodes_(j) {
+  const kept = slotCodes_(j && j.slot_codes);
+  if (kept.length) return kept;
+  const days = String(S(j && j.weekday)).split(',').map(x => DAY_CODE_[norm(x)]).filter(Boolean);
+  const raw = S(j && j.start_time);
+  const from = Number(String(fmtTime(j && j.start_time)).split(':')[0]);
+  if (!days.length || !raw || !isFinite(from)) return [];
+  const hours = Math.max(1, N(j.hours_per_session) || N(config().h) || 2);
+  const out = [];
+  days.forEach(d => { for (let h = from; h < from + hours && h <= 23; h++) out.push(d + String(h).padStart(2, '0')); });
+  return out;
+}
+
+/* ---------- THE HOURS A ROOM IS ALREADY TAKEN (434) ---------- */
+/* Derived from `jobs`, never stored (time-design 1). Only a real room row counts: a bare venue, a home or Online is not one space. */
+function spaceBusy(label, from, to) {
+  const out = {};
+  const sp = spaceOf_(label);
+  if (!sp.room) return out;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const lo = from || today, hi = to || lo;
+  read(TAB.jobs).rows.forEach(j => {
+    if (key(j.venue) !== key(label)) return;
+    const id = S(j.job_id) || String(j._row);
+    if (!id || jobStatusOf(id) === 'cancelled') return;
+    const when = sessionDatesOf(j).map(sheetDate).filter(Boolean).sort((a, b) => a - b);
+    if (when.length && (when[when.length - 1] < lo || when[0] > hi)) return;
+    jobCodes_(j).forEach(c => { out[c] = S(j.subject) || 'Booked'; });
+  });
+  return out;
+}
+
+/* A BOOKING MUST NOT LAND ON A ROOM ALREADY TAKEN (434): two families were both accepted for one room at one hour. */
+function roomClashRefusal_(body) {
+  const label = S(body.location);
+  const dates = S(body.dates).split(',').map(sheetDate).filter(Boolean).sort((a, b) => a - b);
+  const busy = spaceBusy(label, dates[0], dates[dates.length - 1]);
+  const taken = bookingCodes_(body).filter(c => busy[c]);
+  if (!taken.length) return '';
+  return label + ' is already booked at ' + taken.slice(0, 3).map(codeSaid_).join(', ')
+    + (taken.length > 3 ? ' and ' + (taken.length - 3) + ' more' : '') + ' in those weeks. Pick other hours, or another room.';
+}
+
+/* ---------- THE BACKFILL: EVERY OLD JOB GETS ITS slot_codes (434) ---------- */
+/* Only a blank cell is written, so running it twice does what once did. Run by MIGRATIONS (361). */
+function backfillSlotCodes_() {
+  const t = read(TAB.jobs);
+  if (t.headers.indexOf('slot_codes') < 0) throw new Error('the jobs tab has no slot_codes column yet');
+  let wrote = 0, left = 0;
+  t.rows.forEach(j => {
+    if (slotCodes_(j.slot_codes).length) return;
+    const codes = jobCodes_(j);
+    if (!codes.length) { left++; return; }
+    if (setCell(t, j, 'slot_codes', codes.join(','))) wrote++;
+  });
+  return { wrote: wrote, noHours: left };
 }
 
 /* A CODE AS A PERSON SAYS IT — `m16` is `Monday 16:00`. */
@@ -1043,7 +1050,6 @@ function authWaitMins_(r) {
   return left > 0 ? Math.ceil(left / 60000) : 0;
 }
 
-function authLocked_(r) { return authWaitMins_(r) > 0; }
 
 function authWrong_(t, r) {
   const was = authThrottle_(r);

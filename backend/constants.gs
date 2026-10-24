@@ -118,7 +118,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-24-j-stripe-dead";
+const BACKEND_VERSION = "2026-10-24-t-backend-dead";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -291,7 +291,9 @@ const SCHEMA = {
     /* ---------- WHAT THE BOOKING EARNS, KEPT AS IT WAS AGREED (docs/history/353) § */
     "gross", "tutor_payout", "venue_cost", "materials_charge", "materials_cost", "tickets_cost",
     "card_fees", "discount_type", "discount_value", "discount_code", "discount_absorbed_by",
-    "net_profit", "priced_at", "format", "practical_id", "trip_id"
+    "net_profit", "priced_at", "format", "practical_id", "trip_id",
+    /* EVERY BOOKED HOUR as grid codes, `m16,m17,f10` (434) — `weekday`/`start_time` kept only the first run. */
+    "slot_codes"
   ],
   events: [
     "event_id", "at", "job_id", "actor",
@@ -636,6 +638,12 @@ const CONFIG_DEFAULTS = [
   ['laminate_minimum', 0, 'the least a laminating job can cost, whatever the page count. 0 = none'],
   /* WHO HEARS ABOUT A CHILD'S FORGOTTEN PIN AND A NEW STAFF APPLICATION (400). Blank = the first admin with a proved address. Never sent to a phone (`CONFIG_PRIVATE`). */
   ['owner_email', '', "the business owner's address: a child's forgotten-PIN link and new tutor applications go here. Blank = the first admin's own email"],
+  /* ---------- THE PROGRESS COLUMN'S COUNTDOWNS (435): blank keeps the defaults in js/arcade.js (`PROG_EXAMS`, `PROG_HOLIDAYS`). */
+  ['exam_gcse_start', '', 'the day GCSE exams start, as MM-DD (every year) or YYYY-MM-DD (one year). Blank = 05-11'],
+  ['exam_alevel_start', '', 'the day A-level exams start, as MM-DD or YYYY-MM-DD. Blank = 05-11'],
+  ['exam_sats_start', '', 'the day Year 6 SATs start, as MM-DD or YYYY-MM-DD. Blank = 05-11'],
+  ['exam_11plus_start', '', 'the day the 11+ is sat, as MM-DD or YYYY-MM-DD. Blank = 09-12'],
+  ['holiday_starts', '', 'school holidays when the intervals tab names none ahead: "MM-DD Name" separated by commas, e.g. 10-26 October half-term, 12-19 Christmas holidays. Blank = the usual London dates'],
   ['postage_flat', 0, 'one stamp and one envelope for a whole order, not per item. 0 = you do not post, and only collection is offered'],
   // Documentation rows. Read by nobody — written so the sheet explains its own arithmetic.
   /* The formula_* rows lived here. § */
@@ -1207,10 +1215,6 @@ const POST_GROUPS = {
 };
 const POST_EDITABLE = flat(POST_GROUPS);
 
-/* The rooms every venue is described in terms of. § */
-const ROOM_SLOTS = ['Small room 1', 'Small room 2', 'Medium room 1', 'Medium room 2',
-                    'Large room 1', 'Large room 2'];
-
 const ROOM_GROUPS = {
   'Room':     ['venue', 'name'],
   'Rates':    ['rate_per_hour', 'concession_rate'],
@@ -1219,15 +1223,6 @@ const ROOM_GROUPS = {
 };
 const ROOM_EDITABLE = flat(ROOM_GROUPS);
 
-const LINK_GROUPS = {
-  'Link':  ['name', 'url'],
-  'Where': ['category', 'colour'],
-  'More':  ['description', 'photo'],
-};
-const LINK_EDITABLE = flat(LINK_GROUPS);
-
-const VENUE_EDITABLE = [...new Set(flat(VENUE_GROUPS).concat(
-  AVAIL_DAYS.reduce((a, [p]) => a.concat(AVAIL_HOURS.map(h => p + String(h).padStart(2,'0'))), [])))];
 
 /* BOOKING STATE MACHINE ==================================================== One machine, both sides. § */
 /* The four words a participant's row can say, written from THEIR point of view. § */
@@ -1288,6 +1283,8 @@ const RUNNABLE = {
   /* Turn postcodes into coordinates. Run it after adding a venue; it skips anything already
      placed, so running it twice costs one request and changes nothing. */
   geocode:           () => geocodeVenues(),
+  /* THE COLLIERS WOOD RACER'S MAP (426): OSM roads and buildings plus DEM heights, into a Drive file `?race=1` serves. `&arg=s,w,n,e` for another box. */
+  buildRaceMap:      a => buildRaceMap_(a),
   regeocode:         () => geocodeVenues(true),
   rename:            a => renameValue_(a),
   seedOptions:       () => seedOptions(),
@@ -1414,6 +1411,12 @@ const MIGRATIONS = [
     what: 'the questions, answers, practicals and content cards are copied into the Ledger and checked row by row',
     run: () => libMigrate_(),
     progress: () => libSetupSays_() },
+
+  /* EVERY OLD JOB GETS ITS BOOKED HOURS (434): blank `slot_codes` filled from weekday + start + length; only blanks, so safe to repeat. */
+  { id: 'jobs-slot-codes',
+    retry: true,
+    what: 'every booking gets its booked hours in slot_codes, so busy hours read one column',
+    run: () => backfillSlotCodes_() },
 ];
 
 /* ============================== POST ========================================================= */
@@ -1436,22 +1439,19 @@ const ACTION_ACCESS = {
   imageData: 'anyone',          // proxies a picture for the share canvas; reads nothing private
 
   // A person acting on their own record. Each handler still checks WHOSE row it is.
-  updateProfile: 'self', saveNotepad: 'self', saveTodo: 'self', confirmDetails: 'self',
+  updateProfile: 'self', saveNotepad: 'self', saveTodo: 'self',
   saveTimetable: 'self',
   saveAvatar: 'self', saveFriends: 'self', saveScore: 'self', saveTtHighscore: 'self',
   /* YOUR OWN PICTURE. The handler writes `photo` on the row the token resolved to and nowhere else. */
   savePhoto: 'self',
   /* YOUR OWN ROLES — the three a person may tick, on the row the token resolved to. § */
   setMyRoles: 'self',
-  myReferral: 'self',       // your own code, and who came through it
-  redeem: 'self',
   /* `likePost` was here. § */
   votePoll: 'self', reactPost: 'self',
   /* SAYING SOMETHING UNDER A POST, AND TAKING IT DOWN. § */
   addComment: 'self', deleteComment: 'self',
   /* Reading the folder, to choose a photograph already in it. Admin, because it lists what has not
      been posted yet — which is a view of your Drive rather than of the site. */
-  folderFiles: 'admin',
   /* `orderPrints` WAS HERE and the handler priced a print from the SHEET, deliberately, because a total posted by a browser is a total the client chose. § */
   /* A parent asks; only the named child may answer. Both `self` — the handlers check WHO, which
      is the part that matters and the part a gate cannot see. */
@@ -1472,7 +1472,7 @@ const ACTION_ACCESS = {
   /* The shop window is the business talking, so only the business may change it. */
   spotlight: 'admin',
   createCheckout: 'self', finalizePayment: 'self',
-  move: 'self', tutorMove: 'self', createJob: 'self',
+  move: 'self', createJob: 'self',
   /* JOINING THE LIST. `self` — anybody signed in may put themselves on it, and the handler checks it is their own name they are adding. § */
   joinWaitlist: 'self',
   /* ---------- OPENING A LIST IS ADMIN, AND HAD TO BE SAID HERE § */
@@ -1512,6 +1512,8 @@ const ACTION_ACCESS = {
   digestSendNow: 'admin',
   /* THE FILMS, FILLED FROM THE NOTFLIX FOLDER. § */
   filmsSync: 'admin',
+  /* The racer's Build the map tile (426): minutes of fetching from three outside services, so an admin's alone. */
+  raceBuild: 'admin',
   /* AN ADMIN ADDS, EDITS, HIDES OR DELETES A REEL OR A VIDEO (404). */
   mediaSave: 'admin', mediaHide: 'admin', mediaDelete: 'admin',
 
@@ -1520,15 +1522,12 @@ const ACTION_ACCESS = {
   myProfile: 'self',
   /* WHICH EMAILS YOU WANT (`NOTIFY_KINDS`). § */
   setNotify: 'self',
-  // The books, the prices, the rooms, the people list.
-  diagnosePeople: 'admin', getProfile: 'admin', listPeople: 'admin',
-  updateVenue: 'admin', updateConfig: 'admin', updatePricing: 'admin',
-  updateShop: 'admin', deleteShopItem: 'admin',
-
-  saveRoom: 'admin', updateTrip: 'admin', addTrip: 'admin',
+  /* One person's sheet row, for an admin. The books, prices, rooms, invitations and people-list handlers went in 433: nothing called them. */
+  getProfile: 'admin',
   /* `updateResource`, `editResource` and `deleteResource` WERE HERE. § */
-  editPost: 'admin', deletePost: 'admin',
-  setListed: 'admin', scanPosts: 'admin',
+  /* `self` (413): an author edits their own post while it waits and deletes it any time; each handler checks whose it is. */
+  editPost: 'self', deletePost: 'self',
+  setListed: 'admin',
   /* ANYBODY SIGNED IN MAY POST. § */
   addPost: 'self',
   /* Letting one through, or turning it down. Admin, obviously — this is the whole point of the
@@ -1540,14 +1539,7 @@ const ACTION_ACCESS = {
   /* ENDING A SESSION. Admin only, and deliberately: § */
   deleteJob: 'admin',
   /* LINKING A CHILD TO A PARENT WITHOUT ASKING THE CHILD. § */
-  linkChild: 'admin', unlinkChild: 'admin',
+  linkChild: 'admin',
   /* PEOPLE MADE, CHANGED AND REMOVED FROM THE PEOPLE COLUMN (373). */
   personGet: 'admin', personSave: 'admin', personDelete: 'admin',
-  /* Reports every tab and column in the spreadsheet. It was open to anyone, which hands a
-     stranger the shape of the whole database — the thing you would want before attacking it. */
-  debugTabs: 'admin',
-  /* Invitations. Opening one needs no account — that is the entire point, since the person being
-     invited does not have one yet. */
-  openInvite: 'anyone', acceptInvite: 'anyone',
-  sendInvites: 'self',
 };

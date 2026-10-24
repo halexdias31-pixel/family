@@ -401,12 +401,6 @@ const post = (b, body) => { asked++; return b.post(body); };
   try { b.ev('ensureSchema_()'); } catch (e) { no('ensureSchema_ threw in the harness', String(e && e.message || e)); }
   if (!S(rowOf(b, x => x.person_id === 'P-KIT').handle)) no('ensureSchema_ left a hand-typed child with no handle');
   if (S(rowOf(b, x => x.person_id === 'P-STU').handle) !== 'sam_kind71') no('ensureSchema_ changed a handle somebody already had');
-  /* AN INVITATION ACCEPTED MAKES A ROW WITH A HANDLE. */
-  b.seed('invites', [{ token: 'INV1', job_id: 'J1', from_person: 'Pat Parent', to_email: 'max@example.org' }]);
-  const inv = post(b, { action: 'acceptInvite', token: 'INV1', newName: 'Max Invited' });
-  const max = rowOf(b, x => x.first_name === 'Max');
-  if (!inv.success || !max) no('accepting an invitation made no row', inv);
-  else if (!S(max.handle)) no('the row an invitation makes has no handle — every card draws @Max, which does not sign in');
 }
 
 /* 8. WHO THE ACCOUNT IS FOR — a parent signs up as a parent, a student as a student, and a student still cannot make themself one THE WALK AFTER 273 FOUND IT: § */

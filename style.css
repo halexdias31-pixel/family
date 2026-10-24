@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-24-i-tidy-dead";
+  --css-version: "2026-10-24-u-one-rank";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -84,6 +84,7 @@
   --app: 26.5rem;
 
   --quick: .13s;         /* how long anything takes to respond to a touch */
+  --arrive: .28s;        /* how long what replaces the loader takes to fade in (428) */
 
   /* ---------- A CONTROL LAID OVER A MOVING PICTURE § */
   --over-wash: rgb(0 0 0 / .55);
@@ -160,13 +161,10 @@ html.wide body { max-width: none; box-shadow: none; }
   transform: none;
 }
 
-/* The sheet and the toast still follow the column — they are content, not furniture, and a sheet
-   spanning a desktop would be a wall. */
-#sheet, #toast {
+/* The toast still follows the column — content, not furniture. */
+#toast {
   position: fixed;
   left: 50%;
-  width: 100%;
-  max-width: var(--app);
   transform: translateX(-50%);
 }
 
@@ -730,6 +728,9 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .role-pick-say { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
 .role-pick-say .faint { font-size: .85rem; line-height: 1.35; }
 .roles-card .role-admin, .roles-card .roles-said { margin: .6rem 0 0; }
+/* ONE OF TWO (432): the role is a radio, so its box is round. */
+.roles-card .role-pick .box { border-radius: 50%; }
+.roles-card .role-pick + .role-pick { margin-top: .4rem; }
 
 /* ---------- NOTIFICATIONS: THE ROLES CARD'S TICKS, AND WHAT IS ALWAYS SENT AS WORDS § */
 .notify-always { list-style: none; margin: 0; padding: 0; font-size: .85rem; line-height: 1.45; color: var(--dim); }
@@ -757,72 +758,29 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .empty { padding: 2.5rem 1.2rem; text-align: center; color: var(--faint); font-size: .88rem; }
 code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
 
-/* ---------- THE SHEET --------------------------------------------------------------------------- */
-/* ---------- THE SHEET AND ITS BACKDROP, OPENED AND CLOSED BY ONE RULE § */
-#sheet.hidden, #sheet-back.hidden { display: flex !important; }
-
-#sheet-back {
-  position: fixed; inset: 0; z-index: 45;
-  background: rgba(0,0,0,.55);
-  backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
-  opacity: 1; visibility: visible;
-  transition: opacity .22s ease, visibility 0s;
+/* ---------- THE SHEET IS A PAGE (420) ---------------------------------------------------------- */
+/* No backdrop and nothing floating: while it is open the grid steps aside and the sheet is the page, in
+   the flow, with Back at the top. The grid keeps its sizes (out of the flow, unseen, `inert`). */
+#sheet.hidden { display: none !important; }
+body.sheet-open #screen {
+  position: absolute; left: 0; right: 0; top: calc(var(--top) + var(--safe-top));
+  opacity: 0; pointer-events: none;
 }
-#sheet-back.hidden {
-  opacity: 0; visibility: hidden;
-  transition: opacity .22s ease, visibility 0s linear .22s;
-  pointer-events: none;
-}
-
-/* ---------- THE PANEL OPENS OUT OF THE CARD YOU PRESSED § */
 #sheet {
-  /* Centred rather than sat on the bottom edge. */
-  top: 50%;
-  z-index: 46;
-  max-height: 88dvh;
-  border-radius: var(--r);
-  border: 1px solid var(--line);
+  position: static; width: 100%; max-width: var(--app); margin: 0 auto;
   display: flex; flex-direction: column;
-  background: var(--raised);
-  /* THE BOTTOM-SHEET LEFTOVERS ARE GONE. § */
-  /* OPEN: in the middle, at full size. The `-50%` on each axis is what centres it — the panel is
-     positioned at the middle of the screen and then pulled back by half of itself, which works
-     whatever size it turns out to be. */
-  transform: translate(-50%, -50%) scale(1);
-  opacity: 1;
-  visibility: visible;
-  /* The curve decelerates: a thing that arrives and settles rather than one dragged by a machine.
-     Opening and closing share it, so it leaves the way it came. */
-  transition: transform .3s cubic-bezier(.18, .85, .3, 1),
-              opacity .2s ease,
-              visibility 0s;
+  height: calc(100dvh - var(--top) - var(--safe-top) - var(--bar) - var(--safe-bottom));
+  background: var(--bg);
 }
-/* CLOSED: back where the card is, at the card's size. § */
-#sheet.hidden {
-  transform:
-    translate(-50%, -50%)
-    translate(var(--from-x, 0px), var(--from-y, 0px))
-    scale(var(--from-s, .94));
-  opacity: 0;
-  visibility: hidden;
-  /* The visibility waits for the movement. Cut at once and the panel vanishes mid-flight, which is
-     what it used to do and what read as harsh. */
-  transition: transform .3s cubic-bezier(.18, .85, .3, 1),
-              opacity .2s ease,
-              visibility 0s linear .3s;
-  pointer-events: none;
-}
-
-/* THE GRAB HANDLE IS HIDDEN. § */
-#sheet-grab { display: none; }
 #sheet-head {
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: center; gap: .4rem;
   padding: .35rem var(--pad) .6rem;
   font-size: 1rem; font-weight: 620;
   border-bottom: 1px solid var(--line-soft); flex: none;
 }
-#sheet-close { color: var(--dim); font-size: 1.1rem; padding: .25rem .4rem; cursor: pointer; }
-#sheet-body { padding: .85rem var(--pad) 1.5rem; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+#sheet-close { color: var(--gold); font: 500 .9rem/1 var(--font); min-height: 44px; min-width: 44px; flex: none;
+  display: inline-flex; align-items: center; padding: 0 .4rem 0 0; background: none; border: 0; cursor: pointer; }
+#sheet-body { flex: 1 1 auto; padding: .85rem var(--pad) 1.5rem; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
 /* ---------- THE TAB BAR IS GONE, AND THE LAST THING IT RESERVED WAS THE ONE THAT STILL WORKED § */
 
@@ -890,6 +848,15 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
   --chess-frame: #1b1815;
   --chess-last:  rgb(214 180 60 / .38);
   --chess-check: rgb(214 52 40 / .85);
+  /* THE LIGHT ON IT (429): a warm pool in the middle, the corners in shade, and the shadow a piece casts. */
+  --chess-glow:  rgb(255 236 190 / .10);
+  --chess-shade: rgb(0 0 0 / .34);
+  --chess-drop:  rgb(0 0 0 / .5);
+  --chess-dim:   rgb(6 5 4 / .74);
+  --chess-turn:  .7s;
+  --chess-ease:  cubic-bezier(.65, 0, .35, 1);
+  position: relative;
+  transition: rotate var(--chess-turn) var(--chess-ease);
 }
 /* The promotion row sits OUTSIDE the board, so it needs the board's palette on the card too. */
 .chess-game { --chess-light: #f4f4f2; --chess-white: #ffffff; --chess-black: #111111; }
@@ -900,10 +867,12 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
 /* THE OUTLINE IS THE OTHER SIDE'S COLOUR, which is what makes a white piece readable on a light square and a black one on a dark square. § */
 .chess .wp { color: var(--chess-white);
              text-shadow: 0 1px 0 var(--chess-black), 0 -1px 0 var(--chess-black),
-                          1px 0 0 var(--chess-black), -1px 0 0 var(--chess-black); }
+                          1px 0 0 var(--chess-black), -1px 0 0 var(--chess-black),
+                          0 .07em .09em var(--chess-drop); }
 .chess .bp { color: var(--chess-black);
              text-shadow: 0 1px 0 var(--chess-white), 0 -1px 0 var(--chess-white),
-                          1px 0 0 var(--chess-white), -1px 0 0 var(--chess-white); }
+                          1px 0 0 var(--chess-white), -1px 0 0 var(--chess-white),
+                          0 .07em .09em var(--chess-drop); }
 .chess .pick { box-shadow: inset 0 0 0 3px var(--good); }
 /* A LEGAL MOVE, in the accent rather than in black — a dark dot vanished on a dark square, which
    is the same fault the pieces had. */
@@ -915,9 +884,61 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
 /* A KING IN CHECK is red under the piece, which is the one square the whole position is about. */
 .chess .chk { background-image: radial-gradient(circle, var(--chess-check) 0 40%, transparent 72%); }
 .chess .sq:active, .chess .sq.is-pressed { filter: brightness(.9); }
+/* THE LANDING SQUARE OF THE LAST MOVE a shade stronger than where it left, so the eye reads which way it went. */
+.chess .last-to { background-image: linear-gradient(var(--chess-last), var(--chess-last)),
+                                    linear-gradient(var(--chess-last), var(--chess-last)); }
 
-/* WHOSE MOVE, above the board, in words — the board does not flip, so this line is the only thing
-   that says it. Big enough to read at arm's length from the other side of a table. */
+/* ---------- THE BOARD MOVES LIKE A BOARD (429) ---------- */
+/* THE PIECE IS ITS OWN BOX (games.js `drawChess`), so a glide moves it over the squares and leaves the square behind. */
+.chess .pc { display: block; position: relative; pointer-events: none;
+             transition: rotate var(--chess-turn) var(--chess-ease); }
+/* A PIECE IN FLIGHT is above every square it crosses; a taken piece fades under the one arriving. */
+.chess .sq.mv { z-index: 3; }
+.chess .pc.ghost { position: absolute; }
+/* TURNING THE BOARD: the board goes round and every piece turns back the other way, so none is ever upside down. */
+.chess.is-flipped { rotate: 180deg; }
+.chess.is-flipped .pc, .chess.is-flipped::before { rotate: -180deg; }
+/* THE LIGHT: one layer over the whole board, centred so it reads the same whichever way the board faces. */
+.chess::after { content: ''; position: absolute; inset: 0; z-index: 4; pointer-events: none;
+                background: radial-gradient(circle at 50% 50%, var(--chess-glow) 0, transparent 48%, var(--chess-shade) 100%); }
+/* CHECK: a ring goes out from the king three times as the threat lands, then the red under it stays. */
+.chess .chk { z-index: 2; }
+.chess .chk::before { content: ''; position: absolute; inset: 6%; border-radius: 50%; pointer-events: none;
+                      box-shadow: 0 0 0 .14em var(--chess-check); opacity: 0; }
+.chess .chk.is-new::before { animation: chess-ring .9s ease-out .25s 3; }
+@keyframes chess-ring { from { opacity: .95; transform: scale(.7); } to { opacity: 0; transform: scale(1.3); } }
+
+/* ---------- THE ENDING: the board goes dark, the beaten king falls, and the word comes up out of the dark ---------- */
+/* AT REST, the ending as it stands — what a redraw, reduced motion or a second look shows. `is-fresh` plays it, once. */
+.chess.is-over::after { background: radial-gradient(circle at 50% 50%, rgb(0 0 0 / .42) 0, var(--chess-dim) 100%); }
+.chess.is-over::before { content: attr(data-end); position: absolute; inset: 0; z-index: 7; pointer-events: none;
+  display: flex; align-items: center; justify-content: center;
+  font: 700 10cqw/1 var(--font); letter-spacing: .06em; text-transform: uppercase;
+  color: var(--gold); text-shadow: 0 .04em .4em rgb(0 0 0 / .9), 0 0 .12em rgb(0 0 0 / .8); }
+.chess.is-over:not(.is-mate)::before { color: var(--ink); font-size: 8cqw; }
+/* THE BEATEN KING lies above the dark, so the fall is the thing you see. */
+.chess .sq.fell { z-index: 6; }
+.chess .pc.fallen { transform-origin: 50% 90%; transform: rotate(84deg); }
+.chess.is-fresh::after { animation: chess-dark .7s ease-out .3s both; }
+.chess.is-fresh .pc.fallen { animation: chess-fall 1s .55s both; }
+.chess.is-fresh::before { animation: chess-word .7s cubic-bezier(.2, .8, .2, 1) 1.15s both; }
+@keyframes chess-dark { from { opacity: .35; } to { opacity: 1; } }
+@keyframes chess-fall {
+  0%   { transform: none; animation-timing-function: ease-out; }
+  18%  { transform: rotate(-9deg); animation-timing-function: cubic-bezier(.55, 0, .9, .4); }
+  72%  { transform: rotate(90deg); animation-timing-function: ease-out; }
+  86%  { transform: rotate(78deg); animation-timing-function: ease-in; }
+  100% { transform: rotate(84deg); } }
+@keyframes chess-word { from { opacity: 0; transform: scale(1.35); } to { opacity: 1; transform: none; } }
+
+/* REDUCED MOTION: the board turns, pieces move and the ending lands at once (games.js does not glide or set `is-fresh`). */
+@media (prefers-reduced-motion: reduce) {
+  .chess, .chess .pc, .widget-full:has(.chess) .chess { transition: none; }
+  .chess .chk.is-new::before { animation: none; }
+}
+
+/* WHOSE MOVE, above the board, in words — the board turns only if asked (429), so this line is what
+   always says it. Big enough to read at arm's length from the other side of a table. */
 .chess-say { text-align: center; margin: .2rem 0 .35rem; font-size: .95rem; font-weight: 600; }
 .chess-say.is-note { color: var(--dim); font-weight: 400; }
 .chess-ctl, .chess-promo { margin-top: .1rem; }
@@ -984,16 +1005,45 @@ a { color: inherit; text-decoration: none; }
 /* ---------- TIMES TABLES AND FLAPPY --------------------------------------------------------------- */
 #tt-answer { text-align: center; font-size: 1.2rem; }
 /* ---------- CONSOLE (389): 256x240 scaled by whole look, pixels kept square and crisp § */
+/* THE ROOM LEFT FOR THE REST (419): the stage is never taller than the screen less this, so picture and pad fit one screen. `--nes-pad-h` is each system's pad. */
 .nes-wrap { position: relative; display: flex; flex-direction: column; align-items: center; background: var(--bg);
-  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
-.nes-stage { position: relative; width: 100%; max-width: 48rem; aspect-ratio: 256 / 240; margin: .5rem 0; }
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation; --nes-pad-h: 188px; --nes-room: 15rem; }
+.nes-wrap[data-sys="snes"], .nes-wrap[data-sys="gba"], .nes-wrap[data-sys="nds"] { --nes-pad-h: 252px; }
+.nes-wrap[data-sys="n64"] { --nes-pad-h: 320px; }
+.nes-wrap.nes-has-pad { --nes-room: calc(15rem + var(--nes-pad-h)); }
+/* WITH THE KEY LIST SHOWN, room for it and the tiles under it too: on a laptop the whole console is on the screen at once. */
+.nes-wrap.nes-has-legend { --nes-room: 26rem; }
+.nes-wrap.nes-has-legend.nes-has-pad { --nes-room: calc(26rem + var(--nes-pad-h)); }
+/* `svh`, not `dvh`: the smallest screen height, so the stage does not change size as a phone's address bar comes and goes. */
+.nes-stage { position: relative; max-width: 48rem; aspect-ratio: 256 / 240; margin: .5rem 0; flex: none; touch-action: none;
+  width: min(100%, calc((100svh - var(--nes-room)) * var(--nes-ar, 1.0667))); min-width: min(100%, 160px); }
 .nes-canvas { width: 100%; height: 100%; display: block; background: #000; image-rendering: pixelated;
   border: 1px solid var(--line); border-radius: .25rem; }
 .nes-file { display: none; }
-.nes-pad { display: none; width: 100%; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0;
-  touch-action: none; }
+/* A FIXED HEIGHT PER SYSTEM, the same before and after a game starts: nothing under it moves (419). */
+/* EVERY SYSTEM IN THE SAME THREE ROWS — shoulders, D-pad and face buttons, Select and Start — so the widest row, 120 + 140px, fits a phone's card. */
+.nes-pad { display: none; width: 100%; align-items: center; align-content: center; justify-content: space-between; gap: 8px;
+  flex-wrap: wrap; padding: 8px 0; touch-action: none; box-sizing: border-box; height: var(--nes-pad-h); flex: none; overscroll-behavior: contain; }
+.nes-pad .nes-mid { order: 5; flex: 1 0 100%; justify-content: center; }
 .nes-pad.on { display: flex; }
-.nes-dpad { width: 132px; height: 132px; border-radius: 50%; border: 1px solid var(--line); flex: none;
+/* HELD IS A COLOUR, never a size: a key that grew or shrank under a thumb would move its neighbours. */
+.nes-key.is-down, .nes-dpad.is-down { background-color: var(--gold); color: var(--bg); border-color: var(--gold); }
+.nes-dpad.is-down { background-color: transparent; border-color: var(--gold); }
+/* THE KEY LIST (419): the current system's keys under the picture, small, in the screen's own gold. */
+.nes-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: .3rem .9rem; width: 100%; margin: 0 0 .4rem;
+  font: .72rem/1.3 var(--mono); color: var(--dim); }
+.nes-legend[hidden] { display: none; }
+.nes-lg { display: inline-flex; align-items: center; gap: .3rem; white-space: nowrap; }
+.nes-lg-k { display: inline-flex; gap: .2rem; }
+.nes-lg kbd { font: inherit; color: var(--gold); border: 1px solid var(--line); border-radius: .25rem; padding: .05rem .3rem; background: var(--sunk); }
+.nes-lg-v { color: var(--ink); }
+.nes-wrap.nes-full .nes-legend { display: none; }
+/* WHILE A GAME PLAYS EVERY LOOPING ANIMATION ELSEWHERE IN THE APP HOLDS STILL (`nesQuiet_`, games.js): the parked columns
+   are still drawn, and a slow laptop needs those frames for the game. */
+body.nes-on *, body.nes-on *::before, body.nes-on *::after { animation-play-state: paused !important; }
+body.nes-on .nes-wrap *, body.nes-on .nes-wrap *::before, body.nes-on .nes-wrap *::after { animation-play-state: running !important; }
+.nes-dpad { width: 120px; height: 120px; border-radius: 50%; border: 1px solid var(--line); flex: none;
   background: radial-gradient(circle, var(--line) 18%, transparent 19%),
     linear-gradient(var(--sunk), var(--sunk)) center / 44px 100% no-repeat,
     linear-gradient(var(--sunk), var(--sunk)) center / 100% 44px no-repeat; touch-action: none; }
@@ -1014,7 +1064,7 @@ a { color: inherit; text-decoration: none; }
 .nes-wrap.nes-full .nes-stage { max-width: none; aspect-ratio: auto; margin: 0; flex: none; }
 .nes-wrap.nes-full .nes-canvas { border: 0; border-radius: 0; }
 @media (orientation: landscape) {
-  .nes-wrap.nes-full .nes-pad.on { position: absolute; inset: 0; padding: 0 max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
+  .nes-wrap.nes-full .nes-pad.on { position: absolute; inset: 0; height: auto; flex-wrap: nowrap; padding: 0 max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
     pointer-events: none; background: none; }
   .nes-wrap.nes-full .nes-pad.on > * { pointer-events: auto; }
   .nes-wrap.nes-full .nes-mid { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); }
@@ -1024,12 +1074,10 @@ a { color: inherit; text-decoration: none; }
 .emu-host > :not(.ejs_canvas_parent), .emu-host .ejs_canvas_parent > :not(canvas) { display: none !important; }
 .emu-host .ejs_canvas_parent { width: 100%; height: 100%; }
 .emu-host canvas { width: 100% !important; height: 100% !important; display: block; image-rendering: pixelated; }
-.nes-pad-top { flex-wrap: wrap; row-gap: 8px; }
-.nes-pad-top .nes-mid { order: 5; flex: 1 0 100%; justify-content: center; }
 .nes-shoulders { order: -1; flex: 1 0 100%; display: flex; justify-content: space-between; gap: 8px; }
 .nes-shoulders .nes-key { min-width: 64px; }
-.nes-face { display: grid; grid-template: repeat(3, 48px) / repeat(3, 48px); flex: none; }
-.nes-face .nes-round { width: 48px; height: 48px; font-size: 1rem; }
+.nes-face { display: grid; grid-template: repeat(3, 44px) / repeat(3, 44px); flex: none; }
+.nes-face .nes-round { width: 44px; height: 44px; font-size: 1rem; }
 .nes-face.nes-c { grid-template: repeat(3, 44px) / repeat(3, 44px); }
 .nes-c1 { width: 44px; height: 44px; border-radius: 50%; font-size: .75rem; padding: 0; }
 .nes-n { grid-area: 1 / 2; } .nes-w { grid-area: 2 / 1; } .nes-e { grid-area: 2 / 3; } .nes-s { grid-area: 3 / 2; }
@@ -1263,6 +1311,8 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 .loading {
   display: flex; align-items: center; justify-content: center; gap: .5rem;
   width: 100%; min-height: 3rem; margin: 0; padding: 0;
+  /* FADED UP after a beat (428), so a wait shorter than that never flashes three dots and is gone. */
+  animation: arrive var(--arrive) ease-out .12s both;
 }
 .loading > span {
   flex: none; width: .55rem; height: .55rem; border-radius: 50%;
@@ -1279,10 +1329,10 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 /* STILL, NOT GONE, for somebody who asked for less movement: three dots at one strength are still a
    thing on its way, and taking them away would take the state with them — the busy ring's argument. */
 @media (prefers-reduced-motion: reduce) {
-  .loading > span { animation: none; opacity: .7; transform: none; }
+  .loading, .loading > span { animation: none; opacity: .7; transform: none; }
 }
 /* ONLY THE CARD IN FRONT MOVES. § */
-.page:not(.on) .loading > span { animation: none; }
+.page:not(.on) .loading, .page:not(.on) .loading > span { animation: none; }
 /* A WHOLE PAGE WAITING: § */
 .pane:has(> .loading:only-child) {
   min-height: 6rem;
@@ -1293,6 +1343,13 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 [aria-busy="true"]:has(> .loading) { position: relative; min-height: 3rem; }
 [aria-busy="true"]:has(> .loading) > :not(.loading) { visibility: hidden; }
 [aria-busy="true"] > .loading { position: absolute; inset: 0; min-height: 0; }
+
+/* ---------- WHAT ARRIVES WHERE THE DOTS WERE FADES IN (docs/history/428) */
+.arrive { animation: arrive var(--arrive) ease-out both; }
+@keyframes arrive { from { opacity: 0; } }
+/* ONLY THE COLUMN IN FRONT FADES (306's rule for the dots): the builder fills the others in the quiet, unseen. */
+.screen:not(.is-front) .arrive { animation: none; }
+@media (prefers-reduced-motion: reduce) { .arrive { animation: none; } }
 
 /* ---------- A POLL § */
 .poll { margin: .6rem 0 .2rem; display: flex; flex-direction: column; gap: .3rem; }
@@ -2123,14 +2180,7 @@ button.text-drop { color: var(--bad); }
 .rc-total.rc-money.rc-net .bk-k, .rc-total.rc-money.rc-net .bk-t { font-weight: 700; color: var(--ink); }
 .rc-total.rc-money.rc-net.is-bad .bk-k, .rc-total.rc-money.rc-net.is-bad .bk-t { color: var(--bad); }
 .bk > .bk-say.rc-money-say { color: var(--bad); text-align: right; }
-/* THE DISCOUNT LINE'S CONTROLS, under its row and the width of the card: four in a 390px column will not
-   sit beside a label, so they wrap two by two. A tap target is a fingertip, so 44px whatever the root. */
-.bk > .rc-disc-ctl { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; margin: .2rem 0 .1rem; }
-.rc-disc-in {
-  flex: 1 1 40%; min-width: 0; min-height: 44px; padding: 0 8px;
-  font: inherit; font-size: .8rem; color: var(--ink);
-  background: var(--sunk); border: 1px solid var(--line); border-radius: 8px;
-}
+/* THE DISCOUNT'S CONTROLS ARE ORDINARY ROWS NOW, one line per thing (421) — `discountRow_` draws them with `receiptRow`. */
 /* ---------- A TOTAL'S LABEL RUNS ACROSS THE ROW, SO IT CANNOT WIDEN THE QUESTION COLUMN § */
 .rc-total .bk-k { grid-column: 1 / -2; }
 .rc-total .bk-v, .rc-total .bk-m, .rc-total .bk-r { display: none; }
@@ -2559,7 +2609,6 @@ label.bk-k { cursor: pointer; }
 .av-sw.on { border-color: var(--gold); box-shadow: 0 0 0 1px var(--bg); }
 
 /* ---------- WHEN I CAN TEACH, AS A TIDY WEEK § */
-.me-week-say { margin: .1rem 0 .6rem; }
 .me-week .slot-grid { gap: 3px; margin: 0 0 .85rem; }
 .me-week .slot-row { display: grid; grid-template-columns: 2.1rem minmax(0, 1fr);
                      gap: .35rem; align-items: center; }
@@ -2626,6 +2675,11 @@ label.bk-k { cursor: pointer; }
   border: 6px solid var(--chess-frame);
   border-radius: 4px;
   box-shadow: 0 14px 34px rgb(0 0 0 / .55), inset 0 0 0 1px rgb(255 255 255 / .06);
+  transition: rotate var(--chess-turn) var(--chess-ease), box-shadow var(--chess-turn) var(--chess-ease);
+}
+/* TURNED, THE SHADOW IS WRITTEN UPSIDE DOWN so it still falls below the board; eased with the turn, it passes under the middle. */
+.widget-full:has(.chess) .chess.is-flipped {
+  box-shadow: 0 -14px 34px rgb(0 0 0 / .55), inset 0 0 0 1px rgb(255 255 255 / .06);
 }
 /* The board IS the object here, so the surface under it steps aside and the board carries the
    edge and the shadow itself — see the rule above. */
@@ -2990,6 +3044,15 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 
 /* ---------- A POST THAT IS WAITING § */
 .post-wait { color: var(--gold); font-weight: 600; }
+/* WAITING FOR APPROVAL (413): dotted, inset so a picture that bleeds to the edge cannot cover it; the line says what the dots mean. */
+.post.is-pending { outline: 2px dotted var(--gold); outline-offset: -2px; border-radius: 4px; padding-top: .5rem; }
+.post-pending { margin: 0 0 .5rem; font-size: .78rem; color: var(--gold); font-weight: 600; letter-spacing: .02em; }
+/* A RECEIVED MESSAGE AND ITS REPORT TILE, side by side (413); the tile is quiet until it is wanted. */
+.msg-line { display: flex; align-items: flex-end; gap: .35rem; width: 100%; }
+.msg-line .msg-flag { opacity: .5; flex: 0 0 auto; }
+.msg-line .msg-flag:hover, .msg-line .msg-flag:focus-visible { opacity: 1; }
+/* THE COMPOSER'S PICKER (413): a file, never a link — the label is the control, so it carries the gap the box above it would have. */
+.post-files-btn { display: block; text-align: center; margin-bottom: .8rem; }
 
 /* THREE THINGS THAT ARE WHAT THEY ARE The receipt works because a booking genuinely produces a receipt — the form is not a costume, it is the honest shape of the § */
 
@@ -3111,6 +3174,69 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 /* SOMEBODY ELSE'S PICTURE, ON AN ADMIN'S EDIT: the card's own circle, and why it is not offered. */
 .ce-pic { display: flex; gap: .7rem; align-items: center; }
 .ce-pic .ce-note { margin: 0; }
+/* ---------- THE CARD'S EDIT ON ONE PHONE SCREEN: ONE LINE A THING, LABEL LEFT, VALUE RIGHT (docs/history/425) § */
+.card-ed { --ce-row: 32px; --ce-k: 6.6rem; }
+.card-ed .me-form { line-height: 1.25; }
+.card-ed .ce-sec + .ce-sec { margin-top: 0; padding-top: 0; border-top: 0; }
+.card-ed .ce-sec > .prof-cap:first-child { margin: .45rem 0 .25rem; }
+/* A LINE: a label at a fixed width, the box taking the rest; the label is the 32px target (`ACCEPTED_TAP`, check/ui.js). */
+.card-ed label.field, .card-ed .f-rowwrap, .card-ed .field.many, .card-ed .ce-line {
+  display: flex; align-items: center; gap: .5rem; min-height: var(--ce-row); margin: 0;
+  border-bottom: 1px solid var(--line-soft); }
+.card-ed label.field > span, .card-ed .f-rowwrap > .dob-cap, .card-ed .many-cap, .card-ed .ce-k {
+  flex: 0 0 var(--ce-k); margin: 0; font-size: .62rem; letter-spacing: .04em; text-transform: uppercase;
+  line-height: 1.1; color: var(--faint); overflow: hidden; }
+.card-ed label.field > input, .card-ed label.field > select, .card-ed .many-sum {
+  flex: 1 1 auto; min-width: 0; min-height: 0; height: 28px; padding: 0 .5rem; }
+.card-ed label.field > select, .card-ed .many-sum { padding-right: calc(var(--sel-at) + var(--sel-tri) + .3rem); }
+.card-ed .many-sum { line-height: 26px; }
+/* THE VENUES' OWN SUMMARY IS THE FOLD'S LINE — the ticks are drawn open inside it (`ceWhere_`). */
+.card-ed .ce-fold .field.many { display: block; border: 0; min-height: 0; }
+.card-ed .ce-fold .many-cap, .card-ed .ce-fold .many-sum { display: none; }
+.card-ed .f-row { display: block; }
+.card-ed .f-rowwrap > .f-row { display: grid; flex: 1 1 auto; min-width: 0; gap: .3rem; }
+.card-ed .f-rowwrap .f-row label.field { border: 0; min-height: 0; margin: 0; }
+.card-ed .f-row.is-range .f-dash { margin: 0; }
+.card-ed .f-row.is-range { align-items: center; }
+.card-ed .field.many { flex-wrap: wrap; }
+.card-ed .many-d { flex: 1 1 0; min-width: 0; }
+.card-ed .many-d[open] { flex-basis: 100%; padding-bottom: .4rem; }
+.card-ed .many-list { margin-top: .3rem; }
+/* A FOLD: its line is a summary, the value right-aligned; open, its inside sits under the line. */
+.card-ed .ce-fold > summary { list-style: none; cursor: pointer; }
+.card-ed .ce-fold > summary::-webkit-details-marker { display: none; }
+.card-ed .ce-v { flex: 1 1 auto; min-width: 0; display: block; text-align: right;
+  font-size: .82rem; line-height: 1.4; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card-ed .ce-line::after { content: ''; flex: none; width: 6px; height: 6px; margin-left: .15rem;
+  border-right: 1.5px solid var(--dim); border-bottom: 1.5px solid var(--dim); transform: rotate(45deg) translateY(-2px); }
+.card-ed .ce-fold[open] > .ce-line::after { transform: rotate(225deg) translateY(-2px); }
+.card-ed .ce-fold[open] > .ce-line { border-bottom-color: transparent; }
+.card-ed .ce-body, .card-ed details.pfp > :not(summary) { padding: .2rem 0 .5rem; }
+.card-ed .ce-fold[open] { border-bottom: 1px solid var(--line-soft); }
+.card-ed .ce-body > label.field:last-of-type { border-bottom: 0; }
+.card-ed .ce-figv { display: inline-flex; align-items: center; gap: .35rem; vertical-align: middle; }
+.card-ed .ce-fig { display: inline-flex; width: 26px; height: 26px; }
+.card-ed .ce-fig > svg { width: 100%; height: 100%; }
+.card-ed .ce-seat, .card-ed .ce-seat .prof-seat { font-size: .78rem; color: var(--ink); }
+.card-ed .handle-now { margin: 0; font-size: .9rem; }
+.card-ed .handle-said { margin: 0; font-size: .74rem; }
+/* THE PICTURE'S LINE: the face at 28px, at 44 once open; the picker keeps its own grid under it. */
+.card-ed details.pfp { display: block; margin: 0; }
+.card-ed .ce-v .handle-now { display: inline-flex; }
+.card-ed details.pfp > .ce-line { justify-content: space-between; }
+.card-ed details.pfp > .ce-line .ce-k { flex: 1 1 auto; }
+.card-ed details.pfp .pfp-face { width: 28px; height: 28px; border-radius: 4px; }
+.card-ed details.pfp[open] .pfp-face { width: 44px; height: 44px; }
+.card-ed details.pfp .pfp-none { font-size: .9rem; }
+.card-ed details.pfp > .pfp-grid { display: grid; }
+.card-ed details.pfp > .pfp-said { margin: 0; padding-top: 0; }
+.card-ed .q-shelf { margin: 0; }
+.card-ed .ph-shelf { margin-top: .3rem; }
+/* THE WEEK, SMALLER: 20px rows instead of square cells, so seven days are a fifth of the screen (`.hr` in `ACCEPTED_TAP`). */
+.card-ed .me-week { margin-top: .35rem; }
+.card-ed .me-week .slot-grid { gap: 2px; margin: 0; }
+.card-ed .me-week .hr { aspect-ratio: auto; min-height: 0; height: 20px; }
+.card-ed .ce-tiles { margin-top: .4rem; }
 
 /* ---------- "+" AT THE TOP OF A LIST THAT CAN GROW — `addCard_` in tiles.js (373) ---------- */
 .add-card { display: flex; width: 100%; align-items: center; gap: .7rem; min-height: 48px; margin: 0;
@@ -4572,11 +4698,8 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 
 /* ---------- THE ADMIN MARKS SIT AT THE FAR END § */
 .tile-group.is-admin { display: inline-flex; gap: .3rem; margin-left: auto; }
-/* ---------- THE SHEET BEHIND "ADMIN" OR "MORE" (414): a row of its own under the tiles, opened by the tile that names it */
-.tile-sheet { flex: 1 0 100%; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .3rem; padding: .3rem;
-  border: 1px solid var(--line-soft); border-radius: var(--r); background: rgb(255 255 255 / .03); }
-.tile-sheet[hidden] { display: none; }
-.tile.on .tile-i-more { fill: currentColor; }
+/* ---------- A ROW PAST SIX TILES BREAKS INTO EVEN LINES (420, `tileRow_`): a zero-height item a whole line wide */
+.tile-break { flex: 0 0 100%; height: 0; }
 /* AN EMPTY WIDGET IS ITS TITLE ALONE (414, `emptyCard_`), so the heading keeps no space for a body under it. */
 .card.is-empty > h3 { margin: 0; }
 /* `.tile-row.is-admin` WAS ALSO DECLARED HERE, setting a margin the block further down immediately
@@ -4608,6 +4731,8 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 /* THE FALLBACK WORD, for a tile somebody adds without giving it a mark — see `tile_`. Nothing emits
    one today, and a blank 44px square would be worse than an ugly one. */
 .tile-k { font-size: .62rem; letter-spacing: .02em; }
+/* TAP AGAIN TO CONFIRM (420, `sure_`): an armed tile says so in words, in place of a pop-up, and widens to fit them. */
+.tile.is-sure { width: auto; padding: 0 .6rem; color: var(--bad); border-color: var(--bad); white-space: nowrap; }
 
 /* `.tile-v` WAS THE DETAIL BESIDE THE LABEL — "23 questions", "£0.46 · 23pp" — and there is no label any more, so nothing emits one. § */
 
@@ -5276,6 +5401,44 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .mz-key.left  { grid-column: 1; grid-row: 2; }
 .mz-key.down  { grid-column: 2; grid-row: 2; }
 .mz-key.right { grid-column: 3; grid-row: 2; }
+
+/* ---------- THE COLLIERS WOOD RACER (426): a fixed-shape stage, so nothing under it moves while it draws */
+.race-stage {
+  --race-sky: rgb(158, 199, 230);
+  position: relative; width: 100%; aspect-ratio: 4 / 3; margin: .55rem 0 0; overflow: hidden;
+  background: var(--race-sky); border-radius: var(--r-sm); touch-action: none; user-select: none;
+}
+@media (min-width: 700px) { .race-stage { aspect-ratio: 16 / 10; } }
+.race-gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: pointer; }
+.race-mini {
+  position: absolute; top: 8px; right: 8px; width: 96px; height: 96px; border-radius: 50%;
+  background: color-mix(in srgb, var(--bg) 55%, transparent); border: 1px solid var(--line); pointer-events: none;
+}
+.race-hud, .race-lap {
+  position: absolute; left: 8px; display: flex; flex-direction: column; gap: .1rem; max-width: calc(100% - 120px);
+  padding: .3rem .5rem; border-radius: var(--r-sm); pointer-events: none;
+  background: color-mix(in srgb, var(--bg) 62%, transparent); color: var(--ink); font: .78rem/1.25 var(--mono);
+}
+.race-hud { top: 8px; }
+.race-hud b { color: var(--gold); font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+.race-hud span, .race-lap span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.race-lap { bottom: 8px; }
+/* THE PEDALS, phone only: a fixed row, px because a thumb does not scale with the root font. */
+.race-pads { display: none; grid-template-columns: repeat(2, minmax(0, 1fr)) 12px repeat(2, minmax(0, 1fr)); gap: 8px; height: 64px; margin: .55rem 0 0; }
+.race-pad {
+  height: 64px; min-width: 0; padding: 0; border-radius: 12px; touch-action: none; user-select: none;
+  background: var(--sunk); color: var(--ink); border: 1px solid var(--line); font: 600 1rem/1 var(--font);
+}
+.race-pad.is-go { color: var(--gold); }
+.race-pad.on { background: var(--line); border-color: var(--gold); }
+.race-keys { margin: .4rem 0 0; text-align: center; }
+@media (hover: none) and (pointer: coarse) {
+  .race-pads { display: grid; }
+  .race-keys { display: none; }
+}
+.race-nogl { position: absolute; left: 0; right: 0; top: 45%; margin: 0; text-align: center; color: var(--bg); }
+.race-attr { margin: .35rem 0 0; font-size: .72rem; }
+.race-attr a { color: inherit; }
 
 /* ---------- THE ONE CHOICE EACH OF THESE TWO GAMES ASKS, AT THE TOP OF ITS CARD § */
 .ws-top { margin: .5rem 0 0; }
@@ -6238,3 +6401,27 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .rsvp-speed input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; margin-top: -10px;
   border-radius: 50%; background: var(--gold); border: 0; }
 .rsvp-speed input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: var(--gold); border: 0; }
+
+/* ================= PROGRESS (435): one line per thing on the black and gold; a paper opens in place ================= */
+.prog-topic .row { border-bottom: 0; padding-bottom: .2rem; }
+.prog-bar { height: .3rem; margin-bottom: .45rem; border-radius: var(--r-sm); background: var(--line); overflow: hidden; }
+.prog-bar > span { display: block; height: 100%; background: var(--gold); }
+.prog-tot .v { color: var(--gold); font-weight: 620; }
+.prog-v.is-good { color: var(--good); }
+.prog-v.is-bad { color: var(--bad); }
+.prog-weak + .prog-weak { margin-top: .5rem; }
+.prog-weak .row { border-bottom: 0; }
+.prog-sessions .sub { margin: .5rem 0 0; }
+.prog-from { margin: -.2rem 0 .4rem; font-size: .75rem; }
+.prog-paper > summary { min-height: 44px; cursor: pointer; list-style: none; align-items: center; }
+.prog-paper > summary::-webkit-details-marker { display: none; }
+.prog-paper > summary .k::before { content: "▸"; display: inline-block; width: 1rem; color: var(--gold); }
+.prog-paper[open] > summary .k::before { content: "▾"; }
+.prog-qs { padding-left: 1rem; border-bottom: 1px solid var(--line); }
+.prog-qs .row { font-size: .85rem; }
+.prog-topic .v, .prog-weak .v, .prog-paper > summary .v, .prog-count .v, .prog-activity .prog-v { white-space: nowrap; }
+/* A LONG PAPER OR TOPIC NAME WRAPS ON ITS OWN SIDE; the value keeps its line and never leaves the card. */
+.prog-count .row .k, .prog-answered .row .k, .prog-activity .row .k, .prog-weakest .row .k, .prog-grade .row .k,
+.prog-series .row .k, .prog-sessions .row .k { flex: 1 1 auto; min-width: 0; }
+.prog-count .row .v, .prog-answered .row .v, .prog-activity .row .v, .prog-weakest .row .v, .prog-grade .row .v,
+.prog-series .row .v, .prog-sessions .row .v { flex: 0 0 auto; }

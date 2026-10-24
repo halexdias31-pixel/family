@@ -48,7 +48,7 @@ const KEPT = [
     why: 'the booking note — an answer in `BOOKING`, which is kept whole as it is typed (`bookKeep_`)',
     proof: [['book.js', /closest\('\[data-do="book-note"\]'\)[\s\S]{0,120}?BOOKING\.note = el\.value \|\| '';\s*bookKeep_\(\);/]] },
   { file: 'book.js', fn: 'discountRow_', has: "at('disc", count: 2,
-    why: 'an admin\'s discount boxes — answers in `BOOKING`, kept whole as they are typed (`bookKeep_`), like the booking note (docs/history/353)',
+    why: 'an admin\'s discount rows (How much, Code or reason; 421) — answers in `BOOKING`, kept whole as they are typed (`bookKeep_`), like the booking note (docs/history/353)',
     proof: [['book.js', /closest\('input\[data-do="book-disc"\]'\)[\s\S]{0,160}?BOOKING\[el\.dataset\.field\] = String\(el\.value \|\| ''\); bookKeep_\(\);/]] },
   { file: 'records.js', fn: 'profitControl_', has: 'data-pf=', count: 2,
     why: 'a term of the Profit card\'s sum (393) — slider and number box, kept as they move in `PROFIT.vals` on this device (`profitKeep_`), never sent',

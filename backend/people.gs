@@ -77,7 +77,7 @@ function liveSeatsAs_(row, role) {
 function findPerson(nameOrId, altId) {
   const rows = read(TAB.people).rows;
   /* The id, if one was passed and it is an id rather than something else handed in by mistake —
-     `myReferral` passes the whole tab object as the second argument, which must not be stringified
+     a caller that passes the whole tab object as the second argument must not have it stringified
      into a search term. */
   const alt = (altId && typeof altId !== 'object') ? key(altId) : '';
   if (alt) {

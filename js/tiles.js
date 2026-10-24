@@ -54,8 +54,6 @@ const TILE_ICONS = {
   /* SAVE IS A TICK, not a floppy disk: nobody who uses this app has held one, and a tick is what
      every form here already means by "done". */
   save:  '<path d="M3.5 9.5 7.3 13.3 14.8 4.8"/>',
-  /* MORE IS THREE DOTS (414): the tile a row's overflow sits behind — "Admin" or "More", `tileRow_`. */
-  more:  '<circle cx="4" cy="9" r=".9"/><circle cx="9" cy="9" r=".9"/><circle cx="14" cy="9" r=".9"/>',
   /* ADD IS A PLUS, the one mark every phone already puts on "one more of these" — the qualifications
      card's `+` under its list (see `qualShelf_` in me.js). Two strokes, open, the set's 1.4. */
   plus:  '<path d="M9 3.5v11"/><path d="M3.5 9h11"/>',
@@ -69,6 +67,8 @@ const TILE_ICONS = {
   in:    '<path d="M9.5 2.5h5v13h-5"/><path d="M2 9h8.5"/><path d="m7.5 6 3 3-3 3"/>',
   key:   '<circle cx="5.5" cy="9" r="3"/><path d="M8.5 9h7"/><path d="M13.5 9v2.5"/>'
        + '<path d="M11.2 9v1.8"/>',
+  /* A KEYBOARD: its outline, two rows of keys and the space bar — the Console's key list (419). */
+  keys:  '<path d="M1.5 4.5h15v9h-15z"/><path d="M4 7h1M7 7h1M10 7h1M13 7h1M4 9.5h1M7 9.5h1M10 9.5h1M13 9.5h1"/><path d="M5.5 11.5h7"/>',
   join:  '<circle cx="7" cy="5.5" r="2.6"/><path d="M2 15.5a5 5 0 0 1 10 0"/>'
        + '<path d="M14 6v5"/><path d="M11.5 8.5h5"/>',
   /* FULL SCREEN: four corners pushed outward, the mark every video player puts on the button that
@@ -112,6 +112,10 @@ const TILE_ICONS = {
   integral: '<path d="M3.5 15c1.6.6 2.6-.2 3-2.2l1.6-8.6c.4-2 1.4-2.8 3-2.2"/><rect x="11" y="7" width="5" height="6" rx=".8"/>',
   /* THE RETURN KEY'S ARROW: down the right and back to the left, where the next line starts. */
   newline: '<path d="M15 2.5v7H3.5"/><path d="M7 6 3.5 9.5 7 13"/>',
+  /* TURN THE BOARD (chess, 429): one side going up and the other coming down, the mark for changing ends. */
+  turn:  '<path d="M6 15V3"/><path d="M3 6l3-3 3 3"/><path d="M12 3v12"/><path d="M9 12l3 3 3-3"/>',
+  /* NEW GAME (chess, 429): one arrow coming round to where it began. */
+  again: '<path d="M14.8 9.5A5.8 5.8 0 1 1 13 5"/><path d="M13.4 1.6v3.6H9.8"/>',
   /* SPEED READ (403): the reader's two guide ticks, and a line of words running through them. */
   speed: '<path d="M9 1.5v3.5"/><path d="M9 12v3.5"/><path d="M2 8.5h4.5"/><path d="M8 8.5h2"/><path d="M11.5 8.5h4.5"/>',
 };
@@ -389,8 +393,8 @@ function cardTiles_(x) {
   return tileRow_(mine + admin, '', x.kind === 'me');
 }
 
-/* ---------- ONE ROW, NEVER AN ORPHAN (414) ---------- */
-/* SIX 44px TILES FIT A CARD AT 390px; a seventh wrapped one tile onto a line of its own. Past six, the admin tiles go behind one "Admin" tile, or the tail behind "More". */
+/* ---------- EVERY TILE SHOWN, ROWS BALANCED (420) ---------- */
+/* SIX 44px TILES FIT A CARD AT 390px. Past six the row breaks into even lines (7 is 4+3, never 6+1); nothing hides behind a "More" — "I DONT LIKE POP UP MENUS" (420). */
 const TILE_ROW_MAX = 6;
 const TILE_RE_ = /<(button|a)\b[^>]*\bclass="tile\b[^"]*"[^>]*>[\s\S]*?<\/\1>/g;
 /* AN ADMIN'S OR OWNER'S TILE is one drawn in the admin or danger tone; these lead their group in this order, a danger tile last. */
@@ -401,6 +405,11 @@ function tileAdminRank_(t) {
   if (/\bclass="tile\b[^"]*\bis-danger\b/.test(t)) return 99;
   const i = TILE_ADMIN_ORDER_.indexOf(tileAct_(t));
   return i === -1 ? TILE_ADMIN_ORDER_.length : i;
+}
+/* HOW MANY TILES ON EACH LINE: as few lines as fit, as even as they divide. */
+function tileLines_(n) {
+  const lines = Math.max(1, Math.ceil(n / TILE_ROW_MAX)), base = Math.floor(n / lines);
+  return Array.from({ length: lines }, (_, i) => base + (i < n % lines ? 1 : 0));
 }
 function tileRow_(html, cls, own) {
   const src = String(html || '');
@@ -413,31 +422,24 @@ function tileRow_(html, cls, own) {
   const rest = all.reduce((s, t) => s.replace(t, ''), src)
     .replace(/<span class="tile-group is-admin"[^>]*>\s*<\/span>/g, '').trim();
   const sorted = admin.map((t, i) => [t, i]).sort((a, b) => tileAdminRank_(a[0]) - tileAdminRank_(b[0]) || a[1] - b[1]).map(p => p[0]);
-  const group = inner => `<span class="tile-group is-admin" role="group" aria-label="Admin">${inner}</span>`;
-  const sheet = (list, say) => `<div class="tile-sheet" role="group" aria-label="${esc(say)}" hidden>${list.join('')}</div>`;
-  if (all.length <= TILE_ROW_MAX) return wrap(viewer.join('') + rest + group(sorted.join('')));
-  if (sorted.length && viewer.length < TILE_ROW_MAX) {
-    return wrap(viewer.join('') + rest
-      + group(tile_({ icon: 'more', label: 'Admin', note: sorted.length + ' more', tone: 'admin', act: 'tile-more', pressed: false }))
-      + sheet(sorted, 'Admin'));
+  const group = list => (list.length ? `<span class="tile-group is-admin" role="group" aria-label="Admin">${list.join('')}</span>` : '');
+  const brk = '<span class="tile-break" aria-hidden="true"></span>';
+  if (all.length <= TILE_ROW_MAX) return wrap(viewer.join('') + rest + group(sorted));
+  /* THE VIEWER'S LINE, THEN THE ADMIN'S, when each is a line of two to six. */
+  if (viewer.length >= 2 && sorted.length >= 2 && viewer.length <= TILE_ROW_MAX && sorted.length <= TILE_ROW_MAX) {
+    return wrap(viewer.join('') + rest + brk + group(sorted));
   }
-  const keep = viewer.slice(0, TILE_ROW_MAX - 1), over = viewer.slice(TILE_ROW_MAX - 1).concat(sorted);
-  return wrap(keep.join('') + rest
-    + tile_({ icon: 'more', label: 'More', note: over.length + ' more', act: 'tile-more', pressed: false })
-    + sheet(over, 'More'));
+  /* OTHERWISE EVEN LINES, in order: the viewer's first, the admin's grouped at the end of whichever lines they reach. */
+  const seq = viewer.concat(sorted);
+  let at = 0, out = '', restPut = !rest;
+  tileLines_(seq.length).forEach((n, li) => {
+    const line = seq.slice(at, at + n); at += n;
+    let here = line.filter(t => sorted.indexOf(t) === -1).join('');
+    if (!restPut && at >= viewer.length) { here += rest; restPut = true; }
+    out += (li ? brk : '') + here + group(line.filter(t => sorted.indexOf(t) !== -1));
+  });
+  return wrap(out);
 }
-/* THE SHEET OPENS UNDER ITS ROW and the same tile closes it. */
-on('tile-more', el => {
-  const row = el.closest('.tile-row');
-  const sh = row && row.querySelector(':scope > .tile-sheet');
-  if (!sh) return;
-  const open = sh.hidden;
-  sh.hidden = !open;
-  tileSet_(el, { on: open, pressed: open });
-  /* THE CARD GREW OR SHRANK BY A ROW: its pane is fitted again, as an opened card's is (`paneReach_`, find.js). */
-  const pane = el.closest('.pane');
-  if (pane && typeof paneReach_ === 'function') { try { paneReach_([pane]); } catch (e) {} }
-});
 
 function cardActions_(x) {
   /* `topic` WAS HERE, routing to `topicTiles_`. No documents, no row. */
@@ -533,21 +535,23 @@ function jobAdminTiles_(j, stage, accepted) {
 function postTiles_(p) {
   const id = String((p && p.id) || '');
   if (!id) return '';
-  const rows = [tile_({ icon: 'share', label: 'Share', act: 'share', data: { id: id } })];
-  if (typeof isAdmin === 'function' && isAdmin()) {
-    rows.push(tile_({ icon: 'edit', label: 'Edit', act: 'post-edit', data: { id: id } }));
-    /* THE DECISION, ON THE POST ITSELF — the same argument the old button row carried and worth keeping: § */
-    if (p.waiting || p.refused) {
-      rows.push(tile_({ icon: 'show', label: 'Put it up', tone: 'buy', note: 'everyone sees it',
-                        act: 'post-approve', data: { id: id, on: '1' } }));
-      /* ALREADY REFUSED MEANS THERE IS NOTHING LEFT TO REFUSE. Offering it again is offering a
-         control that does nothing, which is how somebody learns not to trust the row. */
-      if (!p.refused) {
-        rows.push(tile_({ icon: 'hide', label: 'Not this one', note: 'stays hidden',
-                          act: 'post-approve', data: { id: id, on: '' } }));
-      }
-    }
+  const admin = typeof isAdmin === 'function' && isAdmin();
+  const rows = [tile_({ icon: 'share', label: 'Share', note: 'as a picture', act: 'share', data: { id: id } })];
+  /* WAITING (413): the admin decides on the post itself; its author may still change the words or take it back. */
+  if (p.waiting && admin) {
+    rows.push(tile_({ icon: 'tick', label: 'Approve', tone: 'buy', note: 'everyone sees it',
+                      act: 'post-approve', data: { id: id, on: '1' } }));
+    rows.push(tile_({ icon: 'close', label: 'Decline', note: 'stays hidden',
+                      act: 'post-approve', data: { id: id, on: '' } }));
+  } else if (p.refused && admin) {
+    /* ALREADY DECLINED: only the way back; declining again is a control that does nothing. */
+    rows.push(tile_({ icon: 'tick', label: 'Approve', tone: 'buy', note: 'everyone sees it',
+                      act: 'post-approve', data: { id: id, on: '1' } }));
   }
+  if (p.waiting && p.mine && !admin) rows.push(tile_({ icon: 'edit', label: 'Edit', note: 'until it is approved', act: 'post-edit', data: { id: id } }));
+  /* UP IS FINAL (413): nobody changes the words; an admin still pins it or fixes its date. */
+  if (admin && !p.waiting && !p.refused) rows.push(tile_({ icon: 'edit', label: 'Pin or date', act: 'post-edit', data: { id: id } }));
+  if (admin || p.mine) rows.push(tile_({ icon: 'bin', label: 'Delete', tone: 'danger', note: 'takes it off the feed', act: 'post-delete', data: { id: id } }));
   return tileRow_(rows.join(''));
 }
 

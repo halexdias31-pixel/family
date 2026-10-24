@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-24-j-stripe-dead";
+const DOPOST_VERSION = "2026-10-24-t-backend-dead";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -131,98 +131,6 @@ function doPost(e) {
     if (netViewerIsChild_() && (KID_MONEY_ACTIONS.indexOf(action) !== -1
         || (action === 'move' && KID_MONEY_MOVES.indexOf(norm(body.move)) !== -1))) {
       return jsonOut({ error: KID_ASK_PARENT, why: 'ask-a-parent' });
-    }
-
-    /* invitations -------------------------------------------------------------------------- Sending: § */
-    if (action === 'sendInvites') {
-      /* ---------- SENDING MAIL IN SOMEBODY ELSE'S NAME § */
-      const asker = findPerson(S(body.name), S(body.personId));
-      if (!asker) return jsonOut({ error: 'Not signed in.' });
-      const jobId = S(body.jobId);
-      const from = personDisplayName(asker);
-      const inIt = participantsOf(jobId).some(x => key(x.name) === key(from));
-      if (!inIt && !hasRole(asker, 'admin')) {
-        return jsonOut({ error: 'You can only invite somebody to a session you are in.' });
-      }
-      /* A HANDFUL, not a mailing list. Splitting a booking is two or three families; anything
-         beyond that is somebody using this to send post. */
-      if ((body.emails || []).length > 6) {
-        return jsonOut({ error: 'That is more people than a session can hold.' });
-      }
-      const sent = (body.emails || []).filter(Boolean).map(addr => ({
-        to: addr, token: sendInvite(jobId, from, addr, ''),
-      }));
-      return jsonOut({ success: true, sent: sent.length });
-    }
-
-    if (action === 'openInvite' || action === 'acceptInvite') {
-      const t = read(TAB.invites);
-      const r = t.rows.find(x => S(x.token) === S(body.token));
-      if (!r) return jsonOut({ error: 'That invitation has expired or was never sent.' });
-
-      // First open only — the interesting number is whether it was ever seen, not how often.
-      if (!S(r.opened_on)) setCell(t, r, 'opened_on', new Date());
-
-      const job = read(TAB.jobs).rows.find(j => S(j.job_id) === S(r.job_id)) || {};
-      if (action === 'openInvite') {
-        return jsonOut({
-          success: true,
-          /* `job.tutor` is not a column — see `confirmedTutorOf_`. This has been sending an empty
-             tutor to every invitation page since invitations were built. */
-          from: S(r.from_person), subject: S(job.subject),
-          tutor: confirmedTutorOf_(S(r.job_id)),
-          venue: S(job.venue), day: S(job.weekday), time: fmtTime(job.start_time),
-          weeks: sessionDatesOf(job).length, price: N(job.price_total),
-        });
-      }
-
-      setCell(t, r, 'accepted_on', new Date());
-      /* The invited family becomes a client, with WHERE THEY CAME FROM recorded — this is the one
-         moment that fact is knowable, and it can never be recovered later. */
-      const p = read(TAB.people);
-      /* NOT WHEN THE ADDRESS ALREADY HAS AN ACCOUNT. § */
-      const mailTaken = !!norm(r.to_email)
-        && p.rows.some(x => norm(x.email) === norm(r.to_email));
-      if (!peopleNamed(S(body.newName)).length && !mailTaken) {
-        const invFirst = S(body.newName).split(/\s+/)[0] || '';
-        const invId = 'P' + Date.now(), invLast = S(body.newName).split(/\s+/).slice(1).join(' ');
-        addRow(p, {
-          /* THE NAME IS SPLIT, because `full_name` is gone (see `SCHEMA.people`): the first word is
-             the first name and the rest the last, which is how every row typed by hand reads. */
-          person_id: invId,
-          first_name: invFirst,
-          last_name: invLast,
-          /* A HANDLE, AS `register` GIVES ONE. This row had none, so every card drew the first name
-             where the handle goes — `@Max` — and `Max` at the sign-in box was refused. */
-          handle: handleMake_({ person_id: invId, first_name: invFirst, last_name: invLast }) || '',
-          email: S(r.to_email),
-          role: 'client', came_from: 'invited', invited_by: S(r.from_person),
-          joined_on: new Date(), listed: 'FALSE',
-        });
-      }
-      clearCache();
-      return jsonOut({ success: true });
-    }
-
-    /* what's wrong with the people tab ----------------------------------------------------- Read-only. § */
-    if (action === 'diagnosePeople') {
-      const rows = read(TAB.people).rows;
-      const seen = {}, dupes = [];
-      rows.forEach(r => {
-        const k = key(personDisplayName(r));
-        if (!k) return;
-        if (seen[k]) dupes.push(personDisplayName(r)); else seen[k] = 1;
-      });
-      return jsonOut({ success: true,
-        total: rows.length,
-        duplicateNames: [...new Set(dupes)],
-        noId:   rows.filter(r => !S(r.person_id)).map(personDisplayName),
-        /* `hasPin_`, NOT `S(r.pin)`. § */
-        noPin:  rows.filter(r => !hasPin_(r)).map(personDisplayName),
-        noName: rows.filter(r => !personDisplayName(r)).length,
-        people: rows.map(r => ({ id: S(r.person_id), name: personDisplayName(r),
-                                 roles: rolesOf(r), email: S(r.email), hasPin: hasPin_(r) }))
-      });
     }
 
     /* register ------------------------------------------------------------------------------ Anyone may create a STUDENT or a CLIENT (parent) account. § */
@@ -622,27 +530,6 @@ function doPost(e) {
       return jsonOut(recordsAction_(action, body));
     }
 
-    if (action === 'listPeople') {
-      const people = read(TAB.people).rows.map(r => ({
-        name: personDisplayName(r),
-        role: rolesOf(r).map(roleLabel_).join(', '),
-        roles: rolesOf(r),
-        handle: S(r.handle), email: S(r.email), phone: S(r.phone), dob: fmtDate(r.date_of_birth),
-        photo: S(r.photo), description: S(r.headline), city: S(r.city),
-        avatar: S(r.avatar),
-        // Level and credits belong on a student's card too — they're what everything in the
-        // wardrobe is priced against, so an admin looking at a student can see why an item is
-        // still locked without opening anything.
-        xp: N(r.xp), credits: N(r.credits),
-        tags: [r.adjective_1, r.adjective_2, r.adjective_3].map(S).filter(Boolean),
-        // A blank email means every notification to this person is silently dropped, which is
-        // invisible until someone says they were never told.
-        contactable: !!S(r.email)
-      })).filter(p => p.name);
-      people.sort((a, b) => a.role.localeCompare(b.role) || a.name.localeCompare(b.name));
-      return jsonOut({ success: true, people });
-    }
-
     /* --- profile writes ---------------------------------------------------------------------- */
     if (action === 'updateProfile') {
       const asker = S(body.name);
@@ -858,138 +745,7 @@ function doPost(e) {
       return jsonOut(out);
     }
 
-    if (action === 'updateVenue') {
-      const t = read(TAB.venues);
-      const r = t.rows.find(x => key(x.name) === key(body.venue));
-      if (!r) return jsonOut({ error: 'Venue not found.' });
-      const fields = body.fields || {};
-      if (Object.keys(fields).some(f => /^(m|tu|w|th|f|sa|su)\d\d$/.test(f))) {
-        setCell(t, r, 'availability', availGridIn(fields));
-      }
-      Object.keys(fields).forEach(f => {
-        if (/^(m|tu|w|th|f|sa|su)\d\d$/.test(f)) return;
-        if (VENUE_EDITABLE.indexOf(f) === -1) return;
-        setCell(t, r, f, fields[f]);
-      });
-      return jsonOut({ success: true });
-    }
-
-    /* admin edits a pricing variable ------------------------------------------------------ Every number in the formula lives in `config`; this is how the site § */
-    /* ---------- NO CARD CALLS IT NOW (docs/history/345), AND IT STAYS § */
-    if (action === 'updateConfig') {
-      const CONFIG_ADDABLE = { boss_rate: "YOUR cut of each extra child, as a fraction of the tutor's hourly rate. 0.1 = 10%" };
-      const FRACTION_KEYS = ['boss_rate', 'b', 'boss rate'];
-      const want = S(body.key);
-      if (FRACTION_KEYS.indexOf(norm(want)) >= 0) {
-        const x = Number(body.value);
-        if (S(body.value) === '' || isNaN(x) || x < 0 || x > 2)
-          return jsonOut({ error: 'That share must be a number from 0 to 2 — 0.1 is 10%.' });
-      }
-      const t = read(TAB.config);
-      /* EXACT CASE FIRST. `config()` keys its variables case-sensitively and the pricing reads `B` (the default cut) and `b` (the bulk discount) as two different § */
-      let r = t.rows.find(x => S(x.key) === want) || t.rows.find(x => norm(x.key) === norm(want));
-      if (!r && CONFIG_ADDABLE[norm(want)]) {
-        r = addRow(t, { key: norm(want), value: Number(body.value), what_it_does: CONFIG_ADDABLE[norm(want)] });
-        if (!r) return jsonOut({ error: 'The config tab could not be opened.' });
-        return jsonOut({ success: true, key: S(r.key), value: r.value, added: true });
-      }
-      if (!r) return jsonOut({ error: 'No config key called "' + want + '".' });
-      const value = FRACTION_KEYS.indexOf(norm(want)) >= 0 ? Number(body.value) : body.value;
-      if (!setCell(t, r, 'value', value)) return jsonOut({ error: 'The config tab has no value column.' });
-      return jsonOut({ success: true, key: S(r.key), value: value });
-    }
-
-    /* admin edits a per-option surcharge --------------------------------------------------- The S, L, D and T terms aren't single numbers — each subject, level, day § */
-    if (action === 'updatePricing') {
-      const kind = norm(body.kind), label = S(body.label), value = N(body.value);
-
-      if (kind === 'venue') {
-        const vt = read(TAB.venues);
-        const v = vt.rows.find(x => key(x.name) === key(label));
-        if (!v) return jsonOut({ error: 'No venue called "' + label + '".' });
-        setCell(vt, v, 'cost_per_hour', value);
-        return jsonOut({ success: true });
-      }
-
-      const t = read(TAB.pricing);
-      let r = t.rows.find(x => norm(x.kind) === kind && key(x.label) === key(label));
-      /* Whether the row had to be MADE. § */
-      const wasNew = !r;
-      // A surcharge that has never been set has no row yet. Adding one is the same act as editing
-      // it, so it's done here rather than making you go and create it first.
-      if (!r) r = addRow(t, { kind, label, surcharge_per_hour: value,
-                              note: 'added to the hourly rate when chosen' });
-      else setCell(t, r, 'surcharge_per_hour', value);
-      return jsonOut({ success: true, added: wasNew });
-    }
-
-    /* --- admin edits a shop item -------------------------------------------------------------- */
-    if (action === 'updateShop') {
-      const t = read(TAB.shop);
-      const r = t.rows.find(x => x._row === Number(body.rowIndex));
-      if (!r) return jsonOut({ error: 'Item not found.' });
-      const fields = body.fields || {};
-      Object.keys(fields).forEach(f => {
-        if (SHOP_EDITABLE.indexOf(f) === -1) return;
-        setCell(t, r, f, fields[f]);
-      });
-      return jsonOut({ success: true, name: S(r.name) });
-    }
-
-    if (action === 'deleteShopItem') {
-      const t = read(TAB.shop);
-      const r = t.rows.find(x => x._row === Number(body.rowIndex));
-      if (!r) return jsonOut({ error: 'Item not found.' });
-      delRow(t, r);
-      clearCache();
-      return jsonOut({ success: true });
-    }
-
     /* ---------- THE LINK EDITOR IS GONE AND IT NEVER HAD A DOOR § */
-
-    /* a room, saved by venue and slot ------------------------------------------------------- Upsert, not update: § */
-    if (action === 'saveRoom') {
-      const venue = S(body.venue), name = S(body.name);
-      if (!venue || !name) return jsonOut({ error: 'Which room?' });
-      const t = read(TAB.rooms);
-      let r = t.rows.find(x => key(x.venue) === key(venue) && key(x.name) === key(name));
-      const fields = body.fields || {};
-
-      // Everything blank means the room isn't offered. Clearing a slot removes it rather than
-      // leaving a £0 room in every venue dropdown.
-      const emptied = ROOM_EDITABLE.every(f => f === 'venue' || f === 'name' || f === 'active'
-        || !S(fields[f])) && !S(body.availability);
-      if (emptied) {
-        if (r) { delRow(t, r); clearCache(); }
-        return jsonOut({ success: true, removed: true });
-      }
-
-      if (!r) r = addRow(t, { room_id: 'R' + Date.now(), venue, name, active: 'TRUE' });
-      Object.keys(fields).forEach(f => {
-        if (ROOM_EDITABLE.indexOf(f) === -1) return;
-        setCell(t, r, f, fields[f]);
-      });
-      if (body.availability !== undefined) setCell(t, r, 'availability', S(body.availability));
-      return jsonOut({ success: true });
-    }
-
-    if (action === 'updateTrip') {
-      const t = read(TAB.trips);
-      const r = t.rows.find(x => x._row === Number(body.rowIndex));
-      if (!r) return jsonOut({ error: 'Trip not found.' });
-      Object.keys(body.fields || {}).forEach(f => {
-        if (TRIP_EDITABLE.indexOf(f) === -1) return;
-        setCell(t, r, f, body.fields[f]);
-      });
-      return jsonOut({ success: true, name: S(r.name) });
-    }
-
-    if (action === 'addTrip') {
-      const t = read(TAB.trips);
-      const row = addRow(t, { trip_id: 'T' + Date.now(), name: S(body.name) || 'New trip',
-                              active: 'TRUE' });
-      return jsonOut({ success: true, rowIndex: row ? row._row : 0 });
-    }
 
     /* fetch an image so a canvas can use it ------------------------------------------------ A browser cannot draw a Drive photo onto a canvas it intends to export. § */
     if (action === 'imageData') {
@@ -1011,13 +767,30 @@ function doPost(e) {
 
     /* ---------- THREE RESOURCE HANDLERS WERE HERE § */
 
-    /* --- admin edits a post ------------------------------------------------------------------- */
+    /* --- a post edited: its author while it waits; once up, only an admin's pin and date (413) --- */
     if (action === 'editPost') {
       const t = read(TAB.posts);
       const r = rowById_(t, 'post_id', body.id, body.rowIndex);
       if (!r) return jsonOut({ error: 'No post with that id — it may have been deleted.' });
-
-      const fields = body.fields || {};
+      const me = findPerson(S(body.name), S(body.personId));
+      if (!me) return jsonOut({ error: 'Not signed in.' });
+      const admin = rankAtLeast_(me, 'admin');
+      const state = postState_(r);
+      const fields0 = body.fields || {};
+      /* WHAT THIS PERSON MAY CHANGE ON THIS POST, NOW: the words while it waits and is theirs; the pin and the date for an admin. */
+      const may = [];
+      if (state === 'pending' && postIsBy_(r, me)) may.push('caption', 'body', 'location', 'poll');
+      if (admin) may.push('pinned', 'posted_on', 'creation_date');
+      const asked = Object.keys(fields0).filter(f => POST_EDITABLE.indexOf(f) !== -1);
+      const barred = asked.filter(f => may.indexOf(f) === -1);
+      if (barred.length) {
+        return jsonOut({ error: state === 'up'
+          ? 'A post cannot be changed once it is up. Delete it and post again. Nothing was changed.'
+          : state === 'refused' ? 'That post was not put up, so it cannot be changed. Nothing was changed.'
+          : 'Only the person who posted it can change it while it waits. Nothing was changed.' });
+      }
+      const fields = {};
+      asked.forEach(f => { fields[f] = fields0[f]; });
 
       /* THE POLL IS NOT FREELY EDITABLE. § */
       if (fields.poll !== undefined) {
@@ -1099,7 +872,13 @@ function doPost(e) {
       const t = read(TAB.posts);
       const r = rowById_(t, 'post_id', body.id, body.rowIndex);
       if (!r) return jsonOut({ error: 'No post with that id.' });
+      /* AN ADMIN, ANY POST; ANYBODY ELSE, THEIR OWN — and only to take it down; putting one back is the admin's (413). */
+      const me = findPerson(S(body.name), S(body.personId));
+      if (!me) return jsonOut({ error: 'Not signed in.' });
       const on = TRUE_(body.on);
+      if (!rankAtLeast_(me, 'admin') && (on || !postIsBy_(r, me))) {
+        return jsonOut({ error: 'Only the person who posted it, or an admin, can delete a post.' });
+      }
       setCell(t, r, 'active', on ? 'TRUE' : 'FALSE');
       clearCache();
       return jsonOut({ success: true, active: on });
@@ -1127,7 +906,8 @@ function doPost(e) {
       /* WHO IT IS, FIRST — BEFORE A BYTE GOES INTO DRIVE. § */
       const me = findPerson(S(body.name), S(body.personId));
       if (!me) return jsonOut({ error: 'Not signed in.' });
-      const iAmAdmin = hasRole(me, 'admin');
+      const iAmAdmin = rankAtLeast_(me, 'admin');
+      if (!rankAtLeast_(me, 'client')) return jsonOut({ error: CHILD_NO_UPLOAD, why: 'child' });
       const folder = getPostFolder();
       if (!folder) {
         return jsonOut({ error: 'No posts folder. Add a row to the config tab: '
@@ -1147,7 +927,7 @@ function doPost(e) {
           + 'be kept. Run ?setup=1 once, then post again.' });
       }
       /* THE CAPS AND THE QUEUE, BEFORE ANYTHING IS KEPT — `postMediaRefusal_` and `postsWaitingFor_` in content.gs say why each exists. § */
-      const refused = postMediaRefusal_([S(body.data)].concat(rest));
+      const refused = postMediaRefusal_([S(body.data), S(body.image)].concat(rest));
       if (refused) return jsonOut({ error: refused });
       if (!iAmAdmin && postsWaitingFor_(tp, me) >= POST_WAITING_MAX) {
         return jsonOut({ error: 'You have ' + POST_WAITING_MAX + ' posts waiting to be approved. '
@@ -1156,7 +936,7 @@ function doPost(e) {
       let url = '';
       const more = [];
       try {
-        url = keep_(S(body.data)) || S(body.image).trim();
+        url = keep_(S(body.data));
         rest.forEach(x => { const u = keep_(x); if (u) more.push(u); });
       } catch (err) {
         return jsonOut({ error: 'Could not save the picture. ' + driveTrouble_(err, iAmAdmin) });
@@ -1210,113 +990,6 @@ function doPost(e) {
       }
 
       return jsonOut({ success: true, image: url, media: [url].concat(more), pending: !iAmAdmin });
-    }
-
-    /* Anything in the folder that is not yet a row becomes one. § */
-    if (action === 'scanPosts') {
-      /* THE FILE'S NAME IS THE CAPTION. § */
-      const folder = getPostFolder();
-      if (!folder) return jsonOut({ error: 'No posts folder. Add `posts_folder` to the config tab.' });
-
-      /* THE SCAN DOES NOT NEED TO WRITE, and a check I added here was refusing to run it unless it could. § */
-      const t = read(TAB.posts);
-      /* Every row's file id, and the ROW itself — not just a flag. A row already known might still
-         be missing its date, and the point of a sync is that the second run fixes what the first
-         one could not know. */
-      const known = {};
-      t.rows.forEach(r => {
-        const id = (S(r.image).match(/\/d\/([\w-]+)/) || [])[1];
-        if (id) known[id] = r;
-      });
-      let dated = 0;
-
-      let added = 0, unshared = 0, captioned = 0;
-      /* WHAT WAS ACTUALLY SEEN. § */
-      const seen = [];
-
-      /* Subfolders too. `getFiles()` does not descend, and a folder of folders is the ordinary way
-         somebody organises photographs — finding nothing in it and blaming the id would send you
-         looking in exactly the wrong place. */
-      const folders = [folder];
-      const sub = folder.getFolders();
-      while (sub.hasNext() && folders.length < 20) folders.push(sub.next());
-
-      for (let fi = 0; fi < folders.length; fi++) {
-        const files = folders[fi].getFiles();
-        while (files.hasNext()) {
-          const f = files.next();
-          const mime = S(f.getMimeType());
-          const name = S(f.getName());
-
-          if (known[f.getId()]) {
-            /* Already a post — but if it has no date, take the file's. This is how the ten rows
-               pasted from a CSV get their real dates without anybody typing one, and how a row
-               whose date was cleared gets it back. */
-            const row = known[f.getId()];
-            const note = [];
-
-            if (!postWhen_(row)) {
-              /* Into whichever column this sheet keeps, not into a fourth one of our own. */
-              setCell(t, row, dateCol_(t), f.getDateCreated());
-              dated++;
-              note.push('date filled in');
-            }
-
-            /* RENAME THE FILE AND THE CAPTION FOLLOWS. § */
-            /* JUST THE NAME. The scan does not touch `caption` at all any more — it records what the file is called and the payload decides what to show. § */
-            if (S(row.file_name) !== name) {
-              setCell(t, row, 'file_name', name);
-              captioned++;
-              note.push('name recorded');
-            }
-
-            seen.push(name + ' — already a post' + (note.length ? ', ' + note.join(', ') : ''));
-            continue;
-          }
-
-          /* A picture by MIME TYPE or by the end of its name. A shortcut, a HEIC, or a file Drive
-             has not finished processing all fail a mime test and are plainly still photographs. */
-          const looksLikeAPicture = mime.indexOf('image/') === 0
-            || /\.(jpe?g|png|gif|webp|heic|heif|bmp|tiff?)$/i.test(name);
-          if (!looksLikeAPicture) { seen.push(name + ' — not a picture (' + mime + ')'); continue; }
-
-          try {
-            f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-          } catch (err) {
-            /* Sharing can fail on a file somebody else owns, or because this deployment has read access and no more. § */
-            unshared++;
-            seen.push(name + ' — added; sharing was not changed');
-          }
-          addRow(t, {
-            post_id: 'PO' + new Date().getTime() + '-' + added,
-            author: '',
-            image: 'https://drive.google.com/file/d/' + f.getId() + '/view',
-            /* Blank. Nobody has typed a caption for a photograph that has just appeared, and the
-               payload will show the file's name until somebody does. */
-            caption: '',
-            file_name: name,
-            location: '',
-            /* The file's own date, not today's — a folder of a year's photographs added in one go would otherwise all claim to have happened this afternoon. § */
-            creation_date: f.getDateCreated(),
-            uploaded_date: new Date(),
-            active: 'TRUE',
-          });
-          added++;
-          if (added >= 50) break;    // Apps Script has six minutes; fifty is a comfortable batch
-        }
-        if (added >= 50) break;
-      }
-      clearCache();
-      return jsonOut({
-        success: true, added: added, dated: dated,
-        folder: folder.getName(),
-        looked: folders.length,          // how many folders, so a subfolder problem is visible
-        /* Only worth mentioning if it happened, and only as a note: on a folder shared with anyone
-           who has the link these pictures load perfectly well. */
-        sharingUnchanged: unshared || undefined,
-        recaptioned: captioned || undefined,
-        seen: seen.slice(0, 30),         // and what was skipped, and why
-      });
     }
 
     /* listing a tutor ------------------------------------------------------------------------- `listed` decides whether a tutor appears on the site at all. § */
@@ -1608,50 +1281,6 @@ function doPost(e) {
       }
     }
 
-    /* the photographs already in the folder, that are not posts yet --------------------- UPLOADING NEEDS WRITE ACCESS. § */
-    if (action === 'folderFiles') {
-      const folder = getPostFolder();
-      if (!folder) return jsonOut({ error: 'No posts folder. Add `posts_folder` to the config tab.' });
-
-      /* Which are already posts, so the list only ever offers something new. */
-      const taken = {};
-      read(TAB.posts).rows.forEach(r => {
-        const id = (S(r.image).match(/\/d\/([\w-]+)/) || [])[1];
-        if (id) taken[id] = true;
-      });
-
-      const out = [];
-      const folders = [folder];
-      const sub2 = folder.getFolders();
-      while (sub2.hasNext() && folders.length < 20) folders.push(sub2.next());
-
-      for (let fi = 0; fi < folders.length && out.length < 60; fi++) {
-        const files = folders[fi].getFiles();
-        while (files.hasNext() && out.length < 60) {
-          const f = files.next();
-          if (taken[f.getId()]) continue;
-          const name = S(f.getName());
-          const mime = S(f.getMimeType());
-          /* By mime OR by the end of the name — a HEIC, a shortcut, or a file Drive has not
-             finished processing all fail a mime test and are plainly still photographs. */
-          if (mime.indexOf('image/') !== 0
-              && !/\.(jpe?g|png|gif|webp|heic|heif|bmp|tiff?)$/i.test(name)) continue;
-          out.push({
-            id: f.getId(),
-            name: name,
-            /* The caption it would get, worked out here so the picker can show it — choosing a
-               photograph and being surprised by its caption is a bad way to find out that the
-               filename is the caption. */
-            caption: captionFromName_(name),
-            at: f.getDateCreated().getTime(),
-          });
-        }
-      }
-
-      /* Newest first. A photograph taken five minutes ago is the one being posted. */
-      out.sort((a, b) => b.at - a.at);
-      return jsonOut({ success: true, files: out, folder: folder.getName() });
-    }
 
     /* messages ------------------------------------------------------------------------------ Send, read, and flag. § */
     if (action === 'sendMessage') {
@@ -1677,6 +1306,7 @@ function doPost(e) {
          something sent. Only a message with neither is refused. */
       const files = (Array.isArray(body.files) ? body.files : []).filter(f => f && S(f.data));
       if (!text && !files.length) return jsonOut({ error: 'Nothing to send.' });
+      if (files.length && !rankAtLeast_(me, 'client')) return jsonOut({ error: CHILD_NO_UPLOAD, why: 'files' });
       if (text.length > 2000) {
         return jsonOut({ error: 'That is longer than a message should be — 2,000 characters.' });
       }
@@ -1762,6 +1392,8 @@ function doPost(e) {
             /* `nameFor_`: a child in somebody's inbox is their first name, and two children called
                Sam are two threads told apart by their handles (the owner, 10 Oct). */
             withName: who ? nameFor_(who) : '',
+            /* THEIR FACE, from the people tab — so a parent's or a child's head is their picture, not only a tutor's (413). */
+            withFace: msgFace_(who),
             fromName: S(r.from_id) === mine ? nameFor_(me)
                                             : (who ? nameFor_(who) : ''),
             at: fmtDateTime(r.sent_at),
@@ -2111,8 +1743,6 @@ function doPost(e) {
       if (raw.length > 40000) return jsonOut({ error: 'That timetable is too long to keep — nothing was saved.' });
       return savePerson('timetable', raw);
     }
-    // A tutor saying "yes, this is all still true". Dated, so it can go stale on its own.
-    if (action === 'confirmDetails') return savePerson('details_confirmed', new Date());
 
     /* ---------- WHICH EMAILS YOU WANT: ONE TICK ON THE NOTIFICATIONS CARD § */
     if (action === 'setNotify') {
@@ -2160,29 +1790,6 @@ function doPost(e) {
                        personId: S(r.person_id), notify: notifyOf_(r) });
     }
 
-    /* A PERSON'S REFERRAL CODE, and who has arrived through it. § */
-    if (action === 'myReferral') {
-      const t = read(TAB.people);
-      /* The second argument used to be the TAB OBJECT, handed to a function that expected an id. § */
-      const r = findPerson(S(body.name), S(body.personId));
-      if (!r) return jsonOut({ error: 'No such person.' });
-      let code = S(r.referral_code);
-      if (!code) {
-        /* A CHILD'S FROM THEIR FIRST NAME. § */
-        /* `nameToOthers_`, NOT `nameFor_` (342): the code is the person's own, so the viewer is them and
-           `nameFor_` would be their whole name — and the code is handed round, to people who are not. */
-        const base = nameToOthers_(r, true).replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 6) || 'FAMILY';
-        code = base + String(Math.floor(Math.random() * 90) + 10);
-        setCell(t, r, 'referral_code', code);
-        clearCache();
-      }
-      const me = key(S(r.person_id)) || key(personDisplayName(r));
-      const sent = t.rows
-        .filter(x => key(S(x.invited_by)) === me && me)
-        .map(x => ({ name: nameFor_(x), joined: fmtDate(x.joined_on) }));
-      return jsonOut({ success: true, code, sent });
-    }
-
     /* a student changes their avatar ------------------------------------------------------- Every equipped item is re-checked here. § */
     /* a person changes their own profile picture -------------------------------------------- ASKED FOR AS § */
     if (action === 'savePhoto') {
@@ -2204,6 +1811,7 @@ function doPost(e) {
         return jsonOut(Object.assign({ success: true, photo: choice }, faceFig_(r)));
       }
       const raw = S(body.data).trim();
+      if (!rankAtLeast_(r, 'client')) return jsonOut({ error: CHILD_NO_UPLOAD + ' Choose one of the pictures instead.' });
       if (!/^data:image\/[\w.+-]+;base64,/i.test(raw)) {
         return jsonOut({ error: 'That is not a picture. Choose a photo from your phone.' });
       }
@@ -2789,23 +2397,6 @@ function doPost(e) {
                        participants: after });
     }
 
-    /* --- tutor side: apply, or the family's verdict ------------------------------------------ */
-    if (action === 'tutorMove') {
-      // Applying IS a Request from the tutor's side, and choosing/declining a tutor IS the
-      // family's Accept/Decline. One handler, so there's one set of rules rather than two.
-      const map = { claim: ACT.REQUEST, apply: ACT.REQUEST, accept: ACT.ACCEPT,
-                    decline: ACT.DECLINE, pass: ACT.REQUEST };
-      const act = map[norm(body.move)];
-      if (!act) return jsonOut({ error: 'Unknown tutor move.' });
-      const asTutor = norm(body.move) === 'claim' || norm(body.move) === 'apply';
-      return doPost({ postData: { contents: JSON.stringify({
-        action: 'move', jobId: body.jobId,
-        role: asTutor ? 'tutor' : 'client',
-        name: body.sender, counterpart: asTutor ? '' : body.tutor,
-        move: act, text: body.text, requestId: body.requestId
-      }) } });
-    }
-
     /* --- a new booking ----------------------------------------------------------------------- */
     if (action === 'createJob') {
       const cfg3 = config();
@@ -2852,73 +2443,87 @@ function doPost(e) {
       if (namedRow && tutorPending_(namedRow)) {
         return jsonOut({ error: 'That tutor is not taking bookings yet.' });
       }
-      /* THE GREY CELLS WERE ADVICE, and this makes them a rule — see `tutorHoursRefusal_`. Asked
-         before anything is written, like the two refusals above it. */
-      const outside = namedRow ? tutorHoursRefusal_(namedRow, body) : '';
-      if (outside) return jsonOut({ error: outside });
       /* AN ADMIN'S DISCOUNT, AND NOBODY ELSE'S — asked before anything is written, like the refusals above (`discountRefusal_`, booking.gs). § */
       const codes = S(body.discountCode) ? read(TAB.promo_codes) : null;
       const codeRow = codes ? (codes.rows.find(r => key(r.code) === key(body.discountCode)) || null) : null;
       const noDiscount = discountRefusal_(body, !!(asker && hasRole(asker, 'admin')), codeRow, new Date());
       if (noDiscount) return jsonOut({ error: noDiscount });
       const cash = v => S(v) !== '' ? Math.round(N(v) * 100) / 100 : '';
-      addRow(t, {
-        job_id: jobId, status: 'unconfirmed',
-        subject: S(body.subject), level: S(body.level), service: S(body.service),
-        weekday: S(body.day), start_time: fmtTime(body.time),
-        // Per booking now, not one global figure — a client picking a three-hour slot has to have
-        // that recorded, or the price and the grid disagree the next time the job is read.
-        hours_per_session: N(body.hours) || N(cfg3.h) || 2,
-        venue: S(body.location),
-        client_hosts: body.hosting ? 'TRUE' : 'FALSE',
-        term_name: S(body.interval), session_dates: S(body.dates),
-        /* NUMBERS, not strings of numbers. § */
-        /* ---------- WHAT IT EARNS, WHAT IT COSTS, AND WHAT IS LEFT § */
-        price_total: N(body.price),
-        /* WHAT THE TUTOR EARNS, which `priceFrom` works out on the phone beside `profit` below and which was dropped here — `tutor_pay` was written as an empty string on § */
-        tutor_pay: S(body.tutorPay) !== '' ? Math.round(N(body.tutorPay) * 100) / 100 : '',
-        travel_paid: travelCost(S(body.location), sessionCount),
-        /* THE SUBTRACTION, rather than whatever the phone worked out. § */
-        admin_profit: Math.round((N(body.profit)
-          - (N(cfg3.travel_on_client) ? 0 : travelCost(S(body.location), sessionCount))) * 100) / 100,
-        // Who else is splitting this booking. Stored on the job because it's a fact ABOUT the
-        // booking — who was invited to share it — not about any one person's account.
-        split_emails: S(body.splitEmails),
-        /* AND WHICH CHILDREN IT IS FOR. Different from the split: those are other FAMILIES sharing
-           the cost, these are the people in the chairs. A tutor needs the second one and has never
-           been told it. */
-        /* A CHILD WHO IS ONLY WORDS IN THE BOOKER'S OWN `children` CELL GOES IN BY HER FIRST WORD, as `childNamesOf` offers her now (`kidsForJob_`) — a phone signed in § */
-        for_children: kidsForJob_(S(body.kids), (asker && hasRole(asker, 'admin') && S(body.clientName))
-          ? findPerson(S(body.clientName)) : asker),
-        /* TRUE only where they said so. `TRUE_` reads the word; anything else — blank, absent, an
-           older booking — is a no. */
-        open_to_others: TRUE_(body.openToOthers) ? 'TRUE' : 'FALSE',
-        max_students: N(cfg3.max_students_per_job) || 4,
-        // "No preference" IS the consent to being matched; naming a tutor withholds it.
-        stealable: named ? 'FALSE' : 'TRUE',
-        created_at: new Date(),
-        /* AN ADMIN BOOKING FOR A FAMILY. § */
-        booked_by: key(S(body.name)) === key(me) ? '' : S(body.name),
-        /* THE MONEY BLOCK, AS THE PHONE PRICED IT (docs/history/353) — blank from an older phone, never a nought, for `tutor_pay`'s reason. § */
-        gross: cash(body.gross), tutor_payout: cash(body.tutorPayout), venue_cost: cash(body.venueCost),
-        materials_charge: cash(body.materialsCharge), materials_cost: cash(body.materialsCost),
-        tickets_cost: cash(body.ticketsCost), card_fees: cash(body.cardFees), net_profit: cash(body.netProfit),
-        discount_type: S(body.discountType), discount_value: cash(body.discountValue),
-        discount_code: S(body.discountCode),
-        discount_absorbed_by: S(body.discountType) ? (S(body.discountAbsorbedBy) || 'Business') : '',
-        format: S(body.format), practical_id: S(body.practicalId), trip_id: S(body.tripId),
-      });
-      if (codeRow) setCell(codes, codeRow, 'used', N(codeRow.used) + 1);
+      /* THE CLASH TESTS AND THE WRITE IN ONE HOLD (434): two phones pressing Book in the same second must not both pass. */
+      const bookLock = LockService.getScriptLock();
+      if (!bookLock.tryLock(10000)) return jsonOut({ error: 'Busy — please press Book again in a moment.' });
+      try {
+        /* Fresh rows under the lock: a copy read before it may lack the booking that just took the hour. */
+        clearCache();
+        /* THE GREY CELLS WERE ADVICE, and this makes them a rule — see `tutorHoursRefusal_`. Asked
+           before anything is written, like the two refusals above it. */
+        const outside = namedRow ? tutorHoursRefusal_(namedRow, body) : '';
+        if (outside) return jsonOut({ error: outside });
+        /* AND THE ROOM'S HOURS (434): a room taken at any booked hour in those weeks refuses, whoever teaches. */
+        const roomTaken = roomClashRefusal_(body);
+        if (roomTaken) return jsonOut({ error: roomTaken });
+        addRow(read(TAB.jobs), {
+          job_id: jobId, status: 'unconfirmed',
+          subject: S(body.subject), level: S(body.level), service: S(body.service),
+          weekday: S(body.day), start_time: fmtTime(body.time),
+          /* EVERY BOOKED HOUR (434): weekday + start + length kept only the first run, so a second run was sold twice. */
+          slot_codes: bookingCodes_(body).join(','),
+          // Per booking now, not one global figure — a client picking a three-hour slot has to have
+          // that recorded, or the price and the grid disagree the next time the job is read.
+          hours_per_session: N(body.hours) || N(cfg3.h) || 2,
+          venue: S(body.location),
+          client_hosts: body.hosting ? 'TRUE' : 'FALSE',
+          term_name: S(body.interval), session_dates: S(body.dates),
+          /* NUMBERS, not strings of numbers. § */
+          /* ---------- WHAT IT EARNS, WHAT IT COSTS, AND WHAT IS LEFT § */
+          price_total: N(body.price),
+          /* WHAT THE TUTOR EARNS, which `priceFrom` works out on the phone beside `profit` below and which was dropped here — `tutor_pay` was written as an empty string on § */
+          tutor_pay: S(body.tutorPay) !== '' ? Math.round(N(body.tutorPay) * 100) / 100 : '',
+          travel_paid: travelCost(S(body.location), sessionCount),
+          /* THE SUBTRACTION, rather than whatever the phone worked out. § */
+          admin_profit: Math.round((N(body.profit)
+            - (N(cfg3.travel_on_client) ? 0 : travelCost(S(body.location), sessionCount))) * 100) / 100,
+          // Who else is splitting this booking. Stored on the job because it's a fact ABOUT the
+          // booking — who was invited to share it — not about any one person's account.
+          split_emails: S(body.splitEmails),
+          /* AND WHICH CHILDREN IT IS FOR. Different from the split: those are other FAMILIES sharing
+             the cost, these are the people in the chairs. A tutor needs the second one and has never
+             been told it. */
+          /* A CHILD WHO IS ONLY WORDS IN THE BOOKER'S OWN `children` CELL GOES IN BY HER FIRST WORD, as `childNamesOf` offers her now (`kidsForJob_`) — a phone signed in § */
+          for_children: kidsForJob_(S(body.kids), (asker && hasRole(asker, 'admin') && S(body.clientName))
+            ? findPerson(S(body.clientName)) : asker),
+          /* TRUE only where they said so. `TRUE_` reads the word; anything else — blank, absent, an
+             older booking — is a no. */
+          open_to_others: TRUE_(body.openToOthers) ? 'TRUE' : 'FALSE',
+          max_students: N(cfg3.max_students_per_job) || 4,
+          // "No preference" IS the consent to being matched; naming a tutor withholds it.
+          stealable: named ? 'FALSE' : 'TRUE',
+          created_at: new Date(),
+          /* AN ADMIN BOOKING FOR A FAMILY. § */
+          booked_by: key(S(body.name)) === key(me) ? '' : S(body.name),
+          /* THE MONEY BLOCK, AS THE PHONE PRICED IT (docs/history/353) — blank from an older phone, never a nought, for `tutor_pay`'s reason. § */
+          gross: cash(body.gross), tutor_payout: cash(body.tutorPayout), venue_cost: cash(body.venueCost),
+          materials_charge: cash(body.materialsCharge), materials_cost: cash(body.materialsCost),
+          tickets_cost: cash(body.ticketsCost), card_fees: cash(body.cardFees), net_profit: cash(body.netProfit),
+          discount_type: S(body.discountType), discount_value: cash(body.discountValue),
+          discount_code: S(body.discountCode),
+          discount_absorbed_by: S(body.discountType) ? (S(body.discountAbsorbedBy) || 'Business') : '',
+          format: S(body.format), practical_id: S(body.practicalId), trip_id: S(body.tripId),
+        });
+        if (codeRow) setCell(codes, codeRow, 'used', N(codeRow.used) + 1);
 
-      // Who is in it comes from here, not from cells on the row above.
-      logEvent({ jobId, actor: me, role: 'client', action: ACT.REQUEST,
-                 message: S(body.message), requestId: body.requestId });
-      if (named) {
-        /* ---------- NAMING A TUTOR CONFIRMS THE TUTOR, NOT THE BOOKING § */
-        logEvent({ jobId, actor: S(body.requestedTutor), role: 'tutor', action: ACT.REQUEST,
-                   message: 'requested directly by the family' });
-        logEvent({ jobId, actor: S(body.requestedTutor), role: 'tutor', action: ACT.ACCEPT,
-                   message: 'chosen by the family at booking' });
+        /* Who is in it comes from here, not from cells on the row above — and inside the hold, since a job with no events reads as cancelled and holds no hour. */
+        logEvent({ jobId, actor: me, role: 'client', action: ACT.REQUEST,
+                   message: S(body.message), requestId: body.requestId });
+        if (named) {
+          /* ---------- NAMING A TUTOR CONFIRMS THE TUTOR, NOT THE BOOKING § */
+          logEvent({ jobId, actor: S(body.requestedTutor), role: 'tutor', action: ACT.REQUEST,
+                     message: 'requested directly by the family' });
+          logEvent({ jobId, actor: S(body.requestedTutor), role: 'tutor', action: ACT.ACCEPT,
+                     message: 'chosen by the family at booking' });
+        }
+      } finally {
+        bookLock.releaseLock();
       }
 
       /* THE CLIENT'S RECEIPT — `booked`, essential: it carries the total they asked to pay. */
@@ -3134,13 +2739,23 @@ function doPost(e) {
         /* NEWEST FIRST, and the later row first where two share a millisecond. */
         .map((r, i) => Object.assign(r, { _i: i })).sort((a, b) => (b.at - a.at) || (b._i - a._i))
         .map(r => { delete r._i; return r; });
-      return jsonOut({ success: true, open: open.length, total: t.rows.length, reports: open.slice(0, REPORTS_LIST_MAX) });
+      return jsonOut({ success: true, open: open.length, total: t.rows.length, reports: open.slice(0, REPORTS_LIST_MAX),
+                       messages: flaggedMessages_() });
     }
 
     /* ---------- AND ONE CLOSED: `fixed` or `not a problem`; blank opens it again ---------- */
     if (action === 'setReportStatus') {
       const status = norm(body.status);
       if (REPORT_STATUSES.indexOf(status) < 0) return jsonOut({ error: 'Not a status a report can have.' });
+      /* A REPORTED MESSAGE (413) is closed on its own row: `flagged` CLEARED, kept for the record, never deleted. */
+      if (norm(body.kind) === 'message') {
+        const tm = read(TAB.messages);
+        const mr = tm.rows.find(r => S(r.message_id) && S(r.message_id) === S(body.id));
+        if (!mr) return jsonOut({ error: 'That message is not there any more.' });
+        setCell(tm, mr, 'flagged', status ? 'CLEARED' : 'TRUE');
+        clearCache();
+        return jsonOut({ success: true, id: S(mr.message_id), status: status, kind: 'message' });
+      }
       const lock = LockService.getScriptLock();
       if (!lock.tryLock(5000)) return jsonOut({ error: 'Busy — try again in a moment.', why: 'busy' });
       let out = {};
@@ -3324,6 +2939,15 @@ function doPost(e) {
       catch (err) { return jsonOut({ error: 'The films could not be synced: ' + S(err && err.message || err) }); }
       if (out.error) return jsonOut({ error: out.error, why: out.why });
       return jsonOut(Object.assign({ success: true }, out, { films: filmsFor_(true), sync: filmsSyncSays_() }));
+    }
+
+    /* THE RACER'S MAP (426) — the gate already refused anybody not an admin. */
+    if (action === 'raceBuild') {
+      let out;
+      try { out = buildRaceMap_(''); }
+      catch (err) { return jsonOut({ error: 'The map could not be built: ' + S(err && err.message || err) }); }
+      if (out.error) return jsonOut({ error: out.error, more: !!out.more, tried: out.tried || [], notes: out.notes || [] });
+      return jsonOut(Object.assign({ success: true }, out));
     }
 
     /* ---------- AN ADMIN'S REELS AND VIDEOS (404) — the gate already refused anybody not an admin. */
@@ -3569,7 +3193,7 @@ function doPost(e) {
     }
 
     /* AN ADMIN LINKS A CHILD TO A PARENT ---------------------------------------------------- NOT `claimChild`, AND THE DIFFERENCE IS THE POINT. § */
-    if (action === 'linkChild' || action === 'unlinkChild') {
+    if (action === 'linkChild') {
       const parent = findPerson(S(body.parent), S(body.parentId));
       const child  = findPerson(S(body.child),  S(body.childId));
       if (!parent) return jsonOut({ error: 'No parent by that name.' });
@@ -3578,7 +3202,7 @@ function doPost(e) {
         return jsonOut({ error: 'That is the same person.' });
       }
       /* ---------- NOT ONTO AN ACCOUNT WHOSE ADDRESS NOBODY HAS PROVED, EVEN BY AN ADMIN § */
-      if (action === 'linkChild' && addressPending_(parent)) {
+      if (addressPending_(parent)) {
         return jsonOut({ why: 'unconfirmed',
           error: personDisplayName(parent) + '\'s email (' + (S(parent.email) || 'none') + ') has not been confirmed, so no '
                + 'child can be put on their account yet. Ask them to open the link we sent, or correct the address '
@@ -3588,14 +3212,6 @@ function doPost(e) {
       const t = read(TAB.family);
       const row = t.rows.find(r => S(r.parent_id) === S(parent.person_id)
                                 && S(r.child_id) === S(child.person_id));
-
-      if (action === 'unlinkChild') {
-        if (!row) return jsonOut({ error: 'They are not linked.' });
-        /* REMOVED, not marked refused. § */
-        delRow(t, row);
-        clearCache();
-        return jsonOut({ success: true, unlinked: true });
-      }
 
       if (row) {
         if (norm(row.state) === 'accepted') {
@@ -3758,22 +3374,6 @@ function doPost(e) {
     /* UPDATES A SESSION LEFT IN THE OWNER'S DRIVE (407): how many wait, and the press that imports them. Admin only, at the gate. */
     if (action === 'libImportList') return jsonOut(libImportList_());
     if (action === 'libImportDrive') return jsonOut(libImportDrive_(findPerson('', S(body.personId))));
-
-    /* --- diagnostics ------------------------------------------------------------------------- */
-    if (action === 'debugTabs') {
-      const out = {};
-      Object.keys(TAB).forEach(k => {
-        /* A LIBRARY TAB IS COUNTED, NOT READ: it is megabytes of JSON, and `read` would hold it all. */
-        if (/^lib_(questions|content|practicals|projects)$/.test(TAB[k])) {
-          const sh = findSheet_(sheetFor_(TAB[k]));
-          out[TAB[k]] = sh ? { rows: Math.max(0, sh.getLastRow() - 1), columns: sh.getLastColumn() } : 'MISSING TAB';
-          return;
-        }
-        const t = read(TAB[k]);
-        out[TAB[k]] = t.sheet ? { rows: t.rows.length, columns: t.headers.length } : 'MISSING TAB';
-      });
-      return jsonOut({ version: BACKEND_VERSION, tabs: out });
-    }
 
     return jsonOut({ error: 'Unknown action: ' + action });
   } catch (err) {
