@@ -90,6 +90,11 @@ const EXEMPT = [
   { file: 'me.js', fn: 'personFormHtml_', has: 'data-pf="dob"', why: PEOPLE_FORM },
   { file: 'me.js', fn: 'personFormHtml_', has: 'data-pf-role', why: PEOPLE_FORM },
   { file: 'me.js', fn: 'personFormHtml_', has: 'data-pf-parent', why: PEOPLE_FORM },
+  /* APPLY TO TEACH (400): one sheet filled and sent in a sitting; a reload starts the application again. */
+  { file: 'me.js', fn: 'box', has: 'data-app="${k}"', why: 'the application to teach (400) — filled and sent in one sitting from its sheet' },
+  { file: 'me.js', fn: 'area', has: 'data-app="${k}"', why: 'the application to teach (400) — filled and sent in one sitting from its sheet' },
+  { file: 'me.js', fn: 'applyFormHtml_', has: 'data-app="dbsNeeded"', why: 'the application to teach (400) — a tick in the sheet sent with it' },
+  { file: 'me.js', fn: 'applyFormHtml_', has: 'data-app="consent"', why: 'the application to teach (400) — a tick in the sheet sent with it' },
   { file: 'me.js', fn: 'agreementCard_', has: 'agree-sign', why: 'acts the moment it is ticked (`agree-sign`) — nothing waits between the tick and the server' },
   { file: 'me.js', fn: 'notifyCard_', has: 'notify-pick', why: 'a Notifications tick is a `setNotify` the moment it is ticked, and a failure puts it back to what the server has — the agreement\'s reason: there is no Save to wait for, so nothing is half-made on the device, and a reload draws the server\'s answer (docs/history/309)' },
   { file: 'posts.js', fn: 'cameraCard', has: 'id="cam-cap"', why: 'the caption of photographs held in memory (`CAM_ITEMS`), which a reload loses with it — keeping those needs IndexedDB (317)' },

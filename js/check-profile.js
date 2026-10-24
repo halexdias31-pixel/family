@@ -404,13 +404,15 @@ PEOPLE.forEach(p => {
     bad.push('handle: the handle door and the address door resolved different people — ' + (viaHandle.personId) + ' vs ' + ((viaMail || {}).personId));
   const noSuch = f.post({ action: 'verifyLogin', email: 'nobody_calm', pin: '0000' });
   if (noSuch && noSuch.success) bad.push('handle: a handle nobody has signed somebody in');
-  /* A CHILD NOBODY CAN BE WRITTEN FOR IS TOLD SO — it said "a new PIN is on its way … the parent's
+  /* A CHILD NOBODY CAN BE WRITTEN FOR (no address, and no admin to send it to yet) IS TOLD SO — it said "a new PIN is on its way … the parent's
      inbox" over an inbox that does not exist. */
   const leeSaid = f.post({ action: 'forgotPin', who: 'lee_calm' });
   if (!leeSaid || leeSaid.success || leeSaid.why !== 'no-inbox')
     bad.push('no-email: forgotPin for a child with no address and no parent did not say nobody could be written to — ' + JSON.stringify(leeSaid));
   const leeStill = f.post({ action: 'verifyLogin', email: 'lee_calm', pin: '0000' });
   if (!leeStill || !leeStill.success) bad.push('no-email: a child with no linked parent had their PIN changed by a stranger');
+  /* WITH AN ADMIN TO WRITE TO (400), a child's new PIN goes to the business, which passes it on. */
+  f.seed('people', [mk('P-NA', 'admin', 'Hal', { email: 'owner@example.org' })]);
   const said = f.post({ action: 'forgotPin', who: 'kit_calm' });
   if (!said || !said.success) bad.push('no-email: forgotPin for a linked child did not answer — ' + JSON.stringify(said));
   /* AND THE OLD PIN STILL WORKS — the reverse of what this said until the emailed PIN went BESIDE the old one (`authResetUse_`): § */
@@ -611,9 +613,10 @@ let pictures = 0;
     posted_by: a, image: 'https://example.org/p.jpg', approved: 'APPROVED', active: 'TRUE' })));
   const face = id => { f.ev('clearCache()'); f.ev('clearPayloadCache()'); return ((f.get({}).posts || []).find(p => p.id === id) || {}); };
   const lg = f.post({ action: 'verifyLogin', email: kit.email, pin: '0000' });
-  const tick = lg && lg.success
-    ? f.post({ action: 'setMyRoles', token: lg.token, name: lg.name, personId: 'P-K9', roles: ['student', 'tutor'] }) : null;
-  if (!tick || !tick.success || !/tutor/.test(String(f.row('P-K9').role))) {
+  /* THE OLD PENDING TICK, written as it was before 400 (the tick is an application now). */
+  if (lg && lg.success) f.ev("(function(){ const t = read(TAB.people); setCells(t, findPerson('', 'P-K9'), { role: 'student, tutor', listed: 'PENDING' }); clearCache(); })()");
+  const tick = { success: true };
+  if (!lg || !lg.success || !/tutor/.test(String(f.row('P-K9').role))) {
     bad.push('pictures: the dressed child could not tick Tutor, so the second-role case was NOT asked — ' + JSON.stringify(tick));
   } else {
     const k9 = face('PO-K9');
@@ -693,9 +696,11 @@ let roleRules = 0;
     const gb = set('P-B1', ['tutor', 'student']);
     rule(gb && gb.success && cell('P-B1') === 'tutor, student, head of boxing', 'the title was lost — ' + cell('P-B1'));
 
-    /* THE GATE ON TUTOR. Pat ticks it: role and the PENDING word, nothing else. */
+    /* THE GATE ON TUTOR (400): the tick is refused — teaching starts with an application — and nothing is written. */
     const tick = set('P-C1', ['tutor', 'client']);
-    rule(tick && tick.success && tick.tutorPending === true, 'ticking Tutor did not come back pending — ' + JSON.stringify(tick));
+    rule(tick && !tick.success && tick.why === 'apply' && !tick.writes && cell('P-C1') === 'client', 'ticking Tutor was not refused for an application — ' + JSON.stringify(tick));
+    /* A ROW STILL WAITING FROM BEFORE 400, written as the old tick wrote it, keeps every rule below. */
+    f.ev("(function(){ const t = read(TAB.people); setCells(t, findPerson('', 'P-C1'), { role: 'tutor, client', listed: 'PENDING' }); clearCache(); })()");
     rule(cell('P-C1') === 'tutor, client' && String(f.row('P-C1').listed) === 'PENDING',
       'ticking Tutor wrote role "' + cell('P-C1') + '" and listed "' + f.row('P-C1').listed + '" — wanted tutor, client / PENDING');
     const named = list => (list.tutors || []).find(t => t.personId === 'P-C1');
@@ -713,7 +718,8 @@ let roleRules = 0;
     /* MESSAGING AS WHAT THEY ARE, NOT AS WHAT THEY TICKED: Kit (only a student) ticks Tutor and is still
        a student to the policy — may not write to a tutor. */
     const kt = set('P-K1', ['tutor', 'student']);
-    rule(kt && kt.success && kt.tutorPending, 'a student could not ask to tutor — ' + JSON.stringify(kt));
+    rule(kt && !kt.success && kt.why === 'apply', 'a student ticked Tutor without applying — ' + JSON.stringify(kt));
+    f.ev("(function(){ const t = read(TAB.people); setCells(t, findPerson('', 'P-K1'), { role: 'tutor, student', listed: 'PENDING' }); clearCache(); })()");
     rule(f.ev("actingRole_(findPerson('P-K1'))") === 'student', 'a pending tutor who is a student acts as ' + f.ev("actingRole_(findPerson('P-K1'))"));
     const msg = f.post({ action: 'sendMessage', token: tk['P-K1'].token, name: 'Kit Kid', personId: 'P-K1', to: 'Ada Tutor', toId: 'P-T1', body: 'hello' });
     rule(!(msg && msg.success), 'a student who ticked Tutor could message a tutor');

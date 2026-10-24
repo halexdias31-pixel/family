@@ -148,6 +148,8 @@ const post = (b, body) => { asked++; return b.post(body); };
     person('P-MUM', 'client', 'Mia', 'Mum', { email: 'mum@example.org', handle: 'mia_kind30' }),
     /* THE BROTHER WHO REGISTERED WITH MUM'S ADDRESS — on a student row, so it makes him nobody's parent. */
     person('P-ANN', 'student', 'Ann', 'Sib', { email: 'family@example.org', handle: 'ann_kind31' }),
+    /* THE BUSINESS (400): a child's forgotten PIN goes to the first admin's address, never to a parent's. */
+    person('P-ADM', 'admin', 'Hal', 'Admin', { email: 'admin@example.org', handle: 'hal_kind32' }),
   ]);
   const m0 = MAIL.length;
   const reg = post(b, { action: 'register', first_name: 'Ben', last_name: 'Mum', parent_email: 'mum@example.org', pin: ZERO });
@@ -181,10 +183,10 @@ const post = (b, body) => { asked++; return b.post(body); };
     if (!yes.success) no('the link for the second child did not confirm them', yes);
     if (yes.linkedTo) no('a brother\'s STUDENT row was made the second child\'s parent', yes.linkedTo);
     if (!signIn(b, calRow.handle, ZERO2).success) no('the second child cannot sign in by handle');
-    /* AND A FORGOTTEN PIN REACHES THE GROWN-UP'S ADDRESS, with no parent account at all. */
+    /* AND A FORGOTTEN PIN REACHES THE BUSINESS (400), not the grown-up's address. */
     const m1 = MAIL.length;
     const fp = post(b, { action: 'forgotPin', who: calRow.handle });
-    if (!fp.success || !mailTo('family@example.org', m1).length) no('a forgotten PIN for a self-registered child did not reach the grown-up\'s address', fp);
+    if (!fp.success || !mailTo('admin@example.org', m1).length || mailTo('family@example.org', m1).length) no('a forgotten PIN for a self-registered child did not go to the business alone', fp);
   }
   /* REFUSED, AND SAID. */
   const neither = post(b, { action: 'register', first_name: 'Dee', last_name: 'None', pin: ZERO });
@@ -211,6 +213,7 @@ const post = (b, body) => { asked++; return b.post(body); };
     person('P-KIT', 'student', 'Kit', 'Parent', { handle: 'kit_kind41' }),
     person('P-LEE', 'student', 'Lee', 'Alone', { handle: 'lee_kind42' }),
     person('P-OWN', 'student', 'Ola', 'Own', { email: 'ola@example.org', handle: 'ola_kind43' }),
+    person('P-ADM', 'admin', 'Hal', 'Admin', { email: 'boss@example.org', handle: 'hal_kind46' }),
   ]);
   b.seed('family', [{ link_id: 'L1', parent_id: 'P-PAT', child_id: 'P-KIT', state: 'accepted' }]);
   const pinCell = () => rowOf(b, r => r.person_id === 'P-KIT').pin;
@@ -218,15 +221,17 @@ const post = (b, body) => { asked++; return b.post(body); };
   const m0 = MAIL.length;
   const said = post(b, { action: 'forgotPin', who: '@Kit_Kind41' });
   if (!said.success) no('forgotPin for a child with a parent did not answer', said);
-  const sent = mailTo('pat@example.org', m0);
+  /* TO THE BUSINESS (400) — the owner, 24 Oct: a child's reset goes to the admin, not to parents. */
+  const sent = mailTo('boss@example.org', m0);
   const emailed = pinIn(sent[0]);
-  if (!emailed) no('the parent was not sent a PIN', sent);
+  if (!emailed) no('the business was not sent the child\'s PIN', sent);
+  if (mailTo('pat@example.org', m0).length) no('a child\'s forgotten PIN still went to the parent');
   if (pinCell() !== before) no('ASKING CHANGED THE PIN — anybody who types a child\'s handle stops their PIN working', { before, after: pinCell() });
   if (!signIn(b, 'kit_kind41', PLACE).success) no('the old PIN stopped working when somebody asked for a new one');
   /* ONCE A QUARTER OF AN HOUR. */
   const again = post(b, { action: 'forgotPin', who: 'kit_kind41' });
-  if (!again.success || again.why !== 'already-sent' || mailTo('pat@example.org', m0).length !== 1)
-    no('a second press within the quarter hour sent another email', { again, mails: mailTo('pat@example.org', m0).length });
+  if (!again.success || again.why !== 'already-sent' || mailTo('boss@example.org', m0).length !== 1)
+    no('a second press within the quarter hour sent another email', { again, mails: mailTo('boss@example.org', m0).length });
   /* THE EMAILED PIN SIGNS IN, AND BECOMES THE PIN. */
   if (emailed) {
     const inn = signIn(b, 'kit_kind41', emailed);
@@ -251,7 +256,11 @@ const post = (b, body) => { asked++; return b.post(body); };
   if (spent.success || spent.why !== 'no-mail' || MAIL.length !== m2) no('with no mail quota left, forgotPin still tried, or said it had sent', spent);
   /* NOBODY TO WRITE TO, AND NO SUCH ACCOUNT, EACH SAID AS ITSELF. */
   const lee = post(b, { action: 'forgotPin', who: 'lee_kind42' });
-  if (lee.success || lee.why !== 'no-inbox') no('a child with no address and no parent was told a PIN was on its way', lee);
+  if (!lee.success) no('a child with no address and no parent was not sent a PIN through the business', lee);
+  const b4 = fresh();
+  b4.seed('people', [person('P-LONE', 'student', 'Lu', 'Lone', { handle: 'lu_kind47' })]);
+  const lone = post(b4, { action: 'forgotPin', who: 'lu_kind47' });
+  if (lone.success || lone.why !== 'no-inbox') no('with no address and no admin to write to, a child was told a PIN was on its way', lone);
   const nobody = post(b, { action: 'forgotPin', who: 'nobody_kind99' });
   if (nobody.success) no('forgotPin said it sent a PIN for a handle nobody has', nobody);
   /* A LONG FIRST NAME SPELLED OUT REACHES THE SAME ROW, as at the sign-in box. */
@@ -283,7 +292,7 @@ const post = (b, body) => { asked++; return b.post(body); };
   /* THE EMAILED PIN IS THE WAY OUT OF THE LOCK (181). */
   const m1 = MAIL.length;
   post(b, { action: 'forgotPin', who: 'kit_kind51' });
-  const out = pinIn(mailTo('pat@example.org', m1)[0]);
+  const out = pinIn(mailTo('admin@example.org', m1)[0]);
   const freed = out ? signIn(b, 'kit_kind51', out) : {};
   if (!freed.success) no('the emailed PIN is refused while the account is locked — the way out of a lockout is locked', freed);
   /* AND FIVE MISSES AT IT, WHILE LOCKED, THROW IT AWAY — or a lock would let a guesser try the
@@ -291,7 +300,7 @@ const post = (b, body) => { asked++; return b.post(body); };
   for (let i = 0; i < 11; i++) signIn(b, 'jo_kind52', '9');
   const m2 = MAIL.length;
   post(b, { action: 'forgotPin', who: 'jo_kind52' });
-  const joPin = pinIn(mailTo('pat@example.org', m2)[0]);
+  const joPin = pinIn(mailTo('admin@example.org', m2)[0]);
   for (let i = 0; i < 5; i++) signIn(b, 'jo_kind52', '1');
   if (joPin && signIn(b, 'jo_kind52', joPin).success) no('five wrong tries at the emailed PIN during a lock left it working');
   /* A QUIET DAY STARTS THE COUNT AGAIN. */
@@ -759,21 +768,21 @@ let proofRules = 0;
     /* A CHILD'S HANDLE NEVER BRINGS A PENDING PARENT A PIN — variant C. */
     mark();
     const lu = post(b, { action: 'forgotPin', who: 'lu_kind100' });
-    rule(!to('jsmith1@example.org') && !lu.success && lu.why === 'no-inbox',
+    rule(!to('jsmith1@example.org') && lu.success && to('admin@example.org') === 1,
       '"Forgotten your PIN?" on a child\'s handle mailed the child\'s PIN to a parent whose address nobody proved', lu);
     /* A PENDING CHILD WHOSE ONLY GROWN-UP IS THE TYPED ADDRESS is told that grown-up has a link to open,
        not "we have no email" — and nothing is mailed to it. */
     mark();
     const ava = post(b, { action: 'forgotPin', who: 'ava_kind107' });
-    rule(!ava.success && ava.why === 'grown-up-pending' && !to('gran2@example.org'),
-      'a PENDING child with only a typed grown-up was mailed there, or not told the grown-up has a link to open', ava);
+    rule(ava.success && !to('gran2@example.org') && to('admin@example.org') === 1,
+      'a PENDING child with only a typed grown-up was mailed there, or the business was not', ava);
     /* NOR THE GROWN-UP'S ADDRESS A PENDING CHILD TYPED — variant B. Pat, confirmed, is sent it. */
     mark();
     const bo = post(b, { action: 'forgotPin', who: 'bo_kind101' });
-    rule(!to('gran1@example.org') && bo.success && to('pat@example.org') === 1,
-      '"Forgotten your PIN?" for a PENDING child went to the grown-up\'s address they typed, or not to their confirmed parent', { bo, gran: to('gran1@example.org'), pat: to('pat@example.org') });
+    rule(!to('gran1@example.org') && bo.success && !to('pat@example.org') && to('admin@example.org') === 1,
+      '"Forgotten your PIN?" for a child went to a grown-up, or not to the business', { bo, gran: to('gran1@example.org'), pat: to('pat@example.org') });
     /* AND TYPING BACK THE PIN PAT WAS SENT CONFIRMS NOTHING ABOUT BO'S ROW — it would launder gran1@. */
-    const boPin = pinIn(mailTo('pat@example.org', m)[0]);
+    const boPin = pinIn(mailTo('admin@example.org', m)[0]);
     const boIn = boPin ? signIn(b, 'bo_kind101', boPin) : {};
     const boNow = rowOf(b, r => r.person_id === 'P-BO');
     rule(boIn.success && PENDING(boNow) && S(boNow.verify_token) === 'Vbo-c',
@@ -810,7 +819,7 @@ let proofRules = 0;
     rule(b.ev('notify("Jo Smith", "A booking", "Tuesday at four")') === true, 'notify() refused an address once it was confirmed');
     mark();
     post(b, { action: 'forgotPin', who: 'bo_kind101' });
-    rule(to('gran1@example.org') === 1, 'once the grown-up opened the child\'s link, a forgotten PIN still does not reach them');
+    rule(!to('gran1@example.org'), 'once the grown-up opened the child\'s link, a forgotten PIN went to them rather than the business');
   }
 
   /* ---------- (d) "SEND THE LINK AGAIN" ------------------------------------------------------------------ */
@@ -1063,8 +1072,8 @@ let proofRules = 0;
     /* A CHILD'S PIN MAILED TO THEIR GROWN-UP CARRIES NO LINK — it would sign the grown-up's phone in as the child. */
     m = MAIL.length;
     post(b, { action: 'forgotPin', who: 'kit_kind132' });
-    const kitMail = mailTo('pat@example.org', m)[0];
-    rule(!!pinIn(kitMail) && !/\?signin=/.test(S(kitMail && kitMail.body)), 'a child\'s forgotten PIN, mailed to a grown-up, carried a sign-in link', kitMail && kitMail.body);
+    const kitMail = mailTo('admin@example.org', m)[0];
+    rule(!!pinIn(kitMail) && !/\?signin=/.test(S(kitMail && kitMail.body)), 'a child\'s forgotten PIN, mailed to the business, carried a sign-in link', kitMail && kitMail.body);
   }
 
   /* ---------- (h) TAKING IT BACK CANCELS A CHANGE OF ADDRESS THE SQUATTER LEFT WAITING § */

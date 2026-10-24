@@ -127,19 +127,23 @@ function setupJobLink_(j) {
 function setupCard_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return '';
   const S_ = DATA && DATA.setup;
+  /* IN THE BUSINESS COLUMN (400), and it glows while something is wrong — `bizNeed_` in records.js. */
+  const need = (n, say) => typeof bizNeed_ === 'function' ? bizNeed_('setup', n, say) : '';
   if (!S_) {
     return typeof awaiting_ === 'function' && awaiting_()
-      ? `<div class="card setup-card"><h3>Setup</h3>${loading_()}</div>`
-      : `<div class="card setup-card"><h3>Setup</h3><p class="sub">The live backend sends no setup report, so it is older than this site. Pull, then Deploy → New version.</p></div>`;
+      ? `<div class="card setup-card" data-need="setup">${need(0)}<h3>Setup</h3>${loading_()}</div>`
+      : `<div class="card setup-card" data-need="setup"><h3>Setup</h3>${need(1, 'Not deployed')}<p class="sub">The live backend sends no setup report, so it is older than this site. Pull, then Deploy → New version.</p></div>`;
   }
-  if (S_.error) return `<div class="card setup-card"><h3>Setup</h3><p class="sub">The setup report failed: ${esc(S_.error)}</p></div>`;
+  if (S_.error) return `<div class="card setup-card" data-need="setup"><h3>Setup</h3>${need(1, 'Setup failed')}<p class="sub">The setup report failed: ${esc(S_.error)}</p></div>`;
   const files = S_.files || {};
   const odd = Object.keys(files).filter(k => files[k] !== S_.backend);
   const jobs = Array.isArray(S_.jobs) ? S_.jobs : [];
   const failed = jobs.filter(j => j && j.error);
   const sun = S_.sunday || {};
   const mode = { send: 'on — it emails parents', preview: 'preview — it writes the log and emails nobody' }[sun.mode] || 'off — nothing is sent';
-  return `<div class="card setup-card"><h3>Setup</h3>
+  const wrong = failed.length + (odd.length ? 1 : 0);
+  return `<div class="card setup-card" data-need="setup"><h3>Setup</h3>
+    ${need(wrong, wrong + (wrong === 1 ? ' thing to fix' : ' things to fix'))}
     <p class="sub">Backend live: <b>${esc(S_.backend || '—')}</b> · site ${esc(typeof SITE_VERSION !== 'undefined' ? SITE_VERSION : '—')}${odd.length
       ? ` · <span class="setup-bad">not deployed: ${odd.map(k => esc(k) + '.gs (' + esc(files[k]) + ')').join(', ')}</span>` : ' · all four files agree'}</p>
     ${failed.map(j => `<p class="setup-bad">${esc(j.id)} failed: ${esc(j.error)} — it tries again on the next page load.</p>`).join('')}
@@ -154,6 +158,89 @@ function setupCard_() {
     <p class="sub">Sunday email: ${esc(mode)}. ${sun.next ? 'Next send ' + esc(setupWhen_(sun.next)) + '.' : 'Not booked yet — it books itself on the next page load.'}</p>
   </div>`;
 }
+
+/* ---------- APPLY TO TEACH (400): Staff only by application and an admin's yes ----------
+   On You, for a signed-in adult who is not staff yet (no date of birth is no age data, so anybody signed in). */
+const APP_SUBJECT_ROWS = 3;
+const APP_STATUS_LINE = {
+  new: 'Your application to teach is with us. We will be in touch.',
+  interview: 'We would like to talk to you about teaching — we will be in touch to arrange it.',
+  approved: 'Your application to teach was approved.',
+  declined: 'Your application to teach was not taken further this time. You can apply again.',
+};
+function applyAdult_() {
+  const p = (USER && USER.profile) || {};
+  const y = Number(p.dob_y), m = Number(p.dob_m) || 1, d = Number(p.dob_d) || 1;
+  if (!y) return true;
+  const now = new Date();
+  const age = now.getFullYear() - y - ((now.getMonth() + 1 < m || (now.getMonth() + 1 === m && now.getDate() < d)) ? 1 : 0);
+  return age >= 18;
+}
+function applyCard_() {
+  if (!USER || rankAtLeast_('staff') || !applyAdult_()) return '';
+  const a = USER.application || null;
+  const st = a && a.status;
+  const open = st === 'new' || st === 'interview';
+  return `<div class="card apply-card"><h3>Teach with us</h3>
+    <p class="sub apply-status">${esc(st ? APP_STATUS_LINE[st] || '' : 'Tutors here are approved by us first. Tell us what you teach and we will be in touch.')}</p>
+    ${open ? '' : `<div class="tile-row">${tile_({ icon: 'join', label: st === 'declined' ? 'Apply again' : 'Apply to teach', act: 'apply-open' })}</div>`}
+  </div>`;
+}
+function applyFormHtml_() {
+  const noOther = h => h.replace(`<option value="${QUAL_OTHER}">Something else…</option>`, '');
+  const rows = Array.from({ length: APP_SUBJECT_ROWS }, (_, i) => `<div class="q-row">
+      ${noOther(qualPick_(`data-app-subj="${i}"`, '', QUAL_SUBJECTS, i ? 'Another subject' : 'Subject', 'Choose'))}
+      ${noOther(qualPick_(`data-app-level="${i}"`, '', QUAL_LEVELS, 'Level', 'Choose'))}</div>`).join('');
+  const codes = typeof availCodes_ === 'function' ? availCodes_() : [];
+  const week = codes.length ? availGrid_(codes, {}, [], false) : '';
+  const box = (k, label, o) => `<label class="field"><span>${esc(label)}</span><input data-app="${k}" autocomplete="off"${(o && o.type) ? ` type="${o.type}"` : ''}${(o && o.ph) ? ` placeholder="${esc(o.ph)}"` : ''}></label>`;
+  const area = (k, label) => `<label class="field"><span>${esc(label)}</span><textarea data-app="${k}" rows="3"></textarea></label>`;
+  return `<div class="me-form app-form">
+    <h4>What you teach</h4>${rows}
+    ${area('qualifications', 'qualifications — degrees, teaching qualifications, anything relevant')}
+    <h4>Checks</h4>
+    <div class="f-row" style="--n:2">${box('dbsNumber', 'DBS certificate number')}${box('dbsIssued', 'issued on', { type: 'date' })}</div>
+    <label class="check"><input type="checkbox" data-app="dbsNeeded"><span class="box"></span><span>I need a DBS check</span></label>
+    <label class="field"><span>right to work in the UK</span><select data-app="rightToWork"><option value="">Choose</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+    <h4>You</h4>
+    ${area('experience', 'experience')}
+    ${week ? `<div class="app-week">${week}</div>` : area('availability', 'when you can teach')}
+    ${box('area', 'area and venues you can reach')}
+    <h4>Two references</h4>
+    <div class="f-row" style="--n:2">${box('ref1Name', 'name')}${box('ref1Contact', 'email or phone')}</div>
+    <div class="f-row" style="--n:2">${box('ref2Name', 'name')}${box('ref2Contact', 'email or phone')}</div>
+    ${area('statement', 'a short statement — why you want to teach')}
+    ${box('cvLink', 'CV link (optional)', { ph: 'https://…', type: 'url' })}
+    <label class="check"><input type="checkbox" data-app="consent"><span class="box"></span><span>I agree to @family. keeping these details to consider my application, contacting my referees and checking my DBS.</span></label>
+    <div class="btn-row"><button class="btn" data-do="apply-send">Send my application</button><button class="btn quiet" data-do="apply-cancel">Cancel</button></div>
+    <p class="faint me-said apply-said" aria-live="polite"></p>
+  </div>`;
+}
+on('apply-open', () => { if (USER) openSheet('Apply to teach', applyFormHtml_()); });
+on('apply-cancel', () => closeSheet());
+on('apply-send', el => {
+  const f = el.closest('.app-form');
+  if (!f || !USER) return;
+  const v = k => { const b = f.querySelector(`[data-app="${k}"]`); return !b ? '' : b.type === 'checkbox' ? (b.checked ? 'TRUE' : '') : String(b.value || '').trim(); };
+  const subjects = Array.from({ length: APP_SUBJECT_ROWS }, (_, i) => {
+    const s_ = (f.querySelector(`[data-app-subj="${i}"]`) || {}).value || '', l = (f.querySelector(`[data-app-level="${i}"]`) || {}).value || '';
+    return s_ ? s_ + (l ? ' (' + l + ')' : '') : '';
+  }).filter(Boolean).join(', ');
+  const hours = [].filter.call(f.querySelectorAll('.app-week input[type="checkbox"]'), b => b.checked).map(b => b.dataset.me).join(',');
+  const body = { action: 'applyTeach', personId: (USER && USER.personId) || '', subjects, qualifications: v('qualifications'), dbsNumber: v('dbsNumber'), dbsIssued: v('dbsIssued'),
+    dbsNeeded: v('dbsNeeded'), rightToWork: v('rightToWork'), experience: v('experience'), availability: hours || v('availability'),
+    area: v('area'), ref1Name: v('ref1Name'), ref1Contact: v('ref1Contact'), ref2Name: v('ref2Name'), ref2Contact: v('ref2Contact'),
+    statement: v('statement'), cvLink: v('cvLink'), consent: v('consent') };
+  send_(body, { button: el, where: f.querySelector('.apply-said'), saying: 'Sending…' })
+    .then(d => {
+      USER.application = d.application || { status: 'new', at: Date.now() };
+      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) {}
+      closeSheet();
+      toast('Application sent');
+      try { paint('account'); } catch (e) {}
+    })
+    .catch(() => {});
+});
 
 /* THE YOU SCREEN IS ONE PAGE. § */
 /* MESSAGES, ON A PANE OF ITS OWN. § */
@@ -602,12 +689,12 @@ function registerSheet_() {
     ${/* NOT A <label>: a label around buttons hands a tap on its caption to the first button inside,
           which would answer the question for anybody who touched the words above it. */''}
     <div class="reg-who" id="reg-who" data-who="" role="group" aria-labelledby="reg-who-cap">
-      <p class="reg-cap" id="reg-who-cap">who is the account for?</p>
+      <p class="reg-cap" id="reg-who-cap">who is the account for? Both are free; teaching starts with "Apply to teach" once you are in.</p>
       <div class="btn-row">
         <button type="button" class="btn quiet" data-do="reg-who" data-who="parent"
-                aria-pressed="false">I'm a parent or guardian</button>
+                aria-pressed="false">Client — I book and pay</button>
         <button type="button" class="btn quiet" data-do="reg-who" data-who="student"
-                aria-pressed="false">I'm a student</button>
+                aria-pressed="false">Student — I'm learning</button>
       </div>
     </div>
     <div id="reg-rest" hidden>
@@ -1777,7 +1864,7 @@ function settingsPages_() {
 
 /* ---------- YOUR ROLES: TUTOR, CLIENT, STUDENT — TICK EVERY ONE THAT IS YOU § */
 const ROLE_PICKS = [
-  ['tutor', 'Tutor', 'You teach. @family. approves you before families can book you.'],
+  ['tutor', 'Tutor', 'You teach here. Teaching starts with "Apply to teach" on You, and @family. says yes.'],
   ['client', 'Client', 'A parent or payer. You book and pay for sessions.'],
   ['student', 'Student', 'You are the one learning.'],
 ];
@@ -1793,7 +1880,7 @@ function rolesCard_() {
   const held = heldRoles().map(roleOf);
   return `<div class="card roles-card">
     <h3>Your roles</h3>
-    ${ROLE_PICKS.map(([r, label, note]) => `<label class="check role-pick">
+    ${ROLE_PICKS.filter(([r]) => r !== 'tutor' || held.indexOf('tutor') !== -1 || isAdmin()).map(([r, label, note]) => `<label class="check role-pick">
       <input type="checkbox" data-role-pick="${r}"${held.indexOf(r) !== -1 ? ' checked' : ''}>
       <span class="box"></span><span class="role-pick-say"><b>${esc(label)}</b>
         <span class="faint">${esc(note)}</span></span></label>`).join('')}
@@ -1822,6 +1909,7 @@ on('roles-save', el => {
       USER.role = d.role || USER.role;
       USER.roles = Array.isArray(d.roles) ? d.roles : USER.roles;
       USER.tutorPending = !!d.tutorPending;
+      if (d.rank) USER.rank = String(d.rank);
       /* AND WHICH EMAILS REACH YOU NOW — they follow the roles (`notifyOf_`), so the Notifications card
          is redrawn from the server's list with them. An older backend sends none and the card keeps its own. */
       if (d.notify) USER.profile = Object.assign({}, USER.profile || {}, { notify: d.notify });
@@ -3426,11 +3514,13 @@ function profileRefresh_(loud, onOld) {
       /* ---------- AND THE ROLE, WHICH WENT STALE THE SAME WAY § */
       /* `pendingEmail` RIDES WITH THE ROLE, for the role's reason: § */
       /* ---------- AND THE NAMES, WHICH WENT STALE THE SAME WAY § */
-      const roleWas = JSON.stringify([USER.role, USER.roles, !!USER.tutorPending, String(USER.pendingEmail || ''),
+      const roleWas = JSON.stringify([USER.rank, USER.role, USER.roles, !!USER.tutorPending, String(USER.pendingEmail || ''),
         String(USER.name || ''), USER.children, USER.kids, String(USER.handle || ''), String(USER.friends || '')]);
       if (d.role) USER.role = d.role;
       if (Array.isArray(d.roles) && d.roles.length) USER.roles = d.roles;
       if (d.tutorPending !== undefined) USER.tutorPending = !!d.tutorPending;
+      if (d.rank) USER.rank = String(d.rank);
+      if (d.application !== undefined) USER.application = d.application;
       if (d.pendingEmail !== undefined) USER.pendingEmail = String(d.pendingEmail || '');
       if (d.name) USER.name = String(d.name);
       ['children', 'kids', 'parents', 'siblings'].forEach(k => { if (Array.isArray(d[k])) USER[k] = d[k]; });
@@ -3449,7 +3539,7 @@ function profileRefresh_(loud, onOld) {
            here: the `landRepaint_` below draws the column in front. */
         try { if (typeof finderForgetFound_ === 'function') finderForgetFound_(); else FIND_MEMO.key = null; } catch (e) {}
       }
-      const roleMoved = JSON.stringify([USER.role, USER.roles, !!USER.tutorPending, String(USER.pendingEmail || ''),
+      const roleMoved = JSON.stringify([USER.rank, USER.role, USER.roles, !!USER.tutorPending, String(USER.pendingEmail || ''),
         String(USER.name || ''), USER.children, USER.kids, String(USER.handle || ''), String(USER.friends || '')]) !== roleWas;
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
       /* BOTH THROUGH `landRepaint_` (shell.js), because this is a reply landing like the payload is: § */

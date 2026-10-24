@@ -260,11 +260,25 @@ const canTrack = () => hasRole('kid') || hasRole('student') || hasRole('tutor') 
 /* An admin is a tutor with extra powers, so everywhere gated on "tutor" admits an admin too. § */
 /* AND NOT A TUTOR WHO HAS ONLY TICKED THE BOX. § */
 const tutorHeld_ = () => hasRole('tutor');
-const isTutorRole = () => (tutorHeld_() && !(USER && USER.tutorPending)) || hasRole('admin');
+
+/* ---------- ONE RANK PER ACCOUNT (400): student < client < staff < admin, as `rankOf` (people.gs) ----------
+   The server's word when the sign-in reply carried one; worked out from the roles for a copy kept before it did. */
+const RANKS = ['student', 'client', 'staff', 'admin'];
+const rank_ = () => {
+  if (!USER) return '';
+  if (RANKS.indexOf(String(USER.rank || '')) !== -1) return USER.rank;
+  if (hasRole('admin')) return 'admin';
+  if (tutorHeld_() && !USER.tutorPending) return 'staff';
+  if (hasRole('client')) return 'client';
+  return hasRole('student') ? 'student' : 'client';
+};
+/* AT LEAST THIS RANK; nobody signed in holds none. */
+const rankAtLeast_ = want => !!USER && RANKS.indexOf(rank_()) >= RANKS.indexOf(want);
+const isTutorRole = () => rankAtLeast_('staff');
 
 /* ---------- A CHILD IS SHOWN NO PRICE (398) — the owner: "Kids' profiles shouldn't be able to see tutors' prices." */
-/* The phone's half of `isChild_` (people.gs): a student who is not also a parent, an admin or a tutor somebody said yes to. */
-const childView_ = () => !!USER && hasRole('student') && !hasRole('client') && !isTutorRole();
+/* Rank Student (400), the phone's half of `isChild_` (people.gs). */
+const childView_ = () => rank_() === 'student';
 /* WHAT SHE IS TOLD WHERE A PRICE OR A PAY BUTTON WOULD BE — the backend's `KID_ASK_PARENT` says the same. */
 const KID_ASK_PARENT = 'A parent books and pays for sessions — ask yours to book this one.';
 

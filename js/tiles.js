@@ -250,6 +250,9 @@ function tutorTiles_(x) {
               data: { to: x.name, id: (x.row && x.row.personId) || '' } }) : ''}
     ${/* EDIT, FOR AN ADMIN, ON SOMEBODY ELSE'S CARD ON THE YOU COLUMN — `updateProfile` lets an admin write another person's row, so the card turns into its form for § */
           ''}
+    ${/* SHARE, ON A LISTED TUTOR WITH A HANDLE (400) — their own `?tutor=` address (`tutorLink_`, posts.js). */
+          (t.handle && t.listed !== false) ? tile_({ icon: 'share', label: 'Share', note: 'their link',
+              act: 'tutor-share', data: { handle: t.handle } }) : ''}
     ${typeof cardEditTile_ === 'function' ? cardEditTile_(x) : ''}
     ${isAdmin() ? tile_({ icon: t.listed === false ? 'hide' : 'show',
               label: t.listed === false ? 'Not listed' : 'Listed', tone: 'admin',
@@ -394,6 +397,9 @@ function cardActions_(x) {
   /* AND "SEND THE LINK AGAIN" BESIDE IT while your own address is unproved — the paragraph under the row says why § */
   /* AND EDIT FIRST, on your own card — the owner, 10 Oct: § */
   if (x.kind === 'me') return (typeof cardEditTile_ === 'function' ? cardEditTile_(x) : '')
+    /* SHARE MY PROFILE (400), for staff and an admin who teaches: their own `?tutor=` link, to send a family. */
+    + (rankAtLeast_('staff') && USER.handle ? tile_({ icon: 'share', label: 'Share my profile', note: 'your link',
+        act: 'tutor-share', data: { handle: USER.handle } }) : '')
     + tile_({ icon: 'out', label: 'Sign out', act: 'signout' })
     + (typeof pendingAddr_ === 'function' && pendingAddr_() && typeof resendTile_ === 'function' ? resendTile_() : '');
   if (x.kind === 'receipt') return jobTiles_(x);
