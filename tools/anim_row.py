@@ -7,11 +7,11 @@
 # device keeps (see `splashSync_` in js/shell.js). The scripts in tools/ that generate those drawings
 # wrote into index.html and style.css; they write the row through here instead.
 #
-# FOR A ROW A SCRIPT WRITES, THE SCRIPT IS THE SOURCE, AND THE ROW IS ITS OUTPUT. Forty-four of them:
+# FOR A ROW A SCRIPT WRITES, THE SCRIPT IS THE SOURCE, AND THE ROW IS ITS OUTPUT. Forty-two of them:
 #
-# WRITTEN BY A SCRIPT: area bal bayes bus cent coin fadd fdp fib fit gal gbal gcf gcomp genl gexp gfac gpyr gquad grot grule gsemi gsim gsimi gsoh gsurd gtree gvec index line lmul mean mxc neg orbit peri prot pv pyth ratio sieve sine trans venn
+# WRITTEN BY A SCRIPT: area bayes bus cent coin fadd fdp fib fit gal gbal gcf gcomp genl gexp gfac gquad grot grule gsemi gsim gsimi gsoh gsurd gtree gvec index line lmul mean mxc neg orbit peri prot pv pyth ratio sieve sine trans venn
 #
-# (`gal` is tools/galton.py, `orbit` tools/solar.py, and the GCSE Maths seventeen whose ids start with g
+# (`gal` is tools/galton.py, `orbit` tools/solar.py, and the GCSE Maths sixteen whose ids start with g
 # are tools/g_<topic>.py — `gexp` is g_expand.py; every other one is tools/<id>.py.) Change one of
 # those in its script and re-run it; never edit its row by hand. Everything a script writes replaces its
 # namesake in the row, so a hand edit to anything the script writes — Pythagoras's colours, Bayes's

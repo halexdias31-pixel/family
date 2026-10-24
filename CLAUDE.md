@@ -73,8 +73,8 @@ when it was not told it could", never "is this past the right edge".
   person sees says textbook, book or chapter. The file name, row shape, `DATA.textbooks` and `tb*` names
   stay. Topics are spelled exactly as `data/questions.json`/`data/topics.json` spell them (`check-textbooks.js`). See 347.
 - **Teaching animations are rows of `data/textbooks.json`**, one source each. Script-written —
-  `area bal bayes bus cent coin fadd fdp fib fit gal index line lmul mean mxc neg orbit peri prot pv pyth ratio sieve sine trans venn` (`tools/<id>.py`; `gal` is
-  `galton.py`, `orbit` is `solar.py`) and GCSE Maths' `gbal gcf gcomp genl gexp gfac gpyr gquad grot
+  `area bayes bus cent coin fadd fdp fib fit gal index line lmul mean mxc neg orbit peri prot pv pyth ratio sieve sine trans venn` (`tools/<id>.py`; `gal` is
+  `galton.py`, `orbit` is `solar.py`) and GCSE Maths' `gbal gcf gcomp genl gexp gfac gquad grot
   grule gsemi gsim gsimi gsoh gsurd gtree gvec` (`tools/g_<topic>.py`, 410), all through
   `tools/anim_row.py`: change the script and re-run it,
   never hand-edit the row. For the rest the row is the source. Never in `index.html` or `style.css`; the

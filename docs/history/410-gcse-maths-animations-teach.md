@@ -100,3 +100,18 @@ the nineteen changed rows (each in its chapter at 320 and 390, six moments, insi
 under reduced motion), whose stills were looked at; and every drawing shot at 320 px over its loop,
 looked at, and fixed where it was unclear (labels on lines, a box plot's zero-length drop lines, an
 arrow off the grid, a caption that wrapped mid-sum, tick labels under a dot).
+
+## Later: one widget per thing (the merge with 409)
+
+Two drawings of one thing on one chapter, judged frame by frame when 409 and 410 met:
+
+- **Chapter 8, the balance**: 409's `bal` and this note's `gbal`. `gbal` stays (negatives, zero pairs and
+  a check are the chapter's level); `bal` went (see 409).
+- **Chapter 17, Pythagoras**: `pyth` (3-4-5: the 9 and 16 squares pour into the 25) and `gpyr` (four
+  triangles rearranged, c² = a² + b² with no numbers). Same theorem, same chapter. `pyth` stays: it puts
+  the numbers a learner works with into each square, and `check-splash-loops`, `check/states.js` and
+  check-flow hold it; `gpyr` and `tools/g_pyproof.py` were deleted. No other chapter teaches the theorem.
+
+The other chapters these two notes share (1, 2, 3, 14) were looked at too: place value beside standard
+form, the number line beside fractions-decimals-percentages, and translation beside rotation and
+enlargement each show a different thing, so they stay.

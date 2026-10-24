@@ -5723,7 +5723,7 @@ top level, before `SPLASH_CACHE_F`
    keeps. THE 28 CAME TO ABOUT 173 000 OF ITS FIRST 200 000 — "about twice", it said when it was
    written, before the rows were real, and it was not. 409 (KS2) and 410 (GCSE) each raised it to
    400 000 on its own; together the 55 came to about 448 000, so the merge made it 450 000, the smallest
-   round number above them, in the open. The copy already gives way whole to a child's write (above), so
+   round number above them, in the open (one widget per thing then took two out: 53, about 430 000). The copy already gives way whole to a child's write (above), so
    the ceiling bounds a decoration's share of the store — under a tenth of it — not whether an answer
    fits. A drawing past the ceiling is left off the splash (never out of its chapter), and
    `check-anims.js` fails before the books get there, so raising it again is a decision made in the open.

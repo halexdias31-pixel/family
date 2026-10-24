@@ -129,3 +129,12 @@ the answer while the arrows went in two stages; the translation's second dot sat
 first walk; the protractor's end labels sat under the arms). Reduced motion shows each first scene's
 finished state. `node js/check.js`, `node js/check-all.js --fast`, and `FLOW_PART=k/4 node js/check-flow.js`
 for k = 1–4.
+
+## Later: one widget per thing (the merge with 410)
+
+410 hung its own balance, `gbal`, on the same chapter (GCSE Maths 8). The owner's rule is one widget per
+thing, so the two were drawn side by side over their loops: `bal` (x + 2 = 5, a tipping beam, then
+2x + 3 = 11 and 3x + 2 = x + 10, cubes only) is a first lesson; `gbal` solves 5x − 3 = 2x + 9 with
+negative tiles, zero pairs, ÷ 3 and a check — the chapter's own level. `gbal` stays; `bal` and
+`tools/bal.py` were deleted, as no chapter of the KS2 book teaches equations yet. When one does, the
+script is in git at the commit before the removal and comes back on that chapter.
