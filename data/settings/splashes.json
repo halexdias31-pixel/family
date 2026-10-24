@@ -27,5 +27,14 @@
 {"splash_id": "half3", "name": "Half, three ways", "kind": "tool", "shows": "½ = 0.5 = 50%", "note": "", "active": true},
 {"splash_id": "mxc", "name": "y = mx + c", "kind": "proof", "shows": "the line turning as m changes", "note": "", "active": true},
 {"splash_id": "orbit", "name": "The solar system", "kind": "proof", "shows": "eight planets round the Sun, each at its real period", "note": "Kepler", "active": true},
-{"splash_id": "fit", "name": "How many fit?", "kind": "proof", "shows": "how many 3s fit into 4: one, and a third of the next", "note": "", "active": true}
+{"splash_id": "fit", "name": "How many fit?", "kind": "proof", "shows": "how many 3s fit into 4: one, and a third of the next", "note": "", "active": true},
+{"splash_id": "ecppf", "name": "The production possibility frontier", "kind": "tool", "shows": "a point sliding along the PPF, the wheat given up for barley, and the frontier shifting out", "note": "GCSE Economics", "active": true},
+{"splash_id": "ecsupply", "name": "Demand and supply shifting", "kind": "tool", "shows": "demand shifting right, then supply shifting left, each with its new equilibrium", "note": "GCSE Economics", "active": true},
+{"splash_id": "ecped", "name": "Elastic and inelastic revenue", "kind": "tool", "shows": "a price rise growing the revenue box on inelastic demand and shrinking it on elastic", "note": "GCSE Economics", "active": true},
+{"splash_id": "ecextern", "name": "A negative externality", "kind": "tool", "shows": "MSC above MPC, Q* left of Qm and the welfare loss between them", "note": "GCSE Economics", "active": true},
+{"splash_id": "ecflow", "name": "The circular flow of income", "kind": "tool", "shows": "spending and incomes going round, withdrawals out and injections in", "note": "GCSE Economics", "active": true},
+{"splash_id": "ecrates", "name": "How a rate rise works through", "kind": "tool", "shows": "a base-rate rise passing down to spending and inflation", "note": "GCSE Economics", "active": true},
+{"splash_id": "ecfx", "name": "The pound, exports and imports", "kind": "tool", "shows": "a shirt and a game repriced as the pound rises to $1.50 and falls to $1.00", "note": "GCSE Economics", "active": true},
+{"splash_id": "ecbreakeven", "name": "Building a break-even chart", "kind": "tool", "shows": "FC, TC and TR drawn in, break-even at 500 units and the margin of safety", "note": "GCSE Business", "active": true},
+{"splash_id": "eccashflow", "name": "A cash-flow forecast, month by month", "kind": "tool", "shows": "six months of balances, each closing balance carried to the next", "note": "GCSE Business", "active": true}
 ]

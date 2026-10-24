@@ -7,12 +7,12 @@
 # device keeps (see `splashSync_` in js/shell.js). The scripts in tools/ that generate those drawings
 # wrote into index.html and style.css; they write the row through here instead.
 #
-# FOR A ROW A SCRIPT WRITES, THE SCRIPT IS THE SOURCE, AND THE ROW IS ITS OUTPUT. Fourteen of them:
+# FOR A ROW A SCRIPT WRITES, THE SCRIPT IS THE SOURCE, AND THE ROW IS ITS OUTPUT. Twenty-three of them:
 #
-# WRITTEN BY A SCRIPT: area bayes cent coin fib fit gal index mxc orbit pyth sieve sine venn
+# WRITTEN BY A SCRIPT: area bayes cent coin eccashflow ecbreakeven ecextern ecflow ecfx ecped ecppf ecrates ecsupply fib fit gal index mxc orbit pyth sieve sine venn
 #
-# (`gal` is tools/galton.py and `orbit` tools/solar.py; every other one is tools/<id>.py.) Change one of
-# those in its script and re-run it; never edit its row by hand. Everything a script writes replaces its
+# (`gal` is tools/galton.py and `orbit` tools/solar.py; an economics or business `ec<topic>` is tools/ec_<topic>.py; every
+# other one is tools/<id>.py.) Change one of those in its script and re-run it; never edit its row by hand. Everything a script writes replaces its
 # namesake in the row, so a hand edit to anything the script writes — Pythagoras's colours, Bayes's
 # markup, y = mx + c's rules — passes every check and is quietly undone the next time anybody runs the
 # script for any reason. `check-anims.js` runs each one against a copy of the books and fails if the
@@ -35,7 +35,11 @@
 # name, and each piece of markup the element in the row that opens the same way. Anything the script
 # writes that the row does not have is an error, not an addition: a new rule or a renamed element is
 # a change to the drawing to make on purpose, in the row, and then here.
-import json, pathlib, re
+#
+# THE ONES BORN IN THE BOOKS (`ec_*.py`, the economics and business drawings, docs/history/425) were never in index.html:
+# each writes its whole row through `whole=`, markup and CSS as given, and creates it under its chapter the first time.
+# The helpers at the end (`kf`, `fade`) are theirs: a loop's keyframes from times in seconds.
+import json, math, pathlib, re
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 BOOKS = ROOT / 'data' / 'textbooks.json'
@@ -186,11 +190,39 @@ def read_anim(anim_id):
     raise SystemExit('data/textbooks.json has no row with "anim":"%s"' % anim_id)
 
 
-def write_anim(anim_id, html=None, css=None, fragments=(), run=None):
+def _put_whole(anim_id, whole, html, css):
+    """A script born in the books (`ec_*.py`) owns its whole row: markup and CSS as written, and its
+    place — straight under its chapter, after any drawing already there. Re-run, it replaces the row where it stands."""
+    row = {'book_id': whole['book_id'], 'chapter': whole['chapter'], 'anim': anim_id, 'title': whole['title'],
+           'about': whole['about'], 'html': html, 'css': css, 'active': whole.get('active', 'True')}
+    text = json.dumps(row, ensure_ascii=False, separators=(',', ':'))
+    lines = BOOKS.read_text(encoding='utf-8').split('\n')
+    parsed = [json.loads(l.strip().rstrip(',')) if l.strip().startswith('{') else None for l in lines]
+    hit = [k for k, r in enumerate(parsed) if r and r.get('anim') == anim_id]
+    if len(hit) > 1: raise SystemExit('%d rows carry "anim":"%s"' % (len(hit), anim_id))
+    if hit:
+        k = hit[0]
+        lines[k] = text + (',' if lines[k].rstrip().endswith(',') else '')
+    else:
+        ch = [k for k, r in enumerate(parsed) if r and 'anim' not in r and r.get('book_id') == row['book_id'] and r.get('chapter') == row['chapter']]
+        if len(ch) != 1: raise SystemExit('%s: %d chapter rows are %s chapter %s' % (anim_id, len(ch), row['book_id'], row['chapter']))
+        k = ch[0]
+        while parsed[k + 1] and parsed[k + 1].get('anim') and parsed[k + 1].get('book_id') == row['book_id'] and parsed[k + 1].get('chapter') == row['chapter']:
+            k += 1
+        if not lines[k].rstrip().endswith(','): lines[k] = lines[k].rstrip() + ','
+        lines.insert(k + 1, text + (',' if parsed[k + 1] is not None else ''))
+    BOOKS.write_text('\n'.join(lines), encoding='utf-8')
+    return row
+
+
+def write_anim(anim_id, html=None, css=None, fragments=(), run=None, whole=None):
     """html: the whole root as the script writes it (`<div id="splash-…"` … `  </div>`).
     fragments: pieces of markup, each replacing the element in the row that opens the same way.
     run: (opening, markup) — a run of sibling elements that all open the same way, replaced together.
-    css: rules and @keyframes, each replacing its namesake in the row."""
+    css: rules and @keyframes, each replacing its namesake in the row.
+    whole: {book_id, chapter, title, about} — the script owns the row: html and css are written as given."""
+    if whole is not None:
+        return _put_whole(anim_id, whole, html, css)
     row = read_anim(anim_id)
     if html is not None:
         row['html'] = _norm_html(html, anim_id)
@@ -218,3 +250,72 @@ def write_anim(anim_id, html=None, css=None, fragments=(), run=None):
     lines[k] = json.dumps(row, ensure_ascii=False, separators=(',', ':')) + comma
     BOOKS.write_text('\n'.join(lines), encoding='utf-8')
     return row
+
+
+# ---------- KEYFRAMES FROM SECONDS, for the scripts that write a whole row ----------
+def pc(t, T):
+    """t seconds of a T-second loop as a keyframe percentage, trimmed."""
+    v = round(100.0 * t / T, 2)
+    return ('%g' % v) + '%'
+
+
+def kf(name, T, stops):
+    """@keyframes from [(seconds, 'declarations')], with 0% and 100% filled from the first and last stop."""
+    stops = sorted(stops, key=lambda s: s[0])
+    if stops[0][0] > 0: stops = [(0, stops[0][1])] + stops
+    if stops[-1][0] < T: stops = stops + [(T, stops[-1][1])]
+    out, seen = [], {}
+    for t, decl in stops:
+        k = pc(t, T)
+        if k in seen: continue
+        seen[k] = 1
+        out.append('  %s { %s }' % (k, decl))
+    return '@keyframes %s {\n%s\n}' % (name, '\n'.join(out))
+
+
+def fade(name, T, on, off, f=0.35, lo=0, hi=1):
+    """Opacity lo, rising to hi at `on` seconds and back to lo at `off` (off >= T: it stays up to the loop's end)."""
+    st = [(0, 'opacity: %g;' % lo), (max(on - f, 0), 'opacity: %g;' % lo), (on, 'opacity: %g;' % hi)]
+    if off < T: st += [(off, 'opacity: %g;' % hi), (min(off + f, T), 'opacity: %g;' % lo)]
+    else: st += [(T, 'opacity: %g;' % hi)]
+    return kf(name, T, st)
+
+
+def captions(pre, T, lines, end=None, indent='    '):
+    """The caption under a drawing: lines [(from s, to s, markup)] stacked in one grid cell, each up in its window.
+    The last stays up to `end` (default T − 0.35) and is the one shown when motion is reduced. → (markup, css)."""
+    end = T - 0.35 if end is None else end
+    html, css = [], []
+    for k, (a, b, words) in enumerate(lines):
+        last = k == len(lines) - 1
+        html.append('%s<span class="%s-c%d">%s</span>' % (indent, pre, k, words))
+        css.append('.%s-c%d { opacity: %d; animation: %s-c%d %gs linear infinite; }' % (pre, k, 1 if last else 0, pre, k, T))
+        # the one before has gone (b to b + 0.35) before this one comes up, so two never overlap
+        css.append(fade('%s-c%d' % (pre, k), T, a + 0.7 if a > 0 else 0.35, end if last else b))
+    return '\n'.join(html), '\n'.join(css)
+
+
+def still_block(anim_id):
+    """Reduced motion: every part of the drawing on its own still, which each rule's base style is."""
+    return '@media (prefers-reduced-motion: reduce) {\n  .an-%s, .an-%s * { animation: none; }\n}' % (anim_id, anim_id)
+
+
+SINE_IN, SINE_OUT, SINE_INOUT = 'cubic-bezier(.12, 0, .39, 0)', 'cubic-bezier(.61, 1, .88, 1)', 'cubic-bezier(.37, 0, .63, 1)'
+
+
+def sine_stops(t0, t1, p0, p1, fmt):
+    """Stops for v = sin(p) as p runs p0 → p1 between t0 and t1 s: one stop at each end and at each turning point, each
+    segment eased as the piece of sine it is — a few stops instead of dozens. fmt(v) gives the declarations."""
+    turns = [p for p in [math.pi / 2 + k * math.pi for k in range(int(math.floor((p0 - math.pi / 2) / math.pi)) - 1, int(math.ceil((p1 - math.pi / 2) / math.pi)) + 2)] if p0 + 1e-9 < p < p1 - 1e-9]
+    ps = [p0] + turns + [p1]
+    at = lambda p: t0 + (t1 - t0) * (p - p0) / (p1 - p0)
+    is_turn = lambda p: abs(math.cos(p)) < 1e-9
+    out = []
+    for i, p in enumerate(ps):
+        decl = fmt(math.sin(p))
+        if i + 1 < len(ps):
+            a, b = is_turn(p), is_turn(ps[i + 1])
+            ease = SINE_INOUT if a and b else SINE_IN if a else SINE_OUT if b else 'linear'
+            decl += ' animation-timing-function: %s;' % ease
+        out.append((at(p), decl))
+    return out
