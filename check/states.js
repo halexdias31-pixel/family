@@ -1837,18 +1837,76 @@ const STATES = {
       expect: () => {
         const ch = [...document.querySelectorAll('#s-res .card.ct')]
           .find(el => /spread/i.test((el.querySelector('h3') || {}).textContent || ''));
+        /* ONE WIDGET PER THING (408): the card is its key words; its formulas and worked lines are the next pages. */
         return !!ch && !ch.querySelector('.fc-flag')
-               && ((ch.querySelector('.qtags .qtag') || {}).textContent || '') === 'Content'
+               /* WHAT KIND, WHEREVER IN THE ROW: the row opens on What for since 396, which left this state unmeasured. */
+               && ((ch.querySelector('.qtags .qtag[data-f="kindLabel"]') || {}).textContent || '').trim() === 'Content'
                && !!ch.querySelector('.qtags .qtag[data-tag="topic"]')
                && !!ch.querySelector('.tb-words li b')
-               && !!ch.querySelector('.tb-math .frac .frac-d')
-               && !!ch.querySelector('.tb-points li')
-               && !!ch.querySelector('li .tb-h')
+               && !ch.querySelector('.tb-math, .tb-points')
                /* NOTHING BUT CONTENT HERE — a boxer would mean the chip did not hold. */
                && !document.querySelector('#s-res .card:not(.tb) .boxer-rec');
       },
-      wants: 'a content card — its head and tag row, key words, stacked formulas, worked lines and the Higher mark',
+      wants: 'a content card — its head and tag row and its key words, and nothing else',
       leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    /* ---------- ITS FORMULAS AND ITS WORKED LINES, A TITLED PAGE EACH (408) */
+    ...[['formulas', 'Formulas', '.tb-math .frac .frac-d'], ['worked', 'Worked examples', '.tb-points li']].map(([P, T, has]) => ({
+      name: 'a content card: ' + T,
+      enter: new Function(`inFinder_(finderOf_('res'), () => {
+        const K = 'ct:TB-GCSE-STATS-9', P = '${P}', x = stuffItemsAll_().find(it => it.key === K);
+        if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Content' }, { field: 'subject', value: x.subject }];
+        paintStuff();
+        const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && pg.part === P);
+        if (at < 0) throw new Error(K + ' has no ' + P + ' page under Content · ' + x.subject);
+        goPage('res', stuffFirstResult_() + at);
+      });`),
+      expect: new Function(`const card = document.querySelector('#s-res .card.tb-page.is-${P}');
+        return !!card && ((card.querySelector(':scope > h3') || {}).textContent || '') === '${T}'
+               && !!card.querySelector('${has}') && !card.querySelector('h4');`),
+      wants: 'Measures of spread\'s ' + T + ' page: the card\'s name above, "' + T + '" as its title, and only that',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) })),
+    /* ---------- AN A-LEVEL PRACTICAL'S PAGES, EACH TITLED (408): the card, then Diagram, Equipment, Steps, Worksheet */
+    ...[[null, 'card'], ['fig', 'Diagram'], ['steps', 'Steps']].map(([P, T]) => ({
+      name: 'an A-level practical: ' + T,
+      enter: new Function(`inFinder_(finderOf_('res'), () => {
+        const K = 'pr:PR-FN05', P = ${JSON.stringify(P)}, x = stuffItemsAll_().find(it => it.key === K);
+        if (!x) throw new Error('no ' + K + ' practical in the list — data/practicals.json did not load');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label }, { field: 'subject', value: x.subject }];
+        paintStuff();
+        const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && (pg.part || null) === P);
+        if (at < 0) throw new Error(K + ' has no ' + (P || 'card') + ' page');
+        goPage('res', stuffFirstResult_() + at);
+      });`),
+      expect: P
+        ? new Function(`const c = document.querySelector('#s-res .card.prac-part.is-${P}');
+            return !!c && ((c.querySelector(':scope > h3') || {}).textContent || '') === '${T}';`)
+        : () => !!document.querySelector('#s-res .card.prac:not(.prac-part) .fc-head h3'),
+      wants: 'Buffon\'s needle (GCSE–A-level Maths), its ' + T + ' page, titled',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) })),
+    /* ---------- A SATs CARD, AND ITS DRAWING ON A PAGE OF ITS OWN (408) */
+    ...[[null, 'a SATs content card'], ['an1-fit', 'a SATs content card animation']].map(([P, N]) => ({
+      name: N,
+      enter: new Function(`inFinder_(finderOf_('res'), () => {
+        const K = 'ct:TB-KS2-MATHS-1', P = ${JSON.stringify(P)}, x = stuffItemsAll_().find(it => it.key === K);
+        if (!x) throw new Error('no ' + K + ' content card in the list — data/textbooks.json did not load');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Content' }, { field: 'subject', value: x.subject }];
+        paintStuff();
+        const at = stuffPages_().findIndex(pg => pg.x && pg.x.key === K && (pg.part || null) === P);
+        if (at < 0) throw new Error(K + ' has no ' + (P || 'card') + ' page under Content · ' + x.subject);
+        goPage('res', stuffFirstResult_() + at);
+      });`),
+      expect: P
+        ? () => { const c = document.querySelector('#s-res .card.tb-an.is-an1-fit');
+                  return !!c && /^Watch: /.test((c.querySelector(':scope > h3') || {}).textContent || '')
+                         && c.querySelectorAll('.tb-an-stage').length === 1 && !c.querySelector('h4'); }
+        : () => !!document.querySelector('#s-res .card.ct .tb-words li b'),
+      wants: P ? 'the SATs drawing alone on its page, titled Watch and its name, its caption and Play again under it'
+               : 'the SATs content card: its title, its tags, its key words',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) })),
     /* ---------- A CONTENT CARD'S ANIMATION, ON ITS PAGE AFTER ITS CARD § */
     { name: 'a content card animation: Pythagoras',
       enter: () => inFinder_(finderOf_('res'), () => {

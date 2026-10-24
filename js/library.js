@@ -237,7 +237,8 @@ function libraryExtras_(d, extra) {
         return;
       }
       b.chapters.push(Object.assign({ n: n, title: libS(r.title), higher: /^higher$/i.test(libS(r.tier).trim()), own: own,
-                                      topics: libS(r.topics) }, libChapterBody_(r), { animations: [] }));
+                                      topics: libS(r.topics), pending: /^true$/i.test(libS(r.lib_pending).trim()) },
+                                    libChapterBody_(r), { animations: [] }));
     });
     /* IN FILE ORDER, which is page order: § */
     anims.forEach(r => {

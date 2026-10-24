@@ -2904,7 +2904,7 @@ function splashWaitWatch_() {
 }
 /* ---------- WHAT THE NEXT LOAD'S SPLASH IS CHOSEN FROM § */
 const SPLASH_CACHE_F = 1;
-const SPLASH_CACHE_MAX = 200000;
+const SPLASH_CACHE_MAX = 600000;
 function splashSync_(d, extra) {
   const rows = extra && extra['settings/splashes'];
   if (rows && rows.length) {

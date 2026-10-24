@@ -19338,8 +19338,9 @@ check('a content card, on Find 2 and on Find: What kind · Content, Statistics �
   const x = left.find(i => i.name === 'Averages') || cards.find(i => i.key === 'ct:TB-GCSE-STATS-8');
   if (!x) return bad.concat(['no Averages card among the Statistics cards']);
   const parts = w.pageParts_(x);
-  const want = [null].concat((x.row.animations || []).map(a => 'an' + x.row.n + '-' + a.id));
-  if (JSON.stringify(parts) !== JSON.stringify(want) || parts.indexOf('an8-mean') < 0) bad.push('the Averages card is pages ' + JSON.stringify(parts) + ', not the card and the mean\'s animation');
+  /* AND THEN ITS FORMULAS AND ITS WORKED LINES, A TITLED PAGE EACH (408). */
+  const want = [null].concat((x.row.animations || []).map(a => 'an' + x.row.n + '-' + a.id), ['formulas', 'worked']);
+  if (JSON.stringify(parts) !== JSON.stringify(want) || parts.indexOf('an8-mean') < 0) bad.push('the Averages card is pages ' + JSON.stringify(parts) + ', not the card, the mean\'s animation, Formulas and Worked examples');
   const box = html => { const d = w.document.createElement('div'); d.innerHTML = html; return d; };
   const card = box(w.stuffCard(x));
   if (!card.querySelector('.card.ct')) bad.push('the card is not drawn as a content card');
@@ -19357,7 +19358,8 @@ check('a content card, on Find 2 and on Find: What kind · Content, Statistics �
   if (!mac || [...box(w.stuffCard(mac)).querySelectorAll('.qtag')].map(e => e.textContent).indexOf('AQA') < 0) bad.push('the Macbeth card does not say AQA — a set text is the board\'s');
   /* A CARD WITH FORMULAS, WHOLE, AND THE ONE THAT IS HIGHER ALL THROUGH. */
   const withMath = cards.find(i => i.row.formulas.some(f => /\//.test(f.text)));
-  const pg = box(w.stuffCard(withMath));
+  /* ITS EVERY PAGE TOGETHER: the key words on the card, Formulas and Worked examples a page each (408). */
+  const pg = box(w.stuffCard(withMath) + w.stuffPart_(withMath, 'formulas') + w.stuffPart_(withMath, 'worked'));
   const c = withMath.row;
   if (pg.querySelectorAll('.tb-words li').length !== c.words.length) bad.push(withMath.name + ' does not list every key word');
   if (pg.querySelectorAll('.tb-math li').length !== c.formulas.length) bad.push(withMath.name + ' does not list every formula');
@@ -19449,6 +19451,80 @@ const resType_ = (w, id, v) => {
   el.dispatchEvent(new w.Event('input', { bubbles: true }));
   return true;
 };
+
+/* ---------- ONE WIDGET PER THING (408) ----------
+   "If a thing needs more than one widget (page), each must have a title that distinguishes it, so it earns its place." */
+check('one widget per thing: every page of every content card, practical and project is titled, no title twice in one card, one drawing a page, and a waiting card is one titled page', async () => {
+  const read = n => (LIB_FULL.isLib(n) ? LIB_FULL.rows(n) : JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8')));
+  const one = boot();
+  await wait(300);
+  if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so the pages were NOT checked — not a pass'];
+  const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({},
+    { practicals: read('practicals'), projects: read('projects'), textbooks: read('textbooks') })));
+  const p = payload();
+  Object.assign(p, { practicals: made.practicals || [], projects: made.projects || [], textbooks: made.textbooks || [] });
+  const { w } = boot({ member: true, payload: p });
+  await wait(300);
+  const need = ['pageParts_', 'stuffPart_', 'stuffCard', 'contentPageTitle_', 'libWaitHtml_', 'stuffItemsAll_'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — renamed? The titles were NOT checked'];
+  const bad = [];
+  const KINDS = ['content', 'practical', 'project'];
+  const items = w.stuffItemsAll_().filter(x => x && KINDS.indexOf(x.kind) !== -1);
+  KINDS.forEach(k => { if (!items.some(x => x.kind === k)) bad.push('no ' + k + ' reached the finder, so its pages were NOT checked'); });
+  const box = html => { const d = w.document.createElement('div'); d.innerHTML = html; return d; };
+  const kids = (el, tag) => [...el.children].filter(e => e.tagName === tag);
+  /* THE PAGE'S TITLE: the card's own name on its first page, the `h3` straight under the card on every other. */
+  const titleOf = (el, part) => {
+    const card = el.querySelector('.card');
+    if (!card) return '';
+    const h = part ? kids(card, 'H3')[0] : card.querySelector('.fc-head h3');
+    return h ? h.textContent.trim() : '';
+  };
+  let pages = 0, anims = 0;
+  items.forEach(x => {
+    if (w.libSlim_(x)) { bad.push(x.key + ' is still waiting for its words with the whole library loaded'); return; }
+    const seen = {};
+    w.pageParts_(x).forEach(part => {
+      pages++;
+      const el = box(part ? w.stuffPart_(x, part) : w.stuffCard(x));
+      const name = x.name + ' (' + x.kind + ') page ' + (part || 'card');
+      const t = titleOf(el, part);
+      if (!t) { bad.push(name + ' has no title'); return; }
+      if (seen[t]) bad.push(x.name + ' (' + x.kind + '): pages ' + seen[t] + ' and ' + (part || 'card') + ' are both titled "' + t + '"');
+      seen[t] = part || 'card';
+      const stages = el.querySelectorAll('.tb-an-stage').length;
+      const isAn = /^an\d+-/.test(String(part || ''));
+      if (isAn) anims++;
+      if (stages !== (isAn ? 1 : 0)) bad.push(name + ' holds ' + stages + ' drawing(s) — one on its own page, none anywhere else');
+      if (x.kind !== 'content') return;
+      if (part && t !== w.contentPageTitle_(x, part)) bad.push(name + ' is titled "' + t + '", not "' + w.contentPageTitle_(x, part) + '"');
+      if (isAn && !/^Watch: \S/.test(t)) bad.push(name + ' is titled "' + t + '" — a drawing\'s page says Watch and its name');
+      /* NO SECOND WIDGET INSIDE A PAGE: the card holds its key words only; a page past it has no heading of its own inside. */
+      if (!part && el.querySelector('.tb-math, .tb-points')) bad.push(name + ' still carries its formulas or worked lines — each is a page of its own');
+      if (part && el.querySelector('h4')) bad.push(name + ' has a heading inside it, "' + el.querySelector('h4').textContent + '" — a second widget on one page');
+      /* A DRAWING'S PAGE IS NOT EMPTY: its caption may be absent (a `lib_pending` chapter, 411); check-textbooks holds `about`. */
+      if (part && !isAn && !el.querySelector('li')) bad.push(name + ' is titled and empty');
+    });
+    if (x.kind === 'content') {
+      const c = x.row, parts = w.pageParts_(x);
+      if ((c.formulas || []).length && parts.indexOf('formulas') < 0) bad.push(x.name + ' has formulas and no Formulas page');
+      if ((c.points || []).length && parts.indexOf('worked') < 0) bad.push(x.name + ' has worked lines and no Worked examples page');
+      if (!(c.formulas || []).length && parts.indexOf('formulas') >= 0) bad.push(x.name + ' has a Formulas page and no formulas');
+    }
+  });
+  if (!anims) bad.push('no drawing\'s page was met among ' + pages + ' pages — the one-drawing rule was NOT exercised');
+  /* AND WAITING (397): before its words come a card is ONE page, its title over the loader's dots. */
+  const ct = items.find(x => x.kind === 'content');
+  if (ct) {
+    const slim = Object.assign({}, ct, { row: Object.assign({}, ct.row, { lib_has: 'words points formulas' }) });
+    const el = box(w.libWaitHtml_(slim));
+    if (titleOf(el, null) !== ct.name) bad.push('a waiting content card is titled "' + titleOf(el, null) + '", not its name');
+    const say = el.querySelector('.lib-say');
+    if (!say || say.innerHTML.trim() !== w.loading_().trim()) bad.push('a waiting content card does not show loading_()\'s dots, signed in: ' + (say ? say.textContent.trim().slice(0, 120) : 'no .lib-say'));
+    if (el.querySelectorAll('.card').length !== 1) bad.push('a waiting content card is ' + el.querySelectorAll('.card').length + ' cards — one page until its words come');
+  }
+  return bad;
+});
 
 check('Find 2: a column immediately right of Find, called Find 2 with Find\'s icon — the tab row, data/settings/columns.json, one swipe from Find, its own search box, and Find\'s first question', async () => {
   const file = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'columns.json'), 'utf8'));
