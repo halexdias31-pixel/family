@@ -27340,6 +27340,63 @@ check('a part with an answer box, its words landed from the Ledger, shows them o
   return bad;
 });
 
+/* A NEW CHAPTER PUBLIC BEFORE ITS WORDS ARE IMPORTED (`lib_pending`, 417; one rule with 411's since 436): asked for like any card; whole if the Ledger has the words, "Coming soon" if it answers missing. */
+check('a new content card (lib_pending) is asked for, drawn whole when the Ledger has its words, and says Coming soon over its title when the Ledger answers missing', async () => {
+  const def = LIB_FULL.defs().files.textbooks, full = LIB_FULL.rows('textbooks');
+  const pend = full.filter(r => /^true$/i.test(String(r.lib_pending || '')) && !Object.prototype.hasOwnProperty.call(r, 'anim') && +r.chapter > 0);
+  if (!pend.length) return ['no lib_pending chapter in data/textbooks.json — nothing was checked'];
+  /* ITS WORDS AS THE LEDGER WOULD SEND THEM: this machine's, or a stand-in when a fresh clone has none (the rule is the same either way). */
+  const target = pend.find(r => LIB_FULL.privateOf(def, r)) || pend[0];
+  const words = LIB_FULL.privateOf(def, target) || { words: 'Stand-in word — sent by the Ledger in this check', points: 'Stand-in word: one worked line' };
+  const slim = full.map(r => {
+    const c = r === target ? words : LIB_FULL.privateOf(def, r);
+    if (!c) return r;
+    const out = {};
+    Object.keys(r).forEach(k => { if (!(k in c)) out[k] = r[k]; });
+    out.lib_has = def.private.filter(f => String(c[f] == null ? '' : c[f]).trim() !== '').join(' ');
+    return out;
+  });
+  const wire = 'ct:' + target.book_id + '#' + target.chapter;
+  const word = String(words.words || '').split('|')[0].split(' — ')[0].replace(/^\[H\] /, '').trim();
+  const bad = [];
+  for (const has of [true, false]) {
+    const held = [];
+    /* A COPY PER BOOT: `libFill_` writes the words back onto the row it was served, which would hand the second boot the first's. */
+    const one = boot({ serve: url => (/data\/textbooks\.json/.test(url) ? JSON.parse(JSON.stringify(slim)) : undefined), before: signedInAs_(ANS_ADA),
+      reply: b => (b.action === 'libItems' ? new Promise(ok => held.push(() => {
+        const items = {}, missing = [];
+        (b.ids || []).forEach(t => { if (t === wire && has) items[t] = words; else missing.push(t); });
+        ok({ success: true, items: items, missing: missing, refused: [], left: 390, cap: 400 });
+      })) : undefined) });
+    const W = one.w, as = has ? 'with its words in the Ledger' : 'with the Ledger answering missing';
+    for (let i = 0; i < 100 && !(typeof W.stuffItemsAll_ === 'function' && W.stuffItemsAll_().some(x => x.kind === 'content' && x.row && x.row.pending)); i++) await wait(50);
+    const x = W.stuffItemsAll_().find(it => it.kind === 'content' && it.row && it.row.bookId === target.book_id && it.row.n === +target.chapter);
+    if (!x) return [target.book_id + ' chapter ' + target.chapter + ' did not come into Find as a content card — nothing was checked'];
+    if (!x.row.pending) bad.push('the chapter row says lib_pending and its content card is not marked pending');
+    W.__t.STUFF().filters = [{ field: 'kindLabel', value: 'Content' }];
+    W.__t.go('stuff');
+    W.paintStuff();
+    const i = W.stuffPages_().findIndex(pg => pg.x === x);
+    if (i < 0) return ['the pending card is not among the pages of Content — nothing was checked'];
+    W.__t.goPage('stuff', W.stuffFirstResult_() + i, true);
+    await wait(300);
+    let front = libFront_(W);
+    const waiting = front && front.querySelector('.lib-wait');
+    if (!waiting) bad.push(as + ': the pending card in front is not the waiting card before the answer: ' + (front ? front.textContent.replace(/\s+/g, ' ').slice(0, 120) : 'no page'));
+    else if (waiting.textContent.indexOf(target.title) === -1) bad.push(as + ': the waiting card does not carry its title, ' + target.title);
+    if (!one.sent.some(b => b.action === 'libItems' && (b.ids || []).indexOf(wire) !== -1)) bad.push(as + ': no libItems request went for ' + wire);
+    held.splice(0).forEach(f => f());
+    await wait(500);
+    front = libFront_(W);
+    const txt = front ? front.textContent.replace(/\s+/g, ' ') : '';
+    if (has && (!front || front.querySelector('.lib-wait') || txt.indexOf(word) === -1)) bad.push(as + ': the card is not drawn whole (wanted the key word "' + word + '"): ' + txt.slice(0, 120));
+    if (!has && !/Coming soon\./.test(txt)) bad.push(as + ': it does not say Coming soon: ' + txt.slice(0, 120));
+    if (!has && /not in the library yet/.test(txt)) bad.push(as + ': a pending card says "not in the library yet"');
+    if (one.errs.length) bad.push(as + ': errors: ' + one.errs.join(' | '));
+  }
+  return bad;
+});
+
 check('a child sees a tutor card, the booking form and her session without any £, and is told to ask a parent (398)', async () => {
   /* THE OWNER, 23 Oct: "Kids' profiles shouldn't be able to see tutors' prices." The payload already sends her none (`kidPricesOff_`, check-kid-prices.js); this is the phone drawing none even when a figure is in hand. */
   const { w } = boot();

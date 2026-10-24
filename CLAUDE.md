@@ -84,6 +84,7 @@ when it was not told it could", never "is this past the right edge".
   - GCSE Computer Science `bin bubble fde gates hex insert merge packet pixel rle search stack` (`tools/cs_<id>.py`, 424; a new one makes its row with `--init`)
   - GCSE Psychology and Sociology `asch ivdv lens milg msm piag samp syn` (`tools/ps_<topic>.py`: `ivdv` ps_variables, `lens` ps_lenses, `milg` ps_milgram, `msm` ps_memory, `piag` ps_piaget, `samp` ps_sampling, `syn` ps_synapse; 426)
   - GCSE English `eapos earc eforest emetre epeel escrooge esent ezoom` (`tools/e_<topic>.py`, 416)
+  - GCSE History `hbal hcur hexp hinf hmed hnop hweb hweim` (`tools/h_<topic>.py`, `hbal` h_balance.py; 417)
 
   For the rest the row is the source. Never in `index.html` or `style.css`; the splash draws a device-kept copy
   (`splashSync_`). `check-anims.js`, `check-loading.js`. A new one is a script on `anim_row.Loop` that writes its whole

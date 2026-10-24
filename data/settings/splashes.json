@@ -126,5 +126,13 @@
 {"splash_id": "pwatch", "name": "Paley's watch", "kind": "proof", "shows": "a stone, a watch and the eye; then the reply from natural selection", "note": "Philosophy", "active": true},
 {"splash_id": "ptrolley", "name": "The trolley problem", "kind": "tool", "shows": "one scene, a utilitarian and a Kantian verdict", "note": "Philosophy", "active": true},
 {"splash_id": "pcave", "name": "Plato's cave", "kind": "tool", "shows": "shadows on the wall, the turn to the fire, the climb to the sun", "note": "Philosophy", "active": true},
-{"splash_id": "pdoubt", "name": "Doubting down to the cogito", "kind": "proof", "shows": "the senses, dreams and the demon doubted away to I think, therefore I am", "note": "Philosophy", "active": true}
+{"splash_id": "pdoubt", "name": "Doubting down to the cogito", "kind": "proof", "shows": "the senses, dreams and the demon doubted away to I think, therefore I am", "note": "Philosophy", "active": true},
+{"splash_id":"hinf","name":"The price of a loaf, 1918–23","kind":"proof","shows":"a loaf in Berlin from 0.63 marks to 201 billion, a bar per date on a ×10 scale","note":"","active":true},
+{"splash_id":"hweim","name":"Weimar to Hitler, 1919–33","kind":"proof","shows":"crises, golden years, depression, Nazi seats rising, then 30 January 1933","note":"","active":true},
+{"splash_id":"hexp","name":"Germany grows, 1935–39","kind":"proof","shows":"the Saar, the Rhineland, Austria, the Sudetenland, the Czech lands, then Poland","note":"","active":true},
+{"splash_id":"hnop","name":"Reading a source: NOP","kind":"proof","shows":"a 1919 Punch cartoon read for its nature, origin and purpose, then judged","note":"","active":true},
+{"splash_id":"hbal","name":"Weighing it: how far?","kind":"proof","shows":"factors for and against on a balance, a criterion, then a judgement","note":"","active":true},
+{"splash_id":"hweb","name":"A web of causes, 1914","kind":"proof","shows":"Militarism, Alliances, Imperialism, Nationalism, then the Sarajevo spark","note":"","active":true},
+{"splash_id":"hcur","name":"The Iron Curtain, 1945–61","kind":"proof","shows":"Europe split: satellites, Churchill's line, NATO, the Warsaw Pact, the Wall","note":"","active":true},
+{"splash_id":"hmed","name":"Turning points, 1348–1948","kind":"proof","shows":"eleven turning points in medicine, each tagged with the factor behind it","note":"","active":true}
 ]
