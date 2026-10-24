@@ -27194,6 +27194,61 @@ check('the Ledger not answering keeps the card\'s words — "Couldn’t load thi
   return bad;
 });
 
+/* 432: THE OWNER'S SCREENSHOT — Q1(a)–(c) of a paper with a shared stem: tags, the answer box, and no words. A plan of the part's pages was kept from while it waited. */
+check('a part with an answer box, its words landed from the Ledger, shows them on its card — and an old backend is said plainly, never a blank body (432)', async () => {
+  const PID = 'P-1MA1-2211-2H';
+  const full = LIB_FULL.rows('questions').filter(r => r.paper_id === PID);
+  if (full.length < 10) return ['the paper ' + PID + ' is not in the library — nothing was checked'];
+  const bad = [];
+  const strip = el => (el ? el.textContent.replace(/\s+/g, ' ').trim() : '');
+  const open_ = async (W, rid) => {
+    for (let i = 0; i < 100 && !(typeof W.stuffItemsAll_ === 'function' && W.stuffItemsAll_().some(x => x.row && x.row.row_id === rid)); i++) await wait(50);
+    W.__t.STUFF().filters = [{ field: 'paperId', value: PID }];
+    W.__t.go('stuff');
+    W.paintStuff();
+    const i = W.stuffPages_().findIndex(pg => pg.x.row && pg.x.row.row_id === rid);
+    if (i < 0) return false;
+    W.__t.goPage('stuff', W.stuffFirstResult_() + i, true);
+    await wait(700);
+    return true;
+  };
+  /* THE BACKEND ANSWERS AS IT SHOULD: every part's own card carries its words, under the tags and over the box. */
+  {
+    const one = boot({ serve: url => (/data\/questions\.json/.test(url) ? libSlimRows_(full) : undefined), before: signedInAs_(ANS_ADA),
+      reply: b => (b.action === 'libItems' ? libReply_(full, b.ids) : undefined) });
+    const W = one.w;
+    if (!(await open_(W, 'Q-1MA1-2211-2H-1c'))) return ['Q1(c) of ' + PID + ' did not come into Find — nothing was checked'];
+    const host = W.document.getElementById('s-stuff');
+    const cards = [...host.querySelectorAll(':scope > .page')];
+    ['1a', '1b', '1c'].forEach(p => {
+      const row = full.find(r => r.row_id === 'Q-1MA1-2211-2H-' + p);
+      const want = strip(W.document.createRange().createContextualFragment('<div>' + row.html + '</div>').firstChild).slice(0, 30);
+      const k = W.stuffPages_().findIndex(pg => pg.x.row && pg.x.row.row_id === row.row_id && pg.part === null);
+      const page = k >= 0 ? cards[W.__t.domIndex('stuff', W.stuffFirstResult_() + k)] : null;
+      if (!page) { bad.push('Q' + p + ' has no card page once its words came'); return; }
+      const sheet = page.querySelector('.qsheet');
+      if (!page.querySelector('.qp-area, textarea, input')) bad.push('Q' + p + '\'s card has no answer box — not the card in the screenshot');
+      if (!sheet || strip(sheet).indexOf(want) === -1) bad.push('Q' + p + '\'s card shows tags and a box but not its words ("' + want + '"): ' + strip(sheet).slice(0, 100));
+    });
+    cards.forEach((pg, i) => {
+      const sh = pg.querySelector('.qcard:not(.lib-wait) .qsheet');
+      if (sh && !strip(sh) && !sh.querySelector('svg, img, figure, canvas, input, table')) bad.push('page ' + i + ' is a question with a blank body: ' + strip(pg).slice(0, 100));
+    });
+    if (one.errs.length) bad.push('errors: ' + one.errs.join(' | '));
+  }
+  /* A BACKEND OLDER THAN `libItems`: said to an admin as a deploy, under the tags, with Try again. */
+  {
+    const ADMIN = Object.assign({}, ANS_ADA, { role: 'admin', roles: ['admin'] });
+    const one = boot({ serve: url => (/data\/questions\.json/.test(url) ? libSlimRows_(full) : undefined), before: signedInAs_(ADMIN),
+      reply: b => (b.action === 'libItems' ? { error: 'Unknown action: libItems' } : undefined) });
+    const W = one.w;
+    if (!(await open_(W, 'Q-1MA1-2211-2H-1a'))) return bad.concat(['Q1(a) did not come into Find for the admin']);
+    const front = libFront_(W), say = front && front.querySelector('.lib-say');
+    if (!say || !/needs the latest backend — deploy it/.test(say.textContent) || !say.querySelector('[data-do="lib-retry"]')) bad.push('an old backend is not said plainly to an admin with Try again: ' + strip(say || front).slice(0, 140));
+  }
+  return bad;
+});
+
 check('a child sees a tutor card, the booking form and her session without any £, and is told to ask a parent (398)', async () => {
   /* THE OWNER, 23 Oct: "Kids' profiles shouldn't be able to see tutors' prices." The payload already sends her none (`kidPricesOff_`, check-kid-prices.js); this is the phone drawing none even when a figure is in hand. */
   const { w } = boot();
