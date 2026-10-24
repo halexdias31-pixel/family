@@ -2,11 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-<<<<<<< HEAD
-  --css-version: "2026-10-24-c-ranks-media";
-=======
-  --css-version: "2026-10-24-b-icons-speed-read";
->>>>>>> 85f6534
+  --css-version: "2026-10-24-d-icons-ranks";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -6310,7 +6306,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 /* A CARD WHOSE WORDS ARE STILL IN THE LEDGER (397, `libWaitHtml_`): its tags, then the dots, the sign-in line or Try again. */
 .lib-wait .lib-say { margin-top: 1rem; min-height: 3rem; }
 
-<<<<<<< HEAD
 /* ---------- WHAT NEEDS YOU (400): a Business card with something to act on glows, says how many, and the dot carries the total ---------- */
 .card.needs-you { border-color: var(--alert); box-shadow: 0 0 0 1px var(--alert), 0 0 1.1rem -.2rem var(--alert); }
 .biz-need { color: var(--alert); font-weight: 700; margin: .2rem 0 .4rem; }
@@ -6324,7 +6319,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .app-form h4 { margin: 1rem 0 .4rem; }
 .app-line { margin: .15rem 0; font-size: .85rem; }
 .app-line b { color: var(--dim); font-weight: 600; margin-right: .3rem; }
-=======
 /* ================= THE ICONS ON FIND 2 (403) — one mark large, and the same mark as a tile ================= */
 .icon-show { display: flex; align-items: center; gap: 1.5rem; margin: 1rem 0; }
 .icon-big { display: inline-flex; padding: 1rem; border: 1px solid var(--line); border-radius: .6rem; color: var(--gold); }
@@ -6350,4 +6344,3 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .rsvp-speed input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; margin-top: -10px;
   border-radius: 50%; background: var(--gold); border: 0; }
 .rsvp-speed input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: var(--gold); border: 0; }
->>>>>>> 85f6534
