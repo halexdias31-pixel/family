@@ -273,18 +273,7 @@ const WIDGETS = [
     <div id="fm-wrap"></div>
   </div>` },
 
-  /* THE HOURS A TUTOR CAN TEACH. § */
-  { id: 'avail', kind: 'tool', name: 'My teaching hours (availability)', solid: true, tutor: true,
-    start: () => initAvail?.(),
-    into: 'avail-box', what: 'Your hours',
-    html: `<div class="card">
-    <h3>My teaching hours</h3>
-    ${/* NOT "TICK THE HOURS YOU CAN TEACH". § */
-          ''}
-    <p class="sub">A family booking a session only sees the hours you have ticked — everything
-      else comes up greyed, with the reason why.</p>
-    <div id="avail-box"></div>
-  </div>` },
+  /* THE `avail` TOOL (My teaching hours) WAS HERE — the hours are the Staff hub's Hours now (432). */
 
   { id: 'mat', kind: 'tool', name: 'Cheat sheet maker (maths mat)', solid: true,
     start: () => initMat?.(),

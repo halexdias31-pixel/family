@@ -2632,6 +2632,38 @@ check('Staff hub (405): "Staff hub" sits beside "Share my profile" and a line sa
   return bad;
 });
 
+check('Staff hub hours (432): the week a tutor teaches is the hub\'s fourth part, saved through updateProfile to the row; Tools has no `avail` tool and Settings no week for staff', async () => {
+  const W = hubWorld_();
+  const a = await hubBoot_(W, 'tutor@example.org');
+  if (a.err) return [a.err];
+  const bad = [];
+  a.A('hub-open', a.d.querySelector('#s-account [data-do="hub-open"]')); await wait(150);
+  const parts = [...a.sheet().querySelectorAll('[data-do="hub-part"]')].map(x => x.dataset.part).join(',');
+  if (parts !== 'terms,hours,pricing,statement') bad.push('the hub\'s parts are "' + parts + '", wanted terms,hours,pricing,statement');
+  if (!(await a.part('hours'))) return bad.concat(['the hub has no Hours tile']);
+  const S = a.sheet();
+  const hrs = [...S.querySelectorAll('.hub-hours input[data-me]')];
+  if (hrs.length < 70) return bad.concat(['the Hours part draws ' + hrs.length + ' hours, wanted the week of seventy']);
+  const box = hrs.find(x => !x.checked && !x.disabled);
+  if (!box) return bad.concat(['every hour is already ticked or locked — nothing to tick']);
+  const code = box.dataset.me;
+  /* THE HOURS ARE PACKED INTO ONE `availability` CELL by `availGridIn` (dopost.gs), so the cell is read before and after. */
+  const cell = () => W.sheet("String(read(TAB.people).rows.find(r => r.person_id === 'P-T1').availability ?? '')");
+  const before = cell();
+  box.checked = true; box.dispatchEvent(new a.w.Event('change', { bubbles: true }));
+  a.A('me-save', S.querySelector('.hub-hours [data-do="me-save"]'));
+  for (let k = 0; k < 30 && !a.sent.some(x => x.action === 'updateProfile' && x.fields && x.fields[code] === 'TRUE'); k++) await wait(100);
+  const post = a.sent.filter(x => x.action === 'updateProfile').pop();
+  if (!post || !post.fields || post.fields[code] !== 'TRUE') bad.push('Save my hours posted ' + JSON.stringify(post && post.fields && post.fields[code]) + ' for ' + code + ', wanted TRUE');
+  await wait(300);
+  if (cell() === before) bad.push('the server row\'s availability was not written for ' + code + ': ' + JSON.stringify(before));
+  if (a.t.widgetsOf('tool').some(x => String(x.id) === 'avail')) bad.push('Tools still carries the `avail` hours tool');
+  try { a.t.go('settings', false, true); a.w.paint('settings'); } catch (e) { return bad.concat(['drawing settings threw: ' + e.message]); }
+  await wait(200);
+  if (a.d.querySelector('#s-settings .me-week')) bad.push('Settings still draws the week for a tutor — it is the Staff hub\'s Hours');
+  return bad;
+});
+
 check('Staff hub pricing (405): an hour for 1, 2 and 3 students split into tutor, room, card fees and @family. by `priceFrom` itself; the bars slide under a held slider; a rate past £200 is refused; Save writes through updateProfile', async () => {
   const W = hubWorld_();
   const a = await hubBoot_(W, 'tutor@example.org');
@@ -12175,19 +12207,19 @@ check('your exams: the big exam on Progress\'s Countdowns for a student and not 
   if (d.querySelector('#s-settings .card.journey')) bad.push('a student\'s Settings still holds the journey card — it is Progress\'s now');
   if (/card journey/.test(w.settingsPages_().join(''))) bad.push('`settingsPages_` still builds the journey card');
 
-  /* 3. THE STUDENT'S ROLE BECOMES CLIENT, on the roles card: the placeholder. */
+  /* 3. THE STUDENT'S ROLE BECOMES CLIENT — by @family., since a student has no picker (432) — and the column is drawn again: the placeholder. */
   const roles = d.querySelector('#s-settings .roles-card');
   if (!roles) bad.push('the student\'s Settings has no roles card — the change of role was NOT checked');
   else {
-    roles.querySelectorAll('[data-role-pick]').forEach(b => { b.checked = b.dataset.rolePick === 'client'; });
-    try { t.ACTIONS['roles-save'](roles.querySelector('[data-do="roles-save"]')); } catch (e) { bad.push('roles-save threw: ' + e.message); }
-    for (let n = 0; n < 30 && !(t.whoami() && t.whoami().role === 'client'); n++) await wait(100);
+    if (roles.querySelector('[data-role-pick]')) bad.push('a student is offered a role picker on Settings (432)');
+    Object.assign(t.whoami(), { role: 'client', roles: ['client'], rank: 'client' });
+    try { w.paint('settings'); w.paint('progress'); } catch (e) { bad.push('paint threw: ' + e.message); }
     await settle();
-    if (!t.whoami() || t.whoami().role !== 'client') bad.push('the roles card\'s Save did not make the student a client — NOT checked');
+    if (!t.whoami() || t.whoami().role !== 'client') bad.push('the student did not become a client — NOT checked');
     else {
       await go('progress');
       s1 = seen();
-      if (s1.journey || !s1.held) bad.push('the student made themselves a client, and Progress is ' + JSON.stringify(s1) + ' — wanted the placeholder');
+      if (s1.journey || !s1.held) bad.push('the student became a client, and Progress is ' + JSON.stringify(s1) + ' — wanted the placeholder');
     }
   }
 
@@ -13680,18 +13712,18 @@ check('while a failed first payload is asked for again, the score board and the 
     if (!board.querySelector('.loading[role="status"]')) bad.push('while the retry is out the Times Tables board shows no loader: "' + board.textContent.trim().slice(0, 80) + '"');
     if (words.test(board.textContent)) bad.push('while the retry is out the Times Tables board says "' + board.textContent.trim().slice(0, 80) + '" — a wait in words of its own');
   }
-  const hours = await turnTo('tools', 'avail', '#s-tools #avail-box');
-  if (hours) {
-    if (!hours.querySelector('.loading[role="status"]')) bad.push('while the retry is out My teaching hours shows no loader: "' + hours.textContent.trim().slice(0, 80) + '"');
-    if (words.test(hours.textContent)) bad.push('while the retry is out My teaching hours says "' + hours.textContent.trim().slice(0, 80) + '" — a wait in words of its own');
-  }
+  /* THE HOURS ARE THE STAFF HUB'S NOW (432, `hoursHtml_`), drawn when the hub opens — asked as drawn. */
+  const hours = () => { const x = d.createElement('div'); try { x.innerHTML = b.w.hoursHtml_(); } catch (e) { bad.push('hoursHtml_ threw: ' + e.message); } return x; };
+  const h0 = hours();
+  if (!h0.querySelector('.loading[role="status"]')) bad.push('while the retry is out the Staff hub\'s Hours shows no loader: "' + h0.textContent.trim().slice(0, 80) + '"');
+  if (words.test(h0.textContent)) bad.push('while the retry is out the Staff hub\'s Hours says "' + h0.textContent.trim().slice(0, 80) + '" — a wait in words of its own');
   /* AND THE RETRY LANDS: the dots go, and what the payload brought is drawn where they were. */
   open();
   for (let k = 0; k < 50 && !b.arrived(); k++) await wait(100);
   if (!b.arrived()) return bad.concat(['the retry was let through and the payload is not in DATA']);
-  for (let k = 0; k < 50 && d.querySelector('#s-tools #avail-box .loading, #s-games #tt-board .loading'); k++) await wait(100);
-  const hb = d.querySelector('#s-tools #avail-box'), bb = d.querySelector('#s-games #tt-board');
-  if (hb && hb.querySelector('.loading')) bad.push('the retry landed and My teaching hours still shows the loader');
+  for (let k = 0; k < 50 && d.querySelector('#s-games #tt-board .loading'); k++) await wait(100);
+  const bb = d.querySelector('#s-games #tt-board');
+  if (hours().querySelector('.loading')) bad.push('the retry landed and the Staff hub\'s Hours still shows the loader');
   if (bb && bb.querySelector('.loading')) bad.push('the retry landed and the Times Tables board still shows the loader');
   if (b.w.awaiting_()) bad.push('the retry landed and `awaiting_()` still says the payload is on its way');
   return bad;
@@ -18732,10 +18764,10 @@ check('before the backend is pulled, tapping a picture says the server\'s refusa
   return bad;
 });
 
-/* ---------- YOUR ROLES, TICKED IN SETTINGS § */
-check('the roles card ticks what you hold, posts setMyRoles, and a waiting Tutor is not staff — and Tutor is no tick for somebody who has not applied (400)', async () => {
+/* ---------- YOUR ROLE, ONE RANK (432): A CLIENT CHOOSES CLIENT OR STUDENT; NOBODY ELSE IS OFFERED A CHOICE ---------- */
+check('the roles card offers a Client one choice, Client or Student, and posts setMyRoles; a student, a tutor and an admin get no picker; a waiting Tutor keeps its tutor (432)', async () => {
   const { w, sent } = boot({ reply: b => b.action === 'setMyRoles'
-    ? { success: true, role: 'parent', roles: ['parent', 'kid'], rank: 'client', tutorPending: false, changed: true }
+    ? { success: true, role: 'kid', roles: ['kid'], rank: 'student', tutorPending: false, changed: true }
     : { success: true } });
   await wait(300);
   const t = w.__t, d = w.document;
@@ -18745,87 +18777,85 @@ check('the roles card ticks what you hold, posts setMyRoles, and a waiting Tutor
   await wait(300);
   const bad = [];
   const card = () => d.querySelector('#s-settings .roles-card');
-  if (!card()) return ['Settings has no Your roles card'];
-  const tick = r => card().querySelector(`[data-role-pick="${r}"]`);
-  ['client', 'student'].forEach(r => { if (!tick(r)) bad.push('the roles card has no ' + r + ' tick'); });
-  /* STAFF ONLY BY APPLICATION (400): no Tutor tick for a parent who has not been approved. */
-  if (tick('tutor')) bad.push('a parent is offered a Tutor tick — teaching starts with "Apply to teach"');
-  if (card().querySelector('[data-role-pick="admin"]')) bad.push('Admin is a tick on the roles card — it is given, not chosen');
-  if (bad.length) return bad;
-  if (!tick('client').checked || tick('student').checked) {
-    bad.push('a parent signed in sees client=' + tick('client').checked + ' student=' + tick('student').checked + ', wanted only Client ticked');
-  }
-  if (card().querySelector('.role-admin')) bad.push('a parent is told they are also Admin');
+  if (!card()) return ['Settings has no Your role card'];
+  const pick = r => card().querySelector(`[data-role-pick="${r}"]`);
+  const picks = () => [...card().querySelectorAll('[data-role-pick]')].map(b => b.dataset.rolePick).join(',');
+  if (picks() !== 'client,student') return ['a parent is offered "' + picks() + '", wanted Client and Student alone'];
+  if ([...card().querySelectorAll('[data-role-pick]')].some(b => b.type !== 'radio')) bad.push('the choice is not one of two — a tick box is on the card');
+  if (/Tick every one|more than one/.test(card().textContent)) bad.push('the card still says to tick every one that is you');
+  if (!pick('client').checked || pick('student').checked) bad.push('a parent does not see Client chosen');
+  if (card().querySelector('.role-admin')) bad.push('a parent is told they are Admin');
   const save = () => card().querySelector('[data-do="roles-save"]');
   if (!save()) return bad.concat(['the roles card has no Save tile']);
-  /* NONE TICKED: said on the card, nothing posted. */
-  tick('client').checked = false;
-  sent.length = 0;
-  t.ACTIONS['roles-save'](save());
-  await wait(200);
-  if (sent.some(b => b.action === 'setMyRoles')) bad.push('a Save with nothing ticked was posted');
-  if (!/at least one/i.test(card().querySelector('.roles-said').textContent)) bad.push('a Save with nothing ticked did not say to keep one');
-  /* CLIENT AND STUDENT: posted, with the id. */
-  tick('client').checked = true; tick('student').checked = true;
+  pick('student').checked = true;
   sent.length = 0;
   t.ACTIONS['roles-save'](save());
   await wait(400);
   const post = sent.find(b => b.action === 'setMyRoles');
   if (!post) bad.push('Save posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no setMyRoles');
   else {
-    if (JSON.stringify(post.roles) !== '["client","student"]') bad.push('setMyRoles carried ' + JSON.stringify(post.roles) + ', wanted ["client","student"]');
+    if (JSON.stringify(post.roles) !== '["student"]') bad.push('setMyRoles carried ' + JSON.stringify(post.roles) + ', wanted ["student"]');
     if (post.personId !== 'P-C1') bad.push('setMyRoles did not name the signed-in person by id');
   }
-  if (t.whoami().rank !== 'client') bad.push('USER was not given the server\'s rank — ' + JSON.stringify(t.whoami().rank));
-  /* A TUTOR STILL WAITING FROM BEFORE (an old row): ticked, said to be waiting, and not staff. */
+  if (t.whoami().rank !== 'student') bad.push('USER was not given the server\'s rank — ' + JSON.stringify(t.whoami().rank));
+  /* NOW A STUDENT: no picker, and the one line about a parent. */
+  if (!card() || card().querySelector('[data-role-pick], [data-do="roles-save"]')) bad.push('a student is offered a role picker — the server refuses a student making itself a client');
+  else if (!/parent links you/i.test(card().textContent)) bad.push('a student\'s card does not say a parent links them: "' + card().textContent.trim().slice(0, 120) + '"');
+  /* A TUTOR STILL WAITING FROM BEFORE (an old row): a Client's choice, the waiting line, and the tutor kept in the post. */
   t.USER({ name: 'Pat Parent', personId: 'P-C1', role: 'tutor', roles: ['tutor', 'parent'], token: 'tk', tutorPending: true, profile: {} });
   try { w.paint('settings'); } catch (e) { return bad.concat(['drawing settings for a waiting tutor threw: ' + e.message]); }
   if (t.isTutorRole()) bad.push('a Tutor tick the server says is waiting already passes the staff test');
-  if (!card() || !tick('tutor') || !tick('tutor').checked) bad.push('a waiting tutor\'s card does not show Tutor ticked');
-  if (!card() || !/waiting for @family/.test(card().querySelector('.roles-said').textContent)) bad.push('the card does not say the Tutor tick is waiting for approval');
-  /* THE TERMS ARE IN THE STAFF HUB ON YOU NOW (405), for staff: Settings carries no agreement, and a waiting tutor has no hub yet. */
+  if (!card() || pick('tutor')) bad.push('a waiting tutor is offered Tutor as a choice — teaching starts with "Apply to teach"');
+  if (!card() || !/waiting for @family/.test((card().querySelector('.roles-said') || {}).textContent || '')) bad.push('the card does not say the Tutor is waiting for approval');
+  sent.length = 0;
+  if (card() && save()) { t.ACTIONS['roles-save'](save()); await wait(400); }
+  const kept = sent.find(b => b.action === 'setMyRoles');
+  if (!kept || JSON.stringify(kept.roles) !== '["client","tutor"]') bad.push('a waiting tutor\'s Save posted ' + JSON.stringify(kept && kept.roles) + ', wanted ["client","tutor"] — the waiting tutor dropped');
   if (d.querySelector('#s-settings .agree')) bad.push('Settings still carries the old tutor agreement — the terms are in the Staff hub (405)');
-  /* AND THE ADMIN: told, not ticked. */
+  /* AN APPROVED TUTOR: no picker; told where the hours are. */
+  t.USER({ name: 'Ada Tutor', personId: 'P-T1', role: 'tutor', roles: ['tutor'], rank: 'staff', token: 'tk', profile: {} });
+  try { w.paint('settings'); } catch (e) { return bad.concat(['drawing settings for a tutor threw: ' + e.message]); }
+  if (!card() || card().querySelector('[data-role-pick]')) bad.push('an approved tutor is offered a role picker');
+  /* AND THE ADMIN: told, not offered. */
   t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin', 'tutor'], token: 'tk', profile: {} });
   try { w.paint('settings'); } catch (e) { return bad.concat(['drawing settings for the admin threw: ' + e.message]); }
   if (!card() || !card().querySelector('.role-admin')) bad.push('an admin is not told Admin is given and kept');
-  else if (!tick('tutor').checked || tick('client').checked) bad.push('an admin holding admin, tutor does not see Tutor alone ticked');
+  else if (card().querySelector('[data-role-pick]')) bad.push('an admin is offered a role picker');
   return bad;
 });
 
-/* ---------- A REFUSED SAVE PUTS THE TICKS BACK; A LOST REPLY LEAVES THEM § */
-check('a refused roles save puts the ticks back to what you hold; a lost reply keeps them', async () => {
-  const NO = 'A student account cannot make itself a client (a parent or payer). Ask @family. to change it. Nothing was changed.';
+/* ---------- A REFUSED SAVE PUTS THE CHOICE BACK; A LOST REPLY LEAVES IT ---------- */
+check('a refused role save puts the choice back to Client; a lost reply keeps it', async () => {
+  const NO = 'You are in 1 session as a client that has not finished. Leave it, or ask @family. to hand it over, first. Nothing was changed.';
   const { w, sent } = boot({ reply: b => b.action === 'setMyRoles' ? { error: NO } : { success: true } });
   await wait(300);
   const t = w.__t, d = w.document;
-  t.USER({ name: 'Mo Learner', personId: 'P-S1', role: 'kid', roles: ['kid'], token: 'tk', tutorPending: false,
-           profile: { first_name: 'Mo', last_name: 'Learner' } });
+  t.USER({ name: 'Pat Parent', personId: 'P-C1', role: 'parent', roles: ['parent'], token: 'tk', tutorPending: false,
+           profile: { first_name: 'Pat', last_name: 'Parent' } });
   try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
   await wait(300);
   const bad = [];
   const card = () => d.querySelector('#s-settings .roles-card');
-  if (!card()) return ['Settings has no Your roles card'];
-  const tick = r => card().querySelector(`[data-role-pick="${r}"]`);
-  const ticks = () => ['tutor', 'client', 'student'].filter(r => tick(r) && tick(r).checked).join(',');
+  if (!card()) return ['Settings has no Your role card'];
+  const pick = r => card().querySelector(`[data-role-pick="${r}"]`);
+  const chosen = () => ['client', 'student'].filter(r => pick(r) && pick(r).checked).join(',');
   const line = () => (card().querySelector('.roles-said') || {}).textContent || '';
-  if (ticks() !== 'student') return ['a student signed in sees "' + ticks() + '" ticked, wanted student alone'];
-  /* REFUSED: the server's sentence stays, the ticks go back to what is held. */
-  tick('client').checked = true;
+  if (chosen() !== 'client') return ['a parent signed in sees "' + chosen() + '" chosen, wanted client'];
+  pick('student').checked = true;
   sent.length = 0;
   t.ACTIONS['roles-save'](card().querySelector('[data-do="roles-save"]'));
   await wait(400);
-  if (!sent.some(b => b.action === 'setMyRoles')) return ['Save with Client ticked posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no setMyRoles'];
+  if (!sent.some(b => b.action === 'setMyRoles')) return ['Save with Student chosen posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no setMyRoles'];
   if (line().indexOf('Nothing was changed') === -1) bad.push('the line under the tile does not carry the server\'s refusal — "' + line() + '"');
-  if (ticks() !== 'student') bad.push('after "Nothing was changed" the card shows "' + ticks() + '" ticked, wanted what the student holds: student');
-  if (JSON.stringify(t.whoami().roles) !== '["kid"]') bad.push('a refusal changed USER.roles to ' + JSON.stringify(t.whoami().roles));
-  /* LOST: nothing was decided, so the ticks are left for the second Save. */
+  if (chosen() !== 'client') bad.push('after "Nothing was changed" the card shows "' + chosen() + '" chosen, wanted what the parent holds: client');
+  if (JSON.stringify(t.whoami().roles) !== '["parent"]') bad.push('a refusal changed USER.roles to ' + JSON.stringify(t.whoami().roles));
+  /* LOST: nothing was decided, so the choice is left for the second Save. */
   w.fetch = () => Promise.reject(new w.TypeError('Failed to fetch'));
-  tick('client').checked = true;
+  pick('student').checked = true;
   t.ACTIONS['roles-save'](card().querySelector('[data-do="roles-save"]'));
   await wait(400);
   if (!/did not answer|offline/.test(line())) bad.push('a lost reply did not say so on the card — "' + line() + '"');
-  if (ticks() !== 'client,student') bad.push('a reply that never came took the ticks back to "' + ticks() + '" — a second Save would send what the person did not choose');
+  if (chosen() !== 'student') bad.push('a reply that never came took the choice back to "' + chosen() + '" — a second Save would send what the person did not choose');
   return bad;
 });
 

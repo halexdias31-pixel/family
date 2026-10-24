@@ -38,7 +38,7 @@ view only draws them.
 
 | # | Fact | Stored in | Who edits | Who sees / where drawn | Notes |
 |---|---|---|---|---|---|
-| 1 | Tutor weekly hours | `people.availability` (one cell of `m16`-style codes; `availSet`/`availGridIn`) | the tutor (Settings week, card editor `s.id==='week'`, Tools **My teaching hours** widget `initAvail`), an admin | tutor card `profAvail_` (cards.js), booking grid `slotGrid` (book.js), `tutorHoursRefusal_` (booking.gs), setup health list (setup.gs) | 9–18 only: `AVAIL_HOURS` (constants.gs) and `SLOT_HOURS` (book.js) are two lists held equal by `check-booking.js` |
+| 1 | Tutor weekly hours | `people.availability` (one cell of `m16`-style codes; `availSet`/`availGridIn`) | the tutor (Staff hub → Hours `hoursHtml_`, card editor `s.id==='week'`; the Settings week for a non-staff row only — 432), an admin | tutor card `profAvail_` (cards.js), booking grid `slotGrid` (book.js), `tutorHoursRefusal_` (booking.gs), setup health list (setup.gs) | 9–18 only: `AVAIL_HOURS` (constants.gs) and `SLOT_HOURS` (book.js) are two lists held equal by `check-booking.js` |
 | 2 | Tutor hours on an application | `applications.availability` (codes or free text) | the applicant | Business column (records.js) | **not copied** to `people.availability` on approve (`applicationApprove_`, people.gs) |
 | 3 | Venue opening hours | `venues.availability` | admin (venue editor) | `slotGrid` (as `vAvail`), venue card | 4 of 13 venues in the export are blank |
 | 4 | Room hours | `rooms.availability`, blank = the venue's (`roomTerms_`, booking.gs) | admin (`saveRoom`) | `slotGrid` via `spaceFor` | |

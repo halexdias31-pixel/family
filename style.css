@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-24-s-racer";
+  --css-version: "2026-10-24-u-one-rank";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -728,6 +728,9 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .role-pick-say { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
 .role-pick-say .faint { font-size: .85rem; line-height: 1.35; }
 .roles-card .role-admin, .roles-card .roles-said { margin: .6rem 0 0; }
+/* ONE OF TWO (432): the role is a radio, so its box is round. */
+.roles-card .role-pick .box { border-radius: 50%; }
+.roles-card .role-pick + .role-pick { margin-top: .4rem; }
 
 /* ---------- NOTIFICATIONS: THE ROLES CARD'S TICKS, AND WHAT IS ALWAYS SENT AS WORDS § */
 .notify-always { list-style: none; margin: 0; padding: 0; font-size: .85rem; line-height: 1.45; color: var(--dim); }

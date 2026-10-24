@@ -460,9 +460,10 @@ screen('saved', () => pages('saved', savedCards_()));
 screen('spotlight', () => pages('spotlight', spotlightCards_()));
 /* ---------- PROGRESS (435): ONE WIDGET PER THING, ONE LINE PER THING, EACH ITS TITLE ALONE WITH NOTHING TO SAY ---------- */
 /* ---------- YOUR JOURNEY, MOVED HERE FROM THE SETTINGS COLUMN § */
+/* A STUDENT'S CARD, AND THE ADMIN'S TO SEE IT — by rank (400), never the role string. */
 function mayJourney_() {
-  if (typeof hasRole !== 'function') return false;
-  return hasRole('student') || hasRole('admin');
+  if (typeof rank_ !== 'function') return false;
+  return rank_() === 'student' || rankAtLeast_('admin');
 }
 /* THE EXAM DATES CHANGED UNDER THE COLUMN, so it is REDRAWN IF IT IS DRAWN — the rule `profileRefresh_` keeps for Settings, whose About you holds the same two § */
 function progressRedraw_() {

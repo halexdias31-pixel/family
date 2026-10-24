@@ -39,7 +39,7 @@ const PHRASES = [
      asked again — the column's wait is the loader; the line over the app says why, once. */
   [/\bWaiting for the server\b/i, 'the retry\'s "Waiting for the server" in a column — the quiet line `#reconnect` says it, once, for the whole app'],
   [/\bhave not arrived yet\b/i,'the score board\'s "Scores have not arrived yet" while they were on their way — the sentence is kept only where `scoreBoard_` knows the payload came'],
-  [/\bhave not arrived from the server\b/i, 'the hours\' "The hours have not arrived from the server yet" while the payload was on its way — kept only where `initAvail` knows it came without them'],
+  [/\bhave not arrived from the server\b/i, 'the hours\' "The hours have not arrived from the server yet" while the payload was on its way — gone with the `avail` tool (432); the Staff hub\'s Hours draws the loader instead'],
   /* ---------- AND THE SHAPE, WHATEVER THE WORDS § */
   [/>[^<>]*\w(…|\.\.\.)\s*<\/(p|div|span|li|h\d|b|i|small)>/, 'an element whose text trails off in "…" — the shape of a wait drawn in words of its own'],
 ];
@@ -48,8 +48,6 @@ const AFTER_THE_WAIT = /awaiting_\(\)[\s\S]{0,60}?loading_\(\)/;
 const PHRASE_OK = [
   { file: 'map.js', re: /\bhave not arrived yet\b/i, after: AFTER_THE_WAIT,
     why: 'scoreBoard_ draws the loader while the payload is on its way; this sentence is for a payload that came with nobody in it' },
-  { file: 'me.js', re: /\bhave not arrived from the server\b/i, after: AFTER_THE_WAIT,
-    why: 'initAvail draws the loader while the payload is on its way; this sentence is for a payload that came without `profileFields` — an older server' },
   { file: 'me.js', re: />sending…<\/p>/,
     why: 'a message already sent and in flight under its bubble — a press answered (send_\'s "Sending…", docs/history/094), not content on its way' },
   { file: 'me.js', re: /\bstill loading from the sheet, so nothing was sent\b/,

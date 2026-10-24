@@ -1890,6 +1890,8 @@ function settingsPages_() {
 
   /* ---------- WHAT IS ABOUT YOUR CARD IS EDITED ON YOUR CARD, SO THOSE BOXES ARE NOT DRAWN HERE § */
   const shown = notLibrary_(cardSettingsGroups_(groups, ownCardFields_()));
+  /* AND STAFF SET THEIR WEEK IN THE STAFF HUB'S HOURS (432), so the week group is not drawn here a second time. */
+  if (typeof hubFor_ === 'function' && hubFor_()) Object.keys(shown).forEach(g => { if (isTimetable_(shown[g])) delete shown[g]; });
 
   /* WHERE THE REST WENT, said once on the first card, because a page somebody used yesterday is a page
      they will look for today — on the first group's card, or on the next card there is if no group is left. */
@@ -1957,44 +1959,54 @@ function settingsPages_() {
   return pages;
 }
 
-/* ---------- YOUR ROLES: TUTOR, CLIENT, STUDENT — TICK EVERY ONE THAT IS YOU § */
+/* ---------- YOUR ROLE: ONE RANK (400), SO ONE CHOICE, CLIENT OR STUDENT, FOR A CLIENT ONLY (432) ----------
+   Tutor comes by "Apply to teach", Admin is given, and dopost.gs refuses a student becoming a client. */
 const ROLE_PICKS = [
-  ['tutor', 'Tutor', 'You teach here. Teaching starts with "Apply to teach" on You, and @family. says yes.'],
+  ['tutor', 'Tutor', 'You teach here. Teaching starts with "Apply to teach" on You.'],
   ['client', 'Client', 'A parent or payer. You book and pay for sessions.'],
-  ['student', 'Student', 'You are the one learning.'],
+  ['student', 'Student', 'You are the one learning. Only @family. can change a student account back.'],
 ];
-/* WHAT THE LINE UNDER THE TILE SAYS WHEN NOTHING HAS JUST HAPPENED — the waiting Tutor, said where
-   the tick is, because the tick alone would look like a yes. */
+/* WHAT THE LINE UNDER THE CARD SAYS WHEN NOTHING HAS JUST HAPPENED, by rank. */
 function rolesSaid_() {
-  if (USER && USER.tutorPending && tutorHeld_() && !isAdmin())
-    return 'Tutor is waiting for @family. to approve you. Until then you are not on the site and '
+  if (!USER) return '';
+  if (rankAtLeast_('admin')) return '';
+  if (USER.tutorPending && tutorHeld_())
+    return 'Tutor is waiting for ' + brand('name', '@family.') + ' to approve you. Until then you are not on the site and '
          + 'cannot be booked — fill in your teaching pages meanwhile.';
-  return 'Tick every one that is you. You can be more than one.';
+  if (rankAtLeast_('staff')) return 'You teach here. Your hours, pricing and terms are in the Staff hub on You.';
+  if (rank_() === 'student') return 'A parent links you to their account from theirs.';
+  return '';
 }
+/* THE CHOICE THE CARD OFFERS: only a Client has one. A waiting Tutor keeps the old row's tutor alongside it (`rolesPicked_`). */
+const rolesPickable_ = () => !!USER && rank_() === 'client';
 function rolesCard_() {
-  const held = heldRoles().map(roleOf);
+  const name = brand('name', '@family.');
+  const picks = rolesPickable_() ? ROLE_PICKS.filter(([r]) => r !== 'tutor').map(([r, label, note]) => `<label class="check role-pick">
+      <input type="radio" name="role-pick" data-role-pick="${r}"${r === 'client' ? ' checked' : ''}>
+      <span class="box"></span><span class="role-pick-say"><b>${esc(label)}</b>
+        <span class="faint">${esc(note)}</span></span></label>`).join('')
+    + `<div class="tile-row">${tile_({ icon: 'save', label: 'Save', act: 'roles-save' })}</div>` : '';
+  const said = rolesSaid_();
   return `<div class="card roles-card">
     <h3>Your roles</h3>
-    ${ROLE_PICKS.filter(([r]) => r !== 'tutor' || held.indexOf('tutor') !== -1 || isAdmin()).map(([r, label, note]) => `<label class="check role-pick">
-      <input type="checkbox" data-role-pick="${r}"${held.indexOf(r) !== -1 ? ' checked' : ''}>
-      <span class="box"></span><span class="role-pick-say"><b>${esc(label)}</b>
-        <span class="faint">${esc(note)}</span></span></label>`).join('')}
-    ${isAdmin() ? '<p class="faint role-admin">You are also Admin. That is given by @family. and '
-                + 'is not changed here.</p>' : ''}
-    <div class="tile-row">${tile_({ icon: 'save', label: 'Save', act: 'roles-save' })}</div>
-    <p class="faint roles-said" aria-live="polite">${esc(rolesSaid_())}</p>
+    ${rankAtLeast_('admin') ? `<p class="faint role-admin">You are Admin. That is given by ${esc(name)} and is not changed here.</p>` : ''}
+    ${picks}
+    ${picks || said ? `<p class="faint roles-said" aria-live="polite">${esc(said)}</p>` : ''}
   </div>`;
 }
+/* WHAT A SAVE POSTS: the one choice, and a waiting Tutor's `tutor`, which is kept, not added (the server refuses adding it). */
+const rolesPicked_ = card => {
+  const b = card.querySelector('[data-role-pick]:checked');
+  if (!b) return [];
+  return [b.dataset.rolePick].concat(USER && USER.tutorPending && tutorHeld_() ? ['tutor'] : []);
+};
 
 on('roles-save', el => {
   const card = el.closest('.card');
   if (!USER || !card) return;
   const said = card.querySelector('.roles-said');
-  const roles = [].filter.call(card.querySelectorAll('[data-role-pick]'), b => b.checked)
-    .map(b => b.dataset.rolePick);
-  /* THE ONE RULE THE CARD CAN KNOW WITHOUT ASKING. The server refuses it too — this saves a round
-     trip to be told what the screen already shows. */
-  if (!roles.length) { if (said) said.textContent = 'Keep at least one ticked.'; return; }
+  const roles = rolesPicked_(card);
+  if (!roles.length) return;
   send_({ action: 'setMyRoles', name: USER.name, personId: USER.personId || '', roles },
         { button: el, where: said || undefined, saying: 'Saving…', lock: card })
     .then(d => {
@@ -2009,24 +2021,20 @@ on('roles-save', el => {
          is redrawn from the server's list with them. An older backend sends none and the card keeps its own. */
       if (d.notify) USER.profile = Object.assign({}, USER.profile || {}, { notify: d.notify });
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
-      toast(d.changed ? 'Roles saved' : 'Nothing changed');
+      toast(d.changed ? 'Role saved' : 'Nothing changed');
       /* THE COLUMN IS DRAWN FROM THE ROLE — which pages of fields, the agreement card — so it is
          drawn again; then the payload, because who is a tutor is in it. */
       if (d.changed) { try { repaint(true); } catch (e) {} try { load(); } catch (e) {} }
       const now = document.querySelector('.roles-card .roles-said');
-      if (now) now.textContent = d.changed && USER.tutorPending ? rolesSaid_()
-                               : d.changed ? 'Saved.' : rolesSaid_();
+      if (now) now.textContent = d.changed && rolesPickable_() && !USER.tutorPending ? 'Saved.' : rolesSaid_();
     })
-    /* A REFUSAL PUTS THE TICKS BACK TO WHAT YOU HOLD. § */
+    /* A REFUSAL PUTS THE CHOICE BACK TO WHAT YOU HOLD — Client, the only rank the card is drawn with a choice for. */
     .catch(err => {
       if (!err || !err.refused) return;
-      const held = heldRoles().map(roleOf);
       /* THE CARD ON THE PAGE NOW, as the success path asks: the payload arriving mid-request
          repaints the column, and the card held from the press would then be a detached copy. */
       const live = document.querySelector('#s-settings .roles-card') || card;
-      [].forEach.call(live.querySelectorAll('[data-role-pick]'), b => {
-        b.checked = held.indexOf(b.dataset.rolePick) !== -1;
-      });
+      [].forEach.call(live.querySelectorAll('[data-role-pick]'), b => { b.checked = b.dataset.rolePick === 'client'; });
     });
 });
 
@@ -3339,29 +3347,7 @@ function fieldsHtml(groups, o) {
    versions send neither consistently. One reader for all three. */
 const TRUEish_ = v => v === true || /^(true|yes|1|✓)$/i.test(String(v ?? '').trim());
 
-/* THE HOURS YOU CAN TEACH, AS A THING YOU OPEN. § */
-function initAvail() {
-  const into = $('avail-box');
-  if (!into) return;
-  if (!USER) { into.innerHTML = `<p class="note">Sign in to set your hours.</p>`; return; }
-
-  const codes = availCodes_();
-  /* THE BACKEND HAS NOT SENT THE HOURS, WHICH IS NOT THE SAME FACT AS A TUTOR WHO HAS TICKED NOTHING — and drawing an empty week for the first would be this § */
-  /* ---------- AND WHILE THE PAYLOAD IS ON ITS WAY, THAT IS A WAIT, NOT THE OLD SERVER § */
-  if (!codes.length && typeof awaiting_ === 'function' && awaiting_()) {
-    into.innerHTML = loading_();
-    return;
-  }
-  if (!codes.length) {
-    into.innerHTML = `<p class="note">The hours have not arrived from the server yet.<br>
-      <span class="faint">Settings → the week grid is there when they do.</span></p>`;
-    return;
-  }
-
-  into.innerHTML = availGrid_(codes, USER.profile || {}, DATA.profileReadonly || [], true)
-    + `<div class="tile-row">${tile_({ icon: 'save', label: 'Save my hours', act: 'me-save' })}</div>
-       <p class="faint me-said"></p>`;
-}
+/* `initAvail` WAS HERE — the `avail` tool's week; the hours are the Staff hub's Hours now (432, staff.js `hoursHtml_`). */
 
 /* YOUR LIBRARY CARDS, A TOOL (docs/history/339) § */
 function libCardsDraw_(into) {
