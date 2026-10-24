@@ -27,5 +27,10 @@
 {"splash_id": "half3", "name": "Half, three ways", "kind": "tool", "shows": "½ = 0.5 = 50%", "note": "", "active": true},
 {"splash_id": "mxc", "name": "y = mx + c", "kind": "proof", "shows": "the line turning as m changes", "note": "", "active": true},
 {"splash_id": "orbit", "name": "The solar system", "kind": "proof", "shows": "eight planets round the Sun, each at its real period", "note": "Kepler", "active": true},
-{"splash_id": "fit", "name": "How many fit?", "kind": "proof", "shows": "how many 3s fit into 4: one, and a third of the next", "note": "", "active": true}
+{"splash_id": "fit", "name": "How many fit?", "kind": "proof", "shows": "how many 3s fit into 4: one, and a third of the next", "note": "", "active": true},
+{"splash_id": "laconj", "name": "Endings onto the stem", "kind": "proof", "shows": "hablar's endings sliding onto the stem habl-", "note": "", "active": true},
+{"splash_id": "lagend", "name": "The adjective follows the noun", "kind": "proof", "shows": "el chico alto turning feminine and plural, ending by ending", "note": "", "active": true},
+{"splash_id": "labuild", "name": "Build a sentence", "kind": "proof", "shows": "a time phrase, a verb, a connective and an opinion dropping into place", "note": "", "active": true},
+{"splash_id": "latime", "name": "Hier, aujourd’hui, demain", "kind": "proof", "shows": "one verb walked along a timeline: past, present, future", "note": "", "active": true},
+{"splash_id": "laetre", "name": "The DR MRS VANDERTRAMP house", "kind": "proof", "shows": "the sixteen être verbs, letter by letter, round a house", "note": "", "active": true}
 ]

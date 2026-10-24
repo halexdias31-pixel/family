@@ -3054,7 +3054,8 @@ function libSay_(x) {
   if (typeof USER === 'undefined' || !USER || !USER.token) {
     return '<p class="sub lib-sign">Sign in to see this — your account is a few screens to the right.</p>';
   }
-  if (libIdsFor_(x).some(t => LIB.gone.has(t))) return '<p class="empty">This one is not in the library yet.</p>';
+  /* A CARD NEWER THAN ITS WORDS (`lib_pending`, docs/library.md): the Ledger has not had them imported yet. */
+  if (libIdsFor_(x).some(t => LIB.gone.has(t))) return '<p class="empty">' + (x && x.row && x.row.pending ? 'Coming soon.' : 'This one is not in the library yet.') + '</p>';
   if (LIB.failed) {
     return `<p class="empty">Couldn’t load this.<br><span class="faint">${esc(LIB.failed)}</span><br>
       <span class="text-action" data-do="lib-retry">Try again</span></p>`;
@@ -7626,6 +7627,26 @@ on('read-aloud', el => {
   readAloudPaint_(k);
   const done = () => { if (READ_NOW === me) { READ_NOW = null; readAloudPaint_(k); } };
   lines.forEach((l, i) => say_(l, { rate: 0.85, onend: i === lines.length - 1 ? done : null }));
+});
+
+/* ---------- HEAR IT, ON A LANGUAGE'S CONTENT CARD (427) ---------------------------------------- */
+/* The worked lines' own-language halves (before " — "), in that language's voice; the English is on the card to read. */
+const HEAR_LANG = { Spanish: 'es-ES', French: 'fr-FR', German: 'de-DE' };
+const hearItLang_ = x => (x && x.kind === 'content' && HEAR_LANG[x.subject]) || '';
+const hearItLines_ = x => ((x && x.row && x.row.points) || []).map(p => String(p.text || '').split(' — ')[0].trim()).filter(Boolean);
+function hearItTile_(x) {
+  if (!hearItLang_(x) || !canSay_() || !x.key || !hearItLines_(x).length) return '';
+  return tile_({ icon: 'speak', label: 'Hear it', note: 'the ' + x.subject + ', read out', act: 'hear-it', cls: 'hear-it', data: { key: x.key } });
+}
+/* QUEUED INSIDE THE TAP, as Read aloud's lines are; a second tap starts it again from the top. */
+on('hear-it', el => {
+  const k = el && el.getAttribute('data-key');
+  readAloudStop_();
+  hush_();
+  let x = null;
+  try { x = stuffItemsAll_().find(i => i && i.key === k) || null; } catch (e) { x = null; }
+  const lang = hearItLang_(x);
+  if (lang) hearItLines_(x).forEach(l => say_(l, { rate: 0.85, lang: lang }));
 });
 
 /* ---------- WHAT IS SAID: THE QUESTION AS THE CARD SHOWS IT, NEVER THE ANSWER OR THE MARKS ---------- */

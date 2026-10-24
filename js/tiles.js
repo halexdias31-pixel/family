@@ -377,6 +377,7 @@ function cardTiles_(x) {
   /* `more` IS WHAT ONE COLUMN ADDS TO THE ROW — the people column's Edit and Delete for an admin (373). */
   /* AND `Read aloud` ON A PRIMARY QUESTION OR CONTENT CARD (394) -- `readAloudTile_`, find.js. */
   const mine = favTile_(x) + cardActions_(x) + (typeof readAloudTile_ === 'function' ? readAloudTile_(x) : '')
+    + (typeof hearItTile_ === 'function' ? hearItTile_(x) : '')
     + (typeof speedTile_ === 'function' ? speedTile_(x) : '')
     + finderOpenTile_(x) + (x.more || '');
   const admin = adminTiles_(x, x.topic || null);
