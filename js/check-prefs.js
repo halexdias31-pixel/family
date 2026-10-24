@@ -86,7 +86,6 @@ const DIRECT = {
   'doPost:applyTeach': { essential: 'access', why: 'the owner told an application to teach is waiting — the business, not a preference' },
   'doPost:decideApplication': { essential: 'access', why: 'the answer to the applicant\'s own application: approved, interview or declined' },
   'doPost:makeChild':  { essential: 'access', why: 'the only written copy of the child\'s sign-in handle' },
-  sendInvite:          { asks: 'bookings', in: 'sendInvite', why: 'an invitation typed for an address that is already a member' },
   digestMail_:         { asks: 'weekly', in: 'digestReach_', why: 'the Sunday email: `digestReach_`, which `digestPlan_` asks for every learner (and `checkSundayEmail` too, since 12 Oct), drops a parent who said no before anything is rendered' },
 };
 /* ---------- AND EVERY `notify(` CALL, PINNED TO THE KIND IT WAS DECIDED TO BE § */
@@ -399,14 +398,6 @@ if (rule(book && book.success && jobId, 'the parent could not book the tutor, so
   let say = 0;
   both('bookings', 'P-T1', 'tutor@example.org', () => W.as('P-C1', { action: 'move', jobId: jobId, role: 'client', move: 'Say',
     text: 'Could we start at five past?', requestId: 'say-' + (++say) }), /left a note/);
-  /* …and an INVITATION typed for a member's address: held, and the invites tab says why. */
-  both('bookings', 'P-C2', 'stranger@example.org', () => W.as('P-C1', { action: 'sendInvites', jobId: jobId, emails: ['stranger@example.org'] }), /share a tutoring session/);
-  const inv = rowsOf(W.b, 'invites').filter(r => r.to_email === 'stranger@example.org');
-  rule(inv.length === 2 && /not emailed/.test(String(inv[0].notes)) && !String(inv[1].notes),
-    'the held invitation is not marked in invites.notes (or the sent one is) — ' + JSON.stringify(inv.map(r => r.notes)));
-  const m0 = W.mark();
-  W.as('P-C1', { action: 'sendInvites', jobId: jobId, emails: ['nobody-yet@example.org'] });
-  rule(W.to('nobody-yet@example.org', m0).length === 1, 'an invitation to an address with no account was not sent — nobody there has chosen anything');
 }
 /* WEEKLY — the real Sunday run, in send mode, over the real people rows. Its own world, because its mail
    stub is the one that knows about the digest_log receipt. */

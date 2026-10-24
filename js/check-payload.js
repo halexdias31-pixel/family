@@ -6,6 +6,12 @@ require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the who
 const fs = require('fs');
 const path = require('path');
 
+/* SENT AND READ BY NO SCREEN, KEPT ON PURPOSE (433): what a person reads in the raw JSON. Anything else sent and unread is weight to delete. */
+const UNREAD_KEPT = {
+  health: 'the admin\'s data report — `?health=1` asks for it by name and an admin\'s load carries it; read in the raw JSON, not drawn.',
+  migrated: 'what the sheet did on the first request after a deploy (the admin\'s first open runs setup, 361); null on every other request.',
+  schemaBehind: 'whether the sheet is behind the code, said on every load for whoever opens the raw JSON; one property read.',
+};
 /* ---------- ACCEPTED, WITH A REASON EACH § */
 const ACCEPTED = {
   /* ---------- THE LEGAL DOCUMENTS, AND A NAME COLLISION THAT WOULD SURVIVE THE OBVIOUS FIX § */
@@ -203,7 +209,8 @@ try {
 
 /* ---------- THE TWO LISTS ------------------------------------------------------------------------- */
 const readNotSent = [...reads.keys()].filter(k => !sent.has(k) && !(k in ACCEPTED)).sort();
-const sentNotRead = [...sent].filter(k => !reads.has(k)).sort();
+const sentNotRead = [...sent].filter(k => !reads.has(k) && !(k in UNREAD_KEPT)).sort();
+const unreadKept  = [...sent].filter(k => !reads.has(k) && (k in UNREAD_KEPT)).sort();
 const accepted    = [...reads.keys()].filter(k => !sent.has(k) && (k in ACCEPTED)).sort();
 
 console.log('');
@@ -259,6 +266,12 @@ if (rowThin.length) {
   console.log('  → every screen drawn from these is measured empty. Not a false claim, so this '
             + 'does not fail —');
   console.log('    but a card that is never drawn is a card no check has an opinion about.');
+}
+
+if (unreadKept.length) {
+  console.log('');
+  console.log('SENT AND READ BY NO SCREEN, KEPT WITH A REASON  (' + unreadKept.length + ')');
+  unreadKept.forEach(k => console.log('  ' + k + ' — ' + UNREAD_KEPT[k]));
 }
 
 if (accepted.length) {
