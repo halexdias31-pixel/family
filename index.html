@@ -298,14 +298,12 @@
   <section class="screen hidden" id="s-progress"></section>
 </main>
 
-<!-- The sheet. One element, reused: anything that needs the whole screen — a booking, a profile,
-     a form — opens in here rather than in a card that pushes the page around. -->
-<div id="sheet-back" class="hidden"></div>
+<!-- The sheet. One element, reused: a booking, a profile, a form. Not a pop-up (420): while it is open
+     it is the page, in the flow, and Back returns to the grid. -->
 <div id="sheet" class="hidden">
-  <div id="sheet-grab"></div>
   <div id="sheet-head">
+    <button type="button" id="sheet-close" aria-label="Back">&#8249; Back</button>
     <span id="sheet-title"></span>
-    <span id="sheet-close">✕</span>
   </div>
   <div id="sheet-body"></div>
 </div>

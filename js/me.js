@@ -4346,23 +4346,16 @@ on('digest-send-now', el => {
     .catch(() => {});
 });
 
-/* ONE STEP: the sheet asks, Delete does it. */
+/* TAP AGAIN TO CONFIRM (420): the Delete tile asks on itself, never in a pop-up; the second press deletes. */
 on('person-del', el => {
   if (!peopleMay_()) return;
-  const id = el.getAttribute('data-id') || '', who = el.getAttribute('data-name') || 'them';
-  if (!id) return;
-  openSheet('Delete ' + who + '?', `<p class="sub">This can't be undone.</p>
-    <div class="pf-go"><button class="btn" data-do="person-del-go" data-id="${esc(id)}" data-name="${esc(who)}">Delete</button>
-    <button class="btn quiet" data-do="sheet-done">Cancel</button></div>`);
-});
-on('person-del-go', el => {
-  if (!peopleMay_()) return;
   const id = el.getAttribute('data-id') || '';
+  if (!id) return;
+  if (!sure_(el, 'Tap again to confirm')) return;
   send_({ action: 'personDelete', personId: USER.personId || '', targetId: id }, { button: el })
     .then(() => {
       peoplePut_(null, id);
       if (PEOPLE_FORM_ && PEOPLE_FORM_.id === id) PEOPLE_FORM_ = null;
-      closeSheet();
       toast((el.getAttribute('data-name') || 'They') + ' is deleted.');
       peopleRedraw_();
       load();

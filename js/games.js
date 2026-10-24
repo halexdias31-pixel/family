@@ -5885,17 +5885,12 @@ on('media-hide', el => {
     .then(d => { toast(on_ ? 'Hidden.' : 'Shown again.'); mediaAdopt_(d, kind); })
     .catch(() => {});
 });
+/* TAP AGAIN TO CONFIRM (420): asked on the Delete tile itself, never in a pop-up. */
 on('media-del', el => {
   if (!mediaMay_()) return;
-  const kind = el.getAttribute('data-kind') || 'reel', id = el.getAttribute('data-id') || '';
-  openSheet('Delete it?', `<p class="sub">The row you added goes; a copy in the repository would show again.</p>
-    <div class="pf-go"><button class="btn" data-do="media-del-go" data-kind="${esc(kind)}" data-id="${esc(id)}">Delete</button>
-    <button class="btn quiet" data-do="sheet-done">Cancel</button></div>`);
-});
-on('media-del-go', el => {
-  if (!mediaMay_()) return;
   const kind = el.getAttribute('data-kind') === 'video' ? 'video' : 'reel';
+  if (!sure_(el, 'Tap again to confirm')) return;
   send_({ action: 'mediaDelete', personId: USER.personId || '', kind, id: el.getAttribute('data-id') || '' }, { button: el })
-    .then(d => { closeSheet(); toast('Deleted.'); mediaAdopt_(d, kind); })
+    .then(d => { toast('Deleted.'); mediaAdopt_(d, kind); })
     .catch(() => {});
 });

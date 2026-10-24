@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-24-h-tidy-widgets";
+  --css-version: "2026-10-24-i-no-pop-ups";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -160,13 +160,10 @@ html.wide body { max-width: none; box-shadow: none; }
   transform: none;
 }
 
-/* The sheet and the toast still follow the column — they are content, not furniture, and a sheet
-   spanning a desktop would be a wall. */
-#sheet, #toast {
+/* The toast still follows the column — content, not furniture. */
+#toast {
   position: fixed;
   left: 50%;
-  width: 100%;
-  max-width: var(--app);
   transform: translateX(-50%);
 }
 
@@ -757,72 +754,29 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .empty { padding: 2.5rem 1.2rem; text-align: center; color: var(--faint); font-size: .88rem; }
 code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
 
-/* ---------- THE SHEET --------------------------------------------------------------------------- */
-/* ---------- THE SHEET AND ITS BACKDROP, OPENED AND CLOSED BY ONE RULE § */
-#sheet.hidden, #sheet-back.hidden { display: flex !important; }
-
-#sheet-back {
-  position: fixed; inset: 0; z-index: 45;
-  background: rgba(0,0,0,.55);
-  backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
-  opacity: 1; visibility: visible;
-  transition: opacity .22s ease, visibility 0s;
+/* ---------- THE SHEET IS A PAGE (420) ---------------------------------------------------------- */
+/* No backdrop and nothing floating: while it is open the grid steps aside and the sheet is the page, in
+   the flow, with Back at the top. The grid keeps its sizes (out of the flow, unseen, `inert`). */
+#sheet.hidden { display: none !important; }
+body.sheet-open #screen {
+  position: absolute; left: 0; right: 0; top: calc(var(--top) + var(--safe-top));
+  opacity: 0; pointer-events: none;
 }
-#sheet-back.hidden {
-  opacity: 0; visibility: hidden;
-  transition: opacity .22s ease, visibility 0s linear .22s;
-  pointer-events: none;
-}
-
-/* ---------- THE PANEL OPENS OUT OF THE CARD YOU PRESSED § */
 #sheet {
-  /* Centred rather than sat on the bottom edge. */
-  top: 50%;
-  z-index: 46;
-  max-height: 88dvh;
-  border-radius: var(--r);
-  border: 1px solid var(--line);
+  position: static; width: 100%; max-width: var(--app); margin: 0 auto;
   display: flex; flex-direction: column;
-  background: var(--raised);
-  /* THE BOTTOM-SHEET LEFTOVERS ARE GONE. § */
-  /* OPEN: in the middle, at full size. The `-50%` on each axis is what centres it — the panel is
-     positioned at the middle of the screen and then pulled back by half of itself, which works
-     whatever size it turns out to be. */
-  transform: translate(-50%, -50%) scale(1);
-  opacity: 1;
-  visibility: visible;
-  /* The curve decelerates: a thing that arrives and settles rather than one dragged by a machine.
-     Opening and closing share it, so it leaves the way it came. */
-  transition: transform .3s cubic-bezier(.18, .85, .3, 1),
-              opacity .2s ease,
-              visibility 0s;
+  height: calc(100dvh - var(--top) - var(--safe-top) - var(--bar) - var(--safe-bottom));
+  background: var(--bg);
 }
-/* CLOSED: back where the card is, at the card's size. § */
-#sheet.hidden {
-  transform:
-    translate(-50%, -50%)
-    translate(var(--from-x, 0px), var(--from-y, 0px))
-    scale(var(--from-s, .94));
-  opacity: 0;
-  visibility: hidden;
-  /* The visibility waits for the movement. Cut at once and the panel vanishes mid-flight, which is
-     what it used to do and what read as harsh. */
-  transition: transform .3s cubic-bezier(.18, .85, .3, 1),
-              opacity .2s ease,
-              visibility 0s linear .3s;
-  pointer-events: none;
-}
-
-/* THE GRAB HANDLE IS HIDDEN. § */
-#sheet-grab { display: none; }
 #sheet-head {
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: center; gap: .4rem;
   padding: .35rem var(--pad) .6rem;
   font-size: 1rem; font-weight: 620;
   border-bottom: 1px solid var(--line-soft); flex: none;
 }
-#sheet-close { color: var(--dim); font-size: 1.1rem; padding: .25rem .4rem; cursor: pointer; }
-#sheet-body { padding: .85rem var(--pad) 1.5rem; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+#sheet-close { color: var(--gold); font: 500 .9rem/1 var(--font); min-height: 44px; min-width: 44px; flex: none;
+  display: inline-flex; align-items: center; padding: 0 .4rem 0 0; background: none; border: 0; cursor: pointer; }
+#sheet-body { flex: 1 1 auto; padding: .85rem var(--pad) 1.5rem; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
 /* ---------- THE TAB BAR IS GONE, AND THE LAST THING IT RESERVED WAS THE ONE THAT STILL WORKED § */
 
@@ -4758,11 +4712,8 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 
 /* ---------- THE ADMIN MARKS SIT AT THE FAR END § */
 .tile-group.is-admin { display: inline-flex; gap: .3rem; margin-left: auto; }
-/* ---------- THE SHEET BEHIND "ADMIN" OR "MORE" (414): a row of its own under the tiles, opened by the tile that names it */
-.tile-sheet { flex: 1 0 100%; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .3rem; padding: .3rem;
-  border: 1px solid var(--line-soft); border-radius: var(--r); background: rgb(255 255 255 / .03); }
-.tile-sheet[hidden] { display: none; }
-.tile.on .tile-i-more { fill: currentColor; }
+/* ---------- A ROW PAST SIX TILES BREAKS INTO EVEN LINES (420, `tileRow_`): a zero-height item a whole line wide */
+.tile-break { flex: 0 0 100%; height: 0; }
 /* AN EMPTY WIDGET IS ITS TITLE ALONE (414, `emptyCard_`), so the heading keeps no space for a body under it. */
 .card.is-empty > h3 { margin: 0; }
 /* `.tile-row.is-admin` WAS ALSO DECLARED HERE, setting a margin the block further down immediately
@@ -4794,6 +4745,8 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 /* THE FALLBACK WORD, for a tile somebody adds without giving it a mark — see `tile_`. Nothing emits
    one today, and a blank 44px square would be worse than an ugly one. */
 .tile-k { font-size: .62rem; letter-spacing: .02em; }
+/* TAP AGAIN TO CONFIRM (420, `sure_`): an armed tile says so in words, in place of a pop-up, and widens to fit them. */
+.tile.is-sure { width: auto; padding: 0 .6rem; color: var(--bad); border-color: var(--bad); white-space: nowrap; }
 
 /* `.tile-v` WAS THE DETAIL BESIDE THE LABEL — "23 questions", "£0.46 · 23pp" — and there is no label any more, so nothing emits one. § */
 

@@ -10295,7 +10295,7 @@ check('an admin adds a person from the "+" above the people column, edits one an
   if (/data-do="person-(add|edit|del)"/.test(all())) bad.push('a tutor is offered the admin\'s +, Edit or Delete');
   sent.length = 0;
   const fake = d.createElement('button'); fake.setAttribute('data-id', 'P-E1');
-  ['person-add', 'person-edit', 'person-del', 'person-del-go'].forEach(a => { try { t.ACTIONS[a](fake); } catch (e) {} });
+  ['person-add', 'person-edit', 'person-del', 'person-del'].forEach(a => { try { t.ACTIONS[a](fake); } catch (e) {} });
   await wait(150);
   if (sent.some(b => /^person/.test(b.action))) bad.push('a tutor pressing the admin\'s doors posted ' + sent.filter(b => /^person/.test(b.action)).map(b => b.action).join(', '));
   if (/person-form/.test(all())) bad.push('a tutor pressing + was drawn the new-person form');
@@ -10369,7 +10369,7 @@ check('an admin adds a person from the "+" above the people column, edits one an
   await wait(300);
   t.DATA().everyone = rows();
 
-  /* DELETE: one step — asked first, then `personDelete`, then gone. */
+  /* DELETE (420): asked on the tile itself — the first press arms it in words, no pop-up; the second posts `personDelete`. */
   draw();
   await wait(200);
   const del = col().querySelector('[data-do="person-del"][data-id="P-E2"]');
@@ -10378,12 +10378,10 @@ check('an admin adds a person from the "+" above the people column, edits one an
   t.ACTIONS['person-del'](del);
   await wait(100);
   if (sent.some(b => b.action === 'personDelete')) bad.push('Delete deleted before asking');
-  const title = (d.getElementById('sheet-title') || {}).textContent || '', body = (d.getElementById('sheet-body') || {}).textContent || '';
-  if (title !== 'Delete Carl?' || !/This can't be undone\./.test(body)) bad.push('Delete asked ' + JSON.stringify(title + ' / ' + body.trim()));
-  const yes = d.querySelector('#sheet-body [data-do="person-del-go"]');
-  if (!yes || !d.querySelector('#sheet-body [data-do="sheet-done"]')) return bad.concat(['the Delete sheet has no Delete and Cancel']);
+  if (!d.getElementById('sheet').classList.contains('hidden')) bad.push('Delete opened the sheet: ' + JSON.stringify((d.getElementById('sheet-title') || {}).textContent));
+  if (!del.dataset.sure || !/Tap again to confirm/.test(del.textContent) || !del.classList.contains('is-sure')) bad.push('the first press did not arm the tile with "Tap again to confirm": ' + JSON.stringify(del.textContent.trim()));
   hold = true;
-  t.ACTIONS['person-del-go'](yes);
+  t.ACTIONS['person-del'](del);
   await wait(300);
   const gone = sent.find(b => b.action === 'personDelete');
   if (!gone || gone.targetId !== 'P-E2' || gone.personId !== 'P-AD') bad.push('saying Delete posted ' + JSON.stringify(gone));
@@ -10422,8 +10420,8 @@ check('an empty Spotlight, Saved, shop and basket draw their title alone, for a 
   return bad;
 });
 
-/* ---------- A TUTOR'S TILE ROW IS ONE LINE (414): viewer tiles first, the admin's behind one "Admin" tile once the row would pass six, and each trait said once */
-check('an admin sees a tutor card\'s tiles as one row — Message, Share, Save, then one Admin tile opening the rest — and a trait typed twice is said once', async () => {
+/* ---------- EVERY TILE SHOWN (420): "remove all pop up menus I DONT LIKE POP UP MENUS" — no "Admin"/"More" tile, the admin's grouped last, lines balanced */
+check('an admin sees every tile on a tutor card — Message, Share, Save on one line, the admin\'s grouped on the next — nothing behind a More tile, and a trait typed twice is said once', async () => {
   const { w } = boot();
   await wait(300);
   const t = w.__t, d = w.document, bad = [];
@@ -10437,21 +10435,25 @@ check('an admin sees a tutor card\'s tiles as one row — Message, Share, Save, 
   d.body.appendChild(box);
   const r = box.querySelector('.tile-row');
   if (!r) return ['the tutor card drew no tile row'];
-  const front = [...r.querySelectorAll('.tile')].filter(el => !el.closest('.tile-sheet'));
-  const acts = front.map(el => el.getAttribute('data-do'));
-  if (front.length > 6) bad.push('the row shows ' + front.length + ' tiles: ' + acts.join(' '));
+  const tiles = [...r.querySelectorAll('.tile')];
+  const acts = tiles.map(el => el.getAttribute('data-do'));
+  if (/tile-more|tile-sheet/.test(box.innerHTML) || r.querySelector('[hidden]')) bad.push('a tile is behind a More/Admin tile or hidden: ' + acts.join(' '));
   if (acts.slice(0, 3).join(' ') !== 'msg-open tutor-share fav') bad.push('the viewer\'s tiles do not lead in the order Message, Share, Save: ' + acts.join(' '));
-  const more = r.querySelector('.tile-group.is-admin [data-do="tile-more"]');
-  if (!more) bad.push('the admin\'s tiles are not behind one Admin tile in the admin group: ' + acts.join(' '));
-  const sheet = r.querySelector(':scope > .tile-sheet');
-  if (!sheet || !sheet.hidden) bad.push('the admin sheet is missing or open before it is asked for');
-  const inSheet = sheet ? [...sheet.querySelectorAll('.tile')].map(el => el.getAttribute('data-do')) : [];
-  ['spot', 'person-edit', 'person-del'].forEach(a => { if (inSheet.indexOf(a) === -1) bad.push('the admin sheet has no ' + a + ': ' + inSheet.join(' ')); });
-  if (inSheet[inSheet.length - 1] !== 'person-del') bad.push('Delete is not last in the admin sheet: ' + inSheet.join(' '));
-  if (more) { t.ACTIONS['tile-more'](more); if (sheet && sheet.hidden) bad.push('the Admin tile did not open its sheet'); t.ACTIONS['tile-more'](more); if (sheet && !sheet.hidden) bad.push('a second press did not close it'); }
-  /* A SHORT ROW IS LEFT AS IT IS: a visitor's two tiles are not put behind anything. */
+  const grp = r.querySelector(':scope > .tile-group.is-admin');
+  const inGroup = grp ? [...grp.querySelectorAll('.tile')].map(el => el.getAttribute('data-do')) : [];
+  ['spot', 'person-edit', 'person-del'].forEach(a => { if (inGroup.indexOf(a) === -1) bad.push('the admin group, shown in the row, has no ' + a + ': ' + inGroup.join(' ')); });
+  if (inGroup[inGroup.length - 1] !== 'person-del') bad.push('Delete is not last in the admin group: ' + inGroup.join(' '));
+  if (tiles.length > 6 && !r.querySelector(':scope > .tile-break')) bad.push(tiles.length + ' tiles and no break into balanced lines');
+  /* BALANCED: past six, no line of one — seven is 4+3, nine is 5+4, thirteen is 5+4+4. */
+  const fake = n => Array.from({ length: n }, (_, i) => w.tile_({ icon: 'chat', label: 'T' + i, act: 'msg-open' })).join('');
+  [7, 9, 13].forEach(n => {
+    const h = d.createElement('div'); h.innerHTML = w.tileRow_(fake(n));
+    const lines = h.firstElementChild.innerHTML.split('tile-break').map(x => (x.match(/class="tile[ "]/g) || []).length);
+    if (lines.reduce((a, b) => a + b, 0) !== n || lines.some(k => k > 6 || k < 2) || Math.max(...lines) - Math.min(...lines) > 1) bad.push(n + ' tiles broke into lines of ' + lines.join('+'));
+  });
+  /* A SHORT ROW IS LEFT AS IT IS. */
   const plain = w.tileRow_(w.tile_({ icon: 'chat', label: 'Message', act: 'msg-open' }) + w.tile_({ icon: 'share', label: 'Share', act: 'tutor-share' }));
-  if (/tile-more|tile-sheet/.test(plain)) bad.push('a row of two tiles grew a More tile');
+  if (/tile-more|tile-sheet|tile-break/.test(plain)) bad.push('a row of two tiles grew a More tile or a break');
   const words = w.profList_(row.tags);
   if (words.join('|') !== 'patient|driven') bad.push('the traits "patient, driven, driven" read ' + JSON.stringify(words));
   box.remove();
@@ -10490,7 +10492,7 @@ check('an admin adds a reel from the "+" just before the first reel, where the c
   if (vidAt < 0 || vidAt > reelAt()) bad.push('the Videos widget is not a page before the first reel (at ' + vidAt + ', first reel ' + reelAt() + ')');
   sent.length = 0;
   const fake = d.createElement('button'); fake.setAttribute('data-kind', 'reel'); fake.setAttribute('data-id', ID);
-  ['media-add', 'media-hide', 'media-del-go'].forEach(a => { try { t.ACTIONS[a](fake); } catch (e) {} });
+  ['media-add', 'media-hide', 'media-del', 'media-del'].forEach(a => { try { t.ACTIONS[a](fake); } catch (e) {} });
   await wait(150);
   if (sent.some(b => /^media/.test(b.action))) bad.push('a student pressing the admin\'s doors posted ' + sent.map(b => b.action).join(', '));
 

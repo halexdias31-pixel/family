@@ -1434,42 +1434,13 @@ for (const who of VISITORS) {
       if (fav) {
         await reset();
         await tp.evaluate(() => openSheet('Test', '<p>A short sheet.</p>'));
-        await tp.waitForTimeout(700);
-        /* ---------- THE BACKDROP HAS TO BE WHAT IS OVER THE SELECT § */
-        const under = f => tp.evaluate(f => {
-          const back = el => !!el && el.id === 'sheet-back';
-          if (f && back(document.elementFromPoint(f.x, f.y))) return { x: f.x, y: f.y, name: 'favourite colour' };
-          for (const s of document.querySelectorAll('#s-settings .page.on select')) {
-            const r = s.getBoundingClientRect();
-            const x = Math.round(r.left + r.width / 2), y = Math.round(r.top + r.height / 2);
-            if (back(document.elementFromPoint(x, y))) return { x, y, name: s.getAttribute('data-me') || s.name || 'a select' };
-          }
-          return null;
-        }, f);
-        let spot = await under(fav);
-        /* ---------- AND IF THIS PAGE'S SELECTS ARE ALL UNDER THE SHEET'S BODY, THE NEXT PAGE THAT HAS ONE § */
-        if (!spot) {
-          const others = await tp.evaluate(() => [...document.querySelectorAll('#s-settings > .page')]
-            .map((p, i) => (p.querySelector('select') && !p.classList.contains('on') ? i : -1)).filter(i => i >= 0));
-          for (const i of others) {
-            await reset();
-            await tp.evaluate(i => goPage('settings', typeof logIndex_ === 'function' ? logIndex_('settings', i) : i, true), i);
-            await tp.waitForTimeout(900);
-            await tp.evaluate(() => openSheet('Test', '<p>A short sheet.</p>'));
-            await tp.waitForTimeout(700);
-            spot = await under(null);
-            if (spot) break;
-          }
-        }
-        if (!spot) {
-          want('settings · a select under a sheet\'s backdrop', false, 'every select on the page in front is under the sheet itself',
-               'one select the backdrop covers, to tap');
-        } else {
-          await tap(spot.x, spot.y);
-          const r = await now();
-          want('settings · ' + spot.name.replace(/_/g, ' ') + ', one tap on a sheet\'s backdrop over it', !opened(r) && !r.sheet && !r.own, said(r),
-               'the sheet closed and nothing behind it pressed or focused');
-        }
+        await tp.waitForTimeout(400);
+        /* ---------- THE SHEET IS A PAGE (420): with it open the select is not on the screen at all, so a tap where it stood reaches the sheet's page, not the select */
+        const under = await tp.evaluate(f => { const el = document.elementFromPoint(f.x, f.y); return !!(el && (el.closest('#sheet') || el === document.body)); }, fav);
+        await tap(fav.x, fav.y);
+        const r = await now();
+        want('settings · favourite colour, one tap where it stood while the sheet is the page', under && !opened(r) && !r.own, said(r),
+             'the sheet\'s page under the finger, and nothing behind it pressed or focused');
       }
       await reset();
       await ctx.close();

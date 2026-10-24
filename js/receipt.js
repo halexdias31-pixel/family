@@ -670,16 +670,26 @@ on('job-delete', el => {
 /* ---------- ARE YOU SURE, WITHOUT A DIALOG § */
 function sure_(el, ask) {
   if (!el) return true;                       // called from somewhere with no button: nothing to arm
-  if (el.dataset.sure) { delete el.dataset.sure; return true; }
+  if (el.dataset.sure) { delete el.dataset.sure; sureBack_(el); return true; }
   el.dataset.sure = '1';
-  el.dataset.was = el.textContent;
+  /* THE WHOLE FACE IS KEPT, not its text: a tile is a drawn mark, and its text is nothing (420). */
+  el._sureWas = { html: el.innerHTML, label: el.getAttribute('aria-label') };
+  el.classList.add('is-sure');
   el.textContent = ask;
+  if (el.hasAttribute('aria-label')) el.setAttribute('aria-label', ask);
   setTimeout(() => {
     if (!el.dataset.sure) return;
     delete el.dataset.sure;
-    el.textContent = el.dataset.was || 'Confirm';
+    sureBack_(el);
   }, 4000);
   return false;
+}
+function sureBack_(el) {
+  const w = el._sureWas; el._sureWas = null;
+  el.classList.remove('is-sure');
+  if (!w) return;
+  el.innerHTML = w.html;
+  if (w.label != null) el.setAttribute('aria-label', w.label);
 }
 
 let FEED_AT = null;
