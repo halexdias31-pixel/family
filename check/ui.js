@@ -156,6 +156,14 @@ const ACCEPTED_TAP = [
   + '        THE OLD ENTRY REFUSED THIS for the colours alone, on the grounds that splitting them '
   + 'across three pages to get the 44px would make changing a look three swipes — which is the '
   + 'same argument, now answered the other way round because the owner asked for the one card.' },
+  /* A LINE OF THE CARD'S EDIT — its label, its box, a fold's summary: 32px, on the owner's asking (docs/history/425). */
+  { cls: /^(|field|ce-line)$/, onCardEdit: true, why:
+    'YOUR CARD\'S EDIT IS ONE PHONE SCREEN, AND A 44px LINE CANNOT MAKE IT ONE. The owner, 24 Oct, pasting the whole '
+  + 'editor: *"please try your best to condense this so it can all apear on a phone screen"*. It was 2856px at 390x844. '
+  + 'Sixteen lines and the week at 44px are 900px before a caption, against a pane of about 730 above Save; at 32px the '
+  + 'form is about 710 (the state "your own card, being edited" holds it to 760). What was done instead of the height: '
+  + 'each line is the whole width — label and box are one target 32px tall and the full card wide — and every fold '
+  + 'opens on a tap anywhere on its line. A wrong tap costs nothing: a box gains focus, a fold opens and shuts again.' },
   { cls: /^scr-sq\b/, why:
     'A SCRABBLE BOARD IS FIFTEEN SQUARES ACROSS AND THAT IS THE GAME, not a layout choice. Fifteen '
   + '44px cells need 660px, which is wider than any phone made; at 320px they are 13px each and at '
