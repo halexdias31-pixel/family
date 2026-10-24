@@ -9649,11 +9649,16 @@ function paneReach_(panes) {
 /* ---------- AND IT MEASURES A FRAME LATER, NOT INSIDE THE OBSERVER'S OWN CALLBACK § */
 let PANE_WATCH = null;
 let PANE_WATCH_DUE = null;
+/* THE WINDOW'S SIZE, KEPT UNTIL IT RESIZES: reading `innerWidth` straight after a placement forced a whole-app layout on every release (401). */
+let PANE_VP_NOW = '';
+const paneVp_ = () => PANE_VP_NOW || (PANE_VP_NOW = innerWidth + 'x' + innerHeight);
+addEventListener('resize', () => { PANE_VP_NOW = ''; }, { passive: true });
+if (window.visualViewport) visualViewport.addEventListener('resize', () => { PANE_VP_NOW = ''; }, { passive: true });
 function paneWatch_(host) {
   if (!host || !host.querySelectorAll) return;
   const panes = host.querySelectorAll('.pane');
   /* ---------- ONLY THE PANES IT HAS NOT ALREADY MEASURED § */
-  const vp = innerWidth + 'x' + innerHeight;
+  const vp = paneVp_();
   const all = host.PANE_VP !== vp;
   host.PANE_VP = vp;
   paneReach_(all ? panes : [].filter.call(panes, p =>
