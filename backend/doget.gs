@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-24-l-posts";
+const DOGET_VERSION = "2026-10-24-s-racer";
 
 
 function doGet(e) {
@@ -115,6 +115,9 @@ function doGet(e) {
         })(),
       })) });
     }
+
+    /* THE RACER'S MAP (426), on its own and never in the payload: half a megabyte nobody else needs. */
+    if (p.race) return raceServe_();
 
     // ?triggers=1 installs the nightly jobs; ?triggers=list shows what's scheduled.
     if (p.triggers) return jsonOut({ version: BACKEND_VERSION,
@@ -246,6 +249,8 @@ function doGet(e) {
                  'checkUploads',
                  /* The videos card's Sync from Drive, for an admin — the films from the Notflix folder. */
                  'filmsSync',
+                 /* The Colliers Wood racer's Build the map tile, for an admin (426). */
+                 'raceBuild',
                  /* The site checks for this to decide whether it may offer the picker. */
                  'folderFiles',
                  /* `likePost` is deliberately absent. The site checks this list, so a stale copy

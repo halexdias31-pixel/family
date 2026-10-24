@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-24-q-arrive";
+  --css-version: "2026-10-24-s-racer";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -5398,6 +5398,44 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .mz-key.left  { grid-column: 1; grid-row: 2; }
 .mz-key.down  { grid-column: 2; grid-row: 2; }
 .mz-key.right { grid-column: 3; grid-row: 2; }
+
+/* ---------- THE COLLIERS WOOD RACER (426): a fixed-shape stage, so nothing under it moves while it draws */
+.race-stage {
+  --race-sky: rgb(158, 199, 230);
+  position: relative; width: 100%; aspect-ratio: 4 / 3; margin: .55rem 0 0; overflow: hidden;
+  background: var(--race-sky); border-radius: var(--r-sm); touch-action: none; user-select: none;
+}
+@media (min-width: 700px) { .race-stage { aspect-ratio: 16 / 10; } }
+.race-gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: pointer; }
+.race-mini {
+  position: absolute; top: 8px; right: 8px; width: 96px; height: 96px; border-radius: 50%;
+  background: color-mix(in srgb, var(--bg) 55%, transparent); border: 1px solid var(--line); pointer-events: none;
+}
+.race-hud, .race-lap {
+  position: absolute; left: 8px; display: flex; flex-direction: column; gap: .1rem; max-width: calc(100% - 120px);
+  padding: .3rem .5rem; border-radius: var(--r-sm); pointer-events: none;
+  background: color-mix(in srgb, var(--bg) 62%, transparent); color: var(--ink); font: .78rem/1.25 var(--mono);
+}
+.race-hud { top: 8px; }
+.race-hud b { color: var(--gold); font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+.race-hud span, .race-lap span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.race-lap { bottom: 8px; }
+/* THE PEDALS, phone only: a fixed row, px because a thumb does not scale with the root font. */
+.race-pads { display: none; grid-template-columns: repeat(2, minmax(0, 1fr)) 12px repeat(2, minmax(0, 1fr)); gap: 8px; height: 64px; margin: .55rem 0 0; }
+.race-pad {
+  height: 64px; min-width: 0; padding: 0; border-radius: 12px; touch-action: none; user-select: none;
+  background: var(--sunk); color: var(--ink); border: 1px solid var(--line); font: 600 1rem/1 var(--font);
+}
+.race-pad.is-go { color: var(--gold); }
+.race-pad.on { background: var(--line); border-color: var(--gold); }
+.race-keys { margin: .4rem 0 0; text-align: center; }
+@media (hover: none) and (pointer: coarse) {
+  .race-pads { display: grid; }
+  .race-keys { display: none; }
+}
+.race-nogl { position: absolute; left: 0; right: 0; top: 45%; margin: 0; text-align: center; color: var(--bg); }
+.race-attr { margin: .35rem 0 0; font-size: .72rem; }
+.race-attr a { color: inherit; }
 
 /* ---------- THE ONE CHOICE EACH OF THESE TWO GAMES ASKS, AT THE TOP OF ITS CARD § */
 .ws-top { margin: .5rem 0 0; }

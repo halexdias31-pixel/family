@@ -118,7 +118,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-24-l-posts";
+const BACKEND_VERSION = "2026-10-24-s-racer";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1296,6 +1296,8 @@ const RUNNABLE = {
   /* Turn postcodes into coordinates. Run it after adding a venue; it skips anything already
      placed, so running it twice costs one request and changes nothing. */
   geocode:           () => geocodeVenues(),
+  /* THE COLLIERS WOOD RACER'S MAP (426): OSM roads and buildings plus DEM heights, into a Drive file `?race=1` serves. `&arg=s,w,n,e` for another box. */
+  buildRaceMap:      a => buildRaceMap_(a),
   regeocode:         () => geocodeVenues(true),
   rename:            a => renameValue_(a),
   seedOptions:       () => seedOptions(),
@@ -1526,6 +1528,8 @@ const ACTION_ACCESS = {
   digestSendNow: 'admin',
   /* THE FILMS, FILLED FROM THE NOTFLIX FOLDER. § */
   filmsSync: 'admin',
+  /* The racer's Build the map tile (426): minutes of fetching from three outside services, so an admin's alone. */
+  raceBuild: 'admin',
   /* AN ADMIN ADDS, EDITS, HIDES OR DELETES A REEL OR A VIDEO (404). */
   mediaSave: 'admin', mediaHide: 'admin', mediaDelete: 'admin',
 

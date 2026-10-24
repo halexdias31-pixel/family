@@ -207,6 +207,16 @@ const WIDGETS = [
     <p class="note" id="ss-said" style="text-align:center;margin:.4rem 0 0"></p>
   </div>` },
 
+  /* ---------- THE COLLIERS WOOD RACER (426): real roads and heights from `?race=1`, driven in WebGL (racer.js); `stop` pauses the loop. */
+  { id: 'racer', kind: 'game', name: 'Colliers Wood racer', start: () => initRacer?.(),
+    draw: () => raceStill_?.(),
+    stop: () => racerStop_?.(),
+    into: 'race-box', what: 'The street',
+    html: `<div class="card race">
+    <h3>Colliers Wood racer</h3>
+    <div id="race-box" class="race-box"></div>
+  </div>` },
+
   /* `herd` WAS HERE, Herd Mentality's own card, and it is a game inside Word games now — see the note over the `wordgames` entry above. § */
 
   /* `stop` IS THE CLIP. This card deals a fact on a tap and some of those facts are videos, so leaving the column with one playing left it playing — the same fault § */

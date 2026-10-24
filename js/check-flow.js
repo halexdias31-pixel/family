@@ -7238,6 +7238,138 @@ check('connect 4 drops exactly the counter just played into the lowest empty squ
 });
 
 /* ---------- THE MAZE: ITS WALLS ARE ITS OWN, ITS WALK SURVIVES A REPAINT, ITS KEYS ARE ITS OWN § */
+/* ---------- THE COLLIERS WOOD RACER (426): the map from `?race=1`, served here from the invented check/race-fixture.json ---------- */
+const RACE_FIX_ = () => JSON.parse(fs.readFileSync(path.join(dir, '..', 'check', 'race-fixture.json'), 'utf8'));
+const RACE_ADMIN_ = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk-admin', handle: 'annadmin' };
+/* To the racer's page of Games, waiting for the card to settle: `want` is 'world' (the map adopted) or 'idle' (nothing asked). */
+const raceOpen_ = async (w, want) => {
+  const t = w.__t;
+  t.go('games', false, true);
+  await wait(LEAVE_MS); await woken_();
+  const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'racer');
+  if (at < 0) return 'there is no racer on the Games column';
+  t.goPage('games', at, true);
+  await woken_();
+  for (let k = 0; k < 60; k++) {
+    const R = w.racer_ ? w.racer_() : null;
+    if (R && (want === 'world' ? R.world : !R.asking)) return '';
+    await wait(100);
+  }
+  return want === 'world' ? 'the map never became a world' : 'the map was still being asked for';
+};
+
+check('racer (426): until the backend has built the map the card is its title alone, an admin has a Build the map tile, and pressing it posts raceBuild', async () => {
+  const bad = [];
+  for (const who of ['visitor', 'admin']) {
+    const { w, sent, gets } = boot({ before: who === 'admin' ? signedInAs_(RACE_ADMIN_) : undefined,
+      serve: u => (u.indexOf('race=1') !== -1 ? { version: 'test', built: false, race: null } : undefined),
+      reply: b => (b.action === 'raceBuild' ? { error: 'No Overpass server answered.' } : undefined) });
+    await wait(300);
+    const said = await raceOpen_(w, 'idle');
+    if (said) return [who + ': ' + said];
+    if (!gets.some(u => /[?&]race=1/.test(u))) bad.push(who + ': the card never asked ?race=1');
+    if (gets.filter(u => /[?&]race=1/.test(u)).length > 1) bad.push(who + ': ?race=1 asked ' + gets.filter(u => /[?&]race=1/.test(u)).length + ' times for one visit');
+    const card = w.document.querySelector('#s-games #race-box');
+    if (!card) { bad.push(who + ': no #race-box on Games'); continue; }
+    const h3 = card.closest('.card').querySelector('h3');
+    if (!h3 || h3.textContent !== 'Colliers Wood racer') bad.push(who + ': the card is not titled Colliers Wood racer');
+    if (card.querySelector('canvas, .loading, p')) bad.push(who + ': not built yet, yet the card draws ' + card.innerHTML.slice(0, 120));
+    const tile = card.querySelector('[data-do="race-build"]');
+    if (who === 'visitor' && tile) bad.push('a visitor is offered Build the map');
+    if (who === 'admin') {
+      if (!tile) { bad.push('an admin has no Build the map tile'); continue; }
+      tile.click();
+      await wait(200);
+      if (!sent.some(b => b.action === 'raceBuild')) bad.push('Build the map posted nothing');
+      if (!/No Overpass/.test((w.document.getElementById('toast') || {}).textContent || '')) bad.push('a refused build did not say why in a toast');
+    }
+  }
+  return bad;
+});
+
+check('racer (426): the map loads from the fixture, the road mesh stands at the map\'s heights (flat heights make it flat), keys move the car without turning the column, a hill slows it, and leaving pauses it', async () => {
+  const FIX = RACE_FIX_();
+  const { w, errs } = boot({ serve: u => (u.indexOf('race=1') !== -1 ? { version: 'test', built: true, race: FIX } : undefined) });
+  await wait(300);
+  const said = await raceOpen_(w, 'world');
+  if (said) return [said];
+  const bad = [], t = w.__t, d = w.document, R = w.racer_();
+  const box = d.querySelector('#s-games #race-box');
+  if (!box.querySelector('canvas.race-gl')) bad.push('no 3D canvas drawn');
+  if (!/OpenStreetMap contributors/.test(box.textContent) || !box.textContent.includes(FIX.dem)) bad.push('the attribution or the DEM source is not on the card: ' + (box.querySelector('.race-attr') || {}).textContent);
+  if (!box.querySelector('[data-do="race-go"].tile')) bad.push('no Drive tile');
+  if (box.querySelectorAll('.race-pad').length !== 4) bad.push(box.querySelectorAll('.race-pad').length + ' pedals, wanted 4');
+  if (!/Space brake/.test((box.querySelector('.race-keys') || {}).textContent || '')) bad.push('no key legend');
+  if (R.world.gates.length < 4) bad.push('only ' + R.world.gates.length + ' checkpoints round the loop');
+
+  /* 1. THE ROAD MESH AT THE MAP'S HEIGHTS: top vertices near the hill's top and its foot sit at those heights. */
+  const roadY = W => {
+    const [s, n] = W.mesh.ranges.road, D = W.mesh.data, out = [];
+    for (let i = s; i < s + n; i++) out.push([D[i * 6], D[i * 6 + 1], -D[i * 6 + 2]]);
+    return out;
+  };
+  const verts = roadY(R.world);
+  const P = FIX.pts, np = P.length / 3;
+  let hi = 0, lo = 0;
+  for (let i = 1; i < np; i++) { if (P[3 * i + 2] > P[3 * hi + 2]) hi = i; if (P[3 * i + 2] < P[3 * lo + 2]) lo = i; }
+  [hi, lo].forEach(i => {
+    const x = P[3 * i] / 10, y = P[3 * i + 1] / 10, h = P[3 * i + 2] / 10;
+    const near = verts.filter(v => Math.hypot(v[0] - x, v[2] - y) < 5.5).map(v => v[1]);
+    const top = near.length ? Math.max(...near) : NaN;
+    if (!(Math.abs(top - (h + 0.06)) < 0.6)) bad.push('the road at (' + x + ', ' + y + ') is drawn at ' + top.toFixed(2) + ' m; the map says ' + h + ' m');
+  });
+  const span = vs => { const ys = vs.map(v => v[1]); return Math.max(...ys) - Math.min(...ys); };
+  const flat = JSON.parse(JSON.stringify(FIX));
+  for (let i = 0; i < flat.pts.length; i += 3) flat.pts[i + 2] = 120;
+  const flatSpan = span(roadY(w.raceWorld_(flat)).filter(v => v[1] > 11)), realSpan = span(verts.filter(v => v[1] > 11));
+  if (!(realSpan > 7)) bad.push('the road mesh rises ' + realSpan.toFixed(1) + ' m over a map with a 9 m hill');
+  if (!(flatSpan < 0.2)) bad.push('with every height 12 m the road mesh still rises ' + flatSpan.toFixed(2) + ' m — it is not drawn from the heights');
+
+  /* 2. KEYS: Drive, then ↑ moves the car forward, ← turns it, Space slows it — and the column stays where it is. */
+  const c = R.car, at0 = t.AT(), page0 = t.PAGE().games;
+  box.querySelector('[data-do="race-go"].tile').click();
+  await wait(50);
+  if (!R.running) bad.push('Drive did not start the car');
+  const key = (type, k) => d.dispatchEvent(new w.KeyboardEvent(type, { key: k, bubbles: true, cancelable: true }));
+  const x0 = c.x, y0 = c.y, th0 = c.th;
+  key('keydown', 'ArrowUp');
+  /* POLLED, NOT TIMED: frames come when a loaded machine gives them, and the step is capped per frame. */
+  const ahead = () => (c.x - x0) * Math.sin(th0) + (c.y - y0) * Math.cos(th0);
+  for (let k = 0; k < 40 && ahead() <= 3; k++) await wait(100);
+  const moved = ahead();
+  if (!(moved > 3)) bad.push('holding ↑ for 4 s moved the car ' + moved.toFixed(2) + ' m forward');
+  key('keydown', 'ArrowLeft');
+  for (let k = 0; k < 30 && c.th >= th0 - 0.05; k++) await wait(100);
+  key('keyup', 'ArrowLeft');
+  if (!(c.th < th0 - 0.02)) bad.push('← did not turn the car left: heading ' + th0.toFixed(3) + ' → ' + c.th.toFixed(3));
+  key('keyup', 'ArrowUp');
+  const v1 = c.v;
+  key('keydown', ' ');
+  for (let k = 0; k < 30 && Math.abs(c.v) >= Math.abs(v1) - 1.5; k++) await wait(100);
+  key('keyup', ' ');
+  if (!(Math.abs(c.v) < Math.abs(v1) - 1)) bad.push('Space did not brake: ' + v1.toFixed(2) + ' → ' + c.v.toFixed(2) + ' m/s');
+  if (t.AT() !== at0 || t.PAGE().games !== page0) bad.push('driving turned the app: ' + at0 + '/' + page0 + ' → ' + t.AT() + '/' + t.PAGE().games);
+  if (!/mph/.test((box.querySelector('[data-hud="mph"]') || {}).textContent || '')) bad.push('the speed is not on the HUD');
+
+  /* 3. THE HILL, one step at a time: the same throttle for five seconds is slower up Christchurch Road than along flat Merantun Way, and a car let go on the slope rolls back. */
+  w.racePause_();
+  const run = (x, y, th, keys, n) => { Object.assign(c, { x, y, th, v: 0, steer: 0 }); R.keys = keys; R.touch = {}; for (let i = 0; i < n; i++) w.raceStep_(1 / 60); return c.v; };
+  const up = run(-40, 140, -Math.PI / 2, { up: true }, 300), level = run(-200, -150, Math.PI / 2, { up: true }, 300);
+  if (!(up < level - 1)) bad.push('uphill ' + up.toFixed(2) + ' m/s against ' + level.toFixed(2) + ' m/s on the level after 5 s — the slope is not felt');
+  const roll = run(-90, 140, -Math.PI / 2, {}, 120);
+  if (!(roll < -0.3)) bad.push('let go facing up the hill the car moved at ' + roll.toFixed(2) + ' m/s, not backwards');
+  R.keys = {};
+
+  /* 4. LEAVING PAUSES IT, and then the arrows are the app's again. */
+  box.querySelector('[data-do="race-go"].tile').click();
+  await wait(50);
+  t.go('feed', false, true);
+  await wait(LEAVE_MS); await woken_();
+  if (R.running || R.raf) bad.push('the loop still runs with Games gone');
+  if (errs.length) bad.push('errors: ' + errs.slice(0, 3).join(' | '));
+  return bad;
+});
+
 check('the maze draws its own walls, keeps a walk through a repaint, and has the arrow keys only in front', async () => {
   const { w } = boot();
   await wait(300);
