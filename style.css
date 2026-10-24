@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-24-i-tidy-dead";
+  --css-version: "2026-10-24-j-own-card-one-screen";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -2559,7 +2559,6 @@ label.bk-k { cursor: pointer; }
 .av-sw.on { border-color: var(--gold); box-shadow: 0 0 0 1px var(--bg); }
 
 /* ---------- WHEN I CAN TEACH, AS A TIDY WEEK § */
-.me-week-say { margin: .1rem 0 .6rem; }
 .me-week .slot-grid { gap: 3px; margin: 0 0 .85rem; }
 .me-week .slot-row { display: grid; grid-template-columns: 2.1rem minmax(0, 1fr);
                      gap: .35rem; align-items: center; }
@@ -3111,6 +3110,69 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 /* SOMEBODY ELSE'S PICTURE, ON AN ADMIN'S EDIT: the card's own circle, and why it is not offered. */
 .ce-pic { display: flex; gap: .7rem; align-items: center; }
 .ce-pic .ce-note { margin: 0; }
+/* ---------- THE CARD'S EDIT ON ONE PHONE SCREEN: ONE LINE A THING, LABEL LEFT, VALUE RIGHT (docs/history/425) § */
+.card-ed { --ce-row: 32px; --ce-k: 6.6rem; }
+.card-ed .me-form { line-height: 1.25; }
+.card-ed .ce-sec + .ce-sec { margin-top: 0; padding-top: 0; border-top: 0; }
+.card-ed .ce-sec > .prof-cap:first-child { margin: .45rem 0 .25rem; }
+/* A LINE: a label at a fixed width, the box taking the rest; the label is the 32px target (`ACCEPTED_TAP`, check/ui.js). */
+.card-ed label.field, .card-ed .f-rowwrap, .card-ed .field.many, .card-ed .ce-line {
+  display: flex; align-items: center; gap: .5rem; min-height: var(--ce-row); margin: 0;
+  border-bottom: 1px solid var(--line-soft); }
+.card-ed label.field > span, .card-ed .f-rowwrap > .dob-cap, .card-ed .many-cap, .card-ed .ce-k {
+  flex: 0 0 var(--ce-k); margin: 0; font-size: .62rem; letter-spacing: .04em; text-transform: uppercase;
+  line-height: 1.1; color: var(--faint); overflow: hidden; }
+.card-ed label.field > input, .card-ed label.field > select, .card-ed .many-sum {
+  flex: 1 1 auto; min-width: 0; min-height: 0; height: 28px; padding: 0 .5rem; }
+.card-ed label.field > select, .card-ed .many-sum { padding-right: calc(var(--sel-at) + var(--sel-tri) + .3rem); }
+.card-ed .many-sum { line-height: 26px; }
+/* THE VENUES' OWN SUMMARY IS THE FOLD'S LINE — the ticks are drawn open inside it (`ceWhere_`). */
+.card-ed .ce-fold .field.many { display: block; border: 0; min-height: 0; }
+.card-ed .ce-fold .many-cap, .card-ed .ce-fold .many-sum { display: none; }
+.card-ed .f-row { display: block; }
+.card-ed .f-rowwrap > .f-row { display: grid; flex: 1 1 auto; min-width: 0; gap: .3rem; }
+.card-ed .f-rowwrap .f-row label.field { border: 0; min-height: 0; margin: 0; }
+.card-ed .f-row.is-range .f-dash { margin: 0; }
+.card-ed .f-row.is-range { align-items: center; }
+.card-ed .field.many { flex-wrap: wrap; }
+.card-ed .many-d { flex: 1 1 0; min-width: 0; }
+.card-ed .many-d[open] { flex-basis: 100%; padding-bottom: .4rem; }
+.card-ed .many-list { margin-top: .3rem; }
+/* A FOLD: its line is a summary, the value right-aligned; open, its inside sits under the line. */
+.card-ed .ce-fold > summary { list-style: none; cursor: pointer; }
+.card-ed .ce-fold > summary::-webkit-details-marker { display: none; }
+.card-ed .ce-v { flex: 1 1 auto; min-width: 0; display: block; text-align: right;
+  font-size: .82rem; line-height: 1.4; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card-ed .ce-line::after { content: ''; flex: none; width: 6px; height: 6px; margin-left: .15rem;
+  border-right: 1.5px solid var(--dim); border-bottom: 1.5px solid var(--dim); transform: rotate(45deg) translateY(-2px); }
+.card-ed .ce-fold[open] > .ce-line::after { transform: rotate(225deg) translateY(-2px); }
+.card-ed .ce-fold[open] > .ce-line { border-bottom-color: transparent; }
+.card-ed .ce-body, .card-ed details.pfp > :not(summary) { padding: .2rem 0 .5rem; }
+.card-ed .ce-fold[open] { border-bottom: 1px solid var(--line-soft); }
+.card-ed .ce-body > label.field:last-of-type { border-bottom: 0; }
+.card-ed .ce-figv { display: inline-flex; align-items: center; gap: .35rem; vertical-align: middle; }
+.card-ed .ce-fig { display: inline-flex; width: 26px; height: 26px; }
+.card-ed .ce-fig > svg { width: 100%; height: 100%; }
+.card-ed .ce-seat, .card-ed .ce-seat .prof-seat { font-size: .78rem; color: var(--ink); }
+.card-ed .handle-now { margin: 0; font-size: .9rem; }
+.card-ed .handle-said { margin: 0; font-size: .74rem; }
+/* THE PICTURE'S LINE: the face at 28px, at 44 once open; the picker keeps its own grid under it. */
+.card-ed details.pfp { display: block; margin: 0; }
+.card-ed .ce-v .handle-now { display: inline-flex; }
+.card-ed details.pfp > .ce-line { justify-content: space-between; }
+.card-ed details.pfp > .ce-line .ce-k { flex: 1 1 auto; }
+.card-ed details.pfp .pfp-face { width: 28px; height: 28px; border-radius: 4px; }
+.card-ed details.pfp[open] .pfp-face { width: 44px; height: 44px; }
+.card-ed details.pfp .pfp-none { font-size: .9rem; }
+.card-ed details.pfp > .pfp-grid { display: grid; }
+.card-ed details.pfp > .pfp-said { margin: 0; padding-top: 0; }
+.card-ed .q-shelf { margin: 0; }
+.card-ed .ph-shelf { margin-top: .3rem; }
+/* THE WEEK, SMALLER: 20px rows instead of square cells, so seven days are a fifth of the screen (`.hr` in `ACCEPTED_TAP`). */
+.card-ed .me-week { margin-top: .35rem; }
+.card-ed .me-week .slot-grid { gap: 2px; margin: 0; }
+.card-ed .me-week .hr { aspect-ratio: auto; min-height: 0; height: 20px; }
+.card-ed .ce-tiles { margin-top: .4rem; }
 
 /* ---------- "+" AT THE TOP OF A LIST THAT CAN GROW — `addCard_` in tiles.js (373) ---------- */
 .add-card { display: flex; width: 100%; align-items: center; gap: .7rem; min-height: 48px; margin: 0;

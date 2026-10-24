@@ -579,7 +579,6 @@ function wardrobeBody_() {
       ${figure}
       <div class="av-stats">
         <p><b>Level ${esc(String(levelFromXp(USER.xp)))}</b> · ${esc(String(USER.credits || 0))} credits</p>
-        <p class="faint">Colours are free. Things unlock with a level or a few credits.</p>
       </div>
     </div>
     ${line('Skin', swatches('skin', AV_SKIN))}
@@ -624,6 +623,7 @@ function avatarDraw_() {
   document.querySelectorAll('.pfp-opt[data-pic="avatar"]').forEach(b => {
     b.innerHTML = avatarFor(USER.handle || USER.name, 40, USER.avatar || '', { bust: true });
   });
+  document.querySelectorAll('.ce-figv').forEach(el => { el.innerHTML = ceFigSay_(); });
   const pic = String((USER.profile && USER.profile.photo) || '').trim();
   if (picKind_(pic) === 'avatar') document.querySelectorAll('.pfp .pfp-face').forEach(f => { f.innerHTML = pfpFace_(pic); });
 }
@@ -2060,7 +2060,6 @@ function availGrid_(codes, p, readonly, mine) {
   if (!days.length) return '';
   /* ---------- `.me-week`, BECAUSE THIS WEEK IS READ AT LEISURE AND THE BOOKING ONE IS NOT § */
   return `<div class="me-week" style="--hours:${days[0].hours.length}">
-    <p class="faint me-week-say">Tap the hours you can teach. Tap again to clear one.</p>
     ${weekGrid_(days, (h, d) => `<label class="hr${on(h.code) ? ' on' : ''}${
       ro(h.code) ? ' shut' : ''}" aria-label="${esc(d.label)} ${h.h}:00">
       <input type="checkbox" data-me="${esc(h.code)}" ${on(h.code) ? 'checked' : ''}
@@ -2491,11 +2490,7 @@ function qualShelf_(list, value) {
       g.slots.map((i, n) => qualSlot_(i, value, { first: n === 0, mine })).join('')}</div>`).join('')}</div>
     <div class="q-pool" hidden>${pool.map(i => qualSlot_(i, value, { mine })).join('')}</div>
     <div class="tile-row q-adds">${tile_({ icon: 'plus', label: 'Add a qualification', act: 'qual-add', off: !pool.length, data: { unlocked: '' },
-      note: pool.length ? pool.length + ' more fit' : 'ten is the most' })}${
-      /* HOW THE CARD WORKS, IN THE ROOM BESIDE THE `+` — a line of text that costs no line of its own.
-         There is no `Edit` on the card any more, and a list of plain lines does not say by itself
-         that a line can be pressed. */
-      empty ? '' : '<span class="q-tip">Tap a line to change it.</span>'}</div>
+      note: pool.length ? pool.length + ' more fit' : 'ten is the most' })}</div>
     ${pool.length ? '' : `<p class="faint q-full">Ten is the most this card holds — remove one to add another.</p>`}
   </div>`;
 }
@@ -3016,7 +3011,8 @@ document.addEventListener('input', e => {
 });
 
 /* ---------- YOUR PICTURE, CHOSEN RATHER THAN LINKED § */
-function photoPicker_(value, said) {
+/* `o.fold`: ON YOUR CARD'S EDIT THE PICKER IS ONE LINE, the face beside "Picture", opening in place (docs/history/425). */
+function photoPicker_(value, said, o) {
   const v = String(value('photo') || '').trim();
   const kind = picKind_(v);
   const chosen = (kind === 'basic' || kind === 'avatar') ? pfpChoice_(v) : '';
@@ -3028,8 +3024,10 @@ function photoPicker_(value, said) {
         ? avatarFor(me.handle || me.name, 40, me.avatar || '', { bust: true })
         : pfpArt_(n, 40)}</button>`;
   };
-  return `<div class="pfp">
-    <span class="pfp-face">${pfpFace_(v)}</span>
+  const face = `<span class="pfp-face">${pfpFace_(v)}</span>`;
+  const fold = !!(o && o.fold);
+  return `${fold ? `<details class="pfp ce-fold" data-fold="picture"${CE_OPEN.has('picture') ? ' open' : ''}>
+    <summary class="ce-line"><span class="ce-k">Picture</span>${face}</summary>` : `<div class="pfp">${face}`}
     <div class="pfp-side">
       <div class="tile-row">
         ${tile_({ icon: 'photo', label: 'Choose photo', act: 'pfp-pick' })}
@@ -3039,7 +3037,7 @@ function photoPicker_(value, said) {
     <div class="pfp-grid" role="group" aria-label="Or choose a picture">${['avatar'].concat(Object.keys(PFP_ART)).map(opt).join('')}</div>
     <p class="faint pfp-said">${esc(said || pfpSaid_(v))}</p>
     <input type="file" class="pfp-in" accept="image/*" hidden>
-  </div>`;
+  ${fold ? '</details>' : '</div>'}`;
 }
 /* WHAT THE PICTURE IS, IN A SENTENCE — the line's words at rest and after a save. */
 function pfpSaid_(v) {
@@ -3113,7 +3111,7 @@ function pfpTake_(box, url, said) {
     }
   }));
   const onCard = !!(box && box.closest && box.closest('.card-ed'));
-  if (box && box.parentNode) box.outerHTML = photoPicker_(f => (f === 'photo' ? url : ''), said);
+  if (box && box.parentNode) box.outerHTML = photoPicker_(f => (f === 'photo' ? url : ''), said, { fold: onCard });
   /* NOT WHILE THE PICKER IS ON YOUR OWN CARD'S EDIT (docs/history/339) — which is where it is now, for everybody. § */
   if (onCard) return;
   try { if (typeof paint === 'function') paint('account'); } catch (e) {}
@@ -3815,6 +3813,52 @@ function cardEditTiles_(pid, saveOff) {
     off: !!saveOff, data: { pid } })}${tile_({ icon: 'close', label: 'Cancel', note: 'put it back', act: 'card-cancel',
     data: { pid } })}</div>`;
 }
+/* ---------- ONE LINE A THING, OPENING IN PLACE (docs/history/425) § */
+/* WHICH FOLDS ARE OPEN, as state and not in the DOM, so a repaint (a save, a figure pick) draws them as they were. */
+const CE_OPEN = new Set();
+document.addEventListener('toggle', e => {
+  const d = e.target;
+  if (!d || !d.matches || !d.matches('details.ce-fold')) return;
+  const k = d.dataset.fold || '';
+  if (d.open) CE_OPEN.add(k); else if (d.isConnected) CE_OPEN.delete(k);
+}, true);
+/* `val` IS MARKUP (a face, a live line); the label is text. */
+const ceFold_ = (key, label, val, body) => `<details class="ce-fold" data-fold="${esc(key)}"${CE_OPEN.has(key) ? ' open' : ''}>
+  <summary class="ce-line"><span class="ce-k">${esc(label)}</span><span class="ce-v">${val}</span></summary>
+  <div class="ce-body">${body}</div></details>`;
+/* THE FIGURE'S LINE: a small copy of it, its level and credits — redrawn by `avatarDraw_` after a pick. */
+const ceFigSay_ = () => !USER ? '' : `<span class="ce-fig" aria-hidden="true">${avatarFor(USER.handle || USER.name, 26, USER.avatar || '', { bust: true })}</span>`
+  + `Lv ${esc(String(levelFromXp(USER.xp)))} · ${esc(String(USER.credits || 0))} cr`;
+/* HOW MANY, for a fold's line — photographs filled, venues ticked, qualifications held. */
+const ceCount_ = (n, one, many) => n ? n + ' ' + (n === 1 ? one : many) : 'none';
+function ceSums_(form) {
+  const sec = id => form.querySelector('.ce-sec[data-sec="' + id + '"]');
+  const ph = sec('photos'), v = ph && ph.querySelector('details[data-fold="photos"] > summary .ce-v');
+  if (v) v.textContent = cePhotoSay_([...ph.querySelectorAll('.ph-slot input')].filter(i => String(i.value).trim()).length,
+    String((ph.querySelector('[data-me="video"]') || {}).value || '').trim());
+  const q = sec('quals'), qv = q && q.querySelector('details[data-fold="quals"] > summary .ce-v');
+  const gl = sec('glance'), gv = gl && gl.querySelector('details[data-fold="glance"] > summary .ce-v');
+  if (gv) gv.textContent = ceGlanceSay_(f => (gl.querySelector('[data-me="' + f + '"]') || {}).value);
+  const wh = sec('where'), wv = wh && wh.querySelector('details[data-fold="where"] > summary .ce-v');
+  if (wv) wv.textContent = ceCount_(profList_((wh.querySelector('[data-me="venues_ok"]') || {}).value).length, 'venue', 'venues');
+  if (qv) qv.textContent = ceCount_(q.querySelectorAll('.q-list .q-slot:not([data-new])').length, 'held', 'held');
+}
+/* AT A GLANCE IN ONE LINE: every answer in it, short, so nothing has to be opened to be read. */
+function ceGlanceSay_(get) {
+  const g = f => String(get(f) == null ? '' : get(f)).trim();
+  const range = (a, b, unit) => (g(a) || g(b)) ? (g(a) || '?') + '–' + (g(b) || '?') + unit : '';
+  return [g('years_experience') ? g('years_experience') + ' yrs' : '', g('favourite_colour'),
+    range('age_min', 'age_max', ''), range('min_hours', 'max_hours', ' h')].filter(Boolean).join(' · ') || 'none';
+}
+/* THE VENUES OPEN ON THEIR TICKS AT ONCE — the fold is the one tap; the map is under them, following them. */
+function ceWhere_(L, val, box) {
+  const n = profList_(val('venues_ok')).length;
+  const ticks = L.indexOf('venues_ok') !== -1 ? box('venues_ok', {}).replace('<details class="many-d"', '<details open class="many-d"') : '';
+  return ceFold_('where', 'Venues', esc(ceCount_(n, 'venue', 'venues')),
+      ticks + `<div class="ce-heat">${profHeat_(profList_(val('venues_ok')))}</div>`)
+    + fieldRows_(L.filter(f => f !== 'venues_ok'), box);
+}
+const cePhotoSay_ = (n, video) => ceCount_(n, 'photo', 'photos') + (video ? ' · video' : '');
 /* EACH SECTION THROUGH THE WIDGET SETTINGS DREW IT WITH: § */
 function cardEditForm_(t, e, vals) {
   const val = f => (vals[f] == null ? '' : vals[f]);
@@ -3825,20 +3869,22 @@ function cardEditForm_(t, e, vals) {
      somebody else's are the tutor's card, as an admin has always edited it. */
   return (e.own ? ownCardSections_() : cardSections_()).map(s => {
     const L = s.list;
-    const body = s.id === 'picture' ? (e.own ? photoPicker_(val) : cardFaceOnly_(t))
+    const filled = re => L.filter(f => re.test(f) && String(val(f)).trim() !== '').length;
+    const body = s.id === 'picture' ? (e.own ? photoPicker_(val, '', { fold: true }) : cardFaceOnly_(t))
       /* THE WARDROBE, saved a pick at a time (`avatarSave`), which redraws every `.av-card` from
-         `wardrobeBody_` — so the section's inside carries that class, and the picture above follows. */
-      : s.id === 'figure' ? `<div class="av-card">${wardrobeBody_()}</div>`
+         `wardrobeBody_` — so the fold's inside carries that class, and the picture above follows. */
+      : s.id === 'figure' ? ceFold_('figure', 'Figure', `<span class="ce-figv">${ceFigSay_()}</span>`, `<div class="av-card">${wardrobeBody_()}</div>`)
       : s.id === 'handle' ? cardHandleHtml_()
-      : s.id === 'photos' ? fieldRows_(L.filter(f => !isPhotoField_(f)), box) + (isPhotos_(L) ? photoShelf_(L, val, { draft: false }) : '')
-      : s.id === 'quals' ? qualShelf_(L, val)
+      : s.id === 'photos' ? ceFold_('photos', 'Photos', esc(cePhotoSay_(filled(/^photos_\d+$/), String(val('video')).trim())),
+          fieldRows_(L.filter(f => !isPhotoField_(f)), box) + (isPhotos_(L) ? photoShelf_(L, val, { draft: false }) : ''))
+      : s.id === 'quals' ? ceFold_('quals', 'Qualifications', esc(ceCount_(filled(/^qual_\d+$/), 'held', 'held')), qualShelf_(L, val))
       : s.id === 'week' ? availGrid_(L, vals, ro, false)
       : s.id === 'rate' ? cardRateHtml_(L, val, box, e)
+      : s.id === 'glance' ? ceFold_('glance', 'At a glance', esc(ceGlanceSay_(val)), fieldRows_(L, box))
+      : s.id === 'where' ? ceWhere_(L, val, box)
       : fieldRows_(L, box);
-    /* THE MAP REDRAWN FROM THE TICKS as they are ticked (the listener below), so the place a parent
-       will see is the place being chosen. */
-    const more = s.id === 'where' ? `<div class="ce-heat">${profHeat_(profList_(val('venues_ok')))}</div>` : '';
-    return `<div class="ce-sec" data-sec="${esc(s.id)}">${s.cap ? `<div class="prof-cap">${esc(s.cap)}</div>` : ''}${body}${more}</div>`;
+    /* NO CAPTION OVER A SECTION: every line names itself, and the week's days and hours name it (425). */
+    return `<div class="ce-sec" data-sec="${esc(s.id)}">${body}</div>`;
   }).join('');
 }
 /* ---------- THE RATE, AND WHAT AN EXTRA SEAT ADDS IN POUNDS BESIDE IT (docs/history/345) § */
@@ -3900,15 +3946,14 @@ function cardRateHtml_(L, val, box, e) {
   const hidden = f => has(f) ? `<input type="hidden" data-me="${f}" value="${esc(String(val(f)))}"${
     f === 'extra_seat_cut' && !mayCut ? ' disabled' : ''}>` : '';
   const own = !!(e && e.own);
-  const boxes = [pound('extra_seat_rate', own ? 'yours' : 'theirs')]
-    .concat(mayCut ? [pound('extra_seat_cut', "@family.'s")] : []);
+  const boxes = [pound('extra_seat_rate', own ? 'yours, £/h' : 'theirs, £/h')]
+    .concat(mayCut ? [pound('extra_seat_cut', "@family.'s, £/h")] : []);
+  /* THE SEAT IS ONE LINE — what it adds, live — opening on its parts in pounds and what a blank is (425). */
   return box('rate_per_hour', {})
-    + `<div class="f-rowwrap"><span class="dob-cap">an extra seat adds, £ an hour</span>
-         <div class="f-row" style="--n:${boxes.length}">${boxes.join('')}</div></div>
-       ${hidden('extra_seat_rate')}${hidden('extra_seat_cut')}
-       <p class="ce-seat" aria-live="polite">${cardSeatSay_(rate, val('extra_seat_rate'), val('extra_seat_cut'))}</p>
+    + ceFold_('seat', 'Extra seat', `<span class="ce-seat" aria-live="polite">${cardSeatSay_(rate, val('extra_seat_rate'), val('extra_seat_cut'))}</span>`,
+      `${boxes.join('')}${hidden('extra_seat_rate')}${hidden('extra_seat_cut')}
        <p class="faint ce-note ce-seat-note" data-own="${own ? '1' : ''}">${esc(cardSeatNote_(rate, val('extra_seat_cut'),
-         { own, mayCut, hasCut: has('extra_seat_cut') }))}</p>`
+         { own, mayCut, hasCut: has('extra_seat_cut') }))}</p>`)
     + fieldRows_(L.filter(f => ['rate_per_hour', 'extra_seat_rate', 'extra_seat_cut'].indexOf(f) === -1), box);
 }
 /* ---------- AND AS IT IS TYPED: POUNDS INTO THE HIDDEN SHARE, THE SEAT REDRAWN § */
@@ -3959,9 +4004,9 @@ function cardHandleHtml_() {
   const said = (HANDLE_SAID.pid && HANDLE_SAID.pid === String(USER.personId || '') && HANDLE_SAID.text)
     || 'Your handle is the first and last letter of your first name and the year you joined. If somebody '
      + 'had it already, more letters of your first name were added, and then a number.';
-  return `<p class="handle-now" aria-live="polite"><b aria-hidden="true">@</b><span class="handle-shown">${
-      esc((USER && USER.handle) || '')}</span></p>
-    <p class="faint handle-said">${esc(said)}</p>`;
+  /* ONE LINE, AND THE RULE ONE TAP UNDER IT (425) — the handle is read here, never typed. */
+  return ceFold_('handle', 'Handle', `<span class="handle-now" aria-live="polite"><b aria-hidden="true">@</b><span class="handle-shown">${
+      esc((USER && USER.handle) || '')}</span></span>`, `<p class="faint handle-said">${esc(said)}</p>`);
 }
 /* SOMEBODY ELSE'S PICTURE, SHOWN AND NOT OFFERED — `savePhoto` writes the asker's own row. § */
 function cardFaceOnly_(t) {
@@ -4192,6 +4237,7 @@ on('card-cancel', el => {
   form.dataset.dirty = '1';
   cardSeatSync_(form, t, ev);
   cardKeep_(form);
+  ceSums_(form);
   if (t.matches && t.matches('[data-many-of="venues_ok"]')) {
     const box = form.querySelector('[data-me="venues_ok"]'), heat = form.querySelector('.ce-heat');
     if (box && heat) heat.innerHTML = profHeat_(profList_(box.value));

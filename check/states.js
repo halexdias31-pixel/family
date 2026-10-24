@@ -2866,9 +2866,12 @@ const STATES = {
              untill i scroll to them"), and the session length boxes in At a glance. */
           && pg.querySelectorAll('[data-do="signout"]').length === 1
           && !form.querySelector('img[loading="lazy"]')
-          && !!form.querySelector('.ce-sec[data-sec="glance"] [data-me="min_hours"]') ? 1 : 0;
+          && !!form.querySelector('.ce-sec[data-sec="glance"] [data-me="min_hours"]')
+          /* ON ONE PHONE SCREEN (docs/history/425): at 390x844 the whole form, every fold shut, is within its budget —
+             2856px before; the owner: "condense this so it can all apear on a phone screen". */
+          && (innerWidth !== 390 || innerHeight !== 844 || form.closest('.card-ed').getBoundingClientRect().height <= 760) ? 1 : 0;
       },
-      wants: 'your card as its own form at full size in a pane that scrolls: every section in the card\'s order (the figure and the handle among them), the picture chooser, three photographs fetched at once, three qualifications, the session length, the map, all seven days of the week, Save and Cancel as tiles in reach at the foot of the pane, and Sign out under them' },
+      wants: 'your card as its own form at full size in a pane that scrolls, no taller than 760px at 390x844: every section in the card\'s order (the figure and the handle among them), the picture chooser, three photographs fetched at once, three qualifications, the session length, the map, all seven days of the week, Save and Cancel as tiles in reach at the foot of the pane, and Sign out under them' },
     /* ---------- AND ANOTHER TUTOR'S CARD, EDITED BY AN ADMIN § */
     { name: 'another tutor\'s card, being edited by an admin',
       only: () => typeof USER !== 'undefined' && !!USER && typeof isAdmin === 'function' && isAdmin(),
@@ -3080,6 +3083,8 @@ const STATES = {
            it, and the copy it is drawn from shaped as `myProfile` sends it (`phone_cc`). */
         document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         CARD_EDIT = cardEditFresh_(USER.personId);
+        /* THE PICKER IS ONE LINE UNTIL OPENED (docs/history/425) — opened here, as a tap on "Picture" does. */
+        CE_OPEN.add('picture');
         paint('account');
         const at = [...document.querySelectorAll('#s-account .page')].findIndex(pg => pg.querySelector('.card-ed .pfp'));
         if (at < 0) throw new Error('no picture picker on your own card\'s Edit');
@@ -3087,7 +3092,7 @@ const STATES = {
       },
       leave: () => {
         USER.profile = window.STATE_PFP_WAS; delete window.STATE_PFP_WAS;
-        CARD_EDIT = null;
+        CARD_EDIT = null; CE_OPEN.delete('picture');
         document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
         repaint(true);
       },
@@ -3115,6 +3120,8 @@ const STATES = {
            it, and the copy it is drawn from shaped as `myProfile` sends it (`phone_cc`). */
         document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         CARD_EDIT = cardEditFresh_(USER.personId);
+        /* THE PICKER IS ONE LINE UNTIL OPENED (docs/history/425) — opened here, as a tap on "Picture" does. */
+        CE_OPEN.add('picture');
         paint('account');
         const at = [...document.querySelectorAll('#s-account .page')].findIndex(pg => pg.querySelector('.card-ed .pfp'));
         if (at < 0) throw new Error('no picture picker on your own card\'s Edit');
@@ -3122,7 +3129,7 @@ const STATES = {
       },
       leave: () => {
         USER.profile = window.STATE_PFP_WAS; delete window.STATE_PFP_WAS;
-        CARD_EDIT = null;
+        CARD_EDIT = null; CE_OPEN.delete('picture');
         document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
         repaint(true);
       },
@@ -3160,6 +3167,8 @@ const STATES = {
            it, and the copy it is drawn from shaped as `myProfile` sends it (`phone_cc`). */
         document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         CARD_EDIT = cardEditFresh_(USER.personId);
+        /* THE PICKER IS ONE LINE UNTIL OPENED (docs/history/425) — opened here, as a tap on "Picture" does. */
+        CE_OPEN.add('picture');
         paint('account');
         const at = [...document.querySelectorAll('#s-account .page')].findIndex(pg => pg.querySelector('.card-ed .pfp'));
         if (at < 0) throw new Error('no picture picker on your own card\'s Edit');
@@ -3167,7 +3176,7 @@ const STATES = {
       },
       leave: () => {
         USER.profile = window.STATE_PFP_WAS; delete window.STATE_PFP_WAS;
-        CARD_EDIT = null;
+        CARD_EDIT = null; CE_OPEN.delete('picture');
         document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
         repaint(true);
       },
