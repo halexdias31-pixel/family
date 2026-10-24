@@ -5720,10 +5720,14 @@ top level, before `SPLASH_CACHE_F`
    anything but its own keys, never keeps a part-copy after a refusal, and never stands between an
    answer or a drawing and the store. Other writes (`favs`, the signed-in user) are not covered.
    `SPLASH_CACHE_MAX` is the ceiling on the lot, in a 5 MB store shared with everything else this app
-   keeps. THE 28 COME TO ABOUT 173 000 OF ITS 200 000 — this said "about twice" when it was written,
-   before the rows were real, and it was not. The room left is a few drawings, not twenty-eight; a
-   drawing past the ceiling is left off the splash (never out of its chapter), and `check-anims.js`
-   fails before the books get there, so raising it is a decision made in the open.
+   keeps. THE 28 CAME TO ABOUT 173 000 OF ITS FIRST 200 000 — this said "about twice" when it was
+   written, before the rows were real, and it was not. RAISED TO 400 000 IN 419, when GCSE Physics
+   gained fifteen drawings and the solar system was rebuilt: the 44 come to about 334 000. Four hundred
+   thousand characters is well under a fifth of the store, and the copy gives way to a child's answer
+   whatever its size (above). The KS2, GCSE Maths and A-level branches raised it to the same number;
+   merged together the books' drawings come to roughly 750 000, so the merge must raise it again, on
+   purpose. A drawing past the ceiling is left off the splash (never out of its chapter), and
+   `check-anims.js` fails before the books get there, so raising it is a decision made in the open.
    `SPLASH_CACHE_F` IS THE SHAPE. The picker in index.html reads `f === 1` written out, because it runs
    before any of this file exists; `check-anims.js` holds the two to the same number. Change the shape
    and both move, and every device starts again from an empty copy. */
