@@ -66,6 +66,24 @@ shows what each file did or why it was refused. Only the script account's own fo
 
 A file that has gone in is not undone by deleting it: send another file with the old values (`pull`, then `drive-pack`).
 
+## A card newer than the pinned commit: `lib_pending`
+
+A fresh clone rebuilds `data-private/` from `LIB_SOURCE_COMMIT`, so it can never hold the words of a row added after that
+commit, and `check/lib-full.js` would call the row lost ("run pull"). Such a row carries `lib_pending: "True"` on its card
+— public, kept by `split` like any card column. Three things honour it, and nothing else:
+
+- **`check/lib-full.js`**: a pending row with no words here is a card, not lost. With words in `data-private/` it is
+  joined whole like any row, and the marker stays on it.
+- **`js/check-textbooks.js`**: a pending chapter with none of its three lists here skips the word and worked-line minimums,
+  and an animation under it skips the `about` rule, and the check prints how many it skipped. With the words here,
+  everything is checked.
+- **The site**: a pending card the Ledger answers `missing` for says "Coming soon." in place of "This one is not in the
+  library yet." (`libSay_`, `pending` on the chapter in `library.js`).
+
+Its words reach the Ledger by an import file (`lib-import-*.json`, `{version: 1, files: {textbooks: [{id, …private
+fields}]}, cards: […]}`, which the owner imports in Business) or by `push`. The marker stays on afterwards: a fresh clone's seed still
+lacks the words. Used by the content batch — `TB-ALEVEL-MATHS` (411), the philosophy chapters `TB-PHIL` (418).
+
 ## The checks
 
 `check/lib-full.js` is the one place the halves are joined: `rows(name)` and `text(name)` give the library whole,
