@@ -3422,7 +3422,7 @@ function markUnitOff_(t) {
 
 /* ---------- AN ANSWER WITH MANY RIGHT FORMS, MARKED BY WHAT MAKES IT RIGHT (360) */
 /* `rule: count 3, distinct, each factor 36, sum 31..34` in `accept`: the typed numbers are tested, not matched. */
-/* Clauses: count, distinct, mixed, decimal, each <tests>, at N <tests>, hcf N, sum, diff, from a/b/…, rounddiff R V, set a+b/c+d (word groups). */
+/* Clauses: count, distinct, mixed, decimal, each <tests>, at N <tests>, hcf N, sum, diff, from a/b/…, rounddiff R V, digits ##4###, once D, lowest, set a+b/c+d (word groups). */
 function markRuleNums_(typed) {
   const t = markNorm_(typed).replace(/[,;=+×]/g, ' , ').replace(/(\d)-(?=\d)/g, '$1 , ');
   const out = [];
@@ -3624,6 +3624,11 @@ function markRule_(typed, rule) {
       const q = /^\d+ (\d+)\/(\d+)$/.exec(n.s);
       return !!q && Number(q[1]) < Number(q[2]);
     });
+    /* `lowest`: each written as a fraction in its lowest terms, where the question asks for the simplest form (439) */
+    if (k === 'lowest') return nums.every(n => {
+      const q = /(\d+)\/(\d+)$/.exec(n.s), g = (a, b) => (b ? g(b, a % b) : a);
+      return !!q && g(Number(q[1]), Number(q[2])) === 1;
+    });
     if (k === 'distinct') return new Set(nums.map(n => n.s)).size === nums.length;
     if (k === 'each') {
       const tests = [];
@@ -3654,6 +3659,10 @@ function markRule_(typed, rule) {
       for (let i = 0; i < vs.length; i += 2) if (!near(w[1] === 'sum' ? vs[i] + vs[i + 1] : vs[i] * vs[i + 1], markRuleVal_(w[2]))) return false;
       return true;
     }
+    /* `digits ##4###`: each a whole number whose digits fit, # any digit, no leading 0; `once 4`: that digit appears exactly once (439) */
+    if (k === 'digits') return nums.every(n => /^\d+$/.test(n.s) && !/^0\d/.test(n.s) && n.s.length === w[1].length
+      && [...w[1]].every((d, i) => d === '#' || d === n.s[i]));
+    if (k === 'once') return nums.every(n => n.s.split(w[1]).length === 2);
     if (k === 'diff') return vs.length === 2 && near(Math.abs(vs[0] - vs[1]), markRuleVal_(w[1]));
     if (k === 'rounddiff') {
       const r = Number(w[1]), rd = v => Math.round(v / r) * r;
@@ -3681,7 +3690,7 @@ function markAnswer_(typed, accept, again) {
     if (rules.some(w => markRule_(typed, w))) return true;
     accept = String(accept).split('|').filter(w => !/^\s*rule:/i.test(w)).join('|');
     /* a form asked for (`mixed`, `decimal`) is not given by the value: beside it a written way counts only as written, so 28/5 is not 5 3/5 (376) */
-    if (rules.some(w => /(?:^|[:,])\s*(mixed|decimal)\s*(?:,|$)/i.test(w))) {
+    if (rules.some(w => /(?:^|[:,])\s*(mixed|decimal|lowest)\s*(?:,|$)/i.test(w))) {
       const tight = v => v.replace(/(\d)\s+(?=[a-z])/g, '$1');   // 0.25 kg is 0.25kg; 5 3/5 stays apart
       return accept.split('|').some(w => tight(markNorm_(w)) === tight(t));
     }
@@ -4876,6 +4885,8 @@ function drawMarker_() {
     perpdiag: (p, s, a) => p.length === 4 && !SHAPE.square(p, s, a) && dDir(dirOf(p[0], p[2]), dirOf(p[1], p[3])) >= 86,
     notperpdiag: (p) => p.length === 4 && dDir(dirOf(p[0], p[2]), dirOf(p[1], p[3])) < 84,
     isosceles: (p, s) => p.length === 3 && (same(s[0], s[1], 0.06) || same(s[1], s[2], 0.06) || same(s[0], s[2], 0.06)),
+    /* both pairs of opposite sides parallel: a rectangle, rhombus or square is one too (439) */
+    parallelogram: (p) => p.length === 4 && dDir(dirOf(p[0], p[1]), dirOf(p[3], p[2])) <= 4 && dDir(dirOf(p[1], p[2]), dirOf(p[0], p[3])) <= 4,
   };
 
   /* EACH KIND: is it there, and which ink does it account for (the rest is stray). */
