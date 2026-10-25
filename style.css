@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-25-d-find-child";
+  --css-version: "2026-10-25-e-native-picker";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -473,7 +473,6 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 /* ---------- WHO THE ACCOUNT IS FOR: THE FIRST QUESTION ON THE REGISTER SHEET § */
 .reg-cap { margin-top: 0; }
 .reg-who { margin-bottom: .75rem; }
-.reg-who .btn { line-height: 1.2; text-align: center; padding: .35rem .8rem; }
 
 /* ---------- THREE LIBRARY CARDS ON ONE PAGE, WHICH NINE STACKED BOXES CANNOT BE § */
 .lib-shelf { display: flex; flex-direction: column; }
@@ -533,11 +532,8 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
   padding-left: .6rem; }
 .q-ed .q-f > input { padding-right: .6rem; }
 /* A NAME TOO LONG FOR HALF A 320 CARD ENDS IN AN ELLIPSIS — *walked:* § */
-/* TEACHING, ONE ROW THAT CYCLES ON EACH TAP (440): the label left, the state right — gold, plain or faint. */
-.q-cyc { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 44px;
-  padding: 0 .6rem; background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-sm);
-  color: var(--ink); font: inherit; font-size: .8rem; cursor: pointer; }
-.q-cyc-k { color: var(--dim); }
+/* TEACHING IS ONE ROW WITH THE PHONE'S OWN PICKER, the full width of the card; the line's mark keeps the gold, plain or faint word. */
+.q-ed .q-cyc { display: block; }
 .q-cyc-v.is-spec { color: var(--gold); font-weight: 650; }
 .q-cyc-v.is-teach { color: var(--ink); }
 .q-cyc-v.is-no { color: var(--faint); }
@@ -729,14 +725,13 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .check input:checked + .box::after { color: #1a1409; }
 
 /* ---------- YOUR ROLES: A TICK WITH ITS MEANING UNDER THE WORD § */
-.roles-card .role-pick, .notify-card .role-pick { align-items: flex-start; }
-.roles-card .role-pick .box, .notify-card .role-pick .box { margin-top: .1rem; }
+.notify-card .role-pick { align-items: flex-start; }
+.notify-card .role-pick .box { margin-top: .1rem; }
 .role-pick-say { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
 .role-pick-say .faint { font-size: .85rem; line-height: 1.35; }
 .roles-card .role-admin, .roles-card .roles-said { margin: .6rem 0 0; }
-/* ONE OF TWO (432): the role is a radio, so its box is round. */
-.roles-card .role-pick .box { border-radius: 50%; }
-.roles-card .role-pick + .role-pick { margin-top: .4rem; }
+/* ONE OF TWO (432): one row with the phone's own picker, each choice's meaning in a faint line under it. */
+.role-pick-notes { margin: 0 0 .5rem; font-size: .8rem; line-height: 1.4; }
 
 /* ---------- NOTIFICATIONS: THE ROLES CARD'S TICKS, AND WHAT IS ALWAYS SENT AS WORDS § */
 .notify-always { list-style: none; margin: 0; padding: 0; font-size: .85rem; line-height: 1.45; color: var(--dim); }
@@ -3388,12 +3383,8 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .media-pic { width: 4rem; aspect-ratio: 4 / 3; object-fit: cover; border-radius: .3rem; background: var(--line); }
 .media-name { min-width: 0; overflow-wrap: anywhere; }
 .media-thumb { display: block; width: 100%; max-width: 20rem; border-radius: .4rem; }
-/* HOW OLD YOU HAVE TO BE (406): the form's quick picks, and the badge on a reel or a video's picture. */
-.media-age-picks { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+/* HOW OLD YOU HAVE TO BE (406): the form's one picker row, and the badge on a reel or a video's picture. */
 .media-age { display: block; margin-bottom: .75rem; }
-.media-age-picks .btn { width: auto; flex: 1 1 3rem; min-height: 44px; min-width: 44px; padding: 0 .5rem; }
-.media-age-picks .btn.is-on { border-color: var(--gold); color: var(--gold); }
-.media-age-picks input { width: 5.5rem; min-height: 44px; }
 .media-age-badge { position: absolute; z-index: 3; left: .3rem; top: .3rem; padding: .08rem .35rem; border-radius: 4px;
   background: var(--over-wash); color: var(--over-ink); font-size: .68rem; font-weight: 700; line-height: 1.35;
   pointer-events: none; }
@@ -6324,12 +6315,6 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 
 /* ---------- REPORTING A QUESTION (395): the sheet's reasons, its note, and the Business column's list — js/submit.js, js/records.js. */
 .rep-what { margin: 0 0 .5rem; font-size: .74rem; }
-.rep-opts { display: flex; flex-direction: column; gap: .35rem; margin: 0 0 .6rem; }
-.rep-opt { display: block; width: 100%; min-height: 44px; text-align: left; padding: .5rem .7rem;
-           border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--sunk); color: var(--ink);
-           font: inherit; font-size: .8rem; line-height: 1.35; cursor: pointer; }
-.rep-opt:active { transform: translateY(1px); }
-.rep-opt.is-picked { border-color: var(--gold); color: var(--gold); }
 .rep-note { display: block; margin-bottom: .5rem; }
 .rep-note-in { display: block; width: 100%; box-sizing: border-box; min-height: 44px; padding: .55rem .7rem;
                background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-sm);

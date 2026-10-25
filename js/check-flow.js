@@ -1654,7 +1654,7 @@ async function qualCard_(profile) {
     slot: i => q.shelf() && q.shelf().querySelector('.q-slot[data-slot="' + i + '"]'),
     box: (i, k) => (q.slot(i) || d).querySelector('[data-me="qual_' + i + k + '"]') || {},
     line: i => q.slot(i) && q.slot(i).querySelector(':scope > .q-line'),
-    seg: i => q.slot(i).querySelector('.q-cyc'),
+    seg: i => q.slot(i).querySelector('select.q-teach'),
     face: i => q.slot(i).querySelector('.q-mark-b'),
     /* A PICK FROM A LIST, the way the platform's own list makes one: the value, then `input` and
        `change`, both bubbling — which is also what `sel-pick` copied while the app had a panel. */
@@ -1733,10 +1733,10 @@ check('a qualification opens in place, and each answer is saved as it is chosen'
   if (!q.d.querySelector('#s-settings .q-shelf').closest('.me-form').dataset.dirty) bad.push('an open line does not hold the column, so the repaint after a save would shut it');
   if ((q.line(4).querySelector('.prof-iso sub') || {}).textContent !== 'A*') bad.push('the line does not show the new grade');
   /* TEACH ON A SECOND LEVEL LEAVES THE FIRST'S — *"it unticks the other one. i dont want that"*. */
-  /* ONE CONTROL THAT CYCLES (440): Can teach → Teaches → Not teaching → Can teach. */
-  if (q.slot(4).querySelectorAll('.q-ed [data-do="qual-teach"]').length !== 1) bad.push('the editor has more than one teaching control');
+  /* ONE ROW, THE PHONE'S OWN PICKER: Can teach, Teaches or Not teaching. */
+  if (q.slot(4).querySelectorAll('.q-ed select.q-teach').length !== 1 || q.slot(4).querySelector('.q-ed [data-do="qual-teach"]')) bad.push('the editor has more than one teaching control');
   q.sent.length = 0;
-  q.A('qual-teach', q.seg(4));
+  q.pick(q.seg(4), 'spec');
   await wait(300);
   f = q.last();
   if (!f) bad.push('Teach saved nothing');
@@ -1747,17 +1747,17 @@ check('a qualification opens in place, and each answer is saved as it is chosen'
   if (!q.line(4).querySelector('.q-chip')) bad.push('the line does not show the gold Teach chip it was just given');
   /* AND NOT TEACHING IS BOTH BOXES FALSE, ON THIS LINE ONLY. */
   q.sent.length = 0;
-  q.A('qual-teach', q.seg(4));
+  q.pick(q.seg(4), 'no');
   await wait(300);
   f = q.last();
   if (!f || f.qual_4_spec !== 'FALSE' || f.qual_4_teach !== 'FALSE') bad.push('Not teaching did not post both of its boxes FALSE');
   else if (f.qual_3_teach !== 'TRUE') bad.push('Not teaching on the A-Level changed the GCSE');
-  if ((q.seg(4).querySelector('.q-cyc-v') || {}).textContent !== 'Not teaching') bad.push('the control does not read Not teaching');
+  if (q.seg(4).value !== 'no' || q.seg(4).selectedOptions[0].textContent !== 'Not teaching') bad.push('the control does not read Not teaching');
   q.sent.length = 0;
-  q.A('qual-teach', q.seg(4));
+  q.pick(q.seg(4), 'teach');
   await wait(300);
   f = q.last();
-  if (!f || f.qual_4_spec !== 'FALSE' || f.qual_4_teach !== 'TRUE') bad.push('the third tap did not come round to Can teach');
+  if (!f || f.qual_4_spec !== 'FALSE' || f.qual_4_teach !== 'TRUE') bad.push('Can teach picked did not post Can teach');
   /* A SAVED LINE CANNOT LOSE ITS LEVEL BY A PICK: refused before anything is sent. */
   q.sent.length = 0;
   q.pick(q.box(4, '_level'), '');
@@ -1776,7 +1776,7 @@ check('a qualification opens in place, and each answer is saved as it is chosen'
   /* A PRESS THAT REACHES A SHUT LINE'S TEACH — a raced redraw, or `check/press.js` pressing every action
      in turn — opens that line and answers, rather than doing nothing. */
   q.sent.length = 0;
-  q.A('qual-teach', q.seg(5));
+  q.pick(q.seg(5), 'teach');
   await wait(300);
   const g = q.last();
   if (!g || g.qual_5_teach !== 'TRUE' || !q.slot(5).classList.contains('is-open')) bad.push('Teach pressed on a shut line did nothing');
@@ -8846,7 +8846,7 @@ check('the sign-in card is one tile row, and Make an account posts register', as
   if (!go_) return bad.concat(['the register sheet has no button']);
   /* WHO IT IS FOR, FIRST — the journey after this one asks the question itself; here it is answered
      so the rest of the form can be asked about. */
-  const asStudent = d.querySelector('#sheet-body [data-do="reg-who"][data-who="student"]');
+  const asStudent = d.querySelector('#sheet-body #reg-who-in option[data-who="student"]');
   if (!asStudent) return bad.concat(['the register sheet does not ask who the account is for']);
   t.ACTIONS['reg-who'](asStudent);
 
@@ -8915,7 +8915,7 @@ check('a child with no email makes their own account with a grown-up\'s address,
   await wait(50);
   const fill = (id, v) => { const el = d.getElementById(id); if (el) el.value = v; return !!el; };
   /* A STUDENT — the grown-up's-email tick is theirs alone (see the next journey for the parent). */
-  const student = () => { const b = d.querySelector('#sheet-body [data-do="reg-who"][data-who="student"]'); if (b) t.ACTIONS['reg-who'](b); return !!b; };
+  const student = () => { const b = d.querySelector('#sheet-body #reg-who-in option[data-who="student"]'); if (b) t.ACTIONS['reg-who'](b); return !!b; };
   if (!student()) return ['the register sheet does not ask who the account is for'];
   const tick = d.getElementById('reg-noemail');
   if (!tick) return ['the register sheet has no "I have no email" tick, so a child with no address has no way in'];
@@ -9396,14 +9396,14 @@ check('Make an account asks who it is for first, and a parent is a parent from t
   if (!reg) return ['there is no Make an account tile to press'];
   t.ACTIONS['register'](reg);
   await wait(50);
-  const choice = who => d.querySelector('#sheet-body [data-do="reg-who"][data-who="' + who + '"]');
+  const choice = who => d.querySelector('#sheet-body #reg-who-in option[data-who="' + who + '"]');
   const rest = () => d.getElementById('reg-rest');
   const tickRow = () => { const x = d.getElementById('reg-noemail'); return x && x.closest('.reg-kid'); };
   if (!choice('parent') || !choice('student')) return ['the register sheet does not ask "a parent or a student?"'];
   /* THE QUESTION FIRST: the boxes and the button are not shown, and nothing is chosen for you. */
   if (!rest() || !rest().hidden) bad.push('the boxes are shown before anybody has said who the account is for');
-  if (d.querySelector('#sheet-body [data-do="reg-who"].on')) bad.push('an answer is already chosen when the sheet opens — the default is the fault this question ends');
-  if (choice('parent').closest('label')) bad.push('the choice is inside a <label>, so a tap on its caption answers it');
+  if (d.getElementById('reg-who-in').value) bad.push('an answer is already chosen when the sheet opens — the default is the fault this question ends');
+  if (!choice('parent').closest('label.field > select')) bad.push('the choice is not one row with the phone\'s own picker');
   /* AND A SEND THAT SOMEHOW HAPPENS UNANSWERED POSTS NOTHING. */
   const fill = (id, v) => { const el = d.getElementById(id); if (el) el.value = v; };
   fill('reg-first', 'Dana'); fill('reg-last', 'Brook'); fill('reg-email', 'dana@example.org'); fill('reg-pin', '0000');
@@ -9418,9 +9418,8 @@ check('Make an account asks who it is for first, and a parent is a parent from t
   if (!tickRow() || tickRow().hidden) bad.push('a student is not offered "It\'s a grown-up\'s email"');
   d.getElementById('reg-noemail').checked = true;
   t.ACTIONS['reg-who'](choice('parent'));
-  if (!choice('parent').classList.contains('on') || choice('parent').getAttribute('aria-pressed') !== 'true'
-      || choice('student').classList.contains('on') || choice('student').getAttribute('aria-pressed') !== 'false') {
-    bad.push('the chosen answer is not the gold, pressed one (and the other not)');
+  if (!choice('parent').selected || choice('student').selected) {
+    bad.push('the picker does not show the chosen answer');
   }
   if (!tickRow().hidden || d.getElementById('reg-noemail').checked) bad.push('a parent is still offered, or still has ticked, the grown-up\'s-email box');
   const note = String((d.getElementById('reg-note') || {}).textContent || '');
@@ -18946,13 +18945,13 @@ check('the roles card offers a Client one choice, Client or Student, and posts s
   const pick = r => card().querySelector(`[data-role-pick="${r}"]`);
   const picks = () => [...card().querySelectorAll('[data-role-pick]')].map(b => b.dataset.rolePick).join(',');
   if (picks() !== 'client,student') return ['a parent is offered "' + picks() + '", wanted Client and Student alone'];
-  if ([...card().querySelectorAll('[data-role-pick]')].some(b => b.type !== 'radio')) bad.push('the choice is not one of two — a tick box is on the card');
+  if ([...card().querySelectorAll('[data-role-pick]')].some(b => b.tagName !== 'OPTION' || !b.closest('select'))) bad.push('the choice is not the phone\'s own picker — a box or button stands in for a select');
   if (/Tick every one|more than one/.test(card().textContent)) bad.push('the card still says to tick every one that is you');
-  if (!pick('client').checked || pick('student').checked) bad.push('a parent does not see Client chosen');
+  if (!pick('client').selected || pick('student').selected) bad.push('a parent does not see Client chosen');
   if (card().querySelector('.role-admin')) bad.push('a parent is told they are Admin');
   const save = () => card().querySelector('[data-do="roles-save"]');
   if (!save()) return bad.concat(['the roles card has no Save tile']);
-  pick('student').checked = true;
+  pick('student').selected = true;
   sent.length = 0;
   t.ACTIONS['roles-save'](save());
   await wait(400);
@@ -19003,10 +19002,10 @@ check('a refused role save puts the choice back to Client; a lost reply keeps it
   const card = () => d.querySelector('#s-settings .roles-card');
   if (!card()) return ['Settings has no Your role card'];
   const pick = r => card().querySelector(`[data-role-pick="${r}"]`);
-  const chosen = () => ['client', 'student'].filter(r => pick(r) && pick(r).checked).join(',');
+  const chosen = () => ['client', 'student'].filter(r => pick(r) && pick(r).selected).join(',');
   const line = () => (card().querySelector('.roles-said') || {}).textContent || '';
   if (chosen() !== 'client') return ['a parent signed in sees "' + chosen() + '" chosen, wanted client'];
-  pick('student').checked = true;
+  pick('student').selected = true;
   sent.length = 0;
   t.ACTIONS['roles-save'](card().querySelector('[data-do="roles-save"]'));
   await wait(400);
@@ -19016,7 +19015,7 @@ check('a refused role save puts the choice back to Client; a lost reply keeps it
   if (JSON.stringify(t.whoami().roles) !== '["parent"]') bad.push('a refusal changed USER.roles to ' + JSON.stringify(t.whoami().roles));
   /* LOST: nothing was decided, so the choice is left for the second Save. */
   w.fetch = () => Promise.reject(new w.TypeError('Failed to fetch'));
-  pick('student').checked = true;
+  pick('student').selected = true;
   t.ACTIONS['roles-save'](card().querySelector('[data-do="roles-save"]'));
   await wait(400);
   if (!/did not answer|offline/.test(line())) bad.push('a lost reply did not say so on the card — "' + line() + '"');
@@ -25066,7 +25065,7 @@ check('signed out, Find is one "Members only" card with Sign in and Join and no 
   const signin = card.querySelector('[data-do="members-signin"]'), join = card.querySelector('[data-do="members-join"]');
   if (!signin || !join) return bad.concat(['the card has no Sign in and Join tiles']);
   A['members-join'](join); await wait(50);
-  const who = [...d.querySelectorAll('#sheet [data-do="reg-who"]')].map(b => b.textContent.trim());
+  const who = [...d.querySelectorAll('#sheet #reg-who-in option')].map(b => b.textContent.trim());
   if (!who.some(x => /Student/.test(x)) || !who.some(x => /Client/.test(x))) bad.push('Join did not open the sign-up asking Student or Client: ' + JSON.stringify(who));
   A['members-signin'](signin); await wait(50);
   if (t.AT() !== 'account') bad.push('Sign in did not go to the You column, it is on ' + t.AT());
@@ -27459,7 +27458,8 @@ check('a signed-in child reports a question from its tile row: a reason, a note,
   await wait(20);
   if (!sheetOpen_(d)) { host.remove(); lib.put(); return bad.concat(['pressing Report opened no sheet']); }
   const form = d.querySelector('#sheet-body .rep-form');
-  const opts = form ? [].map.call(form.querySelectorAll('.rep-opt'), b => b.textContent.trim()) : [];
+  const opts = form ? [].map.call(form.querySelectorAll('select.rep-why-in option[value]:not([value=""])'), b => b.textContent.trim()) : [];
+  if (form && (form.querySelector('[data-do="rep-why"], [role="radio"]') || !form.querySelector('label.field > select.rep-why-in'))) bad.push('the reason is not one row with the phone\'s own picker');
   const WANT = ['The answer is wrong', 'It marked me wrong but I was right', 'Can’t read it / picture missing', 'Doesn’t work', 'Something else'];
   if (JSON.stringify(opts) !== JSON.stringify(WANT)) bad.push('the reasons are ' + JSON.stringify(opts));
   const note = form && form.querySelector('textarea.rep-note-in');
@@ -27471,8 +27471,7 @@ check('a signed-in child reports a question from its tile row: a reason, a note,
   await wait(20);
   if (sent.some(b => b.action === 'reportQuestion')) bad.push('Send with no reason chosen still sent');
   if (!/Choose what is wrong/.test(form.querySelector('.rep-said').textContent)) bad.push('Send with no reason said nothing');
-  t.ACTIONS['rep-why'](form.querySelectorAll('.rep-opt')[1]);
-  if (form.querySelectorAll('.rep-opt')[1].getAttribute('aria-checked') !== 'true') bad.push('the chosen reason is not marked chosen');
+  form.querySelector('select.rep-why-in').selectedIndex = 2;
   note.value = 'I put 15';
   t.ACTIONS['rep-send'](sendT);
   await wait(300);
@@ -27967,12 +27966,12 @@ check('a child reports a message she was sent (413): a Report tile on received m
   await wait(150);
   const form = kid.d.querySelector('#sheet-body .msg-rep-form');
   if (!form) return ['Report did not open a sheet'];
-  const opts = form.querySelectorAll('[data-do="rep-why"]');
+  const opts = form.querySelectorAll('select.rep-why-in option:not([value=""])');
   if (opts.length !== 5) bad.push('the sheet offers ' + opts.length + ' reasons, not five');
   kid.A('msg-report-send', form.querySelector('[data-do="msg-report-send"]'));
   await wait(150);
   if (kid.sent.some(b => b.action === 'flagMessage')) bad.push('Send went with no reason chosen');
-  kid.A('rep-why', opts[1]);
+  opts[1].selected = true;
   const note = form.querySelector('.rep-note-in'); note.value = 'it was scary';
   kid.A('msg-report-send', form.querySelector('[data-do="msg-report-send"]'));
   for (let k = 0; k < 30 && !/Thanks — sent/.test((kid.d.getElementById('toast') || {}).textContent || ''); k++) await wait(50);
