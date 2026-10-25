@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-25-console-saves";
+const DOGET_VERSION = "2026-10-25-lib-prefetch";
 
 
 function doGet(e) {
@@ -217,6 +217,8 @@ function doGet(e) {
       /* WHETHER THE SHEET IS BEHIND THE CODE. Said rather than fixed: the fixing costs seconds and
          used to be taken out of this request, and this costs one property read. */
       schemaBehind: behind,
+      /* THE LEDGER'S GENERATION (447): a phone keeps the library's words only for this one, so an import never shows old words. */
+      libGen: (function () { try { return libGen_(); } catch (e) { return ''; } })(),
       // What this deploy can do. The frontend compares this against what it needs and warns if a
       // redeploy hasn't landed — a stale deploy is the worst kind of bug, because the action
       // succeeds and only the newer half silently doesn't happen.

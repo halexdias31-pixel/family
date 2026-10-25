@@ -1878,6 +1878,8 @@ function goPage(id, to, instant) {
   const ref = above && $('s-' + id) ? $('s-' + id).querySelectorAll(':scope > .page')[domIndex_(id, n)] : null;
   const top0 = ref ? (typeof stuffTop_ === 'function' ? stuffTop_(ref) : ref.offsetTop) : 0;
   if (bare) fillStuffPages();
+  /* AND THE WORDS AHEAD, ON EVERY TURN — not after the slide, which a quick reader never lets end (447). */
+  else if (F && typeof libAhead_ === 'function') { try { libAhead_(); } catch (e) {} }
   if (edge) { try { stuffEdgeFill_(n, n > was ? 1 : -1); } catch (e) {} }
   if (ref && typeof stuffKeepPlace_ === 'function') stuffKeepPlace_($('s-' + id), top0 - (typeof stuffTop_ === 'function' ? stuffTop_(ref) : ref.offsetTop));
   /* A WIDGET STILL WAITING ITS TURN to start is started now if this is its page — see `widgetsNear_` in arcade.js. § */
