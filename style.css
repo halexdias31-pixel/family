@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-25-w-exam-inserts";
+  --css-version: "2026-10-25-x-one-toolkit";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -6106,6 +6106,14 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
    the sheet holds more than one, small and quiet above it -- a caption, not a heading. */
 .qfig-sheet-k { margin: .9rem 0 0; font-size: .85rem; color: var(--dim); }
 .qfig-sheet-k:first-child { margin-top: 0; }
+/* ZOOM ON EVERY QUESTION (457): the page's words and figures in a sheet, `zoom` set by − / + or two fingers, scrolled both ways inside its own box. */
+.qtool-tiles { margin-top: .9rem; }
+.qzoom-bar { display: flex; gap: .5rem; justify-content: flex-end; margin-bottom: .5rem; }
+.qzoom-k { min-width: 44px; min-height: 44px; font-size: 1.4rem; line-height: 1; color: var(--gold);
+  background: transparent; border: 1px solid var(--line); border-radius: 50%; }
+.qzoom { max-height: 70vh; overflow: auto; overscroll-behavior: contain; touch-action: pan-x pan-y; }
+.qzoom-in figure svg, .qzoom-in figure img { width: 100%; height: auto; }
+[data-do="q-zoom-fig"] { cursor: zoom-in; }
 /* A FIGURE NOBODY HAS DRAWN YET (`figHtml_`): § */
 .qfig-missing { margin: .75rem 0; padding: .6rem 1rem; text-align: center; color: var(--dim);
   border: 1px dashed var(--line); border-radius: .5rem; }
