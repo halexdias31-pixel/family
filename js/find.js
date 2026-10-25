@@ -3104,7 +3104,21 @@ function libWaitHtml_(x) {
 function libPagesFresh_() {
   if (STUFF_PAGES && STUFF_PAGES.gen !== undefined && STUFF_PAGES.gen !== LIB.gen) STUFF_PAGES = { from: null, pages: [] };
 }
-/* THE CARD IN FRONT AND THE NEXT LIB_AHEAD, asked for; on the question page, only the first result, once the typing stops. */
+/* WORDS AHEAD OF THE READER (447): fewer than LIB_AHEAD cards ahead whole or on their way asks the next LIB_AHEAD_BATCH
+   in one call; on the question page, the first screenful once typing stops. */
+function libAheadCards_(pages, from, n) {
+  const out = [];
+  for (let i = Math.max(0, from); i < pages.length && out.length < n; i++) {
+    const x = pages[i] && pages[i].x;
+    if (x && out.indexOf(x) === -1) out.push(x);
+  }
+  return out;
+}
+const libOnWay_ = x => !libSlim_(x) || libIdsFor_(x).every(t => LIB.pending.has(t) || LIB.flying.has(t) || LIB.gone.has(t) || LIB.refused.has(t));
+function libAheadAsk_(cards) {
+  if (cards.slice(0, LIB_AHEAD).every(libOnWay_)) return;
+  cards.forEach(x => { if (libSlim_(x)) libWant_(x); });
+}
 function libAhead_() {
   const F = FINDER;
   let pages, at;
@@ -3112,19 +3126,16 @@ function libAhead_() {
   if (!pages.length) return;
   if (at < 0) {
     clearTimeout(LIB.ahead);
-    if (pages[0].slim && libSlim_(pages[0].x)) {
-      const x = pages[0].x;
-      LIB.ahead = setTimeout(() => inFinder_(F, () => { const p0 = stuffPages_()[0]; if (p0 && p0.x === x) libWant_(x); }), 700);
+    const first = libAheadCards_(pages, 0, LIB_AHEAD);
+    if (first.some(libSlim_)) {
+      LIB.ahead = setTimeout(() => inFinder_(F, () => { const p = stuffPages_(); if (p[0] && p[0].x === first[0]) libAheadAsk_(libAheadCards_(p, 0, LIB_AHEAD)); }), 700);
     }
     return;
   }
-  for (let i = at; i < pages.length && i <= at + LIB_AHEAD; i++) {
-    const pg = pages[i];
-    if (!pg || !pg.slim) continue;
-    if (libSlim_(pg.x)) libWant_(pg.x);
-    /* THE CARD IN FRONT WAS COUNTED BEFORE ITS WORDS CAME, and they are here: drawn again, a moment from now. */
-    else if (i === at) setTimeout(() => libRepaintFinder_(F), 0);
-  }
+  libAheadAsk_(libAheadCards_(pages, at, LIB_AHEAD_BATCH));
+  /* THE CARD IN FRONT WAS COUNTED BEFORE ITS WORDS CAME, and they are here: drawn again, a moment from now. */
+  const pg = pages[at];
+  if (pg && pg.slim && !libSlim_(pg.x)) setTimeout(() => libRepaintFinder_(F), 0);
 }
 /* THE FINDER DRAWN AGAIN WHERE IT STANDS, and onto the first page of the card that was waiting in front. */
 function libRepaintFinder_(F) {
@@ -3132,13 +3143,14 @@ function libRepaintFinder_(F) {
   if (AT !== F.id || (typeof findKeep_ === 'function' && findKeep_(F.id))) { markStale_(F.id); return; }
   inFinder_(F, () => {
     const pg = stuffPages_()[(PAGE[F.id] || 0) - stuffFirstResult_()];
-    const key = pg && pg.slim && pg.x ? pg.x.key : '';
+    const key = pg && pg.x ? pg.x.key : '', part = pg && !pg.slim ? (pg.part || null) : undefined;
     paintStuff(true);
     if (!key) return;
+    /* THE SAME PAGE IN FRONT AFTER THE COUNT: its own part if it was whole, else the first page of the card that waited. */
     const pages = stuffPages_(), first = stuffFirstResult_();
     const now = pages[(PAGE[F.id] || 0) - first];
-    const i = pages.findIndex(p => p && p.x && p.x.key === key);
-    if (i >= 0 && now && now.x && now.x.key === key && (now.part || null) !== (pages[i].part || null)) goPage(F.id, first + i, true);
+    const i = pages.findIndex(p => p && p.x && p.x.key === key && (part === undefined || (p.part || null) === part));
+    if (i >= 0 && (!now || !now.x || now.x.key !== key || (now.part || null) !== (pages[i].part || null))) goPage(F.id, first + i, true);
   });
 }
 /* AN ANSWER CAME BACK (or did not): the card in front, if it was waiting, is drawn again; every other waiting card says
@@ -3154,9 +3166,14 @@ function libLanded_() {
   if (typeof AT === 'undefined') return;
   const F = finderOf_(AT);
   if (F) {
+    /* AND THE CARDS AHEAD THAT ARE WHOLE NOW are counted again while they are off the glass, so none changes in front (447). */
     inFinder_(F, () => {
-      const pg = stuffPages_()[(PAGE[F.id] || 0) - stuffFirstResult_()];
-      if (pg && pg.slim && !libSlim_(pg.x)) libRepaintFinder_(F);
+      const pages = stuffPages_(), at = (PAGE[F.id] || 0) - stuffFirstResult_();
+      const end = Math.min(pages.length, Math.max(0, at) + LIB_AHEAD_BATCH * 3);
+      for (let i = Math.max(0, at); i < end; i++) {
+        const pg = pages[i];
+        if (pg && pg.slim && !libSlim_(pg.x)) { libRepaintFinder_(F); break; }
+      }
     });
     return;
   }

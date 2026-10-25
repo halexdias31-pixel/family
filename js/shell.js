@@ -213,6 +213,8 @@ function go(id, remember, instant) {
       && (was === 'feed' || (typeof camOn_ === 'function' && camOn_()))) camStop_(false, true);
   /* AND THE REEL, which is the third of these and was the one nobody had written. § */
   if (typeof reelsStop_ === 'function' && AT !== 'reel') reelsStop_();
+  /* A PIN SHOWN ON A CARD (452) goes when its column is left. */
+  if (was !== AT && typeof pinHideAll_ === 'function') pinHideAll_();
   /* AND THE MESSAGE POLL, which is the fourth. § */
   if (typeof dmStop_ === 'function' && AT !== 'dm') dmStop_();
   /* STARTED AFTER THE SLIDE, in one list rather than two. `repaint` needs the same list — it has
@@ -1878,6 +1880,8 @@ function goPage(id, to, instant) {
   const ref = above && $('s-' + id) ? $('s-' + id).querySelectorAll(':scope > .page')[domIndex_(id, n)] : null;
   const top0 = ref ? (typeof stuffTop_ === 'function' ? stuffTop_(ref) : ref.offsetTop) : 0;
   if (bare) fillStuffPages();
+  /* AND THE WORDS AHEAD, ON EVERY TURN — not after the slide, which a quick reader never lets end (447). */
+  else if (F && typeof libAhead_ === 'function') { try { libAhead_(); } catch (e) {} }
   if (edge) { try { stuffEdgeFill_(n, n > was ? 1 : -1); } catch (e) {} }
   if (ref && typeof stuffKeepPlace_ === 'function') stuffKeepPlace_($('s-' + id), top0 - (typeof stuffTop_ === 'function' ? stuffTop_(ref) : ref.offsetTop));
   /* A WIDGET STILL WAITING ITS TURN to start is started now if this is its page — see `widgetsNear_` in arcade.js. § */

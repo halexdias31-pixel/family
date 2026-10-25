@@ -409,11 +409,16 @@ function libraryInto_(d, rows) {
 /* ================= THE LIBRARY'S PRIVATE HALF, ASKED FOR AS IT IS OPENED (397) =================
    `lib_has` names a row's fields the Ledger holds; they arrive onto the row, kept for the visit, gone at sign-out. */
 const LIB = { pending: new Set(), flying: new Set(), gone: new Set(), refused: new Set(), failed: '',
-              timer: 0, filled: new Set(), gen: 0, ahead: 0 };
+              timer: 0, filled: new Set(), gen: 0, ahead: 0, disk: null, diskP: null, ledger: '' };
 /* AT MOST THIS MANY IN ONE ASK — the backend's `LIB_PER_CALL`. */
 const LIB_PER_ASK = 60;
-/* THE PAGES PAST THE ONE IN FRONT THAT ARE ASKED FOR WITH IT, so the next few cards are whole when they are reached. */
-const LIB_AHEAD = 4;
+/* WORDS AHEAD OF THE READER (447): when fewer than LIB_AHEAD cards past the one in front are whole or on their way,
+   the next LIB_AHEAD_BATCH are asked for in one call — a few calls a list, each landing well before its cards. */
+const LIB_AHEAD = 10;
+const LIB_AHEAD_BATCH = 24;
+/* THE DEVICE'S COPY (447): this many items at most, in IndexedDB, for the signed-in person and one Ledger generation. */
+const LIB_DISK_MAX = 800;
+const LIB_DISK_DB = 'family-lib';
 
 /* STILL WAITING: a file row (`lib_has`) or a mapped object (`libHas`) whose private fields have not arrived. */
 const libWaits_ = o => !!o && libS(o.lib_has !== undefined ? o.lib_has : o.libHas).trim() !== '';
@@ -445,6 +450,13 @@ function libAsk_(ids) {
 function libPump_() {
   LIB.timer = 0;
   if (typeof USER === 'undefined' || !USER || !USER.token || !LIB.pending.size) return;
+  /* THE DEVICE'S COPY FIRST — read once a visit; whatever it holds for this Ledger is merged now and never asked for. */
+  if (!LIB.disk) {
+    if (!LIB.diskP) LIB.diskP = libDiskLoad_().then(() => { if (!LIB.timer) LIB.timer = setTimeout(libPump_, 0); });
+    return;
+  }
+  libFromDisk_();
+  if (!LIB.pending.size) return;
   const ids = [...LIB.pending].slice(0, LIB_PER_ASK);
   ids.forEach(t => { LIB.pending.delete(t); LIB.flying.add(t); });
   const who = USER.token;
@@ -452,6 +464,7 @@ function libPump_() {
     .then(d => {
       if (!USER || USER.token !== who) return;
       libMerge_((d && d.items) || {});
+      libDiskPut_((d && d.items) || {}, d && d.gen);
       ((d && d.missing) || []).forEach(t => LIB.gone.add(t));
       ((d && d.refused) || []).forEach(t => LIB.refused.add(t));
       if (d && d.refused && d.refused.length) LIB.failed = 'That is today’s ' + (d.cap || 'share') + ' — the rest open tomorrow.';
@@ -467,6 +480,86 @@ function libPump_() {
       libLanded_();
       if (LIB.pending.size && !LIB.failed) LIB.timer = setTimeout(libPump_, 0);
     });
+}
+
+/* ---------- THE DEVICE'S COPY OF THE WORDS (447) ----------
+   { id, gen, who, at, item } per wire id, read only for this person and the Ledger's `libGen`, so an import never shows old words. */
+function libLedgerGen_() {
+  return String(LIB.ledger || (typeof DATA !== 'undefined' && DATA && DATA.libGen) || '');
+}
+/* THE STORE: IndexedDB here; anything with the same three promises stands in for it in a check. Null when there is none. */
+function libDisk_() {
+  try {
+    if (typeof indexedDB === 'undefined' || !indexedDB) return null;
+    const open = () => new Promise((ok, no) => {
+      const rq = indexedDB.open(LIB_DISK_DB, 1);
+      rq.onupgradeneeded = () => { try { rq.result.createObjectStore('items', { keyPath: 'id' }); } catch (e) {} };
+      rq.onsuccess = () => ok(rq.result);
+      rq.onerror = () => no(rq.error);
+    });
+    const tx = (mode, fn) => open().then(db => new Promise((ok, no) => {
+      const t = db.transaction('items', mode), st = t.objectStore('items');
+      const out = fn(st);
+      t.oncomplete = () => { ok(out && out.result); db.close(); };
+      t.onerror = t.onabort = () => { no(t.error); db.close(); };
+    }));
+    return {
+      all: () => tx('readonly', st => st.getAll()),
+      put: recs => tx('readwrite', st => { recs.forEach(r => st.put(r)); }),
+      drop: ids => tx('readwrite', st => { ids.forEach(id => st.delete(id)); }),
+      clear: () => tx('readwrite', st => { st.clear(); }),
+    };
+  } catch (e) { return null; }
+}
+/* READ ONCE A VISIT into `LIB.disk`; records for another person or another generation are dropped from the device. */
+function libDiskLoad_() {
+  const disk = libDisk_();
+  if (!disk) { LIB.disk = new Map(); return Promise.resolve(); }
+  return Promise.resolve().then(() => disk.all()).then(recs => {
+    const m = new Map(), stale = [], who = (USER && USER.personId) || '', gen = libLedgerGen_();
+    (recs || []).forEach(r => { if (r && r.id && r.who === who && (!gen || r.gen === gen)) m.set(r.id, r); else if (r && r.id) stale.push(r.id); });
+    LIB.disk = m;
+    if (stale.length) try { disk.drop(stale).catch(() => {}); } catch (e) {}
+  }).catch(() => { LIB.disk = new Map(); });
+}
+/* WHAT THE DEVICE ALREADY HOLDS, off the pending list and onto the rows — only for the generation known now. */
+function libFromDisk_() {
+  const gen = libLedgerGen_(), who = (USER && USER.personId) || '';
+  if (!gen || !LIB.disk || !LIB.disk.size) return;
+  const hit = {};
+  [...LIB.pending].forEach(t => { const r = LIB.disk.get(t); if (r && r.gen === gen && r.who === who && r.item) { hit[t] = r.item; LIB.pending.delete(t); } });
+  if (!Object.keys(hit).length) return;
+  libMerge_(hit);
+  if (typeof libLanded_ === 'function') libLanded_();
+}
+/* WHAT CAME BACK, KEPT. A reply from a newer generation is the Ledger's word: everything older leaves the device. */
+function libDiskPut_(items, gen) {
+  try {
+    const g = String(gen || libLedgerGen_() || '');
+    if (!g || !LIB.disk) return;
+    const disk = libDisk_();
+    if (g !== libLedgerGen_() || [...LIB.disk.values()].some(r => r.gen !== g)) {
+      const old = [...LIB.disk.values()].filter(r => r.gen !== g).map(r => r.id);
+      old.forEach(id => LIB.disk.delete(id));
+      if (disk && old.length) disk.drop(old).catch(() => {});
+    }
+    LIB.ledger = g;
+    const who = (USER && USER.personId) || '', now = Date.now();
+    const recs = Object.keys(items || {}).map(id => ({ id: id, gen: g, who: who, at: now, item: items[id] }));
+    if (!recs.length) return;
+    recs.forEach(r => LIB.disk.set(r.id, r));
+    let drop = [];
+    if (LIB.disk.size > LIB_DISK_MAX) {
+      drop = [...LIB.disk.values()].sort((a, b) => a.at - b.at).slice(0, LIB.disk.size - LIB_DISK_MAX).map(r => r.id);
+      drop.forEach(id => LIB.disk.delete(id));
+    }
+    if (disk) { disk.put(recs).catch(() => {}); if (drop.length) disk.drop(drop).catch(() => {}); }
+  } catch (e) {}
+}
+/* SIGNED OUT: the device forgets every word too. */
+function libDiskClear_() {
+  LIB.disk = null; LIB.diskP = null; LIB.ledger = '';
+  try { const disk = libDisk_(); if (disk) disk.clear().catch(() => {}); } catch (e) {}
 }
 
 /* WHY THE WORDS DID NOT COME, said plainly (432): a live backend older than `libItems` is a deploy for an admin, a wait for anyone else. */
@@ -554,6 +647,7 @@ function libForget_() {
   });
   LIB.filled.clear(); LIB.pending.clear(); LIB.flying.clear(); LIB.gone.clear(); LIB.refused.clear();
   LIB.failed = '';
+  libDiskClear_();
   clearTimeout(LIB.timer); LIB.timer = 0;
   LIB.gen++;
 }

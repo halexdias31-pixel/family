@@ -195,6 +195,8 @@ function boot(opts) {
       'TABS, wgChosen: () => wgChosen_(),' +
       /* WHAT THE LINE UNDER YOUR HANDLE SAYS (`HANDLE_SAID`, me.js) — a `let`, so a function (342). */
       'handleSaid: () => HANDLE_SAID,' +
+      /* THE LIBRARY'S STATE (`LIB`, library.js) — a `const`, so a function (447). */
+      'lib: () => LIB,' +
       /* THE PAPER AS DRAWN, so a journey can ask what is actually on it rather than what the
          functions behind it were supposed to produce. */
       'paper: () => (typeof bookBreakdown === "function" ? bookBreakdown(bookPrice()) : ""),' +
@@ -10863,12 +10865,12 @@ check('an admin adds a person from the "+" on Business (444), edits one and dele
   if (/person-form/.test(all())) bad.push('a tutor pressing + was drawn the new-person form');
 
   t.DATA().tutors = tutors0; delete t.DATA().family; delete t.DATA().familyFor;
-  /* AN ADMIN: the "+" once, the very first card, above even their own (440); Edit and Delete on others, not on themselves. */
+  /* AN ADMIN: the "+" once, the very first card, above even their own (447); Edit and Delete on others, not on themselves. */
   t.USER({ name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], token: 'tk' });
   const pages = t.accountPages('admin');
   const at = pages.findIndex(h => /data-do="person-add"/.test(h)), evieAt = pages.findIndex(h => h.indexOf('>Evie<') !== -1);
   if (pages.filter(h => /data-do="person-add"/.test(h)).length !== 1) bad.push('the admin\'s column does not have exactly one "+"');
-  /* THE HANDLE SEARCH LEADS THE COLUMN (442); the "+" comes next, above even the admin's own card (440). */
+  /* THE HANDLE SEARCH LEADS THE COLUMN (442); the "+" comes next, above even the admin's own card (447). */
   const lead = 0;
   if (!(at === lead && evieAt > at)) bad.push('the "+" is at page ' + at + ', not straight after the search and above even the admin\'s own (Evie at ' + evieAt + ')');
   if (/data-do="person-(edit|del)"/.test(t.accountPages('you').find(h => /data-do="signout"/.test(h)) || '')) bad.push('the admin\'s own card offers Edit or Delete of themselves');
@@ -11182,6 +11184,50 @@ check('an admin has "Send last week" on a parent\'s card only, and pressing it p
   if (!post || post.targetId !== 'P-E2' || post.personId !== 'P-AD') bad.push('pressing it posted ' + JSON.stringify(post));
   const said = String((d.getElementById('toast') || {}).textContent || '');
   if (said.indexOf('Sent to Carl — 32 questions (12–18 Oct)') === -1) bad.push('the toast says "' + said + '", not the server\'s sentence');
+  t.USER(null);
+  return bad;
+});
+
+/* "ADMIN SHOULD BE ABLE TO SEE EACH PERSON'S PIN" (452): fetched on the tap, one line on the card, gone on a second tap or on leaving. */
+check('an admin\'s "Show PIN" posts pinShow, shows one line on that card, hides it on a second tap and on leaving the column; a tutor has no tile', async () => {
+  const { w, sent } = boot({ reply: b => b.action === 'pinShow'
+    ? (b.targetId === 'P-E2' ? { success: true, pin: '0000' } : { success: true, pin: '', said: 'No PIN' }) : { success: true } });
+  await wait(400);
+  const t = w.__t, d = w.document, bad = [];
+  if (!t.accountPages) return ['accountPages_ is not exported — cannot check the people column'];
+  t.DATA().everyone = [{ personId: 'P-E1', title: 'Evie', handle: 'evie_calm31', role: 'Student', image: '' },
+                       { personId: 'P-E2', title: 'Carl Handled', handle: 'carl_kind32', role: 'Client', image: '' }];
+  t.USER({ name: 'Tia Tutor', personId: 'P-T', role: 'tutor', roles: ['tutor'], token: 'tk2' });
+  if (/data-do="pin-show"/.test(t.accountPages().join(''))) bad.push('a tutor is offered Show PIN');
+  t.USER({ name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], token: 'tk' });
+  if (/data-do="pin-show"/.test(t.accountPages().find(h => !/data-do="person-add"/.test(h)) || '')) bad.push('the admin\'s own card offers Show PIN');
+  if (JSON.stringify(t.DATA()).indexOf('0000') !== -1) bad.push('a PIN is in DATA before anybody asked');
+  try { t.repaint(true); t.go('biz', false, true); w.paint('biz'); } catch (e) { bad.push('drawing the people column threw: ' + e.message); }
+  await wait(200);
+  const tile = id => d.querySelector('#s-biz [data-do="pin-show"][data-id="' + id + '"]');
+  if (!tile('P-E2') || !tile('P-E1')) return bad.concat(['the Show PIN tile is not drawn on every other person\'s card']);
+  const lines = () => [...d.querySelectorAll('#s-biz .person-pin')];
+  sent.length = 0;
+  t.ACTIONS['pin-show'](tile('P-E2'));
+  await wait(300);
+  const post = sent.find(b => b.action === 'pinShow');
+  if (!post || post.targetId !== 'P-E2' || post.personId !== 'P-AD') bad.push('Show PIN posted ' + JSON.stringify(post));
+  const one = lines();
+  if (one.length !== 1 || one[0].textContent.trim() !== 'PIN 0000') bad.push('after the tap the card shows ' + JSON.stringify(one.map(n => n.textContent)));
+  else if (one[0].previousElementSibling !== tile('P-E2').closest('.tile-row')) bad.push('the PIN line is not under that card\'s own tile row');
+  if (JSON.stringify(t.DATA()).indexOf('0000') !== -1) bad.push('the PIN was kept in DATA');
+  try { if (Object.keys(w.localStorage).some(k => String(w.localStorage.getItem(k)).indexOf('0000') !== -1)) bad.push('the PIN was stored on the device'); } catch (e) {}
+  sent.length = 0;
+  t.ACTIONS['pin-show'](tile('P-E2'));
+  await wait(150);
+  if (lines().length) bad.push('a second tap left the PIN showing');
+  if (sent.some(b => b.action === 'pinShow')) bad.push('the second tap asked the server again instead of hiding');
+  t.ACTIONS['pin-show'](tile('P-E1'));
+  await wait(300);
+  if ((lines()[0] || {}).textContent !== 'No PIN') bad.push('an empty PIN cell shows ' + JSON.stringify(lines().map(n => n.textContent)) + ', not "No PIN"');
+  try { t.go('feed', false, true); } catch (e) {}
+  await wait(150);
+  if (d.querySelectorAll('.person-pin').length) bad.push('leaving the column left the PIN line on the card');
   t.USER(null);
   return bad;
 });
@@ -18107,7 +18153,7 @@ const earFake_ = (w, rec) => {
   AC.prototype.createBiquadFilter = function () { const n = node(this, 'filter'); n.type = 'lowpass'; n.frequency = param(350); n.Q = param(1); return n; };
   AC.prototype.createOscillator = function () {
     const n = node(this, 'osc');
-    n.type = 'sine'; n.frequency = param(440);
+    n.type = 'sine'; n.frequency = param(447);
     n.start = t => { n.at = t; rec.oscs.push(n); };
     n.stop = t => { n.end = t; };
     return n;
@@ -27966,6 +28012,105 @@ check('a new content card (lib_pending) is asked for, drawn whole when the Ledge
   return bad;
 });
 
+/* WORDS AHEAD OF THE READER (447): a slow Ledger, a list shown, then scrolled a page at a time — the cards are whole before they are reached. */
+const LIB_AHEAD_PID = 'P-AQA-8462-2406-2F';
+async function libScrollRun_(o) {
+  const full = LIB_FULL.rows('questions').filter(r => r.paper_id === LIB_AHEAD_PID);
+  const slim = libSlimRows_(full);
+  const calls = [];
+  const one = boot({ serve: url => (/data\/questions\.json/.test(url) ? JSON.parse(JSON.stringify(slim)) : undefined),
+    payload: o.gen ? Object.assign(payload(), { libGen: o.gen }) : undefined, before: signedInAs_(ANS_ADA),
+    reply: b => (b.action === 'libItems' ? new Promise(ok => {
+      const at = Date.now(), r = libReply_(full, b.ids);
+      if (o.gen) r.gen = o.gen;
+      setTimeout(() => { calls.push({ ids: (b.ids || []).length, bytes: JSON.stringify(r).length, ms: Date.now() - at }); ok(r); }, o.lat);
+    }) : undefined) });
+  const W = one.w;
+  /* THE DEVICE'S STORE, stood in for (jsdom has no IndexedDB): the same three promises over a Map the journey keeps. */
+  if (o.disk) W.libDisk_ = () => o.disk;
+  for (let i = 0; i < 100 && !(typeof W.stuffItemsAll_ === 'function' && W.stuffItemsAll_().some(x => x.row && x.row.paper_id === LIB_AHEAD_PID)); i++) await wait(50);
+  W.__t.STUFF().filters = [{ field: 'paperId', value: LIB_AHEAD_PID }];
+  W.__t.go('stuff');
+  W.paintStuff();
+  await wait(o.lat + 1200);
+  const cards = [];
+  W.stuffPages_().forEach(pg => { if (pg.x && cards.indexOf(pg.x) === -1) cards.push(pg.x); });
+  const wholeBefore = cards.slice(0, o.n).filter(x => !W.libSlim_(x)).length;
+  W.__t.goPage('stuff', W.stuffFirstResult_(), true);
+  await wait(50);
+  let waits = 0, turns = 0, shifts = 0;
+  const seen = new Set();
+  for (let k = 0; k < o.turns; k++) {
+    const at = pg_(W.__t).stuff || 0;
+    const pg = W.stuffPages_()[at - W.stuffFirstResult_()];
+    if (!pg) break;
+    turns++;
+    if (pg.x) seen.add(pg.x.key);
+    if (pg.slim && W.libSlim_(pg.x)) waits++;
+    const key = pg.x && pg.x.key, part = pg.part || '';
+    await wait(o.pace);
+    const now = W.stuffPages_()[(pg_(W.__t).stuff || 0) - W.stuffFirstResult_()];
+    if ((pg_(W.__t).stuff || 0) !== at || !now || (now.x && now.x.key) !== key || (now.part || '') !== part) { shifts++; if (process.env.LIB_MEASURE) console.log('  shift at turn ' + k + ': page ' + at + '→' + (pg_(W.__t).stuff || 0) + ' ' + key + '/' + part + ' → ' + (now && now.x && now.x.key) + '/' + (now && now.part)); }
+    W.__t.goPage('stuff', at + 1, true);
+    await wait(20);
+  }
+  await wait(o.lat + 200);
+  return { W: W, one: one, calls: calls, cards: cards.length, wholeBefore: wholeBefore, waits: waits, turns: turns, shifts: shifts, passed: seen.size };
+}
+const libRunSay_ = r => r.calls.length + ' calls (ids ' + r.calls.map(c => c.ids).join('/') + ', ' + Math.round(r.calls.reduce((s, c) => s + c.bytes, 0) / 1024) + ' KB, ' + (r.calls.length ? Math.round(r.calls.reduce((s, c) => s + c.ms, 0) / r.calls.length) : 0) + ' ms each); ' + r.wholeBefore + ' of the first cards whole before scrolling; ' + r.waits + ' of ' + r.turns + ' pages (' + r.passed + ' cards) waited in front; ' + r.shifts + ' moved under the reader';
+
+check('words ahead: with a slow Ledger the first cards are whole before they are reached, scrolling never meets a waiting card, and nothing moves when words land (447)', async () => {
+  /* `LIB_MEASURE=lat,pace,turns,n` measures another pace and prints what it saw. */
+  const m = String(process.env.LIB_MEASURE || '').split(',').map(Number);
+  const N = m[3] || 8;
+  const r = await libScrollRun_({ lat: m[0] || 1500, pace: m[1] || 200, turns: m[2] || 40, n: N });
+  if (process.env.LIB_MEASURE) console.log('  measured: ' + libRunSay_(r) + '; sent ' + r.one.sent.filter(b => b.action === 'libItems').map(b => b.ids.length).join('/') + '; LIB ' + JSON.stringify({ f: r.W.__t.lib().failed, p: r.W.__t.lib().pending.size, fl: r.W.__t.lib().flying.size }));
+  const bad = [];
+  if (r.cards < N + 4) return ['the paper ' + LIB_AHEAD_PID + ' gave ' + r.cards + ' cards — nothing was checked'];
+  if (r.wholeBefore < N) bad.push('only ' + r.wholeBefore + ' of the first ' + N + ' cards were whole before the reader scrolled to them');
+  if (r.waits) bad.push(r.waits + ' of ' + r.turns + ' pages were still waiting when they came in front: ' + libRunSay_(r));
+  if (r.shifts) bad.push(r.shifts + ' times the page in front changed under the reader when words landed');
+  if (r.calls.length > Math.ceil(r.turns / 4)) bad.push(r.calls.length + ' calls for ' + r.turns + ' pages — the words are not being asked for in batches');
+  if (r.calls.some(c => c.ids > 60)) bad.push('a call carried more than 60 ids');
+  if (r.one.errs.length) bad.push('errors: ' + r.one.errs.join(' | '));
+  return bad;
+});
+
+/* A STORE LIKE `libDisk_`'s, over a Map. */
+function libFakeDisk_() {
+  const m = new Map();
+  return { m: m, all: () => Promise.resolve([...m.values()].map(r => JSON.parse(JSON.stringify(r)))),
+    put: recs => { recs.forEach(r => m.set(r.id, JSON.parse(JSON.stringify(r)))); return Promise.resolve(); },
+    drop: ids => { ids.forEach(id => m.delete(id)); return Promise.resolve(); },
+    clear: () => { m.clear(); return Promise.resolve(); } };
+}
+check('words on the device: a second visit is whole with no call, a new Ledger generation (`libGen`) never shows the old words, and signing out forgets them (447)', async () => {
+  const disk = libFakeDisk_(), bad = [];
+  const a = await libScrollRun_({ lat: 300, pace: 60, turns: 12, n: 4, gen: 'g1', disk: disk });
+  const kept = [...disk.m.values()];
+  if (!kept.length) return ['nothing was kept on the device after a visit — nothing was checked'];
+  if (kept.some(r => r.gen !== 'g1' || r.who !== ANS_ADA.personId || !r.item)) bad.push('a kept record is not for g1 and this person: ' + JSON.stringify(kept[0]).slice(0, 160));
+  if (a.one.errs.length) bad.push('first visit errors: ' + a.one.errs.join(' | '));
+  const b = await libScrollRun_({ lat: 300, pace: 60, turns: 4, n: 4, gen: 'g1', disk: disk });
+  const asked = b.one.sent.filter(x => x.action === 'libItems').map(x => x.ids).flat();
+  const firstIds = new Set(kept.map(r => r.id));
+  const again = asked.filter(t => firstIds.has(t));
+  if (again.length) bad.push('the second visit asked the Ledger again for ' + again.length + ' items the device held: ' + again.slice(0, 4).join(', '));
+  if (b.wholeBefore < 4) bad.push('on the second visit only ' + b.wholeBefore + ' of the first 4 cards were whole before scrolling');
+  if (b.waits) bad.push('on the second visit ' + b.waits + ' pages waited in front');
+  /* THE LEDGER WAS IMPORTED AGAIN: the old words must not be used, and they leave the device. */
+  const c = await libScrollRun_({ lat: 300, pace: 60, turns: 4, n: 4, gen: 'g2', disk: disk });
+  const asked2 = new Set(c.one.sent.filter(x => x.action === 'libItems').map(x => x.ids).flat());
+  if (!asked2.size) bad.push('with a new generation nothing was asked of the Ledger — the old words were used');
+  if ([...disk.m.values()].some(r => r.gen !== 'g2')) bad.push('records of the old generation are still on the device: ' + [...disk.m.values()].filter(r => r.gen !== 'g2').length);
+  /* SIGNED OUT, THE DEVICE FORGETS. */
+  c.W.signedOut_();
+  await wait(50);
+  if (disk.m.size) bad.push('after sign-out the device still holds ' + disk.m.size + ' items');
+  if (c.one.errs.length) bad.push('errors: ' + c.one.errs.join(' | '));
+  return bad;
+});
+
 check('a child sees a tutor card, the booking form and her session without any £, and is told to ask a parent (398)', async () => {
   /* THE OWNER, 23 Oct: "Kids' profiles shouldn't be able to see tutors' prices." The payload already sends her none (`kidPricesOff_`, check-kid-prices.js); this is the phone drawing none even when a figure is in hand. */
   const { w } = boot();
@@ -28105,6 +28250,58 @@ check('a waiting post (413): dotted with "Waiting for approval" for its author a
   return bad;
 });
 
+check('Write a post (448) turns the camera card into the composer in place — no sheet, no picture picker; the poll is one box per option, 2 to 6; Back brings the camera back; Post sends the options joined', async () => {
+  const W = postWorld_(), bad = [];
+  const pat = await postOpen_(W, 'parent@example.org');
+  if (pat.err) return [pat.err];
+  const d = pat.d;
+  const write = d.querySelector('#s-feed .cam-card .cam-bar [data-do="new-post"]');
+  const pick = d.querySelector('#s-feed .cam-card .cam-bar label.cam-pick');
+  if (!write || !write.classList.contains('cam-round')) bad.push('Write a post is not a round button in the camera bar');
+  if (!pick || !pick.classList.contains('cam-round')) bad.push('Photos is not a round button in the camera bar');
+  pat.A('new-post', write);
+  await wait(100);
+  const sheet = d.getElementById('sheet');
+  if (sheet && !sheet.classList.contains('hidden')) bad.push('Write a post opened a sheet over the page');
+  if (d.body.classList.contains('sheet-open')) bad.push('the body is marked sheet-open');
+  if (d.querySelector('[role="dialog"]:not(.hidden) #post-cap, dialog #post-cap')) bad.push('the composer is in a dialog');
+  const comp = d.querySelector('#s-feed .cam-card #post-compose');
+  if (!comp) return bad.concat(['the composer is not drawn inside the feed\'s camera card — NOT checked further']);
+  if (d.querySelector('#s-feed .cam-card #cam-view')) bad.push('the viewfinder is still on the card beside the composer');
+  if (comp.querySelector('input[type="file"]')) bad.push('the text composer offers a picture picker');
+  const pos = (pat.w.getComputedStyle(comp).position || '');
+  if (/fixed|absolute/.test(pos)) bad.push('the composer is positioned ' + pos + ', which is an overlay');
+  const boxes = () => comp.querySelectorAll('.post-poll-in').length;
+  if (boxes() !== 2) bad.push('the poll starts with ' + boxes() + ' option boxes, wanted 2');
+  for (let k = 0; k < 8; k++) { const m = d.getElementById('poll-more'); if (m && !m.hidden) pat.A('poll-more', m); }
+  if (boxes() !== 6) bad.push('Add option stopped at ' + boxes() + ' boxes, wanted 6');
+  if (!d.getElementById('poll-more').hidden) bad.push('Add option still shows at the maximum');
+  d.getElementById('post-cap').value = 'Which day?';
+  d.getElementById('post-poll-0').value = 'Saturday';
+  pat.A('post-send', comp.querySelector('[data-do="post-send"]'));
+  await wait(50);
+  if (!/two options/.test(d.getElementById('post-said').textContent)) bad.push('a poll of one option was not refused');
+  d.getElementById('post-poll-1').value = 'Sunday, after lunch';
+  const n0 = pat.sent.length;
+  pat.A('post-send', comp.querySelector('[data-do="post-send"]'));
+  await wait(400);
+  const got = pat.sent.slice(n0).find(x => x && x.action === 'addPost');
+  if (!got) bad.push('Post it sent no addPost');
+  else {
+    if (got.poll !== 'Saturday, Sunday after lunch') bad.push('the poll went as ' + JSON.stringify(got.poll));
+    if (got.data || (got.media && got.media.length)) bad.push('a words-only post sent pictures');
+  }
+  await wait(600);
+  if (got && d.querySelector('#s-feed #post-compose')) bad.push('after posting the composer is still open: ' + JSON.stringify((d.getElementById('post-said') || {}).textContent));
+  pat.A('new-post', d.querySelector('#s-feed [data-do="new-post"]'));
+  await wait(50);
+  pat.A('post-cancel');
+  await wait(50);
+  if (d.querySelector('#s-feed #post-compose') || !d.querySelector('#s-feed .cam-card #cam-view')) bad.push('Back did not bring the camera back');
+  if (pat.errs.length) bad.push('errors: ' + pat.errs.join(' | '));
+  return bad;
+});
+
 check('a child (413) is drawn no picker anywhere: no camera on the feed, no + in a message, no Choose photo; a parent has all three', async () => {
   const W = postWorld_(), bad = [];
   const kid = await postOpen_(W, 'student@example.org');
@@ -28115,7 +28312,7 @@ check('a child (413) is drawn no picker anywhere: no camera on the feed, no + in
   if (/msg-file-in|msg-attach/.test(String(kid.w.msgForm_('Hal Admin', 'P-A1')))) bad.push('the child\'s message box offers to attach a file');
   try { kid.t.ACTIONS['new-post'](); } catch (e) { bad.push('Write a post threw for the child: ' + e.message); }
   await wait(100);
-  if (kid.d.querySelector('#sheet-body #post-files')) bad.push('the child opened a post sheet with a picture picker');
+  if (kid.d.querySelector('#post-compose, #sheet-body #post-cap')) bad.push('the child was opened a composer');
   const kidPfp = String(kid.w.photoPicker_ ? kid.w.photoPicker_(() => '', '') : '');
   if (kidPfp && /pfp-pick|pfp-in/.test(kidPfp)) bad.push('the child\'s picture card offers Choose photo');
   const pat = await postOpen_(W, 'parent@example.org');

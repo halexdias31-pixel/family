@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-25-l-chess-laptop";
+  --css-version: "2026-10-25-p-feed-compose";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -970,14 +970,13 @@ a { color: inherit; text-decoration: none; }
 /* `.pick-row` was here — the row of dropdowns above the search on the Find screen. § */
 
 /* ---------- CALCULATOR § */
-.mc-display { background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-sm);
-              padding: 1.1rem .7rem .5rem; margin-bottom: .5rem; position: relative; min-height: 5.6rem;
+.mc-display { padding: 1.1rem .7rem .5rem; position: relative; min-height: 6.2rem;
               display: flex; flex-direction: column; justify-content: space-between; cursor: default;
               user-select: none; font-family: 'Cambria Math', 'STIX Two Math', Georgia, serif; }
-.mc-display:focus-visible { outline: 1px solid var(--gold); }
+.mc-display:focus-visible { outline: 2px solid var(--calc-shift); outline-offset: 2px; }
 /* S and D, the Casio's status line; a pseudo-element, so it is never part of the sum's text. */
 .mc-display::before { content: attr(data-ind); position: absolute; top: .2rem; left: .5rem;
-                      font: 600 .6rem var(--font); color: var(--dim); white-space: pre; }
+                      font: 700 .6rem var(--font); color: inherit; opacity: .8; white-space: pre; }
 .mc-in { font-size: 1.35rem; text-align: left; overflow-x: auto; white-space: nowrap; line-height: 2.1; }
 .mc-out { font-size: 1.6rem; text-align: right; min-height: 1.9rem; white-space: nowrap; overflow-x: auto; }
 .mc-word { font-style: normal; }
@@ -990,35 +989,100 @@ a { color: inherit; text-decoration: none; }
            font-size: .85em; line-height: 1.15; margin: 0 .1em; }
 .mc-num { border-bottom: 1px solid currentColor; padding: 0 .15em; min-width: .8em; text-align: center; }
 .mc-den { padding: 0 .15em; min-width: .8em; text-align: center; }
-.mc-box { display: inline-block; min-width: .65em; height: .95em; border: 1px dashed var(--dim);
+.mc-box { display: inline-block; min-width: .65em; height: .95em; border: 1px dashed currentColor;
           vertical-align: middle; line-height: .95em; }
 .mc-box .mc-caret { height: .9em; }
-/* Six function keys a row over five number keys, as on the fx-83GTX: sixty tracks, spans of 10 or 12. */
-.mc-grid { display: grid; grid-template-columns: repeat(60, minmax(0, 1fr)); gap: .3rem 0; }
-.mc-btn { grid-column: span 12; min-height: 44px; margin-inline: .15rem; border-radius: var(--r-sm); position: relative;
-          background: var(--sunk); border: 1px solid var(--line); color: var(--ink);
-          font: 600 1rem var(--font); cursor: pointer; padding: .7rem 0 .15rem;
-          transition: transform var(--quick) ease; }
-.mc-btn.fn, .mc-btn.sh, .mc-btn.nav { grid-column: span 10; font-size: .8rem; }
-.mc-btn.br { grid-column: span 30; }
-/* Below 420px six or five across cannot each be 44px wide, so every key takes a quarter. */
-@media (max-width: 419px) { .mc-btn, .mc-btn.fn, .mc-btn.sh, .mc-btn.nav { grid-column: span 15; } .mc-btn.br { grid-column: span 30; } }
-.mc-btn:active { transform: scale(.94); }
-.mc-btn.op { color: var(--gold); }
-.mc-btn.fn { color: var(--ink); }
-.mc-btn.sh { color: var(--gold); font-size: .65rem; }
-.mc-btn.del { color: #000; background: var(--gold); border-color: var(--gold); }
-.mc-btn.eq { background: var(--gold); color: #000; border-color: var(--gold); }
-/* The SHIFT function, printed in gold above the key, lit while SHIFT is held. */
-.mc-alt { position: absolute; top: .1rem; left: 0; right: 0; font-size: .55rem; color: var(--gold); opacity: .75; line-height: 1; }
-.mc-shifted .mc-alt { opacity: 1; }
-.mc-shifted .mc-btn.sh { background: var(--gold); color: #000; }
+/* THE fx-83GT CW, DRAWN: a device, so its colours are its own, defined here and nowhere else (docs/history/447). */
+.calc { --calc-body: #2a2b2e; --calc-edge: #141517; --calc-bezel: #1d1e20; --calc-lcd: #cddbd3; --calc-lcd-ink: #17201b;
+        --calc-key: #d8d9db; --calc-key-ink: #1b1c1e; --calc-key-dark: #232427; --calc-pad: #19191b;
+        --calc-shift: #2c46b4; --calc-legend: #6f9ff0; --calc-print: #e6e6e7;
+        font-family: 'Arial Narrow', 'Roboto Condensed', Arial, Helvetica, sans-serif;
+        max-width: 24rem; margin-inline: auto; padding: 1rem clamp(2px, 1.2vw, .6rem) 1.1rem; border-radius: 1.6rem 1.6rem 2.2rem 2.2rem;
+        background: linear-gradient(180deg, #303134, var(--calc-body) 30%, #252629); color: var(--calc-print);
+        box-shadow: 0 0 0 2px var(--calc-edge), inset 0 0 0 2px #36373b, 0 14px 34px rgb(0 0 0 / .55); }
+.calc-bezel { background: var(--calc-bezel); border-radius: .7rem; padding: .7rem .7rem .4rem; margin-bottom: .7rem;
+              box-shadow: inset 0 1px 3px rgb(0 0 0 / .7); }
+.calc .mc-display { background: var(--calc-lcd); color: var(--calc-lcd-ink); border-radius: 3px; border: 1px solid #0d0e0f;
+  box-shadow: inset 0 2px 6px rgb(0 0 0 / .25);
+  /* the dot matrix, faint: the LCD's pixels show through as on the glass */
+  background-image: repeating-linear-gradient(0deg, rgb(0 0 0 / .035) 0 1px, transparent 1px 3px),
+                    repeating-linear-gradient(90deg, rgb(0 0 0 / .035) 0 1px, transparent 1px 3px);
+  text-shadow: .5px .5px 0 rgb(23 32 27 / .18); }
+.calc .mc-caret { background: var(--calc-lcd-ink); }
+.mc-note { font: 600 .8rem var(--font); white-space: normal; display: block; text-align: left; }
+.calc-label { text-align: right; font-size: .62rem; font-weight: 700; letter-spacing: .4em; text-transform: uppercase;
+              padding: .45rem .1rem 0; color: var(--calc-print); }
+.calc-top, .calc-fn { display: grid; grid-template-columns: repeat(6, minmax(43.5px, 1fr)); }
+.calc-num { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); margin-top: .2rem; }
+.calc-top { grid-template-rows: repeat(3, auto); position: relative; margin-bottom: .2rem; }
+/* The whole cell is the key, so the tap target is the column, never the drawn cap alone. */
+.mc-btn { position: relative; min-height: 44px; min-width: 0; padding: 0; background: none; border: 0; cursor: pointer;
+          display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 1px;
+          color: var(--calc-key-ink); font-size: 1rem; font-weight: 700; -webkit-tap-highlight-color: transparent; }
+.mc-lab { display: flex; align-items: center; justify-content: center; width: 86%; border-radius: 999px;
+          background: radial-gradient(120% 90% at 50% 25%, #f1f1f2, var(--calc-key) 55%, #b9babd);
+          box-shadow: 0 2px 0 #0e0f10, 0 3px 4px rgb(0 0 0 / .5); transition: transform var(--quick) ease; }
+.mc-btn:active .mc-lab { transform: translateY(1px) scale(.95); box-shadow: 0 1px 0 #0e0f10; }
+.mc-btn:focus-visible { outline: none; }
+.mc-btn:focus-visible .mc-lab { outline: 2px solid var(--calc-legend); outline-offset: 2px; }
+/* The SHIFT function, printed in blue above the key, left as on the case; brighter while SHIFT is held. */
+.mc-alt { align-self: flex-start; padding-left: 4%; height: .8rem; font-size: .6rem; font-weight: 700; line-height: 1; color: var(--calc-legend);
+          white-space: nowrap; opacity: .85; }
+.mc-shifted .calc .mc-alt { opacity: 1; text-shadow: 0 0 6px rgb(91 143 234 / .6); }
 .mc-btn sup, .mc-alt sup { font-size: .7em; vertical-align: .5em; line-height: 0; }
+.mc-btn sub { vertical-align: -.25em; line-height: 0; }
+.calc-fn .mc-lab { height: 34px; font-size: .95rem; }
+.calc-num .mc-lab { height: 46px; width: 84%; font-size: 1.45rem; font-weight: 500; }
+.mc-k-C .mc-lab, .mc-k-sd .mc-lab, [data-mc="="] .mc-lab { font-size: 1.2rem; font-weight: 700; }
+.calc-num .mk-fmt { font-size: .6rem; font-weight: 800; font-style: normal; letter-spacing: -.02em; }
+/* The top block: dark round keys with their names printed white over them, a D-pad on a dark disc, a rocker. */
+.calc-top .mc-alt { align-self: center; padding: 0; color: var(--calc-print); font-size: .55rem; letter-spacing: .02em; }
+.calc-top .mc-lab { width: 38px; height: 38px; max-width: 86%; color: var(--calc-print); font-size: .95rem;
+                    background: radial-gradient(100% 100% at 50% 20%, #3a3b3f, var(--calc-key-dark) 70%); border: 1px solid #0c0c0d; }
+.calc-top .lt .mc-lab { width: 86%; height: 34px; max-width: none; color: var(--calc-key-ink);
+                        background: radial-gradient(120% 90% at 50% 25%, #f1f1f2, var(--calc-key) 55%, #b9babd); border: 0; }
+.calc-top .sh .mc-lab { background: radial-gradient(100% 100% at 50% 25%, #4560d0, var(--calc-shift) 70%); color: #c9d4ff; }
+.mc-shifted .calc-top .sh .mc-lab { box-shadow: 0 0 0 2px var(--calc-legend), 0 0 10px rgb(91 143 234 / .7); }
+.calc-pad { grid-row: 1 / 4; grid-column: 3 / 6; place-self: center; width: min(100%, 9.2rem); aspect-ratio: 1;
+            border-radius: 50%; background: var(--calc-pad); box-shadow: inset 0 1px 2px rgb(0 0 0 / .8); }
+.calc-top .pad { z-index: 1; justify-content: center; }
+.calc-top .pad .mc-lab { width: 36px; height: 36px; font-size: 1.15rem; }
+.mc-k-on { grid-area: 1 / 1; } .mc-k-home { grid-area: 1 / 2; } .mc-k-set { grid-area: 2 / 1; } .mc-k-back { grid-area: 2 / 2; }
+.mc-k-up { grid-area: 1 / 4; } .mc-k-left { grid-area: 2 / 3; } .mc-k-ok { grid-area: 2 / 4; } .mc-k-right { grid-area: 2 / 5; }
+.mc-k-down { grid-area: 3 / 4; } .mc-k-pgup { grid-area: 1 / 6; } .mc-k-pgdn { grid-area: 2 / 6; }
+.mc-k-shift { grid-area: 3 / 1; } .mc-k-var { grid-area: 3 / 2; } .mc-k-func { grid-area: 3 / 3; }
+.mc-k-cat { grid-area: 3 / 5; } .mc-k-tools { grid-area: 3 / 6; }
+.mc-k-ok .mc-lab { font-size: .7rem; font-weight: 800; }
+/* The scroll rocker is one long key, drawn as two halves meeting. */
+.calc-top .pg .mc-lab { width: 40px; height: 44px; font-size: .8rem; }
+.mc-k-pgup { justify-content: flex-end; } .mc-k-pgup .mc-lab { border-radius: 20px 20px 4px 4px; border-bottom: 0; }
+.mc-k-pgdn { justify-content: flex-start; } .mc-k-pgdn .mc-lab { border-radius: 4px 4px 20px 20px; border-top: 0; }
 .mk-b { display: inline-block; width: .55em; height: .65em; border: 1px solid currentColor; vertical-align: middle; }
-sup.mk-b { width: .45em; height: .5em; vertical-align: .55em; }
+.mc-lab .mk-b { background: currentColor; border: 0; width: .5em; height: .55em; }
+.mc-lab sup.mk-b, .mc-lab sub.mk-b { background: none; border: 1.5px solid currentColor; width: .38em; height: .42em; vertical-align: .75em; }
+.mc-lab sub.mk-b { vertical-align: -.35em; margin-inline: 1px; }
+.calc-num .mc-lab sup.mk-b { background: currentColor; border: 0; width: .3em; height: .3em; }
+sup.mk-b, sub.mk-b { width: .45em; height: .5em; vertical-align: .55em; }
+sub.mk-b { vertical-align: -.2em; }
 .mk-fr { display: inline-flex; flex-direction: column; gap: 2px; vertical-align: middle; }
-.mk-fr b { display: block; width: .55em; height: .5em; border: 1px solid currentColor; }
-.mk-fr b + b { margin-top: 1px; box-shadow: 0 -2.5px 0 -1px currentColor; }
+/* The device keeps the page's side gutter only; the card's own padding would cost the keys their 40px. */
+.card.is-widget:has(.calc) { padding-inline: 0; margin-inline: 0; }
+/* Six 44px keys need 268px: on the narrowest phones the pane's gutter goes too, and the device meets the edge. */
+@media (max-width: 379px) {
+  .pane:has(.calc) { padding-inline: 0; }
+  .calc { padding-inline: 0; }
+  .card.is-widget:has(.calc) { border-inline: 0; }
+}
+.mk-fr b { display: block; width: .5em; height: .42em; border: 1.5px solid currentColor; margin-inline: auto; }
+.mk-fr u { display: block; width: .8em; height: 2px; background: currentColor; }
+.mc-lab .mk-fr b:first-child { background: currentColor; }
+.mk-ic { display: inline-block; width: 1em; height: 1em; vertical-align: middle; background: currentColor;
+         -webkit-mask: var(--ic) center / contain no-repeat; mask: var(--ic) center / contain no-repeat; }
+.mk-home { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linejoin='round'%3E%3Cpath d='M3 11 12 3l9 8v10H3z'/%3E%3C/svg%3E"); }
+.mk-set { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M3 6h18M3 12h18M3 18h18'/%3E%3Ccircle cx='8' cy='6' r='2' fill='%23000'/%3E%3Ccircle cx='16' cy='12' r='2' fill='%23000'/%3E%3Ccircle cx='10' cy='18' r='2' fill='%23000'/%3E%3C/svg%3E"); }
+.mk-book { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linejoin='round'%3E%3Cpath d='M12 6c-2-1.5-5-2-9-2v14c4 0 7 .5 9 2 2-1.5 5-2 9-2V4c-4 0-7 .5-9 2zM12 6v14'/%3E%3C/svg%3E"); }
+.mk-dots { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2'%3E%3Ccircle cx='4.5' cy='12' r='2.6'/%3E%3Ccircle cx='12' cy='12' r='2.6'/%3E%3Ccircle cx='19.5' cy='12' r='2.6'/%3E%3C/svg%3E"); width: 1.4em; }
+.mk-del { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M8 4h14v16H8l-7-8z' fill='%23000'/%3E%3Cpath d='M12 9l6 6m0-6-6 6' stroke='%23fff' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E"); width: 1.2em; }
 
 /* ---------- CALENDAR § */
 .cal-head { display: flex; align-items: center; justify-content: space-between; padding: .2rem 0 .5rem; }
@@ -1355,9 +1419,6 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
    was placed — it was 16:9, and the swap moved everything under it up by a third of a card. */
 .post-pic.post-vid-out { aspect-ratio: 4 / 5; }
 /* ---------- THE PICTURES ARE DRAWN AS THEY WERE TAKEN § */
-/* THE COMPOSER'S PREVIEW DRAWS WITH THE CARD'S OWN RENDERER, in a sheet that has no page margin to cancel — so the edge-to-edge bleed above would run past the § */
-.post-preview { margin: .2rem 0 .6rem; }
-.post-preview .post-pic, .post-preview .post-grid { width: 100%; margin-left: 0; }
 /* THE PICTURE IS SHOWN WHOLE. § */
 .page .post-pic {
   flex: 0 0 auto;          /* never grows to fill the page — that is what forced a crop */
@@ -1921,8 +1982,6 @@ button.text-drop { color: var(--bad); }
 .mc-caret { display: inline-block; width: 2px; height: 1.2em; background: var(--gold); margin: 0 -1px;
             vertical-align: middle; animation: caret 1.06s steps(1) infinite; }
 @keyframes caret { 0%, 50% { opacity: 1; } 50.01%, 100% { opacity: 0; } }
-.mc-btn.nav { color: var(--dim); }
-.mc-btn.nav:active { color: var(--gold); }
 
 /* ---------- THE TIMER § */
 /* ---------- TINY IS ABOUT THE TEXT, NOT ABOUT THE TARGET § */
@@ -2098,15 +2157,9 @@ button.text-drop { color: var(--bad); }
 }
 /* The display is a window into the case rather than another card on it. */
 /* `#notepad`, not `#np-body` — the second was a guess at the name. */
-.widget-full.solid .mc-display, .widget-full.solid #notepad, .widget-full.solid #docket-body {
+.widget-full.solid #notepad, .widget-full.solid #docket-body {
   background: #0b0d10; border: 1px solid #2a2e35;
 }
-/* And the keys are keys: § */
-.widget-full.solid .mc-btn {
-  background: #21252b; border: 1px solid #30353d;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / .06);
-}
-.widget-full.solid .mc-btn:active { background: #191c21; box-shadow: none; }
 
 /* ---------- MESSAGES § */
 /* A CONVERSATION, WHICH IS READ BY SIDE BEFORE IT IS READ BY NAME. § */
@@ -2655,9 +2708,6 @@ label.bk-k { cursor: pointer; }
 .widget-full > .card > h3, .widget-full > .card > .sub,
 .widget-full > .card > .cal-head, .widget-full > .card > .btn-row { flex: none; }
 
-/* The keys are as tall as a thumb needs and no taller. They used to GROW to fill the page, which
-   is what made the keypad float in a black field once the pane stopped being the whole screen. */
-.widget-full .mc-grid { flex: 0 0 auto; grid-auto-rows: max(44px, 2.9rem); }
 
 /* The clock takes the middle of the screen, which is where you look while waiting for a number to
    change. */
@@ -2841,19 +2891,8 @@ label.bk-k { cursor: pointer; }
 
 /* ---------- THE CALCULATOR IS AN INSTRUMENT § */
 .widget-full.solid > .card { padding: .75rem; }
-/* NO CAP ON THE CASE — narrowing a calculator was the right instinct in the wrong place: § */
-.widget-full.solid:has(.mc-display) .mc-grid,
-.widget-full.solid:has(.mc-display) .mc-display { max-width: 22rem; margin-inline: auto; width: 100%; }
-.widget-full.solid .mc-display {
-  border-radius: 3px;
-  padding: .8rem .7rem;
-  /* The numerals lit rather than printed — the one part of a calculator that emits light. */
-  color: #cfe8d4;
-  text-shadow: 0 0 12px rgb(120 220 150 / .28);
-}
-.widget-full.solid .mc-btn { border-radius: 4px; }
-.widget-full.solid .mc-btn.eq, .widget-full.solid .mc-btn.del { background: var(--gold); border-color: var(--gold); color: #000; }
-.widget-full.solid .mc-shifted .mc-btn.sh { background: var(--gold); color: #000; }
+/* The device is the object, so the case under it steps aside (as the chess board's does). */
+.widget-full.solid:has(.calc) > .card { background: none; border: 0; box-shadow: none; padding: .25rem 0; }
 
 /* ---------- THE CALENDAR IS PAPER, ON A WIRE § */
 /* ---------- THE CALENDAR IS PAPER, AND PAPER IS NOT THIS APP'S PALETTE § */
@@ -3207,7 +3246,6 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .msg-line .msg-flag { opacity: .5; flex: 0 0 auto; }
 .msg-line .msg-flag:hover, .msg-line .msg-flag:focus-visible { opacity: 1; }
 /* THE COMPOSER'S PICKER (413): a file, never a link — the label is the control, so it carries the gap the box above it would have. */
-.post-files-btn { display: block; text-align: center; margin-bottom: .8rem; }
 
 /* THREE THINGS THAT ARE WHAT THEY ARE The receipt works because a booking genuinely produces a receipt — the form is not a costume, it is the honest shape of the § */
 
@@ -5412,6 +5450,29 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 /* ---------- A CAMERA STARTING UP SHOWS A GREYED SHUTTER § */
 .cam-shot:disabled, .cam-rec:disabled { opacity: .3; cursor: default; }
 .cam-shot:disabled:active, .cam-rec:disabled:active { transform: none; }
+
+/* PHOTOS AND WRITE A POST ARE DISCS TOO (448), outlined so the white shutter and red record stay the loudest; the word under each. */
+.cam-round {
+  flex: 0 0 auto; padding: 0; background: none; border: 0;
+  display: flex; flex-direction: column; align-items: center; gap: .2rem;
+  color: var(--dim); font: inherit; cursor: pointer;
+}
+.cam-round .cam-disc {
+  width: 52px; height: 52px; border-radius: 50%;
+  display: grid; place-items: center;
+  border: 3px solid var(--cam-white); color: var(--cam-white);
+  background: var(--raised); font-size: 1.3rem; line-height: 1;
+  transition: transform var(--quick) ease;
+}
+.cam-round:active .cam-disc { transform: scale(.92); }
+.cam-round .cam-word { font-size: .68rem; max-width: 56px; text-align: center; line-height: 1.2; }
+/* A 320px PHONE: the four discs fit one row only a little smaller (check/ui.js measured 4px over). */
+@media (max-width: 359px) { .cam-round .cam-disc { width: 46px; height: 46px; } .cam-bar .cam-shot { width: 58px; height: 58px; } .cam-bar .cam-rec { width: 46px; height: 46px; } }
+.cam-bar .cam-pick { order: -1; }
+/* THE COMPOSER STANDS WHERE THE CAMERA WAS — the same card, no overlay. */
+.post-compose .poll-head { margin: .4rem 0 .2rem; }
+.post-compose #poll-more { margin: 0 0 .6rem; min-height: 44px; }
+.post-compose .btn-row .btn { min-height: 44px; }
 
 /* RECORDING IS A SQUARE. § */
 .cam-rec.is-rec { border-radius: .9rem; box-shadow: none; }

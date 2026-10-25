@@ -6,8 +6,8 @@ const a = src.indexOf('/* ---------- THE CALCULATOR: KEYS AND ENGINE'), b = src.
 if (a < 0 || b < 0) { console.log('FAILED: could not find the calculator engine in arcade.js — nothing was checked, not a pass'); process.exit(1); }
 const ctx = {};
 vm.createContext(ctx);
-vm.runInContext(src.slice(a, b) + '\nthis.api = { calcNew, calcKey, calcHtml, calcText, CALC_KEYS };', ctx);
-const { calcNew, calcKey, calcHtml, calcText, CALC_KEYS } = ctx.api;
+vm.runInContext(src.slice(a, b) + '\nthis.api = { calcNew, calcKey, calcHtml, calcText, CALC_KEYS, CALC_SHIFT };', ctx);
+const { calcNew, calcKey, calcHtml, calcText, CALC_KEYS, CALC_SHIFT } = ctx.api;
 
 const bad = [];
 let n = 0;
@@ -118,8 +118,34 @@ n++;
   if (calcText(st.val) !== '9') bad.push('▶ out of the exponent box: 2³+1 gave ' + calcText(st.val)); }
 n++;
 { const keys = CALC_KEYS.map(k => k[0]);
-  for (const k of ['shift', 'frac', 'sqrt', 'sq', 'pow', 'inv', 'sin', 'cos', 'tan', 'pi', 'neg', 'del', 'C', 'sd', 'Ans', 'e10', '=', 'left', 'right', 'up', 'down'])
-    if (!keys.includes(k)) bad.push('the keypad has no ' + k + ' key'); }
+  for (const k of ['shift', 'frac', 'sqrt', 'sq', 'pow', 'sin', 'cos', 'tan', 'del', 'C', 'sd', 'Ans', 'e10', '=', 'left', 'right', 'up', 'down', 'ok', 'pgup', 'pgdn', 'log', 'x', 'var'])
+    if (!keys.includes(k)) bad.push('the keypad has no ' + k + ' key');
+  const shifted = Object.keys(CALC_SHIFT).filter(k => keys.includes(k)).map(k => CALC_SHIFT[k]);
+  for (const k of ['inv', 'pi', 'e', 'neg', 'approx', 'asin', 'cbrt', 'ln'])
+    if (!shifted.includes(k)) bad.push('no key reaches ' + k + ' by SHIFT');
+  if (keys.filter(k => !/^(on|home|set|back|up|left|ok|right|down|pgup|pgdn|shift|var|func|cat|tools)$/.test(k)).length !== 6 * 2 + 5 * 4)
+    bad.push('the keypad is not the ClassWiz face: two rows of six function keys, four rows of five'); }
+
+/* The ClassWiz's own keys: SHIFT legends as printed, FORMAT, EXE, ≈, OK and the scroll keys. */
+sum('π by SHIFT 7', ['2', 'shift', '7'], '6.283185307');
+sum('e by SHIFT 8', ['shift', '8'], '2.718281828');
+sum('(−) by SHIFT −', ['shift', '−', '5', '+', '8'], '3');
+sum('■⁻¹ by SHIFT ■^■', ['4', 'shift', 'pow'], '1/4');
+sum('ln by SHIFT log', ['shift', 'log', 'shift', '8'], '1');
+sum('OK is EXE', ['frac', '1', 'down', '4', 'ok'], '1/4');
+sum('FORMAT is S⇔D', ['frac', '1', 'down', '4'], '0.25', true);
+n++;
+{ const st = press(['frac', '1', 'down', '8', 'shift', '=']);
+  if (calcText(st.val, st.dec) !== '0.125') bad.push('SHIFT EXE (≈) should give the decimal: got ' + calcText(st.val, st.dec)); }
+n++;
+{ const st = press(K('2+3').concat('=', 'C', 'pgup'));
+  if (calcHtml(st).input.replace(/<[^>]+>/g, '') !== '2+3') bad.push('the scroll key did not bring back the last sum'); }
+n++;
+{ const st = press(['7', 'shift', '4']);
+  if (!/SHIFT A is not on this calculator/.test(calcHtml(st).output) || st.root.length !== 1) bad.push('SHIFT 4 (A) should say so and type nothing: ' + calcHtml(st).output); }
+n++;
+{ const st = press(['cat']);
+  if (!/CATALOG is not on this calculator/.test(calcHtml(st).output)) bad.push('CATALOG should say it is not here'); }
 
 /* Nothing typed is ever evaluated as code. */
 n++;

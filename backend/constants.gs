@@ -118,7 +118,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-25-k-film-shares";
+const BACKEND_VERSION = "2026-10-25-p-feed-compose";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1522,6 +1522,8 @@ const ACTION_ACCESS = {
   digestPreview: 'admin',
   /* AN ADMIN'S "SEND LAST WEEK" ON A PARENT'S CARD (378) — it emails a parent, so nobody else. */
   digestSendNow: 'admin',
+  /* ONE PERSON'S PIN, READ ON A TAP OF "SHOW PIN" ON THEIR CARD (452) — never in doGet, never logged. */
+  pinShow: 'admin',
   /* THE FILMS, FILLED FROM THE NOTFLIX FOLDER. § */
   filmsSync: 'admin',
   /* The racer's Build the map tile (426): minutes of fetching from three outside services, so an admin's alone. */
