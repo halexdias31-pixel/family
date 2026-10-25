@@ -5374,6 +5374,7 @@ function nesPaint_() {
     <p class="faint" id="nes-padnote" hidden>Controller connected</p>
     <div class="tile-row" id="nes-tiles"></div>
     <p class="note" id="nes-say" role="status"></p>
+    <p class="faint" id="nes-kept" hidden></p>
     <p class="faint" id="nes-sysnote" hidden></p>
     <input type="file" id="nes-file" class="nes-file" accept="${NES_ACCEPT}">
     <p class="faint">Use a game file you own. It stays on this device and is never uploaded.</p>`;
@@ -5387,6 +5388,7 @@ function nesPaint_() {
   nesSysSet_(NES_.sys);
   nesBlit_();
   nesTiles_();
+  csvLine_();
   if (NES_.saved == null) Promise.all([nesKept_(), nesKind_()]).then(([b, k]) => {
     NES_.saved = b ? new Uint8Array(b) : false; NES_.kind = typeof k === 'string' ? k : null;
     /* THE KEPT GAME'S SHAPE AND PAD NOW, not when Play is pressed: the stage changes shape once, before anyone is looking at a game (419). */
@@ -5492,6 +5494,7 @@ function nesStart_(bytes) {
     NES_.img = $('nes-canvas').getContext('2d').createImageData(256, 240);
     NES_.u32 = new Uint32Array(NES_.img.data.buffer);
     nesGo_();
+    csvBegin_(bytes, 'nes', 'nes', csvApplyNes_);
   }).catch(() => { loaded_(stage); nesSay_('The console could not load. Check the connection and press Play again.'); });
 }
 
@@ -5524,6 +5527,7 @@ function nesStop_() {
   NES_.held = {}; NES_.keys = {}; NES_.codes = {}; NES_.touch = {};
   if (NES_.nes) Object.values(NES_B).forEach(b => { try { NES_.nes.buttonUp(1, b); } catch (e) {} });
   if (EMU_.ejs) emuPause_();
+  else if (was && NES_.nes) csvKeep_();
   if (was) nesTiles_();
 }
 
@@ -5768,7 +5772,7 @@ function nesFit_() {
   if (!NES_.full || !w || !s) return;
   const W = w.clientWidth || innerWidth, H0 = w.clientHeight || innerHeight;
   const portrait = H0 > W, pad = $('nes-pad'), padH = portrait && pad && pad.classList.contains('on') ? pad.offsetHeight + 16 : 0;
-  const [dw, dh] = NES_DIMS[NES_.sys] || NES_DIMS.nes;
+  const dh = (NES_DIMS[NES_.sys] || NES_DIMS.nes)[1], dw = dh * nesShow_(NES_.sys);
   const H = Math.max(60, H0 - padH - 16), fit = Math.min(W / dw, H / dh), whole = Math.floor(fit);
   const k = whole >= 1 && whole / fit >= 0.9 ? whole : fit;
   s.style.width = Math.floor(dw * k) + 'px'; s.style.height = Math.floor(dh * k) + 'px';
@@ -5872,6 +5876,9 @@ const NES_NOT = 'That is not a console game file — it should be a .nes, .sfc/.
 const NES_GAP = 32;
 /* Each system's picture in pixels, for the stage's shape and the full-screen fit. DS: its two 256x192 screens stacked, top above bottom, the hinge's rows between. */
 const NES_DIMS = { nes: [256, 240], snes: [256, 224], gb: [160, 144], gbc: [160, 144], gba: [240, 160], n64: [320, 240], nds: [256, 384 + NES_GAP] };
+/* THE SHAPE A TELEVISION SHOWED (446): a home console's pixels were wider than tall, so its picture is 4:3; a handheld's are square. */
+const NES_SHOW = { nes: 4 / 3, snes: 4 / 3, n64: 4 / 3 };
+const nesShow_ = sys => NES_SHOW[sys] || NES_DIMS[sys][0] / NES_DIMS[sys][1];
 /* Systems with four face buttons read a controller by position (right A, bottom B, top X, left Y); two-button ones fold them onto A and B. */
 const NES_FOUR = { snes: 1, n64: 1, nds: 1 };
 /* THE ONE LINE UNDER A HEAVY SYSTEM, said plainly: these run on the page's one thread, and a slow laptop or an older phone shows it (419). */
@@ -5936,7 +5943,7 @@ function nesSysSet_(sys) {
   const s = $('nes-stage'), pad = $('nes-pad'), note = $('nes-sysnote'), wrap = $('nes-wrap');
   if (wrap) wrap.dataset.sys = NES_.sys;   // its pad's height, style.css
   /* `--nes-ar` too: the stage's width is capped by the screen's height through it (style.css), so a tall DS picture fits a laptop's screen. */
-  if (s) { const [w, h] = NES_DIMS[NES_.sys]; s.style.aspectRatio = w + ' / ' + h; s.style.setProperty('--nes-ar', String(w / h)); s.dataset.sys = NES_.sys; }
+  if (s) { const ar = nesShow_(NES_.sys); s.style.aspectRatio = String(ar); s.style.setProperty('--nes-ar', String(ar)); s.dataset.sys = NES_.sys; }
   if (pad && pad.dataset.sys !== NES_.sys) {
     pad.dataset.sys = NES_.sys; pad.innerHTML = nesPadHtml_(NES_.sys);
   }
@@ -6007,11 +6014,15 @@ function emuName_(u8, sys) {
   return 'game-' + h.toString(16) + '-' + u8.length.toString(16) + '.' + ({ snes: 'sfc', gb: 'gb', gbc: 'gbc', gba: 'gba', n64: 'z64', nds: 'nds' })[sys];
 }
 
+const emuIos_ = () => /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const NES_NO_DS_IOS = 'DS games do not run on an iPhone or iPad yet. They play on a computer, or on an Android phone or tablet.';
 function emuStart_(bytes, sys) {
   const stage = $('nes-stage');
   if (!stage) return;
   const name = emuName_(bytes, sys);
   if (EMU_.ejs && EMU_.key === name) { emuGo_(); return; }
+  /* NOT THE DS ON AN IPHONE OR IPAD (446): "ds isn't working on my iPad" — melonDS stops there with no word, so a plain one is said instead. */
+  if (sys === 'nds' && emuIos_()) { nesStop_(); emuEnd_(); nesSysSet_(sys); nesTiles_(); nesSay_(NES_NO_DS_IOS); return; }
   nesStop_(); NES_.nes = null; emuEnd_();
   nesSysSet_(sys); nesSay_('');
   NES_.rom = bytes;
@@ -6019,7 +6030,7 @@ function emuStart_(bytes, sys) {
   stage.insertAdjacentHTML('beforeend', loading_());
   emuLib_().then(cdn => {
     if (!$('nes-stage')) return;
-    const ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const ios = emuIos_();
     const core = sys === 'n64' && ios ? 'parallel_n64' : EMU_CORE[sys], pkg = cdn + '@emulatorjs/core-' + core + '@' + EMU_VER + '/';
     const files = { [core + '.json']: pkg + 'reports/' + core + '.json' };
     const threads = emuThreads_();
@@ -6047,6 +6058,7 @@ function emuStart_(bytes, sys) {
       if (!$('nes-wrap') || document.hidden) { try { ejs.pause(true); } catch (e) {} nesRun_(false); }
       else nesRun_(true);
       emuWake_(); nesTiles_(); nesFit_();
+      csvBegin_(bytes, sys, name, csvApplyEmu_);
     });
   }).catch(() => { loaded_(stage); emuEnd_(); nesTiles_(); nesSay_('The console could not load. Check the connection and press Play again.'); });
 }
@@ -6078,6 +6090,7 @@ function emuPause_() {
   emuSync_(true);
   try { EMU_.ejs.pause(true); } catch (e) {}
   try { EMU_.ejs.gameManager.saveSaveFiles(); } catch (e) {}
+  csvKeep_();
 }
 /* THE SOUND WAKES INSIDE A TAP: iOS starts EmulatorJS's audio suspended, and its own "click to resume" box is hidden with its menus. */
 function emuWake_() {
@@ -6088,6 +6101,7 @@ function emuWake_() {
   } catch (e) {}
 }
 function emuEnd_() {
+  if (EMU_.ready) csvKeep_();
   const ejs = EMU_.ejs;
   EMU_.ejs = null; EMU_.ready = false; EMU_.sys = null; EMU_.key = ''; EMU_.held = {}; EMU_.ax = [];
   if (ejs) {
@@ -6119,6 +6133,147 @@ function emuSync_(off) {
   });
 }
 
+
+/* ---------- A CONSOLE GAME KEEPS ITS PROGRESS (446): the battery save and a save state, per game file, on this device and on the account. */
+/* Keyed by a hash of the file's bytes; the file itself is never stored with a save nor sent. One save per game, the latest. */
+const CSV_DB = 'family-console-saves';
+const CSV_MAX = 2 * 1024 * 1024;   // the backend's CONSOLE_SAVE_MAX: an account keeps 2 MB per game once packed
+const CSV_ = { hash: '', sys: '', at: 0, where: '', said: '', sent: '', timer: 0, rom: null };
+
+/* SHA-256 where the browser has it; the same bytes give the same key on every device. A plain-http page falls back to a longer FNV. */
+function csvHash_(u8) {
+  const fnv = () => { let a = 0x811c9dc5, b = 0x01000193 ^ u8.length;
+    for (let i = 0; i < u8.length; i++) { a = Math.imul(a ^ u8[i], 0x01000193) >>> 0; b = Math.imul(b ^ u8[i], 0x5bd1e995) >>> 0; }
+    return Promise.resolve(('0000000' + a.toString(16)).slice(-8) + ('0000000' + b.toString(16)).slice(-8) + ('0000000' + u8.length.toString(16)).slice(-8)); };
+  try {
+    if (!(window.crypto && crypto.subtle)) return fnv();
+    return crypto.subtle.digest('SHA-256', u8).then(d => [...new Uint8Array(d)].slice(0, 16).map(x => ('0' + x.toString(16)).slice(-2)).join('')).catch(fnv);
+  } catch (e) { return fnv(); }
+}
+
+/* Its own database, so the kept game file's store is never upgraded under it. Any failure is "nothing kept on this device". */
+function csvDb_(mode, fn) {
+  return new Promise(res => {
+    try {
+      const rq = indexedDB.open(CSV_DB, 1);
+      rq.onupgradeneeded = () => rq.result.createObjectStore('save');
+      rq.onerror = () => res(null);
+      rq.onsuccess = () => {
+        try {
+          const tx = rq.result.transaction('save', mode), r = fn(tx.objectStore('save'));
+          tx.oncomplete = () => { res(r && 'result' in r ? r.result : true); rq.result.close(); };
+          tx.onerror = tx.onabort = () => { res(null); rq.result.close(); };
+        } catch (e) { res(null); }
+      };
+    } catch (e) { res(null); }
+  });
+}
+
+/* gzip, then base64, for the account; a browser with no CompressionStream keeps its saves on the device only. */
+function csvPack_(u8) {
+  if (!u8 || !u8.length) return Promise.resolve('');
+  const b64 = a => { let s = ''; for (let i = 0; i < a.length; i += 0x8000) s += String.fromCharCode.apply(null, a.subarray(i, i + 0x8000)); return btoa(s); };
+  try {
+    if (typeof window.CompressionStream !== 'function') return Promise.resolve('');
+    return new window.Response(new Blob([u8]).stream().pipeThrough(new window.CompressionStream('gzip'))).arrayBuffer().then(ab => b64(new Uint8Array(ab))).catch(() => '');
+  } catch (e) { return Promise.resolve(''); }
+}
+function csvUnpack_(s) {
+  if (!s) return Promise.resolve(null);
+  try {
+    if (typeof window.DecompressionStream !== 'function') return Promise.resolve(null);
+    const bin = atob(s), u8 = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    return new window.Response(new Blob([u8]).stream().pipeThrough(new window.DecompressionStream('gzip'))).arrayBuffer().then(ab => new Uint8Array(ab)).catch(() => null);
+  } catch (e) { return Promise.resolve(null); }
+}
+
+/* THE GAME AS IT IS NOW, read at once (before a pause or an exit changes it): EmulatorJS's own state and save file, or jsnes's JSON. */
+function csvCapture_() {
+  if (!CSV_.hash) return null;
+  let sram = null, state = null;
+  if (EMU_.ejs && EMU_.ready && EMU_.key === CSV_.rom) {
+    const g = EMU_.ejs.gameManager;
+    try { const f = g.getSaveFile(); if (f && f.length) sram = new Uint8Array(f); } catch (e) {}
+    try { if (!g.supportsStates || g.supportsStates()) { const s = g.getState(); if (s && s.length) state = new Uint8Array(s); } } catch (e) {}
+  } else if (NES_.nes && NES_.rom && CSV_.rom === 'nes') {
+    try { state = new TextEncoder().encode(JSON.stringify(NES_.nes.toJSON())); } catch (e) {}
+  } else return null;
+  return sram || state ? { hash: CSV_.hash, sys: CSV_.sys, at: Date.now(), sram, state } : null;
+}
+
+/* AT EVERY PAUSE AND LEAVE: on this device first, then, signed in, on the account. A save the same as the last one sent is not sent again. */
+function csvKeep_() {
+  const rec = csvCapture_();
+  if (!rec) return;
+  csvDb_('readwrite', s => s.put(rec, rec.hash)).then(ok => { if (ok) { CSV_.at = rec.at; CSV_.where = 'device'; csvLine_(); } });
+  if (typeof USER !== 'object' || !USER || !USER.token) return;
+  Promise.all([csvPack_(rec.sram), csvPack_(rec.state)]).then(([sram, state]) => {
+    if (!sram && !state) return;
+    const sig = rec.hash + sram.length + ':' + state.length + ':' + sram.slice(-64) + state.slice(-64);
+    if (sig === CSV_.sent) { CSV_.where = 'account'; csvLine_(); return; }
+    /* OVER THE CAP: refused here, politely, before anything is sent; the device copy stands. */
+    if (Math.floor((sram.length + state.length) * 3 / 4) > CSV_MAX) { CSV_.said = 'Too big for your account (over 2 MB), so it is kept on this device only.'; csvLine_(); return; }
+    return api({ action: 'consoleSave', personId: USER.personId || '', hash: rec.hash, sys: rec.sys, at: rec.at, sram, state }).then(d => {
+      if (d && d.error) { CSV_.said = String(d.error); csvLine_(); return; }
+      CSV_.sent = sig; CSV_.said = ''; CSV_.at = rec.at; CSV_.where = 'account'; csvLine_();
+    });
+  }).catch(() => { CSV_.said = ''; csvLine_(); });
+}
+
+/* THE NEWEST OF THE DEVICE'S AND THE ACCOUNT'S, as raw bytes; nothing at all is a fresh game. */
+function csvFind_(hash) {
+  const mine = csvDb_('readonly', s => s.get(hash)).then(r => (r && r.hash === hash ? r : null));
+  const theirs = (typeof USER === 'object' && USER && USER.token)
+    ? api({ action: 'consoleLoad', personId: USER.personId || '', hash }).then(d => {
+      const v = d && d.save;
+      if (!v || !(v.sram || v.state)) return null;
+      return Promise.all([csvUnpack_(v.sram), csvUnpack_(v.state)]).then(([sram, state]) => ({ hash, sys: v.sys, at: Number(v.at) || 0, sram, state, account: true }));
+    }).catch(() => null)
+    : Promise.resolve(null);
+  return Promise.all([mine, theirs]).then(([a, b]) => (a && b ? (b.at > a.at ? b : a) : a || b));
+}
+
+/* A GAME STARTING: its key, then its save put back. `rom` is EmulatorJS's game name, or 'nes'; a game swapped meanwhile is left alone. */
+function csvBegin_(bytes, sys, rom, apply) {
+  CSV_.hash = ''; CSV_.sys = sys; CSV_.rom = rom; CSV_.at = 0; CSV_.where = ''; CSV_.said = ''; CSV_.sent = '';
+  csvLine_();
+  return csvHash_(bytes).then(h => {
+    if (CSV_.rom !== rom) return null;
+    CSV_.hash = h;
+    return csvFind_(h);
+  }).then(rec => {
+    if (!rec || CSV_.rom !== rom || rec.hash !== CSV_.hash) return;
+    try { apply(rec); } catch (e) { return; }
+    CSV_.at = rec.at; CSV_.where = rec.account ? 'account' : 'device'; csvLine_();
+  });
+}
+/* EMULATORJS: the battery file written where the core reads it and read again, then the state on top. */
+function csvApplyEmu_(rec) {
+  const g = EMU_.ejs && EMU_.ejs.gameManager;
+  if (!g) return;
+  if (rec.sram && rec.sram.length) { try { g.FS.writeFile(g.getSaveFilePath(), rec.sram); g.loadSaveFiles(); } catch (e) {} }
+  if (rec.state && rec.state.length) g.loadState(rec.state);
+}
+function csvApplyNes_(rec) {
+  if (rec.state && NES_.nes) NES_.nes.fromJSON(JSON.parse(new TextDecoder().decode(rec.state)));
+}
+
+/* THE QUIET LINE UNDER THE CONSOLE: when the game was last kept and where, or why it could not be. */
+function csvLine_() {
+  const p = $('nes-kept');
+  if (!p) return;
+  let s = CSV_.said;
+  if (!s && CSV_.at && CSV_.hash) {
+    const m = Math.round((Date.now() - CSV_.at) / 60000);
+    s = 'Saved ' + (m < 1 ? 'just now' : m === 1 ? '1 min ago' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : Math.round(m / 1440) + ' days ago')
+      + (CSV_.where === 'account' ? ' to your account' : ' on this device');
+  }
+  p.textContent = s || '';
+  p.hidden = !s;
+  clearTimeout(CSV_.timer);
+  if (s && !CSV_.said) CSV_.timer = setTimeout(csvLine_, 30000);
+}
 
 /* ---------- AN ADMIN ADDS A REEL OR A VIDEO FROM THE PHONE (404) ---------- */
 /* A pasted YouTube link, titled by oEmbed (no key), saved to the `media` tab; `DATA.media` is merged over the repository's lists. */

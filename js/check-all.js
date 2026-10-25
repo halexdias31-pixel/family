@@ -116,6 +116,8 @@ const SUITE = [
   /* THE FILMS ARE WHAT IS IN THE NOTFLIX FOLDER. § */
   { file: 'check-films.js', what: 'the films from the Notflix folder: the upsert, admin only, no id sent, the clock' },
   /* THE COLLIERS WOOD RACER'S MAP (426), built over a fake Overpass, DEM and Drive. */
+  /* THE CONSOLE'S SAVES ON THE ACCOUNT (446), over a fake Drive. */
+  { file: 'check-console-saves.js', what: 'a console game\'s save on the account: signed in, owner only, a child may, latest only, 2 MB cap, save data only' },
   { file: 'check-race.js', what: 'the racer\'s map: crossings shared, roads every 15 m, the box, DEM fallbacks and cache, ?race=1, an admin builds' },
   /* AN ADMIN'S REELS AND VIDEOS (404), through the real doPost and doGet. */
   { file: 'check-media.js', what: 'an admin adds, edits, hides and deletes a reel or video; others and bad links refused; the payload carries it' },

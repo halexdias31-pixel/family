@@ -7294,6 +7294,70 @@ check('console keys: arrows and WASD steer, Z/X/Space/Enter/Shift and Q/E per sy
   return bad;
 });
 
+check('console saves (446): a game file\'s battery save and state are kept at a pause on the account, keyed by the file\'s hash and never the file, put back when the same file plays again; over 2 MB stays on the device, and a quiet line says when', async () => {
+  let kept = null;
+  const { w, sent, errs } = boot({ before: win => {
+    signedInAs_(MEMBER_)(win);
+    /* jsdom has no gzip stream: Node's own, so the packing is the real one. */
+    win.CompressionStream = CompressionStream; win.DecompressionStream = DecompressionStream; win.Response = Response; win.Blob = Blob;
+  }, reply: b => (b.action === 'consoleSave' ? (kept = { at: b.at, sys: b.sys, sram: b.sram, state: b.state }, { success: true, at: b.at })
+    : b.action === 'consoleLoad' ? { success: true, save: kept } : { success: true }) });
+  await wait(300);
+  const t = w.__t, d = w.document, ev = s => t.inApp(s);
+  const bad = [];
+  t.go('games', false, true);
+  await wait(LEAVE_MS); await woken_();
+  const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'console');
+  if (at < 0) return ['there is no Console widget on the Games column'];
+  t.goPage('games', at, true);
+  await woken_();
+  if (!d.querySelector('#s-games #nes-kept')) return ['the console has no line for when the game was saved'];
+  if (!d.querySelector('#nes-kept').hidden) bad.push('the saved line shows before any game was played');
+  /* A STAND-IN EMULATORJS with EmulatorJS's own names: getSaveFile, getState, loadState, the save path and loadSaveFiles. */
+  ev(`window.__gm = { loaded: [], written: [], big: 0,
+    getSaveFile: () => new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]), supportsStates: () => true,
+    getState: () => { if (__gm.big) { const u = new Uint8Array(__gm.big); let x = 2463534242; for (let i = 0; i < u.length; i++) { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; u[i] = x & 255; } return u; } return new Uint8Array(4000).fill(7); },
+    loadState: s => __gm.loaded.push(s.length), getSaveFilePath: () => '/data/saves/game.srm', loadSaveFiles: () => __gm.written.push('refresh'),
+    FS: { writeFile: (p, b) => __gm.written.push(p + ':' + b.length) } };
+    EMU_.ejs = { gameManager: __gm, pause() {}, play() {} }; EMU_.ready = true; EMU_.key = 'game-x.sfc'; EMU_.sys = 'snes';
+    window.__rom = new Uint8Array(70000).map((_, i) => i % 251);`);
+  await ev('csvBegin_(__rom, "snes", "game-x.sfc", csvApplyEmu_)');
+  const hash = ev('CSV_.hash');
+  if (!/^[0-9a-f]{16,64}$/.test(hash)) bad.push('the game file was given the key ' + JSON.stringify(hash));
+  if (ev('__gm.loaded.length')) bad.push('a state was loaded for a game never saved');
+  ev('emuPause_()');
+  await wait(400);
+  const post = sent.filter(b => b.action === 'consoleSave');
+  if (post.length !== 1) bad.push('a pause posted ' + post.length + ' consoleSave(s)');
+  const p = post[0] || {};
+  if (p.hash !== hash || p.sys !== 'snes' || !p.sram || !p.state) bad.push('the save posted ' + JSON.stringify(Object.keys(p)) + ' for ' + p.hash);
+  if (JSON.stringify(p).length > 4000) bad.push('the posted save is ' + JSON.stringify(p).length + ' characters: 4 KB of one byte was not packed, or the file went with it');
+  if (/rom|game-x/.test(Object.keys(p).join()) || p.name === 'game-x.sfc') bad.push('the save names or carries the game file');
+  if (!/^Saved just now to your account$/.test(d.querySelector('#nes-kept').textContent)) bad.push('after a pause the line says ' + JSON.stringify(d.querySelector('#nes-kept').textContent));
+  ev('emuPause_()');
+  await wait(300);
+  if (sent.filter(b => b.action === 'consoleSave').length !== 1) bad.push('the same save was sent twice');
+  /* THE SAME FILE AGAIN, on another device: the account's save is put back, battery file first, then the state. */
+  await ev('csvBegin_(__rom, "snes", "game-x.sfc", csvApplyEmu_)');
+  if (!sent.some(b => b.action === 'consoleLoad' && b.hash === hash)) bad.push('starting the game did not ask the account for its save');
+  if (ev('__gm.written.join()') !== '/data/saves/game.srm:8,refresh') bad.push('the battery save was put back as ' + ev('__gm.written.join()'));
+  if (ev('__gm.loaded.join()') !== '4000') bad.push('the state put back was ' + ev('__gm.loaded.join()') + ' bytes, not 4000');
+  /* ANOTHER FILE is another game, and gets none of this one's save. */
+  ev('__gm.loaded = []; window.__rom2 = new Uint8Array(70000).map((_, i) => i % 13)');
+  await ev('csvBegin_(__rom2, "snes", "game-y.sfc", csvApplyEmu_)');
+  if (ev('CSV_.hash') === hash) bad.push('two different files have one key');
+  /* OVER THE CAP: nothing sent, a reason said in the line, no pop-up. */
+  ev('EMU_.key = "game-y.sfc"; __gm.big = 3 * 1024 * 1024');
+  const before = sent.length;
+  ev('emuPause_()');
+  await wait(1500);
+  if (sent.slice(before).some(b => b.action === 'consoleSave')) bad.push('a save over 2 MB was sent');
+  if (!/2 MB.*this device/.test(d.querySelector('#nes-kept').textContent)) bad.push('over the cap the line says ' + JSON.stringify(d.querySelector('#nes-kept').textContent));
+  ev('EMU_.ejs = null; EMU_.ready = false; EMU_.key = ""');
+  if (errs.length) bad.push('errors: ' + errs.join(' | '));
+  return bad;
+});
+
 /* ---------- CONNECT 4: ONE COUNTER FALLS, INTO THE RIGHT SQUARE, AND THE FOUR THAT WON ARE RINGED § */
 check('connect 4 drops exactly the counter just played into the lowest empty square, and rings the four that win', async () => {
   const { w } = boot();
