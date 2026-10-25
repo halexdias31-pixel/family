@@ -1880,7 +1880,7 @@ function goPage(id, to, instant) {
   const ref = above && $('s-' + id) ? $('s-' + id).querySelectorAll(':scope > .page')[domIndex_(id, n)] : null;
   const top0 = ref ? (typeof stuffTop_ === 'function' ? stuffTop_(ref) : ref.offsetTop) : 0;
   if (bare) fillStuffPages();
-  /* AND THE WORDS AHEAD, ON EVERY TURN — not after the slide, which a quick reader never lets end (447). */
+  /* AND THE WORDS AHEAD, ON EVERY TURN — not after the slide, which a quick reader never lets end (453). */
   else if (F && typeof libAhead_ === 'function') { try { libAhead_(); } catch (e) {} }
   if (edge) { try { stuffEdgeFill_(n, n > was ? 1 : -1); } catch (e) {} }
   if (ref && typeof stuffKeepPlace_ === 'function') stuffKeepPlace_($('s-' + id), top0 - (typeof stuffTop_ === 'function' ? stuffTop_(ref) : ref.offsetTop));
@@ -1963,13 +1963,67 @@ const PER_PAGE = { library: 12 };
 
 /* The dot's handler is registered further down, WITH the other actions. § */
 
-/* ---------- THE SHEET IS A PAGE (420) ---------- */
-/* "remove all pop up menus I DONT LIKE POP UP MENUS": no backdrop, nothing floats. While it is open
-   the sheet is the page — the grid steps aside (`body.sheet-open`) and Back brings it back. */
+/* ---------- THE SHEET OPENS IN PLACE (453) ---------- */
+/* "do not use pop-up menus on my site": `#sheet` is moved INTO the card that was pressed, under its tile row,
+   and Back puts it home again. Nothing floats, nothing covers the grid, and the grid never steps aside. */
 let sheetOnClose = null;
 
 /* ---------- WHAT THE SHEET IS ONE OF § */
 let sheetStep = null;
+
+/* THE LAST THING PRESSED, read by `openSheet` to find its card. Capture phase, so it is set before any handler. */
+let PRESSED_ = null;
+['pointerdown', 'click', 'keydown'].forEach(t => addEventListener(t, e => {
+  const el = e.target;
+  if (el && el.closest && !el.closest('#sheet') && el.closest('#screen')) PRESSED_ = el;
+}, true));
+
+/* A CALLER THAT KNOWS ITS CARD says so: `el` is inside it; `swap` makes the card BECOME the sheet (an editor). */
+let SHEET_HERE_ = null;
+function sheetHere_(el, swap) { SHEET_HERE_ = { el, swap: !!swap }; }
+
+const SHEET_HOSTS_ = '.post, .rc, .widget-slot, .cpn, .card, .pane';
+/* HELD BY REFERENCE: a card drawn again takes the sheet out with its old markup, and `sheetKeep_` puts it back. */
+let SHEET_EL_ = null, SHEET_AT_ = null;
+const sheetEl_ = () => SHEET_EL_ || (SHEET_EL_ = document.getElementById('sheet'));
+const sheetFront_ = () => {
+  const pg = document.querySelector('#s-' + AT + ' .page.on') || document.querySelector('#s-' + AT);
+  return pg && (pg.querySelector(':scope > .pane') || pg);
+};
+function sheetPlace_() {
+  const sh = sheetEl_();
+  const want = SHEET_HERE_; SHEET_HERE_ = null;
+  document.querySelectorAll('.sheet-host').forEach(h => h.classList.remove('sheet-host', 'sheet-swap'));
+  let from = want ? want.el : PRESSED_;
+  if (from && (!from.isConnected || !from.closest('#s-' + AT))) from = null;
+  let host = from && from.closest(SHEET_HOSTS_);
+  /* NOTHING PRESSED ON THIS SCREEN (a sign-in answered, a booking confirmed): the card in front. */
+  if (!host) host = sheetFront_();
+  SHEET_AT_ = { post: host && host.dataset ? host.dataset.post || '' : '', swap: !!(want && want.swap) };
+  /* NO SCREEN DRAWN YET (a link opened on arrival): it waits at home, and `sheetKeep_` moves it in once one is. */
+  if (!host) return;
+  const row = from && from.closest('.tile-row, .post-acts, .post-when');
+  const after = !(want && want.swap) && row && host.contains(row) && row !== host ? row : null;
+  if (after) after.after(sh); else host.appendChild(sh);
+  host.classList.add('sheet-host');
+  if (want && want.swap) host.classList.add('sheet-swap');
+}
+
+/* AN OPEN SHEET STAYS IN THE CARD: after any redraw, back into the same post, or the card in front. */
+function sheetKeep_() {
+  const sh = sheetEl_();
+  if (!sh || sh.classList.contains('hidden')) return;
+  if (sh.isConnected && sh.closest('#screen')) return;
+  const at = SHEET_AT_ || {};
+  const host = (at.post && document.querySelector('#s-' + AT + ' [data-post="' + CSS.escape(at.post) + '"]')) || sheetFront_();
+  if (!host) { if (!sh.isConnected && $('sheet-home')) $('sheet-home').after(sh); return; }
+  host.appendChild(sh);
+  host.classList.add('sheet-host');
+  if (at.swap) host.classList.add('sheet-swap');
+}
+try {
+  new MutationObserver(sheetKeep_).observe(document.documentElement, { childList: true, subtree: true });
+} catch (err) {}
 
 function openSheet(title, html, onClose, step) {
   /* A SHEET OPENED OVER A SHEET. § */
@@ -1978,27 +2032,31 @@ function openSheet(title, html, onClose, step) {
   /* SET AFTER the old sheet's `onClose` above, which may itself open a sheet. */
   sheetStep = typeof step === 'function' ? step : null;
 
-  $('sheet-title').textContent = title;
-  $('sheet-body').innerHTML = html;
-  $('sheet-body').scrollTop = 0;
-  $('sheet').classList.remove('hidden');
-  document.body.classList.add('sheet-open');
-  if ($('screen')) $('screen').inert = true;
+  sheetPlace_();
+  const sh = sheetEl_();
+  sh.querySelector('#sheet-title').textContent = title;
+  sh.querySelector('#sheet-body').innerHTML = html;
+  sh.classList.remove('hidden');
   sheetOnClose = onClose || null;
+  try { sh.scrollIntoView({ block: 'nearest' }); } catch (err) {}
+  try { placeCells(undefined, true); } catch (err) {}
 }
 
-/* ---------- CLOSING IT: BACK TO THE GRID, WHERE IT STOOD ---------- */
+/* ---------- CLOSING IT: THE CARD AS IT WAS ---------- */
 function closeSheet() {
   sheetStep = null;
-  const was = !$('sheet').classList.contains('hidden');
-  $('sheet').classList.add('hidden');
-  document.body.classList.remove('sheet-open');
-  if ($('screen')) $('screen').inert = false;
+  const sh = sheetEl_();
+  const was = !sh.classList.contains('hidden');
+  sh.classList.add('hidden');
   const f = sheetOnClose; sheetOnClose = null;
   if (f) { try { f(); } catch (err) { console.error('[sheet onClose]', err); } }
-  /* EMPTIED AFTER `onClose` has read it, and only if that did not open another. */
-  if ($('sheet').classList.contains('hidden')) $('sheet-body').innerHTML = '';
-  /* THE GRID WAS ONLY HIDDEN, so it kept its sizes; placed again anyway, in case the window turned meanwhile. */
+  /* EMPTIED AND SENT HOME after `onClose` has read it, and only if that did not open another. */
+  if (sh.classList.contains('hidden')) {
+    sh.querySelector('#sheet-body').innerHTML = '';
+    SHEET_AT_ = null;
+    document.querySelectorAll('.sheet-host').forEach(h => h.classList.remove('sheet-host', 'sheet-swap'));
+    if ($('sheet-home')) $('sheet-home').after(sh);
+  }
   if (was) { try { placeCells(undefined, true); } catch (err) {} }
 }
 
@@ -2125,32 +2183,103 @@ function shareCanvasPng_(canvas, filename, text) {
   });
 }
 
-/* ---------- SPEAKING, ONE VOICE FOR THE WHOLE APP (394) ---------------------------------------- */
-/* Imposter's Listen and a question's Read aloud both speak through these three, so the British voice
-   and the Chrome no-voices-yet fallback (`lang` as well as `voice`) are written once. */
+/* ---------- SPEAKING, ONE VOICE FOR THE WHOLE APP (394, 453) ----------------------------------- */
+/* Imposter's Listen, a question's Read aloud and Hear it all speak through `say_`, so the voice choice, the
+   sentence-at-a-time queue and the maths words are written once. */
 function canSay_() {
   try { return !!(window.speechSynthesis && window.SpeechSynthesisUtterance); } catch (e) { return false; }
 }
 function hush_() {
   try { if (canSay_()) window.speechSynthesis.cancel(); } catch (e) {}
 }
-/* ONE UTTERANCE, QUEUED. Called inside the tap's own handler, which is what iPhone Safari needs to speak at all; `o` = { rate, volume, onend, lang }. */
-/* `o.lang` (427): a language card's Hear it speaks es-ES or fr-FR; British English when it is not given. */
+/* THE DEVICE'S VOICES, BEST FIRST (453): the owner found the first en-GB voice robotic; a natural, neural or premium one wins, eSpeak never. */
+const VOICE_KEY = 'voice:name';
+const VOICE_GOOD = [[/\b(natural|neural)\b/i, 60], [/\b(premium|enhanced)\b/i, 50], [/siri/i, 45],
+  [/^google\b/i, 35], [/\b(serena|daniel|kate|oliver|arthur|martha|stephanie|samantha|ava|allison|libby|sonia|ryan)\b/i, 15]];
+const VOICE_BAD = /espeak|\bfred\b|compact|albert|bad news|bahh|bells|boing|bubbles|cellos|zarvox|trinoids|whisper|wobble|jester|organ|superstar|junior|ralph|kathy|good news|deranged|hysterical/i;
+const voiceLang_ = v => String((v && v.lang) || '').replace('_', '-').toLowerCase();
+/* A VOICE'S SCORE FOR `lang`: same language and region first, then en-US for English, then the language anywhere; -1000 is another language. */
+function voiceScore_(v, lang) {
+  const want = String(lang || 'en-GB').toLowerCase(), l = voiceLang_(v), name = String((v && v.name) || '');
+  if (l.slice(0, 2) !== want.slice(0, 2)) return -1000;
+  let s = l === want ? 100 : (want.slice(0, 2) === 'en' && l === 'en-us') ? 70 : 40;
+  VOICE_GOOD.forEach(g => { if (g[0].test(name)) s += g[1]; });
+  if (VOICE_BAD.test(name)) s -= 200;
+  return s;
+}
+function voicesAll_() {
+  try { const ss = window.speechSynthesis; return (ss && typeof ss.getVoices === 'function' && ss.getVoices()) || []; } catch (e) { return []; }
+}
+function voicesRanked_(lang, list) {
+  return (list || voicesAll_()).map((v, i) => ({ v, i, s: voiceScore_(v, lang) })).filter(x => x.s > -1000)
+    .sort((a, b) => b.s - a.s || a.i - b.i).map(x => x.v);
+}
+function voiceChosen_() { try { return localStorage.getItem(VOICE_KEY) || ''; } catch (e) { return ''; } }
+/* THE PERSON'S CHOICE FOR ENGLISH, if the device still has it; otherwise the best. Another language always takes its own best. */
+function voicePick_(lang, list) {
+  const ranked = voicesRanked_(lang, list), mine = voiceChosen_();
+  const kept = mine && /^en/i.test(lang) ? ranked.find(v => v.name === mine) : null;
+  return kept || ranked[0] || null;
+}
+/* MATHS SAID AS WORDS (453): the symbols a voice skips or reads as "superscript two". Words pass through unchanged. */
+const SAY_SUP = { '⁰': 0, '¹': 1, '²': 2, '³': 3, '⁴': 4, '⁵': 5, '⁶': 6, '⁷': 7, '⁸': 8, '⁹': 9 };
+const SAY_VULGAR = { '½': 'one half', '⅓': 'one third', '⅔': 'two thirds', '¼': 'one quarter', '¾': 'three quarters', '⅕': 'one fifth', '⅛': 'one eighth' };
+const SAY_DEN = { 2: ['half', 'halves'], 3: ['third', 'thirds'], 4: ['quarter', 'quarters'], 5: ['fifth', 'fifths'],
+  6: ['sixth', 'sixths'], 8: ['eighth', 'eighths'], 10: ['tenth', 'tenths'] };
+const SAY_ONES = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+function sayMaths_(t) {
+  return String(t == null ? '' : t)
+    .replace(/[½⅓⅔¼¾⅕⅛]/g, c => ' ' + SAY_VULGAR[c] + ' ')
+    .replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]+/g, m => { const n = m.split('').map(c => SAY_SUP[c]).join('');
+      return n === '2' ? ' squared ' : n === '3' ? ' cubed ' : ' to the power of ' + n + ' '; })
+    .replace(/(^|[^\d\/])(\d{1,2})\s*\/\s*(\d{1,2})(?![\d\/])/g, (m, a, n, d) => {
+      const w = SAY_DEN[+d], k = +n;
+      return a + (w && k >= 1 && k < +d ? SAY_ONES[k] + ' ' + w[k > 1 ? 1 : 0] : n + ' over ' + d); })
+    .replace(/÷/g, ' divided by ').replace(/×/g, ' times ').replace(/−/g, ' minus ').replace(/±/g, ' plus or minus ')
+    .replace(/≤/g, ' is less than or equal to ').replace(/≥/g, ' is greater than or equal to ')
+    .replace(/≠/g, ' is not equal to ').replace(/≈/g, ' is approximately ').replace(/√\s*/g, ' the square root of ')
+    .replace(/π/g, ' pi ').replace(/∞/g, ' infinity ').replace(/°/g, ' degrees ')
+    .replace(/\s+([,.?!:;])/g, '$1').replace(/\s+/g, ' ').trim();
+}
+/* SENTENCE BY SENTENCE (453) when a text is long: short utterances, so Chrome's cut-off at about fifteen seconds never comes and each full stop is a pause. */
+function sayChunks_(text, max) {
+  max = max || 180;
+  const out = [], all = String(text == null ? '' : text).replace(/\s+/g, ' ').trim();
+  /* A LINE THAT IS ALREADY SHORT IS ONE UTTERANCE: Read aloud hands over a line at a time, and a split there only adds a gap. */
+  if (all.length <= max) return all ? [all] : [];
+  all.split(/(?<=[.?!])\s+(?=[A-Z0-9“\u0022\u0027(£¿¡])/).forEach(s => {
+      while (s.length > max) {
+        let cut = s.lastIndexOf(', ', max);
+        if (cut < max / 3) cut = s.lastIndexOf(' ', max);
+        if (cut < 1) cut = max;
+        out.push(s.slice(0, cut + 1).trim()); s = s.slice(cut + 1).trim();
+      }
+      if (s) out.push(s);
+    });
+  return out;
+}
+/* QUEUED, A SENTENCE AT A TIME, inside the tap's own handler, which is what iPhone Safari needs to speak at all; `o` = { rate, volume, onend, onstart, lang }. */
+/* `o.lang` (427): a language card's Hear it speaks es-ES or fr-FR; British English when it is not given. Voices not loaded yet: `u.lang` alone chooses. */
 function say_(text, o) {
   o = o || {};
   try {
     const ss = window.speechSynthesis;
-    const u = new window.SpeechSynthesisUtterance(String(text));
     const lang = /^[a-z]{2}-[A-Z]{2}$/.test(String(o.lang || '')) ? o.lang : 'en-GB';
-    u.lang = lang;
-    const voice = (typeof ss.getVoices === 'function' ? ss.getVoices() || [] : [])
-      .find(v => String(v.lang || '').replace('_', '-').toLowerCase().indexOf(lang.toLowerCase()) === 0);
-    if (voice) u.voice = voice;
-    u.rate = o.rate || 0.9;
-    u.volume = o.volume == null ? 1 : o.volume;
-    if (o.onend) { u.onend = o.onend; u.onerror = o.onend; }
-    if (o.onstart) u.onstart = o.onstart;
-    ss.speak(u);
+    const parts = sayChunks_(/^en/.test(lang) ? sayMaths_(text) : String(text));
+    if (!parts.length) { if (o.onend) o.onend(); return null; }
+    const voice = voicePick_(lang);
+    let u = null;
+    parts.forEach((p, i) => {
+      u = new window.SpeechSynthesisUtterance(p);
+      u.lang = voice && voice.lang ? String(voice.lang).replace('_', '-') : lang;
+      if (voice) u.voice = voice;
+      u.rate = o.rate || 0.95;
+      u.pitch = 1;
+      u.volume = o.volume == null ? 1 : o.volume;
+      if (i === 0 && o.onstart) u.onstart = o.onstart;
+      if (i === parts.length - 1 && o.onend) { u.onend = o.onend; u.onerror = o.onend; }
+      ss.speak(u);
+    });
     return u;
   } catch (e) { return null; }
 }

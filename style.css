@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-25-p-feed-compose";
+  --css-version: "2026-10-25-s-sheet-in-place";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -759,20 +759,13 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .empty { padding: 2.5rem 1.2rem; text-align: center; color: var(--faint); font-size: .88rem; }
 code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
 
-/* ---------- THE SHEET IS A PAGE (420) ---------------------------------------------------------- */
-/* No backdrop and nothing floating: while it is open the grid steps aside and the sheet is the page, in
-   the flow, with Back at the top. The grid keeps its sizes (out of the flow, unseen, `inert`). */
+/* ---------- THE SHEET OPENS IN PLACE (453) ------------------------------------------------------ */
+/* Inside the card that was pressed, under its tile row; an editor (`.sheet-swap`) replaces the card's own content. */
 #sheet.hidden { display: none !important; }
-body.sheet-open #screen {
-  position: absolute; left: 0; right: 0; top: calc(var(--top) + var(--safe-top));
-  opacity: 0; pointer-events: none;
-}
-#sheet {
-  position: static; width: 100%; max-width: var(--app); margin: 0 auto;
-  display: flex; flex-direction: column;
-  height: calc(100dvh - var(--top) - var(--safe-top) - var(--bar) - var(--safe-bottom));
-  background: var(--bg);
-}
+#sheet { position: static; width: 100%; display: flex; flex-direction: column;
+  margin: .6rem 0 0; border-top: 1px solid var(--line-soft); background: transparent; }
+.sheet-swap > :not(#sheet) { display: none !important; }
+.sheet-swap > #sheet { margin-top: 0; border-top: 0; }
 #sheet-head {
   display: flex; align-items: center; gap: .4rem;
   padding: .35rem var(--pad) .6rem;
@@ -781,7 +774,7 @@ body.sheet-open #screen {
 }
 #sheet-close { color: var(--gold); font: 500 .9rem/1 var(--font); min-height: 44px; min-width: 44px; flex: none;
   display: inline-flex; align-items: center; padding: 0 .4rem 0 0; background: none; border: 0; cursor: pointer; }
-#sheet-body { flex: 1 1 auto; padding: .85rem var(--pad) 1.5rem; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+#sheet-body { flex: 1 1 auto; padding: .6rem 0 .4rem; }
 
 /* ---------- THE TAB BAR IS GONE, AND THE LAST THING IT RESERVED WAS THE ONE THAT STILL WORKED § */
 
@@ -970,13 +963,10 @@ a { color: inherit; text-decoration: none; }
 /* `.pick-row` was here — the row of dropdowns above the search on the Find screen. § */
 
 /* ---------- CALCULATOR § */
-.mc-display { padding: 1.1rem .7rem .5rem; position: relative; min-height: 6.2rem;
+.mc-display { position: relative; min-height: 6.4rem;
               display: flex; flex-direction: column; justify-content: space-between; cursor: default;
               user-select: none; font-family: 'Cambria Math', 'STIX Two Math', Georgia, serif; }
 .mc-display:focus-visible { outline: 2px solid var(--calc-shift); outline-offset: 2px; }
-/* S and D, the Casio's status line; a pseudo-element, so it is never part of the sum's text. */
-.mc-display::before { content: attr(data-ind); position: absolute; top: .2rem; left: .5rem;
-                      font: 700 .6rem var(--font); color: inherit; opacity: .8; white-space: pre; }
 .mc-in { font-size: 1.35rem; text-align: left; overflow-x: auto; white-space: nowrap; line-height: 2.1; }
 .mc-out { font-size: 1.6rem; text-align: right; min-height: 1.9rem; white-space: nowrap; overflow-x: auto; }
 .mc-word { font-style: normal; }
@@ -992,90 +982,99 @@ a { color: inherit; text-decoration: none; }
 .mc-box { display: inline-block; min-width: .65em; height: .95em; border: 1px dashed currentColor;
           vertical-align: middle; line-height: .95em; }
 .mc-box .mc-caret { height: .9em; }
-/* THE fx-83GT CW, DRAWN: a device, so its colours are its own, defined here and nowhere else (docs/history/447). */
+/* THE fx-83GT CW, DRAWN: a device, so its colours are its own, defined here and nowhere else (docs/history/447, 453). */
 .calc { --calc-body: #2a2b2e; --calc-edge: #141517; --calc-bezel: #1d1e20; --calc-lcd: #cddbd3; --calc-lcd-ink: #17201b;
         --calc-key: #d8d9db; --calc-key-ink: #1b1c1e; --calc-key-dark: #232427; --calc-pad: #19191b;
-        --calc-shift: #2c46b4; --calc-legend: #6f9ff0; --calc-print: #e6e6e7;
+        --calc-shift: #2c46b4; --calc-legend: #79a5f2; --calc-print: #e6e6e7; --calc-gut: .45rem;
         font-family: 'Arial Narrow', 'Roboto Condensed', Arial, Helvetica, sans-serif;
-        max-width: 24rem; margin-inline: auto; padding: 1rem clamp(2px, 1.2vw, .6rem) 1.1rem; border-radius: 1.6rem 1.6rem 2.2rem 2.2rem;
+        max-width: 24rem; margin-inline: auto; padding: 1rem clamp(2px, 1.6vw, .7rem) 1.2rem;
+        border-radius: 1.6rem 1.6rem 2.2rem 2.2rem;
         background: linear-gradient(180deg, #303134, var(--calc-body) 30%, #252629); color: var(--calc-print);
         box-shadow: 0 0 0 2px var(--calc-edge), inset 0 0 0 2px #36373b, 0 14px 34px rgb(0 0 0 / .55); }
-.calc-bezel { background: var(--calc-bezel); border-radius: .7rem; padding: .7rem .7rem .4rem; margin-bottom: .7rem;
+.calc-bezel { background: var(--calc-bezel); border-radius: .7rem; padding: .7rem .7rem .4rem; margin-bottom: .8rem;
               box-shadow: inset 0 1px 3px rgb(0 0 0 / .7); }
 .calc .mc-display { background: var(--calc-lcd); color: var(--calc-lcd-ink); border-radius: 3px; border: 1px solid #0d0e0f;
-  box-shadow: inset 0 2px 6px rgb(0 0 0 / .25);
+  box-shadow: inset 0 2px 6px rgb(0 0 0 / .25); padding: .3rem .6rem .45rem;
   /* the dot matrix, faint: the LCD's pixels show through as on the glass */
   background-image: repeating-linear-gradient(0deg, rgb(0 0 0 / .035) 0 1px, transparent 1px 3px),
                     repeating-linear-gradient(90deg, rgb(0 0 0 / .035) 0 1px, transparent 1px 3px);
   text-shadow: .5px .5px 0 rgb(23 32 27 / .18); }
 .calc .mc-caret { background: var(--calc-lcd-ink); }
+/* The LCD's status line: every indicator has its place, lit or ghosted, as the segments are on the glass. */
+.mc-stat { display: flex; gap: .7em; font: 700 .58rem/1 Arial, Helvetica, sans-serif; letter-spacing: .03em;
+           padding-bottom: .25rem; border-bottom: 1px solid rgb(23 32 27 / .12); }
+.mc-stat b::before { content: attr(data-i); }
+.mc-stat b { opacity: .13; } .mc-stat b.on { opacity: .85; }
 .mc-note { font: 600 .8rem var(--font); white-space: normal; display: block; text-align: left; }
 .calc-label { text-align: right; font-size: .62rem; font-weight: 700; letter-spacing: .4em; text-transform: uppercase;
               padding: .45rem .1rem 0; color: var(--calc-print); }
-.calc-top, .calc-fn { display: grid; grid-template-columns: repeat(6, minmax(43.5px, 1fr)); }
-.calc-num { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); margin-top: .2rem; }
-.calc-top { grid-template-rows: repeat(3, auto); position: relative; margin-bottom: .2rem; }
+/* One rhythm for every block: equal columns, the same gutter between rows, a legend slot over every key. */
+.calc-top, .calc-fn { display: grid; grid-template-columns: repeat(6, minmax(43.5px, 1fr)); row-gap: var(--calc-gut); }
+.calc-num { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); row-gap: var(--calc-gut); }
+.calc-fn { margin-block: var(--calc-gut); }
 /* The whole cell is the key, so the tap target is the column, never the drawn cap alone. */
 .mc-btn { position: relative; min-height: 44px; min-width: 0; padding: 0; background: none; border: 0; cursor: pointer;
-          display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 1px;
+          display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 3px;
           color: var(--calc-key-ink); font-size: 1rem; font-weight: 700; -webkit-tap-highlight-color: transparent; }
-.mc-lab { display: flex; align-items: center; justify-content: center; width: 86%; border-radius: 999px;
-          background: radial-gradient(120% 90% at 50% 25%, #f1f1f2, var(--calc-key) 55%, #b9babd);
+.mc-lab { display: flex; align-items: center; justify-content: center; gap: .05em; border-radius: 999px; line-height: 1;
+          background: radial-gradient(120% 90% at 50% 25%, #f3f3f4, var(--calc-key) 55%, #b9babd);
           box-shadow: 0 2px 0 #0e0f10, 0 3px 4px rgb(0 0 0 / .5); transition: transform var(--quick) ease; }
 .mc-btn:active .mc-lab { transform: translateY(1px) scale(.95); box-shadow: 0 1px 0 #0e0f10; }
 .mc-btn:focus-visible { outline: none; }
 .mc-btn:focus-visible .mc-lab { outline: 2px solid var(--calc-legend); outline-offset: 2px; }
-/* The SHIFT function, printed in blue above the key, left as on the case; brighter while SHIFT is held. */
-.mc-alt { align-self: flex-start; padding-left: 4%; height: .8rem; font-size: .6rem; font-weight: 700; line-height: 1; color: var(--calc-legend);
-          white-space: nowrap; opacity: .85; }
-.mc-shifted .calc .mc-alt { opacity: 1; text-shadow: 0 0 6px rgb(91 143 234 / .6); }
+/* The legend slot: one height, centred on its key, small even type; an empty slot keeps the row's rhythm. */
+.mc-alt { display: flex; align-items: flex-end; justify-content: center; width: 100%; height: .8rem; overflow: hidden;
+          font-size: .6rem; font-weight: 700; line-height: 1; color: var(--calc-legend); white-space: nowrap; opacity: .9; }
+.mc-shifted .calc .mc-alt { opacity: 1; text-shadow: 0 0 6px rgb(121 165 242 / .6); }
 .mc-btn sup, .mc-alt sup { font-size: .7em; vertical-align: .5em; line-height: 0; }
-.mc-btn sub { vertical-align: -.25em; line-height: 0; }
-.calc-fn .mc-lab { height: 34px; font-size: .95rem; }
-.calc-num .mc-lab { height: 46px; width: 84%; font-size: 1.45rem; font-weight: 500; }
+.mk { display: inline-block; vertical-align: middle; overflow: visible; }
+.mc-alt .mk { height: 1.45em; width: auto; }
+.mc-alt sup { vertical-align: baseline; position: relative; top: -.45em; line-height: 1; }
+/* Oval function keys, round number keys — the device's two shapes. */
+.calc-fn .mc-lab, .calc-top .lt .mc-lab { width: 82%; height: 30px; font-size: .95rem; }
+.calc-num .mc-lab { width: 80%; aspect-ratio: 1.1; height: auto; max-height: 54px; font-size: 1.45rem; font-weight: 500; }
 .mc-k-C .mc-lab, .mc-k-sd .mc-lab, [data-mc="="] .mc-lab { font-size: 1.2rem; font-weight: 700; }
 .calc-num .mk-fmt { font-size: .6rem; font-weight: 800; font-style: normal; letter-spacing: -.02em; }
-/* The top block: dark round keys with their names printed white over them, a D-pad on a dark disc, a rocker. */
-.calc-top .mc-alt { align-self: center; padding: 0; color: var(--calc-print); font-size: .55rem; letter-spacing: .02em; }
-.calc-top .mc-lab { width: 38px; height: 38px; max-width: 86%; color: var(--calc-print); font-size: .95rem;
+.calc-fn .mk { height: 1.1em; width: auto; }
+/* The top block on a grid of half-rows: the captioned keys take three, the D-pad's keys two, so the pad sits clear. */
+.calc-top { grid-template-rows: repeat(6, auto) auto; row-gap: 0; margin-bottom: 0; }
+.calc-top .mc-alt { color: var(--calc-print); font-size: .55rem; letter-spacing: .02em; }
+.calc-top .mc-lab { width: 36px; height: 36px; color: var(--calc-print); font-size: .95rem;
                     background: radial-gradient(100% 100% at 50% 20%, #3a3b3f, var(--calc-key-dark) 70%); border: 1px solid #0c0c0d; }
-.calc-top .lt .mc-lab { width: 86%; height: 34px; max-width: none; color: var(--calc-key-ink);
-                        background: radial-gradient(120% 90% at 50% 25%, #f1f1f2, var(--calc-key) 55%, #b9babd); border: 0; }
+.calc-top .lt .mc-lab { color: var(--calc-key-ink); background: radial-gradient(120% 90% at 50% 25%, #f3f3f4, var(--calc-key) 55%, #b9babd); border: 0; }
 .calc-top .sh .mc-lab { background: radial-gradient(100% 100% at 50% 25%, #4560d0, var(--calc-shift) 70%); color: #c9d4ff; }
-.mc-shifted .calc-top .sh .mc-lab { box-shadow: 0 0 0 2px var(--calc-legend), 0 0 10px rgb(91 143 234 / .7); }
-.calc-pad { grid-row: 1 / 4; grid-column: 3 / 6; place-self: center; width: min(100%, 9.2rem); aspect-ratio: 1;
-            border-radius: 50%; background: var(--calc-pad); box-shadow: inset 0 1px 2px rgb(0 0 0 / .8); }
+.mc-shifted .calc-top .sh .mc-lab { box-shadow: 0 0 0 2px var(--calc-legend), 0 0 10px rgb(121 165 242 / .7); }
+.calc-pad { grid-area: 3 / 3 / 5 / 6; align-self: center; height: 40px; border-radius: 20px; background: var(--calc-pad);
+            box-shadow: inset 0 1px 2px rgb(0 0 0 / .8); }
+.calc-pad-v { grid-area: 1 / 4 / 7 / 5; align-self: stretch; justify-self: center; width: 40px; height: auto; }
 .calc-top .pad { z-index: 1; justify-content: center; }
-.calc-top .pad .mc-lab { width: 36px; height: 36px; font-size: 1.15rem; }
-.mc-k-on { grid-area: 1 / 1; } .mc-k-home { grid-area: 1 / 2; } .mc-k-set { grid-area: 2 / 1; } .mc-k-back { grid-area: 2 / 2; }
-.mc-k-up { grid-area: 1 / 4; } .mc-k-left { grid-area: 2 / 3; } .mc-k-ok { grid-area: 2 / 4; } .mc-k-right { grid-area: 2 / 5; }
-.mc-k-down { grid-area: 3 / 4; } .mc-k-pgup { grid-area: 1 / 6; } .mc-k-pgdn { grid-area: 2 / 6; }
-.mc-k-shift { grid-area: 3 / 1; } .mc-k-var { grid-area: 3 / 2; } .mc-k-func { grid-area: 3 / 3; }
-.mc-k-cat { grid-area: 3 / 5; } .mc-k-tools { grid-area: 3 / 6; }
+.calc-top .pad .mc-lab { width: 34px; height: 34px; font-size: 1.1rem; }
+.mc-k-on { grid-area: 1 / 1 / 4 / 2; } .mc-k-home { grid-area: 1 / 2 / 4 / 3; }
+.mc-k-set { grid-area: 4 / 1 / 7 / 2; } .mc-k-back { grid-area: 4 / 2 / 7 / 3; }
+.mc-k-up { grid-area: 1 / 4 / 3 / 5; } .mc-k-left { grid-area: 3 / 3 / 5 / 4; } .mc-k-ok { grid-area: 3 / 4 / 5 / 5; }
+.mc-k-right { grid-area: 3 / 5 / 5 / 6; } .mc-k-down { grid-area: 5 / 4 / 7 / 5; }
+.mc-k-pgup { grid-area: 1 / 6 / 4 / 7; justify-content: flex-end; } .mc-k-pgdn { grid-area: 4 / 6 / 7 / 7; justify-content: flex-start; }
+.mc-k-shift { grid-area: 7 / 1; } .mc-k-var { grid-area: 7 / 2; } .mc-k-func { grid-area: 7 / 3; }
+.mc-k-cat { grid-area: 7 / 5; } .mc-k-tools { grid-area: 7 / 6; }
+.calc-top .mc-k-on, .calc-top .mc-k-home, .calc-top .mc-k-set, .calc-top .mc-k-back { justify-content: center; }
+.calc-top .mc-k-shift, .calc-top .lt { margin-top: var(--calc-gut); }
 .mc-k-ok .mc-lab { font-size: .7rem; font-weight: 800; }
 /* The scroll rocker is one long key, drawn as two halves meeting. */
-.calc-top .pg .mc-lab { width: 40px; height: 44px; font-size: .8rem; }
-.mc-k-pgup { justify-content: flex-end; } .mc-k-pgup .mc-lab { border-radius: 20px 20px 4px 4px; border-bottom: 0; }
-.mc-k-pgdn { justify-content: flex-start; } .mc-k-pgdn .mc-lab { border-radius: 4px 4px 20px 20px; border-top: 0; }
-.mk-b { display: inline-block; width: .55em; height: .65em; border: 1px solid currentColor; vertical-align: middle; }
-.mc-lab .mk-b { background: currentColor; border: 0; width: .5em; height: .55em; }
-.mc-lab sup.mk-b, .mc-lab sub.mk-b { background: none; border: 1.5px solid currentColor; width: .38em; height: .42em; vertical-align: .75em; }
-.mc-lab sub.mk-b { vertical-align: -.35em; margin-inline: 1px; }
-.calc-num .mc-lab sup.mk-b { background: currentColor; border: 0; width: .3em; height: .3em; }
-sup.mk-b, sub.mk-b { width: .45em; height: .5em; vertical-align: .55em; }
-sub.mk-b { vertical-align: -.2em; }
-.mk-fr { display: inline-flex; flex-direction: column; gap: 2px; vertical-align: middle; }
-/* The device keeps the page's side gutter only; the card's own padding would cost the keys their 40px. */
-.card.is-widget:has(.calc) { padding-inline: 0; margin-inline: 0; }
+.calc-top .pg .mc-lab { width: 40px; height: 46px; font-size: .8rem; }
+.mc-k-pgup .mc-lab { border-radius: 20px 20px 4px 4px; border-bottom: 0; }
+.mc-k-pgdn .mc-lab { border-radius: 4px 4px 20px 20px; border-top: 0; }
+/* The device is the card: no case around the case, and the name and its star on one quiet line above it. */
+.card.is-widget:has(.calc) { padding-inline: 0; margin-inline: 0; background: none; border: 0; box-shadow: none;
+                             position: relative; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.card.is-widget:has(.calc) > .wgt-keep { position: absolute; top: 0; right: .2rem; margin: 0; z-index: 1; }
+.card:has(> .calc) { background: none; border: 0; box-shadow: none; padding: 0; }
+.calc-name { font: 700 .75rem Arial, Helvetica, sans-serif; letter-spacing: .14em; text-transform: uppercase;
+             color: var(--dim); margin: 0 0 .7rem; padding: .9rem 3.5rem 0 .3rem; min-height: 44px; display: flex; align-items: center; }
 /* Six 44px keys need 268px: on the narrowest phones the pane's gutter goes too, and the device meets the edge. */
 @media (max-width: 379px) {
   .pane:has(.calc) { padding-inline: 0; }
   .calc { padding-inline: 0; }
-  .card.is-widget:has(.calc) { border-inline: 0; }
 }
-.mk-fr b { display: block; width: .5em; height: .42em; border: 1.5px solid currentColor; margin-inline: auto; }
-.mk-fr u { display: block; width: .8em; height: 2px; background: currentColor; }
-.mc-lab .mk-fr b:first-child { background: currentColor; }
 .mk-ic { display: inline-block; width: 1em; height: 1em; vertical-align: middle; background: currentColor;
          -webkit-mask: var(--ic) center / contain no-repeat; mask: var(--ic) center / contain no-repeat; }
 .mk-home { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linejoin='round'%3E%3Cpath d='M3 11 12 3l9 8v10H3z'/%3E%3C/svg%3E"); }
@@ -4503,6 +4502,9 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 .tb-points li { margin: 0 0 .3rem; }
 /* ---------- A CHAPTER'S ANIMATION: ITS STAGE, AND THE ONES NOT IN FRONT HELD STILL § */
 .tb-an-stage { display: grid; place-items: center; margin: .75rem 0; container-type: inline-size; }
+/* SMALLER, SO THE WORDS UNDER IT STAY ON THE GLASS (447): one cap for every drawing, never per row; a drawing keeps its shape (viewBox meets). */
+.tb-an-stage > * { max-width: min(100%, 28rem); }
+.tb-an-stage > * > svg, .tb-an-stage > svg { max-height: 28svh; }
 .tb-an-stage:not(.is-on) *, .tb-an-stage:not(.is-on) *::before,
 .tb-an-stage:not(.is-on) *::after { animation-play-state: paused !important; }
 
