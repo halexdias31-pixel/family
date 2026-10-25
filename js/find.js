@@ -1381,8 +1381,43 @@ function insertItem_(r) {
 function insertsFor_(x) {
   if (!x || x.kind !== 'question' || !/paper/i.test(String(x.documentType || ''))) return [];
   const has = (list, v) => !list.length || asList_(v).some(a => list.indexOf(String(a)) !== -1);
-  return (DATA.inserts || []).filter(r => has(r.forSubjects, x.subject) && has(r.forLevels, levelOf_(x))
-    && has(r.forTiers, x.tier) && has(r.boards, x.examBoard));
+  /* A READING INSERT IS ONE PAPER'S (458): its paper ids, and nothing else, say which */
+  const paper = String((x.row && x.row.paper_id) || '');
+  return (DATA.inserts || []).filter(r => (r.forPapers || []).length ? r.forPapers.indexOf(paper) !== -1
+    : has(r.forSubjects, x.subject) && has(r.forLevels, levelOf_(x)) && has(r.forTiers, x.tier) && has(r.boards, x.examBoard));
+}
+/* ---------- A READING INSERT'S EXTRACT (458): private, so asked for when it is opened and drawn when it lands ---------- */
+const insReading_ = r => !!r && (!!(r.forPapers || []).length || !!r.sourceText || !!r.libHas);
+/* THE TEXT IS PARAGRAPHS (a blank line between), `# ` a heading, `> ` the paper's note above it, `[n]` where the paper prints line n */
+function insSource_(r) {
+  const lines = !!r.lineNumbers;
+  return String(r.sourceText || '').split(/\n\s*\n/).map(p => p.trim()).filter(Boolean).map(p => {
+    if (/^# /.test(p)) return `<h4 class="insrc-h">${esc(p.slice(2))}</h4>`;
+    if (/^> /.test(p)) return `<p class="insrc-note">${esc(p.replace(/^> /gm, ''))}</p>`;
+    const body = esc(p).replace(/\[(\d{1,3})\]\s*/g, (m, n) => lines ? `<span class="insrc-ln" aria-label="line ${n}">${n}</span>` : '');
+    return `<p class="insrc-p">${body}</p>`;
+  }).join('');
+}
+/* WHAT A READING INSERT SAYS UNTIL ITS WORDS COME: sign in, the dots, coming soon, or why not */
+function insSay_(r) {
+  if (typeof USER === 'undefined' || !USER || !USER.token) return '<p class="sub lib-sign">Sign in to read the source — your account is a few screens to the right.</p>';
+  const t = 'in:' + r.id;
+  if (LIB.gone.has(t)) return '<p class="empty">' + (r.pending ? 'Coming soon.' : 'This source is not in the library yet.') + '</p>';
+  if (LIB.failed) return `<p class="empty">Couldn’t load this.<br><span class="faint">${esc(LIB.failed)}</span><br><span class="text-action" data-do="lib-retry">Try again</span></p>`;
+  return loading_();
+}
+/* ASKED FOR, if it has words in the Ledger and they are not here yet */
+function insWant_(r) {
+  if (r && !r.sourceText && (r.libHas || r.pending)) libAsk_(['in:' + r.id]);
+}
+/* AND WHEN AN ANSWER LANDS, every open wait for an insert says where things stand, or becomes the source */
+function insLanded_() {
+  document.querySelectorAll('.insrc-wait[data-ins]').forEach(el => {
+    const r = insertRow_(el.getAttribute('data-ins'));
+    if (!r) return;
+    if (r.sourceText) { el.classList.remove('insrc-wait'); el.innerHTML = insSource_(r); }
+    else el.innerHTML = insSay_(r);
+  });
 }
 /* THE TILE ON A PAPER'S QUESTION: the sheet over the page, as the figure tile opens a figure. */
 function insertTile_(x) {
@@ -1399,6 +1434,15 @@ function insertSheet_(r) {
       <ul>${(s.lines || []).map(l => `<li><span class="insh-fn">${esc(l.name || '')}${mark(l)}</span>
         <span class="insh-fm">${typeset_(String(l.math || ''))}</span>${l.note ? `<span class="insh-note">${esc(l.note)}</span>` : ''}</li>`).join('')}</ul>
     </section>`).join('');
+  if (insReading_(r)) {
+    return `<div class="insh-sheet insh-reading">
+    <p class="insh-kick">${esc(['Insert'].concat(r.boards).join(' · '))}</p>
+    <h3>${esc(r.name)}</h3>
+    ${r.summary ? `<p class="insh-sum">${esc(r.summary)}</p>` : ''}
+    ${r.sourceText ? `<div class="insrc${r.lineNumbers ? ' has-lines' : ''}">${insSource_(r)}</div>`
+      : `<div class="insrc insrc-wait${r.lineNumbers ? ' has-lines' : ''}" data-ins="${esc(r.id)}">${insSay_(r)}</div>`}
+  </div>`;
+  }
   return `<div class="insh-sheet">
     <p class="insh-kick">${esc(['Insert'].concat(r.boards).join(' · '))}</p>
     <h3>${esc(r.name)}</h3>
@@ -1415,6 +1459,7 @@ function insertTable_(r) {
 }
 function insertCard_(x) {
   const r = x.row;
+  insWant_(r);
   return `<div class="card insh">
     ${tagRow_(x)}
     ${insertSheet_(r)}
@@ -1425,7 +1470,7 @@ function insertCard_(x) {
 on('ins-show', el => {
   const r = insertRow_(el.getAttribute('data-id'));
   /* IN PLACE (453): under the question's own tile row, Back gives the page back. */
-  if (r) { sheetHere_(el); openSheet(r.name, `<div class="insh">${insertSheet_(r)}</div>`); }
+  if (r) { insWant_(r); sheetHere_(el); openSheet(r.name, `<div class="insh">${insertSheet_(r)}</div>`); }
 });
 on('ins-official', el => {
   const u = String(el.getAttribute('data-url') || '');
@@ -3369,6 +3414,7 @@ function libRepaintFinder_(F) {
 /* AN ANSWER CAME BACK (or did not): the card in front, if it was waiting, is drawn again; every other waiting card says
    where things stand without being rebuilt. */
 function libLanded_() {
+  try { insLanded_(); } catch (e) {}
   try {
     document.querySelectorAll('.lib-wait').forEach(el => {
       const x = libItemByKey_(el.getAttribute('data-lib') || '');
@@ -4816,6 +4862,7 @@ const PAD_TOOL_FACE = {
   pen:     { icon: 'pen',     label: 'Pen',     note: 'draw freehand' },
   ruler:   { icon: 'ruler',   label: 'Ruler',   note: 'drag a straight line' },
   compass: { icon: 'compass', label: 'Compass', note: 'press the centre, drag out' },
+  protractor: { icon: 'protractor', label: 'Protractor', note: 'on the page: drag it, turn it' },
 };
 const padToolTile_ = (t, on) => tile_(Object.assign({ act: 'pad-tool', cls: 'qpad-tool', data: { tool: t },
   on: on, pressed: on }, PAD_TOOL_FACE[t]));
@@ -4826,12 +4873,13 @@ const padToolsOf_ = (x, svg) => {
   if (t.indexOf('ruler') === -1 && svg && padGrid_(svg)) t.splice(1, 0, 'ruler');
   const kit = qToolkit_(x);
   if (kit) kit.pen.forEach(k => { if (PAD_TOOL_FACE[k] && t.indexOf(k) === -1) t.push(k); });
-  return ['pen', 'ruler', 'compass'].filter(k => t.indexOf(k) !== -1);
+  return ['pen', 'ruler', 'compass', 'protractor'].filter(k => t.indexOf(k) !== -1);
 };
 
 /* TWO GROUPS IN THE ROW, so it breaks BETWEEN them and never inside one. § */
-const padBar_ = (pen, tools, tool) => `<div class="qpad-bar tile-row" role="toolbar" aria-label="Drawing">
-      ${tools.length > 1 ? `<span class="qpad-group">${tools.map(t => padToolTile_(t, t === tool)).join('')}</span>` : ''}
+/* THE PROTRACTOR IS LIT WHILE IT LIES ON THE PAGE, beside whichever tool draws (458): it is put down, not drawn with. */
+const padBar_ = (pen, tools, tool, k) => `<div class="qpad-bar tile-row" role="toolbar" aria-label="Drawing">
+      ${tools.length > 1 ? `<span class="qpad-group">${tools.map(t => padToolTile_(t, t === 'protractor' ? padProtOn_(k) : t === tool)).join('')}</span>` : ''}
       <span class="qpad-group">${tile_({ icon: 'undo', label: 'Undo', note: 'the last mark', act: 'pad-undo', cls: 'qpad-undo' })}${
       tile_({ icon: 'bin', label: 'Clear', note: 'every mark', act: 'pad-clear', cls: 'qpad-clear' })}</span>
     </div>`;
@@ -4865,7 +4913,7 @@ function padWrap_(x, svg, foot) {
   const ka = padAspect_(x, svg);
   const tools = padToolsOf_(x, svg);
   const held = PAD_TOOL.get(k);
-  const tool = held && tools.indexOf(held) !== -1 ? held : 'pen';
+  const tool = held && held !== 'protractor' && tools.indexOf(held) !== -1 ? held : 'pen';
   /* THE OVERLAY TAKES ITS BOX FROM THE PICTURE UNDER IT, by stretching to the same box, rather than by parsing a viewBox out of the drawing's markup. § */
   const zm = pen && PAD_ZOOM.has(k) ? PAD_ZOOM.get(k) : null;
   return `<div class="qpad${pen ? ' is-drawing' : ''}${zm ? ' is-zoomed' : ''}" data-k="${esc(k)}" data-aspect="${ka}"${
@@ -4877,8 +4925,9 @@ function padWrap_(x, svg, foot) {
           `<path vector-effect="non-scaling-stroke" d="${padPath_(st, ka)}"/>`).join('')}</g>
         <g class="qpad-aid"></g>
       </svg>
+      ${tools.indexOf('protractor') !== -1 && padProtOn_(k) ? padProtHtml_(k) : ''}
     </div>
-    ${padBar_(pen, tools, tool)}
+    ${padBar_(pen, tools, tool, k)}
     ${/* WHERE THE MARKS GO, AND ONLY A `pad:` KEY GOES ANYWHERE: § */
           ''}
     <p class="qpad-note" data-kept-k="${esc(k)}">${esc(padNoteSay_(k))}</p>
@@ -5649,7 +5698,8 @@ const PAD_CLEARED_MARK = new Map();
 /* THE TOOL A DRAG ON THIS PAD USES: § */
 function padToolNow_(pad) {
   const t = (pad && PAD_TOOL.get(pad.getAttribute('data-k') || '')) || 'pen';
-  return t !== 'pen' && pad.querySelector('.qpad-tool[data-tool="' + t + '"]') ? t : 'pen';
+  /* the protractor is laid on the page, never drawn with (458) */
+  return t !== 'pen' && t !== 'protractor' && pad.querySelector('.qpad-tool[data-tool="' + t + '"]') ? t : 'pen';
 }
 
 /* ---------- SCREEN PIXELS, NOT PICTURE UNITS, FOR ANYTHING ROUND § */
@@ -6973,9 +7023,107 @@ function padForgetOthers_() {
 on('pad-tool', (el) => {
   const pad = el.closest('.qpad'); if (!pad) return;
   const k = pad.getAttribute('data-k') || '';
-  PAD_TOOL.set(k, el.getAttribute('data-tool') || 'pen');
+  const t = el.getAttribute('data-tool') || 'pen';
+  /* THE PROTRACTOR IS PUT DOWN OR PICKED UP, and the tool in hand stays in hand (458). */
+  if (t === 'protractor') {
+    const st = padProtOf_(k);
+    st.on = !st.on;
+    if (PAD_ON !== k) padTake_(pad, k);
+    padProtSync_(k);
+    return;
+  }
+  PAD_TOOL.set(k, t);
   if (PAD_ON !== k) padTake_(pad, k); else padArm_(pad, true);
 });
+
+/* ---------- THE PROTRACTOR (458): a 180° scale lying over the pen's page, moved by its body, turned by its knob ---------- */
+/* where it lies, per pad key for the visit: its centre in % of the picture, its turn in degrees */
+const PAD_PROT = new Map();
+function padProtOf_(k) { if (!PAD_PROT.has(k)) PAD_PROT.set(k, { on: false, x: 50, y: 70, a: 0 }); return PAD_PROT.get(k); }
+const padProtOn_ = k => !!(k && PAD_PROT.has(k) && PAD_PROT.get(k).on);
+/* THE PIVOT (the centre of the base line) inside the drawing's box, in %: the box is -8 -26 216 134 */
+const PROT_PX = 50, PROT_PY = 126 / 134 * 100;
+/* WITHIN THIS MANY DEGREES OF LEVEL OR UPRIGHT IT SETTLES THERE, as a ruler laid on a line does */
+const PROT_SNAP_DEG = 2;
+let PROT_SVG = '';
+function padProtSvg_() {
+  if (PROT_SVG) return PROT_SVG;
+  const R = 100, cx = 100, cy = 100, P = (r, d) => { const t = (180 - d) * Math.PI / 180; return [(cx + r * Math.cos(t)).toFixed(2), (cy - r * Math.sin(t)).toFixed(2)]; };
+  let ticks = '', nums = '';
+  for (let d = 0; d <= 180; d++) {
+    const len = d % 10 === 0 ? 12 : d % 5 === 0 ? 8 : 4, a = P(R, d), b = P(R - len, d);
+    ticks += `M${a[0]} ${a[1]}L${b[0]} ${b[1]}`;
+    if (d % 10 === 0) {
+      const o = P(R - 19, d), i = P(R - 31, d);
+      nums += `<text x="${o[0]}" y="${o[1]}">${d}</text><text class="qprot-in" x="${i[0]}" y="${i[1]}">${180 - d}</text>`;
+    }
+  }
+  PROT_SVG = `<svg viewBox="-8 -26 216 134" aria-hidden="true">
+    <path class="qprot-body" d="M0 100A100 100 0 0 1 200 100Z"/>
+    <path class="qprot-ticks" d="${ticks}M${cx} ${cy}L${cx} ${cy - 40}M${cx - 6} ${cy}L${cx + 6} ${cy}"/>
+    <g class="qprot-nums">${nums}</g>
+    <circle class="qprot-pin" cx="${cx}" cy="${cy}" r="2.5"/>
+    <line class="qprot-stem" x1="${cx}" y1="0" x2="${cx}" y2="-14"/>
+    <circle class="qprot-knob" data-prot="turn" cx="${cx}" cy="-16" r="9"/>
+    <circle class="qprot-hit" data-prot="turn" cx="${cx}" cy="-16" r="22"/>
+  </svg>`;
+  return PROT_SVG;
+}
+function padProtHtml_(k) {
+  const st = padProtOf_(k);
+  return `<div class="qpad-prot" data-noswipe data-prot-k="${esc(k)}" role="img" aria-label="Protractor, turned ${Math.round(st.a)} degrees"
+    style="left:${st.x.toFixed(2)}%;top:${st.y.toFixed(2)}%;transform:translate(-${PROT_PX}%,-${PROT_PY.toFixed(3)}%) rotate(${st.a}deg);transform-origin:${PROT_PX}% ${PROT_PY.toFixed(3)}%">${padProtSvg_()}</div>`;
+}
+/* EVERY COPY OF THIS PAD ON THE PAGE, with the protractor down or up as its state says, and the tile lit to match -- in place, no repaint */
+function padProtSync_(k) {
+  document.querySelectorAll('.qpad').forEach(pad => {
+    if ((pad.getAttribute('data-k') || '') !== k) return;
+    const art = pad.querySelector('.qpad-art'), tile = pad.querySelector('.qpad-tool[data-tool="protractor"]');
+    if (!art || !tile) return;
+    const was = art.querySelector(':scope > .qpad-prot');
+    if (was) was.remove();
+    const on = padProtOn_(k);
+    if (on) art.insertAdjacentHTML('beforeend', padProtHtml_(k));
+    tile.classList.toggle('on', on);
+    tile.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+/* ITS OWN DRAG, AHEAD OF THE PEN'S (capture), so a finger on the protractor moves it and never draws or swipes */
+let PROT_GO = null;
+document.addEventListener('pointerdown', e => {
+  const el = e.target && e.target.closest && e.target.closest('.qpad-prot');
+  if (!el) return;
+  const art = el.parentNode, k = el.getAttribute('data-prot-k') || '';
+  if (!art || !art.getBoundingClientRect) return;
+  e.preventDefault(); e.stopPropagation();
+  const st = padProtOf_(k), r = art.getBoundingClientRect();
+  PROT_GO = { id: e.pointerId, el, k, r, turn: !!(e.target.closest('[data-prot="turn"]')), x0: e.clientX, y0: e.clientY, sx: st.x, sy: st.y };
+  try { el.setPointerCapture(e.pointerId); } catch (err) {}
+}, true);
+document.addEventListener('pointermove', e => {
+  const g = PROT_GO;
+  if (!g || e.pointerId !== g.id) return;
+  e.preventDefault(); e.stopPropagation();
+  const st = padProtOf_(g.k);
+  if (g.turn) {
+    const cx = g.r.left + st.x / 100 * g.r.width, cy = g.r.top + st.y / 100 * g.r.height;
+    let a = Math.round(Math.atan2(e.clientX - cx, cy - e.clientY) * 180 / Math.PI);
+    [-180, -90, 0, 90, 180].forEach(s => { if (Math.abs(a - s) <= PROT_SNAP_DEG) a = s; });
+    st.a = a;
+  } else {
+    st.x = Math.max(0, Math.min(100, g.sx + (e.clientX - g.x0) / g.r.width * 100));
+    st.y = Math.max(0, Math.min(100, g.sy + (e.clientY - g.y0) / g.r.height * 100));
+  }
+  g.el.style.left = st.x.toFixed(2) + '%';
+  g.el.style.top = st.y.toFixed(2) + '%';
+  g.el.style.transform = `translate(-${PROT_PX}%,-${PROT_PY.toFixed(3)}%) rotate(${st.a}deg)`;
+  g.el.setAttribute('aria-label', 'Protractor, turned ' + Math.round(st.a) + ' degrees');
+}, true);
+['pointerup', 'pointercancel'].forEach(t => document.addEventListener(t, e => {
+  if (!PROT_GO || e.pointerId !== PROT_GO.id) return;
+  e.stopPropagation();
+  PROT_GO = null;
+}, true));
 
 on('pad-undo', (el) => {
   const pad = el.closest('.qpad'); if (!pad) return;
@@ -7850,7 +7998,7 @@ function qToolkit_(x) {
     lock: true,                    // every page has an input, a figure or a pen
     read: true,                    // Read aloud on every question, not only a primary one (394)
     help: true, report: true,      // `helpRow_` in the card, `reportTile_` in the row
-    pen: pen ? ['pen', 'ruler', 'compass'] : [],
+    pen: pen ? ['pen', 'ruler', 'compass', 'protractor'] : [],
     measure: !!x.diagram && !(pen && pen.from === 'part') && (!subj || QT_MEASURE_SUBJECT.test(subj)),
   };
 }

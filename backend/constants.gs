@@ -71,6 +71,8 @@ const WHERE = {
   lib_content:    { file: 'ledger' },
   lib_practicals: { file: 'ledger' },
   lib_projects:   { file: 'ledger' },
+  /* THE READING SOURCES A PAPER'S INSERT PRINTS (458): copyrighted, so the extract is here and never in the repository. */
+  lib_inserts:    { file: 'ledger' },
   /* WHO OPENED HOW MANY TODAY — one row per person per London day; the daily cap is counted here. */
   lib_log:        { file: 'ledger' },
 
@@ -118,7 +120,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-25-z-history-db";
+const BACKEND_VERSION = "2026-10-25-zb-reading-inserts";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -168,7 +170,7 @@ const TAB = {
   family: 'family',
   /* THE LIBRARY'S PRIVATE HALF (397) — read a row at a time by `libContent_`, never through `read()`: see LIB_FILES. */
   libQuestions: 'lib_questions', libContent: 'lib_content', libPracticals: 'lib_practicals',
-  libProjects: 'lib_projects', libLog: 'lib_log'
+  libProjects: 'lib_projects', libInserts: 'lib_inserts', libLog: 'lib_log'
 };
 
 
@@ -189,6 +191,10 @@ const LIB_FILES = {
                           'variables', 'diagram', 'risks'] },
   projects:   { tab: 'lib_projects', file: 'data/projects.json', prefix: 'pj', id: ['project_id'],
                 private: ['materials', 'steps', 'safety', 'share'] },
+  /* A PAPER'S READING INSERT (458): the card is public, `source_text` (the extract, line n as [n]) is not. */
+  /* `newer`: no row of it was at LIB_SOURCE_COMMIT, so the first copy copies nothing; its words come by import. */
+  inserts:    { tab: 'lib_inserts', file: 'data/inserts.json', prefix: 'in', id: ['insert_id'], newer: true,
+                private: ['source_text'] },
 };
 /* A CELL HOLDS 50,000 CHARACTERS; an item's JSON is cut at 40,000 into up to six cells (the largest is 87,440). */
 const LIB_PARTS = 6;
@@ -487,6 +493,7 @@ const SCHEMA = {
   lib_content: ["id", "checksum", "parts", "content_1", "content_2", "content_3", "content_4", "content_5", "content_6"],
   lib_practicals: ["id", "checksum", "parts", "content_1", "content_2", "content_3", "content_4", "content_5", "content_6"],
   lib_projects: ["id", "checksum", "parts", "content_1", "content_2", "content_3", "content_4", "content_5", "content_6"],
+  lib_inserts: ["id", "checksum", "parts", "content_1", "content_2", "content_3", "content_4", "content_5", "content_6"],
   /* `ids` is every item served that day (so a second look is free), `refused` what the cap turned away. */
   lib_log: [
     "day", "person_id", "handle", "served", "ids", "refused", "last_at",

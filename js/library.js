@@ -283,6 +283,9 @@ function libraryExtras_(d, extra) {
       official: Array.isArray(r.official) ? r.official.filter(o => o && o.url) : [],
       sections: Array.isArray(r.sections) ? r.sections : [],
       table: libS(r.table).trim(), elements: Array.isArray(r.elements) ? r.elements : [],
+      /* A READING INSERT (458): one paper's, by its paper ids; the extract is the Ledger's (`in:` on the wire) and `libHas` says it is there */
+      forPapers: list(r.for_papers), sources: list(r.sources), lineNumbers: libOn(r.line_numbers),
+      sourceText: libS(r.source_text), libHas: libS(r.lib_has).trim(), pending: libOn(r.lib_pending),
     }));
   }
 
@@ -622,10 +625,16 @@ function libMerge_(items) {
   const ex = (typeof LIBRARY_EXTRA !== 'undefined' && LIBRARY_EXTRA) || {};
   const D = (typeof DATA !== 'undefined' && DATA) || {};
   ids.forEach(t => {
-    const c = items[t], m = /^(q|ct|pr|pj):(.+)$/.exec(t);
+    const c = items[t], m = /^(q|ct|pr|pj|in):(.+)$/.exec(t);
     if (!m || !c || typeof c !== 'object') return;
     const id = m[2];
-    if (m[1] === 'q') {
+    if (m[1] === 'in') {
+      /* A READING INSERT'S EXTRACT (458), onto its file row and the sheet made from it */
+      const r = libIndexOf_(ex.inserts, o => libS(o.insert_id).trim()).get(id);
+      if (r) libFill_(r, c);
+      const ins = (D.inserts || []).find(o => o.id === id);
+      if (ins) { ins.sourceText = libS(c.source_text); ins.libHas = ''; }
+    } else if (m[1] === 'q') {
       const r = libIndexOf_(LIBRARY_ROWS, o => libS(o.row_id)).get(id);
       if (!r) return;
       libFill_(r, c);
@@ -676,6 +685,9 @@ function libForget_() {
         const b = (D.textbooks || []).find(x => x.id === libS(r.book_id).trim());
         const ch = b && (b.chapters || []).find(x => x.n === libN(r.chapter));
         if (ch) Object.assign(ch, libChapterBody_(r));
+      } else if (r.insert_id !== undefined) {
+        const ins = (D.inserts || []).find(o => o.id === libS(r.insert_id).trim());
+        if (ins) { ins.sourceText = ''; ins.libHas = libS(r.lib_has).trim(); }
       }
     } catch (e) {}
   });

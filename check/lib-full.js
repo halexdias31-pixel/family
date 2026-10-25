@@ -62,6 +62,8 @@ function writePrivate(name, map) {
    Ledger's as copied; anything edited in the Ledger since comes with `node tools/lib-private.js pull`. */
 function pinnedMap(name) {
   const def = defs().files[name];
+  /* A FILE WITH NO PRIVATE ROW AT THE PINNED COMMIT (`newer`, 458): nothing to seed, its rows are lib_pending cards */
+  if (def.newer) return {};
   let text = '';
   const show = () => cp.execFileSync('git', ['show', defs().commit + ':' + def.file], { cwd: ROOT, maxBuffer: 256 * 1024 * 1024, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
   try { text = show(); } catch (e) {

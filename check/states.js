@@ -528,7 +528,7 @@ const STATES = {
       enter: () => {
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1911-1H-4');
         if (!it) throw new Error('Q-1MA1-1911-1H-4 is not in the library');
-        if (padToolsOf_(it).join(' ') !== 'pen ruler compass') throw new Error('Q-1MA1-1911-1H-4 is not offered a ruler and compasses: ' + padToolsOf_(it).join(' '));
+        if (padToolsOf_(it).join(' ') !== 'pen ruler compass protractor') throw new Error('Q-1MA1-1911-1H-4 is not offered a ruler and compasses: ' + padToolsOf_(it).join(' '));
         window.__toolKey = padKey_(it);
         try { localStorage.removeItem(window.__toolKey); } catch (e) {}
         const facet = FACETS.find(f => f.field === 'paperId');
@@ -564,6 +564,40 @@ const STATES = {
       leave: () => {
         try { localStorage.removeItem(window.__toolKey); } catch (e) {}
         PAD_ON = ''; PAD_TOOL.delete(window.__toolKey);
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    /* ---------- THE PROTRACTOR LAID ON A PEN'S PAGE (458), turned to 50°, the Ruler in hand beside it */
+    { name: 'a construction with the protractor laid on the page, turned 50 degrees, the Ruler in hand',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1911-1H-4');
+        if (!it) throw new Error('Q-1MA1-1911-1H-4 is not in the library');
+        window.__protKey = padKey_(it);
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        const put = () => {
+          const pad = [...document.querySelectorAll('#s-stuff .qpad')].find(p => p.getAttribute('data-k') === window.__protKey);
+          const r = pad && pad.querySelector('.qpad-tool[data-tool="ruler"]'), p = pad && pad.querySelector('.qpad-tool[data-tool="protractor"]');
+          if (!r || !p) return false;
+          r.click();
+          Object.assign(padProtOf_(window.__protKey), { x: 45, y: 72, a: 50 });
+          const again = [...document.querySelectorAll('#s-stuff .qpad')].find(q => q.getAttribute('data-k') === window.__protKey);
+          again.querySelector('.qpad-tool[data-tool="protractor"]').click();
+          return true;
+        };
+        if (!put()) setTimeout(put, 150);
+      },
+      expect: () => {
+        const pad = [...document.querySelectorAll('#s-stuff .page.on .qcard .qpad')].find(p => p.getAttribute('data-k') === window.__protKey);
+        const lit = pad && [...pad.querySelectorAll('.qpad-tool.on')].map(b => b.getAttribute('data-tool')).join(' ');
+        const prot = pad && pad.querySelector('.qpad-art > .qpad-prot');
+        return !!prot && lit === 'ruler protractor' && /rotate\(50deg\)/.test(prot.style.transform) && prot.getBoundingClientRect().width > 100;
+      },
+      wants: 'Q4\'s figure under the pen with the protractor lying on it, turned 50°, its numbers readable, the Ruler and the Protractor both lit',
+      leave: () => {
+        PAD_PROT.delete(window.__protKey);
+        PAD_ON = ''; PAD_TOOL.delete(window.__protKey);
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
       } },
     /* ---------- A PASSAGE WITH TWO WORDS RINGED § */
