@@ -80,6 +80,8 @@ const SUITE = [
   { file: 'check-projects.js', what: 'the projects: topics, the funnel, nothing sent online' },
   /* ---------- AND THE @family. TEXTBOOKS, WHICH ARE RESOURCES § */
   { file: 'check-textbooks.js', what: 'the textbooks: chapter order, the bones, the join, the Shelf door' },
+  /* THE HISTORY DATABASE (459): manuscripts, figures, writings, linked both ways. */
+  { file: 'check-history-db.js', what: 'the history database: schema, ids, links both ways, years, sources' },
   /* ---------- AND THE ANIMATIONS IN THEM, WHICH THE LOADING SCREEN DRAWS FROM A COPY § */
   { file: 'check-anims.js', what: 'the books\' animations: one source, kept and drawn as their rows' },
   /* ---------- AND THE BIBLE BESIDE THEM, WHICH ONLY AN ADMIN IS SHOWN § */

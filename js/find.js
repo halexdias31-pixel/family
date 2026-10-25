@@ -135,6 +135,10 @@ const KINDS = {
   content: { group: 'Learning', label: 'Content', card: x => contentCard_(x) },
   /* AN INSERT IS WHAT THE EXAM HANDS YOU (455) — a formulae sheet, an equation sheet, the periodic table — found like a paper. */
   insert: { group: 'Learning', label: 'Inserts', card: x => insertCard_(x) },
+  /* THE HISTORY DATABASE (459): three kinds, Content on the History shelf as boxers are on Boxing's; `histKind` says which. */
+  manuscript: { group: 'Learning', label: 'Content', card: x => histCard_(x) },
+  figure: { group: 'Learning', label: 'Content', card: x => histCard_(x) },
+  writing: { group: 'Learning', label: 'Content', card: x => histCard_(x) },
   /* ---------- BOXING IS A SUBJECT, NOT A DEPARTMENT § */
   /* CONTENT, NOT `Resources` (445): the owner — "boxes and fights can go under content"; the Bible goes with them. */
   boxer: { group: 'Learning', label: 'Content', card: x => boxerCard_(x) },
@@ -377,6 +381,16 @@ const FACETS = [
   { field: 'division',  label: 'Division',    of: x => x.division || '' },
   { field: 'boutRound', label: 'Round',       of: x => x.kind === 'fight' && x.row && Number(x.row.endRound) > 0 ? 'Round ' + Number(x.row.endRound) : '' },
   { field: 'boutMethod', label: 'Result',     of: x => (x.kind === 'fight' && x.row && String(x.row.method || '').trim()) || '' },
+  /* THE HISTORY DATABASE'S (459): which table, the era its years touch, and its columns as ordinary tags (`histCol_`). */
+  { field: 'histKind',  label: 'Manuscripts, figures or writings', of: x => x.histKind || '' },
+  { field: 'histEra',   label: 'Era',         of: x => histErasOf_(x) },
+  { field: 'histLanguage', label: 'Language', of: x => histCol_(x, 'language') },
+  { field: 'histMaterial', label: 'Material', of: x => histCol_(x, 'material') },
+  { field: 'histFormat', label: 'Format',     of: x => histCol_(x, 'format') },
+  { field: 'histGenre', label: 'Genre',       of: x => histCol_(x, 'genre') },
+  { field: 'histRole',  label: 'Role',        of: x => histCol_(x, 'roles') },
+  { field: 'histTheme', label: 'Theme',       of: x => histCol_(x, 'themes') },
+  { field: 'histRepository', label: 'Held at', of: x => histCol_(x, 'repository') },
   { field: 'practicalType', label: 'Experiment or build', of: x => x.practicalType || '' },
   { field: 'required',  label: 'Required',
     of: x => x.kind !== 'practical' || !x.row ? '' : PRAC_NEED[x.row.excluded ? 2 : x.row.required ? 0 : 1] },
@@ -679,6 +693,9 @@ function answerCmp_(texts) {
   if (every(t => /^-?\d+(?:\.\d+)?$/.test(t))) return (a, b) => Number(a) - Number(b);
   if (every(t => MONTH_NAMES.indexOf(t) !== -1)) return (a, b) => MONTH_NAMES.indexOf(a) - MONTH_NAMES.indexOf(b);
   if (every(t => !!t && ROMAN_SAY.test(t))) return (a, b) => romanVal_(a.toLowerCase()) - romanVal_(b.toLowerCase());
+  /* ERAS IN TIME ORDER (459), not the alphabet's. */
+  const era = t => HIST_ERAS.findIndex(e => e.name === t);
+  if (every(t => era(t) !== -1)) return (a, b) => era(a) - era(b);
   const k = kindRank_();
   for (const by of [k.labels, k.groups]) {
     if (every(t => by.has(t))) return (a, b) => by.get(a) - by.get(b);
@@ -1432,6 +1449,116 @@ on('ins-print', el => {
   setTimeout(done, 4000);
   window.print();
 });
+
+/* ---------- THE HISTORY DATABASE (459): MANUSCRIPTS, FIGURES, WRITINGS — ONE CARD A ROW, LINKED BY ID. docs/history-db.md ---------- */
+/* A list cell is split on " | "; an id is MS-, FIG- or WR- and digits, and any cell may name one. */
+const HIST_ID = /^(MS|FIG|WR)-\d+$/;
+const histList_ = v => String(v == null ? '' : v).split('|').map(t => t.trim()).filter(Boolean);
+const histSpec_ = kind => (typeof HIST_DB === 'undefined' ? [] : HIST_DB).find(t => t.kind === kind) || null;
+/* THE ROW AN ID NAMES, in whichever table its prefix says. */
+function histRow_(id) {
+  const t = (typeof HIST_DB === 'undefined' ? [] : HIST_DB).find(s => String(id).indexOf(s.prefix) === 0);
+  return t ? (DATA[t.file] || []).find(r => r.id === id) || null : null;
+}
+const histName_ = r => (r && (r.name || r.title_english || r.title_original || r.id)) || '';
+/* A YEAR AS SAID: negative is BC. */
+const histYear_ = n => (n == null || !isFinite(n) ? '' : n < 0 ? -n + ' BC' : n < 1000 ? 'AD ' + n : String(n));
+/* THE ERAS, in order; a row is in every one its years touch (`histErasOf_`) and the funnel sorts them in this order (`answerCmp_`). */
+const HIST_ERAS = [
+  { name: 'Ancient', to: 500 },
+  { name: 'Medieval', to: 1500 },
+  { name: 'Early modern', to: 1800 },
+  { name: 'Modern', to: Infinity },
+];
+/* THE SHARED HELPER: from and to (either may be missing) → the eras they overlap; a range ending on a boundary stays on its side. */
+function histEras_(from, to) {
+  const a = from != null ? from : to, b = to != null ? to : from;
+  if (a == null || !isFinite(a)) return [];
+  const lo = Math.min(a, b), hi = Math.max(a, b);
+  return HIST_ERAS.filter((e, i) => {
+    const s = i ? HIST_ERAS[i - 1].to : -Infinity;
+    return lo === hi ? lo >= s && lo < e.to : lo < e.to && hi > s;
+  }).map(e => e.name);
+}
+function histErasOf_(x) {
+  const r = x && x.hdb ? x.row : null;
+  if (!r) return [];
+  return x.kind === 'figure' ? histEras_(r.born_year, r.died_year) : histEras_(r.date_from, r.date_to);
+}
+/* ONE READER FOR EVERY HISTORY FACET: a column of the row, split as a list; nothing on any other kind. */
+const histCol_ = (x, col) => (x && x.hdb && x.row ? histList_(x.row[col]) : []);
+
+/* THE LINKS, BOTH WAYS: what a row names, and what names it — a link typed on one side only still shows on both. */
+function histLinks_(r) {
+  const out = [], seen = new Set();
+  const add = (id, label) => {
+    const to = histRow_(id);
+    if (!to || seen.has(id) || id === r.id) return;
+    seen.add(id); out.push({ id: id, label: label, row: to });
+  };
+  const K = { MS: 'Manuscript', FIG: 'Author', WR: 'Writing' };
+  const kindOfId = id => K[String(id).split('-')[0]] || '';
+  ['writings', 'manuscripts', 'author_id'].forEach(c => histList_(r[c]).forEach(id => { if (HIST_ID.test(id)) add(id, kindOfId(id)); }));
+  histList_(r.relations).forEach(p => {
+    const m = /^([^:]+):\s*(.+)$/.exec(p);
+    if (m && HIST_ID.test(m[2].trim())) add(m[2].trim(), histCap_(m[1]));
+  });
+  (DATA.writings || []).forEach(w => {
+    if (w.author_id === r.id || histList_(w.manuscripts).indexOf(r.id) >= 0) add(w.id, 'Writing');
+  });
+  (DATA.manuscripts || []).forEach(m => { if (histList_(m.writings).indexOf(r.id) >= 0) add(m.id, 'Manuscript'); });
+  (DATA.figures || []).forEach(f => { if (histList_(f.writings).indexOf(r.id) >= 0) add(f.id, 'Author'); });
+  return out;
+}
+const histCap_ = s => { const t = String(s || '').trim(); return t ? t[0].toUpperCase() + t.slice(1) : ''; };
+
+/* THE ITEM: Content, on the History shelf, as boxers are on Boxing's. */
+function histItem_(kind, r) {
+  const fig = kind === 'figure';
+  const life = fig ? [histYear_(r.born_year), histYear_(r.died_year)] : [];
+  const span = fig ? (life[0] || life[1] ? (life[0] || '?') + '–' + (life[1] || '?') : '') : r.date_text;
+  return {
+    kind: kind, hdb: true, name: histName_(r), key: 'hdb:' + r.id, image: '',
+    sub: [fig ? span : kind === 'writing' ? r.title_original : r.repository, fig ? histList_(r.roles)[0] : span].filter(Boolean).join(' · '),
+    histKind: kind === 'manuscript' ? 'Manuscripts' : fig ? 'Historical figures' : 'Writings',
+    shelf: 'History', subject: 'History',
+    text: plainText_(Object.keys(r).map(k => r[k]).join(' ')),
+    row: r,
+  };
+}
+
+/* THE LINES OF A CARD, one thing each (421): a label and the row's column, said as written. */
+const HIST_LINES = {
+  manuscript: [['Also known as', 'catalog_ids'], ['Repository', 'repository'], ['City', 'city'], ['Shelfmark', 'shelfmark'],
+    ['Date', 'date_text'], ['Dated by', 'date_basis'], ['Material', 'material'], ['Format', 'format'], ['Language', 'language'],
+    ['Script', 'script'], ['Contents', 'contents'], ['Size', 'size'], ['Provenance', 'provenance'], ['Condition', 'condition'], ['Notes', 'notes']],
+  figure: [['Also known as', 'aliases'], ['Born', r => [r.born_text, r.born_place].filter(Boolean).join(', ')],
+    ['Died', r => [r.died_text, r.died_place].filter(Boolean).join(', ')], ['Places', 'places'], ['Eras', 'eras'], ['Roles', 'roles'],
+    ['Achievements', 'achievements'], ['Relations', r => histList_(r.relations).map(p => {
+      const m = /^([^:]+):\s*(.+)$/.exec(p);
+      return m ? histCap_(m[1]) + ': ' + (HIST_ID.test(m[2].trim()) ? histName_(histRow_(m[2].trim())) || m[2] : m[2]) : p;
+    }).join(' | ')], ['Notes', 'notes']],
+  writing: [['Original title', 'title_original'], ['Author', r => r.author_text || histName_(histRow_(r.author_id))],
+    ['Date', 'date_text'], ['Dated by', 'date_basis'], ['Language', 'language'], ['Genre', 'genre'], ['Context', 'context'],
+    ['Themes', 'themes'], ['Manuscripts', r => histList_(r.manuscripts).map(v => HIST_ID.test(v) ? histName_(histRow_(v)) || v : v).join(' | ')],
+    ['Public-domain translations', 'pd_translation']],
+};
+function histCard_(x) {
+  const r = x.row || {};
+  const rows = (HIST_LINES[x.kind] || []).map(([label, col]) => [label, typeof col === 'function' ? col(r) : r[col]])
+    .filter(l => String(l[1] == null ? '' : l[1]).trim());
+  const tiles = histLinks_(r).map(l => tile_({ icon: l.id.indexOf('MS-') === 0 ? 'doc' : l.id.indexOf('WR-') === 0 ? 'book' : 'star',
+    label: l.label, note: histName_(l.row), act: 'find-open', data: { key: 'hdb:' + l.id } }))
+    .concat(histList_(r.sources).filter(u => /^https:\/\//.test(u)).map(u =>
+      tile_({ icon: 'ext', label: 'Source', note: u.replace(/^https:\/\/(www\.)?/, '').split('/')[0], href: u })));
+  return `<div class="card fc hdb">
+    <div class="fc-head"><h3>${esc(x.name)}</h3></div>
+    ${tagRow_(x)}
+    <section class="fc-sec hdb-lines"><dl>${rows.map(l => `<div><dt>${esc(l[0])}</dt><dd>${
+      histList_(l[1]).map(esc).join('<br>')}</dd></div>`).join('')}</dl></section>
+    ${tiles.length ? `<div class="tile-row">${tiles.join('')}</div>` : ''}
+  </div>`;
+}
 
 /* THE BIBLE (KING JAMES VERSION) — ASKED LIKE EVERYTHING ELSE ON FIND, AND SHOWN ONLY TO AN ADMIN. § */
 const BIBLE_NAME = 'The Bible (King James Version)';
@@ -8385,6 +8512,9 @@ function stuffItemsRaw_() {
     /* ---------- THE EXAM INSERTS (455) */
     ...(DATA.inserts || []).map(insertItem_),
 
+    /* ---------- THE HISTORY DATABASE (459) */
+    ...(typeof HIST_DB === 'undefined' ? [] : HIST_DB).flatMap(t => (DATA[t.file] || []).map(r => histItem_(t.kind, r))),
+
     /* ---------- THE BIBLE, FOR AN ADMIN AND NOBODY ELSE § */
     ...bibleItems_(),
 
@@ -9565,6 +9695,9 @@ const TAG_OF = {
   needs: 'needs',
   /* WHAT IT IS AND WHERE IT IS KEPT (396): the first questions, a colour of their own. */
   forLabel: 'kind', kindLabel: 'kind', shelf: 'kind',
+  /* THE HISTORY DATABASE'S (459), in colours that already mean the same. */
+  histKind: 'type', histEra: 'sitting', histLanguage: 'board', histRepository: 'board', histMaterial: 'tier',
+  histFormat: 'type', histGenre: 'type', histRole: 'topic', histTheme: 'topic',
   /* A CLAIM ABOUT THE THING — checked, machine-marked, required by a board. */
   accuracy: 'check', function: 'check', required: 'check',
   /* ---------- THE BIBLE'S SIX, IN KINDS THAT ALREADY HAVE COLOURS § */

@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-25-y-one-toolkit";
+const DOGET_VERSION = "2026-10-25-z-history-db";
 
 
 function doGet(e) {
@@ -360,6 +360,8 @@ function doGet(e) {
       textbooks: [],
       /* AND `inserts` IS THE EIGHTH (455): `data/inserts.json`, filled in on the phone, declared for the same reason. */
       inserts: [],
+      /* AND THE HISTORY DATABASE'S THREE (459): `data/manuscripts|figures|writings.json`, filled in on the phone, declared for the same reason. */
+      manuscripts: [], figures: [], writings: [],
       /* An object rather than an array — branding is looked up by name, never iterated. */
       brand: {},
       /* Missing COLUMNS, and — for an admin — what is wrong with the DATA. § */

@@ -44,5 +44,14 @@
 {"field": "needs", "label": "What you need", "sort_order": 150, "note": "a comma-list: compasses and the printed sheet at once; the calculator is said as Non-calculator or Calculator allowed", "active": true},
 {"field": "company", "label": "Publisher", "sort_order": 160, "note": "who published it; may repeat the exam board, and a card says a repeated word once", "active": true},
 {"field": "accuracy", "label": "Accuracy", "sort_order": 152, "note": "Accuracy verified when the answer was checked against the official scheme (388)", "active": true},
-{"field": "function", "label": "Function", "sort_order": 154, "note": "Function verified when the question type is complete and machine-marked (388)", "active": true}
+{"field": "function", "label": "Function", "sort_order": 154, "note": "Function verified when the question type is complete and machine-marked (388)", "active": true},
+{"field": "histKind", "label": "Manuscripts, figures or writings", "sort_order": 37.1, "note": "history database only (459): which of the three tables", "active": true},
+{"field": "histEra", "label": "Era", "sort_order": 37.2, "note": "history database only: Ancient, Medieval, Early modern, Modern, from the row's years (histEras_)", "active": true},
+{"field": "histLanguage", "label": "Language", "sort_order": 37.3, "note": "history database only: a manuscript's or writing's language", "active": true},
+{"field": "histMaterial", "label": "Material", "sort_order": 37.4, "note": "manuscripts only: papyrus, parchment, paper", "active": true},
+{"field": "histFormat", "label": "Format", "sort_order": 37.5, "note": "manuscripts only: codex, roll, fragment", "active": true},
+{"field": "histGenre", "label": "Genre", "sort_order": 37.6, "note": "writings only: letter, history, poem", "active": true},
+{"field": "histRole", "label": "Role", "sort_order": 37.7, "note": "historical figures only: a list cell, one tag each", "active": true},
+{"field": "histTheme", "label": "Theme", "sort_order": 37.8, "note": "writings only: a list cell, one tag each", "active": true},
+{"field": "histRepository", "label": "Held at", "sort_order": 37.9, "note": "manuscripts only: the library or museum that holds it", "active": true}
 ]

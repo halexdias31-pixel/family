@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-25-x-one-toolkit";
+  --css-version: "2026-10-25-z-history-db";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -4788,13 +4788,13 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .boxer-rec .boxer-line + .fc-note { text-align: center; margin-top: var(--fc-in); }
 
 /* ---------- THE TALE OF THE TAPE § */
-.boxer-tape dl { margin: 0; }
-.boxer-tape dl > div { display: flex; justify-content: space-between; align-items: baseline; gap: .8rem;
+.boxer-tape dl, .hdb-lines dl { margin: 0; }
+.boxer-tape dl > div, .hdb-lines dl > div { display: flex; justify-content: space-between; align-items: baseline; gap: .8rem;
                        padding: .22rem 0; border-bottom: 1px solid var(--line-soft); }
-.boxer-tape dl > div:last-child { border-bottom: 0; }
-.boxer-tape dt { flex: 0 0 auto; font: 600 .62rem/1.5 var(--mono); letter-spacing: .08em;
+.boxer-tape dl > div:last-child, .hdb-lines dl > div:last-child { border-bottom: 0; }
+.boxer-tape dt, .hdb-lines dt { flex: 0 0 auto; font: 600 .62rem/1.5 var(--mono); letter-spacing: .08em;
                  text-transform: uppercase; color: var(--faint); }
-.boxer-tape dd { margin: 0; min-width: 0; text-align: right; font-size: .8rem; line-height: 1.4;
+.boxer-tape dd, .hdb-lines dd { margin: 0; min-width: 0; text-align: right; font-size: .8rem; line-height: 1.4;
                  color: var(--ink); overflow-wrap: anywhere; }
 
 /* ---------- THE BELTS AND THE HONOURS § */
