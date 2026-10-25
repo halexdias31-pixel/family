@@ -124,6 +124,7 @@ const SUITE = [
   { file: 'check-media.js', what: 'an admin adds, edits, hides and deletes a reel or video; others and bad links refused; the payload carries it' },
   { file: 'check-media-age.js', what: 'a reel or video rated above a viewer\'s age (from their date of birth; 12 when unknown for a student or nobody) is not sent; adults and the admin get all' },
   /* WHAT A CHILD WROTE, ON THEIR ACCOUNT. § */
+  { file: 'check-assistant.js', what: 'the Assistant in Messages (449): signed in only, the token’s person, five a day from config, a failure given back' },
   { file: 'check-saved-answers.js', what: 'answers on the account: the token’s person, the later edit wins, text in and text out' },
   /* THE WEEKLY PARENT EMAIL, BUILT AND SWITCHED OFF. § */
   { file: 'check-digest.js', what: 'the weekly parent email: a London week, accepted parents only, off/preview/send, sent once' },

@@ -22150,6 +22150,47 @@ check('chat: what arrived unread stays outlined, the composer hint fits, a refus
   return bad;
 });
 
+/* ---------- THE ASSISTANT IN MESSAGES (449): pinned first, "N of 5 left" as one line, a stubbed answer kept on the device, shut at 0 */
+check('assistant: pinned first in Messages, asks askAssistant with the facts, draws the stubbed answer, counts down and shuts at 0', async () => {
+  const bad = [];
+  let left = 2;
+  const { w, sent } = boot({ reply: b => (b.action === 'askAssistant'
+    ? (left > 0 ? { success: true, answer: 'Sessions are two hours.', left: --left, cap: 5 } : { success: false, why: 'ai-cap', left: 0, message: 'That is today’s 5 questions used — they come back tomorrow.' })
+    : { success: true }) });
+  await wait(300);
+  const d = w.document;
+  w.__t.USER({ name: 'Test Client', personId: 'P002', role: 'client', roles: ['client'], token: 'tk2' });
+  w.__t.dmSeed([{ id: 'm1', mine: false, read: true, body: 'Hello', at: '2026-09-16 09:10', withId: 'P009', withName: 'Ada Tutor', fromName: 'Ada Tutor' }]);
+  try { w.__t.repaint(true); w.__t.go('dm', false, true); } catch (e) { return ['opening Messages threw: ' + e.message]; }
+  await wait(80);
+  const col = d.getElementById('s-dm');
+  const card = () => col && col.querySelector('.asst');
+  if (!card()) return ['Messages has no Assistant card'];
+  const first = col.querySelector('.card');
+  if (first !== card()) bad.push('the Assistant is not the first card in Messages');
+  if (!col.querySelector('.msg-bub')) bad.push('the seeded conversation is no longer drawn beside the Assistant');
+  const line = () => ((card() || {}).querySelector ? (card().querySelector('.asst-left') || {}).textContent || '' : '').trim();
+  if (line() !== '5 of 5 questions left today') bad.push('the count line reads "' + line() + '", not "5 of 5 questions left today"');
+  card().querySelector('.asst-text').value = 'How long is a session?';
+  w.__t.ACTIONS['asst-send'](card().querySelector('[data-do="asst-send"]'));
+  await wait(60);
+  const ask = sent.filter(b => b.action === 'askAssistant').pop();
+  if (!ask) return bad.concat(['pressing Ask sent no askAssistant']);
+  if (ask.question !== 'How long is a session?' || !String(ask.facts || '').length) bad.push('askAssistant carried ' + JSON.stringify(ask).slice(0, 200));
+  if (!/two hours/.test(card().textContent)) bad.push('the stubbed answer was not drawn');
+  if (line() !== '1 of 5 questions left today') bad.push('after the answer the line reads "' + line() + '" — the server said 1 left');
+  let kept = null;
+  try { kept = JSON.parse(w.localStorage.getItem('asst:P002')); } catch (e) {}
+  if (!kept || !Array.isArray(kept.msgs) || kept.msgs.length !== 2) bad.push('the conversation was not kept on the device: ' + JSON.stringify(kept));
+  card().querySelector('.asst-text').value = 'And another?';
+  w.__t.ACTIONS['asst-send'](card().querySelector('[data-do="asst-send"]'));
+  await wait(60);
+  if (!/No questions left today/.test(line())) bad.push('at 0 the line reads "' + line() + '"');
+  if (!card().querySelector('.asst-text').disabled || !card().querySelector('[data-do="asst-send"]').disabled) bad.push('at 0 the box or Ask is still enabled');
+  if (d.querySelector('dialog[open], .modal.open')) bad.push('a pop-up opened');
+  return bad;
+});
+
 /* ---------- A TUTOR WITH NO HOURS CANNOT BE BOOKED BY NAME § */
 check('a tutor with no hours is greyed, shuts the grid and is not sent for; No preference still books', async () => {
   const { w, sent } = boot();
