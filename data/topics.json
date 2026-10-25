@@ -324,5 +324,14 @@
 {"topic_id": "alp-grav", "label": "Gravitational Fields", "parent_id": "physics", "aliases": "gravitational potential, orbits of planets and satellites", "active": "True"},
 {"topic_id": "alp-emfields", "label": "Electric & Magnetic Fields", "parent_id": "physics", "aliases": "electric fields, magnetic flux, electromagnetic induction, alternating currents", "active": "True"},
 {"topic_id": "alp-caps", "label": "Capacitors", "parent_id": "physics", "aliases": "capacitance, capacitor discharge", "active": "True"},
-{"topic_id": "alp-nuclear", "label": "Nuclear Physics", "parent_id": "physics", "aliases": "radioactive decay, nuclear radius, binding energy, fission and fusion", "active": "True"}
+{"topic_id": "alp-nuclear", "label": "Nuclear Physics", "parent_id": "physics", "aliases": "radioactive decay, nuclear radius, binding energy, fission and fusion", "active": "True"},
+{"topic_id": "driving", "label": "Driving Theory", "parent_id": "", "aliases": "", "active": "True", "only_subject": "Driving Theory"},
+{"topic_id": "drv-stop", "label": "Stopping Distances", "parent_id": "driving", "aliases": "two-second rule, braking distance, thinking distance", "active": "True"},
+{"topic_id": "drv-speed", "label": "Speed Limits", "parent_id": "driving", "aliases": "national speed limit", "active": "True"},
+{"topic_id": "drv-alcohol", "label": "Alcohol & Drugs", "parent_id": "driving", "aliases": "drink driving", "active": "True"},
+{"topic_id": "drv-vuln", "label": "Vulnerable Road Users", "parent_id": "driving", "aliases": "cyclists, pedestrians, hierarchy of road users", "active": "True"},
+{"topic_id": "drv-motorway", "label": "Motorway Rules", "parent_id": "driving", "aliases": "", "active": "True"},
+{"topic_id": "drv-phone", "label": "Mobile Phones", "parent_id": "driving", "aliases": "", "active": "True"},
+{"topic_id": "drv-crossing", "label": "Pedestrian Crossings", "parent_id": "driving", "aliases": "pelican crossing, zebra crossing", "active": "True"},
+{"topic_id": "drv-markings", "label": "Road Markings", "parent_id": "driving", "aliases": "double white lines", "active": "True"}
 ]
