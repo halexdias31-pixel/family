@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-25-a-console-bodies";
+  --css-version: "2026-10-25-b-assistant";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -6554,3 +6554,18 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .prog-series .row .k, .prog-sessions .row .k { flex: 1 1 auto; min-width: 0; }
 .prog-count .row .v, .prog-answered .row .v, .prog-activity .row .v, .prog-weakest .row .v, .prog-grade .row .v,
 .prog-series .row .v, .prog-sessions .row .v { flex: 0 0 auto; }
+
+/* THE ASSISTANT IN MESSAGES (449): the chat's own bubbles, under their own names so nothing asking for `.msg` finds them. */
+.asst-body { max-height: 50dvh; overflow-y: auto; display: flex; flex-direction: column; gap: .35rem; margin: .5rem 0; }
+.asst-msg { display: flex; }
+.asst-msg.mine { justify-content: flex-end; }
+.asst-bub { margin: 0; max-width: 85%; padding: .45rem .7rem; border: 1px solid var(--line); border-radius: .9rem;
+  font-size: .88rem; line-height: 1.45; white-space: pre-line; overflow-wrap: break-word; }
+.asst-msg.mine .asst-bub { border-color: var(--gold); }
+.asst-form { display: flex; align-items: flex-end; gap: .4rem; }
+.asst-text { flex: 1 1 auto; min-width: 0; min-height: 44px; padding: .6rem .7rem; resize: none; background: var(--bg);
+  color: var(--ink); border: 1px solid var(--line); border-radius: .6rem; font: inherit; font-size: .88rem; }
+.asst-text:focus { outline: 0; border-color: var(--gold); }
+.asst-text:disabled, .asst-go:disabled { opacity: .5; }
+.asst-form .btn.asst-go { width: auto; flex: 0 0 auto; min-height: 44px; height: 44px; }
+.asst-left, .asst-said, .asst-hello { margin: .35rem 0 0; font-size: .72rem; }

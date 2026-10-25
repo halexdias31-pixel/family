@@ -118,7 +118,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-24-t-backend-dead";
+const BACKEND_VERSION = "2026-10-25-a-assistant";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -596,6 +596,7 @@ const CONFIG_DEFAULTS = [
   ['gemini_model', AI_MODEL, 'the Gemini model that marks worded answers. Blank (or the old gemini-flash-latest) = ' + AI_MODEL + '. The API KEY never goes here: it is GEMINI_API_KEY in Script Properties'],
   ['gemini_model_fallback', AI_MODEL_FALLBACK, 'the model asked when the first one is full, out of reach or retired (Gemini 429, 5xx or 404). Blank = ' + AI_MODEL_FALLBACK + '. none = no second model'],
   ['library_items_per_day', LIB_DAILY_CAP, 'how many questions, practicals and content cards one person may open in a day (a part, its opening and its answer count as one each; opening one again is free). Blank = ' + LIB_DAILY_CAP + '. Admins are not counted'],
+  ['assistant_questions_per_day', 5, 'how many questions one person may ask the Assistant in Messages in a day. Blank = 5. 0 switches it off'],
   ['ai_marks_per_day', 20, 'how many answers one person may have marked by AI in a day. Blank = 20. 0 switches AI marking off'],
   /* HOW HARD GEMINI THINKS BEFORE IT MARKS, ONE CELL FOR EACH KIND OF ANSWER (12 Oct) -- the note over `AI_THINKING_LEVELS` above, and docs/history/350. § */
   ['ai_thinking', '', 'how hard Gemini thinks before marking a SHORT answer: minimal, low, medium or high (each slower and deeper than the last), or none for the model\'s own default. A model that does not offer a level gets the next one up. Blank = the lowest each model offers ('
@@ -922,6 +923,8 @@ const ANSWERS_PER_POST = 25;
 /* ---------- WHAT "MARK WITH AI" SENDS GEMINI — `aiMark` in dopost.gs § */
 const AI_ANSWER_MAX = 20000;
 const AI_QUESTION_MAX = 8000;
+/* THE ASSISTANT IN MESSAGES (449): its daily cap when the config cell is blank, and what one question may carry. */
+const ASSIST_PER_DAY = 5, ASSIST_QUESTION_MAX = 1000, ASSIST_FACTS_MAX = 4000, ASSIST_HISTORY = 6, ASSIST_ANSWER_MAX = 3000;
 const AI_SCHEME_MAX = 8000;
 
 /* ---------- THE WEEKLY PARENT EMAIL — see backend/digest.gs § */
@@ -1487,6 +1490,8 @@ const ACTION_ACCESS = {
   /* MARKING A WORDED ANSWER WITH GEMINI. `self`, because every press costs a request and the cap is
      per person — counted against the id the token resolved to, which only a signed-in request has. */
   aiMark: 'self',
+  /* THE ASSISTANT IN MESSAGES (449): `self`, so the day's count is the token's person's. */
+  askAssistant: 'self',
   /* WHAT A CHILD WROTE, KEPT ON THEIR ACCOUNT AND READ BACK ON ANOTHER DEVICE. § */
   saveAnswers: 'self',
   myAnswers: 'self',

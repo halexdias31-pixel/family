@@ -1207,7 +1207,8 @@ function dmRedraw_(key) {
   if (typeof paint !== 'function' || !$('s-dm')) return;
   paint('dm');
   const at = messageThreads_().findIndex(t => t.id === key);
-  if (at >= 0 && typeof goPage === 'function' && AT === 'dm') { try { goPage('dm', at, true); } catch (e) {} }
+  /* ONE MORE THAN THE THREAD: the Assistant is page 0 (449). */
+  if (at >= 0 && typeof goPage === 'function' && AT === 'dm') { try { goPage('dm', at + 1, true); } catch (e) {} }
   setTimeout(() => { if (typeof dmFoot_ === 'function') dmFoot_(); }, 0);
 }
 
