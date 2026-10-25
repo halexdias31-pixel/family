@@ -299,8 +299,9 @@
   <section class="screen hidden" id="s-progress"></section>
 </main>
 
-<!-- The sheet. One element, reused: a booking, a profile, a form. Not a pop-up (420): while it is open
-     it is the page, in the flow, and Back returns to the grid. -->
+<!-- The sheet. One element, reused: a booking, a profile, a form. Not a pop-up (453): `openSheet` moves it
+     INTO the card that was pressed, and Back brings it back here, unseen. -->
+<template id="sheet-home"></template>
 <div id="sheet" class="hidden">
   <div id="sheet-head">
     <button type="button" id="sheet-close" aria-label="Back">&#8249; Back</button>

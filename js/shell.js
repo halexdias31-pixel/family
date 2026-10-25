@@ -1963,13 +1963,67 @@ const PER_PAGE = { library: 12 };
 
 /* The dot's handler is registered further down, WITH the other actions. § */
 
-/* ---------- THE SHEET IS A PAGE (420) ---------- */
-/* "remove all pop up menus I DONT LIKE POP UP MENUS": no backdrop, nothing floats. While it is open
-   the sheet is the page — the grid steps aside (`body.sheet-open`) and Back brings it back. */
+/* ---------- THE SHEET OPENS IN PLACE (453) ---------- */
+/* "do not use pop-up menus on my site": `#sheet` is moved INTO the card that was pressed, under its tile row,
+   and Back puts it home again. Nothing floats, nothing covers the grid, and the grid never steps aside. */
 let sheetOnClose = null;
 
 /* ---------- WHAT THE SHEET IS ONE OF § */
 let sheetStep = null;
+
+/* THE LAST THING PRESSED, read by `openSheet` to find its card. Capture phase, so it is set before any handler. */
+let PRESSED_ = null;
+['pointerdown', 'click', 'keydown'].forEach(t => addEventListener(t, e => {
+  const el = e.target;
+  if (el && el.closest && !el.closest('#sheet') && el.closest('#screen')) PRESSED_ = el;
+}, true));
+
+/* A CALLER THAT KNOWS ITS CARD says so: `el` is inside it; `swap` makes the card BECOME the sheet (an editor). */
+let SHEET_HERE_ = null;
+function sheetHere_(el, swap) { SHEET_HERE_ = { el, swap: !!swap }; }
+
+const SHEET_HOSTS_ = '.post, .rc, .widget-slot, .cpn, .card, .pane';
+/* HELD BY REFERENCE: a card drawn again takes the sheet out with its old markup, and `sheetKeep_` puts it back. */
+let SHEET_EL_ = null, SHEET_AT_ = null;
+const sheetEl_ = () => SHEET_EL_ || (SHEET_EL_ = document.getElementById('sheet'));
+const sheetFront_ = () => {
+  const pg = document.querySelector('#s-' + AT + ' .page.on') || document.querySelector('#s-' + AT);
+  return pg && (pg.querySelector(':scope > .pane') || pg);
+};
+function sheetPlace_() {
+  const sh = sheetEl_();
+  const want = SHEET_HERE_; SHEET_HERE_ = null;
+  document.querySelectorAll('.sheet-host').forEach(h => h.classList.remove('sheet-host', 'sheet-swap'));
+  let from = want ? want.el : PRESSED_;
+  if (from && (!from.isConnected || !from.closest('#s-' + AT))) from = null;
+  let host = from && from.closest(SHEET_HOSTS_);
+  /* NOTHING PRESSED ON THIS SCREEN (a sign-in answered, a booking confirmed): the card in front. */
+  if (!host) host = sheetFront_();
+  SHEET_AT_ = { post: host && host.dataset ? host.dataset.post || '' : '', swap: !!(want && want.swap) };
+  /* NO SCREEN DRAWN YET (a link opened on arrival): it waits at home, and `sheetKeep_` moves it in once one is. */
+  if (!host) return;
+  const row = from && from.closest('.tile-row, .post-acts, .post-when');
+  const after = !(want && want.swap) && row && host.contains(row) && row !== host ? row : null;
+  if (after) after.after(sh); else host.appendChild(sh);
+  host.classList.add('sheet-host');
+  if (want && want.swap) host.classList.add('sheet-swap');
+}
+
+/* AN OPEN SHEET STAYS IN THE CARD: after any redraw, back into the same post, or the card in front. */
+function sheetKeep_() {
+  const sh = sheetEl_();
+  if (!sh || sh.classList.contains('hidden')) return;
+  if (sh.isConnected && sh.closest('#screen')) return;
+  const at = SHEET_AT_ || {};
+  const host = (at.post && document.querySelector('#s-' + AT + ' [data-post="' + CSS.escape(at.post) + '"]')) || sheetFront_();
+  if (!host) { if (!sh.isConnected && $('sheet-home')) $('sheet-home').after(sh); return; }
+  host.appendChild(sh);
+  host.classList.add('sheet-host');
+  if (at.swap) host.classList.add('sheet-swap');
+}
+try {
+  new MutationObserver(sheetKeep_).observe(document.documentElement, { childList: true, subtree: true });
+} catch (err) {}
 
 function openSheet(title, html, onClose, step) {
   /* A SHEET OPENED OVER A SHEET. § */
@@ -1978,27 +2032,31 @@ function openSheet(title, html, onClose, step) {
   /* SET AFTER the old sheet's `onClose` above, which may itself open a sheet. */
   sheetStep = typeof step === 'function' ? step : null;
 
-  $('sheet-title').textContent = title;
-  $('sheet-body').innerHTML = html;
-  $('sheet-body').scrollTop = 0;
-  $('sheet').classList.remove('hidden');
-  document.body.classList.add('sheet-open');
-  if ($('screen')) $('screen').inert = true;
+  sheetPlace_();
+  const sh = sheetEl_();
+  sh.querySelector('#sheet-title').textContent = title;
+  sh.querySelector('#sheet-body').innerHTML = html;
+  sh.classList.remove('hidden');
   sheetOnClose = onClose || null;
+  try { sh.scrollIntoView({ block: 'nearest' }); } catch (err) {}
+  try { placeCells(undefined, true); } catch (err) {}
 }
 
-/* ---------- CLOSING IT: BACK TO THE GRID, WHERE IT STOOD ---------- */
+/* ---------- CLOSING IT: THE CARD AS IT WAS ---------- */
 function closeSheet() {
   sheetStep = null;
-  const was = !$('sheet').classList.contains('hidden');
-  $('sheet').classList.add('hidden');
-  document.body.classList.remove('sheet-open');
-  if ($('screen')) $('screen').inert = false;
+  const sh = sheetEl_();
+  const was = !sh.classList.contains('hidden');
+  sh.classList.add('hidden');
   const f = sheetOnClose; sheetOnClose = null;
   if (f) { try { f(); } catch (err) { console.error('[sheet onClose]', err); } }
-  /* EMPTIED AFTER `onClose` has read it, and only if that did not open another. */
-  if ($('sheet').classList.contains('hidden')) $('sheet-body').innerHTML = '';
-  /* THE GRID WAS ONLY HIDDEN, so it kept its sizes; placed again anyway, in case the window turned meanwhile. */
+  /* EMPTIED AND SENT HOME after `onClose` has read it, and only if that did not open another. */
+  if (sh.classList.contains('hidden')) {
+    sh.querySelector('#sheet-body').innerHTML = '';
+    SHEET_AT_ = null;
+    document.querySelectorAll('.sheet-host').forEach(h => h.classList.remove('sheet-host', 'sheet-swap'));
+    if ($('sheet-home')) $('sheet-home').after(sh);
+  }
   if (was) { try { placeCells(undefined, true); } catch (err) {} }
 }
 

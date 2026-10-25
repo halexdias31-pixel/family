@@ -1020,7 +1020,7 @@ function reactWho_(p) {
   const n = r ? Number(r.total) || 0 : 0;
   if (!n) return '';                          // a 0 that opens an empty sheet is a promise broken
   return `<button class="text-action react-who" data-do="who-reacted" data-id="${esc(p.id)}"
-             aria-haspopup="dialog">${n} reaction${n === 1 ? '' : 's'}</button>`;
+             >${n} reaction${n === 1 ? '' : 's'}</button>`;
 }
 /* WHEN, AND HOW MANY. Time first, so a total appearing never moves it; 44px tall either way, so the first reaction on a post moves nothing below it — the tile § */
 function postWhen_(p) {
@@ -1049,6 +1049,7 @@ on('who-reacted', el => {
     /* MOST FIRST, ties in the house order: "four people laughed" is the shape of the answer. */
     .sort((a, b) => b.n - a.n || a.at - b.at);
 
+  sheetHere_(el);    // under the post's own tile row (453)
   openSheet(r.total + ' reaction' + (r.total === 1 ? '' : 's'),
     groups.map(g => `<section class="rx-group">
       <h3 class="rx-head"><span class="rx-pill${g.mine ? ' mine' : ''}"><span class="react-e">${
@@ -1863,6 +1864,7 @@ on('post-edit', el => {
   const opts = p.poll ? (p.poll.options || []).join(', ') : '';
   const voted = !!(p.poll && p.poll.total);
 
+  sheetHere_(el, true);    // the post card becomes its editor (453)
   openSheet(words ? 'Edit post' : 'Pin or date', `
     ${p.image ? `<img src="${esc(pic(p.image))}" decoding="async" alt=""
          style="width:100%;margin-bottom:.7rem">` : ''}
