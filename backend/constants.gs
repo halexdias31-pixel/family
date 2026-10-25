@@ -118,7 +118,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-25-p-feed-compose";
+const BACKEND_VERSION = "2026-10-25-q-help-hand";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1425,6 +1425,20 @@ const MIGRATIONS = [
     run: () => backfillSlotCodes_() },
 ];
 
+/* HANDS UP (455): who wants the tutor, kept 30 minutes in one script property, pruned on every read. */
+const HANDS_KEY = 'HELP_HANDS';
+const HANDS_TTL_MS = 30 * 60 * 1000;
+function handsRead_() {
+  let all = {};
+  try { all = JSON.parse(PropertiesService.getScriptProperties().getProperty(HANDS_KEY) || '{}') || {}; } catch (e) { all = {}; }
+  const now = Date.now();
+  Object.keys(all).forEach(k => { if (!all[k] || !(now - Number(all[k].at) < HANDS_TTL_MS)) delete all[k]; });
+  return all;
+}
+function handsWrite_(all) {
+  try { PropertiesService.getScriptProperties().setProperty(HANDS_KEY, JSON.stringify(all || {})); } catch (e) {}
+}
+
 /* ============================== POST ========================================================= */
 /* ---------- WHO MAY DO WHAT § */
 const ACTION_ACCESS = {
@@ -1466,6 +1480,8 @@ const ACTION_ACCESS = {
   claimChild: 'self', answerClaim: 'self',
   /* A child's card by its exact handle (442); the handler gates Client+ and counts. */
   findChild: 'self',
+  /* A HAND UP FROM A QUESTION (455): the handler checks it is your own, or that Staff+ is lowering it. */
+  raiseHand: 'self', hands: 'self',
   /* All `self`: each handler checks the message is the asker's own, and the POLICY table decides
      who may write to whom. The gate cannot know either, so it only checks somebody is signed in. */
   listRecords: 'admin', saveRecordsPage: 'admin',

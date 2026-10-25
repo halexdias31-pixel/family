@@ -31,6 +31,8 @@ const TILE_ICONS = {
        + '<circle cx="9" cy="8.5" r="2.2"/>',
   /* A TICK, FOR CHECK -- "check button should be a tile". § */
   tick:  '<path d="M3.5 9.5l3.5 3.5 7.5-8"/>',
+  /* A RAISED HAND (455): four fingers up and a thumb, for asking the tutor over. */
+  hand:  '<path d="M6 9V4a1 1 0 0 1 2 0v4M8 8V3a1 1 0 0 1 2 0v5M10 8V3.5a1 1 0 0 1 2 0V9M12 9V5.5a1 1 0 0 1 2 0V11a4.5 4.5 0 0 1-4.5 4.5h-.5a4.5 4.5 0 0 1-3.6-1.8L3.6 10.6a1 1 0 0 1 1.6-1.2L6 10.4"/>',
   hide:  '<path d="M3 3.5 15 14"/>'
        + '<path d="M7 5.1A7.7 7.7 0 0 1 9 4c4.8 0 7.5 4.5 7.5 4.5a14 14 0 0 1-2.6 2.9"/>'
        + '<path d="M11.4 10.6A2.2 2.2 0 0 1 7.5 8.9"/>'

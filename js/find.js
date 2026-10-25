@@ -7169,7 +7169,7 @@ function qWordsOr_(x, html) {
   return '<p class="empty">This question’s words are missing — flag it and we will put them back.</p>';
 }
 function questionCard_(x) {
-  return `<div class="qcard">
+  return `<div class="qcard${typeof helpCls_ === 'function' ? helpCls_() : ''}">
     ${/* THE ROW, AND NOTHING ELSE ABOVE THE QUESTION: every fact is a tag (`tagRow_`), and every tag
           is an answer the finder offers. THE DAY YOU LAST DID IT is in the tile row, beside the star --
           see `questionTiles_`. */''}
@@ -7184,6 +7184,8 @@ function questionCard_(x) {
     ${/* YOUR BOX, AND THE MARK SCHEME IS NOT UNDER IT ANY MORE. § */
           ''}
     ${ansArea_(x)}
+    ${/* HELP (455): a hand up for the tutor, last in the card so it never moves the answer's controls. */
+          typeof helpRow_ === 'function' ? helpRow_(x) : ''}
   </div>`;
 }
 
@@ -7558,7 +7560,7 @@ function questionAnsCard_(x) {
   const k = ansKey_(x);
   const open = ansOpen_(x);
   /* ---------- ONE TILE, IN ONE PLACE, AND IT SAYS WHICH WAY IT GOES § */
-  return `<div class="qcard qans-card${open ? '' : ' is-hidden'}" data-of="${esc(id)}" data-k="${esc(k)}">
+  return `<div class="qcard qans-card${open ? '' : ' is-hidden'}${typeof helpCls_ === 'function' ? helpCls_() : ''}" data-of="${esc(id)}" data-k="${esc(k)}">
     ${tagRow_(x, 'ans')}
     <div class="tile-row qans-tiles">${open
       ? tile_({ icon: 'hide', label: 'Hide the answer', note: 'one tap', act: 'qa-hide', cls: 'qa-toggle', data: { k: k } })
@@ -7566,6 +7568,7 @@ function questionAnsCard_(x) {
       /* "ANSWER HIDDEN", AND NOT "HAVE A GO FIRST". § */
       open ? '' : '<span class="qans-wait-k">Answer hidden</span>'}</div>
     ${open ? answerBlock_(x) : ''}
+    ${typeof helpRow_ === 'function' ? helpRow_(x) : ''}
   </div>`;
 }
 
@@ -8874,7 +8877,9 @@ function accountPages_(which) {
   if (which === 'family') return kids;
   if (which === 'admin') return add.concat(everyone);
   const mine = typeof youSettingsPages_ === 'function' ? youSettingsPages_() : [];
-  return search.concat([me], claimPages, famPages.filter((_, i) => family[i].relation !== 'child'), mine, others, coming);
+  /* NEEDS HELP (455) ABOVE ALL, for Staff — one call, so it moves with the Students column (help.js `HELP_COL`). */
+  const help = typeof helpListCard_ === 'function' ? [helpListCard_()].filter(Boolean) : [];
+  return help.concat(search, [me], claimPages, famPages.filter((_, i) => family[i].relation !== 'child'), mine, others, coming);
 }
 
 /* ---------- HOW A LEARNER IS GETTING ON, IN ONE LINE UNDER THEIR NAME § */

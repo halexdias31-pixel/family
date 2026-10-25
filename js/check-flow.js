@@ -9729,11 +9729,95 @@ check('442, 444: the Student column opens with Find by handle; "Add a person" is
   const { d, w, t } = await psBoot_({ name: 'Hal Admin', personId: 'P-A1', role: 'admin', roles: ['admin'], token: 'tk' });
   try { t.repaint(true); w.paint('biz'); } catch (e) {}
   await wait(100);
-  const first = d.querySelector('#s-account .page');
+  /* STAFF HAVE NEEDS HELP ABOVE IT (455), so Find by handle is the first page after that one. */
+  const first = [...d.querySelectorAll('#s-account .page')].find(p => !p.querySelector('.help-list'));
   const bad = [];
+  if (!d.querySelector('#s-account .page .help-list')) bad.push('an admin\'s Student column has no Needs help card');
   if (!first || !first.querySelector('.ps-card')) bad.push('the Student column does not start with Find by handle');
   if (d.querySelector('#s-account [data-do="person-add"]')) bad.push('"Add a person" is on the Student column');
   if (d.querySelectorAll('#s-biz [data-do="person-add"]').length !== 1) bad.push('Business does not have one "Add a person"');
+  return bad;
+});
+/* ---------- A HAND UP FROM A QUESTION (455) ---------- */
+const HELP_KID_ = { name: 'Ada Pupil', personId: 'P-S1', role: 'student', roles: ['student'], rank: 'student', token: 'tk-s1', handle: 'adapupil' };
+const HELP_Q_ = { kind: 'question', key: 'q-help', name: 'Q3', marks: 1, row: { row_id: 'Q-HELP-3', paper_id: 'P-HELP', subject: 'Maths', name: 'Help' },
+  html: '<p>Work out 12 &divide; 4</p>', answer: '<b>3</b>' };
+const helpDraw_ = w => { const d = w.document.createElement('div'); d.className = 'help-probe';
+  d.innerHTML = w.questionCard_(HELP_Q_) + w.questionAnsCard_(HELP_Q_); w.document.body.appendChild(d); return d; };
+check('455: Help on a question turns its card red, says Waiting for help, tells the tutor, and survives a reload until I\'m OK now', async () => {
+  const bad = [];
+  const r = boot({ before: signedInAs_(HELP_KID_), reply: b => b.action === 'hands' ? { success: true, mine: { personId: 'P-S1', q: 'q-help', at: Date.now() } } : { success: true } });
+  await wait(300);
+  const box = helpDraw_(r.w);
+  const tile = box.querySelector('.qcard .tile[data-do="help-hand"]');
+  if (!tile || !/Help/.test(tile.getAttribute('aria-label'))) { bad.push('a question card has no Help tile'); return bad; }
+  if (box.querySelectorAll('.qcard .tile[data-do="help-hand"]').length < 2) bad.push('the answer page has no Help tile');
+  r.w.__t.ACTIONS['help-hand'](tile);
+  await wait(50);
+  const cards = [...box.querySelectorAll('.qcard')];
+  if (!cards.length || !cards.every(c => c.classList.contains('is-help'))) bad.push('Help did not turn every question card red');
+  if (!/Waiting for help/.test(box.textContent)) bad.push('the card does not say Waiting for help');
+  const t2 = box.querySelector('.tile[data-do="help-hand"]');
+  if (!t2 || !/I’m OK now/.test(t2.getAttribute('aria-label'))) bad.push('the tile did not become "I’m OK now"');
+  const sent = r.sent.find(b => b.action === 'raiseHand');
+  if (!sent || sent.on !== true || sent.q !== 'q-help') bad.push('the tutor was not told: ' + JSON.stringify(sent));
+  let kept = null;
+  try { kept = r.w.localStorage.getItem('familyHelpHand'); } catch (e) {}
+  if (!kept) { bad.push('the hand was not kept on the device'); return bad; }
+  /* A RELOAD: a new app on the same device keeps the card red. */
+  const r2 = boot({ before: w => { signedInAs_(HELP_KID_)(w); w.localStorage.setItem('familyHelpHand', kept); },
+    reply: b => b.action === 'hands' ? { success: true, mine: { personId: 'P-S1' } } : { success: true } });
+  await wait(300);
+  const box2 = helpDraw_(r2.w);
+  if (!box2.querySelector('.qcard.is-help')) bad.push('after a reload the card is not red');
+  r2.w.__t.ACTIONS['help-hand'](box2.querySelector('.tile[data-do="help-hand"]'));
+  await wait(50);
+  if (box2.querySelector('.qcard.is-help') || /Waiting for help/.test(box2.textContent)) bad.push('I’m OK now did not clear the red');
+  const down = r2.sent.filter(b => b.action === 'raiseHand').pop();
+  if (!down || down.on !== false) bad.push('putting the hand down was not sent: ' + JSON.stringify(down));
+  /* THIRTY MINUTES: a stale hand on the device is down by itself. */
+  r2.w.localStorage.setItem('familyHelpHand', JSON.stringify({ q: 'q-help', at: Date.now() - 31 * 60 * 1000 }));
+  if (r2.w.helpGet_()) bad.push('a hand 31 minutes old is still up');
+  return bad;
+});
+check('455: Staff see Needs help at the top of the Student column, oldest first, and Done clears it — the child\'s card goes back on her next poll', async () => {
+  const bad = [];
+  let list = [{ personId: 'P-S2', name: 'Bo P', q: 'Q7', label: 'Q7 algebra', at: Date.now() - 300000 },
+              { personId: 'P-S1', name: 'Ada P', q: 'Q3', label: 'Q3 fractions', at: Date.now() - 60000 }];
+  const r = boot({ reply: b => {
+    if (b.action === 'raiseHand' && b.on === false) { list = list.filter(h => h.personId !== b.for); return { success: true, hands: list }; }
+    return b.action === 'hands' ? { success: true, mine: null, hands: list } : { success: true };
+  } });
+  await wait(300);
+  const t = r.w.__t, d = r.w.document;
+  t.USER({ name: 'Tia Tutor', personId: 'P-T1', role: 'tutor', roles: ['tutor'], rank: 'staff', token: 'tk-t1', handle: 'tiatutor' });
+  t.go('account', false, true); r.w.paint('account');
+  await wait(300);
+  t.go('account', false, true); r.w.paint('account');
+  await wait(50);
+  const first = d.querySelector('#s-account .page');
+  const card = first && first.querySelector('.help-list');
+  if (!card) { bad.push('the Student column does not start with Needs help'); return bad; }
+  const who = [...card.querySelectorAll('.help-who')].map(x => x.getAttribute('data-id'));
+  if (who.join() !== 'P-S2,P-S1') bad.push('Needs help lists ' + who.join() + ', wanted oldest first P-S2,P-S1');
+  if (!/Q7 algebra/.test(card.textContent)) bad.push('the line does not say which question');
+  if (!r.sent.some(b => b.action === 'hands')) bad.push('the tutor\'s column never asked who has a hand up');
+  const done = card.querySelector('.tile[data-do="help-done"][data-id="P-S2"]');
+  if (!done) { bad.push('no Done tile for the first child'); return bad; }
+  t.ACTIONS['help-done'](done);
+  await wait(100);
+  const sent = r.sent.filter(b => b.action === 'raiseHand').pop();
+  if (!sent || sent.on !== false || sent.for !== 'P-S2') bad.push('Done did not lower that hand: ' + JSON.stringify(sent));
+  if (d.querySelector('#s-account .help-who[data-id="P-S2"]')) bad.push('the helped child is still listed');
+  /* THE CHILD'S SIDE: her next poll finds no hand, and her card goes back to normal. */
+  const k = boot({ before: w => { signedInAs_(HELP_KID_)(w); w.localStorage.setItem('familyHelpHand', JSON.stringify({ q: 'q-help', at: Date.now() })); },
+    reply: b => b.action === 'hands' ? { success: true, mine: null } : { success: true } });
+  await wait(300);
+  const box = helpDraw_(k.w);
+  if (!box.querySelector('.qcard.is-help')) bad.push('the child\'s card was not red before the poll');
+  await k.w.helpTick_();
+  await wait(20);
+  if (box.querySelector('.qcard.is-help')) bad.push('after the tutor\'s Done the child\'s card is still red on her next poll');
   return bad;
 });
 check('442: a parent finds their child by the exact handle — first name only, and an "Add as my child" tile', async () => {

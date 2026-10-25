@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-25-s-sheet-in-place";
+  --css-version: "2026-10-25-t-help-hand";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -6654,3 +6654,14 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .asst-text:disabled, .asst-go:disabled { opacity: .5; }
 .asst-form .btn.asst-go { width: auto; flex: 0 0 auto; min-height: 44px; height: 44px; }
 .asst-left, .asst-said, .asst-hello { margin: .35rem 0 0; font-size: .72rem; }
+
+/* ---------- A HAND UP (455): the card a tutor can see from across the room, and the tutor's list ---------- */
+.qcard { --help-red: #d7261e; --help-wash: rgb(215 38 30 / .28); --help-ink: #fff; }
+.qcard.is-help { border: 4px solid var(--help-red); background: var(--help-wash); box-shadow: 0 0 0 3px var(--help-red); }
+.qhelp-tiles { margin-top: .5rem; align-items: center; }
+.qhelp-say { color: var(--help-ink); background: var(--help-red); font-weight: 700; font-size: 1rem;
+             padding: .35rem .7rem; border-radius: var(--r); }
+.qcard.is-help .tile.help-hand { color: var(--help-ink); background: var(--help-red); border-color: var(--help-red); }
+.help-list { --help-red: #d7261e; border-color: var(--help-red); }
+.help-list .help-line { margin: .2rem 0; }
+.help-list .help-none { margin: .2rem 0; }
