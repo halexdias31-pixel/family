@@ -202,11 +202,15 @@ const WIDGETS = [
     <h3>Calculator</h3>
     ${/* A DIV, not an input. § */
           ''}
-    <div id="mc-display" class="mc-display" tabindex="0" aria-live="polite" aria-label="Calculator display"></div>
-    <div class="mc-grid">
-      ${CALC_KEYS.map(([v, label, cls, shift]) =>
-        `<button type="button" class="mc-btn ${cls}" data-mc="${esc(v)}" aria-label="${esc(v === 'frac' ? 'fraction' : v === 'pow' ? 'power' : v)}">${shift ? `<small class="mc-alt">${shift}</small>` : ''}<span class="mc-lab">${label}</span></button>`
-      ).join('')}
+    <div class="calc">
+      <div class="calc-bezel">
+        <div id="mc-display" class="mc-display" tabindex="0" aria-live="polite" aria-label="Calculator display"></div>
+        <div class="calc-label">${esc(typeof brand === 'function' ? brand('name', '@family.') : '@family.')}</div>
+      </div>
+      ${[['top', 'calc-top', '<i class="calc-pad" aria-hidden="true"></i>'], ['fn', 'calc-fn', ''], ['num', 'calc-num', '']].map(([part, cls, extra]) =>
+        `<div class="${cls}">${extra}${CALC_KEYS.filter(k => k[2].split(' ')[0] === part).map(([v, label, kc, legend, name]) =>
+          `<button type="button" class="mc-btn ${kc}${/^\w+$/.test(v) ? ' mc-k-' + v : ''}" data-mc="${esc(v)}" aria-label="${esc(name || v)}">${legend ? `<small class="mc-alt">${legend}</small>` : ''}<span class="mc-lab">${label}</span></button>`
+        ).join('')}</div>`).join('')}
     </div>
   </div>` },
   /* THE FLYER MAKER WAS FOLDED INTO THE CHEAT SHEET MAKER ONCE, AND IS ITS OWN TOOL AGAIN — the `flyers` entry below. § */

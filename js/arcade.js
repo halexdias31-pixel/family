@@ -3,19 +3,36 @@
 
 /* ---------- ARCADE § */
 /* ---------- THE CALCULATOR: KEYS AND ENGINE (a Casio Natural Display). Pure, no DOM; js/check-calc.js runs it. */
-/* [key, label, class, SHIFT label]. Labels are fixed markup, drawn unescaped by map.js. */
+/* The fx-83GT CW's face, in order: [key, label, class, legend, name]. A `top` key's legend is printed white over
+   it; any other key's is its SHIFT, in blue. Labels are fixed markup, drawn unescaped by map.js. */
+const MK_B = '<b class="mk-b"></b>', MK_S = '<sup class="mk-b"></sup>', MK_FR = '<i class="mk-fr"><b></b><u></u><b></b></i>';
 const CALC_KEYS = [
-  ['shift', 'SHIFT', 'sh'], ['left', '◀', 'nav'], ['up', '▲', 'nav'], ['down', '▼', 'nav'], ['right', '▶', 'nav'], ['sd', 'S⇔D', 'fn'],
-  ['frac', '<i class="mk-fr"><b></b><b></b></i>', 'fn'], ['sqrt', '√<b class="mk-b"></b>', 'fn', '∛'], ['sq', 'x²', 'fn', 'x³'],
-  ['pow', 'x<sup class="mk-b"></sup>', 'fn', '<sup>□</sup>√'], ['inv', 'x⁻¹', 'fn'], ['log', 'log', 'fn', '10<sup>□</sup>'],
-  ['neg', '(−)', 'fn'], ['sin', 'sin', 'fn', 'sin⁻¹'], ['cos', 'cos', 'fn', 'cos⁻¹'], ['tan', 'tan', 'fn', 'tan⁻¹'],
-  ['ln', 'ln', 'fn', 'e<sup>□</sup>'], ['pi', 'π', 'fn', 'e'],
-  ['(', '(', 'fn br'], [')', ')', 'fn br'],
-  ['7', '7', ''], ['8', '8', ''], ['9', '9', ''], ['del', 'DEL', 'del'], ['C', 'AC', 'del'],
-  ['4', '4', ''], ['5', '5', ''], ['6', '6', ''], ['×', '×', 'op'], ['÷', '÷', 'op'],
-  ['1', '1', ''], ['2', '2', ''], ['3', '3', ''], ['+', '+', 'op'], ['−', '−', 'op'],
-  ['0', '0', ''], ['.', '.', ''], ['e10', '×10<sup>x</sup>', ''], ['Ans', 'Ans', ''], ['=', '=', 'eq'],
+  ['on', '', 'top', 'ON', 'clear'], ['home', '<i class="mk-ic mk-home"></i>', 'top', 'HOME', 'home'],
+  ['set', '<i class="mk-ic mk-set"></i>', 'top', 'SETTINGS', 'settings'], ['back', '↶', 'top', '', 'back'],
+  ['up', '⌃', 'top pad', '', 'up'], ['left', '‹', 'top pad', '', 'left'], ['ok', 'OK', 'top pad', '', 'OK'],
+  ['right', '›', 'top pad', '', 'right'], ['down', '⌄', 'top pad', '', 'down'],
+  ['pgup', '︽', 'top pg', '', 'scroll up'], ['pgdn', '︾', 'top pg', '', 'scroll down'],
+  ['shift', '⇧', 'top sh', 'SHIFT', 'shift'], ['var', '⇄<i>x</i>', 'top lt', 'VARIABLE', 'variable'],
+  ['func', 'f(<i>x</i>)', 'top lt', 'FUNCTION', 'function'], ['cat', '<i class="mk-ic mk-book"></i>', 'top lt', 'CATALOG', 'catalog'],
+  ['tools', '<i class="mk-ic mk-dots"></i>', 'top lt', 'TOOLS', 'tools'],
+  ['x', '<i>x</i>', 'fn', 'QR', 'x'], ['frac', MK_FR, 'fn', MK_B + MK_FR, 'fraction'],
+  ['sqrt', '√' + MK_B, 'fn', '∛' + MK_B, 'square root'], ['pow', MK_B + MK_S, 'fn', MK_B + '<sup>−1</sup>', 'power'],
+  ['sq', MK_B + '<sup>2</sup>', 'fn', MK_B + '<sup>3</sup>', 'squared'], ['log', 'log<sub class="mk-b"></sub>' + MK_B, 'fn', 'ln', 'log'],
+  ['Ans', 'Ans', 'fn'], ['sin', 'sin', 'fn', 'sin<sup>−1</sup>'], ['cos', 'cos', 'fn', 'cos<sup>−1</sup>'],
+  ['tan', 'tan', 'fn', 'tan<sup>−1</sup>'], ['(', '(', 'fn', '', 'open bracket'], [')', ')', 'fn', ',', 'close bracket'],
+  ['7', '7', 'num', 'π'], ['8', '8', 'num', '<i>e</i>'], ['9', '9', 'num'], ['del', '<i class="mk-ic mk-del"></i>', 'num', 'INS', 'delete'],
+  ['C', 'AC', 'num', 'OFF', 'all clear'],
+  ['4', '4', 'num', 'A'], ['5', '5', 'num', 'B'], ['6', '6', 'num', 'C'], ['×', '×', 'num', '', 'times'], ['÷', '÷', 'num', '', 'divide'],
+  ['1', '1', 'num', 'D'], ['2', '2', 'num', 'E'], ['3', '3', 'num', 'F'], ['+', '+', 'num', '°′″', 'plus'], ['−', '−', 'num', '(−)', 'minus'],
+  ['0', '0', 'num', '<i>x</i>'], ['.', '•', 'num', '<i>y</i>', 'point'], ['e10', '×10' + MK_S, 'num', '<i>z</i>', 'times ten to the'],
+  ['sd', '<i class="mk-fmt">FORMAT</i>', 'num', '', 'format'], ['=', 'EXE', 'num', '≈', 'execute'],
 ];
+/* What a key does after SHIFT where that is another key. A shifted legend with no meaning here says so rather than typing. */
+const CALC_SHIFT = { '7': 'pi', '8': 'e', sin: 'asin', cos: 'acos', tan: 'atan', sqrt: 'cbrt', sq: 'cube', pow: 'inv',
+  log: 'ln', '−': 'neg', '=': 'approx', frac: 'frac', C: 'C' };
+const CALC_NOT_HERE = { var: 'VARIABLE', func: 'FUNCTION', cat: 'CATALOG', tools: 'TOOLS', set: 'SETTINGS', x: '<i>x</i>' };
+const CALC_AS = { ok: '=', on: 'C', home: 'C', back: 'del', pgup: 'up', pgdn: 'down' };
+const calcLegend = k => ((CALC_KEYS.find(x => x[0] === k) || [])[3] || '').replace(/<[^>]+>/g, '');
 
 /* ---- numbers: an exact rational {n, d} of BigInts, or a plain float when no exact answer exists */
 const cQ = (n, d = 1n) => {
@@ -274,11 +291,17 @@ const CALC_GOES_ON = ['+', '−', '×', '÷', 'sq', 'pow', 'inv', 'e10'];   // a
 function calcKey(st, k) {
   k = CALC_ALIAS[k] || k;
   if (k === 'shift') { st.shift = !st.shift; return st; }
-  const sh = st.shift;
+  let sh = st.shift;
   st.shift = false;
+  st.note = '';
+  if (CALC_NOT_HERE[k]) { st.note = CALC_NOT_HERE[k].replace(/<[^>]+>/g, '') + ' is not on this calculator'; return st; }
+  if (sh && CALC_SHIFT[k]) { k = CALC_SHIFT[k]; sh = false; }
+  else if (sh && calcLegend(k)) { st.note = 'SHIFT ' + calcLegend(k) + ' is not on this calculator'; return st; }
+  k = CALC_AS[k] || k;
   if (k !== 'up' && k !== 'down') st.back = -1;
   if (k === 'C') { const root = []; Object.assign(st, { root, cur: { row: root, i: 0 }, fresh: false, val: null, err: '' }); return st; }
   if (k === 'sd') { if (st.fresh && st.val != null) st.dec = !st.dec; return st; }
+  if (k === 'approx') { calcKey(st, '='); if (st.fresh) st.dec = true; return st; }
   if (k === '=') {
     if (!st.root.length) return st;
     const was = calcClone(st.root);
@@ -353,7 +376,8 @@ function calcRowHtml(st, row, top) {
 }
 const calcHtml = st => ({
   input: calcRowHtml(st, st.root, true),
-  output: st.err ? cEsc(st.err) : st.fresh && st.val != null ? calcSay(st.val, st.dec) : '',
+  output: st.err ? cEsc(st.err) : st.fresh && st.val != null ? calcSay(st.val, st.dec)
+    : st.note ? '<span class="mc-note">' + cEsc(st.note) + '</span>' : '',
 });
 /* ---------- END OF THE CALCULATOR ENGINE */
 
