@@ -118,7 +118,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-25-r-ai-mark-speed";
+const BACKEND_VERSION = "2026-10-25-s-digest-dark-9pm";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -654,6 +654,8 @@ const CONFIG_DEFAULTS = [
 
 /* ---------- A SEED THAT MOVED: `[key, the old value, the old note]` § */
 const CONFIG_RESEEDED = [
+  /* 6PM ON 25 OCT 2026 (457): the sheet's row still said the old seed's 18, so the hour was kept at 18 every admin load. */
+  ['weekly_digest_hour', '18', 'the hour on Sunday, London time, the weekly parent email goes. 0-23, blank = 18. Run installWeeklyDigest again after changing it'],
   ['gemini_model', AI_MODEL_OLD_SEED, 'the Gemini model that marks worded answers. Blank = gemini-flash-latest. The API KEY never goes here: it is GEMINI_API_KEY in Script Properties'],
 ];
 
