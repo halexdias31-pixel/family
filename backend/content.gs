@@ -1985,3 +1985,58 @@ function mediaWrite_(action, body) {
   clearCache();
   return { success: true, kind: kind, id: id, media: mediaOut_(Infinity) };
 }
+
+/* ---------- CONSOLE SAVES (446): "when a user plays a game and they're logged in, it will save their progress" — the Console's games too. */
+/* One text file per person and game in the script account's own Drive folder, never the sheet. The ROM is never sent: only its hash and the save. */
+const CONSOLE_SAVE_PROP = 'CONSOLE_SAVES_FOLDER';
+const CONSOLE_SAVE_MAX = 2 * 1024 * 1024;   // packed bytes per game, battery save and state together
+const CONSOLE_SAVE_SYS = ['nes', 'snes', 'gb', 'gbc', 'gba', 'n64', 'nds'];
+const CONSOLE_SAVE_TOO_BIG = 'This game\'s save is bigger than an account keeps (2 MB), so it stays on this device only.';
+
+function consoleSaveFolder_(make) {
+  const props = PropertiesService.getScriptProperties();
+  const id = S(props.getProperty(CONSOLE_SAVE_PROP));
+  if (id) { try { const f = DriveApp.getFolderById(id); if (f && !(f.isTrashed && f.isTrashed())) return f; } catch (err) {} }
+  if (!make) return null;
+  const f = DriveApp.createFolder('family console saves');
+  props.setProperty(CONSOLE_SAVE_PROP, f.getId());
+  return f;
+}
+/* The person's id and the hash, both cut to safe letters, so a name can never point outside its own file. */
+const consoleSaveName_ = (pid, hash) => 'cs-' + S(pid).replace(/[^\w-]/g, '') + '-' + hash + '.json';
+const consoleSaveHash_ = h => (/^[0-9a-f]{16,64}$/.test(S(h)) ? S(h) : '');
+function consoleSaveFile_(folder, name) {
+  if (!folder) return null;
+  const it = folder.getFilesByName(name);
+  return it && it.hasNext() ? it.next() : null;
+}
+
+function consoleSave_(pid, body) {
+  const hash = consoleSaveHash_(body.hash), sys = S(body.sys);
+  if (!pid) return { error: 'Please sign in again.', why: 'signed-out' };
+  if (!hash || CONSOLE_SAVE_SYS.indexOf(sys) < 0) return { error: 'That save did not say which game it was for. Nothing was kept.' };
+  /* ONLY SAVE DATA: two base64 strings of the phone's packed bytes, nothing that could be a picture or a file of any other kind. */
+  const sram = S(body.sram), state = S(body.state);
+  if (!sram && !state) return { error: 'There was nothing in that save. Nothing was kept.' };
+  if (!/^[A-Za-z0-9+/=]*$/.test(sram) || !/^[A-Za-z0-9+/=]*$/.test(state)) return { error: 'That save was not in the expected shape. Nothing was kept.' };
+  if (Math.floor((sram.length + state.length) * 3 / 4) > CONSOLE_SAVE_MAX) return { error: CONSOLE_SAVE_TOO_BIG, why: 'too-big' };
+  const at = Math.min(Date.now(), Number(body.at) || Date.now());
+  const text = JSON.stringify({ v: 1, hash: hash, sys: sys, at: at, sram: sram, state: state });
+  const folder = consoleSaveFolder_(true), name = consoleSaveName_(pid, hash);
+  /* THE LATEST ONLY: the one file is overwritten, so an account holds one save per game. */
+  const file = consoleSaveFile_(folder, name);
+  if (file) file.setContent(text); else folder.createFile(name, text, 'application/json');
+  return { success: true, at: at };
+}
+
+function consoleLoad_(pid, hash) {
+  hash = consoleSaveHash_(hash);
+  if (!pid) return { error: 'Please sign in again.', why: 'signed-out' };
+  if (!hash) return { success: true, save: null };
+  const file = consoleSaveFile_(consoleSaveFolder_(false), consoleSaveName_(pid, hash));
+  if (!file) return { success: true, save: null };
+  let got = null;
+  try { got = JSON.parse(file.getBlob().getDataAsString()); } catch (err) { got = null; }
+  if (!got || got.hash !== hash) return { success: true, save: null };
+  return { success: true, save: { at: Number(got.at) || 0, sys: S(got.sys), sram: S(got.sram), state: S(got.state) } };
+}

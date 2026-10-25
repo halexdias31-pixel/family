@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-25-auto-import";
+const DOPOST_VERSION = "2026-10-25-console-saves";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -900,6 +900,10 @@ function doPost(e) {
       return jsonOut({ success: true });
     };
     if (action === 'saveNotepad') return savePerson('notepad', S(body.notepad));
+
+    /* ---------- A CONSOLE GAME'S PROGRESS (446): battery save and save state, packed on the phone; `consoleSave_` in content.gs. */
+    if (action === 'consoleSave') return jsonOut(consoleSave_(S(body.personId), body));
+    if (action === 'consoleLoad') return jsonOut(consoleLoad_(S(body.personId), S(body.hash)));
 
     /* posting ------------------------------------------------------------------------------- An admin picks a photograph on their phone and it lands in the Drive § */
     if (action === 'addPost') {
