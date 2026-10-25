@@ -2,7 +2,11 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
+<<<<<<< HEAD
   --css-version: "2026-10-25-b-teaching-cycles";
+=======
+  --css-version: "2026-10-25-b-one-console";
+>>>>>>> fix-one-console
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -1225,7 +1229,7 @@ body.nes-on .nes-wrap *, body.nes-on .nes-wrap *::before, body.nes-on .nes-wrap 
 .flappy { width: 100%; aspect-ratio: 4/5; display: block; touch-action: none;
           background: var(--sunk); border: 1px solid var(--line); border-radius: .5rem; }
 /* ---------- A THUMB ON THE GAME IS A FLAP, NOT A SELECTION § */
-.pane:has(.flappy), .card:has(> .flappy) {
+.pane:has(.flappy), .card:has(.flappy) {
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 
 /* ---------- WHAT THE LAWS PAINT § */
@@ -5536,6 +5540,13 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .mz-key.left  { grid-column: 1; grid-row: 2; }
 .mz-key.down  { grid-column: 2; grid-row: 2; }
 .mz-key.right { grid-column: 3; grid-row: 2; }
+
+/* ---------- THE CONSOLE'S OWN BODIES FOR ITS TWO BUILT-IN GAMES (441): a handheld round the bird, a wide dark bezel round the street. */
+.cs-body { --cs-shell: #2a2a30; --cs-edge: #45454d; box-sizing: border-box; margin: .55rem auto 0; background: var(--cs-shell);
+  border: 1px solid var(--cs-edge); }
+.cs-hand { max-width: 22rem; padding: 1.1rem 1rem 1.4rem; border-radius: 1rem 1rem 2.6rem 1rem; }
+.cs-wide { padding: .6rem .6rem .7rem; border-radius: 1.1rem; }
+.cs-wide .race-stage { margin-top: 0; }
 
 /* ---------- THE COLLIERS WOOD RACER (426): a fixed-shape stage, so nothing under it moves while it draws */
 .race-stage {

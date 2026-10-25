@@ -179,7 +179,7 @@ function boot(opts) {
          that puts it back (docs/history/341). A page is not still until it has. */
       'trailWide: () => TRAIL_X.lo < TRAIL_X.hi || TABS.some(x => { const h = document.getElementById("s-" + x.id); const was = h && h.TRAIL && colPlaced_(h);' +
       '  return !!(was && (h.TRAIL.top < -was[1] - 1 || h.TRAIL.bot > -was[1] + (h.clientHeight || innerHeight) + 1)); }),' +
-      'TOOLS_ON: () => TOOLS_ON, PRE_PAYLOAD: () => [...PRE_PAYLOAD], GLASS: () => GLASS,' +
+      'isFav: k => isFav(k), TOOLS_ON: () => TOOLS_ON, PRE_PAYLOAD: () => [...PRE_PAYLOAD], GLASS: () => GLASS,' +
       /* AND WHAT THE BUILDER'S JOURNEYS ASK OF IT: § */
       'paint: (id, f) => paint(id, f), screenDraw: id => (SCREENS[id] ? SCREENS[id].draw() : null),' +
       'widgetState: () => ({ tt: typeof ttState !== "undefined" ? ttState : null, flappy: typeof flappyState !== "undefined" ? flappyState : null,' +
@@ -3889,7 +3889,7 @@ check('imposter takes a double tap on Show, Hide, Reveal or the reveal\'s button
 });
 /* ---------- SENTENCE SCRAMBLE: TAPPED IN ORDER IS RIGHT, AND EVERY STATED ORDER IS RIGHT § */
 check('the sentence scramble marks the right order right, every stated order, and nothing else', async () => {
-  const { w } = boot();
+  const { w } = boot({ before: w => { try { w.localStorage.setItem('wg-game', 'ss'); } catch (e) {} } });  /* a game inside Word games (441) */
   await wait(300);
   const t = w.__t;
   if (!t.ss || !t.setSs || !t.SS_SENTENCES) return ['the sentence scramble is not exported'];
@@ -3977,7 +3977,7 @@ check('the sentence scramble marks the right order right, every stated order, an
 
 /* ---------- WORD SEARCH: EVERY WORD IS IN THE GRID, AND TWO TAPS FIND IT § */
 check('the word search hides every word where it says, and two taps find it', async () => {
-  const { w } = boot();
+  const { w } = boot({ before: w => { try { w.localStorage.setItem('wg-game', 'ws'); } catch (e) {} } });  /* a game inside Word games (441) */
   await wait(300);
   const t = w.__t;
   if (!t.wsBuild || !t.WS_THEMES) return ['the word search is not exported'];
@@ -7098,6 +7098,9 @@ check('a Space typed into the videos search box is not eaten by Flappy Bird, and
   const { box, q } = await vidCard_(w);
   const d = w.document;
   if (!box || !q) return ['the videos card did not draw'];
+  /* FLABBY PIRD IS A CHOICE ON THE CONSOLE (441). */
+  const csp = d.querySelector('#s-games #cs-pick');
+  if (csp && csp.value !== 'flabby') { csp.value = 'flabby'; w.__t.ACTIONS['cs-pick'](csp); }
   const flappy = d.getElementById('flappy-canvas');
   if (!flappy) return ['there is no Flappy Bird canvas on the Games column, so this asked nothing'];
   try { w.initFlappy(); } catch (e) { return ['Flappy Bird could not set itself up here: ' + e.message]; }
@@ -7143,6 +7146,48 @@ check('the board games are one widget: three games in its picker, each drawing o
     if (kept !== k) bad.push('choosing ' + k + ' remembered ' + JSON.stringify(kept));
   }
   if (!d.querySelector('#s-games #wgt-boardgames h3') || d.querySelector('#s-games #wgt-boardgames h3').textContent.trim() !== 'Board games') bad.push('the widget is not headed Board games');
+  return bad;
+});
+
+/* ---------- ONE CONSOLE FOR EVERY GAME, AND WORD SEARCH AND SCRAMBLE IN WORD GAMES (441) */
+check('the console is one widget for every game (441): game files, Flabby Pird and the racer in its picker, each in its own body, remembered; Word Search and Sentence Scramble are Word games; old stars land on the merged widget with that game chosen', async () => {
+  const { w } = boot({ member: true, before: x => { signedInAs_(MEMBER_)(x); try { x.localStorage.setItem('favs', JSON.stringify(['w:racer', 'w:scramble'])); } catch (e) {} } });
+  await wait(300);
+  const t = w.__t, d = w.document;
+  const bad = [];
+  const ids = t.allWidgets().map(x => String(x.id));
+  ['flabby', 'racer', 'wordsearch', 'scramble'].forEach(id => { if (ids.indexOf(id) !== -1) bad.push(id + ' is still a widget of its own'); });
+  let ls = k => { try { return w.localStorage.getItem(k); } catch (e) { return null; } };
+  if (!t.isFav('w:console') || t.isFav('w:racer')) bad.push('a star on the racer did not move to the Console');
+  if (!t.isFav('w:wordgames') || t.isFav('w:scramble')) bad.push('a star on Sentence Scramble did not move to Word games');
+  if (ls('cs-game') !== 'racer') bad.push('the racer star did not choose the racer on the Console: ' + ls('cs-game'));
+  if (ls('wg-game') !== 'ss') bad.push('the scramble star did not choose Sentence Scramble: ' + ls('wg-game'));
+  t.go('games', false, true);
+  await wait(LEAVE_MS); await woken_();
+  const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'console');
+  if (at < 0) return bad.concat(['there is no Console on the Games column']);
+  t.goPage('games', at, true);
+  await woken_();
+  const pick = d.querySelector('#s-games #cs-pick');
+  if (!pick) return bad.concat(['the Console has no picker']);
+  const opts = [...pick.options].map(o => o.textContent.trim());
+  if (opts.join('|') !== 'Game files|Flabby Pird|Colliers Wood racer') bad.push('the picker offers ' + JSON.stringify(opts));
+  const bodies = { file: '#nes-box', flabby: '.cs-hand #flappy-canvas', racer: '.cs-wide #race-box' };
+  for (const k of ['flabby', 'racer', 'file']) {
+    pick.value = k; t.ACTIONS['cs-pick'](pick);
+    await wait(50);
+    const here = Object.keys(bodies).filter(b => d.querySelector('#s-games ' + bodies[b]));
+    if (here.join() !== k) bad.push('choosing ' + k + ' drew ' + JSON.stringify(here));
+    if (ls('cs-game') !== k) bad.push('choosing ' + k + ' remembered ' + JSON.stringify(ls('cs-game')));
+  }
+  const wg = d.querySelector('#s-games #wg-pick');
+  const wopts = wg ? [...wg.options].map(o => o.textContent.trim()) : [];
+  ['Word Search', 'Sentence Scramble'].forEach(n => { if (wopts.indexOf(n) === -1) bad.push('Word games does not offer ' + n); });
+  if (wg) for (const [k, sel] of [['ws', '#ws-grid'], ['ss', '#ss-box']]) {
+    wg.value = k; t.ACTIONS['wg-pick'](wg);
+    await wait(50);
+    if (!d.querySelector('#s-games #wg-slot ' + sel)) bad.push('choosing ' + k + ' in Word games drew no ' + sel);
+  }
   return bad;
 });
 
@@ -7323,10 +7368,14 @@ const raceOpen_ = async (w, want) => {
   const t = w.__t;
   t.go('games', false, true);
   await wait(LEAVE_MS); await woken_();
-  const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'racer');
-  if (at < 0) return 'there is no racer on the Games column';
+  const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'console');
+  if (at < 0) return 'there is no console on the Games column';
   t.goPage('games', at, true);
   await woken_();
+  /* THE RACER IS A CHOICE ON THE CONSOLE (441). */
+  const pick = w.document.querySelector('#s-games #cs-pick');
+  if (!pick) return 'the console has no picker';
+  if (pick.value !== 'racer') { pick.value = 'racer'; t.ACTIONS['cs-pick'](pick); }
   for (let k = 0; k < 60; k++) {
     const R = w.racer_ ? w.racer_() : null;
     if (R && (want === 'world' ? R.world : !R.asking)) return '';
@@ -7335,7 +7384,7 @@ const raceOpen_ = async (w, want) => {
   return want === 'world' ? 'the map never became a world' : 'the map was still being asked for';
 };
 
-check('racer (426): until the backend has built the map the card is its title alone, an admin has a Build the map tile, and pressing it posts raceBuild', async () => {
+check('racer (426, 441): on the Console, until the backend has built the map the racer\'s box is empty, an admin has a Build the map tile, and pressing it posts raceBuild', async () => {
   const bad = [];
   for (const who of ['visitor', 'admin']) {
     const { w, sent, gets } = boot({ before: who === 'admin' ? signedInAs_(RACE_ADMIN_) : undefined,
@@ -7349,7 +7398,9 @@ check('racer (426): until the backend has built the map the card is its title al
     const card = w.document.querySelector('#s-games #race-box');
     if (!card) { bad.push(who + ': no #race-box on Games'); continue; }
     const h3 = card.closest('.card').querySelector('h3');
-    if (!h3 || h3.textContent !== 'Colliers Wood racer') bad.push(who + ': the card is not titled Colliers Wood racer');
+    if (!h3 || h3.textContent !== 'Console') bad.push(who + ': the racer is not inside the Console card (441)');
+    const csp = w.document.querySelector('#s-games #cs-pick');
+    if (!csp || csp.value !== 'racer' || csp.options[csp.selectedIndex].textContent !== 'Colliers Wood racer') bad.push(who + ': the console picker does not say Colliers Wood racer');
     if (card.querySelector('canvas, .loading, p')) bad.push(who + ': not built yet, yet the card draws ' + card.innerHTML.slice(0, 120));
     const tile = card.querySelector('[data-do="race-build"]');
     if (who === 'visitor' && tile) bad.push('a visitor is offered Build the map');
@@ -7788,14 +7839,14 @@ check('the word games are one widget, and switching game pauses the one left', a
   const sel = d.getElementById('wg-pick');
   if (!sel) return bad.concat(['the Word games widget has no game dropdown']);
   const offered = [...sel.options].map(o => o.value);
-  if (offered.length !== 8) bad.push('the dropdown offers ' + offered.length + ' games, wanted 8');
+  if (offered.length !== 10) bad.push('the dropdown offers ' + offered.length + ' games, wanted 10 (Word Search and Sentence Scramble since 441)');
   /* HERD MENTALITY IS THE EIGHTH — "heard mentality is a word game so should go there." Asked by
      name, because a count of eight is also seven games and a stray. */
   if (offered.indexOf('herd') === -1) bad.push('Herd Mentality is not in the dropdown');
   for (const k of offered) {
     sel.value = k;
     t.ACTIONS['wg-pick'](sel);
-    if (!d.getElementById(k + '-card')) bad.push('choosing ' + k + ' did not draw its card');
+    if (!d.getElementById({ ws: 'ws-grid', ss: 'ss-box' }[k] || k + '-card')) bad.push('choosing ' + k + ' did not draw its card');
     const others = offered.filter(o => o !== k && d.getElementById(o + '-card'));
     if (others.length) bad.push('choosing ' + k + ' left ' + others.join(', ') + ' in the slot too');
   }
@@ -25835,7 +25886,7 @@ check('the builder draws every stale column and every widget slot in the quiet, 
   const stale = t.TABS.map(x => x.id).filter(id => t.stale(id));
   if (stale.length) bad.push('still STALE after the quiet: ' + stale.join(', '));
   ['tools', 'games', 'shop'].forEach(col => {
-    const left = veiled_(w, col).filter(id => id !== 'wgt-reels' && id !== 'wgt-flabby');
+    const left = veiled_(w, col).filter(id => id !== 'wgt-reels' && id !== 'wgt-console');
     if (left.length) bad.push(col + ' still has widget slots under the loader after the quiet: ' + left.join(', '));
   });
   const log = t.aheadLog();
