@@ -6660,7 +6660,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .asst-form .btn.asst-go { width: auto; flex: 0 0 auto; min-height: 44px; height: 44px; }
 .asst-left, .asst-said, .asst-hello { margin: .35rem 0 0; font-size: .72rem; }
 
-<<<<<<< HEAD
 /* ---------- A HAND UP (455): the card a tutor can see from across the room, and the tutor's list ---------- */
 .qcard { --help-red: #d7261e; --help-wash: rgb(215 38 30 / .28); --help-ink: #fff; }
 .qcard.is-help { border: 4px solid var(--help-red); background: var(--help-wash); box-shadow: 0 0 0 3px var(--help-red); }
@@ -6671,7 +6670,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .help-list { --help-red: #d7261e; border-color: var(--help-red); }
 .help-list .help-line { margin: .2rem 0; }
 .help-list .help-none { margin: .2rem 0; }
-=======
 /* ---------- AN EXAM INSERT (455): A SHEET OF PAPER ON THE BLACK SCREEN, because it stands for the one handed out in the exam. ---------- */
 .insh-sheet { background: var(--paper); color: var(--paper-ink); border: 1px solid var(--paper-rule); border-radius: 4px;
   padding: .9rem .85rem; margin: .5rem 0; }
@@ -6709,4 +6707,3 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
   body.printing-insh .insh-pt { min-width: 0; }
   @page { size: A4 portrait; margin: 0; }
 }
->>>>>>> fix-inserts
