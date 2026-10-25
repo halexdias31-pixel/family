@@ -20441,7 +20441,8 @@ check('the owner\'s test, on Find and Find 2: Maths · GCSE · Topic Surds, Pyth
   if (!w.stuffItemsAll_().some(x => x.kind === 'question')) return ['the served questions never reached Find — the test was NOT run'];
   const finders = [['Find', w, () => t.STUFF()], ['Find 2', R, () => t.RES()]];
   TOPICS.forEach(T => {
-    const cards = w.stuffItemsAll_().filter(x => x.kind === 'content' && x.subject === 'Maths' && w.topicOf_(x).indexOf(T) !== -1);
+    /* GCSE's OWN: a KS3 or A-level maths card on the same topic is rightly outside Maths · GCSE (438). */
+    const cards = w.stuffItemsAll_().filter(x => x.kind === 'content' && x.subject === 'Maths' && w.levelOf_(x) === 'GCSE' && w.topicOf_(x).indexOf(T) !== -1);
     if (!cards.length) { bad.push('no GCSE Maths content card is tagged "' + T + '" — spelled as the library spells it'); return; }
     finders.forEach(([name, V, S]) => {
       const st = S();
