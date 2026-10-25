@@ -374,7 +374,7 @@ function libQuestion_(r) {
        match against. */
     placeholder: String(r.placeholder) === 'True',
     /* `figure` SAYS WHICH KIND OF PICTURE; `diagram` IS THE PICTURE. § */
-    figure: libS(r.figure), diagram: libS(r.diagram),
+    figure: libS(r.figure), diagram: libS(r.diagram) || (libHasField_(r, 'diagram') ? '' : libTwinSvg_(r)),
     /* WHAT YOU HAVE TO HAVE IN FRONT OF YOU — a comma-list, the way `topics` and `keystage` are. § */
     needs: libS(r.needs),
     isDoc: docRow,
@@ -464,6 +464,14 @@ function libHasField_(o, f) {
   if (!o) return false;
   if (libS(o[f]).trim()) return true;
   return (' ' + libS(o.lib_has !== undefined ? o.lib_has : o.libHas) + ' ').indexOf(' ' + f + ' ') !== -1;
+}
+/* A ROW WITH NO INLINE DRAWING SHOWS ITS PUBLIC PNG TWIN (460), wrapped in an <svg> so zoom, pens and the figure box treat it as any drawing. */
+function libTwinSvg_(r) {
+  const h = libS(r && r.diagram_twin).trim();
+  if (!/^[0-9a-f]{12}$/.test(h)) return '';
+  const m = /^(\d+)x(\d+)$/.exec(libS(r.diagram_twin_wh).trim()), w = m ? +m[1] : 340, ht = m ? +m[2] : 255;
+  return `<svg class="qtwin" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${ht}" width="${w}" role="img" aria-label="Figure">`
+    + `<image href="data/diagrams/${h}.png" width="${w}" height="${ht}"/></svg>`;
 }
 /* A ROW'S ID ON THE WIRE (backend LIB_FILES): `q:` a question row, `ct:` a content card, `pr:` a practical, `pj:` a project. */
 const libWireQ_ = r => 'q:' + libS(r && (r.row_id || r.id)).trim();
