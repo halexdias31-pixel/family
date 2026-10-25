@@ -1337,10 +1337,10 @@ for (const who of VISITORS) {
       }
 
       /* THE SETTINGS COLUMN'S SEVERAL-OF-A-LIST FIELD: a drag from it is not a tap, a tap opens it. */
-      const venues = await field('settings', '.field.many summary');
+      const venues = await field('staff', '.field.many summary');
       if (!venues) want('settings · the venues field', false, 'no several-of-a-list field on Settings', 'a field to drag from');
       else {
-        const shut = () => tp.evaluate(() => document.querySelectorAll('#s-settings details.many-d[open]').forEach(d => { d.open = false; }));
+        const shut = () => tp.evaluate(() => document.querySelectorAll('#s-staff details.many-d[open]').forEach(d => { d.open = false; }));
         for (const [dx, dy] of [[12, 0], [0, 12], [0, -14]]) {
           await shut(); await reset(); await drag(venues.x, venues.y, dx, dy);
           const r = await now();
@@ -1408,7 +1408,7 @@ for (const who of VISITORS) {
              'pointer-events not none, and the select itself under a finger at its centre');
       }
 
-      const cc = await field('settings', 'select[data-me="phone_cc"]');
+      const cc = await field('account', 'select[data-me="phone_cc"]');
       if (!cc) want('settings · country code', false, 'no country-code select', 'a select to drag from');
       else {
         for (const [dx, dy] of [[12, 0], [0, 12]]) {
@@ -1420,7 +1420,7 @@ for (const who of VISITORS) {
         /* THE KEYBOARD'S NEXT ARROW: focus moving from the box before onto the select, and staying. */
         await reset();
         await tp.evaluate(() => {
-          const s = [...document.querySelectorAll('#s-settings select[data-me="phone_cc"]')].find(x => dropOnFront_(x));
+          const s = [...document.querySelectorAll('#s-account select[data-me="phone_cc"]')].find(x => dropOnFront_(x));
           const all = [...s.closest('.page').querySelectorAll('input, select, textarea')];
           const before = all[all.indexOf(s) - 1];
           if (before) before.focus();
@@ -1431,7 +1431,7 @@ for (const who of VISITORS) {
              'the select focused and left focused — on a phone that is the platform\'s picker');
       }
 
-      const fav = await field('settings', 'select[data-me="favourite_colour"]');
+      const fav = await field('staff', 'select[data-me="favourite_colour"]');
       if (fav) {
         await reset();
         await tp.evaluate(() => openSheet('Test', '<p>A short sheet.</p>'));

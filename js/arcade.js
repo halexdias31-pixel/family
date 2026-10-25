@@ -2,18 +2,360 @@
 
 
 /* ---------- ARCADE § */
-/* TWELVE function keys, not ten. § */
+/* ---------- THE CALCULATOR: KEYS AND ENGINE (a Casio Natural Display). Pure, no DOM; js/check-calc.js runs it. */
+/* [key, label, class, SHIFT label]. Labels are fixed markup, drawn unescaped by map.js. */
 const CALC_KEYS = [
-  ['sin(', 'sin', 'fn'], ['cos(', 'cos', 'fn'], ['tan(', 'tan', 'fn'], ['sqrt(', '√', 'fn'],
-  ['^2', 'x²', 'fn'],    ['^', 'xʸ', 'fn'],     ['(', '(', 'fn'],      [')', ')', 'fn'],
-  ['pi', 'π', 'fn'],     ['left', '◀', 'nav'],  ['right', '▶', 'nav'], ['del', '⌫', 'del'],
-  /* ---------- THE KEY PUTS IN WHAT THE KEY SAYS § */
-  ['7', '7', ''], ['8', '8', ''], ['9', '9', ''], ['\u00f7', '\u00f7', 'op'],
-  ['4', '4', ''], ['5', '5', ''], ['6', '6', ''], ['\u00d7', '\u00d7', 'op'],
-  ['1', '1', ''], ['2', '2', ''], ['3', '3', ''], ['\u2212', '\u2212', 'op'],
-  ['0', '0', ''], ['.', '.', ''], ['C', 'C', 'op'], ['+', '+', 'op'],
-  ['up', '▲', 'nav'], ['down', '▼', 'nav'], ['=', '=', 'eq'],
+  ['shift', 'SHIFT', 'sh'], ['left', '◀', 'nav'], ['up', '▲', 'nav'], ['down', '▼', 'nav'], ['right', '▶', 'nav'], ['sd', 'S⇔D', 'fn'],
+  ['frac', '<i class="mk-fr"><b></b><b></b></i>', 'fn'], ['sqrt', '√<b class="mk-b"></b>', 'fn', '∛'], ['sq', 'x²', 'fn', 'x³'],
+  ['pow', 'x<sup class="mk-b"></sup>', 'fn', '<sup>□</sup>√'], ['inv', 'x⁻¹', 'fn'], ['log', 'log', 'fn', '10<sup>□</sup>'],
+  ['neg', '(−)', 'fn'], ['sin', 'sin', 'fn', 'sin⁻¹'], ['cos', 'cos', 'fn', 'cos⁻¹'], ['tan', 'tan', 'fn', 'tan⁻¹'],
+  ['ln', 'ln', 'fn', 'e<sup>□</sup>'], ['pi', 'π', 'fn', 'e'],
+  ['(', '(', 'fn br'], [')', ')', 'fn br'],
+  ['7', '7', ''], ['8', '8', ''], ['9', '9', ''], ['del', 'DEL', 'del'], ['C', 'AC', 'del'],
+  ['4', '4', ''], ['5', '5', ''], ['6', '6', ''], ['×', '×', 'op'], ['÷', '÷', 'op'],
+  ['1', '1', ''], ['2', '2', ''], ['3', '3', ''], ['+', '+', 'op'], ['−', '−', 'op'],
+  ['0', '0', ''], ['.', '.', ''], ['e10', '×10<sup>x</sup>', ''], ['Ans', 'Ans', ''], ['=', '=', 'eq'],
 ];
+
+/* ---- numbers: an exact rational {n, d} of BigInts, or a plain float when no exact answer exists */
+const cQ = (n, d = 1n) => {
+  n = BigInt(n); d = BigInt(d);
+  if (d === 0n) throw { calc: 'Math ERROR' };
+  if (d < 0n) { n = -n; d = -d; }
+  const g = (a, b) => { a = a < 0n ? -a : a; while (b) [a, b] = [b, a % b]; return a; };
+  const k = g(n, d) || 1n;
+  return { n: n / k, d: d / k };
+};
+const cIsQ = v => typeof v === 'object';
+const cF = v => cIsQ(v) ? Number(v.n) / Number(v.d) : v;
+const cChk = x => { if (typeof x === 'number' && !isFinite(x)) throw { calc: 'Math ERROR' }; return x; };
+const cTooBig = v => cIsQ(v) && (v.n.toString().length > 400 || v.d.toString().length > 400);
+const cOk = v => cTooBig(v) ? cChk(cF(v)) : cChk(v);
+const cAdd = (a, b) => cOk(cIsQ(a) && cIsQ(b) ? cQ(a.n * b.d + b.n * a.d, a.d * b.d) : cF(a) + cF(b));
+const cNeg = a => cIsQ(a) ? { n: -a.n, d: a.d } : -a;
+const cMul = (a, b) => cOk(cIsQ(a) && cIsQ(b) ? cQ(a.n * b.n, a.d * b.d) : cF(a) * cF(b));
+const cDiv = (a, b) => {
+  if (cF(b) === 0) throw { calc: 'Math ERROR' };
+  return cOk(cIsQ(a) && cIsQ(b) ? cQ(a.n * b.d, a.d * b.n) : cF(a) / cF(b));
+};
+/* A float within rounding of a whole number or a half becomes exact: sin 30 is ½, not 0.4999999999. */
+const cSnap = x => {
+  cChk(x);
+  const h = Math.round(x * 2);
+  return Math.abs(x * 2 - h) < 1e-11 && Math.abs(h) < 1e15 ? cQ(h, 2) : x;
+};
+const cIntRoot = (n, k) => {          // the exact k-th root of a BigInt n ≥ 0, or null
+  if (n < 0n) return null;
+  const r = BigInt(Math.round(Math.pow(Number(n), 1 / k)));
+  for (const c of [r - 1n, r, r + 1n]) if (c >= 0n && c ** BigInt(k) === n) return c;
+  return null;
+};
+const cRoot = (a, k) => {
+  if (k % 2 === 0 && cF(a) < 0) throw { calc: 'Math ERROR' };
+  if (cIsQ(a)) {
+    const neg = a.n < 0n, rn = cIntRoot(neg ? -a.n : a.n, k), rd = cIntRoot(a.d, k);
+    if (rn !== null && rd !== null) return cQ(neg ? -rn : rn, rd);
+  }
+  const x = cF(a);
+  return cChk(x < 0 ? -Math.pow(-x, 1 / k) : Math.pow(x, 1 / k));
+};
+const cPow = (a, b) => {
+  if (cIsQ(a) && cIsQ(b) && b.d <= 12n && (b.n < 0n ? -b.n : b.n) <= 1000n) {
+    if (a.n === 0n && b.n < 0n) throw { calc: 'Math ERROR' };
+    let r = b.d === 1n ? a : cRoot(a, Number(b.d));
+    if (cIsQ(r)) {
+      const e = b.n < 0n ? -b.n : b.n;
+      r = cOk(cQ(r.n ** e, r.d ** e));
+      return b.n < 0n ? cDiv(cQ(1), r) : r;
+    }
+    return cChk(Math.pow(r, Number(b.n)));
+  }
+  const x = cF(a), y = cF(b);
+  if (x < 0 && !Number.isInteger(y)) throw { calc: 'Math ERROR' };
+  return cChk(Math.pow(x, y));
+};
+const cMathErr = () => { throw { calc: 'Math ERROR' }; };
+const CALC_FNS = {
+  sin: x => cSnap(Math.sin(cF(x) * Math.PI / 180)),
+  cos: x => cSnap(Math.cos(cF(x) * Math.PI / 180)),
+  tan: x => { const d = cF(x); if (Math.abs(((d % 180) + 180) % 180 - 90) < 1e-12) cMathErr();
+              return cSnap(Math.tan(d * Math.PI / 180)); },
+  asin: x => Math.abs(cF(x)) > 1 ? cMathErr() : cSnap(Math.asin(cF(x)) * 180 / Math.PI),
+  acos: x => Math.abs(cF(x)) > 1 ? cMathErr() : cSnap(Math.acos(cF(x)) * 180 / Math.PI),
+  atan: x => cSnap(Math.atan(cF(x)) * 180 / Math.PI),
+  log: x => cF(x) <= 0 ? cMathErr() : cSnap(Math.log10(cF(x))),
+  ln: x => cF(x) <= 0 ? cMathErr() : cSnap(Math.log(cF(x))),
+};
+const CALC_FN_SAY = { sin: 'sin', cos: 'cos', tan: 'tan', asin: 'sin⁻¹', acos: 'cos⁻¹', atan: 'tan⁻¹', log: 'log', ln: 'ln' };
+
+/* ---- the expression is a tree: a row is an array of nodes, a template node holds rows (its boxes).
+   x², x³ and x⁻¹ are `fixed`: one key, one unit, no box to enter. */
+const calcBoxes = n => n.fixed ? null : n.t === 'pow' || n.t === 'e10' ? [n.e] : n.t === 'sqrt' ? [n.a]
+  : n.t === 'root' ? [n.n, n.a] : n.t === 'frac' ? [n.n, n.d] : null;
+const calcClone = r => JSON.parse(JSON.stringify(r));
+
+/* Rows to tokens, each template evaluated whole, then a recursive-descent parse. Nothing is ever eval'd. */
+function calcTokens(row, ans) {
+  const out = [];
+  for (let i = 0; i < row.length; i++) {
+    const n = row[i];
+    if (n.t === 'ch' && /[0-9.]/.test(n.v)) {
+      let s = '';
+      while (i < row.length && row[i].t === 'ch' && /[0-9.]/.test(row[i].v)) s += row[i++].v;
+      i--;
+      if ((s.match(/\./g) || []).length > 1 || s === '.') throw { calc: 'Syntax ERROR' };
+      const [w, f = ''] = s.split('.');
+      out.push({ k: 'v', v: cQ(BigInt((w || '0') + f), 10n ** BigInt(f.length)) });
+    } else if (n.t === 'ch' && n.v === 'π') out.push({ k: 'v', v: Math.PI });
+    else if (n.t === 'ch' && n.v === 'e') out.push({ k: 'v', v: Math.E });
+    else if (n.t === 'ch' && n.v === 'Ans') out.push({ k: 'v', v: ans == null ? cQ(0) : ans });
+    else if (n.t === 'ch') out.push({ k: n.v });
+    else if (n.t === 'fn') out.push({ k: 'fn', v: n.v });
+    else if (n.t === 'pow') out.push({ k: 'pow', v: calcEval(n.e, ans) });
+    else if (n.t === 'e10') out.push({ k: 'e10', v: calcEval(n.e, ans) });
+    else if (n.t === 'sqrt') out.push({ k: 'v', v: cRoot(calcEval(n.a, ans), 2) });
+    else if (n.t === 'root') {
+      const k = cF(calcEval(n.n, ans));
+      if (!Number.isInteger(k) || k < 1) cMathErr();
+      out.push({ k: 'v', v: cRoot(calcEval(n.a, ans), k) });
+    } else if (n.t === 'frac') out.push({ k: 'v', v: cDiv(calcEval(n.n, ans), calcEval(n.d, ans)) });
+  }
+  return out;
+}
+
+function calcEval(row, ans) {
+  if (!row || !row.length) throw { calc: 'Syntax ERROR' };
+  const tk = calcTokens(row, ans);
+  let p = 0;
+  const peek = () => tk[p] || {};
+  const starts = t => t.k === 'v' || t.k === '(' || t.k === 'fn';
+  const expr = () => {
+    let v = term();
+    while (peek().k === '+' || peek().k === '−') v = tk[p++].k === '+' ? cAdd(v, term()) : cAdd(v, cNeg(term()));
+    return v;
+  };
+  const term = () => {
+    let v = unary();
+    for (;;) {
+      const k = peek().k;
+      if (k === '×') { p++; v = cMul(v, unary()); }
+      else if (k === '÷') { p++; v = cDiv(v, unary()); }
+      else if (starts(peek())) v = cMul(v, unary());   // 2π, 3√2, 2sin(30): an implied ×
+      else return v;
+    }
+  };
+  const unary = () => {
+    if (peek().k === '−') { p++; return cNeg(unary()); }   // −3² is −9, as on the Casio
+    if (peek().k === '+') { p++; return unary(); }
+    let v = primary();
+    while (peek().k === 'pow' || peek().k === 'e10') {
+      const t = tk[p++];
+      v = t.k === 'pow' ? cPow(v, t.v) : cMul(v, cPow(cQ(10), t.v));
+    }
+    return v;
+  };
+  const primary = () => {
+    const t = tk[p++] || {};
+    if (t.k === 'v') return t.v;
+    if (t.k === '(' || t.k === 'fn') {
+      const v = expr();
+      if (peek().k === ')') p++;
+      else if (p < tk.length) throw { calc: 'Syntax ERROR' };   // a bracket still open at the end is closed for you
+      return t.k === 'fn' ? CALC_FNS[t.v](v) : v;
+    }
+    throw { calc: 'Syntax ERROR' };
+  };
+  const v = expr();
+  if (p < tk.length) throw { calc: 'Syntax ERROR' };
+  return v;
+}
+
+/* ---- answers, said as the Casio says them: a fraction when exact, S⇔D for the decimal */
+const cEsc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+function calcDec(v) {
+  const x = cF(v);
+  if (x === 0) return '0';
+  const s = x < 0 ? '−' : '', a = Math.abs(x);
+  if (a >= 1e10 || a < 1e-9) {
+    const [m, e] = a.toExponential(9).split('e');
+    return s + m.replace(/\.?0+$/, '') + '×10<sup>' + e.replace('+', '').replace('-', '−') + '</sup>';
+  }
+  return s + String(Number(a.toPrecision(10)));
+}
+function calcSay(v, dec) {
+  if (cIsQ(v) && v.d !== 1n && !dec && (v.n.toString().length + v.d.toString().length) <= 11) {
+    const neg = v.n < 0n;
+    return (neg ? '−' : '') + '<span class="mc-frac"><span class="mc-num">' + (neg ? -v.n : v.n)
+      + '</span><span class="mc-den">' + v.d + '</span></span>';
+  }
+  if (cIsQ(v) && v.d === 1n && v.n.toString().replace('-', '').length <= 10) return (v.n < 0n ? '−' : '') + (v.n < 0n ? -v.n : v.n);
+  return calcDec(v);
+}
+/* An answer as plain text (3/4, 1.5×10^12), for the check and anything that wants a string. */
+const calcText = (v, dec) => calcSay(v, dec).replace(/<span class="mc-num">(.*?)<\/span><span class="mc-den">(.*?)<\/span>/, '$1/$2')
+  .replace(/<sup>(.*?)<\/sup>/, '^$1').replace(/<[^>]+>/g, '');
+
+/* ---- editing: the cursor is a row and an index between its nodes */
+function calcNew() {
+  const root = [];
+  return { root, cur: { row: root, i: 0 }, shift: false, ans: null, fresh: false, val: null, dec: false, err: '', past: [], back: -1 };
+}
+function calcParent(row, want) {           // the template whose box is `want`, with its row and place
+  for (let i = 0; i < row.length; i++) {
+    const bx = calcBoxes(row[i]);
+    if (!bx) continue;
+    for (let b = 0; b < bx.length; b++) {
+      if (bx[b] === want) return { row, i, node: row[i], b };
+      const f = calcParent(bx[b], want);
+      if (f) return f;
+    }
+  }
+  return null;
+}
+const cCh = v => ({ t: 'ch', v });
+function calcPut(st, node, enter) {
+  const c = st.cur;
+  c.row.splice(c.i, 0, node);
+  const bx = calcBoxes(node);
+  if (bx && enter != null) st.cur = { row: bx[enter], i: bx[enter].length };
+  else c.i++;
+}
+function calcMove(st, dir) {
+  const c = st.cur, row = c.row;
+  if (dir > 0 && c.i < row.length) {
+    const bx = calcBoxes(row[c.i]);
+    if (bx) st.cur = { row: bx[0], i: 0 }; else c.i++;
+    return;
+  }
+  if (dir < 0 && c.i > 0) {
+    const bx = calcBoxes(row[c.i - 1]);
+    if (bx) st.cur = { row: bx[bx.length - 1], i: bx[bx.length - 1].length }; else c.i--;
+    return;
+  }
+  const p = calcParent(st.root, row);
+  if (!p) { if (row.length) c.i = dir > 0 ? 0 : row.length; return; }   // the line wraps round, as on the Casio
+  const bx = calcBoxes(p.node), nb = p.b + dir;
+  if (nb >= 0 && nb < bx.length) st.cur = { row: bx[nb], i: dir > 0 ? 0 : bx[nb].length };
+  else st.cur = { row: p.row, i: dir > 0 ? p.i + 1 : p.i };
+}
+/* ▲▼ inside a fraction step between numerator and denominator; elsewhere they recall past sums. */
+function calcVert(st, down) {
+  for (let r = st.cur.row, p; (p = calcParent(st.root, r)); r = p.row) {
+    if (p.node.t === 'frac' && p.b === (down ? 0 : 1)) {
+      const box = down ? p.node.d : p.node.n;
+      st.cur = { row: box, i: Math.min(st.cur.i, box.length) };
+      return true;
+    }
+  }
+  return false;
+}
+function calcDel(st) {
+  const c = st.cur, row = c.row;
+  if (c.i > 0) {
+    const n = row[c.i - 1], bx = calcBoxes(n);
+    if (bx && bx.some(b => b.length)) { st.cur = { row: bx[bx.length - 1], i: bx[bx.length - 1].length }; return; }
+    row.splice(c.i - 1, 1); c.i--;          // `sin(`, an empty √ or fraction: one unit
+    return;
+  }
+  const p = calcParent(st.root, row);
+  if (!p) return;
+  const bx = calcBoxes(p.node);
+  if (p.b > 0) { st.cur = { row: bx[p.b - 1], i: bx[p.b - 1].length }; return; }
+  /* At the start of a template's first box DEL takes the template away and keeps what was in it. */
+  const keep = p.node.t === 'frac' ? p.node.n.concat(p.node.n.length && p.node.d.length ? [cCh('÷')] : [], p.node.d)
+    : p.node.t === 'root' ? p.node.a : bx[0];
+  p.row.splice(p.i, 1, ...keep);
+  st.cur = { row: p.row, i: p.i };
+}
+const CALC_ALIAS = { '-': '−', '*': '×', '/': '÷', 'sin(': 'sin', 'cos(': 'cos', 'tan(': 'tan',
+  'sqrt(': 'sqrt', '^2': 'sq', '^': 'pow', 'π': 'pi', 'AC': 'C' };
+const CALC_GOES_ON = ['+', '−', '×', '÷', 'sq', 'pow', 'inv', 'e10'];   // after an answer these carry on from Ans
+
+function calcKey(st, k) {
+  k = CALC_ALIAS[k] || k;
+  if (k === 'shift') { st.shift = !st.shift; return st; }
+  const sh = st.shift;
+  st.shift = false;
+  if (k !== 'up' && k !== 'down') st.back = -1;
+  if (k === 'C') { const root = []; Object.assign(st, { root, cur: { row: root, i: 0 }, fresh: false, val: null, err: '' }); return st; }
+  if (k === 'sd') { if (st.fresh && st.val != null) st.dec = !st.dec; return st; }
+  if (k === '=') {
+    if (!st.root.length) return st;
+    const was = calcClone(st.root);
+    if (JSON.stringify(st.past[st.past.length - 1]) !== JSON.stringify(was)) st.past.push(was);
+    if (st.past.length > 30) st.past.shift();
+    try { st.val = calcEval(st.root, st.ans); st.ans = st.val; st.err = ''; st.fresh = true; st.dec = false; }
+    catch (e) { if (!e || !e.calc) throw e; st.err = e.calc; st.val = null; st.fresh = false; }
+    return st;
+  }
+  if (k === 'up' || k === 'down') {
+    if (!st.fresh && calcVert(st, k === 'down')) return st;
+    const dir = k === 'up' ? -1 : 1;
+    if (!st.past.length) return st;
+    if (st.back === -1) { if (dir < 0) st.back = st.past.length - 1; else return st; }
+    else st.back = Math.min(st.past.length - 1, Math.max(-1, st.back + dir));
+    const root = st.back === -1 ? [] : calcClone(st.past[st.back]);
+    Object.assign(st, { root, cur: { row: root, i: root.length }, fresh: false, val: null, err: '' });
+    return st;
+  }
+  st.err = '';
+  if (k === 'left' || k === 'right' || k === 'del') {
+    if (st.fresh) {                        // back into the sum just answered, to change it
+      Object.assign(st, { fresh: false, val: null, cur: { row: st.root, i: k === 'right' ? 0 : st.root.length } });
+      if (k !== 'del') return st;
+    }
+    if (k === 'del') calcDel(st); else calcMove(st, k === 'left' ? -1 : 1);
+    return st;
+  }
+  if (st.fresh) {                          // a new sum: from Ans if the key carries on from it
+    const root = CALC_GOES_ON.includes(k) ? [cCh('Ans')] : [];
+    Object.assign(st, { root, cur: { row: root, i: root.length }, fresh: false, val: null });
+  }
+  if (/^[0-9.]$/.test(k) || ['+', '−', '×', '÷', '(', ')'].includes(k)) calcPut(st, cCh(k));
+  else if (k === 'neg') calcPut(st, cCh('−'));
+  else if (k === 'Ans' || k === 'e') calcPut(st, cCh(k));
+  else if (k === 'pi') calcPut(st, cCh(sh ? 'e' : 'π'));
+  else if (k === 'sin' || k === 'cos' || k === 'tan') calcPut(st, { t: 'fn', v: (sh ? 'a' : '') + k });
+  else if (k === 'asin' || k === 'acos' || k === 'atan') calcPut(st, { t: 'fn', v: k });
+  else if (k === 'log' && sh) { calcPut(st, cCh('1')); calcPut(st, cCh('0')); calcPut(st, { t: 'pow', e: [] }, 0); }
+  else if (k === 'ln' && sh) { calcPut(st, cCh('e')); calcPut(st, { t: 'pow', e: [] }, 0); }
+  else if (k === 'log' || k === 'ln') calcPut(st, { t: 'fn', v: k });
+  else if (k === 'sqrt' && !sh) calcPut(st, { t: 'sqrt', a: [] }, 0);
+  else if (k === 'cbrt' || k === 'sqrt') calcPut(st, { t: 'root', n: [cCh('3')], a: [] }, 1);
+  else if (k === 'sq') calcPut(st, { t: 'pow', fixed: true, e: [cCh(sh ? '3' : '2')] });
+  else if (k === 'cube') calcPut(st, { t: 'pow', fixed: true, e: [cCh('3')] });
+  else if (k === 'inv') calcPut(st, { t: 'pow', fixed: true, e: [cCh('−'), cCh('1')] });
+  else if (k === 'pow') calcPut(st, sh ? { t: 'root', n: [], a: [] } : { t: 'pow', e: [] }, 0);
+  else if (k === 'frac') calcPut(st, { t: 'frac', n: [], d: [] }, 0);
+  else if (k === 'e10') calcPut(st, { t: 'e10', e: [] }, 0);
+  return st;
+}
+
+/* ---- drawing: textbook maths, never raw tokens */
+function calcRowHtml(st, row, top) {
+  const caret = !st.fresh && st.cur.row === row ? '<span class="mc-caret"></span>' : '';
+  if (!row.length) return top ? caret : '<span class="mc-box">' + caret + '</span>';
+  const R = r => calcRowHtml(st, r, false);
+  let h = '';
+  row.forEach((n, i) => {
+    if (i === st.cur.i && caret) h += caret;
+    if (n.t === 'ch') h += n.v === 'Ans' ? '<span class="mc-word">Ans</span>' : n.v === 'e' ? '<i>e</i>' : cEsc(n.v);
+    else if (n.t === 'fn') h += '<span class="mc-word">' + CALC_FN_SAY[n.v] + '(</span>';
+    else if (n.t === 'pow') h += '<sup class="mc-sup">' + R(n.e) + '</sup>';
+    else if (n.t === 'e10') h += '×10<sup class="mc-sup">' + R(n.e) + '</sup>';
+    else if (n.t === 'sqrt' || n.t === 'root')
+      h += (n.t === 'root' ? '<sup class="mc-idx">' + R(n.n) + '</sup>' : '')
+        + '<span class="mc-sqrt"><span class="mc-rad">√</span><span class="mc-under">' + R(n.a) + '</span></span>';
+    else if (n.t === 'frac') h += '<span class="mc-frac"><span class="mc-num">' + R(n.n) + '</span><span class="mc-den">' + R(n.d) + '</span></span>';
+  });
+  if (st.cur.i === row.length && caret) h += caret;
+  return h;
+}
+const calcHtml = st => ({
+  input: calcRowHtml(st, st.root, true),
+  output: st.err ? cEsc(st.err) : st.fresh && st.val != null ? calcSay(st.val, st.dec) : '',
+});
+/* ---------- END OF THE CALCULATOR ENGINE */
 
 /* THE WIDGETS — nine things you USE rather than things you find. § */
 /* TOOLS AND GAMES, AS COLUMNS THEY WERE ALREADY REACHABLE — `What for · Tools` and `What for · Games` are answers in the funnel and always have been. § */

@@ -1252,17 +1252,17 @@ async function gesture(env, o) {
       if ((count.settings || 0) < 3) fail('REACH', `${at} settings count`, `Settings has ${count.settings} page(s) — nothing to turn`);
       else {
         let s2 = null;
-        for (const p of [1, 2, 0, 3]) { await page.evaluate(p => window.__sw.place('settings', p), p); s2 = await page.evaluate(() => window.__sw.spot()); if (s2) break; }
+        for (const p of [1, 2, 0, 3]) { await page.evaluate(p => window.__sw.place('account', p), p); s2 = await page.evaluate(() => window.__sw.spot()); if (s2) break; }
         if (!s2) fail('REACH', `${at} settings count`, 'no Settings card had a spot the grid would take');
         else {
           const p0 = await page.evaluate(() => {
             const real = pagerNames; window.__swNames = { n: 0, real };
-            window.pagerNames = function (id) { if ((id || AT) === 'settings') window.__swNames.n++; return real.apply(this, arguments); };
-            return PAGE.settings || 0;
+            window.pagerNames = function (id) { if ((id || AT) === 'account') window.__swNames.n++; return real.apply(this, arguments); };
+            return PAGE.account || 0;
           });
           await finger(cdp, Object.assign({ x0: s2.x, y0: s2.y }, G.flick(0, -90)));
           await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
-          const r = await page.evaluate(() => { const w = window.__swNames; window.pagerNames = w.real; return { n: w.n, p: PAGE.settings || 0 }; });
+          const r = await page.evaluate(() => { const w = window.__swNames; window.pagerNames = w.real; return { n: w.n, p: PAGE.account || 0 }; });
           await page.evaluate(() => window.__sw.still());
           reached++;
           note(`${at} a flick on Settings: pages counted ${r.n} time(s), ${p0} → ${r.p}`);
@@ -1495,10 +1495,10 @@ async function gesture(env, o) {
     const { page } = env;
     await page.evaluate(() => go('account', true)); await sleep(800);
     await page.evaluate(() => goPage('account', 1)); await sleep(800);
-    await page.evaluate(() => go('settings', true)); await sleep(1200);
+    await page.evaluate(() => go('account', true)); await sleep(1200);
     const a = await page.evaluate(() => {
       const corner = wideHit_(0, 0);
-      const next = document.querySelectorAll('#s-settings > .page')[domIndex_('settings', (PAGE.settings || 0) + 1)];
+      const next = document.querySelectorAll('#s-account > .page')[domIndex_('account', (PAGE.account || 0) + 1)];
       const ctl = next && [...next.querySelectorAll('button[data-do]')].find(b => !b.disabled && b.getClientRects().length);
       if (!WIDE || !corner || corner.id === AT || !ctl) return { reach: `wide ${WIDE}, the corner holds ${corner ? corner.id : 'nothing'}, a button on the next card: ${!!ctl}` };
       ctl.setAttribute('data-sw-kb', '1'); ctl.focus();
@@ -1512,19 +1512,19 @@ async function gesture(env, o) {
       /* AND FROM CODE, the same click the lab's states send. § */
       /* You a page down again too, so this half stands on its own when the first one failed: the
          jump to You is what turned You back to its first page. */
-      await page.evaluate(() => { goPage('account', 1); go('settings', true); goPage('settings', 0, true); });
+      await page.evaluate(() => { goPage('account', 1); go('account', true); goPage('account', 0, true); });
       await sleep(900);
       const how = await page.evaluate(() => {
         const b = document.querySelector('[data-sw-kb]');
-        if (AT !== 'settings' || !b || b.closest('.page.on') || !wideHit_(0, 0)) return false;
+        if (AT !== 'account' || !b || b.closest('.page.on') || !wideHit_(0, 0)) return false;
         b.click(); return true;
       });
       await sleep(900);
       const js = await page.evaluate(() => AT);
       note(`wide 768: Enter on ${a.what} on Settings' next card left ${kb} in front; el.click() ${how ? 'left ' + js : 'was not reached'} (the corner holds ${a.corner})`);
-      if (kb !== 'settings') fail('WIDE PRESS', 'wide 768 keyboard', `Enter on "${a.what}" on Settings' next card sent the app to ${kb} — a click with no position, read as a press at the corner, where ${a.corner} is drawn`);
+      if (kb !== 'account') fail('WIDE PRESS', 'wide 768 keyboard', `Enter on "${a.what}" on Settings' next card sent the app to ${kb} — a click with no position, read as a press at the corner, where ${a.corner} is drawn`);
       if (!how) fail('REACH', 'wide 768 el.click()', 'Settings was not in front with the button off its card and the corner covered, so a click from code was not asked');
-      else if (js !== 'settings') fail('WIDE PRESS', 'wide 768 el.click()', `a click from code on "${a.what}" sent the app to ${js} — the same corner`);
+      else if (js !== 'account') fail('WIDE PRESS', 'wide 768 el.click()', `a click from code on "${a.what}" sent the app to ${js} — the same corner`);
     }
     await env.ctx.close();
 

@@ -8,7 +8,7 @@ const TABS = [
   /* ---------- ONE TAB § */
   { id: 'stuff',   icon: '🔎', label: 'Find',    title: 'Find' },
   /* ---------- WHO YOU ARE, AT THE START OF THE YOU GROUP (392) § */
-  { id: 'account', icon: '👤', label: 'You',     title: 'You' },
+  { id: 'account', icon: '👤', label: 'Student', title: 'Student' },
 
   /* ---------- AND SEVEN MORE, WHICH IS THIS TABLE GOING BACK THE WAY IT CAME § */
   /* ---------- `make` WAS HERE, AND THE CAMERA IS THE PAGE ABOVE THE NEWEST POST NOW § */
@@ -23,8 +23,9 @@ const TABS = [
   /* ---------- SAVED, RIGHT OF FIND 2 WITH THE LEARNING COLUMNS (392) § */
   { id: 'saved',   icon: '★',  label: 'Saved',   title: 'Saved' },
   { id: 'spotlight', icon: '✦', label: 'Spotlight', title: 'Spotlight' },
-  /* ---------- AND YOUR SETTINGS, RIGHT OF YOU § */
-  { id: 'settings', icon: '⚙', label: 'Settings', title: 'Settings' },
+  /* ---------- A COLUMN PER RANK, RIGHT OF YOU (444): Family for a client, Tutor for staff, Admin last. Settings went into You. */
+  { id: 'family',  icon: '👪', label: 'Parent',  title: 'Parent' },
+  { id: 'staff',   icon: '🎓', label: 'Tutor',   title: 'Tutor' },
   /* ---------- AND THE SHOP, RIGHT OF BOOKING § */
   { id: 'shop',    icon: '🛒', label: 'Shop',    title: 'Shop' },
   /* ---------- AND PROGRESS, RIGHT OF SAVED (392), WAITING TO BE BUILT § */
@@ -38,10 +39,10 @@ const TABS = [
 /* ---------- LEFT TO RIGHT, WHICH IS NOT THE ORDER THEY ARE WRITTEN IN § */
 /* GROUPED BY PURPOSE, read left to right (392). columns.json lists the same order; check-doors fails if they part. § */
 const TAB_ORDER = ['feed', 'spotlight', 'reel', 'dm',                  /* social   (392) */
-                   'stuff', 'res', 'saved', 'progress', 'tools',      /* learning */
+                   'tools', 'stuff', 'res', 'saved', 'progress',      /* learning; Tools left of Find, one swipe to the whiteboard (444) */
                    'booking', 'shop',                                 /* business */
                    'games',
-                   'account', 'settings', 'biz'];                     /* you, and an admin's */
+                   'account', 'staff', 'family', 'biz'];              /* a column per account: Student, Tutor, Parent, Business (444) */
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
 
 /* ---------- EVERY COLUMN THE BUILD HAS, AND THE ONES THIS VIEWER IS GIVEN § */
@@ -1446,14 +1447,15 @@ const PAGER = {
   /* NEVER 0, because the column always draws SOMETHING — the sentence saying nothing is spotlit is a page, and a count of nothing over a page that exists is a § */
   spotlight: () => (typeof spotlightCards_ === 'function' ? spotlightCards_().length : 1),
   /* AND THE SAME AGAIN FOR SETTINGS. § */
-  settings: () => (typeof settingsPages_ === 'function' ? settingsPages_().length : 1),
+  family: () => (typeof familyPages_ === 'function' ? familyPages_().length : 1),
+  staff: () => (typeof staffPages_ === 'function' ? staffPages_().length : 1),
   /* THE SHOP, COUNTED FROM `shopCards_`, the list `screen('shop')` draws. Never nought: the basket
      is always page 0, and with nothing for sale the shop says so in a page of its own. */
   shop: () => (typeof shopCards_ === 'function' ? shopCards_().length : 1),
   /* PROGRESS, COUNTED FROM `progressCards_`, the list `screen('progress')` draws. § */
   progress: () => (typeof progressCards_ === 'function' ? progressCards_().length : 1),
   /* THE BUSINESS RECORDS, COUNTED FROM `bizPages_`, the list `screen('biz')` draws — five cards for an admin. § */
-  biz: () => (typeof bizPages_ === 'function' ? bizPages_().length : 0),
+  biz: () => (typeof adminPages_ === 'function' ? adminPages_().length : 0),
 
   /* ---------- AND `booking` HAD NO ENTRY AT ALL, WHICH IS THE FAULT THE NOTE ABOVE DESCRIBES § */
   booking: () => {
@@ -1547,7 +1549,7 @@ function applyBrandIcon_() {
    remembered between visits. */
 /* `booking` AND `dm` WERE MISSING, and this table's own sentence above is the rule they broke: § */
 const PAGE = { feed: 0, stuff: 0, account: 0, tools: 0, games: 0, reel: 0, booking: 0, dm: 0, make: 0,
-               saved: 0, settings: 0, spotlight: 0, shop: 0, progress: 0, res: 0, biz: 0 };
+               saved: 0, family: 0, staff: 0, spotlight: 0, shop: 0, progress: 0, res: 0, biz: 0 };
 
 /* A COLUMN MAY HOLD FEWER PAGE ELEMENTS THAN IT HAS PAGES. § */
 const PAGE_KEEP = {};
