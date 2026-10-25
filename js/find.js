@@ -3422,7 +3422,7 @@ function markUnitOff_(t) {
 
 /* ---------- AN ANSWER WITH MANY RIGHT FORMS, MARKED BY WHAT MAKES IT RIGHT (360) */
 /* `rule: count 3, distinct, each factor 36, sum 31..34` in `accept`: the typed numbers are tested, not matched. */
-/* Clauses: count, distinct, mixed, decimal, each <tests>, at N <tests>, hcf N, sum, diff, from a/b/…, rounddiff R V, set a+b/c+d (word groups). */
+/* Clauses: count, distinct, mixed, decimal, each <tests>, at N <tests>, hcf N, sum, diff, from a/b/…, rounddiff R V, digits ##4###, once D, set a+b/c+d (word groups). */
 function markRuleNums_(typed) {
   const t = markNorm_(typed).replace(/[,;=+×]/g, ' , ').replace(/(\d)-(?=\d)/g, '$1 , ');
   const out = [];
@@ -3654,6 +3654,10 @@ function markRule_(typed, rule) {
       for (let i = 0; i < vs.length; i += 2) if (!near(w[1] === 'sum' ? vs[i] + vs[i + 1] : vs[i] * vs[i + 1], markRuleVal_(w[2]))) return false;
       return true;
     }
+    /* `digits ##4###`: each a whole number whose digits fit, # any digit, no leading 0; `once 4`: that digit appears exactly once (439) */
+    if (k === 'digits') return nums.every(n => /^\d+$/.test(n.s) && !/^0\d/.test(n.s) && n.s.length === w[1].length
+      && [...w[1]].every((d, i) => d === '#' || d === n.s[i]));
+    if (k === 'once') return nums.every(n => n.s.split(w[1]).length === 2);
     if (k === 'diff') return vs.length === 2 && near(Math.abs(vs[0] - vs[1]), markRuleVal_(w[1]));
     if (k === 'rounddiff') {
       const r = Number(w[1]), rd = v => Math.round(v / r) * r;
