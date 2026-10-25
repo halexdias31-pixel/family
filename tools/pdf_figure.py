@@ -161,7 +161,13 @@ def figure(pdf, page_no, clip, label, drop=(), pad=8, keep_text=True, maxscale=1
                     X(q.ul.x), Y(q.ul.y), X(q.ur.x), Y(q.ur.y), X(q.lr.x), Y(q.lr.y), X(q.ll.x), Y(q.ll.y)))
         if not parts:
             continue
-        dd = re.sub(r'L(-?[\d.]+) (-?[\d.]+)M\1 \2', r'L\1 \2', ''.join(parts))
+        # a segment starting where the last ended continues it (after a curve too), so a filled round shape is one outline
+        dd, end = '', None
+        for pt in parts:
+            m = re.match(r'M(-?[\d.]+ -?[\d.]+)(?=[LC])', pt)
+            dd += pt[m.end():] if m and m.group(1) == end else pt
+            tail = re.search(r'(-?[\d.]+ -?[\d.]+)$', pt)
+            end = tail.group(1) if tail and not pt.endswith('Z') else None
         fill, stroke = d.get('fill'), d.get('color')
         w = (d.get('width') or 1) * s
         attrs = []
