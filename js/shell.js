@@ -213,6 +213,8 @@ function go(id, remember, instant) {
       && (was === 'feed' || (typeof camOn_ === 'function' && camOn_()))) camStop_(false, true);
   /* AND THE REEL, which is the third of these and was the one nobody had written. § */
   if (typeof reelsStop_ === 'function' && AT !== 'reel') reelsStop_();
+  /* A PIN SHOWN ON A CARD (452) goes when its column is left. */
+  if (was !== AT && typeof pinHideAll_ === 'function') pinHideAll_();
   /* AND THE MESSAGE POLL, which is the fourth. § */
   if (typeof dmStop_ === 'function' && AT !== 'dm') dmStop_();
   /* STARTED AFTER THE SLIDE, in one list rather than two. `repaint` needs the same list — it has

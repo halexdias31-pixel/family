@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-25-k-film-shares";
+const DOPOST_VERSION = "2026-10-25-m-admin-pin";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -2997,6 +2997,17 @@ function doPost(e) {
       } catch (err) {
         return jsonOut({ error: 'Nothing was sent: ' + S(err && err.message || err) });
       }
+    }
+
+    /* ---------- "SHOW PIN" ON A PERSON'S CARD (452): the gate already wanted an admin; asked again of the token's row by rank. */
+    if (action === 'pinShow') {
+      const me = findPerson('', S(body.personId));
+      if (!me || !rankAtLeast_(me, 'admin')) return jsonOut({ error: 'Not authorised.' });
+      const who = S(body.targetId) ? findPerson('', S(body.targetId)) : null;
+      if (!who || key(who.person_id) !== key(body.targetId)) return jsonOut({ error: 'Nobody by that id is on the people tab.' });
+      /* A CELL THE SHEET MADE A NUMBER lost its leading zeros (`authPinLost_`); four digits are put back. */
+      const pin = typeof who.pin === 'number' ? String(who.pin).padStart(4, '0') : S(who.pin);
+      return jsonOut(pin ? { success: true, pin } : { success: true, pin: '', said: 'No PIN' });
     }
 
     /* ---------- THE FILMS, FILLED FROM THE NOTFLIX FOLDER § */

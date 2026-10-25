@@ -4406,6 +4406,9 @@ function peopleTiles_(p) {
                  data: { id: p.personId } })
     + tile_({ icon: 'bin', label: 'Delete', note: 'their account', act: 'person-del', tone: 'danger',
               data: { id: p.personId, name: first } })
+    /* "SHOW PIN" (452): fetched on the tap by `pinShow`, admin only on the server too; never in the payload. */
+    + tile_({ icon: 'key', label: 'Show PIN', note: 'tap again to hide', act: 'pin-show', tone: 'admin',
+              data: { id: p.personId } })
     /* AND ON A PARENT'S CARD, LAST MONDAY–SUNDAY'S WORK EMAILED NOW (378) — `digestSendNow`, admin only on the server too. */
     + (/^Client\b/.test(String(p.role || '')) ? tile_({ icon: 'send', label: 'Send last week', note: 'their child’s work, Mon–Sun',
               act: 'digest-send-now', tone: 'admin', data: { id: p.personId } }) : '');
@@ -4624,6 +4627,31 @@ on('digest-send-now', el => {
   if (!id) return;
   send_({ action: 'digestSendNow', personId: USER.personId || '', targetId: id }, { button: el })
     .then(d => toast((d && d.said) || 'Sent.'))
+    .catch(() => {});
+});
+
+/* "SHOW PIN" (452): the PIN lives only in this one line of the card — never stored, logged or cached — and goes on a second tap, a redraw or leaving the column. */
+function pinHideAll_() {
+  document.querySelectorAll('.person-pin').forEach(n => n.remove());
+}
+on('pin-show', el => {
+  if (!peopleMay_()) return;
+  const id = el.getAttribute('data-id') || '';
+  const row = el.closest('.tile-row');
+  if (!id || !row) return;
+  const shown = row.nextElementSibling;
+  if (shown && shown.classList.contains('person-pin')) { shown.remove(); return; }
+  send_({ action: 'pinShow', personId: USER.personId || '', targetId: id }, { button: el })
+    .then(d => {
+      if (!d || !row.isConnected) return;
+      pinHideAll_();
+      const line = document.createElement('p');
+      line.className = 'faint person-pin';
+      line.style.margin = '.6rem 0 0';
+      line.setAttribute('data-id', id);
+      line.innerHTML = d.pin ? 'PIN <b>' + esc(d.pin) + '</b>' : esc(d.said || 'No PIN');
+      row.after(line);
+    })
     .catch(() => {});
 });
 

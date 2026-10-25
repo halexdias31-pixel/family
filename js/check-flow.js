@@ -11186,6 +11186,50 @@ check('an admin has "Send last week" on a parent\'s card only, and pressing it p
   return bad;
 });
 
+/* "ADMIN SHOULD BE ABLE TO SEE EACH PERSON'S PIN" (452): fetched on the tap, one line on the card, gone on a second tap or on leaving. */
+check('an admin\'s "Show PIN" posts pinShow, shows one line on that card, hides it on a second tap and on leaving the column; a tutor has no tile', async () => {
+  const { w, sent } = boot({ reply: b => b.action === 'pinShow'
+    ? (b.targetId === 'P-E2' ? { success: true, pin: '0000' } : { success: true, pin: '', said: 'No PIN' }) : { success: true } });
+  await wait(400);
+  const t = w.__t, d = w.document, bad = [];
+  if (!t.accountPages) return ['accountPages_ is not exported — cannot check the people column'];
+  t.DATA().everyone = [{ personId: 'P-E1', title: 'Evie', handle: 'evie_calm31', role: 'Student', image: '' },
+                       { personId: 'P-E2', title: 'Carl Handled', handle: 'carl_kind32', role: 'Client', image: '' }];
+  t.USER({ name: 'Tia Tutor', personId: 'P-T', role: 'tutor', roles: ['tutor'], token: 'tk2' });
+  if (/data-do="pin-show"/.test(t.accountPages().join(''))) bad.push('a tutor is offered Show PIN');
+  t.USER({ name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], token: 'tk' });
+  if (/data-do="pin-show"/.test(t.accountPages().find(h => !/data-do="person-add"/.test(h)) || '')) bad.push('the admin\'s own card offers Show PIN');
+  if (JSON.stringify(t.DATA()).indexOf('0000') !== -1) bad.push('a PIN is in DATA before anybody asked');
+  try { t.repaint(true); t.go('biz', false, true); w.paint('biz'); } catch (e) { bad.push('drawing the people column threw: ' + e.message); }
+  await wait(200);
+  const tile = id => d.querySelector('#s-biz [data-do="pin-show"][data-id="' + id + '"]');
+  if (!tile('P-E2') || !tile('P-E1')) return bad.concat(['the Show PIN tile is not drawn on every other person\'s card']);
+  const lines = () => [...d.querySelectorAll('#s-biz .person-pin')];
+  sent.length = 0;
+  t.ACTIONS['pin-show'](tile('P-E2'));
+  await wait(300);
+  const post = sent.find(b => b.action === 'pinShow');
+  if (!post || post.targetId !== 'P-E2' || post.personId !== 'P-AD') bad.push('Show PIN posted ' + JSON.stringify(post));
+  const one = lines();
+  if (one.length !== 1 || one[0].textContent.trim() !== 'PIN 0000') bad.push('after the tap the card shows ' + JSON.stringify(one.map(n => n.textContent)));
+  else if (one[0].previousElementSibling !== tile('P-E2').closest('.tile-row')) bad.push('the PIN line is not under that card\'s own tile row');
+  if (JSON.stringify(t.DATA()).indexOf('0000') !== -1) bad.push('the PIN was kept in DATA');
+  try { if (Object.keys(w.localStorage).some(k => String(w.localStorage.getItem(k)).indexOf('0000') !== -1)) bad.push('the PIN was stored on the device'); } catch (e) {}
+  sent.length = 0;
+  t.ACTIONS['pin-show'](tile('P-E2'));
+  await wait(150);
+  if (lines().length) bad.push('a second tap left the PIN showing');
+  if (sent.some(b => b.action === 'pinShow')) bad.push('the second tap asked the server again instead of hiding');
+  t.ACTIONS['pin-show'](tile('P-E1'));
+  await wait(300);
+  if ((lines()[0] || {}).textContent !== 'No PIN') bad.push('an empty PIN cell shows ' + JSON.stringify(lines().map(n => n.textContent)) + ', not "No PIN"');
+  try { t.go('feed', false, true); } catch (e) {}
+  await wait(150);
+  if (d.querySelectorAll('.person-pin').length) bad.push('leaving the column left the PIN line on the card');
+  t.USER(null);
+  return bad;
+});
+
 check('every pager counts the pages its screen actually draws', async () => {
   /* ---------- THE BUG THIS IS WRITTEN FOR, AND IT HAS HAPPENED THREE TIMES § */
   const { w } = boot();
