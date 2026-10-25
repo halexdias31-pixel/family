@@ -46,7 +46,7 @@ short label sits just outside them (a lost `Z`, `b`, axis titles).
 - **`lowest`** — written as a fraction in its lowest terms. A simplest-form question whose accept was a bare fraction
   marked 75/1000 right by value (check-library refuses that row); with `lowest`, like `mixed` and `decimal`, a written
   way counts only as written.
-- **`parallelogram`** in the polygon shapes — both pairs of opposite sides parallel (Set 2 3F Q4).
+- **`parallelogram`** in the polygon shapes — both pairs of opposite sides parallel (Set 2 3F Q4). The example drawer (`example`) has no polygon branch, so that row carries its own `eg`; so does Set 2 3H Q14(a), whose blank grid read at its major squares scaled the made-up histogram off the grid.
 
 check-marking holds each with right and wrong cases. Every `rule:` keeps a plain worked example in front of it, as
 check-marking requires.
