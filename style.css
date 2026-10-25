@@ -2,11 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-<<<<<<< HEAD
-  --css-version: "2026-10-25-b-teaching-cycles";
-=======
-  --css-version: "2026-10-25-b-one-console";
->>>>>>> fix-one-console
+  --css-version: "2026-10-25-c-one-console";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
