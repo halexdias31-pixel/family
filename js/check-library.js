@@ -13,7 +13,7 @@ const VOCAB = {
   kind:          ['document', 'preamble', 'question'],
   active:        ['True', 'False'],
   subject:       ['Biology', 'Chemistry', 'Combined Science', 'English Language', 'Greek', 'Maths',
-                  'Physics', 'Religious Studies'],
+                  'Physics', 'Religious Studies', 'Driving Theory'],
   /* `5-a-day` IS A DIFFERENT KIND OF THING FROM A WORKSHEET and the owner's own words are the reason it is a value rather than a naming convention: § */
   document_type: ['5-a-day', 'Exercise', 'Past paper', 'Specimen paper', 'Worksheet'],
   /* THE ATOMS ONLY — `KS1, KS2` and `KS3, KS4` were here as whole-cell spellings and are gone;
@@ -22,8 +22,8 @@ const VOCAB = {
   band_type:     ['grade', 'stage', 'tier', 'year'],
   /* `Foundation Plus` AND `Higher Plus` ARE CORBETTMATHS' OWN LEVELS, printed on the front of every 5-a-day, and they are not exam tiers — Edexcel and AQA have two. § */
   tier:          ['A-Level', 'AS', 'Foundation', 'Foundation Plus', 'Higher', 'Higher Plus'],
-  level:         ['AS', 'Alevel', 'GCSE'],
-  exam_board:    ['AQA', 'Edexcel', 'STA'],
+  level:         ['AS', 'Alevel', 'GCSE', 'Theory test'],
+  exam_board:    ['AQA', 'Edexcel', 'STA', 'DVSA'],
   exam_wave:     ['First wave', 'Second wave',
                   '2017-06-01', '2018-06-01', '2019-06-01', '2020-06-01',
                   '2021-06-01', '2022-06-01', '2023-06-01', '2024-06-01'],

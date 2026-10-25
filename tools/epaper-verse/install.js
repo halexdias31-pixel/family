@@ -6,6 +6,9 @@ const $ = id => document.getElementById(id);
 const say = t => { $('say').textContent = t; };
 const quiet = { clean() {}, writeLine() {}, write() {} };
 
+// The picture version is offered only once its .bin is built and published beside this page.
+fetch('epaper-verse-icons.bin', { method: 'HEAD' }).then(r => { if (r.ok) $('pick').hidden = false; }).catch(() => {});
+
 $('go').addEventListener('click', async () => {
   $('go').disabled = true;
   try { await install(); } catch (e) { say('Something went wrong. Unplug the screen, plug it back in and press Install again.'); }
@@ -26,7 +29,7 @@ async function install() {
     return say(busy ? 'Close other tabs using the screen, then press Install again.'
       : 'Hold BOOT, unplug and replug, then press Install again.');
   }
-  const data = new Uint8Array(await (await fetch('epaper-verse.bin')).arrayBuffer());
+  const data = new Uint8Array(await (await fetch($('pick').hidden ? 'epaper-verse.bin' : $('kind').value)).arrayBuffer());
   $('bar').hidden = false;
   await loader.writeFlash({ fileArray: [{ data, address: 0 }], flashMode: 'keep', flashFreq: 'keep', flashSize: 'keep',
     eraseAll: false, compress: true, reportProgress: (i, done, all) => { $('bar').value = done / all; } });

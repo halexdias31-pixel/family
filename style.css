@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-25-i-casio-calc";
+  --css-version: "2026-10-25-l-chess-laptop";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -830,28 +830,29 @@ body.sheet-open #screen {
 /* ---------- CHESS § */
 .chess { container-type: inline-size;
          display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
-         aspect-ratio: 1; width: 100%; margin: .35rem auto .6rem;
+         aspect-ratio: 1; width: min(100%, 70vh); margin: .35rem auto .6rem;
          border: 2px solid #2a2119; border-radius: .25rem; overflow: hidden; }
 .chess .sq { display: flex; align-items: center; justify-content: center;
              /* Sized against the BOARD, so a piece is the same share of its square on every phone. */
-             font-size: 9cqw; line-height: 1; cursor: pointer;
+             font-size: 10cqw; line-height: 1; cursor: pointer;
              position: relative; min-width: 0; min-height: 0;
              /* A SQUARE IS A `<button>` NOW — the board could not be played while it was spans with no action — so everything a browser gives a button is taken back off: § */
-             border: 0; padding: 0; margin: 0; border-radius: 0; font-family: inherit;
+             border: 0; padding: 0; margin: 0; border-radius: 0;
+             /* A SYMBOL FACE, never the site's monospace or an emoji, so each piece is one filled shape (448). */
+             font-family: 'DejaVu Sans', 'Segoe UI Symbol', 'Noto Sans Symbols 2', 'Apple Symbols', serif; font-variant-emoji: text;
              width: 100%; height: 100%; }
 /* BLACK AND WHITE SQUARES. § */
 /* ---------- A CHESS BOARD HAS ITS OWN PALETTE, AND IT HAD NO NAMES § */
 .chess {
-  --chess-light: #f4f4f2;
-  --chess-dark:  #2e2e2c;
-  --chess-white: #ffffff;
-  --chess-black: #111111;
+  /* A MUTED CLASSIC PAIR, flat (448): warm enough to sit with the gold, far enough apart to read as a board. */
+  --chess-light: #d9c9a3;
+  --chess-dark:  #8a6c48;
+  --chess-white: #fbf8f0;
+  --chess-black: #15120f;
   --chess-frame: #1b1815;
   --chess-last:  rgb(214 180 60 / .38);
   --chess-check: rgb(214 52 40 / .85);
-  /* THE LIGHT ON IT (429): a warm pool in the middle, the corners in shade, and the shadow a piece casts. */
-  --chess-glow:  rgb(255 236 190 / .10);
-  --chess-shade: rgb(0 0 0 / .34);
+  /* The shadow a piece casts, and the dark of the ending. */
   --chess-drop:  rgb(0 0 0 / .5);
   --chess-dim:   rgb(6 5 4 / .74);
   --chess-turn:  .7s;
@@ -860,20 +861,16 @@ body.sheet-open #screen {
   transition: rotate var(--chess-turn) var(--chess-ease);
 }
 /* The promotion row sits OUTSIDE the board, so it needs the board's palette on the card too. */
-.chess-game { --chess-light: #f4f4f2; --chess-white: #ffffff; --chess-black: #111111; }
+.chess-game { --chess-light: #d9c9a3; --chess-white: #fbf8f0; --chess-black: #15120f; }
 .chess .lt { background: var(--chess-light); }
 .chess .dk { background: var(--chess-dark); }
 
 /* THE PIECES, told apart by fill and outline rather than by glyph. § */
 /* THE OUTLINE IS THE OTHER SIDE'S COLOUR, which is what makes a white piece readable on a light square and a black one on a dark square. § */
-.chess .wp { color: var(--chess-white);
-             text-shadow: 0 1px 0 var(--chess-black), 0 -1px 0 var(--chess-black),
-                          1px 0 0 var(--chess-black), -1px 0 0 var(--chess-black),
-                          0 .07em .09em var(--chess-drop); }
-.chess .bp { color: var(--chess-black);
-             text-shadow: 0 1px 0 var(--chess-white), 0 -1px 0 var(--chess-white),
-                          1px 0 0 var(--chess-white), -1px 0 0 var(--chess-white),
-                          0 .07em .09em var(--chess-drop); }
+.chess .wp { color: var(--chess-white); -webkit-text-stroke: .045em var(--chess-black); paint-order: stroke fill;
+             text-shadow: 0 .05em .08em var(--chess-drop); }
+.chess .bp { color: var(--chess-black); -webkit-text-stroke: .045em var(--chess-white); paint-order: stroke fill;
+             text-shadow: 0 .05em .08em var(--chess-drop); }
 .chess .pick { box-shadow: inset 0 0 0 3px var(--good); }
 /* A LEGAL MOVE, in the accent rather than in black — a dark dot vanished on a dark square, which
    is the same fault the pieces had. */
@@ -901,7 +898,7 @@ body.sheet-open #screen {
 .chess.is-flipped .pc, .chess.is-flipped::before { rotate: -180deg; }
 /* THE LIGHT: one layer over the whole board, centred so it reads the same whichever way the board faces. */
 .chess::after { content: ''; position: absolute; inset: 0; z-index: 4; pointer-events: none;
-                background: radial-gradient(circle at 50% 50%, var(--chess-glow) 0, transparent 48%, var(--chess-shade) 100%); }
+                background: none; }  /* FLAT AT REST (448): the glossy pool read as cheap; the layer stays for the ending. */
 /* CHECK: a ring goes out from the king three times as the threat lands, then the red under it stays. */
 .chess .chk { z-index: 2; }
 .chess .chk::before { content: ''; position: absolute; inset: 6%; border-radius: 50%; pointer-events: none;
@@ -940,15 +937,15 @@ body.sheet-open #screen {
 
 /* WHOSE MOVE, above the board, in words — the board turns only if asked (429), so this line is what
    always says it. Big enough to read at arm's length from the other side of a table. */
-.chess-say { text-align: center; margin: .2rem 0 .35rem; font-size: .95rem; font-weight: 600; }
+.chess-say { text-align: center; margin: .2rem 0 .35rem; font: 600 1rem/1.3 var(--font); color: var(--gold); }
 .chess-say.is-note { color: var(--dim); font-weight: 400; }
-.chess-ctl, .chess-promo { margin-top: .1rem; }
+.chess-ctl, .chess-promo { margin-top: .1rem; justify-content: center; }
 /* The promotion choices are the pieces themselves, drawn in their own side's fill and outline on a
    light square so a black knight is as legible as a white one. 44px, in px, like every tap target. */
 .chess-promo .chess-pro { min-height: 44px; font-size: 1.7rem; line-height: 1; padding: 0;
   background: var(--chess-light); }
-.chess-promo .chess-pro.wp { color: var(--chess-white);
-  text-shadow: 0 1px 0 var(--chess-black), 0 -1px 0 var(--chess-black), 1px 0 0 var(--chess-black), -1px 0 0 var(--chess-black); }
+.chess-promo .chess-pro { font-family: 'DejaVu Sans', 'Segoe UI Symbol', 'Noto Sans Symbols 2', serif; font-variant-emoji: text; }
+.chess-promo .chess-pro.wp { color: var(--chess-white); -webkit-text-stroke: .045em var(--chess-black); paint-order: stroke fill; }
 .chess-promo .chess-pro.bp { color: var(--chess-black); }
 
 /* ---------- ANCHORS § */
@@ -2686,7 +2683,7 @@ label.bk-k { cursor: pointer; }
                                                      align-items: center; justify-content: center; }
 
 /* SQUARE, and centred in whatever is left — a board that stretched would be a board where a knight moves further sideways than forwards. § */
-.widget-full .chess { flex: 0 0 auto; margin: auto; width: 100%; aspect-ratio: 1; }
+.widget-full .chess { flex: 0 0 auto; margin: auto; width: min(100%, 70vh); aspect-ratio: 1; }
 
 /* A SIDE-SCROLLER NEEDS WIDTH, NOT HEIGHT. § */
 /* The shape is set once, in the handheld block at the foot of this file. Three rules said
@@ -6579,3 +6576,18 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .prog-series .row .k, .prog-sessions .row .k { flex: 1 1 auto; min-width: 0; }
 .prog-count .row .v, .prog-answered .row .v, .prog-activity .row .v, .prog-weakest .row .v, .prog-grade .row .v,
 .prog-series .row .v, .prog-sessions .row .v { flex: 0 0 auto; }
+
+/* THE ASSISTANT IN MESSAGES (449): the chat's own bubbles, under their own names so nothing asking for `.msg` finds them. */
+.asst-body { max-height: 50dvh; overflow-y: auto; display: flex; flex-direction: column; gap: .35rem; margin: .5rem 0; }
+.asst-msg { display: flex; }
+.asst-msg.mine { justify-content: flex-end; }
+.asst-bub { margin: 0; max-width: 85%; padding: .45rem .7rem; border: 1px solid var(--line); border-radius: .9rem;
+  font-size: .88rem; line-height: 1.45; white-space: pre-line; overflow-wrap: break-word; }
+.asst-msg.mine .asst-bub { border-color: var(--gold); }
+.asst-form { display: flex; align-items: flex-end; gap: .4rem; }
+.asst-text { flex: 1 1 auto; min-width: 0; min-height: 44px; padding: .6rem .7rem; resize: none; background: var(--bg);
+  color: var(--ink); border: 1px solid var(--line); border-radius: .6rem; font: inherit; font-size: .88rem; }
+.asst-text:focus { outline: 0; border-color: var(--gold); }
+.asst-text:disabled, .asst-go:disabled { opacity: .5; }
+.asst-form .btn.asst-go { width: auto; flex: 0 0 auto; min-height: 44px; height: 44px; }
+.asst-left, .asst-said, .asst-hello { margin: .35rem 0 0; font-size: .72rem; }

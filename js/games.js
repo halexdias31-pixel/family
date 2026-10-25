@@ -4727,11 +4727,12 @@ function videosAll_() {
     const seasons = Number(f.seasons) || 0;
     /* A FILE IN DRIVE PLAYS IN THE CARD; A FOLDER CANNOT. § */
     const how = !door ? 'none' : vidDriveId_(url) ? 'drive' : 'out';
-    /* `fromFilms` SAYS WHERE THE ROW CAME FROM, and it is the one thing that lets a row ask Drive for a
-       picture (`vidThumb_`) or for its player (`vidPlayer_`): only the backend's films list, which only
-       an admin is sent, may. */
+    /* `fromFilms` SAYS WHERE THE ROW CAME FROM, and it alone lets a row ask Drive for a picture or its player:
+       the backend sends a film only to an admin or a person its Drive file is shared with (450). */
     add({ key: 'f' + (f.id || i), title: String(f.title), url: door ? url : '', kind: 'film', label: label,
           fromFilms: true,
+          /* THE ADMIN'S CHECK (450): who Drive shares it with; absent for everybody else. */
+          shared: typeof f.sharedWith === 'string' ? f.sharedWith : null,
           year: String(f.year || '').trim(),
           seasons: k === 'series' && seasons ? seasons + (seasons === 1 ? ' season' : ' seasons') : '',
           how: how, none: f.placeholder ? 'not in the Drive yet' : 'no Drive link yet',
@@ -4865,7 +4866,8 @@ function vidRow_(r) {
   const aged = r.age ? `<span class="media-age-badge" aria-label="for ages ${esc(r.age)}">${esc(r.age)}</span>` : '';
   const th = `<span class="vid-th">${vidPoster_(r)}${img}${badge}${aged}</span>`;
   const inner = `<span class="vid-txt"><span class="vid-t">${esc(r.title)}</span>${
-    sub ? `<span class="vid-k">${esc(sub)}</span>` : ''}</span>${th}`;
+    sub ? `<span class="vid-k">${esc(sub)}</span>` : ''}${
+    r.shared != null ? `<span class="vid-k vid-shared">${esc(r.shared ? 'Shared with ' + r.shared : 'Shared with nobody')}</span>` : ''}</span>${th}`;
   /* NOTHING TO OPEN, AND IT SAYS SO — not a button that does nothing when pressed. */
   if (r.how === 'none') return `<li><div class="vid-row is-off">${inner}</div></li>`;
   /* A DOOR IS A LINK, NOT A BUTTON THAT PRETENDS TO PLAY. `out` is absolute http(s), tested in
@@ -6215,7 +6217,7 @@ const mediaMay_ = () => typeof isAdmin === 'function' && isAdmin();
 /* ---------- HOW OLD YOU HAVE TO BE TO WATCH IT (406) ----------
    Whole years; blank, 0, U, PG or words = everyone. The backend's `mediaAgeOf_`/`mediaAgeCap_` (content.gs) are the same rule. */
 const MEDIA_AGE_MAX = 21;
-const MEDIA_AGE_UNKNOWN = 12;
+const MEDIA_AGE_UNKNOWN = 0;
 function mediaAgeOf_(v) {
   const m = String(v == null ? '' : v).match(/\d+/);
   return m ? Math.min(MEDIA_AGE_MAX, Number(m[0])) : 0;
@@ -6232,12 +6234,11 @@ function profileAge_(p) {
   const a = String(q.age == null ? '' : q.age).match(/^\s*(\d{1,3})\s*$/);
   return a ? Number(a[1]) : null;
 }
-/* THE OLDEST RATING THIS VIEWER SEES: an admin everything; a known age that age; unknown, 12 signed out or a Student, else everything. */
+/* THE OLDEST RATING THIS VIEWER SEES: an admin everything; a known age that age; signed out or no date of birth, underage (450). */
 function viewerAgeCap_() {
   if (mediaMay_()) return Infinity;
   const age = typeof USER !== 'undefined' && USER ? profileAge_(USER.profile) : null;
-  if (age !== null) return age;
-  return typeof USER === 'undefined' || !USER || (typeof childView_ === 'function' && childView_()) ? MEDIA_AGE_UNKNOWN : Infinity;
+  return age !== null ? age : MEDIA_AGE_UNKNOWN;
 }
 const mediaAgeOk_ = v => mediaAgeOf_(v) <= viewerAgeCap_();
 /* THE SAME FNV-1a AS `mediaVeil_` in content.gs: a row too old for this viewer comes as this hash, which still hides a repository copy. */

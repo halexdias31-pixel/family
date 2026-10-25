@@ -14,6 +14,7 @@
   li { display: flex; align-items: center; gap: 1rem; padding: .9rem 0; border-top: 1px solid var(--line); font-size: 1.3rem; }
   li b { color: var(--gold); font-size: 1.8rem; width: 1.4rem; }
   svg { width: 44px; height: 44px; flex: none; margin-left: auto; stroke: var(--gold); fill: none; stroke-width: 2; stroke-linecap: round; }
+  select { font: inherit; min-height: 44px; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; }
   button { font: inherit; font-size: 1.4rem; min-height: 56px; width: 100%; border: 0; border-radius: 12px; background: var(--gold); color: #000; cursor: pointer; }
   button:disabled { opacity: .5; cursor: default; }
   progress { width: 100%; height: 14px; accent-color: var(--gold); margin: 1rem 0 0; }
@@ -32,6 +33,7 @@
     <li><b>2</b> Press Install and choose the screen.
       <svg viewBox="0 0 44 44"><rect x="6" y="14" width="32" height="16" rx="8"/><circle cx="22" cy="22" r="3"/></svg></li>
   </ol>
+  <p id="pick" hidden><label>Screen: <select id="kind"><option value="epaper-verse.bin">Verse</option><option value="epaper-verse-icons.bin">Verse with a picture</option></select></label></p>
   <button id="go" type="button">Install</button>
   <progress id="bar" max="1" value="0" hidden></progress>
   <p id="say" aria-live="polite"></p>

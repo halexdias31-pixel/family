@@ -22,9 +22,9 @@ function world(more) {
   b.seed('people', [
     P('P-A1', 'admin', 'Hal', 'admin@example.org'),
     P('P-T1', 'tutor', 'Ada', 'tutor@example.org', { rate_per_hour: 25 }),
-    P('P-C1', 'client', 'Pat', 'pat@example.org'),
+    P('P-C1', 'client', 'Pat', 'pat@example.org', { date_of_birth: '01/05/1980' }),
     P('P-S1', 'student', 'Sam', 'sam@example.org'),
-    P('P-Y1', 'student', 'Yan', 'yan@example.org', { date_of_birth: '2014-03-01' }),
+    P('P-Y1', 'student', 'Yan', 'yan@example.org', { date_of_birth: '01/03/2014' }),
     P('P-K1', 'student', 'Kit', ''),
   ].concat((more && more.people) || []));
   b.seed('family', [{ link_id: 'L1', parent_id: 'P-C1', child_id: 'P-K1', state: 'accepted' }]);
@@ -87,6 +87,8 @@ const FULL = { action: 'applyTeach', subjects: 'Maths (GCSE), Physics (A level)'
   rule(!badCv.success, 'a CV link that is not https was taken', badCv);
   const young = as('yan@example.org', FULL);
   rule(!young.success && /adults/.test(young.error), 'a twelve-year-old (by date of birth) could apply to teach', young);
+  const noDob = as('sam@example.org', FULL);
+  rule(!noDob.success && noDob.why === 'dob' && !noDob.writes, 'an account with no date of birth could apply to teach (no date of birth is underage, 450)', noDob);
   const staff = as('tutor@example.org', FULL);
   rule(!staff.success && /already/.test(staff.error), 'a tutor already teaching could apply', staff);
 

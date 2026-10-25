@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* node js/check-media-age.js — HOW OLD YOU HAVE TO BE TO WATCH IT (406), through the real doPost and doGet: a child, an
-   unknown-age student and nobody get only what their age allows (too old = a veil); adults and the admin all. */
+   no-date-of-birth student or client and nobody get only what their age allows (too old = a veil); the admin all. */
 'use strict';
 require('../check/quiet');   // one line when green; -v or VERBOSE=1 for the whole report
 const { backend } = require('./check-gas-load.js');
@@ -47,15 +47,15 @@ rule(Array.isArray(last.media) && last.media.every(m => m.id), "the admin's own 
 const ids = g => (g.media || []).filter(m => m.id && !m.hidden).map(m => m.id).sort().join(',');
 const veils = g => (g.media || []).filter(m => m.veil).length;
 const ALL = 'AAAAAAAAAAA,BBBBBBBBBBB,CCCCCCCCCCC,DDDDDDDDDDD,jD2Yy_wCBLE';
-const TWELVE = 'AAAAAAAAAAA,BBBBBBBBBBB';
 
 /* EACH VIEWER, FROM A BUILT BODY AND THEN FROM THE KEPT ONE (the cache is per viewer, 398) */
 const cases = [
   ['k1', 'AAAAAAAAAAA', 4, 'a ten-year-old student'],
-  ['s1', TWELVE, 3, 'a student with no date of birth'],
-  ['', TWELVE, 3, 'a signed-out visitor'],
+  /* NO DATE OF BIRTH IS UNDERAGE, WHATEVER THE RANK (450): only what has no minimum age. */
+  ['s1', 'AAAAAAAAAAA', 4, 'a student with no date of birth'],
+  ['', 'AAAAAAAAAAA', 4, 'a signed-out visitor'],
   ['t1', 'AAAAAAAAAAA,BBBBBBBBBBB,CCCCCCCCCCC,jD2Yy_wCBLE', 1, 'a sixteen-year-old'],
-  ['c1', ALL, 0, 'a client with no date of birth'],
+  ['c1', 'AAAAAAAAAAA', 4, 'a client with no date of birth'],
   ['a1', ALL, 0, 'the admin (whose date of birth says nine)'],
 ];
 fresh();
@@ -78,4 +78,4 @@ console.log('');
 console.log('HOW OLD YOU HAVE TO BE TO WATCH IT, THROUGH THE REAL doPost AND doGet  (' + bad.length + ')');
 bad.forEach(x => console.log('  ' + x));
 if (bad.length) { console.log('FAILED'); process.exit(1); }
-console.log('OK — a ten-year-old, an unknown-age student and nobody see only what their age allows, built and kept; adults and the admin see all, with ages.');
+console.log('OK — a ten-year-old, anyone with no date of birth and nobody see only what their age allows, built and kept; the admin sees all, with ages.');

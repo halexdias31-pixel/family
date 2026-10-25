@@ -2533,7 +2533,8 @@ function dmSync_(force) {
   DM_ASKED = true; DM_BUSY = true; DM_LAST = Date.now();
   const was = dmStamp_();
   /* Which conversation is on the screen, by person rather than by page — a message arriving in another thread moves that thread to the front and would otherwise § */
-  const here = ((messageThreads_()[(typeof PAGE === 'object' && PAGE.dm) || 0]) || {}).id;
+  /* ONE LESS THAN THE PAGE: the Assistant is page 0 (449). */
+  const here = ((messageThreads_()[((typeof PAGE === 'object' && PAGE.dm) || 0) - 1]) || {}).id;
   loadMessages().then(() => {
     DM_BUSY = false; DM_DONE = true;
     if (first) paint('dm');
@@ -2591,7 +2592,7 @@ function dmPages_() {
   /* ---------- THE HEAD CARD WAS A PAGE WITH NO MESSAGE ON IT § */
 
   /* ---------- AND AN EMPTY INBOX SAYS WHICH EMPTY IT IS § */
-  if (!threads.length) return [{ name: '', html: `<div class="card"><h3>Messages</h3>
+  if (!threads.length) return [asstPage_(), { name: '', html: `<div class="card"><h3>Messages</h3>
     ${MSG_FAILED
       ? `<p class="empty">Your messages did not come.<br><span class="faint">The line to the
            office is down, or this phone has no signal.</span></p>
@@ -2604,7 +2605,7 @@ function dmPages_() {
   threads.forEach(t2 => markRead_(t2.msgs));
   /* ---------- AND EACH ONE CAN BE ANSWERED WHERE IT IS READ § */
   /* THE NAME IS THE PERSON, and the unread count rides on it — so the header says who you are reading rather than "3 of 7", which is the same judgement § */
-  return threads.map(t => ({
+  return [asstPage_()].concat(threads.map(t => ({
     name: t.name + (t.unread ? ' (' + t.unread + ')' : ''),
     html: `<div class="card${t.unread ? ' unread' : ''}">
       <div class="dm-head">${dmFace_(t)}
@@ -2612,8 +2613,102 @@ function dmPages_() {
       <div class="msg-body">${messagesHtml_(t.msgs)}</div>
       ${msgForm_(t.name, t.id)}
     </div>`,
-  }));
+  })));
 }
+
+/* ---------- THE ASSISTANT, PINNED FIRST IN MESSAGES (449) ----------
+   Kept on this device only; the day's count is the backend's (`askAssistant`), and its `left` is believed over ours. */
+let ASST_BUSY = false, ASST_SAID = '';
+const ASST_KEEP = 40;
+const asstDay_ = () => { try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(new Date()); } catch (e) { return new Date().toISOString().slice(0, 10); } };
+function asstCap_() {
+  const v = (DATA && DATA.constants && DATA.constants.vars) || {};
+  const c = v.assistant_questions_per_day;
+  return c === '' || c == null || isNaN(Number(c)) ? 5 : Math.max(0, Math.floor(Number(c)));
+}
+function asstKey_() { return 'asst:' + String((USER && USER.personId) || ''); }
+function asstGet_() {
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem(asstKey_()) || 'null'); } catch (e) { s = null; }
+  s = s && typeof s === 'object' ? s : {};
+  const msgs = Array.isArray(s.msgs) ? s.msgs.filter(m => m && typeof m.text === 'string') : [];
+  const today = asstDay_();
+  const left = s.day === today && typeof s.left === 'number' ? Math.min(s.left, asstCap_()) : asstCap_();
+  return { day: today, left: Math.max(0, left), msgs: msgs.slice(-ASST_KEEP) };
+}
+function asstPut_(s) { try { localStorage.setItem(asstKey_(), JSON.stringify(s)); } catch (e) {} }
+/* WHAT THE ASSISTANT IS TOLD ABOUT THE BUSINESS: the brand tab's words and a few config numbers, all public already. */
+function asstFacts_() {
+  const out = [];
+  const b = (DATA && DATA.brand) || {};
+  Object.keys(b).forEach(k => {
+    const v = b[k];
+    if (typeof v !== 'string' && typeof v !== 'number') return;
+    const t = String(v).trim();
+    if (!t || /^#|^https?:|^data:|\.(png|jpe?g|svg|webp)$/i.test(t) || /logo|colou?r|^ink$|accent|font|phone|email/i.test(k)) return;
+    out.push(k.replace(/_/g, ' ') + ': ' + t);
+  });
+  const v = (DATA && DATA.constants && DATA.constants.vars) || {};
+  if (v.h) out.push('hours per session: ' + v.h);
+  if (v.max_students_per_job) out.push('most students in one session: ' + v.max_students_per_job);
+  try { out.push('screens in the app: ' + TABS.map(t => t.title).join(', ')); } catch (e) {}
+  out.push('to book: the Booking screen; to message a tutor: the Message tile on their card');
+  return out.join('\n').slice(0, 4000);
+}
+function asstHtml_() {
+  const s = asstGet_(), cap = asstCap_();
+  const bubbles = s.msgs.map(m => `<div class="asst-msg${m.role === 'user' ? ' mine' : ''}"><p class="asst-bub">${esc(m.text)}</p></div>`).join('');
+  const out = s.left <= 0;
+  return `<div class="card asst">
+    <div class="dm-head"><span class="dm-av" aria-hidden="true">✦</span><h3>Assistant</h3></div>
+    <div class="asst-body">${bubbles || `<p class="faint asst-hello">Ask about lessons, prices and booking, or for help with something you are studying.</p>`}${ASST_BUSY ? loading_() : ''}</div>
+    <div class="asst-form">
+      <textarea class="asst-text" rows="1" maxlength="1000" placeholder="Ask a question…" aria-label="Ask the assistant"${out || ASST_BUSY ? ' disabled' : ''}${draftAttr_('asst', '')}>${ASST_BUSY ? '' : esc(draftVal_('asst', '', ''))}</textarea>
+      <button class="btn asst-go" data-do="asst-send"${out || ASST_BUSY ? ' disabled' : ''}>Ask</button>
+    </div>
+    ${ASST_SAID ? `<p class="faint asst-said">${esc(ASST_SAID)}</p>` : ''}
+    <p class="faint asst-left">${out ? 'No questions left today — they come back tomorrow.' : esc(s.left + ' of ' + cap + ' questions left today')}</p>
+  </div>`;
+}
+function asstPage_() { return { name: 'Assistant', html: asstHtml_() }; }
+function asstRedraw_() {
+  const card = $('s-dm') && $('s-dm').querySelector('.asst');
+  if (!card) return;
+  card.outerHTML = asstHtml_();
+  const body = $('s-dm').querySelector('.asst-body');
+  if (body) body.scrollTop = body.scrollHeight;
+}
+on('asst-send', el => {
+  const card = el.closest ? el.closest('.asst') : null;
+  const box = card ? card.querySelector('.asst-text') : null;
+  const text = String((box && box.value) || '').trim();
+  if (!text || ASST_BUSY || !USER) return;
+  const s = asstGet_();
+  if (s.left <= 0) return;
+  const history = s.msgs.slice(-6).map(m => ({ role: m.role, text: m.text }));
+  s.msgs.push({ role: 'user', text: text, at: Date.now() });
+  asstPut_(s);
+  ASST_BUSY = true; ASST_SAID = '';
+  asstRedraw_();
+  const done = (d) => {
+    ASST_BUSY = false;
+    const now = asstGet_();
+    if (d && typeof d.left === 'number') now.left = Math.max(0, d.left);
+    if (d && d.success && d.answer) { now.msgs.push({ role: 'assistant', text: String(d.answer), at: Date.now() }); try { draftDrop_('asst', ''); } catch (e) {} }
+    else {
+      /* NOT ANSWERED IS NOT ASKED: the question comes off the thread, and the backend gave the count back. */
+      const last = now.msgs[now.msgs.length - 1];
+      if (last && last.role === 'user' && last.text === text) now.msgs.pop();
+      ASST_SAID = (d && (d.message || d.error)) || 'The assistant could not be reached — try again in a moment.';
+    }
+    now.msgs = now.msgs.slice(-ASST_KEEP);
+    asstPut_(now);
+    asstRedraw_();
+    if (!(d && d.success)) { const b = $('s-dm') && $('s-dm').querySelector('.asst-text'); if (b && !b.disabled) b.value = text; }
+  };
+  api({ action: 'askAssistant', personId: USER.personId, question: text, history: history, facts: asstFacts_() })
+    .then(done, () => done(null));
+});
 
 /* ---------- THE "MESSAGE EVERYONE" CARD WAS HERE § */
 
