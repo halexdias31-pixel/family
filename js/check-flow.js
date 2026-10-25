@@ -7128,7 +7128,7 @@ check('the board games are one widget: three games in its picker, each drawing o
 });
 
 /* ---------- THE CONSOLE ON A LAPTOP (419): keys per system, a key list, nothing scrolled, and the app held still while it plays */
-check('console keys: arrows and WASD steer, Z/X/Space/Enter/Shift and Q/E per system, a Keys tile shows the list, the page does not scroll, and the rest of the app holds still while a game plays', async () => {
+check('console keys: arrows and WASD steer, Z/X/Space/Enter/Shift and Q/E per system, a Keys tile shows the list, the page does not scroll, and the rest of the app holds still while a game plays; each system is its own console, its drawn buttons named as the list names them and lit by the keys, the DS hinged over its gap', async () => {
   const { w } = boot({ member: true });
   await wait(300);
   const t = w.__t, d = w.document, ev = s => t.inApp(s);
@@ -7164,6 +7164,22 @@ check('console keys: arrows and WASD steer, Z/X/Space/Enter/Shift and Q/E per sy
   if (say('nes') !== 'Move:↑ ↓ ← →/W A S D A:X/L/Space B:Z/K Start:Enter Select:Shift') bad.push('the NES key list says ' + say('nes'));
   if (!/L:Q R:E/.test(say('nds')) || !/Y:C\/J/.test(say('nds'))) bad.push('the DS key list says ' + say('nds'));
   if (/Select/.test(say('n64')) || !/Z:C\/Shift/.test(say('n64')) || !/C↑:I/.test(say('n64'))) bad.push('the N64 key list says ' + say('n64'));
+  /* EACH SYSTEM ITS OWN CONSOLE (437): the body says which, the buttons drawn beside the screen and the touch pad are named as the key list names them, and the DS's hinge sits over its gap. */
+  const names = sel => [...d.querySelectorAll(sel + ' [data-k]')].filter(e => e.dataset.k !== 'dpad').map(e => e.textContent.trim()).sort().join(' ');
+  ['nes', 'snes', 'gb', 'gbc', 'gba', 'n64', 'nds'].forEach(sys => {
+    ev('nesSysSet_(' + JSON.stringify(sys) + ')');
+    if (d.querySelector('#nes-wrap').dataset.sys !== sys) bad.push(sys + ': the console body does not say ' + sys);
+    const listed = ev('nesKeyRows_(' + JSON.stringify(sys) + ').slice(1).map(r => r[0]).sort().join(" ")');
+    if (names('#nes-deco') !== listed) bad.push(sys + ': the drawn buttons are "' + names('#nes-deco') + '", the key list "' + listed + '"');
+    if (names('#nes-pad') !== listed) bad.push(sys + ': the touch pad is "' + names('#nes-pad') + '", the key list "' + listed + '"');
+    if (d.querySelector('#nes-deco button')) bad.push(sys + ': a drawn button is a real button, there to be pressed');
+  });
+  const dsH = ev('NES_DIMS.nds[1]'), gap = ev('NES_GAP'), hinge = d.querySelector('#nes-hinge');
+  if (dsH !== 384 + gap || !(gap > 0)) bad.push('the DS picture is ' + dsH + ' rows for a gap of ' + gap + ', not its two 192-row screens and the gap');
+  if (!hinge || Math.abs(parseFloat(hinge.style.top) - 19200 / dsH) > 0.01 || Math.abs(parseFloat(hinge.style.height) - 100 * gap / dsH) > 0.01) bad.push('the DS hinge is at ' + (hinge && hinge.style.top) + ' / ' + (hinge && hinge.style.height) + ', not over the rows between the screens');
+  ev('nesSysSet_("nes")');
+  if (hinge && parseFloat(hinge.style.height) !== 0) bad.push('the NES has a hinge');
+  if (!d.querySelector('#nes-wrap').classList.contains('nes-has-deco')) bad.push('on keys the console\'s buttons are not drawn beside the screen');
   /* PLAYING, with a stand-in engine: the keys reach it, the page does not scroll, and the rest of the app holds still. */
   ev('window.__pressed = []; NES_.nes = { buttonDown: (p, b) => __pressed.push("d" + b), buttonUp: (p, b) => __pressed.push("u" + b), frame() {} };');
   w.__aheadHold = false;
@@ -7185,6 +7201,15 @@ check('console keys: arrows and WASD steer, Z/X/Space/Enter/Shift and Q/E per sy
   key('keyup', 'KeyK', 'k');
   if (ev('NES_.held.b')) bad.push('B stayed held with both keys up');
   if (ev('__pressed.join()').indexOf('d' + ev('NES_B.up')) === -1) bad.push('the engine never heard up pressed');
+  /* A HELD KEY LIGHTS THE DRAWN BUTTON IT PRESSES, and letting go puts it out. */
+  key('keydown', 'KeyX', 'x');
+  const litA = d.querySelector('#nes-deco [data-k="a"]');
+  if (!litA || !litA.classList.contains('is-down')) bad.push('X held did not light the drawn A');
+  key('keyup', 'KeyX', 'x');
+  if (litA && litA.classList.contains('is-down')) bad.push('X let go left the drawn A lit');
+  key('keydown', 'ArrowLeft', 'ArrowLeft');
+  if (!d.querySelector('#nes-deco .nes-dpad.is-down')) bad.push('← held did not light the drawn D-pad');
+  key('keyup', 'ArrowLeft', 'ArrowLeft');
   /* THE KEYS TILE hides the list and shows it again, and remembers. */
   t.ACTIONS['nes-keys']();
   if (!d.querySelector('#nes-legend').hidden) bad.push('the Keys tile did not hide the key list');
@@ -7195,6 +7220,7 @@ check('console keys: arrows and WASD steer, Z/X/Space/Enter/Shift and Q/E per sy
   /* A FINGER ON THE CONSOLE swaps the key list for the touch pad, and Keys for Lock: still five tiles. */
   d.querySelector('#nes-wrap').dispatchEvent(Object.assign(new w.Event('pointerdown', { bubbles: true }), { pointerType: 'touch' }));
   if (ev('NES_.mode') !== 'touch' || !d.querySelector('#nes-pad').classList.contains('on') || !d.querySelector('#nes-legend').hidden) bad.push('a finger did not bring the touch pad back in place of the key list');
+  if (d.querySelector('#nes-wrap').classList.contains('nes-has-deco')) bad.push('with the touch pad up the drawn buttons still show beside the screen');
   const acts2 = [...d.querySelectorAll('#nes-tiles [data-do]')].map(b => b.getAttribute('data-do'));
   if (acts2.join() !== 'nes-pause,nes-pick,nes-forget,nes-lock,nes-full') bad.push('on touch, playing, the tiles are ' + JSON.stringify(acts2));
   ev('nesStop_()');
