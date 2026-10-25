@@ -134,16 +134,13 @@ const KINDS = {
   /* ---------- `textbook` WAS HERE, AND EACH OF ITS CHAPTERS IS A CONTENT CARD NOW § */
   content: { group: 'Learning', label: 'Content', card: x => contentCard_(x) },
   /* ---------- BOXING IS A SUBJECT, NOT A DEPARTMENT § */
-  /* LABELLED `Resources`, LIKE A TOPIC AND A PAST PAPER, because that is what the second question is asking: § */
-  boxer: { group: 'Learning', label: 'Resources', card: x => boxerCard_(x) },
+  /* CONTENT, NOT `Resources` (445): the owner — "boxes and fights can go under content"; the Bible goes with them. */
+  boxer: { group: 'Learning', label: 'Content', card: x => boxerCard_(x) },
   /* THE BOUTS. `boxers` is who; this is what happened. 157 of them sat in the sheet unread,
      because nothing in the app had ever been told the tab existed. */
-  fight: { group: 'Learning', label: 'Resources', card: x => fightCard_(x) },
+  fight: { group: 'Learning', label: 'Content', card: x => fightCard_(x) },
   /* ---------- THE BIBLE, AND THE ONE KIND THE PHONE ITSELF KEEPS FROM ALL BUT AN ADMIN § */
-  bible: { group: 'Learning', label: 'Resources', card: x => bibleCard_(x) },
-  /* THE ICONS (403): each `TILE_ICONS` mark, for an admin, behind the Bible's gate — `iconItems_`, tiles.js. A group of
-     their own, so fifty-odd marks never change what Learning or Resources asks anybody (check-flow's Bible journeys). */
-  icon: { group: 'Icons', label: 'Icons', card: x => iconCard_(x) },
+  bible: { group: 'Learning', label: 'Content', card: x => bibleCard_(x) },
 
   /* ---------- TWO GROUPS, NOT ONE GROUP AND THEN THE SAME QUESTION AGAIN § */
   /* ---------- THESE TWO STAY IN THE TABLE AND NO LONGER ANSWER THE FIRST QUESTION § */
@@ -367,13 +364,17 @@ const FACETS = [
   { field: 'bibleBook',      label: 'Book',      of: x => (x.bb ? x.bb.book : '') },
   { field: 'bibleChapter',   label: 'Chapter',   of: x => (x.bb ? x.ch : '') },
   { field: 'bibleVerse',     label: 'Verse',     of: x => (x.bb ? x.v : '') },
-  /* THE ICONS' GROUP (403): what a mark is for, an ordinary question once `Icons` is the shelf. */
-  { field: 'iconGroup',     label: 'Group',     of: x => x.iconGroup || '' },
   { field: 'projectType',   label: 'Project or coursework', of: x => x.projectType || '' },
   { field: 'subject',   label: 'Subject',     of: x => x.subject },
   { field: 'boxKind',   label: 'Boxers or fights', of: x => x.boxKind || '' },
+  /* A BOUT'S FACTS ARE TAGS (445), like a question's: who, when, how. A boxer answers Fighter too, so his name finds him and his bouts. */
+  { field: 'fighter',   label: 'Fighter',     of: x => x.kind === 'fight' && x.row ? [x.row.a, x.row.b].filter(Boolean) : x.kind === 'boxer' ? x.name : '' },
+  { field: 'boutMonth', label: 'Month',       of: x => boutDate_(x).month },
+  { field: 'boutYear',  label: 'Year',        of: x => boutDate_(x).year },
   { field: 'decade',    label: 'Decade',      of: x => decadesOf_(x) },
   { field: 'division',  label: 'Division',    of: x => x.division || '' },
+  { field: 'boutRound', label: 'Round',       of: x => x.kind === 'fight' && x.row && Number(x.row.endRound) > 0 ? 'Round ' + Number(x.row.endRound) : '' },
+  { field: 'boutMethod', label: 'Result',     of: x => (x.kind === 'fight' && x.row && String(x.row.method || '').trim()) || '' },
   { field: 'practicalType', label: 'Experiment or build', of: x => x.practicalType || '' },
   { field: 'required',  label: 'Required',
     of: x => x.kind !== 'practical' || !x.row ? '' : PRAC_NEED[x.row.excluded ? 2 : x.row.required ? 0 : 1] },
@@ -441,6 +442,7 @@ const facetFromSheet_ = f => ({
 
 /* FIELDS WHOSE CODE FACET WAS DELETED ON PURPOSE, AND WHICH THE SHEET MAY NOT RESURRECT. § */
 const RETIRED_FACETS = {
+  iconGroup: 'what an icon mark was for; the icons left Find at the owner\'s word (445).',
   borough: 'venues only, and venues left Find; nothing else answers it (396 took the dead facet out).',
   slot: 'where a wearable goes; nothing in Find carries one since the shop left it (396 took the dead facet out).',
   afford: 'the price question; nothing in Find is priced (396 took the dead facet out).',
@@ -935,9 +937,8 @@ function fightCard_(x) {
 
   /* HOW IT ENDED, AS A PHRASE. "KO" and "round 2" are two facts and one sentence; a card that
      printed them as two rows would be a form rather than a result. */
-  const how = [f.method, f.endRound ? 'round ' + f.endRound : '',
-               (!f.endRound && f.rounds) ? f.rounds + ' rounds' : '']
-    .filter(Boolean).join(' · ');
+  /* A DECISION THAT WENT THE DISTANCE has no end round to tag, so its length is said here; method and round are tags. */
+  const how2 = (!f.endRound && f.rounds) ? f.rounds + ' rounds' : '';
 
   const where = [f.venue, f.city].filter(Boolean).join(', ');
   const bout = f.boutTotal > 1 ? `Bout ${f.boutNo} of ${f.boutTotal}` : '';
@@ -958,20 +959,22 @@ function fightCard_(x) {
     <div class="fc-head">
       <h3 class="fight-line">${corner(f.a, wonA)}<em>v</em>${corner(f.b, wonB)}</h3>
     </div>
-    ${tagRow_(x)}
-    ${/* THE DATE AS THE FIGHTER'S PAGE WRITES IT. § */
-          ''}
-    <p class="sub">${esc([boxerDate_(f.date), f.division, bout].filter(Boolean).join(' · '))}</p>
+    ${/* THE FACTS ARE THE TAGS (445) — fighters, month, year, weight, round, result — so no line repeats them; the picture last, as a question's. */
+      tagRow_(x)}
+    ${bout || how2 ? `<p class="fc-meta">${esc([bout, how2].filter(Boolean).join(' · '))}</p>` : ''}
+    ${f.notes ? `<p class="fc-lede">${esc(f.notes)}</p>` : ''}
+    ${about ? `<p class="fc-note">${esc(about)}</p>` : ''}
+    ${f.verified ? '' : '<p class="fc-note">Not checked yet</p>'}
     <div class="fight-faces" aria-hidden="true">${boxerPic_(bxA, 'a', wonA, f.trunksA)}<span class="fight-v">v</span>${
       boxerPic_(bxB, 'b', wonB, f.trunksB)}</div>
     ${credits.length ? `<p class="fight-credit">${credits.join(' ')}</p>` : ''}
-    ${how ? `<p class="fc-meta">${esc(how)}</p>` : ''}
-    ${f.notes ? `<p class="fc-lede">${esc(f.notes)}</p>` : ''}
-    ${about ? `<p class="fc-note">${esc(about)}</p>` : ''}
-    ${/* THE WATCH LINK MOVED into `fightTiles_`, so it sits in the tile row with every other action
-          on every other card rather than as a lone button halfway up this one. */''}
-    ${f.verified ? '' : '<p class="fc-note">Not checked yet</p>'}
   </div>`;
+}
+
+/* A BOUT'S MONTH AND YEAR, off its `YYYY-MM-DD` date; blank for anything else. */
+function boutDate_(x) {
+  const m = x && x.kind === 'fight' && x.row ? /^(\d{4})(?:-(\d{2}))?/.exec(String(x.row.date || '')) : null;
+  return m ? { year: m[1], month: m[2] ? (MONTH_NAMES[Number(m[2]) - 1] || '') : '' } : { year: '', month: '' };
 }
 
 /* ---------- ONE DIVISION, HOWEVER IT WAS TYPED § */
@@ -7968,13 +7971,12 @@ function findPlaceBack_(F) {
   });
 }
 /* ---------- A KEPT CHIP NOTHING WILL EVER ANSWER § */
-const RETIRED_SHELVES = ['@family. textbooks'];
+const RETIRED_SHELVES = ['@family. textbooks', 'Icons'];
 /* AN ANSWER THAT WENT, by its facet: the textbooks shelf (347), and `Bundles`, which stopped being a kind to ask for (396). */
-const RETIRED_ANSWERS = { shelf: RETIRED_SHELVES, kindLabel: ['Bundles'] };
+const RETIRED_ANSWERS = { shelf: RETIRED_SHELVES, kindLabel: ['Bundles', 'Icons'] };
 function placeChipDead_(f) {
   if (!f || typeof f.field !== 'string') return true;
   if (BIBLE_FIELDS[f.field] || (f.field === 'shelf' && f.value === BIBLE_SHELF)) return !bibleFor_();
-  if (f.field === 'iconGroup' || (f.field === 'shelf' && f.value === ICON_SHELF)) return !bibleFor_();
   if (RETIRED_FACETS[f.field]) return true;
   /* A RANGE CHIP (`bucket`) — the groupings went in 290 and their tables in 396, so nothing answers one. */
   if (f.bucket) return true;
@@ -8144,8 +8146,6 @@ function stuffItemsRaw_() {
 
     /* ---------- THE BIBLE, FOR AN ADMIN AND NOBODY ELSE § */
     ...bibleItems_(),
-    /* AND THE ICONS, BEHIND THE SAME GATE (403). */
-    ...(typeof iconItems_ === 'function' ? iconItems_() : []),
 
     /* ---------- `DATA.films` WAS MAPPED HERE, ONE ITEM PER FILM OR SERIES, AND IS NOT ANY MORE § */
 
@@ -9308,7 +9308,8 @@ const TAG_OF = {
   subject: 'subject',
   level: 'level', keystage: 'level', yearGroup: 'level', bandValue: 'level', fiveLevel: 'level',
   examMonth: 'sitting', examYear: 'sitting', fiveMonth: 'sitting', decade: 'sitting',
-  documentType: 'type', practicalType: 'type', boxKind: 'type', projectType: 'type',
+  documentType: 'type', practicalType: 'type', boxKind: 'type', projectType: 'type', boutMethod: 'type',
+  fighter: 'topic', boutMonth: 'sitting', boutYear: 'sitting', boutRound: 'paper',
   examBoard: 'board', company: 'board',
   tier: 'tier', division: 'tier',
   topic: 'topic',
@@ -9320,7 +9321,6 @@ const TAG_OF = {
   /* ---------- THE BIBLE'S SIX, IN KINDS THAT ALREADY HAVE COLOURS § */
   bibleTranslation: 'board', bibleTestament: 'level', bibleGroup: 'topic',
   bibleBook: 'paper', bibleChapter: 'paper', bibleVerse: 'paper',
-  iconGroup: 'topic',
 };
 /* A FACET NOBODY LISTED — one the facets tab invented — is still coloured: `other` (396). */
 const tagOf_ = field => TAG_OF[field] || 'other';

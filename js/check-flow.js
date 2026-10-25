@@ -19632,6 +19632,8 @@ check('a content card, on Find 2 and on Find: What kind · Content, Statistics �
     const rung = w.facetList().find(f => f.field === rungs[rungs.length - route.length]);
     const only = rung ? R.facetValues(R.stuffFiltered(), rung).map(v => String(v.value)) : [];
     if (!el && only.length === 1 && only[0] === route[0]) { pressed.push('(' + route.shift() + ')'); continue; }
+    /* A RUNG THE ONE RULE HOLDS BACK HERE (445: without the questions, Content outweighs the rest of What kind) is passed, not failed. */
+    if (!el && rung && only.indexOf(route[0]) !== -1 && /lopsided/.test(w.facetWhy_(R.stuffFiltered(), rung))) { pressed.push('~' + route.shift()); continue; }
     if (!el) {
       const grp = (() => { try { return rung.bucketOf(route[0]); } catch (e) { return ''; } })();
       el = grp && btns.find(b => b.dataset.value === grp && b.dataset.bucket);
@@ -19647,18 +19649,19 @@ check('a content card, on Find 2 and on Find: What kind · Content, Statistics �
   }
   if (route.length) return bad;
   /* `Content` IS ITS OWN ANSWER UNDER WHAT KIND, pressed — not a shelf of Resources. */
-  if (pressed.indexOf('Content') < 0) bad.push('What kind did not offer Content on Find 2: ' + pressed.join(' → '));
+  if (pressed.indexOf('Content') < 0 && pressed.indexOf('~Content') < 0) bad.push('What kind did not offer Content on Find 2: ' + pressed.join(' → '));
   if (offered.some(o => /^shelf:@family\. textbooks$/.test(o))) bad.push('the @family. textbooks shelf was offered — it went with the books');
   const left = R.stuffFiltered();
   if (left.length !== stats.chapters.length || left.some(i => i.kind !== 'content' || i.subject !== 'Statistics')) {
     bad.push('after ' + pressed.join(' → ') + ' the list is ' + left.length + ' item(s): '
       + left.slice(0, 4).map(x => x.kind + ' ' + x.name).join(', ') + ' — not the ' + stats.chapters.length + ' Statistics cards');
   }
-  /* AND NOTHING ON RESOURCES FELL OFF THE SHELVES: the boxing and the Bible keep their door. */
+  /* AND NOTHING THAT WAS IN RESOURCES FELL OFF THE SHELVES (445 moved it to Content): the boxing and the Bible keep their door. */
   const shelfFacet = w.facetList().find(f => f.field === 'shelf');
-  const resources = R.stuffItems().filter(i => w.kindOf_(i).label === 'Resources');
+  const resources = R.stuffItems().filter(i => i.kind === 'boxer' || i.kind === 'fight' || i.kind === 'bible');
   const unshelved = resources.filter(i => !R.facetValues([i], shelfFacet).length);
-  if (unshelved.length) bad.push(unshelved.length + ' of ' + resources.length + ' Resources are on no shelf — pressing a shelf hides them');
+  if (unshelved.length) bad.push(unshelved.length + ' of ' + resources.length + ' boxing / Bible items are on no shelf — pressing a shelf hides them');
+  if (R.stuffItems().some(i => w.kindOf_(i).label === 'Resources')) bad.push('an item is still labelled Resources — it went into Content (445)');
   if (cards.some(i => R.facetValues([i], shelfFacet).length)) bad.push('a content card is on a shelf — the textbooks\' shelf went');
 
   /* THE CARD, THEN A PAGE PER ANIMATION, in the file's order. "Averages" has none since the mean went to KS2 (436); "Probability" has Bayes. */
@@ -19941,12 +19944,13 @@ check('both finders carry the same items — the same keys, the same count, ever
     return !(g.length && g.every(k => ['Booking', 'Shop'].indexOf(k) >= 0));
   });
   if (keys(offered).join('|') !== fk.join('|')) bad.push('Find\'s list is not the whole list less Booking and Shop: whole ' + offered.length + ' (' + kinds(offered) + '), Find ' + find.length);
-  /* WHAT KIND, ASKED OF EACH: the same answers, Resources among them. */
+  /* WHAT KIND, ASKED OF EACH: the same answers, Content among them and Resources not (445). */
   const kl = w.facetList().find(f => f.field === 'kindLabel');
   const said = l => w.facetValues(l, kl).map(v => String(v.value) + ' ' + v.n).join(', ');
   const fSaid = said(find), rSaid = inRes_(w, () => said(res));
   if (fSaid !== rSaid) bad.push('What kind on Find offers ' + fSaid + ' and on Find 2 ' + rSaid);
-  if (!/\bResources\b/.test(fSaid) || !/\bProjects\b/.test(fSaid)) bad.push('What kind does not offer both Projects and Resources: ' + fSaid);
+  if (!/\bContent\b/.test(fSaid) || !/\bProjects\b/.test(fSaid)) bad.push('What kind does not offer both Projects and Content: ' + fSaid);
+  if (/\bResources\b/.test(fSaid)) bad.push('What kind still offers Resources — it went into Content (445): ' + fSaid);
   /* SEARCH: a word that is only inside a content card's words finds the card on both. */
   t.STUFF().filters.length = 0; t.STUFF().q = 'frequency density';
   const fHits = w.stuffFiltered();
@@ -19985,14 +19989,16 @@ check('two finders, no shared state: a chip, a search word or a page turned in o
   /* A CHIP PRESSED ON FIND 2 IS FIND 2'S ALONE — the answer its question draws for the resources,
      since both columns ask the same first question now (347) and `Resources` keeps the boxers for
      the word below. */
-  const shelf = resPick_(w, 'res', 'Resources');
-  if (!shelf) return ['Find 2 does not offer What kind · Resources to press — NOT checked: ' + resAnswers_(w, 'res').join(' | ')];
+  /* ITS FIRST ANSWER, whatever the one rule asks first — Resources went into Content in 445, so no answer is named here. */
+  const shelf = [...d.querySelectorAll('#s-res #res-groups [data-do="facet-pick"]')].find(b => b.dataset.value && !b.dataset.bucket);
+  if (!shelf) return ['Find 2 offers no answer to press — NOT checked: ' + resAnswers_(w, 'res').join(' | ')];
+  const rPick = { field: shelf.dataset.field, value: shelf.dataset.value };
   const f0 = F();
   A['facet-pick'](shelf);
-  if (JSON.stringify(t.RES().filters) !== JSON.stringify([{ field: 'kindLabel', value: 'Resources' }])) bad.push('pressing Resources on Find 2 left its chips ' + JSON.stringify(t.RES().filters));
+  if (JSON.stringify(t.RES().filters) !== JSON.stringify([rPick])) bad.push('pressing ' + rPick.value + ' on Find 2 left its chips ' + JSON.stringify(t.RES().filters));
   if (F() !== f0) bad.push('a chip pressed on Find 2 reached Find: ' + F());
-  if (!/Resources/.test(d.getElementById('res-chips').textContent)) bad.push('Find 2\'s chips row does not show Resources');
-  if (/Resources/.test((d.getElementById('stuff-chips') || {}).textContent || '')) bad.push('Find\'s chips row shows Resources');
+  if (d.getElementById('res-chips').textContent.indexOf(rPick.value) < 0) bad.push('Find 2\'s chips row does not show ' + rPick.value);
+  if (((d.getElementById('stuff-chips') || {}).textContent || '').indexOf(rPick.value) >= 0) bad.push('Find\'s chips row shows ' + rPick.value);
   /* A WORD TYPED IN FIND 2'S BOX IS FIND 2'S ALONE. */
   resType_(w, 'res', 'ali');
   await wait(260);
@@ -20002,7 +20008,7 @@ check('two finders, no shared state: a chip, a search word or a page turned in o
   const p0 = pg_(t).stuff;
   const first = inRes_(w, () => w.stuffFirstResult_());
   const n = inRes_(w, () => w.stuffPages_().length);
-  if (!n) bad.push('What kind · Resources and "ali" left nothing to turn to on Find 2 — the page rule was NOT checked');
+  if (!n) bad.push(rPick.value + ' and "ali" left nothing to turn to on Find 2 — the page rule was NOT checked');
   else {
     t.goPage('res', first + Math.min(1, n - 1), true);
     await wait(80);
@@ -20209,7 +20215,7 @@ check('a kept card Saved cannot draw whole opens in Find: Saved\'s Open under a 
   });
   /* ---- ON SAVED: star each, and Find 2 holds a place of its own that opening must not touch ---- */
   [book, boxer, fight, proj].forEach(x => { const el = d.createElement('div'); el.innerHTML = w.stuffCard(x); const fav = el.querySelector('[data-do="fav"]'); if (fav) A.fav(fav); });
-  t.RES().filters = [{ field: 'kindLabel', value: 'Resources' }]; t.RES().q = 'ali';
+  t.RES().filters = [{ field: 'kindLabel', value: 'Content' }]; t.RES().q = 'ali';
   const r0 = JSON.stringify([t.RES().filters, t.RES().q]);
   t.STUFF().filters = [{ field: 'kindLabel', value: 'Projects' }];
   t.go('saved', false, true); await wait(150); await woken_();
@@ -20301,7 +20307,7 @@ check('a Find place kept inside the Bible comes back inside Genesis 1 for an adm
   for (let i = 0; i < 80 && !(T.BIBLE() && T.BIBLE().index); i++) await wait(25);
   if (!(T.BIBLE() && T.BIBLE().index)) return ['the Bible\'s index never loaded for the admin — NOT checked'];
   T.go('stuff'); await wait(80);
-  const chips = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' },
+  const chips = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Content' }, { field: 'shelf', value: 'Books' },
     { field: 'bibleTranslation', value: 'KJV' }, { field: 'bibleBook', value: 'Genesis' }, { field: 'bibleChapter', value: '1' }];
   T.STUFF().filters = chips.map(f => Object.assign({}, f));
   W.localStorage.setItem('familyTabAt', String(Date.now() - 20 * 60 * 1000));
@@ -20335,7 +20341,7 @@ check('a Find place kept inside the Bible comes back inside Genesis 1 for an adm
   const t3 = three.w.__t;
   for (let i = 0; i < 100 && !(t3.STUFF().filters || []).length; i++) await wait(50);
   await wait(200);
-  const want = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' }];
+  const want = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Content' }];
   if (JSON.stringify(t3.STUFF().filters) !== JSON.stringify(want)) bad.push('kept by somebody the Bible is not for, the place came back as ' + JSON.stringify(t3.STUFF().filters) + ' — wanted the Bible\'s chips and the Books shelf dropped: ' + JSON.stringify(want));
   if (three.w.bibleInside_()) bad.push('a non-admin\'s Find came back inside the Bible');
   return bad;
@@ -20720,7 +20726,7 @@ check('the Bible, on Find 2 (and on Find): its cover in Resources → Open → t
     if (u && !(t.whoami() && t.whoami().role === u.role)) { bad.push(what + ' was not signed in at boot, so it was NOT checked'); continue; }
     t.go('res');
     t.RES().q = '';
-    t.RES().filters = [{ field: 'kindLabel', value: 'Resources' }];
+    t.RES().filters = [{ field: 'kindLabel', value: 'Content' }];
     w.paintFinder_('res');
     await wait(30);
     const shelf = w.facetList().find(f => f.field === 'shelf');
@@ -20819,14 +20825,18 @@ check('the Bible, on Find 2 (and on Find): its cover in Resources → Open → t
   w.paintFinder_('res');
   /* ---------- 1. RESOURCES: THE COVER AMONG THEM, AND NO SHELF QUESTION (396) — one Bible against the boxing is a split the
      one rule's balance refuses, so the cover is found as a result (or by search), and its Open tile goes in. */
-  const route = ['Learning', 'Resources'];
+  /* CONTENT SINCE 445 (Resources went): the cover sits among the content cards and the boxing. */
+  const route = ['Learning', 'Content'];
   const pressed = [];
   for (let guard = 0; route.length && guard < 6; guard++) {
     const btns = answersOn();
     const el = btns.find(b => b.dataset.value === route[0]);
-    const only = w.facetList().filter(f => f.field === 'forLabel' || f.field === 'kindLabel')
-      .some(f => { const v = R.facetValues(R.stuffFiltered(), f).map(x => String(x.value)); return v.length === 1 && v[0] === route[0]; });
+    const rungs = w.facetList().filter(f => f.field === 'forLabel' || f.field === 'kindLabel');
+    const only = rungs.some(f => { const v = R.facetValues(R.stuffFiltered(), f).map(x => String(x.value)); return v.length === 1 && v[0] === route[0]; });
     if (!el && only) { pressed.push('(' + route.shift() + ')'); continue; }
+    /* HELD BACK AS LOPSIDED by the one rule (no questions in this payload, so Content outweighs What kind): passed, not failed. */
+    const held = rungs.some(f => R.facetValues(R.stuffFiltered(), f).some(x => String(x.value) === route[0]) && /lopsided/.test(w.facetWhy_(R.stuffFiltered(), f)));
+    if (!el && held) { pressed.push('~' + route.shift()); continue; }
     if (!el) {
       bad.push('the funnel did not offer "' + route[0] + '" to an admin after ' + (pressed.join(' → ') || 'nothing') + ' — it offered '
         + (btns.map(b => b.dataset.field + ':' + b.dataset.value).join(' | ') || 'no answers'));
@@ -20837,7 +20847,7 @@ check('the Bible, on Find 2 (and on Find): its cover in Resources → Open → t
     t.ACTIONS['facet-pick'](el);
     await wait(20);
   }
-  if (asked().field === 'shelf') bad.push('Resources asks Shelf (' + asked().vals.join(' | ') + ') — one Bible against the boxing is lopsided, and the one rule does not ask it');
+  if (asked().field === 'shelf') bad.push('Content asks Shelf (' + asked().vals.join(' | ') + ') — one Bible against the boxing is lopsided, and the one rule does not ask it');
   const left = R.stuffFiltered();
   const x = left.find(i => i.kind === 'bible' && !i.bb);
   if (!x) return bad.concat(['after ' + pressed.join(' → ') + ' the Bible\'s cover is not among the ' + left.length + ' resources']);
@@ -20932,7 +20942,7 @@ check('the Bible, on Find 2 (and on Find): its cover in Resources → Open → t
     const tags = [...card.querySelectorAll('.qcard-tags .qtag')].map(s => s.textContent);
     /* EVERY TAG A BIBLE ANSWER, IN THE ORDER THE FINDER ASKS (355): the book, chapter and verse three tags
        -- [Genesis] [1] [1], both ones kept, a number being a position and not a name -- and no `Verse`. */
-    if (i === 0 && tags.join('|') !== 'Learning|Resources|Books|KJV|Old Testament|Torah|Genesis|1|1') bad.push('Genesis 1:1\'s tags are ' + tags.join(', '));
+    if (i === 0 && tags.join('|') !== 'Learning|Content|Books|KJV|Old Testament|Torah|Genesis|1|1') bad.push('Genesis 1:1\'s tags are ' + tags.join(', '));
   });
   const v2 = box(R.stuffCard(ch1[1])).querySelector('.bb-v');
   if (!v2 || v2.innerHTML.indexOf('darkness <i>was</i> upon') < 0) bad.push('Genesis 1:2 does not draw "[was]" as italics');
@@ -21270,7 +21280,7 @@ check('the Bible, on Find 2 (and on Find): its cover in Resources → Open → t
 });
 
 /* ---------- THE FUNNEL ASKS AN ADMIN WHAT IT ASKS A PARENT, THE BOOKS SHELF APART § */
-check('the funnel asks an admin exactly what it asks a parent, the Books shelf and the Icons kind apart — the Bible and the icons cost nobody else a question', async () => {
+check('the funnel asks an admin exactly what it asks a parent, the Books shelf apart — the Bible costs nobody else a question', async () => {
   /* EVERY `data/` FILE FROM DISK, the library included — `check-funnel.js`'s rule, so the walk is over
      the questions a phone holds rather than over a payload of two tutors. */
   const serveAll = url => {
@@ -21290,8 +21300,8 @@ check('the funnel asks an admin exactly what it asks a parent, the Books shelf a
     ['Learning → skip', [['forLabel', 'Learning'], 'skip']],
     ['Learning → skip → skip', [['forLabel', 'Learning'], 'skip', 'skip']],
     ['Learning → Practicals', [['forLabel', 'Learning'], ['kindLabel', 'Practicals']]],
-    ['Learning → Resources', [['forLabel', 'Learning'], ['kindLabel', 'Resources']]],
-    ['Learning → Resources → Boxing', [['forLabel', 'Learning'], ['kindLabel', 'Resources'], ['shelf', 'Boxing']]],
+    ['Learning → Content', [['forLabel', 'Learning'], ['kindLabel', 'Content']]],
+    ['Learning → Content → Boxing', [['forLabel', 'Learning'], ['kindLabel', 'Content'], ['shelf', 'Boxing']]],
   ];
   const STARTS = [].concat(...['stuff', 'res'].map(fid => PLACES.map(([say, steps]) => [(fid === 'res' ? 'Find 2, ' : 'Find, ') + say, steps, fid])));
   const bad = [];
@@ -21361,9 +21371,7 @@ check('the funnel asks an admin exactly what it asks a parent, the Books shelf a
         if (show(ps) !== show(as)) { bad.push('from ' + say + ', step ' + (i + 1) + ': a parent is asked ' + show(ps) + ', an admin ' + show(as)); break; }
         continue;
       }
-      /* AND `Icons`, THE ADMIN'S OWN KIND (403): one answer more at What kind, asked of nobody else. */
-      const avals = ps.field === 'shelf' ? as.vals.filter(v => v !== 'Books')
-        : ps.field === 'kindLabel' ? as.vals.filter(v => v !== 'Icons') : as.vals;
+      const avals = ps.field === 'shelf' ? as.vals.filter(v => v !== 'Books') : as.vals;
       if (ps.field !== as.field || ps.vals.join('|') !== avals.join('|')) {
         const onlyAdmin = avals.filter(v => ps.vals.indexOf(v) < 0), onlyParent = ps.vals.filter(v => avals.indexOf(v) < 0);
         bad.push('from ' + say + ', step ' + (i + 1) + ': a parent is asked ' + show(ps) + ', an admin ' + show(as)
@@ -21694,10 +21702,16 @@ check('a boxer\'s fights: every bout they are in, newest first, from their side 
     }
     const cr = fc && fc.querySelector('.fight-credit');
     if (!cr || cr.textContent.indexOf('Ira Rosenberg') < 0) bad.push('the fight card shows Ali\'s photo without its credit');
-    /* THE SAME DATE HIS PAGE PRINTS — `1 Oct 1975`, not the cell's `1975-10-01`. */
-    const sub = fc && fc.querySelector('.sub');
-    if (!sub || sub.textContent.trim().indexOf('1 Oct 1975') !== 0) bad.push('the fight card\'s date line is "' + (sub ? sub.textContent.trim() : '') + '", not the fighter\'s page\'s "1 Oct 1975 …"');
-    if (sub && /\d{4}-\d{2}-\d{2}/.test(sub.textContent)) bad.push('the fight card prints an ISO date: ' + sub.textContent.trim());
+    /* ITS FACTS ARE TAGS, LIKE A QUESTION'S (445): each fighter, the month, the year, the weight, the round, how it ended — then the picture. */
+    const tags = fc ? [...fc.querySelectorAll('.qcard-tags .qtag')].map(el => el.getAttribute('data-f') + '=' + el.textContent.trim()) : [];
+    ['fighter=Muhammad Ali', 'fighter=Joe Frazier', 'boutMonth=October', 'boutYear=1975', 'division=Heavyweight', 'boutRound=Round 14', 'boutMethod=RTD']
+      .forEach(want => { if (tags.indexOf(want) < 0) bad.push('the fight card has no tag ' + want + ': ' + tags.join(', ')); });
+    if (tags.some(x => /^kindLabel=Resources$/.test(x))) bad.push('the fight card still wears Resources');
+    if (fc && fc.querySelector(':scope > .sub')) bad.push('the fight card still prints a line of the facts its tags carry: ' + fc.querySelector(':scope > .sub').textContent.trim());
+    const kids = fc ? [...fc.children] : [];
+    const at = sel => kids.findIndex(el => el.matches(sel));
+    if (fc && !(at('.qcard-tags') >= 0 && at('.fight-faces') > at('.qcard-tags') && kids.slice(at('.fight-faces') + 1).every(el => el.matches('.fight-credit')))) bad.push('the picture is not at the bottom under the tags: ' + kids.map(el => el.className).join(' | '));
+    if (fc && /\d{4}-\d{2}-\d{2}/.test(fc.textContent)) bad.push('the fight card prints an ISO date');
   }
   if (a.errs.length) bad.push('errors: ' + a.errs.join(' | '));
   return bad;
@@ -22125,6 +22139,25 @@ check('a room already booked at an hour greys that hour on the grid, for that ro
   });
   if (!cell(r1, 'm18').open) bad.push(r1 + ' at m18 (not booked) is shut');
   if (!cell(r2, 'm16').open) bad.push(r2 + ' at m16 is shut — only ' + cw.rooms[0].name + ' is booked then');
+  return bad;
+});
+
+/* ---------- A CLIENT'S HOUSE KEEPS NO HOURS (445): its grid is the tutor's ---------- */
+check('with Client House chosen the week grid shows exactly the tutor\'s hours, whatever stray hours its row carries', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (typeof w.slotGrid !== 'function') return ['slotGrid is not reachable, so this was NOT checked — not a pass'];
+  const D = t.DATA();
+  D.tutors = [{ title: 'Ada Hours', rate: 14, teaches: ['Maths (GCSE)'], listed: true, avail: { m16: 'TRUE', m17: 'TRUE', sa10: 'TRUE' } }];
+  /* THE ROW AS THE SHEET HAD IT: one stray Wednesday hour, which used to be read as the house's only opening. */
+  D.venues = (D.venues || []).filter(v => v.title !== 'Client House').concat([{ title: 'Client House', bestRate: 0, avail: { w15: true } }]);
+  const B = t.BOOKING;
+  B.tutor = 'Ada Hours'; B.slots = []; B.loc = 'Client House';
+  const g = w.slotGrid();
+  const open = g.rows.flatMap(r => r.hours.filter(h => h.open).map(h => h.code)).join(',');
+  const bad = [];
+  if (open !== 'm16,m17,sa10') bad.push('at Client House the open hours are [' + open + '], wanted the tutor\'s [m16,m17,sa10]; it says "' + g.why + '"');
   return bad;
 });
 
@@ -22810,9 +22843,9 @@ check('multipart: What kind offers Questions first and Answers next to it, by th
   const kind = w.facetList().find(f => f.field === 'kindLabel');
   if (!kind || typeof w.facetValues !== 'function' || typeof w.answerCmp_ !== 'function') return ['the What kind facet, facetValues or answerCmp_ is not reachable — the order was NOT checked'];
   /* ONE SORT FOR EVERY FACET (396): answers that are all kinds go in the kinds tab's order — data, not a table in What kind. */
-  const all = ['Resources', 'Answers', 'Content', 'Projects', 'Practicals', 'Questions'];
+  const all = ['Answers', 'Content', 'Projects', 'Practicals', 'Questions'];
   const got = all.slice().sort(w.answerCmp_(all)).join(' ');
-  if (got !== 'Questions Answers Practicals Projects Content Resources') bad.push('What kind orders its answers "' + got + '"');
+  if (got !== 'Questions Answers Practicals Projects Content') bad.push('What kind orders its answers "' + got + '"');
   if (Object.keys(kind).some(k => ['orderOf', 'cmp', 'bucketOf'].indexOf(k) >= 0)) bad.push('What kind carries an order of its own again: ' + Object.keys(kind).join(', '));
   const labels = Object.values(w.kindMap_()).map(k => k.label);
   if (labels.indexOf('Films') >= 0 || labels.indexOf('Bundles') >= 0) bad.push('the kinds name ' + labels.filter(l => /Films|Bundles/.test(l)).join(', ') + ' — neither is a kind in Find');
