@@ -580,7 +580,10 @@ function kpEdit_(inp, cmd) {
     } else if (sign.test(c) && v.charAt(a) === '(' && kpPartner_(v, a) > a + 1) step = a - 1;
     if (step >= 0) to(step);
     else if (b > a) put('');
-    else if (a > 0) {
+    else if (a === 0 && v) {
+      /* ⌫ WITH NOTHING BEFORE THE CARET is never a dead key in a maths box: it takes the last character (454) */
+      inp.value = v.slice(0, -1); to(inp.value.length);
+    } else if (a > 0) {
       let from = a - 1, end = a;
       if (v.slice(a - 1, a + 1) === '()') {
         end = a + 1;
@@ -804,7 +807,8 @@ document.addEventListener('click', e => {
   if (PRESS_MOVED || PRESS_SLIDING) return;
   const show = inp.parentNode && inp.parentNode.querySelector('.kp-show');
   let at = null;
-  if (show && show.contains(e.target) && e.detail && inp.value) {
+  /* ONLY A TAP IN THE BOX THE PAD IS ALREADY ON places the caret; arriving lands at the end, so ⌫ deletes (454: a tap left of a wrong answer froze ⌫ at 0) */
+  if (KP_AT === inp && show && show.contains(e.target) && e.detail && inp.value) {
     try { at = kpHit_(inp, show, e.clientX, e.clientY); } catch (err) { at = null; }
   }
   kpTake_(inp);
