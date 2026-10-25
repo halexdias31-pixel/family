@@ -92,9 +92,9 @@ const EXEMPT = [
   { file: 'me.js', fn: 'signInCard_', has: 'id="in-pin"', why: PIN },
   { file: 'me.js', fn: 'registerSheet_', has: 'id="reg-pin"', why: PIN },
   { file: 'me.js', fn: 'kidMakeSec_', has: 'data-kid-new="pin"', why: PIN },
-  { file: 'me.js', fn: 'settingsPages_', has: 'id="pin-now"', why: PIN },
-  { file: 'me.js', fn: 'settingsPages_', has: 'id="pin-new"', why: PIN },
-  { file: 'me.js', fn: 'settingsPages_', has: 'id="pin-again"', why: PIN },
+  { file: 'me.js', fn: 'youSettingsPages_', has: 'id="pin-now"', why: PIN },
+  { file: 'me.js', fn: 'youSettingsPages_', has: 'id="pin-new"', why: PIN },
+  { file: 'me.js', fn: 'youSettingsPages_', has: 'id="pin-again"', why: PIN },
   { file: 'me.js', fn: 'registerSheet_', has: 'id="reg-noemail"', why: 'reset by the who-is-it question above it, which is asked again on purpose (`REG_NOTE`)' },
   { file: 'me.js', fn: 'friendsSheet', has: 'id="fr-add"', why: 'one handle, typed in seconds and sent by the button beside it' },
   /* THE PEOPLE COLUMN'S PERSON FORM (373): another person's account, decided and saved there and then. */
