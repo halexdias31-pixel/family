@@ -118,7 +118,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-25-o-admin-pin";
+const BACKEND_VERSION = "2026-10-25-p-feed-compose";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {

@@ -371,6 +371,7 @@ function camOn_() {
 }
 
 function cameraCard() {
+  if (POST_COMPOSING) return `<div class="card cam-card is-composing">${postComposeHtml_()}</div>`;
   return `<div class="card cam-card">
     <h3>Camera</h3>
     <div class="cam-stage" id="cam-stage">
@@ -387,7 +388,8 @@ function cameraCard() {
     <div class="cam-bar">
       ${/* A LABEL, NOT A BUTTON, so the file input opens with no script at all — a `for` reaches a control the page is hiding, which is the one way to style a file § */
             ''}
-      <label class="cam-side cam-pick" for="cam-pick">Photos</label>
+      ${/* ROUND, LIKE THE SHUTTER (448): "I would rather it be a circular button". The word sits under the disc. */''}
+      <label class="cam-round cam-pick" for="cam-pick" title="Choose photos or videos"><span class="cam-disc" aria-hidden="true">▦</span><span class="cam-word">Photos</span></label>
       ${/* SEVERAL, AND CLIPS AS WELL AS PHOTOGRAPHS — "tutors should be able to post more then one photo. not just one. and also videos." § */
             ''}
       <input type="file" id="cam-pick" data-do="cam-pick" accept="image/*,video/*" multiple hidden>
@@ -398,6 +400,7 @@ function cameraCard() {
               aria-label="Take a photo" title="Take a photo" disabled></button>
       <button class="cam-rec" data-do="cam-video" id="cam-video"
               aria-label="Record a video" title="Record a video" disabled></button>
+      <button class="cam-round cam-write" data-do="new-post" aria-label="Write a post" title="Write a post"><span class="cam-disc" aria-hidden="true">✎</span><span class="cam-word">Write a post</span></button>
       <button class="cam-side" data-do="cam-flip" id="cam-flip"
               aria-label="Switch camera" title="Switch camera" hidden>Switch</button>
     </div>
@@ -430,12 +433,6 @@ function cameraCard() {
       <button class="btn" data-do="cam-on" id="cam-on" hidden>Try the camera again</button>
     </div>
     <p class="faint" id="cam-said"></p>
-
-    ${/* ---------- `Write a post` WAS HERE, WENT ON REQUEST, AND IS A TILE NOW § */
-          ''}
-    ${/* ---------- A LABELLED BUTTON, BECAUSE A LONE GLYPH HERE IS AN ORPHAN § */
-          ''}
-    <button class="btn quiet" data-do="new-post">Write a post</button>
   </div>`;
 }
 
@@ -1744,12 +1741,9 @@ function openSharedTutor() {
 /* `shrink` lived here — it resized a chosen photograph in the browser before uploading it, so a 4MB camera picture did not become a 4MB row. § */
 
 /* ---------- THE SHEET'S BOXES ARE DRAFTS (data.js; docs/history/317) § */
-const POST_DRAFT_FIELDS = ['cap', 'loc', 'body', 'poll'];
-/* THE PICTURES CHOSEN FOR THE POST BEING WRITTEN, already redrawn at 1600px (`camItemOf_`) — files, never links (413). */
-let POST_FILES = [];
-/* ANY PICTURE, written in two pieces so no source reader takes the slash and star for a comment opening (check-doors did). */
-const POST_PICK_ACCEPT = 'image/' + '*';
-/* WHO MAY CHOOSE A PICTURE AT ALL: not a child (413) — the server refuses one too (`CHILD_NO_UPLOAD`). */
+/* THE POLL'S OPTIONS ARE ONE BOX EACH (448): "you shouldn't have to separate it with commas". At least two, at most six. */
+const POLL_MIN = 2, POLL_MAX = 6;
+const POST_DRAFT_FIELDS = ['cap', 'loc', 'body'].concat(Array.from({ length: POLL_MAX }, (_, k) => 'poll' + k));
 const mayUpload_ = () => rankAtLeast_('client');
 /* POST AS THE BUSINESS OR AS ME — an admin's question only; anybody else's post is theirs (413). */
 function postAsRow_(id) {
@@ -1761,28 +1755,71 @@ function postAsRow_(id) {
     </span></label>`;
 }
 const postAsOf_ = id => (typeof isAdmin === 'function' && isAdmin()) ? ((($(id) || {}).dataset || {}).as || 'brand') : 'me';
-on('new-post', () => {
-  if (!USER) return;
-  if (!mayUpload_()) { toast('Pictures are put up by a grown-up — ask your parent or tutor.'); return; }
-  POST_FILES = [];
-  openSheet('New post', `
-  ${/* A FILE, NOT A LINK (413): posts no longer take image links. The phone offers the camera or the library for image files. */''}
-  <label class="btn quiet post-files-btn" for="post-files">Choose pictures</label>
-  <input type="file" id="post-files" accept="${POST_PICK_ACCEPT}" multiple hidden>
-  <div id="post-preview"></div>
+/* WRITING A POST CHANGES THE CAMERA CARD IN PLACE (448): "do not use pop-up menus on my site". Words only — no picture picker; Photos is beside the shutter. */
+let POST_COMPOSING = false;
+function pollBox_(k) {
+  return `<label class="field poll-opt"><span>option ${k + 1}</span>
+    <input id="post-poll-${k}" class="post-poll-in" maxlength="80" placeholder="${k ? 'Another answer' : 'An answer'}"${draftAttr_('post', 'poll' + k)} value="${esc(draftVal_('post', 'poll' + k))}"></label>`;
+}
+function postComposeHtml_() {
+  let n = POLL_MIN;
+  for (let k = 0; k < POLL_MAX; k++) if (draftVal_('post', 'poll' + k)) n = Math.max(n, k + 1);
+  return `<div class="post-compose" id="post-compose">
+  <h3>Write a post</h3>
   <label class="field"><span>caption</span>
     <input id="post-cap" placeholder="One line about it"${draftAttr_('post', 'cap')} value="${esc(draftVal_('post', 'cap'))}"></label>
   <label class="field"><span>where</span>
     <input id="post-loc" placeholder="Colliers Wood Library"${draftAttr_('post', 'loc')} value="${esc(draftVal_('post', 'loc'))}"></label>
   <label class="field"><span>more, if you want it</span>
     <textarea id="post-body" placeholder="Optional"${draftAttr_('post', 'body')}>${esc(draftVal_('post', 'body'))}</textarea></label>
-  <label class="field"><span>poll, if you want one</span>
-    <input id="post-poll" placeholder="Yes, No, Maybe"${draftAttr_('post', 'poll')} value="${esc(draftVal_('post', 'poll'))}"></label>
+  <p class="faint poll-head">A poll, if you want one</p>
+  <div class="poll-opts" id="post-poll-opts" data-n="${n}">${Array.from({ length: n }, (_, k) => pollBox_(k)).join('')}</div>
+  <button class="btn quiet" data-do="poll-more" id="poll-more"${n >= POLL_MAX ? ' hidden' : ''}>Add option</button>
   ${postAsRow_('post-as')}
-  <button class="btn" data-do="post-send">Post it</button>
-  <p class="faint" id="post-said" style="margin:.6rem 0 0">${isAdmin() ? '' : 'An admin approves it before anybody else sees it.'}</p>`);
+  <div class="btn-row">
+    <button class="btn quiet" data-do="post-cancel">Back</button>
+    <button class="btn" data-do="post-send">Post it</button>
+  </div>
+  <p class="faint" id="post-said" style="margin:.6rem 0 0">${isAdmin() ? '' : 'An admin approves it before anybody else sees it.'}</p>
+</div>`;
+}
+/* REDRAWS THE CARD ITSELF, so the camera's markup and the composer's are never on screen together. */
+function camCardRedraw_() {
+  const card = document.querySelector('#s-feed .cam-card') || document.querySelector('.cam-card');
+  if (!card) return false;
+  const box = document.createElement('div');
+  box.innerHTML = cameraCard();
+  card.replaceWith(box.firstElementChild);
+  return true;
+}
+on('new-post', () => {
+  if (!USER) return;
+  if (!mayUpload_()) { toast('Posts are put up by a grown-up — ask your parent or tutor.'); return; }
+  POST_COMPOSING = true;
+  try { camStop_(true, true); } catch (e) {}
+  camCardRedraw_();
+  const cap = $('post-cap'); if (cap) { try { cap.focus({ preventScroll: true }); } catch (e) {} }
 });
-
+function postComposeClose_() {
+  POST_COMPOSING = false;
+  camCardRedraw_();
+  try { feedCamWatch_(); } catch (e) {}
+}
+on('post-cancel', () => postComposeClose_());
+on('poll-more', () => {
+  const box = $('post-poll-opts');
+  if (!box) return;
+  const n = box.querySelectorAll('.post-poll-in').length;
+  if (n >= POLL_MAX) return;
+  box.insertAdjacentHTML('beforeend', pollBox_(n));
+  const b = $('poll-more'); if (b && n + 1 >= POLL_MAX) b.hidden = true;
+  const inp = $('post-poll-' + n); if (inp) { try { inp.focus({ preventScroll: true }); } catch (e) {} }
+});
+/* THE OPTIONS AS THE SHEET KEEPS THEM — one cell, comma-joined (doget splits it), so a comma typed inside an option is taken out. */
+function pollOptsOf_() {
+  return [].slice.call(document.querySelectorAll('#post-poll-opts .post-poll-in'))
+    .map(x => String(x.value || '').replace(/,/g, ' ').replace(/\s+/g, ' ').trim()).filter(Boolean);
+}
 /* WHO THE POST IS FROM. § */
 /* `data-for` NAMES THE ROW, because there are two of them now — the composer's and the camera's — and `$('post-as')` was the id of one. § */
 on('as', el => {
@@ -1792,64 +1829,29 @@ on('as', el => {
   row.querySelectorAll('[data-do="as"]').forEach(b => b.classList.toggle('on', b === el));
 });
 
-/* THE CHOSEN PICTURES, DRAWN THE WAY THE POST WILL DRAW THEM — `postMediaHtml_` is the card's own renderer. A tap on a thumbnail takes it out. */
-function showPostPreview() {
-  const box = $('post-preview');
-  if (!box) return;
-  box.innerHTML = POST_FILES.length ? `<div class="post-preview">${postMediaHtml_(POST_FILES.map(x => x.data), 0)}</div>
-    <div class="cam-thumbs">${POST_FILES.map((x, k) => `<button class="cam-thumb" data-do="post-unpick" data-i="${k}"
-      aria-label="Take this one out of the post" title="Take this one out"><img src="${esc(x.data)}" alt="" decoding="async"></button>`).join('')}</div>` : '';
-}
-on('post-unpick', el => {
-  const k = Number(el.dataset.i);
-  if (k >= 0 && k < POST_FILES.length) POST_FILES.splice(k, 1);
-  showPostPreview();
-});
-/* `change` IS NOT A `data-do` EVENT, so the picker is heard here. Each picture is redrawn before it is kept. */
-document.addEventListener('change', e => {
-  const inp = e.target;
-  if (!inp || inp.id !== 'post-files') return;
-  const said = $('post-said');
-  const files = [].slice.call(inp.files || []).filter(f => /^image\//i.test(f.type || ''));
-  inp.value = '';
-  if (!mayUpload_()) return;
-  Promise.all(files.map(camItemOf_)).then(items => {
-    const got = items.filter(x => x && x.kind === 'image');
-    POST_FILES = POST_FILES.concat(got).slice(0, 6);
-    if (said) said.textContent = got.length < files.length ? 'One of those would not open as a picture.' : '';
-    showPostPreview();
-  });
-});
-
 on('post-send', el => {
   const said = $('post-said');
-  if (!POST_FILES.length) { if (said) said.textContent = 'Choose a picture first.'; return; }
-  const list = POST_FILES.map(x => x.data);
-  const size = list.reduce((n, x) => n + x.length, 0);
-  if (size > CAM_POST_MAX) { if (said) said.textContent = 'That is too much for one post — take a picture or two out.'; return; }
-  /* SENT, SO NOT A DRAFT ON ANY OTHER PAGE — a reload while the server answered opened the sheet holding
-     the post that had just gone up, for a second one (`draftSent_`, data.js). */
+  const v = id => String(($(id) || {}).value || '').trim();
+  const opts = pollOptsOf_();
+  if (opts.length === 1) { if (said) said.textContent = 'A poll needs at least two options.'; return; }
+  if (!v('post-cap') && !v('post-body') && !opts.length) { if (said) said.textContent = 'Write something first.'; return; }
+  /* SENT, SO NOT A DRAFT ON ANY OTHER PAGE (`draftSent_`, data.js). */
   POST_DRAFT_FIELDS.forEach(f => { try { draftSent_('post', f); } catch (e) {} });
 
   send_({ action: 'addPost',
     name: USER.name, adminName: USER.name, personId: (USER && USER.personId) || '',
-    /* THE PICTURES THEMSELVES, as data — kept in the business's posts folder by `addPost`, never a link. */
-    data: list[0],
-    media: list.slice(1),
-    caption: ($('post-cap') || {}).value || '',
-    location: ($('post-loc') || {}).value || '',
-    poll: ($('post-poll') || {}).value || '',
+    caption: v('post-cap'),
+    location: v('post-loc'),
+    poll: opts.join(', '),
     postAs: postAsOf_('post-as'),
-    body: ($('post-body') || {}).value || '' }, { button: el, busy: 'Posting…', where: 'post-said' })
+    body: v('post-body') }, { button: el, busy: 'Posting…', where: 'post-said' })
     .then(d => {
-      /* ON THE SHEET, SO THE SHEET'S DRAFTS GO — see the note over `new-post`'s boxes. */
       POST_DRAFT_FIELDS.forEach(f => { try { draftDrop_('post', f); } catch (e) {} });
-      POST_FILES = [];
-      closeSheet(); toast(d && d.pending ? 'Posted — waiting for approval' : 'Posted'); load();
+      postComposeClose_();
+      toast(d && d.pending ? 'Posted — waiting for approval' : 'Posted'); load();
     })
     .catch(() => { POST_DRAFT_FIELDS.forEach(f => { try { draftSentBack_('post', f); } catch (e) {} }); });
 });
-
 /* ---------- EDITING A POST § */
 /* TWO SHEETS (413): its author's words while it waits; once it is up only an admin's pin and date — the words are final. */
 on('post-edit', el => {
@@ -2009,7 +2011,7 @@ screen('feed', () => pages('feed', feedColumn_()));
 /* IS THE CAMERA ON THE SCREEN, which is the only moment it should be running. */
 /* ---------- AND NOT BEFORE THE FEED HAS BEEN OPENED AT ITS FRONT DOOR § */
 function feedCamHere_() {
-  return typeof AT !== 'undefined' && AT === 'feed' && LOADED
+  return !POST_COMPOSING && typeof AT !== 'undefined' && AT === 'feed' && LOADED
     && typeof PAGE_OPENED !== 'undefined' && !!PAGE_OPENED.feed
     && (PAGE.feed || 0) === feedCamAt_();
 }
