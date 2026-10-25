@@ -21,7 +21,7 @@ column, above the admin's own card. The journey checks it at page 0.
 
 ## PNG twins of pending rows (js/check-diagram-png.js, tools/diagram_png.js)
 
-A fresh clone was red: the 40 twins of the Foundation papers' figures (415) belong to `lib_pending` rows
+A fresh clone was red: the 126 twins of the Foundation papers (415) and the specimen sets (439) belong to `lib_pending` rows
 whose words, drawings included, are only in the private Ledger. Rule: when any pending row has no words
 here (`pendingTwins` in check/lib-full.js), a twin listed in the committed `data/diagrams-pending.json`
 is not an orphan; an unlisted one still is. With the library whole, the list must equal the pending rows'
