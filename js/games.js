@@ -5643,12 +5643,12 @@ function nesPadWire_(pad) {
   pad.addEventListener('touchstart', e => { if (e.cancelable) e.preventDefault(); }, { passive: false });
 }
 
-/* THE PADLOCK: no column swipe, wheel or arrow turn (`SWIPE.lock`, overworld.js) and no page scroll on the console. */
+/* THE PADLOCK: no column swipe, wheel or arrow turn (`PADLOCK`, overworld.js) and no page scroll on the console. */
 function nesLock_(on) {
   NES_.lock = !!on;
-  try { SWIPE.lock = NES_.lock || !!NES_.full; } catch (e) {}
+  try { PADLOCK.nes = NES_.lock || !!NES_.full; } catch (e) {}
   const box = $('nes-box');
-  if (box) box.classList.toggle('nes-locked', SWIPE.lock);
+  if (box) box.classList.toggle('nes-locked', NES_.lock || !!NES_.full);
   nesHoldPage_(NES_.lock || !!NES_.full);
   nesTiles_();
 }

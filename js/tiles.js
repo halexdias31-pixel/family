@@ -86,6 +86,8 @@ const TILE_ICONS = {
        + '<path d="M14.9 10.7a6.3 6.3 0 0 1-10.4 2.35L1.3 10"/><path d="M1.3 14.2V10h4.2"/>',
   /* ---------- AND THREE THAT ARE NOT ON A TILE: THE VIDEOS CARD'S, AFTER YOUTUBE § */
   search: '<circle cx="7.6" cy="7.4" r="4.9"/><path d="m11.2 11 4.6 4.5"/>',
+  /* A MAGNIFIER WITH A PLUS: ZOOM ON EVERY QUESTION (457) */
+  zoom: '<circle cx="7.6" cy="7.4" r="4.9"/><path d="m11.2 11 4.6 4.5M5.3 7.4h4.6M7.6 5.1v4.6"/>',
   film:  '<rect x="2.5" y="2.5" width="13" height="12" rx="1.5"/>'
        + '<path d="M5.5 2.5v12M12.5 2.5v12M2.5 6.5h3M2.5 10.5h3M12.5 6.5h3M12.5 10.5h3"/>',
   ext:   '<path d="M8 3.5H3.5v11h11V10"/><path d="M10.5 2.5h5v5"/><path d="m15.5 2.5-7 7"/>',

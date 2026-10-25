@@ -4213,15 +4213,21 @@ function cellsTable_(x, html) {
 }
 /* THE BOX UNDER IT: Check marks every cell; with no table to fill, the cells stand in a row of their own. */
 const cellsHere_ = (x, html) => (cellsOf_(x).length && cellsTable_(x, html)) || html;
+/* THE WORDS THE ANSWER CARD ITSELF SHOWS -- its last chunk, as `questionCard_` draws it; the part's whole words where it has no plan */
+const cellsCardHtml_ = x => {
+  try { const c = partChunks_(x); return c.length ? chunkHtml_(c[c.length - 1], null, x) : String((x && x.html) || ''); }
+  catch (e) { return String((x && x.html) || ''); }
+};
 function cellsBox_(x) {
   const cells = cellsOf_(x), k = ansKey_(x);
-  const inTable = !!cellsTable_(x, x.html);
+  /* IN THE TABLE ON THIS CARD, not merely in the part's words: a long part's table on a page in front had no box anywhere (457) */
+  const inTable = !!cellsTable_(x, cellsCardHtml_(x));
   const vals = cellsVals_(ansRead_(k));
   const row = inTable ? '' : `<div class="qp-cells">${cells.map((c, i) => c.ways
     ? `<label class="qp-cell-l"><span>${esc(c.label)}</span>${cellInput_(k, c, i, vals[i])}</label>` : '').join('')}</div>`;
   const said = subBoxSay_(k, ansRead_(k));
   return `<div class="qp-mark qp-compose qp-cells-box${said.cls ? ' ' + said.cls : ''}" data-k="${esc(k)}">${row}
-    <div class="tile-row">${figTile_(x)}${checkTile_({ act: 'qp-cells-check', cls: 'qp-check' })}</div>
+    <div class="tile-row">${figTile_(x)}${measTiles_(x)}${checkTile_({ act: 'qp-cells-check', cls: 'qp-check' })}</div>
     <span class="qp-verdict" role="status" aria-live="polite">${esc(said.text)}</span>
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span></div>`;
 }
@@ -4687,10 +4693,13 @@ const PAD_TOOL_FACE = {
 const padToolTile_ = (t, on) => tile_(Object.assign({ act: 'pad-tool', cls: 'qpad-tool', data: { tool: t },
   on: on, pressed: on }, PAD_TOOL_FACE[t]));
 /* AND A RULER ON EVERY GRID (357): § */
+/* AND ON A QUESTION, EVERY INSTRUMENT, ALWAYS (457): the toolkit says so (`qToolkit_`); a row's words or `needs` can only add. */
 const padToolsOf_ = (x, svg) => {
   const t = padTools_(x).filter(k => PAD_TOOL_FACE[k]);
   if (t.indexOf('ruler') === -1 && svg && padGrid_(svg)) t.splice(1, 0, 'ruler');
-  return t;
+  const kit = qToolkit_(x);
+  if (kit) kit.pen.forEach(k => { if (PAD_TOOL_FACE[k] && t.indexOf(k) === -1) t.push(k); });
+  return ['pen', 'ruler', 'compass'].filter(k => t.indexOf(k) !== -1);
 };
 
 /* TWO GROUPS IN THE ROW, so it breaks BETWEEN them and never inside one. § */
@@ -7200,8 +7209,10 @@ on('qw-tap', (el) => {
 
 /* ---------- `FIG_BY` AND `figCredit_` WERE HERE: a line under every picture this site redrew ("drawn for § */
 /* ---------- A PICTURE THE QUESTION CAME WITH § */
+/* EVERY FIGURE AND PICTURE ON A QUESTION'S PAGE IS A DOOR TO ZOOM (457) */
+const QZOOM_FIG = ' data-do="q-zoom-fig" role="button" tabindex="0" aria-label="Figure: tap to zoom"';
 const pics_ = list => (list || []).map(src =>
-  `<figure class="qpic"><img src="${esc(src)}" alt="Picture printed with this question"
+  `<figure class="qpic"${QZOOM_FIG}><img src="${esc(src)}" alt="Picture printed with this question"
      loading="lazy" decoding="async"></figure>`).join('');
 
 
@@ -7294,7 +7305,7 @@ function questionStemCard_(x, i, j) {
   chunks[j].forEach(b => {
     if (b.k === 'pb') { run.push(b.h); return; }
     flush();
-    html.push((p.diagram ? `<figure>${p.diagram}</figure>` : '') + pics_(figImgs_(p.images)));
+    html.push((p.diagram ? `<figure${QZOOM_FIG}>${p.diagram}</figure>` : '') + pics_(figImgs_(p.images)));
   });
   flush();
   return `<div class="qcard qstem" data-of="${esc(stemId_(p))}">
@@ -7304,6 +7315,7 @@ function questionStemCard_(x, i, j) {
         p.lines && !j ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${html.join('')}</div>${
       !last ? '<p class="qsheet-more">Continued on the next page &rarr;</p>' : ''}
     </div>
+    ${qPageTools_(x)}
   </div>`;
 }
 
@@ -7317,6 +7329,7 @@ function questionPreCard_(x, j) {
       ${chunkHtml_(chunks[j], circOf_(x), x)}
       <p class="qsheet-more">Continued on the next page &rarr;</p>
     </div>
+    ${qPageTools_(x)}
   </div>`;
 }
 
@@ -7560,7 +7573,7 @@ function figHtml_(x, b) {
   const p = padSource_(x);
   const pics = pics_(figImgs_(x.images));
   if (p && p.from !== 'surface') return padWrap_(x, p.svg) + pics;
-  return (x.diagram ? usesFig_(x) || `<figure>${x.diagram}</figure>` : '') + pics;
+  return (x.diagram ? usesFig_(x) || `<figure${QZOOM_FIG}>${x.diagram}</figure>` : '') + pics;
 }
 /* THE PHONE'S OLD RINGS MOVE TO THE FIRST PERSON WHO OPENS THEM, as the pen's do in `padWrap_` -- and
    so do the visit's (`CIRC_HELD`), which are the only copy when storage throws. */
@@ -7689,13 +7702,110 @@ function ansHide_(x) { ansSet_(x, false); }
 function questionTiles_(x) {
   /* THE FIGURE TILE IS HERE ONLY FOR A PART ANSWERED BY TAPPING AN OPTION -- a typed box carries it at
      its own end (`ansBox_`), where the keypad cannot cover it. */
-  const fig = Array.isArray(x.choices) && x.choices.length >= 2 ? figTile_(x) : '';
+  const fig = Array.isArray(x.choices) && x.choices.length >= 2 ? figTile_(x) + measTiles_(x) : '';
   /* `Draw` / `Type` WAS HERE, the switch between the answer's two faces (327, 337). A question answered by
      drawing is drawn on its card now, with nothing to switch (`ansArea_`, 356). */
   /* NO WAY TO THE ANSWER IN THIS ROW ANY MORE -- see where `To the answer` was, above. */
   /* NO VERDICT BESIDE THE STAR (368), AND NO SOUND SWITCH (374): the verdict is always heard */
-  return fig;
+  /* AND THE TOOLS EVERY QUESTION PAGE HAS (457): Zoom and the padlock, first, from one place (`qToolTiles_`). */
+  return qToolTiles_(x) + fig;
 }
+
+/* ---------- THE ONE TOOLKIT (457) ---------------------------------------------------------------- */
+/* What a question page has is decided HERE, from what the page is, never from a flag a row can lack (docs/history/457). */
+const QT_MEASURE_SUBJECT = /math|statistic|physic|chemi|biolog|science|geograph|design|engineer/i;
+function qToolkit_(x) {
+  if (!x || x.kind !== 'question') return null;
+  const subj = String(x.subject || (x.row && x.row.subject) || '');
+  const pen = padSource_(x);
+  return {
+    zoom: true,                    // the words are always there to enlarge, and every figure with them
+    lock: true,                    // every page has an input, a figure or a pen
+    read: true,                    // Read aloud on every question, not only a primary one (394)
+    help: true, report: true,      // `helpRow_` in the card, `reportTile_` in the row
+    pen: pen ? ['pen', 'ruler', 'compass'] : [],
+    measure: !!x.diagram && !(pen && pen.from === 'part') && (!subj || QT_MEASURE_SUBJECT.test(subj)),
+  };
+}
+/* THE ROW'S FIRST TWO TILES ON EVERY PAGE OF A QUESTION: Zoom (the page's words and figures, big) and the padlock. */
+function qToolTiles_(x) {
+  const kit = qToolkit_(x);
+  if (!kit) return '';
+  return (kit.zoom ? tile_({ icon: 'zoom', label: 'Zoom', note: 'the question, bigger', act: 'q-zoom', cls: 'q-zoom', data: { key: x.key || '' } }) : '')
+    + (kit.lock ? qLockTile_() : '');
+}
+/* A STEM'S OR A LONG PART'S OWN PAGE has the same, under its words, with Read aloud. */
+const qPageTools_ = x => `<div class="tile-row qtool-tiles">${qToolTiles_(x)}${readAloudTile_(x)}</div>`;
+
+/* ---------- ZOOM: THE WHOLE QUESTION, ITS WORDS AND EVERY FIGURE, AS LARGE AS YOU LIKE ---------- */
+function qZoomHtml_(x) {
+  if (!x) return '';
+  const fig = d => (d ? `<figure>${d}</figure>` : '');
+  const out = (x.stems || []).map(p => p ? `<div class="qsheet-stem">${typeset_(String(p.html || ''))}${fig(p.diagram)}${pics_(figImgs_(p.images))}</div>` : '');
+  /* THE PICTURE UNDER THE PEN, without the ink: a surface, or the stem's picture the part draws on, once */
+  const pen = padSource_(x);
+  const penFig = pen && !x.diagram && !(x.stems || []).some(p => p && p.diagram === pen.svg) ? fig(pen.svg) : '';
+  out.push(`${x.lead ? `<div class="qsheet-lead">${typeset_(String(x.lead))}</div>` : ''}<div class="qsheet-part"><div class="qsheet-pb">${
+    typeset_(String(x.html || ''))}</div></div>${fig(x.diagram)}${penFig}${pics_(figImgs_(x.images))}`);
+  return `<div class="qsheet">${out.join('')}</div>`;
+}
+const QZOOM = { z: 1.6, min: 1, max: 4, d0: 0, z0: 1 };
+function qZoomSet_(z) {
+  QZOOM.z = Math.max(QZOOM.min, Math.min(QZOOM.max, Math.round(z * 100) / 100));
+  document.querySelectorAll('.qzoom-in').forEach(el => { el.style.setProperty('zoom', String(QZOOM.z)); el.setAttribute('data-z', String(QZOOM.z)); });
+}
+function qZoomOpen_(title, html) {
+  openSheet(title, `<div class="qzoom-bar">
+      <button type="button" class="qzoom-k" data-do="q-zoom-by" data-by="0.8" aria-label="Smaller">&minus;</button>
+      <button type="button" class="qzoom-k" data-do="q-zoom-by" data-by="1.25" aria-label="Bigger">+</button>
+    </div>
+    <div class="qzoom" data-noswipe><div class="qzoom-in" data-z="${QZOOM.z}" style="zoom: ${QZOOM.z}">${html}</div></div>`);
+}
+on('q-zoom', el => {
+  const k = el.getAttribute('data-key');
+  let x = null;
+  try { x = stuffItemsAll_().find(i => i && i.key === k) || null; } catch (e) { x = null; }
+  if (x) qZoomOpen_(qNum_(x) + String(x.qPart || ''), qZoomHtml_(x));
+});
+on('q-zoom-by', el => qZoomSet_(QZOOM.z * (Number(el.getAttribute('data-by')) || 1)));
+/* A TAP ON ANY FIGURE OR PICTURE IN A QUESTION ENLARGES IT -- not while a measuring tool is out on it. */
+on('q-zoom-fig', el => {
+  if (MEAS && el.querySelector('svg.meas')) return;
+  const c = el.cloneNode(true);
+  ['data-do', 'role', 'tabindex', 'aria-label'].forEach(a => c.removeAttribute(a));
+  c.querySelectorAll('svg.meas').forEach(m => m.remove());
+  qZoomOpen_('Figure', `<div class="qsheet">${c.outerHTML}</div>`);
+});
+/* TWO FINGERS ON THE ENLARGED PAGE PINCH IT; the − and + keys do the same for anybody. */
+const QZOOM_PTRS = new Map();
+if (typeof document !== 'undefined' && document.addEventListener) {
+  document.addEventListener('pointerdown', e => {
+    if (!e.target || !e.target.closest || !e.target.closest('.qzoom')) return;
+    QZOOM_PTRS.set(e.pointerId, [e.clientX, e.clientY]);
+    if (QZOOM_PTRS.size === 2) { const [a, b] = [...QZOOM_PTRS.values()]; QZOOM.d0 = Math.hypot(a[0] - b[0], a[1] - b[1]) || 1; QZOOM.z0 = QZOOM.z; }
+  });
+  document.addEventListener('pointermove', e => {
+    if (!QZOOM_PTRS.has(e.pointerId)) return;
+    QZOOM_PTRS.set(e.pointerId, [e.clientX, e.clientY]);
+    if (QZOOM_PTRS.size !== 2 || !QZOOM.d0) return;
+    const [a, b] = [...QZOOM_PTRS.values()];
+    qZoomSet_(QZOOM.z0 * Math.hypot(a[0] - b[0], a[1] - b[1]) / QZOOM.d0);
+  });
+  ['pointerup', 'pointercancel'].forEach(n => document.addEventListener(n, e => {
+    QZOOM_PTRS.delete(e.pointerId);
+    if (QZOOM_PTRS.size < 2) QZOOM.d0 = 0;
+  }));
+}
+
+/* ---------- THE PADLOCK ON A QUESTION (457): the page held still while you write, draw or read (`PADLOCK`, overworld.js) ---------- */
+const qLockLook_ = on => ({ icon: on ? 'lock' : 'unlock', label: on ? 'Locked' : 'Lock', note: on ? 'tap to let the page move' : 'hold this page still',
+                            on: on, pressed: on });
+const qLockHere_ = () => String(typeof AT !== 'undefined' ? AT : '') + ':' + String((typeof PAGE !== 'undefined' && PAGE[AT]) || 0);
+function qLockTile_() { return tile_(Object.assign(qLockLook_(!!PADLOCK.q), { act: 'q-lock', cls: 'q-lock' })); }
+function qLockPaint_() { document.querySelectorAll('.q-lock').forEach(el => tileSet_(el, qLockLook_(!!PADLOCK.q))); }
+on('q-lock', () => { PADLOCK.q = PADLOCK.q ? '' : qLockHere_(); qLockPaint_(); });
+/* LET GO WHEN A TAB OR A LINK LEAVES THE PAGE IT WAS PRESSED ON: a lock nobody can see is a broken swipe */
+function qLockStray_() { if (PADLOCK.q && PADLOCK.q !== qLockHere_()) { PADLOCK.q = ''; qLockPaint_(); } }
 
 /* THE FIGURE, OVER THE CARD, ONE TAP AWAY. § */
 function figsBefore_(x) {
@@ -7762,6 +7872,8 @@ on('q-fig', el => {
    the owner's words are in docs/history/394. */
 function readAloudFor_(x) {
   if (!x || (x.kind !== 'question' && x.kind !== 'content')) return false;
+  /* EVERY QUESTION (457): the toolkit's, so it can never be missing from one */
+  if (x.kind === 'question') return !!(qToolkit_(x) || {}).read;
   const yr = x.bandType === 'year' ? Number(x.bandValue) : NaN;
   if (yr >= 1 && yr <= 6) return true;
   return levelOf_(x) === 'SATs';
@@ -10615,6 +10727,12 @@ function padSend_(keepalive) {
 /* WHICH TOOLS A PART NEEDS: a protractor where it asks for an angle or a bearing, a ruler where it asks for a length -- only where it says "measure" and has a figure */
 function measTools_(x) {
   if (!x || !x.diagram) return [];
+  /* UNDER THE PEN the picture is the pen's, and its bar has the instruments (`padToolsOf_`) */
+  const pen = padSource_(x);
+  if (pen && pen.from === 'part') return [];
+  /* EVERY FIGURE IN A SUBJECT THAT MEASURES HAS BOTH (457): the word "measure" was a flag a row could lack */
+  const kit = qToolkit_(x);
+  if (kit && kit.measure) return ['protractor', 'ruler'];
   const r = x.row || x;
   if (r.subject && !/math/i.test(r.subject)) return [];
   const words = String((x.html || r.html || '') + ' ' + (r.lead || '')).replace(/<[^>]*>/g, ' ');

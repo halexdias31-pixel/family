@@ -953,3 +953,12 @@ in `filmsSync_`
        answering badly, than the owner deleting a hundred gigabytes. */
 ```
 
+### AN ITEM'S OWN ANSWER AGAINST ITS OWN SHAPE (457):
+
+top level, before `libSelfTest_`
+
+```
+/* AN ITEM'S OWN ANSWER AGAINST ITS OWN SHAPE (457): `refuse` when it can never be marked right, `flag` when it waits for a scheme.
+   The site's marker runs the full test over the whole library (js/check-answerable.js); this is the part a sheet can ask. */
+```
+

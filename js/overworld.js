@@ -161,14 +161,18 @@ const SWIPE = {
   /* Whether the one-off setup for this drag has been done — the cells taken off their transition,
      and the measurements held still. Once per gesture, not once per frame. */
   held: false,
-  lock: false,         // the console's padlock (games.js `nesLock_`): no swipe, wheel or arrow turns
+  lock: 0,             // the drag's dead zone, put back on every touch: NOT the padlock (`PADLOCK` below)
 };
+
+/* THE PADLOCK (457): the console's (`nes`) or a question page's (`q`, where it was pressed) holds the column still: no swipe, wheel or arrow turn. Its own name, as `SWIPE.lock` is zeroed on every touch. */
+const PADLOCK = { nes: false, q: '' };
+const padlocked_ = () => !!(PADLOCK.nes || PADLOCK.q);
 
 /* DOES THIS DRAG BELONG TO THE GRID, OR TO WHAT IS UNDER THE FINGER? § */
 function axisFree(target, axis, dir) {
   /* ---------- THE SHEET NO LONGER BLOCKS EVERYTHING, ONLY THE GRID § */
   if (!$('sheet').classList.contains('hidden')) return false;   // the sheet is the page (420)
-  if (SWIPE.lock) return false;
+  if (padlocked_()) return false;
   /* ---------- A SELECT IS NOT NAMED, AND A TEXTAREA IS MEASURED § */
   if (target.closest?.('[data-noswipe]')) return false;
   /* A cell is not a scroll container any more, so the walk below stops at anything genuinely inside one — the docket's list, the notepad — and hands everything § */
