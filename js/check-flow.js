@@ -11188,7 +11188,7 @@ check('an admin has "Send last week" on a parent\'s card only, and pressing it p
   return bad;
 });
 
-/* "ADMIN SHOULD BE ABLE TO SEE EACH PERSON'S PIN" (452): fetched on the tap, one line on the card, gone on a second tap or on leaving. */
+/* "ADMIN SHOULD BE ABLE TO SEE EACH PERSON'S PIN" (454): fetched on the tap, one line on the card, gone on a second tap or on leaving. */
 check('an admin\'s "Show PIN" posts pinShow, shows one line on that card, hides it on a second tap and on leaving the column; a tutor has no tile', async () => {
   const { w, sent } = boot({ reply: b => b.action === 'pinShow'
     ? (b.targetId === 'P-E2' ? { success: true, pin: '0000' } : { success: true, pin: '', said: 'No PIN' }) : { success: true } });
@@ -28441,6 +28441,85 @@ check('a child reports a message she was sent (413): a Report tile on received m
   if (hal.d.querySelector('#s-biz .rep-msg[data-id="M-IN1"]')) bad.push('Dealt with left the message on the card');
   if (String(W.sheet('S(read(TAB.messages).rows.find(r => r.message_id === "M-IN1").flagged)')) !== 'CLEARED') bad.push('Dealt with did not clear the flag on the sheet');
   [kid, hal].forEach(x => { if (x.errs.length) bad.push('errors: ' + x.errs.join(' | ')); });
+  return bad;
+});
+
+/* ---------- AFTER A WRONG CHECK, THE ANSWER CAN ALWAYS BE DELETED AND CHECKED AGAIN (docs/history/454) ---------- */
+check('after a wrong Check every answer can be deleted and checked again — typed on the keypad, picked, ordered — and after a reload', async () => {
+  const bad = [];
+  const TYPED = { kind: 'question', key: 'q:Q-DEL-1', name: 'Q1', marks: 1, subject: 'Maths', answerType: 'calculation', accept: '727',
+    row: { row_id: 'Q-DEL-1', paper_id: 'P-DEL', subject: 'Maths', name: 'Paper 1: Arithmetic' }, html: '<p>689 + 38 =</p>', answer: '<b>727</b>' };
+  const PICK = { kind: 'question', key: 'q:Q-DEL-2', name: 'Q2', marks: 1, subject: 'Maths', choices: ['14', '15', '16'], choiceRight: [2],
+    row: { row_id: 'Q-DEL-2', paper_id: 'P-DEL', subject: 'Maths', name: 'Del' }, html: '<p>5/8 of 24</p>', answer: '<b>15</b>' };
+  const ORD = { kind: 'question', key: 'q:Q-DEL-3', name: 'Q3', marks: 1, subject: 'Maths', answerType: 'order',
+    row: { row_id: 'Q-DEL-3', paper_id: 'P-DEL', subject: 'Maths', name: 'Del' }, html: '<p>Smallest first.</p>',
+    choices: ['3', '1', '2'], choiceRight: [2, 3, 1], choiceWays: [[2, 3, 1]], orderEnds: ['smallest', 'largest'], answer: '<b>1, 2, 3</b>' };
+  const ALL = [TYPED, PICK, ORD];
+  const run = async (b, when) => {
+    const { w, errs } = b;
+    const d = w.document, A = w.__t.ACTIONS;
+    const held = w.stuffItemsAll_;
+    w.stuffItemsAll_ = () => (held ? held() : []).concat(ALL);
+    const host = d.createElement('div');
+    d.body.appendChild(host);
+    host.innerHTML = ALL.map(x => w.questionCard_(x, 0)).join('');
+    const inp = host.querySelector('.qp-ans-in[data-k="' + w.__t.ansKey(TYPED) + '"]');
+    const pad = () => d.getElementById('kp');
+    const press = v => { const k = pad() && pad().querySelector('.kp-key[data-v="' + v + '"]'); if (k) A['kp-key'](k); else bad.push(when + ': no key ' + v); };
+    /* TYPED: wrong, Check, then back into the box by a TAP ON ITS DRAWING, as a finger does -- the tap that put the caret at 0 and froze ⌫ */
+    if (!inp) { bad.push(when + ': no keypad box'); return; }
+    const mark = inp.closest('.qp-mark');
+    if (!inp.value) { inp.focus(); press('7'); press('1'); press('7'); press('!done'); }
+    else A['qp-check'](mark.querySelector('.qp-check'));
+    if (inp.value !== '717' || !mark.classList.contains('is-near')) bad.push(when + ': 717 was not marked "not yet" in the box: ' + JSON.stringify(inp.value) + ' ' + mark.className);
+    inp.blur(); await wait(10);
+    const show = inp.parentNode.querySelector('.kp-show');
+    show.dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true, detail: 1, clientX: 1, clientY: 1 }));
+    if (d.activeElement !== inp || pad().hidden) bad.push(when + ': a tap on the marked answer did not bring the keypad back to it');
+    press('!back');
+    if (inp.value !== '71') bad.push(when + ': ⌫ after tapping back into a wrong answer left ' + JSON.stringify(inp.value) + ', wanted "71"');
+    if (mark.classList.contains('is-near')) bad.push(when + ': the edit left "not yet" on a different answer');
+    /* THE CARET AT THE START is never a dead ⌫ in a maths box */
+    inp.setSelectionRange(0, 0);
+    press('!back');
+    if (inp.value !== '7') bad.push(when + ': ⌫ with the caret before the answer left ' + JSON.stringify(inp.value) + ', wanted "7"');
+    inp.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true }));
+    if (inp.value !== '') bad.push(when + ': a keyboard Backspace left ' + JSON.stringify(inp.value));
+    press('7'); press('2'); press('7'); press('!done');
+    if (!mark.classList.contains('is-right')) bad.push(when + ': 727 typed after deleting was not marked right: ' + mark.className);
+    /* PICKED: a wrong pick, then another */
+    const box = host.querySelector('.qp-choices');
+    A['qp-choose'](box.querySelector('.qp-opt[data-n="1"]'));
+    const box2 = host.querySelector('.qp-choices');
+    if (!box2.classList.contains('is-miss')) bad.push(when + ': a wrong pick was not "not yet"');
+    A['qp-choose'](box2.querySelector('.qp-opt[data-n="2"]'));
+    if (!host.querySelector('.qp-choices.is-done .qp-opt[data-n="2"].is-picked')) bad.push(when + ': a second pick after a wrong one was not taken');
+    /* ORDERED: a wrong row sent, then a place taken back and Clear */
+    const ob = () => host.querySelector('.qp-order');
+    [1, 2, 3].forEach(n => { const it = ob().querySelector('.qp-item[data-n="' + n + '"]'); if (it) it.click(); });
+    ob().querySelector('.qp-order-send').click();
+    await wait(20);
+    if (!ob().classList.contains('is-near')) bad.push(when + ': a wrong ordering was not "not yet": ' + ob().className);
+    const full = ob().querySelector('.qp-slot.is-full');
+    if (full) full.click(); else bad.push(when + ': no placed item to take back');
+    if (ob().querySelectorAll('.qp-slot.is-full').length !== 2) bad.push(when + ': taking a place back after a wrong Send did nothing');
+    const clr = ob().querySelector('[data-do="qp-order-clear"]');
+    if (clr) { clr.click(); if (ob().querySelectorAll('.qp-slot.is-full').length) bad.push(when + ': Clear after a wrong Send left items placed'); }
+    [2, 3, 1].forEach(n => ob().querySelector('.qp-item[data-n="' + n + '"]').click());
+    ob().querySelector('.qp-order-send').click();
+    await wait(20);
+    if (!/Correct/.test((ob().querySelector('.qp-verdict') || {}).textContent || '')) bad.push(when + ': the right order sent after a wrong one was not Correct');
+    if (errs.length) bad.push(when + ': errors: ' + errs.join(' | '));
+    host.remove();
+  };
+  const b1 = boot();
+  await wait(300);
+  if (typeof b1.w.questionCard_ !== 'function' || !b1.w.__t.ACTIONS['kp-key']) return ['questionCard_ or the keypad is not reachable — NOT checked'];
+  await run(b1, 'first visit');
+  /* AND AFTER A RELOAD, the wrong answer back in the box from the device */
+  const b2 = boot({ before: win => { try { win.localStorage.setItem('ans:q:Q-DEL-1', '717'); } catch (e) {} } });
+  await wait(300);
+  await run(b2, 'after a reload');
   return bad;
 });
 

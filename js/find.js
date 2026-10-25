@@ -3482,9 +3482,10 @@ function markRuleIs_(v, test, arg) {
     default: return false;
   }
 }
-function markRuleSet_(typed, spec) {
+function markRuleSet_(typed, spec, spell) {
   const words = s => String(s).toLowerCase().match(/[a-z]+|\d+/g) || [];
   const fill = /^(and|with|then|a|an|the|on|of)$/;
+  if (spell) return markRuleSeq_(typed, spec, spell, words, fill);
   const syn = {};
   const want = spec.split('/').map(item => item.split('+').map(w => {
     const ways = w.trim().toLowerCase().split('~');
@@ -3493,6 +3494,24 @@ function markRuleSet_(typed, spec) {
   }).join('+').split('+').sort().join(' ')).sort();
   const got = String(typed).split(/[,;\n]+/).map(item => words(item).filter(w => !fill.test(w)).map(w => syn[w] || w).sort().join(' '))
     .filter(Boolean).sort();
+  return got.length === want.length && got.every((g, i) => g === want[i]);
+}
+/* `spell h~heads t~tails`: each item is an ORDERED run of letters (HHT is not THH); typed as HHT, H H T, H,H,T or heads heads tails (454) */
+function markRuleSeq_(typed, spec, spell, words, fill) {
+  const map = {};
+  spell.trim().toLowerCase().split(/\s+/).forEach(g => { const w = g.split('~'); w.forEach(x => (map[x] = w[0])); });
+  const want = spec.split('/').map(x => x.trim().toLowerCase()).sort();
+  const len = want[0] ? want[0].length : 0;
+  if (!len || want.some(w => w.length !== len)) return false;
+  let run = '';
+  for (const w of words(typed)) {
+    if (fill.test(w)) continue;
+    if (map[w]) { run += map[w]; continue; }
+    if (![...w].every(c => map[c] === c)) return false;
+    run += w;
+  }
+  if (!run.length || run.length % len) return false;
+  const got = (run.match(new RegExp('.{' + len + '}', 'g')) || []).sort();
   return got.length === want.length && got.every((g, i) => g === want[i]);
 }
 /* ---------- AN ALGEBRAIC ANSWER, MARKED BY ITS VALUE (365) */
@@ -3630,7 +3649,7 @@ function markRule_(typed, rule) {
     return markExpr_(typed, ex[2], eqn, fns) && !(/(?:^|,)\s*nobracket\b/.test(body) && /\(/.test(String(typed)));
   }
   const set = /(?:^|,)\s*set\s+([^,]+)/.exec(body);
-  if (set) return markRuleSet_(typed, set[1]);
+  if (set) return markRuleSet_(typed, set[1], (/(?:^|,)\s*spell\s+([^,]+)/.exec(body) || [])[1]);
   const nums = markRuleNums_(typed), vs = nums.map(n => n.v);
   if (!nums.length) return false;
   const sum = vs.reduce((s, v) => s + v, 0);
