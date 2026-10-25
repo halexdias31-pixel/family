@@ -117,109 +117,37 @@ function endTimesTables() {
   }
 }
 
-/* ---------- WHAT THE DISPLAY SAYS, TURNED BACK INTO ARITHMETIC § */
-const calcNormalise_ = t => String(t || '')
-  .replace(/\u00d7/g, '*')
-  .replace(/\u00f7/g, '/')
-  .replace(/\u2212/g, '-')
-  .replace(/\u03c0/g, 'pi');
+/* ---------- THE CALCULATOR ON THE SCREEN. The engine (keys, tree, arithmetic) is in arcade.js. */
+const CALC_KEYBOARD = { Enter: '=', '=': '=', Backspace: 'del', Delete: 'C', Escape: 'C', ArrowLeft: 'left', ArrowRight: 'right',
+  ArrowUp: 'up', ArrowDown: 'down', '*': '×', x: '×', '/': '÷', '-': '−', '+': '+', '^': 'pow', '(': '(', ')': ')', '.': '.',
+  p: 'pi', s: 'sin', c: 'cos', t: 'tan', r: 'sqrt', f: 'frac', a: 'Ans', Shift: null };
 
 function initMiniCalc() {
   const disp = $('mc-display');
   if (!disp) return;
-
-  /* THE STATE. `at` is where the caret sits — an index BETWEEN characters, so 0 is before the first and expr.length is after the last. § */
-  let expr = '', at = 0;
-  /* Every finished sum, oldest first, and where we are in it. § */
-  const past = [];
-  let back = -1;
-  let fresh = false;         // the display holds an answer rather than something being typed
-
+  const st = calcNew();
   const render = () => {
-    const t = expr || '';
-    disp.innerHTML = t
-      ? esc(t.slice(0, at)) + '<span class="mc-caret"></span>' + esc(t.slice(at))
-      : '<span class="mc-zero">0</span><span class="mc-caret"></span>';
-    disp.scrollLeft = disp.scrollWidth;      // a long sum scrolls to where you are typing
+    const h = calcHtml(st);
+    disp.innerHTML = '<div class="mc-in">' + h.input + '</div><div class="mc-out">' + h.output + '</div>';
+    disp.dataset.ind = (st.shift ? 'S  ' : '') + 'D';
+    const card = disp.closest('.card');
+    if (card) card.classList.toggle('mc-shifted', st.shift);
+    const inp = disp.firstChild;
+    inp.scrollLeft = inp.scrollWidth;       // a long sum scrolls to where you are typing
   };
-
-  /* Put something in at the caret and step past it. A multi-character token — `sin(`, `sqrt(` —
-     moves the caret by its whole length, so the next digit lands inside the bracket. */
-  const put = t => { expr = expr.slice(0, at) + t + expr.slice(at); at += t.length; };
-
-  const recall = dir => {
-    if (!past.length) return;
-    /* From the working line ▲ goes to the newest; from inside the history it steps outwards. ▼
-       off the end returns to an empty line rather than sticking on the last answer. */
-    if (back === -1) { if (dir < 0) back = past.length - 1; else return; }
-    else back = Math.min(past.length - 1, Math.max(-1, back + (dir < 0 ? -1 : 1)));
-    expr = back === -1 ? '' : past[back];
-    at = expr.length;
-    fresh = false;
-  };
-
-  window._mcClick = (v) => {
-    /* Anything that is not a movement leaves the history. Editing a recalled sum makes it a new
-       one — otherwise ▲ from a half-edited line would step from where the original sat. */
-    if (v !== 'up' && v !== 'down') back = -1;
-
-    if (v === 'left')  { at = Math.max(0, at - 1); fresh = false; return render(); }
-    if (v === 'right') { at = Math.min(expr.length, at + 1); fresh = false; return render(); }
-    if (v === 'up')    { recall(-1); return render(); }
-    if (v === 'down')  { recall(1);  return render(); }
-
-    if (v === '=') {
-      if (!expr || expr === 'Error') return;
-      const was = expr;
-      try {
-        let t = calcNormalise_(expr);
-        /* ---------- THE BRACKET THE KEY OPENED, CLOSED FOR YOU § */
-        const open = (t.match(/\(/g) || []).length - (t.match(/\)/g) || []).length;
-        if (open > 0) t += ')'.repeat(open);
-        // degree trig
-        t = t.replace(/\b(sin|cos|tan)\(/g, '$1(DEG*');
-        let result;
-        /* `window.math` IS NEVER LOADED BY ANYTHING HERE, measured across index.html and every file in `js/` -- so the branch below has never run and the fallback is § */
-        if (window.math) {
-          result = window.math.evaluate(t, { pi: Math.PI, DEG: Math.PI / 180 });
-        } else {
-          t = t.replace(/pi/g, Math.PI).replace(/DEG/g, Math.PI / 180)
-               .replace(/sqrt/g, 'Math.sqrt').replace(/sin/g, 'Math.sin')
-               .replace(/cos/g, 'Math.cos').replace(/tan/g, 'Math.tan').replace(/\^/g, '**');
-          result = Function('"use strict";return (' + t + ')')();
-        }
-        expr = String(Math.round(result * 1e10) / 1e10);
-        /* The SUM is remembered, not the answer. Going back to change one number in it is the
-           reason anybody looks back at all, and an answer cannot be edited into a question. */
-        if (past[past.length - 1] !== was) past.push(was);
-        if (past.length > 30) past.shift();
-        fresh = true;
-      } catch { expr = 'Error'; fresh = false; }
-      at = expr.length;
-      return render();
-    }
-
-    if (v === 'C') { expr = ''; at = 0; fresh = false; return render(); }
-
-    if (v === 'del') {
-      /* Backspace AT THE CARET. It used to take the last character whatever the caret said,
-         which with arrows would delete the wrong end of the sum. */
-      if (expr === 'Error') { expr = ''; at = 0; return render(); }
-      if (at > 0) { expr = expr.slice(0, at - 1) + expr.slice(at); at--; }
-      fresh = false;
-      return render();
-    }
-
-    if (expr === 'Error') { expr = ''; at = 0; fresh = false; }
-    /* AFTER AN ANSWER: a digit starts a new sum, an operator continues from the answer. § */
-    if (fresh) {
-      if (/^[0-9.]$/.test(v)) { expr = ''; at = 0; }
-      fresh = false;
-    }
-    put(v);
-    render();
-  };
-
+  window._mcClick = v => { calcKey(st, v); render(); };
+  /* Typing on a laptop, while focus is anywhere inside the calculator's own card. */
+  const card = disp.closest('.card');
+  if (card && !card.__mcKeys) {
+    card.__mcKeys = true;
+    card.addEventListener('keydown', e => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const k = /^[0-9]$/.test(e.key) ? e.key : CALC_KEYBOARD[e.key];
+      if (!k) return;
+      e.preventDefault();
+      window._mcClick?.(k);
+    });
+  }
   render();
 }
 
