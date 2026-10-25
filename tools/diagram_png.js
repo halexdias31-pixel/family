@@ -25,8 +25,11 @@ const widthOf = svg => {
   return w || 340;
 };
 
+/* THE WHOLE LIBRARY, words and all (check/lib-full.js) — data/questions.json alone has no drawing, which once deleted every twin (439). */
+const LIB = require('../check/lib-full.js');
+let ROWS = [];
 function drawings() {
-  const rows = JSON.parse(fs.readFileSync(path.join(REPO, 'data', 'questions.json'), 'utf8'));
+  const rows = ROWS = LIB.rows('questions');
   const all = new Map();
   rows.forEach(r => {
     const svg = r && typeof r.diagram === 'string' ? r.diagram : '';
@@ -42,8 +45,16 @@ async function main() {
   fs.mkdirSync(OUT, { recursive: true });
   const have = new Set(fs.readdirSync(OUT).filter(f => /^[0-9a-f]{12}\.png$/.test(f)).map(f => f.slice(0, 12)));
   /* A TWIN WHOSE DRAWING IS GONE GOES — the check fails on one, and the folder is this tool's. */
-  let removed = 0;
-  have.forEach(h => { if (!all.has(h)) { fs.unlinkSync(path.join(OUT, h + '.png')); removed++; } });
+  /* NEVER A TWIN WHOSE DRAWING THIS CLONE CANNOT SEE (440): with any pending row wordless here, or no drawing at all, nothing goes. */
+  const PT = LIB.pendingTwins(ROWS, nameOf);
+  let removed = 0, kept = 0;
+  if (PT.blind || !all.size) {
+    have.forEach(h => { if (!all.has(h)) kept++; });
+    if (kept) console.log(kept + ' twin(s) with no drawing here KEPT — ' + (all.size ? PT.blind + ' pending row(s) have no words in this clone' : 'no drawing was found') + '.');
+  } else {
+    have.forEach(h => { if (!all.has(h)) { fs.unlinkSync(path.join(OUT, h + '.png')); removed++; } });
+    fs.writeFileSync(PT.file, JSON.stringify([...PT.mine].sort(), null, 0).replace(/,/g, ',\n') + '\n');
+  }
   const todo = [...all.keys()].filter(h => FORCE || !have.has(h));
   console.log(all.size + ' drawings; ' + todo.length + ' to draw; ' + removed + ' twin(s) of no drawing removed.');
   if (!todo.length) return report(all);

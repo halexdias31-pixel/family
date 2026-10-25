@@ -52,7 +52,8 @@ function world(o) {
     } },
     ScriptApp: { getScriptId: () => 'local', getProjectTriggers: () => triggers.slice(),
       newTrigger: fn => ({ timeBased: () => ({ after: ms => ({ create() { triggers.push({ fn: fn, ms: ms, getHandlerFunction: () => fn }); } }),
-                                              everyMinutes: () => ({ create() {} }) }) }),
+                                              everyMinutes: () => ({ create() {} }),
+                                              everyHours: h => ({ create() { triggers.push({ fn: fn, hours: h, getHandlerFunction: () => fn }); } }) }) }),
       deleteTrigger: t => { const i = triggers.indexOf(t); if (i !== -1) triggers.splice(i, 1); } },
   }, o.extra || {}));
   const base = { pin: '0000', verified: 'TRUE', city: 'London' };
@@ -411,6 +412,45 @@ function fakeDrive(me) {
   /* AND THE SAME FILE CLEAN, BY `?run=libImportDrive` — the admin's URL. */
   const r = w.b.get({ run: 'libImportDrive', name: 'Hal Admin', pin: '0000' });
   if (!r.result || r.result.imported !== 1 || tabItems(w, 'practicals')[pid].aim !== 'Changed' || roll.parent !== done7) bad.push('?run=libImportDrive did not import the file once clean: ' + JSON.stringify(r).slice(0, 300));
+
+  /* ---------- 8. THE HOURLY RUN (443): booked once by the admin-load setup, imports what waits, an empty folder writes nothing, a tap alongside is safe ---------- */
+  const hourly = () => w.b.ev('JSON.stringify(ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === "libImportHourly").length)');
+  for (let i = 0; i < 3; i++) w.b.ev('PropertiesService.getScriptProperties().deleteProperty("SETUP_CHECKED_AT"); setupOnAdminLoad_(); 0');
+  if (hourly() !== '1') bad.push('the admin-load setup should book exactly one libImportHourly trigger, booked ' + hourly());
+  const hk = w.b.ev('JSON.stringify(libImportKeepBooked_())');
+  if (hk !== 'null') bad.push('libImportKeepBooked_ with one trigger booked should do nothing: ' + hk);
+  const logRows = () => (w.b.tabs.lib_log || []).length;
+  /* EMPTY: no log line, no report, no generation, no folder made. */
+  const gen0 = w.b.ev('JSON.stringify(PropertiesService.getScriptProperties().getProperties())'), log0 = logRows(), nF = drive.folders.length, nFiles = drive.files.length;
+  const h0 = JSON.parse(w.b.ev('JSON.stringify(libImportHourly())'));
+  if (!h0.nothing || logRows() !== log0 || drive.folders.length !== nF || drive.files.length !== nFiles
+      || w.b.ev('JSON.stringify(PropertiesService.getScriptProperties().getProperties())') !== gen0) bad.push('an hourly run on an empty folder wrote something: ' + JSON.stringify(h0).slice(0, 200));
+  /* SPLIT-UP FILES: three parts, each a whole import, oldest name first; and a tap fired while the run holds the lock is turned away. */
+  let held = false, tapped = null;
+  const realLS = g.LockService;
+  g.LockService = { getScriptLock: () => ({ tryLock: () => { if (held) return false; held = true; return true; }, waitLock: () => { if (held) throw new Error('busy'); held = true; },
+    releaseLock: () => { held = false; } }) };
+  const parts = [1, 2, 3].map(k => drive.fileObj('lib-import-hr-part-0' + k + '-of-03.json', JSON.stringify({ version: 1, files: { practicals: [{ id: 'P-HR-' + k, aim: 'Part ' + k }] },
+    cards: { practicals: [{ practical_id: 'P-HR-' + k }] } }), home, OWNER));
+  const blob = parts[0].getBlob;
+  parts[0].getBlob = () => { tapped = w.ask(HAL, { action: 'libImportDrive' }); return blob(); };
+  const h1 = JSON.parse(w.b.ev('JSON.stringify(libImportHourly())'));
+  const pr = tabItems(w, 'practicals');
+  if (!h1.success || h1.imported !== 3 || !h1.auto || JSON.stringify(h1.files.map(f => f.name)) !== JSON.stringify(parts.map(x => x.name))
+      || [1, 2, 3].some(k => !pr['P-HR-' + k] || pr['P-HR-' + k].aim !== 'Part ' + k) || parts.some(x => x.parent !== done7)) bad.push('the hourly run did not import the three parts in order and move them: ' + JSON.stringify(h1).slice(0, 300));
+  if (!tapped || tapped.why !== 'busy') bad.push('a tap during the hourly run was not turned away as busy: ' + JSON.stringify(tapped).slice(0, 200));
+  const hl = (w.b.tabs.lib_log || []).slice(1).filter(r => /lib-import-hr-part/.test(r.join(' ')));
+  if (hl.length !== 3 || !hl.every(r => r.indexOf('hourly') !== -1)) bad.push('lib_log should have one line per part under the handle hourly, has ' + hl.length);
+  /* THE TAP AFTERWARDS finds nothing to do twice; the card's list says when the automatic import ran and what it did. */
+  const t2 = w.ask(HAL, { action: 'libImportDrive' });
+  if (!t2.success || t2.imported !== 0) bad.push('a tap after the hourly run imported again: ' + JSON.stringify(t2).slice(0, 200));
+  const l3 = w.ask(HAL, { action: 'libImportList' });
+  if (!l3.auto || l3.auto.imported !== 3 || !l3.auto.at) bad.push('libImportList does not say what the last automatic import did: ' + JSON.stringify(l3.auto).slice(0, 200));
+  held = true;
+  const h2 = JSON.parse(w.b.ev('JSON.stringify(libImportHourly())'));
+  if (h2.why !== 'busy') bad.push('an hourly run while the lock is held should give way: ' + JSON.stringify(h2));
+  held = false;
+  g.LockService = realLS;
 }
 
 if (bad.length) {
@@ -419,4 +459,4 @@ if (bad.length) {
   process.exit(1);
 }
 console.log('OK — the library copies into the Ledger a step at a time and only counts once every row reads back as its source (' + asked
-  + ' questions asked' + (FULL ? ', the whole library' : ', ' + src.questions.length + ' question rows') + '); libItems is signed-in, capped per day, cached; the tools\' copy is the admin\'s; the Sunday email gets its words; Drive updates import whole or not at all.');
+  + ' questions asked' + (FULL ? ', the whole library' : ', ' + src.questions.length + ' question rows') + '); libItems is signed-in, capped per day, cached; the tools\' copy is the admin\'s; the Sunday email gets its words; Drive updates import whole or not at all, by a tap or the hourly run.');

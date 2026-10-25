@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-25-a-console-bodies";
+  --css-version: "2026-10-25-f-native-picker";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -473,7 +473,6 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 /* ---------- WHO THE ACCOUNT IS FOR: THE FIRST QUESTION ON THE REGISTER SHEET § */
 .reg-cap { margin-top: 0; }
 .reg-who { margin-bottom: .75rem; }
-.reg-who .btn { line-height: 1.2; text-align: center; padding: .35rem .8rem; }
 
 /* ---------- THREE LIBRARY CARDS ON ONE PAGE, WHICH NINE STACKED BOXES CANNOT BE § */
 .lib-shelf { display: flex; flex-direction: column; }
@@ -515,7 +514,7 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .q-ed .q-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: .4rem; }
 .q-ed .q-row > .q-school { grid-column: 1 / -1; }
 /* ---------- A CERTIFICATE: NO GRADE, NO TEACHING, AND THE YEAR BESIDE WHO ISSUED IT — see `qualIsCert_` § */
-.q-slot.is-cert .q-grade, .q-slot.is-cert .q-seg { display: none; }
+.q-slot.is-cert .q-grade, .q-slot.is-cert .q-cyc { display: none; }
 .q-slot.is-cert .q-ed .q-row > .q-school { grid-column: auto; }
 .q-slot.is-cert .q-cap-std, .q-slot:not(.is-cert) .q-cap-cert { display: none; }
 /* ---------- A LINE BEING ADDED HAS NO FACE YET § */
@@ -533,16 +532,19 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
   padding-left: .6rem; }
 .q-ed .q-f > input { padding-right: .6rem; }
 /* A NAME TOO LONG FOR HALF A 320 CARD ENDS IN AN ELLIPSIS — *walked:* § */
-/* TEACH / CAN TEACH / NOT TEACHING, ONE CONTROL. Words that say the answer, so the question that sat
-   over it and the sentence that sat under it are not needed; what each does on the profile is its
-   `title`. */
-.q-seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--line);
-  border-radius: var(--r-sm); overflow: hidden; }
-.q-seg-b { min-height: 44px; padding: 0 .3rem; background: var(--sunk); border: 0; color: var(--ink);
-  font: inherit; font-size: .76rem; line-height: 1.15; cursor: pointer; }
-.q-seg-b + .q-seg-b { border-left: 1px solid var(--line); }
-/* PRESSED IS GOLD WITH BLACK ON IT, which is what `.hr.on` already does for "this one is chosen". */
-.q-seg-b[aria-pressed="true"] { background: var(--gold); color: #000; font-weight: 650; }
+/* TEACHING IS ONE ROW WITH THE PHONE'S OWN PICKER, the full width of the card; the line's mark keeps the gold, plain or faint word. */
+.q-ed .q-cyc { display: block; }
+.q-cyc-v.is-spec { color: var(--gold); font-weight: 650; }
+.q-cyc-v.is-teach { color: var(--ink); }
+.q-cyc-v.is-no { color: var(--faint); }
+.q-cyc-v { font-size: .76rem; }
+/* THE LINE'S MARK IS ITS OWN BUTTON over the line's right end, so a tap there cycles without opening. */
+.q-slot { position: relative; }
+.q-line .q-mark { visibility: hidden; min-width: 6.5rem; }
+.q-mark-b { position: absolute; top: 0; right: 0; min-height: 44px; min-width: 6.5rem; padding: 0 0 0 .4rem;
+  background: none; border: 0; text-align: right; font: inherit; cursor: pointer; }
+.q-mark-b:active { background: rgb(255 255 255 / .05); }
+.q-slot.is-cert .q-mark-b, .q-slot[data-new] > .q-mark-b { display: none; }
 /* THE TICK AT THE START OF THE ROW AND THE BIN AT THE FAR END — the width of the card between them, which is the tile rows' own rule for keeping a bin away from § */
 .tile-row.q-tiles { justify-content: space-between; margin-top: .45rem; }
 .tile-row.q-adds { margin-top: .3rem; }
@@ -604,7 +606,7 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .lib-row.q-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .lib-row select { min-width: 0; }
 /* THE TEACH / CAN TEACH TICKS THAT SAT HERE WENT WITH THE SUMMARY LINES: they were checkboxes read
-   per level and per subject, two ways round, and are one three-way control now (`.q-seg`, above). */
+   per level and per subject, two ways round, and are one control that cycles now (`.q-cyc`, above). */
 /* AN UNCHOSEN LEVEL OR BOARD READS AS A PLACEHOLDER, in the same grey as the empty boxes above it —
    otherwise `Level` in full ink looks like an answer somebody gave. */
 .lib-row select:has(option[value=""]:checked) { color: var(--faint); }
@@ -723,14 +725,13 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .check input:checked + .box::after { color: #1a1409; }
 
 /* ---------- YOUR ROLES: A TICK WITH ITS MEANING UNDER THE WORD § */
-.roles-card .role-pick, .notify-card .role-pick { align-items: flex-start; }
-.roles-card .role-pick .box, .notify-card .role-pick .box { margin-top: .1rem; }
+.notify-card .role-pick { align-items: flex-start; }
+.notify-card .role-pick .box { margin-top: .1rem; }
 .role-pick-say { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
 .role-pick-say .faint { font-size: .85rem; line-height: 1.35; }
 .roles-card .role-admin, .roles-card .roles-said { margin: .6rem 0 0; }
-/* ONE OF TWO (432): the role is a radio, so its box is round. */
-.roles-card .role-pick .box { border-radius: 50%; }
-.roles-card .role-pick + .role-pick { margin-top: .4rem; }
+/* ONE OF TWO (432): one row with the phone's own picker, each choice's meaning in a faint line under it. */
+.role-pick-notes { margin: 0 0 .5rem; font-size: .8rem; line-height: 1.4; }
 
 /* ---------- NOTIFICATIONS: THE ROLES CARD'S TICKS, AND WHAT IS ALWAYS SENT AS WORDS § */
 .notify-always { list-style: none; margin: 0; padding: 0; font-size: .85rem; line-height: 1.45; color: var(--dim); }
@@ -1219,7 +1220,7 @@ body.nes-on .nes-wrap *, body.nes-on .nes-wrap *::before, body.nes-on .nes-wrap 
 .flappy { width: 100%; aspect-ratio: 4/5; display: block; touch-action: none;
           background: var(--sunk); border: 1px solid var(--line); border-radius: .5rem; }
 /* ---------- A THUMB ON THE GAME IS A FLAP, NOT A SELECTION § */
-.pane:has(.flappy), .card:has(> .flappy) {
+.pane:has(.flappy), .card:has(.flappy) {
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 
 /* ---------- WHAT THE LAWS PAINT § */
@@ -3382,12 +3383,8 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .media-pic { width: 4rem; aspect-ratio: 4 / 3; object-fit: cover; border-radius: .3rem; background: var(--line); }
 .media-name { min-width: 0; overflow-wrap: anywhere; }
 .media-thumb { display: block; width: 100%; max-width: 20rem; border-radius: .4rem; }
-/* HOW OLD YOU HAVE TO BE (406): the form's quick picks, and the badge on a reel or a video's picture. */
-.media-age-picks { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+/* HOW OLD YOU HAVE TO BE (406): the form's one picker row, and the badge on a reel or a video's picture. */
 .media-age { display: block; margin-bottom: .75rem; }
-.media-age-picks .btn { width: auto; flex: 1 1 3rem; min-height: 44px; min-width: 44px; padding: 0 .5rem; }
-.media-age-picks .btn.is-on { border-color: var(--gold); color: var(--gold); }
-.media-age-picks input { width: 5.5rem; min-height: 44px; }
 .media-age-badge { position: absolute; z-index: 3; left: .3rem; top: .3rem; padding: .08rem .35rem; border-radius: 4px;
   background: var(--over-wash); color: var(--over-ink); font-size: .68rem; font-weight: 700; line-height: 1.35;
   pointer-events: none; }
@@ -3416,6 +3413,10 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .kid-face.prof-none { font-size: .95rem; }
 .kid-who { display: flex; flex-direction: column; gap: .1rem; min-width: 0; flex: 1; margin: 0; overflow-wrap: anywhere; }
 .kid-row > .tile-row { margin: 0; flex: none; }
+/* FIND BY HANDLE (442): one found person per line, like a child on "Manage your child". */
+.ps-hit { display: flex; align-items: center; gap: .6rem; margin-top: .6rem; }
+.ps-hit > .tile-row { margin: 0; flex: none; }
+.ps-out:empty { display: none; }
 .kid-none { margin: 0; }
 /* ---------- SAVE AND CANCEL STAY IN REACH: THE ROW IS STUCK TO THE FOOT OF THE PANE § */
 /* `.tile-row.ce-tiles`, TWO CLASSES, because `.tile-row`'s own margin is declared further down this file and
@@ -4771,14 +4772,14 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .boxer-tt::before { content: "\00a0\00b7\00a0"; color: var(--faint); }
 
 /* ---------- THE FIGHT CARD'S TWO FACES § */
-.fight-faces { order: -1; display: flex; align-items: center; justify-content: center; gap: .7rem;
-               margin: 0 0 var(--fc-group); }
+.fight-faces { display: flex; align-items: center; justify-content: center; gap: .7rem;
+               margin: var(--fc-group) 0 0; } /* last on the card, under its tags, as a question's figure (445) */
 .boxer-pic.is-small { flex: 0 0 auto; width: 5.6rem; margin: 0; }
 .boxer-pic.is-small .boxer-frame { aspect-ratio: 1 / 1; }
 .boxer-pic.is-small.won .boxer-frame { border-color: var(--boxer-w); box-shadow: 0 0 0 1px var(--boxer-w); }
 .fight-v { font: 700 .8rem/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
-/* THE CREDITS FOR BOTH FACES, centred under them and above the title, at the profile's caption size. § */
-.fight-credit { order: -1; margin: calc(-1 * var(--fc-group) + .35rem) 0 var(--fc-group);
+/* THE CREDITS FOR BOTH FACES, centred under them at the card's foot, at the profile's caption size. § */
+.fight-credit { margin: .35rem 0 0;
                 font: 400 .62rem/1.4 var(--mono); color: var(--faint); text-align: center; overflow-wrap: anywhere; }
 
 
@@ -5530,6 +5531,13 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .mz-key.left  { grid-column: 1; grid-row: 2; }
 .mz-key.down  { grid-column: 2; grid-row: 2; }
 .mz-key.right { grid-column: 3; grid-row: 2; }
+
+/* ---------- THE CONSOLE'S OWN BODIES FOR ITS TWO BUILT-IN GAMES (441): a handheld round the bird, a wide dark bezel round the street. */
+.cs-body { --cs-shell: #2a2a30; --cs-edge: #45454d; box-sizing: border-box; margin: .55rem auto 0; background: var(--cs-shell);
+  border: 1px solid var(--cs-edge); }
+.cs-hand { max-width: 22rem; padding: 1.1rem 1rem 1.4rem; border-radius: 1rem 1rem 2.6rem 1rem; }
+.cs-wide { padding: .6rem .6rem .7rem; border-radius: 1.1rem; }
+.cs-wide .race-stage { margin-top: 0; }
 
 /* ---------- THE COLLIERS WOOD RACER (426): a fixed-shape stage, so nothing under it moves while it draws */
 .race-stage {
@@ -6307,12 +6315,6 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
 
 /* ---------- REPORTING A QUESTION (395): the sheet's reasons, its note, and the Business column's list — js/submit.js, js/records.js. */
 .rep-what { margin: 0 0 .5rem; font-size: .74rem; }
-.rep-opts { display: flex; flex-direction: column; gap: .35rem; margin: 0 0 .6rem; }
-.rep-opt { display: block; width: 100%; min-height: 44px; text-align: left; padding: .5rem .7rem;
-           border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--sunk); color: var(--ink);
-           font: inherit; font-size: .8rem; line-height: 1.35; cursor: pointer; }
-.rep-opt:active { transform: translateY(1px); }
-.rep-opt.is-picked { border-color: var(--gold); color: var(--gold); }
 .rep-note { display: block; margin-bottom: .5rem; }
 .rep-note-in { display: block; width: 100%; box-sizing: border-box; min-height: 44px; padding: .55rem .7rem;
                background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-sm);
@@ -6505,11 +6507,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .app-form h4 { margin: 1rem 0 .4rem; }
 .app-line { margin: .15rem 0; font-size: .85rem; }
 .app-line b { color: var(--dim); font-weight: 600; margin-right: .3rem; }
-/* ================= THE ICONS ON FIND 2 (403) — one mark large, and the same mark as a tile ================= */
-.icon-show { display: flex; align-items: center; gap: 1.5rem; margin: 1rem 0; }
-.icon-big { display: inline-flex; padding: 1rem; border: 1px solid var(--line); border-radius: .6rem; color: var(--gold); }
-.icon-big .tile-i { width: 7rem; height: 7rem; }
-
 /* ================= SPEED READ (403): the word on a fixed guide, its recognition letter in gold ================= */
 .rsvp-stage { position: relative; padding: 1.25rem 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .rsvp-tick { position: absolute; left: 50%; width: 2px; height: .9rem; margin-left: -1px; background: var(--gold); }

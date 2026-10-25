@@ -4174,7 +4174,7 @@ function tmtKeep_(e) {
 document.addEventListener('input', tmtKeep_);
 document.addEventListener('change', tmtKeep_);
 
-/* WORD GAMES — Articulate, Charades, Taboo, Hot Seat, Just a Minute, 20 Questions, Imposter and Herd Mentality in one widget. § */
+/* WORD GAMES — Articulate, Charades, Taboo, Hot Seat, Just a Minute, 20 Questions, Imposter, Herd Mentality, Word Search and Sentence Scramble (441) in one widget. § */
 const WORD_GAMES = [
   { k: 'art', name: 'Articulate', start: () => initRound('art'), stop: () => roundStop_('art'),
     body: `<p class="sub">Describe it without saying it. Ninety seconds.</p>
@@ -4217,6 +4217,21 @@ const WORD_GAMES = [
     <p class="herd-q" id="herd-q"></p>
     <button class="btn" data-do="herd-next">Next question</button>
     </div>` },
+  /* WORD SEARCH AND SENTENCE SCRAMBLE, MOVED IN BY THE OWNER (441) — their own cards before; nothing runs between taps, so no stop. */
+  { k: 'ws', name: 'Word Search', start: () => initWordSearch(), stop: () => {},
+    body: `<p class="sub">Tap the first letter of a word, then its last.</p>
+    <label class="mat-sel ws-top"><select id="ws-theme" data-do="ws-theme"
+      aria-label="Which words"></select></label>
+    <div id="ws-grid" class="ws"></div>
+    <ul id="ws-words" class="ws-list"></ul>
+    <p class="note" id="ws-said" style="text-align:center;margin:.4rem 0 0"></p>
+    <button class="btn quiet" data-do="ws-again">New puzzle</button>` },
+  { k: 'ss', name: 'Sentence Scramble', start: () => initScramble(), stop: () => {},
+    body: `<p class="sub">Tap the words in order to put the sentence back together.</p>
+    <label class="mat-sel ws-top"><select id="ss-level" data-do="ss-level"
+      aria-label="Level"></select></label>
+    <div id="ss-box"></div>
+    <p class="note" id="ss-said" style="text-align:center;margin:.4rem 0 0"></p>` },
 ];
 
 /* A party game's body is its sentence and the frame `PARTY_GAMES[k].paint` fills — the same three
@@ -4253,13 +4268,16 @@ function wgSlot_() {
 
 /* THE PICKER AND THE CHOSEN GAME'S CARD, AND NOTHING THAT RUNS — the widget's declared `draw`, which the builder uses to draw it before anybody arrives § */
 function wgPaint_() {
-  const slot = $('wg-slot'), sel = $('wg-pick');
-  if (!slot) return false;
+  const slots = document.querySelectorAll('#wg-slot');
+  if (!slots.length) return false;
   const g = wgGame_(wgChosen_());
-  if (sel && sel.value !== g.k) sel.innerHTML = wgOptions_();
+  /* EVERY COPY, the Games card and a starred one on Saved (441), so a pick on one is not undone by the other. */
+  document.querySelectorAll('#wg-pick').forEach(sel => { if (sel.value !== g.k) sel.innerHTML = wgOptions_(); });
   /* REBUILT ONLY WHEN THE GAME CHANGED. § */
-  const now = slot.firstElementChild;
-  if (!now || now.getAttribute('data-g') !== g.k) slot.innerHTML = wgSlot_();
+  slots.forEach(slot => {
+    const now = slot.firstElementChild;
+    if (!now || now.getAttribute('data-g') !== g.k) slot.innerHTML = wgSlot_();
+  });
   return g;
 }
 function initWordGames() {
@@ -4280,8 +4298,7 @@ on('wg-pick', el => {
   const k = wgGame_(el.value).k;
   try { localStorage.setItem('wg-game', k); } catch (e) {}
   /* THE OLD GAME IS STOPPED AFTER ITS CARD HAS LEFT THE DOCUMENT, which is the order that makes its own stop read it as "the column is gone": § */
-  const slot = $('wg-slot');
-  if (slot) slot.innerHTML = '';
+  document.querySelectorAll('#wg-slot').forEach(x => { x.innerHTML = ''; });
   wordGamesStop_();
   initWordGames();
 });
@@ -4353,6 +4370,68 @@ on('bg-pick', el => {
   const slot = $('bg-slot');
   if (slot) slot.innerHTML = '';
   initBoardGames();
+});
+
+/* THE CONSOLE PLAYS EVERY GAME (441): the person's game files, Flabby Pird and the Colliers Wood racer, one picker — the board games' shape (414). */
+const CONSOLE_GAMES = [
+  { k: 'file', name: 'Game files', start: () => { nesPaint_(); nesPadWatch_(); }, still: () => nesPaint_(),
+    stop: () => { nesStop_(); nesPadUnwatch_(); },
+    body: `<p class="sub">Plays NES, SNES, Game Boy, Game Boy Color, Game Boy Advance, N64 and DS files. Bring your own game file.</p>
+    <div id="nes-box" class="nes-box"></div>` },
+  /* A HANDHELD FOR THE BIRD: the canvas sits in a body of its own, and its tap and space bar are `initFlappy`'s as before. */
+  { k: 'flabby', name: 'Flabby Pird', start: () => initFlappy(), still: () => flappyStill_(),
+    stop: () => { if (flappyState && flappyState.raf) { cancelAnimationFrame(flappyState.raf); flappyState.raf = null; } },
+    body: `<p class="sub">Harder than it looks.</p>
+    <div class="cs-body cs-hand"><canvas id="flappy-canvas" class="flappy"></canvas>
+    <p class="note" id="flappy-msg" style="text-align:center;margin:.4rem 0 0">Tap to play</p></div>
+    ${rowLive('Score', '0', 'flappy-score')}
+    ${rowLive('Best', '0', 'flappy-best')}
+    <div id="flappy-board" class="board"></div>` },
+  /* A WIDE SCREEN FOR THE RACER; racer.js draws into `race-box` exactly as it did on its own card (426). */
+  { k: 'racer', name: 'Colliers Wood racer', start: () => initRacer(), still: () => raceStill_(),
+    stop: () => racerStop_(),
+    body: `<div class="cs-body cs-wide race"><div id="race-box" class="race-box"></div></div>` },
+];
+function csGame_(k) { return CONSOLE_GAMES.find(g => g.k === k) || CONSOLE_GAMES[0]; }
+/* REMEMBERED ON THE DEVICE under `cs-game`, `bg-game`'s rule. */
+function csChosen_() {
+  let k = '';
+  try { k = localStorage.getItem('cs-game') || ''; } catch (e) {}
+  return csGame_(k).k;
+}
+function csOptions_() {
+  const k = csChosen_();
+  return CONSOLE_GAMES.map(x =>
+    `<option value="${esc(x.k)}"${x.k === k ? ' selected' : ''}>${esc(x.name)}</option>`).join('');
+}
+function csSlot_() {
+  const g = csGame_(csChosen_());
+  return `<div data-g="${esc(g.k)}" class="cs-game">${g.body}</div>`;
+}
+/* THE PICKER AND THE CHOSEN GAME'S MARKUP; rebuilt only when the game changed, so a running emulator keeps its box. */
+/* EVERY COPY — the Games card and a starred one on Saved — so a pick on one is not undone by the other. */
+function csPaint_() {
+  const slots = document.querySelectorAll('#cs-slot');
+  if (!slots.length) return false;
+  const g = csGame_(csChosen_());
+  document.querySelectorAll('#cs-pick').forEach(sel => { if (sel.value !== g.k) sel.innerHTML = csOptions_(); });
+  slots.forEach(slot => {
+    const now = slot.firstElementChild;
+    if (!now || now.getAttribute('data-g') !== g.k) slot.innerHTML = csSlot_();
+  });
+  return g;
+}
+function initConsole() { const g = csPaint_(); if (g) g.start(); }
+function consoleStill_() { const g = csPaint_(); if (g) g.still(); }
+function consoleStop_() {
+  CONSOLE_GAMES.forEach(g => { try { g.stop(); } catch (e) { console.warn('[console]', g.k, e); } });
+}
+on('cs-pick', el => {
+  const k = csGame_(el.value).k;
+  try { localStorage.setItem('cs-game', k); } catch (e) {}
+  consoleStop_();
+  document.querySelectorAll('#cs-slot').forEach(x => { x.innerHTML = ''; });
+  initConsole();
 });
 
 /* TOUCH TYPING — the `typing` widget on the Tools column. § */
@@ -6054,7 +6133,6 @@ const mediaMay_ = () => typeof isAdmin === 'function' && isAdmin();
    Whole years; blank, 0, U, PG or words = everyone. The backend's `mediaAgeOf_`/`mediaAgeCap_` (content.gs) are the same rule. */
 const MEDIA_AGE_MAX = 21;
 const MEDIA_AGE_UNKNOWN = 12;
-const MEDIA_AGE_PICKS = [['U/PG', 0], ['7', 7], ['12', 12], ['15', 15], ['18', 18]];
 function mediaAgeOf_(v) {
   const m = String(v == null ? '' : v).match(/\d+/);
   return m ? Math.min(MEDIA_AGE_MAX, Number(m[0])) : 0;
@@ -6158,14 +6236,12 @@ function mediaFormHtml_(F) {
   </div>`;
 }
 
-/* HOW OLD YOU HAVE TO BE (406): UK-style quick picks and a number; blank or 0 is everyone. */
+/* HOW OLD YOU HAVE TO BE (406): one row with the phone's own picker, every age to the cap; Everyone is 0. */
 function mediaAgeBoxHtml_(F) {
   const now = mediaAgeOf_(F.age);
-  return `<div class="field media-age" role="group" aria-label="Minimum age"><span class="dob-cap">Minimum age to watch</span>
-    <div class="media-age-picks">${MEDIA_AGE_PICKS.map(([say, n]) =>
-      `<button type="button" class="btn quiet${now === n ? ' is-on' : ''}" aria-pressed="${now === n}" data-do="media-age" data-age="${n}">${esc(say)}</button>`).join('')}
-      <input data-mf="age" type="number" inputmode="numeric" min="0" max="${MEDIA_AGE_MAX}" step="1" aria-label="Minimum age in years"
-        value="${now ? now : ''}" placeholder="years"></div></div>`;
+  const ages = Array.from({ length: MEDIA_AGE_MAX + 1 }, (_, n) => n);
+  return `<label class="field media-age"><span>Minimum age to watch</span><select data-do="media-age" aria-label="Minimum age">${
+    ages.map(n => `<option value="${n}"${now === n ? ' selected' : ''}>${n ? n + '+' : 'Everyone (U/PG)'}</option>`).join('')}</select></label>`;
 }
 
 function mediaRedraw_(kind) {
@@ -6225,7 +6301,7 @@ on('media-edit', el => {
 });
 on('media-age', el => {
   if (!MEDIA_FORM || !mediaMay_()) return;
-  const n = mediaAgeOf_(el.getAttribute('data-age'));
+  const n = mediaAgeOf_(el.value);
   MEDIA_FORM.age = n ? String(n) : '';
   mediaRedraw_(MEDIA_FORM.kind);
 });

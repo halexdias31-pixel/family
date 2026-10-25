@@ -2438,12 +2438,12 @@ const STATES = {
         ACTIONS['register'](tile);
       },
       expect: () => {
-        const who = [...document.querySelectorAll('#sheet-body [data-do="reg-who"]')]
-          .filter(b => b.offsetHeight >= 44).length;
+        const sel = document.querySelector('#sheet-body select#reg-who-in');
+        const who = sel && sel.offsetHeight >= 44 ? sel.querySelectorAll('option[data-who]').length : 0;
         const rest = document.getElementById('reg-rest');
         return who === 2 && rest && rest.hidden ? 2 : 0;
       },
-      wants: 'the register sheet open on its question: two 44px answers and nothing else yet',
+      wants: 'the register sheet open on its question: one 44px picker of two answers and nothing else yet',
       leave: () => { closeSheet(); } },
     /* ---------- AND ANSWERED "A PARENT" § */
     { name: 'making an account as a parent',
@@ -2452,7 +2452,7 @@ const STATES = {
         const tile = document.querySelector('#s-account [data-do="register"]');
         if (!tile) throw new Error('no Make an account tile on the signed-out account column');
         ACTIONS['register'](tile);
-        const b = document.querySelector('#sheet-body [data-do="reg-who"][data-who="parent"]');
+        const b = document.querySelector('#sheet-body #reg-who-in option[data-who="parent"]');
         if (!b) throw new Error('the register sheet does not ask who the account is for');
         ACTIONS['reg-who'](b);
       },
@@ -2474,7 +2474,7 @@ const STATES = {
         if (!tile) throw new Error('no Make an account tile on the signed-out account column');
         ACTIONS['register'](tile);
         /* A STUDENT'S TICK — the question is answered first, or the row is not drawn at all. */
-        const b = document.querySelector('#sheet-body [data-do="reg-who"][data-who="student"]');
+        const b = document.querySelector('#sheet-body #reg-who-in option[data-who="student"]');
         if (!b) throw new Error('the register sheet does not ask who the account is for');
         ACTIONS['reg-who'](b);
         const tick = document.getElementById('reg-noemail');
@@ -3286,10 +3286,10 @@ const STATES = {
         const slip = pg && pg.querySelector('.kid-manage .kid-make .pin-slip');
         return slip && slip.querySelectorAll('.pin-slip-v').length === 2
           && pg.querySelectorAll('.kid-make [data-kid-new]').length === 3
-          && pg.querySelectorAll('.kid-manage .kid-add [data-kid]').length === 2
+          && pg.querySelectorAll('.kid-manage .kid-add').length === 1 && !pg.querySelector('.kid-add input')
           && slip.scrollWidth <= slip.clientWidth + 1 ? 2 : 0;
       },
-      wants: '"Manage your child" with the make form\'s three boxes, the slip — the handle and the PIN, neither running off it — and the add form\'s two boxes under it' },
+      wants: '"Manage your child" with the make form\'s three boxes, the slip — the handle and the PIN, neither running off it — and the add section pointing to People under it (442)' },
     /* ---------- AND HELD FOR THE LINK: A PARENT WHOSE OWN ADDRESS NOBODY HAS PROVED § */
     { name: 'your child\'s account, held for the link',
       only: () => typeof USER !== 'undefined' && !!USER && typeof mayAddChild_ === 'function' && mayAddChild_(),
@@ -3347,7 +3347,7 @@ const STATES = {
         const heads = [...card.querySelectorAll('.kid-sec > .kid-h')];
         const headsOk = heads.length === 2 && heads.every(h => parseFloat(getComputedStyle(h).fontSize) >= 12);
         return rowsOk && (n ? !none : none) && !zoomed && headsOk
-          && card.querySelectorAll('.kid-make [data-kid-new]').length === 3 && card.querySelectorAll('.kid-add [data-kid]').length === 2
+          && card.querySelectorAll('.kid-make [data-kid-new]').length === 3 && card.querySelectorAll('.kid-add').length === 1 && !card.querySelector('.kid-add input')
           && card.scrollWidth <= card.clientWidth + 1 ? Math.max(1, n) : 0;
       }) + ')(' + n + ');'),
       wants: n ? '"Manage your child" at full size, listing three children, each a face, a first name and a handle with New PIN at the end of the line and nothing running off it, then both forms under headings of 12px or more'
@@ -3486,7 +3486,7 @@ const STATES = {
       expect: () => {
         const c = document.querySelector('#s-settings .page.on .roles-card');
         if (!c) return 0;
-        const on = r => { const b = c.querySelector(`[data-role-pick="${r}"]`); return b ? b.checked : null; };
+        const on = r => { const b = c.querySelector(`[data-role-pick="${r}"]`); return b ? b.selected : null; };
         return on('tutor') === null && on('client') === true && on('student') === false
           && !c.querySelector('[data-role-pick="admin"]') && !c.querySelector('.role-admin')
           && /waiting for @family/.test((c.querySelector('.roles-said') || {}).textContent || '')
@@ -3597,9 +3597,10 @@ const STATES = {
           && open[0].querySelector('.q-line').getAttribute('aria-expanded') === 'true'
           && [...shelf.querySelectorAll('.q-list .q-line')].length === 7
           && [...shelf.querySelectorAll('.q-list .q-line')].every(visible)
-          && ed.querySelectorAll('[data-do="qual-teach"]').length === 3
-          && (ed.querySelector('[data-do="qual-teach"][aria-pressed="true"]') || {}).dataset.v === 'teach'
-          && ed.querySelectorAll('label.field').length === 5
+          && ed.querySelectorAll('select.q-teach').length === 1 && !ed.querySelector('[data-do="qual-teach"]')
+          && ((ed.querySelector('select.q-teach') || {}).selectedOptions || [{}])[0].textContent === 'Can teach'
+          && ed.querySelector('.q-cyc').offsetHeight >= 44
+          && ed.querySelectorAll('label.field').length === 6
           && [...ed.querySelectorAll('label.field')].every(l => !!(l.querySelector(':scope > span') || {}).textContent)
           && [...ed.querySelectorAll('select[data-me$="_received"] option')].some(o => o.textContent === 'Still studying' && o.value === 'Present')
           && !!tick && !!bin && bin.getBoundingClientRect().left - tick.getBoundingClientRect().right > 60
@@ -3650,7 +3651,7 @@ const STATES = {
         const cap = l => [...l.querySelectorAll(':scope > span')].filter(shown).map(x => x.textContent).join('|');
         return open[0].classList.contains('is-cert')
           && !shown(ed.querySelector('select[data-me$="_grade"]'))
-          && !shown(ed.querySelector('.q-seg'))
+          && !shown(ed.querySelector('.q-cyc'))
           && shown(year) && shown(from)
           && Math.abs(year.getBoundingClientRect().top - from.getBoundingClientRect().top) < 2
           && cap(year) === 'Year' && cap(from) === 'Issued by'
@@ -4503,9 +4504,10 @@ const STATES = {
             highscore: 8, ttHighscore: 7 });
         /* `repaint` RATHER THAN `paint`, and the difference is the whole state. § */
         repaint(true);
-        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'flabby');
-        if (n < 0) throw new Error('no Flabby Pird widget in the roster');
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'console');
+        if (n < 0) throw new Error('no console widget in the roster');
         goPage('games', n, true);
+        const _cp = document.querySelector('#s-games #cs-pick'); if (_cp && _cp.value !== 'flabby') { _cp.value = 'flabby'; ACTIONS['cs-pick'](_cp); }
       },
       /* ONE MORE ROW THAN `SCORE_TOP`, and the number is READ OFF THE APP rather than written here: § */
       expect: () => {
@@ -4823,9 +4825,10 @@ const STATES = {
     /* ---------- A WORD SEARCH PART-FOUND, AND A SENTENCE PART-BUILT § */
     { name: 'a word search part-found',
       enter: () => {
-        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'wordsearch');
-        if (n < 0) throw new Error('no word search widget in the roster');
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'wordgames');
+        if (n < 0) throw new Error('no word games widget in the roster');
         goPage('games', n, true);
+        const _cp = document.querySelector('#s-games #wg-pick'); if (_cp && _cp.value !== 'ws') { _cp.value = 'ws'; ACTIONS['wg-pick'](_cp); }
         window.__seedWs = WS;
         WS = wsBuild_(WS_THEMES.find(t => !t.young));
         const wd = WS.words[0];
@@ -4846,9 +4849,10 @@ const STATES = {
        out, and half of them dimmed is what a sentence in progress looks like. */
     { name: 'a sentence part-built',
       enter: () => {
-        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'scramble');
-        if (n < 0) throw new Error('no sentence scramble widget in the roster');
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'wordgames');
+        if (n < 0) throw new Error('no word games widget in the roster');
         goPage('games', n, true);
+        const _cp = document.querySelector('#s-games #wg-pick'); if (_cp && _cp.value !== 'ss') { _cp.value = 'ss'; ACTIONS['wg-pick'](_cp); }
         window.__seedSs = SS;
         let long = null;
         Object.keys(SS_SENTENCES).forEach(b => SS_SENTENCES[b].forEach(e => {

@@ -88,6 +88,7 @@ const EXEMPT = [
   { file: 'staff.js', fn: 'ctl', has: 'type="range" data-pv', why: 'the Staff hub\'s rate and seat sliders (405) — moved and saved in one sitting; a reload draws the saved rate' },
   { file: 'staff.js', fn: 'ctl', has: 'class="pf-num" data-pv', why: 'the Staff hub\'s rate and seat boxes (405) — typed and saved in one sitting; a reload draws the saved rate' },
   { file: 'me.js', fn: 'signInCard_', has: 'id="in-name"', why: 'the sign-in box — half a handle is not work, and none is kept after (383)' },
+  { file: 'me.js', fn: 'peopleSearchPage_', has: 'data-psearch', why: 'the People search (442) — a handle looked up, not work; half a child\'s handle is better forgotten' },
   { file: 'me.js', fn: 'signInCard_', has: 'id="in-pin"', why: PIN },
   { file: 'me.js', fn: 'registerSheet_', has: 'id="reg-pin"', why: PIN },
   { file: 'me.js', fn: 'kidMakeSec_', has: 'data-kid-new="pin"', why: PIN },
@@ -96,15 +97,13 @@ const EXEMPT = [
   { file: 'me.js', fn: 'settingsPages_', has: 'id="pin-again"', why: PIN },
   { file: 'me.js', fn: 'registerSheet_', has: 'id="reg-noemail"', why: 'reset by the who-is-it question above it, which is asked again on purpose (`REG_NOTE`)' },
   { file: 'me.js', fn: 'friendsSheet', has: 'id="fr-add"', why: 'one handle, typed in seconds and sent by the button beside it' },
-  { file: 'me.js', fn: 'rolesCard_', has: 'data-role-pick', why: 'an admin\'s ticks of somebody else\'s roles — a decision about another person\'s account is made and saved there and then, not left half-made on a device' },
-  /* THE PEOPLE COLUMN'S PERSON FORM (373): rolesCard_'s reason — another person's account, decided and saved there and then. */
+  /* THE PEOPLE COLUMN'S PERSON FORM (373): another person's account, decided and saved there and then. */
   { file: 'me.js', fn: 'box', has: 'data-pf="${k}"', why: PEOPLE_FORM },
   { file: 'me.js', fn: 'personFormHtml_', has: 'data-pf="dob"', why: PEOPLE_FORM },
   { file: 'me.js', fn: 'personFormHtml_', has: 'data-pf-role', why: PEOPLE_FORM },
   { file: 'me.js', fn: 'personFormHtml_', has: 'data-pf-parent', why: PEOPLE_FORM },
   /* AN ADMIN'S REEL OR VIDEO FORM (404): kept in `MEDIA_FORM` as typed, and one link pasted and saved there and then. */
   { file: 'games.js', fn: 'box', has: 'data-mf="${k}"', why: 'an admin adding a reel or video — kept in `MEDIA_FORM` as typed, a paste and a Save, not work left on a device' },
-  { file: 'games.js', fn: 'mediaAgeBoxHtml_', has: 'data-mf="age"', why: 'the minimum age on that same form (406), kept in `MEDIA_FORM` as typed — one number, saved there and then' },
   { file: 'games.js', fn: 'mediaFormHtml_', has: 'data-mf="url"', why: 'one pasted YouTube link, looked up and saved there and then' },
   /* APPLY TO TEACH (400): one sheet filled and sent in a sitting; a reload starts the application again. */
   { file: 'me.js', fn: 'box', has: 'data-app="${k}"', why: 'the application to teach (400) — filled and sent in one sitting from its sheet' },

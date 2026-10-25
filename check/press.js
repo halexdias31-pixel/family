@@ -1083,8 +1083,9 @@ for (const who of VISITORS) {
     {
       const at = await page.evaluate(() => {
         go('games');
-        const i = widgetsOf_('game').findIndex(w => w.id === 'flabby');
+        const i = widgetsOf_('game').findIndex(w => w.id === 'console');
         if (i >= 0) goPage('games', i, true);
+        const _cp = document.querySelector('#s-games #cs-pick'); if (_cp && _cp.value !== 'flabby') { _cp.value = 'flabby'; ACTIONS['cs-pick'](_cp); }
         return i;
       });
       await page.waitForTimeout(900);

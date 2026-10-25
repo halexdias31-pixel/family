@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-24-t-backend-dead";
+const DOPOST_VERSION = "2026-10-25-auto-import";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -1450,17 +1450,20 @@ function doPost(e) {
       /* NOT FROM AN ADDRESS NOBODY HAS PROVED — see `addressPending_`. § */
       if (addressPending_(me)) return jsonOut(confirmFirst_(me, 'you can add your child'));
 
-      const typed = (S(body.firstName) + ' ' + S(body.lastName)).trim();
-      if (!S(body.firstName) || !S(body.lastName)) {
+      /* BY HANDLE (442): the found child's "Add as my child" tile sends the exact handle; names stay for old phones. */
+      const byHandle = S(body.handle).replace(/^@/, '').trim();
+      const typed = byHandle ? '@' + byHandle : (S(body.firstName) + ' ' + S(body.lastName)).trim();
+      if (!byHandle && (!S(body.firstName) || !S(body.lastName))) {
         return jsonOut({ error: 'Both a first name and a last name, please.' });
       }
 
-      /* Matched on both names together. A first name alone matches half a family, and matching
-         loosely is how a parent ends up claiming a child who is not theirs. */
+      /* Matched on both names together, or the whole handle. Matching loosely is how a parent ends up
+         claiming a child who is not theirs. */
       const people = read(TAB.people);
       const hits = people.rows.filter(r =>
         norm(mainRole(r)) === 'student' &&
-        key(S(r.first_name) + ' ' + S(r.last_name)) === key(typed));
+        (byHandle ? key(r.handle) === key(byHandle)
+                  : key(S(r.first_name) + ' ' + S(r.last_name)) === key(typed)));
 
       if (!hits.length) {
         return jsonOut({ error: 'No student called "' + typed + '". Check the spelling — it has '
@@ -1504,6 +1507,27 @@ function doPost(e) {
         + 'Open @family. and accept or decline it — nothing changes until you do.', 'family');
 
       return jsonOut({ success: true });
+    }
+
+    /* FINDING YOUR CHILD BY HANDLE (442) -------------------------------------------------- A child is never listed; one exact handle, one card. */
+    if (action === 'findChild') {
+      const me = findPerson(S(body.name), S(body.personId));
+      if (!me) return jsonOut({ error: 'Not signed in.' });
+      if (!rankAtLeast_(me, 'client')) return jsonOut({ error: 'Only a parent can look up a child.' });
+      /* TWENTY LOOKUPS IN TEN MINUTES per account, so the handle space cannot be walked. */
+      try {
+        const c = CacheService.getScriptCache(), ck = 'FINDCHILD:' + S(me.person_id);
+        const n = Number(c.get(ck) || 0);
+        if (n >= 20) return jsonOut({ error: 'That is a lot of looking — try again in a few minutes.' });
+        c.put(ck, String(n + 1), 600);
+      } catch (e) {}
+      const want = S(body.handle).replace(/^@/, '').trim();
+      if (!want) return jsonOut({ success: true, child: null });
+      const r = read(TAB.people).rows.find(x => norm(mainRole(x)) === 'student' && S(x.handle) && key(x.handle) === key(want));
+      if (!r || S(r.person_id) === S(me.person_id)) return jsonOut({ success: true, child: null });
+      /* THE FIRST NAME AND THE FIGURE ONLY — no surname, no photograph (`faceFig_`). */
+      return jsonOut({ success: true, child: Object.assign({ personId: S(r.person_id), first: S(r.first_name),
+        handle: S(r.handle) }, faceFig_(r)) });
     }
 
     /* The child answering. Only the child named in the row, and only once. */

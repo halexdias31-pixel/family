@@ -131,5 +131,16 @@ function serve(p) {
   return name ? text(name) : null;
 }
 
-module.exports = { ROOT, PRIVATE_DIR, defs, NAMES, isLib, idOf, privateOf, pending, styleOf, rowText, fileText,
+/* THE TWINS WHOSE DRAWINGS THIS CLONE CANNOT SEE (440): a lib_pending row with no words here may own a twin listed in
+   data/diagrams-pending.json; `blind` counts such rows. `pendingTwins(rows)` → { blind, listed:Set, mine:Set }. */
+const TWIN_LIST = path.join(ROOT, 'data', 'diagrams-pending.json');
+function pendingTwins(rows, nameOf) {
+  const def = defs().files.questions;
+  const blind = rows.filter(r => pending(r) && !privateOf(def, r)).length;
+  let listed = [];
+  try { listed = JSON.parse(fs.readFileSync(TWIN_LIST, 'utf8')); } catch (e) { listed = []; }
+  const mine = new Set(rows.filter(r => pending(r) && typeof r.diagram === 'string' && /^\s*<svg\b/i.test(r.diagram)).map(r => nameOf(r.diagram)));
+  return { blind, listed: new Set(Array.isArray(listed) ? listed : []), mine, file: TWIN_LIST };
+}
+module.exports = { pendingTwins, TWIN_LIST, ROOT, PRIVATE_DIR, defs, NAMES, isLib, idOf, privateOf, pending, styleOf, rowText, fileText,
                    privatePath, readPrivate, writePrivate, pinnedMap, seedFromGit, text, rows, serve };
