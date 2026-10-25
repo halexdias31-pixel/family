@@ -11960,6 +11960,10 @@ check('a post\'s faces: a tap adds yours, the same tap takes it back, the total 
   const sheet = d.getElementById('sheet');
   if (!sheet || sheet.classList.contains('hidden')) return bad.concat(['pressing the total opened no sheet']);
   if (title !== '4 reactions') bad.push(`the sheet is titled ${JSON.stringify(title)}, not "4 reactions"`);
+  /* 453: IN THE POST CARD, under its own row, the post still drawn above it — not a page over the feed. */
+  if (!sheet.closest('#s-feed [data-post="PO1"]')) bad.push('who reacted did not open inside the post card');
+  else if (!d.querySelector('#s-feed [data-post="PO1"] .post-by') || d.querySelector('#s-feed [data-post="PO1"]').classList.contains('sheet-swap')) bad.push('who reacted hid the post it belongs to');
+  if (d.body.classList.contains('sheet-open') || (d.getElementById('screen') || {}).inert) bad.push('who reacted took the screen over');
   const groups = () => [...d.querySelectorAll('#sheet-body .rx-group')].map(g => ({
     e: ((g.querySelector('.rx-pill .react-e') || {}).textContent || ''),
     n: ((g.querySelector('.rx-pill .react-n') || {}).textContent || ''),
@@ -28247,6 +28251,34 @@ check('a waiting post (413): dotted with "Waiting for approval" for its author a
   const ada2 = await postOpen_(W, 'tutor@example.org');
   if (!ada2.err) { const t2 = ada2.tiles('PO-W1'); if (t2.includes('post-edit') || !t2.includes('post-delete')) bad.push('once up, Ada\'s post should offer Delete and no Edit: ' + t2.join(',')); }
   [ada, pat, hal].forEach(x => { if (x.errs.length) bad.push('errors: ' + x.errs.join(' | ')); });
+  return bad;
+});
+
+check('Edit post (453) turns the post card into its editor in place — no page over the feed; Back gives the card back', async () => {
+  const W = postWorld_(), bad = [];
+  const ada = await postOpen_(W, 'tutor@example.org');
+  if (ada.err) return [ada.err];
+  const d = ada.d;
+  const card = ada.post('PO-W1');
+  const ed = card && card.querySelector('[data-do="post-edit"]');
+  if (!ed) return ['Ada\'s waiting post has no Edit tile — NOT checked'];
+  ada.A('post-edit', ed);
+  await wait(100);
+  const sheet = d.getElementById('sheet');
+  if (!sheet || sheet.classList.contains('hidden')) return bad.concat(['Edit opened nothing']);
+  if (!sheet.closest('[data-post="PO-W1"]')) bad.push('the editor is not inside the post card');
+  if (!card.classList.contains('sheet-swap')) bad.push('the card did not turn into the editor');
+  /* jsdom draws no stylesheet, so the rule that hides the card's own content is read from style.css. */
+  if (sheet.parentElement !== card) bad.push('the editor is not a direct child of the card, so its hiding rule cannot reach it');
+  const css = fs.readFileSync(path.join(__dirname, '..', 'style.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  if (!/\.sheet-swap\s*>\s*:not\(#sheet\)\s*\{[^}]*display:\s*none/.test(css)) bad.push('nothing in style.css hides the post beside its editor');
+  if (d.body.classList.contains('sheet-open') || (d.getElementById('screen') || {}).inert) bad.push('Edit took the screen over');
+  if (/fixed|absolute/.test(ada.w.getComputedStyle(sheet).position || '')) bad.push('the editor floats');
+  if (!d.getElementById('pe-cap')) bad.push('the editor has no caption box');
+  d.getElementById('sheet-close').click(); await wait(100);
+  if (!sheet.classList.contains('hidden')) bad.push('Back did not close the editor');
+  if (card.classList.contains('sheet-swap') || sheet.closest('[data-post]')) bad.push('Back left the card as an editor');
+  if (ada.errs.length) bad.push('errors: ' + ada.errs.join(' | '));
   return bad;
 });
 

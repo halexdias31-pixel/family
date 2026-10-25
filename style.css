@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-25-p-feed-compose";
+  --css-version: "2026-10-25-q-sheet-in-place";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -759,20 +759,13 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .empty { padding: 2.5rem 1.2rem; text-align: center; color: var(--faint); font-size: .88rem; }
 code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
 
-/* ---------- THE SHEET IS A PAGE (420) ---------------------------------------------------------- */
-/* No backdrop and nothing floating: while it is open the grid steps aside and the sheet is the page, in
-   the flow, with Back at the top. The grid keeps its sizes (out of the flow, unseen, `inert`). */
+/* ---------- THE SHEET OPENS IN PLACE (453) ------------------------------------------------------ */
+/* Inside the card that was pressed, under its tile row; an editor (`.sheet-swap`) replaces the card's own content. */
 #sheet.hidden { display: none !important; }
-body.sheet-open #screen {
-  position: absolute; left: 0; right: 0; top: calc(var(--top) + var(--safe-top));
-  opacity: 0; pointer-events: none;
-}
-#sheet {
-  position: static; width: 100%; max-width: var(--app); margin: 0 auto;
-  display: flex; flex-direction: column;
-  height: calc(100dvh - var(--top) - var(--safe-top) - var(--bar) - var(--safe-bottom));
-  background: var(--bg);
-}
+#sheet { position: static; width: 100%; display: flex; flex-direction: column;
+  margin: .6rem 0 0; border-top: 1px solid var(--line-soft); background: transparent; }
+.sheet-swap > :not(#sheet) { display: none !important; }
+.sheet-swap > #sheet { margin-top: 0; border-top: 0; }
 #sheet-head {
   display: flex; align-items: center; gap: .4rem;
   padding: .35rem var(--pad) .6rem;
@@ -781,7 +774,7 @@ body.sheet-open #screen {
 }
 #sheet-close { color: var(--gold); font: 500 .9rem/1 var(--font); min-height: 44px; min-width: 44px; flex: none;
   display: inline-flex; align-items: center; padding: 0 .4rem 0 0; background: none; border: 0; cursor: pointer; }
-#sheet-body { flex: 1 1 auto; padding: .85rem var(--pad) 1.5rem; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+#sheet-body { flex: 1 1 auto; padding: .6rem 0 .4rem; }
 
 /* ---------- THE TAB BAR IS GONE, AND THE LAST THING IT RESERVED WAS THE ONE THAT STILL WORKED § */
 
