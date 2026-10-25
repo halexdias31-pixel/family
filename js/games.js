@@ -6133,7 +6133,6 @@ const mediaMay_ = () => typeof isAdmin === 'function' && isAdmin();
    Whole years; blank, 0, U, PG or words = everyone. The backend's `mediaAgeOf_`/`mediaAgeCap_` (content.gs) are the same rule. */
 const MEDIA_AGE_MAX = 21;
 const MEDIA_AGE_UNKNOWN = 12;
-const MEDIA_AGE_PICKS = [['U/PG', 0], ['7', 7], ['12', 12], ['15', 15], ['18', 18]];
 function mediaAgeOf_(v) {
   const m = String(v == null ? '' : v).match(/\d+/);
   return m ? Math.min(MEDIA_AGE_MAX, Number(m[0])) : 0;
@@ -6237,14 +6236,12 @@ function mediaFormHtml_(F) {
   </div>`;
 }
 
-/* HOW OLD YOU HAVE TO BE (406): UK-style quick picks and a number; blank or 0 is everyone. */
+/* HOW OLD YOU HAVE TO BE (406): one row with the phone's own picker, every age to the cap; Everyone is 0. */
 function mediaAgeBoxHtml_(F) {
   const now = mediaAgeOf_(F.age);
-  return `<div class="field media-age" role="group" aria-label="Minimum age"><span class="dob-cap">Minimum age to watch</span>
-    <div class="media-age-picks">${MEDIA_AGE_PICKS.map(([say, n]) =>
-      `<button type="button" class="btn quiet${now === n ? ' is-on' : ''}" aria-pressed="${now === n}" data-do="media-age" data-age="${n}">${esc(say)}</button>`).join('')}
-      <input data-mf="age" type="number" inputmode="numeric" min="0" max="${MEDIA_AGE_MAX}" step="1" aria-label="Minimum age in years"
-        value="${now ? now : ''}" placeholder="years"></div></div>`;
+  const ages = Array.from({ length: MEDIA_AGE_MAX + 1 }, (_, n) => n);
+  return `<label class="field media-age"><span>Minimum age to watch</span><select data-do="media-age" aria-label="Minimum age">${
+    ages.map(n => `<option value="${n}"${now === n ? ' selected' : ''}>${n ? n + '+' : 'Everyone (U/PG)'}</option>`).join('')}</select></label>`;
 }
 
 function mediaRedraw_(kind) {
@@ -6304,7 +6301,7 @@ on('media-edit', el => {
 });
 on('media-age', el => {
   if (!MEDIA_FORM || !mediaMay_()) return;
-  const n = mediaAgeOf_(el.getAttribute('data-age'));
+  const n = mediaAgeOf_(el.value);
   MEDIA_FORM.age = n ? String(n) : '';
   mediaRedraw_(MEDIA_FORM.kind);
 });

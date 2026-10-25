@@ -2438,12 +2438,12 @@ const STATES = {
         ACTIONS['register'](tile);
       },
       expect: () => {
-        const who = [...document.querySelectorAll('#sheet-body [data-do="reg-who"]')]
-          .filter(b => b.offsetHeight >= 44).length;
+        const sel = document.querySelector('#sheet-body select#reg-who-in');
+        const who = sel && sel.offsetHeight >= 44 ? sel.querySelectorAll('option[data-who]').length : 0;
         const rest = document.getElementById('reg-rest');
         return who === 2 && rest && rest.hidden ? 2 : 0;
       },
-      wants: 'the register sheet open on its question: two 44px answers and nothing else yet',
+      wants: 'the register sheet open on its question: one 44px picker of two answers and nothing else yet',
       leave: () => { closeSheet(); } },
     /* ---------- AND ANSWERED "A PARENT" § */
     { name: 'making an account as a parent',
@@ -2452,7 +2452,7 @@ const STATES = {
         const tile = document.querySelector('#s-account [data-do="register"]');
         if (!tile) throw new Error('no Make an account tile on the signed-out account column');
         ACTIONS['register'](tile);
-        const b = document.querySelector('#sheet-body [data-do="reg-who"][data-who="parent"]');
+        const b = document.querySelector('#sheet-body #reg-who-in option[data-who="parent"]');
         if (!b) throw new Error('the register sheet does not ask who the account is for');
         ACTIONS['reg-who'](b);
       },
@@ -2474,7 +2474,7 @@ const STATES = {
         if (!tile) throw new Error('no Make an account tile on the signed-out account column');
         ACTIONS['register'](tile);
         /* A STUDENT'S TICK — the question is answered first, or the row is not drawn at all. */
-        const b = document.querySelector('#sheet-body [data-do="reg-who"][data-who="student"]');
+        const b = document.querySelector('#sheet-body #reg-who-in option[data-who="student"]');
         if (!b) throw new Error('the register sheet does not ask who the account is for');
         ACTIONS['reg-who'](b);
         const tick = document.getElementById('reg-noemail');
@@ -3486,7 +3486,7 @@ const STATES = {
       expect: () => {
         const c = document.querySelector('#s-settings .page.on .roles-card');
         if (!c) return 0;
-        const on = r => { const b = c.querySelector(`[data-role-pick="${r}"]`); return b ? b.checked : null; };
+        const on = r => { const b = c.querySelector(`[data-role-pick="${r}"]`); return b ? b.selected : null; };
         return on('tutor') === null && on('client') === true && on('student') === false
           && !c.querySelector('[data-role-pick="admin"]') && !c.querySelector('.role-admin')
           && /waiting for @family/.test((c.querySelector('.roles-said') || {}).textContent || '')
@@ -3597,10 +3597,10 @@ const STATES = {
           && open[0].querySelector('.q-line').getAttribute('aria-expanded') === 'true'
           && [...shelf.querySelectorAll('.q-list .q-line')].length === 7
           && [...shelf.querySelectorAll('.q-list .q-line')].every(visible)
-          && ed.querySelectorAll('[data-do="qual-teach"]').length === 1
-          && (ed.querySelector('.q-cyc .q-cyc-v') || {}).textContent === 'Can teach'
+          && ed.querySelectorAll('select.q-teach').length === 1 && !ed.querySelector('[data-do="qual-teach"]')
+          && ((ed.querySelector('select.q-teach') || {}).selectedOptions || [{}])[0].textContent === 'Can teach'
           && ed.querySelector('.q-cyc').offsetHeight >= 44
-          && ed.querySelectorAll('label.field').length === 5
+          && ed.querySelectorAll('label.field').length === 6
           && [...ed.querySelectorAll('label.field')].every(l => !!(l.querySelector(':scope > span') || {}).textContent)
           && [...ed.querySelectorAll('select[data-me$="_received"] option')].some(o => o.textContent === 'Still studying' && o.value === 'Present')
           && !!tick && !!bin && bin.getBoundingClientRect().left - tick.getBoundingClientRect().right > 60

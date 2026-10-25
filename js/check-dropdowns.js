@@ -9,7 +9,7 @@ const dir = __dirname;
 const root = path.join(dir, '..');
 const read = f => fs.readFileSync(path.join(root, f), 'utf8');
 const appFiles = fs.readdirSync(dir).filter(f => /\.js$/.test(f) && !/^check/.test(f) && !/^_/.test(f));
-const bad = { css: [], markup: [], listeners: [] };
+const bad = { css: [], markup: [], listeners: [], pickers: [] };
 
 /* ---------- WHAT A SELECT IS DRAWN WITH § */
 const selClasses = new Set(), selIds = new Set();
@@ -159,6 +159,35 @@ for (const id of ['drop', 'drop-back']) {
 }
 if (/role="listbox"/.test(html)) bad.markup.push('index.html draws a role="listbox" — a list of the app\'s own, outside every card');
 
+/* ---------- 2b. A LIST CHOICE DRAWN BY THE APP: one-of-a-list is a native <select> on one row (owner, 25 October). */
+/* Radios, a radiogroup, listbox or menu, or option buttons in a form row stand in for the phone's picker.
+   A question's multiple-choice answers and tiles are not lists, so no signal names them. */
+const PICKER_SIGNS = [
+  [/role="(?:radiogroup|radio|listbox|option|menu|menuitem|menuitemradio)"/g, m => `${m} — a list of the app's own where the phone's picker belongs`],
+  [/<input\b[^>]*\btype="radio"/g, () => 'a radio button — one of a list is a <select> on one row'],
+  [/setAttribute\(\s*'aria-checked'/g, () => 'a button made to read checked — an option button standing in for a select'],
+];
+/* PRESSED BUTTONS IN A GROUP THAT ARE NOT ONE OF A LIST, one reason each. */
+const PICKER_OK = [
+  /class="reacts" role="group"/,   // reactions: several at once, each a toggle on the post, not an answer to a question
+];
+let pickerFilesRead = 0;
+for (const f of appFiles.map(f => 'js/' + f).concat(['index.html'])) {
+  const src = read(f).replace(/<!--[\s\S]*?-->/g, '');
+  pickerFilesRead++;
+  for (const [re, why] of PICKER_SIGNS) {
+    for (const m of src.matchAll(re)) bad.pickers.push(`${f}:${src.slice(0, m.index).split('\n').length} — ${why(m[0])}`);
+  }
+  /* OPTION BUTTONS INSIDE A FORM ROW: a `field` whose body, up to its close, holds a pressed-state button. */
+  for (const m of src.matchAll(/class="field\b[^"]*"|role="group"/g)) {
+    const rest = src.slice(m.index, m.index + 1200);
+    const end = rest.search(/<\/label>|<\/div>/);
+    const body = end < 0 ? rest : rest.slice(0, end);
+    if (PICKER_OK.some(ok => ok.test(src.slice(m.index - 120, m.index + 80)))) continue;
+    if (/<button\b[^>]*aria-pressed/.test(body)) bad.pickers.push(`${f}:${src.slice(0, m.index).split('\n').length} — option buttons inside a form row (aria-pressed) — one of a list is a <select>`);
+  }
+}
+
 /* ---------- 3. THE LISTENERS § */
 const PRESS = new Set(['click', 'mousedown', 'pointerdown', 'touchstart', 'touchend', 'focus', 'focusin']);
 let listenersRead = 0;
@@ -276,6 +305,8 @@ const say = (title, rows) => {
 say('A SELECT THE FINGER CANNOT REACH', bad.css);
 say('A PANEL FOR A SELECT\'S LIST, IN THE MARKUP', bad.markup);
 say('A LISTENER STANDING IN FRONT OF A SELECT', bad.listeners);
+bad.pickers = [...new Set(bad.pickers)];
+say('A LIST CHOICE THE APP DRAWS ITSELF', bad.pickers);
 const blind = [];
 if (!selectsSeen) blind.push('no `<select` found in js/ or index.html — the class list for section 1 is empty');
 if (rulesRead < 500) blind.push(`only ${rulesRead} rules read from style.css — the stylesheet was NOT read`);
@@ -283,12 +314,13 @@ if (listenersRead < 10) blind.push(`only ${listenersRead} press listeners read �
 /* THE GUARD IS THREE STATEMENTS IN shell.js TODAY. None found means the pattern no longer matches what
    is written there, and the listener it sits in would be read with the guard still in it. */
 if (!guardsSeen) blind.push('the swipe guard\'s `closest(FIELD_ACTS_)` statements were not found — the exemption matched nothing');
+if (pickerFilesRead < 10) blind.push(`only ${pickerFilesRead} files read for list pickers — js/ was NOT read`);
 if (!wrappers.length) blind.push('no element was found around any select — the wrapper half of section 1 read nothing');
 if (blind.length) say('COULD NOT REACH ITS SUBJECT', blind);
 console.log(`\nread ${rulesRead} rules, ${selectsSeen} <select>s drawn with ${selClasses.size} class(es) and ${selIds.size} id(s) `
           + `inside ${new Set(wrappers.map(w => w.tag + '.' + w.classes.join('.'))).size} kinds of wrapper, `
           + `and ${listenersRead} press/focus listeners in ${Object.keys(asts).length} files (${guardsSeen} swipe-guard statements taken out)`);
-const n = bad.css.length + bad.markup.length + bad.listeners.length + blind.length;
+const n = bad.css.length + bad.markup.length + bad.listeners.length + bad.pickers.length + blind.length;
 console.log(n ? '\nFAIL — something stands between a finger and the platform\'s own list.'
               : '\nOK — every dropdown is the platform\'s own, and nothing stands in front of one.');
 process.exit(n ? 1 : 0);

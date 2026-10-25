@@ -669,12 +669,18 @@ function reportDevice_() {
   } catch (e) { return ''; }
 }
 
+/* THE REASON IS ONE ROW WITH THE PHONE'S OWN PICKER, never a stack of buttons standing in for a select. */
+function repWhyRow_(list) {
+  return `<label class="field rep-why"><span>What is wrong</span><select class="rep-why-in" aria-label="What is wrong">
+      <option value="" selected>Choose</option>${list.map(([id, say]) => `<option value="${esc(id)}">${esc(say)}</option>`).join('')}</select></label>`;
+}
+const repWhy_ = form => String(((form && form.querySelector('select.rep-why-in')) || {}).value || '');
+
 function reportForm_(x, finder) {
   const label = [x.name, x.sub].filter(Boolean).join(' · ');
   return `<div class="me-form rep-form" data-key="${esc(x.key)}" data-finder="${esc(finder || '')}">
     <p class="faint rep-what">${esc(label)}</p>
-    <div class="rep-opts" role="radiogroup" aria-label="What is wrong">${REPORT_WHY.map(([id, say]) =>
-      `<button type="button" class="rep-opt" role="radio" aria-checked="false" data-do="rep-why" data-why="${esc(id)}">${esc(say)}</button>`).join('')}</div>
+    ${repWhyRow_(REPORT_WHY)}
     <label class="field rep-note"><span>Anything else? (optional)</span>
       <textarea class="rep-note-in" rows="2" maxlength="${REPORT_NOTE_MAX}" autocomplete="off"
         placeholder="A few words" aria-label="Anything else about this question"${draftAttr_('rep', x.key)}>${esc(draftVal_('rep', x.key))}</textarea></label>
@@ -694,24 +700,11 @@ on('q-report', el => {
   openSheet('Report this question', reportForm_(x, finder));
 });
 
-on('rep-why', el => {
-  const form = el.closest('.rep-form');
-  if (!form) return;
-  form.querySelectorAll('.rep-opt').forEach(b => {
-    const on = b === el;
-    b.classList.toggle('is-picked', on);
-    b.setAttribute('aria-checked', on ? 'true' : 'false');
-  });
-  form.dataset.why = el.getAttribute('data-why') || '';
-  const said = form.querySelector('.rep-said');
-  if (said) said.textContent = '';
-});
-
 on('rep-send', el => {
   const form = el.closest('.rep-form');
   if (!form || form.classList.contains('is-sending')) return;
   const said = form.querySelector('.rep-said');
-  if (!form.dataset.why) { if (said) said.textContent = 'Choose what is wrong first.'; return; }
+  if (!repWhy_(form)) { if (said) said.textContent = 'Choose what is wrong first.'; return; }
   const k = form.dataset.key;
   let x = null;
   try { x = stuffItemsAll_().find(i => i && i.key === k) || null; } catch (e) { x = null; }
@@ -719,7 +712,7 @@ on('rep-send', el => {
   send_({ action: 'reportQuestion', personId: (USER && USER.personId) || '', questionId: String(k || '').replace(/^q:/, ''),
           paperId: x && typeof paperIdOf_ === 'function' ? paperIdOf_(x.row) : '',
           part: (x && x.qPart) || '', label: x ? [x.name, x.sub].filter(Boolean).join(' · ') : '',
-          reason: form.dataset.why, note: String((box && box.value) || '').slice(0, REPORT_NOTE_MAX),
+          reason: repWhy_(form), note: String((box && box.value) || '').slice(0, REPORT_NOTE_MAX),
           finder: form.dataset.finder || '', device: reportDevice_() },
         { button: el, where: said })
     .then(d => {

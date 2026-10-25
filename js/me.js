@@ -684,16 +684,13 @@ const REG_NOTE = {
 };
 function registerSheet_() {
   openSheet('Make an account', `
-    ${/* NOT A <label>: a label around buttons hands a tap on its caption to the first button inside,
-          which would answer the question for anybody who touched the words above it. */''}
-    <div class="reg-who" id="reg-who" data-who="" role="group" aria-labelledby="reg-who-cap">
-      <p class="reg-cap" id="reg-who-cap">who is the account for? Both are free; teaching starts with "Apply to teach" once you are in.</p>
-      <div class="btn-row">
-        <button type="button" class="btn quiet" data-do="reg-who" data-who="parent"
-                aria-pressed="false">Client — I book and pay</button>
-        <button type="button" class="btn quiet" data-do="reg-who" data-who="student"
-                aria-pressed="false">Student — I'm learning</button>
-      </div>
+    ${/* ONE ROW WITH THE PHONE'S OWN PICKER, starting on Choose: nothing is answered for anybody. */''}
+    <div class="reg-who" id="reg-who" data-who="">
+      <p class="reg-cap" id="reg-who-cap">Both are free; teaching starts with "Apply to teach" once you are in.</p>
+      <label class="field"><span>who is the account for?</span><select id="reg-who-in" data-do="reg-who" aria-describedby="reg-who-cap">
+        <option value="" selected disabled>Choose</option>
+        <option value="parent" data-who="parent">Client — I book and pay</option>
+        <option value="student" data-who="student">Student — I'm learning</option></select></label>
     </div>
     <div id="reg-rest" hidden>
       ${/* THE TWO NAMES SHARE A ROW, as on "Make your child's account" — measured: § */
@@ -729,13 +726,12 @@ const regWho_ = () => {
 on('reg-who', el => {
   const row = $('reg-who');
   if (!row || !el) return;
-  const who = el.dataset.who === 'parent' ? 'parent' : 'student';
+  /* THE SELECT ON A CHANGE; a check may hand one of its options. */
+  const sel = $('reg-who-in'), v = el.tagName === 'OPTION' ? el.value : (el.value || el.dataset.who);
+  if (v !== 'parent' && v !== 'student') return;
+  const who = v;
   row.dataset.who = who;
-  row.querySelectorAll('[data-do="reg-who"]').forEach(b => {
-    const on_ = b.dataset.who === who;
-    b.classList.toggle('on', on_);
-    b.setAttribute('aria-pressed', on_ ? 'true' : 'false');
-  });
+  if (sel) sel.value = who;
   const rest = $('reg-rest'); if (rest) rest.hidden = false;
   const tick = $('reg-noemail'), tickRow = tick && tick.closest('.reg-kid');
   if (tickRow) tickRow.hidden = who !== 'student';
@@ -1289,8 +1285,7 @@ on('msg-report', el => {
   if (!m) { toast('That message is not loaded — try again in a moment.'); return; }
   openSheet('Report this message', `<div class="me-form rep-form msg-rep-form" data-id="${esc(id)}">
     <p class="faint rep-what">From ${esc(m.fromName || m.withName || 'someone')}${m.body ? ': “' + esc(String(m.body).slice(0, 80)) + (String(m.body).length > 80 ? '…' : '') + '”' : ''}</p>
-    <div class="rep-opts" role="radiogroup" aria-label="What is wrong">${MSG_REPORT_WHY.map(([k, say]) =>
-      `<button type="button" class="rep-opt" role="radio" aria-checked="false" data-do="rep-why" data-why="${esc(k)}">${esc(say)}</button>`).join('')}</div>
+    ${repWhyRow_(MSG_REPORT_WHY)}
     <label class="field rep-note"><span>Anything else? (optional)</span>
       <textarea class="rep-note-in" rows="2" maxlength="300" autocomplete="off" placeholder="A few words"
         aria-label="Anything else about this message"${draftAttr_('msg-rep', id)}>${esc(draftVal_('msg-rep', id))}</textarea></label>
@@ -1302,9 +1297,10 @@ on('msg-report-send', el => {
   const form = el.closest('.msg-rep-form');
   if (!form || !USER) return;
   const said = form.querySelector('.rep-said');
-  if (!form.dataset.why) { if (said) said.textContent = 'Choose what is wrong first.'; return; }
+  const why = repWhy_(form);
+  if (!why) { if (said) said.textContent = 'Choose what is wrong first.'; return; }
   const id = form.dataset.id;
-  const say = (MSG_REPORT_WHY.find(r => r[0] === form.dataset.why) || [])[1] || form.dataset.why;
+  const say = (MSG_REPORT_WHY.find(r => r[0] === why) || [])[1] || why;
   const note = String((form.querySelector('.rep-note-in') || {}).value || '').trim().slice(0, 300);
   send_({ action: 'flagMessage', name: USER.name, personId: USER.personId || '', messageId: id,
           reason: say + (note ? ' — ' + note : '') }, { button: el, where: said })
@@ -1951,10 +1947,11 @@ function rolesSaid_() {
 const rolesPickable_ = () => !!USER && rank_() === 'client';
 function rolesCard_() {
   const name = brand('name', '@family.');
-  const picks = rolesPickable_() ? ROLE_PICKS.filter(([r]) => r !== 'tutor').map(([r, label, note]) => `<label class="check role-pick">
-      <input type="radio" name="role-pick" data-role-pick="${r}"${r === 'client' ? ' checked' : ''}>
-      <span class="box"></span><span class="role-pick-say"><b>${esc(label)}</b>
-        <span class="faint">${esc(note)}</span></span></label>`).join('')
+  /* ONE ROW, THE PHONE'S OWN PICKER; each choice's note in one faint line beneath. */
+  const can = rolesPickable_() ? ROLE_PICKS.filter(([r]) => r !== 'tutor') : [];
+  const picks = can.length ? `<label class="field role-pick-row"><span>You are</span><select class="role-pick-in" aria-label="Your role">${
+      can.map(([r, label]) => `<option value="${r}" data-role-pick="${r}"${r === 'client' ? ' selected' : ''}>${esc(label)}</option>`).join('')}</select></label>
+    <p class="faint role-pick-notes">${can.map(([, label, note]) => `<b>${esc(label)}</b>: ${esc(note)}`).join('<br>')}</p>`
     + `<div class="tile-row">${tile_({ icon: 'save', label: 'Save', act: 'roles-save' })}</div>` : '';
   const said = rolesSaid_();
   return `<div class="card roles-card">
@@ -2004,7 +2001,7 @@ on('roles-save', el => {
       /* THE CARD ON THE PAGE NOW, as the success path asks: the payload arriving mid-request
          repaints the column, and the card held from the press would then be a detached copy. */
       const live = document.querySelector('#s-settings .roles-card') || card;
-      [].forEach.call(live.querySelectorAll('[data-role-pick]'), b => { b.checked = b.dataset.rolePick === 'client'; });
+      [].forEach.call(live.querySelectorAll('[data-role-pick]'), b => { b.selected = b.dataset.rolePick === 'client'; });
     });
 });
 
@@ -2582,8 +2579,10 @@ function qualSlot_(i, value, o) {
   q.teach = q.spec || TRUEish_(val('_teach'));
   q.first = !!o.first;
   /* ONE CONTROL THAT CYCLES (440): each tap moves Not teaching → Can teach → Teaches → Not teaching. */
-  const cyc = `<button type="button" class="q-cyc" data-do="qual-teach" data-unlocked aria-label="Teaching: ${esc(qualTeachWord_(q))}, tap to change">
-        <span class="q-cyc-k">Teaching</span>${qualTeachVal_(q)}</button>`;
+  /* TEACHING IS ONE ROW WITH THE PHONE'S OWN PICKER; the line's mark (`q-mark-b`) still cycles without opening it. */
+  const tv = qualTeachKey_(q);
+  const cyc = `<label class="field q-f q-cyc"><span>Teaching</span><select class="q-teach" data-unlocked aria-label="Teaching">${
+      QUAL_TEACH_OPTS_.map(([k, say]) => `<option value="${k}"${k === tv ? ' selected' : ''}>${say}</option>`).join('')}</select></label>`;
   const said = qualSay_(q);
   /* EACH CAPTION IN TWO WORDINGS, a subject's and a certificate's, and the slot's `is-cert` says which
      is shown — so a line that becomes a DBS by a pick changes its captions with no redraw. */
@@ -2627,6 +2626,8 @@ function qualFace_(q) {
       : q.teach ? '<span class="q-can">Can teach</span>' : ''}</span>`;
 }
 /* THE TEACHING STATE IN WORDS, and drawn: gold for Teaches, plain for Can teach, faint for Not teaching. */
+const qualTeachKey_ = q => q.spec ? 'spec' : q.teach ? 'teach' : 'no';
+const QUAL_TEACH_OPTS_ = [['teach', 'Can teach'], ['spec', 'Teaches'], ['no', 'Not teaching']];
 function qualTeachWord_(q) { return q.spec ? 'Teaches' : q.teach ? 'Can teach' : 'Not teaching'; }
 function qualTeachVal_(q) {
   return `<span class="q-cyc-v is-${q.spec ? 'spec' : q.teach ? 'teach' : 'no'}">${qualTeachWord_(q)}</span>`;
@@ -2907,16 +2908,30 @@ on('qual-teach', el => {
     slot = qualReopen_(shelf, slot);
     if (!slot) return;
   }
-  const q = qualRead_(slot), i = slot.dataset.slot;
+  const q = qualRead_(slot);
   if (qualIsCert_(q)) return;
-  const v = QUAL_CYCLE_[q.spec ? 'spec' : q.teach ? 'teach' : 'no'];
+  qualTeachTo_(slot, el, face, QUAL_CYCLE_[qualTeachKey_(q)]);
+});
+/* THE PICKER'S ANSWER, written the same way the mark's cycle is. */
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (!t || !t.matches || !t.matches('.q-shelf select.q-teach')) return;
+  let slot = t.closest('.q-slot');
+  const shelf = t.closest('.q-shelf'), v = t.value;
+  if (slot && !slot.classList.contains('is-open')) slot = qualReopen_(shelf, slot);
+  if (!slot || qualIsCert_(qualRead_(slot))) return;
+  qualTeachTo_(slot, t, false, v);
+});
+function qualTeachTo_(slot, el, face, v) {
+  const i = slot.dataset.slot;
   qualSet_(slot, { ['qual_' + i + '_spec']: v === 'spec' ? 'TRUE' : 'FALSE',
                    ['qual_' + i + '_teach']: v === 'no' ? 'FALSE' : 'TRUE' });
   qualFaceNow_(slot);
+  slot.querySelectorAll('select.q-teach').forEach(sel => { sel.value = v; });
   if (face && !slot.classList.contains('is-open')) { qualSave_(slot).then(ok => { if (ok && slot.isConnected) slot.dataset.was = JSON.stringify(qualValues_(slot)); }); return; }
   qualDirty_(el);
   qualCommit_(slot);
-});
+}
 /* THE NEXT UNUSED SLOT. Moving the element keeps every `data-me` in the form, so a save posts it
    wherever it sits. The `+` is off once the pool is empty (see `qualShelf_`), so this sentence is for a
    press that raced a redraw. */
