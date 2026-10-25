@@ -10734,7 +10734,9 @@ check('an admin adds a person from the "+" above the people column, edits one an
   const pages = t.accountPages();
   const at = pages.findIndex(h => /data-do="person-add"/.test(h)), evieAt = pages.findIndex(h => h.indexOf('>Evie<') !== -1);
   if (pages.filter(h => /data-do="person-add"/.test(h)).length !== 1) bad.push('the admin\'s column does not have exactly one "+"');
-  if (!(at === 0 && evieAt > at)) bad.push('the "+" is at page ' + at + ', not the first card above even the admin\'s own (Evie at ' + evieAt + ')');
+  /* THE HANDLE SEARCH LEADS THE COLUMN (442); the "+" comes next, above even the admin's own card (440). */
+  const lead = /ps-|Find someone by handle/.test(pages[0] || '') ? 1 : 0;
+  if (!(at === lead && evieAt > at)) bad.push('the "+" is at page ' + at + ', not straight after the search and above even the admin\'s own (Evie at ' + evieAt + ')');
   if (/data-do="person-(edit|del)"/.test(pages[1])) bad.push('the admin\'s own card offers Edit or Delete of themselves');
   const evie = pages[evieAt] || '';
   if (!/data-do="person-edit" data-id="P-E1"/.test(evie) || !/data-do="person-del" data-id="P-E1"/.test(evie)) bad.push('Evie\'s card has no Edit and Delete for the admin');
