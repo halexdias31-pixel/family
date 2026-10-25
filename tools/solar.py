@@ -23,7 +23,7 @@
 import math, re, pathlib
 import sys; sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); import anim_row
 
-EARTH_S = 4.0                  # seconds for one Earth year
+EARTH_S = 8.0                  # seconds for one Earth year (419: 4 s made Mercury a blur)
 C = 60.0                       # the Sun, centre of a 120 x 120 viewBox
 R0, DR = 11.0, 6.4             # first orbit, and the step between orbits
 #          name       a (AU)  size  colour     start angle (deg, 0 = right, anticlockwise)
@@ -56,10 +56,26 @@ for i, (name, a, size, col, deg) in enumerate(PLANETS):
                     f'<path d="M{f(x - rx)} {f(y)} A{f(rx)} {f(ry)} 0 0 {sweep} {f(x + rx)} {f(y)}" '
                     f'transform="rotate(-20 {f(x)} {f(y)})"/></g>')
         inner = arc(1) + inner + arc(0)
+    if name == 'earth':
+        # 419: the two arrows of a circular orbit ride with Earth — velocity along the orbit (anticlockwise
+        # from above), gravity towards the Sun — so the speed stays and the velocity's direction turns
+        vx, vy = -math.sin(th), -math.cos(th)
+        gx, gy = (C - x) / r, (C - y) / r
+        inner += (f'<path class="or-v" d="M{f(x)} {f(y)}l{f(9 * vx)} {f(9 * vy)}"/>'
+                  f'<path class="or-g" d="M{f(x)} {f(y)}l{f(7 * gx)} {f(7 * gy)}"/>')
     bodies.append(f'<g class="or-p or-{name}" style="--t: {period:.2f}s">{inner}</g>')
     rules.append(f'/* {name}: a = {a} AU, T = {a ** 1.5:.3f} yr -> {period:.2f}s */')
     if name == 'saturn':
         saturn = period
+
+# 419: WHAT TO WATCH FOR, said one thing at a time on a loop of its own, with Physics chapter 12's words.
+SAY_T = 16.0
+CAPS = [('c0', "the Sun's gravity pulls", 'every planet inwards', 0, 4),
+        ('c1', 'Earth: a steady speed', 'but its velocity keeps turning', 4, 8),
+        ('c2', 'closer in, faster round', 'Mercury: 88 days a lap', 8, 12),
+        ('c3', 'further out, slower', 'Neptune: 165 years a lap', 12, 16)]
+STILL = 'c1'
+def pc(t): return f(100 * t / SAY_T) + '%'
 
 svg = f'''<div id="splash-orbit" aria-hidden="true">
     <svg class="or-svg" viewBox="0 0 120 120">
@@ -73,6 +89,9 @@ svg = f'''<div id="splash-orbit" aria-hidden="true">
       <circle class="or-sun" cx="{f(C)}" cy="{f(C)}" r="4.6"/>
       {chr(10).join('      ' + b for b in bodies).lstrip()}
     </svg>
+    <div class="or-say">
+      {chr(10).join(f'      <span class="or-s or-{c}">{a}<i class="or-ln">{b}</i></span>' for c, a, b, t0, t1 in CAPS).lstrip()}
+    </div>
     <div class="sp-sig">@family.</div>
   </div>'''
 
@@ -88,9 +107,17 @@ css = f'''/* ---------- A SOLAR SYSTEM -----------------------------------------
    seen from above the north pole, so every loop is seamless and the still geometry is a finished
    picture; Saturn's ring counter-turns about the planet so it keeps its tilt. Transform only. */
 {chr(10).join(rules)}
-/* `max-width: 100%` as well as the phone's 64vw: a chapter's card is narrower than the phone. */
-#splash-orbit .or-svg {{ display: block; width: min(64vw, 11rem); max-width: 100%; height: auto; margin: 0 auto; overflow: visible; }}
-.or-path {{ fill: none; stroke: rgb(244 241 232 / .13); stroke-width: .45; }}
+/* `max-width: 100%` as well as the phone's 80vw: a chapter's card is narrower than the phone. */
+#splash-orbit .or-svg {{ display: block; width: min(80vw, 15rem); max-width: 100%; height: auto; margin: 0 auto; overflow: visible; }}
+.or-path {{ fill: none; stroke: var(--paper); stroke-opacity: .13; stroke-width: .45; }}
+.or-v {{ stroke: var(--gold); stroke-width: .9; stroke-linecap: round; }}
+.or-g {{ stroke: #e0605a; stroke-width: .9; stroke-linecap: round; }}
+.or-say {{ display: grid; margin-top: .5rem; min-height: 2.7em; align-items: center; font: 700 1rem/1.3 var(--mono); color: var(--paper); text-align: center; }}
+.or-s {{ grid-area: 1 / 1; }}
+.or-ln {{ display: block; font-style: normal; font-weight: 400; font-size: .85em; opacity: .85; }}
+.or-s:not(.or-{STILL}) {{ opacity: 0; }}
+{chr(10).join(f'.or-{c} {{ animation: or-{c} {SAY_T:g}s ease-in-out infinite; }}' for c, a, b, t0, t1 in CAPS)}
+{chr(10).join(f'@keyframes or-{c} {{ 0%, {pc(t0)} {{ opacity: 0; }} {pc(t0 + .3)}, {pc(t1 - .3)} {{ opacity: 1; }} {pc(t1)}, 100% {{ opacity: 0; }} }}' for c, a, b, t0, t1 in CAPS)}
 .or-sun {{ fill: #f0b45f; }}
 .or-p {{ transform-origin: {f(C)}px {f(C)}px; animation: or-turn var(--t) linear infinite; }}
 .or-ring {{ transform-origin: var(--o); animation: or-back {saturn:.2f}s linear infinite; }}
@@ -99,7 +126,8 @@ css = f'''/* ---------- A SOLAR SYSTEM -----------------------------------------
 @keyframes or-back {{ to {{ transform: rotate(360deg); }} }}
 /* The still is the drawn geometry: every planet at its own starting angle, Saturn's ring tilted. */
 @media (prefers-reduced-motion: reduce) {{
-  .or-p, .or-ring {{ animation: none; opacity: 1; transform: none; }}
+  .or-p, .or-ring, .or-s {{ animation: none; }}
+  .or-p, .or-ring {{ opacity: 1; transform: none; }}
 }}
 
 '''

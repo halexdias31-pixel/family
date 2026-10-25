@@ -80,8 +80,9 @@ const COLLECTIONS = [
 const collOf = r => COLLECTIONS.find(c => c[1](r))[0];
 
 let rows = [], lib = [];
+const LFq = require('../check/lib-full.js');
 try {
-  lib = require('../check/lib-full.js').rows('questions');
+  lib = LFq.rows('questions');
   rows = lib.filter(r => r.kind === 'question');
 } catch (e) { broken.push('data/questions.json did not read: ' + e.message); }
 
@@ -141,7 +142,8 @@ if (Q) {
     rows.forEach(r => {
       const t = vt({ kind: 'question', row: r });
       /* THE FILE'S `function_verified` (397), what the card says before its words arrive, is what the whole row says. */
-      if (r.function_verified !== undefined) {
+      /* A PENDING CARD WHOSE WORDS THIS MACHINE HAS NOT GOT (docs/library.md) has nothing to hold its flag to. */
+      if (r.function_verified !== undefined && !(LFq.pending(r) && !String(r.html || '').trim())) {
         const early = vt({ kind: 'question', row: Object.assign({}, r, { lib_has: 'html' }) }).fn;
         if (early !== t.fn) broken.push(r.row_id + ': function_verified says ' + early + ' but the whole row is ' + t.fn + ' — run node tools/lib-private.js split');
       }

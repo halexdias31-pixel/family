@@ -5287,9 +5287,9 @@ function nesPaint_() {
   if (!USER) { box.innerHTML = '<p class="empty">Sign in to use the console.</p>'; return; }
   if (!box.querySelector('.nes-wrap') && !NES_.full) {
     box.innerHTML = `<div class="nes-wrap" id="nes-wrap">
-      <div class="nes-stage" id="nes-stage"><canvas id="nes-canvas" class="nes-canvas" width="256" height="240"></canvas></div>
+      <div class="nes-stage" id="nes-stage"><canvas id="nes-canvas" class="nes-canvas" width="256" height="240"></canvas><span class="nes-hinge" id="nes-hinge" aria-hidden="true"></span><div class="nes-ctl nes-deco" id="nes-deco" aria-hidden="true"></div></div>
       <div class="nes-legend" id="nes-legend" aria-label="Keys"></div>
-      <div class="nes-pad" id="nes-pad" aria-hidden="true">${nesPadHtml_(NES_.sys)}</div>
+      <div class="nes-ctl nes-pad" id="nes-pad" aria-hidden="true">${nesPadHtml_(NES_.sys)}</div>
       <button type="button" class="nes-key nes-exit" id="nes-exit" aria-label="Leave full screen">×</button>
     </div>
     <p class="faint" id="nes-padnote" hidden>Controller connected</p>
@@ -5450,6 +5450,7 @@ function nesStop_() {
 
 /* EVERY SOURCE (keys, pad, touch) IS OR-ED, then only changes reach the engine. */
 function nesSync_() {
+  nesLight_();
   if (EMU_.ejs) { emuSync_(); return; }
   if (!NES_.nes) return;
   Object.keys(NES_B).forEach(k => {
@@ -5458,6 +5459,16 @@ function nesSync_() {
     NES_.held[k] = on;
     try { on ? NES_.nes.buttonDown(1, NES_B[k]) : NES_.nes.buttonUp(1, NES_B[k]); } catch (e) {}
   });
+}
+
+/* THE DRAWN BUTTONS LIGHT UNDER THE KEYS AND A CONTROLLER (437), so a key list's "X  A" is seen pressing the console's A; touched only when what is held changes. */
+function nesLight_() {
+  const held = Object.assign({}, NES_.keys, NES_.pads), sig = Object.keys(held).sort().join();
+  if (sig === NES_.lit) return;
+  NES_.lit = sig;
+  const d = $('nes-deco');
+  if (d) d.querySelectorAll('[data-k]').forEach(el => el.classList.toggle('is-down', el.dataset.k === 'dpad'
+    ? ['up', 'down', 'left', 'right'].some(k => held[k]) : !!held[el.dataset.k]));
 }
 
 /* EVERY PAD, EVERY FRAME, connected event or not: Safari shows a pad only after a press with the page focused (390). Nintendo positions: right face A, bottom B. */
@@ -5567,7 +5578,7 @@ function nesPadShow_() {
   if (!pad) return;
   const on = nesMode_() === 'touch' && !NES_.padOn;
   pad.classList.toggle('on', on);
-  if (w) w.classList.toggle('nes-has-pad', on);
+  if (w) { w.classList.toggle('nes-has-pad', on); w.classList.toggle('nes-has-deco', !on); }
   if (lg) {
     if (lg.dataset.sys !== NES_.sys) { lg.dataset.sys = NES_.sys; lg.innerHTML = nesLegendHtml_(NES_.sys); }
     lg.hidden = !nesLegendOn_();
@@ -5778,8 +5789,10 @@ window.addEventListener('gamepaddisconnected', () => nesPadsPoll_());
 const NES_ACCEPT = '.nes,.sfc,.smc,.gb,.gbc,.gba,.z64,.n64,.v64,.nds,application/octet-stream,*&#47;*';
 const NES_ROOM = "This device hasn't room to keep the file — pick it each time.";
 const NES_NOT = 'That is not a console game file — it should be a .nes, .sfc/.smc, .gb/.gbc/.gba, .z64/.n64/.v64 or .nds file.';
-/* Each system's picture in pixels, for the stage's shape and the full-screen fit. DS: its two 256x192 screens stacked, top above bottom. */
-const NES_DIMS = { nes: [256, 240], snes: [256, 224], gb: [160, 144], gbc: [160, 144], gba: [240, 160], n64: [320, 240], nds: [256, 384] };
+/* THE DS HINGE (437): melonDS leaves this many picture rows black between its two screens, and the hinge is drawn over exactly them, so no pixel of a game is covered and the pen still lands where it is put. */
+const NES_GAP = 32;
+/* Each system's picture in pixels, for the stage's shape and the full-screen fit. DS: its two 256x192 screens stacked, top above bottom, the hinge's rows between. */
+const NES_DIMS = { nes: [256, 240], snes: [256, 224], gb: [160, 144], gbc: [160, 144], gba: [240, 160], n64: [320, 240], nds: [256, 384 + NES_GAP] };
 /* Systems with four face buttons read a controller by position (right A, bottom B, top X, left Y); two-button ones fold them onto A and B. */
 const NES_FOUR = { snes: 1, n64: 1, nds: 1 };
 /* THE ONE LINE UNDER A HEAVY SYSTEM, said plainly: these run on the page's one thread, and a slow laptop or an older phone shows it (419). */
@@ -5816,22 +5829,24 @@ function nesDs_(u8) {
   return c === (u8[0x15e] | u8[0x15f] << 8);
 }
 
-/* THE TOUCH PAD per system: shoulders where it has them, four face buttons in a diamond on SNES, and A, B, Z and the C buttons on N64. */
-function nesPadHtml_(sys) {
-  const k = (key, label, cls) => `<button type="button" class="nes-key ${cls || 'nes-round'}" data-k="${key}">${label}</button>`;
-  const mid = `<div class="nes-mid">${k('select', 'Select', 'nes-small')}${k('start', 'Start', 'nes-small')}</div>`;
-  const dpad = '<div class="nes-dpad" data-k="dpad"></div>';
+/* THE TOUCH PAD per system: shoulders, a face diamond on SNES and DS, A, B, Z and C on N64 (no Select: it has none).
+   `drawn`: the same buttons as pictures beside the screen while keys play (437), spans. */
+function nesPadHtml_(sys, drawn) {
+  const tag = drawn ? 'span' : 'button', type = drawn ? '' : ' type="button"';
+  const k = (key, label, cls) => `<${tag}${type} class="nes-key ${cls || 'nes-round'}" data-k="${key}">${label}</${tag}>`;
+  const mid = `<div class="nes-mid">${sys === 'n64' ? '' : k('select', 'Select', 'nes-small')}${k('start', 'Start', 'nes-small')}</div>`;
+  const dpad = `<div class="nes-dpad${sys === 'n64' ? ' nes-stick' : ''}" data-k="dpad"></div>`;
   let top = '', face;
   if (sys === 'snes' || sys === 'nds') {
-    top = k('l', 'L', 'nes-small') + k('r', 'R', 'nes-small');
-    face = `<div class="nes-face">${k('x', 'X', 'nes-round nes-n')}${k('y', 'Y', 'nes-round nes-w')}${k('a', 'A', 'nes-round nes-e')}${k('b', 'B', 'nes-round nes-s')}</div>`;
+    top = k('l', 'L', 'nes-small nes-l') + k('r', 'R', 'nes-small nes-r');
+    face = `<div class="nes-face">${k('x', 'X', 'nes-round nes-n nes-x')}${k('y', 'Y', 'nes-round nes-w nes-y')}${k('a', 'A', 'nes-round nes-e nes-a')}${k('b', 'B', 'nes-round nes-s nes-b')}</div>`;
   } else if (sys === 'n64') {
-    top = k('l', 'L', 'nes-small') + k('l2', 'Z', 'nes-small') + k('r', 'R', 'nes-small');
-    face = `<div class="nes-right"><div class="nes-ab">${k('y', 'B')}${k('b', 'A')}</div>`
+    top = k('l', 'L', 'nes-small nes-l') + k('l2', 'Z', 'nes-small nes-z') + k('r', 'R', 'nes-small nes-r');
+    face = `<div class="nes-right"><div class="nes-ab">${k('y', 'B', 'nes-round nes-b')}${k('b', 'A', 'nes-round nes-a')}</div>`
       + `<div class="nes-face nes-c">${k('cu', 'C↑', 'nes-c1 nes-n')}${k('cl', 'C←', 'nes-c1 nes-w')}${k('cr', 'C→', 'nes-c1 nes-e')}${k('cd', 'C↓', 'nes-c1 nes-s')}</div></div>`;
   } else {
-    if (sys === 'gba') top = k('l', 'L', 'nes-small') + k('r', 'R', 'nes-small');
-    face = `<div class="nes-ab">${k('b', 'B')}${k('a', 'A')}</div>`;
+    if (sys === 'gba') top = k('l', 'L', 'nes-small nes-l') + k('r', 'R', 'nes-small nes-r');
+    face = `<div class="nes-ab">${k('b', 'B', 'nes-round nes-b')}${k('a', 'A', 'nes-round nes-a')}</div>`;
   }
   return (top ? `<div class="nes-shoulders">${top}</div>` : '') + dpad + mid + face;
 }
@@ -5846,6 +5861,11 @@ function nesSysSet_(sys) {
   if (pad && pad.dataset.sys !== NES_.sys) {
     pad.dataset.sys = NES_.sys; pad.innerHTML = nesPadHtml_(NES_.sys);
   }
+  const deco = $('nes-deco');
+  if (deco && deco.dataset.sys !== NES_.sys) { deco.dataset.sys = NES_.sys; deco.innerHTML = nesPadHtml_(NES_.sys, true); NES_.lit = null; nesLight_(); }
+  /* THE HINGE over the DS's black rows between its screens, as fractions of the stage so it follows any size. */
+  const hinge = $('nes-hinge');
+  if (hinge) { const [, h] = NES_DIMS[NES_.sys]; hinge.style.top = (NES_.sys === 'nds' ? 19200 / h : 0) + '%'; hinge.style.height = (NES_.sys === 'nds' ? 100 * NES_GAP / h : 0) + '%'; }
   if (note) { note.hidden = !EMU_HEAVY[NES_.sys]; note.textContent = NES_SLOW[NES_.sys] || ''; }
   nesPadShow_();
   nesFit_();
@@ -5933,7 +5953,7 @@ function emuStart_(bytes, sys) {
       gameUrl: bytes, gameName: name, system: core, dataPath: cdn + '@emulatorjs/emulatorjs@' + EMU_VER + '/data/',
       filePaths: files, startOnLoad: true, defaultControllers: none, noAutoFocus: true, disableLocalStorage: true,
       volume: 1, threads, backgroundColor: '#000', buttonOpts: {}, cheats: [],
-      defaultOptions: threads && sys === 'nds' ? { melonds_threaded_renderer: 'enabled' } : {} });
+      defaultOptions: sys === 'nds' ? Object.assign({ melonds_screen_gap: String(NES_GAP) }, threads ? { melonds_threaded_renderer: 'enabled' } : {}) : {} });
     EMU_.ejs = ejs; EMU_.sys = sys; EMU_.key = name; EMU_.ready = false; EMU_.held = {}; EMU_.ax = [];
     const fail = m => { if (EMU_.ejs !== ejs) return; loaded_($('nes-stage')); emuEnd_(); nesTiles_(); nesSay_('This game file could not be started: ' + (m || 'the engine stopped') + '.'); };
     const said = ejs.startGameError.bind(ejs);

@@ -385,6 +385,7 @@ function cardTiles_(x) {
   /* A TUTOR'S ROW LEADS WITH WHAT A VISITOR CAME FOR (414): Message, Share, then the star. */
   const lead = x.kind === 'tutor' ? cardActions_(x) + favTile_(x) : favTile_(x) + cardActions_(x);
   const mine = lead + (typeof readAloudTile_ === 'function' ? readAloudTile_(x) : '')
+    + (typeof hearItTile_ === 'function' ? hearItTile_(x) : '')
     + (typeof speedTile_ === 'function' ? speedTile_(x) : '')
     + finderOpenTile_(x) + (x.more || '');
   const admin = adminTiles_(x, x.topic || null);

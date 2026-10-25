@@ -210,6 +210,8 @@ async function main() {
     try {
       fs.mkdirSync(path.join(tmp, 'tools')); fs.mkdirSync(path.join(tmp, 'data'));
       fs.copyFileSync(path.join(toolDir, 'anim_row.py'), path.join(tmp, 'tools', 'anim_row.py'));
+      /* AND A SHARED KIT (`*_kit.py`, tools/cb_kit.py): a script may build its drawing with one, as it may write it with anim_row. */
+      fs.readdirSync(toolDir).filter(f => /_kit\.py$/.test(f)).forEach(f => fs.copyFileSync(path.join(toolDir, f), path.join(tmp, 'tools', f)));
       const before = books0.split('\n');
       for (const t of writers) {
         fs.writeFileSync(path.join(tmp, 'data', 'textbooks.json'), books0);

@@ -110,9 +110,10 @@ function backend(extra) {
     Logger: { log: () => {} },
     Utilities: {
       getUuid: () => crypto.randomUUID(), sleep: () => {},
-      /* A DAY ASKED FOR AS A DAY. § */
-      formatDate: (d, tz, fmt) => (fmt === 'yyyy-MM-dd' ? new Date(d).toISOString().slice(0, 10)
-                                                         : new Date(d).toISOString()),
+      /* A DAY ASKED FOR AS A DAY, IN THE ZONE ASKED FOR: UTC's day is wrong for the hour after 23:00 UTC in London. § */
+      formatDate: (d, tz, fmt) => (fmt === 'yyyy-MM-dd'
+        ? new Intl.DateTimeFormat('en-CA', { timeZone: tz || 'UTC' }).format(new Date(d))
+        : new Date(d).toISOString()),
       base64Encode: s => Buffer.from(Array.isArray(s) ? s.map(b => b & 255) : String(s)).toString('base64'),
       base64EncodeWebSafe: s => Buffer.from(Array.isArray(s) ? s.map(b => b & 255) : String(s)).toString('base64url'),
       base64Decode: s => Array.from(Buffer.from(String(s), 'base64')),

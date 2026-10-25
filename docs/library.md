@@ -66,6 +66,35 @@ shows what each file did or why it was refused. Only the script account's own fo
 
 A file that has gone in is not undone by deleting it: send another file with the old values (`pull`, then `drive-pack`).
 
+## A card newer than the pinned commit: `lib_pending`
+
+A fresh clone rebuilds `data-private/` from `LIB_SOURCE_COMMIT`, so it can never hold the words of a row added after that
+commit, and `check/lib-full.js` would call the row lost ("run pull"). Such a row carries `lib_pending: "True"` on its card
+— public, kept by `split` like any card column. Three things honour it, and nothing else:
+
+- **`check/lib-full.js`**: a pending row with no words here is a card, not lost. With words in `data-private/` it is
+  joined whole like any row, and the marker stays on it.
+- **`js/check-textbooks.js`**: a pending chapter with none of its three lists here skips the word and worked-line minimums,
+  and an animation under it skips the `about` rule, and the check prints how many it skipped. With the words here,
+  everything is checked.
+- **The site**: a pending card the Ledger answers `missing` for says "Coming soon." in place of "This one is not in the
+  library yet." (`libSay_`, `pending` on the chapter in `library.js`).
+
+Its words reach the Ledger by an import file (`lib-import-*.json`, `{version: 1, files: {textbooks: [{id, …private
+fields}]}, cards: […]}`, which the owner imports in Business) or by `push`. The marker stays on afterwards: a fresh clone's seed still
+lacks the words. Used by the content batch, all merged in 436: `TB-ALEVEL-MATHS` (411), `TB-ALEVEL-PHIL` (418), `TB-KS2-MATHS`
+2–19 (421), English Language and Literature and `TB-KS2-SPAG` (416), History 11–16 (417), Geography 15–18 (423), Computer
+Science 13–14 (424), Business 11–19 and Economics (425), Psychology 9–10 and Sociology 9 (426), the Spanish and French
+Foundation books (427) and RS 12 (418) — one implementation; the copies some of those branches carried (a card that never asked
+and always said Coming soon) were folded into this one. An import file is made with
+`node tools/lib-private.js drive-pack <file> --ids <ids>`; `check-flow`'s journey "a new content card (lib_pending)…"
+holds the site to both answers, with stand-in words where this machine has none.
+
+New past papers: `tools/add-past-paper.js <rows.json>` (rows written by a paper script through `tools/paperspec.py`,
+figures through `tools/pdf_figure.py`; the script with the words stays outside the repository) puts a paper's rows in
+after its cover row, splits them, and marks them pending. Their words reach the Ledger by `push`, or as an import file
+(`{version: 1, files: {questions: [{id, …private fields}]}, cards: {…}}`) through the Drive import (407).
+
 ## The checks
 
 `check/lib-full.js` is the one place the halves are joined: `rows(name)` and `text(name)` give the library whole,
