@@ -40,3 +40,22 @@ also be happening with the Mario games or any of the emulators."
 - check-flow `console saves (446)`: a stand-in EmulatorJS with its own method names — a pause posts the packed
   save keyed by hash and not the file, a repeat is not re-sent, the same file again gets SRAM then state back,
   another file is another key, over 2 MB is not sent and the line says so.
+
+## The same day, on an iPad (owner: "This looks bad on iPad. Also ds isn't working on my iPad.")
+
+- **The NES picture was tall.** The stage was 256:240 (square pixels, 1.067), but a television drew a home
+  console's pixels wider than tall: Mario looked squeezed. `NES_SHOW` (games.js) gives NES, SNES and N64 a
+  4:3 stage (`nesShow_`, used by `nesSysSet_` and full screen's `nesFit_`); handhelds keep square pixels.
+- **The drawn controller was a thin strip** under a big screen with a controller connected (the touch pad
+  is rightly hidden then). Its height is now `--nes-deco-k: max(--nes-deco-h, 13cqw)` and its buttons'
+  size `max(min(1rem, 5.4cqw), 2.9cqw)`, so a wide card draws the body in proportion.
+- **The DS on iPhone/iPad:** could not be reproduced here — no WebKit in this container and the EmulatorJS
+  CDN is not reachable from the browser sandbox. Likely: Safari's per-tab memory with a DS file held three
+  times (the kept copy, the page's copy, the core's file system) next to melonDS's heap, on a page with no
+  SharedArrayBuffer. Rather than fail with no word, `emuStart_` now says plainly on iOS: "DS games do not run
+  on an iPhone or iPad yet. They play on a computer, or on an Android phone or tablet." (`NES_NO_DS_IOS`).
+- **Looked at** (Chromium with an iPad/iPhone user agent and touch; a test pattern drawn on the stage):
+  1180x820 and 820x1180 iPad, 390x844 phone, NES and DS, touch pad / controller connected / full screen.
+  Stage ratios measured: NES 1.333 everywhere (278x209 in the iPad card, 1072x804 full screen landscape,
+  820x615 portrait, 242x181 phone); DS 0.615 (187x304 iPad card, 209x340 phone). With a controller the
+  drawn NES pad is 278x60 under a 278x209 screen in the card, buttons legible.

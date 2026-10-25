@@ -5772,7 +5772,7 @@ function nesFit_() {
   if (!NES_.full || !w || !s) return;
   const W = w.clientWidth || innerWidth, H0 = w.clientHeight || innerHeight;
   const portrait = H0 > W, pad = $('nes-pad'), padH = portrait && pad && pad.classList.contains('on') ? pad.offsetHeight + 16 : 0;
-  const [dw, dh] = NES_DIMS[NES_.sys] || NES_DIMS.nes;
+  const dh = (NES_DIMS[NES_.sys] || NES_DIMS.nes)[1], dw = dh * nesShow_(NES_.sys);
   const H = Math.max(60, H0 - padH - 16), fit = Math.min(W / dw, H / dh), whole = Math.floor(fit);
   const k = whole >= 1 && whole / fit >= 0.9 ? whole : fit;
   s.style.width = Math.floor(dw * k) + 'px'; s.style.height = Math.floor(dh * k) + 'px';
@@ -5876,6 +5876,9 @@ const NES_NOT = 'That is not a console game file — it should be a .nes, .sfc/.
 const NES_GAP = 32;
 /* Each system's picture in pixels, for the stage's shape and the full-screen fit. DS: its two 256x192 screens stacked, top above bottom, the hinge's rows between. */
 const NES_DIMS = { nes: [256, 240], snes: [256, 224], gb: [160, 144], gbc: [160, 144], gba: [240, 160], n64: [320, 240], nds: [256, 384 + NES_GAP] };
+/* THE SHAPE A TELEVISION SHOWED (446): a home console's pixels were wider than tall, so its picture is 4:3; a handheld's are square. */
+const NES_SHOW = { nes: 4 / 3, snes: 4 / 3, n64: 4 / 3 };
+const nesShow_ = sys => NES_SHOW[sys] || NES_DIMS[sys][0] / NES_DIMS[sys][1];
 /* Systems with four face buttons read a controller by position (right A, bottom B, top X, left Y); two-button ones fold them onto A and B. */
 const NES_FOUR = { snes: 1, n64: 1, nds: 1 };
 /* THE ONE LINE UNDER A HEAVY SYSTEM, said plainly: these run on the page's one thread, and a slow laptop or an older phone shows it (419). */
@@ -5940,7 +5943,7 @@ function nesSysSet_(sys) {
   const s = $('nes-stage'), pad = $('nes-pad'), note = $('nes-sysnote'), wrap = $('nes-wrap');
   if (wrap) wrap.dataset.sys = NES_.sys;   // its pad's height, style.css
   /* `--nes-ar` too: the stage's width is capped by the screen's height through it (style.css), so a tall DS picture fits a laptop's screen. */
-  if (s) { const [w, h] = NES_DIMS[NES_.sys]; s.style.aspectRatio = w + ' / ' + h; s.style.setProperty('--nes-ar', String(w / h)); s.dataset.sys = NES_.sys; }
+  if (s) { const ar = nesShow_(NES_.sys); s.style.aspectRatio = String(ar); s.style.setProperty('--nes-ar', String(ar)); s.dataset.sys = NES_.sys; }
   if (pad && pad.dataset.sys !== NES_.sys) {
     pad.dataset.sys = NES_.sys; pad.innerHTML = nesPadHtml_(NES_.sys);
   }
@@ -6011,11 +6014,15 @@ function emuName_(u8, sys) {
   return 'game-' + h.toString(16) + '-' + u8.length.toString(16) + '.' + ({ snes: 'sfc', gb: 'gb', gbc: 'gbc', gba: 'gba', n64: 'z64', nds: 'nds' })[sys];
 }
 
+const emuIos_ = () => /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const NES_NO_DS_IOS = 'DS games do not run on an iPhone or iPad yet. They play on a computer, or on an Android phone or tablet.';
 function emuStart_(bytes, sys) {
   const stage = $('nes-stage');
   if (!stage) return;
   const name = emuName_(bytes, sys);
   if (EMU_.ejs && EMU_.key === name) { emuGo_(); return; }
+  /* NOT THE DS ON AN IPHONE OR IPAD (446): "ds isn't working on my iPad" — melonDS stops there with no word, so a plain one is said instead. */
+  if (sys === 'nds' && emuIos_()) { nesStop_(); emuEnd_(); nesSysSet_(sys); nesTiles_(); nesSay_(NES_NO_DS_IOS); return; }
   nesStop_(); NES_.nes = null; emuEnd_();
   nesSysSet_(sys); nesSay_('');
   NES_.rom = bytes;
@@ -6023,7 +6030,7 @@ function emuStart_(bytes, sys) {
   stage.insertAdjacentHTML('beforeend', loading_());
   emuLib_().then(cdn => {
     if (!$('nes-stage')) return;
-    const ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const ios = emuIos_();
     const core = sys === 'n64' && ios ? 'parallel_n64' : EMU_CORE[sys], pkg = cdn + '@emulatorjs/core-' + core + '@' + EMU_VER + '/';
     const files = { [core + '.json']: pkg + 'reports/' + core + '.json' };
     const threads = emuThreads_();
