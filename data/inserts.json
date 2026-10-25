@@ -435,8 +435,8 @@
   "for_subjects": "Chemistry, Combined Science",
   "for_levels": "GCSE",
   "for_tiers": "",
-  "verified": "True",
-  "verified_note": "The facts of the periodic table insert AQA prints (docs/history/106): atomic number, symbol, name and relative atomic mass, the masses whole except chlorine and copper, and in brackets for an element with no stable isotope. Elements 58 to 71 and from 90 on are left out, as the insert leaves them out.",
+  "verified": "False",
+  "verified_note": "The facts of the periodic table insert AQA prints (docs/history/106): atomic number, symbol, name and relative atomic mass, the masses whole except chlorine and copper, and in brackets for an element with no stable isotope. Elements 58 to 71 and from 90 on are left out, as the insert leaves them out. Written from memory and not yet compared box by box with the insert, so marked unverified.",
   "official": [
    {
     "label": "AQA periodic table insert",

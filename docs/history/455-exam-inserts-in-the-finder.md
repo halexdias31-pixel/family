@@ -7,7 +7,7 @@
 |---|---|---|---|
 | INS-GCSE-MATHS-F / -H | GCSE Maths formulae sheet, Foundation and Higher (2025 to 2027) | AQA, Edexcel, OCR | not yet |
 | INS-GCSE-PHYSICS | GCSE Physics equation sheet (the DfE equations; H and "Physics only" marked) | AQA, Edexcel, OCR | not yet |
-| INS-GCSE-PERIODIC | GCSE Chemistry periodic table (106's insert, now drawn, elements 1-57, 72-89) | AQA | yes |
+| INS-GCSE-PERIODIC | GCSE Chemistry periodic table (106's insert, now drawn, elements 1-57, 72-89) | AQA | not yet |
 | INS-ALEVEL-MATHS | A level Maths formulae booklet, main formulas | Edexcel, AQA, OCR | not yet |
 | INS-ALEVEL-PHYSICS | A level Physics data and formulae, key constants and equations | AQA | not yet |
 
@@ -19,13 +19,17 @@ check-payload sees the key. Its item carries the ordinary facet fields (subject,
 `Insert`) and no flag: the one rule (396) asks it like a paper.
 
 **The paper link** is `insertsFor_`: a question whose Type is a paper and whose subject, level, tier and board are in the
-insert's `for_*` lists gets an `Insert` tile beside the figure tile (`figTile_`), opening the sheet over the page. In the
+insert's `for_*` lists gets an `Insert` tile beside the figure tile (`figTile_`), opening the sheet in place under the question's tile row (`sheetHere_`, 453), Back returning. In the
 fixture: 1115 Higher and 731 Foundation maths questions, 470 physics, 389 chemistry, 154 A level maths, 341 A level physics.
 
 **Accuracy.** The board PDFs could not be fetched from the build machine (proxy). The GCSE maths list was checked
 against Ofqual's 2024 decision as boards' guides and the Edexcel June 2025 exam aid state it; physics against the DfE
-equation list; constants are standard three-figure values. Each sheet says "Not yet checked" until someone compares it
+equation list; constants are standard three-figure values; the periodic table's masses were written from memory, so it is unverified too. Each sheet says "Not yet checked" until someone compares it
 with the official PDF and sets `verified='True'` in the script. Our own wording and layout throughout; every sheet has
 Official tiles to the board's page or PDF, and a Print tile (paper palette, `printing-insh`, as `stmt-print`).
 
 The class prefix is `insh-` because `ins-` belongs to the insertion-sort animation (check-anims).
+
+**A false alarm worth knowing.** Screenshots driven by `finderOpen_` kept showing the first card opened. Signed out,
+Find's first page is *Members only* with no `-controls`, so `paintStuff` returns before rebuilding: a script must sign in
+(`familyUser` in localStorage) before driving Find. Signed in, insert → insert → question each lands on its own card.

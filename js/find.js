@@ -1407,7 +1407,8 @@ function insertCard_(x) {
 }
 on('ins-show', el => {
   const r = insertRow_(el.getAttribute('data-id'));
-  if (r) openSheet(r.name, `<div class="insh">${insertSheet_(r)}</div>`);
+  /* IN PLACE (453): under the question's own tile row, Back gives the page back. */
+  if (r) { sheetHere_(el); openSheet(r.name, `<div class="insh">${insertSheet_(r)}</div>`); }
 });
 on('ins-official', el => {
   const u = String(el.getAttribute('data-url') || '');

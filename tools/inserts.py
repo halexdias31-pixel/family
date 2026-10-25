@@ -280,10 +280,10 @@ ROWS = [
     row(insert_id='INS-GCSE-PERIODIC', name='GCSE Chemistry periodic table',
         summary='The periodic table a GCSE Chemistry or Combined Science candidate is given in the exam.',
         subject='Chemistry', level='GCSE', keystage='KS4', board='AQA', tier='Foundation, Higher',
-        for_subjects='Chemistry, Combined Science', for_levels='GCSE', verified='True',
+        for_subjects='Chemistry, Combined Science', for_levels='GCSE',
         verified_note=('The facts of the periodic table insert AQA prints (docs/history/106): atomic number, symbol, name and relative atomic mass, '
                        'the masses whole except chlorine and copper, and in brackets for an element with no stable isotope. '
-                       'Elements 58 to 71 and from 90 on are left out, as the insert leaves them out.'),
+                       'Elements 58 to 71 and from 90 on are left out, as the insert leaves them out. Written from memory and not yet compared box by box with the insert, so marked unverified.'),
         official=[{'label': 'AQA periodic table insert', 'url': 'https://drive.google.com/file/d/15RfifsYaBRBYNngrVd74BnDwlmAcF5AQ/view'}],
         table='periodic', elements=ELEMENTS),
     row(insert_id='INS-ALEVEL-MATHS', name='A level Maths formulae booklet',
