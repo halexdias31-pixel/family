@@ -304,7 +304,9 @@ function libImpCard_() {
 function libImpSaid_(r) {
   if (!r || !Array.isArray(r.files) || !r.files.length) return '';
   const counts = c => Object.keys(c || {}).map(k => `${k} ${c[k].added} new, ${c[k].replaced} changed${c[k].same ? ', ' + c[k].same + ' unchanged' : ''}`).join('; ');
-  return r.files.map(f => `<p class="faint libimp-file"><b>${esc(f.name)}</b> — ${esc(f.error ? 'not imported: ' + f.error : counts(f.counts) || 'nothing to change')}</p>`).join('');
+  /* AND WHAT IMPORTED BUT CANNOT BE MARKED YET (457, `libSelfTest_`): options with no right one, say -- named, one paragraph */
+  const flagged = f => (Array.isArray(f.flagged) && f.flagged.length ? ' Waiting for a scheme: ' + f.flagged.join('; ') + '.' : '');
+  return r.files.map(f => `<p class="faint libimp-file"><b>${esc(f.name)}</b> — ${esc(f.error ? 'not imported: ' + f.error : (counts(f.counts) || 'nothing to change') + flagged(f))}</p>`).join('');
 }
 /* THE HOURLY RUN (443): when it last found files, and what it imported. */
 function libImpAuto_(a) {
