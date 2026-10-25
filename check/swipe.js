@@ -956,7 +956,7 @@ async function gesture(env, o) {
         else if (!blocks.some(m => /-webkit-user-select:\s*none/.test(m[2]) && /-webkit-touch-callout:\s*none/.test(m[2])))
           fail('NOTHING LIGHTS UP', 'style.css', `the rule on the game card (${blocks[0][1].trim()}) lacks \`-webkit-user-select: none\` or \`-webkit-touch-callout: none\` — the two that iOS Safari reads`);
       }
-      const idx = await page.evaluate(() => widgetsOf_('game').findIndex(w => w.id === 'flabby'));
+      const idx = await page.evaluate(() => { try { localStorage.setItem('cs-game', 'flabby'); } catch (e) {} return widgetsOf_('game').findIndex(w => w.id === 'console'); });
       const g = idx < 0 ? null : await page.evaluate(async i => {
         const wait = ms => new Promise(r => setTimeout(r, ms));
         await window.__sw.place('games', i);

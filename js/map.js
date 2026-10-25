@@ -92,34 +92,19 @@ const WIDGETS = [
     <div id="tt-over" class="hidden"></div>
     <div id="tt-board" class="board"></div>
   </div>` },
-  { id: 'flabby', kind: 'game', name: 'Flabby Pird', start: () => initFlappy?.(),
-    /* DRAWN AHEAD STILL: the board, the canvas fitted, one frame of the scene — and no frame loop, no
-       handler and no key listener, which `initFlappy` puts on (`flappyStill_`, receipt.js). */
-    draw: () => flappyStill_?.(),
-    /* An animation loop, which is the expensive one: sixty frames a second drawn into a canvas
-       off the side of the screen, for as long as the tab is open. */
-    stop: () => { if (typeof flappyState !== 'undefined' && flappyState && flappyState.raf) {
-      cancelAnimationFrame(flappyState.raf); flappyState.raf = null; } },
-    into: 'flappy-canvas', what: 'The game',
-    html: `<div class="card">
-    <h3>Flabby Pird</h3>
-    <p class="sub">Harder than it looks.</p>
-    <canvas id="flappy-canvas" class="flappy"></canvas>
-    <p class="note" id="flappy-msg" style="text-align:center;margin:.4rem 0 0">Tap to play</p>
-    ${rowLive('Score', '0', 'flappy-score')}
-    ${rowLive('Best', '0', 'flappy-best')}
-    <div id="flappy-board" class="board"></div>
-  </div>` },
-  /* CONSOLE (389, 391): jsnes for NES, EmulatorJS for SNES, Game Boy and N64. The game file is the person's own, picked on their device and kept there; `stop` pauses. */
-  { id: 'console', kind: 'game', name: 'Console', start: () => { nesPaint_?.(); nesPadWatch_?.(); },
-    draw: () => nesPaint_?.(),
-    stop: () => { if (typeof nesStop_ === 'function') { nesStop_(); nesPadUnwatch_(); } },
-    into: 'nes-box', what: 'The console',
-    html: `<div class="card">
+  /* CONSOLE (389, 391, 441): game files (jsnes, EmulatorJS), Flabby Pird and the Colliers Wood racer behind one picker — `CONSOLE_GAMES`, games.js. */
+  { id: 'console', kind: 'game', name: 'Console', start: () => initConsole?.(),
+    draw: () => consoleStill_?.(),
+    stop: () => { if (typeof consoleStop_ === 'function') consoleStop_(); },
+    into: 'cs-slot', what: 'The console',
+    get html() {
+      return `<div class="card">
     <h3>Console</h3>
-    <p class="sub">Plays NES, SNES, Game Boy, Game Boy Color, Game Boy Advance, N64 and DS files. Bring your own game file.</p>
-    <div id="nes-box" class="nes-box"></div>
-  </div>` },
+    <label class="mat-sel ws-top"><select id="cs-pick" data-do="cs-pick"
+      aria-label="Which game">${typeof csOptions_ === 'function' ? csOptions_() : ''}</select></label>
+    <div id="cs-slot">${typeof csSlot_ === 'function' ? csSlot_() : ''}</div>
+  </div>`;
+    } },
   /* THE BOARD, NOT THE DRAWING. § */
   /* THE BOARD, which is SVG now rather than three.js — so it draws immediately, needs no loader,
      and leaves nothing running when the widget closes. */
@@ -179,43 +164,8 @@ const WIDGETS = [
     <button class="btn quiet" data-do="maze-again">New maze</button>
   </div>` },
 
-  /* ---------- WORD SEARCH — TWO TAPS, NOT A DRAG § */
-  { id: 'wordsearch', kind: 'game', name: 'Word Search', start: () => initWordSearch?.(),
-    pure: true,
-    into: 'ws-grid', what: 'The grid',
-    html: `<div class="card">
-    <h3>Word Search</h3>
-    <p class="sub">Tap the first letter of a word, then its last.</p>
-    <label class="mat-sel ws-top"><select id="ws-theme" data-do="ws-theme"
-      aria-label="Which words"></select></label>
-    <div id="ws-grid" class="ws"></div>
-    <ul id="ws-words" class="ws-list"></ul>
-    <p class="note" id="ws-said" style="text-align:center;margin:.4rem 0 0"></p>
-    <button class="btn quiet" data-do="ws-again">New puzzle</button>
-  </div>` },
 
-  /* ---------- SENTENCE SCRAMBLE — CUT-UP PAPER ON A PHONE § */
-  { id: 'scramble', kind: 'game', name: 'Sentence Scramble', start: () => initScramble?.(),
-    pure: true,
-    into: 'ss-box', what: 'The sentence',
-    html: `<div class="card">
-    <h3>Sentence Scramble</h3>
-    <p class="sub">Tap the words in order to put the sentence back together.</p>
-    <label class="mat-sel ws-top"><select id="ss-level" data-do="ss-level"
-      aria-label="Level"></select></label>
-    <div id="ss-box"></div>
-    <p class="note" id="ss-said" style="text-align:center;margin:.4rem 0 0"></p>
-  </div>` },
 
-  /* ---------- THE COLLIERS WOOD RACER (426): real roads and heights from `?race=1`, driven in WebGL (racer.js); `stop` pauses the loop. */
-  { id: 'racer', kind: 'game', name: 'Colliers Wood racer', start: () => initRacer?.(),
-    draw: () => raceStill_?.(),
-    stop: () => racerStop_?.(),
-    into: 'race-box', what: 'The street',
-    html: `<div class="card race">
-    <h3>Colliers Wood racer</h3>
-    <div id="race-box" class="race-box"></div>
-  </div>` },
 
   /* `herd` WAS HERE, Herd Mentality's own card, and it is a game inside Word games now — see the note over the `wordgames` entry above. § */
 

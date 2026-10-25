@@ -9199,9 +9199,22 @@ let FAVS = (() => {
 function adoptFavourites_() {
   if (!DATA || !DATA.favourites) return;
   FAVS = new Set(DATA.favourites.map(String));
+  favsMerged_();
   try { localStorage.setItem('favs', JSON.stringify([...FAVS])); } catch (e) {}
 }
 
+/* A STAR ON A WIDGET THAT WAS FOLDED INTO ANOTHER (441) lands on the one it went into, with that game chosen — the choice set once per device, so a later pick stands. */
+const FAV_MERGED = { 'w:flabby': ['w:console', 'cs-game', 'flabby'], 'w:racer': ['w:console', 'cs-game', 'racer'],
+  'w:wordsearch': ['w:wordgames', 'wg-game', 'ws'], 'w:scramble': ['w:wordgames', 'wg-game', 'ss'] };
+function favsMerged_() {
+  Object.keys(FAV_MERGED).forEach(old => {
+    if (!FAVS.has(old)) return;
+    const [to, store, k] = FAV_MERGED[old];
+    FAVS.delete(old); FAVS.add(to);
+    try { if (!localStorage.getItem('merged:' + old)) { localStorage.setItem('merged:' + old, '1'); localStorage.setItem(store, k); } } catch (e) {}
+  });
+}
+favsMerged_();
 const isFav = k => FAVS.has(String(k));
 
 function toggleFav(k, kind) {

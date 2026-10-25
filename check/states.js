@@ -4503,9 +4503,10 @@ const STATES = {
             highscore: 8, ttHighscore: 7 });
         /* `repaint` RATHER THAN `paint`, and the difference is the whole state. § */
         repaint(true);
-        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'flabby');
-        if (n < 0) throw new Error('no Flabby Pird widget in the roster');
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'console');
+        if (n < 0) throw new Error('no console widget in the roster');
         goPage('games', n, true);
+        const _cp = document.querySelector('#s-games #cs-pick'); if (_cp && _cp.value !== 'flabby') { _cp.value = 'flabby'; ACTIONS['cs-pick'](_cp); }
       },
       /* ONE MORE ROW THAN `SCORE_TOP`, and the number is READ OFF THE APP rather than written here: § */
       expect: () => {
@@ -4823,9 +4824,10 @@ const STATES = {
     /* ---------- A WORD SEARCH PART-FOUND, AND A SENTENCE PART-BUILT § */
     { name: 'a word search part-found',
       enter: () => {
-        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'wordsearch');
-        if (n < 0) throw new Error('no word search widget in the roster');
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'wordgames');
+        if (n < 0) throw new Error('no word games widget in the roster');
         goPage('games', n, true);
+        const _cp = document.querySelector('#s-games #wg-pick'); if (_cp && _cp.value !== 'ws') { _cp.value = 'ws'; ACTIONS['wg-pick'](_cp); }
         window.__seedWs = WS;
         WS = wsBuild_(WS_THEMES.find(t => !t.young));
         const wd = WS.words[0];
@@ -4846,9 +4848,10 @@ const STATES = {
        out, and half of them dimmed is what a sentence in progress looks like. */
     { name: 'a sentence part-built',
       enter: () => {
-        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'scramble');
-        if (n < 0) throw new Error('no sentence scramble widget in the roster');
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'wordgames');
+        if (n < 0) throw new Error('no word games widget in the roster');
         goPage('games', n, true);
+        const _cp = document.querySelector('#s-games #wg-pick'); if (_cp && _cp.value !== 'ss') { _cp.value = 'ss'; ACTIONS['wg-pick'](_cp); }
         window.__seedSs = SS;
         let long = null;
         Object.keys(SS_SENTENCES).forEach(b => SS_SENTENCES[b].forEach(e => {
