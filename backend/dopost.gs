@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-25-p-feed-compose";
+const DOPOST_VERSION = "2026-10-25-y-one-toolkit";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -1535,6 +1535,32 @@ function doPost(e) {
       /* THE FIRST NAME AND THE FIGURE ONLY — no surname, no photograph (`faceFig_`). */
       return jsonOut({ success: true, child: Object.assign({ personId: S(r.person_id), first: S(r.first_name),
         handle: S(r.handle) }, faceFig_(r)) });
+    }
+
+    /* ---------- A HAND UP (455): "help me" from a question, for the tutor in the room. Script properties, 30 minutes; no sheet tab. */
+    if (action === 'raiseHand' || action === 'hands') {
+      const me = findPerson(S(body.name), S(body.personId));
+      if (!me) return jsonOut({ error: 'Not signed in.' });
+      const staff = rankAtLeast_(me, 'staff');
+      const lock = LockService.getScriptLock();
+      try { lock.waitLock(5000); } catch (e) {}
+      try {
+        const all = handsRead_();
+        if (action === 'raiseHand') {
+          /* YOUR OWN HAND ONLY; staff may lower anybody's (the tutor's Done), never raise one for them. */
+          const who = S(body.for) || S(me.person_id);
+          if (who !== S(me.person_id) && !(staff && !body.on)) return jsonOut({ error: 'Only your own hand.' });
+          if (body.on) {
+            all[who] = { personId: who, name: (S(me.first_name) + ' ' + S(me.last_name).slice(0, 1)).trim(),
+              handle: S(me.handle), q: S(body.q).slice(0, 120), label: S(body.label).slice(0, 120), at: Date.now() };
+          } else delete all[who];
+          handsWrite_(all);
+        }
+        const mine = all[S(me.person_id)] || null;
+        const out = { success: true, mine: mine };
+        if (staff) out.hands = Object.keys(all).map(k => all[k]).sort((a, b) => a.at - b.at);
+        return jsonOut(out);
+      } finally { try { lock.releaseLock(); } catch (e) {} }
     }
 
     /* The child answering. Only the child named in the row, and only once. */
@@ -3691,7 +3717,9 @@ function aiGemini_(key, models, payload, thinking) {
     }
     let level = body && Object.prototype.hasOwnProperty.call(levels, model) ? S(levels[model]) : '';
     let code = 0, hold = 0, now = false, refused = '';
-    for (let t = 0; t < AI_TRIES; t++) {
+    /* ONLY THE LAST MODEL IS ASKED AGAIN (456): one with another behind it hands off at its first 429, 5xx or throw. */
+    const tries = another ? AI_TRIES_BEFORE_HANDOFF : AI_TRIES;
+    for (let t = 0; t < tries; t++) {
       /* NO WAIT BEFORE A MODEL'S FIRST ASK, NOR BEFORE ITS ASK WITHOUT A REFUSED LEVEL (`now`). A retry
          waits, and is not started past either clock, or when Google has said this model is not back
          before it. */
@@ -3735,7 +3763,7 @@ function aiGemini_(key, models, payload, thinking) {
         said = String((err && err.message) || err).slice(0, 500);
       }
       console.log('aiMark: Gemini answered ' + (code < 0 ? 'nothing (the fetch threw)' : code) + ' for model '
-        + model + ' (try ' + (t + 1) + ' of ' + AI_TRIES + ')' + (level ? ' at thinking level ' + level : '') + ': ' + said);
+        + model + ' (try ' + (t + 1) + ' of ' + tries + ')' + (level ? ' at thinking level ' + level : '') + ': ' + said);
       if (code < 0 || aiAgain_(code)) continue;
       if (code === 404) break;
       /* A 400 TO A REQUEST THAT CARRIED A LEVEL: the same model again, at once, without it -- the same try,

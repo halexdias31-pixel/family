@@ -1585,13 +1585,37 @@ function libExport_(fileKey, from, count) {
   });
   return { success: true, file: S(fileKey), total: total, from: a, rows: rows };
 }
+/* AN ITEM'S OWN ANSWER AGAINST ITS OWN SHAPE (457): § */
+function libSelfTest_(fileKey, c) {
+  if (S(fileKey) !== 'questions' || !c) return null;
+  const choices = S(c.choices).split('|').filter(o => S(o));
+  const right = S(c.choice_right).split('|')[0];
+  if (choices.length >= 2) {
+    if (!right) return { flag: 'it has ' + choices.length + ' options and no choice_right' };
+    const picks = right.split(',').map(v => S(v)).filter(v => v);
+    if (!picks.length || picks.some(v => !/^\d+$/.test(v) || +v < 1 || +v > choices.length)) {
+      return { refuse: 'its choice_right ' + right + ' is not among its ' + choices.length + ' options' };
+    }
+  }
+  if (S(c.cells) && !S(c.cells).split(';').some(cell => { const w = S(cell.replace(/^[^=|]{1,12}?=/, '')); return w && w !== '-'; })) {
+    return { refuse: 'its cells hold no answer to mark by' };
+  }
+  if (S(c.accept) && !S(c.accept).split('|').some(w => S(w))) return { refuse: 'its accept has no way in it' };
+  if (S(c.draw_answer)) {
+    let d = null;
+    try { d = JSON.parse(S(c.draw_answer)); } catch (err) { d = null; }
+    if (!d || !Array.isArray(d.items) || !d.items.length) return { refuse: 'its draw_answer is not a drawing to mark by' };
+  }
+  return null;
+}
+
 /* AN IMPORT REPLACES THE ROW WITH THAT ID, or adds one at the foot. Only the file's private fields, only text and numbers. */
 function libImport_(fileKey, rows) {
   const def = LIB_FILES[S(fileKey)];
   if (!def) return { error: 'Which file? One of ' + Object.keys(LIB_FILES).join(', ') + '.' };
   if (!Array.isArray(rows) || !rows.length) return { error: 'No rows sent.' };
   if (rows.length > LIB_IMPORT_MAX) return { error: 'At most ' + LIB_IMPORT_MAX + ' rows at a time.' };
-  const items = [];
+  const items = [], flagged = [];
   for (let i = 0; i < rows.length; i++) {
     const one = rows[i] || {}, id = S(one.id), c = one.content;
     if (!id || id.length > 160) return { error: 'Row ' + (i + 1) + ' has no id.' };
@@ -1602,6 +1626,9 @@ function libImport_(fileKey, rows) {
     def.private.forEach(f => { if (Object.prototype.hasOwnProperty.call(c, f)) content[f] = c[f]; });
     const json = JSON.stringify(content);
     try { libCells_(json); } catch (err) { return { error: id + ': ' + err.message }; }
+    const self = libSelfTest_(fileKey, content);
+    if (self && self.refuse) return { error: id + ': ' + self.refuse + ' — nothing was written' };
+    if (self && self.flag) flagged.push(id + ': ' + self.flag);
     items.push({ id: id, json: json, sum: libSum_(json) });
   }
   const lock = LockService.getScriptLock();
@@ -1618,7 +1645,7 @@ function libImport_(fileKey, rows) {
       sh.getRange(row, 1, 1, 3 + LIB_PARTS).setValues([libRowOut_(it)]);
     });
     libGenBump_();
-    return { success: true, file: S(fileKey), added: added, replaced: replaced };
+    return { success: true, file: S(fileKey), added: added, replaced: replaced, flagged: flagged };
   } finally {
     lock.releaseLock();
   }
@@ -1756,7 +1783,7 @@ function libDriveParse_(text) {
 
 /* ONE FILE INTO THE LEDGER: merge per id, write, read every row back; any row that does not read back puts every row of the file back as it was. */
 function libDriveApply_(parsed, memo) {
-  const counts = {}, writes = [];
+  const counts = {}, writes = [], flagged = [];
   const keys = Object.keys(parsed.plan);
   /* PLAN EVERYTHING FIRST, so a refusal leaves the Ledger untouched. */
   for (let k = 0; k < keys.length; k++) {
@@ -1782,6 +1809,9 @@ function libDriveApply_(parsed, memo) {
       });
       const json = JSON.stringify(next);
       try { libCells_(json); } catch (err) { return { error: one.id + ': ' + err.message + ' — nothing was written' }; }
+      const self = libSelfTest_(key, next);
+      if (self && self.refuse) return { error: one.id + ': ' + self.refuse + ' — nothing was written' };
+      if (self && self.flag) flagged.push(one.id + ': ' + self.flag);
       if (row && libRowIn_(prevCells).json === json) { c.same++; continue; }
       if (row) c.replaced++;
       else { foot++; row = foot; at[one.id] = row; c.added++; }
@@ -1808,7 +1838,7 @@ function libDriveApply_(parsed, memo) {
     });
     return { error: bad + (restored ? ' — every row of this file was put back as it was' : ' — AND PUTTING THE ROWS BACK FAILED: check the lib_ tabs') };
   }
-  return { counts: counts, written: writes.length };
+  return { counts: counts, written: writes.length, flagged: flagged };
 }
 
 /* THE PRESS (and `?run=libImportDrive`): every waiting file, oldest first, each whole or not at all; a done file moves to `imported`. */
@@ -1845,7 +1875,7 @@ function libImportDrive_(by, auto) {
       let moved = true;
       try { libDriveMove_(f, folder, done); } catch (err) { moved = false; }
       report.imported++;
-      report.files.push({ name: name, counts: one.counts, written: one.written, note: one.note, moved: moved });
+      report.files.push({ name: name, counts: one.counts, written: one.written, note: one.note, moved: moved, flagged: (one.flagged || []).slice(0, 40) });
       libDriveLog_(by, name, one);
     }
     /* EVERY CACHED ITEM AND INDEX IS KEYED BY THE GENERATION: a new one and nobody is served the old words. */

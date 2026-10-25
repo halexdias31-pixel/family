@@ -121,6 +121,7 @@ const SUITE = [
   /* THE COLLIERS WOOD RACER'S MAP (426), built over a fake Overpass, DEM and Drive. */
   /* THE CONSOLE'S SAVES ON THE ACCOUNT (446), over a fake Drive. */
   { file: 'check-console-saves.js', what: 'a console game\'s save on the account: signed in, owner only, a child may, latest only, 2 MB cap, save data only' },
+  { file: 'check-hands.js', what: 'a hand up from a question: signed in, own hand only, staff list oldest first and Done, 30-minute TTL' },
   { file: 'check-race.js', what: 'the racer\'s map: crossings shared, roads every 15 m, the box, DEM fallbacks and cache, ?race=1, an admin builds' },
   /* AN ADMIN'S REELS AND VIDEOS (404), through the real doPost and doGet. */
   { file: 'check-media.js', what: 'an admin adds, edits, hides and deletes a reel or video; others and bad links refused; the payload carries it' },
@@ -154,6 +155,8 @@ const SUITE = [
   { file: 'check-flow.js',    what: 'the app, actually running', slow: true },
   /* ---------- AND THE LIBRARY ITSELF, LAID OUT § */
   { file: 'check/cards.js',   what: 'every question in the library, laid out at phone width', slow: true },
+  /* AND EVERY PART OF IT ANSWERABLE (457): words, sized figures, Zoom and the padlock, a control for its type, its own answer marked right, the pen's instruments */
+  { file: 'check-answerable.js', what: 'every question part in the library can be answered', slow: true },
   /* ---------- AND EVERY LABEL IN EVERY DRAWING, AGAINST ITS OWN LINES § */
   { file: 'check/diagrams.js', what: 'every label in every drawing, clear of its lines', slow: true },
   /* ---------- AND WHETHER A PUSH ACTUALLY ARRIVES § */

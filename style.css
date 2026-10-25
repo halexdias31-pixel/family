@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-25-s-sheet-in-place";
+  --css-version: "2026-10-25-x-one-toolkit";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -1541,6 +1541,9 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 }
 .loading > span:nth-child(2) { animation-delay: .2s; }
 .loading > span:nth-child(3) { animation-delay: .4s; }
+/* SMALL, IN MARK WITH AI'S STAGE LINE (456): the same dots beside the words the owner asked for. */
+.qp-ai-stage > .loading { width: auto; min-height: 1.3em; flex: none; gap: .3rem; }
+.qp-ai-stage > .loading > span { width: .4rem; height: .4rem; }
 /* Opacity and a little scale only — the two a browser can run without laying anything out, so a column of these costs nothing while the app is busiest, which is § */
 @keyframes loading {
   0%, 80%, 100% { opacity: .3; transform: scale(.75); }
@@ -5865,6 +5868,8 @@ button.scr-sq { cursor: pointer; }
 /* THE VERDICT'S LINE, reserved: one line of `.qp-verdict` tall when it is empty, and it wraps rather
    than cutting a sentence off when one is longer. Set in from the edge to sit under the field's words. */
 .qp-compose > .qp-verdict { display: block; min-height: 1.3em; margin: 6px 14px 0; }
+/* MARK WITH AI'S STAGE LINE (456): the dots small and to the left, then where the marking has got to and the seconds. */
+.qp-ai-stage { display: flex; align-items: center; gap: .5rem; margin: 4px 14px 0; color: var(--dim); font-size: .8rem; }
 /* The saved line under the verdict, indented with it to the field's own text (`.qp-saved` below). */
 .qp-compose > .qp-saved { margin: 2px 14px 0; }
 
@@ -6101,6 +6106,14 @@ svg.meas .meas-body, svg.meas .meas-turn, svg.meas .meas-tick, svg.meas .meas-nu
    the sheet holds more than one, small and quiet above it -- a caption, not a heading. */
 .qfig-sheet-k { margin: .9rem 0 0; font-size: .85rem; color: var(--dim); }
 .qfig-sheet-k:first-child { margin-top: 0; }
+/* ZOOM ON EVERY QUESTION (457): the page's words and figures in a sheet, `zoom` set by − / + or two fingers, scrolled both ways inside its own box. */
+.qtool-tiles { margin-top: .9rem; }
+.qzoom-bar { display: flex; gap: .5rem; justify-content: flex-end; margin-bottom: .5rem; }
+.qzoom-k { min-width: 44px; min-height: 44px; font-size: 1.4rem; line-height: 1; color: var(--gold);
+  background: transparent; border: 1px solid var(--line); border-radius: 50%; }
+.qzoom { max-height: 70vh; overflow: auto; overscroll-behavior: contain; touch-action: pan-x pan-y; }
+.qzoom-in figure svg, .qzoom-in figure img { width: 100%; height: auto; }
+[data-do="q-zoom-fig"] { cursor: zoom-in; }
 /* A FIGURE NOBODY HAS DRAWN YET (`figHtml_`): § */
 .qfig-missing { margin: .75rem 0; padding: .6rem 1rem; text-align: center; color: var(--dim);
   border: 1px dashed var(--line); border-radius: .5rem; }
@@ -6654,3 +6667,51 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .asst-text:disabled, .asst-go:disabled { opacity: .5; }
 .asst-form .btn.asst-go { width: auto; flex: 0 0 auto; min-height: 44px; height: 44px; }
 .asst-left, .asst-said, .asst-hello { margin: .35rem 0 0; font-size: .72rem; }
+
+/* ---------- A HAND UP (455): the card a tutor can see from across the room, and the tutor's list ---------- */
+.qcard { --help-red: #d7261e; --help-wash: rgb(215 38 30 / .28); --help-ink: #fff; }
+.qcard.is-help { border: 4px solid var(--help-red); background: var(--help-wash); box-shadow: 0 0 0 3px var(--help-red); }
+.qhelp-tiles { margin-top: .5rem; align-items: center; }
+.qhelp-say { color: var(--help-ink); background: var(--help-red); font-weight: 700; font-size: 1rem;
+             padding: .35rem .7rem; border-radius: var(--r); }
+.qcard.is-help .tile.help-hand { color: var(--help-ink); background: var(--help-red); border-color: var(--help-red); }
+.help-list { --help-red: #d7261e; border-color: var(--help-red); }
+.help-list .help-line { margin: .2rem 0; }
+.help-list .help-none { margin: .2rem 0; }
+/* ---------- AN EXAM INSERT (455): A SHEET OF PAPER ON THE BLACK SCREEN, because it stands for the one handed out in the exam. ---------- */
+.insh-sheet { background: var(--paper); color: var(--paper-ink); border: 1px solid var(--paper-rule); border-radius: 4px;
+  padding: .9rem .85rem; margin: .5rem 0; }
+.insh-sheet h3 { margin: 0 0 .6rem; color: var(--paper-ink); font-size: 1.05rem; }
+.insh-kick { margin: 0 0 .2rem; font: 600 .6rem/1.3 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--paper-dim); }
+.insh-sec h4 { margin: .8rem 0 .35rem; padding-bottom: .2rem; font-size: .78rem; color: var(--paper-dim);
+  border-bottom: 1px solid var(--paper-rule); }
+.insh-sec ul { margin: 0; padding: 0; list-style: none; }
+.insh-sec li { margin: 0 0 .55rem; break-inside: avoid; }
+.insh-fn { display: block; font-size: .68rem; color: var(--paper-dim); }
+.insh-fm { display: block; font-size: .92rem; line-height: 1.7; overflow-wrap: anywhere; }
+.insh-note { display: block; font-size: .62rem; color: var(--paper-faint); }
+.insh-sheet .tb-h { color: var(--paper-ink); border-color: var(--paper-rule); }
+.insh-only { margin-left: .35em; font-size: .58rem; color: var(--paper-faint); }
+.insh-rad { border-top: 1px solid currentColor; padding-top: .05em; }
+.insh-check { margin: .8rem 0 0; font-size: .62rem; line-height: 1.4; color: var(--paper-dim); }
+.insh-check b { color: var(--paper-ink); }
+/* THE TABLE SCROLLS SIDEWAYS INSIDE ITS OWN BOX — eighteen columns do not fit 320px, and the box says it may. */
+.insh-pt-wrap { overflow-x: auto; }
+.insh-pt { display: grid; grid-template-columns: repeat(18, minmax(2.6rem, 1fr)); gap: 2px; min-width: 48rem; }
+.insh-el { display: flex; flex-direction: column; align-items: center; padding: .15rem 0;
+  border: 1px solid var(--paper-rule); font-size: .5rem; line-height: 1.2; text-align: center; }
+.insh-el b { font-size: .9rem; }
+.insh-nm { font-size: .42rem; color: var(--paper-dim); }
+.insh-ar, .insh-z { font-family: var(--mono); }
+.insh-key { margin: .4rem 0 0; font-size: .6rem; color: var(--paper-dim); }
+.insh-paper { display: none; }
+@media print {
+  body.printing-insh { max-width: none !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; }
+  body.printing-insh * { visibility: hidden !important; }
+  body.printing-insh .insh-paper, body.printing-insh .insh-paper * { visibility: visible !important; }
+  body.printing-insh .insh-paper { display: block; position: absolute; left: 0; top: 0; width: 190mm; margin: 10mm; }
+  body.printing-insh .insh-sheet { border: 0; padding: 0; font-size: 11pt; }
+  body.printing-insh .insh-pt-wrap { overflow: visible; }
+  body.printing-insh .insh-pt { min-width: 0; }
+  @page { size: A4 portrait; margin: 0; }
+}

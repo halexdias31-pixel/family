@@ -1372,6 +1372,8 @@ function placeCells(which, instant, dragPx, id) {
   if (dragPx) return placeNow_(which, instant, dragPx, id);
   /* A QUESTION BEING READ ALOUD STOPS WHEN ITS PAGE OR COLUMN IS LEFT (394). */
   if (typeof readAloudStray_ === 'function') readAloudStray_();
+  /* AND A QUESTION'S PADLOCK IS LET GO WHEN A TAB OR LINK LEAVES ITS PAGE (457). */
+  if (typeof qLockStray_ === 'function') qLockStray_();
 
   /* THE FIRST ONE IS NOT DEFERRED. § */
   if (!PLACED_ONCE) { PLACED_ONCE = true; return placeNow_(which, instant, 0, id); }
@@ -2502,7 +2504,7 @@ addEventListener('keydown', e => {
 
   const arrow = ARROWS[e.key];
   if (!arrow) return;
-  if (typeof SWIPE !== 'undefined' && SWIPE.lock) return;   // the console's padlock
+  if (typeof padlocked_ === 'function' && padlocked_()) return;   // the padlock (457)
   /* A modifier means the key belongs to the browser — ⌘← is back, alt+arrow is word-by-word. */
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   /* Typing, or anywhere a caret could be. `isContentEditable` catches the cases a tag name does

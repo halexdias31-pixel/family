@@ -143,6 +143,8 @@ async function push(name) {
     const d = await post({ action: 'libImport', file: name, rows: part.map(id => ({ id: id, content: map[id] })) });
     part.forEach(id => { was[id] = JSON.stringify(map[id]); });
     console.log(name + ': ' + (d.added || 0) + ' added, ' + (d.replaced || 0) + ' replaced');
+    /* AND WHAT THE LEDGER TOOK BUT CANNOT MARK YET (457, libSelfTest_) */
+    (d.flagged || []).forEach(f => console.log('  waiting for a scheme: ' + f));
   }
   sent[name] = was;
   fs.mkdirSync(L.PRIVATE_DIR, { recursive: true });

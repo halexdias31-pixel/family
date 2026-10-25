@@ -219,8 +219,8 @@ function digestRender_(L, P, week, look) {
       html: digestDarkDoc_(ink, '<table role="presentation" class="kb" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="' + ink.page + '" style="background:' + ink.page + '">'
         + '<tr><td align="center" class="kb" bgcolor="' + ink.page + '" style="padding:12px 8px;background:' + ink.page + '">'
         + '<table role="presentation" class="kb" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="' + ink.page + '" style="width:100%;max-width:600px">'
-        + '<tr><td class="kb" bgcolor="' + ink.page + '" style="font-family:' + ink.mono + ';font-size:15px;line-height:1.5;color:' + ink.ink + ';text-align:left">'
-        + body + '</td></tr></table></td></tr></table>'),
+        + '<tr><td class="kb" bgcolor="' + ink.page + '" style="font-family:' + ink.mono + ';font-size:14px;line-height:1.5;color:' + ink.ink + ';text-align:left">'
+        + '<div class="gs"><div class="gd">' + body + '</div></div></td></tr></table></td></tr></table>'),
     };
   };
   let Q = digestQuestions_(items, DIGEST_WEEK_LIST_MAX, opts), m = make(Q);
@@ -239,11 +239,11 @@ function digestRender_(L, P, week, look) {
 
 /* WHAT THE CLIP GIVES UP FIRST: a long source, then a later card's repeat of its paper's tags, then a question's own words. */
 const DIGEST_CUT_FIRST = ['stem', 'tags', 'part'];
-/* THE EMAIL'S COLOURS: the site's black-and-gold screen (style.css `:root`) — page, pane, card, ink, verdicts — and its paper for the answer box (20 Oct, 380). */
+/* THE EMAIL'S COLOURS: the site's black-and-gold screen (style.css `:root`) — page, pane, card, ink, verdicts; no paper, even for the answer box (25 Oct, 457). */
 function digestInk_() {
   return { page: '#000', pane: '#101010', paneLine: '#383838', card: '#0b0b0b', line: '#232323', ink: '#e6e6e6', dim: '#9a9a9a',
            faint: '#848484', chip: '#3d3d3d', gold: '#ffb454', right: '#3ddc84', wrong: '#ff5f56',
-           paper: '#f4f1e8', paperInk: '#2b2620', mono: 'Menlo,Consolas,monospace' };
+           box: '#1a1a1a', mono: "ui-monospace,'SF Mono','Cascadia Mono',Menlo,Consolas,'Courier New',monospace" };
 }
 
 /* DARK EVERYWHERE (the owner, 20 Oct): said dark to every client, Outlook's [data-ogsb]/[data-ogsc] held; no Gmail-app gradient, which keeps the black but not the white words (380). */
@@ -253,7 +253,9 @@ function digestDarkDoc_(ink, inner) {
     + '<meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark">'
     + '<style>:root{color-scheme:dark;supported-color-schemes:dark}html,body{background:' + ink.page + '!important;color:' + ink.ink + '}' + k
     + '[data-ogsb] .kb{background-color:' + ink.page + '!important}[data-ogsb] .kp{background-color:' + ink.pane + '!important}[data-ogsb] .kc{background-color:' + ink.card + '!important}'
-    + '[data-ogsc] .kb{color:' + ink.ink + '!important}</style></head>'
+    + '[data-ogsc] .kb{color:' + ink.ink + '!important}'
+    /* THE GMAIL APP'S DARK MODE INVERTS A DARK EMAIL TO LIGHT (the owner's screenshot, 25 Oct, 457): screen then difference undo it; `.gi` undoes it again for a picture or a colour. */
+    + 'u+.body .kb{background-image:linear-gradient(#000,#000)}u+.body .gs{background:#000;mix-blend-mode:screen}u+.body .gd{background:#000;mix-blend-mode:difference}u+.body .gi{mix-blend-mode:difference}</style></head>'
     + '<body class="body" bgcolor="' + ink.page + '" style="margin:0;padding:0;background:' + ink.page + ';color:' + ink.ink + '">' + inner + '</body></html>';
 }
 
@@ -331,7 +333,7 @@ function digestSummary_(items, days, lib, week) {
   const rows = [];
   for (let i = 0; i < cells.length; i += per) rows.push(cells.slice(i, i + per));
   const cell = c => '<td width="' + wide + '%" valign="top" style="padding:0 6px 10px 0">'
-    + '<div style="font-size:26px;line-height:1.1;font-weight:bold;color:' + c.tone + '">' + c.n + '</div>'
+    + '<div' + (c.tone === ink.ink ? '' : ' class="gi"') + ' style="font-size:24px;line-height:1.1;font-weight:bold;color:' + c.tone + '">' + c.n + '</div>'
     + '<div style="font-size:11px;line-height:1.3;color:' + ink.dim + '">' + digestEsc_(c.say) + '</div></td>';
   const small = (label, text) => '<p style="margin:4px 0 0;font-size:13px;line-height:1.45;color:' + ink.ink + '">'
     + '<span style="color:' + ink.dim + '">' + label + '</span> ' + digestEsc_(text) + '</p>';
@@ -339,7 +341,7 @@ function digestSummary_(items, days, lib, week) {
   const html = '<table role="presentation" class="kp" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="' + ink.pane + '" style="border:1px solid ' + ink.paneLine
     + ';border-radius:14px;margin:4px 0 16px"><tr><td style="padding:16px 14px">'
     /* A HEADING NOBODY SCROLLS PAST (the owner missed the first one, 20 Oct): the size of a title, then the topics before any figure. */
-    + '<p style="margin:0 0 10px;font-size:19px;line-height:1.3;font-weight:bold;color:' + ink.gold + '">Summary of the week</p>'
+    + '<p class="gi" style="margin:0 0 10px;font-size:17px;line-height:1.3;font-weight:bold;color:' + ink.gold + '">Summary of the week</p>'
     + (said ? '<p style="margin:0 0 8px">' + digestEsc_(said) + '</p>' : '')
     + (topicSay.length ? '<p style="margin:0 0 12px"><b>Topics:</b> ' + digestEsc_(digestAnd_(topicSay)) + '</p>' : '')
     + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">'
@@ -401,14 +403,14 @@ function digestQuestions_(items, max, o) {
       + ';border-radius:14px;margin:0 0 14px"><tr><td style="padding:12px 11px">'
       + (tags ? '<div style="font-size:10px;line-height:24px;margin:0 0 8px">' + tags + '</div>' : '') + inner
       /* THE VERDICT IN WORDS AND ITS COLOUR, the summary's own; THEIR ANSWER in the site's answer box, paper ringed in that colour; the ANSWER as the Answers page sets it. */
-      + '<p style="margin:12px 0 0;font-weight:bold;color:' + w.tone + '">' + digestEsc_(w.one || it.mark) + '</p>'
-      + (it.theirs ? head('THEIR ANSWER', 10) + '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="' + ink.paper
-        + '" style="border:3px solid ' + w.tone + ';border-radius:22px;padding:6px 16px;color:' + ink.paperInk + '">' + it.theirs.html + '</td></tr></table>' : '')
-      + (it.right ? head('ANSWER') + '<p style="margin:0;font-size:18px;font-weight:bold">' + it.right.html + '</p>' : '')
+      + '<p class="gi" style="margin:12px 0 0;font-weight:bold;color:' + w.tone + '">' + digestEsc_(w.one || it.mark) + '</p>'
+      + (it.theirs ? head('THEIR ANSWER', 10) + '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="' + ink.box
+        + '" style="border:1px solid ' + ink.paneLine + ';border-radius:18px;padding:4px 14px;color:' + ink.ink + '">' + it.theirs.html + '</td></tr></table>' : '')
+      + (it.right ? head('ANSWER') + '<p style="margin:0;color:' + ink.ink + '">' + it.right.html + '</p>' : '')
       + '</td></tr></table>';
   };
   /* THE TAGS AS PILLS, each its facet's colour (`DIGEST_TAG_INK`); the border takes the text's colour, and a facet with none wears the plain outline. */
-  const pill = t => '<span style="color:' + (DIGEST_TAG_INK[t.kind] || ink.dim) + ';border:1px solid' + (DIGEST_TAG_INK[t.kind] ? '' : ' ' + ink.chip)
+  const pill = t => '<span class="gi" style="color:' + (DIGEST_TAG_INK[t.kind] || ink.dim) + ';border:1px solid' + (DIGEST_TAG_INK[t.kind] ? '' : ' ' + ink.chip)
     + ';border-radius:9px;padding:0 6px">' + digestEsc_(t.text).replace(/ /g, '\u00a0') + '</span>';
   const tagsHtml = list => (list || []).map(pill).join(' ');
   const answerLines = it => (it.theirs ? ['Their answer: ' + it.theirs.text] : []).concat(it.right ? ['Answer: ' + it.right.text] : []);
@@ -765,7 +767,7 @@ function digestDiagram_(svg, site) {
   if (hash.length !== DIGEST_PNG_HEX) return { html: '', text: '[Picture: ' + alt + ']', alt: alt, width: width, src: '' };
   const src = S(site || SITE_URL).replace(/\/*$/, '/') + DIGEST_PNG_DIR + hash + '.png';
   return { src: src, alt: alt, width: width, hash: hash, text: '[Picture: ' + alt + ']',
-           html: '<div style="margin:8px 0"><img src="' + digestEsc_(src) + '" width="' + width + '" alt="' + digestEsc_(alt)
+           html: '<div class="gi" style="margin:8px 0;background:#000"><img src="' + digestEsc_(src) + '" width="' + width + '" alt="' + digestEsc_(alt)
                  + '" style="display:block;width:100%;max-width:' + width + 'px;height:auto;border:0"></div>' };
 }
 
@@ -883,7 +885,12 @@ function digestSendAt_(now, hour) {
   const mins = days * 1440 + hour * 60 - (Number(wall.slice(11, 13)) * 60 + Number(wall.slice(14, 16)));
   if (mins <= 0) return 0;
   const t = d.getTime();
-  return t - (t % 60000) + mins * 60000;
+  let when = t - (t % 60000) + mins * 60000;
+  /* THE CLOCKS CHANGE ON A SUNDAY (25 Oct 2026): minutes counted from now land an hour out, so move by what London's clock says then. */
+  const then = Utilities.formatDate(new Date(when), DIGEST_TZ, 'yyyy-MM-dd HH:mm');
+  const off = Number(then.slice(11, 13)) * 60 + Number(then.slice(14, 16)) - hour * 60;
+  if (off) when -= (off > 720 ? off - 1440 : off < -720 ? off + 1440 : off) * 60000;
+  return when;
 }
 
 

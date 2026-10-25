@@ -118,7 +118,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-25-p-feed-compose";
+const BACKEND_VERSION = "2026-10-25-y-one-toolkit";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -555,6 +555,8 @@ const AI_WAITS = [800, 2000];
 const AI_JITTER = 0.3;
 const AI_BUDGET_MS = 20000;
 const AI_HANDOFF_MS = 10000;
+/* A BUSY MODEL WITH ANOTHER WAITING IS ASKED ONCE (456): the owner's "it takes so long" was 0.8 s + 2 s of waits and two more asks of a full model before the fallback. */
+const AI_TRIES_BEFORE_HANDOFF = 1;
 const AI_BUSY = 'Marking is busy right now — try again in a minute.';
 /* THE THINKING LEVELS EACH PINNED MODEL OFFERS, LOWEST FIRST, as Google's thinking guide lists them § */
 const AI_THINKING_SCALE = ['minimal', 'low', 'medium', 'high'];
@@ -652,6 +654,8 @@ const CONFIG_DEFAULTS = [
 
 /* ---------- A SEED THAT MOVED: `[key, the old value, the old note]` § */
 const CONFIG_RESEEDED = [
+  /* 6PM ON 25 OCT 2026 (457): the sheet's row still said the old seed's 18, so the hour was kept at 18 every admin load. */
+  ['weekly_digest_hour', '18', 'the hour on Sunday, London time, the weekly parent email goes. 0-23, blank = 18. Run installWeeklyDigest again after changing it'],
   ['gemini_model', AI_MODEL_OLD_SEED, 'the Gemini model that marks worded answers. Blank = gemini-flash-latest. The API KEY never goes here: it is GEMINI_API_KEY in Script Properties'],
 ];
 
@@ -1425,6 +1429,20 @@ const MIGRATIONS = [
     run: () => backfillSlotCodes_() },
 ];
 
+/* HANDS UP (455): who wants the tutor, kept 30 minutes in one script property, pruned on every read. */
+const HANDS_KEY = 'HELP_HANDS';
+const HANDS_TTL_MS = 30 * 60 * 1000;
+function handsRead_() {
+  let all = {};
+  try { all = JSON.parse(PropertiesService.getScriptProperties().getProperty(HANDS_KEY) || '{}') || {}; } catch (e) { all = {}; }
+  const now = Date.now();
+  Object.keys(all).forEach(k => { if (!all[k] || !(now - Number(all[k].at) < HANDS_TTL_MS)) delete all[k]; });
+  return all;
+}
+function handsWrite_(all) {
+  try { PropertiesService.getScriptProperties().setProperty(HANDS_KEY, JSON.stringify(all || {})); } catch (e) {}
+}
+
 /* ============================== POST ========================================================= */
 /* ---------- WHO MAY DO WHAT § */
 const ACTION_ACCESS = {
@@ -1466,6 +1484,8 @@ const ACTION_ACCESS = {
   claimChild: 'self', answerClaim: 'self',
   /* A child's card by its exact handle (442); the handler gates Client+ and counts. */
   findChild: 'self',
+  /* A HAND UP FROM A QUESTION (455): the handler checks it is your own, or that Staff+ is lowering it. */
+  raiseHand: 'self', hands: 'self',
   /* All `self`: each handler checks the message is the asker's own, and the POLICY table decides
      who may write to whom. The gate cannot know either, so it only checks somebody is signed in. */
   listRecords: 'admin', saveRecordsPage: 'admin',

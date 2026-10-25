@@ -291,6 +291,8 @@ function boot(opts) {
          under -- and read those marks back -- without writing the key's format out a second time. */
       'drawMark: typeof DRAW_MARK !== "undefined" ? DRAW_MARK : null,' +
       'padKey: typeof padKey_ === "function" ? padKey_ : null,' +
+      /* THE PADLOCK (457), a `const` in overworld.js: which of the console and a question page holds the column still. */
+      'padlock: () => (typeof PADLOCK !== "undefined" ? PADLOCK : null),' +
       /* WHICH TOOL EACH PAD HOLDS, a `const` Map -- so a journey can leave a stale choice behind and
          ask whether the bar, not the Map, decides what a drag draws. */
       'padTool: () => (typeof PAD_TOOL !== "undefined" ? PAD_TOOL : null),' +
@@ -9729,11 +9731,95 @@ check('442, 444: the Student column opens with Find by handle; "Add a person" is
   const { d, w, t } = await psBoot_({ name: 'Hal Admin', personId: 'P-A1', role: 'admin', roles: ['admin'], token: 'tk' });
   try { t.repaint(true); w.paint('biz'); } catch (e) {}
   await wait(100);
-  const first = d.querySelector('#s-account .page');
+  /* STAFF HAVE NEEDS HELP ABOVE IT (455), so Find by handle is the first page after that one. */
+  const first = [...d.querySelectorAll('#s-account .page')].find(p => !p.querySelector('.help-list'));
   const bad = [];
+  if (!d.querySelector('#s-account .page .help-list')) bad.push('an admin\'s Student column has no Needs help card');
   if (!first || !first.querySelector('.ps-card')) bad.push('the Student column does not start with Find by handle');
   if (d.querySelector('#s-account [data-do="person-add"]')) bad.push('"Add a person" is on the Student column');
   if (d.querySelectorAll('#s-biz [data-do="person-add"]').length !== 1) bad.push('Business does not have one "Add a person"');
+  return bad;
+});
+/* ---------- A HAND UP FROM A QUESTION (455) ---------- */
+const HELP_KID_ = { name: 'Ada Pupil', personId: 'P-S1', role: 'student', roles: ['student'], rank: 'student', token: 'tk-s1', handle: 'adapupil' };
+const HELP_Q_ = { kind: 'question', key: 'q-help', name: 'Q3', marks: 1, row: { row_id: 'Q-HELP-3', paper_id: 'P-HELP', subject: 'Maths', name: 'Help' },
+  html: '<p>Work out 12 &divide; 4</p>', answer: '<b>3</b>' };
+const helpDraw_ = w => { const d = w.document.createElement('div'); d.className = 'help-probe';
+  d.innerHTML = w.questionCard_(HELP_Q_) + w.questionAnsCard_(HELP_Q_); w.document.body.appendChild(d); return d; };
+check('455: Help on a question turns its card red, says Waiting for help, tells the tutor, and survives a reload until I\'m OK now', async () => {
+  const bad = [];
+  const r = boot({ before: signedInAs_(HELP_KID_), reply: b => b.action === 'hands' ? { success: true, mine: { personId: 'P-S1', q: 'q-help', at: Date.now() } } : { success: true } });
+  await wait(300);
+  const box = helpDraw_(r.w);
+  const tile = box.querySelector('.qcard .tile[data-do="help-hand"]');
+  if (!tile || !/Help/.test(tile.getAttribute('aria-label'))) { bad.push('a question card has no Help tile'); return bad; }
+  if (box.querySelectorAll('.qcard .tile[data-do="help-hand"]').length < 2) bad.push('the answer page has no Help tile');
+  r.w.__t.ACTIONS['help-hand'](tile);
+  await wait(50);
+  const cards = [...box.querySelectorAll('.qcard')];
+  if (!cards.length || !cards.every(c => c.classList.contains('is-help'))) bad.push('Help did not turn every question card red');
+  if (!/Waiting for help/.test(box.textContent)) bad.push('the card does not say Waiting for help');
+  const t2 = box.querySelector('.tile[data-do="help-hand"]');
+  if (!t2 || !/I’m OK now/.test(t2.getAttribute('aria-label'))) bad.push('the tile did not become "I’m OK now"');
+  const sent = r.sent.find(b => b.action === 'raiseHand');
+  if (!sent || sent.on !== true || sent.q !== 'q-help') bad.push('the tutor was not told: ' + JSON.stringify(sent));
+  let kept = null;
+  try { kept = r.w.localStorage.getItem('familyHelpHand'); } catch (e) {}
+  if (!kept) { bad.push('the hand was not kept on the device'); return bad; }
+  /* A RELOAD: a new app on the same device keeps the card red. */
+  const r2 = boot({ before: w => { signedInAs_(HELP_KID_)(w); w.localStorage.setItem('familyHelpHand', kept); },
+    reply: b => b.action === 'hands' ? { success: true, mine: { personId: 'P-S1' } } : { success: true } });
+  await wait(300);
+  const box2 = helpDraw_(r2.w);
+  if (!box2.querySelector('.qcard.is-help')) bad.push('after a reload the card is not red');
+  r2.w.__t.ACTIONS['help-hand'](box2.querySelector('.tile[data-do="help-hand"]'));
+  await wait(50);
+  if (box2.querySelector('.qcard.is-help') || /Waiting for help/.test(box2.textContent)) bad.push('I’m OK now did not clear the red');
+  const down = r2.sent.filter(b => b.action === 'raiseHand').pop();
+  if (!down || down.on !== false) bad.push('putting the hand down was not sent: ' + JSON.stringify(down));
+  /* THIRTY MINUTES: a stale hand on the device is down by itself. */
+  r2.w.localStorage.setItem('familyHelpHand', JSON.stringify({ q: 'q-help', at: Date.now() - 31 * 60 * 1000 }));
+  if (r2.w.helpGet_()) bad.push('a hand 31 minutes old is still up');
+  return bad;
+});
+check('455: Staff see Needs help at the top of the Student column, oldest first, and Done clears it — the child\'s card goes back on her next poll', async () => {
+  const bad = [];
+  let list = [{ personId: 'P-S2', name: 'Bo P', q: 'Q7', label: 'Q7 algebra', at: Date.now() - 300000 },
+              { personId: 'P-S1', name: 'Ada P', q: 'Q3', label: 'Q3 fractions', at: Date.now() - 60000 }];
+  const r = boot({ reply: b => {
+    if (b.action === 'raiseHand' && b.on === false) { list = list.filter(h => h.personId !== b.for); return { success: true, hands: list }; }
+    return b.action === 'hands' ? { success: true, mine: null, hands: list } : { success: true };
+  } });
+  await wait(300);
+  const t = r.w.__t, d = r.w.document;
+  t.USER({ name: 'Tia Tutor', personId: 'P-T1', role: 'tutor', roles: ['tutor'], rank: 'staff', token: 'tk-t1', handle: 'tiatutor' });
+  t.go('account', false, true); r.w.paint('account');
+  await wait(300);
+  t.go('account', false, true); r.w.paint('account');
+  await wait(50);
+  const first = d.querySelector('#s-account .page');
+  const card = first && first.querySelector('.help-list');
+  if (!card) { bad.push('the Student column does not start with Needs help'); return bad; }
+  const who = [...card.querySelectorAll('.help-who')].map(x => x.getAttribute('data-id'));
+  if (who.join() !== 'P-S2,P-S1') bad.push('Needs help lists ' + who.join() + ', wanted oldest first P-S2,P-S1');
+  if (!/Q7 algebra/.test(card.textContent)) bad.push('the line does not say which question');
+  if (!r.sent.some(b => b.action === 'hands')) bad.push('the tutor\'s column never asked who has a hand up');
+  const done = card.querySelector('.tile[data-do="help-done"][data-id="P-S2"]');
+  if (!done) { bad.push('no Done tile for the first child'); return bad; }
+  t.ACTIONS['help-done'](done);
+  await wait(100);
+  const sent = r.sent.filter(b => b.action === 'raiseHand').pop();
+  if (!sent || sent.on !== false || sent.for !== 'P-S2') bad.push('Done did not lower that hand: ' + JSON.stringify(sent));
+  if (d.querySelector('#s-account .help-who[data-id="P-S2"]')) bad.push('the helped child is still listed');
+  /* THE CHILD'S SIDE: her next poll finds no hand, and her card goes back to normal. */
+  const k = boot({ before: w => { signedInAs_(HELP_KID_)(w); w.localStorage.setItem('familyHelpHand', JSON.stringify({ q: 'q-help', at: Date.now() })); },
+    reply: b => b.action === 'hands' ? { success: true, mine: null } : { success: true } });
+  await wait(300);
+  const box = helpDraw_(k.w);
+  if (!box.querySelector('.qcard.is-help')) bad.push('the child\'s card was not red before the poll');
+  await k.w.helpTick_();
+  await wait(20);
+  if (box.querySelector('.qcard.is-help')) bad.push('after the tutor\'s Done the child\'s card is still red on her next poll');
   return bad;
 });
 check('442: a parent finds their child by the exact handle — first name only, and an "Add as my child" tile', async () => {
@@ -14321,7 +14407,7 @@ check('a drawing question\'s figure takes the first touch: no lock, a tap is a d
 });
 
 /* ---------- A RULER AND A COMPASS ON THE PEN, WHERE THE QUESTION ASKS FOR THEM § */
-check('a ruler draws a straight line and a compass a round circle or arc, offered where the question asks', async () => {
+check('a ruler draws a straight line and a compass a round circle or arc, offered on every question pen (457)', async () => {
   const { w } = boot();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
@@ -14348,8 +14434,9 @@ check('a ruler draws a straight line and a compass a round circle or arc, offere
     });
   const barOf = x => { const h = d.createElement('div'); h.innerHTML = t.padWrap(x, '<svg viewBox="0 0 340 340"></svg>', '');
     return [...h.querySelectorAll('.qpad-tool')].map(b => b.getAttribute('data-tool')).join(' '); };
-  const offered = [[q('Use a ruler.', { key: 'q:T-R' }), 'pen ruler'], [q('Construct the bisector.', { key: 'q:T-C' }), 'pen ruler compass'],
-    [q('Draw the graph.', { key: 'q:T-N' }), ''], [q('Measure the angle.', { key: 'q:T-P', needs: ['Protractor'] }), '']];
+  /* EVERY QUESTION'S PEN HAS ALL THREE SINCE 457 (`qToolkit_`): the words above still say what `padTools_` adds, never what the bar hides */
+  const offered = [[q('Use a ruler.', { key: 'q:T-R' }), 'pen ruler compass'], [q('Construct the bisector.', { key: 'q:T-C' }), 'pen ruler compass'],
+    [q('Draw the graph.', { key: 'q:T-N' }), 'pen ruler compass'], [q('Measure the angle.', { key: 'q:T-P', needs: ['Protractor'] }), 'pen ruler compass']];
   offered.forEach(([x, want]) => {
     if (barOf(x) !== want) bad.push('the bar for "' + x.html.replace(/<[^>]*>/g, '') + '" offers [' + barOf(x) + '], wanted [' + want + ']');
   });
@@ -14443,18 +14530,17 @@ check('a ruler draws a straight line and a compass a round circle or arc, offere
   drag([[110, 60], [120, 70], [130, 66]]);
   s = stored();
   if (s.length !== 2 || s[1].length !== 6) bad.push('the pen did not keep every point of a freehand stroke: ' + JSON.stringify(s[1] || null));
-  /* A STALE CHOICE CANNOT DRAW. The plain question offers no tools; a Compass left for it is the pen. */
+  /* A STALE CHOICE CANNOT DRAW. A tool the bar has not got (a protractor, kept from elsewhere) is the pen. */
   const plain = q('Draw the graph.', { key: 'q:Q-TOOLS-2' });
   const pk = t.padKey(plain);
   try { w.localStorage.removeItem(pk); } catch (e) {}
-  t.padTool().set(pk, 'compass');
+  t.padTool().set(pk, 'protractor');
   host.innerHTML = t.padWrap(plain, '<svg viewBox="0 0 340 170"></svg>', '');
   pad = host.querySelector('.qpad');
   pad.querySelector('.qpad-ink').getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
-  if (pad.querySelector('.qpad-tool')) bad.push('a plain drawing question was given tool tiles');
   drag([[150, 100], [200, 100], [250, 120]]);
   const ps = (() => { try { return JSON.parse(w.localStorage.getItem(pk) || '[]'); } catch (e) { return []; } })();
-  if (ps.length !== 1 || ps[0].length !== 6) bad.push('a pad with no Compass tile drew with a stale compass choice: ' + JSON.stringify(ps).slice(0, 80));
+  if (ps.length !== 1 || ps[0].length !== 6) bad.push('a pad with no Protractor tile drew with a stale protractor choice: ' + JSON.stringify(ps).slice(0, 80));
   t.padTool().delete(pk);
   try { w.localStorage.removeItem(k); w.localStorage.removeItem(pk); } catch (e) {}
   t.padOn('');
@@ -15329,6 +15415,64 @@ check('Mark with AI sends a worded answer by person id, draws marks and a senten
   return bad;
 });
 
+/* ---------- MARK WITH AI SAYS WHERE IT IS (456): "it just says marking ... we didn't feel blind" § */
+check('Mark with AI shows its stages and the seconds beside the dots, says when it is slow, and offers Try again on a failure', async () => {
+  const bad = [];
+  let release = null, mode = 'slow';
+  const { w, sent, errs } = boot({ payload: Object.assign(payload(), { features: ['aiMark'], aiMarking: true }), reply: b => {
+    if (b.action !== 'aiMark') return null;
+    if (mode === 'fail') return { success: false, message: 'Marking is busy right now — try again in a minute.' };
+    return new Promise(ok => { release = () => ok({ success: true, awarded: 1, available: 2, feedback: 'Half there.', left: 9 }); });
+  } });
+  await wait(300);
+  const d = w.document, A = w.__t.ACTIONS;
+  if (!A['qp-ai'] || !A['qp-ai-again']) return ['Mark with AI or its Try again has no handler'];
+  w.__t.USER({ name: 'Sam Student', personId: 'P-S1', token: 'tok-1', role: 'student' });
+  const x = { kind: 'question', key: 'q-ai-stage', name: 'Q1', marks: 2, answerType: 'explain', accept: '',
+    row: { row_id: 'Q-AI-ST', paper_id: 'P-AI', subject: 'Chemistry', name: 'Rates' },
+    html: '<p>Explain why a catalyst speeds up a reaction.</p>', answer: 'It lowers the activation energy.' };
+  try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {}
+  const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0); d.body.appendChild(h);
+  const card = h.querySelector('.qcard'), go = card.querySelector('.qp-ai-go');
+  const ta = card.querySelector('textarea.qp-ans-in');
+  if (!go || !ta) return ['no Mark with AI tile or box was drawn'];
+  ta.value = 'It gives another route with a lower activation energy.';
+  ta.dispatchEvent(new w.Event('input', { bubbles: true }));
+  const realNow = w.Date.now.bind(w.Date), base = realNow();
+  let off = 0;
+  w.Date.now = () => base + off;
+  const say = () => { const s = card.querySelector('.qp-ai .qp-ai-stage-say'); return s ? s.textContent : ''; };
+  const held = w.stuffItemsAll_;
+  w.stuffItemsAll_ = () => [x];
+  try {
+    A['qp-ai'](go);
+    const line = card.querySelector('.qp-ai > .qp-ai-stage');
+    if (!line || !line.querySelector(':scope > .loading')) bad.push('the wait has no stage line with the gold dots in it');
+    if (!/^Sending your work…$/.test(say())) bad.push('the first stage said "' + say() + '" — wanted "Sending your work…"');
+    off = 7000; await wait(650);
+    if (!/^Marking against the scheme… · 7 s$/.test(say())) bad.push('after 7 s the line said "' + say() + '" — wanted "Marking against the scheme… · 7 s"');
+    off = 23000; await wait(650);
+    if (!/^Still working — this one is taking longer than usual · 23 s$/.test(say())) bad.push('after 23 s the line said "' + say() + '" — wanted the slow sentence and 23 s');
+    release(); await wait(50);
+    if (card.querySelector('.qp-ai-stage')) bad.push('a mark that arrived left the stage line behind');
+    if (!/1 of 2 marks/.test(card.querySelector('.qp-ai .qp-verdict').textContent)) bad.push('the mark after a slow wait was not drawn');
+    /* A FAILURE: its reason on the verdict line and a Try again tile, which asks again. */
+    mode = 'fail';
+    A['qp-ai'](go); await wait(50);
+    const again = card.querySelector('.qp-ai-stage [data-do="qp-ai-again"]');
+    if (!/busy right now/.test(card.querySelector('.qp-ai .qp-verdict').textContent)) bad.push('a failed mark did not say why');
+    if (!again || card.querySelector('.qp-ai-stage .loading')) bad.push('a failed mark has no Try again tile, or still shows the dots');
+    const n = sent.filter(b => b.action === 'aiMark').length;
+    mode = 'slow';
+    if (again) A['qp-ai-again'](again);
+    if (sent.filter(b => b.action === 'aiMark').length !== n + 1) bad.push('Try again did not send the answer again');
+    if (!/^Sending your work…$/.test(say().replace(/ · \d+ s$/, ''))) bad.push('Try again did not show the stages again: "' + say() + '"');
+    if (release) release(); await wait(50);
+  } finally { w.stuffItemsAll_ = held; w.Date.now = realNow; }
+  if (errs.length) bad.push('errors: ' + errs.join(' | '));
+  return bad;
+});
+
 /* ---------- AN ESSAY IS WRITTEN ON A SHEET, IN PARAGRAPHS, AND MARKED WHOLE § */
 check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragraphs, the words are counted, and Mark with AI sends all of it', async () => {
   const ID = 'Q-R0398-5';
@@ -16077,7 +16221,9 @@ check('a question answered on a diagram has a surface: a grid under the pen, or 
   /* AND ITS PEN IS OVER THAT PICTURE, IN THE CARD'S SHEET, AND THE PICTURE IS NOWHERE ELSE (356). */
   const ownFace = ownCard.querySelector('.qsheet .qpad .qpad-art > svg:first-child');
   if (!ownFace || ownFace.classList.contains('qsurf')) bad.push('a drawing question with its own picture does not draw that picture under the pen in its card');
-  if (ownCard.querySelectorAll('svg circle').length !== 1) bad.push('a drawing question\'s own picture is drawn ' + ownCard.querySelectorAll('svg circle').length + ' times on its card');
+  /* THE PICTURE'S CIRCLES, not a tile's mark: the Compass tile is on every pen since 457 */
+  const circ = [...ownCard.querySelectorAll('svg circle')].filter(c => !c.closest('.tile-i')).length;
+  if (circ !== 1) bad.push('a drawing question\'s own picture is drawn ' + circ + ' times on its card');
   const stemmed = q('stem', { answerType: 'drawing', stems: [{ id: 'S-SURF', html: '<p>Here is a grid.</p>', diagram: svgDiag }] });
   if (!w.padSource_(stemmed) || w.padSource_(stemmed).from === 'surface') bad.push('a drawing question under a stem\'s picture had it replaced by a surface');
   if (w.padSource_(q('plain', { answerType: 'calculation' }))) bad.push('a calculation with no surface named was given something to draw on');
@@ -16676,6 +16822,7 @@ check('every control on a question\'s pages is a tile, bar the options, the keys
     ['button.kp-key[data-do="kp-key"]', 'a key on the maths keypad'],
     ['span.qw[data-do="qw-tap"]', 'a word in a passage to ring'],
     ['textarea.qp-ans-in[data-do="qp-ans"], input.qp-ans-in[data-do="qp-ans"]', 'the answer box'],
+    ['figure[data-do="q-zoom-fig"]', 'a figure, which a tap enlarges (457)'],
   ];
   const seen = {};
   const exempted = {};
@@ -27584,7 +27731,7 @@ check('marked by rule first: a 2-mark worded answer with mark_words gets Check, 
 });
 
 /* ---------- READ ALOUD ON A PRIMARY QUESTION: THE TILE, WHAT IT SAYS, AND WHEN IT STOPS (docs/history/394) ---------- */
-check('read aloud: a KS2 question has the tile and a GCSE one does not; it says the question in words, stops on a second tap and on leaving', async () => {
+check('read aloud: a KS2 question and a GCSE one have the tile (457), a GCSE content card does not; it says the question in words, stops on a second tap and on leaving', async () => {
   const LIB = LIB_FULL.rows('questions');
   const PIDS = ['P-STA-KS2-2024-P1', 'P-STA-KS2-2024-P2', 'P-STA-KS2-2024-P3', 'RS1786302107764-416'];
   const rows = LIB.filter(r => PIDS.indexOf(r.paper_id) >= 0);
@@ -27612,7 +27759,8 @@ check('read aloud: a KS2 question has the tile and a GCSE one does not; it says 
   const host = d.createElement('div');
   d.body.appendChild(host);
   const tileOf = x => { host.innerHTML = w.stuffCard(x); return host.querySelector('[data-do="read-aloud"]'); };
-  if (tileOf(gcse)) bad.push('a GCSE question carries the Read aloud tile');
+  /* EVERY QUESTION HAS IT SINCE 457 (the one toolkit, `qToolkit_`); content cards keep the primary rule (394) */
+  if (!tileOf(gcse)) bad.push('a GCSE question has no Read aloud tile — every question has it (457)');
   const ct = all.filter(x => x.kind === 'content');
   const ctKs2 = ct.find(x => /KS2/.test(x.level || '') || /KS2/.test(x.keystage || '')), ctGcse = ct.find(x => x.level === 'GCSE');
   if (!ctKs2 || !ctGcse) bad.push('no KS2 and GCSE content cards to hold the tile against');
@@ -28520,6 +28668,92 @@ check('after a wrong Check every answer can be deleted and checked again — typ
   const b2 = boot({ before: win => { try { win.localStorage.setItem('ans:q:Q-DEL-1', '717'); } catch (e) {} } });
   await wait(300);
   await run(b2, 'after a reload');
+  return bad;
+});
+
+/* ---------- THE ONE TOOLKIT ON EVERY KIND OF QUESTION PAGE (docs/history/457) ---------- */
+check('the one toolkit: a typed, a chosen, a table, a drawn and an essay part, and a stem page, each have Zoom, the padlock, Read aloud, Help and Report; Zoom enlarges, the padlock holds and lets go, the pen has its instruments', async () => {
+  const LIB = LIB_FULL.rows('questions');
+  const { w } = boot({ member: true, serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined),
+    before: win => {
+      signedInAs_(MEMBER_)(win);
+      win.SpeechSynthesisUtterance = function (txt) { this.text = String(txt); };
+      win.speechSynthesis = { speak() {}, cancel() {}, getVoices: () => [] };
+    } });
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  if (typeof w.qToolkit_ !== 'function' || !A['q-zoom'] || !A['q-lock'] || !A['q-zoom-fig'] || !t.padlock) return ['qToolkit_, the q-zoom, q-lock or q-zoom-fig handler, or PADLOCK is not reachable — NOT checked'];
+  t.STUFF().filters = [];
+  const all = w.stuffItemsAll_().filter(x => x && x.kind === 'question' && x.row && !/^true$/i.test(String(x.row.lib_pending || '')));
+  const T = x => w.qType_(x);
+  const pick = {
+    typed: all.find(x => T(x) === 'value' && x.diagram && /math/i.test(x.subject || '') && w.partChunks_(x).length === 1),
+    chosen: all.find(x => T(x) === 'choose1' && String(x.row.choice_right || '').trim()),
+    table: all.find(x => T(x) === 'table'),
+    drawn: all.find(x => String(x.drawAnswer || '').trim() && /math/i.test(x.subject || '')),
+    essay: all.find(x => T(x) === 'essay'),
+  };
+  Object.keys(pick).forEach(k => { if (!pick[k]) bad.push('no ' + k + ' part in the library to hold the toolkit against'); });
+  if (bad.length) return bad;
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  for (const k of Object.keys(pick)) {
+    const x = pick[k];
+    host.innerHTML = w.stuffCard(x);
+    const missing = ['q-zoom', 'q-lock', 'read-aloud', 'help-hand', 'q-report'].filter(a => !host.querySelector('[data-do="' + a + '"]'));
+    if (missing.length) bad.push(k + ' part ' + x.row.row_id + ' has no ' + missing.join(', '));
+    host.querySelectorAll('.qsheet figure').forEach(f => { if (!f.closest('.qpad, .qseen') && f.getAttribute('data-do') !== 'q-zoom-fig') bad.push(k + ' part ' + x.row.row_id + ': a figure is not a tap to zoom'); });
+  }
+  /* THE PEN HAS PEN, RULER AND COMPASS whatever its words say */
+  host.innerHTML = w.stuffCard(pick.drawn);
+  const tools = [...host.querySelectorAll('[data-do="pad-tool"]')].map(e => e.getAttribute('data-tool'));
+  if (tools.join() !== 'pen,ruler,compass') bad.push('the drawn part ' + pick.drawn.row.row_id + ' has the tools ' + JSON.stringify(tools) + ', not pen, ruler, compass');
+  /* A TYPED PART WITH A FIGURE MEASURES IT: Protractor and Ruler, without the word "measure" */
+  host.innerHTML = w.stuffCard(pick.typed);
+  const meas = [...host.querySelectorAll('[data-do="q-measure"]')].map(e => e.getAttribute('data-tool'));
+  if (meas.join() !== 'protractor,ruler') bad.push('the typed part ' + pick.typed.row.row_id + ' with a figure measures with ' + JSON.stringify(meas));
+  /* ZOOM: the sheet holds the part's words and its figure, and + makes it bigger */
+  A['q-zoom'](host.querySelector('[data-do="q-zoom"]'));
+  const body = d.getElementById('sheet-body'), inner = body && body.querySelector('.qzoom-in');
+  if (!inner) bad.push('Zoom opened no enlarged page');
+  else {
+    if (!inner.querySelector('figure svg')) bad.push('the enlarged page has no figure');
+    const words = String(pick.typed.html || '').replace(/<[^>]*>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ').trim().split(/\s+/).slice(0, 3).join(' ');
+    if (words && inner.textContent.replace(/\s+/g, ' ').indexOf(words) < 0) bad.push('the enlarged page does not say ' + JSON.stringify(words));
+    const z0 = Number(inner.getAttribute('data-z'));
+    A['q-zoom-by'](body.querySelector('[data-do="q-zoom-by"][data-by="1.25"]'));
+    if (!(Number(body.querySelector('.qzoom-in').getAttribute('data-z')) > z0)) bad.push('+ did not make the enlarged page bigger');
+  }
+  /* A TAP ON THE FIGURE ENLARGES IT TOO */
+  w.closeSheet();
+  host.innerHTML = w.stuffCard(pick.typed);
+  const fig = host.querySelector('.qsheet figure[data-do="q-zoom-fig"]');
+  if (!fig) bad.push('the typed part\'s figure is not a door to zoom');
+  else {
+    A['q-zoom-fig'](fig);
+    if (!d.querySelector('#sheet-body .qzoom-in figure svg')) bad.push('a tap on the figure opened no enlarged figure');
+    w.closeSheet();
+  }
+  /* A STEM PAGE HAS ZOOM AND THE PADLOCK */
+  const stemmed = all.find(x => (x.stems || []).some(p => p && p.diagram));
+  if (!stemmed) bad.push('no part with a stem figure to try a stem page on');
+  else {
+    host.innerHTML = w.questionStemCard_(stemmed, (stemmed.stems || []).findIndex(p => p && p.diagram), 0);
+    if (!host.querySelector('[data-do="q-zoom"]') || !host.querySelector('[data-do="q-lock"]')) bad.push('the stem page of ' + stemmed.row.row_id + ' has no Zoom or no padlock');
+  }
+  /* THE PADLOCK: pressed, the column will not swipe; pressed again, it will; left by a tab, it lets go */
+  host.innerHTML = w.stuffCard(pick.chosen);
+  const lock = host.querySelector('[data-do="q-lock"]');
+  A['q-lock'](lock);
+  if (!t.padlock().q) bad.push('the padlock did not lock');
+  if (lock.getAttribute('aria-pressed') !== 'true') bad.push('the padlock tile does not say it is pressed');
+  if (w.axisFree(host, 'x', 1) !== false) bad.push('locked, a sideways drag still belongs to the grid');
+  A['q-lock'](host.querySelector('[data-do="q-lock"]'));
+  if (t.padlock().q) bad.push('pressed again, the padlock did not let go');
+  A['q-lock'](host.querySelector('[data-do="q-lock"]'));
+  try { t.go(t.screenAt() === 'stuff' ? 'feed' : 'stuff', false, true); } catch (e) {}
+  await wait(80);
+  if (t.padlock().q) bad.push('a tab to another column left the padlock on');
   return bad;
 });
 
