@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-24-t-backend-dead";
+const DOPOST_VERSION = "2026-10-25-b-feed-compose";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -908,8 +908,10 @@ function doPost(e) {
       if (!me) return jsonOut({ error: 'Not signed in.' });
       const iAmAdmin = rankAtLeast_(me, 'admin');
       if (!rankAtLeast_(me, 'client')) return jsonOut({ error: CHILD_NO_UPLOAD, why: 'child' });
-      const folder = getPostFolder();
-      if (!folder) {
+      /* A FOLDER ONLY FOR PICTURES (448): a words-only post keeps nothing in Drive. */
+      const hasPics = !!(S(body.data) || S(body.image) || (Array.isArray(body.media) && body.media.some(x => S(x).trim())));
+      const folder = hasPics ? getPostFolder() : null;
+      if (hasPics && !folder) {
         return jsonOut({ error: 'No posts folder. Add a row to the config tab: '
           + 'key `posts_folder`, value the id from the folder URL.' });
       }
@@ -943,7 +945,8 @@ function doPost(e) {
       }
       /* THE FIRST MAY HAVE COME IN THE LIST, from a phone that sent nothing else. */
       if (!url && more.length) url = more.shift();
-      if (!url) return jsonOut({ error: 'A post needs a picture.' });
+      /* WORDS ALONE ARE A POST (448): the composer has no picker; Photos is the camera's. */
+      if (!url && !S(body.caption) && !S(body.body) && !S(body.poll)) return jsonOut({ error: 'A post needs a picture or some words.' });
 
       /* WHO IT IS FROM, which is not the same as who pressed the button. § */
       /* `me` and `iAmAdmin` were worked out here; they are at the top of the action now, so the

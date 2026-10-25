@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-25-a-console-bodies";
+  --css-version: "2026-10-25-b-feed-compose";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -1324,9 +1324,6 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
    was placed — it was 16:9, and the swap moved everything under it up by a third of a card. */
 .post-pic.post-vid-out { aspect-ratio: 4 / 5; }
 /* ---------- THE PICTURES ARE DRAWN AS THEY WERE TAKEN § */
-/* THE COMPOSER'S PREVIEW DRAWS WITH THE CARD'S OWN RENDERER, in a sheet that has no page margin to cancel — so the edge-to-edge bleed above would run past the § */
-.post-preview { margin: .2rem 0 .6rem; }
-.post-preview .post-pic, .post-preview .post-grid { width: 100%; margin-left: 0; }
 /* THE PICTURE IS SHOWN WHOLE. § */
 .page .post-pic {
   flex: 0 0 auto;          /* never grows to fill the page — that is what forced a crop */
@@ -3181,7 +3178,6 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .msg-line .msg-flag { opacity: .5; flex: 0 0 auto; }
 .msg-line .msg-flag:hover, .msg-line .msg-flag:focus-visible { opacity: 1; }
 /* THE COMPOSER'S PICKER (413): a file, never a link — the label is the control, so it carries the gap the box above it would have. */
-.post-files-btn { display: block; text-align: center; margin-bottom: .8rem; }
 
 /* THREE THINGS THAT ARE WHAT THEY ARE The receipt works because a booking genuinely produces a receipt — the form is not a costume, it is the honest shape of the § */
 
@@ -5386,6 +5382,29 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 /* ---------- A CAMERA STARTING UP SHOWS A GREYED SHUTTER § */
 .cam-shot:disabled, .cam-rec:disabled { opacity: .3; cursor: default; }
 .cam-shot:disabled:active, .cam-rec:disabled:active { transform: none; }
+
+/* PHOTOS AND WRITE A POST ARE DISCS TOO (448), outlined so the white shutter and red record stay the loudest; the word under each. */
+.cam-round {
+  flex: 0 0 auto; padding: 0; background: none; border: 0;
+  display: flex; flex-direction: column; align-items: center; gap: .2rem;
+  color: var(--dim); font: inherit; cursor: pointer;
+}
+.cam-round .cam-disc {
+  width: 52px; height: 52px; border-radius: 50%;
+  display: grid; place-items: center;
+  border: 3px solid var(--cam-white); color: var(--cam-white);
+  background: var(--raised); font-size: 1.3rem; line-height: 1;
+  transition: transform var(--quick) ease;
+}
+.cam-round:active .cam-disc { transform: scale(.92); }
+.cam-round .cam-word { font-size: .68rem; max-width: 56px; text-align: center; line-height: 1.2; }
+/* A 320px PHONE: the four discs fit one row only a little smaller (check/ui.js measured 4px over). */
+@media (max-width: 359px) { .cam-round .cam-disc { width: 46px; height: 46px; } .cam-bar .cam-shot { width: 58px; height: 58px; } .cam-bar .cam-rec { width: 46px; height: 46px; } }
+.cam-bar .cam-pick { order: -1; }
+/* THE COMPOSER STANDS WHERE THE CAMERA WAS — the same card, no overlay. */
+.post-compose .poll-head { margin: .4rem 0 .2rem; }
+.post-compose #poll-more { margin: 0 0 .6rem; min-height: 44px; }
+.post-compose .btn-row .btn { min-height: 44px; }
 
 /* RECORDING IS A SQUARE. § */
 .cam-rec.is-rec { border-radius: .9rem; box-shadow: none; }

@@ -118,7 +118,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-24-t-backend-dead";
+const BACKEND_VERSION = "2026-10-25-b-feed-compose";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {

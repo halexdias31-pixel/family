@@ -27747,6 +27747,58 @@ check('a waiting post (413): dotted with "Waiting for approval" for its author a
   return bad;
 });
 
+check('Write a post (448) turns the camera card into the composer in place — no sheet, no picture picker; the poll is one box per option, 2 to 6; Back brings the camera back; Post sends the options joined', async () => {
+  const W = postWorld_(), bad = [];
+  const pat = await postOpen_(W, 'parent@example.org');
+  if (pat.err) return [pat.err];
+  const d = pat.d;
+  const write = d.querySelector('#s-feed .cam-card .cam-bar [data-do="new-post"]');
+  const pick = d.querySelector('#s-feed .cam-card .cam-bar label.cam-pick');
+  if (!write || !write.classList.contains('cam-round')) bad.push('Write a post is not a round button in the camera bar');
+  if (!pick || !pick.classList.contains('cam-round')) bad.push('Photos is not a round button in the camera bar');
+  pat.A('new-post', write);
+  await wait(100);
+  const sheet = d.getElementById('sheet');
+  if (sheet && !sheet.classList.contains('hidden')) bad.push('Write a post opened a sheet over the page');
+  if (d.body.classList.contains('sheet-open')) bad.push('the body is marked sheet-open');
+  if (d.querySelector('[role="dialog"]:not(.hidden) #post-cap, dialog #post-cap')) bad.push('the composer is in a dialog');
+  const comp = d.querySelector('#s-feed .cam-card #post-compose');
+  if (!comp) return bad.concat(['the composer is not drawn inside the feed\'s camera card — NOT checked further']);
+  if (d.querySelector('#s-feed .cam-card #cam-view')) bad.push('the viewfinder is still on the card beside the composer');
+  if (comp.querySelector('input[type="file"]')) bad.push('the text composer offers a picture picker');
+  const pos = (pat.w.getComputedStyle(comp).position || '');
+  if (/fixed|absolute/.test(pos)) bad.push('the composer is positioned ' + pos + ', which is an overlay');
+  const boxes = () => comp.querySelectorAll('.post-poll-in').length;
+  if (boxes() !== 2) bad.push('the poll starts with ' + boxes() + ' option boxes, wanted 2');
+  for (let k = 0; k < 8; k++) { const m = d.getElementById('poll-more'); if (m && !m.hidden) pat.A('poll-more', m); }
+  if (boxes() !== 6) bad.push('Add option stopped at ' + boxes() + ' boxes, wanted 6');
+  if (!d.getElementById('poll-more').hidden) bad.push('Add option still shows at the maximum');
+  d.getElementById('post-cap').value = 'Which day?';
+  d.getElementById('post-poll-0').value = 'Saturday';
+  pat.A('post-send', comp.querySelector('[data-do="post-send"]'));
+  await wait(50);
+  if (!/two options/.test(d.getElementById('post-said').textContent)) bad.push('a poll of one option was not refused');
+  d.getElementById('post-poll-1').value = 'Sunday, after lunch';
+  const n0 = pat.sent.length;
+  pat.A('post-send', comp.querySelector('[data-do="post-send"]'));
+  await wait(400);
+  const got = pat.sent.slice(n0).find(x => x && x.action === 'addPost');
+  if (!got) bad.push('Post it sent no addPost');
+  else {
+    if (got.poll !== 'Saturday, Sunday after lunch') bad.push('the poll went as ' + JSON.stringify(got.poll));
+    if (got.data || (got.media && got.media.length)) bad.push('a words-only post sent pictures');
+  }
+  await wait(600);
+  if (got && d.querySelector('#s-feed #post-compose')) bad.push('after posting the composer is still open: ' + JSON.stringify((d.getElementById('post-said') || {}).textContent));
+  pat.A('new-post', d.querySelector('#s-feed [data-do="new-post"]'));
+  await wait(50);
+  pat.A('post-cancel');
+  await wait(50);
+  if (d.querySelector('#s-feed #post-compose') || !d.querySelector('#s-feed .cam-card #cam-view')) bad.push('Back did not bring the camera back');
+  if (pat.errs.length) bad.push('errors: ' + pat.errs.join(' | '));
+  return bad;
+});
+
 check('a child (413) is drawn no picker anywhere: no camera on the feed, no + in a message, no Choose photo; a parent has all three', async () => {
   const W = postWorld_(), bad = [];
   const kid = await postOpen_(W, 'student@example.org');
@@ -27757,7 +27809,7 @@ check('a child (413) is drawn no picker anywhere: no camera on the feed, no + in
   if (/msg-file-in|msg-attach/.test(String(kid.w.msgForm_('Hal Admin', 'P-A1')))) bad.push('the child\'s message box offers to attach a file');
   try { kid.t.ACTIONS['new-post'](); } catch (e) { bad.push('Write a post threw for the child: ' + e.message); }
   await wait(100);
-  if (kid.d.querySelector('#sheet-body #post-files')) bad.push('the child opened a post sheet with a picture picker');
+  if (kid.d.querySelector('#post-compose, #sheet-body #post-cap')) bad.push('the child was opened a composer');
   const kidPfp = String(kid.w.photoPicker_ ? kid.w.photoPicker_(() => '', '') : '');
   if (kidPfp && /pfp-pick|pfp-in/.test(kidPfp)) bad.push('the child\'s picture card offers Choose photo');
   const pat = await postOpen_(W, 'parent@example.org');
