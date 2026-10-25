@@ -1589,45 +1589,15 @@ function mayAddChild_() {
   return held.indexOf('client') !== -1 || held.indexOf('parent') !== -1 || held.indexOf('admin') !== -1;
 }
 
-/* ---------- LINKING A CHILD WHO HAS AN ACCOUNT: THE LAST SECTION OF "MANAGE YOUR CHILD" § */
+/* LINKING A CHILD WHO HAS AN ACCOUNT moved to the People column (442): search their handle, then the
+   card's "Add as my child" tile. This section only points there. */
 function kidAddSec_() {
   return `<div class="kid-sec kid-add">
     <h4 class="kid-h">Add your child</h4>
-    <p class="sub">Already has an account? Their name as it is on it. They say yes before anything is
-      linked, and if they say no, nothing happens.</p>
-    ${/* DRAFTS UNTIL ASKED (data.js; docs/history/317) — a card on the Settings column is redrawn by a
-          payload, and a reload lost what was typed. */''}
-    <div class="f-row" style="--n:2">
-      <label class="field"><input data-kid="first" placeholder="First name" autocomplete="off"${draftAttr_('kid-ask', 'first')} value="${esc(draftVal_('kid-ask', 'first'))}"></label>
-      <label class="field"><input data-kid="last" placeholder="Last name" autocomplete="off"${draftAttr_('kid-ask', 'last')} value="${esc(draftVal_('kid-ask', 'last'))}"></label>
-    </div>
-    <button class="btn quiet" data-do="add-child-go">Ask them</button>
+    <p class="sub">Already has an account? Search their handle at the top of People and tap
+      Add as my child on their card. They say yes before anything is linked.</p>
   </div>`;
 }
-
-on('add-child-go', el => {
-  if (!USER) { toast('Sign in first'); return; }
-  /* THE SECTION, NOT THE CARD — "Manage your child" holds the make form too, and `data-kid` is this
-     section's alone, but the lock below is the section's so making an account is not frozen by asking. */
-  const card = (el && (el.closest('.kid-sec') || el.closest('.card'))) || document;
-  const box = k => card.querySelector('[data-kid="' + k + '"]');
-  const first = ((box('first') || {}).value || '').trim();
-  const last = ((box('last') || {}).value || '').trim();
-  if (!first || !last) { toast('Both names, please'); return; }
-  /* ---------- `send` TAKES ONE ARGUMENT AND THIS ONCE PASSED TWO, so nothing was ever asked § */
-  send_({
-    action: 'claimChild',
-    name: USER.name, personId: (USER && USER.personId) || '',
-    firstName: first, lastName: last,
-  }, { button: el, busy: 'Asking…', lock: card === document ? undefined : card }).then(() => {
-    if (box('first')) box('first').value = '';
-    if (box('last')) box('last').value = '';
-    ['first', 'last'].forEach(f => { try { draftDrop_('kid-ask', f); } catch (e) {} });
-    toast('Asked. They will see it when they next sign in.');
-    load();
-  /* `heldBy_`: a refusal because the asker's own address is waiting redraws this as the held card. */
-  }).catch(heldBy_);
-});
 
 /* ---------- MAKING YOUR CHILD'S ACCOUNT, FROM YOURS § */
 let KID_MADE = { pid: '', name: '', handle: '', pin: '' };
@@ -1772,7 +1742,7 @@ on('resend-link', el => {
 
 on('kid-make', el => {
   if (!USER) { toast('Sign in first'); return; }
-  /* THE SECTION, as `add-child-go` reads its own — see there. */
+  /* THE SECTION, so the lock is the make form's alone. */
   const card = (el && (el.closest('.kid-sec') || el.closest('.card'))) || document;
   const box = k => card.querySelector('[data-kid-new="' + k + '"]');
   const val = k => ((box(k) || {}).value || '').trim();
@@ -1826,7 +1796,7 @@ const answerClaim_ = (el, accept) => {
   /* THE THIRD OF THE THREE. § */
   if (!USER) { toast('Sign in first'); return; }
   const row = el.getAttribute('data-row');
-  /* `send_` RATHER THAN `send`, for `add-child-go`'s reason: it locks both buttons while the answer
+  /* `send_` RATHER THAN `send`, for the same reason as every form here: it locks both buttons while the answer
      is on the wire, so a second tap cannot answer twice, and it says a refusal as a toast. */
   send_({
     action: 'answerClaim',
@@ -4375,6 +4345,95 @@ function peopleAddPage_() {
   if (F && !F.id) return personFormHtml_(F);
   return addCard_({ act: 'person-add', label: 'Add a person' });
 }
+/* ---------- FIND BY HANDLE, THE FIRST THING ON THE PEOPLE COLUMN (442) ---------- */
+/* `q` typed; `child` the one card `findChild` answered for that exact handle (null: none), `asked` that handle. */
+let PSEARCH_ = { q: '', asked: '', child: null, busy: false };
+const psFold_ = v => String(v || '').trim().replace(/^@/, '').toLowerCase();
+/* EVERY CARD THE COLUMN ALREADY SHOWS THIS PERSON — public, so a prefix may find them. Never a child's. */
+function psPublic_() {
+  const pool = [].concat(DATA.tutors || [], (typeof isAdmin === 'function' && isAdmin() && Array.isArray(DATA.everyone)) ? DATA.everyone : [],
+    Array.isArray(DATA.family) ? DATA.family : []);
+  const seen = {};
+  return pool.filter(p => p && p.handle && p.title && !seen[psFold_(p.handle)] && (seen[psFold_(p.handle)] = 1));
+}
+function psCard_(who, tiles) {
+  const first = String(nameBesideHandle_(who.title, who.handle) || who.title || '').trim();
+  return `<div class="ps-hit">
+    ${personFace_({ pic: who.image, avatar: who.avatar, handle: who.handle, name: first, personId: who.personId },
+                  { cls: 'kid-face', none: 'prof-none', size: 36 })}
+    <p class="kid-who"><b>${esc(first)}</b><span class="prof-handle">@${esc(who.handle)}</span>${who.role ? `<span class="faint ps-role">${esc(who.role)}</span>` : ''}</p>
+    ${tiles ? `<div class="tile-row">${tiles}</div>` : ''}
+  </div>`;
+}
+function psResults_() {
+  const q = psFold_(PSEARCH_.q);
+  if (!q) return '';
+  const pub = psPublic_().filter(p => psFold_(p.handle).indexOf(q) === 0).slice(0, 8);
+  const out = pub.map(p => psCard_(p, p.personId && typeof tile_ === 'function' ? tile_({ icon: 'chat', label: 'Message',
+    note: 'a note to them', act: 'msg-open', data: { to: p.title, id: p.personId } }) : ''));
+  const exact = PSEARCH_.asked && PSEARCH_.asked === q;
+  if (PSEARCH_.busy) out.push(loading_());
+  else if (exact && PSEARCH_.child) {
+    const c = PSEARCH_.child, linked = kidsLinked_().some(f => String(f.personId) === String(c.personId));
+    out.push(psCard_({ title: c.first, handle: c.handle, avatar: c.avatar, personId: c.personId, role: 'Student' },
+      linked ? '' : tile_({ icon: 'join', label: 'Add as my child', note: 'they say yes first', act: 'ps-add-child',
+                            data: { handle: c.handle } })));
+  }
+  if (!out.length) out.push(`<p class="faint ps-none">${exact ? 'Nobody has that handle.' : 'Nobody’s handle starts with that.'}</p>`);
+  return out.join('');
+}
+/* WHO MAY LOOK UP A CHILD — Client and up (400); the server asks the same. */
+const psMayChild_ = () => typeof rankAtLeast_ === 'function' && rankAtLeast_('client');
+function peopleSearchPage_() {
+  if (!USER) return '';
+  return `<div class="card ps-card">
+    <label class="field"><span>Find someone by handle</span>
+      <input type="search" data-psearch placeholder="@handle" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" value="${esc(PSEARCH_.q)}"></label>
+    ${psMayChild_() ? `<button class="btn quiet" data-do="ps-find">Find</button>
+    <p class="faint ps-note">Your child shows only for their whole handle.</p>` : ''}
+    <div class="ps-out" aria-live="polite">${psResults_()}</div>
+  </div>`;
+}
+function psPaint_() {
+  const out = document.querySelector('.ps-card .ps-out');
+  if (out) out.innerHTML = psResults_();
+  try { if (typeof placeCells === 'function') placeCells(); } catch (e) {}
+}
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (!t || !t.matches || !t.matches('[data-psearch]')) return;
+  PSEARCH_.q = t.value;
+  psPaint_();
+});
+document.addEventListener('keydown', e => {
+  const t = e.target;
+  if (e.key !== 'Enter' || !t || !t.matches || !t.matches('[data-psearch]')) return;
+  e.preventDefault();
+  const b = document.querySelector('.ps-card [data-do="ps-find"]');
+  if (b) b.click();
+});
+on('ps-find', el => {
+  if (!USER || !psMayChild_()) return;
+  const card = el.closest('.ps-card'), box = card && card.querySelector('[data-psearch]');
+  const q = psFold_(box ? box.value : PSEARCH_.q);
+  PSEARCH_.q = box ? box.value : PSEARCH_.q;
+  if (q.length < 3) { toast('A handle is at least 3 letters'); return; }
+  Object.assign(PSEARCH_, { asked: q, child: null, busy: true });
+  psPaint_();
+  send_({ action: 'findChild', personId: USER.personId || '', handle: q }, { button: el })
+    .then(d => { PSEARCH_.child = (d && d.child && d.child.handle) ? d.child : null; })
+    .catch(() => { PSEARCH_.asked = ''; })
+    .then(() => { PSEARCH_.busy = false; psPaint_(); });
+});
+on('ps-add-child', el => {
+  if (!USER || !psMayChild_()) { toast('Sign in first'); return; }
+  const handle = el.getAttribute('data-handle') || '';
+  if (!handle) return;
+  send_({ action: 'claimChild', name: USER.name, personId: USER.personId || '', handle }, { button: el })
+    .then(() => { toast('Asked. They will see it when they next sign in.'); PSEARCH_.child = null; PSEARCH_.asked = ''; psPaint_(); load(); })
+    .catch(heldBy_);
+});
+
 /* THE FORM IN THE CARD'S PLACE while it is open on this person. */
 function personFormFor_(p) {
   const F = PEOPLE_FORM_;

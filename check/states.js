@@ -3286,10 +3286,10 @@ const STATES = {
         const slip = pg && pg.querySelector('.kid-manage .kid-make .pin-slip');
         return slip && slip.querySelectorAll('.pin-slip-v').length === 2
           && pg.querySelectorAll('.kid-make [data-kid-new]').length === 3
-          && pg.querySelectorAll('.kid-manage .kid-add [data-kid]').length === 2
+          && pg.querySelectorAll('.kid-manage .kid-add').length === 1 && !pg.querySelector('.kid-add input')
           && slip.scrollWidth <= slip.clientWidth + 1 ? 2 : 0;
       },
-      wants: '"Manage your child" with the make form\'s three boxes, the slip — the handle and the PIN, neither running off it — and the add form\'s two boxes under it' },
+      wants: '"Manage your child" with the make form\'s three boxes, the slip — the handle and the PIN, neither running off it — and the add section pointing to People under it (442)' },
     /* ---------- AND HELD FOR THE LINK: A PARENT WHOSE OWN ADDRESS NOBODY HAS PROVED § */
     { name: 'your child\'s account, held for the link',
       only: () => typeof USER !== 'undefined' && !!USER && typeof mayAddChild_ === 'function' && mayAddChild_(),
@@ -3347,7 +3347,7 @@ const STATES = {
         const heads = [...card.querySelectorAll('.kid-sec > .kid-h')];
         const headsOk = heads.length === 2 && heads.every(h => parseFloat(getComputedStyle(h).fontSize) >= 12);
         return rowsOk && (n ? !none : none) && !zoomed && headsOk
-          && card.querySelectorAll('.kid-make [data-kid-new]').length === 3 && card.querySelectorAll('.kid-add [data-kid]').length === 2
+          && card.querySelectorAll('.kid-make [data-kid-new]').length === 3 && card.querySelectorAll('.kid-add').length === 1 && !card.querySelector('.kid-add input')
           && card.scrollWidth <= card.clientWidth + 1 ? Math.max(1, n) : 0;
       }) + ')(' + n + ');'),
       wants: n ? '"Manage your child" at full size, listing three children, each a face, a first name and a handle with New PIN at the end of the line and nothing running off it, then both forms under headings of 12px or more'

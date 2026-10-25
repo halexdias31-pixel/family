@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-25-c-one-console";
+  --css-version: "2026-10-25-d-find-child";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -3422,6 +3422,10 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .kid-face.prof-none { font-size: .95rem; }
 .kid-who { display: flex; flex-direction: column; gap: .1rem; min-width: 0; flex: 1; margin: 0; overflow-wrap: anywhere; }
 .kid-row > .tile-row { margin: 0; flex: none; }
+/* FIND BY HANDLE (442): one found person per line, like a child on "Manage your child". */
+.ps-hit { display: flex; align-items: center; gap: .6rem; margin-top: .6rem; }
+.ps-hit > .tile-row { margin: 0; flex: none; }
+.ps-out:empty { display: none; }
 .kid-none { margin: 0; }
 /* ---------- SAVE AND CANCEL STAY IN REACH: THE ROW IS STUCK TO THE FOOT OF THE PANE § */
 /* `.tile-row.ce-tiles`, TWO CLASSES, because `.tile-row`'s own margin is declared further down this file and

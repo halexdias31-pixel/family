@@ -118,7 +118,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-24-t-backend-dead";
+const BACKEND_VERSION = "2026-10-25-find-child";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1456,6 +1456,8 @@ const ACTION_ACCESS = {
   /* A parent asks; only the named child may answer. Both `self` — the handlers check WHO, which
      is the part that matters and the part a gate cannot see. */
   claimChild: 'self', answerClaim: 'self',
+  /* A child's card by its exact handle (442); the handler gates Client+ and counts. */
+  findChild: 'self',
   /* All `self`: each handler checks the message is the asker's own, and the POLICY table decides
      who may write to whom. The gate cannot know either, so it only checks somebody is signed in. */
   listRecords: 'admin', saveRecordsPage: 'admin',
