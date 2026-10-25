@@ -133,6 +133,8 @@ const KINDS = {
   /* ---------- `film` WAS A KIND HERE, AND THE FILMS ARE OFF FIND § */
   /* ---------- `textbook` WAS HERE, AND EACH OF ITS CHAPTERS IS A CONTENT CARD NOW § */
   content: { group: 'Learning', label: 'Content', card: x => contentCard_(x) },
+  /* AN INSERT IS WHAT THE EXAM HANDS YOU (455) — a formulae sheet, an equation sheet, the periodic table — found like a paper. */
+  insert: { group: 'Learning', label: 'Inserts', card: x => insertCard_(x) },
   /* ---------- BOXING IS A SUBJECT, NOT A DEPARTMENT § */
   /* CONTENT, NOT `Resources` (445): the owner — "boxes and fights can go under content"; the Bible goes with them. */
   boxer: { group: 'Learning', label: 'Content', card: x => boxerCard_(x) },
@@ -1346,6 +1348,89 @@ function contentText_(c) {
   (c.animations || []).forEach(a => parts.push(a.title));
   return plainText_(parts.filter(Boolean).join(' '));
 }
+
+/* ---------- AN EXAM INSERT (455): ONE CARD, THE WHOLE SHEET, TAGGED AS A PAPER IS ---------- */
+function insertItem_(r) {
+  return {
+    kind: 'insert', name: r.name, key: 'in:' + r.id, sub: r.summary, image: '',
+    subject: r.subject, level: r.levels.length > 1 ? r.levels : r.levels[0] || '', keystage: r.keystage,
+    examBoard: r.boards, tier: r.tiers, documentType: 'Insert',
+    text: plainText_([r.name, r.summary, 'insert formula formulae equation sheet booklet data']
+      .concat(...r.sections.map(s => [s.head].concat((s.lines || []).map(l => l.name)))).join(' ')),
+    row: r,
+  };
+}
+/* WHICH INSERTS A QUESTION'S PAPER COMES WITH: its subject, level, tier and board, read as the facets read them; a blank list is any. */
+function insertsFor_(x) {
+  if (!x || x.kind !== 'question' || !/paper/i.test(String(x.documentType || ''))) return [];
+  const has = (list, v) => !list.length || asList_(v).some(a => list.indexOf(String(a)) !== -1);
+  return (DATA.inserts || []).filter(r => has(r.forSubjects, x.subject) && has(r.forLevels, levelOf_(x))
+    && has(r.forTiers, x.tier) && has(r.boards, x.examBoard));
+}
+/* THE TILE ON A PAPER'S QUESTION: the sheet over the page, as the figure tile opens a figure. */
+function insertTile_(x) {
+  return insertsFor_(x).map(r => tile_({ icon: 'book', label: 'Insert', note: r.name.replace(/\s*\(.*\)$/, ''),
+    act: 'ins-show', data: { id: r.id } })).join('');
+}
+const insertRow_ = id => (DATA.inserts || []).find(r => r.id === id) || null;
+/* THE SHEET ITSELF, on paper: each line a name and its formula, typeset as a question's maths is (`typeset_`). */
+function insertSheet_(r) {
+  const mark = l => (l.higher ? '<span class="tb-h" title="Higher tier only">H</span>' : '')
+    + (l.only ? `<span class="insh-only">${esc(l.only)} only</span>` : '');
+  const body = r.table === 'periodic' ? insertTable_(r) : r.sections.map(s => `<section class="insh-sec">
+      <h4>${esc(s.head || '')}</h4>
+      <ul>${(s.lines || []).map(l => `<li><span class="insh-fn">${esc(l.name || '')}${mark(l)}</span>
+        <span class="insh-fm">${typeset_(String(l.math || ''))}</span>${l.note ? `<span class="insh-note">${esc(l.note)}</span>` : ''}</li>`).join('')}</ul>
+    </section>`).join('');
+  return `<div class="insh-sheet">
+    <p class="insh-kick">${esc(['Insert'].concat(r.boards).join(' · '))}</p>
+    <h3>${esc(r.name)}</h3>
+    ${body}
+    <p class="insh-check"><b>${r.verified ? 'Checked' : 'Not yet checked'}</b> ${esc(r.verifiedNote)}</p>
+  </div>`;
+}
+/* THE PERIODIC TABLE: 18 columns, an element where its group and period put it. */
+function insertTable_(r) {
+  const cells = r.elements.map(e => `<div class="insh-el" style="grid-column:${Number(e[4])};grid-row:${Number(e[5])}">
+      <span class="insh-ar">${esc(String(e[3]))}</span><b>${esc(e[1])}</b><span class="insh-nm">${esc(e[2])}</span><span class="insh-z">${Number(e[0])}</span></div>`).join('');
+  return `<div class="insh-pt-wrap"><div class="insh-pt" role="table" aria-label="Periodic table">${cells}</div></div>
+    <p class="insh-key">In each box: relative atomic mass, symbol, name, atomic number.</p>`;
+}
+function insertCard_(x) {
+  const r = x.row;
+  return `<div class="card insh">
+    ${tagRow_(x)}
+    ${insertSheet_(r)}
+    <div class="tile-row">${tile_({ icon: 'print', label: 'Print', note: 'or save as PDF', act: 'ins-print', data: { id: r.id } })}${
+      r.official.map(o => tile_({ icon: 'open', label: 'Official', note: o.label, act: 'ins-official', data: { url: o.url } })).join('')}</div>
+  </div>`;
+}
+on('ins-show', el => {
+  const r = insertRow_(el.getAttribute('data-id'));
+  if (r) openSheet(r.name, `<div class="insh">${insertSheet_(r)}</div>`);
+});
+on('ins-official', el => {
+  const u = String(el.getAttribute('data-url') || '');
+  if (/^https:\/\//.test(u)) window.open(u, '_blank', 'noopener');
+});
+/* PRINTED ALONE, as a statement is (`stmt-print`): a paper copy of the sheet and nothing else of the app. */
+on('ins-print', el => {
+  const r = insertRow_(el.getAttribute('data-id'));
+  if (!r) return;
+  const paper = document.createElement('div');
+  paper.className = 'insh-paper insh';
+  paper.innerHTML = insertSheet_(r);
+  document.body.appendChild(paper);
+  document.body.classList.add('printing-insh');
+  const done = () => {
+    document.body.classList.remove('printing-insh');
+    paper.remove();
+    window.removeEventListener('afterprint', done);
+  };
+  window.addEventListener('afterprint', done);
+  setTimeout(done, 4000);
+  window.print();
+});
 
 /* THE BIBLE (KING JAMES VERSION) — ASKED LIKE EVERYTHING ELSE ON FIND, AND SHOWN ONLY TO AN ADMIN. § */
 const BIBLE_NAME = 'The Bible (King James Version)';
@@ -7651,10 +7736,11 @@ function figsBefore_(x) {
 }
 function figTile_(x) {
   const figs = figsBefore_(x);
-  if (!figs.length) return '';
+  /* AND THE PAPER'S INSERT BESIDE IT (455): the figure tile stands wherever a question's tiles do. */
+  if (!figs.length) return insertTile_(x);
   const one = figs.length === 1;
   return tile_({ icon: 'figure', label: one ? figs[0].label : 'Figures', note: 'over this page', cls: 'q-figt',
-                 act: 'q-fig', data: { key: x.key || '' } });
+                 act: 'q-fig', data: { key: x.key || '' } }) + insertTile_(x);
 }
 on('q-fig', el => {
   const k = el.getAttribute('data-key');
@@ -8179,6 +8265,9 @@ function stuffItemsRaw_() {
 
     /* ---------- THE CONTENT CARDS: ONE ITEM PER CHAPTER OF data/textbooks.json § */
     ...[].concat(...(DATA.textbooks || []).map(b => (b.chapters || []).map(c => contentItem_(b, c)))),
+
+    /* ---------- THE EXAM INSERTS (455) */
+    ...(DATA.inserts || []).map(insertItem_),
 
     /* ---------- THE BIBLE, FOR AN ADMIN AND NOBODY ELSE § */
     ...bibleItems_(),
