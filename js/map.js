@@ -199,7 +199,7 @@ const WIDGETS = [
     pure: true,
     into: 'mc-display', what: 'The calculator',
     html: `<div class="card">
-    <h3>Calculator</h3>
+    <h3 class="calc-name">Calculator</h3>
     ${/* A DIV, not an input. § */
           ''}
     <div class="calc">
@@ -207,9 +207,9 @@ const WIDGETS = [
         <div id="mc-display" class="mc-display" tabindex="0" aria-live="polite" aria-label="Calculator display"></div>
         <div class="calc-label">${esc(typeof brand === 'function' ? brand('name', '@family.') : '@family.')}</div>
       </div>
-      ${[['top', 'calc-top', '<i class="calc-pad" aria-hidden="true"></i>'], ['fn', 'calc-fn', ''], ['num', 'calc-num', '']].map(([part, cls, extra]) =>
+      ${[['top', 'calc-top', '<i class="calc-pad" aria-hidden="true"></i><i class="calc-pad calc-pad-v" aria-hidden="true"></i>'], ['fn', 'calc-fn', ''], ['num', 'calc-num', '']].map(([part, cls, extra]) =>
         `<div class="${cls}">${extra}${CALC_KEYS.filter(k => k[2].split(' ')[0] === part).map(([v, label, kc, legend, name]) =>
-          `<button type="button" class="mc-btn ${kc}${/^\w+$/.test(v) ? ' mc-k-' + v : ''}" data-mc="${esc(v)}" aria-label="${esc(name || v)}">${legend ? `<small class="mc-alt">${legend}</small>` : ''}<span class="mc-lab">${label}</span></button>`
+          `<button type="button" class="mc-btn ${kc}${/^\w+$/.test(v) ? ' mc-k-' + v : ''}" data-mc="${esc(v)}" aria-label="${esc(name || v)}">${/pad|pg/.test(kc) ? '' : `<small class="mc-alt">${legend || ''}</small>`}<span class="mc-lab">${label}</span></button>`
         ).join('')}</div>`).join('')}
     </div>
   </div>` },

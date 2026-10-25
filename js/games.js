@@ -128,8 +128,10 @@ function initMiniCalc() {
   const st = calcNew();
   const render = () => {
     const h = calcHtml(st);
-    disp.innerHTML = '<div class="mc-in">' + h.input + '</div><div class="mc-out">' + h.output + '</div>';
-    disp.dataset.ind = (st.shift ? 'S  ' : '') + 'D';
+    /* The status row, the LCD's top line: S while SHIFT is held, D degrees, Math the natural display. Drawn by CSS, never the sum's text. */
+    disp.innerHTML = '<div class="mc-stat" aria-hidden="true"><b data-i="S"' + (st.shift ? ' class="on"' : '') + '></b><b data-i="D" class="on"></b><b data-i="Math" class="on"></b>'
+      + (st.past.length ? '<b data-i="▲" class="on"></b>' : '') + '</div><div class="mc-in">' + h.input + '</div><div class="mc-out">'
+      + (h.output || (st.root.length ? '' : '0')) + '</div>';
     const card = disp.closest('.card');
     if (card) card.classList.toggle('mc-shifted', st.shift);
     const inp = disp.firstChild;
