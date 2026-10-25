@@ -118,7 +118,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-25-j-assistant";
+const BACKEND_VERSION = "2026-10-25-k-film-shares";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -663,6 +663,9 @@ const CONFIG_PRIVATE = [FILMS_FOLDER_KEY, OWNER_EMAIL_KEY];
 /* ---------- THE FILMS SYNC — see `filmsSync_` in content.gs § */
 const FILMS_FOLDER_NAME = 'notflix';
 const FILMS_SYNC_PROP = 'FILMS_SYNC';
+/* WHO A FILM IS SHARED WITH ON DRIVE, kept ten minutes: a removed share stops showing within that (450). */
+const FILMS_SHARE_TTL_S = 600;
+const FILMS_SHARE_PREFIX = 'fshare:';
 const FILMS_SYNC_BUDGET_MS = 20000;
 const FILMS_SYNC_EDITOR_MS = 270000;
 const FILMS_SYNC_CEILING_MS = 330000;

@@ -273,15 +273,14 @@ const find = (rows, title) => rows.find(r => String(r.title) === title);
   if (rs2.success || !/sign in/i.test(String(rs2.error))) fail('only an admin', 'filmsSync with no token answered ' + JSON.stringify(rs2).slice(0, 200));
   if (JSON.stringify(b.tabs.films) !== before) fail('only an admin', 'a refused sync changed the films tab');
 
-  /* ---------- AND A STUDENT'S LOAD NEVER OPENS THE TAB (note 068: the gate is the read) ---------- */
+  /* ---------- AND A STRANGER'S LOAD NEVER OPENS THE TAB (note 068); a student's may, for Drive's shares (450) ---------- */
   b.ev('__filmsOpened = 0; (function () { const o = SpreadsheetApp.openById; SpreadsheetApp.openById = function (id) {'
      + ' const bk = o(id); return Object.assign({}, bk, { getSheetByName: function (n) { if (n === "films") __filmsOpened++;'
      + ' return bk.getSheetByName(n); } }); }; })()');
   b.cache.clear();
-  get({ token: w.tok['s1@example.org'] });
   get({});
   const opened = b.ev('__filmsOpened');
-  if (opened) fail('only an admin', 'a student’s and a stranger’s load opened the films tab ' + opened + ' time(s) — the read must be inside the guard');
+  if (opened) fail('only an admin', 'a signed-out load opened the films tab ' + opened + ' time(s) — the read must be inside the guard');
   get({ token: w.tok['a1@example.org'] });
   if (!b.ev('__filmsOpened')) fail('only an admin', 'the admin’s load never opened the films tab — this rule asked nothing');
 }

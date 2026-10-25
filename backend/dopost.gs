@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-25-j-assistant";
+const DOPOST_VERSION = "2026-10-25-k-film-shares";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -2848,6 +2848,8 @@ function doPost(e) {
       const me = findPerson('', S(body.personId));
       if (!me || !S(me.person_id)) return jsonOut({ error: 'Sign in first.' });
       if (rankAtLeast_(me, 'staff')) return jsonOut({ error: 'You teach here already.' });
+      /* NO DATE OF BIRTH IS UNDERAGE (450): asked for, rather than refused as a child. */
+      if (personAge_(me) === null) return jsonOut({ error: 'Applications to teach are for adults: add your date of birth on You first.', why: 'dob' });
       if (!adultOk_(me)) return jsonOut({ error: 'Applications to teach are for adults (18 and over).' });
       const cut = (v, n) => S(v).trim().slice(0, n || APPLICATION_FIELD_MAX);
       const f = {
@@ -3005,7 +3007,7 @@ function doPost(e) {
       try { out = filmsSync_({ budgetMs: FILMS_SYNC_BUDGET_MS }); }
       catch (err) { return jsonOut({ error: 'The films could not be synced: ' + S(err && err.message || err) }); }
       if (out.error) return jsonOut({ error: out.error, why: out.why });
-      return jsonOut(Object.assign({ success: true }, out, { films: filmsFor_(true), sync: filmsSyncSays_() }));
+      return jsonOut(Object.assign({ success: true }, out, { films: filmsFor_(me), sync: filmsSyncSays_() }));
     }
 
     /* THE RACER'S MAP (426) — the gate already refused anybody not an admin. */

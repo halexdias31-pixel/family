@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-25-j-assistant";
+const DOGET_VERSION = "2026-10-25-k-film-shares";
 
 
 function doGet(e) {
@@ -195,7 +195,7 @@ function doGet(e) {
     mark('config');
 
     /* ---------- THE FILMS, READ ONLY IF THE PERSON LOOKING MAY SEE THEM § */
-    const filmsOut = filmsFor_(viewerIsAdmin);
+    const filmsOut = filmsFor_(meAsked);
     /* `drive_id` IS DELIBERATELY NOT SENT. § */
 
     const people = read(TAB.people).rows;
@@ -1221,8 +1221,9 @@ function submissionsNow_(viewer) {
 function freshFor_(viewer) {
   const admin = !!viewer && hasRole(viewer, 'admin');
   const out = { submissions: submissionsNow_(viewer), films: [] };
+  /* EVERY VIEWER'S OWN FILMS, fresh each load: who may see one is Drive's sharing, not the kept body (450). */
+  try { out.films = filmsFor_(viewer); } catch (err) { out.films = []; }
   if (admin) {
-    try { out.films = filmsFor_(true); } catch (err) { out.films = []; }
     try { out.filmsSync = filmsSyncSays_(); } catch (err) { out.filmsSync = { at: '', more: false }; }
     try { out.setup = setupStatus_(); } catch (err) { out.setup = { error: String(err && err.message || err) }; }
   }
@@ -1260,19 +1261,57 @@ function mediaOut_(cap) {
   return out;
 }
 
-/* ---------- `payload.films`, FOR AN ADMIN AND AN EMPTY LIST FOR EVERYBODY ELSE § */
-function filmsFor_(isAdmin) {
+/* ---------- `payload.films`: AN ADMIN ALL, EVERYBODY ELSE WHAT THE DRIVE FILE IS SHARED WITH THEM (450) ----------
+   Only a share naming the viewer's own email counts; signed out, no email or Drive unreadable = nothing. */
+function filmsFor_(viewer) {
   const out = [];
-  if (!isAdmin) return out;
-  read(TAB.films).rows.forEach(function (r) {
-    if (!ON_(r.active)) return;
-    out.push({
+  if (!viewer || typeof viewer !== 'object') return out;
+  const admin = hasRole(viewer, 'admin');
+  const me = S(viewer.email).trim().toLowerCase();
+  if (!admin && me.indexOf('@') < 1) return out;
+  const rows = read(TAB.films).rows.filter(function (r) { return ON_(r.active); });
+  const shares = filmShares_(rows.filter(function (r) { return !TRUE_(r.placeholder) && S(r.drive_id); }));
+  rows.forEach(function (r) {
+    const who = shares[S(r.drive_id)] || null;
+    if (!admin && !(who && who.indexOf(me) !== -1)) return;
+    const f = {
       id: S(r.film_id), title: S(r.title), year: S(r.year), kind: S(r.kind),
       audience: S(r.audience), director: S(r.director), lead: S(r.lead),
       seasons: S(r.seasons), url: S(r.drive_url), fileKind: S(r.file_kind),
       sizeGb: S(r.size_gb), placeholder: TRUE_(r.placeholder), notes: S(r.notes)
-    });
+    };
+    /* THE ADMIN'S CHECK: who Drive says may open it, one line. */
+    if (admin) f.sharedWith = who ? who.join(', ') : TRUE_(r.placeholder) ? '' : 'unknown: Drive could not be read';
+    out.push(f);
   });
+  return out;
+}
+
+/* WHO EACH FILE OR FOLDER IS SHARED WITH, by person: { drive_id: [emails] }, an unreadable one left out.
+   Kept FILMS_SHARE_TTL_S so a revoked share is gone within minutes; anyone-with-link is not a person. */
+function filmShares_(rows) {
+  const out = {};
+  if (!rows.length) return out;
+  let cache = null, kept = {};
+  try { cache = CacheService.getScriptCache(); kept = cache.getAll(rows.map(function (r) { return FILMS_SHARE_PREFIX + S(r.drive_id); })) || {}; }
+  catch (err) { cache = null; kept = {}; }
+  const put = {};
+  rows.forEach(function (r) {
+    const id = S(r.drive_id), k = FILMS_SHARE_PREFIX + id;
+    if (kept[k] != null) { try { const v = JSON.parse(kept[k]); if (v) out[id] = v; return; } catch (err) {} }
+    try {
+      const x = S(r.file_kind) === 'folder' ? DriveApp.getFolderById(id) : DriveApp.getFileById(id);
+      if (!x) return;
+      const seen = {};
+      (x.getViewers() || []).concat(x.getEditors() || []).forEach(function (u) {
+        const e = S(u && u.getEmail ? u.getEmail() : '').trim().toLowerCase();
+        if (e.indexOf('@') > 0) seen[e] = true;
+      });
+      out[id] = Object.keys(seen).sort();
+      put[k] = JSON.stringify(out[id]);
+    } catch (err) { put[k] = 'null'; /* NOT READABLE IS NOT SHARED, and kept so: hidden from all but the admin. */ }
+  });
+  try { if (cache && Object.keys(put).length) cache.putAll(put, FILMS_SHARE_TTL_S); } catch (err) {}
   return out;
 }
 

@@ -1254,14 +1254,10 @@ function ownerEmail_() {
   return a ? S(a.email) : '';
 }
 
-/* ---------- AN ADULT MAY APPLY TO TEACH (400): no date of birth is no age data, so any signed-in account may ---------- */
+/* ---------- AN ADULT MAY APPLY TO TEACH (400): no date of birth is underage (450), so it must be given first ---------- */
 function adultOk_(r) {
-  const d = parseDate(r && r.date_of_birth);
-  if (!d) return true;
-  const now = new Date();
-  const age = now.getFullYear() - d.getFullYear() - ((now.getMonth() < d.getMonth()
-    || (now.getMonth() === d.getMonth() && now.getDate() < d.getDate())) ? 1 : 0);
-  return age >= 18;
+  const age = personAge_(r);
+  return age !== null && age >= 18;
 }
 
 /* ---------- THEIR LATEST APPLICATION, AS THE APPLICANT MAY SEE IT — the status and the day, nothing an admin wrote ---------- */

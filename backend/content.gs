@@ -1894,8 +1894,8 @@ const MEDIA_CAP = { title: 200, channel: 120, subject: 60, tags: 300, vkind: 20,
 /* ---------- HOW OLD YOU HAVE TO BE TO WATCH IT (406) ----------
    A minimum age in whole years; blank, 0, U, PG or words = everyone. The cell may say "12+" — the number is what counts. */
 const MEDIA_AGE_MAX = 21;
-/* AN AGE NOBODY KNOWS: a signed-out visitor or a Student with no date of birth sees 12 and under (406). */
-const MEDIA_AGE_UNKNOWN = 12;
+/* AN AGE NOBODY KNOWS IS UNDERAGE (450): signed out or no date of birth sees only what has no minimum age. */
+const MEDIA_AGE_UNKNOWN = 0;
 function mediaAgeOf_(v) {
   const m = S(v).match(/\d+/);
   return m ? Math.min(MEDIA_AGE_MAX, Number(m[0])) : 0;
@@ -1911,12 +1911,11 @@ function personAge_(r) {
   const a = S(r.age).match(/^\s*(\d{1,3})\s*$/);
   return a ? Number(a[1]) : null;
 }
-/* THE OLDEST RATING THIS VIEWER MAY SEE: an admin everything; a known age that age; unknown, 12 for nobody or a Student, else everything. */
+/* THE OLDEST RATING THIS VIEWER MAY SEE: an admin everything; a known age that age; no date of birth, whatever the rank, underage (450). */
 function mediaAgeCap_(r) {
   if (r && hasRole(r, 'admin')) return Infinity;
   const age = personAge_(r);
-  if (age !== null) return age;
-  return !r || rankOf(r) === 'student' ? MEDIA_AGE_UNKNOWN : Infinity;
+  return age !== null ? age : MEDIA_AGE_UNKNOWN;
 }
 /* A ROW TOO OLD FOR THIS VIEWER STILL HIDES A REPOSITORY COPY of the same video, by this hash rather than the id
    (the id alone is the video). FNV-1a of `kind:id`; `mediaVeil_` in games.js is the same sum. */

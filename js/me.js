@@ -160,7 +160,7 @@ function setupCard_() {
 }
 
 /* ---------- APPLY TO TEACH (400): Staff only by application and an admin's yes ----------
-   On You, for a signed-in adult who is not staff yet (no date of birth is no age data, so anybody signed in). */
+   On You, for a signed-in adult who is not staff yet; no date of birth is underage (450), so the card asks for it. */
 const APP_SUBJECT_ROWS = 3;
 const APP_STATUS_LINE = {
   new: 'Your application to teach is with us. We will be in touch.',
@@ -170,10 +170,13 @@ const APP_STATUS_LINE = {
 };
 function applyAdult_() {
   const age = profileAge_(USER && USER.profile);
-  return age === null || age >= 18;
+  return age !== null && age >= 18;
 }
 function applyCard_() {
-  if (!USER || rankAtLeast_('staff') || !applyAdult_()) return '';
+  if (!USER || rankAtLeast_('staff')) return '';
+  if (profileAge_(USER.profile) === null) return `<div class="card apply-card"><h3>Teach with us</h3>
+    <p class="sub apply-status">To apply to teach, add your date of birth on this screen first.</p></div>`;
+  if (!applyAdult_()) return '';
   const a = USER.application || null;
   const st = a && a.status;
   const open = st === 'new' || st === 'interview';

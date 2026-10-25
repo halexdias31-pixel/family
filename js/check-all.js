@@ -122,7 +122,9 @@ const SUITE = [
   { file: 'check-race.js', what: 'the racer\'s map: crossings shared, roads every 15 m, the box, DEM fallbacks and cache, ?race=1, an admin builds' },
   /* AN ADMIN'S REELS AND VIDEOS (404), through the real doPost and doGet. */
   { file: 'check-media.js', what: 'an admin adds, edits, hides and deletes a reel or video; others and bad links refused; the payload carries it' },
-  { file: 'check-media-age.js', what: 'a reel or video rated above a viewer\'s age (from their date of birth; 12 when unknown for a student or nobody) is not sent; adults and the admin get all' },
+  { file: 'check-media-age.js', what: 'a reel or video rated above a viewer\'s age (from their date of birth; no date of birth or signed out = underage, 450) is not sent; the admin gets all' },
+  /* A FILM IS SEEN BY WHOM ITS DRIVE FILE IS SHARED WITH (450), over a fake Drive. */
+  { file: 'check-film-shares.js', what: 'a film reaches only the people its Drive file is shared with, a revoked share goes within ten minutes, the admin sees who' },
   /* WHAT A CHILD WROTE, ON THEIR ACCOUNT. § */
   { file: 'check-assistant.js', what: 'the Assistant in Messages (449): signed in only, the token’s person, five a day from config, a failure given back' },
   { file: 'check-saved-answers.js', what: 'answers on the account: the token’s person, the later edit wins, text in and text out' },

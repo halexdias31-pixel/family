@@ -2434,6 +2434,8 @@ check('a client applies to teach from You, the admin\'s Business column glows "1
   const bad = [];
   const real = ['applyTeach', 'listApplications', 'decideApplication'];
   const reply = b => (real.indexOf(b.action) !== -1 ? W.real.post(b) : W.reply(b));
+  /* NO DATE OF BIRTH IS UNDERAGE (450): Pat gives one before applying. */
+  { const h = W.real.tabs.people[0], r = W.real.tabs.people.find(x => x[h.indexOf('person_id')] === 'P-C1'); r[h.indexOf('date_of_birth')] = '01/05/1980'; }
   const p = await cardOpen_(W, 'parent@example.org', { reply });
   if (p.err) return [p.err];
   const card = p.d.querySelector('#s-staff .apply-card');
@@ -5841,6 +5843,9 @@ check('the videos widget leads the Reels column: the bar alone, at most four res
   const t = w.__t;
   const d = w.document;
   const bad = [];
+  /* A VIEWER OLD ENOUGH FOR THE 7+ CLIP: signed out or with no date of birth is underage (450). */
+  t.USER({ name: 'Cal Parent', personId: 'P-C', role: 'client', roles: ['client'], rank: 'client', token: 'tk3',
+           profile: { dob_d: '2', dob_m: '3', dob_y: String(new Date().getFullYear() - 30) } });
   /* ON THE REELS COLUMN (414), before the first reel — and on Games no longer. */
   if (t.widgetsOf('game').some(x => String(x.id) === 'videos')) bad.push('videos is still a widget of the Games column');
   const roster = t.widgetsOf('reel').map(x => String(x.id));
@@ -6955,6 +6960,39 @@ check('a student’s and a stranger’s videos card has no film, no Sync tile an
   if (sent.some(b => b.action === 'filmsSync')) bad.push('a student’s or a stranger’s phone posted filmsSync');
   const name = String((t.widgetsOf('reel').find(x => String(x.id) === 'videos') || {}).name || '');
   if (/film/i.test(name)) bad.push('the videos card is called "' + name + '" on everybody’s roster');
+  return bad;
+});
+
+/* ---------- A FILM SHARED WITH YOU ON DRIVE (450): the backend sends it, the card finds it, and only the admin is told who else ---------- */
+check('a student sent the one film Drive shares with them finds and plays it with no sharing line, and the admin sees who each film is shared with', async () => {
+  const bad = [];
+  {
+    const data = payload();
+    data.films = [FILMS_[1]];
+    const { w } = boot({ payload: data, serve: u => (/data\/videos\.json/.test(u) ? [] : undefined) });
+    const { box, type, titles } = await vidCard_(w, { name: 'Sam Student', personId: 'P-S1', role: 'student', roles: ['student'], token: 'tk-s' });
+    if (!box) return ['the videos card did not draw for a student'];
+    type('cartoon');
+    if (titles().join('|') !== 'Invented Cartoon') bad.push('a student shared one film finds ' + (titles().join(' | ') || 'nothing') + ', not Invented Cartoon');
+    const row = box.querySelector('.vid-results .vid-row');
+    if (!row || !row.matches('button[data-do="vid-play"]')) bad.push('the shared film is not a row that plays here for the student');
+    if (box.querySelector('.vid-shared') || /Shared with/.test(box.textContent)) bad.push('a student is told who a film is shared with');
+    if (box.querySelector('[data-do="vid-sync"]')) bad.push('a student shared a film is drawn the Sync from Drive tile');
+  }
+  {
+    const data = payload();
+    data.films = [Object.assign({}, FILMS_[0], { sharedWith: 'child@example.org, parent@example.org' }),
+                  Object.assign({}, FILMS_[1], { sharedWith: '' })];
+    const { w } = boot({ payload: data, serve: u => (/data\/videos\.json/.test(u) ? [] : undefined) });
+    const { box, type } = await vidCard_(w, vidAdmin_);
+    if (!box) return bad.concat(['the videos card did not draw for the admin']);
+    type('paper moon');
+    const one = box.querySelector('.vid-results .vid-row .vid-shared');
+    if (!one || one.textContent !== 'Shared with child@example.org, parent@example.org') bad.push('the admin is not told who Paper Moon is shared with: ' + (one ? one.textContent : 'no line'));
+    type('cartoon');
+    const none = box.querySelector('.vid-results .vid-row .vid-shared');
+    if (!none || none.textContent !== 'Shared with nobody') bad.push('the admin is not told a film is shared with nobody: ' + (none ? none.textContent : 'no line'));
+  }
   return bad;
 });
 
@@ -11064,7 +11102,7 @@ check('an admin adds a reel from the "+" just before the first reel, where the c
 });
 
 /* "ADD AGE RESTRICTION FOR VIDEOS AND REELS — HOW OLD THEY HAVE TO BE TO WATCH IT" (406): the phone hides what the viewer is too young for. */
-check('a ten-year-old student sees no 12+ reel or video, an unknown-age student or nobody sees 12 and under, an adult and the admin see all with an age badge', async () => {
+check('a ten-year-old student sees no 12+ reel or video, anyone with no date of birth or nobody sees only unrated, an adult and the admin see all with an age badge', async () => {
   const { w } = boot({});
   await wait(400);
   const t = w.__t, d = w.document, bad = [];
@@ -11093,9 +11131,12 @@ check('a ten-year-old student sees no 12+ reel or video, an unknown-age student 
   if (s.has('jD2Yy_wCBLE')) bad.push('a veiled repository Short still shows to the ten-year-old');
   t.DATA().media.pop();
   s = look({ name: 'Ada Pupil', personId: 'P-S', role: 'student', roles: ['student'], rank: 'student', token: 'tk2', profile: {} }, 'an unknown-age student');
-  if (!s.has(TWELVE) || s.has(FIFTEEN) || s.video(V18)) bad.push('a student with no date of birth is not shown exactly 12 and under');
+  /* NO DATE OF BIRTH IS UNDERAGE, WHATEVER THE RANK (450). */
+  if (!s.has(ALL) || s.has(TWELVE) || s.has(FIFTEEN) || s.video(V18) || !s.video(V0)) bad.push('a student with no date of birth is not shown only the unrated');
   s = look(null, 'nobody');
-  if (!s.has(TWELVE) || s.has(FIFTEEN) || s.video(V18)) bad.push('a signed-out visitor is not shown exactly 12 and under');
+  if (!s.has(ALL) || s.has(TWELVE) || s.has(FIFTEEN) || s.video(V18)) bad.push('a signed-out visitor is not shown only the unrated');
+  s = look({ name: 'Nia Parent', personId: 'P-N', role: 'client', roles: ['client'], rank: 'client', token: 'tk4', profile: {} }, 'a client with no date of birth');
+  if (!s.has(ALL) || s.has(TWELVE) || s.video(V18)) bad.push('a client with no date of birth is shown a rated reel or video');
   s = look({ name: 'Cal Parent', personId: 'P-C', role: 'client', roles: ['client'], rank: 'client', token: 'tk3', profile: { dob_d: '2', dob_m: '3', dob_y: String(y - 30) } }, 'an adult');
   if (!s.has(TWELVE) || !s.has(FIFTEEN) || !s.video(V18)) bad.push('an adult is not shown the 12+, 15+ reels and the 18 video');
   if (!/class="media-age-badge[^"]*"[^>]*>15\+</.test(s.html)) bad.push('the 15+ reel has no "15+" badge for the adult');
