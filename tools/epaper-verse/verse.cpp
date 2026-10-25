@@ -8,6 +8,9 @@
 #include <Fonts/FreeSerif12pt7b.h>
 #include <Fonts/FreeSerif9pt7b.h>
 #include <Fonts/FreeSerifItalic9pt7b.h>
+#ifdef VERSE_ICONS   // the icon screen: build with -DVERSE_ICONS; icons.h is written by make-icons.js
+#include "icons.h"
+#endif
 
 #define EPD_PWR 6   // panel power, LOW = on; e-paper keeps its picture with the power off
 GxEPD2_BW<GxEPD2_154_D67, GxEPD2_154_D67::HEIGHT> display(GxEPD2_154_D67(/*CS*/ 11, /*DC*/ 10, /*RST*/ 9, /*BUSY*/ 8));
@@ -148,6 +151,47 @@ void drawVerse(const String &text, const String &ref) {
   } while (display.nextPage());
 }
 
+#ifdef VERSE_ICONS
+// The icon screen: the verse's icon as big as leaves the verse room, the verse beneath, the reference at the foot.
+// If even the 40px icon does not fit, the 20px one sits beside the reference instead.
+void drawVerseIcon(const String &text, const String &ref, int which) {
+  const int M = 8, W = 200 - 2 * M, REF_TOP = 176, NS = sizeof(ICON_SIZES) / sizeof(ICON_SIZES[0]);
+  const GFXfont *fonts[] = { &FreeSerif12pt7b, &FreeSerif9pt7b };
+  const int lineH[] = { 24, 18 };
+  String lines[14]; int n = 0, f = 1, s = NS - 1; bool beside = true;
+  for (int si = 0; si < NS - 1 && beside; si++)
+    for (int fi = 0; fi < 2; fi++) {
+      display.setFont(fonts[fi]);
+      n = wrap(text, W, lines, 14);
+      if (ICON_SIZES[si] + 6 + n * lineH[fi] <= REF_TOP - M) { f = fi; s = si; beside = false; break; }
+    }
+  if (beside) { display.setFont(fonts[1]); n = wrap(text, W, lines, 14); }
+  if (n > 14) n = 14;
+  const int px = ICON_SIZES[s];
+  int block = (beside ? 0 : px + 6) + n * lineH[f];
+  int top = M + max(0, (REF_TOP - M - block) / 2);
+  display.setFullWindow();
+  display.firstPage();
+  do {
+    display.fillScreen(GxEPD_WHITE);
+    display.setTextColor(GxEPD_BLACK);
+    int y = top;
+    if (!beside) { display.drawBitmap(100 - px / 2, y, ICONS[which][s], px, px, GxEPD_BLACK); y += px + 6; }
+    display.setFont(fonts[f]);
+    for (int i = 0; i < n; i++) {
+      display.setCursor(M + (W - textWidth(lines[i])) / 2, y + (i + 1) * lineH[f] - 6);
+      display.print(lines[i]);
+    }
+    display.drawFastHLine(70, REF_TOP, 60, GxEPD_BLACK);
+    display.setFont(&FreeSerifItalic9pt7b);
+    int iw = beside ? px + 4 : 0, x = M + (W - textWidth(ref) - iw) / 2;
+    if (beside) display.drawBitmap(x, 179, ICONS[which][s], px, px, GxEPD_BLACK);
+    display.setCursor(x + iw, 194);
+    display.print(ref);
+  } while (display.nextPage());
+}
+#endif
+
 void setup() {
   // Which verse: the daily alarm moves on by one; plugging in or RESET shows the same one again.
   Preferences keep;
@@ -161,7 +205,11 @@ void setup() {
   display.epd2.selectSPI(SPI, SPISettings(4000000, MSBFIRST, SPI_MODE0));
   display.init(0, true, 2, false);
   display.clearScreen();   // a full refresh to white first: nothing old (an earlier picture, a ghost) survives
+#ifdef VERSE_ICONS
+  drawVerseIcon(VERSES[i][0], VERSES[i][1], VERSE_ICON[i]);
+#else
   drawVerse(VERSES[i][0], VERSES[i][1]);
+#endif
   display.hibernate();
   digitalWrite(EPD_PWR, HIGH);
   esp_sleep_enable_timer_wakeup(24ULL * 3600 * 1000000ULL);
