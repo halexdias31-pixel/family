@@ -27068,6 +27068,8 @@ check('a drawn answer is marked on Check: strokes on a real Corbettmaths figure 
     if (!x || x.kind !== 'question' || !x.row || !inSets(x.row)) continue;
     const k = w.answerKinds_(x);
     if (!k.draw || k.value) continue;
+    /* A PENDING ROW WITHOUT ITS WORDS HERE (a fresh clone, 411) has no drawn answer to Check yet: not this journey's subject. */
+    if (/^true$/i.test(String(x.row.lib_pending || '')) && !String(x.row.draw_answers || x.row.drawAnswer || x.drawAnswer || '').trim()) continue;
     host.innerHTML = w.questionCard_(x, 0);
     if (!host.querySelector('.qpad-send [data-do="pad-check"]')) { waiting++; bad.push(x.row.row_id + ': drawn, and still sent to a person'); }
   }
