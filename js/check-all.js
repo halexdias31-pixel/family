@@ -70,6 +70,7 @@ const SUITE = [
   { file: 'check-typeset.js', what: 'fractions stacked, powers raised, no plain-text maths' },
   /* ---------- AND WHETHER THE ANSWER YOU SEE IS SHORT, AND ALL THERE IS § */
   { file: 'check-answers.js', what: 'every answer drawn is a short result, and nothing but the result' },
+  { file: 'check-calc.js',  what: 'the calculator engine: exact fractions, roots, powers, degrees, DEL as a unit' },
   { file: 'check-chess.js',  what: 'the chess move generator, counted by perft' },
   /* ---------- AND EVERY TIMESTAMP ANYBODY SEES § */
   { file: 'check-dates.js', what: 'a written date read as the date it says' },

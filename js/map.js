@@ -202,10 +202,10 @@ const WIDGETS = [
     <h3>Calculator</h3>
     ${/* A DIV, not an input. § */
           ''}
-    <div id="mc-display" class="mc-display mono">0</div>
+    <div id="mc-display" class="mc-display" tabindex="0" aria-live="polite" aria-label="Calculator display"></div>
     <div class="mc-grid">
-      ${CALC_KEYS.map(([v, label, cls]) =>
-        `<button type="button" class="mc-btn ${cls}" data-mc="${esc(v)}">${esc(label)}</button>`
+      ${CALC_KEYS.map(([v, label, cls, shift]) =>
+        `<button type="button" class="mc-btn ${cls}" data-mc="${esc(v)}" aria-label="${esc(v === 'frac' ? 'fraction' : v === 'pow' ? 'power' : v)}">${shift ? `<small class="mc-alt">${shift}</small>` : ''}<span class="mc-lab">${label}</span></button>`
       ).join('')}
     </div>
   </div>` },

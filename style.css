@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-25-h-rank-columns";
+  --css-version: "2026-10-25-i-casio-calc";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -974,23 +974,54 @@ a { color: inherit; text-decoration: none; }
 
 /* ---------- CALCULATOR § */
 .mc-display { background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-sm);
-              padding: .7rem .8rem; text-align: right; font-size: 1.6rem; margin-bottom: .5rem;
-              overflow-x: auto; white-space: nowrap; }
-.mc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: .35rem; }
-.mc-btn { min-height: max(44px, 2.9rem); border-radius: var(--r-sm);
+              padding: 1.1rem .7rem .5rem; margin-bottom: .5rem; position: relative; min-height: 5.6rem;
+              display: flex; flex-direction: column; justify-content: space-between; cursor: default;
+              user-select: none; font-family: 'Cambria Math', 'STIX Two Math', Georgia, serif; }
+.mc-display:focus-visible { outline: 1px solid var(--gold); }
+/* S and D, the Casio's status line; a pseudo-element, so it is never part of the sum's text. */
+.mc-display::before { content: attr(data-ind); position: absolute; top: .2rem; left: .5rem;
+                      font: 600 .6rem var(--font); color: var(--dim); white-space: pre; }
+.mc-in { font-size: 1.35rem; text-align: left; overflow-x: auto; white-space: nowrap; line-height: 2.1; }
+.mc-out { font-size: 1.6rem; text-align: right; min-height: 1.9rem; white-space: nowrap; overflow-x: auto; }
+.mc-word { font-style: normal; }
+.mc-sup, .mc-idx { font-size: .68em; vertical-align: .75em; line-height: 0; }
+.mc-idx { margin-right: -.3em; }
+.mc-sqrt { display: inline-flex; align-items: stretch; vertical-align: middle; line-height: 1.25; }
+.mc-rad { transform: scaleY(1.15); }
+.mc-under { border-top: 1px solid currentColor; padding: 0 .12em; }
+.mc-frac { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle;
+           font-size: .85em; line-height: 1.15; margin: 0 .1em; }
+.mc-num { border-bottom: 1px solid currentColor; padding: 0 .15em; min-width: .8em; text-align: center; }
+.mc-den { padding: 0 .15em; min-width: .8em; text-align: center; }
+.mc-box { display: inline-block; min-width: .65em; height: .95em; border: 1px dashed var(--dim);
+          vertical-align: middle; line-height: .95em; }
+.mc-box .mc-caret { height: .9em; }
+/* Six function keys a row over five number keys, as on the fx-83GTX: sixty tracks, spans of 10 or 12. */
+.mc-grid { display: grid; grid-template-columns: repeat(60, minmax(0, 1fr)); gap: .3rem 0; }
+.mc-btn { grid-column: span 12; min-height: 44px; margin-inline: .15rem; border-radius: var(--r-sm); position: relative;
           background: var(--sunk); border: 1px solid var(--line); color: var(--ink);
-          font: 600 .95rem var(--font); cursor: pointer;
+          font: 600 1rem var(--font); cursor: pointer; padding: .7rem 0 .15rem;
           transition: transform var(--quick) ease; }
+.mc-btn.fn, .mc-btn.sh, .mc-btn.nav { grid-column: span 10; font-size: .8rem; }
+.mc-btn.br { grid-column: span 30; }
+/* Below 420px six or five across cannot each be 44px wide, so every key takes a quarter. */
+@media (max-width: 419px) { .mc-btn, .mc-btn.fn, .mc-btn.sh, .mc-btn.nav { grid-column: span 15; } .mc-btn.br { grid-column: span 30; } }
 .mc-btn:active { transform: scale(.94); }
 .mc-btn.op { color: var(--gold); }
-.mc-btn.fn { color: var(--dim); font-size: .85rem; }
-.mc-btn.del { color: var(--bad); }
-/* The equals key spans the row it ends — twenty-seven keys into a four-column grid leaves it
-   alone on the last line, and a lone key the width of a quarter looks like a mistake. */
-/* How WIDE the equals key is, is set once, further down — `grid-column: span 2`. A `span 4` was
-   written here and never applied. */
-.mc-btn.eq { background: var(--gold); color: #000; border-color: var(--gold);
-             }
+.mc-btn.fn { color: var(--ink); }
+.mc-btn.sh { color: var(--gold); font-size: .65rem; }
+.mc-btn.del { color: #000; background: var(--gold); border-color: var(--gold); }
+.mc-btn.eq { background: var(--gold); color: #000; border-color: var(--gold); }
+/* The SHIFT function, printed in gold above the key, lit while SHIFT is held. */
+.mc-alt { position: absolute; top: .1rem; left: 0; right: 0; font-size: .55rem; color: var(--gold); opacity: .75; line-height: 1; }
+.mc-shifted .mc-alt { opacity: 1; }
+.mc-shifted .mc-btn.sh { background: var(--gold); color: #000; }
+.mc-btn sup, .mc-alt sup { font-size: .7em; vertical-align: .5em; line-height: 0; }
+.mk-b { display: inline-block; width: .55em; height: .65em; border: 1px solid currentColor; vertical-align: middle; }
+sup.mk-b { width: .45em; height: .5em; vertical-align: .55em; }
+.mk-fr { display: inline-flex; flex-direction: column; gap: 2px; vertical-align: middle; }
+.mk-fr b { display: block; width: .55em; height: .5em; border: 1px solid currentColor; }
+.mk-fr b + b { margin-top: 1px; box-shadow: 0 -2.5px 0 -1px currentColor; }
 
 /* ---------- CALENDAR § */
 .cal-head { display: flex; align-items: center; justify-content: space-between; padding: .2rem 0 .5rem; }
@@ -1889,19 +1920,12 @@ button.text-drop { color: var(--bad); }
 /* `.chip.is-clear` WAS HERE. § */
 
 /* ---------- THE CALCULATOR'S CARET § */
-.mc-display { min-height: max(44px, 2.9rem); display: flex; align-items: center;
-              justify-content: flex-end; overflow-x: auto; white-space: nowrap;
-              cursor: default; user-select: none; }
 .mc-zero { color: var(--faint); }
-.mc-caret { display: inline-block; width: 2px; height: 1.2em; background: var(--gold);
+.mc-caret { display: inline-block; width: 2px; height: 1.2em; background: var(--gold); margin: 0 -1px;
             vertical-align: middle; animation: caret 1.06s steps(1) infinite; }
 @keyframes caret { 0%, 50% { opacity: 1; } 50.01%, 100% { opacity: 0; } }
-/* The arrows are dimmer than the operators: they move you around the sum rather than being part
-   of it, and a navigation key weighted like ÷ competes with the arithmetic. */
-.mc-btn.nav { color: var(--dim); font-size: .8rem; }
+.mc-btn.nav { color: var(--dim); }
 .mc-btn.nav:active { color: var(--gold); }
-/* Two of the four arrows share the last row with equals, so it spans two rather than four. */
-.mc-btn.eq { grid-column: span 2; }
 
 /* ---------- THE TIMER § */
 /* ---------- TINY IS ABOUT THE TEXT, NOT ABOUT THE TARGET § */
@@ -2822,7 +2846,7 @@ label.bk-k { cursor: pointer; }
 .widget-full.solid > .card { padding: .75rem; }
 /* NO CAP ON THE CASE — narrowing a calculator was the right instinct in the wrong place: § */
 .widget-full.solid:has(.mc-display) .mc-grid,
-.widget-full.solid:has(.mc-display) .mc-display { max-width: 19rem; margin-inline: auto; width: 100%; }
+.widget-full.solid:has(.mc-display) .mc-display { max-width: 22rem; margin-inline: auto; width: 100%; }
 .widget-full.solid .mc-display {
   border-radius: 3px;
   padding: .8rem .7rem;
@@ -2831,6 +2855,8 @@ label.bk-k { cursor: pointer; }
   text-shadow: 0 0 12px rgb(120 220 150 / .28);
 }
 .widget-full.solid .mc-btn { border-radius: 4px; }
+.widget-full.solid .mc-btn.eq, .widget-full.solid .mc-btn.del { background: var(--gold); border-color: var(--gold); color: #000; }
+.widget-full.solid .mc-shifted .mc-btn.sh { background: var(--gold); color: #000; }
 
 /* ---------- THE CALENDAR IS PAPER, ON A WIRE § */
 /* ---------- THE CALENDAR IS PAPER, AND PAPER IS NOT THIS APP'S PALETTE § */
