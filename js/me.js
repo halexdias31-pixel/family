@@ -2611,11 +2611,9 @@ function qualSlot_(i, value, o) {
               received: val('_received'), spec: TRUEish_(val('_spec')) };
   q.teach = q.spec || TRUEish_(val('_teach'));
   q.first = !!o.first;
-  const seg = q.spec ? 'spec' : q.teach ? 'teach' : 'no';
-  /* THE WORDS SAY WHAT THEY DO ON THE PROFILE, in the title, so the sentence that used to sit under the
-     control on every editor is there for whoever asks and gone for everybody else. */
-  const segB = (v, word, why) => `<button type="button" class="q-seg-b" data-do="qual-teach" data-v="${v}" data-unlocked
-      title="${esc(why)}" aria-pressed="${seg === v ? 'true' : 'false'}">${word}</button>`;
+  /* ONE CONTROL THAT CYCLES (440): each tap moves Not teaching → Can teach → Teaches → Not teaching. */
+  const cyc = `<button type="button" class="q-cyc" data-do="qual-teach" data-unlocked aria-label="Teaching: ${esc(qualTeachWord_(q))}, tap to change">
+        <span class="q-cyc-k">Teaching</span>${qualTeachVal_(q)}</button>`;
   const said = qualSay_(q);
   /* EACH CAPTION IN TWO WORDINGS, a subject's and a certificate's, and the slot's `is-cert` says which
      is shown — so a line that becomes a DBS by a pick changes its captions with no redraw. */
@@ -2625,6 +2623,8 @@ function qualSlot_(i, value, o) {
     <input type="hidden" data-me="${esc(f('_teach'))}" value="${q.teach ? 'TRUE' : 'FALSE'}">
     <button type="button" class="q-line" data-do="qual-open" data-unlocked aria-expanded="false"
       aria-label="${esc(said)}" title="${esc(said)}">${qualFace_(q)}</button>
+    <button type="button" class="q-mark-b" data-do="qual-teach" data-face="1" data-unlocked
+      aria-label="Teaching: ${esc(qualTeachWord_(q))}, tap to change">${qualTeachVal_(q)}</button>
     <div class="q-ed">
       <div class="q-row">
         ${qualPick_(`data-me="${esc(f(''))}" class="q-name"`, q.subject, QUAL_SUBJECTS, 'Subject', 'Choose', o.mine)}
@@ -2639,10 +2639,7 @@ function qualSlot_(i, value, o) {
         <label class="field q-f q-school">${cap('School, college or uni', 'Issued by')}
           <input type="text" data-me="${esc(f('_board'))}" value="${esc(q.board)}" autocomplete="off"></label>
       </div>
-      <div class="q-seg" role="group" aria-label="Do you tutor it">${
-        segB('spec', 'Teach', 'Shown in gold under Teaches on your profile')}${
-        segB('teach', 'Can teach', 'Listed under Can also teach on your profile')}${
-        segB('no', 'Not teaching', 'On your profile as a qualification only')}</div>
+      ${cyc}
       <div class="tile-row q-tiles">${tile_({ icon: 'save', label: 'Done', act: 'qual-done', data: { unlocked: '' } })}${
         tile_({ icon: 'bin', label: 'Remove', note: [q.subject, q.level].filter(Boolean).join(' ') || 'this one', act: 'qual-drop',
                 data: { unlocked: '' } })}</div>
@@ -2658,6 +2655,11 @@ function qualFace_(q) {
     + `<span class="q-note">${qualIso_(q)}</span>`
     + `<span class="q-mark">${cert ? '' : q.spec ? '<span class="q-chip">Teach</span>'
       : q.teach ? '<span class="q-can">Can teach</span>' : ''}</span>`;
+}
+/* THE TEACHING STATE IN WORDS, and drawn: gold for Teaches, plain for Can teach, faint for Not teaching. */
+function qualTeachWord_(q) { return q.spec ? 'Teaches' : q.teach ? 'Can teach' : 'Not teaching'; }
+function qualTeachVal_(q) {
+  return `<span class="q-cyc-v is-${q.spec ? 'spec' : q.teach ? 'teach' : 'no'}">${qualTeachWord_(q)}</span>`;
 }
 /* ---------- A CERTIFICATE IS HELD, NOT STUDIED AND NOT TAUGHT § */
 function qualIsCert_(q) {
@@ -2739,6 +2741,12 @@ function qualFaceNow_(slot) {
   const said = qualSay_(q);
   line.setAttribute('aria-label', said);
   line.setAttribute('title', said);
+  const lab = 'Teaching: ' + qualTeachWord_(q) + ', tap to change';
+  slot.querySelectorAll('[data-do="qual-teach"]').forEach(b => {
+    b.setAttribute('aria-label', lab);
+    const v = b.querySelector('.q-cyc-v');
+    if (v) v.outerHTML = qualTeachVal_(q);
+  });
 }
 ['input', 'change'].forEach(ev => document.addEventListener(ev, e => {
   const t = e.target;
@@ -2903,7 +2911,6 @@ function qualCommit_(slot, after) {
   /* A CERTIFICATE KEEPS NO GRADE AND NO TEACHING TICK — its editor has neither box to show, and an answer nobody can see is one nobody can take back. § */
   if (qualIsCert_(q)) {
     qualSet_(slot, { ['qual_' + i + '_grade']: '', ['qual_' + i + '_spec']: 'FALSE', ['qual_' + i + '_teach']: 'FALSE' });
-    slot.querySelectorAll('[data-do="qual-teach"]').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === 'no' ? 'true' : 'false'));
     qualFaceNow_(slot);
   }
   if (JSON.stringify(qualValues_(slot)) === slot.dataset.was) { if (after) after(); return; }
@@ -2919,22 +2926,24 @@ function qualCommit_(slot, after) {
     if (moved) qualRedraw_(shelf, null, i);
   });
 }
-/* THE THREE-WAY CONTROL, written into the two hidden boxes and saved. § */
+/* THE CYCLE, written into the two hidden boxes and saved. The line's own mark cycles without opening the line. § */
+const QUAL_CYCLE_ = { no: 'teach', teach: 'spec', spec: 'no' };
 on('qual-teach', el => {
   if (qualWhenSaved_(el)) return;
   let slot = el.closest('.q-slot');
-  const shelf = el.closest('.q-shelf'), v = el.dataset.v;
+  const shelf = el.closest('.q-shelf'), face = !!el.dataset.face;
   if (!slot || !shelf) return;
-  if (!slot.classList.contains('is-open')) {
+  if (!face && !slot.classList.contains('is-open')) {
     slot = qualReopen_(shelf, slot);
-    el = slot && slot.querySelector('[data-do="qual-teach"][data-v="' + v + '"]');
-    if (!el) return;
+    if (!slot) return;
   }
-  const i = slot.dataset.slot;
+  const q = qualRead_(slot), i = slot.dataset.slot;
+  if (qualIsCert_(q)) return;
+  const v = QUAL_CYCLE_[q.spec ? 'spec' : q.teach ? 'teach' : 'no'];
   qualSet_(slot, { ['qual_' + i + '_spec']: v === 'spec' ? 'TRUE' : 'FALSE',
                    ['qual_' + i + '_teach']: v === 'no' ? 'FALSE' : 'TRUE' });
-  slot.querySelectorAll('[data-do="qual-teach"]').forEach(b => b.setAttribute('aria-pressed', b === el ? 'true' : 'false'));
   qualFaceNow_(slot);
+  if (face && !slot.classList.contains('is-open')) { qualSave_(slot).then(ok => { if (ok && slot.isConnected) slot.dataset.was = JSON.stringify(qualValues_(slot)); }); return; }
   qualDirty_(el);
   qualCommit_(slot);
 });

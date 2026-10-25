@@ -8817,9 +8817,9 @@ function accountPages_() {
   /* THE SETUP CARD MOVED TO THE BUSINESS COLUMN (400) — `bizPages_` in records.js. */
   /* "APPLY TO TEACH", or where your application stands (400) — `applyCard_` in me.js; '' for staff and children. */
   const apply = typeof applyCard_ === 'function' ? [applyCard_()].filter(Boolean) : [];
-  /* "+ ADD A PERSON", above everybody but you, for an admin only (373) — `peopleAddPage_` in me.js. */
+  /* "+ ADD A PERSON", the very first card, above even yours (373, 440) — `peopleAddPage_` in me.js. */
   const add = typeof peopleAddPage_ === 'function' ? [peopleAddPage_()].filter(Boolean) : [];
-  return [me].concat(apply, add, claimPages, famPages, others, everyone, coming);
+  return add.concat([me], apply, claimPages, famPages, others, everyone, coming);
 }
 
 /* ---------- HOW A LEARNER IS GETTING ON, IN ONE LINE UNDER THEIR NAME § */

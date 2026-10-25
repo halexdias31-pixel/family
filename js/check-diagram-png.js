@@ -54,7 +54,18 @@ if (missing.length) bad.push(missing.length + ' drawing(s) with no PNG twin — 
 if (wrong.length) bad.push(wrong.length + ' twin(s) that are not a PNG of the drawing’s width — run node tools/diagram_png.js --force: ' + wrong.slice(0, 5).join('; '));
 
 /* 2. NO TWIN OF NO DRAWING, and nothing else in the folder. */
-const orphans = files.filter(f => !/^[0-9a-f]{12}\.png$/.test(f) || !drawings.has(f.slice(0, 12)));
+/* A TWIN OF A PENDING ROW THIS CLONE HAS NO WORDS FOR is not an orphan, if the committed list names it (440). */
+const PT = require('../check/lib-full.js').pendingTwins(rows, nameOf);
+const excused = f => PT.blind > 0 && PT.listed.has(f.slice(0, 12));
+const orphans = files.filter(f => !/^[0-9a-f]{12}\.png$/.test(f) || (!drawings.has(f.slice(0, 12)) && !excused(f)));
+const listedGone = [...PT.listed].filter(h => !have.has(h + '.png'));
+if (listedGone.length) bad.push(listedGone.length + ' twin(s) in data/diagrams-pending.json with no file in data/diagrams/: ' + listedGone.slice(0, 5).join(', '));
+if (!PT.blind) {
+  const stale = [...PT.listed].filter(h => !PT.mine.has(h));
+  if (stale.length) bad.push(stale.length + ' twin(s) in data/diagrams-pending.json that no pending row draws — run node tools/diagram_png.js: ' + stale.slice(0, 5).join(', '));
+  const unlisted = [...PT.mine].filter(h => !PT.listed.has(h));
+  if (unlisted.length) bad.push(unlisted.length + ' pending row drawing(s) missing from data/diagrams-pending.json, so a fresh clone would call their twins orphans — run node tools/diagram_png.js');
+}
 if (orphans.length) bad.push(orphans.length + ' file(s) in data/diagrams/ that are no drawing’s twin — run node tools/diagram_png.js, which removes them: ' + orphans.slice(0, 5).join(', '));
 
 /* 3. THE BACKEND'S NAME FOR EACH DRAWING IS THE SAME — through the real `digestDiagram_`. */
@@ -87,4 +98,5 @@ if (bad.length) {
   bad.forEach(x => console.log('  ' + x));
   process.exit(1);
 }
+if (PT.blind) console.log(PT.blind + ' pending row(s) with no words here; ' + PT.listed.size + ' listed twin(s) kept as theirs.');
 console.log('OK — every drawing has its PNG twin, named as the backend names it, and no twin is orphaned.');

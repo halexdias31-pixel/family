@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-25-a-console-bodies";
+  --css-version: "2026-10-25-b-teaching-cycles";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -515,7 +515,7 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .q-ed .q-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: .4rem; }
 .q-ed .q-row > .q-school { grid-column: 1 / -1; }
 /* ---------- A CERTIFICATE: NO GRADE, NO TEACHING, AND THE YEAR BESIDE WHO ISSUED IT — see `qualIsCert_` § */
-.q-slot.is-cert .q-grade, .q-slot.is-cert .q-seg { display: none; }
+.q-slot.is-cert .q-grade, .q-slot.is-cert .q-cyc { display: none; }
 .q-slot.is-cert .q-ed .q-row > .q-school { grid-column: auto; }
 .q-slot.is-cert .q-cap-std, .q-slot:not(.is-cert) .q-cap-cert { display: none; }
 /* ---------- A LINE BEING ADDED HAS NO FACE YET § */
@@ -533,16 +533,22 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
   padding-left: .6rem; }
 .q-ed .q-f > input { padding-right: .6rem; }
 /* A NAME TOO LONG FOR HALF A 320 CARD ENDS IN AN ELLIPSIS — *walked:* § */
-/* TEACH / CAN TEACH / NOT TEACHING, ONE CONTROL. Words that say the answer, so the question that sat
-   over it and the sentence that sat under it are not needed; what each does on the profile is its
-   `title`. */
-.q-seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--line);
-  border-radius: var(--r-sm); overflow: hidden; }
-.q-seg-b { min-height: 44px; padding: 0 .3rem; background: var(--sunk); border: 0; color: var(--ink);
-  font: inherit; font-size: .76rem; line-height: 1.15; cursor: pointer; }
-.q-seg-b + .q-seg-b { border-left: 1px solid var(--line); }
-/* PRESSED IS GOLD WITH BLACK ON IT, which is what `.hr.on` already does for "this one is chosen". */
-.q-seg-b[aria-pressed="true"] { background: var(--gold); color: #000; font-weight: 650; }
+/* TEACHING, ONE ROW THAT CYCLES ON EACH TAP (440): the label left, the state right — gold, plain or faint. */
+.q-cyc { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 44px;
+  padding: 0 .6rem; background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-sm);
+  color: var(--ink); font: inherit; font-size: .8rem; cursor: pointer; }
+.q-cyc-k { color: var(--dim); }
+.q-cyc-v.is-spec { color: var(--gold); font-weight: 650; }
+.q-cyc-v.is-teach { color: var(--ink); }
+.q-cyc-v.is-no { color: var(--faint); }
+.q-cyc-v { font-size: .76rem; }
+/* THE LINE'S MARK IS ITS OWN BUTTON over the line's right end, so a tap there cycles without opening. */
+.q-slot { position: relative; }
+.q-line .q-mark { visibility: hidden; min-width: 6.5rem; }
+.q-mark-b { position: absolute; top: 0; right: 0; min-height: 44px; min-width: 6.5rem; padding: 0 0 0 .4rem;
+  background: none; border: 0; text-align: right; font: inherit; cursor: pointer; }
+.q-mark-b:active { background: rgb(255 255 255 / .05); }
+.q-slot.is-cert .q-mark-b, .q-slot[data-new] > .q-mark-b { display: none; }
 /* THE TICK AT THE START OF THE ROW AND THE BIN AT THE FAR END — the width of the card between them, which is the tile rows' own rule for keeping a bin away from § */
 .tile-row.q-tiles { justify-content: space-between; margin-top: .45rem; }
 .tile-row.q-adds { margin-top: .3rem; }
@@ -604,7 +610,7 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .lib-row.q-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .lib-row select { min-width: 0; }
 /* THE TEACH / CAN TEACH TICKS THAT SAT HERE WENT WITH THE SUMMARY LINES: they were checkboxes read
-   per level and per subject, two ways round, and are one three-way control now (`.q-seg`, above). */
+   per level and per subject, two ways round, and are one control that cycles now (`.q-cyc`, above). */
 /* AN UNCHOSEN LEVEL OR BOARD READS AS A PLACEHOLDER, in the same grey as the empty boxes above it —
    otherwise `Level` in full ink looks like an answer somebody gave. */
 .lib-row select:has(option[value=""]:checked) { color: var(--faint); }

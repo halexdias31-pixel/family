@@ -1654,7 +1654,8 @@ async function qualCard_(profile) {
     slot: i => q.shelf() && q.shelf().querySelector('.q-slot[data-slot="' + i + '"]'),
     box: (i, k) => (q.slot(i) || d).querySelector('[data-me="qual_' + i + k + '"]') || {},
     line: i => q.slot(i) && q.slot(i).querySelector(':scope > .q-line'),
-    seg: (i, v) => q.slot(i).querySelector('[data-do="qual-teach"][data-v="' + v + '"]'),
+    seg: i => q.slot(i).querySelector('.q-cyc'),
+    face: i => q.slot(i).querySelector('.q-mark-b'),
     /* A PICK FROM A LIST, the way the platform's own list makes one: the value, then `input` and
        `change`, both bubbling — which is also what `sel-pick` copied while the app had a panel. */
     pick: (el, v) => { el.value = v; el.dispatchEvent(new b.w.Event('input', { bubbles: true }));
@@ -1696,7 +1697,7 @@ check('the qualifications card reads one line a qualification, written as the pr
   if (!/Hill Top School/.test(name) || !/2016/.test(name) || !/teach/.test(name)) bad.push('the Maths GCSE line is named "' + name + '", without its school, year and teaching');
   /* NOTHING TO PRESS BUT THE LINES AND THE `+`, and nothing open. */
   const acts = [...new Set([...shelf.querySelectorAll('[data-do]')].filter(b => !b.closest('.q-ed, .q-pool')).map(b => b.dataset.do))].sort();
-  if (JSON.stringify(acts) !== JSON.stringify(['qual-add', 'qual-open'])) bad.push('the read card offers ' + JSON.stringify(acts) + ', not the lines and one +');
+  if (JSON.stringify(acts) !== JSON.stringify(['qual-add', 'qual-open', 'qual-teach'])) bad.push('the read card offers ' + JSON.stringify(acts) + ', not the lines and one +');
   const add = shelf.querySelector('[data-do="qual-add"]');
   if (!add || !add.classList.contains('tile') || add.disabled) bad.push('the + is not a live tile');
   if (shelf.querySelector('.is-open') || shelf.querySelector('input[type="checkbox"]')) bad.push('the card arrived with a line open, or with a checkbox on it');
@@ -1732,8 +1733,10 @@ check('a qualification opens in place, and each answer is saved as it is chosen'
   if (!q.d.querySelector('#s-settings .q-shelf').closest('.me-form').dataset.dirty) bad.push('an open line does not hold the column, so the repaint after a save would shut it');
   if ((q.line(4).querySelector('.prof-iso sub') || {}).textContent !== 'A*') bad.push('the line does not show the new grade');
   /* TEACH ON A SECOND LEVEL LEAVES THE FIRST'S — *"it unticks the other one. i dont want that"*. */
+  /* ONE CONTROL THAT CYCLES (440): Can teach → Teaches → Not teaching → Can teach. */
+  if (q.slot(4).querySelectorAll('.q-ed [data-do="qual-teach"]').length !== 1) bad.push('the editor has more than one teaching control');
   q.sent.length = 0;
-  q.A('qual-teach', q.seg(4, 'spec'));
+  q.A('qual-teach', q.seg(4));
   await wait(300);
   f = q.last();
   if (!f) bad.push('Teach saved nothing');
@@ -1744,11 +1747,17 @@ check('a qualification opens in place, and each answer is saved as it is chosen'
   if (!q.line(4).querySelector('.q-chip')) bad.push('the line does not show the gold Teach chip it was just given');
   /* AND NOT TEACHING IS BOTH BOXES FALSE, ON THIS LINE ONLY. */
   q.sent.length = 0;
-  q.A('qual-teach', q.seg(4, 'no'));
+  q.A('qual-teach', q.seg(4));
   await wait(300);
   f = q.last();
   if (!f || f.qual_4_spec !== 'FALSE' || f.qual_4_teach !== 'FALSE') bad.push('Not teaching did not post both of its boxes FALSE');
   else if (f.qual_3_teach !== 'TRUE') bad.push('Not teaching on the A-Level changed the GCSE');
+  if ((q.seg(4).querySelector('.q-cyc-v') || {}).textContent !== 'Not teaching') bad.push('the control does not read Not teaching');
+  q.sent.length = 0;
+  q.A('qual-teach', q.seg(4));
+  await wait(300);
+  f = q.last();
+  if (!f || f.qual_4_spec !== 'FALSE' || f.qual_4_teach !== 'TRUE') bad.push('the third tap did not come round to Can teach');
   /* A SAVED LINE CANNOT LOSE ITS LEVEL BY A PICK: refused before anything is sent. */
   q.sent.length = 0;
   q.pick(q.box(4, '_level'), '');
@@ -1767,10 +1776,20 @@ check('a qualification opens in place, and each answer is saved as it is chosen'
   /* A PRESS THAT REACHES A SHUT LINE'S TEACH — a raced redraw, or `check/press.js` pressing every action
      in turn — opens that line and answers, rather than doing nothing. */
   q.sent.length = 0;
-  q.A('qual-teach', q.seg(5, 'spec'));
+  q.A('qual-teach', q.seg(5));
   await wait(300);
   const g = q.last();
-  if (!g || g.qual_5_spec !== 'TRUE' || !q.slot(5).classList.contains('is-open')) bad.push('Teach pressed on a shut line did nothing');
+  if (!g || g.qual_5_teach !== 'TRUE' || !q.slot(5).classList.contains('is-open')) bad.push('Teach pressed on a shut line did nothing');
+  /* THE LINE'S OWN MARK CYCLES WITHOUT OPENING IT. */
+  q.A('qual-open', q.line(5));
+  await wait(300);
+  q.sent.length = 0;
+  q.A('qual-teach', q.face(5));
+  await wait(300);
+  const h = q.last();
+  if (!h || h.qual_5_spec !== 'TRUE') bad.push('tapping the line\'s mark did not cycle Can teach to Teaches');
+  if (q.slot(5).classList.contains('is-open')) bad.push('tapping the line\'s mark opened the line');
+  if ((q.face(5).textContent || '').trim() !== 'Teaches') bad.push('the line\'s mark reads "' + q.face(5).textContent.trim() + '" after the tap');
   return bad;
 });
 /* A TAP THAT LANDS WHILE A TYPED ANSWER IS SAVING. § */
@@ -10595,13 +10614,13 @@ check('an admin adds a person from the "+" above the people column, edits one an
   if (/person-form/.test(all())) bad.push('a tutor pressing + was drawn the new-person form');
 
   t.DATA().tutors = tutors0; delete t.DATA().family; delete t.DATA().familyFor;
-  /* AN ADMIN: the "+" once, after their own card and above everybody else; Edit and Delete on others, not on themselves. */
+  /* AN ADMIN: the "+" once, the very first card, above even their own (440); Edit and Delete on others, not on themselves. */
   t.USER({ name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], token: 'tk' });
   const pages = t.accountPages();
   const at = pages.findIndex(h => /data-do="person-add"/.test(h)), evieAt = pages.findIndex(h => h.indexOf('>Evie<') !== -1);
   if (pages.filter(h => /data-do="person-add"/.test(h)).length !== 1) bad.push('the admin\'s column does not have exactly one "+"');
-  if (!(at > 0 && evieAt > at)) bad.push('the "+" is at page ' + at + ', not after the admin\'s own card and above everybody (Evie at ' + evieAt + ')');
-  if (/data-do="person-(edit|del)"/.test(pages[0])) bad.push('the admin\'s own card offers Edit or Delete of themselves');
+  if (!(at === 0 && evieAt > at)) bad.push('the "+" is at page ' + at + ', not the first card above even the admin\'s own (Evie at ' + evieAt + ')');
+  if (/data-do="person-(edit|del)"/.test(pages[1])) bad.push('the admin\'s own card offers Edit or Delete of themselves');
   const evie = pages[evieAt] || '';
   if (!/data-do="person-edit" data-id="P-E1"/.test(evie) || !/data-do="person-del" data-id="P-E1"/.test(evie)) bad.push('Evie\'s card has no Edit and Delete for the admin');
   if (!/data-do="msg-open"/.test(evie) || !/data-do="kid-pin"/.test(evie)) bad.push('Edit and Delete pushed Message or New PIN off the card');
@@ -10897,7 +10916,7 @@ check('an admin has "Send last week" on a parent\'s card only, and pressing it p
   const carl = page('Carl Handled');
   if (!/data-do="digest-send-now" data-id="P-E2"/.test(carl) || !/aria-label="Send last week/.test(carl)) bad.push('the parent\'s card has no "Send last week" tile for the admin');
   if (door.test(page('Evie'))) bad.push('a student\'s card offers Send last week');
-  if (door.test(t.accountPages()[0] || '')) bad.push('the admin\'s own card offers Send last week');
+  if (door.test(t.accountPages().find(h => !/data-do="person-add"/.test(h)) || '')) bad.push('the admin\'s own card offers Send last week');
   try { t.go('account', false, true); w.paint('account'); } catch (e) { bad.push('drawing the people column threw: ' + e.message); }
   await wait(200);
   const tile = d.querySelector('#s-account [data-do="digest-send-now"][data-id="P-E2"]');

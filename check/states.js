@@ -3597,8 +3597,9 @@ const STATES = {
           && open[0].querySelector('.q-line').getAttribute('aria-expanded') === 'true'
           && [...shelf.querySelectorAll('.q-list .q-line')].length === 7
           && [...shelf.querySelectorAll('.q-list .q-line')].every(visible)
-          && ed.querySelectorAll('[data-do="qual-teach"]').length === 3
-          && (ed.querySelector('[data-do="qual-teach"][aria-pressed="true"]') || {}).dataset.v === 'teach'
+          && ed.querySelectorAll('[data-do="qual-teach"]').length === 1
+          && (ed.querySelector('.q-cyc .q-cyc-v') || {}).textContent === 'Can teach'
+          && ed.querySelector('.q-cyc').offsetHeight >= 44
           && ed.querySelectorAll('label.field').length === 5
           && [...ed.querySelectorAll('label.field')].every(l => !!(l.querySelector(':scope > span') || {}).textContent)
           && [...ed.querySelectorAll('select[data-me$="_received"] option')].some(o => o.textContent === 'Still studying' && o.value === 'Present')
@@ -3650,7 +3651,7 @@ const STATES = {
         const cap = l => [...l.querySelectorAll(':scope > span')].filter(shown).map(x => x.textContent).join('|');
         return open[0].classList.contains('is-cert')
           && !shown(ed.querySelector('select[data-me$="_grade"]'))
-          && !shown(ed.querySelector('.q-seg'))
+          && !shown(ed.querySelector('.q-cyc'))
           && shown(year) && shown(from)
           && Math.abs(year.getBoundingClientRect().top - from.getBoundingClientRect().top) < 2
           && cap(year) === 'Year' && cap(from) === 'Issued by'
