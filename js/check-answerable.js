@@ -12,7 +12,10 @@ const ONLY = (process.argv.find(a => a.startsWith('--id=')) || '').slice(5);
 /* WAITING FOR THE OWNER, each with its reason: [row ids, invariant, why]. Counted and printed with -v, never failed. */
 const ACCEPTED = [
   [/^Q-1GK0-(1906-1F|2011-1H)-/, 'self', 'Edexcel GCSE Greek listening: the options are there and the scheme\'s answers are not (choice_right empty) -- the owner to supply them (457)'],
-  [/^Q-R03(89|91|96|97|98)-2$/, 'insert', 'AQA English Language Paper 1: the reading source is a printed insert, and a copyrighted extract is not in data/inserts.json -- the owner to decide (457)'],
+  [/^Q-R0396-2$/, 'insert', 'AQA English Language Paper 1, November 2017: only the redacted insert is in Drive -- the owner to drop the full one in (458)'],
+  /* READING INSERTS NOT YET IN DRIVE (458): each paper's own insert, or the source it is missing, for the owner to drop in; then typed into the Ledger */
+  [/^Q-(R0396|R0388|R0376|P-AQA-8700-2506-1|R0395|R0393|R0394|R0379|R0377)-/, 'reading', 'AQA English Language: this paper\'s insert is not in Drive, or only its redacted copy (458)'],
+  [/^Q-(R0375|R0390)-/, 'reading', 'AQA English Language Paper 2: Drive\'s copy of the insert has Source B and not Source A (458)'],
 ];
 const accepted = (id, inv) => ACCEPTED.find(a => a[1] === inv && a[0].test(id));
 
@@ -59,6 +62,16 @@ const DRAWN = new Set(['label', 'points', 'line', 'shape', 'shade', 'hand', 'gra
 const TYPED = new Set(['value', 'unit', 'multi', 'fraction', 'coords', 'expr', 'words', 'reason', 'measure']);
 /* "the insert", never the verb ("Insert two commas") */
 const INSERT_WORDS = /\b(formulae? (sheet|booklet)|equations? sheet|data sheet|(the|an) insert|insert (booklet|sheet)|resource booklet|source booklet|periodic table)\b/i;
+/* A PART THAT READS FROM A PRINTED SOURCE (458): "Source A", "the source", "both sources" */
+const READ_WORDS = /\b(source [ab]|the source|both sources)\b/i;
+/* AND THE WORDS EACH READING INSERT HAS HERE, the private half joined (`check/lib-full.js`): the extract is never in data/ */
+let INS_TEXT = null;
+const insText_ = () => {
+  if (INS_TEXT) return INS_TEXT;
+  INS_TEXT = {};
+  try { LIB_FULL.rows('inserts').forEach(r => { INS_TEXT[S(r.insert_id)] = S(r.source_text); }); } catch (e) { INS_TEXT.__error = e.message; }
+  return INS_TEXT;
+};
 const WRONG = ['zzqq wvxk', '987654.321'];   // no letter sum or product hides in either ("9x7" was 63)
 
 /* THE SAMPLE A ROW'S OWN SCHEME GIVES: the first written way of `accept`, else nothing (a rule-only row is tested on its rule's own words, not here). */
@@ -94,7 +107,7 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
   if (!all.length) { console.log('FAILED — no question parts reached the finder' + (ONLY ? ' with id ' + ONLY : '') + ' — this check cannot see its subject'); process.exit(1); }
 
   const fails = {};                 // invariant -> [row id: why]
-  const count = { parts: 0, skipped: 0, pages: 0, figures: 0, zoomed: 0, selfTested: 0, rulesOnly: 0, drawn: 0, inserts: 0, accepted: 0, importFlagged: 0 };
+  const count = { parts: 0, skipped: 0, pages: 0, figures: 0, zoomed: 0, selfTested: 0, rulesOnly: 0, drawn: 0, inserts: 0, reading: 0, readingBlind: 0, accepted: 0, importFlagged: 0 };
   const bad = (inv, x, why) => {
     const id = x.row.row_id;
     if (accepted(id, inv)) { count.accepted++; if (process.argv.includes('-v')) console.log('  accepted ' + id + ' ' + inv + ': ' + accepted(id, inv)[2]); return; }
@@ -160,7 +173,7 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
     if (pen) {
       count.drawn++;
       const tools = [...host.querySelectorAll('[data-do="pad-tool"]')].map(t => t.getAttribute('data-tool'));
-      if (tools.indexOf('ruler') < 0 || tools.indexOf('compass') < 0) bad('pen', x, 'its pen has ' + JSON.stringify(tools) + ', not the Ruler and Compass');
+      if (['ruler', 'compass', 'protractor'].some(t => tools.indexOf(t) < 0)) bad('pen', x, 'its pen has ' + JSON.stringify(tools) + ', not the Ruler, Compass and Protractor');
     } else if (DRAWN.has(type) && type !== 'label') bad('pen', x, 'a ' + type + ' part with no pen');
     /* ---------- THE MARKER, ON THE ROW'S OWN ANSWER ---------- */
     try {
@@ -233,6 +246,21 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
       count.inserts++;
       if (!w.insertsFor_(x).length) bad('insert', x, 'its words name an insert or formulae sheet and its paper links none');
     }
+    /* ---------- THE SOURCE IT READS FROM, A PRIVATE READING INSERT WITH ITS WORDS (458) ---------- */
+    const plain = words.replace(/<[^>]*>/g, ' ');
+    if (/paper/i.test(S(x.documentType)) && /english/i.test(S(x.subject)) && READ_WORDS.test(plain)) {
+      count.reading++;
+      const named = [...new Set((plain.match(/\bsource [ab]\b/gi) || []).map(t => t.slice(-1).toUpperCase()))];
+      if (!named.length) named.push('A');
+      const ins = w.insertsFor_(x).filter(r => (r.forPapers || []).length);
+      const text = insText_();
+      /* A PENDING INSERT WITH NO PRIVATE HALF ON THIS MACHINE (a fresh clone) is a card, as `check/lib-full.js` has it; with the half here, its words are required */
+      const here = Object.keys(LIB_FULL.readPrivate('inserts') || {}).length > 0;
+      const miss = named.filter(src => !ins.some(r => (r.sources || []).indexOf(src) !== -1 && (text[r.id] || (!here && r.pending))));
+      if (!here && ins.some(r => r.pending && !text[r.id])) count.readingBlind++;
+      if (!ins.length) bad('reading', x, 'it reads from a printed source and its paper has no reading insert');
+      else if (miss.length) bad('reading', x, 'its reading insert has no words here for Source ' + miss.join(' and ') + (text.__error ? ' (' + text.__error + ')' : ''));
+    }
   }
   /* ---------- THE IMPORT'S OWN SELF-TEST (backend `libSelfTest_`) REFUSES NO ROW THE LIBRARY HOLDS, and flags only those waiting for the owner ---------- */
   if (!ONLY) {
@@ -254,7 +282,7 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
   const inv = Object.keys(fails);
   const total = inv.reduce((s, k) => s + fails[k].length, 0);
   const line = `parts ${count.parts} (pending without words skipped ${count.skipped}), pages ${count.pages}, figures ${count.figures}, `
-    + `cards with a zoomable figure ${count.zoomed}, drawn ${count.drawn}, self-tested ${count.selfTested} (rule-only ${count.rulesOnly}), insert-naming ${count.inserts}, waiting for the owner ${count.accepted}, import-flagged ${count.importFlagged}`;
+    + `cards with a zoomable figure ${count.zoomed}, drawn ${count.drawn}, self-tested ${count.selfTested} (rule-only ${count.rulesOnly}), insert-naming ${count.inserts}, reading a source ${count.reading}${count.readingBlind ? ' (' + count.readingBlind + ' with no private half here)' : ''}, waiting for the owner ${count.accepted}, import-flagged ${count.importFlagged}`;
   if (!total) { console.log('OK — every question part can be answered: ' + line); process.exit(0); }
   console.log('FAILED — ' + total + ' failure(s) across ' + inv.length + ' invariant(s): ' + line);
   inv.forEach(k => {

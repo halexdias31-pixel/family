@@ -1319,6 +1319,8 @@ function libStepBook_() {
 
 /* THE SOURCE: the file as it was at LIB_SOURCE_COMMIT — every row with a private field, as {id, json, sum}. */
 function libSource_(def, fetchText) {
+  /* A FILE WITH NO PRIVATE ROW AT THE PINNED COMMIT (`newer`) is copied as nothing; its tab is filled by import. */
+  if (def.newer) return { items: [] };
   let text = '';
   try {
     if (fetchText) text = fetchText(def.file);

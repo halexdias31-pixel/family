@@ -14,7 +14,7 @@ const USAGE = `   The repository keeps card metadata; the words, answers and fig
    folder family-library-imports, and the owner taps Import library updates on Business (docs/library.md).
 
    and also: \`seed\` (data-private/ from git history, the pinned commit), \`pull\` (data-private/ from the Ledger) and
-   \`status\`. \`split\` and \`join\` take file names (questions textbooks practicals projects); none means all four.
+   \`status\`. \`split\` and \`join\` take file names (questions textbooks practicals projects inserts); none means all of them.
    \`pull\`/\`push\` need FAMILY_ADMIN_TOKEN (an admin's sign-in token: localStorage \`familyUser\` on the site) and use the
    API address in js/data.js unless FAMILY_API says otherwise. Nothing here ever writes a word of the library into git.
 `;
@@ -71,7 +71,8 @@ function split(name) {
     return slim;
   });
   L.writePrivate(name, map);
-  fs.writeFileSync(fileOf(name), L.fileText(out, style));
+  /* NOTHING MOVED, NOTHING WRITTEN: a file kept in its own layout (data/inserts.json, 458) is not reflowed for nothing */
+  if (moved) fs.writeFileSync(fileOf(name), L.fileText(out, style));
   console.log(def.file + ': ' + moved + ' row(s) split, ' + kept + ' already split; data-private/' + name + '.json holds ' + Object.keys(map).length);
 }
 
