@@ -88,6 +88,7 @@ const EXEMPT = [
   { file: 'staff.js', fn: 'ctl', has: 'type="range" data-pv', why: 'the Staff hub\'s rate and seat sliders (405) — moved and saved in one sitting; a reload draws the saved rate' },
   { file: 'staff.js', fn: 'ctl', has: 'class="pf-num" data-pv', why: 'the Staff hub\'s rate and seat boxes (405) — typed and saved in one sitting; a reload draws the saved rate' },
   { file: 'me.js', fn: 'signInCard_', has: 'id="in-name"', why: 'the sign-in box — half a handle is not work, and none is kept after (383)' },
+  { file: 'me.js', fn: 'peopleSearchPage_', has: 'data-psearch', why: 'the People search (442) — a handle looked up, not work; half a child\'s handle is better forgotten' },
   { file: 'me.js', fn: 'signInCard_', has: 'id="in-pin"', why: PIN },
   { file: 'me.js', fn: 'registerSheet_', has: 'id="reg-pin"', why: PIN },
   { file: 'me.js', fn: 'kidMakeSec_', has: 'data-kid-new="pin"', why: PIN },

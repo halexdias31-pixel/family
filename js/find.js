@@ -8830,7 +8830,9 @@ function accountPages_() {
   const apply = typeof applyCard_ === 'function' ? [applyCard_()].filter(Boolean) : [];
   /* "+ ADD A PERSON", above everybody but you, for an admin only (373) — `peopleAddPage_` in me.js. */
   const add = typeof peopleAddPage_ === 'function' ? [peopleAddPage_()].filter(Boolean) : [];
-  return [me].concat(apply, add, claimPages, famPages, others, everyone, coming);
+  /* FIND BY HANDLE ON TOP, "+ ADD A PERSON" JUST UNDER IT (442) — `peopleSearchPage_` in me.js. */
+  const search = typeof peopleSearchPage_ === 'function' ? [peopleSearchPage_()].filter(Boolean) : [];
+  return search.concat(add, [me], apply, claimPages, famPages, others, everyone, coming);
 }
 
 /* ---------- HOW A LEARNER IS GETTING ON, IN ONE LINE UNDER THEIR NAME § */

@@ -9513,8 +9513,82 @@ check('a parent makes their child\'s account on "Manage your child" and is shown
   return bad;
 });
 
+/* ---------- FIND YOUR CHILD BY HANDLE ON THE PEOPLE COLUMN (442) ---------- */
+const psBoot_ = async user => {
+  const r = boot({ reply: b => b.action === 'findChild'
+    ? { success: true, child: String(b.handle) === 'wren_kind43' ? { personId: 'P-K1', first: 'Wren', handle: 'wren_kind43' } : null }
+    : { success: true } });
+  await wait(300);
+  const t = r.w.__t, d = r.w.document;
+  t.USER(user);
+  t.DATA().tutors = [{ personId: 'P-T1', title: 'Wendy Tutor', handle: 'wendy_bright7', role: 'Tutor' }];
+  const draw = () => { t.go('account', false, true); r.w.paint('account'); };
+  draw();
+  await wait(150);
+  const type = async q => { const box = d.querySelector('#s-account [data-psearch]'); box.value = q;
+    box.dispatchEvent(new r.w.Event('input', { bubbles: true })); await wait(30); return box; };
+  const find = async () => { t.ACTIONS['ps-find'](d.querySelector('#s-account [data-do="ps-find"]')); await wait(300); };
+  return Object.assign(r, { t, d, draw, type, find, out: () => d.querySelector('#s-account .ps-out') });
+};
+const PS_PAT = { name: 'Pat Parent', personId: 'P-C1', role: 'client', roles: ['client'], token: 'tk', profile: { first_name: 'Pat', last_name: 'Parent' } };
+check('442: the People column opens with Find by handle, "Add a person" just under it for an admin, one line per thing', async () => {
+  const { d } = await psBoot_({ name: 'Hal Admin', personId: 'P-A1', role: 'admin', roles: ['admin'], token: 'tk' });
+  const pages = [...d.querySelectorAll('#s-account .page')];
+  const firsts = pages.slice(0, 2).map(p => p.querySelector('.ps-card') ? 'search' : p.querySelector('[data-do="person-add"]') ? 'add' : '?');
+  return JSON.stringify(firsts) === '["search","add"]' ? [] : ['the People column starts ' + JSON.stringify(firsts) + ', wanted the search then "Add a person"'];
+});
+check('442: a parent finds their child by the exact handle — first name only, and an "Add as my child" tile', async () => {
+  const { sent, type, find, out } = await psBoot_(PS_PAT), bad = [];
+  await type('@wren_kind43');
+  await find();
+  const ask = sent.find(b => b.action === 'findChild');
+  if (!ask || ask.handle !== 'wren_kind43') bad.push('Find posted ' + JSON.stringify(ask) + ', wanted findChild for wren_kind43, @ dropped');
+  const hit = out() && out().querySelector('.ps-hit');
+  if (!hit || !/Wren/.test(hit.textContent) || !/@wren_kind43/.test(hit.textContent)) bad.push('the found child\'s card is not drawn: ' + JSON.stringify(out() && out().textContent));
+  if (hit && /Parent|Exists/.test(hit.textContent)) bad.push('the found child\'s card shows a surname');
+  if (!hit || !hit.querySelector('.tile[data-do="ps-add-child"][data-handle="wren_kind43"]')) bad.push('the found child has no "Add as my child" tile');
+  return bad;
+});
+check('442: a prefix never reveals a child — public cards only, and the server answers nobody for a part handle', async () => {
+  const { sent, type, find, out } = await psBoot_(PS_PAT), bad = [];
+  await type('w');
+  if (!out() || !/Wendy/.test(out().textContent)) bad.push('a prefix did not find the public tutor @wendy_bright7');
+  if (/Wren/.test(out().textContent)) bad.push('a prefix showed a child');
+  await type('wren');
+  await find();
+  if (!sent.some(b => b.action === 'findChild' && b.handle === 'wren')) bad.push('Find did not ask for "wren"');
+  if (/Wren/.test(out().textContent) || out().querySelector('[data-do="ps-add-child"]')) bad.push('a part handle drew a child');
+  if (!/Nobody has that handle/.test(out().textContent)) bad.push('a handle nobody has is not said: ' + JSON.stringify(out().textContent));
+  return bad;
+});
+check('442: "Add as my child" sends the family request by handle through claimChild', async () => {
+  const { sent, t, d, type, find, out } = await psBoot_(PS_PAT), bad = [];
+  await type('wren_kind43');
+  await find();
+  const tile = out().querySelector('[data-do="ps-add-child"]');
+  if (!tile) return ['no tile to press'];
+  sent.length = 0;
+  t.ACTIONS['ps-add-child'](tile);
+  await wait(300);
+  const ask = sent.find(b => b.action === 'claimChild');
+  if (!ask || ask.handle !== 'wren_kind43' || ask.personId !== 'P-C1' || ask.firstName) bad.push('the tile posted ' + JSON.stringify(ask) + ', wanted claimChild with the handle alone');
+  if (!/Asked/.test(toastOf_(d))) bad.push('the tile said ' + JSON.stringify(toastOf_(d)));
+  return bad;
+});
+check('442: a student sees the search but no Find and no tile, and posts no lookup', async () => {
+  const { sent, t, d, type } = await psBoot_({ name: 'Sam Student', personId: 'P-S1', role: 'student', roles: ['student'], token: 'tk2' }), bad = [];
+  if (!d.querySelector('#s-account .ps-card')) bad.push('a student has no search');
+  if (d.querySelector('#s-account [data-do="ps-find"]')) bad.push('a student is offered Find, which looks up children');
+  await type('wren_kind43');
+  t.ACTIONS['ps-find'](d.createElement('button'));
+  await wait(200);
+  if (sent.some(b => b.action === 'findChild')) bad.push('a student posted findChild');
+  if (d.querySelector('#s-account [data-do="ps-add-child"]')) bad.push('a student sees "Add as my child"');
+  return bad;
+});
+
 /* ---------- MANAGE YOUR CHILD: THE CHILDREN ON IT, NEW PIN BESIDE EACH, LINKING ONE, AND THE HELD STATE § */
-check('"Manage your child" lists the children linked to you with New PIN beside each, links one who has an account, says when there are none, and holds both forms while your address waits', async () => {
+check('"Manage your child" lists the children linked to you with New PIN beside each, points a linking parent to People, says when there are none, and holds both forms while your address waits', async () => {
   const FRESH = ['5', '1', '7', '3', '9', '2'].join('');
   const { w, sent } = boot({ reply: b => b.action === 'resetPin' ? { success: true, first: 'Wren', handle: 'wren_kind43', pin: FRESH }
     : b.action === 'claimChild' ? { success: true } : { success: true } });
@@ -9557,21 +9631,11 @@ check('"Manage your child" lists the children linked to you with New PIN beside 
       if (done) t.ACTIONS['sheet-done'](done);
     }
   }
-  /* LINKING ONE WHO HAS AN ACCOUNT: the add section's two boxes, and nothing from the make form beside them. */
+  /* LINKING ONE WHO HAS AN ACCOUNT moved to People (442): the add section only points there, no boxes. */
   const add = card().querySelector('.kid-add');
   const mk = card().querySelector('.kid-make');
   if (!add || !mk) bad.push('"Manage your child" is missing the make or the add section');
-  else {
-    mk.querySelector('[data-kid-new="first"]').value = 'Not this one';
-    add.querySelector('[data-kid="first"]').value = 'Ola';
-    add.querySelector('[data-kid="last"]').value = 'Parent';
-    sent.length = 0;
-    t.ACTIONS['add-child-go'](add.querySelector('[data-do="add-child-go"]'));
-    await wait(300);
-    const ask = sent.find(b => b.action === 'claimChild');
-    if (!ask || ask.firstName !== 'Ola' || ask.lastName !== 'Parent' || ask.personId !== 'P-C1') bad.push('Ask them posted ' + JSON.stringify(ask) + ', wanted claimChild for Ola Parent from Pat');
-    if (!/Asked/.test(toastOf_(d))) bad.push('linking said ' + JSON.stringify(toastOf_(d)));
-  }
+  else if (add.querySelector('input, button') || !/handle/.test(add.textContent)) bad.push('the add section still has a form, or does not say to search the handle');
   /* NONE LINKED, THE PAYLOAD IN: one line saying so, and both forms. */
   await wait(300);
   t.DATA().familyFor = 'P-C1';
@@ -9579,7 +9643,7 @@ check('"Manage your child" lists the children linked to you with New PIN beside 
   draw();
   await wait(150);
   if (!card() || !/No child is linked to you yet/.test(card().textContent) || card().querySelectorAll('.kid-row').length) bad.push('with no child linked the card does not say so');
-  if (!card() || !card().querySelector('.kid-make [data-kid-new="pin"]') || !card().querySelector('.kid-add [data-kid="first"]')) bad.push('with no child linked the card lost a form');
+  if (!card() || !card().querySelector('.kid-make [data-kid-new="pin"]') || !card().querySelector('.kid-add')) bad.push('with no child linked the card lost a section');
   /* HELD: your address waiting — the held sentence where the forms were, and Wren listed with no New PIN. */
   t.DATA().family = [{ personId: 'P-K1', title: 'Wren', relation: 'child', handle: 'wren_kind43', image: '' }];
   t.whoami().pendingEmail = 'pat@example.org';

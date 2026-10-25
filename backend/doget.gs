@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-24-t-backend-dead";
+const DOGET_VERSION = "2026-10-25-find-child";
 
 
 function doGet(e) {
@@ -228,7 +228,7 @@ function doGet(e) {
         booking: typeof BOOKING_VERSION !== 'undefined' ? BOOKING_VERSION : 'not deployed',
       },
       features: [/* ---------- THE NEW ONES, DECLARED SO THE SITE CAN TELL YOU § */
-                 'openWaitlist', 'claimChild', 'answerClaim', 'joinWaitlist',
+                 'openWaitlist', 'claimChild', 'answerClaim', 'joinWaitlist', 'findChild',
                  'move', 'events', 'tabs', 'getProfile', 'myProfile', 'createJob',
                  'saveTodo', 'saveAvatar', 'register', 'verifyEmail',
                  /* The Timetable widget's week, kept on the account. */
