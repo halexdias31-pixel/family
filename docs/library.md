@@ -13,6 +13,12 @@ The site reads the cards from the repository and asks `libItems` for an item's c
 (signed in, a day's cap). The Sunday email reads the content from the Ledger. The repository is public; the Ledger
 is not.
 
+**Reading inserts** (458) are a fifth file: `data/inserts.json` rows with `for_papers` are a paper's printed source
+booklet. The card (name, the works' titles, `sources`, `line_numbers`, `lib_pending`) is public; `source_text` is in
+`lib_inserts` (prefix `in:`), asked for when the question's Insert tile opens it. The entry is `newer`: nothing of it
+was at the pinned commit, so its words only ever come by import. `source_text` is text: paragraphs, `# Source A`, `> `
+the paper's note, `[n]` where the paper prints line n. The formulae sheets in the same file have no private field.
+
 ## Changing the library with a tool
 
 Every row-writing tool (`tools/*.py`, `tools/diagram_png.js`, `tools/anim_row.py`, `tools/set-choices.py`, …) reads

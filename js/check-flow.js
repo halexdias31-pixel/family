@@ -14434,9 +14434,10 @@ check('a ruler draws a straight line and a compass a round circle or arc, offere
     });
   const barOf = x => { const h = d.createElement('div'); h.innerHTML = t.padWrap(x, '<svg viewBox="0 0 340 340"></svg>', '');
     return [...h.querySelectorAll('.qpad-tool')].map(b => b.getAttribute('data-tool')).join(' '); };
-  /* EVERY QUESTION'S PEN HAS ALL THREE SINCE 457 (`qToolkit_`): the words above still say what `padTools_` adds, never what the bar hides */
-  const offered = [[q('Use a ruler.', { key: 'q:T-R' }), 'pen ruler compass'], [q('Construct the bisector.', { key: 'q:T-C' }), 'pen ruler compass'],
-    [q('Draw the graph.', { key: 'q:T-N' }), 'pen ruler compass'], [q('Measure the angle.', { key: 'q:T-P', needs: ['Protractor'] }), 'pen ruler compass']];
+  /* EVERY QUESTION'S PEN HAS ALL FOUR (`qToolkit_`; the Protractor since 458): the words above still say what `padTools_` adds, never what the bar hides */
+  const ALL4 = 'pen ruler compass protractor';
+  const offered = [[q('Use a ruler.', { key: 'q:T-R' }), ALL4], [q('Construct the bisector.', { key: 'q:T-C' }), ALL4],
+    [q('Draw the graph.', { key: 'q:T-N' }), ALL4], [q('Measure the angle.', { key: 'q:T-P', needs: ['Protractor'] }), ALL4]];
   offered.forEach(([x, want]) => {
     if (barOf(x) !== want) bad.push('the bar for "' + x.html.replace(/<[^>]*>/g, '') + '" offers [' + barOf(x) + '], wanted [' + want + ']');
   });
@@ -14530,7 +14531,47 @@ check('a ruler draws a straight line and a compass a round circle or arc, offere
   drag([[110, 60], [120, 70], [130, 66]]);
   s = stored();
   if (s.length !== 2 || s[1].length !== 6) bad.push('the pen did not keep every point of a freehand stroke: ' + JSON.stringify(s[1] || null));
-  /* A STALE CHOICE CANNOT DRAW. A tool the bar has not got (a protractor, kept from elsewhere) is the pen. */
+  /* ---------- THE PROTRACTOR (458): put down beside the tool in hand, moved and turned by its own drag, drawn through, picked up ---------- */
+  if (!tool('protractor')) bad.push('the construction question\'s bar has no Protractor');
+  else {
+    const was = stored().length;
+    A['pad-tool'](tool('protractor'));
+    const prot = () => pad.querySelector('.qpad-art > .qpad-prot');
+    if (!prot()) bad.push('pressing Protractor put no protractor on the page');
+    if (!tool('protractor').classList.contains('on') || tool('protractor').getAttribute('aria-pressed') !== 'true') bad.push('the Protractor tile is not lit while it lies on the page');
+    if (!tool('pen').classList.contains('on')) bad.push('putting the protractor down took the Pen out of hand -- it must draw beside it');
+    if (prot() && prot().querySelectorAll('.qprot-nums text').length !== 38) bad.push('the protractor shows ' + prot().querySelectorAll('.qprot-nums text').length + ' numbers, wanted 0 to 180 by tens on both scales (38)');
+    const box = () => { const a = pad.querySelector('.qpad-art'); a.getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T }); };
+    box();
+    const pf = (el, type, px, py) => el.dispatchEvent(new Ev(type, { bubbles: true, cancelable: true, clientX: px, clientY: py, pointerId: 7 }));
+    /* MOVED BY ITS BODY: 34px right is 10% of the 340px picture */
+    const body = prot() && prot().querySelector('.qprot-body');
+    if (body) { pf(body, 'pointerdown', 200, 140); pf(body, 'pointermove', 234, 140); pf(body, 'pointerup', 234, 140); }
+    const st = w.padProtOf_(k);
+    if (Math.abs(st.x - 60) > 0.01 || Math.abs(st.y - 70) > 0.01) bad.push('dragging the protractor\'s body by 34px left it at ' + JSON.stringify(st) + ', wanted x 60, y 70');
+    if (stored().length !== was) bad.push('dragging the protractor drew a mark');
+    /* TURNED BY ITS KNOB about the pivot: a finger 50° round from upright is 50°; one within 2° of 90° settles there */
+    const knob = prot() && prot().querySelector('[data-prot="turn"]');
+    const cx = L + 0.6 * W, cy = T + 0.7 * H;
+    if (knob) {
+      pf(knob, 'pointerdown', cx, cy - 40);
+      pf(knob, 'pointermove', cx + 40 * Math.sin(50 * Math.PI / 180), cy - 40 * Math.cos(50 * Math.PI / 180));
+      if (w.padProtOf_(k).a !== 50) bad.push('turning the knob to 50° left the protractor at ' + w.padProtOf_(k).a + '°');
+      pf(knob, 'pointermove', cx + 40, cy + 1);
+      pf(knob, 'pointerup', cx + 40, cy + 1);
+      if (w.padProtOf_(k).a !== 90) bad.push('a turn within 2° of upright did not settle at 90°, it is ' + w.padProtOf_(k).a + '°');
+      if (!/rotate\(90deg\)/.test(prot().style.transform)) bad.push('the protractor on the page is not drawn turned 90°: ' + prot().style.transform);
+    } else bad.push('the protractor has no knob to turn it by');
+    /* DRAWN THROUGH: the pen still draws on the ink beside it */
+    drag([[110, 60], [140, 62], [170, 64]]);
+    if (stored().length !== was + 1) bad.push('the pen did not draw with the protractor down');
+    pad = mount();
+    if (!prot() || !/rotate\(90deg\)/.test(prot().style.transform)) bad.push('a card drawn again lost the protractor or its turn');
+    A['pad-tool'](tool('protractor'));
+    if (prot() || tool('protractor').classList.contains('on')) bad.push('pressing Protractor again did not pick it up');
+    w.padProtOf_(k).on = false;
+  }
+  /* A STALE CHOICE CANNOT DRAW. A protractor held as if it drew (it is laid down, never drawn with, 458) is the pen. */
   const plain = q('Draw the graph.', { key: 'q:Q-TOOLS-2' });
   const pk = t.padKey(plain);
   try { w.localStorage.removeItem(pk); } catch (e) {}
@@ -14540,7 +14581,7 @@ check('a ruler draws a straight line and a compass a round circle or arc, offere
   pad.querySelector('.qpad-ink').getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
   drag([[150, 100], [200, 100], [250, 120]]);
   const ps = (() => { try { return JSON.parse(w.localStorage.getItem(pk) || '[]'); } catch (e) { return []; } })();
-  if (ps.length !== 1 || ps[0].length !== 6) bad.push('a pad with no Protractor tile drew with a stale protractor choice: ' + JSON.stringify(ps).slice(0, 80));
+  if (ps.length !== 1 || ps[0].length !== 6) bad.push('a pad drew with a protractor held as its drawing tool: ' + JSON.stringify(ps).slice(0, 80));
   t.padTool().delete(pk);
   try { w.localStorage.removeItem(k); w.localStorage.removeItem(pk); } catch (e) {}
   t.padOn('');
@@ -28164,6 +28205,62 @@ check('a new content card (lib_pending) is asked for, drawn whole when the Ledge
   return bad;
 });
 
+/* A PAPER'S READING INSERT (458): a private half like a question's words, asked for when its Insert tile opens it in place, drawn with its line numbers; Coming soon, or Sign in */
+check('a reading insert opens in place from its question, asks the Ledger for its extract, and draws it with margin line numbers; Coming soon if missing, Sign in if signed out', async () => {
+  const cards = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'inserts.json'), 'utf8'));
+  const card = cards.find(r => r.insert_id === 'INS-AQA-8700-R0389') || cards.find(r => r.for_papers && /source_text/.test(String(r.lib_has || '')));
+  if (!card) return ['no reading insert card (for_papers, lib_has source_text) in data/inserts.json — nothing was checked'];
+  if ('source_text' in card) return ['data/inserts.json carries the extract of ' + card.insert_id + ' — it belongs in the Ledger'];
+  /* STAND-IN WORDS, never the extract: the rule is the same whatever the words */
+  const words = { source_text: '# Source A\n\n> A stand-in note.\n\n[1] Stand-in words on the first line, and [5] more on the fifth.' };
+  const wire = 'in:' + card.insert_id, bad = [];
+  /* ITS PAPER'S QUESTION CARDS, as the repository has them (no words: the insert is what is asked) */
+  const qrows = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'questions.json'), 'utf8')).filter(r => r.paper_id === card.for_papers.split(',')[0].trim());
+  for (const mode of ['has', 'missing', 'out']) {
+    const held = [];
+    const one = boot({ before: mode === 'out' ? undefined : signedInAs_(ANS_ADA),
+      serve: url => (/data\/questions\.json/.test(url) ? JSON.parse(JSON.stringify(qrows)) : /data\/inserts\.json/.test(url) ? JSON.parse(JSON.stringify(cards)) : undefined),
+      reply: b => (b.action === 'libItems' ? new Promise(ok => held.push(() => {
+        const items = {}, missing = [];
+        (b.ids || []).forEach(t => { if (t === wire && mode === 'has') items[t] = words; else missing.push(t); });
+        ok({ success: true, items: items, missing: missing, refused: [], left: 390, cap: 400 });
+      })) : undefined) });
+    const W = one.w, d = W.document, A = W.__t.ACTIONS;
+    const pid = card.for_papers.split(',')[0].trim();
+    for (let i = 0; i < 200 && !(typeof W.stuffItemsAll_ === 'function' && W.stuffItemsAll_().some(x => x.kind === 'insert' && x.row && x.row.id === card.insert_id)
+      && W.stuffItemsAll_().some(x => x.kind === 'question' && x.row && x.row.paper_id === pid)); i++) await wait(50);
+    const x = W.stuffItemsAll_().find(it => it.kind === 'question' && it.row && it.row.paper_id === card.for_papers.split(',')[0].trim());
+    if (!x) return ['no question of ' + card.for_papers + ' reached Find — nothing was checked'];
+    const tiles = W.insertTile_(x);
+    if (!/data-do="ins-show"/.test(tiles)) { bad.push(mode + ': a question of ' + card.for_papers + ' has no Insert tile'); continue; }
+    const host = d.createElement('div');
+    host.className = 'card';
+    host.innerHTML = '<div class="tile-row">' + tiles + '</div>';
+    d.querySelector('#s-stuff').appendChild(host);
+    A['ins-show'](host.querySelector('[data-do="ins-show"]'));
+    await wait(100);
+    const sheet = () => d.getElementById('sheet');
+    const txt = () => (sheet() ? sheet().textContent.replace(/\s+/g, ' ') : '');
+    if (mode === 'out') {
+      if (!/Sign in to read the source/.test(txt())) bad.push('signed out: the sheet does not say Sign in to read the source: ' + txt().slice(0, 120));
+      if (one.sent.some(b => b.action === 'libItems')) bad.push('signed out: a libItems request went anyway');
+      continue;
+    }
+    if (!sheet() || !sheet().querySelector('.insrc-wait .loading')) bad.push(mode + ': the sheet is not the dots while the extract comes: ' + txt().slice(0, 120));
+    if (!one.sent.some(b => b.action === 'libItems' && (b.ids || []).indexOf(wire) !== -1)) bad.push(mode + ': no libItems request went for ' + wire);
+    held.splice(0).forEach(f => f());
+    await wait(300);
+    if (mode === 'has') {
+      const lns = sheet() ? [...sheet().querySelectorAll('.insrc-ln')].map(e => e.textContent) : [];
+      if (lns.join() !== '1,5') bad.push('with its words: the margin line numbers are [' + lns + '], wanted [1,5]');
+      if (!/Stand-in words on the first line/.test(txt()) || /\[5\]/.test(txt())) bad.push('with its words: the extract is not drawn as text with its [n] made line numbers: ' + txt().slice(0, 160));
+      if (!sheet() || !sheet().querySelector('.insrc-h') || !sheet().querySelector('.insrc-note')) bad.push('with its words: the heading or the paper\'s note is not drawn as one');
+    } else if (!/Coming soon\./.test(txt())) bad.push('missing: a pending insert does not say Coming soon: ' + txt().slice(0, 120));
+    if (one.errs.length) bad.push(mode + ': errors: ' + one.errs.join(' | '));
+  }
+  return bad;
+});
+
 /* WORDS AHEAD OF THE READER (447): a slow Ledger, a list shown, then scrolled a page at a time — the cards are whole before they are reached. */
 const LIB_AHEAD_PID = 'P-AQA-8462-2406-2F';
 async function libScrollRun_(o) {
@@ -28704,10 +28801,10 @@ check('the one toolkit: a typed, a chosen, a table, a drawn and an essay part, a
     if (missing.length) bad.push(k + ' part ' + x.row.row_id + ' has no ' + missing.join(', '));
     host.querySelectorAll('.qsheet figure').forEach(f => { if (!f.closest('.qpad, .qseen') && f.getAttribute('data-do') !== 'q-zoom-fig') bad.push(k + ' part ' + x.row.row_id + ': a figure is not a tap to zoom'); });
   }
-  /* THE PEN HAS PEN, RULER AND COMPASS whatever its words say */
+  /* THE PEN HAS PEN, RULER, COMPASS AND PROTRACTOR whatever its words say (the Protractor since 458) */
   host.innerHTML = w.stuffCard(pick.drawn);
   const tools = [...host.querySelectorAll('[data-do="pad-tool"]')].map(e => e.getAttribute('data-tool'));
-  if (tools.join() !== 'pen,ruler,compass') bad.push('the drawn part ' + pick.drawn.row.row_id + ' has the tools ' + JSON.stringify(tools) + ', not pen, ruler, compass');
+  if (tools.join() !== 'pen,ruler,compass,protractor') bad.push('the drawn part ' + pick.drawn.row.row_id + ' has the tools ' + JSON.stringify(tools) + ', not pen, ruler, compass, protractor');
   /* A TYPED PART WITH A FIGURE MEASURES IT: Protractor and Ruler, without the word "measure" */
   host.innerHTML = w.stuffCard(pick.typed);
   const meas = [...host.querySelectorAll('[data-do="q-measure"]')].map(e => e.getAttribute('data-tool'));
