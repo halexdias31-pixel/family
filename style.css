@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-25-u-ai-mark-stages";
+  --css-version: "2026-10-25-w-exam-inserts";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -6660,6 +6660,7 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .asst-form .btn.asst-go { width: auto; flex: 0 0 auto; min-height: 44px; height: 44px; }
 .asst-left, .asst-said, .asst-hello { margin: .35rem 0 0; font-size: .72rem; }
 
+<<<<<<< HEAD
 /* ---------- A HAND UP (455): the card a tutor can see from across the room, and the tutor's list ---------- */
 .qcard { --help-red: #d7261e; --help-wash: rgb(215 38 30 / .28); --help-ink: #fff; }
 .qcard.is-help { border: 4px solid var(--help-red); background: var(--help-wash); box-shadow: 0 0 0 3px var(--help-red); }
@@ -6670,3 +6671,42 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .help-list { --help-red: #d7261e; border-color: var(--help-red); }
 .help-list .help-line { margin: .2rem 0; }
 .help-list .help-none { margin: .2rem 0; }
+=======
+/* ---------- AN EXAM INSERT (455): A SHEET OF PAPER ON THE BLACK SCREEN, because it stands for the one handed out in the exam. ---------- */
+.insh-sheet { background: var(--paper); color: var(--paper-ink); border: 1px solid var(--paper-rule); border-radius: 4px;
+  padding: .9rem .85rem; margin: .5rem 0; }
+.insh-sheet h3 { margin: 0 0 .6rem; color: var(--paper-ink); font-size: 1.05rem; }
+.insh-kick { margin: 0 0 .2rem; font: 600 .6rem/1.3 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--paper-dim); }
+.insh-sec h4 { margin: .8rem 0 .35rem; padding-bottom: .2rem; font-size: .78rem; color: var(--paper-dim);
+  border-bottom: 1px solid var(--paper-rule); }
+.insh-sec ul { margin: 0; padding: 0; list-style: none; }
+.insh-sec li { margin: 0 0 .55rem; break-inside: avoid; }
+.insh-fn { display: block; font-size: .68rem; color: var(--paper-dim); }
+.insh-fm { display: block; font-size: .92rem; line-height: 1.7; overflow-wrap: anywhere; }
+.insh-note { display: block; font-size: .62rem; color: var(--paper-faint); }
+.insh-sheet .tb-h { color: var(--paper-ink); border-color: var(--paper-rule); }
+.insh-only { margin-left: .35em; font-size: .58rem; color: var(--paper-faint); }
+.insh-rad { border-top: 1px solid currentColor; padding-top: .05em; }
+.insh-check { margin: .8rem 0 0; font-size: .62rem; line-height: 1.4; color: var(--paper-dim); }
+.insh-check b { color: var(--paper-ink); }
+/* THE TABLE SCROLLS SIDEWAYS INSIDE ITS OWN BOX — eighteen columns do not fit 320px, and the box says it may. */
+.insh-pt-wrap { overflow-x: auto; }
+.insh-pt { display: grid; grid-template-columns: repeat(18, minmax(2.6rem, 1fr)); gap: 2px; min-width: 48rem; }
+.insh-el { display: flex; flex-direction: column; align-items: center; padding: .15rem 0;
+  border: 1px solid var(--paper-rule); font-size: .5rem; line-height: 1.2; text-align: center; }
+.insh-el b { font-size: .9rem; }
+.insh-nm { font-size: .42rem; color: var(--paper-dim); }
+.insh-ar, .insh-z { font-family: var(--mono); }
+.insh-key { margin: .4rem 0 0; font-size: .6rem; color: var(--paper-dim); }
+.insh-paper { display: none; }
+@media print {
+  body.printing-insh { max-width: none !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; }
+  body.printing-insh * { visibility: hidden !important; }
+  body.printing-insh .insh-paper, body.printing-insh .insh-paper * { visibility: visible !important; }
+  body.printing-insh .insh-paper { display: block; position: absolute; left: 0; top: 0; width: 190mm; margin: 10mm; }
+  body.printing-insh .insh-sheet { border: 0; padding: 0; font-size: 11pt; }
+  body.printing-insh .insh-pt-wrap { overflow: visible; }
+  body.printing-insh .insh-pt { min-width: 0; }
+  @page { size: A4 portrait; margin: 0; }
+}
+>>>>>>> fix-inserts

@@ -70,7 +70,8 @@ async function libraryRows_() {
 /* `practicals` JOINED THIS LIST LAST and is the first entry that is not a boxing row or a lookup table: § */
 /* `projects` IS THE SIXTH, and the practicals' sibling rather than a kind of practical. § */
 /* `textbooks` IS THE SEVENTH — "the @family textbook should be bare bones for now and the textbooks will be in the resources tag in the finder." § */
-const LIB_EXTRA = ['boxers', 'fights', 'cheatsheet', 'practicals', 'projects', 'textbooks'];
+/* `inserts` IS THE EIGHTH: the sheets a candidate is handed in the exam (455), public whole — facts, not library words. */
+const LIB_EXTRA = ['boxers', 'fights', 'cheatsheet', 'practicals', 'projects', 'textbooks', 'inserts'];
 let LIBRARY_EXTRA = null;
 
 /* One fetch per tab, all started before this file parsed — see `index.html`. § */
@@ -260,6 +261,21 @@ function libraryExtras_(d, extra) {
         delete c.own;
         return c;
       }) }));
+  }
+
+  /* the inserts ---------------------------------------------------------------------------- ONE ROW EACH, read whole (455). */
+  if (extra.inserts && extra.inserts.length) {
+    const list = v => libS(v).split(',').map(t => t.trim()).filter(Boolean);
+    d.inserts = extra.inserts.filter(r => r && libS(r.insert_id).trim() && libOn(r.active)).map(r => ({
+      id: libS(r.insert_id).trim(), name: libS(r.name), summary: libS(r.summary),
+      subject: libS(r.subject).trim(), levels: list(r.level), keystage: libS(r.keystage).trim(),
+      boards: list(r.board), tiers: list(r.tier),
+      forSubjects: list(r.for_subjects), forLevels: list(r.for_levels), forTiers: list(r.for_tiers),
+      verified: libOn(r.verified), verifiedNote: libS(r.verified_note),
+      official: Array.isArray(r.official) ? r.official.filter(o => o && o.url) : [],
+      sections: Array.isArray(r.sections) ? r.sections : [],
+      table: libS(r.table).trim(), elements: Array.isArray(r.elements) ? r.elements : [],
+    }));
   }
 
   /* the boxers ------------------------------------------------------------------------------ ---------- THE RECORD IS `libNum`, NOT `libN`, AND FOURTEEN FIGHTERS § */
