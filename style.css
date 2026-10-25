@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-25-t-help-hand";
+  --css-version: "2026-10-25-u-ai-mark-stages";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -1541,6 +1541,9 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 }
 .loading > span:nth-child(2) { animation-delay: .2s; }
 .loading > span:nth-child(3) { animation-delay: .4s; }
+/* SMALL, IN MARK WITH AI'S STAGE LINE (456): the same dots beside the words the owner asked for. */
+.qp-ai-stage > .loading { width: auto; min-height: 1.3em; flex: none; gap: .3rem; }
+.qp-ai-stage > .loading > span { width: .4rem; height: .4rem; }
 /* Opacity and a little scale only — the two a browser can run without laying anything out, so a column of these costs nothing while the app is busiest, which is § */
 @keyframes loading {
   0%, 80%, 100% { opacity: .3; transform: scale(.75); }
@@ -5865,6 +5868,8 @@ button.scr-sq { cursor: pointer; }
 /* THE VERDICT'S LINE, reserved: one line of `.qp-verdict` tall when it is empty, and it wraps rather
    than cutting a sentence off when one is longer. Set in from the edge to sit under the field's words. */
 .qp-compose > .qp-verdict { display: block; min-height: 1.3em; margin: 6px 14px 0; }
+/* MARK WITH AI'S STAGE LINE (456): the dots small and to the left, then where the marking has got to and the seconds. */
+.qp-ai-stage { display: flex; align-items: center; gap: .5rem; margin: 4px 14px 0; color: var(--dim); font-size: .8rem; }
 /* The saved line under the verdict, indented with it to the field's own text (`.qp-saved` below). */
 .qp-compose > .qp-saved { margin: 2px 14px 0; }
 

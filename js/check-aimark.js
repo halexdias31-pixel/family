@@ -348,18 +348,18 @@ function tallyHeld(what, writes) {
   if (!/^gemini-[\d.]+-flash-lite$/.test(BACK) || BACK === FIRST) bad.push('AI_MODEL_FALLBACK is "' + BACK + '" — wanted a pinned stable Flash-Lite name, not the first model again');
   if (/\d/.test(BUSY)) bad.push('AI_BUSY is "' + BUSY + '" — a pupil reads it, and a status code is the owner\'s to read, in the log');
 
-  /* 503 THEN 200: ASKED AGAIN, ONCE, AFTER ABOUT 0.8 s, AND ONE MARK COUNTED. */
+  /* 503 THEN 200: THE FALLBACK AT ONCE, NO WAIT, AND ONE MARK COUNTED (456: a busy first model is asked once when another waits). */
   fresh();
   gem.queue.push({ code: 503 }, MARK);
   let d = ask('s1@example.org');
   if (ok(d, 'a 503 then a 200')) {
     if (d.left !== 5) bad.push('a 503 then a mark left ' + d.left + ' of 6 — wanted 5: one press, one mark');
-    if (d.model !== FIRST) bad.push('marked by the first model on its second ask, and the reply said model ' + d.model);
+    if (d.model !== BACK) bad.push('marked by the fallback after one 503, and the reply said model ' + d.model);
   }
-  if (urls().join() !== 'first,first') bad.push('a 503 then a 200 asked ' + urls().join(' then ') + ' — wanted the first model twice');
-  if (gem.slept.length !== 1 || !(gem.slept[0] >= 560 && gem.slept[0] <= 1040)) bad.push('the wait after one 503 was ' + JSON.stringify(gem.slept) + ' — wanted one wait of 0.8 s ± 30%');
+  if (urls().join() !== 'first,back') bad.push('a 503 then a 200 asked ' + urls().join(' then ') + ' — wanted the first model once, then the fallback');
+  if (gem.slept.length) bad.push('a 503 with the fallback ready waited ' + JSON.stringify(gem.slept) + ' — wanted the fallback at once');
 
-  /* 503 x3, THEN THE FALLBACK'S 200: THE MARK SAYS WHICH MODEL GAVE IT. */
+  /* 503 x3, THEN THE FALLBACK'S 200 ON ITS THIRD ASK: THE MARK SAYS WHICH MODEL GAVE IT, and only the last model waits. */
   fresh();
   gem.queue.push({ code: 503 }, { code: 503 }, { code: 503 }, MARK);
   d = ask('s1@example.org');
@@ -367,8 +367,8 @@ function tallyHeld(what, writes) {
     if (d.model !== BACK) bad.push('marked by the fallback and the reply said model ' + d.model + ' — wanted ' + BACK);
     if (d.left !== 4) bad.push('two presses, two marks, and ' + d.left + ' of 6 left — wanted 4');
   }
-  if (urls().join() !== 'first,first,first,back') bad.push('three 503s asked ' + urls().join(' then ') + ' — wanted the first model three times, then the fallback');
-  if (gem.slept.length !== 2 || !(gem.slept[0] >= 560 && gem.slept[0] <= 1040) || !(gem.slept[1] >= 1400 && gem.slept[1] <= 2600)) bad.push('the waits were ' + JSON.stringify(gem.slept) + ' — wanted about 0.8 s then about 2 s, and none before the fallback (its capacity is its own)');
+  if (urls().join() !== 'first,back,back,back') bad.push('three 503s asked ' + urls().join(' then ') + ' — wanted the first model once, then the fallback three times');
+  if (gem.slept.length !== 2 || !(gem.slept[0] >= 560 && gem.slept[0] <= 1040) || !(gem.slept[1] >= 1400 && gem.slept[1] <= 2600)) bad.push('the waits were ' + JSON.stringify(gem.slept) + ' — wanted about 0.8 s then about 2 s, both on the fallback, and none before it');
 
   /* EVERYTHING 503: ONE PLAIN SENTENCE, NO NUMBER, AND THE MARK GIVEN BACK. */
   fresh();
@@ -376,29 +376,28 @@ function tallyHeld(what, writes) {
   d = ask('s1@example.org');
   if (d.success !== false || d.message !== BUSY) bad.push('six 503s answered ' + JSON.stringify(d).slice(0, 200) + ' — wanted "' + BUSY + '"');
   if (/\d/.test(String(d.message))) bad.push('the pupil was told "' + d.message + '" — a number in it is the owner\'s, not theirs');
-  if (urls().join() !== 'first,first,first,back,back,back') bad.push('six 503s asked ' + urls().join(' then ') + ' — wanted three of each model');
-  ['first', 'back'].forEach((which, i) => [1, 2, 3].forEach(t => {
-    const m = i ? BACK : FIRST;
-    if (!gem.log.some(x => x.indexOf('aiMark: Gemini answered 503 for model ' + m + ' (try ' + t + ' of 3)') === 0)) bad.push('the storm did not log "503 for model ' + m + ' (try ' + t + ' of 3)" — "it said busy" must be readable back as which model was full and how often');
-  }));
+  if (urls().join() !== 'first,back,back,back') bad.push('all 503s asked ' + urls().join(' then ') + ' — wanted the first model once and the fallback three times');
+  [[FIRST, 1, 1], [BACK, 1, 3], [BACK, 2, 3], [BACK, 3, 3]].forEach(([m, t, of]) => {
+    if (!gem.log.some(x => x.indexOf('aiMark: Gemini answered 503 for model ' + m + ' (try ' + t + ' of ' + of + ')') === 0)) bad.push('the storm did not log "503 for model ' + m + ' (try ' + t + ' of ' + of + ')" — "it said busy" must be readable back as which model was full and how often');
+  });
   const waited = gem.slept.reduce((n, x) => n + x, 0);
-  if (gem.slept.length !== 4 || waited > 7280) bad.push('everything 503 waited ' + JSON.stringify(gem.slept) + ' (' + waited + ' ms) — wanted four waits, at most 7.28 s in all');
-  /* 500 AND 429 ARE ASKED AGAIN TOO -- Google's own fault, and too many at once. */
+  if (gem.slept.length !== 2 || waited > 3640) bad.push('everything 503 waited ' + JSON.stringify(gem.slept) + ' (' + waited + ' ms) — wanted two waits, on the fallback, at most 3.64 s in all');
+  /* 500 AND 429 HAND OFF TOO -- Google's own fault, and too many at once: the fallback, at once. */
   [500, 429].forEach(code => {
     fresh();
     gem.queue.push({ code: code }, MARK);
     const r = ask('s1@example.org');
-    if (!r.success || urls().join() !== 'first,first') bad.push('a ' + code + ' then a 200 answered ' + JSON.stringify(r).slice(0, 160) + ' after asking ' + urls().join(' then ') + ' — a ' + code + ' is asked again');
+    if (!r.success || urls().join() !== 'first,back') bad.push('a ' + code + ' then a 200 answered ' + JSON.stringify(r).slice(0, 160) + ' after asking ' + urls().join(' then ') + ' — a ' + code + ' hands off to the fallback');
   });
-  /* A FETCH THAT THREW -- no answer at all -- IS ASKED AGAIN, and all of them is its own sentence. */
+  /* A FETCH THAT THREW -- no answer at all -- HANDS OFF, and all of them is its own sentence. */
   fresh();
   gem.queue.push({ threw: true }, MARK);
   d = ask('s1@example.org');
-  if (!d.success || urls().join() !== 'first,first') bad.push('a fetch that threw then a 200 answered ' + JSON.stringify(d).slice(0, 160) + ' after asking ' + urls().join(' then ') + ' — it is asked again');
+  if (!d.success || urls().join() !== 'first,back') bad.push('a fetch that threw then a 200 answered ' + JSON.stringify(d).slice(0, 160) + ' after asking ' + urls().join(' then ') + ' — the fallback is asked at once');
   fresh();
   gem.reply = { threw: true };
   d = ask('s1@example.org');
-  if (d.success !== false || !/could not reach gemini/i.test(String(d.message)) || gem.sent.length !== 6) bad.push('six fetches that threw answered ' + JSON.stringify(d).slice(0, 160) + ' after ' + gem.sent.length + ' asks — wanted six asks and "Could not reach Gemini"');
+  if (d.success !== false || !/could not reach gemini/i.test(String(d.message)) || gem.sent.length !== 4) bad.push('fetches that all threw answered ' + JSON.stringify(d).slice(0, 160) + ' after ' + gem.sent.length + ' asks — wanted four asks (one, then three of the fallback) and "Could not reach Gemini"');
   /* AFTER ALL OF THAT: the 503 storm and the six throws gave no mark and spent none, and one more storm here spends none either. § */
   fresh();
   gem.reply = { code: 503 };
@@ -505,11 +504,11 @@ function tallyHeld(what, writes) {
     ask('s1@example.org');
     const w = gem.slept;
     worst = Math.max(worst, w.reduce((n, x) => n + x, 0));
-    if (!(w[0] >= 560 && w[0] <= 1040 && w[1] >= 1400 && w[1] <= 2600 && w[2] >= 560 && w[2] <= 1040 && w[3] >= 1400 && w[3] <= 2600)) outside++;
+    if (!(w.length === 2 && w[0] >= 560 && w[0] <= 1040 && w[1] >= 1400 && w[1] <= 2600)) outside++;
     firsts.add(w[0]);
   }
   if (outside) bad.push(outside + ' of 200 storms waited outside 0.8 s / 2 s ± 30%');
-  if (worst > 7280) bad.push('the longest storm waited ' + worst + ' ms — the bound is 7.28 s');
+  if (worst > 3640) bad.push('the longest storm waited ' + worst + ' ms — the bound is 3.64 s, the fallback\'s two waits');
   if (firsts.size < 20) bad.push('200 storms drew only ' + firsts.size + ' different first waits — the jitter is not spreading anybody out');
   if (BUDGET > 25000) bad.push('AI_BUDGET_MS is ' + BUDGET + ' — a pupil is watching three dots; keep it well under 30 s');
   const real = Date.now, base = real();
@@ -589,6 +588,9 @@ function tallyHeld(what, writes) {
     const fb = gem.sent.filter(x => x.url === to(BACK));
     if (!r.success || r.model !== BACK || !fb.length) bad.push('a first model answering 503 in ' + per / 1000 + ' s an ask, with the fallback ready, asked ' + urls() + ' and answered ' + JSON.stringify(r.message || r.model) + ' — wanted the fallback asked inside the budget and its mark');
     if (fb.length && fb[0].at - gem.sent[0].at > BUDGET) bad.push('the fallback was first asked at ' + fb[0].at + ' ms — past the ' + BUDGET + ' ms budget');
+    /* 456: THE FALLBACK THE MOMENT THE FIRST MODEL SAYS BUSY -- no wait and no second ask of a full model first. */
+    if (fb.length && fb[0].at - gem.sent[0].at !== per) bad.push('a first model busy after ' + per + ' ms had the fallback asked at ' + (fb[0].at - gem.sent[0].at) + ' ms — wanted at once, at ' + per);
+    if (gem.clock.now !== 2 * per) bad.push('a busy first model and a ready fallback, ' + per + ' ms an ask, took ' + gem.clock.now + ' ms — wanted two asks, ' + 2 * per);
     const lateRetry = gem.sent.filter((x, i) => i > 0 && x.url === to(FIRST) && HANDOFF != null && x.at - gem.sent[0].at > HANDOFF);
     if (lateRetry.length) bad.push('the first model was asked again at ' + lateRetry.map(x => x.at).join(', ') + ' ms — past AI_HANDOFF_MS, the fallback\'s turn');
   });
@@ -606,11 +608,11 @@ function tallyHeld(what, writes) {
   fresh();
   gem.queue.push({ code: 502 }, MARK);
   let r = ask('s1@example.org');
-  if (!r.success || urls() !== 'first,first') bad.push('a 502 then a 200 asked ' + urls() + ' and answered ' + JSON.stringify(r.message || r.model) + ' — a 502 is asked again');
+  if (!r.success || urls() !== 'first,back') bad.push('a 502 then a 200 asked ' + urls() + ' and answered ' + JSON.stringify(r.message || r.model) + ' — a 502 hands off to the fallback');
   fresh();
   gem.answer = url => url === to(BACK) ? MARK : { code: 504 };
   r = ask('s1@example.org');
-  if (!r.success || r.model !== BACK || urls() !== 'first,first,first,back') bad.push('504s from the first model asked ' + urls() + ' and answered ' + JSON.stringify(r.message || r.model) + ' — wanted three asks, then the fallback\'s mark');
+  if (!r.success || r.model !== BACK || urls() !== 'first,back') bad.push('504s from the first model asked ' + urls() + ' and answered ' + JSON.stringify(r.message || r.model) + ' — wanted one ask, then the fallback\'s mark');
   fresh();
   gem.reply = { code: 504 };
   r = ask('s1@example.org');
@@ -620,7 +622,7 @@ function tallyHeld(what, writes) {
   fresh();
   gem.answer = url => url === to(BACK) ? { code: 404 } : { code: 503 };
   r = ask('s1@example.org');
-  if (r.message !== BUSY || urls() !== 'first,first,first,back') bad.push('a busy first model and a retired fallback asked ' + urls() + ' and answered ' + JSON.stringify(r.message) + ' — wanted "' + BUSY + '"');
+  if (r.message !== BUSY || urls() !== 'first,back') bad.push('a busy first model and a retired fallback asked ' + urls() + ' and answered ' + JSON.stringify(r.message) + ' — wanted "' + BUSY + '"');
   if (!gem.log.some(x => x.indexOf(BACK) >= 0 && /404/.test(x) && /gemini_model_fallback/.test(x) && /config tab/.test(x))) bad.push('a retired fallback was not logged as a name to change in gemini_model_fallback on the config tab: ' + JSON.stringify(gem.log.slice(-2)));
   /* ...and a fetch that threw every time, whose "code" is -1 inside `aiGemini_` -- the one sentence of the
      three this loop did not ask, so "(-1)" in it stayed green until the second review of 12 Oct. */
@@ -644,7 +646,7 @@ function tallyHeld(what, writes) {
   fresh();
   gem.queue.push(quota('0.2s'), MARK);
   r = ask('s1@example.org');
-  if (!r.success || urls() !== 'first,first') bad.push('a 429 saying "retry in 0.2s" asked ' + urls() + ' — wanted the first model again, after the usual wait');
+  if (!r.success || urls() !== 'first,back') bad.push('a 429 saying "retry in 0.2s" asked ' + urls() + ' — wanted the fallback at once (456)');
 
   /* 6. THE MODEL THAT ANSWERED, NOT THE NAME THAT WAS ASKED. § */
   fresh();
@@ -862,14 +864,14 @@ const fresh12 = b => { gem.sent.length = 0; gem.slept.length = 0; gem.queue.leng
   fresh12(b);
   gem.queue.push(REFUSED, { code: 503 }, { code: 503 }, SHORT_MARK);
   d = ask('s1@example.org');
-  if (!d.success || d.model !== FIRST || urls() !== 'first,first,first,first' || levels() !== 'low,none,none,none' || gem.slept.length !== 2) bad.push('a refused level, two 503s and a 200 asked ' + urls() + ' at ' + levels() + ' with ' + gem.slept.length + ' wait(s) and answered ' + JSON.stringify(d.message || d.model)
-    + ' — wanted four asks of the first model, the level only on the first, two waits: the re-ask without a level is not one of the three tries');
+  if (!d.success || d.model !== BACK || urls() !== 'first,first,back,back' || levels() !== 'low,none,minimal,minimal' || gem.slept.length !== 1) bad.push('a refused level, two 503s and a 200 asked ' + urls() + ' at ' + levels() + ' with ' + gem.slept.length + ' wait(s) and answered ' + JSON.stringify(d.message || d.model)
+    + ' — wanted the first model twice (the re-ask without a level is not its one try), then the fallback twice with one wait');
 
   /* c2. A LEVEL REFUSED ON A RETRY -- a 503 first -- is asked again at once too: the wait was the 503's. */
   fresh12(b);
   gem.queue.push({ code: 503 }, REFUSED, SHORT_MARK);
   d = ask('s1@example.org');
-  if (!d.success || urls() !== 'first,first,first' || levels() !== 'low,low,none' || gem.slept.length !== 1) bad.push('a 503, a refused level and a 200 asked ' + urls() + ' at ' + levels() + ' with ' + gem.slept.length + ' wait(s) — wanted one wait, after the 503, and the ask without a level at once');
+  if (!d.success || urls() !== 'first,back,back' || levels() !== 'low,minimal,none' || gem.slept.length) bad.push('a 503, a refused level and a 200 asked ' + urls() + ' at ' + levels() + ' with ' + gem.slept.length + ' wait(s) — wanted the fallback at once after the 503, and its ask without a level at once');
 
   /* d. THE FALLBACK'S LEVEL REFUSED: the same, on the fallback. */
   fresh12(b);
@@ -954,7 +956,7 @@ const fresh12 = b => { gem.sent.length = 0; gem.slept.length = 0; gem.queue.leng
     const one = urls();
     fresh12();
     ask('s1@example.org');
-    if (one !== 'first,first' || urls() !== 'first' || gem.puts.some(p => /^AI_SPENT:/.test(p.k))) bad.push('a 429 with no RetryInfo asked ' + one + ', then the next press ' + urls() + ' — wanted it asked again in its press and not remembered');
+    if (one !== 'first,back' || urls() !== 'first' || gem.puts.some(p => /^AI_SPENT:/.test(p.k))) bad.push('a 429 with no RetryInfo asked ' + one + ', then the next press ' + urls() + ' — wanted it asked again in its press and not remembered');
 
     /* f. FIRST REMEMBERED, FALLBACK FULL: "busy", and the first model is not asked. */
     fresh12(b);
@@ -1012,8 +1014,8 @@ const fresh12 = b => { gem.sent.length = 0; gem.slept.length = 0; gem.queue.leng
   let L = lines();
   all.push(...L);
   const w = gem.slept[0];
-  const want = 'aiMark: timing -- short answer, ' + (4000 + w) + ' ms in all; 0 ms before the first ask (the take 0 ms); '
-    + FIRST + ' at low 503 in 2000 ms, wait ' + w + ' ms, ' + FIRST + ' at low 200 in 2000 ms; marked by ' + FIRST;
+  const want = 'aiMark: timing -- short answer, 4000 ms in all; 0 ms before the first ask (the take 0 ms); '
+    + FIRST + ' at low 503 in 2000 ms, ' + BACK + ' at minimal 200 in 2000 ms; marked by ' + BACK + (w ? ' (and a wait ' + w + ' it should not have)' : '');
   if (!d.success || L.length !== 1 || L[0] !== want) bad.push('a 503 then a mark logged ' + JSON.stringify(L) + ' — wanted exactly ' + JSON.stringify(want));
 
   /* b. AN ESSAY THAT ENDS WITHOUT A MARK: one line, and which of the pupil's sentences it ended on. */
@@ -1021,7 +1023,7 @@ const fresh12 = b => { gem.sent.length = 0; gem.slept.length = 0; gem.queue.leng
   gem.reply = { code: 503 };
   ask('s1@example.org', essayPress);
   L = lines(); all.push(...L);
-  if (L.length !== 1 || !/^aiMark: timing -- essay, \d+ ms in all; /.test(L[0]) || L[0].split(' 503 in ').length !== 7 || L[0].indexOf('no mark -- ' + BUSY) < 0) bad.push('an essay that was all 503 logged ' + JSON.stringify(L) + ' — wanted one essay line with six asks and "no mark -- ' + BUSY + '"');
+  if (L.length !== 1 || !/^aiMark: timing -- essay, \d+ ms in all; /.test(L[0]) || L[0].split(' 503 in ').length !== 5 || L[0].indexOf('no mark -- ' + BUSY) < 0) bad.push('an essay that was all 503 logged ' + JSON.stringify(L) + ' — wanted one essay line with four asks and "no mark -- ' + BUSY + '"');
 
   /* c. THE LOCK NOT HAD AT THE TAKE: one line, Gemini never asked. */
   fresh12(b);

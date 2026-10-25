@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-25-q-help-hand";
+const DOPOST_VERSION = "2026-10-25-r-ai-mark-speed";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -3717,7 +3717,9 @@ function aiGemini_(key, models, payload, thinking) {
     }
     let level = body && Object.prototype.hasOwnProperty.call(levels, model) ? S(levels[model]) : '';
     let code = 0, hold = 0, now = false, refused = '';
-    for (let t = 0; t < AI_TRIES; t++) {
+    /* ONLY THE LAST MODEL IS ASKED AGAIN (456): one with another behind it hands off at its first 429, 5xx or throw. */
+    const tries = another ? AI_TRIES_BEFORE_HANDOFF : AI_TRIES;
+    for (let t = 0; t < tries; t++) {
       /* NO WAIT BEFORE A MODEL'S FIRST ASK, NOR BEFORE ITS ASK WITHOUT A REFUSED LEVEL (`now`). A retry
          waits, and is not started past either clock, or when Google has said this model is not back
          before it. */
@@ -3761,7 +3763,7 @@ function aiGemini_(key, models, payload, thinking) {
         said = String((err && err.message) || err).slice(0, 500);
       }
       console.log('aiMark: Gemini answered ' + (code < 0 ? 'nothing (the fetch threw)' : code) + ' for model '
-        + model + ' (try ' + (t + 1) + ' of ' + AI_TRIES + ')' + (level ? ' at thinking level ' + level : '') + ': ' + said);
+        + model + ' (try ' + (t + 1) + ' of ' + tries + ')' + (level ? ' at thinking level ' + level : '') + ': ' + said);
       if (code < 0 || aiAgain_(code)) continue;
       if (code === 404) break;
       /* A 400 TO A REQUEST THAT CARRIED A LEVEL: the same model again, at once, without it -- the same try,

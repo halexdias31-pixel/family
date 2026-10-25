@@ -118,7 +118,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-25-q-help-hand";
+const BACKEND_VERSION = "2026-10-25-r-ai-mark-speed";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -555,6 +555,8 @@ const AI_WAITS = [800, 2000];
 const AI_JITTER = 0.3;
 const AI_BUDGET_MS = 20000;
 const AI_HANDOFF_MS = 10000;
+/* A BUSY MODEL WITH ANOTHER WAITING IS ASKED ONCE (456): the owner's "it takes so long" was 0.8 s + 2 s of waits and two more asks of a full model before the fallback. */
+const AI_TRIES_BEFORE_HANDOFF = 1;
 const AI_BUSY = 'Marking is busy right now — try again in a minute.';
 /* THE THINKING LEVELS EACH PINNED MODEL OFFERS, LOWEST FIRST, as Google's thinking guide lists them § */
 const AI_THINKING_SCALE = ['minimal', 'low', 'medium', 'high'];

@@ -15413,6 +15413,64 @@ check('Mark with AI sends a worded answer by person id, draws marks and a senten
   return bad;
 });
 
+/* ---------- MARK WITH AI SAYS WHERE IT IS (456): "it just says marking ... we didn't feel blind" § */
+check('Mark with AI shows its stages and the seconds beside the dots, says when it is slow, and offers Try again on a failure', async () => {
+  const bad = [];
+  let release = null, mode = 'slow';
+  const { w, sent, errs } = boot({ payload: Object.assign(payload(), { features: ['aiMark'], aiMarking: true }), reply: b => {
+    if (b.action !== 'aiMark') return null;
+    if (mode === 'fail') return { success: false, message: 'Marking is busy right now — try again in a minute.' };
+    return new Promise(ok => { release = () => ok({ success: true, awarded: 1, available: 2, feedback: 'Half there.', left: 9 }); });
+  } });
+  await wait(300);
+  const d = w.document, A = w.__t.ACTIONS;
+  if (!A['qp-ai'] || !A['qp-ai-again']) return ['Mark with AI or its Try again has no handler'];
+  w.__t.USER({ name: 'Sam Student', personId: 'P-S1', token: 'tok-1', role: 'student' });
+  const x = { kind: 'question', key: 'q-ai-stage', name: 'Q1', marks: 2, answerType: 'explain', accept: '',
+    row: { row_id: 'Q-AI-ST', paper_id: 'P-AI', subject: 'Chemistry', name: 'Rates' },
+    html: '<p>Explain why a catalyst speeds up a reaction.</p>', answer: 'It lowers the activation energy.' };
+  try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {}
+  const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0); d.body.appendChild(h);
+  const card = h.querySelector('.qcard'), go = card.querySelector('.qp-ai-go');
+  const ta = card.querySelector('textarea.qp-ans-in');
+  if (!go || !ta) return ['no Mark with AI tile or box was drawn'];
+  ta.value = 'It gives another route with a lower activation energy.';
+  ta.dispatchEvent(new w.Event('input', { bubbles: true }));
+  const realNow = w.Date.now.bind(w.Date), base = realNow();
+  let off = 0;
+  w.Date.now = () => base + off;
+  const say = () => { const s = card.querySelector('.qp-ai .qp-ai-stage-say'); return s ? s.textContent : ''; };
+  const held = w.stuffItemsAll_;
+  w.stuffItemsAll_ = () => [x];
+  try {
+    A['qp-ai'](go);
+    const line = card.querySelector('.qp-ai > .qp-ai-stage');
+    if (!line || !line.querySelector(':scope > .loading')) bad.push('the wait has no stage line with the gold dots in it');
+    if (!/^Sending your work…$/.test(say())) bad.push('the first stage said "' + say() + '" — wanted "Sending your work…"');
+    off = 7000; await wait(650);
+    if (!/^Marking against the scheme… · 7 s$/.test(say())) bad.push('after 7 s the line said "' + say() + '" — wanted "Marking against the scheme… · 7 s"');
+    off = 23000; await wait(650);
+    if (!/^Still working — this one is taking longer than usual · 23 s$/.test(say())) bad.push('after 23 s the line said "' + say() + '" — wanted the slow sentence and 23 s');
+    release(); await wait(50);
+    if (card.querySelector('.qp-ai-stage')) bad.push('a mark that arrived left the stage line behind');
+    if (!/1 of 2 marks/.test(card.querySelector('.qp-ai .qp-verdict').textContent)) bad.push('the mark after a slow wait was not drawn');
+    /* A FAILURE: its reason on the verdict line and a Try again tile, which asks again. */
+    mode = 'fail';
+    A['qp-ai'](go); await wait(50);
+    const again = card.querySelector('.qp-ai-stage [data-do="qp-ai-again"]');
+    if (!/busy right now/.test(card.querySelector('.qp-ai .qp-verdict').textContent)) bad.push('a failed mark did not say why');
+    if (!again || card.querySelector('.qp-ai-stage .loading')) bad.push('a failed mark has no Try again tile, or still shows the dots');
+    const n = sent.filter(b => b.action === 'aiMark').length;
+    mode = 'slow';
+    if (again) A['qp-ai-again'](again);
+    if (sent.filter(b => b.action === 'aiMark').length !== n + 1) bad.push('Try again did not send the answer again');
+    if (!/^Sending your work…$/.test(say().replace(/ · \d+ s$/, ''))) bad.push('Try again did not show the stages again: "' + say() + '"');
+    if (release) release(); await wait(50);
+  } finally { w.stuffItemsAll_ = held; w.Date.now = realNow; }
+  if (errs.length) bad.push('errors: ' + errs.join(' | '));
+  return bad;
+});
+
 /* ---------- AN ESSAY IS WRITTEN ON A SHEET, IN PARAGRAPHS, AND MARKED WHOLE § */
 check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragraphs, the words are counted, and Mark with AI sends all of it', async () => {
   const ID = 'Q-R0398-5';
