@@ -8,7 +8,7 @@ const TABS = [
   /* ---------- ONE TAB § */
   { id: 'stuff',   icon: '🔎', label: 'Find',    title: 'Find' },
   /* ---------- WHO YOU ARE, AT THE START OF THE YOU GROUP (392) § */
-  { id: 'account', icon: '👤', label: 'Student', title: 'Student' },
+  { id: 'account', icon: '⚙', label: 'Student settings', title: 'Student settings' },
 
   /* ---------- AND SEVEN MORE, WHICH IS THIS TABLE GOING BACK THE WAY IT CAME § */
   /* ---------- `make` WAS HERE, AND THE CAMERA IS THE PAGE ABOVE THE NEWEST POST NOW § */
@@ -23,9 +23,12 @@ const TABS = [
   /* ---------- SAVED, RIGHT OF FIND 2 WITH THE LEARNING COLUMNS (392) § */
   { id: 'saved',   icon: '★',  label: 'Saved',   title: 'Saved' },
   { id: 'spotlight', icon: '✦', label: 'Spotlight', title: 'Spotlight' },
-  /* ---------- A COLUMN PER RANK, RIGHT OF YOU (444): Family for a client, Tutor for staff, Admin last. Settings went into You. */
-  { id: 'family',  icon: '👪', label: 'Parent',  title: 'Parent' },
-  { id: 'staff',   icon: '🎓', label: 'Tutor',   title: 'Tutor' },
+  /* ---------- SIX COLUMNS (453): a card per tutor, student and parent, then each account type's settings. */
+  { id: 'tutors',   icon: '🎓', label: 'Tutors',   title: 'Tutors' },
+  { id: 'students', icon: '👤', label: 'Students', title: 'Students' },
+  { id: 'parents',  icon: '👪', label: 'Parents',  title: 'Parents' },
+  { id: 'family',  icon: '🔧', label: 'Parent settings',  title: 'Parent settings' },
+  { id: 'staff',   icon: '🛠', label: 'Tutor settings',   title: 'Tutor settings' },
   /* ---------- AND THE SHOP, RIGHT OF BOOKING § */
   { id: 'shop',    icon: '🛒', label: 'Shop',    title: 'Shop' },
   /* ---------- AND PROGRESS, RIGHT OF SAVED (392), WAITING TO BE BUILT § */
@@ -42,7 +45,9 @@ const TAB_ORDER = ['feed', 'spotlight', 'reel', 'dm',                  /* social
                    'tools', 'stuff', 'res', 'saved', 'progress',      /* learning; Tools left of Find, one swipe to the whiteboard (444) */
                    'booking', 'shop',                                 /* business */
                    'games',
-                   'account', 'staff', 'family', 'biz'];              /* a column per account: Student, Tutor, Parent, Business (444) */
+                   'tutors', 'students', 'parents',                   /* a card per person, by category (453) */
+                   'staff', 'account', 'family',                      /* Tutor, Student and Parent account settings (453) */
+                   'biz'];
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
 
 /* ---------- EVERY COLUMN THE BUILD HAS, AND THE ONES THIS VIEWER IS GIVEN § */
@@ -1430,10 +1435,7 @@ const PAGER = {
   /* EVERY SCREEN IS PAGED. § */
   /* ---------- THESE KEYS ARE SCREEN IDS, AND TWO OF THEM NAMED SCREENS THAT DO NOT EXIST § */
   /* ---------- THE PAGER COUNTED A LIST THE SCREEN DOES NOT DRAW § */
-  account: () => {
-    const n = typeof accountPages_ === 'function' ? accountPages_().length : 0;
-    return Array.from({ length: n }, (_, i) => (n > 1 ? (i + 1) + ' of ' + n : ''));
-  },
+  account: () => (typeof studentSetPages_ === 'function' ? studentSetPages_().length : 1),
   /* `book` WAS HERE — a pager for a column that no longer exists. Find has its own count. */
 
   /* Empty names, one per post. § */
@@ -1451,6 +1453,9 @@ const PAGER = {
   /* AND THE SAME AGAIN FOR SETTINGS. § */
   family: () => (typeof familyPages_ === 'function' ? familyPages_().length : 1),
   staff: () => (typeof staffPages_ === 'function' ? staffPages_().length : 1),
+  tutors: () => (typeof peoplePages_ === 'function' ? peoplePages_('tutors').length : 1),
+  students: () => (typeof peoplePages_ === 'function' ? peoplePages_('students').length : 1),
+  parents: () => (typeof peoplePages_ === 'function' ? peoplePages_('parents').length : 1),
   /* THE SHOP, COUNTED FROM `shopCards_`, the list `screen('shop')` draws. Never nought: the basket
      is always page 0, and with nothing for sale the shop says so in a page of its own. */
   shop: () => (typeof shopCards_ === 'function' ? shopCards_().length : 1),
@@ -1551,7 +1556,7 @@ function applyBrandIcon_() {
    remembered between visits. */
 /* `booking` AND `dm` WERE MISSING, and this table's own sentence above is the rule they broke: § */
 const PAGE = { feed: 0, stuff: 0, account: 0, tools: 0, games: 0, reel: 0, booking: 0, dm: 0, make: 0,
-               saved: 0, family: 0, staff: 0, spotlight: 0, shop: 0, progress: 0, res: 0, biz: 0 };
+               saved: 0, family: 0, staff: 0, tutors: 0, students: 0, parents: 0, spotlight: 0, shop: 0, progress: 0, res: 0, biz: 0 };
 
 /* A COLUMN MAY HOLD FEWER PAGE ELEMENTS THAN IT HAS PAGES. § */
 const PAGE_KEEP = {};

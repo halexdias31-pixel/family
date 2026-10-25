@@ -1249,7 +1249,7 @@ async function gesture(env, o) {
       }
 
       /* B. ONE FLICK ON SETTINGS, AND HOW MANY TIMES ITS PAGES WERE COUNTED. */
-      if ((count.settings || 0) < 3) fail('REACH', `${at} settings count`, `Settings has ${count.settings} page(s) — nothing to turn`);
+      if ((count.account || 0) < 3) fail('REACH', `${at} settings count`, `Student settings has ${count.account} page(s) — nothing to turn`);
       else {
         let s2 = null;
         for (const p of [1, 2, 0, 3]) { await page.evaluate(p => window.__sw.place('account', p), p); s2 = await page.evaluate(() => window.__sw.spot()); if (s2) break; }

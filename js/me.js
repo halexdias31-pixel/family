@@ -680,10 +680,10 @@ const REG_PIN = /^\d{4,8}$/;
 const REG_NOTE = {
   /* "ONCE YOU HAVE OPENED IT", not "once you are in": signing in waits on nothing, but a child waits on
      the parent's address being proved (`confirmFirst_` in people.gs), so the link comes first. */
-  parent: 'We email you a link to open. Once you have opened it, make your child\'s account in Settings — '
+  parent: 'We email you a link to open. Once you have opened it, make your child\'s account on Students — '
         + 'they need no email.',
   student: 'We email a link to open. Then sign in with your handle or email and the PIN. A parent '
-         + 'can also make your account, in Settings.',
+         + 'can also make your account, on Students.',
 };
 function registerSheet_() {
   openSheet('Make an account', `
@@ -817,7 +817,7 @@ function verifyFromLink_(again) {
           <p class="sub"><b>They are not on your account yet.</b> The @family. account on your email has not
             been confirmed, so we did not put ${esc(first || 'them')} on it.</p>
           <p class="sub">Open the "Confirm your @family. account" email we sent you — or sign in and press
-            "Send the link again" — then add ${esc(first || 'them')} with "Add your child" in Settings.
+            "Send the link again" — then add ${esc(first || 'them')} with "Add your child" on Students.
             They say yes, and they are on your account.</p>
           <p class="faint">Did you never make an account here? Then somebody else did, with your email. Use
             "Forgotten your PIN?" with your email to take it back — it signs them out.</p>
@@ -840,7 +840,7 @@ function verifyFromLink_(again) {
         }
         toast('Email confirmed' + (first ? ', ' + first : '')
               + (!me ? ' — now sign in with it and your PIN.'
-                 : mayAddChild_() ? ' — you can make your child\'s account in Settings now.' : '.'));
+                 : mayAddChild_() ? ' — you can make your child\'s account on Students now.' : '.'));
       }
       /* TO THE SIGN-IN CARD, which is where the next step is. */
       try { if (!USER) go('account'); } catch (e) {}
@@ -1594,7 +1594,7 @@ function mayAddChild_() {
 function kidAddSec_() {
   return `<div class="kid-sec kid-add">
     <h4 class="kid-h">Add your child</h4>
-    <p class="sub">Already has an account? Search their handle at the top of ${esc(((TABS.find(t => t.id === 'account') || {}).label) || 'Student')} and tap
+    <p class="sub">Already has an account? Search their handle at the top of ${esc(tabLabel_('students', 'Students'))} and tap
       Add as my child on their card. They say yes before anything is linked.</p>
   </div>`;
 }
@@ -1756,7 +1756,7 @@ on('kid-make', el => {
       ['first', 'last'].forEach(f => { try { draftDrop_('kid-new', f); } catch (e) {} });
       toast(first + '\'s account is made — they sign in as @' + KID_MADE.handle + '.');
       /* `repaint(true)`: the card grows by a slip, so the column is placed again — see `answerClaim_`. */
-      if (typeof AT !== 'undefined' && AT === 'family') repaint(true); else markStale_('family');
+      if (typeof AT !== 'undefined' && AT === 'students') repaint(true); else markStale_('students');
       load();
     })
     /* `send_` HAS SAID WHY; `heldBy_` turns a stale phone's form into the held card when the why is
@@ -1783,7 +1783,7 @@ on('kid-pin-go', el => {
       const body = $('sheet-body');
       if (body) body.innerHTML = pinSlip_(d.first || el.getAttribute('data-name'), d.handle, d.pin)
         + '<p class="faint">Write it down or read it to them — it is not shown again. They can change it '
-        + 'under Settings once they are in.</p>'
+        + 'under Student settings once they are in.</p>'
         + '<button class="btn quiet" data-do="sheet-done">Done</button>';
     })
     .catch(() => {});
@@ -1808,7 +1808,7 @@ const answerClaim_ = (el, accept) => {
     if (Array.isArray(DATA.claims)) DATA.claims = DATA.claims.filter(c => String(c.rowIndex) !== String(row));
     /* `repaint(true)`, NOT `paint`: a page has left the column, so it must be placed and its
        position clamped again — the Saved column's unstar records what a bare `paint` leaves. */
-    if (typeof AT !== 'undefined' && AT === 'account') repaint(true); else markStale_('account');
+    if (typeof AT !== 'undefined' && AT === 'parents') repaint(true); else markStale_('parents');
     load();
   }).catch(() => {});
 };
@@ -1893,10 +1893,34 @@ function settingsCards_(shown, moved) {
   </div>`));
 }
 
-/* EVERY ACCOUNT'S SETTINGS, ON YOU under your card: your details, signing in, your role, notifications. */
+/* ---------- SIX COLUMNS (453): TUTORS, STUDENTS, PARENTS, THEN EACH ACCOUNT TYPE'S SETTINGS ----------
+   The owner: "A user in theory could appear in each of these 3 categories" and "split account settings into 3". */
+const tabLabel_ = (id, or) => ((typeof TABS_BUILT !== 'undefined' && TABS_BUILT.find(t => t.id === id)) || {}).label || or;
+/* WHERE YOUR NAME, PICTURE, FIGURE AND HANDLE ARE EDITED — the people column of your rank, one place (444's rule). */
+const homeCol_ = () => rankAtLeast_('staff') ? 'tutors' : rankAtLeast_('client') ? 'parents' : 'students';
+/* DO YOU BELONG IN THIS PEOPLE COLUMN — by rank, or by a family link (a parent is a parent whatever their rank). */
+function peopleBelong_(col, family) {
+  if (!USER) return false;
+  const rel = r => (family || []).some(f => f && f.relation === r);
+  if (col === homeCol_()) return true;
+  if (col === 'tutors') return !!(typeof cardMine_ === 'function' && cardMine_());
+  if (col === 'parents') return rel('child');
+  return rel('parent');
+}
+/* A PEOPLE COLUMN: signed out it says where to sign in; with nobody in it, its title and one line. */
+function peoplePages_(col) {
+  const title = tabLabel_(col, col);
+  if (!USER) return [signedOutCard_(title)];
+  const out = typeof accountPages_ === 'function' ? accountPages_(col) : [];
+  return out.length ? out : [rankOffCard_(title, 'Nobody to show here yet.').replace('rank-off', 'people-none')];
+}
+
+/* WHICH SETTINGS COLUMN YOUR OWN DETAILS ARE ON — a client's are a parent's (`clientFields`); everybody else's on Student settings. */
+const youSetCol_ = () => rank_() === 'client' ? 'family' : 'account';
+/* ---------- STUDENT SETTINGS: EVERY ACCOUNT'S SIGNING IN AND OUT, PIN, ROLES, NOTIFICATIONS, AND A STUDENT'S DETAILS ---------- */
 function youSettingsPages_() {
   if (!USER) return [];
-  const shown = settingsSplit_().you;
+  const shown = youSetCol_() === 'account' ? settingsSplit_().you : {};
   /* WHERE THE REST WENT, said once on the first card. */
   const moved = `<p class="faint ce-moved">${esc(cardMovedSay_())}</p>`;
   const pages = settingsCards_(shown, moved);
@@ -1919,63 +1943,69 @@ function youSettingsPages_() {
   pages.push(notifyCard_());
   return pages;
 }
+function studentSetPages_() {
+  if (!USER) {
+    /* THE GOOGLE BUTTON IS MOUNTED A FRAME LATE — Google renders into an element that has to exist first. */
+    if (typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn();
+    return (typeof signInCard_ === 'function' ? [signInCard_()] : []).filter(Boolean);
+  }
+  const who = nameBesideHandle_(USER.name, USER.handle) || 'you';
+  /* SIGNED IN AS, AND SIGN OUT — off your card since 453, because it is a setting of every account. */
+  const top = `<div class="card signed-in"><h3>Signed in</h3><p class="sub">As ${esc(who)}${USER.handle ? ` <span class="prof-handle">@${esc(USER.handle)}</span>` : ''}</p>
+    ${tileRow_(tile_({ icon: 'out', label: 'Sign out', act: 'signout' })
+      + (typeof pendingAddr_ === 'function' && pendingAddr_() && typeof resendTile_ === 'function' ? resendTile_() : ''), '', true)}
+    ${/* "WE WILL EMAIL YOU ONCE YOU OPEN THE LINK" — one line under Sign out and Send the link again while your address is unproved. */
+      typeof mailHeldNote_ === 'function' ? mailHeldNote_() : ''}</div>`;
+  const coming = typeof awaiting_ === 'function' && awaiting_() ? [loading_()] : [];
+  return [top].concat(youSettingsPages_(), coming);
+}
+screen('account', () => pages('account', studentSetPages_()));
 
 /* A COLUMN ABOVE YOUR RANK: its title, that it is not for your account, and the next step if there is one. */
 const rankOffCard_ = (title, say, more) => `<div class="card rank-off"><h3>${esc(title)}</h3>
     <p class="sub rank-off-say">${esc(say)}</p>${more || ''}</div>`;
-const signedOutCard_ = title => rankOffCard_(title, 'Sign in on ' + ((TABS.find(t => t.id === 'account') || {}).label || 'You') + ' first.');
+const signedOutCard_ = title => rankOffCard_(title, 'Sign in on ' + tabLabel_('account', 'Student settings') + ' first.');
 
-/* ---------- FAMILY: WHAT A PARENT OR PAYER HAS — your children's cards and Manage your child ---------- */
+/* ---------- PARENT SETTINGS: A PARENT'S OR PAYER'S OWN DETAILS (453) — the children are on Students ---------- */
 function familyPages_() {
-  if (!USER) return [signedOutCard_('Parent')];
+  const title = tabLabel_('family', 'Parent settings');
+  if (!USER) return [signedOutCard_(title)];
   if (!rankAtLeast_('client'))
-    return [rankOffCard_('Parent', 'This column is for a parent\'s account, not yours. A parent links you from theirs.')];
-  const kids = typeof accountPages_ === 'function' ? accountPages_('family') : [];
-  /* ---------- MANAGE YOUR CHILD, ONE CARD (docs/history/339) § */
-  const out = kids.concat(mayAddChild_() ? [childManageCard_()] : []);
+    return [rankOffCard_(title, 'This column is for a parent\'s account, not yours. A parent links you from theirs.')];
+  const out = youSetCol_() === 'family' ? settingsCards_(settingsSplit_().you, '') : [];
   /* TITLE ONLY when a rank that has the column has nothing in it (Staff holding no client role). */
-  return out.length ? out : ['<div class="card"><h3>Parent</h3></div>'];
+  return out.length ? out : [`<div class="card"><h3>${esc(title)}</h3></div>`];
 }
 screen('family', () => pages('family', familyPages_()));
 
-/* ---------- TUTOR: WHAT STAFF HAVE — the Staff hub, your profile link, the teaching settings ---------- */
+/* ---------- TUTOR SETTINGS: THE STAFF HUB AND THE TEACHING SETTINGS WITH NO CARD TO LIVE ON (453) ---------- */
 function staffPages_() {
-  if (!USER) return [signedOutCard_('Tutor')];
+  const title = tabLabel_('staff', 'Tutor settings');
+  if (!USER) return [signedOutCard_(title)];
   if (!rankAtLeast_('staff')) {
     /* "APPLY TO TEACH", or where your application stands (400); '' for a child, who is told only the first line. */
     const apply = typeof applyCard_ === 'function' ? applyCard_() : '';
-    return [rankOffCard_('Tutor', 'This column is for a tutor\'s account, not yours.')].concat(apply ? [apply] : []);
+    return [rankOffCard_(title, 'This column is for a tutor\'s account, not yours.')].concat(apply ? [apply] : []);
   }
   const hub = typeof hubTile_ === 'function' ? hubTile_() : '';
-  /* SHARE MY PROFILE (400): their own `?tutor=` link, to send a family. */
-  const share = USER.handle ? tile_({ icon: 'share', label: 'Share my profile', note: 'your link',
-    act: 'tutor-share', data: { handle: USER.handle } }) : '';
-  /* YOUR TUTOR CARD, as families see it, edited here for what you teach (444) — `cardEditHtml_` while open. */
-  const row = typeof cardMine_ === 'function' ? cardMine_() : null;
-  const editing = !!row && cardEditing_(row, 'staff');
-  const card = row ? (editing ? cardEditHtml_(row) : (typeof findCard === 'function' ? findCard({ kind: 'tutor', row }) : '')) : '';
-  const edit = row && !editing ? cardEditTile_({ row, account: true, col: 'staff' }) : '';
   const warn = typeof hubWarn_ === 'function' ? hubWarn_() : '';
-  const tiles = edit || hub || share ? `<div class="tile-row staff-tiles">${edit}${hub}${share}</div>` : '';
-  /* NO PUBLIC CARD YET: the tiles under a titled card of their own, not floating. */
-  const top = card ? [card + tiles + warn] : tiles ? [`<div class="card staff-top"><h3>Teaching</h3>${tiles}${warn}</div>`] : [];
+  const top = hub ? [`<div class="card staff-top"><h3>Staff hub</h3><div class="tile-row staff-tiles">${hub}</div>${warn}</div>`] : [];
   const out = top.concat(settingsCards_(settingsSplit_().staff, ''));
-  return out.length ? out : ['<div class="card"><h3>Tutor</h3></div>'];
+  return out.length ? out : [`<div class="card"><h3>${esc(title)}</h3></div>`];
 }
 screen('staff', () => pages('staff', staffPages_()));
 
-/* ---------- ADMIN: THE BUSINESS CARDS, THEN + ADD A PERSON AND EVERYBODY (444), THEN THE BUILD STAMPS ---------- */
+/* ---------- ADMIN: THE BUSINESS CARDS, THEN THE BUILD STAMPS (people management is on the people columns since 453) ---------- */
 function adminPages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
   return (typeof bizPages_ === 'function' ? bizPages_() : [])
-    .concat(typeof accountPages_ === 'function' ? accountPages_('admin') : [],
-      [`<div class="card"><h3>Build</h3><div class="me-build">${versionSaid_()}</div></div>`]);
+    .concat([`<div class="card"><h3>Build</h3><div class="me-build">${versionSaid_()}</div></div>`]);
 }
 
 /* ---------- YOUR ROLE: ONE RANK (400), SO ONE CHOICE, CLIENT OR STUDENT, FOR A CLIENT ONLY (432) ----------
    Tutor comes by "Apply to teach", Admin is given, and dopost.gs refuses a student becoming a client. */
 const ROLE_PICKS = [
-  ['tutor', 'Tutor', 'You teach here. Teaching starts with "Apply to teach" on You.'],
+  ['tutor', 'Tutor', 'You teach here. Teaching starts with "Apply to teach" on Tutor settings.'],
   ['client', 'Client', 'A parent or payer. You book and pay for sessions.'],
   ['student', 'Student', 'You are the one learning. Only @family. can change a student account back.'],
 ];
@@ -1986,7 +2016,7 @@ function rolesSaid_() {
   if (USER.tutorPending && tutorHeld_())
     return 'Tutor is waiting for ' + brand('name', '@family.') + ' to approve you. Until then you are not on the site and '
          + 'cannot be booked — fill in your teaching pages meanwhile.';
-  if (rankAtLeast_('staff')) return 'You teach here. Your hours, pricing and terms are in the Staff hub on You.';
+  if (rankAtLeast_('staff')) return 'You teach here. Your hours, pricing and terms are in the Staff hub on ' + tabLabel_('staff', 'Tutor settings') + '.';
   if (rank_() === 'student') return 'A parent links you to their account from theirs.';
   return '';
 }
@@ -2833,8 +2863,8 @@ function qualRedraw_(shelf, over, open) {
   if (ed && typeof cardKeep_ === 'function') cardKeep_(ed);
   return next;
 }
-/* WHICH COLUMN THE SHELF IS ON — Settings, or the You column when it is a card's (`cardEditHtml_`). */
-const qualColumn_ = el => (el && el.closest && el.closest('#s-staff') ? 'staff' : 'account');
+/* WHICH COLUMN THE SHELF IS ON — Tutor settings, or Tutors when it is a card's (`cardEditHtml_`). */
+const qualColumn_ = el => colOfEl_(el) || 'staff';
 /* WHAT SHUTTING THE OPEN LINE PUTS BACK: § */
 function qualOver_(shelf) {
   const over = {};
@@ -3478,8 +3508,8 @@ function meSave_(el) {
       const quiet = !!box.querySelector('.q-shelf');
       if (said) said.textContent = quiet ? '' : word;
       toast(word);
-      /* WHICH COLUMN THE CARD IS ON (444): You or Tutor. */
-      const col = (form && form.closest && form.closest('#s-staff')) ? 'staff' : 'account';
+      /* WHICH COLUMN THE CARD IS ON (453): a settings column, or a people column's card editor. */
+      const col = colOfEl_(form) || 'account';
       const at = [...document.querySelectorAll('#s-' + col + ' .me-form')].indexOf(form);
       const lineAt = () => at < 0 ? null
         : (document.querySelectorAll('#s-' + col + ' .me-form')[at] || {}).querySelector?.('.me-said');
@@ -3536,9 +3566,9 @@ document.addEventListener('change', e => {
 });
 function settingsKeep_(id) {
   /* AND THE YOU COLUMN, WHILE A CARD ON IT IS BEING EDITED (`cardEditHtml_`) — the same rule for the same reason: § */
-  if (id === 'account' && USER) {
-    const acc = $('s-account');
-    /* AND YOUR SETTINGS' CARDS, which are on You since 444. */
+  if (['account', 'tutors', 'students', 'parents'].indexOf(id) !== -1 && USER) {
+    const acc = $('s-' + id);
+    /* AND STUDENT SETTINGS' CARDS, and the card editors and person forms on the people columns (453). */
     return !!(acc && acc.querySelector('.card-ed .me-form[data-dirty], .is-sending .card-ed, .me-form[data-dirty], .me-form.is-sending'));
   }
   /* AND TOOLS AND SAVED, WHILE THE LIBRARY CARDS ON THEM HOLD TYPING (docs/history/339) — the one form a
@@ -3624,9 +3654,9 @@ function profileRefresh_(loud, onOld) {
       const land = typeof landRepaint_ === 'function' ? landRepaint_ : (f => (f || repaint)());
       if (roleMoved) { try { land(); } catch (e) {} return; }
       /* AND YOUR CARD, WHEN IT IS OPEN FOR EDITING — it is drawn from this copy (`cardEditHtml_`), and one still waiting for a copy it can trust (`profileShapeOk_`) is § */
-      if (CARD_EDIT && CARD_EDIT.own) { try { land(() => paint('account')); } catch (e) {} }
+      if (CARD_EDIT && CARD_EDIT.own) { try { land(() => paint(CARD_EDIT.col || homeCol_())); } catch (e) {} }
       /* REDRAWN IF IT IS DRAWN — and `paint` itself declines while a card has typing in it. */
-      ['account', 'staff'].forEach(c => {
+      ['account', 'staff', 'family'].concat(PEOPLE_COLS_).forEach(c => {
         if (typeof screenHasMarkup_ === 'function' && screenHasMarkup_(c))
           try { land(() => { paint(c); placeCells('y', true, 0, c); }); } catch (e) {}
       });
@@ -3701,8 +3731,8 @@ const CARD_SECTIONS = [
 const cardMovedSay_ = () => {
   const tab = (id, or) => (((typeof TABS !== 'undefined' && TABS.find(t => t.id === id)) || {}).label || or);
   const rich = cardHolds_();
-  return 'Your name, picture, handle and figure are on your card now — Edit is under it on ' + tab('account', 'You') + '. '
-    + (rich ? 'What you teach is on your tutor card on ' + tab('staff', 'Tutor') + ', your rate and hours in its Staff hub. ' : '')
+  return 'Your name, picture, handle and figure are on your card now — Edit is under it on ' + tab(homeCol_(), 'Students') + '. '
+    + (rich ? 'What you teach is on your tutor card on ' + tab('tutors', 'Tutors') + ', your rate and hours in the Staff hub on ' + tab('staff', 'Tutor settings') + '. ' : '')
     + 'Your library cards are on ' + tab('tools', 'Tools') + '.';
 };
 
@@ -3724,12 +3754,14 @@ const cardFields_ = () => [].concat(...cardSections_().map(s => s.list));
 function ownCardSections_(col) {
   const g = myGroups_();
   const sent = [].concat(...Object.keys(g).map(k => g[k] || [])).filter(f => RETIRED_FIELDS_.indexOf(f) === -1);
-  /* `col` (444): You edits every account's four; the Tutor column the rest, less what the Staff hub edits. None: both. */
+  /* `col` (453): your home column (`homeCol_`) edits every account's four; Tutors the rest, less what the Staff hub edits. None: both. */
   const all = cardSections_({ own: true, sent, bare: !cardMine_() });
   const you = all.filter(s => OWN_CARD_SECTIONS_.indexOf(s.id) !== -1);
   const staff = all.filter(s => OWN_CARD_SECTIONS_.indexOf(s.id) === -1)
     .map(s => Object.assign({}, s, { list: s.list.filter(f => !hubOwns_(f)) })).filter(s => s.list.length);
-  return col === 'account' ? you : col === 'staff' ? staff : you.concat(staff);
+  if (!col) return you.concat(staff);
+  /* WHAT YOU TEACH ONLY ON A PUBLIC TUTOR CARD, as on 444's Tutor column. */
+  return (col === homeCol_() ? you : []).concat(col === 'tutors' && cardMine_() ? staff : []);
 }
 const OWN_CARD_SECTIONS_ = ['picture', 'figure', 'name', 'handle'];
 /* WHAT THE STAFF HUB EDITS — Pricing's rate and seat, Hours' week — so no card or settings page offers it a second time (444). */
@@ -3773,7 +3805,7 @@ function cardEditNow_() {
       const k = JSON.parse(localStorage.getItem(CARD_EDIT_KEY) || 'null');
       if (k && k.pid && k.who && k.who === me) {
         CARD_EDIT = cardEditFresh_(k.pid);
-        if (k.col === 'staff') CARD_EDIT.col = 'staff';
+        if (PEOPLE_COLS_.indexOf(k.col) !== -1) CARD_EDIT.col = k.col;
         if (typeof k.pic === 'string') CARD_EDIT.pic0 = k.pic;
         if (typeof k.fig === 'string') CARD_EDIT.fig0 = k.fig;
         if (typeof k.hd === 'string') CARD_EDIT.h0 = k.hd;
@@ -3785,7 +3817,7 @@ function cardEditNow_() {
 }
 /* `pic` IS THE PICTURE THE CARD WAS OPENED WITH, remembered beside which card is open so a Cancel after a reload can still put it back (`card-cancel`, below) § */
 function cardRemember_(e) {
-  const k = { who: e.who, pid: e.pid, col: e.col || 'account' };
+  const k = { who: e.who, pid: e.pid, col: e.col || cardColOf_(e) };
   if (typeof e.pic0 === 'string') k.pic = e.pic0;
   if (typeof e.fig0 === 'string') k.fig = e.fig0;
   if (typeof e.h0 === 'string') k.hd = e.h0;
@@ -3802,20 +3834,26 @@ function cardMayEdit_(t) {
   if (!((DATA && DATA.tutors) || []).some(r => r && String(r.personId) === String(t.personId))) return false;
   return isAdmin();
 }
-/* `col` IS WHICH COLUMN ASKS (444): your own card is edited on You for its four sections and on Tutor for the rest. */
+/* `col` IS WHICH PEOPLE COLUMN ASKS (453): your own card's face there (`ownCardSections_`); anybody else's tutor card on Tutors. */
+const PEOPLE_COLS_ = ['tutors', 'students', 'parents'];
+const cardColOf_ = e => (e && e.own ? homeCol_() : 'tutors');
+/* WHICH COLUMN AN ELEMENT IS ON — the section's id without its `s-`. */
+const colOfEl_ = el => String(((el && el.closest && el.closest('#screen > .screen')) || {}).id || '').replace(/^s-/, '');
 function cardEditing_(t, col) {
   const e = cardEditNow_();
-  return !!(e && t && t.personId && String(t.personId) === e.pid && cardMayEdit_(t) && (!col || (e.col || 'account') === col));
+  return !!(e && t && t.personId && String(t.personId) === e.pid && cardMayEdit_(t) && (!col || (e.col || cardColOf_(e)) === col));
 }
 /* ---------- THE EDIT TILE — `x.account` IS THE YOU COLUMN, the one place the editor is drawn § */
 function cardEditTile_(x) {
   const t = (x && x.row) || {};
   if (!x || !x.account || !cardMayEdit_(t)) return '';
   /* NOT ON THE CARD BEING EDITED. § */
-  const col = x.col || 'account';
-  if (cardEditing_(t, col)) return '';
   const own = String(t.personId) === String(USER.personId || '');
-  return tile_({ icon: 'edit', label: 'Edit', note: own ? (col === 'staff' ? 'your tutor card' : 'your card') : 'their card', act: 'card-edit',
+  const col = x.col || (own ? homeCol_() : 'tutors');
+  if (cardEditing_(t, col)) return '';
+  /* YOUR CARD WHERE ITS FACE HAS NOTHING OF ITS OWN TO EDIT has no Edit there (453); somebody else's, Tutors only. */
+  if (own ? !ownCardSections_(col).length : col !== 'tutors') return '';
+  return tile_({ icon: 'edit', label: 'Edit', note: own ? (col === 'tutors' && rankAtLeast_('staff') ? 'your tutor card' : 'your card') : 'their card', act: 'card-edit',
                  tone: own ? '' : 'admin', data: { pid: t.personId, col } });
 }
 
@@ -3932,7 +3970,7 @@ function cardFetch_(e) {
       cardRepaint_();
     });
 }
-function cardRepaint_() { try { paint('account'); } catch (x) {} try { paint('staff'); } catch (x) {} }
+function cardRepaint_() { PEOPLE_COLS_.forEach(c => { try { paint(c); } catch (x) {} }); }
 
 /* ---------- THE CARD, AS ITS OWN FORM § */
 function cardEditHtml_(t) {
@@ -4010,7 +4048,7 @@ function cardEditForm_(t, e, vals) {
     options: fieldOptions_(f), readonly: ro.indexOf(f) !== -1, draft: false }, extra));
   /* YOUR OWN CARD'S SECTIONS ARE YOUR ROLE'S (`ownCardSections_`), with the figure and the handle;
      somebody else's are the tutor's card, as an admin has always edited it. */
-  return (e.own ? ownCardSections_(e.col || 'account') : cardSections_()).map(s => {
+  return (e.own ? ownCardSections_(e.col || cardColOf_(e)) : cardSections_()).map(s => {
     const L = s.list;
     const filled = re => L.filter(f => re.test(f) && String(val(f)).trim() !== '').length;
     const body = s.id === 'picture' ? (e.own ? photoPicker_(val, '', { fold: true }) : cardFaceOnly_(t))
@@ -4226,11 +4264,11 @@ on('card-edit', el => {
   const t = ((DATA && DATA.tutors) || []).find(r => r && String(r.personId) === pid)
     || (pid && pid === String(USER.personId || '') && typeof myCardRow_ === 'function' ? myCardRow_() : null);
   if (!t || !cardMayEdit_(t)) return;
-  const col = el.dataset.col === 'staff' ? 'staff' : 'account';
+  const col = PEOPLE_COLS_.indexOf(el.dataset.col) !== -1 ? el.dataset.col : (colOfEl_(el) || 'tutors');
   const open = document.querySelector('.card-ed .me-form[data-dirty]');
-  const openAt = open && (open.closest('.card-ed').dataset.pid + '|' + (open.closest('#s-staff') ? 'staff' : 'account'));
+  const openAt = open && (open.closest('.card-ed').dataset.pid + '|' + colOfEl_(open));
   if (openAt && openAt !== pid + '|' + col) { toast('Save or cancel the card you are editing first.'); return; }
-  if (CARD_EDIT && CARD_EDIT.pid === pid && (CARD_EDIT.col || 'account') === col) return;
+  if (CARD_EDIT && CARD_EDIT.pid === pid && (CARD_EDIT.col || cardColOf_(CARD_EDIT)) === col) return;
   CARD_EDIT = cardEditFresh_(pid);
   CARD_EDIT.col = col;
   /* THE PICTURE IT OPENED WITH, so Cancel can put it back — see `card-cancel`. Your own card only: on
@@ -4415,9 +4453,14 @@ function peopleTiles_(p) {
 }
 
 /* THE TOP OF THE LIST: the "+", or the new person's form, or the slip once they are made. */
-function peopleAddPage_() {
+/* `col` (453): the people column it is drawn on — "Add a tutor" on Tutors, the form's role ticked to match, drawn where it was opened. */
+const PEOPLE_ADD_ = { tutors: { role: 'tutor', say: 'Add a tutor' }, students: { role: 'student', say: 'Add a student' },
+                      parents: { role: 'client', say: 'Add a parent' } };
+function peopleAddPage_(col) {
   if (!peopleMay_()) return '';
-  const F = PEOPLE_FORM_;
+  col = PEOPLE_ADD_[col] ? col : 'students';
+  const F = PEOPLE_FORM_, plus = addCard_({ act: 'person-add', label: PEOPLE_ADD_[col].say, data: { col } });
+  if (F && !F.id && (F.col || 'students') !== col) return plus;
   if (F && !F.id && F.made) {
     return `<div class="card person-made"><h3>${esc(F.made.first)} is on the people tab</h3>
       ${pinSlip_(F.made.first, F.made.handle, F.made.pin)}
@@ -4425,7 +4468,7 @@ function peopleAddPage_() {
       <button class="btn quiet" data-do="person-cancel">Done</button></div>`;
   }
   if (F && !F.id) return personFormHtml_(F);
-  return addCard_({ act: 'person-add', label: 'Add a person' });
+  return plus;
 }
 /* ---------- FIND BY HANDLE, THE FIRST THING ON THE PEOPLE COLUMN (442) ---------- */
 /* `q` typed; `child` the one card `findChild` answered for that exact handle (null: none), `asked` that handle. */
@@ -4517,9 +4560,9 @@ on('ps-add-child', el => {
 });
 
 /* THE FORM IN THE CARD'S PLACE while it is open on this person. */
-function personFormFor_(p) {
+function personFormFor_(p, col) {
   const F = PEOPLE_FORM_;
-  return F && F.id && p && p.personId && String(p.personId) === F.id && peopleMay_() ? personFormHtml_(F) : '';
+  return F && F.id && p && p.personId && String(p.personId) === F.id && (!col || !F.col || F.col === col) && peopleMay_() ? personFormHtml_(F) : '';
 }
 
 function personFormHtml_(F) {
@@ -4529,7 +4572,7 @@ function personFormHtml_(F) {
     return `<div class="card person-form" data-pid="${esc(F.id)}">${head}${F.err
       ? `<p class="faint">${esc(F.err)}</p><button class="btn quiet" data-do="person-cancel">Close</button>` : loading_()}</div>`;
   }
-  const p = F.data.person || { firstName: '', lastName: '', roles: ['student'], email: '', dob: '', parentIds: [] };
+  const p = F.data.person || { firstName: '', lastName: '', roles: [F.role || 'student'], email: '', dob: '', parentIds: [] };
   const choices = Array.isArray(F.data.parents) ? F.data.parents : [];
   const nameOf = id => (choices.find(c => c.personId === id) || {}).name || id;
   const has = (p.parentIds || []).filter(Boolean);
@@ -4559,8 +4602,8 @@ function personFormHtml_(F) {
 }
 
 function peopleRedraw_() {
-  /* PEOPLE ARE ON YOU (tutors) AND ADMIN (+ Add a person, everybody) since 444. */
-  ['account', 'biz'].forEach(c => { if (typeof AT !== 'undefined' && AT === c) repaint(true); else markStale_(c); });
+  /* PEOPLE ARE ON THE THREE PEOPLE COLUMNS since 453. */
+  PEOPLE_COLS_.forEach(c => { if (typeof AT !== 'undefined' && AT === c) repaint(true); else markStale_(c); });
 }
 function personFetch_(F) {
   send_({ action: 'personGet', personId: (USER && USER.personId) || '', targetId: F.id })
@@ -4568,10 +4611,15 @@ function personFetch_(F) {
     .catch(e => { if (PEOPLE_FORM_ !== F) return; F.err = (e && e.message) || 'That could not be opened.'; peopleRedraw_(); });
 }
 
-on('person-add', () => { if (!peopleMay_()) return; PEOPLE_FORM_ = { id: '' }; peopleRedraw_(); });
+on('person-add', el => {
+  if (!peopleMay_()) return;
+  const col = PEOPLE_ADD_[el && el.dataset && el.dataset.col] ? el.dataset.col : 'students';
+  PEOPLE_FORM_ = { id: '', col, role: PEOPLE_ADD_[col].role };
+  peopleRedraw_();
+});
 on('person-edit', el => {
   if (!peopleMay_()) return;
-  PEOPLE_FORM_ = { id: el.getAttribute('data-id') || '' };
+  PEOPLE_FORM_ = { id: el.getAttribute('data-id') || '', col: colOfEl_(el) || '' };
   if (PEOPLE_FORM_.id) peopleRedraw_(); else PEOPLE_FORM_ = null;
 });
 on('person-cancel', () => { PEOPLE_FORM_ = null; peopleRedraw_(); });

@@ -455,13 +455,7 @@ function cardActions_(x) {
   /* THE BIBLE'S COVER OPENS IT; A VERSE GOES TO ITS CHAPTER; A BOOK THAT DID NOT COME TRIES AGAIN —
      `bibleTiles_` in find.js, which says nothing at all to anybody but an admin. */
   if (x.kind === 'bible') return typeof bibleTiles_ === 'function' ? bibleTiles_(x) : '';
-  /* `me` HAS ONE ACTION, SIGN OUT, AND IT IS IN THE SAME ROW AS THE STAR. § */
-  /* AND "SEND THE LINK AGAIN" BESIDE IT while your own address is unproved — the paragraph under the row says why § */
-  /* AND EDIT FIRST, on your own card — the owner, 10 Oct: § */
-  if (x.kind === 'me') return (typeof cardEditTile_ === 'function' ? cardEditTile_(x) : '')
-    /* SHARE MY PROFILE AND THE STAFF HUB WERE HERE; they are on the Tutor column now (444, `staffPages_`). */
-    + tile_({ icon: 'out', label: 'Sign out', act: 'signout' })
-    + (typeof pendingAddr_ === 'function' && pendingAddr_() && typeof resendTile_ === 'function' ? resendTile_() : '');
+  /* `me` WAS HERE (Edit, Sign out, Send the link again): your own card's row is built by `accountPages_` (find.js), Sign out is on Student settings (453). */
   if (x.kind === 'receipt') return jobTiles_(x);
   /* A QUESTION'S ROW HOLDS THE STAR AND THE DAY YOU DID IT -- `questionTiles_` in find.js. § */
   /* AND, WHERE THE QUESTION HAS A FIGURE BEHIND THIS PART AND IT IS ANSWERED BY TAPPING AN OPTION, `Figure` -- which opens it over the card. § */

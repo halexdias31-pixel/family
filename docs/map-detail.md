@@ -45,7 +45,7 @@ any name used but never declared. Run it after every change.
 | `js/find.js` | The funnel — the app's main surface, and the engine of both finders (`FINDERS`, `inFinder_`). Biggest file at 1 MB. |
 | `js/book.js` | Sessions, seats, payment. |
 
-Fifteen screens are registered (fourteen for anybody but an admin), in `TAB_ORDER` (js/shell.js),
+Nineteen screens are registered (eighteen for anybody but an admin), in `TAB_ORDER` (js/shell.js),
 grouped by purpose since 21 Oct (docs/history/392), and `data/settings/columns.json` lists the same order
 (`check-doors.js` fails if they part). Social: `feed` (where the app opens, `TAB_HOME`), `spotlight`,
 `reel`, `dm`. Learning: `stuff` (Find, the funnel —
@@ -53,8 +53,10 @@ questions, answers, practicals, projects, bundles, the content cards, the boxers
 Bible for an admin — and the root), `res` (**Find 2**: the same finder again, immediately right of Find,
 with a state of its own; the id is `res` from the two days it held the resources), `saved`, `progress`
 (for a student — and an admin — the "Your journey" card that was on Settings until 12 Oct; for anybody
-else a placeholder saying it is not built), `tools`. Business: `booking`, `shop` (things for sale and the
-basket — Find no longer has a Shop door). Then `games`. Then you: `account`, `settings`, and last,
+else a placeholder saying it is not built), `tools` (left of Find since 444). Business: `booking`, `shop` (things for sale and the
+basket — Find no longer has a Shop door). Then `games`. Then the people, a card each (453): `tutors`, `students`,
+`parents`; then each account type's settings: `staff` (Tutor settings), `account` (Student settings, where you sign in
+and out), `family` (Parent settings); and last,
 **for an admin only**, `biz` — the business records (insurance, tax, legal and data, safeguarding, money and company). A tab
 marked `admin: true` is left out of `TABS` for anybody else by `columnsFor_` in shell.js, which also
 makes its `<section>` for an admin and takes it away again — so it has none in index.html, and signing

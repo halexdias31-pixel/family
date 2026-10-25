@@ -238,7 +238,9 @@ function boot(opts) {
       'openJob: () => OPEN_JOB,' +
       'impStack: (c, wd) => { IMP_PILE.push(impCards_().find(x => x[0] === c && x[1] === wd) || [c, wd, ""]); },' +
       /* THE ACCOUNT COLUMN'S PAGES, so a journey can ask who is drawn on it. */
-      'accountPages: c => c ? accountPages_(c) : accountPages_("you").concat(accountPages_("family"), accountPages_("admin")),' +
+      'accountPages: c => accountPages_(c),' +
+      /* WHERE YOUR OWN CARD'S NAME AND PICTURE ARE EDITED (453): Tutors, Parents or Students, by rank. */
+      'homeCol: () => homeCol_(),' +
       /* THE TEN PICTURES' NAMES, IN THE GRID'S ORDER — a `const`, so only a getter reaches it. */
       'pfpNames: () => (typeof PFP_ART !== "undefined" ? Object.keys(PFP_ART) : []),' +
       'PAGER, PAGE, goPage, repaint, pageCount, PAGE_KEEP,'
@@ -2012,12 +2014,13 @@ const cardOpen_ = async (W, who, more) => {
   if (!b.w.__t) return { err: 'the app did not finish loading' };
   await wait(600);
   const t = b.w.__t, d = b.w.document;
-  try { t.go('account', false, true); b.w.paint('account'); } catch (e) { return { err: 'drawing the You column threw: ' + e.message }; }
-  /* AND THE RANK COLUMNS BESIDE IT (444), which hold the hub, the children and the people since then. */
-  ['family', 'staff', 'biz'].forEach(id => { try { if (d.getElementById('s-' + id)) b.w.paint(id); } catch (e) {} });
+  const home = t.homeCol();
+  try { t.go(home, false, true); b.w.paint(home); } catch (e) { return { err: 'drawing the ' + home + ' column threw: ' + e.message }; }
+  /* AND THE OTHER PEOPLE AND SETTINGS COLUMNS (453). */
+  ['tutors', 'students', 'parents', 'staff', 'account', 'family', 'biz'].forEach(id => { try { if (id !== home && d.getElementById('s-' + id)) b.w.paint(id); } catch (e) {} });
   await wait(250);
-  /* `more.col` (444): 'staff' works on your tutor card on the Tutor column; You by default. */
-  const S = '#s-' + (more.col || 'account');
+  /* `more.col` (453): 'tutors' works on your tutor card on Tutors; your home people column (`homeCol_`) by default. */
+  const S = '#s-' + (more.col || home);
   const c = {
     b, w: b.w, t, d, u, sent: b.sent, gets: b.gets, S,
     A: (act, el) => t.ACTIONS[act](el),
@@ -2075,9 +2078,9 @@ const CARD_PLAIN_ = { headline: 'Maths and physics, mostly', adjective_2: 'patie
   venues_ok: 'Colliers Wood Library, Mitcham Library', travel_km: '8' };
 const CARD_WHOLE_RE_ = /^photos_\d+$|^qual_\d+(_\w+)?$/;
 
-check('a tutor edits every section of their tutor card in place on the Tutor column (444): one updateProfile with exactly what changed, the sheet holds it, and the card redraws with it', async () => {
+check('a tutor edits every section of their tutor card in place on Tutors (453), the four every card has first: one updateProfile with exactly what changed, the sheet holds it, and the card redraws with it', async () => {
   const W = cardWorld_();
-  const c = await cardOpen_(W, 'tutor@example.org', { col: 'staff' });
+  const c = await cardOpen_(W, 'tutor@example.org', { col: 'tutors' });
   if (c.err) return [c.err];
   const bad = [];
   const edit = c.edit('P-T1');
@@ -2092,7 +2095,8 @@ check('a tutor edits every section of their tutor card in place on the Tutor col
   if (!c.pageOf('P-T1') || !c.pageOf('P-T1').contains(card)) bad.push('the form is not on the page the card was on');
   /* THE CARD'S ORDER, EVERY SECTION. */
   const order = [...form.querySelectorAll('.ce-sec')].map(s => s.dataset.sec);
-  if (JSON.stringify(order) !== JSON.stringify(CARD_STAFF_)) bad.push('the sections read ' + JSON.stringify(order) + ', not the card\'s order ' + JSON.stringify(CARD_STAFF_));
+  const wantSecs = ['picture', 'figure', 'name', 'handle'].concat(CARD_STAFF_);
+  if (JSON.stringify(order) !== JSON.stringify(wantSecs)) bad.push('the sections read ' + JSON.stringify(order) + ', not the card\'s order ' + JSON.stringify(wantSecs));
   /* EVERY FIELD A TUTOR'S FIVE PAGES HELD HAS A BOX HERE (the picture is the picker). */
   const groups = c.t.DATA().profileFields || {};
   const five = Object.keys(groups).filter(g => !/contact|library/i.test(g)).reduce((a, g) => a.concat(groups[g]), []);
@@ -2100,8 +2104,8 @@ check('a tutor edits every section of their tutor card in place on the Tutor col
   if (!five.length) bad.push('the payload sent no profileFields, so the boxes were NOT checked');
   if (missing.length) bad.push('the form has no box for ' + missing.slice(0, 8).join(', ') + (missing.length > 8 ? ' (+' + (missing.length - 8) + ')' : ''));
   ['venues_ok', 'travel_km'].forEach(f => { if (!c.box(f)) bad.push('the form has no ' + f + ' — where they tutor is not editable on the card'); });
-  /* THE PICTURE IS YOU'S, THE WEEK AND THE RATE THE HUB'S (444): not here a second time. */
-  if (form.querySelector('.pfp, .me-week, [data-me="rate_per_hour"], [data-me="first_name"]')) bad.push('the tutor card\'s editor offers the picture, the name, the rate or the week, which are edited elsewhere');
+  /* THE WEEK AND THE RATE ARE THE HUB'S (444): not here a second time. */
+  if (form.querySelector('.me-week, [data-me="rate_per_hour"]')) bad.push('the tutor card\'s editor offers the rate or the week, which the Staff hub edits');
   /* EDIT, SAVE AND CANCEL ARE TILES; the boxes are the form's. */
   const save = c.tile('card-save'), cancel = c.tile('card-cancel');
   if (!save || !cancel || !save.classList.contains('tile') || !cancel.classList.contains('tile')) bad.push('Save and Cancel are not tiles under the form');
@@ -2169,7 +2173,7 @@ check('a tutor edits every section of their tutor card in place on the Tutor col
 
 check('Cancel puts the card back as it was and sends nothing; a refused Save keeps the form open, says why, and writes nothing', async () => {
   const W = cardWorld_();
-  const c = await cardOpen_(W, 'tutor@example.org', { col: 'staff' });
+  const c = await cardOpen_(W, 'tutor@example.org', { col: 'tutors' });
   if (c.err) return [c.err];
   const bad = [];
   if (!c.edit('P-T1')) return ['Ada\'s own card has no Edit tile'];
@@ -2234,12 +2238,8 @@ check('Cancel puts the card back as it was and sends nothing; a refused Save kee
   }
   /* ---------- AND CANCEL PUTS THE PICTURE BACK TOO — the review of 330 § */
   if (!c.form()) return bad.concat(['no form open to choose a picture on, so Cancel putting the picture back was NOT checked']);
-  /* THE PICTURE IS ON YOUR CARD ON YOU (444): Edit there, with the tutor card left clean. */
-  const youEdit = c.d.querySelector('#s-account [data-do="card-edit"][data-pid="P-T1"]');
-  if (!youEdit) return bad.concat(['Ada\'s card on You has no Edit, so the picture was NOT checked']);
-  c.A('card-edit', youEdit);
-  await wait(250);
-  const youForm = c.d.querySelector('#s-account .card-ed .me-form');
+  /* THE PICTURE IS ON THE SAME FORM (453): a tutor's whole card is edited in one place, on Tutors. */
+  const youForm = c.form();
   const fox = youForm && youForm.querySelector('.pfp [data-do="pfp-choose"][data-pic="fox"]');
   if (!fox) return bad.concat(['the card\'s picture chooser has no fox to tap, so Cancel putting the picture back was NOT checked']);
   c.sent.length = 0;
@@ -2271,7 +2271,7 @@ check('Cancel puts the card back as it was and sends nothing; a refused Save kee
 
 check('a reload in the middle of editing the card keeps it open with every typed value, says they are not saved, and Save sends them', async () => {
   const W = cardWorld_();
-  const c = await cardOpen_(W, 'tutor@example.org', { col: 'staff' });
+  const c = await cardOpen_(W, 'tutor@example.org', { col: 'tutors' });
   if (c.err) return [c.err];
   const bad = [];
   if (!c.edit('P-T1')) return ['Ada\'s own card has no Edit tile'];
@@ -2283,7 +2283,7 @@ check('a reload in the middle of editing the card keeps it open with every typed
   if (c.posts().length) bad.push('editing the card posted ' + c.posts().length + ' updateProfile requests before Save — the shelf saved as it went');
   c.w.dispatchEvent(new c.w.Event('pagehide'));
   const kept = keptStore_(c.w);
-  const two = await cardOpen_(W, null, { before: fromStore_(kept), col: 'staff' });
+  const two = await cardOpen_(W, null, { before: fromStore_(kept), col: 'tutors' });
   if (two.err) return bad.concat(['after the reload: ' + two.err]);
   for (let k = 0; k < 20 && !two.form(); k++) await wait(100);
   if (!two.form()) return bad.concat(['after the reload Ada\'s card is a card again — what was typed is on the device and nothing on the screen says so']);
@@ -2309,7 +2309,7 @@ check('a reload in the middle of editing the card keeps it open with every typed
 /* ---------- 317'S RULE ON THE CARD: A NEWER SAVE BEATS AN OLDER DRAFT § */
 check('a card draft typed over a value saved elsewhere since does not win after a reload — the newer save is drawn (317 on the card)', async () => {
   const W = cardWorld_();
-  const c = await cardOpen_(W, 'tutor@example.org', { col: 'staff' });
+  const c = await cardOpen_(W, 'tutor@example.org', { col: 'tutors' });
   if (c.err) return [c.err];
   if (!c.edit('P-T1')) return ['Ada\'s own card has no Edit tile'];
   c.A('card-edit', c.edit('P-T1'));
@@ -2323,7 +2323,7 @@ check('a card draft typed over a value saved elsewhere since does not win after 
     targetId: 'P-T1', fields: { headline: 'Saved by the admin since' } });
   if (!r.success) return ['the admin\'s save was refused: ' + r.error];
   c.w.dispatchEvent(new c.w.Event('pagehide'));
-  const two = await cardOpen_(W, null, { before: fromStore_(keptStore_(c.w)), col: 'staff' });
+  const two = await cardOpen_(W, null, { before: fromStore_(keptStore_(c.w)), col: 'tutors' });
   if (two.err) return ['after the reload: ' + two.err];
   /* THE REMEMBERED SIGN-IN STILL HOLDS THE OLD HEADLINE; `myProfile` brings the new one and redraws the card. */
   for (let k = 0; k < 40; k++) {
@@ -2338,7 +2338,7 @@ check('a card draft typed over a value saved elsewhere since does not win after 
 });
 
 /* ---------- SIGN OUT IS UNDER THE FORM, AND KEEPS WHAT WAS TYPED FOR THE SAME PERSON § */
-check('Sign out stays under a tutor\'s card while they edit it, keeps the typing for them, and shows it to nobody else on the phone', async () => {
+check('Sign out is on Student settings (453), not under a tutor\'s card while they edit it; it keeps the typing for them, and shows it to nobody else on the phone', async () => {
   const W = cardWorld_();
   const c = await cardOpen_(W, 'tutor@example.org');
   if (c.err) return [c.err];
@@ -2348,16 +2348,15 @@ check('Sign out stays under a tutor\'s card while they edit it, keeps the typing
   for (let k = 0; k < 20 && !c.form(); k++) await wait(100);
   if (!c.form()) return ['pressing Edit did not turn the card into a form'];
   const pg = c.pageOf('P-T1');
-  const outs = pg ? pg.querySelectorAll('[data-do="signout"]') : [];
-  if (outs.length !== 1) return ['while Ada edits her card the page holds ' + outs.length + ' Sign out tiles, not one'];
-  if (pg.querySelector('[data-do="card-edit"]')) bad.push('Edit is drawn again under the card being edited');
-  const rows = [...pg.querySelectorAll('.tile-row')];
-  if (rows.indexOf(outs[0].closest('.tile-row')) < rows.indexOf(c.tile('card-save').closest('.tile-row'))) bad.push('Sign out is drawn above Save and Cancel');
+  if (pg && pg.querySelector('[data-do="signout"]')) bad.push('Sign out is still under the card being edited — it is on Student settings');
+  if (pg && pg.querySelector('[data-do="card-edit"]')) bad.push('Edit is drawn again under the card being edited');
+  const outs = c.d.querySelectorAll('#s-account [data-do="signout"]');
+  if (outs.length !== 1) return bad.concat(['Student settings holds ' + outs.length + ' Sign out tiles, not one']);
   c.type(c.box('first_name'), 'Typed, then signed out');
   await wait(50);
   c.A('signout', outs[0]);
   await wait(400);
-  try { c.w.paint('account'); } catch (e) {}
+  try { c.w.paint('tutors'); } catch (e) {}
   await wait(100);
   if (c.card()) bad.push('the form is still drawn after Sign out');
   if (!c.drafts().length) bad.push('Sign out threw away what Ada typed on her card');
@@ -2366,17 +2365,18 @@ check('Sign out stays under a tutor\'s card while they edit it, keeps the typing
   const pat = W.real.post({ action: 'verifyLogin', email: 'parent@example.org', pin: '0000' });
   try { c.w.signedIn_(pat, 'parent@example.org'); } catch (e) { return bad.concat(['signing Pat in threw: ' + e.message]); }
   await wait(300);
-  try { c.t.go('account', false, true); c.w.paint('account'); } catch (e) {}
+  try { ['tutors', 'parents'].forEach(id => c.w.paint(id)); c.t.go('parents', false, true); } catch (e) {}
   await wait(150);
   if (c.card()) bad.push('Pat, signed in on the same phone, sees Ada\'s card open for editing');
-  if (JSON.stringify(c.edits()) !== '["P-C1"]') bad.push('Pat is offered Edit on ' + JSON.stringify(c.edits()) + ', wanted her own card alone');
+  const patEdits = [...c.d.querySelectorAll('#s-tutors [data-do="card-edit"], #s-parents [data-do="card-edit"]')].map(x => x.dataset.pid);
+  if (JSON.stringify(patEdits) !== '["P-C1"]') bad.push('Pat is offered Edit on ' + JSON.stringify(patEdits) + ', wanted her own card alone');
   c.A('signout', c.d.createElement('button'));
   await wait(300);
   /* ADA BACK, SAME TAB: her card open, what she typed in its box, said as not saved. */
   const ada = W.real.post({ action: 'verifyLogin', email: 'tutor@example.org', pin: '0000' });
   try { c.w.signedIn_(ada, 'tutor@example.org'); } catch (e) { return bad.concat(['signing Ada back in threw: ' + e.message]); }
   await wait(300);
-  try { c.t.go('account', false, true); c.w.paint('account'); } catch (e) {}
+  try { c.t.go('tutors', false, true); c.w.paint('tutors'); } catch (e) {}
   for (let k = 0; k < 20 && !c.form(); k++) await wait(100);
   if (!c.form()) bad.push('Ada signed back in on the same tab finds her card shut — what she typed waits behind Edit with nothing saying so');
   else {
@@ -2504,8 +2504,8 @@ check('?tutor=<handle> opens that tutor\'s card signed out, prices and a Share t
   if (!share || share.dataset.handle !== 'adatutor') bad.push('the shared card has no Share tile with Ada\'s handle');
   const a = await cardOpen_(W, 'admin@example.org');
   if (a.err) return bad.concat([a.err]);
-  const mine = [...a.d.querySelectorAll('#s-staff [data-do="tutor-share"]')].find(x => x.dataset.handle === 'haladmin' && /Share my profile/.test(x.textContent + ' ' + (x.getAttribute('aria-label') || '') + ' ' + (x.title || '')));
-  if (!mine) return bad.concat(['the admin\'s own card has no "Share my profile" tile: ' + [...a.d.querySelectorAll('#s-account [data-do]')].slice(0, 12).map(x => x.dataset.do).join(',')]);
+  const mine = [...a.d.querySelectorAll('#s-tutors [data-do="tutor-share"]')].find(x => x.dataset.handle === 'haladmin' && /Share my profile/.test(x.textContent + ' ' + (x.getAttribute('aria-label') || '') + ' ' + (x.title || '')));
+  if (!mine) return bad.concat(['the admin\'s own card has no "Share my profile" tile: ' + [...a.d.querySelectorAll('#s-tutors [data-do]')].slice(0, 12).map(x => x.dataset.do).join(',')]);
   const r = profilePng_(a.w);
   a.A('tutor-share', mine);
   await r.till(() => r.shared.length);
@@ -2612,15 +2612,15 @@ const hubBoot_ = async (W, who) => {
   return a;
 };
 
-check('Staff hub (405): "Staff hub" sits beside "Share my profile" and a line says the terms are not agreed; I agree records the version on the server; a new version asks again; a client has no hub', async () => {
+check('Staff hub (405): "Staff hub" is on Tutor settings, "Share my profile" under her card on Tutors (453), and a line says the terms are not agreed; I agree records the version on the server; a new version asks again; a client has no hub', async () => {
   const W = hubWorld_();
   const a = await hubBoot_(W, 'tutor@example.org');
   if (a.err) return [a.err];
   const bad = [];
   const tile = a.d.querySelector('#s-staff [data-do="hub-open"]');
-  const share = a.d.querySelector('#s-staff [data-do="tutor-share"][data-handle="adatutor"]');
+  const share = a.d.querySelector('#s-tutors [data-do="tutor-share"][data-handle="adatutor"]');
   if (!tile) return ['Ada\'s own card has no Staff hub tile: ' + [...a.d.querySelectorAll('#s-staff .page:first-child [data-do]')].map(x => x.dataset.do).join(',')];
-  if (!share || share.parentNode !== tile.parentNode) bad.push('Staff hub is not in the row beside Share my profile');
+  if (!share) bad.push('Share my profile is not under Ada\'s own card on Tutors');
   const warn = () => String((a.d.querySelector('#s-staff .hub-warn') || {}).textContent || '');
   if (!/not agreed to the tutor terms/.test(warn())) bad.push('no line under Ada\'s card saying the terms are not agreed: ' + JSON.stringify(warn()));
   a.A('hub-open', tile); await wait(200);
@@ -2671,36 +2671,48 @@ const editorsOf_ = (d, into) => {
   d.querySelectorAll('[data-do="pin-save"]').forEach(el => add('pin', el));
   return into;
 };
-check('A column per account (444): every rank sees Student, Tutor and Parent; a column above your rank says it is not for you and offers the next step; Business is an admin\'s alone; every setting is edited in exactly one place', async () => {
+check('Six columns (453): Tutors, Students and Parents hold a card per person by category, your own first where you belong; Tutor, Student and Parent settings hold that type\'s settings, a column above your rank says so; Business is an admin\'s alone; every setting is edited in exactly one place', async () => {
   const W = hubWorld_();
   const bad = [];
+  const SIX = ['s-tutors', 's-students', 's-parents', 's-staff', 's-account', 's-family'];
   for (const [who, rank, pid] of RANK_COLS_) {
     const a = await hubBoot_(W, who);
     if (a.err) { bad.push(rank + ': ' + a.err); continue; }
     const q = s => a.d.querySelector(s);
     const txt = s => String((q(s) || {}).textContent || '');
-    const order = [...a.d.querySelectorAll('#screen > section.screen')].map(s => s.id);
-    ['s-account', 's-family', 's-staff'].forEach(id => { if (order.indexOf(id) === -1) bad.push(rank + ' has no ' + id + ' column'); });
-    if ((rank === 'admin') !== !!q('#s-biz')) bad.push(rank + (rank === 'admin' ? ' has no Admin column' : ' is given the Admin column'));
-    if (!q('#s-account .roles-card') || !q('#s-account [data-do="pin-save"]') || !q('#s-account .notify-card')) bad.push(rank + ': You lacks Your roles, the PIN or Notifications');
-    if (q('#s-account [data-do="hub-open"], #s-account .kid-manage, #s-account [data-do="person-add"], #s-account .apply-card')) bad.push(rank + ': a Parent, Tutor or Business thing is on Student');
+    const order = [...a.d.querySelectorAll('#screen > section.screen')].map(s => s.id).filter(id => SIX.indexOf(id) !== -1);
+    SIX.forEach(id => { if (order.indexOf(id) === -1) bad.push(rank + ' has no ' + id + ' column'); });
+    if ((rank === 'admin') !== !!q('#s-biz')) bad.push(rank + (rank === 'admin' ? ' has no Business column' : ' is given the Business column'));
+    /* STUDENT SETTINGS: every account's PIN, roles, notifications and Sign out, and nothing of a parent's, tutor's or people's. */
+    if (!q('#s-account .roles-card') || !q('#s-account [data-do="pin-save"]') || !q('#s-account .notify-card') || !q('#s-account [data-do="signout"]')) bad.push(rank + ': Student settings lacks Your roles, the PIN, Notifications or Sign out');
+    if (q('#s-account [data-do="hub-open"], #s-account .kid-manage, #s-account [data-do="person-add"], #s-account .apply-card, #s-account .card-ed, #s-account [data-do="card-edit"]')) bad.push(rank + ': a person, a parent\'s or a tutor\'s thing is on Student settings');
     const famOff = !!q('#s-family .rank-off'), staffOff = !!q('#s-staff .rank-off');
-    if (famOff !== (rank === 'student')) bad.push(rank + ': Family ' + (famOff ? 'says it is not for this account' : 'is drawn for a student'));
-    if (rank === 'student' && !/A parent links you from theirs/.test(txt('#s-family .rank-off'))) bad.push('a student\'s Family does not say a parent links them: ' + txt('#s-family'));
-    if (staffOff !== (rank === 'student' || rank === 'client')) bad.push(rank + ': Tutor ' + (staffOff ? 'says it is not for this account' : 'is drawn below Staff'));
-    if (staffOff && !/not yours/.test(txt('#s-staff .rank-off'))) bad.push(rank + ': Tutor does not say plainly it is not for this account');
-    if (rank === 'client' && !q('#s-staff .apply-card')) bad.push('a client\'s Tutor column offers no Apply to teach');
-    if (rank === 'client' && !q('#s-family .kid-manage')) bad.push('a client\'s Family has no Manage your child');
-    if (rank === 'staff' && !q('#s-staff [data-do="hub-open"]')) bad.push('a tutor\'s Tutor column has no Staff hub');
-    if (rank === 'admin' && !(q('#s-biz [data-do="person-add"]') && q('#s-biz .me-build'))) bad.push('Admin lacks + Add a person or the build stamps');
-    /* ONE PLACE EACH: the columns, your own card open for editing, and the hub's Hours and Pricing. */
+    if (famOff !== (rank === 'student')) bad.push(rank + ': Parent settings ' + (famOff ? 'says it is not for this account' : 'is drawn for a student'));
+    if (staffOff !== (rank === 'student' || rank === 'client')) bad.push(rank + ': Tutor settings ' + (staffOff ? 'says it is not for this account' : 'is drawn below Staff'));
+    if (staffOff && !/not yours/.test(txt('#s-staff .rank-off'))) bad.push(rank + ': Tutor settings does not say plainly it is not for this account');
+    if (rank === 'client' && !q('#s-staff .apply-card')) bad.push('a client\'s Tutor settings offers no Apply to teach');
+    if (rank === 'staff' && !q('#s-staff [data-do="hub-open"]')) bad.push('a tutor\'s Tutor settings has no Staff hub');
+    /* THE PEOPLE COLUMNS: your own card first where you belong, a person drawn in each category they hold. */
+    const home = { student: 's-students', client: 's-parents', staff: 's-tutors', admin: 's-tutors' }[rank];
+    const first = [...a.d.querySelectorAll('#' + home + ' > .page')].find(pg => !pg.querySelector('.add-card, .ps-card'));
+    if (!first || !first.querySelector('[data-do="card-edit"][data-pid="' + pid + '"]')) bad.push(rank + ': the first card on ' + home.slice(2) + ' is not your own with its Edit');
+    if (rank === 'client' && !q('#s-students .kid-manage')) bad.push('a client\'s Students has no Manage your child');
+    if (!q('#s-students .ps-card')) bad.push(rank + ': Students has no Find someone by handle');
+    const myShare = q('#s-tutors [data-do="tutor-share"][data-handle="' + (a.t.whoami().handle || '-') + '"]');
+    if (!myShare !== (rank !== 'staff' && rank !== 'admin')) bad.push(rank + ': Share my profile ' + (rank === 'staff' ? 'is missing from Tutors' : 'is offered below Staff'));
+    if ((rank === 'admin') !== !!(q('#s-tutors [data-do="person-add"]') && q('#s-students [data-do="person-add"]') && q('#s-parents [data-do="person-add"]'))) bad.push(rank + ': + Add a person is ' + (rank === 'admin' ? 'not on every people column' : 'offered'));
+    if (rank === 'admin' && (q('#s-biz [data-do="person-add"]') || !q('#s-biz .me-build'))) bad.push('Business still has + Add a person, or lost the build stamps');
+    /* ONE PLACE EACH: the columns, your own card open for editing in each column it has an Edit, and the hub's Hours and Pricing. */
     const ed = editorsOf_(a.d, {});
-    const tile = a.edit(pid);
-    if (tile) { a.A('card-edit', tile); await wait(250); editorsOf_(a.d, ed); }
-    /* AND YOUR TUTOR CARD'S EDIT ON THE TUTOR COLUMN, for what you teach. */
-    const tTile = q('#s-staff [data-do="card-edit"]');
-    if ((rank === 'staff') !== !!tTile && rank !== 'admin') bad.push(rank + (tTile ? ' can edit a tutor card on Tutor' : ': a tutor has no Edit on their tutor card'));
-    if (tTile) { a.A('card-edit', tTile); await wait(250); if (!q('#s-staff .card-ed')) bad.push(rank + ': Edit on the Tutor column did not open the tutor card'); editorsOf_(a.d, ed); }
+    for (const col of ['tutors', 'students', 'parents']) {
+      const tile = q('#s-' + col + ' [data-do="card-edit"][data-pid="' + pid + '"]');
+      if (!tile) continue;
+      a.A('card-edit', tile); await wait(250);
+      if (!q('#s-' + col + ' .card-ed')) bad.push(rank + ': Edit on ' + col + ' did not open your card there');
+      editorsOf_(a.d, ed);
+      const cancel = q('#s-' + col + ' [data-do="card-cancel"]') || a.d.querySelector('[data-do="card-cancel"]');
+      if (cancel) { a.A('card-cancel', cancel); await wait(200); }
+    }
     const hub = q('#s-staff [data-do="hub-open"]');
     if (hub) {
       a.A('hub-open', hub); await wait(200);
@@ -2835,7 +2847,7 @@ check('Message a tutor (405): a signed-in client has a Message tile on a tutor\'
   const bad = [];
   const c = await hubBoot_(W, 'parent@example.org');
   if (c.err) return [c.err];
-  const msg = (x, id) => x.d.querySelector('#s-account [data-do="msg-open"][data-id="' + id + '"]');
+  const msg = (x, id) => x.d.querySelector('#s-tutors [data-do="msg-open"][data-id="' + id + '"]');
   const m = msg(c, 'P-T1');
   if (!m) return ['a client has no Message tile on Ada\'s card'];
   c.A('msg-open', m); await wait(150);
@@ -2847,7 +2859,7 @@ check('Message a tutor (405): a signed-in client has a Message tile on a tutor\'
   return bad;
 });
 
-check('Your settings on You (444) hold only what is not on your card — a tutor\'s and an admin\'s lose the card\'s pages, a parent\'s About you goes, a student\'s keeps their dates — and nobody\'s draws the library cards, the handle or the figure', async () => {
+check('Student settings (453) hold only what is not on your card — a tutor\'s and an admin\'s lose the card\'s pages, a parent\'s details are on Parent settings, a student\'s keeps their dates — and nobody\'s draws the library cards, the handle or the figure', async () => {
   const W = cardWorld_();
   const bad = [];
   /* THE SETTINGS PAGES OF YOU (444): from the first that says where things went, to Notifications. */
@@ -2886,12 +2898,13 @@ check('Your settings on You (444) hold only what is not on your card — a tutor
     const on = ['headline', 'rate_per_hour', 'photos_1', 'qual_1', 'm09', 'venues_ok', 'travel_km', 'adjective_1'].filter(f => c.d.querySelector('#s-account [data-me="' + f + '"]'));
     if (on.length) bad.push(who + '\'s Settings still has boxes the card edits: ' + on.join(', '));
     if (!c.d.querySelector('#s-account [data-me="email"]')) bad.push(who + '\'s Settings lost the email box');
-    if (!/tutor card on Tutor, your rate and hours in its Staff hub/.test(String((c.d.querySelector('#s-account .ce-moved') || {}).textContent || ''))) bad.push(who + '\'s Settings does not say their card holds the tutor\'s pages too');
+    if (!/tutor card on Tutors, your rate and hours in the Staff hub on Tutor settings/.test(String((c.d.querySelector('#s-account .ce-moved') || {}).textContent || ''))) bad.push(who + '\'s Settings does not say their card holds the tutor\'s pages too');
     common(who, c.d);
   }
   /* A PARENT AND A STUDENT: their own groups less the card's two and the library cards — every other box. */
-  for (const [who, key, want] of [['parent@example.org', 'clientFields', ['Contact & address', 'Signing in', 'Your roles']],
-                                  ['student@example.org', 'studentFields', ['About you', 'Contact & address', 'Signing in', 'Your roles']]]) {
+  /* A PARENT'S OWN DETAILS ARE ON PARENT SETTINGS (453), a student's on Student settings. */
+  for (const [who, key, want, col] of [['parent@example.org', 'clientFields', ['Signing in', 'Your roles'], 'family'],
+                                  ['student@example.org', 'studentFields', ['About you', 'Contact & address', 'Signing in', 'Your roles'], 'account']]) {
     const c = await settingsOf(who);
     if (c.err) { bad.push(who + ': ' + c.err); continue; }
     const groups = c.t.DATA()[key] || {};
@@ -2900,10 +2913,11 @@ check('Your settings on You (444) hold only what is not on your card — a tutor
     if (JSON.stringify(t.slice(0, want.length)) !== JSON.stringify(want)) bad.push(who + '\'s Settings pages are ' + JSON.stringify(t) + ', wanted ' + JSON.stringify(want) + ' first');
     const lost = [].concat(...Object.keys(groups).map(g => groups[g]))
       .filter(f => !/^(phone|date_of_birth|photo|first_name|last_name)$/.test(f) && !/^lib\d+_/.test(f))
-      .filter(f => !c.d.querySelector('#s-account [data-me="' + f + '"]'));
+      .filter(f => !c.d.querySelector('#s-' + col + ' [data-me="' + f + '"]'));
     if (lost.length) bad.push(who + '\'s Settings lost ' + lost.join(', '));
+    if (col === 'family' && c.d.querySelector('#s-account [data-me="email"]')) bad.push(who + '\'s details are on Student settings as well as Parent settings');
     if (/student/.test(who) && !c.d.querySelector('#s-account [data-me="dob_d"]')) bad.push('the student\'s Settings lost the date of birth');
-    if (/tutor card on Tutor/.test(String((c.d.querySelector('#s-account .ce-moved') || {}).textContent || ''))) bad.push(who + '\'s Settings says a tutor\'s pages moved to a card that has none of them');
+    if (/tutor card on Tutors/.test(String((c.d.querySelector('#s-account .ce-moved') || {}).textContent || ''))) bad.push(who + '\'s Settings says a tutor\'s pages moved to a card that has none of them');
     common(who, c.d);
   }
   return bad;
@@ -2965,7 +2979,7 @@ check('an admin edits another tutor\'s card the same way — filled from getProf
     const o = await cardOpen_(W, who);
     if (o.err) { bad.push(o.err); continue; }
     if (JSON.stringify(o.edits()) !== JSON.stringify([pid])) bad.push(who + ' is offered Edit on ' + JSON.stringify(o.edits()) + ', wanted their own card alone');
-    if (!o.d.querySelector('#s-account .card.is-prof')) bad.push(who + ' sees no card on the You column, so Edit was NOT checked');
+    if (!o.d.querySelector(o.S + ' .card.is-prof')) bad.push(who + ' sees no card on ' + o.S + ', so Edit was NOT checked');
   }
   return bad;
 });
@@ -3038,7 +3052,7 @@ check('a tutor\'s seat is set in the Staff hub alone (444) — their tutor card 
   const h = W.real.tabs.people[0], ri = W.real.tabs.people.findIndex((x, i) => i > 0 && x[h.indexOf('person_id')] === 'P-T1');
   if (h.indexOf('extra_seat_cut') < 0 || ri < 0) return ['the people tab has no extra_seat_cut column or no Ada, so the tutor\'s view was NOT checked'];
   W.real.tabs.people[ri][h.indexOf('extra_seat_cut')] = 0.15;
-  const c = await cardOpen_(W, 'tutor@example.org', { col: 'staff' });
+  const c = await cardOpen_(W, 'tutor@example.org', { col: 'tutors' });
   if (c.err) return [c.err];
   const bad = [];
   if (!c.edit('P-T1')) return ['Ada\'s tutor card has no Edit'];
@@ -3136,11 +3150,12 @@ check('on an admin\'s edit of a tutor\'s card the parts of a seat add up to the 
 });
 
 /* ---------- EVERYBODY EDITS THEIR OWN CARD (docs/history/339) § */
-check('every role\'s own card on You has Edit with picture, figure, name and handle (444); a tutor\'s and a listed admin\'s tutor card on Tutor the rest, less what the hub edits; a parent, a student and an admin with no public card their picture, figure, name and handle', async () => {
+check('every role\'s own card has Edit with picture, figure, name and handle on its own people column (453); a tutor\'s and a listed admin\'s, on Tutors, the rest as well, less what the hub edits; a parent, a student and an admin with no public card their picture, figure, name and handle', async () => {
   const W = cardWorld_();
   const bad = [];
   const bare = ['picture', 'figure', 'name', 'handle'];
-  for (const [who, pid, order] of [['tutor@example.org', 'P-T1', bare], ['admin@example.org', 'P-A1', bare],
+  /* ONE FORM ON TUTORS FOR A TUTOR AND A LISTED ADMIN (453): the four, then the rest less what the hub edits; an admin with no hub keeps the week. */
+  for (const [who, pid, order] of [['tutor@example.org', 'P-T1', bare.concat(CARD_STAFF_)], ['admin@example.org', 'P-A1', bare.concat(CARD_STAFF_, ['week'])],
                                    ['parent@example.org', 'P-C1', bare], ['student@example.org', 'P-S1', bare]]) {
     const c = await cardOpen_(W, who);
     if (c.err) { bad.push(who + ': ' + c.err); continue; }
@@ -3181,17 +3196,6 @@ check('every role\'s own card on You has Edit with picture, figure, name and han
       if (!pg || !/Patricia Parent/.test(pg.textContent)) bad.push('Pat\'s own card does not say Patricia Parent after her Save');
     }
   }
-  /* THE TUTOR CARD ON TUTOR (444): the rest, the hub's rate and week left out for a tutor; an admin with no hub keeps them. */
-  for (const [who, pid, order] of [['tutor@example.org', 'P-T1', CARD_STAFF_], ['admin@example.org', 'P-A1', CARD_STAFF_.concat(['week'])]]) {
-    const c = await cardOpen_(W, who, { col: 'staff' });
-    if (c.err) { bad.push(who + ': ' + c.err); continue; }
-    const e = c.edit(pid);
-    if (!e) { bad.push(who + ' has no Edit on their tutor card on Tutor'); continue; }
-    c.A('card-edit', e);
-    for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
-    const secs = c.form() ? [...c.form().querySelectorAll('.ce-sec')].map(x => x.dataset.sec) : [];
-    if (JSON.stringify(secs) !== JSON.stringify(order)) bad.push(who + '\'s tutor card offers ' + JSON.stringify(secs) + ', wanted ' + JSON.stringify(order));
-  }
   /* THE LAB'S ADMIN: no row in `DATA.tutors`, so the card is a face and a name, and every other field of theirs
      is on Settings where it was — the headline here, and the video without a picture box beside it. */
   const { w } = boot({ payload: Object.assign(payload(), { profileFields: {
@@ -3200,17 +3204,17 @@ check('every role\'s own card on You has Edit with picture, figure, name and han
   const t = w.__t, d = w.document;
   t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk', handle: 'testadmin',
            profile: { first_name: 'Test', last_name: 'Admin', headline: 'Runs the place', phone_cc: '+44' } });
-  try { t.go('account', false, true); w.paint('account'); } catch (e) { return bad.concat(['drawing the lab admin\'s You column threw: ' + e.message]); }
+  try { t.go('tutors', false, true); w.paint('tutors'); w.paint('account'); w.paint('staff'); } catch (e) { return bad.concat(['drawing the lab admin\'s Tutors column threw: ' + e.message]); }
   await wait(200);
-  const le = d.querySelector('#s-account [data-do="card-edit"][data-pid="P001"]');
+  const le = d.querySelector('#s-tutors [data-do="card-edit"][data-pid="P001"]');
   if (!le) return bad.concat(['an admin with no public card has no Edit on their own card']);
   t.ACTIONS['card-edit'](le);
   await wait(300);
-  const ls = [...d.querySelectorAll('#s-account .card-ed .ce-sec')].map(x => x.dataset.sec);
+  const ls = [...d.querySelectorAll('#s-tutors .card-ed .ce-sec')].map(x => x.dataset.sec);
   if (JSON.stringify(ls) !== JSON.stringify(bare)) bad.push('an admin with no public card is offered ' + JSON.stringify(ls) + ', wanted ' + JSON.stringify(bare));
-  try { w.paint('account'); } catch (e) {}
-  /* THE SETTINGS CARDS ON YOU, NOT THE CARD BEING EDITED, which is on the same column since 444. */
-  const notCard = q => [...d.querySelectorAll('#s-account ' + q)].filter(x => !x.closest('.card-ed, .is-prof'));
+  try { w.paint('account'); w.paint('staff'); } catch (e) {}
+  /* THE SETTINGS CARDS ON STUDENT AND TUTOR SETTINGS (453), never the card being edited. */
+  const notCard = q => [...d.querySelectorAll('#s-account ' + q + ', #s-staff ' + q)].filter(x => !x.closest('.card-ed, .is-prof'));
   if (!notCard('[data-me="headline"]').length || !notCard('[data-me="video"]').length) bad.push('the lab admin\'s headline or video left Settings with nowhere to go');
   if (notCard('[data-me="first_name"]').length || notCard('.pfp').length) bad.push('the lab admin\'s Settings still draws the name or the picture their card edits');
   return bad;
@@ -3388,7 +3392,7 @@ check('review 339: a parent who shares a listed tutor\'s name has her own card w
   if (JSON.stringify(c.edits()) !== JSON.stringify(['P-C9'])) bad.push('the You column offers Edit on ' + JSON.stringify(c.edits()) + ', wanted her own card (P-C9) alone');
   const own = c.pageOf('P-C9');
   if (own && /Maths, mostly/.test(own.textContent)) bad.push('her own card is the tutor Ada Tutor\'s — the headline "Maths, mostly" is on it');
-  if (![...c.d.querySelectorAll('#s-account .page')].some(pg => pg !== own && /Maths, mostly/.test(pg.textContent))) bad.push('the tutor Ada Tutor is not on the parent\'s You column as somebody else');
+  if (![...c.d.querySelectorAll('#s-tutors .page')].some(pg => pg !== own && /Maths, mostly/.test(pg.textContent))) bad.push('the tutor Ada Tutor is not on the parent\'s Tutors column as somebody else');
   const e = c.edit('P-C9');
   if (e) {
     c.A('card-edit', e);
@@ -9150,16 +9154,16 @@ check('a parent whose address is unconfirmed is told their mail is held, and can
 
   /* SETTINGS: "Manage your child", one card, saying in place of its two forms which address to open the link
      from, with the same tile (docs/history/339 — it was a card of its own drawn instead of two). */
-  t.go('family', false, true);
+  t.go('students', false, true);
   await wait(250);
-  const held = d.querySelector('#s-family .kid-manage .kid-held');
-  if (d.querySelectorAll('#s-family .kid-manage').length !== 1) bad.push('a PENDING parent\'s Settings draws ' + d.querySelectorAll('#s-family .kid-manage').length + ' "Manage your child" cards, wanted one');
+  const held = d.querySelector('#s-students .kid-manage .kid-held');
+  if (d.querySelectorAll('#s-students .kid-manage').length !== 1) bad.push('a PENDING parent\'s Settings draws ' + d.querySelectorAll('#s-students .kid-manage').length + ' "Manage your child" cards, wanted one');
   if (!held) bad.push('a PENDING parent\'s "Manage your child" does not say to open the link first where "Make your child\'s account" would be');
   else {
     if (!/jsmith1@example\.org/.test(text(held)) || !/link/i.test(text(held))) bad.push('the held card does not say which address to open the link from: ' + JSON.stringify(text(held)));
     if (!held.querySelector('[data-do="resend-link"]')) bad.push('the held card has no "Send the link again"');
   }
-  if (d.querySelector('#s-family [data-kid-new], #s-family [data-kid]'))
+  if (d.querySelector('#s-students [data-kid-new], #s-students [data-kid]'))
     bad.push('a PENDING parent is still offered a child form the server will refuse');
 
   /* AND WHEN THE ADDRESS IS PROVED — on another phone, by the link — the next open puts the forms back
@@ -9169,9 +9173,9 @@ check('a parent whose address is unconfirmed is told their mail is held, and can
   await wait(700);
   const t2 = again.w.__t, d2 = again.w.document;
   if ((t2.whoami() || {}).pendingEmail) bad.push('myProfile said the address is proved and the phone kept it waiting: ' + JSON.stringify(t2.whoami().pendingEmail));
-  t2.go('family', false, true);
+  t2.go('students', false, true);
   await wait(250);
-  if (d2.querySelector('#s-family .kid-held') || !d2.querySelector('#s-family .kid-manage .kid-make [data-kid-new]'))
+  if (d2.querySelector('#s-students .kid-held') || !d2.querySelector('#s-students .kid-manage .kid-make [data-kid-new]'))
     bad.push('once the address was proved, Settings still holds the child back, or "Manage your child" has no "Make your child\'s account" form');
   t2.go('account', false, true);
   await wait(250);
@@ -9192,9 +9196,9 @@ check('a refused make-child for an unconfirmed address turns the forms of "Manag
   const { w } = boot({ reply, before: w => { try { w.localStorage.setItem('familyUser', JSON.stringify(pat)); } catch (e) {} } });
   await wait(700);
   const t = w.__t, d = w.document, bad = [];
-  t.go('family', false, true);
+  t.go('students', false, true);
   await wait(250);
-  const card = d.querySelector('#s-family .kid-make');
+  const card = d.querySelector('#s-students .kid-make');
   if (!card) return ['a parent with no word on their address was not shown the make-child form to begin with'];
   const val = (k, v) => { const el = card.querySelector('[data-kid-new="' + k + '"]'); if (el) el.value = v; };
   /* BUILT FROM ITS DIGITS — `check-secrets.js` refuses four digits beside the word. */
@@ -9203,7 +9207,7 @@ check('a refused make-child for an unconfirmed address turns the forms of "Manag
   await wait(400);
   if (!/Open the link we emailed to pat@example\.org/.test(String((d.getElementById('toast') || {}).textContent || '')))
     bad.push('the server\'s sentence was not said');
-  if (!d.querySelector('#s-family .kid-manage .kid-held') || d.querySelector('#s-family [data-kid-new]'))
+  if (!d.querySelector('#s-students .kid-manage .kid-held') || d.querySelector('#s-students [data-kid-new]'))
     bad.push('the refusal left the form standing instead of the held sentence');
   if (((t.whoami() || {}).pendingEmail || '') !== 'pat@example.org') bad.push('the phone did not keep the address the server said is waiting');
   return bad;
@@ -9270,9 +9274,9 @@ check('proof: your own link opened while signed in takes the held card away, and
   if ((t.whoami() || {}).pendingEmail) bad.push('after your own link was opened the phone still holds the address as waiting: '
     + JSON.stringify(t.whoami().pendingEmail) + (asked >= 2 ? '' : ' — the late myProfile painted over the confirmation'));
   if (!/make your child's account/i.test(toastOf_(d)) && !/confirmed/i.test(toastOf_(d))) bad.push('the toast after your own link says ' + JSON.stringify(toastOf_(d)));
-  t.go('family', false, true);
+  t.go('students', false, true);
   await wait(250);
-  if (d.querySelector('#s-family .kid-held') || !d.querySelector('#s-family .kid-make [data-kid-new]'))
+  if (d.querySelector('#s-students .kid-held') || !d.querySelector('#s-students .kid-make [data-kid-new]'))
     bad.push('Settings still holds the child back after your own link was opened — under a toast saying you can make their account');
   t.go('account', false, true);
   await wait(250);
@@ -9298,9 +9302,9 @@ check('proof: "Send the link again" on an address already confirmed takes the he
   if (!/confirmed already/.test(toastOf_(d))) bad.push('the server\'s sentence was not said: ' + JSON.stringify(toastOf_(d)));
   if ((t.whoami() || {}).pendingEmail) bad.push('the server said the address is confirmed and the phone kept it waiting');
   if (d.querySelector('#s-account .mail-held, #s-account [data-do="resend-link"]')) bad.push('the You column still says the mail is held');
-  t.go('family', false, true);
+  t.go('students', false, true);
   await wait(250);
-  if (d.querySelector('#s-family .kid-held')) bad.push('Settings still holds the child back');
+  if (d.querySelector('#s-students .kid-held')) bad.push('Settings still holds the child back');
   return bad;
 });
 
@@ -9318,10 +9322,11 @@ check('proof: a new address typed on the Contact card waits, says so, and the bo
   const { w, sent } = boot({ reply, before: signedInAs_(jo) });
   await wait(700);
   const t = w.__t, d = w.document, bad = [];
-  t.go('account', false, true);
+  /* A PARENT'S CONTACT CARD IS ON PARENT SETTINGS (453). */
+  t.go('family', false, true);
   await wait(300);
-  const box = () => d.querySelector('#s-account [data-me="email"]');
-  if (!box()) return ['there is no email box on Settings, so the Contact card was NOT checked'];
+  const box = () => d.querySelector('#s-family [data-me="email"]');
+  if (!box()) return ['there is no email box on Parent settings, so the Contact card was NOT checked'];
   box().value = 'jsmith1@example.org';
   const card = () => box() && box().closest('.me-form');
   sent.length = 0;
@@ -9547,7 +9552,7 @@ check('Make an account asks who it is for first, and a parent is a parent from t
   }
   if (!tickRow().hidden || d.getElementById('reg-noemail').checked) bad.push('a parent is still offered, or still has ticked, the grown-up\'s-email box');
   const note = String((d.getElementById('reg-note') || {}).textContent || '');
-  if (!/child's account/.test(note) || !/Settings/.test(note)) bad.push('a parent\'s note does not say where their child\'s account is made: ' + JSON.stringify(note));
+  if (!/child's account/.test(note) || !/Students/.test(note)) bad.push('a parent\'s note does not say where their child\'s account is made: ' + JSON.stringify(note));
 
   sent.length = 0;
   t.ACTIONS['reg-send'](d.querySelector('#sheet-body [data-do="reg-send"]'));
@@ -9565,13 +9570,13 @@ check('Make an account asks who it is for first, and a parent is a parent from t
   await wait(300);
   const u = t.whoami();
   if (!u || u.role !== 'parent') return bad.concat(['signing in did not leave a parent signed in: ' + JSON.stringify(u && u.role)]);
-  try { t.go('family', false, true); } catch (e) { return bad.concat(['going to settings threw: ' + e.message]); }
+  try { t.go('students', false, true); } catch (e) { return bad.concat(['going to settings threw: ' + e.message]); }
   await wait(250);
   /* "MAKE YOUR CHILD'S ACCOUNT" IS THERE FROM THE FIRST PAINT — as the one sentence that says what comes first while the address is unproved (`confirmFirst_`) § */
-  const heldCard = d.querySelector('#s-family .kid-held');
+  const heldCard = d.querySelector('#s-students .kid-held');
   if (!heldCard || !/Make your child's account/.test(String(heldCard.textContent || '')) || !/dana@example\.org/.test(String(heldCard.textContent || '')))
     bad.push('a parent who has just signed in for the first time has no "Make your child\'s account" on Settings saying to open the link sent to their address');
-  if (d.querySelector('#s-family [data-kid-new]')) bad.push('a parent whose address nobody has proved yet is offered the make-child form, which the server refuses');
+  if (d.querySelector('#s-students [data-kid-new]')) bad.push('a parent whose address nobody has proved yet is offered the make-child form, which the server refuses');
 
   /* A STUDENT'S POST SAYS STUDENT. */
   t.USER(null);
@@ -9615,9 +9620,9 @@ check('a role changed in the sheet reaches the screen on the next open, with no 
     if (!u || u.role !== 'parent' || (u.roles || []).join() !== 'parent') bad.push('the phone kept its stale role after myProfile said parent: ' + JSON.stringify(u && [u.role, u.roles]));
     let kept = null; try { kept = JSON.parse(w.localStorage.getItem('familyUser') || 'null'); } catch (e) {}
     if (!kept || kept.role !== 'parent') bad.push('the corrected role was not kept, so the next open starts stale again');
-    try { t.go('family', false, true); } catch (e) {}
+    try { t.go('students', false, true); } catch (e) {}
     await wait(250);
-    if (!d.querySelector('#s-family .kid-make')) bad.push('after the role was corrected there is still no "Make your child\'s account" — the walk\'s sign-out dance is still needed');
+    if (!d.querySelector('#s-students .kid-make')) bad.push('after the role was corrected there is still no "Make your child\'s account" — the walk\'s sign-out dance is still needed');
   }
   /* AN OLD SERVER SENDS NO ROLE: what the phone had stays. */
   {
@@ -9652,17 +9657,17 @@ check('a parent makes their child\'s account on "Manage your child" and is shown
   const t = w.__t, d = w.document, bad = [];
   t.USER({ name: 'Pat Parent', personId: 'P-C1', role: 'parent', roles: ['parent'], token: 'tk',
            profile: { first_name: 'Pat', last_name: 'Parent' } });
-  try { t.go('family', false, true); w.paint('family'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  try { t.go('students', false, true); w.paint('students'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
   await wait(300);
-  const card = () => d.querySelector('#s-family .kid-manage .kid-make');
+  const card = () => d.querySelector('#s-students .kid-manage .kid-make');
   if (!card()) return ['a parent\'s "Manage your child" has no "Make your child\'s account" form'];
-  const manage = d.querySelectorAll('#s-family .kid-manage');
+  const manage = d.querySelectorAll('#s-students .kid-manage');
   if (manage.length !== 1) bad.push('a parent\'s Settings draws ' + manage.length + ' "Manage your child" cards, wanted one');
   if (!/^Manage your child$/.test(String((manage[0].querySelector(':scope > h3') || {}).textContent || '').trim())) bad.push('the card is not titled "Manage your child"');
   const secs = [...manage[0].querySelectorAll('.kid-sec')].map(x => x.classList.contains('kid-make') ? 'make' : x.classList.contains('kid-add') ? 'add' : x.classList.contains('kid-list') ? 'list' : '?');
   if (JSON.stringify(secs) !== '["list","make","add"]') bad.push('"Manage your child" holds ' + JSON.stringify(secs) + ', wanted the children, then making an account, then linking one');
   if (!/Make your child's account/.test(card().textContent) || !/Add your child/.test(manage[0].textContent)) bad.push('the two forms lost the captions the server\'s emails and refusals name');
-  if ([...d.querySelectorAll('#s-family > .page')].filter(p => p.querySelector('[data-kid-new], [data-kid]')).length !== 1) bad.push('the two forms are on more than one page');
+  if ([...d.querySelectorAll('#s-students > .page')].filter(p => p.querySelector('[data-kid-new], [data-kid]')).length !== 1) bad.push('the two forms are on more than one page');
   const box = k => card().querySelector('[data-kid-new="' + k + '"]');
   if (!box('first') || !box('last') || !box('pin')) return bad.concat(['the make card is missing one of first, last, PIN']);
   if (box('last').value !== 'Parent') bad.push('the last name box is not filled with the parent\'s own (' + JSON.stringify(box('last').value) + ')');
@@ -9683,7 +9688,7 @@ check('a parent makes their child\'s account on "Manage your child" and is shown
   if (!post) return bad.concat(['Make their account posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no makeChild']);
   const want = { firstName: 'Ivy', lastName: 'Parent', pin: '0000', personId: 'P-C1' };
   Object.keys(want).forEach(k => { if (post[k] !== want[k]) bad.push('makeChild carried ' + k + ' = ' + JSON.stringify(post[k])); });
-  try { w.paint('family'); } catch (e) {}
+  try { w.paint('students'); } catch (e) {}
   await wait(100);
   const slip = card() && card().querySelector('.pin-slip');
   if (!slip) bad.push('after the account was made there is no slip with the handle and PIN on the card');
@@ -9693,17 +9698,17 @@ check('a parent makes their child\'s account on "Manage your child" and is shown
   }
   /* A STUDENT HAS NOBODY TO MAKE AN ACCOUNT FOR. */
   t.USER({ name: 'Sam Student', personId: 'P-S1', role: 'student', roles: ['student'], token: 'tk2' });
-  try { t.repaint(true); t.go('family', false, true); w.paint('family'); } catch (e) {}
+  try { t.repaint(true); t.go('students', false, true); w.paint('students'); } catch (e) {}
   await wait(200);
-  if (d.querySelector('#s-family .kid-make')) bad.push('a student is offered "Make your child\'s account"');
+  if (d.querySelector('#s-students .kid-make')) bad.push('a student is offered "Make your child\'s account"');
   /* AND ANOTHER PARENT ON THE SAME PHONE IS NOT SHOWN THE FIRST ONE'S CHILD'S PIN — the slip is held
      for the parent who made it, by id, and a phone passed along keeps its state. */
   t.USER({ name: 'Quinn Parent', personId: 'P-C2', role: 'parent', roles: ['parent'], token: 'tk3',
            profile: { first_name: 'Quinn', last_name: 'Other' } });
-  try { t.repaint(true); t.go('family', false, true); w.paint('family'); } catch (e) {}
+  try { t.repaint(true); t.go('students', false, true); w.paint('students'); } catch (e) {}
   await wait(200);
-  if (!d.querySelector('#s-family .kid-make')) bad.push('the second parent has no make card to look at');
-  if (d.querySelector('#s-family .pin-slip')) bad.push('the parent\'s slip was still drawn for the next person signed in on the phone');
+  if (!d.querySelector('#s-students .kid-make')) bad.push('the second parent has no make card to look at');
+  if (d.querySelector('#s-students .pin-slip')) bad.push('the parent\'s slip was still drawn for the next person signed in on the phone');
   return bad;
 });
 
@@ -9716,24 +9721,24 @@ const psBoot_ = async user => {
   const t = r.w.__t, d = r.w.document;
   t.USER(user);
   t.DATA().tutors = [{ personId: 'P-T1', title: 'Wendy Tutor', handle: 'wendy_bright7', role: 'Tutor' }];
-  const draw = () => { t.go('account', false, true); r.w.paint('account'); };
+  const draw = () => { t.go('students', false, true); r.w.paint('students'); };
   draw();
   await wait(150);
-  const type = async q => { const box = d.querySelector('#s-account [data-psearch]'); box.value = q;
+  const type = async q => { const box = d.querySelector('#s-students [data-psearch]'); box.value = q;
     box.dispatchEvent(new r.w.Event('input', { bubbles: true })); await wait(30); return box; };
-  const find = async () => { t.ACTIONS['ps-find'](d.querySelector('#s-account [data-do="ps-find"]')); await wait(300); };
-  return Object.assign(r, { t, d, draw, type, find, out: () => d.querySelector('#s-account .ps-out') });
+  const find = async () => { t.ACTIONS['ps-find'](d.querySelector('#s-students [data-do="ps-find"]')); await wait(300); };
+  return Object.assign(r, { t, d, draw, type, find, out: () => d.querySelector('#s-students .ps-out') });
 };
 const PS_PAT = { name: 'Pat Parent', personId: 'P-C1', role: 'client', roles: ['client'], token: 'tk', profile: { first_name: 'Pat', last_name: 'Parent' } };
-check('442, 444: the Student column opens with Find by handle; "Add a person" is on Business, once, for an admin', async () => {
+check('442, 453: Students opens with Find by handle (under an admin\'s "+ Add a student"); each people column has one "+" for an admin, and Business and Student settings none', async () => {
   const { d, w, t } = await psBoot_({ name: 'Hal Admin', personId: 'P-A1', role: 'admin', roles: ['admin'], token: 'tk' });
-  try { t.repaint(true); w.paint('biz'); } catch (e) {}
+  try { t.repaint(true); ['biz', 'tutors', 'parents', 'account'].forEach(id => w.paint(id)); } catch (e) {}
   await wait(100);
-  const first = d.querySelector('#s-account .page');
+  const first = [...d.querySelectorAll('#s-students > .page')].find(pg => !pg.querySelector('.add-card'));
   const bad = [];
-  if (!first || !first.querySelector('.ps-card')) bad.push('the Student column does not start with Find by handle');
-  if (d.querySelector('#s-account [data-do="person-add"]')) bad.push('"Add a person" is on the Student column');
-  if (d.querySelectorAll('#s-biz [data-do="person-add"]').length !== 1) bad.push('Business does not have one "Add a person"');
+  if (!first || !first.querySelector('.ps-card')) bad.push('Students does not start with Find by handle');
+  if (d.querySelector('#s-account [data-do="person-add"], #s-biz [data-do="person-add"]')) bad.push('"Add a person" is on Student settings or Business');
+  ['tutors', 'students', 'parents'].forEach(c => { if (d.querySelectorAll('#s-' + c + ' [data-do="person-add"][data-col="' + c + '"]').length !== 1) bad.push(c + ' does not have one "+" of its own'); });
   return bad;
 });
 check('442: a parent finds their child by the exact handle — first name only, and an "Add as my child" tile', async () => {
@@ -9776,13 +9781,13 @@ check('442: "Add as my child" sends the family request by handle through claimCh
 });
 check('442: a student sees the search but no Find and no tile, and posts no lookup', async () => {
   const { sent, t, d, type } = await psBoot_({ name: 'Sam Student', personId: 'P-S1', role: 'student', roles: ['student'], token: 'tk2' }), bad = [];
-  if (!d.querySelector('#s-account .ps-card')) bad.push('a student has no search');
-  if (d.querySelector('#s-account [data-do="ps-find"]')) bad.push('a student is offered Find, which looks up children');
+  if (!d.querySelector('#s-students .ps-card')) bad.push('a student has no search');
+  if (d.querySelector('#s-students [data-do="ps-find"]')) bad.push('a student is offered Find, which looks up children');
   await type('wren_kind43');
   t.ACTIONS['ps-find'](d.createElement('button'));
   await wait(200);
   if (sent.some(b => b.action === 'findChild')) bad.push('a student posted findChild');
-  if (d.querySelector('#s-account [data-do="ps-add-child"]')) bad.push('a student sees "Add as my child"');
+  if (d.querySelector('#s-students [data-do="ps-add-child"]')) bad.push('a student sees "Add as my child"');
   return bad;
 });
 
@@ -9801,10 +9806,10 @@ check('"Manage your child" lists the children linked to you with New PIN beside 
     { personId: 'P-K2', title: 'Maximilian', relation: 'child', handle: 'maximilian_steady42', image: '' },
     { personId: 'P-PP', title: 'Gran Parent', relation: 'parent', handle: 'gran_kind11', image: '' },
   ];
-  const draw = () => { try { t.go('family', false, true); w.paint('family'); } catch (e) { bad.push('drawing settings threw: ' + e.message); } };
+  const draw = () => { try { t.go('students', false, true); w.paint('students'); } catch (e) { bad.push('drawing settings threw: ' + e.message); } };
   draw();
   await wait(200);
-  const card = () => d.querySelector('#s-family .kid-manage');
+  const card = () => d.querySelector('#s-students .kid-manage');
   if (!card()) return bad.concat(['a parent\'s Settings has no "Manage your child"']);
   const rows = () => [...card().querySelectorAll('.kid-list .kid-row')];
   const names = rows().map(r => (r.querySelector('.kid-who b') || {}).textContent + ' ' + (r.querySelector('.prof-handle') || {}).textContent);
@@ -9850,7 +9855,7 @@ check('"Manage your child" lists the children linked to you with New PIN beside 
   await wait(150);
   if (!card() || !card().querySelector('.kid-held') || card().querySelector('[data-kid-new], [data-kid]')) bad.push('with the address waiting the card still offers a form, or does not say to open the link');
   if (!card() || card().querySelectorAll('.kid-row').length !== 1 || card().querySelector('[data-do="kid-pin"]')) bad.push('with the address waiting the card does not list Wren, or offers a New PIN the server refuses');
-  if (d.querySelectorAll('#s-family .kid-manage').length !== 1) bad.push('the held state is not the same one card');
+  if (d.querySelectorAll('#s-students .kid-manage').length !== 1) bad.push('the held state is not the same one card');
   /* A LIST STAMPED FOR SOMEBODY ELSE IS NOBODY'S. */
   t.whoami().pendingEmail = '';
   t.DATA().familyFor = 'P-OTHER';
@@ -9878,8 +9883,8 @@ check('Settings no longer draws the figure, the handle, the library cards or two
   await wait(200);
   const pages = [...d.querySelectorAll('#s-account > .page')];
   const heads = pages.map(p => String((p.querySelector('h3') || {}).textContent || '').trim());
-  try { w.paint('family'); } catch (e) {}
-  const famHeads = [...d.querySelectorAll('#s-family > .page')].map(p => String((p.querySelector('h3') || {}).textContent || '').trim());
+  try { w.paint('students'); } catch (e) {}
+  const famHeads = [...d.querySelectorAll('#s-students > .page')].map(p => String((p.querySelector('h3') || {}).textContent || '').trim());
   ['Your figure', 'Library cards', 'Make your child\'s account', 'Add your child'].forEach(h => { if (heads.indexOf(h) !== -1) bad.push('Settings still has a "' + h + '" page'); });
   /* MANAGE YOUR CHILD IS ON PARENT SINCE 444, once. */
   if (heads.indexOf('Manage your child') !== -1 || famHeads.filter(h => h === 'Manage your child').length !== 1) bad.push('"Manage your child" is not on Parent once: You ' + JSON.stringify(heads) + ', Parent ' + JSON.stringify(famHeads));
@@ -9919,9 +9924,9 @@ check('New PIN is on a parent\'s "Manage your child" and not on the child\'s car
   try { t.go('account', false, true); w.paint('account'); } catch (e) { bad.push('drawing Settings threw: ' + e.message); }
   await wait(150);
   if (d.querySelector('#s-account [data-do="kid-pin"]')) bad.push('the You column draws a New PIN tile for a parent');
-  try { t.go('family', false, true); w.paint('family'); } catch (e) {}
+  try { t.go('students', false, true); w.paint('students'); } catch (e) {}
   await wait(100);
-  const tile = d.querySelector('#s-family .kid-manage [data-do="kid-pin"][data-id="P-K"]');
+  const tile = d.querySelector('#s-students .kid-manage [data-do="kid-pin"][data-id="P-K"]');
   if (!tile) return bad.concat(['no New PIN tile for Kit on "Manage your child" to press']);
   if (!tile.classList.contains('tile')) bad.push('New PIN is not a tile — a THING has tiles');
   sent.length = 0;
@@ -10695,7 +10700,7 @@ check('the docket keeps the text you typed, whatever it starts with', async () =
   return bad;
 });
 
-check('a student sees their parents, a parent their children, on the account column', async () => {
+check('a student sees their parents on Parents and brothers and sisters on Students, a parent their children on Students (453)', async () => {
   /* ---------- ASKED FOR AS "students should be able to see their parents and likewise" § */
   const { w, sent } = boot();
   await wait(400);
@@ -10739,7 +10744,7 @@ check('a student sees their parents, a parent their children, on the account col
     D.family = held;
   }
 
-  /* A PARENT WHO IS ALSO A TUTOR IS DRAWN ONCE, here, and not again in the list of tutors below. */
+  /* A PARENT WHO IS ALSO A TUTOR IS DRAWN ONCE ON EACH COLUMN THEY BELONG TO (453): Parents and Tutors. */
   /* Seeded rather than taken from the fixture, whose one tutor carries no `personId` — and the
      match between a family entry and a tutor row is by that id and nothing else. */
   const heldTutors = D.tutors;
@@ -10751,8 +10756,11 @@ check('a student sees their parents, a parent their children, on the account col
     D.familyFor = 'P-K2';
     const parentHeads = heads().filter(h => /^Your parent/.test(h));
     if (parentHeads.length !== 1) bad.push('a parent who is a tutor drew ' + parentHeads.length + ' family card(s)');
-    const pagesWith = w.__t.accountPages().filter(h => h.indexOf('>' + tutor.title + '<') !== -1).length;
-    if (pagesWith !== 1) bad.push('a parent who is also a tutor is on ' + pagesWith + ' pages of the column, not 1');
+    for (const c of ['parents', 'tutors']) {
+      const pagesWith = w.__t.accountPages(c).filter(h => h.indexOf('>' + tutor.title + '<') !== -1).length;
+      if (pagesWith !== 1) bad.push('a parent who is also a tutor is on ' + pagesWith + ' pages of ' + c + ', not 1');
+    }
+    if (w.__t.accountPages('students').some(h => h.indexOf('>' + tutor.title + '<') !== -1)) bad.push('a parent who is a tutor is drawn on Students');
   }
   D.tutors = heldTutors;
 
@@ -10770,9 +10778,9 @@ check('a student sees their parents, a parent their children, on the account col
   D.familyFor = 'P-P';
   if (/says they are your parent/.test(names())) bad.push('a claim list built for somebody else was drawn');
   D.familyFor = 'P-S';
-  try { w.__t.go('account', false, true); w.paint('account'); } catch (e) { bad.push('drawing the account column threw: ' + e.message); }
-  const yes = w.document.querySelector('#s-account [data-do="claim-yes"]');
-  if (!yes) bad.push('the claim card on the account column has no Yes button');
+  try { w.__t.go('parents', false, true); w.paint('parents'); } catch (e) { bad.push('drawing Parents threw: ' + e.message); }
+  const yes = w.document.querySelector('#s-parents [data-do="claim-yes"]');
+  if (!yes) bad.push('the claim card on Parents has no Yes button');
   else {
     sent.length = 0;
     w.__t.ACTIONS['claim-yes'](yes);
@@ -10821,7 +10829,7 @@ check('an admin sees everyone on the people column, and nobody else sees more th
 });
 
 /* "I MYSELF NEED TO BE ABLE TO ADD NEW PEOPLE … ADD OR DELETE OR EDIT PEOPLE FROM ADMIN ACCOUNT" (373): the "+" above everybody, its form, Edit and Delete. */
-check('an admin adds a person from the "+" on Business (444), edits one and deletes one, each seen without a reload; nobody else is offered any of it', async () => {
+check('an admin adds a person from the "+" on Students (453), edits one and deletes one (a parent, on Parents), each seen without a reload; nobody else is offered any of it', async () => {
   const PIN = ['6', '1', '4', '8', '2', '7'].join('');
   let hold = false, release = null;
   const { w, sent } = boot({
@@ -10845,8 +10853,9 @@ check('an admin adds a person from the "+" on Business (444), edits one and dele
                       { personId: 'P-E2', title: 'Carl Handled', handle: 'carl_kind32', role: 'Client', image: '' }];
   t.DATA().everyone = rows();
   const all = () => t.accountPages().join('');
-  const draw = () => { try { t.repaint(true); t.go('biz', false, true); w.paint('biz'); } catch (e) { bad.push('drawing the people column threw: ' + e.message); } };
-  const col = () => d.querySelector('#s-biz');
+  /* STUDENTS FOR EVIE AND THE NEW CHILD, PARENTS FOR CARL (453). */
+  const draw = (c = 'students') => { try { t.repaint(true); t.go(c, false, true); w.paint(c); } catch (e) { bad.push('drawing ' + c + ' threw: ' + e.message); } };
+  const col = (c = 'students') => d.querySelector('#s-' + c);
   /* NOT AN ADMIN: no "+", no Edit, no Delete, and the doors do nothing — over a tutor and a parent who have ids to name. */
   const tutors0 = t.DATA().tutors;
   t.DATA().tutors = (tutors0 || []).slice(0, 1).map(x => Object.assign({}, x, { personId: 'P-TX', title: 'Tom Tutorid' }));
@@ -10867,13 +10876,12 @@ check('an admin adds a person from the "+" on Business (444), edits one and dele
   t.DATA().tutors = tutors0; delete t.DATA().family; delete t.DATA().familyFor;
   /* AN ADMIN: the "+" once, the very first card, above even their own (447); Edit and Delete on others, not on themselves. */
   t.USER({ name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], token: 'tk' });
-  const pages = t.accountPages('admin');
+  const pages = t.accountPages('students');
   const at = pages.findIndex(h => /data-do="person-add"/.test(h)), evieAt = pages.findIndex(h => h.indexOf('>Evie<') !== -1);
-  if (pages.filter(h => /data-do="person-add"/.test(h)).length !== 1) bad.push('the admin\'s column does not have exactly one "+"');
-  /* THE HANDLE SEARCH LEADS THE COLUMN (442); the "+" comes next, above even the admin's own card (447). */
-  const lead = 0;
-  if (!(at === lead && evieAt > at)) bad.push('the "+" is at page ' + at + ', not straight after the search and above even the admin\'s own (Evie at ' + evieAt + ')');
-  if (/data-do="person-(edit|del)"/.test(t.accountPages('you').find(h => /data-do="signout"/.test(h)) || '')) bad.push('the admin\'s own card offers Edit or Delete of themselves');
+  if (pages.filter(h => /data-do="person-add"/.test(h)).length !== 1) bad.push('Students does not have exactly one "+"');
+  /* THE "+" LEADS EVERY PEOPLE COLUMN FOR AN ADMIN (453), above Find by handle and everybody. */
+  if (!(at === 0 && evieAt > at)) bad.push('the "+" is at page ' + at + ' of Students, not the first (Evie at ' + evieAt + ')');
+  if (/data-do="person-(edit|del)"/.test(t.accountPages('tutors').find(h => /card-edit/.test(h) && /data-pid="P-AD"/.test(h)) || '')) bad.push('the admin\'s own card offers Edit or Delete of themselves');
   const evie = pages[evieAt] || '';
   if (!/data-do="person-edit" data-id="P-E1"/.test(evie) || !/data-do="person-del" data-id="P-E1"/.test(evie)) bad.push('Evie\'s card has no Edit and Delete for the admin');
   if (!/data-do="msg-open"/.test(evie) || !/data-do="kid-pin"/.test(evie)) bad.push('Edit and Delete pushed Message or New PIN off the card');
@@ -10936,9 +10944,9 @@ check('an admin adds a person from the "+" on Business (444), edits one and dele
   t.DATA().everyone = rows();
 
   /* DELETE (420): asked on the tile itself — the first press arms it in words, no pop-up; the second posts `personDelete`. */
-  draw();
+  draw('parents');
   await wait(200);
-  const del = col().querySelector('[data-do="person-del"][data-id="P-E2"]');
+  const del = col('parents').querySelector('[data-do="person-del"][data-id="P-E2"]');
   if (!del) return bad.concat(['Carl has no Delete tile on the drawn column']);
   sent.length = 0;
   t.ACTIONS['person-del'](del);
@@ -11173,9 +11181,9 @@ check('an admin has "Send last week" on a parent\'s card only, and pressing it p
   if (!/data-do="digest-send-now" data-id="P-E2"/.test(carl) || !/aria-label="Send last week/.test(carl)) bad.push('the parent\'s card has no "Send last week" tile for the admin');
   if (door.test(page('Evie'))) bad.push('a student\'s card offers Send last week');
   if (door.test(t.accountPages().find(h => !/data-do="person-add"/.test(h)) || '')) bad.push('the admin\'s own card offers Send last week');
-  try { t.repaint(true); t.go('biz', false, true); w.paint('biz'); } catch (e) { bad.push('drawing the people column threw: ' + e.message); }
+  try { t.repaint(true); t.go('parents', false, true); w.paint('parents'); } catch (e) { bad.push('drawing the people column threw: ' + e.message); }
   await wait(200);
-  const tile = d.querySelector('#s-biz [data-do="digest-send-now"][data-id="P-E2"]');
+  const tile = d.querySelector('#s-parents [data-do="digest-send-now"][data-id="P-E2"]');
   if (!tile) return bad.concat(['the Send last week tile is not drawn on the people column']);
   sent.length = 0;
   t.ACTIONS['digest-send-now'](tile);
@@ -11202,11 +11210,12 @@ check('an admin\'s "Show PIN" posts pinShow, shows one line on that card, hides 
   t.USER({ name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], token: 'tk' });
   if (/data-do="pin-show"/.test(t.accountPages().find(h => !/data-do="person-add"/.test(h)) || '')) bad.push('the admin\'s own card offers Show PIN');
   if (JSON.stringify(t.DATA()).indexOf('0000') !== -1) bad.push('a PIN is in DATA before anybody asked');
-  try { t.repaint(true); t.go('biz', false, true); w.paint('biz'); } catch (e) { bad.push('drawing the people column threw: ' + e.message); }
+  /* EVIE ON STUDENTS, CARL ON PARENTS (453). */
+  try { t.repaint(true); w.paint('students'); t.go('parents', false, true); w.paint('parents'); } catch (e) { bad.push('drawing the people columns threw: ' + e.message); }
   await wait(200);
-  const tile = id => d.querySelector('#s-biz [data-do="pin-show"][data-id="' + id + '"]');
+  const tile = id => d.querySelector('#s-students [data-do="pin-show"][data-id="' + id + '"], #s-parents [data-do="pin-show"][data-id="' + id + '"]');
   if (!tile('P-E2') || !tile('P-E1')) return bad.concat(['the Show PIN tile is not drawn on every other person\'s card']);
-  const lines = () => [...d.querySelectorAll('#s-biz .person-pin')];
+  const lines = () => [...d.querySelectorAll('#s-students .person-pin, #s-parents .person-pin')];
   sent.length = 0;
   t.ACTIONS['pin-show'](tile('P-E2'));
   await wait(300);
@@ -12878,9 +12887,9 @@ const bizSwipe_ = async (w, from) => {
 const bizApplied_ = t => !!(t.DATA() && (t.DATA().columns || []).length);
 /* THE ROW THE OWNER DECIDED ON 21 OCT, by purpose: social, learning, business, games, you (docs/history/392). */
 const ORDER_392_ = ['feed', 'spotlight', 'reel', 'dm', 'tools', 'stuff', 'res', 'saved', 'progress',
-                    'booking', 'shop', 'games', 'account', 'staff', 'family', 'biz'];
+                    'booking', 'shop', 'games', 'tutors', 'students', 'parents', 'staff', 'account', 'family', 'biz'];  /* the six (453) */
 
-check('business: an admin has a Business column last, straight after Parent, holding the five records cards and the verse screen setup tile, and Save posts the card', async () => {
+check('business: an admin has a Business column last, straight after Parent settings, holding the five records cards and the verse screen setup tile, and Save posts the card', async () => {
   const { w, sent } = boot({ serve: BIZ_SERVE_(BIZ_COLS_()),
     before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(BIZ_ADMIN_)); } catch (e) {} },
     reply: body => (body.action === 'listRecords' ? { success: true, records: BIZ_HELD_ }
@@ -13677,8 +13686,8 @@ check('review 339: "Manage your child" waits with the loader while the payload c
   const c = await cardOpen_(W, 'parent@example.org');
   if (c.err) return [c.err];
   const bad = [];
-  const card = () => c.d.querySelector('#s-family .kid-manage');
-  try { c.t.go('family', false, true); c.w.paint('family'); } catch (e) { bad.push('drawing Settings threw: ' + e.message); }
+  const card = () => c.d.querySelector('#s-students .kid-manage');
+  try { c.t.go('students', false, true); c.w.paint('students'); } catch (e) { bad.push('drawing Settings threw: ' + e.message); }
   await wait(200);
   if (!(typeof c.w.awaiting_ === 'function' && c.w.awaiting_())) bad.push('the payload is not being waited for — the first half was NOT checked');
   else if (!card() || /No child is linked/.test(card().textContent) || !card().querySelector('.kid-list [aria-busy="true"], .kid-list .loading')) {
@@ -13686,7 +13695,7 @@ check('review 339: "Manage your child" waits with the loader while the payload c
   }
   W.holding = false;
   W.release();
-  for (let k = 0; k < 30 && card() && !/No child is linked/.test(card().textContent); k++) { await wait(100); try { c.w.paint('family'); } catch (e) {} }
+  for (let k = 0; k < 30 && card() && !/No child is linked/.test(card().textContent); k++) { await wait(100); try { c.w.paint('students'); } catch (e) {} }
   if (!card() || !/No child is linked/.test(card().textContent)) bad.push('the payload landed and "Manage your child" does not say no child is linked');
   /* A ROLE MAP WITH NOTHING LEFT FOR SETTINGS. */
   const { w } = boot({ payload: Object.assign(payload(), { clientFields: { 'About you': ['first_name', 'last_name', 'photo'], 'Library cards': LIB_FIELDS_ } }) });
@@ -18815,15 +18824,15 @@ check('a picture chosen on your own card\'s Edit posts savePhoto and the preview
   const bad = [];
   if (d.querySelector('#s-account [data-me="photo"]')) bad.push('Settings still draws a box for a photo link');
   if (d.querySelector('#s-account .pfp')) bad.push('Settings still draws the picture picker, which is on your own card\'s Edit now');
-  try { t.go('account', false, true); w.paint('account'); } catch (e) { return bad.concat(['drawing the You column threw: ' + e.message]); }
+  try { t.go('tutors', false, true); w.paint('tutors'); } catch (e) { return bad.concat(['drawing Tutors threw: ' + e.message]); }
   await wait(200);
-  const edit = d.querySelector('#s-account [data-do="card-edit"][data-pid="P001"]');
+  const edit = d.querySelector('#s-tutors [data-do="card-edit"][data-pid="P001"]');
   if (!edit) return bad.concat(['an admin with no public card has no Edit on their own card']);
   t.ACTIONS['card-edit'](edit);
   await wait(300);
-  const box = () => d.querySelector('#s-account .card-ed .pfp');
+  const box = () => d.querySelector('#s-tutors .card-ed .pfp');
   if (!box()) return bad.concat(['your own card\'s Edit has no picture picker']);
-  if (d.querySelector('#s-account .card-ed [data-me="photo"]')) bad.push('the card\'s Edit draws a box for a photo link beside the picker');
+  if (d.querySelector('#s-tutors .card-ed [data-me="photo"]')) bad.push('the card\'s Edit draws a box for a photo link beside the picker');
   const inp = box().querySelector('input.pfp-in[type="file"]');
   if (!inp || !/image\/\*/.test(inp.getAttribute('accept') || '')) bad.push('the picker has no hidden file input taking images');
   if (!box().querySelector('[data-do="pfp-pick"]')) bad.push('the picker has no Choose photo tile');
@@ -18893,30 +18902,32 @@ async function pfpRoleJourney(key) {
   const first = P.name.split(' ')[0];
   t.USER({ name: P.name, personId: P.personId, role: P.role, roles: P.roles, token: 'tk', handle: P.handle,
            avatar: P.avatar, photo: '', profile: { first_name: first, last_name: P.name.split(' ')[1], photo: '', phone_cc: '+44' } });
-  try { t.go('account', false, true); w.paint('account'); } catch (e) { return ['drawing the You column threw: ' + e.message]; }
+  /* YOUR OWN CARD IS ON YOUR RANK'S PEOPLE COLUMN (453). */
+  const H = '#s-' + t.homeCol(), HC = t.homeCol();
+  try { t.go(HC, false, true); w.paint(HC); w.paint('account'); } catch (e) { return ['drawing ' + HC + ' threw: ' + e.message]; }
   await wait(300);
   const bad = [];
   /* EDIT ON YOUR OWN CARD, AND THE FORM IT TURNS INTO. */
-  const editing = () => d.querySelector('#s-account .card-ed[data-pid="' + P.personId + '"] .me-form');
+  const editing = () => d.querySelector(H + ' .card-ed[data-pid="' + P.personId + '"] .me-form');
   const openEdit = async () => {
     if (editing()) return true;
     /* DRAWN AGAIN AS YOU FIRST — `asOther` below draws the column as somebody else and puts you back without
        a paint, so the column on the page can be theirs. */
-    try { w.paint('account'); } catch (e) {}
-    const e = d.querySelector('#s-account [data-do="card-edit"][data-pid="' + P.personId + '"]');
+    try { w.paint(HC); } catch (e) {}
+    const e = d.querySelector(H + ' [data-do="card-edit"][data-pid="' + P.personId + '"]');
     if (!e) return false;
     t.ACTIONS['card-edit'](e);
     for (let k = 0; k < 20 && !editing(); k++) await wait(50);
     return !!editing();
   };
   const shut = async () => {
-    const save = d.querySelector('#s-account [data-do="card-save"][data-pid="' + P.personId + '"]');
+    const save = d.querySelector(H + ' [data-do="card-save"][data-pid="' + P.personId + '"]');
     if (save) t.ACTIONS['card-save'](save);
     for (let k = 0; k < 20 && editing(); k++) await wait(50);
   };
   if (!(await openEdit())) return ['a ' + key + '\'s own card has no Edit, or Edit drew no form'];
-  if ([...d.querySelectorAll('#s-account .pfp')].some(x => !x.closest('.card-ed'))) bad.push('a ' + key + '\'s Settings still draws a picture picker');
-  const box = () => d.querySelector('#s-account .card-ed .pfp');
+  if ([...d.querySelectorAll('#s-account .pfp, ' + H + ' .pfp')].some(x => !x.closest('.card-ed'))) bad.push('a ' + key + '\'s Settings still draws a picture picker');
+  const box = () => d.querySelector(H + ' .card-ed .pfp');
   if (!box()) return ['a ' + key + '\'s own card\'s Edit has no picture picker'];
   const opts = () => [...box().querySelectorAll('.pfp-grid button.pfp-opt[data-do="pfp-choose"]')];
   const names = opts().map(b => b.dataset.pic);
@@ -18947,7 +18958,7 @@ async function pfpRoleJourney(key) {
     return !el.querySelector('svg, img') && el.tagName !== 'IMG' && el.textContent.trim() === want.letter ? '' : 'not the initial ' + want.letter + ': ' + html.slice(0, 90);
   };
   /* YOUR OWN CARD, AS THE APP REPAINTED THE YOU COLUMN AFTER THE SAVE. */
-  const myCard = () => [...d.querySelectorAll('#s-account .card.is-prof')]
+  const myCard = () => [...d.querySelectorAll(H + ' .card.is-prof')]
     .find(c => (c.querySelector('.prof-name') || {}).textContent === P.name);
   /* AND AS SOMEBODY ELSE, FROM WHAT `doGet` SENDS THEM. Drawn, then put back. */
   const asOther = (stored, figure) => {
@@ -18960,9 +18971,9 @@ async function pfpRoleJourney(key) {
         t.USER({ name: 'Mo Parent', personId: 'P-M9', role: 'parent', roles: ['parent'], token: 'tk2', profile: {} });
         D.family = [Object.assign({ personId: P.personId, title: P.name, relation: 'child', handle: P.handle }, face)];
         D.familyFor = 'P-M9';
-        /* A PARENT'S CHILDREN ARE ON THE PARENT COLUMN (444). */
-        w.paint('family');
-        el = [...d.querySelectorAll('#s-family .card.is-prof')].find(c => (c.querySelector('.prof-name') || {}).textContent === P.name);
+        /* A PARENT'S CHILDREN ARE ON STUDENTS (453). */
+        w.paint('students');
+        el = [...d.querySelectorAll('#s-students .card.is-prof')].find(c => (c.querySelector('.prof-name') || {}).textContent === P.name);
         el = el && el.querySelector('.prof-pic');
       } else if (P.other === 'dm') {         // the parent's child, at the head of their conversation
         t.USER({ name: 'Kit Child', personId: 'P-K9', role: 'kid', roles: ['student'], token: 'tk2', profile: {} });
@@ -18975,8 +18986,8 @@ async function pfpRoleJourney(key) {
       } else if (P.other === 'people') {     // a visitor's people column
         t.USER({ name: 'Vi Visitor', personId: 'P-V9', role: 'parent', roles: ['parent'], token: 'tk2', profile: {} });
         D.tutors = keep.tutors.filter(r => r.personId !== P.personId).concat([Object.assign(mineRow(), face)]);
-        w.paint('account');
-        el = [...d.querySelectorAll('#s-account .card.is-prof')].find(c => (c.querySelector('.prof-name') || {}).textContent === P.name);
+        w.paint('tutors');
+        el = [...d.querySelectorAll('#s-tutors .card.is-prof')].find(c => (c.querySelector('.prof-name') || {}).textContent === P.name);
         el = el && el.querySelector('.prof-pic');
       } else {                               // the feed, which every visitor is sent
         t.USER(null);
@@ -19031,7 +19042,7 @@ async function pfpRoleJourney(key) {
     /* LIVE, AND DRESSED ON THE SAME FORM: § */
     const dress = async n => {
       await openEdit();
-      const sw = d.querySelector('#s-account .card-ed .av-card [data-do="av-colour"][data-field="shirt"][data-value="' + n + '"]');
+      const sw = d.querySelector(H + ' .card-ed .av-card [data-do="av-colour"][data-field="shirt"][data-value="' + n + '"]');
       if (!sw) { bad.push('your own card\'s Edit has no wardrobe with shirt ' + n + ' in it'); return false; }
       sent.length = 0;
       t.ACTIONS['av-colour'](sw);
@@ -19089,14 +19100,14 @@ check('before the backend is pulled, tapping a picture says the server\'s refusa
   const t = w.__t, d = w.document;
   t.USER({ name: 'Pat Mum', personId: 'P-C9', role: 'parent', roles: ['parent'], token: 'tk', handle: 'pat_kind09',
            avatar: '', photo: URL_, profile: { first_name: 'Pat', last_name: 'Mum', photo: URL_, phone_cc: '+44' } });
-  /* ON PAT'S OWN CARD'S EDIT, where the picker is since docs/history/339. */
-  t.go('account', false, true); w.paint('account');
+  /* ON PAT'S OWN CARD'S EDIT, where the picker is since docs/history/339 — on Parents, a parent's column (453). */
+  t.go('parents', false, true); w.paint('parents');
   await wait(200);
-  const edit = d.querySelector('#s-account [data-do="card-edit"][data-pid="P-C9"]');
+  const edit = d.querySelector('#s-parents [data-do="card-edit"][data-pid="P-C9"]');
   if (edit) t.ACTIONS['card-edit'](edit);
   await wait(300);
   const bad = [];
-  const box = () => d.querySelector('#s-account .card-ed .pfp');
+  const box = () => d.querySelector('#s-parents .card-ed .pfp');
   if (!box()) return ['no picture picker on Pat\'s own card\'s Edit'];
   const fox = box().querySelector('.pfp-opt[data-pic="fox"]');
   sent.length = 0;
@@ -25949,7 +25960,7 @@ check('a child is her first name on every screen, and a parent is hers to everyb
     const look = (where) => {
       const root = w.document.documentElement.cloneNode(true);
       /* HER OWN BOXES, AND NOTHING ELSE, are where her surname belongs — on Settings, and on her own card's Edit, where her name is edited since docs/history/339 § */
-      if (pid === 'P-KID') root.querySelectorAll('#s-account input, #s-account textarea, #s-account .card-ed[data-pid="P-KID"] input').forEach(el => el.remove());
+      if (pid === 'P-KID') root.querySelectorAll('#s-account input, #s-account textarea, #s-students .card-ed[data-pid="P-KID"] input').forEach(el => el.remove());
       const html = root.outerHTML;
       const m = html.match(new RegExp('.{0,70}(?:' + hunt.join('|') + ').{0,40}', 'i'));
       if (/Juno/.test(html)) sawJuno = true;
@@ -25963,16 +25974,16 @@ check('a child is her first name on every screen, and a parent is hers to everyb
       look(id);
       /* HER OWN CARD, BEING EDITED — the one screen where her surname is in a box of her own, and so the one where
          it could leak just beside the box. Opened, looked at, and put back as a card. */
-      if (pid === 'P-KID' && id === 'account') {
-        const ed = w.document.querySelector('#s-account [data-do="card-edit"][data-pid="P-KID"]');
+      if (pid === 'P-KID' && id === 'students') {
+        const ed = w.document.querySelector('#s-students [data-do="card-edit"][data-pid="P-KID"]');
         if (!ed) bad.push('herself: there is no Edit on her own card, so her card\'s editor was NOT looked at');
         else {
           t.ACTIONS['card-edit'](ed);
-          for (let k = 0; k < 40 && !w.document.querySelector('#s-account .card-ed .me-form'); k++) await wait(100);
-          const box = w.document.querySelector('#s-account .card-ed [data-me="last_name"]');
+          for (let k = 0; k < 40 && !w.document.querySelector('#s-students .card-ed .me-form'); k++) await wait(100);
+          const box = w.document.querySelector('#s-students .card-ed [data-me="last_name"]');
           if (!box) bad.push('herself: her card\'s editor drew no surname box, so the walk past it was NOT a test');
-          look('account, her own card being edited');
-          const cancel = w.document.querySelector('#s-account [data-do="card-cancel"]');
+          look('students, her own card being edited');
+          const cancel = w.document.querySelector('#s-students [data-do="card-cancel"]');
           if (cancel) { t.ACTIONS['card-cancel'](cancel); await wait(300); }
         }
       }
