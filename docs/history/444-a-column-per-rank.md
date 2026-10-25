@@ -15,8 +15,8 @@ question quickly."
 
 - `TAB_ORDER` ends `account (Student) · staff (Tutor) · family (Parent) · biz (Business)`. The Settings
   column (`settings`) is gone: its cards are on Student, under your card. `columns.json` lists the same.
-- **Tools is beside Find**: `stuff, tools, res, saved, progress`. One swipe from a question to the
-  whiteboard and back.
+- **Tools is beside Find, on its left**: `tools, stuff, res, saved, progress`. One swipe from a question
+  to the whiteboard and back; Find 2 keeps the place immediately right of Find (the owner, 12 Oct; 347).
 - Every signed-in account sees Student, Tutor and Parent. A column above your rank draws one card
   (`rankOffCard_`, me.js): its title, "This column is for a … account, not yours", and the next step —
   on Tutor, Apply to teach (`applyCard_`; a child gets the sentence alone); on Parent, "A parent links you

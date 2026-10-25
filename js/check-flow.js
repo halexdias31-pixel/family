@@ -6357,30 +6357,30 @@ check('a wide window starts the widgets on the glass beside the column in front,
   let stops = 0;
   const realStop = calc.stop;
   calc.stop = function () { stops++; return realStop ? realStop.apply(this, arguments) : undefined; };
-  t.go('res', false, true);
+  t.go('stuff', false, true);
   await settle_();
   await until_(() => toolsSlots_(w).filter(x => x.lit).every(x => x.on && !x.veiled));
   const bad = [];
   const g = t.glass();
-  if (t.AT() !== 'res') return ['Find 2 did not come in front, so nothing was asked'];
-  if (g.cols.indexOf('tools') === -1) return ['at 1194 with Find 2 in front the glass is ' + JSON.stringify(g.cols) + ' — Tools is not on it, so nothing was asked (is the window wide? are the columns in the sheet\'s order?)'];
+  if (t.AT() !== 'stuff') return ['Find did not come in front, so nothing was asked'];
+  if (g.cols.indexOf('tools') === -1) return ['at 1194 with Find in front the glass is ' + JSON.stringify(g.cols) + ' — Tools is not on it, so nothing was asked (is the window wide? are the columns in the sheet\'s order?)'];
   let s = toolsSlots_(w);
   const lit = s.filter(x => x.lit), dark = s.filter(x => !x.lit);
-  if (!lit.length) return ['no Tools card is on the glass beside Find 2, so nothing was asked'];
-  lit.filter(x => x.veiled).forEach(x => bad.push('#wgt-' + x.id + ' is on the glass beside Find 2 and still holds the loader — it was never started'));
-  lit.filter(x => !x.on).forEach(x => bad.push('#wgt-' + x.id + ' is on the glass beside Find 2 and is not running on Tools'));
+  if (!lit.length) return ['no Tools card is on the glass beside Find, so nothing was asked'];
+  lit.filter(x => x.veiled).forEach(x => bad.push('#wgt-' + x.id + ' is on the glass beside Find and still holds the loader — it was never started'));
+  lit.filter(x => !x.on).forEach(x => bad.push('#wgt-' + x.id + ' is on the glass beside Find and is not running on Tools'));
   /* AND ONLY THOSE. A column beside you is not a column you arrived at; what is off the glass on it waits. */
   if (!dark.length) bad.push('every Tools card counted as on the glass, so whether it starts ONLY what is on it was not asked');
-  dark.filter(x => x.on).forEach(x => bad.push('#wgt-' + x.id + ' is off the glass on a column beside Find 2 and was started anyway'));
+  dark.filter(x => x.on).forEach(x => bad.push('#wgt-' + x.id + ' is off the glass on a column beside Find and was started anyway'));
   if (!lit.some(x => x.id === 'calculator')) bad.push('the calculator — the first Tools card — is not among the cards on the glass');
-  if (t.AT() !== 'res') bad.push('the column in front moved to ' + t.AT() + ' — nobody went to Tools');
+  if (t.AT() !== 'stuff') bad.push('the column in front moved to ' + t.AT() + ' — nobody went to Tools');
   /* NARROWED TO A PHONE: the column beside is a 23px edge again, and what ran on it stops. */
   const before = stops;
   w.__width(390);
   await wait(400); await woken_();
   await until_(() => !t.running().some(r => r.col === 'tools'), 5000);
   const g2 = t.glass();
-  if (g2.cols.join() !== 'res') bad.push('narrowed to 390 the glass is still ' + JSON.stringify(g2.cols) + ' — only Find 2 is on a phone\'s');
+  if (g2.cols.join() !== 'stuff') bad.push('narrowed to 390 the glass is still ' + JSON.stringify(g2.cols) + ' — only Find is on a phone\'s');
   const still = t.running().filter(r => r.col === 'tools').map(r => r.id);
   if (still.length) bad.push('narrowed to 390, ' + still.join(', ') + ' went on running on Tools, which is no longer on the glass');
   if (stops === before) bad.push('narrowed to 390, the calculator\'s stop was never called');
@@ -6389,16 +6389,16 @@ check('a wide window starts the widgets on the glass beside the column in front,
   await wait(400); await woken_();
   await until_(() => t.running().some(r => r.id === 'calculator' && r.col === 'tools'));
   s = toolsSlots_(w);
-  if (!s.some(x => x.id === 'calculator' && x.on)) bad.push('widened back to 1194, the calculator beside Find 2 is not running again');
-  /* SWIPED OFF THE GLASS: Saved in front puts Tools two columns away, an 8px edge at 1194 (Tools beside Find since 444; Find 2 is its other side). */
+  if (!s.some(x => x.id === 'calculator' && x.on)) bad.push('widened back to 1194, the calculator beside Find is not running again');
+  /* SWIPED OFF THE GLASS: Find 2 in front puts Tools two columns away, an 8px edge at 1194 (Tools beside Find since 444; Find is its other side). */
   const before2 = stops;
-  t.go('saved', false, true);
+  t.go('res', false, true);
   await settle_();
   await until_(() => !t.running().some(r => r.col === 'tools'), 5000);
   const still2 = t.running().filter(r => r.col === 'tools').map(r => r.id);
-  if (t.glass().cols.indexOf('tools') !== -1) bad.push('with Saved in front, Tools still counts as on the glass at 1194: ' + JSON.stringify(t.glass().cols));
-  if (still2.length) bad.push('with Saved in front, ' + still2.join(', ') + ' went on running on Tools, two columns away and off the glass');
-  if (stops === before2) bad.push('going to Saved, the calculator\'s stop was never called');
+  if (t.glass().cols.indexOf('tools') !== -1) bad.push('with Find 2 in front, Tools still counts as on the glass at 1194: ' + JSON.stringify(t.glass().cols));
+  if (still2.length) bad.push('with Find 2 in front, ' + still2.join(', ') + ' went on running on Tools, two columns away and off the glass');
+  if (stops === before2) bad.push('going to Find 2, the calculator\'s stop was never called');
   return bad;
 });
 
@@ -6425,7 +6425,8 @@ check('a starred widget on Tools and Saved is one widget: started once, and neve
   const drawn = col => !!d.querySelector('#s-' + col + ' #wgt-calculator #mc-display .mc-caret');
   const bad = [];
   if (t.running().some(r => r.id === 'calculator')) return ['the calculator was already running with Shop in front, so nothing was asked'];
-  /* FIND 2 IN FRONT (444): Tools on one side and Saved on the other, both whole, both with the calculator on the glass. */
+  /* FIND 2 IN FRONT ON A 1920 WINDOW (444): Tools left of Find and Saved right of Find 2, both on the glass, both with the calculator. */
+  w.__width(1920); await wait(300);
   t.go('res', false, true);
   await settle_();
   await until_(() => t.running().some(r => r.id === 'calculator'));
@@ -6440,9 +6441,10 @@ check('a starred widget on Tools and Saved is one widget: started once, and neve
   if (on[0] && !drawn(on[0].col)) bad.push('the calculator is running on ' + on[0].col + '\'s copy and that copy\'s display was never drawn');
   /* TO THE COPY IT RUNS ON: arriving there starts nothing again — unless the column was `STALE` and drawn again on the way in § */
   /* SINCE 392 Saved and Tools sit either side of Progress, so which copy runs first is the app's to choose; the journey follows it. */
-  const NAME_ = { tools: 'Tools', saved: 'Saved', res: 'Find 2', booking: 'Book', progress: 'Progress', stuff: 'Find' };
+  const NAME_ = { tools: 'Tools', saved: 'Saved', res: 'Find 2', booking: 'Book', reel: 'Reels' };
   const ran = on[0] ? on[0].col : 'tools', other = ran === 'tools' ? 'saved' : 'tools';
-  const away = other === 'saved' ? 'progress' : 'stuff';
+  /* FIVE ON THE GLASS AT 1920: two past the other copy, the one that ran is off and the other still on. */
+  const away = other === 'saved' ? 'booking' : 'reel';
   const startsAtRan = starts;
   const slotWas = d.querySelector('#s-' + ran + ' #wgt-calculator');
   t.go(ran, false, true);
@@ -6481,12 +6483,12 @@ check('arriving at a column on a wide window leaves what already runs on it, and
   for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
   const t = w.__t;
   await wait(300);
-  t.go('res', false, true);
+  t.go('stuff', false, true);
   await settle_();
   const bad = [];
   const ws = t.widgetsOf('tool').filter(x => typeof x.start === 'function');
   const runningBefore = new Set(t.running().filter(r => r.col === 'tools').map(r => r.id));
-  if (!runningBefore.size) return ['nothing was running on Tools beside Find 2, so nothing was asked'];
+  if (!runningBefore.size) return ['nothing was running on Tools beside Find, so nothing was asked'];
   /* THE SLOTS AS THEY ARE, because a column marked `STALE` is drawn again on the way in and what ran in
      the old markup is rightly started again; only a widget whose slot is the same element must not be. */
   const slotWas = {};
@@ -6508,7 +6510,7 @@ check('arriving at a column on a wide window leaves what already runs on it, and
   await wait(50);
   const kept = [...runningBefore].filter(id => w.document.querySelector('#s-tools #wgt-' + id) === slotWas[id]);
   if (!kept.length) bad.push('Tools was drawn again on the way in, so leaving what already ran was not asked');
-  kept.filter(id => seen[id]).forEach(id => bad.push('#wgt-' + id + ' was running beside Find 2 and arriving at Tools started it again (' + seen[id] + 'x) in the same slot'));
+  kept.filter(id => seen[id]).forEach(id => bad.push('#wgt-' + id + ' was running beside Find and arriving at Tools started it again (' + seen[id] + 'x) in the same slot'));
   const never = ws.filter(x => !t.running().some(r => r.id === String(x.id) && r.col === 'tools')).map(x => x.id);
   if (never.length) bad.push('arriving at Tools left ' + never.join(', ') + ' never started');
   if (most > 3) bad.push(most + ' widgets started in one task on arrival — a swipe would wait behind every one');
@@ -6523,23 +6525,23 @@ check('a widget beside the column in front that waits for the payload is drawn w
   let release = null;
   const admin = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 't' };
   /* THE WRITTEN COLUMN ORDER, NOT THE SHEET'S: the payload is what carries the sheet's, and it is held. In
-     the written order Tools sits beside Find 2. */
+     the written order Tools sits beside Find. */
   const { w } = wideBoot_({ payload: payload(),
     serve: u => (u.indexOf('script.google.com') === -1 ? undefined : new Promise(r => { release = () => r(payload()); })),
     before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(admin)); } catch (e) {} } });
   for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
   const t = w.__t;
   await wait(300);
-  t.go('res', false, true);
+  t.go('stuff', false, true);
   await settle_();
   const bad = [];
   if (!release) return ['the payload was never asked for, so nothing was held'];
-  if (t.glass().cols.indexOf('tools') === -1) return ['with Find 2 in front and the payload held the glass is ' + JSON.stringify(t.glass().cols) + ' — Tools is not beside it, so nothing was asked'];
+  if (t.glass().cols.indexOf('tools') === -1) return ['with Find in front and the payload held the glass is ' + JSON.stringify(t.glass().cols) + ' — Tools is not beside it, so nothing was asked'];
   const card = () => w.document.querySelector('#s-tools #wgt-flyers');
   if (!card()) return ['an admin\'s Tools has no flyer maker, so nothing was asked'];
   await until_(() => t.running().some(r => r.id === 'flyers' && r.col === 'tools'));
-  if (!t.running().some(r => r.id === 'flyers' && r.col === 'tools')) return ['the flyer maker beside Find 2 was never started, so its wait for the payload was not asked'];
-  if (!card().querySelector('.loading')) return ['the flyer maker beside Find 2 shows no loader with the payload held, so nothing was waiting'];
+  if (!t.running().some(r => r.id === 'flyers' && r.col === 'tools')) return ['the flyer maker beside Find was never started, so its wait for the payload was not asked'];
+  if (!card().querySelector('.loading')) return ['the flyer maker beside Find shows no loader with the payload held, so nothing was waiting'];
   if (card().getAttribute('aria-busy') === 'true') bad.push('the flyer maker still holds the "not started" veil after it started');
   const was = card();
   /* AND NEVER BARE ON THE WAY. § */
@@ -6553,14 +6555,14 @@ check('a widget beside the column in front that waits for the payload is drawn w
   await until_(() => card() && card() !== was && !!card().querySelector('#fm-wrap .widget-squeeze'));
   await woken_();
   mo.disconnect();
-  if (bare) bad.push('the payload landed and the new flyer maker beside Find 2 was shown without its veil and with nothing running in it, ' + bare + ' time(s) — markup nobody had started, unveiled because the one in the thrown-away markup still counted as running');
+  if (bare) bad.push('the payload landed and the new flyer maker beside Find was shown without its veil and with nothing running in it, ' + bare + ' time(s) — markup nobody had started, unveiled because the one in the thrown-away markup still counted as running');
   if (card() === was) bad.push('the payload landed and Tools was not drawn again, so starting the new markup was not asked');
-  if (card() && card().getAttribute('aria-busy') === 'true') bad.push('the payload landed, Tools was drawn again beside Find 2, and the new flyer maker sits under the "not started" veil — only going to Tools would have started it');
-  else if (card() && card().querySelector('.loading')) bad.push('the payload landed and the flyer maker beside Find 2 still shows the loader');
+  if (card() && card().getAttribute('aria-busy') === 'true') bad.push('the payload landed, Tools was drawn again beside Find, and the new flyer maker sits under the "not started" veil — only going to Tools would have started it');
+  else if (card() && card().querySelector('.loading')) bad.push('the payload landed and the flyer maker beside Find still shows the loader');
   /* AND DRAWN, NOT ONLY UNVEILED: § */
-  if (card() && !card().querySelector('#fm-wrap .widget-squeeze')) bad.push('the payload landed and the new flyer maker beside Find 2 was never started — its box is the empty markup');
+  if (card() && !card().querySelector('#fm-wrap .widget-squeeze')) bad.push('the payload landed and the new flyer maker beside Find was never started — its box is the empty markup');
   if (t.running().filter(r => r.id === 'flyers').length !== 1) bad.push('after the payload the flyer maker is running ' + t.running().filter(r => r.id === 'flyers').length + ' time(s), not once');
-  if (t.AT() !== 'res') bad.push('the column in front moved to ' + t.AT());
+  if (t.AT() !== 'stuff') bad.push('the column in front moved to ' + t.AT());
   return bad;
 });
 
@@ -6570,16 +6572,16 @@ check('a repaint and then an arrival keep the widget running beside the column i
   for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
   const t = w.__t;
   await wait(300);
-  t.go('res', false, true);
+  t.go('stuff', false, true);
   await settle_();
   const d = w.document;
   const slot = () => d.querySelector('#s-tools #wgt-calculator');
   const shown = () => { const el = d.querySelector('#s-tools #wgt-calculator #mc-display'); return el ? el.textContent : null; };
   await until_(() => t.running().some(r => r.id === 'calculator' && r.col === 'tools') && slot() && !slot().getAttribute('aria-busy'));
-  if (!t.running().some(r => r.id === 'calculator' && r.col === 'tools')) return ['the calculator beside Find 2 never started, so nothing was asked'];
+  if (!t.running().some(r => r.id === 'calculator' && r.col === 'tools')) return ['the calculator beside Find never started, so nothing was asked'];
   if (typeof w._mcClick !== 'function') return ['the calculator set no `_mcClick`, so nothing could be typed into it'];
   ['7', '+', '5'].forEach(k => w._mcClick(k));
-  if (shown() !== '7+5') return ['typed 7+5 into the calculator beside Find 2 and it reads ' + JSON.stringify(shown()) + ', so nothing was asked'];
+  if (shown() !== '7+5') return ['typed 7+5 into the calculator beside Find and it reads ' + JSON.stringify(shown()) + ', so nothing was asked'];
   const calc = t.widgetsOf('tool').find(x => String(x.id) === 'calculator');
   let starts = 0;
   const realStart = calc.start;
@@ -6606,7 +6608,7 @@ check('a repaint and then an arrival keep the widget running beside the column i
   else if (star() === starWas) bad.push('the calculator\'s star is the element it was before the arrival — the column was not drawn again, so keeping the slot through a paint was not asked');
   if (slot() !== was) bad.push('arriving at Tools after a repaint threw away the slot the calculator was running in and drew a new one');
   if (veiled) bad.push('between the repaint and arriving at Tools the calculator\'s slot was gone or held the loader ' + veiled + ' time(s): drawn, the dots, drawn');
-  if (shown() !== '7+5') bad.push('the sum typed beside Find 2 reads ' + JSON.stringify(shown()) + ' once Tools is in front — the calculator was started again from nothing');
+  if (shown() !== '7+5') bad.push('the sum typed beside Find reads ' + JSON.stringify(shown()) + ' once Tools is in front — the calculator was started again from nothing');
   if (starts) bad.push('arriving at Tools started the calculator ' + starts + ' time(s) more, though it was running on Tools\' own copy');
   const on = t.running().filter(r => r.id === 'calculator');
   if (on.length !== 1 || on[0].col !== 'tools') bad.push('with Tools in front the calculator runs ' + JSON.stringify(on.map(r => r.col)) + ', not once on Tools');
@@ -6620,28 +6622,28 @@ check('a sign-out stops what its column no longer draws beside the column in fro
   for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
   const t = w.__t;
   await wait(300);
-  t.go('res', false, true);
+  t.go('stuff', false, true);
   await settle_();
   const runs = id => t.running().find(r => r.id === id && r.col === 'tools');
   await until_(() => runs('calculator') && runs('flyers'));
-  if (!runs('flyers') || !runs('calculator')) return ['with the admin signed in, the calculator and the flyer maker are not both running beside Find 2 (' + JSON.stringify(t.running().map(r => r.id + '@' + r.col)) + '), so nothing was asked'];
-  if (runs('calculator').who !== 'P001') return ['the calculator beside Find 2 says it was started for ' + JSON.stringify(runs('calculator').who) + ', not for the admin, so nothing was asked'];
+  if (!runs('flyers') || !runs('calculator')) return ['with the admin signed in, the calculator and the flyer maker are not both running beside Find (' + JSON.stringify(t.running().map(r => r.id + '@' + r.col)) + '), so nothing was asked'];
+  if (runs('calculator').who !== 'P001') return ['the calculator beside Find says it was started for ' + JSON.stringify(runs('calculator').who) + ', not for the admin, so nothing was asked'];
   const bad = [];
   if (typeof w.signedOut_ !== 'function' || typeof w.signedIn_ !== 'function') return ['signedOut_ / signedIn_ are not globals, so a change of person was NOT asked'];
   /* SIGNED OUT WITH BOOK IN FRONT, and nobody goes anywhere. */
   try { w.signedOut_(); } catch (e) { return ['signedOut_ threw: ' + e.message]; }
   await settle_();
   await until_(() => !runs('flyers') && runs('calculator') && runs('calculator').who === '');
-  if (!t.stale('tools')) bad.push('the sign-out did not leave Tools stale, so nothing beside Find 2 was running in markup it would not draw now');
-  if (runs('flyers')) bad.push('signed out with Find 2 in front, the admin\'s flyer maker went on running on Tools beside it — a signed-out Tools does not draw it');
-  if (!runs('calculator')) bad.push('signed out with Find 2 in front, the calculator on Tools beside it stopped and was not started again');
-  else if (runs('calculator').who !== '') bad.push('signed out with Find 2 in front, the calculator beside it is still the one started for ' + JSON.stringify(runs('calculator').who));
-  /* SIGNED IN AGAIN, then out and STRAIGHT to Tools — before anything beside Find 2 has been started
+  if (!t.stale('tools')) bad.push('the sign-out did not leave Tools stale, so nothing beside Find was running in markup it would not draw now');
+  if (runs('flyers')) bad.push('signed out with Find in front, the admin\'s flyer maker went on running on Tools beside it — a signed-out Tools does not draw it');
+  if (!runs('calculator')) bad.push('signed out with Find in front, the calculator on Tools beside it stopped and was not started again');
+  else if (runs('calculator').who !== '') bad.push('signed out with Find in front, the calculator beside it is still the one started for ' + JSON.stringify(runs('calculator').who));
+  /* SIGNED IN AGAIN, then out and STRAIGHT to Tools — before anything beside Find has been started
      again — so the arrival's paint meets a slot started for the admin. It must not carry it. */
   try { w.signedIn_(Object.assign({}, admin)); } catch (e) { return bad.concat(['signedIn_ threw: ' + e.message]); }
   await settle_();
   await until_(() => runs('calculator') && runs('calculator').who === 'P001');
-  if (!runs('calculator') || runs('calculator').who !== 'P001') return bad.concat(['signed in again, the calculator beside Find 2 was not started for the admin (' + JSON.stringify(runs('calculator') && runs('calculator').who) + '), so carrying a slot across a change of person was not asked']);
+  if (!runs('calculator') || runs('calculator').who !== 'P001') return bad.concat(['signed in again, the calculator beside Find was not started for the admin (' + JSON.stringify(runs('calculator') && runs('calculator').who) + '), so carrying a slot across a change of person was not asked']);
   const adminSlot = runs('calculator').slot;
   try { w.signedOut_(); t.go('tools', false, true); } catch (e) { return bad.concat(['signing out and going to Tools threw: ' + e.message]); }
   const now = w.document.querySelector('#s-tools #wgt-calculator');
@@ -12725,7 +12727,7 @@ const bizSwipe_ = async (w, from) => {
 /* THE FILE WAS READ: since 392 TAB_ORDER and columns.json agree, so the order cannot tell them apart and the payload is asked. */
 const bizApplied_ = t => !!(t.DATA() && (t.DATA().columns || []).length);
 /* THE ROW THE OWNER DECIDED ON 21 OCT, by purpose: social, learning, business, games, you (docs/history/392). */
-const ORDER_392_ = ['feed', 'spotlight', 'reel', 'dm', 'stuff', 'tools', 'res', 'saved', 'progress',
+const ORDER_392_ = ['feed', 'spotlight', 'reel', 'dm', 'tools', 'stuff', 'res', 'saved', 'progress',
                     'booking', 'shop', 'games', 'account', 'staff', 'family', 'biz'];
 
 check('business: an admin has a Business column last, straight after Parent, holding the five records cards and the verse screen setup tile, and Save posts the card', async () => {

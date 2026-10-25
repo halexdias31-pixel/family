@@ -39,7 +39,7 @@ const TABS = [
 /* ---------- LEFT TO RIGHT, WHICH IS NOT THE ORDER THEY ARE WRITTEN IN § */
 /* GROUPED BY PURPOSE, read left to right (392). columns.json lists the same order; check-doors fails if they part. § */
 const TAB_ORDER = ['feed', 'spotlight', 'reel', 'dm',                  /* social   (392) */
-                   'stuff', 'tools', 'res', 'saved', 'progress',      /* learning; Tools beside Find, one swipe to the whiteboard (444) */
+                   'tools', 'stuff', 'res', 'saved', 'progress',      /* learning; Tools left of Find, one swipe to the whiteboard (444) */
                    'booking', 'shop',                                 /* business */
                    'games',
                    'account', 'staff', 'family', 'biz'];              /* a column per account: Student, Tutor, Parent, Business (444) */
