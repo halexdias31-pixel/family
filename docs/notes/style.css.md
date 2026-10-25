@@ -10445,12 +10445,12 @@ before `.fight-faces`
    as his name in bold under it. A draw leaves both plain. */
 ```
 
-### THE CREDITS FOR BOTH FACES, centred under them and above the title, at the profile's caption size.
+### THE CREDITS FOR BOTH FACES, centred under them at the card's foot, at the profile's caption size.
 
 before `.fight-credit`
 
 ```
-/* THE CREDITS FOR BOTH FACES, centred under them and above the title, at the profile's caption
+/* THE CREDITS FOR BOTH FACES, centred under them at the card's foot, at the profile's caption
    size. Each is its own `.boxer-src` so a face that fails can take its own credit away and leave the
    other — and each is a 44px link block now (see `.boxer-src`), so two photos are two lines rather
    than one line joined by a dot: two tap targets cannot share one line of small print. */

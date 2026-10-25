@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-25-d-find-child";
+  --css-version: "2026-10-25-e-booking-finder-tidy";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -4781,14 +4781,14 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .boxer-tt::before { content: "\00a0\00b7\00a0"; color: var(--faint); }
 
 /* ---------- THE FIGHT CARD'S TWO FACES § */
-.fight-faces { order: -1; display: flex; align-items: center; justify-content: center; gap: .7rem;
-               margin: 0 0 var(--fc-group); }
+.fight-faces { display: flex; align-items: center; justify-content: center; gap: .7rem;
+               margin: var(--fc-group) 0 0; } /* last on the card, under its tags, as a question's figure (445) */
 .boxer-pic.is-small { flex: 0 0 auto; width: 5.6rem; margin: 0; }
 .boxer-pic.is-small .boxer-frame { aspect-ratio: 1 / 1; }
 .boxer-pic.is-small.won .boxer-frame { border-color: var(--boxer-w); box-shadow: 0 0 0 1px var(--boxer-w); }
 .fight-v { font: 700 .8rem/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
-/* THE CREDITS FOR BOTH FACES, centred under them and above the title, at the profile's caption size. § */
-.fight-credit { order: -1; margin: calc(-1 * var(--fc-group) + .35rem) 0 var(--fc-group);
+/* THE CREDITS FOR BOTH FACES, centred under them at the card's foot, at the profile's caption size. § */
+.fight-credit { margin: .35rem 0 0;
                 font: 400 .62rem/1.4 var(--mono); color: var(--faint); text-align: center; overflow-wrap: anywhere; }
 
 
@@ -6522,11 +6522,6 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .app-form h4 { margin: 1rem 0 .4rem; }
 .app-line { margin: .15rem 0; font-size: .85rem; }
 .app-line b { color: var(--dim); font-weight: 600; margin-right: .3rem; }
-/* ================= THE ICONS ON FIND 2 (403) — one mark large, and the same mark as a tile ================= */
-.icon-show { display: flex; align-items: center; gap: 1.5rem; margin: 1rem 0; }
-.icon-big { display: inline-flex; padding: 1rem; border: 1px solid var(--line); border-radius: .6rem; color: var(--gold); }
-.icon-big .tile-i { width: 7rem; height: 7rem; }
-
 /* ================= SPEED READ (403): the word on a fixed guide, its recognition letter in gold ================= */
 .rsvp-stage { position: relative; padding: 1.25rem 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .rsvp-tick { position: absolute; left: 50%; width: 2px; height: .9rem; margin-left: -1px; background: var(--gold); }

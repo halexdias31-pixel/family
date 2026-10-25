@@ -342,7 +342,8 @@ function slotGrid() {
   const sp = spaceFor(BOOKING.loc);
   const venue = (DATA.venues || []).find(x => norm(x.title) === norm(BOOKING.loc));
   const tAvail = availSet_(t && t.avail);
-  const vAvail = availSet_((sp && sp.avail) || (venue && venue.avail));
+  /* A CLIENT'S HOUSE KEEPS NO HOURS (445): a stray cell on its row emptied the grid; it is open whenever the tutor is. */
+  const vAvail = atClientHome_(BOOKING.loc) ? {} : availSet_((sp && sp.avail) || (venue && venue.avail));
   const haveT = Object.keys(tAvail).length, haveV = Object.keys(vAvail).length;
 
   /* NOTHING SET WAS READ AS EVERYTHING FREE, and for a TUTOR that is over. § */
