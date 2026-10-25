@@ -20585,6 +20585,68 @@ check('a kept card Saved cannot draw whole opens in Find: Saved\'s Open under a 
   return bad;
 });
 
+/* ---------- THE HISTORY DATABASE (459): EACH KIND FOUND BY THE FUNNEL, ITS CARD OPENED, A LINK FOLLOWED IN PLACE ---------- */
+check('the history database: a manuscript, a historical figure and a writing are each found under Learning, Content, History, open as a card of label and value lines, and a link tile lands on the linked row\'s card in the same finder', async () => {
+  /* THE REAL FILES, through the app's own `libraryExtras_`, on the resources payload. */
+  const p = await resPayload_();
+  if (!p) return ['the app did not load — NOT checked'];
+  const one = boot();
+  for (let i = 0; i < 80 && typeof one.w.libraryExtras_ !== 'function'; i++) await wait(25);
+  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, { manuscripts: read('manuscripts'), figures: read('figures'), writings: read('writings') })));
+  const b = boot({ payload: Object.assign(p, { manuscripts: made.manuscripts || [], figures: made.figures || [], writings: made.writings || [] }), member: true });
+  for (let i = 0; i < 80 && !b.w.__t; i++) await wait(25);
+  await wait(250);
+  if (!b.w.__t) return ['the app did not boot — NOT checked'];
+  const { w } = b, t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  const all = w.stuffItemsAll_();
+  const get = id => all.find(x => x.key === 'hdb:' + id);
+  const ms = get('MS-0002'), fig = get('FIG-0003'), wr = get('WR-0001');
+  if (!ms || !fig || !wr) return ['MS-0002, FIG-0003 or WR-0001 is not in the list — data/manuscripts|figures|writings.json did not load, NOT checked'];
+  const onCard = (x, when) => {
+    const pg = w.stuffPages_()[pg_(t).stuff - w.stuffFirstResult_()];
+    if (!pg || pg.x !== x || pg.part) bad.push(when + ': Find is on ' + (pg ? (pg.x && pg.x.name) + ':' + (pg.part || 'card') : 'no result') + ', not ' + x.name + '\'s card');
+  };
+  for (const [x, kind] of [[ms, 'Manuscripts'], [fig, 'Historical figures'], [wr, 'Writings']]) {
+    /* THE FUNNEL ITSELF: these four answers keep it, and the walk the funnel asks reaches it. */
+    t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Content' },
+                         { field: 'shelf', value: 'History' }, { field: 'histKind', value: kind }];
+    if (w.stuffFiltered().indexOf(x) < 0) bad.push(x.name + ' is not found by Learning, Content, History, ' + kind);
+    if (w.stuffFiltered().some(y => !y.hdb)) bad.push('History, ' + kind + ' keeps a thing that is not in the history database');
+    const walk = w.finderWalk_(x);
+    t.STUFF().filters = walk;
+    if (w.stuffFiltered().indexOf(x) < 0) bad.push(x.name + ' is lost by the funnel\'s own walk: ' + JSON.stringify(walk));
+    /* THE CARD: its name, its tags, one line per field, an era tag. */
+    const el = d.createElement('div'); el.innerHTML = w.stuffCard(x);
+    const h3 = el.querySelector('.hdb .fc-head h3');
+    if (!h3 || h3.textContent.trim() !== x.name) bad.push(x.name + '\'s card is not headed with its name');
+    if (el.querySelectorAll('.hdb-lines dl > div').length < 4) bad.push(x.name + '\'s card has fewer than four label/value lines');
+    if (!el.querySelector('.qtag[data-f="histEra"]')) bad.push(x.name + '\'s card carries no era tag');
+    if (el.querySelector('.hdb-lines dd select, .hdb-lines dd input')) bad.push(x.name + '\'s card has a control in a line');
+  }
+  const eras = w.histEras_;
+  if (JSON.stringify(eras(400, 500)) !== '["Ancient"]' || JSON.stringify(eras(-100, -44)) !== '["Ancient"]'
+      || JSON.stringify(eras(1874, 1965)) !== '["Modern"]' || JSON.stringify(eras(null, 99)) !== '["Ancient"]'
+      || JSON.stringify(eras(1400, 1600)) !== '["Medieval","Early modern"]') bad.push('histEras_ puts years in the wrong eras');
+  /* OPEN THE WRITING, THEN FOLLOW ITS TILES: to its manuscript, from there back to it, and on to its author. */
+  const press = (x, toId) => {
+    const s = d.getElementById('s-stuff');
+    const box = d.createElement('div'); box.innerHTML = w.stuffCard(x); s.appendChild(box);
+    const tile = [...box.querySelectorAll('[data-do="find-open"]')].find(e => e.getAttribute('data-key') === 'hdb:' + toId);
+    if (!tile) { bad.push(x.name + '\'s card has no tile to ' + toId); box.remove(); return false; }
+    A['find-open'](tile); box.remove(); return true;
+  };
+  const opener = d.createElement('button'); opener.setAttribute('data-key', wr.key); d.getElementById('s-stuff').appendChild(opener);
+  A['find-open'](opener); await wait(120);
+  onCard(wr, 'the writing opened');
+  if (press(wr, 'MS-0002')) { await wait(120); onCard(ms, 'the writing\'s Manuscript tile'); }
+  if (press(ms, 'WR-0001')) { await wait(120); onCard(wr, 'the manuscript\'s Writing tile'); }
+  if (press(wr, 'FIG-0003')) { await wait(120); onCard(fig, 'the writing\'s Author tile'); }
+  if (press(fig, 'WR-0001')) { await wait(120); onCard(wr, 'the author\'s Writing tile'); }
+  if (t.AT() !== 'stuff') bad.push('following links left Find for ' + t.AT());
+  return bad;
+});
+
 /* THE REVIEW OF THE SECOND FINDER (docs/history/329, "the review"). § */
 
 /* ---------- AN EMPTY SEARCH SAYS WHAT TO DO HERE, AND OFFERS NO OTHER COLUMN § */
