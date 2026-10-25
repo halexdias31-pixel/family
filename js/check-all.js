@@ -155,6 +155,8 @@ const SUITE = [
   { file: 'check-flow.js',    what: 'the app, actually running', slow: true },
   /* ---------- AND THE LIBRARY ITSELF, LAID OUT § */
   { file: 'check/cards.js',   what: 'every question in the library, laid out at phone width', slow: true },
+  /* AND EVERY PART OF IT ANSWERABLE (457): words, sized figures, Zoom and the padlock, a control for its type, its own answer marked right, the pen's instruments */
+  { file: 'check-answerable.js', what: 'every question part in the library can be answered', slow: true },
   /* ---------- AND EVERY LABEL IN EVERY DRAWING, AGAINST ITS OWN LINES § */
   { file: 'check/diagrams.js', what: 'every label in every drawing, clear of its lines', slow: true },
   /* ---------- AND WHETHER A PUSH ACTUALLY ARRIVES § */
