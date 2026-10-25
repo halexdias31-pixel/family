@@ -640,7 +640,7 @@ screen('biz', () => {
     try { if (!LIBIMP.list) libImpStart_(); } catch (e) {}
     try { if (!APPS.list) appsStart_(); } catch (e) {} try { if (typeof staffStart_ === 'function' && !STAFF.list) staffStart_(); } catch (e) {}
     try { bizNeedsPaint_(); } catch (e) {} }, 0);
-  return pages('biz', bizPages_());
+  return pages('biz', adminPages_());
 });
 
 /* WHAT ARRIVED, WRITTEN INTO THE CARDS ALREADY ON THE PAGE rather than a repaint of the column. § */

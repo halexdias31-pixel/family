@@ -2375,17 +2375,17 @@ const STATES = {
   account: [
     { name: '' },
     /* ---------- THE STAFF HUB (405): its three parts, as an admin who teaches (the fixture's admin, given Tutor for the visit). */
-    { name: 'your own card, the Staff hub tile and the terms not agreed',
+    { col: 'staff', name: 'your own card, the Staff hub tile and the terms not agreed',
       only: () => typeof USER !== 'undefined' && !!USER && (isAdmin() || hubFor_()),
       enter: () => {
         window.STATE_HUB_WAS = { roles: USER.roles, at: USER.agreementSignedAt, v: USER.agreementVersion };
         USER.roles = (USER.roles || []).concat(['tutor']); delete USER.agreementSignedAt; delete USER.agreementVersion;
-        paint('account'); goPage('account', 0, true);
+        paint('staff'); goPage('staff', 0, true);
       },
-      leave: () => { const w = window.STATE_HUB_WAS || {}; USER.roles = w.roles; USER.agreementSignedAt = w.at; USER.agreementVersion = w.v; paint('account'); },
-      expect: () => document.querySelector('#s-account .page.on [data-do="hub-open"]') && document.querySelector('#s-account .page.on .hub-warn') ? 1 : 0,
+      leave: () => { const w = window.STATE_HUB_WAS || {}; USER.roles = w.roles; USER.agreementSignedAt = w.at; USER.agreementVersion = w.v; paint('staff'); },
+      expect: () => document.querySelector('#s-staff .page.on [data-do="hub-open"]') && document.querySelector('#s-staff .page.on .hub-warn') ? 1 : 0,
       wants: 'your own card with a Staff hub tile in its row and the red line saying the terms are not agreed' },
-    { name: 'the Staff hub, terms agreed',
+    { col: 'staff', name: 'the Staff hub, terms agreed',
       only: () => typeof USER !== 'undefined' && !!USER && (isAdmin() || hubFor_()),
       enter: () => {
         window.STATE_HUB_WAS = { roles: USER.roles, at: USER.agreementSignedAt, v: USER.agreementVersion };
@@ -2398,14 +2398,14 @@ const STATES = {
         return b && b.checked && b.disabled && document.querySelectorAll('#sheet-body .hub-terms .doc h4').length >= 8 ? 1 : 0;
       },
       wants: 'the tutor terms in the Staff hub, ticked and locked, with their sections' },
-    { name: 'the Staff hub, pricing',
+    { col: 'staff', name: 'the Staff hub, pricing',
       only: () => typeof USER !== 'undefined' && !!USER && (isAdmin() || hubFor_()),
       enter: () => { window.STATE_HUB_WAS = { roles: USER.roles }; USER.roles = (USER.roles || []).concat(['tutor']); hubOpen_('pricing'); },
       leave: () => { USER.roles = (window.STATE_HUB_WAS || {}).roles; closeSheet(); },
       expect: () => document.querySelectorAll('#sheet-body .pb-row .pb-bar').length === 3
         && !!document.querySelector('#sheet-body input[type="range"][data-pv="rate"]') ? 1 : 0,
       wants: 'the pricing part: rate and seat controls and three bars, for 1, 2 and 3 students' },
-    { name: 'the Staff hub, hours',
+    { col: 'staff', name: 'the Staff hub, hours',
       only: () => typeof USER !== 'undefined' && !!USER && (isAdmin() || hubFor_()),
       enter: () => { window.STATE_HUB_WAS = { roles: USER.roles }; USER.roles = (USER.roles || []).concat(['tutor']); hubOpen_('hours'); },
       leave: () => { USER.roles = (window.STATE_HUB_WAS || {}).roles; closeSheet(); },
@@ -2413,7 +2413,7 @@ const STATES = {
       expect: () => document.querySelectorAll('#sheet-body .hub-hours .hr').length >= 70
         && !!document.querySelector('#sheet-body .hub-hours [data-do="me-save"]') ? 1 : 0,
       wants: 'the Hours part: the week of hours to tick and a Save my hours tile' },
-    { name: 'the Staff hub, a statement',
+    { col: 'staff', name: 'the Staff hub, a statement',
       only: () => typeof USER !== 'undefined' && !!USER && (isAdmin() || hubFor_()),
       enter: () => {
         window.STATE_HUB_WAS = { roles: USER.roles }; USER.roles = (USER.roles || []).concat(['tutor']);
@@ -2530,30 +2530,30 @@ const STATES = {
         paint('account'); paintPager('account', true);
       } },
     /* ---------- A CHILD WITH NO HANDLE, ON AN ADMIN'S PEOPLE COLUMN § */
-    { name: 'a child with no handle yet, and New PIN',
+    { col: 'biz', name: 'a child with no handle yet, and New PIN',
       only: () => typeof USER !== 'undefined' && !!USER && typeof isAdmin === 'function' && isAdmin(),
       enter: () => {
         window.STATE_EVERY_WAS = DATA.everyone;
         DATA.everyone = [{ personId: 'P-STATE-KID', title: 'Kit Handleless', handle: '', role: 'Student', image: '' }];
-        paint('account');
-        const at = [...document.querySelectorAll('#s-account .page')]
+        paint('biz');
+        const at = [...document.querySelectorAll('#s-biz .page')]
           .findIndex(pg => pg.querySelector('[data-do="kid-pin"][data-id="P-STATE-KID"]'));
         if (at < 0) throw new Error('no New PIN tile for the seeded child on the admin\'s column');
-        goPage('account', at, true);
+        goPage('biz', at, true);
       },
       leave: () => {
         if (window.STATE_EVERY_WAS === undefined) delete DATA.everyone; else DATA.everyone = window.STATE_EVERY_WAS;
         delete window.STATE_EVERY_WAS;
-        paint('account');
+        paint('biz');
       },
       expect: () => {
-        const pg = document.querySelector('#s-account .page.on');
+        const pg = document.querySelector('#s-biz .page.on');
         return pg && /no handle yet/.test(pg.textContent)
           && pg.querySelector('.tile[data-do="kid-pin"]') && pg.querySelector('.tile[data-do="msg-open"]') ? 2 : 0;
       },
       wants: '"no handle yet" on the card, and New PIN beside Message as tiles' },
     /* ---------- A NEW PIN, SHOWN ONCE § */
-    { name: 'a new PIN, shown once',
+    { col: 'biz', name: 'a new PIN, shown once',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         openSheet('A new PIN for Kit', pinSlip_('Kit', 'kit_upright42', ['4', '8', '2', '9', '1', '3'].join(''))
@@ -3062,7 +3062,7 @@ const STATES = {
                 && !sec.querySelector('.btn, input, #handle-new, [data-do="handle-save"]')
                 && /Cancel does not put the old one back/.test((sec.querySelector('.handle-said') || {}).textContent || '')
                 && r.top >= b.top - 1 && r.top < b.bottom - 40
-                && !document.querySelector('#s-settings .handle-shown, #s-settings [data-do="handle-shuffle"]')) ? 1 : 0;
+                && !document.querySelector('#s-account .handle-shown, #s-account [data-do="handle-shuffle"]')) ? 1 : 0;
       },
       wants: 'the handle section of your own card\'s Edit on the glass: the handle shown once with one @, a Randomise tile with its mark, nothing to type into, the line saying Cancel does not undo it — and no handle on Settings' },
 
@@ -3096,7 +3096,7 @@ const STATES = {
         return !!sec.querySelector('.av-card [data-do="av-pick"]') && !!sec.querySelector('.av-card [data-do="av-colour"]')
           && document.querySelectorAll('#s-account .av-figure').length === 1
           && r.top >= b.top - 1 && r.top < b.bottom - 40
-          && !document.querySelector('#s-settings .av-card, #s-settings [data-do="av-pick"]') ? 1 : 0;
+          && !document.querySelector('#s-account .av-card, #s-account [data-do="av-pick"]') ? 1 : 0;
       },
       wants: 'the figure section of your own card\'s Edit on the glass: the colours, every slot and one figure — and no wardrobe on Settings' },
     { name: 'a pick redraws the figure, and the picture\'s "your figure" with it',
@@ -3265,24 +3265,25 @@ const STATES = {
   ],
 
   /* ---------- THE SETTINGS COLUMN, WHICH THIS FILE HAD NEVER DECLARED A STATE FOR § */
+  /* SETTINGS WAS FOLDED INTO THE STUDENT COLUMN (444); these states run there, on Tutor or on Parent, as each says. */
   settings: [
     { name: '' },
     /* ---------- YOUR CHILD'S ACCOUNT, MADE: THE SLIP ON "MANAGE YOUR CHILD" § */
-    { name: 'your child\'s account, made',
+    { col: 'family', name: 'your child\'s account, made',
       only: () => typeof USER !== 'undefined' && !!USER && typeof mayAddChild_ === 'function' && mayAddChild_(),
       enter: () => {
         KID_MADE = { pid: String(USER.personId || ''), name: 'Maximilian', handle: 'maximilian_steady42',
                      pin: ['0', '7', '3', '9'].join('') };
         /* A FORM LEFT UNSAVED OR SENDING BY WHATEVER RAN BEFORE -- `check/press.js` presses every Save on this column first -- makes `paint` keep the column rather than § */
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings');
-        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.kid-make'));
+        document.querySelectorAll('#s-family .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('family');
+        const at = [...document.querySelectorAll('#s-family .page')].findIndex(pg => pg.querySelector('.kid-make'));
         if (at < 0) throw new Error('no "Make your child\'s account" card on the settings column');
-        goPage('settings', at, true);
+        goPage('family', at, true);
       },
-      leave: () => { KID_MADE = { pid: '', name: '', handle: '', pin: '' }; paint('settings'); },
+      leave: () => { KID_MADE = { pid: '', name: '', handle: '', pin: '' }; paint('family'); },
       expect: () => {
-        const pg = document.querySelector('#s-settings .page.on');
+        const pg = document.querySelector('#s-family .page.on');
         const slip = pg && pg.querySelector('.kid-manage .kid-make .pin-slip');
         return slip && slip.querySelectorAll('.pin-slip-v').length === 2
           && pg.querySelectorAll('.kid-make [data-kid-new]').length === 3
@@ -3291,31 +3292,31 @@ const STATES = {
       },
       wants: '"Manage your child" with the make form\'s three boxes, the slip — the handle and the PIN, neither running off it — and the add section pointing to People under it (442)' },
     /* ---------- AND HELD FOR THE LINK: A PARENT WHOSE OWN ADDRESS NOBODY HAS PROVED § */
-    { name: 'your child\'s account, held for the link',
+    { col: 'family', name: 'your child\'s account, held for the link',
       only: () => typeof USER !== 'undefined' && !!USER && typeof mayAddChild_ === 'function' && mayAddChild_(),
       enter: () => {
         window.__PENDING_WAS = USER.pendingEmail;
         USER.pendingEmail = 'philippa.parentington-smythe.family@example.org';
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings');
-        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.kid-held'));
+        document.querySelectorAll('#s-family .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('family');
+        const at = [...document.querySelectorAll('#s-family .page')].findIndex(pg => pg.querySelector('.kid-held'));
         if (at < 0) throw new Error('no held "Make your child\'s account" card on the settings column');
-        goPage('settings', at, true);
+        goPage('family', at, true);
       },
       /* `repaint(true)`: the card's inside changes back, so the column is placed afresh — see the family state. */
       leave: () => { USER.pendingEmail = window.__PENDING_WAS; repaint(true); },
       expect: () => {
-        const pg = document.querySelector('#s-settings .page.on');
+        const pg = document.querySelector('#s-family .page.on');
         const card = pg && pg.querySelector('.kid-manage .kid-held');
         return card && /philippa\.parentington-smythe\.family@example\.org/.test(card.textContent)
           && card.querySelectorAll('[data-do="resend-link"]').length === 1
-          && !document.querySelector('#s-settings [data-kid-new], #s-settings [data-kid]')
+          && !document.querySelector('#s-family [data-kid-new], #s-family [data-kid]')
           && card.scrollWidth <= card.clientWidth + 1 ? 2 : 0;
       },
       wants: 'one card naming the address to open the link from, with "Send the link again", and no child form anywhere on the column' },
     /* ---------- MANAGE YOUR CHILD, WITH CHILDREN LINKED, AND WITH NONE (docs/history/339) § */
     ...[3, 0].map(n => ({
-      name: n ? 'Manage your child, three children linked' : 'Manage your child, none linked',
+      col: 'family', name: n ? 'Manage your child, three children linked' : 'Manage your child, none linked',
       only: () => typeof USER !== 'undefined' && !!USER && typeof mayAddChild_ === 'function' && mayAddChild_(),
       enter: new Function('return (' + String(n => {
         window.__KIDS_WAS = { family: DATA.family, familyFor: DATA.familyFor };
@@ -3325,15 +3326,15 @@ const STATES = {
           { personId: 'P-kid-2', title: 'Wren', relation: 'child', handle: 'wren_kind43', image: 'pfp:fox' },
           { personId: 'P-kid-3', title: 'Ola', relation: 'child', handle: 'ola_brave07', image: '' },
         ].slice(0, n);
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings');
-        const at = [...document.querySelectorAll('#s-settings > .page')].findIndex(pg => pg.querySelector('.kid-manage'));
+        document.querySelectorAll('#s-family .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('family');
+        const at = [...document.querySelectorAll('#s-family > .page')].findIndex(pg => pg.querySelector('.kid-manage'));
         if (at < 0) throw new Error('no "Manage your child" on the settings column');
-        goPage('settings', at, true);
+        goPage('family', at, true);
       }) + ')(' + n + ');'),
       leave: () => { const k = window.__KIDS_WAS || {}; DATA.family = k.family; DATA.familyFor = k.familyFor; delete window.__KIDS_WAS; repaint(true); },
       expect: new Function('return (' + String(n => {
-        const pg = document.querySelector('#s-settings .page.on');
+        const pg = document.querySelector('#s-family .page.on');
         const card = pg && pg.querySelector('.kid-manage');
         if (!card) return 0;
         const rows = [...card.querySelectorAll('.kid-list .kid-row')];
@@ -3360,15 +3361,15 @@ const STATES = {
         USER.profile = Object.assign({}, USER.profile || {}, {
           email: 'philippa.parentington-smythe.family@example.org',
           email_moving: 'philippa.parentington-smythe.newaddress@example.org' });
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings');
-        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.mail-moving'));
+        document.querySelectorAll('#s-account .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('account');
+        const at = [...document.querySelectorAll('#s-account .page')].findIndex(pg => pg.querySelector('.mail-moving'));
         if (at < 0) throw new Error('no Contact card saying a new address waits for its link');
-        goPage('settings', at, true);
+        goPage('account', at, true);
       },
       leave: () => { USER.profile = window.__MOVING_WAS; repaint(true); },
       expect: () => {
-        const pg = document.querySelector('#s-settings .page.on');
+        const pg = document.querySelector('#s-account .page.on');
         const note = pg && pg.querySelector('.mail-moving');
         const box = pg && pg.querySelector('[data-me="email"]');
         return note && /newaddress@example\.org/.test(note.textContent) && /family@example\.org/.test(note.textContent)
@@ -3378,26 +3379,26 @@ const STATES = {
       },
       wants: 'the Contact card with the waiting address in its box, a line naming both addresses whole, and one "Send the link again"' },
     /* ---------- THE PHOTOGRAPHS PAGE: THE FACE, THE CLIP, AND A SHELF OF EIGHT § */
-    { name: 'the photographs',
+    { col: 'staff', name: 'the photographs',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         window.STATE_PHOTO_WAS = USER.profile;
         USER.profile = Object.assign({}, USER.profile || {}, {
           photos_1: 'data/reels/archetest.jpg', photos_2: 'icon.png' });
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings');
-        const at = [...document.querySelectorAll('#s-settings .page')]
+        document.querySelectorAll('#s-staff .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('staff');
+        const at = [...document.querySelectorAll('#s-staff .page')]
           .findIndex(pg => pg.querySelector('[data-me="photos_1"]'));
         if (at < 0) throw new Error('no photographs page on the settings column');
-        goPage('settings', at, true);
+        goPage('staff', at, true);
       },
       leave: () => {
         USER.profile = window.STATE_PHOTO_WAS; delete window.STATE_PHOTO_WAS;
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings');
+        document.querySelectorAll('#s-staff .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('staff');
       },
       expect: () => {
-        const pg = document.querySelector('#s-settings .page.on');
+        const pg = document.querySelector('#s-staff .page.on');
         if (!pg) return 0;
         const slots = [...pg.querySelectorAll('.ph-slot')];
         const shown = slots.filter(s => !s.hidden);
@@ -3412,44 +3413,44 @@ const STATES = {
       },
       wants: 'the video, then the two filled photograph links with a thumbnail each, eight boxes in the form and one Add another — and no picture picker, which is on your own card' },
     /* ---------- THE FOUR FIELDS THAT ARE THE QUOTE, WHICH THE FIXTURE HAD NEVER SENT § */
-    { name: 'the rate and group size',
+    { col: 'staff', name: 'the rate and group size',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
-        const at = [...document.querySelectorAll('#s-settings .page')]
+        const at = [...document.querySelectorAll('#s-staff .page')]
           .findIndex(pg => pg.querySelector('[data-me="rate_per_hour"]'));
         if (at < 0) throw new Error('no pricing page on the settings column');
-        goPage('settings', at, true);
+        goPage('staff', at, true);
       },
       /* EXACTLY SEVEN, NOT MERELY SOME. § */
-      expect: () => (document.querySelectorAll('#s-settings .page.on [data-me]').length === 7
-                     && document.querySelectorAll('#s-settings .page.on .f-row.is-range [data-me]').length === 4
-                     && !!document.querySelector('#s-settings .page.on .f-row.is-range [data-me="min_hours"]')
-                     && !!document.querySelector('#s-settings .page.on [data-me="extra_seat_cut"]:not([disabled])')
+      expect: () => (document.querySelectorAll('#s-staff .page.on [data-me]').length === 7
+                     && document.querySelectorAll('#s-staff .page.on .f-row.is-range [data-me]').length === 4
+                     && !!document.querySelector('#s-staff .page.on .f-row.is-range [data-me="min_hours"]')
+                     && !!document.querySelector('#s-staff .page.on [data-me="extra_seat_cut"]:not([disabled])')
                      ? 7 : 0),
       wants: 'all four pricing boxes, the business\'s cut of a seat (the admin\'s to set) and the session length on one page, the students and the hours each one min – max row' },
 
     /* ---------- YOUR JOURNEY WAS HERE, AND IS PROGRESS'S STATE NOW ---------------------------------
        The card went to the Progress column on 12 Oct (docs/history/346); its state went with it, below. */
     /* ---------- THE AGES A TUTOR TEACHES, ON ABOUT YOU AND NOT ON THE PAGE ABOVE § */
-    { name: 'the age range',
+    { col: 'staff', name: 'the age range',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         window.STATE_AGE_WAS = USER.profile;
         USER.profile = Object.assign({}, USER.profile || {}, { age_min: '8', age_max: 'Adults' });
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings');
-        const at = [...document.querySelectorAll('#s-settings .page')]
+        document.querySelectorAll('#s-staff .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('staff');
+        const at = [...document.querySelectorAll('#s-staff .page')]
           .findIndex(pg => pg.querySelector('[data-me="age_min"]'));
         if (at < 0) throw new Error('no age range on the settings column');
-        goPage('settings', at, true);
+        goPage('staff', at, true);
       },
       leave: () => {
         USER.profile = window.STATE_AGE_WAS; delete window.STATE_AGE_WAS;
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings');
+        document.querySelectorAll('#s-staff .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('staff');
       },
       expect: () => {
-        const pg = document.querySelector('#s-settings .page.on');
+        const pg = document.querySelector('#s-staff .page.on');
         const row = pg && pg.querySelector('.f-row.is-range');
         const lo = row && row.querySelector('select[data-me="age_min"]');
         const hi = row && row.querySelector('select[data-me="age_max"]');
@@ -3470,21 +3471,21 @@ const STATES = {
       enter: () => {
         window.STATE_ROLES_WAS = { role: USER.role, roles: USER.roles, tutorPending: USER.tutorPending };
         Object.assign(USER, { role: 'tutor', roles: ['tutor', 'parent'], tutorPending: true });
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings');
-        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.roles-card'));
+        document.querySelectorAll('#s-account .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('account');
+        const at = [...document.querySelectorAll('#s-account .page')].findIndex(pg => pg.querySelector('.roles-card'));
         if (at < 0) throw new Error('no roles card on the settings column');
-        goPage('settings', at, true);
+        goPage('account', at, true);
       },
       leave: () => {
         const was = window.STATE_ROLES_WAS || {}; delete window.STATE_ROLES_WAS;
         USER.role = was.role; USER.roles = was.roles;
         if (was.tutorPending === undefined) delete USER.tutorPending; else USER.tutorPending = was.tutorPending;
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings');
+        document.querySelectorAll('#s-account .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('account');
       },
       expect: () => {
-        const c = document.querySelector('#s-settings .page.on .roles-card');
+        const c = document.querySelector('#s-account .page.on .roles-card');
         if (!c) return 0;
         const on = r => { const b = c.querySelector(`[data-role-pick="${r}"]`); return b ? b.checked : null; };
         return on('tutor') === null && on('client') === true && on('student') === false
@@ -3497,7 +3498,7 @@ const STATES = {
     /* ---------- THE WEEKLY PARENT EMAIL'S CARD AND ITS PREVIEW WERE TWO STATES HERE § */
 
     /* ---------- THE QUALIFICATIONS: ONE LINE A QUALIFICATION, AND IT FITS § */
-    { name: 'the qualifications',
+    { col: 'staff', name: 'the qualifications',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         /* THREE SUBJECTS AT TWO LEVELS AND AN ENHANCED DBS, through `USER.profile`, which is what the column is drawn from — the tutor the redesign was measured with. § */
@@ -3514,20 +3515,20 @@ const STATES = {
           qual_6: 'English Literature', qual_6_level: 'A-Level', qual_6_grade: 'B', qual_6_received: '2018',
           qual_7: 'DBS', qual_7_level: 'Enhanced', qual_7_received: '2025' });
         /* A CLEAN COLUMN FIRST — see the agreement state above. */
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings');
-        const pages = [...document.querySelectorAll('#s-settings .page')];
+        document.querySelectorAll('#s-staff .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('staff');
+        const pages = [...document.querySelectorAll('#s-staff .page')];
         const at = pages.findIndex(pg => pg.querySelector('[data-me="qual_10_board"]'));
         if (at < 0) throw new Error('no qualifications page on the settings column');
-        goPage('settings', at, true);
+        goPage('staff', at, true);
       },
       leave: () => {
         USER.profile = window.STATE_QUAL_WAS; delete window.STATE_QUAL_WAS;
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings');
+        document.querySelectorAll('#s-staff .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('staff');
       },
       expect: () => {
-        const pg = document.querySelector('#s-settings .page.on');
+        const pg = document.querySelector('#s-staff .page.on');
         const shelf = pg && pg.querySelector('.q-shelf');
         if (!shelf) return 0;
         const lines = [...shelf.querySelectorAll('.q-list .q-line')];
@@ -3550,7 +3551,7 @@ const STATES = {
       },
       wants: 'seven qualifications as seven lines in the profile chip\'s notation, each subject once, one + tile, Teach as hidden boxes, and the card at full size inside its pane' },
     /* AND THE PHYSICS A-LEVEL OPEN, through a tap on its own line. § */
-    { name: 'the qualifications, one line open',
+    { col: 'staff', name: 'the qualifications, one line open',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         /* THREE SUBJECTS AT TWO LEVELS AND AN ENHANCED DBS, through `USER.profile`, which is what the column is drawn from — the tutor the redesign was measured with. § */
@@ -3567,12 +3568,12 @@ const STATES = {
           qual_6: 'English Literature', qual_6_level: 'A-Level', qual_6_grade: 'B', qual_6_received: '2018',
           qual_7: 'DBS', qual_7_level: 'Enhanced', qual_7_received: '2025' });
         /* A CLEAN COLUMN FIRST — see the agreement state above. */
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings');
-        const pages = [...document.querySelectorAll('#s-settings .page')];
+        document.querySelectorAll('#s-staff .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('staff');
+        const pages = [...document.querySelectorAll('#s-staff .page')];
         const at = pages.findIndex(pg => pg.querySelector('[data-me="qual_10_board"]'));
         if (at < 0) throw new Error('no qualifications page on the settings column');
-        goPage('settings', at, true);
+        goPage('staff', at, true);
         /* AND THE PHYSICS A-LEVEL OPENED THROUGH ITS OWN LINE. */
         const slot = [...pages[at].querySelectorAll('.q-list .q-slot')].find(sl =>
           (sl.querySelector('[data-me$="_level"]') || {}).value === 'A-Level'
@@ -3582,11 +3583,11 @@ const STATES = {
       },
       leave: () => {
         USER.profile = window.STATE_QUAL_WAS; delete window.STATE_QUAL_WAS;
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings');
+        document.querySelectorAll('#s-staff .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('staff');
       },
       expect: () => {
-        const pg = document.querySelector('#s-settings .page.on');
+        const pg = document.querySelector('#s-staff .page.on');
         const shelf = pg && pg.querySelector('.q-shelf');
         if (!shelf) return 0;
         const open = [...shelf.querySelectorAll('.q-slot.is-open')];
@@ -3608,7 +3609,7 @@ const STATES = {
       },
       wants: 'the Physics A-Level open in place under its line, the other six lines still there, five captioned boxes, Can teach lit, and the tick and the bin at opposite ends' },
     /* AND THE DBS OPEN — A CERTIFICATE'S EDITOR. § */
-    { name: 'the qualifications, a certificate open',
+    { col: 'staff', name: 'the qualifications, a certificate open',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         window.STATE_QUAL_WAS = USER.profile;
@@ -3623,23 +3624,23 @@ const STATES = {
           qual_5: 'English Literature', qual_5_level: 'GCSE', qual_5_grade: '7', qual_5_received: '2016',
           qual_6: 'English Literature', qual_6_level: 'A-Level', qual_6_grade: 'B', qual_6_received: '2018',
           qual_7: 'DBS', qual_7_level: 'Enhanced', qual_7_received: '2025' });
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings');
-        const pages = [...document.querySelectorAll('#s-settings .page')];
+        document.querySelectorAll('#s-staff .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('staff');
+        const pages = [...document.querySelectorAll('#s-staff .page')];
         const at = pages.findIndex(pg => pg.querySelector('[data-me="qual_10_board"]'));
         if (at < 0) throw new Error('no qualifications page on the settings column');
-        goPage('settings', at, true);
+        goPage('staff', at, true);
         const slot = [...pages[at].querySelectorAll('.q-list .q-slot')].find(sl => (sl.querySelector('select.q-name') || {}).value === 'DBS');
         if (!slot) throw new Error('no DBS line on the qualifications page');
         slot.querySelector('.q-line').click();
       },
       leave: () => {
         USER.profile = window.STATE_QUAL_WAS; delete window.STATE_QUAL_WAS;
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings');
+        document.querySelectorAll('#s-staff .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('staff');
       },
       expect: () => {
-        const pg = document.querySelector('#s-settings .page.on');
+        const pg = document.querySelector('#s-staff .page.on');
         const shelf = pg && pg.querySelector('.q-shelf');
         if (!shelf) return 0;
         const open = [...shelf.querySelectorAll('.q-slot.is-open')];
@@ -3661,7 +3662,7 @@ const STATES = {
       },
       wants: 'the Enhanced DBS open with no grade and no Teach control, its Year and Issued by side by side, and the tick and the bin' },
     /* AND A LINE BEING ADDED, through the `+`. § */
-    { name: 'the qualifications, one being added',
+    { col: 'staff', name: 'the qualifications, one being added',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         window.STATE_QUAL_WAS = USER.profile;
@@ -3676,23 +3677,23 @@ const STATES = {
           qual_5: 'English Literature', qual_5_level: 'GCSE', qual_5_grade: '7', qual_5_received: '2016',
           qual_6: 'English Literature', qual_6_level: 'A-Level', qual_6_grade: 'B', qual_6_received: '2018',
           qual_7: 'DBS', qual_7_level: 'Enhanced', qual_7_received: '2025' });
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings');
-        const pages = [...document.querySelectorAll('#s-settings .page')];
+        document.querySelectorAll('#s-staff .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('staff');
+        const pages = [...document.querySelectorAll('#s-staff .page')];
         const at = pages.findIndex(pg => pg.querySelector('[data-me="qual_10_board"]'));
         if (at < 0) throw new Error('no qualifications page on the settings column');
-        goPage('settings', at, true);
+        goPage('staff', at, true);
         pages[at].querySelector('.q-shelf [data-do="qual-add"]').click();
         /* THE SUBJECT BOX TAKES THE FOCUS a tick later (`qualNext_`) — it opened the app's own list here until the dropdowns were the platform's again (note 315), and § */
         return new Promise(r => setTimeout(r, 60));
       },
       leave: () => {
         USER.profile = window.STATE_QUAL_WAS; delete window.STATE_QUAL_WAS;
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings');
+        document.querySelectorAll('#s-staff .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('staff');
       },
       expect: () => {
-        const pg = document.querySelector('#s-settings .page.on');
+        const pg = document.querySelector('#s-staff .page.on');
         const shelf = pg && pg.querySelector('.q-shelf');
         if (!shelf) return 0;
         const fresh = shelf.querySelector('.q-list .q-slot.is-open[data-new]');
@@ -3709,13 +3710,13 @@ const STATES = {
     { name: 'a date of birth',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
-        const at = [...document.querySelectorAll('#s-settings .page')]
+        const at = [...document.querySelectorAll('#s-account .page')]
           .findIndex(pg => pg.querySelector('[data-me="dob_d"]'));
         if (at < 0) throw new Error('no date-of-birth page on the settings column');
-        goPage('settings', at, true);
+        goPage('account', at, true);
       },
-      expect: () => (document.querySelectorAll('#s-settings .page.on .dob-boxes [data-me]').length === 3
-                     && document.querySelectorAll('#s-settings .page.on [data-me="date_of_birth"]').length === 0
+      expect: () => (document.querySelectorAll('#s-account .page.on .dob-boxes [data-me]').length === 3
+                     && document.querySelectorAll('#s-account .page.on [data-me="date_of_birth"]').length === 0
                      ? 3 : 0),
       wants: 'three date-of-birth boxes and no fourth box for the column itself' },
 
@@ -3726,32 +3727,32 @@ const STATES = {
         window.STATE_ROLE_WAS = USER.role;
         USER.role = 'student';
         /* A CLEAN COLUMN FIRST — see the agreement state above. */
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        document.querySelectorAll('#s-account .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         repaint();
-        const at = [...document.querySelectorAll('#s-settings .page')]
+        const at = [...document.querySelectorAll('#s-account .page')]
           .findIndex(pg => pg.querySelector('[data-me="exam_small_date"]'));
         if (at < 0) throw new Error('no exam-dates page on the settings column');
-        goPage('settings', at, true);
+        goPage('account', at, true);
       },
       leave: () => { USER.role = window.STATE_ROLE_WAS;
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        document.querySelectorAll('#s-account .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         repaint(); },
       /* BOTH, AND BOTH A REAL DATE PICKER. § */
-      expect: () => (document.querySelectorAll('#s-settings .page.on input[type="date"][data-me]')
+      expect: () => (document.querySelectorAll('#s-account .page.on input[type="date"][data-me]')
                        .length === 2 ? 2 : 0),
       wants: 'two exam-date boxes, both drawn as a date picker' },
 
     /* ---------- A SEVERAL-OF-A-LIST FIELD, OPEN, WITH A BOX TICKED § */
-    { name: 'a several-of-a-list field open',
+    { col: 'staff', name: 'a several-of-a-list field open',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
-        const pages = [...document.querySelectorAll('#s-settings > .page')];
+        const pages = [...document.querySelectorAll('#s-staff > .page')];
         /* ANY SEVERAL-OF-A-LIST FIELD — whichever one the column carries (a tutor's venues, on Contact
            & address). Which fields take several answers is `FIELD_MULTI`'s to say. */
         const q = '.field.many details';
         const at = pages.findIndex(pg => pg.querySelector(q));
         if (at < 0) throw new Error('no several-of-a-list field on the settings column');
-        goPage('settings', at, true);
+        goPage('staff', at, true);
         const det = pages[at].querySelector(q);
         det.querySelector(':scope > summary').click();
         const box = det.querySelector('input[type="checkbox"]:not(:disabled)');
@@ -3761,13 +3762,13 @@ const STATES = {
         box.dispatchEvent(new Event('change', { bubbles: true }));
       },
       leave: () => {
-        document.querySelectorAll('#s-settings .field.many details[open]').forEach(d => { d.open = false; });
+        document.querySelectorAll('#s-staff .field.many details[open]').forEach(d => { d.open = false; });
         delete window.STATE_MANY_WAS;
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings');
+        document.querySelectorAll('#s-staff .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('staff');
       },
       expect: () => {
-        const det = document.querySelector('#s-settings .page.on .field.many details[open]');
+        const det = document.querySelector('#s-staff .page.on .field.many details[open]');
         const was = window.STATE_MANY_WAS || {};
         const hidden = det && det.closest('.many').querySelector('input[type="hidden"]');
         return !!det && !document.getElementById('drop')
@@ -3781,10 +3782,10 @@ const STATES = {
     { name: 'a dropdown answered',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
-        const pages = [...document.querySelectorAll('#s-settings > .page')];
+        const pages = [...document.querySelectorAll('#s-account > .page')];
         const at = pages.findIndex(pg => pg.querySelector('label.field > select:not(:disabled)'));
         if (at < 0) throw new Error('no select in a label on the settings column');
-        goPage('settings', at, true);
+        goPage('account', at, true);
         const sel = pages[at].querySelector('label.field > select:not(:disabled)');
         const to = [...sel.options].find(o => o.index !== sel.selectedIndex && !o.disabled);
         if (!to) throw new Error('the select has no second answer to choose');
@@ -3795,12 +3796,12 @@ const STATES = {
       },
       leave: () => {
         delete window.STATE_SEL_WAS;
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings');
+        document.querySelectorAll('#s-account .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('account');
       },
       expect: () => {
         const was = window.STATE_SEL_WAS || {};
-        const sel = document.querySelector('#s-settings .page.on select[data-me="' + was.name + '"]');
+        const sel = document.querySelector('#s-account .page.on select[data-me="' + was.name + '"]');
         return !!sel && sel.value === was.to && !!sel.closest('.me-form[data-dirty]')
           && !document.getElementById('drop') && !document.querySelector('[role="listbox"]') ? 1 : 0;
       },
@@ -4036,7 +4037,7 @@ const STATES = {
       expect: () => {
         const c = document.querySelector('#s-progress .page.on .card.journey');
         return !!c && /Big exam\s*\d+ days?/.test(c.textContent) && !c.querySelector('button, [data-do]')
-          && !document.querySelector('#s-settings .card.journey')
+          && !document.querySelector('#s-account .card.journey')
           && !document.querySelector('.card.digest, [data-do="digest-preview"]');
       },
       wants: 'the Countdowns card on Progress, with the Big exam line and no control on it — none on Settings, and no weekly parent email card anywhere',
@@ -6068,9 +6069,9 @@ const STATES = {
       + 'if (NOTIFY) USER.profile.notify = NOTIFY; else delete USER.profile.notify;\n'
       + 'DATA.features = (DATA.features || []).filter(function (x) { return x !== "setNotify"; }).concat(HAS ? ["setNotify"] : []);\n'
       /* A CLEAN COLUMN FIRST — `settingsKeep_`, the agreement state's reason. */
-      + 'document.querySelectorAll("#s-settings .me-form").forEach(function (f) { f.removeAttribute("data-dirty"); f.classList.remove("is-sending"); });\n'
+      + 'document.querySelectorAll("#s-account .me-form").forEach(function (f) { f.removeAttribute("data-dirty"); f.classList.remove("is-sending"); });\n'
       + 'paint("settings");\n'
-      + 'var at = [].slice.call(document.querySelectorAll("#s-settings .page")).findIndex(function (pg) { return pg.querySelector(".notify-card"); });\n'
+      + 'var at = [].slice.call(document.querySelectorAll("#s-account .page")).findIndex(function (pg) { return pg.querySelector(".notify-card"); });\n'
       + 'if (at < 0) throw new Error("no Notifications card on the settings column");\n'
       + 'goPage("settings", at, true);'),
     /* ---------- AND THE STORED VISITOR PUT BACK, NOT ONLY THE ONE IN MEMORY § */
@@ -6083,21 +6084,21 @@ const STATES = {
       const from = stored || was;
       USER.role = from.role; USER.roles = from.roles; USER.profile = from.profile; DATA.features = was.features;
       try { if (raw) localStorage.setItem('familyUser', raw); } catch (e) {}
-      document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-      paint('settings');
+      document.querySelectorAll('#s-account .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+      paint('account');
     },
     expect: expect,
     wants: wants,
   });
   /* THE CARD IN FRONT, NOT RUNNING OFF THE SIDE, with this many ticks (all ticked — an untouched row is on)
      and this many lines of what is always sent. */
-  const ticks = (n, must) => new Function('var c = document.querySelector("#s-settings .page.on .notify-card");\n'
+  const ticks = (n, must) => new Function('var c = document.querySelector("#s-account .page.on .notify-card");\n'
     + 'if (!c) return 0;\n'
     + 'var t = c.querySelectorAll("[data-do=\\"notify-pick\\"]");\n'
     + 'return t.length === ' + n + ' && [].every.call(t, function (b) { return b.checked; })\n'
     + '  && c.querySelectorAll(".notify-always li").length === ' + must + '\n'
     + '  && c.scrollWidth <= c.clientWidth + 1 ? 1 : 0;');
-  const said = re => new Function('var c = document.querySelector("#s-settings .page.on .notify-card");\n'
+  const said = re => new Function('var c = document.querySelector("#s-account .page.on .notify-card");\n'
     + 'return c && !c.querySelector("[data-do=\\"notify-pick\\"]") && ' + re + '.test(c.textContent)'
     + ' && c.scrollWidth <= c.clientWidth + 1 ? 1 : 0;');
   const count = (n, essential) => ((n && n.kinds) || []).filter(k => !!k.essential === essential).length;
@@ -6107,7 +6108,7 @@ const STATES = {
     state('a parent', { role: 'parent', roles: ['parent'] }, parent, true, ticks(count(parent, false), count(parent, true)),
       'a parent\'s ticks — the weekly email "not being sent yet", messages, booking updates, posts — and the four always sent'),
     state('a parent whose address waits for its link', { role: 'parent', roles: ['parent'] }, held, true,
-      new Function('var c = document.querySelector("#s-settings .page.on .notify-card");\n'
+      new Function('var c = document.querySelector("#s-account .page.on .notify-card");\n'
         + 'return c && c.querySelector(".notify-held") && c.querySelectorAll("[data-do=\\"notify-pick\\"]").length === ' + count(held, false)
         + ' && c.scrollWidth <= c.clientWidth + 1 ? 1 : 0;'),
       'the parent\'s ticks under a line saying only the link goes to the address until it is opened'),
@@ -6121,6 +6122,12 @@ const STATES = {
       'one sentence saying the backend has no notification choices yet, and nothing to tick'));
 })();
 
+/* THE OLD SETTINGS STATES, EACH ON THE COLUMN IT NOW RUNS ON (444): `col`, else the Student column. */
+(STATES.settings || []).forEach(st => { if (st.name && !st.col) STATES.account.push(st); });
+Object.keys(STATES).forEach(k => { STATES[k] = STATES[k].filter(st => {
+  if (!st.col || st.col === k) return true;
+  (STATES[st.col] = STATES[st.col] || [{ name: '' }]).push(st); return false; }); });
+delete STATES.settings;
 const statesOf = id => STATES[id] || [{ name: '' }];
 
 module.exports = { STATES, statesOf };

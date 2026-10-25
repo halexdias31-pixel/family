@@ -112,12 +112,12 @@ on('agree-sign', el => {
       if (said) said.textContent = 'Agreed on ' + USER.agreementSignedAt + ' · version ' + USER.agreementVersion + '.';
       toast('Agreed');
       hubTilesRedraw_();
-      try { paint('account'); } catch (e) {}
+      try { paint('staff'); } catch (e) {}
     })
     .catch(err => { el.checked = false; el.disabled = false; toast(String((err && err.message) || 'Not saved.')); });
 });
 
-/* ---------- ON YOUR OWN CARD: THE TILE BESIDE "SHARE MY PROFILE", AND ONE LINE UNDER THE ROW UNTIL THE TERMS ARE AGREED ---------- */
+/* ---------- ON THE TUTOR COLUMN (444): THE HUB'S TILE, AND ONE LINE UNDER THE ROW UNTIL THE TERMS ARE AGREED ---------- */
 const hubTile_ = () => hubFor_() ? tile_({ icon: 'key', label: 'Staff hub', note: termsAgreed_() ? 'terms, hours, pricing, statement' : 'terms to agree',
   act: 'hub-open', tone: termsAgreed_() ? '' : 'admin' }) : '';
 const hubWarn_ = () => hubFor_() && !termsAgreed_()

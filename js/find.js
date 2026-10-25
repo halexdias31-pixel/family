@@ -8728,8 +8728,11 @@ function myCardRow_() {
   };
 }
 
-function accountPages_() {
+/* `which` IS THE COLUMN (444): 'you' (every account), 'family' (your children's cards) or 'admin' (+ Add a person, everybody). */
+function accountPages_(which) {
+  which = which || 'you';
   if (!USER) {
+    if (which !== 'you') return [];
     /* THE GOOGLE BUTTON IS MOUNTED A FRAME LATE — Google renders into an element that has to exist
        first, and the element is in the card this returns. */
     if (typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn();
@@ -8749,7 +8752,7 @@ function accountPages_() {
   });
 
   /* ---------- A CARD OPEN FOR EDITING IS ITS OWN FORM, IN ITS OWN PLACE § */
-  const editing_ = t => typeof cardEditing_ === 'function' && cardEditing_(t);
+  const editing_ = t => typeof cardEditing_ === 'function' && cardEditing_(t, 'account');
   /* AN ADMIN'S PERSON FORM (373, me.js) TAKES THE CARD'S PLACE the same way, while it is open on them. */
   const personForm_ = t => typeof personFormFor_ === 'function' ? personFormFor_(t) : '';
   const withTiles_ = t => personForm_(t) || (editing_(t) ? cardEditHtml_(t)
@@ -8766,8 +8769,7 @@ function accountPages_() {
         : `<div class="tile-row">${tile_({ icon: 'out', label: 'Sign out', act: 'signout' })}</div>`),
     /* "WE WILL EMAIL YOU ONCE YOU OPEN THE LINK" — one line under the row while your own address is unproved, because `notify` sends it nothing until then and a § */
     typeof mailHeldNote_ === 'function' ? mailHeldNote_() : '',
-    /* AND, FOR STAFF, "NOT AGREED TO THE TUTOR TERMS" until they are (405) — `hubWarn_` in staff.js. */
-    typeof hubWarn_ === 'function' ? hubWarn_() : '',
+    /* "NOT AGREED TO THE TUTOR TERMS" WAS HERE; it is on the Tutor column now (444, `staffPages_`). */
   ].join('');
 
   /* ---------- AND AN UNLISTED TUTOR WAS DELETED FROM THE ONE SCREEN THAT CAN SWITCH HIM BACK ON -- § */
@@ -8826,13 +8828,17 @@ function accountPages_() {
   /* ---------- AND WHILE THE PAYLOAD IS ON ITS WAY, THE COLUMN SAYS MORE IS COMING § */
   const coming = typeof awaiting_ === 'function' && awaiting_() ? [loading_()] : [];
   /* THE SETUP CARD MOVED TO THE BUSINESS COLUMN (400) — `bizPages_` in records.js. */
-  /* "APPLY TO TEACH", or where your application stands (400) — `applyCard_` in me.js; '' for staff and children. */
-  const apply = typeof applyCard_ === 'function' ? [applyCard_()].filter(Boolean) : [];
+  /* "APPLY TO TEACH" IS ON THE TUTOR COLUMN now (444) — `staffPages_` in me.js. */
   /* "+ ADD A PERSON", the very first card, above even yours (373, 440) — `peopleAddPage_` in me.js. */
   const add = typeof peopleAddPage_ === 'function' ? [peopleAddPage_()].filter(Boolean) : [];
   /* FIND BY HANDLE ON TOP, "+ ADD A PERSON" JUST UNDER IT (442) — `peopleSearchPage_` in me.js. */
   const search = typeof peopleSearchPage_ === 'function' ? [peopleSearchPage_()].filter(Boolean) : [];
-  return search.concat(add, [me], apply, claimPages, famPages, others, everyone, coming);
+  /* YOUR CHILDREN ARE ON FAMILY; A PARENT OR A BROTHER OR SISTER IS ON YOU, which a student has too (444). */
+  const kids = famPages.filter((_, i) => family[i].relation === 'child');
+  if (which === 'family') return kids;
+  if (which === 'admin') return add.concat(everyone);
+  const mine = typeof youSettingsPages_ === 'function' ? youSettingsPages_() : [];
+  return search.concat([me], claimPages, famPages.filter((_, i) => family[i].relation !== 'child'), mine, others, coming);
 }
 
 /* ---------- HOW A LEARNER IS GETTING ON, IN ONE LINE UNDER THEIR NAME § */
