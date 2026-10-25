@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-25-i-casio-calc";
+  --css-version: "2026-10-25-j-anim-size";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -4468,6 +4468,9 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 .tb-points li { margin: 0 0 .3rem; }
 /* ---------- A CHAPTER'S ANIMATION: ITS STAGE, AND THE ONES NOT IN FRONT HELD STILL § */
 .tb-an-stage { display: grid; place-items: center; margin: .75rem 0; container-type: inline-size; }
+/* SMALLER, SO THE WORDS UNDER IT STAY ON THE GLASS (447): one cap for every drawing, never per row; a drawing keeps its shape (viewBox meets). */
+.tb-an-stage > * { max-width: min(100%, 28rem); }
+.tb-an-stage > * > svg, .tb-an-stage > svg { max-height: 28svh; }
 .tb-an-stage:not(.is-on) *, .tb-an-stage:not(.is-on) *::before,
 .tb-an-stage:not(.is-on) *::after { animation-play-state: paused !important; }
 
