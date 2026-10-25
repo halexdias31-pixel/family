@@ -118,7 +118,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-25-auto-import";
+const BACKEND_VERSION = "2026-10-25-console-saves";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1444,6 +1444,8 @@ const ACTION_ACCESS = {
   saveAvatar: 'self', saveFriends: 'self', saveScore: 'self', saveTtHighscore: 'self',
   /* YOUR OWN PICTURE. The handler writes `photo` on the row the token resolved to and nowhere else. */
   savePhoto: 'self',
+  /* YOUR OWN CONSOLE PROGRESS (446): one Drive file per person and game, named from the token's row, never another's. */
+  consoleSave: 'self', consoleLoad: 'self',
   /* YOUR OWN ROLES — the three a person may tick, on the row the token resolved to. § */
   setMyRoles: 'self',
   /* `likePost` was here. § */
