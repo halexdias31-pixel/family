@@ -1880,7 +1880,7 @@ function goPage(id, to, instant) {
   const ref = above && $('s-' + id) ? $('s-' + id).querySelectorAll(':scope > .page')[domIndex_(id, n)] : null;
   const top0 = ref ? (typeof stuffTop_ === 'function' ? stuffTop_(ref) : ref.offsetTop) : 0;
   if (bare) fillStuffPages();
-  /* AND THE WORDS AHEAD, ON EVERY TURN — not after the slide, which a quick reader never lets end (447). */
+  /* AND THE WORDS AHEAD, ON EVERY TURN — not after the slide, which a quick reader never lets end (453). */
   else if (F && typeof libAhead_ === 'function') { try { libAhead_(); } catch (e) {} }
   if (edge) { try { stuffEdgeFill_(n, n > was ? 1 : -1); } catch (e) {} }
   if (ref && typeof stuffKeepPlace_ === 'function') stuffKeepPlace_($('s-' + id), top0 - (typeof stuffTop_ === 'function' ? stuffTop_(ref) : ref.offsetTop));
@@ -2183,32 +2183,103 @@ function shareCanvasPng_(canvas, filename, text) {
   });
 }
 
-/* ---------- SPEAKING, ONE VOICE FOR THE WHOLE APP (394) ---------------------------------------- */
-/* Imposter's Listen and a question's Read aloud both speak through these three, so the British voice
-   and the Chrome no-voices-yet fallback (`lang` as well as `voice`) are written once. */
+/* ---------- SPEAKING, ONE VOICE FOR THE WHOLE APP (394, 453) ----------------------------------- */
+/* Imposter's Listen, a question's Read aloud and Hear it all speak through `say_`, so the voice choice, the
+   sentence-at-a-time queue and the maths words are written once. */
 function canSay_() {
   try { return !!(window.speechSynthesis && window.SpeechSynthesisUtterance); } catch (e) { return false; }
 }
 function hush_() {
   try { if (canSay_()) window.speechSynthesis.cancel(); } catch (e) {}
 }
-/* ONE UTTERANCE, QUEUED. Called inside the tap's own handler, which is what iPhone Safari needs to speak at all; `o` = { rate, volume, onend, lang }. */
-/* `o.lang` (427): a language card's Hear it speaks es-ES or fr-FR; British English when it is not given. */
+/* THE DEVICE'S VOICES, BEST FIRST (453): the owner found the first en-GB voice robotic; a natural, neural or premium one wins, eSpeak never. */
+const VOICE_KEY = 'voice:name';
+const VOICE_GOOD = [[/\b(natural|neural)\b/i, 60], [/\b(premium|enhanced)\b/i, 50], [/siri/i, 45],
+  [/^google\b/i, 35], [/\b(serena|daniel|kate|oliver|arthur|martha|stephanie|samantha|ava|allison|libby|sonia|ryan)\b/i, 15]];
+const VOICE_BAD = /espeak|\bfred\b|compact|albert|bad news|bahh|bells|boing|bubbles|cellos|zarvox|trinoids|whisper|wobble|jester|organ|superstar|junior|ralph|kathy|good news|deranged|hysterical/i;
+const voiceLang_ = v => String((v && v.lang) || '').replace('_', '-').toLowerCase();
+/* A VOICE'S SCORE FOR `lang`: same language and region first, then en-US for English, then the language anywhere; -1000 is another language. */
+function voiceScore_(v, lang) {
+  const want = String(lang || 'en-GB').toLowerCase(), l = voiceLang_(v), name = String((v && v.name) || '');
+  if (l.slice(0, 2) !== want.slice(0, 2)) return -1000;
+  let s = l === want ? 100 : (want.slice(0, 2) === 'en' && l === 'en-us') ? 70 : 40;
+  VOICE_GOOD.forEach(g => { if (g[0].test(name)) s += g[1]; });
+  if (VOICE_BAD.test(name)) s -= 200;
+  return s;
+}
+function voicesAll_() {
+  try { const ss = window.speechSynthesis; return (ss && typeof ss.getVoices === 'function' && ss.getVoices()) || []; } catch (e) { return []; }
+}
+function voicesRanked_(lang, list) {
+  return (list || voicesAll_()).map((v, i) => ({ v, i, s: voiceScore_(v, lang) })).filter(x => x.s > -1000)
+    .sort((a, b) => b.s - a.s || a.i - b.i).map(x => x.v);
+}
+function voiceChosen_() { try { return localStorage.getItem(VOICE_KEY) || ''; } catch (e) { return ''; } }
+/* THE PERSON'S CHOICE FOR ENGLISH, if the device still has it; otherwise the best. Another language always takes its own best. */
+function voicePick_(lang, list) {
+  const ranked = voicesRanked_(lang, list), mine = voiceChosen_();
+  const kept = mine && /^en/i.test(lang) ? ranked.find(v => v.name === mine) : null;
+  return kept || ranked[0] || null;
+}
+/* MATHS SAID AS WORDS (453): the symbols a voice skips or reads as "superscript two". Words pass through unchanged. */
+const SAY_SUP = { '⁰': 0, '¹': 1, '²': 2, '³': 3, '⁴': 4, '⁵': 5, '⁶': 6, '⁷': 7, '⁸': 8, '⁹': 9 };
+const SAY_VULGAR = { '½': 'one half', '⅓': 'one third', '⅔': 'two thirds', '¼': 'one quarter', '¾': 'three quarters', '⅕': 'one fifth', '⅛': 'one eighth' };
+const SAY_DEN = { 2: ['half', 'halves'], 3: ['third', 'thirds'], 4: ['quarter', 'quarters'], 5: ['fifth', 'fifths'],
+  6: ['sixth', 'sixths'], 8: ['eighth', 'eighths'], 10: ['tenth', 'tenths'] };
+const SAY_ONES = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+function sayMaths_(t) {
+  return String(t == null ? '' : t)
+    .replace(/[½⅓⅔¼¾⅕⅛]/g, c => ' ' + SAY_VULGAR[c] + ' ')
+    .replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]+/g, m => { const n = m.split('').map(c => SAY_SUP[c]).join('');
+      return n === '2' ? ' squared ' : n === '3' ? ' cubed ' : ' to the power of ' + n + ' '; })
+    .replace(/(^|[^\d\/])(\d{1,2})\s*\/\s*(\d{1,2})(?![\d\/])/g, (m, a, n, d) => {
+      const w = SAY_DEN[+d], k = +n;
+      return a + (w && k >= 1 && k < +d ? SAY_ONES[k] + ' ' + w[k > 1 ? 1 : 0] : n + ' over ' + d); })
+    .replace(/÷/g, ' divided by ').replace(/×/g, ' times ').replace(/−/g, ' minus ').replace(/±/g, ' plus or minus ')
+    .replace(/≤/g, ' is less than or equal to ').replace(/≥/g, ' is greater than or equal to ')
+    .replace(/≠/g, ' is not equal to ').replace(/≈/g, ' is approximately ').replace(/√\s*/g, ' the square root of ')
+    .replace(/π/g, ' pi ').replace(/∞/g, ' infinity ').replace(/°/g, ' degrees ')
+    .replace(/\s+([,.?!:;])/g, '$1').replace(/\s+/g, ' ').trim();
+}
+/* SENTENCE BY SENTENCE (453) when a text is long: short utterances, so Chrome's cut-off at about fifteen seconds never comes and each full stop is a pause. */
+function sayChunks_(text, max) {
+  max = max || 180;
+  const out = [], all = String(text == null ? '' : text).replace(/\s+/g, ' ').trim();
+  /* A LINE THAT IS ALREADY SHORT IS ONE UTTERANCE: Read aloud hands over a line at a time, and a split there only adds a gap. */
+  if (all.length <= max) return all ? [all] : [];
+  all.split(/(?<=[.?!])\s+(?=[A-Z0-9“\u0022\u0027(£¿¡])/).forEach(s => {
+      while (s.length > max) {
+        let cut = s.lastIndexOf(', ', max);
+        if (cut < max / 3) cut = s.lastIndexOf(' ', max);
+        if (cut < 1) cut = max;
+        out.push(s.slice(0, cut + 1).trim()); s = s.slice(cut + 1).trim();
+      }
+      if (s) out.push(s);
+    });
+  return out;
+}
+/* QUEUED, A SENTENCE AT A TIME, inside the tap's own handler, which is what iPhone Safari needs to speak at all; `o` = { rate, volume, onend, onstart, lang }. */
+/* `o.lang` (427): a language card's Hear it speaks es-ES or fr-FR; British English when it is not given. Voices not loaded yet: `u.lang` alone chooses. */
 function say_(text, o) {
   o = o || {};
   try {
     const ss = window.speechSynthesis;
-    const u = new window.SpeechSynthesisUtterance(String(text));
     const lang = /^[a-z]{2}-[A-Z]{2}$/.test(String(o.lang || '')) ? o.lang : 'en-GB';
-    u.lang = lang;
-    const voice = (typeof ss.getVoices === 'function' ? ss.getVoices() || [] : [])
-      .find(v => String(v.lang || '').replace('_', '-').toLowerCase().indexOf(lang.toLowerCase()) === 0);
-    if (voice) u.voice = voice;
-    u.rate = o.rate || 0.9;
-    u.volume = o.volume == null ? 1 : o.volume;
-    if (o.onend) { u.onend = o.onend; u.onerror = o.onend; }
-    if (o.onstart) u.onstart = o.onstart;
-    ss.speak(u);
+    const parts = sayChunks_(/^en/.test(lang) ? sayMaths_(text) : String(text));
+    if (!parts.length) { if (o.onend) o.onend(); return null; }
+    const voice = voicePick_(lang);
+    let u = null;
+    parts.forEach((p, i) => {
+      u = new window.SpeechSynthesisUtterance(p);
+      u.lang = voice && voice.lang ? String(voice.lang).replace('_', '-') : lang;
+      if (voice) u.voice = voice;
+      u.rate = o.rate || 0.95;
+      u.pitch = 1;
+      u.volume = o.volume == null ? 1 : o.volume;
+      if (i === 0 && o.onstart) u.onstart = o.onstart;
+      if (i === parts.length - 1 && o.onend) { u.onend = o.onend; u.onerror = o.onend; }
+      ss.speak(u);
+    });
     return u;
   } catch (e) { return null; }
 }

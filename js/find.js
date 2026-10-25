@@ -7693,7 +7693,7 @@ on('read-aloud', el => {
   const me = READ_NOW = { key: k, at: AT, page: PAGE[AT] || 0 };
   readAloudPaint_(k);
   const done = () => { if (READ_NOW === me) { READ_NOW = null; readAloudPaint_(k); } };
-  lines.forEach((l, i) => say_(l, { rate: 0.85, onend: i === lines.length - 1 ? done : null }));
+  lines.forEach((l, i) => say_(l, { onend: i === lines.length - 1 ? done : null }));
 });
 
 /* ---------- HEAR IT, ON A LANGUAGE'S CONTENT CARD (427) ---------------------------------------- */
@@ -7713,7 +7713,7 @@ on('hear-it', el => {
   let x = null;
   try { x = stuffItemsAll_().find(i => i && i.key === k) || null; } catch (e) { x = null; }
   const lang = hearItLang_(x);
-  if (lang) hearItLines_(x).forEach(l => say_(l, { rate: 0.85, lang: lang }));
+  if (lang) hearItLines_(x).forEach(l => say_(l, { lang: lang }));
 });
 
 /* ---------- WHAT IS SAID: THE QUESTION AS THE CARD SHOWS IT, NEVER THE ANSWER OR THE MARKS ---------- */
