@@ -90,6 +90,11 @@ and always said Coming soon) were folded into this one. An import file is made w
 `node tools/lib-private.js drive-pack <file> --ids <ids>`; `check-flow`'s journey "a new content card (lib_pending)…"
 holds the site to both answers, with stand-in words where this machine has none.
 
+New past papers: `tools/add-past-paper.js <rows.json>` (rows written by a paper script through `tools/paperspec.py`,
+figures through `tools/pdf_figure.py`; the script with the words stays outside the repository) puts a paper's rows in
+after its cover row, splits them, and marks them pending. Their words reach the Ledger by `push`, or as an import file
+(`{version: 1, files: {questions: [{id, …private fields}]}, cards: {…}}`) through the Drive import (407).
+
 ## The checks
 
 `check/lib-full.js` is the one place the halves are joined: `rows(name)` and `text(name)` give the library whole,

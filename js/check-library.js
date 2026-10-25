@@ -58,6 +58,8 @@ const note = [];
 /* ---------- THE SHAPE, READ AS TEXT § */
 /* THE FILE WITH ITS WORDS PUT BACK (397, check/lib-full.js) unless a path was passed in — the repository's copy is card metadata. */
 const FILE_TEXT = process.argv[2] ? fs.readFileSync(FILE, 'utf8') : require('../check/lib-full.js').text('questions');
+/* A PENDING CARD WHOSE WORDS THIS MACHINE HAS NOT GOT (docs/library.md): its figure and choices are in the words, not here. */
+const wordless = r => require('../check/lib-full.js').pending(r) && !String(r.html || '').trim();
 const raw = FILE_TEXT.replace(/\n$/, '').split('\n');
 
 if (raw[0] !== '[') fail.push(`line 1 is ${JSON.stringify(raw[0].slice(0, 40))}, not a bare [`);
@@ -416,7 +418,7 @@ rows.forEach(r => {
       + `means anything is ${DIAGRAM_BY.map(v => JSON.stringify(v)).join(', ')} — absent means the `
       + `picture came off the paper. Add it to DIAGRAM_BY with a reason, or fix the row.`);
   }
-  if (!r.diagram) {
+  if (!r.diagram && !wordless(r)) {
     fail.push(`${r.row_id} credits a diagram it does not have. Draw it or drop the credit.`);
   }
 });
@@ -779,6 +781,7 @@ rows.forEach(r => {
     return;
   }
   orderRows++;
+  if (wordless(r)) return;
   const ch = String(r.choices || '').split('|').map(t => t.trim()).filter(Boolean);
   const ways = String(r.choice_right || '').split('|').map(w => w.trim()).filter(Boolean);
   const ends = String(r.order_ends || '').split('|').map(t => t.trim()).filter(Boolean);
