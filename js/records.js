@@ -295,7 +295,7 @@ on('rep-open', el => {
 
 /* ---------- LIBRARY UPDATES A SESSION LEFT IN DRIVE (407) ----------
    `libImportList` counts the lib-import-*.json files in the owner's family-library-imports folder; the tile imports them (`libImportDrive`). */
-const LIBIMP = { list: null, last: null, asking: false, error: '' };
+const LIBIMP = { list: null, last: null, auto: null, asking: false, error: '' };
 function libImpCard_() {
   const wait = !LIBIMP.list && !LIBIMP.error && typeof loading_ === 'function';
   return `<div class="card biz libimp" data-libimp data-need="libimp">${libImpInner_(wait)}</div>`;
@@ -306,13 +306,21 @@ function libImpSaid_(r) {
   const counts = c => Object.keys(c || {}).map(k => `${k} ${c[k].added} new, ${c[k].replaced} changed${c[k].same ? ', ' + c[k].same + ' unchanged' : ''}`).join('; ');
   return r.files.map(f => `<p class="faint libimp-file"><b>${esc(f.name)}</b> — ${esc(f.error ? 'not imported: ' + f.error : counts(f.counts) || 'nothing to change')}</p>`).join('');
 }
+/* THE HOURLY RUN (443): when it last found files, and what it imported. */
+function libImpAuto_(a) {
+  if (!a || !a.at) return '<p class="faint libimp-auto">Imports itself every hour; it has not found a file yet.</p>';
+  const when = new Date(a.at), said = isNaN(when) ? String(a.at) : when.toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+  const n = Number(a.imported) || 0, f = Number(a.failed) || 0;
+  return `<p class="faint libimp-auto">Last automatic import ${esc(said)}: ${n} ${n === 1 ? 'file' : 'files'} imported${f ? ', ' + f + ' not' : ''}.</p>${libImpSaid_(a)}`;
+}
 function libImpInner_(wait) {
   const n = (LIBIMP.list || []).length;
   return `<h3>Library updates</h3>
     ${bizNeed_('libimp', LIBIMP.list ? n : 0, n + (n === 1 ? ' file waits' : ' files wait') + ' in Drive')}
     <div class="biz-body libimp-body"${wait ? ' aria-busy="true"' : ''}>
       ${LIBIMP.list ? `<p class="faint">${n ? n + ' in' : 'Nothing waiting in'} the Drive folder family-library-imports.</p>` : ''}
-      ${libImpSaid_(LIBIMP.last)}
+      ${LIBIMP.list ? libImpAuto_(LIBIMP.auto) : ''}
+      ${LIBIMP.last && !LIBIMP.last.auto ? libImpSaid_(LIBIMP.last) : ''}
       <div class="tile-row">${tile_({ icon: 'in', label: 'Import library updates (' + n + ')', note: 'into the Ledger', act: 'lib-import', off: !n })}</div>
     ${wait ? loading_() : ''}</div>
     <p class="faint me-said libimp-said">${esc(LIBIMP.error)}</p>`;
@@ -325,7 +333,7 @@ function libImpStart_() {
     .then(d => {
       LIBIMP.asking = false;
       if (!d || d.error) { LIBIMP.error = String((d && d.error) || 'The Drive folder did not answer.'); return; }
-      LIBIMP.error = ''; LIBIMP.list = Array.isArray(d.pending) ? d.pending : []; LIBIMP.last = d.last || null;
+      LIBIMP.error = ''; LIBIMP.list = Array.isArray(d.pending) ? d.pending : []; LIBIMP.last = d.last || null; LIBIMP.auto = d.auto || null;
     })
     .catch(() => { LIBIMP.asking = false; LIBIMP.error = 'Drive could not be asked — check the connection.'; })
     .then(libImpDraw_);

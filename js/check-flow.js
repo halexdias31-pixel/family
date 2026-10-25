@@ -12703,7 +12703,9 @@ check('business: an admin has a Business column last, straight after Settings, h
     reply: body => (body.action === 'listRecords' ? { success: true, records: BIZ_HELD_ }
       : body.action === 'saveRecordsPage' ? { success: true, records: body.records }
       /* TWO LIBRARY UPDATES WAITING IN DRIVE (407), and the press that imports them. */
-      : body.action === 'libImportList' ? { success: true, pending: [{ name: 'lib-import-a.json' }, { name: 'lib-import-b.json' }] }
+      : body.action === 'libImportList' ? { success: true, pending: [{ name: 'lib-import-a.json' }, { name: 'lib-import-b.json' }],
+          /* AND WHAT THE HOURLY RUN LAST DID (443). */
+          auto: { auto: true, at: '2026-10-25T09:00:00Z', imported: 1, failed: 0, files: [{ name: 'lib-import-books-part-01-of-02.json', counts: { textbooks: { added: 0, replaced: 3, same: 0 } } }] } }
       : body.action === 'libImportDrive' ? { success: true, imported: 2, failed: 0, files: [
           { name: 'lib-import-a.json', counts: { questions: { added: 0, replaced: 5, same: 0 } } },
           { name: 'lib-import-b.json', counts: { practicals: { added: 1, replaced: 0, same: 0 } } }] } : undefined) });
@@ -12753,6 +12755,7 @@ check('business: an admin has a Business column last, straight after Settings, h
   else {
     if (!lib.classList.contains('needs-you') || !/2 files wait/.test(lib.textContent)) bad.push('two files waiting in Drive did not make the Library updates card glow "2 files wait": ' + lib.textContent.replace(/\s+/g, ' ').slice(0, 160));
     if (!libTile() || libTile().getAttribute('aria-label').indexOf('Import library updates (2)') !== 0 || libTile().disabled) bad.push('the Library updates tile is not a live "Import library updates (2)"');
+    if (!/Last automatic import .*1 file imported/.test(lib.textContent) || !/books-part-01-of-02\.json.*3 changed/.test(lib.textContent)) bad.push('the Library updates card does not say when the hourly import last ran and what it imported (443): ' + lib.textContent.replace(/\s+/g, ' ').slice(0, 240));
     const at = sent.length;
     try { t.ACTIONS['lib-import'](libTile()); } catch (e) { bad.push('lib-import threw: ' + e.message); }
     for (let k = 0; k < 30 && !sent.slice(at).some(b => b.action === 'libImportDrive'); k++) await wait(100);

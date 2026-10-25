@@ -1634,6 +1634,9 @@ const LIB_DRIVE_NAME = /^lib-import-[A-Za-z0-9._:-]{1,80}\.json$/;
 const LIB_DRIVE_MAX = 3000;
 const LIB_DRIVE_MS = 4 * 60 * 1000;
 const LIB_DRIVE_LAST = 'LIB_IMPORT_LAST';
+/* THE HOURLY RUN (443): its handler, and the property holding what the last automatic import that found files did. */
+const LIB_DRIVE_HOURLY = 'libImportHourly';
+const LIB_DRIVE_AUTO = 'LIB_IMPORT_AUTO';
 
 /* WHO OWNS IT, '' WHEN DRIVE WILL NOT SAY — only this account's own folder and files are read, never one shared with it. */
 const libDriveOwner_ = f => { try { const o = f.getOwner && f.getOwner(); return o ? norm(o.getEmail()) : ''; } catch (err) { return ''; } };
@@ -1680,9 +1683,10 @@ function libImportList_() {
   let folder;
   try { folder = libDriveFolder_(); } catch (err) { return { error: 'Drive could not be read — ' + S(err && err.message || err).slice(0, 160) + '. Run authoriseDrive once from the Apps Script editor.' }; }
   const pending = libDrivePending_(folder).map(f => ({ name: S(f.getName()), size: Number(f.getSize && f.getSize()) || 0 }));
-  let last = null;
+  let last = null, auto = null;
   try { last = JSON.parse(PropertiesService.getScriptProperties().getProperty(LIB_DRIVE_LAST) || 'null'); } catch (err) { last = null; }
-  return { success: true, folder: LIB_DRIVE_FOLDER, pending: pending, last: last };
+  try { auto = JSON.parse(PropertiesService.getScriptProperties().getProperty(LIB_DRIVE_AUTO) || 'null'); } catch (err) { auto = null; }
+  return { success: true, folder: LIB_DRIVE_FOLDER, pending: pending, last: last, auto: auto };
 }
 
 /* THE PUBLIC CARDS' IDS FOR A FILE, from the site (or GitHub) — asked only for an id the tab has no row for. */
@@ -1808,17 +1812,23 @@ function libDriveApply_(parsed, memo) {
 }
 
 /* THE PRESS (and `?run=libImportDrive`): every waiting file, oldest first, each whole or not at all; a done file moves to `imported`. */
-function libImportDrive_(by) {
+/* `auto` (the hourly run, 443): the same press, but it makes no folder, and an empty folder or a busy lock leaves no trace. */
+function libImportDrive_(by, auto) {
   const lock = LockService.getScriptLock();
-  if (!lock.tryLock(30000)) return { error: 'Busy — another import or write is running. Try again in a moment.', why: 'busy' };
+  if (!lock.tryLock(auto ? 5000 : 30000)) return { error: 'Busy — another import or write is running. Try again in a moment.', why: 'busy' };
   const wroteBefore = POST_WROTE;
   const t0 = Date.now();
   const report = { success: true, at: new Date().toISOString(), files: [], imported: 0, failed: 0, left: 0 };
+  if (auto) report.auto = true;
   try {
-    let folder, done;
-    try { folder = libDriveFolder_(); done = libDriveDone_(folder); }
+    let folder, done, files;
+    try {
+      folder = auto ? libDriveFind_(DriveApp.getFoldersByName(LIB_DRIVE_FOLDER)) : libDriveFolder_();
+      files = folder ? libDrivePending_(folder) : [];
+      if (auto && !files.length) return { success: true, auto: true, at: report.at, files: [], imported: 0, failed: 0, left: 0, nothing: true };
+      done = libDriveDone_(folder);
+    }
     catch (err) { return { error: 'Drive could not be read — ' + S(err && err.message || err).slice(0, 160) + '. Run authoriseDrive once from the Apps Script editor.' }; }
-    const files = libDrivePending_(folder);
     const memo = {};
     let any = false;
     for (let i = 0; i < files.length; i++) {
@@ -1843,12 +1853,27 @@ function libImportDrive_(by) {
     if (report.failed) report.success = report.imported > 0;
     if (report.failed && !report.imported) report.error = report.files.filter(x => x.error).map(x => x.name + ': ' + x.error).join('; ');
     try { PropertiesService.getScriptProperties().setProperty(LIB_DRIVE_LAST, JSON.stringify(report).slice(0, 8000)); } catch (err) {}
+    if (auto) try { PropertiesService.getScriptProperties().setProperty(LIB_DRIVE_AUTO, JSON.stringify(report).slice(0, 8000)); } catch (err) {}
     return report;
   } finally {
     lock.releaseLock();
     /* NO PAYLOAD CARRIES THE LIBRARY'S WORDS OR THE LOG, so the stored payload stands. */
     if (POST_WROTE && !wroteBefore) POST_WROTE = false;
   }
+}
+/* THE HOURLY TRIGGER'S HANDLER (443): no person, so the log's handle says `hourly`. Public — a trigger cannot call a name ending _. */
+function libImportHourly() {
+  const res = libImportDrive_({ handle: 'hourly' }, true);
+  if (res && res.error && res.why !== 'busy') Logger.log('libImportHourly: ' + res.error);
+  return res;
+}
+/* KEPT BOOKED BY THE ADMIN-LOAD SETUP (361): exactly one hourly trigger; null when it already is. */
+function libImportKeepBooked_() {
+  const mine = ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === LIB_DRIVE_HOURLY);
+  if (mine.length === 1) return null;
+  mine.forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger(LIB_DRIVE_HOURLY).timeBased().everyHours(1).create();
+  return { installed: LIB_DRIVE_HOURLY, removed: mine.length };
 }
 /* A LINE IN `lib_log` PER FILE IMPORTED — `person_id` is `library-import`, never a person, so the day's cap never reads it as anybody's tally. */
 function libDriveLog_(by, name, one) {

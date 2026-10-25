@@ -1267,6 +1267,8 @@ function setupOnAdminLoad_() {
     props.setProperty('SETUP_CHECKED_AT', String(Date.now()));
     try { digestKeepBooked_(); props.deleteProperty('FAILED_sunday-email-hour'); }
     catch (err) { props.setProperty('FAILED_sunday-email-hour', String((err && err.message) || err).slice(0, 300)); }
+    try { libImportKeepBooked_(); props.deleteProperty('FAILED_library-import-hourly'); }
+    catch (err) { props.setProperty('FAILED_library-import-hourly', String((err && err.message) || err).slice(0, 300)); }
   } catch (err) { Logger.log('setup: ' + err); }
 }
 
@@ -1274,7 +1276,7 @@ function setupOnAdminLoad_() {
 function setupTriggerWhen_(fn, hour) {
   const said = { closeFinishedJobs: 'every day, about 3am', geocodeVenues: 'every day, about 3am',
     refreshPageCounts: 'every day, about 3am', onSheetChange: 'whenever a spreadsheet is edited',
-    warmAfterEdit: 'once, a minute after an edit', warmPayload: 'every 5 minutes' };
+    warmAfterEdit: 'once, a minute after an edit', warmPayload: 'every 5 minutes', libImportHourly: 'every hour' };
   return digestTriggerWhen_(fn, hour) || said[fn] || 'booked';
 }
 
@@ -1304,6 +1306,9 @@ function setupStatus_() {
     }
     out.jobs.push(job);
   });
+  if (seen['FAILED_library-import-hourly']) {
+    out.jobs.push({ id: 'library-import-hourly', what: 'the hourly library import kept booked', ran: '', error: S(seen['FAILED_library-import-hourly']) });
+  }
   if (seen['FAILED_sunday-email-hour']) {
     out.jobs.push({ id: 'sunday-email-hour', what: 'the Sunday email kept at weekly_digest_hour', ran: '',
       error: S(seen['FAILED_sunday-email-hour']) });
