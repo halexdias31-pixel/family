@@ -281,44 +281,70 @@ const CARD_COLS = ['family', 'staff', 'account', 'tutors', 'students', 'parents'
 /* THE REGISTRY: id, own column, name, how its root is known (`re`; else `data-lay-card`/`data-split` or a `<!--card:id-->` mark), and `only`
    when it is the only place a setting is edited (Delete's second step says so). */
 const CARD_REG = [
-  { id: 'acct:signed-in', col: 'account', label: 'Signed in', re: /^<div class="card signed-in"/ },
-  { id: 'acct:pin', col: 'account', label: 'Signing in', re: /data-do="pin-save"/, only: 'your PIN' },
-  { id: 'acct:roles', col: 'account', label: 'Your role', re: /^<div class="card roles-card/, only: 'your role' },
-  { id: 'acct:notify', col: 'account', label: 'Notifications', re: /^<div class="card notify-card/, only: 'which emails you get' },
-  { id: 'acct:voice', col: 'account', label: 'Reading aloud', re: /^<div class="card voice-card/ },
-  { id: 'acct:prog-answered', col: 'account', label: 'Progress: answered', re: /^<div class="card prog-w prog-answered/ },
-  { id: 'acct:prog-activity', col: 'account', label: 'Progress: activity', re: /^<div class="card prog-w prog-activity/ },
-  { id: 'acct:prog-weakest', col: 'account', label: 'Progress: weakest topics', re: /^<div class="card prog-w prog-weakest/ },
-  { id: 'acct:prog-series', col: 'account', label: 'Papers and worksheets', re: /^<div class="card prog-w prog-series/ },
-  { id: 'acct:prog-grade', col: 'account', label: 'Progress: grade', re: /^<div class="card prog-w prog-grade/ },
-  { id: 'acct:prog-sessions', col: 'account', label: 'Progress: sessions', re: /^<div class="card prog-w prog-sessions/ },
-  { id: 'own:account', col: 'account', label: 'Your card (Student settings)', only: 'your card' },
-  { id: 'own:family', col: 'family', label: 'Your card (Parent settings)', only: 'your card' },
-  { id: 'own:staff', col: 'staff', label: 'Your card (Tutor settings)', only: 'your card' },
-  { id: 'staff:hub', col: 'staff', label: 'Staff hub', re: /^<div class="card staff-top/, only: 'your rate and hours' },
-  { id: 'ppl:tutors:add', col: 'tutors', label: 'Add a tutor' },
-  { id: 'ppl:tutors:dir', col: 'tutors', label: 'Tutor directory' },
-  { id: 'ppl:students:help', col: 'students', label: 'Needs help' },
-  { id: 'ppl:students:add', col: 'students', label: 'Add a student' },
-  { id: 'ppl:students:search', col: 'students', label: 'Find by handle' },
-  { id: 'ppl:students:family', col: 'students', label: 'You and your family (students)' },
-  { id: 'ppl:students:manage', col: 'students', label: 'Manage your child' },
-  { id: 'ppl:students:all', col: 'students', label: 'Every student' },
-  { id: 'ppl:parents:add', col: 'parents', label: 'Add a parent' },
-  { id: 'ppl:parents:you', col: 'parents', label: 'Your card (Parent profiles)' },
-  { id: 'ppl:parents:family', col: 'parents', label: 'You and your family (parents)' },
-  { id: 'ppl:parents:claims', col: 'parents', label: 'Parent claims' },
-  { id: 'ppl:parents:all', col: 'parents', label: 'Every parent' },
-  { id: 'biz:profit-sum', col: 'biz', label: 'Profit', re: /data-profit="sum"/ },
-  { id: 'biz:setup', col: 'biz', label: 'Setup', re: /^<div class="card setup-card/ },
-  { id: 'biz:posts', col: 'biz', label: 'Posts waiting', re: /^<div class="card biz posts-wait/ },
-  { id: 'biz:apps', col: 'biz', label: 'Applications to teach', re: /^<div class="card biz apps/ },
-  { id: 'biz:staff', col: 'biz', label: 'Staff', re: /^<div class="card biz staff-card/ },
-  { id: 'biz:reports', col: 'biz', label: 'Reports', re: /^<div class="card biz reports/ },
-  { id: 'biz:libimp', col: 'biz', label: 'Library import', re: /^<div class="card biz libimp/ },
-  { id: 'biz:layout', col: 'biz', label: 'Layout', re: /^<div class="card layout-card/ },
-  { id: 'biz:build', col: 'biz', label: 'Build', re: /class="me-build"/ },
+  { id: 'acct:signed-in', col: 'account', label: 'Signed in', re: /^<div class="card signed-in"/, say: 'Who you are signed in as on this phone, and Sign out.' },
+  { id: 'acct:pin', col: 'account', label: 'Signing in', re: /data-do="pin-save"/, only: 'your PIN', say: 'Change the PIN you sign in with.' },
+  { id: 'acct:roles', col: 'account', label: 'Your role', re: /^<div class="card roles-card/, only: 'your role', say: 'Whether this account is a student\'s or a parent\'s.' },
+  { id: 'acct:notify', col: 'account', label: 'Notifications', re: /^<div class="card notify-card/, only: 'which emails you get', say: 'Which emails we send you.' },
+  { id: 'acct:voice', col: 'account', label: 'Reading aloud', re: /^<div class="card voice-card/, say: 'How questions sound when they are read aloud on this device.' },
+  { id: 'acct:prog-answered', col: 'account', label: 'Progress: answered', re: /^<div class="card prog-w prog-answered/, say: 'How many questions you have answered, and how many were right.' },
+  { id: 'acct:prog-activity', col: 'account', label: 'Progress: activity', re: /^<div class="card prog-w prog-activity/, say: 'What you have done lately.' },
+  { id: 'acct:prog-weakest', col: 'account', label: 'Progress: weakest topics', re: /^<div class="card prog-w prog-weakest/, say: 'The topics to practise next.' },
+  { id: 'acct:prog-series', col: 'account', label: 'Papers and worksheets', re: /^<div class="card prog-w prog-series/, say: 'How far you are through each paper and worksheet.' },
+  { id: 'acct:prog-grade', col: 'account', label: 'Progress: grade', re: /^<div class="card prog-w prog-grade/, say: 'A rough grade from the questions you have answered.' },
+  { id: 'acct:prog-sessions', col: 'account', label: 'Progress: sessions', re: /^<div class="card prog-w prog-sessions/, say: 'Your booked and past sessions.' },
+  { id: 'own:account', col: 'account', label: 'Your card (Student settings)', only: 'your card', say: 'Your picture, figure, name and handle, as other people see them.' },
+  { id: 'own:family', col: 'family', label: 'Your card (Parent settings)', only: 'your card', say: 'Your picture, figure, name and handle, as other people see them.' },
+  { id: 'own:staff', col: 'staff', label: 'Your card (Tutor settings)', only: 'your card', say: 'Your public tutor card: picture, name, headline, what you teach and where.' },
+  { id: 'staff:hub', col: 'staff', label: 'Staff hub', re: /^<div class="card staff-top/, only: 'your rate and hours', say: 'Your terms, weekly hours, prices and statement as a tutor.' },
+  { id: 'ppl:tutors:add', col: 'tutors', label: 'Add a tutor', say: 'Make an account for a new tutor.' },
+  { id: 'ppl:tutors:dir', col: 'tutors', label: 'Tutor directory', say: 'Every tutor, with what they teach, where and when.' },
+  { id: 'ppl:students:help', col: 'students', label: 'Needs help', say: 'Students who have asked for help with a question.' },
+  { id: 'ppl:students:add', col: 'students', label: 'Add a student', say: 'Make an account for a new student.' },
+  { id: 'ppl:students:search', col: 'students', label: 'Find by handle', say: 'Find a student by their handle, to add them as your child.' },
+  { id: 'ppl:students:family', col: 'students', label: 'You and your family (students)', say: 'You and the children linked to you.' },
+  { id: 'ppl:students:manage', col: 'students', label: 'Manage your child', say: 'Link your child\'s account to yours, or answer a link.' },
+  { id: 'ppl:students:all', col: 'students', label: 'Every student', say: 'Every student account.' },
+  { id: 'ppl:parents:add', col: 'parents', label: 'Add a parent', say: 'Make an account for a new parent.' },
+  { id: 'ppl:parents:you', col: 'parents', label: 'Your card (Parent profiles)', say: 'Your own card as a parent.' },
+  { id: 'ppl:parents:family', col: 'parents', label: 'You and your family (parents)', say: 'The parents linked to you.' },
+  { id: 'ppl:parents:claims', col: 'parents', label: 'Parent claims', say: 'Parents asking to be linked to a child.' },
+  { id: 'ppl:parents:all', col: 'parents', label: 'Every parent', say: 'Every parent account.' },
+  { id: 'biz:profit-sum', col: 'biz', label: 'Profit', re: /data-profit="sum"/, say: 'What came in and went out, and what is left.' },
+  { id: 'biz:setup', col: 'biz', label: 'Setup', re: /^<div class="card setup-card/, say: 'What ran when the backend was last set up.' },
+  { id: 'biz:posts', col: 'biz', label: 'Posts waiting', re: /^<div class="card biz posts-wait/, say: 'Posts waiting for you to approve.' },
+  { id: 'biz:apps', col: 'biz', label: 'Applications to teach', re: /^<div class="card biz apps/, say: 'People asking to teach, to approve or decline.' },
+  { id: 'biz:staff', col: 'biz', label: 'Staff', re: /^<div class="card biz staff-card/, say: 'Who teaches, whether they agreed the terms, and their statements.' },
+  { id: 'biz:reports', col: 'biz', label: 'Reports', re: /^<div class="card biz reports/, say: 'Reports people have sent about posts or questions.' },
+  { id: 'biz:libimp', col: 'biz', label: 'Library import', re: /^<div class="card biz libimp/, say: 'Bring new questions and their words into the library.' },
+  { id: 'biz:layout', col: 'biz', label: 'Layout', re: /^<div class="card layout-card/, say: 'Deleted cards and widgets back, and Reset layout.' },
+  { id: 'biz:build', col: 'biz', label: 'Build', re: /class="me-build"/, say: 'Which version of the site and backend is running.' },
 ];
+/* WHAT EACH CARD IS FOR, one faint line under its title (467) — the owner: "I should know what they are even if I can't edit." */
+const CARD_SAY_DYN = { 'about-you': 'Your name and the details about you.', 'contact-address': 'How to reach you, and your address.',
+  'photos': 'The photos and video on your tutor card.', 'your-rate-and-group-size': 'Your rate, extra seats and group sizes.',
+  'qualifications': 'What you are qualified in and teach.', 'availability': 'The hours you can teach each week.',
+  'where-you-teach': 'Where you teach and how far you travel.', 'about-you-as-a-tutor': 'Your headline, experience and the ages you teach.',
+  'insurance': 'The business\'s insurance policies and when they renew.', 'tax': 'Tax registrations and when returns are due.',
+  'legal-and-data': 'Data protection, privacy notice and terms, and when to review them.',
+  'safeguarding': 'Safeguarding policy, DBS checks and training.', 'money-and-company': 'Bank, bookkeeping and company filings.',
+  'profit-terms': 'The figures the profit sum is worked out from.' };
+function cardSayOf_(id) {
+  const r = cardReg_(id);
+  if (r) return r.say || '';
+  if (!/^(set|biz):/.test(String(id || ''))) return '';
+  return CARD_SAY_DYN[String(id).split(':').pop()] || '';
+}
+/* THE LINE PUT IN: after the card's first title, else first inside it; a button card (+ Add) gets it as a span. */
+function cardSayIn_(h, id) {
+  const say = cardSayOf_(id);
+  /* AN EMPTY WIDGET STAYS ITS TITLE ALONE (414). */
+  if (!say || /class="[^"]*card-say/.test(h) || /^\s*(?:<!--[^>]*-->)*\s*<div class="card[^"]*\bis-empty\b/.test(h)) return h;
+  const head = (/^\s*(?:<!--[^>]*-->)*/.exec(h) || [''])[0], body = h.slice(head.length);
+  if (/^\s*<button\b/.test(body)) return head + body.replace(/<\/button>\s*$/, `<span class="faint card-say">${esc(say)}</span></button>`);
+  const p = `<p class="faint card-say">${esc(say)}</p>`;
+  if (/<\/h3>/.test(body)) return head + body.replace(/<\/h3>/, '</h3>' + p);
+  return head + body.replace(/^(\s*<div\b[^>]*>)/, '$1' + p);
+}
 const PROG_EMPTY_ = { 'Questions': 'acct:prog-answered', 'Recent activity': 'acct:prog-activity', 'Work on next': 'acct:prog-weakest',
   'Grade estimate': 'acct:prog-grade', 'Papers and worksheets': 'acct:prog-series', 'Sessions': 'acct:prog-sessions' };
 const cardReg_ = id => CARD_REG.find(r => r.id === id);
@@ -437,7 +463,8 @@ function cardsOf_(col) {
   const L = layoutNow_(), admin = layoutIsAdmin_();
   delete CARD_START_AT[col];
   const strip = h => String(h).replace(/^\s*<!--card:[^>]*-->/, '').replace(/^\s*<!--person:[^>]*-->/, '');
-  if (!admin && !(L && (L.cards || L.start || (L.deleted || []).some(cardIs_)))) return raw.map(strip);
+  if (!admin && !(L && (L.cards || L.start || (L.deleted || []).some(cardIs_))))
+    return cardGroups_(raw).reduce((a, g) => a.concat(g.pages.map((h, i) => strip(i === 0 && g.id ? cardSayIn_(h, g.id) : h))), []);
   const groups = cardArrange_(col, raw);
   const start = cardStartOf_(col, L);
   const out = [];
@@ -451,7 +478,7 @@ function cardsOf_(col) {
       const pid = personOf_(h), at = out.length;
       if (pid && firstP === -1) firstP = at;
       if (start && ((g.id && start === g.id && i === 0) || (pid && start === 'person:' + pid))) CARD_START_AT[col] = at;
-      let page = strip(h);
+      let page = strip(i === 0 && g.id ? cardSayIn_(h, g.id) : h);
       /* ONE START HERE A CARD (466): a person's page has the person's, and the list's row under it drops its own. */
       if (admin && pid) page += `<div class="tile-row wgt-admin start-tiles">${startTile_(col, 'person:' + pid, start)}</div>`;
       if (row && (each || i === g.pages.length - 1)) page = cardRowIn_(page, pid ? row.replace(/<button[^>]*data-do="lay-start"[\s\S]*?<\/button>/, '') : row);

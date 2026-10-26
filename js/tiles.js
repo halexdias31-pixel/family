@@ -413,7 +413,7 @@ function cardTiles_(x) {
 const TILE_ROW_MAX = 6;
 const TILE_RE_ = /<(button|a)\b[^>]*\bclass="tile\b[^"]*"[^>]*>[\s\S]*?<\/\1>/g;
 /* AN ADMIN'S OR OWNER'S TILE is one drawn in the admin or danger tone; these lead their group in this order, a danger tile last. */
-const TILE_ADMIN_ORDER_ = ['card-edit', 'person-edit', 'spot', 'set-listed'];
+const TILE_ADMIN_ORDER_ = ['card-edit', 'spot', 'set-listed'];
 const tileIsAdmin_ = t => /\bclass="tile\b[^"]*\bis-(admin|danger)\b/.test(t);
 const tileAct_ = t => (t.match(/\bdata-do="([^"]*)"/) || [])[1] || '';
 function tileAdminRank_(t) {
