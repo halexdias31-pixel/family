@@ -2808,7 +2808,9 @@ check('467: signed out, Parent, Tutor and Student settings show every card locke
       else if (say.length > 90) bad.push(col + ': ' + id + '\'s line is ' + say.length + ' characters');
     });
     const says = a.d.querySelectorAll('#s-' + col + ' .card-say').length;
-    if (says < seen.size - 0) bad.push(col + ': ' + says + ' lines drawn for ' + seen.size + ' cards');
+    const empty = a.d.querySelectorAll('#s-' + col + ' .card.is-empty').length;
+    /* AN EMPTY WIDGET STAYS ITS TITLE ALONE (414), so it owes no line. */
+    if (says < seen.size - empty) bad.push(col + ': ' + says + ' lines drawn for ' + (seen.size - empty) + ' cards with something in them');
   }
   return bad;
 });
