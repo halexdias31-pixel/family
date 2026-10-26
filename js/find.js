@@ -9296,119 +9296,106 @@ function myCardRow_() {
   };
 }
 
-/* `which` IS THE COLUMN (444): 'you' (every account), 'family' (your children's cards) or 'admin' (+ Add a person, everybody). */
-function accountPages_(which) {
-  which = which || 'you';
-  if (!USER) {
-    if (which !== 'you') return [];
-    /* THE GOOGLE BUTTON IS MOUNTED A FRAME LATE — Google renders into an element that has to exist
-       first, and the element is in the card this returns. */
-    if (typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn();
-    return (typeof signInCard_ === 'function' ? [signInCard_()] : []).filter(Boolean);
-  }
-  /* ---------- YOU FIRST, THEN EVERYBODY ELSE § */
-  /* ---------- AND YOU WERE THE ONE PERSON `findCard` DID NOT DRAW § */
+/* `col` IS THE PEOPLE COLUMN (453): 'tutors', 'students' or 'parents' — a card per person you may already see, by category. */
+function accountPages_(col) {
+  if (!col) return ['tutors', 'students', 'parents'].reduce((a, c) => a.concat(accountPages_(c)), []);
+  if (!USER) return [];
   const myRow = myCardRow_();
 
   /* ---------- AN ITEM, NOT A ROW, AND THAT IS WHY THE MESSAGE TILE WAS MISSING § */
-  /* ---------- AND YOUR OWN CARD IS `me`, WHICH IS THE KIND NOTHING HAD EVER BUILT § */
-  /* `account: true` IS WHERE A CARD CAN BE EDITED — this column, and nowhere else the same tutor is drawn (a star puts them on Saved too). § */
+  /* `account: true` IS WHERE A CARD CAN BE EDITED, and `col` which column: a people column, and nowhere else the same person is drawn. */
   const asItem_ = (t, kind) => ({
     kind: kind || 'tutor', name: t.title, key: t.title, sub: t.subtitle || '', image: t.image,
-    cost: priced_(t.rate), off: t.listed === false, row: t, account: true,
+    cost: priced_(t.rate), off: t.listed === false, row: t, account: true, col: col,
     more: typeof peopleTiles_ === 'function' ? peopleTiles_(t) : '',
   });
 
   /* ---------- A CARD OPEN FOR EDITING IS ITS OWN FORM, IN ITS OWN PLACE § */
-  const editing_ = t => typeof cardEditing_ === 'function' && cardEditing_(t, 'account');
-  /* AN ADMIN'S PERSON FORM (373, me.js) TAKES THE CARD'S PLACE the same way, while it is open on them. */
-  const personForm_ = t => typeof personFormFor_ === 'function' ? personFormFor_(t) : '';
+  const editing_ = t => typeof cardEditing_ === 'function' && cardEditing_(t, col);
+  /* AN ADMIN'S PERSON FORM (373, me.js) TAKES THE CARD'S PLACE the same way, in the column it was opened on. */
+  const personForm_ = t => typeof personFormFor_ === 'function' ? personFormFor_(t, col) : '';
+  const card_ = t => typeof findCard === 'function' ? findCard({ kind: 'tutor', row: t }) : '';
   const withTiles_ = t => personForm_(t) || (editing_(t) ? cardEditHtml_(t)
-    : (typeof findCard === 'function' ? findCard({ kind: 'tutor', row: t }) : '')
-    + (typeof cardTiles_ === 'function' ? cardTiles_(asItem_(t)) : ''));
+    : card_(t) + (typeof cardTiles_ === 'function' ? cardTiles_(asItem_(t)) : ''));
 
-  /* ---------- AND THE PRIVATE HALF WENT DARK WHEN BOOKING LEFT THE FUNNEL § */
-  const me = [
-    /* YOUR OWN CARD, OR YOUR OWN CARD BEING EDITED — the form, then its Save and Cancel, in place. */
-    (editing_(myRow) ? cardEditHtml_(myRow)
-      : (typeof meCard === 'function' ? meCard(myRow) : withTiles_(myRow)))
-    /* SIGN OUT IS IN THIS ROW, beside the star — see `cardActions_`'s `me` branch in tiles.js. § */
-      + (typeof cardTiles_ === 'function' ? cardTiles_(asItem_(myRow, 'me'))
-        : `<div class="tile-row">${tile_({ icon: 'out', label: 'Sign out', act: 'signout' })}</div>`),
-    /* "WE WILL EMAIL YOU ONCE YOU OPEN THE LINK" — one line under the row while your own address is unproved, because `notify` sends it nothing until then and a § */
-    typeof mailHeldNote_ === 'function' ? mailHeldNote_() : '',
-    /* "NOT AGREED TO THE TUTOR TERMS" WAS HERE; it is on the Tutor column now (444, `staffPages_`). */
-  ].join('');
-
-  /* ---------- AND AN UNLISTED TUTOR WAS DELETED FROM THE ONE SCREEN THAT CAN SWITCH HIM BACK ON -- § */
-  /* ---------- YOUR FAMILY, BETWEEN YOU AND EVERYBODY ELSE § */
+  /* ---------- YOUR FAMILY ---------- */
   /* `sibling` ON *"students should be able to see their parents and siblings likewise"*. § */
   const famLabel_ = { parent: 'Your parent', child: 'Your child', sibling: 'Your brother or sister' };
   const famMine = !!(USER.personId && DATA.familyFor && String(DATA.familyFor) === String(USER.personId));
   const family = (famMine && Array.isArray(DATA.family) ? DATA.family : [])
     .filter(f => f && f.personId && f.title && famLabel_[f.relation]
       && !(USER.personId && String(f.personId) === String(USER.personId)));
-  /* AND THE REQUESTS THAT BECOME ONE. § */
-  const claimPages = (famMine && Array.isArray(DATA.claims) && typeof claimCard_ === 'function')
-    ? DATA.claims.filter(c => c && c.rowIndex && c.from).map(claimCard_) : [];
-  const famIds = family.map(f => String(f.personId));
-  const famPages = family.map(f => {
+  const famCard_ = f => {
     const asTutor = (DATA.tutors || []).find(t => t && t.personId && String(t.personId) === String(f.personId));
     const row = Object.assign({}, asTutor || {}, {
       title: f.title, handle: f.handle || (asTutor || {}).handle, personId: f.personId,
       image: f.image || (asTutor || {}).image || '',
-      /* AND THE FIGURE THAT CAME WITH THE FACE — `doGet` sends `avatar` on a family card only when the face is `pfp:avatar` (`faceFig_`), and this row was rebuilt § */
+      /* AND THE FIGURE THAT CAME WITH THE FACE — `doGet` sends `avatar` on a family card only when the face is `pfp:avatar` (`faceFig_`). */
       avatar: f.image ? f.avatar : (asTutor || {}).avatar,
       role: famLabel_[f.relation] + (asTutor ? ' · ' + (asTutor.role || 'Tutor') : ''),
     });
-    /* ---------- "NEW PIN" WAS HERE, ON YOUR CHILD'S CARD § */
     const more = typeof peopleTiles_ === 'function' ? peopleTiles_(row) : '';
-    return asTutor ? withTiles_(row) : personForm_(row) || (typeof findCard === 'function' ? findCard({ kind: 'tutor', row }) : '')
-      + (more ? tileRow_(more) : '');
-  });
+    return personForm_(row) || card_(row) + (more ? tileRow_(more) : '');
+  };
+  /* A CHILD OR A BROTHER OR SISTER IS A STUDENT; A PARENT IS A PARENT. A family member who teaches is on Tutors as well. */
+  const famIn = c => family.filter(f => (f.relation === 'parent' ? 'parents' : 'students') === c);
+  const famIds = family.map(f => String(f.personId));
 
-  const others = (DATA.tutors || [])
-    .filter(t => t && t.title)
-    .filter(t => !(t.personId && famIds.indexOf(String(t.personId)) !== -1))
-    /* NOT YOU, TWICE. With a tutor row of your own you would otherwise appear at the top as your account and again below as a tutor — the same duplication the `me` § */
-    .filter(t => !mineIs_(t))
-    .map(withTiles_);
-
-  /* ---------- AND FOR AN ADMIN, EVERYBODY ELSE AS WELL § */
-  const everyone = (typeof isAdmin === 'function' && isAdmin() && Array.isArray(DATA.everyone)
-      ? DATA.everyone : [])
-    .filter(p => p && p.title)
-    .filter(p => !(p.personId && famIds.indexOf(String(p.personId)) !== -1))
-    .filter(p => !mineIs_(p))
+  /* ---------- AND FOR AN ADMIN, EVERYBODY ELSE AS WELL, by their main role (`doGet` sends no tutor or admin here) ---------- */
+  const everyone = (typeof isAdmin === 'function' && isAdmin() && Array.isArray(DATA.everyone) ? DATA.everyone : [])
+    .filter(p => p && p.title && !mineIs_(p) && !(p.personId && famIds.indexOf(String(p.personId)) !== -1))
+    .filter(p => (/student/i.test(String(p.role || '')) ? 'students' : 'parents') === col)
     /* A BLANK HANDLE IS SAID, NOT FILLED WITH THE FIRST NAME. § */
     .map(p => Object.assign({}, p, { activity: subsLine_(p.personId),
                                      role: (p.role || 'Client') + (p.handle ? '' : ' · no handle yet') }))
-    /* AND "NEW PIN" BESIDE "MESSAGE" — the admin is who a child with no email and no linked parent goes to, and the only remedy was four digits typed into the sheet § */
-    .map(p => personForm_(p) || (typeof findCard === 'function' ? findCard({ kind: 'tutor', row: p }) : '')
-      + (typeof tile_ === 'function' ? `<div class="tile-row">${tile_({ icon: 'chat',
+    /* AND "NEW PIN" BESIDE "MESSAGE" — the admin is who a child with no email and no linked parent goes to. § */
+    /* THROUGH `tileRow_`, which puts six tiles on even lines rather than leaving one alone (453: Parents is narrower company). */
+    .map(p => personForm_(p) || card_(p)
+      + (typeof tile_ === 'function' ? tileRow_(tile_({ icon: 'chat',
           label: 'Message', note: 'a note to them', act: 'msg-open',
-          data: { to: p.title, id: p.personId || '' } })}${p.personId ? tile_({ icon: 'key',
+          data: { to: p.title, id: p.personId || '' } }) + (p.personId ? tile_({ icon: 'key',
           label: 'New PIN', note: 'to sign in with', act: 'kid-pin',
-          data: { id: p.personId, name: String(p.title || '').split(' ')[0] } }) : ''}${
-          typeof peopleTiles_ === 'function' ? peopleTiles_(p) : ''}</div>` : ''));
+          data: { id: p.personId, name: String(p.title || '').split(' ')[0] } }) : '')
+          + (typeof peopleTiles_ === 'function' ? peopleTiles_(p) : '')) : ''));
 
-  /* ---------- THE WRAPPER WENT WHEN THE PASS DID, AND LEAVING IT WOULD HAVE NESTED TWO CARDS § */
-  /* ---------- AND WHILE THE PAYLOAD IS ON ITS WAY, THE COLUMN SAYS MORE IS COMING § */
+  /* ---------- YOUR OWN CARD, FIRST IN EVERY COLUMN YOU BELONG TO, ITS EDIT THAT FACE'S (`ownCardSections_(col)`) ---------- */
+  const mine = [];
+  if (typeof peopleBelong_ === 'function' && peopleBelong_(col, family)) {
+    const row = col === 'tutors' ? (cardMine_() || myRow) : myRow;
+    const face = editing_(row) ? cardEditHtml_(row)
+      : (row !== myRow ? card_(row) : (typeof meCard === 'function' ? meCard(row) : card_(row)));
+    /* SHARE MY PROFILE (400): their own `?tutor=` link, to send a family — on the tutor face. */
+    const share = col === 'tutors' && rankAtLeast_('staff') && USER.handle
+      ? tile_({ icon: 'share', label: 'Share my profile', note: 'your link', act: 'tutor-share', data: { handle: USER.handle } }) : '';
+    /* EDIT (only where this face has fields) and SHARE. Sign out and Send the link again are on Student settings (453). */
+    const tiles = editing_(row) ? '' : (typeof cardEditTile_ === 'function' ? cardEditTile_(asItem_(row, 'me')) : '') + share;
+    mine.push(face + (tiles ? tileRow_(tiles, 'own-tiles', true) : ''));
+  }
+
   const coming = typeof awaiting_ === 'function' && awaiting_() ? [loading_()] : [];
-  /* THE SETUP CARD MOVED TO THE BUSINESS COLUMN (400) — `bizPages_` in records.js. */
-  /* "APPLY TO TEACH" IS ON THE TUTOR COLUMN now (444) — `staffPages_` in me.js. */
-  /* "+ ADD A PERSON", the very first card, above even yours (373, 440) — `peopleAddPage_` in me.js. */
-  const add = typeof peopleAddPage_ === 'function' ? [peopleAddPage_()].filter(Boolean) : [];
-  /* FIND BY HANDLE ON TOP, "+ ADD A PERSON" JUST UNDER IT (442) — `peopleSearchPage_` in me.js. */
-  const search = typeof peopleSearchPage_ === 'function' ? [peopleSearchPage_()].filter(Boolean) : [];
-  /* YOUR CHILDREN ARE ON FAMILY; A PARENT OR A BROTHER OR SISTER IS ON YOU, which a student has too (444). */
-  const kids = famPages.filter((_, i) => family[i].relation === 'child');
-  if (which === 'family') return kids;
-  if (which === 'admin') return add.concat(everyone);
-  const mine = typeof youSettingsPages_ === 'function' ? youSettingsPages_() : [];
-  /* NEEDS HELP (455) ABOVE ALL, for Staff — one call, so it moves with the Students column (help.js `HELP_COL`). */
-  const help = typeof helpListCard_ === 'function' ? [helpListCard_()].filter(Boolean) : [];
-  return help.concat(search, [me], claimPages, famPages.filter((_, i) => family[i].relation !== 'child'), mine, others, coming);
+  /* "+ ADD A …", the very first card for an admin (373, 440), the new person's role ticked for this column. */
+  const add = typeof peopleAddPage_ === 'function' ? [peopleAddPage_(col)].filter(Boolean) : [];
+  const fam = famIn(col).map(famCard_);
+  let out;
+  if (col === 'tutors') {
+    /* THE DIRECTORY EVERYBODY SIGNED IN READS, less you (your card is above). */
+    const others = (DATA.tutors || []).filter(t => t && t.title && !mineIs_(t)).map(withTiles_);
+    out = add.concat(mine, others);
+  } else if (col === 'students') {
+    /* FIND BY HANDLE ON TOP (442), then you, your brothers, sisters and children, then MANAGE YOUR CHILD (339) — the owner:
+       "each user can edit their student people in student column". */
+    const search = typeof peopleSearchPage_ === 'function' ? [peopleSearchPage_()].filter(Boolean) : [];
+    const manage = typeof mayAddChild_ === 'function' && mayAddChild_() && typeof childManageCard_ === 'function' ? [childManageCard_()] : [];
+    /* NEEDS HELP (455) ABOVE ALL, for Staff — help.js `HELP_COL` names this column. */
+    const help = typeof helpListCard_ === 'function' ? [helpListCard_()].filter(Boolean) : [];
+    out = help.concat(add, search, mine, fam, manage, everyone);
+  } else {
+    /* A PARENT'S CLAIM ("X says they are your parent") is answered here, by the child. */
+    const claims = (famMine && Array.isArray(DATA.claims) && typeof claimCard_ === 'function')
+      ? DATA.claims.filter(c => c && c.rowIndex && c.from).map(claimCard_) : [];
+    out = add.concat(mine, claims, fam, everyone);
+  }
+  return out.concat(coming);
 }
 
 /* ---------- HOW A LEARNER IS GETTING ON, IN ONE LINE UNDER THEIR NAME § */
@@ -9432,8 +9419,10 @@ function subDayText_(iso) {
   return (+m[3]) + ' ' + mon + (+m[1] !== new Date().getFullYear() ? ' ' + m[1] : '');
 }
 
-/* THE COLUMN ITSELF. One page when signed out — the sign-in card — and one when signed in. § */
-screen('account', () => pages('account', accountPages_()));
+/* THE PEOPLE COLUMNS (453); `peoplePages_` (me.js) adds the signed-out card and the empty one. Student settings is `studentSetPages_`. */
+screen('tutors', () => pages('tutors', peoplePages_('tutors')));
+screen('students', () => pages('students', peoplePages_('students')));
+screen('parents', () => pages('parents', peoplePages_('parents')));
 
 /** Everything spliced between the question and the results, whichever answer is showing. */
 /* THE BUNDLE IS THE LAST OF THEM — see `bundlePages_`. § */

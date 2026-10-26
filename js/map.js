@@ -271,6 +271,10 @@ const WIDGETS = [
     <div id="cal-body" class="cal"></div>
   </div>` },
 
+  /* ---------- THE VERSE SCREEN'S INSTALL PAGE, FOR AN ADMIN — off Business onto Tools (461, the owner: "this can go in tools column"). */
+  { id: 'verse', kind: 'tool', name: 'Verse screen', admin: true,
+    get html() { return '<div class="card">' + (typeof verseCard_ === 'function' ? verseCard_() : '<h3>Verse screen</h3>') + '</div>'; } },
+
   /* ---------- CHECK UPLOADS — FOR AN ADMIN, AFTER A DEPLOY § */
   { id: 'uploads', kind: 'tool', name: 'Check uploads (photos and videos in messages)', admin: true,
     start: () => uploadsPaint_?.(),
@@ -281,6 +285,7 @@ const WIDGETS = [
           ''}
     <div id="up-box" class="up-box"></div>
   </div>` },
+
 
   /* ---------- THE WHITEBOARD § */
   { id: 'whiteboard', kind: 'tool', name: 'Whiteboard', solid: true, start: () => initBoard_?.(),

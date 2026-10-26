@@ -124,7 +124,7 @@ function bizPages_() {
   const setup = typeof setupCard_ === 'function' ? [setupCard_()].filter(Boolean) : [];
   /* STAFF (405) after applications: who has agreed to the tutor terms, and any tutor's statement — `staffCard_` in staff.js. */
   const staff = typeof staffCard_ === 'function' ? [staffCard_()].filter(Boolean) : [];
-  return profitCards_().concat(setup, postsWaitCard_(), appsCard_(), staff, reportsCard_(), libImpCard_(), BIZ_PAGES.map(bizCard_), verseCard_());
+  return profitCards_().concat(setup, postsWaitCard_(), appsCard_(), staff, reportsCard_(), libImpCard_(), BIZ_PAGES.map(bizCard_));   /* Verse screen is a Tools widget (461) */
 }
 
 /* ---------- POSTS WAITING FOR APPROVAL (413) ----------
@@ -362,8 +362,8 @@ on('lib-import', el => {
 /* THE E-PAPER VERSE SCREEN'S SETUP PAGE, findable by an admin rather than by its address (370). */
 function verseCard_() {
   const href = location.origin + '/tools/epaper-verse/install.html';
-  return `<div class="card biz"><h3>Verse screen</h3>
-    <div class="tile-row">${tile_({ icon: 'ext', label: 'Verse screen', note: 'set up', href })}</div></div>`;
+  return `<h3>Verse screen</h3>
+    <div class="tile-row">${tile_({ icon: 'ext', label: 'Verse screen', note: 'set up', href })}</div>`;
 }
 
 /* ---------- PROFIT: THE BUSINESS'S SUM, WRITTEN OUT, EVERY TERM A CONTROL (docs/history/393) ----------

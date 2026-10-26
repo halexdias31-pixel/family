@@ -849,9 +849,14 @@ function mayJourney_() {
 /* THE EXAM DATES CHANGED UNDER THE COLUMN, so it is REDRAWN IF IT IS DRAWN — the rule `profileRefresh_` keeps for Settings, whose About you holds the same two § */
 function progressRedraw_() {
   try {
-    if (typeof screenHasMarkup_ === 'function' && !screenHasMarkup_('progress')) return;
-    paint('progress');
-    paintPager('progress', true);
+    if (typeof screenHasMarkup_ === 'function' && !screenHasMarkup_('account')) return;
+    /* ON STUDENT SETTINGS SINCE 461: the Countdowns card is swapped in place, since a form just saved there can make `paint` keep the column. */
+    const j = document.querySelector('#s-account .card.prog-count');
+    if (j && typeof progressCountdownCard_ === 'function') {
+      j.outerHTML = String(progressCountdownCard_()).replace('<div class="card', '<div class="card prog-w');
+    }
+    paint('account');
+    paintPager('account', true);
   } catch (e) {}
 }
 
@@ -1276,6 +1281,6 @@ on('prog-practise', el => {
   });
 });
 on('prog-sessions', () => { go('booking'); });
-screen('progress', () => pages('progress', progressCards_()));
+/* `screen('progress')` WAS HERE: its cards are on Student settings (461), `studentSetPages_` in me.js. */
 screen('tools', () => pages('tools', widgetColumn_('tool')));
 screen('games', () => pages('games', widgetColumn_('game')));

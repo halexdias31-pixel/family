@@ -85,7 +85,6 @@ const DIRECT = {
   /* APPLYING TO TEACH (400): the owner hears of an application, and the applicant hears the answer to it. */
   'doPost:applyTeach': { essential: 'access', why: 'the owner told an application to teach is waiting — the business, not a preference' },
   'doPost:decideApplication': { essential: 'access', why: 'the answer to the applicant\'s own application: approved, interview or declined' },
-  'doPost:makeChild':  { essential: 'access', why: 'the only written copy of the child\'s sign-in handle' },
   digestMail_:         { asks: 'weekly', in: 'digestReach_', why: 'the Sunday email: `digestReach_`, which `digestPlan_` asks for every learner (and `checkSundayEmail` too, since 12 Oct), drops a parent who said no before anything is rendered' },
 };
 /* ---------- AND EVERY `notify(` CALL, PINNED TO THE KIND IT WAS DECIDED TO BE § */

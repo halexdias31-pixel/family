@@ -91,7 +91,6 @@ const EXEMPT = [
   { file: 'me.js', fn: 'peopleSearchPage_', has: 'data-psearch', why: 'the People search (442) — a handle looked up, not work; half a child\'s handle is better forgotten' },
   { file: 'me.js', fn: 'signInCard_', has: 'id="in-pin"', why: PIN },
   { file: 'me.js', fn: 'registerSheet_', has: 'id="reg-pin"', why: PIN },
-  { file: 'me.js', fn: 'kidMakeSec_', has: 'data-kid-new="pin"', why: PIN },
   { file: 'me.js', fn: 'youSettingsPages_', has: 'id="pin-now"', why: PIN },
   { file: 'me.js', fn: 'youSettingsPages_', has: 'id="pin-new"', why: PIN },
   { file: 'me.js', fn: 'youSettingsPages_', has: 'id="pin-again"', why: PIN },

@@ -5,7 +5,7 @@ const HELP_STORE = 'familyHelpHand';
 const HELP_TTL_MS = 30 * 60 * 1000;     // the backend's HANDS_TTL_MS: a hand nobody answered goes down by itself
 const HELP_POLL_MS = 15000;
 /* THE STUDENTS COLUMN, WHICH THE TUTOR'S LIST TOPS. One name, so the six-columns change moves it in one line. */
-const HELP_COL = 'account';
+const HELP_COL = 'students';
 let HELP_LIST = null;                   // the tutor's last answer: [{ personId, name, handle, q, label, at }]
 let HELP_TIMER = null;
 
