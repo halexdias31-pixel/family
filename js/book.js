@@ -178,35 +178,6 @@ function mondayOf_(when) {
   return d;
 }
 
-/* The hour a session starts, off `16:00` or the `4pm` some older rows hold. NaN when there is none. */
-function startHour_(t) {
-  const m = /(\d{1,2})(?::\d{2})?\s*(am|pm)?/i.exec(String(t || ''));
-  if (!m) return NaN;
-  let h = Number(m[1]);
-  if (m[2] && /pm/i.test(m[2]) && h < 12) h += 12;
-  if (m[2] && /am/i.test(m[2]) && h === 12) h = 0;
-  return h;
-}
-
-/* ---------- YOUR SESSIONS, AS THE SEVEN DAYS OF ONE WEEK § */
-function weekSessions_(when) {
-  const mon = mondayOf_(when);
-  const out = [];
-  (typeof myJobs_ === 'function' ? myJobs_() : []).forEach(j => {
-    if (!S_(j.day || j.weekday) || !S_(j.time)) return;
-    if (/cancel/i.test(String(j.status || ''))) return;
-    const from = startHour_(j.time);
-    if (!isFinite(from)) return;
-    const to = from + Math.max(1, Number(j.hours) || 2);
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(mon); date.setDate(mon.getDate() + i);
-      if (jobOn_(j, date)) out.push({ j, day: i, date, from, to });
-    }
-  });
-  return out;
-}
-
-
 /* ---------- REPAINTING BOOK WITHOUT LOSING THE PLACE § */
 /* ---------- REPAINTING THE BOOKER, WHEREVER IT IS § */
 function paintBook_() {

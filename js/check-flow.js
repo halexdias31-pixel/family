@@ -12578,7 +12578,7 @@ check('each column opens on the page worth reading', async () => {
 });
 
 /* ---------- PROGRESS: BETWEEN SAVED AND TOOLS, AND WITH NOTHING TO COUNT, EVERY WIDGET ITS TITLE ALONE (435) ---------- */
-const PROG_TITLES_ = ['Countdowns', 'Questions', 'Recent activity', 'Work on next', 'Grade estimate', 'Papers and worksheets', 'Sessions'];
+const PROG_TITLES_ = ['Questions', 'Recent activity', 'Work on next', 'Grade estimate', 'Papers and worksheets', 'Sessions'];
 check('461: the Progress column is dissolved into Student settings — no `progress` column, an old go("progress") lands on Student settings, a swipe off Saved lands on Book, and every progress widget is on Student settings, each empty one its title alone', async () => {
   const cols = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'columns.json'), 'utf8'));
   const { w } = boot({ serve: u => (/(^|\/)data\/settings\/columns\.json(\?|$)/.test(u) ? cols : undefined) });
@@ -12614,7 +12614,6 @@ check('461: the Progress column is dissolved into Student settings — no `progr
     if (titles.join('|') !== PROG_TITLES_.join('|')) bad.push(as + ': the progress widgets on Student settings read ' + JSON.stringify(titles) + ', wanted ' + JSON.stringify(PROG_TITLES_));
     if (t.pageCount('account') !== host.querySelectorAll(':scope > .page').length) bad.push(as + ': the pager counts ' + t.pageCount('account') + ' pages over ' + host.querySelectorAll(':scope > .page').length + ' drawn');
     cards.forEach((c, k) => {
-      if (titles[k] === 'Countdowns') return;
       if (!c.classList.contains('is-empty') || c.children.length !== 1) bad.push(as + ': ' + titles[k] + ' is not its title alone');
     });
     if (d.querySelectorAll('.card.prog-w').length !== cards.length) bad.push(as + ': a progress widget is drawn somewhere else too');
@@ -12626,7 +12625,7 @@ check('461: the Progress column is dissolved into Student settings — no `progr
 /* ---------- YOUR JOURNEY IS PROGRESS'S CARD, IT FOLLOWS WHOEVER SIGNS IN, AND THE WEEKLY EMAIL'S CARD IS GONE § */
 const JOURNEY_DAY_ = n => { const t = new Date(Date.now() + n * 864e5);
   return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); };
-check('your exams: the big exam on Progress\'s Countdowns for a student and not on Settings, not for a parent, drawn again by a sign-in, a sign-out, a role and a saved exam date without a reload — and no weekly parent email card anywhere', async () => {
+check('your exams: the big exam on the Countdowns widget on Tools (466) for a student and not on Settings, not for a parent, drawn again by a sign-in, a sign-out, a role and a saved exam date without a reload — and no weekly parent email card anywhere', async () => {
   const cols = BIZ_COLS_();
   /* `phone_cc` IS WHAT `profileShapeOk_` asks for before a Save is sent from a copy of your details. */
   const STUDENT = { name: 'Sam Student', personId: 'P-S9', role: 'student', roles: ['student'], token: 'tk-s9', handle: 'samstudent',
@@ -12656,16 +12655,18 @@ check('your exams: the big exam on Progress\'s Countdowns for a student and not 
   const bad = [];
   const settle = async () => { await wait(LEAVE_MS); await woken_(); };
   const go = async id => { t.go(id, false, true); await settle(); };
-  const prog = () => d.getElementById('s-account');
+  const prog = () => d.getElementById('s-tools');
   /* WHAT PROGRESS SHOWS, read off the column as drawn — never off `progressCards_()`, which would be asking
      the function the column is drawn from rather than whether it was drawn again. */
   const seen = () => {
-    const h = prog(), j = h && h.querySelector('.card.journey');
+    const h = prog(), j = h && h.querySelector('.cd-box');
     const big = j ? /Big exam\s*(\d+) days?/.exec(j.textContent) : null;
     return { journey: !!big, held: !big,
              count: big ? big[1] : '',
              pages: h ? h.querySelectorAll(':scope > .page').length : 0 };
   };
+  /* THE WIDGET ON ITS OWN PAGE OF TOOLS, as a swipe arrives at it (466). */
+  const look = async () => { await toolBox_(w, 'countdowns', '.cd-box'); return seen(); };
   const signIn = async (u, as) => {
     next = u;
     await go('account');
@@ -12685,21 +12686,18 @@ check('your exams: the big exam on Progress\'s Countdowns for a student and not 
   };
 
   /* 1. SIGNED OUT. */
-  await go('account');
-  let s1 = seen();
+  let s1 = await look();
   if (s1.journey || !s1.held) bad.push('signed out, Progress is ' + JSON.stringify(s1) + ' — wanted the placeholder');
 
   /* 2. A STUDENT SIGNS IN: their journey on Progress, and none on Settings. */
   let no = await signIn(STUDENT, 'the student');
   if (no) return bad.concat([no]);
-  await go('account');
-  s1 = seen();
+  s1 = await look();
   if (!s1.journey || s1.held) bad.push('a student signed in, and Progress is ' + JSON.stringify(s1) + ' — wanted their journey, without a reload');
   if (s1.count !== '14') bad.push('the student\'s journey counts "' + s1.count + '" days to their big exam, wanted 14');
-  if (s1.pages !== t.pageCount('account')) bad.push('a student\'s Progress draws ' + s1.pages + ' page(s) and its pager counts ' + t.pageCount('account'));
-  if (prog().querySelector('.card.journey ' + PLACEHOLDER_KEYS_.split(', ').join(', .card.journey '))) bad.push('the student\'s countdown card has a control on it');
+  if (prog().querySelector('.cd-box ' + PLACEHOLDER_KEYS_.split(', ').join(', .cd-box '))) bad.push('the student\'s countdowns have a control on them');
   await go('account');
-  if (d.querySelectorAll('.card.journey').length !== 1) bad.push('the journey card is drawn ' + d.querySelectorAll('.card.journey').length + ' times, wanted once, on Student settings (461)');
+  if (d.querySelector('#s-account .cd-box, #s-account .card.journey')) bad.push('a countdown is still drawn on Student settings — its one home is Tools (466)');
 
   /* 3. THE STUDENT'S ROLE BECOMES CLIENT — by @family., since a student has no picker (432) — and the column is drawn again: the placeholder. */
   const roles = d.querySelector('#s-account .roles-card');
@@ -12711,8 +12709,7 @@ check('your exams: the big exam on Progress\'s Countdowns for a student and not 
     await settle();
     if (!t.whoami() || t.whoami().role !== 'client') bad.push('the student did not become a client — NOT checked');
     else {
-      await go('account');
-      s1 = seen();
+      s1 = await look();
       if (s1.journey || !s1.held) bad.push('the student became a client, and Progress is ' + JSON.stringify(s1) + ' — wanted the placeholder');
     }
   }
@@ -12720,23 +12717,20 @@ check('your exams: the big exam on Progress\'s Countdowns for a student and not 
   /* 4. OUT FROM SPOTLIGHT, AND A PARENT IN: the placeholder, and no journey anywhere. */
   await go('spotlight');
   if ((no = await signOut())) return bad.concat([no]);
-  await go('account');
-  s1 = seen();
+  s1 = await look();
   if (s1.journey || !s1.held) bad.push('signed out from Spotlight, Progress is ' + JSON.stringify(s1) + ' — wanted the placeholder');
   if ((no = await signIn(PARENT, 'the parent'))) return bad.concat([no]);
   for (const id of t.TABS.map(x => x.id)) { try { t.go(id, false, true); } catch (e) { bad.push('the parent: ' + id + ' threw: ' + e.message); } }
-  await go('account');
-  s1 = seen();
+  s1 = await look();
   if (s1.journey || !s1.held) bad.push('a parent signed in, and Progress is ' + JSON.stringify(s1) + ' — wanted the placeholder');
-  if ([...d.querySelectorAll('.card.journey')].some(c => /Big exam|Small exam/.test(c.textContent))) bad.push('a parent is shown an exam date of About you somewhere in the page');
+  if ([...d.querySelectorAll('.cd-box, .card.journey')].some(c => /Big exam|Small exam/.test(c.textContent))) bad.push('a parent is shown an exam date of About you somewhere in the page');
 
   /* 5. THE PARENT SIGNS OUT ON PROGRESS, THE STUDENT IN AGAIN: the journey, on the same document. */
   if ((no = await signOut())) return bad.concat([no]);
-  s1 = seen();
+  s1 = await look();
   if (s1.journey || !s1.held) bad.push('the parent signed out on Progress, and it shows ' + JSON.stringify(s1) + ' — wanted the placeholder there and then');
   if ((no = await signIn(STUDENT, 'the student, again'))) return bad.concat([no]);
-  await go('account');
-  s1 = seen();
+  s1 = await look();
   if (!s1.journey || s1.held || s1.count !== '14') bad.push('the student signed in again after a sign-out, and Progress is ' + JSON.stringify(s1) + ' — wanted their journey at 14 days, without a reload');
 
   /* 6. THE BIG EXAM MOVED ON ABOUT YOU: Progress counts to the new date before anybody goes there. */
@@ -12757,8 +12751,7 @@ check('your exams: the big exam on Progress\'s Countdowns for a student and not 
     else {
       s1 = seen();
       if (s1.count !== '30') bad.push('the student saved their big exam 30 days out, and Progress (not in front, the payload held) still counts "' + s1.count + '"');
-      await go('account');
-      s1 = seen();
+      s1 = await look();
       if (s1.count !== '30') bad.push('the student saved their big exam 30 days out and went to Progress, which counts "' + s1.count + '"');
     }
   }
@@ -12769,9 +12762,8 @@ check('your exams: the big exam on Progress\'s Countdowns for a student and not 
   for (const id of t.TABS.map(x => x.id)) { try { t.go(id, false, true); } catch (e) { bad.push('the admin: ' + id + ' threw: ' + e.message); } await wait(50); }
   await go('account');
   w.paint('account');
-  if (d.querySelectorAll('.card.journey').length > 1) bad.push('an admin\'s journey card is drawn more than once');
-  await go('account');
-  s1 = seen();
+  if (d.querySelectorAll('#s-account .cd-box').length) bad.push('an admin\'s countdowns are drawn on Student settings');
+  s1 = await look();
   /* NO EXAM DATE ON THE ADMIN'S PROFILE (435): no Big exam line. */
   if (s1.journey) bad.push('an admin with no exam date signed in, and Progress is ' + JSON.stringify(s1) + ' — wanted no Big exam line');
   const gone = d.querySelectorAll('.card.digest, [data-do="digest-preview"], .digest-mode, .digest-said');
@@ -12961,8 +12953,21 @@ check('progress, grade estimate: a GCSE grade from the share of marks on past pa
   return bad;
 });
 
+/* ---------- A TOOLS WIDGET, ON ITS OWN PAGE, THE WAY A SWIPE ARRIVES (466): its box once drawn, or null ---------- */
+async function toolBox_(w, id, sel) {
+  const t = w.__t, d = w.document;
+  t.go('tools', false, true);
+  await wait(LEAVE_MS); await woken_();
+  const n = w.widgetsOf_('tool').findIndex(x => String(x.id) === id);
+  if (n < 0) return null;
+  t.goPage('tools', n, true);
+  await wait(LEAVE_MS); await woken_();
+  for (let i = 0; i < 40 && !d.querySelector('#s-tools ' + sel); i++) await wait(50);
+  return d.querySelector('#s-tools ' + sel);
+}
+
 /* ---------- COUNTDOWNS ---------- */
-check('progress, countdowns: a Year 11\'s GCSEs and the next holiday, one line each; the config tab moves the exam and the sheet\'s holiday row wins over the defaults; signed out, none (Student settings is the sign-in card, 461)', async () => {
+check('466: countdowns are a Tools widget for everyone — a Year 11\'s GCSEs and the next holiday, one line each; the config tab moves the exam and the sheet\'s holiday row wins over the defaults; signed out, the holiday alone; none on Student settings', async () => {
   const day = d0 => { const x = new Date(); x.setHours(0, 0, 0, 0); return Math.round((d0 - x) / 864e5); };
   const now = new Date();
   /* A BIRTHDAY THAT MAKES YEAR 11 NOW: 15 on the 1st of September this school year began. */
@@ -12982,10 +12987,11 @@ check('progress, countdowns: a Year 11\'s GCSEs and the next holiday, one line e
   if (!t || !t.whoami()) return ['the learner is not signed in — NOT checked'];
   t.USER(Object.assign({}, t.whoami(), { profile: { date_of_birth: dob } }));
   const bad = [];
-  t.go('account', false, true);
-  await wait(LEAVE_MS); await woken_();
-  w.paint('account');
-  const c = progCard_(d, 'Countdowns');
+  const c = await toolBox_(w, 'countdowns', '.cd-box');
+  if (!c) return ['the Countdowns widget did not draw on Tools — NOT checked'];
+  t.go('account', false, true); await wait(LEAVE_MS); await woken_(); w.paint('account');
+  if (progCard_(d, 'Countdowns') || /Countdowns/.test((d.getElementById('s-account') || {}).textContent || '')) bad.push('Countdowns is still on Student settings — one home, Tools (466)');
+  await toolBox_(w, 'countdowns', '.cd-box');
   const rows = c ? [...c.querySelectorAll('.row')].map(progRow_) : [];
   const want = ['GCSE exams ' + day(gcse) + ' days', 'Half term ' + day(hol) + ' days'];
   if (rows.join(' | ') !== want.join(' | ')) bad.push('Countdowns reads ' + JSON.stringify(rows) + ', wanted ' + JSON.stringify(want));
@@ -12993,16 +12999,61 @@ check('progress, countdowns: a Year 11\'s GCSEs and the next holiday, one line e
   /* NO ROW IN THE SHEET AND NO CONFIG: the built-in exam date and the next default holiday. */
   t.DATA().intervals = [];
   delete t.DATA().constants.vars.exam_gcse_start;
-  w.paint('account');
-  const rows2 = [...(progCard_(d, 'Countdowns') || d).querySelectorAll('.row')].map(progRow_);
+  w.paintCountdowns_();
+  const rows2 = [...c.querySelectorAll('.row')].map(progRow_);
   if (!/^GCSE exams \d+ days$/.test(rows2[0] || '') || rows2[0] === want[0]) bad.push('with the config cleared the GCSE line reads ' + JSON.stringify(rows2[0]) + ' — wanted the built-in 11 May, not the override');
   if (!/(half-term|holidays) (\d+ days?|today)$/.test(rows2[1] || '')) bad.push('with no holiday row the holiday line reads ' + JSON.stringify(rows2[1]) + ' — wanted a default holiday');
   t.USER(null);
-  w.paint('account');
-  const out = progCard_(d, 'Countdowns');
-  /* SIGNED OUT, STUDENT SETTINGS IS THE SIGN-IN CARD (461), so no progress widget is drawn at all. */
-  if (out) bad.push('signed out, a Countdowns card is drawn on Student settings');
+  w.paintCountdowns_();
+  /* SIGNED OUT (466): everyone has the widget — the holiday needs no account, the exam does. */
+  const rows3 = [...c.querySelectorAll('.row')].map(progRow_);
+  if (rows3.length !== 1 || !/(half-term|holidays) (\d+ days?|today)$/.test(rows3[0] || '')) bad.push('signed out, Countdowns reads ' + JSON.stringify(rows3) + ' — wanted the next holiday alone');
   return bad;
+});
+
+
+/* ---------- TERM DATES (466): THE END OF THE NEXT THREE TERMS AND HALF TERMS, ONE LINE EACH, ON TOOLS ---------- */
+check('466: Term dates on Tools lists the end dates of the next three terms and half terms in order, one line each, skips holidays and ended ones, and says so when there are none', async () => {
+  const p = payload();
+  const at = n => { const x = new Date(); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() + n); return x; };
+  const dmy = x => String(x.getDate()).padStart(2, '0') + '/' + String(x.getMonth() + 1).padStart(2, '0') + '/' + x.getFullYear();
+  p.intervals = [
+    { term: 'Spring 1', label: 'Spring 1', kind: 'term', startDate: dmy(at(60)), endDate: dmy(at(100)) },
+    { term: 'Christmas', label: 'Christmas', kind: 'holiday', startDate: dmy(at(40)), endDate: dmy(at(50)) },
+    { term: 'Autumn 2', label: 'Autumn 2', kind: 'term', startDate: dmy(at(-20)), endDate: dmy(at(30)) },
+    { term: 'Autumn 1', label: 'Autumn 1', kind: 'term', startDate: dmy(at(-80)), endDate: dmy(at(-30)) },
+    { term: 'February Half Term', label: 'February Half Term', kind: 'half-term', startDate: dmy(at(101)), endDate: dmy(at(105)) },
+    { term: 'Spring 2', label: 'Spring 2', kind: 'term', startDate: dmy(at(106)), endDate: dmy(at(140)) }];
+  const { w } = boot({ payload: p });
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  await wait(400);
+  const box = await toolBox_(w, 'termdates', '.td-box');
+  if (!box) return ['the Term dates widget did not draw on Tools — NOT checked'];
+  const bad = [];
+  const rows = [...box.querySelectorAll('.row')].map(progRow_);
+  const said = x => 'ends ' + x.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  const want = ['Autumn 2 ' + said(at(30)), 'Spring 1 ' + said(at(100)), 'February Half Term ' + said(at(105))];
+  if (rows.join(' | ') !== want.join(' | ')) bad.push('Term dates reads ' + JSON.stringify(rows) + ', wanted ' + JSON.stringify(want));
+  w.__t.DATA().intervals = [];
+  w.paintTermDates_();
+  if (!/No term dates yet/.test(box.textContent) || box.querySelector('.row')) bad.push('with no terms the widget reads "' + box.textContent.trim() + '"');
+  return bad;
+});
+
+/* ---------- NEWSPAPER (466): A PLACEHOLDER ON REELS, ITS TITLE ALONE ---------- */
+check('466: Reels holds a Newspaper widget, its title alone', async () => {
+  const { w } = boot();
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  await wait(400);
+  const t = w.__t, d = w.document;
+  const n = w.widgetsOf_('reel').findIndex(x => String(x.id) === 'newspaper');
+  if (n < 0) return ['there is no newspaper widget on the Reels column'];
+  t.go('reel', false, true); await wait(LEAVE_MS); await woken_();
+  t.goPage('reel', n, true); await wait(LEAVE_MS); await woken_();
+  const slot = d.getElementById('wgt-newspaper');
+  if (!slot) return ['the Newspaper widget did not draw on Reels'];
+  const txt = slot.textContent.replace(/\s+/g, ' ').trim();
+  return txt === 'Newspaper' && slot.children.length === 1 ? [] : ['the Newspaper widget reads "' + txt + '" with ' + slot.children.length + ' element(s) — wanted its title alone'];
 });
 
 /* ---------- THE BUSINESS RECORDS: A COLUMN OF THEIR OWN, LAST, AND ONLY AN ADMIN'S § */
@@ -22827,43 +22878,13 @@ check('with Client House chosen the week grid shows exactly the tutor\'s hours, 
   return bad;
 });
 
-/* ---------- THE WEEK OF YOUR SESSIONS: YOURS, EVERY DAY OF THEM, AND ONLY WHILE THEY RUN § */
-check('your week holds your sessions only, on every day they run, while their dates are live', async () => {
-  const { w } = boot();
-  await wait(300);
-  const t = w.__t;
-  if (typeof w.weekSessions_ !== 'function') {
-    return ['weekSessions_ is not reachable, so the week was NOT checked — not a pass'];
-  }
-  const mon = w.mondayOf_(new Date());
-  const at = n => { const d = new Date(mon); d.setDate(d.getDate() + n); return d; };
-  const dmy = d => String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
-  const job = (id, extra) => Object.assign({ id, jobId: id, subject: id, time: '16:00', hours: 2,
-    client: 'Pat Parent', tutor: 'GeorgePovey', status: 'active', slots: [] }, extra);
-  const D = t.DATA();
-  D.liveJobs = D.jobs = [
-    job('TWO-DAY', { day: 'Monday, Friday', dates: [at(-7), at(-3), at(0), at(4), at(7)].map(dmy).join(', ') }),
-    job('STRANGER', { day: 'Tuesday', client: 'Somebody Else', tutor: 'Sasha Matola', dates: dmy(at(1)) }),
-    job('ENDED', { day: 'Wednesday', dates: [at(-70), at(-63)].map(dmy).join(', ') }),
-    job('NOT-YET', { day: 'Thursday', dates: [at(24), at(31)].map(dmy).join(', ') }),
-    job('UNDATED', { day: 'Saturday', dates: '' }),
-  ];
-  t.USER({ name: 'Pat Parent', personId: 'P1', role: 'client', roles: ['client'] });
-  const got = w.weekSessions_().map(s => s.j.id + '@' + s.day).sort().join(' ');
-  const want = 'TWO-DAY@0 TWO-DAY@4 UNDATED@5';
-  const bad = [];
-  if (got !== want) bad.push('this week holds [' + got + '], wanted [' + want + '] — both days of the two-day booking, '
-    + 'nothing of a stranger\'s, nothing ended or not yet started, and the undated request on its weekday');
-  return bad;
-});
-
-/* ---------- THE TIMETABLE IS THE ONE WEEK: YOUR SESSIONS LOCKED IN IT, AND IT IS ON YOUR ACCOUNT § */
-check('the timetable holds your booked sessions locked, is saved to your account, and Your week is gone', async () => {
+/* ---------- THE TIMETABLE IS ITS OWN WEEK, ON YOUR ACCOUNT, AND NO BOOKING IS SYNCED INTO IT (466) ---------- */
+check('466: the timetable holds only its own lessons — a booked session is not drawn in it — is saved to your account, and Your week is gone', async () => {
   const { w, sent } = boot();
   await wait(300);
   const t = w.__t, d = w.document;
-  if (typeof w.initTimetable !== 'function' || typeof t.tmtKey !== 'function' || typeof w.weekSessions_ !== 'function') {
-    return ['the timetable / weekSessions_ are not reachable, so this was NOT checked — not a pass'];
+  if (typeof w.initTimetable !== 'function' || typeof t.tmtKey !== 'function') {
+    return ['the timetable is not reachable, so this was NOT checked — not a pass'];
   }
   const bad = [];
   const mon = w.mondayOf_(new Date());
@@ -22893,16 +22914,11 @@ check('the timetable holds your booked sessions locked, is saved to your account
     (r.classList.contains('is-booked') ? 'BOOKED ' : '') + r.querySelector('.tmt-at').textContent.trim() + ' '
     + r.querySelector('.tmt-sub').textContent.trim());
   const got = list().join(', ');
-  if (got !== '09:00 Maths, BOOKED 10:00 Physics, 13:00 Art') {
-    bad.push('Monday reads [' + got + '], wanted [09:00 Maths, BOOKED 10:00 Physics, 13:00 Art] — the phone\'s week carried up, '
-      + 'your session among it in time order, and nobody else\'s');
+  if (got !== '09:00 Maths, 13:00 Art') {
+    bad.push('Monday reads [' + got + '], wanted [09:00 Maths, 13:00 Art] — the phone\'s week carried up and no booked session synced into it (466)');
   }
-  const row = box().querySelector('.tmt-row.is-booked');
-  if (!row || row.getAttribute('data-do') !== 'job' || row.getAttribute('data-id') !== 'J-MON') {
-    bad.push('the booked session is not a row that opens it (data-do="job" data-id="J-MON")');
-  }
-  if (box().querySelector('.tmt-ed .tmt-in[data-id="J-MON"]')) bad.push('a booked session opened into editable boxes');
-  if (box().querySelectorAll('.tmt-day').length !== 7) bad.push('a session on Saturday did not show the weekend: ' + box().querySelectorAll('.tmt-day').length + ' day chips');
+  if (box().querySelector('.tmt-row.is-booked, [data-id="J-MON"]')) bad.push('a booked session is drawn in the timetable — nothing syncs into it (466)');
+  if (box().querySelectorAll('.tmt-day').length !== 5) bad.push('a session on Saturday opened the weekend: ' + box().querySelectorAll('.tmt-day').length + ' day chips, wanted 5 — only the Weekend box does (466)');
   /* THE ACCOUNT. The carry-up wrote USER.timetable; give the debounce time and look at the wire. */
   await wait(1100);
   const save = sent.filter(x => x.action === 'saveTimetable').pop();
@@ -23036,55 +23052,33 @@ check('the business\'s cut of an extra seat is the tutor\'s own when set and the
   return bad;
 });
 
-/* ---------- THE CALENDAR SHOWS EVERY DATE THE APP KNOWS § */
-check('the calendar marks sessions, terms, half terms, bank holidays, events and exams, with a key', async () => {
+/* ---------- A PLAIN CALENDAR (466): NO TERM, SESSION, EXAM OR HOLIDAY IS LAID ON IT ---------- */
+check('466: the calendar is a plain month — the days and today, with no term, half term, session, exam, closure or event on it, and no key', async () => {
   const { w } = boot();
   await wait(300);
   const t = w.__t, d = w.document;
-  if (typeof w.calendarMarks !== 'function' || typeof w.calKey_ !== 'function') {
-    return ['calendarMarks / calKey_ are not reachable, so the calendar was NOT checked — not a pass'];
-  }
+  if (typeof w.initCalendar !== 'function') return ['initCalendar is not reachable, so the calendar was NOT checked — not a pass'];
   const now = new Date(), y = now.getFullYear(), m = now.getMonth();
   const on = n => String(n).padStart(2, '0') + '/' + String(m + 1).padStart(2, '0') + '/' + y;
   const D = t.DATA();
-  D.liveJobs = D.jobs = [
-    { id: 'J-CAL', jobId: 'J-CAL', subject: 'Maths', time: '16:00', day: 'Monday', client: 'Pat Parent', tutor: 'GeorgePovey',
-      status: 'active', slots: [], dates: [on(3), on(17)].join(', '), location: 'Mitcham library' },
-    { id: 'J-NOT', jobId: 'J-NOT', subject: 'Chemistry', time: '10:00', day: 'Tuesday', client: 'Somebody Else', tutor: 'Sasha Matola',
-      status: 'active', slots: [], dates: on(4) },
-  ];
-  D.intervals = [
-    { term: 'Autumn 2', label: 'Autumn 2', kind: 'term', startDate: on(5), endDate: '19/12/' + (y + 1) },
-    { term: 'October Half Term', label: 'October Half Term', kind: 'half-term', startDate: on(20), endDate: on(22) },
-  ];
-  D.closures = [{ date: on(8), name: 'Staff training', kind: 'inset' }, { date: on(9), name: 'Early May bank holiday', kind: 'bank' }];
+  D.liveJobs = D.jobs = [{ id: 'J-CAL', jobId: 'J-CAL', subject: 'Maths', time: '16:00', day: 'Monday', client: 'Pat Parent', tutor: 'GeorgePovey',
+    status: 'active', slots: [], dates: [on(3), on(17)].join(', '), location: 'Mitcham library' }];
+  D.intervals = [{ term: 'Autumn 2', label: 'Autumn 2', kind: 'term', startDate: on(5), endDate: '19/12/' + (y + 1) },
+    { term: 'October Half Term', label: 'October Half Term', kind: 'half-term', startDate: on(20), endDate: on(22) }];
+  D.closures = [{ date: on(9), name: 'Early May bank holiday', kind: 'bank' }];
   D.festive = [{ id: 'H1', name: 'Pumpkin carving', holiday: 'Halloween', venue: 'Colliers Wood Library', date: on(25) }];
   D.exams = [{ personId: 'P1', who: 'Pat Parent', subject: '', label: 'Small exam', date: on(12), kind: 'mock' }];
   t.USER({ name: 'Pat Parent', personId: 'P1', role: 'client', roles: ['client'] });
-  const mk = w.calendarMarks(y, m);
-  const kinds = n => (mk[n] || []).map(x => x.kind).sort().join(',');
-  const bad = [];
-  [[3, 'session'], [17, 'session'], [4, ''], [5, 'term'], [20, 'halfterm'], [21, 'halfterm'], [22, 'halfterm'],
-   [8, 'closed'], [9, 'bank'], [25, 'festive'], [12, 'mock']].forEach(([n, want]) => {
-    if (kinds(n) !== want) bad.push('day ' + n + ' carries [' + kinds(n) + '], wanted [' + want + ']');
-  });
-  const key = d.createElement('div');
-  key.innerHTML = w.calKey_(mk);
-  const said = [...key.querySelectorAll('.cal-key span')].map(s => s.textContent.trim()).join(', ');
-  if (said !== 'Session, Mock, Term, Half term, Bank holiday, Closed, Event') bad.push('the key reads [' + said + ']');
-  /* DRAWN, AND A TAP ON A DAY LISTS IT. */
-  try { t.go('tools', false, true); } catch (e) { return bad.concat('go("tools") threw: ' + e.message); }
-  await wait(300);
+  const host = await toolBox_(w, 'calendar', '#cal-body');
+  if (!host) return ['the calendar did not draw on Tools — NOT checked'];
   w.initCalendar();
-  const cell = d.querySelector('#cal-body .cal-d[data-d="3"]');
-  if (!cell || !cell.querySelector('.dot.session')) bad.push('the 3rd is not drawn with a session dot');
-  if (!d.querySelector('.cal-key-box .cal-key')) bad.push('no key is drawn under the month');
-  if (cell) {
-    t.ACTIONS['cal-day'](cell);
-    await wait(50);
-    const sheet = d.getElementById('sheet');
-    if (!sheet || !/Session/.test(sheet.textContent) || !/Maths/.test(sheet.textContent)) bad.push('tapping the 3rd does not list the Maths session');
-  }
+  const bad = [];
+  const days = new Date(y, m + 1, 0).getDate();
+  if (host.querySelectorAll('.cal-d').length !== days) bad.push('the month draws ' + host.querySelectorAll('.cal-d').length + ' days, wanted ' + days);
+  if (!host.querySelector('.cal-d.cal-today')) bad.push('today is not marked');
+  if (host.querySelector('.dot, .cal-dots, .cal-d.has, [data-do]')) bad.push('a day carries a mark or a control — the calendar is plain (466)');
+  if (d.querySelector('.cal-key-box, .cal-key')) bad.push('a key is drawn under the month');
+  if (['calendarMarks', 'calKey_'].some(f => typeof w[f] === 'function') || 'cal-day' in t.ACTIONS) bad.push('the calendar\'s marks, key or day sheet are still wired');
   return bad;
 });
 
@@ -26753,22 +26747,23 @@ check('a landing never leaves a drawing made from old facts on the glass: a widg
   if (!t || typeof t.landRepaint !== 'function') return ['landRepaint_ is not reachable — NOT checked'];
   t.USER(SAM_); t.go('feed', false, true); t.repaint();
   await aheadQuiet_(t);
-  const cal0 = t.slotOn('tools', 'calendar'), calc0 = t.slotOn('tools', 'calculator');
-  if (!cal0 || cal0.getAttribute('aria-busy') || !calc0) { t.USER(null); return ['the calendar was not drawn ahead on Tools — NOT checked']; }
+  const cal0 = t.slotOn('tools', 'termdates'), calc0 = t.slotOn('tools', 'calculator');
+  if (!cal0 || cal0.getAttribute('aria-busy') || !calc0) { t.USER(null); return ['Term dates was not drawn ahead on Tools — NOT checked']; }
   w.__aheadHold = true;
-  const d = new Date();
+  /* TERM DATES READS FACTS (the calendar is plain and `pure` since 466): a term the landing brings. */
+  const d = new Date(); d.setDate(d.getDate() + 1);
   const dd = String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
   const D = t.DATA();
-  D.exams = (D.exams || []).concat([{ date: dd, kind: 'exam', subject: 'Maths', label: 'Paper 1' }]);
+  D.intervals = [{ term: 'Landed term', label: 'Landed term', kind: 'term', startDate: dd, endDate: dd }].concat(D.intervals || []);
   t.landRepaint();
-  const cal1 = t.slotOn('tools', 'calendar');
-  if (!cal1 || !cal1.getAttribute('aria-busy')) bad.push('the calendar drawn from the old facts is still showing after the landing');
+  const cal1 = t.slotOn('tools', 'termdates');
+  if (!cal1 || !cal1.getAttribute('aria-busy')) bad.push('Term dates drawn from the old facts is still showing after the landing');
   if (t.slotOn('tools', 'calculator') !== calc0) bad.push('the pure calculator was replaced by the landing');
   w.__aheadHold = false; t.aheadKick();
   await aheadQuiet_(t);
-  const cal2 = t.slotOn('tools', 'calendar');
-  if (!cal2 || cal2.getAttribute('aria-busy')) bad.push('the calendar was not drawn again from the new facts in the quiet');
-  else if (!cal2.querySelector('.cal-d.has .dot.exam')) bad.push('the calendar drawn again does not show the exam the landing brought');
+  const cal2 = t.slotOn('tools', 'termdates');
+  if (!cal2 || cal2.getAttribute('aria-busy')) bad.push('Term dates was not drawn again from the new facts in the quiet');
+  else if (!/Landed term/.test(cal2.textContent)) bad.push('Term dates drawn again does not show the term the landing brought');
   if (t.slotOn('tools', 'calculator') !== calc0) bad.push('the pure calculator was replaced while the builder drew the rest');
   t.USER(null);
   return bad;

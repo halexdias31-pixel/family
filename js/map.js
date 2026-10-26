@@ -140,6 +140,9 @@ const WIDGETS = [
     into: 'vid-box', what: 'The videos',
     html: `<h3>Videos</h3>
     <div id="vid-box" class="vid-box"></div>` },
+  /* ---------- NEWSPAPER (466): a placeholder on Reels, its title alone until it has something to say. */
+  { id: 'newspaper', kind: 'reel', name: 'Newspaper',
+    html: `<h3>Newspaper</h3>` },
   /* `solid` — AN INSTRUMENT, NOT A CARD. § */
   /* MESSAGES, as a widget. § */
   /* MESSAGES IS NOT A WIDGET ANY MORE. § */
@@ -260,7 +263,7 @@ const WIDGETS = [
           ''}
     <div id="cart-box" class="cart-box"></div>` },
 
-  { id: 'calendar', kind: 'tool', name: 'Calendar', start: () => initCalendar?.(),
+  { id: 'calendar', kind: 'tool', name: 'Calendar', pure: true, start: () => initCalendar?.(),
     into: 'cal-body', what: 'The calendar',
     html: `<div class="card">
     <div class="cal-head">
@@ -270,6 +273,18 @@ const WIDGETS = [
     </div>
     <div id="cal-body" class="cal"></div>
   </div>` },
+
+  /* ---------- TERM DATES AND COUNTDOWNS (466): the owner — "a widget in the Tools column telling the user the end dates of the next 3 academic intervals"; countdowns "available for everyone under Tools". */
+  { id: 'termdates', kind: 'tool', name: 'Term dates', start: () => paintTermDates_?.(),
+    draw: () => paintTermDates_?.(),
+    into: 'td-box', what: 'The term dates',
+    html: `<h3>Term dates</h3>
+    <div id="td-box" class="td-box"></div>` },
+  { id: 'countdowns', kind: 'tool', name: 'Countdowns', start: () => paintCountdowns_?.(),
+    draw: () => paintCountdowns_?.(),
+    into: 'cd-box', what: 'The countdowns',
+    html: `<h3>Countdowns</h3>
+    <div id="cd-box" class="cd-box"></div>` },
 
   /* ---------- THE VERSE SCREEN'S INSTALL PAGE, FOR AN ADMIN — off Business onto Tools (461, the owner: "this can go in tools column"). */
   { id: 'verse', kind: 'tool', name: 'Verse screen', admin: true,
