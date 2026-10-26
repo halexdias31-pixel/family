@@ -139,6 +139,9 @@ const KINDS = {
   manuscript: { group: 'Learning', label: 'Content', card: x => histCard_(x) },
   figure: { group: 'Learning', label: 'Content', card: x => histCard_(x) },
   writing: { group: 'Learning', label: 'Content', card: x => histCard_(x) },
+  /* ITS FOURTH (461): an event, and a timeline — every event of one `era`, in date order, a tile each. */
+  event: { group: 'Learning', label: 'Content', card: x => histCard_(x) },
+  timeline: { group: 'Learning', label: 'Content', card: x => histTimelineCard_(x) },
   /* ---------- BOXING IS A SUBJECT, NOT A DEPARTMENT § */
   /* CONTENT, NOT `Resources` (445): the owner — "boxes and fights can go under content"; the Bible goes with them. */
   boxer: { group: 'Learning', label: 'Content', card: x => boxerCard_(x) },
@@ -382,7 +385,7 @@ const FACETS = [
   { field: 'boutRound', label: 'Round',       of: x => x.kind === 'fight' && x.row && Number(x.row.endRound) > 0 ? 'Round ' + Number(x.row.endRound) : '' },
   { field: 'boutMethod', label: 'Result',     of: x => (x.kind === 'fight' && x.row && String(x.row.method || '').trim()) || '' },
   /* THE HISTORY DATABASE'S (459): which table, the era its years touch, and its columns as ordinary tags (`histCol_`). */
-  { field: 'histKind',  label: 'Manuscripts, figures or writings', of: x => x.histKind || '' },
+  { field: 'histKind',  label: 'Manuscripts, figures, writings or events', of: x => x.histKind || '' },
   { field: 'histEra',   label: 'Era',         of: x => histErasOf_(x) },
   { field: 'histLanguage', label: 'Language', of: x => histCol_(x, 'language') },
   { field: 'histMaterial', label: 'Material', of: x => histCol_(x, 'material') },
@@ -391,6 +394,7 @@ const FACETS = [
   { field: 'histRole',  label: 'Role',        of: x => histCol_(x, 'roles') },
   { field: 'histTheme', label: 'Theme',       of: x => histCol_(x, 'themes') },
   { field: 'histRepository', label: 'Held at', of: x => histCol_(x, 'repository') },
+  { field: 'histTheatre', label: 'Theatre',   of: x => histCol_(x, 'theatre') },
   { field: 'practicalType', label: 'Experiment or build', of: x => x.practicalType || '' },
   { field: 'required',  label: 'Required',
     of: x => x.kind !== 'practical' || !x.row ? '' : PRAC_NEED[x.row.excluded ? 2 : x.row.required ? 0 : 1] },
@@ -1497,7 +1501,7 @@ on('ins-print', el => {
 
 /* ---------- THE HISTORY DATABASE (459): MANUSCRIPTS, FIGURES, WRITINGS — ONE CARD A ROW, LINKED BY ID. docs/history-db.md ---------- */
 /* A list cell is split on " | "; an id is MS-, FIG- or WR- and digits, and any cell may name one. */
-const HIST_ID = /^(MS|FIG|WR)-\d+$/;
+const HIST_ID = /^(MS|FIG|WR|EV)-\d+$/;
 const histList_ = v => String(v == null ? '' : v).split('|').map(t => t.trim()).filter(Boolean);
 const histSpec_ = kind => (typeof HIST_DB === 'undefined' ? [] : HIST_DB).find(t => t.kind === kind) || null;
 /* THE ROW AN ID NAMES, in whichever table its prefix says. */
@@ -1541,9 +1545,9 @@ function histLinks_(r) {
     if (!to || seen.has(id) || id === r.id) return;
     seen.add(id); out.push({ id: id, label: label, row: to });
   };
-  const K = { MS: 'Manuscript', FIG: 'Author', WR: 'Writing' };
+  const K = { MS: 'Manuscript', FIG: /^EV-/.test(r.id) ? 'Figure' : 'Author', WR: 'Writing', EV: 'Event' };
   const kindOfId = id => K[String(id).split('-')[0]] || '';
-  ['writings', 'manuscripts', 'author_id'].forEach(c => histList_(r[c]).forEach(id => { if (HIST_ID.test(id)) add(id, kindOfId(id)); }));
+  ['writings', 'manuscripts', 'author_id', 'figures', 'events'].forEach(c => histList_(r[c]).forEach(id => { if (HIST_ID.test(id)) add(id, kindOfId(id)); }));
   histList_(r.relations).forEach(p => {
     const m = /^([^:]+):\s*(.+)$/.exec(p);
     if (m && HIST_ID.test(m[2].trim())) add(m[2].trim(), histCap_(m[1]));
@@ -1553,6 +1557,8 @@ function histLinks_(r) {
   });
   (DATA.manuscripts || []).forEach(m => { if (histList_(m.writings).indexOf(r.id) >= 0) add(m.id, 'Manuscript'); });
   (DATA.figures || []).forEach(f => { if (histList_(f.writings).indexOf(r.id) >= 0) add(f.id, 'Author'); });
+  (DATA.timeline || []).forEach(e => { if (histList_(e.figures).concat(histList_(e.writings)).indexOf(r.id) >= 0) add(e.id, 'Event'); });
+  (DATA.figures || []).forEach(f => { if (histList_(f.events).indexOf(r.id) >= 0) add(f.id, 'Figure'); });
   return out;
 }
 const histCap_ = s => { const t = String(s || '').trim(); return t ? t[0].toUpperCase() + t.slice(1) : ''; };
@@ -1562,10 +1568,11 @@ function histItem_(kind, r) {
   const fig = kind === 'figure';
   const life = fig ? [histYear_(r.born_year), histYear_(r.died_year)] : [];
   const span = fig ? (life[0] || life[1] ? (life[0] || '?') + '–' + (life[1] || '?') : '') : r.date_text;
+  const ev = kind === 'event';
   return {
     kind: kind, hdb: true, name: histName_(r), key: 'hdb:' + r.id, image: '',
-    sub: [fig ? span : kind === 'writing' ? r.title_original : r.repository, fig ? histList_(r.roles)[0] : span].filter(Boolean).join(' · '),
-    histKind: kind === 'manuscript' ? 'Manuscripts' : fig ? 'Historical figures' : 'Writings',
+    sub: (ev ? [span, r.theatre] : [fig ? span : kind === 'writing' ? r.title_original : r.repository, fig ? histList_(r.roles)[0] : span]).filter(Boolean).join(' · '),
+    histKind: kind === 'manuscript' ? 'Manuscripts' : fig ? 'Historical figures' : ev ? 'Events' : 'Writings',
     shelf: 'History', subject: 'History',
     text: plainText_(Object.keys(r).map(k => r[k]).join(' ')),
     row: r,
@@ -1587,6 +1594,7 @@ const HIST_LINES = {
     ['Date', 'date_text'], ['Dated by', 'date_basis'], ['Language', 'language'], ['Genre', 'genre'], ['Context', 'context'],
     ['Themes', 'themes'], ['Manuscripts', r => histList_(r.manuscripts).map(v => HIST_ID.test(v) ? histName_(histRow_(v)) || v : v).join(' | ')],
     ['Public-domain translations', 'pd_translation']],
+  event: [['Date', 'date_text'], ['Places', 'places'], ['Theatre', 'theatre'], ['Part of', 'era'], ['What happened', 'summary']],
 };
 function histCard_(x) {
   const r = x.row || {};
@@ -1601,6 +1609,46 @@ function histCard_(x) {
     ${tagRow_(x)}
     <section class="fc-sec hdb-lines"><dl>${rows.map(l => `<div><dt>${esc(l[0])}</dt><dd>${
       histList_(l[1]).map(esc).join('<br>')}</dd></div>`).join('')}</dl></section>
+    ${tiles.length ? `<div class="tile-row">${tiles.join('')}</div>` : ''}
+  </div>`;
+}
+
+/* THE TIMELINES (461): one item per `era` of data/timeline.json, its events in date order (`date_iso`); its years span theirs. */
+const histTimelineKey_ = era => 'hdb:tl:' + String(era).toLowerCase().replace(/[^a-z0-9]+/g, '-');
+function histTimelines_() {
+  const by = new Map();
+  (DATA.timeline || []).forEach(e => { const era = String(e.era || '').trim(); if (era) by.set(era, (by.get(era) || []).concat([e])); });
+  return [...by].map(([era, evs]) => {
+    const list = evs.slice().sort((a, b) => String(a.date_iso || a.date_from).localeCompare(String(b.date_iso || b.date_from)));
+    const ys = list.flatMap(e => [e.date_from, e.date_to]).filter(n => n != null && isFinite(n));
+    const row = { id: 'TL-' + era, name: era + ' timeline', date_from: Math.min(...ys), date_to: Math.max(...ys),
+      theatre: [...new Set(list.flatMap(e => histList_(e.theatre)))].join(' | '), events: list };
+    return { kind: 'timeline', hdb: true, name: row.name, key: histTimelineKey_(era), image: '',
+      sub: list.length + ' events · ' + row.date_from + '–' + row.date_to, histKind: 'Events', shelf: 'History', subject: 'History',
+      text: plainText_(row.name + ' ' + list.map(e => e.name).join(' ')), row: row, era: era };
+  });
+}
+/* THE CHAPTER WHOSE DRAWING IS THIS TIMELINE: an animation titled with the era ("World War 2, 1939–45"). check-history-db holds it. */
+function histTimelineChapter_(era) {
+  for (const b of DATA.textbooks || []) for (const c of b.chapters || []) {
+    const a = (c.animations || []).find(n => String(n.title).indexOf(era) === 0);
+    if (a) return { key: 'ct:' + b.id + '-' + c.n, title: a.title };
+  }
+  return null;
+}
+/* A DAY AS A LINE OF THE TIMELINE SAYS IT: 1939-09-01 → 1 Sep 1939; anything else as written. */
+const histDay_ = iso => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ''); return m ? +m[3] + ' ' + MONTH_NAMES[+m[2] - 1].slice(0, 3) + ' ' + m[1] : String(iso || ''); };
+/* ONE LINE PER EVENT (421): its first day, its name and the tile to its card; then the Animation tile under the list. */
+function histTimelineCard_(x) {
+  const r = x.row || {};
+  const lines = (r.events || []).map(e => `<div><dt>${esc(histDay_(e.date_iso) || String(e.date_from))}</dt><dd class="hdb-ev"><span>${esc(e.name)}</span>${
+    tile_({ icon: 'flag', label: e.name, note: e.date_text, act: 'find-open', data: { key: 'hdb:' + e.id } })}</dd></div>`);
+  const ch = histTimelineChapter_(x.era);
+  const tiles = ch ? [tile_({ icon: 'play', label: 'Animation', note: ch.title, act: 'find-open', data: { key: ch.key } })] : [];
+  return `<div class="card fc hdb hdb-tl">
+    <div class="fc-head"><h3>${esc(x.name)}</h3></div>
+    ${tagRow_(x)}
+    <section class="fc-sec hdb-lines"><dl>${lines.join('')}</dl></section>
     ${tiles.length ? `<div class="tile-row">${tiles.join('')}</div>` : ''}
   </div>`;
 }
@@ -8662,6 +8710,7 @@ function stuffItemsRaw_() {
 
     /* ---------- THE HISTORY DATABASE (459) */
     ...(typeof HIST_DB === 'undefined' ? [] : HIST_DB).flatMap(t => (DATA[t.file] || []).map(r => histItem_(t.kind, r))),
+    ...histTimelines_(),
 
     /* ---------- THE BIBLE, FOR AN ADMIN AND NOBODY ELSE § */
     ...bibleItems_(),
@@ -9734,7 +9783,8 @@ function adoptFavourites_() {
 
 /* A STAR ON A WIDGET THAT WAS FOLDED INTO ANOTHER (441) lands on the one it went into, with that game chosen — the choice set once per device, so a later pick stands. */
 const FAV_MERGED = { 'w:flabby': ['w:console', 'cs-game', 'flabby'], 'w:racer': ['w:console', 'cs-game', 'racer'],
-  'w:wordsearch': ['w:wordgames', 'wg-game', 'ws'], 'w:scramble': ['w:wordgames', 'wg-game', 'ss'] };
+  'w:wordsearch': ['w:wordgames', 'wg-game', 'ws'], 'w:scramble': ['w:wordgames', 'wg-game', 'ss'],
+  'w:tables': ['w:wordgames', 'wg-game', 'tt'], 'w:chess': ['w:boardgames', 'bg-game', 'chess'], 'w:maze': ['w:boardgames', 'bg-game', 'maze'] };
 function favsMerged_() {
   Object.keys(FAV_MERGED).forEach(old => {
     if (!FAVS.has(old)) return;
@@ -9845,7 +9895,7 @@ const TAG_OF = {
   forLabel: 'kind', kindLabel: 'kind', shelf: 'kind',
   /* THE HISTORY DATABASE'S (459), in colours that already mean the same. */
   histKind: 'type', histEra: 'sitting', histLanguage: 'board', histRepository: 'board', histMaterial: 'tier',
-  histFormat: 'type', histGenre: 'type', histRole: 'topic', histTheme: 'topic',
+  histFormat: 'type', histGenre: 'type', histRole: 'topic', histTheme: 'topic', histTheatre: 'board',
   /* A CLAIM ABOUT THE THING — checked, machine-marked, required by a board. */
   accuracy: 'check', function: 'check', required: 'check',
   /* ---------- THE BIBLE'S SIX, IN KINDS THAT ALREADY HAVE COLOURS § */

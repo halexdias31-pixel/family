@@ -4573,9 +4573,11 @@ const STATES = {
         if (typeof USER !== 'undefined' && USER) DATA.students.push(
           { name: USER.name, handle: USER.handle, personId: USER.personId, ttHighscore: 5 });
         repaint(true);
-        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'tables');
-        if (n < 0) throw new Error('no times-table widget in the roster');
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'wordgames');
+        if (n < 0) throw new Error('no word games widget in the roster');
         goPage('games', n, true);
+        try { localStorage.setItem('wg-game', 'tt'); } catch (e) {}
+        wgPaint_(); initTables();
       },
       expect: () => document.querySelectorAll('#s-games #tt-board .row').length >= SCORE_TOP,
       wants: 'the times-table high scores under the sprint',
@@ -5937,7 +5939,7 @@ const STATES = {
                  && document.querySelector('#s-dm .msg-pic img')
                  && document.querySelector('#s-dm .msg-file')
                  && document.querySelector('#s-dm .msg-day')
-                 && document.querySelector('#s-dm .msg-text'),
+                 && document.querySelector('#s-dm .card:not([data-daive]) .msg-text'),
       wants: 'seven bubbles — one a picture, one a file — a day line and a box to reply in' },
     /* ---------- AND AN INBOX, WHICH IS THE STATE THE FAULT WAS IN § */
     { name: 'an inbox',
@@ -5971,8 +5973,8 @@ const STATES = {
         paint('dm');
       },
       expect: () => {
-        const form = document.querySelector('#s-dm .msg-form');
-        const body = document.querySelector('#s-dm .msg-body');
+        const form = document.querySelector('#s-dm .card:not([data-daive]) .msg-form');
+        const body = document.querySelector('#s-dm .card:not([data-daive]) .msg-body');
         const pane = form && form.closest('.pane');
         if (!form || !body || !pane) return false;
         const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
@@ -6050,7 +6052,7 @@ const STATES = {
           { name: 'Worksheet answers, final version.pdf', type: 'application/pdf', size: 1000, url: '#' }];
         DM_ASKED = true; DM_DONE = true; MSG_FAILED = false; DM_LAST = Date.now();
         paint('dm');
-        const b = document.querySelector('#s-dm .msg-text');
+        const b = document.querySelector('#s-dm .card:not([data-daive]) .msg-text');
         if (b) {
           b.value = 'Yes — question 7, the one about the ratio of the two areas. I did not get how '
                   + 'they set it up and I tried it three times.';
@@ -6060,7 +6062,7 @@ const STATES = {
       /* ONE ROW: the `+`, the box and `Send` share a top edge's worth of line — `Send` sits beside
          the box rather than under the `+`, which is the wrap this state exists to catch. */
       expect: () => {
-        const f = document.querySelector('#s-dm .msg-form');
+        const f = document.querySelector('#s-dm .card:not([data-daive]) .msg-form');
         const go = f && f.querySelector('.msg-go'), box = f && f.querySelector('.msg-text');
         return !!(f && f.querySelectorAll('.msg-chip').length === 2 && go && box
           && go.getBoundingClientRect().left >= box.getBoundingClientRect().right - 0.5);
@@ -6069,7 +6071,7 @@ const STATES = {
       /* EMPTIED AS A PERSON EMPTIES IT, with `input`: § */
       leave: () => {
         delete MSG_QUEUE['P009'];
-        const b = document.querySelector('#s-dm .msg-text');
+        const b = document.querySelector('#s-dm .card:not([data-daive]) .msg-text');
         if (b) { b.value = ''; b.style.height = ''; b.dispatchEvent(new Event('input', { bubbles: true })); }
       } },
   ],

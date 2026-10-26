@@ -7181,13 +7181,13 @@ check('a Space typed into the videos search box is not eaten by Flappy Bird, and
 });
 
 /* ---------- BOARD GAMES: CONNECT 4, OTHELLO AND SCRABBLE ARE ONE WIDGET WITH A PICKER (414) */
-check('the board games are one widget: three games in its picker, each drawing only its own board, the choice remembered', async () => {
+check('the board games are one widget: five games in its picker (461 added Chess and Maze), each drawing only its own board, the choice remembered', async () => {
   const { w } = boot();
   await wait(300);
   const t = w.__t, d = w.document;
   const bad = [];
   const ids = t.allWidgets().map(x => String(x.id));
-  ['connect4', 'othello', 'scrabble'].forEach(id => { if (ids.indexOf(id) !== -1) bad.push(id + ' is still a widget of its own'); });
+  ['connect4', 'othello', 'scrabble', 'chess', 'maze'].forEach(id => { if (ids.indexOf(id) !== -1) bad.push(id + ' is still a widget of its own'); });
   t.go('games', false, true);
   await wait(LEAVE_MS); await woken_();
   const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'boardgames');
@@ -7197,8 +7197,8 @@ check('the board games are one widget: three games in its picker, each drawing o
   const pick = d.querySelector('#s-games #bg-pick');
   if (!pick) return bad.concat(['the Board games widget has no picker']);
   const opts = [...pick.options].map(o => o.textContent.trim());
-  if (opts.join('|') !== 'Connect 4|Othello|Scrabble') bad.push('the picker offers ' + JSON.stringify(opts));
-  const boards = { c4: '#c4-board', oth: '#oth-board', scr: '#scr-board' };
+  if (opts.join('|') !== 'Connect 4|Othello|Scrabble|Chess|Maze') bad.push('the picker offers ' + JSON.stringify(opts));
+  const boards = { c4: '#c4-board', oth: '#oth-board', scr: '#scr-board', chess: '#chess-board', maze: '#maze-grid' };
   for (const k of Object.keys(boards)) {
     pick.value = k; t.ACTIONS['bg-pick'](pick);
     await wait(50);
@@ -7208,6 +7208,127 @@ check('the board games are one widget: three games in its picker, each drawing o
     if (kept !== k) bad.push('choosing ' + k + ' remembered ' + JSON.stringify(kept));
   }
   if (!d.querySelector('#s-games #wgt-boardgames h3') || d.querySelector('#s-games #wgt-boardgames h3').textContent.trim() !== 'Board games') bad.push('the widget is not headed Board games');
+  return bad;
+});
+
+/* ---------- ONE PADLOCK FOR EVERY GAME, AND IT HOLDS (461) */
+check('every game widget has the one padlock (461); locked, no drag, flick, two fingers, touchmove, wheel or arrow key moves the column or the page, on the console, Board games and Word games; leaving lets go', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t, d = w.document, A = t.ACTIONS;
+  const bad = [];
+  if (!A['game-lock'] || !t.padlock) return ['there is no game-lock handler or PADLOCK is not reachable'];
+  t.go('games', false, true);
+  await wait(LEAVE_MS); await woken_();
+  const games = t.widgetsOf('game');
+  games.forEach(g => {
+    const card = d.querySelector('#s-games #wgt-' + g.id);
+    const n = card ? card.closest('.is-widget').querySelectorAll('.game-lock').length : 0;
+    if (n !== 1) bad.push(g.id + ' has ' + n + ' padlock tiles, not one');
+  });
+  if (d.querySelector('[data-do="nes-lock"], [data-do="nes-full"]')) bad.push('the console still draws its own Lock or Full screen tile');
+  const ptr = (type, el, x, y, id, prim) => {
+    const e = new w.MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, buttons: 1 });
+    Object.defineProperty(e, 'pointerId', { value: id }); Object.defineProperty(e, 'isPrimary', { value: prim });
+    Object.defineProperty(e, 'pointerType', { value: 'touch' });
+    el.dispatchEvent(e);
+  };
+  const drag = (el, x0, y0, x1, y1, steps, id = 1, prim = true) => {
+    ptr('pointerdown', el, x0, y0, id, prim);
+    for (let i = 1; i <= steps; i++) ptr('pointermove', el, x0 + (x1 - x0) * i / steps, y0 + (y1 - y0) * i / steps, id, prim);
+    ptr('pointerup', el, x1, y1, id, prim);
+  };
+  const ev = (el, e) => { el.dispatchEvent(e); return e.defaultPrevented; };
+  for (const id of ['console', 'boardgames', 'wordgames']) {
+    const at = games.findIndex(x => String(x.id) === id);
+    if (at < 0) { bad.push('there is no ' + id + ' on the Games column'); continue; }
+    t.goPage('games', at, true);
+    await wait(80); await woken_();
+    const card = d.querySelector('#s-games #wgt-' + id).closest('.is-widget');
+    A['game-lock'](card.querySelector('.game-lock'));
+    const tile = card.querySelector('.game-lock');
+    if (!t.padlock().game || t.padlock().game.split('@')[0] !== id) { bad.push(id + ': the padlock did not lock'); continue; }
+    if (tile.getAttribute('aria-pressed') !== 'true' || !tile.classList.contains('on') || !card.classList.contains('is-locked')) bad.push(id + ': locked, the tile or the card does not show it');
+    if (!d.documentElement.classList.contains('padlocked')) bad.push(id + ': locked, the page is not marked to hold every pan');
+    const game = card.querySelector('#nes-pad, #bg-slot, #wg-slot, .widget-slot') || card;
+    const where = () => t.screenAt() + ':' + t.PAGE().games;
+    const here = where();
+    const moves = [
+      ['a drag on the game', () => drag(game, 300, 300, 40, 300, 12)],
+      ['a swipe across the card', () => drag(card, 360, 200, 20, 200, 12)],
+      ['a swipe outside the card', () => drag(d.body, 360, 20, 20, 20, 12)],
+      ['a swipe up', () => drag(card, 200, 600, 200, 100, 12)],
+      ['a fast flick', () => drag(card, 300, 300, 60, 300, 2)],
+      ['a two-finger swipe', () => { ptr('pointerdown', card, 300, 300, 1, true); ptr('pointerdown', card, 300, 360, 2, false);
+        for (let i = 1; i <= 8; i++) { ptr('pointermove', card, 300 - 30 * i, 300, 1, true); ptr('pointermove', card, 300 - 30 * i, 360, 2, false); }
+        ptr('pointerup', card, 60, 360, 2, false); ptr('pointerup', card, 60, 300, 1, true); }],
+    ];
+    for (const [say, fn] of moves) { fn(); await wait(30); if (where() !== here) { bad.push(id + ': locked, ' + say + ' moved the column to ' + where()); t.go('games', false, true); t.goPage('games', at, true); } }
+    if (!ev(game, new w.Event('touchmove', { bubbles: true, cancelable: true }))) bad.push(id + ': locked, a touchmove was left to pan the page');
+    const wh = new w.WheelEvent('wheel', { bubbles: true, cancelable: true, deltaX: 300 });
+    if (!ev(card, wh)) bad.push(id + ': locked, a wheel was left to scroll the page');
+    if (!ev(card, new w.WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: 400 }))) bad.push(id + ': locked, a vertical wheel was left to scroll the page');
+    await wait(30);
+    for (const k of ['ArrowRight', 'ArrowDown']) {
+      const e = new w.KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true });
+      if (!ev(d.body, e)) bad.push(id + ': locked, ' + k + ' was left to scroll the page');
+    }
+    await wait(30);
+    if (where() !== here) bad.push(id + ': locked, a wheel or an arrow key moved the column to ' + where());
+    if (!t.padlock().game) bad.push(id + ': the lock was lost during the gestures');
+    /* AND IT LETS GO WHEN THE PERSON LEAVES: another page of the column, then a tab. */
+    t.goPage('games', at ? at - 1 : at + 1, true);
+    await wait(80);
+    if (t.padlock().game) bad.push(id + ': another page of the column left the padlock on');
+    if (d.documentElement.classList.contains('padlocked')) bad.push(id + ': let go, the page still holds every pan');
+    if (ev(d.body, new w.Event('touchmove', { bubbles: true, cancelable: true }))) bad.push(id + ': let go, a touchmove is still refused');
+    t.goPage('games', at, true);
+    await wait(80);
+  }
+  /* A TAB AND A HIDDEN APP LET GO TOO. */
+  const card = d.querySelector('#s-games #wgt-console').closest('.is-widget');
+  t.goPage('games', games.findIndex(x => x.id === 'console'), true); await wait(80);
+  A['game-lock'](card.querySelector('.game-lock'));
+  t.go('stuff', false, true); await wait(LEAVE_MS);
+  if (t.padlock().game) bad.push('a tab to another column left the game padlock on');
+  t.go('games', false, true); await wait(LEAVE_MS);
+  t.goPage('games', games.findIndex(x => x.id === 'console'), true); await wait(80);
+  A['game-lock'](d.querySelector('#s-games #wgt-console').closest('.is-widget').querySelector('.game-lock'));
+  Object.defineProperty(d, 'hidden', { value: true, configurable: true });
+  d.dispatchEvent(new w.Event('visibilitychange'));
+  delete d.hidden;
+  if (t.padlock().game) bad.push('the app hidden left the game padlock on');
+  return bad;
+});
+
+/* ---------- CHESS AND MAZE ARE BOARD GAMES, THE SPRINT A WORD & NUMBER GAME (461) */
+check('chess and the maze are board games and the times tables sprint a word & number game (461): no cards of their own, old stars land on the merged widget with that game chosen, the sprint keeps its high scores', async () => {
+  const { w } = boot({ member: true, before: x => { signedInAs_(MEMBER_)(x); try { x.localStorage.setItem('favs', JSON.stringify(['w:chess', 'w:tables'])); } catch (e) {} } });
+  await wait(300);
+  const t = w.__t, d = w.document;
+  const bad = [];
+  const ids = t.allWidgets().map(x => String(x.id));
+  ['chess', 'maze', 'tables'].forEach(id => { if (ids.indexOf(id) !== -1) bad.push(id + ' is still a widget of its own'); });
+  const ls = k => { try { return w.localStorage.getItem(k); } catch (e) { return null; } };
+  if (!t.isFav('w:boardgames') || t.isFav('w:chess')) bad.push('a star on Chess did not move to Board games');
+  if (!t.isFav('w:wordgames') || t.isFav('w:tables')) bad.push('a star on the sprint did not move to Word & number games');
+  if (ls('bg-game') !== 'chess') bad.push('the chess star did not choose Chess: ' + ls('bg-game'));
+  if (ls('wg-game') !== 'tt') bad.push('the sprint star did not choose the sprint: ' + ls('wg-game'));
+  t.go('games', false, true);
+  await wait(LEAVE_MS); await woken_();
+  const wg = t.widgetsOf('game').findIndex(x => String(x.id) === 'wordgames');
+  t.goPage('games', wg, true);
+  await woken_();
+  const h = d.querySelector('#s-games #wgt-wordgames h3');
+  if (!h || h.textContent.trim() !== 'Word & number games') bad.push('the widget is headed ' + JSON.stringify(h && h.textContent));
+  const opts = [...(d.querySelector('#s-games #wg-pick') || { options: [] }).options].map(o => o.textContent.trim());
+  if (opts.indexOf('Times Tables Sprint') < 0) bad.push('Word & number games does not offer the sprint: ' + JSON.stringify(opts));
+  if (!d.querySelector('#s-games #wg-slot #tt-play') || !d.querySelector('#s-games #wg-slot #tt-board')) bad.push('the sprint is not drawn with its Start and its high scores');
+  const bg = t.widgetsOf('game').findIndex(x => String(x.id) === 'boardgames');
+  t.goPage('games', bg, true);
+  await woken_(); await wait(50);
+  if (d.querySelectorAll('#s-games #bg-slot #chess-board .chess-sq').length !== 64) bad.push('Chess in Board games did not draw its 64 squares');
+  if (!d.querySelector('#s-games #bg-slot .chess-ctl [data-do="chess-undo"]')) bad.push('Chess in Board games lost its Undo, turn and New game tiles');
   return bad;
 });
 
@@ -7271,7 +7392,7 @@ check('console keys: arrows and WASD steer, Z/X/Space/Enter/Shift and Q/E per sy
   if (d.querySelector('#nes-legend').hidden) bad.push('the key list is hidden on a keyboard device');
   if (d.querySelector('#nes-pad').classList.contains('on')) bad.push('the touch pad shows on a keyboard device');
   const acts = [...d.querySelectorAll('#nes-tiles [data-do]')].map(b => b.getAttribute('data-do'));
-  if (acts.join() !== 'nes-play,nes-pick,nes-forget,nes-full,nes-keys') bad.push('on keys the tiles are ' + JSON.stringify(acts));
+  if (acts.join() !== 'nes-play,nes-pick,nes-forget,nes-keys') bad.push('on keys the tiles are ' + JSON.stringify(acts));
   const forget = d.querySelector('#nes-tiles [data-do="nes-forget"]');
   if (!forget || !forget.disabled) bad.push('Forget file is not greyed with nothing kept');
   /* THE MAP, system by system. */
@@ -7343,12 +7464,12 @@ check('console keys: arrows and WASD steer, Z/X/Space/Enter/Shift and Q/E per sy
   if (d.querySelector('#nes-legend').hidden) bad.push('the Keys tile did not show the key list again');
   let kept = null; try { kept = w.localStorage.getItem('nes-keys'); } catch (e) {}
   if (kept !== '1') bad.push('the key list choice was not kept: ' + JSON.stringify(kept));
-  /* A FINGER ON THE CONSOLE swaps the key list for the touch pad, and Keys for Lock: still five tiles. */
+  /* A FINGER ON THE CONSOLE swaps the key list for the touch pad, and the Keys tile goes; the padlock is the widget's (461). */
   d.querySelector('#nes-wrap').dispatchEvent(Object.assign(new w.Event('pointerdown', { bubbles: true }), { pointerType: 'touch' }));
   if (ev('NES_.mode') !== 'touch' || !d.querySelector('#nes-pad').classList.contains('on') || !d.querySelector('#nes-legend').hidden) bad.push('a finger did not bring the touch pad back in place of the key list');
   if (d.querySelector('#nes-wrap').classList.contains('nes-has-deco')) bad.push('with the touch pad up the drawn buttons still show beside the screen');
   const acts2 = [...d.querySelectorAll('#nes-tiles [data-do]')].map(b => b.getAttribute('data-do'));
-  if (acts2.join() !== 'nes-pause,nes-pick,nes-forget,nes-lock,nes-full') bad.push('on touch, playing, the tiles are ' + JSON.stringify(acts2));
+  if (acts2.join() !== 'nes-pause,nes-pick,nes-forget') bad.push('on touch, playing, the tiles are ' + JSON.stringify(acts2));
   ev('nesStop_()');
   if (d.body.classList.contains('nes-on')) bad.push('the body is still marked after Pause');
   if (w.__aheadHold !== false) bad.push('the builder is still held after Pause');
@@ -7633,12 +7754,17 @@ check('the maze draws its own walls, keeps a walk through a repaint, and has the
   const N = 11;
   t.go('games', false, true);
   await wait(LEAVE_MS); await woken_();
-  const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'maze');
-  if (at < 0) return ['there is no maze on the Games column'];
+  /* THE MAZE IS A GAME INSIDE BOARD GAMES (461), reached through its picker; no card of its own. */
+  if (t.allWidgets().some(x => String(x.id) === 'maze')) return ['the maze is still a widget of its own'];
+  const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'boardgames');
+  if (at < 0) return ['there is no Board games widget on the Games column'];
   t.goPage('games', at, true);
   const grid = () => d.querySelector('#s-games #maze-grid');
   /* The board waited for, not guessed at — the same race as Connect 4's above. */
   await woken_();
+  { const pick = d.querySelector('#s-games #bg-pick');
+    if (!pick) return ['the Board games widget has no picker'];
+    pick.value = 'maze'; t.ACTIONS['bg-pick'](pick); }
   for (let k = 0; k < 30 && !(grid() && grid().children.length === N * N); k++) await wait(100);
   if (!grid() || grid().children.length !== N * N) return ['the maze did not draw ' + (N * N) + ' squares'];
   const bad = [];
@@ -7958,21 +8084,21 @@ check('the word games are one widget, and switching game pauses the one left', a
   const { t, d, press, text, P } = await partyBoot_('tab');
   const bad = [];
   const ids = t.allWidgets().map(x => x.id);
-  ['articulate', 'charades', 'taboo', 'hotseat', 'justaminute', 'twentyq', 'imposter', 'herd'].forEach(id => {
+  ['articulate', 'charades', 'taboo', 'hotseat', 'justaminute', 'twentyq', 'imposter', 'herd', 'tables'].forEach(id => {
     if (ids.indexOf(id) !== -1) bad.push(id + ' is still a widget of its own beside Word games');
   });
   if (ids.indexOf('wordgames') === -1) return bad.concat(['there is no Word games widget']);
   const sel = d.getElementById('wg-pick');
   if (!sel) return bad.concat(['the Word games widget has no game dropdown']);
   const offered = [...sel.options].map(o => o.value);
-  if (offered.length !== 10) bad.push('the dropdown offers ' + offered.length + ' games, wanted 10 (Word Search and Sentence Scramble since 441)');
+  if (offered.length !== 11) bad.push('the dropdown offers ' + offered.length + ' games, wanted 11 (Word Search and Sentence Scramble since 441, the sprint since 461)');
   /* HERD MENTALITY IS THE EIGHTH — "heard mentality is a word game so should go there." Asked by
      name, because a count of eight is also seven games and a stray. */
   if (offered.indexOf('herd') === -1) bad.push('Herd Mentality is not in the dropdown');
   for (const k of offered) {
     sel.value = k;
     t.ACTIONS['wg-pick'](sel);
-    if (!d.getElementById({ ws: 'ws-grid', ss: 'ss-box' }[k] || k + '-card')) bad.push('choosing ' + k + ' did not draw its card');
+    if (!d.getElementById({ ws: 'ws-grid', ss: 'ss-box', tt: 'tt-idle' }[k] || k + '-card')) bad.push('choosing ' + k + ' did not draw its card');
     const others = offered.filter(o => o !== k && d.getElementById(o + '-card'));
     if (others.length) bad.push('choosing ' + k + ' left ' + others.join(', ') + ' in the slot too');
   }
@@ -20688,6 +20814,75 @@ check('the history database: a manuscript, a historical figure and a writing are
   return bad;
 });
 
+/* ---------- THE TIMELINE (461): EVENTS FOUND AS A FOURTH KIND, THE WORLD WAR 2 CARD LISTS THEM IN DATE ORDER, EVERY TILE LANDS IN PLACE ---------- */
+check('the history timeline: events are found under Learning, Content, History, Events; the World War 2 timeline card lists every event in date order as a tile to its card, an event links to its figure and back, and the Animation tile opens the chapter with the drawing', async () => {
+  const p = await resPayload_();
+  if (!p) return ['the app did not load — NOT checked'];
+  const one = boot();
+  for (let i = 0; i < 80 && typeof one.w.libraryExtras_ !== 'function'; i++) await wait(25);
+  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, { figures: read('figures'), writings: read('writings'), timeline: read('timeline') })));
+  const b = boot({ payload: Object.assign(p, { figures: made.figures || [], writings: made.writings || [], timeline: made.timeline || [] }), member: true });
+  for (let i = 0; i < 80 && !b.w.__t; i++) await wait(25);
+  await wait(250);
+  if (!b.w.__t) return ['the app did not boot — NOT checked'];
+  const { w } = b, t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  const all = w.stuffItemsAll_();
+  const tl = all.find(x => x.kind === 'timeline' && x.name === 'World War 2 timeline');
+  const evs = read('timeline').filter(e => e.era === 'World War 2');
+  if (!tl || evs.length < 20) return ['no World War 2 timeline item, or data/timeline.json has fewer than 20 of its events — NOT checked'];
+  const get = id => all.find(x => x.key === 'hdb:' + id);
+  t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Content' },
+                       { field: 'shelf', value: 'History' }, { field: 'histKind', value: 'Events' }];
+  const found = w.stuffFiltered();
+  if (found.indexOf(tl) < 0) bad.push('the timeline is not found by Learning, Content, History, Events');
+  const lost = evs.filter(e => found.indexOf(get(e.id)) < 0).map(e => e.id);
+  if (lost.length) bad.push(lost.length + ' event(s) not found by History, Events: ' + lost.slice(0, 5).join(', '));
+  if (found.some(y => !y.hdb)) bad.push('History, Events keeps a thing that is not in the history database');
+  const walk = w.finderWalk_(tl);
+  t.STUFF().filters = walk;
+  if (w.stuffFiltered().indexOf(tl) < 0) bad.push('the timeline is lost by the funnel\'s own walk: ' + JSON.stringify(walk));
+  /* THE CARD: a tile per event, in date order, then the Animation tile. */
+  const box = d.createElement('div'); box.innerHTML = w.stuffCard(tl);
+  const keys = [...box.querySelectorAll('[data-do="find-open"]')].map(e => e.getAttribute('data-key'));
+  const want = evs.slice().sort((a, c) => a.date_iso.localeCompare(c.date_iso)).map(e => 'hdb:' + e.id);
+  if (JSON.stringify(keys.slice(0, want.length)) !== JSON.stringify(want)) bad.push('the timeline\'s tiles are not every event in date order: ' + keys.slice(0, 4).join(', ') + '…');
+  const animKey = keys[want.length];
+  if (!animKey || !/^ct:TB-GCSE-HIST-6$/.test(animKey)) bad.push('the timeline\'s last tile is not the Animation tile to GCSE History chapter 6: ' + animKey);
+  if (box.querySelector('[data-do="find-open"][href], a[target]')) bad.push('a timeline tile opens a page instead of a card in place');
+  const ev = get('EV-0003'), hit = get('FIG-0004');
+  if (!ev || !hit) return bad.concat(['EV-0003 or FIG-0004 is not in the list — the links were NOT checked']);
+  const el = d.createElement('div'); el.innerHTML = w.stuffCard(ev);
+  if ((el.querySelector('.hdb .fc-head h3') || {}).textContent !== ev.name) bad.push('the event card is not headed with its name');
+  if (!el.querySelector('.qtag[data-f="histTheatre"]')) bad.push('the event card carries no theatre tag');
+  const onCard = (x, when) => {
+    const pg = w.stuffPages_()[pg_(t).stuff - w.stuffFirstResult_()];
+    if (!pg || pg.x !== x || pg.part) bad.push(when + ': Find is on ' + (pg ? (pg.x && pg.x.name) + ':' + (pg.part || 'card') : 'no result') + ', not ' + x.name + '\'s card');
+  };
+  const press = (x, toKey) => {
+    const s = d.getElementById('s-stuff');
+    const bx = d.createElement('div'); bx.innerHTML = w.stuffCard(x); s.appendChild(bx);
+    const tile = [...bx.querySelectorAll('[data-do="find-open"]')].find(e => e.getAttribute('data-key') === toKey);
+    if (!tile) { bad.push(x.name + '\'s card has no tile to ' + toKey); bx.remove(); return false; }
+    A['find-open'](tile); bx.remove(); return true;
+  };
+  t.STUFF().filters = [];
+  const opener = d.createElement('button'); opener.setAttribute('data-key', tl.key); d.getElementById('s-stuff').appendChild(opener);
+  A['find-open'](opener); await wait(120);
+  onCard(tl, 'the timeline opened');
+  if (press(tl, ev.key)) { await wait(120); onCard(ev, 'the timeline\'s tile to ' + ev.name); }
+  if (press(ev, hit.key)) { await wait(120); onCard(hit, 'the event\'s Figure tile'); }
+  if (press(hit, ev.key)) { await wait(120); onCard(ev, 'the figure\'s Event tile'); }
+  if (press(tl, animKey)) {
+    await wait(150);
+    const pg = w.stuffPages_()[pg_(t).stuff - w.stuffFirstResult_()];
+    if (!pg || !pg.x || pg.x.key !== animKey) bad.push('the Animation tile lands on ' + (pg && pg.x ? pg.x.key : 'nothing') + ', not ' + animKey);
+    else if (!(pg.x.row.animations || []).some(a => a.id === 'hww2')) bad.push('the chapter the Animation tile opens does not carry hww2');
+  }
+  if (t.AT() !== 'stuff') bad.push('following the timeline left Find for ' + t.AT());
+  return bad;
+});
+
 /* THE REVIEW OF THE SECOND FINDER (docs/history/329, "the review"). § */
 
 /* ---------- AN EMPTY SEARCH SAYS WHAT TO DO HERE, AND OFFERS NO OTHER COLUMN § */
@@ -22461,7 +22656,7 @@ check('chat: what arrived unread stays outlined, the composer hint fits, a refus
   await wait(30);
   if (outlined().length) bad.push('the outline outlived the server saying the messages were read: ' + JSON.stringify(outlined()));
 
-  const box = col.querySelector('.msg-form .msg-text');
+  const box = col.querySelector('.card:not([data-daive]) .msg-form .msg-text');
   if (!box) bad.push('the thread has no composer');
   else {
     if (box.getAttribute('placeholder') !== 'Message…') bad.push('the composer\'s hint is "' + box.getAttribute('placeholder') + '", not "Message…"');
@@ -22491,13 +22686,10 @@ check('chat: what arrived unread stays outlined, the composer hint fits, a refus
   return bad;
 });
 
-/* ---------- THE ASSISTANT IN MESSAGES (449): pinned first, "N of 5 left" as one line, a stubbed answer kept on the device, shut at 0 */
-check('assistant: pinned first in Messages, asks askAssistant with the facts, draws the stubbed answer, counts down and shuts at 0', async () => {
+/* ---------- DAIVE IN MESSAGES (449, 461): pinned first, drawn as a conversation, counts down after an answer, shut at 0 */
+check('daive: pinned first in Messages as a conversation — the DM head, bubbles and composer, no look-alike classes', async () => {
   const bad = [];
-  let left = 2;
-  const { w, sent } = boot({ reply: b => (b.action === 'askAssistant'
-    ? (left > 0 ? { success: true, answer: 'Sessions are two hours.', left: --left, cap: 5 } : { success: false, why: 'ai-cap', left: 0, message: 'That is today’s 5 questions used — they come back tomorrow.' })
-    : { success: true }) });
+  const { w } = boot({ reply: () => ({ success: true }) });
   await wait(300);
   const d = w.document;
   w.__t.USER({ name: 'Test Client', personId: 'P002', role: 'client', roles: ['client'], token: 'tk2' });
@@ -22505,29 +22697,74 @@ check('assistant: pinned first in Messages, asks askAssistant with the facts, dr
   try { w.__t.repaint(true); w.__t.go('dm', false, true); } catch (e) { return ['opening Messages threw: ' + e.message]; }
   await wait(80);
   const col = d.getElementById('s-dm');
-  const card = () => col && col.querySelector('.asst');
-  if (!card()) return ['Messages has no Assistant card'];
-  const first = col.querySelector('.card');
-  if (first !== card()) bad.push('the Assistant is not the first card in Messages');
-  if (!col.querySelector('.msg-bub')) bad.push('the seeded conversation is no longer drawn beside the Assistant');
-  const line = () => ((card() || {}).querySelector ? (card().querySelector('.asst-left') || {}).textContent || '' : '').trim();
-  if (line() !== '5 of 5 questions left today') bad.push('the count line reads "' + line() + '", not "5 of 5 questions left today"');
-  card().querySelector('.asst-text').value = 'How long is a session?';
-  w.__t.ACTIONS['asst-send'](card().querySelector('[data-do="asst-send"]'));
+  const daive = col && col.querySelector('[data-daive]');
+  if (!daive) return ['Messages has no Daive conversation'];
+  if (col.querySelector('.card') !== daive) bad.push('Daive is not the first conversation in Messages');
+  const ada = col.querySelector('.card:not([data-daive])');
+  if (!ada) return bad.concat(['the seeded conversation is no longer drawn beside Daive']);
+  const name = el => ((el.querySelector('.dm-head h3') || {}).textContent || '').trim();
+  if (name(daive) !== 'Daive') bad.push('the conversation is titled "' + name(daive) + '", not "Daive"');
+  if (/assistant/i.test(daive.textContent)) bad.push('the word "assistant" is still shown: ' + daive.textContent.replace(/\s+/g, ' ').slice(0, 120));
+  ['.dm-head .dm-av', '.msg-body', '.msg-form .msg-text', '.msg-form .btn.msg-go'].forEach(sel => {
+    if (!daive.querySelector(sel)) bad.push('Daive has no ' + sel + ', which every conversation has');
+    if (!ada.querySelector(sel)) bad.push('the person\'s conversation has no ' + sel + ' (the comparison is void)');
+  });
+  if (daive.querySelector('[class*="asst"]')) bad.push('Daive still draws .asst-* look-alikes');
+  const go = daive.querySelector('.msg-go'), box = daive.querySelector('.msg-text');
+  if (go && go.textContent.trim() !== 'Send') bad.push('Daive\'s send control reads "' + go.textContent.trim() + '", not "Send"');
+  if (box && box.getAttribute('placeholder') !== 'Message…') bad.push('Daive\'s box hint is "' + box.getAttribute('placeholder') + '"');
+  const names = ((w.__t.PAGER || {}).dm || {}).names;
+  if (Array.isArray(names) && names[0] !== 'Daive') bad.push('the pager\'s first page is named "' + names[0] + '"');
+  return bad;
+});
+
+check('daive: an answer takes the count from 5 to 4 even when the reply forgets `left`; the slogan and placeholders stay out of the facts; shut at 0', async () => {
+  const bad = [];
+  let n = 0;
+  const { w, sent } = boot({ reply: b => {
+    if (b.action !== 'askAssistant') return { success: true };
+    n++;
+    /* THE FIRST REPLY CARRIES NO `left` — the phone must still count the answer (461). */
+    if (n === 1) return { success: true, answer: 'Sessions are two hours.' };
+    if (n === 2) return { success: true, answer: 'Yes.', left: 0, cap: 5 };
+    return { success: false, why: 'ai-cap', left: 0, message: 'That is today’s 5 questions used — they come back tomorrow.' };
+  } });
+  await wait(300);
+  const d = w.document;
+  w.__t.DATA().brand = Object.assign({}, w.__t.DATA().brand, { name: '@family.', slogan: 'Somebody to say why.',
+    tagline: 'Somebody to say why.', intro: '{{intro}}', area: 'Merton & Wandsworth', motto: 'TODO' });
+  w.__t.USER({ name: 'Test Client', personId: 'P002', role: 'client', roles: ['client'], token: 'tk2' });
+  w.__t.dmSeed([]);
+  try { w.__t.repaint(true); w.__t.go('dm', false, true); } catch (e) { return ['opening Messages threw: ' + e.message]; }
+  await wait(80);
+  const col = d.getElementById('s-dm');
+  const card = () => col && col.querySelector('[data-daive]');
+  if (!card()) return ['Messages has no Daive conversation'];
+  const line = () => ((card().querySelector('.daive-left') || {}).textContent || '').trim();
+  const ask = q => { card().querySelector('.msg-text').value = q; w.__t.ACTIONS['daive-send'](card().querySelector('[data-do="daive-send"]')); };
+  if (line() !== '5 of 5 questions left today') bad.push('before asking the line reads "' + line() + '"');
+  ask('How long is a session?');
   await wait(60);
-  const ask = sent.filter(b => b.action === 'askAssistant').pop();
-  if (!ask) return bad.concat(['pressing Ask sent no askAssistant']);
-  if (ask.question !== 'How long is a session?' || !String(ask.facts || '').length) bad.push('askAssistant carried ' + JSON.stringify(ask).slice(0, 200));
+  const a = sent.filter(b => b.action === 'askAssistant').pop();
+  if (!a) return bad.concat(['Send sent no askAssistant']);
+  const facts = String(a.facts || '');
+  if (/say why/i.test(facts)) bad.push('the slogan went into the facts: ' + facts.slice(0, 200));
+  if (/\{\{|TODO/.test(facts)) bad.push('a placeholder went into the facts: ' + facts.slice(0, 200));
+  if (!/business name: @family\./.test(facts) || !/Merton/.test(facts)) bad.push('the real brand facts are missing: ' + facts.slice(0, 200));
   if (!/two hours/.test(card().textContent)) bad.push('the stubbed answer was not drawn');
-  if (line() !== '1 of 5 questions left today') bad.push('after the answer the line reads "' + line() + '" — the server said 1 left');
+  if (card().querySelectorAll('.msg-bub').length !== 2) bad.push('the question and answer are not two DM bubbles');
+  if (!card().querySelector('.msg.mine .msg-bub')) bad.push('the question is not drawn as the person\'s own bubble');
+  if (line() !== '4 of 5 questions left today') bad.push('after one answer the line reads "' + line() + '", not "4 of 5"');
   let kept = null;
   try { kept = JSON.parse(w.localStorage.getItem('asst:P002')); } catch (e) {}
-  if (!kept || !Array.isArray(kept.msgs) || kept.msgs.length !== 2) bad.push('the conversation was not kept on the device: ' + JSON.stringify(kept));
-  card().querySelector('.asst-text').value = 'And another?';
-  w.__t.ACTIONS['asst-send'](card().querySelector('[data-do="asst-send"]'));
+  if (!kept || kept.left !== 4 || !Array.isArray(kept.msgs) || kept.msgs.length !== 2) bad.push('the device did not keep 4 left and the two lines: ' + JSON.stringify(kept));
+  try { w.__t.repaint(true); } catch (e) {}
+  await wait(30);
+  if (line() !== '4 of 5 questions left today') bad.push('a repaint brought back "' + line() + '"');
+  ask('And another?');
   await wait(60);
   if (!/No questions left today/.test(line())) bad.push('at 0 the line reads "' + line() + '"');
-  if (!card().querySelector('.asst-text').disabled || !card().querySelector('[data-do="asst-send"]').disabled) bad.push('at 0 the box or Ask is still enabled');
+  if (!card().querySelector('.msg-text').disabled || !card().querySelector('[data-do="daive-send"]').disabled) bad.push('at 0 the box or Send is still enabled');
   if (d.querySelector('dialog[open], .modal.open')) bad.push('a pop-up opened');
   return bad;
 });

@@ -71,15 +71,16 @@ async function libraryRows_() {
 /* `projects` IS THE SIXTH, and the practicals' sibling rather than a kind of practical. § */
 /* `textbooks` IS THE SEVENTH — "the @family textbook should be bare bones for now and the textbooks will be in the resources tag in the finder." § */
 /* `inserts` IS THE EIGHTH: the sheets a candidate is handed in the exam (455), public whole — facts, not library words. */
-/* THE HISTORY DATABASE IS THREE MORE (459): manuscripts, figures, writings — public whole, linked by id. docs/history-db.md. */
+/* THE HISTORY DATABASE IS FOUR MORE (459, 461): manuscripts, figures, writings, timeline events — public whole, linked by id. docs/history-db.md. */
 const LIB_EXTRA = ['boxers', 'fights', 'cheatsheet', 'practicals', 'projects', 'textbooks', 'inserts',
-                   'manuscripts', 'figures', 'writings'];
+                   'manuscripts', 'figures', 'writings', 'timeline'];
 let LIBRARY_EXTRA = null;
-/* THE THREE TABLES (459): their file, id prefix, Find kind and the columns that are years (negative is BC). */
+/* THE TABLES (459, 461): their file, id prefix, Find kind and the columns that are years (negative is BC). */
 const HIST_DB = [
   { file: 'manuscripts', prefix: 'MS-', kind: 'manuscript', years: ['date_from', 'date_to'] },
   { file: 'figures', prefix: 'FIG-', kind: 'figure', years: ['born_year', 'died_year'] },
   { file: 'writings', prefix: 'WR-', kind: 'writing', years: ['date_from', 'date_to'] },
+  { file: 'timeline', prefix: 'EV-', kind: 'event', years: ['date_from', 'date_to'] },
 ];
 
 /* One fetch per tab, all started before this file parsed — see `index.html`. § */

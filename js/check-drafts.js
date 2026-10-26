@@ -114,7 +114,7 @@ const EXEMPT = [
   { file: 'me.js', fn: 'notifyCard_', has: 'notify-pick', why: 'a Notifications tick is a `setNotify` the moment it is ticked, and a failure puts it back to what the server has — the agreement\'s reason: there is no Save to wait for, so nothing is half-made on the device, and a reload draws the server\'s answer (docs/history/309)' },
   { file: 'posts.js', fn: 'cameraCard', has: 'id="cam-cap"', why: 'the caption of photographs held in memory (`CAM_ITEMS`), which a reload loses with it — keeping those needs IndexedDB (317)' },
   { file: 'posts.js', has: 'id="pe-pin"', why: 'one tick, pinning a post that is already up' },
-  { file: 'map.js', has: 'id="tt-answer"', why: 'a times-tables round — a reload is a new round, with a new question' },
+  { file: 'games.js', has: 'id="tt-answer"', why: 'a times-tables round — a reload is a new round, with a new question' },
   { file: 'map.js', has: 'id="dock-add"', why: 'one line, kept the moment Enter or + puts it on the docket' },
   { file: 'receipt.js', fn: 'askHow_', has: 'id="paid-how"', why: 'how an admin was paid — one word, already "cash", sent by the same sheet' },
   { file: 'receipt.js', has: 'id="fest-kids"', why: 'a one-line sheet, answered and sent in one go' },

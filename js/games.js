@@ -4156,6 +4156,23 @@ const WORD_GAMES = [
     <ul id="ws-words" class="ws-list"></ul>
     <p class="note" id="ws-said" style="text-align:center;margin:.4rem 0 0"></p>
     <button class="btn quiet" data-do="ws-again">New puzzle</button>` },
+  /* THE TIMES TABLES SPRINT, MOVED IN BY THE OWNER (461): its own card before; its best is still `saveTtHighscore`'s. */
+  { k: 'tt', name: 'Times Tables Sprint', start: () => initTables(),
+    stop: () => { if (typeof ttState !== 'undefined' && ttState) { clearInterval(ttState.timer); ttState = null; } },
+    body: `<div id="tt-idle">
+      <p class="sub">Sixty seconds. As many as you can.</p>
+      <button class="btn" id="tt-play" data-do="tt-start">Start</button>
+    </div>
+    <div id="tt-question" class="hidden tt">
+      <p class="mono" id="tt-q" style="font-size:2rem;text-align:center;margin:.6rem 0">—</p>
+      <input id="tt-answer" inputmode="numeric" placeholder="answer" autocomplete="off">
+      <p class="note" id="tt-feedback" style="text-align:center;min-height:1.2em"></p>
+      ${rowLive('Time', '60', 'tt-time')}
+      ${rowLive('Right', '0', 'tt-score')}
+      <button class="btn quiet" data-do="tt-stop" style="margin-top:.5rem">Give up</button>
+    </div>
+    <div id="tt-over" class="hidden"></div>
+    <div id="tt-board" class="board"></div>` },
   { k: 'ss', name: 'Sentence Scramble', start: () => initScramble(), stop: () => {},
     body: `<p class="sub">Tap the words in order to put the sentence back together.</p>
     <label class="mat-sel ws-top"><select id="ss-level" data-do="ss-level"
@@ -4233,7 +4250,7 @@ on('wg-pick', el => {
   initWordGames();
 });
 
-/* BOARD GAMES (414) — Connect 4, Othello and Scrabble in one widget, built as the word games are (238). Two players or more on one phone, so none needs a `stop`. */
+/* BOARD GAMES (414, 461) — Connect 4, Othello, Scrabble, Chess and Maze in one widget, built as the word games are (238). Two players or more on one phone, so none needs a `stop`. */
 const BOARD_GAMES = [
   { k: 'c4', name: 'Connect 4', start: () => initConnect4(),
     body: `<p class="sub">Two players, one phone. Red starts. Tap a column; four in a line, any direction.</p>
@@ -4261,6 +4278,26 @@ const BOARD_GAMES = [
       <button class="btn" data-do="scr-new" data-n="3">3</button>
       <button class="btn" data-do="scr-new" data-n="4">4</button>
     </div>` },
+  /* CHESS AND THE MAZE, MOVED IN BY THE OWNER (461): their own cards before. Each keeps its game in memory (`CHESS`, `maze`), so a switch loses nothing. */
+  { k: 'chess', name: 'Chess', start: () => initChess(),
+    body: `<div class="chess-game">
+    <p class="chess-say" id="chess-say" aria-live="polite">White to move</p>
+    <div id="chess-board" class="chess"></div>
+    <div class="btn-row chess-promo" hidden></div>
+    <div class="tile-row chess-ctl"></div>
+  </div>` },
+  { k: 'maze', name: 'Maze', start: () => initMaze(),
+    body: `<p class="sub">Top left to bottom right. Tap the arrows, or use the arrow keys.</p>
+    <div id="maze-grid" class="mz" role="img"></div>
+    <div class="mz-pad">
+      <button class="mz-key up" data-do="maze-go" data-d="n" aria-label="Up">&#9650;</button>
+      <button class="mz-key left" data-do="maze-go" data-d="w" aria-label="Left">&#9664;</button>
+      <button class="mz-key right" data-do="maze-go" data-d="e" aria-label="Right">&#9654;</button>
+      <button class="mz-key down" data-do="maze-go" data-d="s" aria-label="Down">&#9660;</button>
+    </div>
+    <p class="note" id="maze-said" style="text-align:center;margin:.5rem 0 0"></p>
+    <p class="faint" style="text-align:center;margin:.15rem 0 0">Moves: <b id="maze-moves">0</b></p>
+    <button class="btn quiet" data-do="maze-again">New maze</button>` },
 ];
 function bgGame_(k) { return BOARD_GAMES.find(g => g.k === k) || BOARD_GAMES[0]; }
 /* REMEMBERED ON THE DEVICE under `bg-game`, `wg-game`'s rule. */
@@ -5296,12 +5333,11 @@ function nesPaint_() {
   const box = $('nes-box');
   if (!box) return;
   if (!USER) { box.innerHTML = '<p class="empty">Sign in to use the console.</p>'; return; }
-  if (!box.querySelector('.nes-wrap') && !NES_.full) {
+  if (!box.querySelector('.nes-wrap')) {
     box.innerHTML = `<div class="nes-wrap" id="nes-wrap">
       <div class="nes-stage" id="nes-stage"><canvas id="nes-canvas" class="nes-canvas" width="256" height="240"></canvas><span class="nes-hinge" id="nes-hinge" aria-hidden="true"></span><div class="nes-ctl nes-deco" id="nes-deco" aria-hidden="true"></div></div>
       <div class="nes-legend" id="nes-legend" aria-label="Keys"></div>
       <div class="nes-ctl nes-pad" id="nes-pad" aria-hidden="true">${nesPadHtml_(NES_.sys)}</div>
-      <button type="button" class="nes-key nes-exit" id="nes-exit" aria-label="Leave full screen">×</button>
     </div>
     <p class="faint" id="nes-padnote" hidden>Controller connected</p>
     <div class="tile-row" id="nes-tiles"></div>
@@ -5312,7 +5348,6 @@ function nesPaint_() {
     <p class="faint">Use a game file you own. It stays on this device and is never uploaded.</p>`;
     nesPadWire_($('nes-pad'));
     nesModeWire_($('nes-wrap'));
-    $('nes-exit').addEventListener('click', () => nesFullOff_());
     /* A REDRAWN SCREEN KEEPS A RUNNING GAME: EmulatorJS's own box moves into the new stage rather than being lost with the old one. */
     const host = EMU_.ejs && EMU_.ejs.elements && EMU_.ejs.elements.parent;
     if (host && $('nes-stage')) $('nes-stage').appendChild(host);
@@ -5332,17 +5367,13 @@ function nesTiles_() {
   const t = $('nes-tiles');
   if (!t) return;
   const have = NES_.rom || NES_.saved;
-  /* FIVE TILES ALWAYS (419): a row that grows moves what is under it, and six wrap on a phone's card. Forget is greyed with nothing kept.
-     Lock is a finger's (a swipe turning the column); on keys the Keys tile takes its place. */
+  /* THE SAME TILES PLAYING OR NOT (419), so the row never grows under a thumb; Forget is greyed with nothing kept. The padlock is the widget's (`gameLockTile_`, 461). */
   const keys = nesLegendOn_(), touch = nesMode_() === 'touch';
   t.innerHTML = (NES_.running
       ? tile_({ icon: 'pause', label: 'Pause', act: 'nes-pause' })
       : tile_({ icon: 'play', label: 'Play', act: 'nes-play', note: have ? '' : 'choose a game file' }))
     + tile_({ icon: 'open', label: 'Choose file', act: 'nes-pick' })
     + tile_({ icon: 'bin', label: 'Forget file', act: 'nes-forget', off: !have, note: have ? '' : 'nothing kept' })
-    + (touch ? tile_({ icon: NES_.lock ? 'lock' : 'unlock', label: NES_.lock ? 'Locked' : 'Lock', act: 'nes-lock',
-      note: NES_.lock ? 'tap to let the page move' : 'keep the console in place' }) : '')
-    + tile_({ icon: NES_.full ? 'unfull' : 'full', label: 'Full screen', act: 'nes-full' })
     + (touch ? '' : tile_({ icon: 'keys', label: 'Keys', act: 'nes-keys', on: keys, pressed: keys, note: keys ? 'hide the key list' : 'show the key list' }));
   nesPadShow_();
 }
@@ -5568,8 +5599,6 @@ function nesMode_() {
 function nesModeSet_(m) {
   if (nesMode_() === m) return;
   NES_.mode = m;
-  /* ON KEYS THE LOCK TILE IS NOT DRAWN, so a page locked by a finger is let go rather than left locked with nothing to undo it. */
-  if (m === 'keys' && NES_.lock) nesLock_(false);
   nesPadShow_(); nesTiles_();
 }
 function nesModeWire_(w) {
@@ -5642,79 +5671,6 @@ function nesPadWire_(pad) {
   /* NO SELECTING, MAGNIFYING OR DOUBLE-TAP ZOOM under a held thumb (iOS starts those from touch events, not pointer ones). */
   pad.addEventListener('touchstart', e => { if (e.cancelable) e.preventDefault(); }, { passive: false });
 }
-
-/* THE PADLOCK: no column swipe, wheel or arrow turn (`PADLOCK`, overworld.js) and no page scroll on the console. */
-function nesLock_(on) {
-  NES_.lock = !!on;
-  try { PADLOCK.nes = NES_.lock || !!NES_.full; } catch (e) {}
-  const box = $('nes-box');
-  if (box) box.classList.toggle('nes-locked', NES_.lock || !!NES_.full);
-  nesHoldPage_(NES_.lock || !!NES_.full);
-  nesTiles_();
-}
-/* LISTENING ONLY WHILE LOCKED OR FULL: a blocking touchmove/wheel listener on the document makes every scroll in the app wait for the page's thread (419). */
-function nesHoldStop_(e) {
-  if (e.target && e.target.closest && e.target.closest('#nes-box, #nes-wrap') && e.cancelable) e.preventDefault();
-}
-function nesHoldPage_(on) {
-  if (!!on === !!NES_.holding) return;
-  NES_.holding = !!on;
-  ['touchmove', 'wheel'].forEach(n => (on ? document.addEventListener : document.removeEventListener)
-    .call(document, n, nesHoldStop_, { passive: false }));
-}
-on('nes-lock', () => nesLock_(!NES_.lock));
-
-/* FULL SCREEN (390). The wrapper moves to <body> while full: a sliding column is transformed, and a transformed ancestor pins `fixed` to itself. */
-const nesFsEl_ = () => document.fullscreenElement || document.webkitFullscreenElement || null;
-function nesFullOn_() {
-  const w = $('nes-wrap');
-  if (!w || NES_.full) return;
-  NES_.full = { parent: w.parentNode, next: w.nextSibling, real: false };
-  document.body.appendChild(w);
-  w.classList.add('nes-full');
-  nesLock_(NES_.lock);
-  nesFit_();
-  const ask = w.requestFullscreen || w.webkitRequestFullscreen || w.webkitRequestFullScreen;
-  if (ask) {
-    try {
-      const p = ask.call(w);
-      NES_.full.real = true;
-      if (p && p.catch) p.catch(() => { if (NES_.full) NES_.full.real = false; });
-    } catch (e) {}
-  }
-}
-function nesFullOff_() {
-  const w = $('nes-wrap'), f = NES_.full;
-  NES_.full = null;
-  try {
-    if (document.exitFullscreen && document.fullscreenElement) document.exitFullscreen().catch(() => {});
-    else if (document.webkitExitFullscreen && document.webkitFullscreenElement) document.webkitExitFullscreen();
-  } catch (e) {}
-  if (w) {
-    w.classList.remove('nes-full');
-    if (f && f.parent && f.parent.isConnected) f.parent.insertBefore(w, f.next && f.next.parentNode === f.parent ? f.next : null);
-    else w.remove();
-    const s = $('nes-stage'); if (s) { s.style.width = ''; s.style.height = ''; }
-  }
-  nesLock_(NES_.lock);
-}
-/* THE BIGGEST WHOLE-NUMBER SCALE when it fills nine tenths of the room, otherwise the plain fit; the system's own shape either way. */
-function nesFit_() {
-  const w = $('nes-wrap'), s = $('nes-stage');
-  if (!NES_.full || !w || !s) return;
-  const W = w.clientWidth || innerWidth, H0 = w.clientHeight || innerHeight;
-  const portrait = H0 > W, pad = $('nes-pad'), padH = portrait && pad && pad.classList.contains('on') ? pad.offsetHeight + 16 : 0;
-  const dh = (NES_DIMS[NES_.sys] || NES_DIMS.nes)[1], dw = dh * nesShow_(NES_.sys);
-  const H = Math.max(60, H0 - padH - 16), fit = Math.min(W / dw, H / dh), whole = Math.floor(fit);
-  const k = whole >= 1 && whole / fit >= 0.9 ? whole : fit;
-  s.style.width = Math.floor(dw * k) + 'px'; s.style.height = Math.floor(dh * k) + 'px';
-}
-['resize', 'orientationchange'].forEach(n => addEventListener(n, () => setTimeout(nesFit_, 50)));
-['fullscreenchange', 'webkitfullscreenchange'].forEach(n => document.addEventListener(n, () => {
-  if (NES_.full && NES_.full.real && !nesFsEl_()) nesFullOff_(); else setTimeout(nesFit_, 50);
-}));
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && NES_.full) nesFullOff_(); });
-on('nes-full', () => { if (NES_.full) nesFullOff_(); else nesFullOn_(); });
 
 on('nes-play', () => {
   nesAudio_(); emuWake_();
@@ -5886,7 +5842,6 @@ function nesSysSet_(sys) {
   if (hinge) { const [, h] = NES_DIMS[NES_.sys]; hinge.style.top = (NES_.sys === 'nds' ? 19200 / h : 0) + '%'; hinge.style.height = (NES_.sys === 'nds' ? 100 * NES_GAP / h : 0) + '%'; }
   if (note) { note.hidden = !EMU_HEAVY[NES_.sys]; note.textContent = NES_SLOW[NES_.sys] || ''; }
   nesPadShow_();
-  nesFit_();
 }
 
 /* ---------- EMULATORJS, ONCE, with its menus, start button, own keys and own pad switched off: the Console's tiles and inputs drive it. */
@@ -5989,7 +5944,7 @@ function emuStart_(bytes, sys) {
       if (sys === 'nds') emuTouch_(ejs.canvas);
       if (!$('nes-wrap') || document.hidden) { try { ejs.pause(true); } catch (e) {} nesRun_(false); }
       else nesRun_(true);
-      emuWake_(); nesTiles_(); nesFit_();
+      emuWake_(); nesTiles_();
       csvBegin_(bytes, sys, name, csvApplyEmu_);
     });
   }).catch(() => { loaded_(stage); emuEnd_(); nesTiles_(); nesSay_('The console could not load. Check the connection and press Play again.'); });
