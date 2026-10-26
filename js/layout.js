@@ -479,9 +479,9 @@ function cardsOf_(col) {
       if (pid && firstP === -1) firstP = at;
       if (start && ((g.id && start === g.id && i === 0) || (pid && start === 'person:' + pid))) CARD_START_AT[col] = at;
       let page = strip(i === 0 && g.id ? cardSayIn_(h, g.id) : h);
-      /* ONE START HERE A CARD (466): a person's page has the person's, and the list's row under it drops its own. */
-      if (admin && pid) page += `<div class="tile-row wgt-admin start-tiles">${startTile_(col, 'person:' + pid, start)}</div>`;
+      /* THE CARD'S ROW FIRST, then the person's one Start here: appended after, the card row was spliced INSIDE the start row (467). */
       if (row && (each || i === g.pages.length - 1)) page = cardRowIn_(page, pid ? row.replace(/<button[^>]*data-do="lay-start"[\s\S]*?<\/button>/, '') : row);
+      if (admin && pid) page = cardRowIn_(page, `<div class="tile-row wgt-admin start-tiles">${startTile_(col, 'person:' + pid, start)}</div>`);
       out.push(page);
     });
   });
@@ -498,7 +498,13 @@ function startTile_(col, id, start, note) {
 }
 function cardRowIn_(h, row) {
   const t = h.replace(/\s+$/, '');
-  if (/^\s*<div class="(card|own-set)/.test(t) && /<\/div>$/.test(t)) return t.slice(0, -6) + row + '</div>';
+  /* ONLY WHEN THE LAST `</div>` CLOSES THE CARD: a page that is a card then a tile row took the row inside that row (467). */
+  if (/^\s*<div class="(card|own-set)/.test(t) && /<\/div>$/.test(t)) {
+    let depth = 0, end = -1;
+    const re = /<(\/?)div\b[^>]*>/g;
+    for (let m; (m = re.exec(t));) { depth += m[1] ? -1 : 1; if (!depth) { end = re.lastIndex; break; } }
+    if (end === t.length) return t.slice(0, -6) + row + '</div>';
+  }
   return h + row;
 }
 function cardAdminRow_(id, col) {
