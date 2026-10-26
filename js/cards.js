@@ -192,9 +192,9 @@ function profHeat_(names) {
   const pos = (x, y, w, h) => `calc(50% + ${Math.round(x - cx + w / 2)}px) calc(50% + ${Math.round(y - cy + h / 2)}px)`;
   const layers = [], tiles = [];
   /* A SOFT, WIDE GLOW PER VENUE, TRANSLUCENT, so the streets read through it and venues close
-     together add up into a warmer patch rather than each being a hard orange ball. */
+     together add up into a brighter patch rather than each being a hard white ball. */
   const G = 80;
-  px.forEach(p => layers.push({ img: 'radial-gradient(circle closest-side, rgba(255,190,90,.6) 0, rgba(255,150,60,.3) 45%, rgba(255,120,40,0) 100%)',
+  px.forEach(p => layers.push({ img: 'radial-gradient(circle closest-side, rgba(255,255,255,.55) 0, rgba(255,255,255,.25) 45%, rgba(255,255,255,0) 100%)',
     pos: pos(p[0] - G / 2, p[1] - G / 2, G, G), size: G + 'px ' + G + 'px' }));
   const t0x = Math.floor((cx - 220) / 256), t1x = Math.floor((cx + 220) / 256);
   const t0y = Math.floor((cy - 130) / 256), t1y = Math.floor((cy + 130) / 256);

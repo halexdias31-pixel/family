@@ -1371,7 +1371,7 @@ function tpngTokens_() {
   try { cs = getComputedStyle(document.documentElement); } catch (e) {}
   const v = (k, or) => { const s = cs ? String(cs.getPropertyValue(k) || '').trim() : ''; return s || or; };
   return { bg: v('--bg', '#000'), raised: v('--raised', '#0b0b0b'), line: v('--line', '#232323'), ink: v('--ink', '#e6e6e6'),
-           dim: v('--dim', '#9a9a9a'), gold: v('--gold', '#ffb454'), good: v('--good', '#3ddc84'),
+           dim: v('--dim', '#9a9a9a'), gold: v('--gold', '#ffffff'), good: v('--good', '#3ddc84'),
            paper: v('--paper', '#f4f1e8'), paperInk: v('--paper-ink', '#2b2620'),
            font: v('--font', 'ui-monospace, monospace') };
 }
@@ -2766,7 +2766,7 @@ function ppngTokens_() {
   try { cs = getComputedStyle(document.documentElement); } catch (e) {}
   const v = (k, or) => { const s = cs ? String(cs.getPropertyValue(k) || '').trim() : ''; return s || or; };
   return { bg: v('--bg', '#000'), raised: v('--raised', '#0b0b0b'), line: v('--line', '#232323'), ink: v('--ink', '#e6e6e6'),
-           dim: v('--dim', '#9a9a9a'), gold: v('--gold', '#ffb454'), font: v('--font', 'ui-monospace, monospace') };
+           dim: v('--dim', '#9a9a9a'), gold: v('--gold', '#ffffff'), font: v('--font', 'ui-monospace, monospace') };
 }
 /* AN IMAGE THE CANVAS MAY EXPORT, OR NULL: straight, with CORS; else through `imageData` (the backend's proxy); else nothing. */
 function ppngImg_(src) {
