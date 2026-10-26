@@ -28137,6 +28137,46 @@ check('read aloud: a KS2 question and a GCSE one have the tile (457), a GCSE con
   return bad;
 });
 
+/* ---------- THE NATURAL VOICE (463): signed in, Read aloud asks `speak` and plays its MP3; told tts-off, the device's voice says it instead. */
+check('natural voice (463): signed in, Read aloud plays the speak reply in an Audio element, not the device voice; tts-off falls back to the device voice', async () => {
+  const rows = LIB_FULL.rows('questions').filter(r => r.paper_id === 'P-STA-KS2-2024-P1');
+  const WANT = '2 and three eighths minus five eighths equals what?';
+  const run = async why => {
+    const said = [], played = [];
+    const before = w => {
+      w.SpeechSynthesisUtterance = function (txt) { this.text = String(txt); };
+      w.speechSynthesis = { speak: u => said.push(u), cancel() {}, getVoices: () => [{ name: 'British', lang: 'en-GB' }] };
+      w.Audio = function () { this.src = ''; };
+      w.Audio.prototype.play = function () { played.push(this.src); return Promise.resolve(); };
+      w.Audio.prototype.pause = function () {};
+    };
+    const { w, sent } = boot({ before, serve: url => (/data\/questions\.json/.test(url) ? rows : undefined),
+      reply: b => (b.action !== 'speak' ? { success: true } : why ? { success: false, why } : { success: true, audio: 'QUJD' }) });
+    const ready = () => typeof w.stuffItemsAll_ === 'function' && w.stuffItemsAll_().some(x => x.row && x.row.row_id === 'Q-STA-KS2-2024-P1-28');
+    for (let i = 0; i < 80 && !ready(); i++) await wait(50);
+    if (!ready()) return { fail: 'the KS2 row did not arrive — NOT checked' };
+    w.__t.USER({ name: 'Test Student', personId: 'P001', role: 'student', roles: ['student'], token: 'tk1' });
+    const host = w.document.createElement('div');
+    w.document.body.appendChild(host);
+    host.innerHTML = w.stuffCard(w.stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-STA-KS2-2024-P1-28'));
+    const tile = host.querySelector('[data-do="read-aloud"]');
+    if (!tile) return { fail: 'no Read aloud tile' };
+    w.__t.ACTIONS['read-aloud'](tile);
+    await wait(120);
+    return { asked: sent.filter(b => b.action === 'speak'), said: said.map(u => u.text), played };
+  };
+  const bad = [];
+  const on = await run('');
+  if (on.fail) return [on.fail];
+  if (on.asked.map(b => b.text).join(' | ') !== WANT) bad.push('speak was asked ' + JSON.stringify(on.asked.map(b => b.text)) + ', wanted ' + JSON.stringify(WANT));
+  if (on.played.indexOf('data:audio/mpeg;base64,QUJD') < 0) bad.push('the speak reply was not played: ' + JSON.stringify(on.played.map(s => String(s).slice(0, 40))));
+  if (on.said.length) bad.push('the device voice spoke as well: ' + JSON.stringify(on.said));
+  const off = await run('tts-off');
+  if (off.fail) return bad.concat([off.fail]);
+  if (off.said.join(' | ') !== WANT) bad.push('with tts-off the device voice said ' + JSON.stringify(off.said) + ', wanted ' + JSON.stringify(WANT));
+  return bad;
+});
+
 /* ---------- REPORTING A QUESTION (395): the tile, the sheet, the send, the toast — and the admin's card. */
 check('a signed-in child reports a question from its tile row: a reason, a note, one send, "Thanks — sent"; an admin sees the count', async () => {
   const reply = b => b.action === 'reportQuestion' ? { success: true }

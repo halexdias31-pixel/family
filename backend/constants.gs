@@ -120,7 +120,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-26-e-edit-layout";
+const BACKEND_VERSION = "2026-10-26-f-natural-voice";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -583,6 +583,10 @@ const AI_QUOTA_TZ = 'America/Los_Angeles';
 const AI_SPENT_MAX_S = 21600;
 
 /* Every tunable, with a plain-English note and a starting value. § */
+/* READ ALOUD IN ONE CALM NEURAL VOICE (463): Google Cloud Text-to-Speech, a British man, a touch slow and low. Not a copy of any real person's voice. */
+const TTS_VOICE = { languageCode: 'en-GB', name: 'en-GB-Neural2-B' }, TTS_RATE = 0.92, TTS_PITCH = -2;
+const TTS_TEXT_MAX = 600, TTS_PER_DAY = 20000, TTS_CACHE_PART = 90000, TTS_CACHE_SECS = 21600;
+
 const CONFIG_DEFAULTS = [
   // M, w and open_rate are gone: a tutor now sets one charge-out rate, the minimum wage is fixed
   // in the code, and the open rate is fixed too. Leaving them here as editable numbers would have
@@ -605,6 +609,7 @@ const CONFIG_DEFAULTS = [
   ['gemini_model', AI_MODEL, 'the Gemini model that marks worded answers. Blank (or the old gemini-flash-latest) = ' + AI_MODEL + '. The API KEY never goes here: it is GEMINI_API_KEY in Script Properties'],
   ['gemini_model_fallback', AI_MODEL_FALLBACK, 'the model asked when the first one is full, out of reach or retired (Gemini 429, 5xx or 404). Blank = ' + AI_MODEL_FALLBACK + '. none = no second model'],
   ['library_items_per_day', LIB_DAILY_CAP, 'how many questions, practicals and content cards one person may open in a day (a part, its opening and its answer count as one each; opening one again is free). Blank = ' + LIB_DAILY_CAP + '. Admins are not counted'],
+  ['tts_chars_per_day', TTS_PER_DAY, 'how many characters of read-aloud one person may have spoken by the natural voice in a day (a line heard before is free). Blank = ' + TTS_PER_DAY + '. 0 = the device voice only. The KEY is TTS_API_KEY in Script Properties'],
   ['assistant_questions_per_day', 5, 'how many questions one person may ask Daive, the assistant in Messages in a day. Blank = 5. 0 switches it off'],
   ['ai_marks_per_day', 20, 'how many answers one person may have marked by AI in a day. Blank = 20. 0 switches AI marking off'],
   /* HOW HARD GEMINI THINKS BEFORE IT MARKS, ONE CELL FOR EACH KIND OF ANSWER (12 Oct) -- the note over `AI_THINKING_LEVELS` above, and docs/history/350. § */
@@ -1527,6 +1532,8 @@ const ACTION_ACCESS = {
   /* MARKING A WORDED ANSWER WITH GEMINI. `self`, because every press costs a request and the cap is
      per person — counted against the id the token resolved to, which only a signed-in request has. */
   aiMark: 'self',
+  /* READ ALOUD IN THE NATURAL VOICE (463): `self`, so the day's characters are the token's person's; signed out, the phone uses its own voice. */
+  speak: 'self',
   /* THE ASSISTANT IN MESSAGES (449): `self`, so the day's count is the token's person's. */
   askAssistant: 'self',
   /* WHAT A CHILD WROTE, KEPT ON THEIR ACCOUNT AND READ BACK ON ANOTHER DEVICE. § */

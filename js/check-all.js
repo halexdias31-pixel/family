@@ -139,7 +139,8 @@ const SUITE = [
   /* AND THE PICTURES IN IT (18 Oct): § */
   { file: 'check-diagram-png.js', what: 'every drawing in the library has its PNG twin for the email, named as the backend names it, none orphaned' },
   /* WHAT EVERYBODY HAS CHOSEN TO BE EMAILED. § */
-  { file: 'check-voice.js', what: 'read aloud: the most natural device voice first, a kept choice wins, maths said as words, a sentence at a time' },
+  { file: 'check-voice.js', what: 'read aloud: the natural server voice line by line with the next prefetched, else the best device voice (no choice kept), maths as words' },
+  { file: 'check-speak.js', what: 'the natural voice (463): speak needs the key and a sign-in, caps the day\'s characters, a cached line costs no fetch, a failure gives back' },
   { file: 'check-prefs.js', what: 'notification choices: every sender asks, off is held and logged, essentials always go, the token decides whose' },
   /* A PHOTOGRAPH OR A CLIP IN A MESSAGE, THROUGH THE SAME BACKEND AND THE REAL APP. § */
   { file: 'check-uploads.js', what: 'chat files: the manifest’s scope, the column, the refusals, both sides drawn' },

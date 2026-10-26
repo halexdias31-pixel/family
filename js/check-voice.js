@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-/* node js/check-voice.js — THE READ-ALOUD VOICE (453): the best device voice is ranked first, robotic ones last,
-   a kept choice wins, maths symbols become words and long text is spoken a sentence at a time. No flags, no port. */
+/* node js/check-voice.js — THE READ-ALOUD VOICE (453, 463): the server's natural voice a line at a time, next prefetched;
+   else the best device voice; maths as words. No flags, no port. */
 'use strict';
 require('../check/quiet');
 const fs = require('fs'), path = require('path'), vm = require('vm');
@@ -17,10 +17,23 @@ const win = {
   speechSynthesis: { getVoices: () => voices, speak: u => spoken.push(u), cancel() {} },
   SpeechSynthesisUtterance: function (t) { this.text = t; },
 };
-const ctx = { window: win, localStorage: { getItem: k => store[k] || null, setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } } };
-vm.createContext(ctx);
-vm.runInContext(src.slice(a, b) + '\n;this.api={voiceScore_,voicesRanked_,voicePick_,sayMaths_,sayChunks_,say_,VOICE_KEY};', ctx);
-const api = ctx.api;
+/* A WORLD: the speaking section run fresh, with an optional signed-in USER, a stubbed `api` and an Audio element that records. */
+function world(opts) {
+  opts = opts || {};
+  const asked = [], audios = [];
+  function Audio() { this.played = []; audios.push(this); }
+  Audio.prototype.play = function () { this.played.push(this.src); return Promise.resolve(); };
+  Audio.prototype.pause = function () { this.paused = true; };
+  const c = { window: win, Audio, USER: opts.user || null, Promise, Map,
+    localStorage: { getItem: k => store[k] || null, setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } },
+    api: opts.reply ? (b => { asked.push(b); return Promise.resolve(opts.reply(b)); }) : undefined };
+  vm.createContext(c);
+  vm.runInContext(src.slice(a, b) + '\n;this.api_={voiceScore_,voicesRanked_,voicePick_,sayMaths_,sayChunks_,say_,hush_};', c);
+  return { s: c.api_, asked, audios };
+}
+store['voice:name'] = 'Samantha';
+const api = world().s;
+const tick = () => new Promise(r => setImmediate(r));
 
 const bad = [];
 let n = 0;
@@ -38,11 +51,8 @@ eq(names.slice(-3).sort(), ['Daniel (compact)', 'Fred', 'eSpeak English'].sort()
 eq(names.indexOf('Thomas'), -1, 'another language is not offered for English');
 eq(api.voicePick_('fr-FR', list).name, 'Thomas', 'French takes the French voice');
 eq(api.voicePick_('en-GB', []), null, 'no voices yet is null, and lang alone chooses');
-store[api.VOICE_KEY] = 'Samantha';
-eq(api.voicePick_('en-GB', list).name, 'Samantha', 'the kept choice wins');
-store[api.VOICE_KEY] = 'Gone Voice';
-eq(api.voicePick_('en-GB', list).name, names[0], 'a kept voice the device no longer has falls back to the best');
-delete store[api.VOICE_KEY];
+eq(api.voicePick_('en-GB', list).name, names[0], 'no choice is kept: the best voice always (463)');
+eq(store['voice:name'], undefined, 'the old kept choice is forgotten');
 
 /* ---------- MATHS ---------- */
 eq(api.sayMaths_('x² + y³'), 'x squared + y cubed', 'squares and cubes');
@@ -68,5 +78,53 @@ eq(spoken.length, 2, 'two sentences queue two utterances');
 eq([spoken[0].rate, spoken[0].pitch, spoken[0].voice && spoken[0].voice.name], [0.95, 1, names[0]], 'gentle rate, plain pitch, the best voice');
 eq([typeof spoken[0].onend, typeof spoken[1].onend], ['undefined', 'function'], 'onend on the last only');
 
+/* ---------- THE NATURAL VOICE (463) ---------- */
+(async () => {
+  const ME = { token: 'T', personId: 'P1' };
+  {
+    spoken.length = 0;
+    const w = world({ user: ME, reply: b => ({ success: true, audio: Buffer.from(b.text).toString('base64') }) });
+    let ends = 0, starts = 0;
+    w.s.say_('Line one.', { onstart: () => starts++ });
+    w.s.say_('Line two.', { onend: () => ends++ });
+    await tick(); await tick();
+    eq(w.asked.map(x => [x.action, x.text, x.personId]), [['speak', 'Line one.', 'P1'], ['speak', 'Line two.', 'P1']], 'signed in, each line is asked of speak, the next prefetched');
+    const el = w.audios[0];
+    eq([w.audios.length, el.played.length, String(el.src).slice(0, 22)], [1, 2, 'data:audio/mpeg;base64'], 'one audio element, unlocked then playing the clip');
+    el.onended(); await tick(); await tick();
+    eq(Buffer.from(String(el.src).split(',')[1], 'base64').toString(), 'Line two.', 'the next line plays when the first ends');
+    el.onended(); await tick();
+    eq([starts, ends, spoken.length, w.asked.length], [1, 1, 0, 2], 'onstart and onend once each, no device voice, nothing asked twice');
+    w.s.say_('Line one.'); await tick(); await tick();
+    eq(w.asked.length, 2, 'a line heard before is not asked again');
+    w.s.say_('Line three.'); w.s.hush_(); await tick(); await tick();
+    eq(el.paused, true, 'hush stops the clip');
+  }
+  {
+    spoken.length = 0;
+    const w = world({ user: ME, reply: () => ({ success: false, why: 'tts-off' }) });
+    let ends = 0;
+    w.s.say_('Not set up.', { onend: () => ends++ }); await tick(); await tick();
+    eq([spoken.map(u => u.text), spoken[0] && spoken[0].voice && spoken[0].voice.name], [['Not set up.'], names[0]], 'not set up: the device\'s best voice says it');
+    spoken[0].onend(); eq(ends, 1, 'and onend still comes');
+    w.s.say_('Again.'); await tick();
+    eq([w.asked.length, spoken.length], [1, 2], 'and the server is not asked again this visit');
+  }
+  {
+    spoken.length = 0;
+    const w = world({ reply: () => ({ success: true, audio: 'AA==' }) });
+    w.s.say_('Signed out.');
+    eq([w.asked.length, spoken.length], [0, 1], 'signed out: the device voice, the server never asked');
+  }
+  {
+    spoken.length = 0;
+    const w = world({ user: ME, reply: () => ({ success: true, audio: 'AA==' }) });
+    w.s.say_('Hola', { lang: 'es-ES' });
+    eq([w.asked.length, spoken.length], [0, 1], 'another language: the device voice');
+  }
+  done();
+})();
+function done() {
 if (bad.length) { console.error('check-voice: ' + bad.length + ' of ' + n + ' failed\n  ' + bad.join('\n  ')); process.exit(1); }
 console.log('check-voice: all ' + n + ' voice and maths rules hold');
+}

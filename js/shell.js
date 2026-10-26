@@ -2205,10 +2205,11 @@ function canSay_() {
   try { return !!(window.speechSynthesis && window.SpeechSynthesisUtterance); } catch (e) { return false; }
 }
 function hush_() {
+  SAY_GEN++; SAY_Q = [];
+  try { if (SAY_AUDIO) { SAY_AUDIO.onended = SAY_AUDIO.onerror = null; SAY_AUDIO.pause(); } } catch (e) {}
   try { if (canSay_()) window.speechSynthesis.cancel(); } catch (e) {}
 }
-/* THE DEVICE'S VOICES, BEST FIRST (453): the owner found the first en-GB voice robotic; a natural, neural or premium one wins, eSpeak never. */
-const VOICE_KEY = 'voice:name';
+/* THE DEVICE'S VOICES, BEST FIRST (453): the fallback when the natural voice (463) cannot speak; a natural, neural or premium one wins, eSpeak never. */
 const VOICE_GOOD = [[/\b(natural|neural)\b/i, 60], [/\b(premium|enhanced)\b/i, 50], [/siri/i, 45],
   [/^google\b/i, 35], [/\b(serena|daniel|kate|oliver|arthur|martha|stephanie|samantha|ava|allison|libby|sonia|ryan)\b/i, 15]];
 const VOICE_BAD = /espeak|\bfred\b|compact|albert|bad news|bahh|bells|boing|bubbles|cellos|zarvox|trinoids|whisper|wobble|jester|organ|superstar|junior|ralph|kathy|good news|deranged|hysterical/i;
@@ -2229,13 +2230,9 @@ function voicesRanked_(lang, list) {
   return (list || voicesAll_()).map((v, i) => ({ v, i, s: voiceScore_(v, lang) })).filter(x => x.s > -1000)
     .sort((a, b) => b.s - a.s || a.i - b.i).map(x => x.v);
 }
-function voiceChosen_() { try { return localStorage.getItem(VOICE_KEY) || ''; } catch (e) { return ''; } }
-/* THE PERSON'S CHOICE FOR ENGLISH, if the device still has it; otherwise the best. Another language always takes its own best. */
-function voicePick_(lang, list) {
-  const ranked = voicesRanked_(lang, list), mine = voiceChosen_();
-  const kept = mine && /^en/i.test(lang) ? ranked.find(v => v.name === mine) : null;
-  return kept || ranked[0] || null;
-}
+/* NO CHOICE ANY MORE (463): the best the device has; the old kept choice is forgotten. */
+function voicePick_(lang, list) { return voicesRanked_(lang, list)[0] || null; }
+try { localStorage.removeItem('voice:name'); } catch (e) {}
 /* MATHS SAID AS WORDS (453): the symbols a voice skips or reads as "superscript two". Words pass through unchanged. */
 const SAY_SUP = { '⁰': 0, '¹': 1, '²': 2, '³': 3, '⁴': 4, '⁵': 5, '⁶': 6, '⁷': 7, '⁸': 8, '⁹': 9 };
 const SAY_VULGAR = { '½': 'one half', '⅓': 'one third', '⅔': 'two thirds', '¼': 'one quarter', '¾': 'three quarters', '⅕': 'one fifth', '⅛': 'one eighth' };
@@ -2273,29 +2270,83 @@ function sayChunks_(text, max) {
     });
   return out;
 }
-/* QUEUED, A SENTENCE AT A TIME, inside the tap's own handler, which is what iPhone Safari needs to speak at all; `o` = { rate, volume, onend, onstart, lang }. */
-/* `o.lang` (427): a language card's Hear it speaks es-ES or fr-FR; British English when it is not given. Voices not loaded yet: `u.lang` alone chooses. */
+/* THE DEVICE'S VOICE, queued a sentence at a time inside the tap's own handler (iPhone Safari speaks only there); `o` = { rate, volume, onend, onstart, lang }. */
+function sayDevice_(parts, lang, o) {
+  if (!canSay_()) { if (o.onend) o.onend(); return null; }
+  const ss = window.speechSynthesis, voice = voicePick_(lang);
+  let u = null;
+  parts.forEach((p, i) => {
+    u = new window.SpeechSynthesisUtterance(p);
+    u.lang = voice && voice.lang ? String(voice.lang).replace('_', '-') : lang;
+    if (voice) u.voice = voice;
+    u.rate = o.rate || 0.95;
+    u.pitch = 1;
+    u.volume = o.volume == null ? 1 : o.volume;
+    if (i === 0 && o.onstart) u.onstart = o.onstart;
+    if (i === parts.length - 1 && o.onend) { u.onend = o.onend; u.onerror = o.onend; }
+    ss.speak(u);
+  });
+  return u;
+}
+/* ---------- THE NATURAL VOICE (463): `speak`'s calm neural voice, signed in only; off for the visit on tts-off or tts-cap,
+   and any failure speaks the rest in the device's voice. */
+let SAY_GEN = 0, SAY_Q = [], SAY_AUDIO = null, SAY_OFF = false, SAY_PLAYING = false;
+const SAY_CLIPS = new Map(), SAY_CLIPS_MAX = 60;
+const SAY_SILENT = 'data:audio/mpeg;base64,/+MYxAAAAANIAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV/+MYxDsAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV/+MYxHYAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
+function sayServerOk_(lang) {
+  return !SAY_OFF && /^en/i.test(lang) && typeof USER === 'object' && !!USER && !!USER.token
+    && typeof api === 'function' && typeof Audio === 'function';
+}
+/* ONE CLIP A LINE, asked once and kept for the visit, so a line heard again and the next line's prefetch cost nothing. */
+function sayClip_(text) {
+  if (SAY_CLIPS.has(text)) return SAY_CLIPS.get(text);
+  if (SAY_CLIPS.size >= SAY_CLIPS_MAX) SAY_CLIPS.delete(SAY_CLIPS.keys().next().value);
+  const p = Promise.resolve().then(() => api({ action: 'speak', personId: (USER && USER.personId) || '', text: text }))
+    .then(d => {
+      if (d && d.success && d.audio) return 'data:audio/mpeg;base64,' + d.audio;
+      if (!d || d.why === 'tts-off' || d.why === 'tts-cap' || d.error) SAY_OFF = true;
+      SAY_CLIPS.delete(text);
+      return null;
+    }, () => { SAY_CLIPS.delete(text); return null; });
+  SAY_CLIPS.set(text, p);
+  return p;
+}
+/* THE QUEUE'S HEAD PLAYS WHILE THE NEXT LINE IS FETCHED, so there is no gap between lines. */
+function sayPump_() {
+  const item = SAY_Q[0];
+  if (!item) { SAY_PLAYING = false; return; }
+  SAY_PLAYING = true;
+  if (SAY_Q[1]) sayClip_(SAY_Q[1].text);
+  const gen = SAY_GEN;
+  const rest = () => { const left = SAY_Q.splice(0); SAY_PLAYING = false;
+    left.forEach(x => sayDevice_([x.text], 'en-GB', x.o)); };
+  sayClip_(item.text).then(url => {
+    if (gen !== SAY_GEN) return;
+    if (!url) return rest();
+    const a = SAY_AUDIO;
+    a.onended = () => { if (gen !== SAY_GEN) return; SAY_Q.shift(); if (item.o.onend) item.o.onend(); sayPump_(); };
+    a.onerror = () => { if (gen === SAY_GEN) rest(); };
+    a.src = url;
+    a.volume = item.o.volume == null ? 1 : item.o.volume;
+    if (item.o.onstart) item.o.onstart();
+    const p = a.play();
+    if (p && p.catch) p.catch(() => { if (gen === SAY_GEN) rest(); });
+  });
+}
+/* ONE WAY TO SPEAK: English through the natural voice when it can, every other language and every failure through the device's. `o.lang` (427): es-ES, fr-FR. */
 function say_(text, o) {
   o = o || {};
   try {
-    const ss = window.speechSynthesis;
     const lang = /^[a-z]{2}-[A-Z]{2}$/.test(String(o.lang || '')) ? o.lang : 'en-GB';
     const parts = sayChunks_(/^en/.test(lang) ? sayMaths_(text) : String(text));
     if (!parts.length) { if (o.onend) o.onend(); return null; }
-    const voice = voicePick_(lang);
-    let u = null;
-    parts.forEach((p, i) => {
-      u = new window.SpeechSynthesisUtterance(p);
-      u.lang = voice && voice.lang ? String(voice.lang).replace('_', '-') : lang;
-      if (voice) u.voice = voice;
-      u.rate = o.rate || 0.95;
-      u.pitch = 1;
-      u.volume = o.volume == null ? 1 : o.volume;
-      if (i === 0 && o.onstart) u.onstart = o.onstart;
-      if (i === parts.length - 1 && o.onend) { u.onend = o.onend; u.onerror = o.onend; }
-      ss.speak(u);
-    });
-    return u;
+    if (!sayServerOk_(lang)) return sayDevice_(parts, lang, o);
+    /* THE AUDIO ELEMENT IS UNLOCKED INSIDE THE TAP, with a silent clip, so iPhone Safari lets it play when the real one arrives. */
+    if (!SAY_AUDIO) { SAY_AUDIO = new Audio(); try { SAY_AUDIO.src = SAY_SILENT; const p = SAY_AUDIO.play(); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
+    parts.forEach((p, i) => SAY_Q.push({ text: p, o: { volume: o.volume, rate: o.rate,
+      onstart: i === 0 ? o.onstart : null, onend: i === parts.length - 1 ? o.onend : null } }));
+    if (!SAY_PLAYING) sayPump_(); else if (SAY_Q[1]) sayClip_(SAY_Q[1].text);
+    return null;
   } catch (e) { return null; }
 }
 

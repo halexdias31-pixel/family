@@ -1918,33 +1918,14 @@ function studentSetPages_() {
 }
 screen('account', () => pages('account', studentSetPages_()));
 
-/* ---------- READING ALOUD: WHICH VOICE (453) — one row, the device's voices best first, kept on this device ---------- */
-function voiceSelect_() {
-  const all = voicesRanked_('en-GB'), mine = (voicePick_('en-GB') || {}).name || '';
-  const opts = all.length ? all.map(v => `<option value="${esc(v.name)}"${v.name === mine ? ' selected' : ''}>${esc(v.name + ' · ' + v.lang)}</option>`).join('')
-    : '<option value="">The device\'s own voice</option>';
-  return `<select class="voice-sel" aria-label="Voice">${opts}</select>`;
-}
+/* ---------- READING ALOUD (453, 463) — no choice: one calm natural voice, or the device's best; a sample is all there is to do ---------- */
 function voiceCard_() {
   if (!canSay_()) return '';
   return `<div class="card voice-card"><h3>Reading aloud</h3>
-    <label class="field"><span>voice</span>${voiceSelect_()}</label>
-    <div class="tile-row">${tile_({ icon: 'speak', label: 'Hear a sample', note: 'in this voice', act: 'voice-try' })}</div>
-    <p class="faint">Kept on this device. The most natural voices are first.</p></div>`;
+    <div class="tile-row">${tile_({ icon: 'speak', label: 'Hear a sample', note: 'the reading voice', act: 'voice-try' })}</div></div>`;
 }
 const VOICE_SAMPLE = 'Hello. This is how your questions will be read. For example: x² ÷ 4 is less than 3/4.';
-document.addEventListener('change', e => {
-  const el = e.target;
-  if (!el || !el.classList || !el.classList.contains('voice-sel')) return;
-  try { if (el.value) localStorage.setItem(VOICE_KEY, el.value); else localStorage.removeItem(VOICE_KEY); } catch (err) {}
-});
 on('voice-try', () => { hush_(); say_(VOICE_SAMPLE); });
-/* VOICES ARRIVE LATE ON CHROME (`voiceschanged`), so the menu is drawn again when they do. */
-try {
-  if (canSay_() && window.speechSynthesis.addEventListener) window.speechSynthesis.addEventListener('voiceschanged', () => {
-    try { document.querySelectorAll('select.voice-sel').forEach(el => { if (document.activeElement !== el) el.outerHTML = voiceSelect_(); }); } catch (e) {}
-  });
-} catch (e) {}
 
 /* A COLUMN ABOVE YOUR RANK: its title, that it is not for your account, and the next step if there is one. */
 const rankOffCard_ = (title, say, more) => `<div class="card rank-off"><h3>${esc(title)}</h3>
