@@ -14214,7 +14214,14 @@ check('while a failed first payload is asked for again, the score board and the 
     bad.push(`the "${id}" widget on ${col} never started — ${sel} is empty or still veiled`);
     return null;
   };
-  const board = await turnTo('games', 'tables', '#s-games #tt-board');
+  /* THE SPRINT LIVES IN WORD GAMES NOW (461): open that widget and pick the sprint. */
+  let board = null;
+  if (await turnTo('games', 'wordgames', '#s-games #wg-pick')) {
+    const pick = d.getElementById('wg-pick');
+    pick.value = 'tt'; pick.dispatchEvent(new b.w.Event('change', { bubbles: true }));
+    for (let k = 0; k < 150 && !board; k++) { board = d.querySelector('#s-games #tt-board'); if (!board || !board.innerHTML.trim()) { board = null; await wait(100); } }
+    if (!board) bad.push('the Times Tables board never drew after picking the sprint in Word games (pick=' + pick.value + ', slot=' + ((d.querySelector('#s-games #wg-slot')||{}).innerHTML||'').slice(0,160) + ')');
+  }
   if (board) {
     if (!board.querySelector('.loading[role="status"]')) bad.push('while the retry is out the Times Tables board shows no loader: "' + board.textContent.trim().slice(0, 80) + '"');
     if (words.test(board.textContent)) bad.push('while the retry is out the Times Tables board says "' + board.textContent.trim().slice(0, 80) + '" — a wait in words of its own');
@@ -26747,7 +26754,7 @@ check('every widget with a stop is drawn ahead by its draw and runs nothing: no 
   /* DRAWN: each slot with a stop is out from under its loader — but Flabby Pird, whose still drawing needs a
      box and jsdom has none, and the reels card when its fact is a clip (`feedPaint_`). */
   /* VIDEOS LEADS THE REELS NOW (414), and is drawn ahead there. */
-  [['games', 'tables'], ['games', 'wordgames'], ['reel', 'videos']].forEach(([col, id]) => {
+  [['games', 'wordgames'], ['reel', 'videos']].forEach(([col, id]) => {
     const sl = t.slotOn(col, id);
     if (!sl) bad.push('no ' + id + ' slot on ' + col);
     else if (sl.getAttribute('aria-busy')) bad.push(id + ' is still under its loader after the quiet — its draw did not draw it');
