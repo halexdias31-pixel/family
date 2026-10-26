@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-26-t-settings-only-editing";
+  --css-version: "2026-10-26-talmud-vilna-page";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -6683,3 +6683,57 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .prof-hours .prof-key { margin: .2rem 0 0; font-size: .8rem; }
 /* A SHORTER MAP on a person's card, so a full card fits a phone's height (467). */
 .is-prof .prof-heat { height: 130px; }
+
+/* ---------- THE TALMUD (473): THE VILNA PAGE ---------- */
+/* Noto Serif Hebrew for the Gemara's square letters, Noto Rashi Hebrew for the commentaries' — both OFL, self-hosted (fonts/README.md). */
+@font-face {
+  font-family: 'Noto Serif Hebrew';
+  src: url('fonts/noto-serif-hebrew.woff2') format('woff2');
+  font-weight: 100 900; font-style: normal; font-display: swap;
+  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+}
+@font-face {
+  font-family: 'Noto Rashi Hebrew';
+  src: url('fonts/noto-rashi-hebrew.woff2') format('woff2');
+  font-weight: 100 900; font-style: normal; font-display: swap;
+  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+}
+.tal-he { font-family: 'Noto Serif Hebrew', 'Frank Ruehl CLM', 'David', serif; }
+.tal-bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; padding: .25rem 0;
+}
+.tal-bar .btn { width: auto; flex: 0 0 auto; margin: 0; min-height: 44px; min-width: 44px; padding: 0 .7rem; }
+.tal-bar .btn[disabled] { opacity: .35; }
+.tal-where { flex: 1 1 auto; font-weight: 600; }
+.tal-jump select { min-height: 44px; font: inherit; background: var(--bg); color: var(--ink); border: 1px solid var(--line); }
+/* THE PAGE IS PAPER, the palette for anything standing in for paper. */
+.tal-page {
+  max-width: 880px; margin: .5rem auto 0; box-sizing: border-box; padding: 1.1em 1em 1.6em;
+  background: var(--paper); color: var(--paper-ink); border: 1px solid var(--paper-rule);
+  --tal-fs: 15px; font-size: var(--tal-fs);
+}
+.tal-head {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 1em;
+  font-family: 'Noto Serif Hebrew', 'Frank Ruehl CLM', 'David', serif; font-weight: 700;
+  border-bottom: 1px solid var(--paper-rule); padding-bottom: .25em;
+}
+.tal-hd-tr { flex: 1 1 auto; text-align: center; font-size: 1.25em; letter-spacing: .08em; }
+.tal-hd-ch, .tal-hd-pr { font-size: .85em; }
+.tal-hd-daf { font-size: 1.1em; }
+.tal-credit { margin: .3em 0 .9em; font-size: .5rem; color: var(--paper-faint); text-align: center; }
+.tal-body { position: relative; width: 100%; }
+.tal-layer { box-sizing: border-box; text-align: justify; }
+.tal-layer .tal-spacer { display: none; }
+.tal-gem {
+  font-family: 'Noto Serif Hebrew', 'Frank Ruehl CLM', 'David', serif;
+  font-size: .86em; line-height: 1.42;
+}
+.tal-gem big { font-size: 1.6em; line-height: 1; }
+.tal-gem big strong { font-weight: 800; }
+.tal-rashi, .tal-tos {
+  font-family: 'Noto Rashi Hebrew', 'Mekorot-Rashi', 'Rashi', serif;
+  font-size: .66em; line-height: 1.36; color: var(--paper-ink);
+}
+.tal-rashi b, .tal-tos b { font-family: 'Noto Serif Hebrew', 'Frank Ruehl CLM', serif; font-weight: 700; }
+.tal-hadran { display: block; text-align: center; margin: .5em 0; font-weight: 700; }
+.tal-blank, .tal-miss { display: block; font-family: inherit; color: var(--paper-dim); font-size: .8rem; text-align: center; }

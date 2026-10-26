@@ -20637,6 +20637,56 @@ check('a kept card Saved cannot draw whole opens in Find: Saved\'s Open under a 
 });
 
 /* ---------- THE HISTORY DATABASE (459): EACH KIND FOUND BY THE FUNNEL, ITS CARD OPENED, A LINK FOLLOWED IN PLACE ---------- */
+check('the Talmud (473): Berakhot 2 is found under Learning, Content, Talmud, Zeraim, Berakhot, Chapter 1, Daf 2; its tile opens the Vilna page with Gemara, Rashi and Tosafot from the real files, and the next side is 2b', async () => {
+  const tdir = path.join(dir, '..', 'data', 'talmud');
+  const serve = url => {
+    const m = /(?:^|\/)data\/talmud\/([a-z-]+\/\d+\.json|index\.json)(?:\?|$)/.exec(url);
+    if (!m) return undefined;
+    const p = path.join(tdir, m[1]);
+    return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : null;
+  };
+  const b = boot({ serve, member: true });
+  for (let i = 0; i < 80 && !b.w.__t; i++) await wait(25);
+  if (!b.w.__t) return ['the app did not boot — NOT checked'];
+  const { w } = b, t = w.__t, d = w.document, bad = [];
+  if (typeof w.talmudItems_ !== 'function') return ['talmudItems_ is not declared — js/talmud.js did not load'];
+  t.go('stuff');
+  w.paintStuff();
+  for (let i = 0; i < 80 && !w.talmudItems_().length; i++) await wait(25);
+  if (!w.talmudItems_().length) return ['data/talmud/index.json never arrived — fetched: ' + b.gets.filter(u => /talmud/.test(u)).join(', ')];
+  const x = w.stuffItemsAll_().find(y => y.key === 'tal:berakhot:2');
+  if (!x) return ['Berakhot 2 is not on the list of everything — NOT checked'];
+  t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Content' }, { field: 'shelf', value: 'Talmud' },
+    { field: 'talSeder', value: 'Zeraim' }, { field: 'talTractate', value: 'Berakhot' }, { field: 'talChapter', value: x.talChapter }, { field: 'talDaf', value: '2' }];
+  const got = w.stuffFiltered();
+  if (got.length !== 1 || got[0] !== x) bad.push('the seven answers keep ' + got.length + ' thing(s), not Berakhot 2 alone');
+  if (x.talChapter !== 'Chapter 1 · מאימתי') bad.push('Berakhot 2 is in "' + x.talChapter + '", not Chapter 1 · מאימתי');
+  const walk = w.finderWalk_(x);
+  t.STUFF().filters = walk;
+  if (w.stuffFiltered().indexOf(x) < 0) bad.push('the funnel\'s own walk loses Berakhot 2: ' + JSON.stringify(walk));
+  const el = d.createElement('div'); el.innerHTML = w.stuffCard(x) + w.cardTiles_(x);
+  if (!el.querySelector('.card.tal')) bad.push('Berakhot 2 draws no Talmud card');
+  const tile = el.querySelector('[data-do="tal-open"][data-i="2"]');
+  if (!tile) return bad.concat(['the card has no tile opening side 2a']);
+  t.ACTIONS['tal-open'](tile);
+  for (let i = 0; i < 80 && !d.querySelector('#sheet-body .tal-body'); i++) await wait(25);
+  const v = d.getElementById('sheet');
+  if (!v || !v.querySelector('.tal-body')) return bad.concat(['pressing the tile drew no page — fetched: ' + b.gets.filter(u => /talmud/.test(u)).join(', ')]);
+  const txt = s => ((v.querySelector(s) || {}).textContent || '').trim();
+  if (!/מאימתי קורין את שמע בערבין/.test(txt('.tal-gem'))) bad.push('the Gemara of 2a does not open with the Mishnah');
+  if (!txt('.tal-rashi')) bad.push('2a has no Rashi');
+  if (!txt('.tal-tos')) bad.push('2a has no Tosafot');
+  if (!/ברכות/.test(txt('.tal-head')) || !/ב\./.test(txt('.tal-hd-daf'))) bad.push('the header does not say ברכות and ב.');
+  if (!/CC BY-SA/.test(txt('.tal-credit'))) bad.push('the page carries no attribution line');
+  if (!v.querySelector('.tal-body.tal-a')) bad.push('2a is not laid out as an a side (Rashi inner, on the right)');
+  t.ACTIONS['tal-step'](v.querySelector('[data-do="tal-step"][data-by="1"]'));
+  await wait(60);
+  if (!/Berakhot 2b/.test(txt('.tal-where'))) bad.push('Next went to "' + txt('.tal-where') + '", not Berakhot 2b');
+  w.closeSheet();
+  if (d.querySelector('#sheet-body .tal-sheet')) bad.push('closing the sheet left the page drawn');
+  return bad;
+});
+
 check('the history database: a manuscript, a historical figure and a writing are each found under Learning, Content, History, open as a card of label and value lines, and a link tile lands on the linked row\'s card in the same finder', async () => {
   /* THE REAL FILES, through the app's own `libraryExtras_`, on the resources payload. */
   const p = await resPayload_();
@@ -21714,7 +21764,9 @@ check('the funnel asks an admin exactly what it asks a parent, the Books shelf a
     const b = boot({ serve: serveAll, before: seed(u) });
     const w = b.w, t = w.__t;
     const R = resView_(w);
-    for (let i = 0; i < 120 && !(t && t.STUFF && w.stuffItems().length > 1000 && (u.role !== 'admin' || (t.BIBLE().index && R.stuffItems().some(x => x.kind === 'bible')))); i++) await wait(50);
+    /* AND THE TALMUD'S INDEX (473), which both are given once a finder paints — or the two would differ by its timing. */
+    try { t.go('stuff'); w.paintStuff(); } catch (e) {}
+    for (let i = 0; i < 120 && !(t && t.STUFF && w.stuffItems().length > 1000 && w.talmudItems_().length && (u.role !== 'admin' || (t.BIBLE().index && R.stuffItems().some(x => x.kind === 'bible')))); i++) await wait(50);
     if (!t || w.stuffItems().length < 1000) { bad.push(what + ': the library did not load, so the walk was NOT checked'); return bad; }
     const admin = u.role === 'admin';
     ['stuff', 'res'].forEach(fid => {

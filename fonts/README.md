@@ -22,3 +22,9 @@ family-code.woff2
 OFL.txt
     The licence, verbatim, as section 2 of it requires to travel with the font.
 
+
+noto-serif-hebrew.woff2, noto-rashi-hebrew.woff2
+    Noto Serif Hebrew and Noto Rashi Hebrew, by the Noto Project Authors — the square letters of
+    the Talmud's Gemara and the "Rashi script" of its commentaries (docs/history/473). The Hebrew
+    subset Google Fonts serves, unmodified, variable weight. SIL Open Font License 1.1, whose
+    text is OFL-noto-hebrew.txt beside them. Used only by the Talmud page.

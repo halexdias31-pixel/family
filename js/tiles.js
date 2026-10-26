@@ -469,6 +469,8 @@ function cardActions_(x) {
   /* THE BIBLE'S COVER OPENS IT; A VERSE GOES TO ITS CHAPTER; A BOOK THAT DID NOT COME TRIES AGAIN —
      `bibleTiles_` in find.js, which says nothing at all to anybody but an admin. */
   if (x.kind === 'bible') return typeof bibleTiles_ === 'function' ? bibleTiles_(x) : '';
+  /* A DAF'S TWO SIDES, each opening the Vilna page (473). */
+  if (x.kind === 'talmud') return typeof talmudTiles_ === 'function' ? talmudTiles_(x) : '';
   /* `me` WAS HERE (Edit, Sign out, Send the link again): your own card's row is built by `accountPages_` (find.js), Sign out is on Student settings (453). */
   if (x.kind === 'receipt') return jobTiles_(x);
   /* A QUESTION'S ROW HOLDS THE STAR AND THE DAY YOU DID IT -- `questionTiles_` in find.js. § */

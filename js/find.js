@@ -150,6 +150,8 @@ const KINDS = {
   fight: { group: 'Learning', label: 'Content', card: x => fightCard_(x) },
   /* ---------- THE BIBLE, AND THE ONE KIND THE PHONE ITSELF KEEPS FROM ALL BUT AN ADMIN § */
   bible: { group: 'Learning', label: 'Content', card: x => bibleCard_(x) },
+  /* THE TALMUD (473): one item a daf, its page drawn by js/talmud.js. */
+  talmud: { group: 'Learning', label: 'Content', card: x => talmudCard_(x) },
 
   /* ---------- TWO GROUPS, NOT ONE GROUP AND THEN THE SAME QUESTION AGAIN § */
   /* ---------- THESE TWO STAY IN THE TABLE AND NO LONGER ANSWER THE FIRST QUESTION § */
@@ -395,6 +397,11 @@ const FACETS = [
   { field: 'histTheme', label: 'Theme',       of: x => histCol_(x, 'themes') },
   { field: 'histRepository', label: 'Held at', of: x => histCol_(x, 'repository') },
   { field: 'histTheatre', label: 'Theatre',   of: x => histCol_(x, 'theatre') },
+  /* THE TALMUD'S (473): order, tractate, chapter and daf — js/talmud.js fills them. */
+  { field: 'talSeder',  label: 'Order',       of: x => x.talSeder || '' },
+  { field: 'talTractate', label: 'Tractate',  of: x => x.talTractate || '' },
+  { field: 'talChapter', label: 'Chapter',    of: x => x.talChapter || '' },
+  { field: 'talDaf',    label: 'Daf',         of: x => x.talDaf || '' },
   { field: 'practicalType', label: 'Experiment or build', of: x => x.practicalType || '' },
   { field: 'required',  label: 'Required',
     of: x => x.kind !== 'practical' || !x.row ? '' : PRAC_NEED[x.row.excluded ? 2 : x.row.required ? 0 : 1] },
@@ -692,6 +699,8 @@ function kindRank_() {
   const groups = new Map(groupOrder_().map((g, i) => [g, i]));
   return { labels, groups };
 }
+/* LISTS WHOSE OWN ORDER IS THE ORDER (473): a file pushes one, and answers all in it sort by it — the Talmud's orders and tractates. */
+const ANSWER_ORDERS = [];
 function answerCmp_(texts) {
   const every = test => texts.length > 0 && texts.every(test);
   if (every(t => yearKey_(t) !== null)) return (a, b) => yearKey_(b) - yearKey_(a);
@@ -702,6 +711,9 @@ function answerCmp_(texts) {
   /* ERAS IN TIME ORDER (459), not the alphabet's. */
   const era = t => HIST_ERAS.findIndex(e => e.name === t);
   if (every(t => era(t) !== -1)) return (a, b) => era(a) - era(b);
+  for (const list of ANSWER_ORDERS) {
+    if (list.length && every(t => list.indexOf(t) !== -1)) return (a, b) => list.indexOf(a) - list.indexOf(b);
+  }
   const k = kindRank_();
   for (const by of [k.labels, k.groups]) {
     if (every(t => by.has(t))) return (a, b) => by.get(a) - by.get(b);
@@ -8726,6 +8738,9 @@ function stuffItemsRaw_() {
     /* ---------- THE BIBLE, FOR AN ADMIN AND NOBODY ELSE § */
     ...bibleItems_(),
 
+    /* ---------- THE TALMUD (473), once its index has come */
+    ...(typeof talmudItems_ === 'function' ? talmudItems_() : []),
+
     /* ---------- `DATA.films` WAS MAPPED HERE, ONE ITEM PER FILM OR SERIES, AND IS NOT ANY MORE § */
 
     ...questionItems(),
@@ -9955,6 +9970,8 @@ const TAG_OF = {
   /* ---------- THE BIBLE'S SIX, IN KINDS THAT ALREADY HAVE COLOURS § */
   bibleTranslation: 'board', bibleTestament: 'level', bibleGroup: 'topic',
   bibleBook: 'paper', bibleChapter: 'paper', bibleVerse: 'paper',
+  /* THE TALMUD'S (473), the same way. */
+  talSeder: 'level', talTractate: 'topic', talChapter: 'paper', talDaf: 'paper',
 };
 /* A FACET NOBODY LISTED — one the facets tab invented — is still coloured: `other` (396). */
 const tagOf_ = field => TAG_OF[field] || 'other';
@@ -10119,6 +10136,8 @@ function stuffKeepPlace_(host, d) {
 }
 
 function paintStuff(keepPage) {
+  /* THE TALMUD'S INDEX IS ASKED FOR WHEN A FINDER IS PAINTED (473), never by a widget drawing the list ahead. */
+  if (typeof talmudIndex_ === 'function') talmudIndex_();
   /* WORDS THAT CAME SINCE THE PAGES WERE COUNTED change how many pages a card is (397) — counted again as the pages are rebuilt. */
   libPagesFresh_();
   const chips = $(FINDER.id + '-chips');
