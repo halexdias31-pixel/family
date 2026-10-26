@@ -45,6 +45,7 @@
 {"field": "company", "label": "Publisher", "sort_order": 160, "note": "who published it; may repeat the exam board, and a card says a repeated word once", "active": true},
 {"field": "accuracy", "label": "Accuracy", "sort_order": 152, "note": "Accuracy verified when the answer was checked against the official scheme (388)", "active": true},
 {"field": "function", "label": "Function", "sort_order": 154, "note": "Function verified when the question type is complete and machine-marked (388)", "active": true},
+{"field": "myResult", "label": "Your result", "sort_order": 156, "note": "the signed-in person's own latest answer to a question: Unattempted, Attempted, and Correct, Incorrect or Part marks once marked (463)", "active": true},
 {"field": "histKind", "label": "Manuscripts, figures, writings or events", "sort_order": 37.1, "note": "history database only (459, 461): which of the four tables (a timeline is Events)", "active": true},
 {"field": "histEra", "label": "Era", "sort_order": 37.2, "note": "history database only: Ancient, Medieval, Early modern, Modern, from the row's years (histEras_)", "active": true},
 {"field": "histLanguage", "label": "Language", "sort_order": 37.3, "note": "history database only: a manuscript's or writing's language", "active": true},

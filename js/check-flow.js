@@ -16795,6 +16795,8 @@ check('Find and Find 2 draw the same question family, practical, project and con
     h.innerHTML = html;
     /* `q-report` IS THE PERSON'S TOO, like the star: drawn for anybody signed in (395). */
     h.querySelectorAll('[data-do="fav"], [data-do="q-report"], .tile-row .qcard-verdict, [data-do="qp-send"]').forEach(n => n.remove());
+    /* YOUR RESULT IS THE PERSON'S TOO (463): a tag only somebody signed in has. */
+    h.querySelectorAll('.qtag[data-f="myResult"]').forEach(n => n.remove());
     /* A WORKSHEET BOX WITH ITS SEND IS THE BOX, wrapped (`guideBox_`): the wrapper goes, the box stays. */
     h.querySelectorAll('.qp-mark.gd-mark').forEach(m => { const l = m.querySelector('.gd-box'); if (l) m.replaceWith(l); else m.remove(); });
     /* AND A BOX NOTHING MARKS IS A `.qp-mark` WITH A VERDICT LINE ONLY WHEN IT HAS THAT SEND: put back to the
@@ -16931,7 +16933,6 @@ check('every control on a question\'s pages is a tile, bar the options, the keys
     ['button.kp-key[data-do="kp-key"]', 'a key on the maths keypad'],
     ['span.qw[data-do="qw-tap"]', 'a word in a passage to ring'],
     ['textarea.qp-ans-in[data-do="qp-ans"], input.qp-ans-in[data-do="qp-ans"]', 'the answer box'],
-    ['figure[data-do="q-zoom-fig"]', 'a figure, which a tap enlarges (457)'],
   ];
   const seen = {};
   const exempted = {};
@@ -23284,53 +23285,24 @@ check('multipart: the answer is a swipe after the card -- after a figure printed
   return bad;
 });
 
-/* FINDING 2: a Figure tile on a part whose question has a figure in front of it, opening that figure
-   over the card -- and the card, its box and what is typed in it, untouched underneath. */
-check('multipart: a part with a figure behind it has a Figure tile that opens it over the card', async () => {
+/* FINDING 2, UNDONE (463): the owner, "remove the 'figure over this page' tile everywhere -- if they want to see the figure, they scroll up". */
+check('multipart: no part carries a Figure tile, though a figure stands in front of it, and nothing opens one', async () => {
   const { w } = boot();
   await wait(300);
   const d = w.document;
   const bad = [];
   const need = ['questionTiles_', 'stuffCard', 'questionItems'].filter(n => typeof w[n] !== 'function');
   if (need.length) return [need.join(', ') + ' not reachable — the Figure tile was NOT checked'];
-  if (!w.__t.ACTIONS['q-fig']) return ['q-fig has no handler — nothing can open a figure over the card'];
+  if (w.__t.ACTIONS['q-fig']) bad.push('q-fig still has a handler');
   const lib = mpLibrary_(w, mpBank_());
-  const find = name => lib.items.find(x => x.row.paper === 'P-MP-W' && x.name === name);
-  /* THE CARD AS DRAWN, because the tile stands at the end of the answer box (`ansBox_`), not in the row. */
-  const tileOf = x => { const h = d.createElement('div'); h.innerHTML = w.stuffCard(x, 0); return h.querySelector('[data-do="q-fig"]'); };
   try {
-    [['Q8(ii)', 'the opening\'s figure, two parts back'], ['Q8(i)', 'the opening\'s figure, one page back'],
-     ['Q14b', 'Q14a\'s own graph, a part back']].forEach(([n, what]) => {
-      if (!find(n)) bad.push(n + ' is not in the library');
-      else if (!tileOf(find(n))) bad.push(n + ' has no Figure tile, though ' + what + ' stands in front of it');
+    const parts = lib.items.filter(x => x.row.paper === 'P-MP-W');
+    if (!parts.length) bad.push('no P-MP-W parts in the library — nothing was checked');
+    parts.forEach(x => {
+      const h = d.createElement('div');
+      h.innerHTML = w.stuffCard(x, 0) + w.questionTiles_(x);
+      if (h.querySelector('[data-do="q-fig"], .q-figt')) bad.push(x.name + ' still carries a Figure tile');
     });
-    /* NOT FOR A PART'S OWN FIGURE: it is on the card (356). */
-    ['Q18', 'Q1c', 'Q14a'].forEach(n => { if (find(n) && tileOf(find(n))) bad.push(n + ' offers a Figure tile with no figure in front of its card'); });
-    /* OPENED, OVER A CARD WITH SOMETHING TYPED IN IT. */
-    const x = find('Q14b');
-    const page = d.createElement('section');
-    page.className = 'page';
-    page.innerHTML = '<div class="pane">' + w.stuffCard(x, 0) + '</div>';
-    d.body.appendChild(page);
-    const box = page.querySelector('.qp-ans input, .qp-ans textarea');
-    if (!box) bad.push('the card drew no answer box to type in, so "untouched underneath" was NOT checked');
-    else box.value = '42 km';
-    const t = page.querySelector('[data-do="q-fig"]');
-    if (!t) bad.push('the card as drawn on Find carries no Figure tile');
-    /* BESIDE THE BOX, on its line -- where the keypad, which covers the row under the card on a small
-       phone, cannot cover it (the review of the merge, 1F Q23b at 320x568). */
-    else if (!t.parentElement || !t.parentElement.classList.contains('qp-ans-row') || !t.parentElement.querySelector('.qp-ans'))
-      bad.push('the Figure tile is not at the end of the answer box\'s own line -- under the card, the keypad covers it on a 320px phone');
-    else {
-      w.__t.ACTIONS['q-fig'](t);
-      const sheet = d.getElementById('sheet');
-      if (!sheet || sheet.classList.contains('hidden')) bad.push('pressing Figure opened nothing');
-      else if (!sheet.querySelector('svg.mp-graph')) bad.push('the sheet opened without Q14a\'s graph: ' + sheet.textContent.trim().slice(0, 60));
-      if (!d.body.contains(page) || (box && box.value !== '42 km')) bad.push('opening the figure disturbed the card underneath or what was typed in it');
-      if (typeof w.closeSheet === 'function') w.closeSheet();
-      if (sheet && !sheet.classList.contains('hidden')) bad.push('the figure sheet does not close');
-    }
-    page.remove();
   } finally { lib.put(); }
   return bad;
 });
@@ -28488,8 +28460,8 @@ check('a new content card (lib_pending) is asked for, drawn whole when the Ledge
   return bad;
 });
 
-/* A PAPER'S READING INSERT (458): a private half like a question's words, asked for when its Insert tile opens it in place, drawn with its line numbers; Coming soon, or Sign in */
-check('a reading insert opens in place from its question, asks the Ledger for its extract, and draws it with margin line numbers; Coming soon if missing, Sign in if signed out', async () => {
+/* A PAPER'S READING INSERT (458, 463): a Content card of its own in Find, no tile on its question; its private half asked for when the card is drawn, drawn with its line numbers; Coming soon, or Sign in */
+check('a reading insert is Content in Find (no Insert tile on its question), asks the Ledger for its extract, and draws it with margin line numbers; Coming soon if missing, Sign in if signed out', async () => {
   const cards = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'inserts.json'), 'utf8'));
   const card = cards.find(r => r.insert_id === 'INS-AQA-8700-R0389') || cards.find(r => r.for_papers && /source_text/.test(String(r.lib_has || '')));
   if (!card) return ['no reading insert card (for_papers, lib_has source_text) in data/inserts.json — nothing was checked'];
@@ -28514,15 +28486,16 @@ check('a reading insert opens in place from its question, asks the Ledger for it
       && W.stuffItemsAll_().some(x => x.kind === 'question' && x.row && x.row.paper_id === pid)); i++) await wait(50);
     const x = W.stuffItemsAll_().find(it => it.kind === 'question' && it.row && it.row.paper_id === card.for_papers.split(',')[0].trim());
     if (!x) return ['no question of ' + card.for_papers + ' reached Find — nothing was checked'];
-    const tiles = W.insertTile_(x);
-    if (!/data-do="ins-show"/.test(tiles)) { bad.push(mode + ': a question of ' + card.for_papers + ' has no Insert tile'); continue; }
+    /* NO INSERT TILE ON THE QUESTION (463): "they can open it in their 2nd finder" */
+    if (/data-do="ins-show"/.test(W.stuffCard(x, 0)) || A['ins-show']) bad.push(mode + ': a question still carries an Insert tile, or ins-show still has a handler');
+    const ins = W.stuffItemsAll_().find(it => it.kind === 'insert' && it.row && it.row.id === card.insert_id);
+    const kinds = W.__t.facetBy('kindLabel').of(ins), type = W.__t.facetBy('documentType').of(ins);
+    if (String(kinds) !== 'Content' || type) bad.push(mode + ': the insert is What kind ' + JSON.stringify(kinds) + ', Type ' + JSON.stringify(type) + ' -- wanted Content and no Type (463)');
     const host = d.createElement('div');
-    host.className = 'card';
-    host.innerHTML = '<div class="tile-row">' + tiles + '</div>';
+    host.innerHTML = W.stuffCard(ins, 0);
     d.querySelector('#s-stuff').appendChild(host);
-    A['ins-show'](host.querySelector('[data-do="ins-show"]'));
     await wait(100);
-    const sheet = () => d.getElementById('sheet');
+    const sheet = () => host;
     const txt = () => (sheet() ? sheet().textContent.replace(/\s+/g, ' ') : '');
     if (mode === 'out') {
       if (!/Sign in to read the source/.test(txt())) bad.push('signed out: the sheet does not say Sign in to read the source: ' + txt().slice(0, 120));
@@ -29052,7 +29025,7 @@ check('after a wrong Check every answer can be deleted and checked again — typ
 });
 
 /* ---------- THE ONE TOOLKIT ON EVERY KIND OF QUESTION PAGE (docs/history/457) ---------- */
-check('the one toolkit: a typed, a chosen, a table, a drawn and an essay part, and a stem page, each have Zoom, the padlock, Read aloud, Help and Report; Zoom enlarges, the padlock holds and lets go, the pen has its instruments', async () => {
+check('the one toolkit: a typed, a chosen, a table, a drawn and an essay part, and a stem page, each have the Magnifier, the padlock, Read aloud, Help and Report; the Magnifier follows a mouse and a held finger, the padlock holds and lets go, the pen has its instruments', async () => {
   const LIB = LIB_FULL.rows('questions');
   const { w } = boot({ member: true, serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined),
     before: win => {
@@ -29062,7 +29035,9 @@ check('the one toolkit: a typed, a chosen, a table, a drawn and an essay part, a
     } });
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
-  if (typeof w.qToolkit_ !== 'function' || !A['q-zoom'] || !A['q-lock'] || !A['q-zoom-fig'] || !t.padlock) return ['qToolkit_, the q-zoom, q-lock or q-zoom-fig handler, or PADLOCK is not reachable — NOT checked'];
+  if (typeof w.qToolkit_ !== 'function' || !A['q-mag'] || !A['q-lock'] || !t.padlock) return ['qToolkit_, the q-mag or q-lock handler, or PADLOCK is not reachable — NOT checked'];
+  /* NO ZOOM SHEET AND NO FIGURE TILE ANY MORE (463) */
+  ['q-zoom', 'q-zoom-fig', 'q-zoom-by', 'q-fig', 'ins-show'].forEach(a => { if (A[a]) bad.push(a + ' still has a handler -- it went in 463'); });
   t.STUFF().filters = [];
   const all = w.stuffItemsAll_().filter(x => x && x.kind === 'question' && x.row && !/^true$/i.test(String(x.row.lib_pending || '')));
   const T = x => w.qType_(x);
@@ -29080,9 +29055,10 @@ check('the one toolkit: a typed, a chosen, a table, a drawn and an essay part, a
   for (const k of Object.keys(pick)) {
     const x = pick[k];
     host.innerHTML = w.stuffCard(x);
-    const missing = ['q-zoom', 'q-lock', 'read-aloud', 'help-hand', 'q-report'].filter(a => !host.querySelector('[data-do="' + a + '"]'));
+    const missing = ['q-mag', 'q-lock', 'read-aloud', 'help-hand', 'q-report'].filter(a => !host.querySelector('[data-do="' + a + '"]'));
     if (missing.length) bad.push(k + ' part ' + x.row.row_id + ' has no ' + missing.join(', '));
-    host.querySelectorAll('.qsheet figure').forEach(f => { if (!f.closest('.qpad, .qseen') && f.getAttribute('data-do') !== 'q-zoom-fig') bad.push(k + ' part ' + x.row.row_id + ': a figure is not a tap to zoom'); });
+    const gone = ['q-zoom', 'q-fig', 'ins-show'].filter(a => host.querySelector('[data-do="' + a + '"]'));
+    if (gone.length) bad.push(k + ' part ' + x.row.row_id + ' still has ' + gone.join(', ') + ' (463)');
   }
   /* THE PEN HAS PEN, RULER, COMPASS AND PROTRACTOR whatever its words say (the Protractor since 458) */
   host.innerHTML = w.stuffCard(pick.drawn);
@@ -29092,34 +29068,39 @@ check('the one toolkit: a typed, a chosen, a table, a drawn and an essay part, a
   host.innerHTML = w.stuffCard(pick.typed);
   const meas = [...host.querySelectorAll('[data-do="q-measure"]')].map(e => e.getAttribute('data-tool'));
   if (meas.join() !== 'protractor,ruler') bad.push('the typed part ' + pick.typed.row.row_id + ' with a figure measures with ' + JSON.stringify(meas));
-  /* ZOOM: the sheet holds the part's words and its figure, and + makes it bigger */
-  A['q-zoom'](host.querySelector('[data-do="q-zoom"]'));
-  const body = d.getElementById('sheet-body'), inner = body && body.querySelector('.qzoom-in');
-  if (!inner) bad.push('Zoom opened no enlarged page');
+  /* THE MAGNIFIER (463): on, a mouse over the page carries a 2.5x copy of it, figure and all; a held finger brings it up above the finger and lifting puts it away */
+  const ptr = (type, o) => { const e = new w.Event(type, { bubbles: true, cancelable: true }); Object.keys(o).forEach(k => Object.defineProperty(e, k, { value: o[k] })); return e; };
+  host.className = 'page';
+  const fig = host.querySelector('.qsheet figure');
+  A['q-mag'](host.querySelector('[data-do="q-mag"]'));
+  if (host.querySelector('[data-do="q-mag"]').getAttribute('aria-pressed') !== 'true') bad.push('the Magnifier tile does not say it is on');
+  (fig || host).dispatchEvent(ptr('pointermove', { pointerType: 'mouse', pointerId: 1, clientX: 40, clientY: 30 }));
+  const glass = host.querySelector('.mag .mag-in');
+  if (!glass) bad.push('a mouse over the page, Magnifier on, brought up no glass');
   else {
-    if (!inner.querySelector('figure svg')) bad.push('the enlarged page has no figure');
-    const words = String(pick.typed.html || '').replace(/<[^>]*>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ').trim().split(/\s+/).slice(0, 3).join(' ');
-    if (words && inner.textContent.replace(/\s+/g, ' ').indexOf(words) < 0) bad.push('the enlarged page does not say ' + JSON.stringify(words));
-    const z0 = Number(inner.getAttribute('data-z'));
-    A['q-zoom-by'](body.querySelector('[data-do="q-zoom-by"][data-by="1.25"]'));
-    if (!(Number(body.querySelector('.qzoom-in').getAttribute('data-z')) > z0)) bad.push('+ did not make the enlarged page bigger');
+    if (!/scale\(2\.5\)/.test(glass.style.transform)) bad.push('the glass is not 2.5 times: ' + glass.style.transform);
+    if (!glass.querySelector('figure svg')) bad.push('the glass has no copy of the figure');
+    if (glass.querySelector('[id]')) bad.push('the copy under the glass keeps ids');
   }
-  /* A TAP ON THE FIGURE ENLARGES IT TOO */
-  w.closeSheet();
-  host.innerHTML = w.stuffCard(pick.typed);
-  const fig = host.querySelector('.qsheet figure[data-do="q-zoom-fig"]');
-  if (!fig) bad.push('the typed part\'s figure is not a door to zoom');
-  else {
-    A['q-zoom-fig'](fig);
-    if (!d.querySelector('#sheet-body .qzoom-in figure svg')) bad.push('a tap on the figure opened no enlarged figure');
-    w.closeSheet();
-  }
-  /* A STEM PAGE HAS ZOOM AND THE PADLOCK */
+  d.body.dispatchEvent(ptr('pointermove', { pointerType: 'mouse', pointerId: 1, clientX: 5, clientY: 5 }));
+  if (host.querySelector('.mag')) bad.push('the mouse left the page and the glass stayed');
+  (fig || host).dispatchEvent(ptr('pointerdown', { pointerType: 'touch', pointerId: 7, clientX: 50, clientY: 300 }));
+  await wait(320);
+  const held = host.querySelector('.mag');
+  if (!held) bad.push('a held finger brought up no glass');
+  else if (!(parseFloat(held.style.top) < 300 - 80)) bad.push('the glass is not above the finger: top ' + held.style.top);
+  d.body.dispatchEvent(ptr('pointerup', { pointerType: 'touch', pointerId: 7, clientX: 50, clientY: 300 }));
+  if (host.querySelector('.mag')) bad.push('lifting the finger left the glass up');
+  A['q-mag'](host.querySelector('[data-do="q-mag"]'));
+  (fig || host).dispatchEvent(ptr('pointermove', { pointerType: 'mouse', pointerId: 1, clientX: 40, clientY: 30 }));
+  if (host.querySelector('.mag')) bad.push('the Magnifier is off and a mouse still brings up the glass');
+  host.className = '';
+  /* A STEM PAGE HAS THE MAGNIFIER AND THE PADLOCK */
   const stemmed = all.find(x => (x.stems || []).some(p => p && p.diagram));
   if (!stemmed) bad.push('no part with a stem figure to try a stem page on');
   else {
     host.innerHTML = w.questionStemCard_(stemmed, (stemmed.stems || []).findIndex(p => p && p.diagram), 0);
-    if (!host.querySelector('[data-do="q-zoom"]') || !host.querySelector('[data-do="q-lock"]')) bad.push('the stem page of ' + stemmed.row.row_id + ' has no Zoom or no padlock');
+    if (!host.querySelector('[data-do="q-mag"]') || !host.querySelector('[data-do="q-lock"]')) bad.push('the stem page of ' + stemmed.row.row_id + ' has no Magnifier or no padlock');
   }
   /* THE PADLOCK: pressed, the column will not swipe; pressed again, it will; left by a tab, it lets go */
   host.innerHTML = w.stuffCard(pick.chosen);
@@ -29137,13 +29118,84 @@ check('the one toolkit: a typed, a chosen, a table, a drawn and an essay part, a
   return bad;
 });
 
+/* ---------- BACK TO TOP, AND YOUR RESULT (docs/history/463) ---------- */
+check('back to top: every result page of either finder ends in a Back to top tile, and it turns that finder, and only that one, to its first page', async () => {
+  const Q = LIB_FULL.rows('questions').slice(0, 60);
+  const { w } = boot({ member: true, before: signedInAs_(MEMBER_), serve: url => (/data\/questions\.json/.test(url) ? JSON.parse(JSON.stringify(Q)) : undefined) });
+  await wait(300); await woken_();
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  if (!A['find-top'] || typeof w.finderOf_ !== 'function') return ['find-top has no handler, or finderOf_ is not reachable — NOT checked'];
+  let tried = 0;
+  for (const id of ['stuff', 'res']) {
+    const F = w.finderOf_(id), other = id === 'stuff' ? 'res' : 'stuff';
+    t.go(id, false, true); await wait(120); await woken_();
+    /* EVERY QUESTION, as a child narrowing to Questions would have them */
+    (id === 'stuff' ? t.STUFF() : t.RES()).filters = [{ field: 'kindLabel', value: 'Questions' }];
+    w.finderForgetFound_();
+    w.paintFinder_(id); await wait(150); await woken_();
+    const n = w.inFinder_(F, () => w.stuffPageCount());
+    if (!n) { bad.push(id + ': Questions listed nothing — NOT checked'); continue; }
+    for (let i = 0; i < n; i++) {
+      if (!/data-do="find-top"/.test(w.inFinder_(F, () => w.stuffPageHtml(i)))) { bad.push(id + ': result page ' + (i + 1) + ' of ' + n + ' has no Back to top'); break; }
+    }
+    const last = w.inFinder_(F, () => 1 + w.frontPages_().length) + n - 1;
+    t.goPage(id, last, true); await wait(80);
+    const was = pg_(t)[other] || 0;
+    if (!(pg_(t)[id] > 0)) { bad.push(id + ': could not turn to its last page — NOT checked'); continue; }
+    const tile = d.querySelector('#s-' + id + ' [data-do="find-top"]');
+    if (!tile) { bad.push(id + ': no Back to top drawn in the column'); continue; }
+    A['find-top'](tile); await wait(80);
+    tried++;
+    if (pg_(t)[id] !== 0) bad.push(id + ': Back to top left it on page ' + pg_(t)[id]);
+    if ((pg_(t)[other] || 0) !== was) bad.push(id + ': Back to top moved the other finder too');
+  }
+  if (!tried && !bad.length) bad.push('no finder was tried');
+  return bad;
+});
+
+check('your result: a question is Unattempted, then Attempted, Correct, Incorrect or Part marks by the viewer\'s own latest press, live on its page; signed out it is not a tag at all', async () => {
+  const bad = [];
+  for (const who of ['in', 'out']) {
+    const Q = LIB_FULL.rows('questions').slice(0, 30);
+    const { w } = boot({ member: who === 'in', before: who === 'in' ? signedInAs_(ANS_ADA) : undefined,
+      serve: url => (/data\/questions\.json/.test(url) ? JSON.parse(JSON.stringify(Q)) : undefined) });
+    await wait(300); await woken_();
+    const t = w.__t;
+    if (typeof t.facetBy !== 'function' || typeof w.subRecord_ !== 'function' || typeof t.ansKey !== 'function') return ['facetBy, subRecord_ or ansKey_ not reachable — NOT checked'];
+    const f = t.facetBy('myResult');
+    if (!f) return ['there is no myResult facet'];
+    const qs = w.stuffItemsAll_().filter(x => x && x.kind === 'question');
+    if (!qs.length) return ['no question in the fixture — NOT checked'];
+    const x = qs[0], say = () => [].concat(f.of(x) || []).join(',');
+    if (who === 'out') {
+      const said = qs.find(q => [].concat(f.of(q) || []).join(''));
+      if (said) bad.push('signed out, a question says ' + JSON.stringify(f.of(said)));
+      continue;
+    }
+    if (say() !== 'Unattempted') bad.push('before a press it says ' + JSON.stringify(say()));
+    const host = w.document.createElement('section');
+    host.className = 'page';
+    host.innerHTML = w.stuffCard(x, 0) + '<span data-k="' + t.ansKey(x).replace(/"/g, '&quot;') + '"></span>';
+    w.document.body.appendChild(host);
+    const tag = () => [...host.querySelectorAll('.qtag[data-f="myResult"]')].map(e => e.textContent).join(',');
+    if (host.querySelector('.qcard-tags') && tag() !== 'Unattempted') bad.push('the card\'s tag says ' + JSON.stringify(tag()) + ' before a press');
+    for (const [v, want] of [['right', 'Attempted,Correct'], ['wrong', 'Attempted,Incorrect'], ['ai:1/3', 'Attempted,Part marks'], ['sent', 'Attempted']]) {
+      w.subRecord_(t.ansKey(x), '42', v, 'none');
+      if (say() !== want) bad.push('after a ' + v + ' press it says ' + JSON.stringify(say()) + ', not ' + want);
+      if (host.querySelector('.qcard-tags') && tag() !== want) bad.push('after a ' + v + ' press the card\'s own tag says ' + JSON.stringify(tag()) + ', not ' + want);
+    }
+    if (!host.querySelector('.qcard-tags')) bad.push('the card drew no tag row, so the live tag was NOT checked');
+  }
+  return bad;
+});
+
 /* ---------- A CARD WHOSE LEDGER ROW HAS NO DRAWING SHOWS ITS PNG TWIN (docs/history/460) ---------- */
-check('a twin only: a question whose words came without its drawing shows its PNG twin in the figure box, a tap enlarges it, and a drawn part keeps its pen over it', async () => {
+check('a twin only: a question whose words came without its drawing shows its PNG twin in the figure box, under the Magnifier, and a drawn part keeps its pen over it', async () => {
   const LIB = LIB_FULL.rows('questions');
   const { w } = boot({ member: true, serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined), before: signedInAs_(MEMBER_) });
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
-  if (typeof w.libQuestion_ !== 'function' || !A['q-zoom-fig']) return ['libQuestion_ or the q-zoom-fig handler is not reachable — NOT checked'];
+  if (typeof w.libQuestion_ !== 'function') return ['libQuestion_ is not reachable — NOT checked'];
   t.STUFF().filters = [];
   const all = w.stuffItemsAll_().filter(x => x && x.kind === 'question' && x.row && x.row.diagram_twin && x.diagram && !/^true$/i.test(String(x.row.lib_pending || '')));
   const typed = all.find(x => w.qType_(x) === 'value' && /math/i.test(x.subject || '') && w.partChunks_(x).length === 1);
@@ -29160,13 +29212,9 @@ check('a twin only: a question whose words came without its drawing shows its PN
     const img = host.querySelector('svg.qtwin image');
     if (!img || img.getAttribute('href') !== src) bad.push(x.row.row_id + ': the card shows no ' + src);
     if (i === 0) {
-      const fig = host.querySelector('.qsheet figure[data-do="q-zoom-fig"]');
-      if (!fig || !fig.querySelector('svg.qtwin')) bad.push(x.row.row_id + ': the twin is not in a figure that a tap enlarges');
-      else {
-        A['q-zoom-fig'](fig);
-        if (!d.querySelector('#sheet-body .qzoom-in svg.qtwin image')) bad.push(x.row.row_id + ': a tap on the twin opened no enlarged picture');
-        w.closeSheet();
-      }
+      const fig = host.querySelector('.qsheet figure');
+      if (!fig || !fig.querySelector('svg.qtwin')) bad.push(x.row.row_id + ': the twin is not in the figure box');
+      if (!host.querySelector('[data-do="q-mag"]')) bad.push(x.row.row_id + ': the page has no Magnifier to see the twin bigger');
     } else if (!host.querySelector('.qpad svg.qtwin') || !host.querySelector('[data-do="pad-tool"][data-tool="pen"]')) bad.push(x.row.row_id + ': the drawn part has no pen over its twin');
   });
   return bad;
