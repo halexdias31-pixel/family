@@ -9388,7 +9388,7 @@ function accountPages_(col) {
       role: famLabel_[f.relation] + (asTutor ? ' · ' + (asTutor.role || 'Tutor') : ''),
     });
     const more = typeof peopleTiles_ === 'function' ? peopleTiles_(row) : '';
-    return personForm_(row) || card_(row) + (more ? tileRow_(more) : '');
+    return personMark_(f.personId, personForm_(row) || card_(row) + (more ? tileRow_(more) : ''));
   };
   /* A CHILD OR A BROTHER OR SISTER IS A STUDENT; A PARENT IS A PARENT. A family member who teaches is on Tutors as well. */
   const famIn = c => family.filter(f => (f.relation === 'parent' ? 'parents' : 'students') === c);
@@ -9403,13 +9403,13 @@ function accountPages_(col) {
                                      role: (p.role || 'Client') + (p.handle ? '' : ' · no handle yet') }))
     /* AND "NEW PIN" BESIDE "MESSAGE" — the admin is who a child with no email and no linked parent goes to. § */
     /* THROUGH `tileRow_`, which puts six tiles on even lines rather than leaving one alone (453: Parents is narrower company). */
-    .map(p => personForm_(p) || card_(p)
+    .map(p => personMark_(p.personId, personForm_(p) || card_(p)
       + (typeof tile_ === 'function' ? tileRow_(tile_({ icon: 'chat',
           label: 'Message', note: 'a note to them', act: 'msg-open',
           data: { to: p.title, id: p.personId || '' } }) + (p.personId ? tile_({ icon: 'key',
           label: 'New PIN', note: 'to sign in with', act: 'kid-pin',
           data: { id: p.personId, name: String(p.title || '').split(' ')[0] } }) : '')
-          + (typeof peopleTiles_ === 'function' ? peopleTiles_(p) : '')) : ''));
+          + (typeof peopleTiles_ === 'function' ? peopleTiles_(p) : '')) : '')));
 
   /* ---------- YOUR OWN CARD, FIRST IN EVERY COLUMN YOU BELONG TO, ITS EDIT THAT FACE'S (`ownCardSections_(col)`) ---------- */
   const mine = [];
@@ -9422,7 +9422,7 @@ function accountPages_(col) {
       ? tile_({ icon: 'share', label: 'Share my profile', note: 'your link', act: 'tutor-share', data: { handle: USER.handle } }) : '';
     /* SHARE only: Edit is on your settings column (464); Sign out and Send the link again on Student settings (453). */
     const tiles = share;
-    mine.push(face + (tiles ? tileRow_(tiles, 'own-tiles', true) : ''));
+    mine.push(personMark_(USER.personId, face + (tiles ? tileRow_(tiles, 'own-tiles', true) : '')));
   }
 
   const coming = typeof awaiting_ === 'function' && awaiting_() ? [loading_()] : [];
@@ -9432,8 +9432,9 @@ function accountPages_(col) {
   let out;
   if (col === 'tutors') {
     /* THE DIRECTORY EVERYBODY SIGNED IN READS, less you (your card is above). */
-    const others = (DATA.tutors || []).filter(t => t && t.title && !mineIs_(t)).map(withTiles_);
-    out = add.concat(mine, others);
+    const others = (DATA.tutors || []).filter(t => t && t.title && !mineIs_(t)).map(t => personMark_(t.personId, withTiles_(t)));
+    /* EACH LIST A CARD OF ITS OWN (465): the admin's layout tiles go on the list, not on each person. */
+    out = cardMark_('ppl:tutors:add', add).concat(cardMark_('ppl:tutors:dir', mine.concat(others)));
   } else if (col === 'students') {
     /* FIND BY HANDLE ON TOP (442), then you, your brothers, sisters and children, then MANAGE YOUR CHILD (339) — the owner:
        "each user can edit their student people in student column". */
@@ -9441,12 +9442,14 @@ function accountPages_(col) {
     const manage = typeof mayAddChild_ === 'function' && mayAddChild_() && typeof childManageCard_ === 'function' ? [childManageCard_()] : [];
     /* NEEDS HELP (455) ABOVE ALL, for Staff — help.js `HELP_COL` names this column. */
     const help = typeof helpListCard_ === 'function' ? [helpListCard_()].filter(Boolean) : [];
-    out = help.concat(add, search, mine, fam, manage, everyone);
+    out = cardMark_('ppl:students:help', help).concat(cardMark_('ppl:students:add', add), cardMark_('ppl:students:search', search),
+      cardMark_('ppl:students:family', mine.concat(fam)), cardMark_('ppl:students:manage', manage), cardMark_('ppl:students:all', everyone));
   } else {
     /* A PARENT'S CLAIM ("X says they are your parent") is answered here, by the child. */
     const claims = (famMine && Array.isArray(DATA.claims) && typeof claimCard_ === 'function')
       ? DATA.claims.filter(c => c && c.rowIndex && c.from).map(claimCard_) : [];
-    out = add.concat(mine, claims, fam, everyone);
+    out = cardMark_('ppl:parents:add', add).concat(cardMark_('ppl:parents:you', mine), cardMark_('ppl:parents:claims', claims),
+      cardMark_('ppl:parents:family', fam), cardMark_('ppl:parents:all', everyone));
   }
   return out.concat(coming);
 }
@@ -9473,9 +9476,9 @@ function subDayText_(iso) {
 }
 
 /* THE PEOPLE COLUMNS (453); `peoplePages_` (me.js) adds the signed-out card and the empty one. Student settings is `studentSetPages_`. */
-screen('tutors', () => pages('tutors', peoplePages_('tutors')));
-screen('students', () => pages('students', peoplePages_('students')));
-screen('parents', () => pages('parents', peoplePages_('parents')));
+screen('tutors', () => pages('tutors', typeof cardsOf_ === 'function' ? cardsOf_('tutors') : peoplePages_('tutors')));
+screen('students', () => pages('students', typeof cardsOf_ === 'function' ? cardsOf_('students') : peoplePages_('students')));
+screen('parents', () => pages('parents', typeof cardsOf_ === 'function' ? cardsOf_('parents') : peoplePages_('parents')));
 
 /** Everything spliced between the question and the results, whichever answer is showing. */
 /* THE BUNDLE IS THE LAST OF THEM — see `bundlePages_`. § */

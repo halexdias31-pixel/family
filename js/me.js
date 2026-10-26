@@ -1823,7 +1823,7 @@ function settingsCards_(shown, moved, col) {
   /* THE BUSINESS'S CUT OF AN EXTRA SEAT IS SHOWN TO A TUTOR AND NOT OFFERED (docs/history/345) — an
      admin's to set, and `seatCutRefusal_` refuses it from anybody else; a disabled box is one `meSave_` never posts. */
   const readonly = (DATA.profileReadonly || []).concat(isAdmin() ? [] : ['extra_seat_cut']);
-  const one = (g, list, top, id, n) => setHeldSay_(`<div class="card${id ? ' set-card' : ''}"${id ? ` data-split="${esc(id)}"` : ''}>
+  const one = (g, list, top, id, n, lid) => setHeldSay_(`<div class="card${id ? ' set-card' : ''}"${id ? ` data-split="${esc(id)}"` : lid ? ` data-lay-card="${esc(lid)}"` : ''}>
     ${top}
     <div class="me-form">${fieldsHtml({ [g]: list }, {
       head: 'h3',
@@ -1848,7 +1848,7 @@ function settingsCards_(shown, moved, col) {
     const id = col && settingsSplittable_(list) && typeof splitId_ === 'function' ? splitId_('set', col, g) : '';
     if (id && typeof splitOn_ === 'function' && splitOn_(id))
       list.forEach((f, i) => out.push(one(String((typeof fieldLabel === 'function' && fieldLabel(f)) || ROW_LABEL[f] || g).replace(/^./, c => c.toUpperCase()), [f], i === 0 ? top : '', id, 1)));
-    else out.push(one(g, list, top, id, list.length));
+    else out.push(one(g, list, top, id, list.length, col && typeof splitId_ === 'function' ? splitId_('set', col, g) : ''));
   });
   return out;
 }
@@ -1884,10 +1884,10 @@ function ownCardSetPage_(setCol) {
   const mine = typeof myCardRow_ === 'function' ? myCardRow_() : null;
   const row = face === 'tutors' ? (cardMine_() || mine) : mine;
   if (!row || !row.personId) return '';
-  if (cardEditing_(row, face)) return cardEditHtml_(row);
+  if (cardEditing_(row, face)) return `<div class="own-set" data-lay-card="own:${esc(setCol)}">${cardEditHtml_(row)}</div>`;
   const card = row === mine && typeof meCard === 'function' ? meCard(row) : (typeof findCard === 'function' ? findCard({ kind: 'tutor', row }) : '');
   const edit = cardEditTile_({ row, account: true, col: face, settings: true });
-  return `<div class="own-set">${card}${edit ? tileRow_(edit, 'own-tiles', true) : ''}</div>`;
+  return `<div class="own-set" data-lay-card="own:${esc(setCol)}">${card}${edit ? tileRow_(edit, 'own-tiles', true) : ''}</div>`;
 }
 
 /* WHICH SETTINGS COLUMN YOUR OWN DETAILS ARE ON — a client's are a parent's (`clientFields`); everybody else's on Student settings. */
@@ -1941,7 +1941,7 @@ function studentSetPages_() {
   const own = ownCardSetPage_('account');
   return [top].concat(own ? [own] : [], youSettingsPages_(), prog, wait);
 }
-screen('account', () => pages('account', studentSetPages_()));
+screen('account', () => pages('account', typeof cardsOf_ === 'function' ? cardsOf_('account') : studentSetPages_()));
 
 /* ---------- READING ALOUD (453, 463) — no choice: the device's calmest natural voice, free; a sample is all there is to do ---------- */
 function voiceCard_() {
@@ -1970,7 +1970,7 @@ function familyPages_() {
   /* TITLE ONLY when a rank that has the column has nothing in it (Staff holding no client role). */
   return out.length ? out : [`<div class="card"><h3>${esc(title)}</h3></div>`];
 }
-screen('family', () => pages('family', familyPages_()));
+screen('family', () => pages('family', typeof cardsOf_ === 'function' ? cardsOf_('family') : familyPages_()));
 
 /* ---------- TUTOR SETTINGS: THE STAFF HUB AND THE TEACHING SETTINGS WITH NO CARD TO LIVE ON (453) ---------- */
 function staffPages_() {
@@ -1985,7 +1985,7 @@ function staffPages_() {
   const out = (own ? [own] : []).concat(top, settingsCards_(settingsSplit_().staff, '', 'staff'));
   return out.length ? out : [`<div class="card"><h3>${esc(title)}</h3></div>`];
 }
-screen('staff', () => pages('staff', staffPages_()));
+screen('staff', () => pages('staff', typeof cardsOf_ === 'function' ? cardsOf_('staff') : staffPages_()));
 
 /* ---------- ADMIN: THE BUSINESS CARDS, THEN THE BUILD STAMPS (people management is on the people columns since 453) ---------- */
 function adminPages_() {

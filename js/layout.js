@@ -27,6 +27,15 @@ function layoutSane_(v) {
   /* SPLIT CARDS (464): a settings or Business card drawn a field a card. */
   const split = ids(o.split).filter(x => LAYOUT_SPLIT_ID.test(x));
   if (split.length) out.split = split;
+  /* CARDS ON THE RIGHT-HAND COLUMNS (465): `cards: {col: [ids]}`, only the columns that hold cards. */
+  const c = o.cards && typeof o.cards === 'object' && !Array.isArray(o.cards) ? o.cards : {};
+  const cards = {};
+  Object.keys(c).forEach(k => { if (CARD_COLS.indexOf(k) !== -1) cards[k] = ids(c[k]).slice(0, 300); });
+  if (Object.keys(cards).length) out.cards = cards;
+  /* START HERE (465): `start: {col: cardId | 'person:<id>' | 'first-person'}`, where a column opens. */
+  const st = o.start && typeof o.start === 'object' && !Array.isArray(o.start) ? o.start : {}, start = {};
+  Object.keys(st).forEach(k => { if (CARD_COLS.indexOf(k) !== -1 && typeof st[k] === 'string' && LAYOUT_START_ID.test(st[k])) start[k] = st[k]; });
+  if (Object.keys(start).length) out.start = start;
   return out;
 }
 
@@ -111,6 +120,8 @@ function layoutDraftOf_(L) {
   layoutWidgetCols_().forEach(c => { widgets[c] = layoutWidgetsIn_(c, all, L).map(w => String(w.id)); });
   const out = { v: 1, widgets: widgets, deleted: L ? L.deleted.slice() : [] };
   if (L && L.split && L.split.length) out.split = L.split.slice();
+  if (L && L.start) out.start = Object.assign({}, L.start);
+  if (L && L.cards) { out.cards = {}; Object.keys(L.cards).forEach(c => { out.cards[c] = L.cards[c].slice(); }); }
   return out;
 }
 /* WHAT THE ADMIN SEES ON A COLUMN — a move steps over a widget they cannot see, or it would look like nothing happened. */
@@ -178,13 +189,15 @@ on('lay-w-del', el => {
   layoutSave_(D);
 });
 /* ADD BACK: to the end of its own default column. */
-on('lay-w-undel', () => {
+on('lay-w-undel', el => {
   if (!layoutIsAdmin_()) return;
-  const s = document.querySelector('.layout-card .lay-del-pick');
+  const s = (el && el.closest && el.closest('.card') && el.closest('.card').querySelector('.lay-del-pick')) || document.querySelector('.lay-del-pick');
   const id = s && s.value, L = layoutNow_();
   if (!id || !L) return;
   const D = layoutDraftOf_(L);
   D.deleted = D.deleted.filter(x => x !== id);
+  /* A CARD GOES BACK TO ITS OWN COLUMN, last there: out of every column's list, so its default places it. */
+  if (!layoutWidgetOf_(id) && cardIs_(id)) { cardUnlist_(D, id); return layoutSave_(D); }
   const w = layoutWidgetOf_(id), col = w && LAYOUT_COL[w.kind];
   if (col && D.widgets[col]) D.widgets[col].push(id);
   layoutSave_(D);
@@ -207,11 +220,12 @@ function layoutSave_(next) {
 function layoutCard_() {
   if (!layoutIsAdmin_()) return '';
   const L = layoutNow_();
-  const del = ((L && L.deleted) || []).filter(id => layoutWidgetOf_(id));
-  const opts = del.map(id => `<option value="${esc(id)}">${esc((layoutWidgetOf_(id) || {}).name || id)}</option>`).join('');
+  /* DELETED CARDS TOO (465), by their titles — Add back returns one to its own column. */
+  const del = ((L && L.deleted) || []).filter(id => layoutWidgetOf_(id) || cardIs_(id));
+  const opts = del.map(id => `<option value="${esc(id)}">${esc(layoutWidgetOf_(id) ? (layoutWidgetOf_(id).name || id) : cardLabel_(id))}</option>`).join('');
   return `<div class="card layout-card"><h3>Layout</h3>
-    <p class="faint">${L ? 'Your own order of widgets, for everyone.' : 'The default order of widgets.'} Each widget's admin tiles move or delete it.</p>
-    ${del.length ? `<label class="field"><span>Deleted widgets</span><select class="lay-del-pick" aria-label="Deleted widgets">${opts}</select></label>` : ''}
+    <p class="faint">${L ? 'Your own order of widgets, for everyone.' : 'The default order of widgets.'} Each widget's and each card's admin tiles move or delete it.</p>
+    ${del.length ? `<label class="field"><span>Deleted widgets and cards</span><select class="lay-del-pick" aria-label="Deleted widgets and cards">${opts}</select></label>` : ''}
     ${del.length || L ? `<div class="tile-row">${del.length ? tile_({ icon: 'undo', label: 'Add back', act: 'lay-w-undel' }) : ''}${
       L ? tile_({ icon: 'undo', label: 'Reset layout', act: 'layout-reset' }) : ''}</div>` : ''}</div>`;
 }
@@ -238,3 +252,297 @@ function splitSet_(id, on) {
 }
 on('lay-split', el => splitSet_(el.getAttribute('data-card') || '', true));
 on('lay-join', el => splitSet_(el.getAttribute('data-card') || '', false));
+
+/* ---------- CARDS ON THE RIGHT-HAND COLUMNS (465): ▲ ▼ ◀ ▶, Delete and Start here on every settings, profiles and Business card ---------- */
+/* The owner: "I especially need them on the right-hand columns". A moved card is the same card, drawn by its own column's builder: one home still. */
+const CARD_COLS = ['family', 'staff', 'account', 'tutors', 'students', 'parents', 'biz'];
+/* THE REGISTRY: id, own column, name, how its root is known (`re`; else `data-lay-card`/`data-split` or a `<!--card:id-->` mark), and `only`
+   when it is the only place a setting is edited (Delete's second step says so). */
+const CARD_REG = [
+  { id: 'acct:signed-in', col: 'account', label: 'Signed in', re: /^<div class="card signed-in"/ },
+  { id: 'acct:pin', col: 'account', label: 'Signing in', re: /data-do="pin-save"/, only: 'your PIN' },
+  { id: 'acct:roles', col: 'account', label: 'Your role', re: /^<div class="card roles-card/, only: 'your role' },
+  { id: 'acct:notify', col: 'account', label: 'Notifications', re: /^<div class="card notify-card/, only: 'which emails you get' },
+  { id: 'acct:voice', col: 'account', label: 'Reading aloud', re: /^<div class="card voice-card/ },
+  { id: 'acct:prog-answered', col: 'account', label: 'Progress: answered', re: /^<div class="card prog-w prog-answered/ },
+  { id: 'acct:prog-activity', col: 'account', label: 'Progress: activity', re: /^<div class="card prog-w prog-activity/ },
+  { id: 'acct:prog-weakest', col: 'account', label: 'Progress: weakest topics', re: /^<div class="card prog-w prog-weakest/ },
+  { id: 'acct:prog-series', col: 'account', label: 'Papers and worksheets', re: /^<div class="card prog-w prog-series/ },
+  { id: 'acct:prog-grade', col: 'account', label: 'Progress: grade', re: /^<div class="card prog-w prog-grade/ },
+  { id: 'acct:prog-sessions', col: 'account', label: 'Progress: sessions', re: /^<div class="card prog-w prog-sessions/ },
+  { id: 'own:account', col: 'account', label: 'Your card (Student settings)', only: 'your card' },
+  { id: 'own:family', col: 'family', label: 'Your card (Parent settings)', only: 'your card' },
+  { id: 'own:staff', col: 'staff', label: 'Your card (Tutor settings)', only: 'your card' },
+  { id: 'staff:hub', col: 'staff', label: 'Staff hub', re: /^<div class="card staff-top/, only: 'your rate and hours' },
+  { id: 'ppl:tutors:add', col: 'tutors', label: 'Add a tutor' },
+  { id: 'ppl:tutors:dir', col: 'tutors', label: 'Tutor directory' },
+  { id: 'ppl:students:help', col: 'students', label: 'Needs help' },
+  { id: 'ppl:students:add', col: 'students', label: 'Add a student' },
+  { id: 'ppl:students:search', col: 'students', label: 'Find by handle' },
+  { id: 'ppl:students:family', col: 'students', label: 'You and your family (students)' },
+  { id: 'ppl:students:manage', col: 'students', label: 'Manage your child' },
+  { id: 'ppl:students:all', col: 'students', label: 'Every student' },
+  { id: 'ppl:parents:add', col: 'parents', label: 'Add a parent' },
+  { id: 'ppl:parents:you', col: 'parents', label: 'Your card (Parent profiles)' },
+  { id: 'ppl:parents:family', col: 'parents', label: 'You and your family (parents)' },
+  { id: 'ppl:parents:claims', col: 'parents', label: 'Parent claims' },
+  { id: 'ppl:parents:all', col: 'parents', label: 'Every parent' },
+  { id: 'biz:profit-sum', col: 'biz', label: 'Profit', re: /data-profit="sum"/ },
+  { id: 'biz:setup', col: 'biz', label: 'Setup', re: /^<div class="card setup-card/ },
+  { id: 'biz:posts', col: 'biz', label: 'Posts waiting', re: /^<div class="card biz posts-wait/ },
+  { id: 'biz:apps', col: 'biz', label: 'Applications to teach', re: /^<div class="card biz apps/ },
+  { id: 'biz:staff', col: 'biz', label: 'Staff', re: /^<div class="card biz staff-card/ },
+  { id: 'biz:reports', col: 'biz', label: 'Reports', re: /^<div class="card biz reports/ },
+  { id: 'biz:libimp', col: 'biz', label: 'Library import', re: /^<div class="card biz libimp/ },
+  { id: 'biz:layout', col: 'biz', label: 'Layout', re: /^<div class="card layout-card/ },
+  { id: 'biz:build', col: 'biz', label: 'Build', re: /class="me-build"/ },
+];
+const PROG_EMPTY_ = { 'Questions': 'acct:prog-answered', 'Recent activity': 'acct:prog-activity', 'Work on next': 'acct:prog-weakest',
+  'Grade estimate': 'acct:prog-grade', 'Papers and worksheets': 'acct:prog-series', 'Sessions': 'acct:prog-sessions' };
+const cardReg_ = id => CARD_REG.find(r => r.id === id);
+/* A SETTINGS GROUP (`set:<col>:<group>`) or a Business record card (`biz:rec:<page>`, `biz:profit-terms`) is known by its id alone. */
+const CARD_DYN = /^(set:(family|staff|account):[A-Za-z0-9_:.-]+|biz:rec:[A-Za-z0-9_:.-]+|biz:profit-terms)$/;
+const cardIs_ = id => !!(cardReg_(id) || CARD_DYN.test(String(id || '')));
+function cardHome0_(id) {
+  const r = cardReg_(id);
+  if (r) return r.col;
+  const m = /^set:([a-z]+):/.exec(id);
+  return m ? m[1] : /^biz:/.test(id) ? 'biz' : '';
+}
+/* ITS NAME: the registry's, else the title it was last drawn with, else its id in words. */
+const CARD_TITLE = {};
+function cardLabel_(id) {
+  const r = cardReg_(id);
+  if (r) return r.label;
+  if (CARD_TITLE[id]) return CARD_TITLE[id];
+  const tail = String(id).split(':').pop().replace(/-/g, ' ');
+  return tail.charAt(0).toUpperCase() + tail.slice(1);
+}
+function cardOnly_(id) {
+  const r = cardReg_(id);
+  if (r) return r.only || '';
+  return /^(set:|biz:rec:)/.test(id) ? cardLabel_(id) : '';
+}
+/* A MARK FOR A CARD WITH NO ROOT OF ITS OWN (a people list is a page a person): each page carries the list's id. */
+const cardMark_ = (id, list) => (list || []).filter(Boolean).map(h => '<!--card:' + id + '-->' + h);
+/* AND A PERSON'S PAGE ITS PERSON, for Start here (`person:<id>`). */
+const personMark_ = (pid, h) => h && pid ? '<!--person:' + String(pid).replace(/[^A-Za-z0-9_.-]/g, '') + '-->' + h : h;
+
+/* WHICH CARD A PAGE IS — its mark, its `data-lay-card` or `data-split`, then the registry; '' for a column's own line (a padlock, a wait). */
+function cardIdOf_(html) {
+  const h = String(html || '');
+  let m = /^\s*<!--card:([A-Za-z0-9_:.-]{1,64})-->/.exec(h);
+  if (m) return m[1];
+  m = /^\s*<div[^>]*\sdata-(?:lay-card|split)="([^"]+)"/.exec(h);
+  if (m && cardIs_(m[1])) return m[1];
+  const t = h.trim();
+  /* AN EMPTY PROGRESS WIDGET IS ITS TITLE ALONE (414), so its title says which it is. */
+  m = /^<div class="card prog-w is-empty"><h3>([^<]*)<\/h3>/.exec(t);
+  if (m && PROG_EMPTY_[m[1]]) return PROG_EMPTY_[m[1]];
+  const r = CARD_REG.find(x => x.re && x.re.test(t));
+  return r ? r.id : '';
+}
+const personOf_ = h => ((/^\s*(?:<!--card:[^>]*-->)?<!--person:([A-Za-z0-9_.-]+)-->/.exec(String(h || '')) || [])[1]) || '';
+/* EACH COLUMN'S OWN BUILDER — the code's cards for whoever is signed in, role gates and all. */
+const CARD_BUILD = {
+  family: () => familyPages_(), staff: () => staffPages_(), account: () => studentSetPages_(),
+  tutors: () => peoplePages_('tutors'), students: () => peoplePages_('students'), parents: () => peoplePages_('parents'),
+  biz: () => adminPages_(),
+};
+/* THE CARD COLUMNS LEFT TO RIGHT; Business only for its own cards — anything else moved there would vanish for everyone but an admin. */
+function cardColsFor_(id) {
+  let seq = [];
+  try { seq = COLUMNS.map(t => t.id); } catch (e) { seq = []; }
+  return CARD_COLS.filter(c => seq.indexOf(c) !== -1 && (c !== 'biz' || cardHome0_(id) === 'biz'))
+    .sort((a, b) => seq.indexOf(a) - seq.indexOf(b));
+}
+function cardHome_(id, L) {
+  const c = (L && L.cards) || {};
+  for (const k of CARD_COLS) if (c[k] && c[k].indexOf(id) !== -1 && (k !== 'biz' || cardHome0_(id) === 'biz')) return k;
+  return cardHome0_(id);
+}
+function cardGroups_(raw) {
+  const out = [];
+  (raw || []).forEach(h => {
+    if (!h) return;
+    const id = cardIdOf_(h), last = out[out.length - 1];
+    if (id && last && last.id === id) last.pages.push(h);
+    else out.push({ id: id, pages: [h] });
+  });
+  return out;
+}
+const CARD_SEEN = {};
+/* THE CARDS ON ONE COLUMN, IN ORDER: its own less those moved away or deleted, plus those moved here, drawn by their own column's builder. */
+function cardArrange_(col, raw) {
+  const L = layoutNow_();
+  const del = (L && L.deleted) || [], list = (L && L.cards && L.cards[col]) || [];
+  const built = { [col]: raw };
+  const groupsIn = c => { if (!built[c]) { try { built[c] = (CARD_BUILD[c]() || []).filter(Boolean); } catch (e) { built[c] = []; } } return cardGroups_(built[c]); };
+  const mine = groupsIn(col).map((g, i) => Object.assign(g, { i: i }))
+    .filter(g => !g.id || (cardHome_(g.id, L) === col && del.indexOf(g.id) === -1));
+  const n = mine.length;
+  list.forEach((id, k) => {
+    const from = cardHome0_(id);
+    if (from === col || !CARD_BUILD[from] || cardHome_(id, L) !== col || del.indexOf(id) !== -1 || mine.some(g => g.id === id)) return;
+    const g = groupsIn(from).find(x => x.id === id);
+    if (g) mine.push(Object.assign(g, { i: n + k }));
+  });
+  const at = g => { const x = g.id ? list.indexOf(g.id) : -1; return x === -1 ? list.length + g.i : x; };
+  let out = mine.sort((a, b) => at(a) - at(b) || a.i - b.i);
+  /* A COLUMN'S BARE TITLE CARD IS FOR WHEN IT HOLDS NOTHING — not above a card moved into it. */
+  if (out.some(g => g.id)) out = out.filter(g => g.id || !/^\s*<div class="card(?: people-none)?">\s*<h3>[^<]*<\/h3>(?:\s*<p[^>]*>[^<]*<\/p>)?\s*<\/div>\s*$/.test(g.pages.join('')));
+  out.forEach(g => { if (g.id && !cardReg_(g.id)) { const m = /<h3[^>]*>([^<]{1,80})<\/h3>/.exec(g.pages[0]); if (m) CARD_TITLE[g.id] = m[1].trim(); } });
+  CARD_SEEN[col] = out.filter(g => g.id).map(g => g.id);
+  return out;
+}
+/* WHERE A COLUMN OPENS (Start here), as a page number of the column last drawn — `PAGE_HOME` asks. */
+const CARD_START_AT = {};
+const cardStartOf_ = (col, L) => { const s = L && L.start && L.start[col]; return typeof s === 'string' ? s : ''; };
+/* THE COLUMN DRAWN: unchanged when there is no layout of cards and nobody to arrange them; else arranged, an admin's row on each card. */
+function cardsOf_(col) {
+  const raw = (CARD_BUILD[col] ? CARD_BUILD[col]() : []).filter(Boolean);
+  const L = layoutNow_(), admin = layoutIsAdmin_();
+  delete CARD_START_AT[col];
+  const strip = h => String(h).replace(/^\s*<!--card:[^>]*-->/, '').replace(/^\s*<!--person:[^>]*-->/, '');
+  if (!admin && !(L && (L.cards || L.start || (L.deleted || []).some(cardIs_)))) return raw.map(strip);
+  const groups = cardArrange_(col, raw);
+  const start = cardStartOf_(col, L);
+  const out = [];
+  let firstP = -1;
+  groups.forEach(g => {
+    const row = admin && g.id ? cardAdminRow_(g.id, col) : '';
+    const each = g.pages.length > 1 && /^(set|biz):/.test(g.id);
+    let firstInList = true;
+    g.pages.forEach((h, i) => {
+      const pid = personOf_(h), at = out.length;
+      if (pid && firstP === -1) firstP = at;
+      if (start && ((g.id && start === g.id && i === 0) || (pid && start === 'person:' + pid))) CARD_START_AT[col] = at;
+      let page = strip(h);
+      if (admin && pid) {
+        page += `<div class="tile-row wgt-admin start-tiles">${startTile_(col, 'person:' + pid, start)}${
+          firstInList ? startTile_(col, 'first-person', start, 'the first person') : ''}</div>`;
+        firstInList = false;
+      }
+      if (row && (each || i === g.pages.length - 1)) page = cardRowIn_(page, row);
+      out.push(page);
+    });
+  });
+  if (start === 'first-person' && firstP !== -1) CARD_START_AT[col] = firstP;
+  /* BUSINESS'S LAST LINE WHILE ANYTHING IS DELETED and the Layout card is gone with it: the way back, never a pop-up (465). */
+  if (col === 'biz' && admin && L && (L.deleted || []).length && !CARD_SEEN.biz.includes('biz:layout')) out.push(layoutFoot_(L));
+  if (!out.length) return [`<div class="card"><h3>${esc(typeof tabLabel_ === 'function' ? tabLabel_(col, col) : col)}</h3></div>`];
+  return out;
+}
+function startTile_(col, id, start, note) {
+  return tile_({ icon: 'flag', label: start === id ? 'Start here (on)' : 'Start here', note: note || '', act: 'lay-start', tone: 'admin',
+    on: start === id, data: { lc: id, col: col } });
+}
+function cardRowIn_(h, row) {
+  const t = h.replace(/\s+$/, '');
+  if (/^\s*<div class="(card|own-set)/.test(t) && /<\/div>$/.test(t)) return t.slice(0, -6) + row + '</div>';
+  return h + row;
+}
+function cardAdminRow_(id, col) {
+  if (!layoutIsAdmin_()) return '';
+  const seen = CARD_SEEN[col] || [], i = seen.indexOf(id), cols = cardColsFor_(id), ci = cols.indexOf(col);
+  const start = cardStartOf_(col, layoutNow_());
+  return `<div class="tile-row wgt-admin card-admin" data-lay-for="${esc(id)}">${
+    tile_({ icon: 'up', label: 'Move up', act: 'lay-c-move', tone: 'admin', data: { lc: id, col: col, d: -1 }, off: i <= 0 })}${
+    tile_({ icon: 'down', label: 'Move down', act: 'lay-c-move', tone: 'admin', data: { lc: id, col: col, d: 1 }, off: i === -1 || i >= seen.length - 1 })}${
+    tile_({ icon: 'left', label: 'Move to previous column', act: 'lay-c-col', tone: 'admin', data: { lc: id, col: col, d: -1 }, off: ci <= 0 })}${
+    tile_({ icon: 'right', label: 'Move to next column', act: 'lay-c-col', tone: 'admin', data: { lc: id, col: col, d: 1 }, off: ci === -1 || ci >= cols.length - 1 })}${
+    startTile_(col, id, start)}${
+    tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' })}</div>`;
+}
+/* THE WAY BACK WHEN THE LAYOUT CARD ITSELF IS DELETED: one small line at the foot of Business, while anything is deleted. */
+function layoutFoot_(L) {
+  const del = (L.deleted || []).filter(id => layoutWidgetOf_(id) || cardIs_(id));
+  const opts = del.map(id => `<option value="${esc(id)}">${esc(layoutWidgetOf_(id) ? (layoutWidgetOf_(id).name || id) : cardLabel_(id))}</option>`).join('');
+  return `<div class="card lay-foot"><p class="faint">Deleted cards (${del.length})</p>
+    ${del.length ? `<select class="lay-del-pick" aria-label="Deleted widgets and cards">${opts}</select>` : ''}
+    <div class="tile-row">${del.length ? tile_({ icon: 'undo', label: 'Add back', act: 'lay-w-undel' }) : ''}${tile_({ icon: 'undo', label: 'Reset layout', act: 'layout-reset' })}</div></div>`;
+}
+/* A COLUMN'S LIST AS THE ADMIN SEES IT, with any card named there but not drawn for them kept at the end. */
+function cardListOf_(col, L) {
+  if (!CARD_SEEN[col]) { try { cardArrange_(col, (CARD_BUILD[col]() || []).filter(Boolean)); } catch (e) {} }
+  const seen = (CARD_SEEN[col] || []).slice(), had = (L && L.cards && L.cards[col]) || [];
+  return seen.concat(had.filter(x => seen.indexOf(x) === -1));
+}
+function cardUnlist_(D, id) {
+  Object.keys(D.cards || {}).forEach(c => { D.cards[c] = D.cards[c].filter(x => x !== id); if (!D.cards[c].length) delete D.cards[c]; });
+  if (D.cards && !Object.keys(D.cards).length) delete D.cards;
+}
+on('lay-c-move', el => {
+  if (!layoutIsAdmin_()) return;
+  const id = el.getAttribute('data-lc'), col = el.getAttribute('data-col'), d = Number(el.getAttribute('data-d'));
+  const L = layoutNow_(), list = cardListOf_(col, L), seen = CARD_SEEN[col] || [];
+  const next = seen[seen.indexOf(id) + d];
+  if (CARD_COLS.indexOf(col) === -1 || seen.indexOf(id) === -1 || !next) return;
+  list.splice(list.indexOf(id), 1);
+  list.splice(list.indexOf(next) + (d > 0 ? 1 : 0), 0, id);
+  const D = layoutDraftOf_(L);
+  D.cards = D.cards || {};
+  D.cards[col] = list;
+  layoutSave_(D);
+});
+/* ACROSS: to the end of the neighbouring card column — the same card, its one home moved with it. */
+on('lay-c-col', el => {
+  if (!layoutIsAdmin_()) return;
+  const id = el.getAttribute('data-lc'), col = el.getAttribute('data-col'), d = Number(el.getAttribute('data-d'));
+  const cols = cardColsFor_(id), to = cols[cols.indexOf(col) + d];
+  if (cols.indexOf(col) === -1 || !to) return;
+  const L = layoutNow_(), from = cardListOf_(col, L).filter(x => x !== id), there = cardListOf_(to, L).filter(x => x !== id);
+  const D = layoutDraftOf_(L);
+  cardUnlist_(D, id);
+  D.cards = D.cards || {};
+  D.cards[col] = from;
+  D.cards[to] = there.concat([id]);
+  layoutSave_(D);
+});
+/* DELETE ASKS TWICE, IN PLACE; the second step says when it is the only place a setting is edited — still one tap, never a pop-up. */
+on('lay-c-del', el => {
+  if (!layoutIsAdmin_()) return;
+  const id = el.getAttribute('data-lc');
+  if (!cardIs_(id)) return;
+  if (el.getAttribute('data-armed') !== '1') {
+    const only = cardOnly_(id), say = only ? 'Tap again — this removes the only place to edit ' + only : 'Tap again to delete';
+    el.setAttribute('data-armed', '1');
+    el.classList.add('is-armed');
+    tileSet_(el, { label: say });
+    const k = el.querySelector('.tile-i');
+    if (k && !el.querySelector('.lay-again')) k.insertAdjacentHTML('afterend', `<span class="lay-again">${esc(say)}</span>`);
+    clearTimeout(el.ARM_T);
+    el.ARM_T = setTimeout(() => { if (el.isConnected) { el.removeAttribute('data-armed'); el.classList.remove('is-armed');
+      tileSet_(el, { label: 'Delete' }); el.querySelector('.lay-again')?.remove(); } }, 3000);
+    return;
+  }
+  const D = layoutDraftOf_(layoutNow_());
+  cardUnlist_(D, id);
+  if (D.deleted.indexOf(id) === -1) D.deleted.push(id);
+  layoutSave_(D);
+});
+/* START HERE: the column opens on this card (or person, or "the first person"); pressed again, the default comes back. */
+on('lay-start', el => {
+  if (!layoutIsAdmin_()) return;
+  const id = el.getAttribute('data-lc'), col = el.getAttribute('data-col');
+  if (CARD_COLS.indexOf(col) === -1 || !LAYOUT_START_ID.test(id || '')) return;
+  const D = layoutDraftOf_(layoutNow_());
+  const s = Object.assign({}, D.start || {});
+  if (s[col] === id) delete s[col]; else s[col] = id;
+  if (Object.keys(s).length) D.start = s; else delete D.start;
+  try { PAGE_OPENED[col] = false; } catch (e) {}
+  layoutSave_(D);
+});
+const LAYOUT_START_ID = /^(first-person|person:[A-Za-z0-9_.-]{1,48}|[A-Za-z0-9_:.-]{1,64})$/;
+/* THE PAGER'S LANDING FOR EACH CARD COLUMN: Start here's page when it is drawn, else what it was before. */
+CARD_COLS.forEach(c => {
+  const was = PAGE_HOME[c];
+  PAGE_HOME[c] = () => {
+    const n = CARD_START_AT[c];
+    if (typeof n === 'number' && n >= 0) return n;
+    try { return was ? was() : 0; } catch (e) { return 0; }
+  };
+});
+/* FOR THE JOURNEYS: a column's arranged cards, and the page it opens on. */
+function cardSeen_(col) { return (CARD_SEEN[col] || []).slice(); }
+function cardStartAt_(col) { try { return PAGE_HOME[col](); } catch (e) { return 0; } }
