@@ -4050,7 +4050,7 @@ check('the whiteboard notebook draws, undoes, survives a repaint and clears unde
   }
   const tools = t.allWidgets().filter(x => x.kind === 'tool').map(x => String(x.id));
   /* THE LIBRARY CARDS ARE APPENDED AFTER IT (docs/history/339, its review) — the same rule kept: nothing above. */
-  if (tools.slice(-3).join(' ') !== 'uploads whiteboard libcards') bad.push('the whiteboard is not appended after uploads, with only the library cards after it: ' + tools.join(', '));
+  if (tools.slice(-3).join(' ') !== 'verse whiteboard libcards') bad.push('the whiteboard is not appended after the e-ink screen, with only the library cards after it: ' + tools.join(', '));
   const wb = t.allWidgets().find(x => x.id === 'whiteboard');
   if (!wb || !wb.solid || wb.name !== 'Whiteboard') bad.push('the whiteboard is not a solid tool called Whiteboard');
 
