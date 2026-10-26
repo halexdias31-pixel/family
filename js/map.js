@@ -174,8 +174,7 @@ const WIDGETS = [
     into: 'fm-wrap', what: 'The flyer',
     html: `<div class="card">
     <h3>Make a flyer</h3>
-    <p class="sub">Campaign, style, colours and size. Two to a sheet, or nine stickers. Prices come
-      from the venue you pick.</p>
+    <p class="sub" title="Two to a sheet, or nine stickers. Prices come from the venue you pick; wording from the brand tab.">Prices come from the venue.</p>
     <div id="fm-wrap"></div>
   </div>` },
 

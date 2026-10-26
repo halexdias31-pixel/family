@@ -434,14 +434,15 @@ const WIDGET_KEY = w => 'w:' + String(w.id);
 function widgetOnColumn_(w, own) {
   const waits = typeof w.start === 'function' && typeof loading_ === 'function';
   const held = w.kind === 'game' && typeof gameLocked_ === 'function' && gameLocked_(w.id);
+  /* ONE PLACE FOR A WIDGET'S TILES (472): title, content (its own tiles last), then one row — the star, the padlock, then the admin's layout tiles. */
+  const keep = typeof favTile_ === 'function'
+    ? `<span class="tile-group wgt-keep">${favTile_({ key: WIDGET_KEY(w), kind: 'widget' })}${
+      w.kind === 'game' && typeof gameLockTile_ === 'function' ? gameLockTile_(w.id) : ''}</span>` : '';
+  const lay = own === true && typeof layoutTiles_ === 'function' ? layoutTiles_(w) : '';
   return `<div class="card is-widget${held ? ' is-locked' : ''}">
-      ${typeof favTile_ === 'function'
-        ? `<div class="tile-row wgt-keep">${favTile_({ key: WIDGET_KEY(w), kind: 'widget' })}${
-          w.kind === 'game' && typeof gameLockTile_ === 'function' ? gameLockTile_(w.id) : ''}</div>`
-        : ''}
-      ${own === true && typeof layoutTiles_ === 'function' ? layoutTiles_(w) : ''}
       <div class="widget-slot" id="wgt-${esc(String(w.id))}"${waits ? ' aria-busy="true"' : ''}>${
         w.html}${waits ? loading_() : ''}</div>
+      ${keep || lay ? `<div class="tile-row wgt-foot">${keep}${lay}</div>` : ''}
     </div>`;
 }
 

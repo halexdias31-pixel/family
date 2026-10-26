@@ -4198,7 +4198,7 @@ on('bg-pick', el => {
 const CONSOLE_GAMES = [
   { k: 'file', name: 'Game files', start: () => { nesPaint_(); nesPadWatch_(); }, still: () => nesPaint_(),
     stop: () => { nesStop_(); nesPadUnwatch_(); },
-    body: `<p class="sub">Plays NES, SNES, Game Boy, Game Boy Color, Game Boy Advance, N64 and DS files. Bring your own game file.</p>
+    body: `<p class="sub cs-one" title="NES, SNES, Game Boy, Game Boy Color, Game Boy Advance, N64 and DS">NES to DS games you own; they stay on this device.</p>
     <div id="nes-box" class="nes-box"></div>` },
   /* A HANDHELD FOR THE BIRD: the canvas sits in a body of its own, and its tap and space bar are `initFlappy`'s as before. */
   { k: 'flabby', name: 'Flabby Pird', start: () => initFlappy(), still: () => flappyStill_(),
@@ -5199,8 +5199,7 @@ function nesPaint_() {
     <p class="note" id="nes-say" role="status"></p>
     <p class="faint" id="nes-kept" hidden></p>
     <p class="faint" id="nes-sysnote" hidden></p>
-    <input type="file" id="nes-file" class="nes-file" accept="${NES_ACCEPT}">
-    <p class="faint">Use a game file you own. It stays on this device and is never uploaded.</p>`;
+    <input type="file" id="nes-file" class="nes-file" accept="${NES_ACCEPT}">`;
     nesPadWire_($('nes-pad'));
     nesModeWire_($('nes-wrap'));
     /* A REDRAWN SCREEN KEEPS A RUNNING GAME: EmulatorJS's own box moves into the new stage rather than being lost with the old one. */
