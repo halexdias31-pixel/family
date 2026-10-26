@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-26-t-settings-only-editing";
+  --css-version: "2026-10-26-u-lowest-rank-settings";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -3379,7 +3379,6 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 /* THE MAP UNDER THE VENUES, redrawn from the ticks; nothing ticked is no map and no gap. */
 .ce-heat:empty { display: none; }
 /* WHERE THE PAGES WENT, once, at the top of Settings — for everybody since docs/history/339. */
-.ce-moved { margin: 0 0 .6rem; line-height: 1.35; }
 /* ---------- A CHILD LINKED TO YOU, ONE LINE EACH — `kidListSec_` in me.js (docs/history/339) § */
 .kid-row { display: flex; align-items: center; gap: .6rem; }
 .kid-row + .kid-row { margin-top: .45rem; }
@@ -3394,6 +3393,10 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .ps-hit { display: flex; align-items: center; gap: .6rem; margin-top: .6rem; }
 .ps-hit > .tile-row { margin: 0; flex: none; }
 .ps-out:empty { display: none; }
+/* ONE SEARCH BAR (469): the box and Find on one line, nothing under them. */
+.ps-bar { display: flex; gap: .4rem; align-items: stretch; }
+.ps-bar > input { flex: 1; min-width: 0; min-height: 44px; }
+.ps-bar > .ps-go { flex: none; width: auto; margin: 0; min-height: 44px; padding: 0 1rem; }
 .kid-none { margin: 0; }
 /* ---------- SAVE AND CANCEL STAY IN REACH: THE ROW IS STUCK TO THE FOOT OF THE PANE § */
 /* `.tile-row.ce-tiles`, TWO CLASSES, because `.tile-row`'s own margin is declared further down this file and

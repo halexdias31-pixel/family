@@ -2031,15 +2031,19 @@ const cardOpen_ = async (W, who, more) => {
   const S = '#s-' + (SETOF[more.col || home] || more.col || home), T = '#s-tutors';
   /* 468: YOUR OWN CARD IS ALWAYS OPEN ON ITS SETTINGS COLUMN, A CARD PER SECTION — `form()` is the column holding them, `sec(id)` one card. */
   const F = '#s-' + (more.col || home);
+  /* 469: EVERYBODY'S FOUR ARE ON STUDENT SETTINGS, the rest on the face's own column — the cards read across both, Student settings first. */
+  const R = ['#s-account'].concat(S === '#s-account' ? [] : [S]);
+  const all = sel => [].concat(...R.map(r => [...d.querySelectorAll(r + ' ' + sel)]));
+  const both = { querySelector: sel => all(sel)[0] || null, querySelectorAll: sel => all(sel) };
   const c = {
     b, w: b.w, t, d, u, sent: b.sent, gets: b.gets, S,
     A: (act, el) => t.ACTIONS[act](el),
-    cards: () => [...d.querySelectorAll(S + ' .card-ed')],
+    cards: () => all('.card-ed'),
     secs: () => c.cards().map(x => x.dataset.sec),
-    card: () => d.querySelector(S + ' .card-ed'),
-    sec: id => d.querySelector(S + ' .card-ed[data-sec="' + id + '"]'),
-    form: () => d.querySelector(S + ' .card-ed .me-form') ? d.querySelector(S) : null,
-    box: f => d.querySelector(S + ' .card-ed [data-me="' + f + '"]'),
+    card: () => all('.card-ed')[0] || null,
+    sec: id => all('.card-ed[data-sec="' + id + '"]')[0] || null,
+    form: () => all('.card-ed .me-form').length ? both : null,
+    box: f => all('.card-ed [data-me="' + f + '"]')[0] || null,
     tileOn: (id, act) => c.sec(id) && c.sec(id).querySelector('[data-do="' + act + '"]'),
     /* SAVE ON EACH NAMED SECTION'S CARD, one after the other, as a person goes down the column. */
     saveAll: async ids => { for (const id of ids) { const t1 = c.tileOn(id, 'card-save'); if (t1) { c.A('card-save', t1); await wait(400); } } },
@@ -2050,7 +2054,7 @@ const cardOpen_ = async (W, who, more) => {
     posts: () => b.sent.filter(x => x.action === 'updateProfile'),
     said: () => c.cards().map(k => String((k.querySelector('.me-said') || {}).textContent || '')).join(' ').trim(),
     saidOn: id => String(((c.sec(id) && c.sec(id).querySelector('.me-said')) || {}).textContent || ''),
-    dirty: () => [...d.querySelectorAll(S + ' .card-ed .me-form[data-dirty]')].map(f => f.closest('.card-ed').dataset.sec),
+    dirty: () => all('.card-ed .me-form[data-dirty]').map(f => f.closest('.card-ed').dataset.sec),
     toast: () => toastOf_(d),
     drafts: () => Object.keys(keptStore_(b.w)).filter(k => /:card:/.test(k)),
     /* YOUR OWN CARD AS DRAWN — on the profile column alone (468), first there; somebody else's by a tile that names them. */
@@ -2110,7 +2114,7 @@ check('a tutor edits every section of their tutor card on Tutor settings, each s
   if (JSON.stringify(c.secs()) !== JSON.stringify(wantSecs)) bad.push('the section cards read ' + JSON.stringify(c.secs()) + ', not the card\'s order ' + JSON.stringify(wantSecs));
   c.cards().forEach(k => {
     const id = k.dataset.sec;
-    if (k.dataset.layCard !== 'own:staff:' + id) bad.push('the ' + id + ' card\'s layout id is ' + JSON.stringify(k.dataset.layCard));
+    if (k.dataset.layCard !== 'own:' + (CARD_YOU_.indexOf(id) !== -1 ? 'account' : 'staff') + ':' + id) bad.push('the ' + id + ' card\'s layout id is ' + JSON.stringify(k.dataset.layCard));
     if (k.querySelectorAll('.ce-sec').length !== 1) bad.push('the ' + id + ' card holds ' + k.querySelectorAll('.ce-sec').length + ' sections, not one');
     if (!k.querySelector('h3') || !k.querySelector('.card-say')) bad.push('the ' + id + ' card has no title or no line saying what it is for');
     const sv = k.querySelector('[data-do="card-save"]'), cn = k.querySelector('[data-do="card-cancel"]');
@@ -2358,7 +2362,7 @@ check('Sign out is on Student settings (453), not under a tutor\'s card while th
   await wait(50);
   c.A('signout', outs[0]);
   await wait(400);
-  try { ['tutors', 'staff'].forEach(id => c.w.paint(id)); } catch (e) {}
+  try { ['tutors', 'staff', 'account'].forEach(id => c.w.paint(id)); } catch (e) {}
   await wait(100);
   if (c.card()) bad.push('the form is still drawn after Sign out');
   if (!c.drafts().length) bad.push('Sign out threw away what Ada typed on her card');
@@ -2367,19 +2371,19 @@ check('Sign out is on Student settings (453), not under a tutor\'s card while th
   const pat = W.real.post({ action: 'verifyLogin', email: 'parent@example.org', pin: '0000' });
   try { c.w.signedIn_(pat, 'parent@example.org'); } catch (e) { return bad.concat(['signing Pat in threw: ' + e.message]); }
   await wait(300);
-  try { ['tutors', 'parents', 'staff', 'family'].forEach(id => c.w.paint(id)); c.t.go('family', false, true); } catch (e) {}
+  try { ['tutors', 'parents', 'staff', 'family', 'account'].forEach(id => c.w.paint(id)); c.t.go('account', false, true); } catch (e) {}
   await wait(150);
-  if (c.card() || c.d.querySelector('.card-ed[data-pid="P-T1"]')) bad.push('Pat, signed in on the same phone, sees Ada\'s card open for editing');
-  /* 464: Pat's own Edit is on Parent settings, and no profile column offers it. */
+  if (c.d.querySelector('.card-ed[data-pid="P-T1"]')) bad.push('Pat, signed in on the same phone, sees Ada\'s card open for editing');
+  /* 469: Pat's own four are on Student settings, as everybody's are, and no profile column offers them. */
   const patEdits = [...new Set([...c.d.querySelectorAll('.card-ed')].map(x => x.dataset.pid + '@' + String((x.closest('#screen > .screen') || {}).id || '').replace(/^s-/, '')))];
-  if (JSON.stringify(patEdits) !== '["P-C1@family"]') bad.push('Pat is given editing cards for ' + JSON.stringify(patEdits) + ', wanted her own on Parent settings alone');
+  if (JSON.stringify(patEdits) !== '["P-C1@account"]') bad.push('Pat is given editing cards for ' + JSON.stringify(patEdits) + ', wanted her own on Student settings alone');
   c.A('signout', c.d.createElement('button'));
   await wait(300);
   /* ADA BACK, SAME TAB: her card open, what she typed in its box, said as not saved. */
   const ada = W.real.post({ action: 'verifyLogin', email: 'tutor@example.org', pin: '0000' });
   try { c.w.signedIn_(ada, 'tutor@example.org'); } catch (e) { return bad.concat(['signing Ada back in threw: ' + e.message]); }
   await wait(300);
-  try { c.t.go('staff', false, true); c.w.paint('staff'); } catch (e) {}
+  try { c.t.go('account', false, true); c.w.paint('account'); c.w.paint('staff'); } catch (e) {}
   for (let k = 0; k < 20 && !c.form(); k++) await wait(100);
   if (!c.form()) bad.push('Ada signed back in on the same tab finds no editing cards — what she typed waits with nothing saying so');
   else {
@@ -2705,10 +2709,22 @@ check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, S
     /* STUDENT SETTINGS: every account's PIN, roles, notifications and Sign out, and nothing of a parent's, tutor's or people's. */
     if (!q('#s-account .roles-card') || !q('#s-account [data-do="pin-save"]') || !q('#s-account .notify-card') || !q('#s-account [data-do="signout"]')) bad.push(rank + ': Student settings lacks Your roles, the PIN, Notifications or Sign out');
     if (q('#s-account [data-do="hub-open"], #s-account .kid-manage, #s-account [data-do="person-add"], #s-account .col-lock')
-      || (rank !== 'student' && q('#s-account .card-ed, #s-account [data-do="card-edit"]'))) bad.push(rank + ': a person, a parent\'s or a tutor\'s thing is on Student settings');
+      || q('#s-account [data-do="card-edit"]')) bad.push(rank + ': a person, a parent\'s or a tutor\'s thing is on Student settings');
+    /* 469: EACH SETTING ON ONE COLUMN FOR EVERY RANK, the lowest it applies to — everybody's four on Student settings, usable by every rank. */
+    const ownIds = [...a.d.querySelectorAll('#s-account [data-lay-card^="own:"], #s-family [data-lay-card^="own:"], #s-staff [data-lay-card^="own:"]')]
+      .map(x => x.closest('.screen').id.slice(2) + '|' + x.dataset.layCard);
+    const seen = {};
+    ownIds.forEach(x => { const id = x.split('|')[1]; seen[id] = (seen[id] || 0) + 1; if (x.split('|')[0] !== id.split(':')[1]) bad.push(rank + ': ' + id + ' is drawn on ' + x.split('|')[0]); });
+    Object.keys(seen).forEach(id => { if (seen[id] !== 1) bad.push(rank + ': ' + id + ' is drawn ' + seen[id] + ' times across the settings columns'); });
+    ['picture', 'figure', 'name', 'handle'].forEach(k => {
+      const el = q('#s-account .card-ed[data-lay-card="own:account:' + k + '"]');
+      if (!el || el.closest('.is-locked')) bad.push(rank + ': your ' + k + ' is not an open card on Student settings');
+    });
+    if (rank === 'staff' || rank === 'admin') ['headline', 'where'].forEach(k => { if (!q('#s-staff .card-ed[data-lay-card="own:staff:' + k + '"]')) bad.push(rank + ': ' + k + ' is not on Tutor settings'); });
+    if (q('#s-family [data-me="email"], #s-staff [data-me="email"], #s-family [data-me="postcode"]')) bad.push(rank + ': your contact is on a column above Student settings');
     const famOff = !!q('#s-family .rank-off'), staffOff = !!q('#s-staff .rank-off');
     /* 467: STAFF AND ADMIN WITH NO PARENT'S DETAILS see Parent settings locked too. */
-    if (famOff !== (rank !== 'client')) bad.push(rank + ': Parent settings ' + (famOff ? 'says it is not for this account' : 'is drawn unlocked for a non-parent'));
+    if (famOff !== (rank === 'student')) bad.push(rank + ': Parent settings ' + (famOff ? 'says it is not for this account' : 'is drawn unlocked for a non-parent'));
     if (staffOff !== (rank === 'student' || rank === 'client')) bad.push(rank + ': Tutor settings ' + (staffOff ? 'says it is not for this account' : 'is drawn below Staff'));
     /* 467: A COLUMN FOR A ROLE YOU DO NOT HOLD IS THE PADLOCK LINE, THEN EVERY CARD OF IT LOCKED — each with its padlock, nothing pressable. */
     if (staffOff && !/are for tutors/.test(txt('#s-staff .rank-off'))) bad.push(rank + ': Tutor settings does not say plainly it is for tutors');
@@ -2718,7 +2734,7 @@ check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, S
       if (!lock.classList.contains('col-lock') || !lock.querySelector('.col-lock-i svg')) bad.push(rank + ': ' + col + ' is not a padlock');
       if (lock.querySelector('h3, input, select, textarea')) bad.push(rank + ': the ' + col + ' padlock line has a title or a box');
       const shut = [...a.d.querySelectorAll('#s-' + col + ' .is-locked')];
-      if (shut.length < 2) bad.push(rank + ': ' + col + ' shows ' + shut.length + ' locked cards, wanted every card of the column');
+      if (col === 'staff' && shut.length < 2) bad.push(rank + ': ' + col + ' shows ' + shut.length + ' locked cards, wanted every card of the column');
       shut.forEach(c => { if (!c.querySelector(':scope > .card-lock svg')) bad.push(rank + ': a locked ' + col + ' card has no padlock'); });
       const live = [...a.d.querySelectorAll('#s-' + col + ' .is-locked :is(input, select, textarea, button)')].filter(x => !x.disabled && !x.closest('.wgt-admin'));
       if (live.length) bad.push(rank + ': ' + live.length + ' boxes or tiles on locked ' + col + ' cards can still be used');
@@ -2726,7 +2742,8 @@ check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, S
       if (col === 'staff' && !q('#s-staff .is-locked [data-do="hub-open"][disabled]')) bad.push(rank + ': the locked Tutor settings does not show the Staff hub');
       /* 468: YOUR CARD'S PLACE IS A LOCKED CARD PER SECTION, each with its own layout id — never one "Your card". */
       const ownLocks = [...a.d.querySelectorAll('#s-' + col + ' .own-lock.is-locked')].map(x => x.dataset.layCard);
-      const wantLocks = (col === 'staff' ? ['picture', 'figure', 'name', 'handle', 'rate', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'] : ['picture', 'figure', 'name', 'handle']).map(k => 'own:' + col + ':' + k);
+      /* 469: EACH SECTION ON ONE COLUMN ONLY — Tutor settings holds a tutor's alone, Parent settings none of everybody's four. */
+      const wantLocks = (col === 'staff' ? ['rate', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'] : []).map(k => 'own:' + col + ':' + k);
       if (JSON.stringify(ownLocks) !== JSON.stringify(wantLocks)) bad.push(rank + ': the locked ' + col + ' shows your card as ' + JSON.stringify(ownLocks) + ', wanted a locked card per section');
     }
     if (rank === 'client' && !q('#s-staff .col-lock [data-do="apply-open"]')) bad.push('a client\'s Tutor settings offers no Apply to teach');
@@ -2737,7 +2754,7 @@ check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, S
     /* 464: YOUR OWN CARD FIRST, and no Edit on it in any profile column — its Edit is on your role's settings column. */
     if (!first || !first.querySelector('.me-card, .card')) bad.push(rank + ': the first card on ' + home.slice(2) + ' is not your own');
     if (q('#s-tutors [data-do="card-edit"][data-pid="' + pid + '"], #s-students [data-do="card-edit"][data-pid="' + pid + '"], #s-parents [data-do="card-edit"][data-pid="' + pid + '"]')) bad.push(rank + ': your own profile card offers Edit');
-    const setCol = { student: 'account', client: 'family', staff: 'staff', admin: 'staff' }[rank];
+    const setCol = 'account';
     /* 468: YOUR OWN CARD IS ONLY ITS EDITING THERE, a card per section; no settings column draws it as others see it. */
     if (!q('#s-' + setCol + ' .card-ed[data-pid="' + pid + '"]')) bad.push(rank + ': ' + setCol + ' has no editing cards for your own card');
     if (q('#s-staff .own-set, #s-account .own-set, #s-family .own-set, #s-staff .me-card, #s-account .me-card, #s-family .me-card, [data-do="card-edit"]')) bad.push(rank + ': a settings column still shows your card as others see it, or an Edit tile');
@@ -2771,7 +2788,9 @@ check('467: signed out, Parent, Tutor and Student settings show every card locke
   await wait(250);
   for (const col of ['family', 'staff', 'account']) {
     const shut = [...o.d.querySelectorAll('#s-' + col + ' .is-locked')];
-    if (shut.length < 2) bad.push('signed out, ' + col + ' shows ' + shut.length + ' locked cards');
+    /* 469: NOTHING IS A PARENT'S ALONE YET, so Parent settings signed out is its padlock line with no cards under it. */
+    if (shut.length < (col === 'family' ? 0 : 2)) bad.push('signed out, ' + col + ' shows ' + shut.length + ' locked cards');
+    if (col === 'family' && !o.d.querySelector('#s-family .rank-off')) bad.push('signed out, Parent settings does not say to sign in');
     if (shut.some(c => !c.querySelector(':scope > .card-lock svg'))) bad.push('signed out, a locked ' + col + ' card has no padlock');
     const live = [...o.d.querySelectorAll('#s-' + col + ' .is-locked :is(input, select, textarea, button)')].filter(x => !x.disabled);
     if (live.length) bad.push('signed out, ' + live.length + ' boxes or tiles on ' + col + ' can be used');
@@ -2781,7 +2800,8 @@ check('467: signed out, Parent, Tutor and Student settings show every card locke
     if (o.d.querySelector('#s-' + col + ' .is-locked [id]')) bad.push('a locked ' + col + ' card keeps an id a real card could be found by');
   }
   if (!o.d.querySelector('#s-account .signin-card, #s-account [data-do^="signin"], #s-account .card:not(.is-locked)')) bad.push('signed out, Student settings lost its sign-in card');
-  if (!o.d.querySelector('#s-family .is-locked [data-me="email"][disabled]')) bad.push('signed out, Parent settings does not show the email box, locked');
+  if (!o.d.querySelector('#s-account .is-locked [data-me="email"][disabled]')) bad.push('signed out, Student settings does not show the email box, locked');
+  if (o.d.querySelector('#s-family [data-me="email"], #s-staff [data-me="email"]')) bad.push('signed out, the email box is on a column above Student settings (469)');
   /* EVERY CARD SAYS WHAT IT IS FOR: the admin, every right-hand column. */
   const a = await hubBoot_(W, 'admin@example.org');
   if (a.err) return bad.concat([a.err]);
@@ -2789,7 +2809,7 @@ check('467: signed out, Parent, Tutor and Student settings show every card locke
     try { a.t.go(col, false, true); a.w.paint(col); } catch (e) { bad.push('drawing ' + col + ' threw: ' + e.message); }
     await wait(150);
     const rows = [...a.d.querySelectorAll('#s-' + col + ' .card-admin[data-lay-for]')];
-    if (!rows.length) bad.push('the admin sees no card rows on ' + col + ', so its lines were NOT checked');
+    if (!rows.length && col !== 'family') bad.push('the admin sees no card rows on ' + col + ', so its lines were NOT checked');
     const seen = new Set();
     rows.forEach(r => {
       const id = r.dataset.layFor;
@@ -2946,7 +2966,8 @@ check('Student settings (453) hold only what is not on your card — a tutor\'s 
   const bad = [];
   /* THE SETTINGS PAGES OF YOU (444): from the first that says where things went, to Notifications. */
   const setPages = d => { const all = [...d.querySelectorAll('#s-account > .page')];
-    const a = all.findIndex(p => p.querySelector('.ce-moved')), b = all.findIndex(p => p.querySelector('.notify-card'));
+    /* 469: NO "WHERE THINGS WENT" LINE ANY MORE, so the settings start at the first form of their own or the PIN. */
+    const a = all.findIndex(p => p.querySelector('[data-do="pin-save"]') || [...p.querySelectorAll('.me-form')].some(f => !f.closest('.card-ed'))), b = all.findIndex(p => p.querySelector('.notify-card'));
     return a < 0 || b < a ? [] : all.slice(a, b + 1); };
   const inSet = (d, q) => setPages(d).map(p => p.querySelector(q)).find(Boolean) || null;
   const titles = d => [].concat(...setPages(d).map(p => [...p.querySelectorAll('.card > h3, .me-form > h3')])).map(h => h.textContent.trim());
@@ -2966,9 +2987,9 @@ check('Student settings (453) hold only what is not on your card — a tutor\'s 
     if (moved.length) bad.push(who + '\'s Settings still draws ' + moved.join(', ') + ' — the picture, the handle, the figure or a library card');
     if (!d.querySelector('#s-account #pin-now') || !d.querySelector('#s-account [data-do="pin-save"]')) bad.push(who + '\'s Settings lost the PIN form');
     if (!d.querySelector('#s-account .roles-card') || !d.querySelector('#s-account .notify-card')) bad.push(who + '\'s Settings lost Your roles or Notifications');
-    const line = String((d.querySelector('#s-account .ce-moved') || {}).textContent || '');
-    if (!/handle and figure are edited on cards of their own/.test(line) || !/library cards are on Tools/.test(line)) bad.push(who + '\'s Settings does not say where the card\'s fields and the library cards went: ' + JSON.stringify(line));
-    if (!setPages(d).length) bad.push(who + '\'s settings on You do not start with where things went');
+    /* 469, the owner: "so much filler space" — no sentence saying where things went. */
+    if (d.querySelector('#s-account .ce-moved')) bad.push(who + '\'s Settings still draws the line saying where things went');
+    if (!setPages(d).length) bad.push(who + '\'s settings on Student settings were not found');
   };
   for (const who of ['tutor@example.org', 'admin@example.org']) {
     const c = await settingsOf(who);
@@ -2980,12 +3001,12 @@ check('Student settings (453) hold only what is not on your card — a tutor\'s 
     const on = ['headline', 'rate_per_hour', 'photos_1', 'qual_1', 'm09', 'venues_ok', 'travel_km', 'adjective_1'].filter(f => c.d.querySelector('#s-account [data-me="' + f + '"]'));
     if (on.length) bad.push(who + '\'s Settings still has boxes the card edits: ' + on.join(', '));
     if (!c.d.querySelector('#s-account [data-me="email"]')) bad.push(who + '\'s Settings lost the email box');
-    if (!/What you teach is there too, your rate and hours in the Staff hub on Tutor settings/.test(String((c.d.querySelector('#s-account .ce-moved') || {}).textContent || ''))) bad.push(who + '\'s Settings does not say their card holds the tutor\'s pages too');
     common(who, c.d);
   }
   /* A PARENT AND A STUDENT: their own groups less the card's two and the library cards — every other box. */
   /* A PARENT'S OWN DETAILS ARE ON PARENT SETTINGS (453), a student's on Student settings. */
-  for (const [who, key, want, col] of [['parent@example.org', 'clientFields', ['Signing in', 'Your roles'], 'family'],
+  /* 469: A PARENT'S CONTACT IS EVERYBODY'S, so on Student settings too — nothing of theirs is on Parent settings. */
+  for (const [who, key, want, col] of [['parent@example.org', 'clientFields', ['Contact & address', 'Signing in', 'Your roles'], 'account'],
                                   ['student@example.org', 'studentFields', ['About you', 'Contact & address', 'Signing in', 'Your roles'], 'account']]) {
     const c = await settingsOf(who);
     if (c.err) { bad.push(who + ': ' + c.err); continue; }
@@ -2997,9 +3018,8 @@ check('Student settings (453) hold only what is not on your card — a tutor\'s 
       .filter(f => !/^(phone|date_of_birth|photo|first_name|last_name)$/.test(f) && !/^lib\d+_/.test(f))
       .filter(f => !c.d.querySelector('#s-' + col + ' [data-me="' + f + '"]'));
     if (lost.length) bad.push(who + '\'s Settings lost ' + lost.join(', '));
-    if (col === 'family' && c.d.querySelector('#s-account [data-me="email"]')) bad.push(who + '\'s details are on Student settings as well as Parent settings');
+    if (c.d.querySelector('#s-family [data-me="email"]')) bad.push(who + '\'s details are on Parent settings as well as Student settings');
     if (/student/.test(who) && !c.d.querySelector('#s-account [data-me="dob_d"]')) bad.push('the student\'s Settings lost the date of birth');
-    if (/tutor card on Tutors/.test(String((c.d.querySelector('#s-account .ce-moved') || {}).textContent || ''))) bad.push(who + '\'s Settings says a tutor\'s pages moved to a card that has none of them');
     common(who, c.d);
   }
   return bad;
@@ -3121,7 +3141,7 @@ check('every role\'s own card is edited, a card per section, with picture, figur
   await wait(200);
   /* 464, 468: YOUR OWN CARD IS EDITED ON TUTOR SETTINGS, always open there, never on Tutors. */
   if (d.querySelector('#s-tutors [data-do="card-edit"], #s-tutors .card-ed')) bad.push('an admin\'s own profile card on Tutors offers Edit');
-  const ls = [...d.querySelectorAll('#s-staff .card-ed .ce-sec')].map(x => x.dataset.sec);
+  const ls = [...d.querySelectorAll('#s-account .card-ed .ce-sec')].map(x => x.dataset.sec);
   if (JSON.stringify(ls) !== JSON.stringify(bare)) bad.push('an admin with no public card is offered ' + JSON.stringify(ls) + ', wanted ' + JSON.stringify(bare));
   try { w.paint('account'); w.paint('staff'); } catch (e) {}
   /* THE SETTINGS CARDS ON STUDENT AND TUTOR SETTINGS (453), never the card being edited. */
@@ -3307,8 +3327,6 @@ check('review 339: a parent who shares a listed tutor\'s name edits her own card
   if (c.box('first_name') && c.box('first_name').value !== 'Ada') bad.push('her own card\'s name box holds ' + JSON.stringify(c.box('first_name').value));
   try { c.t.go('account', false, true); c.w.paint('account'); } catch (x) { bad.push('drawing Settings threw: ' + x.message); }
   await wait(200);
-  const moved = String((c.d.querySelector('#s-account .ce-moved') || {}).textContent || '');
-  if (/rate, photographs/.test(moved)) bad.push('her Settings tells her the tutor\'s pages moved to her card: ' + JSON.stringify(moved));
   if (c.d.querySelector('#s-account [data-me="rate_per_hour"], #s-account [data-me="headline"]')) bad.push('her Settings draws a tutor\'s box');
   return bad;
 });
@@ -9386,11 +9404,11 @@ check('proof: a new address typed on the Contact card waits, says so, and the bo
   const { w, sent } = boot({ reply, before: signedInAs_(jo) });
   await wait(700);
   const t = w.__t, d = w.document, bad = [];
-  /* A PARENT'S CONTACT CARD IS ON PARENT SETTINGS (453). */
-  t.go('family', false, true);
+  /* A PARENT'S CONTACT CARD IS ON STUDENT SETTINGS, as everybody's is (469). */
+  t.go('account', false, true);
   await wait(300);
-  const box = () => d.querySelector('#s-family [data-me="email"]');
-  if (!box()) return ['there is no email box on Parent settings, so the Contact card was NOT checked'];
+  const box = () => d.querySelector('#s-account [data-me="email"]');
+  if (!box()) return ['there is no email box on Student settings, so the Contact card was NOT checked'];
   box().value = 'jsmith1@example.org';
   const card = () => box() && box().closest('.me-form');
   sent.length = 0;
@@ -9991,7 +10009,8 @@ check('Settings no longer draws the figure, the handle, the library cards or two
   try { t.go('account', false, true); t.repaint(true); } catch (e) { return ['drawing settings threw: ' + e.message]; }
   await wait(200);
   const pages = [...d.querySelectorAll('#s-account > .page')];
-  const heads = pages.map(p => String((p.querySelector('h3') || {}).textContent || '').trim());
+  /* 469: YOUR FIGURE'S OWN EDITING CARD IS HERE NOW; the old Settings page of that name is what must not come back. */
+  const heads = pages.filter(p => !p.querySelector('.card-ed')).map(p => String((p.querySelector('h3') || {}).textContent || '').trim());
   try { w.paint('students'); } catch (e) {}
   const famHeads = [...d.querySelectorAll('#s-students > .page')].map(p => String((p.querySelector('h3') || {}).textContent || '').trim());
   ['Your figure', 'Library cards', 'Make your child\'s account', 'Add your child'].forEach(h => { if (heads.indexOf(h) !== -1) bad.push('Settings still has a "' + h + '" page'); });
@@ -13819,10 +13838,9 @@ check('review 339: "Manage your child" waits with the loader while the payload c
                profile: { first_name: 'Pat', last_name: 'Parent', phone_cc: '+44' } });
   try { w.__t.go('account', false, true); w.paint('account'); } catch (e) { bad.push('drawing Settings threw: ' + e.message); }
   await wait(200);
-  const line = w.document.querySelector('#s-account .ce-moved');
-  const home = line && line.closest('.card');
-  if (!line) bad.push('with no group left, Settings does not say where the name, picture and library cards went');
-  else if (!home || String((home.querySelector('h3') || {}).textContent).trim() !== 'Signing in') bad.push('with no group left, the moved line is on ' + JSON.stringify(home && (home.querySelector('h3') || {}).textContent) + ', not Signing in');
+  /* 469: NO FILLER LINE — with no group left, Signing in is simply there. */
+  if (w.document.querySelector('#s-account .ce-moved')) bad.push('with no group left, Settings still draws a line saying where things went');
+  if (!w.document.querySelector('#s-account [data-do="pin-save"]')) bad.push('with no group left, Settings has no Signing in');
   return bad;
 });
 
@@ -19020,12 +19038,12 @@ check('a picture chosen on your Picture card posts savePhoto and the preview sho
   await wait(300);
   const bad = [];
   if (d.querySelector('#s-account [data-me="photo"]')) bad.push('Settings still draws a box for a photo link');
-  if (d.querySelector('#s-account .pfp')) bad.push('Settings still draws the picture picker, which is on your own card\'s Edit now');
+  if ([...d.querySelectorAll('#s-account .pfp')].some(x => !x.closest('.card-ed'))) bad.push('Settings still draws the picture picker, which is on your own card\'s Edit now');
   try { t.go('staff', false, true); w.paint('staff'); } catch (e) { return bad.concat(['drawing Tutors threw: ' + e.message]); }
   await wait(200);
   /* 468: NO EDIT TO PRESS — the Picture card is always open on Tutor settings. */
   if (d.querySelector('[data-do="card-edit"]')) bad.push('an Edit tile is still drawn');
-  const box = () => d.querySelector('#s-staff .card-ed[data-sec="picture"] .pfp');
+  const box = () => d.querySelector('#s-account .card-ed[data-sec="picture"] .pfp');
   if (!box()) return bad.concat(['your own card\'s Edit has no picture picker']);
   if (d.querySelector('#s-staff .card-ed [data-me="photo"]')) bad.push('the card\'s Edit draws a box for a photo link beside the picker');
   const inp = box().querySelector('input.pfp-in[type="file"]');
@@ -19098,7 +19116,7 @@ async function pfpRoleJourney(key) {
   t.USER({ name: P.name, personId: P.personId, role: P.role, roles: P.roles, token: 'tk', handle: P.handle,
            avatar: P.avatar, photo: '', profile: { first_name: first, last_name: P.name.split(' ')[1], photo: '', phone_cc: '+44' } });
   /* YOUR OWN CARD IS ON YOUR RANK'S PEOPLE COLUMN (453). */
-  const HC = ({ tutors: 'staff', students: 'account', parents: 'family' })[t.homeCol()], H = '#s-' + HC;  /* 464: edited on its settings column */
+  const HC = 'account', H = '#s-' + HC;  /* 469: everybody's picture is edited on Student settings */
   try { t.go(HC, false, true); w.paint(HC); w.paint('account'); } catch (e) { return ['drawing ' + HC + ' threw: ' + e.message]; }
   await wait(300);
   const bad = [];
@@ -19294,11 +19312,11 @@ check('before the backend is pulled, tapping a picture says the server\'s refusa
   t.USER({ name: 'Pat Mum', personId: 'P-C9', role: 'parent', roles: ['parent'], token: 'tk', handle: 'pat_kind09',
            avatar: '', photo: URL_, profile: { first_name: 'Pat', last_name: 'Mum', photo: URL_, phone_cc: '+44' } });
   /* ON PAT'S OWN CARD'S EDIT, where the picker is since docs/history/339 — on Parents, a parent's column (453). */
-  t.go('family', false, true); w.paint('family');
+  t.go('account', false, true); w.paint('account');
   await wait(200);
   await wait(300);
   const bad = [];
-  const box = () => d.querySelector('#s-family .card-ed .pfp');
+  const box = () => d.querySelector('#s-account .card-ed .pfp');
   if (!box()) return ['no picture picker on Pat\'s own card\'s Edit'];
   const fox = box().querySelector('.pfp-opt[data-pic="fox"]');
   sent.length = 0;
@@ -29191,7 +29209,8 @@ check('layout cards (465): an admin sees ▲ ▼ ◀ ▶ Start here Delete on ev
   /* EVERY CARD ON EVERY RIGHT-HAND COLUMN HAS THE ROW — cards are the column's pages less its own lines. */
   for (const col of LAY_CARD_COLS_) {
     const seen = laySeen_(w, col);
-    if (!seen.length && col !== 'family') bad.push(col + ' has no arranged cards');
+    /* 469: THIS ADMIN HAS NO TUTOR CARD, and everybody's four live on Student settings — so Tutor settings may hold none. */
+    if (!seen.length && col !== 'family' && col !== 'staff') bad.push(col + ' has no arranged cards');
     seen.forEach(id => {
       const row = layCardRow_(d, id);
       if (!row) { bad.push(col + ': ' + id + ' has no admin row'); return; }

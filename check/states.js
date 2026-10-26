@@ -2887,20 +2887,20 @@ const STATES = {
           venues_ok: 'Colliers Wood Library, Sutton Library, Online', travel_km: '15',
           m16: 'TRUE', m17: 'TRUE', tu10: 'TRUE', tu11: 'TRUE', w16: 'TRUE', sa10: 'TRUE', sa11: 'TRUE', sa12: 'TRUE' });
         CARD_EDIT = cardEditFresh_(USER.personId);
-        paint(SET_OF_FACE_[homeCol_()]);
-        const pages = [...document.querySelectorAll('#s-' + SET_OF_FACE_[homeCol_()] + ' .page')];
+        paint('account');
+        const pages = [...document.querySelectorAll('#s-' + 'account' + ' .page')];
         const at = pages.findIndex(pg => pg.querySelector('.card-ed .me-form'));
         if (at < 0) throw new Error('no card on the account column is open for editing');
-        goPage(SET_OF_FACE_[homeCol_()], at, true);
+        goPage('account', at, true);
       },
       leave: () => {
         DATA.tutors = window.__CE_HELD.tutors; USER.profile = window.__CE_HELD.profile; delete window.__CE_HELD;
         CARD_EDIT = null;
-        document.querySelectorAll('#s-' + SET_OF_FACE_[homeCol_()] + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        document.querySelectorAll('#s-' + 'account' + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
         repaint(true);
       },
       expect: () => {
-        const pg = document.querySelector('#s-' + SET_OF_FACE_[homeCol_()] + ' .page.on');
+        const pg = document.querySelector('#s-' + 'account' + ' .page.on');
         const first = pg && pg.querySelector('.card-ed .me-form');
         /* 468: A CARD PER SECTION, so the editor is the column's cards together, and the card on the glass is one of them. */
         const form = first && first.closest('.screen');
@@ -2994,24 +2994,24 @@ const STATES = {
         window.__CE_OWN = { role: USER.role, roles: USER.roles, profile: USER.profile, avatar: USER.avatar };
         if (role) { USER.role = role; USER.roles = [role]; }
         USER.profile = Object.assign({}, USER.profile || {}, { phone_cc: '+44', photo: '' });
-        document.querySelectorAll('#s-' + SET_OF_FACE_[homeCol_()] + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        document.querySelectorAll('#s-' + 'account' + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
         CARD_EDIT = cardEditFresh_(USER.personId);
         CARD_EDIT.pic0 = ''; CARD_EDIT.fig0 = String(USER.avatar || '');
-        if (role) repaint(); else paint(SET_OF_FACE_[homeCol_()]);
-        const pages = [...document.querySelectorAll('#s-' + SET_OF_FACE_[homeCol_()] + ' .page')];
+        if (role) repaint(); else paint('account');
+        const pages = [...document.querySelectorAll('#s-' + 'account' + ' .page')];
         const at = pages.findIndex(pg => pg.querySelector('.card-ed .me-form'));
         if (at < 0) throw new Error('your own card did not open for editing');
-        goPage(SET_OF_FACE_[homeCol_()], at, true);
+        goPage('account', at, true);
       }) + ')(' + JSON.stringify(role) + ');'),
       leave: () => {
         const w = window.__CE_OWN || {};
         USER.role = w.role; USER.roles = w.roles; USER.profile = w.profile; USER.avatar = w.avatar; delete window.__CE_OWN;
         CARD_EDIT = null;
-        document.querySelectorAll('#s-' + SET_OF_FACE_[homeCol_()] + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        document.querySelectorAll('#s-' + 'account' + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
         repaint(true);
       },
       expect: () => {
-        const pg = document.querySelector('#s-' + SET_OF_FACE_[homeCol_()] + ' .page.on');
+        const pg = document.querySelector('#s-' + 'account' + ' .page.on');
         const first = pg && pg.querySelector('.card-ed .me-form');
         /* 468: THE COLUMN'S SECTION CARDS TOGETHER are the editor. */
         const form = first && first.closest('.screen');
@@ -3040,24 +3040,24 @@ const STATES = {
       enter: () => {
         window.__CE_OWN = { profile: USER.profile };
         USER.profile = Object.assign({}, USER.profile || {}, { phone_cc: '+44' });
-        document.querySelectorAll('#s-' + SET_OF_FACE_[homeCol_()] + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        document.querySelectorAll('#s-' + 'account' + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
         CARD_EDIT = cardEditFresh_(USER.personId);
-        paint(SET_OF_FACE_[homeCol_()]);
-        const pages = [...document.querySelectorAll('#s-' + SET_OF_FACE_[homeCol_()] + ' .page')];
+        paint('account');
+        const pages = [...document.querySelectorAll('#s-' + 'account' + ' .page')];
         const at = pages.findIndex(pg => pg.querySelector('.card-ed .ce-sec[data-sec="handle"]'));
         if (at < 0) throw new Error('no handle section on your own card\'s Edit');
-        goPage(SET_OF_FACE_[homeCol_()], at, true);
+        goPage('account', at, true);
         const sec = pages[at].querySelector('.card-ed .ce-sec[data-sec="handle"]'), pane = sec.closest('.pane');
         if (pane) pane.scrollTop += sec.getBoundingClientRect().top - pane.getBoundingClientRect().top - 12;
       },
       leave: () => {
         USER.profile = (window.__CE_OWN || {}).profile; delete window.__CE_OWN;
         CARD_EDIT = null;
-        document.querySelectorAll('#s-' + SET_OF_FACE_[homeCol_()] + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        document.querySelectorAll('#s-' + 'account' + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
         repaint(true);
       },
       expect: () => {
-        const pg = document.querySelector('#s-' + SET_OF_FACE_[homeCol_()] + ' .page.on');
+        const pg = document.querySelector('#s-' + 'account' + ' .page.on');
         const sec = pg && pg.querySelector('.card-ed .ce-sec[data-sec="handle"]');
         if (!sec) return 0;
         const shown = sec.querySelectorAll('.handle-shown');

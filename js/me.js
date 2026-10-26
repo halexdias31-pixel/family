@@ -1799,6 +1799,11 @@ function staffField_(f, g) {
   if (!sets.length) return STAFF_GROUPS_.indexOf(g) !== -1;
   return !sets.some(x => Object.keys(x).some(k => (x[k] || []).indexOf(f) !== -1));
 }
+/* A PARENT'S ALONE (469): a client's field no student's group has — else it is everybody's and lives on Student settings. */
+function parentOnly_(f) {
+  const c = DATA.clientFields, k = DATA.studentFields, has = x => x && Object.keys(x).length, inn = x => Object.keys(x).some(g => (x[g] || []).indexOf(f) !== -1);
+  return !!(has(c) && has(k) && inn(c) && !inn(k));
+}
 /* WHAT A SPLIT GROUP IS CALLED ON THE TUTOR COLUMN, where "Contact & address" would mislead. */
 const STAFF_GROUP_NAMES_ = { 'Contact & address': 'Where you teach', 'About you': 'About you as a tutor' };
 /* YOUR SETTINGS' GROUPS, SPLIT: `{ you, staff }`, each `{ group: [fields] }`, card fields already taken out. */
@@ -1806,12 +1811,14 @@ function settingsSplit_() {
   const shown = notLibrary_(cardSettingsGroups_(myGroups_(), ownCardFields_()));
   /* AND STAFF SET THEIR WEEK IN THE STAFF HUB'S HOURS (432), so the week group is not drawn here a second time. */
   if (typeof hubFor_ === 'function' && hubFor_()) Object.keys(shown).forEach(g => { if (isTimetable_(shown[g])) delete shown[g]; });
-  const out = { you: {}, staff: {} };
+  const out = { you: {}, parent: {}, staff: {} };
   Object.keys(shown).forEach(g => {
     shown[g] = shown[g].filter(f => !hubOwns_(f));
     if (!shown[g].length) return;
     const mine = shown[g].filter(f => !staffField_(f, g)), staff = shown[g].filter(f => staffField_(f, g));
-    if (mine.length) out.you[g] = mine;
+    const kid = mine.filter(f => !parentOnly_(f)), par = mine.filter(parentOnly_);
+    if (kid.length) out.you[g] = kid;
+    if (par.length) out.parent[g] = par;
     if (staff.length) out.staff[mine.length ? (STAFF_GROUP_NAMES_[g] || g) : g] = staff;
   });
   return out;
@@ -1858,7 +1865,7 @@ const settingsSplittable_ = list => (list || []).length > 1 && !list.some(isQual
 /* ---------- SIX COLUMNS (453): TUTORS, STUDENTS, PARENTS, THEN EACH ACCOUNT TYPE'S SETTINGS ----------
    The owner: "A user in theory could appear in each of these 3 categories" and "split account settings into 3". */
 const tabLabel_ = (id, or) => ((typeof TABS_BUILT !== 'undefined' && TABS_BUILT.find(t => t.id === id)) || {}).label || or;
-/* WHERE YOUR NAME, PICTURE, FIGURE AND HANDLE ARE EDITED — the people column of your rank, one place (444's rule). */
+/* THE PEOPLE COLUMN OF YOUR RANK, where your own card is shown first (453); what you edit is on Student settings for every rank (469). */
 const homeCol_ = () => rankAtLeast_('staff') ? 'tutors' : rankAtLeast_('client') ? 'parents' : 'students';
 /* DO YOU BELONG IN THIS PEOPLE COLUMN — by rank, or by a family link (a parent is a parent whatever their rank). */
 function peopleBelong_(col, family) {
@@ -1899,28 +1906,21 @@ function cardOwnOpen_(t) {
   return e;
 }
 
-/* WHICH SETTINGS COLUMN YOUR OWN DETAILS ARE ON — a client's are a parent's (`clientFields`); everybody else's on Student settings. */
-const youSetCol_ = () => rank_() === 'client' ? 'family' : 'account';
 /* ---------- STUDENT SETTINGS: EVERY ACCOUNT'S SIGNING IN AND OUT, PIN, ROLES, NOTIFICATIONS, AND A STUDENT'S DETAILS ---------- */
 function youSettingsPages_() {
   if (!USER) return [];
-  const shown = youSetCol_() === 'account' ? settingsSplit_().you : {};
-  /* WHERE THE REST WENT, said once on the first card. */
-  const moved = `<p class="faint ce-moved">${esc(cardMovedSay_())}</p>`;
-  const pages = settingsCards_(shown, moved, 'account');
+  /* EVERYBODY'S DETAILS, WHATEVER THE RANK (469): a parent's or tutor's own contact is edited here, as a student's is. */
+  const shown = settingsSplit_().you;
+  const pages = settingsCards_(shown, '', 'account');
   pages.push(`<div class="card">
     <h3>Signing in</h3>
-    ${Object.keys(shown).length ? '' : moved}
     <div class="f-row pin-row" style="--n:3">
-      <label class="field"><span>current PIN</span>
-        <input id="pin-now" type="password" inputmode="numeric" autocomplete="one-time-code"></label>
-      <label class="field"><span>new PIN</span>
-        <input id="pin-new" type="password" inputmode="numeric" autocomplete="one-time-code"></label>
-      <label class="field"><span>again</span>
-        <input id="pin-again" type="password" inputmode="numeric" autocomplete="one-time-code"></label>
+      <label class="field"><input id="pin-now" aria-label="current PIN" placeholder="current PIN" type="password" inputmode="numeric" autocomplete="one-time-code"></label>
+      <label class="field"><input id="pin-new" aria-label="new PIN, 4 to 8 numbers, not 1234" placeholder="new PIN, 4–8 numbers" type="password" inputmode="numeric" autocomplete="one-time-code"></label>
+      <label class="field"><input id="pin-again" aria-label="new PIN again" placeholder="again" type="password" inputmode="numeric" autocomplete="one-time-code"></label>
     </div>
     <button class="btn quiet" data-do="pin-save">Change my PIN</button>
-    <p class="faint" id="pin-said" style="margin:.6rem 0 0">4 to 8 numbers, and not 1234.</p>
+    <p class="faint" id="pin-said" style="margin:.6rem 0 0"></p>
   </div>`);
   /* YOUR ROLES, THEN WHICH EMAILS YOU WANT — every signed-in person has both. */
   pages.push(rolesCard_());
@@ -1994,7 +1994,7 @@ const lockedOwnCards_ = col => (OWN_SEC_OF_SET_[col] || []).map(k => `<div class
 const LOCKED_DRAW_ = {
   staff: () => lockedOwnCards_('staff').concat([`<div class="card staff-top"><h3>Staff hub</h3><div class="tile-row staff-tiles">${
     typeof hubTile_ === 'function' ? hubTile_() : ''}</div></div>`]).concat(settingsCards_(settingsSplit_().staff, '', 'staff')),
-  family: () => lockedOwnCards_('family').concat(settingsCards_(settingsSplit_().you, '', 'family')),
+  family: () => lockedOwnCards_('family').concat(settingsCards_(settingsSplit_().parent, '', 'family')),
   account: () => lockedOwnCards_('account').concat(youSettingsPages_()),
 };
 const lockedPages_ = col => lockedAs_(col, LOCKED_DRAW_[col]);
@@ -2004,9 +2004,9 @@ function familyPages_() {
   const title = tabLabel_('family', 'Parent settings');
   if (!USER) return [signedOutCard_(title)].concat(lockedPages_('family'));
   if (!rankAtLeast_('client')) return [padlockCard_('Parent settings are for parents.')].concat(lockedPages_('family'));
-  const out = ownCardSetPage_('family').concat(youSetCol_() === 'family' ? settingsCards_(settingsSplit_().you, '', 'family') : []);
-  /* A RANK ABOVE CLIENT WITH NO PARENT'S DETAILS (Staff holding no client role) sees them locked too, as everybody does (467). */
-  return out.length ? out : [padlockCard_('Parent settings are for parents.')].concat(lockedPages_('family'));
+  const out = ownCardSetPage_('family').concat(settingsCards_(settingsSplit_().parent, '', 'family'));
+  /* NOTHING A PARENT'S ALONE (469): your picture, name and contact are everybody's, so on Student settings. */
+  return out.length ? out : [rankOffCard_(title, 'Nothing here yet — your details are on ' + tabLabel_('account', 'Student settings') + '.').replace('rank-off', 'set-none')];
 }
 screen('family', () => pages('family', typeof cardsOf_ === 'function' ? cardsOf_('family') : familyPages_()));
 
@@ -2055,11 +2055,11 @@ function rolesSaid_() {
 const rolesPickable_ = () => !!USER && rank_() === 'client';
 function rolesCard_() {
   const name = brand('name', '@family.');
-  /* ONE ROW, THE PHONE'S OWN PICKER; each choice's note in one faint line beneath. */
+  /* ONE ROW, THE PHONE'S OWN PICKER, and no notes under it (469: the owner, "so much filler space"). */
   const can = rolesPickable_() ? ROLE_PICKS.filter(([r]) => r !== 'tutor') : [];
   const picks = can.length ? `<label class="field role-pick-row"><span>You are</span><select class="role-pick-in" aria-label="Your role">${
       can.map(([r, label]) => `<option value="${r}" data-role-pick="${r}"${r === 'client' ? ' selected' : ''}>${esc(label)}</option>`).join('')}</select></label>
-    <p class="faint role-pick-notes">${can.map(([, label, note]) => `<b>${esc(label)}</b>: ${esc(note)}`).join('<br>')}</p>`
+`
     + `<div class="tile-row">${tile_({ icon: 'save', label: 'Save', act: 'roles-save' })}</div>` : '';
   const said = rolesSaid_();
   return `<div class="card roles-card">
@@ -3685,7 +3685,7 @@ function profileRefresh_(loud, onOld) {
       const land = typeof landRepaint_ === 'function' ? landRepaint_ : (f => (f || repaint)());
       if (roleMoved) { try { land(); } catch (e) {} return; }
       /* AND YOUR CARD, WHEN IT IS OPEN FOR EDITING — it is drawn from this copy (`cardEditHtml_`), and one still waiting for a copy it can trust (`profileShapeOk_`) is § */
-      if (CARD_EDIT && CARD_EDIT.own) { try { land(() => paint(SET_OF_FACE_[CARD_EDIT.col || homeCol_()] || 'account')); } catch (e) {} }
+      if (CARD_EDIT && CARD_EDIT.own) { try { land(() => paint(SET_OF_FACE_[CARD_EDIT.col] || 'account')); } catch (e) {} }
       /* REDRAWN IF IT IS DRAWN — and `paint` itself declines while a card has typing in it. */
       ['account', 'staff', 'family'].concat(PEOPLE_COLS_).forEach(c => {
         if (typeof screenHasMarkup_ === 'function' && screenHasMarkup_(c))
@@ -3758,14 +3758,6 @@ const CARD_SECTIONS = [
   { id: 'where', fields: ['venues_ok', 'travel_km'] },
   { id: 'week', cap: 'Available', match: /^(m|tu|w|th|f|sa|su)\d\d$/ },
 ];
-/* WHERE THE PAGES WENT, said once at the top of Settings. § */
-const cardMovedSay_ = () => {
-  const tab = (id, or) => (((typeof TABS !== 'undefined' && TABS.find(t => t.id === id)) || {}).label || or);
-  const rich = cardHolds_();
-  return 'Your name, picture, handle and figure are edited on cards of their own, on ' + tab(SET_OF_FACE_[homeCol_()], 'Student settings') + '. '
-    + (rich ? 'What you teach is there too, your rate and hours in the Staff hub on ' + tab('staff', 'Tutor settings') + '. ' : '')
-    + 'Your library cards are on ' + tab('tools', 'Tools') + '.';
-};
 
 /* EVERY FIELD THE BACKEND SAYS A TUTOR EDITS, in its order — the one list `cardSections_` filters. */
 function cardSent_() {
@@ -3785,21 +3777,23 @@ const cardFields_ = () => [].concat(...cardSections_().map(s => s.list));
 function ownCardSections_(col) {
   const g = myGroups_();
   const sent = [].concat(...Object.keys(g).map(k => g[k] || [])).filter(f => RETIRED_FIELDS_.indexOf(f) === -1);
-  /* `col` (453): your home column (`homeCol_`) edits every account's four; Tutors the rest, less what the Staff hub edits. None: both. */
+  /* `col` (469): the Students face edits every account's four, whatever your rank; Tutors the rest, less what the Staff hub edits. None: both. */
   const all = cardSections_({ own: true, sent, bare: !cardMine_() });
   const you = all.filter(s => OWN_CARD_SECTIONS_.indexOf(s.id) !== -1);
   const staff = all.filter(s => OWN_CARD_SECTIONS_.indexOf(s.id) === -1)
     .map(s => Object.assign({}, s, { list: s.list.filter(f => !hubOwns_(f)) })).filter(s => s.list.length);
   if (!col) return you.concat(staff);
   /* WHAT YOU TEACH ONLY ON A PUBLIC TUTOR CARD, as on 444's Tutor column. */
-  return (col === homeCol_() ? you : []).concat(col === 'tutors' && cardMine_() ? staff : []);
+  return (col === 'students' ? you : []).concat(col === 'tutors' && cardMine_() ? staff : []);
 }
 const OWN_CARD_SECTIONS_ = ['picture', 'figure', 'name', 'handle'];
 /* EACH SECTION'S CARD TITLE, and which a locked settings column shows (468). */
 const OWN_SEC_TITLE_ = { picture: 'Picture', figure: 'Your figure', name: 'Name', handle: 'Handle', rate: 'Rate and class size', headline: 'Headline',
   photos: 'Photographs', words: 'Three words', glance: 'At a glance', quals: 'Qualifications', where: 'Where you teach', week: 'Available' };
-const OWN_SEC_OF_SET_ = { account: OWN_CARD_SECTIONS_, family: OWN_CARD_SECTIONS_,
-  staff: OWN_CARD_SECTIONS_.concat(['rate', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week']) };
+/* EACH SECTION ON ONE COLUMN FOR EVERYONE, the lowest rank it applies to (469): the owner, "the lowest common denominator". */
+const OWN_SEC_OF_SET_ = { account: OWN_CARD_SECTIONS_, family: [],
+  staff: ['rate', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'] };
+const OWN_SET_OF_SEC_ = sec => Object.keys(OWN_SEC_OF_SET_).find(c => OWN_SEC_OF_SET_[c].indexOf(sec) !== -1) || '';
 /* WHAT THE STAFF HUB EDITS — Pricing's rate and seat, Hours' week — so no card or settings page offers it a second time (444). */
 const hubOwns_ = f => typeof hubFor_ === 'function' && hubFor_()
   && (f === 'rate_per_hour' || f === 'extra_seat_rate' || /^(m|tu|w|th|f|sa|su)\d\d$/.test(f));
@@ -3875,7 +3869,7 @@ const PEOPLE_COLS_ = ['tutors', 'students', 'parents'];
 const SET_OF_FACE_ = { tutors: 'staff', students: 'account', parents: 'family' };
 const FACE_OF_SET_ = { staff: 'tutors', account: 'students', family: 'parents' };
 const faceOfCol_ = c => FACE_OF_SET_[c] || c;
-const cardColOf_ = e => (e && e.own ? homeCol_() : 'tutors');
+const cardColOf_ = e => (e && e.own ? '' : 'tutors');
 /* WHICH COLUMN AN ELEMENT IS ON — the section's id without its `s-`. */
 const colOfEl_ = el => String(((el && el.closest && el.closest('#screen > .screen')) || {}).id || '').replace(/^s-/, '');
 function cardEditing_(t, col) {
@@ -4103,7 +4097,7 @@ function cardEditForm_(t, e, vals, only) {
     options: fieldOptions_(f), readonly: ro.indexOf(f) !== -1, draft: false }, extra));
   /* YOUR OWN CARD'S SECTIONS ARE YOUR ROLE'S (`ownCardSections_`), with the figure and the handle;
      somebody else's are the tutor's card, as an admin has always edited it. */
-  return (only || (e.own ? ownCardSections_(cardColOf_(e)) : cardSections_())).map(s => {
+  return (only || (e.own ? ownCardSections_() : cardSections_())).map(s => {
     const L = s.list;
     const filled = re => L.filter(f => re.test(f) && String(val(f)).trim() !== '').length;
     const body = s.id === 'picture' ? (e.own ? photoPicker_(val, '', { fold: true }) : cardFaceOnly_(t))
@@ -4583,11 +4577,10 @@ function psResults_() {
 const psMayChild_ = () => typeof rankAtLeast_ === 'function' && rankAtLeast_('client');
 function peopleSearchPage_() {
   if (!USER) return '';
+  /* ONE SEARCH BAR, THE FIND INLINE (469) — the owner: "it just needs to be a search bar widget"; the placeholder is its label. */
   return `<div class="card ps-card">
-    <label class="field"><span>Find someone by handle</span>
-      <input type="search" data-psearch placeholder="@handle" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" value="${esc(PSEARCH_.q)}"></label>
-    ${psMayChild_() ? `<button class="btn quiet" data-do="ps-find">Find</button>
-    <p class="faint ps-note">Your child shows only for their whole handle.</p>` : ''}
+    <div class="ps-bar"><input type="search" data-psearch aria-label="Find someone by handle" placeholder="@handle" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" value="${esc(PSEARCH_.q)}">
+    ${psMayChild_() ? `<button class="btn quiet ps-go" data-do="ps-find" aria-label="Find">Find</button>` : ''}</div>
     <div class="ps-out" aria-live="polite">${psResults_()}</div>
   </div>`;
 }
