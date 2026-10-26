@@ -27,8 +27,7 @@
     "press:verbose": "node check/press.js --verbose",
     "check:ui:shots": "node check/ui.js --shots",
     "load": "node check/load.js",
-    "load:detail": "node check/load.js --detail",
-    "splash": "node check/splash.js"
+    "load:detail": "node check/load.js --detail"
   },
   "devDependencies": {
     "acorn": "^8.11.3",

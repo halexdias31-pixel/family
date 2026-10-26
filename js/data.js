@@ -92,7 +92,7 @@ function keepPut_(k, v, quiet) {
   const waits = v !== null && typeof keepWaits_ === 'function' && keepWaits_(k);
   if (!waits) {
     try { put(); KEEP_UNKEPT.delete(k); return true; } catch (e) {}
-    try { if (v !== null && typeof splashGiveWay_ === 'function' && splashGiveWay_()) { put(); KEEP_UNKEPT.delete(k); return true; } } catch (e) {}
+    try { if (v !== null && typeof splashForget_ === 'function' && splashForget_()) { put(); KEEP_UNKEPT.delete(k); return true; } } catch (e) {}
   }
   KEEP_UNKEPT.add(k);
   if (quiet !== 'record' && !KEEP_SAID && v !== null && String(v).trim()) {

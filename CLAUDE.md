@@ -90,8 +90,7 @@ when it was not told it could", never "is this past the right edge".
   - Spanish and French `labuild laconj laetre lagend latime` (`tools/la_<name>.py`, 427)
   - Philosophy and RS `pcause pcave pdoubt pfall psyll ptrolley pwatch` (`tools/p_<name>.py`, 418)
 
-  For the rest the row is the source. Never in `index.html` or `style.css`; the splash draws a device-kept copy
-  (`splashSync_`, `SPLASH_CACHE_MAX` 1 500 000 for all of them). `check-anims.js`, `check-loading.js`. A new one is a
+  For the rest the row is the source. Never in `index.html` or `style.css`; drawn only when a chapter opens — the splash is gone (466). `check-anims.js`, `check-loading.js`. A new one is a
   script on `anim_row.Loop` that writes its whole row (`whole=True, place=…`), its class prefix unused by any other
   drawing. One drawing per thing on a chapter. See 304, 322, 409, 436.
 - **Verified tags:** every question carries two ordinary funnel tags, `Accuracy verified/unverified` (row `verified: "True"` = answer checked against the official scheme) and `Function verified/unverified` (qtypes.js protocol complete and machine-marked); `verifyTags_`, find.js; `check-qtypes.js`. See 388.
@@ -148,7 +147,7 @@ Each check's header says what it proves, its flags and its port variable. The fu
   win any tie. A real warning is one paragraph under the row, not one per tile (`jobAdminTiles_`).
   `check-doors` pairs every `act` with a handler.
 - **One line per thing:** a form is label/value rows, one thing each; never several controls boxed in a grid (421).
-- **Two palettes.** The screen is black and gold (`--bg`, `--gold`, `--ink`, `--line`). Anything standing in
+- **Two palettes.** The screen is black and white (466; the accent token is still named `--gold`) (`--bg`, `--gold`, `--ink`, `--line`). Anything standing in
   for paper (receipt, stubs, roster, print sheet, calendar, splash) is `--paper`, `--paper-ink`,
   `--paper-dim`, `--paper-faint`, `--paper-strip`, `--paper-rule`. **Never write a paper colour as a literal.**
   A colour used by more than one component is a `:root` token; one component's own colour is defined on

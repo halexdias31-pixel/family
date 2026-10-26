@@ -3,7 +3,7 @@
 /* THE TABS THIS FILE OWNS. § */
 /* `settings/links` WAS ON THIS LIST, fetched on every load — 27 KB for the Links door on Find, its only reader. § */
 const SETTINGS_TABS = ['settings/brand', 'settings/facets', 'settings/kinds', 'settings/laws',
-                       'settings/facts', 'settings/splashes',
+                       'settings/facts',
                        'settings/campaigns', 'settings/copy', 'settings/columns',
                        'settings/spotlight'];
 
@@ -84,13 +84,6 @@ function settingsInto_(d, extra) {
       .sort((a, b) => (a.order - b.order) || (a.row - b.row));
   }
 
-  /* which splashes are retired --------------------------------------------------------------- THE ONES THAT ARE OFF, not the ones that are on — so a drawing added § */
-  const splashes = extra['settings/splashes'];
-  if (splashes && splashes.length) {
-    d.splashOff = splashes
-      .filter(r => libS(r.splash_id) && !libOn(r.active))
-      .map(r => 'is-' + setNorm_(r.splash_id));
-  }
 
   /* the link tiles WERE MAPPED HERE -------------------------------------------------------------- into `d.links` and `d.dropdowns.linkCategories`, the backend's § */
 
