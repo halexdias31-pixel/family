@@ -4,6 +4,14 @@ The owner, 26 October 2026: "make the reading aloud voice like David Attenboroug
 other voices… a calm, soothing voice… like AI voices on TikTok that sound like real voices. All these other voices
 don't sound real."
 
+> **Withdrawn same day — owner wants free, no setup; device voices only.** The owner: "I want a simple regular voice,
+> not paying for voice… I want free. Least hassle with money or tokens. It's just a voice." `speak`, `TTS_API_KEY`, the
+> TTS constants, the cache/Drive code, the `tts_chars_per_day` seed (an existing cell is left alone, unread),
+> check-speak and the server queue in `say_` are gone. `say_` uses only the device's voices, auto-picked by tier
+> (Natural/Neural/Online, Siri, Enhanced/Premium, Daniel/Arthur/Oliver/Serena/Kate, Google UK English; any en-GB
+> before any en-US; eSpeak/compact/novelty never), rate 0.9, pitch 0.95, a sentence an utterance. No picker; Hear a
+> sample stays. Journey "device voice only (463)"; backend 2026-10-26-j-free-voice. The text below is the record.
+
 ## What we chose not to do
 
 We did not imitate or clone a real person's voice. The voice is a stock Google neural voice chosen for being calm,

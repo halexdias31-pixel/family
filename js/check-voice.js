@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-/* node js/check-voice.js — THE READ-ALOUD VOICE (453, 463): the server's natural voice a line at a time, next prefetched;
-   else the best device voice; maths as words. No flags, no port. */
+/* node js/check-voice.js — THE READ-ALOUD VOICE (453; 463 withdrawn): the device's own voices only, calmest natural British first;
+   maths as words; a sentence at a time. No flags, no port. */
 'use strict';
 require('../check/quiet');
 const fs = require('fs'), path = require('path'), vm = require('vm');
@@ -17,23 +17,14 @@ const win = {
   speechSynthesis: { getVoices: () => voices, speak: u => spoken.push(u), cancel() {} },
   SpeechSynthesisUtterance: function (t) { this.text = t; },
 };
-/* A WORLD: the speaking section run fresh, with an optional signed-in USER, a stubbed `api` and an Audio element that records. */
-function world(opts) {
-  opts = opts || {};
-  const asked = [], audios = [];
-  function Audio() { this.played = []; audios.push(this); }
-  Audio.prototype.play = function () { this.played.push(this.src); return Promise.resolve(); };
-  Audio.prototype.pause = function () { this.paused = true; };
-  const c = { window: win, Audio, USER: opts.user || null, Promise, Map,
-    localStorage: { getItem: k => store[k] || null, setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } },
-    api: opts.reply ? (b => { asked.push(b); return Promise.resolve(opts.reply(b)); }) : undefined };
+function world() {
+  const c = { window: win, localStorage: { getItem: k => store[k] || null, setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } } };
   vm.createContext(c);
   vm.runInContext(src.slice(a, b) + '\n;this.api_={voiceScore_,voicesRanked_,voicePick_,sayMaths_,sayChunks_,say_,hush_};', c);
-  return { s: c.api_, asked, audios };
+  return { s: c.api_, ctx: c };
 }
 store['voice:name'] = 'Samantha';
 const api = world().s;
-const tick = () => new Promise(r => setImmediate(r));
 
 const bad = [];
 let n = 0;
@@ -45,8 +36,11 @@ const list = [V('eSpeak English', 'en-GB'), V('Fred', 'en-US'), V('Daniel (compa
   V('Microsoft Aria Online (Natural) - English (United States)', 'en-US'), V('Thomas', 'fr-FR'), V('Kate', 'en_GB')];
 const names = api.voicesRanked_('en-GB', list).map(v => v.name);
 eq(names[0], 'Microsoft Sonia Online (Natural) - English (United Kingdom)', 'a natural en-GB voice is first');
-eq(names[1], 'Google UK English Female', 'Google UK English is next');
-eq(names.indexOf('Microsoft Aria Online (Natural) - English (United States)') < names.indexOf('Kate'), true, 'a natural en-US voice beats a plain en-GB one');
+eq(names[1], 'Kate', 'an Apple British voice (Kate) is next');
+eq(names[2], 'Google UK English Female', 'then Google UK English');
+eq(names.indexOf('Samantha') > names.indexOf('Google UK English Female') && names.indexOf('Microsoft Aria Online (Natural) - English (United States)') > names.indexOf('Google UK English Female'), true, 'any en-GB voice beats every en-US one');
+eq(api.voicesRanked_('en-GB', [V('Daniel', 'en-GB'), V('Daniel (Enhanced)', 'en-GB'), V('Siri Voice 2', 'en-GB'), V('Microsoft Ryan Online (Natural)', 'en-GB')]).map(v => v.name),
+  ['Microsoft Ryan Online (Natural)', 'Siri Voice 2', 'Daniel (Enhanced)', 'Daniel'], 'Natural/Online, then Siri, then Enhanced, then the plain Apple voice');
 eq(names.slice(-3).sort(), ['Daniel (compact)', 'Fred', 'eSpeak English'].sort(), 'eSpeak, Fred and compact voices are last');
 eq(names.indexOf('Thomas'), -1, 'another language is not offered for English');
 eq(api.voicePick_('fr-FR', list).name, 'Thomas', 'French takes the French voice');
@@ -75,55 +69,23 @@ voices = list;
 let ended = 0;
 api.say_('First, a sentence long enough to matter here. ' + 'Second, another one of the same kind and size, which takes the whole text well past the limit of one hundred and eighty characters, as a long question would.', { onend: () => ended++ });
 eq(spoken.length, 2, 'two sentences queue two utterances');
-eq([spoken[0].rate, spoken[0].pitch, spoken[0].voice && spoken[0].voice.name], [0.95, 1, names[0]], 'gentle rate, plain pitch, the best voice');
+eq([spoken[0].rate, spoken[0].pitch, spoken[0].voice && spoken[0].voice.name], [0.9, 0.95, names[0]], 'calm rate and pitch, the best voice');
 eq([typeof spoken[0].onend, typeof spoken[1].onend], ['undefined', 'function'], 'onend on the last only');
 
-/* ---------- THE NATURAL VOICE (463) ---------- */
-(async () => {
-  const ME = { token: 'T', personId: 'P1' };
-  {
-    spoken.length = 0;
-    const w = world({ user: ME, reply: b => ({ success: true, audio: Buffer.from(b.text).toString('base64') }) });
-    let ends = 0, starts = 0;
-    w.s.say_('Line one.', { onstart: () => starts++ });
-    w.s.say_('Line two.', { onend: () => ends++ });
-    await tick(); await tick();
-    eq(w.asked.map(x => [x.action, x.text, x.personId]), [['speak', 'Line one.', 'P1'], ['speak', 'Line two.', 'P1']], 'signed in, each line is asked of speak, the next prefetched');
-    const el = w.audios[0];
-    eq([w.audios.length, el.played.length, String(el.src).slice(0, 22)], [1, 2, 'data:audio/mpeg;base64'], 'one audio element, unlocked then playing the clip');
-    el.onended(); await tick(); await tick();
-    eq(Buffer.from(String(el.src).split(',')[1], 'base64').toString(), 'Line two.', 'the next line plays when the first ends');
-    el.onended(); await tick();
-    eq([starts, ends, spoken.length, w.asked.length], [1, 1, 0, 2], 'onstart and onend once each, no device voice, nothing asked twice');
-    w.s.say_('Line one.'); await tick(); await tick();
-    eq(w.asked.length, 2, 'a line heard before is not asked again');
-    w.s.say_('Line three.'); w.s.hush_(); await tick(); await tick();
-    eq(el.paused, true, 'hush stops the clip');
-  }
-  {
-    spoken.length = 0;
-    const w = world({ user: ME, reply: () => ({ success: false, why: 'tts-off' }) });
-    let ends = 0;
-    w.s.say_('Not set up.', { onend: () => ends++ }); await tick(); await tick();
-    eq([spoken.map(u => u.text), spoken[0] && spoken[0].voice && spoken[0].voice.name], [['Not set up.'], names[0]], 'not set up: the device\'s best voice says it');
-    spoken[0].onend(); eq(ends, 1, 'and onend still comes');
-    w.s.say_('Again.'); await tick();
-    eq([w.asked.length, spoken.length], [1, 2], 'and the server is not asked again this visit');
-  }
-  {
-    spoken.length = 0;
-    const w = world({ reply: () => ({ success: true, audio: 'AA==' }) });
-    w.s.say_('Signed out.');
-    eq([w.asked.length, spoken.length], [0, 1], 'signed out: the device voice, the server never asked');
-  }
-  {
-    spoken.length = 0;
-    const w = world({ user: ME, reply: () => ({ success: true, audio: 'AA==' }) });
-    w.s.say_('Hola', { lang: 'es-ES' });
-    eq([w.asked.length, spoken.length], [0, 1], 'another language: the device voice');
-  }
-  done();
-})();
+/* ---------- NOTHING BUT THE DEVICE (463 withdrawn) ---------- */
+{
+  const w = world();
+  spoken.length = 0;
+  w.ctx.USER = { token: 'T', personId: 'P1' };
+  w.ctx.api = () => { throw new Error('asked the backend'); };
+  w.s.say_('Signed in.');
+  eq(spoken.map(u => u.text), ['Signed in.'], 'signed in, the device voice still says it and the backend is never asked');
+  eq(/action:\s*'speak'|Audio\(/.test(src.slice(a, b)), false, 'no server voice or Audio element is left in the speaking section');
+  spoken.length = 0;
+  w.s.say_('Hola', { lang: 'es-ES' });
+  eq(spoken.length, 1, 'another language: the device voice');
+}
+done();
 function done() {
 if (bad.length) { console.error('check-voice: ' + bad.length + ' of ' + n + ' failed\n  ' + bad.join('\n  ')); process.exit(1); }
 console.log('check-voice: all ' + n + ' voice and maths rules hold');
