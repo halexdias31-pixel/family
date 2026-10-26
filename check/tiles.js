@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* @family. — check/tiles.js ONE TILE SPEC (467): every tile is made by `tile_`, is a 44px plate with an 18px mark, and a row of them never overlaps, spills or leaves a lone orphan. Flags: --width=390. Port: TILES_PORT. */
+/* @family. — check/tiles.js ONE TILE SPEC (467, 472): every tile is `tile_`, a widget's in one row after its content, a 44px plate with an 18px mark; no overlap, spill or lone orphan. Flags: --width=390. Port: TILES_PORT. */
 'use strict';
 require('./quiet');
 const fs = require('fs');
@@ -71,6 +71,17 @@ function measure(id) {
     ts.forEach(t => { const y = Math.round(t.getBoundingClientRect().top); const l = lines.find(q => Math.abs(q.y - y) < 4); if (l) l.n++; else lines.push({ y, n: 1 }); });
     lines.sort((p, q) => p.y - q.y);
     if (lines.length > 1 && lines[lines.length - 1].n === 1 && lines[lines.length - 2].n >= 3) out.push(`${where}: a lone tile wrapped under a line of ${lines[lines.length - 2].n}`);
+  });
+  /* ONE PLACE FOR A WIDGET'S TILES (472): the star, padlock and admin group sit in one `.wgt-foot` row, the card's last child, in that order. */
+  sec.querySelectorAll('.card.is-widget').forEach(c => {
+    const name = (c.querySelector('.widget-slot') || {}).id || '?';
+    const foot = c.querySelector(':scope > .wgt-foot');
+    c.querySelectorAll('.wgt-keep, .wgt-admin').forEach(g => { if (g.parentElement !== foot) out.push(`#s-${id} ${name}: its ${g.className} is not in the widget's one tile row`); });
+    if (foot && c.lastElementChild !== foot) out.push(`#s-${id} ${name}: its tile row is not after its content`);
+    if (foot) {
+      const order = [...foot.children].map(g => g.classList.contains('wgt-keep') ? 1 : g.classList.contains('wgt-admin') ? 2 : 9);
+      if (order.some((o, i) => o === 9 || (i && o < order[i - 1]))) out.push(`#s-${id} ${name}: its tile row is not star, padlock, then admin`);
+    }
   });
   return { out, tiles };
 }

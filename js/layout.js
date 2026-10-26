@@ -148,18 +148,18 @@ function layoutSeen_(col, D) {
 }
 function layoutColOf_(D, id) { return Object.keys(D.widgets).find(c => D.widgets[c].indexOf(id) !== -1) || ''; }
 
-/* ---------- THE ADMIN'S ROW UNDER A WIDGET'S OWN TILES: ▲ ▼ ◀ ▶ and Delete — drawn by `widgetOnColumn_` (arcade.js) ---------- */
+/* ---------- THE ADMIN'S GROUP AT THE END OF A WIDGET'S ONE TILE ROW: ▲ ▼ ◀ ▶ and Delete — drawn by `widgetOnColumn_` (arcade.js) ---------- */
 function layoutTiles_(w) {
   if (!w || !LAYOUT_COL[w.kind] || !layoutIsAdmin_()) return '';
   const id = String(w.id), D = layoutDraftOf_(layoutNow_()), col = layoutColOf_(D, id);
   if (!col) return '';
   const seen = layoutSeen_(col, D), i = seen.indexOf(id), cols = layoutWidgetCols_(), ci = cols.indexOf(col);
-  return `<div class="tile-row wgt-admin">${
+  return `<span class="tile-group is-admin wgt-admin">${
     tile_({ icon: 'up', label: 'Move up', act: 'lay-w-move', tone: 'admin', data: { w: id, d: -1 }, off: i <= 0 })}${
     tile_({ icon: 'down', label: 'Move down', act: 'lay-w-move', tone: 'admin', data: { w: id, d: 1 }, off: i === -1 || i >= seen.length - 1 })}${
     tile_({ icon: 'left', label: 'Move to previous column', act: 'lay-w-col', tone: 'admin', data: { w: id, d: -1 }, off: ci <= 0 })}${
     tile_({ icon: 'right', label: 'Move to next column', act: 'lay-w-col', tone: 'admin', data: { w: id, d: 1 }, off: ci >= cols.length - 1 })}${
-    LAYOUT_KEEP.indexOf(id) === -1 ? tile_({ icon: 'bin', label: 'Delete', act: 'lay-w-del', tone: 'admin', data: { w: id }, cls: 'lay-del' }) : ''}</div>`;
+    LAYOUT_KEEP.indexOf(id) === -1 ? tile_({ icon: 'bin', label: 'Delete', act: 'lay-w-del', tone: 'admin', data: { w: id }, cls: 'lay-del' }) : ''}</span>`;
 }
 
 /* ---------- THE MOVES: each one a change to the whole layout, saved at once ---------- */

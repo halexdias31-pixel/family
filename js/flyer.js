@@ -238,13 +238,11 @@ function flyControls() {
         .map((r, i) => `<option value="${i}"${i === (FLY_AT || 0) ? ' selected' : ''}>${
           esc(r[0])}</option>`).join('')}</select></label>
       ${flyMenu()}
-      ${/* A ROW EACH FOR AN ANSWER IN WORDS, HALF A ROW FOR A NUMBER, A THIRD FOR A COLOUR — see
-            `.fm-bar` in style.css. The labels with no class are the whole row. */''}
+      ${/* ONE LINE PER THING (421, 472): label left, its control right; the three colours are one thing, so one line. */''}
       <label>Style<select id="fm-s">${FLY_STYLES
         .map(s => `<option>${s}</option>`).join('')}</select></label>
-      <label class="fm-ink">Ink<input type="color" id="fm-k1"></label>
-      <label class="fm-ink">Accent<input type="color" id="fm-k2"></label>
-      <label class="fm-ink">Paper<input type="color" id="fm-k3"></label>
+      <div class="fm-row fm-inks" title="Ink is what it is set in · Accent marks the one thing to look at · Paper is the ground"><span>Colours</span>
+        <input type="color" id="fm-k1" aria-label="Ink" title="Ink"><input type="color" id="fm-k2" aria-label="Accent" title="Accent"><input type="color" id="fm-k3" aria-label="Paper" title="Paper"></div>
     </div>
     <div class="fm-bar">
       <label>Advertising<select id="fm-ad">
@@ -254,10 +252,10 @@ function flyControls() {
         <option value="none">Neither</option></select></label>
       <label>Venue<select id="fm-v">${list
         .map(v => opt(v, norm(v[0]) === norm(B.venueMain))).join('')}</select></label>
-      <label class="fm-half">Hours<select id="fm-h">
+      <label>Hours<select id="fm-h">
         <option>1</option><option>1.5</option><option selected>2</option>
         <option>2.5</option><option>3</option></select></label>
-      <label class="fm-half">To a class<select id="fm-n">
+      <label>To a class<select id="fm-n">
         <option>2</option><option>3</option><option selected>4</option>
         <option>5</option><option>6</option></select></label>
       <label>Size<select id="fm-z">
@@ -281,8 +279,7 @@ function flyControls() {
       ${['flyer', 'sticker', 'poster'].map(p =>
         `<button class="fm-pre" data-do="fm-preset" data-p="${p}">${p}</button>`).join('')}
     </div>
-    <p class="faint" style="margin:.4rem 0 .6rem">Ink is what it is set in · Accent marks the one
-      thing to look at · Paper is the ground. Wording comes from the <b>brand</b> tab.</p>`;
+    `;
 }
 
 /* EVERY CONTROL REDRAWS. § */

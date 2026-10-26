@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-26-z2-ds-merged";
+  --css-version: "2026-10-26-z3-compact-merged";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -995,11 +995,11 @@ a { color: inherit; text-decoration: none; }
         --calc-key: #d8d9db; --calc-key-ink: #1b1c1e; --calc-key-dark: #232427; --calc-pad: #19191b;
         --calc-shift: #2c46b4; --calc-legend: #79a5f2; --calc-print: #e6e6e7; --calc-gut: .45rem;
         font-family: 'Arial Narrow', 'Roboto Condensed', Arial, Helvetica, sans-serif;
-        max-width: 24rem; margin-inline: auto; padding: 1rem clamp(2px, 1.6vw, .7rem) 1.2rem;
+        max-width: 24rem; margin-inline: auto; padding: .7rem clamp(2px, 1.6vw, .7rem) .9rem;
         border-radius: 1.6rem 1.6rem 2.2rem 2.2rem;
         background: linear-gradient(180deg, #303134, var(--calc-body) 30%, #252629); color: var(--calc-print);
         box-shadow: 0 0 0 2px var(--calc-edge), inset 0 0 0 2px #36373b, 0 14px 34px rgb(0 0 0 / .55); }
-.calc-bezel { background: var(--calc-bezel); border-radius: .7rem; padding: .7rem .7rem .4rem; margin-bottom: .8rem;
+.calc-bezel { background: var(--calc-bezel); border-radius: .7rem; padding: .55rem .6rem .3rem; margin-bottom: .5rem;
               box-shadow: inset 0 1px 3px rgb(0 0 0 / .7); }
 .calc .mc-display { background: var(--calc-lcd); color: var(--calc-lcd-ink); border-radius: 3px; border: 1px solid #0d0e0f;
   box-shadow: inset 0 2px 6px rgb(0 0 0 / .25); padding: .3rem .6rem .45rem;
@@ -1008,6 +1008,13 @@ a { color: inherit; text-decoration: none; }
                     repeating-linear-gradient(90deg, rgb(0 0 0 / .035) 0 1px, transparent 1px 3px);
   text-shadow: .5px .5px 0 rgb(23 32 27 / .18); }
 .calc .mc-caret { background: var(--calc-lcd-ink); }
+/* ONE SHAPE, WHATEVER IS ON THE GLASS (472): every line of the LCD has a fixed height and clips, so a fraction, a long sum or an error never grows the device and `paneReach_` never re-zooms it under a thumb. */
+.calc .mc-display { height: 6.6rem; min-height: 0; overflow: hidden; box-sizing: border-box; }
+.calc .mc-stat { flex: none; height: .7rem; overflow: hidden; }
+.calc .mc-in { flex: none; height: 2.6rem; line-height: 2.6rem; overflow: auto hidden; scrollbar-width: none; }
+.calc .mc-out { flex: none; height: 2.8rem; min-height: 0; line-height: 2.8rem; overflow: auto hidden; scrollbar-width: none; }
+.calc .mc-in::-webkit-scrollbar, .calc .mc-out::-webkit-scrollbar { display: none; }
+.calc .mc-out .mc-note { white-space: nowrap; line-height: 2.8rem; }
 /* The LCD's status line: every indicator has its place, lit or ghosted, as the segments are on the glass. */
 .mc-stat { display: flex; gap: .7em; font: 700 .58rem/1 Arial, Helvetica, sans-serif; letter-spacing: .03em;
            padding-bottom: .25rem; border-bottom: 1px solid rgb(23 32 27 / .12); }
@@ -1024,10 +1031,11 @@ a { color: inherit; text-decoration: none; }
 .mc-btn { position: relative; min-height: 44px; min-width: 0; padding: 0; background: none; border: 0; cursor: pointer;
           display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 3px;
           color: var(--calc-key-ink); font-size: 1rem; font-weight: 700; -webkit-tap-highlight-color: transparent; }
-.mc-lab { display: flex; align-items: center; justify-content: center; gap: .05em; border-radius: 999px; line-height: 1;
+.mc-lab { display: flex; align-items: center; justify-content: center; gap: .05em; border-radius: 999px; line-height: 1; box-sizing: border-box;
           background: radial-gradient(120% 90% at 50% 25%, #f3f3f4, var(--calc-key) 55%, #b9babd);
-          box-shadow: 0 2px 0 #0e0f10, 0 3px 4px rgb(0 0 0 / .5); transition: transform var(--quick) ease; }
-.mc-btn:active .mc-lab { transform: translateY(1px) scale(.95); box-shadow: 0 1px 0 #0e0f10; }
+          box-shadow: 0 2px 0 #0e0f10, 0 3px 4px rgb(0 0 0 / .5); transition: filter var(--quick) ease, box-shadow var(--quick) ease; }
+/* A REAL KEY DOES NOT CHANGE SHAPE (472): pressed, it darkens and loses its lift; no transform, so no box moves. */
+.mc-btn:active .mc-lab { filter: brightness(.86); box-shadow: 0 1px 0 #0e0f10, inset 0 1px 3px rgb(0 0 0 / .35); }
 .mc-btn:focus-visible { outline: none; }
 .mc-btn:focus-visible .mc-lab { outline: 2px solid var(--calc-legend); outline-offset: 2px; }
 /* The legend slot: one height, centred on its key, small even type; an empty slot keeps the row's rhythm. */
@@ -1074,10 +1082,9 @@ a { color: inherit; text-decoration: none; }
 /* The device is the card: no case around the case, and the name and its star on one quiet line above it. */
 .card.is-widget:has(.calc) { padding-inline: 0; margin-inline: 0; background: none; border: 0; box-shadow: none;
                              position: relative; backdrop-filter: none; -webkit-backdrop-filter: none; }
-.card.is-widget:has(.calc) > .wgt-keep { position: absolute; top: 0; right: .2rem; margin: 0; z-index: 1; }
 .card:has(> .calc) { background: none; border: 0; box-shadow: none; padding: 0; }
 .calc-name { font: 700 .75rem Arial, Helvetica, sans-serif; letter-spacing: .14em; text-transform: uppercase;
-             color: var(--dim); margin: 0 0 .7rem; padding: .9rem 3.5rem 0 .3rem; min-height: 44px; display: flex; align-items: center; }
+             color: var(--dim); margin: 0 0 .3rem; padding: 0 .3rem; min-height: 0; display: flex; align-items: center; }
 /* Six 44px keys need 268px: on the narrowest phones the pane's gutter goes too, and the device meets the edge. */
 @media (max-width: 379px) {
   .pane:has(.calc) { padding-inline: 0; }
@@ -3639,19 +3646,16 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* THE FLYER MAKER — every rule under `.fm`, and every colour `--fly-` prefixed. § */
 /* ---------- THE CONTROLS, PACKED § */
 /* ---------- A ROW FOR AN ANSWER IN WORDS, HALF A ROW FOR A WORD, A SIXTH FOR A COLOUR § */
-.fm-bar { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr));
-          gap: .4rem .5rem; margin-bottom: .45rem; }
-.fm-bar label { display: flex; flex-direction: column; gap: .1rem; min-width: 0;
-                grid-column: 1 / -1;
-                font-size: .54rem; letter-spacing: .09em; text-transform: uppercase;
-                color: var(--faint); }
-.fm-bar label.fm-half { grid-column: span 3; }
-.fm-bar label.fm-ink { grid-column: span 2; }
+/* ONE LINE PER THING (421, 472): each answer is a label/value row — the label left, the control filling the rest. */
+.fm-bar { display: flex; flex-direction: column; gap: .3rem; margin-bottom: .4rem; }
+.fm-bar label, .fm-bar .fm-row { display: flex; align-items: center; gap: .6rem; min-width: 0;
+                font-size: .54rem; letter-spacing: .09em; text-transform: uppercase; color: var(--faint); }
+.fm-bar label select { flex: 1 1 auto; min-width: 0; margin-left: auto; max-width: 72%; }
 /* `.fm-bar select` WAS HERE AT .78rem IN A 1.7rem BOX — a flyer's eight dropdowns drawn smaller than every other select in the app, under the 16px an iPhone § */
 .fm-bar select { font-size: min(16px, 4.6vw); }
-/* A NATIVE COLOUR INPUT is a real picker on every platform, and a hex field is six characters of
-   typing to find out you wanted a different green. */
-.fm-bar input[type=color] { width: 2.4rem; height: 1.7rem; padding: 0; cursor: pointer;
+/* A NATIVE COLOUR INPUT is a real picker on every platform; three of them, one line. */
+.fm-inks span { margin-right: auto; }
+.fm-bar input[type=color] { width: 44px; height: 44px; min-height: 44px; padding: 0; cursor: pointer;
                             background: none; border: 1px solid var(--line); border-radius: var(--r); }
 
 .fm-adds { display: flex; flex-wrap: wrap; gap: .3rem .7rem; align-items: center;
@@ -5285,7 +5289,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   /* 14px, the same as the pane. A widget is a body in its own right, not a chip. `--r-lg` is not
      declared, so the number is written out rather than falling back silently to something else. */
   border-radius: 14px;
-  padding: .9rem;
+  padding: var(--wgt-pad);
   margin-bottom: var(--gap);
 }
 /* ---------- THE LIBRARY CARDS' WIDGET GIVES ITS FACES THE FRAME'S SIDES (docs/history/339) § */
@@ -5327,6 +5331,21 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 /* THE SLOT IS ALWAYS FULL, so it needs no minimum height and no empty state — the widget is in it
    from the moment the screen is drawn. */
 .card.is-widget .widget-slot { display: block; }
+/* ONE PLACE FOR A WIDGET'S TILES (472): after its content, one row — star, padlock, then the admin's group; check/tiles.js holds every widget to it. */
+.card.is-widget { --wgt-pad: .7rem; }
+.card.is-widget > .wgt-foot { margin: .5rem 0 0; }
+.cs-one { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card.is-widget > .wgt-foot > .tile-group { display: contents; }
+/* Star plus five admin tiles where five fit: 3 + 3, not 5 + a lone one (the 467 orphan rule, across the two groups). */
+@container (min-width: 244px) and (max-width: 293.9px) {
+  .wgt-foot:has(> .wgt-keep > .tile:only-child) > .wgt-admin:has(> .tile:nth-child(5)) > .tile:nth-child(2) {
+    margin-right: calc(100% - 3 * var(--tile) - 2 * var(--tile-gap)); }
+}
+@container (max-width: 243.9px) {
+  .wgt-foot:has(> .wgt-keep > .tile:only-child) > .wgt-admin:has(> .tile:nth-child(4):last-child) > .tile:nth-child(2) {
+    margin-right: calc(100% - 3 * var(--tile) - 2 * var(--tile-gap)); }
+}
+.card.is-widget .widget-slot > .card:only-child { padding-block: 0; border-bottom: 0; }
 
 /* THE CAMERA CARD. The 📷 column drew "＋ New post" — a card describing a photograph rather than a way to take one, and the identical card sat one swipe away at § */
 .cam-card .cam-stage {
@@ -6224,7 +6243,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
     --nb-half: calc((100dvh - var(--bar) - var(--safe-bottom) - 2.5rem - .45rem) / 2);
   }
   .card.is-widget:has(.nb) .widget-slot, .card.is-widget:has(.nb) .nb-box, .card.is-widget:has(.nb) .nb { display: contents; }
-  .card.is-widget:has(.nb) > .wgt-keep { grid-area: 1 / 2; margin-top: 0; }
+  .card.is-widget:has(.nb) > .wgt-foot { grid-area: 1 / 2; margin-top: 0; }
   .card.is-widget:has(.nb) .widget-slot > h3 { grid-area: 2 / 2; margin: .45rem 0 0; }
   .card.is-widget:has(.nb) .nb-book, .card.is-widget:has(.nb) .nb-pad { min-height: 0; height: var(--nb-half); }
   .card.is-widget:has(.nb) .nb-book { grid-area: 1 / 1 / 3 / 2; }
@@ -6242,7 +6261,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
   }
   .card.is-widget:has(.wb) .widget-slot, .card.is-widget:has(.wb) .wb-box,
   .card.is-widget:has(.wb) .wb, .card.is-widget:has(.wb) .wb .qpad { display: contents; }
-  .card.is-widget:has(.wb) > .wgt-keep { grid-area: 1 / 2; margin-top: 0; }
+  .card.is-widget:has(.wb) > .wgt-foot { grid-area: 1 / 2; margin-top: 0; }
   .card.is-widget:has(.wb) .widget-slot > h3 { grid-area: 2 / 2; margin: .45rem 0 0; }
   .card.is-widget:has(.wb) .wb .qpad-art {
     grid-area: 1 / 1 / -1 / 2; margin: 0;
