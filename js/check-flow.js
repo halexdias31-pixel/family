@@ -7385,8 +7385,9 @@ check('console keys: arrows and WASD steer, Z/X/Space/Enter/Shift and Q/E per sy
   t.ACTIONS['nes-keys']();
   if (!d.querySelector('#nes-legend').hidden) bad.push('the Keys tile did not hide the key list again');
   t.ACTIONS['nes-keys']();
+  /* NOT KEPT (481): an old remembered "show" was what still put the list in the owner's DS; it is shown only by the tile, each visit. */
   let kept = null; try { kept = w.localStorage.getItem('nes-keys'); } catch (e) {}
-  if (kept !== '1') bad.push('the key list choice was not kept: ' + JSON.stringify(kept));
+  if (kept !== null) bad.push('the key list choice was kept on the device: ' + JSON.stringify(kept));
   /* A FINGER ON THE CONSOLE swaps the key list for the touch pad, and the Keys tile goes; the padlock is the widget's (461). */
   d.querySelector('#nes-wrap').dispatchEvent(Object.assign(new w.Event('pointerdown', { bubbles: true }), { pointerType: 'touch' }));
   if (ev('NES_.mode') !== 'touch' || !d.querySelector('#nes-pad').classList.contains('on') || !d.querySelector('#nes-legend').hidden) bad.push('a finger did not bring the touch pad back in place of the key list');
@@ -7401,7 +7402,7 @@ check('console keys: arrows and WASD steer, Z/X/Space/Enter/Shift and Q/E per sy
 });
 
 /* ---------- THE DS LOOKS LIKE A DS (478): two screens in one clamshell, its own buttons pressing the core, and nothing repainted while it plays. */
-check('console DS (478): a clamshell with both screens and the hinge between, its pad shown on keys too with L R X Y A B Start Select reaching the core, the widget not redrawn while it plays, and a save at most once a minute', async () => {
+check('console DS (478, 481): a DS Lite — two halves, a hinge, D-pad left and A/B/X/Y right of the touch screen, no key list until asked — its pad shown on keys too with L R X Y A B Start Select reaching the core, the widget not redrawn while it plays, and a save at most once a minute', async () => {
   const { w } = boot({ member: true });
   await wait(300);
   const t = w.__t, d = w.document, ev = s => t.inApp(s);
@@ -7423,6 +7424,19 @@ check('console DS (478): a clamshell with both screens and the hinge between, it
   if (ev('NES_.mode') !== 'keys') bad.push('the journey expected a keyboard device');
   if (!pad.classList.contains('on') || !wrap.classList.contains('nes-has-pad')) bad.push('on keys the DS does not wear its own buttons');
   if (!d.querySelector('#nes-legend').hidden) bad.push('the key list shows on the DS before the Keys tile asked');
+  if (ev("localStorage.getItem('nes-keys')") !== null) bad.push('a remembered key-list choice is still kept, so an old "show" can bring it back (481)');
+  /* A DS LITE (481): two halves and a hinge barrel, the D-pad left of the touch screen and A/B/X/Y right of it, at the bottom screen's height. */
+  ['.ds-lid', '.ds-base', '.ds-hinge', '.ds-cover-a', '.ds-cover-b'].forEach(s => { if (!wrap.querySelector(s)) bad.push('the DS has no ' + s); });
+  if (wrap.querySelectorAll('.ds-grille').length !== 2) bad.push('the top half has not a speaker either side of its screen');
+  const css = fs.readFileSync(path.join(__dirname, '..', 'style.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const num = re => { const m = re.exec(css); return m ? parseFloat(m[1]) : NaN; };
+  const sw = num(/\.nes-wrap\[data-sys="nds"\]\s*\{[^}]*--ds-s:\s*([\d.]+)/), cell = num(/--k-cell:\s*([\d.]+)cqw/);
+  const dpadX = num(/\.nes-pad \.nes-dpad\s*\{[^}]*left:\s*calc\(([\d.]+)cqw/), faceX = num(/\.nes-pad \.nes-face\s*\{\s*left:\s*calc\(([\d.]+)cqw/);
+  if (!(sw > 0) || !(dpadX < 50 - sw / 2)) bad.push('the D-pad is not left of the touch screen in style.css (centre ' + dpadX + ', screen from ' + (50 - sw / 2) + ')');
+  if (!(faceX - 1.5 * cell > 50 + sw / 2)) bad.push('A/B/X/Y are not right of the touch screen in style.css (from ' + (faceX - 1.5 * cell) + ', screen to ' + (50 + sw / 2) + ')');
+  if (!/\.nes-pad \.nes-dpad\s*\{[^}]*top:\s*calc\(var\(--ds-mid\)/.test(css) || !/\.nes-pad \.nes-face\s*\{[^}]*top:\s*calc\(var\(--ds-mid\)/.test(css)) bad.push('the D-pad and A/B/X/Y are not set at the touch screen\'s height');
+  if (!/\.ds-base\s*\{\s*top:\s*calc\(\(var\(--ds-lid\) \+ var\(--ds-hh\)\)/.test(css)) bad.push('the base does not start below the lid and the hinge');
+  if (!/\.nes-pad \.nes-key::before\s*\{[^}]*inset:\s*min\(0px, \(100% - 44px\) \/ 2\)/.test(css)) bad.push('the DS buttons lost their 44px reach');
   const names = [...pad.querySelectorAll('[data-k]')].map(e => e.dataset.k).sort().join();
   if (names !== 'a,b,dpad,l,r,select,start,x,y') bad.push('the DS pad holds ' + names);
   /* A STAND-IN CORE: each pad button reaches RetroPad's own number. */
