@@ -366,11 +366,120 @@ on('lib-import', el => {
 });
 
 /* THE E-PAPER VERSE SCREEN'S SETUP PAGE, findable by an admin rather than by its address (370). */
-function verseCard_() {
-  const href = location.origin + '/tools/epaper-verse/install.html';
-  return `<h3>Verse screen</h3>
-    <div class="tile-row">${tile_({ icon: 'ext', label: 'Verse screen', note: 'set up', href })}</div>`;
+/* ---------- THE E-INK SCREEN, A TOOLS WIDGET (470) ----------
+   The owner: "the widget itself will pretend to be an e-ink screen … syncing is a bonus"; "you choose whether you want icons displayed or verses displayed". */
+const EINK_KEY = 'eink:pick';
+const EINK = (() => {
+  let o = {};
+  try { o = JSON.parse(localStorage.getItem(EINK_KEY) || '{}') || {}; } catch (e) { o = {}; }
+  return { mode: o.mode === 'icon' ? 'icon' : 'verse', verse: Math.max(0, +o.verse || 0), icon: Math.max(0, +o.icon || 0),
+           verses: null, icons: null, asked: false, failed: false, say: '', busy: false, install: false };
+})();
+const einkKeep_ = () => { try { localStorage.setItem(EINK_KEY, JSON.stringify({ mode: EINK.mode, verse: EINK.verse, icon: EINK.icon })); } catch (e) {} };
+/* THE SAME FILES THE SCREEN'S PROGRAM IS BUILT FROM: data/eink-verses.json is verse.cpp's list, data/icons.json the icon database with its drawings. */
+function einkLoad_() {
+  if (EINK.asked) return;
+  EINK.asked = true;
+  const get = f => fetch('data/' + f, { cache: 'default' }).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+  Promise.all([get('eink-verses.json'), get('icons.json')])
+    .then(([v, i]) => { EINK.verses = Array.isArray(v) ? v : []; EINK.icons = (Array.isArray(i) ? i : []).filter(x => x && x.svg); })
+    .catch(() => { EINK.failed = true; })
+    .then(() => paintEink_());
 }
+const einkList_ = () => (EINK.mode === 'icon' ? EINK.icons : EINK.verses) || [];
+function einkFace_() {
+  const list = einkList_();
+  if (!list.length) return '<p class="eink-none">The verses and icons did not load.</p>';
+  if (EINK.mode === 'icon') {
+    const ic = list[EINK.icon % list.length];
+    return `<div class="eink-icon">${ic.svg}<p class="eink-title">${esc(ic.title || '')}</p></div>`;
+  }
+  const v = list[EINK.verse % list.length], n = String(v.text || '').length;
+  return `<div class="eink-verse ${n > 150 ? 'is-long' : n > 80 ? 'is-mid' : ''}"><p>${esc(v.text || '')}</p><i class="eink-rule"></i><p class="eink-ref">${esc(v.ref || '')}</p></div>`;
+}
+function paintEink_() {
+  const list = einkList_(), ready = list.length > 0, icon = EINK.mode === 'icon';
+  const which = ready ? (icon ? EINK.icon : EINK.verse) % list.length + 1 + ' of ' + list.length : '';
+  document.querySelectorAll('.eink-box').forEach(box => {
+    if (!ready && !EINK.failed) { box.setAttribute('aria-busy', 'true'); box.innerHTML = loading_(); return; }
+    box.removeAttribute('aria-busy');
+    box.innerHTML = `<div class="eink" aria-label="An 8-inch e-ink screen, black and white">
+        <div class="eink-panel">${einkFace_()}</div></div>
+      <div class="row"><span class="k">Shows</span><span class="v">${icon ? 'An icon' : 'A verse'}${which ? ' · ' + which : ''}</span></div>
+      <div class="tile-row">${[
+        tile_({ icon: 'book', label: 'Verse', note: 'show verses', act: 'eink-mode', data: { mode: 'verse' }, on: !icon, pressed: !icon }),
+        tile_({ icon: 'figure', label: 'Icon', note: 'show icons', act: 'eink-mode', data: { mode: 'icon' }, on: icon, pressed: icon }),
+        tile_({ icon: 'left', label: 'Back', act: 'eink-step', data: { d: -1 }, off: !ready }),
+        tile_({ icon: 'right', label: 'Next', act: 'eink-step', data: { d: 1 }, off: !ready }),
+        tile_({ icon: 'again', label: 'Shuffle', act: 'eink-shuffle', off: !ready }),
+        tile_({ icon: 'sync', label: 'Sync to my screen', note: 'optional, by USB', act: 'eink-sync', off: !ready || EINK.busy }),
+        EINK.install ? tile_({ icon: 'in', label: 'Install', note: 'the screen’s program, by USB', act: 'eink-install', off: EINK.busy }) : '',
+      ].join('')}</div>
+      ${EINK.say ? `<p class="faint eink-say">${esc(EINK.say)}</p>` : ''}`;
+  });
+}
+const einkSay_ = t => { EINK.say = t; paintEink_(); };
+on('eink-mode', el => { EINK.mode = el.dataset.mode === 'icon' ? 'icon' : 'verse'; EINK.say = ''; einkKeep_(); paintEink_(); });
+on('eink-step', el => {
+  const n = einkList_().length; if (!n) return;
+  const k = EINK.mode === 'icon' ? 'icon' : 'verse';
+  EINK[k] = ((EINK[k] + (+el.dataset.d || 1)) % n + n) % n; einkKeep_(); paintEink_();
+});
+on('eink-shuffle', () => {
+  const n = einkList_().length; if (n < 2) return;
+  const k = EINK.mode === 'icon' ? 'icon' : 'verse';
+  let j = EINK[k]; while (j === EINK[k]) j = Math.floor(Math.random() * n);
+  EINK[k] = j; einkKeep_(); paintEink_();
+});
+/* SYNCING, IN PLACE: Web Serial from this widget, never another page. The program listens for a few seconds after a plug-in or RESET (verse.cpp `listen`). */
+const EINK_USB = 0x303a;   // the ESP32-S3's own USB id, as install.js filters
+async function einkPort_() {
+  if (!('serial' in navigator)) { einkSay_('Syncing needs Chrome or Edge on a computer, with the screen plugged in by USB.'); return null; }
+  try { return await navigator.serial.requestPort({ filters: [{ usbVendorId: EINK_USB }] }); }
+  catch (e) { einkSay_('No screen chosen.'); return null; }
+}
+on('eink-sync', async () => {
+  if (EINK.busy) return;
+  const port = await einkPort_(); if (!port) return;
+  EINK.busy = true; einkSay_('Sending… if nothing happens, press RESET on the screen now.');
+  let ok = false;
+  try {
+    await port.open({ baudRate: 115200 });
+    const line = new TextEncoder().encode((EINK.mode === 'icon' ? 'SHOW ICON ' + EINK.icon : 'SHOW VERSE ' + EINK.verse) + '\n');
+    const w = port.writable.getWriter(), r = port.readable.getReader();
+    let got = '';
+    const reading = (async () => { try { while (!ok) { const x = await r.read(); if (x.done) break; got += new TextDecoder().decode(x.value); if (/\bOK\b/.test(got)) ok = true; } } catch (e) {} })();
+    const until = Date.now() + 9000;
+    while (!ok && Date.now() < until) { try { await w.write(line); } catch (e) {} await new Promise(res => setTimeout(res, 400)); }
+    try { await r.cancel(); } catch (e) {}
+    await reading;
+    try { r.releaseLock(); w.releaseLock(); } catch (e) {}
+  } catch (e) {}
+  try { await port.close(); } catch (e) {}
+  EINK.busy = false;
+  if (!ok) EINK.install = true;
+  einkSay_(ok ? 'Sent. The screen is drawing it now.' : 'The screen did not answer. Press Sync, then RESET on the screen. A screen without the program needs Install first.');
+});
+/* INSTALL, IN PLACE: what install.html did, here — esptool-js writes the program; the page never changes. */
+on('eink-install', async () => {
+  if (EINK.busy) return;
+  const port = await einkPort_(); if (!port) return;
+  EINK.busy = true; einkSay_('Installing…');
+  try {
+    const { ESPLoader, Transport } = await import('https://unpkg.com/esptool-js@0.6.1/bundle.js');
+    const quiet = { clean() {}, writeLine() {}, write() {} };
+    const transport = new Transport(port, false);
+    const loader = new ESPLoader({ transport, baudrate: 460800, romBaudrate: 115200, terminal: quiet });
+    await loader.main();
+    const data = new Uint8Array(await (await fetch('tools/epaper-verse/epaper-verse.bin')).arrayBuffer());
+    await loader.writeFlash({ fileArray: [{ data, address: 0 }], flashMode: 'keep', flashFreq: 'keep', flashSize: 'keep', eraseAll: false, compress: true,
+      reportProgress: (i, done, all) => { EINK.say = 'Installing… ' + Math.round(100 * done / all) + '%'; paintEink_(); } });
+    await loader.after('hard_reset');
+    try { await transport.disconnect(); } catch (e) {}
+    EINK.install = false; EINK.say = 'Installed. Now press Sync to send it what this screen shows.';
+  } catch (e) { EINK.say = 'The install did not finish. Hold BOOT, unplug and replug the screen, then press Install again.'; }
+  EINK.busy = false; paintEink_();
+});
 
 /* ---------- PROFIT: THE BUSINESS'S SUM, WRITTEN OUT, EVERY TERM A CONTROL (docs/history/393) ----------
    The terms are `priceFrom`'s and `bookMoney_`'s (core.js): the tutor keeps the first seat's rate and c of each extra seat. */

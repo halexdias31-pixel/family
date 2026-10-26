@@ -11,6 +11,7 @@
 #ifdef VERSE_ICONS   // the icon screen: build with -DVERSE_ICONS; icons.h is written by make-icons.js
 #include "icons.h"
 #endif
+#include "pictures.h"   // every icon of data/icons.json at 120x160, written by make-icons.js (470)
 
 #define EPD_PWR 6   // panel power, LOW = on; e-paper keeps its picture with the power off
 GxEPD2_BW<GxEPD2_154_D67, GxEPD2_154_D67::HEIGHT> display(GxEPD2_154_D67(/*CS*/ 11, /*DC*/ 10, /*RST*/ 9, /*BUSY*/ 8));
@@ -192,12 +193,53 @@ void drawVerseIcon(const String &text, const String &ref, int which) {
 }
 #endif
 
+// Icon mode (470): one icon, its title beneath; the website's widget chose it.
+void drawPicture(int k) {
+  display.setFullWindow();
+  display.firstPage();
+  do {
+    display.fillScreen(GxEPD_WHITE);
+    display.drawBitmap((200 - PIC_W) / 2, 4, PICS[k], PIC_W, PIC_H, GxEPD_BLACK);
+    display.setTextColor(GxEPD_BLACK);
+    display.setFont(&FreeSerifItalic9pt7b);
+    String t = PIC_TITLES[k];
+    display.setCursor(max(0, (200 - textWidth(t)) / 2), 192);
+    display.print(t);
+  } while (display.nextPage());
+}
+
+// What the website's widget sends over USB (Web Serial, 115200), in the first seconds after a plug-in or RESET:
+// "SHOW VERSE <n>" or "SHOW ICON <n>" (0-based). The screen answers "OK" and keeps it; the daily alarm then moves on from there.
+bool listen(int &mode, int &i) {
+  Serial.begin(115200);
+  Serial.println("READY epaper-verse 470");
+  String line; unsigned long until = millis() + 6000;
+  while (millis() < until) {
+    while (Serial.available()) {
+      char c = Serial.read();
+      if (c != '\n' && c != '\r') { if (line.length() < 40) line += c; continue; }
+      line.trim();
+      if (line.startsWith("SHOW VERSE ")) { mode = 0; i = line.substring(11).toInt(); }
+      else if (line.startsWith("SHOW ICON ")) { mode = 1; i = line.substring(10).toInt(); }
+      else { line = ""; continue; }
+      i = max(0, i) % (mode ? NPICS : N);
+      Serial.println("OK");
+      Serial.flush();
+      return true;
+    }
+    delay(10);
+  }
+  return false;
+}
+
 void setup() {
-  // Which verse: the daily alarm moves on by one; plugging in or RESET shows the same one again.
+  // Which verse or icon: the daily alarm moves on by one; plugging in or RESET shows the same one again unless the website sends one.
   Preferences keep;
   keep.begin("verse", false);
-  int i = keep.getInt("i", 0) % N;
-  if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_TIMER) { i = (i + 1) % N; keep.putInt("i", i); }
+  int mode = keep.getInt("mode", 0), i = keep.getInt("i", 0);
+  i %= (mode ? NPICS : N);
+  if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_TIMER) { i = (i + 1) % (mode ? NPICS : N); keep.putInt("i", i); }
+  else if (listen(mode, i)) { keep.putInt("mode", mode); keep.putInt("i", i); }
   keep.end();
 
   pinMode(EPD_PWR, OUTPUT); digitalWrite(EPD_PWR, LOW);
@@ -205,6 +247,8 @@ void setup() {
   display.epd2.selectSPI(SPI, SPISettings(4000000, MSBFIRST, SPI_MODE0));
   display.init(0, true, 2, false);
   display.clearScreen();   // a full refresh to white first: nothing old (an earlier picture, a ghost) survives
+  if (mode) drawPicture(i);
+  else
 #ifdef VERSE_ICONS
   drawVerseIcon(VERSES[i][0], VERSES[i][1], VERSE_ICON[i]);
 #else
