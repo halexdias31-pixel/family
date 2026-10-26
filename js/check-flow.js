@@ -28985,7 +28985,7 @@ check('layout tiles (463): an admin sees ▲ ▼ ◀ ▶ Delete on each widget; 
   if (!A['lay-w-move'] || typeof w.layoutTiles_ !== 'function') return ['no lay-w-move handler or layoutTiles_ — NOT checked'];
   if (A['layout-edit'] || A['layout-done'] || typeof w.layoutEditOpen_ === 'function') bad.push('the Edit layout board is still there');
   t.go('tools', false, true); await wait(300);
-  const tools0 = layIds_(t, 'tool'), shop0 = layIds_(t, 'shop');
+  const tools0 = layIds_(t, 'tool');
   const [a, b, c] = tools0;
   const row = d.querySelector(`#wgt-${a}`)?.closest('.card')?.querySelector('.wgt-admin');
   if (!row) return bad.concat(['the first tool has no admin row']);
@@ -29018,14 +29018,10 @@ check('layout tiles (463): an admin sees ▲ ▼ ◀ ▶ Delete on each widget; 
   const r = layBoot_({ payload: p2 }); await wait(300);
   const t2 = r.w.__t;
   if (layIds_(t2, kindOf[next]).join() !== there.join()) bad.push('a reload did not keep the layout');
-  /* RESET restores the code's order. */
+  /* NO RESET (477): the moved layout IS the layout. */
   r.w.__t.go('biz', false, true); await wait(200);
-  if (!r.w.document.querySelector('#s-biz .layout-card [data-do="layout-reset"]')) bad.push('Business has no Reset layout with a layout in force');
-  if (r.w.document.querySelector('[data-do="layout-edit"]')) bad.push('Business still has an Edit layout tile');
-  t2.ACTIONS['layout-reset'](); await wait(200);
-  if (layIds_(t2, 'tool').join() !== tools0.join() || layIds_(t2, 'shop').join() !== shop0.join()) bad.push('Reset did not restore the defaults');
-  const rp = r.sent.filter(x => x.action === 'layoutSave');
-  if (!rp.length || rp[0].reset !== 'TRUE') bad.push('Reset sent no reset layoutSave');
+  if (r.w.document.querySelector('[data-do="layout-edit"], [data-do="layout-reset"], .layout-card')) bad.push('Business still has a Layout card, Edit or Reset');
+  if (t2.ACTIONS['layout-reset']) bad.push('a layout-reset handler still exists');
   /* A REFUSAL: drawn at once, then put back with a toast. */
   const no = layBoot_({ reply: b2 => b2.action === 'layoutSave' ? { success: false, error: 'No.' } : undefined }); await wait(300);
   no.w.__t.go('tools', false, true); await wait(300);
@@ -29034,7 +29030,7 @@ check('layout tiles (463): an admin sees ▲ ▼ ◀ ▶ Delete on each widget; 
   return bad;
 });
 
-check('layout tiles (463): Delete asks twice in place, the deleted widget is not drawn or paged, Add back on Business returns it; the basket has no Delete; Saved has no admin row; a non-admin sees no tiles and cannot post', async () => {
+check('layout tiles (463): Delete asks twice in place and is final (477), the deleted widget is not drawn or paged, nothing on Business brings it back; the basket has no Delete; Saved has no admin row; a non-admin sees no tiles and cannot post', async () => {
   const { w, sent } = layBoot_();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
@@ -29057,19 +29053,52 @@ check('layout tiles (463): Delete asks twice in place, the deleted widget is not
   if (layTile_(d, 'cart', 'lay-w-del')) bad.push('the basket has a Delete tile');
   /* SAVED DRAWS NO ADMIN ROW (only a widget's own column does). */
   if (w.widgetOnColumn_(w.allWidgets().find(x => x.kind === 'tool'), 0).indexOf('wgt-admin') !== -1) bad.push('the Saved drawing carries the admin row');
-  /* ADD BACK, on Business. */
+  /* NO WAY BACK (477): no Add back, no Reset, no deleted-picker anywhere. */
   t.go('biz', false, true); await wait(300);
-  const pick = d.querySelector('#s-biz .layout-card select.lay-del-pick');
-  if (!pick || !pick.querySelector('option[value="wordgames"]')) return bad.concat(['Business lists no deleted widget']);
-  pick.value = 'wordgames';
-  A['lay-w-undel'](); await wait(300);
-  if (layIds_(t, 'game').indexOf('wordgames') === -1) bad.push('Add back did not return it to Games');
+  if (A['lay-w-undel'] || A['layout-reset']) bad.push('an Add back or Reset handler still exists');
+  if (d.querySelector('.lay-del-pick, .lay-foot, .layout-card, [data-do="lay-w-undel"], [data-do="layout-reset"]')) bad.push('a way back is still drawn');
+  if (/Add back|Reset layout|Deleted cards/.test(d.body.textContent)) bad.push('the page still says Add back, Reset layout or Deleted cards');
   /* A NON-ADMIN: no tiles, no post. */
   const m = boot({ member: true }); await wait(300);
   for (const col of ['tools', 'games', 'shop', 'reel']) { m.w.__t.go(col, false, true); await wait(150); }
   if (m.w.document.querySelector('.wgt-admin, [data-do="lay-w-move"], [data-do="lay-w-del"]')) bad.push('a member sees layout tiles');
-  m.w.__t.ACTIONS['layout-reset'](); m.w.__t.ACTIONS['lay-w-undel'](); await wait(100);
   if (m.sent.some(x => x.action === 'layoutSave')) bad.push('a member posted layoutSave');
+  return bad;
+});
+
+check('no undo (477): a deleted widget stays gone for everyone after a reload and a moved one keeps its place for a client; no Add back or Reset for the admin', async () => {
+  const { w, sent } = layBoot_();
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  t.go('games', false, true); await wait(300);
+  const x = layTile_(d, 'wordgames', 'lay-w-del');
+  if (!x) return ['Word games has no Delete tile — NOT checked'];
+  A['lay-w-del'](x); A['lay-w-del'](x); await wait(300);
+  t.go('tools', false, true); await wait(300);
+  /* TIMER DOWN, past docket: both seen by a client (some tools are role-gated). */
+  const tools0 = layIds_(t, 'tool'), a = tools0.indexOf('timer') !== -1 ? 'timer' : tools0[1], f = tools0[tools0.indexOf(a) + 1];
+  A['lay-w-move'](layTile_(d, a, 'lay-w-move', '1')); await wait(300);
+  const posts = sent.filter(p => p.action === 'layoutSave'), L = posts.length && posts[posts.length - 1].layout;
+  if (!L) return bad.concat(['no layoutSave was posted — NOT checked']);
+  if (posts.some(p => p.reset)) bad.push('a layoutSave carried reset');
+  const moved = layIds_(t, 'tool');
+  /* AN ADMIN RELOADS: still gone, nothing to bring it back. */
+  const p1 = payload(); p1.layout = L;
+  const r = layBoot_({ payload: p1 }); await wait(300);
+  for (const col of ['games', 'biz']) { r.w.__t.go(col, false, true); await wait(200); }
+  if (layIds_(r.w.__t, 'game').indexOf('wordgames') !== -1 || r.w.document.querySelector('#wgt-wordgames')) bad.push('the deleted widget came back for the admin');
+  if (r.w.__t.ACTIONS['lay-w-undel'] || r.w.__t.ACTIONS['layout-reset'] || /Add back|Reset layout/.test(r.w.document.body.textContent)) bad.push('the admin still has Add back or Reset');
+  /* A CLIENT RELOADS: the same layout. */
+  const CL = { name: 'Cleo Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'cleo' };
+  const p2 = payload(); p2.layout = L;
+  const c = boot({ payload: p2, before: signedInAs_(CL) }); await wait(300);
+  for (const col of ['games', 'tools']) { c.w.__t.go(col, false, true); await wait(200); }
+  if (layIds_(c.w.__t, 'game').indexOf('wordgames') !== -1 || c.w.document.querySelector('#wgt-wordgames')) bad.push('the deleted widget is drawn for a client');
+  /* A CLIENT SEES FEWER TOOLS (role-gated ones), so compare the order of the ones both see — and the moved one must be after its old follower. */
+  const cl = layIds_(c.w.__t, 'tool'), both = moved.filter(x => cl.indexOf(x) !== -1);
+  if (cl.filter(x => both.indexOf(x) !== -1).join() !== both.join()) bad.push('the move did not keep for a client: ' + cl.join() + ' not ' + both.join());
+  if (cl.indexOf(a) === -1 || cl.indexOf(f) === -1) bad.push(a + ' or ' + f + ' is not seen by a client — the move NOT checked');
+  else if (cl.indexOf(a) < cl.indexOf(f)) bad.push('the moved tool is not below ' + f + ' for a client: ' + cl.join());
   return bad;
 });
 
@@ -29199,7 +29228,7 @@ check('layout cards (465): an admin sees ▲ ▼ ◀ ▶ Start here Delete on ev
       ['Move up', 'Move down', 'Move to previous column', 'Move to ', 'Start here', 'Delete'].forEach(l => { if (labels.indexOf(l) === -1) bad.push(id + ' has no ' + l); });
     });
   }
-  ['ppl:students:help', 'ppl:students:add', 'ppl:tutors:add', 'ppl:parents:add', 'biz:build', 'biz:layout', 'acct:pin'].forEach(id => { if (!layCardTile_(d, id, 'lay-c-del')) bad.push(id + ' has no Delete'); });
+  ['ppl:students:help', 'ppl:students:add', 'ppl:tutors:add', 'ppl:parents:add', 'biz:build', 'acct:pin'].forEach(id => { if (!layCardTile_(d, id, 'lay-c-del')) bad.push(id + ' has no Delete'); });
   /* SPLIT SITS BESIDE THEM on a card of several fields (Contact & address). */
   const split = d.querySelector('#s-account .card[data-split^="set:account:"] [data-do="lay-split"]');
   if (!split || !split.closest('.card').querySelector('.card-admin')) bad.push('a several-field settings card lacks Split beside its admin row');
@@ -29250,7 +29279,7 @@ check('layout cards (465): an admin sees ▲ ▼ ◀ ▶ Start here Delete on ev
   return bad;
 });
 
-check('layout cards (465): Delete asks twice in place and says when a card is the only place to edit a setting; deleted cards are listed by title on Business and come back to their own column; the Layout card itself can go, leaving a "Deleted cards" line at the foot of Business; Build, Needs help, Manage your child and the "+ Add" cards all delete; Reset restores all', async () => {
+check('layout cards (465): Delete asks twice in place and says when a card is the only place to edit a setting; a delete is final (477) — nothing lists or brings it back; Build, Needs help, Manage your child and the "+ Add" cards all delete', async () => {
   const { w, sent } = layBoot_();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
@@ -29270,29 +29299,11 @@ check('layout cards (465): Delete asks twice in place and says when a card is th
   for (const id of ['biz:build', 'ppl:students:help', 'ppl:students:add', 'ppl:tutors:add', 'ppl:parents:add']) says[id] = await del(id);
   if (!/^Tap again to delete/.test(says['biz:build'] || '')) bad.push('Build\'s second step reads ' + says['biz:build']);
   if (d.querySelector('#s-biz .me-build') || d.querySelector('.help-list') || d.querySelector('[data-do="person-add"]')) bad.push('Build, Needs help or an Add card is still drawn');
-  /* LISTED BY TITLE on the Layout card. */
-  const opts = [...d.querySelectorAll('#s-biz .layout-card .lay-del-pick option')].map(o => o.value + '=' + o.textContent);
-  [grp, 'biz:build', 'ppl:students:help'].forEach(id => { if (!opts.some(o => o.indexOf(id + '=') === 0)) bad.push('Business does not list ' + id + ': ' + opts.join('|')); });
-  if (!opts.some(o => o === 'biz:build=Build')) bad.push('Build is not listed by its title');
-  /* ADD BACK, to its own column. */
-  const pick = d.querySelector('#s-biz .layout-card .lay-del-pick');
-  pick.value = 'ppl:students:add';
-  A['lay-w-undel'](d.querySelector('#s-biz .layout-card [data-do="lay-w-undel"]')); await wait(250); await layPaintAll_(w);
-  if (!d.querySelector('#s-students [data-do="person-add"]')) bad.push('Add back did not return "+ Add a student" to Student profiles');
-  /* THE LAYOUT CARD ITSELF: gone, and the foot line is the way back. */
-  await del('biz:layout');
-  if (d.querySelector('#s-biz .layout-card')) bad.push('the Layout card was not deleted');
-  const foot = d.querySelector('#s-biz > .page:last-child .lay-foot');
-  if (!foot || !/Deleted cards \(\d+\)/.test(foot.textContent)) return bad.concat(['no "Deleted cards" line at the foot of Business']);
-  foot.querySelector('.lay-del-pick').value = 'biz:layout';
-  A['lay-w-undel'](foot.querySelector('[data-do="lay-w-undel"]')); await wait(250); await layPaintAll_(w);
-  if (!d.querySelector('#s-biz .layout-card')) bad.push('Add back on the foot line did not return the Layout card');
+  /* FINAL (477): no list of deleted cards, no Add back, no Layout card. */
+  if (d.querySelector('.lay-del-pick, .lay-foot, .layout-card, [data-do="lay-w-undel"], [data-do="layout-reset"]')) bad.push('a way back is still drawn');
   /* MANAGE YOUR CHILD, for a client. */
   const CL = { name: 'Cleo Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'cleo' };
   const c = boot({ before: signedInAs_(CL) }); await wait(300);
-  /* RESET restores everything. */
-  A['layout-reset'](); await wait(250); await layPaintAll_(w);
-  if (!d.querySelector('#s-biz .me-build') || !d.querySelector('.help-list') || laySeen_(w, 'account').indexOf(grp) === -1) bad.push('Reset did not bring every card back');
   /* A CARD DELETED FOR EVERYBODY: Manage your child on a client's phone. */
   const p = payload(); p.layout = { v: 1, widgets: {}, deleted: ['ppl:students:manage'] };
   const c2 = boot({ payload: p, before: signedInAs_(CL) }); await wait(300); await layPaintAll_(c2.w);

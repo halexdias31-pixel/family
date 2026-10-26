@@ -73,6 +73,13 @@ fill stay Find's alone. A kept card Saved cannot draw whole has `Open · in Find
 (Find without the resources, the second column with only them) is gone; don't bring back a membership
 rule per finder.
 
+### The admin's layout has no undo (477)
+
+An admin's tiles on a widget or card move it or delete it, for everybody, saved at once (`layoutSave`,
+config's `layout` row). There is no Layout card, no Add back and no Reset: the current layout IS the
+layout. Delete asks twice in place and is final; `deleted` only keeps the item from being drawn again.
+A widget or card added in code later still appears in its own column. `layoutSave` refuses an empty layout.
+
 ### Layout, and why the checks are shaped the way they are
 
 Screens sit **side by side** and slide — `placeCells()` positions them with transforms. So at any

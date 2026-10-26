@@ -120,7 +120,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-26-q-layout-engine";
+const BACKEND_VERSION = "2026-10-26-r-no-undo";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
