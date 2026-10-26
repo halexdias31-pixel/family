@@ -8,6 +8,8 @@ const LAYOUT_STORE = 'familyLayout';
 const LAYOUT_ID = /^[A-Za-z0-9_:.-]{1,64}$/;
 /* NEVER DELETED: the basket, the one place a shop order is paid (Shop's `cart-open` lands on it). Settings and profiles are not widgets. */
 const LAYOUT_KEEP = ['cart'];
+/* A SPLITTABLE CARD'S ID: `set:<column>:<group>` for a settings card, `biz:<card>` for a Business one (464). */
+const LAYOUT_SPLIT_ID = /^(set|biz):[A-Za-z0-9_:.-]{1,60}$/;
 
 /* ---------- ONE SHAPE, WHATEVER ARRIVED (a string, an object, rubbish) — or null ---------- */
 /* A 462 value's `columns` and `hidden` are dropped (463): columns no longer move and nothing hides. */
@@ -22,6 +24,9 @@ function layoutSane_(v) {
   const out = { v: 1, widgets: {}, deleted: ids(o.deleted) };
   const w = o.widgets && typeof o.widgets === 'object' && !Array.isArray(o.widgets) ? o.widgets : {};
   Object.keys(w).forEach(k => { if (LAYOUT_ID.test(k)) out.widgets[k] = ids(w[k]); });
+  /* SPLIT CARDS (464): a settings or Business card drawn a field a card. */
+  const split = ids(o.split).filter(x => LAYOUT_SPLIT_ID.test(x));
+  if (split.length) out.split = split;
   return out;
 }
 
@@ -104,7 +109,9 @@ function layoutIsAdmin_() { return typeof rankAtLeast_ === 'function' && rankAtL
 function layoutDraftOf_(L) {
   const widgets = {}, all = layoutAllWidgets_();
   layoutWidgetCols_().forEach(c => { widgets[c] = layoutWidgetsIn_(c, all, L).map(w => String(w.id)); });
-  return { v: 1, widgets: widgets, deleted: L ? L.deleted.slice() : [] };
+  const out = { v: 1, widgets: widgets, deleted: L ? L.deleted.slice() : [] };
+  if (L && L.split && L.split.length) out.split = L.split.slice();
+  return out;
 }
 /* WHAT THE ADMIN SEES ON A COLUMN — a move steps over a widget they cannot see, or it would look like nothing happened. */
 function layoutSeen_(col, D) {
@@ -208,3 +215,26 @@ function layoutCard_() {
     ${del.length || L ? `<div class="tile-row">${del.length ? tile_({ icon: 'undo', label: 'Add back', act: 'lay-w-undel' }) : ''}${
       L ? tile_({ icon: 'undo', label: 'Reset layout', act: 'layout-reset' }) : ''}</div>` : ''}</div>`;
 }
+
+/* ---------- SPLIT AND JOIN (464): an admin draws a card of several fields as a card a field, in the same place, for everybody § */
+const splitId_ = (kind, a, b) => kind + ':' + [a, b].filter(Boolean).map(x => String(x).toLowerCase().replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-|-$/g, '').slice(0, 28) || 'x').join(':');
+function splitOn_(id) { const L = layoutNow_(); return !!(L && L.split && L.split.indexOf(id) !== -1); }
+/* THE ADMIN'S TILE UNDER A SPLITTABLE CARD (Split) or under each of its pieces (Join); '' for anybody else. */
+function splitTiles_(id, n) {
+  if (!layoutIsAdmin_() || !LAYOUT_SPLIT_ID.test(id)) return '';
+  if (!splitOn_(id) && !(n > 1)) return '';
+  return `<div class="tile-row wgt-admin split-tiles">${splitOn_(id)
+    ? tile_({ icon: 'merge', label: 'Join', note: 'back into one card', act: 'lay-join', tone: 'admin', data: { card: id } })
+    : tile_({ icon: 'split', label: 'Split', note: 'a card a field', act: 'lay-split', tone: 'admin', data: { card: id } })}</div>`;
+}
+function splitSet_(id, on) {
+  if (!layoutIsAdmin_() || !LAYOUT_SPLIT_ID.test(id)) return;
+  const D = layoutDraftOf_(layoutNow_());
+  const was = D.split || [];
+  D.split = on ? (was.indexOf(id) === -1 ? was.concat([id]) : was) : was.filter(x => x !== id);
+  if (!D.split.length) delete D.split;
+  layoutSave_(D);
+}
+on('lay-split', el => splitSet_(el.getAttribute('data-card') || '', true));
+on('lay-join', el => splitSet_(el.getAttribute('data-card') || '', false));

@@ -591,6 +591,9 @@ function layoutClean_(v) {
   const out = { v: 1, widgets: {}, deleted: ids(o.deleted, 300) };
   const w = o.widgets && typeof o.widgets === 'object' && !Array.isArray(o.widgets) ? o.widgets : {};
   Object.keys(w).filter(k => ID.test(k)).slice(0, 20).forEach(k => { out.widgets[k] = ids(w[k], 300); });
+  /* SPLIT CARDS (464): the ids of the settings and Business cards drawn a field a card; presentation only. */
+  const split = ids(o.split, 200).filter(x => /^(set|biz):/.test(x));
+  if (split.length) out.split = split;
   if (JSON.stringify(out).length > LAYOUT_MAX) return null;
   return out;
 }

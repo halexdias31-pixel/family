@@ -9415,13 +9415,13 @@ function accountPages_(col) {
   const mine = [];
   if (typeof peopleBelong_ === 'function' && peopleBelong_(col, family)) {
     const row = col === 'tutors' ? (cardMine_() || myRow) : myRow;
-    const face = editing_(row) ? cardEditHtml_(row)
-      : (row !== myRow ? card_(row) : (typeof meCard === 'function' ? meCard(row) : card_(row)));
+    /* NEVER AN EDITOR HERE (464): your own card is edited on your role's settings column (`ownCardSetPage_`, me.js). */
+    const face = row !== myRow ? card_(row) : (typeof meCard === 'function' ? meCard(row) : card_(row));
     /* SHARE MY PROFILE (400): their own `?tutor=` link, to send a family — on the tutor face. */
     const share = col === 'tutors' && rankAtLeast_('staff') && USER.handle
       ? tile_({ icon: 'share', label: 'Share my profile', note: 'your link', act: 'tutor-share', data: { handle: USER.handle } }) : '';
-    /* EDIT (only where this face has fields) and SHARE. Sign out and Send the link again are on Student settings (453). */
-    const tiles = editing_(row) ? '' : (typeof cardEditTile_ === 'function' ? cardEditTile_(asItem_(row, 'me')) : '') + share;
+    /* SHARE only: Edit is on your settings column (464); Sign out and Send the link again on Student settings (453). */
+    const tiles = share;
     mine.push(face + (tiles ? tileRow_(tiles, 'own-tiles', true) : ''));
   }
 

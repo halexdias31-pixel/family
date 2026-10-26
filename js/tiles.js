@@ -12,6 +12,9 @@ const TILE_ICONS = {
   down:  '<path d="M9 2.5v12"/><path d="m4.5 10 4.5 4.5 4.5-4.5"/>',
   left:  '<path d="M15 8.5h-12"/><path d="m7.5 4 -4.5 4.5 4.5 4.5"/>',
   right: '<path d="M3 8.5h12"/><path d="m10.5 4 4.5 4.5-4.5 4.5"/>',
+  /* SPLIT AND JOIN (464): one card into a card a field, and back. */
+  split: '<path d="M2.5 4.5h5v9h-5z"/><path d="M10.5 4.5h5v9h-5z"/>',
+  merge: '<path d="M2.5 4.5h13v9h-13z"/><path d="M9 6.5v5"/>',
   pause: '<path d="M6 3.5v10"/><path d="M12 3.5v10"/>',
   doc:   '<path d="M4.5 2.5h6l3 3v10h-9z"/><path d="M10.5 2.5v3.5h3"/>',
   /* A PRINTER: the sheet going in at the top, the body, the sheet coming out at the foot. § */
