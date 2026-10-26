@@ -334,6 +334,8 @@ addEventListener('pointermove', e => {
     if (typeof padBusy_ === 'function' && padBusy_()) { SWIPE.live = false; return; }
     /* NOR WHILE A FINGER IS MOVING A CARET OR A SELECTION IN A BOX (385, `kpBusy_`) */
     if (typeof kpBusy_ === 'function' && kpBusy_()) { SWIPE.live = false; return; }
+    /* NOR WHILE THE MAGNIFIER IS HELD OVER A QUESTION (463, `magBusy_`) */
+    if (typeof magBusy_ === 'function' && magBusy_()) { SWIPE.live = false; return; }
     /* A LOCKED GAME KEEPS EVERY DRAG: no column turn and no scroll of the page under it (461). */
     if (PADLOCK.game) { SWIPE.live = false; return; }
     /* ONE COUNT FOR THE WHOLE DECISION — `countHold_` in shell.js. § */
@@ -581,9 +583,6 @@ addEventListener('visibilitychange', () => {
 
 /* IF ANY OF THIS THROWS, SAY SO ON THE SCREEN. § */
 function bootFailed(err, when) {
-  /* OFF, FIRST. Whatever went wrong, it is about to be written on the screen — and a splash still
-     spraying over the top of it is the app looking busy while it has in fact stopped. */
-  try { const sp = document.getElementById('splash'); if (sp) sp.classList.add('done'); } catch (e) {}
 
   try {
     const box = document.getElementById('screen') || document.body;

@@ -25,7 +25,7 @@ const PHRASES = [
   /* ANY WAIT THAT TRAILS OFF, NOT ONLY THE BARE WORD. § */
   [/\b(Loading|Searching|Finding|Opening)\b[^<"]*(…|\.\.\.)/, 'a "Loading…" of its own — or "Searching…", "Finding…", "Opening…"'],
   /* `i`, because "still loading." is the same sentence with a small s. */
-  [/\bStill loading\b/i, '"Still loading" — that is the splash\'s line, in index.html, and nowhere in a card'],
+  [/\bStill loading\b/i, '"Still loading" — the 30-second line in index.html (#boot-slow), and nowhere in a card'],
   /* WITH ITS ELLIPSIS, because "looking for the TV remote" is a Charades card and not a wait. */
   [/\bLooking for\b[^<"]*(…|\.\.\.)/i, '"Looking for…" — the Videos card said "Looking for videos…"'],
   [/\bLooking in\b[^<"]*(…|\.\.\.)/i, '"Looking in…" — the new-post sheet said "Looking in the folder…"'],
@@ -215,34 +215,18 @@ const kfNames = new Set([...bare.matchAll(/@keyframes\s+([\w-]+)/g)].map(m => m[
 Object.keys(ACCEPTED_KEYFRAMES).filter(k => !kfNames.has(k)).forEach(k =>
   bad.push(`check-loading.js: ACCEPTED_KEYFRAMES lets "${k}" through and style.css has no @keyframes ${k} — an acceptance for nothing, waiting for the next wait given that name`));
 
-/* ---------- 5. THE LOADING SCREEN'S LOADER IS `loading_()`'s, WRITTEN OUT § */
+/* ---------- 5. NO LOADING SCREEN, SO NO LOADER WRITTEN BY HAND (466) */
+/* The splash and its hand-written copy of loading_() went at the owner's word: "I want to click on the app and it opens straight away." Every wait is drawn by loading_() where it waits. */
 let splashLoader = '';
 {
   let page = '';
   try { page = fs.readFileSync(path.join(root, 'index.html'), 'utf8'); } catch (e) {}
-  let want = '';
-  try { want = loaderSrc ? String(new Function(loaderSrc + '\nreturn loading_();')()) : ''; }
-  catch (e) { bad.push('loading_() could not be run on its own (' + e.message + ') — the splash\'s copy was NOT compared'); }
   const html = page.replace(/<!--[\s\S]*?-->/g, '');
-  const a = html.indexOf('<div id="splash-still"');
-  let still = '';
-  if (a >= 0) {
-    let depth = 0;
-    for (const m of html.slice(a).matchAll(/<(\/?)div\b[^>]*>/g)) {
-      depth += m[1] ? -1 : 1;
-      if (!depth) { still = html.slice(a, a + m.index + m[0].length); break; }
-    }
-  }
   const hand = (html.match(/\bclass\s*=\s*["']?loading\b/g) || []).length;
-  if (!page) bad.push('index.html is not readable — the loading screen\'s loader was NOT compared');
-  else if (!want) bad.push('no `loading_()` to run — the loading screen\'s loader was NOT compared');
-  else if (!still) bad.push('index.html: no `#splash-still` — a first visit has no loader on its loading screen');
-  else if (still.indexOf(want) < 0) {
-    const got = (still.match(/<div class="loading"[\s\S]*?<\/div>/) || ['(none)'])[0];
-    bad.push('index.html: the loading screen\'s loader is not `loading_()`\'s — it has ' + JSON.stringify(got.slice(0, 120))
-      + ' and loading_() returns ' + JSON.stringify(want) + '. Change both, or neither.');
-  } else splashLoader = want;
-  if (page && hand !== 1) bad.push('index.html: `class="loading"` written ' + hand + ' times — once, in `#splash-still`, is the one copy allowed');
+  if (!page) bad.push('index.html is not readable — whether it draws a loader by hand was NOT checked');
+  else if (hand) bad.push('index.html: `class="loading"` written ' + hand + ' time(s) — nothing waits in the markup since the splash went (466); loading_() draws a wait where it is');
+  else if (/\bid="splash\b/.test(html)) bad.push('index.html has a `#splash` again — the app opens straight onto its first screen (466)');
+  else splashLoader = 'none';
 }
 
 /* ---------- THE REPORT --------------------------------------------------------------------------- */
@@ -251,7 +235,7 @@ bad.forEach(b => console.log('  ' + b));
 if (!bad.length) console.log('  none');
 console.log('\nACCEPTED, EACH WITH ITS REASON  (' + note.length + ')');
 note.forEach(n => console.log('  ' + n));
-console.log(`\nthe loading screen's loader: ${splashLoader ? 'loading_()\'s own markup, once, in #splash-still' : 'NOT the one loader'}`);
+console.log(`\nthe loading screen: ${splashLoader ? 'none — the app opens on its first screen, and nothing in index.html draws a wait' : 'BACK, or unread'}`);
 console.log(`\nstrings read: ${strings} · keyframes read: ${keyframes} · loader rules, all in the one block: ${loaderRules}`
   + ` · loading_() called ${calls} times in ${callers.size} files (${[...callers].join(', ')}) · loaded_() ${loadedCalls}`);
 /* A LOADER NOTHING DRAWS PASSES EVERY RULE ABOVE — so a handful of callers is a floor. Twenty-four

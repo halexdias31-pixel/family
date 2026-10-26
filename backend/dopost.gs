@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-26-e-edit-layout";
+const DOPOST_VERSION = "2026-10-26-k-racer-works";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -2541,12 +2541,11 @@ function doPost(e) {
           booked_by: key(S(body.name)) === key(me) ? '' : S(body.name),
           /* THE MONEY BLOCK, AS THE PHONE PRICED IT (docs/history/353) — blank from an older phone, never a nought, for `tutor_pay`'s reason. § */
           gross: cash(body.gross), tutor_payout: cash(body.tutorPayout), venue_cost: cash(body.venueCost),
-          materials_charge: cash(body.materialsCharge), materials_cost: cash(body.materialsCost),
-          tickets_cost: cash(body.ticketsCost), card_fees: cash(body.cardFees), net_profit: cash(body.netProfit),
+          /* NO MATERIALS, TICKETS OR FORMAT FROM A PHONE ANY MORE (463): trips and practicals are shop items. An older phone's fields are ignored; old rows keep theirs. */
+          card_fees: cash(body.cardFees), net_profit: cash(body.netProfit),
           discount_type: S(body.discountType), discount_value: cash(body.discountValue),
           discount_code: S(body.discountCode),
           discount_absorbed_by: S(body.discountType) ? (S(body.discountAbsorbedBy) || 'Business') : '',
-          format: S(body.format), practical_id: S(body.practicalId), trip_id: S(body.tripId),
         });
         if (codeRow) setCell(codes, codeRow, 'used', N(codeRow.used) + 1);
 
@@ -2981,7 +2980,7 @@ function doPost(e) {
       return jsonOut(pin ? { success: true, pin } : { success: true, pin: '', said: 'No PIN' });
     }
 
-    /* ---------- EDIT LAYOUT (462): the site-wide order of columns and widgets, one `layout` row on config ---------- */
+    /* ---------- THE ADMIN'S LAYOUT (462, 463): the site-wide order of widgets, one `layout` row on config ---------- */
     /* `reset` (or no layout) empties the cell, and every phone goes back to the code's own order. */
     if (action === 'layoutSave') {
       const me = findPerson('', S(body.personId));
@@ -2996,7 +2995,7 @@ function doPost(e) {
       if (!t.sheet) return jsonOut({ error: 'There is no config tab to keep the layout on.' });
       const row = t.rows.find(r => norm(r.key) === LAYOUT_KEY);
       if (row) setCell(t, row, 'value', value);
-      else addRow(t, { key: LAYOUT_KEY, value: value, what_it_does: 'The site-wide order of columns and widgets, set by Edit layout on Business (462). Empty: the code\'s own order.' });
+      else addRow(t, { key: LAYOUT_KEY, value: value, what_it_does: 'The site-wide order of widgets and which are deleted, set by each widget\'s admin tiles (462, 463). Empty: the code\'s own order.' });
       clearCache();
       return jsonOut({ success: true, layout: clean });
     }
@@ -4094,3 +4093,4 @@ function reportDay_(v) {
   const m = S(v).match(/^\d{4}-\d{2}-\d{2}/);
   return m ? m[0] : '';
 }
+

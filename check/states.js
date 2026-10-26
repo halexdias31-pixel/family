@@ -489,40 +489,7 @@ const STATES = {
         try { localStorage.removeItem(window.__useKey); } catch (e) {}
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
       } },
-    /* ---------- AND ITS FIGURE TILE, WITH THE SAME GRAPH ON IT § */
-    { name: 'the Figure tile on "use your graph", opening (b)\'s grid with the graph on it',
-      enter: () => {
-        const all = stuffItemsAll_();
-        const c = all.find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-2406-2F-24c');
-        const b = all.find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-2406-2F-24b');
-        if (!c || !b) throw new Error('June 2024 2F Q24(b) or (c) is not in the library');
-        const pts = [];
-        for (let i = 0; i <= 25; i++) {
-          const x = -2 + i / 5;
-          pts.push(Math.round(146.5 + 45 * x), Math.round((194 - 22.5 * (x * x - x)) * 340 / 294));
-        }
-        window.__useKey = padKey_(b);
-        try { localStorage.setItem(window.__useKey, JSON.stringify([pts])); } catch (e) {}
-        const h = document.createElement('div');
-        h.innerHTML = figTile_(c);
-        if (!h.firstElementChild) throw new Error('Q24(c) has no Figure tile');
-        ACTIONS['q-fig'](h.firstElementChild);
-      },
-      expect: () => {
-        const s = document.querySelector('#sheet-body .qfig-sheet .qseen');
-        const art = s && s.querySelector('.qpad-art > svg:first-child');
-        const ink = s && s.querySelector('.qpad-ink');
-        if (!art || !ink) return false;
-        const a = art.getBoundingClientRect(), k = ink.getBoundingClientRect();
-        return s.querySelectorAll('.qpad-was path').length === 1 && !s.querySelector('.qpad')
-               && !/redrawn|not the paper.s own|drawn (by|for) @family|your marks from|yours from/i.test(s.textContent)
-               && Math.abs(a.width - k.width) <= 1 && Math.abs(a.height - k.height) <= 1;
-      },
-      wants: 'the sheet showing (b)\'s grid with the curve on it, read only, the ink exactly the grid\'s size, with no line about whose marks they are',
-      leave: () => {
-        try { localStorage.removeItem(window.__useKey); } catch (e) {}
-        closeSheet();
-      } },
+    /* THE FIGURE TILE ON "use your graph" WAS HERE: the tile went in 463, the owner's "they scroll up". */
     /* ---------- A CONSTRUCTION, WITH A RULER'S LINE AND A COMPASS'S RING ON IT § */
     { name: 'a construction with the ruler and compass in the pen bar, a line and a circle drawn',
       enter: () => {
@@ -1309,7 +1276,7 @@ const STATES = {
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
       } },
     /* ---------- THE KEYPAD UP ON A PART WITH A FIGURE BEHIND IT: THE FIGURE TILE STAYS ABOVE THE PAD § */
-    { name: 'a part with a figure behind it, the keypad up, the Figure tile above the pad',
+    { name: 'a part with a figure behind it, the keypad up, its box above the pad',
       enter: () => {
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-2406-1F-23b');
         if (!it) throw new Error('1F Q23b is not in the library');
@@ -1335,13 +1302,12 @@ const STATES = {
         const pad = document.getElementById('kp');
         const inp = [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === window.__kfKey);
         const pg = inp && inp.closest('.page');
-        const fig = pg && pg.querySelector('[data-do="q-fig"]');
-        if (!pad || pad.hidden || !inp || !fig) return false;
+        /* NO FIGURE TILE SINCE 463: the box, wholly above the pad, is what is asked */
+        if (!pad || pad.hidden || !inp || !pg) return false;
         const top = pad.getBoundingClientRect().top;
-        return inp.getBoundingClientRect().bottom <= top && fig.getBoundingClientRect().bottom <= top
-          && fig.getBoundingClientRect().top >= 0;
+        return inp.getBoundingClientRect().bottom <= top && inp.getBoundingClientRect().top >= 0;
       },
-      wants: '1F Q23b\u2019s box focused, the keypad up, and both the box and its Figure tile wholly above the pad',
+      wants: '1F Q23b\u2019s box focused, the keypad up, and the box wholly above the pad',
       leave: () => {
         try { localStorage.removeItem(window.__kfKey); } catch (e) {}
         if (document.activeElement && document.activeElement.blur) document.activeElement.blur();

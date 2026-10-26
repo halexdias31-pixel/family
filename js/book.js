@@ -178,35 +178,6 @@ function mondayOf_(when) {
   return d;
 }
 
-/* The hour a session starts, off `16:00` or the `4pm` some older rows hold. NaN when there is none. */
-function startHour_(t) {
-  const m = /(\d{1,2})(?::\d{2})?\s*(am|pm)?/i.exec(String(t || ''));
-  if (!m) return NaN;
-  let h = Number(m[1]);
-  if (m[2] && /pm/i.test(m[2]) && h < 12) h += 12;
-  if (m[2] && /am/i.test(m[2]) && h === 12) h = 0;
-  return h;
-}
-
-/* ---------- YOUR SESSIONS, AS THE SEVEN DAYS OF ONE WEEK § */
-function weekSessions_(when) {
-  const mon = mondayOf_(when);
-  const out = [];
-  (typeof myJobs_ === 'function' ? myJobs_() : []).forEach(j => {
-    if (!S_(j.day || j.weekday) || !S_(j.time)) return;
-    if (/cancel/i.test(String(j.status || ''))) return;
-    const from = startHour_(j.time);
-    if (!isFinite(from)) return;
-    const to = from + Math.max(1, Number(j.hours) || 2);
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(mon); date.setDate(mon.getDate() + i);
-      if (jobOn_(j, date)) out.push({ j, day: i, date, from, to });
-    }
-  });
-  return out;
-}
-
-
 /* ---------- REPAINTING BOOK WITHOUT LOSING THE PLACE § */
 /* ---------- REPAINTING THE BOOKER, WHEREVER IT IS § */
 function paintBook_() {
@@ -505,20 +476,7 @@ const BOOK_STEPS = [
   /* ---------- IT WAS ALWAYS MULTI AND NOTHING ON THE CARD SAID SO § */
   /* ---------- AND THEN THE SENTENCE CAME OFF AGAIN § */
   /* ---------- AND A WAITING LIST IS ASKED IT TOO § */
-  /* ---------- WHAT KIND OF SESSION: TUTORING, A PRACTICAL OR A TRIP (docs/history/353) § */
-  { id: 'format', label: 'What kind of session?', short: 'Format', only: 'book',
-    fallback: () => 'Tutoring',
-    options: () => BOOK_FORMATS.slice() },
-  /* THE PRACTICALS ARE `data/practicals.json`, by name, in the order a person looks one up. § */
-  { id: 'practical', label: 'Which practical?', short: 'Practical', only: 'practical',
-    options: () => uniq((DATA.practicals || []).map(p => p.name))
-      .sort((a, b) => a.localeCompare(b)) },
-  /* THE TRIPS TAB IS EMPTY TODAY, and the row says so rather than drawing a dash a person reads as a
-     dropdown that failed to load. A trip with no row still prices its teaching; it just has no tickets. */
-  { id: 'trip', label: 'Which trip?', short: 'Trip', only: 'trip',
-    fallback: () => (DATA.trips || []).length ? '' : 'None yet',
-    options: () => uniq((DATA.trips || []).map(t => t.name)) },
-
+  /* NO `format`, `practical` OR `trip` STEP (463): trips and practicals are shop items, bought in the basket. */
   { id: 'subjects', label: 'What are we working on?', short: 'Subject', multi: true,
     options: () => (subjectRows() || []).map(x => x.name) },
 
@@ -563,10 +521,7 @@ const BOOK_STEPS = [
       const out = [];
       const top = Math.max(lim.min, Math.min(lim.min + 3, lim.max));
       for (let i = lim.min; i <= top; i++) out.push(String(i));
-      /* A TRIP TAKES AS MANY CHILDREN AS ITS ROW SAYS, `max_children`, and not one more — the ticket
-         office and the risk assessment were both written for that number. */
-      const cap = tripCap_();
-      return cap ? out.filter(x => Number(x) <= cap) : out;
+      return out;
     },
     /* THE REFUSALS ONLY: a number outside what the room and the tutor allow. The note that used to
        sit beside this — what each number means, one sentence per option — is gone with the other
@@ -575,7 +530,6 @@ const BOOK_STEPS = [
     why: v => {
       const lim = seatLimits(spaceFor(BOOKING.loc), tutorRow_(), BOOKING.loc);
       if (Number(v) > lim.max) return 'more than ' + (lim.why.max || 'the limit') + ' allows';
-      if (tripCap_() && Number(v) > tripCap_()) return 'more than this trip takes (' + tripCap_() + ' children)';
       /* ---------- IN THE ROW'S OWN UNITS, WHICH THIS PRINTED THE OTHER ONE OF § */
       if (Number(v) < lim.min) {
         const need = Math.max(0, lim.min - 1);
@@ -585,8 +539,7 @@ const BOOK_STEPS = [
       return '';
     } },
 
-  /* NOT ON A TRIP (docs/history/353): the place is the trip's, and its cost is the tickets. */
-  { id: 'loc', label: 'Where?', short: 'Venue', only: 'wait, tutoring, practical',
+  { id: 'loc', label: 'Where?', short: 'Venue', only: 'wait, tutoring',
     options: () => ['At home'].concat(bookableSpaces().map(x => x.label)),
     /* THE ANSWER WRAPS. A room is "Venue — Room", and the three rooms of one building are the same
        answer until its last word — see the note at the foot of `stepSelect_`. */
@@ -603,7 +556,7 @@ const BOOK_STEPS = [
 
   /* "I'LL HOST" IS A CHOICE, and it was an inference — turned on only when somebody picked "At home", so a client who wanted to provide the room at a paid venue § */
   /* A CLASS IS AT A VENUE. Somebody's front room is not a place three other families are going. */
-  { id: 'hosting', label: 'Are you providing the space?', short: 'Space', only: 'wait, tutoring, practical',
+  { id: 'hosting', label: 'Are you providing the space?', short: 'Space', only: 'wait, tutoring',
     options: () => {
       if (isWaiting_()) return [];
       const rate = venueRate_();
@@ -796,14 +749,12 @@ function bookSpec() {
     windows: ivs.map(x => ({ startDate: x.startDate || '',
                              lastSun: x.lastSun || x.endDate || '' })),
     tutor: BOOKING.tutor === 'No preference' ? '' : BOOKING.tutor,
-    /* THE FORMAT AND WHAT IT NAMES (docs/history/353). § */
-    format: bookFormat_(BOOKING.format), practical: BOOKING.practical || '', trip: BOOKING.trip || '',
     /* AN ADMIN'S ALONE, and asked here as well as hidden on the form: a draft carried from an admin's
        session to a family's on one device must not price their booking with the admin's discount. */
     discount: (typeof isAdmin === 'function' && isAdmin() && !isWaiting_() && BOOKING.discType)
       ? { type: BOOKING.discType, value: BOOKING.discValue, code: BOOKING.discCode, by: BOOKING.discBy || 'Business' }
       : null,
-  }, bookFormat_(BOOKING.format) === 'Trip' ? { loc: '', hosting: false } : {});
+  });
 }
 
 /* The price so far, or nothing. Shown from the moment it can be worked out rather than at the end
@@ -1202,26 +1153,6 @@ function breakdownRows(L) {
   });
 
   /* ---------- AND THE COUNT OF FAMILIES IS ON BOTH DOCUMENTS NOW § */
-  /* ---------- WHAT THE FORMAT ADDS, AT ITS OWN ROWS (docs/history/353) § */
-  const e = L.earn || {}, share = x => money(x / (L.splitShares || 1));
-  const kids = Math.max(1, Number(L.n) || 1);
-  if (L.format === 'Practical') {
-    const pr = bookPractical_(BOOKING.practical);
-    if (pr && !e.uncosted) {
-      push('Materials', kids + ' × ' + money(pr.costPerRun) + (pr.setupCost ? ' + ' + money(pr.setupCost) + ' set-up' : ''),
-        e.materialsCost && e.materialsCharge !== e.materialsCost
-          ? '× ' + Math.round(e.materialsCharge / e.materialsCost * 100) / 100 : '',
-        '', share(e.materialsCharge));
-    } else if (pr) push('Materials', 'not costed yet', '', '', '', { free: true });
-  }
-  if (L.format === 'Trip') {
-    const tr = bookTrip_(BOOKING.trip);
-    if (tr) {
-      push('Tickets', kids + ' × ' + money(tr.ticketChild) + ' + ' + money(tr.ticketAdult) + ' adult',
-        '', '', share(e.tickets));
-      push('Travel', kids + ' × ' + money(tr.travelPerChild), '', '', share(e.travel));
-    }
-  }
   push('Shared by', familiesSay_(L.splitShares), '', '', '', { free: true });
 
   /* ---------- AND IT IS EVERY DATE AGAIN, WHICH IS THE OWNER'S CALL AND THE SECOND TIME ROUND § */
@@ -1541,14 +1472,7 @@ function stepControl_(st) {
 
 /* ---------- EVERY QUESTION AS A ROW, ANSWERED OR NOT § */
 /* WHICH OF THE FORM'S TWO BRANCHES THIS IS, in one place. § */
-/* AND THE FORMAT, ON AN INSTANT CLASS (docs/history/353): § */
-function bookOn_() { return isWaiting_() ? 'wait' : 'book, ' + norm(bookFormat_(BOOKING.format)); }
-/* THE TRIP'S SEAT CAP, or nought for none — `n` offers no more and refuses more. */
-function tripCap_() {
-  if (isWaiting_() || bookFormat_(BOOKING.format) !== 'Trip') return 0;
-  const t = bookTrip_(BOOKING.trip);
-  return t && Number(t.maxChildren) > 0 ? Number(t.maxChildren) : 0;
-}
+function bookOn_() { return isWaiting_() ? 'wait' : 'book, tutoring'; }
 
 function stepRows_() {
   let line = 0;
@@ -1667,10 +1591,6 @@ function stageRows_(j) {
 }
 
 const SPINE_EXTRA = [
-  /* THE FORMAT'S PRICE LINES, on the question that caused them (docs/history/353). */
-  { after: 'Practical', row: 'Materials', only: 'practical' },
-  { after: 'Trip',      row: 'Tickets',   only: 'trip' },
-  { after: 'Trip',      row: 'Travel',    only: 'trip' },
   { after: 'Subject', row: 'Extra subj.' },
   { after: 'When',    row: 'Per session', only: 'wait' },
   /* `Sharing` IS PUSHED BY `jobRows` AND BY NOTHING ELSE — measured, one push in this file. The
@@ -2213,13 +2133,9 @@ function bookMoneySend_(L) {
   const e = L && L.earn;
   if (!e) return {};
   const p2 = x => String(Math.round((Number(x) || 0) * 100) / 100);
-  const pr = L.format === 'Practical' ? bookPractical_(BOOKING.practical) : null;
-  const tr = L.format === 'Trip' ? bookTrip_(BOOKING.trip) : null;
   const out = {
-    format: L.format || 'Tutoring', practicalId: pr ? pr.id : '', tripId: tr ? (tr.tripId || '') : '',
     gross: p2(e.charged), tutorPayout: p2(e.tutorPayout), venueCost: p2(e.venue),
-    materialsCharge: p2(e.materialsCharge), materialsCost: p2(e.materialsCost),
-    ticketsCost: p2(e.ticketsCost), cardFees: p2(e.cardFees), netProfit: p2(e.net),
+    cardFees: p2(e.cardFees), netProfit: p2(e.net),
   };
   if (e.discount > 0) {
     Object.assign(out, { discountType: e.discountType, discountValue: String(e.discountValue),
@@ -2242,7 +2158,7 @@ function discountRow_(L) {
   const e = L.earn;
   const opt = (v, label, on) => `<option value="${esc(v)}"${on ? ' selected' : ''}>${esc(label)}</option>`;
   const at = f => `class="bk-${f === 'discType' || f === 'discBy' ? 'sel' : 'in'}" id="${bkCtl_(f)}" data-do="book-disc" data-field="${f}"`;
-  /* ONE LINE PER THING (421): each control is its own row, label left, value right, like Level or Format. */
+  /* ONE LINE PER THING (421): each control is its own row, label left, value right, like Level or Venue. */
   const row = (cls, k, f, sel, total) => receiptRow({ n: '', k, v: '', mul: '', rate: '', total: total || '',
     cls, ctl: bkCtl_(f), sel });
   const out = [row('rc-disc', 'Discount', 'discType',
@@ -2291,14 +2207,7 @@ function formMoney_(L) {
     more.push({ k: 'Discount · ' + (e.absorbedBy === 'Shared with tutor' ? 'shared with tutor' : 'business'),
                 t: money(e.discount), cls: 'rc-money' });
   }
-  if (L.format === 'Practical') {
-    /* CHARGED IN THE LABEL, COST IN THE FIGURE: the figure column is the subtraction, and the kit's cost is
-       what goes out — the charge is already inside `Charged` above. */
-    more.push(e.uncosted ? { k: 'Materials', t: 'not costed', cls: 'rc-money' }
-      : { k: 'Materials · charged ' + money(e.materialsCharge), t: '\u2212 ' + money(e.materialsCost), cls: 'rc-money' });
-  }
   if (e.venue > 0) more.push({ k: 'Venue', t: '\u2212 ' + money(e.venue), cls: 'rc-money' });
-  if (L.format === 'Trip') more.push({ k: 'Tickets & travel', t: '\u2212 ' + money(e.ticketsCost), cls: 'rc-money' });
   more.push({ k: 'Tutor payout', t: '\u2212 ' + money(e.tutorPayout), cls: 'rc-money' });
   more.push({ k: 'Card fees', t: e.cardFees > 0 ? '\u2212 ' + money(e.cardFees) : money(0), cls: 'rc-money' });
   /* ROUNDED TO THE PENNY BEFORE THE SIGN IS ASKED, so a net of −0.000000001 (floating point on a one-child

@@ -411,7 +411,7 @@ function widgetFor_(w) {
 }
 
 function widgetsOf_(kind) {
-  /* THE ADMIN'S LAYOUT FIRST (462): which column each widget is on and in what order, else the code's (`layoutWidgets_`, layout.js). */
+  /* THE ADMIN'S LAYOUT FIRST (462, 463): which column each widget is on and in what order, else the code's (`layoutWidgets_`, layout.js). */
   if (typeof layoutWidgets_ === 'function') return layoutWidgets_(kind, allWidgets()).filter(widgetFor_);
   return allWidgets()
     .filter(w => w.kind === kind)
@@ -422,7 +422,7 @@ function widgetColumn_(kind) {
   return widgetsOf_(kind)
     /* ---------- THE WIDGET IS THE CARD. THERE IS NOTHING TO PRESS § */
     /* ---------- AND THE NAME IS PRINTED ONCE § */
-    .map(w => widgetOnColumn_(w));
+    .map(w => widgetOnColumn_(w, true));
 }
 
 /* ---------- ONE WIDGET, ONE CARD, AND A STAR ON IT § */
@@ -430,7 +430,8 @@ const WIDGET_KEY = w => 'w:' + String(w.id);
 
 /* NAMED FOR THE COLUMN, because `find.js` already has a `widgetCard_` and it is a different object: § */
 /* ---------- AND UNTIL IT HAS STARTED, IT IS WAITING, AND IT LOOKS IT § */
-function widgetOnColumn_(w) {
+/* `own` is its own column (not Saved): only there does an admin get the layout row (463, `layoutTiles_` in layout.js). */
+function widgetOnColumn_(w, own) {
   const waits = typeof w.start === 'function' && typeof loading_ === 'function';
   const held = w.kind === 'game' && typeof gameLocked_ === 'function' && gameLocked_(w.id);
   return `<div class="card is-widget${held ? ' is-locked' : ''}">
@@ -438,6 +439,7 @@ function widgetOnColumn_(w) {
         ? `<div class="tile-row wgt-keep">${favTile_({ key: WIDGET_KEY(w), kind: 'widget' })}${
           w.kind === 'game' && typeof gameLockTile_ === 'function' ? gameLockTile_(w.id) : ''}</div>`
         : ''}
+      ${own === true && typeof layoutTiles_ === 'function' ? layoutTiles_(w) : ''}
       <div class="widget-slot" id="wgt-${esc(String(w.id))}"${waits ? ' aria-busy="true"' : ''}>${
         w.html}${waits ? loading_() : ''}</div>
     </div>`;
@@ -851,12 +853,9 @@ function mayJourney_() {
 /* THE EXAM DATES CHANGED UNDER THE COLUMN, so it is REDRAWN IF IT IS DRAWN — the rule `profileRefresh_` keeps for Settings, whose About you holds the same two § */
 function progressRedraw_() {
   try {
+    /* COUNTDOWNS ARE A TOOLS WIDGET SINCE 466, for everyone; a date saved on About you repaints it there. */
+    if (typeof paintCountdowns_ === 'function') paintCountdowns_();
     if (typeof screenHasMarkup_ === 'function' && !screenHasMarkup_('account')) return;
-    /* ON STUDENT SETTINGS SINCE 461: the Countdowns card is swapped in place, since a form just saved there can make `paint` keep the column. */
-    const j = document.querySelector('#s-account .card.prog-count');
-    if (j && typeof progressCountdownCard_ === 'function') {
-      j.outerHTML = String(progressCountdownCard_()).replace('<div class="card', '<div class="card prog-w');
-    }
     paint('account');
     paintPager('account', true);
   } catch (e) {}
@@ -943,9 +942,10 @@ function progressHoliday_() {
   return at[0] || null;
 }
 const progressDaysSaid_ = n => (n === 0 ? 'today' : n + (n === 1 ? ' day' : ' days'));
-function progressCountdownCard_() {
+/* THE ROWS, for anyone (466): the next holiday needs no account; the exam dates are your own when signed in. */
+function progressCountdownRows_() {
   const rows = [];
-  if (USER) {
+  if (typeof USER !== 'undefined' && USER) {
     const prof = USER.profile || {};
     /* THE TWO DATES TYPED ON ABOUT YOU, for a student or an admin, as before (`mayJourney_`). */
     if (mayJourney_()) {
@@ -956,14 +956,39 @@ function progressCountdownCard_() {
     }
     const big = progressBigExam_();
     if (big && big.d && progressDaysTo_(big.d) >= 0) rows.push([big.e.name, progressDaysTo_(big.d)]);
-    const hol = progressHoliday_();
-    if (hol) rows.push([hol.name, progressDaysTo_(hol.d)]);
   }
-  if (!rows.length) return emptyCard_('Countdowns');
-  return `<div class="card journey prog-count">
-    <h3>Countdowns</h3>
-    ${rows.map(([k, n]) => `<div class="row"><span class="k">${esc(k)}</span><span class="v">${progressDaysSaid_(n)}</span></div>`).join('')}
-  </div>`;
+  const hol = progressHoliday_();
+  if (hol) rows.push([hol.name, progressDaysTo_(hol.d)]);
+  return rows;
+}
+/* ---------- THE COUNTDOWNS WIDGET ON TOOLS (466): every copy by class, as the Saved column draws it too ---------- */
+function paintCountdowns_() {
+  const rows = progressCountdownRows_();
+  document.querySelectorAll('.cd-box').forEach(box => {
+    box.innerHTML = rows.map(([k, n]) => `<div class="row"><span class="k">${esc(k)}</span><span class="v">${progressDaysSaid_(n)}</span></div>`).join('');
+  });
+}
+
+/* ---------- TERM DATES (466): the end of each of the next three terms and half terms, one line each; the calendar no longer shows them ---------- */
+function termDatesRows_() {
+  const t = progressToday_();
+  const all = typeof intervals_ === 'function' ? intervals_() : ((typeof DATA !== 'undefined' && DATA && DATA.intervals) || []);
+  return all.filter(x => String(x.kind || '') !== 'holiday')
+    .map(x => ({ name: x.label || x.term || 'Term', d: typeof parseDMY === 'function' ? parseDMY(x.endDate) : null }))
+    .filter(x => x.d && x.d >= t)
+    .sort((a, b) => a.d - b.d)
+    .slice(0, 3);
+}
+function paintTermDates_() {
+  const rows = termDatesRows_();
+  const wait = !rows.length && typeof awaiting_ === 'function' && awaiting_();
+  document.querySelectorAll('.td-box').forEach(box => {
+    if (wait) { box.setAttribute('aria-busy', 'true'); box.innerHTML = loading_(); return; }
+    box.removeAttribute('aria-busy');
+    box.innerHTML = rows.length ? rows.map(r => `<div class="row"><span class="k">${esc(r.name)}</span><span class="v">ends ${
+      esc(r.d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }))}</span></div>`).join('')
+      : '<p class="faint">No term dates yet.</p>';
+  });
 }
 
 /* ---------- WHAT WAS ANSWERED ---------- */
@@ -1246,7 +1271,7 @@ function progressSessionsCard_(ss) {
 function progressCards_() {
   const signed = typeof USER !== 'undefined' && !!USER;
   const st = signed ? progressStats_() : { n: 0, weak: [], series: [], papers: {}, topics: [], recent: [] };
-  const cards = [progressCountdownCard_(), progressAnsweredCard_(st), progressActivityCard_(st), progressWeakCard_(st),
+  const cards = [progressAnsweredCard_(st), progressActivityCard_(st), progressWeakCard_(st),
     progressGradeCard_(st)];
   if (st.series.length) st.series.slice(0, 6).forEach(sr => cards.push(progressSeriesCard_(sr)));
   else cards.push(emptyCard_('Papers and worksheets'));

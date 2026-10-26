@@ -41,8 +41,13 @@ function world(opts) {
   const UrlFetchApp = {
     fetch: (url, o) => {
       const reply = (code, body) => ({ getResponseCode: () => code, getContentText: () => (typeof body === 'string' ? body : JSON.stringify(body)) });
+      /* APPS SCRIPT'S OWN LIMIT: a URL over 2 kB throws before anything is sent — every DEM ask did until 464. */
+      calls.longest = Math.max(calls.longest || 0, url.length);
+      if (url.length > 2048) throw new Error('Limit Exceeded: URLFetch URL Length.');
+      if (/\|/.test(url)) throw new Error('Invalid argument: ' + url.slice(0, 60));
       if (/overpass/.test(url)) {
         calls.overpass++;
+        calls.q = o && o.payload && o.payload.data;
         if (opts.overpassDown) throw new Error('Address unavailable');
         return reply(200, OVERPASS);
       }
@@ -55,8 +60,17 @@ function world(opts) {
         const none = (opts.noData || []).indexOf(dem[1]) !== -1;
         return reply(200, { status: 'OK', results: locs.map(([la, lo]) => ({ elevation: none ? null : groundAt(la, lo) + (opts.spike && Math.abs(la - LAT0) < 2e-6 && Math.abs(lo - LON0) < 2e-6 ? 40 : 0), location: { lat: la, lng: lo } })) });
       }
+      if (/open-meteo\.com\/v1\/elevation/.test(url)) {
+        calls.dem.meteo = (calls.dem.meteo || 0) + 1;
+        const q = k => (new RegExp('[?&]' + k + '=([^&]*)').exec(url) || [])[1].split(',').map(Number);
+        const la = q('latitude'), lo = q('longitude');
+        if (la.length !== lo.length || la.length > 100) return reply(400, { error: true, reason: 'bad lists' });
+        if ((opts.noData || []).indexOf('meteo') !== -1) return reply(429, { error: true, reason: 'Daily API request limit exceeded' });
+        return reply(200, { elevation: la.map((v, i) => groundAt(v, lo[i])) });
+      }
       if (/open-elevation/.test(url)) {
         calls.dem.openelev = (calls.dem.openelev || 0) + 1;
+        if ((opts.noData || []).indexOf('openelev') !== -1) return reply(502, 'Bad Gateway');
         const locs = JSON.parse(o.payload).locations;
         return reply(200, { results: locs.map(p => ({ latitude: p.latitude, longitude: p.longitude, elevation: groundAt(p.latitude, p.longitude) })) });
       }
@@ -168,7 +182,34 @@ const dist = (P, i, j) => Math.hypot(P[3 * i] - P[3 * j], P[3 * i + 1] - P[3 * j
 {
   const { build } = world({ noData: ['eudem25m', 'srtm30m'] });
   const out = build();
-  ok(out && out.built && /Open-Elevation/.test(out.dem), 'the fallback', 'both OpenTopoData sets empty should fall to Open-Elevation: ' + JSON.stringify(out).slice(0, 200));
+  ok(out && out.built && /Open-Meteo/.test(out.dem), 'the fallback', 'both OpenTopoData sets empty should fall to Open-Meteo: ' + JSON.stringify(out).slice(0, 200));
+}
+{
+  const { build } = world({ noData: ['eudem25m', 'srtm30m', 'meteo'] });
+  const out = build();
+  ok(out && out.built && /Open-Elevation/.test(out.dem), 'the fallback', 'Open-Meteo refusing should fall to Open-Elevation: ' + JSON.stringify(out).slice(0, 200));
+}
+/* ---------- 3b. NO ELEVATION SERVICE AT ALL: THE MAP IS STILL BUILT, FLAT, AND SAYS SO (464) ---------- */
+{
+  const { b, files, build } = world({ noData: ['eudem25m', 'srtm30m', 'meteo', 'openelev'] });
+  const out = build();
+  ok(out && out.built && out.flat === true && /flat/.test(out.dem), 'flat fallback', 'every DEM refusing should build a flat map: ' + JSON.stringify(out).slice(0, 200));
+  const map = files.size ? JSON.parse([...files.values()][0].body) : null;
+  ok(map && map.pts.every((v, i) => i % 3 !== 2 || v === 0) && /flat/.test(map.dem), 'flat fallback', 'the flat map has heights or hides that it is flat');
+  ok(b.get({ race: '1' }).built === true, 'flat fallback', '?race=1 did not serve the flat map');
+}
+/* ---------- 3c. THE REQUESTS ARE ONES THE REAL SERVICES AND APPS SCRIPT ACCEPT ---------- */
+{
+  const { calls, build } = world();
+  const out = build();
+  ok(out && out.built && calls.longest <= 2000, 'request shape', 'the longest URL was ' + calls.longest + ' characters; UrlFetch refuses over 2 kB');
+  const q = String(require('./check-gas-load.js').backend().ev('RACE_BOX.join(",")'));
+  const [s, w, n, e] = q.split(',').map(Number);
+  ok(s < n && w < e && n - s < 0.05 && e - w < 0.05, 'request shape', 'RACE_BOX is not south,west,north,east (Overpass bbox order): ' + q);
+  const ql = calls.q || '';
+  const opens = (ql.match(/\(/g) || []).length, shuts = (ql.match(/\)/g) || []).length;
+  ok(/^\[out:json\]\[timeout:\d+\];/.test(ql) && opens === shuts && (ql.match(/\(-?[\d.]+,-?[\d.]+,-?[\d.]+,-?[\d.]+\)/g) || []).length === 3
+     && /out body;>;out skel qt;/.test(ql) && !/;;/.test(ql), 'request shape', 'the Overpass QL is not what Overpass parses: ' + ql.slice(0, 200));
 }
 {
   const { b, build } = world({ overpassDown: true });

@@ -58,3 +58,15 @@ const map = {
 const out = path.join(__dirname, '..', 'check', 'race-fixture.json');
 fs.writeFileSync(out, JSON.stringify(map) + '\n');
 console.log('wrote ' + path.relative(process.cwd(), out) + ': ' + XY.length + ' points, ' + roads.length + ' roads, ' + bld.length + ' buildings');
+
+/* THE PRACTICE STREETS (464): this town as data/race-map.json, so the racer plays before any map is built. */
+/* Honest about it (`practice`, no OSM line), and never written over a real map tools/race_map.py made (`shipped`). */
+const shipped = path.join(__dirname, '..', 'data', 'race-map.json');
+let real = false;
+try { real = !!JSON.parse(fs.readFileSync(shipped, 'utf8')).shipped; } catch (e) { real = false; }
+if (real) console.log('left ' + path.relative(process.cwd(), shipped) + ': it is a real map from tools/race_map.py');
+else {
+  fs.writeFileSync(shipped, JSON.stringify(Object.assign({}, map, {
+    place: 'Practice streets', osm: '', dem: 'invented heights', practice: true })) + '\n');
+  console.log('wrote ' + path.relative(process.cwd(), shipped) + ': the practice streets');
+}

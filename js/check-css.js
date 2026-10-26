@@ -176,113 +176,14 @@ const present = c => new RegExp(c.replace(/[.*+?^${}()|[\]\\]/g, m => '\\' + m)
 const dead  = [...seenClass].filter(c => !IGNORE.has(c) && !present(c) && !maybeBuilt(c));
 const built = [...seenClass].filter(c => !IGNORE.has(c) && !present(c) && maybeBuilt(c));
 
-/* ---------- 6. THE LOADING SCREEN DRAWS ONLY WHAT THE BOOKS TEACH § */
+/* ---------- 6. NO LOADING SCREEN (466) — the owner: "I want to click on the app and it opens straight away." */
 const splashBad = [];
 {
-  const PARTS = ['still', 'say', 'wait'];
-  const STATES = ['still', 'an'];
   const page_ = fs.existsSync(path.join(dir, 'index.html')) ? fs.readFileSync(path.join(dir, 'index.html'), 'utf8') : '';
-  if (!page_) splashBad.push('index.html could not be read — the loading screen was NOT checked');
+  if (!page_) splashBad.push('index.html could not be read — whether a loading screen covers the app was NOT checked');
   const html_ = page_.replace(/<!--[\s\S]*?-->/g, '');
-  const ids = [...html_.matchAll(/\bid="splash-([\w-]+)"/g)].map(m => m[1]);
-  ids.filter(n => !PARTS.includes(n)).forEach(n => splashBad.push('index.html has `#splash-' + n + '` — a splash drawn by the page; the loading screen is a book\'s animation, or the still name and the loader, and nothing else'));
-  if (page_) PARTS.filter(n => !ids.includes(n)).forEach(n => splashBad.push('index.html has no `#splash-' + n + '` — a part of the loading screen is missing'));
-  const tag = (html_.match(/<div id="splash"[^>]*>/) || [''])[0];
-  if (tag && !/\sclass="is-still"/.test(tag)) splashBad.push('the splash opens as `' + tag + '` — its own class must be `is-still`, what a device with nothing kept and a browser running no script are shown');
-  const pick = (/<script id="pick-splash">([\s\S]*?)<\/script>/.exec(page_) || [])[1] || '';
-  const pickCode = pick.replace(/\/\*[\s\S]*?\*\//g, '');
-  if (page_ && !pick) splashBad.push('index.html has no <script id="pick-splash"> — the picker was NOT read');
-  if (/\bkinds\b/.test(pickCode)) splashBad.push('the picker has a `kinds` list again — an inline pool beside the books\' copy');
-  const set = [...pickCode.matchAll(/className\s*=\s*('[^']*'|"[^"]*")\s*(\+?)/g)];
-  set.forEach(m => {
-    const c = m[1].slice(1, -1);
-    if (m[2]) splashBad.push('the picker builds its class from what it picked (`className = ' + m[1] + ' + …`) — that is how an inline splash was chosen');
-    else if (!STATES.map(s => 'is-' + s).includes(c)) splashBad.push('the picker sets `' + c + '` — it draws a book\'s animation (`is-an`) or leaves the still one (`is-still`), and nothing else');
-  });
-  if (pick && !set.length) splashBad.push('the picker sets no class with a literal — what it may set was NOT checked');
-  rules.forEach(r => r.sel.split(',').map(s => s.trim()).forEach(s => {
-    for (const m of s.matchAll(/#splash-([\w-]+)/g)) {
-      if (!PARTS.includes(m[1])) splashBad.push('style.css line ' + r.line + '  ' + s + ' — a rule for `#splash-' + m[1] + '`, which is no part of the loading screen');
-    }
-    for (const m of s.matchAll(/#splash\.is-([\w-]+)/g)) {
-      if (!STATES.includes(m[1])) splashBad.push('style.css line ' + r.line + '  ' + s + ' — a rule for `is-' + m[1] + '`, a splash the picker can never choose');
-    }
-  }));
-  const HIDE = '#splash-still', SHOW = '#splash.is-still #splash-still';
-  rules.filter(r => r.decls.some(d => d.prop.toLowerCase() === 'display')
-      && r.sel.split(',').some(s => /#splash-still$/.test(s.trim()))).forEach(r => {
-    const disp = r.decls.filter(d => d.prop.toLowerCase() === 'display').map(d => d.val).pop();
-    if ((r.sel === HIDE && disp === 'none' && !r.cond) || (r.sel === SHOW && !r.cond)) return;
-    splashBad.push('style.css line ' + r.line + '  ' + r.sel + (r.cond ? ' (' + r.cond + ')' : '') + ' sets `display: ' + disp
-      + '` on the still splash — only `' + HIDE + ' { display: none }` and `' + SHOW + '` may, or the name is drawn over a book\'s animation');
-  });
-  if (!rules.some(r => r.sel === HIDE && !r.cond && r.decls.some(d => d.prop === 'display' && d.val === 'none'))) splashBad.push('nothing says `' + HIDE + ' { display: none }` — the still name would be drawn over every book\'s animation');
-  if (!rules.some(r => r.sel === SHOW && !r.cond && r.decls.some(d => d.prop === 'display' && d.val !== 'none'))) splashBad.push('nothing shows `#splash-still` under `is-still` — a first visit would be a black screen');
-  let sheet = null;
-  try { sheet = JSON.parse(fs.readFileSync(path.join(dir, 'data', 'settings', 'splashes.json'), 'utf8')); }
-  catch (e) { splashBad.push('data/settings/splashes.json could not be read — the sheet was NOT compared'); }
-  (sheet || []).filter(r => r.kind !== 'proof' && r.kind !== 'tool').forEach(r => splashBad.push('data/settings/splashes.json has "' + r.splash_id + '", kind "' + r.kind
-    + '" — every row is a teaching animation in a book (proof or tool); this one switches a splash that does not exist'));
-  /* ---------- AND THE PICKER IS THE FIRST THING INSIDE IT § */
-  const at = html_.search(/<div id="splash"[^>]*>/);
-  if (at < 0) splashBad.push('index.html has no `<div id="splash">` — the picker\'s place was NOT checked');
-  else {
-    const first = (html_.slice(at).replace(/^<div id="splash"[^>]*>/, '').match(/<[a-z][^>]*>/i) || [''])[0];
-    if (first !== '<script id="pick-splash">') splashBad.push('the first element inside #splash is `' + first.slice(0, 60)
-      + '`, not `<script id="pick-splash">` — the splash markup is parsed (and can be painted) before the pick');
-  }
-  /* ---------- AND NOTHING ELSE IN IT: WHAT `#splash` HOLDS IS A CLOSED LIST, NOT JUST ITS IDS § */
-  const VOID = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'source', 'track', 'wbr']);
-  const flat = html_.replace(/(<script\b[^>]*>)[\s\S]*?(<\/script>)/gi, '$1$2');
-  /* THE DIRECT CHILDREN OF THE FIRST ELEMENT `open` MATCHES: each child's opening tag, and any text
-     that is not whitespace between them. */
-  const kidsOf = open => {
-    const m0 = open.exec(flat);
-    if (!m0) return null;
-    const re = /<(\/?)([a-z][\w-]*)\b[^>]*>/gi;
-    re.lastIndex = m0.index + m0[0].length;
-    const tags = [], text = [];
-    let depth = 0, last = re.lastIndex, m;
-    while ((m = re.exec(flat))) {
-      if (!depth && flat.slice(last, m.index).trim()) text.push(flat.slice(last, m.index).trim().slice(0, 40));
-      last = re.lastIndex;
-      if (m[1]) { if (!depth) break; depth--; continue; }
-      if (!depth) tags.push(m[0]);
-      if (!VOID.has(m[2].toLowerCase()) && !/\/>$/.test(m[0])) depth++;
-    }
-    return { tags, text };
-  };
-  const attr = (tag, a) => (new RegExp('\\s' + a + '="([^"]*)"').exec(tag) || [])[1] || '';
-  /* AN ELEMENT BY ITS ID WHERE IT HAS ONE, ELSE BY ITS CLASSES: `p#boot-slow`, `div.loading`. */
-  const named = tag => (/^<([a-z][\w-]*)/i.exec(tag) || [])[1].toLowerCase()
-    + (attr(tag, 'id') ? '#' + attr(tag, 'id') : attr(tag, 'class').trim() ? '.' + attr(tag, 'class').trim().split(/\s+/).join('.') : '');
-  const closed = (where, got, allowed, why) => {
-    if (!got) return;
-    got.tags.map(named).forEach((n, i, all) => {
-      if (!allowed.includes(n)) splashBad.push(where + ' holds `' + n + '` — ' + why);
-      else if (all.indexOf(n) !== i) splashBad.push(where + ' holds `' + n + '` twice');
-    });
-    got.text.forEach(t => splashBad.push(where + ' holds the bare text "' + t + '" — ' + why));
-  };
-  const SPLASH_KIDS = ['script#pick-splash', 'div#splash-still', 'p#splash-say', 'p#splash-wait', 'p#boot-slow'];
-  const kids = kidsOf(/<div id="splash"[^>]*>/);
-  if (page_ && !kids) splashBad.push('index.html has no `<div id="splash">` — what it holds was NOT checked');
-  closed('#splash', kids, SPLASH_KIDS, 'the loading screen is the picker, the still name and its loader, the line said out loud, the slow line and the boot caption, and nothing else; anything more is a splash drawn by the page, which is what went (docs/history/322)');
-  if (kids && kids.tags.length < SPLASH_KIDS.length) splashBad.push('#splash holds ' + kids.tags.length + ' elements, not its ' + SPLASH_KIDS.length + ' parts (' + kids.tags.map(named).join(' ') + ') — the closed list was NOT compared whole');
-  const still = kidsOf(/<div id="splash-still"[^>]*>/);
-  closed('#splash-still', still, ['p.sp-name', 'div.loading'], 'the still one is the name and the loader under it, and nothing else');
-  if (still && still.tags.map(named).join(' ') !== 'p.sp-name div.loading') splashBad.push('#splash-still holds ' + (still.tags.map(named).join(' ') || 'nothing') + ' — it is the name, then the loader under it');
-  const name = kidsOf(/<p class="sp-name"[^>]*>/);
-  if (name && name.tags.length) splashBad.push('the still name holds `' + name.tags.map(named).join(' ') + '` — it is the words @family. set plainly, and an element inside it is a decoration');
-  const INTO = /#splash\b|\.sp-name\b|#boot-slow\b/;
-  rules.forEach(r => {
-    if (!r.sel.split(',').some(sel => INTO.test(sel))) return;
-    r.decls.forEach(d => {
-      const k = d.prop.toLowerCase();
-      if (k === 'content') splashBad.push('style.css line ' + r.line + '  ' + r.sel + ' gives `content` — a thing drawn on the loading screen with no markup, which no check of the markup sees');
-      if ((k === 'animation' || k === 'animation-name') && !/^none\b/.test(d.val.trim())) splashBad.push('style.css line ' + r.line + '  ' + r.sel + ' runs `' + k + ': ' + d.val + '` — nothing on the loading screen animates but a book\'s drawing (its row\'s CSS) and the loader (its own block)');
-    });
-  });
+  if (/\bid="(splash|pick-splash|splash-[\w-]+)"/.test(html_)) splashBad.push('index.html has a `#splash` again — nothing covers the app while it loads; a part that waits shows loading_() in place');
+  rules.filter(r => /#splash\b|\.sp-name\b/.test(r.sel)).forEach(r => splashBad.push('style.css line ' + r.line + '  ' + r.sel + ' — a rule for the loading screen, which is gone (466)'));
 }
 
 /* ---------- 7. EVERYTHING TAPPABLE MUST LOOK TAPPABLE § */
@@ -402,39 +303,9 @@ say('A PROFILE PICTURE PAINTED IN THE APP\'S OWN COLOURS, OR ONE OFFERED TO IT �
 say('CLASSES STYLED AND NOWHERE PRODUCED — no literal in the code could assemble these', dead, true);
 say('CLASSES A LITERAL COULD BE ASSEMBLING — ' + [...builtPrefix].sort().join(' ')
     + ' appear before a `+`, so these may well be live', built, true);
-say('A LOADING SCREEN THAT DRAWS WHAT NO BOOK TEACHES, OR SHOWS THE STILL ONE OVER A DRAWING', splashBad);
+say('A LOADING SCREEN OVER THE APP — gone since 466', splashBad);
 say('A RULE WITH NOTHING IN IT', hollow);
 say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
-
-/* ---------- 8. A LOADING SCREEN THAT DOES NOT SAY WHOSE APP IT IS § */
-{
-  const html = path.join(dir, 'index.html');
-  const nameless = [];
-  const h = fs.existsSync(html) ? fs.readFileSync(html, 'utf8') : '';
-  if (!h) nameless.push('index.html could not be read — whether the loading screen names the app was NOT checked');
-  const bare_ = h.replace(/<!--[\s\S]*?-->/g, '');
-  const a = bare_.indexOf('<div id="splash-still"');
-  /* TO ITS OWN CLOSING TAG, counted, so the name in `#splash-say` after it cannot pass for the still
-     one's — the fault this section's last version had twice, a block running on into the next. */
-  let still = '';
-  if (a >= 0) {
-    let depth = 0, i = a;
-    for (const m of bare_.slice(a).matchAll(/<(\/?)div\b[^>]*>/g)) {
-      depth += m[1] ? -1 : 1;
-      if (!depth) { i = a + m.index + m[0].length; break; }
-    }
-    still = bare_.slice(a, i);
-  }
-  if (h && !still) nameless.push('index.html has no `#splash-still` — a first visit has no loading screen to name the app on');
-  else if (h && !/@family\./i.test(still.replace(/<[^>]*>/g, '').replace(/\s+/g, ''))) {
-    nameless.push('`#splash-still` never says @family. — every first visit is a loading screen that does not name the app');
-  }
-  const pick = (/<script id="pick-splash">([\s\S]*?)<\/script>/.exec(h) || [])[1] || '';
-  if (pick.indexOf(`insertAdjacentHTML('beforeend', '<div class="sp-sig">@family.</div>')`) < 0) {
-    nameless.push('the picker does not sign a drawing it takes from the books — `<div class="sp-sig">@family.</div>` is not added to it');
-  }
-  say('A LOADING SCREEN THAT DOES NOT SAY WHOSE APP IT IS', nameless);
-}
 
 /* ---------- 9. A SPLASH BUILT AS ONE SEAMLESS LOOP STAYS ONE § */
 {

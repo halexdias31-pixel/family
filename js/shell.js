@@ -95,11 +95,7 @@ function columnsFor_() {
 /* ---------- AND THE SHEET DECIDES, ONCE THERE IS ONE § */
 function applyColumns_() {
   const rows = (DATA && DATA.columns) || [];
-  /* AND THE ADMIN'S ORDER OVER WHATEVER THE SHEET OR THE CODE SAID (462, `layoutColumns_` in layout.js). */
-  if (!rows.length) {
-    if (typeof layoutColumns_ === 'function') { layoutColumns_(TABS_BUILT.filter(t => COLUMNS.indexOf(t) !== -1)); columnsFor_(); }
-    return;
-  }
+  if (!rows.length) return;
 
   const known = {};
   TABS_BUILT.forEach(t => { known[t.id] = t; });
@@ -120,7 +116,6 @@ function applyColumns_() {
 
   COLUMNS.length = 0;
   want.forEach(t => COLUMNS.push(t));
-  if (typeof layoutColumns_ === 'function') layoutColumns_(want);
   columnsFor_();
 
   /* WHERE `AT` IS NOW. Somebody remembered on a column the sheet has just switched off would be on a
@@ -1388,6 +1383,7 @@ function placeCells(which, instant, dragPx, id) {
   if (typeof readAloudStray_ === 'function') readAloudStray_();
   /* AND A QUESTION'S PADLOCK IS LET GO WHEN A TAB OR LINK LEAVES ITS PAGE (457). */
   if (typeof qLockStray_ === 'function') qLockStray_();
+  if (typeof magStray_ === 'function') magStray_();
   if (typeof gameLockStray_ === 'function') gameLockStray_();
 
   /* THE FIRST ONE IS NOT DEFERRED. § */
@@ -2207,18 +2203,17 @@ function canSay_() {
 function hush_() {
   try { if (canSay_()) window.speechSynthesis.cancel(); } catch (e) {}
 }
-/* THE DEVICE'S VOICES, BEST FIRST (453): the owner found the first en-GB voice robotic; a natural, neural or premium one wins, eSpeak never. */
-const VOICE_KEY = 'voice:name';
-const VOICE_GOOD = [[/\b(natural|neural)\b/i, 60], [/\b(premium|enhanced)\b/i, 50], [/siri/i, 45],
-  [/^google\b/i, 35], [/\b(serena|daniel|kate|oliver|arthur|martha|stephanie|samantha|ava|allison|libby|sonia|ryan)\b/i, 15]];
+/* THE DEVICE'S OWN VOICES ONLY, CALMEST NATURAL BRITISH FIRST (453, 463 withdrawn): free, nothing to set up; eSpeak, compact and novelty voices never. */
+const VOICE_GOOD = [[/\b(natural|neural|online)\b/i, 60], [/siri/i, 50], [/\b(enhanced|premium)\b/i, 45],
+  [/\b(daniel|arthur|oliver|serena|kate)\b/i, 30], [/^google uk english (male|female)\b/i, 20]];
 const VOICE_BAD = /espeak|\bfred\b|compact|albert|bad news|bahh|bells|boing|bubbles|cellos|zarvox|trinoids|whisper|wobble|jester|organ|superstar|junior|ralph|kathy|good news|deranged|hysterical/i;
 const voiceLang_ = v => String((v && v.lang) || '').replace('_', '-').toLowerCase();
 /* A VOICE'S SCORE FOR `lang`: same language and region first, then en-US for English, then the language anywhere; -1000 is another language. */
 function voiceScore_(v, lang) {
   const want = String(lang || 'en-GB').toLowerCase(), l = voiceLang_(v), name = String((v && v.name) || '');
   if (l.slice(0, 2) !== want.slice(0, 2)) return -1000;
-  let s = l === want ? 100 : (want.slice(0, 2) === 'en' && l === 'en-us') ? 70 : 40;
-  VOICE_GOOD.forEach(g => { if (g[0].test(name)) s += g[1]; });
+  let s = l === want ? 300 : (want.slice(0, 2) === 'en' && l === 'en-us') ? 200 : 100;
+  s += Math.max(0, ...VOICE_GOOD.filter(g => g[0].test(name)).map(g => g[1]));  /* its best tier only, so the ranking reads in order */
   if (VOICE_BAD.test(name)) s -= 200;
   return s;
 }
@@ -2229,13 +2224,9 @@ function voicesRanked_(lang, list) {
   return (list || voicesAll_()).map((v, i) => ({ v, i, s: voiceScore_(v, lang) })).filter(x => x.s > -1000)
     .sort((a, b) => b.s - a.s || a.i - b.i).map(x => x.v);
 }
-function voiceChosen_() { try { return localStorage.getItem(VOICE_KEY) || ''; } catch (e) { return ''; } }
-/* THE PERSON'S CHOICE FOR ENGLISH, if the device still has it; otherwise the best. Another language always takes its own best. */
-function voicePick_(lang, list) {
-  const ranked = voicesRanked_(lang, list), mine = voiceChosen_();
-  const kept = mine && /^en/i.test(lang) ? ranked.find(v => v.name === mine) : null;
-  return kept || ranked[0] || null;
-}
+/* NO CHOICE: the best the device has; the old kept choice (453) is forgotten. */
+function voicePick_(lang, list) { return voicesRanked_(lang, list)[0] || null; }
+try { localStorage.removeItem('voice:name'); } catch (e) {}
 /* MATHS SAID AS WORDS (453): the symbols a voice skips or reads as "superscript two". Words pass through unchanged. */
 const SAY_SUP = { '⁰': 0, '¹': 1, '²': 2, '³': 3, '⁴': 4, '⁵': 5, '⁶': 6, '⁷': 7, '⁸': 8, '⁹': 9 };
 const SAY_VULGAR = { '½': 'one half', '⅓': 'one third', '⅔': 'two thirds', '¼': 'one quarter', '¾': 'three quarters', '⅕': 'one fifth', '⅛': 'one eighth' };
@@ -2273,23 +2264,23 @@ function sayChunks_(text, max) {
     });
   return out;
 }
-/* QUEUED, A SENTENCE AT A TIME, inside the tap's own handler, which is what iPhone Safari needs to speak at all; `o` = { rate, volume, onend, onstart, lang }. */
-/* `o.lang` (427): a language card's Hear it speaks es-ES or fr-FR; British English when it is not given. Voices not loaded yet: `u.lang` alone chooses. */
+/* CALM DELIVERY: a touch slow and low, a sentence an utterance so each ends on a small pause. */
+const SAY_RATE = 0.9, SAY_PITCH = 0.95;
+/* QUEUED INSIDE THE TAP'S OWN HANDLER (iPhone Safari speaks only there); `o` = { rate, volume, onend, onstart, lang }. `o.lang` (427): es-ES, fr-FR. */
 function say_(text, o) {
   o = o || {};
   try {
-    const ss = window.speechSynthesis;
     const lang = /^[a-z]{2}-[A-Z]{2}$/.test(String(o.lang || '')) ? o.lang : 'en-GB';
     const parts = sayChunks_(/^en/.test(lang) ? sayMaths_(text) : String(text));
-    if (!parts.length) { if (o.onend) o.onend(); return null; }
-    const voice = voicePick_(lang);
+    if (!parts.length || !canSay_()) { if (o.onend) o.onend(); return null; }
+    const ss = window.speechSynthesis, voice = voicePick_(lang);
     let u = null;
     parts.forEach((p, i) => {
       u = new window.SpeechSynthesisUtterance(p);
       u.lang = voice && voice.lang ? String(voice.lang).replace('_', '-') : lang;
       if (voice) u.voice = voice;
-      u.rate = o.rate || 0.95;
-      u.pitch = 1;
+      u.rate = o.rate || SAY_RATE;
+      u.pitch = SAY_PITCH;
       u.volume = o.volume == null ? 1 : o.volume;
       if (i === 0 && o.onstart) u.onstart = o.onstart;
       if (i === parts.length - 1 && o.onend) { u.onend = o.onend; u.onerror = o.onend; }
@@ -2318,7 +2309,7 @@ on('retry', () => { LOADED = false; LOAD_FAILED = ''; LIBRARY_FAILED = '';
      returns `LIBRARY_ROWS` untouched once it is set, so leaving the empty array in place
      would make the button repaint the same failure for ever. */
   LIBRARY_ROWS = null;
-  banner(''); splashOn_(); repaint(); load(); });
+  banner(''); bootLoaded_(false); repaint(); load(); });
 
 /* CARDS OPEN A SHEET, and an attempt to open them in place has been taken out again. § */
 
@@ -2550,7 +2541,6 @@ async function filesOnly_() {
     const extra = await libraryExtraRows_();
     libraryExtras_(d, extra);
     settingsInto_(d, extra);
-    try { splashSync_(d, extra); } catch (e) {}
   } catch (e) {}
   /* THE SAME THREE REPAIRS THE PAYLOAD PATH MAKES, because every reader downstream expects them
      and an absent `checklists` is a throw rather than an empty screen. */
@@ -2801,17 +2791,15 @@ async function loadOnce_(again, n) {
     const bust = (who ? '&' : '?') + '_=' + Date.now();
     /* THE SLOW-LOAD LINE STARTS ITS CLOCK HERE, beside the request it is about, rather than at boot:
        this is the moment the app begins waiting, and it is the only moment worth timing from. */
-    splashWaitWatch_();
     /* ---------- AND AT THE SAME MOMENT, COME UP ON THE FILES § */
-    clearTimeout(splashEarlyTimer);
-    splashEarlyTimer = setTimeout(() => {
+    clearTimeout(earlyTimer);
+    earlyTimer = setTimeout(() => {
       if (LOADED) return;
       filesOnly_().then(() => {
         if (LOADED) return;
         try { repaint(); } catch (e) {}
-        splashOff_();
       }).catch(() => {});
-    }, SPLASH_SAY_AFTER);
+    }, EARLY_AFTER);
     /* ---------- A DEADLINE, BECAUSE A REQUEST THAT NEVER ANSWERS IS THE WORST FAILURE § */
     let bell;
     const deadline = new Promise((unused, no) => {
@@ -2855,7 +2843,6 @@ async function loadOnce_(again, n) {
     if (loadStale_(n, who)) return;
     if (d && !d.error) {
       /* WHAT WAS ASKED FOR AND NOT SENT. § */
-      /* `splashOff` WAS WRITTEN HERE, and that is why retiring a splash never reached a device. § */
       /* AND THE STARS THE SHEET KNOWS ABOUT — see `adoptFavourites_`. Called here rather than in
          `find.js` because this is the moment a payload becomes DATA, and a favourite read before
          that is the last device's guess. */
@@ -2868,9 +2855,6 @@ async function loadOnce_(again, n) {
         libraryExtras_(d, extra);
         /* AND THE SETTINGS TABS, ON THE SAME RULE AND FROM THE SAME FETCH. § */
         settingsInto_(d, extra);
-        /* AND WHAT THE NEXT LOAD'S SPLASH IS CHOSEN FROM — see `splashSync_`. Its own `try`, so a
-           full or forbidden storage cannot cost this payload its library. */
-        try { splashSync_(d, extra); } catch (e) {}
       } catch (e) {
         d.questions = d.questions || [];
         d.dropdowns = d.dropdowns || {};
@@ -3001,8 +2985,8 @@ async function loadOnce_(again, n) {
   /* Set whether it SUCCEEDED or failed — a failed load is still a finished one, and leaving the
      loader up for ever would be the app pretending it is still trying. */
   LOADED = true;
-  /* THE SPLASH COMES OFF HERE, and here is the only place it can: § */
-  splashOff_();
+  /* THE FIRST LOAD IS DONE, said on `<html>` for whatever waits on it; nothing on screen changes. */
+  bootLoaded_(true);
 
   /* THE OFFER TO KEEP IT, a bar three seconds in, was here — removed at the owner's word; see me.js. */
 
@@ -3033,99 +3017,27 @@ async function loadOnce_(again, n) {
   if (!LOAD_FAILED && typeof findPlaceBack_ === 'function') findPlaceBack_();
 }
 
-/* ---------- THE SPLASH, OFF AND ON § */
-/* ---------- AND THE LINE UNDER IT, WHICH ONLY A SLOW LOAD EVER SEES § */
-const SPLASH_SAY_AFTER = 15000;
-let splashSayTimer = null;
-/* The one that draws the app on its files rather than the one that says it is slow -- see `load`. */
-let splashEarlyTimer = null;
-function splashSay_(on) {
-  const el = $('splash-wait');
-  if (el) el.hidden = !on;
+/* ---------- NO SPLASH (466): THE APP IS ON SCREEN FROM THE FIRST FRAME */
+/* `html.is-loaded` says the first load finished, for a check to wait on; it covers nothing. */
+const EARLY_AFTER = 15000;
+/* The one that draws the app on its files when the backend is slow -- see `load`. */
+let earlyTimer = null;
+function bootLoaded_(on) {
+  clearTimeout(earlyTimer);
+  try { document.documentElement.classList.toggle('is-loaded', !!on); } catch (e) {}
 }
-function splashWaitWatch_() {
-  clearTimeout(splashSayTimer);
-  splashSay_(false);
-  /* ONLY WHILE THE SPLASH IS ACTUALLY UP. § */
-  const sp = $('splash');
-  if (!sp || sp.classList.contains('done')) return;
-  splashSayTimer = setTimeout(() => {
-    const now = $('splash');
-    if (now && !now.classList.contains('done')) splashSay_(true);
-  }, SPLASH_SAY_AFTER);
-}
-/* ---------- WHAT THE NEXT LOAD'S SPLASH IS CHOSEN FROM § */
-const SPLASH_CACHE_F = 1;
-/* 1 500 000 FOR ALL 172 DRAWINGS' 1 377 437 CHARACTERS (436): set once, room for about fifteen more; a refused write still gives the whole copy back. */
-const SPLASH_CACHE_MAX = 1500000;
-function splashSync_(d, extra) {
-  const rows = extra && extra['settings/splashes'];
-  if (rows && rows.length) {
-    try { localStorage.setItem('splashOff', JSON.stringify((d && d.splashOff) || [])); } catch (e) {}
-  }
-  const tb = extra && extra.textbooks;
-  if (!tb || !tb.length || !d || !d.textbooks || !d.textbooks.length) return;
-  let was = null;
-  try { was = JSON.parse(localStorage.getItem('splashAnims') || 'null'); } catch (e) { was = null; }
-  const old = was && was.f === SPLASH_CACHE_F && was.h && typeof was.h === 'object' ? was.h : {};
-  const idx = { f: SPLASH_CACHE_F, ids: [], h: {} };
-  let size = 0, full = false;
-  d.textbooks.forEach(b => (b.chapters || []).forEach(c => (c.animations || []).forEach(a => {
-    if (full || !a || !a.id || idx.h[a.id]) return;
-    const n = String(a.html).length + String(a.css).length;
-    if (size + n > SPLASH_CACHE_MAX) return;
-    if (old[a.id] !== a.h) {
-      try { localStorage.setItem('splashAnim:' + a.id, JSON.stringify({ h: a.h, html: a.html, css: a.css })); }
-      catch (e) { full = true; return; }
-    }
-    size += n;
-    idx.ids.push(a.id);
-    idx.h[a.id] = a.h;
-  })));
-  /* A REFUSED WRITE GIVES THE WHOLE COPY BACK — see above. Before the sweep, which would only be
-     tidying what is about to go. */
-  if (full) { splashGiveWay_(); return; }
-  /* EVERY KEPT DRAWING THE BOOKS NO LONGER HAVE GOES, and so does one left half-written by a load that
-     stopped. Only this file's own prefix: nothing else in the store is this function's to touch. */
-  try {
-    const gone = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k && k.indexOf('splashAnim:') === 0 && !idx.h[k.slice(11)]) gone.push(k);
-    }
-    gone.forEach(k => localStorage.removeItem(k));
-  } catch (e) {}
-  /* AND AN INDEX THE STORE REFUSES TAKES ITS DRAWINGS WITH IT: without it nothing can name them, so
-     they are room taken for a splash nobody will be shown. */
-  try { localStorage.setItem('splashAnims', JSON.stringify(idx)); }
-  catch (e) { splashGiveWay_(); }
-}
-/* THE WHOLE KEPT COPY, OUT: § */
-function splashGiveWay_() {
+/* THE OLD SPLASH'S KEPT DRAWINGS (up to 1.5 MB) OUT OF THE STORE: nothing reads them since 466. True when anything went. */
+function splashForget_() {
   const gone = [];
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
-      if (k && (k === 'splashAnims' || k.indexOf('splashAnim:') === 0)) gone.push(k);
+      if (k && (k === 'splashAnims' || k === 'splashOff' || k.indexOf('splashAnim:') === 0)) gone.push(k);
     }
     gone.forEach(k => localStorage.removeItem(k));
   } catch (e) {}
   return gone.length > 0;
 }
-function splashOff_() {
-  clearTimeout(splashSayTimer); clearTimeout(splashEarlyTimer); splashSay_(false);
-  const el = $('splash'); if (el) el.classList.add('done');
-  /* AND OUT OF THE DOCUMENT ONCE IT HAS FADED. § */
-  /* AND A DRAWING THE PICKER PUT ON IT FROM THE BOOKS' COPY GOES WITH IT, back to the still name and the loader — so a Try again (`splashOn_`) shows the app § */
-  if (el) setTimeout(() => {
-    if (!el.classList.contains('done')) return;
-    el.style.display = 'none';
-    const root = el.querySelector(':scope > [class|="an"]');
-    if (root) root.remove();
-    if (el.classList.contains('is-an')) { el.classList.remove('is-an'); el.classList.add('is-still'); }
-  }, 500);
-}
-function splashOn_()  { const el = $('splash'); if (el) { el.style.display = ''; el.classList.remove('done'); } }
 
 /* `tap` IS OPTIONAL AND EVERY OLD CALLER PASSES NOTHING, which is why it is a second argument rather than a second function: § */
 function banner(msg, tap) {
@@ -3190,9 +3102,7 @@ function buildMayReload_(tag, booted) {
   try { if (sessionStorage.getItem('familyBuiltFor') === tag) return false; } catch (e) { return false; }
   /* 2. A RESUME, NOT A GLANCE. § */
   if (booted) {
-    const sp = document.getElementById('splash');
-    const up = !!(sp && !sp.classList.contains('done'));
-    if (!up && !(typeof performance !== 'undefined' && performance.now() < SPLASH_SAY_AFTER)) return false;
+    if (LOADED && !(typeof performance !== 'undefined' && performance.now() < EARLY_AFTER)) return false;
   } else if (!BUILD_HID || Date.now() - BUILD_HID < AWAY_AGAIN) return false;
   /* 3. NOTHING TYPED AND UNSAVED. § */
   const typed = [].slice.call(document.querySelectorAll('textarea, input[type="text"], input:not([type])'))
@@ -3249,3 +3159,6 @@ try {
   new MutationObserver(ms => ms.forEach(m => [].forEach.call(m.addedNodes || [], quietFields_)))
     .observe(document.documentElement, { childList: true, subtree: true });
 } catch (e) {}
+
+/* A DOUBLE TAP DOES NOTHING BUT TWO TAPS (466): iPad Safari zooms on it whatever the viewport says, and the column jumped. Nothing in the app listens for dblclick. */
+document.addEventListener('dblclick', e => { try { e.preventDefault(); } catch (err) {} }, { passive: false });

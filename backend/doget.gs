@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-26-e-edit-layout";
+const DOGET_VERSION = "2026-10-26-k-racer-works";
 
 
 function doGet(e) {
@@ -235,7 +235,7 @@ function doGet(e) {
                  'saveTodo', 'saveAvatar', 'register', 'verifyEmail',
                  /* The Timetable widget's week, kept on the account. */
                  'saveTimetable',
-                 /* Edit layout (462): the admin's order of columns and widgets. */
+                 /* The admin's layout (462, 463): the order of widgets and which are deleted. */
                  'layoutSave',
                  'listRecords', 'saveRecordsPage',
                  /* The weekly parent email's Preview — the card asks before it posts, so a backend
@@ -335,14 +335,14 @@ function doGet(e) {
       /* THE TAB LESS ITS SECRETS — `configPublic_` in core.gs. `films_folder` is the Notflix
          folder's id, and that id is the folder's only lock; this payload goes to everybody. */
       constants: { vars: configPublic_(cfg) },
-      /* THE SITE'S LAYOUT (462): the admin's order of columns and widgets over the code's, or null for the code's own. */
+      /* THE SITE'S LAYOUT (462): the admin's order of widgets over the code's, or null for the code's own. */
       layout: layoutClean_(cfg[LAYOUT_KEY]),
       /* Sent, but nothing displays them yet — the shape is settled and the presentation isn't. § */
       /* WHAT THE CALENDAR IS OFFERING TODAY. § */
       festive: [],
       /* THE CLOSED DAYS INSIDE A TERM — filled below by `closures()`. */
       closures: [],
-      trips: [], exams: [], birthdays: [], posts: [], laws: [],
+      exams: [], birthdays: [], posts: [], laws: [],
       /* AN ADMIN'S DISCOUNT CODES (docs/history/353) — filled below for an admin and nobody else. */
       promoCodes: [],
       facts: [],
@@ -827,30 +827,6 @@ function doGet(e) {
       });
     }
 
-    read(TAB.trips).rows.forEach(r => {
-      if (!S(r.name)) return;
-      // An `active` of blank counts as active: a trip nobody has marked either way is one you've
-      // just added, not one you've retired.
-      if (!ON_(r.active)) return;
-      payload.trips.push({
-        id: r._row, rowIndex: r._row,
-        name: S(r.name),
-        focus: S(r.focus).split(/[,\n]/).map(x => x.trim()).filter(Boolean),
-        description: S(r.description), image: S(r.photo), link: S(r.link),
-        provider: S(r.provider),
-        pricePerChild: N(r.price_per_child), hours: N(r.hours),
-        minChildren: N(r.min_children), maxChildren: N(r.max_children),
-        venue: S(r.venue), address: S(r.address),
-        date: fmtDate(r.date), noticeDays: N(r.notice_days),
-        /* WHAT THE BOOKING FORM PRICES A TRIP FROM (docs/history/353) — `bookMoney_` in core.js. § */
-        tripId: S(r.trip_id) || String(r._row), place: S(r.place) || S(r.venue),
-        ticketChild: N(r.ticket_child), ticketAdult: N(r.ticket_adult),
-        travelPerChild: N(r.travel_per_child), ratio: N(r.ratio),
-        notes: S(r.notes),
-        fields: TRIP_EDITABLE.reduce((a, f) => { a[f] = S(r[f]); return a; }, {})
-      });
-    });
-
     /* ---------- THE DISCOUNT CODES, TO AN ADMIN ALONE (docs/history/353) § */
     if (viewerIsAdmin) {
       const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -1023,6 +999,23 @@ function doGet(e) {
         description: S(r.description), image: S(r.photo),
         inStock: ON_(r.active),
         fields: SHOP_EDITABLE.reduce((a, f) => { a[f] = S(r[f]); return a; }, {})
+      });
+    });
+
+    /* A TRIP IS A SHOP ITEM (463): the `trips` tab's active rows join the shop list, priced per child in pence, bought through the basket like any other thing. */
+    read(TAB.trips).rows.forEach(r => {
+      if (!S(r.name) || !ON_(r.active)) return;
+      const pence = N(r.price_per_child) > 0 ? String(Math.round(N(r.price_per_child) * 100)) : '';
+      const when = fmtDate(r.date);
+      const cap = N(r.max_children);
+      payload.shop.push({
+        id: 'trip' + r._row, rowIndex: 0, kind: 'thing', kindRaw: 'thing',
+        name: S(r.name) + (when ? ' · ' + when : ''),
+        price: pence, unit: pence ? 'p' : '£',
+        acquire: 'buy', audience: 'all', level: 0, slot: '', artId: '',
+        description: [S(r.description), S(r.place) || S(r.venue), cap ? 'up to ' + cap + ' children' : '']
+          .filter(Boolean).join(' · '),
+        image: S(r.photo), inStock: true, fields: {}
       });
     });
 

@@ -75,7 +75,7 @@ function payload() {
       { title: 'Mitcham library', bestRate: 26, maxCapacity: 4, minCapacity: 1, rooms: [],
         borough: 'Merton', avail: {} },
     ],
-    students: [], resources: [], posts: [], shop: [], trips: [], exams: [],
+    students: [], resources: [], posts: [], shop: [], exams: [],
     birthdays: [], laws: [], brand: {},
     intervals: [{ rel: 'Current', term: 'Autumn 1', label: 'Autumn 1', weeks: 6,
                   startDate: '01/09/2026', endDate: '18/10/2026', kind: 'term' }],
@@ -1416,6 +1416,11 @@ check('a pence-priced shop item goes in the basket as money, on one line', async
     t.ACTIONS['cart-add'](el);
   };
   add('Pencil'); add('Sticker sheet');
+  /* AND ITS CARD SAYS £0.30, NOT "30 credits" (463: a trip is a pence-priced item). */
+  const pcard = typeof w.thingCard_ === 'function' && typeof w.stuffItemsAll_ === 'function'
+    ? String(w.thingCard_((w.stuffItemsAll_() || []).find(x => x.kind === 'shop' && x.key === 'Pencil') || {}, 0)) : null;
+  if (pcard === null) bad.push('thingCard_ or stuffItemsAll_ is not reachable, so the pencil\'s card was not checked');
+  else if (!/£0\.30/.test(pcard) || /30 credits/.test(pcard)) bad.push('the pencil\'s card does not say £0.30: ' + pcard.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 160));
   const pencil = t.CART().find(c => c.key === 'Pencil');
   if (!pencil) return ['the pencil did not go into the basket'];
   if (pencil.cost !== 0 || pencil.money !== 0.3) bad.push('a 30p pencil went in as cost ' + pencil.cost + ', money ' + pencil.money + ' — it is £0.30, not 30 credits');
@@ -7648,34 +7653,82 @@ const raceOpen_ = async (w, want) => {
   return want === 'world' ? 'the map never became a world' : 'the map was still being asked for';
 };
 
-check('racer (426, 441): on the Console, until the backend has built the map the racer\'s box is empty, an admin has a Build the map tile, and pressing it posts raceBuild', async () => {
+/* THE SHIPPED MAP (464): data/race-map.json as the site serves it. */
+const RACE_SHIPPED_ = () => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'race-map.json'), 'utf8'));
+const raceServeFix_ = (race1, shipped) => u => (u.indexOf('race=1') !== -1 ? race1
+  : /data\/race-map\.json/.test(u) ? shipped : undefined);
+
+check('racer (464): before the backend has built a map the shipped map plays for everyone, says it is practice streets, and an admin\'s first visit builds the real one by itself', async () => {
   const bad = [];
   for (const who of ['visitor', 'admin']) {
     const { w, sent, gets } = boot({ before: who === 'admin' ? signedInAs_(RACE_ADMIN_) : undefined,
-      serve: u => (u.indexOf('race=1') !== -1 ? { version: 'test', built: false, race: null } : undefined),
+      serve: raceServeFix_({ version: 'test', built: false, race: null }, RACE_SHIPPED_()),
       reply: b => (b.action === 'raceBuild' ? { error: 'No Overpass server answered.' } : undefined) });
     await wait(300);
-    const said = await raceOpen_(w, 'idle');
+    const said = await raceOpen_(w, 'world');
     if (said) return [who + ': ' + said];
-    if (!gets.some(u => /[?&]race=1/.test(u))) bad.push(who + ': the card never asked ?race=1');
-    if (gets.filter(u => /[?&]race=1/.test(u)).length > 1) bad.push(who + ': ?race=1 asked ' + gets.filter(u => /[?&]race=1/.test(u)).length + ' times for one visit');
+    if (gets.filter(u => /[?&]race=1/.test(u)).length !== 1) bad.push(who + ': ?race=1 asked ' + gets.filter(u => /[?&]race=1/.test(u)).length + ' times for one visit');
+    if (!gets.some(u => /data\/race-map\.json/.test(u))) bad.push(who + ': the shipped map was never asked for');
     const card = w.document.querySelector('#s-games #race-box');
     if (!card) { bad.push(who + ': no #race-box on Games'); continue; }
     const h3 = card.closest('.card').querySelector('h3');
     if (!h3 || h3.textContent !== 'Console') bad.push(who + ': the racer is not inside the Console card (441)');
-    const csp = w.document.querySelector('#s-games #cs-pick');
-    if (!csp || csp.value !== 'racer' || csp.options[csp.selectedIndex].textContent !== 'Colliers Wood racer') bad.push(who + ': the console picker does not say Colliers Wood racer');
-    if (card.querySelector('canvas, .loading, p')) bad.push(who + ': not built yet, yet the card draws ' + card.innerHTML.slice(0, 120));
+    if (!card.querySelector('canvas.race-gl')) bad.push(who + ': no map built, and the card has no road to drive: ' + card.innerHTML.slice(0, 120));
+    if (!card.querySelector('[data-do="race-go"].tile')) bad.push(who + ': no Drive tile on the shipped map');
+    const attr = (card.querySelector('.race-attr') || {}).textContent || '';
+    if (!/Practice streets, invented/.test(attr) || /OpenStreetMap/.test(attr)) bad.push(who + ': the practice streets do not say so (or claim OSM): ' + attr);
     const tile = card.querySelector('[data-do="race-build"]');
-    if (who === 'visitor' && tile) bad.push('a visitor is offered Build the map');
+    const builds = sent.filter(b => b.action === 'raceBuild').length;
+    if (who === 'visitor' && (tile || builds)) bad.push('a visitor is offered Build the map, or built one');
     if (who === 'admin') {
-      if (!tile) { bad.push('an admin has no Build the map tile'); continue; }
-      tile.click();
+      if (!tile) bad.push('an admin has no Build the map tile');
+      if (builds !== 1) bad.push('an admin\'s first visit posted raceBuild ' + builds + ' times, wanted once by itself');
       await wait(200);
-      if (!sent.some(b => b.action === 'raceBuild')) bad.push('Build the map posted nothing');
       if (!/No Overpass/.test((w.document.getElementById('toast') || {}).textContent || '')) bad.push('a refused build did not say why in a toast');
+      /* ONCE A DAY PER DEVICE: a second visit does not build again by itself. */
+      const R = w.racer_();
+      R.autoAsked = false;
+      w.raceAutoBuild_();
+      if (sent.filter(b => b.action === 'raceBuild').length !== 1) bad.push('the automatic build ran again within the day');
     }
   }
+  return bad;
+});
+
+check('racer (464): with neither a built map nor the shipped file the card still says why, never an empty box', async () => {
+  const { w } = boot({ serve: raceServeFix_({ version: 'test', built: false, race: null, error: 'The map file could not be opened: gone' }, null) });
+  await wait(300);
+  const said = await raceOpen_(w, 'idle');
+  if (said) return [said];
+  const card = w.document.querySelector('#s-games #race-box');
+  const words = card ? card.textContent.trim() : '';
+  return /could not be opened/.test(words) ? [] : ['no map anywhere drew ' + JSON.stringify(words.slice(0, 120))];
+});
+
+check('racer (464): an admin\'s build replaces the practice streets with the built map, paused, with the OSM line and the heights\' source', async () => {
+  const FIX = RACE_FIX_();
+  let built = false;
+  const { w, sent } = boot({ before: signedInAs_(RACE_ADMIN_),
+    serve: u => (u.indexOf('race=1') !== -1 ? (built ? { version: 'test', built: true, race: FIX } : { version: 'test', built: false, race: null })
+      : /data\/race-map\.json/.test(u) ? RACE_SHIPPED_() : undefined),
+    reply: b => (b.action === 'raceBuild' ? (built = true, { success: true, built: true, roads: 6, bld: 62, lowest: 12, highest: 21 }) : undefined) });
+  try { w.localStorage.setItem('race-autobuild', String(Date.now())); } catch (e) {}
+  await wait(300);
+  const said = await raceOpen_(w, 'world');
+  if (said) return [said];
+  const bad = [], R = w.racer_();
+  if (!R.map.practice) bad.push('the first map was not the practice streets');
+  if (sent.some(b => b.action === 'raceBuild')) bad.push('built by itself although the device built today');
+  w.raceGo_();
+  if (!R.running) bad.push('Drive did not start the practice streets');
+  w.document.querySelector('#s-games #race-box [data-do="race-build"]').click();
+  for (let k = 0; k < 40 && (R.building || !R.world || R.map.practice); k++) await wait(100);
+  if (!sent.some(b => b.action === 'raceBuild')) bad.push('Build the map posted nothing');
+  if (!R.world || R.map.practice || R.map.built !== FIX.built) bad.push('after the build the card is not on the built map');
+  if (R.running) bad.push('the lap carried on into the new map');
+  const attr = (w.document.querySelector('#s-games #race-box .race-attr') || {}).textContent || '';
+  if (!/OpenStreetMap contributors/.test(attr) || !attr.includes(FIX.dem)) bad.push('the built map\'s attribution is not on the card: ' + attr);
+  if (!/Map built: 6 roads, 62 buildings, 12–21 m/.test((w.document.getElementById('toast') || {}).textContent || '')) bad.push('no toast saying what was built');
   return bad;
 });
 
@@ -8451,13 +8504,31 @@ check('venues are off Find, and a starred venue is still on Saved', async () => 
   return bad;
 });
 
-check('the loading splash comes off', async () => {
+/* THE IPAD DOUBLE TAP (466) — the owner: "With iPad when I double tap on the screen, it breaks — the widget list shifts up." */
+check('a double tap neither zooms nor moves the column: touch-action manipulation on the page, and dblclick is refused', async () => {
+  const css = fs.readFileSync(path.join(dir, '..', 'style.css'), 'utf8');
+  const bad = [];
+  const html = /\nhtml \{[^}]*touch-action:\s*manipulation/.test(css);
+  if (!html) bad.push('style.css: `html` has no `touch-action: manipulation` — iPad Safari double-tap-zooms whatever the viewport says');
   const { w } = boot();
+  await wait(200);
+  const ev = new w.MouseEvent('dblclick', { bubbles: true, cancelable: true });
+  w.document.getElementById('screen').dispatchEvent(ev);
+  if (!ev.defaultPrevented) bad.push('a dblclick on the app was not refused — Safari would zoom on it');
+  return bad;
+});
+
+/* NO SPLASH (466) — the owner: "I want to click on the app and it opens straight away." The first screen is drawn before the payload, and the load still says when it finished. */
+check('the app opens straight onto its first screen, and the load says when it finished', async () => {
+  const { w } = boot();
+  const bad = [];
+  if (w.document.getElementById('splash')) bad.push('there is a #splash again — nothing may cover the app while it loads');
+  const first = w.document.getElementById('s-' + w.__t.AT());
+  /* DRAWN, not necessarily full: the feed's posts come with the payload, so before it the feed is loading_()'s dots in place, under nothing. */
+  if (!first || !(first.textContent.trim() || first.querySelector('.loading[role="status"]'))) bad.push('the first screen is empty straight after boot — it must draw (its own dots if it waits) before the payload');
   await wait(400);
-  const sp = w.document.getElementById('splash');
-  if (!sp) return ['there is no splash element at all'];
-  return sp.classList.contains('done') ? []
-    : ['the splash never lifted — load() did not finish, and nothing on screen would say why'];
+  if (!w.document.documentElement.classList.contains('is-loaded')) bad.push('`html.is-loaded` never came — load() did not finish, and nothing would say why');
+  return bad;
 });
 
 check('every tab draws something', async () => {
@@ -11568,20 +11639,19 @@ check('each person sees their own figure on a session, and its tiles are on the 
 
   /* AND THE FORM: an admin pricing a booking sees the Money block (docs/history/353); nobody else does. § */
   if (typeof w.__t.formMoney === 'function' && typeof w.bookMoney_ === 'function') {
-    const earn = w.bookMoney_({ sessions: 1, n: 2, tutorPay: 90, profit: 12, venue: 0, markup: 1.25,
-      practical: { costPerRun: 2, setupCost: 5 } });
-    const L = { total: earn.charged, tutorPay: 90, profitTotal: 12, format: 'Practical', earn };
+    const earn = w.bookMoney_({ tutorPay: 90, profit: 12, venue: 0 });
+    const L = { total: earn.charged, tutorPay: 90, profitTotal: 12, earn };
     w.__t.USER({ name: 'Halex Dias', personId: 'PA', role: 'admin', roles: ['admin'] });
     const fa = w.__t.formMoney(L);
     const said = fa.more.map(m => m.k + ' ' + m.t).join(' | ');
-    const wantRows = [/^Charged £113\.25/, /^Materials · charged £11\.25 − £9\.00/, /^Tutor payout − £90\.00/,
-                      /^Card fees £0\.00/, /^Net profit · 12\.6% £14\.25$/];
+    const wantRows = [/^Charged £102\.00/, /^Tutor payout − £90\.00/,
+                      /^Card fees £0\.00/, /^Net profit · 11\.8% £12\.00$/];
     if (wantRows.some(re => !fa.more.some(m => re.test(m.k + ' ' + m.t)))) {
-      bad.push('an admin pricing a practical is not shown the Money block as summed: ' + said);
+      bad.push('an admin pricing a booking is not shown the Money block as summed: ' + said);
     }
     /* A NEGATIVE NET IS RED AND SAYS SO: a £20 business-absorbed discount on the same booking. */
-    const lossEarn = w.bookMoney_({ sessions: 1, n: 1, tutorPay: 60, profit: 0, discount: { type: '£', value: 20 } });
-    const loss = w.__t.formMoney({ total: lossEarn.charged, tutorPay: 60, profitTotal: 0, format: 'Tutoring', earn: lossEarn });
+    const lossEarn = w.bookMoney_({ tutorPay: 60, profit: 0, discount: { type: '£', value: 20 } });
+    const loss = w.__t.formMoney({ total: lossEarn.charged, tutorPay: 60, profitTotal: 0, earn: lossEarn });
     const netRow = loss.more.find(m => m.k.indexOf('Net profit') === 0) || {};
     if (!/is-bad/.test(netRow.cls || '') || loss.say !== 'This booking costs you £20.00.') {
       bad.push('a booking that loses money does not say so in red: ' + JSON.stringify([netRow, loss.say]));
@@ -11599,8 +11669,6 @@ check('the booking form shows an admin what a booking earns, and a parent nothin
   await wait(300);
   if (!w.__t.paper || !w.__t.DATA) return ['bookBreakdown or DATA is not exported — cannot check the form'];
   const bad = [];
-  w.__t.DATA().practicals = [{ id: 'PR-T', name: 'Kit test', costPerRun: 2, setupCost: 5 }];
-  w.__t.DATA().trips = [];
   const ddmmyy = d => [d.getDate(), d.getMonth() + 1, d.getFullYear()].map(x => String(x).padStart(2, '0')).join('/');
   const from = new Date(Date.now() + 7 * 864e5), to = new Date(Date.now() + 28 * 864e5);
   w.__t.DATA().intervals = (w.__t.DATA().intervals || []).concat([{ label: 'Money test term', term: 'Money test term',
@@ -11609,11 +11677,11 @@ check('the booking form shows an admin what a booking earns, and a parent nothin
     const B = w.__t.BOOKING;
     Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
     Object.assign(B, { how: 'Instant class', level: 'GCSE', loc: 'Colliers Wood Library', subjects: ['Maths'],
-      n: '2', hosting: 'No', slots: ['m16', 'm17'], format: 'Practical',
+      n: '2', hosting: 'No', slots: ['m16', 'm17'],
       /* A TERM OF ITS OWN, a week from today for three weeks: the fixture's ends on a fixed date, and a term
          that has ended has no Mondays left to price, so a journey run next month would price nothing. */
       interval: ['Money test term'],
-      practical: 'Kit test', discType: '£', discValue: '5', discBy: 'Business' }, extra || {});
+      discType: '£', discValue: '5', discBy: 'Business' }, extra || {});
   };
   const doc = h => { const d = w.document.createElement('div'); d.innerHTML = h; return d; };
 
@@ -11633,10 +11701,13 @@ check('the booking form shows an admin what a booking earns, and a parent nothin
   if (!cost || !cost.classList.contains('rc-total') || cost.classList.contains('rc-more')) bad.push('the discount line is not directly above COST');
   const costSays = cost ? ((cost.querySelector('.bk-k') || {}).textContent || '') + ' ' + ((cost.querySelector('.bk-t') || {}).textContent || '') : '';
   if (!/£[\d.]+ − £5\.00 = £[\d.]+$/.test(costSays)) bad.push('COST does not read £X − £5.00 = £Y: ' + JSON.stringify(costSays));
-  ['Materials', 'Charged', 'Discount', 'Tutor payout', 'Card fees', 'Net profit'].forEach(k => {
-    if (!keys.some(x => x === k || x.indexOf(k + ' · ') === 0)) bad.push('an admin pricing a practical has no "' + k + '" row: ' + keys.join(', '));
+  ['Charged', 'Discount', 'Tutor payout', 'Card fees', 'Net profit'].forEach(k => {
+    if (!keys.some(x => x === k || x.indexOf(k + ' · ') === 0)) bad.push('an admin pricing a booking has no "' + k + '" row: ' + keys.join(', '));
   });
-  if (keys.indexOf('Format') === -1) bad.push('the form has no Format row');
+  /* NO FORMAT, PRACTICAL OR TRIP LINE (463): trips and practicals are shop items. */
+  ['Format', 'Practical', 'Trip', 'Materials', 'Tickets', 'Travel'].forEach(k => {
+    if (keys.indexOf(k) !== -1) bad.push('the form still has a "' + k + '" row (463)');
+  });
   /* NO DISCOUNT CHOSEN, NO DISCOUNT DETAIL: the three rows under Discount come only with a type (421). */
   seed({ discType: '', discValue: '', discBy: '' });
   const none = doc(w.__t.paper());
@@ -11651,27 +11722,17 @@ check('the booking form shows an admin what a booking earns, and a parent nothin
   if (p.querySelector('.rc-money, .rc-disc, .rc-disc-more, .rc-money-say')) bad.push('a parent is shown the Money block or the discount line');
   const pCost = [...p.querySelectorAll('.rc-total .bk-t')].map(x => x.textContent);
   if (pCost.some(t => /−/.test(t))) bad.push('a parent\'s COST carries the admin\'s discount: ' + pCost.join(' | '));
-  if (!/Materials/.test(p.textContent)) bad.push('a parent booking a practical is not shown its materials line');
   try { w.__t.ACTIONS['book-send']({ disabled: false, dataset: {} }); } catch (e) { bad.push('sending threw: ' + e.message); }
   await wait(250);
   const job = sent.find(x => x.action === 'createJob');
-  if (!job) bad.push('the parent\'s practical was never sent');
+  if (!job) bad.push('the parent\'s booking was never sent');
   else {
     if (job.discountType || job.discountValue) bad.push('a parent\'s booking sent discount fields: ' + job.discountType + ' ' + job.discountValue);
-    if (job.format !== 'Practical' || job.practicalId !== 'PR-T') bad.push('the job does not say it is practical PR-T: ' + job.format + ' ' + job.practicalId);
-    if (!(Number(job.materialsCost) > 0) || job.materialsCharge !== job.materialsCost) {
-      bad.push('the job does not carry its kit at cost (no markup set): charge ' + job.materialsCharge + ', cost ' + job.materialsCost);
-    }
+    ['format', 'practicalId', 'tripId', 'materialsCost', 'ticketsCost'].forEach(k => {
+      if (k in job) bad.push('the job still sends ' + k + ' (463)');
+    });
   }
 
-  /* A TRIP: no Venue, no Space, and the picker says there are none. */
-  w.__t.USER({ name: 'Test Admin', personId: 'PA', role: 'admin', roles: ['admin'] });
-  seed({ format: 'Trip', practical: '', discType: '' });
-  const t = doc(w.__t.paper());
-  const tKeys = [...t.querySelectorAll('.bk-row .bk-k')].map(x => x.textContent.trim());
-  if (tKeys.indexOf('Venue') !== -1 || tKeys.indexOf('Space') !== -1) bad.push('a trip still asks Venue or Space: ' + tKeys.join(', '));
-  const tripRow = [...t.querySelectorAll('.bk-row')].find(r => (r.querySelector('.bk-k') || {}).textContent === 'Trip');
-  if (!tripRow || !/None yet/.test(tripRow.textContent)) bad.push('with no trips the Trip row does not say "None yet"');
   return bad;
 });
 
@@ -12583,7 +12644,7 @@ check('each column opens on the page worth reading', async () => {
 });
 
 /* ---------- PROGRESS: BETWEEN SAVED AND TOOLS, AND WITH NOTHING TO COUNT, EVERY WIDGET ITS TITLE ALONE (435) ---------- */
-const PROG_TITLES_ = ['Countdowns', 'Questions', 'Recent activity', 'Work on next', 'Grade estimate', 'Papers and worksheets', 'Sessions'];
+const PROG_TITLES_ = ['Questions', 'Recent activity', 'Work on next', 'Grade estimate', 'Papers and worksheets', 'Sessions'];
 check('461: the Progress column is dissolved into Student settings — no `progress` column, an old go("progress") lands on Student settings, a swipe off Saved lands on Book, and every progress widget is on Student settings, each empty one its title alone', async () => {
   const cols = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'columns.json'), 'utf8'));
   const { w } = boot({ serve: u => (/(^|\/)data\/settings\/columns\.json(\?|$)/.test(u) ? cols : undefined) });
@@ -12619,7 +12680,6 @@ check('461: the Progress column is dissolved into Student settings — no `progr
     if (titles.join('|') !== PROG_TITLES_.join('|')) bad.push(as + ': the progress widgets on Student settings read ' + JSON.stringify(titles) + ', wanted ' + JSON.stringify(PROG_TITLES_));
     if (t.pageCount('account') !== host.querySelectorAll(':scope > .page').length) bad.push(as + ': the pager counts ' + t.pageCount('account') + ' pages over ' + host.querySelectorAll(':scope > .page').length + ' drawn');
     cards.forEach((c, k) => {
-      if (titles[k] === 'Countdowns') return;
       if (!c.classList.contains('is-empty') || c.children.length !== 1) bad.push(as + ': ' + titles[k] + ' is not its title alone');
     });
     if (d.querySelectorAll('.card.prog-w').length !== cards.length) bad.push(as + ': a progress widget is drawn somewhere else too');
@@ -12631,7 +12691,7 @@ check('461: the Progress column is dissolved into Student settings — no `progr
 /* ---------- YOUR JOURNEY IS PROGRESS'S CARD, IT FOLLOWS WHOEVER SIGNS IN, AND THE WEEKLY EMAIL'S CARD IS GONE § */
 const JOURNEY_DAY_ = n => { const t = new Date(Date.now() + n * 864e5);
   return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); };
-check('your exams: the big exam on Progress\'s Countdowns for a student and not on Settings, not for a parent, drawn again by a sign-in, a sign-out, a role and a saved exam date without a reload — and no weekly parent email card anywhere', async () => {
+check('your exams: the big exam on the Countdowns widget on Tools (466) for a student and not on Settings, not for a parent, drawn again by a sign-in, a sign-out, a role and a saved exam date without a reload — and no weekly parent email card anywhere', async () => {
   const cols = BIZ_COLS_();
   /* `phone_cc` IS WHAT `profileShapeOk_` asks for before a Save is sent from a copy of your details. */
   const STUDENT = { name: 'Sam Student', personId: 'P-S9', role: 'student', roles: ['student'], token: 'tk-s9', handle: 'samstudent',
@@ -12661,16 +12721,18 @@ check('your exams: the big exam on Progress\'s Countdowns for a student and not 
   const bad = [];
   const settle = async () => { await wait(LEAVE_MS); await woken_(); };
   const go = async id => { t.go(id, false, true); await settle(); };
-  const prog = () => d.getElementById('s-account');
+  const prog = () => d.getElementById('s-tools');
   /* WHAT PROGRESS SHOWS, read off the column as drawn — never off `progressCards_()`, which would be asking
      the function the column is drawn from rather than whether it was drawn again. */
   const seen = () => {
-    const h = prog(), j = h && h.querySelector('.card.journey');
+    const h = prog(), j = h && h.querySelector('.cd-box');
     const big = j ? /Big exam\s*(\d+) days?/.exec(j.textContent) : null;
     return { journey: !!big, held: !big,
              count: big ? big[1] : '',
              pages: h ? h.querySelectorAll(':scope > .page').length : 0 };
   };
+  /* THE WIDGET ON ITS OWN PAGE OF TOOLS, as a swipe arrives at it (466). */
+  const look = async () => { await toolBox_(w, 'countdowns', '.cd-box'); return seen(); };
   const signIn = async (u, as) => {
     next = u;
     await go('account');
@@ -12690,21 +12752,18 @@ check('your exams: the big exam on Progress\'s Countdowns for a student and not 
   };
 
   /* 1. SIGNED OUT. */
-  await go('account');
-  let s1 = seen();
+  let s1 = await look();
   if (s1.journey || !s1.held) bad.push('signed out, Progress is ' + JSON.stringify(s1) + ' — wanted the placeholder');
 
   /* 2. A STUDENT SIGNS IN: their journey on Progress, and none on Settings. */
   let no = await signIn(STUDENT, 'the student');
   if (no) return bad.concat([no]);
-  await go('account');
-  s1 = seen();
+  s1 = await look();
   if (!s1.journey || s1.held) bad.push('a student signed in, and Progress is ' + JSON.stringify(s1) + ' — wanted their journey, without a reload');
   if (s1.count !== '14') bad.push('the student\'s journey counts "' + s1.count + '" days to their big exam, wanted 14');
-  if (s1.pages !== t.pageCount('account')) bad.push('a student\'s Progress draws ' + s1.pages + ' page(s) and its pager counts ' + t.pageCount('account'));
-  if (prog().querySelector('.card.journey ' + PLACEHOLDER_KEYS_.split(', ').join(', .card.journey '))) bad.push('the student\'s countdown card has a control on it');
+  if (prog().querySelector('.cd-box ' + PLACEHOLDER_KEYS_.split(', ').join(', .cd-box '))) bad.push('the student\'s countdowns have a control on them');
   await go('account');
-  if (d.querySelectorAll('.card.journey').length !== 1) bad.push('the journey card is drawn ' + d.querySelectorAll('.card.journey').length + ' times, wanted once, on Student settings (461)');
+  if (d.querySelector('#s-account .cd-box, #s-account .card.journey')) bad.push('a countdown is still drawn on Student settings — its one home is Tools (466)');
 
   /* 3. THE STUDENT'S ROLE BECOMES CLIENT — by @family., since a student has no picker (432) — and the column is drawn again: the placeholder. */
   const roles = d.querySelector('#s-account .roles-card');
@@ -12716,8 +12775,7 @@ check('your exams: the big exam on Progress\'s Countdowns for a student and not 
     await settle();
     if (!t.whoami() || t.whoami().role !== 'client') bad.push('the student did not become a client — NOT checked');
     else {
-      await go('account');
-      s1 = seen();
+      s1 = await look();
       if (s1.journey || !s1.held) bad.push('the student became a client, and Progress is ' + JSON.stringify(s1) + ' — wanted the placeholder');
     }
   }
@@ -12725,23 +12783,20 @@ check('your exams: the big exam on Progress\'s Countdowns for a student and not 
   /* 4. OUT FROM SPOTLIGHT, AND A PARENT IN: the placeholder, and no journey anywhere. */
   await go('spotlight');
   if ((no = await signOut())) return bad.concat([no]);
-  await go('account');
-  s1 = seen();
+  s1 = await look();
   if (s1.journey || !s1.held) bad.push('signed out from Spotlight, Progress is ' + JSON.stringify(s1) + ' — wanted the placeholder');
   if ((no = await signIn(PARENT, 'the parent'))) return bad.concat([no]);
   for (const id of t.TABS.map(x => x.id)) { try { t.go(id, false, true); } catch (e) { bad.push('the parent: ' + id + ' threw: ' + e.message); } }
-  await go('account');
-  s1 = seen();
+  s1 = await look();
   if (s1.journey || !s1.held) bad.push('a parent signed in, and Progress is ' + JSON.stringify(s1) + ' — wanted the placeholder');
-  if ([...d.querySelectorAll('.card.journey')].some(c => /Big exam|Small exam/.test(c.textContent))) bad.push('a parent is shown an exam date of About you somewhere in the page');
+  if ([...d.querySelectorAll('.cd-box, .card.journey')].some(c => /Big exam|Small exam/.test(c.textContent))) bad.push('a parent is shown an exam date of About you somewhere in the page');
 
   /* 5. THE PARENT SIGNS OUT ON PROGRESS, THE STUDENT IN AGAIN: the journey, on the same document. */
   if ((no = await signOut())) return bad.concat([no]);
-  s1 = seen();
+  s1 = await look();
   if (s1.journey || !s1.held) bad.push('the parent signed out on Progress, and it shows ' + JSON.stringify(s1) + ' — wanted the placeholder there and then');
   if ((no = await signIn(STUDENT, 'the student, again'))) return bad.concat([no]);
-  await go('account');
-  s1 = seen();
+  s1 = await look();
   if (!s1.journey || s1.held || s1.count !== '14') bad.push('the student signed in again after a sign-out, and Progress is ' + JSON.stringify(s1) + ' — wanted their journey at 14 days, without a reload');
 
   /* 6. THE BIG EXAM MOVED ON ABOUT YOU: Progress counts to the new date before anybody goes there. */
@@ -12762,8 +12817,7 @@ check('your exams: the big exam on Progress\'s Countdowns for a student and not 
     else {
       s1 = seen();
       if (s1.count !== '30') bad.push('the student saved their big exam 30 days out, and Progress (not in front, the payload held) still counts "' + s1.count + '"');
-      await go('account');
-      s1 = seen();
+      s1 = await look();
       if (s1.count !== '30') bad.push('the student saved their big exam 30 days out and went to Progress, which counts "' + s1.count + '"');
     }
   }
@@ -12774,9 +12828,8 @@ check('your exams: the big exam on Progress\'s Countdowns for a student and not 
   for (const id of t.TABS.map(x => x.id)) { try { t.go(id, false, true); } catch (e) { bad.push('the admin: ' + id + ' threw: ' + e.message); } await wait(50); }
   await go('account');
   w.paint('account');
-  if (d.querySelectorAll('.card.journey').length > 1) bad.push('an admin\'s journey card is drawn more than once');
-  await go('account');
-  s1 = seen();
+  if (d.querySelectorAll('#s-account .cd-box').length) bad.push('an admin\'s countdowns are drawn on Student settings');
+  s1 = await look();
   /* NO EXAM DATE ON THE ADMIN'S PROFILE (435): no Big exam line. */
   if (s1.journey) bad.push('an admin with no exam date signed in, and Progress is ' + JSON.stringify(s1) + ' — wanted no Big exam line');
   const gone = d.querySelectorAll('.card.digest, [data-do="digest-preview"], .digest-mode, .digest-said');
@@ -12966,8 +13019,21 @@ check('progress, grade estimate: a GCSE grade from the share of marks on past pa
   return bad;
 });
 
+/* ---------- A TOOLS WIDGET, ON ITS OWN PAGE, THE WAY A SWIPE ARRIVES (466): its box once drawn, or null ---------- */
+async function toolBox_(w, id, sel) {
+  const t = w.__t, d = w.document;
+  t.go('tools', false, true);
+  await wait(LEAVE_MS); await woken_();
+  const n = w.widgetsOf_('tool').findIndex(x => String(x.id) === id);
+  if (n < 0) return null;
+  t.goPage('tools', n, true);
+  await wait(LEAVE_MS); await woken_();
+  for (let i = 0; i < 40 && !d.querySelector('#s-tools ' + sel); i++) await wait(50);
+  return d.querySelector('#s-tools ' + sel);
+}
+
 /* ---------- COUNTDOWNS ---------- */
-check('progress, countdowns: a Year 11\'s GCSEs and the next holiday, one line each; the config tab moves the exam and the sheet\'s holiday row wins over the defaults; signed out, none (Student settings is the sign-in card, 461)', async () => {
+check('466: countdowns are a Tools widget for everyone — a Year 11\'s GCSEs and the next holiday, one line each; the config tab moves the exam and the sheet\'s holiday row wins over the defaults; signed out, the holiday alone; none on Student settings', async () => {
   const day = d0 => { const x = new Date(); x.setHours(0, 0, 0, 0); return Math.round((d0 - x) / 864e5); };
   const now = new Date();
   /* A BIRTHDAY THAT MAKES YEAR 11 NOW: 15 on the 1st of September this school year began. */
@@ -12987,10 +13053,11 @@ check('progress, countdowns: a Year 11\'s GCSEs and the next holiday, one line e
   if (!t || !t.whoami()) return ['the learner is not signed in — NOT checked'];
   t.USER(Object.assign({}, t.whoami(), { profile: { date_of_birth: dob } }));
   const bad = [];
-  t.go('account', false, true);
-  await wait(LEAVE_MS); await woken_();
-  w.paint('account');
-  const c = progCard_(d, 'Countdowns');
+  const c = await toolBox_(w, 'countdowns', '.cd-box');
+  if (!c) return ['the Countdowns widget did not draw on Tools — NOT checked'];
+  t.go('account', false, true); await wait(LEAVE_MS); await woken_(); w.paint('account');
+  if (progCard_(d, 'Countdowns') || /Countdowns/.test((d.getElementById('s-account') || {}).textContent || '')) bad.push('Countdowns is still on Student settings — one home, Tools (466)');
+  await toolBox_(w, 'countdowns', '.cd-box');
   const rows = c ? [...c.querySelectorAll('.row')].map(progRow_) : [];
   const want = ['GCSE exams ' + day(gcse) + ' days', 'Half term ' + day(hol) + ' days'];
   if (rows.join(' | ') !== want.join(' | ')) bad.push('Countdowns reads ' + JSON.stringify(rows) + ', wanted ' + JSON.stringify(want));
@@ -12998,16 +13065,61 @@ check('progress, countdowns: a Year 11\'s GCSEs and the next holiday, one line e
   /* NO ROW IN THE SHEET AND NO CONFIG: the built-in exam date and the next default holiday. */
   t.DATA().intervals = [];
   delete t.DATA().constants.vars.exam_gcse_start;
-  w.paint('account');
-  const rows2 = [...(progCard_(d, 'Countdowns') || d).querySelectorAll('.row')].map(progRow_);
+  w.paintCountdowns_();
+  const rows2 = [...c.querySelectorAll('.row')].map(progRow_);
   if (!/^GCSE exams \d+ days$/.test(rows2[0] || '') || rows2[0] === want[0]) bad.push('with the config cleared the GCSE line reads ' + JSON.stringify(rows2[0]) + ' — wanted the built-in 11 May, not the override');
   if (!/(half-term|holidays) (\d+ days?|today)$/.test(rows2[1] || '')) bad.push('with no holiday row the holiday line reads ' + JSON.stringify(rows2[1]) + ' — wanted a default holiday');
   t.USER(null);
-  w.paint('account');
-  const out = progCard_(d, 'Countdowns');
-  /* SIGNED OUT, STUDENT SETTINGS IS THE SIGN-IN CARD (461), so no progress widget is drawn at all. */
-  if (out) bad.push('signed out, a Countdowns card is drawn on Student settings');
+  w.paintCountdowns_();
+  /* SIGNED OUT (466): everyone has the widget — the holiday needs no account, the exam does. */
+  const rows3 = [...c.querySelectorAll('.row')].map(progRow_);
+  if (rows3.length !== 1 || !/(half-term|holidays) (\d+ days?|today)$/.test(rows3[0] || '')) bad.push('signed out, Countdowns reads ' + JSON.stringify(rows3) + ' — wanted the next holiday alone');
   return bad;
+});
+
+
+/* ---------- TERM DATES (466): THE END OF THE NEXT THREE TERMS AND HALF TERMS, ONE LINE EACH, ON TOOLS ---------- */
+check('466: Term dates on Tools lists the end dates of the next three terms and half terms in order, one line each, skips holidays and ended ones, and says so when there are none', async () => {
+  const p = payload();
+  const at = n => { const x = new Date(); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() + n); return x; };
+  const dmy = x => String(x.getDate()).padStart(2, '0') + '/' + String(x.getMonth() + 1).padStart(2, '0') + '/' + x.getFullYear();
+  p.intervals = [
+    { term: 'Spring 1', label: 'Spring 1', kind: 'term', startDate: dmy(at(60)), endDate: dmy(at(100)) },
+    { term: 'Christmas', label: 'Christmas', kind: 'holiday', startDate: dmy(at(40)), endDate: dmy(at(50)) },
+    { term: 'Autumn 2', label: 'Autumn 2', kind: 'term', startDate: dmy(at(-20)), endDate: dmy(at(30)) },
+    { term: 'Autumn 1', label: 'Autumn 1', kind: 'term', startDate: dmy(at(-80)), endDate: dmy(at(-30)) },
+    { term: 'February Half Term', label: 'February Half Term', kind: 'half-term', startDate: dmy(at(101)), endDate: dmy(at(105)) },
+    { term: 'Spring 2', label: 'Spring 2', kind: 'term', startDate: dmy(at(106)), endDate: dmy(at(140)) }];
+  const { w } = boot({ payload: p });
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  await wait(400);
+  const box = await toolBox_(w, 'termdates', '.td-box');
+  if (!box) return ['the Term dates widget did not draw on Tools — NOT checked'];
+  const bad = [];
+  const rows = [...box.querySelectorAll('.row')].map(progRow_);
+  const said = x => 'ends ' + x.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  const want = ['Autumn 2 ' + said(at(30)), 'Spring 1 ' + said(at(100)), 'February Half Term ' + said(at(105))];
+  if (rows.join(' | ') !== want.join(' | ')) bad.push('Term dates reads ' + JSON.stringify(rows) + ', wanted ' + JSON.stringify(want));
+  w.__t.DATA().intervals = [];
+  w.paintTermDates_();
+  if (!/No term dates yet/.test(box.textContent) || box.querySelector('.row')) bad.push('with no terms the widget reads "' + box.textContent.trim() + '"');
+  return bad;
+});
+
+/* ---------- NEWSPAPER (466): A PLACEHOLDER ON REELS, ITS TITLE ALONE ---------- */
+check('466: Reels holds a Newspaper widget, its title alone', async () => {
+  const { w } = boot();
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  await wait(400);
+  const t = w.__t, d = w.document;
+  const n = w.widgetsOf_('reel').findIndex(x => String(x.id) === 'newspaper');
+  if (n < 0) return ['there is no newspaper widget on the Reels column'];
+  t.go('reel', false, true); await wait(LEAVE_MS); await woken_();
+  t.goPage('reel', n, true); await wait(LEAVE_MS); await woken_();
+  const slot = d.getElementById('wgt-newspaper');
+  if (!slot) return ['the Newspaper widget did not draw on Reels'];
+  const txt = slot.textContent.replace(/\s+/g, ' ').trim();
+  return txt === 'Newspaper' && slot.children.length === 1 ? [] : ['the Newspaper widget reads "' + txt + '" with ' + slot.children.length + ' element(s) — wanted its title alone'];
 });
 
 /* ---------- THE BUSINESS RECORDS: A COLUMN OF THEIR OWN, LAST, AND ONLY AN ADMIN'S § */
@@ -13865,11 +13977,11 @@ check('a backend that never answers does not hang the app for ever', async () =>
   const hasWatchdog = /Still loading after/i.test(html);
   const bad = [];
   if (!hasDeadline) {
-    bad.push('the payload fetch has no deadline — a slow backend leaves the splash up for ever, '
+    bad.push('the payload fetch has no deadline — a slow backend leaves every wait on screen for ever, '
       + 'with nothing on screen saying why. That cost most of one day.');
   }
   if (!hasWatchdog) {
-    bad.push('index.html has no splash watchdog — if the code loads and the data never comes, '
+    bad.push('index.html has no load watchdog — if the code loads and the data never comes, '
       + 'nothing says so');
   }
   return bad;
@@ -16800,6 +16912,8 @@ check('Find and Find 2 draw the same question family, practical, project and con
     h.innerHTML = html;
     /* `q-report` IS THE PERSON'S TOO, like the star: drawn for anybody signed in (395). */
     h.querySelectorAll('[data-do="fav"], [data-do="q-report"], .tile-row .qcard-verdict, [data-do="qp-send"]').forEach(n => n.remove());
+    /* YOUR RESULT IS THE PERSON'S TOO (463): a tag only somebody signed in has. */
+    h.querySelectorAll('.qtag[data-f="myResult"]').forEach(n => n.remove());
     /* A WORKSHEET BOX WITH ITS SEND IS THE BOX, wrapped (`guideBox_`): the wrapper goes, the box stays. */
     h.querySelectorAll('.qp-mark.gd-mark').forEach(m => { const l = m.querySelector('.gd-box'); if (l) m.replaceWith(l); else m.remove(); });
     /* AND A BOX NOTHING MARKS IS A `.qp-mark` WITH A VERDICT LINE ONLY WHEN IT HAS THAT SEND: put back to the
@@ -16936,7 +17050,6 @@ check('every control on a question\'s pages is a tile, bar the options, the keys
     ['button.kp-key[data-do="kp-key"]', 'a key on the maths keypad'],
     ['span.qw[data-do="qw-tap"]', 'a word in a passage to ring'],
     ['textarea.qp-ans-in[data-do="qp-ans"], input.qp-ans-in[data-do="qp-ans"]', 'the answer box'],
-    ['figure[data-do="q-zoom-fig"]', 'a figure, which a tap enlarges (457)'],
   ];
   const seen = {};
   const exempted = {};
@@ -20995,72 +21108,6 @@ check('a page turn on Find 2 from outside any binding (a swipe) has the page in 
   return bad;
 });
 
-/* ---------- THE SPLASH'S PICKER, AS index.html HOLDS IT § */
-const pickerSrc_ = () => {
-  const h = fs.readFileSync(path.join(dir, '..', 'index.html'), 'utf8');
-  const m = /<script id="pick-splash">([\s\S]*?)<\/script>/.exec(h);
-  return m ? m[1] : null;
-};
-/* EVERY ANSWER THE COIN CAN GIVE, by forcing `Math.random` across its range: § */
-const pickEvery_ = (w, src, n) => {
-  const sp = w.document.getElementById('splash');
-  const was = w.Math.random, out = [];
-  const reset = () => {
-    sp.className = 'is-still';
-    [...sp.querySelectorAll(':scope > [class|="an"]')].forEach(e => e.remove());
-    [...w.document.head.querySelectorAll('style[data-anim]')].forEach(e => e.remove());
-  };
-  try {
-    for (let k = 0; k < (n || 64); k++) {
-      reset();
-      w.Math.random = () => (k + 0.5) / (n || 64);
-      w.eval(src);
-      const root = sp.querySelector(':scope > [class|="an"]');
-      out.push({ cls: sp.className, root: root ? root.className : '' });
-    }
-  } finally { w.Math.random = was; reset(); }
-  return out;
-};
-/* UNTIL `load()` HAS READ THE FILES AND BUILT `DATA` — a poll rather than a fixed sleep, because the
-   suite runs beside four browsers and a fixed sleep is the timer that fails only there. */
-const loaded_ = async (t, ms) => {
-  for (let i = 0; i < (ms || 5000) / 25; i++) {
-    const d = t.DATA && t.DATA();
-    if (d && d.splashOff) return true;
-    await wait(25);
-  }
-  return false;
-};
-
-/* ---------- A RETIRED SPLASH STAYS RETIRED § */
-check('a retired splash stays retired: the file\'s list reaches the device, and the picker never draws it', async () => {
-  const rows = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'splashes.json'), 'utf8'))
-    .map(r => r.splash_id === 'pyth' ? Object.assign({}, r, { active: false }) : r);
-  /* AND THE BOOKS, because Pythagoras lives in one: the picker could only draw it from the copy a load
-     of data/textbooks.json kept, so without them the retirement would be proved of nothing. */
-  const books = LIB_FULL.rows('textbooks');
-  const { w } = boot({ serve: u => /(^|\/)data\/settings\/splashes\.json(\?|$)/.test(u) ? rows
-    : /(^|\/)data\/textbooks\.json(\?|$)/.test(u) ? books : undefined });
-  if (!w.__t) return ['the app did not finish loading'];
-  if (!(await loaded_(w.__t))) return ['`load()` never built DATA.splashOff — the splashes file was NOT read, so nothing was checked'];
-  for (let i = 0; i < 100 && !w.localStorage.getItem('splashAnims'); i++) await wait(25);
-  if (((JSON.parse(w.localStorage.getItem('splashAnims') || '{}').ids) || []).indexOf('pyth') < 0) return ['the load kept no copy of Pythagoras from the books — the retirement was NOT proved of anything'];
-  const bad = [];
-  let off = null;
-  try { off = JSON.parse(w.localStorage.getItem('splashOff') || 'null'); } catch (e) { off = 'unreadable'; }
-  if (!Array.isArray(off) || off.indexOf('is-pyth') < 0) {
-    bad.push('the device kept splashOff = ' + JSON.stringify(off) + ' — Pythagoras is off in the file and the next load can still draw it');
-  }
-  const src = pickerSrc_();
-  if (!src) return bad.concat(['index.html has no <script id="pick-splash"> — the picker was NOT run']);
-  const picks = pickEvery_(w, src, 64);
-  const drew = picks.filter(p => p.cls === 'is-pyth' || p.root === 'an-pyth');
-  if (drew.length) bad.push('the picker drew Pythagoras ' + drew.length + ' times in 64 — retired in the sheet, and still on the splash');
-  const kinds = new Set(picks.map(p => p.root || p.cls));
-  if (kinds.size < 10) bad.push('64 forced picks drew only ' + kinds.size + ' different splashes (' + [...kinds].join(' ') + ') — the coin was NOT exercised');
-  return bad;
-});
-
 /* ---------- A CHAPTER PLAYS ITS ANIMATION § */
 /* ON FIND 2 (docs/history/329), a page after the Pythagoras content card (347, part 2). */
 check('a content card plays its animation on Find 2: Pythagoras after the Pythagoras and trigonometry card, drawn from its row', async () => {
@@ -21206,64 +21253,12 @@ check('the owner\'s test, on Find and Find 2: Maths · GCSE · Topic Surds, Pyth
   return bad;
 });
 
-/* ---------- THE SPLASH IS DRAWN FROM THE TEXTBOOKS' COPY § */
-check('the splash is drawn from the textbooks\' copy: a load keeps it, the next one draws it, and it comes off with the splash', async () => {
-  const books = LIB_FULL.rows('textbooks');
-  const sheet = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'splashes.json'), 'utf8'));
-  const serve = u => /(^|\/)data\/textbooks\.json(\?|$)/.test(u) ? books : /(^|\/)data\/settings\/splashes\.json(\?|$)/.test(u) ? sheet : undefined;
-  const one = boot({ serve });
-  for (let i = 0; i < 200 && !one.w.localStorage.getItem('splashAnims'); i++) await wait(25);
-  const kept = {};
-  for (let i = 0; i < one.w.localStorage.length; i++) { const k = one.w.localStorage.key(i); kept[k] = one.w.localStorage.getItem(k); }
-  const idx = JSON.parse(kept.splashAnims || 'null');
-  if (!idx || !(idx.ids || []).length) return ['the first load kept no copy of the books\' animations — NOT checked'];
-  const bad = [];
-  const want = books.filter(r => r.anim).map(r => r.anim);
-  if (idx.ids.join() !== want.join()) bad.push('the first load kept ' + idx.ids.length + ' animations, not the books\' ' + want.length + ' in order');
-  const src = pickerSrc_();
-  if (!src) return bad.concat(['index.html has no <script id="pick-splash"> — NOT checked']);
-  /* EVERY OTHER DRAWING RETIRED, so the coin can only land on Pythagoras. The books' copy is the whole
-     pool: the inline splashes it was once mixed with are gone (docs/history/322). */
-  const two = boot({ serve, before: w2 => {
-    Object.keys(kept).forEach(k => w2.localStorage.setItem(k, kept[k]));
-    w2.localStorage.setItem('splashOff', JSON.stringify(idx.ids.filter(k => k !== 'pyth').map(k => 'is-' + k)));
-  } });
-  const w = two.w;
-  const sp = w.document.getElementById('splash');
-  sp.className = 'is-still';
-  w.eval(src);
-  const root = sp.querySelector(':scope > .an-pyth');
-  if (sp.className !== 'is-an' || !root) return bad.concat(['the next visit drew "' + sp.className + '", not Pythagoras from the kept copy']);
-  if (root !== sp.firstElementChild) bad.push('the drawing is not the first thing in the splash');
-  if (!root.querySelector(':scope > .sp-sig')) bad.push('the splash did not sign the drawing');
-  /* THE CHAPTER'S DRAWING, ONCE THE PAGE'S OWN IDS ARE TAKEN OUT. */
-  const made = w.libraryExtras_({}, { textbooks: books });
-  const maths = made.textbooks.find(b => b.name === 'GCSE Maths');
-  const page = w.document.createElement('div');
-  page.innerHTML = w.textbookAnimPart_({ name: 'Pythagoras and trigonometry', row: maths.chapters.find(c => c.n === 17), kind: 'content' }, 'an17-pyth');
-  const stage = page.querySelector('.tb-an-stage');
-  const splashCopy = root.cloneNode(true); splashCopy.querySelector('.sp-sig').remove();
-  const unsuffix = h => h.replace(/(id="|url\(#|href="#)([\w-]+?)-t\d+/g, '$1$2');
-  if (!stage || unsuffix(stage.innerHTML).trim() !== splashCopy.outerHTML.trim()) bad.push('the splash\'s Pythagoras is not the chapter\'s');
-  const styles = w.document.head.querySelectorAll('style[data-anim="pyth"]');
-  if (styles.length !== 1) bad.push(styles.length + ' Pythagoras stylesheets after the splash and the chapter both drew it — one, shared');
-  /* AND OFF WITH THE SPLASH. */
-  w.splashOff_();
-  await wait(650);
-  if (sp.querySelector(':scope > [class|="an"]')) bad.push('half a second after the splash came off, its drawing is still in it');
-  /* BACK TO THE STILL NAME AND THE LOADER, which is what a Try again is: a wait. It went back to the tag
-     until the tag was deleted with the other splashes that taught nothing. */
-  if (sp.className.split(/\s+/).indexOf('is-still') < 0) bad.push('after the splash came off it is "' + sp.className + '" — a Try again would show an empty splash, not the name and the loader');
-  else if (!sp.querySelector('#splash-still .loading[role="status"]') || !/@family\./.test((sp.querySelector('#splash-still') || {}).textContent || '')) bad.push('after the splash came off, the still one it went back to has no name or no loader in it');
-  return bad;
-});
-
 /* ---------- THE BOOKS AND THE SETTINGS ARE ASKED FOR WITH THE DEPLOY'S STAMP § */
 check('the books and the settings files are fetched with the deploy stamp', async () => {
   const { w, gets } = boot({ before: w2 => { w2.LOAD = 'STAMP42'; } });
   for (let i = 0; i < 100 && !gets.some(u => /data\/textbooks\.json/.test(u)); i++) await wait(25);
   const bad = [];
-  ['textbooks', 'practicals', 'settings/splashes', 'settings/brand'].forEach(n => {
+  ['textbooks', 'practicals', 'settings/brand'].forEach(n => {
     const asked = gets.filter(u => u.indexOf('data/' + n + '.json') === 0);
     if (!asked.length) bad.push('data/' + n + '.json was never asked for — NOT checked');
     else if (!asked.every(u => u === 'data/' + n + '.json?t=STAMP42')) bad.push('data/' + n + '.json was asked for as ' + asked.join(', ') + ' — without the deploy stamp the worker keeps the first copy for good');
@@ -22831,43 +22826,13 @@ check('with Client House chosen the week grid shows exactly the tutor\'s hours, 
   return bad;
 });
 
-/* ---------- THE WEEK OF YOUR SESSIONS: YOURS, EVERY DAY OF THEM, AND ONLY WHILE THEY RUN § */
-check('your week holds your sessions only, on every day they run, while their dates are live', async () => {
-  const { w } = boot();
-  await wait(300);
-  const t = w.__t;
-  if (typeof w.weekSessions_ !== 'function') {
-    return ['weekSessions_ is not reachable, so the week was NOT checked — not a pass'];
-  }
-  const mon = w.mondayOf_(new Date());
-  const at = n => { const d = new Date(mon); d.setDate(d.getDate() + n); return d; };
-  const dmy = d => String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
-  const job = (id, extra) => Object.assign({ id, jobId: id, subject: id, time: '16:00', hours: 2,
-    client: 'Pat Parent', tutor: 'GeorgePovey', status: 'active', slots: [] }, extra);
-  const D = t.DATA();
-  D.liveJobs = D.jobs = [
-    job('TWO-DAY', { day: 'Monday, Friday', dates: [at(-7), at(-3), at(0), at(4), at(7)].map(dmy).join(', ') }),
-    job('STRANGER', { day: 'Tuesday', client: 'Somebody Else', tutor: 'Sasha Matola', dates: dmy(at(1)) }),
-    job('ENDED', { day: 'Wednesday', dates: [at(-70), at(-63)].map(dmy).join(', ') }),
-    job('NOT-YET', { day: 'Thursday', dates: [at(24), at(31)].map(dmy).join(', ') }),
-    job('UNDATED', { day: 'Saturday', dates: '' }),
-  ];
-  t.USER({ name: 'Pat Parent', personId: 'P1', role: 'client', roles: ['client'] });
-  const got = w.weekSessions_().map(s => s.j.id + '@' + s.day).sort().join(' ');
-  const want = 'TWO-DAY@0 TWO-DAY@4 UNDATED@5';
-  const bad = [];
-  if (got !== want) bad.push('this week holds [' + got + '], wanted [' + want + '] — both days of the two-day booking, '
-    + 'nothing of a stranger\'s, nothing ended or not yet started, and the undated request on its weekday');
-  return bad;
-});
-
-/* ---------- THE TIMETABLE IS THE ONE WEEK: YOUR SESSIONS LOCKED IN IT, AND IT IS ON YOUR ACCOUNT § */
-check('the timetable holds your booked sessions locked, is saved to your account, and Your week is gone', async () => {
+/* ---------- THE TIMETABLE IS ITS OWN WEEK, ON YOUR ACCOUNT, AND NO BOOKING IS SYNCED INTO IT (466) ---------- */
+check('466: the timetable holds only its own lessons — a booked session is not drawn in it — is saved to your account, and Your week is gone', async () => {
   const { w, sent } = boot();
   await wait(300);
   const t = w.__t, d = w.document;
-  if (typeof w.initTimetable !== 'function' || typeof t.tmtKey !== 'function' || typeof w.weekSessions_ !== 'function') {
-    return ['the timetable / weekSessions_ are not reachable, so this was NOT checked — not a pass'];
+  if (typeof w.initTimetable !== 'function' || typeof t.tmtKey !== 'function') {
+    return ['the timetable is not reachable, so this was NOT checked — not a pass'];
   }
   const bad = [];
   const mon = w.mondayOf_(new Date());
@@ -22897,16 +22862,11 @@ check('the timetable holds your booked sessions locked, is saved to your account
     (r.classList.contains('is-booked') ? 'BOOKED ' : '') + r.querySelector('.tmt-at').textContent.trim() + ' '
     + r.querySelector('.tmt-sub').textContent.trim());
   const got = list().join(', ');
-  if (got !== '09:00 Maths, BOOKED 10:00 Physics, 13:00 Art') {
-    bad.push('Monday reads [' + got + '], wanted [09:00 Maths, BOOKED 10:00 Physics, 13:00 Art] — the phone\'s week carried up, '
-      + 'your session among it in time order, and nobody else\'s');
+  if (got !== '09:00 Maths, 13:00 Art') {
+    bad.push('Monday reads [' + got + '], wanted [09:00 Maths, 13:00 Art] — the phone\'s week carried up and no booked session synced into it (466)');
   }
-  const row = box().querySelector('.tmt-row.is-booked');
-  if (!row || row.getAttribute('data-do') !== 'job' || row.getAttribute('data-id') !== 'J-MON') {
-    bad.push('the booked session is not a row that opens it (data-do="job" data-id="J-MON")');
-  }
-  if (box().querySelector('.tmt-ed .tmt-in[data-id="J-MON"]')) bad.push('a booked session opened into editable boxes');
-  if (box().querySelectorAll('.tmt-day').length !== 7) bad.push('a session on Saturday did not show the weekend: ' + box().querySelectorAll('.tmt-day').length + ' day chips');
+  if (box().querySelector('.tmt-row.is-booked, [data-id="J-MON"]')) bad.push('a booked session is drawn in the timetable — nothing syncs into it (466)');
+  if (box().querySelectorAll('.tmt-day').length !== 5) bad.push('a session on Saturday opened the weekend: ' + box().querySelectorAll('.tmt-day').length + ' day chips, wanted 5 — only the Weekend box does (466)');
   /* THE ACCOUNT. The carry-up wrote USER.timetable; give the debounce time and look at the wire. */
   await wait(1100);
   const save = sent.filter(x => x.action === 'saveTimetable').pop();
@@ -23040,55 +23000,33 @@ check('the business\'s cut of an extra seat is the tutor\'s own when set and the
   return bad;
 });
 
-/* ---------- THE CALENDAR SHOWS EVERY DATE THE APP KNOWS § */
-check('the calendar marks sessions, terms, half terms, bank holidays, events and exams, with a key', async () => {
+/* ---------- A PLAIN CALENDAR (466): NO TERM, SESSION, EXAM OR HOLIDAY IS LAID ON IT ---------- */
+check('466: the calendar is a plain month — the days and today, with no term, half term, session, exam, closure or event on it, and no key', async () => {
   const { w } = boot();
   await wait(300);
   const t = w.__t, d = w.document;
-  if (typeof w.calendarMarks !== 'function' || typeof w.calKey_ !== 'function') {
-    return ['calendarMarks / calKey_ are not reachable, so the calendar was NOT checked — not a pass'];
-  }
+  if (typeof w.initCalendar !== 'function') return ['initCalendar is not reachable, so the calendar was NOT checked — not a pass'];
   const now = new Date(), y = now.getFullYear(), m = now.getMonth();
   const on = n => String(n).padStart(2, '0') + '/' + String(m + 1).padStart(2, '0') + '/' + y;
   const D = t.DATA();
-  D.liveJobs = D.jobs = [
-    { id: 'J-CAL', jobId: 'J-CAL', subject: 'Maths', time: '16:00', day: 'Monday', client: 'Pat Parent', tutor: 'GeorgePovey',
-      status: 'active', slots: [], dates: [on(3), on(17)].join(', '), location: 'Mitcham library' },
-    { id: 'J-NOT', jobId: 'J-NOT', subject: 'Chemistry', time: '10:00', day: 'Tuesday', client: 'Somebody Else', tutor: 'Sasha Matola',
-      status: 'active', slots: [], dates: on(4) },
-  ];
-  D.intervals = [
-    { term: 'Autumn 2', label: 'Autumn 2', kind: 'term', startDate: on(5), endDate: '19/12/' + (y + 1) },
-    { term: 'October Half Term', label: 'October Half Term', kind: 'half-term', startDate: on(20), endDate: on(22) },
-  ];
-  D.closures = [{ date: on(8), name: 'Staff training', kind: 'inset' }, { date: on(9), name: 'Early May bank holiday', kind: 'bank' }];
+  D.liveJobs = D.jobs = [{ id: 'J-CAL', jobId: 'J-CAL', subject: 'Maths', time: '16:00', day: 'Monday', client: 'Pat Parent', tutor: 'GeorgePovey',
+    status: 'active', slots: [], dates: [on(3), on(17)].join(', '), location: 'Mitcham library' }];
+  D.intervals = [{ term: 'Autumn 2', label: 'Autumn 2', kind: 'term', startDate: on(5), endDate: '19/12/' + (y + 1) },
+    { term: 'October Half Term', label: 'October Half Term', kind: 'half-term', startDate: on(20), endDate: on(22) }];
+  D.closures = [{ date: on(9), name: 'Early May bank holiday', kind: 'bank' }];
   D.festive = [{ id: 'H1', name: 'Pumpkin carving', holiday: 'Halloween', venue: 'Colliers Wood Library', date: on(25) }];
   D.exams = [{ personId: 'P1', who: 'Pat Parent', subject: '', label: 'Small exam', date: on(12), kind: 'mock' }];
   t.USER({ name: 'Pat Parent', personId: 'P1', role: 'client', roles: ['client'] });
-  const mk = w.calendarMarks(y, m);
-  const kinds = n => (mk[n] || []).map(x => x.kind).sort().join(',');
-  const bad = [];
-  [[3, 'session'], [17, 'session'], [4, ''], [5, 'term'], [20, 'halfterm'], [21, 'halfterm'], [22, 'halfterm'],
-   [8, 'closed'], [9, 'bank'], [25, 'festive'], [12, 'mock']].forEach(([n, want]) => {
-    if (kinds(n) !== want) bad.push('day ' + n + ' carries [' + kinds(n) + '], wanted [' + want + ']');
-  });
-  const key = d.createElement('div');
-  key.innerHTML = w.calKey_(mk);
-  const said = [...key.querySelectorAll('.cal-key span')].map(s => s.textContent.trim()).join(', ');
-  if (said !== 'Session, Mock, Term, Half term, Bank holiday, Closed, Event') bad.push('the key reads [' + said + ']');
-  /* DRAWN, AND A TAP ON A DAY LISTS IT. */
-  try { t.go('tools', false, true); } catch (e) { return bad.concat('go("tools") threw: ' + e.message); }
-  await wait(300);
+  const host = await toolBox_(w, 'calendar', '#cal-body');
+  if (!host) return ['the calendar did not draw on Tools — NOT checked'];
   w.initCalendar();
-  const cell = d.querySelector('#cal-body .cal-d[data-d="3"]');
-  if (!cell || !cell.querySelector('.dot.session')) bad.push('the 3rd is not drawn with a session dot');
-  if (!d.querySelector('.cal-key-box .cal-key')) bad.push('no key is drawn under the month');
-  if (cell) {
-    t.ACTIONS['cal-day'](cell);
-    await wait(50);
-    const sheet = d.getElementById('sheet');
-    if (!sheet || !/Session/.test(sheet.textContent) || !/Maths/.test(sheet.textContent)) bad.push('tapping the 3rd does not list the Maths session');
-  }
+  const bad = [];
+  const days = new Date(y, m + 1, 0).getDate();
+  if (host.querySelectorAll('.cal-d').length !== days) bad.push('the month draws ' + host.querySelectorAll('.cal-d').length + ' days, wanted ' + days);
+  if (!host.querySelector('.cal-d.cal-today')) bad.push('today is not marked');
+  if (host.querySelector('.dot, .cal-dots, .cal-d.has, [data-do]')) bad.push('a day carries a mark or a control — the calendar is plain (466)');
+  if (d.querySelector('.cal-key-box, .cal-key')) bad.push('a key is drawn under the month');
+  if (['calendarMarks', 'calKey_'].some(f => typeof w[f] === 'function') || 'cal-day' in t.ACTIONS) bad.push('the calendar\'s marks, key or day sheet are still wired');
   return bad;
 });
 
@@ -23289,53 +23227,24 @@ check('multipart: the answer is a swipe after the card -- after a figure printed
   return bad;
 });
 
-/* FINDING 2: a Figure tile on a part whose question has a figure in front of it, opening that figure
-   over the card -- and the card, its box and what is typed in it, untouched underneath. */
-check('multipart: a part with a figure behind it has a Figure tile that opens it over the card', async () => {
+/* FINDING 2, UNDONE (463): the owner, "remove the 'figure over this page' tile everywhere -- if they want to see the figure, they scroll up". */
+check('multipart: no part carries a Figure tile, though a figure stands in front of it, and nothing opens one', async () => {
   const { w } = boot();
   await wait(300);
   const d = w.document;
   const bad = [];
   const need = ['questionTiles_', 'stuffCard', 'questionItems'].filter(n => typeof w[n] !== 'function');
   if (need.length) return [need.join(', ') + ' not reachable — the Figure tile was NOT checked'];
-  if (!w.__t.ACTIONS['q-fig']) return ['q-fig has no handler — nothing can open a figure over the card'];
+  if (w.__t.ACTIONS['q-fig']) bad.push('q-fig still has a handler');
   const lib = mpLibrary_(w, mpBank_());
-  const find = name => lib.items.find(x => x.row.paper === 'P-MP-W' && x.name === name);
-  /* THE CARD AS DRAWN, because the tile stands at the end of the answer box (`ansBox_`), not in the row. */
-  const tileOf = x => { const h = d.createElement('div'); h.innerHTML = w.stuffCard(x, 0); return h.querySelector('[data-do="q-fig"]'); };
   try {
-    [['Q8(ii)', 'the opening\'s figure, two parts back'], ['Q8(i)', 'the opening\'s figure, one page back'],
-     ['Q14b', 'Q14a\'s own graph, a part back']].forEach(([n, what]) => {
-      if (!find(n)) bad.push(n + ' is not in the library');
-      else if (!tileOf(find(n))) bad.push(n + ' has no Figure tile, though ' + what + ' stands in front of it');
+    const parts = lib.items.filter(x => x.row.paper === 'P-MP-W');
+    if (!parts.length) bad.push('no P-MP-W parts in the library — nothing was checked');
+    parts.forEach(x => {
+      const h = d.createElement('div');
+      h.innerHTML = w.stuffCard(x, 0) + w.questionTiles_(x);
+      if (h.querySelector('[data-do="q-fig"], .q-figt')) bad.push(x.name + ' still carries a Figure tile');
     });
-    /* NOT FOR A PART'S OWN FIGURE: it is on the card (356). */
-    ['Q18', 'Q1c', 'Q14a'].forEach(n => { if (find(n) && tileOf(find(n))) bad.push(n + ' offers a Figure tile with no figure in front of its card'); });
-    /* OPENED, OVER A CARD WITH SOMETHING TYPED IN IT. */
-    const x = find('Q14b');
-    const page = d.createElement('section');
-    page.className = 'page';
-    page.innerHTML = '<div class="pane">' + w.stuffCard(x, 0) + '</div>';
-    d.body.appendChild(page);
-    const box = page.querySelector('.qp-ans input, .qp-ans textarea');
-    if (!box) bad.push('the card drew no answer box to type in, so "untouched underneath" was NOT checked');
-    else box.value = '42 km';
-    const t = page.querySelector('[data-do="q-fig"]');
-    if (!t) bad.push('the card as drawn on Find carries no Figure tile');
-    /* BESIDE THE BOX, on its line -- where the keypad, which covers the row under the card on a small
-       phone, cannot cover it (the review of the merge, 1F Q23b at 320x568). */
-    else if (!t.parentElement || !t.parentElement.classList.contains('qp-ans-row') || !t.parentElement.querySelector('.qp-ans'))
-      bad.push('the Figure tile is not at the end of the answer box\'s own line -- under the card, the keypad covers it on a 320px phone');
-    else {
-      w.__t.ACTIONS['q-fig'](t);
-      const sheet = d.getElementById('sheet');
-      if (!sheet || sheet.classList.contains('hidden')) bad.push('pressing Figure opened nothing');
-      else if (!sheet.querySelector('svg.mp-graph')) bad.push('the sheet opened without Q14a\'s graph: ' + sheet.textContent.trim().slice(0, 60));
-      if (!d.body.contains(page) || (box && box.value !== '42 km')) bad.push('opening the figure disturbed the card underneath or what was typed in it');
-      if (typeof w.closeSheet === 'function') w.closeSheet();
-      if (sheet && !sheet.classList.contains('hidden')) bad.push('the figure sheet does not close');
-    }
-    page.remove();
   } finally { lib.put(); }
   return bad;
 });
@@ -26786,22 +26695,23 @@ check('a landing never leaves a drawing made from old facts on the glass: a widg
   if (!t || typeof t.landRepaint !== 'function') return ['landRepaint_ is not reachable — NOT checked'];
   t.USER(SAM_); t.go('feed', false, true); t.repaint();
   await aheadQuiet_(t);
-  const cal0 = t.slotOn('tools', 'calendar'), calc0 = t.slotOn('tools', 'calculator');
-  if (!cal0 || cal0.getAttribute('aria-busy') || !calc0) { t.USER(null); return ['the calendar was not drawn ahead on Tools — NOT checked']; }
+  const cal0 = t.slotOn('tools', 'termdates'), calc0 = t.slotOn('tools', 'calculator');
+  if (!cal0 || cal0.getAttribute('aria-busy') || !calc0) { t.USER(null); return ['Term dates was not drawn ahead on Tools — NOT checked']; }
   w.__aheadHold = true;
-  const d = new Date();
+  /* TERM DATES READS FACTS (the calendar is plain and `pure` since 466): a term the landing brings. */
+  const d = new Date(); d.setDate(d.getDate() + 1);
   const dd = String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
   const D = t.DATA();
-  D.exams = (D.exams || []).concat([{ date: dd, kind: 'exam', subject: 'Maths', label: 'Paper 1' }]);
+  D.intervals = [{ term: 'Landed term', label: 'Landed term', kind: 'term', startDate: dd, endDate: dd }].concat(D.intervals || []);
   t.landRepaint();
-  const cal1 = t.slotOn('tools', 'calendar');
-  if (!cal1 || !cal1.getAttribute('aria-busy')) bad.push('the calendar drawn from the old facts is still showing after the landing');
+  const cal1 = t.slotOn('tools', 'termdates');
+  if (!cal1 || !cal1.getAttribute('aria-busy')) bad.push('Term dates drawn from the old facts is still showing after the landing');
   if (t.slotOn('tools', 'calculator') !== calc0) bad.push('the pure calculator was replaced by the landing');
   w.__aheadHold = false; t.aheadKick();
   await aheadQuiet_(t);
-  const cal2 = t.slotOn('tools', 'calendar');
-  if (!cal2 || cal2.getAttribute('aria-busy')) bad.push('the calendar was not drawn again from the new facts in the quiet');
-  else if (!cal2.querySelector('.cal-d.has .dot.exam')) bad.push('the calendar drawn again does not show the exam the landing brought');
+  const cal2 = t.slotOn('tools', 'termdates');
+  if (!cal2 || cal2.getAttribute('aria-busy')) bad.push('Term dates was not drawn again from the new facts in the quiet');
+  else if (!/Landed term/.test(cal2.textContent)) bad.push('Term dates drawn again does not show the term the landing brought');
   if (t.slotOn('tools', 'calculator') !== calc0) bad.push('the pure calculator was replaced while the builder drew the rest');
   t.USER(null);
   return bad;
@@ -28137,6 +28047,39 @@ check('read aloud: a KS2 question and a GCSE one have the tile (457), a GCSE con
   return bad;
 });
 
+/* ---------- THE DEVICE'S VOICE ONLY (463 withdrawn): signed in, Read aloud asks the server nothing and the calmest British device voice says it. */
+check('device voice only (463): signed in, Read aloud sends nothing to the backend and the best en-GB device voice says it, calm rate and pitch', async () => {
+  const rows = LIB_FULL.rows('questions').filter(r => r.paper_id === 'P-STA-KS2-2024-P1');
+  const WANT = '2 and three eighths minus five eighths equals what?';
+  const said = [];
+  const before = w => {
+    w.SpeechSynthesisUtterance = function (txt) { this.text = String(txt); };
+    w.speechSynthesis = { speak: u => said.push(u), cancel() {}, getVoices: () => [{ name: 'eSpeak English', lang: 'en-GB' },
+      { name: 'Samantha', lang: 'en-US' }, { name: 'Daniel', lang: 'en-GB' }] };
+  };
+  const { w, sent } = boot({ before, serve: url => (/data\/questions\.json/.test(url) ? rows : undefined), reply: () => ({ success: true }) });
+  const ready = () => typeof w.stuffItemsAll_ === 'function' && w.stuffItemsAll_().some(x => x.row && x.row.row_id === 'Q-STA-KS2-2024-P1-28');
+  for (let i = 0; i < 80 && !ready(); i++) await wait(50);
+  if (!ready()) return ['the KS2 row did not arrive — NOT checked'];
+  w.__t.USER({ name: 'Test Student', personId: 'P001', role: 'student', roles: ['student'], token: 'tk1' });
+  const host = w.document.createElement('div');
+  w.document.body.appendChild(host);
+  host.innerHTML = w.stuffCard(w.stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-STA-KS2-2024-P1-28'));
+  const tile = host.querySelector('[data-do="read-aloud"]');
+  if (!tile) { host.remove(); return ['no Read aloud tile']; }
+  const n0 = sent.length;
+  w.__t.ACTIONS['read-aloud'](tile);
+  await wait(120);
+  host.remove();
+  const bad = [];
+  if (sent.slice(n0).some(b => b && b.action === 'speak')) bad.push('Read aloud still asks the backend to speak');
+  if (said.map(u => u.text).join(' | ') !== WANT) bad.push('the device voice said ' + JSON.stringify(said.map(u => u.text)) + ', wanted ' + JSON.stringify(WANT));
+  const u = said[0] || {};
+  if (!u.voice || u.voice.name !== 'Daniel') bad.push('the voice was ' + JSON.stringify(u.voice && u.voice.name) + ', wanted Daniel (en-GB, not eSpeak)');
+  if (u.rate !== 0.9 || u.pitch !== 0.95) bad.push('rate/pitch ' + u.rate + '/' + u.pitch + ', wanted 0.9/0.95');
+  return bad;
+});
+
 /* ---------- REPORTING A QUESTION (395): the tile, the sheet, the send, the toast — and the admin's card. */
 check('a signed-in child reports a question from its tile row: a reason, a note, one send, "Thanks — sent"; an admin sees the count', async () => {
   const reply = b => b.action === 'reportQuestion' ? { success: true }
@@ -28453,8 +28396,8 @@ check('a new content card (lib_pending) is asked for, drawn whole when the Ledge
   return bad;
 });
 
-/* A PAPER'S READING INSERT (458): a private half like a question's words, asked for when its Insert tile opens it in place, drawn with its line numbers; Coming soon, or Sign in */
-check('a reading insert opens in place from its question, asks the Ledger for its extract, and draws it with margin line numbers; Coming soon if missing, Sign in if signed out', async () => {
+/* A PAPER'S READING INSERT (458, 463): a Content card of its own in Find, no tile on its question; its private half asked for when the card is drawn, drawn with its line numbers; Coming soon, or Sign in */
+check('a reading insert is Content in Find (no Insert tile on its question), asks the Ledger for its extract, and draws it with margin line numbers; Coming soon if missing, Sign in if signed out', async () => {
   const cards = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'inserts.json'), 'utf8'));
   const card = cards.find(r => r.insert_id === 'INS-AQA-8700-R0389') || cards.find(r => r.for_papers && /source_text/.test(String(r.lib_has || '')));
   if (!card) return ['no reading insert card (for_papers, lib_has source_text) in data/inserts.json — nothing was checked'];
@@ -28479,15 +28422,16 @@ check('a reading insert opens in place from its question, asks the Ledger for it
       && W.stuffItemsAll_().some(x => x.kind === 'question' && x.row && x.row.paper_id === pid)); i++) await wait(50);
     const x = W.stuffItemsAll_().find(it => it.kind === 'question' && it.row && it.row.paper_id === card.for_papers.split(',')[0].trim());
     if (!x) return ['no question of ' + card.for_papers + ' reached Find — nothing was checked'];
-    const tiles = W.insertTile_(x);
-    if (!/data-do="ins-show"/.test(tiles)) { bad.push(mode + ': a question of ' + card.for_papers + ' has no Insert tile'); continue; }
+    /* NO INSERT TILE ON THE QUESTION (463): "they can open it in their 2nd finder" */
+    if (/data-do="ins-show"/.test(W.stuffCard(x, 0)) || A['ins-show']) bad.push(mode + ': a question still carries an Insert tile, or ins-show still has a handler');
+    const ins = W.stuffItemsAll_().find(it => it.kind === 'insert' && it.row && it.row.id === card.insert_id);
+    const kinds = W.__t.facetBy('kindLabel').of(ins), type = W.__t.facetBy('documentType').of(ins);
+    if (String(kinds) !== 'Content' || type) bad.push(mode + ': the insert is What kind ' + JSON.stringify(kinds) + ', Type ' + JSON.stringify(type) + ' -- wanted Content and no Type (463)');
     const host = d.createElement('div');
-    host.className = 'card';
-    host.innerHTML = '<div class="tile-row">' + tiles + '</div>';
+    host.innerHTML = W.stuffCard(ins, 0);
     d.querySelector('#s-stuff').appendChild(host);
-    A['ins-show'](host.querySelector('[data-do="ins-show"]'));
     await wait(100);
-    const sheet = () => d.getElementById('sheet');
+    const sheet = () => host;
     const txt = () => (sheet() ? sheet().textContent.replace(/\s+/g, ' ') : '');
     if (mode === 'out') {
       if (!/Sign in to read the source/.test(txt())) bad.push('signed out: the sheet does not say Sign in to read the source: ' + txt().slice(0, 120));
@@ -29017,7 +28961,7 @@ check('after a wrong Check every answer can be deleted and checked again — typ
 });
 
 /* ---------- THE ONE TOOLKIT ON EVERY KIND OF QUESTION PAGE (docs/history/457) ---------- */
-check('the one toolkit: a typed, a chosen, a table, a drawn and an essay part, and a stem page, each have Zoom, the padlock, Read aloud, Help and Report; Zoom enlarges, the padlock holds and lets go, the pen has its instruments', async () => {
+check('the one toolkit: a typed, a chosen, a table, a drawn and an essay part, and a stem page, each have the Magnifier, the padlock, Read aloud, Help and Report; the Magnifier follows a mouse and a held finger, the padlock holds and lets go, the pen has its instruments', async () => {
   const LIB = LIB_FULL.rows('questions');
   const { w } = boot({ member: true, serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined),
     before: win => {
@@ -29027,7 +28971,9 @@ check('the one toolkit: a typed, a chosen, a table, a drawn and an essay part, a
     } });
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
-  if (typeof w.qToolkit_ !== 'function' || !A['q-zoom'] || !A['q-lock'] || !A['q-zoom-fig'] || !t.padlock) return ['qToolkit_, the q-zoom, q-lock or q-zoom-fig handler, or PADLOCK is not reachable — NOT checked'];
+  if (typeof w.qToolkit_ !== 'function' || !A['q-mag'] || !A['q-lock'] || !t.padlock) return ['qToolkit_, the q-mag or q-lock handler, or PADLOCK is not reachable — NOT checked'];
+  /* NO ZOOM SHEET AND NO FIGURE TILE ANY MORE (463) */
+  ['q-zoom', 'q-zoom-fig', 'q-zoom-by', 'q-fig', 'ins-show'].forEach(a => { if (A[a]) bad.push(a + ' still has a handler -- it went in 463'); });
   t.STUFF().filters = [];
   const all = w.stuffItemsAll_().filter(x => x && x.kind === 'question' && x.row && !/^true$/i.test(String(x.row.lib_pending || '')));
   const T = x => w.qType_(x);
@@ -29045,9 +28991,10 @@ check('the one toolkit: a typed, a chosen, a table, a drawn and an essay part, a
   for (const k of Object.keys(pick)) {
     const x = pick[k];
     host.innerHTML = w.stuffCard(x);
-    const missing = ['q-zoom', 'q-lock', 'read-aloud', 'help-hand', 'q-report'].filter(a => !host.querySelector('[data-do="' + a + '"]'));
+    const missing = ['q-mag', 'q-lock', 'read-aloud', 'help-hand', 'q-report'].filter(a => !host.querySelector('[data-do="' + a + '"]'));
     if (missing.length) bad.push(k + ' part ' + x.row.row_id + ' has no ' + missing.join(', '));
-    host.querySelectorAll('.qsheet figure').forEach(f => { if (!f.closest('.qpad, .qseen') && f.getAttribute('data-do') !== 'q-zoom-fig') bad.push(k + ' part ' + x.row.row_id + ': a figure is not a tap to zoom'); });
+    const gone = ['q-zoom', 'q-fig', 'ins-show'].filter(a => host.querySelector('[data-do="' + a + '"]'));
+    if (gone.length) bad.push(k + ' part ' + x.row.row_id + ' still has ' + gone.join(', ') + ' (463)');
   }
   /* THE PEN HAS PEN, RULER, COMPASS AND PROTRACTOR whatever its words say (the Protractor since 458) */
   host.innerHTML = w.stuffCard(pick.drawn);
@@ -29057,34 +29004,39 @@ check('the one toolkit: a typed, a chosen, a table, a drawn and an essay part, a
   host.innerHTML = w.stuffCard(pick.typed);
   const meas = [...host.querySelectorAll('[data-do="q-measure"]')].map(e => e.getAttribute('data-tool'));
   if (meas.join() !== 'protractor,ruler') bad.push('the typed part ' + pick.typed.row.row_id + ' with a figure measures with ' + JSON.stringify(meas));
-  /* ZOOM: the sheet holds the part's words and its figure, and + makes it bigger */
-  A['q-zoom'](host.querySelector('[data-do="q-zoom"]'));
-  const body = d.getElementById('sheet-body'), inner = body && body.querySelector('.qzoom-in');
-  if (!inner) bad.push('Zoom opened no enlarged page');
+  /* THE MAGNIFIER (463): on, a mouse over the page carries a 2.5x copy of it, figure and all; a held finger brings it up above the finger and lifting puts it away */
+  const ptr = (type, o) => { const e = new w.Event(type, { bubbles: true, cancelable: true }); Object.keys(o).forEach(k => Object.defineProperty(e, k, { value: o[k] })); return e; };
+  host.className = 'page';
+  const fig = host.querySelector('.qsheet figure');
+  A['q-mag'](host.querySelector('[data-do="q-mag"]'));
+  if (host.querySelector('[data-do="q-mag"]').getAttribute('aria-pressed') !== 'true') bad.push('the Magnifier tile does not say it is on');
+  (fig || host).dispatchEvent(ptr('pointermove', { pointerType: 'mouse', pointerId: 1, clientX: 40, clientY: 30 }));
+  const glass = host.querySelector('.mag .mag-in');
+  if (!glass) bad.push('a mouse over the page, Magnifier on, brought up no glass');
   else {
-    if (!inner.querySelector('figure svg')) bad.push('the enlarged page has no figure');
-    const words = String(pick.typed.html || '').replace(/<[^>]*>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ').trim().split(/\s+/).slice(0, 3).join(' ');
-    if (words && inner.textContent.replace(/\s+/g, ' ').indexOf(words) < 0) bad.push('the enlarged page does not say ' + JSON.stringify(words));
-    const z0 = Number(inner.getAttribute('data-z'));
-    A['q-zoom-by'](body.querySelector('[data-do="q-zoom-by"][data-by="1.25"]'));
-    if (!(Number(body.querySelector('.qzoom-in').getAttribute('data-z')) > z0)) bad.push('+ did not make the enlarged page bigger');
+    if (!/scale\(2\.5\)/.test(glass.style.transform)) bad.push('the glass is not 2.5 times: ' + glass.style.transform);
+    if (!glass.querySelector('figure svg')) bad.push('the glass has no copy of the figure');
+    if (glass.querySelector('[id]')) bad.push('the copy under the glass keeps ids');
   }
-  /* A TAP ON THE FIGURE ENLARGES IT TOO */
-  w.closeSheet();
-  host.innerHTML = w.stuffCard(pick.typed);
-  const fig = host.querySelector('.qsheet figure[data-do="q-zoom-fig"]');
-  if (!fig) bad.push('the typed part\'s figure is not a door to zoom');
-  else {
-    A['q-zoom-fig'](fig);
-    if (!d.querySelector('#sheet-body .qzoom-in figure svg')) bad.push('a tap on the figure opened no enlarged figure');
-    w.closeSheet();
-  }
-  /* A STEM PAGE HAS ZOOM AND THE PADLOCK */
+  d.body.dispatchEvent(ptr('pointermove', { pointerType: 'mouse', pointerId: 1, clientX: 5, clientY: 5 }));
+  if (host.querySelector('.mag')) bad.push('the mouse left the page and the glass stayed');
+  (fig || host).dispatchEvent(ptr('pointerdown', { pointerType: 'touch', pointerId: 7, clientX: 50, clientY: 300 }));
+  await wait(320);
+  const held = host.querySelector('.mag');
+  if (!held) bad.push('a held finger brought up no glass');
+  else if (!(parseFloat(held.style.top) < 300 - 80)) bad.push('the glass is not above the finger: top ' + held.style.top);
+  d.body.dispatchEvent(ptr('pointerup', { pointerType: 'touch', pointerId: 7, clientX: 50, clientY: 300 }));
+  if (host.querySelector('.mag')) bad.push('lifting the finger left the glass up');
+  A['q-mag'](host.querySelector('[data-do="q-mag"]'));
+  (fig || host).dispatchEvent(ptr('pointermove', { pointerType: 'mouse', pointerId: 1, clientX: 40, clientY: 30 }));
+  if (host.querySelector('.mag')) bad.push('the Magnifier is off and a mouse still brings up the glass');
+  host.className = '';
+  /* A STEM PAGE HAS THE MAGNIFIER AND THE PADLOCK */
   const stemmed = all.find(x => (x.stems || []).some(p => p && p.diagram));
   if (!stemmed) bad.push('no part with a stem figure to try a stem page on');
   else {
     host.innerHTML = w.questionStemCard_(stemmed, (stemmed.stems || []).findIndex(p => p && p.diagram), 0);
-    if (!host.querySelector('[data-do="q-zoom"]') || !host.querySelector('[data-do="q-lock"]')) bad.push('the stem page of ' + stemmed.row.row_id + ' has no Zoom or no padlock');
+    if (!host.querySelector('[data-do="q-mag"]') || !host.querySelector('[data-do="q-lock"]')) bad.push('the stem page of ' + stemmed.row.row_id + ' has no Magnifier or no padlock');
   }
   /* THE PADLOCK: pressed, the column will not swipe; pressed again, it will; left by a tab, it lets go */
   host.innerHTML = w.stuffCard(pick.chosen);
@@ -29102,13 +29054,84 @@ check('the one toolkit: a typed, a chosen, a table, a drawn and an essay part, a
   return bad;
 });
 
+/* ---------- BACK TO TOP, AND YOUR RESULT (docs/history/463) ---------- */
+check('back to top: every result page of either finder ends in a Back to top tile, and it turns that finder, and only that one, to its first page', async () => {
+  const Q = LIB_FULL.rows('questions').slice(0, 60);
+  const { w } = boot({ member: true, before: signedInAs_(MEMBER_), serve: url => (/data\/questions\.json/.test(url) ? JSON.parse(JSON.stringify(Q)) : undefined) });
+  await wait(300); await woken_();
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  if (!A['find-top'] || typeof w.finderOf_ !== 'function') return ['find-top has no handler, or finderOf_ is not reachable — NOT checked'];
+  let tried = 0;
+  for (const id of ['stuff', 'res']) {
+    const F = w.finderOf_(id), other = id === 'stuff' ? 'res' : 'stuff';
+    t.go(id, false, true); await wait(120); await woken_();
+    /* EVERY QUESTION, as a child narrowing to Questions would have them */
+    (id === 'stuff' ? t.STUFF() : t.RES()).filters = [{ field: 'kindLabel', value: 'Questions' }];
+    w.finderForgetFound_();
+    w.paintFinder_(id); await wait(150); await woken_();
+    const n = w.inFinder_(F, () => w.stuffPageCount());
+    if (!n) { bad.push(id + ': Questions listed nothing — NOT checked'); continue; }
+    for (let i = 0; i < n; i++) {
+      if (!/data-do="find-top"/.test(w.inFinder_(F, () => w.stuffPageHtml(i)))) { bad.push(id + ': result page ' + (i + 1) + ' of ' + n + ' has no Back to top'); break; }
+    }
+    const last = w.inFinder_(F, () => 1 + w.frontPages_().length) + n - 1;
+    t.goPage(id, last, true); await wait(80);
+    const was = pg_(t)[other] || 0;
+    if (!(pg_(t)[id] > 0)) { bad.push(id + ': could not turn to its last page — NOT checked'); continue; }
+    const tile = d.querySelector('#s-' + id + ' [data-do="find-top"]');
+    if (!tile) { bad.push(id + ': no Back to top drawn in the column'); continue; }
+    A['find-top'](tile); await wait(80);
+    tried++;
+    if (pg_(t)[id] !== 0) bad.push(id + ': Back to top left it on page ' + pg_(t)[id]);
+    if ((pg_(t)[other] || 0) !== was) bad.push(id + ': Back to top moved the other finder too');
+  }
+  if (!tried && !bad.length) bad.push('no finder was tried');
+  return bad;
+});
+
+check('your result: a question is Unattempted, then Attempted, Correct, Incorrect or Part marks by the viewer\'s own latest press, live on its page; signed out it is not a tag at all', async () => {
+  const bad = [];
+  for (const who of ['in', 'out']) {
+    const Q = LIB_FULL.rows('questions').slice(0, 30);
+    const { w } = boot({ member: who === 'in', before: who === 'in' ? signedInAs_(ANS_ADA) : undefined,
+      serve: url => (/data\/questions\.json/.test(url) ? JSON.parse(JSON.stringify(Q)) : undefined) });
+    await wait(300); await woken_();
+    const t = w.__t;
+    if (typeof t.facetBy !== 'function' || typeof w.subRecord_ !== 'function' || typeof t.ansKey !== 'function') return ['facetBy, subRecord_ or ansKey_ not reachable — NOT checked'];
+    const f = t.facetBy('myResult');
+    if (!f) return ['there is no myResult facet'];
+    const qs = w.stuffItemsAll_().filter(x => x && x.kind === 'question');
+    if (!qs.length) return ['no question in the fixture — NOT checked'];
+    const x = qs[0], say = () => [].concat(f.of(x) || []).join(',');
+    if (who === 'out') {
+      const said = qs.find(q => [].concat(f.of(q) || []).join(''));
+      if (said) bad.push('signed out, a question says ' + JSON.stringify(f.of(said)));
+      continue;
+    }
+    if (say() !== 'Unattempted') bad.push('before a press it says ' + JSON.stringify(say()));
+    const host = w.document.createElement('section');
+    host.className = 'page';
+    host.innerHTML = w.stuffCard(x, 0) + '<span data-k="' + t.ansKey(x).replace(/"/g, '&quot;') + '"></span>';
+    w.document.body.appendChild(host);
+    const tag = () => [...host.querySelectorAll('.qtag[data-f="myResult"]')].map(e => e.textContent).join(',');
+    if (host.querySelector('.qcard-tags') && tag() !== 'Unattempted') bad.push('the card\'s tag says ' + JSON.stringify(tag()) + ' before a press');
+    for (const [v, want] of [['right', 'Attempted,Correct'], ['wrong', 'Attempted,Incorrect'], ['ai:1/3', 'Attempted,Part marks'], ['sent', 'Attempted']]) {
+      w.subRecord_(t.ansKey(x), '42', v, 'none');
+      if (say() !== want) bad.push('after a ' + v + ' press it says ' + JSON.stringify(say()) + ', not ' + want);
+      if (host.querySelector('.qcard-tags') && tag() !== want) bad.push('after a ' + v + ' press the card\'s own tag says ' + JSON.stringify(tag()) + ', not ' + want);
+    }
+    if (!host.querySelector('.qcard-tags')) bad.push('the card drew no tag row, so the live tag was NOT checked');
+  }
+  return bad;
+});
+
 /* ---------- A CARD WHOSE LEDGER ROW HAS NO DRAWING SHOWS ITS PNG TWIN (docs/history/460) ---------- */
-check('a twin only: a question whose words came without its drawing shows its PNG twin in the figure box, a tap enlarges it, and a drawn part keeps its pen over it', async () => {
+check('a twin only: a question whose words came without its drawing shows its PNG twin in the figure box, under the Magnifier, and a drawn part keeps its pen over it', async () => {
   const LIB = LIB_FULL.rows('questions');
   const { w } = boot({ member: true, serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined), before: signedInAs_(MEMBER_) });
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
-  if (typeof w.libQuestion_ !== 'function' || !A['q-zoom-fig']) return ['libQuestion_ or the q-zoom-fig handler is not reachable — NOT checked'];
+  if (typeof w.libQuestion_ !== 'function') return ['libQuestion_ is not reachable — NOT checked'];
   t.STUFF().filters = [];
   const all = w.stuffItemsAll_().filter(x => x && x.kind === 'question' && x.row && x.row.diagram_twin && x.diagram && !/^true$/i.test(String(x.row.lib_pending || '')));
   const typed = all.find(x => w.qType_(x) === 'value' && /math/i.test(x.subject || '') && w.partChunks_(x).length === 1);
@@ -29125,129 +29148,126 @@ check('a twin only: a question whose words came without its drawing shows its PN
     const img = host.querySelector('svg.qtwin image');
     if (!img || img.getAttribute('href') !== src) bad.push(x.row.row_id + ': the card shows no ' + src);
     if (i === 0) {
-      const fig = host.querySelector('.qsheet figure[data-do="q-zoom-fig"]');
-      if (!fig || !fig.querySelector('svg.qtwin')) bad.push(x.row.row_id + ': the twin is not in a figure that a tap enlarges');
-      else {
-        A['q-zoom-fig'](fig);
-        if (!d.querySelector('#sheet-body .qzoom-in svg.qtwin image')) bad.push(x.row.row_id + ': a tap on the twin opened no enlarged picture');
-        w.closeSheet();
-      }
+      const fig = host.querySelector('.qsheet figure');
+      if (!fig || !fig.querySelector('svg.qtwin')) bad.push(x.row.row_id + ': the twin is not in the figure box');
+      if (!host.querySelector('[data-do="q-mag"]')) bad.push(x.row.row_id + ': the page has no Magnifier to see the twin bigger');
     } else if (!host.querySelector('.qpad svg.qtwin') || !host.querySelector('[data-do="pad-tool"][data-tool="pen"]')) bad.push(x.row.row_id + ': the drawn part has no pen over its twin');
   });
   return bad;
 });
 
-/* ---------- EDIT LAYOUT (462): an admin moves, hides and deletes widgets and moves columns, for everybody ---------- */
+/* ---------- THE ADMIN'S LAYOUT (462, 463): tiles on every widget move it up, down, across, or delete it, for everybody ---------- */
 const LAY_ADMIN_ = { name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], rank: 'admin', token: 'tk', handle: 'adaadmin' };
 const layIds_ = (t, k) => t.widgetsOf(k).map(x => String(x.id));
 const layBoot_ = (o) => boot(Object.assign({ before: signedInAs_(LAY_ADMIN_) }, o || {}));
+const layTile_ = (d, id, act, dir) => d.querySelector(`#wgt-${id}`)?.closest('.card')
+  ?.querySelector(`.wgt-admin [data-do="${act}"]${dir ? `[data-d="${dir}"]` : ''}`);
 
-check('edit layout (462): an admin enters from Business, a widget moves in its column and to another, two columns swap, Done saves one layoutSave and draws it, a reload keeps it, Reset restores', async () => {
+check('layout tiles (463): an admin sees ▲ ▼ ◀ ▶ Delete on each widget; a move up, down and to the next column each saves one layoutSave and redraws at once, a reload keeps it, a refusal puts it back, Reset restores; there is no board', async () => {
   const { w, sent } = layBoot_();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
-  if (!A['layout-edit'] || typeof w.layoutWidgets_ !== 'function') return ['no layout-edit handler or layoutWidgets_ — NOT checked'];
-  t.go('biz', false, true); await wait(200);
-  if (!d.querySelector('#s-biz [data-do="layout-edit"]')) bad.push('Business has no Edit layout tile for an admin');
-  const tools0 = layIds_(t, 'tool'), games0 = layIds_(t, 'game'), cols0 = t.TABS.map(x => x.id);
-  A['layout-edit']();
-  const b = d.getElementById('layout-board');
-  if (!b) return bad.concat(['Edit layout opened no board']);
-  /* NOTHING ELSE ACTS: an arrow key does not turn the column behind. */
-  const at = t.screenAt();
-  d.body.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
-  if (t.screenAt() !== at) bad.push('an arrow key turned the column behind the board');
-  A['lay-col'](b.querySelector('.lay-chip[data-col="tools"]'));
-  const first = tools0[0], second = tools0[2];
-  A['lay-w-move'](b.querySelector(`.lay-w[data-w="${first}"] [data-do="lay-w-move"][data-d="1"]`));
-  const sel = b.querySelector(`select[data-lay-to="${second}"]`);
-  sel.value = 'games'; sel.dispatchEvent(new w.Event('change', { bubbles: true }));
-  A['lay-col'](b.querySelector('.lay-chip[data-col="games"]'));
-  A['lay-col-move'](b.querySelector('[data-do="lay-col-move"][data-d="-1"]'));
-  A['layout-done']();
-  await wait(300);
-  if (d.getElementById('layout-board')) bad.push('Done left the board up');
-  const posts = sent.filter(x => x.action === 'layoutSave');
-  if (posts.length !== 1) bad.push(posts.length + ' layoutSave posts, not one');
-  const L = posts[0] && posts[0].layout;
-  const tools1 = layIds_(t, 'tool'), games1 = layIds_(t, 'game'), cols1 = t.TABS.map(x => x.id);
-  if (tools1.indexOf(second) !== -1 || games1[games1.length - 1] !== second) bad.push('the widget moved to Games is not last on Games: tools ' + tools1.join() + ' games ' + games1.join());
-  const want = [tools0[1], first].concat(tools0.slice(3));
-  if (tools1.join() !== want.join()) bad.push('Tools reads ' + tools1.join() + ', not ' + want.join());
-  const gi = cols0.indexOf('games');
-  if (cols1[gi - 1] !== 'games' || cols1[gi] !== cols0[gi - 1]) bad.push('Games did not swap with its left neighbour: ' + cols1.join());
-  if (t.TABS.find(x => x.id === 'feed') && w.TAB_HOME !== undefined && w.TAB_HOME !== 'feed') bad.push('TAB_HOME moved');
-  t.go('games', false, true); await wait(200);
-  if (!d.querySelector('#s-games #wgt-' + second)) bad.push('the moved widget is not drawn on Games');
-  /* A RELOAD: the payload now carries what was saved. */
+  if (!A['lay-w-move'] || typeof w.layoutTiles_ !== 'function') return ['no lay-w-move handler or layoutTiles_ — NOT checked'];
+  if (A['layout-edit'] || A['layout-done'] || typeof w.layoutEditOpen_ === 'function') bad.push('the Edit layout board is still there');
+  t.go('tools', false, true); await wait(300);
+  const tools0 = layIds_(t, 'tool'), shop0 = layIds_(t, 'shop');
+  const [a, b, c] = tools0;
+  const row = d.querySelector(`#wgt-${a}`)?.closest('.card')?.querySelector('.wgt-admin');
+  if (!row) return bad.concat(['the first tool has no admin row']);
+  const labels = [...row.querySelectorAll('[data-do]')].map(x => x.getAttribute('aria-label') || '').join('|');
+  ['Move up', 'Move down', 'Move to previous column', 'Move to next column', 'Delete'].forEach(l => { if (labels.indexOf(l) === -1) bad.push('the admin row has no ' + l + ': ' + labels); });
+  if (!row.querySelectorAll('.is-admin').length) bad.push('the admin row is not in the admin tone');
+  if (!layTile_(d, a, 'lay-w-move', '-1')?.disabled) bad.push('the first widget can move up');
+  /* DOWN: the first goes second, saved at once and drawn. */
+  A['lay-w-move'](layTile_(d, a, 'lay-w-move', '1')); await wait(200);
+  let posts = sent.filter(x => x.action === 'layoutSave');
+  if (posts.length !== 1) bad.push(posts.length + ' layoutSave posts after one move, not one');
+  if (layIds_(t, 'tool').slice(0, 2).join() !== [b, a].join()) bad.push('Move down left Tools ' + layIds_(t, 'tool').join());
+  const drawn = [...d.querySelectorAll('#s-tools .widget-slot')].map(x => x.id.replace('wgt-', ''));
+  if (drawn.indexOf(b) > drawn.indexOf(a)) bad.push('Move down did not redraw Tools: ' + drawn.join());
+  /* UP: back again. */
+  A['lay-w-move'](layTile_(d, a, 'lay-w-move', '-1')); await wait(200);
+  if (layIds_(t, 'tool').join() !== tools0.join()) bad.push('Move up did not put it back: ' + layIds_(t, 'tool').join());
+  /* ACROSS: to the end of the next widget column. */
+  const cols = w.layoutWidgetCols_(), next = cols[cols.indexOf('tools') + 1];
+  A['lay-w-col'](layTile_(d, c, 'lay-w-col', '1')); await wait(200);
+  const kindOf = { reel: 'reel', tools: 'tool', games: 'game', shop: 'shop' };
+  const there = layIds_(t, kindOf[next]);
+  if (layIds_(t, 'tool').indexOf(c) !== -1 || there[there.length - 1] !== c) bad.push('the widget moved to ' + next + ' is not last there: ' + there.join());
+  posts = sent.filter(x => x.action === 'layoutSave');
+  if (posts.length !== 3) bad.push(posts.length + ' layoutSave posts after three moves');
+  const L = posts[posts.length - 1] && posts[posts.length - 1].layout;
+  if (!L || 'columns' in L || 'hidden' in L) bad.push('the post carried columns or hidden: ' + JSON.stringify(L));
+  /* A RELOAD keeps it. */
   const p2 = payload(); p2.layout = L;
   const r = layBoot_({ payload: p2 }); await wait(300);
   const t2 = r.w.__t;
-  if (layIds_(t2, 'game').join() !== games1.join() || t2.TABS.map(x => x.id).join() !== cols1.join()) bad.push('a reload did not keep the layout');
+  if (layIds_(t2, kindOf[next]).join() !== there.join()) bad.push('a reload did not keep the layout');
   /* RESET restores the code's order. */
-  t2.ACTIONS['layout-reset']();
-  await wait(200);
-  if (layIds_(t2, 'tool').join() !== tools0.join() || t2.TABS.map(x => x.id).join() !== cols0.join()) bad.push('Reset did not restore the defaults');
+  r.w.__t.go('biz', false, true); await wait(200);
+  if (!r.w.document.querySelector('#s-biz .layout-card [data-do="layout-reset"]')) bad.push('Business has no Reset layout with a layout in force');
+  if (r.w.document.querySelector('[data-do="layout-edit"]')) bad.push('Business still has an Edit layout tile');
+  t2.ACTIONS['layout-reset'](); await wait(200);
+  if (layIds_(t2, 'tool').join() !== tools0.join() || layIds_(t2, 'shop').join() !== shop0.join()) bad.push('Reset did not restore the defaults');
   const rp = r.sent.filter(x => x.action === 'layoutSave');
   if (!rp.length || rp[0].reset !== 'TRUE') bad.push('Reset sent no reset layoutSave');
+  /* A REFUSAL: drawn at once, then put back with a toast. */
+  const no = layBoot_({ reply: b2 => b2.action === 'layoutSave' ? { success: false, error: 'No.' } : undefined }); await wait(300);
+  no.w.__t.go('tools', false, true); await wait(300);
+  no.w.__t.ACTIONS['lay-w-move'](layTile_(no.w.document, a, 'lay-w-move', '1')); await wait(300);
+  if (layIds_(no.w.__t, 'tool').join() !== tools0.join()) bad.push('a refused move was not put back: ' + layIds_(no.w.__t, 'tool').join());
   return bad;
 });
 
-check('edit layout (462): delete asks twice in place, the deleted widget is not drawn, started or paged from a payload, Add back returns it to its own column, and a non-admin has no tile and cannot post', async () => {
+check('layout tiles (463): Delete asks twice in place, the deleted widget is not drawn or paged, Add back on Business returns it; the basket has no Delete; Saved has no admin row; a non-admin sees no tiles and cannot post', async () => {
   const { w, sent } = layBoot_();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
   if (!A['lay-w-del']) return ['no lay-w-del handler — NOT checked'];
-  A['layout-edit']();
-  const b = d.getElementById('layout-board');
-  A['lay-col'](b.querySelector('.lay-chip[data-col="games"]'));
-  if (b.querySelector('.lay-w[data-w="cart"] [data-do="lay-w-del"]')) bad.push('the basket has a Delete tile');
-  const tile = () => b.querySelector('.lay-w[data-w="wordgames"] [data-do="lay-w-del"]');
+  t.go('games', false, true); await wait(300);
+  const tile = () => layTile_(d, 'wordgames', 'lay-w-del');
+  if (!tile()) return bad.concat(['Word games has no Delete tile — NOT checked']);
   A['lay-w-del'](tile());
-  if (!b.querySelector('.lay-w[data-w="wordgames"]')) bad.push('one tap deleted');
+  if (sent.some(x => x.action === 'layoutSave') || layIds_(t, 'game').indexOf('wordgames') === -1) bad.push('one tap deleted');
   if (!/Tap again to delete/.test(tile().getAttribute('aria-label') || '')) bad.push('the first tap did not say "Tap again to delete"');
   if (d.querySelector('#sheet:not(.hidden) #sheet-body *')) bad.push('delete opened a sheet');
-  A['lay-w-del'](tile());
-  if (b.querySelector('.lay-w[data-w="wordgames"]')) bad.push('the second tap did not delete');
-  if (!b.querySelector('.lay-del-pick option[value="wordgames"]')) bad.push('no Deleted widgets line lists it');
-  A['layout-done'](); await wait(200);
+  A['lay-w-del'](tile()); await wait(300);
+  if (layIds_(t, 'game').indexOf('wordgames') !== -1 || d.querySelector('#wgt-wordgames')) bad.push('the second tap did not delete');
+  if (t.pageCount('games') !== layIds_(t, 'game').length) bad.push('the pager counts ' + t.pageCount('games') + ' pages for ' + layIds_(t, 'game').length + ' widgets');
   const L = (sent.filter(x => x.action === 'layoutSave')[0] || {}).layout;
   if (!L || (L.deleted || []).indexOf('wordgames') === -1) bad.push('the post did not carry deleted');
-  const p2 = payload(); p2.layout = L;
-  const r = layBoot_({ payload: p2 }); await wait(300);
-  const t2 = r.w.__t, d2 = r.w.document;
-  t2.go('games', false, true); await wait(300);
-  if (layIds_(t2, 'game').indexOf('wordgames') !== -1 || d2.querySelector('#wgt-wordgames')) bad.push('a deleted widget is still drawn');
-  if (t2.pageCount('games') !== layIds_(t2, 'game').length) bad.push('the pager counts ' + t2.pageCount('games') + ' pages for ' + layIds_(t2, 'game').length + ' widgets');
-  t2.ACTIONS['layout-edit']();
-  const b2 = d2.getElementById('layout-board');
-  b2.querySelector('.lay-del-pick').value = 'wordgames';
-  t2.ACTIONS['lay-w-undel']();
-  t2.ACTIONS['lay-col'](b2.querySelector('.lay-chip[data-col="games"]'));
-  if (!b2.querySelector('.lay-w[data-w="wordgames"]')) bad.push('Add back did not return it to Games');
-  t2.ACTIONS['layout-done'](); await wait(200);
-  if (layIds_(t2, 'game').indexOf('wordgames') === -1) bad.push('added back but not drawn');
-  /* A NON-ADMIN: no tile, no board, no post. */
+  /* THE BASKET STAYS. */
+  t.go('shop', false, true); await wait(300);
+  if (!d.querySelector('#wgt-cart')?.closest('.card')?.querySelector('.wgt-admin')) bad.push('the basket has no admin row');
+  if (layTile_(d, 'cart', 'lay-w-del')) bad.push('the basket has a Delete tile');
+  /* SAVED DRAWS NO ADMIN ROW (only a widget's own column does). */
+  if (w.widgetOnColumn_(w.allWidgets().find(x => x.kind === 'tool'), 0).indexOf('wgt-admin') !== -1) bad.push('the Saved drawing carries the admin row');
+  /* ADD BACK, on Business. */
+  t.go('biz', false, true); await wait(300);
+  const pick = d.querySelector('#s-biz .layout-card select.lay-del-pick');
+  if (!pick || !pick.querySelector('option[value="wordgames"]')) return bad.concat(['Business lists no deleted widget']);
+  pick.value = 'wordgames';
+  A['lay-w-undel'](); await wait(300);
+  if (layIds_(t, 'game').indexOf('wordgames') === -1) bad.push('Add back did not return it to Games');
+  /* A NON-ADMIN: no tiles, no post. */
   const m = boot({ member: true }); await wait(300);
-  m.w.__t.go('biz', false, true); await wait(100);
-  if (m.w.document.querySelector('[data-do="layout-edit"]')) bad.push('a member sees Edit layout');
-  m.w.__t.ACTIONS['layout-edit']();
-  if (m.w.document.getElementById('layout-board')) bad.push('a member opened the board');
-  m.w.__t.ACTIONS['layout-reset'](); await wait(100);
+  for (const col of ['tools', 'games', 'shop', 'reel']) { m.w.__t.go(col, false, true); await wait(150); }
+  if (m.w.document.querySelector('.wgt-admin, [data-do="lay-w-move"], [data-do="lay-w-del"]')) bad.push('a member sees layout tiles');
+  m.w.__t.ACTIONS['layout-reset'](); m.w.__t.ACTIONS['lay-w-undel'](); await wait(100);
   if (m.sent.some(x => x.action === 'layoutSave')) bad.push('a member posted layoutSave');
   return bad;
 });
 
-check('edit layout (462): a stale or garbled layout falls back cleanly — unknown ids ignored, missing ones appended in the code\'s order, a deleted id that no longer exists harmless, rubbish ignored', async () => {
+check('layout tiles (463): a stale or garbled layout falls back cleanly — unknown ids ignored, missing ones appended in the code\'s order, a 462 value\'s columns and hidden ignored, rubbish ignored', async () => {
   const bad = [];
   const base = boot(); await wait(300);
   const tools0 = layIds_(base.w.__t, 'tool'), cols0 = base.w.__t.TABS.map(x => x.id);
   const p = payload();
-  p.layout = { columns: ['nope', 'games', 'feed'], widgets: { tools: ['ghost', tools0[2]], nowhere: ['calculator'] }, hidden: ['zzz'], deleted: ['long-gone'] };
+  p.layout = { columns: ['nope', 'games', 'feed'], widgets: { tools: ['ghost', tools0[2]], nowhere: ['calculator'] }, hidden: [tools0[0]], deleted: ['long-gone'] };
   const r = boot({ payload: p }); await wait(300);
   const t = r.w.__t, tools = layIds_(t, 'tool'), cols = t.TABS.map(x => x.id);
   if (tools[0] !== tools0[2] || tools.slice(1).join() !== tools0.filter(x => x !== tools0[2]).join()) bad.push('stale widgets: ' + tools.join());
-  if (cols[0] !== 'games' || cols[1] !== 'feed' || cols.slice(2).join() !== cols0.filter(x => x !== 'games' && x !== 'feed').join()) bad.push('stale columns: ' + cols.join());
+  if (cols.join() !== cols0.join()) bad.push('a stored column order was applied: ' + cols.join());
   if (r.errs.length) bad.push('errors: ' + r.errs.join('; '));
   for (const junk of ['{not json', 42, [1, 2], { columns: 'feed', widgets: 7 }]) {
     const q = payload(); q.layout = junk;

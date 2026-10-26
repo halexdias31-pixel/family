@@ -125,6 +125,8 @@ function subRecord_(k, answer, verdict, sound) {
   all[key] = e;
   subAllKeep_(who, all);
   subPaint_(k);
+  /* AND YOUR RESULT TAG (463) is read again */
+  if (typeof myResultNew_ === 'function') myResultNew_(k);
   /* PROGRESS COUNTS THESE PRESSES (435), so its column is drawn again before anybody next arrives. */
   if (typeof markStale_ === 'function' && typeof AT !== 'undefined' && AT !== 'account') markStale_('account');
   if (e.q) subPush_(true);

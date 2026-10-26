@@ -16,8 +16,10 @@ try {
 }
 
 load();
-/* AND WHAT NEEDS NO PAYLOAD IS BUILT WHILE IT IS ASKED FOR — see `aheadPreOpen_`. */
-try { aheadPreOpen_(); } catch (e) {}
+/* AND THE REST WHEN THE PHONE IS IDLE (466), so the first screen answers a tap at once: what needs no payload (`aheadPreOpen_`), and the old splash's store. */
+const bootIdle_ = f => { try { (window.requestIdleCallback || (g => setTimeout(g, 1)))(() => { try { f(); } catch (e) {} }, { timeout: 2000 }); } catch (e) {} };
+bootIdle_(() => aheadPreOpen_());
+bootIdle_(() => splashForget_());
 
 /* ---------- AND FROM HERE ON, WHETHER THIS IS STILL THE CURRENT BUILD § */
 try { watchBuild_(); } catch (e) {}

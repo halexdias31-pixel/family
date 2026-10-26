@@ -98,11 +98,16 @@ const RACE_HIGHWAYS = 'motorway|trunk|primary|secondary|tertiary|unclassified|re
 const RACE_WIDTH = { motorway: 11, trunk: 10, primary: 10, secondary: 9, tertiary: 8, unclassified: 6,
                      residential: 6.5, living_street: 5, service: 4 };
 /* Tried in order; the first that answers for the whole box is used for all of it, so two datasets never meet in one map. */
+/* `per`: points in one ask. A GET must stay under UrlFetch's 2 kB URL limit — 100 points made 2.4 kB and every ask threw (464). */
 const RACE_DEMS = [
-  { id: 'eudem25m', name: 'EU-DEM 25 m (Copernicus) via OpenTopoData', url: 'https://api.opentopodata.org/v1/eudem25m' },
-  { id: 'srtm30m', name: 'SRTM 30 m (NASA) via OpenTopoData', url: 'https://api.opentopodata.org/v1/srtm30m' },
-  { id: 'openelev', name: 'Open-Elevation (SRTM)', url: 'https://api.open-elevation.com/api/v1/lookup' },
+  { id: 'eudem25m', name: 'EU-DEM 25 m (Copernicus) via OpenTopoData', url: 'https://api.opentopodata.org/v1/eudem25m', per: 80 },
+  { id: 'srtm30m', name: 'SRTM 30 m (NASA) via OpenTopoData', url: 'https://api.opentopodata.org/v1/srtm30m', per: 80 },
+  { id: 'meteo', name: 'Copernicus GLO-90 via Open-Meteo', url: 'https://api.open-meteo.com/v1/elevation', per: 80 },
+  { id: 'openelev', name: 'Open-Elevation (SRTM)', url: 'https://api.open-elevation.com/api/v1/lookup', per: 100 },
 ];
+/* NO DATASET ANSWERED: the map is built flat rather than not at all, and says so (464). */
+const RACE_FLAT = 'none — flat ground (no elevation service answered)';
+const RACE_URL_MAX = 2000;
 const RACE_OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter',
                        'https://overpass.private.coffee/api/interpreter'];
 
@@ -145,19 +150,25 @@ function raceOverpass_(q) {
   return { error: 'No Overpass server answered.', tried: tried };
 }
 
-/* ONE BATCH OF AT MOST 100 POINTS from one dataset: heights in metres, or null if it would not answer for every point. */
+/* ONE BATCH OF AT MOST `dem.per` POINTS from one dataset: heights in metres, or null if it would not answer for every point. */
 function raceDemBatch_(dem, batch) {
   let res;
+  const f5 = v => v.toFixed(5);   // about 1 m, finer than any of the datasets
   if (dem.id === 'openelev') {
     res = UrlFetchApp.fetch(dem.url, { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
       payload: JSON.stringify({ locations: batch.map(p => ({ latitude: p[0], longitude: p[1] })) }) });
   } else {
-    /* ENCODED: UrlFetchApp refuses a bare `|` in a URL as an invalid argument. */
-    res = UrlFetchApp.fetch(dem.url + '?locations=' + encodeURIComponent(batch.map(p => p[0].toFixed(6) + ',' + p[1].toFixed(6)).join('|')),
-      { muteHttpExceptions: true });
+    /* `|` ENCODED: UrlFetchApp refuses a bare one. Commas are legal in a query and left bare to keep the URL short. */
+    const url = dem.id === 'meteo'
+      ? dem.url + '?latitude=' + batch.map(p => f5(p[0])).join(',') + '&longitude=' + batch.map(p => f5(p[1])).join(',')
+      : dem.url + '?locations=' + batch.map(p => f5(p[0]) + ',' + f5(p[1])).join('%7C');
+    if (url.length > RACE_URL_MAX) throw new Error('a ' + url.length + '-character URL is over the 2 kB UrlFetch limit');
+    res = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
   }
   if (res.getResponseCode() !== 200) return null;
-  const got = (JSON.parse(res.getContentText()) || {}).results || [];
+  const body = JSON.parse(res.getContentText()) || {};
+  /* OPEN-METEO answers `{ elevation: [h, …] }`; OpenTopoData and Open-Elevation `{ results: [{ elevation }] }`. */
+  const got = dem.id === 'meteo' ? (body.elevation || []).map(v => ({ elevation: v })) : (body.results || []);
   if (got.length !== batch.length) return null;
   const out = got.map(q => (q && typeof q.elevation === 'number' && isFinite(q.elevation)) ? q.elevation : null);
   return out.some(v => v === null) ? null : out;
@@ -180,9 +191,10 @@ function raceHeights_(ll, until) {
     const want = [];
     h.forEach((v, i) => { if (v === null) want.push(i); });
     let gaveUp = false, asked = 0;
-    for (let i = 0; i < want.length; i += 100) {
+    const per = dem.per || 80;
+    for (let i = 0; i < want.length; i += per) {
       if (Date.now() > until) break;
-      const idx = want.slice(i, i + 100);
+      const idx = want.slice(i, i + per);
       let vals = null;
       try { vals = raceDemBatch_(dem, idx.map(k => ll[k])); } catch (err) { notes.push(dem.id + ': ' + String(err && err.message || err)); }
       asked++;
@@ -333,8 +345,9 @@ function raceBuild_(arg, t0) {
   for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) GXY.push([gx0 + i * RACE_GRID_M, gy0 + j * RACE_GRID_M]);
 
   const all = XY.concat(GXY);
-  const hs = raceHeights_(all.map(p => toLL(p[0], p[1])), t0 + 280 * 1000);
-  if (!hs.h) return { error: 'No elevation service answered for the box.', notes: hs.notes };
+  let hs = raceHeights_(all.map(p => toLL(p[0], p[1])), t0 + 280 * 1000);
+  /* EVERY DATASET REFUSED: flat beats nothing — the roads, buildings and laps are still Colliers Wood's (464). */
+  if (!hs.h) hs = { h: all.map(() => 0), dem: { name: RACE_FLAT }, missing: 0, notes: hs.notes };
   if (hs.missing) {
     return { error: 'Heights for ' + (all.length - hs.missing) + ' of ' + all.length + ' points before time ran out. '
                   + 'Run it again — those are kept for six hours, so it carries on.', more: true, dem: hs.dem.name };
@@ -360,7 +373,7 @@ function raceBuild_(arg, t0) {
   const said = { id: file.getId(), at: Date.now(), bytes: body.length, dem: hs.dem.name,
                  roads: roads.length, pts: XY.length, bld: bld.length };
   PropertiesService.getScriptProperties().setProperty(RACE_PROP, JSON.stringify(said));
-  return Object.assign({ built: true, water: water.length, lowest: Math.round(lo * 10) / 10, highest: Math.round(hi * 10) / 10,
+  return Object.assign({ built: true, flat: hs.dem.name === RACE_FLAT, notes: (hs.notes || []).slice(0, 8), water: water.length, lowest: Math.round(lo * 10) / 10, highest: Math.round(hi * 10) / 10,
                          seconds: Math.round((Date.now() - t0) / 1000), overpass: got.from,
                          attribution: map.osm + '; heights ' + map.dem }, said);
 }

@@ -449,10 +449,7 @@ const r2 = x => Math.round(x * 100) / 100;
 const MONEY_DATA = (vars) => ({
   constants: { vars: Object.assign({ c: 0.5, B: 0.2 }, vars || {}) },
   tutors: [{ title: 'Tutor', rate: 30 }], multipliers: {},
-  // A ROOM AT £15/h, so a trip that forgot to drop it would be caught charging for one.
   venues: [{ title: 'Somewhere', bestRate: 15 }],
-  practicals: [{ id: 'PR-T', name: 'Kit test', costPerRun: 2, setupCost: 5 }],
-  trips: [{ tripId: 'TR-T', name: 'Trip test', ticketChild: 8, ticketAdult: 10, travelPerChild: 5, maxChildren: 6 }],
 });
 const quote = (spec, vars) => {
   money_.setData(MONEY_DATA(vars));
@@ -460,7 +457,7 @@ const quote = (spec, vars) => {
 };
 if (money_) {
   RULES.push({
-    what: 'the owner\'s examples price to the penny: tutoring, a practical, a trip, two discounts, card fees',
+    what: 'the owner\'s examples price to the penny: tutoring, two discounts, card fees, and a format sent by an old phone priced as tutoring (463)',
     check: () => {
       const bad = [];
       const want = (what, L, charged, tutor, net) => {
@@ -472,20 +469,11 @@ if (money_) {
       };
       want('tutoring, 1 child, 2h', quote({ n: 1, hours: 2, hoursPerWeek: 2 }), 60, 60, 0);
       want('tutoring, 2 children, 2h', quote({ n: 2, hours: 2, hoursPerWeek: 2 }), 102, 90, 12);
-      const pr = quote({ n: 2, hours: 2, hoursPerWeek: 2, format: 'Practical', practical: 'Kit test' }, { materials_markup: 1.25 });
-      want('practical, 2 children, 2h, kit £2 + £5, markup 1.25', pr, 113.25, 90, 14.25);
-      if (r2(pr.earn.materialsCharge) !== 11.25) bad.push('the practical\'s materials are ' + r2(pr.earn.materialsCharge) + ', wanted 11.25');
-      const atCost = quote({ n: 2, hours: 2, hoursPerWeek: 2, format: 'Practical', practical: 'Kit test' });
-      if (r2(atCost.earn.materialsCharge) !== 9) bad.push('a blank materials_markup charges ' + r2(atCost.earn.materialsCharge) + ' for £9 of kit, wanted it at cost');
-      const tr = quote({ n: 3, hours: 4, hoursPerWeek: 4, format: 'Trip', trip: 'Trip test', loc: 'Somewhere' });
-      want('trip, 3 children, 4h, £8 + £10 adult, £5 travel', tr, 337, 240, 48);
-      if (tr.V !== 0) bad.push('a trip hires a room at £' + tr.V + '/h');
+      /* AN OLD DRAFT'S `format: 'Trip'` IS IGNORED (463): it prices as the tutoring it is. */
+      want('an old draft saying Trip', quote({ n: 2, hours: 2, hoursPerWeek: 2, format: 'Trip', trip: 'x' }), 102, 90, 12);
       want('£10 off, business absorbs', quote({ n: 2, hours: 2, hoursPerWeek: 2, discount: { type: '£', value: 10 } }), 92, 90, 2);
       want('10% off, shared with tutor', quote({ n: 2, hours: 2, hoursPerWeek: 2,
         discount: { type: '%', value: 10, by: 'Shared with tutor' } }), 91.8, 81, 10.8);
-      const prPct = quote({ n: 2, hours: 2, hoursPerWeek: 2, format: 'Practical', practical: 'Kit test',
-        discount: { type: '%', value: 10 } }, { materials_markup: 1.25 });
-      if (r2(prPct.earn.discount) !== 10.2) bad.push('10% off a practical took ' + r2(prPct.earn.discount) + ', wanted 10.20 — off the teaching, never the kit');
       want('£20 off one child, business absorbs: a loss', quote({ n: 1, hours: 2, hoursPerWeek: 2, discount: { type: '£', value: 20 } }), 40, 60, -20);
       const fees = quote({ n: 2, hours: 2, hoursPerWeek: 2 }, { card_fee_pct: 1.5, card_fee_fixed: 0.2 });
       if (r2(fees.earn.cardFees) !== 1.73 || r2(fees.earn.net) !== 10.27) {
