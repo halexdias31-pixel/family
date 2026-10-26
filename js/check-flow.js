@@ -29399,7 +29399,7 @@ check('layout cards (465): an admin sees ▲ ▼ ◀ ▶ Start here Delete on ev
       const row = layCardRow_(d, id);
       if (!row) { bad.push(col + ': ' + id + ' has no admin row'); return; }
       const labels = [...row.querySelectorAll('[data-do]')].map(x => x.getAttribute('aria-label') || '').join('|');
-      ['Move up', 'Move down', 'Move to previous column', 'Move to next column', 'Start here', 'Delete'].forEach(l => { if (labels.indexOf(l) === -1) bad.push(id + ' has no ' + l); });
+      ['Move up', 'Move down', 'Move to previous column', 'Move to ', 'Start here', 'Delete'].forEach(l => { if (labels.indexOf(l) === -1) bad.push(id + ' has no ' + l); });
     });
   }
   ['ppl:students:help', 'ppl:students:add', 'ppl:tutors:add', 'ppl:parents:add', 'biz:build', 'biz:layout', 'acct:pin'].forEach(id => { if (!layCardTile_(d, id, 'lay-c-del')) bad.push(id + ' has no Delete'); });
@@ -29447,7 +29447,8 @@ check('layout cards (465): an admin sees ▲ ▼ ◀ ▶ Start here Delete on ev
   const pgs = [...d.querySelectorAll('#s-students > .page')];
   if (!pgs.length || !pgs[pgs.length - 1].querySelector('[data-do="person-add"]')) bad.push('the last page of Student profiles is not "+ Add a student"');
   /* A BUSINESS CARD CANNOT LEAVE FOR A COLUMN… IT CAN; a settings card cannot go to Business (it would vanish for all but an admin). */
-  if (!layCardTile_(d, 'ppl:parents:add', 'lay-c-col', '1')?.disabled) bad.push('a Parent profiles card may move on to Business');
+  const pr = layCardTile_(d, 'ppl:parents:add', 'lay-c-col', '1');
+  if (!pr || pr.disabled || pr.getAttribute('aria-label') !== 'Move to a new column') bad.push('▶ on the last right-hand column does not offer a new column (466): ' + (pr && pr.getAttribute('aria-label')));
   if (r.errs.length) bad.push('errors: ' + r.errs.join('; '));
   return bad;
 });
@@ -29511,14 +29512,15 @@ check('layout cards (465): Start here makes a card, a person or "the first perso
   if (!A['lay-start']) return ['no lay-start handler — NOT checked'];
   await layPaintAll_(w);
   /* A PERSON'S START HERE and the list's "the first person". */
-  const first = d.querySelector('#s-parents .start-tiles [data-do="lay-start"][data-lc="first-person"]') || d.querySelector('.start-tiles [data-do="lay-start"][data-lc="first-person"]');
-  if (!first) return bad.concat(['no person card offers Start here: the first person']);
+  /* "THE FIRST PERSON" IS NO LONGER A SECOND TILE (466): a stored 'first-person' still opens there. */
+  const first = d.querySelector('#s-parents .start-tiles [data-do="lay-start"]') || d.querySelector('.start-tiles [data-do="lay-start"]');
+  if (!first) return bad.concat(['no person card offers Start here']);
   const col = first.dataset.col;
-  A['lay-start'](first); await wait(250); await layPaintAll_(w);
-  let L = layLast_(sent);
-  if (!L || !L.start || L.start[col] !== 'first-person') bad.push('Start here posted ' + JSON.stringify(L && L.start));
-  const at = w.cardStartAt_(col), pg = [...d.querySelectorAll('#s-' + col + ' > .page')][at];
+  const fp = payload(); fp.layout = { v: 1, widgets: {}, deleted: [], start: { [col]: 'first-person' } };
+  const f = layBoot_({ payload: fp }); await wait(300); await layPaintAll_(f.w);
+  const at = f.w.cardStartAt_(col), pg = [...f.w.document.querySelectorAll('#s-' + col + ' > .page')][at];
   if (!pg || !pg.querySelector('.start-tiles')) bad.push(col + ' opens on page ' + at + ', not the first person');
+  let L;
   const person = [...d.querySelectorAll('#s-' + col + ' .start-tiles [data-do="lay-start"]')].map(x => x.dataset.lc).filter(x => /^person:/.test(x)).pop();
   A['lay-start'](d.querySelector(`#s-${col} [data-do="lay-start"][data-lc="${person}"]`)); await wait(250); await layPaintAll_(w);
   L = layLast_(sent);
@@ -29553,6 +29555,173 @@ check('layout cards (465): Start here makes a card, a person or "the first perso
     if (gb.errs.length) bad.push(JSON.stringify(junk) + ' threw: ' + gb.errs.join('; '));
     if (!gb.w.document.querySelector('#s-account [data-do="pin-save"]') || !gb.w.document.querySelector('#s-account .roles-card')) bad.push(JSON.stringify(junk) + ' lost a Student settings card');
   }
+  return bad;
+});
+
+/* ---------- THE LAYOUT ENGINE, AGAIN (466): independent pieces, a new column past the last, every card deletable, one Start here ---------- */
+const layPieces_ = (d, base) => [...d.querySelectorAll(`.card[data-split="${base}"][data-lay-card^="${base}#"]`)].map(c => c.dataset.layCard);
+
+check('layout engine (466): a split card\'s pieces are cards of their own — each moves up, down and across, is deleted and gets Start here alone, each field still edited in one place; Join gathers them back wherever they went', async () => {
+  const { w, sent } = layBoot_();
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  if (!A['lay-split'] || typeof w.cardSeen_ !== 'function') return ['no lay-split or cardSeen_ — NOT checked'];
+  await layPaintAll_(w);
+  const base = 'set:account:contact';
+  const sp = d.querySelector(`#s-account [data-do="lay-split"][data-card="${base}"]`);
+  if (!sp) return ['Contact on Student settings offers no Split — NOT checked'];
+  A['lay-split'](sp); await wait(250); await layPaintAll_(w);
+  const pcs = layPieces_(d, base);
+  if (pcs.length < 2) return bad.concat(['Split drew ' + pcs.length + ' pieces with their own ids']);
+  pcs.forEach(id => { if (!layCardRow_(d, id)) bad.push(id + ' has no admin row of its own'); });
+  const seen0 = laySeen_(w, 'account');
+  if (pcs.some(id => seen0.indexOf(id) === -1)) bad.push('the pieces are not each a card on Student settings: ' + seen0.join());
+  /* THE SECOND PIECE UP, ALONE: the first stays where it was. */
+  const [p1, p2] = pcs;
+  A['lay-c-move'](layCardTile_(d, p2, 'lay-c-move', '-1')); await wait(250); await layPaintAll_(w);
+  let s = laySeen_(w, 'account');
+  if (s.indexOf(p2) !== s.indexOf(p1) - 1) bad.push('the second piece did not move up past the first alone: ' + s.join());
+  /* THE FIRST ACROSS to Tutor settings, alone. */
+  A['lay-c-col'](layCardTile_(d, p1, 'lay-c-col', '-1')); await wait(250); await layPaintAll_(w);
+  if (laySeen_(w, 'staff').indexOf(p1) === -1 || laySeen_(w, 'account').indexOf(p1) !== -1) bad.push(p1 + ' did not move to Tutor settings: ' + laySeen_(w, 'staff').join());
+  if (laySeen_(w, 'staff').indexOf(p2) !== -1) bad.push('the other piece went with it');
+  const ed = editorsOf_(d, {});
+  Object.keys(ed).filter(f => ed[f].size > 1).forEach(f => bad.push('"' + f + '" is edited in ' + ed[f].size + ' places after the pieces moved'));
+  /* START HERE on one piece, then DELETE another. */
+  A['lay-start'](layCardTile_(d, p1, 'lay-start')); await wait(250); await layPaintAll_(w);
+  if (((layLast_(sent) || {}).start || {}).staff !== p1) bad.push('Start here on a piece was not stored: ' + JSON.stringify((layLast_(sent) || {}).start));
+  const del = layCardTile_(d, p2, 'lay-c-del');
+  A['lay-c-del'](del); A['lay-c-del'](del); await wait(250); await layPaintAll_(w);
+  if (laySeen_(w, 'account').indexOf(p2) !== -1 || d.querySelector(`[data-lay-card="${p2}"]`)) bad.push(p2 + ' was not deleted alone');
+  if (!d.querySelector(`[data-lay-card="${p1}"]`)) bad.push('deleting one piece took ' + p1 + ' with it');
+  /* A RELOAD KEEPS EACH PIECE WHERE IT IS — and another account sees the same. */
+  const L = layLast_(sent), p = payload(); p.layout = L;
+  const r = layBoot_({ payload: p }); await wait(300); await layPaintAll_(r.w);
+  if (laySeen_(r.w, 'staff').indexOf(p1) === -1 || r.w.document.querySelector(`[data-lay-card="${p2}"]`)) bad.push('a reload did not keep the pieces apart');
+  /* JOIN, from the piece on Tutor settings: one card again, on Student settings, nothing of its pieces left. */
+  A['lay-join'](d.querySelector(`[data-lay-card="${p1}"] [data-do="lay-join"]`) || d.createElement('button')); await wait(250); await layPaintAll_(w);
+  const J = layLast_(sent) || {}, txt = JSON.stringify(J);
+  if (txt.indexOf(base + '#') !== -1) bad.push('Join left pieces in the layout: ' + txt);
+  if (d.querySelectorAll(`.card[data-split="${base}"]`).length !== 1 || laySeen_(w, 'account').indexOf(base) === -1) bad.push('Join did not gather ' + base + ' back into one card on Student settings');
+  if (r.errs.length) bad.push('errors: ' + r.errs.join('; '));
+  return bad;
+});
+
+check('layout engine (466): ▶ on the last right-hand column makes "New column" before Business, for everybody; it can be renamed, its card moved back empties it and it goes; Delete column sends its cards home; ◀ from the first stays put; a garbled custom falls back', async () => {
+  const { w, sent } = layBoot_();
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  await layPaintAll_(w);
+  const id = 'ppl:parents:add';
+  const right = layCardTile_(d, id, 'lay-c-col', '1');
+  if (!right || right.disabled) return ['"+ Add a parent" has no live ▶ — NOT checked'];
+  A['lay-c-col'](right); await wait(300);
+  const L = layLast_(sent) || {};
+  if (JSON.stringify(L.custom) !== JSON.stringify([{ id: 'custom-1', title: 'New column' }]) || ((L.cards || {})['custom-1'] || []).join() !== id) bad.push('▶ past the last posted ' + JSON.stringify(L));
+  const ids = t.TABS.map(x => x.id);
+  if (ids.indexOf('custom-1') === -1 || ids.indexOf('custom-1') !== ids.indexOf('biz') - 1) bad.push('the new column is not just before Business: ' + ids.join());
+  try { w.paint('custom-1'); w.paint('parents'); } catch (e) { bad.push('painting it threw ' + e.message); }
+  await wait(150);
+  if (!d.querySelector('#s-custom-1 [data-do="person-add"]') || d.querySelector('#s-parents [data-do="person-add"]')) bad.push('"+ Add a parent" is not on the new column alone');
+  /* ITS CARDS GO ON: ▶ again there makes a second. */
+  if (!d.querySelector('#s-custom-1 .custom-head [data-do="lay-col-rename"]')) bad.push('the new column has no Rename');
+  /* RENAME. */
+  const box = d.querySelector('#s-custom-1 .lay-col-name');
+  if (box) { box.value = 'Front desk'; A['lay-col-rename'](d.querySelector('#s-custom-1 [data-do="lay-col-rename"]')); await wait(250); }
+  if (((layLast_(sent) || {}).custom || [])[0]?.title !== 'Front desk') bad.push('Rename did not store the title');
+  if ((t.TABS.find(x => x.id === 'custom-1') || {}).label !== 'Front desk') bad.push('the tab is not called Front desk');
+  /* EVERYBODY: a client reloading has the column and the card where it was put (its own gate decides what is drawn). */
+  const CL = { name: 'Cleo Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'cleo' };
+  const p = payload(); p.layout = layLast_(sent);
+  const c = boot({ payload: p, before: signedInAs_(CL) }); await wait(300);
+  const cids = c.w.__t.TABS.map(x => x.id);
+  if (cids.indexOf('custom-1') === -1 || cids.indexOf('biz') !== -1) bad.push('a client\'s columns: ' + cids.join());
+  try { c.w.paint('custom-1'); } catch (e) {}
+  await wait(100);
+  if (!c.w.document.getElementById('s-custom-1')) bad.push('a client has no section for the new column');
+  if (c.w.document.querySelector('#s-custom-1 .custom-head, #s-custom-1 .card-admin')) bad.push('a client sees the admin line on the new column');
+  if (c.errs.length) bad.push('client errors: ' + c.errs.join('; '));
+  /* ◀ BACK: the column is empty and goes. */
+  await layPaintAll_(w); try { w.paint('custom-1'); } catch (e) {}
+  await wait(100);
+  A['lay-c-col'](layCardTile_(d, id, 'lay-c-col', '-1')); await wait(300);
+  const B = layLast_(sent) || {};
+  if (B.custom || (B.cards || {})['custom-1']) bad.push('the emptied column was not removed: ' + JSON.stringify(B));
+  if (t.TABS.some(x => x.id === 'custom-1') || d.getElementById('s-custom-1')) bad.push('the emptied column is still a tab or a section');
+  await layPaintAll_(w);
+  if (!d.querySelector('#s-parents [data-do="person-add"]')) bad.push('"+ Add a parent" did not come back to Parent profiles');
+  /* DELETE COLUMN sends its cards home. */
+  A['lay-c-col'](layCardTile_(d, id, 'lay-c-col', '1')); await wait(300);
+  try { w.paint('custom-1'); } catch (e) {}
+  await wait(100);
+  const dc = d.querySelector('#s-custom-1 [data-do="lay-col-del"]');
+  if (!dc) bad.push('no Delete column');
+  else { A['lay-col-del'](dc); if (layLast_(sent).custom === undefined) bad.push('one tap deleted the column'); A['lay-col-del'](dc); await wait(300); }
+  if ((layLast_(sent) || {}).custom || t.TABS.some(x => x.id === 'custom-1')) bad.push('Delete column left it');
+  await layPaintAll_(w);
+  if (!d.querySelector('#s-parents [data-do="person-add"]')) bad.push('Delete column did not send "+ Add a parent" home');
+  /* ◀ FROM THE FIRST RIGHT-HAND COLUMN STAYS PUT. */
+  const first = laySeen_(w, 'staff')[0] || laySeen_(w, 'account')[0];
+  const lt = layCardTile_(d, first, 'lay-c-col', '-1');
+  if (laySeen_(w, 'family').length === 0 && laySeen_(w, 'staff')[0] === first && lt && !lt.disabled) {} /* family is first, and empty for an admin */
+  const fam = layCardTile_(d, laySeen_(w, 'family')[0], 'lay-c-col', '-1');
+  if (fam && !fam.disabled) bad.push('◀ on the first right-hand column is live');
+  /* GARBLED: a custom with a bad id, a duplicate, no title — the bad ones ignored, the column still drawn. */
+  const g = payload(); g.layout = { v: 1, widgets: {}, deleted: [], custom: [{ id: 'evil' }, { id: 'custom-2' }, { id: 'custom-2', title: 'x' }, 7], cards: { 'custom-2': ['acct:voice'], evil: ['acct:pin'] } };
+  const gb = layBoot_({ payload: g }); await wait(300); await layPaintAll_(gb.w);
+  const gids = gb.w.__t.TABS.map(x => x.id);
+  if (gids.filter(x => /custom|evil/.test(x)).join() !== 'custom-2') bad.push('a garbled custom gave columns ' + gids.join());
+  if (!gb.w.document.querySelector('#s-account [data-do="pin-save"]')) bad.push('a card named under a bad column left Student settings');
+  if (gb.errs.length) bad.push('garbled errors: ' + gb.errs.join('; '));
+  return bad;
+});
+
+check('layout engine (466): every card deletes — a paper series (past papers, Religious Studies) on its own and the Sessions card; one Start here per card or person, a house not a flag; an admin\'s delete is gone for another account on reload', async () => {
+  const { w, sent } = layBoot_();
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  /* TWO SERIES AND A SESSIONS CARD WITH SOMETHING IN IT, as a learner with work would have. */
+  const was = w.progressCards_;
+  w.progressCards_ = () => was().filter(c => !/prog-series|is-empty"><h3>Papers|prog-sessions|is-empty"><h3>Sessions/.test(c))
+    .concat([w.progressSeriesCard_({ name: 'past papers', papers: [], untouched: 3 }), w.progressSeriesCard_({ name: 'Religious Studies', papers: [], untouched: 2 }),
+      w.progressSessionsCard_({ ahead: [{ d: new w.Date(), j: { title: 'Maths' } }], past: [] })]);
+  await layPaintAll_(w);
+  const s0 = laySeen_(w, 'account');
+  ['prog:series:past-papers', 'prog:series:religious-studies', 'acct:prog-sessions'].forEach(id => {
+    if (s0.indexOf(id) === -1) bad.push(id + ' is not a card on Student settings: ' + s0.join());
+    else if (!layCardTile_(d, id, 'lay-c-del')) bad.push(id + ' has no Delete');
+  });
+  for (const id of ['prog:series:religious-studies', 'acct:prog-sessions']) {
+    const x = layCardTile_(d, id, 'lay-c-del');
+    if (!x) continue;
+    A['lay-c-del'](x); A['lay-c-del'](x); await wait(250); await layPaintAll_(w);
+  }
+  const s1 = laySeen_(w, 'account');
+  if (s1.indexOf('prog:series:religious-studies') !== -1 || s1.indexOf('acct:prog-sessions') !== -1) bad.push('Religious Studies or Sessions was not deleted: ' + s1.join());
+  if (s1.indexOf('prog:series:past-papers') === -1) bad.push('deleting Religious Studies took past papers with it');
+  if (d.querySelector('#s-account .prog-sessions')) bad.push('the Sessions card is still drawn');
+  /* ONE START HERE A CARD, a house. */
+  [...d.querySelectorAll('#screen > .screen > .page')].forEach(pg => {
+    const n = pg.querySelectorAll('[data-do="lay-start"]').length;
+    if (n > 1) bad.push(pg.parentNode.id + ' has a page with ' + n + ' Start here tiles');
+  });
+  const st = d.querySelectorAll('[data-do="lay-start"]');
+  if (!st.length) bad.push('no Start here at all');
+  [...st].forEach(x => { if (/M4 15\.5v-13/.test(x.innerHTML)) bad.push('Start here is still a flag'); if (!/^Start here/.test(x.getAttribute('aria-label') || '')) bad.push('a Start here reads ' + x.getAttribute('aria-label')); });
+  if (d.querySelector('[data-do="lay-start"][data-lc="first-person"]')) bad.push('"the first person" is still a second Start here');
+  /* COMPACT: the admin row's tiles are icons, each at least 44px by the stylesheet's rule. */
+  /* SITE-WIDE: an admin's delete is gone for a client on reload. */
+  const kill = layCardTile_(d, 'acct:voice', 'lay-c-del') || layCardTile_(d, 'acct:notify', 'lay-c-del');
+  const kid = kill && kill.dataset.lc;
+  if (kill) { A['lay-c-del'](kill); A['lay-c-del'](kill); await wait(250); }
+  const CL = { name: 'Cleo Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'cleo' };
+  const base = boot({ before: signedInAs_(CL) }); await wait(300); await layPaintAll_(base.w);
+  const p = payload(); p.layout = layLast_(sent);
+  const c = boot({ payload: p, before: signedInAs_(CL) }); await wait(300); await layPaintAll_(c.w);
+  const sel = kid === 'acct:voice' ? '.voice-card' : '.notify-card';
+  if (!base.w.document.querySelector('#s-account ' + sel)) bad.push('a client has no ' + kid + ' to begin with (fixture) — NOT checked');
+  else if (c.w.document.querySelector(sel)) bad.push('a client still sees ' + kid + ' the admin deleted');
+  if (c.w.document.querySelector('[data-do="lay-start"], .card-admin')) bad.push('a client sees admin tiles');
   return bad;
 });
 

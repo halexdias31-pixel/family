@@ -1180,7 +1180,9 @@ function progressSeriesCard_(sr) {
   }).join('');
   const more = sr.papers.length > 15 ? `<p class="faint">and ${sr.papers.length - 15} more started</p>` : '';
   const untouched = sr.untouched ? `<div class="row"><span class="k">Not started</span><span class="v">${sr.untouched}</span></div>` : '';
-  return `<div class="card prog-series">
+  /* ITS OWN CARD ID (466), so one series — past papers, Religious Studies — moves or goes alone. */
+  const lid = 'prog:series:' + String(sr.name || 'x').toLowerCase().replace(/[^a-z0-9_.-]+/g, '-').replace(/^-|-$/g, '').slice(0, 48);
+  return `<div class="card prog-series" data-lay-card="${esc(lid)}">
     <h3>${esc(sr.name.charAt(0).toUpperCase() + sr.name.slice(1))}</h3>
     ${lines}${more}${untouched}
   </div>`;

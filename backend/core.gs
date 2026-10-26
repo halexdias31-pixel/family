@@ -584,7 +584,8 @@ function layoutClean_(v) {
     try { o = JSON.parse(o); } catch (e) { return null; }
   }
   if (!o || typeof o !== 'object' || Array.isArray(o)) return null;
-  const ID = /^[A-Za-z0-9_:.-]{1,64}$/;
+  /* `#` joins a split card's piece to its card (466). */
+  const ID = /^[A-Za-z0-9_:.#-]{1,64}$/;
   const ids = (a, max) => (Array.isArray(a) ? a : []).map(x => String(x)).filter(x => ID.test(x))
     .filter((x, i, all) => all.indexOf(x) === i).slice(0, max);
   /* WIDGETS AND DELETED ONLY (463): a 462 value's `columns` and `hidden` are cleaned out. */
@@ -595,7 +596,12 @@ function layoutClean_(v) {
   const split = ids(o.split, 200).filter(x => /^(set|biz):/.test(x));
   if (split.length) out.split = split;
   /* CARDS ON THE RIGHT-HAND COLUMNS (465): `cards: {col: [ids]}` and `start: {col: id}`, the right-hand columns only. */
-  const COLS = ['family', 'staff', 'account', 'tutors', 'students', 'parents', 'biz'];
+  /* AN ADMIN'S OWN COLUMNS (466): `custom: [{id: 'custom-N', title}]`, at most twelve, each a column cards may stand on. */
+  const custom = (Array.isArray(o.custom) ? o.custom : []).filter(x => x && typeof x === 'object' && /^custom-\d{1,3}$/.test(String(x.id)))
+    .map(x => ({ id: String(x.id), title: String(x.title == null ? '' : x.title).replace(/\s+/g, ' ').trim().slice(0, 40) || 'New column' }))
+    .filter((x, i, all) => all.findIndex(y => y.id === x.id) === i).slice(0, 12);
+  if (custom.length) out.custom = custom;
+  const COLS = ['family', 'staff', 'account', 'tutors', 'students', 'parents', 'biz'].concat(custom.map(x => x.id));
   const c = o.cards && typeof o.cards === 'object' && !Array.isArray(o.cards) ? o.cards : {};
   const cards = {};
   Object.keys(c).filter(k => COLS.indexOf(k) !== -1).forEach(k => { const l = ids(c[k], 300); if (l.length) cards[k] = l; });
