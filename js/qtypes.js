@@ -249,7 +249,7 @@ function qtDrawn_(x) {
 }
 function qtFigureOf_(x, stems) {
   const r = (x && x.row) || x || {};
-  if (qtS_(r.diagram) || qtS_(r.images)) return 'own';
+  if (qtS_(r.diagram) || qtS_(r.diagram_twin) || qtS_(r.images)) return 'own';
   const st = (stems || []).filter(p => p && qtS_(p.diagram));
   if (st.length === 1) return 'stem';
   if (st.length > 1) return 'ambiguous';

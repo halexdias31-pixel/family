@@ -139,7 +139,7 @@ const wordsSample = rule => S(rule).split(';').map(p => p.trim()).filter(Boolean
     if (!x) continue;
     const r = x.row;
     const words = S(r.html) + S(r.lead) + S(x.html) + S(x.lead);
-    if (LIB_FULL.pending(r) && !words && !S(r.diagram) && !S(x.diagram)) { count.skipped++; continue; }
+    if (LIB_FULL.pending(r) && !words && !S(r.diagram) && !S(r.diagram_twin) && !S(x.diagram)) { count.skipped++; continue; }
     count.parts++;
     if (process.env.HEAP && count.parts % 600 === 0) fs.writeSync(2, count.parts + ' ' + Math.round(process.memoryUsage().heapUsed / 1e6) + 'MB\n');
     const type = w.qType_(x);

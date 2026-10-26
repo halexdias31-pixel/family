@@ -28916,6 +28916,41 @@ check('the one toolkit: a typed, a chosen, a table, a drawn and an essay part, a
   return bad;
 });
 
+/* ---------- A CARD WHOSE LEDGER ROW HAS NO DRAWING SHOWS ITS PNG TWIN (docs/history/460) ---------- */
+check('a twin only: a question whose words came without its drawing shows its PNG twin in the figure box, a tap enlarges it, and a drawn part keeps its pen over it', async () => {
+  const LIB = LIB_FULL.rows('questions');
+  const { w } = boot({ member: true, serve: url => (/data\/questions\.json/.test(url) ? LIB : undefined), before: signedInAs_(MEMBER_) });
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  if (typeof w.libQuestion_ !== 'function' || !A['q-zoom-fig']) return ['libQuestion_ or the q-zoom-fig handler is not reachable — NOT checked'];
+  t.STUFF().filters = [];
+  const all = w.stuffItemsAll_().filter(x => x && x.kind === 'question' && x.row && x.row.diagram_twin && x.diagram && !/^true$/i.test(String(x.row.lib_pending || '')));
+  const typed = all.find(x => w.qType_(x) === 'value' && /math/i.test(x.subject || '') && w.partChunks_(x).length === 1);
+  const drawn = all.find(x => String(x.drawAnswer || '').trim() && /math/i.test(x.subject || ''));
+  if (!typed || !drawn) return ['no typed and drawn parts with a twin to strip — NOT checked'];
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  [typed, drawn].forEach((x, i) => {
+    /* THE LEDGER ROW CAME WITHOUT ITS DRAWING: the row loses it and the item is made again, as libMerge_ makes it */
+    delete x.row.diagram;
+    x.diagram = w.libQuestion_(x.row).diagram;
+    const src = 'data/diagrams/' + x.row.diagram_twin + '.png';
+    host.innerHTML = w.stuffCard(x);
+    const img = host.querySelector('svg.qtwin image');
+    if (!img || img.getAttribute('href') !== src) bad.push(x.row.row_id + ': the card shows no ' + src);
+    if (i === 0) {
+      const fig = host.querySelector('.qsheet figure[data-do="q-zoom-fig"]');
+      if (!fig || !fig.querySelector('svg.qtwin')) bad.push(x.row.row_id + ': the twin is not in a figure that a tap enlarges');
+      else {
+        A['q-zoom-fig'](fig);
+        if (!d.querySelector('#sheet-body .qzoom-in svg.qtwin image')) bad.push(x.row.row_id + ': a tap on the twin opened no enlarged picture');
+        w.closeSheet();
+      }
+    } else if (!host.querySelector('.qpad svg.qtwin') || !host.querySelector('[data-do="pad-tool"][data-tool="pen"]')) bad.push(x.row.row_id + ': the drawn part has no pen over its twin');
+  });
+  return bad;
+});
+
 /* ---------- RUN THEM ---------------------------------------------------------------------------- */
 /* `FLOW_PART=2/4` RUNS THE SECOND QUARTER, in roster order — for a machine where the whole file takes longer than one shell may wait § */
 const FLOW_PART_ = /^(\d+)\/(\d+)$/.exec(process.env.FLOW_PART || '');

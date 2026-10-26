@@ -57,7 +57,7 @@ async function main() {
   }
   const todo = [...all.keys()].filter(h => FORCE || !have.has(h));
   console.log(all.size + ' drawings; ' + todo.length + ' to draw; ' + removed + ' twin(s) of no drawing removed.');
-  if (!todo.length) return report(all);
+  if (!todo.length) { twinColumn(all); return report(all); }
 
   const { chromium } = require('playwright');
   const exe = ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome', '/opt/pw-browsers/chromium/chrome-linux/chrome']
@@ -94,7 +94,35 @@ async function main() {
   };
   await Promise.all(Array.from({ length: LANES }, lane));
   await browser.close();
+  twinColumn(all);
   report(all);
+}
+
+/* THE CARD'S POINTER TO ITS TWIN (460): `diagram_twin` and `diagram_twin_wh` on data/questions.json, so a Ledger row with no
+   inline drawing still shows its picture. A row with no words here keeps its value. */
+const pngWH = f => { try { const b = fs.readFileSync(f); return Math.round(b.readUInt32BE(16) / SCALE) + 'x' + Math.round(b.readUInt32BE(20) / SCALE); } catch (e) { return ''; } };
+function twinColumn(all) {
+  const L = LIB, def = L.defs().files.questions, file = path.join(REPO, def.file);
+  const raw = fs.readFileSync(file, 'utf8'), rows = JSON.parse(raw);
+  const whole = new Map(ROWS.map(r => [L.idOf(def, r), r]));
+  const priv = L.readPrivate('questions') || {};
+  let set = 0, cleared = 0, changed = false;
+  rows.forEach(r => {
+    const id = L.idOf(def, r), w = whole.get(id);
+    const svg = w && typeof w.diagram === 'string' && /^\s*<svg\b/i.test(w.diagram) ? w.diagram : '';
+    const blind = !svg && Object.prototype.hasOwnProperty.call(r, 'lib_has') && !priv[id];
+    if (blind) return;
+    const h = svg ? nameOf(svg) : '', f = path.join(OUT, h + '.png');
+    if (h && fs.existsSync(f)) {
+      const wh = pngWH(f);
+      if (r.diagram_twin !== h || r.diagram_twin_wh !== wh) { r.diagram_twin = h; r.diagram_twin_wh = wh; changed = true; }
+      set++;
+    } else if (r.diagram_twin !== undefined || r.diagram_twin_wh !== undefined) {
+      delete r.diagram_twin; delete r.diagram_twin_wh; changed = true; cleared++;
+    }
+  });
+  if (changed) fs.writeFileSync(file, L.fileText(rows, L.styleOf(raw)));
+  console.log(set + ' card(s) point at their twin; ' + cleared + ' pointer(s) cleared' + (changed ? '' : '; data/questions.json unchanged') + '.');
 }
 
 /* WHAT THE FOLDER WEIGHS — it is in git and on GitHub Pages, so the number is said every run. */
