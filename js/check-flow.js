@@ -29462,6 +29462,107 @@ const layReach_ = (w, col, id) => {
   let n = -1; try { n = w.__t.pageCount(col); } catch (e) {}
   return at === -1 ? col + ' does not draw ' + id : at >= n ? col + ' draws ' + id + ' on page ' + (at + 1) + ' of ' + pages.length + ' and its pager counts ' + n : '';
 };
+/* ---------- MERGE WITH THE CARD ABOVE (480): two neighbours one card, again for three, Split back, moved and deleted whole ---------- */
+const layMergeTile_ = (d, id) => layCardTile_(d, id, 'lay-merge');
+const layPagesOf_ = (w, col) => { const h = w.document.getElementById('s-' + col); return h ? h.querySelectorAll(':scope > .page').length : -1; };
+check('merge with the card above (480): a profiles card merges with the one above, then the merged card with the next above — one frame, one admin row, the lower titles subheadings, one page; a client after a reload sees the merged card without the parts their role hides; Move takes it whole, Split parts it in place, Delete takes every part', async () => {
+  const { w, sent } = layBoot_();
+  await wait(300);
+  const A = w.__t.ACTIONS, d = w.document, bad = [];
+  if (!A['lay-merge'] || !A['lay-unmerge'] || typeof w.mergedNow_ !== 'function') return ['no lay-merge / lay-unmerge — NOT checked'];
+  await layPaintAll_(w);
+  const seen0 = laySeen_(w, 'students'), n0 = w.__t.pageCount('students');
+  const [help, add, search, manage] = ['ppl:students:help', 'ppl:students:add', 'ppl:students:search', 'ppl:students:manage'];
+  if ([help, add, search, manage].some(x => seen0.indexOf(x) === -1)) return ['Student profiles does not hold its four cards: ' + seen0.join() + ' — NOT checked'];
+  if (layMergeTile_(d, seen0[0])) bad.push('the first card has a Merge tile with nothing above it');
+  /* TWO */
+  const t1 = layMergeTile_(d, search);
+  if (!t1 || t1.getAttribute('aria-label') !== 'Merge with the card above') return bad.concat(['Find by handle has no "Merge with the card above" tile']);
+  A['lay-merge'](t1); await wait(250); await layPaintAll_(w);
+  let L = layLast_(sent);
+  if (!L || JSON.stringify(L.merged) !== JSON.stringify([[add, search]])) bad.push('the first merge saved ' + JSON.stringify(L && L.merged));
+  const one = () => d.querySelectorAll('#s-students .card.is-merged');
+  if (one().length !== 1 || one()[0].querySelectorAll(':scope > .merged-part').length !== 2) bad.push('two cards did not draw as one frame of two parts');
+  if (w.__t.pageCount('students') !== n0 - 1 || layPagesOf_(w, 'students') !== n0 - 1) bad.push('after one merge the pager counts ' + w.__t.pageCount('students') + ' and the column draws ' + layPagesOf_(w, 'students') + ', not ' + (n0 - 1));
+  /* THREE: the merged card's own tile merges the next above. */
+  A['lay-merge'](layMergeTile_(d, add)); await wait(250); await layPaintAll_(w);
+  /* FOUR: the card below joins too, so a client has two parts left to see. */
+  A['lay-merge'](layMergeTile_(d, manage)); await wait(250); await layPaintAll_(w);
+  L = layLast_(sent);
+  if (JSON.stringify(L && L.merged) !== JSON.stringify([[help, add, search, manage]])) bad.push('merging up twice more saved ' + JSON.stringify(L && L.merged));
+  const m = one()[0];
+  if (!m || m.querySelectorAll(':scope > .merged-part').length !== 4) bad.push('the merged card does not hold four parts');
+  if (m && m.querySelectorAll('.card-admin').length !== 1) bad.push('the merged card has ' + (m && m.querySelectorAll('.card-admin').length) + ' admin rows, not one');
+  if (m && m.lastElementChild && !m.lastElementChild.classList.contains('card-admin')) bad.push('the admin row is not at the foot of the merged card');
+  if (m && !m.querySelector('.card-admin [data-do="lay-unmerge"]')) bad.push('the merged card has no Split');
+  if (w.__t.pageCount('students') !== n0 - 3 || layPagesOf_(w, 'students') !== n0 - 3) bad.push('four merged: the pager counts ' + w.__t.pageCount('students') + ', the column draws ' + layPagesOf_(w, 'students') + ', not ' + (n0 - 3));
+  if (m && !m.querySelector('.merged-part + .merged-part h3')) bad.push('a lower part has no title to be its subheading');
+  /* A CLIENT, after a reload: the merged card without Needs help and Add a student. */
+  const p = payload(); p.layout = L;
+  const c = boot({ member: true, payload: p }); await wait(300); await layPaintAll_(c.w);
+  const cm = c.w.document.querySelectorAll('#s-students .card.is-merged');
+  const parts = cm[0] ? [...cm[0].querySelectorAll(':scope > .merged-part')].map(x => x.getAttribute('data-part')) : [];
+  if (cm.length !== 1 || parts.join() !== [search, manage].join()) bad.push('a client sees ' + cm.length + ' merged cards of parts ' + parts.join());
+  if (c.w.document.querySelector('#s-students .wgt-admin, [data-do="lay-merge"]')) bad.push('a client sees layout tiles');
+  if (c.w.__t.pageCount('students') !== layPagesOf_(c.w, 'students')) bad.push('a client\'s pager counts ' + c.w.__t.pageCount('students') + ' for ' + layPagesOf_(c.w, 'students') + ' pages');
+  /* MOVE: ◀ takes every part to Tutor profiles. */
+  A['lay-c-col'](layCardTile_(d, help, 'lay-c-col', '-1')); await wait(250); await layPaintAll_(w);
+  const tut = laySeen_(w, 'tutors');
+  if ([help, add, search, manage].some(x => tut.indexOf(x) === -1) || laySeen_(w, 'students').some(x => [help, add, search, manage].indexOf(x) !== -1)) bad.push('◀ did not move every part: tutors ' + tut.join());
+  if (d.querySelectorAll('#s-tutors .card.is-merged').length !== 1) bad.push('the moved card is not one merged card on Tutor profiles');
+  /* SPLIT: the parts apart, in place. */
+  A['lay-unmerge'](d.querySelector('#s-tutors .card.is-merged [data-do="lay-unmerge"]')); await wait(250); await layPaintAll_(w);
+  if (layLast_(sent).merged || d.querySelector('#s-tutors .card.is-merged')) bad.push('Split left a merged card');
+  const tut2 = laySeen_(w, 'tutors');
+  if (tut2.slice(-4).join() !== [help, add, search, manage].join()) bad.push('Split did not leave the parts where they stood: ' + tut2.join());
+  /* DELETE: merge two again, two taps, both gone. */
+  A['lay-merge'](layMergeTile_(d, manage)); await wait(250); await layPaintAll_(w);
+  const del = () => d.querySelector('#s-tutors .card.is-merged [data-do="lay-c-del"]');
+  if (!del()) return bad.concat(['the re-merged card has no Delete']);
+  A['lay-c-del'](del());
+  if (!/Tap again/.test(del().getAttribute('aria-label') || '')) bad.push('the first tap did not ask again');
+  A['lay-c-del'](del()); await wait(250); await layPaintAll_(w);
+  L = layLast_(sent);
+  if ([search, manage].some(x => (L.deleted || []).indexOf(x) === -1) || L.merged) bad.push('Delete did not delete both parts: ' + JSON.stringify(L));
+  return bad;
+});
+
+check('merge with the card above (480): widgets — Make a flyer has no Merge under the Calculator, nor does the Whiteboard, nor any game; the cheat sheet maker merges with Make a flyer and the timer with both, one frame of three slots each started, one tile row last, the pager one page; a client sees the two parts not admin-only', async () => {
+  const { w, sent } = layBoot_();
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  if (!A['lay-merge'] || typeof w.widgetPagesOf_ !== 'function') return ['no lay-merge or widgetPagesOf_ — NOT checked'];
+  t.go('tools', false, true); await wait(300);
+  const tools0 = layIds_(t, 'tool'), n0 = t.pageCount('tools');
+  if (tools0.slice(0, 4).join() !== 'calculator,flyers,mat,timer') return ['Tools does not open calculator, flyers, mat, timer: ' + tools0.join() + ' — NOT checked'];
+  const mt = id => layTile_(d, id, 'lay-merge');
+  if (mt('calculator') || mt('flyers')) bad.push('the calculator, which needs its whole page, can be merged');
+  if (mt('whiteboard')) bad.push('the whiteboard has a Merge tile');
+  t.go('games', false, true); await wait(300);
+  if (d.querySelector('#s-games [data-do="lay-merge"]')) bad.push('a game has a Merge tile');
+  t.go('tools', false, true); await wait(300);
+  if (!mt('mat')) return bad.concat(['the cheat sheet maker has no Merge tile']);
+  A['lay-merge'](mt('mat')); await wait(250);
+  t.go('tools', false, true); await wait(300);
+  A['lay-merge'](mt('timer')); await wait(300);
+  t.go('tools', false, true); await wait(400);
+  const L = layLast_(sent);
+  if (JSON.stringify(L && L.merged) !== JSON.stringify([['flyers', 'mat', 'timer']])) bad.push('the widget merges saved ' + JSON.stringify(L && L.merged));
+  const m = d.querySelector('#wgt-timer')?.closest('.card.is-widget');
+  if (!m || !m.classList.contains('is-merged') || m.querySelectorAll('.widget-slot').length !== 3) bad.push('three widgets are not one frame of three slots');
+  if (m && (m.querySelectorAll('.wgt-foot').length !== 1 || m.lastElementChild !== m.querySelector(':scope > .wgt-foot'))) bad.push('the merged widget has not one tile row, last');
+  if (m && !m.querySelector('.wgt-foot [data-do="lay-unmerge"]')) bad.push('the merged widget has no Split');
+  if (t.pageCount('tools') !== n0 - 2 || layPagesOf_(w, 'tools') !== n0 - 2) bad.push('the pager counts ' + t.pageCount('tools') + ' and Tools draws ' + layPagesOf_(w, 'tools') + ', not ' + (n0 - 2));
+  if (d.querySelector('#wgt-timer')?.getAttribute('aria-busy')) bad.push('the timer in the merged card was never started');
+  const p = payload(); p.layout = L;
+  const c = boot({ member: true, payload: p }); await wait(300);
+  c.w.__t.go('tools', false, true); await wait(300);
+  const cm = c.w.document.querySelector('#s-tools .card.is-merged');
+  if (!cm || c.w.document.querySelector('#wgt-flyers') || cm.querySelectorAll('.widget-slot').length !== 2) bad.push('a client does not see the timer and cheat sheet maker merged without Make a flyer');
+  if (c.w.__t.pageCount('tools') !== layPagesOf_(c.w, 'tools')) bad.push('a client\'s pager counts ' + c.w.__t.pageCount('tools') + ' for ' + layPagesOf_(c.w, 'tools') + ' pages');
+  return bad;
+});
+
 check('a card moved ◀ into the next column is on a page that column scrolls to — Business into Profiles: parents, parents into students — and still after a reload (476)', async () => {
   const { w, sent } = layBoot_();
   await wait(300);
