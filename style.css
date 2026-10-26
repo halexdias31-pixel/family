@@ -1263,11 +1263,8 @@ body.nes-on .nes-wrap *, body.nes-on .nes-wrap *::before, body.nes-on .nes-wrap 
   --nes-dp: #1f1f26; --nes-dp-hi: #45454f; --nes-a: #c9c5e2; --nes-b: #c9c5e2; --nes-ink: #2b2560; --nes-mid: #2e2a66; --nes-mid-ink: #e4e2f6;
   --nes-sh: #6a5fc0; --nes-sh-ink: #f2f0ff; --nes-pt: 18px; }
 /* DS: a clamshell — two screens in black glass, the hinge across the whole body between them, L and R on its top corners. */
-.nes-wrap[data-sys="nds"] { --nes-body: #e3e4e8; --nes-r: 1.1rem; --nes-bezel: #1a1a1f; --nes-bz: 10px; --nes-bz-r: .5rem; --nes-ink: #33343a;
-  --nes-key: #c3c4cc; --nes-dp: #babbc3; --nes-dp-hi: #e8e9ee; --nes-well: radial-gradient(circle, #d3d4da 0 60%, transparent 61%); --nes-mid: #c3c4cc; --nes-mid-ink: #33343a;
-  --nes-sh: #c3c4cc; --nes-sh-ink: #33343a; --nes-hinge: #c4c5cc; --nes-hinge-hi: #f1f2f5; --nes-pt: 18px; --k-dpad: 112px; --nes-pad-h: 200px; }
+.nes-wrap[data-sys="nds"] { --nes-pt: 18px; }
 .nes-wrap[data-sys="nds"] .nes-deco { --nes-key: #a8a9b2; --nes-dp: #a8a9b2; --nes-mid: #a8a9b2; --nes-sh: #b4b5bd; }
-.nes-wrap[data-sys="nds"] .nes-hinge { background: linear-gradient(var(--nes-hinge-hi), var(--nes-hinge) 45%, var(--nes-lo)); box-shadow: 0 -1px 0 var(--nes-lo), 0 1px 0 var(--nes-lo); }
 /* L AND R ON THE BODY'S TOP CORNERS (DS, GBA), out of the pad's rows: still the pad's own buttons, so each finger is still the pad's. */
 .nes-wrap[data-sys="nds"] .nes-pad .nes-shoulders, .nes-wrap[data-sys="gba"] .nes-pad .nes-shoulders { position: absolute; top: 0; left: 0; right: 0; height: 0; }
 .nes-wrap[data-sys="nds"] .nes-pad .nes-shoulders .nes-key, .nes-wrap[data-sys="gba"] .nes-pad .nes-shoulders .nes-key { border-radius: 0 0 14px 14px; height: 44px; }
@@ -1289,8 +1286,7 @@ body.nes-on .nes-wrap *, body.nes-on .nes-wrap *::before, body.nes-on .nes-wrap 
   left: calc(-1 * var(--nes-bz) - var(--nes-flank) - var(--nes-px) + 1rem); right: calc(-1 * var(--nes-bz) - var(--nes-flank) - var(--nes-px) + 1rem); }
 .nes-wrap[data-sys="nds"] .nes-deco .nes-shoulders .nes-key, .nes-wrap[data-sys="gba"] .nes-deco .nes-shoulders .nes-key { height: .95rem; min-width: 2.6rem; border-radius: 0 0 .5rem .5rem; font-size: .5rem; }
 
-/* THE DS LOOKS LIKE A DS (478): a white clamshell — the top screen in the upper shell, a hinge across the body, the touch screen in the lower
-   shell with the D-pad left, A/B/X/Y right, Start and Select under them, L and R on the top corners. Its pad shows on keys too. */
+/* THE DS LOOKS LIKE A DS (478): § */
 .nes-wrap[data-sys="nds"] { --nes-body: #eef0f3; --nes-edge: #c9ccd3; --nes-r: 1.4rem; --nes-bezel: #0e0e11; --nes-bz: 9px; --nes-bz-r: .55rem;
   --nes-ink: #4a4c54; --nes-key: #f7f8fa; --nes-dp: #43454c; --nes-dp-hi: #5c5f68; --nes-well: radial-gradient(circle, #dfe1e6 0 64%, transparent 65%);
   --nes-mid: #d3d5db; --nes-mid-ink: #4a4c54; --nes-sh: #d9dbe1; --nes-sh-ink: #5a5c64; --nes-hinge: #b9bcc4; --nes-hinge-hi: #f6f7f9; --nes-hinge-lo: #8e9199;
