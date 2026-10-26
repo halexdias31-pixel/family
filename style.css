@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-26-p-layout-cards";
+  --css-version: "2026-10-26-q-tiles-one-spec";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -54,6 +54,8 @@
   /* Square, near enough. A terminal has no rounded corners, and this is the single value that
      decides whether the look lands or reads as an app in fancy dress. */
   --r:      3px;
+  /* ONE TILE SPEC (467): every tile is a 44px plate, an 18px mark, 6px apart -- px, because a fingertip does not scale. */
+  --tile: 44px; --tile-i: 18px; --tile-gap: 6px;
   --r-sm:   2px;
 
   /* ---------- THE SECOND PALETTE, WHICH HAD NO NAMES AT ALL § */
@@ -266,6 +268,8 @@ html.wide body { max-width: none; box-shadow: none; }
 
 /* ---------- THE CARDS NOT IN FRONT, SLIGHTLY OUT OF FOCUS § */
 .page.soft > .pane { filter: blur(var(--soft-blur, 2px)); }
+/* NO BLUR IN iOS WEBKIT (467): a blurred pane inside a moving column showed a magenta line across the screen mid-swipe; the dim reads the same. */
+@supports (-webkit-touch-callout: none) { .page.soft > .pane, html.wide #screen .page.soft:not(.soft-dim).wide-over > .pane { filter: none; opacity: .85; } }
 .page.soft.soft-dim > .pane { filter: none; opacity: .85; }
 @media (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce) {
   .page.soft > .pane { filter: none; opacity: .85; }
@@ -4799,7 +4803,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .tile-row {
   display: flex; flex-direction: row; align-items: center;
   /* `.1rem` WAS RIGHT FOR GLYPHS THAT HAD NO EDGES. Plates need telling apart from one another. */
-  gap: .3rem; margin: .5rem 0 0;
+  gap: var(--tile-gap); margin: .5rem 0 0;
   /* AND IT WRAPS. The admin group drops to a second line intact when a card is genuinely too
      narrow — which is the old two-row layout arriving by itself, only when there is no room. */
   flex-wrap: wrap;
@@ -4809,9 +4813,22 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
    finder ("1 in Resources"). It went with the tile: both finders hold the same list (docs/history/347). */
 
 /* ---------- THE ADMIN MARKS SIT AT THE FAR END § */
-.tile-group.is-admin { display: inline-flex; gap: .3rem; margin-left: auto; }
+/* ONE TILE SPEC (467): the admin group keeps the row's gap and left edge (no push to the far end) and wraps whole before it wraps inside. */
+.tile-group.is-admin { display: inline-flex; flex-wrap: wrap; gap: var(--tile-gap); max-width: 100%; }
 /* ---------- A ROW PAST SIX TILES BREAKS INTO EVEN LINES (420, `tileRow_`): a zero-height item a whole line wide */
 .tile-break { flex: 0 0 100%; height: 0; }
+/* NO LONE ORPHAN (467): the row measures itself, and where a row of five fits only four (a 320px phone) it breaks 3 + 2, a row of six that fits five 3 + 3, a row of four that fits three 2 + 2. */
+.tile-row { container-type: inline-size; }
+.kid-row > .tile-row, .ps-hit > .tile-row { container-type: normal; }
+@container (max-width: 293.9px) {
+  .tile:nth-child(3 of .tile):nth-last-child(4 of .tile) { margin-right: calc(100% - 3 * var(--tile) - 2 * var(--tile-gap)); }
+}
+@container (max-width: 243.9px) {
+  .tile:nth-child(3 of .tile):nth-last-child(3 of .tile) { margin-right: calc(100% - 3 * var(--tile) - 2 * var(--tile-gap)); }
+}
+@container (max-width: 193.9px) {
+  .tile:nth-child(2 of .tile):nth-last-child(3 of .tile) { margin-right: calc(100% - 2 * var(--tile) - var(--tile-gap)); }
+}
 /* AN EMPTY WIDGET IS ITS TITLE ALONE (414, `emptyCard_`), so the heading keeps no space for a body under it. */
 .card.is-empty > h3 { margin: 0; }
 /* `.tile-row.is-admin` WAS ALSO DECLARED HERE, setting a margin the block further down immediately
@@ -4820,10 +4837,10 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 /* ---------- EVERY MARK ON A CARD IS THE SAME KIND OF OBJECT § */
 .tile {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 44px; height: 44px; padding: 0;
+  width: var(--tile); height: var(--tile); padding: 0; flex: none; box-sizing: border-box;
   color: var(--dim); border-radius: var(--r);
   background: rgb(255 255 255 / .03);
-  border: 1px solid var(--line-soft);
+  border: 1px solid var(--line);
   font: 600 .72rem/1 var(--mono);
   text-decoration: none; cursor: pointer;
   transition: color var(--quick) ease, background var(--quick) ease,
@@ -4832,14 +4849,13 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .tile:active, .tile.is-pressed { background: rgb(255 255 255 / .08); border-color: var(--line); }
 /* A DISABLED TILE LOSES THE PLATE ENTIRELY. Dimming a button still reads as a button; taking the
    surface away is what says there is nothing here to press. */
-.tile[disabled] { background: none; border-color: transparent; }
 .tile:active, .tile.is-pressed { transform: scale(.88); }
 /* PRESSED IS A COLOUR, because there is no word left to change. Saved, Spotlit and In-your-basket
    all say so by going bright — which is the star's own pattern, applied to every mark. */
 .tile.on { color: var(--ink); background: rgb(255 255 255 / .09); border-color: var(--line); }
 .tile[disabled] { opacity: .35; cursor: default; }
 /* ---------- THE MARK BESIDE THE WORD § */
-.tile-i { width: 18px; height: 18px; flex: 0 0 auto; }
+.tile-i { width: var(--tile-i); height: var(--tile-i); flex: 0 0 auto; }
 /* THE FALLBACK WORD, for a tile somebody adds without giving it a mark — see `tile_`. Nothing emits
    one today, and a blank 44px square would be worse than an ugly one. */
 .tile-k { font-size: .62rem; letter-spacing: .02em; }
@@ -4903,10 +4919,9 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 
 /* ---------- SECOND PASS, FROM LOOKING AT IT § */
 /* ---------- SILVER, AND SMALLER § */
-.tile-row.is-admin { margin-top: .15rem; gap: .1rem; }
-.tile-row.is-admin .tile { width: 36px; height: 36px; color: var(--admin); opacity: .7; }
-.tile-row.is-admin .tile .tile-i { width: 15px; height: 15px; }
-.tile-row.is-admin .tile.on { opacity: 1; }
+.tile-row.is-admin .tile { color: var(--admin); }
+/* A DANGER TILE (a delete) had no tone of its own and drew as a bare grey square among plated ones (467). */
+.tile.is-danger { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 35%, transparent); }
 
 /* `.card .ticks .tick*` WERE HERE — an outline rather than a fill, so a pass read as a record of
    something done rather than as an offer, and the gold stayed on the one row that spends money.
@@ -4945,7 +4960,6 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 /* NOT CENTRED AND NOT RULED OFF ANY MORE. § */
 .rc-tiles { justify-content: flex-start; }
 /* ---------- 40px, IN px, ON THE TWO CONTROLS THE WHOLE CARD EXISTS TO REACH § */
-.rc-tiles .tile { width: 44px; height: 44px; }
 
 /* THE TERMS. This was `var(--paper-dim)` with a note saying `.faint` is a dark-theme grey and the terms sit on off-white — which was true of the paper and is the § */
 .rc-terms {
@@ -6281,9 +6295,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
 .imp-go { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; min-width: 148px; }
 .imp-go .tile-i { width: 22px; height: 22px; stroke-width: 1.8; }
 /* LISTEN IS THE BIGGEST THING A CHILD PRESSES HERE, and round, the speaker every phone puts on its volume. § */
-.tile.is-listen { width: 64px; height: 64px; border-radius: 50%; color: var(--gold);
-  border-color: color-mix(in srgb, var(--gold) 45%, transparent); margin-top: 20px; }
-.tile.is-listen .tile-i { width: 30px; height: 30px; stroke-width: 1.6; }
+.tile.is-listen { color: var(--gold); border-color: color-mix(in srgb, var(--gold) 45%, transparent); margin-top: 20px; }
 /* THE SPEAKER'S ROOM ON THE PASS AND PLAY SCREENS — Listen's own 64px and its own 20px over it,
    empty, so the card is one height with Listen or without. See `impFrame_`. */
 .imp-foot { display: block; width: 64px; height: 64px; margin-top: 20px; }
