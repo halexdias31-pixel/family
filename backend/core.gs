@@ -610,6 +610,11 @@ function layoutClean_(v) {
   const start = {};
   Object.keys(s).filter(k => COLS.indexOf(k) !== -1 && typeof s[k] === 'string' && ID.test(s[k])).forEach(k => { start[k] = s[k]; });
   if (Object.keys(start).length) out.start = start;
+  /* MERGED CARDS (480): `merged: [[top, …, bottom]]`, two to twelve ids each, an id in one group only, a hundred groups at most. */
+  const used = {};
+  const merged = (Array.isArray(o.merged) ? o.merged : []).filter(g => Array.isArray(g))
+    .map(g => ids(g, 12).filter(x => !used[x])).filter(g => g.length > 1 && g.every(x => (used[x] = 1))).slice(0, 100);
+  if (merged.length) out.merged = merged;
   if (JSON.stringify(out).length > LAYOUT_MAX) return null;
   return out;
 }

@@ -5192,8 +5192,10 @@ function nesPaint_() {
   if (!USER) { box.innerHTML = '<p class="empty">Sign in to use the console.</p>'; return; }
   if (!box.querySelector('.nes-wrap')) {
     box.innerHTML = `<div class="nes-wrap" id="nes-wrap">
+      <span class="ds-part ds-lid" aria-hidden="true"><i class="ds-grille"></i><i class="ds-grille ds-grille-r"></i></span><span class="ds-part ds-base" aria-hidden="true"><i class="ds-power"></i></span>
+      <span class="ds-part ds-cover ds-cover-a" aria-hidden="true"></span><span class="ds-part ds-cover ds-cover-b" aria-hidden="true"></span><span class="ds-part ds-hinge" id="ds-hinge" aria-hidden="true"></span>
       <div class="nes-stage" id="nes-stage"><canvas id="nes-canvas" class="nes-canvas" width="256" height="240"></canvas><span class="nes-hinge" id="nes-hinge" aria-hidden="true"></span><div class="nes-ctl nes-deco" id="nes-deco" aria-hidden="true"></div></div>
-      <div class="nes-legend" id="nes-legend" aria-label="Keys"></div>
+      <div class="nes-legend" id="nes-legend" aria-label="Keys" hidden></div>
       <div class="nes-ctl nes-pad" id="nes-pad" aria-hidden="true">${nesPadHtml_(NES_.sys)}</div>
     </div>
     <p class="faint" id="nes-padnote" hidden>Controller connected</p>
@@ -5462,14 +5464,13 @@ function nesModeWire_(w) {
   if (!w) return;
   w.addEventListener('pointerdown', e => { if (e.pointerType === 'touch') nesModeSet_('touch'); }, true);
 }
-/* THE KEY LIST: shown on keys unless the Keys tile turned it off (kept on the device). */
+/* THE KEY LIST: hidden until the Keys tile asks, on every system, and not remembered (481): a "show" kept from before 478 was still showing it. */
+try { localStorage.removeItem('nes-keys'); } catch (e) {}
 function nesLegendOn_() {
-  if (NES_.legend == null) { try { const v = localStorage.getItem('nes-keys'); NES_.legend = v === '1' ? true : v === '0' ? false : null; } catch (e) { NES_.legend = null; } }
-  return nesMode_() === 'keys' && NES_.legend === true;   // hidden until the Keys tile asks (478)
+  return nesMode_() === 'keys' && NES_.legend === true;
 }
 on('nes-keys', () => {
   NES_.legend = !nesLegendOn_();
-  try { localStorage.setItem('nes-keys', NES_.legend ? '1' : '0'); } catch (e) {}
   nesPadShow_(); nesTiles_();
 });
 
@@ -5624,8 +5625,8 @@ window.addEventListener('gamepaddisconnected', () => nesPadsPoll_());
 const NES_ACCEPT = '.nes,.sfc,.smc,.gb,.gbc,.gba,.z64,.n64,.v64,.nds,application/octet-stream,*&#47;*';
 const NES_ROOM = "This device hasn't room to keep the file — pick it each time.";
 const NES_NOT = 'That is not a console game file — it should be a .nes, .sfc/.smc, .gb/.gbc/.gba, .z64/.n64/.v64 or .nds file.';
-/* THE DS HINGE (437): melonDS leaves this many picture rows black between its two screens, and the hinge is drawn over exactly them, so no pixel of a game is covered and the pen still lands where it is put. */
-const NES_GAP = 32;
+/* THE DS HINGE (437, 481): melonDS leaves this many black rows between its screens; the two halves and the hinge are drawn over exactly them (90 is a real DS Lite's spacing), so no game pixel is covered and the pen lands where put. */
+const NES_GAP = 90;
 /* Each system's picture in pixels, for the stage's shape and the full-screen fit. DS: its two 256x192 screens stacked, top above bottom, the hinge's rows between. */
 const NES_DIMS = { nes: [256, 240], snes: [256, 224], gb: [160, 144], gbc: [160, 144], gba: [240, 160], n64: [320, 240], nds: [256, 384 + NES_GAP] };
 /* THE SHAPE A TELEVISION SHOWED (446): a home console's pixels were wider than tall, so its picture is 4:3; a handheld's are square. */
@@ -5693,7 +5694,7 @@ function nesPadHtml_(sys, drawn) {
 function nesSysSet_(sys) {
   NES_.sys = sys || 'nes';
   const s = $('nes-stage'), pad = $('nes-pad'), note = $('nes-sysnote'), wrap = $('nes-wrap');
-  if (wrap) wrap.dataset.sys = NES_.sys;   // its pad's height, style.css
+  if (wrap) { wrap.dataset.sys = NES_.sys; wrap.style.setProperty('--ds-gap', String(NES_GAP)); }   // its pad's height; the DS's gap rows, style.css
   /* `--nes-ar` too: the stage's width is capped by the screen's height through it (style.css), so a tall DS picture fits a laptop's screen. */
   if (s) { const ar = nesShow_(NES_.sys); s.style.aspectRatio = String(ar); s.style.setProperty('--nes-ar', String(ar)); s.dataset.sys = NES_.sys; }
   if (pad && pad.dataset.sys !== NES_.sys) {
@@ -5754,6 +5755,8 @@ function emuQuiet_() {
   } catch (e) {}
 }
 const EMU_HEAVY = { nds: 1, n64: 1 };
+/* NOTHING EXTRA PER FRAME (481): EmulatorJS's own defaults, written down so a later version cannot turn them on; its five-minute save timer off, as the Console saves at a pause. */
+const EMU_LEAN = { rewindEnabled: 'disabled', shader: 'disabled', 'save-save-interval': '0' };
 /* THREADS NEED A CROSS-ORIGIN-ISOLATED PAGE, and GitHub Pages sends no COOP/COEP headers: the core runs on the page's one thread.
    On an isolated page the threaded build is taken, and melonDS draws 3D on its own thread. */
 const emuThreads_ = () => !!(window.crossOriginIsolated && typeof SharedArrayBuffer === 'function');
@@ -5794,7 +5797,7 @@ function emuStart_(bytes, sys) {
       gameUrl: bytes, gameName: name, system: core, dataPath: cdn + '@emulatorjs/emulatorjs@' + EMU_VER + '/data/',
       filePaths: files, startOnLoad: true, defaultControllers: none, noAutoFocus: true, disableLocalStorage: true,
       volume: 1, threads, backgroundColor: '#000', buttonOpts: {}, cheats: [],
-      defaultOptions: sys === 'nds' ? Object.assign({ melonds_screen_gap: String(NES_GAP) }, threads ? { melonds_threaded_renderer: 'enabled' } : {}) : {} });
+      defaultOptions: Object.assign({}, EMU_LEAN, sys === 'nds' ? Object.assign({ melonds_screen_gap: String(NES_GAP) }, threads ? { melonds_threaded_renderer: 'enabled' } : {}) : {}) });
     EMU_.ejs = ejs; EMU_.sys = sys; EMU_.key = name; EMU_.ready = false; EMU_.held = {}; EMU_.ax = [];
     const fail = m => { if (EMU_.ejs !== ejs) return; loaded_($('nes-stage')); emuEnd_(); nesTiles_(); nesSay_('This game file could not be started: ' + (m || 'the engine stopped') + '.'); };
     const said = ejs.startGameError.bind(ejs);

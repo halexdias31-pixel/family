@@ -61,11 +61,10 @@ asked++;
   if (d.success && String(cell()).length > 8000) bad.push('a layout over the cap was kept, ' + String(cell()).length + ' characters');
 }
 
-/* 4. RESET EMPTIES THE CELL, AND doGet SENDS null. */
-asked++; { const d = save('P-A1', { reset: 'TRUE' }); if (!d.success || cell() !== '') bad.push('reset left ' + JSON.stringify(cell())); }
-asked++; { const g = b.get({}); if (g.layout !== null) bad.push('after a reset doGet sent layout ' + JSON.stringify(g.layout)); }
+/* 4. THERE IS NO RESET (477): asking for one, or sending no layout, leaves the kept layout as it was. */
+asked++; { const was = cell(); const d = save('P-A1', { reset: 'TRUE' }); if (d.success || cell() !== was) bad.push('a reset was answered ' + JSON.stringify(d).slice(0, 120)); }
 
 console.log('layout: ' + asked + ' asked, ' + bad.length + ' wrong');
 bad.forEach(x => console.log('  ' + x));
 if (bad.length) { console.log('FAILED — the site-wide layout must be an admin\'s alone, and always a value the site can read.'); process.exit(1); }
-console.log('OK — layoutSave keeps a checked layout for an admin only, refuses rubbish and size, resets, and doGet sends it once.');
+console.log('OK — layoutSave keeps a checked layout for an admin only, refuses rubbish, size and a reset, and doGet sends it once.');

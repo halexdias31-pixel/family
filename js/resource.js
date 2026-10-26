@@ -136,8 +136,9 @@ function cartAddBundle_(el) {
 /* THE SHOP NOW, NOT TOOLS. The basket moved to the Shop column's first page; asked for by the same
    lookup, so the day another widget goes on top of it this still lands on the basket. */
 on('cart-open', () => {
-  const n = typeof widgetsOf_ === 'function'
-    ? widgetsOf_('shop').findIndex(w => String(w.id) === 'cart') : -1;
+  /* A MERGED BASKET IS A PART OF ITS PAGE (480). */
+  const n = typeof widgetPagesOf_ === 'function'
+    ? widgetPagesOf_('shop').findIndex(w => (w.parts || [w]).some(x => String(x.id) === 'cart')) : -1;
   go('shop');
   if (n >= 0) goPage('shop', n, true);
 });

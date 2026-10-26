@@ -120,7 +120,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-26-r-post-faces-reel-upload";
+const BACKEND_VERSION = "2026-10-26-z6-merge-above";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {

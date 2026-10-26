@@ -4050,7 +4050,7 @@ check('the whiteboard notebook draws, undoes, survives a repaint and clears unde
   }
   const tools = t.allWidgets().filter(x => x.kind === 'tool').map(x => String(x.id));
   /* THE LIBRARY CARDS ARE APPENDED AFTER IT (docs/history/339, its review) — the same rule kept: nothing above. */
-  if (tools.slice(-3).join(' ') !== 'uploads whiteboard libcards') bad.push('the whiteboard is not appended after uploads, with only the library cards after it: ' + tools.join(', '));
+  if (tools.slice(-3).join(' ') !== 'verse whiteboard libcards') bad.push('the whiteboard is not appended after the e-ink screen, with only the library cards after it: ' + tools.join(', '));
   const wb = t.allWidgets().find(x => x.id === 'whiteboard');
   if (!wb || !wb.solid || wb.name !== 'Whiteboard') bad.push('the whiteboard is not a solid tool called Whiteboard');
 
@@ -7385,8 +7385,9 @@ check('console keys: arrows and WASD steer, Z/X/Space/Enter/Shift and Q/E per sy
   t.ACTIONS['nes-keys']();
   if (!d.querySelector('#nes-legend').hidden) bad.push('the Keys tile did not hide the key list again');
   t.ACTIONS['nes-keys']();
+  /* NOT KEPT (481): an old remembered "show" was what still put the list in the owner's DS; it is shown only by the tile, each visit. */
   let kept = null; try { kept = w.localStorage.getItem('nes-keys'); } catch (e) {}
-  if (kept !== '1') bad.push('the key list choice was not kept: ' + JSON.stringify(kept));
+  if (kept !== null) bad.push('the key list choice was kept on the device: ' + JSON.stringify(kept));
   /* A FINGER ON THE CONSOLE swaps the key list for the touch pad, and the Keys tile goes; the padlock is the widget's (461). */
   d.querySelector('#nes-wrap').dispatchEvent(Object.assign(new w.Event('pointerdown', { bubbles: true }), { pointerType: 'touch' }));
   if (ev('NES_.mode') !== 'touch' || !d.querySelector('#nes-pad').classList.contains('on') || !d.querySelector('#nes-legend').hidden) bad.push('a finger did not bring the touch pad back in place of the key list');
@@ -7401,7 +7402,7 @@ check('console keys: arrows and WASD steer, Z/X/Space/Enter/Shift and Q/E per sy
 });
 
 /* ---------- THE DS LOOKS LIKE A DS (478): two screens in one clamshell, its own buttons pressing the core, and nothing repainted while it plays. */
-check('console DS (478): a clamshell with both screens and the hinge between, its pad shown on keys too with L R X Y A B Start Select reaching the core, the widget not redrawn while it plays, and a save at most once a minute', async () => {
+check('console DS (478, 481): a DS Lite — two halves, a hinge, D-pad left and A/B/X/Y right of the touch screen, no key list until asked — its pad shown on keys too with L R X Y A B Start Select reaching the core, the widget not redrawn while it plays, and a save at most once a minute', async () => {
   const { w } = boot({ member: true });
   await wait(300);
   const t = w.__t, d = w.document, ev = s => t.inApp(s);
@@ -7423,6 +7424,19 @@ check('console DS (478): a clamshell with both screens and the hinge between, it
   if (ev('NES_.mode') !== 'keys') bad.push('the journey expected a keyboard device');
   if (!pad.classList.contains('on') || !wrap.classList.contains('nes-has-pad')) bad.push('on keys the DS does not wear its own buttons');
   if (!d.querySelector('#nes-legend').hidden) bad.push('the key list shows on the DS before the Keys tile asked');
+  if (ev("localStorage.getItem('nes-keys')") !== null) bad.push('a remembered key-list choice is still kept, so an old "show" can bring it back (481)');
+  /* A DS LITE (481): two halves and a hinge barrel, the D-pad left of the touch screen and A/B/X/Y right of it, at the bottom screen's height. */
+  ['.ds-lid', '.ds-base', '.ds-hinge', '.ds-cover-a', '.ds-cover-b'].forEach(s => { if (!wrap.querySelector(s)) bad.push('the DS has no ' + s); });
+  if (wrap.querySelectorAll('.ds-grille').length !== 2) bad.push('the top half has not a speaker either side of its screen');
+  const css = fs.readFileSync(path.join(__dirname, '..', 'style.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const num = re => { const m = re.exec(css); return m ? parseFloat(m[1]) : NaN; };
+  const sw = num(/\.nes-wrap\[data-sys="nds"\]\s*\{[^}]*--ds-s:\s*([\d.]+)/), cell = num(/--k-cell:\s*([\d.]+)cqw/);
+  const dpadX = num(/\.nes-pad \.nes-dpad\s*\{[^}]*left:\s*calc\(([\d.]+)cqw/), faceX = num(/\.nes-pad \.nes-face\s*\{\s*left:\s*calc\(([\d.]+)cqw/);
+  if (!(sw > 0) || !(dpadX < 50 - sw / 2)) bad.push('the D-pad is not left of the touch screen in style.css (centre ' + dpadX + ', screen from ' + (50 - sw / 2) + ')');
+  if (!(faceX - 1.5 * cell > 50 + sw / 2)) bad.push('A/B/X/Y are not right of the touch screen in style.css (from ' + (faceX - 1.5 * cell) + ', screen to ' + (50 + sw / 2) + ')');
+  if (!/\.nes-pad \.nes-dpad\s*\{[^}]*top:\s*calc\(var\(--ds-mid\)/.test(css) || !/\.nes-pad \.nes-face\s*\{[^}]*top:\s*calc\(var\(--ds-mid\)/.test(css)) bad.push('the D-pad and A/B/X/Y are not set at the touch screen\'s height');
+  if (!/\.ds-base\s*\{\s*top:\s*calc\(\(var\(--ds-lid\) \+ var\(--ds-hh\)\)/.test(css)) bad.push('the base does not start below the lid and the hinge');
+  if (!/\.nes-pad \.nes-key::before\s*\{[^}]*inset:\s*min\(0px, \(100% - 44px\) \/ 2\)/.test(css)) bad.push('the DS buttons lost their 44px reach');
   const names = [...pad.querySelectorAll('[data-k]')].map(e => e.dataset.k).sort().join();
   if (names !== 'a,b,dpad,l,r,select,start,x,y') bad.push('the DS pad holds ' + names);
   /* A STAND-IN CORE: each pad button reaches RetroPad's own number. */
@@ -13108,10 +13122,11 @@ check('466: countdowns are a Tools widget for everyone — a Year 11\'s GCSEs an
 
 
 /* ---------- THE E-INK SCREEN (470): THE WIDGET IS THE SCREEN ---------- */
-check('470: the E-ink screen on Tools is drawn in the widget for everyone — Verse or Icon, never both, Back/Next/Shuffle in place, the choice kept per person, every icon drawn in black and white, and no tile opens another window', async () => {
+check('470, 482: the E-ink screen on Tools is the real 200x200 panel drawn in the widget for everyone — Verse or Icon, never both, Back/Next/Shuffle in place, the choice kept per person, every icon drawn in black and white, and no tile opens another window', async () => {
   const EV = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'eink-verses.json'), 'utf8'));
   const IC = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'icons.json'), 'utf8'));
-  const { w } = boot({ payload: payload(), serve: u => (/data\/eink-verses\.json/.test(u) ? EV : /data\/icons\.json/.test(u) ? IC : undefined) });
+  const EF = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'eink-fonts.json'), 'utf8'));
+  const { w } = boot({ payload: payload(), serve: u => (/data\/eink-verses\.json/.test(u) ? EV : /data\/icons\.json/.test(u) ? IC : /data\/eink-fonts\.json/.test(u) ? EF : undefined) });
   for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
   await wait(400);
   const t = w.__t, d = w.document;
@@ -13126,6 +13141,15 @@ check('470: the E-ink screen on Tools is drawn in the widget for everyone — Ve
   const press = async el => { if (!el) return; el.click(); await wait(60); };
   const shown = () => (box.querySelector('.eink-panel') || {}).textContent || '';
   if (!box.querySelector('.eink .eink-panel')) bad.push('the widget draws no screen of its own');
+  /* THE REAL PANEL (482): a 200x200 canvas the screen's own layout fills — every verse inside it, the reference under the rule. */
+  const cv = box.querySelector('.eink-panel canvas.eink-px');
+  if (!cv || cv.width !== 200 || cv.height !== 200) bad.push('the widget is not the 200x200 panel the owner\'s screen has: ' + (cv ? cv.width + 'x' + cv.height : 'no canvas'));
+  if (typeof w.einkPage_ !== 'function') bad.push('no einkPage_ to draw the screen\'s pixels');
+  else EV.forEach((v, i) => {
+    const px = w.einkPage_('verse', v, null); if (!px || px.length !== 40000) { bad.push(v.ref + ': no 200x200 page'); return; }
+    let ink = 0, top = 200, low = 0; for (let k = 0; k < px.length; k++) if (px[k]) { ink++; const y = Math.floor(k / 200); if (y < 176) { top = Math.min(top, y); low = Math.max(low, y); } }
+    if (ink < 300 || top < 2 || low >= 176) bad.push(v.ref + ': the verse does not sit inside the panel above the rule (rows ' + top + '-' + low + ')');
+  });
   if (!box.querySelector('.eink-verse') || shown().indexOf(EV[0].ref) < 0) bad.push('Verse mode does not show the first verse, ' + EV[0].ref + ': ' + JSON.stringify(shown().slice(0, 80)));
   if (box.querySelector('.eink-icon')) bad.push('Verse mode also draws an icon — it is one or the other');
   for (const a of ['eink-step', 'eink-shuffle', 'eink-sync']) if (!tile(a)) bad.push('no ' + a + ' tile');
@@ -13134,10 +13158,8 @@ check('470: the E-ink screen on Tools is drawn in the widget for everyone — Ve
   await press(box.querySelector('.tile[data-do="eink-step"][data-d="1"]'));
   if (shown().indexOf(EV[1].ref) < 0) bad.push('Next did not move to ' + EV[1].ref);
   await press(mode('icon'));
-  const svg = box.querySelector('.eink-icon svg');
-  if (!svg || shown().indexOf(IC[0].title) < 0) bad.push('Icon mode does not draw the first icon, ' + IC[0].title + ', with its name');
+  if (!box.querySelector('.eink-icon') || shown().indexOf(IC[0].title) < 0) bad.push('Icon mode does not show the first icon, ' + IC[0].title + ', with its name');
   if (box.querySelector('.eink-verse')) bad.push('Icon mode still shows a verse');
-  if (svg && /fill="(?!#000|#fff|none)|stroke="(?!#000|#fff|none)|opacity|gradient/i.test(svg.outerHTML)) bad.push('the icon drawn has a colour, grey or transparency in it');
   await press(box.querySelector('.tile[data-do="eink-step"][data-d="-1"]'));
   if (shown().indexOf(IC[IC.length - 1].title) < 0) bad.push('Back from the first icon did not wrap to the last, ' + IC[IC.length - 1].title);
   let kept = {};
@@ -13153,6 +13175,25 @@ check('470: the E-ink screen on Tools is drawn in the widget for everyone — Ve
   await press(tile('eink-sync')); await wait(100);
   if (opened) bad.push('Sync opened a window');
   if (!/Chrome or Edge/.test((box.querySelector('.eink-say') || {}).textContent || '')) bad.push('Sync with no Web Serial says nothing in the widget');
+  /* SYNC, THREE WAYS (482): not in the list -> press ⏻; answers -> done; in the list but silent -> old software, Install with the ☀ steps. */
+  const say = () => (box.querySelector('.eink-say') || {}).textContent || '';
+  const fakePort = answer => ({ readable: null, writable: null, open() {
+      let push; this.readable = { getReader: () => ({ read: () => new Promise(r => { push = r; }), cancel: () => { if (push) push({ done: true }); }, releaseLock() {} }) };
+      this.writable = { getWriter: () => ({ write: async () => { if (answer && push) { const p = push; push = null; p({ value: new TextEncoder().encode('OK\n') }); } }, releaseLock() {} }) };
+      return Promise.resolve(); }, close: () => Promise.resolve() });
+  if (!w.TextDecoder) { w.TextDecoder = TextDecoder; w.TextEncoder = TextEncoder; }   // jsdom has neither; every browser with Web Serial has both
+  const serial = f => { try { Object.defineProperty(w.navigator, 'serial', { value: { requestPort: f }, configurable: true }); } catch (e) {} };
+  serial(() => Promise.reject(new Error('none')));
+  await press(tile('eink-sync')); await wait(100);
+  if (!/press ⏻/.test(say())) bad.push('a screen not in the list does not say "press ⏻ once": ' + JSON.stringify(say()));
+  serial(() => Promise.resolve(fakePort(true)));
+  await press(tile('eink-sync')); for (let i = 0; i < 40 && !/Done/.test(say()); i++) await wait(100);
+  if (!/Done — the screen is updating/.test(say())) bad.push('a screen that answers OK does not say Done: ' + JSON.stringify(say()));
+  serial(() => Promise.resolve(fakePort(false)));
+  await press(tile('eink-sync')); for (let i = 0; i < 120 && !/old software/.test(say()); i++) await wait(100);
+  if (!/old software — tap Install/.test(say()) || !tile('eink-install')) bad.push('a silent screen does not say it has old software and offer Install: ' + JSON.stringify(say()));
+  const steps = [...box.querySelectorAll('.eink-steps li')].map(li => li.textContent);
+  if (steps.length < 4 || !steps.some(t => /Hold ☀/.test(t)) || !steps.some(t => /⏻/.test(t))) bad.push('the install steps do not name the ☀ and ⏻ buttons one line each: ' + JSON.stringify(steps));
   return bad;
 });
 
@@ -29258,7 +29299,7 @@ check('layout tiles (463): an admin sees ▲ ▼ ◀ ▶ Delete on each widget; 
   if (!A['lay-w-move'] || typeof w.layoutTiles_ !== 'function') return ['no lay-w-move handler or layoutTiles_ — NOT checked'];
   if (A['layout-edit'] || A['layout-done'] || typeof w.layoutEditOpen_ === 'function') bad.push('the Edit layout board is still there');
   t.go('tools', false, true); await wait(300);
-  const tools0 = layIds_(t, 'tool'), shop0 = layIds_(t, 'shop');
+  const tools0 = layIds_(t, 'tool');
   const [a, b, c] = tools0;
   const row = d.querySelector(`#wgt-${a}`)?.closest('.card')?.querySelector('.wgt-admin');
   if (!row) return bad.concat(['the first tool has no admin row']);
@@ -29291,14 +29332,10 @@ check('layout tiles (463): an admin sees ▲ ▼ ◀ ▶ Delete on each widget; 
   const r = layBoot_({ payload: p2 }); await wait(300);
   const t2 = r.w.__t;
   if (layIds_(t2, kindOf[next]).join() !== there.join()) bad.push('a reload did not keep the layout');
-  /* RESET restores the code's order. */
+  /* NO RESET (477): the moved layout IS the layout. */
   r.w.__t.go('biz', false, true); await wait(200);
-  if (!r.w.document.querySelector('#s-biz .layout-card [data-do="layout-reset"]')) bad.push('Business has no Reset layout with a layout in force');
-  if (r.w.document.querySelector('[data-do="layout-edit"]')) bad.push('Business still has an Edit layout tile');
-  t2.ACTIONS['layout-reset'](); await wait(200);
-  if (layIds_(t2, 'tool').join() !== tools0.join() || layIds_(t2, 'shop').join() !== shop0.join()) bad.push('Reset did not restore the defaults');
-  const rp = r.sent.filter(x => x.action === 'layoutSave');
-  if (!rp.length || rp[0].reset !== 'TRUE') bad.push('Reset sent no reset layoutSave');
+  if (r.w.document.querySelector('[data-do="layout-edit"], [data-do="layout-reset"], .layout-card')) bad.push('Business still has a Layout card, Edit or Reset');
+  if (t2.ACTIONS['layout-reset']) bad.push('a layout-reset handler still exists');
   /* A REFUSAL: drawn at once, then put back with a toast. */
   const no = layBoot_({ reply: b2 => b2.action === 'layoutSave' ? { success: false, error: 'No.' } : undefined }); await wait(300);
   no.w.__t.go('tools', false, true); await wait(300);
@@ -29307,7 +29344,7 @@ check('layout tiles (463): an admin sees ▲ ▼ ◀ ▶ Delete on each widget; 
   return bad;
 });
 
-check('layout tiles (463): Delete asks twice in place, the deleted widget is not drawn or paged, Add back on Business returns it; the basket has no Delete; Saved has no admin row; a non-admin sees no tiles and cannot post', async () => {
+check('layout tiles (463): Delete asks twice in place and is final (477), the deleted widget is not drawn or paged, nothing on Business brings it back; the basket has no Delete; Saved has no admin row; a non-admin sees no tiles and cannot post', async () => {
   const { w, sent } = layBoot_();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
@@ -29330,19 +29367,52 @@ check('layout tiles (463): Delete asks twice in place, the deleted widget is not
   if (layTile_(d, 'cart', 'lay-w-del')) bad.push('the basket has a Delete tile');
   /* SAVED DRAWS NO ADMIN ROW (only a widget's own column does). */
   if (w.widgetOnColumn_(w.allWidgets().find(x => x.kind === 'tool'), 0).indexOf('wgt-admin') !== -1) bad.push('the Saved drawing carries the admin row');
-  /* ADD BACK, on Business. */
+  /* NO WAY BACK (477): no Add back, no Reset, no deleted-picker anywhere. */
   t.go('biz', false, true); await wait(300);
-  const pick = d.querySelector('#s-biz .layout-card select.lay-del-pick');
-  if (!pick || !pick.querySelector('option[value="wordgames"]')) return bad.concat(['Business lists no deleted widget']);
-  pick.value = 'wordgames';
-  A['lay-w-undel'](); await wait(300);
-  if (layIds_(t, 'game').indexOf('wordgames') === -1) bad.push('Add back did not return it to Games');
+  if (A['lay-w-undel'] || A['layout-reset']) bad.push('an Add back or Reset handler still exists');
+  if (d.querySelector('.lay-del-pick, .lay-foot, .layout-card, [data-do="lay-w-undel"], [data-do="layout-reset"]')) bad.push('a way back is still drawn');
+  if (/Add back|Reset layout|Deleted cards/.test(d.body.textContent)) bad.push('the page still says Add back, Reset layout or Deleted cards');
   /* A NON-ADMIN: no tiles, no post. */
   const m = boot({ member: true }); await wait(300);
   for (const col of ['tools', 'games', 'shop', 'reel']) { m.w.__t.go(col, false, true); await wait(150); }
   if (m.w.document.querySelector('.wgt-admin, [data-do="lay-w-move"], [data-do="lay-w-del"]')) bad.push('a member sees layout tiles');
-  m.w.__t.ACTIONS['layout-reset'](); m.w.__t.ACTIONS['lay-w-undel'](); await wait(100);
   if (m.sent.some(x => x.action === 'layoutSave')) bad.push('a member posted layoutSave');
+  return bad;
+});
+
+check('no undo (477): a deleted widget stays gone for everyone after a reload and a moved one keeps its place for a client; no Add back or Reset for the admin', async () => {
+  const { w, sent } = layBoot_();
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  t.go('games', false, true); await wait(300);
+  const x = layTile_(d, 'wordgames', 'lay-w-del');
+  if (!x) return ['Word games has no Delete tile — NOT checked'];
+  A['lay-w-del'](x); A['lay-w-del'](x); await wait(300);
+  t.go('tools', false, true); await wait(300);
+  /* TIMER DOWN, past docket: both seen by a client (some tools are role-gated). */
+  const tools0 = layIds_(t, 'tool'), a = tools0.indexOf('timer') !== -1 ? 'timer' : tools0[1], f = tools0[tools0.indexOf(a) + 1];
+  A['lay-w-move'](layTile_(d, a, 'lay-w-move', '1')); await wait(300);
+  const posts = sent.filter(p => p.action === 'layoutSave'), L = posts.length && posts[posts.length - 1].layout;
+  if (!L) return bad.concat(['no layoutSave was posted — NOT checked']);
+  if (posts.some(p => p.reset)) bad.push('a layoutSave carried reset');
+  const moved = layIds_(t, 'tool');
+  /* AN ADMIN RELOADS: still gone, nothing to bring it back. */
+  const p1 = payload(); p1.layout = L;
+  const r = layBoot_({ payload: p1 }); await wait(300);
+  for (const col of ['games', 'biz']) { r.w.__t.go(col, false, true); await wait(200); }
+  if (layIds_(r.w.__t, 'game').indexOf('wordgames') !== -1 || r.w.document.querySelector('#wgt-wordgames')) bad.push('the deleted widget came back for the admin');
+  if (r.w.__t.ACTIONS['lay-w-undel'] || r.w.__t.ACTIONS['layout-reset'] || /Add back|Reset layout/.test(r.w.document.body.textContent)) bad.push('the admin still has Add back or Reset');
+  /* A CLIENT RELOADS: the same layout. */
+  const CL = { name: 'Cleo Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'cleo' };
+  const p2 = payload(); p2.layout = L;
+  const c = boot({ payload: p2, before: signedInAs_(CL) }); await wait(300);
+  for (const col of ['games', 'tools']) { c.w.__t.go(col, false, true); await wait(200); }
+  if (layIds_(c.w.__t, 'game').indexOf('wordgames') !== -1 || c.w.document.querySelector('#wgt-wordgames')) bad.push('the deleted widget is drawn for a client');
+  /* A CLIENT SEES FEWER TOOLS (role-gated ones), so compare the order of the ones both see — and the moved one must be after its old follower. */
+  const cl = layIds_(c.w.__t, 'tool'), both = moved.filter(x => cl.indexOf(x) !== -1);
+  if (cl.filter(x => both.indexOf(x) !== -1).join() !== both.join()) bad.push('the move did not keep for a client: ' + cl.join() + ' not ' + both.join());
+  if (cl.indexOf(a) === -1 || cl.indexOf(f) === -1) bad.push(a + ' or ' + f + ' is not seen by a client — the move NOT checked');
+  else if (cl.indexOf(a) < cl.indexOf(f)) bad.push('the moved tool is not below ' + f + ' for a client: ' + cl.join());
   return bad;
 });
 
@@ -29462,6 +29532,107 @@ const layReach_ = (w, col, id) => {
   let n = -1; try { n = w.__t.pageCount(col); } catch (e) {}
   return at === -1 ? col + ' does not draw ' + id : at >= n ? col + ' draws ' + id + ' on page ' + (at + 1) + ' of ' + pages.length + ' and its pager counts ' + n : '';
 };
+/* ---------- MERGE WITH THE CARD ABOVE (480): two neighbours one card, again for three, Split back, moved and deleted whole ---------- */
+const layMergeTile_ = (d, id) => layCardTile_(d, id, 'lay-merge');
+const layPagesOf_ = (w, col) => { const h = w.document.getElementById('s-' + col); return h ? h.querySelectorAll(':scope > .page').length : -1; };
+check('merge with the card above (480): a profiles card merges with the one above, then the merged card with the next above — one frame, one admin row, the lower titles subheadings, one page; a client after a reload sees the merged card without the parts their role hides; Move takes it whole, Split parts it in place, Delete takes every part', async () => {
+  const { w, sent } = layBoot_();
+  await wait(300);
+  const A = w.__t.ACTIONS, d = w.document, bad = [];
+  if (!A['lay-merge'] || !A['lay-unmerge'] || typeof w.mergedNow_ !== 'function') return ['no lay-merge / lay-unmerge — NOT checked'];
+  await layPaintAll_(w);
+  const seen0 = laySeen_(w, 'students'), n0 = w.__t.pageCount('students');
+  const [help, add, search, manage] = ['ppl:students:help', 'ppl:students:add', 'ppl:students:search', 'ppl:students:manage'];
+  if ([help, add, search, manage].some(x => seen0.indexOf(x) === -1)) return ['Student profiles does not hold its four cards: ' + seen0.join() + ' — NOT checked'];
+  if (layMergeTile_(d, seen0[0])) bad.push('the first card has a Merge tile with nothing above it');
+  /* TWO */
+  const t1 = layMergeTile_(d, search);
+  if (!t1 || t1.getAttribute('aria-label') !== 'Merge with the card above') return bad.concat(['Find by handle has no "Merge with the card above" tile']);
+  A['lay-merge'](t1); await wait(250); await layPaintAll_(w);
+  let L = layLast_(sent);
+  if (!L || JSON.stringify(L.merged) !== JSON.stringify([[add, search]])) bad.push('the first merge saved ' + JSON.stringify(L && L.merged));
+  const one = () => d.querySelectorAll('#s-students .card.is-merged');
+  if (one().length !== 1 || one()[0].querySelectorAll(':scope > .merged-part').length !== 2) bad.push('two cards did not draw as one frame of two parts');
+  if (w.__t.pageCount('students') !== n0 - 1 || layPagesOf_(w, 'students') !== n0 - 1) bad.push('after one merge the pager counts ' + w.__t.pageCount('students') + ' and the column draws ' + layPagesOf_(w, 'students') + ', not ' + (n0 - 1));
+  /* THREE: the merged card's own tile merges the next above. */
+  A['lay-merge'](layMergeTile_(d, add)); await wait(250); await layPaintAll_(w);
+  /* FOUR: the card below joins too, so a client has two parts left to see. */
+  A['lay-merge'](layMergeTile_(d, manage)); await wait(250); await layPaintAll_(w);
+  L = layLast_(sent);
+  if (JSON.stringify(L && L.merged) !== JSON.stringify([[help, add, search, manage]])) bad.push('merging up twice more saved ' + JSON.stringify(L && L.merged));
+  const m = one()[0];
+  if (!m || m.querySelectorAll(':scope > .merged-part').length !== 4) bad.push('the merged card does not hold four parts');
+  if (m && m.querySelectorAll('.card-admin').length !== 1) bad.push('the merged card has ' + (m && m.querySelectorAll('.card-admin').length) + ' admin rows, not one');
+  if (m && m.lastElementChild && !m.lastElementChild.classList.contains('card-admin')) bad.push('the admin row is not at the foot of the merged card');
+  if (m && !m.querySelector('.card-admin [data-do="lay-unmerge"]')) bad.push('the merged card has no Split');
+  if (w.__t.pageCount('students') !== n0 - 3 || layPagesOf_(w, 'students') !== n0 - 3) bad.push('four merged: the pager counts ' + w.__t.pageCount('students') + ', the column draws ' + layPagesOf_(w, 'students') + ', not ' + (n0 - 3));
+  if (m && !m.querySelector('.merged-part + .merged-part h3')) bad.push('a lower part has no title to be its subheading');
+  /* A CLIENT, after a reload: the merged card without Needs help and Add a student. */
+  const p = payload(); p.layout = L;
+  const c = boot({ member: true, payload: p }); await wait(300); await layPaintAll_(c.w);
+  const cm = c.w.document.querySelectorAll('#s-students .card.is-merged');
+  const parts = cm[0] ? [...cm[0].querySelectorAll(':scope > .merged-part')].map(x => x.getAttribute('data-part')) : [];
+  if (cm.length !== 1 || parts.join() !== [search, manage].join()) bad.push('a client sees ' + cm.length + ' merged cards of parts ' + parts.join());
+  if (c.w.document.querySelector('#s-students .wgt-admin, [data-do="lay-merge"]')) bad.push('a client sees layout tiles');
+  if (c.w.__t.pageCount('students') !== layPagesOf_(c.w, 'students')) bad.push('a client\'s pager counts ' + c.w.__t.pageCount('students') + ' for ' + layPagesOf_(c.w, 'students') + ' pages');
+  /* MOVE: ◀ takes every part to Tutor profiles. */
+  A['lay-c-col'](layCardTile_(d, help, 'lay-c-col', '-1')); await wait(250); await layPaintAll_(w);
+  const tut = laySeen_(w, 'tutors');
+  if ([help, add, search, manage].some(x => tut.indexOf(x) === -1) || laySeen_(w, 'students').some(x => [help, add, search, manage].indexOf(x) !== -1)) bad.push('◀ did not move every part: tutors ' + tut.join());
+  if (d.querySelectorAll('#s-tutors .card.is-merged').length !== 1) bad.push('the moved card is not one merged card on Tutor profiles');
+  /* SPLIT: the parts apart, in place. */
+  A['lay-unmerge'](d.querySelector('#s-tutors .card.is-merged [data-do="lay-unmerge"]')); await wait(250); await layPaintAll_(w);
+  if (layLast_(sent).merged || d.querySelector('#s-tutors .card.is-merged')) bad.push('Split left a merged card');
+  const tut2 = laySeen_(w, 'tutors');
+  if (tut2.slice(-4).join() !== [help, add, search, manage].join()) bad.push('Split did not leave the parts where they stood: ' + tut2.join());
+  /* DELETE: merge two again, two taps, both gone. */
+  A['lay-merge'](layMergeTile_(d, manage)); await wait(250); await layPaintAll_(w);
+  const del = () => d.querySelector('#s-tutors .card.is-merged [data-do="lay-c-del"]');
+  if (!del()) return bad.concat(['the re-merged card has no Delete']);
+  A['lay-c-del'](del());
+  if (!/Tap again/.test(del().getAttribute('aria-label') || '')) bad.push('the first tap did not ask again');
+  A['lay-c-del'](del()); await wait(250); await layPaintAll_(w);
+  L = layLast_(sent);
+  if ([search, manage].some(x => (L.deleted || []).indexOf(x) === -1) || L.merged) bad.push('Delete did not delete both parts: ' + JSON.stringify(L));
+  return bad;
+});
+
+check('merge with the card above (480): widgets — Make a flyer has no Merge under the Calculator, nor does the Whiteboard, nor any game; the cheat sheet maker merges with Make a flyer and the timer with both, one frame of three slots each started, one tile row last, the pager one page; a client sees the two parts not admin-only', async () => {
+  const { w, sent } = layBoot_();
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  if (!A['lay-merge'] || typeof w.widgetPagesOf_ !== 'function') return ['no lay-merge or widgetPagesOf_ — NOT checked'];
+  t.go('tools', false, true); await wait(300);
+  const tools0 = layIds_(t, 'tool'), n0 = t.pageCount('tools');
+  if (tools0.slice(0, 4).join() !== 'calculator,flyers,mat,timer') return ['Tools does not open calculator, flyers, mat, timer: ' + tools0.join() + ' — NOT checked'];
+  const mt = id => layTile_(d, id, 'lay-merge');
+  if (mt('calculator') || mt('flyers')) bad.push('the calculator, which needs its whole page, can be merged');
+  if (mt('whiteboard')) bad.push('the whiteboard has a Merge tile');
+  t.go('games', false, true); await wait(300);
+  if (d.querySelector('#s-games [data-do="lay-merge"]')) bad.push('a game has a Merge tile');
+  t.go('tools', false, true); await wait(300);
+  if (!mt('mat')) return bad.concat(['the cheat sheet maker has no Merge tile']);
+  A['lay-merge'](mt('mat')); await wait(250);
+  t.go('tools', false, true); await wait(300);
+  A['lay-merge'](mt('timer')); await wait(300);
+  t.go('tools', false, true); await wait(400);
+  const L = layLast_(sent);
+  if (JSON.stringify(L && L.merged) !== JSON.stringify([['flyers', 'mat', 'timer']])) bad.push('the widget merges saved ' + JSON.stringify(L && L.merged));
+  const m = d.querySelector('#wgt-timer')?.closest('.card.is-widget');
+  if (!m || !m.classList.contains('is-merged') || m.querySelectorAll('.widget-slot').length !== 3) bad.push('three widgets are not one frame of three slots');
+  if (m && (m.querySelectorAll('.wgt-foot').length !== 1 || m.lastElementChild !== m.querySelector(':scope > .wgt-foot'))) bad.push('the merged widget has not one tile row, last');
+  if (m && !m.querySelector('.wgt-foot [data-do="lay-unmerge"]')) bad.push('the merged widget has no Split');
+  if (t.pageCount('tools') !== n0 - 2 || layPagesOf_(w, 'tools') !== n0 - 2) bad.push('the pager counts ' + t.pageCount('tools') + ' and Tools draws ' + layPagesOf_(w, 'tools') + ', not ' + (n0 - 2));
+  if (d.querySelector('#wgt-timer')?.getAttribute('aria-busy')) bad.push('the timer in the merged card was never started');
+  const p = payload(); p.layout = L;
+  const c = boot({ member: true, payload: p }); await wait(300);
+  c.w.__t.go('tools', false, true); await wait(300);
+  const cm = c.w.document.querySelector('#s-tools .card.is-merged');
+  if (!cm || c.w.document.querySelector('#wgt-flyers') || cm.querySelectorAll('.widget-slot').length !== 2) bad.push('a client does not see the timer and cheat sheet maker merged without Make a flyer');
+  if (c.w.__t.pageCount('tools') !== layPagesOf_(c.w, 'tools')) bad.push('a client\'s pager counts ' + c.w.__t.pageCount('tools') + ' for ' + layPagesOf_(c.w, 'tools') + ' pages');
+  return bad;
+});
+
 check('a card moved ◀ into the next column is on a page that column scrolls to — Business into Profiles: parents, parents into students — and still after a reload (476)', async () => {
   const { w, sent } = layBoot_();
   await wait(300);
@@ -29501,7 +29672,7 @@ check('layout cards (465): an admin sees ▲ ▼ ◀ ▶ Start here Delete on ev
       ['Move up', 'Move down', 'Move to previous column', 'Move to ', 'Start here', 'Delete'].forEach(l => { if (labels.indexOf(l) === -1) bad.push(id + ' has no ' + l); });
     });
   }
-  ['ppl:students:help', 'ppl:students:add', 'ppl:tutors:add', 'ppl:parents:add', 'biz:build', 'biz:layout', 'acct:pin'].forEach(id => { if (!layCardTile_(d, id, 'lay-c-del')) bad.push(id + ' has no Delete'); });
+  ['ppl:students:help', 'ppl:students:add', 'ppl:tutors:add', 'ppl:parents:add', 'biz:build', 'acct:pin'].forEach(id => { if (!layCardTile_(d, id, 'lay-c-del')) bad.push(id + ' has no Delete'); });
   /* SPLIT SITS BESIDE THEM on a card of several fields (Contact & address). */
   const split = d.querySelector('#s-account .card[data-split^="set:account:"] [data-do="lay-split"]');
   if (!split || !split.closest('.card').querySelector('.card-admin')) bad.push('a several-field settings card lacks Split beside its admin row');
@@ -29552,7 +29723,7 @@ check('layout cards (465): an admin sees ▲ ▼ ◀ ▶ Start here Delete on ev
   return bad;
 });
 
-check('layout cards (465): Delete asks twice in place and says when a card is the only place to edit a setting; deleted cards are listed by title on Business and come back to their own column; the Layout card itself can go, leaving a "Deleted cards" line at the foot of Business; Build, Needs help, Manage your child and the "+ Add" cards all delete; Reset restores all', async () => {
+check('layout cards (465): Delete asks twice in place and says when a card is the only place to edit a setting; a delete is final (477) — nothing lists or brings it back; Build, Needs help, Manage your child and the "+ Add" cards all delete', async () => {
   const { w, sent } = layBoot_();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
@@ -29572,29 +29743,11 @@ check('layout cards (465): Delete asks twice in place and says when a card is th
   for (const id of ['biz:build', 'ppl:students:help', 'ppl:students:add', 'ppl:tutors:add', 'ppl:parents:add']) says[id] = await del(id);
   if (!/^Tap again to delete/.test(says['biz:build'] || '')) bad.push('Build\'s second step reads ' + says['biz:build']);
   if (d.querySelector('#s-biz .me-build') || d.querySelector('.help-list') || d.querySelector('[data-do="person-add"]')) bad.push('Build, Needs help or an Add card is still drawn');
-  /* LISTED BY TITLE on the Layout card. */
-  const opts = [...d.querySelectorAll('#s-biz .layout-card .lay-del-pick option')].map(o => o.value + '=' + o.textContent);
-  [grp, 'biz:build', 'ppl:students:help'].forEach(id => { if (!opts.some(o => o.indexOf(id + '=') === 0)) bad.push('Business does not list ' + id + ': ' + opts.join('|')); });
-  if (!opts.some(o => o === 'biz:build=Build')) bad.push('Build is not listed by its title');
-  /* ADD BACK, to its own column. */
-  const pick = d.querySelector('#s-biz .layout-card .lay-del-pick');
-  pick.value = 'ppl:students:add';
-  A['lay-w-undel'](d.querySelector('#s-biz .layout-card [data-do="lay-w-undel"]')); await wait(250); await layPaintAll_(w);
-  if (!d.querySelector('#s-students [data-do="person-add"]')) bad.push('Add back did not return "+ Add a student" to Student profiles');
-  /* THE LAYOUT CARD ITSELF: gone, and the foot line is the way back. */
-  await del('biz:layout');
-  if (d.querySelector('#s-biz .layout-card')) bad.push('the Layout card was not deleted');
-  const foot = d.querySelector('#s-biz > .page:last-child .lay-foot');
-  if (!foot || !/Deleted cards \(\d+\)/.test(foot.textContent)) return bad.concat(['no "Deleted cards" line at the foot of Business']);
-  foot.querySelector('.lay-del-pick').value = 'biz:layout';
-  A['lay-w-undel'](foot.querySelector('[data-do="lay-w-undel"]')); await wait(250); await layPaintAll_(w);
-  if (!d.querySelector('#s-biz .layout-card')) bad.push('Add back on the foot line did not return the Layout card');
+  /* FINAL (477): no list of deleted cards, no Add back, no Layout card. */
+  if (d.querySelector('.lay-del-pick, .lay-foot, .layout-card, [data-do="lay-w-undel"], [data-do="layout-reset"]')) bad.push('a way back is still drawn');
   /* MANAGE YOUR CHILD, for a client. */
   const CL = { name: 'Cleo Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'cleo' };
   const c = boot({ before: signedInAs_(CL) }); await wait(300);
-  /* RESET restores everything. */
-  A['layout-reset'](); await wait(250); await layPaintAll_(w);
-  if (!d.querySelector('#s-biz .me-build') || !d.querySelector('.help-list') || laySeen_(w, 'account').indexOf(grp) === -1) bad.push('Reset did not bring every card back');
   /* A CARD DELETED FOR EVERYBODY: Manage your child on a client's phone. */
   const p = payload(); p.layout = { v: 1, widgets: {}, deleted: ['ppl:students:manage'] };
   const c2 = boot({ payload: p, before: signedInAs_(CL) }); await wait(300); await layPaintAll_(c2.w);
