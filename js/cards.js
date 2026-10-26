@@ -262,15 +262,23 @@ function profAvail_(t) {
   /* THE TAUGHT HOURS, SAID AFTER THE FREE ONES — see the note over this function. A day drawn only
      for a taught hour was silent to a screen reader while it took a row on screen. */
   const taught = hoursOn(c => c.busy);
+  /* LINES, NOT A GRID (467) — the owner: "The tutor profile should fit on a normal phone even with lots of data." Hours in a row merge. */
+  const line = which => days.map(d => {
+    const hs = d.hours.filter(which).map(c => c.h), spans = [];
+    hs.forEach(h => { const l = spans[spans.length - 1]; if (l && l[1] === h) l[1] = h + 1; else spans.push([h, h + 1]); });
+    return spans.length ? `<span class="prof-day">${esc(d.label.slice(0, 3))} ${esc(spans.map(profSpan_).join(', '))}</span>` : '';
+  }).filter(Boolean).join('<span class="prof-sep">, </span>');
+  const free = line(c => c.lit), busyLine = line(c => c.busy);
   return `<div class="prof-cap">Available</div>
-    <div class="prof-week" data-avail="${ticked.length}" role="img"
+    <div class="prof-week prof-hours" data-avail="${ticked.length}"
       aria-label="${esc((said ? 'Available ' + said : 'No free hours this week')
-        + (taught ? '. Already teaching ' + taught : ''))}">${weekGrid_(days, (c, d) =>
-      `<span class="hr${c.lit ? ' on' : ' shut'}${c.busy ? ' is-busy' : ''}" data-code="${esc(c.code)}"
-        title="${esc(d.label + ' ' + c.h + ':00' + (c.busy ? ' — already teaching' : ''))}"></span>`,
-      { chars: 3 })}${taught
-        ? '<p class="prof-key"><span class="hr shut is-busy"></span>already teaching</p>' : ''}</div>`;
+        + (taught ? '. Already teaching ' + taught : ''))}">${free ? `<p class="prof-hour-line">${free}</p>` : ''}${busyLine
+        ? `<p class="prof-key faint">Already teaching ${busyLine}</p>` : ''}</div>`;
 }
+/* AN HOUR SPAN AS A PERSON SAYS IT: 4–7pm, 10am–1pm, 12–1pm. */
+const profHr_ = h => (h % 12 || 12) + '';
+const profAm_ = h => (h % 24 < 12 ? 'am' : 'pm');
+const profSpan_ = ([a, b]) => profHr_(a) + (profAm_(a) === profAm_(b) ? '' : profAm_(a)) + '–' + profHr_(b) + profAm_(b);
 
 /* WHAT ONE EXTRA SEAT ADDS TO THE HOURLY RATE — ASKED FOR AS *"a smaller rate to the side so clients can know extra cost for the extra seat"*. § */
 function profSeat_(t) {

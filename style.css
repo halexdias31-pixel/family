@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-26-p-layout-cards";
+  --css-version: "2026-10-26-q-everything-visible";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -6652,3 +6652,20 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .col-lock-i { display: block; color: var(--gold); margin: .4rem auto .2rem; }
 .col-lock-i svg { width: 44px; height: 44px; }
 .col-lock .tile-row { justify-content: center; }
+
+/* ---------- EVERY CARD VISIBLE, A PADLOCK ON THOSE NOT YOURS (467) ---------- */
+.is-locked { position: relative; }
+.is-locked > *:not(.card-lock):not(h3):not(.card-say) { opacity: .55; }
+.card-lock { position: absolute; top: .7rem; right: .8rem; color: var(--ink); opacity: .8; pointer-events: none; }
+.card-lock svg { width: 18px; height: 18px; display: block; }
+.is-locked > h3 { padding-right: 1.6rem; }
+/* WHAT A CARD IS FOR, one faint line under its title. */
+.card-say { margin: .1rem 0 .6rem; font-size: .82rem; line-height: 1.35; }
+.add-card .card-say { display: block; margin: .2rem 0 0; }
+/* A TUTOR'S HOURS AS LINES (467). */
+.prof-hours .prof-hour-line { margin: 0; line-height: 1.45; font-size: .85rem; }
+.prof-hours .prof-hour-line .prof-day { display: block; }
+.prof-hours .prof-hour-line .prof-sep { display: none; }
+.prof-hours .prof-key { margin: .2rem 0 0; font-size: .8rem; }
+/* A SHORTER MAP on a person's card, so a full card fits a phone's height (467). */
+.is-prof .prof-heat { height: 130px; }
