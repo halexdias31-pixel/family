@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-26-j-finder-list";
+  --css-version: "2026-10-26-k-racer-works";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -5615,6 +5615,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   --race-sky: rgb(158, 199, 230);
   position: relative; width: 100%; aspect-ratio: 4 / 3; margin: .55rem 0 0; overflow: hidden;
   background: var(--race-sky); border-radius: var(--r-sm); touch-action: none; user-select: none;
+  -webkit-user-select: none; -webkit-touch-callout: none;   /* Safari: a held pedal is not a text selection or a callout (464) */
 }
 @media (min-width: 700px) { .race-stage { aspect-ratio: 16 / 10; } }
 .race-gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: pointer; }
@@ -5635,6 +5636,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .race-pads { display: none; grid-template-columns: repeat(2, minmax(0, 1fr)) 12px repeat(2, minmax(0, 1fr)); gap: 8px; height: 64px; margin: .55rem 0 0; }
 .race-pad {
   height: 64px; min-width: 0; padding: 0; border-radius: 12px; touch-action: none; user-select: none;
+  -webkit-user-select: none; -webkit-touch-callout: none;
   background: var(--sunk); color: var(--ink); border: 1px solid var(--line); font: 600 1rem/1 var(--font);
 }
 .race-pad.is-go { color: var(--gold); }

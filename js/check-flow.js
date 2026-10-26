@@ -7653,34 +7653,82 @@ const raceOpen_ = async (w, want) => {
   return want === 'world' ? 'the map never became a world' : 'the map was still being asked for';
 };
 
-check('racer (426, 441): on the Console, until the backend has built the map the racer\'s box is empty, an admin has a Build the map tile, and pressing it posts raceBuild', async () => {
+/* THE SHIPPED MAP (464): data/race-map.json as the site serves it. */
+const RACE_SHIPPED_ = () => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'race-map.json'), 'utf8'));
+const raceServeFix_ = (race1, shipped) => u => (u.indexOf('race=1') !== -1 ? race1
+  : /data\/race-map\.json/.test(u) ? shipped : undefined);
+
+check('racer (464): before the backend has built a map the shipped map plays for everyone, says it is practice streets, and an admin\'s first visit builds the real one by itself', async () => {
   const bad = [];
   for (const who of ['visitor', 'admin']) {
     const { w, sent, gets } = boot({ before: who === 'admin' ? signedInAs_(RACE_ADMIN_) : undefined,
-      serve: u => (u.indexOf('race=1') !== -1 ? { version: 'test', built: false, race: null } : undefined),
+      serve: raceServeFix_({ version: 'test', built: false, race: null }, RACE_SHIPPED_()),
       reply: b => (b.action === 'raceBuild' ? { error: 'No Overpass server answered.' } : undefined) });
     await wait(300);
-    const said = await raceOpen_(w, 'idle');
+    const said = await raceOpen_(w, 'world');
     if (said) return [who + ': ' + said];
-    if (!gets.some(u => /[?&]race=1/.test(u))) bad.push(who + ': the card never asked ?race=1');
-    if (gets.filter(u => /[?&]race=1/.test(u)).length > 1) bad.push(who + ': ?race=1 asked ' + gets.filter(u => /[?&]race=1/.test(u)).length + ' times for one visit');
+    if (gets.filter(u => /[?&]race=1/.test(u)).length !== 1) bad.push(who + ': ?race=1 asked ' + gets.filter(u => /[?&]race=1/.test(u)).length + ' times for one visit');
+    if (!gets.some(u => /data\/race-map\.json/.test(u))) bad.push(who + ': the shipped map was never asked for');
     const card = w.document.querySelector('#s-games #race-box');
     if (!card) { bad.push(who + ': no #race-box on Games'); continue; }
     const h3 = card.closest('.card').querySelector('h3');
     if (!h3 || h3.textContent !== 'Console') bad.push(who + ': the racer is not inside the Console card (441)');
-    const csp = w.document.querySelector('#s-games #cs-pick');
-    if (!csp || csp.value !== 'racer' || csp.options[csp.selectedIndex].textContent !== 'Colliers Wood racer') bad.push(who + ': the console picker does not say Colliers Wood racer');
-    if (card.querySelector('canvas, .loading, p')) bad.push(who + ': not built yet, yet the card draws ' + card.innerHTML.slice(0, 120));
+    if (!card.querySelector('canvas.race-gl')) bad.push(who + ': no map built, and the card has no road to drive: ' + card.innerHTML.slice(0, 120));
+    if (!card.querySelector('[data-do="race-go"].tile')) bad.push(who + ': no Drive tile on the shipped map');
+    const attr = (card.querySelector('.race-attr') || {}).textContent || '';
+    if (!/Practice streets, invented/.test(attr) || /OpenStreetMap/.test(attr)) bad.push(who + ': the practice streets do not say so (or claim OSM): ' + attr);
     const tile = card.querySelector('[data-do="race-build"]');
-    if (who === 'visitor' && tile) bad.push('a visitor is offered Build the map');
+    const builds = sent.filter(b => b.action === 'raceBuild').length;
+    if (who === 'visitor' && (tile || builds)) bad.push('a visitor is offered Build the map, or built one');
     if (who === 'admin') {
-      if (!tile) { bad.push('an admin has no Build the map tile'); continue; }
-      tile.click();
+      if (!tile) bad.push('an admin has no Build the map tile');
+      if (builds !== 1) bad.push('an admin\'s first visit posted raceBuild ' + builds + ' times, wanted once by itself');
       await wait(200);
-      if (!sent.some(b => b.action === 'raceBuild')) bad.push('Build the map posted nothing');
       if (!/No Overpass/.test((w.document.getElementById('toast') || {}).textContent || '')) bad.push('a refused build did not say why in a toast');
+      /* ONCE A DAY PER DEVICE: a second visit does not build again by itself. */
+      const R = w.racer_();
+      R.autoAsked = false;
+      w.raceAutoBuild_();
+      if (sent.filter(b => b.action === 'raceBuild').length !== 1) bad.push('the automatic build ran again within the day');
     }
   }
+  return bad;
+});
+
+check('racer (464): with neither a built map nor the shipped file the card still says why, never an empty box', async () => {
+  const { w } = boot({ serve: raceServeFix_({ version: 'test', built: false, race: null, error: 'The map file could not be opened: gone' }, null) });
+  await wait(300);
+  const said = await raceOpen_(w, 'idle');
+  if (said) return [said];
+  const card = w.document.querySelector('#s-games #race-box');
+  const words = card ? card.textContent.trim() : '';
+  return /could not be opened/.test(words) ? [] : ['no map anywhere drew ' + JSON.stringify(words.slice(0, 120))];
+});
+
+check('racer (464): an admin\'s build replaces the practice streets with the built map, paused, with the OSM line and the heights\' source', async () => {
+  const FIX = RACE_FIX_();
+  let built = false;
+  const { w, sent } = boot({ before: signedInAs_(RACE_ADMIN_),
+    serve: u => (u.indexOf('race=1') !== -1 ? (built ? { version: 'test', built: true, race: FIX } : { version: 'test', built: false, race: null })
+      : /data\/race-map\.json/.test(u) ? RACE_SHIPPED_() : undefined),
+    reply: b => (b.action === 'raceBuild' ? (built = true, { success: true, built: true, roads: 6, bld: 62, lowest: 12, highest: 21 }) : undefined) });
+  try { w.localStorage.setItem('race-autobuild', String(Date.now())); } catch (e) {}
+  await wait(300);
+  const said = await raceOpen_(w, 'world');
+  if (said) return [said];
+  const bad = [], R = w.racer_();
+  if (!R.map.practice) bad.push('the first map was not the practice streets');
+  if (sent.some(b => b.action === 'raceBuild')) bad.push('built by itself although the device built today');
+  w.raceGo_();
+  if (!R.running) bad.push('Drive did not start the practice streets');
+  w.document.querySelector('#s-games #race-box [data-do="race-build"]').click();
+  for (let k = 0; k < 40 && (R.building || !R.world || R.map.practice); k++) await wait(100);
+  if (!sent.some(b => b.action === 'raceBuild')) bad.push('Build the map posted nothing');
+  if (!R.world || R.map.practice || R.map.built !== FIX.built) bad.push('after the build the card is not on the built map');
+  if (R.running) bad.push('the lap carried on into the new map');
+  const attr = (w.document.querySelector('#s-games #race-box .race-attr') || {}).textContent || '';
+  if (!/OpenStreetMap contributors/.test(attr) || !attr.includes(FIX.dem)) bad.push('the built map\'s attribution is not on the card: ' + attr);
+  if (!/Map built: 6 roads, 62 buildings, 12–21 m/.test((w.document.getElementById('toast') || {}).textContent || '')) bad.push('no toast saying what was built');
   return bad;
 });
 

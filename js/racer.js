@@ -1,5 +1,5 @@
 /* @family. — racer.js THE COLLIERS WOOD RACER (426): OSM streets at DEM heights, driven in WebGL. */
-/* The map is built by the backend's `buildRaceMap_` and fetched from `?race=1` when the widget starts. x metres east, y north, h above sea. */
+/* The map is built by the backend's `buildRaceMap_` and fetched from `?race=1`; until then data/race-map.json plays (464). x metres east, y north, h above sea. */
 
 /* THE LOOP, BY ROAD NAME: each name's middle is a waypoint, visited in order round their centre. Names OSM may not have
    are skipped; with fewer than three the loop goes round the map's major roads instead. */
@@ -35,18 +35,41 @@ function raceFetch_() {
     .then(r => r.json())
     .then(d => {
       RACE.built = !!(d && d.built && d.race);
-      if (RACE.built) raceAdopt_(d.race);
-      else if (d && d.error) RACE.err = String(d.error);
-    })
-    .catch(err => { RACE.err = 'The map could not be loaded — ' + why_(err); })
-    .then(() => { RACE.asking = null; racePaint_(); });
+      if (RACE.built) { raceAdopt_(d.race); return; }
+      if (d && d.error) RACE.err = String(d.error);
+      return raceShipped_();
+    }, err => { RACE.err = 'The map could not be loaded — ' + why_(err); return raceShipped_(); })
+    .catch(err => { RACE.err = RACE.err || 'The map could not be loaded — ' + why_(err); })
+    .then(() => { RACE.asking = null; racePaint_(); raceAutoBuild_(); });
   return RACE.asking;
+}
+
+/* NOTHING BUILT IS NEVER AN EMPTY CARD (464): the repository's map — practice streets, or Colliers Wood once tools/race_map.py has run. */
+function raceShipped_() {
+  return fetch(RACE_SHIPPED, { cache: 'no-cache' }).then(r => r.json()).then(m => {
+    if (m && Array.isArray(m.pts) && m.pts.length && Array.isArray(m.roads) && m.roads.length) raceAdopt_(m);
+  });
+}
+const RACE_SHIPPED = 'data/race-map.json';
+
+/* AN ADMIN'S FIRST VISIT BUILDS THE REAL MAP by itself, once a day per device, while the shipped one plays. */
+function raceAutoBuild_() {
+  if (RACE.built || RACE.building || RACE.autoAsked || !(typeof isAdmin === 'function' && isAdmin())) return;
+  RACE.autoAsked = true;
+  let last = 0;
+  try { last = Number(localStorage.getItem('race-autobuild')) || 0; } catch (e) {}
+  if (Date.now() - last < 24 * 3600 * 1000) return;
+  try { localStorage.setItem('race-autobuild', String(Date.now())); } catch (e) {}
+  raceBuildNow_();
 }
 
 function raceAdopt_(map) {
   RACE.map = map;
   RACE.world = raceWorld_(map);
   raceReset_();
+  /* A NEW WORLD IS A NEW CANVAS: `raceGl_` lets the old context go and uploads this world's mesh. */
+  const box = $('race-box');
+  if (box) box.dataset.view = '';
 }
 
 /* ---------- THE WORLD: POINTS, ROADS, GROUND, BUILDINGS, THE LOOP ---------- */
@@ -435,6 +458,8 @@ const raceNow_ = () => (typeof performance !== 'undefined' && performance.now ? 
 /* ---------- THE RENDERER: one shader, lit vertices, fog ---------- */
 function raceGl_(canvas) {
   if (RACE.gl && RACE.gl.canvas === canvas && !RACE.gl.ctx.isContextLost()) return RACE.gl;
+  /* LOST (iPad Safari drops a context under memory pressure): nothing is drawn until `webglcontextrestored`. */
+  if (RACE.gl && RACE.gl.canvas === canvas) return null;
   /* ASKED ONCE PER CANVAS: a browser without WebGL says so on the card, not sixty times a second. */
   if (RACE.noGl === canvas) return null;
   /* A REPAINT MADE A NEW CANVAS: the old one's context is let go now, not whenever the collector gets to it (browsers cap them). */
@@ -679,9 +704,9 @@ function racePaint_(still) {
     act: 'race-build', tone: 'admin', cls: RACE.building ? 'is-busy' : '', off: !!RACE.building }) : '';
   if (!RACE.world) {
     box.dataset.view = RACE.asking ? 'wait' : 'none';
-    /* NOT BUILT YET: the title alone, and an admin's way to build it. */
+    /* NO MAP AT ALL (the backend and the shipped file both failed): the reason, and an admin's way to build it. */
     box.innerHTML = RACE.asking ? loading_()
-      : (RACE.err ? `<p class="note">${esc(RACE.err)}</p>` : '') + (build ? `<div class="tile-row">${build}</div>` : '');
+      : `<p class="note">${esc(RACE.err || 'The map could not be loaded.')}</p>` + (build ? `<div class="tile-row">${build}</div>` : '');
     return;
   }
   if (box.dataset.view !== 'drive' || !box.querySelector('.race-gl')) {
@@ -701,13 +726,34 @@ function racePaint_(still) {
       </div>
       <p class="faint race-keys">&#8593; W go · &#8595; S reverse · &#8592; &#8594; A D steer · Space brake</p>
       <div class="tile-row race-tiles"></div>
-      <p class="faint race-attr"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">${esc(RACE.map.osm || 'Map data © OpenStreetMap contributors (ODbL)')}</a> · heights ${esc(RACE.map.dem || 'DEM')}</p>`;
+      ${raceAttr_()}`;
     racePads_(box);
+    raceGlWatch_(box.querySelector('.race-gl'));
   }
   raceTiles_();
+  const attr = box.querySelector('.race-attr');
+  if (attr) attr.outerHTML = raceAttr_();
   raceHud_(true);
   /* ONE STILL FRAME, so the card shows the street before anybody presses Drive. */
   if (!still) requestAnimationFrame(() => { if (!RACE.running) raceDraw_(); });
+}
+
+/* WHOSE MAP: OSM's line on a real one; the practice streets say they are invented and that the real map is not built yet. */
+function raceAttr_() {
+  const m = RACE.map || {};
+  if (m.practice) {
+    return `<p class="faint race-attr">Practice streets, invented — the Colliers Wood map has not been built yet${
+      RACE.building ? ' (building now)' : ''}.</p>`;
+  }
+  return `<p class="faint race-attr"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">${
+    esc(m.osm || 'Map data © OpenStreetMap contributors (ODbL)')}</a> · heights ${esc(m.dem || 'DEM')}</p>`;
+}
+
+/* A LOST CONTEXT IS ASKED BACK (preventDefault) and the world uploaded again when it returns. */
+function raceGlWatch_(canvas) {
+  if (!canvas) return;
+  canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); racePause_(); });
+  canvas.addEventListener('webglcontextrestored', () => { RACE.gl = null; if (!RACE.running) raceDraw_(); });
 }
 
 function raceTiles_() {
@@ -764,11 +810,17 @@ on('race-reset', () => { raceReset_(); raceHud_(true); if (!RACE.running) raceDr
 /* THE ADMIN'S BUILD: minutes of Overpass and elevation calls on the backend; asked again here, and a third time there. */
 on('race-build', () => {
   if (!(typeof isAdmin === 'function' && isAdmin()) || RACE.building) return;
+  raceBuildNow_();
+});
+function raceBuildNow_() {
   RACE.building = send({ action: 'raceBuild', personId: (USER && USER.personId) || '' })
     .then(d => {
-      toast('Map built: ' + (d.roads || 0) + ' roads, ' + (d.bld || 0) + ' buildings, ' + (d.lowest || 0) + '–' + (d.highest || 0) + ' m.');
-      RACE.map = null; RACE.world = null; RACE.gl = null;
+      toast('Map built: ' + (d.roads || 0) + ' roads, ' + (d.bld || 0) + ' buildings, '
+        + (d.flat ? 'flat — no elevation service answered' : (d.lowest || 0) + '–' + (d.highest || 0) + ' m') + '.');
+      /* THE NEW MAP REPLACES THE ONE ON THE GLASS: paused first, so a lap is not carried into another town. */
+      racePause_();
+      RACE.map = null; RACE.world = null;
     }, err => toast(err && err.reply && err.reply.more ? String(err.message) : 'The map was not built — ' + why_(err)))
     .then(() => { RACE.building = null; if (!RACE.map) raceFetch_(); racePaint_(); });
   racePaint_();
-});
+}
