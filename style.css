@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-26-z3-compact-merged";
+  --css-version: "2026-10-26-z4-ds-lite";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -1181,6 +1181,8 @@ a { color: inherit; text-decoration: none; }
    are still drawn, and a slow laptop needs those frames for the game. */
 body.nes-on *, body.nes-on *::before, body.nes-on *::after { animation-play-state: paused !important; }
 body.nes-on .nes-wrap *, body.nes-on .nes-wrap *::before, body.nes-on .nes-wrap *::after { animation-play-state: running !important; }
+/* AND NO BLUR on the neighbouring cards while it plays (481): a filter is a layer redrawn whenever anything under it changes, a cost a Chromebook pays in game frames. */
+body.nes-on .page.soft > .pane { filter: none !important; }
 /* A CROSS on a shallow well; N64's is a stick (`.nes-stick`), the same four directions. */
 .nes-dpad { width: var(--k-dpad); height: var(--k-dpad); border-radius: 50%; flex: none; touch-action: none;
   background: radial-gradient(circle, var(--nes-dp-hi) 0 8%, transparent 9%),
@@ -1293,33 +1295,77 @@ body.nes-on .nes-wrap *, body.nes-on .nes-wrap *::before, body.nes-on .nes-wrap 
   left: calc(-1 * var(--nes-bz) - var(--nes-flank) - var(--nes-px) + 1rem); right: calc(-1 * var(--nes-bz) - var(--nes-flank) - var(--nes-px) + 1rem); }
 .nes-wrap[data-sys="nds"] .nes-deco .nes-shoulders .nes-key, .nes-wrap[data-sys="gba"] .nes-deco .nes-shoulders .nes-key { height: .95rem; min-width: 2.6rem; border-radius: 0 0 .5rem .5rem; font-size: .5rem; }
 
-/* THE DS LOOKS LIKE A DS (478): § */
-.nes-wrap[data-sys="nds"] { --nes-body: #eef0f3; --nes-edge: #c9ccd3; --nes-r: 1.4rem; --nes-bezel: #0e0e11; --nes-bz: 9px; --nes-bz-r: .55rem;
-  --nes-ink: #4a4c54; --nes-key: #f7f8fa; --nes-dp: #43454c; --nes-dp-hi: #5c5f68; --nes-well: radial-gradient(circle, #dfe1e6 0 64%, transparent 65%);
-  --nes-mid: #d3d5db; --nes-mid-ink: #4a4c54; --nes-sh: #d9dbe1; --nes-sh-ink: #5a5c64; --nes-hinge: #b9bcc4; --nes-hinge-hi: #f6f7f9; --nes-hinge-lo: #8e9199;
-  --nes-pad-h: 168px; --k-dpad: 104px; --k-cell: 36px; --k-font: .82rem; --k-small: .62rem; --k-h: 28px;
-  background: linear-gradient(var(--nes-body), var(--nes-body)) padding-box; border: 2px solid var(--nes-edge); }
-.nes-wrap[data-sys="nds"].nes-has-pad { --nes-pt: 34px; --nes-room: calc(15rem + var(--nes-pt) + var(--nes-pad-h)); }
-/* THE HINGE over the rows between the screens: glass, the shells' two edges and the cylinder between them, the full width of the body. */
-.nes-wrap[data-sys="nds"] .nes-hinge { box-shadow: none;
-  background: linear-gradient(transparent 0 16%, var(--nes-body) 16% 28%, var(--nes-hinge-lo) 28% 32%, var(--nes-hinge-hi) 32% 42%,
-    var(--nes-hinge) 58%, var(--nes-hinge-lo) 68% 72%, var(--nes-body) 72% 84%, transparent 84%); }
-.nes-wrap[data-sys="nds"] .nes-pad { display: none; }
-.nes-wrap[data-sys="nds"] .nes-pad.on { display: grid; grid-template: "dpad . face" 1fr "dpad . mid" auto / auto 1fr auto; align-items: center; justify-items: center;
-  height: var(--nes-pad-h); padding: 6px 4px 10px; gap: 2px 0; border-top: 0; }
-.nes-wrap[data-sys="nds"] .nes-pad .nes-dpad { grid-area: dpad; }
-.nes-wrap[data-sys="nds"] .nes-pad .nes-face { grid-area: face; }
-.nes-wrap[data-sys="nds"] .nes-pad .nes-mid { grid-area: mid; order: 0; flex: none; gap: 6px; }
-.nes-wrap[data-sys="nds"] .nes-face .nes-round { width: calc(var(--k-cell) - 2px); height: calc(var(--k-cell) - 2px); justify-self: center; align-self: center;
-  color: var(--nes-ink); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .14), 0 0 0 1px var(--nes-edge); }
-.nes-wrap[data-sys="nds"] .nes-mid .nes-key { min-height: 0; width: 22px; height: 22px; padding: 0; border-radius: 50%; font-size: 0; position: relative; }
-.nes-wrap[data-sys="nds"] .nes-mid .nes-key::after { content: attr(data-k); position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
-  font: 600 .55rem var(--font); text-transform: uppercase; letter-spacing: .04em; color: var(--nes-mid-ink); }
-.nes-wrap[data-sys="nds"] .nes-pad .nes-shoulders .nes-key { height: 26px; min-height: 0; border-radius: 0 0 12px 12px; font-size: .7rem; min-width: 4.2rem; }
-.nes-wrap[data-sys="nds"] .nes-pad .nes-shoulders { padding: 0 1.1rem; }
-/* THE KEY LIST stays behind its tile; the drawn buttons beside the screen are the pad's job on a DS. */
+/* A DS LITE (481): two halves of one width, each a rounded slab, joined by a hinge barrel; speakers either side of the top screen, D-pad left and A/B/X/Y right of the touch screen. */
+/* EVERY SIZE IS A SHARE OF THE BODY'S WIDTH (`cqw` of the nes-body container), so a narrow card shows the same DS smaller instead of rearranging it. */
+.nes-wrap[data-sys="nds"] { --nes-body: #eef0f3; --nes-edge: #c4c7cf; --nes-bezel: #0e0e11; --nes-ink: #4a4c54; --nes-key: #f7f8fa;
+  --nes-dp: #43454c; --nes-dp-hi: #5c5f68; --nes-well: radial-gradient(circle, #dfe1e6 0 64%, transparent 65%);
+  --nes-mid: #d3d5db; --nes-mid-ink: #5a5c64; --nes-sh: #d9dbe1; --nes-sh-ink: #5a5c64;
+  --nes-hinge: #b9bcc4; --nes-hinge-hi: #f6f7f9; --nes-hinge-lo: #8e9199; --ds-grille: #a3a6ae;
+  --ds-s: 52; --ds-t: 9; --ds-hh: 5.5; --ds-gap: 90; --ds-bz: 2.2;
+  --ds-sh: calc(var(--ds-s) * .75); --ds-gh: calc(var(--ds-s) * var(--ds-gap) / 256); --ds-mb: calc((var(--ds-gh) - var(--ds-hh)) / 2);
+  --ds-lid: calc(var(--ds-t) + var(--ds-sh) + var(--ds-mb)); --ds-h: calc(2 * var(--ds-lid) + var(--ds-hh));
+  --ds-mid: calc(var(--ds-lid) + var(--ds-hh) + var(--ds-mb) + var(--ds-sh) / 2);
+  display: block; position: relative; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; margin: 0 auto;
+  width: min(100%, (100svh - 12rem) * 100 / var(--ds-h)); }
+/* THE BODY'S HEIGHT, as padding (a share of the width); the key list, when asked for, comes under it. */
+.nes-wrap[data-sys="nds"]::before { content: ''; display: block; padding-top: calc(var(--ds-h) * 1%); }
+.ds-part { display: none; }
+.nes-wrap[data-sys="nds"] .ds-part { display: block; position: absolute; pointer-events: none; }
+.nes-wrap[data-sys="nds"] .ds-lid, .nes-wrap[data-sys="nds"] .ds-base { left: 0; width: 100cqw; height: calc(var(--ds-lid) * 1cqw); border-radius: 4.5cqw;
+  background: var(--nes-body); box-shadow: inset 0 .5cqw 0 rgba(255, 255, 255, .8), inset 0 -.8cqw 0 rgba(0, 0, 0, .1), 0 0 0 1px var(--nes-edge); }
+.nes-wrap[data-sys="nds"] .ds-lid { top: 0; }
+.nes-wrap[data-sys="nds"] .ds-base { top: calc((var(--ds-lid) + var(--ds-hh)) * 1cqw); }
+/* THE GLASS round each screen, on its own half. */
+.nes-wrap[data-sys="nds"] .ds-lid::before, .nes-wrap[data-sys="nds"] .ds-base::before { content: ''; position: absolute; background: var(--nes-bezel);
+  left: calc((50 - var(--ds-s) / 2 - var(--ds-bz)) * 1cqw); width: calc((var(--ds-s) + 2 * var(--ds-bz)) * 1cqw);
+  height: calc((var(--ds-sh) + 2 * var(--ds-bz)) * 1cqw); border-radius: 1.4cqw; box-shadow: 0 .3cqw 0 rgba(255, 255, 255, .7); }
+.nes-wrap[data-sys="nds"] .ds-lid::before { top: calc((var(--ds-t) - var(--ds-bz)) * 1cqw); }
+.nes-wrap[data-sys="nds"] .ds-base::before { top: calc((var(--ds-mb) - var(--ds-bz)) * 1cqw); }
+/* SPEAKERS: a slot of holes either side of the top screen. */
+.nes-wrap[data-sys="nds"] .ds-grille { position: absolute; top: calc((var(--ds-t) + var(--ds-sh) / 2 - 6) * 1cqw); width: 9cqw; height: 12cqw; left: 8cqw;
+  background: radial-gradient(circle, var(--ds-grille) 0 32%, transparent 38%) 0 0 / 3cqw 3cqw; }
+.nes-wrap[data-sys="nds"] .ds-grille-r { left: auto; right: 8cqw; }
+/* POWER on the base's right edge, a small slider. */
+.nes-wrap[data-sys="nds"] .ds-power { position: absolute; right: -.5cqw; top: 22%; width: 1.4cqw; height: 7cqw; border-radius: .7cqw; background: #c9ccd3; }
+/* THE STRIPS between each screen's glass and the hinge, over the picture's black gap rows, so each half is its own slab. */
+.nes-wrap[data-sys="nds"] .ds-cover { z-index: 2; left: calc((50 - var(--ds-s) / 2 - var(--ds-bz) - 1) * 1cqw); width: calc((var(--ds-s) + 2 * var(--ds-bz) + 2) * 1cqw);
+  height: calc((var(--ds-mb) - var(--ds-bz)) * 1cqw); background: var(--nes-body); }
+.nes-wrap[data-sys="nds"] .ds-cover-a { top: calc((var(--ds-t) + var(--ds-sh) + var(--ds-bz)) * 1cqw); box-shadow: inset 0 -.8cqw 0 rgba(0, 0, 0, .1); }
+.nes-wrap[data-sys="nds"] .ds-cover-b { top: calc((var(--ds-lid) + var(--ds-hh)) * 1cqw); box-shadow: inset 0 .5cqw 0 rgba(255, 255, 255, .8); }
+/* THE HINGE: a barrel shorter than the halves, so the gap shows at both ends; three knuckles, the middle one longest. */
+.nes-wrap[data-sys="nds"] .ds-hinge { z-index: 2; top: calc(var(--ds-lid) * 1cqw - 1px); height: calc(var(--ds-hh) * 1cqw + 2px); left: 5cqw; right: 5cqw;
+  border-radius: 1.2cqw; background:
+    linear-gradient(90deg, transparent 0 18%, rgba(0, 0, 0, .28) 18% 18.6%, transparent 18.6% 81.4%, rgba(0, 0, 0, .28) 81.4% 82%, transparent 82%),
+    linear-gradient(var(--nes-hinge-lo), var(--nes-hinge-hi) 30%, var(--nes-hinge) 60%, var(--nes-hinge-lo)); }
+.nes-wrap[data-sys="nds"] .nes-stage { position: absolute; z-index: 1; margin: 0; min-width: 0; max-width: none;
+  left: calc((50 - var(--ds-s) / 2) * 1cqw); top: calc(var(--ds-t) * 1cqw); width: calc(var(--ds-s) * 1cqw); }
+.nes-wrap[data-sys="nds"] .nes-stage::before { display: none; }
+.nes-wrap[data-sys="nds"] .nes-hinge { display: none; }
+.nes-wrap[data-sys="nds"] .nes-legend { margin: .5rem 0 0; }
 .nes-wrap[data-sys="nds"] .nes-deco { display: none !important; }
-.nes-wrap[data-sys="nds"].nes-has-deco .nes-stage { --nes-flank: 0px; margin-bottom: calc(var(--nes-bz) + .5rem); }
+/* THE BUTTONS on the base, beside the touch screen. Each is drawn to the DS's size and given an unseen ring to 44px when that is smaller. */
+.nes-wrap[data-sys="nds"] .nes-pad, .nes-wrap[data-sys="nds"] .nes-pad.on { display: block; position: absolute; inset: 0; z-index: 3; width: auto; height: auto;
+  margin: 0; padding: 0; border: 0; pointer-events: none; --k-cell: 6.4cqw; --k-font: max(.55rem, 2.6cqw); }
+.nes-wrap[data-sys="nds"] .nes-pad > * { position: absolute; pointer-events: auto; }
+.nes-wrap[data-sys="nds"] .nes-pad .nes-key, .nes-wrap[data-sys="nds"] .nes-pad .nes-dpad { position: relative; }
+.nes-wrap[data-sys="nds"] .nes-pad .nes-key::before { content: ''; position: absolute; inset: min(0px, (100% - 44px) / 2); border-radius: 50%; }
+.nes-wrap[data-sys="nds"] .nes-pad .nes-dpad { position: absolute; --k-dpad: max(17cqw, 44px); left: calc(11.5cqw - var(--k-dpad) / 2);
+  top: calc(var(--ds-mid) * 1cqw - var(--k-dpad) / 2); }
+.nes-wrap[data-sys="nds"] .nes-pad .nes-face { left: calc(88.8cqw - 1.5 * var(--k-cell)); top: calc(var(--ds-mid) * 1cqw - 1.5 * var(--k-cell) - 2cqw); }
+.nes-wrap[data-sys="nds"] .nes-face .nes-round { width: calc(var(--k-cell) - 1px); height: calc(var(--k-cell) - 1px); min-width: 0; min-height: 0; justify-self: center; align-self: center;
+  color: var(--nes-ink); font-size: var(--k-font); box-shadow: inset 0 -.4cqw 0 rgba(0, 0, 0, .14), 0 0 0 1px var(--nes-edge); }
+.nes-wrap[data-sys="nds"] .nes-pad .nes-mid { flex-direction: column; gap: 2.4cqw; left: auto; right: 4.5cqw;
+  top: calc((var(--ds-mid) + var(--ds-sh) / 2 - 7.4) * 1cqw); }
+.nes-wrap[data-sys="nds"] .nes-mid .nes-key { min-width: 0; min-height: 0; width: 3.6cqw; height: 3.6cqw; padding: 0; border-radius: 50%; font-size: 0; }
+.nes-wrap[data-sys="nds"] .nes-mid .nes-key::after { content: attr(data-k); position: absolute; top: 50%; right: calc(100% + 1.2cqw); transform: translateY(-50%);
+  font: 600 max(.45rem, 1.9cqw) var(--font); text-transform: uppercase; letter-spacing: .04em; color: var(--nes-mid-ink); }
+/* L AND R on the base's top corners, tucked behind its edge at the hinge. */
+.nes-wrap[data-sys="nds"] .nes-pad .nes-shoulders { inset: auto 2cqw auto 2cqw; top: calc((var(--ds-lid) + var(--ds-hh) - 1.6) * 1cqw); height: 0; padding: 0; display: block; }
+.nes-wrap[data-sys="nds"] .nes-pad .nes-shoulders .nes-key { position: absolute; top: 0; height: 2.6cqw; min-height: 0; min-width: 0; width: 17cqw; padding: 0;
+  border-radius: 1.6cqw 1.6cqw 0 0; font-size: max(.45rem, 1.9cqw); line-height: 2.6cqw; }
+.nes-wrap[data-sys="nds"] .nes-pad .nes-shoulders .nes-l { left: 0; }
+.nes-wrap[data-sys="nds"] .nes-pad .nes-shoulders .nes-r { right: 0; }
+.nes-wrap[data-sys="nds"] .nes-pad .nes-shoulders .nes-key::before { inset: min(0px, (100% - 44px) / 2) 0; border-radius: 0; }
 /* ---------- THE SCREEN § */
 .flappy { width: 100%; aspect-ratio: 4/5; display: block; touch-action: none;
           background: var(--sunk); border: 1px solid var(--line); border-radius: .5rem; }
