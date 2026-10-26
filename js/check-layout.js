@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* node js/check-layout.js — EDIT LAYOUT (462): `layoutSave` keeps a checked value on config's
+/* node js/check-layout.js — THE ADMIN'S LAYOUT (462, 463): `layoutSave` keeps a checked value on config's
    `layout` row for an admin only, refuses rubbish and size, and doGet sends it parsed as `layout`. -v for the detail. */
 'use strict';
 require('../check/quiet');
@@ -24,6 +24,7 @@ const cell = () => {
   const r = t.find((x, i) => i > 0 && x[h.indexOf('key')] === 'layout');
   return r ? r[h.indexOf('value')] : undefined;
 };
+/* `columns` and `hidden` are a 462 value's, cleaned out since 463 (columns no longer move, nothing hides). */
 const GOOD = { columns: ['games', 'feed', 'tools'], widgets: { tools: ['calc', 'console'], games: ['notepad'] }, hidden: ['flappy'], deleted: ['wordgames'] };
 
 /* 1. NOBODY BUT AN ADMIN — a parent, a tutor, no token, a parent naming the admin's id. */
@@ -35,14 +36,14 @@ asked++; if (b.ev('ACTION_ACCESS.layoutSave') !== 'admin') bad.push('ACTION_ACCE
 /* 2. AN ADMIN'S IS KEPT, CLEANED, AND SENT PARSED; config's vars do not carry it twice. */
 asked++;
 {
-  const d = save('P-A1', { layout: Object.assign({ junk: 'x' }, GOOD, { columns: GOOD.columns.concat(['<b>', 'games']) }) });
+  const d = save('P-A1', { layout: Object.assign({ junk: 'x' }, GOOD, { deleted: GOOD.deleted.concat(['<b>', 'wordgames']) }) });
   const got = JSON.parse(cell() || 'null');
-  if (!d.success || !got || got.junk || got.columns.join() !== 'games,feed,tools' || got.deleted.join() !== 'wordgames') bad.push('the admin\'s layout was kept as ' + cell());
+  if (!d.success || !got || got.junk || 'columns' in got || 'hidden' in got || got.deleted.join() !== 'wordgames') bad.push('the admin\'s layout was kept as ' + cell());
 }
 asked++;
 {
   const g = b.get({});
-  if (!g.layout || g.layout.widgets.tools.join() !== 'calc,console' || g.layout.hidden.join() !== 'flappy') bad.push('doGet sent layout ' + JSON.stringify(g.layout));
+  if (!g.layout || g.layout.widgets.tools.join() !== 'calc,console' || g.layout.widgets.games.join() !== 'notepad') bad.push('doGet sent layout ' + JSON.stringify(g.layout));
   if (g.constants && g.constants.vars && 'layout' in g.constants.vars) bad.push('doGet sent the layout twice, in constants.vars too');
 }
 
@@ -56,7 +57,7 @@ const kept = cell();
 });
 asked++;
 {
-  const d = save('P-A1', { layout: { columns: Array.from({ length: 300 }, (_, i) => 'col' + i + 'x'.repeat(50)) } });
+  const d = save('P-A1', { layout: { deleted: Array.from({ length: 300 }, (_, i) => 'w' + i + 'x'.repeat(50)) } });
   if (d.success && String(cell()).length > 8000) bad.push('a layout over the cap was kept, ' + String(cell()).length + ' characters');
 }
 

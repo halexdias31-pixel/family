@@ -587,7 +587,8 @@ function layoutClean_(v) {
   const ID = /^[A-Za-z0-9_:.-]{1,64}$/;
   const ids = (a, max) => (Array.isArray(a) ? a : []).map(x => String(x)).filter(x => ID.test(x))
     .filter((x, i, all) => all.indexOf(x) === i).slice(0, max);
-  const out = { v: 1, columns: ids(o.columns, 60), widgets: {}, hidden: ids(o.hidden, 300), deleted: ids(o.deleted, 300) };
+  /* WIDGETS AND DELETED ONLY (463): a 462 value's `columns` and `hidden` are cleaned out. */
+  const out = { v: 1, widgets: {}, deleted: ids(o.deleted, 300) };
   const w = o.widgets && typeof o.widgets === 'object' && !Array.isArray(o.widgets) ? o.widgets : {};
   Object.keys(w).filter(k => ID.test(k)).slice(0, 20).forEach(k => { out.widgets[k] = ids(w[k], 300); });
   if (JSON.stringify(out).length > LAYOUT_MAX) return null;

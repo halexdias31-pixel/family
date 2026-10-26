@@ -29177,117 +29177,118 @@ check('a twin only: a question whose words came without its drawing shows its PN
   return bad;
 });
 
-/* ---------- EDIT LAYOUT (462): an admin moves, hides and deletes widgets and moves columns, for everybody ---------- */
+/* ---------- THE ADMIN'S LAYOUT (462, 463): tiles on every widget move it up, down, across, or delete it, for everybody ---------- */
 const LAY_ADMIN_ = { name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], rank: 'admin', token: 'tk', handle: 'adaadmin' };
 const layIds_ = (t, k) => t.widgetsOf(k).map(x => String(x.id));
 const layBoot_ = (o) => boot(Object.assign({ before: signedInAs_(LAY_ADMIN_) }, o || {}));
+const layTile_ = (d, id, act, dir) => d.querySelector(`#wgt-${id}`)?.closest('.card')
+  ?.querySelector(`.wgt-admin [data-do="${act}"]${dir ? `[data-d="${dir}"]` : ''}`);
 
-check('edit layout (462): an admin enters from Business, a widget moves in its column and to another, two columns swap, Done saves one layoutSave and draws it, a reload keeps it, Reset restores', async () => {
+check('layout tiles (463): an admin sees ▲ ▼ ◀ ▶ Delete on each widget; a move up, down and to the next column each saves one layoutSave and redraws at once, a reload keeps it, a refusal puts it back, Reset restores; there is no board', async () => {
   const { w, sent } = layBoot_();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
-  if (!A['layout-edit'] || typeof w.layoutWidgets_ !== 'function') return ['no layout-edit handler or layoutWidgets_ — NOT checked'];
-  t.go('biz', false, true); await wait(200);
-  if (!d.querySelector('#s-biz [data-do="layout-edit"]')) bad.push('Business has no Edit layout tile for an admin');
-  const tools0 = layIds_(t, 'tool'), games0 = layIds_(t, 'game'), cols0 = t.TABS.map(x => x.id);
-  A['layout-edit']();
-  const b = d.getElementById('layout-board');
-  if (!b) return bad.concat(['Edit layout opened no board']);
-  /* NOTHING ELSE ACTS: an arrow key does not turn the column behind. */
-  const at = t.screenAt();
-  d.body.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
-  if (t.screenAt() !== at) bad.push('an arrow key turned the column behind the board');
-  A['lay-col'](b.querySelector('.lay-chip[data-col="tools"]'));
-  const first = tools0[0], second = tools0[2];
-  A['lay-w-move'](b.querySelector(`.lay-w[data-w="${first}"] [data-do="lay-w-move"][data-d="1"]`));
-  const sel = b.querySelector(`select[data-lay-to="${second}"]`);
-  sel.value = 'games'; sel.dispatchEvent(new w.Event('change', { bubbles: true }));
-  A['lay-col'](b.querySelector('.lay-chip[data-col="games"]'));
-  A['lay-col-move'](b.querySelector('[data-do="lay-col-move"][data-d="-1"]'));
-  A['layout-done']();
-  await wait(300);
-  if (d.getElementById('layout-board')) bad.push('Done left the board up');
-  const posts = sent.filter(x => x.action === 'layoutSave');
-  if (posts.length !== 1) bad.push(posts.length + ' layoutSave posts, not one');
-  const L = posts[0] && posts[0].layout;
-  const tools1 = layIds_(t, 'tool'), games1 = layIds_(t, 'game'), cols1 = t.TABS.map(x => x.id);
-  if (tools1.indexOf(second) !== -1 || games1[games1.length - 1] !== second) bad.push('the widget moved to Games is not last on Games: tools ' + tools1.join() + ' games ' + games1.join());
-  const want = [tools0[1], first].concat(tools0.slice(3));
-  if (tools1.join() !== want.join()) bad.push('Tools reads ' + tools1.join() + ', not ' + want.join());
-  const gi = cols0.indexOf('games');
-  if (cols1[gi - 1] !== 'games' || cols1[gi] !== cols0[gi - 1]) bad.push('Games did not swap with its left neighbour: ' + cols1.join());
-  if (t.TABS.find(x => x.id === 'feed') && w.TAB_HOME !== undefined && w.TAB_HOME !== 'feed') bad.push('TAB_HOME moved');
-  t.go('games', false, true); await wait(200);
-  if (!d.querySelector('#s-games #wgt-' + second)) bad.push('the moved widget is not drawn on Games');
-  /* A RELOAD: the payload now carries what was saved. */
+  if (!A['lay-w-move'] || typeof w.layoutTiles_ !== 'function') return ['no lay-w-move handler or layoutTiles_ — NOT checked'];
+  if (A['layout-edit'] || A['layout-done'] || typeof w.layoutEditOpen_ === 'function') bad.push('the Edit layout board is still there');
+  t.go('tools', false, true); await wait(300);
+  const tools0 = layIds_(t, 'tool'), shop0 = layIds_(t, 'shop');
+  const [a, b, c] = tools0;
+  const row = d.querySelector(`#wgt-${a}`)?.closest('.card')?.querySelector('.wgt-admin');
+  if (!row) return bad.concat(['the first tool has no admin row']);
+  const labels = [...row.querySelectorAll('[data-do]')].map(x => x.getAttribute('aria-label') || '').join('|');
+  ['Move up', 'Move down', 'Move to previous column', 'Move to next column', 'Delete'].forEach(l => { if (labels.indexOf(l) === -1) bad.push('the admin row has no ' + l + ': ' + labels); });
+  if (!row.querySelectorAll('.is-admin').length) bad.push('the admin row is not in the admin tone');
+  if (!layTile_(d, a, 'lay-w-move', '-1')?.disabled) bad.push('the first widget can move up');
+  /* DOWN: the first goes second, saved at once and drawn. */
+  A['lay-w-move'](layTile_(d, a, 'lay-w-move', '1')); await wait(200);
+  let posts = sent.filter(x => x.action === 'layoutSave');
+  if (posts.length !== 1) bad.push(posts.length + ' layoutSave posts after one move, not one');
+  if (layIds_(t, 'tool').slice(0, 2).join() !== [b, a].join()) bad.push('Move down left Tools ' + layIds_(t, 'tool').join());
+  const drawn = [...d.querySelectorAll('#s-tools .widget-slot')].map(x => x.id.replace('wgt-', ''));
+  if (drawn.indexOf(b) > drawn.indexOf(a)) bad.push('Move down did not redraw Tools: ' + drawn.join());
+  /* UP: back again. */
+  A['lay-w-move'](layTile_(d, a, 'lay-w-move', '-1')); await wait(200);
+  if (layIds_(t, 'tool').join() !== tools0.join()) bad.push('Move up did not put it back: ' + layIds_(t, 'tool').join());
+  /* ACROSS: to the end of the next widget column. */
+  const cols = w.layoutWidgetCols_(), next = cols[cols.indexOf('tools') + 1];
+  A['lay-w-col'](layTile_(d, c, 'lay-w-col', '1')); await wait(200);
+  const kindOf = { reel: 'reel', tools: 'tool', games: 'game', shop: 'shop' };
+  const there = layIds_(t, kindOf[next]);
+  if (layIds_(t, 'tool').indexOf(c) !== -1 || there[there.length - 1] !== c) bad.push('the widget moved to ' + next + ' is not last there: ' + there.join());
+  posts = sent.filter(x => x.action === 'layoutSave');
+  if (posts.length !== 3) bad.push(posts.length + ' layoutSave posts after three moves');
+  const L = posts[posts.length - 1] && posts[posts.length - 1].layout;
+  if (!L || 'columns' in L || 'hidden' in L) bad.push('the post carried columns or hidden: ' + JSON.stringify(L));
+  /* A RELOAD keeps it. */
   const p2 = payload(); p2.layout = L;
   const r = layBoot_({ payload: p2 }); await wait(300);
   const t2 = r.w.__t;
-  if (layIds_(t2, 'game').join() !== games1.join() || t2.TABS.map(x => x.id).join() !== cols1.join()) bad.push('a reload did not keep the layout');
+  if (layIds_(t2, kindOf[next]).join() !== there.join()) bad.push('a reload did not keep the layout');
   /* RESET restores the code's order. */
-  t2.ACTIONS['layout-reset']();
-  await wait(200);
-  if (layIds_(t2, 'tool').join() !== tools0.join() || t2.TABS.map(x => x.id).join() !== cols0.join()) bad.push('Reset did not restore the defaults');
+  r.w.__t.go('biz', false, true); await wait(200);
+  if (!r.w.document.querySelector('#s-biz .layout-card [data-do="layout-reset"]')) bad.push('Business has no Reset layout with a layout in force');
+  if (r.w.document.querySelector('[data-do="layout-edit"]')) bad.push('Business still has an Edit layout tile');
+  t2.ACTIONS['layout-reset'](); await wait(200);
+  if (layIds_(t2, 'tool').join() !== tools0.join() || layIds_(t2, 'shop').join() !== shop0.join()) bad.push('Reset did not restore the defaults');
   const rp = r.sent.filter(x => x.action === 'layoutSave');
   if (!rp.length || rp[0].reset !== 'TRUE') bad.push('Reset sent no reset layoutSave');
+  /* A REFUSAL: drawn at once, then put back with a toast. */
+  const no = layBoot_({ reply: b2 => b2.action === 'layoutSave' ? { success: false, error: 'No.' } : undefined }); await wait(300);
+  no.w.__t.go('tools', false, true); await wait(300);
+  no.w.__t.ACTIONS['lay-w-move'](layTile_(no.w.document, a, 'lay-w-move', '1')); await wait(300);
+  if (layIds_(no.w.__t, 'tool').join() !== tools0.join()) bad.push('a refused move was not put back: ' + layIds_(no.w.__t, 'tool').join());
   return bad;
 });
 
-check('edit layout (462): delete asks twice in place, the deleted widget is not drawn, started or paged from a payload, Add back returns it to its own column, and a non-admin has no tile and cannot post', async () => {
+check('layout tiles (463): Delete asks twice in place, the deleted widget is not drawn or paged, Add back on Business returns it; the basket has no Delete; Saved has no admin row; a non-admin sees no tiles and cannot post', async () => {
   const { w, sent } = layBoot_();
   await wait(300);
   const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
   if (!A['lay-w-del']) return ['no lay-w-del handler — NOT checked'];
-  A['layout-edit']();
-  const b = d.getElementById('layout-board');
-  A['lay-col'](b.querySelector('.lay-chip[data-col="games"]'));
-  if (b.querySelector('.lay-w[data-w="cart"] [data-do="lay-w-del"]')) bad.push('the basket has a Delete tile');
-  const tile = () => b.querySelector('.lay-w[data-w="wordgames"] [data-do="lay-w-del"]');
+  t.go('games', false, true); await wait(300);
+  const tile = () => layTile_(d, 'wordgames', 'lay-w-del');
+  if (!tile()) return bad.concat(['Word games has no Delete tile — NOT checked']);
   A['lay-w-del'](tile());
-  if (!b.querySelector('.lay-w[data-w="wordgames"]')) bad.push('one tap deleted');
+  if (sent.some(x => x.action === 'layoutSave') || layIds_(t, 'game').indexOf('wordgames') === -1) bad.push('one tap deleted');
   if (!/Tap again to delete/.test(tile().getAttribute('aria-label') || '')) bad.push('the first tap did not say "Tap again to delete"');
   if (d.querySelector('#sheet:not(.hidden) #sheet-body *')) bad.push('delete opened a sheet');
-  A['lay-w-del'](tile());
-  if (b.querySelector('.lay-w[data-w="wordgames"]')) bad.push('the second tap did not delete');
-  if (!b.querySelector('.lay-del-pick option[value="wordgames"]')) bad.push('no Deleted widgets line lists it');
-  A['layout-done'](); await wait(200);
+  A['lay-w-del'](tile()); await wait(300);
+  if (layIds_(t, 'game').indexOf('wordgames') !== -1 || d.querySelector('#wgt-wordgames')) bad.push('the second tap did not delete');
+  if (t.pageCount('games') !== layIds_(t, 'game').length) bad.push('the pager counts ' + t.pageCount('games') + ' pages for ' + layIds_(t, 'game').length + ' widgets');
   const L = (sent.filter(x => x.action === 'layoutSave')[0] || {}).layout;
   if (!L || (L.deleted || []).indexOf('wordgames') === -1) bad.push('the post did not carry deleted');
-  const p2 = payload(); p2.layout = L;
-  const r = layBoot_({ payload: p2 }); await wait(300);
-  const t2 = r.w.__t, d2 = r.w.document;
-  t2.go('games', false, true); await wait(300);
-  if (layIds_(t2, 'game').indexOf('wordgames') !== -1 || d2.querySelector('#wgt-wordgames')) bad.push('a deleted widget is still drawn');
-  if (t2.pageCount('games') !== layIds_(t2, 'game').length) bad.push('the pager counts ' + t2.pageCount('games') + ' pages for ' + layIds_(t2, 'game').length + ' widgets');
-  t2.ACTIONS['layout-edit']();
-  const b2 = d2.getElementById('layout-board');
-  b2.querySelector('.lay-del-pick').value = 'wordgames';
-  t2.ACTIONS['lay-w-undel']();
-  t2.ACTIONS['lay-col'](b2.querySelector('.lay-chip[data-col="games"]'));
-  if (!b2.querySelector('.lay-w[data-w="wordgames"]')) bad.push('Add back did not return it to Games');
-  t2.ACTIONS['layout-done'](); await wait(200);
-  if (layIds_(t2, 'game').indexOf('wordgames') === -1) bad.push('added back but not drawn');
-  /* A NON-ADMIN: no tile, no board, no post. */
+  /* THE BASKET STAYS. */
+  t.go('shop', false, true); await wait(300);
+  if (!d.querySelector('#wgt-cart')?.closest('.card')?.querySelector('.wgt-admin')) bad.push('the basket has no admin row');
+  if (layTile_(d, 'cart', 'lay-w-del')) bad.push('the basket has a Delete tile');
+  /* SAVED DRAWS NO ADMIN ROW (only a widget's own column does). */
+  if (w.widgetOnColumn_(w.allWidgets().find(x => x.kind === 'tool'), 0).indexOf('wgt-admin') !== -1) bad.push('the Saved drawing carries the admin row');
+  /* ADD BACK, on Business. */
+  t.go('biz', false, true); await wait(300);
+  const pick = d.querySelector('#s-biz .layout-card select.lay-del-pick');
+  if (!pick || !pick.querySelector('option[value="wordgames"]')) return bad.concat(['Business lists no deleted widget']);
+  pick.value = 'wordgames';
+  A['lay-w-undel'](); await wait(300);
+  if (layIds_(t, 'game').indexOf('wordgames') === -1) bad.push('Add back did not return it to Games');
+  /* A NON-ADMIN: no tiles, no post. */
   const m = boot({ member: true }); await wait(300);
-  m.w.__t.go('biz', false, true); await wait(100);
-  if (m.w.document.querySelector('[data-do="layout-edit"]')) bad.push('a member sees Edit layout');
-  m.w.__t.ACTIONS['layout-edit']();
-  if (m.w.document.getElementById('layout-board')) bad.push('a member opened the board');
-  m.w.__t.ACTIONS['layout-reset'](); await wait(100);
+  for (const col of ['tools', 'games', 'shop', 'reel']) { m.w.__t.go(col, false, true); await wait(150); }
+  if (m.w.document.querySelector('.wgt-admin, [data-do="lay-w-move"], [data-do="lay-w-del"]')) bad.push('a member sees layout tiles');
+  m.w.__t.ACTIONS['layout-reset'](); m.w.__t.ACTIONS['lay-w-undel'](); await wait(100);
   if (m.sent.some(x => x.action === 'layoutSave')) bad.push('a member posted layoutSave');
   return bad;
 });
 
-check('edit layout (462): a stale or garbled layout falls back cleanly — unknown ids ignored, missing ones appended in the code\'s order, a deleted id that no longer exists harmless, rubbish ignored', async () => {
+check('layout tiles (463): a stale or garbled layout falls back cleanly — unknown ids ignored, missing ones appended in the code\'s order, a 462 value\'s columns and hidden ignored, rubbish ignored', async () => {
   const bad = [];
   const base = boot(); await wait(300);
   const tools0 = layIds_(base.w.__t, 'tool'), cols0 = base.w.__t.TABS.map(x => x.id);
   const p = payload();
-  p.layout = { columns: ['nope', 'games', 'feed'], widgets: { tools: ['ghost', tools0[2]], nowhere: ['calculator'] }, hidden: ['zzz'], deleted: ['long-gone'] };
+  p.layout = { columns: ['nope', 'games', 'feed'], widgets: { tools: ['ghost', tools0[2]], nowhere: ['calculator'] }, hidden: [tools0[0]], deleted: ['long-gone'] };
   const r = boot({ payload: p }); await wait(300);
   const t = r.w.__t, tools = layIds_(t, 'tool'), cols = t.TABS.map(x => x.id);
   if (tools[0] !== tools0[2] || tools.slice(1).join() !== tools0.filter(x => x !== tools0[2]).join()) bad.push('stale widgets: ' + tools.join());
-  if (cols[0] !== 'games' || cols[1] !== 'feed' || cols.slice(2).join() !== cols0.filter(x => x !== 'games' && x !== 'feed').join()) bad.push('stale columns: ' + cols.join());
+  if (cols.join() !== cols0.join()) bad.push('a stored column order was applied: ' + cols.join());
   if (r.errs.length) bad.push('errors: ' + r.errs.join('; '));
   for (const junk of ['{not json', 42, [1, 2], { columns: 'feed', widgets: 7 }]) {
     const q = payload(); q.layout = junk;

@@ -95,11 +95,7 @@ function columnsFor_() {
 /* ---------- AND THE SHEET DECIDES, ONCE THERE IS ONE § */
 function applyColumns_() {
   const rows = (DATA && DATA.columns) || [];
-  /* AND THE ADMIN'S ORDER OVER WHATEVER THE SHEET OR THE CODE SAID (462, `layoutColumns_` in layout.js). */
-  if (!rows.length) {
-    if (typeof layoutColumns_ === 'function') { layoutColumns_(TABS_BUILT.filter(t => COLUMNS.indexOf(t) !== -1)); columnsFor_(); }
-    return;
-  }
+  if (!rows.length) return;
 
   const known = {};
   TABS_BUILT.forEach(t => { known[t.id] = t; });
@@ -120,7 +116,6 @@ function applyColumns_() {
 
   COLUMNS.length = 0;
   want.forEach(t => COLUMNS.push(t));
-  if (typeof layoutColumns_ === 'function') layoutColumns_(want);
   columnsFor_();
 
   /* WHERE `AT` IS NOW. Somebody remembered on a column the sheet has just switched off would be on a

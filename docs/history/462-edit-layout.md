@@ -1,5 +1,7 @@
 # 462 — Edit layout: an admin moves, hides and deletes widgets and moves columns, for everybody
 
+**Replaced by 463** (`463-layout-tiles.md`): the board, drag and column moving below are gone; widgets now carry admin tiles.
+
 ## What the owner said
 
 - *"Make it so I can move each widget to edit the layout of the website like how iPhone lets you move apps. I can do this as admin. Or I can swap entire columns around."*
