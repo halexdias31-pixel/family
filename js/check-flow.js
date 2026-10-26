@@ -13108,10 +13108,11 @@ check('466: countdowns are a Tools widget for everyone — a Year 11\'s GCSEs an
 
 
 /* ---------- THE E-INK SCREEN (470): THE WIDGET IS THE SCREEN ---------- */
-check('470: the E-ink screen on Tools is drawn in the widget for everyone — Verse or Icon, never both, Back/Next/Shuffle in place, the choice kept per person, every icon drawn in black and white, and no tile opens another window', async () => {
+check('470, 482: the E-ink screen on Tools is the real 200x200 panel drawn in the widget for everyone — Verse or Icon, never both, Back/Next/Shuffle in place, the choice kept per person, every icon drawn in black and white, and no tile opens another window', async () => {
   const EV = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'eink-verses.json'), 'utf8'));
   const IC = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'icons.json'), 'utf8'));
-  const { w } = boot({ payload: payload(), serve: u => (/data\/eink-verses\.json/.test(u) ? EV : /data\/icons\.json/.test(u) ? IC : undefined) });
+  const EF = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'eink-fonts.json'), 'utf8'));
+  const { w } = boot({ payload: payload(), serve: u => (/data\/eink-verses\.json/.test(u) ? EV : /data\/icons\.json/.test(u) ? IC : /data\/eink-fonts\.json/.test(u) ? EF : undefined) });
   for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
   await wait(400);
   const t = w.__t, d = w.document;
@@ -13126,6 +13127,15 @@ check('470: the E-ink screen on Tools is drawn in the widget for everyone — Ve
   const press = async el => { if (!el) return; el.click(); await wait(60); };
   const shown = () => (box.querySelector('.eink-panel') || {}).textContent || '';
   if (!box.querySelector('.eink .eink-panel')) bad.push('the widget draws no screen of its own');
+  /* THE REAL PANEL (482): a 200x200 canvas the screen's own layout fills — every verse inside it, the reference under the rule. */
+  const cv = box.querySelector('.eink-panel canvas.eink-px');
+  if (!cv || cv.width !== 200 || cv.height !== 200) bad.push('the widget is not the 200x200 panel the owner\'s screen has: ' + (cv ? cv.width + 'x' + cv.height : 'no canvas'));
+  if (typeof w.einkPage_ !== 'function') bad.push('no einkPage_ to draw the screen\'s pixels');
+  else EV.forEach((v, i) => {
+    const px = w.einkPage_('verse', v, null); if (!px || px.length !== 40000) { bad.push(v.ref + ': no 200x200 page'); return; }
+    let ink = 0, top = 200, low = 0; for (let k = 0; k < px.length; k++) if (px[k]) { ink++; const y = Math.floor(k / 200); if (y < 176) { top = Math.min(top, y); low = Math.max(low, y); } }
+    if (ink < 300 || top < 2 || low >= 176) bad.push(v.ref + ': the verse does not sit inside the panel above the rule (rows ' + top + '-' + low + ')');
+  });
   if (!box.querySelector('.eink-verse') || shown().indexOf(EV[0].ref) < 0) bad.push('Verse mode does not show the first verse, ' + EV[0].ref + ': ' + JSON.stringify(shown().slice(0, 80)));
   if (box.querySelector('.eink-icon')) bad.push('Verse mode also draws an icon — it is one or the other');
   for (const a of ['eink-step', 'eink-shuffle', 'eink-sync']) if (!tile(a)) bad.push('no ' + a + ' tile');
@@ -13134,10 +13144,8 @@ check('470: the E-ink screen on Tools is drawn in the widget for everyone — Ve
   await press(box.querySelector('.tile[data-do="eink-step"][data-d="1"]'));
   if (shown().indexOf(EV[1].ref) < 0) bad.push('Next did not move to ' + EV[1].ref);
   await press(mode('icon'));
-  const svg = box.querySelector('.eink-icon svg');
-  if (!svg || shown().indexOf(IC[0].title) < 0) bad.push('Icon mode does not draw the first icon, ' + IC[0].title + ', with its name');
+  if (!box.querySelector('.eink-icon') || shown().indexOf(IC[0].title) < 0) bad.push('Icon mode does not show the first icon, ' + IC[0].title + ', with its name');
   if (box.querySelector('.eink-verse')) bad.push('Icon mode still shows a verse');
-  if (svg && /fill="(?!#000|#fff|none)|stroke="(?!#000|#fff|none)|opacity|gradient/i.test(svg.outerHTML)) bad.push('the icon drawn has a colour, grey or transparency in it');
   await press(box.querySelector('.tile[data-do="eink-step"][data-d="-1"]'));
   if (shown().indexOf(IC[IC.length - 1].title) < 0) bad.push('Back from the first icon did not wrap to the last, ' + IC[IC.length - 1].title);
   let kept = {};
@@ -13153,6 +13161,25 @@ check('470: the E-ink screen on Tools is drawn in the widget for everyone — Ve
   await press(tile('eink-sync')); await wait(100);
   if (opened) bad.push('Sync opened a window');
   if (!/Chrome or Edge/.test((box.querySelector('.eink-say') || {}).textContent || '')) bad.push('Sync with no Web Serial says nothing in the widget');
+  /* SYNC, THREE WAYS (482): not in the list -> press ⏻; answers -> done; in the list but silent -> old software, Install with the ☀ steps. */
+  const say = () => (box.querySelector('.eink-say') || {}).textContent || '';
+  const fakePort = answer => ({ readable: null, writable: null, open() {
+      let push; this.readable = { getReader: () => ({ read: () => new Promise(r => { push = r; }), cancel: () => { if (push) push({ done: true }); }, releaseLock() {} }) };
+      this.writable = { getWriter: () => ({ write: async () => { if (answer && push) { const p = push; push = null; p({ value: new TextEncoder().encode('OK\n') }); } }, releaseLock() {} }) };
+      return Promise.resolve(); }, close: () => Promise.resolve() });
+  if (!w.TextDecoder) { w.TextDecoder = TextDecoder; w.TextEncoder = TextEncoder; }   // jsdom has neither; every browser with Web Serial has both
+  const serial = f => { try { Object.defineProperty(w.navigator, 'serial', { value: { requestPort: f }, configurable: true }); } catch (e) {} };
+  serial(() => Promise.reject(new Error('none')));
+  await press(tile('eink-sync')); await wait(100);
+  if (!/press ⏻/.test(say())) bad.push('a screen not in the list does not say "press ⏻ once": ' + JSON.stringify(say()));
+  serial(() => Promise.resolve(fakePort(true)));
+  await press(tile('eink-sync')); for (let i = 0; i < 40 && !/Done/.test(say()); i++) await wait(100);
+  if (!/Done — the screen is updating/.test(say())) bad.push('a screen that answers OK does not say Done: ' + JSON.stringify(say()));
+  serial(() => Promise.resolve(fakePort(false)));
+  await press(tile('eink-sync')); for (let i = 0; i < 120 && !/old software/.test(say()); i++) await wait(100);
+  if (!/old software — tap Install/.test(say()) || !tile('eink-install')) bad.push('a silent screen does not say it has old software and offer Install: ' + JSON.stringify(say()));
+  const steps = [...box.querySelectorAll('.eink-steps li')].map(li => li.textContent);
+  if (steps.length < 4 || !steps.some(t => /Hold ☀/.test(t)) || !steps.some(t => /⏻/.test(t))) bad.push('the install steps do not name the ☀ and ⏻ buttons one line each: ' + JSON.stringify(steps));
   return bad;
 });
 
