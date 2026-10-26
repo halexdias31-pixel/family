@@ -1934,6 +1934,9 @@ function libDriveLog_(by, name, one) {
 /* ---------- REELS AND VIDEOS AN ADMIN ADDS FROM THE PHONE (404) ---------- */
 const MEDIA_KINDS = ['reel', 'video'];
 const MEDIA_YT_RE = /^[A-Za-z0-9_-]{11}$/;
+/* A REEL UPLOADED AS A FILE (474): "add a reel should also give me option to upload a file instead" — `f` and the upload's milliseconds. */
+const MEDIA_FILE_RE = /^f\d{10,16}$/;
+const mediaIdOk_ = id => MEDIA_YT_RE.test(id) || MEDIA_FILE_RE.test(id);
 const MEDIA_CAP = { title: 200, channel: 120, subject: 60, tags: 300, vkind: 20, age: 20, notes: 500, url: 300, thumb: 300 };
 
 /* ---------- HOW OLD YOU HAVE TO BE TO WATCH IT (406) ----------
@@ -1985,10 +1988,29 @@ function mediaRowOf_(t, kind, id) {
 function mediaWrite_(action, body) {
   const kind = S(body.kind);
   if (MEDIA_KINDS.indexOf(kind) === -1) return { error: 'Is it a reel or a video? Nothing was saved.' };
-  const id = action === 'mediaSave' ? mediaYtId_(body.url) : S(body.id);
-  if (!MEDIA_YT_RE.test(id)) return { error: 'That is not a YouTube link. Nothing was saved.' };
+  /* AN EDIT OF AN UPLOADED REEL NAMES ITS ID; a new upload makes one, after the file is in Drive. */
+  const fileId = MEDIA_FILE_RE.test(S(body.id)) ? S(body.id) : '';
+  let id = action === 'mediaUpload' ? 'f' + new Date().getTime()
+    : action === 'mediaSave' ? (mediaYtId_(body.url) || fileId) : S(body.id);
+  if (!mediaIdOk_(id)) return { error: 'That is not a YouTube link. Nothing was saved.' };
   const put = {};
-  if (action === 'mediaSave') {
+  if (action === 'mediaUpload') {
+    if (kind !== 'reel') return { error: 'Only a reel can be uploaded as a file. Nothing was saved.' };
+    const data = S(body.data);
+    if (!/^data:video\//i.test(data)) return { error: 'That file is not a video. Nothing was saved.' };
+    /* THE CAMERA'S LIMIT (`CAM_VID_MAX`, posts.js): twenty megabytes a clip, base64 being a third bigger. */
+    if ((data.length - data.indexOf(',') - 1) * 3 / 4 > POST_FILE_MAX) return { error: 'That video is over 20 MB. Nothing was saved.' };
+    if (!S(body.title)) return { error: 'It needs a title. Nothing was saved.' };
+    const folder = getPostFolder();
+    if (!folder) return { error: 'No posts folder. Add a row to the config tab: key `posts_folder`, value the id from the folder URL.' };
+    let url = '';
+    try { url = driveKeep_(folder, data, 'reel-' + id); }
+    catch (err) { return { error: 'Could not save the video. ' + S(err && err.message || err) }; }
+    ['title', 'subject'].forEach(function (k) { put[k] = S(body[k]).slice(0, MEDIA_CAP[k]); });
+    put.age = mediaAgeOf_(body.age) ? String(mediaAgeOf_(body.age)) : '';
+    put.url = url;
+    put.hidden = 'FALSE';
+  } else if (action === 'mediaSave') {
     const too = Object.keys(MEDIA_CAP).filter(function (k) { return S(body[k]).length > MEDIA_CAP[k]; });
     if (too.length) return { error: 'Too long: ' + too.join(', ') + '. Nothing was saved.' };
     if (!S(body.title)) return { error: 'It needs a title. Nothing was saved.' };
@@ -1997,7 +2019,8 @@ function mediaWrite_(action, body) {
     Object.keys(MEDIA_CAP).forEach(function (k) { put[k] = S(body[k]); });
     /* WHOLE YEARS, OR BLANK FOR EVERYONE (406). */
     put.age = mediaAgeOf_(body.age) ? String(mediaAgeOf_(body.age)) : '';
-    put.url = kind === 'reel' ? 'https://youtube.com/shorts/' + id : 'https://www.youtube.com/watch?v=' + id;
+    if (MEDIA_FILE_RE.test(id)) { delete put.url; delete put.thumb; }
+    else put.url = kind === 'reel' ? 'https://youtube.com/shorts/' + id : 'https://www.youtube.com/watch?v=' + id;
     put.hidden = 'FALSE';
   } else if (action === 'mediaHide') {
     put.hidden = body.hidden === false ? 'FALSE' : 'TRUE';
@@ -2018,6 +2041,7 @@ function mediaWrite_(action, body) {
       setCells(t, r, put);
     } else {
       if (action === 'mediaHide' && put.hidden === 'FALSE') return { error: 'Nothing to show again.' };
+      if (action === 'mediaSave' && MEDIA_FILE_RE.test(id)) return { error: 'That uploaded reel is not there any more. Nothing was saved.' };
       if (!addRow(t, Object.assign({ media_id: kind + ':' + id, kind: kind, yt_id: id, added_by: by, added_on: now, updated_on: now }, put))) {
         return { error: 'The media tab could not be opened — nothing was saved.' };
       }

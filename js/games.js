@@ -6023,7 +6023,10 @@ const MEDIA_SAY = { reel: 'Add a reel', video: 'Add a video' };
 let MEDIA_FORM = null;   // { kind, id (the YouTube id when editing), url, title, channel, thumb, subject, tags, vkind, age, notes, err, asking }
 
 const mediaAll_ = () => ((typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.media)) ? DATA.media : []);
-const mediaRows_ = kind => mediaAll_().filter(m => m && m.kind === kind && /^[A-Za-z0-9_-]{11}$/.test(String(m.id || '')));
+/* A YOUTUBE ID, OR `f` AND DIGITS FOR A REEL UPLOADED AS A FILE (474, `MEDIA_FILE_RE` in content.gs). */
+const MEDIA_FILE_ID = /^f\d{10,16}$/;
+const mediaIsFile_ = m => MEDIA_FILE_ID.test(String((m && m.id) || ''));
+const mediaRows_ = kind => mediaAll_().filter(m => m && m.kind === kind && (/^[A-Za-z0-9_-]{11}$/.test(String(m.id || '')) || mediaIsFile_(m)));
 const mediaMay_ = () => typeof isAdmin === 'function' && isAdmin();
 
 /* ---------- HOW OLD YOU HAVE TO BE TO WATCH IT (406) ----------
@@ -6072,8 +6075,8 @@ function mediaReelsOver_(list) {
   const rows = mediaRows_('reel');
   const taken = mediaTaken_('reel');
   return list.filter(f => !taken(clipYt_(f.clip)))
-    .concat(rows.filter(m => !m.hidden).map(m => ({ subject: m.subject || '@family.', heading: '', body: '', pic: '',
-      clip: 'https://youtube.com/shorts/' + m.id, media: m.id, age: m.age || '' })));
+    .concat(rows.filter(m => !m.hidden && (!mediaIsFile_(m) || m.url)).map(m => ({ subject: m.subject || '@family.', heading: '', body: '', pic: '',
+      clip: mediaIsFile_(m) ? postVidSrc_(m.url) : 'https://youtube.com/shorts/' + m.id, media: m.id, age: m.age || '' })));
 }
 
 /* THE VIDEOS LIST, THE SAME WAY: the sheet's rows first, and a repository row of the same video left out. */
@@ -6100,7 +6103,8 @@ function mediaHtml_(kind) {
   if (!mediaMay_()) return '';
   const F = MEDIA_FORM && MEDIA_FORM.kind === kind ? MEDIA_FORM : null;
   const list = mediaManaged_(kind).map(r => `<li class="media-row">
-      <img class="media-pic" alt="" loading="lazy" src="https://i.ytimg.com/vi/${esc(r.id)}/default.jpg">
+      ${MEDIA_FILE_ID.test(r.id) ? '<div class="media-pic" aria-hidden="true"></div>'
+        : `<img class="media-pic" alt="" loading="lazy" src="https://i.ytimg.com/vi/${esc(r.id)}/default.jpg">`}
       <span class="media-name">${esc(r.title)} <span class="faint">· ${esc(mediaAgeSay_(r.age) || 'all ages')}</span>${r.hidden ? ' <span class="faint">· hidden</span>' : ''}</span>
       <div class="tile-row">${tile_({ icon: 'edit', label: 'Edit', note: 'title, tags, age', act: 'media-edit', tone: 'admin', data: { kind, id: r.id } })
         + tile_({ icon: r.hidden ? 'show' : 'hide', label: r.hidden ? 'Show' : 'Hide', note: r.hidden ? 'put it back' : 'from everybody',
@@ -6113,11 +6117,17 @@ function mediaHtml_(kind) {
 
 function mediaFormHtml_(F) {
   const box = (k, ph) => `<label class="field"><span>${esc(ph)}</span><input data-mf="${k}" autocomplete="off" value="${esc(F[k] || '')}"></label>`;
-  const got = !!F.title || !!F.id;
+  const got = !!F.title || !!F.id || !!F.file;
+  /* OR A FILE (474): no `capture`, so an iPhone offers its library and Files as well as the camera. */
+  const upload = F.kind === 'reel' && !F.id && !F.file ? `<p class="faint">Or upload a video from this phone (up to ${Math.round(CAM_VID_MAX / 1048576)} MB):</p><div class="tile-row">${tile_({ icon: 'film', label: 'Upload a video',
+      note: 'from this phone, up to ' + Math.round(CAM_VID_MAX / 1048576) + ' MB', act: 'media-file', tone: 'admin' })}</div>
+    <input type="file" class="media-file-in" accept="video/*" hidden>` : '';
   return `<div class="card media-form" data-kind="${esc(F.kind)}">
     <h3>${F.id ? 'Edit' : F.kind === 'reel' ? 'A new reel' : 'A new video'}</h3>
-    ${F.id ? '' : `<label class="field"><span>YouTube link (a Short or a video)</span><input data-mf="url" type="url" inputmode="url"
+    ${F.id || F.file ? '' : `<label class="field"><span>YouTube link (a Short or a video)</span><input data-mf="url" type="url" inputmode="url"
       autocomplete="off" placeholder="https://youtube.com/shorts/…" value="${esc(F.url || '')}"></label>`}
+    ${upload}
+    ${F.file ? `<p class="faint media-file-name">${esc(F.fileName || 'A video')} · ${esc(String(Math.max(1, Math.round(F.fileSize / 1048576))))} MB</p>` : ''}
     ${F.asking ? loading_() : ''}
     ${got ? `<div class="media-preview">${F.thumb ? `<img class="media-thumb" alt="" src="${esc(F.thumb)}">` : ''}
       <p class="faint">${esc(F.channel || '')}</p></div>
@@ -6191,7 +6201,7 @@ on('media-edit', el => {
   if (!mediaMay_()) return;
   const kind = el.getAttribute('data-kind') === 'video' ? 'video' : 'reel', id = el.getAttribute('data-id') || '';
   const m = mediaRows_(kind).find(x => x.id === id) || {};
-  MEDIA_FORM = { kind, id, url: 'https://youtu.be/' + id, title: m.title || '', channel: m.channel || '', thumb: m.thumb || 'https://i.ytimg.com/vi/' + id + '/hqdefault.jpg',
+  MEDIA_FORM = { kind, id, url: MEDIA_FILE_ID.test(id) ? '' : 'https://youtu.be/' + id, title: m.title || '', channel: m.channel || '', thumb: m.thumb || (MEDIA_FILE_ID.test(id) ? '' : 'https://i.ytimg.com/vi/' + id + '/hqdefault.jpg'),
                  subject: m.subject || '', tags: m.tags || '', vkind: m.vkind || 'clip', age: m.age || '', notes: m.notes || '' };
   if (!MEDIA_FORM.title) mediaLook_(MEDIA_FORM); else mediaRedraw_(kind);
 });
@@ -6202,6 +6212,30 @@ on('media-age', el => {
   mediaRedraw_(MEDIA_FORM.kind);
 });
 on('media-cancel', () => { const k = MEDIA_FORM && MEDIA_FORM.kind; MEDIA_FORM = null; if (k) mediaRedraw_(k); });
+/* UPLOAD A VIDEO (474): the tile opens the hidden input; the file is read the way the camera's clips are (`camItemOf_`, same 20 MB). */
+on('media-file', el => {
+  const form = el.closest('.media-form'), inp = form && form.querySelector('.media-file-in');
+  if (inp) inp.click();
+});
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (!t || !t.matches || !t.matches('.media-file-in') || !MEDIA_FORM || !mediaMay_()) return;
+  const file = (t.files || [])[0], F = MEDIA_FORM;
+  t.value = '';
+  if (!file) return;
+  const say = msg => { F.err = msg; mediaRedraw_(F.kind); };
+  if (!/^video\//i.test(file.type || '')) return say('That file is not a video.');
+  if (file.size > CAM_VID_MAX) return say('That video is over ' + Math.round(CAM_VID_MAX / 1048576) + ' MB — trim it and try again.');
+  F.err = ''; F.asking = true; mediaRedraw_(F.kind);
+  camItemOf_(file).then(it => {
+    if (MEDIA_FORM !== F) return;
+    F.asking = false;
+    if (!it || !it.data) return say('That video would not open.');
+    F.file = it.data; F.fileName = file.name || ''; F.fileSize = file.size || 0;
+    if (!String(F.title || '').trim()) F.title = String(file.name || '').replace(/\.[a-z0-9]+$/i, '').replace(/[_-]+/g, ' ').slice(0, 200);
+    mediaRedraw_(F.kind);
+  });
+});
 on('media-look', () => { if (MEDIA_FORM && mediaMay_()) mediaLook_(MEDIA_FORM); });
 
 function mediaAdopt_(d, kind) {
@@ -6215,7 +6249,15 @@ on('media-save', el => {
   if (!F || !form || !mediaMay_()) return;
   const said = form.querySelector('.media-said');
   if (!String(F.title || '').trim()) { if (said) said.textContent = 'It needs a title.'; return; }
-  send_({ action: 'mediaSave', personId: USER.personId || '', kind: F.kind, url: F.url, title: String(F.title).trim(),
+  if (F.file) {
+    send_({ action: 'mediaUpload', personId: USER.personId || '', kind: 'reel', data: F.file, title: String(F.title).trim(),
+            subject: F.subject || '', age: mediaAgeOf_(F.age) ? String(mediaAgeOf_(F.age)) : '' },
+          { button: el, where: said, lock: form, saying: 'Uploading\u2026' })
+      .then(d => { MEDIA_FORM = null; toast('Saved.'); mediaAdopt_(d, 'reel'); })
+      .catch(() => {});
+    return;
+  }
+  send_({ action: 'mediaSave', personId: USER.personId || '', kind: F.kind, url: F.url, id: F.id || '', title: String(F.title).trim(),
           channel: F.channel || '', thumb: F.thumb || '', subject: F.subject || '', tags: F.tags || '',
           vkind: F.kind === 'video' ? (F.vkind || 'clip') : '', age: mediaAgeOf_(F.age) ? String(mediaAgeOf_(F.age)) : '', notes: F.notes || '' },
         { button: el, where: said, lock: form })
