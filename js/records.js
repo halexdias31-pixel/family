@@ -109,7 +109,8 @@ function bizCard_(pg) {
   /* SPLIT (464): an admin's Split draws each record its own card with its own Save, in the same place; Join puts them back. */
   const id = typeof splitId_ === 'function' ? splitId_('biz', 'rec', pg.title) : '';
   const tiles = n => (id && typeof splitTiles_ === 'function' ? splitTiles_(id, n) : '');
-  const one = (title, items, first) => `<div class="card biz"${first ? ` data-need="rec:${esc(pg.title)}"` : ''}${id ? ` data-split="${esc(id)}"` : ''}><div class="me-form" data-biz-page="${esc(pg.title)}">
+  /* A PIECE IS A CARD OF ITS OWN (466): `data-lay-card` names it, so it moves, goes or starts alone. */
+  const one = (title, items, first, piece) => `<div class="card biz"${first ? ` data-need="rec:${esc(pg.title)}"` : ''}${id ? ` data-split="${esc(id)}"` : ''}${piece ? ` data-lay-card="${esc(piece)}"` : ''}><div class="me-form" data-biz-page="${esc(pg.title)}">
     <h3>${esc(title)}</h3>
     ${first ? `<div class="biz-need-slot">${bizNeed_('rec:' + pg.title, due, due + (due === 1 ? ' record due' : ' records due'))}</div>` : ''}
     <div class="biz-body"${wait ? ' aria-busy="true"' : ''}>
@@ -118,7 +119,7 @@ function bizCard_(pg) {
     ${wait ? loading_() : ''}</div>
     <p class="faint me-said biz-said">${esc(bizSaid_())}</p>
   </div>${tiles(items.length)}</div>`;
-  if (id && typeof splitOn_ === 'function' && splitOn_(id)) return pg.items.map((it, i) => one(it.title, [it], i === 0));
+  if (id && typeof splitOn_ === 'function' && splitOn_(id)) return pg.items.map((it, i) => one(it.title, [it], i === 0, typeof pieceId_ === 'function' ? pieceId_(id, it.title) : ''));
   return [one(pg.title, pg.items, true)];
 }
 
@@ -600,11 +601,12 @@ function profitCards_() {
   const id = typeof splitId_ === 'function' ? splitId_('biz', 'profit-terms') : '';
   const split = id && typeof splitOn_ === 'function' && splitOn_(id);
   const tiles = n => (id && typeof splitTiles_ === 'function' ? splitTiles_(id, n) : '');
-  if (split) return [sum, `<div class="card biz profit" data-profit="terms" data-split="${esc(id)}">
+  const pc = k => (typeof pieceId_ === 'function' ? ` data-lay-card="${esc(pieceId_(id, k))}"` : '');
+  if (split) return [sum, `<div class="card biz profit" data-profit="terms" data-split="${esc(id)}"${pc('head')}>
     <h3>Profit · the terms</h3>
     <p class="pf-head">${profitHead_(r)}</p>
     <div class="tile-row">${tile_({ icon: 'undo', label: 'Reset to actual', act: 'profit-reset' })}</div>${said}${tiles(1)}</div>`]
-    .concat(PROFIT_VARS.map(p => `<div class="card biz profit" data-profit="term" data-split="${esc(id)}">
+    .concat(PROFIT_VARS.map(p => `<div class="card biz profit" data-profit="term" data-split="${esc(id)}"${pc(p.label)}>
     <div class="pf-vars">${profitControl_(p, x, D.from)}</div>${tiles(1)}</div>`));
   const terms = `<div class="card biz profit" data-profit="terms"${id ? ` data-split="${esc(id)}"` : ''}>
     <h3>Profit · the terms</h3>

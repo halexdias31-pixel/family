@@ -1823,7 +1823,7 @@ function settingsCards_(shown, moved, col) {
   /* THE BUSINESS'S CUT OF AN EXTRA SEAT IS SHOWN TO A TUTOR AND NOT OFFERED (docs/history/345) — an
      admin's to set, and `seatCutRefusal_` refuses it from anybody else; a disabled box is one `meSave_` never posts. */
   const readonly = (DATA.profileReadonly || []).concat(isAdmin() ? [] : ['extra_seat_cut']);
-  const one = (g, list, top, id, n, lid) => setHeldSay_(`<div class="card${id ? ' set-card' : ''}"${id ? ` data-split="${esc(id)}"` : lid ? ` data-lay-card="${esc(lid)}"` : ''}>
+  const one = (g, list, top, id, n, lid) => setHeldSay_(`<div class="card${id ? ' set-card' : ''}"${id ? ` data-split="${esc(id)}"` : ''}${lid ? ` data-lay-card="${esc(lid)}"` : ''}>
     ${top}
     <div class="me-form">${fieldsHtml({ [g]: list }, {
       head: 'h3',
@@ -1847,7 +1847,7 @@ function settingsCards_(shown, moved, col) {
     const list = shown[g] || [], top = k === 0 ? moved : '';
     const id = col && settingsSplittable_(list) && typeof splitId_ === 'function' ? splitId_('set', col, g) : '';
     if (id && typeof splitOn_ === 'function' && splitOn_(id))
-      list.forEach((f, i) => out.push(one(String((typeof fieldLabel === 'function' && fieldLabel(f)) || ROW_LABEL[f] || g).replace(/^./, c => c.toUpperCase()), [f], i === 0 ? top : '', id, 1)));
+      list.forEach((f, i) => out.push(one(String((typeof fieldLabel === 'function' && fieldLabel(f)) || ROW_LABEL[f] || g).replace(/^./, c => c.toUpperCase()), [f], i === 0 ? top : '', id, 1, typeof pieceId_ === 'function' ? pieceId_(id, f) : '')));
     else out.push(one(g, list, top, id, list.length, col && typeof splitId_ === 'function' ? splitId_('set', col, g) : ''));
   });
   return out;
@@ -1924,7 +1924,7 @@ function studentSetPages_() {
   if (!USER) {
     /* THE GOOGLE BUTTON IS MOUNTED A FRAME LATE — Google renders into an element that has to exist first. */
     if (typeof mountGoogleWhenDrawn === 'function') mountGoogleWhenDrawn();
-    return (typeof signInCard_ === 'function' ? [signInCard_()] : []).filter(Boolean);
+    return (typeof signInCard_ === 'function' ? [signInCard_()] : []).filter(Boolean).concat(lockedPages_('account'));
   }
   const who = nameBesideHandle_(USER.name, USER.handle) || 'you';
   /* SIGNED IN AS, AND SIGN OUT — off your card since 453, because it is a setting of every account. */
@@ -1960,24 +1960,55 @@ const padlockCard_ = (say, more) => `<div class="card rank-off col-lock"><span c
     <p class="sub rank-off-say">${esc(say)}</p>${more || ''}</div>`;
 const signedOutCard_ = title => rankOffCard_(title, 'Sign in on ' + tabLabel_('account', 'Student settings') + ' first.');
 
+/* ---------- EVERYBODY SEES EVERY CARD (467) — the owner: "Everybody can see everything; different things are just locked behind a padlock." § */
+/* A placeholder of the column's role draws the column's real cards, so nobody's data is in them; each is then shut (`lockCard_`). */
+const LOCK_AS_ = { staff: { rank: 'staff', role: 'Tutor', roles: ['tutor'] }, family: { rank: 'client', role: 'Client', roles: ['client'] },
+  account: { rank: 'student', role: 'Student', roles: ['student'] } };
+function lockedAs_(col, draw) {
+  const real = USER;
+  let out = [];
+  USER = Object.assign({ name: '', handle: '', personId: '', email: '', profile: {}, lockedPreview: true }, LOCK_AS_[col] || {});
+  try { out = (draw() || []).filter(Boolean); } catch (e) { out = []; } finally { USER = real; }
+  return out.map(lockCard_);
+}
+/* SHUT: the padlock on the card, every box and tile disabled, a link made inert — what it is stays readable. */
+function lockCard_(h) {
+  return String(h).replace(/^(\s*<div\b[^>]*\bclass="(?:card|own-set)\b[^"]*)"/, '$1 is-locked"')
+    .replace(/^(\s*<div\b[^>]*>)/, `$1<span class="card-lock" title="Locked" aria-label="Locked">${tileIcon_('lock')}</span>`)
+    .replace(/<(input|select|textarea|button)\b(?![^>]*\sdisabled\b)/g, '<$1 disabled')
+    .replace(/<a\b([^>]*)\shref="[^"]*"/g, '<a$1 aria-disabled="true"')
+    /* NO ID OF ITS OWN — a shut copy must never be the box a real card's code finds (`pin-now`). */
+    .replace(/(<[a-z]+\b[^>]*?)\sid="/g, '$1 data-lock-id="');
+}
+/* YOUR CARD'S PLACE ON A LOCKED COLUMN: its title only — a placeholder has no card to draw. */
+const lockedOwnCard_ = col => `<div class="card own-lock" data-lay-card="own:${col}"><h3>Your card</h3></div>`;
+/* EACH SETTINGS COLUMN'S CARDS FOR ITS ROLE, built the same way as for a holder (`staffPages_`, `familyPages_`, `youSettingsPages_`). */
+const LOCKED_DRAW_ = {
+  staff: () => [lockedOwnCard_('staff'), `<div class="card staff-top"><h3>Staff hub</h3><div class="tile-row staff-tiles">${
+    typeof hubTile_ === 'function' ? hubTile_() : ''}</div></div>`].concat(settingsCards_(settingsSplit_().staff, '', 'staff')),
+  family: () => [lockedOwnCard_('family')].concat(settingsCards_(settingsSplit_().you, '', 'family')),
+  account: () => [lockedOwnCard_('account')].concat(youSettingsPages_()),
+};
+const lockedPages_ = col => lockedAs_(col, LOCKED_DRAW_[col]);
+
 /* ---------- PARENT SETTINGS: A PARENT'S OR PAYER'S OWN DETAILS (453) — the children are on Students ---------- */
 function familyPages_() {
   const title = tabLabel_('family', 'Parent settings');
-  if (!USER) return [signedOutCard_(title)];
-  if (!rankAtLeast_('client')) return [padlockCard_('Parent settings are for parents.')];
+  if (!USER) return [signedOutCard_(title)].concat(lockedPages_('family'));
+  if (!rankAtLeast_('client')) return [padlockCard_('Parent settings are for parents.')].concat(lockedPages_('family'));
   const own = ownCardSetPage_('family');
   const out = (own ? [own] : []).concat(youSetCol_() === 'family' ? settingsCards_(settingsSplit_().you, '', 'family') : []);
-  /* TITLE ONLY when a rank that has the column has nothing in it (Staff holding no client role). */
-  return out.length ? out : [`<div class="card"><h3>${esc(title)}</h3></div>`];
+  /* A RANK ABOVE CLIENT WITH NO PARENT'S DETAILS (Staff holding no client role) sees them locked too, as everybody does (467). */
+  return out.length ? out : [padlockCard_('Parent settings are for parents.')].concat(lockedPages_('family'));
 }
 screen('family', () => pages('family', typeof cardsOf_ === 'function' ? cardsOf_('family') : familyPages_()));
 
 /* ---------- TUTOR SETTINGS: THE STAFF HUB AND THE TEACHING SETTINGS WITH NO CARD TO LIVE ON (453) ---------- */
 function staffPages_() {
   const title = tabLabel_('staff', 'Tutor settings');
-  if (!USER) return [signedOutCard_(title)];
-  /* THE PADLOCK, with Apply to teach for an adult who may apply (`applyTile_`), and no more (464). */
-  if (!rankAtLeast_('staff')) return [padlockCard_('Tutor settings are for tutors.', typeof applyTile_ === 'function' ? applyTile_() : '')];
+  if (!USER) return [signedOutCard_(title)].concat(lockedPages_('staff'));
+  /* THE PADLOCK, with Apply to teach for an adult who may apply (`applyTile_`), then every card shut (467). */
+  if (!rankAtLeast_('staff')) return [padlockCard_('Tutor settings are for tutors.', typeof applyTile_ === 'function' ? applyTile_() : '')].concat(lockedPages_('staff'));
   const hub = typeof hubTile_ === 'function' ? hubTile_() : '';
   const warn = typeof hubWarn_ === 'function' ? hubWarn_() : '';
   const top = hub ? [`<div class="card staff-top"><h3>Staff hub</h3><div class="tile-row staff-tiles">${hub}</div>${warn}</div>`] : [];
@@ -3823,10 +3854,8 @@ function cardForget_() { try { localStorage.removeItem(CARD_EDIT_KEY); } catch (
 /* WHO MAY EDIT THIS CARD: § */
 function cardMayEdit_(t) {
   if (typeof USER === 'undefined' || !USER || !t || !t.personId) return false;
-  if (String(t.personId) === String(USER.personId || '')) return true;
-  if (!cardSent_().length) return false;
-  if (!((DATA && DATA.tutors) || []).some(r => r && String(r.personId) === String(t.personId))) return false;
-  return isAdmin();
+  /* YOUR OWN CARD ONLY, for every rank (467) — the owner: "Profile cards are uneditable by anyone, including admin." */
+  return String(t.personId) === String(USER.personId || '');
 }
 /* `col` IS WHICH PEOPLE COLUMN ASKS (453): your own card's face there (`ownCardSections_`); anybody else's tutor card on Tutors. */
 const PEOPLE_COLS_ = ['tutors', 'students', 'parents'];
@@ -3849,7 +3878,7 @@ function cardEditTile_(x) {
   const own = String(t.personId) === String(USER.personId || '');
   const col = x.col || (own ? homeCol_() : 'tutors');
   if (cardEditing_(t, col)) return '';
-  /* YOUR OWN CARD'S EDIT IS ON YOUR SETTINGS COLUMN ALONE (464, `ownCardSetPage_`); somebody else's, an admin's, on Tutors only. */
+  /* YOUR OWN CARD'S EDIT IS ON YOUR SETTINGS COLUMN ALONE (464, `ownCardSetPage_`); nobody edits somebody else's (467). */
   if (own && !x.settings) return '';
   if (own ? !ownCardSections_(col).length : col !== 'tutors') return '';
   return tile_({ icon: 'edit', label: 'Edit', note: own ? (col === 'tutors' && rankAtLeast_('staff') ? 'your tutor card' : 'your card') : 'their card', act: 'card-edit',
@@ -4435,13 +4464,12 @@ const peopleRolePicks_ = () => 'student client tutor'.split(' ').map(r => (ROLE_
 const peopleMay_ = () => typeof isAdmin === 'function' && isAdmin() && !!USER;
 const peopleSelf_ = p => !!(USER && p && p.personId && String(p.personId) === String(USER.personId || ''));
 
-/* EDIT AND DELETE UNDER SOMEBODY ELSE'S CARD, for an admin; '' for anybody else and on your own. */
+/* DELETE, SHOW PIN AND THE DIGEST UNDER SOMEBODY ELSE'S CARD, for an admin; '' for anybody else and on your own. */
 function peopleTiles_(p) {
   if (!peopleMay_() || !p || !p.personId || peopleSelf_(p)) return '';
   const first = String(nameBesideHandle_(p.title, p.handle) || p.title || '').trim().split(' ')[0] || 'them';
-  return tile_({ icon: 'join', label: 'Edit', note: 'name, role, email', act: 'person-edit', tone: 'admin',
-                 data: { id: p.personId } })
-    + tile_({ icon: 'bin', label: 'Delete', note: 'their account', act: 'person-del', tone: 'danger',
+  /* NO EDIT (467): somebody's details are theirs to change, on their own settings; Delete, PIN and the digest stay the admin's. */
+  return tile_({ icon: 'bin', label: 'Delete', note: 'their account', act: 'person-del', tone: 'danger',
               data: { id: p.personId, name: first } })
     /* "SHOW PIN" (452): fetched on the tap by `pinShow`, admin only on the server too; never in the payload. */
     + tile_({ icon: 'key', label: 'Show PIN', note: 'tap again to hide', act: 'pin-show', tone: 'admin',
@@ -4615,11 +4643,6 @@ on('person-add', el => {
   const col = PEOPLE_ADD_[el && el.dataset && el.dataset.col] ? el.dataset.col : 'students';
   PEOPLE_FORM_ = { id: '', col, role: PEOPLE_ADD_[col].role };
   peopleRedraw_();
-});
-on('person-edit', el => {
-  if (!peopleMay_()) return;
-  PEOPLE_FORM_ = { id: el.getAttribute('data-id') || '', col: colOfEl_(el) || '' };
-  if (PEOPLE_FORM_.id) peopleRedraw_(); else PEOPLE_FORM_ = null;
 });
 on('person-cancel', () => { PEOPLE_FORM_ = null; peopleRedraw_(); });
 

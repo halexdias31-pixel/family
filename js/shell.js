@@ -58,6 +58,8 @@ const COLUMNS = TABS.slice();
 function columnsFor_() {
   let admin = false;
   try { admin = typeof isAdmin === 'function' && isAdmin(); } catch (e) { admin = false; }
+  /* AN ADMIN'S CUSTOM COLUMNS (466, layout.js) put into `COLUMNS` before Business, as the layout in force names them. */
+  try { if (typeof customTabsSync_ === 'function') customTabsSync_(); } catch (e) {}
   const want = COLUMNS.filter(t => !t.admin || admin);
   const changed = want.length !== TABS.length || want.some((t, i) => TABS[i] !== t);
   if (changed) {
@@ -76,6 +78,17 @@ function columnsFor_() {
      change (the first call, when index.html has just been parsed). */
   const host = typeof document !== 'undefined' && document.getElementById('screen');
   if (!host) return changed;
+  /* A CUSTOM COLUMN'S SECTION is made while it is a tab and removed when it is not, like Business's. */
+  host.querySelectorAll(':scope > section[data-custom]').forEach(el => { if (!TABS.some(t => t.custom && 's-' + t.id === el.id)) el.remove(); });
+  TABS.forEach(t => {
+    if (!t.custom || document.getElementById('s-' + t.id)) return;
+    const s = document.createElement('section');
+    s.className = 'screen hidden';
+    s.id = 's-' + t.id;
+    s.setAttribute('data-custom', '');
+    const biz = document.getElementById('s-biz');
+    if (biz && biz.parentNode === host) host.insertBefore(s, biz); else host.appendChild(s);
+  });
   TABS_BUILT.forEach(t => {
     if (!t.admin) return;
     const el = document.getElementById('s-' + t.id);

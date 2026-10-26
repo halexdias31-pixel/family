@@ -2659,7 +2659,7 @@ check('Staff hub (405): "Staff hub" is on Tutor settings, "Share my profile" und
   if (W.sheet("read(TAB.people).rows.find(r => r.person_id === 'P-T1').agreement_version") !== 'v2026-11-01') bad.push('agreeing to the new version did not replace the old on the server');
   const c = await hubBoot_(W, 'parent@example.org');
   if (c.err) return bad.concat([c.err]);
-  if (c.d.querySelector('#s-staff [data-do="hub-open"], #s-staff .hub-warn')) bad.push('a client has a Staff hub tile or the terms line');
+  if (c.d.querySelector('#s-staff [data-do="hub-open"]:not([disabled]), #s-staff .hub-warn')) bad.push('a client has a usable Staff hub tile or the terms line');
   return bad;
 });
 
@@ -2677,9 +2677,11 @@ const editorsOf_ = (d, into) => {
       : String(((el.closest('.card') || {}).querySelector || (() => null)).call(el.closest('.card'), 'h3')?.textContent || '').trim();
     (into[f] = into[f] || new Set()).add(where(el) + ': ' + card);
   };
-  d.querySelectorAll('[data-me]').forEach(el => add(el.dataset.me, el));
-  d.querySelectorAll('input[data-pv]').forEach(el => { if (PV[el.dataset.pv]) add(PV[el.dataset.pv], el); });
-  d.querySelectorAll('[data-do="pin-save"]').forEach(el => add('pin', el));
+  /* A LOCKED CARD (467) IS SHOWN, NOT EDITED: its boxes are disabled and are no place to edit anything. */
+  const live = el => !el.disabled && !el.closest('.is-locked');
+  d.querySelectorAll('[data-me]').forEach(el => { if (live(el)) add(el.dataset.me, el); });
+  d.querySelectorAll('input[data-pv]').forEach(el => { if (live(el) && PV[el.dataset.pv]) add(PV[el.dataset.pv], el); });
+  d.querySelectorAll('[data-do="pin-save"]').forEach(el => { if (live(el)) add('pin', el); });
   return into;
 };
 check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, Student and Parent profiles, in that order and so labelled; the profiles hold a card per person by category, your own first where you belong; the settings hold that type\'s settings, a column above your rank says so; Business is an admin\'s alone; every setting is edited in exactly one place', async () => {
@@ -2712,15 +2714,23 @@ check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, S
     if (q('#s-account [data-do="hub-open"], #s-account .kid-manage, #s-account [data-do="person-add"], #s-account .col-lock')
       || (rank !== 'student' && q('#s-account .card-ed, #s-account [data-do="card-edit"]'))) bad.push(rank + ': a person, a parent\'s or a tutor\'s thing is on Student settings');
     const famOff = !!q('#s-family .rank-off'), staffOff = !!q('#s-staff .rank-off');
-    if (famOff !== (rank === 'student')) bad.push(rank + ': Parent settings ' + (famOff ? 'says it is not for this account' : 'is drawn for a student'));
+    /* 467: STAFF AND ADMIN WITH NO PARENT'S DETAILS see Parent settings locked too. */
+    if (famOff !== (rank !== 'client')) bad.push(rank + ': Parent settings ' + (famOff ? 'says it is not for this account' : 'is drawn unlocked for a non-parent'));
     if (staffOff !== (rank === 'student' || rank === 'client')) bad.push(rank + ': Tutor settings ' + (staffOff ? 'says it is not for this account' : 'is drawn below Staff'));
-    /* 464: A COLUMN FOR A ROLE YOU DO NOT HOLD IS A PADLOCK AND ONE LINE — no title, no form, no other card. */
+    /* 467: A COLUMN FOR A ROLE YOU DO NOT HOLD IS THE PADLOCK LINE, THEN EVERY CARD OF IT LOCKED — each with its padlock, nothing pressable. */
     if (staffOff && !/are for tutors/.test(txt('#s-staff .rank-off'))) bad.push(rank + ': Tutor settings does not say plainly it is for tutors');
     for (const [col, off] of [['staff', staffOff], ['family', famOff]]) {
       if (!off) continue;
       const lock = q('#s-' + col + ' .rank-off');
       if (!lock.classList.contains('col-lock') || !lock.querySelector('.col-lock-i svg')) bad.push(rank + ': ' + col + ' is not a padlock');
-      if (a.d.querySelectorAll('#s-' + col + ' .card').length !== 1 || lock.querySelector('h3, input, select, textarea')) bad.push(rank + ': the ' + col + ' padlock has more than its icon, its line and its tile');
+      if (lock.querySelector('h3, input, select, textarea')) bad.push(rank + ': the ' + col + ' padlock line has a title or a box');
+      const shut = [...a.d.querySelectorAll('#s-' + col + ' .is-locked')];
+      if (shut.length < 2) bad.push(rank + ': ' + col + ' shows ' + shut.length + ' locked cards, wanted every card of the column');
+      shut.forEach(c => { if (!c.querySelector(':scope > .card-lock svg')) bad.push(rank + ': a locked ' + col + ' card has no padlock'); });
+      const live = [...a.d.querySelectorAll('#s-' + col + ' .is-locked :is(input, select, textarea, button)')].filter(x => !x.disabled && !x.closest('.wgt-admin'));
+      if (live.length) bad.push(rank + ': ' + live.length + ' boxes or tiles on locked ' + col + ' cards can still be used');
+      if (shut.some(c => !c.querySelector('.card-say'))) bad.push(rank + ': a locked ' + col + ' card does not say what it is for');
+      if (col === 'staff' && !q('#s-staff .is-locked [data-do="hub-open"][disabled]')) bad.push(rank + ': the locked Tutor settings does not show the Staff hub');
     }
     if (rank === 'client' && !q('#s-staff .col-lock [data-do="apply-open"]')) bad.push('a client\'s Tutor settings offers no Apply to teach');
     if (rank === 'staff' && !q('#s-staff [data-do="hub-open"]')) bad.push('a tutor\'s Tutor settings has no Staff hub');
@@ -2749,13 +2759,56 @@ check('Six columns (453, 461): Parent, Tutor and Student settings, then Tutor, S
       const cancel = q('#s-' + col + ' [data-do="card-cancel"]') || a.d.querySelector('[data-do="card-cancel"]');
       if (cancel) { a.A('card-cancel', cancel); await wait(200); }
     }
-    const hub = q('#s-staff [data-do="hub-open"]');
+    const hub = q('#s-staff [data-do="hub-open"]:not([disabled])');
     if (hub) {
       a.A('hub-open', hub); await wait(200);
       for (const k of ['hours', 'pricing']) { if (await a.part(k)) editorsOf_(a.d, ed); }
     }
     Object.keys(ed).filter(f => ed[f].size > 1)
       .forEach(f => bad.push(rank + ': "' + f + '" is edited in ' + ed[f].size + ' places (' + [...ed[f]].join('; ') + ')'));
+  }
+  return bad;
+});
+
+/* ---------- EVERYBODY SEES EVERY CARD, LOCKED WHERE IT IS NOT THEIRS, AND EACH SAYS WHAT IT IS FOR (467) ---------- */
+check('467: signed out, Parent, Tutor and Student settings show every card locked — a padlock each, every box and tile disabled, no data — and every card on the right-hand columns says what it is for in one short line', async () => {
+  const W = hubWorld_();
+  const bad = [];
+  const o = await cardOpen_(W, null);
+  if (o.err) return [o.err];
+  ['family', 'staff', 'account'].forEach(col => { try { o.t.go(col, false, true); o.w.paint(col); } catch (e) { bad.push('drawing ' + col + ' threw: ' + e.message); } });
+  await wait(250);
+  for (const col of ['family', 'staff', 'account']) {
+    const shut = [...o.d.querySelectorAll('#s-' + col + ' .is-locked')];
+    if (shut.length < 2) bad.push('signed out, ' + col + ' shows ' + shut.length + ' locked cards');
+    if (shut.some(c => !c.querySelector(':scope > .card-lock svg'))) bad.push('signed out, a locked ' + col + ' card has no padlock');
+    const live = [...o.d.querySelectorAll('#s-' + col + ' .is-locked :is(input, select, textarea, button)')].filter(x => !x.disabled);
+    if (live.length) bad.push('signed out, ' + live.length + ' boxes or tiles on ' + col + ' can be used');
+    const filled = [...o.d.querySelectorAll('#s-' + col + ' .is-locked :is(input, textarea)')].filter(x => x.type !== 'checkbox' && x.type !== 'hidden' && String(x.value || '').trim());
+    if (filled.length) bad.push('signed out, ' + col + ' shows values in its locked boxes: ' + filled.map(x => x.value).slice(0, 3).join(', '));
+    if (shut.some(c => !c.querySelector('.card-say'))) bad.push('signed out, a locked ' + col + ' card does not say what it is for');
+    if (o.d.querySelector('#s-' + col + ' .is-locked [id]')) bad.push('a locked ' + col + ' card keeps an id a real card could be found by');
+  }
+  if (!o.d.querySelector('#s-account .signin-card, #s-account [data-do^="signin"], #s-account .card:not(.is-locked)')) bad.push('signed out, Student settings lost its sign-in card');
+  if (!o.d.querySelector('#s-family .is-locked [data-me="email"][disabled]')) bad.push('signed out, Parent settings does not show the email box, locked');
+  /* EVERY CARD SAYS WHAT IT IS FOR: the admin, every right-hand column. */
+  const a = await hubBoot_(W, 'admin@example.org');
+  if (a.err) return bad.concat([a.err]);
+  for (const col of ['family', 'staff', 'account', 'tutors', 'students', 'parents', 'biz']) {
+    try { a.t.go(col, false, true); a.w.paint(col); } catch (e) { bad.push('drawing ' + col + ' threw: ' + e.message); }
+    await wait(150);
+    const rows = [...a.d.querySelectorAll('#s-' + col + ' .card-admin[data-lay-for]')];
+    if (!rows.length) bad.push('the admin sees no card rows on ' + col + ', so its lines were NOT checked');
+    const seen = new Set();
+    rows.forEach(r => {
+      const id = r.dataset.layFor;
+      if (seen.has(id)) return; seen.add(id);
+      const say = a.w.eval('cardSayOf_(' + JSON.stringify(id) + ')');
+      if (!say) bad.push(col + ': card ' + id + ' has no line saying what it is for');
+      else if (say.length > 90) bad.push(col + ': ' + id + '\'s line is ' + say.length + ' characters');
+    });
+    const says = a.d.querySelectorAll('#s-' + col + ' .card-say').length;
+    if (says < seen.size - 0) bad.push(col + ': ' + says + ' lines drawn for ' + seen.size + ' cards');
   }
   return bad;
 });
@@ -2959,129 +3012,29 @@ check('Student settings (453) hold only what is not on your card — a tutor\'s 
   return bad;
 });
 
-check('an admin edits another tutor\'s card the same way — filled from getProfile, no picture chooser, no figure or handle, one updateProfile to their row — and nobody else sees Edit on somebody else\'s card', async () => {
+/* ---------- NOBODY EDITS A PROFILE CARD, THE ADMIN INCLUDED (467) — the owner: "Profile cards are uneditable by anyone, including admin." ---------- */
+check('no profile card offers Edit to anybody, an admin included (467): your own card is edited on your settings column alone, and an admin keeps Delete and Show PIN under somebody else', async () => {
   const W = cardWorld_();
   const bad = [];
-  const c = await cardOpen_(W, 'admin@example.org');
-  if (c.err) return [c.err];
-  const mine = c.t.whoami();
-  const was = JSON.stringify(mine.profile);
-  if (!c.edit('P-A1')) bad.push('the admin\'s own card has no Edit');
-  const ben = c.edit('P-T2');
-  if (!ben) return bad.concat(['the admin is offered no Edit on Ben\'s card — offered ' + JSON.stringify(c.edits())]);
-  if (!ben.classList.contains('is-admin')) bad.push('Edit on somebody else\'s card is not the admin\'s silver tile');
-  c.sent.length = 0;
-  c.A('card-edit', ben);
-  await wait(500);
-  const ask = c.sent.find(x => x.action === 'getProfile');
-  if (!ask || ask.target !== 'P-T2') bad.push('Ben\'s form was not filled from getProfile by his id: ' + JSON.stringify(c.sent.map(x => x.action + ':' + (x.target || ''))));
-  if (!c.form() || c.card().dataset.pid !== 'P-T2') return bad.concat(['Edit on Ben\'s card did not open Ben\'s card as a form']);
-  if (c.box('headline').value !== 'Physics, mostly') bad.push('Ben\'s form opened with the headline ' + JSON.stringify(c.box('headline').value));
-  if (c.form().querySelector('.pfp, [data-do="pfp-pick"]')) bad.push('Ben\'s form offers the picture chooser, which would change the admin\'s own picture');
-  /* NOR THE ADMIN'S OWN FIGURE OR HANDLE — `saveAvatar` writes the row the token resolves to,
-     so on Ben's card they would dress and rename the admin (docs/history/339). */
-  if (c.form().querySelector('.av-card, [data-do="av-pick"], .handle-shown')) bad.push('Ben\'s form offers a figure or a handle, which would change the admin\'s own');
-  if (!/Only Ben can change this picture/.test(c.form().textContent)) bad.push('Ben\'s form does not say why his picture is not offered');
-  /* HIS FACE AS THE CARD DRAWS IT — `pfp:fox` is a token, and anything but `personFace_` draws it as a broken
-     `<img src="pfp:fox">` (the review of 330, on the tree with fix-dp merged). */
-  const bf = c.form().querySelector('.ce-pic .prof-pic');
-  if (!bf || bf.tagName === 'IMG' || !bf.querySelector('svg.pfp-art')) bad.push('Ben\'s face on the admin\'s form is ' + (bf ? bf.outerHTML.slice(0, 90) : 'missing') + ', not the fox his card draws');
-  c.type(c.box('headline'), 'Physics and chemistry');
-  const sa11 = c.form().querySelector('.hr input[data-me="sa11"]');
-  if (sa11) c.tick(sa11, true);
-  c.sent.length = 0;
-  /* THE PAYLOAD HELD, so what is asked of the admin's own copy below is asked before `myProfile` — which
-     follows the payload — could put it back. */
-  W.holding = true;
-  c.A('card-save', c.tile('card-save'));
-  await wait(500);
-  const after = c.t.whoami();
-  if (JSON.stringify(after.profile) !== was || after.name !== 'Hal Admin') bad.push('saving Ben\'s card changed the admin\'s own profile or name (' + after.name + ', headline ' + JSON.stringify((after.profile || {}).headline) + ')');
-  W.holding = false;
-  W.release();
-  await wait(200);
-  const p = c.posts();
-  if (p.length !== 1) return bad.concat(['the admin\'s Save posted ' + p.length + ' updateProfile requests']);
-  if (p[0].targetId !== 'P-T2') bad.push('the admin\'s Save was addressed to ' + JSON.stringify(p[0].targetId));
-  const extra = Object.keys(p[0].fields || {}).filter(k => k !== 'headline' && !/^(m|tu|w|th|f|sa|su)\d\d$/.test(k));
-  if (extra.length) bad.push('the admin\'s Save sent fields nobody changed: ' + extra.join(', '));
-  const rowB = W.real.row('P-T2'), rowA = W.real.row('P-A1');
-  if (String(rowB.headline) !== 'Physics and chemistry' || String(rowB.availability) !== 'sa10,sa11') bad.push('Ben\'s row holds headline ' + JSON.stringify(rowB.headline) + ' and week ' + JSON.stringify(rowB.availability));
-  if (String(rowA.headline) !== 'Runs the place') bad.push('the admin\'s own row changed: headline ' + JSON.stringify(rowA.headline));
-  if (c.card()) bad.push('after the admin\'s Save Ben\'s card is still a form');
-  /* NOBODY ELSE ON SOMEBODY ELSE'S: a tutor, a parent and a student each have Edit on their own card and on no
-     other — their own is everybody's since docs/history/339, somebody else's is still an admin's alone. */
-  for (const [who, pid] of [['tutor@example.org', 'P-T1'], ['parent@example.org', 'P-C1'], ['student@example.org', 'P-S1']]) {
-    const o = await cardOpen_(W, who);
-    if (o.err) { bad.push(o.err); continue; }
-    if (JSON.stringify(o.edits()) !== JSON.stringify([pid])) bad.push(who + ' is offered Edit on ' + JSON.stringify(o.edits()) + ', wanted their own card alone');
-    if (!o.d.querySelector(o.S + ' .card.is-prof')) bad.push(who + ' sees no card on ' + o.S + ', so Edit was NOT checked');
+  for (const who of ['admin@example.org', 'tutor@example.org', 'parent@example.org', 'student@example.org']) {
+    const c = await cardOpen_(W, who);
+    if (c.err) { bad.push(who + ': ' + c.err); continue; }
+    const pid = String(c.t.whoami().personId || '');
+    const onProfiles = [...c.d.querySelectorAll('#s-tutors [data-do="card-edit"], #s-students [data-do="card-edit"], #s-parents [data-do="card-edit"], [data-do="person-edit"]')];
+    if (onProfiles.length) bad.push(who + ' is offered Edit on a profile card: ' + onProfiles.map(x => x.dataset.pid || x.dataset.id).join(', '));
+    const elsewhere = [...c.d.querySelectorAll('[data-do="card-edit"]')].filter(x => x.dataset.pid !== pid);
+    if (elsewhere.length) bad.push(who + ' is offered Edit on somebody else\'s card: ' + elsewhere.map(x => x.dataset.pid).join(', '));
+    if (typeof c.w.cardMayEdit_ === 'function' && c.w.cardMayEdit_({ personId: 'P-T2' }) && pid !== 'P-T2') bad.push(who + ' may still open somebody else\'s card');
+    if (who === 'admin@example.org' && !c.d.querySelector('#s-tutors [data-do="person-del"], #s-students [data-do="person-del"], #s-parents [data-do="person-del"]')) bad.push('the admin lost Delete under somebody else\'s card');
+    if (who === 'admin@example.org' && !c.d.querySelector('#s-tutors [data-do="pin-show"], #s-students [data-do="pin-show"], #s-parents [data-do="pin-show"]')) bad.push('the admin lost Show PIN under somebody else\'s card');
   }
   return bad;
 });
 
+
 /* ---------- THE BUSINESS'S CUT OF AN EXTRA SEAT, ON THE TUTOR'S CARD, IN POUNDS (docs/history/345) § */
 const CUT_VARS_ = { c: 0.3, B: 0.1 };
 const seatSaid_ = c => String((c.form() && (c.form().querySelector('.ce-seat') || {}).textContent) || '').trim();
-check('an admin sets a tutor\'s cut of an extra seat in pounds on their card: the preview follows typing, one updateProfile sends the share, the sheet and doGet hold it, the card says the new seat, and the pounds come back to the penny', async () => {
-  const W = cardWorld_({ vars: CUT_VARS_ });
-  const c = await cardOpen_(W, 'admin@example.org');
-  if (c.err) return [c.err];
-  const bad = [];
-  const ada = c.edit('P-T1');
-  if (!ada) return ['the admin is offered no Edit on Ada\'s card — offered ' + JSON.stringify(c.edits())];
-  c.A('card-edit', ada);
-  await wait(500);
-  if (!c.form() || c.card().dataset.pid !== 'P-T1') return ['Edit on Ada\'s card did not open it as a form'];
-  const pound = f => c.form().querySelector('[data-pound="' + f + '"]');
-  const sec = c.form().querySelector('.ce-sec[data-sec="rate"]');
-  if (!sec || !pound('extra_seat_rate') || !pound('extra_seat_cut')) return ['the rate section has no pound boxes for the two parts of a seat: ' + (sec ? sec.innerHTML.slice(0, 200) : 'no section')];
-  /* BESIDE THE RATE, IN THE CARD'S ORDER: the rate, then the two parts, then the students. */
-  const order = [...sec.querySelectorAll('[data-me="rate_per_hour"], [data-pound], [data-me="min_students"]')].map(x => x.dataset.me || x.dataset.pound);
-  if (JSON.stringify(order) !== '["rate_per_hour","extra_seat_rate","extra_seat_cut","min_students"]') bad.push('the rate section reads ' + JSON.stringify(order));
-  if (pound('extra_seat_rate').value !== '10.00') bad.push('Ada\'s own part shows "' + pound('extra_seat_rate').value + '", wanted 10.00 (0.5 of £20)');
-  if (pound('extra_seat_cut').value !== '' || pound('extra_seat_cut').placeholder !== 'usual') bad.push('a blank cut shows "' + pound('extra_seat_cut').value + '" under "' + pound('extra_seat_cut').placeholder + '", wanted nothing under "usual"');
-  if (c.box('extra_seat_cut').disabled) bad.push('the admin\'s hidden cut box is disabled, so their Save could never carry it');
-  if (seatSaid_(c) !== '+£12.00/h a seat') bad.push('the preview reads "' + seatSaid_(c) + '", wanted +£12.00/h a seat (20 × (0.5 + 0.1))');
-  if (!/Theirs: blank or £0 is the usual £6\.00\. @family\.'s: blank is the usual £2\.00, £0 is no cut\./.test(sec.textContent.replace(/\s+/g, ' '))) bad.push('the section does not say what blank and £0 are for each part — the usual £6.00 theirs, the usual £2.00 and no cut for @family.: ' + sec.textContent.replace(/\s+/g, ' ').slice(0, 300));
-  /* THE RATE TYPED: the pounds follow the shares, and blank disables them with a reason. */
-  c.type(c.box('rate_per_hour'), '');
-  if (!pound('extra_seat_rate').disabled || !/set it first/.test(seatSaid_(c))) bad.push('with no rate the pound boxes are not disabled, or the preview does not say why: "' + seatSaid_(c) + '"');
-  c.type(c.box('rate_per_hour'), '24');
-  if (pound('extra_seat_rate').disabled || pound('extra_seat_rate').value !== '12.00' || seatSaid_(c) !== '+£14.40/h a seat') bad.push('at £24 the part reads ' + pound('extra_seat_rate').value + ' and the preview "' + seatSaid_(c) + '", wanted 12.00 and +£14.40/h a seat');
-  /* AND A CUT IN POUNDS AT A RATE IT DOES NOT DIVIDE: £3.33 of £23 is 0.144783 to six places. */
-  c.type(c.box('rate_per_hour'), '23');
-  c.type(pound('extra_seat_cut'), '3.33');
-  if (c.box('extra_seat_cut').value !== '0.144783') bad.push('£3.33 at £23 is held as the share ' + JSON.stringify(c.box('extra_seat_cut').value) + ', wanted "0.144783"');
-  if (seatSaid_(c) !== '+£14.83/h a seat') bad.push('the preview reads "' + seatSaid_(c) + '", wanted +£14.83/h a seat (11.50 + 3.33)');
-  if (c.box('extra_seat_rate').value !== '0.5') bad.push('typing the rate moved Ada\'s own share to ' + c.box('extra_seat_rate').value + ' — it should stay 0.5 and the pounds follow it');
-  c.type(pound('extra_seat_cut'), '99');
-  if (!/twice the rate/.test(seatSaid_(c))) bad.push('a cut past twice the rate is not said: "' + seatSaid_(c) + '"');
-  c.type(pound('extra_seat_cut'), '3.33');
-  c.sent.length = 0;
-  c.A('card-save', c.tile('card-save'));
-  await wait(600);
-  const p = c.posts();
-  if (p.length !== 1) return bad.concat(['the Save posted ' + p.length + ' updateProfile requests']);
-  const f = p[0].fields || {};
-  if (JSON.stringify(Object.keys(f).sort()) !== '["extra_seat_cut","rate_per_hour"]' || f.extra_seat_cut !== '0.144783' || f.rate_per_hour !== '23') bad.push('the Save sent ' + JSON.stringify(f) + ', wanted the rate 23 and the cut 0.144783 and nothing else');
-  const row = W.real.row('P-T1');
-  if (Number(row.extra_seat_cut) !== 0.144783 || Number(row.rate_per_hour) !== 23 || Number(row.extra_seat_rate) !== 0.5) bad.push('the sheet holds ' + JSON.stringify({ rate: row.rate_per_hour, seat: row.extra_seat_rate, cut: row.extra_seat_cut }));
-  const sent = (W.real.get({}).tutors || []).find(x => x.personId === 'P-T1') || {};
-  if (sent.extraSeatCut !== 0.144783) bad.push('doGet sends Ada\'s cut as ' + JSON.stringify(sent.extraSeatCut));
-  if (c.card()) bad.push('after Save Ada\'s card is still a form');
-  const pg = c.pageOf('P-T1');
-  const onCard = ((pg && pg.querySelector('.prof-seat')) || {}).textContent || '';
-  if (onCard.trim() !== '+£14.83/h a seat') bad.push('Ada\'s card says "' + onCard.trim() + '" after the Save, wanted +£14.83/h a seat');
-  /* OPENED AGAIN, FROM THE SERVER'S COPY: the same pounds, to the penny. */
-  await wait(300);
-  if (c.edit('P-T1')) c.A('card-edit', c.edit('P-T1'));
-  await wait(500);
-  if (!c.form() || !pound('extra_seat_cut')) bad.push('Ada\'s card did not open again for editing');
-  else if (pound('extra_seat_cut').value !== '3.33' || pound('extra_seat_rate').value !== '11.50') bad.push('opened again the parts read ' + pound('extra_seat_rate').value + ' and ' + pound('extra_seat_cut').value + ', wanted 11.50 and 3.33');
-  return bad;
-});
-
 /* ---------- A TUTOR'S SEAT IS SET IN THE STAFF HUB ALONE (444), AND A FORCED CUT IS STILL REFUSED § */
 check('a tutor\'s seat is set in the Staff hub alone (444) — their tutor card offers no rate, seat or cut box — and a forced cut is refused by the server with nothing written', async () => {
   const W = cardWorld_({ vars: CUT_VARS_ });
@@ -3118,70 +3071,6 @@ check('the read-only cut a tutor cannot change says who sets it (345)', async ()
     const box = ro.querySelector('[data-me="extra_seat_cut"]');
     if (!box || !box.disabled || !/set by @family\./.test(ro.textContent)) bad.push('the read-only cut does not say who sets it, or can be typed into: "' + ro.textContent.replace(/\s+/g, ' ').trim() + '"');
   } else bad.push('fieldHtml is not reachable, so the read-only cut was NOT checked');
-  return bad;
-});
-
-/* ---------- AND ON AN ADMIN'S EDIT: £0 IN THE TUTOR'S PART IS THE USUAL, £0 TO THE BUSINESS IS NO CUT, THE POUNDS TYPED § */
-check('on an admin\'s edit of a tutor\'s card the parts of a seat add up to the seat, £0 means the usual for the tutor and no cut for the business, the pounds typed are kept when the rate moves after them, and a part past twice the rate is refused in pounds with nothing sent', async () => {
-  const W = cardWorld_({ vars: CUT_VARS_ });
-  const c = await cardOpen_(W, 'admin@example.org');
-  if (c.err) return [c.err];
-  const bad = [];
-  if (!c.edit('P-T1')) return ['the admin is offered no Edit on Ada\'s card'];
-  c.A('card-edit', c.edit('P-T1'));
-  await wait(500);
-  if (!c.form() || c.card().dataset.pid !== 'P-T1') return ['Edit on Ada\'s card did not open it as a form'];
-  const pound = f => c.form().querySelector('[data-pound="' + f + '"]');
-  if (!pound('extra_seat_rate') || !pound('extra_seat_cut')) return ['the admin\'s edit has no pound boxes for the two parts'];
-  const want = "Theirs: blank or £0 is the usual £6.00. @family.'s: blank is the usual £2.00, £0 is no cut.";
-  if (seatNote_(c) !== want) bad.push('the line under the boxes reads "' + seatNote_(c) + '", wanted "' + want + '"');
-  /* WHAT IS ON THE SCREEN ADDS UP: each part as drawn, or the usual the line names when it is blank. */
-  const adds = when => {
-    const m = /usual £(\d+\.\d\d)\..*usual £(\d+\.\d\d),/.exec(seatNote_(c));
-    if (!m) { bad.push(when + ': the line names no usual amounts: "' + seatNote_(c) + '"'); return; }
-    const a = seatParts_(c, 'extra_seat_rate') || m[1], b = seatParts_(c, 'extra_seat_cut') || m[2];
-    if (Math.abs(Number(a) + Number(b) - seatSum_(seatSaid_(c))) > 0.005) bad.push(when + ': the parts on the screen (' + a + ' and ' + b + ') do not add up to the seat "' + seatSaid_(c) + '"');
-  };
-  adds('opened');
-  /* £0 IN THE TUTOR'S PART is the usual: the share goes blank, the box is empty once left, and the seat is the usual one. */
-  c.type(pound('extra_seat_rate'), '0');
-  if (c.box('extra_seat_rate').value !== '') bad.push('£0 in the tutor\'s part over a stored 0.5 is held as ' + JSON.stringify(c.box('extra_seat_rate').value) + ', wanted "" — the usual');
-  if (pound('extra_seat_rate').value !== '') bad.push('£0 typed into the tutor\'s part and left still reads "' + pound('extra_seat_rate').value + '"');
-  if (seatSaid_(c) !== '+£8.00/h a seat') bad.push('with the tutor\'s part at the usual the preview reads "' + seatSaid_(c) + '", wanted +£8.00/h a seat');
-  adds('£0 in the tutor\'s part');
-  /* £0 TO THE BUSINESS is no cut: held as nought, drawn as typed, and the seat loses the business's part. */
-  c.type(pound('extra_seat_cut'), '0');
-  if (c.box('extra_seat_cut').value !== '0' || pound('extra_seat_cut').value !== '0') bad.push('£0 to @family. is held as ' + JSON.stringify(c.box('extra_seat_cut').value) + ' and drawn "' + pound('extra_seat_cut').value + '", wanted 0 and 0');
-  if (seatSaid_(c) !== '+£6.00/h a seat') bad.push('with no cut the preview reads "' + seatSaid_(c) + '", wanted +£6.00/h a seat');
-  adds('£0 to @family.');
-  /* THE PARTS TYPED, THEN THE RATE CORRECTED: the pounds stay as typed and the shares follow them. */
-  c.type(pound('extra_seat_rate'), '5');
-  c.type(pound('extra_seat_cut'), '2');
-  c.type(c.box('rate_per_hour'), '3');
-  c.type(c.box('rate_per_hour'), '30');
-  if (pound('extra_seat_rate').value !== '5' || pound('extra_seat_cut').value !== '2') bad.push('the rate typed after the parts moved them to ' + pound('extra_seat_rate').value + ' and ' + pound('extra_seat_cut').value + ', wanted the 5 and 2 typed');
-  if (c.box('extra_seat_rate').value !== '0.166667' || c.box('extra_seat_cut').value !== '0.066667') bad.push('£5 and £2 at £30 are held as ' + c.box('extra_seat_rate').value + ' and ' + c.box('extra_seat_cut').value + ', wanted 0.166667 and 0.066667');
-  if (seatSaid_(c) !== '+£7.00/h a seat') bad.push('£5 and £2 at £30 preview "' + seatSaid_(c) + '", wanted +£7.00/h a seat');
-  adds('the rate typed after the parts');
-  /* PAST TWICE THE RATE: said in pounds under the form, nothing sent, the form still open. */
-  c.type(pound('extra_seat_cut'), '99');
-  c.sent.length = 0;
-  c.A('card-save', c.tile('card-save'));
-  await wait(400);
-  if (c.posts().length) bad.push('a part of £99 at £30 was sent: ' + JSON.stringify(c.posts().map(x => x.fields)));
-  if (!c.form() || !/Each part is £0 to £60\.00\/h — twice the rate\. Nothing was saved\./.test(c.said())) bad.push('a part past twice the rate is not refused in pounds under the open form: "' + c.said() + '"');
-  c.type(pound('extra_seat_cut'), '2');
-  c.sent.length = 0;
-  c.A('card-save', c.tile('card-save'));
-  await wait(600);
-  const p = c.posts();
-  const f = (p[0] || {}).fields || {};
-  if (p.length !== 1 || JSON.stringify(f) !== JSON.stringify({ rate_per_hour: '30', extra_seat_rate: '0.166667', extra_seat_cut: '0.066667' })) bad.push('the Save sent ' + JSON.stringify(p.map(x => x.fields)) + ', wanted the rate 30 and the two shares of £5 and £2');
-  const sent = (W.real.get({}).tutors || []).find(x => x.personId === 'P-T1') || {};
-  if (sent.extraSeatCut !== 0.066667) bad.push('doGet sends Ada\'s cut as ' + JSON.stringify(sent.extraSeatCut));
-  const pg = c.pageOf('P-T1');
-  const onCard = (((pg && pg.querySelector('.prof-seat')) || {}).textContent || '').trim();
-  if (onCard !== '+£7.00/h a seat') bad.push('Ada\'s card says "' + onCard + '" after the Save, wanted +£7.00/h a seat');
   return bad;
 });
 
@@ -11130,7 +11019,8 @@ check('an admin adds a person from the "+" on Students (453), edits one and dele
   if (!(helpAt === 0 && at === 1 && evieAt > at)) bad.push('the "+" is at page ' + at + ' of Students (Needs help at ' + helpAt + '), wanted 1 under Needs help (Evie at ' + evieAt + ')');
   if (/data-do="person-(edit|del)"/.test(t.accountPages('tutors').find(h => /card-edit/.test(h) && /data-pid="P-AD"/.test(h)) || '')) bad.push('the admin\'s own card offers Edit or Delete of themselves');
   const evie = pages[evieAt] || '';
-  if (!/data-do="person-edit" data-id="P-E1"/.test(evie) || !/data-do="person-del" data-id="P-E1"/.test(evie)) bad.push('Evie\'s card has no Edit and Delete for the admin');
+  /* NO EDIT (467): "Profile cards are uneditable by anyone, including admin" — Delete stays. */
+  if (/data-do="person-edit"/.test(evie) || !/data-do="person-del" data-id="P-E1"/.test(evie)) bad.push('Evie\'s card offers the admin Edit, or has no Delete');
   if (!/data-do="msg-open"/.test(evie) || !/data-do="kid-pin"/.test(evie)) bad.push('Edit and Delete pushed Message or New PIN off the card');
 
   /* ADD: the form, then `personSave` with no target, then the slip and the new person in the list. */
@@ -11158,33 +11048,6 @@ check('an admin adds a person from the "+" on Students (453), edits one and dele
   if (!slip || !/@na2026/.test(slip.textContent) || slip.textContent.indexOf(PIN) === -1) bad.push('after adding there is no slip with the handle and the PIN');
   if (!t.accountPages().some(h => h.indexOf('>Nia<') !== -1)) bad.push('the new person is not on the column until a reload');
   t.ACTIONS['person-cancel'](col().querySelector('.person-made [data-do="person-cancel"]'));
-  if (release) release();
-  hold = false;
-  await wait(300);
-  t.DATA().everyone = rows();
-
-  /* EDIT: the form filled in, the handle said to stay, and the new name drawn. */
-  draw();
-  await wait(200);
-  const ed = col().querySelector('[data-do="person-edit"][data-id="P-E1"]');
-  if (!ed) return bad.concat(['Evie has no Edit tile on the drawn column']);
-  sent.length = 0;
-  t.ACTIONS['person-edit'](ed);
-  await wait(300);
-  form = col().querySelector('.person-form[data-pid="P-E1"]');
-  if (!form) return bad.concat(['Edit drew no form in Evie\'s place']);
-  if (!sent.some(b => b.action === 'personGet' && b.targetId === 'P-E1')) bad.push('Edit did not ask for Evie\'s details');
-  if (form.querySelector('[data-pf="last"]').value !== 'Child' || form.querySelector('[data-pf="dob"]').value !== '2015-03-02'
-      || !form.querySelector('[data-pf-parent="P-E2"]:checked')) bad.push('the edit form is not filled in with Evie\'s name, birthday and parent');
-  if (!/handle stays @evie_calm31/.test(form.textContent)) bad.push('the edit form does not say the handle stays');
-  form.querySelector('[data-pf="first"]').value = 'Evangeline';
-  sent.length = 0;
-  hold = true;
-  t.ACTIONS['person-save'](form.querySelector('[data-do="person-save"]'));
-  await wait(300);
-  const sv = sent.find(b => b.action === 'personSave');
-  if (!sv || sv.targetId !== 'P-E1' || sv.firstName !== 'Evangeline') bad.push('saving the edit posted ' + JSON.stringify(sv));
-  if (!t.accountPages().some(h => h.indexOf('>Evangeline<') !== -1) || /person-form/.test(all())) bad.push('after the edit the column does not draw the new name, or the form stayed open');
   if (release) release();
   hold = false;
   await wait(300);
@@ -11262,7 +11125,7 @@ check('an admin sees every tile on a tutor card — Message, Share, Save on one 
   if (acts.slice(0, 3).join(' ') !== 'msg-open tutor-share fav') bad.push('the viewer\'s tiles do not lead in the order Message, Share, Save: ' + acts.join(' '));
   const grp = r.querySelector(':scope > .tile-group.is-admin');
   const inGroup = grp ? [...grp.querySelectorAll('.tile')].map(el => el.getAttribute('data-do')) : [];
-  ['spot', 'person-edit', 'person-del'].forEach(a => { if (inGroup.indexOf(a) === -1) bad.push('the admin group, shown in the row, has no ' + a + ': ' + inGroup.join(' ')); });
+  ['spot', 'person-del'].forEach(a => { if (inGroup.indexOf(a) === -1) bad.push('the admin group, shown in the row, has no ' + a + ': ' + inGroup.join(' ')); });
   if (inGroup[inGroup.length - 1] !== 'person-del') bad.push('Delete is not last in the admin group: ' + inGroup.join(' '));
   if (tiles.length > 6 && !r.querySelector(':scope > .tile-break')) bad.push(tiles.length + ' tiles and no break into balanced lines');
   /* BALANCED: past six, no line of one — seven is 4+3, nine is 5+4, thirteen is 5+4+4. */
@@ -19018,7 +18881,7 @@ check('mark sound: the context rests when nothing is playing — a second after 
 });
 
 /* ---------- A TUTOR'S HOURS ON THEIR CARD § */
-check('a tutor\'s ticked hours are on their card, busy ones greyed, and none says they cannot be booked', async () => {
+check('a tutor\'s ticked hours are on their card as lines (467), taught ones said apart, and none says they cannot be booked', async () => {
   const { w } = boot();
   const d = w.document;
   await wait(300);
@@ -19033,26 +18896,15 @@ check('a tutor\'s ticked hours are on their card, busy ones greyed, and none say
   const bad = [];
   const caps = [...box.querySelectorAll('.prof-cap')].map(c => c.textContent.trim());
   if (!caps.includes('Available')) bad.push('a tutor with hours ticked has no "Available" caption on their card');
-  const codeOf = { Monday: 'm', Saturday: 'sa', Sunday: 'su' };
-  const cell = (day, h) => box.querySelector(`.prof-week .hr[data-code="${codeOf[day]}${String(h).padStart(2, '0')}"]`);
-  const lit = [...box.querySelectorAll('.prof-week .hr.on')];
-  if (lit.length !== 3) bad.push(`${lit.length} hours lit on the card, wanted 3 (Mon 16, Sat 10, Sun 18)`);
-  [['Monday', 16], ['Saturday', 10], ['Sunday', 18]].forEach(([dd, h]) => {
-    const c = cell(dd, h);
-    if (!c || !c.classList.contains('on')) bad.push(`${dd} ${h}:00 is ticked and not lit on the card`);
-  });
-  const busy = cell('Monday', 17);
-  if (!busy || busy.classList.contains('on') || !busy.classList.contains('shut')) {
-    bad.push('Monday 17:00 is ticked but already taught, and is not greyed on the card');
-  }
-  if (box.querySelector('.prof-week button, .prof-week input, .prof-week label')) bad.push('a cell of the card\'s week is a control, so it can be pressed and is counted as a tap target');
+  /* LINES, NOT A GRID (467): each day its hours merged, the taught ones said after. */
+  const line = ((box.querySelector('.prof-week .prof-hour-line') || {}).textContent || '').replace(/\s+/g, ' ').trim();
+  if (line !== 'Mon 4–5pm, Sat 10–11am, Sun 6–7pm') bad.push('the card\'s hours read "' + line + '", wanted "Mon 4–5pm, Sat 10–11am, Sun 6–7pm"');
+  const key = ((box.querySelector('.prof-week .prof-key') || {}).textContent || '').replace(/\s+/g, ' ').trim();
+  if (key !== 'Already teaching Mon 5–6pm') bad.push('the taught hour reads "' + key + '", wanted "Already teaching Mon 5–6pm"');
+  if (box.querySelector('.prof-week .hr, .prof-week .slot-row')) bad.push('the card still draws a grid of hours');
+  if (box.querySelector('.prof-week button, .prof-week input, .prof-week label')) bad.push('the card\'s hours hold a control, so they can be pressed and are counted as a tap target');
   if (!/Monday 16:00/.test(((box.querySelector('.prof-week') || {}).getAttribute || (() => ''))
       .call(box.querySelector('.prof-week'), 'aria-label') || '')) bad.push('the card\'s week does not say its hours to a screen reader');
-  /* ONLY THE DAYS THEY WORK — the owner, 10 Oct: *"no need to display monday if they dont have any
-     hours on monday."* Tuesday to Friday were four thin `is-shut` rows; they are not drawn now. */
-  const rows = [...box.querySelectorAll('.prof-week .slot-row:not(.slot-head)')];
-  const names = rows.map(r => ((r.querySelector('.slot-day') || {}).textContent || '').trim()).join(' ');
-  if (names !== 'Mon Sat Sun' || box.querySelector('.prof-week .is-shut')) bad.push(`the card's week draws [${names}]${box.querySelector('.prof-week .is-shut') ? ' with a collapsed day' : ''}, wanted [Mon Sat Sun] and nothing collapsed`);
   const none = d.createElement('div');
   none.innerHTML = String(w.findCard({ kind: 'tutor', row: Object.assign({}, t, { avail: Object.assign({}, avail, { m16: '', m17: '', sa10: '', su18: '' }) }) }) || '');
   if (none.querySelector('.prof-week')) bad.push('a tutor with no hours ticked is drawn with a week anyway');
@@ -19078,40 +18930,23 @@ check('a tutor\'s card draws only the days they work, and ticks outside the span
       listed: true, personId: 'P-t', avail: Object.assign({}, blank, avail), busy: busy || {} } }) || '');
     return box;
   };
-  const days = box => [...box.querySelectorAll('.prof-week .slot-row:not(.slot-head)')]
-    .map(r => ((r.querySelector('.slot-day') || {}).textContent || '').trim()).join(' ');
+  const days = box => [...box.querySelectorAll('.prof-week .prof-day')].map(r => r.textContent.trim().split(' ')[0]).join(' ');
   const bad = [];
   const two = card({ tu10: 'TRUE', tu11: 'TRUE', th16: 'TRUE' });
   if (days(two) !== 'Tue Thu') bad.push('a tutor with Tuesday and Thursday hours draws [' + days(two) + '], wanted exactly [Tue Thu]');
-  if (two.querySelector('.prof-week .is-shut')) bad.push('a day nobody works is still drawn on the card as a collapsed row');
   if (!/^Available Tuesday 10:00, 11:00; Thursday 16:00$/.test((two.querySelector('.prof-week') || { getAttribute: () => '' }).getAttribute('aria-label') || '')) {
     bad.push('the card\'s week reads "' + ((two.querySelector('.prof-week') || { getAttribute: () => '' }).getAttribute('aria-label')) + '" to a screen reader');
   }
   /* A DAY WHOSE ONLY TICKED HOUR IS ALREADY TAUGHT IS STILL A DAY THEY WORK — greyed, not gone. */
   const taught = card({ tu10: 'TRUE', th16: 'TRUE' }, { th16: 'Maths' });
   if (days(taught) !== 'Tue Thu') bad.push('a Thursday whose ticked hour is already taught is drawn as [' + days(taught) + '], wanted [Tue Thu]');
-  /* ---------- AND THAT DAY IS NOT A ROW OF NOTHING § */
-  const th16 = taught.querySelector('.prof-week .hr[data-code="th16"]');
-  const th09 = taught.querySelector('.prof-week .hr[data-code="th09"]');
-  if (!th16 || !th16.classList.contains('is-busy') || !th16.classList.contains('shut') || th16.classList.contains('on')) {
-    bad.push('the taught Thursday 16:00 is not drawn as taught (`hr shut is-busy`): ' + (th16 ? th16.className : 'no cell'));
-  }
-  if (!th09 || th09.classList.contains('is-busy')) bad.push('an hour never ticked is marked taught too, so the two still look the same: ' + (th09 ? th09.className : 'no cell'));
+  if (((two.querySelector('.prof-hour-line') || {}).textContent || '').trim() !== 'Tue 10am–12pm, Thu 4–5pm') bad.push('two hours in a row are not merged: "' + ((two.querySelector('.prof-hour-line') || {}).textContent || '').trim() + '"');
   const key = taught.querySelector('.prof-week .prof-key');
-  if (!key || !/already teaching/i.test(key.textContent) || !key.querySelector('.hr.is-busy')) {
-    bad.push('a week with a taught hour has no key saying what the taught cell means' + (key ? ': "' + key.textContent.trim() + '"' : ''));
-  }
+  if (!key || key.textContent.replace(/\s+/g, ' ').trim() !== 'Already teaching Thu 4–5pm') bad.push('a week with a taught hour does not say it: ' + (key ? '"' + key.textContent.trim() + '"' : 'no line'));
   if (two.querySelector('.prof-key')) bad.push('a week with nothing taught still draws the "already teaching" key');
   const taughtSaid = (taught.querySelector('.prof-week') || { getAttribute: () => '' }).getAttribute('aria-label') || '';
   if (!/^Available Tuesday 10:00\. Already teaching Thursday 16:00$/.test(taughtSaid)) {
     bad.push('a week with Thursday 16:00 taught reads "' + taughtSaid + '" to a screen reader — the day drawn for that hour is silent');
-  }
-  /* THE RULE THAT MAKES IT LOOK DIFFERENT, read out of style.css with the comments taken off. § */
-  const sheet = fs.readFileSync(path.join(dir, '..', 'style.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, ' ');
-  const busyRule = (sheet.match(/(^|\})\s*([^{}]*\.prof-week\s+\.hr\.is-busy(?![\w-])[^{}]*)\{([^}]*)\}/) || [])[3] || '';
-  if (!busyRule) bad.push('style.css has no `.prof-week .hr.is-busy` rule, so a taught hour is the same cell as one never ticked');
-  else if (!/opacity:\s*1\b/.test(busyRule) || !/background/.test(busyRule)) {
-    bad.push('`.prof-week .hr.is-busy` does not undo the shut fade and paint its own face: {' + busyRule.trim().replace(/\s+/g, ' ') + '}');
   }
   /* TICKED, BUT ONLY AT 19:00 — a tick from when the Settings grid ran to seven. */
   const late = card({ tu19: 'TRUE' });
@@ -29399,7 +29234,7 @@ check('layout cards (465): an admin sees ▲ ▼ ◀ ▶ Start here Delete on ev
       const row = layCardRow_(d, id);
       if (!row) { bad.push(col + ': ' + id + ' has no admin row'); return; }
       const labels = [...row.querySelectorAll('[data-do]')].map(x => x.getAttribute('aria-label') || '').join('|');
-      ['Move up', 'Move down', 'Move to previous column', 'Move to next column', 'Start here', 'Delete'].forEach(l => { if (labels.indexOf(l) === -1) bad.push(id + ' has no ' + l); });
+      ['Move up', 'Move down', 'Move to previous column', 'Move to ', 'Start here', 'Delete'].forEach(l => { if (labels.indexOf(l) === -1) bad.push(id + ' has no ' + l); });
     });
   }
   ['ppl:students:help', 'ppl:students:add', 'ppl:tutors:add', 'ppl:parents:add', 'biz:build', 'biz:layout', 'acct:pin'].forEach(id => { if (!layCardTile_(d, id, 'lay-c-del')) bad.push(id + ' has no Delete'); });
@@ -29447,7 +29282,8 @@ check('layout cards (465): an admin sees ▲ ▼ ◀ ▶ Start here Delete on ev
   const pgs = [...d.querySelectorAll('#s-students > .page')];
   if (!pgs.length || !pgs[pgs.length - 1].querySelector('[data-do="person-add"]')) bad.push('the last page of Student profiles is not "+ Add a student"');
   /* A BUSINESS CARD CANNOT LEAVE FOR A COLUMN… IT CAN; a settings card cannot go to Business (it would vanish for all but an admin). */
-  if (!layCardTile_(d, 'ppl:parents:add', 'lay-c-col', '1')?.disabled) bad.push('a Parent profiles card may move on to Business');
+  const pr = layCardTile_(d, 'ppl:parents:add', 'lay-c-col', '1');
+  if (!pr || pr.disabled || pr.getAttribute('aria-label') !== 'Move to a new column') bad.push('▶ on the last right-hand column does not offer a new column (466): ' + (pr && pr.getAttribute('aria-label')));
   if (r.errs.length) bad.push('errors: ' + r.errs.join('; '));
   return bad;
 });
@@ -29511,14 +29347,15 @@ check('layout cards (465): Start here makes a card, a person or "the first perso
   if (!A['lay-start']) return ['no lay-start handler — NOT checked'];
   await layPaintAll_(w);
   /* A PERSON'S START HERE and the list's "the first person". */
-  const first = d.querySelector('#s-parents .start-tiles [data-do="lay-start"][data-lc="first-person"]') || d.querySelector('.start-tiles [data-do="lay-start"][data-lc="first-person"]');
-  if (!first) return bad.concat(['no person card offers Start here: the first person']);
+  /* "THE FIRST PERSON" IS NO LONGER A SECOND TILE (466): a stored 'first-person' still opens there. */
+  const first = d.querySelector('#s-parents .start-tiles [data-do="lay-start"]') || d.querySelector('.start-tiles [data-do="lay-start"]');
+  if (!first) return bad.concat(['no person card offers Start here']);
   const col = first.dataset.col;
-  A['lay-start'](first); await wait(250); await layPaintAll_(w);
-  let L = layLast_(sent);
-  if (!L || !L.start || L.start[col] !== 'first-person') bad.push('Start here posted ' + JSON.stringify(L && L.start));
-  const at = w.cardStartAt_(col), pg = [...d.querySelectorAll('#s-' + col + ' > .page')][at];
+  const fp = payload(); fp.layout = { v: 1, widgets: {}, deleted: [], start: { [col]: 'first-person' } };
+  const f = layBoot_({ payload: fp }); await wait(300); await layPaintAll_(f.w);
+  const at = f.w.cardStartAt_(col), pg = [...f.w.document.querySelectorAll('#s-' + col + ' > .page')][at];
   if (!pg || !pg.querySelector('.start-tiles')) bad.push(col + ' opens on page ' + at + ', not the first person');
+  let L;
   const person = [...d.querySelectorAll('#s-' + col + ' .start-tiles [data-do="lay-start"]')].map(x => x.dataset.lc).filter(x => /^person:/.test(x)).pop();
   A['lay-start'](d.querySelector(`#s-${col} [data-do="lay-start"][data-lc="${person}"]`)); await wait(250); await layPaintAll_(w);
   L = layLast_(sent);
@@ -29536,7 +29373,8 @@ check('layout cards (465): Start here makes a card, a person or "the first perso
   const g = payload(); g.layout = { v: 1, widgets: {}, deleted: [], cards: { account: ['staff:hub'], students: ['acct:pin'] } };
   const CL = { name: 'Cleo Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'cleo' };
   const c = boot({ payload: g, before: signedInAs_(CL) }); await wait(300); await layPaintAll_(c.w);
-  if (c.w.document.querySelector('[data-do="hub-open"], .staff-top')) bad.push('a client sees the Staff hub moved to Student settings');
+  /* 467: SHOWN TO A CLIENT ONLY LOCKED — the card is seen, never usable. */
+  if (c.w.document.querySelector('[data-do="hub-open"]:not([disabled]), .staff-top:not(.is-locked)')) bad.push('a client can use the Staff hub moved to Student settings');
   if (!c.w.document.querySelector('#s-students [data-do="pin-save"]') || c.w.document.querySelector('#s-account [data-do="pin-save"]')) bad.push('a client does not find the PIN where it was moved');
   if (c.w.document.querySelector('.card-admin, .start-tiles, [data-do="lay-c-move"]')) bad.push('a client sees layout tiles');
   /* A MEMBER: no tiles, no post. */
@@ -29553,6 +29391,173 @@ check('layout cards (465): Start here makes a card, a person or "the first perso
     if (gb.errs.length) bad.push(JSON.stringify(junk) + ' threw: ' + gb.errs.join('; '));
     if (!gb.w.document.querySelector('#s-account [data-do="pin-save"]') || !gb.w.document.querySelector('#s-account .roles-card')) bad.push(JSON.stringify(junk) + ' lost a Student settings card');
   }
+  return bad;
+});
+
+/* ---------- THE LAYOUT ENGINE, AGAIN (466): independent pieces, a new column past the last, every card deletable, one Start here ---------- */
+const layPieces_ = (d, base) => [...d.querySelectorAll(`.card[data-split="${base}"][data-lay-card^="${base}#"]`)].map(c => c.dataset.layCard);
+
+check('layout engine (466): a split card\'s pieces are cards of their own — each moves up, down and across, is deleted and gets Start here alone, each field still edited in one place; Join gathers them back wherever they went', async () => {
+  const { w, sent } = layBoot_();
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  if (!A['lay-split'] || typeof w.cardSeen_ !== 'function') return ['no lay-split or cardSeen_ — NOT checked'];
+  await layPaintAll_(w);
+  const base = 'set:account:contact';
+  const sp = d.querySelector(`#s-account [data-do="lay-split"][data-card="${base}"]`);
+  if (!sp) return ['Contact on Student settings offers no Split — NOT checked'];
+  A['lay-split'](sp); await wait(250); await layPaintAll_(w);
+  const pcs = layPieces_(d, base);
+  if (pcs.length < 2) return bad.concat(['Split drew ' + pcs.length + ' pieces with their own ids']);
+  pcs.forEach(id => { if (!layCardRow_(d, id)) bad.push(id + ' has no admin row of its own'); });
+  const seen0 = laySeen_(w, 'account');
+  if (pcs.some(id => seen0.indexOf(id) === -1)) bad.push('the pieces are not each a card on Student settings: ' + seen0.join());
+  /* THE SECOND PIECE UP, ALONE: the first stays where it was. */
+  const [p1, p2] = pcs;
+  A['lay-c-move'](layCardTile_(d, p2, 'lay-c-move', '-1')); await wait(250); await layPaintAll_(w);
+  let s = laySeen_(w, 'account');
+  if (s.indexOf(p2) !== s.indexOf(p1) - 1) bad.push('the second piece did not move up past the first alone: ' + s.join());
+  /* THE FIRST ACROSS to Tutor settings, alone. */
+  A['lay-c-col'](layCardTile_(d, p1, 'lay-c-col', '-1')); await wait(250); await layPaintAll_(w);
+  if (laySeen_(w, 'staff').indexOf(p1) === -1 || laySeen_(w, 'account').indexOf(p1) !== -1) bad.push(p1 + ' did not move to Tutor settings: ' + laySeen_(w, 'staff').join());
+  if (laySeen_(w, 'staff').indexOf(p2) !== -1) bad.push('the other piece went with it');
+  const ed = editorsOf_(d, {});
+  Object.keys(ed).filter(f => ed[f].size > 1).forEach(f => bad.push('"' + f + '" is edited in ' + ed[f].size + ' places after the pieces moved'));
+  /* START HERE on one piece, then DELETE another. */
+  A['lay-start'](layCardTile_(d, p1, 'lay-start')); await wait(250); await layPaintAll_(w);
+  if (((layLast_(sent) || {}).start || {}).staff !== p1) bad.push('Start here on a piece was not stored: ' + JSON.stringify((layLast_(sent) || {}).start));
+  const del = layCardTile_(d, p2, 'lay-c-del');
+  A['lay-c-del'](del); A['lay-c-del'](del); await wait(250); await layPaintAll_(w);
+  if (laySeen_(w, 'account').indexOf(p2) !== -1 || d.querySelector(`[data-lay-card="${p2}"]`)) bad.push(p2 + ' was not deleted alone');
+  if (!d.querySelector(`[data-lay-card="${p1}"]`)) bad.push('deleting one piece took ' + p1 + ' with it');
+  /* A RELOAD KEEPS EACH PIECE WHERE IT IS — and another account sees the same. */
+  const L = layLast_(sent), p = payload(); p.layout = L;
+  const r = layBoot_({ payload: p }); await wait(300); await layPaintAll_(r.w);
+  if (laySeen_(r.w, 'staff').indexOf(p1) === -1 || r.w.document.querySelector(`[data-lay-card="${p2}"]`)) bad.push('a reload did not keep the pieces apart');
+  /* JOIN, from the piece on Tutor settings: one card again, on Student settings, nothing of its pieces left. */
+  A['lay-join'](d.querySelector(`[data-lay-card="${p1}"] [data-do="lay-join"]`) || d.createElement('button')); await wait(250); await layPaintAll_(w);
+  const J = layLast_(sent) || {}, txt = JSON.stringify(J);
+  if (txt.indexOf(base + '#') !== -1) bad.push('Join left pieces in the layout: ' + txt);
+  if (d.querySelectorAll(`.card[data-split="${base}"]`).length !== 1 || laySeen_(w, 'account').indexOf(base) === -1) bad.push('Join did not gather ' + base + ' back into one card on Student settings');
+  if (r.errs.length) bad.push('errors: ' + r.errs.join('; '));
+  return bad;
+});
+
+check('layout engine (466): ▶ on the last right-hand column makes "New column" before Business, for everybody; it can be renamed, its card moved back empties it and it goes; Delete column sends its cards home; ◀ from the first stays put; a garbled custom falls back', async () => {
+  const { w, sent } = layBoot_();
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  await layPaintAll_(w);
+  const id = 'ppl:parents:add';
+  const right = layCardTile_(d, id, 'lay-c-col', '1');
+  if (!right || right.disabled) return ['"+ Add a parent" has no live ▶ — NOT checked'];
+  A['lay-c-col'](right); await wait(300);
+  const L = layLast_(sent) || {};
+  if (JSON.stringify(L.custom) !== JSON.stringify([{ id: 'custom-1', title: 'New column' }]) || ((L.cards || {})['custom-1'] || []).join() !== id) bad.push('▶ past the last posted ' + JSON.stringify(L));
+  const ids = t.TABS.map(x => x.id);
+  if (ids.indexOf('custom-1') === -1 || ids.indexOf('custom-1') !== ids.indexOf('biz') - 1) bad.push('the new column is not just before Business: ' + ids.join());
+  try { w.paint('custom-1'); w.paint('parents'); } catch (e) { bad.push('painting it threw ' + e.message); }
+  await wait(150);
+  if (!d.querySelector('#s-custom-1 [data-do="person-add"]') || d.querySelector('#s-parents [data-do="person-add"]')) bad.push('"+ Add a parent" is not on the new column alone');
+  /* ITS CARDS GO ON: ▶ again there makes a second. */
+  if (!d.querySelector('#s-custom-1 .custom-head [data-do="lay-col-rename"]')) bad.push('the new column has no Rename');
+  /* RENAME. */
+  const box = d.querySelector('#s-custom-1 .lay-col-name');
+  if (box) { box.value = 'Front desk'; A['lay-col-rename'](d.querySelector('#s-custom-1 [data-do="lay-col-rename"]')); await wait(250); }
+  if (((layLast_(sent) || {}).custom || [])[0]?.title !== 'Front desk') bad.push('Rename did not store the title');
+  if ((t.TABS.find(x => x.id === 'custom-1') || {}).label !== 'Front desk') bad.push('the tab is not called Front desk');
+  /* EVERYBODY: a client reloading has the column and the card where it was put (its own gate decides what is drawn). */
+  const CL = { name: 'Cleo Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'cleo' };
+  const p = payload(); p.layout = layLast_(sent);
+  const c = boot({ payload: p, before: signedInAs_(CL) }); await wait(300);
+  const cids = c.w.__t.TABS.map(x => x.id);
+  if (cids.indexOf('custom-1') === -1 || cids.indexOf('biz') !== -1) bad.push('a client\'s columns: ' + cids.join());
+  try { c.w.paint('custom-1'); } catch (e) {}
+  await wait(100);
+  if (!c.w.document.getElementById('s-custom-1')) bad.push('a client has no section for the new column');
+  if (c.w.document.querySelector('#s-custom-1 .custom-head, #s-custom-1 .card-admin')) bad.push('a client sees the admin line on the new column');
+  if (c.errs.length) bad.push('client errors: ' + c.errs.join('; '));
+  /* ◀ BACK: the column is empty and goes. */
+  await layPaintAll_(w); try { w.paint('custom-1'); } catch (e) {}
+  await wait(100);
+  A['lay-c-col'](layCardTile_(d, id, 'lay-c-col', '-1')); await wait(300);
+  const B = layLast_(sent) || {};
+  if (B.custom || (B.cards || {})['custom-1']) bad.push('the emptied column was not removed: ' + JSON.stringify(B));
+  if (t.TABS.some(x => x.id === 'custom-1') || d.getElementById('s-custom-1')) bad.push('the emptied column is still a tab or a section');
+  await layPaintAll_(w);
+  if (!d.querySelector('#s-parents [data-do="person-add"]')) bad.push('"+ Add a parent" did not come back to Parent profiles');
+  /* DELETE COLUMN sends its cards home. */
+  A['lay-c-col'](layCardTile_(d, id, 'lay-c-col', '1')); await wait(300);
+  try { w.paint('custom-1'); } catch (e) {}
+  await wait(100);
+  const dc = d.querySelector('#s-custom-1 [data-do="lay-col-del"]');
+  if (!dc) bad.push('no Delete column');
+  else { A['lay-col-del'](dc); if (layLast_(sent).custom === undefined) bad.push('one tap deleted the column'); A['lay-col-del'](dc); await wait(300); }
+  if ((layLast_(sent) || {}).custom || t.TABS.some(x => x.id === 'custom-1')) bad.push('Delete column left it');
+  await layPaintAll_(w);
+  if (!d.querySelector('#s-parents [data-do="person-add"]')) bad.push('Delete column did not send "+ Add a parent" home');
+  /* ◀ FROM THE FIRST RIGHT-HAND COLUMN STAYS PUT. */
+  const first = laySeen_(w, 'staff')[0] || laySeen_(w, 'account')[0];
+  const lt = layCardTile_(d, first, 'lay-c-col', '-1');
+  if (laySeen_(w, 'family').length === 0 && laySeen_(w, 'staff')[0] === first && lt && !lt.disabled) {} /* family is first, and empty for an admin */
+  const fam = layCardTile_(d, laySeen_(w, 'family')[0], 'lay-c-col', '-1');
+  if (fam && !fam.disabled) bad.push('◀ on the first right-hand column is live');
+  /* GARBLED: a custom with a bad id, a duplicate, no title — the bad ones ignored, the column still drawn. */
+  const g = payload(); g.layout = { v: 1, widgets: {}, deleted: [], custom: [{ id: 'evil' }, { id: 'custom-2' }, { id: 'custom-2', title: 'x' }, 7], cards: { 'custom-2': ['acct:voice'], evil: ['acct:pin'] } };
+  const gb = layBoot_({ payload: g }); await wait(300); await layPaintAll_(gb.w);
+  const gids = gb.w.__t.TABS.map(x => x.id);
+  if (gids.filter(x => /custom|evil/.test(x)).join() !== 'custom-2') bad.push('a garbled custom gave columns ' + gids.join());
+  if (!gb.w.document.querySelector('#s-account [data-do="pin-save"]')) bad.push('a card named under a bad column left Student settings');
+  if (gb.errs.length) bad.push('garbled errors: ' + gb.errs.join('; '));
+  return bad;
+});
+
+check('layout engine (466): every card deletes — a paper series (past papers, Religious Studies) on its own and the Sessions card; one Start here per card or person, a house not a flag; an admin\'s delete is gone for another account on reload', async () => {
+  const { w, sent } = layBoot_();
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  /* TWO SERIES AND A SESSIONS CARD WITH SOMETHING IN IT, as a learner with work would have. */
+  const was = w.progressCards_;
+  w.progressCards_ = () => was().filter(c => !/prog-series|is-empty"><h3>Papers|prog-sessions|is-empty"><h3>Sessions/.test(c))
+    .concat([w.progressSeriesCard_({ name: 'past papers', papers: [], untouched: 3 }), w.progressSeriesCard_({ name: 'Religious Studies', papers: [], untouched: 2 }),
+      w.progressSessionsCard_({ ahead: [{ d: new w.Date(), j: { title: 'Maths' } }], past: [] })]);
+  await layPaintAll_(w);
+  const s0 = laySeen_(w, 'account');
+  ['prog:series:past-papers', 'prog:series:religious-studies', 'acct:prog-sessions'].forEach(id => {
+    if (s0.indexOf(id) === -1) bad.push(id + ' is not a card on Student settings: ' + s0.join());
+    else if (!layCardTile_(d, id, 'lay-c-del')) bad.push(id + ' has no Delete');
+  });
+  for (const id of ['prog:series:religious-studies', 'acct:prog-sessions']) {
+    const x = layCardTile_(d, id, 'lay-c-del');
+    if (!x) continue;
+    A['lay-c-del'](x); A['lay-c-del'](x); await wait(250); await layPaintAll_(w);
+  }
+  const s1 = laySeen_(w, 'account');
+  if (s1.indexOf('prog:series:religious-studies') !== -1 || s1.indexOf('acct:prog-sessions') !== -1) bad.push('Religious Studies or Sessions was not deleted: ' + s1.join());
+  if (s1.indexOf('prog:series:past-papers') === -1) bad.push('deleting Religious Studies took past papers with it');
+  if (d.querySelector('#s-account .prog-sessions')) bad.push('the Sessions card is still drawn');
+  /* ONE START HERE A CARD, a house. */
+  [...d.querySelectorAll('#screen > .screen > .page')].forEach(pg => {
+    const n = pg.querySelectorAll('[data-do="lay-start"]').length;
+    if (n > 1) bad.push(pg.parentNode.id + ' has a page with ' + n + ' Start here tiles');
+  });
+  const st = d.querySelectorAll('[data-do="lay-start"]');
+  if (!st.length) bad.push('no Start here at all');
+  [...st].forEach(x => { if (/M4 15\.5v-13/.test(x.innerHTML)) bad.push('Start here is still a flag'); if (!/^Start here/.test(x.getAttribute('aria-label') || '')) bad.push('a Start here reads ' + x.getAttribute('aria-label')); });
+  if (d.querySelector('[data-do="lay-start"][data-lc="first-person"]')) bad.push('"the first person" is still a second Start here');
+  /* COMPACT: the admin row's tiles are icons, each at least 44px by the stylesheet's rule. */
+  /* SITE-WIDE: an admin's delete is gone for a client on reload. */
+  const kill = layCardTile_(d, 'acct:voice', 'lay-c-del') || layCardTile_(d, 'acct:notify', 'lay-c-del');
+  const kid = kill && kill.dataset.lc;
+  if (kill) { A['lay-c-del'](kill); A['lay-c-del'](kill); await wait(250); }
+  const CL = { name: 'Cleo Client', personId: 'P-CL', role: 'client', roles: ['client'], rank: 'client', token: 'tk', handle: 'cleo' };
+  const base = boot({ before: signedInAs_(CL) }); await wait(300); await layPaintAll_(base.w);
+  const p = payload(); p.layout = layLast_(sent);
+  const c = boot({ payload: p, before: signedInAs_(CL) }); await wait(300); await layPaintAll_(c.w);
+  const sel = kid === 'acct:voice' ? '.voice-card' : '.notify-card';
+  if (!base.w.document.querySelector('#s-account ' + sel)) bad.push('a client has no ' + kid + ' to begin with (fixture) — NOT checked');
+  else if (c.w.document.querySelector(sel)) bad.push('a client still sees ' + kid + ' the admin deleted');
+  if (c.w.document.querySelector('[data-do="lay-start"], .card-admin')) bad.push('a client sees admin tiles');
   return bad;
 });
 
