@@ -36,9 +36,10 @@ reports any name used but never declared. **Run it after every change.**
 | `js/find.js` | The funnel — the main surface — and the engine of both finders (`FINDERS`, `inFinder_`). |
 | `js/book.js` | Sessions, seats, payment. |
 
-Screens, in `TAB_ORDER`, grouped by purpose (392): `feed spotlight reel dm | stuff res saved progress tools |
-booking shop | games | account settings biz`; `data/settings/columns.json` must list the same order
-(`check-doors`). `feed` is where the app opens (`TAB_HOME`). `stuff` is Find; `res` is Find 2; `biz` is admin-only — a tab marked
+Screens, in `TAB_ORDER` (392, 461): `spotlight feed reel dm | tools stuff res saved | booking shop | games |
+family staff account | tutors students parents | biz`; `data/settings/columns.json` must list the same order
+(`check-doors`). `feed` is where the app opens (`TAB_HOME`). `stuff` is Find; `res` is Find 2; `family staff account` are
+Parent, Tutor and Student settings, `tutors students parents` the three profile columns; every setting has one home. `biz` is admin-only — a tab marked
 `admin: true` is left out of `TABS` by `columnsFor_` (shell.js), which also makes and removes its `<section>`.
 
 **One finder, twice** (docs/history/329, 347). `stuff` and `res` carry the same list and ask the same
@@ -82,7 +83,7 @@ when it was not told it could", never "is this past the right edge".
   - Chemistry and Biology `atom balance carbon cell covalent dna electro enzyme equil frac groups heart ionic mitosis moles natsel osmosis photo punnett rates reflex titrate` (`tools/cb_<id>.py` with `tools/cb_kit.py`, 420)
   - Computer Science `bin bubble fde gates hex insert merge packet pixel rle search stack` (`tools/cs_<id>.py`, 424; a new one makes its row with `--init`)
   - Geography `ggcoast ggcontour ggdtm gggreen gggrid ggmeander ggplate ggquake ggstorm ggwater` (`tools/gg_<topic>.py`, 423)
-  - History `hbal hcur hexp hinf hmed hnop hweb hweim` (`tools/h_<topic>.py`, 417)
+  - History `hbal hcur hexp hinf hmed hnop hweb hweim hww2` (`tools/h_<topic>.py`, 417)
   - English `eapos earc eforest emetre epeel escrooge esent ezoom` (`tools/e_<topic>.py`, 416)
   - Psychology and Sociology `asch ivdv lens milg msm piag samp syn` (`tools/ps_<topic>.py`, names in `anim_row.py`; 426)
   - Economics and Business `ecbreakeven eccashflow ecextern ecflow ecfx ecped ecppf ecrates ecsupply` (`tools/ec_<topic>.py`, 425)
