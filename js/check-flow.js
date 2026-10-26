@@ -20078,7 +20078,7 @@ check('a content card, on Find 2 and on Find: What kind · Content, Statistics �
   ['GCSE', 'Statistics', 'Mean', 'Median'].forEach(v => { if (tags.indexOf(v) < 0) bad.push('the Averages card has no "' + v + '" tag: ' + tags.join(' | ')); });
   if (tags.some(v => /^(Edexcel|AQA|OCR)$/.test(v))) bad.push('the Averages card names a board — its words are every board\'s: ' + tags.join(' | '));
   /* A SET TEXT IS ONE BOARD'S, and says so. */
-  const mac = cards.find(i => i.name === 'Macbeth');
+  const mac = cards.find(i => i.name === 'Macbeth: the play at a glance');
   if (!mac || [...box(w.stuffCard(mac)).querySelectorAll('.qtag')].map(e => e.textContent).indexOf('AQA') < 0) bad.push('the Macbeth card does not say AQA — a set text is the board\'s');
   /* A CARD WITH FORMULAS, WHOLE, AND THE ONE THAT IS HIGHER ALL THROUGH. */
   const withMath = cards.find(i => i.row.formulas.some(f => /\//.test(f.text)));
