@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-26-c-daive";
+const DOPOST_VERSION = "2026-10-26-d-six-columns";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -97,8 +97,8 @@ function linkMail_(r, token, asParent) {
         + 'this address instead — it takes the account over and signs everyone else out.'
         /* THE NEXT STEP, for the person who came for it — and since a child waits on a confirmed
            address (`confirmFirst_`), the link is that step's first half, said in that order. */
-        + (asParent ? '\n\nOnce you have opened the link, Settings → "Make your child\'s account" gives your '
-                    + 'child a handle and a PIN of their own — they need no email.' : '')
+        + (asParent ? '\n\nOnce you have opened the link, your child makes their own account; find their handle '
+                    + 'on Student profiles and tap Add as my child, and they say yes.' : '')
         + '\n\n— @family.' });
 }
 
@@ -1625,68 +1625,10 @@ function doPost(e) {
       return jsonOut({ success: true, signedAt: at, version: version });
     }
 
-    /* ---------- A PARENT MAKES THEIR CHILD'S ACCOUNT § */
+    /* ---------- MAKING A CHILD'S ACCOUNT IS GONE (461): an account is made by its owner, then claimed. An old page gets this. */
     if (action === 'makeChild') {
-      const me = findPerson('', S(body.personId));
-      if (!me) return jsonOut({ error: 'Not signed in.' });
-      /* THE REFUSAL NAMES A TICK THAT EXISTS, AND ONLY TO SOMEBODY WHO MAY TICK IT. § */
-      if (!hasRole(me, 'client') && !hasRole(me, 'admin')) {
-        return jsonOut({ error: actingRole_(me) === 'student'
-          ? 'Only a parent can make a child\'s account, and this one is a student\'s. If you are a '
-            + 'parent, ask @family. to change it. Nothing was made.'
-          : 'Only a parent can make a child\'s account. Tick ' + ROLE_LABEL.client
-            + ' under Your roles first. Nothing was made.' });
-      }
-      /* ---------- NOT ON AN ACCOUNT WHOSE ADDRESS NOBODY HAS PROVED § */
-      if (addressPending_(me)) {
-        return jsonOut(confirmFirst_(me, 'you can make your child\'s account. Nothing was made'));
-      }
-      const first = S(body.firstName), last = S(body.lastName), pin = S(body.pin);
-      if (!first || !last) return jsonOut({ error: 'Their first name and their last name, please.' });
-      if (!/^\d{4,8}$/.test(pin)) return jsonOut({ error: 'Choose a PIN of 4 to 8 digits for them.' });
-      if (pinWeak_(pin)) return jsonOut({ error: 'Pick a PIN that is harder to guess than that.' });
-      const full = (first + ' ' + last).trim();
-      const t = read(TAB.people), fam = read(TAB.family);
-      if (!fam.sheet) return jsonOut({ error: 'The family tab could not be opened — nothing was saved.' });
-      const lacking = ['handle', 'pin'].filter(c => t.headers.indexOf(c) === -1);
-      if (lacking.length) {
-        return jsonOut({ error: 'The sheet has no column for: ' + lacking.join(', ') + '. Run ?setup=1 — nothing was saved.' });
-      }
-      /* NOT "THERE IS ALREADY AN ACCOUNT CALLED …" (342, the review) — that confirmed a guessed whole name
-         to any confirmed parent. `register`'s rule: the same sentence as any refusal of its kind. */
-      if (findPerson(full)) {
-        return jsonOut({ error: 'We could not make that account. If your child has one already, use "Add your '
-                              + 'child" to ask them to link it — or ask us to help.' });
-      }
-      /* A DRAFT OF THE ROW ABOUT TO BE WRITTEN, for the template (364): never their surname, only its initial. */
-      const kidId = 'P' + Date.now() + '-k';
-      const handle = handleMake_({ person_id: kidId, first_name: first, last_name: last });
-      if (!handle) return jsonOut({ error: 'No free handle could be made just now. Nothing was saved — try again.' });
-      const kid = addRow(t, {
-        person_id: kidId, role: 'student', first_name: first, last_name: last, handle: handle,
-        email: '', pin: pin, credits: 0, xp: 0, came_from: 'parent', invited_by: S(me.person_id),
-        joined_on: new Date(), verified: 'TRUE',
-      });
-      if (!kid) return jsonOut({ error: 'The people tab could not be opened — nothing was saved.' });
-      const link = addRow(fam, {
-        link_id: 'F' + Date.now(), parent_id: S(me.person_id), child_id: kidId, child_typed: full,
-        state: 'accepted', asked_on: new Date(), answered_on: new Date(),
-      });
-      if (!link) return jsonOut({ error: 'Their account was made, but it could not be put on yours — ask us to link it.' });
-      clearCache();
-      /* ROUND ONE ASKED `addressPending_(me)` HERE, so the handle did not go to a typo's inbox. § */
-      if (S(me.email)) {
-        try {
-          mailOut_({ to: S(me.email), name: BRAND_NAME,
-            subject: first + '\'s ' + BRAND_NAME + ' account',
-            body: first + ' has an account on ' + BRAND_NAME + ' now, on yours.\n\n'
-                + 'They sign in with their handle, @' + handle + ', and the PIN you chose.\n\n'
-                + 'If they forget the PIN, "New PIN" on their card on your account gives them a new one '
-                + 'straight away.\n\n— ' + BRAND_NAME });
-        } catch (err) { /* the account is made and the screen shows the handle; a mail quota is not a refusal */ }
-      }
-      /* THE FIRST NAME — the slip says "Ivy signs in with…", and the parent typed the rest. */
-      return jsonOut({ success: true, name: nameFor_(kid), handle: handle, personId: kidId });
+      return jsonOut({ error: 'A child makes their own account now (Make an account). Then find their handle and tap '
+                            + 'Add as my child, and they say yes. Nothing was made.' });
     }
 
     /* ---------- A NEW PIN FOR SOMEBODY ELSE: THEIR PARENT, OR AN ADMIN § */

@@ -157,7 +157,7 @@ function postCard_(p, i) {
     /* ---------- THE FACES' SLOT, BUILT ONCE BECAUSE IT GOES IN ONE OF TWO PLACES § */
     const acts = reacts(p) || (isAdmin()
       ? '<span class="faint">No reactions — this payload predates them. '
-        + 'Check the build stamp on You.</span>'
+        + 'Check the build stamp on Business.</span>'
       : '');
     const actsHtml = acts ? `<div class="post-acts">${acts}</div>` : '';
 

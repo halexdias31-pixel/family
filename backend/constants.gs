@@ -120,7 +120,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-26-c-daive";
+const BACKEND_VERSION = "2026-10-26-d-six-columns";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {

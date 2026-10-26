@@ -8,7 +8,7 @@ const TABS = [
   /* ---------- ONE TAB § */
   { id: 'stuff',   icon: '🔎', label: 'Find',    title: 'Find' },
   /* ---------- WHO YOU ARE, AT THE START OF THE YOU GROUP (392) § */
-  { id: 'account', icon: '👤', label: 'Student', title: 'Student' },
+  { id: 'account', icon: '⚙', label: 'Student settings', title: 'Student settings' },
 
   /* ---------- AND SEVEN MORE, WHICH IS THIS TABLE GOING BACK THE WAY IT CAME § */
   /* ---------- `make` WAS HERE, AND THE CAMERA IS THE PAGE ABOVE THE NEWEST POST NOW § */
@@ -23,13 +23,16 @@ const TABS = [
   /* ---------- SAVED, RIGHT OF FIND 2 WITH THE LEARNING COLUMNS (392) § */
   { id: 'saved',   icon: '★',  label: 'Saved',   title: 'Saved' },
   { id: 'spotlight', icon: '✦', label: 'Spotlight', title: 'Spotlight' },
-  /* ---------- A COLUMN PER RANK, RIGHT OF YOU (444): Family for a client, Tutor for staff, Admin last. Settings went into You. */
-  { id: 'family',  icon: '👪', label: 'Parent',  title: 'Parent' },
-  { id: 'staff',   icon: '🎓', label: 'Tutor',   title: 'Tutor' },
+  /* ---------- SIX COLUMNS (461): each account type's settings, then a card per tutor, student and parent. */
+  { id: 'tutors',   icon: '🎓', label: 'Tutor profiles',   title: 'Tutor profiles' },
+  { id: 'students', icon: '👤', label: 'Student profiles', title: 'Student profiles' },
+  { id: 'parents',  icon: '👪', label: 'Parent profiles',  title: 'Parent profiles' },
+  { id: 'family',  icon: '🔧', label: 'Parent settings',  title: 'Parent settings' },
+  { id: 'staff',   icon: '🛠', label: 'Tutor settings',   title: 'Tutor settings' },
   /* ---------- AND THE SHOP, RIGHT OF BOOKING § */
   { id: 'shop',    icon: '🛒', label: 'Shop',    title: 'Shop' },
   /* ---------- AND PROGRESS, RIGHT OF SAVED (392), WAITING TO BE BUILT § */
-  { id: 'progress', icon: '📈', label: 'Progress', title: 'Progress' },
+  /* PROGRESS WAS HERE — dissolved into Student settings (461). */
   /* ---------- FIND 2: THE SAME FINDER AGAIN, RIGHT OF FIND § */
   { id: 'res',     icon: '🔎', label: 'Find 2', title: 'Find 2' },
   /* ---------- AND THE BUSINESS'S OWN PAPERWORK, LAST, FOR AN ADMIN AND NOBODY ELSE § */
@@ -38,11 +41,13 @@ const TABS = [
 
 /* ---------- LEFT TO RIGHT, WHICH IS NOT THE ORDER THEY ARE WRITTEN IN § */
 /* GROUPED BY PURPOSE, read left to right (392). columns.json lists the same order; check-doors fails if they part. § */
-const TAB_ORDER = ['feed', 'spotlight', 'reel', 'dm',                  /* social   (392) */
-                   'tools', 'stuff', 'res', 'saved', 'progress',      /* learning; Tools left of Find, one swipe to the whiteboard (444) */
+const TAB_ORDER = ['spotlight', 'feed', 'reel', 'dm',                  /* social (392); Spotlight left of the posts (461) */
+                   'tools', 'stuff', 'res', 'saved',                  /* learning; Tools left of Find (444); Progress went into Student settings (461) */
                    'booking', 'shop',                                 /* business */
                    'games',
-                   'account', 'staff', 'family', 'biz'];              /* a column per account: Student, Tutor, Parent, Business (444) */
+                   'family', 'staff', 'account',                      /* Parent, Tutor and Student account settings (461) */
+                   'tutors', 'students', 'parents',                   /* Tutor, Student and Parent profiles, a card per person (461) */
+                   'biz'];
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
 
 /* ---------- EVERY COLUMN THE BUILD HAS, AND THE ONES THIS VIEWER IS GIVEN § */
@@ -121,6 +126,8 @@ function applyColumns_() {
 /* ---------- WHERE AN UNKNOWN ROUTE LANDS, NAMED RATHER THAN COUNTED § */
 /* ---------- THE FIRST THING ANYBODY SEES IS THE LATEST POST § */
 const TAB_HOME = 'feed';
+/* A COLUMN THAT WAS DISSOLVED, AND WHERE ITS THINGS WENT: an old link or a remembered place lands there (461). */
+const TAB_GONE = { progress: 'account' };
 
 /* ---------- HOW LONG AWAY COUNTS AS OPENING IT AGAIN § */
 const AWAY_AGAIN = 6 * 60 * 1000;
@@ -142,7 +149,8 @@ let AT = TAB_HOME;
    Business is put back on it, and anybody else's remembered `biz` is not a column and is let go. */
 try { columnsFor_(); } catch (e) {}
 try {
-  const was = localStorage.getItem('familyTab');
+  const kept = localStorage.getItem('familyTab');
+  const was = TAB_GONE[kept] || kept;
   const when = Number(localStorage.getItem('familyTabAt') || 0);
   if (was && TABS.some(t => t.id === was) && when && Date.now() - when < AWAY_AGAIN) AT = was;
 } catch {}
@@ -156,6 +164,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 /* ---------- THE COLUMN BEFORE THIS ONE § */
 let PREV_AT = '';
 function go(id, remember, instant) {
+  id = TAB_GONE[id] || id;
   const tab = TABS.find(t => t.id === id)
            || TABS.find(t => t.id === TAB_HOME)
            || TABS[0];
@@ -1433,10 +1442,7 @@ const PAGER = {
   /* EVERY SCREEN IS PAGED. § */
   /* ---------- THESE KEYS ARE SCREEN IDS, AND TWO OF THEM NAMED SCREENS THAT DO NOT EXIST § */
   /* ---------- THE PAGER COUNTED A LIST THE SCREEN DOES NOT DRAW § */
-  account: () => {
-    const n = typeof accountPages_ === 'function' ? accountPages_().length : 0;
-    return Array.from({ length: n }, (_, i) => (n > 1 ? (i + 1) + ' of ' + n : ''));
-  },
+  account: () => (typeof studentSetPages_ === 'function' ? studentSetPages_().length : 1),
   /* `book` WAS HERE — a pager for a column that no longer exists. Find has its own count. */
 
   /* Empty names, one per post. § */
@@ -1454,11 +1460,12 @@ const PAGER = {
   /* AND THE SAME AGAIN FOR SETTINGS. § */
   family: () => (typeof familyPages_ === 'function' ? familyPages_().length : 1),
   staff: () => (typeof staffPages_ === 'function' ? staffPages_().length : 1),
+  tutors: () => (typeof peoplePages_ === 'function' ? peoplePages_('tutors').length : 1),
+  students: () => (typeof peoplePages_ === 'function' ? peoplePages_('students').length : 1),
+  parents: () => (typeof peoplePages_ === 'function' ? peoplePages_('parents').length : 1),
   /* THE SHOP, COUNTED FROM `shopCards_`, the list `screen('shop')` draws. Never nought: the basket
      is always page 0, and with nothing for sale the shop says so in a page of its own. */
   shop: () => (typeof shopCards_ === 'function' ? shopCards_().length : 1),
-  /* PROGRESS, COUNTED FROM `progressCards_`, the list `screen('progress')` draws. § */
-  progress: () => (typeof progressCards_ === 'function' ? progressCards_().length : 1),
   /* THE BUSINESS RECORDS, COUNTED FROM `bizPages_`, the list `screen('biz')` draws — five cards for an admin. § */
   biz: () => (typeof adminPages_ === 'function' ? adminPages_().length : 0),
 
@@ -1554,7 +1561,7 @@ function applyBrandIcon_() {
    remembered between visits. */
 /* `booking` AND `dm` WERE MISSING, and this table's own sentence above is the rule they broke: § */
 const PAGE = { feed: 0, stuff: 0, account: 0, tools: 0, games: 0, reel: 0, booking: 0, dm: 0, make: 0,
-               saved: 0, family: 0, staff: 0, spotlight: 0, shop: 0, progress: 0, res: 0, biz: 0 };
+               saved: 0, family: 0, staff: 0, tutors: 0, students: 0, parents: 0, spotlight: 0, shop: 0, res: 0, biz: 0 };
 
 /* A COLUMN MAY HOLD FEWER PAGE ELEMENTS THAN IT HAS PAGES. § */
 const PAGE_KEEP = {};

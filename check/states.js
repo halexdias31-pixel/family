@@ -2564,24 +2564,24 @@ const STATES = {
         paint('account'); paintPager('account', true);
       } },
     /* ---------- A CHILD WITH NO HANDLE, ON AN ADMIN'S PEOPLE COLUMN § */
-    { col: 'biz', name: 'a child with no handle yet, and New PIN',
+    { col: 'students', name: 'a child with no handle yet, and New PIN',
       only: () => typeof USER !== 'undefined' && !!USER && typeof isAdmin === 'function' && isAdmin(),
       enter: () => {
         window.STATE_EVERY_WAS = DATA.everyone;
         DATA.everyone = [{ personId: 'P-STATE-KID', title: 'Kit Handleless', handle: '', role: 'Student', image: '' }];
-        paint('biz');
-        const at = [...document.querySelectorAll('#s-biz .page')]
+        paint('students');
+        const at = [...document.querySelectorAll('#s-students .page')]
           .findIndex(pg => pg.querySelector('[data-do="kid-pin"][data-id="P-STATE-KID"]'));
-        if (at < 0) throw new Error('no New PIN tile for the seeded child on the admin\'s column');
-        goPage('biz', at, true);
+        if (at < 0) throw new Error('no New PIN tile for the seeded child on Students');
+        goPage('students', at, true);
       },
       leave: () => {
         if (window.STATE_EVERY_WAS === undefined) delete DATA.everyone; else DATA.everyone = window.STATE_EVERY_WAS;
         delete window.STATE_EVERY_WAS;
-        paint('biz');
+        paint('students');
       },
       expect: () => {
-        const pg = document.querySelector('#s-biz .page.on');
+        const pg = document.querySelector('#s-students .page.on');
         return pg && /no handle yet/.test(pg.textContent)
           && pg.querySelector('.tile[data-do="kid-pin"]') && pg.querySelector('.tile[data-do="msg-open"]') ? 2 : 0;
       },
@@ -2602,35 +2602,35 @@ const STATES = {
       wants: 'the paper slip in the sheet: the handle and the PIN, neither running off the slip',
       leave: () => { closeSheet(); } },
     /* ---------- THE HANDLE, WITH EXACTLY ONE `@` IN FRONT OF IT § */
-    { name: 'a handle on a card',
+    { col: 'tutors', name: 'a handle on a card',
       only: () => typeof USER !== 'undefined' && !!USER
                   && !!((DATA.tutors || []).find(t => t && t.handle)),
       enter: () => {
-        const at = [...document.querySelectorAll('#s-account .page')]
+        const at = [...document.querySelectorAll('#s-tutors .page')]
           .findIndex(pg => pg.querySelector('.prof-handle'));
         if (at < 0) throw new Error('no card on the account column draws a handle');
-        goPage('account', at, true);
+        goPage('tutors', at, true);
       },
       expect: () => {
-        const el = document.querySelector('#s-account .page.on .prof-handle');
+        const el = document.querySelector('#s-tutors .page.on .prof-handle');
         const txt = el ? el.textContent.trim() : '';
         return (/^@[A-Za-z][A-Za-z0-9_]{2,19}$/.test(txt)) ? 1 : 0;
       },
       wants: 'a handle drawn as exactly one @ and a shape a row could hold' },
     /* ---------- THE AGES THEY TEACH, AS A CHIP UNDER "AT A GLANCE" § */
-    { name: 'an age range on a card',
+    { col: 'tutors', name: 'an age range on a card',
       only: () => typeof USER !== 'undefined' && !!USER
                   && (DATA.tutors || []).some(t => t && t.ageMin === 8 && t.ageMax === 16),
       enter: () => {
-        const at = [...document.querySelectorAll('#s-account .page')]
+        const at = [...document.querySelectorAll('#s-tutors .page')]
           .findIndex(pg => [...pg.querySelectorAll('.prof-facts .prof-tag')].some(c => /^Ages /.test(c.textContent.trim())));
         if (at < 0) throw new Error('no card on the account column draws an age range');
-        goPage('account', at, true);
+        goPage('tutors', at, true);
       },
-      expect: () => [...document.querySelectorAll('#s-account .page.on .prof-facts .prof-tag')]
+      expect: () => [...document.querySelectorAll('#s-tutors .page.on .prof-facts .prof-tag')]
                       .some(c => c.textContent.trim() === 'Ages 8–16') ? 1 : 0,
       wants: 'the fixture tutor\'s "Ages 8–16" chip under At a glance' },
-    { name: 'a tutor switched off',
+    { col: 'tutors', name: 'a tutor switched off',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => {
         window.__OFF_HELD = (DATA.tutors || []).slice();
@@ -2638,36 +2638,36 @@ const STATES = {
           {}, (DATA.tutors || [])[0] || {},
           { personId: 'P-unlisted', handle: 'unlisted', title: 'Switched Off',
             subtitle: 'Maths, GCSE', listed: false })]);
-        paint('account');
+        paint('tutors');
         /* THE PAGE NUMBER COMES FROM THE BUILDER THE COLUMN IS DRAWN FROM, not from a second re-derivation of `others` here — which is the fault the flyer state above § */
-        const n = accountPages_().findIndex(h => /prof-off/.test(h));
+        const n = accountPages_('tutors').findIndex(h => /prof-off/.test(h));
         if (n < 0) throw new Error('the unlisted tutor is not on the account column');
-        goPage('account', n, true);
+        goPage('tutors', n, true);
       },
       /* ---------- AND THE LINE THAT SAYS WHAT THE MARK MEANS § */
-      expect: () => document.querySelector('#s-account .card.is-widget.is-off .prof-off')
-                 && document.querySelector('#s-account .card.is-widget.is-off .prof-hid'),
+      expect: () => document.querySelector('#s-tutors .card.is-widget.is-off .prof-off')
+                 && document.querySelector('#s-tutors .card.is-widget.is-off .prof-hid'),
       wants: 'the unlisted tutor drawn, dimmed, with "· not listed" and the line saying what it means',
       leave: () => {
         if (window.__OFF_HELD) DATA.tutors = window.__OFF_HELD;
-        paint('account');
+        paint('tutors');
       } },
     /* ---------- A TUTOR'S OTHER PHOTOGRAPHS, FOUR SQUARES TO A ROW, AND NONE OF THEM OPENS § */
-    { name: "a tutor's photographs, pressed and staying squares",
+    { col: 'tutors', name: "a tutor's photographs, pressed and staying squares",
       only: () => typeof USER !== 'undefined' && !!USER
                   && (DATA.tutors || []).some(t => t && Array.isArray(t.photos) && t.photos.length),
       enter: () => {
-        const pages = [...document.querySelectorAll('#s-account .page')];
+        const pages = [...document.querySelectorAll('#s-tutors .page')];
         const at = pages.findIndex(pg => pg.querySelector('.prof-photos'));
         if (at < 0) throw new Error('no card on the account column draws a tutor\'s photographs');
-        goPage('account', at, true);
+        goPage('tutors', at, true);
         /* THE PAGE BY INDEX, NOT `.page.on` — that class is written when the column is placed, so
            read in the same tick as `goPage` it names the page the column was on before the turn. */
         const shots = pages[at].querySelectorAll('.prof-shot');
         if (shots[1]) shots[1].click();
       },
       expect: () => {
-        const grid = document.querySelector('#s-account .page.on .prof-photos');
+        const grid = document.querySelector('#s-tutors .page.on .prof-photos');
         const shots = grid ? [...grid.querySelectorAll('.prof-shot')] : [];
         /* SQUARE, STILL: every one as wide as it is tall after the press, none a control, none told
            it can grow. */
@@ -2676,9 +2676,9 @@ const STATES = {
           && !grid.querySelector('button, [data-do], [aria-pressed], .is-big') ? shots.length : 0;
       },
       wants: "a tutor's photographs as squares, still squares after one is pressed, and none of them a button",
-      leave: () => { paint('account'); } },
+      leave: () => { paint('tutors'); } },
     /* ---------- WHAT THEY TEACH: ONE CHIP A SUBJECT, ITS LEVELS RAISED — see `teachGroups_` § */
-    { name: 'a tutor teaching one subject at several levels',
+    { col: 'tutors', name: 'a tutor teaching one subject at several levels',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         window.__TEACH_HELD = (DATA.tutors || []).slice();
@@ -2690,13 +2690,13 @@ const STATES = {
             teaches: ['Maths (GCSE)', 'Maths (A-Level)', 'Maths (KS2)', 'Maths (KS3)', 'Maths (AS)',
                       'Maths (Degree)', 'English Language and Literature (GCSE)',
                       'English Language and Literature (A-Level)', 'Physics'] })]);
-        paint('account');
-        const n = accountPages_().findIndex(h => /Many Levels/.test(h));
+        paint('tutors');
+        const n = accountPages_('tutors').findIndex(h => /Many Levels/.test(h));
         if (n < 0) throw new Error('the seeded tutor is not on the account column');
-        goPage('account', n, true);
+        goPage('tutors', n, true);
       },
       expect: () => {
-        const pg = [...document.querySelectorAll('#s-account .page')]
+        const pg = [...document.querySelectorAll('#s-tutors .page')]
           .find(p => /Many Levels/.test(p.textContent));
         const tags = pg ? [...pg.querySelectorAll('.prof-teach .prof-tag')] : [];
         const said = tags.filter(x => x.querySelector('sup.prof-lv'))
@@ -2709,11 +2709,11 @@ const STATES = {
       /* AND THE COLUMN GOES BACK TO THE PAGE IT WAS ON. § */
       leave: () => {
         if (window.__TEACH_HELD) DATA.tutors = window.__TEACH_HELD;
-        paint('account');
-        goPage('account', window.__TEACH_AT || 0, true);
+        paint('tutors');
+        goPage('tutors', window.__TEACH_AT || 0, true);
       } },
     /* ---------- A QUALIFICATION, WRITTEN LIKE AN ISOTOPE — see `profQualChip_` in cards.js § */
-    { name: 'a tutor\'s qualifications, written like isotopes',
+    { col: 'tutors', name: 'a tutor\'s qualifications, written like isotopes',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         window.__ISO_HELD = (DATA.tutors || []).slice();
@@ -2729,13 +2729,13 @@ const STATES = {
           { personId: 'P-iso', handle: 'iso', title: 'Iso Notation', listed: true, qualsParts: parts,
             teachesSpec: ['Maths (GCSE)'],
             quals: parts.map(p => [p.subject, p.level, p.grade && 'grade ' + p.grade].filter(Boolean).join(' ')) })]);
-        paint('account');
-        const n = accountPages_().findIndex(h => /Iso Notation/.test(h));
+        paint('tutors');
+        const n = accountPages_('tutors').findIndex(h => /Iso Notation/.test(h));
         if (n < 0) throw new Error('the seeded tutor is not on the account column');
-        goPage('account', n, true);
+        goPage('tutors', n, true);
       },
       expect: () => {
-        const pg = [...document.querySelectorAll('#s-account .page')].find(p => /Iso Notation/.test(p.textContent));
+        const pg = [...document.querySelectorAll('#s-tutors .page')].find(p => /Iso Notation/.test(p.textContent));
         const row = pg && pg.querySelector('.prof-quals');
         if (!row) return 0;
         const box = el => el.getBoundingClientRect();
@@ -2783,20 +2783,20 @@ const STATES = {
       wants: 'each qualification\'s level over its grade on the subject\'s right, as far from it as a Teaches level is from its own, inside a pill no taller than a plain one',
       leave: () => {
         if (window.__ISO_HELD) DATA.tutors = window.__ISO_HELD;
-        paint('account');
-        goPage('account', window.__ISO_AT || 0, true);
+        paint('tutors');
+        goPage('tutors', window.__ISO_AT || 0, true);
       } },
     /* ---------- WHERE THEY TUTOR, AS A HEAT MAP — see `profHeat_` in cards.js § */
-    { name: 'a tutor card, the five captions and the area map',
+    { col: 'tutors', name: 'a tutor card, the five captions and the area map',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
-        const pages = [...document.querySelectorAll('#s-account .page')];
+        const pages = [...document.querySelectorAll('#s-tutors .page')];
         const at = pages.findIndex(pg => pg.querySelector('.prof-heat'));
         if (at < 0) throw new Error('no card on the account column draws a heat map');
-        goPage('account', at, true);
+        goPage('tutors', at, true);
       },
       expect: () => {
-        const pg = [...document.querySelectorAll('#s-account .page')].find(p => p.querySelector('.prof-heat'));
+        const pg = [...document.querySelectorAll('#s-tutors .page')].find(p => p.querySelector('.prof-heat'));
         if (!pg) return 0;
         const caps = [...pg.querySelectorAll('.prof-cap')].map(c => c.textContent.trim());
         /* AND `Available` AFTER IT, which is the one caption added since the five were asked for — "tutors availability should appear on their card."* It is the week § */
@@ -2814,18 +2814,18 @@ const STATES = {
           && !/Colliers Wood Library|Sutton Library/.test(text) ? 1 : 0;
       },
       wants: 'the five captions in order, one glow on a map, Online as a chip, and no venue named',
-      leave: () => { paint('account'); } },
+      leave: () => { paint('tutors'); } },
     /* ---------- A TUTOR'S HOURS ON THEIR CARD — see `profAvail_` in cards.js § */
-    { name: 'a tutor\'s hours on their card',
+    { col: 'tutors', name: 'a tutor\'s hours on their card',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
-        const pages = [...document.querySelectorAll('#s-account .page')];
+        const pages = [...document.querySelectorAll('#s-tutors .page')];
         const at = pages.findIndex(pg => pg.querySelector('.prof-week'));
         if (at < 0) throw new Error('no card on the account column draws a tutor\'s week');
-        goPage('account', at, true);
+        goPage('tutors', at, true);
       },
       expect: () => {
-        const pg = [...document.querySelectorAll('#s-account .page')].find(p => p.querySelector('.prof-week'));
+        const pg = [...document.querySelectorAll('#s-tutors .page')].find(p => p.querySelector('.prof-week'));
         if (!pg) return 0;
         const wk = pg.querySelector('.prof-week');
         const cap = wk.previousElementSibling;
@@ -2843,9 +2843,9 @@ const STATES = {
           && !wk.querySelector('button, input, label') ? 1 : 0;
       },
       wants: 'an Available caption over Mon, Tue, Wed and Sat only, eight hours lit, Monday 17 drawn as taught (computed unlike unticked Monday 9) and the "already teaching" key',
-      leave: () => { paint('account'); } },
+      leave: () => { paint('tutors'); } },
     /* ---------- YOUR FAMILY, A CARD EACH § */
-    { name: 'your family, a card each',
+    { col: 'parents', name: 'your family, a card each',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         window.__FAM_HELD = DATA.family; window.__FAM_FOR = DATA.familyFor; window.__FAM_CLAIMS = DATA.claims;
@@ -2864,34 +2864,34 @@ const STATES = {
           { personId: 'P-fam-sib', title: 'Bartholomew Brotherington-Hale', relation: 'sibling',
             handle: 'bartholomew_kind19', image: '' },
         ];
-        paint('account');
-        /* ON THE REQUEST, which is the page in front of the family cards: the one with buttons. */
-        const n = accountPages_().findIndex(h => /says they are your parent/.test(h));
-        if (n < 0) throw new Error('no claim card on the account column');
-        goPage('account', n, true);
+        paint('students'); paint('parents');
+        /* ON THE REQUEST, which is the page in front of your parent's card on Parents: the one with buttons. */
+        const n = accountPages_('parents').findIndex(h => /says they are your parent/.test(h));
+        if (n < 0) throw new Error('no claim card on the Parents column');
+        goPage('parents', n, true);
       },
       expect: () => {
-        const heads = [...document.querySelectorAll('#s-account .card.is-prof h3')].map(h => h.textContent.trim());
-        return heads.filter(h => h === 'Your parent').length === 1
-            && heads.filter(h => h === 'Your child').length === 1
-            && heads.filter(h => h === 'Your brother or sister').length === 1
-            && document.querySelectorAll('#s-account [data-do="claim-yes"]').length === 1 ? 3 : 0;
+        const heads = c => [...document.querySelectorAll('#s-' + c + ' .card.is-prof h3')].map(h => h.textContent.trim());
+        return heads('parents').filter(h => h === 'Your parent').length === 1
+            && heads('students').filter(h => h === 'Your child').length === 1
+            && heads('students').filter(h => h === 'Your brother or sister').length === 1
+            && document.querySelectorAll('#s-parents [data-do="claim-yes"]').length === 1 ? 3 : 0;
       },
-      wants: 'one card each headed "Your parent", "Your child" and "Your brother or sister", and one request to answer',
+      wants: 'a card headed "Your parent" and one request to answer on Parents, one each headed "Your child" and "Your brother or sister" on Students (453)',
       /* `repaint(true)`, not `paint`: four pages leave the column (a sibling made it four), so it is placed again — a bare paint
          left the card in front sitting where the old page 2 was, and COLUMNS OUT OF LINE said so. */
       leave: () => { DATA.family = window.__FAM_HELD; DATA.familyFor = window.__FAM_FOR; DATA.claims = window.__FAM_CLAIMS; repaint(true); } },
     /* ---------- YOUR OWN CARD WHILE YOUR EMAIL IS UNPROVED § */
-    { name: 'your own card, your email not confirmed yet',
+    { col: 'tutors', name: 'your own card, your email not confirmed yet',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         window.__PENDING_WAS = USER.pendingEmail;
         USER.pendingEmail = 'philippa.parentington-smythe.family@example.org';
-        paint('account');
-        goPage('account', 0, true);
+        paint(homeCol_());
+        goPage(homeCol_(), 0, true);
       },
       expect: () => {
-        const pg = document.querySelector('#s-account .page.on');
+        const pg = document.querySelector('#s-' + homeCol_() + ' .page.on');
         const line = pg && pg.querySelector('.mail-held');
         return line && /philippa\.parentington-smythe\.family@example\.org/.test(line.textContent)
           && pg.querySelectorAll('[data-do="resend-link"]').length === 1
@@ -2900,7 +2900,7 @@ const STATES = {
       wants: 'the line under your own card naming the address, whole and not running off it, and one "Send the link again"',
       leave: () => { USER.pendingEmail = window.__PENDING_WAS; repaint(true); } },
     /* ---------- YOUR OWN CARD, BEING EDITED — `cardEditHtml_` in me.js (docs/history/330) § */
-    { name: 'your own card, being edited',
+    { col: 'tutors', name: 'your own card, being edited',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         const ada = (DATA.tutors || []).find(t => t && t.personId) || {};
@@ -2921,20 +2921,20 @@ const STATES = {
           venues_ok: 'Colliers Wood Library, Sutton Library, Online', travel_km: '15',
           m16: 'TRUE', m17: 'TRUE', tu10: 'TRUE', tu11: 'TRUE', w16: 'TRUE', sa10: 'TRUE', sa11: 'TRUE', sa12: 'TRUE' });
         CARD_EDIT = cardEditFresh_(USER.personId);
-        paint('account');
-        const pages = [...document.querySelectorAll('#s-account .page')];
+        paint(homeCol_());
+        const pages = [...document.querySelectorAll('#s-' + homeCol_() + ' .page')];
         const at = pages.findIndex(pg => pg.querySelector('.card-ed .me-form'));
         if (at < 0) throw new Error('no card on the account column is open for editing');
-        goPage('account', at, true);
+        goPage(homeCol_(), at, true);
       },
       leave: () => {
         DATA.tutors = window.__CE_HELD.tutors; USER.profile = window.__CE_HELD.profile; delete window.__CE_HELD;
         CARD_EDIT = null;
-        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        document.querySelectorAll('#s-' + homeCol_() + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
         repaint(true);
       },
       expect: () => {
-        const pg = document.querySelector('#s-account .page.on');
+        const pg = document.querySelector('#s-' + homeCol_() + ' .page.on');
         const form = pg && pg.querySelector('.card-ed .me-form');
         if (!form) return 0;
         const secs = [...form.querySelectorAll('.ce-sec')].map(x => x.dataset.sec).join(',');
@@ -2973,7 +2973,7 @@ const STATES = {
       },
       wants: 'your card as its own form at full size in a pane that scrolls, no taller than 760px at 390x844: every section in the card\'s order (the figure and the handle among them), the picture chooser, three photographs fetched at once, three qualifications, the session length, the map, all seven days of the week, Save and Cancel as tiles in reach at the foot of the pane, and Sign out under them' },
     /* ---------- AND ANOTHER TUTOR'S CARD, EDITED BY AN ADMIN § */
-    { name: 'another tutor\'s card, being edited by an admin',
+    { col: 'tutors', name: 'another tutor\'s card, being edited by an admin',
       only: () => typeof USER !== 'undefined' && !!USER && typeof isAdmin === 'function' && isAdmin(),
       enter: () => {
         const ada = (DATA.tutors || []).find(t => t && t.personId && String(t.personId) !== String(USER.personId));
@@ -2987,19 +2987,19 @@ const STATES = {
           years_experience: '10', favourite_colour: 'Blue', age_min: '11', age_max: '18',
           qual_1: 'Maths', qual_1_level: 'A-Level', qual_1_grade: 'A*', qual_1_received: '2014', qual_1_teach: 'TRUE', qual_1_spec: 'TRUE',
           venues_ok: 'Colliers Wood Library, Sutton Library, Online', travel_km: '8', m16: 'TRUE', m17: 'TRUE', m18: 'TRUE' };
-        paint('account');
-        const pages = [...document.querySelectorAll('#s-account .page')];
+        paint(homeCol_());
+        const pages = [...document.querySelectorAll('#s-' + homeCol_() + ' .page')];
         const at = pages.findIndex(pg => pg.querySelector('.card-ed .me-form'));
         if (at < 0) throw new Error('the fixture tutor\'s card did not open for editing');
-        goPage('account', at, true);
+        goPage(homeCol_(), at, true);
       },
       leave: () => {
         CARD_EDIT = null;
-        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        document.querySelectorAll('#s-' + homeCol_() + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
         repaint(true);
       },
       expect: () => {
-        const pg = document.querySelector('#s-account .page.on');
+        const pg = document.querySelector('#s-' + homeCol_() + ' .page.on');
         const form = pg && pg.querySelector('.card-ed .me-form');
         if (!form) return 0;
         return !!form.querySelector('.ce-pic') && !form.querySelector('.pfp')
@@ -3016,6 +3016,8 @@ const STATES = {
       wants: 'the fixture tutor\'s card as a form for the admin: their headline in its box, their picture shown and not offered, the two parts of a seat in pounds with the seat they make, the whole week, Save and Cancel' },
     /* ---------- EVERYBODY'S OWN CARD, BEING EDITED — THE FIGURE AND THE HANDLE ON IT (docs/history/339) § */
     ...['', 'client', 'student'].map(role => ({
+      /* ON THE ROLE'S OWN PEOPLE COLUMN (453), where its card's name and picture are edited. */
+      col: role === 'student' ? 'students' : role === 'client' ? 'parents' : 'tutors',
       name: role === '' ? 'your own card, being edited, with no public card'
         : (role === 'client' ? 'a parent\'s' : 'a student\'s') + ' own card, being edited',
       only: () => typeof USER !== 'undefined' && !!USER,
@@ -3023,24 +3025,24 @@ const STATES = {
         window.__CE_OWN = { role: USER.role, roles: USER.roles, profile: USER.profile, avatar: USER.avatar };
         if (role) { USER.role = role; USER.roles = [role]; }
         USER.profile = Object.assign({}, USER.profile || {}, { phone_cc: '+44', photo: '' });
-        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        document.querySelectorAll('#s-' + homeCol_() + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
         CARD_EDIT = cardEditFresh_(USER.personId);
         CARD_EDIT.pic0 = ''; CARD_EDIT.fig0 = String(USER.avatar || '');
-        if (role) repaint(); else paint('account');
-        const pages = [...document.querySelectorAll('#s-account .page')];
+        if (role) repaint(); else paint(homeCol_());
+        const pages = [...document.querySelectorAll('#s-' + homeCol_() + ' .page')];
         const at = pages.findIndex(pg => pg.querySelector('.card-ed .me-form'));
         if (at < 0) throw new Error('your own card did not open for editing');
-        goPage('account', at, true);
+        goPage(homeCol_(), at, true);
       }) + ')(' + JSON.stringify(role) + ');'),
       leave: () => {
         const w = window.__CE_OWN || {};
         USER.role = w.role; USER.roles = w.roles; USER.profile = w.profile; USER.avatar = w.avatar; delete window.__CE_OWN;
         CARD_EDIT = null;
-        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        document.querySelectorAll('#s-' + homeCol_() + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
         repaint(true);
       },
       expect: () => {
-        const pg = document.querySelector('#s-account .page.on');
+        const pg = document.querySelector('#s-' + homeCol_() + ' .page.on');
         const form = pg && pg.querySelector('.card-ed .me-form');
         if (!form) return 0;
         const secs = [...form.querySelectorAll('.ce-sec')].map(x => x.dataset.sec).join(',');
@@ -3055,34 +3057,34 @@ const STATES = {
           && pg.querySelectorAll('.ce-tiles .tile[data-do="card-save"], .ce-tiles .tile[data-do="card-cancel"]').length === 2
           && !(form.closest('.card-ed').style.zoom && form.closest('.card-ed').style.zoom !== '1')
           && !!pane && (pane.scrollHeight <= pane.clientHeight + 2 || getComputedStyle(pane).overflowY === 'auto')
-          && pg.querySelectorAll('[data-do="signout"]').length === 1 ? 4 : 0;
+          && !pg.querySelector('[data-do="signout"]') ? 4 : 0;
       },
-      wants: 'your own card as its form, at full size in a pane that scrolls: the picture, your figure (the wardrobe), your name and your handle with Randomise and nothing to type, nothing else, Save and Cancel, and Sign out under them' })),
+      wants: 'your own card as its form, at full size in a pane that scrolls: the picture, your figure (the wardrobe), your name and your handle with Randomise and nothing to type, nothing else, Save and Cancel — Sign out is on Student settings (453)' })),
 
     /* ---------- YOUR HANDLE, ON YOUR OWN CARD: SHOWN, WITH RANDOMISE, AND NO BOX § */
-    { name: 'your handle, on your own card',
+    { col: 'tutors', name: 'your handle, on your own card',
       only: () => typeof USER !== 'undefined' && !!USER && !!USER.handle,
       enter: () => {
         window.__CE_OWN = { profile: USER.profile };
         USER.profile = Object.assign({}, USER.profile || {}, { phone_cc: '+44' });
-        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        document.querySelectorAll('#s-' + homeCol_() + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
         CARD_EDIT = cardEditFresh_(USER.personId);
-        paint('account');
-        const pages = [...document.querySelectorAll('#s-account .page')];
+        paint(homeCol_());
+        const pages = [...document.querySelectorAll('#s-' + homeCol_() + ' .page')];
         const at = pages.findIndex(pg => pg.querySelector('.card-ed .ce-sec[data-sec="handle"]'));
         if (at < 0) throw new Error('no handle section on your own card\'s Edit');
-        goPage('account', at, true);
+        goPage(homeCol_(), at, true);
         const sec = pages[at].querySelector('.card-ed .ce-sec[data-sec="handle"]'), pane = sec.closest('.pane');
         if (pane) pane.scrollTop += sec.getBoundingClientRect().top - pane.getBoundingClientRect().top - 12;
       },
       leave: () => {
         USER.profile = (window.__CE_OWN || {}).profile; delete window.__CE_OWN;
         CARD_EDIT = null;
-        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        document.querySelectorAll('#s-' + homeCol_() + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
         repaint(true);
       },
       expect: () => {
-        const pg = document.querySelector('#s-account .page.on');
+        const pg = document.querySelector('#s-' + homeCol_() + ' .page.on');
         const sec = pg && pg.querySelector('.card-ed .ce-sec[data-sec="handle"]');
         if (!sec) return 0;
         const shown = sec.querySelectorAll('.handle-shown');
@@ -3096,55 +3098,55 @@ const STATES = {
                 && !sec.querySelector('.btn, input, #handle-new, [data-do="handle-save"]')
                 && /Cancel does not put the old one back/.test((sec.querySelector('.handle-said') || {}).textContent || '')
                 && r.top >= b.top - 1 && r.top < b.bottom - 40
-                && !document.querySelector('#s-account .handle-shown, #s-account [data-do="handle-shuffle"]')) ? 1 : 0;
+                && !document.querySelector('#s-' + homeCol_() + ' .handle-shown, #s-' + homeCol_() + ' [data-do="handle-shuffle"]')) ? 1 : 0;
       },
       wants: 'the handle section of your own card\'s Edit on the glass: the handle shown once with one @, a Randomise tile with its mark, nothing to type into, the line saying Cancel does not undo it — and no handle on Settings' },
 
     /* ---------- THE WARDROBE, ON YOUR OWN CARD — ONE SECTION, AND A PICK THAT REDRAWS IT § */
-    { name: 'the wardrobe, on your own card',
+    { col: 'tutors', name: 'the wardrobe, on your own card',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         window.__CE_OWN = { profile: USER.profile };
         USER.profile = Object.assign({}, USER.profile || {}, { phone_cc: '+44' });
-        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        document.querySelectorAll('#s-' + homeCol_() + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
         CARD_EDIT = cardEditFresh_(USER.personId);
-        paint('account');
-        const pages = [...document.querySelectorAll('#s-account .page')];
+        paint(homeCol_());
+        const pages = [...document.querySelectorAll('#s-' + homeCol_() + ' .page')];
         const at = pages.findIndex(pg => pg.querySelector('.card-ed .ce-sec[data-sec="figure"]'));
         if (at < 0) throw new Error('no figure section on your own card\'s Edit');
-        goPage('account', at, true);
+        goPage(homeCol_(), at, true);
         const sec = pages[at].querySelector('.card-ed .ce-sec[data-sec="figure"]'), pane = sec.closest('.pane');
         if (pane) pane.scrollTop += sec.getBoundingClientRect().top - pane.getBoundingClientRect().top - 12;
       },
       leave: () => {
         USER.profile = (window.__CE_OWN || {}).profile; delete window.__CE_OWN;
         CARD_EDIT = null;
-        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        document.querySelectorAll('#s-' + homeCol_() + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
         repaint(true);
       },
       expect: () => {
-        const pg = document.querySelector('#s-account .page.on');
+        const pg = document.querySelector('#s-' + homeCol_() + ' .page.on');
         const sec = pg && pg.querySelector('.card-ed .ce-sec[data-sec="figure"]');
         if (!sec) return 0;
         const r = sec.getBoundingClientRect(), b = sec.closest('.pane').getBoundingClientRect();
         return !!sec.querySelector('.av-card [data-do="av-pick"]') && !!sec.querySelector('.av-card [data-do="av-colour"]')
-          && document.querySelectorAll('#s-account .av-figure').length === 1
+          && document.querySelectorAll('#s-' + homeCol_() + ' .av-figure').length === 1
           && r.top >= b.top - 1 && r.top < b.bottom - 40
-          && !document.querySelector('#s-account .av-card, #s-account [data-do="av-pick"]') ? 1 : 0;
+          && !document.querySelector('#s-' + homeCol_() + ' .av-card, #s-' + homeCol_() + ' [data-do="av-pick"]') ? 1 : 0;
       },
       wants: 'the figure section of your own card\'s Edit on the glass: the colours, every slot and one figure — and no wardrobe on Settings' },
-    { name: 'a pick redraws the figure, and the picture\'s "your figure" with it',
+    { col: 'tutors', name: 'a pick redraws the figure, and the picture\'s "your figure" with it',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         window.__CE_OWN = { profile: USER.profile, avatar: USER.avatar };
         USER.profile = Object.assign({}, USER.profile || {}, { phone_cc: '+44' });
-        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        document.querySelectorAll('#s-' + homeCol_() + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
         CARD_EDIT = cardEditFresh_(USER.personId);
-        paint('account');
-        const pages = [...document.querySelectorAll('#s-account .page')];
+        paint(homeCol_());
+        const pages = [...document.querySelectorAll('#s-' + homeCol_() + ' .page')];
         const at = pages.findIndex(pg => pg.querySelector('.card-ed [data-do="av-pick"]'));
         if (at < 0) throw new Error('no wardrobe on your own card\'s Edit');
-        goPage('account', at, true);
+        goPage(homeCol_(), at, true);
         /* THE PAGE BY INDEX, NOT BY `.page.on` — `goPage` sets that class through `paintPager`. */
         const pg = pages[at];
         const fig = pg.querySelector('.av-figure');
@@ -3168,36 +3170,36 @@ const STATES = {
         const w = window.__CE_OWN || {};
         USER.profile = w.profile; USER.avatar = w.avatar; delete window.__CE_OWN;
         CARD_EDIT = null;
-        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        document.querySelectorAll('#s-' + homeCol_() + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
         repaint(true);
       },
       expect: () => window.__AV_MOVED,
       wants: 'a hairstyle picked in the figure section redraws the figure, rings the pick, and redraws the picture\'s "your figure" one section up' },
     /* ---------- YOUR PICTURE, CHOSEN — `photoPicker_` in me.js § */
-    { name: 'your picture, chosen',
+    { col: 'tutors', name: 'your picture, chosen',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         window.STATE_PFP_WAS = USER.profile;
         USER.profile = Object.assign({}, USER.profile || {}, { photo: 'data/reels/archetest.jpg', phone_cc: '+44' });
         /* ON YOUR OWN CARD'S EDIT, where the picker is since docs/history/339 — the form opened as Edit opens
            it, and the copy it is drawn from shaped as `myProfile` sends it (`phone_cc`). */
-        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        document.querySelectorAll('#s-' + homeCol_() + ' .card-ed .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         CARD_EDIT = cardEditFresh_(USER.personId);
         /* THE PICKER IS ONE LINE UNTIL OPENED (docs/history/425) — opened here, as a tap on "Picture" does. */
         CE_OPEN.add('picture');
-        paint('account');
-        const at = [...document.querySelectorAll('#s-account .page')].findIndex(pg => pg.querySelector('.card-ed .pfp'));
+        paint(homeCol_());
+        const at = [...document.querySelectorAll('#s-' + homeCol_() + ' .page')].findIndex(pg => pg.querySelector('.card-ed .pfp'));
         if (at < 0) throw new Error('no picture picker on your own card\'s Edit');
-        goPage('account', at, true);
+        goPage(homeCol_(), at, true);
       },
       leave: () => {
         USER.profile = window.STATE_PFP_WAS; delete window.STATE_PFP_WAS;
         CARD_EDIT = null; CE_OPEN.delete('picture');
-        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        document.querySelectorAll('#s-' + homeCol_() + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
         repaint(true);
       },
       expect: () => {
-        const pg = document.querySelector('#s-account .page.on');
+        const pg = document.querySelector('#s-' + homeCol_() + ' .page.on');
         const box = pg && pg.querySelector('.pfp');
         if (!box) return 0;
         const face = box.querySelector('.pfp-face');
@@ -3211,30 +3213,30 @@ const STATES = {
       },
       wants: 'a square preview of the picture, Choose photo and a live Remove as tiles, a hidden image input, and no link box' },
     /* ---------- YOUR PICTURE, ONE OF ELEVEN — AT REST, AND WITH THE FOX CHOSEN § */
-    { name: 'your picture, the eleven at rest',
+    { col: 'tutors', name: 'your picture, the eleven at rest',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         window.STATE_PFP_WAS = USER.profile;
         USER.profile = Object.assign({}, USER.profile || {}, { photo: '', phone_cc: '+44' });
         /* ON YOUR OWN CARD'S EDIT, where the picker is since docs/history/339 — the form opened as Edit opens
            it, and the copy it is drawn from shaped as `myProfile` sends it (`phone_cc`). */
-        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        document.querySelectorAll('#s-' + homeCol_() + ' .card-ed .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         CARD_EDIT = cardEditFresh_(USER.personId);
         /* THE PICKER IS ONE LINE UNTIL OPENED (docs/history/425) — opened here, as a tap on "Picture" does. */
         CE_OPEN.add('picture');
-        paint('account');
-        const at = [...document.querySelectorAll('#s-account .page')].findIndex(pg => pg.querySelector('.card-ed .pfp'));
+        paint(homeCol_());
+        const at = [...document.querySelectorAll('#s-' + homeCol_() + ' .page')].findIndex(pg => pg.querySelector('.card-ed .pfp'));
         if (at < 0) throw new Error('no picture picker on your own card\'s Edit');
-        goPage('account', at, true);
+        goPage(homeCol_(), at, true);
       },
       leave: () => {
         USER.profile = window.STATE_PFP_WAS; delete window.STATE_PFP_WAS;
         CARD_EDIT = null; CE_OPEN.delete('picture');
-        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        document.querySelectorAll('#s-' + homeCol_() + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
         repaint(true);
       },
       expect: () => {
-        const pg = document.querySelector('#s-account .page.on');
+        const pg = document.querySelector('#s-' + homeCol_() + ' .page.on');
         const box = pg && pg.querySelector('.pfp');
         if (!box) return 0;
         const opts = [...box.querySelectorAll('.pfp-grid .pfp-opt')];
@@ -3258,30 +3260,30 @@ const STATES = {
           && !!box.querySelector('.tile[data-do="pfp-remove"]') && box.querySelector('.tile[data-do="pfp-remove"]').disabled ? 11 : 0;
       },
       wants: 'your figure then the ten pictures, each 44px or more, none ringed, the initial in the preview, 4/4/3 under 294px and 6/5 from it, the line under the grid, and Remove off' },
-    { name: 'your picture, the fox chosen',
+    { col: 'tutors', name: 'your picture, the fox chosen',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         window.STATE_PFP_WAS = USER.profile;
         USER.profile = Object.assign({}, USER.profile || {}, { photo: 'pfp:fox', phone_cc: '+44' });
         /* ON YOUR OWN CARD'S EDIT, where the picker is since docs/history/339 — the form opened as Edit opens
            it, and the copy it is drawn from shaped as `myProfile` sends it (`phone_cc`). */
-        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        document.querySelectorAll('#s-' + homeCol_() + ' .card-ed .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         CARD_EDIT = cardEditFresh_(USER.personId);
         /* THE PICKER IS ONE LINE UNTIL OPENED (docs/history/425) — opened here, as a tap on "Picture" does. */
         CE_OPEN.add('picture');
-        paint('account');
-        const at = [...document.querySelectorAll('#s-account .page')].findIndex(pg => pg.querySelector('.card-ed .pfp'));
+        paint(homeCol_());
+        const at = [...document.querySelectorAll('#s-' + homeCol_() + ' .page')].findIndex(pg => pg.querySelector('.card-ed .pfp'));
         if (at < 0) throw new Error('no picture picker on your own card\'s Edit');
-        goPage('account', at, true);
+        goPage(homeCol_(), at, true);
       },
       leave: () => {
         USER.profile = window.STATE_PFP_WAS; delete window.STATE_PFP_WAS;
         CARD_EDIT = null; CE_OPEN.delete('picture');
-        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        document.querySelectorAll('#s-' + homeCol_() + ' .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
         repaint(true);
       },
       expect: () => {
-        const pg = document.querySelector('#s-account .page.on');
+        const pg = document.querySelector('#s-' + homeCol_() + ' .page.on');
         const box = pg && pg.querySelector('.pfp');
         if (!box) return 0;
         const on = [...box.querySelectorAll('.pfp-opt.on')];
@@ -3302,55 +3304,54 @@ const STATES = {
   /* SETTINGS WAS FOLDED INTO THE STUDENT COLUMN (444); these states run there, on Tutor or on Parent, as each says. */
   settings: [
     { name: '' },
-    /* ---------- YOUR CHILD'S ACCOUNT, MADE: THE SLIP ON "MANAGE YOUR CHILD" § */
-    { col: 'family', name: 'your child\'s account, made',
-      only: () => typeof USER !== 'undefined' && !!USER && typeof mayAddChild_ === 'function' && mayAddChild_(),
+    /* ---------- YOUR EXAMS, WITH THE ONE LIVE LINE DRAWN ---------- */
+    { col: 'account', name: 'your exams',
+      only: () => typeof USER !== 'undefined' && !!USER && typeof mayJourney_ === 'function' && mayJourney_(),
       enter: () => {
-        KID_MADE = { pid: String(USER.personId || ''), name: 'Maximilian', handle: 'maximilian_steady42',
-                     pin: ['0', '7', '3', '9'].join('') };
-        /* A FORM LEFT UNSAVED OR SENDING BY WHATEVER RAN BEFORE -- `check/press.js` presses every Save on this column first -- makes `paint` keep the column rather than § */
-        document.querySelectorAll('#s-family .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('family');
-        const at = [...document.querySelectorAll('#s-family .page')].findIndex(pg => pg.querySelector('.kid-make'));
-        if (at < 0) throw new Error('no "Make your child\'s account" card on the settings column');
-        goPage('family', at, true);
+        const t = new Date(Date.now() + 14 * 864e5);
+        USER.profile = Object.assign({}, USER.profile || {},
+          { exam_big_date: t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0') });
+        progressRedraw_();
+        const c = document.querySelector('#s-account .card.journey');
+        if (!c) throw new Error('no countdowns card on Student settings');
+        const pages = [...document.querySelectorAll('#s-account > .page')];
+        goPage('account', Math.max(0, pages.indexOf(c.closest('.page'))), true);
       },
-      leave: () => { KID_MADE = { pid: '', name: '', handle: '', pin: '' }; paint('family'); },
       expect: () => {
-        const pg = document.querySelector('#s-family .page.on');
-        const slip = pg && pg.querySelector('.kid-manage .kid-make .pin-slip');
-        return slip && slip.querySelectorAll('.pin-slip-v').length === 2
-          && pg.querySelectorAll('.kid-make [data-kid-new]').length === 3
-          && pg.querySelectorAll('.kid-manage .kid-add').length === 1 && !pg.querySelector('.kid-add input')
-          && slip.scrollWidth <= slip.clientWidth + 1 ? 2 : 0;
+        const c = document.querySelector('#s-account .page.on .card.journey');
+        return !!c && /Big exam\s*\d+ days?/.test(c.textContent) && !c.querySelector('button, [data-do]')
+          && document.querySelectorAll('.card.journey').length === 1
+          && !document.querySelector('.card.digest, [data-do="digest-preview"]');
       },
-      wants: '"Manage your child" with the make form\'s three boxes, the slip — the handle and the PIN, neither running off it — and the add section pointing to People under it (442)' },
+      wants: 'the Countdowns card on Student settings (Progress dissolved, 461), with the Big exam line and no control on it, drawn once, and no weekly parent email card anywhere',
+      leave: () => { if (USER && USER.profile) delete USER.profile.exam_big_date; progressRedraw_(); } },
+    /* THE MADE-ACCOUNT SLIP STATE WAS HERE: no form makes a child's account since 461. */
     /* ---------- AND HELD FOR THE LINK: A PARENT WHOSE OWN ADDRESS NOBODY HAS PROVED § */
-    { col: 'family', name: 'your child\'s account, held for the link',
+    { col: 'students', name: 'your child\'s account, held for the link',
       only: () => typeof USER !== 'undefined' && !!USER && typeof mayAddChild_ === 'function' && mayAddChild_(),
       enter: () => {
         window.__PENDING_WAS = USER.pendingEmail;
         USER.pendingEmail = 'philippa.parentington-smythe.family@example.org';
-        document.querySelectorAll('#s-family .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('family');
-        const at = [...document.querySelectorAll('#s-family .page')].findIndex(pg => pg.querySelector('.kid-held'));
-        if (at < 0) throw new Error('no held "Make your child\'s account" card on the settings column');
-        goPage('family', at, true);
+        document.querySelectorAll('#s-students .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('students');
+        const at = [...document.querySelectorAll('#s-students .page')].findIndex(pg => pg.querySelector('.kid-held'));
+        if (at < 0) throw new Error('no held "Add your child" card on Student profiles');
+        goPage('students', at, true);
       },
       /* `repaint(true)`: the card's inside changes back, so the column is placed afresh — see the family state. */
       leave: () => { USER.pendingEmail = window.__PENDING_WAS; repaint(true); },
       expect: () => {
-        const pg = document.querySelector('#s-family .page.on');
+        const pg = document.querySelector('#s-students .page.on');
         const card = pg && pg.querySelector('.kid-manage .kid-held');
         return card && /philippa\.parentington-smythe\.family@example\.org/.test(card.textContent)
           && card.querySelectorAll('[data-do="resend-link"]').length === 1
-          && !document.querySelector('#s-family [data-kid-new], #s-family [data-kid]')
+          && !document.querySelector('#s-students [data-kid-new], #s-students [data-kid]')
           && card.scrollWidth <= card.clientWidth + 1 ? 2 : 0;
       },
       wants: 'one card naming the address to open the link from, with "Send the link again", and no child form anywhere on the column' },
     /* ---------- MANAGE YOUR CHILD, WITH CHILDREN LINKED, AND WITH NONE (docs/history/339) § */
     ...[3, 0].map(n => ({
-      col: 'family', name: n ? 'Manage your child, three children linked' : 'Manage your child, none linked',
+      col: 'students', name: n ? 'Manage your child, three children linked' : 'Manage your child, none linked',
       only: () => typeof USER !== 'undefined' && !!USER && typeof mayAddChild_ === 'function' && mayAddChild_(),
       enter: new Function('return (' + String(n => {
         window.__KIDS_WAS = { family: DATA.family, familyFor: DATA.familyFor };
@@ -3360,15 +3361,15 @@ const STATES = {
           { personId: 'P-kid-2', title: 'Wren', relation: 'child', handle: 'wren_kind43', image: 'pfp:fox' },
           { personId: 'P-kid-3', title: 'Ola', relation: 'child', handle: 'ola_brave07', image: '' },
         ].slice(0, n);
-        document.querySelectorAll('#s-family .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('family');
-        const at = [...document.querySelectorAll('#s-family > .page')].findIndex(pg => pg.querySelector('.kid-manage'));
+        document.querySelectorAll('#s-students .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('students');
+        const at = [...document.querySelectorAll('#s-students > .page')].findIndex(pg => pg.querySelector('.kid-manage'));
         if (at < 0) throw new Error('no "Manage your child" on the settings column');
-        goPage('family', at, true);
+        goPage('students', at, true);
       }) + ')(' + n + ');'),
       leave: () => { const k = window.__KIDS_WAS || {}; DATA.family = k.family; DATA.familyFor = k.familyFor; delete window.__KIDS_WAS; repaint(true); },
       expect: new Function('return (' + String(n => {
-        const pg = document.querySelector('#s-family .page.on');
+        const pg = document.querySelector('#s-students .page.on');
         const card = pg && pg.querySelector('.kid-manage');
         if (!card) return 0;
         const rows = [...card.querySelectorAll('.kid-list .kid-row')];
@@ -3380,13 +3381,13 @@ const STATES = {
         const pane = card.closest('.pane');
         const zoomed = !!pane && [...pane.children].some(k => Number(k.style.zoom || 1) < 1);
         const heads = [...card.querySelectorAll('.kid-sec > .kid-h')];
-        const headsOk = heads.length === 2 && heads.every(h => parseFloat(getComputedStyle(h).fontSize) >= 12);
+        const headsOk = heads.length === 1 && heads.every(h => parseFloat(getComputedStyle(h).fontSize) >= 12);
         return rowsOk && (n ? !none : none) && !zoomed && headsOk
-          && card.querySelectorAll('.kid-make [data-kid-new]').length === 3 && card.querySelectorAll('.kid-add').length === 1 && !card.querySelector('.kid-add input')
+          && !card.querySelector('.kid-make, [data-kid-new]') && card.querySelectorAll('.kid-add').length === 1 && !card.querySelector('.kid-add input')
           && card.scrollWidth <= card.clientWidth + 1 ? Math.max(1, n) : 0;
       }) + ')(' + n + ');'),
-      wants: n ? '"Manage your child" at full size, listing three children, each a face, a first name and a handle with New PIN at the end of the line and nothing running off it, then both forms under headings of 12px or more'
-               : '"Manage your child" at full size, saying no child is linked yet, then both forms under headings of 12px or more' })),
+      wants: n ? '"Manage your child" at full size, listing three children, each a face, a first name and a handle with New PIN at the end of the line and nothing running off it, then how to add one under a heading of 12px or more'
+               : '"Manage your child" at full size, saying no child is linked yet, then how to add one under a heading of 12px or more' })),
     /* ---------- A NEW ADDRESS WAITING FOR ITS LINK, ON THE CONTACT CARD § */
     { name: 'your new email, waiting for its link',
       only: () => typeof USER !== 'undefined' && !!USER,
@@ -4037,45 +4038,6 @@ const STATES = {
         if (!BIZ.list) bizStart_();
       } },
 
-  ],
-
-  /* ---------- PROGRESS (435): THE TITLE ALONE WITH NOTHING TO COUNT, OR THE LEARNER'S CARDS — EITHER WAY ASSERTED ---------- */
-  progress: [
-    { name: '',
-      expect: () => {
-        const h = document.getElementById('s-progress');
-        const pane = h && h.querySelector(':scope > .page > .pane');
-        if (!pane || !pane.querySelector('.card h3, .loading')) return false;
-        const acts = [...h.querySelectorAll('[data-do]')].map(e => e.dataset.do);
-        if (acts.some(a => a !== 'prog-practise' && a !== 'prog-sessions')) return false;
-        if (/Not built yet/.test(h.textContent)) return false;
-        /* EVERY WIDGET, ALWAYS (435): seven titles at least, each empty one its title alone. */
-        const cards = [...h.querySelectorAll(':scope > .page .card')];
-        if (cards.length < 7 || cards.some(c => !c.querySelector('h3'))) return false;
-        return cards.filter(c => c.classList.contains('is-empty')).every(c => c.children.length === 1);
-      },
-      wants: 'every Progress widget drawn, each with nothing to say its title alone; the only controls Practise and Sessions' },
-    /* ---------- YOUR EXAMS, WITH THE ONE LIVE LINE DRAWN ---------- */
-    { name: 'your exams',
-      only: () => typeof USER !== 'undefined' && !!USER && typeof mayJourney_ === 'function' && mayJourney_(),
-      enter: () => {
-        const t = new Date(Date.now() + 14 * 864e5);
-        USER.profile = Object.assign({}, USER.profile || {},
-          { exam_big_date: t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0') });
-        progressRedraw_();
-        const c = document.querySelector('#s-progress .card.journey');
-        if (!c) throw new Error('no countdowns card on the progress column');
-        const pages = [...document.querySelectorAll('#s-progress > .page')];
-        goPage('progress', Math.max(0, pages.indexOf(c.closest('.page'))), true);
-      },
-      expect: () => {
-        const c = document.querySelector('#s-progress .page.on .card.journey');
-        return !!c && /Big exam\s*\d+ days?/.test(c.textContent) && !c.querySelector('button, [data-do]')
-          && !document.querySelector('#s-account .card.journey')
-          && !document.querySelector('.card.digest, [data-do="digest-preview"]');
-      },
-      wants: 'the Countdowns card on Progress, with the Big exam line and no control on it — none on Settings, and no weekly parent email card anywhere',
-      leave: () => { if (USER && USER.profile) delete USER.profile.exam_big_date; progressRedraw_(); } },
   ],
 
   /* ---------- THE SHOP § */

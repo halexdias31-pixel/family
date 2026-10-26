@@ -268,12 +268,10 @@ rule(ch && ch.success, 'she could not change her own PIN, so that email was not 
 const pin = as('P-PAR', { action: 'resetPin', targetId: 'P-KID' });
 rule(pin && pin.success, 'her parent could not give her a new PIN, so that email and reply were not asked — ' + JSON.stringify(pin));
 none(pin, 'the New PIN reply to her parent');
+/* MAKE-CHILD IS REFUSED SINCE 461, and its refusal names nobody. */
 const made = as('P-PAR', { action: 'makeChild', firstName: 'Moss', lastName: SUR, pin: ['5', '1', '7', '3'].join('') });
-rule(made && made.success, 'her parent could not make her brother\'s account, so that email and reply were not asked — ' + JSON.stringify(made));
-none(made, 'the make-child reply');
-rule(made && made.name === 'Moss', 'the make-child reply does not name the new child "Moss" — ' + JSON.stringify(made && made.name));
-/* AND HIS HANDLE CARRIES NO SURNAME (367): the template — first and last letter of his first name and the year he joined (372), nothing of his surname. */
-rule(made && S(made.handle) === 'ms' + new Date().getFullYear(), 'the child his parent made was not given the template (his initial and the year he joined) — ' + JSON.stringify(made && made.handle));
+rule(made && !made.success && made.error, 'makeChild was not refused — ' + JSON.stringify(made));
+none(made, 'the make-child refusal');
 /* AND THE WEEKLY EMAIL'S DOOR, `digestMail_`, with her whole name in the HTML it is handed. */
 const m3 = MAIL.length;
 b.ev('digestMail_([{ to: "pip@example.org", subject: "This week", text: "Wren Quorrington did 3", html: "<p>Wren Quorrington did 3</p>",'
@@ -588,7 +586,7 @@ const revRule = (ok, what) => { revAsked++; return rule(ok, what); };
   revRule(innocent.success, 'after one caller repeated their own name and guessed real ones, an innocent family could not sign up — sign-up was switched off for everybody: '
     + JSON.stringify(innocent));
   const pipKid = as('P-PAR', { action: 'makeChild', firstName: 'Bo', lastName: 'Ashdown', pin: NEW_PIN });
-  revRule(pipKid.success, 'after the same, a confirmed parent could not make her child\'s account: ' + JSON.stringify(pipKid));
+  revRule(!pipKid.success, 'makeChild made an account, which nothing may since 461: ' + JSON.stringify(pipKid));
   revRule(!Object.keys(b.props).some(k => /CLASH/i.test(k)), 'something still counts name clashes in the script properties — a count every caller shares is one any caller can fill: '
     + JSON.stringify(Object.keys(b.props).filter(k => /CLASH/i.test(k))));
 }
