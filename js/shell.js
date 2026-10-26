@@ -1469,8 +1469,8 @@ const PAGER = {
   /* ---------- THE FEED IS FOUR KINDS OF PAGE NOW, NOT TWO § */
   /* GUARDED, because shell.js is file five and collections.js is file twenty-one. § */
   /* ---------- TOOLS AND GAMES PAGE NOW, SO THEY NEED NAMING § */
-  tools:  () => (typeof widgetsOf_ === 'function' ? widgetsOf_('tool') : []).map(w => w.name || ''),
-  games:  () => (typeof widgetsOf_ === 'function' ? widgetsOf_('game') : []).map(w => w.name || ''),
+  tools:  () => (typeof widgetPagesOf_ === 'function' ? widgetPagesOf_('tool') : []).map(w => w.name || ''),
+  games:  () => (typeof widgetPagesOf_ === 'function' ? widgetPagesOf_('game') : []).map(w => w.name || ''),
   /* THE SAME LIST THE COLUMN IS BUILT FROM, which is the rule every other entry here follows: § */
   saved:  () => (typeof savedCards_ === 'function' ? savedCards_().length : 1),
   /* NEVER 0, because the column always draws SOMETHING — the sentence saying nothing is spotlit is a page, and a count of nothing over a page that exists is a § */

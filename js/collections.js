@@ -325,7 +325,7 @@ function shopGroups_() {
 function shopCards_() {
   /* THE BASKET, AND ANY OTHER WIDGET THE ROSTER FILES UNDER THE SHOP, drawn exactly as Tools draws
      its own — the star on it, the widget in its slot, started by `toolsStart_('shop')`. */
-  const wgts = (typeof widgetsOf_ === 'function' ? widgetsOf_('shop') : [])
+  const wgts = (typeof widgetPagesOf_ === 'function' ? widgetPagesOf_('shop') : [])
     .map(w => (typeof widgetOnColumn_ === 'function' ? widgetOnColumn_(w, true) : w.html));
   /* THE PAYLOAD DID NOT COME — the reason and a Try again, rather than an empty shop that looks open
      and is not. The basket stays above it: it is on this device and did not need the payload. */

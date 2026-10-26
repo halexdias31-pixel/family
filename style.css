@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-26-z3-compact-merged";
+  --css-version: "2026-10-26-z4-merge-with-the-card-above";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -5338,7 +5338,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .card.is-widget > .wgt-foot > .tile-group { display: contents; }
 /* Star plus five admin tiles where five fit: 3 + 3, not 5 + a lone one (the 467 orphan rule, across the two groups). */
 @container (min-width: 244px) and (max-width: 293.9px) {
-  .wgt-foot:has(> .wgt-keep > .tile:only-child) > .wgt-admin:has(> .tile:nth-child(5)) > .tile:nth-child(2) {
+  .wgt-foot:has(> .wgt-keep > .tile:only-child) > .wgt-admin:has(> .tile:nth-child(5):last-child) > .tile:nth-child(2) {
     margin-right: calc(100% - 3 * var(--tile) - 2 * var(--tile-gap)); }
 }
 @container (max-width: 243.9px) {
@@ -6807,3 +6807,38 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .tal-rashi b, .tal-tos b { font-family: 'Noto Serif Hebrew', 'Frank Ruehl CLM', serif; font-weight: 700; }
 .tal-hadran { display: block; text-align: center; margin: .5em 0; font-weight: 700; }
 .tal-blank, .tal-miss { display: block; font-family: inherit; color: var(--paper-dim); font-size: .8rem; text-align: center; }
+
+/* ---------- MERGED CARDS (480): one frame, the parts stacked, the lower titles small subheadings, one tile row at the foot */
+.card.is-merged > .merged-part > .card { background: none; border: 0; box-shadow: none; padding: 0; margin: 0; border-radius: 0; }
+.card.is-merged > .merged-part + .merged-part { margin-top: .7rem; padding-top: .7rem; border-top: 1px solid var(--line); }
+.card.is-merged > .merged-part + .merged-part h3:first-of-type { font-size: .8rem; font-family: var(--mono); font-weight: 600;
+  text-transform: uppercase; letter-spacing: .04em; color: var(--dim); margin: 0 0 .35rem; }
+/* MERGE AND SPLIT MAKE A ROW LONGER (480): one tile more than fits breaks near the middle, never a lone tile under a full line. */
+@container (min-width: 294px) and (max-width: 343.9px) {
+  .wgt-foot:has(> .wgt-keep > .tile:only-child) > .wgt-admin:has(> .tile:nth-child(6):last-child) > .tile:nth-child(3) {
+    margin-right: calc(100% - 4 * var(--tile) - 3 * var(--tile-gap)); }
+}
+@container (min-width: 344px) and (max-width: 393.9px) {
+  .wgt-foot:has(> .wgt-keep > .tile:only-child) > .wgt-admin:has(> .tile:nth-child(7):last-child) > .tile:nth-child(3) {
+    margin-right: calc(100% - 4 * var(--tile) - 3 * var(--tile-gap)); }
+}
+@container (min-width: 244px) and (max-width: 293.9px) {
+  .tile-row.card-admin:has(> .tile:nth-child(6):last-child) > .tile:nth-child(3) {
+    margin-right: calc(100% - 3 * var(--tile) - 2 * var(--tile-gap)); }
+}
+@container (min-width: 294px) and (max-width: 343.9px) {
+  .tile-row.card-admin:has(> .tile:nth-child(7):last-child) > .tile:nth-child(4) {
+    margin-right: calc(100% - 4 * var(--tile) - 3 * var(--tile-gap)); }
+}
+@container (min-width: 344px) and (max-width: 393.9px) {
+  .tile-row.card-admin:has(> .tile:nth-child(8):last-child) > .tile:nth-child(4) {
+    margin-right: calc(100% - 4 * var(--tile) - 3 * var(--tile-gap)); }
+}
+@container (min-width: 394px) and (max-width: 443.9px) {
+  .tile-row.card-admin:has(> .tile:nth-child(9):last-child) > .tile:nth-child(5) {
+    margin-right: calc(100% - 5 * var(--tile) - 4 * var(--tile-gap)); }
+}
+/* Star plus six admin tiles where five fit: 5 + 2 as they fall — the six-tile rule above (3 + 3) would break the admin group alone, leaving one under. */
+@container (max-width: 293.9px) {
+  .wgt-foot:has(> .wgt-keep > .tile:only-child) > .wgt-admin:has(> .tile:nth-child(6):last-child) > .tile:nth-child(3 of .tile):nth-last-child(4 of .tile) { margin-right: 0; }
+}

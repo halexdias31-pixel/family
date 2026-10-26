@@ -418,8 +418,13 @@ function widgetsOf_(kind) {
     .filter(widgetFor_);
 }
 
+/* A COLUMN'S PAGES: its widgets with each merged card's parts as one (480, `layoutMergeWidgets_`, layout.js) — what the pager counts. */
+function widgetPagesOf_(kind) {
+  const list = widgetsOf_(kind);
+  return typeof layoutMergeWidgets_ === 'function' ? layoutMergeWidgets_(list) : list;
+}
 function widgetColumn_(kind) {
-  return widgetsOf_(kind)
+  return widgetPagesOf_(kind)
     /* ---------- THE WIDGET IS THE CARD. THERE IS NOTHING TO PRESS § */
     /* ---------- AND THE NAME IS PRINTED ONCE § */
     .map(w => widgetOnColumn_(w, true));
@@ -432,6 +437,7 @@ const WIDGET_KEY = w => 'w:' + String(w.id);
 /* ---------- AND UNTIL IT HAS STARTED, IT IS WAITING, AND IT LOOKS IT § */
 /* `own` is its own column (not Saved): only there does an admin get the layout row (463, `layoutTiles_` in layout.js). */
 function widgetOnColumn_(w, own) {
+  if (w && w.parts) return widgetMergedOn_(w, own);
   const waits = typeof w.start === 'function' && typeof loading_ === 'function';
   const held = w.kind === 'game' && typeof gameLocked_ === 'function' && gameLocked_(w.id);
   /* ONE PLACE FOR A WIDGET'S TILES (472): title, content (its own tiles last), then one row — the star, the padlock, then the admin's layout tiles. */
@@ -442,6 +448,20 @@ function widgetOnColumn_(w, own) {
   return `<div class="card is-widget${held ? ' is-locked' : ''}">
       <div class="widget-slot" id="wgt-${esc(String(w.id))}"${waits ? ' aria-busy="true"' : ''}>${
         w.html}${waits ? loading_() : ''}</div>
+      ${keep || lay ? `<div class="tile-row wgt-foot">${keep}${lay}</div>` : ''}
+    </div>`;
+}
+
+/* A MERGED CARD (480): one frame, each part's own slot (started by its own widget), the lower titles as subheadings, one tile row — the top part's. */
+function widgetMergedOn_(m, own) {
+  const top = m.parts[0];
+  const keep = typeof favTile_ === 'function' ? `<span class="tile-group wgt-keep">${favTile_({ key: WIDGET_KEY(top), kind: 'widget' })}</span>` : '';
+  const lay = own === true && typeof layoutTiles_ === 'function' ? layoutTiles_(top) : '';
+  const parts = m.parts.map(w => {
+    const waits = typeof w.start === 'function' && typeof loading_ === 'function';
+    return `<div class="merged-part"><div class="widget-slot" id="wgt-${esc(String(w.id))}"${waits ? ' aria-busy="true"' : ''}>${w.html}${waits ? loading_() : ''}</div></div>`;
+  }).join('');
+  return `<div class="card is-widget is-merged" data-merged="${esc(m.parts.map(w => String(w.id)).join(' '))}">${parts}
       ${keep || lay ? `<div class="tile-row wgt-foot">${keep}${lay}</div>` : ''}
     </div>`;
 }
