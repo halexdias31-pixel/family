@@ -11215,6 +11215,101 @@ check('an admin adds a reel from the "+" just before the first reel, where the c
   return bad;
 });
 
+/* "ADD A REEL SHOULD ALSO GIVE ME OPTION TO UPLOAD A FILE INSTEAD" (474): a video file, no `capture`, sent as mediaUpload and played from Drive. */
+check('an admin uploads a reel as a video file — an Upload tile, accept="video/*" with no capture, over 20 MB refused, sent as mediaUpload, and in the column as a Drive clip', async () => {
+  const FID = 'f1761480000000';
+  let hold = false;
+  const { w, sent } = boot({ serve: () => hold ? new Promise(() => {}) : undefined,
+    reply: b => b.action === 'mediaUpload'
+      ? { success: true, kind: 'reel', id: FID, media: [{ kind: 'reel', id: FID, url: 'https://drive.google.com/file/d/FILEreel1234567890abcdefgh/view#video', title: b.title, subject: b.subject }] }
+      : { success: true } });
+  await wait(400);
+  const t = w.__t, d = w.document, bad = [];
+  const col = () => d.querySelector('#s-reel');
+  t.USER({ name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], token: 'tk' });
+  try { t.go('reel', false, true); w.paint('reel'); } catch (e) { return ['drawing Reels threw: ' + e.message]; }
+  await wait(200);
+  const plus = col() && col().querySelector('[data-do="media-add"][data-kind="reel"]');
+  if (!plus) return ['the admin\'s Reels column has no "+"'];
+  t.ACTIONS['media-add'](plus);
+  await wait(150);
+  let form = col().querySelector('.media-form');
+  const tile = form && form.querySelector('.tile[data-do="media-file"]');
+  const inp = form && form.querySelector('input[type="file"].media-file-in');
+  if (!tile) bad.push('the new-reel form has no "Upload a video" tile');
+  if (!inp) return bad.concat(['the new-reel form has no file input']);
+  if (inp.getAttribute('accept') !== 'video/*') bad.push('the file input accepts "' + inp.getAttribute('accept') + '", not video/*');
+  if (inp.hasAttribute('capture')) bad.push('the file input carries `capture`, so an iPhone would open only the camera');
+  if (!form.querySelector('[data-mf="url"]')) bad.push('the YouTube link box went — upload is an option, not a replacement');
+  const pick = file => { Object.defineProperty(inp, 'files', { value: [file], configurable: true }); inp.dispatchEvent(new w.Event('change', { bubbles: true })); };
+  const big = new w.File(['x'], 'huge.mp4', { type: 'video/mp4' });
+  Object.defineProperty(big, 'size', { value: 21 * 1048576 });
+  pick(big); await wait(150);
+  form = col().querySelector('.media-form');
+  if (!/over 20 MB/.test((form.querySelector('.media-said') || {}).textContent || '')) bad.push('a 21 MB video was not refused on the form');
+  const fresh = () => col().querySelector('input.media-file-in');
+  Object.defineProperty(fresh(), 'files', { value: [new w.File(['abc'], 'fractions_in_a_minute.mp4', { type: 'video/mp4' })], configurable: true });
+  fresh().dispatchEvent(new w.Event('change', { bubbles: true }));
+  await wait(300);
+  form = col().querySelector('.media-form');
+  const title = form && form.querySelector('[data-mf="title"]');
+  if (!title || title.value !== 'fractions in a minute') return bad.concat(['the chosen file did not fill the title: ' + JSON.stringify(title && title.value)]);
+  if (form.querySelector('.tile[data-do="media-file"]')) bad.push('the Upload tile is still offered with a file held');
+  sent.length = 0;
+  hold = true;
+  t.ACTIONS['media-save'](form.querySelector('[data-do="media-save"]'));
+  await wait(300);
+  const up = sent.find(b => b.action === 'mediaUpload');
+  if (!up || up.kind !== 'reel' || !/^data:video\/mp4;base64,/.test(String(up.data)) || up.title !== 'fractions in a minute' || up.personId !== 'P-AD') bad.push('saving posted ' + JSON.stringify(up && Object.assign({}, up, { data: String(up.data).slice(0, 30) })));
+  if (sent.some(b => b.action === 'mediaSave')) bad.push('an upload also sent mediaSave');
+  w.paint('reel'); await wait(200);
+  const vid = [...col().querySelectorAll('.reel video[data-clip]')].find(v => /FILEreel/.test(v.dataset.clip));
+  if (!vid) bad.push('the uploaded reel is not a clip in the column');
+  else if (!/^https:\/\/drive\.usercontent\.google\.com\/download\?id=FILEreel/.test(vid.dataset.clip)) bad.push('the uploaded reel plays from ' + vid.dataset.clip + ', not Drive\'s download address');
+  if (!col().querySelector('.media-list [data-do="media-edit"][data-id="' + FID + '"]')) bad.push('the uploaded reel has no Edit tile');
+  t.DATA().media = [];
+  t.USER(null);
+  return bad;
+});
+
+/* "THE PROFILE PICTURE SHOULD BE IN SYNC WITH MY DP FOR MY ACCOUNT" (474): a person's post wears their picture by person id, read when it is drawn. */
+check('a post wears its author\'s account picture by person id — your own follows a change of picture without a reload, a person with none is their initial and never the brand mark, the business post keeps the mark', async () => {
+  const { w } = boot({});
+  await wait(400);
+  const t = w.__t, d = w.document, bad = [], D = t.DATA();
+  const keep = D.posts, keepBrand = D.brand;
+  D.brand = Object.assign({}, D.brand, { logo_square: 'icon.png' });
+  const post = (id, o) => Object.assign({ id, author: 'Ada Admin', handle: '@ada', avatar: '', image: 'data/reels/archetest.jpg', media: ['data/reels/archetest.jpg'],
+    caption: 'A trip', body: '', location: '', when: '', at: 0, pinned: false, active: true, waiting: false, refused: false, approvedBy: '', poll: null,
+    reactions: { emoji: ['👍'], counts: [0], total: 0, yours: '', by: [] }, comments: { total: 0, list: [] }, rowIndex: 2 }, o);
+  const face = id => d.querySelector('#s-feed article[data-post="' + id + '"] .post-face');
+  const PHOTO = 'https://drive.google.com/file/d/FILEpfp1234567890abcdefgh/view';
+  t.USER({ name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], token: 'tk', handle: '@ada', photo: '', profile: {} });
+  D.posts = [post('PO-ME', { authorId: 'P-AD' }), post('PO-BIZ', { author: '@family.', handle: '@family.', authorId: '' }),
+             post('PO-THEM', { author: 'Tom Tutor', handle: '@tom', authorId: 'P-TT', avatar: 'https://drive.google.com/file/d/FILEtom1234567890abcdefgh/view' })];
+  try { w.paint('feed'); } catch (e) { return ['drawing the feed threw: ' + e.message]; }
+  await wait(150);
+  const me = face('PO-ME');
+  if (!me) return ['your post drew no face'];
+  if (me.tagName === 'IMG') bad.push('with no picture on your account your post wears ' + me.getAttribute('src') + ', not your initial');
+  else if (me.textContent.trim() !== 'A') bad.push('with no picture your post shows "' + me.textContent.trim() + '", not your initial A');
+  const biz = face('PO-BIZ');
+  if (!biz || biz.tagName !== 'IMG') bad.push('the business post lost the brand mark');
+  const them = face('PO-THEM');
+  if (!them || !/FILEtom/.test(them.getAttribute('src') || '')) bad.push('another person\'s post does not wear their picture');
+  /* THE PICTURE CHANGES IN SETTINGS: `pfpTake_` writes USER.photo and calls `postFacesMine_`. */
+  const u = t.whoami(); u.photo = PHOTO; u.profile = { photo: PHOTO };
+  w.postFacesMine_();
+  const now = face('PO-ME');
+  if (!now || now.tagName !== 'IMG' || !/lh3\.googleusercontent\.com\/d\/FILEpfp/.test(now.getAttribute('src') || '')) bad.push('after a change of picture your post shows ' + (now ? now.outerHTML.slice(0, 90) : 'nothing') + ', not the new picture');
+  if (!/FILEtom/.test((face('PO-THEM') || {}).getAttribute && face('PO-THEM').getAttribute('src') || '')) bad.push('your change of picture touched somebody else\'s post');
+  w.paint('feed'); await wait(100);
+  if (!/FILEpfp/.test(((face('PO-ME') || {}).getAttribute && face('PO-ME').getAttribute('src')) || '')) bad.push('a repaint of the feed lost your new picture');
+  D.posts = keep; D.brand = keepBrand;
+  t.USER(null);
+  return bad;
+});
+
 /* "ADD AGE RESTRICTION FOR VIDEOS AND REELS — HOW OLD THEY HAVE TO BE TO WATCH IT" (406): the phone hides what the viewer is too young for. */
 check('a ten-year-old student sees no 12+ reel or video, anyone with no date of birth or nobody sees only unrated, an adult and the admin see all with an age badge', async () => {
   const { w } = boot({});

@@ -144,15 +144,39 @@ document.addEventListener('error', e => {
   if (v && v.matches && v.matches('video.post-vid')) postVidFail_(v);
 }, true);
 
+/* THE AUTHOR'S FACE, READ AT DRAW TIME (474): your own post wears the picture on your account now, not the one the post was sent with; the brand's mark only for the business. */
+function postFaceWho_(p, who) {
+  const id = String((p && p.authorId) || '');
+  const me = id && typeof USER !== 'undefined' && USER && String(USER.personId || '') === id;
+  if (me) {
+    const now = String(USER.photo || (USER.profile || {}).photo || '');
+    return { pic: now, avatar: USER.avatar || '', handle: USER.handle || p.handle, name: who, personId: id };
+  }
+  if (id) return { pic: p.avatar || '', avatar: p.figure, handle: p.handle, name: who, personId: id };
+  return { pic: picKind_(p.avatar) ? p.avatar : (brand('logo_square') || brand('logo_circle')), avatar: p.figure, handle: p.handle, name: who };
+}
+function postFace_(p, who) {
+  const f = postFaceWho_(p, who);
+  return personFace_(f, { cls: 'post-face', none: 'none', size: 30 })
+    .replace(/^<(img|span) class="/, '<$1 data-face-of="' + esc(f.personId || '') + '" class="');
+}
+/* A NEW PICTURE ON THE ACCOUNT REDRAWS YOUR FACES ON THE FEED where they stand — `pfpTake_` (me.js) calls this. */
+function postFacesMine_() {
+  if (typeof USER === 'undefined' || !USER || !USER.personId) return;
+  const id = String(USER.personId);
+  document.querySelectorAll('[data-face-of="' + id + '"]').forEach(el => {
+    const p = (DATA.posts || []).find(x => String(x.authorId || '') === id) || { authorId: id };
+    el.outerHTML = postFace_(p, p.handle || p.author || USER.name);
+  });
+}
+
 function postCard_(p, i) {
     const media = postMedia_(p);
     /* The author's face, or the brand's mark when the post is the business speaking. A column of
        blank circles is the thing that makes a feed look unfinished. */
     const who = p.handle || p.author || brand('name', '@family.');
     /* ---------- THROUGH `personFace_`, THE ONE FUNCTION EVERY FACE GOES THROUGH § */
-    const faceHtml = personFace_({ pic: picKind_(p.avatar) ? p.avatar : (brand('logo_square') || brand('logo_circle')),
-                                   avatar: p.figure, handle: p.handle, name: who },
-                                 { cls: 'post-face', none: 'none', size: 30 });
+    const faceHtml = postFace_(p, who);
 
     /* ---------- THE FACES' SLOT, BUILT ONCE BECAUSE IT GOES IN ONE OF TWO PLACES § */
     const acts = reacts(p) || (isAdmin()

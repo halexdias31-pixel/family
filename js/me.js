@@ -3323,6 +3323,7 @@ function pfpTake_(box, url, said) {
   const onCard = !!(box && box.closest && box.closest('.card-ed'));
   if (box && box.parentNode) box.outerHTML = photoPicker_(f => (f === 'photo' ? url : ''), said, { fold: onCard });
   /* NOT WHILE THE PICKER IS ON YOUR OWN CARD'S EDIT (docs/history/339) — which is where it is now, for everybody. § */
+  try { if (typeof postFacesMine_ === 'function') postFacesMine_(); } catch (e) {}
   if (onCard) return;
   try { if (typeof paint === 'function') paint('account'); } catch (e) {}
 }

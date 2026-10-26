@@ -1,7 +1,7 @@
 /* @family. — 60_doGet.gs (7 of 8) THE PAYLOAD. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOGET_VERSION = "2026-10-26-q-layout-engine";
+const DOGET_VERSION = "2026-10-26-r-post-faces-reel-upload";
 
 
 function doGet(e) {
@@ -646,6 +646,8 @@ function doGet(e) {
           handle: S(pp.handle) || S(pp.first_name) || nameFor_(pp),
           avatar: kidHid ? '' : face,
           figure: faceFig_(pp).avatar,
+          /* WHO, so the phone draws the author's picture as it is now, by id (474). */
+          personId: S(pp.person_id),
         };
         /* ONLY WHOM THEY MAY SEE (386): a hidden reactor is not named, a hidden commenter is "Someone"; signed out, only staff are named. */
         if (S(pp.person_id) && seesPerson_(meAsked ? vis : {}, pp)) byId[S(pp.person_id)] = nameFor_(pp);
@@ -681,6 +683,8 @@ function doGet(e) {
           })(),
           handle: who.handle,
           avatar: who.avatar,
+          /* THE AUTHOR'S PERSON ID, blank for the business (474): "the profile picture should be in sync with my dp for my account". */
+          authorId: S((faces[key(S(r.author))] || {}).personId),
           /* THE FIGURE, ONLY WHEN THE AUTHOR'S FACE IS THEIR FIGURE — set on `faces` above. § */
           figure: (faces[key(S(r.author))] || {}).figure,
           image: S(r.image),        // converted on the phone, the way the gallery already does it
@@ -1252,7 +1256,7 @@ function mediaOut_(cap) {
   try {
     read(TAB.media).rows.forEach(function (r) {
       const kind = S(r.kind), id = S(r.yt_id);
-      if (MEDIA_KINDS.indexOf(kind) === -1 || !MEDIA_YT_RE.test(id)) return;
+      if (MEDIA_KINDS.indexOf(kind) === -1 || !mediaIdOk_(id)) return;
       if (TRUE_(r.hidden)) { out.push({ kind: kind, id: id, hidden: true }); return; }
       const age = mediaAgeOf_(r.age);
       if (age > most) { out.push({ kind: kind, veil: mediaVeil_(kind, id), hidden: true }); return; }
