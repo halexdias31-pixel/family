@@ -8451,13 +8451,31 @@ check('venues are off Find, and a starred venue is still on Saved', async () => 
   return bad;
 });
 
-check('the loading splash comes off', async () => {
+/* THE IPAD DOUBLE TAP (466) — the owner: "With iPad when I double tap on the screen, it breaks — the widget list shifts up." */
+check('a double tap neither zooms nor moves the column: touch-action manipulation on the page, and dblclick is refused', async () => {
+  const css = fs.readFileSync(path.join(dir, '..', 'style.css'), 'utf8');
+  const bad = [];
+  const html = /\nhtml \{[^}]*touch-action:\s*manipulation/.test(css);
+  if (!html) bad.push('style.css: `html` has no `touch-action: manipulation` — iPad Safari double-tap-zooms whatever the viewport says');
   const { w } = boot();
+  await wait(200);
+  const ev = new w.MouseEvent('dblclick', { bubbles: true, cancelable: true });
+  w.document.getElementById('screen').dispatchEvent(ev);
+  if (!ev.defaultPrevented) bad.push('a dblclick on the app was not refused — Safari would zoom on it');
+  return bad;
+});
+
+/* NO SPLASH (466) — the owner: "I want to click on the app and it opens straight away." The first screen is drawn before the payload, and the load still says when it finished. */
+check('the app opens straight onto its first screen, and the load says when it finished', async () => {
+  const { w } = boot();
+  const bad = [];
+  if (w.document.getElementById('splash')) bad.push('there is a #splash again — nothing may cover the app while it loads');
+  const first = w.document.getElementById('s-' + w.__t.AT());
+  /* DRAWN, not necessarily full: the feed's posts come with the payload, so before it the feed is loading_()'s dots in place, under nothing. */
+  if (!first || !(first.textContent.trim() || first.querySelector('.loading[role="status"]'))) bad.push('the first screen is empty straight after boot — it must draw (its own dots if it waits) before the payload');
   await wait(400);
-  const sp = w.document.getElementById('splash');
-  if (!sp) return ['there is no splash element at all'];
-  return sp.classList.contains('done') ? []
-    : ['the splash never lifted — load() did not finish, and nothing on screen would say why'];
+  if (!w.document.documentElement.classList.contains('is-loaded')) bad.push('`html.is-loaded` never came — load() did not finish, and nothing would say why');
+  return bad;
 });
 
 check('every tab draws something', async () => {
@@ -13865,11 +13883,11 @@ check('a backend that never answers does not hang the app for ever', async () =>
   const hasWatchdog = /Still loading after/i.test(html);
   const bad = [];
   if (!hasDeadline) {
-    bad.push('the payload fetch has no deadline — a slow backend leaves the splash up for ever, '
+    bad.push('the payload fetch has no deadline — a slow backend leaves every wait on screen for ever, '
       + 'with nothing on screen saying why. That cost most of one day.');
   }
   if (!hasWatchdog) {
-    bad.push('index.html has no splash watchdog — if the code loads and the data never comes, '
+    bad.push('index.html has no load watchdog — if the code loads and the data never comes, '
       + 'nothing says so');
   }
   return bad;
@@ -20995,72 +21013,6 @@ check('a page turn on Find 2 from outside any binding (a swipe) has the page in 
   return bad;
 });
 
-/* ---------- THE SPLASH'S PICKER, AS index.html HOLDS IT § */
-const pickerSrc_ = () => {
-  const h = fs.readFileSync(path.join(dir, '..', 'index.html'), 'utf8');
-  const m = /<script id="pick-splash">([\s\S]*?)<\/script>/.exec(h);
-  return m ? m[1] : null;
-};
-/* EVERY ANSWER THE COIN CAN GIVE, by forcing `Math.random` across its range: § */
-const pickEvery_ = (w, src, n) => {
-  const sp = w.document.getElementById('splash');
-  const was = w.Math.random, out = [];
-  const reset = () => {
-    sp.className = 'is-still';
-    [...sp.querySelectorAll(':scope > [class|="an"]')].forEach(e => e.remove());
-    [...w.document.head.querySelectorAll('style[data-anim]')].forEach(e => e.remove());
-  };
-  try {
-    for (let k = 0; k < (n || 64); k++) {
-      reset();
-      w.Math.random = () => (k + 0.5) / (n || 64);
-      w.eval(src);
-      const root = sp.querySelector(':scope > [class|="an"]');
-      out.push({ cls: sp.className, root: root ? root.className : '' });
-    }
-  } finally { w.Math.random = was; reset(); }
-  return out;
-};
-/* UNTIL `load()` HAS READ THE FILES AND BUILT `DATA` — a poll rather than a fixed sleep, because the
-   suite runs beside four browsers and a fixed sleep is the timer that fails only there. */
-const loaded_ = async (t, ms) => {
-  for (let i = 0; i < (ms || 5000) / 25; i++) {
-    const d = t.DATA && t.DATA();
-    if (d && d.splashOff) return true;
-    await wait(25);
-  }
-  return false;
-};
-
-/* ---------- A RETIRED SPLASH STAYS RETIRED § */
-check('a retired splash stays retired: the file\'s list reaches the device, and the picker never draws it', async () => {
-  const rows = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'splashes.json'), 'utf8'))
-    .map(r => r.splash_id === 'pyth' ? Object.assign({}, r, { active: false }) : r);
-  /* AND THE BOOKS, because Pythagoras lives in one: the picker could only draw it from the copy a load
-     of data/textbooks.json kept, so without them the retirement would be proved of nothing. */
-  const books = LIB_FULL.rows('textbooks');
-  const { w } = boot({ serve: u => /(^|\/)data\/settings\/splashes\.json(\?|$)/.test(u) ? rows
-    : /(^|\/)data\/textbooks\.json(\?|$)/.test(u) ? books : undefined });
-  if (!w.__t) return ['the app did not finish loading'];
-  if (!(await loaded_(w.__t))) return ['`load()` never built DATA.splashOff — the splashes file was NOT read, so nothing was checked'];
-  for (let i = 0; i < 100 && !w.localStorage.getItem('splashAnims'); i++) await wait(25);
-  if (((JSON.parse(w.localStorage.getItem('splashAnims') || '{}').ids) || []).indexOf('pyth') < 0) return ['the load kept no copy of Pythagoras from the books — the retirement was NOT proved of anything'];
-  const bad = [];
-  let off = null;
-  try { off = JSON.parse(w.localStorage.getItem('splashOff') || 'null'); } catch (e) { off = 'unreadable'; }
-  if (!Array.isArray(off) || off.indexOf('is-pyth') < 0) {
-    bad.push('the device kept splashOff = ' + JSON.stringify(off) + ' — Pythagoras is off in the file and the next load can still draw it');
-  }
-  const src = pickerSrc_();
-  if (!src) return bad.concat(['index.html has no <script id="pick-splash"> — the picker was NOT run']);
-  const picks = pickEvery_(w, src, 64);
-  const drew = picks.filter(p => p.cls === 'is-pyth' || p.root === 'an-pyth');
-  if (drew.length) bad.push('the picker drew Pythagoras ' + drew.length + ' times in 64 — retired in the sheet, and still on the splash');
-  const kinds = new Set(picks.map(p => p.root || p.cls));
-  if (kinds.size < 10) bad.push('64 forced picks drew only ' + kinds.size + ' different splashes (' + [...kinds].join(' ') + ') — the coin was NOT exercised');
-  return bad;
-});
-
 /* ---------- A CHAPTER PLAYS ITS ANIMATION § */
 /* ON FIND 2 (docs/history/329), a page after the Pythagoras content card (347, part 2). */
 check('a content card plays its animation on Find 2: Pythagoras after the Pythagoras and trigonometry card, drawn from its row', async () => {
@@ -21206,64 +21158,12 @@ check('the owner\'s test, on Find and Find 2: Maths · GCSE · Topic Surds, Pyth
   return bad;
 });
 
-/* ---------- THE SPLASH IS DRAWN FROM THE TEXTBOOKS' COPY § */
-check('the splash is drawn from the textbooks\' copy: a load keeps it, the next one draws it, and it comes off with the splash', async () => {
-  const books = LIB_FULL.rows('textbooks');
-  const sheet = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'splashes.json'), 'utf8'));
-  const serve = u => /(^|\/)data\/textbooks\.json(\?|$)/.test(u) ? books : /(^|\/)data\/settings\/splashes\.json(\?|$)/.test(u) ? sheet : undefined;
-  const one = boot({ serve });
-  for (let i = 0; i < 200 && !one.w.localStorage.getItem('splashAnims'); i++) await wait(25);
-  const kept = {};
-  for (let i = 0; i < one.w.localStorage.length; i++) { const k = one.w.localStorage.key(i); kept[k] = one.w.localStorage.getItem(k); }
-  const idx = JSON.parse(kept.splashAnims || 'null');
-  if (!idx || !(idx.ids || []).length) return ['the first load kept no copy of the books\' animations — NOT checked'];
-  const bad = [];
-  const want = books.filter(r => r.anim).map(r => r.anim);
-  if (idx.ids.join() !== want.join()) bad.push('the first load kept ' + idx.ids.length + ' animations, not the books\' ' + want.length + ' in order');
-  const src = pickerSrc_();
-  if (!src) return bad.concat(['index.html has no <script id="pick-splash"> — NOT checked']);
-  /* EVERY OTHER DRAWING RETIRED, so the coin can only land on Pythagoras. The books' copy is the whole
-     pool: the inline splashes it was once mixed with are gone (docs/history/322). */
-  const two = boot({ serve, before: w2 => {
-    Object.keys(kept).forEach(k => w2.localStorage.setItem(k, kept[k]));
-    w2.localStorage.setItem('splashOff', JSON.stringify(idx.ids.filter(k => k !== 'pyth').map(k => 'is-' + k)));
-  } });
-  const w = two.w;
-  const sp = w.document.getElementById('splash');
-  sp.className = 'is-still';
-  w.eval(src);
-  const root = sp.querySelector(':scope > .an-pyth');
-  if (sp.className !== 'is-an' || !root) return bad.concat(['the next visit drew "' + sp.className + '", not Pythagoras from the kept copy']);
-  if (root !== sp.firstElementChild) bad.push('the drawing is not the first thing in the splash');
-  if (!root.querySelector(':scope > .sp-sig')) bad.push('the splash did not sign the drawing');
-  /* THE CHAPTER'S DRAWING, ONCE THE PAGE'S OWN IDS ARE TAKEN OUT. */
-  const made = w.libraryExtras_({}, { textbooks: books });
-  const maths = made.textbooks.find(b => b.name === 'GCSE Maths');
-  const page = w.document.createElement('div');
-  page.innerHTML = w.textbookAnimPart_({ name: 'Pythagoras and trigonometry', row: maths.chapters.find(c => c.n === 17), kind: 'content' }, 'an17-pyth');
-  const stage = page.querySelector('.tb-an-stage');
-  const splashCopy = root.cloneNode(true); splashCopy.querySelector('.sp-sig').remove();
-  const unsuffix = h => h.replace(/(id="|url\(#|href="#)([\w-]+?)-t\d+/g, '$1$2');
-  if (!stage || unsuffix(stage.innerHTML).trim() !== splashCopy.outerHTML.trim()) bad.push('the splash\'s Pythagoras is not the chapter\'s');
-  const styles = w.document.head.querySelectorAll('style[data-anim="pyth"]');
-  if (styles.length !== 1) bad.push(styles.length + ' Pythagoras stylesheets after the splash and the chapter both drew it — one, shared');
-  /* AND OFF WITH THE SPLASH. */
-  w.splashOff_();
-  await wait(650);
-  if (sp.querySelector(':scope > [class|="an"]')) bad.push('half a second after the splash came off, its drawing is still in it');
-  /* BACK TO THE STILL NAME AND THE LOADER, which is what a Try again is: a wait. It went back to the tag
-     until the tag was deleted with the other splashes that taught nothing. */
-  if (sp.className.split(/\s+/).indexOf('is-still') < 0) bad.push('after the splash came off it is "' + sp.className + '" — a Try again would show an empty splash, not the name and the loader');
-  else if (!sp.querySelector('#splash-still .loading[role="status"]') || !/@family\./.test((sp.querySelector('#splash-still') || {}).textContent || '')) bad.push('after the splash came off, the still one it went back to has no name or no loader in it');
-  return bad;
-});
-
 /* ---------- THE BOOKS AND THE SETTINGS ARE ASKED FOR WITH THE DEPLOY'S STAMP § */
 check('the books and the settings files are fetched with the deploy stamp', async () => {
   const { w, gets } = boot({ before: w2 => { w2.LOAD = 'STAMP42'; } });
   for (let i = 0; i < 100 && !gets.some(u => /data\/textbooks\.json/.test(u)); i++) await wait(25);
   const bad = [];
-  ['textbooks', 'practicals', 'settings/splashes', 'settings/brand'].forEach(n => {
+  ['textbooks', 'practicals', 'settings/brand'].forEach(n => {
     const asked = gets.filter(u => u.indexOf('data/' + n + '.json') === 0);
     if (!asked.length) bad.push('data/' + n + '.json was never asked for — NOT checked');
     else if (!asked.every(u => u === 'data/' + n + '.json?t=STAMP42')) bad.push('data/' + n + '.json was asked for as ' + asked.join(', ') + ' — without the deploy stamp the worker keeps the first copy for good');
