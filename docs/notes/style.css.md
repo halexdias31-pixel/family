@@ -13229,3 +13229,12 @@ before `.prof-week .hr.is-busy`
    weight and not by being written later — `check/cascade.js` names a tie won by order. */
 ```
 
+### THE DS LOOKS LIKE A DS (478):
+
+before `.nes-wrap[data-sys="nds"]`
+
+```
+/* THE DS LOOKS LIKE A DS (478): a white clamshell — the top screen in the upper shell, a hinge across the body, the touch screen in the lower
+   shell with the D-pad left, A/B/X/Y right, Start and Select under them, L and R on the top corners. Its pad shows on keys too. */
+```
+

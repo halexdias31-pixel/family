@@ -1,0 +1,22 @@
+THE TEXT IN THIS FOLDER — not the site's code
+
+The Babylonian Talmud, Vilna (Romm) edition, 1880-1886: 37 tractates.
+
+Gemara and Mishnah (the "g" text of every file)
+  "Wikisource Talmud Bavli", transcribed by the contributors of Hebrew Wikisource
+  (https://he.wikisource.org/wiki/תלמוד_בבלי), as exported by Sefaria
+  (https://github.com/Sefaria/Sefaria-Export, bucket gs://sefaria-export).
+  Licensed CC BY-SA 3.0: https://creativecommons.org/licenses/by-sa/3.0/
+  Changed here: split into files of ten dafim; markup other than <big>, <strong> and <br> removed.
+  This adaptation of the text is likewise CC BY-SA 3.0 (share-alike). The share-alike applies to
+  this text only; the rest of the repository is not a derivative of it.
+
+Rashi and Tosafot (the "r" and "t" texts)
+  "Vilna Edition" as exported by Sefaria (source: National Library of Israel scans of the Vilna
+  edition); for Rashi on Rosh Hashanah, "WikiSource Rashi". Marked Public Domain by Sefaria, except
+  Rashi and Tosafot on Sanhedrin, which Sefaria marks CC BY-SA (from Hebrew Wikisource) and which
+  are under CC BY-SA 3.0 as above. Each tractate's versions and licences are listed in index.json.
+
+Not included: any CC BY-NC text (the William Davidson / Koren-Steinsaltz edition), any version with
+an unknown licence, and every English translation.
+Rebuilt by tools/talmud_build.py. See docs/history/473.

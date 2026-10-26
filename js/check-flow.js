@@ -7311,7 +7311,7 @@ check('console keys: arrows and WASD steer, Z/X/Space/Enter/Shift and Q/E per sy
   if (!d.querySelector('#s-games #nes-wrap')) return ['the console was not drawn'];
   /* A FINE POINTER STARTS ON KEYS: the list is shown and the touch pad is not, before any game. */
   if (ev('NES_.mode') !== 'keys') bad.push('a mouse-and-keyboard device started in ' + ev('NES_.mode') + ' mode');
-  if (d.querySelector('#nes-legend').hidden) bad.push('the key list is hidden on a keyboard device');
+  if (!d.querySelector('#nes-legend').hidden) bad.push('the key list shows before its Keys tile asked (478)');
   if (d.querySelector('#nes-pad').classList.contains('on')) bad.push('the touch pad shows on a keyboard device');
   const acts = [...d.querySelectorAll('#nes-tiles [data-do]')].map(b => b.getAttribute('data-do'));
   if (acts.join() !== 'nes-play,nes-pick,nes-forget,nes-keys') bad.push('on keys the tiles are ' + JSON.stringify(acts));
@@ -7381,9 +7381,10 @@ check('console keys: arrows and WASD steer, Z/X/Space/Enter/Shift and Q/E per sy
   key('keyup', 'ArrowLeft', 'ArrowLeft');
   /* THE KEYS TILE hides the list and shows it again, and remembers. */
   t.ACTIONS['nes-keys']();
-  if (!d.querySelector('#nes-legend').hidden) bad.push('the Keys tile did not hide the key list');
+  if (d.querySelector('#nes-legend').hidden) bad.push('the Keys tile did not show the key list');
   t.ACTIONS['nes-keys']();
-  if (d.querySelector('#nes-legend').hidden) bad.push('the Keys tile did not show the key list again');
+  if (!d.querySelector('#nes-legend').hidden) bad.push('the Keys tile did not hide the key list again');
+  t.ACTIONS['nes-keys']();
   let kept = null; try { kept = w.localStorage.getItem('nes-keys'); } catch (e) {}
   if (kept !== '1') bad.push('the key list choice was not kept: ' + JSON.stringify(kept));
   /* A FINGER ON THE CONSOLE swaps the key list for the touch pad, and the Keys tile goes; the padlock is the widget's (461). */
@@ -7396,6 +7397,64 @@ check('console keys: arrows and WASD steer, Z/X/Space/Enter/Shift and Q/E per sy
   if (d.body.classList.contains('nes-on')) bad.push('the body is still marked after Pause');
   if (w.__aheadHold !== false) bad.push('the builder is still held after Pause');
   ev('NES_.nes = null;');
+  return bad;
+});
+
+/* ---------- THE DS LOOKS LIKE A DS (478): two screens in one clamshell, its own buttons pressing the core, and nothing repainted while it plays. */
+check('console DS (478): a clamshell with both screens and the hinge between, its pad shown on keys too with L R X Y A B Start Select reaching the core, the widget not redrawn while it plays, and a save at most once a minute', async () => {
+  const { w } = boot({ member: true });
+  await wait(300);
+  const t = w.__t, d = w.document, ev = s => t.inApp(s);
+  const bad = [];
+  t.go('games', false, true);
+  await wait(LEAVE_MS); await woken_();
+  const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'console');
+  if (at < 0) return ['there is no Console widget on the Games column'];
+  t.goPage('games', at, true);
+  await woken_();
+  if (!d.querySelector('#s-games #nes-wrap')) return ['the console was not drawn'];
+  ev('nesSysSet_("nds")');
+  const wrap = d.querySelector('#nes-wrap'), pad = d.querySelector('#nes-pad');
+  if (wrap.dataset.sys !== 'nds') bad.push('the body does not say nds');
+  const [W, H] = ev('NES_DIMS.nds'), gap = ev('NES_GAP');
+  if (W !== 256 || H !== 2 * 192 + gap) bad.push('the DS picture is ' + W + 'x' + H + ', not two 256x192 screens and the gap');
+  if (ev('nesShow_("nds")') !== W / H) bad.push('the stage is not the two screens\' shape: ' + ev('nesShow_("nds")'));
+  if (!d.querySelector('#nes-hinge') || parseFloat(d.querySelector('#nes-hinge').style.height) <= 0) bad.push('the DS has no hinge between its screens');
+  if (ev('NES_.mode') !== 'keys') bad.push('the journey expected a keyboard device');
+  if (!pad.classList.contains('on') || !wrap.classList.contains('nes-has-pad')) bad.push('on keys the DS does not wear its own buttons');
+  if (!d.querySelector('#nes-legend').hidden) bad.push('the key list shows on the DS before the Keys tile asked');
+  const names = [...pad.querySelectorAll('[data-k]')].map(e => e.dataset.k).sort().join();
+  if (names !== 'a,b,dpad,l,r,select,start,x,y') bad.push('the DS pad holds ' + names);
+  /* A STAND-IN CORE: each pad button reaches RetroPad's own number. */
+  ev(`window.__in = []; EMU_.ejs = { gameManager: { simulateInput: (p, i, v) => __in.push(i + ':' + v) }, pause() {}, play() {} }; EMU_.ready = true; EMU_.sys = 'nds'; EMU_.held = {}; EMU_.ax = [];`);
+  ev('nesRun_(true); NES_.running = true; emuSync_()');
+  const press = (k, on) => { const el = pad.querySelector('[data-k="' + k + '"]'); const r = { clientX: 0, clientY: 0, pointerId: 7, pointerType: 'touch' };
+    el.dispatchEvent(Object.assign(new w.Event(on ? 'pointerdown' : 'pointerup', { bubbles: true, cancelable: true }), r)); };
+  ['a', 'b', 'x', 'y', 'l', 'r', 'start', 'select'].forEach(k => {
+    ev('__in = []'); press(k, true);
+    if (ev('__in.join()') !== ev('EMU_IDX.' + k) + ':1') bad.push(k + ' pressed sent ' + ev('__in.join()'));
+    ev('__in = []'); pad.dispatchEvent(Object.assign(new w.Event('pointerup', { bubbles: true }), { pointerId: 7 }));
+    if (ev('__in.join()') !== ev('EMU_IDX.' + k) + ':0') bad.push(k + ' let go sent ' + ev('__in.join()'));
+  });
+  /* NOTHING REDRAWN WHILE IT PLAYS: the builder's repaint of the widget leaves the console alone. */
+  const box = d.querySelector('#nes-box');
+  let muts = 0;
+  const mo = new w.MutationObserver(l => { muts += l.length; });
+  mo.observe(box, { childList: true, subtree: true });
+  for (let i = 0; i < 5; i++) ev('consoleStill_()');
+  await wait(20);
+  mo.disconnect();
+  if (muts) bad.push('the console was redrawn ' + muts + ' time(s) while a game played');
+  /* A SAVE AT MOST ONCE A MINUTE while playing: pauses in a row take one; leaving always takes one. */
+  ev(`window.__caps = 0; CSV_.hash = 'h'; CSV_.rom = 'k'; CSV_.took = 0; EMU_.key = 'k';
+    EMU_.ejs.gameManager.getSaveFile = () => (__caps++, new Uint8Array([1])); EMU_.ejs.gameManager.getState = () => new Uint8Array([2]);`);
+  for (let i = 0; i < 4; i++) { ev('emuPause_()'); ev('NES_.running = true'); }
+  if (ev('__caps') !== 1) bad.push(ev('__caps') + ' saves were taken by four pauses inside a minute');
+  ev('CSV_.took = Date.now() - 61000; emuPause_()');
+  if (ev('__caps') !== 2) bad.push('a pause a minute later took no save');
+  ev('emuPause_(true)');
+  if (ev('__caps') !== 3) bad.push('leaving the page did not save at once');
+  ev('nesRun_(false); NES_.running = false; EMU_.ejs = null; EMU_.ready = false; EMU_.key = ""; CSV_.hash = ""; nesSysSet_("nes")');
   return bad;
 });
 
@@ -11211,6 +11270,101 @@ check('an admin adds a reel from the "+" just before the first reel, where the c
   if (col().querySelector('.media-form')) bad.push('the form stayed open after Save');
   if (!col().querySelector('.media-list [data-do="media-edit"][data-id="' + ID + '"]')) bad.push('the added reel has no Edit tile on the "+" page');
   t.DATA().media = [];
+  t.USER(null);
+  return bad;
+});
+
+/* "ADD A REEL SHOULD ALSO GIVE ME OPTION TO UPLOAD A FILE INSTEAD" (474): a video file, no `capture`, sent as mediaUpload and played from Drive. */
+check('an admin uploads a reel as a video file — an Upload tile, accept="video/*" with no capture, over 20 MB refused, sent as mediaUpload, and in the column as a Drive clip', async () => {
+  const FID = 'f1761480000000';
+  let hold = false;
+  const { w, sent } = boot({ serve: () => hold ? new Promise(() => {}) : undefined,
+    reply: b => b.action === 'mediaUpload'
+      ? { success: true, kind: 'reel', id: FID, media: [{ kind: 'reel', id: FID, url: 'https://drive.google.com/file/d/FILEreel1234567890abcdefgh/view#video', title: b.title, subject: b.subject }] }
+      : { success: true } });
+  await wait(400);
+  const t = w.__t, d = w.document, bad = [];
+  const col = () => d.querySelector('#s-reel');
+  t.USER({ name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], token: 'tk' });
+  try { t.go('reel', false, true); w.paint('reel'); } catch (e) { return ['drawing Reels threw: ' + e.message]; }
+  await wait(200);
+  const plus = col() && col().querySelector('[data-do="media-add"][data-kind="reel"]');
+  if (!plus) return ['the admin\'s Reels column has no "+"'];
+  t.ACTIONS['media-add'](plus);
+  await wait(150);
+  let form = col().querySelector('.media-form');
+  const tile = form && form.querySelector('.tile[data-do="media-file"]');
+  const inp = form && form.querySelector('input[type="file"].media-file-in');
+  if (!tile) bad.push('the new-reel form has no "Upload a video" tile');
+  if (!inp) return bad.concat(['the new-reel form has no file input']);
+  if (inp.getAttribute('accept') !== 'video/*') bad.push('the file input accepts "' + inp.getAttribute('accept') + '", not video/*');
+  if (inp.hasAttribute('capture')) bad.push('the file input carries `capture`, so an iPhone would open only the camera');
+  if (!form.querySelector('[data-mf="url"]')) bad.push('the YouTube link box went — upload is an option, not a replacement');
+  const pick = file => { Object.defineProperty(inp, 'files', { value: [file], configurable: true }); inp.dispatchEvent(new w.Event('change', { bubbles: true })); };
+  const big = new w.File(['x'], 'huge.mp4', { type: 'video/mp4' });
+  Object.defineProperty(big, 'size', { value: 21 * 1048576 });
+  pick(big); await wait(150);
+  form = col().querySelector('.media-form');
+  if (!/over 20 MB/.test((form.querySelector('.media-said') || {}).textContent || '')) bad.push('a 21 MB video was not refused on the form');
+  const fresh = () => col().querySelector('input.media-file-in');
+  Object.defineProperty(fresh(), 'files', { value: [new w.File(['abc'], 'fractions_in_a_minute.mp4', { type: 'video/mp4' })], configurable: true });
+  fresh().dispatchEvent(new w.Event('change', { bubbles: true }));
+  await wait(300);
+  form = col().querySelector('.media-form');
+  const title = form && form.querySelector('[data-mf="title"]');
+  if (!title || title.value !== 'fractions in a minute') return bad.concat(['the chosen file did not fill the title: ' + JSON.stringify(title && title.value)]);
+  if (form.querySelector('.tile[data-do="media-file"]')) bad.push('the Upload tile is still offered with a file held');
+  sent.length = 0;
+  hold = true;
+  t.ACTIONS['media-save'](form.querySelector('[data-do="media-save"]'));
+  await wait(300);
+  const up = sent.find(b => b.action === 'mediaUpload');
+  if (!up || up.kind !== 'reel' || !/^data:video\/mp4;base64,/.test(String(up.data)) || up.title !== 'fractions in a minute' || up.personId !== 'P-AD') bad.push('saving posted ' + JSON.stringify(up && Object.assign({}, up, { data: String(up.data).slice(0, 30) })));
+  if (sent.some(b => b.action === 'mediaSave')) bad.push('an upload also sent mediaSave');
+  w.paint('reel'); await wait(200);
+  const vid = [...col().querySelectorAll('.reel video[data-clip]')].find(v => /FILEreel/.test(v.dataset.clip));
+  if (!vid) bad.push('the uploaded reel is not a clip in the column');
+  else if (!/^https:\/\/drive\.usercontent\.google\.com\/download\?id=FILEreel/.test(vid.dataset.clip)) bad.push('the uploaded reel plays from ' + vid.dataset.clip + ', not Drive\'s download address');
+  if (!col().querySelector('.media-list [data-do="media-edit"][data-id="' + FID + '"]')) bad.push('the uploaded reel has no Edit tile');
+  t.DATA().media = [];
+  t.USER(null);
+  return bad;
+});
+
+/* "THE PROFILE PICTURE SHOULD BE IN SYNC WITH MY DP FOR MY ACCOUNT" (474): a person's post wears their picture by person id, read when it is drawn. */
+check('a post wears its author\'s account picture by person id — your own follows a change of picture without a reload, a person with none is their initial and never the brand mark, the business post keeps the mark', async () => {
+  const { w } = boot({});
+  await wait(400);
+  const t = w.__t, d = w.document, bad = [], D = t.DATA();
+  const keep = D.posts, keepBrand = D.brand;
+  D.brand = Object.assign({}, D.brand, { logo_square: 'icon.png' });
+  const post = (id, o) => Object.assign({ id, author: 'Ada Admin', handle: '@ada', avatar: '', image: 'data/reels/archetest.jpg', media: ['data/reels/archetest.jpg'],
+    caption: 'A trip', body: '', location: '', when: '', at: 0, pinned: false, active: true, waiting: false, refused: false, approvedBy: '', poll: null,
+    reactions: { emoji: ['👍'], counts: [0], total: 0, yours: '', by: [] }, comments: { total: 0, list: [] }, rowIndex: 2 }, o);
+  const face = id => d.querySelector('#s-feed article[data-post="' + id + '"] .post-face');
+  const PHOTO = 'https://drive.google.com/file/d/FILEpfp1234567890abcdefgh/view';
+  t.USER({ name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], token: 'tk', handle: '@ada', photo: '', profile: {} });
+  D.posts = [post('PO-ME', { authorId: 'P-AD' }), post('PO-BIZ', { author: '@family.', handle: '@family.', authorId: '' }),
+             post('PO-THEM', { author: 'Tom Tutor', handle: '@tom', authorId: 'P-TT', avatar: 'https://drive.google.com/file/d/FILEtom1234567890abcdefgh/view' })];
+  try { w.paint('feed'); } catch (e) { return ['drawing the feed threw: ' + e.message]; }
+  await wait(150);
+  const me = face('PO-ME');
+  if (!me) return ['your post drew no face'];
+  if (me.tagName === 'IMG') bad.push('with no picture on your account your post wears ' + me.getAttribute('src') + ', not your initial');
+  else if (me.textContent.trim() !== 'A') bad.push('with no picture your post shows "' + me.textContent.trim() + '", not your initial A');
+  const biz = face('PO-BIZ');
+  if (!biz || biz.tagName !== 'IMG') bad.push('the business post lost the brand mark');
+  const them = face('PO-THEM');
+  if (!them || !/FILEtom/.test(them.getAttribute('src') || '')) bad.push('another person\'s post does not wear their picture');
+  /* THE PICTURE CHANGES IN SETTINGS: `pfpTake_` writes USER.photo and calls `postFacesMine_`. */
+  const u = t.whoami(); u.photo = PHOTO; u.profile = { photo: PHOTO };
+  w.postFacesMine_();
+  const now = face('PO-ME');
+  if (!now || now.tagName !== 'IMG' || !/lh3\.googleusercontent\.com\/d\/FILEpfp/.test(now.getAttribute('src') || '')) bad.push('after a change of picture your post shows ' + (now ? now.outerHTML.slice(0, 90) : 'nothing') + ', not the new picture');
+  if (!/FILEtom/.test((face('PO-THEM') || {}).getAttribute && face('PO-THEM').getAttribute('src') || '')) bad.push('your change of picture touched somebody else\'s post');
+  w.paint('feed'); await wait(100);
+  if (!/FILEpfp/.test(((face('PO-ME') || {}).getAttribute && face('PO-ME').getAttribute('src')) || '')) bad.push('a repaint of the feed lost your new picture');
+  D.posts = keep; D.brand = keepBrand;
   t.USER(null);
   return bad;
 });
@@ -20704,6 +20858,56 @@ check('a kept card Saved cannot draw whole opens in Find: Saved\'s Open under a 
 });
 
 /* ---------- THE HISTORY DATABASE (459): EACH KIND FOUND BY THE FUNNEL, ITS CARD OPENED, A LINK FOLLOWED IN PLACE ---------- */
+check('the Talmud (473): Berakhot 2 is found under Learning, Content, Talmud, Zeraim, Berakhot, Chapter 1, Daf 2; its tile opens the Vilna page with Gemara, Rashi and Tosafot from the real files, and the next side is 2b', async () => {
+  const tdir = path.join(dir, '..', 'data', 'talmud');
+  const serve = url => {
+    const m = /(?:^|\/)data\/talmud\/([a-z-]+\/\d+\.json|index\.json)(?:\?|$)/.exec(url);
+    if (!m) return undefined;
+    const p = path.join(tdir, m[1]);
+    return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : null;
+  };
+  const b = boot({ serve, member: true });
+  for (let i = 0; i < 80 && !b.w.__t; i++) await wait(25);
+  if (!b.w.__t) return ['the app did not boot — NOT checked'];
+  const { w } = b, t = w.__t, d = w.document, bad = [];
+  if (typeof w.talmudItems_ !== 'function') return ['talmudItems_ is not declared — js/talmud.js did not load'];
+  t.go('stuff');
+  w.paintStuff();
+  for (let i = 0; i < 80 && !w.talmudItems_().length; i++) await wait(25);
+  if (!w.talmudItems_().length) return ['data/talmud/index.json never arrived — fetched: ' + b.gets.filter(u => /talmud/.test(u)).join(', ')];
+  const x = w.stuffItemsAll_().find(y => y.key === 'tal:berakhot:2');
+  if (!x) return ['Berakhot 2 is not on the list of everything — NOT checked'];
+  t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Content' }, { field: 'shelf', value: 'Talmud' },
+    { field: 'talSeder', value: 'Zeraim' }, { field: 'talTractate', value: 'Berakhot' }, { field: 'talChapter', value: x.talChapter }, { field: 'talDaf', value: '2' }];
+  const got = w.stuffFiltered();
+  if (got.length !== 1 || got[0] !== x) bad.push('the seven answers keep ' + got.length + ' thing(s), not Berakhot 2 alone');
+  if (x.talChapter !== 'Chapter 1 · מאימתי') bad.push('Berakhot 2 is in "' + x.talChapter + '", not Chapter 1 · מאימתי');
+  const walk = w.finderWalk_(x);
+  t.STUFF().filters = walk;
+  if (w.stuffFiltered().indexOf(x) < 0) bad.push('the funnel\'s own walk loses Berakhot 2: ' + JSON.stringify(walk));
+  const el = d.createElement('div'); el.innerHTML = w.stuffCard(x) + w.cardTiles_(x);
+  if (!el.querySelector('.card.tal')) bad.push('Berakhot 2 draws no Talmud card');
+  const tile = el.querySelector('[data-do="tal-open"][data-i="2"]');
+  if (!tile) return bad.concat(['the card has no tile opening side 2a']);
+  t.ACTIONS['tal-open'](tile);
+  for (let i = 0; i < 80 && !d.querySelector('#sheet-body .tal-body'); i++) await wait(25);
+  const v = d.getElementById('sheet');
+  if (!v || !v.querySelector('.tal-body')) return bad.concat(['pressing the tile drew no page — fetched: ' + b.gets.filter(u => /talmud/.test(u)).join(', ')]);
+  const txt = s => ((v.querySelector(s) || {}).textContent || '').trim();
+  if (!/מאימתי קורין את שמע בערבין/.test(txt('.tal-gem'))) bad.push('the Gemara of 2a does not open with the Mishnah');
+  if (!txt('.tal-rashi')) bad.push('2a has no Rashi');
+  if (!txt('.tal-tos')) bad.push('2a has no Tosafot');
+  if (!/ברכות/.test(txt('.tal-head')) || !/ב\./.test(txt('.tal-hd-daf'))) bad.push('the header does not say ברכות and ב.');
+  if (!/CC BY-SA/.test(txt('.tal-credit'))) bad.push('the page carries no attribution line');
+  if (!v.querySelector('.tal-body.tal-a')) bad.push('2a is not laid out as an a side (Rashi inner, on the right)');
+  t.ACTIONS['tal-step'](v.querySelector('[data-do="tal-step"][data-by="1"]'));
+  await wait(60);
+  if (!/Berakhot 2b/.test(txt('.tal-where'))) bad.push('Next went to "' + txt('.tal-where') + '", not Berakhot 2b');
+  w.closeSheet();
+  if (d.querySelector('#sheet-body .tal-sheet')) bad.push('closing the sheet left the page drawn');
+  return bad;
+});
+
 check('the history database: a manuscript, a historical figure and a writing are each found under Learning, Content, History, open as a card of label and value lines, and a link tile lands on the linked row\'s card in the same finder', async () => {
   /* THE REAL FILES, through the app's own `libraryExtras_`, on the resources payload. */
   const p = await resPayload_();
@@ -21781,7 +21985,9 @@ check('the funnel asks an admin exactly what it asks a parent, the Books shelf a
     const b = boot({ serve: serveAll, before: seed(u) });
     const w = b.w, t = w.__t;
     const R = resView_(w);
-    for (let i = 0; i < 120 && !(t && t.STUFF && w.stuffItems().length > 1000 && (u.role !== 'admin' || (t.BIBLE().index && R.stuffItems().some(x => x.kind === 'bible')))); i++) await wait(50);
+    /* AND THE TALMUD'S INDEX (473), which both are given once a finder paints — or the two would differ by its timing. */
+    try { t.go('stuff'); w.paintStuff(); } catch (e) {}
+    for (let i = 0; i < 120 && !(t && t.STUFF && w.stuffItems().length > 1000 && w.talmudItems_().length && (u.role !== 'admin' || (t.BIBLE().index && R.stuffItems().some(x => x.kind === 'bible')))); i++) await wait(50);
     if (!t || w.stuffItems().length < 1000) { bad.push(what + ': the library did not load, so the walk was NOT checked'); return bad; }
     const admin = u.role === 'admin';
     ['stuff', 'res'].forEach(fid => {
@@ -29249,6 +29455,34 @@ const layCardTile_ = (d, id, act, dir) => layCardRow_(d, id)?.querySelector(`[da
 const laySeen_ = (w, col) => w.cardSeen_(col);
 const layLast_ = sent => ((sent.filter(x => x.action === 'layoutSave').pop() || {}).layout) || null;
 
+/* A CARD MOVED ACROSS IS ON A PAGE THE PAGER COUNTS (476): the count was the builder's, the column drawn `cardsOf_`'s, so a moved-in card sat past the last page. */
+const layReach_ = (w, col, id) => {
+  const host = w.document.getElementById('s-' + col), pages = host ? [...host.querySelectorAll(':scope > .page')] : [];
+  const at = pages.findIndex(p => p.querySelector(`.card-admin[data-lay-for="${id}"]`));
+  let n = -1; try { n = w.__t.pageCount(col); } catch (e) {}
+  return at === -1 ? col + ' does not draw ' + id : at >= n ? col + ' draws ' + id + ' on page ' + (at + 1) + ' of ' + pages.length + ' and its pager counts ' + n : '';
+};
+check('a card moved ◀ into the next column is on a page that column scrolls to — Business into Profiles: parents, parents into students — and still after a reload (476)', async () => {
+  const { w, sent } = layBoot_();
+  await wait(300);
+  const A = w.__t.ACTIONS, d = w.document, bad = [];
+  if (!A['lay-c-col'] || typeof w.__t.pageCount !== 'function') return ['no lay-c-col or pageCount — NOT checked'];
+  await layPaintAll_(w);
+  const moves = [];
+  for (const [from, to] of [['biz', 'parents'], ['parents', 'students']]) {
+    const seen = laySeen_(w, from).filter(x => !moves.some(m => m[1] === x)), id = from === 'biz' ? seen[0] : seen[seen.length - 1];
+    const tile = id && layCardTile_(d, id, 'lay-c-col', '-1');
+    if (!tile) { bad.push(from + ' has no ◀ card to move — NOT checked'); continue; }
+    A['lay-c-col'](tile); await wait(300); await layPaintAll_(w);
+    const why = layReach_(w, to, id); if (why) bad.push(why);
+    moves.push([to, id]);
+  }
+  const p = payload(); p.layout = layLast_(sent);
+  const r = layBoot_({ payload: p }); await wait(300); await layPaintAll_(r.w);
+  moves.forEach(([to, id]) => { const why = layReach_(r.w, to, id); if (why) bad.push('after a reload: ' + why); });
+  return bad;
+});
+
 check('layout cards (465): an admin sees ▲ ▼ ◀ ▶ Start here Delete on every settings, profiles and Business card (Split beside them on a card of several fields); a settings card moves down, up and to another settings column, one layoutSave each, every setting still edited in one place, a reload keeps it; Business cards reorder and "+ Add a student" goes to the bottom', async () => {
   const { w, sent } = layBoot_();
   await wait(300);
@@ -29588,6 +29822,83 @@ check('layout engine (466): every card deletes — a paper series (past papers, 
   if (!base.w.document.querySelector('#s-account ' + sel)) bad.push('a client has no ' + kid + ' to begin with (fixture) — NOT checked');
   else if (c.w.document.querySelector(sel)) bad.push('a client still sees ' + kid + ' the admin deleted');
   if (c.w.document.querySelector('[data-do="lay-start"], .card-admin')) bad.push('a client sees admin tiles');
+  return bad;
+});
+
+/* ---------- GOOGLE TASKS (475): connect → sync makes each task once, a re-sync updates, Disconnect forgets; no client id says so ---------- */
+const GT_U_ = { name: 'Gia Tasks', personId: 'P-GT', role: 'student', roles: ['student'], rank: 'student', token: 't-gt', handle: 'giatasks' };
+function gtWorld_(withId) {
+  const T = { lists: [], tasks: [], calls: [], revoked: [], scripts: 0 };
+  const p = payload();
+  if (withId) p.googleClientId = 'cid-gtasks.apps.googleusercontent.com'; else delete p.googleClientId;
+  p.brand = Object.assign({}, p.brand || {}); delete p.brand.google_client_id;
+  const gj = [{ id: 'J-GT', jobId: 'J-GT', type: 'job', kind: '', status: 'confirmed', subject: 'Maths', level: 'GCSE',
+    tutor: 'GeorgePovey', client: GT_U_.name, day: 'Mon', time: '16:00', dates: '', slots: [], tutorSlots: [], events: [] }];
+  p.jobs = (p.jobs || []).concat(gj); if (p.liveJobs) p.liveJobs = p.liveJobs.concat(gj);
+  const before = w => {
+    signedInAs_(GT_U_)(w);
+    w.google = { accounts: { id: { initialize() {}, renderButton() {} }, oauth2: {
+      initTokenClient: c => (T.scope = c.scope, T.cid = c.client_id, { requestAccessToken: () => setTimeout(() => c.callback({ access_token: 'tok-gt', expires_in: 3600 }), 0) }),
+      revoke: (t, cb) => { T.revoked.push(t); if (cb) cb(); } } } };
+    const orig = w.fetch;
+    w.fetch = (url, o) => {
+      const u = String(url);
+      if (u.indexOf('https://tasks.googleapis.com/tasks/v1') !== 0) return orig(url, o);
+      const m = (o && o.method) || 'GET', b = o && o.body ? JSON.parse(o.body) : null, path = u.slice('https://tasks.googleapis.com/tasks/v1'.length);
+      T.calls.push(m + ' ' + path + ' ' + ((o && o.headers && o.headers.Authorization) || ''));
+      let out = {};
+      if (/^\/users\/@me\/lists/.test(path)) {
+        if (m === 'POST') { out = { id: 'L' + (T.lists.length + 1), title: b.title }; T.lists.push(out); } else out = { items: T.lists.slice() };
+      } else if (m === 'GET') out = { items: T.tasks.map(t => Object.assign({}, t)) };
+      else if (m === 'POST') { out = Object.assign({ id: 'T' + (T.tasks.length + 1), status: 'needsAction' }, b); T.tasks.push(out); }
+      else if (m === 'PATCH') { const id = decodeURIComponent(path.split('/').pop()); const t = T.tasks.find(x => x.id === id); Object.assign(t, b); out = t; }
+      return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(out), text: () => Promise.resolve(JSON.stringify(out)) });
+    };
+  };
+  return { T, p, before };
+}
+check('Google Tasks (475): Connect asks Google for the tasks scope, one sync makes one "@family." list and each task once, a re-sync updates them (a tick in Google kept), Disconnect revokes and forgets; with no client id the card says it is not switched on', async () => {
+  const bad = [];
+  {
+    const { p, before } = gtWorld_(false);
+    const m = boot({ payload: p, before }); await wait(300); m.w.paint('account'); await wait(200);
+    const c = m.w.document.querySelector('#s-account .gtasks-card');
+    if (!c) bad.push('no Google Tasks card in Student settings');
+    else {
+      if (!/not switched on/i.test(c.textContent)) bad.push('no client id did not say it is not switched on: ' + c.textContent);
+      if (c.querySelector('[data-do="gtasks-connect"]')) bad.push('a Connect tile with no client id');
+      if (/google_client_id/.test(c.textContent)) bad.push('a student was shown the admin\'s how-to');
+    }
+  }
+  const { T, p, before } = gtWorld_(true);
+  const m = boot({ payload: p, before }); await wait(300); m.w.paint('account'); await wait(200);
+  const d = m.w.document, card = () => d.querySelector('#s-account .gtasks-card');
+  const tap = act => { const el = d.querySelector('#s-account [data-do="' + act + '"]'); if (!el) { bad.push('no ' + act + ' tile'); return false; } el.click(); return true; };
+  const settle = async ms => { await wait(ms); m.w.paint('account'); await wait(100); };
+  if (!card()) return bad.concat('no Google Tasks card with a client id');
+  if (!tap('gtasks-connect')) return bad;
+  await settle(300);
+  if (T.scope !== 'https://www.googleapis.com/auth/tasks' || !/^cid-gtasks/.test(T.cid || '')) bad.push('Connect did not ask for the tasks scope with the site\'s client id: ' + T.scope);
+  if (T.lists.length !== 1 || T.lists[0].title !== '@family.') bad.push('the list was not made once as "@family.": ' + JSON.stringify(T.lists));
+  const n1 = T.tasks.length;
+  if (n1 < 4) bad.push('a weekly Monday session made ' + n1 + ' tasks over four weeks');
+  if (T.calls.some(c => !/Bearer tok-gt$/.test(c))) bad.push('a call went without the token');
+  if (T.tasks.some(t => !/\[family:(job|exam):[^\]]+\]/.test(t.notes || "") || !/^\d{4}-\d{2}-\d{2}T00:00:00\.000Z$/.test(t.due))) bad.push('a task has no marker or due date: ' + JSON.stringify(T.tasks));
+  if (!/Synced/.test(card().textContent)) bad.push('no last-synced line: ' + card().textContent);
+  if (m.sent.some(x => JSON.stringify(x).indexOf('tok-gt') !== -1)) bad.push('the Google token was sent to our backend');
+  T.tasks[0].status = 'completed';
+  tap('gtasks-sync'); await settle(300);
+  if (T.tasks.length !== n1) bad.push('a re-sync duplicated: ' + n1 + ' → ' + T.tasks.length);
+  if (T.lists.length !== 1) bad.push('a re-sync made a second list');
+  if (!T.calls.some(c => /^PATCH /.test(c))) bad.push('a re-sync did not update');
+  if (T.tasks[0].status !== 'completed') bad.push('a re-sync undid a tick made in Google');
+  if (!/ticked off in Google/.test(card().textContent)) bad.push('the tick in Google is not counted: ' + card().textContent);
+  tap('gtasks-off'); await settle(100);
+  if (T.revoked[0] !== 'tok-gt') bad.push('Disconnect did not revoke the token');
+  if (!card() || !card().querySelector('[data-do="gtasks-connect"]')) bad.push('after Disconnect the card does not offer Connect');
+  let left = '';
+  try { left = m.w.sessionStorage.getItem('gtasksTok') || ''; } catch (e) {}
+  if (left) bad.push('the token outlived Disconnect in sessionStorage');
   return bad;
 });
 

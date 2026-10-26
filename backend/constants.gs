@@ -120,7 +120,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-26-q-layout-engine";
+const BACKEND_VERSION = "2026-10-26-r-post-faces-reel-upload";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1561,7 +1561,7 @@ const ACTION_ACCESS = {
   /* The racer's Build the map tile (426): minutes of fetching from three outside services, so an admin's alone. */
   raceBuild: 'admin',
   /* AN ADMIN ADDS, EDITS, HIDES OR DELETES A REEL OR A VIDEO (404). */
-  mediaSave: 'admin', mediaHide: 'admin', mediaDelete: 'admin',
+  mediaSave: 'admin', mediaUpload: 'admin', mediaHide: 'admin', mediaDelete: 'admin',
 
   /* YOUR OWN SETTINGS, AS THE SHEET HOLDS THEM. `self`, and the handler reads only the row the token
      resolved to — see `myProfile` in dopost.gs for why it is a POST rather than part of the payload. */

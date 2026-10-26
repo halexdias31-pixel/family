@@ -85,6 +85,7 @@ const SUITE = [
   /* ---------- AND THE ANIMATIONS IN THEM, WHICH THE LOADING SCREEN DRAWS FROM A COPY § */
   { file: 'check-anims.js', what: 'the books\' animations: one source, kept and drawn as their rows' },
   /* ---------- AND THE BIBLE BESIDE THEM, WHICH ONLY AN ADMIN IS SHOWN § */
+  { file: 'check-talmud.js', what: 'the Talmud (473): every tractate and daf in the index loads with Gemara; licences CC BY-SA or public domain' },
   { file: 'check-bible.js', what: 'the Bible: a lossless split, the ten groups and the verse counts, italics for [words], the verse list, admin only' },
   /* ---------- AND WHETHER A REEL IS A FILE THAT IS THERE § */
   { file: 'check-reels.js', what: 'every clip a file a phone can fetch and start' },
@@ -171,6 +172,7 @@ const SUITE = [
   { file: 'check/press.js',   what: 'press every control and see whether anything happens', slow: true },
   /* ---------- AND WHAT A THUMB DOES THAT A PRESS DOES NOT § */
   { file: 'check/tiles.js',   what: 'every tile is tile_(), 44px with an 18px mark, no overlap, spill or orphan at four widths', slow: true },
+  { file: 'check/calc-steady.js', what: 'pressing keys never changes the calculator\'s size or shape, nor any key\'s (472)', slow: true },
   { file: 'check/swipe.js',   what: 'a swipe lands one card away or back, centred, the rest out of focus', slow: true },
   /* ---------- AND A FINGER ON THE PEN § */
   { file: 'check/pen.js',     what: 'a finger on the pen: two fingers, a palm or a thumb leave nothing, and the column holds', slow: true },

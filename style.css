@@ -2,7 +2,7 @@
 
 :root {
   /* WHICH STYLESHEET THIS IS. § */
-  --css-version: "2026-10-26-w-lowest-merged";
+  --css-version: "2026-10-26-z3-compact-merged";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it means something. § */
   --bg:        #000000;
@@ -995,11 +995,11 @@ a { color: inherit; text-decoration: none; }
         --calc-key: #d8d9db; --calc-key-ink: #1b1c1e; --calc-key-dark: #232427; --calc-pad: #19191b;
         --calc-shift: #2c46b4; --calc-legend: #79a5f2; --calc-print: #e6e6e7; --calc-gut: .45rem;
         font-family: 'Arial Narrow', 'Roboto Condensed', Arial, Helvetica, sans-serif;
-        max-width: 24rem; margin-inline: auto; padding: 1rem clamp(2px, 1.6vw, .7rem) 1.2rem;
+        max-width: 24rem; margin-inline: auto; padding: .7rem clamp(2px, 1.6vw, .7rem) .9rem;
         border-radius: 1.6rem 1.6rem 2.2rem 2.2rem;
         background: linear-gradient(180deg, #303134, var(--calc-body) 30%, #252629); color: var(--calc-print);
         box-shadow: 0 0 0 2px var(--calc-edge), inset 0 0 0 2px #36373b, 0 14px 34px rgb(0 0 0 / .55); }
-.calc-bezel { background: var(--calc-bezel); border-radius: .7rem; padding: .7rem .7rem .4rem; margin-bottom: .8rem;
+.calc-bezel { background: var(--calc-bezel); border-radius: .7rem; padding: .55rem .6rem .3rem; margin-bottom: .5rem;
               box-shadow: inset 0 1px 3px rgb(0 0 0 / .7); }
 .calc .mc-display { background: var(--calc-lcd); color: var(--calc-lcd-ink); border-radius: 3px; border: 1px solid #0d0e0f;
   box-shadow: inset 0 2px 6px rgb(0 0 0 / .25); padding: .3rem .6rem .45rem;
@@ -1008,6 +1008,13 @@ a { color: inherit; text-decoration: none; }
                     repeating-linear-gradient(90deg, rgb(0 0 0 / .035) 0 1px, transparent 1px 3px);
   text-shadow: .5px .5px 0 rgb(23 32 27 / .18); }
 .calc .mc-caret { background: var(--calc-lcd-ink); }
+/* ONE SHAPE, WHATEVER IS ON THE GLASS (472): every line of the LCD has a fixed height and clips, so a fraction, a long sum or an error never grows the device and `paneReach_` never re-zooms it under a thumb. */
+.calc .mc-display { height: 6.6rem; min-height: 0; overflow: hidden; box-sizing: border-box; }
+.calc .mc-stat { flex: none; height: .7rem; overflow: hidden; }
+.calc .mc-in { flex: none; height: 2.6rem; line-height: 2.6rem; overflow: auto hidden; scrollbar-width: none; }
+.calc .mc-out { flex: none; height: 2.8rem; min-height: 0; line-height: 2.8rem; overflow: auto hidden; scrollbar-width: none; }
+.calc .mc-in::-webkit-scrollbar, .calc .mc-out::-webkit-scrollbar { display: none; }
+.calc .mc-out .mc-note { white-space: nowrap; line-height: 2.8rem; }
 /* The LCD's status line: every indicator has its place, lit or ghosted, as the segments are on the glass. */
 .mc-stat { display: flex; gap: .7em; font: 700 .58rem/1 Arial, Helvetica, sans-serif; letter-spacing: .03em;
            padding-bottom: .25rem; border-bottom: 1px solid rgb(23 32 27 / .12); }
@@ -1024,10 +1031,11 @@ a { color: inherit; text-decoration: none; }
 .mc-btn { position: relative; min-height: 44px; min-width: 0; padding: 0; background: none; border: 0; cursor: pointer;
           display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 3px;
           color: var(--calc-key-ink); font-size: 1rem; font-weight: 700; -webkit-tap-highlight-color: transparent; }
-.mc-lab { display: flex; align-items: center; justify-content: center; gap: .05em; border-radius: 999px; line-height: 1;
+.mc-lab { display: flex; align-items: center; justify-content: center; gap: .05em; border-radius: 999px; line-height: 1; box-sizing: border-box;
           background: radial-gradient(120% 90% at 50% 25%, #f3f3f4, var(--calc-key) 55%, #b9babd);
-          box-shadow: 0 2px 0 #0e0f10, 0 3px 4px rgb(0 0 0 / .5); transition: transform var(--quick) ease; }
-.mc-btn:active .mc-lab { transform: translateY(1px) scale(.95); box-shadow: 0 1px 0 #0e0f10; }
+          box-shadow: 0 2px 0 #0e0f10, 0 3px 4px rgb(0 0 0 / .5); transition: filter var(--quick) ease, box-shadow var(--quick) ease; }
+/* A REAL KEY DOES NOT CHANGE SHAPE (472): pressed, it darkens and loses its lift; no transform, so no box moves. */
+.mc-btn:active .mc-lab { filter: brightness(.86); box-shadow: 0 1px 0 #0e0f10, inset 0 1px 3px rgb(0 0 0 / .35); }
 .mc-btn:focus-visible { outline: none; }
 .mc-btn:focus-visible .mc-lab { outline: 2px solid var(--calc-legend); outline-offset: 2px; }
 /* The legend slot: one height, centred on its key, small even type; an empty slot keeps the row's rhythm. */
@@ -1074,10 +1082,9 @@ a { color: inherit; text-decoration: none; }
 /* The device is the card: no case around the case, and the name and its star on one quiet line above it. */
 .card.is-widget:has(.calc) { padding-inline: 0; margin-inline: 0; background: none; border: 0; box-shadow: none;
                              position: relative; backdrop-filter: none; -webkit-backdrop-filter: none; }
-.card.is-widget:has(.calc) > .wgt-keep { position: absolute; top: 0; right: .2rem; margin: 0; z-index: 1; }
 .card:has(> .calc) { background: none; border: 0; box-shadow: none; padding: 0; }
 .calc-name { font: 700 .75rem Arial, Helvetica, sans-serif; letter-spacing: .14em; text-transform: uppercase;
-             color: var(--dim); margin: 0 0 .7rem; padding: .9rem 3.5rem 0 .3rem; min-height: 44px; display: flex; align-items: center; }
+             color: var(--dim); margin: 0 0 .3rem; padding: 0 .3rem; min-height: 0; display: flex; align-items: center; }
 /* Six 44px keys need 268px: on the narrowest phones the pane's gutter goes too, and the device meets the edge. */
 @media (max-width: 379px) {
   .pane:has(.calc) { padding-inline: 0; }
@@ -1263,11 +1270,8 @@ body.nes-on .nes-wrap *, body.nes-on .nes-wrap *::before, body.nes-on .nes-wrap 
   --nes-dp: #1f1f26; --nes-dp-hi: #45454f; --nes-a: #c9c5e2; --nes-b: #c9c5e2; --nes-ink: #2b2560; --nes-mid: #2e2a66; --nes-mid-ink: #e4e2f6;
   --nes-sh: #6a5fc0; --nes-sh-ink: #f2f0ff; --nes-pt: 18px; }
 /* DS: a clamshell — two screens in black glass, the hinge across the whole body between them, L and R on its top corners. */
-.nes-wrap[data-sys="nds"] { --nes-body: #e3e4e8; --nes-r: 1.1rem; --nes-bezel: #1a1a1f; --nes-bz: 10px; --nes-bz-r: .5rem; --nes-ink: #33343a;
-  --nes-key: #c3c4cc; --nes-dp: #babbc3; --nes-dp-hi: #e8e9ee; --nes-well: radial-gradient(circle, #d3d4da 0 60%, transparent 61%); --nes-mid: #c3c4cc; --nes-mid-ink: #33343a;
-  --nes-sh: #c3c4cc; --nes-sh-ink: #33343a; --nes-hinge: #c4c5cc; --nes-hinge-hi: #f1f2f5; --nes-pt: 18px; --k-dpad: 112px; --nes-pad-h: 200px; }
+.nes-wrap[data-sys="nds"] { --nes-pt: 18px; }
 .nes-wrap[data-sys="nds"] .nes-deco { --nes-key: #a8a9b2; --nes-dp: #a8a9b2; --nes-mid: #a8a9b2; --nes-sh: #b4b5bd; }
-.nes-wrap[data-sys="nds"] .nes-hinge { background: linear-gradient(var(--nes-hinge-hi), var(--nes-hinge) 45%, var(--nes-lo)); box-shadow: 0 -1px 0 var(--nes-lo), 0 1px 0 var(--nes-lo); }
 /* L AND R ON THE BODY'S TOP CORNERS (DS, GBA), out of the pad's rows: still the pad's own buttons, so each finger is still the pad's. */
 .nes-wrap[data-sys="nds"] .nes-pad .nes-shoulders, .nes-wrap[data-sys="gba"] .nes-pad .nes-shoulders { position: absolute; top: 0; left: 0; right: 0; height: 0; }
 .nes-wrap[data-sys="nds"] .nes-pad .nes-shoulders .nes-key, .nes-wrap[data-sys="gba"] .nes-pad .nes-shoulders .nes-key { border-radius: 0 0 14px 14px; height: 44px; }
@@ -1288,6 +1292,34 @@ body.nes-on .nes-wrap *, body.nes-on .nes-wrap *::before, body.nes-on .nes-wrap 
 .nes-wrap[data-sys="nds"] .nes-deco .nes-shoulders, .nes-wrap[data-sys="gba"] .nes-deco .nes-shoulders { top: calc(-1 * var(--nes-bz) - var(--nes-pt));
   left: calc(-1 * var(--nes-bz) - var(--nes-flank) - var(--nes-px) + 1rem); right: calc(-1 * var(--nes-bz) - var(--nes-flank) - var(--nes-px) + 1rem); }
 .nes-wrap[data-sys="nds"] .nes-deco .nes-shoulders .nes-key, .nes-wrap[data-sys="gba"] .nes-deco .nes-shoulders .nes-key { height: .95rem; min-width: 2.6rem; border-radius: 0 0 .5rem .5rem; font-size: .5rem; }
+
+/* THE DS LOOKS LIKE A DS (478): § */
+.nes-wrap[data-sys="nds"] { --nes-body: #eef0f3; --nes-edge: #c9ccd3; --nes-r: 1.4rem; --nes-bezel: #0e0e11; --nes-bz: 9px; --nes-bz-r: .55rem;
+  --nes-ink: #4a4c54; --nes-key: #f7f8fa; --nes-dp: #43454c; --nes-dp-hi: #5c5f68; --nes-well: radial-gradient(circle, #dfe1e6 0 64%, transparent 65%);
+  --nes-mid: #d3d5db; --nes-mid-ink: #4a4c54; --nes-sh: #d9dbe1; --nes-sh-ink: #5a5c64; --nes-hinge: #b9bcc4; --nes-hinge-hi: #f6f7f9; --nes-hinge-lo: #8e9199;
+  --nes-pad-h: 168px; --k-dpad: 104px; --k-cell: 36px; --k-font: .82rem; --k-small: .62rem; --k-h: 28px;
+  background: linear-gradient(var(--nes-body), var(--nes-body)) padding-box; border: 2px solid var(--nes-edge); }
+.nes-wrap[data-sys="nds"].nes-has-pad { --nes-pt: 34px; --nes-room: calc(15rem + var(--nes-pt) + var(--nes-pad-h)); }
+/* THE HINGE over the rows between the screens: glass, the shells' two edges and the cylinder between them, the full width of the body. */
+.nes-wrap[data-sys="nds"] .nes-hinge { box-shadow: none;
+  background: linear-gradient(transparent 0 16%, var(--nes-body) 16% 28%, var(--nes-hinge-lo) 28% 32%, var(--nes-hinge-hi) 32% 42%,
+    var(--nes-hinge) 58%, var(--nes-hinge-lo) 68% 72%, var(--nes-body) 72% 84%, transparent 84%); }
+.nes-wrap[data-sys="nds"] .nes-pad { display: none; }
+.nes-wrap[data-sys="nds"] .nes-pad.on { display: grid; grid-template: "dpad . face" 1fr "dpad . mid" auto / auto 1fr auto; align-items: center; justify-items: center;
+  height: var(--nes-pad-h); padding: 6px 4px 10px; gap: 2px 0; border-top: 0; }
+.nes-wrap[data-sys="nds"] .nes-pad .nes-dpad { grid-area: dpad; }
+.nes-wrap[data-sys="nds"] .nes-pad .nes-face { grid-area: face; }
+.nes-wrap[data-sys="nds"] .nes-pad .nes-mid { grid-area: mid; order: 0; flex: none; gap: 6px; }
+.nes-wrap[data-sys="nds"] .nes-face .nes-round { width: calc(var(--k-cell) - 2px); height: calc(var(--k-cell) - 2px); justify-self: center; align-self: center;
+  color: var(--nes-ink); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .14), 0 0 0 1px var(--nes-edge); }
+.nes-wrap[data-sys="nds"] .nes-mid .nes-key { min-height: 0; width: 22px; height: 22px; padding: 0; border-radius: 50%; font-size: 0; position: relative; }
+.nes-wrap[data-sys="nds"] .nes-mid .nes-key::after { content: attr(data-k); position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+  font: 600 .55rem var(--font); text-transform: uppercase; letter-spacing: .04em; color: var(--nes-mid-ink); }
+.nes-wrap[data-sys="nds"] .nes-pad .nes-shoulders .nes-key { height: 26px; min-height: 0; border-radius: 0 0 12px 12px; font-size: .7rem; min-width: 4.2rem; }
+.nes-wrap[data-sys="nds"] .nes-pad .nes-shoulders { padding: 0 1.1rem; }
+/* THE KEY LIST stays behind its tile; the drawn buttons beside the screen are the pad's job on a DS. */
+.nes-wrap[data-sys="nds"] .nes-deco { display: none !important; }
+.nes-wrap[data-sys="nds"].nes-has-deco .nes-stage { --nes-flank: 0px; margin-bottom: calc(var(--nes-bz) + .5rem); }
 /* ---------- THE SCREEN § */
 .flappy { width: 100%; aspect-ratio: 4/5; display: block; touch-action: none;
           background: var(--sunk); border: 1px solid var(--line); border-radius: .5rem; }
@@ -3614,19 +3646,16 @@ html.padlocked, html.padlocked * { touch-action: none !important; overscroll-beh
 /* THE FLYER MAKER — every rule under `.fm`, and every colour `--fly-` prefixed. § */
 /* ---------- THE CONTROLS, PACKED § */
 /* ---------- A ROW FOR AN ANSWER IN WORDS, HALF A ROW FOR A WORD, A SIXTH FOR A COLOUR § */
-.fm-bar { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr));
-          gap: .4rem .5rem; margin-bottom: .45rem; }
-.fm-bar label { display: flex; flex-direction: column; gap: .1rem; min-width: 0;
-                grid-column: 1 / -1;
-                font-size: .54rem; letter-spacing: .09em; text-transform: uppercase;
-                color: var(--faint); }
-.fm-bar label.fm-half { grid-column: span 3; }
-.fm-bar label.fm-ink { grid-column: span 2; }
+/* ONE LINE PER THING (421, 472): each answer is a label/value row — the label left, the control filling the rest. */
+.fm-bar { display: flex; flex-direction: column; gap: .3rem; margin-bottom: .4rem; }
+.fm-bar label, .fm-bar .fm-row { display: flex; align-items: center; gap: .6rem; min-width: 0;
+                font-size: .54rem; letter-spacing: .09em; text-transform: uppercase; color: var(--faint); }
+.fm-bar label select { flex: 1 1 auto; min-width: 0; margin-left: auto; max-width: 72%; }
 /* `.fm-bar select` WAS HERE AT .78rem IN A 1.7rem BOX — a flyer's eight dropdowns drawn smaller than every other select in the app, under the 16px an iPhone § */
 .fm-bar select { font-size: min(16px, 4.6vw); }
-/* A NATIVE COLOUR INPUT is a real picker on every platform, and a hex field is six characters of
-   typing to find out you wanted a different green. */
-.fm-bar input[type=color] { width: 2.4rem; height: 1.7rem; padding: 0; cursor: pointer;
+/* A NATIVE COLOUR INPUT is a real picker on every platform; three of them, one line. */
+.fm-inks span { margin-right: auto; }
+.fm-bar input[type=color] { width: 44px; height: 44px; min-height: 44px; padding: 0; cursor: pointer;
                             background: none; border: 1px solid var(--line); border-radius: var(--r); }
 
 .fm-adds { display: flex; flex-wrap: wrap; gap: .3rem .7rem; align-items: center;
@@ -5260,7 +5289,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   /* 14px, the same as the pane. A widget is a body in its own right, not a chip. `--r-lg` is not
      declared, so the number is written out rather than falling back silently to something else. */
   border-radius: 14px;
-  padding: .9rem;
+  padding: var(--wgt-pad);
   margin-bottom: var(--gap);
 }
 /* ---------- THE LIBRARY CARDS' WIDGET GIVES ITS FACES THE FRAME'S SIDES (docs/history/339) § */
@@ -5302,6 +5331,21 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 /* THE SLOT IS ALWAYS FULL, so it needs no minimum height and no empty state — the widget is in it
    from the moment the screen is drawn. */
 .card.is-widget .widget-slot { display: block; }
+/* ONE PLACE FOR A WIDGET'S TILES (472): after its content, one row — star, padlock, then the admin's group; check/tiles.js holds every widget to it. */
+.card.is-widget { --wgt-pad: .7rem; }
+.card.is-widget > .wgt-foot { margin: .5rem 0 0; }
+.cs-one { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card.is-widget > .wgt-foot > .tile-group { display: contents; }
+/* Star plus five admin tiles where five fit: 3 + 3, not 5 + a lone one (the 467 orphan rule, across the two groups). */
+@container (min-width: 244px) and (max-width: 293.9px) {
+  .wgt-foot:has(> .wgt-keep > .tile:only-child) > .wgt-admin:has(> .tile:nth-child(5)) > .tile:nth-child(2) {
+    margin-right: calc(100% - 3 * var(--tile) - 2 * var(--tile-gap)); }
+}
+@container (max-width: 243.9px) {
+  .wgt-foot:has(> .wgt-keep > .tile:only-child) > .wgt-admin:has(> .tile:nth-child(4):last-child) > .tile:nth-child(2) {
+    margin-right: calc(100% - 3 * var(--tile) - 2 * var(--tile-gap)); }
+}
+.card.is-widget .widget-slot > .card:only-child { padding-block: 0; border-bottom: 0; }
 
 /* THE CAMERA CARD. The 📷 column drew "＋ New post" — a card describing a photograph rather than a way to take one, and the identical card sat one swipe away at § */
 .cam-card .cam-stage {
@@ -6199,7 +6243,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
     --nb-half: calc((100dvh - var(--bar) - var(--safe-bottom) - 2.5rem - .45rem) / 2);
   }
   .card.is-widget:has(.nb) .widget-slot, .card.is-widget:has(.nb) .nb-box, .card.is-widget:has(.nb) .nb { display: contents; }
-  .card.is-widget:has(.nb) > .wgt-keep { grid-area: 1 / 2; margin-top: 0; }
+  .card.is-widget:has(.nb) > .wgt-foot { grid-area: 1 / 2; margin-top: 0; }
   .card.is-widget:has(.nb) .widget-slot > h3 { grid-area: 2 / 2; margin: .45rem 0 0; }
   .card.is-widget:has(.nb) .nb-book, .card.is-widget:has(.nb) .nb-pad { min-height: 0; height: var(--nb-half); }
   .card.is-widget:has(.nb) .nb-book { grid-area: 1 / 1 / 3 / 2; }
@@ -6217,7 +6261,7 @@ body.mag-on .page:has(.q-mag) { -webkit-touch-callout: none; -webkit-user-select
   }
   .card.is-widget:has(.wb) .widget-slot, .card.is-widget:has(.wb) .wb-box,
   .card.is-widget:has(.wb) .wb, .card.is-widget:has(.wb) .wb .qpad { display: contents; }
-  .card.is-widget:has(.wb) > .wgt-keep { grid-area: 1 / 2; margin-top: 0; }
+  .card.is-widget:has(.wb) > .wgt-foot { grid-area: 1 / 2; margin-top: 0; }
   .card.is-widget:has(.wb) .widget-slot > h3 { grid-area: 2 / 2; margin: .45rem 0 0; }
   .card.is-widget:has(.wb) .wb .qpad-art {
     grid-area: 1 / 1 / -1 / 2; margin: 0;
@@ -6710,3 +6754,56 @@ td.qp-cell-at, th.qp-cell-at { padding: 2px; }
 .eink-title { margin: 1cqw 0 0; font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-size: 3.4cqw; }
 .eink-none { margin: 0; font-size: 3.6cqw; }
 .eink-say { margin: .4rem 0 0; }
+/* ---------- THE TALMUD (473): THE VILNA PAGE ---------- */
+/* Noto Serif Hebrew for the Gemara's square letters, Noto Rashi Hebrew for the commentaries' — both OFL, self-hosted (fonts/README.md). */
+@font-face {
+  font-family: 'Noto Serif Hebrew';
+  src: url('fonts/noto-serif-hebrew.woff2') format('woff2');
+  font-weight: 100 900; font-style: normal; font-display: swap;
+  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+}
+@font-face {
+  font-family: 'Noto Rashi Hebrew';
+  src: url('fonts/noto-rashi-hebrew.woff2') format('woff2');
+  font-weight: 100 900; font-style: normal; font-display: swap;
+  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+}
+.tal-he { font-family: 'Noto Serif Hebrew', 'Frank Ruehl CLM', 'David', serif; }
+.tal-bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; padding: .25rem 0;
+}
+.tal-bar .btn { width: auto; flex: 0 0 auto; margin: 0; min-height: 44px; min-width: 44px; padding: 0 .7rem; }
+.tal-bar .btn[disabled] { opacity: .35; }
+.tal-where { flex: 1 1 auto; font-weight: 600; }
+.tal-jump select { min-height: 44px; font: inherit; background: var(--bg); color: var(--ink); border: 1px solid var(--line); }
+/* THE PAGE IS PAPER, the palette for anything standing in for paper. */
+.tal-page {
+  max-width: 880px; margin: .5rem auto 0; box-sizing: border-box; padding: 1.1em 1em 1.6em;
+  background: var(--paper); color: var(--paper-ink); border: 1px solid var(--paper-rule);
+  --tal-fs: 15px; font-size: var(--tal-fs);
+}
+.tal-head {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 1em;
+  font-family: 'Noto Serif Hebrew', 'Frank Ruehl CLM', 'David', serif; font-weight: 700;
+  border-bottom: 1px solid var(--paper-rule); padding-bottom: .25em;
+}
+.tal-hd-tr { flex: 1 1 auto; text-align: center; font-size: 1.25em; letter-spacing: .08em; }
+.tal-hd-ch, .tal-hd-pr { font-size: .85em; }
+.tal-hd-daf { font-size: 1.1em; }
+.tal-credit { margin: .3em 0 .9em; font-size: .5rem; color: var(--paper-faint); text-align: center; }
+.tal-body { position: relative; width: 100%; }
+.tal-layer { box-sizing: border-box; text-align: justify; }
+.tal-layer .tal-spacer { display: none; }
+.tal-gem {
+  font-family: 'Noto Serif Hebrew', 'Frank Ruehl CLM', 'David', serif;
+  font-size: .86em; line-height: 1.42;
+}
+.tal-gem big { font-size: 1.6em; line-height: 1; }
+.tal-gem big strong { font-weight: 800; }
+.tal-rashi, .tal-tos {
+  font-family: 'Noto Rashi Hebrew', 'Mekorot-Rashi', 'Rashi', serif;
+  font-size: .66em; line-height: 1.36; color: var(--paper-ink);
+}
+.tal-rashi b, .tal-tos b { font-family: 'Noto Serif Hebrew', 'Frank Ruehl CLM', serif; font-weight: 700; }
+.tal-hadran { display: block; text-align: center; margin: .5em 0; font-weight: 700; }
+.tal-blank, .tal-miss { display: block; font-family: inherit; color: var(--paper-dim); font-size: .8rem; text-align: center; }

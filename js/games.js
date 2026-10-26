@@ -4198,7 +4198,7 @@ on('bg-pick', el => {
 const CONSOLE_GAMES = [
   { k: 'file', name: 'Game files', start: () => { nesPaint_(); nesPadWatch_(); }, still: () => nesPaint_(),
     stop: () => { nesStop_(); nesPadUnwatch_(); },
-    body: `<p class="sub">Plays NES, SNES, Game Boy, Game Boy Color, Game Boy Advance, N64 and DS files. Bring your own game file.</p>
+    body: `<p class="sub cs-one" title="NES, SNES, Game Boy, Game Boy Color, Game Boy Advance, N64 and DS">NES to DS games you own; they stay on this device.</p>
     <div id="nes-box" class="nes-box"></div>` },
   /* A HANDHELD FOR THE BIRD: the canvas sits in a body of its own, and its tap and space bar are `initFlappy`'s as before. */
   { k: 'flabby', name: 'Flabby Pird', start: () => initFlappy(), still: () => flappyStill_(),
@@ -5187,6 +5187,8 @@ function nesValid_(u8) {
 function nesPaint_() {
   const box = $('nes-box');
   if (!box) return;
+  /* NOT REDRAWN WHILE A GAME PLAYS (478): the tiles rewritten under a running core cost a layout per call and gave nothing. */
+  if (NES_.running && box.querySelector('.nes-wrap')) return;
   if (!USER) { box.innerHTML = '<p class="empty">Sign in to use the console.</p>'; return; }
   if (!box.querySelector('.nes-wrap')) {
     box.innerHTML = `<div class="nes-wrap" id="nes-wrap">
@@ -5199,10 +5201,10 @@ function nesPaint_() {
     <p class="note" id="nes-say" role="status"></p>
     <p class="faint" id="nes-kept" hidden></p>
     <p class="faint" id="nes-sysnote" hidden></p>
-    <input type="file" id="nes-file" class="nes-file" accept="${NES_ACCEPT}">
-    <p class="faint">Use a game file you own. It stays on this device and is never uploaded.</p>`;
+    <input type="file" id="nes-file" class="nes-file" accept="${NES_ACCEPT}">`;
     nesPadWire_($('nes-pad'));
     nesModeWire_($('nes-wrap'));
+    nesSeen_($('nes-wrap'));
     /* A REDRAWN SCREEN KEEPS A RUNNING GAME: EmulatorJS's own box moves into the new stage rather than being lost with the old one. */
     const host = EMU_.ejs && EMU_.ejs.elements && EMU_.ejs.elements.parent;
     if (host && $('nes-stage')) $('nes-stage').appendChild(host);
@@ -5338,14 +5340,14 @@ function nesGo_() {
   nesTiles_();
 }
 /* PAUSED, NOT ENDED: the game stays in memory and Play carries on from here. */
-function nesStop_() {
+function nesStop_(force) {
   const was = NES_.running;
   nesRun_(false);
   cancelAnimationFrame(NES_.raf);
   NES_.held = {}; NES_.keys = {}; NES_.codes = {}; NES_.touch = {};
   if (NES_.nes) Object.values(NES_B).forEach(b => { try { NES_.nes.buttonUp(1, b); } catch (e) {} });
-  if (EMU_.ejs) emuPause_();
-  else if (was && NES_.nes) csvKeep_();
+  if (EMU_.ejs) emuPause_(force);
+  else if (was && NES_.nes) csvKeep_(force);
   if (was) nesTiles_();
 }
 
@@ -5463,7 +5465,7 @@ function nesModeWire_(w) {
 /* THE KEY LIST: shown on keys unless the Keys tile turned it off (kept on the device). */
 function nesLegendOn_() {
   if (NES_.legend == null) { try { const v = localStorage.getItem('nes-keys'); NES_.legend = v === '1' ? true : v === '0' ? false : null; } catch (e) { NES_.legend = null; } }
-  return nesMode_() === 'keys' && NES_.legend !== false;
+  return nesMode_() === 'keys' && NES_.legend === true;   // hidden until the Keys tile asks (478)
 }
 on('nes-keys', () => {
   NES_.legend = !nesLegendOn_();
@@ -5475,7 +5477,8 @@ on('nes-keys', () => {
 function nesPadShow_() {
   const pad = $('nes-pad'), lg = $('nes-legend'), w = $('nes-wrap');
   if (!pad) return;
-  const on = nesMode_() === 'touch' && !NES_.padOn;
+  /* THE DS ALWAYS WEARS ITS BUTTONS (478): its pad is the lower shell, pressed by a finger or a mouse alike. */
+  const on = NES_.sys === 'nds' || (nesMode_() === 'touch' && !NES_.padOn);
   pad.classList.toggle('on', on);
   if (w) { w.classList.toggle('nes-has-pad', on); w.classList.toggle('nes-has-deco', !on); }
   if (lg) {
@@ -5606,7 +5609,13 @@ function nesQuiet_(on) {
   }, 0);
 }
 
-document.addEventListener('visibilitychange', () => { if (document.hidden) nesStop_(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) nesStop_(true); });
+/* OFF THE SCREEN IS PAUSED (478): a console scrolled or slid out of view stops running the core for nobody. */
+function nesSeen_(w) {
+  if (!w || w.seen_ || typeof window.IntersectionObserver !== 'function') return;
+  w.seen_ = true;
+  try { new window.IntersectionObserver(es => es.forEach(e => { if (!e.isIntersecting && NES_.running && e.target.isConnected) nesStop_(); })).observe(w); } catch (e) {}
+}
 window.addEventListener('gamepadconnected', () => { NES_.padOn = true; nesPadShow_(); nesPadWatch_(); });
 window.addEventListener('gamepaddisconnected', () => nesPadsPoll_());
 
@@ -5827,12 +5836,12 @@ function emuGo_() {
   nesRun_(true); emuWake_(); nesTiles_();
 }
 /* PAUSE KEEPS THE BATTERY SAVE: the cartridge's memory is written to this device's IndexedDB (EmulatorJS's own) at every pause. */
-function emuPause_() {
+function emuPause_(force) {
   if (!EMU_.ready) return;
   emuSync_(true);
   try { EMU_.ejs.pause(true); } catch (e) {}
   try { EMU_.ejs.gameManager.saveSaveFiles(); } catch (e) {}
-  csvKeep_();
+  csvKeep_(force);
 }
 /* THE SOUND WAKES INSIDE A TAP: iOS starts EmulatorJS's audio suspended, and its own "click to resume" box is hidden with its menus. */
 function emuWake_() {
@@ -5843,7 +5852,7 @@ function emuWake_() {
   } catch (e) {}
 }
 function emuEnd_() {
-  if (EMU_.ready) csvKeep_();
+  if (EMU_.ready) csvKeep_(true);
   const ejs = EMU_.ejs;
   EMU_.ejs = null; EMU_.ready = false; EMU_.sys = null; EMU_.key = ''; EMU_.held = {}; EMU_.ax = [];
   if (ejs) {
@@ -5880,7 +5889,9 @@ function emuSync_(off) {
 /* Keyed by a hash of the file's bytes; the file itself is never stored with a save nor sent. One save per game, the latest. */
 const CSV_DB = 'family-console-saves';
 const CSV_MAX = 2 * 1024 * 1024;   // the backend's CONSOLE_SAVE_MAX: an account keeps 2 MB per game once packed
-const CSV_ = { hash: '', sys: '', at: 0, where: '', said: '', sent: '', timer: 0, rom: null };
+const CSV_ = { hash: '', sys: '', at: 0, where: '', said: '', sent: '', timer: 0, rom: null, took: 0 };
+/* ONE SAVE A MINUTE AT MOST (478): a DS state is megabytes, read, zipped and posted on the page's one thread, so a pause, a slide or a scroll does not each take one. Leaving always does. */
+const CSV_EVERY = 60000;
 
 /* SHA-256 where the browser has it; the same bytes give the same key on every device. A plain-http page falls back to a longer FNV. */
 function csvHash_(u8) {
@@ -5914,7 +5925,16 @@ function csvDb_(mode, fn) {
 /* gzip, then base64, for the account; a browser with no CompressionStream keeps its saves on the device only. */
 function csvPack_(u8) {
   if (!u8 || !u8.length) return Promise.resolve('');
-  const b64 = a => { let s = ''; for (let i = 0; i < a.length; i += 0x8000) s += String.fromCharCode.apply(null, a.subarray(i, i + 0x8000)); return btoa(s); };
+  const loop = a => { let s = ''; for (let i = 0; i < a.length; i += 0x8000) s += String.fromCharCode.apply(null, a.subarray(i, i + 0x8000)); return btoa(s); };
+  /* THE BROWSER'S OWN BASE64 off the script's thread where it can (478); the string loop where it cannot. */
+  const b64 = a => new Promise(ok => {
+    try {
+      const r = new window.FileReader();
+      r.onload = () => { const u = String(r.result || ''), i = u.indexOf(','); ok(i < 0 ? loop(a) : u.slice(i + 1)); };
+      r.onerror = () => ok(loop(a));
+      r.readAsDataURL(new window.Blob([a]));
+    } catch (e) { ok(loop(a)); }
+  });
   try {
     if (typeof window.CompressionStream !== 'function') return Promise.resolve('');
     return new window.Response(new Blob([u8]).stream().pipeThrough(new window.CompressionStream('gzip'))).arrayBuffer().then(ab => b64(new Uint8Array(ab))).catch(() => '');
@@ -5945,9 +5965,11 @@ function csvCapture_() {
 }
 
 /* AT EVERY PAUSE AND LEAVE: on this device first, then, signed in, on the account. A save the same as the last one sent is not sent again. */
-function csvKeep_() {
+function csvKeep_(force) {
+  if (!force && CSV_.took && Date.now() - CSV_.took < CSV_EVERY) return;
   const rec = csvCapture_();
   if (!rec) return;
+  CSV_.took = Date.now();
   csvDb_('readwrite', s => s.put(rec, rec.hash)).then(ok => { if (ok) { CSV_.at = rec.at; CSV_.where = 'device'; csvLine_(); } });
   if (typeof USER !== 'object' || !USER || !USER.token) return;
   Promise.all([csvPack_(rec.sram), csvPack_(rec.state)]).then(([sram, state]) => {
@@ -5978,7 +6000,7 @@ function csvFind_(hash) {
 
 /* A GAME STARTING: its key, then its save put back. `rom` is EmulatorJS's game name, or 'nes'; a game swapped meanwhile is left alone. */
 function csvBegin_(bytes, sys, rom, apply) {
-  CSV_.hash = ''; CSV_.sys = sys; CSV_.rom = rom; CSV_.at = 0; CSV_.where = ''; CSV_.said = ''; CSV_.sent = '';
+  CSV_.hash = ''; CSV_.sys = sys; CSV_.rom = rom; CSV_.at = 0; CSV_.where = ''; CSV_.said = ''; CSV_.sent = ''; CSV_.took = 0;
   csvLine_();
   return csvHash_(bytes).then(h => {
     if (CSV_.rom !== rom) return null;
@@ -6023,7 +6045,10 @@ const MEDIA_SAY = { reel: 'Add a reel', video: 'Add a video' };
 let MEDIA_FORM = null;   // { kind, id (the YouTube id when editing), url, title, channel, thumb, subject, tags, vkind, age, notes, err, asking }
 
 const mediaAll_ = () => ((typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.media)) ? DATA.media : []);
-const mediaRows_ = kind => mediaAll_().filter(m => m && m.kind === kind && /^[A-Za-z0-9_-]{11}$/.test(String(m.id || '')));
+/* A YOUTUBE ID, OR `f` AND DIGITS FOR A REEL UPLOADED AS A FILE (474, `MEDIA_FILE_RE` in content.gs). */
+const MEDIA_FILE_ID = /^f\d{10,16}$/;
+const mediaIsFile_ = m => MEDIA_FILE_ID.test(String((m && m.id) || ''));
+const mediaRows_ = kind => mediaAll_().filter(m => m && m.kind === kind && (/^[A-Za-z0-9_-]{11}$/.test(String(m.id || '')) || mediaIsFile_(m)));
 const mediaMay_ = () => typeof isAdmin === 'function' && isAdmin();
 
 /* ---------- HOW OLD YOU HAVE TO BE TO WATCH IT (406) ----------
@@ -6072,8 +6097,8 @@ function mediaReelsOver_(list) {
   const rows = mediaRows_('reel');
   const taken = mediaTaken_('reel');
   return list.filter(f => !taken(clipYt_(f.clip)))
-    .concat(rows.filter(m => !m.hidden).map(m => ({ subject: m.subject || '@family.', heading: '', body: '', pic: '',
-      clip: 'https://youtube.com/shorts/' + m.id, media: m.id, age: m.age || '' })));
+    .concat(rows.filter(m => !m.hidden && (!mediaIsFile_(m) || m.url)).map(m => ({ subject: m.subject || '@family.', heading: '', body: '', pic: '',
+      clip: mediaIsFile_(m) ? postVidSrc_(m.url) : 'https://youtube.com/shorts/' + m.id, media: m.id, age: m.age || '' })));
 }
 
 /* THE VIDEOS LIST, THE SAME WAY: the sheet's rows first, and a repository row of the same video left out. */
@@ -6100,7 +6125,8 @@ function mediaHtml_(kind) {
   if (!mediaMay_()) return '';
   const F = MEDIA_FORM && MEDIA_FORM.kind === kind ? MEDIA_FORM : null;
   const list = mediaManaged_(kind).map(r => `<li class="media-row">
-      <img class="media-pic" alt="" loading="lazy" src="https://i.ytimg.com/vi/${esc(r.id)}/default.jpg">
+      ${MEDIA_FILE_ID.test(r.id) ? '<div class="media-pic" aria-hidden="true"></div>'
+        : `<img class="media-pic" alt="" loading="lazy" src="https://i.ytimg.com/vi/${esc(r.id)}/default.jpg">`}
       <span class="media-name">${esc(r.title)} <span class="faint">· ${esc(mediaAgeSay_(r.age) || 'all ages')}</span>${r.hidden ? ' <span class="faint">· hidden</span>' : ''}</span>
       <div class="tile-row">${tile_({ icon: 'edit', label: 'Edit', note: 'title, tags, age', act: 'media-edit', tone: 'admin', data: { kind, id: r.id } })
         + tile_({ icon: r.hidden ? 'show' : 'hide', label: r.hidden ? 'Show' : 'Hide', note: r.hidden ? 'put it back' : 'from everybody',
@@ -6113,11 +6139,17 @@ function mediaHtml_(kind) {
 
 function mediaFormHtml_(F) {
   const box = (k, ph) => `<label class="field"><span>${esc(ph)}</span><input data-mf="${k}" autocomplete="off" value="${esc(F[k] || '')}"></label>`;
-  const got = !!F.title || !!F.id;
+  const got = !!F.title || !!F.id || !!F.file;
+  /* OR A FILE (474): no `capture`, so an iPhone offers its library and Files as well as the camera. */
+  const upload = F.kind === 'reel' && !F.id && !F.file ? `<p class="faint">Or upload a video from this phone (up to ${Math.round(CAM_VID_MAX / 1048576)} MB):</p><div class="tile-row">${tile_({ icon: 'film', label: 'Upload a video',
+      note: 'from this phone, up to ' + Math.round(CAM_VID_MAX / 1048576) + ' MB', act: 'media-file', tone: 'admin' })}</div>
+    <input type="file" class="media-file-in" accept="video/*" hidden>` : '';
   return `<div class="card media-form" data-kind="${esc(F.kind)}">
     <h3>${F.id ? 'Edit' : F.kind === 'reel' ? 'A new reel' : 'A new video'}</h3>
-    ${F.id ? '' : `<label class="field"><span>YouTube link (a Short or a video)</span><input data-mf="url" type="url" inputmode="url"
+    ${F.id || F.file ? '' : `<label class="field"><span>YouTube link (a Short or a video)</span><input data-mf="url" type="url" inputmode="url"
       autocomplete="off" placeholder="https://youtube.com/shorts/…" value="${esc(F.url || '')}"></label>`}
+    ${upload}
+    ${F.file ? `<p class="faint media-file-name">${esc(F.fileName || 'A video')} · ${esc(String(Math.max(1, Math.round(F.fileSize / 1048576))))} MB</p>` : ''}
     ${F.asking ? loading_() : ''}
     ${got ? `<div class="media-preview">${F.thumb ? `<img class="media-thumb" alt="" src="${esc(F.thumb)}">` : ''}
       <p class="faint">${esc(F.channel || '')}</p></div>
@@ -6191,7 +6223,7 @@ on('media-edit', el => {
   if (!mediaMay_()) return;
   const kind = el.getAttribute('data-kind') === 'video' ? 'video' : 'reel', id = el.getAttribute('data-id') || '';
   const m = mediaRows_(kind).find(x => x.id === id) || {};
-  MEDIA_FORM = { kind, id, url: 'https://youtu.be/' + id, title: m.title || '', channel: m.channel || '', thumb: m.thumb || 'https://i.ytimg.com/vi/' + id + '/hqdefault.jpg',
+  MEDIA_FORM = { kind, id, url: MEDIA_FILE_ID.test(id) ? '' : 'https://youtu.be/' + id, title: m.title || '', channel: m.channel || '', thumb: m.thumb || (MEDIA_FILE_ID.test(id) ? '' : 'https://i.ytimg.com/vi/' + id + '/hqdefault.jpg'),
                  subject: m.subject || '', tags: m.tags || '', vkind: m.vkind || 'clip', age: m.age || '', notes: m.notes || '' };
   if (!MEDIA_FORM.title) mediaLook_(MEDIA_FORM); else mediaRedraw_(kind);
 });
@@ -6202,6 +6234,30 @@ on('media-age', el => {
   mediaRedraw_(MEDIA_FORM.kind);
 });
 on('media-cancel', () => { const k = MEDIA_FORM && MEDIA_FORM.kind; MEDIA_FORM = null; if (k) mediaRedraw_(k); });
+/* UPLOAD A VIDEO (474): the tile opens the hidden input; the file is read the way the camera's clips are (`camItemOf_`, same 20 MB). */
+on('media-file', el => {
+  const form = el.closest('.media-form'), inp = form && form.querySelector('.media-file-in');
+  if (inp) inp.click();
+});
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (!t || !t.matches || !t.matches('.media-file-in') || !MEDIA_FORM || !mediaMay_()) return;
+  const file = (t.files || [])[0], F = MEDIA_FORM;
+  t.value = '';
+  if (!file) return;
+  const say = msg => { F.err = msg; mediaRedraw_(F.kind); };
+  if (!/^video\//i.test(file.type || '')) return say('That file is not a video.');
+  if (file.size > CAM_VID_MAX) return say('That video is over ' + Math.round(CAM_VID_MAX / 1048576) + ' MB — trim it and try again.');
+  F.err = ''; F.asking = true; mediaRedraw_(F.kind);
+  camItemOf_(file).then(it => {
+    if (MEDIA_FORM !== F) return;
+    F.asking = false;
+    if (!it || !it.data) return say('That video would not open.');
+    F.file = it.data; F.fileName = file.name || ''; F.fileSize = file.size || 0;
+    if (!String(F.title || '').trim()) F.title = String(file.name || '').replace(/\.[a-z0-9]+$/i, '').replace(/[_-]+/g, ' ').slice(0, 200);
+    mediaRedraw_(F.kind);
+  });
+});
 on('media-look', () => { if (MEDIA_FORM && mediaMay_()) mediaLook_(MEDIA_FORM); });
 
 function mediaAdopt_(d, kind) {
@@ -6215,7 +6271,15 @@ on('media-save', el => {
   if (!F || !form || !mediaMay_()) return;
   const said = form.querySelector('.media-said');
   if (!String(F.title || '').trim()) { if (said) said.textContent = 'It needs a title.'; return; }
-  send_({ action: 'mediaSave', personId: USER.personId || '', kind: F.kind, url: F.url, title: String(F.title).trim(),
+  if (F.file) {
+    send_({ action: 'mediaUpload', personId: USER.personId || '', kind: 'reel', data: F.file, title: String(F.title).trim(),
+            subject: F.subject || '', age: mediaAgeOf_(F.age) ? String(mediaAgeOf_(F.age)) : '' },
+          { button: el, where: said, lock: form, saying: 'Uploading\u2026' })
+      .then(d => { MEDIA_FORM = null; toast('Saved.'); mediaAdopt_(d, 'reel'); })
+      .catch(() => {});
+    return;
+  }
+  send_({ action: 'mediaSave', personId: USER.personId || '', kind: F.kind, url: F.url, id: F.id || '', title: String(F.title).trim(),
           channel: F.channel || '', thumb: F.thumb || '', subject: F.subject || '', tags: F.tags || '',
           vkind: F.kind === 'video' ? (F.vkind || 'clip') : '', age: mediaAgeOf_(F.age) ? String(mediaAgeOf_(F.age)) : '', notes: F.notes || '' },
         { button: el, where: said, lock: form })
