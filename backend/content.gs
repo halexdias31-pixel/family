@@ -431,7 +431,7 @@ function driveFix_() {
         + 'Apps Script editor'
       : 'In the Apps Script editor run authoriseDrive and press Allow, ticking every box')
       + '. Only when its last line says READY: Deploy → Manage deployments → edit → Version: New '
-      + 'version → Deploy. Tools → Check uploads says when it has worked.',
+      + 'version → Deploy. the authoriseDrive log says READY when it has worked.',
   };
 }
 
@@ -467,7 +467,7 @@ function driveTrouble_(err, admin) {
      sending somebody back round the authorisation loop would waste their afternoon. */
   return [raw, '.../auth/drive IS held, so this is not the scope. Most likely the folder in '
     + '`posts_folder` belongs to another account or is on a shared drive that refuses sharing by '
-    + 'link. Tools → Check uploads names the folder and tries a test file.'].join('\n');
+    + 'link. authoriseDrive names the folder and tries a test file.'].join('\n');
 }
 
 /* WHEN A POST HAPPENED. § */
@@ -697,7 +697,7 @@ function msgNoColumn_(admin) {
   const url = setupUrl_();
   return { why: 'files', error: lead + 'The messages tab in the Ledger has no `attachments` column. '
     + 'Open ' + (url || 'the site\'s /exec address with ?setup=1') + ' once — it adds missing columns and '
-    + 'changes nothing else — then Tools → Check uploads.', setup: true };
+    + 'changes nothing else — then try sending a photo.', setup: true };
 }
 
 /* `{ error, why }` or `{ list }`. § */
@@ -729,7 +729,7 @@ function msgAttachSave_(files, admin) {
   if (got.none) {
     return { why: 'files', error: lead + (admin
       ? 'There is no posts folder for files to go in: add a row to the config tab, key `posts_folder`, '
-        + 'value the id from the folder URL — then Tools → Check uploads.'
+        + 'value the id from the folder URL — then try sending a photo.'
       : 'The site has nowhere to put them yet — the admin can see why.') };
   }
   if (got.err) return { why: 'files', error: lead + driveTrouble_(got.err, admin) };
@@ -782,7 +782,7 @@ function uploadsCheck_() {
     let probe = null;
     try {
       probe = (messages || posts).createFile('family-upload-check.txt',
-        'Made by Check uploads on the Tools column and binned straight away. Safe to delete.');
+        'Made by an upload test and binned straight away. Safe to delete.');
       probe.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
       wrote = true;
       wroteSaid = 'Yes — a test file was made, shared by link and binned.';

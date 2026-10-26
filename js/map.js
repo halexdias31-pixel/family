@@ -290,16 +290,7 @@ const WIDGETS = [
   { id: 'verse', kind: 'tool', name: 'Verse screen', admin: true,
     get html() { return '<div class="card">' + (typeof verseCard_ === 'function' ? verseCard_() : '<h3>Verse screen</h3>') + '</div>'; } },
 
-  /* ---------- CHECK UPLOADS — FOR AN ADMIN, AFTER A DEPLOY § */
-  { id: 'uploads', kind: 'tool', name: 'Check uploads (photos and videos in messages)', admin: true,
-    start: () => uploadsPaint_?.(),
-    into: 'up-box', what: 'Check uploads',
-    html: `<div class="card">
-    <h3>Check uploads</h3>
-    ${/* NO BLURB: the line under the tile says what a press does until it is pressed, and then the answer is what the card is for — at 320px a standing paragraph above § */
-          ''}
-    <div id="up-box" class="up-box"></div>
-  </div>` },
+  /* CHECK UPLOADS IS GONE (owner, 26 Oct: "delete this"): authoriseDrive's log in the editor says READY. */
 
 
   /* ---------- THE WHITEBOARD § */

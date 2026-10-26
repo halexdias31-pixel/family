@@ -501,24 +501,8 @@ async function screens() {
   }
   if (!bad.some(x => /^(the thread|sending)/.test(x))) said.push('the thread: an <img> that opens the file and a <video controls playsinline preload=metadata> on both sides');
 
-  /* ---------- CHECK UPLOADS FROM THE TOOLS COLUMN --------------------------------------------------- */
-  const tools = A.u.widgetsOf_('tool').map(x => x.id);
-  if (tools.indexOf('uploads') < 0) fail('the tool', 'an admin\'s Tools column has no Check uploads');
-  if (T.u.widgetsOf_('tool').some(x => x.id === 'uploads')) fail('the tool', 'a tutor\'s Tools column offers Check uploads');
-  A.u.go('tools');
-  /* FORTY-FIVE SECONDS, AS THE LOAD ABOVE: § */
-  await until(() => A.d.querySelector('#s-tools .up-box [data-do="uploads-check"]'), 45000);
-  const tile = A.d.querySelector('#s-tools .up-box [data-do="uploads-check"]');
-  if (!tile) fail('the tool', 'the Tools column drew no Check uploads tile for an admin');
-  else {
-    const made = W.w.made.length;
-    A.u.ACTIONS['uploads-check'](tile);
-    await until(() => A.d.querySelector('#s-tools .up-box .up-list'), 15000);
-    const rows = A.d.querySelectorAll('#s-tools .up-box .up-row.is-ok');
-    const verdict = (A.d.querySelector('#s-tools .up-box .up-said') || {}).textContent || '';
-    if (rows.length !== 4 || !/^Ready/.test(verdict.trim())) fail('the tool', 'a working deployment drew ' + rows.length + ' ticks and "' + verdict.trim() + '"');
-    if (W.w.made.length !== made + 1 || !W.w.made[W.w.made.length - 1].trashed) fail('the tool', 'pressing it did not make and bin exactly one test file');
-  }
+  /* ---------- NO CHECK UPLOADS WIDGET: the owner deleted it (26 Oct) ---------- */
+  if (A.u.widgetsOf_('tool').some(x => x.id === 'uploads')) fail('the tool', 'the Tools column still offers Check uploads, which the owner deleted');
 
   /* ---------- A READ-ONLY DEPLOYMENT: THE REFUSAL ON THE SCREEN, AND WORDS ONLY ------------------- */
   const R = world({ scopes: READONLY });
