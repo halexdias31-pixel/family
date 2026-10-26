@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-26-h-layout-tiles";
+const DOPOST_VERSION = "2026-10-26-i-trips-are-items";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -2579,12 +2579,11 @@ function doPost(e) {
           booked_by: key(S(body.name)) === key(me) ? '' : S(body.name),
           /* THE MONEY BLOCK, AS THE PHONE PRICED IT (docs/history/353) — blank from an older phone, never a nought, for `tutor_pay`'s reason. § */
           gross: cash(body.gross), tutor_payout: cash(body.tutorPayout), venue_cost: cash(body.venueCost),
-          materials_charge: cash(body.materialsCharge), materials_cost: cash(body.materialsCost),
-          tickets_cost: cash(body.ticketsCost), card_fees: cash(body.cardFees), net_profit: cash(body.netProfit),
+          /* NO MATERIALS, TICKETS OR FORMAT FROM A PHONE ANY MORE (463): trips and practicals are shop items. An older phone's fields are ignored; old rows keep theirs. */
+          card_fees: cash(body.cardFees), net_profit: cash(body.netProfit),
           discount_type: S(body.discountType), discount_value: cash(body.discountValue),
           discount_code: S(body.discountCode),
           discount_absorbed_by: S(body.discountType) ? (S(body.discountAbsorbedBy) || 'Business') : '',
-          format: S(body.format), practical_id: S(body.practicalId), trip_id: S(body.tripId),
         });
         if (codeRow) setCell(codes, codeRow, 'used', N(codeRow.used) + 1);
 

@@ -120,7 +120,7 @@ const NOTIFY_KINDS = {
 };
 
 /* Bumped on every paste that changes behaviour. § */
-const BACKEND_VERSION = "2026-10-26-h-layout-tiles";
+const BACKEND_VERSION = "2026-10-26-i-trips-are-items";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {

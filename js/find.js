@@ -184,7 +184,7 @@ function thingCard_(x, credits) {
   /* One card shape for both, because they are the same kind of thing to a person looking for one: § */
   {
     const free = x.cost === 0;
-    const afford = x.kind === 'shop' && !free && credits >= x.cost;
+    const afford = x.kind === 'shop' && !free && !x.pence && credits >= x.cost;
     /* WHAT IT TAKES TO HAVE IT. § */
     const myLevel = Math.floor((Number(USER && USER.xp) || 0) / 10);
     /* ---------- AND A FOURTH ANSWER: NOBODY HAS PRICED IT § */
@@ -195,7 +195,7 @@ function thingCard_(x, credits) {
       : x.cost === undefined
         ? `<span class="price is-unpriced">not priced yet</span>`
       : `<span class="price ${free ? 'free' : afford ? 'can' : ''}">${
-          free ? 'free' : x.cost + ' credits'}</span>`;
+          free ? 'free' : x.pence ? money(x.cost / 100) : x.cost + ' credits'}</span>`;
     /* A wearable is a THIRD kind of thing on this list, beside a resource and a bought object —
        so it is marked as one and coloured as one, the same way a subject and a venue are. */
     /* ---------- A QUESTION IS A QUESTION. THERE ARE NO DOCUMENTS ON THIS SCREEN. § */
@@ -8632,6 +8632,8 @@ function stuffItemsRaw_() {
          is a different answer; see `priced_`. */
       /* ---------- AND A BLANK PRICE CELL IS NOT A PRICE OF NOUGHT, ON THIS MAPPER TOO § */
       cost: priced_(x.price), slot: x.slot || '',
+      /* PENCE ARE MONEY (463): the basket takes them as money (`cartPrice_`), so the card says £, not credits. */
+      pence: String(x.unit || '').trim() === 'p',
       /* THE EXAM FIELDS ARE NOT WRITTEN BLANK ANY MORE. § */
       /* WHETHER IT IS A WEARABLE, AND WHAT IT COSTS TO REACH. § */
       wearable: isWearable(x),
