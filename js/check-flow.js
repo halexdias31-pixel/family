@@ -29182,6 +29182,34 @@ const layCardTile_ = (d, id, act, dir) => layCardRow_(d, id)?.querySelector(`[da
 const laySeen_ = (w, col) => w.cardSeen_(col);
 const layLast_ = sent => ((sent.filter(x => x.action === 'layoutSave').pop() || {}).layout) || null;
 
+/* A CARD MOVED ACROSS IS ON A PAGE THE PAGER COUNTS (476): the count was the builder's, the column drawn `cardsOf_`'s, so a moved-in card sat past the last page. */
+const layReach_ = (w, col, id) => {
+  const host = w.document.getElementById('s-' + col), pages = host ? [...host.querySelectorAll(':scope > .page')] : [];
+  const at = pages.findIndex(p => p.querySelector(`.card-admin[data-lay-for="${id}"]`));
+  let n = -1; try { n = w.__t.pageCount(col); } catch (e) {}
+  return at === -1 ? col + ' does not draw ' + id : at >= n ? col + ' draws ' + id + ' on page ' + (at + 1) + ' of ' + pages.length + ' and its pager counts ' + n : '';
+};
+check('a card moved ◀ into the next column is on a page that column scrolls to — Business into Profiles: parents, parents into students — and still after a reload (476)', async () => {
+  const { w, sent } = layBoot_();
+  await wait(300);
+  const A = w.__t.ACTIONS, d = w.document, bad = [];
+  if (!A['lay-c-col'] || typeof w.__t.pageCount !== 'function') return ['no lay-c-col or pageCount — NOT checked'];
+  await layPaintAll_(w);
+  const moves = [];
+  for (const [from, to] of [['biz', 'parents'], ['parents', 'students']]) {
+    const seen = laySeen_(w, from).filter(x => !moves.some(m => m[1] === x)), id = from === 'biz' ? seen[0] : seen[seen.length - 1];
+    const tile = id && layCardTile_(d, id, 'lay-c-col', '-1');
+    if (!tile) { bad.push(from + ' has no ◀ card to move — NOT checked'); continue; }
+    A['lay-c-col'](tile); await wait(300); await layPaintAll_(w);
+    const why = layReach_(w, to, id); if (why) bad.push(why);
+    moves.push([to, id]);
+  }
+  const p = payload(); p.layout = layLast_(sent);
+  const r = layBoot_({ payload: p }); await wait(300); await layPaintAll_(r.w);
+  moves.forEach(([to, id]) => { const why = layReach_(r.w, to, id); if (why) bad.push('after a reload: ' + why); });
+  return bad;
+});
+
 check('layout cards (465): an admin sees ▲ ▼ ◀ ▶ Start here Delete on every settings, profiles and Business card (Split beside them on a card of several fields); a settings card moves down, up and to another settings column, one layoutSave each, every setting still edited in one place, a reload keeps it; Business cards reorder and "+ Add a student" goes to the bottom', async () => {
   const { w, sent } = layBoot_();
   await wait(300);
