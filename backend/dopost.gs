@@ -1,7 +1,7 @@
 /* @family. — 70_doPost.gs (8 of 8) EVERY ACTION. § */
 
 /* ---------- THIS FILE'S OWN STAMP § */
-const DOPOST_VERSION = "2026-10-26-r-post-faces-reel-upload";
+const DOPOST_VERSION = "2026-10-26-z5-no-undo";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -2981,16 +2981,15 @@ function doPost(e) {
     }
 
     /* ---------- THE ADMIN'S LAYOUT (462, 463): the site-wide order of widgets, one `layout` row on config ---------- */
-    /* `reset` (or no layout) empties the cell, and every phone goes back to the code's own order. */
+    /* NO RESET (477): the layout an admin makes is THE layout; nothing empties it. */
     if (action === 'layoutSave') {
       const me = findPerson('', S(body.personId));
       if (!me || !rankAtLeast_(me, 'admin')) return jsonOut({ error: 'Not authorised.' });
       const raw = body.layout;
-      const reset = TRUE_(body.reset) || raw === null || raw === undefined || raw === '';
-      if (!reset && typeof raw === 'string' && raw.length > LAYOUT_MAX) return jsonOut({ error: 'That layout is too big to keep.' });
-      const clean = reset ? null : layoutClean_(raw);
-      if (!reset && !clean) return jsonOut({ error: 'That layout could not be read. Nothing was saved.' });
-      const value = clean ? JSON.stringify(clean) : '';
+      if (typeof raw === 'string' && raw.length > LAYOUT_MAX) return jsonOut({ error: 'That layout is too big to keep.' });
+      const clean = layoutClean_(raw);
+      if (!clean) return jsonOut({ error: 'That layout could not be read. Nothing was saved.' });
+      const value = JSON.stringify(clean);
       const t = read(TAB.config);
       if (!t.sheet) return jsonOut({ error: 'There is no config tab to keep the layout on.' });
       const row = t.rows.find(r => norm(r.key) === LAYOUT_KEY);

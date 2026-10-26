@@ -185,7 +185,7 @@ on('lay-w-col', el => {
   D.widgets[to].push(id);
   layoutSave_(D);
 });
-/* DELETE ASKS TWICE, IN PLACE: the tile says "Tap again to delete" for three seconds — never a pop-up. */
+/* DELETE ASKS TWICE, IN PLACE, THEN IS FINAL (477): `deleted` only keeps it from being drawn again; there is no undo. */
 on('lay-w-del', el => {
   if (!layoutIsAdmin_()) return;
   const id = el.getAttribute('data-w');
@@ -206,47 +206,17 @@ on('lay-w-del', el => {
   if (D.deleted.indexOf(id) === -1) D.deleted.push(id);
   layoutSave_(D);
 });
-/* ADD BACK: to the end of its own default column. */
-on('lay-w-undel', el => {
-  if (!layoutIsAdmin_()) return;
-  const s = (el && el.closest && el.closest('.card') && el.closest('.card').querySelector('.lay-del-pick')) || document.querySelector('.lay-del-pick');
-  const id = s && s.value, L = layoutNow_();
-  if (!id || !L) return;
-  const D = layoutDraftOf_(L);
-  D.deleted = D.deleted.filter(x => x !== id);
-  /* A CARD GOES BACK TO ITS OWN COLUMN, last there: out of every column's list, so its default places it. */
-  if (!layoutWidgetOf_(id) && cardIs_(id)) { cardUnlist_(D, id); return layoutSave_(D); }
-  const w = layoutWidgetOf_(id), col = w && LAYOUT_COL[w.kind];
-  if (col && D.widgets[col]) D.widgets[col].push(id);
-  layoutSave_(D);
-});
-on('layout-reset', () => { if (layoutIsAdmin_()) layoutSave_(null); });
-
 /* ---------- SAVED FOR EVERYBODY, DRAWN AT ONCE, PUT BACK IF THE SHEET SAYS NO ---------- */
 function layoutSave_(next) {
-  if (!layoutIsAdmin_()) return Promise.resolve(false);
+  if (!layoutIsAdmin_() || !next) return Promise.resolve(false);
   const was = layoutNow_();
-  if (next) customPrune_(next);
+  customPrune_(next);
   const set = v => { try { DATA.layout = v; } catch (e) {} layoutKeep_(v); layoutRelayout_(); };
-  const val = next ? layoutSane_(next) : null;
+  const val = layoutSane_(next);
   set(val);
-  return send({ action: 'layoutSave', personId: (USER && USER.personId) || '', layout: val, reset: next ? '' : 'TRUE' })
-    .then(() => { if (!next) toast('Layout back to the default'); return true; })
+  return send({ action: 'layoutSave', personId: (USER && USER.personId) || '', layout: val })
+    .then(() => true)
     .catch(err => { set(was); toast(String((err && err.message) || 'The layout did not save')); return false; });
-}
-
-/* ---------- THE BUSINESS CARD: a deleted widget back, and Reset ---------- */
-function layoutCard_() {
-  if (!layoutIsAdmin_()) return '';
-  const L = layoutNow_();
-  /* DELETED CARDS TOO (465), by their titles — Add back returns one to its own column. */
-  const del = ((L && L.deleted) || []).filter(id => layoutWidgetOf_(id) || cardIs_(id));
-  const opts = del.map(id => `<option value="${esc(id)}">${esc(layoutWidgetOf_(id) ? (layoutWidgetOf_(id).name || id) : cardLabel_(id))}</option>`).join('');
-  return `<div class="card layout-card"><h3>Layout</h3>
-    <p class="faint">${L ? 'Your own order of widgets, for everyone.' : 'The default order of widgets.'} Each widget's and each card's admin tiles move or delete it.</p>
-    ${del.length ? `<label class="field"><span>Deleted widgets and cards</span><select class="lay-del-pick" aria-label="Deleted widgets and cards">${opts}</select></label>` : ''}
-    ${del.length || L ? `<div class="tile-row">${del.length ? tile_({ icon: 'undo', label: 'Add back', act: 'lay-w-undel' }) : ''}${
-      L ? tile_({ icon: 'undo', label: 'Reset layout', act: 'layout-reset' }) : ''}</div>` : ''}</div>`;
 }
 
 /* ---------- SPLIT AND JOIN (464): an admin draws a card of several fields as a card a field, in the same place, for everybody § */
@@ -318,7 +288,6 @@ const CARD_REG = [
   { id: 'biz:staff', col: 'biz', label: 'Staff', re: /^<div class="card biz staff-card/, say: 'Who teaches, whether they agreed the terms, and their statements.' },
   { id: 'biz:reports', col: 'biz', label: 'Reports', re: /^<div class="card biz reports/, say: 'Reports people have sent about posts or questions.' },
   { id: 'biz:libimp', col: 'biz', label: 'Library import', re: /^<div class="card biz libimp/, say: 'Bring new questions and their words into the library.' },
-  { id: 'biz:layout', col: 'biz', label: 'Layout', re: /^<div class="card layout-card/, say: 'Deleted cards and widgets back, and Reset layout.' },
   { id: 'biz:build', col: 'biz', label: 'Build', re: /class="me-build"/, say: 'Which version of the site and backend is running.' },
 ].concat(ownSecReg_());
 /* YOUR OWN CARD'S SECTIONS, A CARD EACH (468): `own:<col>:<section>`, the col the lowest rank it applies to, the same for everyone (469). */
@@ -500,8 +469,6 @@ function cardsOf_(col) {
     });
   });
   if (start === 'first-person' && firstP !== -1) CARD_START_AT[col] = firstP;
-  /* BUSINESS'S LAST LINE WHILE ANYTHING IS DELETED and the Layout card is gone with it: the way back, never a pop-up (465). */
-  if (col === 'biz' && admin && L && (L.deleted || []).length && !CARD_SEEN.biz.includes('biz:layout')) out.push(layoutFoot_(L));
   if (!out.length) return [`<div class="card"><h3>${esc(typeof tabLabel_ === 'function' ? tabLabel_(col, col) : col)}</h3></div>`];
   return out;
 }
@@ -533,14 +500,6 @@ function cardAdminRow_(id, col) {
       data: { lc: id, col: col, d: 1 }, off: ci === -1 || (ci >= cols.length - 1 && (col === 'biz' || !customRoom_())) })}${
     startTile_(col, id, start)}${
     tile_({ icon: 'bin', label: 'Delete', act: 'lay-c-del', tone: 'admin', data: { lc: id }, cls: 'lay-del' })}</div>`;
-}
-/* THE WAY BACK WHEN THE LAYOUT CARD ITSELF IS DELETED: one small line at the foot of Business, while anything is deleted. */
-function layoutFoot_(L) {
-  const del = (L.deleted || []).filter(id => layoutWidgetOf_(id) || cardIs_(id));
-  const opts = del.map(id => `<option value="${esc(id)}">${esc(layoutWidgetOf_(id) ? (layoutWidgetOf_(id).name || id) : cardLabel_(id))}</option>`).join('');
-  return `<div class="card lay-foot"><p class="faint">Deleted cards (${del.length})</p>
-    ${del.length ? `<select class="lay-del-pick" aria-label="Deleted widgets and cards">${opts}</select>` : ''}
-    <div class="tile-row">${del.length ? tile_({ icon: 'undo', label: 'Add back', act: 'lay-w-undel' }) : ''}${tile_({ icon: 'undo', label: 'Reset layout', act: 'layout-reset' })}</div></div>`;
 }
 /* A COLUMN'S LIST AS THE ADMIN SEES IT, with any card named there but not drawn for them kept at the end. */
 function cardListOf_(col, L) {
